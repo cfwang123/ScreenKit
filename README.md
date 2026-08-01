@@ -77,7 +77,16 @@ Run:
 
 A plain build does **not** ship models, `onnxcpu64`, full CUDA, or FFmpeg. Use **Tools → Install features** (or first-run wizard) inside the app.
 
-> Prefer running the **`net48`** output. Do not rely on incomplete side folders that only copy the exe without runtimes.
+### Slim release package (`bin\Release\WpfOCR\`)
+
+Release builds also produce a **small redistributable** under `WpfOCR\bin\Release\WpfOCR\`:
+
+- Includes: `WpfOCR.exe`, managed dependencies, **`wetext/`** (ITN), Assets, LICENSE.
+- Does **not** include: OCR/ASR/TTS models, `onnxcpu64` / `onnxgpu64` / `onnxdml64`, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
+- End users install those via **Install features** (downloads from mirrors / NuGet CDN).
+- **Translation** is not covered by the installer: place Opus-MT ONNX under `translatemodels/` yourself if needed.
+
+For local development with models and GPU already present, run **`bin\Release\net48\`** instead.
 
 ## In-app install (recommended)
 

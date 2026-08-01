@@ -13,7 +13,7 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <PlatformTarget>x64</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
-    <!-- 默认 Release；请用 -c Release / slx Release，勿依赖 Debug -->
+    <!-- 默认 Release；请用 -c Release，勿依赖 Debug -->
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
     <!-- 保留 net10.0-windows 目录：切勿对 bin 整树 Clean；勿改此路径到 net10.0-windows -->
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
@@ -195,6 +195,52 @@
     <Copy SourceFiles="@(_DmlCopy)" DestinationFolder="$(_OutDml)" SkipUnchangedFiles="true" Condition="'@(_DmlCopy)' != ''" />
     <Warning Text="未生成 onnxdml64（核显 DirectML）。请确认已还原 Microsoft.ML.OnnxRuntime.DirectML 1.24.4" Condition="'$(Configuration)' == 'Release' And !Exists('$(_OutDml)\onnxruntime.dll')" />
     <!-- onnxcpu64 按需安装（FeatureKind.OrtCpu），不随编译附带 -->
+  </Target>
+
+  <!--
+    精简发布包：bin\Release\WpfOCR\
+    仅托管程序 + wetext/Assets/许可证；模型与 ORT/OpenCV/FFmpeg 等通过应用内「安装功能」获取。
+    翻译模型需自行放到 translatemodels/（不在安装窗内）。
+  -->
+  <Target Name="PackageSlimRelease" AfterTargets="CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <_SlimOut>$(MSBuildProjectDirectory)\bin\Release\WpfOCR</_SlimOut>
+    </PropertyGroup>
+    <MakeDir Directories="$(_SlimOut)" />
+    <ItemGroup>
+      <_SlimRoot Include="$(OutputPath)*.dll" />
+      <_SlimRoot Include="$(OutputPath)*.exe" />
+      <_SlimRoot Include="$(OutputPath)*.config" />
+      <_SlimRoot Include="$(OutputPath)LICENSE" Condition="Exists('$(OutputPath)LICENSE')" />
+      <_SlimRoot Include="$(OutputPath)THIRD_PARTY_NOTICES.md" Condition="Exists('$(OutputPath)THIRD_PARTY_NOTICES.md')" />
+      <!-- 按需安装的原生库不进精简包（应用内「安装功能」下载） -->
+      <_SlimRoot Remove="$(OutputPath)OpenCvSharpExtern.dll" />
+      <_SlimRoot Remove="$(OutputPath)libSkiaSharp.dll" />
+      <_SlimRoot Remove="$(OutputPath)pdfium.dll" />
+      <_SlimRoot Remove="$(OutputPath)sherpa-onnx-c-api.dll" />
+      <_SlimRoot Remove="$(OutputPath)onnxruntime.dll" />
+      <_SlimRoot Remove="$(OutputPath)onnxruntime_providers_*.dll" />
+      <_SlimRoot Remove="$(OutputPath)*.lib" />
+      <_SlimRoot Remove="$(OutputPath)*.pdb" />
+      <_SlimWet Include="$(OutputPath)wetext\**\*.*" Condition="Exists('$(OutputPath)wetext')" />
+      <_SlimAssets Include="$(OutputPath)Assets\**\*.*" Condition="Exists('$(OutputPath)Assets')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_SlimWet)"
+          DestinationFiles="@(_SlimWet->'$(_SlimOut)\wetext\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(_SlimWet)' != ''" />
+    <Copy SourceFiles="@(_SlimAssets)"
+          DestinationFiles="@(_SlimAssets->'$(_SlimOut)\Assets\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true"
+          Condition="'@(_SlimAssets)' != ''" />
+    <!-- 若上次发布残留按需库/junk，删掉以免误带进压缩包 -->
+    <ItemGroup>
+      <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
+      <_SlimJunk Include="$(_SlimOut)\OpenCvSharpExtern.dll;$(_SlimOut)\libSkiaSharp.dll;$(_SlimOut)\pdfium.dll;$(_SlimOut)\sherpa-onnx-c-api.dll" />
+    </ItemGroup>
+    <Delete Files="@(_SlimJunk)" TreatErrorsAsWarnings="true" Condition="'@(_SlimJunk)' != ''" />
+    <Message Importance="high" Text="Slim release package: $(_SlimOut)" />
   </Target>
 
 </Project>

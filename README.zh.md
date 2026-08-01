@@ -77,7 +77,16 @@ dotnet build -c Release
 
 纯编译**不会**附带模型、`onnxcpu64`、完整 CUDA 或 FFmpeg。请在程序内使用 **工具 → 安装功能**（或首次启动向导）。
 
-> 请使用 **`net48`** 输出目录运行。勿使用只拷了 exe、缺少运行库的旁路目录。
+### 精简发布包（`bin\Release\WpfOCR\`）
+
+Release 编译后会同步生成可对外分发的精简目录 `WpfOCR\bin\Release\WpfOCR\`：
+
+- **包含**：`WpfOCR.exe`、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
+- **不含**：OCR/ASR/TTS 模型、`onnxcpu64` / GPU / 核显、OpenCV 等原生库、`ffmpeg64`。
+- 用户通过 **安装功能** 按需下载（国内镜像 / NuGet CDN）。
+- **翻译**不在安装窗内：如需翻译，自行将 Opus-MT ONNX 放到 `translatemodels/`。
+
+本机开发且已有模型/GPU 时，请继续用 **`bin\Release\net48\`**。
 
 ## 应用内安装（推荐）
 

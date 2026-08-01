@@ -543,10 +543,10 @@ static class FeatureInstaller {
 			installcuda(log, progress);
 			break;
 		case FeatureKind.DirectMl:
-			installdml(log, progress);
+			await installdml(log, progress, ct).ConfigureAwait(false);
 			break;
 		case FeatureKind.OrtCpu:
-			installortcpu(log, progress);
+			await installortcpu(log, progress, ct).ConfigureAwait(false);
 			break;
 		case FeatureKind.Ffmpeg:
 			await installffmpeg(log, progress, ct).ConfigureAwait(false);
@@ -1057,106 +1057,173 @@ arabic_dict.txt
 		log?.Report("onnxgpu64 安装结束（GPU 模块需重启程序后生效）");
 	}
 
-	static void installdml(IProgress<string> log, IProgress<InstallProgress> progress) {
+	static async Task installdml(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		Directory.CreateDirectory(OnnxDmlDir);
-		reportprog(progress, 0.2, note: "准备 DirectML…");
-		var nuget = nugetroot();
-		var ortDml = Path.Combine(nuget, "microsoft.ml.onnxruntime.directml", OrtDmlVer,
-			"runtimes", "win-x64", "native");
-		var dmlDll = Path.Combine(nuget, "microsoft.ai.directml", DmlVer, "bin", "x64-win", "DirectML.dll");
-
-		if (!File.Exists(Path.Combine(ortDml, "onnxruntime.dll"))) {
-			log?.Report("NuGet 中无 DirectML 包，尝试 dotnet restore…");
-			trydotnetrestore(log);
+		reportprog(progress, 0.1, note: "准备 DirectML…");
+		// 本地 NuGet 缓存优先，否则从 CDN 下载 nupkg（精简发布包无本机缓存）
+		await extractnupkgfiles(
+			"microsoft.ml.onnxruntime.directml", OrtDmlVer,
+			new[] {
+				("runtimes/win-x64/native/onnxruntime.dll", Path.Combine(OnnxDmlDir, "onnxruntime.dll")),
+				("runtimes/win-x64/native/onnxruntime_providers_shared.dll",
+					Path.Combine(OnnxDmlDir, "onnxruntime_providers_shared.dll")),
+			},
+			log, progress, ct, ExpectedSize(FeatureKind.DirectMl) * 8 / 10).ConfigureAwait(false);
+		try {
+			await extractnupkgfiles(
+				"microsoft.ai.directml", DmlVer,
+				new[] {
+					("bin/x64-win/DirectML.dll", Path.Combine(OnnxDmlDir, "DirectML.dll")),
+				},
+				log, progress, ct, 18L * 1024 * 1024).ConfigureAwait(false);
 		}
-		if (!File.Exists(Path.Combine(ortDml, "onnxruntime.dll")))
-			throw new InvalidOperationException(
-				$"未找到 Microsoft.ML.OnnxRuntime.DirectML {OrtDmlVer}。请先还原 NuGet 包后重试。");
-
-		long done = 0, total = 0;
-		foreach (var f in new[] { "onnxruntime.dll", "onnxruntime_providers_shared.dll" }) {
-			var src = Path.Combine(ortDml, f);
-			if (File.Exists(src))
-				try { total += new FileInfo(src).Length; } catch { }
+		catch (Exception ex) {
+			log?.Report("DirectML.dll 下载失败（系统目录可能仍可用）: " + ex.Message);
 		}
-		if (File.Exists(dmlDll))
-			try { total += new FileInfo(dmlDll).Length; } catch { }
-
-		foreach (var f in new[] { "onnxruntime.dll", "onnxruntime_providers_shared.dll" }) {
-			var src = Path.Combine(ortDml, f);
-			if (File.Exists(src)) {
-				File.Copy(src, Path.Combine(OnnxDmlDir, f), true);
-				try { done += new FileInfo(src).Length; } catch { }
-				log?.Report("复制 " + f);
-				reportprog(progress, 0.3 + 0.5 * (total > 0 ? done / (double)total : 0.5), done, total, f);
-			}
-		}
-		if (File.Exists(dmlDll)) {
-			File.Copy(dmlDll, Path.Combine(OnnxDmlDir, "DirectML.dll"), true);
-			try { done += new FileInfo(dmlDll).Length; } catch { }
-			log?.Report("复制 DirectML.dll");
-			reportprog(progress, 0.95, done, total, "DirectML.dll");
-		}
-		else
-			log?.Report("警告: 未找到 DirectML.dll（系统目录可能仍可用）");
-
 		if (!File.Exists(Path.Combine(OnnxDmlDir, "onnxruntime.dll")))
 			throw new InvalidOperationException("onnxdml64 安装失败");
-		reportprog(progress, 1, done, total > 0 ? total : done, note: "完成");
+		reportprog(progress, 1, note: "完成");
 		log?.Report("onnxdml64 完成（核显模块需重启程序后生效）");
 	}
 
-	/// <summary>安装 CPU 用 ORT 到 onnxcpu64（优先 Gpu.Windows 1.27.1，与托管包一致）。</summary>
-	static void installortcpu(IProgress<string> log, IProgress<InstallProgress> progress) {
+	/// <summary>
+	/// 安装 CPU 用 ORT 到 onnxcpu64。
+	/// 优先本机 NuGet / 已有 onnxgpu64；否则下载 Gpu.Windows nupkg（与托管 1.27.1 同源，仅抽主 DLL）。
+	/// </summary>
+	static async Task installortcpu(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		Directory.CreateDirectory(OnnxCpuDir);
-		reportprog(progress, 0.1, note: "准备 ONNX Runtime CPU…");
-		var nuget = nugetroot();
-		var ortGpu = Path.Combine(nuget, "microsoft.ml.onnxruntime.gpu.windows", OrtGpuVer,
-			"runtimes", "win-x64", "native");
-		var ortDml = Path.Combine(nuget, "microsoft.ml.onnxruntime.directml", OrtDmlVer,
-			"runtimes", "win-x64", "native");
-		var srcDir = File.Exists(Path.Combine(ortGpu, "onnxruntime.dll")) ? ortGpu
-			: File.Exists(Path.Combine(ortDml, "onnxruntime.dll")) ? ortDml
-			: null;
-		if (srcDir == null) {
-			log?.Report("NuGet 中无 ORT 包，尝试 dotnet restore…");
-			trydotnetrestore(log);
-			srcDir = File.Exists(Path.Combine(ortGpu, "onnxruntime.dll")) ? ortGpu
-				: File.Exists(Path.Combine(ortDml, "onnxruntime.dll")) ? ortDml
-				: null;
+		reportprog(progress, 0.05, note: "准备 ONNX Runtime CPU…");
+
+		// 1) 开发机：本地库 / NuGet 缓存直接拷
+		string srcDir = null;
+		foreach (var c in libcandidates("WPF_OCR_CUDA_LIB", "onnxgpu64")) {
+			if (File.Exists(Path.Combine(c, "onnxruntime.dll"))) { srcDir = c; break; }
 		}
-		// 开发机本地库回退：从已有 onnxgpu64 拷贝主 DLL
 		if (srcDir == null) {
-			foreach (var c in libcandidates("WPF_OCR_CUDA_LIB", "onnxgpu64")) {
-				if (File.Exists(Path.Combine(c, "onnxruntime.dll"))) {
-					srcDir = c;
-					break;
+			var nuget = nugetroot();
+			var ortGpu = Path.Combine(nuget, "microsoft.ml.onnxruntime.gpu.windows", OrtGpuVer,
+				"runtimes", "win-x64", "native");
+			var ortDml = Path.Combine(nuget, "microsoft.ml.onnxruntime.directml", OrtDmlVer,
+				"runtimes", "win-x64", "native");
+			if (File.Exists(Path.Combine(ortGpu, "onnxruntime.dll"))) srcDir = ortGpu;
+			else if (File.Exists(Path.Combine(ortDml, "onnxruntime.dll"))) srcDir = ortDml;
+		}
+		if (srcDir != null) {
+			long done = 0, total = 0;
+			var files = new List<string> { "onnxruntime.dll" };
+			if (File.Exists(Path.Combine(srcDir, "onnxruntime_providers_shared.dll")))
+				files.Add("onnxruntime_providers_shared.dll");
+			foreach (var f in files)
+				try { total += new FileInfo(Path.Combine(srcDir, f)).Length; } catch { }
+			foreach (var f in files) {
+				var src = Path.Combine(srcDir, f);
+				if (!File.Exists(src)) continue;
+				File.Copy(src, Path.Combine(OnnxCpuDir, f), true);
+				try { done += new FileInfo(src).Length; } catch { }
+				log?.Report("本地复制 " + f);
+				reportprog(progress, 0.2 + 0.7 * (total > 0 ? done / (double)total : 0.5), done, total, f);
+			}
+		}
+		else {
+			// 2) 精简发布：从 NuGet CDN 下载 nupkg 解压
+			log?.Report("本机无 ORT 缓存，从 NuGet 下载…");
+			await extractnupkgfiles(
+				"microsoft.ml.onnxruntime.gpu.windows", OrtGpuVer,
+				new[] {
+					("runtimes/win-x64/native/onnxruntime.dll", Path.Combine(OnnxCpuDir, "onnxruntime.dll")),
+					("runtimes/win-x64/native/onnxruntime_providers_shared.dll",
+						Path.Combine(OnnxCpuDir, "onnxruntime_providers_shared.dll")),
+				},
+				log, progress, ct, ExpectedSize(FeatureKind.OrtCpu)).ConfigureAwait(false);
+		}
+
+		if (probecpu() != FeatureInstallState.Installed)
+			throw new InvalidOperationException("onnxcpu64 安装失败（onnxruntime.dll 无效）");
+		reportprog(progress, 1, note: "完成");
+		log?.Report("onnxcpu64 完成（CPU 推理可用；若曾加载失败请重启程序）");
+	}
+
+	/// <summary>从本机 NuGet 缓存或 CDN nupkg 解出指定条目到目标路径。</summary>
+	static async Task extractnupkgfiles(
+		string packageId, string version,
+		(string ZipPath, string DestPath)[] files,
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct,
+		long sizeHint) {
+		if (files.All(f => File.Exists(f.DestPath) && new FileInfo(f.DestPath).Length > 1000)) {
+			log?.Report("已存在: " + string.Join(", ", files.Select(f => Path.GetFileName(f.DestPath))));
+			return;
+		}
+
+		// 本地缓存
+		try {
+			var roots = new List<string>();
+			var env = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
+			if (!string.IsNullOrWhiteSpace(env)) roots.Add(env);
+			roots.Add(Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages"));
+			var id = packageId.ToLowerInvariant();
+			foreach (var root in roots) {
+				var pkgDir = Path.Combine(root, id, version);
+				if (!Directory.Exists(pkgDir)) continue;
+				var allOk = true;
+				foreach (var (rel, dest) in files) {
+					var src = Path.Combine(pkgDir, rel.Replace('/', Path.DirectorySeparatorChar));
+					if (!File.Exists(src)) {
+						var name = Path.GetFileName(dest);
+						var hits = Directory.GetFiles(pkgDir, name, SearchOption.AllDirectories);
+						if (hits.Length == 0) { allOk = false; break; }
+						src = hits[0];
+					}
+					Directory.CreateDirectory(Path.GetDirectoryName(dest) ?? ".");
+					File.Copy(src, dest, true);
+					log?.Report("本地 NuGet → " + Path.GetFileName(dest));
+				}
+				if (allOk) {
+					reportprog(progress, 0.9, note: "本地 NuGet");
+					return;
 				}
 			}
 		}
-		if (srcDir == null || !File.Exists(Path.Combine(srcDir, "onnxruntime.dll")))
-			throw new InvalidOperationException(
-				$"未找到 onnxruntime.dll（需要 Microsoft.ML.OnnxRuntime.Gpu.Windows {OrtGpuVer} 或 DirectML {OrtDmlVer}）。请在已还原 NuGet 的环境安装。");
+		catch (Exception ex) {
+			log?.Report("本地 NuGet: " + ex.Message);
+		}
 
-		long done = 0, total = 0;
-		var files = new List<string> { "onnxruntime.dll" };
-		if (File.Exists(Path.Combine(srcDir, "onnxruntime_providers_shared.dll")))
-			files.Add("onnxruntime_providers_shared.dll");
-		foreach (var f in files) {
-			try { total += new FileInfo(Path.Combine(srcDir, f)).Length; } catch { }
+		Directory.CreateDirectory(CacheDir);
+		var nupkg = Path.Combine(CacheDir, $"{packageId.ToLowerInvariant()}.{version}.nupkg");
+		var file = $"{packageId.ToLowerInvariant()}.{version}.nupkg";
+		var idLow = packageId.ToLowerInvariant();
+		var cn = $"https://nuget.cdn.azure.cn/v3-flatcontainer/{idLow}/{version}/{file}";
+		var global = $"https://api.nuget.org/v3-flatcontainer/{idLow}/{version}/{file}";
+		var urls = PreferCnMirrors() ? new[] { cn, global } : new[] { global, cn };
+		log?.Report($"下载 {packageId} {version} …");
+		await DownloadUrlAsync(urls, nupkg, log, progress, ct, sizeHint).ConfigureAwait(false);
+
+		reportprog(progress, 0.92, file: Path.GetFileName(nupkg), note: "解压…");
+		using (var zs = File.OpenRead(nupkg))
+		using (var zip = new ZipArchive(zs, ZipArchiveMode.Read)) {
+			foreach (var (zipPath, dest) in files) {
+				var entry = zip.GetEntry(zipPath)
+					?? zip.Entries.FirstOrDefault(e =>
+						e.FullName.Replace('\\', '/').EndsWith(
+							Path.GetFileName(dest).Replace('\\', '/'),
+							StringComparison.OrdinalIgnoreCase));
+				if (entry == null) {
+					// providers_shared 可选
+					if (dest.IndexOf("providers_shared", StringComparison.OrdinalIgnoreCase) >= 0) {
+						log?.Report("跳过（包内无）: " + Path.GetFileName(dest));
+						continue;
+					}
+					throw new InvalidOperationException("nupkg 中未找到 " + Path.GetFileName(dest));
+				}
+				Directory.CreateDirectory(Path.GetDirectoryName(dest) ?? ".");
+				using (var src = entry.Open())
+				using (var dst = File.Create(dest))
+					src.CopyTo(dst);
+				log?.Report($"写出 {Path.GetFileName(dest)} ({FormatBytes(new FileInfo(dest).Length)})");
+			}
 		}
-		foreach (var f in files) {
-			var src = Path.Combine(srcDir, f);
-			if (!File.Exists(src)) continue;
-			File.Copy(src, Path.Combine(OnnxCpuDir, f), true);
-			try { done += new FileInfo(src).Length; } catch { }
-			log?.Report("复制 " + f);
-			reportprog(progress, 0.2 + 0.7 * (total > 0 ? done / (double)total : 0.5), done, total, f);
-		}
-		if (probecpu() != FeatureInstallState.Installed)
-			throw new InvalidOperationException("onnxcpu64 安装失败（onnxruntime.dll 无效）");
-		reportprog(progress, 1, done, total > 0 ? total : done, note: "完成");
-		log?.Report("onnxcpu64 完成（CPU 推理可用，无需重启；若曾加载失败请重启程序）");
 	}
 
 	static async Task installffmpeg(IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
