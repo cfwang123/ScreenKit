@@ -1,0 +1,434 @@
+using System.IO;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using OpenCvSharp;
+
+namespace WpfOCR;
+
+static class ImageUtil {
+	public static Mat Tobgr(BitmapSource src) {
+		NativeRuntime.EnsureOpenCv();
+		BitmapSource bgra;
+		if (src.Format == PixelFormats.Bgra32 || src.Format == PixelFormats.Bgr32)
+			bgra = src;
+		else
+			bgra = new FormatConvertedBitmap(src, PixelFormats.Bgra32, null, 0);
+
+		var w = bgra.PixelWidth;
+		var h = bgra.PixelHeight;
+		var stride = w * 4;
+		var pixels = new byte[stride * h];
+		bgra.CopyPixels(pixels, stride, 0);
+
+		var mat = new Mat(h, w, MatType.CV_8UC3);
+		// BGRA -> BGR
+		unsafe {
+			fixed (byte* p = pixels) {
+				for (int y = 0; y < h; y++) {
+					var srcRow = p + y * stride;
+					var dstRow = (byte*)mat.Ptr(y);
+					for (int x = 0; x < w; x++) {
+						dstRow[x * 3 + 0] = srcRow[x * 4 + 0];
+						dstRow[x * 3 + 1] = srcRow[x * 4 + 1];
+						dstRow[x * 3 + 2] = srcRow[x * 4 + 2];
+					}
+				}
+			}
+		}
+		return mat;
+	}
+
+	/// <summary>
+	/// 重写 DPI 元数据（像素不变）。WPF Image Stretch=None 时按 Dpi 决定 DIP 尺寸，
+	/// 与 OCR 像素坐标不一致会导致叠加框错位；统一到 96 后 DIP=像素。
+	/// </summary>
+	public static BitmapSource Withdpi(BitmapSource src, double dpiX = 96, double dpiY = 96) {
+		if (src == null) return null;
+		if (Math.Abs(src.DpiX - dpiX) < 0.1 && Math.Abs(src.DpiY - dpiY) < 0.1
+			&& (src.Format == PixelFormats.Bgra32 || src.Format == PixelFormats.Pbgra32
+				|| src.Format == PixelFormats.Bgr32))
+			return src;
+
+		BitmapSource bgra = src;
+		if (src.Format != PixelFormats.Bgra32 && src.Format != PixelFormats.Pbgra32
+			&& src.Format != PixelFormats.Bgr32)
+			bgra = new FormatConvertedBitmap(src, PixelFormats.Bgra32, null, 0);
+
+		var w = bgra.PixelWidth;
+		var h = bgra.PixelHeight;
+		var stride = w * 4;
+		var pixels = new byte[stride * h];
+		bgra.CopyPixels(pixels, stride, 0);
+		var bmp = BitmapSource.Create(w, h, dpiX, dpiY, PixelFormats.Bgra32, null, pixels, stride);
+		bmp.Freeze();
+		return bmp;
+	}
+
+	public static BitmapSource Fromfile(string path) {
+		var bi = new BitmapImage();
+		bi.BeginInit();
+		bi.CacheOption = BitmapCacheOption.OnLoad;
+		bi.UriSource = new Uri(path, UriKind.Absolute);
+		bi.EndInit();
+		bi.Freeze();
+		return Withdpi(bi);
+	}
+
+	/// <summary>
+	/// 剪贴板是否有可取用的图片（位图或图片文件路径）。
+	/// 托盘菜单启用态等轻量探测，不解码整图。
+	/// </summary>
+	public static bool Hasclipboardimage() {
+		try {
+			if (Clipboard.ContainsImage()) return true;
+		}
+		catch { }
+		try {
+			if (Clipboard.ContainsFileDropList()) {
+				var files = Clipboard.GetFileDropList();
+				if (files != null) {
+					foreach (string f in files) {
+						if (string.IsNullOrWhiteSpace(f) || !File.Exists(f)) continue;
+						if (isimagepath(f)) return true;
+					}
+				}
+			}
+		}
+		catch { }
+		// 部分环境 ContainsImage 为 false 但 GetImage 仍可用
+		try {
+			var img = Clipboard.GetImage();
+			if (img != null && img.PixelWidth > 0 && img.PixelHeight > 0) return true;
+		}
+		catch { }
+		return false;
+	}
+
+	/// <summary>
+	/// 从剪贴板取图：位图 / 资源管理器复制的图片文件路径（FileDrop）。
+	/// </summary>
+	public static BitmapSource Fromclipboard() {
+		// 1) 资源管理器「复制文件」→ FileDrop（png/jpg 等路径，不是位图）
+		try {
+			if (Clipboard.ContainsFileDropList()) {
+				var files = Clipboard.GetFileDropList();
+				if (files != null) {
+					foreach (string f in files) {
+						if (string.IsNullOrWhiteSpace(f) || !File.Exists(f)) continue;
+						if (!isimagepath(f)) continue;
+						return Fromfile(Path.GetFullPath(f));
+					}
+				}
+			}
+		}
+		catch { }
+
+		// 2) 截图 / 画图「复制」→ 位图
+		// 部分环境 ContainsImage 为 false 但 GetImage 仍可用
+		BitmapSource img = null;
+		try {
+			if (Clipboard.ContainsImage())
+				img = Clipboard.GetImage();
+		}
+		catch { }
+		if (img == null) {
+			try { img = Clipboard.GetImage(); } catch { }
+		}
+		if (img == null) return null;
+
+		// 剪贴板常见 Pbgra32，且 Alpha 全 0 → 显示全透明（黑底上“看不见图”），OCR 仍可读 RGB
+		// 统一拷成不透明 Bgra32 @ 96 DPI
+		BitmapSource bgra = img;
+		if (img.Format != PixelFormats.Bgra32 && img.Format != PixelFormats.Pbgra32
+			&& img.Format != PixelFormats.Bgr32)
+			bgra = new FormatConvertedBitmap(img, PixelFormats.Bgra32, null, 0);
+
+		var w = bgra.PixelWidth;
+		var h = bgra.PixelHeight;
+		if (w <= 0 || h <= 0) return null;
+		var stride = w * 4;
+		var pixels = new byte[stride * h];
+		bgra.CopyPixels(pixels, stride, 0);
+
+		// 预乘 → 直通，并强制不透明
+		var isPremul = bgra.Format == PixelFormats.Pbgra32;
+		for (int i = 0; i < pixels.Length; i += 4) {
+			if (isPremul) {
+				var a = pixels[i + 3];
+				if (a > 0 && a < 255) {
+					pixels[i + 0] = (byte)Math.Min(255, pixels[i + 0] * 255 / a);
+					pixels[i + 1] = (byte)Math.Min(255, pixels[i + 1] * 255 / a);
+					pixels[i + 2] = (byte)Math.Min(255, pixels[i + 2] * 255 / a);
+				}
+			}
+			pixels[i + 3] = 255;
+		}
+
+		var bmp = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, stride);
+		bmp.Freeze();
+		return bmp;
+	}
+
+	static bool isimagepath(string path) {
+		var ext = Path.GetExtension(path)?.ToLowerInvariant();
+		return ext is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp" or ".tif" or ".tiff" or ".gif";
+	}
+
+	/// <summary>复制位图到剪贴板（不透明 BGRA）。失败时重试，并附带 PNG 格式提高兼容性。</summary>
+	/// <param name="existingPngPath">若已有 PNG 文件则复用，避免二次编码。</param>
+	public static void Toclipboard(BitmapSource src, string existingPngPath = null) {
+		if (src == null) throw new ArgumentNullException(nameof(src));
+		var bmp = ensureopaque(src);
+		Exception last = null;
+		for (var i = 0; i < 4; i++) {
+			try {
+				var data = new DataObject();
+				data.SetImage(bmp);
+				tryaddpng(data, bmp, existingPngPath);
+				// copy=false：不 OleFlushClipboard，大图避免卡几十秒
+				setclip(data);
+				return;
+			}
+			catch (Exception ex) {
+				last = ex;
+				try { Thread.Sleep(30 + i * 20); } catch { }
+			}
+		}
+		try {
+			Clipboard.SetImage(bmp);
+			return;
+		}
+		catch (Exception ex) {
+			last = ex;
+		}
+		throw new InvalidOperationException("写入剪贴板失败: " + (last?.Message ?? "unknown"), last);
+	}
+
+	/// <summary>
+	/// 同时放入剪贴板位图 + 临时 PNG 文件（资源管理器可粘贴为文件）。
+	/// 录屏 HUD 等「只要有结果」场景优先用此方法。
+	/// </summary>
+	/// <returns>临时 PNG 完整路径。</returns>
+	public static string Toclipboardimageandfile(BitmapSource src) {
+		if (src == null) throw new ArgumentNullException(nameof(src));
+		var bmp = ensureopaque(src);
+		var path = TmpStore.NewPath("snap", ".png");
+		Savefile(bmp, path);
+		Exception last = null;
+		for (var i = 0; i < 4; i++) {
+			try {
+				putimageandfile(bmp, path);
+				return path;
+			}
+			catch (Exception ex) {
+				last = ex;
+				try { Thread.Sleep(30 + i * 20); } catch { }
+			}
+		}
+		try { Clipboard.SetImage(bmp); } catch (Exception ex) { last = ex; }
+		if (last != null && !File.Exists(path))
+			throw new InvalidOperationException("截图保存失败: " + last.Message, last);
+		return path;
+	}
+
+	/// <summary>
+	/// 写入剪贴板。必须 copy=false：copy=true 会对大图做 OleFlushClipboard，
+	/// 在剪贴板历史/云同步等监听下常阻塞数十秒。
+	/// </summary>
+	static void setclip(DataObject data) {
+		Clipboard.SetDataObject(data, false);
+	}
+
+	/// <summary>附加 PNG 格式；优先复用已落盘文件，避免二次编码。</summary>
+	static void tryaddpng(DataObject data, BitmapSource bmp, string existingPngPath) {
+		try {
+			MemoryStream ms;
+			if (!string.IsNullOrWhiteSpace(existingPngPath) && File.Exists(existingPngPath)) {
+				ms = new MemoryStream(File.ReadAllBytes(existingPngPath));
+			}
+			else {
+				ms = new MemoryStream();
+				var enc = new PngBitmapEncoder();
+				enc.Frames.Add(BitmapFrame.Create(bmp));
+				enc.Save(ms);
+			}
+			ms.Position = 0;
+			data.SetData("PNG", ms, false);
+		}
+		catch { }
+	}
+
+	static void putimageandfile(BitmapSource bmp, string path) {
+		var data = new DataObject();
+		data.SetImage(bmp);
+		tryaddpng(data, bmp, path);
+		if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) {
+			var files = new System.Collections.Specialized.StringCollection { path };
+			data.SetFileDropList(files);
+			data.SetData("Preferred DropEffect",
+				new MemoryStream(BitConverter.GetBytes((int)DragDropEffects.Copy)));
+		}
+		setclip(data);
+	}
+
+	static BitmapSource ensureopaque(BitmapSource src) {
+		var bmp = Withdpi(src);
+		if (bmp.Format != PixelFormats.Bgra32) {
+			var conv = new FormatConvertedBitmap(bmp, PixelFormats.Bgra32, null, 0);
+			conv.Freeze();
+			bmp = conv;
+		}
+		return bmp;
+	}
+
+	/// <summary>程序目录下 screenshots/：截图历史。</summary>
+	public static string ScreenshotsDir {
+		get {
+			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
+			try { Directory.CreateDirectory(dir); } catch { }
+			return dir;
+		}
+	}
+
+	/// <summary>
+	/// 当前截图历史保留天数（主窗配置同步；0=不限）。
+	/// 保存截图时用于清理过期文件。
+	/// </summary>
+	public static int CurrentScreenshotKeepDays = 3;
+
+	/// <summary>截图完成时是否以位图放入剪贴板（与 AsFile 二选一；主窗配置同步）。</summary>
+	public static bool CurrentSnapCopyAsImage = true;
+
+	/// <summary>截图完成时是否以文件放入剪贴板（与 AsImage 二选一；主窗配置同步）。</summary>
+	public static bool CurrentSnapCopyAsFile = false;
+
+	/// <summary>
+	/// 保存到 screenshots/（文件名含时间戳便于排序），并按当前配置写入剪贴板
+	///（图片或文件，二选一）。
+	/// 保存前按保留天数清理过期文件（≤0 表示不限，不清理）。
+	/// </summary>
+	/// <returns>保存的完整路径。</returns>
+	public static string SaveScreenshotAndCopy(BitmapSource src, string prefix = "shot",
+		int? keepDays = null, bool? copyAsImage = null, bool? copyAsFile = null) {
+		if (src == null) throw new ArgumentNullException(nameof(src));
+		var keep = keepDays ?? CurrentScreenshotKeepDays;
+		var asImg = copyAsImage ?? CurrentSnapCopyAsImage;
+		var asFile = copyAsFile ?? CurrentSnapCopyAsFile;
+		// 二选一：显式只要文件则文件，否则图片
+		if (asFile && !asImg) { asImg = false; asFile = true; }
+		else { asImg = true; asFile = false; }
+		try { CleanupScreenshots(keep); } catch { }
+		var dir = ScreenshotsDir;
+		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+		var baseName = $"{(string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim())}_{stamp}";
+		var path = Path.Combine(dir, baseName + ".png");
+		// 极罕见同毫秒：追加序号
+		for (var i = 1; File.Exists(path) && i < 100; i++)
+			path = Path.Combine(dir, $"{baseName}_{i}.png");
+		Savefile(src, path);
+		if (asImg || asFile)
+			copysnapshotclipboard(src, path, asImg, asFile);
+		return path;
+	}
+
+	/// <summary>
+	/// 保存到 screenshots/，并以「复制文件」放入剪贴板（兼容旧调用）。
+	/// </summary>
+	public static string SaveScreenshotAndCopyAsFile(BitmapSource src, string prefix = "shot",
+		int? keepDays = null) =>
+		SaveScreenshotAndCopy(src, prefix, keepDays, copyAsImage: false, copyAsFile: true);
+
+	/// <summary>按选项写入剪贴板：位图或 FileDrop（二选一）。</summary>
+	static void copysnapshotclipboard(BitmapSource src, string path, bool asImage, bool asFile) {
+		if (asFile && !asImage)
+			copyfiletoclipboard(path);
+		else
+			Toclipboard(src, path);
+	}
+
+	/// <summary>
+	/// 删除 screenshots/ 中超过 keepDays 天的文件。
+	/// keepDays ≤ 0：不限，不删除。
+	/// </summary>
+	public static int CleanupScreenshots(int keepDays) {
+		if (keepDays <= 0) return 0;
+		var dir = ScreenshotsDir;
+		if (!Directory.Exists(dir)) return 0;
+		var cutoff = DateTime.Now.AddDays(-keepDays);
+		var n = 0;
+		foreach (var f in Directory.EnumerateFiles(dir, "*", SearchOption.TopDirectoryOnly)) {
+			try {
+				if (File.GetLastWriteTime(f) < cutoff) {
+					File.Delete(f);
+					n++;
+				}
+			}
+			catch { }
+		}
+		return n;
+	}
+
+	/// <summary>打开截图历史目录（资源管理器）。</summary>
+	public static void OpenScreenshotsFolder() {
+		var dir = ScreenshotsDir;
+		try {
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = dir,
+				UseShellExecute = true,
+			});
+		}
+		catch (Exception ex) {
+			throw new InvalidOperationException("无法打开截图历史目录: " + ex.Message, ex);
+		}
+	}
+
+	/// <summary>
+	/// 将图片写入 screenshots/ 时间戳文件，并以「复制文件」形式放入剪贴板。
+	/// （原 tmp/clip_copy 复用路径已弃用，统一走历史目录。）
+	/// </summary>
+	public static string Toclipboardasfile(BitmapSource src) =>
+		SaveScreenshotAndCopyAsFile(src, "shot");
+
+	static void copyfiletoclipboard(string path) {
+		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+			throw new FileNotFoundException("截图文件不存在", path);
+		Exception last = null;
+		for (var i = 0; i < 4; i++) {
+			try {
+				var files = new System.Collections.Specialized.StringCollection { path };
+				var data = new DataObject();
+				data.SetFileDropList(files);
+				// Preferred DropEffect = Copy，避免 Explorer 当作剪切
+				data.SetData("Preferred DropEffect",
+					new MemoryStream(BitConverter.GetBytes((int)DragDropEffects.Copy)));
+				setclip(data);
+				return;
+			}
+			catch (Exception ex) {
+				last = ex;
+				try { Thread.Sleep(30 + i * 20); } catch { }
+			}
+		}
+		if (last != null)
+			throw new InvalidOperationException("复制文件到剪贴板失败: " + last.Message, last);
+	}
+
+	/// <summary>保存为 png/jpg/bmp（按扩展名）。</summary>
+	public static void Savefile(BitmapSource src, string path) {
+		if (src == null) throw new ArgumentNullException(nameof(src));
+		if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("路径无效", nameof(path));
+		var bmp = Withdpi(src);
+		var ext = Path.GetExtension(path)?.ToLowerInvariant() ?? ".png";
+		BitmapEncoder enc = ext switch {
+			".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 92 },
+			".bmp" => new BmpBitmapEncoder(),
+			_ => new PngBitmapEncoder(),
+		};
+		enc.Frames.Add(BitmapFrame.Create(bmp));
+		var dir = Path.GetDirectoryName(path);
+		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+		using var fs = File.Create(path);
+		enc.Save(fs);
+	}
+}

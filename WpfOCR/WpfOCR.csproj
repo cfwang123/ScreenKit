@@ -1,0 +1,200 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- .NET Framework 4.8；输出 bin\$(Configuration)\net48\，不覆盖 net10.0-windows 下模型 -->
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <!-- 默认 Release；请用 -c Release / slx Release，勿依赖 Debug -->
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <!-- 保留 net10.0-windows 目录：切勿对 bin 整树 Clean；勿改此路径到 net10.0-windows -->
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+    <!-- 关于对话框 / 程序集版本 -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <Product>WpfOCR</Product>
+    <Company>WpfOCR Contributors</Company>
+    <Copyright>Copyright (c) 2026 WpfOCR Contributors</Copyright>
+    <!-- 生成绑定重定向 -->
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" Link="Assets\app.ico" />
+    <None Include="Assets\appicon.png" CopyToOutputDirectory="PreserveNewest" Link="Assets\appicon.png" Condition="Exists('Assets\appicon.png')" />
+    <None Include="..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\LICENSE')" />
+    <None Include="..\THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\THIRD_PARTY_NOTICES.md')" />
+    <!-- WeText C++ ITN：processor_pipe + 中文 FST（需事先编译/拷贝到 WpfOCR/wetext） -->
+    <None Include="wetext\**\*" CopyToOutputDirectory="PreserveNewest" Condition="Exists('wetext\processor_pipe.exe')" />
+    <!-- 可选：离线把 HF Opus-MT 导出为 ONNX（运行时不再依赖 Python） -->
+    <None Include="translate\export_opus_onnx.py" CopyToOutputDirectory="PreserveNewest" Condition="Exists('translate\export_opus_onnx.py')" />
+  </ItemGroup>
+
+  <!-- .NET Framework 程序集引用 -->
+  <ItemGroup>
+    <Reference Include="System.Speech" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
+  <!-- WinRT 投影：枚举/合成现代 Windows 语音（含越南语等 OneCore 神经语音） -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.22000.196" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FFmpeg.AutoGen" Version="4.4.1.1" />
+    <!-- ORT GPU：托管 netstandard2.0；原生在 runtimes -->
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.27.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu.Windows" Version="1.27.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime;native;contentfiles;build;buildTransitive</ExcludeAssets>
+      <GeneratePathProperty>true</GeneratePathProperty>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AI.DirectML" Version="1.15.4">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime;native;contentfiles;build;buildTransitive</ExcludeAssets>
+      <GeneratePathProperty>true</GeneratePathProperty>
+    </PackageReference>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.3" />
+    <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
+    <PackageReference Include="PDFsharp" Version="6.2.0" />
+    <PackageReference Include="PDFtoImage" Version="5.1.1" />
+    <!-- net48 兼容版本（勿用 10.0） -->
+    <PackageReference Include="System.Drawing.Common" Version="8.0.11" />
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+    <PackageReference Include="System.Numerics.Tensors" Version="8.0.0" />
+    <!-- DXGI 抓屏：3.x 仅 net8，改用 2.4.2 netstandard2.0 -->
+    <PackageReference Include="Vortice.Direct3D11" Version="2.4.2" />
+    <PackageReference Include="Vortice.DXGI" Version="2.4.2" />
+  </ItemGroup>
+
+  <!--
+    模型包放在输出旁 ocrmodels / ttsmodels / asrmodels（不随编译复制）。
+    net10.0-windows 目录内模型请保留，切勿手动删除；新输出在 net48\。
+    GPU DLL：中央库 onnxgpu64；FFmpeg shared 放 ffmpeg64\。
+  -->
+
+  <!-- 仅保留 Windows x64 原生：删掉 SkiaSharp/PDFium/OpenCv 等拷来的 arm/musl/x86 等目录 -->
+  <Target Name="StripNonWinX64Natives" AfterTargets="Build">
+    <ItemGroup>
+      <!-- SkiaSharp / PDFtoImage 顶层 RID 目录 -->
+      <_NonX64Dir Include="$(OutputPath)arm" />
+      <_NonX64Dir Include="$(OutputPath)arm64" />
+      <_NonX64Dir Include="$(OutputPath)x86" />
+      <_NonX64Dir Include="$(OutputPath)loongarch64" />
+      <_NonX64Dir Include="$(OutputPath)riscv64" />
+      <_NonX64Dir Include="$(OutputPath)musl-arm" />
+      <_NonX64Dir Include="$(OutputPath)musl-arm64" />
+      <_NonX64Dir Include="$(OutputPath)musl-x64" />
+      <_NonX64Dir Include="$(OutputPath)musl-x86" />
+      <_NonX64Dir Include="$(OutputPath)musl-loongarch64" />
+      <_NonX64Dir Include="$(OutputPath)musl-riscv64" />
+      <!-- OpenCvSharp 的 32 位 native -->
+      <_NonX64Dir Include="$(OutputPath)dll\x86" />
+      <!-- 标准 runtimes 下非 win-x64（若有） -->
+      <_NonX64Dir Include="$(OutputPath)runtimes\win-arm64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\win-x86" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\linux-x64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\linux-arm" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\linux-arm64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\linux-musl-x64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\linux-musl-arm" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\linux-musl-arm64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\osx-x64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\osx-arm64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\android-arm" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\android-arm64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\android-x64" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\android-x86" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\browser-wasm" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\ios" />
+      <_NonX64Dir Include="$(OutputPath)runtimes\maccatalyst" />
+    </ItemGroup>
+    <!-- 只删存在的目录；保留 x64\、dll\x64\、根目录 OpenCvSharpExtern/libSkiaSharp -->
+    <RemoveDir Directories="@(_NonX64Dir)" Condition="Exists('%(Identity)')" />
+    <!-- 任意子目录下的 Linux/mac 原生（x64 里也常夹带 .so） -->
+    <ItemGroup>
+      <_NonWinFile Include="$(OutputPath)**\*.so" />
+      <_NonWinFile Include="$(OutputPath)**\*.dylib" />
+      <_NonWinFile Include="$(OutputPath)**\*.a" />
+    </ItemGroup>
+    <Delete Files="@(_NonWinFile)" TreatErrorsAsWarnings="true" Condition="'@(_NonWinFile)' != ''" />
+  </Target>
+
+  <!-- 录屏只用 ffmpeg64：删 OpenCV videoio；Sherpa 原生库按需安装，构建后剥离 c-api -->
+  <Target Name="RemoveOptionalNatives" AfterTargets="StripNonWinX64Natives">
+    <ItemGroup>
+      <_OptNative Include="$(OutputPath)opencv_videoio_ffmpeg*.dll" />
+      <_OptNative Include="$(OutputPath)dll\x64\opencv_videoio_ffmpeg*.dll" />
+      <_OptNative Include="$(OutputPath)runtimes\win-x64\native\opencv_videoio_ffmpeg*.dll" />
+      <_OptNative Include="$(OutputPath)sherpa-onnx-c-api.dll" />
+      <_OptNative Include="$(OutputPath)runtimes\win-x64\native\sherpa-onnx-c-api.dll" />
+    </ItemGroup>
+    <Delete Files="@(_OptNative)" TreatErrorsAsWarnings="true" Condition="'@(_OptNative)' != ''" />
+  </Target>
+
+  <Target Name="CleanupOnnxRuntimeDupes" AfterTargets="Build">
+    <PropertyGroup>
+      <_OrtGpuDir>$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu.windows\1.27.1\runtimes\win-x64\native</_OrtGpuDir>
+      <_LibGpu>D:\VS_Projects\Library\dll\onnxgpu64</_LibGpu>
+      <_OutGpu>$(OutputPath)onnxgpu64</_OutGpu>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_LibGpu)" Condition="Exists('$(_OrtGpuDir)\onnxruntime_providers_cuda.dll')" />
+    <ItemGroup Condition="Exists('$(_OrtGpuDir)\onnxruntime_providers_cuda.dll')">
+      <_OrtGpuDlls Include="$(_OrtGpuDir)\onnxruntime.dll" />
+      <_OrtGpuDlls Include="$(_OrtGpuDir)\onnxruntime_providers_cuda.dll" />
+      <_OrtGpuDlls Include="$(_OrtGpuDir)\onnxruntime_providers_shared.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_OrtGpuDlls)" DestinationFolder="$(_LibGpu)" SkipUnchangedFiles="true" Condition="'@(_OrtGpuDlls)' != ''" />
+
+    <ItemGroup>
+      <_DupGpu Include="$(OutputPath)onnxruntime.dll;$(OutputPath)onnxruntime_providers_cuda.dll;$(OutputPath)onnxruntime_providers_shared.dll;$(OutputPath)onnxruntime_providers_tensorrt.dll" />
+      <_DupGpu Include="$(OutputPath)runtimes\win-x64\native\onnxruntime.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_cuda.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_shared.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_tensorrt.dll" />
+    </ItemGroup>
+    <Delete Files="@(_DupGpu)" TreatErrorsAsWarnings="true" />
+
+    <PropertyGroup>
+      <_LinkScript>D:\VS_Projects\Library\dll\link-onnxgpu64.ps1</_LinkScript>
+    </PropertyGroup>
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(_LinkScript)&quot; -Project ocr" Condition="'$(Configuration)' == 'Release' And Exists('$(_LinkScript)') And !Exists('$(_OutGpu)\onnxruntime_providers_cuda.dll')" IgnoreExitCode="false" />
+    <Warning Text="输出目录缺少 onnxgpu64。请运行: powershell -File D:\VS_Projects\Library\dll\link-onnxgpu64.ps1 -Project ocr" Condition="'$(Configuration)' == 'Release' And !Exists('$(_OutGpu)\onnxruntime_providers_cuda.dll')" />
+
+    <PropertyGroup>
+      <_DmlOrtDir Condition="'$(PkgMicrosoft_ML_OnnxRuntime_DirectML)' != ''">$(PkgMicrosoft_ML_OnnxRuntime_DirectML)\runtimes\win-x64\native</_DmlOrtDir>
+      <_DmlOrtDir Condition="'$(_DmlOrtDir)' == ''">$(NuGetPackageRoot)microsoft.ml.onnxruntime.directml\1.24.4\runtimes\win-x64\native</_DmlOrtDir>
+      <_DmlBin Condition="'$(PkgMicrosoft_AI_DirectML)' != ''">$(PkgMicrosoft_AI_DirectML)\bin\x64-win\DirectML.dll</_DmlBin>
+      <_DmlBin Condition="'$(_DmlBin)' == ''">$(NuGetPackageRoot)microsoft.ai.directml\1.15.4\bin\x64-win\DirectML.dll</_DmlBin>
+      <_OutDml>$(OutputPath)onnxdml64</_OutDml>
+    </PropertyGroup>
+    <MakeDir Directories="$(_OutDml)" Condition="Exists('$(_DmlOrtDir)\onnxruntime.dll')" />
+    <ItemGroup Condition="Exists('$(_DmlOrtDir)\onnxruntime.dll')">
+      <_DmlCopy Include="$(_DmlOrtDir)\onnxruntime.dll" />
+      <_DmlCopy Include="$(_DmlOrtDir)\onnxruntime_providers_shared.dll" Condition="Exists('$(_DmlOrtDir)\onnxruntime_providers_shared.dll')" />
+      <_DmlCopy Include="$(_DmlBin)" Condition="Exists('$(_DmlBin)')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_DmlCopy)" DestinationFolder="$(_OutDml)" SkipUnchangedFiles="true" Condition="'@(_DmlCopy)' != ''" />
+    <Warning Text="未生成 onnxdml64（核显 DirectML）。请确认已还原 Microsoft.ML.OnnxRuntime.DirectML 1.24.4" Condition="'$(Configuration)' == 'Release' And !Exists('$(_OutDml)\onnxruntime.dll')" />
+    <!-- onnxcpu64 按需安装（FeatureKind.OrtCpu），不随编译附带 -->
+  </Target>
+
+</Project>

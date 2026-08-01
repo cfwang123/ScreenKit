@@ -1,0 +1,109 @@
+/mydocs
+
+# ── Build / IDE ──────────────────────────────────────────
+TODO.md
+**/bin/
+**/obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+[Dd]ebug/
+[Rr]elease/
+!docs/**/Release/
+
+# ── Logs & runtime output ────────────────────────────────
+**/log/
+*.log
+cli_last.log
+
+# ── Local config / secrets (may contain host prefs) ──────
+**/config.toml
+*.local.toml
+.env
+.env.*
+!.env.example
+
+# ── Models & native GPU runtime (large / machine-specific) ─
+# Models live only under build output; do not commit ONNX weights.
+**/models/**/*.onnx
+**/models/**/*.pdmodel
+**/models/**/*.pdiparams
+**/onnxgpu64/
+**/onnxdml64/
+**/onnxcpu64/
+
+# ── Third-party source (optional rebuild only; not shipped as submodule) ─
+# Runtime ITN is already under WpfOCR/wetext/. Clone WeTextProcessing locally if you rebuild:
+#   git clone https://github.com/wenet-e2e/WeTextProcessing.git third_party/WeTextProcessing
+third_party/
+
+# ── FFmpeg shared libs (screen record; large, redistribute separately) ─
+**/ffmpeg64/
+**/ffmpeg.exe
+**/avcodec*.dll
+**/avformat*.dll
+**/avutil*.dll
+**/swscale*.dll
+**/swresample*.dll
+**/libx264*.dll
+**/libx265*.dll
+**/x264*.dll
+**/x265*.dll
+
+# ── Temp & scratch ───────────────────────────────────────
+tmp/
+**/tmp/
+# install.ps1 download cache
+tmp/install-cache/
+.cache/
+*.tmp
+*.temp
+*.bak
+*~
+
+# ── Screen-record intermediates / local videos ───────────
+# Program tmp: rec_*.mp4 / *.wav / *_av.mp4 / *.norm.wav
+**/rec_*.mp4
+**/rec_*.wav
+**/*_av.mp4
+**/*_spk.wav
+**/*_mic.wav
+*.norm.wav
+*.mp4
+*.wav
+*.webm
+*.mkv
+
+# ── Captures / samples that may be private ───────────────
+**/snap/
+**/snap_out*/
+**/draft*/
+sample/
+*.lnk
+
+# ── Media (optional local assets) ────────────────────────
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.tif
+*.tiff
+!WpfOCR/Assets/**
+
+# ── Archives & dumps ─────────────────────────────────────
+*.zip
+*.7z
+*.rar
+*.gz
+*.pdb
+*.dmp
+
+# ── OS ───────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+.DS_Store
