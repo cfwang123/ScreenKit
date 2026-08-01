@@ -67,7 +67,6 @@ Each OCR pack needs ONNX models + `configs.txt` (and dict/keys as required by th
 ```bash
 cd WpfOCR
 dotnet build -c Release
-# or: slx WpfOCR / slr WpfOCR (project helper scripts)
 ```
 
 Run:

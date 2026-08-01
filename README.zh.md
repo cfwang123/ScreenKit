@@ -67,7 +67,6 @@ WpfOCR/bin/Release/net48/
 ```bash
 cd WpfOCR
 dotnet build -c Release
-# 或项目脚本：slx WpfOCR / slr WpfOCR
 ```
 
 运行：
