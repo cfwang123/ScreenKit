@@ -17,7 +17,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 ### Added
 
 - **In-app Install Features** window (功能组件 + 发音人 tabs):
-  - OCR packs (`rapid-ch`, `umi`, `rapid-i18n`), ASR models, FFmpeg, CUDA GPU, DirectML iGPU.
+  - OCR packs (`rapid-ch`, `rapid-i18n`, …), ASR models, FFmpeg, CUDA GPU, DirectML iGPU.
   - On-demand natives: OpenCV, Skia, PDFium, Sherpa `c-api`, **ONNX Runtime CPU (`onnxcpu64`)**.
   - TTS voice catalog with language filter; download progress shows **batch total size and downloaded bytes**.
   - CN-first download mirrors when UI/locale is Chinese (ModelScope / HF mirror / ghproxy).
@@ -57,7 +57,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - **Screen recording**: pick window or drag a region → red HUD → save MP4 (FFmpeg shared preferred).
 - **Long screenshot**: pick a scrollable window → auto-scroll stitch → show image (no OCR).
 - Top menu bar and compact toolbar; OCR progress UI; global hotkeys; WeChat-style annotate tools.
-- DXGI multi-monitor capture; PDF workbench; HTTP API (Umi-style); device choices CPU / CUDA / DirectML.
+- DXGI multi-monitor capture; PDF workbench; HTTP API; device choices CPU / CUDA / DirectML.
 - Capture diagnostic log switch; CLI snap / list-models / probe-cuda.
 - Main window size/position restore; close hides to tray when tray mode is enabled.
 

@@ -2,7 +2,7 @@
 
 **语言：** [中文](HTTP接口文档.md) · [English](HTTP-API.md)
 
-本机 HTTP API：兼容 Umi-OCR 风格的 OCR 接口，并扩展 ASR / TTS / ITN。
+本机 HTTP API：提供 OCR 接口，并扩展 ASR / TTS / ITN。
 
 默认仅监听本机；**不要**在未受控网络上暴露该端口。
 
@@ -32,7 +32,7 @@ http_port = 1224
 
 ## 2. 统一响应约定
 
-多数接口 **HTTP 状态码固定 200**，业务成败看 JSON 里的 `code`（与 Umi 习惯一致）。路由错误可能返回 404/405；未捕获异常可能为 500。
+多数接口 **HTTP 状态码固定 200**，业务成败看 JSON 里的 `code`。路由错误可能返回 404/405；未捕获异常可能为 500。
 
 ### 2.1 成功（有业务数据）
 
@@ -88,7 +88,7 @@ http_port = 1224
 |------|------|------|
 | GET | `/` · `/api` | API 说明与端点列表 |
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
-| GET | `/api/ocr/get_options` | OCR 可选项（Umi 风格） |
+| GET | `/api/ocr/get_options` | OCR 可选项描述 |
 | POST | `/api/ocr` | 图片 OCR |
 | GET | `/api/asr/models` | 列出 ASR 模型 |
 | POST | `/api/asr` | 语音识别 |
@@ -111,7 +111,6 @@ http_port = 1224
   "code": 100,
   "data": {
     "name": "WpfOCR HTTP API",
-    "umi_compatible": true,
     "endpoints": [
       "GET  /api/status",
       "GET  /api/ocr/get_options",
@@ -158,7 +157,7 @@ curl -s "http://127.0.0.1:1224/api/status"
 
 ### 6.1 GET `/api/ocr/get_options`
 
-返回与 Umi 相近的参数描述对象：每项含 `title` / `toolTip` / `default` / 可选 `optionsList`。
+返回参数描述对象：每项含 `title` / `toolTip` / `default` / 可选 `optionsList`。
 
 | 键 | 含义 | 默认 |
 |----|------|------|

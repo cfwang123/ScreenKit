@@ -2,7 +2,7 @@
 
 **Languages:** [English](HTTP-API.md) · [中文](HTTP接口文档.md)
 
-Local HTTP API: Umi-OCR–style OCR endpoints, plus ASR / TTS / ITN extensions.
+Local HTTP API: OCR endpoints, plus ASR / TTS / ITN extensions.
 
 By default the server binds to loopback only. **Do not** expose this port on untrusted networks.
 
@@ -32,7 +32,7 @@ When healthy, the status bar may show something like: `HTTP API · http://127.0.
 
 ## 2. Response conventions
 
-Most endpoints return **HTTP 200** always; success or failure is indicated by the JSON `code` field (Umi-style). Unknown routes may return 404/405; uncaught exceptions may return 500.
+Most endpoints return **HTTP 200** always; success or failure is indicated by the JSON `code` field. Unknown routes may return 404/405; uncaught exceptions may return 500.
 
 ### 2.1 Success (with payload)
 
@@ -88,7 +88,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 |--------|------|-------------|
 | GET | `/` · `/api` | API name and endpoint list |
 | GET | `/api/status` · `/api/health` | Service and capability status |
-| GET | `/api/ocr/get_options` | OCR option schema (Umi-style) |
+| GET | `/api/ocr/get_options` | OCR option descriptors |
 | POST | `/api/ocr` | Image OCR |
 | GET | `/api/asr/models` | List ASR models |
 | POST | `/api/asr` | Speech recognition |
@@ -111,7 +111,6 @@ Returns service name and endpoint list.
   "code": 100,
   "data": {
     "name": "WpfOCR HTTP API",
-    "umi_compatible": true,
     "endpoints": [
       "GET  /api/status",
       "GET  /api/ocr/get_options",
@@ -158,7 +157,7 @@ curl -s "http://127.0.0.1:1224/api/status"
 
 ### 6.1 GET `/api/ocr/get_options`
 
-Returns Umi-like option descriptors: each entry has `title` / `toolTip` / `default` / optional `optionsList`.
+Returns option descriptors: each entry has `title` / `toolTip` / `default` / optional `optionsList`.
 
 | Key | Meaning | Default |
 |-----|---------|---------|

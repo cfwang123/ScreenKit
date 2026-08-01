@@ -23,7 +23,7 @@ Always verify the license of the **exact package version** you ship.
 
 | Asset | Role | Notes |
 |-------|------|--------|
-| **OCR models** (PP-OCR / RapidOCR / Umi-style ONNX packs) | Text detection & recognition | Usually Apache-2.0 (PaddleOCR lineage) or terms of the pack author — **not** covered by this repo’s MIT alone |
+| **OCR models** (PP-OCR / RapidOCR ONNX packs) | Text detection & recognition | Usually Apache-2.0 (PaddleOCR lineage) or terms of the pack author — **not** covered by this repo’s MIT alone |
 | **FFmpeg shared libraries** (`ffmpeg64/`) | Screen-record encode / remux | GPL or LGPL depending on the build (e.g. BtbN gpl-shared). Do not redistribute without matching FFmpeg license compliance |
 | **CUDA / cuDNN redistributables** | NVIDIA GPU inference | NVIDIA EULA; often not redistributable freely — prefer system install or user-provided `onnxgpu64` |
 | **DirectML / ORT native DLLs** | iGPU / CUDA EP | Follow Microsoft / ORT redistributable terms |

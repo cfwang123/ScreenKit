@@ -1,6 +1,6 @@
 # WpfOCR
 
-Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / Umi-style packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
+Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
@@ -13,13 +13,13 @@ Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / Umi-sty
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD → MP4 (x264/x265 via **FFmpeg only**) + optional system/mic audio |
 | **Clipboard** | Paste image and run OCR; copy image / text |
-| **Overlay text** | Umi-style text layer on the image; drag-select and copy |
+| **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (sherpa + system voices); install voices in-app |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR (configurable) |
-| **HTTP API** | Umi-compatible local API (default `127.0.0.1:1224`) |
+| **HTTP API** | Local JSON API (default `127.0.0.1:1224`) |
 | **CLI** | Batch image OCR, list models, probe CUDA, multi-monitor snap test |
 
 ## Requirements
@@ -50,7 +50,7 @@ Model packs and large native runtimes are **not** stored in source. Place or ins
 WpfOCR/bin/Release/net48/
 ├── WpfOCR.exe
 ├── config.toml              # created/updated at runtime
-├── ocrmodels/               # OCR packs (rapid-ch, umi, …)
+├── ocrmodels/               # OCR packs (rapid-ch, rapid-i18n, …)
 ├── asrmodels/               # ASR packs (optional)
 ├── ttsmodels/               # TTS voices (optional)
 ├── translatemodels/         # Translation ONNX (optional)
@@ -200,7 +200,7 @@ WpfOCR --probe-cuda
 WpfOCR --help
 ```
 
-Useful options: `-d gpu|cpu`, `-p rapid-ch|umi`, `-v <variant>`, `-m <models-dir>`, `--det-limit`, `--no-cls`.
+Useful options: `-d gpu|cpu`, `-p rapid-ch`, `-v <variant>`, `-m <models-dir>`, `--det-limit`, `--no-cls`.
 
 ## HTTP API (overview)
 
