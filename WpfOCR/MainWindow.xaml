@@ -106,6 +106,9 @@
 					<MenuItem x:Name="mnlangen" Header="English" IsCheckable="True"/>
 				</MenuItem>
 				<Separator/>
+				<MenuItem x:Name="mnupdate" Header="检查更新(_U)…"
+				          AutomationProperties.AutomationId="menu.update"
+				          ToolTip="从 GitHub Releases 检查并下载更新"/>
 				<MenuItem x:Name="mnabout" Header="关于(_A)…"
 				          ToolTip="版本与许可证"/>
 			</MenuItem>

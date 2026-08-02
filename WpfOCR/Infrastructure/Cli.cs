@@ -31,13 +31,18 @@ static class Cli {
 				or "--help" or "-h" or "/?"
 				or "--asr" or "--list-asr"
 				or "--translate" or "--translate-file" or "--list-translate"
-				or "--list-install" or "--list-tts-install")
+				or "--list-install" or "--list-tts-install"
+				or "--apply-update" or "--self-update")
 				return true;
 		}
 		return false;
 	}
 
 	public static int Run(string[] args) {
+		// 自更新：不初始化 CUDA（由 App 入口优先处理；此处兜底）
+		if (AppUpdater.IsApplyUpdateArgs(args))
+			return AppUpdater.RunApplyUpdate(args);
+
 		try { CudaBootstrap.Init(); } catch { }
 
 		ensureconsole();
@@ -1136,6 +1141,7 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
   WpfOCR --list-translate
   WpfOCR --translate "文本" [--tr-dir zh-en|en-zh] [-d auto|gpu|cpu|igpu]
   WpfOCR --translate-file <utf8文本文件> [--tr-dir zh-en|en-zh] [-d auto|gpu|cpu|igpu]
+  WpfOCR --apply-update <压缩包> --target <安装目录> [--wait-pid PID] [--restart]
   WpfOCR --help
 
 参数:
@@ -1173,6 +1179,10 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
       --list-translate  列出 Opus-MT ONNX 翻译模型
       --translate   进程内 ONNX 翻译（无需 Python）
       --tr-dir      翻译方向 zh-en / en-zh（默认 zh-en）
+      --apply-update  解压更新包并覆盖 --target 目录（自更新用）
+      --target      安装目录（配合 --apply-update）
+      --wait-pid    等待指定进程退出后再覆盖
+      --restart     覆盖后启动 WpfOCR.exe
 
 示例:
   WpfOCR -i test.png -d gpu

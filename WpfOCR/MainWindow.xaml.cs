@@ -328,12 +328,12 @@ public partial class MainWindow : Window {
 			tray.MenuOpening += () => {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;
 			};
-			// 截图识别：不唤起/前置主窗（结果写后台；截图仍按配置复制）
+			// 截图识别：成功后弹出主窗、切到「截图识别」页并显示结果
 			tray.OcrRequested += () => Dispatcher.BeginInvoke(new Action(() => {
 				// 菜单关闭瞬间可能把托盘主窗拉起：若点菜单前是隐藏的，立刻藏回再截
 				if (!trayMenuMainVisible)
 					keepmainhidden();
-				_ = captureasync(hideMain: false, showMainAfter: false,
+				_ = captureasync(hideMain: false, showMainAfter: true,
 					mainWasVisibleOverride: trayMenuMainVisible);
 			}));
 			// 截图标注：与截图识别相同，不唤起主窗
@@ -427,9 +427,9 @@ public partial class MainWindow : Window {
 			hotkeySnap.Fired += () => Dispatcher.BeginInvoke(new Action(() =>
 				_ = snapannotateasync(restoreUi: false, showMainAfter: false)));
 			hotkeySnapOcr = new GlobalHotkey(this, 0x7003);
-			// 热键截图识别：不隐藏、结束后不唤起（主窗已可见则保持）
+			// 热键截图识别：框选后弹出主窗、切到 tab1 并显示识别结果
 			hotkeySnapOcr.Fired += () => Dispatcher.BeginInvoke(new Action(() =>
-				_ = captureasync(hideMain: false, showMainAfter: false)));
+				_ = captureasync(hideMain: false, showMainAfter: true)));
 			hotkeyBoard = new GlobalHotkey(this, 0x7006);
 			// 屏幕画板：不唤起主窗；录屏中同样可用
 			hotkeyBoard.Fired += () => Dispatcher.BeginInvoke(new Action(() =>
@@ -902,6 +902,7 @@ public partial class MainWindow : Window {
 		mndiag.Click += (_, _) => opendiag();
 		mnlangzh.Click += (_, _) => setlang("zh");
 		mnlangen.Click += (_, _) => setlang("en");
+		mnupdate.Click += (_, _) => openupdate();
 		mnabout.Click += (_, _) => openabout();
 		// 结果区快捷复制 / 识别中取消
 		bcopy.Click += (_, _) => copytext();
@@ -976,6 +977,8 @@ public partial class MainWindow : Window {
 			mninstall.ToolTip = Loc.T("menu.install.tip");
 			mndiag.Header = Loc.T("menu.diag");
 			mndiag.ToolTip = Loc.T("menu.diag.tip");
+			mnupdate.Header = Loc.T("menu.update");
+			mnupdate.ToolTip = Loc.T("menu.update.tip");
 			mnabout.Header = Loc.T("menu.about");
 			mnabout.ToolTip = Loc.T("menu.about.tip");
 
@@ -1763,10 +1766,10 @@ public partial class MainWindow : Window {
 			var bmp = await capturescreenasync(hideMain);
 			CaptureLog.Info($"captureasync got bmp={CaptureLog.Bmp(bmp)}");
 			if (bmp == null) {
-				// Esc 取消：不唤起/前置主窗，保持焦点在原应用
+				// Esc 取消：不唤起主窗，保持焦点在原应用
 				setstatus("已取消截图");
 				CaptureLog.Info("captureasync cancelled/null");
-				if (!showMainAfter && !mainWasVisible)
+				if (!mainWasVisible)
 					keepmainhidden();
 				return;
 			}
@@ -1776,13 +1779,13 @@ public partial class MainWindow : Window {
 				CaptureLog.Info("captureasync saved " + path);
 			}
 			catch (Exception ex) { CaptureLog.Ex("captureasync SaveScreenshot", ex); }
+			// 成功：切到截图识别页；showMainAfter 时弹出主窗，否则藏回托盘
+			try { maintabs.SelectedItem = tabocr; } catch { }
 			if (showMainAfter)
 				bringtofront();
 			else if (!mainWasVisible)
-				// 遮罩关闭瞬间系统常把主窗拉前台，识别前立刻藏回
+				// 遮罩关闭瞬间系统常把主窗拉前台，后台识别时立刻藏回
 				keepmainhidden();
-			// showMainAfter=false：绝不前置主窗（含已可见时也不 Activate）
-			try { maintabs.SelectedItem = tabocr; } catch { }
 			try {
 				setimage(bmp);
 				CaptureLog.Info($"captureasync setimage ok cur={CaptureLog.Bmp(curimg)} lb={lbimgsize?.Text}");
@@ -1794,16 +1797,21 @@ public partial class MainWindow : Window {
 			var wall0 = Environment.TickCount;
 			await runocrasync(bmp, wall0, focusResult: showMainAfter);
 			CaptureLog.Info("captureasync runocr done");
-			if (!showMainAfter && !mainWasVisible)
+			if (showMainAfter) {
+				// 识别结束再确保主窗在前台并停在 tab1（长推理时用户可能切走）
+				try { maintabs.SelectedItem = tabocr; } catch { }
+				bringtofront();
+			}
+			else if (!mainWasVisible)
 				keepmainhidden();
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("captureasync", ex);
+			try { maintabs.SelectedItem = tabocr; } catch { }
 			if (showMainAfter)
 				bringtofront();
 			else if (!mainWasVisible)
 				keepmainhidden();
-			try { maintabs.SelectedItem = tabocr; } catch { }
 			setstatus($"截图识别失败: {ex.Message}");
 			if (showMainAfter)
 				MessageBox.Show(this, ex.Message, "截图识别", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -2020,7 +2028,11 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	/// <summary>标注/画板确认后：上屏；可选 OCR。仅在用户确认后调用（取消不弹主窗）。</summary>
+	/// <summary>
+	/// 标注/画板确认后：上屏；可选 OCR。仅在用户确认后调用（取消不弹主窗）。
+	/// 点「OCR」时始终弹出主窗、切到截图识别页并显示结果（与热键/托盘截图识别一致）。
+	/// 仅完成/复制（未 OCR）时仍尊重 showMainAfter。
+	/// </summary>
 	async Task afterannotateasync(BitmapSource resultImg, bool wantOcr, string label,
 		bool showMainAfter = true, bool mainWasVisible = true) {
 		last = null;
@@ -2033,18 +2045,16 @@ public partial class MainWindow : Window {
 		eresult.Text = "";
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		if (wantOcr) {
+			// 标注工具条点 OCR：无论热键/托盘是否后台模式，都弹主窗看结果
 			try { maintabs.SelectedItem = tabocr; } catch { }
 			lbmeta.Text = label + " · 识别中…";
 			drawoverlay();
 			setstatus($"{label} {resultImg.PixelWidth}×{resultImg.PixelHeight} · 识别中…");
-			if (showMainAfter)
-				bringtofront();
-			else if (!mainWasVisible)
-				keepmainhidden();
+			bringtofront();
 			var wall0 = Environment.TickCount;
-			await runocrasync(resultImg, wall0, focusResult: showMainAfter);
-			if (!showMainAfter && !mainWasVisible)
-				keepmainhidden();
+			await runocrasync(resultImg, wall0, focusResult: true);
+			try { maintabs.SelectedItem = tabocr; } catch { }
+			bringtofront();
 		}
 		else {
 			lbmeta.Text = label + " · 未识别";
@@ -2323,6 +2333,80 @@ public partial class MainWindow : Window {
 		catch (Exception ex) {
 			MessageBox.Show(this, ex.Message, Loc.T("about.title"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
+	async void openupdate() {
+		UpdateProgressWindow prog = null;
+		try {
+			prog = new UpdateProgressWindow { Owner = this };
+			prog.Show();
+			prog.Report("check", 0);
+
+			var info = await AppUpdater.CheckLatestAsync(prog.Token).ConfigureAwait(true);
+			if (prog.WasCancelled) return;
+
+			if (!info.HasUpdate) {
+				prog.ForceClose();
+				prog = null;
+				MessageBox.Show(this,
+					Loc.T("update.latest", info.CurrentVersion, info.Version),
+					Loc.T("update.title"),
+					MessageBoxButton.OK,
+					MessageBoxImage.Information);
+				return;
+			}
+
+			prog.ForceClose();
+			prog = null;
+
+			var sizeText = info.SizeBytes > 0
+				? FeatureInstaller.FormatBytes(info.SizeBytes)
+				: "—";
+			var ask = Loc.T("update.found",
+				info.CurrentVersion,
+				info.Version,
+				info.AssetName ?? Path.GetFileName(info.DownloadUrl),
+				sizeText);
+			var r = MessageBox.Show(this, ask, Loc.T("update.title"),
+				MessageBoxButton.YesNo, MessageBoxImage.Question);
+			if (r != MessageBoxResult.Yes) return;
+
+			prog = new UpdateProgressWindow { Owner = this };
+			prog.Show();
+			prog.Report("download", 0, Loc.T("update.downloading"));
+
+			var log = new Progress<string>(s => {
+				try { prog?.Report("download", -1, s); } catch { }
+			});
+			var dl = new Progress<InstallProgress>(p => {
+				try { prog?.ReportInstall(p); } catch { }
+			});
+			var archive = await AppUpdater.DownloadAsync(info, dl, log, prog.Token)
+				.ConfigureAwait(true);
+			if (prog.WasCancelled) return;
+
+			prog.Report("prepare", 0.98, Loc.T("update.preparing"));
+			// 关闭进度窗再启动更新器（主进程即将退出）
+			prog.ForceClose();
+			prog = null;
+
+			AppUpdater.LaunchUpdaterAndExit(archive);
+		}
+		catch (OperationCanceledException) {
+			// 用户取消
+		}
+		catch (Exception ex) {
+			try { prog?.ForceClose(); } catch { }
+			prog = null;
+			MessageBox.Show(this,
+				Loc.T("update.fail", ex.Message),
+				Loc.T("update.title"),
+				MessageBoxButton.OK,
+				MessageBoxImage.Warning);
+		}
+		finally {
+			try { prog?.ForceClose(); } catch { }
 		}
 	}
 

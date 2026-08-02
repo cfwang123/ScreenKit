@@ -33,12 +33,32 @@
 				<Grid Margin="8">
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
 					</Grid.RowDefinitions>
-					<TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+					<TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,6"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
 					           Text="勾选要安装的 OCR/ASR 模型或加速组件。中文系统优先国内镜像。"/>
-					<Border Grid.Row="1" Background="{StaticResource BgPanel}"
+					<!-- 状态汇总 + 图例 -->
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<StackPanel Orientation="Horizontal" DockPanel.Dock="Right"
+						            VerticalAlignment="Center" Margin="12,0,0,0">
+							<Border Background="#FEE2E2" CornerRadius="4" Padding="8,3" Margin="0,0,6,0">
+								<TextBlock Text="未安装" FontSize="11" FontWeight="SemiBold" Foreground="#B91C1C"/>
+							</Border>
+							<Border Background="#FEF3C7" CornerRadius="4" Padding="8,3" Margin="0,0,6,0">
+								<TextBlock Text="部分" FontSize="11" FontWeight="SemiBold" Foreground="#B45309"/>
+							</Border>
+							<Border Background="#D1FAE5" CornerRadius="4" Padding="8,3">
+								<TextBlock Text="已安装" FontSize="11" FontWeight="SemiBold" Foreground="#047857"/>
+							</Border>
+						</StackPanel>
+						<TextBlock x:Name="lbfeatsum" VerticalAlignment="Center"
+						           FontSize="12" FontWeight="SemiBold"
+						           Foreground="{StaticResource TextPrimary}"
+						           Text=""/>
+					</DockPanel>
+					<Border Grid.Row="2" Background="{StaticResource BgPanel}"
 					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 					        CornerRadius="8" Padding="4">
 						<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8,6">
@@ -108,8 +128,19 @@
 									                DisplayMemberBinding="{Binding Engine}"/>
 									<GridViewColumn Header="大小" Width="90"
 									                DisplayMemberBinding="{Binding SizeText}"/>
-									<GridViewColumn Header="状态" Width="64"
-									                DisplayMemberBinding="{Binding StateText}"/>
+									<GridViewColumn Header="状态" Width="88">
+										<GridViewColumn.CellTemplate>
+											<DataTemplate>
+												<Border CornerRadius="4" Padding="8,2"
+												        HorizontalAlignment="Left"
+												        Background="{Binding StateBg}">
+													<TextBlock Text="{Binding StateText}"
+													           FontSize="11" FontWeight="SemiBold"
+													           Foreground="{Binding StateFg}"/>
+												</Border>
+											</DataTemplate>
+										</GridViewColumn.CellTemplate>
+									</GridViewColumn>
 								</GridView>
 							</ListView.View>
 						</ListView>
@@ -142,9 +173,10 @@
 
 		<DockPanel Grid.Row="5" Margin="0,12,0,0" LastChildFill="False">
 			<StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-				<Button x:Name="bmissing" Content="勾选未装" Style="{StaticResource ToolBtn}"
+				<Button x:Name="bmissing" Content="勾选未装" Style="{StaticResource GhostBtn}"
 				        Width="96" Margin="0,0,8,0"
-				        ToolTip="当前页：仅勾选未安装/部分安装的项"/>
+				        ToolTip="当前页：仅勾选未安装/部分安装的项"
+				        BorderBrush="{StaticResource Danger}" Foreground="{StaticResource Danger}"/>
 				<Button x:Name="bnone" Content="全不选" Style="{StaticResource ToolBtn}"
 				        Width="80" Margin="0,0,8,0"/>
 				<Button x:Name="ball" Content="全选" Style="{StaticResource ToolBtn}"

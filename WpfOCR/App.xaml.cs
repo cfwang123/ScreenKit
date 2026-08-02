@@ -14,6 +14,14 @@ public partial class App : System.Windows.Application {
 	volatile bool exitRequested;
 
 	protected override void OnStartup(StartupEventArgs e) {
+		// 自更新应用：尽早处理，不初始化 CUDA / 不占单实例锁 / 不启动 GUI
+		if (AppUpdater.IsApplyUpdateArgs(e.Args)) {
+			var code = AppUpdater.RunApplyUpdate(e.Args);
+			// 硬退出，避免走 WPF 关窗路径
+			Environment.Exit(code);
+			return;
+		}
+
 		// 命令行模式：不启动 GUI、不占单实例锁
 		if (Cli.IsCli(e.Args)) {
 			initcuda();

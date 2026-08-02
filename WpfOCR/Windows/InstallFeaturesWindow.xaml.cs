@@ -12,9 +12,18 @@ namespace WpfOCR;
 /// 发音人支持语言筛选，列表来自 GitHub tts-models 全量包。
 /// </summary>
 partial class InstallFeaturesWindow : Window {
+	// 状态徽章色（未安装用强对比，避免与「已安装」混淆）
+	static readonly Brush MissBg = freeze(Color.FromRgb(0xFE, 0xE2, 0xE2));
+	static readonly Brush MissFg = freeze(Color.FromRgb(0xB9, 0x1C, 0x1C));
+	static readonly Brush PartBg = freeze(Color.FromRgb(0xFE, 0xF3, 0xC7));
+	static readonly Brush PartFg = freeze(Color.FromRgb(0xB4, 0x53, 0x09));
+	static readonly Brush OkBg = freeze(Color.FromRgb(0xD1, 0xFA, 0xE5));
+	static readonly Brush OkFg = freeze(Color.FromRgb(0x04, 0x78, 0x57));
+
 	readonly List<FeatureItem> featItems = new();
 	readonly Dictionary<FeatureItem, CheckBox> featChecks = new();
 	readonly Dictionary<FeatureItem, TextBlock> featStates = new();
+	readonly Dictionary<FeatureItem, Border> featStateBadges = new();
 	readonly Dictionary<FeatureItem, TextBlock> featSizes = new();
 
 	readonly ObservableCollection<TtsRow> ttsRows = new();
@@ -26,6 +35,12 @@ partial class InstallFeaturesWindow : Window {
 	bool ttsUiLoading;
 	CancellationTokenSource cts;
 	bool busy;
+
+	static SolidColorBrush freeze(Color c) {
+		var b = new SolidColorBrush(c);
+		if (b.CanFreeze) b.Freeze();
+		return b;
+	}
 
 	public bool NeedRefresh { get; private set; }
 	public bool NeedRestart { get; private set; }
@@ -106,6 +121,7 @@ partial class InstallFeaturesWindow : Window {
 		featItems.Clear();
 		featChecks.Clear();
 		featStates.Clear();
+		featStateBadges.Clear();
 		featSizes.Clear();
 		eitems.Children.Clear();
 		featItems.AddRange(FeatureInstaller.BuildCatalog(
@@ -142,17 +158,28 @@ partial class InstallFeaturesWindow : Window {
 			}
 
 			var row = new DockPanel { Margin = new Thickness(0, 0, 0, 8), LastChildFill = true };
+
+			// 仅状态徽章着色（不改整行背景/边框）
 			var st = new TextBlock {
 				Text = it.StateText,
-				Width = 52,
+				FontSize = 11,
+				FontWeight = FontWeights.SemiBold,
 				VerticalAlignment = VerticalAlignment.Center,
-				HorizontalAlignment = HorizontalAlignment.Right,
-				FontSize = 12,
-				Foreground = statebrush(it.State),
+				HorizontalAlignment = HorizontalAlignment.Center,
 			};
-			DockPanel.SetDock(st, Dock.Right);
+			var badge = new Border {
+				Child = st,
+				CornerRadius = new CornerRadius(4),
+				Padding = new Thickness(8, 3, 8, 3),
+				Margin = new Thickness(8, 0, 0, 0),
+				VerticalAlignment = VerticalAlignment.Center,
+				MinWidth = 56,
+				HorizontalAlignment = HorizontalAlignment.Right,
+			};
+			DockPanel.SetDock(badge, Dock.Right);
 			featStates[it] = st;
-			row.Children.Add(st);
+			featStateBadges[it] = badge;
+			row.Children.Add(badge);
 
 			var sz = new TextBlock {
 				Text = it.SizeText ?? "",
@@ -160,7 +187,7 @@ partial class InstallFeaturesWindow : Window {
 				VerticalAlignment = VerticalAlignment.Center,
 				HorizontalAlignment = HorizontalAlignment.Right,
 				FontSize = 11,
-				Margin = new Thickness(0, 0, 8, 0),
+				Margin = new Thickness(0, 0, 4, 0),
 				Foreground = (Brush)FindResource("TextMuted"),
 			};
 			DockPanel.SetDock(sz, Dock.Right);
@@ -191,8 +218,30 @@ partial class InstallFeaturesWindow : Window {
 			});
 			cb.Content = textCol;
 			row.Children.Add(cb);
+			applyfeatbadgestyle(it);
 			eitems.Children.Add(row);
 		}
+		updatefeatsum();
+	}
+
+	void updatefeatsum() {
+		if (lbfeatsum == null) return;
+		var miss = featItems.Count(x => x.State == FeatureInstallState.Missing);
+		var part = featItems.Count(x => x.State == FeatureInstallState.Partial);
+		var ok = featItems.Count(x => x.State == FeatureInstallState.Installed);
+		if (miss + part > 0)
+			lbfeatsum.Text = $"共 {featItems.Count} 项  ·  未安装 {miss}  ·  部分 {part}  ·  已装 {ok}";
+		else
+			lbfeatsum.Text = $"共 {featItems.Count} 项  ·  全部已安装";
+		lbfeatsum.Foreground = miss + part > 0 ? MissFg : OkFg;
+	}
+
+	void applyfeatbadgestyle(FeatureItem it) {
+		if (!featStateBadges.TryGetValue(it, out var badge)) return;
+		if (!featStates.TryGetValue(it, out var st)) return;
+		st.Text = it.StateText ?? "";
+		st.Foreground = statefg(it.State);
+		badge.Background = statebg(it.State);
 	}
 
 	// ───────── 发音人 Tab ─────────
@@ -283,7 +332,12 @@ partial class InstallFeaturesWindow : Window {
 		}
 		cttsheader.IsChecked = false;
 		ttsUiLoading = false;
-		lbttssource.Text = $"{TtsInstallCatalog.LastSource} · 显示 {ttsRows.Count}/{ttsAll.Count}";
+		var miss = ttsRows.Count(r => r.IsMissing);
+		var ok = ttsRows.Count - miss;
+		lbttssource.Text = miss > 0
+			? $"{TtsInstallCatalog.LastSource} · 显示 {ttsRows.Count}/{ttsAll.Count} · 未安装 {miss} · 已装 {ok}"
+			: $"{TtsInstallCatalog.LastSource} · 显示 {ttsRows.Count}/{ttsAll.Count} · 全部已装";
+		lbttssource.Foreground = miss > 0 ? MissFg : (Brush)FindResource("TextMuted");
 	}
 
 	void setttscheckall(bool on) {
@@ -329,10 +383,16 @@ partial class InstallFeaturesWindow : Window {
 		}
 	}
 
-	static Brush statebrush(FeatureInstallState st) => st switch {
-		FeatureInstallState.Installed => new SolidColorBrush(Color.FromRgb(0x10, 0xB9, 0x81)),
-		FeatureInstallState.Partial => new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x06)),
-		_ => new SolidColorBrush(Color.FromRgb(0x71, 0x80, 0x96)),
+	static Brush statefg(FeatureInstallState st) => st switch {
+		FeatureInstallState.Installed => OkFg,
+		FeatureInstallState.Partial => PartFg,
+		_ => MissFg,
+	};
+
+	static Brush statebg(FeatureInstallState st) => st switch {
+		FeatureInstallState.Installed => OkBg,
+		FeatureInstallState.Partial => PartBg,
+		_ => MissBg,
 	};
 
 	void setbusy(bool on) {
@@ -420,10 +480,7 @@ partial class InstallFeaturesWindow : Window {
 
 	void refreshfeatui(FeatureItem it) {
 		FeatureInstaller.RefreshState(it);
-		if (featStates.TryGetValue(it, out var st)) {
-			st.Text = it.StateText;
-			st.Foreground = statebrush(it.State);
-		}
+		applyfeatbadgestyle(it);
 		if (featSizes.TryGetValue(it, out var sz))
 			sz.Text = it.SizeText ?? "";
 		if (featChecks.TryGetValue(it, out var cb)) {
@@ -434,6 +491,7 @@ partial class InstallFeaturesWindow : Window {
 			else
 				it.Selected = cb.IsChecked == true;
 		}
+		updatefeatsum();
 	}
 
 	async Task rundelete() {
@@ -687,7 +745,7 @@ partial class InstallFeaturesWindow : Window {
 		}
 	}
 
-	/// <summary>ListView 行：可通知勾选。</summary>
+	/// <summary>ListView 行：可通知勾选与状态样式。</summary>
 	sealed class TtsRow : INotifyPropertyChanged {
 		public TtsInstallItem Item { get; }
 		bool selected;
@@ -712,6 +770,9 @@ partial class InstallFeaturesWindow : Window {
 		public string Engine => Item.Engine;
 		public string SizeText => Item.SizeText;
 		public string StateText => Item.StateText;
+		public bool IsMissing => Item.State == FeatureInstallState.Missing;
+		public Brush StateBg => statebg(Item.State);
+		public Brush StateFg => statefg(Item.State);
 
 		public void SyncFromItem() {
 			selected = Item.Selected;
@@ -721,6 +782,9 @@ partial class InstallFeaturesWindow : Window {
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Selected)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SizeText)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateText)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsMissing)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateBg)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateFg)));
 		}
 
 		public event PropertyChangedEventHandler PropertyChanged;
