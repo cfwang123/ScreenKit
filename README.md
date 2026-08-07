@@ -4,6 +4,10 @@ Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOC
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
+## Screenshots
+
+![WpfOCR main window](docs/1%20screenshot.png)
+
 ## Features
 
 | Area | Description |
@@ -39,6 +43,7 @@ OCR/
 ├── WpfOCR/           # Application source (WPF, net48)
 │   ├── Assets/
 │   └── bin/Release/net48/   # Build output (models / runtimes live here)
+├── docs/             # README screenshots
 ├── README.md
 ├── README.zh.md
 ├── CHANGELOG.md

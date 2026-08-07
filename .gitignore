@@ -100,6 +100,9 @@ record_*.log
 *.tif
 *.tiff
 !WpfOCR/Assets/**
+# README / docs screenshots (tracked for GitHub)
+!docs/
+!docs/**
 
 # ── Publish output (scripts/publish-release.mjs) ─────────
 release/

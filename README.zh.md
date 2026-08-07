@@ -4,6 +4,10 @@ Windows 桌面 OCR：截图识别、截图标注、长截图、**区域录屏**�
 
 [English](README.md) · [中文](README.zh.md)
 
+## 截图
+
+![WpfOCR 主界面](docs/1%20screenshot.png)
+
 ## 功能一览
 
 | 模块 | 说明 |
@@ -39,6 +43,7 @@ OCR/
 ├── WpfOCR/                 # 源码（WPF，net48）
 │   ├── Assets/
 │   └── bin/Release/net48/  # 发布输出（模型、运行库放这里）
+├── docs/                   # README 截图
 ├── README.md
 ├── README.zh.md
 ├── CHANGELOG.md
