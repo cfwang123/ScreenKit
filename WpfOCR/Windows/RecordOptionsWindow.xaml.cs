@@ -71,6 +71,7 @@ public partial class RecordOptionsWindow : Window {
 		emaxen.IsChecked = o.MaxSizeEnabled;
 		emaxw.Text = o.MaxWidth.ToString();
 		emaxh.Text = o.MaxHeight.ToString();
+		elockasp.IsChecked = o.LockAspectWhileRecording;
 	}
 
 	bool saveui() {
@@ -91,6 +92,7 @@ public partial class RecordOptionsWindow : Window {
 		if (!tryint(emaxh, "最大高", 16, 16384, out var mh)) return false;
 		o.MaxWidth = mw;
 		o.MaxHeight = mh;
+		o.LockAspectWhileRecording = elockasp.IsChecked == true;
 		o.Clamp();
 		return true;
 	}

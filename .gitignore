@@ -6,6 +6,7 @@ TODO.md
 **/obj/
 .vs/
 .vscode/
+.vscode/Build/
 *.user
 *.suo
 *.userosscache
@@ -81,8 +82,13 @@ tmp/install-cache/
 **/snap/
 **/snap_out*/
 **/draft*/
+**/screenshots/
 sample/
 *.lnk
+
+# ── Local record / GIF test scratch ──────────────────────
+**/gif_test/
+record_*.log
 
 # ── Media (optional local assets) ────────────────────────
 *.png
@@ -94,6 +100,9 @@ sample/
 *.tif
 *.tiff
 !WpfOCR/Assets/**
+
+# ── Publish output (scripts/publish-release.mjs) ─────────
+release/
 
 # ── Archives & dumps ─────────────────────────────────────
 *.zip

@@ -356,9 +356,13 @@ public partial class MainWindow : Window {
 				saveimage();
 			}));
 			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench()));
+			// 截图历史：打开 screenshots 文件夹，不唤起主窗
+			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(opensnapshotsfolder));
 			// 录屏 / 录屏参数 / 系统参数：不唤起主窗，只打开对应功能窗
 			tray.RecordRequested += () => Dispatcher.BeginInvoke(new Action(startrecord));
 			tray.RecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(openrecordoptions));
+			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
+			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(opengifrecordoptions));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(opensettings));
 			tray.ForceExitRequested += () => {
 				forceExit = true;
@@ -377,6 +381,13 @@ public partial class MainWindow : Window {
 
 	void syncsnapcopyopts() {
 		ImageUtil.CurrentScreenshotKeepDays = opt.ScreenshotKeepDays;
+		var fmt = (opt.ScreenshotFormat ?? "png").Trim().ToLowerInvariant();
+		ImageUtil.CurrentScreenshotFormat = fmt is "jpg" or "jpeg" ? "jpg" : "png";
+		ImageUtil.CurrentScreenshotJpgQuality = Compat.Clamp(
+			opt.ScreenshotJpgQuality <= 0 ? 92 : opt.ScreenshotJpgQuality, 1, 100);
+		ImageUtil.CurrentScreenshotMaxSizeEnabled = opt.ScreenshotMaxSizeEnabled;
+		ImageUtil.CurrentScreenshotMaxWidth = Math.Max(16, opt.ScreenshotMaxWidth);
+		ImageUtil.CurrentScreenshotMaxHeight = Math.Max(16, opt.ScreenshotMaxHeight);
 		ImageUtil.CurrentSnapCopyAsImage = opt.SnapCopyAsImage;
 		ImageUtil.CurrentSnapCopyAsFile = opt.SnapCopyAsFile;
 	}
@@ -882,6 +893,8 @@ public partial class MainWindow : Window {
 		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile);
 		mnrecord.Click += (_, _) => startrecord();
 		mnrecordopt.Click += (_, _) => openrecordoptions();
+		mngifrecord.Click += (_, _) => startgifrecord();
+		mngifrecordopt.Click += (_, _) => opengifrecordoptions();
 		// 编辑菜单
 		mncopytext.Click += (_, _) => copytext();
 		mncopyimg.Click += (_, _) => copyimage();
@@ -923,7 +936,7 @@ public partial class MainWindow : Window {
 
 	void applylang() {
 		try {
-			Title = Loc.T("app.title");
+			Title = $"{Loc.T("app.title")} v{AppUpdater.CurrentVersion()}";
 			lbbrand.Text = Loc.T("app.brand");
 
 			// 菜单
@@ -961,6 +974,10 @@ public partial class MainWindow : Window {
 			mnrecord.ToolTip = Loc.T("menu.record.tip");
 			mnrecordopt.Header = Loc.T("menu.recordopt");
 			mnrecordopt.ToolTip = Loc.T("menu.recordopt.tip");
+			mngifrecord.Header = Loc.T("menu.gifrecord");
+			mngifrecord.ToolTip = Loc.T("menu.gifrecord.tip");
+			mngifrecordopt.Header = Loc.T("menu.gifrecordopt");
+			mngifrecordopt.ToolTip = Loc.T("menu.gifrecordopt.tip");
 
 			mncopytext.Header = Loc.T("menu.copytext");
 			mncopytext.ToolTip = Loc.T("menu.copytext.tip");
@@ -1846,6 +1863,23 @@ public partial class MainWindow : Window {
 		}
 	}
 
+	void opengifrecordoptions() {
+		try {
+			opt.GifRecord ??= new GifOptions();
+			var dlg = new GifOptionsWindow(opt.GifRecord);
+			attachdialogowner(dlg);
+			dlg.ShowDialog();
+			if (!dlg.Applied) return;
+			opt.GifRecord = dlg.Result;
+			try { AppConfig.Save(opt); } catch { }
+			var o = opt.GifRecord;
+			setstatus("GIF 录屏选项已保存 · " + o.SummaryText());
+		}
+		catch (Exception ex) {
+			showwarnmsg(ex.Message, "GIF 录屏选项");
+		}
+	}
+
 	/// <summary>录屏：选区 → 红框 HUD → 开始/暂停/停止 → 保存或丢弃。</summary>
 	void startrecord() {
 		if (capturing || activeRecordHud != null) {
@@ -1900,6 +1934,61 @@ public partial class MainWindow : Window {
 			capturing = false;
 			setstatus("录屏失败: " + ex.Message);
 			showwarnmsg(ex.Message, "录屏");
+		}
+	}
+
+	/// <summary>GIF 录屏：选区 → HUD → 低帧率无声 GIF。</summary>
+	void startgifrecord() {
+		if (capturing || activeRecordHud != null) {
+			setstatus("请等待当前截图/录屏结束");
+			return;
+		}
+		if (!FeaturePrompt.EnsureFfmpeg(this)) {
+			setstatus("未安装 FFmpeg，已取消 GIF 录屏");
+			return;
+		}
+		try {
+			capturing = true;
+			setstatus("GIF 录屏 · 请单击窗口或拖拽框选区域…");
+			TmpStore.CleanupExpired();
+			var rect = RecordRegionPicker.Pick("GIF 录屏：单击窗口或拖拽框选 · Esc 取消");
+			if (rect == null || rect.Value.Width < 16) {
+				setstatus("已取消 GIF 录屏");
+				capturing = false;
+				return;
+			}
+			var r = rect.Value;
+			var go = (opt.GifRecord ?? new GifOptions()).Clone();
+			go.Clamp();
+			setstatus($"GIF 录屏区域 {r.Width}×{r.Height} · 采{GifOptions.CaptureFps}fps · 默认出{go.Fps}fps");
+			var hud = new RecordHud(r, go);
+			activeRecordHud = hud;
+			capturing = false;
+			hud.Closed += (_, _) => {
+				if (activeRecordHud == hud) activeRecordHud = null;
+			};
+			hud.Finished += () => {
+				try {
+					if (activeRecordHud == hud) activeRecordHud = null;
+					if (hud.Saved && !string.IsNullOrEmpty(hud.SavedPath))
+						setstatus("GIF 已保存: " + hud.SavedPath);
+					else if (hud.Completed)
+						setstatus("GIF 录屏已结束（未保存）");
+					else
+						setstatus("已取消 GIF 录屏");
+				}
+				catch { }
+				finally {
+					if (activeRecordHud == hud) activeRecordHud = null;
+				}
+			};
+			hud.Show();
+		}
+		catch (Exception ex) {
+			activeRecordHud = null;
+			capturing = false;
+			setstatus("GIF 录屏失败: " + ex.Message);
+			showwarnmsg(ex.Message, "GIF 录屏");
 		}
 	}
 
@@ -2899,6 +2988,8 @@ public partial class MainWindow : Window {
 		mnsnapshots.IsEnabled = !on;
 		mnrecord.IsEnabled = !on;
 		mnrecordopt.IsEnabled = !on;
+		mngifrecord.IsEnabled = !on;
+		mngifrecordopt.IsEnabled = !on;
 		mnpaste.IsEnabled = !on;
 		mncopyimg.IsEnabled = !on;
 		mnsaveclip.IsEnabled = !on;

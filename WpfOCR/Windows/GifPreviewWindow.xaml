@@ -1,0 +1,130 @@
+<Window x:Class="WpfOCR.GifPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wf="clr-namespace:System.Windows.Forms;assembly=System.Windows.Forms"
+        Title="GIF 预览"
+        Width="760" Height="560"
+        MinWidth="560" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="gif.preview">
+	<Grid Margin="14">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- 预览区：WinForms PictureBox 可播动画 GIF -->
+		<Border Grid.Row="0" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+		        Background="#FFF5F5F5" CornerRadius="4" Padding="4">
+			<Grid>
+				<WindowsFormsHost x:Name="ehost">
+					<wf:PictureBox x:Name="epreview" SizeMode="Zoom" Dock="Fill"
+					               BackColor="WhiteSmoke"/>
+				</WindowsFormsHost>
+				<TextBlock x:Name="lbempty" Text="正在生成预览…"
+				           HorizontalAlignment="Center" VerticalAlignment="Center"
+				           Foreground="{StaticResource TextMuted}" FontSize="14"
+				           IsHitTestVisible="False"/>
+			</Grid>
+		</Border>
+
+		<!-- 参数 -->
+		<Border Grid.Row="1" Margin="0,12,0,0" Padding="12,10"
+		        Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+		        CornerRadius="4">
+			<StackPanel>
+				<CheckBox x:Name="emaxen" Content="限制最大宽高（等比 fit，不放大）"
+				          Margin="0,0,0,8" IsChecked="True"
+				          AutomationProperties.AutomationId="gif.maxen"/>
+				<Grid Margin="0,0,0,4" IsEnabled="{Binding ElementName=emaxen, Path=IsChecked}">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" MinWidth="88"/>
+						<ColumnDefinition Width="88"/>
+						<ColumnDefinition Width="16"/>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="88"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Column="0" Text="最大宽" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<TextBox x:Name="emaxw" Grid.Column="1" Height="30" Padding="6,4" Text="1280"
+					         BorderBrush="{StaticResource BorderSoft}"
+					         VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="gif.maxw"/>
+					<TextBlock Grid.Column="3" Text="最大高" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<TextBox x:Name="emaxh" Grid.Column="4" Height="30" Padding="6,4" Text="720"
+					         BorderBrush="{StaticResource BorderSoft}"
+					         VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="gif.maxh"/>
+					<TextBlock x:Name="lboutsize" Grid.Column="5"
+					           Text="→ —×—" Margin="12,0,0,0"
+					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+				<TextBlock x:Name="lbsizehint" Margin="0,0,0,8" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           Text="取消勾选则保持录制原尺寸。"/>
+
+				<Grid Margin="0,0,0,8">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" MinWidth="88"/>
+						<ColumnDefinition Width="160"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Column="0" Text="输出帧率" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<ComboBox x:Name="efps" Grid.Column="1" Height="30"
+					          VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="gif.fps"/>
+					<TextBlock Grid.Column="2"
+					           Text="源为 24fps；越低体积越小"
+					           Margin="12,0,0,0" VerticalAlignment="Center"
+					           FontSize="12" Foreground="{StaticResource TextMuted}"
+					           TextWrapping="Wrap"/>
+				</Grid>
+
+				<Grid Margin="0,0,0,4">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" MinWidth="88"/>
+						<ColumnDefinition Width="160"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Column="0" Text="调色板" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<ComboBox x:Name="ecolors" Grid.Column="1" Height="30"
+					          VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="gif.colors">
+						<ComboBoxItem Content="32 色（最小）" Tag="32"/>
+						<ComboBoxItem Content="64 色" Tag="64"/>
+						<ComboBoxItem Content="128 色（默认）" Tag="128" IsSelected="True"/>
+						<ComboBoxItem Content="256 色（最清晰）" Tag="256"/>
+					</ComboBox>
+					<TextBlock Grid.Column="2" x:Name="lbinfo"
+					           Text="颜色越少、帧率越低、尺寸越小 → 文件越小"
+					           Margin="12,0,0,0" VerticalAlignment="Center"
+					           FontSize="12" Foreground="{StaticResource TextMuted}"
+					           TextWrapping="Wrap"/>
+				</Grid>
+
+				<TextBlock x:Name="lbstatus" Margin="0,6,0,0" FontSize="12"
+				           Foreground="{StaticResource TextMuted}" Text=""/>
+			</StackPanel>
+		</Border>
+
+		<!-- 按钮 -->
+		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+			<Button x:Name="bapply" Content="重新生成预览" Style="{StaticResource ToolBtn}"
+			        Width="120" Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="gif.apply"/>
+			<Button x:Name="bcancel" Content="丢弃" Style="{StaticResource ToolBtn}"
+			        Width="88" Margin="0,0,8,0" IsCancel="True"
+			        AutomationProperties.AutomationId="gif.cancel"/>
+			<Button x:Name="bsave" Content="保存…" Style="{StaticResource PrimaryBtn}"
+			        Width="100" IsDefault="True"
+			        AutomationProperties.AutomationId="gif.save"/>
+		</StackPanel>
+	</Grid>
+</Window>

@@ -24,6 +24,8 @@ public sealed class RecordOptions {
 	public int MaxWidth = 1920;
 	/// <summary>输出最大高（偶数）。</summary>
 	public int MaxHeight = 1080;
+	/// <summary>录制开始后，HUD 缩放选区时是否锁定宽高比（开始前始终自由缩放）。</summary>
+	public bool LockAspectWhileRecording = true;
 
 	public bool IsHevc =>
 		string.Equals(Codec, "x265", StringComparison.OrdinalIgnoreCase)
@@ -53,7 +55,26 @@ public sealed class RecordOptions {
 		MaxSizeEnabled = MaxSizeEnabled,
 		MaxWidth = MaxWidth,
 		MaxHeight = MaxHeight,
+		LockAspectWhileRecording = LockAspectWhileRecording,
 	};
+
+	/// <summary>将另一实例字段复制到当前对象（HUD 等持有只读引用时使用）。</summary>
+	public void CopyFrom(RecordOptions o) {
+		if (o == null) return;
+		Codec = o.Codec;
+		Fps = o.Fps;
+		Crf = o.Crf;
+		AudioEnabled = o.AudioEnabled;
+		AudioSource = o.AudioSource;
+		AudioKbps = o.AudioKbps;
+		AudioHz = o.AudioHz;
+		AudioMono = o.AudioMono;
+		MaxSizeEnabled = o.MaxSizeEnabled;
+		MaxWidth = o.MaxWidth;
+		MaxHeight = o.MaxHeight;
+		LockAspectWhileRecording = o.LockAspectWhileRecording;
+		Clamp();
+	}
 
 	/// <summary>常用合法采样率（规范化输出）。</summary>
 	public static readonly int[] AudioHzChoices = { 8000, 11025, 16000, 22050, 32000, 44100, 48000 };

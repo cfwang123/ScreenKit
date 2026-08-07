@@ -152,7 +152,7 @@
 				</DockPanel>
 				<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）" Margin="0,0,0,14" IsChecked="True"/>
 
-				<TextBlock Text="截图历史" FontWeight="SemiBold" Margin="0,0,0,6"/>
+				<TextBlock Text="截图保存" FontWeight="SemiBold" Margin="0,0,0,6"/>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
 				           TextWrapping="Wrap"
 				           Text="screenshots/ 目录保留时间；超过后自动删除。默认 3 天，可选不限。"/>
@@ -166,6 +166,58 @@
 					<ComboBoxItem Content="90 天" Tag="90"/>
 					<ComboBoxItem Content="不限" Tag="0"/>
 				</ComboBox>
+				<Grid Margin="0,0,0,10">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" MinWidth="108"/>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="12"/>
+						<ColumnDefinition Width="Auto" MinWidth="72"/>
+						<ColumnDefinition Width="88"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Column="0" Text="保存格式" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<ComboBox x:Name="esnapfmt" Grid.Column="1" Height="32"
+					          VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="set.screenshot.format">
+						<ComboBoxItem Content="PNG（无损）" Tag="png" IsSelected="True"/>
+						<ComboBoxItem Content="JPG（体积小）" Tag="jpg"/>
+					</ComboBox>
+					<TextBlock x:Name="lbsnapjpgq" Grid.Column="3" Text="JPG 质量"
+					           FontSize="12" Foreground="{StaticResource TextMuted}"
+					           VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<TextBox x:Name="esnapjpgq" Grid.Column="4" Height="30" Padding="6,4" Text="92"
+					         BorderBrush="{StaticResource BorderSoft}"
+					         VerticalContentAlignment="Center"
+					         ToolTip="1–100，越大越清晰、体积越大"
+					         AutomationProperties.AutomationId="set.screenshot.jpgquality"/>
+				</Grid>
+				<CheckBox x:Name="esnapmaxen" Content="限制最大宽高（等比缩小进框内，不放大）"
+				          Margin="0,0,0,8" IsChecked="False"
+				          AutomationProperties.AutomationId="set.screenshot.maxsize"/>
+				<Grid Margin="0,0,0,6" IsEnabled="{Binding ElementName=esnapmaxen, Path=IsChecked}">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="16"/>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Column="0" Text="最大宽" FontSize="12"
+					           Foreground="{StaticResource TextMuted}"
+					           VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<TextBox x:Name="esnapmaxw" Grid.Column="1" Height="30" Padding="6,4" Text="1920"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="set.screenshot.maxw"/>
+					<TextBlock Grid.Column="3" Text="最大高" FontSize="12"
+					           Foreground="{StaticResource TextMuted}"
+					           VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<TextBox x:Name="esnapmaxh" Grid.Column="4" Height="30" Padding="6,4" Text="1080"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="set.screenshot.maxh"/>
+				</Grid>
+				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"
+				           TextWrapping="Wrap"
+				           Text="仅影响写入 screenshots/ 与「复制为文件」的图；OCR 识别仍用原分辨率。"/>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
 				           TextWrapping="Wrap"
 				           Text="截图标注/识别完成时写入剪贴板的方式（二选一；主菜单/托盘也可切换）。"/>

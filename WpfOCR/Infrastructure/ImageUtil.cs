@@ -240,12 +240,15 @@ static class ImageUtil {
 		Clipboard.SetDataObject(data, false);
 	}
 
-	/// <summary>附加 PNG 格式；优先复用已落盘文件，避免二次编码。</summary>
-	static void tryaddpng(DataObject data, BitmapSource bmp, string existingPngPath) {
+	/// <summary>附加 PNG 格式；仅当已落盘文件确为 PNG 时复用，避免 jpg 误当 PNG。</summary>
+	static void tryaddpng(DataObject data, BitmapSource bmp, string existingPath) {
 		try {
 			MemoryStream ms;
-			if (!string.IsNullOrWhiteSpace(existingPngPath) && File.Exists(existingPngPath)) {
-				ms = new MemoryStream(File.ReadAllBytes(existingPngPath));
+			var isPngFile = !string.IsNullOrWhiteSpace(existingPath)
+				&& File.Exists(existingPath)
+				&& string.Equals(Path.GetExtension(existingPath), ".png", StringComparison.OrdinalIgnoreCase);
+			if (isPngFile) {
+				ms = new MemoryStream(File.ReadAllBytes(existingPath));
 			}
 			else {
 				ms = new MemoryStream();
@@ -297,6 +300,21 @@ static class ImageUtil {
 	/// </summary>
 	public static int CurrentScreenshotKeepDays = 3;
 
+	/// <summary>截图保存格式 png / jpg（主窗配置同步）。</summary>
+	public static string CurrentScreenshotFormat = "png";
+
+	/// <summary>JPG 质量 1–100（主窗配置同步）。</summary>
+	public static int CurrentScreenshotJpgQuality = 92;
+
+	/// <summary>是否限制截图保存最大宽高（主窗配置同步）。</summary>
+	public static bool CurrentScreenshotMaxSizeEnabled = false;
+
+	/// <summary>截图保存最大宽（主窗配置同步）。</summary>
+	public static int CurrentScreenshotMaxWidth = 1920;
+
+	/// <summary>截图保存最大高（主窗配置同步）。</summary>
+	public static int CurrentScreenshotMaxHeight = 1080;
+
 	/// <summary>截图完成时是否以位图放入剪贴板（与 AsFile 二选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsImage = true;
 
@@ -307,6 +325,7 @@ static class ImageUtil {
 	/// 保存到 screenshots/（文件名含时间戳便于排序），并按当前配置写入剪贴板
 	///（图片或文件，二选一）。
 	/// 保存前按保留天数清理过期文件（≤0 表示不限，不清理）。
+	/// 按配置应用最大宽高（等比缩小）与保存格式/JPG 质量。
 	/// </summary>
 	/// <returns>保存的完整路径。</returns>
 	public static string SaveScreenshotAndCopy(BitmapSource src, string prefix = "shot",
@@ -319,18 +338,62 @@ static class ImageUtil {
 		if (asFile && !asImg) { asImg = false; asFile = true; }
 		else { asImg = true; asFile = false; }
 		try { CleanupScreenshots(keep); } catch { }
+		// 保存用图：可选等比缩小（OCR 主流程仍用原图）
+		var toSave = prepareforcapture(src);
 		var dir = ScreenshotsDir;
 		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
 		var baseName = $"{(string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim())}_{stamp}";
-		var path = Path.Combine(dir, baseName + ".png");
+		var ext = screenshotext();
+		var path = Path.Combine(dir, baseName + ext);
 		// 极罕见同毫秒：追加序号
 		for (var i = 1; File.Exists(path) && i < 100; i++)
-			path = Path.Combine(dir, $"{baseName}_{i}.png");
-		Savefile(src, path);
+			path = Path.Combine(dir, $"{baseName}_{i}{ext}");
+		Savefile(toSave, path, CurrentScreenshotJpgQuality);
 		if (asImg || asFile)
-			copysnapshotclipboard(src, path, asImg, asFile);
+			copysnapshotclipboard(toSave, path, asImg, asFile);
 		return path;
 	}
+
+	/// <summary>当前配置下的截图扩展名（.png / .jpg）。</summary>
+	static string screenshotext() {
+		var f = (CurrentScreenshotFormat ?? "png").Trim().ToLowerInvariant();
+		return f is "jpg" or "jpeg" ? ".jpg" : ".png";
+	}
+
+	/// <summary>按配置等比缩小到最大框内（不放大）；未启用则原样返回。</summary>
+	public static BitmapSource FitScreenshotMaxSize(BitmapSource src,
+		bool? maxEnabled = null, int? maxW = null, int? maxH = null) {
+		if (src == null) return null;
+		var en = maxEnabled ?? CurrentScreenshotMaxSizeEnabled;
+		if (!en) return src;
+		var mw = Math.Max(16, maxW ?? CurrentScreenshotMaxWidth);
+		var mh = Math.Max(16, maxH ?? CurrentScreenshotMaxHeight);
+		return FitMaxSize(src, mw, mh);
+	}
+
+	/// <summary>等比 fit 到 maxW×maxH 内（不放大）。已在框内则原样返回。</summary>
+	public static BitmapSource FitMaxSize(BitmapSource src, int maxW, int maxH) {
+		if (src == null) return null;
+		maxW = Math.Max(16, maxW);
+		maxH = Math.Max(16, maxH);
+		var w = src.PixelWidth;
+		var h = src.PixelHeight;
+		if (w <= 0 || h <= 0) return src;
+		if (w <= maxW && h <= maxH) return src;
+		var s = Math.Min((double)maxW / w, (double)maxH / h);
+		var nw = Math.Max(1, (int)Math.Round(w * s));
+		var nh = Math.Max(1, (int)Math.Round(h * s));
+		var scale = new ScaleTransform((double)nw / w, (double)nh / h);
+		var tb = new TransformedBitmap(Withdpi(src), scale);
+		// 物化：避免后续编码持有变换链
+		var bmp = new WriteableBitmap(tb);
+		bmp.Freeze();
+		return bmp;
+	}
+
+	/// <summary>截图落盘前预处理：DPI 统一 + 可选最大宽高。</summary>
+	static BitmapSource prepareforcapture(BitmapSource src) =>
+		FitScreenshotMaxSize(Withdpi(src));
 
 	/// <summary>
 	/// 保存到 screenshots/，并以「复制文件」放入剪贴板（兼容旧调用）。
@@ -414,14 +477,17 @@ static class ImageUtil {
 			throw new InvalidOperationException("复制文件到剪贴板失败: " + last.Message, last);
 	}
 
-	/// <summary>保存为 png/jpg/bmp（按扩展名）。</summary>
-	public static void Savefile(BitmapSource src, string path) {
+	/// <summary>保存为 png/jpg/bmp（按扩展名）。jpg 质量默认用当前配置，可覆盖。</summary>
+	public static void Savefile(BitmapSource src, string path, int? jpgQuality = null) {
 		if (src == null) throw new ArgumentNullException(nameof(src));
 		if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("路径无效", nameof(path));
 		var bmp = Withdpi(src);
 		var ext = Path.GetExtension(path)?.ToLowerInvariant() ?? ".png";
+		var q = jpgQuality ?? CurrentScreenshotJpgQuality;
+		if (q < 1) q = 1;
+		if (q > 100) q = 100;
 		BitmapEncoder enc = ext switch {
-			".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 92 },
+			".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = q },
 			".bmp" => new BmpBitmapEncoder(),
 			_ => new PngBitmapEncoder(),
 		};

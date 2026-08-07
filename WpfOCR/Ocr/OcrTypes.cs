@@ -92,6 +92,16 @@ public sealed class OcrOptions {
 	/// 截图历史（screenshots/）保留天数。默认 3；0 = 不限（不自动删除）。
 	/// </summary>
 	public int ScreenshotKeepDays = 3;
+	/// <summary>截图保存格式：png / jpg（默认 png）。</summary>
+	public string ScreenshotFormat = "png";
+	/// <summary>JPG 质量 1–100（仅 format=jpg 时生效；默认 92）。</summary>
+	public int ScreenshotJpgQuality = 92;
+	/// <summary>是否限制截图保存最大宽高（等比缩小，不放大）。</summary>
+	public bool ScreenshotMaxSizeEnabled = false;
+	/// <summary>截图保存最大宽（像素）。</summary>
+	public int ScreenshotMaxWidth = 1920;
+	/// <summary>截图保存最大高（像素）。</summary>
+	public int ScreenshotMaxHeight = 1080;
 	/// <summary>截图完成时复制为图片（与 SnapCopyAsFile 二选一）。</summary>
 	public bool SnapCopyAsImage = true;
 	/// <summary>截图完成时复制为文件（与 SnapCopyAsImage 二选一）。</summary>
@@ -102,6 +112,8 @@ public sealed class OcrOptions {
 	public bool InstallPromptDone;
 	/// <summary>录屏编码参数。</summary>
 	public RecordOptions Record = new();
+	/// <summary>GIF 录屏参数（低帧率、无声）。</summary>
+	public GifOptions GifRecord = new();
 	/// <summary>主窗宽度（DIP）；≤0 表示用默认。</summary>
 	public double WinW;
 	/// <summary>主窗高度（DIP）。</summary>

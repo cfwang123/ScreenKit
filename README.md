@@ -11,7 +11,8 @@ Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOC
 | **Screenshot OCR** | Region capture → OCR; multi-monitor with DXGI Desktop Duplication |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
-| **Screen recording** | Window or region → HUD → MP4 (x264/x265 via **FFmpeg only**) + optional system/mic audio |
+| **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265 via **FFmpeg only**) + optional system/mic audio |
+| **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF |
 | **Clipboard** | Paste image and run OCR; copy image / text |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
@@ -88,6 +89,14 @@ Release builds also produce a **small redistributable** under `WpfOCR\bin\Releas
 
 For local development with models and GPU already present, run **`bin\Release\net48\`** instead.
 
+### Release archive (`release/wpfocr_x.x.x.7z`)
+
+```bash
+node scripts/publish-release.mjs
+```
+
+Runs Release build, then packs `WpfOCR/bin/Release/WpfOCR/` into `release/wpfocr_<version>.7z` (requires [7-Zip](https://www.7-zip.org/) on PATH). The `release/` folder is gitignored.
+
 ## In-app install (recommended)
 
 1. First launch may open the install wizard (defaults: OpenCV, **ORT CPU**, OCR `rapid-ch`, first two ASR packs, FFmpeg; GPU/iGPU **off**).
@@ -155,6 +164,15 @@ record_audio_kbps = 96
 record_max_size = false
 record_max_w = 1920
 record_max_h = 1080
+record_lock_aspect = true      # lock aspect when resizing HUD region after Start (free before Start)
+
+[gif_record]
+gif_fps = 8                     # default output FPS in preview (1–24); capture is 24 fps
+gif_max_size = true
+gif_max_w = 1280
+gif_max_h = 720
+gif_colors = 128                # palette colors in preview (32/64/128/256)
+gif_scale = 100                 # default scale % in preview
 ```
 
 Leave a hotkey string empty to disable that hotkey.
@@ -164,15 +182,25 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 ## Screen recording
 
 1. **Capture → Screen record** (or the toolbar button): click a window or drag a region.
-2. HUD shows a red frame **outside** the capture area, plus start / pause / stop.
+2. **HUD** (drawn outside the capture area):
+   - Red frame; drag the **top strip** to move, or **8 grips** to resize. **Before Start**, aspect ratio is free; **after Start**, resizing locks aspect ratio unless disabled in record options (`record_lock_aspect = false`). Encoded resolution is fixed when you press Start.
+   - Floating **control bar**: drag via the left grip; **collapse** to mini bar; **Options** before Start (record/GIF settings); start/pause share one slot.
+   - Bar auto-positions above/below the region and stays within the **current monitor** (multi-monitor safe).
 3. Stop → confirm save → MP4 is written; Explorer opens and selects the file.
 4. **Capture → Record options**: codec, FPS, CRF, audio source, max output size.
 
+### GIF recording
+
+1. **Capture → GIF record**: same window/region pick.
+2. Same HUD; capture at **24 fps**; after Stop, the **preview window** lets you set output FPS (1–24), scale, and palette colors, then save a **silent GIF**.
+3. **Capture → GIF record options**: default output FPS, max width/height, default colors.
+
 **Notes**
 
-- Recording requires **FFmpeg shared** under `ffmpeg64/` (install in-app or place manually). OpenCV is **not** used for video encode.
+- MP4 / GIF recording requires **FFmpeg shared** under `ffmpeg64/` (install in-app or place manually). OpenCV is **not** used for video encode.
 - System-loopback audio pads silence on wall-clock gaps so late sound is not shifted to the start of the file.
 - Temporary files live under the app `tmp/` folder and are cleaned up after a successful save.
+- GIF size grows quickly with resolution and duration — use preview scale/FPS and the max-size limit.
 
 ## Default hotkeys
 

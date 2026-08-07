@@ -12,6 +12,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 ### Fixed
 
+## [1.0.1] — 2026-08-07
+
+### Added
+
+- **Publish script**: `node scripts/publish-release.mjs` → `release/wpfocr_<version>.7z` (slim Release package; `release/` gitignored).
+- **GIF screen record** (Capture menu / tray): region pick → HUD → **preview window** (output FPS 1–24, scale, palette colors) → save silent GIF. Capture at 24 fps; config `[gif_record]`.
+- **Screenshot save options** (Settings / `config.toml`): format `png|jpg`, JPG quality 1–100, optional max width/height (fit, no upscale). Affects `screenshots/` and copy-as-file; OCR still uses full resolution.
+- **Record HUD** (MP4 + GIF): draggable control bar with left grip; collapse mini bar; **Options** button before Start; icon buttons; move/resize region before and during recording (aspect lock after Start when enabled in record options).
+- **Check for Updates** (Tools menu): GitHub Releases check/download, self-update via tmp copy + CLI apply.
+- Install Features: clearer status badges for 未安装 / 部分 / 已安装.
+
+### Changed
+
+- Main window title shows version (e.g. `WpfOCR — 截图识别 v1.0.1`).
+- Record HUD: start vs pause shown as a single icon control; smoother bar dragging (lightweight move path).
+
+### Fixed
+
+- Record HUD control bar could render outside the visible area on a **secondary monitor** when the capture region was near the bottom edge.
+
 ## [1.0.0] — 2026-08-01
 
 ### Added
@@ -73,4 +93,3 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - PerMonitorV2 DPI crop issues; secondary-monitor black/stretch (DXGI).
 - OCR busy state no longer blocks applying a newly captured image.
 - A/V desync on screen record (WASAPI silence padding).
-)

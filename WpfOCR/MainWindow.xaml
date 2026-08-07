@@ -1,7 +1,7 @@
 <Window x:Class="WpfOCR.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="WpfOCR — 截图识别"
+        Title="WpfOCR — 截图识别 v1.0.1"
         Height="720" Width="1180"
         MinHeight="520" MinWidth="860"
         WindowStartupLocation="Manual"
@@ -79,6 +79,14 @@
 				          AutomationProperties.AutomationId="menu.recordopt"
 				          AutomationProperties.Name="录屏选项"
 				          ToolTip="编码 / 帧率 / CRF / 最大宽高"/>
+				<MenuItem x:Name="mngifrecord" Header="GIF录屏(_G)…"
+				          AutomationProperties.AutomationId="menu.gifrecord"
+				          AutomationProperties.Name="GIF录屏"
+				          ToolTip="点选/框选区域后录制低帧率无声 GIF"/>
+				<MenuItem x:Name="mngifrecordopt" Header="GIF录屏选项(_F)…"
+				          AutomationProperties.AutomationId="menu.gifrecordopt"
+				          AutomationProperties.Name="GIF录屏选项"
+				          ToolTip="帧率 / 最大宽高"/>
 			</MenuItem>
 			<MenuItem x:Name="mnedit" Header="编辑(_E)">
 				<MenuItem x:Name="mncopytext" Header="复制文字(_T)" InputGestureText="Ctrl+C"

@@ -235,6 +235,24 @@ public partial class SettingsWindow : Window {
 			// 自定义天数：尽量贴近或默认 3
 			esnapkeep.SelectedIndex = 1;
 		}
+		// 保存格式 / jpg 质量 / 最大宽高
+		var fmt = (o.ScreenshotFormat ?? "png").Trim().ToLowerInvariant();
+		var wantJpg = fmt is "jpg" or "jpeg";
+		foreach (ComboBoxItem it in esnapfmt.Items) {
+			var tag = (it.Tag as string) ?? "";
+			if (string.Equals(tag, wantJpg ? "jpg" : "png", StringComparison.OrdinalIgnoreCase)) {
+				esnapfmt.SelectedItem = it;
+				break;
+			}
+		}
+		if (esnapfmt.SelectedItem == null) esnapfmt.SelectedIndex = 0;
+		var jq = o.ScreenshotJpgQuality <= 0 ? 92 : Compat.Clamp(o.ScreenshotJpgQuality, 1, 100);
+		esnapjpgq.Text = jq.ToString();
+		esnapmaxen.IsChecked = o.ScreenshotMaxSizeEnabled;
+		esnapmaxw.Text = (o.ScreenshotMaxWidth < 16 ? 1920 : o.ScreenshotMaxWidth).ToString();
+		esnapmaxh.Text = (o.ScreenshotMaxHeight < 16 ? 1080 : o.ScreenshotMaxHeight).ToString();
+		syncsnapfmtenabled();
+		esnapfmt.SelectionChanged += (_, _) => syncsnapfmtenabled();
 		ehttpen.IsChecked = o.HttpEnabled;
 		ehttphost.Text = string.IsNullOrWhiteSpace(o.HttpHost) ? "127.0.0.1" : o.HttpHost;
 		ehttpport.Text = o.HttpPort > 0 ? o.HttpPort.ToString() : "1224";
@@ -304,6 +322,20 @@ public partial class SettingsWindow : Window {
 		if (!int.TryParse(keepTag, out var keepDays) || keepDays < 0)
 			keepDays = 3;
 		Result.ScreenshotKeepDays = keepDays > 3650 ? 3650 : keepDays;
+		// 保存格式 / jpg 质量 / 最大宽高
+		var fmtTag = (esnapfmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "png";
+		Result.ScreenshotFormat = string.Equals(fmtTag, "jpg", StringComparison.OrdinalIgnoreCase) ? "jpg" : "png";
+		if (!int.TryParse((esnapjpgq.Text ?? "").Trim(), out var jpgQ) || jpgQ < 1 || jpgQ > 100) {
+			MessageBox.Show(this, "JPG 质量须为 1–100", "设置",
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		Result.ScreenshotJpgQuality = jpgQ;
+		Result.ScreenshotMaxSizeEnabled = esnapmaxen.IsChecked == true;
+		if (!tryint(esnapmaxw, "截图最大宽", 16, 16384, out var smw)) return false;
+		if (!tryint(esnapmaxh, "截图最大高", 16, 16384, out var smh)) return false;
+		Result.ScreenshotMaxWidth = smw;
+		Result.ScreenshotMaxHeight = smh;
 		// 二选一
 		var asFile = esnapcopyfile.IsChecked == true;
 		Result.SnapCopyAsImage = !asFile;
@@ -357,6 +389,11 @@ public partial class SettingsWindow : Window {
 		PdfDpi = o.PdfDpi,
 		CaptureLog = o.CaptureLog,
 		ScreenshotKeepDays = o.ScreenshotKeepDays,
+		ScreenshotFormat = o.ScreenshotFormat ?? "png",
+		ScreenshotJpgQuality = o.ScreenshotJpgQuality,
+		ScreenshotMaxSizeEnabled = o.ScreenshotMaxSizeEnabled,
+		ScreenshotMaxWidth = o.ScreenshotMaxWidth,
+		ScreenshotMaxHeight = o.ScreenshotMaxHeight,
 		SnapCopyAsImage = o.SnapCopyAsImage,
 		SnapCopyAsFile = o.SnapCopyAsFile,
 		Record = (o.Record ?? new RecordOptions()).Clone(),
@@ -366,6 +403,28 @@ public partial class SettingsWindow : Window {
 		WinT = o.WinT,
 		WinMax = o.WinMax,
 	};
+
+	/// <summary>JPG 质量输入：仅 jpg 格式可编辑。</summary>
+	void syncsnapfmtenabled() {
+		var jpg = string.Equals(
+			(esnapfmt.SelectedItem as ComboBoxItem)?.Tag as string, "jpg",
+			StringComparison.OrdinalIgnoreCase);
+		esnapjpgq.IsEnabled = jpg;
+		lbsnapjpgq.Opacity = jpg ? 1 : 0.45;
+		esnapjpgq.Opacity = jpg ? 1 : 0.55;
+	}
+
+	/// <summary>读整数输入框，失败弹窗。</summary>
+	bool tryint(WpfTextBox box, string name, int min, int max, out int value) {
+		value = 0;
+		if (!int.TryParse((box?.Text ?? "").Trim(), out var n) || n < min || n > max) {
+			MessageBox.Show(this, $"{name}须为 {min}–{max}", "设置",
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		value = n;
+		return true;
+	}
 
 	/// <summary>读热键：留空允许（禁用）；非空须能解析。</summary>
 	bool tryreadhotkey(System.Windows.Controls.TextBox box, string name, out string value) {

@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -10,14 +11,16 @@ using System.Windows.Threading;
 namespace WpfOCR;
 
 /// <summary>
-/// 录屏 HUD：红色外框 + 底部浮动条（区域尺寸、参数摘要、开始/暂停/停止）。
-/// 声音在「录屏选项」中设置。窗口 WDA_EXCLUDEFROMCAPTURE 避免录进自身。
-/// 截图识别/标注进行时通过 <see cref="SuspendForCapture"/> 隐藏，避免挡遮罩与叠进画面。
+/// 录屏 HUD：红色外框 + 浮动控制条。
+/// 控制条可拖动/收起；选区可拖动与八向缩放（开始前/录制中均可）。
 /// </summary>
 public partial class RecordHud : Window {
 	const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 	const uint SWP_SHOWWINDOW = 0x0040;
+	const int MIN_REGION = 64;
 	static readonly IntPtr HwndTopmost = new(-1);
+
+	enum DragKind { None, Bar, Mini, Region, NW, N, NE, E, SE, S, SW, W }
 
 	[DllImport("user32.dll")]
 	static extern bool SetWindowDisplayAffinity(IntPtr hwnd, uint dwAffinity);
@@ -25,9 +28,12 @@ public partial class RecordHud : Window {
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
-	readonly System.Drawing.Rectangle region;
+	System.Drawing.Rectangle region;
 	readonly RecordOptions recOpt;
+	readonly GifOptions gifOpt;
+	readonly bool gifMode;
 	ScreenRecorder rec;
+	GifScreenRecorder gifRec;
 	DispatcherTimer timer;
 	bool started;
 	bool stopping;
@@ -35,21 +41,58 @@ public partial class RecordHud : Window {
 	bool pausedBeforeSuspend;
 	string tmpPath;
 
+	bool barCollapsed;
+	double? barUserX, barUserY; // DIP；null=自动贴选区
+	DragKind dragKind;
+	Point dragOrigin; // DIP
+	System.Drawing.Rectangle dragRegion0;
+	double dragBarX0, dragBarY0;
+	// 拖控制条时缓存钳位，避免每帧查显示器
+	double dragBarMinX, dragBarMinY, dragBarMaxX, dragBarMaxY;
+	double dragBarW, dragBarH;
+	double dragAspect; // 缩放开始时 width/height
+
 	public bool Completed { get; private set; }
 	public bool Saved { get; private set; }
 	public string SavedPath { get; private set; }
 	/// <summary>是否已点开始并在录制（含暂停）。</summary>
-	public bool IsRecording => started && rec != null && !stopping;
+	public bool IsRecording => started && (gifMode ? gifRec != null : rec != null) && !stopping;
 
 	public event Action Finished;
 
-	public RecordHud(System.Drawing.Rectangle region, RecordOptions options = null) {
+	public RecordHud(System.Drawing.Rectangle region, RecordOptions options = null)
+		: this(region, options, null, gif: false) { }
+
+	/// <summary>GIF 录屏 HUD（无声、低帧率）。</summary>
+	public RecordHud(System.Drawing.Rectangle region, GifOptions gifOptions)
+		: this(region, null, gifOptions, gif: true) { }
+
+	RecordHud(System.Drawing.Rectangle region, RecordOptions options, GifOptions gifOptions, bool gif) {
 		this.region = region;
-		recOpt = (options ?? new RecordOptions()).Clone();
-		recOpt.Clamp();
+		gifMode = gif;
+		if (gifMode) {
+			gifOpt = (gifOptions ?? new GifOptions()).Clone();
+			gifOpt.Clamp();
+			recOpt = new RecordOptions { AudioEnabled = false, Fps = GifOptions.CaptureFps };
+			try {
+				var opt = new OcrOptions();
+				AppConfig.LoadInto(opt);
+				if (opt.Record != null)
+					recOpt.LockAspectWhileRecording = opt.Record.LockAspectWhileRecording;
+			}
+			catch { }
+		}
+		else {
+			recOpt = (options ?? new RecordOptions()).Clone();
+			recOpt.Clamp();
+			gifOpt = new GifOptions();
+		}
 		InitializeComponent();
 
-		// 必须先设 DIP 尺寸，再 SetWindowPos 物理像素；否则分层窗命中测试与绘制错位
+		var optTip = gifMode ? "GIF 录屏选项" : "录屏选项";
+		bopt.Content = boptM.Content = "选项";
+		bopt.ToolTip = boptM.ToolTip = optTip;
+
 		var (vlDip, vtDip, vwDip, vhDip) = ScreenDpi.VirtualScreenDip();
 		Left = vlDip;
 		Top = vtDip;
@@ -81,9 +124,17 @@ public partial class RecordHud : Window {
 		};
 
 		bstart.Click += (_, _) => onstart();
+		bstartM.Click += (_, _) => onstart();
 		bpause.Click += (_, _) => onpause();
+		bpauseM.Click += (_, _) => onpause();
 		bstop.Click += (_, _) => onstop();
-		// 未开录前 Esc 取消；录制中不关（需点停止）
+		bstopM.Click += (_, _) => onstop();
+		bopt.Click += (_, _) => onoptions();
+		boptM.Click += (_, _) => onoptions();
+		bcollapse.Click += (_, _) => setcollapsed(true);
+		bexpand.Click += (_, _) => setcollapsed(false);
+		setplaypauseui(started: false, paused: false);
+		initinteract();
 		WindowEsc.Attach(this, () => {
 			if (!started && !stopping) closeout(false);
 		});
@@ -95,12 +146,12 @@ public partial class RecordHud : Window {
 	public void SuspendForCapture() {
 		if (suspendedForCapture || stopping) return;
 		suspendedForCapture = true;
-		pausedBeforeSuspend = rec != null && started && rec.IsPaused;
+		pausedBeforeSuspend = started && ispaused();
 		RecordLog.Step("hud_suspend_capture",
-			$"started={started} wasPaused={pausedBeforeSuspend}");
+			$"started={started} wasPaused={pausedBeforeSuspend} gif={gifMode}");
 		try {
-			if (rec != null && started && !rec.IsPaused)
-				rec.Pause();
+			if (started && !ispaused())
+				pause();
 		}
 		catch (Exception ex) { RecordLog.Ex("hud_suspend.Pause", ex); }
 		try { Hide(); } catch { }
@@ -118,22 +169,24 @@ public partial class RecordHud : Window {
 		catch (Exception ex) { RecordLog.Ex("hud_resume.Show", ex); }
 		try {
 			// 仅当挂起前未暂停时才自动继续
-			if (rec != null && started && !pausedBeforeSuspend && rec.IsPaused) {
-				rec.Resume();
-				bpause.Content = "暂停";
-				lbstate.Text = "录制中";
-				lbstate.Foreground = new SolidColorBrush(Color.FromRgb(0xB7, 0x1C, 0x1C));
-				edot.Fill = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
+			if (started && !pausedBeforeSuspend && ispaused()) {
+				resume();
+				setrecordingui(paused: false);
 			}
-			else if (rec != null && started && rec.IsPaused) {
-				bpause.Content = "继续";
-				lbstate.Text = "已暂停";
-				lbstate.Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
-				edot.Fill = new SolidColorBrush(Color.FromRgb(0x5D, 0x40, 0x37));
+			else if (started && ispaused()) {
+				setrecordingui(paused: true);
 			}
 		}
 		catch (Exception ex) { RecordLog.Ex("hud_resume.Resume", ex); }
 	}
+
+	bool ispaused() => gifMode ? (gifRec?.IsPaused ?? false) : (rec?.IsPaused ?? false);
+	void pause() { if (gifMode) gifRec?.Pause(); else rec?.Pause(); }
+	void resume() { if (gifMode) gifRec?.Resume(); else rec?.Resume(); }
+	TimeSpan elapsed() => gifMode ? (gifRec?.Elapsed ?? TimeSpan.Zero) : (rec?.Elapsed ?? TimeSpan.Zero);
+	long filebytes() => gifMode ? (gifRec?.FileBytes ?? 0) : (rec?.FileBytes ?? 0);
+	string backend() => gifMode ? gifRec?.Backend : rec?.Backend;
+	bool finalizeDone() => gifMode ? (gifRec?.IsFinalizeDone ?? true) : (rec?.IsFinalizeDone ?? true);
 
 	void retopmost() {
 		try {
@@ -148,21 +201,34 @@ public partial class RecordHud : Window {
 	}
 
 	void fillsummary() {
-		var rw = region.Width % 2 == 0 ? region.Width : region.Width - 1;
-		var rh = region.Height % 2 == 0 ? region.Height : region.Height - 1;
+		int rw, rh, ow, oh;
+		string sum;
+		bool maxEn;
+		if (gifMode) {
+			rw = region.Width;
+			rh = region.Height;
+			gifOpt.FitSize(rw, rh, out ow, out oh);
+			sum = gifOpt.SummaryText(rw, rh);
+			maxEn = gifOpt.MaxSizeEnabled;
+		}
+		else {
+			rw = region.Width % 2 == 0 ? region.Width : region.Width - 1;
+			rh = region.Height % 2 == 0 ? region.Height : region.Height - 1;
+			recOpt.FitSize(rw, rh, out ow, out oh);
+			sum = recOpt.SummaryText(rw, rh);
+			maxEn = recOpt.MaxSizeEnabled;
+		}
 		lbregion.Text = $"{rw}×{rh}";
-		recOpt.FitSize(rw, rh, out var ow, out var oh);
-		var sum = recOpt.SummaryText(rw, rh);
-		if (recOpt.MaxSizeEnabled && (ow != rw || oh != rh))
+		if (maxEn && (ow != rw || oh != rh))
 			lbsummary.Text = $"{sum} · out {ow}×{oh}";
 		else
 			lbsummary.Text = sum;
-		var tip = $"选区 {rw}×{rh}\n{sum}";
+		var tip = $"选区 {rw}×{rh}\n{sum}\n拖动红框边缘可移动/缩放";
 		ToolTip = tip;
-		bbar.ToolTip = tip;
+		bbar.ToolTip = tip + "\n拖动控制条可移动位置";
 	}
 
-	void layoutchrome() {
+	void layoutchrome(bool light = false) {
 		var (vl, vt, _, _) = ScreenDpi.VirtualScreenPixels();
 		ScreenDpi.VirtualScreenScale(out var sx, out var sy);
 		if (sx < 0.25) sx = 1;
@@ -182,22 +248,96 @@ public partial class RecordHud : Window {
 		Canvas.SetLeft(rdot, bx - outM - 4);
 		Canvas.SetTop(rdot, by - outM - 4);
 
-		bbar.UpdateLayout();
-		var barW = bbar.ActualWidth > 1 ? bbar.ActualWidth : 420;
-		var barH = bbar.ActualHeight > 1 ? bbar.ActualHeight : 28;
-		var screenW = Math.Max(1.0, ActualWidth > 1 ? ActualWidth : Width);
-		var screenH = Math.Max(1.0, ActualHeight > 1 ? ActualHeight : Height);
-		var barX = bx + (bw - barW) / 2;
-		var barY = by + bh + outM + 6;
-		if (barY + barH > screenH - 4)
-			barY = by - barH - outM - 6;
-		if (barY < 4) barY = screenH - barH - 8;
-		if (barX < 4) barX = 4;
-		if (barX + barW > screenW - 4) barX = Math.Max(4, screenW - barW - 4);
-		Canvas.SetLeft(bbar, barX);
-		Canvas.SetTop(bbar, barY);
-		bbar.IsHitTestVisible = true;
+		// 顶部拖动条
+		Canvas.SetLeft(bdrag, bx);
+		Canvas.SetTop(bdrag, by);
+		bdrag.Width = Math.Max(8, bw);
+		bdrag.Height = 10;
 
+		// 八向手柄（选区外缘）
+		const double gs = 12, ge = 8;
+		placegrip(g_nw, bx - outM - 2, by - outM - 2, gs, gs);
+		placegrip(g_n, bx + 16, by - outM - 2, Math.Max(8, bw - 32), ge);
+		placegrip(g_ne, bx + bw + outM - gs + 2, by - outM - 2, gs, gs);
+		placegrip(g_e, bx + bw + outM - ge + 2, by + 16, ge, Math.Max(8, bh - 32));
+		placegrip(g_se, bx + bw + outM - gs + 2, by + bh + outM - gs + 2, gs, gs);
+		placegrip(g_s, bx + 16, by + bh + outM - ge + 2, Math.Max(8, bw - 32), ge);
+		placegrip(g_sw, bx - outM - 2, by + bh + outM - gs + 2, gs, gs);
+		placegrip(g_w, bx - outM - 2, by + 16, ge, Math.Max(8, bh - 32));
+
+		double useW, useH;
+		if (light) {
+			// 拖动中：不 UpdateLayout / 不改 Visibility / 不写 Affinity
+			useW = barCollapsed
+				? (bmini.ActualWidth > 1 ? bmini.ActualWidth : 110)
+				: (bbar.ActualWidth > 1 ? bbar.ActualWidth : 420);
+			useH = barCollapsed
+				? (bmini.ActualHeight > 1 ? bmini.ActualHeight : 28)
+				: (bbar.ActualHeight > 1 ? bbar.ActualHeight : 28);
+		}
+		else {
+			if (barCollapsed) {
+				bbar.Visibility = Visibility.Collapsed;
+				bmini.Visibility = Visibility.Visible;
+			}
+			else {
+				bmini.Visibility = Visibility.Collapsed;
+				bbar.Visibility = Visibility.Visible;
+			}
+			bbar.UpdateLayout();
+			bmini.UpdateLayout();
+			useW = barCollapsed
+				? (bmini.ActualWidth > 1 ? bmini.ActualWidth : 110)
+				: (bbar.ActualWidth > 1 ? bbar.ActualWidth : 420);
+			useH = barCollapsed
+				? (bmini.ActualHeight > 1 ? bmini.ActualHeight : 28)
+				: (bbar.ActualHeight > 1 ? bbar.ActualHeight : 28);
+		}
+
+		// 钳到选区所在显示器（勿用整块虚拟屏，否则副屏更矮/错位时会落到屏外死区）
+		var rcx = region.Left + Math.Max(0, region.Width / 2);
+		var rcy = region.Top + Math.Max(0, region.Height / 2);
+		ScreenDpi.MonitorDipFromPhysical(rcx, rcy, out var ml, out var mt, out var mw, out var mh);
+		var minX = ml + 4;
+		var minY = mt + 4;
+		var maxX = Math.Max(minX, ml + mw - useW - 4);
+		var maxY = Math.Max(minY, mt + mh - useH - 4);
+
+		double barX, barY;
+		if (barUserX.HasValue && barUserY.HasValue) {
+			barX = barUserX.Value;
+			barY = barUserY.Value;
+		}
+		else {
+			barX = bx + (bw - useW) / 2;
+			var below = by + bh + outM + 6;
+			var above = by - useH - outM - 6;
+			// 优先在选区下方；下方会出该显示器则改到上方；上下都不够则贴该屏底边内侧
+			if (below + useH <= mt + mh - 4)
+				barY = below;
+			else if (above >= mt + 4)
+				barY = above;
+			else
+				barY = maxY;
+		}
+		barX = clamp(barX, minX, maxX);
+		barY = clamp(barY, minY, maxY);
+		// 用户拖过的位置若被钳回屏内，写回以免下次仍用屏外坐标
+		if (barUserX.HasValue && barUserY.HasValue) {
+			barUserX = barX;
+			barUserY = barY;
+		}
+
+		if (barCollapsed) {
+			Canvas.SetLeft(bmini, barX);
+			Canvas.SetTop(bmini, barY);
+		}
+		else {
+			Canvas.SetLeft(bbar, barX);
+			Canvas.SetTop(bbar, barY);
+		}
+
+		if (light) return;
 		try {
 			var hwnd = new WindowInteropHelper(this).Handle;
 			if (hwnd != IntPtr.Zero)
@@ -206,11 +346,520 @@ public partial class RecordHud : Window {
 		catch { }
 	}
 
+	static void placegrip(FrameworkElement el, double x, double y, double w, double h) {
+		Canvas.SetLeft(el, x);
+		Canvas.SetTop(el, y);
+		el.Width = Math.Max(6, w);
+		el.Height = Math.Max(6, h);
+	}
+
+	static double clamp(double v, double lo, double hi) {
+		if (hi < lo) return lo;
+		if (v < lo) return lo;
+		if (v > hi) return hi;
+		return v;
+	}
+
+	void setcollapsed(bool on) {
+		barCollapsed = on;
+		// 收起时把当前位置记为用户位置，展开仍留在原处
+		if (barCollapsed) {
+			barUserX = Canvas.GetLeft(bbar);
+			barUserY = Canvas.GetTop(bbar);
+			if (double.IsNaN(barUserX.Value)) barUserX = Canvas.GetLeft(bmini);
+			if (double.IsNaN(barUserY.Value)) barUserY = Canvas.GetTop(bmini);
+		}
+		layoutchrome();
+	}
+
+	void applyregion(System.Drawing.Rectangle r, bool light = false) {
+		r = normalizeRegion(r, even: true);
+		if (r.Width < MIN_REGION || r.Height < MIN_REGION) return;
+		region = r;
+		if (gifMode) gifRec?.SetRegion(r);
+		else rec?.SetRegion(r);
+		if (light) {
+			lbregion.Text = $"{region.Width}×{region.Height}";
+			layoutchrome(light: true);
+		}
+		else {
+			fillsummary();
+			layoutchrome();
+		}
+	}
+
+	static System.Drawing.Rectangle normalizeRegion(System.Drawing.Rectangle r, bool even) {
+		if (even) {
+			if (r.Width % 2 != 0) r.Width--;
+			if (r.Height % 2 != 0) r.Height--;
+		}
+		if (r.Width < MIN_REGION) r.Width = MIN_REGION + (even ? MIN_REGION % 2 : 0);
+		if (r.Height < MIN_REGION) r.Height = MIN_REGION + (even ? MIN_REGION % 2 : 0);
+		if (even) {
+			if (r.Width % 2 != 0) r.Width++;
+			if (r.Height % 2 != 0) r.Height++;
+		}
+		return r;
+	}
+
+	void initinteract() {
+		void wireBar(UIElement el, DragKind kind) {
+			el.MouseLeftButtonDown += (s, e) => {
+				if (stopping) return;
+				// 点在按钮上不拖条
+				if (e.OriginalSource is DependencyObject d && findbutton(d) != null) return;
+				begindrag(kind, e);
+			};
+		}
+		wireBar(bbar, DragKind.Bar);
+		wireBar(bmini, DragKind.Mini);
+
+		void wireGrip(UIElement el, DragKind kind) {
+			el.MouseLeftButtonDown += (s, e) => {
+				if (stopping) return;
+				begindrag(kind, e);
+			};
+		}
+		wireGrip(bdrag, DragKind.Region);
+		wireGrip(g_nw, DragKind.NW);
+		wireGrip(g_n, DragKind.N);
+		wireGrip(g_ne, DragKind.NE);
+		wireGrip(g_e, DragKind.E);
+		wireGrip(g_se, DragKind.SE);
+		wireGrip(g_s, DragKind.S);
+		wireGrip(g_sw, DragKind.SW);
+		wireGrip(g_w, DragKind.W);
+
+		proot.MouseMove += (_, e) => ondragmove(e);
+		proot.MouseLeftButtonUp += (_, e) => enddrag(e);
+		proot.LostMouseCapture += (_, _) => { dragKind = DragKind.None; };
+	}
+
+	static Button findbutton(DependencyObject d) {
+		while (d != null) {
+			if (d is Button b) return b;
+			d = VisualTreeHelper.GetParent(d);
+		}
+		return null;
+	}
+
+	void begindrag(DragKind kind, MouseButtonEventArgs e) {
+		dragKind = kind;
+		dragOrigin = e.GetPosition(proot);
+		dragRegion0 = region;
+		var barEl = barCollapsed ? (FrameworkElement)bmini : bbar;
+		dragBarX0 = Canvas.GetLeft(barEl);
+		dragBarY0 = Canvas.GetTop(barEl);
+		if (double.IsNaN(dragBarX0)) dragBarX0 = 0;
+		if (double.IsNaN(dragBarY0)) dragBarY0 = 0;
+		if (kind is DragKind.Bar or DragKind.Mini) {
+			dragBarW = barEl.ActualWidth > 1 ? barEl.ActualWidth : 40;
+			dragBarH = barEl.ActualHeight > 1 ? barEl.ActualHeight : 28;
+			var rcx = region.Left + Math.Max(0, region.Width / 2);
+			var rcy = region.Top + Math.Max(0, region.Height / 2);
+			ScreenDpi.MonitorDipFromPhysical(rcx, rcy, out var ml, out var mt, out var mw, out var mh);
+			dragBarMinX = ml + 4;
+			dragBarMinY = mt + 4;
+			dragBarMaxX = Math.Max(dragBarMinX, ml + mw - dragBarW - 4);
+			dragBarMaxY = Math.Max(dragBarMinY, mt + mh - dragBarH - 4);
+		}
+		else if (kind is not DragKind.None and not DragKind.Region && uselockaspect())
+			dragAspect = (double)dragRegion0.Width / Math.Max(1, dragRegion0.Height);
+		proot.CaptureMouse();
+		e.Handled = true;
+	}
+
+	void ondragmove(MouseEventArgs e) {
+		if (dragKind == DragKind.None || stopping) return;
+		var p = e.GetPosition(proot);
+		var dx = p.X - dragOrigin.X;
+		var dy = p.Y - dragOrigin.Y;
+		if (dragKind is DragKind.Bar or DragKind.Mini) {
+			// 只挪 Canvas 位置，避免整页 layoutchrome / UpdateLayout
+			var x = clamp(dragBarX0 + dx, dragBarMinX, dragBarMaxX);
+			var y = clamp(dragBarY0 + dy, dragBarMinY, dragBarMaxY);
+			barUserX = x;
+			barUserY = y;
+			var el = barCollapsed ? (FrameworkElement)bmini : bbar;
+			Canvas.SetLeft(el, x);
+			Canvas.SetTop(el, y);
+			return;
+		}
+
+		ScreenDpi.VirtualScreenScale(out var sx, out var sy);
+		if (sx < 0.25) sx = 1;
+		if (sy < 0.25) sy = 1;
+		var dpx = (int)Math.Round(dx * sx);
+		var dpy = (int)Math.Round(dy * sy);
+		System.Drawing.Rectangle r;
+		if (dragKind == DragKind.Region) {
+			r = dragRegion0;
+			r.X = dragRegion0.X + dpx;
+			r.Y = dragRegion0.Y + dpy;
+			var (vl, vt, vw, vh) = ScreenDpi.VirtualScreenPixels();
+			if (r.Left < vl) r.X = vl;
+			if (r.Top < vt) r.Y = vt;
+			if (r.Right > vl + vw) r.X = vl + vw - r.Width;
+			if (r.Bottom > vt + vh) r.Y = vt + vh - r.Height;
+		}
+		else {
+			var (vl, vt, vw, vh) = ScreenDpi.VirtualScreenPixels();
+			if (uselockaspect()) {
+				r = resizewithaspect(dragKind, dpx, dpy);
+				r = clampresizeregion(r, dragKind, dragAspect, vl, vt, vw, vh);
+			}
+			else {
+				r = resizefree(dragKind, dpx, dpy);
+				r = clampresizefree(r, dragKind, vl, vt, vw, vh);
+			}
+		}
+		applyregion(r, light: true);
+	}
+
+	bool uselockaspect() => started && recOpt.LockAspectWhileRecording;
+
+	System.Drawing.Rectangle resizefree(DragKind kind, int dpx, int dpy) {
+		var r = dragRegion0;
+		switch (kind) {
+			case DragKind.NW:
+				r.X = dragRegion0.X + dpx;
+				r.Y = dragRegion0.Y + dpy;
+				r.Width = dragRegion0.Width - dpx;
+				r.Height = dragRegion0.Height - dpy;
+				break;
+			case DragKind.N:
+				r.Y = dragRegion0.Y + dpy;
+				r.Height = dragRegion0.Height - dpy;
+				break;
+			case DragKind.NE:
+				r.Y = dragRegion0.Y + dpy;
+				r.Width = dragRegion0.Width + dpx;
+				r.Height = dragRegion0.Height - dpy;
+				break;
+			case DragKind.E:
+				r.Width = dragRegion0.Width + dpx;
+				break;
+			case DragKind.SE:
+				r.Width = dragRegion0.Width + dpx;
+				r.Height = dragRegion0.Height + dpy;
+				break;
+			case DragKind.S:
+				r.Height = dragRegion0.Height + dpy;
+				break;
+			case DragKind.SW:
+				r.X = dragRegion0.X + dpx;
+				r.Width = dragRegion0.Width - dpx;
+				r.Height = dragRegion0.Height + dpy;
+				break;
+			case DragKind.W:
+				r.X = dragRegion0.X + dpx;
+				r.Width = dragRegion0.Width - dpx;
+				break;
+		}
+		return r;
+	}
+
+	System.Drawing.Rectangle clampresizefree(
+		System.Drawing.Rectangle r, DragKind kind, int vl, int vt, int vw, int vh) {
+		if (r.Width < MIN_REGION) {
+			if (kind is DragKind.NW or DragKind.W or DragKind.SW)
+				r.X = dragRegion0.Right - MIN_REGION;
+			r.Width = MIN_REGION;
+		}
+		if (r.Height < MIN_REGION) {
+			if (kind is DragKind.NW or DragKind.N or DragKind.NE)
+				r.Y = dragRegion0.Bottom - MIN_REGION;
+			r.Height = MIN_REGION;
+		}
+		if (r.Left < vl) { r.Width -= vl - r.Left; r.X = vl; }
+		if (r.Top < vt) { r.Height -= vt - r.Top; r.Y = vt; }
+		if (r.Right > vl + vw) r.Width = vl + vw - r.Left;
+		if (r.Bottom > vt + vh) r.Height = vt + vh - r.Top;
+		return r;
+	}
+
+	System.Drawing.Rectangle resizewithaspect(DragKind kind, int dpx, int dpy) {
+		var r0 = dragRegion0;
+		var asp = dragAspect;
+		int w, h, x, y;
+
+		switch (kind) {
+			case DragKind.SE:
+				pickcornersize(r0.Width + dpx, r0.Height + dpy, dpx, dpy, r0, asp, out w, out h);
+				x = r0.X;
+				y = r0.Y;
+				break;
+			case DragKind.NW:
+				pickcornersize(r0.Width - dpx, r0.Height - dpy, dpx, dpy, r0, asp, out w, out h);
+				x = r0.Right - w;
+				y = r0.Bottom - h;
+				break;
+			case DragKind.NE:
+				pickcornersize(r0.Width + dpx, r0.Height - dpy, dpx, dpy, r0, asp, out w, out h);
+				x = r0.X;
+				y = r0.Bottom - h;
+				break;
+			case DragKind.SW:
+				pickcornersize(r0.Width - dpx, r0.Height + dpy, dpx, dpy, r0, asp, out w, out h);
+				x = r0.Right - w;
+				y = r0.Y;
+				break;
+			case DragKind.E:
+				w = r0.Width + dpx;
+				h = (int)Math.Round(w / asp);
+				x = r0.X;
+				y = r0.Y + (r0.Height - h) / 2;
+				break;
+			case DragKind.W:
+				w = r0.Width - dpx;
+				h = (int)Math.Round(w / asp);
+				x = r0.Right - w;
+				y = r0.Y + (r0.Height - h) / 2;
+				break;
+			case DragKind.S:
+				h = r0.Height + dpy;
+				w = (int)Math.Round(h * asp);
+				x = r0.X + (r0.Width - w) / 2;
+				y = r0.Y;
+				break;
+			case DragKind.N:
+				h = r0.Height - dpy;
+				w = (int)Math.Round(h * asp);
+				x = r0.X + (r0.Width - w) / 2;
+				y = r0.Bottom - h;
+				break;
+			default:
+				return r0;
+		}
+
+		w = Math.Max(MIN_REGION, w);
+		h = Math.Max(MIN_REGION, h);
+		return new System.Drawing.Rectangle(x, y, w, h);
+	}
+
+	static void pickcornersize(int cw, int ch, int dpx, int dpy,
+		System.Drawing.Rectangle r0, double asp, out int w, out int h) {
+		if (Math.Abs(dpx) * r0.Height >= Math.Abs(dpy) * r0.Width) {
+			w = cw;
+			h = Math.Max(MIN_REGION, (int)Math.Round(w / asp));
+		}
+		else {
+			h = ch;
+			w = Math.Max(MIN_REGION, (int)Math.Round(h * asp));
+		}
+	}
+
+	System.Drawing.Rectangle clampresizeregion(
+		System.Drawing.Rectangle r, DragKind kind, double asp,
+		int vl, int vt, int vw, int vh) {
+		var w = Math.Max(MIN_REGION, r.Width);
+		var h = Math.Max(MIN_REGION, r.Height);
+		int x, y;
+		var vr = vl + vw;
+		var vb = vt + vh;
+		var r0 = dragRegion0;
+
+		switch (kind) {
+			case DragKind.SE:
+				x = r.X;
+				y = r.Y;
+				limitrefsize(ref w, ref h, asp, vr - x, vb - y);
+				break;
+			case DragKind.NW:
+				limitrefsize(ref w, ref h, asp, r.Right - vl, r.Bottom - vt);
+				x = r.Right - w;
+				y = r.Bottom - h;
+				break;
+			case DragKind.NE:
+				limitrefsize(ref w, ref h, asp, vr - r.Left, r.Bottom - vt);
+				x = r.Left;
+				y = r.Bottom - h;
+				break;
+			case DragKind.SW:
+				limitrefsize(ref w, ref h, asp, r.Right - vl, vb - r.Top);
+				x = r.Right - w;
+				y = r.Top;
+				break;
+			case DragKind.E:
+				x = r.X;
+				limitrefsize(ref w, ref h, asp, vr - x, vb - vt);
+				y = r.Y + (r0.Height - h) / 2;
+				y = clampi(y, vt, vb - h);
+				break;
+			case DragKind.W:
+				limitrefsize(ref w, ref h, asp, r.Right - vl, vb - vt);
+				x = r.Right - w;
+				y = r.Y + (r0.Height - h) / 2;
+				y = clampi(y, vt, vb - h);
+				break;
+			case DragKind.S:
+				y = r.Top;
+				limitrefsize(ref w, ref h, asp, vr - vl, vb - y);
+				x = r.X + (r0.Width - w) / 2;
+				x = clampi(x, vl, vr - w);
+				break;
+			case DragKind.N:
+				limitrefsize(ref w, ref h, asp, vr - vl, r.Bottom - vt);
+				y = r.Bottom - h;
+				x = r.X + (r0.Width - w) / 2;
+				x = clampi(x, vl, vr - w);
+				break;
+			default:
+				return r;
+		}
+
+		w = Math.Max(MIN_REGION, w);
+		h = Math.Max(MIN_REGION, h);
+		return new System.Drawing.Rectangle(x, y, w, h);
+	}
+
+	static void limitrefsize(ref int w, ref int h, double asp, int maxW, int maxH) {
+		maxW = Math.Max(MIN_REGION, maxW);
+		maxH = Math.Max(MIN_REGION, maxH);
+		if (w <= maxW && h <= maxH) return;
+		var s = Math.Min((double)maxW / w, (double)maxH / h);
+		w = Math.Max(MIN_REGION, (int)Math.Round(w * s));
+		h = Math.Max(MIN_REGION, (int)Math.Round(w / asp));
+		if (h > maxH) {
+			h = maxH;
+			w = Math.Max(MIN_REGION, (int)Math.Round(h * asp));
+		}
+		if (w > maxW) {
+			w = maxW;
+			h = Math.Max(MIN_REGION, (int)Math.Round(w / asp));
+		}
+	}
+
+	static int clampi(int v, int lo, int hi) {
+		if (hi < lo) return lo;
+		if (v < lo) return lo;
+		if (v > hi) return hi;
+		return v;
+	}
+
+	void enddrag(MouseButtonEventArgs e) {
+		if (dragKind == DragKind.None) return;
+		var wasRegion = dragKind is not (DragKind.Bar or DragKind.Mini or DragKind.None);
+		dragKind = DragKind.None;
+		try { proot.ReleaseMouseCapture(); } catch { }
+		if (wasRegion) {
+			fillsummary();
+			layoutchrome();
+		}
+		e.Handled = true;
+	}
+
+	static readonly SolidColorBrush DotRec =
+		new(Color.FromRgb(0xC6, 0x28, 0x28));
+	static readonly SolidColorBrush DotIdle =
+		new(Color.FromRgb(0x5D, 0x40, 0x37));
+	static readonly SolidColorBrush StateRec =
+		new(Color.FromRgb(0xB7, 0x1C, 0x1C));
+	static readonly SolidColorBrush StateIdle =
+		new(Color.FromRgb(0x33, 0x33, 0x33));
+
+	void setpauseicon(bool paused) {
+		var visPause = paused ? Visibility.Collapsed : Visibility.Visible;
+		var visPlay = paused ? Visibility.Visible : Visibility.Collapsed;
+		icoPause.Visibility = visPause;
+		icoResume.Visibility = visPlay;
+		icoPauseM.Visibility = visPause;
+		icoResumeM.Visibility = visPlay;
+		var tip = paused ? "继续" : "暂停";
+		bpause.ToolTip = tip;
+		bpauseM.ToolTip = tip;
+	}
+
+	/// <summary>未开始只显示开始；录制中/暂停只显示暂停（图标切换继续）。</summary>
+	void setplaypauseui(bool started, bool paused) {
+		var optVis = started ? Visibility.Collapsed : Visibility.Visible;
+		bopt.Visibility = optVis;
+		boptM.Visibility = optVis;
+		if (started) {
+			bstart.Visibility = Visibility.Collapsed;
+			bstartM.Visibility = Visibility.Collapsed;
+			bpause.Visibility = Visibility.Visible;
+			bpauseM.Visibility = Visibility.Visible;
+			bpause.IsEnabled = !stopping;
+			setpauseicon(paused);
+		}
+		else {
+			bstart.Visibility = Visibility.Visible;
+			bstartM.Visibility = Visibility.Visible;
+			bpause.Visibility = Visibility.Collapsed;
+			bpauseM.Visibility = Visibility.Collapsed;
+			bstart.IsEnabled = !stopping;
+			setpauseicon(false);
+		}
+		bstopM.IsEnabled = bstop.IsEnabled;
+	}
+
+	void setdot(bool recording) {
+		var fill = recording ? DotRec : DotIdle;
+		edot.Fill = fill;
+		edotM.Fill = fill;
+	}
+
+	void setrecordingui(bool paused) {
+		setplaypauseui(started: true, paused: paused);
+		if (paused) {
+			lbstate.Text = "已暂停";
+			lbstate.Foreground = StateIdle;
+			setdot(false);
+		}
+		else {
+			lbstate.Text = "录制中";
+			lbstate.Foreground = StateRec;
+			setdot(true);
+		}
+	}
+
+	void syncctrlenabled() {
+		bstartM.IsEnabled = bstart.IsEnabled;
+		bpauseM.IsEnabled = bpause.IsEnabled;
+		bstopM.IsEnabled = bstop.IsEnabled;
+		boptM.IsEnabled = bopt.IsEnabled;
+	}
+
+	void onoptions() {
+		if (started || stopping) return;
+		try {
+			var cfg = new OcrOptions();
+			AppConfig.LoadInto(cfg);
+			if (gifMode) {
+				cfg.GifRecord ??= new GifOptions();
+				var dlg = new GifOptionsWindow(cfg.GifRecord);
+				try { dlg.Owner = Application.Current?.MainWindow; } catch { }
+				dlg.ShowDialog();
+				if (!dlg.Applied) return;
+				gifOpt.CopyFrom(dlg.Result);
+				cfg.GifRecord = gifOpt.Clone();
+				if (cfg.Record != null)
+					recOpt.LockAspectWhileRecording = cfg.Record.LockAspectWhileRecording;
+			}
+			else {
+				cfg.Record ??= new RecordOptions();
+				var dlg = new RecordOptionsWindow(cfg.Record);
+				try { dlg.Owner = Application.Current?.MainWindow; } catch { }
+				dlg.ShowDialog();
+				if (!dlg.Applied) return;
+				recOpt.CopyFrom(dlg.Result);
+				cfg.Record = recOpt.Clone();
+			}
+			try { AppConfig.Save(cfg); } catch { }
+			fillsummary();
+			layoutchrome();
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, gifMode ? "GIF 录屏选项" : "录屏选项",
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
 	void onstart() {
 		if (started || stopping) return;
 		try {
-			rec = new ScreenRecorder(region, recOpt.AudioMode, recOpt);
-			rec.Progress = msg => {
+			Action<string> onProgress = msg => {
 				try {
 					Dispatcher.BeginInvoke(new Action(() => {
 						if (!stopping) return;
@@ -219,42 +868,53 @@ public partial class RecordHud : Window {
 				}
 				catch { }
 			};
-			rec.Start();
-			tmpPath = rec.TempPath;
+			if (gifMode) {
+				gifRec = new GifScreenRecorder(region, gifOpt);
+				gifRec.Progress = onProgress;
+				gifRec.Start();
+				tmpPath = gifRec.TempPath;
+			}
+			else {
+				rec = new ScreenRecorder(region, recOpt.AudioMode, recOpt);
+				rec.Progress = onProgress;
+				rec.Start();
+				tmpPath = rec.TempPath;
+			}
 			started = true;
 			bstart.IsEnabled = false;
 			bpause.IsEnabled = true;
-			lbstate.Text = "录制中";
-			lbstate.Foreground = new SolidColorBrush(Color.FromRgb(0xB7, 0x1C, 0x1C));
-			if (!string.IsNullOrEmpty(rec.Backend)) {
-				lbsummary.Text = rec.Backend;
-				bbar.ToolTip = rec.Backend;
+			bstop.IsEnabled = true;
+			syncctrlenabled();
+			setrecordingui(paused: false);
+			var be = backend();
+			if (!string.IsNullOrEmpty(be)) {
+				lbsummary.Text = be;
+				bbar.ToolTip = be;
 			}
-			RecordLog.Step("hud_start", "backend=" + (rec.Backend ?? "") + " log=" + (RecordLog.LogPath ?? ""));
+			RecordLog.Step("hud_start",
+				$"gif={gifMode} backend={be ?? ""} log={RecordLog.LogPath ?? ""}");
 		}
 		catch (Exception ex) {
 			RecordLog.Ex("hud_start", ex);
-			MessageBox.Show(this, ex.Message, "录屏", MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(this, ex.Message, gifMode ? "GIF 录屏" : "录屏",
+				MessageBoxButton.OK, MessageBoxImage.Warning);
 			try { rec?.Dispose(); } catch { }
+			try { gifRec?.Dispose(); } catch { }
 			rec = null;
+			gifRec = null;
 		}
 	}
 
 	void onpause() {
-		if (rec == null || !started || stopping || suspendedForCapture) return;
-		if (rec.IsPaused) {
-			rec.Resume();
-			bpause.Content = "暂停";
-			lbstate.Text = "录制中";
-			lbstate.Foreground = new SolidColorBrush(Color.FromRgb(0xB7, 0x1C, 0x1C));
-			edot.Fill = new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
+		if (!started || stopping || suspendedForCapture) return;
+		if (gifMode ? gifRec == null : rec == null) return;
+		if (ispaused()) {
+			resume();
+			setrecordingui(paused: false);
 		}
 		else {
-			rec.Pause();
-			bpause.Content = "继续";
-			lbstate.Text = "已暂停";
-			lbstate.Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
-			edot.Fill = new SolidColorBrush(Color.FromRgb(0x5D, 0x40, 0x37));
+			pause();
+			setrecordingui(paused: true);
 		}
 	}
 
@@ -273,14 +933,20 @@ public partial class RecordHud : Window {
 		bstart.IsEnabled = false;
 		bpause.IsEnabled = false;
 		bstop.IsEnabled = false;
+		syncctrlenabled();
 		lbstate.Text = "正在停止…";
-		lbstate.Foreground = new SolidColorBrush(Color.FromRgb(0x33, 0x33, 0x33));
-		edot.Fill = new SolidColorBrush(Color.FromRgb(0x5D, 0x40, 0x37));
+		lbstate.Foreground = StateIdle;
+		setdot(false);
 		edot.Opacity = 1;
-		var recorder = rec;
-		// 停采集 + 写视频索引后立刻弹保存；合成在后台并行
+		edotM.Opacity = 1;
+		var mp4 = rec;
+		var gif = gifRec;
+		// 停采集 + 写索引后立刻弹保存；MP4 合成在后台并行
 		Task.Run(() => {
-			try { recorder?.Stop(); }
+			try {
+				if (gifMode) gif?.Stop();
+				else mp4?.Stop();
+			}
 			catch (Exception ex) { RecordLog.Ex("hud_stop", ex); }
 			Dispatcher.BeginInvoke(new Action(() => afterstop()));
 		});
@@ -289,13 +955,19 @@ public partial class RecordHud : Window {
 	void afterstop() {
 		try {
 			timer?.Stop();
-			tmpPath = rec?.TempPath ?? tmpPath;
+			tmpPath = (gifMode ? gifRec?.TempPath : rec?.TempPath) ?? tmpPath;
 			tickui();
-			var size = rec?.FileBytes ?? 0;
-			var elapsed = rec?.Elapsed ?? TimeSpan.Zero;
+			var size = filebytes();
+			var el = elapsed();
 			RecordLog.Step("hud_ask_save",
-				$"finalizeDone={rec?.IsFinalizeDone} size={size} path={tmpPath} " +
-				$"elapsed={elapsed}");
+				$"gif={gifMode} finalizeDone={finalizeDone()} size={size} path={tmpPath} " +
+				$"elapsed={el}");
+
+			if (gifMode) {
+				afterstopgif();
+				return;
+			}
+
 			// 不等合成：立刻选输出路径
 			var sfd = new Microsoft.Win32.SaveFileDialog {
 				Title = "保存录屏",
@@ -308,9 +980,10 @@ public partial class RecordHud : Window {
 			if (sfd.ShowDialog(this) != true) {
 				RecordLog.Step("hud_save_cancel", "user cancelled save dialog");
 				lbstate.Text = "已取消，清理中…";
-				var drop = rec;
+				var dropMp4 = rec;
 				Task.Run(() => {
-					try { drop?.DiscardTemps(); } catch (Exception ex) { RecordLog.Ex("hud_discard", ex); }
+					try { dropMp4?.DiscardTemps(); }
+					catch (Exception ex) { RecordLog.Ex("hud_discard", ex); }
 					Dispatcher.BeginInvoke(new Action(() => closeout(true)));
 				});
 				return;
@@ -324,7 +997,6 @@ public partial class RecordHud : Window {
 				string err = null;
 				string finalSrc = null;
 				try {
-					// 选完路径后再等合成完成并复制
 					if (recorder != null) {
 						if (!recorder.IsFinalizeDone) {
 							try { recorder.Progress?.Invoke("正在合成音轨…"); } catch { }
@@ -351,7 +1023,6 @@ public partial class RecordHud : Window {
 						if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 						File.Copy(finalSrc, dest, overwrite: true);
 						try { File.Delete(finalSrc); } catch { }
-						// 清理可能残留的纯视频/ wav
 						try { recorder?.DiscardTemps(); } catch { }
 					}
 					Saved = true;
@@ -392,8 +1063,57 @@ public partial class RecordHud : Window {
 		}
 		catch (Exception ex) {
 			RecordLog.Ex("hud_afterstop", ex);
-			MessageBox.Show(this, ex.Message, "录屏", MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(this, ex.Message, gifMode ? "GIF 录屏" : "录屏",
+				MessageBoxButton.OK, MessageBoxImage.Warning);
 			closeout(true);
+		}
+	}
+
+	/// <summary>GIF：隐藏 HUD → 预览窗调色板/缩放 → 保存或丢弃。</summary>
+	void afterstopgif() {
+		var gRecorder = gifRec;
+		var video = gRecorder?.VideoPath ?? tmpPath;
+		var sw = gRecorder?.SrcWidth ?? region.Width;
+		var sh = gRecorder?.SrcHeight ?? region.Height;
+		var gfps = gRecorder?.Fps ?? gifOpt.Fps;
+		var opts = (gRecorder?.Options ?? gifOpt).Clone();
+
+		lbstate.Text = "打开预览…";
+		try { Hide(); } catch { }
+
+		if (string.IsNullOrEmpty(video) || !File.Exists(video)) {
+			MessageBox.Show(this, "临时视频不存在。", "GIF 录屏",
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			Task.Run(() => {
+				try { gRecorder?.DiscardTemps(); } catch { }
+				Dispatcher.BeginInvoke(new Action(() => closeout(true)));
+			});
+			return;
+		}
+
+		try {
+			var dlg = new GifPreviewWindow(video, sw, sh, gfps, opts);
+			try { dlg.Owner = Application.Current?.MainWindow; } catch { }
+			dlg.ShowDialog();
+			if (dlg.Saved && !string.IsNullOrEmpty(dlg.SavedPath)) {
+				Saved = true;
+				SavedPath = dlg.SavedPath;
+				RecordLog.Step("hud_gif_saved", SavedPath);
+			}
+			else {
+				RecordLog.Step("hud_gif_discard", "preview cancelled");
+			}
+		}
+		catch (Exception ex) {
+			RecordLog.Ex("hud_gif_preview", ex);
+			MessageBox.Show(this, ex.Message, "GIF 预览",
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+		finally {
+			Task.Run(() => {
+				try { gRecorder?.DiscardTemps(); } catch (Exception ex) { RecordLog.Ex("hud_discard", ex); }
+				Dispatcher.BeginInvoke(new Action(() => closeout(true)));
+			});
 		}
 	}
 
@@ -410,14 +1130,20 @@ public partial class RecordHud : Window {
 	}
 
 	void tickui() {
-		if (rec == null || suspendedForCapture) return;
-		lbtime.Text = fmt(rec.Elapsed);
-		lbsize.Text = fmtbytes(rec.FileBytes);
-		if (started && !stopping && !rec.IsPaused) {
+		if (suspendedForCapture) return;
+		if (gifMode ? gifRec == null : rec == null) return;
+		lbtime.Text = fmt(elapsed());
+		lbsize.Text = fmtbytes(filebytes());
+		if (started && !stopping && !ispaused()) {
 			var on = (Environment.TickCount / 500) % 2 == 0;
-			edot.Opacity = on ? 1 : 0.35;
+			var op = on ? 1.0 : 0.35;
+			edot.Opacity = op;
+			edotM.Opacity = op;
 		}
-		else edot.Opacity = 1;
+		else {
+			edot.Opacity = 1;
+			edotM.Opacity = 1;
+		}
 	}
 
 	void closeout(bool completed) {
@@ -426,7 +1152,9 @@ public partial class RecordHud : Window {
 		suspendedForCapture = false;
 		try { timer?.Stop(); } catch { }
 		try { rec?.Dispose(); } catch { }
+		try { gifRec?.Dispose(); } catch { }
 		rec = null;
+		gifRec = null;
 		try { Close(); } catch { }
 		try { Finished?.Invoke(); } catch { }
 	}

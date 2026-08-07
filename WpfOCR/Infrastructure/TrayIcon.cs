@@ -19,8 +19,11 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miClip;
 	Forms.ToolStripMenuItem miClipFile;
 	Forms.ToolStripMenuItem miPdf;
+	Forms.ToolStripMenuItem miSnapshots;
 	Forms.ToolStripMenuItem miRecord;
 	Forms.ToolStripMenuItem miRecordOpt;
+	Forms.ToolStripMenuItem miGifRecord;
+	Forms.ToolStripMenuItem miGifRecordOpt;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
@@ -112,9 +115,13 @@ sealed class TrayIcon : IDisposable {
 			showwindow();
 			PdfRequested?.Invoke();
 		});
-		// 录屏 / 录屏参数 / 系统参数：只开功能窗，不唤起主窗
+		// 截图历史：打开 screenshots 文件夹，不唤起主窗
+		miSnapshots = item("tray.snapshots", () => SnapshotsRequested?.Invoke());
+		// 录屏 / GIF 录屏 / 参数 / 系统参数：只开功能窗，不唤起主窗
 		miRecord = item("tray.record", () => RecordRequested?.Invoke());
 		miRecordOpt = item("tray.recordopt", () => RecordOptionsRequested?.Invoke());
+		miGifRecord = item("tray.gifrecord", () => GifRecordRequested?.Invoke());
+		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
@@ -133,12 +140,15 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miClip);
 		menu.Items.Add(miClipFile);
 		menu.Items.Add(miPdf);
+		menu.Items.Add(miSnapshots);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miSnapCopyImg);
 		menu.Items.Add(miSnapCopyFile);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miRecord);
 		menu.Items.Add(miRecordOpt);
+		menu.Items.Add(miGifRecord);
+		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(miSettings);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miExit);
@@ -262,10 +272,13 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miClip, null);
 		setshortcut(miClipFile, null);
 		setshortcut(miPdf, null);
+		setshortcut(miSnapshots, null);
 		setshortcut(miSnapCopyImg, null);
 		setshortcut(miSnapCopyFile, null);
 		setshortcut(miRecord, null);
 		setshortcut(miRecordOpt, null);
+		setshortcut(miGifRecord, null);
+		setshortcut(miGifRecordOpt, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
 	}
@@ -287,10 +300,13 @@ sealed class TrayIcon : IDisposable {
 			settext(miClip, "tray.clip");
 			settext(miClipFile, "tray.clipfile");
 			settext(miPdf, "tray.pdf");
+			settext(miSnapshots, "tray.snapshots");
 			settext(miSnapCopyImg, "tray.snapcopyimg");
 			settext(miSnapCopyFile, "tray.snapcopyfile");
 			settext(miRecord, "tray.record");
 			settext(miRecordOpt, "tray.recordopt");
+			settext(miGifRecord, "tray.gifrecord");
+			settext(miGifRecordOpt, "tray.gifrecordopt");
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
@@ -308,8 +324,11 @@ sealed class TrayIcon : IDisposable {
 	public event Action SnapRequested;
 	public event Action BoardRequested;
 	public event Action PdfRequested;
+	public event Action SnapshotsRequested;
 	public event Action RecordRequested;
 	public event Action RecordOptionsRequested;
+	public event Action GifRecordRequested;
+	public event Action GifRecordOptionsRequested;
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 复制为文件」变更（asImage, asFile）。</summary>

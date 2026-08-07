@@ -155,8 +155,16 @@
 					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 				</Grid>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
-				           Margin="0,0,0,4"
+				           Margin="0,0,0,14"
 				           Text="例如 1920×1080：更大选区会缩小进该范围，不放大。"/>
+
+				<!-- HUD 选区 -->
+				<TextBlock Text="选区" FontWeight="SemiBold" Margin="0,0,0,6"/>
+				<CheckBox x:Name="elockasp" Content="录制中缩放选区时锁定宽高比"
+				          Margin="0,0,0,4" IsChecked="True"/>
+				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
+				           Margin="0,0,0,4"
+				           Text="开始前可自由调整比例；点「开始」后按此选项决定是否锁定。"/>
 			</StackPanel>
 		</ScrollViewer>
 

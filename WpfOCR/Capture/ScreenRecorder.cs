@@ -10,7 +10,8 @@ namespace WpfOCR;
 /// 不再使用 OpenCV VideoWriter / opencv_videoio_ffmpeg。
 /// </summary>
 sealed class ScreenRecorder : IDisposable {
-	readonly System.Drawing.Rectangle region;
+	System.Drawing.Rectangle region;
+	int grabW, grabH; // Start 后锁定：抓帧缩放到此尺寸再写入编码器
 	readonly RecordOptions recOpt;
 	readonly int fps;
 	readonly int outW, outH;
@@ -36,7 +37,17 @@ sealed class ScreenRecorder : IDisposable {
 
 	/// <summary>最终可交付的 mp4（含音频合成结果）。合成未完成时可能仍是纯视频临时文件。</summary>
 	public string TempPath => finalPath ?? videoTmp;
-	public System.Drawing.Rectangle Region => region;
+	public System.Drawing.Rectangle Region {
+		get { lock (gate) return region; }
+	}
+
+	/// <summary>更新抓屏区域（可移动/缩放）。编码尺寸在 Start 后固定，缩放后写入。</summary>
+	public void SetRegion(System.Drawing.Rectangle r) {
+		if (r.Width % 2 != 0) r.Width--;
+		if (r.Height % 2 != 0) r.Height--;
+		if (r.Width < 16 || r.Height < 16) return;
+		lock (gate) region = r;
+	}
 	public bool IsPaused => paused;
 	public bool IsRunning => thread != null && thread.IsAlive;
 	/// <summary>采集已停且视频索引写完；音轨合成可能仍在后台。</summary>
@@ -84,6 +95,9 @@ sealed class ScreenRecorder : IDisposable {
 			$"mono={recOpt.AudioMono} kbps={recOpt.AudioKbps} out={outW}x{outH}");
 		RecordLog.Step("paths", $"video={videoTmp} wav={wavTmp}");
 
+		grabW = region.Width;
+		grabH = region.Height;
+
 		// 仅 FFmpeg.AutoGen（程序目录 ffmpeg64）
 		if (!FfmpegLoader.TryInit(out var ffErr)) {
 			RecordLog.Step("ffmpeg_dll", "fail: " + (ffErr ?? "unknown"));
@@ -95,7 +109,7 @@ sealed class ScreenRecorder : IDisposable {
 		}
 		RecordLog.Step("ffmpeg_dll", "ok root=" + (FfmpegLoader.DllRoot ?? ""));
 		try {
-			ff = new FfmpegMp4Writer(videoTmp, region.Width, region.Height, recOpt);
+			ff = new FfmpegMp4Writer(videoTmp, grabW, grabH, recOpt);
 			Backend = $"FFmpeg/{ff.CodecName} {ff.OutWidth}x{ff.OutHeight}@{fps} CRF{recOpt.Crf}";
 			RecordLog.Step("video_writer", Backend);
 		}
@@ -449,24 +463,40 @@ sealed class ScreenRecorder : IDisposable {
 	}
 
 	void grabandwrite(long pts) {
-		var w = region.Width;
-		var h = region.Height;
-		var bmp = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		System.Drawing.Rectangle r;
+		lock (gate) r = region;
+		var w = r.Width;
+		var h = r.Height;
+		if (w < 1 || h < 1) return;
+		var tw = grabW > 0 ? grabW : w;
+		var th = grabH > 0 ? grabH : h;
+
+		using var src = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		using (var g = System.Drawing.Graphics.FromImage(src)) {
+			g.CopyFromScreen(r.Left, r.Top, 0, 0, new System.Drawing.Size(w, h),
+				System.Drawing.CopyPixelOperation.SourceCopy);
+		}
+
+		System.Drawing.Bitmap bmp = src;
+		System.Drawing.Bitmap scaled = null;
 		try {
-			using (var g = System.Drawing.Graphics.FromImage(bmp)) {
-				g.CopyFromScreen(region.Left, region.Top, 0, 0, new System.Drawing.Size(w, h),
-					System.Drawing.CopyPixelOperation.SourceCopy);
+			if (w != tw || h != th) {
+				scaled = new System.Drawing.Bitmap(tw, th, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+				using (var g = System.Drawing.Graphics.FromImage(scaled)) {
+					g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.Bilinear;
+					g.DrawImage(src, 0, 0, tw, th);
+				}
+				bmp = scaled;
 			}
-			var rect = new System.Drawing.Rectangle(0, 0, w, h);
+			var rect = new System.Drawing.Rectangle(0, 0, tw, th);
 			var data = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly,
 				System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 			try {
 				lock (gate) {
 					if (ff == null) return;
 					var stride = data.Stride;
-					var bytes = new byte[Math.Abs(stride) * h];
+					var bytes = new byte[Math.Abs(stride) * th];
 					Marshal.Copy(data.Scan0, bytes, 0, bytes.Length);
-					// 强制 alpha
 					for (int i = 3; i < bytes.Length; i += 4) bytes[i] = 255;
 					ff.WriteBgra(bytes, Math.Abs(stride), pts);
 					frames++;
@@ -477,7 +507,7 @@ sealed class ScreenRecorder : IDisposable {
 			}
 		}
 		finally {
-			bmp.Dispose();
+			scaled?.Dispose();
 		}
 	}
 

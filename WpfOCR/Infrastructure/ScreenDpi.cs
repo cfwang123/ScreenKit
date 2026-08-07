@@ -214,6 +214,32 @@ static class ScreenDpi {
 		return new Int32Rect(rx, ry, rw, rh);
 	}
 
+	/// <summary>
+	/// 物理点所在显示器 → 相对虚拟屏原点的 DIP 矩形（与 HUD/overlay 画布同坐标系）。
+	/// 混合 DPI 下用虚拟屏均匀比例，作 UI 钳位足够。
+	/// </summary>
+	public static void MonitorDipFromPhysical(int physX, int physY,
+		out double left, out double top, out double width, out double height) {
+		var (vl, vt, _, _) = VirtualScreenPixels();
+		VirtualScreenScale(out var sx, out var sy);
+		if (sx < 0.25) sx = 1;
+		if (sy < 0.25) sy = 1;
+		System.Drawing.Rectangle bounds;
+		try {
+			var scr = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(physX, physY));
+			bounds = scr.Bounds;
+		}
+		catch {
+			bounds = new System.Drawing.Rectangle(vl, vt,
+				System.Windows.Forms.SystemInformation.VirtualScreen.Width,
+				System.Windows.Forms.SystemInformation.VirtualScreen.Height);
+		}
+		left = (bounds.Left - vl) / sx;
+		top = (bounds.Top - vt) / sy;
+		width = Math.Max(1, bounds.Width / sx);
+		height = Math.Max(1, bounds.Height / sy);
+	}
+
 	/// <summary>诊断文本：各显示器 Bounds / 工作区 / DPI。</summary>
 	public static string BuildReport() {
 		var sb = new StringBuilder();

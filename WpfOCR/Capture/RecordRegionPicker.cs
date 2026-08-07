@@ -27,11 +27,14 @@ static class RecordRegionPicker {
 	const uint SWP_SHOWWINDOW = 0x0040;
 	static readonly IntPtr HwndTopmost = new(-1);
 
-	public static System.Drawing.Rectangle? Pick() {
+	public static System.Drawing.Rectangle? Pick(string hintText = null) {
 		var wins = ScrollCapture.EnumTopWindows();
 		System.Drawing.Rectangle? result = null;
 		var frame = new System.Windows.Threading.DispatcherFrame();
 		var overlays = new List<WpfWindow>();
+		var tip = string.IsNullOrWhiteSpace(hintText)
+			? "录屏：单击窗口或拖拽框选 · Esc 取消"
+			: hintText.Trim();
 
 		void finish(System.Drawing.Rectangle? r) {
 			result = r;
@@ -72,7 +75,7 @@ static class RecordRegionPicker {
 				CornerRadius = new CornerRadius(8),
 				Padding = new Thickness(12, 8, 12, 8),
 				Child = new TextBlock {
-					Text = "录屏：单击窗口或拖拽框选 · Esc 取消",
+					Text = tip,
 					Foreground = Brushes.White,
 					FontSize = 14,
 				},

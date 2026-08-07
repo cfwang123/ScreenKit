@@ -76,6 +76,19 @@ static class AppConfig {
 				o.SnapCopyAsImage = true;
 				o.SnapCopyAsFile = false;
 			}
+			// 截图保存：格式 / jpg 质量 / 最大宽高
+			if (map.TryGetValue("screenshot_format", out var sfmt) && !string.IsNullOrWhiteSpace(sfmt)) {
+				var f = sfmt.Trim().Trim('"').ToLowerInvariant();
+				o.ScreenshotFormat = f is "jpg" or "jpeg" ? "jpg" : "png";
+			}
+			if (map.TryGetValue("screenshot_jpg_quality", out var sjq) && int.TryParse(sjq, out var jpgQ))
+				o.ScreenshotJpgQuality = Compat.Clamp(jpgQ, 1, 100);
+			if (map.TryGetValue("screenshot_max_size", out var sms))
+				o.ScreenshotMaxSizeEnabled = parsebool(sms, false);
+			if (map.TryGetValue("screenshot_max_w", out var smw) && int.TryParse(smw, out var sMaxW))
+				o.ScreenshotMaxWidth = Compat.Clamp(sMaxW, 16, 16384);
+			if (map.TryGetValue("screenshot_max_h", out var smh) && int.TryParse(smh, out var sMaxH))
+				o.ScreenshotMaxHeight = Compat.Clamp(sMaxH, 16, 16384);
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul)) {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
@@ -131,7 +144,24 @@ static class AppConfig {
 				o.Record.MaxWidth = rMaxW;
 			if (map.TryGetValue("record_max_h", out var rmh) && int.TryParse(rmh, out var rMaxH))
 				o.Record.MaxHeight = rMaxH;
+			if (map.TryGetValue("record_lock_aspect", out var rla))
+				o.Record.LockAspectWhileRecording = parsebool(rla, true);
 			o.Record.Clamp();
+			// GIF 录屏
+			o.GifRecord ??= new GifOptions();
+			if (map.TryGetValue("gif_fps", out var gf) && int.TryParse(gf, out var gFps))
+				o.GifRecord.Fps = gFps;
+			if (map.TryGetValue("gif_max_size", out var gms))
+				o.GifRecord.MaxSizeEnabled = parsebool(gms, true);
+			if (map.TryGetValue("gif_max_w", out var gmw) && int.TryParse(gmw, out var gMaxW))
+				o.GifRecord.MaxWidth = gMaxW;
+			if (map.TryGetValue("gif_max_h", out var gmh) && int.TryParse(gmh, out var gMaxH))
+				o.GifRecord.MaxHeight = gMaxH;
+			if (map.TryGetValue("gif_colors", out var gc) && int.TryParse(gc, out var gColors))
+				o.GifRecord.Colors = gColors;
+			if (map.TryGetValue("gif_scale", out var gs) && int.TryParse(gs, out var gScale))
+				o.GifRecord.ScalePercent = gScale;
+			o.GifRecord.Clamp();
 			// TTS
 			if (map.TryGetValue("tts_engine", out var te) && !string.IsNullOrWhiteSpace(te))
 				o.TtsEngine = te.Trim();
@@ -251,6 +281,16 @@ static class AppConfig {
 		var snapFile = o.SnapCopyAsFile && !o.SnapCopyAsImage;
 		sb.AppendLine($"snap_copy_as_image = {(!snapFile ? "true" : "false")}");
 		sb.AppendLine($"snap_copy_as_file = {(snapFile ? "true" : "false")}");
+		// 截图保存参数
+		var shotFmt = string.Equals(o.ScreenshotFormat, "jpg", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals(o.ScreenshotFormat, "jpeg", StringComparison.OrdinalIgnoreCase)
+			? "jpg" : "png";
+		sb.AppendLine($"# 截图保存格式 png | jpg；jpg 质量 1–100；最大宽高可关（等比缩小不放大）");
+		sb.AppendLine($"screenshot_format = \"{shotFmt}\"");
+		sb.AppendLine($"screenshot_jpg_quality = {Compat.Clamp(o.ScreenshotJpgQuality <= 0 ? 92 : o.ScreenshotJpgQuality, 1, 100)}");
+		sb.AppendLine($"screenshot_max_size = {(o.ScreenshotMaxSizeEnabled ? "true" : "false")}");
+		sb.AppendLine($"screenshot_max_w = {Compat.Clamp(o.ScreenshotMaxWidth < 16 ? 1920 : o.ScreenshotMaxWidth, 16, 16384)}");
+		sb.AppendLine($"screenshot_max_h = {Compat.Clamp(o.ScreenshotMaxHeight < 16 ? 1080 : o.ScreenshotMaxHeight, 16, 16384)}");
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");
@@ -294,6 +334,21 @@ static class AppConfig {
 		sb.AppendLine($"record_max_size = {(rec.MaxSizeEnabled ? "true" : "false")}");
 		sb.AppendLine($"record_max_w = {rec.MaxWidth}");
 		sb.AppendLine($"record_max_h = {rec.MaxHeight}");
+		sb.AppendLine($"# 录制中 HUD 缩放选区时锁定宽高比（开始前不限制）");
+		sb.AppendLine($"record_lock_aspect = {(rec.LockAspectWhileRecording ? "true" : "false")}");
+		sb.AppendLine();
+		var gif = o.GifRecord ?? new GifOptions();
+		gif.Clamp();
+		sb.AppendLine("[gif_record]");
+		sb.AppendLine($"# GIF 录屏：采集固定 24fps；gif_fps 为预览默认输出帧率 1~24");
+		sb.AppendLine($"gif_fps = {gif.Fps}");
+		sb.AppendLine($"# 限制输出最大宽高（等比 fit；GIF 体积敏感，默认开启）");
+		sb.AppendLine($"gif_max_size = {(gif.MaxSizeEnabled ? "true" : "false")}");
+		sb.AppendLine($"gif_max_w = {gif.MaxWidth}");
+		sb.AppendLine($"gif_max_h = {gif.MaxHeight}");
+		sb.AppendLine($"# 预览默认：调色板颜色数 32|64|128|256；缩放 25~100%");
+		sb.AppendLine($"gif_colors = {gif.Colors}");
+		sb.AppendLine($"gif_scale = {gif.ScalePercent}");
 		sb.AppendLine();
 		sb.AppendLine("[tts]");
 		sb.AppendLine("# 引擎 Sapi | Sherpa；计算 Auto | Gpu | Cpu | Igpu");

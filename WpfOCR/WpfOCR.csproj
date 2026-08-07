@@ -18,10 +18,10 @@
     <!-- 保留 net10.0-windows 目录：切勿对 bin 整树 Clean；勿改此路径到 net10.0-windows -->
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
     <!-- 关于对话框 / 程序集版本 -->
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
-    <InformationalVersion>1.0.0</InformationalVersion>
+    <Version>1.0.1</Version>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
+    <InformationalVersion>1.0.1</InformationalVersion>
     <Product>WpfOCR</Product>
     <Company>WpfOCR Contributors</Company>
     <Copyright>Copyright (c) 2026 WpfOCR Contributors</Copyright>

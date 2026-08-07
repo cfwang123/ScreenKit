@@ -27,7 +27,7 @@ static class Cli {
 			if (a is "--image" or "-i" or "--probe-cuda" or "--list-models" or "--list-tts"
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
-				or "--test-record-avsync"
+				or "--test-record-avsync" or "--test-gif-record"
 				or "--help" or "-h" or "/?"
 				or "--asr" or "--list-asr"
 				or "--translate" or "--translate-file" or "--list-translate"
@@ -74,6 +74,7 @@ static class Cli {
 		bool doTestCaptureDuringRecord = false;
 		bool doTestOverlayDuringRecord = false;
 		bool doTestRecordAvsync = false;
+		bool doTestGifRecord = false;
 		string recordRegion = null; // L,T,W,H 物理像素
 		int recordSnapWaitMs = 800;
 		int recordAvsyncSec = 10;
@@ -125,6 +126,9 @@ static class Cli {
 						break;
 					case "--test-record-avsync":
 						doTestRecordAvsync = true;
+						break;
+					case "--test-gif-record":
+						doTestGifRecord = true;
 						break;
 					case "--region":
 						recordRegion = Next();
@@ -268,6 +272,22 @@ static class Cli {
 			}
 			catch (Exception ex) {
 				Err($"录屏音画同步测试失败: {ex.Message}");
+				Err(ex.ToString());
+				return 1;
+			}
+			finally {
+				try { log?.Dispose(); } catch { }
+			}
+		}
+
+		if (doTestGifRecord) {
+			try {
+				// --seconds 未指定时默认录 2 秒（勿复用 avsync 默认 10）
+				var gifSec = args.Any(a => a == "--seconds") ? Math.Max(1, recordAvsyncSec) : 2;
+				return runtestgifrecord(snapOut, recordRegion, gifSec);
+			}
+			catch (Exception ex) {
+				Err($"GIF 录屏测试失败: {ex.Message}");
 				Err(ex.ToString());
 				return 1;
 			}
@@ -1119,6 +1139,115 @@ static class Cli {
 		return r;
 	}
 
+	/// <summary>开录 GIF 数秒 → 保存 → 校验文件头。</summary>
+	static int runtestgifrecord(string outDir, string regionArg, int seconds) {
+		int code = 1;
+		Exception threadEx = null;
+		var t = new Thread(() => {
+			try { code = runtestgifrecordCore(outDir, regionArg, seconds); }
+			catch (Exception ex) { threadEx = ex; code = 1; }
+		});
+		t.SetApartmentState(ApartmentState.STA);
+		t.Start();
+		t.Join();
+		if (threadEx != null) {
+			Err(threadEx.ToString());
+			return 1;
+		}
+		return code;
+	}
+
+	static int runtestgifrecordCore(string outDir, string regionArg, int seconds) {
+		AppConfig.applylogswitch(true);
+		CaptureLog.SessionStart("CLI --test-gif-record");
+		RecordLog.Begin("CLI-gif-record");
+		if (string.IsNullOrWhiteSpace(outDir))
+			outDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log", "gif_record");
+		outDir = Path.GetFullPath(outDir);
+		Directory.CreateDirectory(outDir);
+
+		Out("=== GIF 录屏测试 --test-gif-record ===");
+		seconds = Compat.Clamp(seconds, 1, 30);
+		Out($"秒数={seconds}");
+
+		System.Drawing.Rectangle region;
+		if (!string.IsNullOrWhiteSpace(regionArg)) {
+			var parts = regionArg.Split(new[] { ',', 'x', 'X', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+			if (parts.Length < 4) {
+				Err("--region 格式: L,T,W,H");
+				return 2;
+			}
+			region = new System.Drawing.Rectangle(
+				int.Parse(parts[0]), int.Parse(parts[1]),
+				int.Parse(parts[2]), int.Parse(parts[3]));
+		}
+		else {
+			var s = System.Windows.Forms.Screen.PrimaryScreen.Bounds;
+			var w = Math.Min(640, s.Width);
+			var h = Math.Min(360, s.Height);
+			region = new System.Drawing.Rectangle(
+				s.Left + (s.Width - w) / 2, s.Top + (s.Height - h) / 2, w, h);
+		}
+		Out($"region={region.X},{region.Y} {region.Width}x{region.Height}");
+
+		var opt = new GifOptions {
+			Fps = 8,
+			MaxSizeEnabled = true,
+			MaxWidth = 640,
+			MaxHeight = 360,
+		};
+		opt.Clamp();
+		GifScreenRecorder rec = null;
+		try {
+			rec = new GifScreenRecorder(region, opt);
+			Out("Start… backend pending");
+			rec.Start();
+			Out("backend=" + (rec.Backend ?? ""));
+			Thread.Sleep(seconds * 1000);
+			Out($"elapsed={rec.Elapsed} Stop…");
+			rec.Stop();
+			rec.WaitFinalize();
+			var src = rec.VideoPath;
+			if (string.IsNullOrEmpty(src) || !File.Exists(src)) {
+				Err("临时视频不存在");
+				return 1;
+			}
+			Out($"video={src} bytes={new FileInfo(src).Length} captureFps={rec.Fps}");
+			var dest = Path.Combine(outDir, $"gif_test_{DateTime.Now:yyyyMMdd_HHmmss}.gif");
+			GifOptions.SizeByScale(rec.SrcWidth, rec.SrcHeight, 100, out var ow, out var oh);
+			if (opt.MaxSizeEnabled)
+				opt.FitSize(rec.SrcWidth, rec.SrcHeight, out ow, out oh);
+			Out($"encode GIF {ow}x{oh} outFps=8 colors=128 (src={rec.Fps})…");
+			FfmpegGifEncode.FromVideo(src, dest, ow, oh, 8, 128, rec.Fps);
+			var len = new FileInfo(dest).Length;
+			Out($"saved={dest} bytes={len}");
+			// GIF89a / GIF87a
+			var hdr = new byte[6];
+			using (var fs = File.OpenRead(dest))
+				if (fs.Read(hdr, 0, 6) < 6) {
+					Err("GIF 头过短");
+					return 1;
+				}
+			var sig = Encoding.ASCII.GetString(hdr);
+			Out("header=" + sig);
+			if (sig != "GIF89a" && sig != "GIF87a") {
+				Err("不是有效 GIF 头: " + sig);
+				return 1;
+			}
+			if (len < 64) {
+				Err("GIF 过小");
+				return 1;
+			}
+			Out("=== OK：GIF 录屏可用 ===");
+			return 0;
+		}
+		finally {
+			try { rec?.DiscardTemps(); } catch { }
+			try { rec?.Dispose(); } catch { }
+			RecordLog.End("cli-gif");
+		}
+	}
+
 	static void printhelp() {
 		Out("""
 WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
@@ -1130,6 +1259,7 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
   WpfOCR --test-capture-during-record [--region L,T,W,H] [--out <目录>]
   WpfOCR --test-overlay-during-record [--region L,T,W,H]
   WpfOCR --test-record-avsync [--seconds 10] [--region L,T,W,H] [--out <目录>]
+  WpfOCR --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
   WpfOCR --list-models
   WpfOCR --list-tts
   WpfOCR --list-asr
@@ -1160,10 +1290,11 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
       --test-capture-during-record  开录中走 CaptureOverlay 同款多屏冻结
       --test-overlay-during-record  开录+HUD 挂起后弹出截图遮罩（自动 ESC）
       --test-record-avsync  有声0.1s/静音0.1s循环→录N秒→分析音画同步
-      --seconds   --test-record-avsync 录制秒数（默认 10）
+      --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
+      --seconds   --test-record-avsync / --test-gif-record 录制秒数
       --region    物理像素区域 L,T,W,H（默认主屏中心）
       --wait-ms   开录后等待毫秒再截（默认 800）
-  -o, --out       --snap / --record-snap / --test-capture-during-record / --test-record-avsync 输出目录
+  -o, --out       --snap / --record-snap / --test-*-record / --test-gif-record 输出目录
       --list-models 列出可用 OCR 模型包与变体
       --list-tts    列出 TTS（Sherpa）模型
       --list-asr    列出 ASR（Sherpa）语音识别模型
@@ -1193,6 +1324,7 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
   WpfOCR --test-capture-during-record
   WpfOCR --test-record-avsync
   WpfOCR --test-record-avsync --seconds 10 -o log\record_avsync
+  WpfOCR --test-gif-record --seconds 2 -o log\gif_record
   WpfOCR --record-snap --region 100,100,800,600 -o log\record_snap
   WpfOCR --list-models
   WpfOCR --list-tts
