@@ -27,6 +27,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
+	Forms.ToolStripMenuItem miSnapCopyPath;
 	Forms.ToolStripMenuItem miExit;
 	bool disposed;
 	bool snapCopyUi;
@@ -125,8 +126,10 @@ sealed class TrayIcon : IDisposable {
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
+		miSnapCopyPath = checkitem("tray.snapcopypath", true);
 		miSnapCopyImg.CheckedChanged += (s, _) => onsnapcopychanged(s);
 		miSnapCopyFile.CheckedChanged += (s, _) => onsnapcopychanged(s);
+		miSnapCopyPath.CheckedChanged += (s, _) => onsnapcopychanged(s);
 		miExit = item("tray.exit", () => {
 			try { ni.Visible = false; } catch { }
 			ForceExitRequested?.Invoke();
@@ -144,6 +147,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miSnapCopyImg);
 		menu.Items.Add(miSnapCopyFile);
+		menu.Items.Add(miSnapCopyPath);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miRecord);
 		menu.Items.Add(miRecordOpt);
@@ -204,36 +208,43 @@ sealed class TrayIcon : IDisposable {
 
 	void onsnapcopychanged(object sender) {
 		if (snapCopyUi) return;
-		// radio：点哪项就选哪项，另一项关掉
+		// radio：点哪项就选哪项，其余关掉
+		var pathMode = sender == miSnapCopyPath;
 		var fileMode = sender == miSnapCopyFile;
+		var imgMode = !pathMode && !fileMode;
 		snapCopyUi = true;
 		try {
-			if (miSnapCopyImg != null) miSnapCopyImg.Checked = !fileMode;
+			if (miSnapCopyImg != null) miSnapCopyImg.Checked = imgMode;
 			if (miSnapCopyFile != null) miSnapCopyFile.Checked = fileMode;
+			if (miSnapCopyPath != null) miSnapCopyPath.Checked = pathMode;
 		}
 		finally { snapCopyUi = false; }
 		// 延迟通知主窗，避免与菜单关/重开抢同一拍
-		var asImg = !fileMode;
+		var asImg = imgMode;
 		var asFile = fileMode;
+		var asPath = pathMode;
 		try {
 			if (menu != null && menu.IsHandleCreated) {
 				menu.BeginInvoke(new Action(() => {
-					try { SnapCopyOptionsChanged?.Invoke(asImg, asFile); } catch { }
+					try { SnapCopyOptionsChanged?.Invoke(asImg, asFile, asPath); } catch { }
 				}));
 				return;
 			}
 		}
 		catch { }
-		try { SnapCopyOptionsChanged?.Invoke(asImg, asFile); } catch { }
+		try { SnapCopyOptionsChanged?.Invoke(asImg, asFile, asPath); } catch { }
 	}
 
-	/// <summary>同步「复制为图片 / 复制为文件」单选状态（不触发变更事件）。</summary>
-	public void SetSnapCopyOptions(bool asImage, bool asFile) {
-		var fileMode = asFile && !asImage;
+	/// <summary>同步「复制为图片 / 文件 / 路径」单选状态（不触发变更事件）。</summary>
+	public void SetSnapCopyOptions(bool asImage, bool asFile, bool asPath = false) {
+		var pathMode = asPath && !asImage && !asFile;
+		var fileMode = !pathMode && asFile && !asImage;
+		var imgMode = !pathMode && !fileMode;
 		snapCopyUi = true;
 		try {
-			if (miSnapCopyImg != null) miSnapCopyImg.Checked = !fileMode;
+			if (miSnapCopyImg != null) miSnapCopyImg.Checked = imgMode;
 			if (miSnapCopyFile != null) miSnapCopyFile.Checked = fileMode;
+			if (miSnapCopyPath != null) miSnapCopyPath.Checked = pathMode;
 		}
 		finally { snapCopyUi = false; }
 	}
@@ -275,6 +286,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miSnapshots, null);
 		setshortcut(miSnapCopyImg, null);
 		setshortcut(miSnapCopyFile, null);
+		setshortcut(miSnapCopyPath, null);
 		setshortcut(miRecord, null);
 		setshortcut(miRecordOpt, null);
 		setshortcut(miGifRecord, null);
@@ -303,6 +315,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miSnapshots, "tray.snapshots");
 			settext(miSnapCopyImg, "tray.snapcopyimg");
 			settext(miSnapCopyFile, "tray.snapcopyfile");
+			settext(miSnapCopyPath, "tray.snapcopypath");
 			settext(miRecord, "tray.record");
 			settext(miRecordOpt, "tray.recordopt");
 			settext(miGifRecord, "tray.gifrecord");
@@ -331,8 +344,8 @@ sealed class TrayIcon : IDisposable {
 	public event Action GifRecordOptionsRequested;
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
-	/// <summary>托盘勾选「复制为图片 / 复制为文件」变更（asImage, asFile）。</summary>
-	public event Action<bool, bool> SnapCopyOptionsChanged;
+	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>
+	public event Action<bool, bool, bool> SnapCopyOptionsChanged;
 	/// <summary>右键菜单即将打开（用于记录主窗可见性，避免菜单关闭后误判）。</summary>
 	public event Action MenuOpening;
 

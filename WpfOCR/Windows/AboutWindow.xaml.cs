@@ -29,7 +29,8 @@ public partial class AboutWindow : Window {
 
 	void fillversion() {
 		var ver = appversion();
-		lbver.Text = Loc.T("about.version", ver);
+		var arch = ArchBootstrap.CurrentLabel;
+		lbver.Text = Loc.T("about.version", ver) + $"  ({arch})";
 		lbcopy.Text = Loc.T("about.copyright");
 	}
 

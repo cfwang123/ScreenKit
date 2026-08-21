@@ -50,12 +50,19 @@ function main() {
 	const archive = path.join(releaseDir, `wpfocr_${version}.7z`);
 
 	if (!skipBuild) {
+		// WpfOCR 构建后会自动编并拷贝独立 x86host.exe
 		run('dotnet build WpfOCR/WpfOCR.csproj -c Release');
 	}
 
 	const exe = path.join(slimDir, 'WpfOCR.exe');
 	if (!fs.existsSync(exe)) {
 		throw new Error(`精简发布目录不存在: ${slimDir}\n请先 Release 编译（应生成 bin/Release/WpfOCR/）。`);
+	}
+	const x86 = path.join(slimDir, 'x86host.exe');
+	if (fs.existsSync(x86)) {
+		console.log(`含 x86host: ${path.relative(root, x86)}`);
+	} else {
+		console.warn('未找到 x86host.exe（可选；部分 SAPI 语音需 32 位）');
 	}
 
 	fs.mkdirSync(releaseDir, { recursive: true });

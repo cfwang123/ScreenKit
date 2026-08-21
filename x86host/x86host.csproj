@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>12.0</LangVersion>
+    <AssemblyName>x86host</AssemblyName>
+    <RootNamespace>X86Host</RootNamespace>
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
+    <Version>1.0.1</Version>
+    <Product>WpfOCR x86host</Product>
+    <Description>32-bit SAPI HTTP helper for WpfOCR (standalone, no extra deps)</Description>
+    <Company>WpfOCR Contributors</Company>
+    <Copyright>Copyright (c) 2026 WpfOCR Contributors</Copyright>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <!-- 仅框架引用：System.Speech + JavaScriptSerializer，无 NuGet 包 -->
+  <ItemGroup>
+    <Reference Include="System.Speech" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+</Project>

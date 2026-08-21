@@ -12,12 +12,14 @@ namespace WpfOCR;
 
 /// <summary>
 /// 录屏 HUD：红色外框 + 浮动控制条。
-/// 控制条可拖动/收起；选区可拖动与八向缩放（开始前/录制中均可）。
+/// 控制条可拖动/收起；红线外侧 5px 移动选区，八向缩放（开始前/录制中均可）。
 /// </summary>
 public partial class RecordHud : Window {
 	const uint WDA_EXCLUDEFROMCAPTURE = 0x00000011;
 	const uint SWP_SHOWWINDOW = 0x0040;
 	const int MIN_REGION = 64;
+	/// <summary>红线外侧可拖动移动选区的热区宽度（DIP）。</summary>
+	const double MOVE_OUT = 5;
 	static readonly IntPtr HwndTopmost = new(-1);
 
 	enum DragKind { None, Bar, Mini, Region, NW, N, NE, E, SE, S, SW, W }
@@ -223,7 +225,7 @@ public partial class RecordHud : Window {
 			lbsummary.Text = $"{sum} · out {ow}×{oh}";
 		else
 			lbsummary.Text = sum;
-		var tip = $"选区 {rw}×{rh}\n{sum}\n拖动红框边缘可移动/缩放";
+		var tip = $"选区 {rw}×{rh}\n{sum}\n拖动红线外侧可移动 · 拖边缘/角点缩放";
 		ToolTip = tip;
 		bbar.ToolTip = tip + "\n拖动控制条可移动位置";
 	}
@@ -248,22 +250,27 @@ public partial class RecordHud : Window {
 		Canvas.SetLeft(rdot, bx - outM - 4);
 		Canvas.SetTop(rdot, by - outM - 4);
 
-		// 顶部拖动条
-		Canvas.SetLeft(bdrag, bx);
-		Canvas.SetTop(bdrag, by);
-		bdrag.Width = Math.Max(8, bw);
-		bdrag.Height = 10;
+		// 红线外侧 MOVE_OUT：整圈拖动移动（描边居中于矩形边）
+		var lineOuter = outM + stroke / 2;
+		var ox = bx - lineOuter - MOVE_OUT;
+		var oy = by - lineOuter - MOVE_OUT;
+		var ow = bw + (lineOuter + MOVE_OUT) * 2;
+		var oh = bh + (lineOuter + MOVE_OUT) * 2;
+		placegrip(bdragN, ox, oy, ow, MOVE_OUT);
+		placegrip(bdragS, ox, oy + oh - MOVE_OUT, ow, MOVE_OUT);
+		placegrip(bdragW, ox, oy + MOVE_OUT, MOVE_OUT, Math.Max(1, oh - MOVE_OUT * 2));
+		placegrip(bdragE, ox + ow - MOVE_OUT, oy + MOVE_OUT, MOVE_OUT, Math.Max(1, oh - MOVE_OUT * 2));
 
-		// 八向手柄（选区外缘）
+		// 八向手柄贴红线、向内延伸，不占外侧移动热区
 		const double gs = 12, ge = 8;
-		placegrip(g_nw, bx - outM - 2, by - outM - 2, gs, gs);
-		placegrip(g_n, bx + 16, by - outM - 2, Math.Max(8, bw - 32), ge);
-		placegrip(g_ne, bx + bw + outM - gs + 2, by - outM - 2, gs, gs);
-		placegrip(g_e, bx + bw + outM - ge + 2, by + 16, ge, Math.Max(8, bh - 32));
-		placegrip(g_se, bx + bw + outM - gs + 2, by + bh + outM - gs + 2, gs, gs);
-		placegrip(g_s, bx + 16, by + bh + outM - ge + 2, Math.Max(8, bw - 32), ge);
-		placegrip(g_sw, bx - outM - 2, by + bh + outM - gs + 2, gs, gs);
-		placegrip(g_w, bx - outM - 2, by + 16, ge, Math.Max(8, bh - 32));
+		placegrip(g_nw, bx - lineOuter, by - lineOuter, gs, gs);
+		placegrip(g_n, bx + 16, by - lineOuter, Math.Max(8, bw - 32), ge);
+		placegrip(g_ne, bx + bw + lineOuter - gs, by - lineOuter, gs, gs);
+		placegrip(g_e, bx + bw + lineOuter - ge, by + 16, ge, Math.Max(8, bh - 32));
+		placegrip(g_se, bx + bw + lineOuter - gs, by + bh + lineOuter - gs, gs, gs);
+		placegrip(g_s, bx + 16, by + bh + lineOuter - ge, Math.Max(8, bw - 32), ge);
+		placegrip(g_sw, bx - lineOuter, by + bh + lineOuter - gs, gs, gs);
+		placegrip(g_w, bx - lineOuter, by + 16, ge, Math.Max(8, bh - 32));
 
 		double useW, useH;
 		if (light) {
@@ -420,7 +427,10 @@ public partial class RecordHud : Window {
 				begindrag(kind, e);
 			};
 		}
-		wireGrip(bdrag, DragKind.Region);
+		wireGrip(bdragN, DragKind.Region);
+		wireGrip(bdragE, DragKind.Region);
+		wireGrip(bdragS, DragKind.Region);
+		wireGrip(bdragW, DragKind.Region);
 		wireGrip(g_nw, DragKind.NW);
 		wireGrip(g_n, DragKind.N);
 		wireGrip(g_ne, DragKind.NE);

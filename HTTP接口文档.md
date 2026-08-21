@@ -165,6 +165,7 @@ curl -s "http://127.0.0.1:1224/api/status"
 | `ocr.maxSideLen` | 检测边长上限 | `1024` |
 | `ocr.language` | 识别语言/模型变体标题 | `""`（用主窗当前模型） |
 | `ocr.device` | 设备：`cpu` / `gpu` / `intel` | `cpu` |
+| `ocr.barcode` | 同时识别条码/二维码 | `false` |
 | `tbpu.parser` | 排版方案（兼容保留） | `multi_line` |
 | `data.format` | 返回格式：`dict` 或 `text` | `dict` |
 
@@ -206,6 +207,7 @@ curl -s "http://127.0.0.1:1224/api/status"
 | `ocr.device` | string | `cpu` / `gpu`（cuda） / `intel`（dml） |
 | `ocr.detThresh` | number | 检测阈值（扩展） |
 | `ocr.detBoxThresh` | number | 框置信阈值（扩展） |
+| `ocr.barcode` | bool/string | `true` 时额外扫条码/二维码；别名：`ocr.qr`、`ocr.codes` |
 
 #### multipart 请求
 
@@ -241,6 +243,39 @@ curl -s "http://127.0.0.1:1224/api/status"
 | `box` | 四点坐标 `[[x,y],…]`（图像像素） |
 | `end` | 行尾分隔，固定 `"\n"` |
 
+#### 启用条码（`ocr.barcode = true`）
+
+开启后响应顶层增加 `barcodes` 数组。OCR 行仍在 `data`。若无文字但有条码，仍返回 `code=100`（dict 时 `data` 可为 `[]`；text 时 `data` 为 `[类型] 内容` 文本）。
+
+```json
+{
+  "code": 100,
+  "data": [],
+  "barcodes": [
+    {
+      "type": "QR_CODE",
+      "text": "https://example.com",
+      "box": [[12.0, 40.0], [180.0, 40.0], [180.0, 210.0], [12.0, 210.0]]
+    },
+    {
+      "type": "EAN_13",
+      "text": "6901234567892",
+      "box": [[20.0, 300.0], [220.0, 300.0], [220.0, 340.0], [20.0, 340.0]]
+    }
+  ],
+  "time": 55,
+  "timestamp": 1710000000
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `type` | 码制，如 `QR_CODE`、`EAN_13`、`CODE_128`、`DATA_MATRIX`、`PDF_417`、`AZTEC`、`UPC_A`、`CODE_39` 等 |
+| `text` | 解码内容 |
+| `box` | 角点 `[[x,y],…]`（图像像素） |
+
+支持格式（ZXingCpp / zxing-cpp 原生 + 轻量 OpenCV QR 补充）：QR、Aztec、Data Matrix、PDF417、EAN-8/13、UPC-A/E、Code 39/93/128、Codabar、ITF 等。
+
 #### 成功响应（`data.format = text`）
 
 ```json
@@ -252,6 +287,8 @@ curl -s "http://127.0.0.1:1224/api/status"
 }
 ```
 
+开启 `ocr.barcode` 时同样返回 `barcodes`；仅条码无文字时 `data` 为 `[QR_CODE] …` 形式。
+
 #### 未检出文字
 
 ```json
@@ -262,6 +299,8 @@ curl -s "http://127.0.0.1:1224/api/status"
   "timestamp": 1710000000
 }
 ```
+
+开启 `ocr.barcode` 且均未检出：`data` 为「未检测到文字或条码」，`barcodes` 为 `[]`。
 
 #### 调用示例
 

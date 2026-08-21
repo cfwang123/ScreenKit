@@ -8,9 +8,27 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 ### Added
 
+- 录屏编码增加 **AV1**（`record_codec = av1`）：与 x264/x265 同一套采集→FFmpeg 写 MP4；选项窗可选；ffmpeg64 无 AV1 编码器时明确失败、不回落 x264。CLI：`WpfOCR --test-record-codec av1 --repeat 2`。
+- 截图识别「识别结果」拆为 **OCR / 条码** 两个 Tab：进入某 Tab 时，若当前图尚未对该类型识别过则自动识别 1 次。
+- **条码识别**改用 **ZXingCpp**（zxing-cpp 原生，较 ZXing.Net 更快更稳）：QR / EAN / UPC / Code39·128 / DataMatrix / PDF417 / Aztec 等；难图走「原图 → 放大 → 底区×2」快路径。
+- HTTP `POST /api/ocr`：`options.ocr.barcode`（别名 `ocr.qr` / `ocr.codes`）启用时，响应增加 `barcodes:[{type,text,box}]`。
+- **x86host**（独立 32 位程序）：仅提供本机 SAPI HTTP 服务，供 x64 主程序调用仅 32 位可见的系统发音人。
+  - 工程：`x86host/` → 产物 `x86host.exe`（与 `WpfOCR.exe` 同目录；Release 编 WpfOCR 时自动编并拷贝）。
+  - API：`GET /api/sapi/status` · `GET /api/sapi/voices` · `POST /api/sapi/synth`（WAV）· `POST /api/sapi/shutdown`。
+  - 仅监听 `127.0.0.1`，默认端口 `17886`；**空闲 60 秒**无请求自动退出（可用 `--idle-ms` 调整）。
+  - 无 GUI、无 OCR/ASR 等其它功能；无额外 NuGet 依赖，避免与主程序 DLL 冲突。
+- 主程序 TTS（SAPI 引擎）：按需启动 `x86host`，发音人列表合并本机 + **x86 独有**音；选中 x86 音时朗读/导出走 Web 合成。
+- CLI：`WpfOCR --list-sapi` 列出本进程 SAPI，并在 x64 下经 x86host 合并 32 位发音人。
+
 ### Changed
 
+- **AV1 录屏**：优先 `libsvtav1`；新增独立 **`record_av1_crf` / 选项窗「AV1 CRF」**（0–63，默认 56），与 x264/x265 的 `record_crf` 并列、互不换算。默认 56 约 x265 CRF28 一半体积；不再用隐藏偏移映射。
+- SAPI 32 位支持改为独立 `x86host.exe`，不再二次编译 `WpfOCR.x86.exe` 旁路包。
+- 菜单 / 托盘切换「截图完成 · 复制为图片 / 文件 / 路径」时，按新方式**重新复制一次上次截图**（不新建 `screenshots/` 文件；无历史则状态栏提示）。
+
 ### Fixed
+
+- 录屏 HUD：红线外侧 5px 整圈可拖动移动选区（原先仅顶部内侧 10px 条，不易点到）。
 
 ## [1.0.1] — 2026-08-07
 

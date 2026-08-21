@@ -165,6 +165,7 @@ Returns option descriptors: each entry has `title` / `toolTip` / `default` / opt
 | `ocr.maxSideLen` | Detection side limit | `1024` |
 | `ocr.language` | Language / model variant title | `""` (use main window model) |
 | `ocr.device` | Device: `cpu` / `gpu` / `intel` | `cpu` |
+| `ocr.barcode` | Also scan barcodes / QR codes | `false` |
 | `tbpu.parser` | Layout mode (kept for compatibility) | `multi_line` |
 | `data.format` | Response format: `dict` or `text` | `dict` |
 
@@ -206,6 +207,7 @@ Recognize text in an image. Supported input modes:
 | `ocr.device` | string | `cpu` / `gpu` (CUDA) / `intel` (DirectML) |
 | `ocr.detThresh` | number | Detection threshold (extension) |
 | `ocr.detBoxThresh` | number | Box score threshold (extension) |
+| `ocr.barcode` | bool/string | When `true`, also scan barcodes/QR; aliases: `ocr.qr`, `ocr.codes` |
 
 #### Multipart request
 
@@ -241,6 +243,39 @@ Recognize text in an image. Supported input modes:
 | `box` | Four-point box `[[x,y],…]` (image pixels) |
 | `end` | Line ending; fixed `"\n"` |
 
+#### Success with barcodes (`ocr.barcode = true`)
+
+When barcode scanning is enabled, the response includes a top-level `barcodes` array (always present if the option is on). OCR lines stay in `data`. If there is no OCR text but barcodes are found, `code` is still `100` and `data` may be an empty array (dict) or barcode plain text (text format).
+
+```json
+{
+  "code": 100,
+  "data": [],
+  "barcodes": [
+    {
+      "type": "QR_CODE",
+      "text": "https://example.com",
+      "box": [[12.0, 40.0], [180.0, 40.0], [180.0, 210.0], [12.0, 210.0]]
+    },
+    {
+      "type": "EAN_13",
+      "text": "6901234567892",
+      "box": [[20.0, 300.0], [220.0, 300.0], [220.0, 340.0], [20.0, 340.0]]
+    }
+  ],
+  "time": 55,
+  "timestamp": 1710000000
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `type` | Symbology name from ZXing, e.g. `QR_CODE`, `EAN_13`, `CODE_128`, `DATA_MATRIX`, `PDF_417`, `AZTEC`, `UPC_A`, `CODE_39`, … |
+| `text` | Decoded payload |
+| `box` | Corner points `[[x,y],…]` in image pixels (may be 2–4+ points) |
+
+Supported formats (ZXingCpp / zxing-cpp + light OpenCV QR fallback): QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, etc.
+
 #### Success (`data.format = text`)
 
 ```json
@@ -252,6 +287,8 @@ Recognize text in an image. Supported input modes:
 }
 ```
 
+With `ocr.barcode=true`, `barcodes` is also returned; if OCR is empty, `data` is filled with barcode lines like `[QR_CODE] payload`.
+
 #### No text detected
 
 ```json
@@ -262,6 +299,8 @@ Recognize text in an image. Supported input modes:
   "timestamp": 1710000000
 }
 ```
+
+With `ocr.barcode=true` and nothing found: `data` is `"未检测到文字或条码"` and `barcodes` is `[]`.
 
 #### Call examples
 

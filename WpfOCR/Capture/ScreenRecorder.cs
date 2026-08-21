@@ -91,7 +91,7 @@ sealed class ScreenRecorder : IDisposable {
 		RecordLog.Begin("ScreenRecorder");
 		RecordLog.Step("start",
 			$"region={region.Width}x{region.Height}@{region.Left},{region.Top} fps={fps} " +
-			$"codec={recOpt.Codec} crf={recOpt.Crf} audio={audioMode} hz={recOpt.AudioHz} " +
+			$"codec={recOpt.Codec} crf={recOpt.Crf} av1_crf={recOpt.Av1Crf} audio={audioMode} hz={recOpt.AudioHz} " +
 			$"mono={recOpt.AudioMono} kbps={recOpt.AudioKbps} out={outW}x{outH}");
 		RecordLog.Step("paths", $"video={videoTmp} wav={wavTmp}");
 
@@ -110,13 +110,17 @@ sealed class ScreenRecorder : IDisposable {
 		RecordLog.Step("ffmpeg_dll", "ok root=" + (FfmpegLoader.DllRoot ?? ""));
 		try {
 			ff = new FfmpegMp4Writer(videoTmp, grabW, grabH, recOpt);
-			Backend = $"FFmpeg/{ff.CodecName} {ff.OutWidth}x{ff.OutHeight}@{fps} CRF{recOpt.Crf}";
+			Backend = $"FFmpeg/{ff.CodecName}/{ff.OpenedEncoder} {ff.OutWidth}x{ff.OutHeight}@{fps} {recOpt.CrfLabel}";
 			RecordLog.Step("video_writer", Backend);
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("FfmpegMp4Writer", ex);
 			RecordLog.Ex("FfmpegMp4Writer", ex);
 			ff = null;
+			if (recOpt.IsAv1)
+				throw new InvalidOperationException(
+					"AV1 不可用: " + ex.Message
+					+ "\n请换含 libaom-av1 / libsvtav1 的 ffmpeg64（不会改用 x264）。", ex);
 			if (recOpt.IsHevc)
 				throw new InvalidOperationException(
 					"x265 不可用: " + ex.Message + "\n请改用 x264，或换含 libx265 的 ffmpeg64。", ex);

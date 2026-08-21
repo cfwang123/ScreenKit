@@ -69,10 +69,19 @@
 		<Rectangle x:Name="rdot" Width="8" Height="8" Fill="#E53935" RadiusX="4" RadiusY="4"
 		           IsHitTestVisible="False" UseLayoutRounding="True"/>
 
-		<!-- 顶部拖动条（移动选区） -->
-		<Border x:Name="bdrag" Height="10" Cursor="SizeAll" Style="{StaticResource HudGrip}"
+		<!-- 红线外侧 5px：整圈拖动移动选区 -->
+		<Border x:Name="bdragN" Height="5" Cursor="SizeAll" Style="{StaticResource HudGrip}"
 		        ToolTip="拖动移动录屏区域"
 		        AutomationProperties.AutomationId="hud.drag"/>
+		<Border x:Name="bdragE" Width="5" Cursor="SizeAll" Style="{StaticResource HudGrip}"
+		        ToolTip="拖动移动录屏区域"
+		        AutomationProperties.AutomationId="hud.drag.e"/>
+		<Border x:Name="bdragS" Height="5" Cursor="SizeAll" Style="{StaticResource HudGrip}"
+		        ToolTip="拖动移动录屏区域"
+		        AutomationProperties.AutomationId="hud.drag.s"/>
+		<Border x:Name="bdragW" Width="5" Cursor="SizeAll" Style="{StaticResource HudGrip}"
+		        ToolTip="拖动移动录屏区域"
+		        AutomationProperties.AutomationId="hud.drag.w"/>
 
 		<!-- 八向缩放手柄 -->
 		<Border x:Name="g_nw" Width="12" Height="12" Cursor="SizeNWSE" Style="{StaticResource HudGrip}"

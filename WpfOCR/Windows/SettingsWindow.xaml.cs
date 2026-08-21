@@ -209,10 +209,12 @@ public partial class SettingsWindow : Window {
 		ehotkeyvoice.Text = o.HotkeyVoiceInput ?? "";
 		ehotkeylive.Text = o.HotkeyLiveCaption ?? "";
 		emintray.IsChecked = o.MinimizeToTray;
-		// 二选一：仅文件 / 否则图片
-		var asFile = o.SnapCopyAsFile && !o.SnapCopyAsImage;
-		esnapcopyimg.IsChecked = !asFile;
+		// 三选一：路径 > 文件 > 图片
+		var asPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
+		var asFile = !asPath && o.SnapCopyAsFile && !o.SnapCopyAsImage;
+		esnapcopyimg.IsChecked = !asPath && !asFile;
 		esnapcopyfile.IsChecked = asFile;
+		esnapcopypath.IsChecked = asPath;
 		// 截图历史保留天数
 		var keep = o.ScreenshotKeepDays < 0 ? 0 : o.ScreenshotKeepDays;
 		ComboBoxItem keepHit = null;
@@ -336,10 +338,12 @@ public partial class SettingsWindow : Window {
 		if (!tryint(esnapmaxh, "截图最大高", 16, 16384, out var smh)) return false;
 		Result.ScreenshotMaxWidth = smw;
 		Result.ScreenshotMaxHeight = smh;
-		// 二选一
-		var asFile = esnapcopyfile.IsChecked == true;
-		Result.SnapCopyAsImage = !asFile;
+		// 三选一
+		var asPath = esnapcopypath.IsChecked == true;
+		var asFile = !asPath && esnapcopyfile.IsChecked == true;
+		Result.SnapCopyAsImage = !asPath && !asFile;
 		Result.SnapCopyAsFile = asFile;
+		Result.SnapCopyAsPath = asPath;
 		Result.HttpEnabled = ehttpen.IsChecked == true;
 		var host = (ehttphost.Text ?? "").Trim();
 		Result.HttpHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host;
@@ -396,6 +400,7 @@ public partial class SettingsWindow : Window {
 		ScreenshotMaxHeight = o.ScreenshotMaxHeight,
 		SnapCopyAsImage = o.SnapCopyAsImage,
 		SnapCopyAsFile = o.SnapCopyAsFile,
+		SnapCopyAsPath = o.SnapCopyAsPath,
 		Record = (o.Record ?? new RecordOptions()).Clone(),
 		WinW = o.WinW,
 		WinH = o.WinH,

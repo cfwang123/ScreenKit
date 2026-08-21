@@ -51,7 +51,7 @@
 				          AutomationProperties.Name="截图历史"
 				          ToolTip="打开 screenshots 截图历史文件夹"/>
 				<Separator/>
-				<!-- 二选一 radio：Icon 用 RadioButton；StaysOpenOnClick 点后不关菜单 -->
+				<!-- 三选一 radio：Icon 用 RadioButton；StaysOpenOnClick 点后不关菜单 -->
 				<MenuItem x:Name="mnsnapcopyimg" Header="截图完成 · 复制为图片"
 				          StaysOpenOnClick="True"
 				          AutomationProperties.AutomationId="menu.snapcopyimg">
@@ -66,6 +66,15 @@
 				          AutomationProperties.AutomationId="menu.snapcopyfile">
 					<MenuItem.Icon>
 						<RadioButton x:Name="rbsnapcopyfile" GroupName="SnapCopyMenu"
+						             IsHitTestVisible="False" Focusable="False"
+						             VerticalAlignment="Center"/>
+					</MenuItem.Icon>
+				</MenuItem>
+				<MenuItem x:Name="mnsnapcopypath" Header="截图完成 · 复制为文件路径"
+				          StaysOpenOnClick="True"
+				          AutomationProperties.AutomationId="menu.snapcopypath">
+					<MenuItem.Icon>
+						<RadioButton x:Name="rbsnapcopypath" GroupName="SnapCopyMenu"
 						             IsHitTestVisible="False" Focusable="False"
 						             VerticalAlignment="Center"/>
 					</MenuItem.Icon>
@@ -323,7 +332,7 @@
 									</Border>
 								</DockPanel>
 
-								<DockPanel Grid.Row="1" Margin="0,0,0,10">
+								<DockPanel Grid.Row="1" Margin="0,0,0,8">
 									<Button x:Name="bcopy" Content="复制" Style="{StaticResource GhostBtn}"
 									        DockPanel.Dock="Right" Margin="0" Padding="10,4"
 									        VerticalAlignment="Center"
@@ -338,60 +347,88 @@
 									</StackPanel>
 								</DockPanel>
 
-								<Border Grid.Row="2" Background="#F8FAFC" CornerRadius="10"
-								        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
-									<Grid>
-										<TextBox x:Name="eresult"
-										         TextWrapping="Wrap"
-										         AcceptsReturn="True"
-										         VerticalScrollBarVisibility="Auto"
-										         HorizontalScrollBarVisibility="Disabled"
-										         BorderThickness="0"
-										         Background="Transparent"
-										         Padding="12"
-										         FontSize="14"
-										         Foreground="{StaticResource TextPrimary}"
-										         IsReadOnly="False"
-										         IsInactiveSelectionHighlightEnabled="True"
-										         VerticalContentAlignment="Top"/>
-										<Border x:Name="pocrrunning" Visibility="Collapsed"
-										        Background="#F2F8FAFC" CornerRadius="10"
-										        BorderBrush="#BFDBFE" BorderThickness="1">
-											<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
-											            Margin="20">
-												<Grid Width="48" Height="48" HorizontalAlignment="Center" Margin="0,0,0,16">
-													<Ellipse Width="48" Height="48"
-													         Stroke="#DBEAFE" StrokeThickness="3"/>
-													<Ellipse Width="48" Height="48"
-													         Stroke="#3B82F6" StrokeThickness="3"
-													         StrokeDashArray="12 20" StrokeStartLineCap="Round"
-													         RenderTransformOrigin="0.5,0.5">
-														<Ellipse.RenderTransform>
-															<RotateTransform x:Name="tfocrspin"/>
-														</Ellipse.RenderTransform>
-													</Ellipse>
-												</Grid>
-												<TextBlock x:Name="lbocrruntitle" Text="正在识别中…"
-												           FontSize="15" FontWeight="SemiBold"
-												           Foreground="{StaticResource TextPrimary}"
-												           HorizontalAlignment="Center" Margin="0,0,0,6"/>
-												<TextBlock x:Name="lbocrrunhint" Text="检测 · 方向 · 识别"
-												           FontSize="12" Foreground="{StaticResource TextMuted}"
-												           HorizontalAlignment="Center" Margin="0,0,0,14"
-												           TextAlignment="Center"/>
-												<ProgressBar x:Name="pocrbar" IsIndeterminate="True"
-												             Height="3" Width="160" BorderThickness="0"
-												             Background="#E2E8F0" Foreground="#3B82F6"
-												             Margin="0,0,0,16"/>
-												<Button x:Name="bcancelocrpanel" Content="取消识别"
-												        Style="{StaticResource ToolBtnSm}"
-												        HorizontalAlignment="Center"
-												        Padding="14,5"
-												        ToolTip="取消当前识别（推理中可能需等本轮结束）"/>
-											</StackPanel>
-										</Border>
-									</Grid>
-								</Border>
+								<!-- 结果子 Tab：OCR / 二维码；进入未识别过的 Tab 时对该图识别 1 次 -->
+								<Grid Grid.Row="2">
+									<TabControl x:Name="tabresult" BorderThickness="0" Padding="0"
+									            Background="Transparent"
+									            AutomationProperties.AutomationId="result.tabs">
+										<TabItem x:Name="tabresultocr" Header="OCR"
+										         AutomationProperties.AutomationId="result.tab.ocr">
+											<Border Background="#F8FAFC" CornerRadius="0,0,10,10"
+											        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,0,1,1">
+												<TextBox x:Name="eresult"
+												         TextWrapping="Wrap"
+												         AcceptsReturn="True"
+												         VerticalScrollBarVisibility="Auto"
+												         HorizontalScrollBarVisibility="Disabled"
+												         BorderThickness="0"
+												         Background="Transparent"
+												         Padding="12"
+												         FontSize="14"
+												         Foreground="{StaticResource TextPrimary}"
+												         IsReadOnly="False"
+												         IsInactiveSelectionHighlightEnabled="True"
+												         VerticalContentAlignment="Top"/>
+											</Border>
+										</TabItem>
+										<TabItem x:Name="tabresultqr" Header="条码"
+										         AutomationProperties.AutomationId="result.tab.qr">
+											<Border Background="#F8FAFC" CornerRadius="0,0,10,10"
+											        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,0,1,1">
+												<TextBox x:Name="eqrresult"
+												         TextWrapping="Wrap"
+												         AcceptsReturn="True"
+												         VerticalScrollBarVisibility="Auto"
+												         HorizontalScrollBarVisibility="Disabled"
+												         BorderThickness="0"
+												         Background="Transparent"
+												         Padding="12"
+												         FontSize="14"
+												         Foreground="{StaticResource TextPrimary}"
+												         IsReadOnly="False"
+												         IsInactiveSelectionHighlightEnabled="True"
+												         VerticalContentAlignment="Top"/>
+											</Border>
+										</TabItem>
+									</TabControl>
+									<!-- 识别中遮罩：盖住当前结果 Tab 内容 -->
+									<Border x:Name="pocrrunning" Visibility="Collapsed" Margin="0,28,0,0"
+									        Background="#F2F8FAFC" CornerRadius="0,0,10,10"
+									        BorderBrush="#BFDBFE" BorderThickness="1">
+										<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+										            Margin="20">
+											<Grid Width="48" Height="48" HorizontalAlignment="Center" Margin="0,0,0,16">
+												<Ellipse Width="48" Height="48"
+												         Stroke="#DBEAFE" StrokeThickness="3"/>
+												<Ellipse Width="48" Height="48"
+												         Stroke="#3B82F6" StrokeThickness="3"
+												         StrokeDashArray="12 20" StrokeStartLineCap="Round"
+												         RenderTransformOrigin="0.5,0.5">
+													<Ellipse.RenderTransform>
+														<RotateTransform x:Name="tfocrspin"/>
+													</Ellipse.RenderTransform>
+												</Ellipse>
+											</Grid>
+											<TextBlock x:Name="lbocrruntitle" Text="正在识别中…"
+											           FontSize="15" FontWeight="SemiBold"
+											           Foreground="{StaticResource TextPrimary}"
+											           HorizontalAlignment="Center" Margin="0,0,0,6"/>
+											<TextBlock x:Name="lbocrrunhint" Text="检测 · 方向 · 识别"
+											           FontSize="12" Foreground="{StaticResource TextMuted}"
+											           HorizontalAlignment="Center" Margin="0,0,0,14"
+											           TextAlignment="Center"/>
+											<ProgressBar x:Name="pocrbar" IsIndeterminate="True"
+											             Height="3" Width="160" BorderThickness="0"
+											             Background="#E2E8F0" Foreground="#3B82F6"
+											             Margin="0,0,0,16"/>
+											<Button x:Name="bcancelocrpanel" Content="取消识别"
+											        Style="{StaticResource ToolBtnSm}"
+											        HorizontalAlignment="Center"
+											        Padding="14,5"
+											        ToolTip="取消当前识别（推理中可能需等本轮结束）"/>
+										</StackPanel>
+									</Border>
+								</Grid>
 							</Grid>
 						</Border>
 						</Grid>

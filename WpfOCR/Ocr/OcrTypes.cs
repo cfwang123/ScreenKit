@@ -102,10 +102,12 @@ public sealed class OcrOptions {
 	public int ScreenshotMaxWidth = 1920;
 	/// <summary>截图保存最大高（像素）。</summary>
 	public int ScreenshotMaxHeight = 1080;
-	/// <summary>截图完成时复制为图片（与 SnapCopyAsFile 二选一）。</summary>
+	/// <summary>截图完成时复制为图片（与 AsFile / AsPath 三选一）。</summary>
 	public bool SnapCopyAsImage = true;
-	/// <summary>截图完成时复制为文件（与 SnapCopyAsImage 二选一）。</summary>
+	/// <summary>截图完成时复制为文件 FileDrop（与 AsImage / AsPath 三选一）。</summary>
 	public bool SnapCopyAsFile = false;
+	/// <summary>截图完成时复制文件完整路径文本（与 AsImage / AsFile 三选一）。</summary>
+	public bool SnapCopyAsPath = false;
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
 	/// <summary>是否已弹出过首次「安装功能」向导（false = 下次启动仍提示）。</summary>

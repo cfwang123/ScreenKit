@@ -11,6 +11,7 @@ This file summarizes **third-party components** that may be used at build time o
 | [Microsoft.ML.OnnxRuntime](https://github.com/microsoft/onnxruntime) (+ GPU / DirectML packages) | OCR inference | MIT |
 | [Microsoft.AI.DirectML](https://www.nuget.org/packages/Microsoft.AI.DirectML) | DirectML runtime | Microsoft software license |
 | [OpenCvSharp4](https://github.com/shimat/opencvsharp) | Image / video helpers | Apache-2.0 |
+| [ZXingCpp](https://github.com/zxing-cpp/zxing-cpp) (zxing-cpp native) | Multi-format barcode / QR decode | Apache-2.0 |
 | [PDFsharp](https://github.com/empira/PDFsharp) | PDF write | MIT |
 | [PDFtoImage](https://github.com/sungaila/PDFtoImage) | PDF rasterize | MIT (plus Pdfium/Skia natives) |
 | [NAudio](https://github.com/naudio/NAudio) | WASAPI capture | MIT |

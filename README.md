@@ -15,17 +15,18 @@ Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOC
 | **Screenshot OCR** | Region capture → OCR; multi-monitor with DXGI Desktop Duplication |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
-| **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265 via **FFmpeg only**) + optional system/mic audio |
+| **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
 | **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF |
-| **Clipboard** | Paste image and run OCR; copy image / text |
+| **Clipboard** | Paste image and run OCR; copy image / text; menu/tray can switch on-capture copy mode (image / file / path) and re-copy the last screenshot |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
-| **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (sherpa + system voices); install voices in-app |
+| **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
+| **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR (configurable) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`) |
-| **CLI** | Batch image OCR, list models, probe CUDA, multi-monitor snap test |
+| **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
 ## Requirements
 
@@ -40,10 +41,14 @@ Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOC
 
 ```
 OCR/
-├── WpfOCR/           # Application source (WPF, net48)
+├── WpfOCR/                 # Application source (WPF, net48, x64)
 │   ├── Assets/
-│   └── bin/Release/net48/   # Build output (models / runtimes live here)
-├── docs/             # README screenshots
+│   └── bin/Release/
+│       ├── net48/          # Dev output (models / runtimes live here)
+│       └── WpfOCR/         # Slim package: WpfOCR.exe + x86host.exe + managed deps
+├── x86host/                # Standalone 32-bit SAPI web helper (x86host.exe only)
+├── docs/                   # README screenshots
+├── scripts/publish-release.mjs
 ├── README.md
 ├── README.zh.md
 ├── CHANGELOG.md
@@ -87,7 +92,7 @@ A plain build does **not** ship models, `onnxcpu64`, full CUDA, or FFmpeg. Use *
 
 Release builds also produce a **small redistributable** under `WpfOCR\bin\Release\WpfOCR\`:
 
-- Includes: `WpfOCR.exe`, managed dependencies, **`wetext/`** (ITN), Assets, LICENSE.
+- Includes: `WpfOCR.exe`, **`x86host.exe`** (32-bit SAPI web), managed dependencies, **`wetext/`** (ITN), Assets, LICENSE.
 - Does **not** include: OCR/ASR/TTS models, `onnxcpu64` / `onnxgpu64` / `onnxdml64`, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
 - End users install those via **Install features** (downloads from mirrors / NuGet CDN).
 - **Translation** is not covered by the installer: place Opus-MT ONNX under `translatemodels/` yourself if needed.
@@ -160,9 +165,10 @@ pdf_invisible_text = true
 pdf_dpi = 150                   # internal raster DPI; page size follows original PDF
 
 [record]
-record_codec = "x264"           # x264 | x265
+record_codec = "x264"           # x264 | x265 | av1
 record_fps = 24
-record_crf = 28                 # 0–51, higher = smaller file
+record_crf = 28                 # x264/x265 only, 0–51, higher = smaller
+record_av1_crf = 56             # AV1 only, 0–63 (different scale; 56 ≈ half of x265 CRF28 size)
 record_audio = true
 record_audio_src = "Speakers"   # Speakers | Mic | MicAndSpeakers
 record_audio_kbps = 96
@@ -188,11 +194,11 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 
 1. **Capture → Screen record** (or the toolbar button): click a window or drag a region.
 2. **HUD** (drawn outside the capture area):
-   - Red frame; drag the **top strip** to move, or **8 grips** to resize. **Before Start**, aspect ratio is free; **after Start**, resizing locks aspect ratio unless disabled in record options (`record_lock_aspect = false`). Encoded resolution is fixed when you press Start.
+   - Red frame; drag the **5px strip outside the red line** to move, or **8 grips** to resize. **Before Start**, aspect ratio is free; **after Start**, resizing locks aspect ratio unless disabled in record options (`record_lock_aspect = false`). Encoded resolution is fixed when you press Start.
    - Floating **control bar**: drag via the left grip; **collapse** to mini bar; **Options** before Start (record/GIF settings); start/pause share one slot.
    - Bar auto-positions above/below the region and stays within the **current monitor** (multi-monitor safe).
 3. Stop → confirm save → MP4 is written; Explorer opens and selects the file.
-4. **Capture → Record options**: codec, FPS, CRF, audio source, max output size.
+4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, **CRF** (x264/x265) and **AV1 CRF** (AV1 only, separate scale 0–63, default 56), audio source, max output size. AV1 needs an encoder in `ffmpeg64` (libsvtav1 / libaom-av1); a missing encoder fails with a message and does **not** fall back to x264.
 
 ### GIF recording
 
@@ -215,7 +221,7 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 | `Ctrl+Alt+Q` | Screenshot annotate |
 | `Ctrl+Alt+W` | Screenshot and OCR |
 
-Tray icon: left-click toggles the window; context menu includes clipboard OCR and exit. Closing the main window typically **hides** to tray rather than exiting.
+Tray icon: left-click toggles the window; context menu includes clipboard OCR, on-capture copy mode (image / file / path), and exit. Switching copy mode re-copies the **last screenshot** to the clipboard in the new form. Closing the main window typically **hides** to tray rather than exiting.
 
 ### UI language
 
@@ -229,11 +235,32 @@ Tray icon: left-click toggles the window; context menu includes clipboard OCR an
 WpfOCR --image <path> [options]
 WpfOCR --snap [--out <dir>]
 WpfOCR --list-models
+WpfOCR --list-sapi              # local SAPI + (x64) x86host voices
 WpfOCR --probe-cuda
 WpfOCR --help
 ```
 
 Useful options: `-d gpu|cpu`, `-p rapid-ch`, `-v <variant>`, `-m <models-dir>`, `--det-limit`, `--no-cls`.
+
+## x86host (32-bit SAPI only)
+
+Some classic **SAPI** voices register only for 32-bit processes. Ship **`x86host.exe`** next to `WpfOCR.exe` (built from `x86host/`; a Release build of WpfOCR also builds and copies it).
+
+| Item | Detail |
+|------|--------|
+| Role | HTTP helper: list SAPI voices + synth WAV; **no GUI**, no OCR/ASR |
+| Start | On demand by the x64 app, or run `x86host.exe` manually |
+| Bind | `127.0.0.1` only, default port **17886** |
+| Idle | Exit after **60s** without requests (`--idle-ms` to override) |
+| API | `GET /api/sapi/status` · `GET /api/sapi/voices` · `POST /api/sapi/synth` · `POST /api/sapi/shutdown` |
+
+```text
+dotnet build x86host/x86host.csproj -c Release
+x86host.exe --port 17886 --idle-ms 60000
+x86host.exe --list-sapi
+```
+
+In the UI, choose engine **SAPI**: local voices plus **x86-only** entries (display name ends with `· x86`); speak/export for those voices goes through x86host.
 
 ## HTTP API (overview)
 

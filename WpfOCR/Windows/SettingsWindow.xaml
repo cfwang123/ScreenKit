@@ -220,15 +220,19 @@
 				           Text="仅影响写入 screenshots/ 与「复制为文件」的图；OCR 识别仍用原分辨率。"/>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
 				           TextWrapping="Wrap"
-				           Text="截图标注/识别完成时写入剪贴板的方式（二选一；主菜单/托盘也可切换）。"/>
+				           Text="截图标注/识别完成时写入剪贴板的方式（三选一；主菜单/托盘也可切换）。"/>
 				<RadioButton x:Name="esnapcopyimg" GroupName="SnapCopy"
 				             Content="复制为图片（可贴到 Word / 聊天等）"
 				             Margin="0,0,0,4" IsChecked="True"
 				             AutomationProperties.AutomationId="set.snap.copy.image"/>
 				<RadioButton x:Name="esnapcopyfile" GroupName="SnapCopy"
 				             Content="复制为文件（资源管理器 Ctrl+V）"
-				             Margin="0,0,0,14"
+				             Margin="0,0,0,4"
 				             AutomationProperties.AutomationId="set.snap.copy.file"/>
+				<RadioButton x:Name="esnapcopypath" GroupName="SnapCopy"
+				             Content="复制为文件路径（文本路径，可贴到终端/对话框）"
+				             Margin="0,0,0,14"
+				             AutomationProperties.AutomationId="set.snap.copy.path"/>
 
 				<TextBlock Text="HTTP 识图 API（Umi 兼容）" FontWeight="SemiBold" Margin="0,0,0,6"/>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"

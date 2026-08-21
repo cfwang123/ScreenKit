@@ -41,6 +41,7 @@ public partial class RecordOptionsWindow : Window {
 		if (ecodec.SelectedItem == null) ecodec.SelectedIndex = 0;
 		efps.Text = o.Fps.ToString();
 		ecrf.Text = o.Crf.ToString();
+		eav1crf.Text = o.Av1Crf.ToString();
 		eauden.IsChecked = o.AudioEnabled;
 		foreach (ComboBoxItem it in eaudsrc.Items) {
 			if (string.Equals(it.Tag as string, o.AudioSource, StringComparison.OrdinalIgnoreCase)) {
@@ -79,8 +80,10 @@ public partial class RecordOptionsWindow : Window {
 		o.Codec = (ecodec.SelectedItem as ComboBoxItem)?.Tag as string ?? "x264";
 		if (!tryint(efps, "帧率 (FPS)", 5, 60, out var fps)) return false;
 		if (!tryint(ecrf, "CRF", 0, 51, out var crf)) return false;
+		if (!tryint(eav1crf, "AV1 CRF", 0, 63, out var av1crf)) return false;
 		o.Fps = fps;
 		o.Crf = crf;
+		o.Av1Crf = av1crf;
 		o.AudioEnabled = eauden.IsChecked == true;
 		o.AudioSource = (eaudsrc.SelectedItem as ComboBoxItem)?.Tag as string ?? "Speakers";
 		if (!tryint(eaudkbps, "音频码率 (kbps)", 8, 128, out var kbps)) return false;

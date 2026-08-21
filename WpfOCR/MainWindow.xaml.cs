@@ -11,8 +11,17 @@ namespace WpfOCR;
 public partial class MainWindow : Window {
 	OcrOptions opt = new();
 	OcrResult last;
+	QrResult lastQr;
 	BitmapSource curimg;
 	bool busy;
+	/// <summary>当前忙碌类型：ocr / qr（仅 busy 时有意义）。</summary>
+	string busyKind;
+	/// <summary>当前图是否已对 OCR / 二维码各尝试识别过一次。</summary>
+	bool ocrDoneForImg;
+	bool qrDoneForImg;
+	/// <summary>各结果 Tab 缓存的 meta 文案（切换 Tab 时恢复）。</summary>
+	string ocrMetaText = "推理 — · 端到端 — | 置信度 —";
+	string qrMetaText = "条码 —";
 	bool panning;
 	Point panstart;
 	double pan0x, pan0y;
@@ -59,7 +68,7 @@ public partial class MainWindow : Window {
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
-	/// <summary>同步「复制为图片/文件」勾选时防重入。</summary>
+	/// <summary>同步「复制为图片/文件/路径」勾选时防重入。</summary>
 	bool snapCopyUi;
 	/// <summary>当前录屏 HUD；非 null 时热键截图走录制区域快照。</summary>
 	RecordHud activeRecordHud;
@@ -368,10 +377,10 @@ public partial class MainWindow : Window {
 				forceExit = true;
 				try { Close(); } catch { }
 			};
-			tray.SnapCopyOptionsChanged += (asImg, asFile) => Dispatcher.BeginInvoke(new Action(() => {
-				applysnapcopyopts(asImg, asFile, fromTray: true);
+			tray.SnapCopyOptionsChanged += (asImg, asFile, asPath) => Dispatcher.BeginInvoke(new Action(() => {
+				applysnapcopyopts(asImg, asFile, asPath, fromTray: true);
 			}));
-			tray.SetSnapCopyOptions(opt.SnapCopyAsImage, opt.SnapCopyAsFile);
+			tray.SetSnapCopyOptions(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
 			tray.ApplyHotkeys();
 		}
 		catch (Exception ex) {
@@ -390,37 +399,78 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentScreenshotMaxHeight = Math.Max(16, opt.ScreenshotMaxHeight);
 		ImageUtil.CurrentSnapCopyAsImage = opt.SnapCopyAsImage;
 		ImageUtil.CurrentSnapCopyAsFile = opt.SnapCopyAsFile;
+		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;
 	}
 
-	/// <summary>写入 opt + ImageUtil，并同步主菜单/托盘（二选一）。</summary>
-	void applysnapcopyopts(bool asImg, bool asFile, bool fromTray = false) {
-		// 二选一：仅文件 / 否则图片
-		var fileMode = asFile && !asImg;
-		opt.SnapCopyAsImage = !fileMode;
-		opt.SnapCopyAsFile = fileMode;
+	/// <summary>写入 opt + ImageUtil，并同步主菜单/托盘（三选一）；切换后按新方式重复制上次截图。</summary>
+	void applysnapcopyopts(bool asImg, bool asFile, bool asPath, bool fromTray = false) {
+		// 三选一：路径 > 文件 > 图片
+		if (asPath) {
+			opt.SnapCopyAsImage = false;
+			opt.SnapCopyAsFile = false;
+			opt.SnapCopyAsPath = true;
+		}
+		else if (asFile && !asImg) {
+			opt.SnapCopyAsImage = false;
+			opt.SnapCopyAsFile = true;
+			opt.SnapCopyAsPath = false;
+		}
+		else {
+			opt.SnapCopyAsImage = true;
+			opt.SnapCopyAsFile = false;
+			opt.SnapCopyAsPath = false;
+		}
 		syncsnapcopyopts();
-		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, skipTray: fromTray);
+		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath, skipTray: fromTray);
 		try { AppConfig.Save(opt); } catch { }
+		// 菜单/托盘切换复制方式：立刻用新方式重写剪贴板（不新建 screenshots/ 文件）
+		recopylastsnap();
+	}
+
+	/// <summary>按当前配置把上次截图再写入剪贴板；无历史则提示。</summary>
+	void recopylastsnap() {
+		try {
+			var path = ImageUtil.RecopyLastScreenshot();
+			if (string.IsNullOrWhiteSpace(path)) {
+				setstatus(Loc.T("st.snap_recopy_none"));
+				return;
+			}
+			var name = Path.GetFileName(path);
+			if (opt.SnapCopyAsPath)
+				setstatus(Loc.T("st.snap_recopy_path", name));
+			else if (opt.SnapCopyAsFile && !opt.SnapCopyAsImage)
+				setstatus(Loc.T("st.snap_recopy_file", name));
+			else
+				setstatus(Loc.T("st.snap_recopy_img", name));
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("st.snap_recopy_fail", ex.Message));
+		}
 	}
 
 	void onmenusnapcopy(object sender, RoutedEventArgs e) {
 		if (snapCopyUi) return;
 		// 点哪项就选哪项（radio；不可全关）
-		if (sender == mnsnapcopyfile)
-			applysnapcopyopts(asImg: false, asFile: true);
+		if (sender == mnsnapcopypath)
+			applysnapcopyopts(asImg: false, asFile: false, asPath: true);
+		else if (sender == mnsnapcopyfile)
+			applysnapcopyopts(asImg: false, asFile: true, asPath: false);
 		else
-			applysnapcopyopts(asImg: true, asFile: false);
+			applysnapcopyopts(asImg: true, asFile: false, asPath: false);
 	}
 
-	void setsnapcopyui(bool asImg, bool asFile, bool skipTray = false) {
-		var fileMode = asFile && !asImg;
+	void setsnapcopyui(bool asImg, bool asFile, bool asPath, bool skipTray = false) {
+		var pathMode = asPath && !asImg && !asFile;
+		var fileMode = !pathMode && asFile && !asImg;
+		var imgMode = !pathMode && !fileMode;
 		snapCopyUi = true;
 		try {
 			// Icon 内 RadioButton 显示单选状态（非 MenuItem 勾选）
-			if (rbsnapcopyimg != null) rbsnapcopyimg.IsChecked = !fileMode;
+			if (rbsnapcopyimg != null) rbsnapcopyimg.IsChecked = imgMode;
 			if (rbsnapcopyfile != null) rbsnapcopyfile.IsChecked = fileMode;
+			if (rbsnapcopypath != null) rbsnapcopypath.IsChecked = pathMode;
 			if (!skipTray)
-				try { tray?.SetSnapCopyOptions(!fileMode, fileMode); } catch { }
+				try { tray?.SetSnapCopyOptions(imgMode, fileMode, pathMode); } catch { }
 		}
 		finally { snapCopyUi = false; }
 	}
@@ -890,7 +940,8 @@ public partial class MainWindow : Window {
 		mnsnapshots.Click += (_, _) => opensnapshotsfolder();
 		mnsnapcopyimg.Click += onmenusnapcopy;
 		mnsnapcopyfile.Click += onmenusnapcopy;
-		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile);
+		mnsnapcopypath.Click += onmenusnapcopy;
+		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
 		mnrecord.Click += (_, _) => startrecord();
 		mnrecordopt.Click += (_, _) => openrecordoptions();
 		mngifrecord.Click += (_, _) => startgifrecord();
@@ -920,6 +971,13 @@ public partial class MainWindow : Window {
 		// 结果区快捷复制 / 识别中取消
 		bcopy.Click += (_, _) => copytext();
 		bcancelocrpanel.Click += (_, _) => cancelocr();
+		// 结果子 Tab：进入时若该图尚未识别过则识别 1 次
+		tabresult.SelectionChanged += async (_, e) => {
+			if (!ReferenceEquals(e.Source, tabresult)) return;
+			syncresultmetafromtab();
+			drawoverlay();
+			await ensureactivetabasync();
+		};
 		updatehotkeymenutext();
 	}
 
@@ -936,7 +994,8 @@ public partial class MainWindow : Window {
 
 	void applylang() {
 		try {
-			Title = $"{Loc.T("app.title")} v{AppUpdater.CurrentVersion()}";
+			var arch = Environment.Is64BitProcess ? "" : " · x86";
+			Title = $"{Loc.T("app.title")} v{AppUpdater.CurrentVersion()}{arch}";
 			lbbrand.Text = Loc.T("app.brand");
 
 			// 菜单
@@ -970,6 +1029,7 @@ public partial class MainWindow : Window {
 			mnsnapshots.ToolTip = Loc.T("menu.snapshots.tip");
 			mnsnapcopyimg.Header = Loc.T("menu.snapcopyimg");
 			mnsnapcopyfile.Header = Loc.T("menu.snapcopyfile");
+			mnsnapcopypath.Header = Loc.T("menu.snapcopypath");
 			mnrecord.Header = Loc.T("menu.record");
 			mnrecord.ToolTip = Loc.T("menu.record.tip");
 			mnrecordopt.Header = Loc.T("menu.recordopt");
@@ -1035,11 +1095,24 @@ public partial class MainWindow : Window {
 			if (curimg == null)
 				lbhint.Text = Loc.T("hint.empty");
 			lbresulttitle.Text = Loc.T("result.title");
+			tabresultocr.Header = Loc.T("result.tab.ocr");
+			tabresultqr.Header = Loc.T("result.tab.qr");
 			lbocrrunningbadge.Text = Loc.T("result.running");
-			if (string.IsNullOrWhiteSpace(lbmeta.Text) || lbmeta.Text.StartsWith("推理") || lbmeta.Text.StartsWith("Infer"))
-				lbmeta.Text = Loc.T("result.meta");
-			lbocrruntitle.Text = Loc.T("ocr.running");
-			lbocrrunhint.Text = Loc.T("ocr.running.hint");
+			if (string.IsNullOrWhiteSpace(ocrMetaText) || ocrMetaText.StartsWith("推理") || ocrMetaText.StartsWith("Infer"))
+				ocrMetaText = Loc.T("result.meta");
+			if (string.IsNullOrWhiteSpace(qrMetaText)
+				|| qrMetaText.StartsWith("条码") || qrMetaText.StartsWith("二维码")
+				|| qrMetaText.StartsWith("QR") || qrMetaText.StartsWith("Barcode"))
+				qrMetaText = Loc.T("result.qr.meta");
+			syncresultmetafromtab();
+			if (!busy || busyKind != "qr") {
+				lbocrruntitle.Text = Loc.T("ocr.running");
+				lbocrrunhint.Text = Loc.T("ocr.running.hint");
+			}
+			else {
+				lbocrruntitle.Text = Loc.T("qr.running");
+				lbocrrunhint.Text = Loc.T("qr.running.hint");
+			}
 			bcancelocrpanel.Content = Loc.T("ocr.cancel");
 			bcancelocrpanel.ToolTip = Loc.T("ocr.cancel.tip");
 			bcopy.Content = Loc.T("copy");
@@ -1668,7 +1741,18 @@ public partial class MainWindow : Window {
 		try {
 			string text;
 			string tip;
-			if (hasselection()) {
+			if (isresultqrtab()) {
+				// 二维码 Tab：优先 TextBox 选区，否则全文
+				if (eqrresult.SelectionLength > 0) {
+					text = eqrresult.SelectedText ?? "";
+					tip = $"已复制选中 {text.Length} 字";
+				}
+				else {
+					text = eqrresult.Text ?? "";
+					tip = "已复制条码结果";
+				}
+			}
+			else if (hasselection()) {
 				text = getselectedtext();
 				tip = $"已复制选中 {selcount()} 字";
 			}
@@ -1685,6 +1769,38 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			setstatus($"复制失败: {ex.Message}");
+		}
+	}
+
+	bool isresultqrtab() {
+		try { return ReferenceEquals(tabresult.SelectedItem, tabresultqr); }
+		catch { return false; }
+	}
+
+	void selectresultocrtab() {
+		try { tabresult.SelectedItem = tabresultocr; } catch { }
+	}
+
+	void syncresultmetafromtab() {
+		try {
+			lbmeta.Text = isresultqrtab() ? qrMetaText : ocrMetaText;
+		}
+		catch { }
+	}
+
+	/// <summary>
+	/// 按当前结果 Tab（OCR / 条码）识别：未对该图识别过则识别一次。
+	/// 截图/粘贴等不强制切换 Tab，保持用户当前选择。
+	/// </summary>
+	async Task ensureactivetabasync(int? wallStartTick = null, bool focusResult = true) {
+		if (curimg == null || busy) return;
+		if (isresultqrtab()) {
+			if (qrDoneForImg) return;
+			await runqrasync(curimg, wallStartTick, focusResult, setImg: false);
+		}
+		else {
+			if (ocrDoneForImg) return;
+			await runocrasync(curimg, wallStartTick, focusResult, setImg: false);
 		}
 	}
 
@@ -1810,10 +1926,12 @@ public partial class MainWindow : Window {
 			catch (Exception ex) {
 				CaptureLog.Ex("captureasync setimage", ex);
 			}
-			setstatus($"截图 {bmp.PixelWidth}×{bmp.PixelHeight} · 识别中…");
+			var kind = isresultqrtab() ? "条码" : "OCR";
+			setstatus($"截图 {bmp.PixelWidth}×{bmp.PixelHeight} · {kind}识别中…");
 			var wall0 = Environment.TickCount;
-			await runocrasync(bmp, wall0, focusResult: showMainAfter);
-			CaptureLog.Info("captureasync runocr done");
+			// 图已上屏；保持 OCR/条码 Tab 当前选择，只跑当前 Tab 的识别
+			await ensureactivetabasync(wall0, focusResult: showMainAfter);
+			CaptureLog.Info("captureasync ensureactivetab done");
 			if (showMainAfter) {
 				// 识别结束再确保主窗在前台并停在 tab1（长推理时用户可能切走）
 				try { maintabs.SelectedItem = tabocr; } catch { }
@@ -1905,7 +2023,7 @@ public partial class MainWindow : Window {
 			var r = rect.Value;
 			var ro = (opt.Record ?? new RecordOptions()).Clone();
 			ro.Clamp();
-			setstatus($"录屏区域 {r.Width}×{r.Height} · {ro.Codec} · {ro.Fps}fps · CRF{ro.Crf}");
+			setstatus($"录屏区域 {r.Width}×{r.Height} · {ro.Codec} · {ro.Fps}fps · {ro.CrfLabel}");
 			var hud = new RecordHud(r, ro);
 			activeRecordHud = hud;
 			capturing = false;
@@ -2033,12 +2151,12 @@ public partial class MainWindow : Window {
 				return;
 			}
 
-			// 仅上屏，不跑 OCR
-			last = null;
+			// 仅上屏，不跑识别（进入 OCR/条码 Tab 时再各识别 1 次）
 			clearselection();
 			setimage(bmp);
-			eresult.Text = "";
-			lbmeta.Text = "长截图 · 未识别（可「保存图片」或再点识别）";
+			ocrMetaText = "长截图 · 未识别（切换到 OCR 页签可识别）";
+			qrMetaText = Loc.T("result.qr.meta");
+			syncresultmetafromtab();
 			lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 			drawoverlay();
 			setstatus($"长截图完成 {bmp.PixelWidth}×{bmp.PixelHeight}");
@@ -2124,29 +2242,31 @@ public partial class MainWindow : Window {
 	/// </summary>
 	async Task afterannotateasync(BitmapSource resultImg, bool wantOcr, string label,
 		bool showMainAfter = true, bool mainWasVisible = true) {
-		last = null;
 		clearselection();
 		try {
 			setimage(resultImg);
 			CaptureLog.Info($"{label} setimage ok {CaptureLog.Bmp(curimg)}");
 		}
 		catch (Exception ex) { CaptureLog.Ex(label + " setimage", ex); }
-		eresult.Text = "";
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		if (wantOcr) {
 			// 标注工具条点 OCR：无论热键/托盘是否后台模式，都弹主窗看结果
 			try { maintabs.SelectedItem = tabocr; } catch { }
-			lbmeta.Text = label + " · 识别中…";
+			selectresultocrtab();
+			ocrMetaText = label + " · 识别中…";
+			syncresultmetafromtab();
 			drawoverlay();
 			setstatus($"{label} {resultImg.PixelWidth}×{resultImg.PixelHeight} · 识别中…");
 			bringtofront();
 			var wall0 = Environment.TickCount;
-			await runocrasync(resultImg, wall0, focusResult: true);
+			await runocrasync(resultImg, wall0, focusResult: true, setImg: false);
 			try { maintabs.SelectedItem = tabocr; } catch { }
+			selectresultocrtab();
 			bringtofront();
 		}
 		else {
-			lbmeta.Text = label + " · 未识别";
+			ocrMetaText = label + " · 未识别";
+			syncresultmetafromtab();
 			drawoverlay();
 			setstatus($"{label}已显示 · {resultImg.PixelWidth}×{resultImg.PixelHeight}");
 			if (showMainAfter)
@@ -2355,7 +2475,7 @@ public partial class MainWindow : Window {
 
 	async Task pasteasync() {
 		if (busy) return;
-		// 端到端：读剪贴板 → 出结果
+		// 端到端：读剪贴板 → 按当前结果 Tab 识别（不强制切 OCR）
 		var wall0 = Environment.TickCount;
 		try {
 			// 支持：位图 / 资源管理器复制的 png 等文件路径
@@ -2364,7 +2484,8 @@ public partial class MainWindow : Window {
 				setstatus("剪贴板中没有图片（可复制图片内容，或复制 png/jpg 文件后粘贴）");
 				return;
 			}
-			await runocrasync(bmp, wall0);
+			setimage(bmp);
+			await ensureactivetabasync(wall0);
 		}
 		catch (Exception ex) {
 			setstatus($"粘贴失败: {ex.Message}");
@@ -2380,7 +2501,8 @@ public partial class MainWindow : Window {
 		var wall0 = Environment.TickCount;
 		try {
 			var bmp = ImageUtil.Fromfile(path);
-			await runocrasync(bmp, wall0);
+			setimage(bmp);
+			await ensureactivetabasync(wall0);
 		}
 		catch (Exception ex) {
 			setstatus($"打开失败: {ex.Message}");
@@ -2509,7 +2631,7 @@ public partial class MainWindow : Window {
 		var old = opt;
 		opt = dlg.Result;
 		syncsnapcopyopts();
-		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile);
+		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
 		try { ImageUtil.CleanupScreenshots(opt.ScreenshotKeepDays); } catch { }
 		// 界面语言
 		if (!string.Equals(old.UiLang, opt.UiLang, StringComparison.OrdinalIgnoreCase)) {
@@ -2573,19 +2695,23 @@ public partial class MainWindow : Window {
 
 	/// <param name="wallStartTick">端到端起点（TickCount）；默认从本方法开始计。</param>
 	/// <param name="focusResult">false=托盘后台识别，结果上屏但不抢焦点/不弹主窗。</param>
-	async Task runocrasync(BitmapSource bmp, int? wallStartTick = null, bool focusResult = true) {
+	/// <param name="setImg">true=先 setimage（新图会重置两 Tab 识别状态）；false=图已上屏仅跑 OCR。</param>
+	async Task runocrasync(BitmapSource bmp, int? wallStartTick = null, bool focusResult = true, bool setImg = true) {
 		if (bmp == null) return;
 		// 依赖：OpenCV + OCR 模型 + ORT（未装 GPU/核显时需 onnxcpu64）
 		if (!FeaturePrompt.EnsureOpenCv(this)) {
 			setstatus("未安装 OpenCV，已取消识别");
+			ocrDoneForImg = true;
 			return;
 		}
 		if (!FeaturePrompt.EnsureOcrModels(this)) {
 			setstatus("未安装 OCR 模型，已取消识别");
+			ocrDoneForImg = true;
 			return;
 		}
 		if (!FeaturePrompt.EnsureOcrOrt(this)) {
 			setstatus("未安装 ONNX Runtime，已取消识别");
+			ocrDoneForImg = true;
 			return;
 		}
 		var wall0 = wallStartTick ?? Environment.TickCount;
@@ -2596,9 +2722,13 @@ public partial class MainWindow : Window {
 		var ct = ocrCts.Token;
 		var gen = System.Threading.Interlocked.Increment(ref ocrGen);
 
-		// 先显示截图，再进识别（即使用户连截两次也能立刻看到最新图）
-		setimage(bmp);
+		// 先 busy，避免 SelectionChanged 在 busy 前再触发 ensure
 		busy = true;
+		busyKind = "ocr";
+		// 先显示截图，再进识别（即使用户连截两次也能立刻看到最新图）
+		// 不强制切换结果 Tab，保持用户当前 OCR/条码 选择
+		if (setImg)
+			setimage(bmp);
 		setbusyui(true);
 		setstatus("识别中…（可点「取消识别」）");
 		var dev = opt.Device switch {
@@ -2607,8 +2737,10 @@ public partial class MainWindow : Window {
 			_ => "CPU",
 		};
 		var pack = string.IsNullOrWhiteSpace(opt.ModelVariant) ? (opt.ModelPackId ?? "模型") : opt.ModelVariant;
-		lbmeta.Text = $"识别中 · {pack} · {dev} · 边长{opt.DetLimitSideLen}";
+		ocrMetaText = $"识别中 · {pack} · {dev} · 边长{opt.DetLimitSideLen}";
+		syncresultmetafromtab();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
+		lbocrruntitle.Text = Loc.T("ocr.running");
 		lbocrrunhint.Text = $"{pack} · {dev} · 边长 {opt.DetLimitSideLen}\n检测 → 方向 → 识别";
 		eresult.Text = "";
 		last = null;
@@ -2651,24 +2783,115 @@ public partial class MainWindow : Window {
 		if (gen != ocrGen) return;
 
 		busy = false;
+		busyKind = null;
 		setbusyui(false);
+		// 无论成败都记一次，避免同一图反复自动识别
+		ocrDoneForImg = true;
 
 		if (cancelled || ct.IsCancellationRequested) {
 			setstatus("已取消识别");
-			lbmeta.Text = "已取消";
+			ocrMetaText = "已取消";
+			syncresultmetafromtab();
+			await ensureactivetabasync();
 			return;
 		}
 		if (error != null) {
 			setstatus($"识别失败: {error.Message}");
+			ocrMetaText = "识别失败: " + error.Message;
+			syncresultmetafromtab();
 			if (focusResult && IsVisible && WindowState != WindowState.Minimized)
 				MessageBox.Show(this, error.ToString(), "OCR 错误", MessageBoxButton.OK, MessageBoxImage.Error);
 			else
 				showwarnmsg(error.ToString(), "OCR 错误");
+			await ensureactivetabasync();
 			return;
 		}
 
 		last = result;
 		showresult(result, wallMs, focusResult: focusResult);
+		// 识别过程中若切到二维码 Tab，结束后补跑一次
+		await ensureactivetabasync();
+	}
+
+	/// <summary>当前图扫条码/二维码一次；结果写入「条码」Tab。</summary>
+	async Task runqrasync(BitmapSource bmp, int? wallStartTick = null, bool focusResult = true, bool setImg = true) {
+		if (bmp == null) return;
+		if (!FeaturePrompt.EnsureOpenCv(this)) {
+			setstatus("未安装 OpenCV，已取消条码识别");
+			qrDoneForImg = true;
+			return;
+		}
+		var wall0 = wallStartTick ?? Environment.TickCount;
+
+		try { ocrCts?.Cancel(); } catch { }
+		ocrCts = new CancellationTokenSource();
+		var ct = ocrCts.Token;
+		var gen = System.Threading.Interlocked.Increment(ref ocrGen);
+
+		// 先 busy，避免 SelectionChanged 重复 ensure；不强制切换结果 Tab
+		busy = true;
+		busyKind = "qr";
+		if (setImg)
+			setimage(bmp);
+		setbusyui(true);
+		setstatus("识别条码中…（可点「取消识别」）");
+		qrMetaText = "识别中 · 条码";
+		syncresultmetafromtab();
+		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
+		lbocrruntitle.Text = Loc.T("qr.running");
+		lbocrrunhint.Text = Loc.T("qr.running.hint");
+		eqrresult.Text = "";
+		lastQr = null;
+		drawoverlay();
+
+		QrResult result = null;
+		Exception error = null;
+		var cancelled = false;
+		try {
+			await Task.Run(() => {
+				ct.ThrowIfCancellationRequested();
+				result = QrScan.Run(bmp);
+				ct.ThrowIfCancellationRequested();
+			}, ct);
+		}
+		catch (OperationCanceledException) {
+			cancelled = true;
+		}
+		catch (Exception ex) {
+			if (ct.IsCancellationRequested) cancelled = true;
+			else error = ex;
+		}
+		var wallMs = Math.Max(0, Environment.TickCount - wall0);
+
+		if (gen != ocrGen) return;
+
+		busy = false;
+		busyKind = null;
+		setbusyui(false);
+		qrDoneForImg = true;
+
+		if (cancelled || ct.IsCancellationRequested) {
+			setstatus("已取消条码识别");
+			qrMetaText = "已取消";
+			syncresultmetafromtab();
+			await ensureactivetabasync();
+			return;
+		}
+		if (error != null) {
+			setstatus($"条码识别失败: {error.Message}");
+			qrMetaText = "识别失败: " + error.Message;
+			syncresultmetafromtab();
+			if (focusResult && IsVisible && WindowState != WindowState.Minimized)
+				MessageBox.Show(this, error.ToString(), "条码", MessageBoxButton.OK, MessageBoxImage.Error);
+			else
+				showwarnmsg(error.ToString(), "条码");
+			await ensureactivetabasync();
+			return;
+		}
+
+		lastQr = result;
+		showqrresult(result, wallMs, focusResult: focusResult);
+		await ensureactivetabasync();
 	}
 
 	void cancelocr() {
@@ -2761,7 +2984,7 @@ public partial class MainWindow : Window {
 		eresult.Text = r.FullText;
 		// 预热 TextBox 焦点链，避免首次从图上选字时 Select 无效
 		// 主窗隐藏或托盘后台识别时禁止 Focus（Focus 会 Activate 主窗）
-		if (focusResult && IsVisible && WindowState != WindowState.Minimized) {
+		if (focusResult && !isresultqrtab() && IsVisible && WindowState != WindowState.Minimized) {
 			try {
 				var prev = Keyboard.FocusedElement;
 				if (eresult.Focus()) {
@@ -2784,11 +3007,43 @@ public partial class MainWindow : Window {
 		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
 		var loadPart = r.LoadMs > 0 ? $" · 加载 {(r.LoadMs / 1000.0):0.00}s" : "";
 		// 详细耗时/置信度等只写右侧识别结果区，顶部状态不重复
-		lbmeta.Text = $"推理 {inferS}s · 端到端 {wallS}s{loadPart} | 置信度 {conf:0.00} | {r.DeviceUsed}{model}{res} | {r.Lines.Count} 行 | 边长{opt.DetLimitSideLen}";
+		ocrMetaText = $"推理 {inferS}s · 端到端 {wallS}s{loadPart} | 置信度 {conf:0.00} | {r.DeviceUsed}{model}{res} | {r.Lines.Count} 行 | 边长{opt.DetLimitSideLen}";
+		syncresultmetafromtab();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		setstatus("完成");
 		drawoverlay();
 		// 结果面板出来后左侧视口尺寸已稳定，再 fit 一次保证居中
+		schedulefit();
+	}
+
+	void showqrresult(QrResult r, int wallMs, bool focusResult = true) {
+		if (r == null) return;
+		eqrresult.Text = r.FullText;
+		if (string.IsNullOrWhiteSpace(eqrresult.Text))
+			eqrresult.Text = Loc.T("result.qr.empty");
+		if (focusResult && isresultqrtab() && IsVisible && WindowState != WindowState.Minimized) {
+			try {
+				var prev = Keyboard.FocusedElement;
+				if (eqrresult.Focus()) {
+					eqrresult.Select(0, 0);
+					if (prev is UIElement ue && !ReferenceEquals(ue, eqrresult))
+						ue.Focus();
+					else {
+						if (!pviewport.Focusable) pviewport.Focusable = true;
+						pviewport.Focus();
+					}
+				}
+			}
+			catch { }
+		}
+		var inferS = (Math.Max(0, r.InferMs) / 1000.0).ToString("0.00");
+		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
+		var res = curimg != null ? $" | {curimg.PixelWidth}×{curimg.PixelHeight}" : "";
+		qrMetaText = $"推理 {inferS}s · 端到端 {wallS}s | {r.DecodedCount} 个码{res}";
+		syncresultmetafromtab();
+		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
+		setstatus(r.DecodedCount > 0 ? $"条码完成 · {r.DecodedCount} 个" : "条码完成 · 未检出");
+		drawoverlay();
 		schedulefit();
 	}
 
@@ -2803,6 +3058,19 @@ public partial class MainWindow : Window {
 		bmp = ImageUtil.Withdpi(bmp, 96, 96);
 		CaptureLog.Info($"setimage after Withdpi={CaptureLog.Bmp(bmp)}");
 		curimg = bmp;
+		// 新图：OCR / 二维码各重置为未识别，结果区清空
+		ocrDoneForImg = false;
+		qrDoneForImg = false;
+		last = null;
+		lastQr = null;
+		try {
+			eresult.Text = "";
+			eqrresult.Text = "";
+		}
+		catch { }
+		ocrMetaText = Loc.T("result.meta");
+		qrMetaText = Loc.T("result.qr.meta");
+		syncresultmetafromtab();
 		imgview.Source = bmp;
 		imgview.Width = bmp.PixelWidth;
 		imgview.Height = bmp.PixelHeight;
@@ -2854,11 +3122,19 @@ public partial class MainWindow : Window {
 
 	void drawoverlay() {
 		poverlay.Children.Clear();
-		if (curimg == null || last == null) return;
-		if (mntoggletext.IsChecked != true) return;
-
+		if (curimg == null) return;
 		poverlay.Width = curimg.PixelWidth;
 		poverlay.Height = curimg.PixelHeight;
+
+		// 二维码 Tab：画绿色四边形
+		if (isresultqrtab()) {
+			drawqroverlay();
+			return;
+		}
+
+		if (last == null) return;
+		if (mntoggletext.IsChecked != true) return;
+
 		var hasSel = hasselection();
 		int sl = 0, sc = 0, el = 0, ec = 0;
 		if (hasSel) ordercarets(out sl, out sc, out el, out ec);
@@ -2954,6 +3230,48 @@ public partial class MainWindow : Window {
 				};
 				poverlay.Children.Add(poly);
 			}
+		}
+	}
+
+	void drawqroverlay() {
+		if (lastQr?.Codes == null || lastQr.Codes.Count == 0) return;
+		var stroke = brush(0xE6, 0x10, 0xB9, 0x81);
+		var fill = brush(0x33, 0x10, 0xB9, 0x81);
+		foreach (var code in lastQr.Codes) {
+			if (code?.Box == null || code.Box.Length < 4) continue;
+			var poly = new System.Windows.Shapes.Polygon {
+				Points = new PointCollection {
+					new Point(code.Box[0].X, code.Box[0].Y),
+					new Point(code.Box[1].X, code.Box[1].Y),
+					new Point(code.Box[2].X, code.Box[2].Y),
+					new Point(code.Box[3].X, code.Box[3].Y),
+				},
+				Fill = fill,
+				Stroke = stroke,
+				StrokeThickness = 2.0,
+				IsHitTestVisible = false,
+			};
+			poverlay.Children.Add(poly);
+			if (string.IsNullOrEmpty(code.Text)) continue;
+			// 左上角附近简短预览
+			var minX = code.Box.Min(p => p.X);
+			var minY = code.Box.Min(p => p.Y);
+			var body = code.Text.Length > 36 ? code.Text.Substring(0, 36) + "…" : code.Text;
+			var typ = string.IsNullOrEmpty(code.Type) ? "" : ("[" + code.Type + "] ");
+			var preview = typ + body;
+			var tb = new TextBlock {
+				Text = preview,
+				Foreground = brush(0xFF, 0x06, 0x5F, 0x46),
+				Background = brush(0xE6, 0xEC, 0xFD, 0xF5),
+				FontSize = 12,
+				FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI"),
+				Padding = new Thickness(4, 2, 4, 2),
+				IsHitTestVisible = false,
+				TextWrapping = TextWrapping.NoWrap,
+			};
+			Canvas.SetLeft(tb, minX);
+			Canvas.SetTop(tb, Math.Max(0, minY - 22));
+			poverlay.Children.Add(tb);
 		}
 	}
 

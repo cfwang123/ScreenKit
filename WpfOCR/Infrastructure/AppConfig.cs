@@ -67,14 +67,23 @@ static class AppConfig {
 				o.SnapCopyAsImage = parsebool(scai, true);
 			if (map.TryGetValue("snap_copy_as_file", out var scaf))
 				o.SnapCopyAsFile = parsebool(scaf, false);
-			// 二选一：仅文件开则文件模式，否则图片
-			if (o.SnapCopyAsFile && !o.SnapCopyAsImage) {
+			if (map.TryGetValue("snap_copy_as_path", out var scap))
+				o.SnapCopyAsPath = parsebool(scap, false);
+			// 三选一：路径 > 文件 > 图片（path 为 true 时优先，兼容仅写 path 未关 image 的配置）
+			if (o.SnapCopyAsPath) {
+				o.SnapCopyAsImage = false;
+				o.SnapCopyAsFile = false;
+				o.SnapCopyAsPath = true;
+			}
+			else if (o.SnapCopyAsFile && !o.SnapCopyAsImage) {
 				o.SnapCopyAsImage = false;
 				o.SnapCopyAsFile = true;
+				o.SnapCopyAsPath = false;
 			}
 			else {
 				o.SnapCopyAsImage = true;
 				o.SnapCopyAsFile = false;
+				o.SnapCopyAsPath = false;
 			}
 			// 截图保存：格式 / jpg 质量 / 最大宽高
 			if (map.TryGetValue("screenshot_format", out var sfmt) && !string.IsNullOrWhiteSpace(sfmt)) {
@@ -128,6 +137,8 @@ static class AppConfig {
 				o.Record.Fps = rFps;
 			if (map.TryGetValue("record_crf", out var rcrf) && int.TryParse(rcrf, out var rCrf))
 				o.Record.Crf = rCrf;
+			if (map.TryGetValue("record_av1_crf", out var rac) && int.TryParse(rac, out var rAv1Crf))
+				o.Record.Av1Crf = rAv1Crf;
 			if (map.TryGetValue("record_audio", out var ra))
 				o.Record.AudioEnabled = parsebool(ra, true);
 			if (map.TryGetValue("record_audio_src", out var ras) && !string.IsNullOrWhiteSpace(ras))
@@ -277,10 +288,12 @@ static class AppConfig {
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");
 		sb.AppendLine($"# 截图历史 screenshots/ 保留天数（默认 3；0=不限）");
 		sb.AppendLine($"screenshot_keep_days = {Compat.Clamp(o.ScreenshotKeepDays < 0 ? 0 : o.ScreenshotKeepDays, 0, 3650)}");
-		sb.AppendLine($"# 截图完成时剪贴板：复制为图片 / 复制为文件（二选一）");
-		var snapFile = o.SnapCopyAsFile && !o.SnapCopyAsImage;
-		sb.AppendLine($"snap_copy_as_image = {(!snapFile ? "true" : "false")}");
+		sb.AppendLine($"# 截图完成时剪贴板：复制为图片 / 复制为文件 / 复制为路径（三选一）");
+		var snapPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
+		var snapFile = !snapPath && o.SnapCopyAsFile && !o.SnapCopyAsImage;
+		sb.AppendLine($"snap_copy_as_image = {(!snapFile && !snapPath ? "true" : "false")}");
 		sb.AppendLine($"snap_copy_as_file = {(snapFile ? "true" : "false")}");
+		sb.AppendLine($"snap_copy_as_path = {(snapPath ? "true" : "false")}");
 		// 截图保存参数
 		var shotFmt = string.Equals(o.ScreenshotFormat, "jpg", StringComparison.OrdinalIgnoreCase)
 			|| string.Equals(o.ScreenshotFormat, "jpeg", StringComparison.OrdinalIgnoreCase)
@@ -319,11 +332,13 @@ static class AppConfig {
 		var rec = o.Record ?? new RecordOptions();
 		rec.Clamp();
 		sb.AppendLine("[record]");
-		sb.AppendLine($"# 录屏：x264 / x265");
+		sb.AppendLine($"# 录屏：x264 / x265 / av1");
 		sb.AppendLine($"record_codec = \"{esc(rec.Codec)}\"");
 		sb.AppendLine($"record_fps = {rec.Fps}");
-		sb.AppendLine($"# CRF 0~51，越大体积越小");
+		sb.AppendLine($"# x264/x265 CRF 0~51，越大体积越小");
 		sb.AppendLine($"record_crf = {rec.Crf}");
+		sb.AppendLine($"# AV1 专用 CRF 0~63（刻度不同于 x264/x265；默认 56 约 x265 CRF28 一半体积）");
+		sb.AppendLine($"record_av1_crf = {rec.Av1Crf}");
 		sb.AppendLine($"# 声音：record_audio / Speakers|Mic|MicAndSpeakers / kbps 8~128 / Hz 常用 22050 / mono");
 		sb.AppendLine($"record_audio = {(rec.AudioEnabled ? "true" : "false")}");
 		sb.AppendLine($"record_audio_src = \"{esc(rec.AudioSource)}\"");

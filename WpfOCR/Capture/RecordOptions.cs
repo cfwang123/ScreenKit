@@ -2,12 +2,14 @@ namespace WpfOCR;
 
 /// <summary>录屏编码参数（可持久化到 config.toml）。</summary>
 public sealed class RecordOptions {
-	/// <summary>x264 或 x265。</summary>
+	/// <summary>x264 / x265 / av1。</summary>
 	public string Codec = "x264";
 	/// <summary>帧率 5–60。</summary>
 	public int Fps = 24;
-	/// <summary>CRF 质量 0–51，越大体积越小。</summary>
+	/// <summary>x264/x265 CRF 质量 0–51，越大体积越小。</summary>
 	public int Crf = 28;
+	/// <summary>AV1 专用 CRF 0–63（与 x264/x265 刻度不同，默认 56 约 x265 CRF28 一半体积）。</summary>
+	public int Av1Crf = 56;
 	/// <summary>是否录制声音。</summary>
 	public bool AudioEnabled = true;
 	/// <summary>音频来源：Speakers / Mic / MicAndSpeakers。</summary>
@@ -27,10 +29,29 @@ public sealed class RecordOptions {
 	/// <summary>录制开始后，HUD 缩放选区时是否锁定宽高比（开始前始终自由缩放）。</summary>
 	public bool LockAspectWhileRecording = true;
 
-	public bool IsHevc =>
-		string.Equals(Codec, "x265", StringComparison.OrdinalIgnoreCase)
-		|| string.Equals(Codec, "hevc", StringComparison.OrdinalIgnoreCase)
-		|| string.Equals(Codec, "h265", StringComparison.OrdinalIgnoreCase);
+	public bool IsHevc => IsHevcName(Codec);
+
+	public bool IsAv1 => IsAv1Name(Codec);
+
+	public static bool IsHevcName(string codec) =>
+		string.Equals(codec, "x265", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "hevc", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "h265", StringComparison.OrdinalIgnoreCase);
+
+	public static bool IsAv1Name(string codec) =>
+		string.Equals(codec, "av1", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "av01", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "aom", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "libaom-av1", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "libsvtav1", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "librav1e", StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>规范化为 x264 / x265 / av1，未知值回落 x264。</summary>
+	public static string NormalizeCodec(string codec) {
+		if (IsAv1Name(codec)) return "av1";
+		if (IsHevcName(codec)) return "x265";
+		return "x264";
+	}
 
 	public RecordAudioMode AudioMode {
 		get {
@@ -47,6 +68,7 @@ public sealed class RecordOptions {
 		Codec = Codec,
 		Fps = Fps,
 		Crf = Crf,
+		Av1Crf = Av1Crf,
 		AudioEnabled = AudioEnabled,
 		AudioSource = AudioSource,
 		AudioKbps = AudioKbps,
@@ -64,6 +86,7 @@ public sealed class RecordOptions {
 		Codec = o.Codec;
 		Fps = o.Fps;
 		Crf = o.Crf;
+		Av1Crf = o.Av1Crf;
 		AudioEnabled = o.AudioEnabled;
 		AudioSource = o.AudioSource;
 		AudioKbps = o.AudioKbps;
@@ -76,13 +99,20 @@ public sealed class RecordOptions {
 		Clamp();
 	}
 
+	/// <summary>当前编码实际使用的 CRF（AV1 用 Av1Crf，否则 Crf）。</summary>
+	public int EffectiveCrf => IsAv1 ? Av1Crf : Crf;
+
+	/// <summary>摘要用质量标签，如 CRF28 / AV1-CRF56。</summary>
+	public string CrfLabel => IsAv1 ? $"AV1-CRF{Av1Crf}" : $"CRF{Crf}";
+
 	/// <summary>常用合法采样率（规范化输出）。</summary>
 	public static readonly int[] AudioHzChoices = { 8000, 11025, 16000, 22050, 32000, 44100, 48000 };
 
 	public void Clamp() {
-		Codec = IsHevc ? "x265" : "x264";
+		Codec = NormalizeCodec(Codec);
 		Fps = Compat.Clamp(Fps, 5, 60);
 		Crf = Compat.Clamp(Crf, 0, 51);
+		Av1Crf = Compat.Clamp(Av1Crf, 0, 63);
 		AudioKbps = Compat.Clamp(AudioKbps, 8, 128);
 		AudioHz = snapaudiohz(AudioHz);
 		MaxWidth = Math.Max(16, MaxWidth / 2 * 2);
@@ -122,7 +152,7 @@ public sealed class RecordOptions {
 				"MicAndSpeakers" => $"麦+扬 {AudioKbps}k/{AudioHz}Hz/{ch}",
 				_ => $"扬声器 {AudioKbps}k/{AudioHz}Hz/{ch}",
 			};
-		return $"{Codec} · {Fps}fps · CRF{Crf} · {sizePart} · {aud}";
+		return $"{Codec} · {Fps}fps · {CrfLabel} · {sizePart} · {aud}";
 	}
 
 	/// <summary>将采集宽高 fit 到最大框内（保持比例，偶数）。</summary>

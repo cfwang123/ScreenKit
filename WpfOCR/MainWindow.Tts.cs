@@ -12,6 +12,8 @@ public partial class MainWindow {
 	TtsEngine sherpaTts;
 	TtsPlayer ttsPlayer;
 	List<TtsModelInfo> ttsModels = new();
+	/// <summary>x86 Web 枚举到的 SAPI 发音人缓存（按需刷新）。</summary>
+	List<SapiVoiceItem> sapiX86VoicesCache = new();
 	bool ttsUiLoading;
 	CancellationTokenSource ttsSpeakCts;
 	bool ttsSession;
@@ -130,11 +132,11 @@ public partial class MainWindow {
 		ettsvoice.SelectionChanged += (_, _) => {
 			if (ttsUiLoading) return;
 			var eng = currentttsengine();
-			if (eng == TtsEngineKind.Sapi
-				&& ettsvoice.SelectedItem is System.Speech.Synthesis.VoiceInfo vi) {
+			if (eng == TtsEngineKind.Sapi && ettsvoice.SelectedItem is SapiVoiceItem sv) {
 				try {
-					sapiTts?.SelectVoice(vi.Name);
-					lbttsstatus.Text = "SAPI · " + vi.Name;
+					if (sv.Source != "sapi-x86" && !string.IsNullOrEmpty(sv.Name))
+						sapiTts?.SelectVoice(sv.Name);
+					lbttsstatus.Text = (sv.Source == "sapi-x86" ? "SAPI x86 · " : "SAPI · ") + sv.Name;
 				}
 				catch (Exception ex) { lbttsstatus.Text = "选语音失败: " + ex.Message; }
 			}
@@ -244,6 +246,11 @@ public partial class MainWindow {
 					if (!string.IsNullOrEmpty(lg)) set.Add(lg);
 				}
 			}
+			// 缓存的 x86 音也可贡献语言筛选项（不在此拉起服务）
+			foreach (var v in sapiX86VoicesCache ?? Enumerable.Empty<SapiVoiceItem>()) {
+				var lg = TtsLang.Normalize(v.Lang);
+				if (!string.IsNullOrEmpty(lg)) set.Add(lg);
+			}
 		}
 		catch { }
 		try {
@@ -341,20 +348,13 @@ public partial class MainWindow {
 		if (string.IsNullOrEmpty(opt.TtsVoice)) return;
 		var want = opt.TtsVoice;
 		var eng = currentttsengine();
-		if (eng == TtsEngineKind.Sapi) {
-			foreach (var item in ettsvoice.Items) {
-				if (item is System.Speech.Synthesis.VoiceInfo vi
-					&& string.Equals(vi.Name, want, StringComparison.OrdinalIgnoreCase)) {
-					ettsvoice.SelectedItem = item;
-					return;
-				}
-			}
-		}
-		else if (eng == TtsEngineKind.WinRt) {
+		if (eng is TtsEngineKind.Sapi or TtsEngineKind.WinRt) {
 			foreach (var item in ettsvoice.Items) {
 				if (item is SapiVoiceItem wi
 					&& (string.Equals(wi.Key, want, StringComparison.OrdinalIgnoreCase)
 						|| string.Equals(wi.Name, want, StringComparison.OrdinalIgnoreCase)
+						|| string.Equals("sapi:" + wi.Name, want, StringComparison.OrdinalIgnoreCase)
+						|| string.Equals("sapi-x86:" + wi.Name, want, StringComparison.OrdinalIgnoreCase)
 						|| string.Equals("winrt:" + wi.Name, want, StringComparison.OrdinalIgnoreCase))) {
 					ettsvoice.SelectedItem = item;
 					return;
@@ -549,28 +549,101 @@ public partial class MainWindow {
 				: $"WinRT · {ettsvoice.Items.Count}/{winRtTts.Voices.Count} 个语音（OneCore/神经）";
 		}
 		else {
+			// 先填本机 x64，再异步合并 x86 Web（按需启动）
 			fillsapivoices();
-			lbttsstatus.Text = sapiTts == null
+			var n = ettsvoice.Items.Count;
+			lbttsstatus.Text = sapiTts == null && n == 0
 				? "SAPI 不可用"
-				: $"SAPI · {ettsvoice.Items.Count} 个语音";
+				: $"SAPI · {n} 个语音" + (SapiX86Client.ExeAvailable ? " · 正在拉取 x86…" : "");
+			if (SapiX86Client.ExeAvailable)
+				_ = mergesapix86async();
 		}
+	}
+
+	/// <summary>后台拉 x86 发音人并合并到下拉（不挡 UI）。</summary>
+	async Task mergesapix86async() {
+		List<SapiVoiceItem> x86 = null;
+		string err = null;
+		try {
+			x86 = await Task.Run(() => SapiX86Client.ListVoices().ToList()).ConfigureAwait(true);
+			sapiX86VoicesCache = x86 ?? new List<SapiVoiceItem>();
+		}
+		catch (Exception ex) {
+			err = ex.Message;
+			CaptureLog.Ex("SAPI x86 list", ex);
+		}
+		if (currentttsengine() != TtsEngineKind.Sapi) return;
+		var prevKey = ettsvoice.SelectedItem is SapiVoiceItem cur ? cur.Key : null;
+		fillsapivoices();
+		if (!string.IsNullOrEmpty(prevKey)) {
+			foreach (var item in ettsvoice.Items) {
+				if (item is SapiVoiceItem wi && string.Equals(wi.Key, prevKey, StringComparison.OrdinalIgnoreCase)) {
+					ettsvoice.SelectedItem = item;
+					break;
+				}
+			}
+		}
+		var nX86 = sapiX86VoicesCache?.Count ?? 0;
+		if (!string.IsNullOrEmpty(err))
+			lbttsstatus.Text = $"SAPI · {ettsvoice.Items.Count} 个 · x86 失败: {err}";
+		else
+			lbttsstatus.Text = $"SAPI · {ettsvoice.Items.Count} 个语音（含 x86 Web {nX86}）";
 	}
 
 	void fillsapivoices() {
 		ttsUiLoading = true;
 		try {
 			ettsvoice.Items.Clear();
-			ettsvoice.DisplayMemberPath = "Name";
-			if (sapiTts == null) return;
+			ettsvoice.DisplayMemberPath = "DisplayName";
 			ttsfilterwant(out var wantLang, out var wantGender);
-			foreach (var v in sapiTts.Voices) {
-				if (!sapivoicematches(v, wantLang, wantGender)) continue;
+			var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			// 本机 x64 SAPI
+			if (sapiTts != null) {
+				foreach (var v in sapiTts.Voices) {
+					if (!sapivoicematches(v, wantLang, wantGender)) continue;
+					var name = v.Name ?? "";
+					if (string.IsNullOrEmpty(name) || !seen.Add(name)) continue;
+					var culture = v.Culture?.Name ?? "";
+					var lang = (v.Culture?.TwoLetterISOLanguageName ?? "").ToLowerInvariant();
+					var gender = v.Gender switch {
+						System.Speech.Synthesis.VoiceGender.Female => TtsGender.Female,
+						System.Speech.Synthesis.VoiceGender.Male => TtsGender.Male,
+						_ => "",
+					};
+					var gLabel = TtsGender.Label(gender);
+					var tail = string.IsNullOrEmpty(culture) ? "" : " · " + culture;
+					if (!string.IsNullOrEmpty(gLabel)) tail += " · " + gLabel;
+					ettsvoice.Items.Add(new SapiVoiceItem {
+						DisplayName = name + tail,
+						Key = "sapi:" + name,
+						Name = name,
+						Culture = culture,
+						Lang = lang,
+						Gender = gender,
+						Source = "sapi",
+					});
+				}
+			}
+
+			// x86 独有（同名优先本机）
+			foreach (var v in sapiX86VoicesCache ?? Enumerable.Empty<SapiVoiceItem>()) {
+				if (!winrtvoicematches(v, wantLang, wantGender)) continue;
+				if (string.IsNullOrEmpty(v.Name) || seen.Contains(v.Name)) continue;
+				seen.Add(v.Name);
 				ettsvoice.Items.Add(v);
 			}
+
 			if (ettsvoice.Items.Count > 0) {
-				var zh = ettsvoice.Items.Cast<System.Speech.Synthesis.VoiceInfo>().FirstOrDefault(v =>
-					(v.Culture?.Name ?? "").StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-					|| Compat.Contains(v.Name ?? "", "Chinese", StringComparison.OrdinalIgnoreCase));
+				SapiVoiceItem zh = null;
+				foreach (SapiVoiceItem it in ettsvoice.Items) {
+					if ((it.Culture ?? "").StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+						|| it.Lang == TtsLang.Zh
+						|| Compat.Contains(it.Name ?? "", "Chinese", StringComparison.OrdinalIgnoreCase)) {
+						zh = it;
+						break;
+					}
+				}
 				ettsvoice.SelectedItem = zh ?? ettsvoice.Items[0];
 			}
 		}
@@ -796,14 +869,14 @@ public partial class MainWindow {
 
 		var eng = currentttsengine();
 		var t0 = Environment.TickCount;
-		string sapiVoice = null;
-		if (ettsvoice.SelectedItem is System.Speech.Synthesis.VoiceInfo vi)
-			sapiVoice = vi.Name;
-		string winRtKey = null;
-		if (ettsvoice.SelectedItem is SapiVoiceItem wi)
-			winRtKey = wi.Key;
+		SapiVoiceItem sapiItem = ettsvoice.SelectedItem as SapiVoiceItem;
+		var useX86Sapi = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source == "sapi-x86";
+		string sapiVoice = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source != "sapi-x86"
+			? sapiItem.Name : null;
+		string winRtKey = eng == TtsEngineKind.WinRt && sapiItem != null ? sapiItem.Key : null;
 		var rateUi = ettsrate.Value;
 		var volUi = (int)ettsvol.Value;
+		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
 		var model = ettsmodel.SelectedItem as TtsModelInfo;
 		var sid = ettsvoice.SelectedItem is TtsSpeakerInfo sp ? sp.Id : 0;
 		var compute = TtsComputeMode.Auto;
@@ -818,11 +891,16 @@ public partial class MainWindow {
 		try {
 			savettsprefs();
 			if (eng == TtsEngineKind.Sapi) {
-				if (sapiTts == null) { lbttsstatus.Text = "SAPI 不可用"; return; }
-				if (!string.IsNullOrEmpty(sapiVoice))
-					sapiTts.SelectVoice(sapiVoice);
-				sapiTts.Rate = (int)Math.Round((rateUi - 1.0) * 10);
-				sapiTts.Volume = volUi;
+				if (useX86Sapi) {
+					if (!SapiX86Client.ExeAvailable) { lbttsstatus.Text = "无 x86host.exe，无法用 x86 音"; return; }
+				}
+				else {
+					if (sapiTts == null) { lbttsstatus.Text = "SAPI 不可用"; return; }
+					if (!string.IsNullOrEmpty(sapiVoice))
+						sapiTts.SelectVoice(sapiVoice);
+					sapiTts.Rate = sapiRate;
+					sapiTts.Volume = volUi;
+				}
 			}
 			else if (eng == TtsEngineKind.WinRt) {
 				if (winRtTts == null) { lbttsstatus.Text = "WinRT 语音不可用"; return; }
@@ -854,7 +932,9 @@ public partial class MainWindow {
 				var seg = segments[si];
 				highlightttssegment(seg, uiText);
 				lbttsstatus.Text = eng switch {
-					TtsEngineKind.Sapi => $"SAPI 合成 {si + 1}/{segments.Count}…",
+					TtsEngineKind.Sapi => useX86Sapi
+						? $"SAPI x86 合成 {si + 1}/{segments.Count}…"
+						: $"SAPI 合成 {si + 1}/{segments.Count}…",
 					TtsEngineKind.WinRt => $"WinRT 合成 {si + 1}/{segments.Count}…",
 					_ => $"Sherpa 合成 {si + 1}/{segments.Count}…",
 				};
@@ -869,21 +949,27 @@ public partial class MainWindow {
 				else {
 					await Task.Run(() => {
 						if (eng == TtsEngineKind.Sapi) {
-							var wav = TmpStore.NewPath("tts_play", ".wav");
-							try {
-								sapiTts.ExportWav(seg.Text, wav);
-								using var reader = new NAudio.Wave.AudioFileReader(wav);
-								sr = reader.WaveFormat.SampleRate;
-								var list = new List<float>();
-								var buf = new float[4096];
-								int n;
-								while ((n = reader.Read(buf, 0, buf.Length)) > 0) {
-									for (int k = 0; k < n; k++) list.Add(buf[k]);
-								}
-								samples = list.ToArray();
+							if (useX86Sapi) {
+								(samples, sr) = SapiX86Client.SynthToFloat(
+									seg.Text, sapiItem.Name, sapiRate, volUi);
 							}
-							finally {
-								try { if (File.Exists(wav)) File.Delete(wav); } catch { }
+							else {
+								var wav = TmpStore.NewPath("tts_play", ".wav");
+								try {
+									sapiTts.ExportWav(seg.Text, wav);
+									using var reader = new NAudio.Wave.AudioFileReader(wav);
+									sr = reader.WaveFormat.SampleRate;
+									var list = new List<float>();
+									var buf = new float[4096];
+									int n;
+									while ((n = reader.Read(buf, 0, buf.Length)) > 0) {
+										for (int k = 0; k < n; k++) list.Add(buf[k]);
+									}
+									samples = list.ToArray();
+								}
+								finally {
+									try { if (File.Exists(wav)) File.Delete(wav); } catch { }
+								}
 							}
 						}
 						else {
@@ -900,7 +986,8 @@ public partial class MainWindow {
 			var totalMs = Math.Max(0, Environment.TickCount - t0);
 			var tip = string.IsNullOrEmpty(fallback) ? "" : " · GPU回退: " + fallback;
 			var doneText = eng switch {
-				TtsEngineKind.Sapi => $"SAPI 完成 · {parts.Count} 段 · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}",
+				TtsEngineKind.Sapi => (useX86Sapi ? "SAPI x86" : "SAPI")
+					+ $" 完成 · {parts.Count} 段 · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}",
 				TtsEngineKind.WinRt => $"WinRT 完成 · {parts.Count} 段 · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}",
 				_ => $"Sherpa 完成 · {parts.Count} 段 · {provider} · 加载 {formatms(loadMs)} · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}{tip}",
 			};
@@ -988,12 +1075,12 @@ public partial class MainWindow {
 		var rateUi = ettsrate.Value;
 		var volUi = (int)ettsvol.Value;
 		var kbps = selectedttskbps();
-		string sapiVoice = null;
-		if (ettsvoice.SelectedItem is System.Speech.Synthesis.VoiceInfo vi)
-			sapiVoice = vi.Name;
-		string winRtKey = null;
-		if (ettsvoice.SelectedItem is SapiVoiceItem wi)
-			winRtKey = wi.Key;
+		SapiVoiceItem sapiItem = ettsvoice.SelectedItem as SapiVoiceItem;
+		var useX86Sapi = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source == "sapi-x86";
+		string sapiVoice = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source != "sapi-x86"
+			? sapiItem.Name : null;
+		string winRtKey = eng == TtsEngineKind.WinRt && sapiItem != null ? sapiItem.Key : null;
+		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
 		var model = ettsmodel.SelectedItem as TtsModelInfo;
 		var sid = ettsvoice.SelectedItem is TtsSpeakerInfo sp ? sp.Id : 0;
 		var compute = TtsComputeMode.Auto;
@@ -1026,31 +1113,45 @@ public partial class MainWindow {
 				void throwif() => ct.ThrowIfCancellationRequested();
 
 				if (eng == TtsEngineKind.Sapi) {
-					if (sapiTts == null) throw new InvalidOperationException("SAPI 不可用");
-					if (!string.IsNullOrEmpty(sapiVoice))
-						sapiTts.SelectVoice(sapiVoice);
-					sapiTts.Rate = (int)Math.Round((rateUi - 1.0) * 10);
-					sapiTts.Volume = volUi;
+					if (useX86Sapi) {
+						if (!SapiX86Client.ExeAvailable)
+							throw new InvalidOperationException("无 x86host.exe");
+					}
+					else {
+						if (sapiTts == null) throw new InvalidOperationException("SAPI 不可用");
+						if (!string.IsNullOrEmpty(sapiVoice))
+							sapiTts.SelectVoice(sapiVoice);
+						sapiTts.Rate = sapiRate;
+						sapiTts.Volume = volUi;
+					}
 					var tSynAll = Environment.TickCount;
 					for (var i = 0; i < segs.Count; i++) {
 						throwif();
 						progDlg.Report("synth", i, segs.Count, doneChars, totalChars);
-						var wav = TmpStore.NewPath("tts_exp", ".wav");
-						try {
-							sapiTts.ExportWav(segs[i].Text, wav);
-							throwif();
-							using var reader = new NAudio.Wave.AudioFileReader(wav);
-							sr = reader.WaveFormat.SampleRate;
-							var list = new List<float>();
-							var buf = new float[4096];
-							int n;
-							while ((n = reader.Read(buf, 0, buf.Length)) > 0) {
-								for (int k = 0; k < n; k++) list.Add(buf[k]);
-							}
-							if (list.Count > 0) parts.Add(list.ToArray());
+						if (useX86Sapi) {
+							var (samples, srate) = SapiX86Client.SynthToFloat(
+								segs[i].Text, sapiItem.Name, sapiRate, volUi);
+							sr = srate;
+							if (samples != null && samples.Length > 0) parts.Add(samples);
 						}
-						finally {
-							try { if (File.Exists(wav)) File.Delete(wav); } catch { }
+						else {
+							var wav = TmpStore.NewPath("tts_exp", ".wav");
+							try {
+								sapiTts.ExportWav(segs[i].Text, wav);
+								throwif();
+								using var reader = new NAudio.Wave.AudioFileReader(wav);
+								sr = reader.WaveFormat.SampleRate;
+								var list = new List<float>();
+								var buf = new float[4096];
+								int n;
+								while ((n = reader.Read(buf, 0, buf.Length)) > 0) {
+									for (int k = 0; k < n; k++) list.Add(buf[k]);
+								}
+								if (list.Count > 0) parts.Add(list.ToArray());
+							}
+							finally {
+								try { if (File.Exists(wav)) File.Delete(wav); } catch { }
+							}
 						}
 						doneChars += segs[i].Text?.Length ?? 0;
 						progDlg.Report("synth", i + 1, segs.Count, doneChars, totalChars);

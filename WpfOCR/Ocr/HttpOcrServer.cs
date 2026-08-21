@@ -678,10 +678,15 @@ sealed class HttpOcrServer : IDisposable {
 		var optMap = mergedefaults(optNode);
 		string format;
 		OcrOptions ocrOpt;
+		bool wantBarcode;
 		try {
 			format = getstr(optMap, "data.format", "dict");
 			if (format != "dict" && format != "text") format = "dict";
 			ocrOpt = buildocroptions(optMap);
+			// ocr.barcode / ocr.qr / ocr.codes：识别二维码与各类条码
+			wantBarcode = getbool(optMap, "ocr.barcode", false)
+				|| getbool(optMap, "ocr.qr", false)
+				|| getbool(optMap, "ocr.codes", false);
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(804, $"options 解释失败。 {ex.Message}"));
@@ -697,52 +702,103 @@ sealed class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(901, $"识别失败: {ex.Message}"));
 			return;
 		}
+
+		QrResult codes = null;
+		if (wantBarcode) {
+			try {
+				codes = QrScan.Run(imageBytes);
+			}
+			catch (Exception ex) {
+				writejson(ctx, 200, err(901, $"条码识别失败: {ex.Message}"));
+				return;
+			}
+		}
 		var ms = Math.Max(0, Environment.TickCount - t0);
 
-		if (result == null || result.Lines == null || result.Lines.Count == 0) {
-			writejson(ctx, 200, new JsonObject {
+		var hasText = result?.Lines != null && result.Lines.Count > 0;
+		var hasCodes = codes != null && codes.DecodedCount > 0;
+		if (!hasText && !hasCodes) {
+			var empty = new JsonObject {
 				["code"] = 101,
-				["data"] = "未检测到文字",
+				["data"] = wantBarcode ? "未检测到文字或条码" : "未检测到文字",
 				["time"] = ms,
 				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			});
+			};
+			if (wantBarcode)
+				empty["barcodes"] = new JsonArray();
+			writejson(ctx, 200, empty);
 			return;
 		}
 
+		JsonArray barcodeArr = null;
+		if (wantBarcode)
+			barcodeArr = buildbarcodearray(codes);
+
 		if (format == "text") {
-			var text = string.Join("\n", result.Lines.Select(l => l.Text ?? ""));
-			writejson(ctx, 200, new JsonObject {
+			string text;
+			if (hasText)
+				text = string.Join("\n", result.Lines.Select(l => l.Text ?? ""));
+			else
+				text = codes?.FullText ?? "";
+			var jo = new JsonObject {
 				["code"] = 100,
 				["data"] = text,
 				["time"] = ms,
 				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			});
+			};
+			if (barcodeArr != null)
+				jo["barcodes"] = barcodeArr;
+			writejson(ctx, 200, jo);
 			return;
 		}
 
 		// dict：Umi 风格 list[{text,score,box,end}]
 		var arr = new JsonArray();
-		for (int i = 0; i < result.Lines.Count; i++) {
-			var ln = result.Lines[i];
-			var box = new JsonArray();
-			if (ln.Box != null) {
-				foreach (var p in ln.Box)
-					box.Add(new JsonArray { Math.Round(p.X, 1), Math.Round(p.Y, 1) });
+		if (hasText) {
+			for (int i = 0; i < result.Lines.Count; i++) {
+				var ln = result.Lines[i];
+				var box = new JsonArray();
+				if (ln.Box != null) {
+					foreach (var p in ln.Box)
+						box.Add(new JsonArray { Math.Round(p.X, 1), Math.Round(p.Y, 1) });
+				}
+				arr.Add(new JsonObject {
+					["text"] = ln.Text ?? "",
+					["score"] = Math.Round(ln.Score, 8),
+					["box"] = box,
+					// 与 Umi 一致：行末换行（最后一行也给 \n，拼接时更稳）
+					["end"] = "\n",
+				});
 			}
-			arr.Add(new JsonObject {
-				["text"] = ln.Text ?? "",
-				["score"] = Math.Round(ln.Score, 8),
-				["box"] = box,
-				// 与 Umi 一致：行末换行（最后一行也给 \n，拼接时更稳）
-				["end"] = "\n",
-			});
 		}
-		writejson(ctx, 200, new JsonObject {
+		var resp = new JsonObject {
 			["code"] = 100,
 			["data"] = arr,
 			["time"] = ms,
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		};
+		if (barcodeArr != null)
+			resp["barcodes"] = barcodeArr;
+		writejson(ctx, 200, resp);
+	}
+
+	static JsonArray buildbarcodearray(QrResult codes) {
+		var arr = new JsonArray();
+		if (codes?.Codes == null) return arr;
+		foreach (var c in codes.Codes) {
+			if (c == null || string.IsNullOrEmpty(c.Text)) continue;
+			var box = new JsonArray();
+			if (c.Box != null) {
+				foreach (var p in c.Box)
+					box.Add(new JsonArray { Math.Round(p.X, 1), Math.Round(p.Y, 1) });
+			}
+			arr.Add(new JsonObject {
+				["type"] = string.IsNullOrEmpty(c.Type) ? "UNKNOWN" : c.Type,
+				["text"] = c.Text ?? "",
+				["box"] = box,
+			});
+		}
+		return arr;
 	}
 
 	OcrResult runocr(byte[] imageBytes, OcrOptions o) {
@@ -908,6 +964,16 @@ sealed class HttpOcrServer : IDisposable {
 				["optionsList"] = new JsonArray {
 					new JsonArray { "dict", "含有位置等信息的原始字典" },
 					new JsonArray { "text", "纯文本" },
+				},
+			},
+			["ocr.barcode"] = new JsonObject {
+				["title"] = "识别条码/二维码",
+				["toolTip"] = "同时扫描 QR / EAN / Code128 / DataMatrix 等；结果写入 barcodes[{type,text,box}]。"
+					+ " 别名：ocr.qr、ocr.codes",
+				["default"] = false,
+				["optionsList"] = new JsonArray {
+					new JsonArray { true, "启用" },
+					new JsonArray { false, "禁用" },
 				},
 			},
 		};
@@ -1148,6 +1214,39 @@ sealed class HttpOcrServer : IDisposable {
 		if (!map.TryGetValue(key, out var n) || n == null) return def;
 		if (n.GetValueKind() == JsonValueKind.String) return n.GetValue<string>() ?? def;
 		return n.ToString() ?? def;
+	}
+
+	static bool getbool(Dictionary<string, JsonNode> map, string key, bool def) {
+		if (!map.TryGetValue(key, out var n) || n == null) return def;
+		return asbool(n, def);
+	}
+
+	static bool asbool(JsonNode n, bool def) {
+		if (n == null) return def;
+		try {
+			return n.GetValueKind() switch {
+				JsonValueKind.True => true,
+				JsonValueKind.False => false,
+				JsonValueKind.Number => n.GetValue<double>() != 0,
+				JsonValueKind.String => parseboolstr(n.GetValue<string>(), def),
+				_ => def,
+			};
+		}
+		catch { return def; }
+	}
+
+	static bool parseboolstr(string s, bool def) {
+		if (string.IsNullOrWhiteSpace(s)) return def;
+		s = s.Trim();
+		if (s.Equals("true", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("yes", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("on", StringComparison.OrdinalIgnoreCase)
+			|| s == "1") return true;
+		if (s.Equals("false", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("no", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("off", StringComparison.OrdinalIgnoreCase)
+			|| s == "0") return false;
+		return def;
 	}
 
 	static int asint(JsonNode n, int def) {

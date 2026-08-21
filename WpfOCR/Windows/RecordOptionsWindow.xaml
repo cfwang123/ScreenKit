@@ -31,11 +31,12 @@
 					          VerticalContentAlignment="Center">
 						<ComboBoxItem Content="x264 (H.264，兼容性好)" Tag="x264" IsSelected="True"/>
 						<ComboBoxItem Content="x265 (H.265/HEVC，更小体积)" Tag="x265"/>
+						<ComboBoxItem Content="AV1 (更小体积，需较新播放器)" Tag="av1"/>
 					</ComboBox>
 				</Grid>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
 				           TextWrapping="Wrap"
-				           Text="x265 需要 ffmpeg64 含 libx265；若打开失败会提示。"/>
+				           Text="x265 / AV1 需 ffmpeg64 含对应编码器（失败不回落 x264）。AV1 与 x264/x265 的 CRF 刻度不同，请分别设置下方两项。"/>
 
 				<!-- 数值行：label: textbox  range/unit -->
 				<Grid Margin="0,0,0,10">
@@ -65,13 +66,32 @@
 					<TextBox x:Name="ecrf" Grid.Column="1" Height="30" Padding="6,4" Text="28"
 					         BorderBrush="{StaticResource BorderSoft}"
 					         VerticalContentAlignment="Center" Margin="0,0,10,0"/>
-					<TextBlock Grid.Column="2" Text="0 ~ 51 · 质量/体积，越大文件越小"
+					<TextBlock Grid.Column="2" Text="x264/x265 · 0~51 · 越大文件越小"
+					           FontSize="12" Foreground="{StaticResource TextMuted}"
+					           VerticalAlignment="Center" TextWrapping="Wrap"/>
+				</Grid>
+				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"
+				           TextWrapping="Wrap"
+				           Text="仅 x264/x265 使用。0 最清晰最大；18~28 常用。"/>
+
+				<Grid Margin="0,0,0,4">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" MinWidth="108"/>
+						<ColumnDefinition Width="88"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Column="0" Text="AV1 CRF" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<TextBox x:Name="eav1crf" Grid.Column="1" Height="30" Padding="6,4" Text="56"
+					         BorderBrush="{StaticResource BorderSoft}"
+					         VerticalContentAlignment="Center" Margin="0,0,10,0"/>
+					<TextBlock Grid.Column="2" Text="仅 AV1 · 0~63 · 越大文件越小"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
 					           VerticalAlignment="Center" TextWrapping="Wrap"/>
 				</Grid>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
 				           TextWrapping="Wrap"
-				           Text="0 最清晰最大；18~28 常用。"/>
+				           Text="与上方 CRF 无关。默认 56 约等于 x265 CRF28 一半体积；45 约与 x265 同级；50~58 更小。"/>
 
 				<!-- 声音 -->
 				<TextBlock Text="声音" FontWeight="SemiBold" Margin="0,0,0,6"/>

@@ -73,6 +73,8 @@
     <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.3" />
     <PackageReference Include="OpenCvSharp4" Version="4.11.0.20250507" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.11.0.20250507" />
+    <!-- zxing-cpp 原生：比 ZXing.Net 快数倍～数十倍，难图检出率更高 -->
+    <PackageReference Include="ZXingCpp" Version="0.5.3" />
     <PackageReference Include="PDFsharp" Version="6.2.0" />
     <PackageReference Include="PDFtoImage" Version="5.1.1" />
     <!-- net48 兼容版本（勿用 10.0） -->
@@ -222,6 +224,9 @@
       <_SlimRoot Remove="$(OutputPath)onnxruntime_providers_*.dll" />
       <_SlimRoot Remove="$(OutputPath)*.lib" />
       <_SlimRoot Remove="$(OutputPath)*.pdb" />
+      <!-- 旧旁路名不再打进包 -->
+      <_SlimRoot Remove="$(OutputPath)WpfOCR.x86.exe" />
+      <_SlimRoot Remove="$(OutputPath)WpfOCR.x86.exe.config" />
       <_SlimWet Include="$(OutputPath)wetext\**\*.*" Condition="Exists('$(OutputPath)wetext')" />
       <_SlimAssets Include="$(OutputPath)Assets\**\*.*" Condition="Exists('$(OutputPath)Assets')" />
     </ItemGroup>
@@ -238,9 +243,27 @@
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
       <_SlimJunk Include="$(_SlimOut)\OpenCvSharpExtern.dll;$(_SlimOut)\libSkiaSharp.dll;$(_SlimOut)\pdfium.dll;$(_SlimOut)\sherpa-onnx-c-api.dll" />
+      <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
     </ItemGroup>
     <Delete Files="@(_SlimJunk)" TreatErrorsAsWarnings="true" Condition="'@(_SlimJunk)' != ''" />
     <Message Importance="high" Text="Slim release package: $(_SlimOut)" />
+  </Target>
+
+  <!-- 编并拷贝独立 x86host.exe（仅 SAPI Web）到输出与精简包 -->
+  <Target Name="BuildAndCopyX86Host" AfterTargets="PackageSlimRelease" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <_X86HostProj>$(MSBuildProjectDirectory)\..\x86host\x86host.csproj</_X86HostProj>
+      <_X86HostOut>$(MSBuildProjectDirectory)\..\x86host\bin\Release\net48\x86host.exe</_X86HostOut>
+      <_X86HostCfg>$(MSBuildProjectDirectory)\..\x86host\bin\Release\net48\x86host.exe.config</_X86HostCfg>
+      <_SlimOut>$(MSBuildProjectDirectory)\bin\Release\WpfOCR</_SlimOut>
+    </PropertyGroup>
+    <MSBuild Projects="$(_X86HostProj)" Targets="Build" Properties="Configuration=Release" Condition="Exists('$(_X86HostProj)')" />
+    <Copy SourceFiles="$(_X86HostOut)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(_X86HostOut)')" />
+    <Copy SourceFiles="$(_X86HostCfg)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="Exists('$(_X86HostCfg)')" />
+    <Copy SourceFiles="$(_X86HostOut)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" Condition="Exists('$(_X86HostOut)')" />
+    <Copy SourceFiles="$(_X86HostCfg)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" Condition="Exists('$(_X86HostCfg)')" />
+    <Message Importance="high" Text="x86host.exe copied to slim package (SAPI 32-bit web)" Condition="Exists('$(_X86HostOut)')" />
+    <Warning Text="未生成 x86host.exe。请: dotnet build x86host/x86host.csproj -c Release" Condition="!Exists('$(_X86HostOut)')" />
   </Target>
 
 </Project>

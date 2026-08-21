@@ -315,28 +315,37 @@ static class ImageUtil {
 	/// <summary>截图保存最大高（主窗配置同步）。</summary>
 	public static int CurrentScreenshotMaxHeight = 1080;
 
-	/// <summary>截图完成时是否以位图放入剪贴板（与 AsFile 二选一；主窗配置同步）。</summary>
+	/// <summary>截图完成时是否以位图放入剪贴板（与 AsFile / AsPath 三选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsImage = true;
 
-	/// <summary>截图完成时是否以文件放入剪贴板（与 AsImage 二选一；主窗配置同步）。</summary>
+	/// <summary>截图完成时是否以 FileDrop 放入剪贴板（与 AsImage / AsPath 三选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsFile = false;
+
+	/// <summary>截图完成时是否以路径文本放入剪贴板（与 AsImage / AsFile 三选一；主窗配置同步）。</summary>
+	public static bool CurrentSnapCopyAsPath = false;
+
+	/// <summary>最近一次写入 screenshots/ 的截图完整路径（切换复制方式时复用）。</summary>
+	public static string LastScreenshotPath { get; private set; }
 
 	/// <summary>
 	/// 保存到 screenshots/（文件名含时间戳便于排序），并按当前配置写入剪贴板
-	///（图片或文件，二选一）。
+	///（图片 / 文件 / 路径文本，三选一）。
 	/// 保存前按保留天数清理过期文件（≤0 表示不限，不清理）。
 	/// 按配置应用最大宽高（等比缩小）与保存格式/JPG 质量。
 	/// </summary>
 	/// <returns>保存的完整路径。</returns>
 	public static string SaveScreenshotAndCopy(BitmapSource src, string prefix = "shot",
-		int? keepDays = null, bool? copyAsImage = null, bool? copyAsFile = null) {
+		int? keepDays = null, bool? copyAsImage = null, bool? copyAsFile = null,
+		bool? copyAsPath = null) {
 		if (src == null) throw new ArgumentNullException(nameof(src));
 		var keep = keepDays ?? CurrentScreenshotKeepDays;
 		var asImg = copyAsImage ?? CurrentSnapCopyAsImage;
 		var asFile = copyAsFile ?? CurrentSnapCopyAsFile;
-		// 二选一：显式只要文件则文件，否则图片
-		if (asFile && !asImg) { asImg = false; asFile = true; }
-		else { asImg = true; asFile = false; }
+		var asPath = copyAsPath ?? CurrentSnapCopyAsPath;
+		// 三选一：路径 > 文件 > 图片
+		if (asPath) { asImg = false; asFile = false; asPath = true; }
+		else if (asFile && !asImg) { asImg = false; asFile = true; asPath = false; }
+		else { asImg = true; asFile = false; asPath = false; }
 		try { CleanupScreenshots(keep); } catch { }
 		// 保存用图：可选等比缩小（OCR 主流程仍用原图）
 		var toSave = prepareforcapture(src);
@@ -349,8 +358,57 @@ static class ImageUtil {
 		for (var i = 1; File.Exists(path) && i < 100; i++)
 			path = Path.Combine(dir, $"{baseName}_{i}{ext}");
 		Savefile(toSave, path, CurrentScreenshotJpgQuality);
-		if (asImg || asFile)
-			copysnapshotclipboard(toSave, path, asImg, asFile);
+		LastScreenshotPath = path;
+		if (asImg || asFile || asPath)
+			copysnapshotclipboard(toSave, path, asImg, asFile, asPath);
+		return path;
+	}
+
+	/// <summary>
+	/// 解析「上次截图」路径：优先本进程最近一次落盘；否则取 screenshots/ 中最新图片。
+	/// </summary>
+	public static string ResolveLastScreenshotPath() {
+		if (!string.IsNullOrWhiteSpace(LastScreenshotPath) && File.Exists(LastScreenshotPath))
+			return LastScreenshotPath;
+		try {
+			var dir = ScreenshotsDir;
+			if (!Directory.Exists(dir)) return null;
+			string best = null;
+			var bestT = DateTime.MinValue;
+			foreach (var f in Directory.EnumerateFiles(dir, "*", SearchOption.TopDirectoryOnly)) {
+				if (!isimagepath(f)) continue;
+				DateTime t;
+				try { t = File.GetLastWriteTime(f); } catch { continue; }
+				if (t <= bestT) continue;
+				bestT = t;
+				best = f;
+			}
+			if (!string.IsNullOrWhiteSpace(best))
+				LastScreenshotPath = best;
+			return best;
+		}
+		catch { return null; }
+	}
+
+	/// <summary>
+	/// 按当前（或指定）复制方式，把上次截图重新写入剪贴板；不新建文件。
+	/// </summary>
+	/// <returns>成功写入的文件路径；无可复用截图或失败时为 null。</returns>
+	public static string RecopyLastScreenshot(bool? copyAsImage = null, bool? copyAsFile = null,
+		bool? copyAsPath = null) {
+		var path = ResolveLastScreenshotPath();
+		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+			return null;
+		var asImg = copyAsImage ?? CurrentSnapCopyAsImage;
+		var asFile = copyAsFile ?? CurrentSnapCopyAsFile;
+		var asPath = copyAsPath ?? CurrentSnapCopyAsPath;
+		if (asPath) { asImg = false; asFile = false; asPath = true; }
+		else if (asFile && !asImg) { asImg = false; asFile = true; asPath = false; }
+		else { asImg = true; asFile = false; asPath = false; }
+		BitmapSource bmp = null;
+		if (asImg)
+			bmp = Fromfile(path);
+		copysnapshotclipboard(bmp, path, asImg, asFile, asPath);
 		return path;
 	}
 
@@ -400,11 +458,15 @@ static class ImageUtil {
 	/// </summary>
 	public static string SaveScreenshotAndCopyAsFile(BitmapSource src, string prefix = "shot",
 		int? keepDays = null) =>
-		SaveScreenshotAndCopy(src, prefix, keepDays, copyAsImage: false, copyAsFile: true);
+		SaveScreenshotAndCopy(src, prefix, keepDays, copyAsImage: false, copyAsFile: true,
+			copyAsPath: false);
 
-	/// <summary>按选项写入剪贴板：位图或 FileDrop（二选一）。</summary>
-	static void copysnapshotclipboard(BitmapSource src, string path, bool asImage, bool asFile) {
-		if (asFile && !asImage)
+	/// <summary>按选项写入剪贴板：位图 / FileDrop / 路径文本（三选一）。</summary>
+	static void copysnapshotclipboard(BitmapSource src, string path,
+		bool asImage, bool asFile, bool asPath) {
+		if (asPath)
+			copypathtoclipboard(path);
+		else if (asFile && !asImage)
 			copyfiletoclipboard(path);
 		else
 			Toclipboard(src, path);
@@ -475,6 +537,32 @@ static class ImageUtil {
 		}
 		if (last != null)
 			throw new InvalidOperationException("复制文件到剪贴板失败: " + last.Message, last);
+	}
+
+	/// <summary>将文件完整路径作为文本写入剪贴板（可贴到终端/对话框等）。</summary>
+	static void copypathtoclipboard(string path) {
+		if (string.IsNullOrWhiteSpace(path))
+			throw new ArgumentException("路径无效", nameof(path));
+		// 尽量用绝对路径，方便外部程序直接引用
+		var full = path;
+		try { full = Path.GetFullPath(path); } catch { }
+		Exception last = null;
+		for (var i = 0; i < 4; i++) {
+			try {
+				var data = new DataObject();
+				data.SetText(full);
+				setclip(data);
+				return;
+			}
+			catch (Exception ex) {
+				last = ex;
+				try { Thread.Sleep(30 + i * 20); } catch { }
+			}
+		}
+		try { Clipboard.SetText(full); return; }
+		catch (Exception ex) { last = ex; }
+		if (last != null)
+			throw new InvalidOperationException("复制路径到剪贴板失败: " + last.Message, last);
 	}
 
 	/// <summary>保存为 png/jpg/bmp（按扩展名）。jpg 质量默认用当前配置，可覆盖。</summary>

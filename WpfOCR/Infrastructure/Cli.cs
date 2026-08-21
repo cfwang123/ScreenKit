@@ -25,9 +25,10 @@ static class Cli {
 		if (args == null || args.Length == 0) return false;
 		foreach (var a in args) {
 			if (a is "--image" or "-i" or "--probe-cuda" or "--list-models" or "--list-tts"
+				or "--list-sapi"
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
-				or "--test-record-avsync" or "--test-gif-record"
+				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--help" or "-h" or "/?"
 				or "--asr" or "--list-asr"
 				or "--translate" or "--translate-file" or "--list-translate"
@@ -60,6 +61,7 @@ static class Cli {
 			Out($"# cwd={Environment.CurrentDirectory}");
 			Out($"# base={AppDomain.CurrentDomain.BaseDirectory}");
 			Out($"# args={string.Join(" ", args)}");
+			Out($"# arch={ArchBootstrap.CurrentLabel} Is64BitProcess={Environment.Is64BitProcess}");
 		}
 		catch { }
 
@@ -75,6 +77,9 @@ static class Cli {
 		bool doTestOverlayDuringRecord = false;
 		bool doTestRecordAvsync = false;
 		bool doTestGifRecord = false;
+		bool doTestRecordCodec = false;
+		string testRecordCodec = "av1";
+		int testRecordRepeat = 1;
 		string recordRegion = null; // L,T,W,H 物理像素
 		int recordSnapWaitMs = 800;
 		int recordAvsyncSec = 10;
@@ -130,6 +135,14 @@ static class Cli {
 					case "--test-gif-record":
 						doTestGifRecord = true;
 						break;
+					case "--test-record-codec":
+						doTestRecordCodec = true;
+						if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
+							testRecordCodec = Next();
+						break;
+					case "--repeat":
+						testRecordRepeat = int.Parse(Next());
+						break;
 					case "--region":
 						recordRegion = Next();
 						break;
@@ -146,6 +159,8 @@ static class Cli {
 					return listmodels();
 				case "--list-tts":
 					return listtts();
+				case "--list-sapi":
+					return listsapi();
 				case "--list-asr":
 					return listasr();
 				case "--list-install":
@@ -296,6 +311,21 @@ static class Cli {
 			}
 		}
 
+		if (doTestRecordCodec) {
+			try {
+				var sec = args.Any(a => a == "--seconds") ? Math.Max(1, recordAvsyncSec) : 2;
+				return RecordCodecTest.Run(testRecordCodec, snapOut, recordRegion, sec, testRecordRepeat, Out);
+			}
+			catch (Exception ex) {
+				Err($"录屏编码测试失败: {ex.Message}");
+				Err(ex.ToString());
+				return 1;
+			}
+			finally {
+				try { log?.Dispose(); } catch { }
+			}
+		}
+
 		if (probeTtsGender) {
 			try {
 				return probeTtsGenderRun(device, writeConfig, onlyTtsModel);
@@ -428,6 +458,45 @@ static class Cli {
 				Out($"      ... +{m.Speakers.Count - 8} more");
 		}
 		return 0;
+	}
+
+	/// <summary>列出本进程 SAPI +（x64 时）经 x86 Web 的 32 位发音人。</summary>
+	static int listsapi() {
+		Out("=== SAPI 本进程语音 ===");
+		Out($"ProcessArch={ArchBootstrap.CurrentLabel} Is64BitProcess={Environment.Is64BitProcess}");
+		var nLocal = 0;
+		try {
+			using var sapi = new SapiTts();
+			var voices = sapi.Voices;
+			nLocal = voices.Count;
+			Out($"Count={nLocal}");
+			foreach (var v in voices) {
+				var cult = v.Culture?.Name ?? "";
+				Out($"  [local] {v.Name}  culture={cult} gender={v.Gender} age={v.Age}");
+			}
+		}
+		catch (Exception ex) {
+			Err("本进程枚举失败: " + ex.Message);
+		}
+
+		if (Environment.Is64BitProcess) {
+			Out("=== SAPI x86 Web 语音（按需启动 x86host.exe）===");
+			if (!SapiX86Client.ExeAvailable) {
+				Out("未找到 x86host.exe，跳过 x86 列表");
+			}
+			else {
+				try {
+					var x86 = SapiX86Client.ListVoices();
+					Out($"Count={x86.Count}");
+					foreach (var v in x86)
+						Out($"  [x86] {v.Name}  culture={v.Culture} gender={v.Gender} lang={v.Lang}");
+				}
+				catch (Exception ex) {
+					Err("x86host 枚举失败: " + ex.Message);
+				}
+			}
+		}
+		return nLocal > 0 ? 0 : 1;
 	}
 
 	static int listasr() {
@@ -1260,8 +1329,10 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
   WpfOCR --test-overlay-during-record [--region L,T,W,H]
   WpfOCR --test-record-avsync [--seconds 10] [--region L,T,W,H] [--out <目录>]
   WpfOCR --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
+  WpfOCR --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
   WpfOCR --list-models
   WpfOCR --list-tts
+  WpfOCR --list-sapi
   WpfOCR --list-asr
   WpfOCR --list-install
   WpfOCR --list-tts-install
@@ -1272,6 +1343,8 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
   WpfOCR --translate "文本" [--tr-dir zh-en|en-zh] [-d auto|gpu|cpu|igpu]
   WpfOCR --translate-file <utf8文本文件> [--tr-dir zh-en|en-zh] [-d auto|gpu|cpu|igpu]
   WpfOCR --apply-update <压缩包> --target <安装目录> [--wait-pid PID] [--restart]
+  WpfOCR --list-sapi           本进程 SAPI +（x64 时）x86host Web 发音人
+  x86host.exe                  独立 32 位 SAPI Web（空闲 60s；主程序按需拉起）
   WpfOCR --help
 
 参数:
@@ -1291,12 +1364,15 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
       --test-overlay-during-record  开录+HUD 挂起后弹出截图遮罩（自动 ESC）
       --test-record-avsync  有声0.1s/静音0.1s循环→录N秒→分析音画同步
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
-      --seconds   --test-record-avsync / --test-gif-record 录制秒数
+      --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
+      --repeat    --test-record-codec 连续次数（默认 1）
+      --seconds   --test-record-avsync / --test-gif-record / --test-record-codec 录制秒数
       --region    物理像素区域 L,T,W,H（默认主屏中心）
       --wait-ms   开录后等待毫秒再截（默认 800）
   -o, --out       --snap / --record-snap / --test-*-record / --test-gif-record 输出目录
       --list-models 列出可用 OCR 模型包与变体
       --list-tts    列出 TTS（Sherpa）模型
+      --list-sapi   列出 SAPI（x64 会按需启动 x86host.exe Web 合并 32 位音）
       --list-asr    列出 ASR（Sherpa）语音识别模型
       --asr         识别音频文件（wav/mp3/flac 等），输出文本
       --asr-model   指定 ASR 模型名（模糊匹配，默认第一个）
@@ -1325,6 +1401,7 @@ WpfOCR CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64
   WpfOCR --test-record-avsync
   WpfOCR --test-record-avsync --seconds 10 -o log\record_avsync
   WpfOCR --test-gif-record --seconds 2 -o log\gif_record
+  WpfOCR --test-record-codec av1 --repeat 2 --seconds 2 -o log\record_codec
   WpfOCR --record-snap --region 100,100,800,600 -o log\record_snap
   WpfOCR --list-models
   WpfOCR --list-tts
