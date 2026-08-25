@@ -24,7 +24,7 @@ Windows 桌面 OCR：截图识别、截图标注、长截图、**区域录屏**�
 | **SAPI x86 助手** | 旁路 `x86host.exe`（仅 32 位 SAPI Web），调用仅 x86 可见的经典系统发音人 |
 | **推理设备** | CPU · NVIDIA CUDA（GPU）· 核显 DirectML；未装加速时自动 CPU |
 | **安装功能** | 应用内下载模型与运行库（中文环境优先国内镜像） |
-| **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别（可配置、可清空禁用） |
+| **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入（可配置、可清空禁用） |
 | **HTTP API** | 本机 JSON 接口（默认 `127.0.0.1:1224`） |
 | **CLI** | 批量识图、列模型 / SAPI 发音人、探测 CUDA、多屏抓取自检 |
 
@@ -94,7 +94,7 @@ dotnet build -c Release
 Release 编译后会同步生成可对外分发的精简目录 `WpfOCR\bin\Release\WpfOCR\`：
 
 - **包含**：`WpfOCR.exe`、**`x86host.exe`**（32 位 SAPI Web）、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：OCR/ASR/TTS 模型、`onnxcpu64` / GPU / 核显、OpenCV 等原生库、`ffmpeg64`。
+- **不含**：OCR/ASR/TTS 模型、`onnxcpu64` / GPU / 核显、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`。
 - 用户通过 **安装功能** 按需下载（国内镜像 / NuGet CDN）。
 - **翻译**不在安装窗内：如需翻译，自行将 Opus-MT ONNX 放到 `translatemodels/`。
 
@@ -164,13 +164,15 @@ Release 编译后，将 `WpfOCR/bin/Release/WpfOCR/` 打成 `release/wpfocr_<版
 | `Ctrl+Alt+O` | 切换主窗口显示 / 隐藏 |
 | `Ctrl+Alt+Q` | 截图标注 |
 | `Ctrl+Alt+W` | 截图并识别 |
+| `Ctrl+Alt+V` | 语音输入（再按结束） |
+| `Ctrl+Alt+B` | 实时字幕 |
 
-托盘：左键单击切换窗口；右键菜单含「从剪贴板识别」「截图完成 · 复制为…」「退出」。关闭主窗口通常**隐藏到托盘**而非退出。在菜单或托盘切换三种截图复制方式时，会立刻用新方式把**上次截图**再写入剪贴板。
+托盘：左键单击切换窗口；右键菜单含「语音输入」「从剪贴板识别」「截图完成 · 复制为…」「退出」。关闭主窗口通常**隐藏到托盘**而非退出。在菜单或托盘切换三种截图复制方式时，会立刻用新方式把**上次截图**再写入剪贴板。主菜单 **截图 → 语音输入** 与热键相同。
 
 ### 界面语言
 
 - 菜单 **工具 → 界面语言** 切换 **中文 / English**（即时生效）
-- 或在 **参数设置** 顶部选择界面语言
+- 或在 **参数设置 → 常规** 选择界面语言
 - 写入 `config.toml`：`ui_lang = "zh"` 或 `"en"`
 
 ## CLI（简述）
@@ -221,12 +223,13 @@ x86host.exe --list-sapi
 
 ## 配置摘要
 
-设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。主要段落：
+设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。参数设置窗按 Tab 分组：常规、识别、热键、语音、截图、接口。主要段落：
 
 - `[ocr]`：模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值等  
 - `[ui]`：热键、托盘、界面语言、`capture_log`  
-- `[http]`：本机 API 开关与端口  
+- `[http]`：本机 API 开关与端口、服务模式  
 - `[pdf]`：导出与内部光栅 DPI  
+- `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；共用 `asr_llm_*`（token 勿提交公开仓库；会去掉 `<think>` 等推理块）。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中」或「润色中」及原文（同一行）；已输出后第二行清空。  
 - `[record]`：编码（x264 / x265 / av1）、帧率、`record_crf`（x264/x265）、`record_av1_crf`（AV1）、音频、`record_lock_aspect`（录制中缩放选区是否锁定比例）
 - `[gif_record]`：GIF 默认输出帧率（1–24）、最大宽高、默认颜色数/缩放  
 

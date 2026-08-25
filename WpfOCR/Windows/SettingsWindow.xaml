@@ -2,282 +2,426 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="参数设置"
-        Height="640" Width="460"
+        Height="560" Width="560"
+        MinHeight="440" MinWidth="520"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
         Background="{StaticResource BgApp}"
         FontFamily="Segoe UI, Microsoft YaHei UI">
-	<Grid Margin="20">
+	<Grid Margin="16,16,16,12">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
-		<ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="0,0,4,0">
-			<StackPanel>
-				<TextBlock x:Name="lbsetlang" Text="界面语言" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<ComboBox x:Name="euilang" Height="32" Margin="0,0,0,6">
-					<ComboBoxItem Content="中文" Tag="zh"/>
-					<ComboBoxItem Content="English" Tag="en"/>
-				</ComboBox>
-				<TextBlock x:Name="lbsetlanghint" FontSize="11" Foreground="{StaticResource TextMuted}"
-				           TextWrapping="Wrap" Margin="0,0,0,14"
-				           Text="切换后立即生效，并写入 config.toml"/>
+		<TabControl x:Name="tabset" Grid.Row="0"
+		            BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="set.tabs">
+			<!-- 常规：语言 / 托盘 / 日志 -->
+			<TabItem x:Name="tabsetgen" Header="常规"
+			         AutomationProperties.AutomationId="set.tab.general">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+					<StackPanel>
+						<TextBlock x:Name="lbsetlang" Text="界面语言" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<ComboBox x:Name="euilang" Height="32" Margin="0,0,0,6">
+							<ComboBoxItem Content="中文" Tag="zh"/>
+							<ComboBoxItem Content="English" Tag="en"/>
+						</ComboBox>
+						<TextBlock x:Name="lbsetlanghint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,16"
+						           Text="切换后立即生效，并写入 config.toml"/>
 
-				<TextBlock x:Name="lbsetpack" Text="模型包" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<ComboBox x:Name="epack" Height="32" Margin="0,0,0,10"
-				          DisplayMemberPath="DisplayName"/>
+						<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）"
+						          Margin="0,0,0,16" IsChecked="True"/>
 
-				<TextBlock x:Name="lbsetvariant" Text="语言 / 模型变体" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<ComboBox x:Name="evariant" Height="32" Margin="0,0,0,6"
-				          DisplayMemberPath="Title"/>
-				<TextBlock x:Name="lbmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-				           TextWrapping="Wrap" Margin="0,0,0,14"
-				           Text=""/>
-
-				<TextBlock Text="推理设备" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<ComboBox x:Name="edevice" Height="32" Margin="0,0,0,6">
-					<ComboBoxItem Content="GPU (NVIDIA CUDA)" Tag="Gpu"/>
-					<ComboBoxItem Content="核显 (Intel DirectML)" Tag="IntelGpu"/>
-					<ComboBoxItem Content="CPU" Tag="Cpu"/>
-				</ComboBox>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
-				           TextWrapping="Wrap"
-				           Text="核显走 DirectML；与 NVIDIA CUDA 不能同进程切换，换设备若失败请重启程序"/>
-
-				<TextBlock Text="检测边长上限" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           Text="也可在主窗口顶栏「边长」快速切换"/>
-				<DockPanel Margin="0,0,0,14">
-					<TextBlock x:Name="lbdetlen" DockPanel.Dock="Right" Width="48" Text="1024"
-					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
-					<Slider x:Name="edetlen" Minimum="320" Maximum="2560" TickFrequency="32"
-					        IsSnapToTickEnabled="True" Value="1024"/>
-				</DockPanel>
-
-				<TextBlock Text="检测阈值" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<DockPanel Margin="0,0,0,14">
-					<TextBlock x:Name="lbdetth" DockPanel.Dock="Right" Width="48" Text="0.30"
-					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
-					<Slider x:Name="edetth" Minimum="0.1" Maximum="0.9" TickFrequency="0.05"
-					        IsSnapToTickEnabled="True" Value="0.3"/>
-				</DockPanel>
-
-				<TextBlock Text="框置信阈值" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<DockPanel Margin="0,0,0,14">
-					<TextBlock x:Name="lbboxth" DockPanel.Dock="Right" Width="48" Text="0.50"
-					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
-					<Slider x:Name="eboxth" Minimum="0.1" Maximum="0.9" TickFrequency="0.05"
-					        IsSnapToTickEnabled="True" Value="0.5"/>
-				</DockPanel>
-
-				<CheckBox x:Name="eusecls" Content="启用方向分类 (cls)" Margin="0,0,0,14" IsChecked="True"/>
-
-				<TextBlock Text="全局热键" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,6"
-				           TextWrapping="Wrap"
-				           Text="点「捕获」后按下组合键写入；「清空」禁用该热键。留空亦可手改。"/>
-
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="主窗呼出/隐藏 · 默认 Ctrl+Alt+O；留空禁用。再按一次隐藏"/>
-				<DockPanel Margin="0,0,0,10" LastChildFill="True">
-					<Button x:Name="bhkclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-					<Button x:Name="bhkcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
-					<TextBox x:Name="ehotkey" Height="30" Padding="6,4"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
-				</DockPanel>
-
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="截图标注 · 框选并标注，默认 Ctrl+Alt+Q；留空禁用"/>
-				<DockPanel Margin="0,0,0,10" LastChildFill="True">
-					<Button x:Name="bhksnapclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-					<Button x:Name="bhksnapcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
-					<TextBox x:Name="ehotkeysnap" Height="30" Padding="6,4"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
-				</DockPanel>
-
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           Text="截图识别 · 框选后立即 OCR，默认 Ctrl+Alt+W；留空禁用"/>
-				<DockPanel Margin="0,0,0,10" LastChildFill="True">
-					<Button x:Name="bhkocrclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-					<Button x:Name="bhkocrcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
-					<TextBox x:Name="ehotkeysnapocr" Height="30" Padding="6,4"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
-				</DockPanel>
-
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="屏幕画板 · 全屏冻结后标注；默认空=禁用"/>
-				<DockPanel Margin="0,0,0,10" LastChildFill="True">
-					<Button x:Name="bhkboardclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-					<Button x:Name="bhkboardcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
-					<TextBox x:Name="ehotkeyboard" Height="30" Padding="6,4"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-					         AutomationProperties.AutomationId="set.hotkey.board"/>
-				</DockPanel>
-
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="语音输入 · 麦克风持续识别并输入到焦点窗口，默认 Ctrl+Alt+V；再按一次结束；留空禁用"/>
-				<DockPanel Margin="0,0,0,10" LastChildFill="True">
-					<Button x:Name="bhkvoiceclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-					<Button x:Name="bhkvoicecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
-					<TextBox x:Name="ehotkeyvoice" Height="30" Padding="6,4"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
-				</DockPanel>
-
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="系统实时字幕 · 流式识别到桌面字幕窗，默认 Ctrl+Alt+B；再按一次结束；留空禁用"/>
-				<DockPanel Margin="0,0,0,10" LastChildFill="True">
-					<Button x:Name="bhkliveclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-					<Button x:Name="bhklivecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-					        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
-					<TextBox x:Name="ehotkeylive" Height="30" Padding="6,4"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-					         AutomationProperties.AutomationId="set.hotkey.live"/>
-				</DockPanel>
-				<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）" Margin="0,0,0,14" IsChecked="True"/>
-
-				<TextBlock Text="截图保存" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="screenshots/ 目录保留时间；超过后自动删除。默认 3 天，可选不限。"/>
-				<ComboBox x:Name="esnapkeep" Height="32" Margin="0,0,0,10"
-				          AutomationProperties.AutomationId="set.screenshot.keep">
-					<ComboBoxItem Content="1 天" Tag="1"/>
-					<ComboBoxItem Content="3 天" Tag="3" IsSelected="True"/>
-					<ComboBoxItem Content="7 天" Tag="7"/>
-					<ComboBoxItem Content="14 天" Tag="14"/>
-					<ComboBoxItem Content="30 天" Tag="30"/>
-					<ComboBoxItem Content="90 天" Tag="90"/>
-					<ComboBoxItem Content="不限" Tag="0"/>
-				</ComboBox>
-				<Grid Margin="0,0,0,10">
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="Auto" MinWidth="108"/>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="12"/>
-						<ColumnDefinition Width="Auto" MinWidth="72"/>
-						<ColumnDefinition Width="88"/>
-					</Grid.ColumnDefinitions>
-					<TextBlock Grid.Column="0" Text="保存格式" FontWeight="SemiBold"
-					           VerticalAlignment="Center" Margin="0,0,8,0"/>
-					<ComboBox x:Name="esnapfmt" Grid.Column="1" Height="32"
-					          VerticalContentAlignment="Center"
-					          AutomationProperties.AutomationId="set.screenshot.format">
-						<ComboBoxItem Content="PNG（无损）" Tag="png" IsSelected="True"/>
-						<ComboBoxItem Content="JPG（体积小）" Tag="jpg"/>
-					</ComboBox>
-					<TextBlock x:Name="lbsnapjpgq" Grid.Column="3" Text="JPG 质量"
-					           FontSize="12" Foreground="{StaticResource TextMuted}"
-					           VerticalAlignment="Center" Margin="0,0,8,0"/>
-					<TextBox x:Name="esnapjpgq" Grid.Column="4" Height="30" Padding="6,4" Text="92"
-					         BorderBrush="{StaticResource BorderSoft}"
-					         VerticalContentAlignment="Center"
-					         ToolTip="1–100，越大越清晰、体积越大"
-					         AutomationProperties.AutomationId="set.screenshot.jpgquality"/>
-				</Grid>
-				<CheckBox x:Name="esnapmaxen" Content="限制最大宽高（等比缩小进框内，不放大）"
-				          Margin="0,0,0,8" IsChecked="False"
-				          AutomationProperties.AutomationId="set.screenshot.maxsize"/>
-				<Grid Margin="0,0,0,6" IsEnabled="{Binding ElementName=esnapmaxen, Path=IsChecked}">
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="Auto"/>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="16"/>
-						<ColumnDefinition Width="Auto"/>
-						<ColumnDefinition Width="*"/>
-					</Grid.ColumnDefinitions>
-					<TextBlock Grid.Column="0" Text="最大宽" FontSize="12"
-					           Foreground="{StaticResource TextMuted}"
-					           VerticalAlignment="Center" Margin="0,0,8,0"/>
-					<TextBox x:Name="esnapmaxw" Grid.Column="1" Height="30" Padding="6,4" Text="1920"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-					         AutomationProperties.AutomationId="set.screenshot.maxw"/>
-					<TextBlock Grid.Column="3" Text="最大高" FontSize="12"
-					           Foreground="{StaticResource TextMuted}"
-					           VerticalAlignment="Center" Margin="0,0,8,0"/>
-					<TextBox x:Name="esnapmaxh" Grid.Column="4" Height="30" Padding="6,4" Text="1080"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-					         AutomationProperties.AutomationId="set.screenshot.maxh"/>
-				</Grid>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"
-				           TextWrapping="Wrap"
-				           Text="仅影响写入 screenshots/ 与「复制为文件」的图；OCR 识别仍用原分辨率。"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="截图标注/识别完成时写入剪贴板的方式（三选一；主菜单/托盘也可切换）。"/>
-				<RadioButton x:Name="esnapcopyimg" GroupName="SnapCopy"
-				             Content="复制为图片（可贴到 Word / 聊天等）"
-				             Margin="0,0,0,4" IsChecked="True"
-				             AutomationProperties.AutomationId="set.snap.copy.image"/>
-				<RadioButton x:Name="esnapcopyfile" GroupName="SnapCopy"
-				             Content="复制为文件（资源管理器 Ctrl+V）"
-				             Margin="0,0,0,4"
-				             AutomationProperties.AutomationId="set.snap.copy.file"/>
-				<RadioButton x:Name="esnapcopypath" GroupName="SnapCopy"
-				             Content="复制为文件路径（文本路径，可贴到终端/对话框）"
-				             Margin="0,0,0,14"
-				             AutomationProperties.AutomationId="set.snap.copy.path"/>
-
-				<TextBlock Text="HTTP 识图 API（Umi 兼容）" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
-				           TextWrapping="Wrap"
-				           Text="POST /api/ocr · 支持 JSON base64 与 multipart 上传；GET /api/ocr/get_options"/>
-				<CheckBox x:Name="ehttpen" Content="启用 HTTP API" Margin="0,0,0,8" IsChecked="True"/>
-				<Grid Margin="0,0,0,10">
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="12"/>
-						<ColumnDefinition Width="100"/>
-					</Grid.ColumnDefinitions>
-					<StackPanel Grid.Column="0">
-						<TextBlock Text="监听地址" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-						<TextBox x:Name="ehttphost" Height="30" Padding="6,4"
-						         BorderBrush="{StaticResource BorderSoft}" Text="127.0.0.1"/>
+						<TextBlock x:Name="lbsetlog" Text="系统日志" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<CheckBox x:Name="ecapturelog" Content="写入诊断日志（默认关闭）"
+						          Margin="0,0,0,4" IsChecked="False"
+						          AutomationProperties.AutomationId="set.capture.log"/>
+						<TextBlock x:Name="lbsetloghint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap"
+						           Text="开启后写入 log/capture.log 与录屏 log/record_*.log，便于排查；日常使用请保持关闭"/>
 					</StackPanel>
-					<StackPanel Grid.Column="2">
-						<TextBlock Text="端口" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-						<TextBox x:Name="ehttpport" Height="30" Padding="6,4"
-						         BorderBrush="{StaticResource BorderSoft}" Text="1224"/>
+				</ScrollViewer>
+			</TabItem>
+
+			<!-- 识别：模型 / 设备 / 阈值 / 服务模式 / PDF -->
+			<TabItem x:Name="tabsetocr" Header="识别"
+			         AutomationProperties.AutomationId="set.tab.ocr">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+					<StackPanel>
+						<TextBlock x:Name="lbsetpack" Text="模型包" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<ComboBox x:Name="epack" Height="32" Margin="0,0,0,10"
+						          DisplayMemberPath="DisplayName"/>
+
+						<TextBlock x:Name="lbsetvariant" Text="语言 / 模型变体" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<ComboBox x:Name="evariant" Height="32" Margin="0,0,0,6"
+						          DisplayMemberPath="Title"/>
+						<TextBlock x:Name="lbmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,14"
+						           Text=""/>
+
+						<TextBlock x:Name="lbsetdevice" Text="推理设备" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<ComboBox x:Name="edevice" Height="32" Margin="0,0,0,6">
+							<ComboBoxItem x:Name="itdevgpu" Content="GPU (NVIDIA CUDA)" Tag="Gpu"/>
+							<ComboBoxItem x:Name="itdevigpu" Content="核显 (Intel DirectML)" Tag="IntelGpu"/>
+							<ComboBoxItem x:Name="itdevcpu" Content="CPU" Tag="Cpu"/>
+						</ComboBox>
+						<TextBlock x:Name="lbsetdevicehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,14" TextWrapping="Wrap"
+						           Text="核显走 DirectML；与 NVIDIA CUDA 不能同进程切换，换设备若失败请重启程序"/>
+
+						<TextBlock x:Name="lbsetdetlen" Text="检测边长上限" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsetdetlenhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4"
+						           Text="也可在主窗口顶栏「边长」快速切换"/>
+						<DockPanel Margin="0,0,0,14">
+							<TextBlock x:Name="lbdetlen" DockPanel.Dock="Right" Width="48" Text="1024"
+							           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+							<Slider x:Name="edetlen" Minimum="320" Maximum="2560" TickFrequency="32"
+							        IsSnapToTickEnabled="True" Value="1024"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbsetdetth" Text="检测阈值" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<DockPanel Margin="0,0,0,14">
+							<TextBlock x:Name="lbdetth" DockPanel.Dock="Right" Width="48" Text="0.30"
+							           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+							<Slider x:Name="edetth" Minimum="0.1" Maximum="0.9" TickFrequency="0.05"
+							        IsSnapToTickEnabled="True" Value="0.3"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbsetboxth" Text="框置信阈值" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<DockPanel Margin="0,0,0,14">
+							<TextBlock x:Name="lbboxth" DockPanel.Dock="Right" Width="48" Text="0.50"
+							           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+							<Slider x:Name="eboxth" Minimum="0.1" Maximum="0.9" TickFrequency="0.05"
+							        IsSnapToTickEnabled="True" Value="0.5"/>
+						</DockPanel>
+
+						<CheckBox x:Name="eusecls" Content="启用方向分类 (cls)" Margin="0,0,0,16" IsChecked="True"/>
+
+						<TextBlock x:Name="lbsetpdf" Text="PDF 识别" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<CheckBox x:Name="epdftext" Content="导出时叠加不可见文字层（可检索/可复制）"
+						          Margin="0,0,0,6" IsChecked="True"/>
+						<TextBlock x:Name="lbsetpdfhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap"
+						           Text="页面尺寸按原 PDF 页面还原；光栅化 DPI 由程序固定（约 150），无需配置"/>
 					</StackPanel>
-				</Grid>
-				<CheckBox x:Name="eservicemode" Content="服务模式（引擎常驻预热，不释放模型内存）"
-				          Margin="0,0,0,4" IsChecked="False"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
-				           TextWrapping="Wrap"
-				           Text="启用后启动与改参会立即加载引擎并保持常驻；关闭则为懒加载（改参后丢弃，下次识别再加载）"/>
+				</ScrollViewer>
+			</TabItem>
 
-				<TextBlock Text="PDF 识别" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<CheckBox x:Name="epdftext" Content="导出时叠加不可见文字层（可检索/可复制）"
-				          Margin="0,0,0,6" IsChecked="True"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
-				           TextWrapping="Wrap"
-				           Text="页面尺寸按原 PDF 页面还原；光栅化 DPI 由程序固定（约 150），无需配置"/>
+			<!-- 热键 -->
+			<TabItem x:Name="tabsethk" Header="热键"
+			         AutomationProperties.AutomationId="set.tab.hotkey">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+					<StackPanel>
+						<TextBlock x:Name="lbsethotkey" Text="全局热键" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsethotkeyhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,10" TextWrapping="Wrap"
+						           Text="点「捕获」后按下组合键写入；「清空」禁用该热键。留空亦可手改。"/>
 
-				<TextBlock Text="系统日志" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<CheckBox x:Name="ecapturelog" Content="写入诊断日志（默认关闭）"
-				          Margin="0,0,0,4" IsChecked="False"
-				          AutomationProperties.AutomationId="set.capture.log"/>
-				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
-				           TextWrapping="Wrap"
-				           Text="开启后写入 log/capture.log 与录屏 log/record_*.log，便于排查；日常使用请保持关闭"/>
-			</StackPanel>
-		</ScrollViewer>
+						<TextBlock x:Name="lbhkhintmain" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="主窗呼出/隐藏 · 默认 Ctrl+Alt+O；留空禁用。再按一次隐藏"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkey" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintsnap" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="截图标注 · 框选并标注，默认 Ctrl+Alt+Q；留空禁用"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhksnapclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhksnapcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeysnap" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintocr" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4"
+						           Text="截图识别 · 框选后立即 OCR，默认 Ctrl+Alt+W；留空禁用"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkocrclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkocrcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeysnapocr" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintboard" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="屏幕画板 · 全屏冻结后标注；默认空=禁用"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkboardclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkboardcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyboard" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.board"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintvoice" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="语音输入 · 麦克风持续识别并输入到焦点窗口，默认 Ctrl+Alt+V；再按一次结束；留空禁用"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkvoiceclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkvoicecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyvoice" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintlive" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="系统实时字幕 · 流式识别到桌面字幕窗，默认 Ctrl+Alt+B；再按一次结束；留空禁用"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkliveclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhklivecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeylive" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.live"/>
+						</DockPanel>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<!-- 语音：听写模式 + OpenAI 兼容润色 -->
+			<TabItem x:Name="tabsetasr" Header="语音"
+			         AutomationProperties.AutomationId="set.tab.asr">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+					<StackPanel>
+						<TextBlock x:Name="lbsetasrmode" Text="语音输入模型" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsetasrmodehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="流式：边说边出字。离线：整段录音，停止后一次性识别。勾选自动分句时，识别出一句立即润色并输出。"/>
+						<RadioButton x:Name="easrvoicestream" GroupName="AsrVoiceMode"
+						             Content="流式模型（边说边出）"
+						             Margin="0,0,0,4" IsChecked="True"
+						             AutomationProperties.AutomationId="set.asr.mode.stream"/>
+						<RadioButton x:Name="easrvoiceoffline" GroupName="AsrVoiceMode"
+						             Content="离线模型（停止后一次性输出）"
+						             Margin="0,0,0,8"
+						             AutomationProperties.AutomationId="set.asr.mode.offline"/>
+						<CheckBox x:Name="easrvoicepolish" Content="语音输入润色"
+						          Margin="0,0,0,4" IsChecked="True"
+						          AutomationProperties.AutomationId="set.asr.voice.polish"/>
+						<CheckBox x:Name="easrvoicesplit" Content="语音输入自动分句"
+						          Margin="0,0,0,6" IsChecked="True"
+						          ToolTip="识别出一句立即润色（若已勾选润色）并输入到焦点窗口"
+						          AutomationProperties.AutomationId="set.asr.voice.split"/>
+						<DockPanel Margin="0,0,0,16" LastChildFill="False">
+							<TextBlock x:Name="lbsetasrvoicesplitsec" DockPanel.Dock="Left"
+							           Text="自动分句间隔（秒）" FontSize="11"
+							           Foreground="{StaticResource TextMuted}"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<TextBox x:Name="easrvoicesplitsec" DockPanel.Dock="Left"
+							         Height="30" Width="72" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         VerticalContentAlignment="Center" Text="5"
+							         ToolTip="静音达到此时长才切一句，连续说话不切；1–30，默认 5"
+							         AutomationProperties.AutomationId="set.asr.voice.split.sec"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbsetasrlive" Text="实时字幕模型" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsetasrlivehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="流式：边说边出字幕。离线：按静音切句后整句识别，可更准但延迟更大。"/>
+						<RadioButton x:Name="easrlivestream" GroupName="AsrLiveMode"
+						             Content="流式模型"
+						             Margin="0,0,0,4" IsChecked="True"
+						             AutomationProperties.AutomationId="set.asr.live.mode.stream"/>
+						<RadioButton x:Name="easrliveoffline" GroupName="AsrLiveMode"
+						             Content="离线模型（静音切句）"
+						             Margin="0,0,0,8"
+						             AutomationProperties.AutomationId="set.asr.live.mode.offline"/>
+						<CheckBox x:Name="easrlivepolish" Content="实时字幕润色"
+						          Margin="0,0,0,4"
+						          AutomationProperties.AutomationId="set.asr.live.polish"/>
+						<CheckBox x:Name="easrlivesplit" Content="润色自动分句"
+						          Margin="0,0,0,16" IsChecked="True"
+						          ToolTip="成句或润色后句末无标点时补「，」"
+						          AutomationProperties.AutomationId="set.asr.live.split"/>
+
+						<TextBlock x:Name="lbsetasrllm" Text="润色（OpenAI 兼容）"
+						           FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsetasrllmhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="上方勾选润色且 URL、模型 id 都填才请求。听写在句末/停止后；实时字幕在每句完成后。会附带本轮已输出上文以便纠正同音与指代。Token 本地服务可留空。"/>
+						<TextBlock x:Name="lbsetasrllmurl" Text="API URL" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="easrllmurl" Height="30" Padding="6,4" Margin="0,0,0,10"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         VerticalContentAlignment="Center"
+						         ToolTip="如 https://api.openai.com/v1 或 http://127.0.0.1:11434/v1"
+						         AutomationProperties.AutomationId="set.asr.llm.url"/>
+						<TextBlock x:Name="lbsetasrllmtoken" Text="Token" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<PasswordBox x:Name="easrllmtoken" Height="30" Padding="6,4" Margin="0,0,0,10"
+						             BorderBrush="{StaticResource BorderSoft}"
+						             VerticalContentAlignment="Center"
+						             AutomationProperties.AutomationId="set.asr.llm.token"/>
+						<TextBlock x:Name="lbsetasrllmmodel" Text="模型 id" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="easrllmmodel" Height="30" Padding="6,4" Margin="0,0,0,10"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         VerticalContentAlignment="Center"
+						         ToolTip="如 gpt-4o-mini"
+						         AutomationProperties.AutomationId="set.asr.llm.model"/>
+						<TextBlock x:Name="lbsetasrllmprompt" Text="润色提示词" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="easrllmprompt" MinHeight="88" Padding="6,4"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         TextWrapping="Wrap" AcceptsReturn="True"
+						         VerticalScrollBarVisibility="Auto"
+						         AutomationProperties.AutomationId="set.asr.llm.prompt"/>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<!-- 截图：保存格式 / 剪贴板 -->
+			<TabItem x:Name="tabsetsnap" Header="截图"
+			         AutomationProperties.AutomationId="set.tab.snap">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+					<StackPanel>
+						<TextBlock x:Name="lbsetsnap" Text="截图保存" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsetsnaphint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="screenshots/ 目录保留时间；超过后自动删除。默认 3 天，可选不限。"/>
+						<ComboBox x:Name="esnapkeep" Height="32" Margin="0,0,0,12"
+						          AutomationProperties.AutomationId="set.screenshot.keep">
+							<ComboBoxItem Content="1 天" Tag="1"/>
+							<ComboBoxItem Content="3 天" Tag="3" IsSelected="True"/>
+							<ComboBoxItem Content="7 天" Tag="7"/>
+							<ComboBoxItem Content="14 天" Tag="14"/>
+							<ComboBoxItem Content="30 天" Tag="30"/>
+							<ComboBoxItem Content="90 天" Tag="90"/>
+							<ComboBoxItem Content="不限" Tag="0"/>
+						</ComboBox>
+						<Grid Margin="0,0,0,10">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto" MinWidth="72"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="12"/>
+								<ColumnDefinition Width="Auto" MinWidth="72"/>
+								<ColumnDefinition Width="88"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock x:Name="lbsetsnapfmt" Grid.Column="0" Text="保存格式" FontWeight="SemiBold"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<ComboBox x:Name="esnapfmt" Grid.Column="1" Height="32"
+							          VerticalContentAlignment="Center"
+							          AutomationProperties.AutomationId="set.screenshot.format">
+								<ComboBoxItem Content="PNG（无损）" Tag="png" IsSelected="True"/>
+								<ComboBoxItem Content="JPG（体积小）" Tag="jpg"/>
+							</ComboBox>
+							<TextBlock x:Name="lbsnapjpgq" Grid.Column="3" Text="JPG 质量"
+							           FontSize="12" Foreground="{StaticResource TextMuted}"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<TextBox x:Name="esnapjpgq" Grid.Column="4" Height="30" Padding="6,4" Text="92"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         VerticalContentAlignment="Center"
+							         ToolTip="1–100，越大越清晰、体积越大"
+							         AutomationProperties.AutomationId="set.screenshot.jpgquality"/>
+						</Grid>
+						<CheckBox x:Name="esnapmaxen" Content="限制最大宽高（等比缩小进框内，不放大）"
+						          Margin="0,0,0,8" IsChecked="False"
+						          AutomationProperties.AutomationId="set.screenshot.maxsize"/>
+						<Grid Margin="0,0,0,6" IsEnabled="{Binding ElementName=esnapmaxen, Path=IsChecked}">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="16"/>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock Grid.Column="0" Text="最大宽" FontSize="12"
+							           Foreground="{StaticResource TextMuted}"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<TextBox x:Name="esnapmaxw" Grid.Column="1" Height="30" Padding="6,4" Text="1920"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.screenshot.maxw"/>
+							<TextBlock Grid.Column="3" Text="最大高" FontSize="12"
+							           Foreground="{StaticResource TextMuted}"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<TextBox x:Name="esnapmaxh" Grid.Column="4" Height="30" Padding="6,4" Text="1080"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.screenshot.maxh"/>
+						</Grid>
+						<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
+						           TextWrapping="Wrap"
+						           Text="仅影响写入 screenshots/ 与「复制为文件」的图；OCR 识别仍用原分辨率。"/>
+
+						<TextBlock x:Name="lbsetsnapcopy" Text="完成后写入剪贴板" FontWeight="SemiBold"
+						           Margin="0,0,0,6"/>
+						<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"
+						           TextWrapping="Wrap"
+						           Text="截图标注/识别完成时写入剪贴板的方式（三选一；主菜单/托盘也可切换）。"/>
+						<RadioButton x:Name="esnapcopyimg" GroupName="SnapCopy"
+						             Content="复制为图片（可贴到 Word / 聊天等）"
+						             Margin="0,0,0,4" IsChecked="True"
+						             AutomationProperties.AutomationId="set.snap.copy.image"/>
+						<RadioButton x:Name="esnapcopyfile" GroupName="SnapCopy"
+						             Content="复制为文件（资源管理器 Ctrl+V）"
+						             Margin="0,0,0,4"
+						             AutomationProperties.AutomationId="set.snap.copy.file"/>
+						<RadioButton x:Name="esnapcopypath" GroupName="SnapCopy"
+						             Content="复制为文件路径（文本路径，可贴到终端/对话框）"
+						             Margin="0,0,0,4"
+						             AutomationProperties.AutomationId="set.snap.copy.path"/>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<!-- 接口：HTTP API -->
+			<TabItem x:Name="tabsethttp" Header="接口"
+			         AutomationProperties.AutomationId="set.tab.http">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+					<StackPanel>
+						<TextBlock x:Name="lbsethttp" Text="HTTP 识图 API（Umi 兼容）"
+						           FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsethttphint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="POST /api/ocr · 支持 JSON base64 与 multipart 上传；GET /api/ocr/get_options"/>
+						<CheckBox x:Name="ehttpen" Content="启用 HTTP API" Margin="0,0,0,10" IsChecked="True"/>
+						<Grid Margin="0,0,0,10">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="12"/>
+								<ColumnDefinition Width="100"/>
+							</Grid.ColumnDefinitions>
+							<StackPanel Grid.Column="0">
+								<TextBlock x:Name="lbsethttphost" Text="监听地址" FontSize="11"
+								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+								<TextBox x:Name="ehttphost" Height="30" Padding="6,4"
+								         BorderBrush="{StaticResource BorderSoft}" Text="127.0.0.1"/>
+							</StackPanel>
+							<StackPanel Grid.Column="2">
+								<TextBlock x:Name="lbsethttpport" Text="端口" FontSize="11"
+								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+								<TextBox x:Name="ehttpport" Height="30" Padding="6,4"
+								         BorderBrush="{StaticResource BorderSoft}" Text="1224"/>
+							</StackPanel>
+						</Grid>
+						<CheckBox x:Name="eservicemode" Content="服务模式（引擎常驻预热，不释放模型内存）"
+						          Margin="0,4,0,4" IsChecked="False"/>
+						<TextBlock x:Name="lbsetservicehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap"
+						           Text="启用后启动与改参会立即加载引擎并保持常驻；关闭则为懒加载（改参后丢弃，下次识别再加载）"/>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+		</TabControl>
 
 		<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
 			<Button x:Name="bcancel" Content="取消" Style="{StaticResource ToolBtn}" Width="88" Margin="0,0,8,0"

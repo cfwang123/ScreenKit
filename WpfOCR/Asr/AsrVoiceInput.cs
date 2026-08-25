@@ -4,32 +4,20 @@ using SherpaOnnx;
 namespace WpfOCR;
 
 /// <summary>
-/// 全局语音输入：优先流式 OnlineRecognizer（边说边出）；无流式模型时回退离线切句。
+/// 全局语音输入：流式或离线。自动分句时成句即润色并输出；否则流式边说边出、离线整段停止后一次输出。
 /// 按一次热键开始，再按一次结束（toggle）。
 /// </summary>
 sealed class AsrVoiceInput : IDisposable {
-	// —— 离线切句参数 ——
-	const int FrameMs = 30;
-	const float SpeechRms = 0.015f;
-	const int SilenceEndFrames = 18;
-	const int MinSpeechFrames = 10;
-	const int MaxSpeechFrames = 160;
-	const int PreRollFrames = 5;
-
 	readonly ConcurrentQueue<float[]> q = new();
 	readonly object uttGate = new();
 	readonly List<float> utt = new();
-	readonly ConcurrentQueue<float[]> recQ = new();
+	readonly object histGate = new();
+	readonly List<string> hist = new();
 
 	AsrMicRecorder mic;
 	CancellationTokenSource cts;
 	Task loopTask;
-	Task recTask;
 	bool disposed;
-	bool speech;
-	int silenceFrames;
-	int speechFrames;
-	readonly List<float> preRoll = new();
 
 	// 流式
 	bool streamMode;
@@ -43,9 +31,51 @@ sealed class AsrVoiceInput : IDisposable {
 	/// <summary>离线模式：识别整段波形（后台线程，调用方加锁）。</summary>
 	public Func<float[], int, string> Recognize { get; set; }
 
+	/// <summary>识别完成后润色（可选；参数为原文、本轮已输出上文；失败应回原文）。</summary>
+	public Func<string, string, string> Polish { get; set; }
+
+	/// <summary>成句时句末补「，」，并立刻润色后输出（流式 endpoint / 离线静音切句）。</summary>
+	public bool SplitSentences { get; set; } = true;
+
+	/// <summary>自动分句间隔（秒）：静音达到此时长才切一句，连续说话不切。</summary>
+	public int SplitIntervalSec { get; set; } = 5;
+
+	int splitsec() => Compat.Clamp(SplitIntervalSec, 1, 30);
+
+	string gethist() {
+		lock (histGate)
+			return hist.Count == 0 ? "" : string.Join("\n", hist);
+	}
+
+	void addhist(string s) {
+		s = (s ?? "").Trim();
+		if (s.Length == 0) return;
+		lock (histGate) {
+			hist.Add(s);
+			var n = 0;
+			foreach (var x in hist) n += x.Length;
+			while (hist.Count > 1 && n > 2000) {
+				n -= hist[0].Length;
+				hist.RemoveAt(0);
+			}
+		}
+	}
+
+	string dopolish(string text) {
+		try {
+			var polished = Polish(text, gethist());
+			if (!string.IsNullOrWhiteSpace(polished))
+				return AsrTextNorm.Postprocess(polished.Trim());
+		}
+		catch (Exception ex) {
+			try { ErrorOccurred?.Invoke("润色失败，使用原文: " + ex.Message); } catch { }
+		}
+		return text;
+	}
+
 	/// <summary>
 	/// 流式模式：在后台加载/返回引擎（已 LoadModel）。
-	/// 返回 null 则回退离线切句。
+	/// 返回 null 则回退离线整段识别。
 	/// </summary>
 	public Func<AsrStreamEngine> ResolveStreamEngine { get; set; }
 
@@ -58,6 +88,8 @@ sealed class AsrVoiceInput : IDisposable {
 	public event Action<string> ErrorOccurred;
 	public event Action<string> TextInjected;
 	public event Action<string> PartialText;
+	/// <summary>一句已注入焦点窗口（润色后或无需润色）。</summary>
+	public event Action TextCommitted;
 
 	public void Toggle() {
 		if (IsActive) Stop();
@@ -73,15 +105,9 @@ sealed class AsrVoiceInput : IDisposable {
 		stream = null;
 		lastPartial = "";
 		lastInjected = "";
+		lock (histGate) hist.Clear();
 		while (q.TryDequeue(out _)) { }
-		while (recQ.TryDequeue(out _)) { }
-		lock (uttGate) {
-			utt.Clear();
-			preRoll.Clear();
-		}
-		speech = false;
-		silenceFrames = 0;
-		speechFrames = 0;
+		lock (uttGate) utt.Clear();
 
 		// 尝试流式
 		try {
@@ -98,7 +124,7 @@ sealed class AsrVoiceInput : IDisposable {
 			streamMode = false;
 			streamEng = null;
 			stream = null;
-			try { ErrorOccurred?.Invoke("流式引擎不可用，改用离线切句: " + ex.Message); } catch { }
+			try { ErrorOccurred?.Invoke("流式引擎不可用，改用离线整段识别: " + ex.Message); } catch { }
 		}
 
 		if (!streamMode && Recognize == null)
@@ -116,36 +142,36 @@ sealed class AsrVoiceInput : IDisposable {
 		try { ActiveChanged?.Invoke(true); } catch { }
 		try {
 			StatusChanged?.Invoke(streamMode
-				? "流式听写中… 边说边出，再按热键结束"
-				: "听写中… 再按热键结束");
+				? (SplitSentences ? "流式听写中… 成句即输出，再按热键结束" : "流式听写中… 边说边出，再按热键结束")
+				: (SplitSentences ? "离线听写中… 成句即输出，再按热键结束" : "离线听写中… 再按热键结束并输出"));
 		}
 		catch { }
 
 		if (streamMode)
 			loopTask = Task.Run(() => runstream(ct), ct);
-		else {
-			loopTask = Task.Run(() => runvad(ct), ct);
-			recTask = Task.Run(() => runrec(ct), ct);
-		}
+		else if (SplitSentences)
+			loopTask = Task.Run(() => runofflinesplit(ct), ct);
+		else
+			loopTask = Task.Run(() => runcollect(ct), ct);
 	}
 
 	public void Stop() {
 		if (!IsActive) return;
-		IsActive = false;
-		try { cts?.Cancel(); } catch { }
-
 		try {
 			if (mic != null) {
-				mic.SamplesAvailable -= onsamples;
 				mic.Stop();
+				mic.SamplesAvailable -= onsamples;
 				mic.Dispose();
 			}
 		}
 		catch { }
 		mic = null;
+		try { cts?.Cancel(); } catch { }
+		IsActive = false;
+		var waitMs = SplitSentences ? 20000 : 1500;
 
 		if (streamMode) {
-			try { loopTask?.Wait(1500); } catch { }
+			try { loopTask?.Wait(waitMs); } catch { }
 			// 收尾：InputFinished + 最后一句
 			try {
 				lock (streamGate) {
@@ -163,34 +189,23 @@ sealed class AsrVoiceInput : IDisposable {
 			}
 		}
 		else {
-			float[] tail = null;
+			try { loopTask?.Wait(waitMs); } catch { }
+			while (q.TryDequeue(out var leftover)) {
+				lock (uttGate) utt.AddRange(leftover);
+			}
+			float[] all = null;
 			lock (uttGate) {
 				if (utt.Count >= SampleRate / 10)
-					tail = utt.ToArray();
+					all = utt.ToArray();
 				utt.Clear();
-				preRoll.Clear();
 			}
-			speech = false;
-			try { loopTask?.Wait(800); } catch { }
-			if (tail != null && tail.Length > 0)
-				recQ.Enqueue(tail);
-
-			var t0 = Environment.TickCount;
-			while (!recQ.IsEmpty && Environment.TickCount - t0 < 15000) {
-				if (recTask == null || recTask.IsCompleted) {
-					while (recQ.TryDequeue(out var chunk))
-						dorec(chunk);
-					break;
-				}
-				Thread.Sleep(30);
-			}
-			try { recTask?.Wait(2000); } catch { }
+			if (all != null && all.Length > 0)
+				dorec(all);
 		}
 
 		try { cts?.Dispose(); } catch { }
 		cts = null;
 		loopTask = null;
-		recTask = null;
 		streamMode = false;
 		// 不 Dispose 共享 streamEng（由 MainWindow 持有）
 		streamEng = null;
@@ -234,11 +249,12 @@ sealed class AsrVoiceInput : IDisposable {
 				}
 				if (!string.IsNullOrEmpty(partial) && !string.Equals(partial, lastPartial, StringComparison.Ordinal)) {
 					lastPartial = partial;
-					// toast 显示后处理后文本
 					var show = AsrTextNorm.Postprocess(partial);
 					try { PartialText?.Invoke(show); } catch { }
 					try { StatusChanged?.Invoke("… " + trimshow(show)); } catch { }
-					injectdelta(partial);
+					// 自动分句：等成句后再润色并一次性输出，不把半句打进焦点窗
+					if (!SplitSentences)
+						injectdelta(partial);
 				}
 				if (hitEnd)
 					commitfinal(finalText);
@@ -320,10 +336,19 @@ sealed class AsrVoiceInput : IDisposable {
 	}
 
 	void commitfinal(string text) {
-		// endpoint：补句号、同步窗口，再清空本句状态（下句重新计）
-		injectdelta(text ?? "", sentenceEnd: true);
+		var done = AsrTextNorm.Postprocess((text ?? "").Trim());
+		if (done.Length == 0) {
+			lastPartial = "";
+			return;
+		}
+		// 自动分句：成句立刻润色再输出
+		if (SplitSentences && Polish != null)
+			done = dopolish(done);
+		injectdelta(done, sentenceEnd: SplitSentences);
 		lastPartial = "";
 		lastInjected = "";
+		addhist(done);
+		try { TextCommitted?.Invoke(); } catch { }
 		if (IsActive)
 			try { StatusChanged?.Invoke("流式听写中…"); } catch { }
 	}
@@ -333,24 +358,44 @@ sealed class AsrVoiceInput : IDisposable {
 		return s.Length > 28 ? s.Substring(s.Length - 28) : s;
 	}
 
-	// ───────── 离线切句 ─────────
+	// ───────── 离线：自动分句则静音切句，一句一识别/润色/输出 ─────────
 
-	void runvad(CancellationToken ct) {
-		var frameN = Math.Max(1, SampleRate * FrameMs / 1000);
-		var carry = new List<float>(frameN * 2);
+	void runofflinesplit(CancellationToken ct) {
+		var spoke = false;
+		var sil = 0;
+		var sec = splitsec();
+		var silNeed = Math.Max(SampleRate * sec, 1);
+		var minUtt = Math.Max(SampleRate * 4 / 10, 1);
 		try {
 			while (!ct.IsCancellationRequested) {
 				if (!q.TryDequeue(out var chunk)) {
 					Thread.Sleep(10);
 					continue;
 				}
-				carry.AddRange(chunk);
-				while (carry.Count >= frameN && !ct.IsCancellationRequested) {
-					var frame = new float[frameN];
-					carry.CopyTo(0, frame, 0, frameN);
-					carry.RemoveRange(0, frameN);
-					onframe(frame);
+				var list = new List<float>(chunk);
+				while (q.TryDequeue(out var more))
+					list.AddRange(more);
+				var samples = list.ToArray();
+				lock (uttGate) utt.AddRange(samples);
+				var e = rms(samples);
+				if (e >= 0.012f) {
+					spoke = true;
+					sil = 0;
 				}
+				else if (spoke) {
+					sil += samples.Length;
+				}
+				float[] wave = null;
+				lock (uttGate) {
+					if (spoke && sil >= silNeed && utt.Count >= minUtt) {
+						wave = utt.ToArray();
+						utt.Clear();
+						spoke = false;
+						sil = 0;
+					}
+				}
+				if (wave != null)
+					dorec(wave);
 			}
 		}
 		catch (OperationCanceledException) { }
@@ -359,61 +404,24 @@ sealed class AsrVoiceInput : IDisposable {
 		}
 	}
 
-	void onframe(float[] frame) {
-		var rms = rmsOf(frame);
-		var isSpeech = rms >= SpeechRms;
-
-		if (!speech) {
-			preRoll.AddRange(frame);
-			var maxPre = PreRollFrames * frame.Length;
-			if (preRoll.Count > maxPre)
-				preRoll.RemoveRange(0, preRoll.Count - maxPre);
-
-			if (isSpeech) {
-				speech = true;
-				speechFrames = 1;
-				silenceFrames = 0;
-				lock (uttGate) {
-					utt.Clear();
-					utt.AddRange(preRoll);
-					preRoll.Clear();
-				}
-			}
-			return;
-		}
-
-		lock (uttGate) utt.AddRange(frame);
-		speechFrames++;
-		if (isSpeech) silenceFrames = 0;
-		else silenceFrames++;
-
-		var endBySilence = silenceFrames >= SilenceEndFrames && speechFrames >= MinSpeechFrames;
-		var endByMax = speechFrames >= MaxSpeechFrames;
-		if (!endBySilence && !endByMax) return;
-
-		float[] seg = null;
-		lock (uttGate) {
-			if (utt.Count >= SampleRate / 10)
-				seg = utt.ToArray();
-			utt.Clear();
-		}
-		speech = false;
-		speechFrames = 0;
-		silenceFrames = 0;
-		preRoll.Clear();
-		if (seg != null)
-			recQ.Enqueue(seg);
+	static float rms(float[] samples) {
+		if (samples == null || samples.Length == 0) return 0;
+		double s = 0;
+		foreach (var x in samples)
+			s += x * x;
+		return (float)Math.Sqrt(s / samples.Length);
 	}
 
-	void runrec(CancellationToken ct) {
+	// ───────── 离线整段 ─────────
+
+	void runcollect(CancellationToken ct) {
 		try {
-			while (!ct.IsCancellationRequested || !recQ.IsEmpty) {
-				if (!recQ.TryDequeue(out var samples)) {
-					if (ct.IsCancellationRequested) break;
-					Thread.Sleep(20);
+			while (!ct.IsCancellationRequested) {
+				if (!q.TryDequeue(out var chunk)) {
+					Thread.Sleep(10);
 					continue;
 				}
-				dorec(samples);
+				lock (uttGate) utt.AddRange(chunk);
 			}
 		}
 		catch (OperationCanceledException) { }
@@ -434,33 +442,23 @@ sealed class AsrVoiceInput : IDisposable {
 			return;
 		}
 		text = AsrTextNorm.Postprocess((text ?? "").Trim());
-		text = AsrTextNorm.EnsureSentenceEnd(text);
-		if (text.Length == 0) {
-			if (IsActive)
-				try { StatusChanged?.Invoke("听写中…"); } catch { }
-			return;
-		}
+		if (text.Length == 0) return;
+		if (Polish != null)
+			text = dopolish(text);
+		if (SplitSentences)
+			text = AsrTextNorm.EnsureSentenceEnd(text);
 		try {
 			if (!TextInjector.TypeText(text))
 				try { ErrorOccurred?.Invoke("无法注入到焦点窗口"); } catch { }
-			else
+			else {
 				try { TextInjected?.Invoke(text); } catch { }
+				addhist(text);
+				try { TextCommitted?.Invoke(); } catch { }
+			}
 		}
 		catch (Exception ex) {
 			try { ErrorOccurred?.Invoke("注入失败: " + ex.Message); } catch { }
 		}
-		if (IsActive)
-			try { StatusChanged?.Invoke("听写中…"); } catch { }
-	}
-
-	static float rmsOf(float[] frame) {
-		if (frame == null || frame.Length == 0) return 0;
-		double s = 0;
-		for (int i = 0; i < frame.Length; i++) {
-			var v = frame[i];
-			s += v * v;
-		}
-		return (float)Math.Sqrt(s / frame.Length);
 	}
 
 	public void Dispose() {

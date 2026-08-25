@@ -142,16 +142,31 @@
     <Delete Files="@(_NonWinFile)" TreatErrorsAsWarnings="true" Condition="'@(_NonWinFile)' != ''" />
   </Target>
 
-  <!-- 录屏只用 ffmpeg64：删 OpenCV videoio；Sherpa 原生库按需安装，构建后剥离 c-api -->
+  <!-- 录屏只用 ffmpeg64：删 OpenCV videoio。Sherpa c-api 随编译保留（约 5MB，勿再剥离，否则每次 slx 后 ASR/TTS 又提示安装） -->
   <Target Name="RemoveOptionalNatives" AfterTargets="StripNonWinX64Natives">
     <ItemGroup>
       <_OptNative Include="$(OutputPath)opencv_videoio_ffmpeg*.dll" />
       <_OptNative Include="$(OutputPath)dll\x64\opencv_videoio_ffmpeg*.dll" />
       <_OptNative Include="$(OutputPath)runtimes\win-x64\native\opencv_videoio_ffmpeg*.dll" />
-      <_OptNative Include="$(OutputPath)sherpa-onnx-c-api.dll" />
-      <_OptNative Include="$(OutputPath)runtimes\win-x64\native\sherpa-onnx-c-api.dll" />
     </ItemGroup>
     <Delete Files="@(_OptNative)" TreatErrorsAsWarnings="true" Condition="'@(_OptNative)' != ''" />
+  </Target>
+
+  <!-- NuGet 常只放到 runtimes/；net48 DllImport 只搜 exe 目录，拷到输出根 -->
+  <Target Name="KeepSherpaNative" AfterTargets="RemoveOptionalNatives">
+    <PropertyGroup>
+      <_SherpaNuGet>$(NuGetPackageRoot)org.k2fsa.sherpa.onnx.runtime.win-x64\1.13.3\runtimes\win-x64\native\sherpa-onnx-c-api.dll</_SherpaNuGet>
+      <_SherpaNuGet2>$(NuGetPackageRoot)org.k2fsa.sherpa.onnx\1.13.3\runtimes\win-x64\native\sherpa-onnx-c-api.dll</_SherpaNuGet2>
+      <_SherpaRid>$(OutputPath)runtimes\win-x64\native\sherpa-onnx-c-api.dll</_SherpaRid>
+    </PropertyGroup>
+    <Copy SourceFiles="$(_SherpaNuGet)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true"
+          Condition="Exists('$(_SherpaNuGet)')" />
+    <Copy SourceFiles="$(_SherpaNuGet2)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true"
+          Condition="!Exists('$(OutputPath)sherpa-onnx-c-api.dll') And Exists('$(_SherpaNuGet2)')" />
+    <Copy SourceFiles="$(_SherpaRid)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true"
+          Condition="!Exists('$(OutputPath)sherpa-onnx-c-api.dll') And Exists('$(_SherpaRid)')" />
+    <Warning Text="未找到 sherpa-onnx-c-api.dll（NuGet org.k2fsa.sherpa.onnx 1.13.3）。请还原包或用「安装功能」。"
+             Condition="!Exists('$(OutputPath)sherpa-onnx-c-api.dll')" />
   </Target>
 
   <Target Name="CleanupOnnxRuntimeDupes" AfterTargets="Build">
@@ -201,10 +216,10 @@
 
   <!--
     精简发布包：bin\Release\WpfOCR\
-    仅托管程序 + wetext/Assets/许可证；模型与 ORT/OpenCV/FFmpeg 等通过应用内「安装功能」获取。
+    仅托管程序 + wetext/Assets/许可证；模型与 ORT/OpenCV/Sherpa/FFmpeg 等通过应用内「安装功能」获取。
     翻译模型需自行放到 translatemodels/（不在安装窗内）。
   -->
-  <Target Name="PackageSlimRelease" AfterTargets="CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="PackageSlimRelease" AfterTargets="KeepSherpaNative;CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>
       <_SlimOut>$(MSBuildProjectDirectory)\bin\Release\WpfOCR</_SlimOut>
     </PropertyGroup>

@@ -327,12 +327,13 @@ public partial class MainWindow : Window {
 	void inittray() {
 		try {
 			tray = new TrayIcon(this);
-			// 托盘右侧快捷键文案：主窗 / 截图识别 / 截图标注 / 屏幕画板
+			// 托盘右侧快捷键文案：主窗 / 截图识别 / 截图标注 / 屏幕画板 / 语音输入
 			tray.HotkeyProvider = () => (
 				fmttrayhk(opt.Hotkey),
 				fmttrayhk(opt.HotkeySnapOcr),
 				fmttrayhk(opt.HotkeySnap),
-				fmttrayhk(opt.HotkeyBoard));
+				fmttrayhk(opt.HotkeyBoard),
+				fmttrayhk(opt.HotkeyVoiceInput));
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
 			tray.MenuOpening += () => {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;
@@ -358,6 +359,11 @@ public partial class MainWindow : Window {
 					keepmainhidden();
 				_ = screenboardasync(restoreUi: false, showMainAfter: false,
 					mainWasVisibleOverride: trayMenuMainVisible);
+			}));
+			tray.VoiceRequested += () => Dispatcher.BeginInvoke(new Action(() => {
+				if (!trayMenuMainVisible)
+					keepmainhidden();
+				toggleasrvoice();
 			}));
 			tray.ClipboardOcrRequested += () => _ = hotkeyclipboardasync();
 			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(() => {
@@ -499,7 +505,7 @@ public partial class MainWindow : Window {
 			hotkeyVoice.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
 					CaptureLog.Info("hotkeyVoice Fired");
-					toggleasrvoice();
+					toggleasrvoice(fromHotkey: true);
 				}
 				catch (Exception ex) {
 					CaptureLog.Ex("hotkeyVoice Fired", ex);
@@ -936,6 +942,7 @@ public partial class MainWindow : Window {
 		mncapture.Click += async (_, _) => await captureasync(hideMain: false);
 		mnsnap.Click += async (_, _) => await snapannotateasync(restoreUi: false);
 		mnboard.Click += async (_, _) => await screenboardasync(restoreUi: false);
+		mnvoice.Click += (_, _) => toggleasrvoice();
 		mnlongshot.Click += async (_, _) => await longshotasync();
 		mnsnapshots.Click += (_, _) => opensnapshotsfolder();
 		mnsnapcopyimg.Click += onmenusnapcopy;
@@ -1023,6 +1030,8 @@ public partial class MainWindow : Window {
 			mnsnap.ToolTip = Loc.T("menu.snap.tip");
 			mnboard.Header = Loc.T("menu.board");
 			mnboard.ToolTip = Loc.T("menu.board.tip");
+			mnvoice.Header = Loc.T("menu.voice");
+			mnvoice.ToolTip = Loc.T("menu.voice.tip");
 			mnlongshot.Header = Loc.T("menu.longshot");
 			mnlongshot.ToolTip = Loc.T("menu.longshot.tip");
 			mnsnapshots.Header = Loc.T("menu.snapshots");
@@ -1129,9 +1138,11 @@ public partial class MainWindow : Window {
 			var cap = fmttrayhk(opt.HotkeySnapOcr);
 			var snap = fmttrayhk(opt.HotkeySnap);
 			var board = fmttrayhk(opt.HotkeyBoard);
+			var voice = fmttrayhk(opt.HotkeyVoiceInput);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			mnboard.InputGestureText = board;
+			mnvoice.InputGestureText = voice;
 			try { tray?.ApplyHotkeys(); } catch { }
 		}
 		catch { }

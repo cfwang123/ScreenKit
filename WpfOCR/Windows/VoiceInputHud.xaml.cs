@@ -44,11 +44,50 @@ public partial class VoiceInputHud : Window {
 	}
 
 	public void SetStatus(string text) {
+		runui(() => {
+			lbtext.Text = string.IsNullOrWhiteSpace(text) ? "语音输入中…" : text;
+			place();
+		}, async: true);
+	}
+
+	/// <summary>第二行：阶段与内容同一行（如「润色中  原文」）。空则隐藏第二行。</summary>
+	public void SetDetail(string phase, string content, bool async = true) {
+		runui(() => paintbody(join(phase, content)), async);
+	}
+
+	/// <summary>润色中与原文同一行。须在 HTTP 前同步刷新，否则 UI 阻塞时浮窗不更新。</summary>
+	public void SetPolish(string original) {
+		runui(() => paintbody(join("润色中", original)), async: false);
+	}
+
+	static string join(string phase, string content) {
+		phase = (phase ?? "").Trim();
+		content = (content ?? "").Trim();
+		if (phase.Length == 0) return content;
+		if (content.Length == 0) return phase;
+		return $"{phase}  {content}";
+	}
+
+	void paintbody(string line2) {
+		if (string.IsNullOrWhiteSpace(line2)) {
+			lbbody.Text = "";
+			lbbody.Visibility = Visibility.Collapsed;
+		}
+		else {
+			lbbody.Text = line2;
+			lbbody.Visibility = Visibility.Visible;
+		}
+		UpdateLayout();
+		place();
+	}
+
+	void runui(Action a, bool async) {
 		if (!Dispatcher.CheckAccess()) {
-			Dispatcher.BeginInvoke(new Action(() => SetStatus(text)));
+			if (async) Dispatcher.BeginInvoke(a);
+			else Dispatcher.Invoke(a);
 			return;
 		}
-		lbtext.Text = string.IsNullOrWhiteSpace(text) ? "语音输入中…" : text;
+		a();
 	}
 
 	void place() {

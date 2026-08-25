@@ -24,7 +24,7 @@ Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOC
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
-| **Hotkeys** | Toggle main window · snap annotate · snap OCR (configurable) |
+| **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input (configurable) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`) |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
@@ -134,7 +134,7 @@ Optional env vars for local full libraries (do not commit secrets/paths into doc
 
 ## Configuration
 
-Settings are stored in `config.toml` beside the exe (also editable via **Tools → Settings** / **Record options**).
+Settings are stored in `config.toml` beside the exe (also editable via **Tools → Settings** / **Record options**). The Settings window groups options into tabs: General, OCR, Hotkeys, Speech, Capture, API.
 
 ```toml
 [ocr]
@@ -176,6 +176,21 @@ record_max_size = false
 record_max_w = 1920
 record_max_h = 1080
 record_lock_aspect = true      # lock aspect when resizing HUD region after Start (free before Start)
+
+[asr]
+asr_voice_mode = "stream"       # stream = live; offline = record until hotkey stop, then one-shot ASR
+asr_voice_polish = true         # LLM polish for voice input (needs asr_llm_url + asr_llm_model)
+asr_voice_split = true
+asr_voice_split_sec = 5         # split only after this many seconds of silence (1–30); do not cut continuous speech
+asr_live_mode = "stream"        # stream | offline (offline splits on silence)
+asr_live_polish = false         # LLM polish each live-caption sentence
+asr_live_split = true           # auto-split after polish / completed sentences
+# asr_llm_url / asr_llm_model required when a polish checkbox is on (OpenAI-compatible)
+# asr_llm_token = ""            # do not commit secrets
+# asr_llm_prompt = "..."
+# Polish sends prior output in the same session as context (homophones / names).
+# Voice HUD: line 1 stays “listening…”; line 2 is “识别中” / “润色中” plus transcript.
+# After polish+inject, line 2 is cleared.
 
 [gif_record]
 gif_fps = 8                     # default output FPS in preview (1–24); capture is 24 fps
@@ -220,13 +235,15 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 | `Ctrl+Alt+O` | Toggle main window show / hide |
 | `Ctrl+Alt+Q` | Screenshot annotate |
 | `Ctrl+Alt+W` | Screenshot and OCR |
+| `Ctrl+Alt+V` | Voice input (press again to stop) |
+| `Ctrl+Alt+B` | Live caption |
 
-Tray icon: left-click toggles the window; context menu includes clipboard OCR, on-capture copy mode (image / file / path), and exit. Switching copy mode re-copies the **last screenshot** to the clipboard in the new form. Closing the main window typically **hides** to tray rather than exiting.
+Tray icon: left-click toggles the window; context menu includes voice input, clipboard OCR, on-capture copy mode (image / file / path), and exit. Switching copy mode re-copies the **last screenshot** to the clipboard in the new form. Closing the main window typically **hides** to tray rather than exiting. **Capture → Voice input** in the main menu is the same toggle.
 
 ### UI language
 
 - **Tools → Language** → **中文 / English** (applies immediately)
-- Or set UI language at the top of **Settings**
+- Or set UI language in **Settings → General**
 - Persisted in `config.toml` as `ui_lang = "zh"` or `"en"`
 
 ## CLI

@@ -28,7 +28,7 @@ public enum FeatureKind {
 	NativeSkia,
 	/// <summary>pdfium.dll（PDF 渲染，约 6MB，按需）。</summary>
 	NativePdfium,
-	/// <summary>sherpa-onnx-c-api.dll（ASR/TTS 约 4–5MB，按需）。</summary>
+	/// <summary>sherpa-onnx-c-api.dll（ASR/TTS 约 4–5MB；本机 net48 随编译保留，精简包按需安装）。</summary>
 	NativeSherpa,
 }
 

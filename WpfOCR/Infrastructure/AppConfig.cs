@@ -205,6 +205,30 @@ static class AppConfig {
 				o.AsrItn = parsebool(aitn, true);
 			if (map.TryGetValue("asr_audio_source", out var aas) && !string.IsNullOrWhiteSpace(aas))
 				o.AsrAudioSource = aas.Trim();
+			if (map.TryGetValue("asr_voice_mode", out var avm) && !string.IsNullOrWhiteSpace(avm))
+				o.AsrVoiceMode = avm.Trim();
+			if (map.TryGetValue("asr_voice_polish", out var avp))
+				o.AsrVoicePolish = parsebool(avp, true);
+			if (map.TryGetValue("asr_voice_split", out var avs))
+				o.AsrVoiceSplit = parsebool(avs, true);
+			if (map.TryGetValue("asr_voice_split_sec", out var avss) && int.TryParse(avss, out var splitSec))
+				o.AsrVoiceSplitSec = Compat.Clamp(splitSec, 1, 30);
+			if (map.TryGetValue("asr_live_mode", out var almde) && !string.IsNullOrWhiteSpace(almde))
+				o.AsrLiveMode = almde.Trim();
+			if (map.TryGetValue("asr_live_polish", out var alpsh))
+				o.AsrLivePolish = parsebool(alpsh, false);
+			if (map.TryGetValue("asr_live_split", out var als))
+				o.AsrLiveSplit = parsebool(als, true);
+			if (map.TryGetValue("asr_llm_url", out var alu))
+				o.AsrLlmUrl = (alu ?? "").Trim();
+			if (map.TryGetValue("asr_llm_token", out var alt))
+				o.AsrLlmToken = (alt ?? "").Trim();
+			if (map.TryGetValue("asr_llm_model", out var alm))
+				o.AsrLlmModel = (alm ?? "").Trim();
+			if (map.TryGetValue("asr_llm_prompt", out var alp)) {
+				var p = (alp ?? "").Replace("\\n", "\n").Replace("\\t", "\t");
+				o.AsrLlmPrompt = string.IsNullOrWhiteSpace(p) ? OcrOptions.DefaultAsrLlmPrompt : p;
+			}
 			// 翻译
 			if (map.TryGetValue("translate_compute", out var trc) && !string.IsNullOrWhiteSpace(trc))
 				o.TranslateCompute = trc.Trim();
@@ -379,7 +403,7 @@ static class AppConfig {
 		sb.AppendLine($"tts_kbps = {Compat.Clamp(o.TtsKbps, 32, 320)}");
 		sb.AppendLine();
 		sb.AppendLine("[asr]");
-		sb.AppendLine("# 语音识别：asr_model=离线/字幕；asr_model_stream=流式语音输入；计算 Auto|Gpu|Cpu|Igpu；语言 auto|zh|en|ja|ko|yue");
+		sb.AppendLine("# 语音识别：asr_model=离线/字幕；asr_model_stream=流式；asr_voice_mode / asr_live_mode=stream|offline");
 		sb.AppendLine($"asr_model = \"{esc(o.AsrModel ?? "")}\"");
 		sb.AppendLine($"asr_model_stream = \"{esc(o.AsrModelStream ?? "")}\"");
 		sb.AppendLine($"asr_compute = \"{esc(string.IsNullOrWhiteSpace(o.AsrCompute) ? "Auto" : o.AsrCompute)}\"");
@@ -387,6 +411,28 @@ static class AppConfig {
 		sb.AppendLine($"asr_itn = {(o.AsrItn ? "true" : "false")}");
 		sb.AppendLine($"# 录音/实时字幕声音：Mic | System | MicAndSystem");
 		sb.AppendLine($"asr_audio_source = \"{esc(string.IsNullOrWhiteSpace(o.AsrAudioSource) ? "Mic" : o.AsrAudioSource)}\"");
+		var voiceMode = string.Equals((o.AsrVoiceMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
+			|| (o.AsrVoiceMode ?? "") == "离线"
+			? "offline" : "stream";
+		sb.AppendLine($"asr_voice_mode = \"{voiceMode}\"");
+		sb.AppendLine($"asr_voice_polish = {(o.AsrVoicePolish ? "true" : "false")}");
+		sb.AppendLine($"asr_voice_split = {(o.AsrVoiceSplit ? "true" : "false")}");
+		sb.AppendLine($"# 自动分句间隔秒：仅静音达到此时长才切一句（1–30，默认 5；连续说话不切）");
+		sb.AppendLine($"asr_voice_split_sec = {Compat.Clamp(o.AsrVoiceSplitSec, 1, 30)}");
+		var liveMode = string.Equals((o.AsrLiveMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
+			|| (o.AsrLiveMode ?? "") == "离线"
+			? "offline" : "stream";
+		sb.AppendLine($"asr_live_mode = \"{liveMode}\"");
+		sb.AppendLine($"asr_live_polish = {(o.AsrLivePolish ? "true" : "false")}");
+		sb.AppendLine($"asr_live_split = {(o.AsrLiveSplit ? "true" : "false")}");
+		sb.AppendLine("# 润色：OpenAI 兼容 Chat Completions；url+model 都填且上方勾选润色才请求；token 勿提交公开仓库");
+		sb.AppendLine($"asr_llm_url = \"{esc(o.AsrLlmUrl ?? "")}\"");
+		sb.AppendLine($"asr_llm_token = \"{esc(o.AsrLlmToken ?? "")}\"");
+		sb.AppendLine($"asr_llm_model = \"{esc(o.AsrLlmModel ?? "")}\"");
+		var promptSave = string.IsNullOrWhiteSpace(o.AsrLlmPrompt)
+			? OcrOptions.DefaultAsrLlmPrompt : o.AsrLlmPrompt;
+		promptSave = promptSave.Replace("\r\n", "\n").Replace("\n", "\\n").Replace("\t", "\\t");
+		sb.AppendLine($"asr_llm_prompt = \"{esc(promptSave)}\"");
 		sb.AppendLine();
 		sb.AppendLine("[translate]");
 		sb.AppendLine("# 翻译计算设备 Auto | Gpu | Cpu | Igpu（进程内 ONNX，与 OCR 共用 CUDA/DirectML）");

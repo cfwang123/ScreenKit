@@ -7,7 +7,7 @@ using System.Text;
 namespace WpfOCR;
 
 /// <summary>
-/// 重型原生库按需安装：OpenCvSharpExtern / libSkiaSharp / pdfium / sherpa-onnx-c-api。
+/// 重型原生库按需安装：OpenCvSharpExtern / libSkiaSharp / pdfium / sherpa-onnx-c-api（精简包）。本机 net48 编译保留 Sherpa。
 /// 录屏仅用 ffmpeg64，不使用 opencv_videoio_ffmpeg。
 /// 从 NuGet 官方/国内 CDN 下载对应版本 nupkg 后解压到程序目录。
 /// </summary>

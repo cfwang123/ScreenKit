@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Threading;
 
 namespace WpfOCR;
 
@@ -26,6 +27,8 @@ public partial class MainWindow {
 	AsrVoiceInput asrVoice;
 	VoiceInputHud asrVoiceHud;
 	bool asrVoiceBusy;
+	int lastVoiceStop;
+	DispatcherTimer voiceHkResume;
 
 	// 系统实时字幕（流式 → 识别结果框 + 桌面 OSD）
 	bool asrLiveOn;
@@ -209,13 +212,16 @@ public partial class MainWindow {
 	void initasrvoice() {
 		asrVoice = new AsrVoiceInput();
 		asrVoice.Recognize = asrvoicerecognize;
+		asrVoice.Polish = asrvoicepolish;
 		asrVoice.ResolveStreamEngine = asrvoiceresolvestream;
+		asrVoice.SplitSentences = opt.AsrVoiceSplit;
+		asrVoice.SplitIntervalSec = opt.AsrVoiceSplitSec;
 		asrVoice.ActiveChanged += active => Dispatcher.BeginInvoke(new Action(() => {
 			if (active) showasrvoicehud();
 			else hideasrvoicehud();
 		}));
 		asrVoice.StatusChanged += s => Dispatcher.BeginInvoke(new Action(() => {
-			try { asrVoiceHud?.SetStatus(s); } catch { }
+			try { applyvoicehudmsg(s); } catch { }
 			try { setstatus(s); } catch { }
 		}));
 		asrVoice.ErrorOccurred += s => Dispatcher.BeginInvoke(new Action(() => {
@@ -226,16 +232,20 @@ public partial class MainWindow {
 		asrVoice.TextInjected += t => {
 			CaptureLog.Info("AsrVoice inject: " + (t.Length > 40 ? t.Substring(0, 40) + "…" : t));
 		};
+		asrVoice.TextCommitted += () => Dispatcher.BeginInvoke(new Action(() => {
+			try { asrVoiceHud?.SetDetail("", ""); } catch { }
+		}));
 		asrVoice.PartialText += t => Dispatcher.BeginInvoke(new Action(() => {
-			try { asrVoiceHud?.SetStatus("… " + (t.Length > 24 ? t.Substring(t.Length - 24) : t)); } catch { }
+			try { asrVoiceHud?.SetDetail("", t); } catch { }
 		}));
 	}
 
-	/// <summary>全局热键：切换语音输入（优先流式，听写注入焦点窗口）。</summary>
-	void toggleasrvoice() {
+	/// <summary>全局热键 / 菜单：切换语音输入（设置中可选流式或离线）。</summary>
+	void toggleasrvoice(bool fromHotkey = false) {
 		try {
 			CaptureLog.Info("toggleasrvoice enter busy=" + asrVoiceBusy
 				+ " active=" + (asrVoice != null && asrVoice.IsActive)
+				+ " fromHk=" + fromHotkey
 				+ " voiceHk=" + (opt.HotkeyVoiceInput ?? "")
 				+ " voiceReg=" + (hotkeyVoice != null && hotkeyVoice.IsRegistered));
 		}
@@ -248,7 +258,14 @@ public partial class MainWindow {
 		if (asrVoice != null && asrVoice.IsActive) {
 			asrVoiceBusy = true;
 			try {
+				// 先注销，避免结束时仍按着热键 / 注入文字再次 WM_HOTKEY 立刻重开
+				suspendvoicehotkey();
+				if (!asrVoice.IsStreamingMode) {
+					notifyvoice("识别中…", showHud: true);
+					try { Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.Render); } catch { }
+				}
 				asrVoice.Stop();
+				lastVoiceStop = Environment.TickCount;
 				notifyvoice("语音输入已结束");
 			}
 			catch (Exception ex) {
@@ -256,8 +273,17 @@ public partial class MainWindow {
 			}
 			finally {
 				asrVoiceBusy = false;
+				resumevoicehotkeywhenclear();
 			}
 			return;
+		}
+
+		if (fromHotkey) {
+			var sinceStop = unchecked((uint)(Environment.TickCount - lastVoiceStop));
+			if (lastVoiceStop != 0 && sinceStop < 400) {
+				CaptureLog.Info("toggleasrvoice ignore restart debounce " + sinceStop);
+				return;
+			}
 		}
 
 		if (asrtRunning) {
@@ -285,7 +311,12 @@ public partial class MainWindow {
 				return;
 			}
 		}
-		if (!hasStream && asrEngine == null) {
+		var wantStream = asrvoicewantstream();
+		if (!wantStream && !hasOffline) {
+			notifyvoice("离线听写需要离线模型（SenseVoice 等），请安装或改选流式", err: true);
+			return;
+		}
+		if ((!wantStream || !hasStream) && asrEngine == null) {
 			notifyvoice("ASR 引擎不可用", err: true);
 			return;
 		}
@@ -306,7 +337,7 @@ public partial class MainWindow {
 
 		asrVoiceBusy = true;
 		var compute = asrcurcompute();
-		var preferStream = hasStream && asrStreamEngine != null && streamModel != null;
+		var preferStream = wantStream && hasStream && asrStreamEngine != null && streamModel != null;
 		var lang = string.IsNullOrWhiteSpace(opt.AsrLang) ? "auto" : opt.AsrLang;
 		var useItn = opt.AsrItn;
 		var streamCopy = streamModel;
@@ -378,8 +409,10 @@ public partial class MainWindow {
 					// ResolveStreamEngine 用已缓存模型，勿再碰 UI
 					_voiceStreamModel = streamCopy;
 					_voiceOfflineModel = offlineCopy;
+					asrVoice.SplitSentences = opt.AsrVoiceSplit;
+					asrVoice.SplitIntervalSec = opt.AsrVoiceSplitSec;
 					asrVoice.Start();
-					var modeTip = asrVoice.IsStreamingMode ? "流式" : "离线切句";
+					var modeTip = asrVoice.IsStreamingMode ? "流式" : "离线";
 					var hk = string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput)
 						? "热键" : opt.HotkeyVoiceInput.Trim();
 					var ok = $"{modeTip}听写中 · 再按 {hk} 结束";
@@ -398,11 +431,38 @@ public partial class MainWindow {
 		}, TaskScheduler.Default);
 	}
 
+	void suspendvoicehotkey() {
+		try { voiceHkResume?.Stop(); } catch { }
+		try { hotkeyVoice?.Unregister(); } catch { }
+	}
+
+	void resumevoicehotkeywhenclear() {
+		if (voiceHkResume == null) {
+			voiceHkResume = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+			voiceHkResume.Tick += (_, _) => {
+				var hk = (opt.HotkeyVoiceInput ?? "").Trim();
+				if (!string.IsNullOrEmpty(hk) && GlobalHotkey.IsComboDown(hk)) return;
+				try { voiceHkResume.Stop(); } catch { }
+				if (string.IsNullOrEmpty(hk) || hotkeyVoice == null) return;
+				try {
+					hotkeyVoice.Attach();
+					hotkeyVoice.Register(hk);
+				}
+				catch (Exception ex) {
+					CaptureLog.Ex("resumevoicehotkey", ex);
+				}
+			};
+		}
+		try { voiceHkResume.Stop(); } catch { }
+		voiceHkResume.Start();
+	}
+
 	AsrModelInfo _voiceStreamModel;
 	AsrModelInfo _voiceOfflineModel;
 
-	/// <summary>Start 时回调：返回已加载的流式引擎；失败返回 null 走离线。</summary>
+	/// <summary>Start 时回调：返回已加载的流式引擎；失败或设置为离线则返回 null。</summary>
 	AsrStreamEngine asrvoiceresolvestream() {
+		if (!asrvoicewantstream()) return null;
 		if (asrStreamEngine == null) return null;
 		var model = _voiceStreamModel;
 		if (model == null || !model.IsStreaming) {
@@ -437,7 +497,7 @@ public partial class MainWindow {
 					asrVoiceHud = new VoiceInputHud();
 					asrVoiceHud.Closed += (_, _) => asrVoiceHud = null;
 				}
-				asrVoiceHud.SetStatus(msg);
+				applyvoicehudmsg(msg);
 				if (!asrVoiceHud.IsVisible)
 					asrVoiceHud.Show();
 			}
@@ -445,6 +505,21 @@ public partial class MainWindow {
 				CaptureLog.Ex("notifyvoice hud", ex);
 			}
 		}
+	}
+
+	/// <summary>「识别中/润色中」只写第二行，避免盖掉第一行听写提示。</summary>
+	void applyvoicehudmsg(string s) {
+		if (asrVoiceHud == null) return;
+		s = s ?? "";
+		if (s.StartsWith("识别中") || s.StartsWith("润色中")) {
+			asrVoiceHud.SetDetail(s.TrimEnd('。', '.', '…', ' ').Trim(), "");
+			return;
+		}
+		if (s.StartsWith("…") || s.StartsWith("...")) {
+			asrVoiceHud.SetDetail("", s.TrimStart('.', '…', ' '));
+			return;
+		}
+		asrVoiceHud.SetStatus(s);
 	}
 
 	void schedulehidevoicehud(int delayMs) {
@@ -482,6 +557,53 @@ public partial class MainWindow {
 			asrEngine.Mode = compute;
 			asrEngine.LoadModel(model, lang, useItn);
 			return asrEngine.Recognize(samples, sr) ?? "";
+		}
+	}
+
+	/// <summary>设置：stream=流式听写；offline/离线=整段录音，停止后一次性输出。</summary>
+	bool asrvoicewantstream() {
+		return !asrismodeoffline(opt.AsrVoiceMode);
+	}
+
+	bool asrlivewantstream() {
+		return !asrismodeoffline(opt.AsrLiveMode);
+	}
+
+	static bool asrismodeoffline(string m) {
+		m = (m ?? "").Trim();
+		return m.Equals("offline", StringComparison.OrdinalIgnoreCase)
+			|| m.Equals("off", StringComparison.OrdinalIgnoreCase)
+			|| m == "离线";
+	}
+
+	string asrvoicepolish(string text, string context) {
+		if (!opt.AsrVoicePolish || !AsrLlmClient.IsConfigured(opt)) return text;
+		text = (text ?? "").Trim();
+		if (text.Length == 0) return text;
+		showpolishhud(text);
+		return AsrLlmClient.Polish(opt, text, context);
+	}
+
+	void showpolishhud(string original) {
+		try {
+			void paint() {
+				if (asrVoiceHud == null) {
+					asrVoiceHud = new VoiceInputHud();
+					asrVoiceHud.Closed += (_, _) => asrVoiceHud = null;
+				}
+				asrVoiceHud.SetPolish(original);
+				if (!asrVoiceHud.IsVisible)
+					asrVoiceHud.Show();
+				asrVoiceHud.UpdateLayout();
+			}
+			if (Dispatcher.CheckAccess())
+				paint();
+			else
+				Dispatcher.Invoke(new Action(paint));
+			Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.Render);
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("showpolishhud", ex);
 		}
 	}
 
@@ -576,6 +698,7 @@ public partial class MainWindow {
 				? $"{mode}语音输入中…"
 				: $"{mode}语音输入中… 再按 {opt.HotkeyVoiceInput.Trim()} 结束";
 			asrVoiceHud.SetStatus(tip);
+			asrVoiceHud.SetDetail("", "");
 			if (!asrVoiceHud.IsVisible)
 				asrVoiceHud.Show();
 		}
@@ -877,6 +1000,15 @@ public partial class MainWindow {
 			lbasrstatus.Text = "未安装 Sherpa 运行库";
 			return;
 		}
+
+		var wantStream = asrlivewantstream();
+		if (wantStream)
+			startasrlivestream();
+		else
+			startasrliveoffline();
+	}
+
+	void startasrlivestream() {
 		if (asrStreamEngine == null) {
 			lbasrstatus.Text = "流式 ASR 引擎不可用";
 			return;
@@ -887,9 +1019,9 @@ public partial class MainWindow {
 				tryresolvestreammodel(out streamModel);
 			}
 			if (streamModel == null) {
-				lbasrstatus.Text = "请选择流式模型（热键语音输入用那一栏）";
+				lbasrstatus.Text = "请选择流式模型（语音识别页「流式」栏）";
 				MessageBox.Show(this,
-					"系统实时字幕需要流式模型（Online Zipformer 等）。\n请在「安装功能」安装或手动放到 asrmodels。",
+					"实时字幕当前为流式模式，需要流式模型（Online Zipformer 等）。\n请在「安装功能」安装，或在参数设置中改选离线模型。",
 					"系统实时字幕", MessageBoxButton.OK, MessageBoxImage.Information);
 				return;
 			}
@@ -986,6 +1118,232 @@ public partial class MainWindow {
 		}, TaskScheduler.Default);
 	}
 
+	void startasrliveoffline() {
+		if (asrEngine == null) {
+			lbasrstatus.Text = "离线 ASR 引擎不可用";
+			return;
+		}
+		if (!tryresolveofflinemodel(out var offlineModel) || offlineModel == null) {
+			if (FeaturePrompt.EnsureAsrModels(this)) {
+				try { scanasrmodels(); fillasrmodels(); } catch { }
+				tryresolveofflinemodel(out offlineModel);
+			}
+			if (offlineModel == null) {
+				lbasrstatus.Text = "请选择离线模型（语音识别页「离线」栏）";
+				MessageBox.Show(this,
+					"实时字幕当前为离线模式，需要离线模型（SenseVoice 等）。\n请在「安装功能」安装，或在参数设置中改选流式模型。",
+					"系统实时字幕", MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
+		}
+
+		var src = asrcursource();
+		var compute = asrcurcompute();
+		var modelCopy = offlineModel;
+		var lang = string.IsNullOrWhiteSpace(opt.AsrLang) ? "auto" : opt.AsrLang;
+		var useItn = opt.AsrItn;
+		var srcLabel = AsrLiveCapture.SourceLabel(src);
+		asrLiveBusy = true;
+		lbasrstatus.Text = $"实时字幕 · 加载离线模型…（{srcLabel}）";
+		basrlive.IsEnabled = false;
+		saveasrprefs();
+
+		Task.Run(() => {
+			lock (asrEngineGate) {
+				asrEngine.Mode = compute;
+				asrEngine.LoadModel(modelCopy, lang, useItn);
+			}
+		}).ContinueWith(t => {
+			Dispatcher.BeginInvoke(new Action(() => {
+				try {
+					if (t.IsFaulted) {
+						var msg = t.Exception?.GetBaseException()?.Message ?? "加载失败";
+						lbasrstatus.Text = "实时字幕启动失败: " + msg;
+						return;
+					}
+					if (asrEngine == null || !asrEngine.IsLoaded) {
+						lbasrstatus.Text = "离线模型未加载";
+						return;
+					}
+
+					var sr = asrEngine.FeatSampleRate > 0 ? asrEngine.FeatSampleRate : 16000;
+					asrLiveCap?.Dispose();
+					asrLiveCap = new AsrLiveCapture(src, sr);
+					var q = new System.Collections.Concurrent.ConcurrentQueue<float[]>();
+					asrLiveCap.SamplesAvailable += chunk => {
+						if (chunk != null && chunk.Length > 0) q.Enqueue(chunk);
+					};
+					asrLiveCap.Start(streamOnly: true);
+
+					lock (asrLiveTextGate) {
+						asrLiveLines.Clear();
+						asrLivePartial = "";
+					}
+					var prev = easrtext.Text ?? "";
+					if (prev.Length > 0 && !prev.EndsWith("\n") && !prev.EndsWith("\r"))
+						prev += "\n";
+					asrLiveTextPrefix = prev;
+					easrtext.Text = prev;
+					lastAsrLiveUiTick = 0;
+					asrLiveCts = new CancellationTokenSource();
+					var ct = asrLiveCts.Token;
+					var sampleRate = sr;
+
+					asrLiveTask = Task.Run(() => runasrliveoffline(q, sampleRate, ct), ct);
+					asrLiveOn = true;
+					var deviceLabel = asrproviderlabel(asrEngine?.Provider);
+					showasrcaptionosd();
+					basrlive.Content = "停止字幕";
+					basrlive.IsEnabled = true;
+					basrrec.IsEnabled = false;
+					basrstop.IsEnabled = false;
+					basrrun.IsEnabled = false;
+					basropen.IsEnabled = false;
+					easrsource.IsEnabled = false;
+					lbasrfile.Text = $"实时字幕 · 离线 · {srcLabel}";
+					var hk = string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption)
+						? "" : opt.HotkeyLiveCaption.Trim();
+					var hkTip = string.IsNullOrEmpty(hk) ? "点「停止字幕」结束" : $"再按 {hk} 或点「停止字幕」结束";
+					lbasrstatus.Text =
+						$"实时字幕中（离线 · {srcLabel} · {deviceLabel}）… {hkTip}";
+					CaptureLog.Info(
+						$"AsrLive offline start src={src} model={modelCopy.DisplayName} sr={sr} device={deviceLabel}");
+				}
+				catch (Exception ex) {
+					CaptureLog.Ex("startasrliveoffline", ex);
+					lbasrstatus.Text = "实时字幕启动失败: " + ex.Message;
+					try { asrLiveCap?.Dispose(); } catch { }
+					asrLiveCap = null;
+					MessageBox.Show(this, ex.Message, "系统实时字幕", MessageBoxButton.OK, MessageBoxImage.Warning);
+				}
+				finally {
+					asrLiveBusy = false;
+					if (!asrLiveOn) {
+						basrlive.IsEnabled = true;
+						basrlive.Content = "系统实时字幕";
+					}
+				}
+			}));
+		}, TaskScheduler.Default);
+	}
+
+	void runasrliveoffline(
+		System.Collections.Concurrent.ConcurrentQueue<float[]> q,
+		int sampleRate,
+		CancellationToken ct) {
+		var utt = new List<float>();
+		var spoke = false;
+		var sil = 0;
+		var silNeed = Math.Max(sampleRate * 7 / 10, 1);
+		var minUtt = Math.Max(sampleRate * 4 / 10, 1);
+		var maxUtt = sampleRate * 12;
+		try {
+			while (!ct.IsCancellationRequested) {
+				if (!q.TryDequeue(out var chunk)) {
+					Thread.Sleep(10);
+					continue;
+				}
+				var list = new List<float>(chunk);
+				while (q.TryDequeue(out var more))
+					list.AddRange(more);
+				var samples = list.ToArray();
+				utt.AddRange(samples);
+				var e = asrrms(samples);
+				if (e >= 0.012f) {
+					spoke = true;
+					sil = 0;
+				}
+				else if (spoke) {
+					sil += samples.Length;
+				}
+				if ((spoke && sil >= silNeed && utt.Count >= minUtt) || utt.Count >= maxUtt)
+					asrliveofflineflush(utt, sampleRate, ref spoke, ref sil);
+			}
+			if (utt.Count >= minUtt)
+				asrliveofflineflush(utt, sampleRate, ref spoke, ref sil);
+			pushasrliveui(force: true);
+		}
+		catch (OperationCanceledException) { }
+		catch (Exception ex) {
+			CaptureLog.Ex("runasrliveoffline", ex);
+			try {
+				Dispatcher.BeginInvoke(new Action(() => {
+					lbasrstatus.Text = "实时字幕出错: " + ex.Message;
+				}));
+			}
+			catch { }
+		}
+	}
+
+	void asrliveofflineflush(List<float> utt, int sampleRate, ref bool spoke, ref int sil) {
+		if (utt == null || utt.Count == 0) {
+			spoke = false;
+			sil = 0;
+			return;
+		}
+		var wave = utt.ToArray();
+		utt.Clear();
+		spoke = false;
+		sil = 0;
+		try {
+			lock (asrLiveTextGate) asrLivePartial = "识别中…";
+			pushasrliveui(force: true);
+			string raw = null;
+			if (asrEngine != null) {
+				lock (asrEngineGate)
+					raw = asrEngine.Recognize(wave, sampleRate);
+			}
+			var done = asrlivefinishline(raw);
+			if (done.Length > 0) {
+				lock (asrLiveTextGate) {
+					asrLiveLines.Add(done);
+					asrLivePartial = "";
+				}
+			}
+			else {
+				lock (asrLiveTextGate) asrLivePartial = "";
+			}
+			pushasrliveui(force: true);
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("asrliveofflineflush", ex);
+			lock (asrLiveTextGate) asrLivePartial = "";
+			pushasrliveui(force: true);
+		}
+	}
+
+	static float asrrms(float[] samples) {
+		if (samples == null || samples.Length == 0) return 0;
+		double s = 0;
+		foreach (var x in samples)
+			s += x * x;
+		return (float)Math.Sqrt(s / samples.Length);
+	}
+
+	/// <summary>实时字幕成句：可选润色，再按设置补句末标点。</summary>
+	string asrlivefinishline(string raw) {
+		var text = AsrTextNorm.Postprocess((raw ?? "").Trim());
+		if (text.Length == 0) return "";
+		if (opt.AsrLivePolish && AsrLlmClient.IsConfigured(opt)) {
+			try {
+				lock (asrLiveTextGate) asrLivePartial = "润色中… " + text;
+				pushasrliveui(force: true);
+				string ctx;
+				lock (asrLiveTextGate)
+					ctx = asrLiveLines.Count == 0 ? "" : string.Join("\n", asrLiveLines);
+				var polished = AsrLlmClient.Polish(opt, text, ctx);
+				if (!string.IsNullOrWhiteSpace(polished))
+					text = AsrTextNorm.Postprocess(polished.Trim());
+			}
+			catch (Exception ex) {
+				CaptureLog.Ex("asrlive polish", ex);
+			}
+		}
+		if (opt.AsrLiveSplit)
+			text = AsrTextNorm.EnsureSentenceEnd(text);
+		return text;
+	}
+
 	void runasrlivestream(
 		AsrStreamEngine eng,
 		System.Collections.Concurrent.ConcurrentQueue<float[]> q,
@@ -1028,8 +1386,7 @@ public partial class MainWindow {
 					pushasrliveui(force: false);
 				}
 				if (hitEnd) {
-					var done = AsrTextNorm.Postprocess((finalText ?? "").Trim());
-					done = AsrTextNorm.EnsureSentenceEnd(done);
+					var done = asrlivefinishline(finalText);
 					if (done.Length > 0) {
 						lock (asrLiveTextGate) {
 							asrLiveLines.Add(done);
@@ -1051,8 +1408,7 @@ public partial class MainWindow {
 					if (stream != null) {
 						eng.InputFinished(stream);
 						var text = eng.GetText(stream);
-						var done = AsrTextNorm.Postprocess((text ?? "").Trim());
-						done = AsrTextNorm.EnsureSentenceEnd(done);
+						var done = asrlivefinishline(text);
 						if (done.Length > 0) {
 							lock (asrLiveTextGate) {
 								asrLiveLines.Add(done);
@@ -1227,8 +1583,12 @@ public partial class MainWindow {
 					linesCopy = asrLiveLines.ToList();
 					partial = asrLivePartial ?? "";
 				}
-				if (!string.IsNullOrEmpty(partial)) {
-					var p = AsrTextNorm.EnsureSentenceEnd(partial.Trim());
+				if (!string.IsNullOrEmpty(partial)
+					&& !partial.StartsWith("识别中")
+					&& !partial.StartsWith("润色中")) {
+					var p = opt.AsrLiveSplit
+						? AsrTextNorm.EnsureSentenceEnd(partial.Trim())
+						: partial.Trim();
 					if (p.Length > 0) linesCopy.Add(p);
 				}
 				var body = string.Join("\n", linesCopy);
@@ -1703,6 +2063,8 @@ public partial class MainWindow {
 	}
 
 	void disposeAsr() {
+		try { voiceHkResume?.Stop(); } catch { }
+		voiceHkResume = null;
 		try { asrtCts?.Cancel(); } catch { }
 		try { stopasrlive(finalFlush: false); } catch { }
 		try { hideasrcaptionosd(dispose: true); } catch { }

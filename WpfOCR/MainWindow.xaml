@@ -43,6 +43,10 @@
 				          AutomationProperties.AutomationId="menu.board"
 				          AutomationProperties.Name="屏幕画板"
 				          ToolTip="截取全屏静止画面，直接画图标注"/>
+				<MenuItem x:Name="mnvoice" Header="语音输入(_V)"
+				          AutomationProperties.AutomationId="menu.voice"
+				          AutomationProperties.Name="语音输入"
+				          ToolTip="麦克风听写注入焦点窗口；再按一次结束"/>
 				<MenuItem x:Name="mnlongshot" Header="长截图(_L)…"
 				          AutomationProperties.AutomationId="menu.longshot"
 				          ToolTip="点选窗口后自动滚动拼接长图（仅截图，不 OCR）"/>
@@ -111,6 +115,7 @@
 			</MenuItem>
 			<MenuItem x:Name="mntools" Header="工具(_T)">
 				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
+				          AutomationProperties.AutomationId="menu.settings"
 				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
 				<MenuItem x:Name="mninstall" Header="安装功能(_I)…"
 				          AutomationProperties.AutomationId="menu.install"

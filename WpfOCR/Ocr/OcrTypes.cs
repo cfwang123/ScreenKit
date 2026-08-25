@@ -162,6 +162,32 @@ public sealed class OcrOptions {
 	public string AsrAudioSource = "Mic";
 	/// <summary>桌面实时字幕 OSD 样式。</summary>
 	public AsrCaptionStyle AsrCaption = new();
+	/// <summary>语音输入：stream 流式边说边出 / offline 整段录音，停止后一次性输出。</summary>
+	public string AsrVoiceMode = "stream";
+	/// <summary>语音输入是否走 LLM 润色（需填写 URL 与模型 id）。</summary>
+	public bool AsrVoicePolish = true;
+	/// <summary>语音输入句末自动补「，」，成句即润色并输出。</summary>
+	public bool AsrVoiceSplit = true;
+	/// <summary>自动分句间隔（秒）：静音达到此时长才切一句。默认 5，范围 1–30。连续说话不切。</summary>
+	public int AsrVoiceSplitSec = 5;
+	/// <summary>实时字幕：stream 流式 / offline 离线（静音切句后识别）。</summary>
+	public string AsrLiveMode = "stream";
+	/// <summary>实时字幕是否走 LLM 润色（每句完成后；需填写 URL 与模型 id）。</summary>
+	public bool AsrLivePolish = false;
+	/// <summary>实时字幕润色后（或未润色的成句）自动补句末「，」。</summary>
+	public bool AsrLiveSplit = true;
+	/// <summary>OpenAI 兼容 Chat Completions 地址（空=不润色）。如 https://api.openai.com/v1</summary>
+	public string AsrLlmUrl = "";
+	/// <summary>Bearer token；本地兼容服务可留空。勿提交到公开仓库。</summary>
+	public string AsrLlmToken = "";
+	/// <summary>模型 id，如 gpt-4o-mini。</summary>
+	public string AsrLlmModel = "";
+	/// <summary>润色系统提示词；空则用默认。</summary>
+	public string AsrLlmPrompt = DefaultAsrLlmPrompt;
+
+	/// <summary>离线听写润色默认提示词。</summary>
+	public const string DefaultAsrLlmPrompt =
+		"请润色以下语音识别文本：纠正错别字和明显识别错误，补全标点，保持原意与口语，不要扩写、不要解释、不要加引号。只输出润色后的正文。";
 
 	// ─── 翻译（config.toml [translate]） ───
 	/// <summary>Auto / Gpu / Cpu / Igpu（Opus-MT PyTorch 管道）。</summary>

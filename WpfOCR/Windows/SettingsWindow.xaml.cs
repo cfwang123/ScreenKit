@@ -30,6 +30,9 @@ public partial class SettingsWindow : Window {
 
 		inithotkeyui();
 
+		easrvoicesplit.Checked += (_, _) => syncvoicesplitui();
+		easrvoicesplit.Unchecked += (_, _) => syncvoicesplitui();
+
 		bcancel.Click += (_, _) => { Applied = false; Close(); };
 		bok.Click += (_, _) => {
 			stopcapture(restore: true);
@@ -146,10 +149,69 @@ public partial class SettingsWindow : Window {
 	void applylanglabels() {
 		try {
 			Title = Loc.T("set.title");
+			tabsetgen.Header = Loc.T("set.tab.general");
+			tabsetocr.Header = Loc.T("set.tab.ocr");
+			tabsethk.Header = Loc.T("set.tab.hotkey");
+			tabsetasr.Header = Loc.T("set.tab.asr");
+			tabsetsnap.Header = Loc.T("set.tab.snap");
+			tabsethttp.Header = Loc.T("set.tab.http");
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
+			emintray.Content = Loc.T("set.tray");
+			lbsetlog.Text = Loc.T("set.log");
+			ecapturelog.Content = Loc.T("set.log.enable");
+			lbsetloghint.Text = Loc.T("set.log.hint");
 			lbsetpack.Text = Loc.T("set.pack");
 			lbsetvariant.Text = Loc.T("set.variant");
+			lbsetdevice.Text = Loc.T("set.device");
+			itdevgpu.Content = Loc.T("set.device.gpu");
+			itdevigpu.Content = Loc.T("set.device.igpu");
+			itdevcpu.Content = Loc.T("set.device.cpu");
+			lbsetdevicehint.Text = Loc.T("set.device.hint");
+			lbsetdetlen.Text = Loc.T("set.detlen");
+			lbsetdetlenhint.Text = Loc.T("set.detlen.hint");
+			lbsetdetth.Text = Loc.T("set.detth");
+			lbsetboxth.Text = Loc.T("set.boxth");
+			eusecls.Content = Loc.T("set.cls");
+			eservicemode.Content = Loc.T("set.service");
+			lbsetservicehint.Text = Loc.T("set.service.hint");
+			lbsetpdf.Text = Loc.T("set.pdf");
+			epdftext.Content = Loc.T("set.pdf.text");
+			lbsetpdfhint.Text = Loc.T("set.pdf.hint");
+			lbsethotkey.Text = Loc.T("set.hotkey");
+			lbsethotkeyhint.Text = Loc.T("set.hotkey.hint");
+			lbhkhintmain.Text = Loc.T("set.hotkey.main");
+			lbhkhintsnap.Text = Loc.T("set.hotkey.snap");
+			lbhkhintocr.Text = Loc.T("set.hotkey.ocr");
+			lbhkhintboard.Text = Loc.T("set.hotkey.board");
+			lbhkhintvoice.Text = Loc.T("set.hotkey.voice");
+			lbhkhintlive.Text = Loc.T("set.hotkey.live");
+			lbsetasrmode.Text = Loc.T("set.asr.mode");
+			lbsetasrmodehint.Text = Loc.T("set.asr.mode.hint");
+			easrvoicestream.Content = Loc.T("set.asr.mode.stream");
+			easrvoiceoffline.Content = Loc.T("set.asr.mode.offline");
+			easrvoicepolish.Content = Loc.T("set.asr.voice.polish");
+			easrvoicesplit.Content = Loc.T("set.asr.voice.split");
+			easrvoicesplit.ToolTip = Loc.T("set.asr.voice.split.tip");
+			lbsetasrvoicesplitsec.Text = Loc.T("set.asr.voice.split.sec");
+			easrvoicesplitsec.ToolTip = Loc.T("set.asr.voice.split.sec.tip");
+			lbsetasrlive.Text = Loc.T("set.asr.live");
+			lbsetasrlivehint.Text = Loc.T("set.asr.live.hint");
+			easrlivestream.Content = Loc.T("set.asr.live.stream");
+			easrliveoffline.Content = Loc.T("set.asr.live.offline");
+			easrlivepolish.Content = Loc.T("set.asr.live.polish");
+			easrlivesplit.Content = Loc.T("set.asr.live.split");
+			lbsetasrllm.Text = Loc.T("set.asr.llm");
+			lbsetasrllmhint.Text = Loc.T("set.asr.llm.hint");
+			lbsetasrllmurl.Text = Loc.T("set.asr.llm.url");
+			lbsetasrllmtoken.Text = Loc.T("set.asr.llm.token");
+			lbsetasrllmmodel.Text = Loc.T("set.asr.llm.model");
+			lbsetasrllmprompt.Text = Loc.T("set.asr.llm.prompt");
+			lbsethttp.Text = Loc.T("set.http");
+			lbsethttphint.Text = Loc.T("set.http.hint");
+			ehttpen.Content = Loc.T("set.http.enable");
+			lbsethttphost.Text = Loc.T("set.http.host");
+			lbsethttpport.Text = Loc.T("set.http.port");
 			bok.Content = Loc.T("set.ok");
 			bcancel.Content = Loc.T("set.cancel");
 		}
@@ -208,6 +270,25 @@ public partial class SettingsWindow : Window {
 		ehotkeyboard.Text = o.HotkeyBoard ?? "";
 		ehotkeyvoice.Text = o.HotkeyVoiceInput ?? "";
 		ehotkeylive.Text = o.HotkeyLiveCaption ?? "";
+		var voiceOffline = string.Equals((o.AsrVoiceMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals((o.AsrVoiceMode ?? "").Trim(), "离线", StringComparison.OrdinalIgnoreCase);
+		easrvoiceoffline.IsChecked = voiceOffline;
+		easrvoicestream.IsChecked = !voiceOffline;
+		easrvoicepolish.IsChecked = o.AsrVoicePolish;
+		easrvoicesplit.IsChecked = o.AsrVoiceSplit;
+		easrvoicesplitsec.Text = Compat.Clamp(o.AsrVoiceSplitSec, 1, 30).ToString();
+		syncvoicesplitui();
+		var liveOffline = string.Equals((o.AsrLiveMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
+			|| string.Equals((o.AsrLiveMode ?? "").Trim(), "离线", StringComparison.OrdinalIgnoreCase);
+		easrliveoffline.IsChecked = liveOffline;
+		easrlivestream.IsChecked = !liveOffline;
+		easrlivepolish.IsChecked = o.AsrLivePolish;
+		easrlivesplit.IsChecked = o.AsrLiveSplit;
+		easrllmurl.Text = o.AsrLlmUrl ?? "";
+		easrllmtoken.Password = o.AsrLlmToken ?? "";
+		easrllmmodel.Text = o.AsrLlmModel ?? "";
+		easrllmprompt.Text = string.IsNullOrWhiteSpace(o.AsrLlmPrompt)
+			? OcrOptions.DefaultAsrLlmPrompt : o.AsrLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
 		// 三选一：路径 > 文件 > 图片
 		var asPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
@@ -289,6 +370,7 @@ public partial class SettingsWindow : Window {
 		var pack = epack.SelectedItem as ModelPack;
 		var variant = evariant.SelectedItem as ModelVariant;
 		if (pack == null || variant == null) {
+			tabset.SelectedItem = tabsetocr;
 			MessageBox.Show(this, "请选择模型包与语言/变体", "设置",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
@@ -312,12 +394,25 @@ public partial class SettingsWindow : Window {
 		Result.DetBoxThresh = (float)eboxth.Value;
 		Result.UseCls = eusecls.IsChecked == true;
 		// 热键留空 = 禁用；非空才校验格式
-		if (!tryreadhotkey(ehotkey, "剪贴板识别", out Result.Hotkey)) return false;
-		if (!tryreadhotkey(ehotkeysnap, "截图标注", out Result.HotkeySnap)) return false;
-		if (!tryreadhotkey(ehotkeysnapocr, "截图识别", out Result.HotkeySnapOcr)) return false;
-		if (!tryreadhotkey(ehotkeyboard, "屏幕画板", out Result.HotkeyBoard)) return false;
-		if (!tryreadhotkey(ehotkeyvoice, "语音输入", out Result.HotkeyVoiceInput)) return false;
-		if (!tryreadhotkey(ehotkeylive, "系统实时字幕", out Result.HotkeyLiveCaption)) return false;
+		if (!tryreadhotkey(ehotkey, "剪贴板识别", out Result.Hotkey, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeysnap, "截图标注", out Result.HotkeySnap, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeysnapocr, "截图识别", out Result.HotkeySnapOcr, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyboard, "屏幕画板", out Result.HotkeyBoard, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyvoice, "语音输入", out Result.HotkeyVoiceInput, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeylive, "系统实时字幕", out Result.HotkeyLiveCaption, tabsethk)) return false;
+		Result.AsrVoiceMode = easrvoiceoffline.IsChecked == true ? "offline" : "stream";
+		Result.AsrVoicePolish = easrvoicepolish.IsChecked == true;
+		Result.AsrVoiceSplit = easrvoicesplit.IsChecked == true;
+		if (!tryint(easrvoicesplitsec, "自动分句间隔（秒）", 1, 30, out var splitSec, tabsetasr)) return false;
+		Result.AsrVoiceSplitSec = splitSec;
+		Result.AsrLiveMode = easrliveoffline.IsChecked == true ? "offline" : "stream";
+		Result.AsrLivePolish = easrlivepolish.IsChecked == true;
+		Result.AsrLiveSplit = easrlivesplit.IsChecked == true;
+		Result.AsrLlmUrl = (easrllmurl.Text ?? "").Trim();
+		Result.AsrLlmToken = easrllmtoken.Password ?? "";
+		Result.AsrLlmModel = (easrllmmodel.Text ?? "").Trim();
+		var prompt = (easrllmprompt.Text ?? "").Trim();
+		Result.AsrLlmPrompt = string.IsNullOrEmpty(prompt) ? OcrOptions.DefaultAsrLlmPrompt : prompt;
 		Result.MinimizeToTray = emintray.IsChecked == true;
 		// 截图历史保留：Tag 天数，0=不限
 		var keepTag = (esnapkeep.SelectedItem as ComboBoxItem)?.Tag as string ?? "3";
@@ -328,14 +423,15 @@ public partial class SettingsWindow : Window {
 		var fmtTag = (esnapfmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "png";
 		Result.ScreenshotFormat = string.Equals(fmtTag, "jpg", StringComparison.OrdinalIgnoreCase) ? "jpg" : "png";
 		if (!int.TryParse((esnapjpgq.Text ?? "").Trim(), out var jpgQ) || jpgQ < 1 || jpgQ > 100) {
+			tabset.SelectedItem = tabsetsnap;
 			MessageBox.Show(this, "JPG 质量须为 1–100", "设置",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
 		Result.ScreenshotJpgQuality = jpgQ;
 		Result.ScreenshotMaxSizeEnabled = esnapmaxen.IsChecked == true;
-		if (!tryint(esnapmaxw, "截图最大宽", 16, 16384, out var smw)) return false;
-		if (!tryint(esnapmaxh, "截图最大高", 16, 16384, out var smh)) return false;
+		if (!tryint(esnapmaxw, "截图最大宽", 16, 16384, out var smw, tabsetsnap)) return false;
+		if (!tryint(esnapmaxh, "截图最大高", 16, 16384, out var smh, tabsetsnap)) return false;
 		Result.ScreenshotMaxWidth = smw;
 		Result.ScreenshotMaxHeight = smh;
 		// 三选一
@@ -348,6 +444,7 @@ public partial class SettingsWindow : Window {
 		var host = (ehttphost.Text ?? "").Trim();
 		Result.HttpHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host;
 		if (!int.TryParse((ehttpport.Text ?? "").Trim(), out var port) || port < 1 || port > 65535) {
+			tabset.SelectedItem = tabsethttp;
 			MessageBox.Show(this, "HTTP 端口须为 1–65535", "设置",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
@@ -402,12 +499,49 @@ public partial class SettingsWindow : Window {
 		SnapCopyAsFile = o.SnapCopyAsFile,
 		SnapCopyAsPath = o.SnapCopyAsPath,
 		Record = (o.Record ?? new RecordOptions()).Clone(),
+		GifRecord = (o.GifRecord ?? new GifOptions()).Clone(),
+		InstallPromptDone = o.InstallPromptDone,
+		TtsEngine = o.TtsEngine,
+		TtsCompute = o.TtsCompute,
+		TtsModel = o.TtsModel,
+		TtsVoice = o.TtsVoice,
+		TtsLangFilter = o.TtsLangFilter,
+		TtsGenderFilter = o.TtsGenderFilter,
+		TtsRate = o.TtsRate,
+		TtsVolume = o.TtsVolume,
+		TtsKbps = o.TtsKbps,
+		AsrModel = o.AsrModel,
+		AsrModelStream = o.AsrModelStream,
+		AsrCompute = o.AsrCompute,
+		AsrLang = o.AsrLang,
+		AsrItn = o.AsrItn,
+		AsrAudioSource = o.AsrAudioSource,
+		AsrCaption = (o.AsrCaption ?? new AsrCaptionStyle()).Clone(),
+		AsrVoiceMode = o.AsrVoiceMode ?? "stream",
+		AsrVoicePolish = o.AsrVoicePolish,
+		AsrVoiceSplit = o.AsrVoiceSplit,
+		AsrVoiceSplitSec = o.AsrVoiceSplitSec,
+		AsrLiveMode = o.AsrLiveMode ?? "stream",
+		AsrLivePolish = o.AsrLivePolish,
+		AsrLiveSplit = o.AsrLiveSplit,
+		AsrLlmUrl = o.AsrLlmUrl ?? "",
+		AsrLlmToken = o.AsrLlmToken ?? "",
+		AsrLlmModel = o.AsrLlmModel ?? "",
+		AsrLlmPrompt = o.AsrLlmPrompt ?? OcrOptions.DefaultAsrLlmPrompt,
+		TranslateCompute = o.TranslateCompute,
 		WinW = o.WinW,
 		WinH = o.WinH,
 		WinL = o.WinL,
 		WinT = o.WinT,
 		WinMax = o.WinMax,
 	};
+
+	void syncvoicesplitui() {
+		var on = easrvoicesplit.IsChecked == true;
+		easrvoicesplitsec.IsEnabled = on;
+		lbsetasrvoicesplitsec.Opacity = on ? 1 : 0.45;
+		easrvoicesplitsec.Opacity = on ? 1 : 0.55;
+	}
 
 	/// <summary>JPG 质量输入：仅 jpg 格式可编辑。</summary>
 	void syncsnapfmtenabled() {
@@ -419,10 +553,11 @@ public partial class SettingsWindow : Window {
 		esnapjpgq.Opacity = jpg ? 1 : 0.55;
 	}
 
-	/// <summary>读整数输入框，失败弹窗。</summary>
-	bool tryint(WpfTextBox box, string name, int min, int max, out int value) {
+	/// <summary>读整数输入框，失败弹窗；可选切到对应 Tab。</summary>
+	bool tryint(WpfTextBox box, string name, int min, int max, out int value, TabItem tab = null) {
 		value = 0;
 		if (!int.TryParse((box?.Text ?? "").Trim(), out var n) || n < min || n > max) {
+			if (tab != null) tabset.SelectedItem = tab;
 			MessageBox.Show(this, $"{name}须为 {min}–{max}", "设置",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
@@ -431,11 +566,12 @@ public partial class SettingsWindow : Window {
 		return true;
 	}
 
-	/// <summary>读热键：留空允许（禁用）；非空须能解析。</summary>
-	bool tryreadhotkey(System.Windows.Controls.TextBox box, string name, out string value) {
+	/// <summary>读热键：留空允许（禁用）；非空须能解析。可选切到对应 Tab。</summary>
+	bool tryreadhotkey(System.Windows.Controls.TextBox box, string name, out string value, TabItem tab = null) {
 		value = (box?.Text ?? "").Trim();
 		if (string.IsNullOrEmpty(value)) return true;
 		if (GlobalHotkey.tryparse(value, out _, out _)) return true;
+		if (tab != null) tabset.SelectedItem = tab;
 		MessageBox.Show(this, $"无法解析{name}热键: {value}\n示例: Ctrl+Alt+O\n留空可禁用该热键", "设置",
 			MessageBoxButton.OK, MessageBoxImage.Warning);
 		return false;

@@ -22,6 +22,9 @@ sealed class GlobalHotkey : IDisposable {
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+	[DllImport("user32.dll")]
+	static extern short GetAsyncKeyState(int vKey);
+
 	readonly Window win;
 	readonly int id;
 	HwndSource src;
@@ -117,6 +120,20 @@ sealed class GlobalHotkey : IDisposable {
 			src = null;
 		}
 		catch { }
+	}
+
+	/// <summary>热键组合当前是否全部按下（用于结束听写后等松键再重新注册，避免立刻再触发）。</summary>
+	public static bool IsComboDown(string hotkey) {
+		if (!tryparse(hotkey, out var mod, out var vk)) return false;
+		if ((mod & MOD_CONTROL) != 0 && (GetAsyncKeyState(0x11) & 0x8000) == 0) return false;
+		if ((mod & MOD_ALT) != 0 && (GetAsyncKeyState(0x12) & 0x8000) == 0) return false;
+		if ((mod & MOD_SHIFT) != 0 && (GetAsyncKeyState(0x10) & 0x8000) == 0) return false;
+		if ((mod & MOD_WIN) != 0) {
+			var l = (GetAsyncKeyState(0x5B) & 0x8000) != 0;
+			var r = (GetAsyncKeyState(0x5C) & 0x8000) != 0;
+			if (!l && !r) return false;
+		}
+		return (GetAsyncKeyState((int)vk) & 0x8000) != 0;
 	}
 
 	public static bool tryparse(string text, out uint modifiers, out uint vk) {
