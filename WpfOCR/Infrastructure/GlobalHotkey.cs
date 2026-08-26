@@ -136,6 +136,8 @@ sealed class GlobalHotkey : IDisposable {
 		return (GetAsyncKeyState((int)vk) & 0x8000) != 0;
 	}
 
+	public static bool IsVkDown(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
+
 	public static bool tryparse(string text, out uint modifiers, out uint vk) {
 		modifiers = 0;
 		vk = 0;

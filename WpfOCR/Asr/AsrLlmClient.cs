@@ -19,11 +19,12 @@ static class AsrLlmClient {
 		&& !string.IsNullOrWhiteSpace(o.AsrLlmModel);
 
 	/// <summary>已配置则请求润色；失败或未配置返回原文。context 为本轮已输出上文。</summary>
-	public static string Polish(OcrOptions o, string text, string context = "") {
+	public static string Polish(OcrOptions o, string text, string context = "", CancellationToken ct = default) {
 		text = (text ?? "").Trim();
 		if (text.Length == 0 || !IsConfigured(o)) return text;
+		ct.ThrowIfCancellationRequested();
 		try {
-			var outText = call(o, text, context);
+			var outText = call(o, text, context, ct);
 			if (string.IsNullOrWhiteSpace(outText)) return text;
 			outText = outText.Trim();
 			if (outText.Length == 0) return text;
@@ -31,13 +32,14 @@ static class AsrLlmClient {
 			if (string.IsNullOrWhiteSpace(outText)) return text;
 			return outText.Trim();
 		}
+		catch (OperationCanceledException) { throw; }
 		catch (Exception ex) {
 			try { CaptureLog.Ex("asr llm polish", ex); } catch { }
 			return text;
 		}
 	}
 
-	static string call(OcrOptions o, string text, string context) {
+	static string call(OcrOptions o, string text, string context, CancellationToken ct) {
 		var url = normalizeurl(o.AsrLlmUrl);
 		var model = (o.AsrLlmModel ?? "").Trim();
 		var prompt = (o.AsrLlmPrompt ?? "").Trim();
@@ -69,7 +71,7 @@ static class AsrLlmClient {
 		if (token.Length > 0)
 			req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-		using var resp = http.SendAsync(req).GetAwaiter().GetResult();
+		using var resp = http.SendAsync(req, ct).GetAwaiter().GetResult();
 		var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
 		if (!resp.IsSuccessStatusCode) {
 			var snippet = body.Length > 240 ? body.Substring(0, 240) : body;

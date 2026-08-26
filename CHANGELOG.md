@@ -6,6 +6,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 ## [Unreleased]
 
+## v1.0.2 (2026-08-26)
+
 ### Added
 
 - 录屏编码增加 **AV1**（`record_codec = av1`）：与 x264/x265 同一套采集→FFmpeg 写 MP4；选项窗可选；ffmpeg64 无 AV1 编码器时明确失败、不回落 x264。CLI：`WpfOCR --test-record-codec av1 --repeat 2`。
@@ -25,9 +27,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - 语音输入勾选**自动分句**时：识别出一句立即润色（若已开润色）并输入，不等整段结束。
 - 听写/实时字幕润色时附带**本轮已输出上文**（约千字），便于纠正同音字与指代；模型只返回当前句。
 - 语音输入自动分句增加**间隔时间**（秒，默认 5）：仅静音达到此时长才切一句，连续说话不切。
+- 语音输入 **识别/润色中按 Esc**：立刻停止本轮听写，取消润色，**不输出**当前句（解码中可能需等本轮结束）。热键结束仍会识别并输出。OCR 识别中 Esc 取消当前 OCR。
 
 ### Changed
 
+- 前端截图识别按结果区当前 **OCR / 条码** Tab 识别文字或条码/二维码，识别前后不再切换该 Tab；截图标注/画板的识别入口行为一致。
 - **参数设置**改为多 Tab：**常规**、**识别**、**热键**、**语音**、**截图**、**接口**。服务模式在「接口」。
 - **离线听写**：不再按静音切句，整段录音，再按热键停止后一次性识别输出（随后可润色）。
 - 润色结果自动去掉 `<think>` / `<thinking>` 等推理块、孤立 `</think>`，以及整段 markdown 代码围栏。

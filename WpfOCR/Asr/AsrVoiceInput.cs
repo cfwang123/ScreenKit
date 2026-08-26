@@ -13,6 +13,11 @@ sealed class AsrVoiceInput : IDisposable {
 	readonly List<float> utt = new();
 	readonly object histGate = new();
 	readonly List<string> hist = new();
+	int recbusy;
+	int recabort;
+	int stopping;
+	CancellationTokenSource recWatchCts;
+	CancellationTokenSource recHttpCts;
 
 	AsrMicRecorder mic;
 	CancellationTokenSource cts;
@@ -31,8 +36,8 @@ sealed class AsrVoiceInput : IDisposable {
 	/// <summary>离线模式：识别整段波形（后台线程，调用方加锁）。</summary>
 	public Func<float[], int, string> Recognize { get; set; }
 
-	/// <summary>识别完成后润色（可选；参数为原文、本轮已输出上文；失败应回原文）。</summary>
-	public Func<string, string, string> Polish { get; set; }
+	/// <summary>识别完成后润色（可选；原文、上文、取消令牌；失败应回原文）。</summary>
+	public Func<string, string, CancellationToken, string> Polish { get; set; }
 
 	/// <summary>成句时句末补「，」，并立刻润色后输出（流式 endpoint / 离线静音切句）。</summary>
 	public bool SplitSentences { get; set; } = true;
@@ -63,14 +68,58 @@ sealed class AsrVoiceInput : IDisposable {
 
 	string dopolish(string text) {
 		try {
-			var polished = Polish(text, gethist());
+			var ct = recHttpCts?.Token ?? CancellationToken.None;
+			var polished = Polish(text, gethist(), ct);
 			if (!string.IsNullOrWhiteSpace(polished))
 				return AsrTextNorm.Postprocess(polished.Trim());
+		}
+		catch (OperationCanceledException) {
+			Interlocked.Exchange(ref recabort, 1);
+			return "";
 		}
 		catch (Exception ex) {
 			try { ErrorOccurred?.Invoke("润色失败，使用原文: " + ex.Message); } catch { }
 		}
 		return text;
+	}
+
+	bool aborted() => Volatile.Read(ref recabort) != 0;
+
+	void beginrec() {
+		if (aborted()) {
+			Interlocked.Exchange(ref recbusy, 1);
+			return;
+		}
+		if (Volatile.Read(ref stopping) == 0)
+			Interlocked.Exchange(ref recabort, 0);
+		Interlocked.Exchange(ref recbusy, 1);
+		try { recWatchCts?.Cancel(); } catch { }
+		try { recWatchCts?.Dispose(); } catch { }
+		try { recHttpCts?.Dispose(); } catch { }
+		recWatchCts = new CancellationTokenSource();
+		recHttpCts = new CancellationTokenSource();
+		var w = recWatchCts.Token;
+		Task.Run(() => {
+			var wasDown = GlobalHotkey.IsVkDown(0x1B);
+			while (!w.IsCancellationRequested && Volatile.Read(ref recbusy) != 0) {
+				var down = GlobalHotkey.IsVkDown(0x1B);
+				if (down && !wasDown) {
+					Cancel();
+					return;
+				}
+				if (!down) wasDown = false;
+				Thread.Sleep(40);
+			}
+		});
+	}
+
+	void endrec() {
+		Interlocked.Exchange(ref recbusy, 0);
+		try { recWatchCts?.Cancel(); } catch { }
+	}
+
+	void skipout() {
+		try { StatusChanged?.Invoke("已中止"); } catch { }
 	}
 
 	/// <summary>
@@ -99,6 +148,8 @@ sealed class AsrVoiceInput : IDisposable {
 	public void Start() {
 		if (disposed) throw new ObjectDisposedException(nameof(AsrVoiceInput));
 		if (IsActive) return;
+		Interlocked.Exchange(ref stopping, 0);
+		Interlocked.Exchange(ref recabort, 0);
 
 		streamMode = false;
 		streamEng = null;
@@ -155,8 +206,20 @@ sealed class AsrVoiceInput : IDisposable {
 			loopTask = Task.Run(() => runcollect(ct), ct);
 	}
 
-	public void Stop() {
-		if (!IsActive) return;
+	/// <summary>热键结束：识别剩余音频并输出。</summary>
+	public void Stop() => stop(flush: true);
+
+	/// <summary>Esc 中止：立刻停识别/润色，丢弃未输出内容，结束本轮听写。</summary>
+	public void Cancel() => stop(flush: false);
+
+	void stop(bool flush) {
+		if (!flush) {
+			Interlocked.Exchange(ref recabort, 1);
+			try { recHttpCts?.Cancel(); } catch { }
+		}
+		if (!IsActive && Volatile.Read(ref recbusy) == 0) return;
+		if (Interlocked.CompareExchange(ref stopping, 1, 0) != 0) return;
+
 		try {
 			if (mic != null) {
 				mic.Stop();
@@ -168,49 +231,59 @@ sealed class AsrVoiceInput : IDisposable {
 		mic = null;
 		try { cts?.Cancel(); } catch { }
 		IsActive = false;
-		var waitMs = SplitSentences ? 20000 : 1500;
-
-		if (streamMode) {
+		var waitMs = flush ? (SplitSentences ? 20000 : 1500) : 20000;
+		var onLoop = loopTask != null && Task.CurrentId == loopTask.Id;
+		if (!onLoop) {
 			try { loopTask?.Wait(waitMs); } catch { }
-			// 收尾：InputFinished + 最后一句
-			try {
-				lock (streamGate) {
-					if (stream != null && streamEng != null) {
-						streamEng.InputFinished(stream);
-						var text = streamEng.GetText(stream);
-						commitfinal(text);
-						try { stream.Dispose(); } catch { }
-						stream = null;
+		}
+
+		if (flush && !aborted()) {
+			if (streamMode) {
+				try {
+					lock (streamGate) {
+						if (stream != null && streamEng != null) {
+							streamEng.InputFinished(stream);
+							var text = streamEng.GetText(stream);
+							commitfinal(text);
+							try { stream.Dispose(); } catch { }
+							stream = null;
+						}
 					}
 				}
+				catch (Exception ex) {
+					try { ErrorOccurred?.Invoke("流式收尾失败: " + ex.Message); } catch { }
+				}
 			}
-			catch (Exception ex) {
-				try { ErrorOccurred?.Invoke("流式收尾失败: " + ex.Message); } catch { }
+			else {
+				while (q.TryDequeue(out var leftover)) {
+					lock (uttGate) utt.AddRange(leftover);
+				}
+				float[] all = null;
+				lock (uttGate) {
+					if (utt.Count >= SampleRate / 10)
+						all = utt.ToArray();
+					utt.Clear();
+				}
+				if (all != null && all.Length > 0)
+					dorec(all);
 			}
 		}
 		else {
-			try { loopTask?.Wait(waitMs); } catch { }
-			while (q.TryDequeue(out var leftover)) {
-				lock (uttGate) utt.AddRange(leftover);
+			while (q.TryDequeue(out _)) { }
+			lock (uttGate) utt.Clear();
+			lock (streamGate) {
+				try { stream?.Dispose(); } catch { }
+				stream = null;
 			}
-			float[] all = null;
-			lock (uttGate) {
-				if (utt.Count >= SampleRate / 10)
-					all = utt.ToArray();
-				utt.Clear();
-			}
-			if (all != null && all.Length > 0)
-				dorec(all);
 		}
 
 		try { cts?.Dispose(); } catch { }
 		cts = null;
 		loopTask = null;
 		streamMode = false;
-		// 不 Dispose 共享 streamEng（由 MainWindow 持有）
 		streamEng = null;
 
-		try { StatusChanged?.Invoke("语音输入已结束"); } catch { }
+		try { StatusChanged?.Invoke(aborted() || !flush ? "已中止" : "语音输入已结束"); } catch { }
 		try { ActiveChanged?.Invoke(false); } catch { }
 	}
 
@@ -223,7 +296,7 @@ sealed class AsrVoiceInput : IDisposable {
 
 	void runstream(CancellationToken ct) {
 		try {
-			while (!ct.IsCancellationRequested) {
+			while (!ct.IsCancellationRequested && !aborted()) {
 				if (!q.TryDequeue(out var chunk)) {
 					Thread.Sleep(10);
 					continue;
@@ -253,10 +326,10 @@ sealed class AsrVoiceInput : IDisposable {
 					try { PartialText?.Invoke(show); } catch { }
 					try { StatusChanged?.Invoke("… " + trimshow(show)); } catch { }
 					// 自动分句：等成句后再润色并一次性输出，不把半句打进焦点窗
-					if (!SplitSentences)
+					if (!SplitSentences && !aborted())
 						injectdelta(partial);
 				}
-				if (hitEnd)
+				if (hitEnd && !aborted())
 					commitfinal(finalText);
 			}
 		}
@@ -341,16 +414,27 @@ sealed class AsrVoiceInput : IDisposable {
 			lastPartial = "";
 			return;
 		}
-		// 自动分句：成句立刻润色再输出
-		if (SplitSentences && Polish != null)
-			done = dopolish(done);
-		injectdelta(done, sentenceEnd: SplitSentences);
-		lastPartial = "";
-		lastInjected = "";
-		addhist(done);
-		try { TextCommitted?.Invoke(); } catch { }
-		if (IsActive)
-			try { StatusChanged?.Invoke("流式听写中…"); } catch { }
+		beginrec();
+		try {
+			if (SplitSentences && Polish != null)
+				done = dopolish(done);
+			if (aborted()) {
+				lastPartial = "";
+				lastInjected = "";
+				skipout();
+				return;
+			}
+			injectdelta(done, sentenceEnd: SplitSentences);
+			lastPartial = "";
+			lastInjected = "";
+			addhist(done);
+			try { TextCommitted?.Invoke(); } catch { }
+			if (IsActive)
+				try { StatusChanged?.Invoke("流式听写中…"); } catch { }
+		}
+		finally {
+			endrec();
+		}
 	}
 
 	static string trimshow(string s) {
@@ -367,7 +451,7 @@ sealed class AsrVoiceInput : IDisposable {
 		var silNeed = Math.Max(SampleRate * sec, 1);
 		var minUtt = Math.Max(SampleRate * 4 / 10, 1);
 		try {
-			while (!ct.IsCancellationRequested) {
+			while (!ct.IsCancellationRequested && !aborted()) {
 				if (!q.TryDequeue(out var chunk)) {
 					Thread.Sleep(10);
 					continue;
@@ -416,7 +500,7 @@ sealed class AsrVoiceInput : IDisposable {
 
 	void runcollect(CancellationToken ct) {
 		try {
-			while (!ct.IsCancellationRequested) {
+			while (!ct.IsCancellationRequested && !aborted()) {
 				if (!q.TryDequeue(out var chunk)) {
 					Thread.Sleep(10);
 					continue;
@@ -432,32 +516,41 @@ sealed class AsrVoiceInput : IDisposable {
 
 	void dorec(float[] samples) {
 		if (samples == null || samples.Length < SampleRate / 10) return;
-		string text = null;
+		beginrec();
 		try {
-			try { StatusChanged?.Invoke("识别中…"); } catch { }
-			text = Recognize?.Invoke(samples, SampleRate);
-		}
-		catch (Exception ex) {
-			try { ErrorOccurred?.Invoke("识别失败: " + ex.Message); } catch { }
-			return;
-		}
-		text = AsrTextNorm.Postprocess((text ?? "").Trim());
-		if (text.Length == 0) return;
-		if (Polish != null)
-			text = dopolish(text);
-		if (SplitSentences)
-			text = AsrTextNorm.EnsureSentenceEnd(text);
-		try {
-			if (!TextInjector.TypeText(text))
-				try { ErrorOccurred?.Invoke("无法注入到焦点窗口"); } catch { }
-			else {
-				try { TextInjected?.Invoke(text); } catch { }
-				addhist(text);
-				try { TextCommitted?.Invoke(); } catch { }
+			string text = null;
+			try {
+				try { StatusChanged?.Invoke("识别中…"); } catch { }
+				if (aborted()) { skipout(); return; }
+				text = Recognize?.Invoke(samples, SampleRate);
+			}
+			catch (Exception ex) {
+				try { ErrorOccurred?.Invoke("识别失败: " + ex.Message); } catch { }
+				return;
+			}
+			if (aborted()) { skipout(); return; }
+			text = AsrTextNorm.Postprocess((text ?? "").Trim());
+			if (text.Length == 0) return;
+			if (Polish != null)
+				text = dopolish(text);
+			if (aborted()) { skipout(); return; }
+			if (SplitSentences)
+				text = AsrTextNorm.EnsureSentenceEnd(text);
+			try {
+				if (!TextInjector.TypeText(text))
+					try { ErrorOccurred?.Invoke("无法注入到焦点窗口"); } catch { }
+				else {
+					try { TextInjected?.Invoke(text); } catch { }
+					addhist(text);
+					try { TextCommitted?.Invoke(); } catch { }
+				}
+			}
+			catch (Exception ex) {
+				try { ErrorOccurred?.Invoke("注入失败: " + ex.Message); } catch { }
 			}
 		}
-		catch (Exception ex) {
-			try { ErrorOccurred?.Invoke("注入失败: " + ex.Message); } catch { }
+		finally {
+			endrec();
 		}
 	}
 

@@ -1395,12 +1395,18 @@ public partial class MainWindow : Window {
 				copytext();
 				e.Handled = true;
 			}
-			else if (e.Key == Key.Escape && hasselection()) {
-				clearselection();
-				drawoverlay();
-				syncresultfromimg();
-				setstatus("已取消选区");
-				e.Handled = true;
+			else if (e.Key == Key.Escape) {
+				if (busy) {
+					cancelocr();
+					e.Handled = true;
+				}
+				else if (hasselection()) {
+					clearselection();
+					drawoverlay();
+					syncresultfromimg();
+					setstatus("已取消选区");
+					e.Handled = true;
+				}
 			}
 		};
 	}
@@ -1786,10 +1792,6 @@ public partial class MainWindow : Window {
 	bool isresultqrtab() {
 		try { return ReferenceEquals(tabresult.SelectedItem, tabresultqr); }
 		catch { return false; }
-	}
-
-	void selectresultocrtab() {
-		try { tabresult.SelectedItem = tabresultocr; } catch { }
 	}
 
 	void syncresultmetafromtab() {
@@ -2247,9 +2249,9 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>
-	/// 标注/画板确认后：上屏；可选 OCR。仅在用户确认后调用（取消不弹主窗）。
-	/// 点「OCR」时始终弹出主窗、切到截图识别页并显示结果（与热键/托盘截图识别一致）。
-	/// 仅完成/复制（未 OCR）时仍尊重 showMainAfter。
+	/// 标注/画板确认后：上屏；可选识别。仅在用户确认后调用（取消不弹主窗）。
+	/// 点「OCR」时按结果区当前 OCR / 条码 Tab 识别，不切换结果 Tab。
+	/// 仅完成/复制（未识别）时仍尊重 showMainAfter。
 	/// </summary>
 	async Task afterannotateasync(BitmapSource resultImg, bool wantOcr, string label,
 		bool showMainAfter = true, bool mainWasVisible = true) {
@@ -2261,18 +2263,19 @@ public partial class MainWindow : Window {
 		catch (Exception ex) { CaptureLog.Ex(label + " setimage", ex); }
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		if (wantOcr) {
-			// 标注工具条点 OCR：无论热键/托盘是否后台模式，都弹主窗看结果
 			try { maintabs.SelectedItem = tabocr; } catch { }
-			selectresultocrtab();
-			ocrMetaText = label + " · 识别中…";
+			var kind = isresultqrtab() ? "条码" : "OCR";
+			if (isresultqrtab())
+				qrMetaText = $"{label} · {kind}识别中…";
+			else
+				ocrMetaText = $"{label} · {kind}识别中…";
 			syncresultmetafromtab();
 			drawoverlay();
-			setstatus($"{label} {resultImg.PixelWidth}×{resultImg.PixelHeight} · 识别中…");
+			setstatus($"{label} {resultImg.PixelWidth}×{resultImg.PixelHeight} · {kind}识别中…");
 			bringtofront();
 			var wall0 = Environment.TickCount;
-			await runocrasync(resultImg, wall0, focusResult: true, setImg: false);
+			await ensureactivetabasync(wall0, focusResult: true);
 			try { maintabs.SelectedItem = tabocr; } catch { }
-			selectresultocrtab();
 			bringtofront();
 		}
 		else {

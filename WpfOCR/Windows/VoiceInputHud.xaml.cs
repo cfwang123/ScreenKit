@@ -57,7 +57,7 @@ public partial class VoiceInputHud : Window {
 
 	/// <summary>润色中与原文同一行。须在 HTTP 前同步刷新，否则 UI 阻塞时浮窗不更新。</summary>
 	public void SetPolish(string original) {
-		runui(() => paintbody(join("润色中", original)), async: false);
+		runui(() => paintbody(join("润色中 · Esc 停止", original)), async: false);
 	}
 
 	static string join(string phase, string content) {

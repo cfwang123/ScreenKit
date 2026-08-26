@@ -2,6 +2,8 @@
 
 Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
 
+Current version: **1.0.2**
+
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
 ## Screenshots
@@ -12,7 +14,7 @@ Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOC
 
 | Area | Description |
 |------|-------------|
-| **Screenshot OCR** | Region capture → OCR; multi-monitor with DXGI Desktop Duplication |
+| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
@@ -191,6 +193,7 @@ asr_live_split = true           # auto-split after polish / completed sentences
 # Polish sends prior output in the same session as context (homophones / names).
 # Voice HUD: line 1 stays “listening…”; line 2 is “识别中” / “润色中” plus transcript.
 # After polish+inject, line 2 is cleared.
+# Esc during recognize/polish stops the session with no inject.
 
 [gif_record]
 gif_fps = 8                     # default output FPS in preview (1–24); capture is 24 fps

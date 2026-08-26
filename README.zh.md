@@ -2,6 +2,8 @@
 
 Windows 桌面 OCR：截图识别、截图标注、长截图、**区域录屏**、剪贴板识图、PDF 工作台、语音识别/合成、可选翻译，以及可选本机 HTTP API（PP-OCR / RapidOCR 模型包）。
 
+当前版本：**1.0.2**
+
 [English](README.md) · [中文](README.zh.md)
 
 ## 截图
@@ -12,7 +14,7 @@ Windows 桌面 OCR：截图识别、截图标注、长截图、**区域录屏**�
 
 | 模块 | 说明 |
 |------|------|
-| **截图识别** | 框选区域 → OCR；多显示器 DXGI 抓屏 |
+| **截图识别** | 框选区域 → 按结果区当前 OCR / 条码 Tab 识别文字或条码/二维码，识别后保持当前 Tab；多显示器 DXGI 抓屏 |
 | **截图标注** | 微信式工具条：矩形 / 椭圆 / 箭头 / 画笔 / 文字、色点、撤销 / 保存 / 完成 |
 | **长截图** | 点选可滚动窗口 → 自动滚动拼接 → 上屏（不做 OCR） |
 | **区域录屏** | 点选窗口或拖拽框选 → HUD（可移动/缩放选区、可拖动控制条）→ MP4（**仅 FFmpeg** x264/x265/AV1）+ 可选系统声/麦克风 |
@@ -229,7 +231,7 @@ x86host.exe --list-sapi
 - `[ui]`：热键、托盘、界面语言、`capture_log`  
 - `[http]`：本机 API 开关与端口、服务模式  
 - `[pdf]`：导出与内部光栅 DPI  
-- `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；共用 `asr_llm_*`（token 勿提交公开仓库；会去掉 `<think>` 等推理块）。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中」或「润色中」及原文（同一行）；已输出后第二行清空。  
+- `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；共用 `asr_llm_*`（token 勿提交公开仓库；会去掉 `<think>` 等推理块）。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中 · Esc 停止」或「润色中」及原文（同一行）；已输出后第二行清空。识别/润色中按 Esc 立刻结束本轮听写且不输出。  
 - `[record]`：编码（x264 / x265 / av1）、帧率、`record_crf`（x264/x265）、`record_av1_crf`（AV1）、音频、`record_lock_aspect`（录制中缩放选区是否锁定比例）
 - `[gif_record]`：GIF 默认输出帧率（1–24）、最大宽高、默认颜色数/缩放  
 

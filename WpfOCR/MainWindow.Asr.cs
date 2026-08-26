@@ -512,7 +512,11 @@ public partial class MainWindow {
 		if (asrVoiceHud == null) return;
 		s = s ?? "";
 		if (s.StartsWith("识别中") || s.StartsWith("润色中")) {
-			asrVoiceHud.SetDetail(s.TrimEnd('。', '.', '…', ' ').Trim(), "");
+			asrVoiceHud.SetDetail(s.StartsWith("识别中") ? "识别中 · Esc 停止" : s.TrimEnd('。', '.', '…', ' ').Trim(), "");
+			return;
+		}
+		if (s.StartsWith("已中止")) {
+			asrVoiceHud.SetDetail("已中止", "");
 			return;
 		}
 		if (s.StartsWith("…") || s.StartsWith("...")) {
@@ -576,12 +580,12 @@ public partial class MainWindow {
 			|| m == "离线";
 	}
 
-	string asrvoicepolish(string text, string context) {
+	string asrvoicepolish(string text, string context, CancellationToken ct) {
 		if (!opt.AsrVoicePolish || !AsrLlmClient.IsConfigured(opt)) return text;
 		text = (text ?? "").Trim();
 		if (text.Length == 0) return text;
 		showpolishhud(text);
-		return AsrLlmClient.Polish(opt, text, context);
+		return AsrLlmClient.Polish(opt, text, context, ct);
 	}
 
 	void showpolishhud(string original) {
