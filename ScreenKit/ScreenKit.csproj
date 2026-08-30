@@ -58,18 +58,19 @@
 
   <ItemGroup>
     <PackageReference Include="FFmpeg.AutoGen" Version="4.4.1.1" />
-    <!-- ORT GPU：托管 netstandard2.0；原生在 runtimes -->
+    <!-- ORT GPU：托管 netstandard2.0；原生请放到输出旁 onnxgpu64 / onnxcpu64 / onnxdml64 -->
     <PackageReference Include="Microsoft.ML.OnnxRuntime.Managed" Version="1.27.1" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu.Windows" Version="1.27.1" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu.Windows" Version="1.27.1">
+      <PrivateAssets>all</PrivateAssets>
+      <ExcludeAssets>runtime;native;contentfiles;build;buildTransitive</ExcludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.ML.OnnxRuntime.DirectML" Version="1.24.4">
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>runtime;native;contentfiles;build;buildTransitive</ExcludeAssets>
-      <GeneratePathProperty>true</GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="Microsoft.AI.DirectML" Version="1.15.4">
       <PrivateAssets>all</PrivateAssets>
       <ExcludeAssets>runtime;native;contentfiles;build;buildTransitive</ExcludeAssets>
-      <GeneratePathProperty>true</GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.3" />
@@ -92,9 +93,9 @@
   </ItemGroup>
 
   <!--
-    模型包放在输出旁 ocrmodels / ttsmodels / asrmodels / translatemodels / facemodels（不随编译复制）。
-    Release 编译将它们联接到中央库（ttsmodels → sherpa models）；无中央库则保持空缺，由「安装功能」下载。
-    GPU DLL：中央库 onnxgpu64（Release 联接到输出）；FFmpeg shared 放 ffmpeg64\。
+    模型 / ORT / FFmpeg 不随编译复制或联接，请自行放到输出旁 net48\：
+    ocrmodels、asrmodels、ttsmodels、translatemodels、facemodels、
+    onnxcpu64、onnxgpu64、onnxdml64、ffmpeg64。
   -->
 
   <!-- 仅保留 Windows x64 原生：删掉 SkiaSharp/PDFium/OpenCv 等拷来的 arm/musl/x86 等目录 -->
@@ -171,63 +172,19 @@
              Condition="!Exists('$(OutputPath)sherpa-onnx-c-api.dll')" />
   </Target>
 
+  <!-- NuGet 可能把 ORT 原生 DLL 拷到输出根 / runtimes；删掉以免和手动放置的 onnx*64 冲突。不创建、不联接 onnx 目录。 -->
   <Target Name="CleanupOnnxRuntimeDupes" AfterTargets="Build">
-    <PropertyGroup>
-      <_OrtGpuDir>$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu.windows\1.27.1\runtimes\win-x64\native</_OrtGpuDir>
-      <_LibGpu>D:\VS_Projects\Library\dll\onnxgpu64</_LibGpu>
-    </PropertyGroup>
-
-    <MakeDir Directories="$(_LibGpu)" Condition="Exists('$(_OrtGpuDir)\onnxruntime_providers_cuda.dll')" />
-    <ItemGroup Condition="Exists('$(_OrtGpuDir)\onnxruntime_providers_cuda.dll')">
-      <_OrtGpuDlls Include="$(_OrtGpuDir)\onnxruntime.dll" />
-      <_OrtGpuDlls Include="$(_OrtGpuDir)\onnxruntime_providers_cuda.dll" />
-      <_OrtGpuDlls Include="$(_OrtGpuDir)\onnxruntime_providers_shared.dll" />
-    </ItemGroup>
-    <Copy SourceFiles="@(_OrtGpuDlls)" DestinationFolder="$(_LibGpu)" SkipUnchangedFiles="true" Condition="'@(_OrtGpuDlls)' != ''" />
-
     <ItemGroup>
       <_DupGpu Include="$(OutputPath)onnxruntime.dll;$(OutputPath)onnxruntime_providers_cuda.dll;$(OutputPath)onnxruntime_providers_shared.dll;$(OutputPath)onnxruntime_providers_tensorrt.dll" />
       <_DupGpu Include="$(OutputPath)runtimes\win-x64\native\onnxruntime.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_cuda.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_shared.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_tensorrt.dll" />
     </ItemGroup>
     <Delete Files="@(_DupGpu)" TreatErrorsAsWarnings="true" />
-
-    <PropertyGroup>
-      <_DmlOrtDir Condition="'$(PkgMicrosoft_ML_OnnxRuntime_DirectML)' != ''">$(PkgMicrosoft_ML_OnnxRuntime_DirectML)\runtimes\win-x64\native</_DmlOrtDir>
-      <_DmlOrtDir Condition="'$(_DmlOrtDir)' == ''">$(NuGetPackageRoot)microsoft.ml.onnxruntime.directml\1.24.4\runtimes\win-x64\native</_DmlOrtDir>
-      <_DmlBin Condition="'$(PkgMicrosoft_AI_DirectML)' != ''">$(PkgMicrosoft_AI_DirectML)\bin\x64-win\DirectML.dll</_DmlBin>
-      <_DmlBin Condition="'$(_DmlBin)' == ''">$(NuGetPackageRoot)microsoft.ai.directml\1.15.4\bin\x64-win\DirectML.dll</_DmlBin>
-      <_OutDml>$(OutputPath)onnxdml64</_OutDml>
-    </PropertyGroup>
-    <MakeDir Directories="$(_OutDml)" Condition="Exists('$(_DmlOrtDir)\onnxruntime.dll')" />
-    <ItemGroup Condition="Exists('$(_DmlOrtDir)\onnxruntime.dll')">
-      <_DmlCopy Include="$(_DmlOrtDir)\onnxruntime.dll" />
-      <_DmlCopy Include="$(_DmlOrtDir)\onnxruntime_providers_shared.dll" Condition="Exists('$(_DmlOrtDir)\onnxruntime_providers_shared.dll')" />
-      <_DmlCopy Include="$(_DmlBin)" Condition="Exists('$(_DmlBin)')" />
-    </ItemGroup>
-    <Copy SourceFiles="@(_DmlCopy)" DestinationFolder="$(_OutDml)" SkipUnchangedFiles="true" Condition="'@(_DmlCopy)' != ''" />
-    <Warning Text="未生成 onnxdml64（核显 DirectML）。请确认已还原 Microsoft.ML.OnnxRuntime.DirectML 1.24.4" Condition="'$(Configuration)' == 'Release' And !Exists('$(_OutDml)\onnxruntime.dll')" />
-    <!-- onnxcpu64 按需安装（FeatureKind.OrtCpu），不随编译附带 -->
-  </Target>
-
-  <!-- 模型与 onnxgpu64：联接到中央库（不复制大文件）。仅当输出旁尚无该文件夹时创建 junction。 -->
-  <Target Name="LinkModelDirs" AfterTargets="CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
-    <PropertyGroup>
-      <_LibDll>D:\VS_Projects\Library\dll</_LibDll>
-      <_OutRoot>$([System.IO.Path]::GetFullPath('$(OutputPath)'))</_OutRoot>
-    </PropertyGroup>
-    <Exec Command="cmd /c if exist &quot;$(_LibDll)\ocrmodels&quot; if not exist &quot;$(_OutRoot)\ocrmodels&quot; mklink /J &quot;$(_OutRoot)\ocrmodels&quot; &quot;$(_LibDll)\ocrmodels&quot;" IgnoreExitCode="true" />
-    <Exec Command="cmd /c if exist &quot;$(_LibDll)\asrmodels&quot; if not exist &quot;$(_OutRoot)\asrmodels&quot; mklink /J &quot;$(_OutRoot)\asrmodels&quot; &quot;$(_LibDll)\asrmodels&quot;" IgnoreExitCode="true" />
-    <Exec Command="cmd /c if exist &quot;$(_LibDll)\sherpa models&quot; if not exist &quot;$(_OutRoot)\ttsmodels&quot; mklink /J &quot;$(_OutRoot)\ttsmodels&quot; &quot;$(_LibDll)\sherpa models&quot;" IgnoreExitCode="true" />
-    <Exec Command="cmd /c if exist &quot;$(_LibDll)\translatemodels&quot; if not exist &quot;$(_OutRoot)\translatemodels&quot; mklink /J &quot;$(_OutRoot)\translatemodels&quot; &quot;$(_LibDll)\translatemodels&quot;" IgnoreExitCode="true" />
-    <Exec Command="cmd /c if exist &quot;$(_LibDll)\facemodels&quot; if not exist &quot;$(_OutRoot)\facemodels&quot; mklink /J &quot;$(_OutRoot)\facemodels&quot; &quot;$(_LibDll)\facemodels&quot;" IgnoreExitCode="true" />
-    <Exec Command="cmd /c if exist &quot;$(_LibDll)\onnxgpu64\onnxruntime_providers_cuda.dll&quot; if not exist &quot;$(_OutRoot)\onnxgpu64&quot; mklink /J &quot;$(_OutRoot)\onnxgpu64&quot; &quot;$(_LibDll)\onnxgpu64&quot;" IgnoreExitCode="true" />
-    <Warning Text="输出目录缺少 onnxgpu64。请将完整 CUDA 包放到中央库 onnxgpu64。" Condition="!Exists('$(_OutRoot)\onnxgpu64\onnxruntime_providers_cuda.dll')" />
   </Target>
 
   <!--
     精简发布包：bin\Release\ScreenKit\
     仅托管程序 + wetext/Assets/许可证；模型与 ORT/OpenCV/Sherpa/FFmpeg 等通过应用内「安装功能」获取。
-    翻译模型需自行放到 translatemodels/（不在安装窗内）。本地开发时模型目录联接到中央库。
+    翻译模型需自行放到 translatemodels/（不在安装窗内）。
   -->
   <Target Name="PackageSlimRelease" AfterTargets="KeepSherpaNative;CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>

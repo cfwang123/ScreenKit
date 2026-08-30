@@ -78,7 +78,7 @@ ScreenKit/bin/Release/net48/
 
 Each OCR pack needs ONNX models + `configs.txt` (and dict/keys as required by the pack).
 
-A local **Release** build junctions these folders (and `onnxgpu64`) to the central library when present (`ttsmodels` → `sherpa models`), so the output tree does not duplicate large ONNX/CUDA packs.
+A **Release** build does not copy or junction these folders (or `onnxcpu64` / `onnxgpu64` / `onnxdml64` / `ffmpeg64`). Place them under `bin/Release/net48/` yourself.
 
 ## Build & run
 

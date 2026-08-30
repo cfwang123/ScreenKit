@@ -10,13 +10,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Changed
 
-- Local Release output junctions model folders (`ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`) and **`onnxgpu64`** to the central library (`ttsmodels` → `sherpa models`).
+- Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
 
 ### 中文
 
 #### 变更
 
-- 本地 Release 输出将模型目录（`ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`）和 **`onnxgpu64`** 联接到中央库（`ttsmodels` → `sherpa models`）。
+- Release 编译**不再**复制或联接模型 / ORT / FFmpeg 目录。请自行把 `ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`、`onnxcpu64`、`onnxgpu64`、`onnxdml64`、`ffmpeg64` 放到 `bin/Release/net48/`（目录联接即可）。NuGet 的 GPU/DirectML 原生库也不再拷进输出。
 
 ## v1.0.3 (2026-08-30)
 
