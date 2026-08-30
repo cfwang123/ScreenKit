@@ -4,6 +4,20 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
+## unreleased
+
+### English
+
+#### Changed
+
+- Local Release output junctions **all** model folders (`ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`) to the central library instead of only `facemodels` (`ttsmodels` → `sherpa models`).
+
+### 中文
+
+#### 变更
+
+- 本地 Release 输出将 **全部** 模型目录（`ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`）联接到中央库，不再只联接 `facemodels`（`ttsmodels` → `sherpa models`）。
+
 ## v1.0.3 (2026-08-30)
 
 ### English

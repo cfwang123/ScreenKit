@@ -78,6 +78,8 @@ ScreenKit/bin/Release/net48/
 
 Each OCR pack needs ONNX models + `configs.txt` (and dict/keys as required by the pack).
 
+A local **Release** build junctions these folders to the central library when present (`ttsmodels` → `sherpa models`), so the output tree does not duplicate large ONNX packs.
+
 ## Build & run
 
 ```bash
