@@ -94,7 +94,7 @@
   <!--
     模型包放在输出旁 ocrmodels / ttsmodels / asrmodels / translatemodels / facemodels（不随编译复制）。
     Release 编译将它们联接到中央库（ttsmodels → sherpa models）；无中央库则保持空缺，由「安装功能」下载。
-    GPU DLL：中央库 onnxgpu64；FFmpeg shared 放 ffmpeg64\。
+    GPU DLL：中央库 onnxgpu64（Release 联接到输出）；FFmpeg shared 放 ffmpeg64\。
   -->
 
   <!-- 仅保留 Windows x64 原生：删掉 SkiaSharp/PDFium/OpenCv 等拷来的 arm/musl/x86 等目录 -->
@@ -175,7 +175,6 @@
     <PropertyGroup>
       <_OrtGpuDir>$(NuGetPackageRoot)microsoft.ml.onnxruntime.gpu.windows\1.27.1\runtimes\win-x64\native</_OrtGpuDir>
       <_LibGpu>D:\VS_Projects\Library\dll\onnxgpu64</_LibGpu>
-      <_OutGpu>$(OutputPath)onnxgpu64</_OutGpu>
     </PropertyGroup>
 
     <MakeDir Directories="$(_LibGpu)" Condition="Exists('$(_OrtGpuDir)\onnxruntime_providers_cuda.dll')" />
@@ -191,12 +190,6 @@
       <_DupGpu Include="$(OutputPath)runtimes\win-x64\native\onnxruntime.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_cuda.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_shared.dll;$(OutputPath)runtimes\win-x64\native\onnxruntime_providers_tensorrt.dll" />
     </ItemGroup>
     <Delete Files="@(_DupGpu)" TreatErrorsAsWarnings="true" />
-
-    <PropertyGroup>
-      <_LinkScript>D:\VS_Projects\Library\dll\link-onnxgpu64.ps1</_LinkScript>
-    </PropertyGroup>
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(_LinkScript)&quot; -Project ocr" Condition="'$(Configuration)' == 'Release' And Exists('$(_LinkScript)') And !Exists('$(_OutGpu)\onnxruntime_providers_cuda.dll')" IgnoreExitCode="false" />
-    <Warning Text="输出目录缺少 onnxgpu64。请运行: powershell -File D:\VS_Projects\Library\dll\link-onnxgpu64.ps1 -Project ocr" Condition="'$(Configuration)' == 'Release' And !Exists('$(_OutGpu)\onnxruntime_providers_cuda.dll')" />
 
     <PropertyGroup>
       <_DmlOrtDir Condition="'$(PkgMicrosoft_ML_OnnxRuntime_DirectML)' != ''">$(PkgMicrosoft_ML_OnnxRuntime_DirectML)\runtimes\win-x64\native</_DmlOrtDir>
@@ -216,7 +209,7 @@
     <!-- onnxcpu64 按需安装（FeatureKind.OrtCpu），不随编译附带 -->
   </Target>
 
-  <!-- 模型目录：联接到中央库（不复制大文件）。仅当输出旁尚无该文件夹时创建 junction。 -->
+  <!-- 模型与 onnxgpu64：联接到中央库（不复制大文件）。仅当输出旁尚无该文件夹时创建 junction。 -->
   <Target Name="LinkModelDirs" AfterTargets="CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>
       <_LibDll>D:\VS_Projects\Library\dll</_LibDll>
@@ -227,6 +220,8 @@
     <Exec Command="cmd /c if exist &quot;$(_LibDll)\sherpa models&quot; if not exist &quot;$(_OutRoot)\ttsmodels&quot; mklink /J &quot;$(_OutRoot)\ttsmodels&quot; &quot;$(_LibDll)\sherpa models&quot;" IgnoreExitCode="true" />
     <Exec Command="cmd /c if exist &quot;$(_LibDll)\translatemodels&quot; if not exist &quot;$(_OutRoot)\translatemodels&quot; mklink /J &quot;$(_OutRoot)\translatemodels&quot; &quot;$(_LibDll)\translatemodels&quot;" IgnoreExitCode="true" />
     <Exec Command="cmd /c if exist &quot;$(_LibDll)\facemodels&quot; if not exist &quot;$(_OutRoot)\facemodels&quot; mklink /J &quot;$(_OutRoot)\facemodels&quot; &quot;$(_LibDll)\facemodels&quot;" IgnoreExitCode="true" />
+    <Exec Command="cmd /c if exist &quot;$(_LibDll)\onnxgpu64\onnxruntime_providers_cuda.dll&quot; if not exist &quot;$(_OutRoot)\onnxgpu64&quot; mklink /J &quot;$(_OutRoot)\onnxgpu64&quot; &quot;$(_LibDll)\onnxgpu64&quot;" IgnoreExitCode="true" />
+    <Warning Text="输出目录缺少 onnxgpu64。请将完整 CUDA 包放到中央库 onnxgpu64。" Condition="!Exists('$(_OutRoot)\onnxgpu64\onnxruntime_providers_cuda.dll')" />
   </Target>
 
   <!--

@@ -10,13 +10,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Changed
 
-- Local Release output junctions **all** model folders (`ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`) to the central library instead of only `facemodels` (`ttsmodels` → `sherpa models`).
+- Local Release output junctions model folders (`ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`) and **`onnxgpu64`** to the central library (`ttsmodels` → `sherpa models`).
 
 ### 中文
 
 #### 变更
 
-- 本地 Release 输出将 **全部** 模型目录（`ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`）联接到中央库，不再只联接 `facemodels`（`ttsmodels` → `sherpa models`）。
+- 本地 Release 输出将模型目录（`ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`）和 **`onnxgpu64`** 联接到中央库（`ttsmodels` → `sherpa models`）。
 
 ## v1.0.3 (2026-08-30)
 

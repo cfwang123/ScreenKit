@@ -79,7 +79,7 @@ ScreenKit/bin/Release/net48/
 
 每个 OCR 模型包需包含 ONNX、`configs.txt`，以及字典/keys 等该包所需文件。
 
-本地 **Release** 编译若中央库已有对应目录，会把这些文件夹联接过去（`ttsmodels` → `sherpa models`），避免在输出目录再复制一份大模型。
+本地 **Release** 编译若中央库已有对应目录，会把这些文件夹以及 `onnxgpu64` 联接过去（`ttsmodels` → `sherpa models`），避免在输出目录再复制一份大模型/CUDA 包。
 
 ## 编译与运行
 
