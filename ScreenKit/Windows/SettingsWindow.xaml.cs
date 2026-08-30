@@ -90,9 +90,9 @@ public partial class SettingsWindow : Window {
 		captarget = box;
 		capbtn = btn;
 		capprev = box.Text ?? "";
-		box.Text = "请按下快捷键…";
+		box.Text = Loc.T("set.hotkey.press");
 		box.IsReadOnly = true;
-		btn.Content = "取消";
+		btn.Content = Loc.T("cancel");
 		box.PreviewKeyDown += oncapturekeydown;
 		box.LostKeyboardFocus += oncapturelost;
 		try { box.Focus(); } catch { }
@@ -144,9 +144,9 @@ public partial class SettingsWindow : Window {
 		box.IsReadOnly = false;
 		if (restore)
 			box.Text = capprev ?? "";
-		else if (box.Text == "请按下快捷键…")
+		else if (box.Text == Loc.T("set.hotkey.press") || box.Text == "请按下快捷键…")
 			box.Text = capprev ?? "";
-		if (btn != null) btn.Content = "捕获";
+		if (btn != null) btn.Content = Loc.T("set.hotkey.capture");
 		captarget = null;
 		capbtn = null;
 		capprev = "";
@@ -240,6 +240,52 @@ public partial class SettingsWindow : Window {
 			lbsethttpport.Text = Loc.T("set.http.port");
 			bok.Content = Loc.T("set.ok");
 			bcancel.Content = Loc.T("set.cancel");
+			bhkclear.Content = Loc.T("set.hotkey.clear");
+			bhkcap.Content = Loc.T("set.hotkey.capture");
+			bhksnapclear.Content = Loc.T("set.hotkey.clear");
+			bhksnapcap.Content = Loc.T("set.hotkey.capture");
+			bhkocrclear.Content = Loc.T("set.hotkey.clear");
+			bhkocrcap.Content = Loc.T("set.hotkey.capture");
+			bhkboardclear.Content = Loc.T("set.hotkey.clear");
+			bhkboardcap.Content = Loc.T("set.hotkey.capture");
+			bhkvoiceclear.Content = Loc.T("set.hotkey.clear");
+			bhkvoicecap.Content = Loc.T("set.hotkey.capture");
+			bhkliveclear.Content = Loc.T("set.hotkey.clear");
+			bhklivecap.Content = Loc.T("set.hotkey.capture");
+			bhkclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhkcap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			bhksnapclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhksnapcap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			bhkocrclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhkocrcap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			bhkboardclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhkboardcap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			bhkvoiceclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhkvoicecap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			bhkliveclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhklivecap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			lbsetsnap.Text = Loc.T("set.snap");
+			lbsetsnaphint.Text = Loc.T("set.snap.hint");
+			lbsetsnapfmt.Text = Loc.T("set.snap.fmt");
+			lbsnapjpgq.Text = Loc.T("set.snap.jpgq");
+			esnapjpgq.ToolTip = Loc.T("set.snap.jpgq.tip");
+			esnapmaxen.Content = Loc.T("set.snap.max");
+			lbsetsnapmaxw.Text = Loc.T("set.snap.maxw");
+			lbsetsnapmaxh.Text = Loc.T("set.snap.maxh");
+			lbsetsnapmaxhint.Text = Loc.T("set.snap.max.hint");
+			lbsetsnapcopy.Text = Loc.T("set.snap.copy");
+			lbsetsnapcopyhint.Text = Loc.T("set.snap.copy.hint");
+			esnapcopyimg.Content = Loc.T("set.snap.copy.img");
+			esnapcopyfile.Content = Loc.T("set.snap.copy.file");
+			esnapcopypath.Content = Loc.T("set.snap.copy.path");
+			foreach (ComboBoxItem it in esnapkeep.Items) {
+				var tag = (it.Tag as string) ?? "";
+				it.Content = Loc.T("set.keep." + tag);
+			}
+			foreach (ComboBoxItem it in esnapfmt.Items) {
+				var tag = ((it.Tag as string) ?? "").ToLowerInvariant();
+				it.Content = tag == "jpg" ? Loc.T("set.fmt.jpg") : Loc.T("set.fmt.png");
+			}
 		}
 		catch { }
 	}
@@ -398,7 +444,7 @@ public partial class SettingsWindow : Window {
 		var variant = evariant.SelectedItem as ModelVariant;
 		if (pack == null || variant == null) {
 			tabset.SelectedItem = tabsetocr;
-			MessageBox.Show(this, "请选择模型包与语言/变体", "设置",
+			MessageBox.Show(this, Loc.T("set.need.pack"), Loc.T("settings"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
@@ -421,16 +467,16 @@ public partial class SettingsWindow : Window {
 		Result.DetBoxThresh = (float)eboxth.Value;
 		Result.UseCls = eusecls.IsChecked == true;
 		// 热键留空 = 禁用；非空才校验格式
-		if (!tryreadhotkey(ehotkey, "剪贴板识别", out Result.Hotkey, tabsethk)) return false;
-		if (!tryreadhotkey(ehotkeysnap, "截图标注", out Result.HotkeySnap, tabsethk)) return false;
-		if (!tryreadhotkey(ehotkeysnapocr, "截图识别", out Result.HotkeySnapOcr, tabsethk)) return false;
-		if (!tryreadhotkey(ehotkeyboard, "屏幕画板", out Result.HotkeyBoard, tabsethk)) return false;
-		if (!tryreadhotkey(ehotkeyvoice, "语音输入", out Result.HotkeyVoiceInput, tabsethk)) return false;
-		if (!tryreadhotkey(ehotkeylive, "系统实时字幕", out Result.HotkeyLiveCaption, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkey, Loc.T("set.hotkey.main"), out Result.Hotkey, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeysnap, Loc.T("set.hotkey.snap"), out Result.HotkeySnap, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeysnapocr, Loc.T("set.hotkey.ocr"), out Result.HotkeySnapOcr, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyboard, Loc.T("set.hotkey.board"), out Result.HotkeyBoard, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyvoice, Loc.T("set.hotkey.voice"), out Result.HotkeyVoiceInput, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeylive, Loc.T("set.hotkey.live"), out Result.HotkeyLiveCaption, tabsethk)) return false;
 		Result.AsrVoiceMode = easrvoiceoffline.IsChecked == true ? "offline" : "stream";
 		Result.AsrVoicePolish = easrvoicepolish.IsChecked == true;
 		Result.AsrVoiceSplit = easrvoicesplit.IsChecked == true;
-		if (!tryint(easrvoicesplitsec, "自动分句间隔（秒）", 1, 30, out var splitSec, tabsetasr)) return false;
+		if (!tryint(easrvoicesplitsec, Loc.T("set.asr.voice.split.sec"), 1, 30, out var splitSec, tabsetasr)) return false;
 		Result.AsrVoiceSplitSec = splitSec;
 		Result.AsrLiveMode = easrliveoffline.IsChecked == true ? "offline" : "stream";
 		Result.AsrLivePolish = easrlivepolish.IsChecked == true;
@@ -458,14 +504,14 @@ public partial class SettingsWindow : Window {
 		Result.ScreenshotFormat = string.Equals(fmtTag, "jpg", StringComparison.OrdinalIgnoreCase) ? "jpg" : "png";
 		if (!int.TryParse((esnapjpgq.Text ?? "").Trim(), out var jpgQ) || jpgQ < 1 || jpgQ > 100) {
 			tabset.SelectedItem = tabsetsnap;
-			MessageBox.Show(this, "JPG 质量须为 1–100", "设置",
+			MessageBox.Show(this, Loc.T("set.jpgq.bad"), Loc.T("settings"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
 		Result.ScreenshotJpgQuality = jpgQ;
 		Result.ScreenshotMaxSizeEnabled = esnapmaxen.IsChecked == true;
-		if (!tryint(esnapmaxw, "截图最大宽", 16, 16384, out var smw, tabsetsnap)) return false;
-		if (!tryint(esnapmaxh, "截图最大高", 16, 16384, out var smh, tabsetsnap)) return false;
+		if (!tryint(esnapmaxw, Loc.T("set.maxw.name"), 16, 16384, out var smw, tabsetsnap)) return false;
+		if (!tryint(esnapmaxh, Loc.T("set.maxh.name"), 16, 16384, out var smh, tabsetsnap)) return false;
 		Result.ScreenshotMaxWidth = smw;
 		Result.ScreenshotMaxHeight = smh;
 		// 三选一
@@ -479,7 +525,7 @@ public partial class SettingsWindow : Window {
 		Result.HttpHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host;
 		if (!int.TryParse((ehttpport.Text ?? "").Trim(), out var port) || port < 1 || port > 65535) {
 			tabset.SelectedItem = tabsethttp;
-			MessageBox.Show(this, "HTTP 端口须为 1–65535", "设置",
+			MessageBox.Show(this, Loc.T("set.http.port.bad"), Loc.T("settings"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
@@ -777,7 +823,7 @@ public partial class SettingsWindow : Window {
 		value = 0;
 		if (!int.TryParse((box?.Text ?? "").Trim(), out var n) || n < min || n > max) {
 			if (tab != null) tabset.SelectedItem = tab;
-			MessageBox.Show(this, $"{name}须为 {min}–{max}", "设置",
+			MessageBox.Show(this, Loc.T("set.int.range", name, min, max), Loc.T("settings"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
@@ -791,7 +837,7 @@ public partial class SettingsWindow : Window {
 		if (string.IsNullOrEmpty(value)) return true;
 		if (GlobalHotkey.tryparse(value, out _, out _)) return true;
 		if (tab != null) tabset.SelectedItem = tab;
-		MessageBox.Show(this, $"无法解析{name}热键: {value}\n示例: Ctrl+Alt+O\n留空可禁用该热键", "设置",
+		MessageBox.Show(this, Loc.T("set.hotkey.parse", name, value), Loc.T("settings"),
 			MessageBoxButton.OK, MessageBoxImage.Warning);
 		return false;
 	}

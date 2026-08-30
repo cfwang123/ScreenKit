@@ -36,7 +36,7 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
 					</Grid.RowDefinitions>
-					<TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,6"
+					<TextBlock x:Name="lbfeathint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,6"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
 					           Text="勾选要安装的 OCR/ASR 模型或加速组件。中文系统优先国内镜像。"/>
 					<!-- 状态汇总 + 图例 -->
@@ -44,13 +44,13 @@
 						<StackPanel Orientation="Horizontal" DockPanel.Dock="Right"
 						            VerticalAlignment="Center" Margin="12,0,0,0">
 							<Border Background="#FEE2E2" CornerRadius="4" Padding="8,3" Margin="0,0,6,0">
-								<TextBlock Text="未安装" FontSize="11" FontWeight="SemiBold" Foreground="#B91C1C"/>
+								<TextBlock x:Name="lblegmiss" Text="未安装" FontSize="11" FontWeight="SemiBold" Foreground="#B91C1C"/>
 							</Border>
 							<Border Background="#FEF3C7" CornerRadius="4" Padding="8,3" Margin="0,0,6,0">
-								<TextBlock Text="部分" FontSize="11" FontWeight="SemiBold" Foreground="#B45309"/>
+								<TextBlock x:Name="lblegpart" Text="部分" FontSize="11" FontWeight="SemiBold" Foreground="#B45309"/>
 							</Border>
 							<Border Background="#D1FAE5" CornerRadius="4" Padding="8,3">
-								<TextBlock Text="已安装" FontSize="11" FontWeight="SemiBold" Foreground="#047857"/>
+								<TextBlock x:Name="lblegok" Text="已安装" FontSize="11" FontWeight="SemiBold" Foreground="#047857"/>
 							</Border>
 						</StackPanel>
 						<TextBlock x:Name="lbfeatsum" VerticalAlignment="Center"
@@ -77,12 +77,12 @@
 						<RowDefinition Height="*"/>
 					</Grid.RowDefinitions>
 
-					<TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+					<TextBlock x:Name="lbttshint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
 					           Text="Sherpa-ONNX TTS 模型（GitHub tts-models）。按语言筛选后勾选安装到 ttsmodels。"/>
 
 					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="False">
-						<TextBlock Text="语言" VerticalAlignment="Center" Margin="0,0,6,0"
+						<TextBlock x:Name="lbttslang" Text="语言" VerticalAlignment="Center" Margin="0,0,6,0"
 						           Foreground="{StaticResource TextMuted}"/>
 						<ComboBox x:Name="ettslang" Width="160" Height="28" Margin="0,0,12,0"
 						          VerticalContentAlignment="Center"/>

@@ -29,12 +29,12 @@ static class TtsLang {
 
 	/// <summary>短标签（发音人后缀）。</summary>
 	public static string Label(string lang) => Normalize(lang) switch {
-		Zh => "中",
-		En => "英",
-		Vi => "越",
-		Ja => "日",
-		Ko => "韩",
-		Yue => "粤",
+		Zh => Loc.T("lang.zh.short"),
+		En => Loc.T("lang.en.short"),
+		Vi => Loc.T("lang.vi.short"),
+		Ja => Loc.T("lang.ja.short"),
+		Ko => Loc.T("lang.ko.short"),
+		Yue => Loc.T("lang.yue.short"),
 		"" => "",
 		var x => x,
 	};
@@ -42,21 +42,14 @@ static class TtsLang {
 	/// <summary>筛选下拉显示名。</summary>
 	public static string DisplayName(string lang) {
 		lang = Normalize(lang);
-		if (string.IsNullOrEmpty(lang)) return "全部语言";
-		try {
-			var ci = new System.Globalization.CultureInfo(lang);
-			var native = ci.NativeName;
-			if (!string.IsNullOrWhiteSpace(native) && !string.Equals(native, lang, StringComparison.OrdinalIgnoreCase))
-				return $"{native} ({lang})";
-		}
-		catch { }
+		if (string.IsNullOrEmpty(lang)) return Loc.T("lang.all");
 		return lang switch {
-			Zh => "中文 (zh)",
-			En => "English (en)",
-			Vi => "Tiếng Việt (vi)",
-			Ja => "日本語 (ja)",
-			Ko => "한국어 (ko)",
-			Yue => "粤语 (yue)",
+			Zh => $"{Loc.T("lang.zh")} (zh)",
+			En => $"{Loc.T("lang.en")} (en)",
+			Vi => $"{Loc.T("lang.vi")} (vi)",
+			Ja => $"{Loc.T("lang.ja")} (ja)",
+			Ko => $"{Loc.T("lang.ko")} (ko)",
+			Yue => $"{Loc.T("lang.yue")} (yue)",
 			_ => lang,
 		};
 	}

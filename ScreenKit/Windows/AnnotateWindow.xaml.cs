@@ -67,6 +67,36 @@ partial class AnnotateWindow : Window {
 		bclose.Click += (_, _) => { DialogResult = false; Close(); };
 		WindowEsc.Attach(this, () => { DialogResult = false; Close(); });
 		settool(Tool.Rect);
+		applyannlang();
+	}
+
+	void applyannlang() {
+		Title = Loc.T("ann.title");
+		lbanntools.Text = Loc.T("ann.tools");
+		trect.Content = Loc.T("ann.rect");
+		trect.ToolTip = Loc.T("ann.rect.tip");
+		tline.Content = Loc.T("ann.line");
+		tline.ToolTip = Loc.T("ann.line.tip");
+		tarrow.Content = Loc.T("ann.arrow");
+		tarrow.ToolTip = Loc.T("ann.arrow.tip");
+		ttext.Content = Loc.T("ann.text");
+		ttext.ToolTip = Loc.T("ann.text.tip");
+		lbanncolor.Text = Loc.T("ann.color");
+		itannred.Content = Loc.T("ann.red");
+		itannorange.Content = Loc.T("ann.orange");
+		itannyellow.Content = Loc.T("ann.yellow");
+		itanngreen.Content = Loc.T("ann.green");
+		itannblue.Content = Loc.T("ann.blue");
+		itannpurple.Content = Loc.T("ann.purple");
+		itannwhite.Content = Loc.T("ann.white");
+		itannblack.Content = Loc.T("ann.black");
+		lbannfontsize.Text = Loc.T("ann.fontsize");
+		lbannthick.Text = Loc.T("ann.thick");
+		bundo.Content = Loc.T("ann.undo");
+		bclear.Content = Loc.T("ann.clear");
+		bsave.Content = Loc.T("tb.save");
+		bcopy.Content = Loc.T("copy");
+		bclose.Content = Loc.T("close");
 	}
 
 	void inittools() {
@@ -442,7 +472,7 @@ partial class AnnotateWindow : Window {
 	void clearall() {
 		committextedit();
 		if (strokes.Count == 0) return;
-		if (MessageBox.Show(this, "清空全部标注？", "截图标注",
+		if (MessageBox.Show(this, Loc.T("ann.clear.ask"), Loc.T("ann.title"),
 			    MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
 			return;
 		foreach (var s in strokes)
@@ -467,8 +497,8 @@ partial class AnnotateWindow : Window {
 
 	void savefile() {
 		var sfd = new Microsoft.Win32.SaveFileDialog {
-			Title = "保存截图",
-			Filter = "PNG 图片|*.png|JPEG 图片|*.jpg|BMP 图片|*.bmp",
+			Title = Loc.T("ann.save"),
+			Filter = Loc.T("ann.filter"),
 			FileName = $"shot_{DateTime.Now:yyyyMMdd_HHmmss}.png",
 			AddExtension = true,
 			DefaultExt = ".png",
@@ -478,12 +508,12 @@ partial class AnnotateWindow : Window {
 			var bmp = render();
 			ImageUtil.Savefile(bmp, sfd.FileName);
 			ResultImage = bmp;
-			lbhint.Text = "已保存: " + sfd.FileName;
-			MessageBox.Show(this, "已保存：\n" + sfd.FileName, "截图标注",
+			lbhint.Text = string.Format(Loc.T("ann.saved.hint"), sfd.FileName);
+			MessageBox.Show(this, string.Format(Loc.T("ann.saved"), sfd.FileName), Loc.T("ann.title"),
 				MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 		catch (Exception ex) {
-			MessageBox.Show(this, ex.Message, "保存失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(this, ex.Message, Loc.T("ann.save.fail"), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 
@@ -492,12 +522,12 @@ partial class AnnotateWindow : Window {
 			var bmp = render();
 			ImageUtil.Toclipboard(bmp);
 			ResultImage = bmp;
-			lbhint.Text = "已复制到剪贴板";
-			MessageBox.Show(this, "图片已复制到剪贴板", "截图标注",
+			lbhint.Text = Loc.T("ann.copied.hint");
+			MessageBox.Show(this, Loc.T("ann.copied"), Loc.T("ann.title"),
 				MessageBoxButton.OK, MessageBoxImage.Information);
 		}
 		catch (Exception ex) {
-			MessageBox.Show(this, ex.Message, "复制失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(this, ex.Message, Loc.T("ann.copy.fail"), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 }

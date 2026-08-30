@@ -8,7 +8,10 @@ namespace ScreenKit;
 /// <summary>MainWindow：人脸识别 Tab（InsightFace ONNX）。</summary>
 public partial class MainWindow {
 	static readonly string[] FaceImageExts = [".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"];
-	const string FaceNone = "(无)";
+	static string FaceNoneLabel => Loc.T("face.none");
+	static bool isfacenone(string s) => string.IsNullOrEmpty(s) || s == FaceNoneLabel || s == "(无)" || s == "(none)";
+	enum FaceStatTone { Ok, Warn, Bad }
+	static string faceside(bool left) => Loc.T(left ? "face.side.L" : "face.side.R");
 
 	FacePipeline facePipe;
 	LandmarkDetector faceLmk;
@@ -24,10 +27,10 @@ public partial class MainWindow {
 	void initface() {
 		faceUiLoading = true;
 		efacecompute.Items.Clear();
-		efacecompute.Items.Add(new ComboBoxItem { Content = "自动（CUDA→核显→CPU）", Tag = TtsComputeMode.Auto });
-		efacecompute.Items.Add(new ComboBoxItem { Content = "GPU（NVIDIA CUDA）", Tag = TtsComputeMode.Gpu });
-		efacecompute.Items.Add(new ComboBoxItem { Content = "核显（Intel DirectML）", Tag = TtsComputeMode.Igpu });
-		efacecompute.Items.Add(new ComboBoxItem { Content = "CPU", Tag = TtsComputeMode.Cpu });
+		efacecompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Auto), Tag = TtsComputeMode.Auto });
+		efacecompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Gpu), Tag = TtsComputeMode.Gpu });
+		efacecompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Igpu), Tag = TtsComputeMode.Igpu });
+		efacecompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Cpu), Tag = TtsComputeMode.Cpu });
 		var wantComp = parsefacecompute(opt.FaceCompute);
 		foreach (ComboBoxItem it in efacecompute.Items) {
 			if (it.Tag is TtsComputeMode m && m == wantComp) {
@@ -76,7 +79,7 @@ public partial class MainWindow {
 		};
 		bfacereload.Click += (_, _) => {
 			scanfacemodels();
-			facelog("已刷新 facemodels");
+			facelog(Loc.T("face.reloaded"));
 		};
 		bfacepasteL.Click += (_, _) => facepaste(true);
 		bfacepasteR.Click += (_, _) => facepaste(false);
@@ -121,27 +124,27 @@ public partial class MainWindow {
 			fillfacecombo(efacedet, det, opt.FaceDetModel, "scrfd_10g_kps.onnx");
 			fillfacecombo(efacereg, reg, opt.FaceRegModel, "glint360k_r100.onnx");
 
-			var lmkItems = new List<string> { FaceNone };
+			var lmkItems = new List<string> { FaceNoneLabel };
 			lmkItems.AddRange(lmk);
 			fillfacecombo(efacelmk, lmkItems,
-				string.IsNullOrWhiteSpace(opt.FaceLmkModel) ? FaceNone : opt.FaceLmkModel, FaceNone);
+				string.IsNullOrWhiteSpace(opt.FaceLmkModel) ? FaceNoneLabel : opt.FaceLmkModel, FaceNoneLabel);
 
-			var attrItems = new List<string> { FaceNone };
+			var attrItems = new List<string> { FaceNoneLabel };
 			attrItems.AddRange(attr);
 			var wantAttr = string.IsNullOrWhiteSpace(opt.FaceAttrModel)
-				? (attr.Contains(GenderAgeDetector.DefaultModelFile) ? GenderAgeDetector.DefaultModelFile : FaceNone)
+				? (attr.Contains(GenderAgeDetector.DefaultModelFile) ? GenderAgeDetector.DefaultModelFile : FaceNoneLabel)
 				: opt.FaceAttrModel;
-			fillfacecombo(efaceattr, attrItems, wantAttr, FaceNone);
+			fillfacecombo(efaceattr, attrItems, wantAttr, FaceNoneLabel);
 
 			var root = FaceModels.ModelsRoot();
 			lbfacehint.Text = onnx.Count > 0
-				? $"模型：{root} · {onnx.Count} 个 ONNX。拖入图片或 .feat；两侧均有特征时自动比对。"
-				: $"未找到模型 → {root}（将 InsightFace ONNX 放到程序旁 facemodels/）";
+				? string.Format(Loc.T("face.hint.found"), root, onnx.Count)
+				: string.Format(Loc.T("face.hint.missing"), root);
 			if (lbfacestatus != null)
-				lbfacestatus.Text = onnx.Count > 0 ? "就绪" : "未找到 facemodels";
+				lbfacestatus.Text = onnx.Count > 0 ? Loc.T("ready") : Loc.T("face.status.nomodels");
 		}
 		catch (Exception ex) {
-			lbfacehint.Text = "扫描失败: " + ex.Message;
+			lbfacehint.Text = string.Format(Loc.T("face.scan.fail"), ex.Message);
 		}
 		finally { faceUiLoading = false; }
 	}
@@ -200,16 +203,16 @@ public partial class MainWindow {
 		efacelog.ScrollToEnd();
 	}
 
-	void facesetstatus(bool left, string status, string source) {
+	void facesetstatus(bool left, string status, string source, FaceStatTone tone = FaceStatTone.Warn) {
 		var lbStat = left ? lbfacestatL : lbfacestatR;
 		var lbSrc = left ? lbfacesrcL : lbfacesrcR;
 		lbStat.Text = status;
 		lbSrc.Text = source;
-		var ok = status.StartsWith("特征: 已生成");
-		var bad = status.Contains("未") || status.Contains("失败") || status.Contains("出错");
-		lbStat.Foreground = new SolidColorBrush(ok
-			? Color.FromRgb(0, 140, 80)
-			: bad ? Color.FromRgb(200, 50, 50) : Color.FromRgb(200, 120, 40));
+		lbStat.Foreground = new SolidColorBrush(tone switch {
+			FaceStatTone.Ok => Color.FromRgb(0, 140, 80),
+			FaceStatTone.Bad => Color.FromRgb(200, 50, 50),
+			_ => Color.FromRgb(200, 120, 40),
+		});
 	}
 
 	void facesetbusy(bool left, bool busy) {
@@ -231,9 +234,9 @@ public partial class MainWindow {
 			imgfaceR.Source = null;
 			lbfacehintR.Visibility = Visibility.Visible;
 		}
-		facesetstatus(left, "特征: 未生成", "来源: —");
+		facesetstatus(left, Loc.T("face.feat.none"), Loc.T("face.src"));
 		updatefacesim(false);
-		facelog((left ? "左侧" : "右侧") + " 已清除");
+		facelog(string.Format(Loc.T("face.cleared"), faceside(left)));
 	}
 
 	void clearfacesides() {
@@ -242,8 +245,8 @@ public partial class MainWindow {
 		imgfaceR.Source = null;
 		lbfacehintL.Visibility = Visibility.Visible;
 		lbfacehintR.Visibility = Visibility.Visible;
-		facesetstatus(true, "特征: 未生成", "来源: —");
-		facesetstatus(false, "特征: 未生成", "来源: —");
+		facesetstatus(true, Loc.T("face.feat.none"), Loc.T("face.src"));
+		facesetstatus(false, Loc.T("face.feat.none"), Loc.T("face.src"));
 		updatefacesim(false);
 	}
 
@@ -260,20 +263,20 @@ public partial class MainWindow {
 	void facesavefeat(bool left) {
 		var feat = left ? faceFeatL : faceFeatR;
 		if (feat == null) {
-			MessageBox.Show(this, (left ? "左侧" : "右侧") + "尚未生成特征，无法保存。", "提示");
+			MessageBox.Show(this, string.Format(Loc.T("face.nofeat.save"), faceside(left)), Loc.T("face.tip"));
 			return;
 		}
 		var dlg = new SaveFileDialog {
-			Filter = "特征文件 (*.feat)|*.feat|所有文件 (*.*)|*.*",
+			Filter = Loc.T("face.feat.filter"),
 			FileName = (left ? "face_left" : "face_right") + ".feat"
 		};
 		if (dlg.ShowDialog(this) != true) return;
 		try {
 			FeatureFile.Save(dlg.FileName, feat);
-			MessageBox.Show(this, "已保存特征到:\n" + dlg.FileName, "保存成功");
+			MessageBox.Show(this, string.Format(Loc.T("face.saved"), dlg.FileName), Loc.T("face.save.ok"));
 		}
 		catch (Exception ex) {
-			MessageBox.Show(this, "保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+			MessageBox.Show(this, string.Format(Loc.T("face.save.fail"), ex.Message), Loc.T("face.err.title"), MessageBoxButton.OK, MessageBoxImage.Error);
 		}
 	}
 
@@ -283,10 +286,10 @@ public partial class MainWindow {
 		BitmapSource img = null;
 		try { img = ImageUtil.Fromclipboard(); } catch { }
 		if (img == null) {
-			MessageBox.Show(this, "剪贴板中没有图片，请先复制或截图。", "提示");
+			MessageBox.Show(this, Loc.T("face.noclip"), Loc.T("face.tip"));
 			return;
 		}
-		_ = faceloadbitmap(img, left, "剪贴板粘贴");
+		_ = faceloadbitmap(img, left, Loc.T("face.src.clipboard"));
 	}
 
 	static bool hasfacefiledrop(IDataObject data) => pickfacepath(data) != null;
@@ -317,27 +320,27 @@ public partial class MainWindow {
 			return;
 		}
 		if (!isfaceimg(ext)) {
-			facesetstatus(left, "特征: 不支持的文件类型", "来源: " + Path.GetFileName(path));
+			facesetstatus(left, Loc.T("face.feat.badtype"), string.Format(Loc.T("face.src.name"), Path.GetFileName(path)), FaceStatTone.Bad);
 			return;
 		}
 		await faceloadfile(path, left);
 	}
 
 	void faceloadfeat(string path, bool left) {
-		var side = left ? "左侧" : "右侧";
+		var side = faceside(left);
 		var sw = Stopwatch.StartNew();
 		try {
 			var feat = FeatureFile.Load(path);
 			sw.Stop();
 			if (left) faceFeatL = feat; else faceFeatR = feat;
-			if (left) { imgfaceL.Source = null; lbfacehintL.Text = "特征文件\n（无图像）"; lbfacehintL.Visibility = Visibility.Visible; }
-			else { imgfaceR.Source = null; lbfacehintR.Text = "特征文件\n（无图像）"; lbfacehintR.Visibility = Visibility.Visible; }
-			facesetstatus(left, "特征: 已生成", "来源: 特征文件 " + Path.GetFileName(path));
+			if (left) { imgfaceL.Source = null; lbfacehintL.Text = Loc.T("face.featfile.hint"); lbfacehintL.Visibility = Visibility.Visible; }
+			else { imgfaceR.Source = null; lbfacehintR.Text = Loc.T("face.featfile.hint"); lbfacehintR.Visibility = Visibility.Visible; }
+			facesetstatus(left, Loc.T("face.feat.done"), string.Format(Loc.T("face.src.featfile"), Path.GetFileName(path)), FaceStatTone.Ok);
 			facelog($"{side} 加载特征文件: {Path.GetFileName(path)} → {feat.Length}维 ({sw.Elapsed.TotalMilliseconds:F1}ms)");
 			updatefacesim(true);
 		}
 		catch (Exception ex) {
-			facesetstatus(left, "特征: 读取失败", "错误: " + ex.Message);
+			facesetstatus(left, Loc.T("face.feat.readfail"), string.Format(Loc.T("face.err.prefix"), ex.Message), FaceStatTone.Bad);
 			facelog(side + " 特征文件读取失败: " + ex.Message);
 			if (left) faceFeatL = null; else faceFeatR = null;
 			updatefacesim(false);
@@ -348,22 +351,22 @@ public partial class MainWindow {
 		if (left && faceBusyL) return;
 		if (!left && faceBusyR) return;
 		facesetbusy(left, true);
-		var side = left ? "左侧" : "右侧";
+		var side = faceside(left);
 		var name = displayName ?? Path.GetFileName(path);
-		facesetstatus(left, "特征: 识别中…", "来源: " + name);
+		facesetstatus(left, Loc.T("face.feat.working"), string.Format(Loc.T("face.src.name"), name));
 		facelog(side + " 开始处理: " + name);
 
 		try {
 			if (!FeaturePrompt.EnsureOpenCv(this)) {
-				facesetstatus(left, "特征: 缺少 OpenCV", "请安装 OpenCV 运行库");
+				facesetstatus(left, Loc.T("face.feat.noopencv"), Loc.T("face.need.opencv"), FaceStatTone.Bad);
 				return;
 			}
 			if (!FeaturePrompt.EnsureOcrOrt(this)) {
-				facesetstatus(left, "特征: 缺少 ONNX Runtime", "请安装 CPU/GPU/核显组件");
+				facesetstatus(left, Loc.T("face.feat.noonnx"), Loc.T("face.need.onnx"), FaceStatTone.Bad);
 				return;
 			}
 			if (!FeaturePrompt.EnsureFaceModels(this)) {
-				facesetstatus(left, "特征: 缺少人脸模型", "请安装 InsightFace buffalo_l");
+				facesetstatus(left, Loc.T("face.feat.nomodel"), Loc.T("face.need.model"), FaceStatTone.Bad);
 				return;
 			}
 
@@ -374,7 +377,7 @@ public partial class MainWindow {
 					throw new IOException("无法读取图片");
 			}
 			catch (Exception ex) {
-				facesetstatus(left, "特征: 图片读取失败", "错误: " + ex.Message);
+				facesetstatus(left, Loc.T("face.feat.imgfail"), string.Format(Loc.T("face.err.prefix"), ex.Message), FaceStatTone.Bad);
 				facelog(side + " 图片读取失败: " + ex.Message);
 				if (left) faceFeatL = null; else faceFeatR = null;
 				return;
@@ -389,25 +392,25 @@ public partial class MainWindow {
 		if (left && faceBusyL) return;
 		if (!left && faceBusyR) return;
 		facesetbusy(left, true);
-		facesetstatus(left, "特征: 识别中…", "来源: " + name);
-		facelog((left ? "左侧" : "右侧") + " 开始处理: " + name);
+		facesetstatus(left, Loc.T("face.feat.working"), string.Format(Loc.T("face.src.name"), name));
+		facelog(faceside(left) + " 开始处理: " + name);
 		try {
 			if (!FeaturePrompt.EnsureOpenCv(this)) {
-				facesetstatus(left, "特征: 缺少 OpenCV", "请安装 OpenCV 运行库");
+				facesetstatus(left, Loc.T("face.feat.noopencv"), Loc.T("face.need.opencv"), FaceStatTone.Bad);
 				return;
 			}
 			if (!FeaturePrompt.EnsureOcrOrt(this)) {
-				facesetstatus(left, "特征: 缺少 ONNX Runtime", "请安装 CPU/GPU/核显组件");
+				facesetstatus(left, Loc.T("face.feat.noonnx"), Loc.T("face.need.onnx"), FaceStatTone.Bad);
 				return;
 			}
 			if (!FeaturePrompt.EnsureFaceModels(this)) {
-				facesetstatus(left, "特征: 缺少人脸模型", "请安装 InsightFace buffalo_l");
+				facesetstatus(left, Loc.T("face.feat.nomodel"), Loc.T("face.need.model"), FaceStatTone.Bad);
 				return;
 			}
 			Mat mat;
 			try { mat = ImageUtil.Tobgr(src); }
 			catch (Exception ex) {
-				facesetstatus(left, "特征: 图片读取失败", "错误: " + ex.Message);
+				facesetstatus(left, Loc.T("face.feat.imgfail"), string.Format(Loc.T("face.err.prefix"), ex.Message), FaceStatTone.Bad);
 				return;
 			}
 			await facerunmat(mat, left, name);
@@ -416,13 +419,13 @@ public partial class MainWindow {
 	}
 
 	async Task facerunmat(Mat mat, bool left, string name) {
-		var side = left ? "左侧" : "右侧";
+		var side = faceside(left);
 		var lmkName = efacelmk.SelectedItem as string ?? "";
 		var attrName = efaceattr.SelectedItem as string ?? "";
 		var detName = efacedet.SelectedItem as string ?? "";
 		var regName = efacereg.SelectedItem as string ?? "";
-		bool runLmk = lmkName != "" && lmkName != FaceNone;
-		bool runAttr = attrName != "" && attrName != FaceNone;
+		bool runLmk = !isfacenone(lmkName);
+		bool runAttr = !isfacenone(attrName);
 		var mode = facecurcompute();
 
 		FaceExtractResult result = null;
@@ -467,7 +470,7 @@ public partial class MainWindow {
 		catch (Exception ex) { err = ex.Message; }
 
 		if (err != null) {
-			facesetstatus(left, "特征: 识别出错", "错误: " + err);
+			facesetstatus(left, Loc.T("face.feat.err"), string.Format(Loc.T("face.err.prefix"), err), FaceStatTone.Bad);
 			facelog(side + " 识别出错: " + err);
 			if (left) faceFeatL = null; else faceFeatR = null;
 			showfaceimg(left, ImageUtil.Frombgr(mat));
@@ -478,7 +481,7 @@ public partial class MainWindow {
 
 		if (result == null || result.Feature == null || result.Face == null) {
 			int n = result != null ? result.FaceCount : 0;
-			facesetstatus(left, "特征: 未检测到人脸", "来源: " + name);
+			facesetstatus(left, Loc.T("face.feat.noface"), string.Format(Loc.T("face.src.name"), name), FaceStatTone.Warn);
 			facelog($"{side} 加载 {result?.LoadMs:F0}ms | 检测 {n} 个 {result?.DetectMs:F0}ms → 未检测到人脸");
 			if (left) faceFeatL = null; else faceFeatR = null;
 			showfaceimg(left, ImageUtil.Frombgr(mat));
@@ -493,8 +496,8 @@ public partial class MainWindow {
 
 		if (left) faceFeatL = result.Feature; else faceFeatR = result.Feature;
 		var attrText = genderAge.HasValue ? ", " + genderAge.Value : "";
-		facesetstatus(left, "特征: 已生成",
-			$"来源: {name} (InsightFace/{ep}, 置信度 {result.Face.Score:F2}{attrText})");
+		facesetstatus(left, Loc.T("face.feat.done"),
+			string.Format(Loc.T("face.src.detail"), name, ep, result.Face.Score, attrText), FaceStatTone.Ok);
 		facelog($"{side} 加载图片: {result.LoadMs:F0}ms");
 		facelog($"{side} 检测人脸: {result.FaceCount}个, 置信度 {result.Face.Score:F2} ({result.DetectMs:F0}ms)");
 		facelog($"{side} 特征提取: {result.Feature.Length} 维 ({result.ExtractMs:F0}ms) 后端={ep}");
@@ -539,7 +542,7 @@ public partial class MainWindow {
 	}
 
 	void ensurefacelmk(string modelFileName, TtsComputeMode mode) {
-		if (string.IsNullOrEmpty(modelFileName) || modelFileName == FaceNone) return;
+		if (isfacenone(modelFileName)) return;
 		if (faceLmk != null && faceLmkName == modelFileName) return;
 		disposefacelmk();
 		var path = FaceModels.PathOf(modelFileName);
@@ -549,7 +552,7 @@ public partial class MainWindow {
 	}
 
 	void ensurefaceattr(string modelFileName, TtsComputeMode mode) {
-		if (string.IsNullOrEmpty(modelFileName) || modelFileName == FaceNone) return;
+		if (isfacenone(modelFileName)) return;
 		if (faceAttr != null && faceAttrName == modelFileName) return;
 		disposefaceattr();
 		var path = FaceModels.PathOf(modelFileName);
@@ -583,7 +586,7 @@ public partial class MainWindow {
 
 	void updatefacesim(bool logCompare = false) {
 		if (faceFeatL == null || faceFeatR == null) {
-			lbfacesim.Text = "相似度: （等待两侧特征）";
+			lbfacesim.Text = Loc.T("face.sim.wait");
 			lbfacesim.Foreground = new SolidColorBrush(Colors.Gray);
 			return;
 		}
@@ -591,18 +594,18 @@ public partial class MainWindow {
 		float sim;
 		try { sim = FaceSimilarity.Cosine(faceFeatL, faceFeatR); }
 		catch (Exception ex) {
-			lbfacesim.Text = "相似度: 无法对比（" + ex.Message + "）";
+			lbfacesim.Text = string.Format(Loc.T("face.sim.err"), ex.Message);
 			lbfacesim.Foreground = new SolidColorBrush(Color.FromRgb(200, 50, 50));
 			return;
 		}
 		sw.Stop();
 		float thresh = (float)efacethresh.Value;
 		bool match = sim >= thresh;
-		lbfacesim.Text = $"相似度: {sim:F4}  →  {(match ? "同一人" : "不同人")} (阈值 {thresh:F2})";
+		lbfacesim.Text = string.Format(Loc.T("face.sim.fmt"), sim, match ? Loc.T("face.sim.same") : Loc.T("face.sim.diff"), thresh);
 		lbfacesim.Foreground = new SolidColorBrush(match
 			? Color.FromRgb(0, 140, 80) : Color.FromRgb(200, 50, 50));
 		if (logCompare)
-			facelog($"对比特征值: {sim:F4} → {(match ? "同一人" : "不同人")} ({sw.Elapsed.TotalMilliseconds:F1}ms)");
+			facelog($"{sim:F4} → {(match ? Loc.T("face.sim.same") : Loc.T("face.sim.diff"))} ({sw.Elapsed.TotalMilliseconds:F1}ms)");
 	}
 
 	static void drawfaceoverlay(Mat bgr, FaceBox face, float[] dense, int lmkDim, int lmkNum,
@@ -643,6 +646,42 @@ public partial class MainWindow {
 		try {
 			tabface.Header = Loc.T("tab.face");
 			lbfacebrand.Text = Loc.T("tab.face");
+			if (string.IsNullOrWhiteSpace(lbfacestatus.Text) || lbfacestatus.Text == "就绪" || lbfacestatus.Text == Loc.T("ready")
+				|| lbfacestatus.Text == Loc.T("face.status.nomodels"))
+				lbfacestatus.Text = Loc.T("ready");
+			lbfacedet.Text = Loc.T("face.det");
+			efacedet.ToolTip = Loc.T("face.det.tip");
+			lbfacerec.Text = Loc.T("face.rec");
+			efacereg.ToolTip = Loc.T("face.rec.tip");
+			lbfacecompute.Text = Loc.T("face.compute");
+			efacecompute.ToolTip = Loc.T("face.compute.tip");
+			lbfacelmk.Text = Loc.T("face.lmk");
+			efacelmk.ToolTip = Loc.T("face.lmk.tip");
+			lbfaceattr.Text = Loc.T("face.attr");
+			efaceattr.ToolTip = Loc.T("face.attr.tip");
+			bfacereload.Content = Loc.T("reload.models");
+			bfacereload.ToolTip = Loc.T("face.reload.tip");
+			lbfacehint.Text = Loc.T("face.hint");
+			updatefacesim(false);
+			lbfaceleft.Text = Loc.T("face.left");
+			lbfaceright.Text = Loc.T("face.right");
+			bfacepasteL.Content = Loc.T("face.paste");
+			bfacepasteR.Content = Loc.T("face.paste");
+			bfacepasteL.ToolTip = Loc.T("face.paste.tip");
+			bfacepasteR.ToolTip = Loc.T("face.paste.tip");
+			bfaceclearL.Content = Loc.T("face.clear");
+			bfaceclearR.Content = Loc.T("face.clear");
+			bfacesaveL.Content = Loc.T("face.savefeat");
+			bfacesaveR.Content = Loc.T("face.savefeat");
+			bfacesaveL.ToolTip = Loc.T("face.savefeat.L.tip");
+			bfacesaveR.ToolTip = Loc.T("face.savefeat.R.tip");
+			if (imgfaceL.Source == null) lbfacehintL.Text = Loc.T("face.drop");
+			if (imgfaceR.Source == null) lbfacehintR.Text = Loc.T("face.drop");
+			bfaceswap.Content = Loc.T("face.swap");
+			lbfacethreshlabel.Text = Loc.T("face.thresh");
+			if ((lbfacesim.Text ?? "").Contains("等待") || (lbfacesim.Text ?? "").Contains("waiting"))
+				lbfacesim.Text = Loc.T("face.sim.wait");
+			applycomputebox(efacecompute);
 		}
 		catch { }
 	}

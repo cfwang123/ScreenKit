@@ -56,18 +56,18 @@ public partial class MainWindow {
 
 		asrUiLoading = true;
 		easrcompute.Items.Clear();
-		easrcompute.Items.Add(new ComboBoxItem { Content = "自动（CUDA→核显→CPU）", Tag = TtsComputeMode.Auto });
-		easrcompute.Items.Add(new ComboBoxItem { Content = "GPU（NVIDIA CUDA）", Tag = TtsComputeMode.Gpu });
-		easrcompute.Items.Add(new ComboBoxItem { Content = "核显（Intel DirectML）", Tag = TtsComputeMode.Igpu });
-		easrcompute.Items.Add(new ComboBoxItem { Content = "CPU", Tag = TtsComputeMode.Cpu });
+		easrcompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Auto), Tag = TtsComputeMode.Auto });
+		easrcompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Gpu), Tag = TtsComputeMode.Gpu });
+		easrcompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Igpu), Tag = TtsComputeMode.Igpu });
+		easrcompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Cpu), Tag = TtsComputeMode.Cpu });
 		easrcompute.SelectedIndex = 0;
 
 		easrlang.Items.Clear();
-		foreach (var (label, tag) in new[] {
-			("自动", "auto"), ("中文", "zh"), ("英文", "en"),
-			("日文", "ja"), ("韩文", "ko"), ("粤语", "yue"),
+		foreach (var (key, tag) in new[] {
+			("lang.auto", "auto"), ("lang.zh", "zh"), ("lang.en", "en"),
+			("lang.ja", "ja"), ("lang.ko", "ko"), ("lang.yue", "yue"),
 		})
-			easrlang.Items.Add(new ComboBoxItem { Content = label, Tag = tag });
+			easrlang.Items.Add(new ComboBoxItem { Content = Loc.T(key), Tag = tag });
 		easrlang.SelectedIndex = 0;
 
 		var wantComp = (opt.AsrCompute ?? "Auto").Trim().ToLowerInvariant() switch {
@@ -93,7 +93,7 @@ public partial class MainWindow {
 				if (asrStreamEngine != null) asrStreamEngine.Mode = m;
 				try { asrEngine?.UnloadSafe(); } catch { }
 				try { asrStreamEngine?.UnloadSafe(); } catch { }
-				lbasrstatus.Text = "计算设备 → " + it.Content + "（下次识别时加载）";
+				lbasrstatus.Text = Loc.T("asr.dev.changed", it.Content);
 				saveasrprefs();
 			}
 		};
@@ -142,21 +142,21 @@ public partial class MainWindow {
 		};
 		basrclear.Click += (_, _) => {
 			if (asrLiveOn) {
-				lbasrstatus.Text = "实时字幕进行中，请先停止后再清空";
+				lbasrstatus.Text = Loc.T("asr.live.clear.block");
 				return;
 			}
 			easrtext.Text = "";
-			lbasrstatus.Text = "已清空";
+			lbasrstatus.Text = Loc.T("cleared");
 		};
 		basrcopy.Click += (_, _) => {
 			var t = easrtext.Text ?? "";
 			if (string.IsNullOrEmpty(t)) {
-				lbasrstatus.Text = "无内容可复制";
+				lbasrstatus.Text = Loc.T("asr.copy.empty");
 				return;
 			}
 			try {
 				Clipboard.SetText(t);
-				lbasrstatus.Text = "已复制识别结果";
+				lbasrstatus.Text = Loc.T("asr.copied");
 			}
 			catch (Exception ex) { lbasrstatus.Text = "复制失败: " + ex.Message; }
 		};
@@ -1790,7 +1790,7 @@ public partial class MainWindow {
 	}
 
 	void asrtrefreshcount() {
-		lbasrtcount.Text = asrtQueue.Count + " 个";
+		lbasrtcount.Text = Loc.T("asr.count", asrtQueue.Count);
 	}
 
 	string asrtresolveoutdir(string srcPath) {
@@ -2079,6 +2079,74 @@ public partial class MainWindow {
 			basropen.IsEnabled = false;
 			basrlive.IsEnabled = true;
 		}
+	}
+
+	void applyasrlang() {
+		lbasrbrand.Text = Loc.T("tab.asr");
+		if (string.IsNullOrWhiteSpace(lbasrstatus.Text) || lbasrstatus.Text == "就绪" || lbasrstatus.Text == Loc.T("ready"))
+			lbasrstatus.Text = Loc.T("ready");
+		lbasrcompute.Text = Loc.T("asr.compute");
+		easrcompute.ToolTip = Loc.T("asr.compute.tip");
+		lbasrlang.Text = Loc.T("asr.lang");
+		easrlang.ToolTip = Loc.T("asr.lang.tip");
+		lbasrstream.Text = Loc.T("asr.stream");
+		easrmodelstream.ToolTip = Loc.T("asr.stream.tip");
+		basrreload.Content = Loc.T("reload.models");
+		basrreload.ToolTip = Loc.T("asr.reload.tip");
+		lbasroffline.Text = Loc.T("asr.offline");
+		easrmodel.ToolTip = Loc.T("asr.offline.tip");
+		lbasropt.Text = Loc.T("asr.opt");
+		casritn.Content = Loc.T("asr.itn");
+		casritn.ToolTip = Loc.T("asr.itn.tip");
+		lbasrhint.Text = Loc.T("asr.hint");
+		tabasrrec.Header = Loc.T("asr.tab.rec");
+		tabasrsrt.Header = Loc.T("asr.tab.srt");
+		lbasrav.Text = Loc.T("asr.av");
+		basropen.Content = Loc.T("asr.open");
+		basropen.ToolTip = Loc.T("asr.open.tip");
+		lbasrsource.Text = Loc.T("asr.source");
+		easrsource.ToolTip = Loc.T("asr.source.tip");
+		itasrmic.Content = Loc.T("asr.src.mic");
+		itasrsys.Content = Loc.T("asr.src.sys");
+		itasrboth.Content = Loc.T("asr.src.both");
+		basrrec.Content = Loc.T("asr.rec");
+		basrrec.ToolTip = Loc.T("asr.rec.tip");
+		basrlive.Content = Loc.T("asr.live");
+		basrlive.ToolTip = Loc.T("asr.live.tip");
+		basrlivestyle.Content = Loc.T("asr.live.style");
+		basrlivestyle.ToolTip = Loc.T("asr.live.style.tip");
+		if (lbasrfile.Text == "未选择文件" || lbasrfile.Text == Loc.T("asr.nofile"))
+			lbasrfile.Text = Loc.T("asr.nofile");
+		lbasrresult.Text = Loc.T("asr.result");
+		basrcopy.Content = Loc.T("copy");
+		basrrun.Content = Loc.T("asr.run");
+		basrrun.ToolTip = Loc.T("asr.run.tip");
+		basrstop.Content = Loc.T("asr.stop");
+		basrclear.Content = Loc.T("asr.clear");
+		lbasrtlist.Text = Loc.T("asr.list");
+		easrtlist.ToolTip = Loc.T("asr.drop.tip");
+		basrtadd.Content = Loc.T("asr.add");
+		basrtremove.Content = Loc.T("asr.remove");
+		basrtclear.Content = Loc.T("asr.clearlist");
+		lbasrtout.Text = Loc.T("asr.out");
+		casrtsamedir.Content = Loc.T("asr.samedir");
+		basrtbrowse.Content = Loc.T("asr.browse");
+		easrtoutdir.ToolTip = Loc.T("asr.outdir.tip");
+		lbasrtcur.Text = Loc.T("asr.curfile");
+		lbasrttotal.Text = Loc.T("asr.total");
+		if ((lbasrtdetail.Text ?? "").Contains("开始") || (lbasrtdetail.Text ?? "").Contains("Start"))
+			lbasrtdetail.Text = Loc.T("asr.starthint");
+		if ((lbasrtlatest.Text ?? "").StartsWith("最新") || (lbasrtlatest.Text ?? "").StartsWith("Latest"))
+			lbasrtlatest.Text = Loc.T("asr.latest");
+		basrtstart.Content = Loc.T("asr.start");
+		basrtstart.ToolTip = Loc.T("asr.start.tip");
+		basrtstop.Content = Loc.T("asr.abort");
+		applycomputebox(easrcompute);
+		foreach (var o in easrlang.Items) {
+			if (o is ComboBoxItem it && it.Tag is string tag)
+				it.Content = Loc.LangName(tag);
+		}
+		lbasrtcount.Text = Loc.T("asr.count", asrtQueue.Count);
 	}
 
 	void disposeAsr() {

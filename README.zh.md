@@ -179,6 +179,7 @@ Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release
 - 菜单 **工具 → 界面语言** 切换 **中文 / English**（即时生效）
 - 或在 **参数设置 → 常规** 选择界面语言
 - 写入 `config.toml`：`ui_lang = "zh"` 或 `"en"`
+- v1.0.3 已覆盖主窗口各 Tab、设置、标注/安装功能/PDF 窗口、功能目录与语音输入 HUD（日志区仍中文）
 
 ## CLI（简述）
 

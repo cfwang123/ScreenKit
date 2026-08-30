@@ -91,12 +91,12 @@ public partial class MainWindow : Window {
 		applydefaultmodel();
 		initmodelbar();
 		inittoolbar();
-		applylang();
 		initviewport();
 		inittts();
 		initasr();
 		inittranslate();
 		initface();
+		applylang();
 		initkeys();
 		inittray();
 		inithotkey();
@@ -1138,10 +1138,21 @@ public partial class MainWindow : Window {
 			bcopy.ToolTip = Loc.T("copy.tip");
 
 			updatehotkeymenutext();
+			try { applyttslang(); } catch { }
+			try { applyasrlang(); } catch { }
+			try { applytrlang(); } catch { }
 			try { applyfacelang(); } catch { }
 			try { tray?.ApplyLang(); } catch { }
 		}
 		catch { }
+	}
+
+	void applycomputebox(ComboBox box) {
+		if (box == null) return;
+		foreach (var o in box.Items) {
+			if (o is ComboBoxItem it && it.Tag is TtsComputeMode m)
+				it.Content = Loc.Compute(m);
+		}
 	}
 
 	void updatehotkeymenutext() {

@@ -16,7 +16,7 @@ sealed class TranslateModelInfo {
 
 	public string ListName => IsReady
 		? DisplayName
-		: DisplayName + "（缺文件）";
+		: DisplayName + Loc.T("missing.files");
 
 	public string PairLabel =>
 		$"{TrLang.Label(SourceLang)} → {TrLang.Label(TargetLang)}";
@@ -28,14 +28,7 @@ static class TrLang {
 	public const string Zh = "zh";
 	public const string En = "en";
 
-	public static string Label(string code) => (code ?? "").Trim().ToLowerInvariant() switch {
-		"zh" or "zho" or "chinese" => "中文",
-		"en" or "eng" or "english" => "英文",
-		"ja" or "jpn" or "japanese" => "日文",
-		"ko" or "kor" or "korean" => "韩文",
-		"auto" => "自动",
-		_ => string.IsNullOrEmpty(code) ? "?" : code,
-	};
+	public static string Label(string code) => Loc.LangName(code);
 
 	public static string Normalize(string code) => (code ?? "").Trim().ToLowerInvariant() switch {
 		"zho" or "chinese" or "cn" => Zh,

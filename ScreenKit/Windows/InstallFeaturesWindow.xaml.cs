@@ -53,15 +53,14 @@ partial class InstallFeaturesWindow : Window {
 		this.preferSelect = preferSelect;
 		this.openTtsTab = openTtsTab;
 		InitializeComponent();
+		applyinstlang();
 		if (firstRun) {
-			Title = "欢迎使用 — 安装推荐组件";
 			try { tabmain.SelectedItem = tabfeat; } catch { }
 		}
 		else if (openTtsTab) {
 			try { tabmain.SelectedItem = tabtts; } catch { }
 		}
 		else if (preferSelect != null && preferSelect.Length > 0) {
-			Title = "安装所需组件";
 			try { tabmain.SelectedItem = tabfeat; } catch { }
 		}
 		WindowEsc.Attach(this, () => {
@@ -75,7 +74,7 @@ partial class InstallFeaturesWindow : Window {
 		};
 		bclose.Click += (_, _) => {
 			if (busy) {
-				MessageBox.Show(this, "正在安装，请先取消或等待完成。", Title,
+				MessageBox.Show(this, Loc.T("inst.busy"), Title,
 					MessageBoxButton.OK, MessageBoxImage.Information);
 				return;
 			}
@@ -110,9 +109,47 @@ partial class InstallFeaturesWindow : Window {
 		Closing += (_, e) => {
 			if (!busy) return;
 			e.Cancel = true;
-			MessageBox.Show(this, "正在安装，请先取消或等待完成。", Title,
+			MessageBox.Show(this, Loc.T("inst.busy"), Title,
 				MessageBoxButton.OK, MessageBoxImage.Information);
 		};
+	}
+
+	void applyinstlang() {
+		if (firstRun) Title = Loc.T("inst.welcome");
+		else if (preferSelect != null && preferSelect.Length > 0) Title = Loc.T("inst.need.title");
+		else Title = Loc.T("inst.title");
+		lbtitle.Text = Title;
+		tabfeat.Header = Loc.T("inst.tab.feat");
+		tabtts.Header = Loc.T("inst.tab.tts");
+		lbfeathint.Text = Loc.T("inst.feat.hint");
+		lblegmiss.Text = Loc.T("inst.missing");
+		lblegpart.Text = Loc.T("inst.partial");
+		lblegok.Text = Loc.T("inst.installed");
+		lbttshint.Text = Loc.T("inst.tts.hint");
+		lbttslang.Text = Loc.T("inst.tts.lang");
+		cttsmissing.Content = Loc.T("inst.tts.onlymissing");
+		cttssupported.Content = Loc.T("inst.tts.onlysupported");
+		cttssupported.ToolTip = Loc.T("inst.tts.onlysupported.tip");
+		bttsrefresh.Content = Loc.T("inst.tts.refresh");
+		cttsheader.ToolTip = Loc.T("inst.tts.selectall");
+		bmissing.Content = Loc.T("inst.sel.missing");
+		bmissing.ToolTip = Loc.T("inst.sel.missing.tip");
+		bnone.Content = Loc.T("inst.sel.none");
+		ball.Content = Loc.T("inst.sel.all");
+		bcancel.Content = Loc.T("cancel");
+		bdelete.Content = Loc.T("inst.delete");
+		bdelete.ToolTip = Loc.T("inst.delete.tip");
+		binstall.Content = Loc.T("inst.install");
+		bclose.Content = Loc.T("close");
+		if (lvtss.View is GridView gv && gv.Columns.Count >= 6) {
+			gv.Columns[1].Header = Loc.T("inst.col.model");
+			gv.Columns[2].Header = Loc.T("inst.col.lang");
+			gv.Columns[3].Header = Loc.T("inst.col.engine");
+			gv.Columns[4].Header = Loc.T("inst.col.size");
+			gv.Columns[5].Header = Loc.T("inst.col.state");
+		}
+		if (string.IsNullOrWhiteSpace(lbstatus.Text) || lbstatus.Text == "就绪" || lbstatus.Text == Loc.T("ready"))
+			lbstatus.Text = Loc.T("ready");
 	}
 
 	// ───────── 功能组件 Tab ─────────
@@ -128,25 +165,23 @@ partial class InstallFeaturesWindow : Window {
 			firstRunDefaults: firstRun,
 			preferSelect: firstRun ? null : preferSelect));
 		if (firstRun)
-			lbmirror.Text = "首次启动：已默认勾选 OpenCV · Sherpa · rapid-ch · SenseVoice · Zipformer · FFmpeg（推理加速不勾）\n"
-				+ FeatureInstaller.MirrorHint();
+			lbmirror.Text = Loc.T("inst.mirror.firstrun") + FeatureInstaller.MirrorHint();
 		else if (preferSelect != null && preferSelect.Length > 0)
-			lbmirror.Text = "已按当前功能预勾选所需组件，请点「安装选中」。\n" + FeatureInstaller.MirrorHint();
+			lbmirror.Text = Loc.T("inst.mirror.prefer") + FeatureInstaller.MirrorHint();
 		else
-			lbmirror.Text = "默认勾选：OpenCV · OCR rapid-ch · ASR 前 2 项 · FFmpeg；推理加速不勾。\n"
-				+ FeatureInstaller.MirrorHint();
+			lbmirror.Text = Loc.T("inst.mirror.default") + FeatureInstaller.MirrorHint();
 
 		string lastCat = null;
 		foreach (var it in featItems) {
 			if (lastCat == null || !string.Equals(lastCat, it.Category, StringComparison.Ordinal)) {
 				lastCat = it.Category;
 				var catTitle = it.Category switch {
-					"native" => "运行库（按需）",
-					"ocr" => "OCR 模型",
-					"asr" => "语音识别模型",
-					"face" => "人脸识别模型",
-					"accel" => "推理加速",
-					"media" => "媒体组件",
+					"native" => Loc.T("feat.cat.native.opt"),
+					"ocr" => Loc.T("feat.cat.ocr"),
+					"asr" => Loc.T("feat.cat.asr"),
+					"face" => Loc.T("feat.cat.face"),
+					"accel" => Loc.T("feat.cat.accel"),
+					"media" => Loc.T("feat.cat.media"),
 					_ => it.Category,
 				};
 				eitems.Children.Add(new TextBlock {
@@ -211,7 +246,7 @@ partial class InstallFeaturesWindow : Window {
 				Foreground = (Brush)FindResource("TextPrimary"),
 			});
 			textCol.Children.Add(new TextBlock {
-				Text = it.Detail + (it.NeedsRestart ? " · 安装后需重启" : ""),
+				Text = it.Detail + (it.NeedsRestart ? Loc.T("inst.restart.suffix") : ""),
 				FontSize = 11,
 				TextWrapping = TextWrapping.Wrap,
 				Foreground = (Brush)FindResource("TextMuted"),
@@ -231,9 +266,9 @@ partial class InstallFeaturesWindow : Window {
 		var part = featItems.Count(x => x.State == FeatureInstallState.Partial);
 		var ok = featItems.Count(x => x.State == FeatureInstallState.Installed);
 		if (miss + part > 0)
-			lbfeatsum.Text = $"共 {featItems.Count} 项  ·  未安装 {miss}  ·  部分 {part}  ·  已装 {ok}";
+			lbfeatsum.Text = string.Format(Loc.T("inst.feat.sum"), featItems.Count, miss, part, ok);
 		else
-			lbfeatsum.Text = $"共 {featItems.Count} 项  ·  全部已安装";
+			lbfeatsum.Text = string.Format(Loc.T("inst.feat.allok"), featItems.Count);
 		lbfeatsum.Foreground = miss + part > 0 ? MissFg : OkFg;
 	}
 
@@ -249,7 +284,7 @@ partial class InstallFeaturesWindow : Window {
 
 	async Task loadtts(bool force) {
 		if (busy && force) return;
-		setstatus("正在加载发音人列表…");
+		setstatus(Loc.T("inst.tts.loading"));
 		var log = new Progress<string>(appendlog);
 		try {
 			bttsrefresh.IsEnabled = false;
@@ -258,14 +293,14 @@ partial class InstallFeaturesWindow : Window {
 					.ConfigureAwait(false)).ConfigureAwait(true);
 			ttsAll = list ?? new List<TtsInstallItem>();
 			ttsLoaded = true;
-			lbttssource.Text = TtsInstallCatalog.LastSource + " · " + ttsAll.Count + " 个";
+			lbttssource.Text = string.Format(Loc.T("inst.tts.source"), TtsInstallCatalog.LastSource, ttsAll.Count);
 			filllangcombo();
 			applyttsfilter();
-			setstatus($"发音人列表就绪 · {ttsAll.Count} 个 · {TtsInstallCatalog.LastSource}");
+			setstatus(string.Format(Loc.T("inst.tts.ready"), ttsAll.Count, TtsInstallCatalog.LastSource));
 		}
 		catch (Exception ex) {
-			appendlog("加载发音人失败: " + ex.Message);
-			setstatus("发音人列表加载失败");
+			appendlog(string.Format(Loc.T("inst.tts.loadfail.log"), ex.Message));
+			setstatus(Loc.T("inst.tts.loadfail"));
 			CaptureLog.Ex("loadtts", ex);
 		}
 		finally {
@@ -336,8 +371,8 @@ partial class InstallFeaturesWindow : Window {
 		var miss = ttsRows.Count(r => r.IsMissing);
 		var ok = ttsRows.Count - miss;
 		lbttssource.Text = miss > 0
-			? $"{TtsInstallCatalog.LastSource} · 显示 {ttsRows.Count}/{ttsAll.Count} · 未安装 {miss} · 已装 {ok}"
-			: $"{TtsInstallCatalog.LastSource} · 显示 {ttsRows.Count}/{ttsAll.Count} · 全部已装";
+			? string.Format(Loc.T("inst.tts.filter"), TtsInstallCatalog.LastSource, ttsRows.Count, ttsAll.Count, miss, ok)
+			: string.Format(Loc.T("inst.tts.filter.all"), TtsInstallCatalog.LastSource, ttsRows.Count, ttsAll.Count);
 		lbttssource.Foreground = miss > 0 ? MissFg : (Brush)FindResource("TextMuted");
 	}
 
@@ -503,17 +538,16 @@ partial class InstallFeaturesWindow : Window {
 			&& x.State is FeatureInstallState.Installed or FeatureInstallState.Partial).ToList();
 		var tts = ttsAll.Where(x => x.Selected && x.State == FeatureInstallState.Installed).ToList();
 		if (feats.Count == 0 && tts.Count == 0) {
-			MessageBox.Show(this, "请勾选要删除的「已安装」组件或发音人。", Title,
+			MessageBox.Show(this, Loc.T("inst.delete.none"), Title,
 				MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
 		var names = feats.Select(f => f.Title).Concat(tts.Select(t => t.Title)).Take(12).ToList();
 		var more = feats.Count + tts.Count - names.Count;
-		var msg = "将永久删除以下已安装项（不可恢复）：\n\n· "
-			+ string.Join("\n· ", names)
-			+ (more > 0 ? $"\n· … 另 {more} 项" : "")
-			+ "\n\n确定删除？";
-		if (MessageBox.Show(this, msg, "删除确认", MessageBoxButton.YesNo, MessageBoxImage.Warning)
+		var msg = string.Format(Loc.T("inst.delete.confirm"),
+			string.Join("\n· ", names),
+			more > 0 ? string.Format(Loc.T("inst.delete.more"), more) : "");
+		if (MessageBox.Show(this, msg, Loc.T("inst.delete.title"), MessageBoxButton.YesNo, MessageBoxImage.Warning)
 			!= MessageBoxResult.Yes)
 			return;
 
@@ -526,21 +560,21 @@ partial class InstallFeaturesWindow : Window {
 		var total = feats.Count + tts.Count;
 		var step = 0;
 		try {
-			appendlog($"开始删除 {total} 项…");
+			appendlog(string.Format(Loc.T("inst.delete.start"), total));
 			foreach (var it in feats) {
-				setstatus($"删除 ({step + 1}/{total}) {it.Title}");
-				appendlog("── 删除 " + it.Title);
+				setstatus(string.Format(Loc.T("inst.delete.step"), step + 1, total, it.Title));
+				appendlog(string.Format(Loc.T("inst.delete.log"), it.Title));
 				try {
 					await Task.Run(() => FeatureInstaller.Uninstall(it.Kind, log)).ConfigureAwait(true);
 					ok++;
 					NeedRefresh = true;
 					if (it.NeedsRestart) NeedRestart = true;
 					refreshfeatui(it);
-					appendlog("已删除: " + it.Title);
+					appendlog(string.Format(Loc.T("inst.delete.ok"), it.Title));
 				}
 				catch (Exception ex) {
 					fail++;
-					appendlog("删除失败: " + ex.Message);
+					appendlog(string.Format(Loc.T("inst.delete.fail"), ex.Message));
 					CaptureLog.Ex("Uninstall " + it.Id, ex);
 					refreshfeatui(it);
 				}
@@ -548,8 +582,8 @@ partial class InstallFeaturesWindow : Window {
 				setprogress(step / (double)total);
 			}
 			foreach (var it in tts) {
-				setstatus($"删除 ({step + 1}/{total}) {it.Title}");
-				appendlog("── 删除 TTS " + it.Title);
+				setstatus(string.Format(Loc.T("inst.delete.step"), step + 1, total, it.Title));
+				appendlog(string.Format(Loc.T("inst.delete.tts.log"), it.Title));
 				try {
 					await Task.Run(() => TtsInstallCatalog.Uninstall(it, log)).ConfigureAwait(true);
 					ok++;
@@ -562,18 +596,18 @@ partial class InstallFeaturesWindow : Window {
 							r.Notify();
 						}
 					}
-					appendlog("已删除: " + it.Title);
+					appendlog(string.Format(Loc.T("inst.delete.ok"), it.Title));
 				}
 				catch (Exception ex) {
 					fail++;
-					appendlog("删除失败: " + ex.Message);
+					appendlog(string.Format(Loc.T("inst.delete.fail"), ex.Message));
 					CaptureLog.Ex("UninstallTts " + it.Id, ex);
 				}
 				step++;
 				setprogress(step / (double)total);
 			}
 			if (tts.Count > 0) applyttsfilter();
-			var summary = $"删除完成：成功 {ok} · 失败 {fail}";
+			var summary = string.Format(Loc.T("inst.delete.done"), ok, fail);
 			setstatus(summary);
 			appendlog(summary);
 			MessageBox.Show(this, summary, Title, MessageBoxButton.OK,
@@ -593,7 +627,7 @@ partial class InstallFeaturesWindow : Window {
 		var tts = ttsAll.Where(x => x.Selected && x.State != FeatureInstallState.Installed).ToList();
 
 		if (feats.Count == 0 && tts.Count == 0) {
-			MessageBox.Show(this, "请先勾选要安装的项目（功能组件或发音人）。", Title,
+			MessageBox.Show(this, Loc.T("inst.install.none"), Title,
 				MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
@@ -615,7 +649,7 @@ partial class InstallFeaturesWindow : Window {
 			batchTotal += it.SizeBytes;
 
 		appendlog(FeatureInstaller.MirrorHint());
-		appendlog($"开始安装 功能 {feats.Count} + 发音人 {tts.Count} · 合计约 {FeatureInstaller.FormatBytes(batchTotal)}");
+		appendlog(string.Format(Loc.T("inst.install.start"), feats.Count, tts.Count, FeatureInstaller.FormatBytes(batchTotal)));
 
 		var totalSteps = feats.Count + tts.Count;
 		var step = 0;
@@ -631,7 +665,7 @@ partial class InstallFeaturesWindow : Window {
 				cts.Token.ThrowIfCancellationRequested();
 				var it = feats[i];
 				var expect = it.SizeBytes > 0 ? it.SizeBytes : FeatureInstaller.ExpectedSize(it.Kind);
-				setstatus($"({step + 1}/{totalSteps}) {it.Title} · 约 {FeatureInstaller.FormatBytes(expect)}");
+				setstatus(string.Format(Loc.T("inst.install.step"), step + 1, totalSteps, it.Title, FeatureInstaller.FormatBytes(expect)));
 				if (batchTotal > 0)
 					setbytes(FeatureInstaller.FormatBytes(batchDone) + " / " + FeatureInstaller.FormatBytes(batchTotal));
 				appendlog("── " + it.Title + " · " + (it.SizeText ?? ""));
@@ -648,16 +682,16 @@ partial class InstallFeaturesWindow : Window {
 					anyRefresh = true;
 					if (it.NeedsRestart) needRestart = true;
 					refreshfeatui(it);
-					appendlog("成功: " + it.Title);
+					appendlog(string.Format(Loc.T("inst.log.ok"), it.Title));
 				}
 				catch (OperationCanceledException) {
-					appendlog("已取消");
-					setstatus("已取消");
+					appendlog(Loc.T("inst.log.cancel"));
+					setstatus(Loc.T("inst.log.cancel"));
 					goto done;
 				}
 				catch (Exception ex) {
 					fail++;
-					appendlog("错误: " + ex.Message);
+					appendlog(string.Format(Loc.T("inst.log.err"), ex.Message));
 					CaptureLog.Ex("InstallFeatures " + it.Id, ex);
 					refreshfeatui(it);
 				}
@@ -695,16 +729,16 @@ partial class InstallFeaturesWindow : Window {
 							r.Notify();
 						}
 					}
-					appendlog("成功: " + it.Title);
+					appendlog(string.Format(Loc.T("inst.log.ok"), it.Title));
 				}
 				catch (OperationCanceledException) {
-					appendlog("已取消");
-					setstatus("已取消");
+					appendlog(Loc.T("inst.log.cancel"));
+					setstatus(Loc.T("inst.log.cancel"));
 					goto done;
 				}
 				catch (Exception ex) {
 					fail++;
-					appendlog("错误: " + ex.Message);
+					appendlog(string.Format(Loc.T("inst.log.err"), ex.Message));
 					CaptureLog.Ex("InstallTts " + it.Id, ex);
 					TtsInstallCatalog.RefreshState(it);
 				}
@@ -717,12 +751,12 @@ partial class InstallFeaturesWindow : Window {
 			setprogress(1);
 			NeedRefresh = anyRefresh && ok > 0;
 			NeedRestart = needRestart;
-			var summary = $"完成：成功 {ok} · 失败 {fail}";
+			var summary = string.Format(Loc.T("inst.install.done"), ok, fail);
 			setstatus(summary);
 			setbytes("");
 			appendlog(summary);
 			if (needRestart && ok > 0)
-				appendlog("提示：GPU / 核显 运行库已更新，请重启程序后生效。");
+				appendlog(Loc.T("inst.restart.hint"));
 			// 刷新 TTS 筛选显示
 			if (tts.Count > 0)
 				applyttsfilter();
@@ -730,12 +764,12 @@ partial class InstallFeaturesWindow : Window {
 			if (ok > 0) {
 				var msg = summary;
 				if (needRestart)
-					msg += "\n\nGPU / 核显组件需重启程序后才能使用。";
+					msg += Loc.T("inst.restart.msg");
 				MessageBox.Show(this, msg, Title, MessageBoxButton.OK,
 					fail > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
 			}
 			else if (fail > 0) {
-				MessageBox.Show(this, "所选项目均未安装成功，请查看日志。", Title,
+				MessageBox.Show(this, Loc.T("inst.install.allfail"), Title,
 					MessageBoxButton.OK, MessageBoxImage.Warning);
 			}
 		}

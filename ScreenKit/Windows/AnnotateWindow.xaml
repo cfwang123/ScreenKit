@@ -19,7 +19,7 @@
 		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="10,8" Margin="0,0,0,10">
 			<DockPanel>
 				<StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-					<TextBlock Text="工具" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+					<TextBlock x:Name="lbanntools" Text="工具" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
 					           Margin="0,0,8,0" FontSize="12"/>
 					<ToggleButton x:Name="trect" Content="框" Style="{StaticResource ToolToggle}"
 					              ToolTip="矩形" Margin="0,0,4,0" Padding="12,6"/>
@@ -30,19 +30,19 @@
 					<ToggleButton x:Name="ttext" Content="文字" Style="{StaticResource ToolToggle}"
 					              ToolTip="文字标注" Margin="0,0,10,0" Padding="12,6"/>
 					<Border Width="1" Background="{StaticResource BorderSoft}" Margin="4,4,10,4"/>
-					<TextBlock Text="颜色" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+					<TextBlock x:Name="lbanncolor" Text="颜色" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
 					           Margin="0,0,6,0" FontSize="12"/>
 					<ComboBox x:Name="ecolor" Width="100" Height="30" VerticalContentAlignment="Center" Margin="0,0,10,0">
-						<ComboBoxItem Content="红" Tag="#EF4444" IsSelected="True"/>
-						<ComboBoxItem Content="橙" Tag="#F97316"/>
-						<ComboBoxItem Content="黄" Tag="#EAB308"/>
-						<ComboBoxItem Content="绿" Tag="#22C55E"/>
-						<ComboBoxItem Content="蓝" Tag="#3B82F6"/>
-						<ComboBoxItem Content="紫" Tag="#A855F7"/>
-						<ComboBoxItem Content="白" Tag="#FFFFFF"/>
-						<ComboBoxItem Content="黑" Tag="#111827"/>
+						<ComboBoxItem x:Name="itannred" Content="红" Tag="#EF4444" IsSelected="True"/>
+						<ComboBoxItem x:Name="itannorange" Content="橙" Tag="#F97316"/>
+						<ComboBoxItem x:Name="itannyellow" Content="黄" Tag="#EAB308"/>
+						<ComboBoxItem x:Name="itanngreen" Content="绿" Tag="#22C55E"/>
+						<ComboBoxItem x:Name="itannblue" Content="蓝" Tag="#3B82F6"/>
+						<ComboBoxItem x:Name="itannpurple" Content="紫" Tag="#A855F7"/>
+						<ComboBoxItem x:Name="itannwhite" Content="白" Tag="#FFFFFF"/>
+						<ComboBoxItem x:Name="itannblack" Content="黑" Tag="#111827"/>
 					</ComboBox>
-					<TextBlock Text="字号" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+					<TextBlock x:Name="lbannfontsize" Text="字号" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
 					           Margin="0,0,6,0" FontSize="12"/>
 					<ComboBox x:Name="efont" Width="64" Height="30" VerticalContentAlignment="Center" Margin="0,0,10,0">
 						<ComboBoxItem Content="14" Tag="14"/>
@@ -51,7 +51,7 @@
 						<ComboBoxItem Content="32" Tag="32"/>
 						<ComboBoxItem Content="48" Tag="48"/>
 					</ComboBox>
-					<TextBlock Text="线宽" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+					<TextBlock x:Name="lbannthick" Text="线宽" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
 					           Margin="0,0,6,0" FontSize="12"/>
 					<ComboBox x:Name="ethick" Width="56" Height="30" VerticalContentAlignment="Center">
 						<ComboBoxItem Content="2" Tag="2"/>

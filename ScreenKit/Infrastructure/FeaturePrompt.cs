@@ -17,21 +17,21 @@ static class FeaturePrompt {
 		if (missing.Count == 0) return true;
 
 		var sb = new StringBuilder();
-		sb.AppendLine($"使用「{featureTitle}」需要先安装：");
+		sb.AppendLine(Loc.T("inst.need.body", featureTitle));
 		sb.AppendLine();
 		foreach (var k in missing)
-			sb.AppendLine("· " + kindlabel(k) + "  （约 " + FeatureInstaller.FormatBytes(FeatureInstaller.ExpectedSize(k)) + "）");
+			sb.AppendLine("· " + Loc.T($"feat.{k}.title") + "  (" + FeatureInstaller.FormatBytes(FeatureInstaller.ExpectedSize(k)) + ")");
 		if (!string.IsNullOrWhiteSpace(detail)) {
 			sb.AppendLine();
 			sb.AppendLine(detail);
 		}
 		sb.AppendLine();
-		sb.Append("是否打开「安装功能」窗口？");
+		sb.Append(Loc.T("inst.need.ask"));
 
 		var own = owner ?? Application.Current?.MainWindow;
 		var r = own != null
-			? MessageBox.Show(own, sb.ToString(), "需要安装组件", MessageBoxButton.YesNo, MessageBoxImage.Information)
-			: MessageBox.Show(sb.ToString(), "需要安装组件", MessageBoxButton.YesNo, MessageBoxImage.Information);
+			? MessageBox.Show(own, sb.ToString(), Loc.T("inst.need"), MessageBoxButton.YesNo, MessageBoxImage.Information)
+			: MessageBox.Show(sb.ToString(), Loc.T("inst.need"), MessageBoxButton.YesNo, MessageBoxImage.Information);
 		if (r != MessageBoxResult.Yes) return false;
 
 		openinstall(own, missing.ToArray());
@@ -60,18 +60,18 @@ static class FeaturePrompt {
 	}
 
 	public static bool EnsureOpenCv(Window owner = null) =>
-		EnsureKinds(owner, "图像 / OCR", "安装后即可截图识别、长截图等。", FeatureKind.NativeOpenCv);
+		EnsureKinds(owner, Loc.T("feat.prompt.opencv.title"), Loc.T("feat.prompt.opencv.detail"), FeatureKind.NativeOpenCv);
 
 	public static bool EnsurePdf(Window owner = null) =>
-		EnsureKinds(owner, "PDF 工作台", "需要 Skia 与 PDFium 两个运行库。",
+		EnsureKinds(owner, Loc.T("feat.prompt.pdf.title"), Loc.T("feat.prompt.pdf.detail"),
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium);
 
 	public static bool EnsureFfmpeg(Window owner = null) =>
-		EnsureKinds(owner, "录屏 / 音视频", "将 FFmpeg 4.4 shared 装到程序目录 ffmpeg64/。",
+		EnsureKinds(owner, Loc.T("feat.prompt.ffmpeg.title"), Loc.T("feat.prompt.ffmpeg.detail"),
 			FeatureKind.Ffmpeg);
 
 	public static bool EnsureSherpa(Window owner = null) =>
-		EnsureKinds(owner, "语音识别 / 语音合成", "需要 sherpa-onnx-c-api.dll（约 4–5 MB）。",
+		EnsureKinds(owner, Loc.T("feat.prompt.sherpa.title"), Loc.T("feat.prompt.sherpa.detail"),
 			FeatureKind.NativeSherpa);
 
 	/// <summary>OCR 模型包：任一可用即可；全无则提示装 rapid-ch。</summary>
@@ -81,7 +81,7 @@ static class FeaturePrompt {
 			if (packs != null && packs.Count > 0) return true;
 		}
 		catch { }
-		return EnsureKinds(owner, "文字识别", "请安装 OCR 模型包（推荐 rapid-ch）。",
+		return EnsureKinds(owner, Loc.T("feat.prompt.ocr.title"), Loc.T("feat.prompt.ocr.detail"),
 			FeatureKind.OcrRapidCh);
 	}
 
@@ -91,8 +91,7 @@ static class FeaturePrompt {
 	/// </summary>
 	public static bool EnsureOcrOrt(Window owner = null) {
 		if (FeatureInstaller.HasAnyOrtNative()) return true;
-		return EnsureKinds(owner, "文字识别",
-			"需要 ONNX Runtime 原生库才能识别。未安装 GPU/核显时请安装 CPU 包（onnxcpu64）。",
+		return EnsureKinds(owner, Loc.T("feat.prompt.ocr.title"), Loc.T("feat.prompt.ocr.ort.detail"),
 			FeatureKind.OrtCpu);
 	}
 
@@ -103,7 +102,7 @@ static class FeaturePrompt {
 			if (list != null && list.Count > 0) return true;
 		}
 		catch { }
-		return EnsureKinds(owner, "语音识别", "请安装离线与/或流式 ASR 模型。",
+		return EnsureKinds(owner, Loc.T("feat.prompt.asr.title"), Loc.T("feat.prompt.asr.detail"),
 			FeatureKind.AsrSenseVoice, FeatureKind.AsrStreamZipformer);
 	}
 
@@ -117,12 +116,8 @@ static class FeaturePrompt {
 
 		var own = owner ?? Application.Current?.MainWindow;
 		var r = own != null
-			? MessageBox.Show(own,
-				"未找到 TTS 发音人模型。\n请打开「安装功能 → 发音人」下载模型到 ttsmodels。\n\n是否现在打开？",
-				"需要安装组件", MessageBoxButton.YesNo, MessageBoxImage.Information)
-			: MessageBox.Show(
-				"未找到 TTS 发音人模型。\n是否打开安装窗口？",
-				"需要安装组件", MessageBoxButton.YesNo, MessageBoxImage.Information);
+			? MessageBox.Show(own, Loc.T("feat.prompt.tts.body"), Loc.T("inst.need"), MessageBoxButton.YesNo, MessageBoxImage.Information)
+			: MessageBox.Show(Loc.T("feat.prompt.tts.body.short"), Loc.T("inst.need"), MessageBoxButton.YesNo, MessageBoxImage.Information);
 		if (r != MessageBoxResult.Yes) return false;
 		openinstall(own, null, openTtsTab: true);
 		try {
@@ -140,11 +135,11 @@ static class FeaturePrompt {
 		}
 		catch { }
 		var own = owner ?? Application.Current?.MainWindow;
-		var msg = "未找到翻译 ONNX 模型。\n请将 opus-mt-zh-en-onnx / opus-mt-en-zh-onnx 放到程序目录 translatemodels/。";
+		var msg = Loc.T("feat.prompt.tr.body");
 		if (own != null)
-			MessageBox.Show(own, msg, "需要安装组件", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(own, msg, Loc.T("inst.need"), MessageBoxButton.OK, MessageBoxImage.Information);
 		else
-			MessageBox.Show(msg, "需要安装组件", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(msg, Loc.T("inst.need"), MessageBoxButton.OK, MessageBoxImage.Information);
 		return false;
 	}
 
@@ -154,8 +149,7 @@ static class FeaturePrompt {
 			if (FaceModels.IsReady()) return true;
 		}
 		catch { }
-		return EnsureKinds(owner, "人脸识别",
-			"将 InsightFace buffalo_l 装到程序目录 facemodels/（检测+识别，可选关键点与性别年龄）。",
+		return EnsureKinds(owner, Loc.T("feat.prompt.face.title"), Loc.T("feat.prompt.face.detail"),
 			FeatureKind.FaceInsight);
 	}
 
@@ -180,7 +174,7 @@ static class FeaturePrompt {
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("FeaturePrompt.openinstall", ex);
-			MessageBox.Show(ex.Message, "安装功能", MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(ex.Message, Loc.T("inst.open.fail"), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 

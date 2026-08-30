@@ -265,6 +265,7 @@ Tray icon: left-click toggles the window; context menu includes voice input, cli
 - **Tools → Language** → **中文 / English** (applies immediately)
 - Or set UI language in **Settings → General**
 - Persisted in `config.toml` as `ui_lang = "zh"` or `"en"`
+- v1.0.3 covers main tabs, settings, annotate/install-features/PDF windows, feature catalog, and voice-input HUD (log area stays Chinese)
 
 ## CLI
 

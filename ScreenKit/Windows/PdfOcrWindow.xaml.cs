@@ -40,11 +40,12 @@ partial class PdfOcrWindow : Window {
 		runner = sharedRunner ?? throw new ArgumentNullException(nameof(sharedRunner));
 
 		initui();
+		applypdflang();
 		// 忙碌时 Esc=取消识别；空闲时 Esc=关闭（Closing 会处理未保存草稿）
 		WindowEsc.Attach(this, () => {
 			if (busy) {
 				try { ocrCts?.Cancel(); } catch { }
-				setstatus("正在取消…");
+				setstatus(Loc.T("pdf.canceling"));
 				return;
 			}
 			Close();
@@ -63,7 +64,7 @@ partial class PdfOcrWindow : Window {
 		brecogrange.Click += async (_, _) => await recogrange();
 		bcancelocr.Click += (_, _) => {
 			try { ocrCts?.Cancel(); } catch { }
-			setstatus("正在取消…");
+			setstatus(Loc.T("pdf.canceling"));
 		};
 		bexport.Click += async (_, _) => await exportpdf();
 		bcopyall.Click += (_, _) => copyall();
@@ -120,16 +121,60 @@ partial class PdfOcrWindow : Window {
 		updatepagenav();
 	}
 
+	void applypdflang() {
+		Title = Loc.T("pdf.title");
+		bopenpdf.Content = Loc.T("pdf.open");
+		bopendraft.Content = Loc.T("pdf.opendraft");
+		bsavedraft.Content = Loc.T("pdf.save");
+		bsavedraftas.Content = Loc.T("pdf.saveas");
+		brecogall.Content = Loc.T("pdf.recogall");
+		brecogpage.Content = Loc.T("pdf.recogpage");
+		lbpage.Text = Loc.T("pdf.page");
+		epagefrom.ToolTip = Loc.T("pdf.from.tip");
+		epageto.ToolTip = Loc.T("pdf.to.tip");
+		brecogrange.Content = Loc.T("pdf.range");
+		brecogrange.ToolTip = Loc.T("pdf.range.tip");
+		bcancelocr.Content = Loc.T("cancel");
+		bcancelocr.ToolTip = Loc.T("pdf.cancel.tip");
+		bexport.Content = Loc.T("pdf.export");
+		bcopyall.Content = Loc.T("pdf.copyall");
+		einvisible.Content = Loc.T("pdf.invisible");
+		einvisible.ToolTip = Loc.T("pdf.invisible.tip");
+		lbpageshdr.Text = Loc.T("pdf.pages");
+		lbpreview.Text = Loc.T("pdf.preview");
+		bzoomout.ToolTip = Loc.T("pdf.zoom.out");
+		bzoomin.ToolTip = Loc.T("pdf.zoom.in");
+		bfitw.Content = Loc.T("pdf.fitw");
+		bprev.Content = Loc.T("pdf.prev");
+		bnext.Content = Loc.T("pdf.next");
+		lbpageprefix.Text = Loc.T("pdf.page.prefix");
+		bjump.Content = Loc.T("pdf.jump");
+		lbhlhint.Text = Loc.T("pdf.hlhint");
+		lbedittitle.Text = Loc.T("pdf.edit.title");
+		lbedithint.Text = Loc.T("pdf.edit.hint");
+		lbpagetext.Text = Loc.T("pdf.pagetext");
+		bapplytext.Content = Loc.T("pdf.applytext");
+		if (gridlines.Columns.Count >= 3) {
+			gridlines.Columns[1].Header = Loc.T("pdf.col.text");
+			gridlines.Columns[2].Header = Loc.T("pdf.col.score");
+		}
+		if (proj == null && (string.IsNullOrWhiteSpace(lbstatus.Text)
+			|| lbstatus.Text == "打开 PDF 或草稿开始"
+			|| lbstatus.Text == Loc.T("pdf.status.idle")))
+			lbstatus.Text = Loc.T("pdf.status.idle");
+		refreshchrome();
+	}
+
 	void onclosing(object sender, CancelEventArgs e) {
 		if (busy) {
 			e.Cancel = true;
-			setstatus("正在处理，请稍候…");
+			setstatus(Loc.T("pdf.busy"));
 			return;
 		}
 		if (proj != null && proj.Dirty) {
 			var r = MessageBox.Show(this,
-				"工程有未保存修改，是否保存草稿？",
-				"PDF 工作台",
+				Loc.T("pdf.dirty.ask"),
+				Loc.T("pdf.title"),
 				MessageBoxButton.YesNoCancel,
 				MessageBoxImage.Question,
 				MessageBoxResult.Yes);
@@ -137,7 +182,7 @@ partial class PdfOcrWindow : Window {
 			if (r == MessageBoxResult.Yes) {
 				try { savedraft(false); }
 				catch (Exception ex) {
-					MessageBox.Show(this, ex.Message, "存草稿失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+					MessageBox.Show(this, ex.Message, Loc.T("pdf.draft.fail"), MessageBoxButton.OK, MessageBoxImage.Warning);
 					e.Cancel = true;
 				}
 			}
@@ -150,8 +195,8 @@ partial class PdfOcrWindow : Window {
 		if (busy) return;
 		if (!confirmdiscard()) return;
 		var ofd = new Microsoft.Win32.OpenFileDialog {
-			Title = "选择 PDF",
-			Filter = "PDF 文件|*.pdf",
+			Title = Loc.T("pdf.pick"),
+			Filter = Loc.T("pdf.filter"),
 			CheckFileExists = true,
 		};
 		if (ofd.ShowDialog(this) != true) return;
@@ -185,18 +230,18 @@ partial class PdfOcrWindow : Window {
 		});
 		setbusy(false);
 		if (err != null) {
-			setstatus("打开失败: " + err.Message);
-			MessageBox.Show(this, err.Message, "打开 PDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+			setstatus(string.Format(Loc.T("pdf.open.fail"), err.Message));
+			MessageBox.Show(this, err.Message, Loc.T("pdf.open"), MessageBoxButton.OK, MessageBoxImage.Warning);
 			return;
 		}
 		bindproject(created);
 		try { created.SaveDraft(); } catch { }
-		setstatus($"已加载 {created.Pages.Count} 页 · 可「全部识别」或单页识别 · 草稿已自动保存");
+		setstatus(string.Format(Loc.T("pdf.loaded"), created.Pages.Count));
 		// 默认适应宽度
 		Dispatcher.BeginInvoke(new Action(() => fitwidth()), System.Windows.Threading.DispatcherPriority.Loaded);
 		var ask = MessageBox.Show(this,
-			$"已渲染 {created.Pages.Count} 页。\n\n是否立即全部识别？",
-			"PDF 工作台",
+			string.Format(Loc.T("pdf.render.ask"), created.Pages.Count),
+			Loc.T("pdf.title"),
 			MessageBoxButton.YesNo,
 			MessageBoxImage.Question,
 			MessageBoxResult.Yes);
@@ -222,7 +267,7 @@ partial class PdfOcrWindow : Window {
 		}
 
 		var dlg = new System.Windows.Forms.FolderBrowserDialog {
-			Description = "选择草稿目录（含 project.json）",
+			Description = Loc.T("pdf.draft.pick.dir"),
 		};
 		if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 		loaddraft(dlg.SelectedPath);
@@ -234,11 +279,11 @@ partial class PdfOcrWindow : Window {
 			var p = PdfOcrProject.LoadDraft(dir);
 			bindproject(p);
 			einvisible.IsChecked = p.InvisibleText;
-			setstatus($"已打开草稿 · {p.Pages.Count} 页 · {p.SavedAt}");
+			setstatus(string.Format(Loc.T("pdf.draft.opened"), p.Pages.Count, p.SavedAt));
 			Dispatcher.BeginInvoke(new Action(() => fitwidth()), System.Windows.Threading.DispatcherPriority.Loaded);
 		}
 		catch (Exception ex) {
-			MessageBox.Show(this, ex.Message, "打开草稿", MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(this, ex.Message, Loc.T("pdf.opendraft"), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 
@@ -266,12 +311,12 @@ partial class PdfOcrWindow : Window {
 
 	async Task recogall() {
 		if (busy || proj == null) return;
-		await recogpages(0, proj.Pages.Count - 1, "全部识别");
+		await recogpages(0, proj.Pages.Count - 1, Loc.T("pdf.recogall"));
 	}
 
 	async Task recogpage() {
 		if (busy || proj == null || curPage == null) return;
-		await recogpages(curPage.Index, curPage.Index, "本页识别");
+		await recogpages(curPage.Index, curPage.Index, Loc.T("pdf.recogpage"));
 	}
 
 	/// <summary>按页码范围批量识别（1-based，含两端）。</summary>
@@ -287,7 +332,7 @@ partial class PdfOcrWindow : Window {
 		if (from > to) (from, to) = (to, from);
 		epagefrom.Text = from.ToString();
 		epageto.Text = to.ToString();
-		await recogpages(from - 1, to - 1, $"范围 {from}-{to}");
+		await recogpages(from - 1, to - 1, string.Format(Loc.T("pdf.range.fmt"), from, to));
 	}
 
 	/// <summary>识别页索引闭区间 [from0, to0]，页间可取消。</summary>
@@ -315,7 +360,7 @@ partial class PdfOcrWindow : Window {
 					var step = ++done;
 					Dispatcher.BeginInvoke(new Action(() => {
 						setprogress(step, total);
-						setstatus($"{label} · 第 {i + 1} 页（{step}/{total}）… 可取消");
+						setstatus(string.Format(Loc.T("pdf.recog.progress"), label, i + 1, step, total));
 					}));
 					PdfOcr.RecognizePage(page, img, opt, runner);
 				}
@@ -333,13 +378,13 @@ partial class PdfOcrWindow : Window {
 			proj.Dirty = true;
 			refreshpagelist();
 			if (curPage != null) showpage(curPage);
-			setstatus($"{label}已取消 · 已完成 {done}/{total} 页");
+			setstatus(string.Format(Loc.T("pdf.recog.cancelled"), label, done, total));
 			try { proj.SaveDraft(); } catch { }
 			refreshchrome();
 			return;
 		}
 		if (err != null) {
-			setstatus(label + "失败: " + err.Message);
+			setstatus(string.Format(Loc.T("pdf.recog.fail"), label, err.Message));
 			MessageBox.Show(this, err.Message, label, MessageBoxButton.OK, MessageBoxImage.Warning);
 			return;
 		}
@@ -349,8 +394,8 @@ partial class PdfOcrWindow : Window {
 			showpage(proj.Pages[from0]);
 		else
 			gotopage(from0);
-		setstatus($"{label}完成 · {total} 页");
-		try { proj.SaveDraft(); setstatus($"{label}完成 · 草稿已保存"); } catch { }
+		setstatus(string.Format(Loc.T("pdf.recog.done"), label, total));
+		try { proj.SaveDraft(); setstatus(string.Format(Loc.T("pdf.recog.done.saved"), label)); } catch { }
 		refreshchrome();
 	}
 
@@ -362,7 +407,7 @@ partial class PdfOcrWindow : Window {
 		try {
 			if (saveAs || string.IsNullOrWhiteSpace(proj.DraftDir)) {
 				var dlg = new System.Windows.Forms.FolderBrowserDialog {
-					Description = "选择草稿保存目录（将写入 project.json 与 pages/）",
+					Description = Loc.T("pdf.draft.save.dir"),
 				};
 				if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 				var target = dlg.SelectedPath;
@@ -389,10 +434,10 @@ partial class PdfOcrWindow : Window {
 			if (proj.Dpi <= 0) proj.Dpi = PdfOcr.DefaultDpi;
 			proj.SaveDraft();
 			refreshchrome();
-			setstatus($"草稿已保存 · {proj.DraftDir}");
+			setstatus(string.Format(Loc.T("pdf.draft.saved"), proj.DraftDir));
 		}
 		catch (Exception ex) {
-			MessageBox.Show(this, ex.Message, "存草稿", MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(this, ex.Message, Loc.T("pdf.save"), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 
@@ -400,7 +445,7 @@ partial class PdfOcrWindow : Window {
 		if (busy || proj == null) return;
 		applypagetext();
 		if (proj.Pages.All(p => !p.Recognized && (p.Lines == null || p.Lines.Count == 0))) {
-			var r = MessageBox.Show(this, "尚未识别文字，是否先全部识别？", "导出",
+			var r = MessageBox.Show(this, Loc.T("pdf.export.needocr"), Loc.T("pdf.export.prompt"),
 				MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 			if (r == MessageBoxResult.Cancel) return;
 			if (r == MessageBoxResult.Yes) await recogall();
@@ -409,8 +454,8 @@ partial class PdfOcrWindow : Window {
 		proj.InvisibleText = einvisible.IsChecked == true;
 		var name = string.IsNullOrEmpty(proj.Title) ? "ocr" : proj.Title;
 		var sfd = new Microsoft.Win32.SaveFileDialog {
-			Title = "导出可检索 PDF",
-			Filter = "PDF 文件|*.pdf",
+			Title = Loc.T("pdf.export.sfd"),
+			Filter = Loc.T("pdf.filter"),
 			FileName = name + "_ocr.pdf",
 			DefaultExt = ".pdf",
 			AddExtension = true,
@@ -422,7 +467,7 @@ partial class PdfOcrWindow : Window {
 		if (!string.IsNullOrEmpty(proj.SourcePath)
 			&& string.Equals(Path.GetFullPath(proj.SourcePath), Path.GetFullPath(sfd.FileName),
 				StringComparison.OrdinalIgnoreCase)) {
-			MessageBox.Show(this, "输出路径不能与源 PDF 相同。", "导出",
+			MessageBox.Show(this, Loc.T("pdf.export.samedst"), Loc.T("pdf.export.prompt"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return;
 		}
@@ -442,15 +487,15 @@ partial class PdfOcrWindow : Window {
 		});
 		setbusy(false);
 		if (err != null) {
-			setstatus("导出失败: " + err.Message);
-			MessageBox.Show(this, err.Message, "导出", MessageBoxButton.OK, MessageBoxImage.Warning);
+			setstatus(string.Format(Loc.T("pdf.export.fail"), err.Message));
+			MessageBox.Show(this, err.Message, Loc.T("pdf.export.prompt"), MessageBoxButton.OK, MessageBoxImage.Warning);
 			return;
 		}
-		setstatus($"已导出 · {outPath}");
+		setstatus(string.Format(Loc.T("pdf.export.done.status"), outPath));
 		MessageBox.Show(this,
-			$"已导出：\n{outPath}\n\n共 {proj.Pages.Count} 页"
-			+ (proj.InvisibleText ? " · 含不可见文字层" : " · 仅图像"),
-			"导出完成", MessageBoxButton.OK, MessageBoxImage.Information);
+			string.Format(Loc.T("pdf.export.done.msg"), outPath, proj.Pages.Count,
+				proj.InvisibleText ? Loc.T("pdf.export.withtext") : Loc.T("pdf.export.imgonly")),
+			Loc.T("pdf.export.done.title"), MessageBoxButton.OK, MessageBoxImage.Information);
 	}
 
 	void copyall() {
@@ -459,10 +504,10 @@ partial class PdfOcrWindow : Window {
 		var t = proj.FullText();
 		try {
 			Clipboard.SetText(t ?? "");
-			setstatus("全文已复制");
+			setstatus(Loc.T("pdf.copy.ok"));
 		}
 		catch (Exception ex) {
-			setstatus("复制失败: " + ex.Message);
+			setstatus(string.Format(Loc.T("pdf.copy.fail"), ex.Message));
 		}
 	}
 
@@ -484,7 +529,7 @@ partial class PdfOcrWindow : Window {
 	void jumppage() {
 		if (proj == null || proj.Pages.Count == 0) return;
 		if (!int.TryParse((ejumppage.Text ?? "").Trim(), out var n)) {
-			setstatus("页码须为数字");
+			setstatus(Loc.T("pdf.page.num"));
 			return;
 		}
 		gotopage(n - 1);
@@ -504,7 +549,7 @@ partial class PdfOcrWindow : Window {
 	void updatepagenav() {
 		var n = proj?.Pages.Count ?? 0;
 		var i = curPage?.Index ?? -1;
-		lbpagecount.Text = n > 0 ? $"/ {n} 页" : "/ 0 页";
+		lbpagecount.Text = Loc.T("pdf.page.of", n > 0 ? n : 0);
 		if (i >= 0) ejumppage.Text = (i + 1).ToString();
 		bprev.IsEnabled = !busy && i > 0;
 		bnext.IsEnabled = !busy && n > 0 && i >= 0 && i < n - 1;
@@ -589,7 +634,7 @@ partial class PdfOcrWindow : Window {
 			else {
 				imgpage.Source = null;
 				imgW = imgH = 0;
-				lbpagesize.Text = "缺图";
+				lbpagesize.Text = Loc.T("pdf.nopic");
 			}
 		}
 		catch {
@@ -613,7 +658,7 @@ partial class PdfOcrWindow : Window {
 		poverlay.Children.Clear();
 		if (line?.Box == null || line.Box.Length < 8 || imgW < 1) {
 			if (line != null)
-				setstatus($"第 {curPage?.Index + 1} 页 · 行 {line.LineNo} · 无坐标框");
+				setstatus(string.Format(Loc.T("pdf.line.nobox"), curPage?.Index + 1, line.LineNo));
 			return;
 		}
 		var box = line.Box;
@@ -636,7 +681,7 @@ partial class PdfOcrWindow : Window {
 
 		var t = line.Text ?? "";
 		if (t.Length > 24) t = t[..24] + "…";
-		setstatus($"第 {curPage?.Index + 1} 页 · 行 {line.LineNo} · {t}");
+		setstatus(string.Format(Loc.T("pdf.line.status"), curPage?.Index + 1, line.LineNo, t));
 	}
 
 	void scrolltobox(float[] box) {
@@ -682,7 +727,7 @@ partial class PdfOcrWindow : Window {
 		poverlay.Children.Clear();
 		markdirty();
 		refreshpagelist();
-		setstatus($"已应用整页文本 · 第 {curPage.Index + 1} 页 · {curPage.Lines.Count} 行");
+		setstatus(string.Format(Loc.T("pdf.applytext.done"), curPage.Index + 1, curPage.Lines.Count));
 	}
 
 	// ───────── 辅助 ─────────
@@ -729,10 +774,10 @@ partial class PdfOcrWindow : Window {
 		bcopyall.IsEnabled = has && !busy;
 		bapplytext.IsEnabled = has && curPage != null && !busy;
 		lbtitle.Text = proj == null
-			? "未打开工程"
-			: $"{proj.Title} · {proj.Pages.Count} 页"
+			? Loc.T("pdf.empty")
+			: string.Format(Loc.T("pdf.title.fmt"), proj.Title, proj.Pages.Count)
 			  + (string.IsNullOrEmpty(proj.DraftDir) ? "" : " · " + proj.DraftDir);
-		lbdirty.Text = proj != null && proj.Dirty ? "● 未保存" : "";
+		lbdirty.Text = proj != null && proj.Dirty ? Loc.T("pdf.dirty") : "";
 		updatepagenav();
 	}
 
@@ -748,7 +793,7 @@ partial class PdfOcrWindow : Window {
 
 	bool confirmdiscard() {
 		if (proj == null || !proj.Dirty) return true;
-		var r = MessageBox.Show(this, "当前工程未保存，是否放弃修改？", "PDF 工作台",
+		var r = MessageBox.Show(this, Loc.T("pdf.discard.ask"), Loc.T("pdf.title"),
 			MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
 		return r == MessageBoxResult.Yes;
 	}
@@ -789,14 +834,14 @@ sealed class DraftPickWindow : Window {
 
 	public DraftPickWindow(List<(string Dir, string Title, string SavedAt, int Pages)> drafts) {
 		items = drafts ?? new();
-		Title = "打开草稿";
+		Title = Loc.T("pdf.draft.open");
 		Width = 520;
 		Height = 420;
 		WindowStartupLocation = WindowStartupLocation.CenterOwner;
 		Background = (System.Windows.Media.Brush)FindResource("BgApp");
 		var root = new DockPanel { Margin = new Thickness(16) };
 		var lb = new TextBlock {
-			Text = "本地草稿（%LocalAppData%\\ScreenKit\\drafts）",
+			Text = Loc.T("pdf.draft.local"),
 			FontWeight = FontWeights.SemiBold,
 			Margin = new Thickness(0, 0, 0, 10),
 		};
@@ -809,9 +854,9 @@ sealed class DraftPickWindow : Window {
 			Margin = new Thickness(0, 12, 0, 0),
 		};
 		DockPanel.SetDock(buttons, Dock.Bottom);
-		var bbrowse = new System.Windows.Controls.Button { Content = "浏览文件夹…", Style = (Style)FindResource("ToolBtn"), Width = 110, Margin = new Thickness(0, 0, 8, 0) };
-		var bcancel = new System.Windows.Controls.Button { Content = "取消", Style = (Style)FindResource("ToolBtn"), Width = 88, Margin = new Thickness(0, 0, 8, 0) };
-		var bok = new System.Windows.Controls.Button { Content = "打开", Style = (Style)FindResource("PrimaryBtn"), Width = 88 };
+		var bbrowse = new System.Windows.Controls.Button { Content = Loc.T("pdf.draft.browse"), Style = (Style)FindResource("ToolBtn"), Width = 110, Margin = new Thickness(0, 0, 8, 0) };
+		var bcancel = new System.Windows.Controls.Button { Content = Loc.T("cancel"), Style = (Style)FindResource("ToolBtn"), Width = 88, Margin = new Thickness(0, 0, 8, 0) };
+		var bok = new System.Windows.Controls.Button { Content = Loc.T("pdf.draft.open.btn"), Style = (Style)FindResource("PrimaryBtn"), Width = 88 };
 		bbrowse.Click += (_, _) => { BrowseFolder = true; DialogResult = false; Close(); };
 		bcancel.Click += (_, _) => { DialogResult = false; Close(); };
 		bcancel.IsCancel = true;
@@ -824,7 +869,7 @@ sealed class DraftPickWindow : Window {
 
 		list = new System.Windows.Controls.ListBox { BorderBrush = (System.Windows.Media.Brush)FindResource("BorderSoft") };
 		foreach (var d in items)
-			list.Items.Add($"{d.Title}  ·  {d.Pages}页  ·  {d.SavedAt}\n{d.Dir}");
+			list.Items.Add(string.Format(Loc.T("pdf.draft.item"), d.Title, d.Pages, d.SavedAt, d.Dir));
 		list.MouseDoubleClick += (_, _) => ok();
 		root.Children.Add(list);
 		Content = root;
@@ -834,7 +879,7 @@ sealed class DraftPickWindow : Window {
 	void ok() {
 		var i = list.SelectedIndex;
 		if (i < 0 || i >= items.Count) {
-			MessageBox.Show(this, "请选择一个草稿", "打开草稿", MessageBoxButton.OK, MessageBoxImage.Information);
+			MessageBox.Show(this, Loc.T("pdf.draft.pick"), Loc.T("pdf.draft.open"), MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
 		SelectedDir = items[i].Dir;

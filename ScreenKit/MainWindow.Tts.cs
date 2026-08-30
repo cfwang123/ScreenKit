@@ -43,13 +43,13 @@ public partial class MainWindow {
 
 		ttsUiLoading = true;
 		ettsengine.Items.Clear();
-		ettsengine.Items.Add(new ComboBoxItem { Content = "SAPI（经典系统语音）", Tag = TtsEngineKind.Sapi });
+		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.sapi"), Tag = TtsEngineKind.Sapi });
 		ettsengine.Items.Add(new ComboBoxItem {
-			Content = "Windows 语音（WinRT / OneCore，含越南语等）",
+			Content = Loc.T("tts.engine.winrt"),
 			Tag = TtsEngineKind.WinRt,
 			IsEnabled = winRtTts != null && winRtTts.Voices.Count > 0,
 		});
-		ettsengine.Items.Add(new ComboBoxItem { Content = "Sherpa-ONNX（离线神经网络）", Tag = TtsEngineKind.Sherpa });
+		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.sherpa"), Tag = TtsEngineKind.Sherpa });
 		// 默认：有 WinRT 越南语等现代语音时优先 WinRT，否则 Sherpa，再 SAPI
 		if (winRtTts != null && winRtTts.Voices.Count > 0)
 			ettsengine.SelectedIndex = 1;
@@ -59,18 +59,18 @@ public partial class MainWindow {
 			ettsengine.SelectedIndex = 0;
 
 		ettscompute.Items.Clear();
-		ettscompute.Items.Add(new ComboBoxItem { Content = "自动（CUDA→核显→CPU）", Tag = TtsComputeMode.Auto });
-		ettscompute.Items.Add(new ComboBoxItem { Content = "GPU（NVIDIA CUDA）", Tag = TtsComputeMode.Gpu });
-		ettscompute.Items.Add(new ComboBoxItem { Content = "核显（Intel DirectML）", Tag = TtsComputeMode.Igpu });
-		ettscompute.Items.Add(new ComboBoxItem { Content = "CPU", Tag = TtsComputeMode.Cpu });
+		ettscompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Auto), Tag = TtsComputeMode.Auto });
+		ettscompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Gpu), Tag = TtsComputeMode.Gpu });
+		ettscompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Igpu), Tag = TtsComputeMode.Igpu });
+		ettscompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Cpu), Tag = TtsComputeMode.Cpu });
 		ettscompute.SelectedIndex = 0;
 
 		// 语言列表：根据当前引擎可用发音人动态填充
 		rebuildttslangcombo(preserve: false);
 		ettsgender.Items.Clear();
-		ettsgender.Items.Add(new ComboBoxItem { Content = "全部性别", Tag = "" });
-		ettsgender.Items.Add(new ComboBoxItem { Content = "女声", Tag = TtsGender.Female });
-		ettsgender.Items.Add(new ComboBoxItem { Content = "男声", Tag = TtsGender.Male });
+		ettsgender.Items.Add(new ComboBoxItem { Content = Loc.T("gender.all"), Tag = "" });
+		ettsgender.Items.Add(new ComboBoxItem { Content = Loc.T("gender.female"), Tag = TtsGender.Female });
+		ettsgender.Items.Add(new ComboBoxItem { Content = Loc.T("gender.male"), Tag = TtsGender.Male });
 		ettsgender.SelectedIndex = 0;
 
 		ettsrate.Value = 1.0;
@@ -109,7 +109,7 @@ public partial class MainWindow {
 			if (ettscompute.SelectedItem is ComboBoxItem it && it.Tag is TtsComputeMode m) {
 				sherpaTts.Mode = m;
 				try { sherpaTts.UnloadSafe(); } catch { }
-				lbttsstatus.Text = "计算设备 → " + it.Content + "（下次合成时加载）";
+				lbttsstatus.Text = Loc.T("tts.dev.changed", it.Content);
 				savettsprefs();
 			}
 		};
@@ -288,7 +288,7 @@ public partial class MainWindow {
 		ttsUiLoading = true;
 		try {
 			ettslang.Items.Clear();
-			ettslang.Items.Add(new ComboBoxItem { Content = "全部语言", Tag = "" });
+			ettslang.Items.Add(new ComboBoxItem { Content = Loc.T("lang.all"), Tag = "" });
 			foreach (var lg in set.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
 				ettslang.Items.Add(new ComboBoxItem { Content = TtsLang.DisplayName(lg), Tag = lg });
 			selectcombobytag(ettslang, prev);
@@ -411,9 +411,9 @@ public partial class MainWindow {
 			bttspause.IsEnabled = ttsSession;
 			bttsprev.IsEnabled = ttsSession;
 			bttsnext.IsEnabled = ttsSession;
-			bttspause.Content = ttsPaused ? "继续" : "暂停";
+			bttspause.Content = ttsPaused ? Loc.T("tts.resume") : Loc.T("tts.pause");
 			bttsspeak.IsEnabled = !ttsSession || ttsPaused;
-			bttsspeak.Content = ttsSession && ttsPaused ? "继续" : "朗读";
+			bttsspeak.Content = ttsSession && ttsPaused ? Loc.T("tts.resume") : Loc.T("tts.speak");
 		}
 		catch { }
 	}
@@ -1267,6 +1267,63 @@ public partial class MainWindow {
 			bttsspeak.IsEnabled = true;
 			updatettsctrlui();
 		}
+	}
+
+	void applyttslang() {
+		lbttsbrand.Text = Loc.T("tab.tts");
+		if (string.IsNullOrWhiteSpace(lbttsstatus.Text) || lbttsstatus.Text == "就绪" || lbttsstatus.Text == Loc.T("ready"))
+			lbttsstatus.Text = Loc.T("ready");
+		lbttsengine.Text = Loc.T("tts.engine");
+		lbttscompute.Text = Loc.T("tts.compute");
+		ettscompute.ToolTip = Loc.T("tts.compute.tip");
+		lbttsfilter.Text = Loc.T("tts.filter");
+		ettslang.ToolTip = Loc.T("tts.filter.lang.tip");
+		ettsgender.ToolTip = Loc.T("tts.filter.gender.tip");
+		lbttsfilterhint.Text = Loc.T("tts.filter.hint");
+		lbttsmodel.Text = Loc.T("tts.model");
+		ettsmodel.ToolTip = Loc.T("tts.model.tip");
+		lbttsvoice.Text = Loc.T("tts.voice");
+		ettsvoice.ToolTip = Loc.T("tts.voice.tip");
+		lbttsratelabel.Text = Loc.T("tts.rate");
+		lbttsvollabel.Text = Loc.T("tts.vol");
+		lbttsvol.ToolTip = Loc.T("tts.vol.tip");
+		ettsvol.ToolTip = Loc.T("tts.vol.slider.tip");
+		lbttstext.Text = Loc.T("tts.text");
+		ettstext.ToolTip = Loc.T("tts.text.tip");
+		lbttskbps.Text = Loc.T("tts.kbps");
+		ettskbps.ToolTip = Loc.T("tts.kbps.tip");
+		lbttshint.Text = Loc.T("tts.hint");
+		bttsspeak.ToolTip = Loc.T("tts.speak.tip");
+		bttspause.ToolTip = Loc.T("tts.pause.tip");
+		bttsprev.Content = Loc.T("tts.prev");
+		bttsprev.ToolTip = Loc.T("tts.prev.tip");
+		bttsnext.Content = Loc.T("tts.next");
+		bttsnext.ToolTip = Loc.T("tts.next.tip");
+		bttsstop.Content = Loc.T("tts.stop");
+		bttsexport.Content = Loc.T("tts.export");
+		bttsexport.ToolTip = Loc.T("tts.export.tip");
+		bttsreload.Content = Loc.T("reload.models");
+		bttsreload.ToolTip = Loc.T("tts.reload.tip");
+		foreach (var o in ettsengine.Items) {
+			if (o is ComboBoxItem it && it.Tag is TtsEngineKind k)
+				it.Content = k switch {
+					TtsEngineKind.Sapi => Loc.T("tts.engine.sapi"),
+					TtsEngineKind.WinRt => Loc.T("tts.engine.winrt"),
+					_ => Loc.T("tts.engine.sherpa"),
+				};
+		}
+		applycomputebox(ettscompute);
+		foreach (var o in ettsgender.Items) {
+			if (o is not ComboBoxItem it) continue;
+			if (it.Tag is string s && s.Length == 0) it.Content = Loc.T("gender.all");
+			else if (it.Tag is string g && g == TtsGender.Female) it.Content = Loc.T("gender.female");
+			else if (it.Tag is string g2 && g2 == TtsGender.Male) it.Content = Loc.T("gender.male");
+		}
+		foreach (var o in ettslang.Items) {
+			if (o is ComboBoxItem it && it.Tag is string lg)
+				it.Content = string.IsNullOrEmpty(lg) ? Loc.T("lang.all") : TtsLang.DisplayName(lg);
+		}
+		updatettsctrlui();
 	}
 
 	void disposeTts() {

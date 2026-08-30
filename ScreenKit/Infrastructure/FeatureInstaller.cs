@@ -151,8 +151,8 @@ static class FeatureInstaller {
 	}
 
 	public static string MirrorHint() => PreferCnMirrors()
-		? "下载源：国内优先（ModelScope / HF 镜像 / GitHub 代理 → 官方）"
-		: "下载源：官方优先（失败时回退镜像）";
+		? Loc.T("inst.mirror.cn")
+		: Loc.T("inst.mirror.en");
 
 	/// <summary>
 	/// 打开安装窗时的推荐勾选（未装才勾）：
@@ -185,40 +185,23 @@ static class FeatureInstaller {
 	/// </param>
 	public static List<FeatureItem> BuildCatalog(bool firstRunDefaults = false, FeatureKind[] preferSelect = null) {
 		var list = new List<FeatureItem> {
-			make(FeatureKind.NativeOpenCv, "native", "运行库 · OpenCV (OpenCvSharpExtern)",
-				"OCR/长截图必需 · 约 61 MB · NuGet 按需下载", false),
-			make(FeatureKind.NativeSkia, "native", "运行库 · Skia (libSkiaSharp)",
-				"PDF 工作台 · 约 11 MB · NuGet 按需下载", false),
-			make(FeatureKind.NativePdfium, "native", "运行库 · PDFium (pdfium.dll)",
-				"PDF 工作台 · 约 6 MB · 按需下载，不用 PDF 可不装", false),
-			make(FeatureKind.NativeSherpa, "native", "运行库 · Sherpa (sherpa-onnx-c-api)",
-				"语音识别 / 语音合成 · 约 4–5 MB · NuGet 按需下载", false),
-			make(FeatureKind.OrtCpu, "native", "运行库 · ONNX Runtime CPU (onnxcpu64)",
-				"OCR/翻译 CPU 推理必需 · 约 16 MB · 未装 GPU/核显时需要 · NuGet 按需", false),
-			make(FeatureKind.OcrRapidCh, "ocr", "OCR · 简体中文 rapid-ch",
-				"PP-OCRv4 mobile 简中 · ModelScope", false),
-			make(FeatureKind.OcrUmi, "ocr", "OCR · Umi 多语言 (umi)",
-				"Umi 命名 server/infer 包 · 中/英/繁/日/韩/俄 · 本地种子或 ModelScope", false),
-			make(FeatureKind.OcrRapidI18n, "ocr", "OCR · 全语种 rapid-i18n",
-				"中/英/繁/日/韩/俄/拉丁/阿语 mobile · ModelScope", false),
-			make(FeatureKind.AsrSenseVoice, "asr", "ASR · SenseVoice 多语 int8",
-				"离线识别 中/英/日/韩/粤 · GitHub/镜像 · tar.bz2", false),
-			make(FeatureKind.AsrStreamZipformer, "asr", "ASR · 流式 Zipformer 中文",
-				"语音输入热键边说边出 · GitHub/镜像", false),
-			make(FeatureKind.AsrWhisperTiny, "asr", "ASR · Whisper tiny",
-				"多语离线字幕", false),
-			make(FeatureKind.AsrWhisperBase, "asr", "ASR · Whisper base",
-				"多语离线字幕", false),
-			make(FeatureKind.AsrSileroVad, "asr", "ASR · Silero VAD",
-				"端点检测 onnx（预留）", false),
-			make(FeatureKind.FaceInsight, "face", "人脸 · InsightFace buffalo_l",
-				"检测+识别+关键点+性别年龄 · GitHub/镜像 · 约 326 MB", false),
-			make(FeatureKind.CudaGpu, "accel", "GPU · NVIDIA CUDA (onnxgpu64)",
-				"ORT CUDA EP；完整 cudart/cudnn 优先本地库 WPF_OCR_CUDA_LIB", true),
-			make(FeatureKind.DirectMl, "accel", "核显 · DirectML (onnxdml64)",
-				"Intel 等 DX12 GPU · NuGet ORT DirectML", true),
-			make(FeatureKind.Ffmpeg, "media", "录屏 · FFmpeg 4.4 shared",
-				"ffmpeg64 · avcodec-58 等 · GitHub/镜像", false),
+			make(FeatureKind.NativeOpenCv, "native"),
+			make(FeatureKind.NativeSkia, "native"),
+			make(FeatureKind.NativePdfium, "native"),
+			make(FeatureKind.NativeSherpa, "native"),
+			make(FeatureKind.OrtCpu, "native"),
+			make(FeatureKind.OcrRapidCh, "ocr"),
+			make(FeatureKind.OcrUmi, "ocr"),
+			make(FeatureKind.OcrRapidI18n, "ocr"),
+			make(FeatureKind.AsrSenseVoice, "asr"),
+			make(FeatureKind.AsrStreamZipformer, "asr"),
+			make(FeatureKind.AsrWhisperTiny, "asr"),
+			make(FeatureKind.AsrWhisperBase, "asr"),
+			make(FeatureKind.AsrSileroVad, "asr"),
+			make(FeatureKind.FaceInsight, "face"),
+			make(FeatureKind.CudaGpu, "accel", true),
+			make(FeatureKind.DirectMl, "accel", true),
+			make(FeatureKind.Ffmpeg, "media"),
 		};
 		HashSet<FeatureKind> selectSet;
 		if (firstRunDefaults)
@@ -235,15 +218,15 @@ static class FeatureInstaller {
 		return list;
 	}
 
-	static FeatureItem make(FeatureKind kind, string cat, string title, string detail, bool restart) => new() {
+	static FeatureItem make(FeatureKind kind, string cat, bool restart = false) => new() {
 		Kind = kind,
 		Id = kind.ToString(),
 		Category = cat,
-		Title = title,
-		Detail = detail,
+		Title = Loc.T($"feat.{kind}.title"),
+		Detail = Loc.T($"feat.{kind}.detail"),
 		NeedsRestart = restart,
 		SizeBytes = ExpectedSize(kind),
-		SizeText = "约 " + FormatBytes(ExpectedSize(kind)),
+		SizeText = Loc.T("feat.size.about", FormatBytes(ExpectedSize(kind))),
 	};
 
 	public static void RefreshState(FeatureItem it) => refreshstate(it);
@@ -288,15 +271,15 @@ static class FeatureInstaller {
 	static void refreshstate(FeatureItem it) {
 		it.State = probe(it.Kind);
 		it.StateText = it.State switch {
-			FeatureInstallState.Installed => "已安装",
-			FeatureInstallState.Partial => "部分",
-			_ => "未安装",
+			FeatureInstallState.Installed => Loc.T("inst.installed"),
+			FeatureInstallState.Partial => Loc.T("inst.partial"),
+			_ => Loc.T("inst.missing"),
 		};
 		// 体积：已装显示本机占用，否则显示预期下载约数
 		var onDisk = measuresize(it.Kind);
 		if (onDisk > 0 && it.State != FeatureInstallState.Missing) {
 			it.SizeBytes = onDisk;
-			it.SizeText = "本地 " + FormatBytes(onDisk);
+			it.SizeText = Loc.T("feat.size.local", FormatBytes(onDisk));
 		}
 		else {
 			it.SizeBytes = ExpectedSize(it.Kind);

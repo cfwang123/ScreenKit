@@ -27,7 +27,7 @@
 					<Border Width="1" Background="{StaticResource BorderSoft}" Margin="6,4"/>
 					<Button x:Name="brecogall" Content="全部识别" Style="{StaticResource PrimaryBtn}" Margin="0,0,6,0"/>
 					<Button x:Name="brecogpage" Content="识别本页" Style="{StaticResource ToolBtn}"/>
-					<TextBlock Text="页" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+					<TextBlock x:Name="lbpage" Text="页" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
 					           Margin="8,0,4,0" FontSize="12"/>
 					<TextBox x:Name="epagefrom" Width="40" Height="28" Padding="4,2" Text="1"
 					         VerticalContentAlignment="Center" TextAlignment="Center"
@@ -74,7 +74,7 @@
 			<Border Grid.Column="0" Background="{StaticResource BgPanel}" CornerRadius="10"
 			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
 				<DockPanel>
-					<TextBlock DockPanel.Dock="Top" Text="页面" FontWeight="SemiBold" Margin="12,10,12,6"
+					<TextBlock x:Name="lbpageshdr" DockPanel.Dock="Top" Text="页面" FontWeight="SemiBold" Margin="12,10,12,6"
 					           Foreground="{StaticResource TextPrimary}"/>
 					<ListBox x:Name="lstpages" BorderThickness="0" Margin="4,0,4,8"
 					         Background="Transparent"
@@ -105,7 +105,7 @@
 
 					<!-- 缩放工具 -->
 					<DockPanel Grid.Row="0" Margin="10,8,10,6">
-						<TextBlock Text="页面预览" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"
+						<TextBlock x:Name="lbpreview" Text="页面预览" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"
 						           VerticalAlignment="Center"/>
 						<StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
 							<TextBlock x:Name="lbpagesize" Foreground="{StaticResource TextMuted}" FontSize="12"
@@ -147,7 +147,7 @@
 						<StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
 							<Button x:Name="bprev" Content="上一页" Style="{StaticResource ToolBtn}" Margin="0,0,4,0"/>
 							<Button x:Name="bnext" Content="下一页" Style="{StaticResource ToolBtn}" Margin="0,0,10,0"/>
-							<TextBlock Text="第" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,4,0"/>
+							<TextBlock x:Name="lbpageprefix" Text="第" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="0,0,4,0"/>
 							<TextBox x:Name="ejumppage" Width="48" Height="28" Padding="4,2"
 							         VerticalContentAlignment="Center" TextAlignment="Center"
 							         BorderBrush="{StaticResource BorderSoft}" Text="1"/>
@@ -176,9 +176,9 @@
 						<RowDefinition Height="1.2*"/>
 					</Grid.RowDefinitions>
 
-					<TextBlock Grid.Row="0" Text="识别文字（可编辑）" FontWeight="SemiBold"
+					<TextBlock x:Name="lbedittitle" Grid.Row="0" Text="识别文字（可编辑）" FontWeight="SemiBold"
 					           Foreground="{StaticResource TextPrimary}" Margin="0,0,0,6"/>
-					<TextBlock Grid.Row="1" FontSize="11" Foreground="{StaticResource TextMuted}"
+					<TextBlock x:Name="lbedithint" Grid.Row="1" FontSize="11" Foreground="{StaticResource TextMuted}"
 					           TextWrapping="Wrap" Margin="0,0,0,8"
 					           Text="点击一行可在左侧预览高亮。表格保持识别顺序，不可排序。"/>
 
@@ -206,7 +206,7 @@
 					</DataGrid>
 
 					<DockPanel Grid.Row="3" Margin="0,10,0,6">
-						<TextBlock Text="整页文本" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+						<TextBlock x:Name="lbpagetext" Text="整页文本" FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
 						<Button x:Name="bapplytext" DockPanel.Dock="Right" Content="应用整页文本"
 						        Style="{StaticResource GhostBtn}" Padding="8,2" Margin="0"/>
 					</DockPanel>

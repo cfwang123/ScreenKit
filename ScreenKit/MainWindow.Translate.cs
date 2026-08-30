@@ -23,21 +23,21 @@ public partial class MainWindow {
 		trUiLoading = true;
 		etrcompute.Items.Clear();
 		etrcompute.Items.Add(new ComboBoxItem {
-			Content = "自动（CUDA→核显→CPU）",
+			Content = Loc.Compute(TtsComputeMode.Auto),
 			Tag = TtsComputeMode.Auto,
-			ToolTip = "进程内 ONNX Runtime，与 OCR 共用 onnxgpu64 / onnxdml64",
+			ToolTip = Loc.T("tr.compute.tip"),
 		});
 		etrcompute.Items.Add(new ComboBoxItem {
-			Content = "GPU（NVIDIA CUDA）",
+			Content = Loc.Compute(TtsComputeMode.Gpu),
 			Tag = TtsComputeMode.Gpu,
-			ToolTip = "ONNX Runtime CUDA（onnxgpu64），与 OCR 相同",
+			ToolTip = Loc.T("tr.compute.tip"),
 		});
 		etrcompute.Items.Add(new ComboBoxItem {
-			Content = "核显（DirectML）",
+			Content = Loc.Compute(TtsComputeMode.Igpu),
 			Tag = TtsComputeMode.Igpu,
-			ToolTip = "ONNX Runtime DirectML（onnxdml64）",
+			ToolTip = Loc.T("tr.compute.tip"),
 		});
-		etrcompute.Items.Add(new ComboBoxItem { Content = "CPU", Tag = TtsComputeMode.Cpu });
+		etrcompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Cpu), Tag = TtsComputeMode.Cpu });
 		var wantComp = (opt.TranslateCompute ?? "Auto").Trim().ToLowerInvariant() switch {
 			"gpu" or "cuda" => TtsComputeMode.Gpu,
 			"cpu" => TtsComputeMode.Cpu,
@@ -72,7 +72,7 @@ public partial class MainWindow {
 		etrcompute.SelectionChanged += (_, _) => {
 			if (trUiLoading) return;
 			if (etrcompute.SelectedItem is ComboBoxItem it && it.Tag is TtsComputeMode) {
-				lbtrstatus.Text = "计算设备 → " + it.Content + "（下次翻译时加载；进程内 ONNX）";
+				lbtrstatus.Text = Loc.T("tr.dev.changed", it.Content);
 				try { trEngine?.UnloadAll(); } catch { }
 				savetrprefs();
 			}
@@ -80,50 +80,50 @@ public partial class MainWindow {
 		btrreload.Click += (_, _) => {
 			scantrmodels();
 			filltrlangcombos();
-			lbtrstatus.Text = usellm() ? "已刷新 · 当前为 LLM" : "已刷新模型列表";
+			lbtrstatus.Text = usellm() ? Loc.T("tr.refreshed.llm") : Loc.T("tr.refreshed");
 		};
 		btrgo.Click += async (_, _) => await runtranslate();
 		btrpingpong.Click += async (_, _) => await runpingpong();
 		btrstop.Click += (_, _) => {
 			try { trCts?.Cancel(); } catch { }
-			lbtrstatus.Text = "正在取消…";
+			lbtrstatus.Text = Loc.T("cancelling");
 		};
 		btrclear.Click += (_, _) => {
 			etrsrc.Text = "";
 			etrdst.Text = "";
-			lbtrstatus.Text = "已清空";
+			lbtrstatus.Text = Loc.T("cleared");
 		};
 		btrpaste.Click += (_, _) => {
 			try {
 				if (Clipboard.ContainsText())
 					etrsrc.Text = Clipboard.GetText() ?? "";
-				lbtrstatus.Text = "已粘贴";
+				lbtrstatus.Text = Loc.T("pasted");
 			}
-			catch (Exception ex) { lbtrstatus.Text = "粘贴失败: " + ex.Message; }
+			catch (Exception ex) { lbtrstatus.Text = Loc.T("tr.paste.fail", ex.Message); }
 		};
 		btrfromocr.Click += (_, _) => {
 			try {
 				var tb = FindName("eresult") as TextBox;
 				if (tb != null && !string.IsNullOrWhiteSpace(tb.Text)) {
 					etrsrc.Text = tb.Text;
-					lbtrstatus.Text = "已填入 OCR 结果";
+					lbtrstatus.Text = Loc.T("tr.ocr.filled");
 				}
 				else
-					lbtrstatus.Text = "OCR 结果为空";
+					lbtrstatus.Text = Loc.T("tr.ocr.empty");
 			}
-			catch (Exception ex) { lbtrstatus.Text = "读取 OCR 失败: " + ex.Message; }
+			catch (Exception ex) { lbtrstatus.Text = Loc.T("tr.ocr.fail", ex.Message); }
 		};
 		btrcopy.Click += (_, _) => {
 			try {
 				var t = etrdst.Text ?? "";
 				if (t.Length == 0) {
-					lbtrstatus.Text = "译文为空";
+					lbtrstatus.Text = Loc.T("tr.dst.empty");
 					return;
 				}
 				Clipboard.SetText(t);
-				lbtrstatus.Text = "已复制译文";
+				lbtrstatus.Text = Loc.T("copied");
 			}
-			catch (Exception ex) { lbtrstatus.Text = "复制失败: " + ex.Message; }
+			catch (Exception ex) { lbtrstatus.Text = Loc.T("pp.copy.fail", ex.Message); }
 		};
 		btrswap.Click += (_, _) => {
 			// 交换源/目标语言（自动保持自动）；有译文则对调文本
@@ -172,9 +172,9 @@ public partial class MainWindow {
 			var want = (opt.TranslateLlm ?? "").Trim();
 			etrengine.Items.Clear();
 			etrengine.Items.Add(new ComboBoxItem {
-				Content = "本地 ONNX",
+				Content = Loc.T("tr.engine.onnx"),
 				Tag = "",
-				ToolTip = "Opus-MT 进程内 ONNX，需 translatemodels/",
+				ToolTip = Loc.T("tr.hint"),
 			});
 			ComboBoxItem pick = null;
 			if (opt.LlmList != null) {
@@ -265,9 +265,9 @@ public partial class MainWindow {
 		etrsrclng.Items.Clear();
 		// 自动：仅中英互译
 		etrsrclng.Items.Add(new ComboBoxItem {
-			Content = "自动（中英互译）",
+			Content = Loc.T("lang.auto.zhen"),
 			Tag = TrLang.Auto,
-			ToolTip = "按汉字占比判定中/英，目标为另一种语言",
+			ToolTip = Loc.T("tr.src.tip"),
 		});
 		var srcs = trModels.Where(m => m.IsReady)
 			.Select(m => m.SourceLang)
@@ -297,9 +297,9 @@ public partial class MainWindow {
 
 		if (src == TrLang.Auto || string.IsNullOrEmpty(src)) {
 			etrdstlng.Items.Add(new ComboBoxItem {
-				Content = "自动（中英互译）",
+				Content = Loc.T("lang.auto.zhen"),
 				Tag = TrLang.Auto,
-				ToolTip = "与源语言「自动」配对，仅中英",
+				ToolTip = Loc.T("tr.dst.tip"),
 			});
 			etrdstlng.SelectedIndex = 0;
 			return;
@@ -328,7 +328,7 @@ public partial class MainWindow {
 		}
 		if (etrdstlng.Items.Count == 0) {
 			etrdstlng.Items.Add(new ComboBoxItem {
-				Content = "（无可用目标）",
+				Content = Loc.T("lang.none.tgt"),
 				Tag = "",
 				IsEnabled = false,
 			});
@@ -651,6 +651,49 @@ public partial class MainWindow {
 		}
 		else
 			lbtrstatus.Text = "来回翻译已关闭";
+	}
+
+	void applytrlang() {
+		lbtrbrand.Text = Loc.T("tab.translate");
+		if (string.IsNullOrWhiteSpace(lbtrstatus.Text) || lbtrstatus.Text == "就绪" || lbtrstatus.Text == Loc.T("ready"))
+			lbtrstatus.Text = Loc.T("ready");
+		lbtrsrc.Text = Loc.T("tr.src");
+		etrsrclng.ToolTip = Loc.T("tr.src.tip");
+		lbtrdst.Text = Loc.T("tr.dst");
+		etrdstlng.ToolTip = Loc.T("tr.dst.tip");
+		lbtrengine.Text = Loc.T("tts.engine");
+		etrengine.ToolTip = Loc.T("tr.engine.tip");
+		btrreload.Content = Loc.T("reload.models");
+		btrreload.ToolTip = Loc.T("tr.reload.tip");
+		lbtrmodel.Text = Loc.T("tr.model");
+		etrmodel.ToolTip = Loc.T("tr.model.tip");
+		lbtrcompute.Text = Loc.T("tr.compute");
+		etrcompute.ToolTip = Loc.T("tr.compute.tip");
+		lbtrhint.Text = Loc.T("tr.hint");
+		lbtrsrctext.Text = Loc.T("tr.src.text");
+		btrpaste.Content = Loc.T("tr.paste");
+		btrpaste.ToolTip = Loc.T("tr.paste.tip");
+		btrfromocr.Content = Loc.T("tr.fromocr");
+		btrfromocr.ToolTip = Loc.T("tr.fromocr.tip");
+		btrclear.Content = Loc.T("tr.clear");
+		lbtrdsttext.Text = Loc.T("tr.dst.text");
+		btrcopy.Content = Loc.T("tr.copy");
+		btrgo.Content = Loc.T("tr.go");
+		btrgo.ToolTip = Loc.T("tr.go.tip");
+		btrpingpong.Content = Loc.T("tr.pingpong");
+		btrpingpong.ToolTip = Loc.T("tr.pingpong.tip");
+		btrswap.Content = Loc.T("tr.swap");
+		btrswap.ToolTip = Loc.T("tr.swap.tip");
+		btrstop.Content = Loc.T("cancel");
+		applycomputebox(etrcompute);
+		foreach (var o in etrengine.Items) {
+			if (o is ComboBoxItem it && it.Tag is string s && s.Length == 0)
+				it.Content = Loc.T("tr.engine.onnx");
+		}
+		var keep = trUiLoading;
+		trUiLoading = true;
+		try { filltrlangcombos(); }
+		finally { trUiLoading = keep; }
 	}
 }
 

@@ -479,18 +479,18 @@
 									<RowDefinition Height="Auto"/>
 								</Grid.RowDefinitions>
 
-								<TextBlock Grid.Row="0" Grid.Column="0" Text="引擎" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttsengine" Grid.Row="0" Grid.Column="0" Text="引擎" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="ettsengine" Grid.Row="0" Grid.Column="1" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"/>
 
-								<TextBlock Grid.Row="0" Grid.Column="3" Text="计算设备" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttscompute" Grid.Row="0" Grid.Column="3" Text="计算设备" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="ettscompute" Grid.Row="0" Grid.Column="4" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="Sherpa：自动 CUDA→核显 DirectML→CPU；与 OCR 共用 onnxgpu64/onnxdml64（同进程互斥）"/>
 
-								<TextBlock Grid.Row="1" Grid.Column="0" Text="筛选" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttsfilter" Grid.Row="1" Grid.Column="0" Text="筛选" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<DockPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Margin="0,0,0,8">
 									<ComboBox x:Name="ettslang" MinWidth="140" Height="32" Margin="0,0,8,0"
@@ -499,26 +499,26 @@
 									<ComboBox x:Name="ettsgender" Width="110" Height="32"
 									          VerticalContentAlignment="Center"
 									          ToolTip="按性别筛选发音人"/>
-									<TextBlock Text="WinRT=系统语言包 · Sherpa=tts_config" FontSize="11"
+									<TextBlock x:Name="lbttsfilterhint" Text="WinRT=系统语言包 · Sherpa=tts_config" FontSize="11"
 									           Foreground="{StaticResource TextMuted}"
 									           VerticalAlignment="Center" Margin="12,0,0,0"/>
 								</DockPanel>
 
-								<TextBlock Grid.Row="2" Grid.Column="0" Text="模型" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttsmodel" Grid.Row="2" Grid.Column="0" Text="模型" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="ettsmodel" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4"
 								          Height="32" VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          DisplayMemberPath="DisplayName"
 								          ToolTip="扫描程序目录 ttsmodels（可联接至中央库）"/>
 
-								<TextBlock Grid.Row="3" Grid.Column="0" Text="发音人" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttsvoice" Grid.Row="3" Grid.Column="0" Text="发音人" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="ettsvoice" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="4"
 								          Height="32" VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          DisplayMemberPath="DisplayName"
 								          ToolTip="显示名含中文名与属性（女·中 / 男·英）"/>
 
-								<TextBlock Grid.Row="4" Grid.Column="0" Text="语速" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttsratelabel" Grid.Row="4" Grid.Column="0" Text="语速" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,0"/>
 								<DockPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,0">
 									<TextBlock x:Name="lbttsrate" DockPanel.Dock="Right" Width="48" Text="1.0x"
@@ -527,7 +527,7 @@
 									        IsSnapToTickEnabled="True" Value="1.0" VerticalAlignment="Center"/>
 								</DockPanel>
 
-								<TextBlock Grid.Row="4" Grid.Column="3" Text="音量" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttsvollabel" Grid.Row="4" Grid.Column="3" Text="音量" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,0"/>
 								<DockPanel Grid.Row="4" Grid.Column="4">
 									<TextBlock x:Name="lbttsvol" DockPanel.Dock="Right" Width="36" Text="100"
@@ -547,7 +547,7 @@
 									<RowDefinition Height="Auto"/>
 									<RowDefinition Height="*"/>
 								</Grid.RowDefinitions>
-								<TextBlock Grid.Row="0" Text="合成文本" FontWeight="SemiBold"
+								<TextBlock x:Name="lbttstext" Grid.Row="0" Text="合成文本" FontWeight="SemiBold"
 								           Margin="0,0,0,8" VerticalAlignment="Center"/>
 								<TextBox x:Name="ettstext" Grid.Row="1"
 								         TextWrapping="Wrap" AcceptsReturn="True"
@@ -561,7 +561,7 @@
 
 						<DockPanel Grid.Row="3" Margin="0,10,0,0" LastChildFill="True">
 							<StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-								<TextBlock Text="MP3 码率" FontSize="12" Foreground="{StaticResource TextMuted}"
+								<TextBlock x:Name="lbttskbps" Text="MP3 码率" FontSize="12" Foreground="{StaticResource TextMuted}"
 								           VerticalAlignment="Center" Margin="0,0,8,0"/>
 								<ComboBox x:Name="ettskbps" Width="100" Height="28"
 								          VerticalContentAlignment="Center"
@@ -604,7 +604,7 @@
 						</Grid.RowDefinitions>
 
 						<DockPanel Grid.Row="0" Margin="0,0,0,10" LastChildFill="False">
-							<TextBlock Text="语音识别" FontSize="18" FontWeight="SemiBold"
+							<TextBlock x:Name="lbasrbrand" Text="语音识别" FontSize="18" FontWeight="SemiBold"
 							           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
 							           Margin="0,0,16,0"/>
 							<TextBlock x:Name="lbasrstatus" Text="就绪" FontSize="12"
@@ -630,19 +630,19 @@
 									<RowDefinition Height="Auto"/>
 								</Grid.RowDefinitions>
 
-								<TextBlock Grid.Row="0" Grid.Column="0" Text="计算设备" FontWeight="SemiBold"
+								<TextBlock x:Name="lbasrcompute" Grid.Row="0" Grid.Column="0" Text="计算设备" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="easrcompute" Grid.Row="0" Grid.Column="1" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="与 OCR/TTS 共用 onnxgpu64 / onnxdml64"/>
 
-								<TextBlock Grid.Row="0" Grid.Column="3" Text="语言" FontWeight="SemiBold"
+								<TextBlock x:Name="lbasrlang" Grid.Row="0" Grid.Column="3" Text="语言" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="easrlang" Grid.Row="0" Grid.Column="4" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="SenseVoice：auto / zh / en / ja / ko / yue"/>
 
-								<TextBlock Grid.Row="1" Grid.Column="0" Text="流式模型" FontWeight="SemiBold"
+								<TextBlock x:Name="lbasrstream" Grid.Row="1" Grid.Column="0" Text="流式模型" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="easrmodelstream" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
 								          Height="32" VerticalContentAlignment="Center" Margin="0,0,8,8"
@@ -652,14 +652,14 @@
 								        Style="{StaticResource ToolBtn}" Height="32" Margin="0,0,0,8"
 								        ToolTip="重新扫描 asrmodels"/>
 
-								<TextBlock Grid.Row="2" Grid.Column="0" Text="离线模型" FontWeight="SemiBold"
+								<TextBlock x:Name="lbasroffline" Grid.Row="2" Grid.Column="0" Text="离线模型" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="easrmodel" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4"
 								          Height="32" VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          DisplayMemberPath="ListName"
 								          ToolTip="文件识别 / 批量字幕用（离线：SenseVoice / Whisper 等）"/>
 
-								<TextBlock Grid.Row="3" Grid.Column="0" Text="选项" FontWeight="SemiBold"
+								<TextBlock x:Name="lbasropt" Grid.Row="3" Grid.Column="0" Text="选项" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,0"/>
 								<StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="4"
 								            Orientation="Horizontal">
@@ -690,19 +690,19 @@
 									        Padding="12" Margin="0,0,0,10">
 										<StackPanel>
 											<DockPanel Margin="0,0,0,8">
-												<TextBlock Text="音视频" FontWeight="SemiBold"
+												<TextBlock x:Name="lbasrav" Text="音视频" FontWeight="SemiBold"
 												           VerticalAlignment="Center" Margin="0,0,12,0"/>
 												<Button x:Name="basropen" Content="打开文件…" Style="{StaticResource ToolBtn}"
 												        DockPanel.Dock="Left" Height="32" Padding="12,0" Margin="0,0,8,0"
 												        ToolTip="打开音频或视频；也可拖到窗口"/>
-												<TextBlock Text="声音来源" FontWeight="SemiBold"
+												<TextBlock x:Name="lbasrsource" Text="声音来源" FontWeight="SemiBold"
 												           VerticalAlignment="Center" Margin="0,0,8,0"/>
 												<ComboBox x:Name="easrsource" Width="148" Height="32" Margin="0,0,8,0"
 												          VerticalContentAlignment="Center"
 												          ToolTip="录音与「系统实时字幕」共用：麦克风 / 系统扬声器环回 / 两者混合">
-													<ComboBoxItem Content="麦克风" Tag="Mic" IsSelected="True"/>
-													<ComboBoxItem Content="系统声音" Tag="System"/>
-													<ComboBoxItem Content="麦克风+系统声音" Tag="MicAndSystem"/>
+													<ComboBoxItem x:Name="itasrmic" Content="麦克风" Tag="Mic" IsSelected="True"/>
+													<ComboBoxItem x:Name="itasrsys" Content="系统声音" Tag="System"/>
+													<ComboBoxItem x:Name="itasrboth" Content="麦克风+系统声音" Tag="MicAndSystem"/>
 												</ComboBox>
 												<Button x:Name="basrrec" Content="录音" Style="{StaticResource ToolBtn}"
 												        DockPanel.Dock="Left" Height="32" Padding="12,0" Margin="0,0,8,0"
@@ -731,7 +731,7 @@
 												<RowDefinition Height="*"/>
 											</Grid.RowDefinitions>
 											<DockPanel Grid.Row="0" Margin="0,0,0,8">
-												<TextBlock Text="识别结果" FontWeight="SemiBold" VerticalAlignment="Center"/>
+												<TextBlock x:Name="lbasrresult" Text="识别结果" FontWeight="SemiBold" VerticalAlignment="Center"/>
 												<Button x:Name="basrcopy" Content="复制" Style="{StaticResource ToolBtnSm}"
 												        DockPanel.Dock="Right" Margin="0" Padding="10,4"/>
 											</DockPanel>
@@ -775,7 +775,7 @@
 												<RowDefinition Height="Auto"/>
 											</Grid.RowDefinitions>
 											<DockPanel Grid.Row="0" Margin="0,0,0,8">
-												<TextBlock Text="音视频列表" FontWeight="SemiBold" VerticalAlignment="Center"/>
+												<TextBlock x:Name="lbasrtlist" Text="音视频列表" FontWeight="SemiBold" VerticalAlignment="Center"/>
 												<TextBlock x:Name="lbasrtcount" DockPanel.Dock="Right"
 												           FontSize="12" Foreground="{StaticResource TextMuted}"
 												           VerticalAlignment="Center" Text="0 个"/>
@@ -820,7 +820,7 @@
 												<RowDefinition Height="Auto"/>
 											</Grid.RowDefinitions>
 
-											<TextBlock Grid.Row="0" Text="输出" FontWeight="SemiBold" Margin="0,0,0,8"/>
+											<TextBlock x:Name="lbasrtout" Grid.Row="0" Text="输出" FontWeight="SemiBold" Margin="0,0,0,8"/>
 											<StackPanel Grid.Row="1" Margin="0,0,0,12">
 												<CheckBox x:Name="casrtsamedir" Content="输出到源文件同目录（同名 .srt）"
 												          IsChecked="True" Margin="0,0,0,8"/>
@@ -836,7 +836,7 @@
 											</StackPanel>
 
 											<StackPanel Grid.Row="2" Margin="0,0,0,12">
-												<TextBlock Text="当前文件" FontWeight="SemiBold" Margin="0,0,0,6"/>
+												<TextBlock x:Name="lbasrtcur" Text="当前文件" FontWeight="SemiBold" Margin="0,0,0,6"/>
 												<TextBlock x:Name="lbasrtfile" FontSize="12" TextWrapping="Wrap"
 												           Foreground="{StaticResource TextMuted}"
 												           Text="—"/>
@@ -844,7 +844,7 @@
 												             Value="0" Margin="0,6,0,4"/>
 												<TextBlock x:Name="lbasrtfilepct" FontSize="11"
 												           Foreground="{StaticResource TextMuted}" Text="0%"/>
-												<TextBlock Text="总进度" FontWeight="SemiBold" Margin="0,12,0,6"/>
+												<TextBlock x:Name="lbasrttotal" Text="总进度" FontWeight="SemiBold" Margin="0,12,0,6"/>
 												<ProgressBar x:Name="pasrttotal" Height="8" Minimum="0" Maximum="100"
 												             Value="0" Margin="0,0,0,4"/>
 												<TextBlock x:Name="lbasrttotalpct" FontSize="11"
@@ -887,7 +887,7 @@
 						</Grid.RowDefinitions>
 
 						<DockPanel Grid.Row="0" Margin="0,0,0,10" LastChildFill="False">
-							<TextBlock Text="翻译" FontSize="18" FontWeight="SemiBold"
+							<TextBlock x:Name="lbtrbrand" Text="翻译" FontSize="18" FontWeight="SemiBold"
 							           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
 							           Margin="0,0,16,0"/>
 							<TextBlock x:Name="lbtrstatus" Text="就绪" FontSize="12"
@@ -916,12 +916,12 @@
 									<RowDefinition Height="Auto"/>
 								</Grid.RowDefinitions>
 
-								<TextBlock Grid.Row="0" Grid.Column="0" Text="源语言" FontWeight="SemiBold"
+								<TextBlock x:Name="lbtrsrc" Grid.Row="0" Grid.Column="0" Text="源语言" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="etrsrclng" Grid.Row="0" Grid.Column="1" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="先选源语言；「自动」仅支持中英互译（按汉字占比判定）"/>
-								<TextBlock Grid.Row="0" Grid.Column="3" Text="目标语言" FontWeight="SemiBold"
+								<TextBlock x:Name="lbtrdst" Grid.Row="0" Grid.Column="3" Text="目标语言" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="etrdstlng" Grid.Row="0" Grid.Column="4" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
@@ -936,13 +936,13 @@
 								        Style="{StaticResource ToolBtn}" Height="32" Margin="0,0,0,8"
 								        ToolTip="重新扫描 translatemodels"/>
 
-								<TextBlock Grid.Row="1" Grid.Column="0" Text="模型" FontWeight="SemiBold"
+								<TextBlock x:Name="lbtrmodel" Grid.Row="1" Grid.Column="0" Text="模型" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="etrmodel" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          DisplayMemberPath="ListName"
 								          ToolTip="由源/目标语言自动匹配；可手动改选同向模型"/>
-								<TextBlock Grid.Row="1" Grid.Column="6" Text="计算设备" FontWeight="SemiBold"
+								<TextBlock x:Name="lbtrcompute" Grid.Row="1" Grid.Column="6" Text="计算设备" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="etrcompute" Grid.Row="1" Grid.Column="7" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
@@ -970,7 +970,7 @@
 										<RowDefinition Height="*"/>
 									</Grid.RowDefinitions>
 									<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
-										<TextBlock Text="原文" FontWeight="SemiBold" VerticalAlignment="Center"/>
+										<TextBlock x:Name="lbtrsrctext" Text="原文" FontWeight="SemiBold" VerticalAlignment="Center"/>
 										<Button x:Name="btrpaste" DockPanel.Dock="Right" Content="粘贴"
 										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"
 										        ToolTip="从剪贴板粘贴到原文"/>
@@ -995,7 +995,7 @@
 										<RowDefinition Height="*"/>
 									</Grid.RowDefinitions>
 									<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
-										<TextBlock Text="译文" FontWeight="SemiBold" VerticalAlignment="Center"/>
+										<TextBlock x:Name="lbtrdsttext" Text="译文" FontWeight="SemiBold" VerticalAlignment="Center"/>
 										<Button x:Name="btrcopy" DockPanel.Dock="Right" Content="复制译文"
 										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"/>
 									</DockPanel>
@@ -1061,28 +1061,28 @@
 									<RowDefinition Height="Auto"/>
 								</Grid.RowDefinitions>
 
-								<TextBlock Grid.Row="0" Grid.Column="0" Text="检测" FontWeight="SemiBold"
+								<TextBlock x:Name="lbfacedet" Grid.Row="0" Grid.Column="0" Text="检测" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="efacedet" Grid.Row="0" Grid.Column="1" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="SCRFD / YOLO-face 检测模型（facemodels）"/>
-								<TextBlock Grid.Row="0" Grid.Column="3" Text="识别" FontWeight="SemiBold"
+								<TextBlock x:Name="lbfacerec" Grid.Row="0" Grid.Column="3" Text="识别" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="efacereg" Grid.Row="0" Grid.Column="4" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="识别模型（facemodels）"/>
-								<TextBlock Grid.Row="0" Grid.Column="6" Text="计算设备" FontWeight="SemiBold"
+								<TextBlock x:Name="lbfacecompute" Grid.Row="0" Grid.Column="6" Text="计算设备" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="efacecompute" Grid.Row="0" Grid.Column="7" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="与 OCR 共用 onnxgpu64 / onnxdml64"/>
 
-								<TextBlock Grid.Row="1" Grid.Column="0" Text="关键点" FontWeight="SemiBold"
+								<TextBlock x:Name="lbfacelmk" Grid.Row="1" Grid.Column="0" Text="关键点" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="efacelmk" Grid.Row="1" Grid.Column="1" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="2d106det / 1k3d68，仅叠加显示，不参与比对"/>
-								<TextBlock Grid.Row="1" Grid.Column="3" Text="属性" FontWeight="SemiBold"
+								<TextBlock x:Name="lbfaceattr" Grid.Row="1" Grid.Column="3" Text="属性" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="efaceattr" Grid.Row="1" Grid.Column="4" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
@@ -1117,7 +1117,7 @@
 										<RowDefinition Height="Auto"/>
 									</Grid.RowDefinitions>
 									<DockPanel Grid.Row="0" Margin="10,8,10,6" LastChildFill="False">
-										<TextBlock Text="左侧" FontWeight="SemiBold" VerticalAlignment="Center"/>
+										<TextBlock x:Name="lbfaceleft" Text="左侧" FontWeight="SemiBold" VerticalAlignment="Center"/>
 										<Button x:Name="bfacepasteL" DockPanel.Dock="Right" Content="粘贴"
 										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"
 										        AutomationProperties.AutomationId="face.paste.left"
@@ -1161,7 +1161,7 @@
 										<RowDefinition Height="Auto"/>
 									</Grid.RowDefinitions>
 									<DockPanel Grid.Row="0" Margin="10,8,10,6" LastChildFill="False">
-										<TextBlock Text="右侧" FontWeight="SemiBold" VerticalAlignment="Center"/>
+										<TextBlock x:Name="lbfaceright" Text="右侧" FontWeight="SemiBold" VerticalAlignment="Center"/>
 										<Button x:Name="bfacepasteR" DockPanel.Dock="Right" Content="粘贴"
 										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"
 										        AutomationProperties.AutomationId="face.paste.right"
@@ -1200,7 +1200,7 @@
 							        Style="{StaticResource ToolBtn}" Height="32" Padding="12,0"
 							        AutomationProperties.AutomationId="face.swap"/>
 							<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-								<TextBlock Text="判定阈值" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+								<TextBlock x:Name="lbfacethreshlabel" Text="判定阈值" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
 								<Slider x:Name="efacethresh" Width="160" Minimum="0.2" Maximum="0.9"
 								        TickFrequency="0.05" IsSnapToTickEnabled="True" Value="0.5"
 								        VerticalAlignment="Center"/>

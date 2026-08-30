@@ -4,28 +4,6 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
-## Unreleased
-
-### English
-
-#### Changed
-
-- README screenshot: English UI in `docs/1 screenshot.en.png`; Chinese README uses an updated `docs/1 screenshot.png` (ScreenKit 1.0.3).
-
-#### Fixed
-
-- Main window tabs (Screenshot OCR / TTS / ASR / Translate) follow the UI language.
-
-### 中文
-
-#### 变更
-
-- README 增加英文界面截图 `docs/1 screenshot.en.png`；中文 README 截图更新为当前 ScreenKit 主界面。
-
-#### 修复
-
-- 主窗口顶栏 Tab（截图识别 / 语音合成 / 语音识别 / 翻译）随界面语言切换。
-
 ## v1.0.3 (2026-08-30)
 
 ### English
@@ -39,6 +17,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Translate tab can use a configured **LLM** instead of local Opus-MT (`translate_llm`). The LLM prompt (`translate_llm_prompt`, `{src}`/`{dst}`) is edited in **Settings → Translate**. LLM also supports 来回翻译 without a reverse ONNX pair.
 - Project, folder, namespace, mutex, HTTP `app`, PDF drafts (`%LocalAppData%\ScreenKit\drafts`), and self-update (GitHub `ScreenKit` / `screenkit_*.7z` / `ScreenKit.exe`) are all **ScreenKit**. The old `%LocalAppData%\WpfOCR\drafts` folder is unused.
 
+#### Changed
+
+- README screenshot: English UI in `docs/1 screenshot.en.png`; Chinese README uses an updated `docs/1 screenshot.png`.
+- Extended **English UI** coverage: main window TTS/ASR/Translate/Face tabs, settings, annotate window, install-features window, PDF workbench (static + dynamic strings), feature catalog, voice-input HUD, and feature-install prompts (`FeaturePrompt`).
+
 #### Fixed
 
 - Restored **word spaces** for Korean and English: PP-OCR rec rarely emits space (the Chinese dict has none). Spaces are inserted from low-contrast column valleys on the cropped line (word-sized gaps only); CJK–CJK pairs are left unchanged.
@@ -49,6 +32,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Polishing HUD showed only “Polishing · Esc to stop” and dropped the recognized source text: a later status callback overwrote the second line. The original transcript is kept on that line.
 - LLM HTTP timeout was treated as Esc-cancel, so ending dictation dropped the sentence. Timeout now injects the original ASR text. Empty `message.content` (thinking-only replies) also falls back to the original.
 - Settings **LLM** tab: optional `llm_log` writes `log/llm.log` (request/response/timing; API key not written).
+- Main window tabs (Screenshot OCR / TTS / ASR / Translate) follow the UI language.
+- `applylang()` runs after feature tabs initialize so combo labels respect the selected language.
 
 ### 中文
 
@@ -61,6 +46,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - **翻译**可选用已配置的 LLM（`translate_llm`），不必装 Opus-MT。LLM 提示词（`translate_llm_prompt`，`{src}`/`{dst}`）在**参数设置 → 翻译**编辑。LLM 下来回翻译也不需要反向 ONNX 模型。
 - 工程目录、csproj、命名空间、Mutex、HTTP `app`、PDF 草稿（`%LocalAppData%\ScreenKit\drafts`）与自更新（GitHub `ScreenKit` 仓库 / `screenkit_*.7z` / `ScreenKit.exe`）全部为 **ScreenKit**。不再使用 `%LocalAppData%\WpfOCR\drafts`。
 
+#### 变更
+
+- README 增加英文界面截图 `docs/1 screenshot.en.png`；中文 README 截图更新为当前 ScreenKit 主界面。
+- **补全英文界面**：主窗口 TTS/ASR/翻译/人脸 Tab、设置、标注窗口、安装功能、PDF 工作台（静态与动态文案）、功能目录、语音输入 HUD、功能安装提示（`FeaturePrompt`）等。
+
 #### 修复
 
 - **韩语/英语词间空格**：PP-OCR 识别很少输出空格（中文字典本身没有空格）。按裁剪图列对比度谷（词距宽度）补回空格；汉字与汉字之间不插。中文模型识别拉丁文时同样生效。
@@ -71,6 +61,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - **润色中**第二行被后续状态回调清空，只剩「润色中 · Esc 停止」。现会保留识别原文。
 - LLM HTTP 超时被当成 Esc 取消，结束听写时整句丢弃。现超时回退输出识别原文；`message.content` 为空（只有思考）同样回退原文。
 - LLM 接口 Tab 可开 `llm_log`，写入 `log/llm.log`（请求/响应/耗时，不含 API key）。
+- 主窗口顶栏 Tab（截图识别 / 语音合成 / 语音识别 / 翻译）随界面语言切换。
+- `applylang()` 改在功能 Tab 初始化之后执行，下拉框等控件随语言正确刷新。
 
 ## v1.0.2 (2026-08-26)
 

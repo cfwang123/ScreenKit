@@ -45,7 +45,7 @@ public partial class VoiceInputHud : Window {
 
 	public void SetStatus(string text) {
 		runui(() => {
-			lbtext.Text = string.IsNullOrWhiteSpace(text) ? "语音输入中…" : text;
+			lbtext.Text = string.IsNullOrWhiteSpace(text) ? Loc.T("hud.voice") : text;
 			place();
 		}, async: true);
 	}
@@ -57,7 +57,7 @@ public partial class VoiceInputHud : Window {
 
 	/// <summary>润色中与原文同一行。须在 HTTP 前同步刷新，否则 UI 阻塞时浮窗不更新。</summary>
 	public void SetPolish(string original) {
-		runui(() => paintbody(join("润色中 · Esc 停止", original)), async: false);
+		runui(() => paintbody(join(Loc.T("hud.polish"), original)), async: false);
 	}
 
 	static string join(string phase, string content) {
