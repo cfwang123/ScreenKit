@@ -8,7 +8,7 @@ Current version: **1.0.3**
 
 ## Screenshots
 
-![ScreenKit main window](docs/1%20screenshot.png)
+![ScreenKit main window](docs/1%20screenshot.en.png)
 
 ## Features
 

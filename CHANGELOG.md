@@ -4,6 +4,28 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
+## Unreleased
+
+### English
+
+#### Changed
+
+- README screenshot: English UI in `docs/1 screenshot.en.png`; Chinese README uses an updated `docs/1 screenshot.png` (ScreenKit 1.0.3).
+
+#### Fixed
+
+- Main window tabs (Screenshot OCR / TTS / ASR / Translate) follow the UI language.
+
+### 中文
+
+#### 变更
+
+- README 增加英文界面截图 `docs/1 screenshot.en.png`；中文 README 截图更新为当前 ScreenKit 主界面。
+
+#### 修复
+
+- 主窗口顶栏 Tab（截图识别 / 语音合成 / 语音识别 / 翻译）随界面语言切换。
+
 ## v1.0.3 (2026-08-30)
 
 ### English

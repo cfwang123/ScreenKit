@@ -158,6 +158,8 @@ static class Loc {
 		// 主 Tab
 		["tab.ocr"] = "截图识别",
 		["tab.tts"] = "语音合成",
+		["tab.asr"] = "语音识别",
+		["tab.translate"] = "翻译",
 		["tab.face"] = "人脸识别",
 
 		// 工具栏
@@ -476,7 +478,9 @@ static class Loc {
 		["device.igpu.tip"] = "Intel iGPU via DirectML",
 
 		["tab.ocr"] = "Screenshot OCR",
-		["tab.tts"] = "Speech",
+		["tab.tts"] = "TTS",
+		["tab.asr"] = "ASR",
+		["tab.translate"] = "Translate",
 		["tab.face"] = "Face",
 
 		["tb.ocr"] = "OCR",

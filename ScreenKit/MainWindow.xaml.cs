@@ -1073,6 +1073,11 @@ public partial class MainWindow : Window {
 			mnabout.Header = Loc.T("menu.about");
 			mnabout.ToolTip = Loc.T("menu.about.tip");
 
+			tabocr.Header = Loc.T("tab.ocr");
+			tabtts.Header = Loc.T("tab.tts");
+			tabasr.Header = Loc.T("tab.asr");
+			tabtr.Header = Loc.T("tab.translate");
+
 			// 顶栏
 			lbpack.Text = Loc.T("label.pack");
 			lbvariant.Text = Loc.T("label.variant");
