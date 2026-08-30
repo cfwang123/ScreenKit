@@ -1,0 +1,26 @@
+<Window x:Class="ScreenKit.VoiceInputHud"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        ShowActivated="False"
+        SizeToContent="WidthAndHeight">
+	<Border Background="#E6121826" CornerRadius="18" Padding="14,10"
+	        BorderBrush="#66FFFFFF" BorderThickness="1">
+		<StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+			<Ellipse x:Name="edot" Width="10" Height="10" Fill="#EF4444" Margin="0,4,10,0"
+			         VerticalAlignment="Top"/>
+			<StackPanel MaxWidth="520">
+				<TextBlock x:Name="lbtext" Text="语音输入中…" FontSize="13" FontWeight="SemiBold"
+				           Foreground="White" TextWrapping="Wrap"/>
+				<TextBlock x:Name="lbbody" FontSize="12" FontWeight="Normal" Foreground="#E6FFFFFF"
+				           TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="132"
+				           Margin="0,6,0,0" Visibility="Collapsed"/>
+			</StackPanel>
+		</StackPanel>
+	</Border>
+</Window>

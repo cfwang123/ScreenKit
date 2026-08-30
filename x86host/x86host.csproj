@@ -12,11 +12,11 @@
     <Prefer32Bit>false</Prefer32Bit>
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
     <AppendTargetFrameworkToOutputPath>true</AppendTargetFrameworkToOutputPath>
-    <Version>1.0.2</Version>
-    <Product>WpfOCR x86host</Product>
-    <Description>32-bit SAPI HTTP helper for WpfOCR (standalone, no extra deps)</Description>
-    <Company>WpfOCR Contributors</Company>
-    <Copyright>Copyright (c) 2026 WpfOCR Contributors</Copyright>
+    <Version>1.0.3</Version>
+    <Product>ScreenKit x86host</Product>
+    <Description>32-bit SAPI HTTP helper for ScreenKit (standalone, no extra deps)</Description>
+    <Company>ScreenKit Contributors</Company>
+    <Copyright>Copyright (c) 2026 ScreenKit Contributors</Copyright>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>

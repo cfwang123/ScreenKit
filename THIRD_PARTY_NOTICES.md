@@ -1,6 +1,6 @@
 # Third-party notices
 
-WpfOCR application source code is licensed under the **MIT License** (see [LICENSE](LICENSE)).
+ScreenKit application source code is licensed under the **MIT License** (see [LICENSE](LICENSE)).
 
 This file summarizes **third-party components** that may be used at build time or runtime. Their licenses are **independent** of the MIT license of this repository. You must comply with each component’s license when redistributing binaries or models.
 
@@ -31,7 +31,7 @@ Always verify the license of the **exact package version** you ship.
 
 ## Reference / research code
 
-Ideas or reference material (e.g. screen-capture UX patterns from open-source tools) may appear in local notes under `tmp/`; they are **not** part of the MIT-licensed application source unless explicitly copied into `WpfOCR/` with attribution. Do not ship third-party source from `tmp/` without checking its license.
+Ideas or reference material (e.g. screen-capture UX patterns from open-source tools) may appear in local notes under `tmp/`; they are **not** part of the MIT-licensed application source unless explicitly copied into `ScreenKit/` with attribution. Do not ship third-party source from `tmp/` without checking its license.
 
 ## Recommendation when distributing
 

@@ -1,28 +1,30 @@
-# WpfOCR
+# ScreenKit
 
-Windows desktop OCR tool: screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
+Windows desktop tool (project ScreenKit, exe `ScreenKit.exe`): screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
 
-Current version: **1.0.2**
+Current version: **1.0.3**
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
 ## Screenshots
 
-![WpfOCR main window](docs/1%20screenshot.png)
+![ScreenKit main window](docs/1%20screenshot.png)
 
 ## Features
 
 | Area | Description |
 |------|-------------|
-| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture |
+| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture. Word spaces in Korean/English (and Latin text under the Chinese rec model) are restored from visual gaps on the line; CJK characters are not split. |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
 | **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF |
-| **Clipboard** | Paste image and run OCR; copy image / text; menu/tray can switch on-capture copy mode (image / file / path) and re-copy the last screenshot |
+| **Clipboard** | Paste image and run OCR; copy image / text; menu/tray can switch on-capture copy mode (image / file / path) and re-copy the last screenshot. Copy-as-path writes Win32 text only (drops OLE delayed bitmaps) so leftover screenshots are not pasted as `▀` |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
+| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`). Edit the prompt in **Settings → Translate** (`{src}`/`{dst}` placeholders). Pick the engine on the Translate tab. |
+| **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
@@ -43,11 +45,11 @@ Current version: **1.0.2**
 
 ```
 OCR/
-├── WpfOCR/                 # Application source (WPF, net48, x64)
+├── ScreenKit/                 # Application source (WPF, net48, x64)
 │   ├── Assets/
 │   └── bin/Release/
 │       ├── net48/          # Dev output (models / runtimes live here)
-│       └── WpfOCR/         # Slim package: WpfOCR.exe + x86host.exe + managed deps
+│       └── ScreenKit/      # Slim package: ScreenKit.exe + x86host.exe + managed deps
 ├── x86host/                # Standalone 32-bit SAPI web helper (x86host.exe only)
 ├── docs/                   # README screenshots
 ├── scripts/publish-release.mjs
@@ -60,13 +62,14 @@ OCR/
 Model packs and large native runtimes are **not** stored in source. Place or install them next to the executable:
 
 ```
-WpfOCR/bin/Release/net48/
-├── WpfOCR.exe
+ScreenKit/bin/Release/net48/
+├── ScreenKit.exe
 ├── config.toml              # created/updated at runtime
 ├── ocrmodels/               # OCR packs (rapid-ch, rapid-i18n, …)
 ├── asrmodels/               # ASR packs (optional)
 ├── ttsmodels/               # TTS voices (optional)
 ├── translatemodels/         # Translation ONNX (optional)
+├── facemodels/              # Face ONNX (optional, InsightFace; Install Features can fetch buffalo_l)
 ├── onnxcpu64/               # ONNX Runtime for CPU EP (on-demand install)
 ├── onnxgpu64/               # CUDA ORT + CUDA libs (optional)
 ├── onnxdml64/               # DirectML ORT (optional)
@@ -78,36 +81,36 @@ Each OCR pack needs ONNX models + `configs.txt` (and dict/keys as required by th
 ## Build & run
 
 ```bash
-cd WpfOCR
+cd ScreenKit
 dotnet build -c Release
 ```
 
 Run:
 
 ```bash
-./WpfOCR/bin/Release/net48/WpfOCR.exe
+./ScreenKit/bin/Release/net48/ScreenKit.exe
 ```
 
 A plain build does **not** ship models, `onnxcpu64`, full CUDA, or FFmpeg. Use **Tools → Install features** (or first-run wizard) inside the app.
 
-### Slim release package (`bin\Release\WpfOCR\`)
+### Slim release package (`bin\Release\ScreenKit\`)
 
-Release builds also produce a **small redistributable** under `WpfOCR\bin\Release\WpfOCR\`:
+Release builds also produce a **small redistributable** under `ScreenKit\bin\Release\ScreenKit\`:
 
-- Includes: `WpfOCR.exe`, **`x86host.exe`** (32-bit SAPI web), managed dependencies, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: OCR/ASR/TTS models, `onnxcpu64` / `onnxgpu64` / `onnxdml64`, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
+- Includes: `ScreenKit.exe`, **`x86host.exe`** (32-bit SAPI web), managed dependencies, **`wetext/`** (ITN), Assets, LICENSE.
+- Does **not** include: OCR/ASR/TTS/face models, `onnxcpu64` / `onnxgpu64` / `onnxdml64`, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
 - End users install those via **Install features** (downloads from mirrors / NuGet CDN).
 - **Translation** is not covered by the installer: place Opus-MT ONNX under `translatemodels/` yourself if needed.
 
 For local development with models and GPU already present, run **`bin\Release\net48\`** instead.
 
-### Release archive (`release/wpfocr_x.x.x.7z`)
+### Release archive (`release/screenkit_x.x.x.7z`)
 
 ```bash
 node scripts/publish-release.mjs
 ```
 
-Runs Release build, then packs `WpfOCR/bin/Release/WpfOCR/` into `release/wpfocr_<version>.7z` (requires [7-Zip](https://www.7-zip.org/) on PATH). The `release/` folder is gitignored.
+Runs Release build, then packs `ScreenKit/bin/Release/ScreenKit/` (folder included) into `release/screenkit_<version>.7z` (requires [7-Zip](https://www.7-zip.org/) on PATH). The `release/` folder is gitignored.
 
 ## In-app install (recommended)
 
@@ -136,7 +139,7 @@ Optional env vars for local full libraries (do not commit secrets/paths into doc
 
 ## Configuration
 
-Settings are stored in `config.toml` beside the exe (also editable via **Tools → Settings** / **Record options**). The Settings window groups options into tabs: General, OCR, Hotkeys, Speech, Capture, API.
+Settings are stored in `config.toml` beside the exe (also editable via **Tools → Settings** / **Record options**). The Settings window groups options into tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API.
 
 ```toml
 [ocr]
@@ -154,6 +157,7 @@ hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
 hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
 minimize_to_tray = true
 capture_log = false             # true → log/capture.log
+# llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
 
 [http]
@@ -181,19 +185,32 @@ record_lock_aspect = true      # lock aspect when resizing HUD region after Star
 
 [asr]
 asr_voice_mode = "stream"       # stream = live; offline = record until hotkey stop, then one-shot ASR
-asr_voice_polish = true         # LLM polish for voice input (needs asr_llm_url + asr_llm_model)
+asr_voice_polish = true         # LLM polish for voice input (needs selected [[llm]] url + model)
 asr_voice_split = true
 asr_voice_split_sec = 5         # split only after this many seconds of silence (1–30); do not cut continuous speech
 asr_live_mode = "stream"        # stream | offline (offline splits on silence)
 asr_live_polish = false         # LLM polish each live-caption sentence
 asr_live_split = true           # auto-split after polish / completed sentences
-# asr_llm_url / asr_llm_model required when a polish checkbox is on (OpenAI-compatible)
-# asr_llm_token = ""            # do not commit secrets
+asr_llm = "gpt-4o-mini"         # display name of the [[llm]] entry used for polish (empty = first)
 # asr_llm_prompt = "..."
+
+[[llm]]
+name = "gpt-4o-mini"            # display name; defaults to model id
+url = "https://api.openai.com/v1"
+# key = ""                    # do not commit secrets
+model = "gpt-4o-mini"
+think = "low"                   # off | low | high | max; default low (GLM-5.3 cannot off)
 # Polish sends prior output in the same session as context (homophones / names).
+# off → thinking.type=disabled; low/high/max → thinking.type=enabled + reasoning_effort.
+# If off is rejected (model always thinks), retry with low; other 400s drop think fields.
 # Voice HUD: line 1 stays “listening…”; line 2 is “识别中” / “润色中” plus transcript.
 # After polish+inject, line 2 is cleared.
 # Esc during recognize/polish stops the session with no inject.
+
+[translate]
+translate_compute = "Auto"      # Auto | Gpu | Cpu | Igpu (local Opus-MT ONNX)
+# translate_llm = ""            # empty = local ONNX; else [[llm]] display name
+# translate_llm_prompt = "请将用户给出的文本从{src}翻译为{dst}。只输出译文。"
 
 [gif_record]
 gif_fps = 8                     # default output FPS in preview (1–24); capture is 24 fps
@@ -252,19 +269,22 @@ Tray icon: left-click toggles the window; context menu includes voice input, cli
 ## CLI
 
 ```text
-WpfOCR --image <path> [options]
-WpfOCR --snap [--out <dir>]
-WpfOCR --list-models
-WpfOCR --list-sapi              # local SAPI + (x64) x86host voices
-WpfOCR --probe-cuda
-WpfOCR --help
+ScreenKit --image <path> [options]
+ScreenKit --snap [--out <dir>]
+ScreenKit --test-clipboard-path
+ScreenKit --test-face-overlay
+ScreenKit --list-models
+ScreenKit --list-face
+ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
+ScreenKit --probe-cuda
+ScreenKit --help
 ```
 
 Useful options: `-d gpu|cpu`, `-p rapid-ch`, `-v <variant>`, `-m <models-dir>`, `--det-limit`, `--no-cls`.
 
 ## x86host (32-bit SAPI only)
 
-Some classic **SAPI** voices register only for 32-bit processes. Ship **`x86host.exe`** next to `WpfOCR.exe` (built from `x86host/`; a Release build of WpfOCR also builds and copies it).
+Some classic **SAPI** voices register only for 32-bit processes. Ship **`x86host.exe`** next to `ScreenKit.exe` (built from `x86host/`; a Release build of ScreenKit also builds and copies it).
 
 | Item | Detail |
 |------|--------|
@@ -292,6 +312,7 @@ When enabled, a local server listens on `http_host:http_port` (default loopback 
 - `GET  /api/asr/models` · `POST /api/asr` — speech recognition
 - `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64)
 - `POST /api/itn` — inverse text normalization
+- `GET  /api/face/models` · `POST /api/face` — face detect / compare
 
 Bind to `127.0.0.1` unless you intentionally expose the service on a trusted network.
 
@@ -301,14 +322,16 @@ Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[HTTP接口文档.md](
 
 Set `capture_log = true` in `config.toml` to write `log/capture.log` (multi-monitor / DPI troubleshooting). Keep it off for normal use.
 
-CLI: `WpfOCR --snap` dumps full-monitor bitmaps under `log/snap/` (or `--out`).
+Set `llm_log = true` (Settings → LLM) to write `log/llm.log` for polish HTTP traces. API keys are not written. Keep it off for normal use.
+
+CLI: `ScreenKit --snap` dumps full-monitor bitmaps under `log/snap/` (or `--out`).
 
 ## License
 
-**WpfOCR application source code** (this repository’s `WpfOCR/` sources, scripts, and docs authored for the project) is released under the **MIT License**. See [LICENSE](LICENSE).
+**ScreenKit application source code** (this repository’s `ScreenKit/` sources, scripts, and docs authored for the project) is released under the **MIT License**. See [LICENSE](LICENSE).
 
 ```
-Copyright (c) 2026 WpfOCR Contributors
+Copyright (c) 2026 ScreenKit Contributors
 ```
 
 You may use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to including the copyright and permission notice. **THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.**

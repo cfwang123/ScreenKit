@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ScreenKit/ScreenKit.csproj" />
+  <Project Path="x86host/x86host.csproj" />
+</Solution>

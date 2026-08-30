@@ -1,8 +1,8 @@
-# WpfOCR HTTP API
+# ScreenKit HTTP API
 
 **Languages:** [English](HTTP-API.md) · [中文](HTTP接口文档.md)
 
-Local HTTP API: OCR endpoints, plus ASR / TTS / ITN extensions.
+Local HTTP API: OCR endpoints, plus ASR / TTS / ITN / face extensions.
 
 By default the server binds to loopback only. **Do not** expose this port on untrusted networks.
 
@@ -66,7 +66,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | code | Meaning (summary) |
 |------|-------------------|
 | 100 | Success |
-| 101 | OCR: no text detected |
+| 101 | OCR: no text detected; Face: no face detected |
 | 404 | Unknown path |
 | 800 | Request parse failure / empty body |
 | 801 | Empty request |
@@ -79,6 +79,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | 901 | OCR recognition failed |
 | 910+ | ASR-related |
 | 920+ | TTS-related |
+| 930+ | Face-related (930 no models, 931 failed, 932 missing det/rec files) |
 
 ---
 
@@ -95,6 +96,8 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET | `/api/tts/models` | List TTS models |
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
+| GET | `/api/face/models` | List face ONNX files |
+| POST | `/api/face` | Face detect / embedding / compare two images |
 
 Paths are case-insensitive; a trailing `/` is optional.
 
@@ -110,7 +113,7 @@ Returns service name and endpoint list.
 {
   "code": 100,
   "data": {
-    "name": "WpfOCR HTTP API",
+    "name": "ScreenKit HTTP API",
     "endpoints": [
       "GET  /api/status",
       "GET  /api/ocr/get_options",
@@ -119,7 +122,9 @@ Returns service name and endpoint list.
       "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
       "GET  /api/tts/models",
       "POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
-      "POST /api/itn   JSON{text}  WeText+rules"
+      "POST /api/itn   JSON{text}  WeText+rules",
+      "GET  /api/face/models",
+      "POST /api/face  JSON{base64|base64_b|path} or multipart"
     ]
   }
 }
@@ -135,13 +140,15 @@ Health check and capability probe.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `app` | string | `"WpfOCR"` |
+| `app` | string | `"ScreenKit"` |
 | `http_enabled` | bool | Whether HTTP is enabled in config |
 | `ocr_engine` | bool | OCR runner available |
 | `asr_engine` | bool | ASR engine injected |
 | `tts_engine` | bool | TTS (Sherpa) engine injected |
 | `asr_models` | int | Scanned ASR model count |
 | `tts_models` | int | Scanned TTS model count |
+| `face_ready` | bool | Whether `facemodels` has det+rec ONNX |
+| `face_models` | int | Scanned face ONNX count |
 | `itn` | bool | WeText ITN available |
 | `itn_error` | string | Reason when ITN is unavailable |
 
@@ -519,7 +526,96 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 ---
 
-## 10. Relationship to the main window
+## 10. Face
+
+Needs det+rec ONNX under `facemodels/`. Download InsightFace **buffalo_l** from **Tools → Install features**. Aliases: `POST /api/face/compare`, `POST /api/face/extract` (same handler).
+
+### 10.1 GET `/api/face/models`
+
+```json
+{
+  "code": 100,
+  "data": {
+    "root": ".../facemodels",
+    "ready": true,
+    "det": ["det_10g.onnx"],
+    "rec": ["w600k_r50.onnx"],
+    "landmark": ["2d106det.onnx", "1k3d68.onnx"],
+    "attr": ["genderage.onnx"]
+  },
+  "count": 5
+}
+```
+
+### 10.2 POST `/api/face`
+
+One image: detect the largest face and extract an embedding. Two images: cosine similarity and same-person decision.
+
+**JSON:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `base64` / `image` / `path` | at least one | First image (base64 or server-local path) |
+| `base64_b` / `image_b` / `path_b` | for compare | Second image |
+| `det` / `reg` | no | Det/rec file names (fuzzy; default config or first in folder) |
+| `threshold` | no | Compare threshold (config default, about 0.5) |
+| `device` / `compute` | no | `auto` / `gpu` / `cpu` / `igpu` |
+| `attr` / `genderage` | no | Run gender/age (`true` by default if `genderage.onnx` exists) |
+| `include_feature` | no | Include embedding vector when `true` |
+
+**multipart:** `file` + `file2` (or `image` / `image_b`), plus optional scalar fields.
+
+**One-image success:**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "faces": 1,
+    "det": "det_10g.onnx",
+    "reg": "w600k_r50.onnx",
+    "provider": "CUDA",
+    "face": {
+      "score": 0.91,
+      "box": [80.0, 40.0, 220.0, 210.0],
+      "landmarks5": [[x, y], "..."],
+      "gender": "女",
+      "age": 22
+    }
+  },
+  "time": 80
+}
+```
+
+**Two-image compare:**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "similarity": 0.7234,
+    "match": true,
+    "threshold": 0.5,
+    "det": "det_10g.onnx",
+    "reg": "w600k_r50.onnx",
+    "provider": "CUDA",
+    "left": { "score": 0.91, "box": [80, 40, 220, 210], "gender": "女", "age": 22 },
+    "right": { "score": 0.88, "box": [70, 30, 200, 200], "gender": "男", "age": 26 }
+  },
+  "time": 150
+}
+```
+
+No face: `code=101`.
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/face" \
+  -F "file=@left.jpg" -F "file2=@right.jpg" -F "threshold=0.5"
+```
+
+---
+
+## 11. Relationship to the main window
 
 | Behavior | Description |
 |----------|-------------|
@@ -530,17 +626,17 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 ---
 
-## 11. Security notes
+## 12. Security notes
 
 1. Default bind is `127.0.0.1`. Do not use `0.0.0.0` without a firewall and authentication plan.
 2. **No auth, no HTTPS** — trust only the local machine or a controlled LAN.
-3. `POST /api/asr` `path` reads server-local files; never expose this to untrusted clients.
+3. `POST /api/asr` and `POST /api/face` `path` / `path_b` read server-local files; never expose this to untrusted clients.
 4. Large images / long audio use CPU/GPU and memory; watch concurrency (requests run via `Task.Run`; engines use locks).
 
 ---
 
-## 12. Related
+## 13. Related
 
-- Implementation: `WpfOCR/Ocr/HttpOcrServer.cs`
+- Implementation: `ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs`
 - Config: `config.toml` (`http_enabled` / `http_host` / `http_port` / `service_mode`)
 - Overview: [README.md](README.md) · [README.zh.md](README.zh.md)

@@ -1,28 +1,30 @@
-# WpfOCR
+# ScreenKit
 
-Windows 桌面 OCR：截图识别、截图标注、长截图、**区域录屏**、剪贴板识图、PDF 工作台、语音识别/合成、可选翻译，以及可选本机 HTTP API（PP-OCR / RapidOCR 模型包）。
+Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`）：截图识别、截图标注、长截图、**区域录屏**、剪贴板识图、PDF 工作台、语音识别/合成、可选翻译，以及可选本机 HTTP API（PP-OCR / RapidOCR 模型包）。
 
-当前版本：**1.0.2**
+当前版本：**1.0.3**
 
 [English](README.md) · [中文](README.zh.md)
 
 ## 截图
 
-![WpfOCR 主界面](docs/1%20screenshot.png)
+![ScreenKit 主界面](docs/1%20screenshot.png)
 
 ## 功能一览
 
 | 模块 | 说明 |
 |------|------|
-| **截图识别** | 框选区域 → 按结果区当前 OCR / 条码 Tab 识别文字或条码/二维码，识别后保持当前 Tab；多显示器 DXGI 抓屏 |
+| **截图识别** | 框选区域 → 按结果区当前 OCR / 条码 Tab 识别文字或条码/二维码，识别后保持当前 Tab；多显示器 DXGI 抓屏。韩语/英语词间空格按画面词距补回（中文模型下的拉丁文同样）；汉字之间不插空格。 |
 | **截图标注** | 微信式工具条：矩形 / 椭圆 / 箭头 / 画笔 / 文字、色点、撤销 / 保存 / 完成 |
 | **长截图** | 点选可滚动窗口 → 自动滚动拼接 → 上屏（不做 OCR） |
 | **区域录屏** | 点选窗口或拖拽框选 → HUD（可移动/缩放选区、可拖动控制条）→ MP4（**仅 FFmpeg** x264/x265/AV1）+ 可选系统声/麦克风 |
 | **GIF 录屏** | 同选区流程 → 采集 24fps → 预览（输出帧率/缩放/调色板）→ 无声 GIF |
-| **剪贴板** | 粘贴图片识别；复制图片 / 文字；菜单/托盘可切换截图完成时「复制为图片 / 文件 / 路径」，切换时会按新方式重写上次截图到剪贴板 |
+| **剪贴板** | 粘贴图片识别；复制图片 / 文字；菜单/托盘可切换截图完成时「复制为图片 / 文件 / 路径」，切换时会按新方式重写上次截图到剪贴板；复制为路径只放 Win32 文本并丢掉 OLE 延迟位图，避免粘成「▀」 |
 | **文字叠加** | 图上叠加文字层，拖选复制 |
 | **PDF 工作台** | 打开 PDF → 分页识别 → 改字 → 导出可检索 PDF（不可见文字层） |
 | **ASR / TTS** | 离线语音识别（sherpa-onnx）与语音合成（Sherpa + SAPI / WinRT 系统音）；应用内安装发音人 |
+| **翻译** | 本地 Opus-MT ONNX，或选用已配置的 **LLM**。提示词在参数设置 → 翻译（`{src}`/`{dst}` 替换为语言名）。翻译 Tab 切换引擎。 |
+| **人脸识别** | InsightFace ONNX：左右图检测/比对，可选关键点与性别年龄叠加；模型在 `facemodels/`（「安装功能」可下载 buffalo_l） |
 | **SAPI x86 助手** | 旁路 `x86host.exe`（仅 32 位 SAPI Web），调用仅 x86 可见的经典系统发音人 |
 | **推理设备** | CPU · NVIDIA CUDA（GPU）· 核显 DirectML；未装加速时自动 CPU |
 | **安装功能** | 应用内下载模型与运行库（中文环境优先国内镜像） |
@@ -44,11 +46,11 @@ Windows 桌面 OCR：截图识别、截图标注、长截图、**区域录屏**�
 
 ```
 OCR/
-├── WpfOCR/                 # 主程序源码（WPF，net48，x64）
+├── ScreenKit/                 # 主程序源码（WPF，net48，x64）
 │   ├── Assets/
 │   └── bin/Release/
 │       ├── net48/          # 开发输出（模型、运行库放这里）
-│       └── WpfOCR/         # 精简包：WpfOCR.exe + x86host.exe + 托管依赖
+│       └── ScreenKit/      # 精简包：ScreenKit.exe + x86host.exe + 托管依赖
 ├── x86host/                # 独立 32 位 SAPI Web 助手（仅 x86host.exe）
 ├── docs/                   # README 截图
 ├── scripts/publish-release.mjs
@@ -61,13 +63,14 @@ OCR/
 **源码目录不包含模型与大型运行库。** 请放到可执行文件旁，或在程序内「安装功能」下载：
 
 ```
-WpfOCR/bin/Release/net48/
-├── WpfOCR.exe
+ScreenKit/bin/Release/net48/
+├── ScreenKit.exe
 ├── config.toml              # 运行时生成/更新
 ├── ocrmodels/               # OCR 模型包
 ├── asrmodels/               # ASR 模型（可选）
 ├── ttsmodels/               # TTS 发音人（可选）
 ├── translatemodels/         # 翻译 ONNX（可选）
+├── facemodels/              # 人脸 ONNX（可选，InsightFace；安装功能可下载 buffalo_l）
 ├── onnxcpu64/               # CPU 用 ONNX Runtime（按需安装）
 ├── onnxgpu64/               # CUDA ORT + CUDA 库（可选）
 ├── onnxdml64/               # DirectML ORT（可选）
@@ -79,36 +82,36 @@ WpfOCR/bin/Release/net48/
 ## 编译与运行
 
 ```bash
-cd WpfOCR
+cd ScreenKit
 dotnet build -c Release
 ```
 
 运行：
 
 ```bash
-./WpfOCR/bin/Release/net48/WpfOCR.exe
+./ScreenKit/bin/Release/net48/ScreenKit.exe
 ```
 
 纯编译**不会**附带模型、`onnxcpu64`、完整 CUDA 或 FFmpeg。请在程序内使用 **工具 → 安装功能**（或首次启动向导）。
 
-### 精简发布包（`bin\Release\WpfOCR\`）
+### 精简发布包（`bin\Release\ScreenKit\`）
 
-Release 编译后会同步生成可对外分发的精简目录 `WpfOCR\bin\Release\WpfOCR\`：
+Release 编译后会同步生成可对外分发的精简目录 `ScreenKit\bin\Release\ScreenKit\`：
 
-- **包含**：`WpfOCR.exe`、**`x86host.exe`**（32 位 SAPI Web）、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：OCR/ASR/TTS 模型、`onnxcpu64` / GPU / 核显、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`。
+- **包含**：`ScreenKit.exe`、**`x86host.exe`**（32 位 SAPI Web）、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
+- **不含**：OCR/ASR/TTS/人脸模型、`onnxcpu64` / GPU / 核显、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`。
 - 用户通过 **安装功能** 按需下载（国内镜像 / NuGet CDN）。
-- **翻译**不在安装窗内：如需翻译，自行将 Opus-MT ONNX 放到 `translatemodels/`。
+- **翻译**不在安装窗内：本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`；也可在翻译 Tab 选已配置的 LLM，无需 ONNX。
 
 本机开发且已有模型/GPU 时，请继续用 **`bin\Release\net48\`**。
 
-### 发布压缩包（`release/wpfocr_x.x.x.7z`）
+### 发布压缩包（`release/screenkit_x.x.x.7z`）
 
 ```bash
 node scripts/publish-release.mjs
 ```
 
-Release 编译后，将 `WpfOCR/bin/Release/WpfOCR/` 打成 `release/wpfocr_<版本>.7z`（需本机安装 7-Zip 且 `7z` 在 PATH）。`release/` 目录不提交 git。
+Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release/screenkit_<版本>.7z`（压缩包内带 `ScreenKit/` 文件夹；需本机安装 7-Zip 且 `7z` 在 PATH）。`release/` 目录不提交 git。
 
 ## 应用内安装（推荐）
 
@@ -180,17 +183,20 @@ Release 编译后，将 `WpfOCR/bin/Release/WpfOCR/` 打成 `release/wpfocr_<版
 ## CLI（简述）
 
 ```text
-WpfOCR --image <路径> [选项]
-WpfOCR --snap [--out <目录>]
-WpfOCR --list-models
-WpfOCR --list-sapi              # 本机 SAPI +（x64 时）x86host 发音人
-WpfOCR --probe-cuda
-WpfOCR --help
+ScreenKit --image <路径> [选项]
+ScreenKit --snap [--out <目录>]
+ScreenKit --test-clipboard-path
+ScreenKit --test-face-overlay
+ScreenKit --list-models
+ScreenKit --list-face
+ScreenKit --list-sapi              # 本机 SAPI +（x64 时）x86host 发音人
+ScreenKit --probe-cuda
+ScreenKit --help
 ```
 
 ## x86host（仅 32 位 SAPI）
 
-部分经典 **SAPI** 发音人只在 32 位进程中可见。请将 **`x86host.exe`** 与 `WpfOCR.exe` 放在同目录（工程 `x86host/`；Release 编 WpfOCR 时会自动编译并拷贝）。
+部分经典 **SAPI** 发音人只在 32 位进程中可见。请将 **`x86host.exe`** 与 `ScreenKit.exe` 放在同目录（工程 `x86host/`；Release 编 ScreenKit 时会自动编译并拷贝）。
 
 | 项 | 说明 |
 |----|------|
@@ -218,6 +224,7 @@ x86host.exe --list-sapi
 - `GET  /api/asr/models` · `POST /api/asr` — 语音识别（base64/本地 path）
 - `GET  /api/tts/models` · `POST /api/tts` — 语音合成（返回 wav base64）
 - `POST /api/itn` — 文本逆归一化（WeText + 规则）
+- `GET  /api/face/models` · `POST /api/face` — 人脸检测 / 比对
 
 默认绑定 `127.0.0.1`，勿在未受控网络上暴露。
 
@@ -225,13 +232,15 @@ x86host.exe --list-sapi
 
 ## 配置摘要
 
-设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。参数设置窗按 Tab 分组：常规、识别、热键、语音、截图、接口。主要段落：
+设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。参数设置窗按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口。主要段落：
 
 - `[ocr]`：模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值等  
-- `[ui]`：热键、托盘、界面语言、`capture_log`  
+- `[ui]`：热键、托盘、界面语言、`capture_log`、`llm_log`（`log/llm.log`，润色请求/响应，不含 key）  
 - `[http]`：本机 API 开关与端口、服务模式  
 - `[pdf]`：导出与内部光栅 DPI  
-- `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；共用 `asr_llm_*`（token 勿提交公开仓库；会去掉 `<think>` 等推理块）。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中 · Esc 停止」或「润色中」及原文（同一行）；已输出后第二行清空。识别/润色中按 Esc 立刻结束本轮听写且不输出。  
+- `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；`asr_llm` 为润色选用的 LLM 显示名称（空则用列表第一项）。润色提示词仍在 `[asr]`（`asr_llm_prompt`）。会去掉 `<think>` 等推理块。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中 · Esc 停止」或「润色中」及原文（同一行）；已输出后第二行清空。识别/润色中按 Esc 立刻结束本轮听写且不输出。  
+- `[[llm]]`：多套 OpenAI 兼容接口（`name` / `url` / `key` / `model` / `think`）。`think` 为思考强度：`off` / `low` / `high` / `max`，默认 `low`（润色要快；GLM-5.3 不能 `off`）。`off` 发 `thinking.type=disabled`；`low`/`high`/`max` 发 `thinking.type=enabled` 与 `reasoning_effort`。若 `off` 被拒绝（模型强制思考）则改 `low` 再试；其它 400 再去掉思考字段。显示名称默认等于模型 id。设置窗可复制当前条目。key 勿提交公开仓库。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 已废弃，不再读取。  
+- `[translate]`：`translate_compute`（本地 ONNX 设备）；`translate_llm` 空则走 Opus-MT ONNX，否则为 `[[llm]]` 显示名称；`translate_llm_prompt` 为 LLM 翻译提示词（`{src}`/`{dst}` 替换为源/目标语言，在**参数设置 → 翻译**编辑）。翻译 Tab 切换引擎；LLM 可选中/英/日/韩（自动仍为中英互译）。  
 - `[record]`：编码（x264 / x265 / av1）、帧率、`record_crf`（x264/x265）、`record_av1_crf`（AV1）、音频、`record_lock_aspect`（录制中缩放选区是否锁定比例）
 - `[gif_record]`：GIF 默认输出帧率（1–24）、最大宽高、默认颜色数/缩放  
 
@@ -239,10 +248,10 @@ x86host.exe --list-sapi
 
 ## 许可证
 
-**本仓库应用程序源码**（`WpfOCR/` 源码、为本项目撰写的文档等）采用 **MIT License**，全文见 [LICENSE](LICENSE)。
+**本仓库应用程序源码**（`ScreenKit/` 源码、为本项目撰写的文档等）采用 **MIT License**，全文见 [LICENSE](LICENSE)。
 
 ```
-Copyright (c) 2026 WpfOCR Contributors
+Copyright (c) 2026 ScreenKit Contributors
 ```
 
 在遵守 MIT 条件（保留版权与许可声明）的前提下，可自由使用、复制、修改、合并、发布、分发、再授权及销售。**软件按「现状」提供，不附带任何明示或暗示担保。**

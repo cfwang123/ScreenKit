@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Release 编译并打包精简发布目录为 release/wpfocr_<version>.7z
+ * Release 编译并打包精简发布目录为 release/screenkit_<version>.7z
  *
  * 用法（在仓库根目录）:
  *   node scripts/publish-release.mjs
@@ -14,15 +14,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const csproj = path.join(root, 'WpfOCR', 'WpfOCR.csproj');
-const slimDir = path.join(root, 'WpfOCR', 'bin', 'Release', 'WpfOCR');
+const csproj = path.join(root, 'ScreenKit', 'ScreenKit.csproj');
+const slimDir = path.join(root, 'ScreenKit', 'bin', 'Release', 'ScreenKit');
 const releaseDir = path.join(root, 'release');
 const skipBuild = process.argv.includes('--skip-build');
 
 function readVersion() {
 	const xml = fs.readFileSync(csproj, 'utf8');
 	const m = xml.match(/<Version>([^<]+)<\/Version>/);
-	if (!m) throw new Error('无法在 WpfOCR.csproj 中读取 <Version>');
+	if (!m) throw new Error('无法在 ScreenKit.csproj 中读取 <Version>');
 	return m[1].trim();
 }
 
@@ -47,16 +47,16 @@ function find7z() {
 
 function main() {
 	const version = readVersion();
-	const archive = path.join(releaseDir, `wpfocr_${version}.7z`);
+	const archive = path.join(releaseDir, `screenkit_${version}.7z`);
 
 	if (!skipBuild) {
-		// WpfOCR 构建后会自动编并拷贝独立 x86host.exe
-		run('dotnet build WpfOCR/WpfOCR.csproj -c Release');
+		// ScreenKit 构建后会自动编并拷贝独立 x86host.exe
+		run('dotnet build ScreenKit/ScreenKit.csproj -c Release');
 	}
 
-	const exe = path.join(slimDir, 'WpfOCR.exe');
+	const exe = path.join(slimDir, 'ScreenKit.exe');
 	if (!fs.existsSync(exe)) {
-		throw new Error(`精简发布目录不存在: ${slimDir}\n请先 Release 编译（应生成 bin/Release/WpfOCR/）。`);
+		throw new Error(`精简发布目录不存在: ${slimDir}\n请先 Release 编译（应生成 bin/Release/ScreenKit/）。`);
 	}
 	const x86 = path.join(slimDir, 'x86host.exe');
 	if (fs.existsSync(x86)) {
@@ -69,9 +69,11 @@ function main() {
 	if (fs.existsSync(archive)) fs.unlinkSync(archive);
 
 	const zip7 = find7z();
-	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimDir}${path.sep}*"`;
+	const slimParent = path.dirname(slimDir);
+	const slimName = path.basename(slimDir);
+	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}"`;
 	console.log(`> ${cmd}`);
-	execSync(cmd, { cwd: root, stdio: 'inherit', shell: true });
+	execSync(cmd, { cwd: slimParent, stdio: 'inherit', shell: true });
 
 	const stat = fs.statSync(archive);
 	const mb = (stat.size / (1024 * 1024)).toFixed(2);

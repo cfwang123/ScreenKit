@@ -1,8 +1,8 @@
-# WpfOCR HTTP 接口文档
+# ScreenKit HTTP 接口文档
 
 **语言：** [中文](HTTP接口文档.md) · [English](HTTP-API.md)
 
-本机 HTTP API：提供 OCR 接口，并扩展 ASR / TTS / ITN。
+本机 HTTP API：提供 OCR 接口，并扩展 ASR / TTS / ITN / 人脸。
 
 默认仅监听本机；**不要**在未受控网络上暴露该端口。
 
@@ -66,7 +66,7 @@ http_port = 1224
 | code | 含义（摘要） |
 |------|----------------|
 | 100 | 成功 |
-| 101 | OCR 未检测到文字 |
+| 101 | OCR 未检测到文字；人脸未检测到人脸 |
 | 404 | 未知路径 |
 | 800 | 请求解析失败 / 体为空 |
 | 801 | 请求为空 |
@@ -79,6 +79,7 @@ http_port = 1224
 | 901 | OCR 识别失败 |
 | 910+ | ASR 相关 |
 | 920+ | TTS 相关 |
+| 930+ | 人脸相关（930 无模型，931 识别失败，932 无检测/识别文件） |
 
 ---
 
@@ -95,6 +96,8 @@ http_port = 1224
 | GET | `/api/tts/models` | 列出 TTS 模型 |
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
+| GET | `/api/face/models` | 列出人脸 ONNX |
+| POST | `/api/face` | 人脸检测 / 特征 / 两图比对 |
 
 路径大小写不敏感；尾部 `/` 可有可无。
 
@@ -110,7 +113,7 @@ http_port = 1224
 {
   "code": 100,
   "data": {
-    "name": "WpfOCR HTTP API",
+    "name": "ScreenKit HTTP API",
     "endpoints": [
       "GET  /api/status",
       "GET  /api/ocr/get_options",
@@ -119,7 +122,9 @@ http_port = 1224
       "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
       "GET  /api/tts/models",
       "POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
-      "POST /api/itn   JSON{text}  WeText+规则后处理"
+      "POST /api/itn   JSON{text}  WeText+规则后处理",
+      "GET  /api/face/models",
+      "POST /api/face  JSON{base64|base64_b|path} 或 multipart"
     ]
   }
 }
@@ -135,13 +140,15 @@ http_port = 1224
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `app` | string | `"WpfOCR"` |
+| `app` | string | `"ScreenKit"` |
 | `http_enabled` | bool | 配置中是否启用 HTTP |
 | `ocr_engine` | bool | OCR 运行器是否可用 |
 | `asr_engine` | bool | ASR 引擎是否注入 |
 | `tts_engine` | bool | TTS（Sherpa）引擎是否注入 |
 | `asr_models` | int | 扫描到的 ASR 模型数量 |
 | `tts_models` | int | 扫描到的 TTS 模型数量 |
+| `face_ready` | bool | `facemodels` 是否已有检测+识别模型 |
+| `face_models` | int | 扫描到的人脸 ONNX 数量 |
 | `itn` | bool | WeText ITN 是否可用 |
 | `itn_error` | string | ITN 不可用时的原因 |
 
@@ -519,7 +526,96 @@ open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 
 ---
 
-## 10. 与主窗口的关系
+## 10. 人脸
+
+依赖程序目录 `facemodels/` 中有检测+识别 ONNX。可在 **工具 → 安装功能** 下载 InsightFace **buffalo_l**。别名：`POST /api/face/compare`、`POST /api/face/extract`（同一处理）。
+
+### 10.1 GET `/api/face/models`
+
+```json
+{
+  "code": 100,
+  "data": {
+    "root": ".../facemodels",
+    "ready": true,
+    "det": ["det_10g.onnx"],
+    "rec": ["w600k_r50.onnx"],
+    "landmark": ["2d106det.onnx", "1k3d68.onnx"],
+    "attr": ["genderage.onnx"]
+  },
+  "count": 5
+}
+```
+
+### 10.2 POST `/api/face`
+
+一张图：检测最大脸并提取特征。两张图：两侧特征余弦相似度并判定是否同一人。
+
+**JSON：**
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `base64` / `image` / `path` | 至少一张 | 第一张图（base64 或服务端本机路径） |
+| `base64_b` / `image_b` / `path_b` | 比对时 | 第二张图 |
+| `det` / `reg` | 否 | 检测/识别文件名（模糊匹配；默认配置或目录中第一个） |
+| `threshold` | 否 | 比对阈值，默认配置（约 0.5） |
+| `device` / `compute` | 否 | `auto` / `gpu` / `cpu` / `igpu` |
+| `attr` / `genderage` | 否 | 是否跑性别年龄（有 `genderage.onnx` 时默认 true） |
+| `include_feature` | 否 | `true` 时在结果中附带特征向量 |
+
+**multipart：** `file` + `file2`（或 `image` / `image_b`），可选 `threshold` 等字段。
+
+**单图成功：**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "faces": 1,
+    "det": "det_10g.onnx",
+    "reg": "w600k_r50.onnx",
+    "provider": "CUDA",
+    "face": {
+      "score": 0.91,
+      "box": [80.0, 40.0, 220.0, 210.0],
+      "landmarks5": [[x, y], "..."],
+      "gender": "女",
+      "age": 22
+    }
+  },
+  "time": 80
+}
+```
+
+**两图比对成功：**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "similarity": 0.7234,
+    "match": true,
+    "threshold": 0.5,
+    "det": "det_10g.onnx",
+    "reg": "w600k_r50.onnx",
+    "provider": "CUDA",
+    "left": { "score": 0.91, "box": [80, 40, 220, 210], "gender": "女", "age": 22 },
+    "right": { "score": 0.88, "box": [70, 30, 200, 200], "gender": "男", "age": 26 }
+  },
+  "time": 150
+}
+```
+
+未检出人脸时 `code=101`。
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/face" \
+  -F "file=@left.jpg" -F "file2=@right.jpg" -F "threshold=0.5"
+```
+
+---
+
+## 11. 与主窗口的关系
 
 | 行为 | 说明 |
 |------|------|
@@ -530,18 +626,18 @@ open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 
 ---
 
-## 11. 安全建议
+## 12. 安全建议
 
 1. 默认只绑 `127.0.0.1`，勿改为 `0.0.0.0` 除非有防火墙与鉴权。
 2. **无鉴权、无 HTTPS**，仅信任本机或可信局域网。
-3. `POST /api/asr` 的 `path` 会读服务端本地文件，勿对不可信来源开放。
+3. `POST /api/asr` 与 `POST /api/face` 的 `path` / `path_b` 会读服务端本地文件，勿对不可信来源开放。
 4. 大图 / 长音频会占用 CPU/GPU 与内存；注意并发（当前实现按请求并行 `Task.Run`，引擎侧有锁）。
 
 ---
 
-## 12. 相关
+## 13. 相关
 
-- 程序内：`WpfOCR/Ocr/HttpOcrServer.cs`
+- 程序内：`ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs`
 - 配置：`config.toml`（`http_enabled` / `http_host` / `http_port` / `service_mode`）
 - 总览：[README.zh.md](README.zh.md) · [README.md](README.md)
 - 英文版：[HTTP-API.md](HTTP-API.md)

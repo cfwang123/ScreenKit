@@ -20,7 +20,7 @@
 	- 仅阅读、分析、解释已有代码而不改动时，可不强制加载；一旦要新增或改写实现，必须先加载对应风格指导再动手。
 - 改完代码后编译运行
 	- C# 相关改动全部完成后，用 Release 编译并启动，不要只改不编：
-	  `dotnet build WpfOCR/WpfOCR.csproj -c Release`，再运行 `WpfOCR/bin/Release/net48/WpfOCR.exe`（或精简包 `bin/Release/WpfOCR/WpfOCR.exe`）。
+	  `dotnet build ScreenKit/ScreenKit.csproj -c Release`，再运行 `ScreenKit/bin/Release/net48/ScreenKit.exe`（或精简包 `bin/Release/ScreenKit/ScreenKit.exe`）。
 	- 相关改动攒齐再编一次，避免每改一行就编译；但一轮任务结束前必须 Release 编译验证。
 - 同一个问题反复修改还不行时，用命令行/adb+日志自己调试
 	- **WPF**：Release 启动后用 UI Automation（`tmp/uia_probe.ps1` dump/tree/click）点控件、看控件树；可测场景加 CLI 参数（如 `--test-overlay-during-record`）+ 看 `log/`、`cli_last.log`；控件加 `AutomationId`；禁止只改代码不复现。

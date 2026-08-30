@@ -37,7 +37,7 @@ cli_last.log
 **/onnxcpu64/
 
 # ── Third-party source (optional rebuild only; not shipped as submodule) ─
-# Runtime ITN is already under WpfOCR/wetext/. Clone WeTextProcessing locally if you rebuild:
+# Runtime ITN is already under ScreenKit/wetext/. Clone WeTextProcessing locally if you rebuild:
 #   git clone https://github.com/wenet-e2e/WeTextProcessing.git third_party/WeTextProcessing
 third_party/
 
@@ -99,7 +99,7 @@ record_*.log
 *.webp
 *.tif
 *.tiff
-!WpfOCR/Assets/**
+!ScreenKit/Assets/**
 # README / docs screenshots (tracked for GitHub)
 !docs/
 !docs/**

@@ -15,13 +15,13 @@ namespace X86Host;
 
 /// <summary>
 /// 独立 32 位进程：仅提供 SAPI Web 服务（发音人列表 / 合成 WAV）。
-/// 无第三方包依赖，可与 WpfOCR.exe 同目录单文件旁路运行。
+/// 无第三方包依赖，可与 ScreenKit.exe 同目录单文件旁路运行。
 /// 默认空闲 60 秒无请求后自动退出。
 /// </summary>
 static class Program {
 	public const int DefaultPort = 17886;
 	public const int DefaultIdleMs = 60_000;
-	public const string MutexName = "Local\\WpfOCR_SapiX86Server";
+	public const string MutexName = "Local\\ScreenKit_SapiX86Server";
 
 	static string StatePath =>
 		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log", "sapi_x86_server.json");
