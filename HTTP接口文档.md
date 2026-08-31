@@ -530,7 +530,7 @@ open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 
 ## 10. POST `/api/translate` · `/api/translate/batch`
 
-LLM 批量翻译（编号一次 5–10 条，缺号再逐条补）。需在参数设置配置 `[[llm]]`，并指定 `translate_llm`（或请求里传 `llm`）。别名 `/api/translate/batch` 同一处理。
+LLM 批量翻译（内部按 8 条一组编号请求，缺号再逐条补）。**不限制一次请求的条数**。需在参数设置配置 `[[llm]]`，并指定 `translate_llm`（或请求里传 `llm`）。别名 `/api/translate/batch` 同一处理。条数很多时耗时按组累加（每组最长约 90 秒）。
 
 **请求：**
 
@@ -547,7 +547,7 @@ LLM 批量翻译（编号一次 5–10 条，缺号再逐条补）。需在参�
 
 | 字段 | 说明 |
 |------|------|
-| `items` / `texts` | 字符串数组，最多 50 条。元素也可以是 `{"text":"…"}` |
+| `items` / `texts` | 字符串数组，条数不限。元素也可以是 `{"text":"…"}` |
 | `text` | 单条时可用，等价于 `items` 只有一项 |
 | `src` / `dst` | 语言代码 `zh` / `en` / `ja` / `ko`。可省略，则按首条非空文本做中英互译自动检测 |
 | `dir` | 可选，如 `zh-en`，与 `src`/`dst` 二选一 |

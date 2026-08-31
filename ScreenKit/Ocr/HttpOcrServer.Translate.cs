@@ -6,8 +6,6 @@ namespace ScreenKit;
 
 /// <summary>HTTP 翻译：POST /api/translate · /api/translate/batch。</summary>
 sealed partial class HttpOcrServer {
-	const int HttpTrMaxItems = 50;
-
 	void handletranslate(HttpListenerContext ctx) {
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
@@ -26,10 +24,6 @@ sealed partial class HttpOcrServer {
 		var items = readitems(jo);
 		if (items == null || items.Count == 0) {
 			writejson(ctx, 200, err(941, "请提供 items 字符串数组，或 text"));
-			return;
-		}
-		if (items.Count > HttpTrMaxItems) {
-			writejson(ctx, 200, err(941, $"批量最多 {HttpTrMaxItems} 条"));
 			return;
 		}
 

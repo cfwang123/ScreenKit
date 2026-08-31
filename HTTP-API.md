@@ -530,7 +530,7 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 ## 10. POST `/api/translate` · `/api/translate/batch`
 
-LLM batch translate (numbered groups of 5–10; missing indexes retried one-by-one). Requires `[[llm]]` in settings and `translate_llm` (or pass `llm` in the request). `/api/translate/batch` is the same handler.
+LLM batch translate (internally grouped by 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Requires `[[llm]]` in settings and `translate_llm` (or pass `llm` in the request). `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
 
 **Request:**
 
@@ -547,7 +547,7 @@ LLM batch translate (numbered groups of 5–10; missing indexes retried one-by-o
 
 | Field | Description |
 |-------|-------------|
-| `items` / `texts` | String array, max 50. Elements may also be `{"text":"…"}` |
+| `items` / `texts` | String array, unlimited length. Elements may also be `{"text":"…"}` |
 | `text` | Single string; treated as a one-item batch |
 | `src` / `dst` | `zh` / `en` / `ja` / `ko`. If omitted, auto zh↔en from the first non-empty item |
 | `dir` | Optional pair such as `zh-en` |

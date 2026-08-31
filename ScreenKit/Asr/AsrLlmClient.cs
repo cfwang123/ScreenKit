@@ -17,7 +17,6 @@ static class AsrLlmClient {
 	const int MINROUNDMS = 2000;
 	const int BATCHCHUNK = 8;
 	const int BATCHCHUNKMAX = 10;
-	const int BATCHITEMSMAX = 50;
 	const string BatchPrompt =
 		"请将用户给出的编号条目从{src}翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。" +
 		"只输出译文，保持相同编号（1. 2. 3. …），一条原文对应一条译文，不要合并或省略。";
@@ -122,8 +121,6 @@ static class AsrLlmClient {
 	public static List<string> TranslateBatch(OcrOptions o, IList<string> items, string src, string dst,
 		int chunk = 0, LlmEndpoint ep = null, CancellationToken ct = default) {
 		if (items == null || items.Count == 0) return new List<string>();
-		if (items.Count > BATCHITEMSMAX)
-			throw new InvalidOperationException($"批量最多 {BATCHITEMSMAX} 条");
 		ep ??= o?.SelectedTranslateLlm() ?? o?.SelectedLlm();
 		if (!IsEndpointReady(ep))
 			throw new InvalidOperationException("未配置翻译 LLM（需 URL 与模型 id）");
