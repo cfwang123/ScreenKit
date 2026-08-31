@@ -13,7 +13,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - LLM translate / polish **continues** when `finish_reason` is `length` / `max_tokens` (up to 6 extra rounds, remaining timeout). Overlapping chunk tails are stripped. CLI: `ScreenKit --test-llm-continue`.
 - HTTP `POST /api/translate` (alias `/api/translate/batch`): LLM batch translate (no item-count cap; groups of 8, missing indexes retried one-by-one). `GET /api/status` includes `llm_translate`.
 - OCR tab: target-language combo (default **no translation**) and a **Translate** toggle. After OCR, if a language is set, the toggle turns on and overlay text is replaced with the translation (`ocr_translate_lang`). The result panel follows the same toggle (original vs translated) and shows translation elapsed time in the result meta.
-- Floating **translate popup** (always on top). Global hotkey **Ctrl+Alt+T** shows/hides it (empty = off). On show it pastes clipboard text and translates. Also: Tools menu, tray. Uses the Translate-tab engine (LLM or local ONNX). Esc hides; Ctrl+Enter translates.
+- Floating **translate popup** (always on top). Global hotkey **Ctrl+Alt+T** shows/hides it (empty = off). First open is empty; later opens keep the last source/translation. Paste is a button. Also: Tools menu, tray. Uses the Translate-tab engine (LLM or local ONNX). Esc hides; Ctrl+Enter translates.
 
 #### Changed
 
@@ -35,7 +35,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - LLM 翻译 / 润色在 `finish_reason` 为 `length` / `max_tokens` 时**超长续写**（最多再 6 轮，受剩余超时限制），去掉片段重叠。CLI：`ScreenKit --test-llm-continue`。
 - HTTP `POST /api/translate`（别名 `/api/translate/batch`）：LLM 批量翻译，**不限制条数**（每批 8 条编号请求，缺号逐条补）。`GET /api/status` 增加 `llm_translate`。
 - 截图识别页：目标语言下拉（默认**不翻译**）+ **翻译**开关。识别完成时若已选语言则默认打开，图上叠字换成译文（`ocr_translate_lang`）。右侧识别结果随开关显示原文/译文，并在结果 meta 中显示翻译用时。
-- **翻译小窗**（置顶浮窗）。全局热键 **Ctrl+Alt+T** 呼出/隐藏（留空禁用）。呼出时粘贴剪贴板并翻译。入口：工具菜单、托盘。引擎与翻译 Tab 相同（LLM 或本地 ONNX）。Esc 隐藏；Ctrl+Enter 翻译。
+- **翻译小窗**（置顶浮窗）。全局热键 **Ctrl+Alt+T** 呼出/隐藏（留空禁用）。首次打开为空，之后保留上次原文/译文；剪贴板需点「粘贴」。入口：工具菜单、托盘。引擎与翻译 Tab 相同（LLM 或本地 ONNX）。Esc 隐藏；Ctrl+Enter 翻译。
 
 #### 变更
 

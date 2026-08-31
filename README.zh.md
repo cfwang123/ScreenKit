@@ -23,7 +23,7 @@ Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界�
 | **文字叠加** | 图上叠加文字层，拖选复制 |
 | **PDF 工作台** | 打开 PDF → 分页识别 → 改字 → 导出可检索 PDF（不可见文字层） |
 | **ASR / TTS** | 离线语音识别（sherpa-onnx）与语音合成（Sherpa + SAPI / WinRT 系统音）；应用内安装发音人 |
-| **翻译** | 本地 Opus-MT ONNX，或选用已配置的 **LLM**。提示词在参数设置 → 翻译（`{src}`/`{dst}` 替换为语言名）。翻译 Tab 切换引擎。翻译小窗（`Ctrl+Alt+T`）呼出后粘贴剪贴板并翻译。LLM 译文被长度截断时自动续写。 |
+| **翻译** | 本地 Opus-MT ONNX，或选用已配置的 **LLM**。提示词在参数设置 → 翻译（`{src}`/`{dst}` 替换为语言名）。翻译 Tab 切换引擎。翻译小窗（`Ctrl+Alt+T`）首次为空，之后保留上次结果；剪贴板需点「粘贴」。LLM 译文被长度截断时自动续写。 |
 | **人脸识别** | InsightFace ONNX：左右图检测/比对，可选关键点与性别年龄叠加；模型在 `facemodels/`（「安装功能」可下载 buffalo_l） |
 | **SAPI x86 助手** | 旁路 `x86host.exe`（仅 32 位 SAPI Web），调用仅 x86 可见的经典系统发音人 |
 | **推理设备** | CPU · NVIDIA CUDA（GPU）· 核显 DirectML；未装加速时自动 CPU |

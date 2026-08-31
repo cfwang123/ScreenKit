@@ -28,7 +28,7 @@ public partial class TranslatePopupWindow : Window {
 			if (!IsVisible)
 				try { cts?.Cancel(); } catch { }
 		};
-		bpaste.Click += (_, _) => pasteclip(autoGo: false);
+		bpaste.Click += (_, _) => pasteclip();
 		bcopy.Click += (_, _) => copyout();
 		bgo.Click += (_, _) => _ = go();
 		bswap.Click += (_, _) => swaplang();
@@ -51,12 +51,11 @@ public partial class TranslatePopupWindow : Window {
 		try { Close(); } catch { }
 	}
 
-	/// <summary>热键/菜单呼出：显示、粘贴剪贴板并翻译。</summary>
+	/// <summary>热键/菜单呼出：显示；不改原文/译文（首次为空，之后保留上次）。</summary>
 	public void ShowFromHotkey() {
 		if (!IsVisible) Show();
 		if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
 		Activate();
-		pasteclip(autoGo: true);
 		try { esrc.Focus(); } catch { }
 	}
 
@@ -217,7 +216,7 @@ public partial class TranslatePopupWindow : Window {
 		}
 	}
 
-	void pasteclip(bool autoGo) {
+	void pasteclip() {
 		string clip = "";
 		try {
 			if (Clipboard.ContainsText())
@@ -229,16 +228,10 @@ public partial class TranslatePopupWindow : Window {
 		}
 		clip = (clip ?? "").Trim();
 		if (clip.Length == 0) {
-			if (!autoGo) lbstatus.Text = Loc.T("tr.popup.clip_empty");
+			lbstatus.Text = Loc.T("tr.popup.clip_empty");
 			return;
 		}
-		var same = string.Equals((esrc.Text ?? "").Trim(), clip, StringComparison.Ordinal);
-		if (!same) esrc.Text = clip;
-		if (autoGo) {
-			if (!same || string.IsNullOrWhiteSpace(edst.Text))
-				_ = go();
-			return;
-		}
+		esrc.Text = clip;
 		lbstatus.Text = Loc.T("pasted");
 	}
 
