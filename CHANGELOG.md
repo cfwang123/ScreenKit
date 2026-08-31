@@ -16,7 +16,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Changed
 
 - LLM thinking intensity adds **medium** and the dropdown shows raw API values `none / low / medium / high / max` (config unchanged; `none` still maps to `off`; `medium` / `mid` / `中` no longer fall back to `low`).
-- README screenshots recaptured (`docs/1 screenshot.png` / `docs/1 screenshot.en.png`). English README notes Korean/English OCR word-space restoration.
 
 #### Fixed
 
@@ -32,7 +31,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 变更
 
 - LLM 思考强度增加 **medium**，下拉显示 API 原值 `none / low / medium / high / max`（配置不变；`none` 仍按 `off`；`medium` / `mid` / `中` 不再回落到 `low`）。
-- README 截图已重截（`docs/1 screenshot.png` / `docs/1 screenshot.en.png`）。英文 README 补了韩语/英语 OCR 词间空格说明。
 
 #### 修复
 
@@ -48,7 +46,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Changed
 
-- Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
 - Chinese window / tray title is **屏幕截图工具** (English remains ScreenKit).
 
 #### Fixed
@@ -63,7 +60,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 变更
 
-- Release 编译**不再**复制或联接模型 / ORT / FFmpeg 目录。请自行把 `ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`、`onnxcpu64`、`onnxgpu64`、`onnxdml64`、`ffmpeg64` 放到 `bin/Release/net48/`（目录联接即可）。NuGet 的 GPU/DirectML 原生库也不再拷进输出。
 - 中文界面程序标题改为**屏幕截图工具**（英文仍为 ScreenKit）。
 
 #### 修复
@@ -76,16 +72,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- Main window **Face** tab: InsightFace ONNX detect/recognize/compare. Models live in `facemodels/` next to the exe (Release build junctions the central library). CLI: `ScreenKit --list-face`.
+- Main window **Face** tab: InsightFace ONNX detect/recognize/compare. Models live in `facemodels/` next to the exe. CLI: `ScreenKit --list-face`.
 - HTTP `GET /api/face/models` and `POST /api/face` (extract one image or compare two). Install Features can download InsightFace **buffalo_l** into `facemodels/`.
 - Settings **LLM** tab: multiple OpenAI-compatible endpoints as TOML `[[llm]]` (`name` / `url` / `key` / `model` / `think`). Speech tab picks one by display name (`asr_llm`); polish prompt stays on Speech. Display name defaults to model id. Old `asr_llm_url` / `asr_llm_token` / `asr_llm_model` keys are ignored (re-enter in the new UI). **Copy** duplicates the selected endpoint.
 - Per-endpoint **thinking intensity** (`think`: `off` / `low` / `high` / `max`, default `low`). `off` sends `thinking.type=disabled`; `low`/`high`/`max` send `thinking.type=enabled` plus `reasoning_effort` (GLM-5.3 cannot disable thinking). If `off` is rejected, retry with `low`; other HTTP 400s drop think fields.
 - Translate tab can use a configured **LLM** instead of local Opus-MT (`translate_llm`). The LLM prompt (`translate_llm_prompt`, `{src}`/`{dst}`) is edited in **Settings → Translate**. LLM also supports 来回翻译 without a reverse ONNX pair.
-- Project, folder, namespace, mutex, HTTP `app`, PDF drafts (`%LocalAppData%\ScreenKit\drafts`), and self-update (GitHub `ScreenKit` / `screenkit_*.7z` / `ScreenKit.exe`) are all **ScreenKit**. The old `%LocalAppData%\WpfOCR\drafts` folder is unused.
 
 #### Changed
 
-- README screenshot: English UI in `docs/1 screenshot.en.png`; Chinese README uses an updated `docs/1 screenshot.png`.
 - Extended **English UI** coverage: main window TTS/ASR/Translate/Face tabs, settings, annotate window, install-features window, PDF workbench (static + dynamic strings), feature catalog, voice-input HUD, and feature-install prompts (`FeaturePrompt`).
 
 #### Fixed
@@ -105,16 +99,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- 主界面增加 **人脸识别** Tab：InsightFace ONNX 检测/识别/比对。模型放在程序旁 `facemodels/`（Release 编译联接到中央库）。CLI：`ScreenKit --list-face`。
+- 主界面增加 **人脸识别** Tab：InsightFace ONNX 检测/识别/比对。模型放在程序旁 `facemodels/`。CLI：`ScreenKit --list-face`。
 - HTTP `GET /api/face/models`、`POST /api/face`（单图提取或两图比对）。「安装功能」可下载 InsightFace **buffalo_l** 到 `facemodels/`。
 - 参数设置增加 **LLM接口** Tab：多套 OpenAI 兼容接口以 TOML `[[llm]]` 数组保存（`name` / `url` / `key` / `model` / `think`）。语音 Tab 用显示名称选择润色接口（`asr_llm`），提示词仍在语音。显示名称默认等于模型 id。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 不再读取，需在新界面重新填写。列表可**复制**当前接口。
 - 每条 LLM 可配 **思考强度**（`think`：`off` / `low` / `high` / `max`，默认 `low`）。`off` 发关闭思考；`low`/`high`/`max` 发 `thinking.type=enabled` 与 `reasoning_effort`（GLM-5.3 不能关思考）。若 `off` 被拒绝则改 `low` 再试；其它 400 再去掉思考字段。
 - **翻译**可选用已配置的 LLM（`translate_llm`），不必装 Opus-MT。LLM 提示词（`translate_llm_prompt`，`{src}`/`{dst}`）在**参数设置 → 翻译**编辑。LLM 下来回翻译也不需要反向 ONNX 模型。
-- 工程目录、csproj、命名空间、Mutex、HTTP `app`、PDF 草稿（`%LocalAppData%\ScreenKit\drafts`）与自更新（GitHub `ScreenKit` 仓库 / `screenkit_*.7z` / `ScreenKit.exe`）全部为 **ScreenKit**。不再使用 `%LocalAppData%\WpfOCR\drafts`。
 
 #### 变更
 
-- README 增加英文界面截图 `docs/1 screenshot.en.png`；中文 README 截图更新为当前 ScreenKit 主界面。
 - **补全英文界面**：主窗口 TTS/ASR/翻译/人脸 Tab、设置、标注窗口、安装功能、PDF 工作台（静态与动态文案）、功能目录、语音输入 HUD、功能安装提示（`FeaturePrompt`）等。
 
 #### 修复
@@ -140,11 +132,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Split recognition results into **OCR / Barcode** tabs. Entering a tab runs that recognition type once if the current image has not yet been processed for it.
 - Switched **barcode recognition** to native **ZXingCpp** for faster and more reliable QR, EAN, UPC, Code39/128, DataMatrix, PDF417, and Aztec detection. Difficult images use original, enlarged, and doubled-bottom-region passes.
 - HTTP `POST /api/ocr`: enabling `options.ocr.barcode` (aliases `ocr.qr` / `ocr.codes`) adds `barcodes:[{type,text,box}]` to the response.
-- Added **x86host**, a standalone 32-bit local SAPI HTTP helper for voices visible only to x86 processes.
-  - Project: `x86host/` produces `x86host.exe` beside `ScreenKit.exe`; ScreenKit Release builds compile and copy it automatically.
+- Added **x86host**, a standalone 32-bit local SAPI HTTP helper for voices visible only to x86 processes (`x86host.exe` beside `ScreenKit.exe`).
   - API: `GET /api/sapi/status`, `GET /api/sapi/voices`, `POST /api/sapi/synth` (WAV), and `POST /api/sapi/shutdown`.
   - Listens only on `127.0.0.1`, uses port `17886` by default, and exits after **60 seconds idle** (configurable with `--idle-ms`).
-  - Has no GUI or OCR/ASR features and no extra NuGet dependencies, avoiding DLL conflicts with the main application.
 - Main-app TTS starts `x86host` on demand, merges native and **x86-only** voices, and uses web synthesis for x86 selections.
 - CLI `ScreenKit --list-sapi` lists voices from the current process and merges 32-bit voices through x86host on x64.
 - The voice-input HUD now shows **Polishing** and the recognized source text on its second line while offline LLM polishing is in progress.
@@ -162,13 +152,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - **Offline voice input** now records the whole utterance and recognizes it once when the toggle hotkey is pressed, followed by optional polishing.
 - Polished output automatically removes `<think>` / `<thinking>` reasoning blocks, orphaned `</think>` tags, and whole Markdown fences.
 - **AV1 recording** prefers `libsvtav1` and has an independent **`record_av1_crf` / AV1 CRF** option (0–63, default 56), separate from x264/x265 `record_crf`. Default 56 targets about half the size of x265 CRF 28; the hidden offset mapping was removed.
-- Replaced the secondary `WpfOCR.x86.exe` build with standalone `x86host.exe` for 32-bit SAPI support.
 - Changing the menu/tray capture-copy mode among image, file, and path now **re-copies the latest screenshot** without creating another file; the status bar reports when no history exists.
 
 #### Fixed
 
 - The recording HUD can now move the selection by dragging anywhere along the outer 5 px ring around the red border, instead of only a narrow inner strip at the top.
-- Fixed repeated Sherpa runtime installation prompts caused by Release builds removing `sherpa-onnx-c-api.dll` from `net48`. Development builds now keep it beside the executable; slim packages still install it on demand.
+- Fixed repeated Sherpa runtime installation prompts when `sherpa-onnx-c-api.dll` was missing beside the executable.
 - Fixed the `Ctrl+Alt+V` voice-input toggle immediately restarting when keys were still held or injected text retriggered the hotkey. The hotkey now unregisters during shutdown and registers again after release.
 - Voice recognition no longer replaces the whole HUD with “Recognizing.” The first line remains the listening status; recognition/polishing and content share the second line.
 - The HUD second line now clears after polished text is inserted.
@@ -181,11 +170,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - 截图识别结果拆分为 **OCR / 条码** 两个 Tab：进入某个 Tab 时，若当前图片尚未执行该类型识别，则自动识别一次。
 - **条码识别**改用原生 **ZXingCpp**，更快、更稳定地识别 QR、EAN、UPC、Code39/128、DataMatrix、PDF417、Aztec 等格式；难图依次尝试原图、放大图和底部区域双倍放大图。
 - HTTP `POST /api/ocr`：启用 `options.ocr.barcode`（别名 `ocr.qr` / `ocr.codes`）后，响应增加 `barcodes:[{type,text,box}]`。
-- 新增 **x86host** 独立 32 位本机 SAPI HTTP 助手，用于调用仅 x86 进程可见的发音人。
-  - 工程 `x86host/` 生成与 `ScreenKit.exe` 同目录的 `x86host.exe`；ScreenKit Release 编译时自动编译并复制。
+- 新增 **x86host** 独立 32 位本机 SAPI HTTP 助手，用于调用仅 x86 进程可见的发音人（`x86host.exe` 与 `ScreenKit.exe` 同目录）。
   - API：`GET /api/sapi/status`、`GET /api/sapi/voices`、`POST /api/sapi/synth`（WAV）、`POST /api/sapi/shutdown`。
   - 仅监听 `127.0.0.1`，默认端口 `17886`；空闲 **60 秒**后自动退出，可用 `--idle-ms` 调整。
-  - 无 GUI、OCR 或 ASR 功能，也无额外 NuGet 依赖，避免与主程序 DLL 冲突。
 - 主程序 TTS 按需启动 `x86host`，合并本机与 **x86 独有**发音人；选择 x86 发音人时通过 Web 合成。
 - CLI `ScreenKit --list-sapi` 列出当前进程发音人，并在 x64 下通过 x86host 合并 32 位发音人。
 - 离线听写使用 LLM 润色时，桌面浮窗第二行显示**润色中**和识别原文，请求完成前保持可见。
@@ -203,13 +190,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - **离线听写**改为录制整段语音，再按切换热键后一次性识别输出，随后可选润色。
 - 润色结果自动移除 `<think>` / `<thinking>` 推理块、孤立的 `</think>` 标签和整段 Markdown 代码围栏。
 - **AV1 录屏**优先使用 `libsvtav1`；新增独立的 **`record_av1_crf` / AV1 CRF** 选项（0–63，默认 56），与 x264/x265 的 `record_crf` 分离。默认 56 目标体积约为 x265 CRF 28 的一半，并移除隐藏偏移映射。
-- 32 位 SAPI 支持改用独立 `x86host.exe`，不再二次编译 `WpfOCR.x86.exe` 旁路包。
 - 在菜单或托盘切换截图复制模式（图片、文件、路径）时，会按新方式**重新复制最近一次截图**，不创建新文件；没有历史截图时在状态栏提示。
 
 #### 修复
 
 - 录屏 HUD 可在红色边框外侧 5px 整圈拖动选区，不再仅限顶部内侧狭窄区域。
-- 修复 Sherpa 运行库反复提示安装：Release 编译曾从 `net48` 输出目录移除 `sherpa-onnx-c-api.dll`。开发输出现在保留该 DLL；精简包仍按需安装。
+- 修复 Sherpa 运行库反复提示安装：程序旁缺少 `sherpa-onnx-c-api.dll` 时会误报未安装。
 - 修复 `Ctrl+Alt+V` 结束语音输入时，按键未松开或注入文字再次触发热键导致立即重启的问题；结束时先注销热键，松键后重新注册。
 - 语音识别时不再用“识别中”覆盖整个浮窗；第一行保持听写状态，第二行同时显示识别/润色状态和内容。
 - 润色文字输入完成后清空浮窗第二行。
@@ -220,7 +206,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- **Publish script**: `node scripts/publish-release.mjs` → `release/screenkit_<version>.7z` (slim Release package; `release/` gitignored).
 - **GIF screen record** (Capture menu / tray): region pick → HUD → **preview window** (output FPS 1–24, scale, palette colors) → save silent GIF. Capture at 24 fps; config `[gif_record]`.
 - **Screenshot save options** (Settings / `config.toml`): format `png|jpg`, JPG quality 1–100, optional max width/height (fit, no upscale). Affects `screenshots/` and copy-as-file; OCR still uses full resolution.
 - **Record HUD** (MP4 + GIF): draggable control bar with left grip; collapse mini bar; **Options** button before Start; icon buttons; move/resize region before and during recording (aspect lock after Start when enabled in record options).
@@ -240,7 +225,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- **发布脚本**：`node scripts/publish-release.mjs` 生成 `release/screenkit_<version>.7z` 精简发布包，`release/` 已忽略提交。
 - **GIF 录屏**：通过截图菜单或托盘选择区域，使用 HUD 录制，在预览窗口调整输出帧率、缩放和调色板后保存无声 GIF。采集帧率为 24 fps，配置位于 `[gif_record]`。
 - **截图保存选项**：在设置和 `config.toml` 中配置 `png|jpg`、JPG 品质 1–100、可选最大宽高（等比缩小、不放大）。仅影响 `screenshots/` 和复制为文件，OCR 仍使用原始分辨率。
 - **录屏 HUD**：控制条可拖动，左侧有抓手，可折叠为迷你条；开始前可打开选项；录制前后均可移动/缩放区域，录制期间可按配置锁定宽高比。
@@ -270,13 +254,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
   - First-run wizard defaults: OpenCV, OrtCpu, Sherpa, rapid-ch, first two ASR packs, FFmpeg (accel off).
 - **Feature prompts**: missing OpenCV / OCR models / ORT / PDF stack / FFmpeg / Sherpa / ASR models offer install before use.
 - **ASR / TTS / translation** UI and pipelines (sherpa-onnx, SAPI/WinRT voices, Opus-MT ONNX where configured).
-- Target framework **.NET Framework 4.8** (`net48`); output under `bin/Release/net48/`.
 - ORT load hardening: absolute-path load of real `onnxruntime.dll` before managed P/Invoke (avoids broken System32 stub without `OrtGetApiBase`).
 
 #### Changed
 
 - **Removed** root `install.ps1` / `install.cmd`; install models and runtimes from the app (**Tools → Install features**).
-- **Screen recording is FFmpeg-only** (`ffmpeg64/`); OpenCV `videoio` / ffmpeg DLLs are stripped after build and not used for encode.
+- **Screen recording is FFmpeg-only** (`ffmpeg64/`); OpenCV is not used for encode.
 - **onnxcpu64** is on-demand (not shipped with every build). If neither GPU nor iGPU ORT is present, OCR prompts to install CPU ORT (~16 MB).
 - Model roots fixed under program folders only: `ocrmodels/`, `asrmodels/`, `ttsmodels/`, `translatemodels/`.
 - GPU (`onnxgpu64`) and DirectML (`onnxdml64`) remain optional accel installs; CPU OCR does not require them when `onnxcpu64` is installed.
@@ -291,8 +274,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Security / privacy notes
 
 - Default HTTP bind is loopback (`127.0.0.1`).
-- Do not commit `config.toml`, capture logs, private screenshots, recorded videos, API keys, or absolute machine paths.
-- Do not commit large ONNX weights, CUDA redistributables, or FFmpeg shared binaries without a redistribution plan.
 
 ### 中文
 
@@ -306,13 +287,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
   - 首次运行向导默认选择 OpenCV、OrtCpu、Sherpa、rapid-ch、前两个 ASR 包和 FFmpeg，不默认选择 GPU/核显。
 - 缺少 OpenCV、OCR 模型、ORT、PDF、FFmpeg、Sherpa 或 ASR 模型时，可在使用相关功能前提示安装。
 - 新增离线 ASR、TTS 和翻译界面及管线，使用 sherpa-onnx、SAPI/WinRT 发音人和可选 Opus-MT ONNX。
-- 目标框架改为 **.NET Framework 4.8**（`net48`），输出到 `bin/Release/net48/`。
 - 加强 ORT 加载：在托管 P/Invoke 前按绝对路径加载真实 `onnxruntime.dll`，避免 System32 无效存根缺少 `OrtGetApiBase`。
 
 #### 变更
 
 - 删除根目录 `install.ps1` / `install.cmd`，改用应用内**工具 → 安装功能**。
-- 屏幕录制仅使用 `ffmpeg64/` 下的 FFmpeg，不再使用 OpenCV videoio/ffmpeg DLL 编码。
+- 屏幕录制仅使用 `ffmpeg64/` 下的 FFmpeg，不再用 OpenCV 编码。
 - `onnxcpu64` 改为按需安装；未安装 GPU、核显或 CPU ORT 时，OCR 会提示安装约 16 MB 的 CPU ORT。
 - 模型目录固定为 Release 输出旁的 `ocrmodels/`、`asrmodels/`、`ttsmodels/`、`translatemodels/`。
 - GPU `onnxgpu64` 和 DirectML `onnxdml64` 保持可选；安装 `onnxcpu64` 后，CPU OCR 不依赖它们。
@@ -327,8 +307,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 安全与隐私
 
 - HTTP 默认仅绑定回环地址 `127.0.0.1`。
-- 不应提交 `config.toml`、截图日志、私密截图、录屏、API 密钥或本机绝对路径。
-- 未制定再分发方案前，不应提交大型 ONNX 权重、CUDA 可再发行组件或 FFmpeg 共享库。
 
 ## v0.1.0 (initial milestone / 初始里程碑)
 
@@ -336,7 +314,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- **MIT License** for application source ([LICENSE](LICENSE)); third-party notes in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - **UI language** switch: 中文 / English via **Tools → Language** or Settings; persisted as `ui_lang` in `config.toml`.
 - **Screen recording**: pick window or drag a region → red HUD → save MP4 (FFmpeg shared preferred).
 - **Long screenshot**: pick a scrollable window → auto-scroll stitch → show image (no OCR).
@@ -348,7 +325,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Changed
 
 - Main hotkey toggles window (not clipboard OCR); tray still offers clipboard OCR.
-- Model packs live under Release output `ocrmodels/` only (not under source tree).
 - Empty hotkey strings persist as **disabled**.
 - Recording HUD chrome is outside the capture rect so it is not baked into the video.
 
@@ -362,7 +338,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- 应用源码采用 **MIT License**（见 [LICENSE](LICENSE)），第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 - 界面支持中文/English 切换，可通过**工具 → 语言**或设置更改，并保存到 `config.toml` 的 `ui_lang`。
 - 屏幕录制支持点选窗口或框选区域，通过红框 HUD 保存 MP4，优先使用 FFmpeg shared。
 - 长截图支持选择可滚动窗口、自动滚动拼接并显示图片，不自动 OCR。
@@ -374,7 +349,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 变更
 
 - 主热键改为显示/隐藏窗口，不再执行剪贴板 OCR；托盘仍提供剪贴板 OCR。
-- 模型包仅存放于 Release 输出目录的 `ocrmodels/`，不再放在源码目录。
 - 空热键配置保持为**禁用**状态。
 - 录屏 HUD 外框位于捕获区域之外，不会被录入视频。
 
