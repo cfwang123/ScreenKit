@@ -178,12 +178,8 @@ public partial class MainWindow {
 
 	void toggletranslatepopup() {
 		ensuretranslatepopup();
-		if (trPopup.IsVisible && trPopup.IsActive) {
-			trPopup.Hide();
-			return;
-		}
 		if (trPopup.IsVisible) {
-			trPopup.Activate();
+			trPopup.Hide();
 			return;
 		}
 		trPopup.ShowFromHotkey();

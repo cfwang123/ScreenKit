@@ -24,6 +24,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Fixed
 
+- **Ctrl+Alt+T** now hides the translate popup whenever it is already visible (not only when it is the active window). The hotkey is registered on the main window, so the popup often lost `IsActive` before the handler ran and the second press only brought it to the front.
 - Switching the UI language now updates Translate tab hints/status, the translate popup, round-trip dialog strings, and the OCR “translate Xs” suffix (Loc zh/en). ASR/TTS/OCR runtime status lines are still mostly Chinese.
 - Copy-as-path after a screenshot sometimes left the clipboard empty: `OleSetClipboard(null)` then Win32 text then `OleFlushClipboard` emptied the text (Flush calls `EmptyClipboard` on a null OLE object). Path copy now sets a persist OLE text DataObject. CLI: `ScreenKit --test-clipboard-path` also covers re-copy last screenshot as path.
 
@@ -45,6 +46,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 修复
 
+- **Ctrl+Alt+T** 在翻译小窗已显示时一律隐藏（不再要求窗口在前台）。热键挂在主窗上，第二次按下时小窗往往已经不是 `IsActive`，原先只会把它拉到前面。
 - 切换界面语言时，翻译 Tab 提示/状态、翻译小窗、来回翻译对话框，以及 OCR 结果里的「翻译 Xs」会跟着变（中/英）。ASR/TTS/OCR 过程状态仍多为中文。
 - **截图复制为路径**有时截图完剪贴板是空的：`OleSetClipboard(null)` 后再 Win32 写文本并 `OleFlushClipboard`，Flush 会对空 OLE 对象执行 `EmptyClipboard`，刚写入的路径被清掉。现改为 persist 的 OLE 文本 DataObject。CLI：`ScreenKit --test-clipboard-path` 同时覆盖「重新复制为路径」。
 
