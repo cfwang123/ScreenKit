@@ -44,44 +44,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- LLM translate / polish **continues** when `finish_reason` is `length` / `max_tokens` (up to 6 extra rounds). CLI: `ScreenKit --test-llm-continue`.
-- HTTP `POST /api/translate` (alias `/api/translate/batch`): LLM batch translate (no item-count cap). `GET /api/status` includes `llm_translate`. `src`/`dst` accept the expanded language codes.
-- OCR tab: dest-language combo (default **no translation**) and a **Translate** toggle (`ocr_translate_lang`). After OCR the overlay and result panel show the translation when a language is set. Dest list matches LLM languages (zh/en/ja/ko, FR/DE/ES/RU/AR/TH, …; Traditional Chinese and Cantonese).
-- Floating **translate popup** (Tools / tray / **Ctrl+Alt+T**). First open is empty; later opens keep the last text; Paste is a button. Same engine as the Translate tab. Esc hides; Ctrl+Enter translates.
+- **LLM translate**: continue when `finish_reason` is `length` / `max_tokens` (up to 6 rounds); HTTP `POST /api/translate` batch (no item cap); OCR dest-language combo + Translate toggle; translate popup (Tools / tray / **Ctrl+Alt+T**); many source/target languages (ONNX still lists installed pairs only).
 
 #### Changed
 
-- Translate-tab LLM source/target combos list **many languages**; local ONNX still only lists installed model pairs.
 - Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
 - Chinese window / tray title is **屏幕截图工具** (English remains ScreenKit).
-- Settings **LLM** tab hints recommend small models (Qwen3.5-4B / Qwen3-8B / Hunyuan-MT-7B) and thinking **Off** for polish and translation.
 
 #### Fixed
 
-- **Ctrl+Alt+T** hides the translate popup whenever it is already visible (not only when it is the active window).
-- Switching the UI language now updates Translate tab hints/status, the translate popup, round-trip dialog strings, and the OCR “translate Xs” suffix. ASR/TTS/OCR runtime status lines are still mostly Chinese.
 - Copy-as-path after a screenshot sometimes left the clipboard empty (`OleFlushClipboard` on a null OLE object). Path copy now sets a persist OLE text DataObject. CLI: `ScreenKit --test-clipboard-path`.
 
 ### 中文
 
 #### 新增
 
-- LLM 翻译 / 润色在 `finish_reason` 为 `length` / `max_tokens` 时**超长续写**（最多再 6 轮）。CLI：`ScreenKit --test-llm-continue`。
-- HTTP `POST /api/translate`（别名 `/api/translate/batch`）：LLM 批量翻译，不限制条数。`GET /api/status` 增加 `llm_translate`。`src`/`dst` 接受扩展语言代码。
-- 截图识别页：目标语言下拉（默认**不翻译**）+ **翻译**开关（`ocr_translate_lang`）。识别后叠字与结果区可显示译文。目标语与 LLM 语言列表相同（中英日韩、法德西俄阿泰等；含繁体与粤语）。
-- **翻译小窗**（工具菜单 / 托盘 / **Ctrl+Alt+T**）。首次为空，之后保留上次原文/译文；剪贴板需点「粘贴」。引擎与翻译 Tab 相同。Esc 隐藏；Ctrl+Enter 翻译。
+- **LLM 翻译**：超长续写（`length` / `max_tokens`，最多 6 轮）；HTTP `POST /api/translate` 批量不限条数；截图识别页目标语下拉 + 翻译开关；翻译小窗（工具菜单 / 托盘 / **Ctrl+Alt+T**）；LLM 源/目标多种语言（本地 ONNX 仍只列出已装方向）。
 
 #### 变更
 
-- 翻译 Tab 的 LLM 源/目标语言下列出**多种语言**；本地 ONNX 仍只列出已装模型方向。
 - Release 编译**不再**复制或联接模型 / ORT / FFmpeg 目录。请自行把 `ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`、`onnxcpu64`、`onnxgpu64`、`onnxdml64`、`ffmpeg64` 放到 `bin/Release/net48/`（目录联接即可）。NuGet 的 GPU/DirectML 原生库也不再拷进输出。
 - 中文界面程序标题改为**屏幕截图工具**（英文仍为 ScreenKit）。
-- 参数设置 **LLM接口** 提示：润色/翻译推荐小模型（Qwen3.5-4B / Qwen3-8B / Hunyuan-MT-7B），思考选关闭。
 
 #### 修复
 
-- **Ctrl+Alt+T** 在翻译小窗已显示时一律隐藏（不再要求窗口在前台）。
-- 切换界面语言时，翻译 Tab 提示/状态、翻译小窗、来回翻译对话框，以及 OCR 结果里的「翻译 Xs」会跟着变。ASR/TTS/OCR 过程状态仍多为中文。
 - **截图复制为路径**有时剪贴板是空的（`OleFlushClipboard` 清掉刚写入的文本）。现改为 persist 的 OLE 文本 DataObject。CLI：`ScreenKit --test-clipboard-path`。
 
 ## v1.0.3 (2026-08-30)
