@@ -20,6 +20,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - LLM translate source/target combos list **many languages** (zh/en/ja/ko plus French, German, Spanish, Russian, Arabic, Thai, …; Traditional Chinese and Cantonese). Local ONNX still only lists installed model pairs. OCR overlay dest uses the same list. HTTP `src`/`dst` accept these codes.
 - Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
 - Chinese window / tray title is **屏幕截图工具** (English remains ScreenKit).
+- README screenshots updated: `docs/1 screenshot.png` (Chinese) and `docs/1 screenshot.en.png` (English), including overlay dest language and the Translate toggle.
 - Settings **LLM** tab hints recommend small models (Qwen3.5-4B / Qwen3-8B / Hunyuan-MT-7B) and thinking **Off** for polish and translation.
 
 #### Fixed
@@ -42,6 +43,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - LLM 翻译源/目标语言下列出**多种语言**（中/英/日/韩，以及法/德/西/俄/阿/泰等；含繁体中文与粤语）。本地 ONNX 仍只列出已装模型方向。OCR 叠字目标语同一列表。HTTP `src`/`dst` 接受这些代码。
 - Release 编译**不再**复制或联接模型 / ORT / FFmpeg 目录。请自行把 `ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`、`onnxcpu64`、`onnxgpu64`、`onnxdml64`、`ffmpeg64` 放到 `bin/Release/net48/`（目录联接即可）。NuGet 的 GPU/DirectML 原生库也不再拷进输出。
 - 中文界面程序标题改为**屏幕截图工具**（英文仍为 ScreenKit）。
+- README 截图已重截：`docs/1 screenshot.png`（中文）与 `docs/1 screenshot.en.png`（英文），含叠字目标语和「翻译」开关。
 - 参数设置 **LLM接口** 增加提示：润色/翻译推荐小模型（Qwen3.5-4B / Qwen3-8B / Hunyuan-MT-7B），思考选关闭。
 
 #### 修复
