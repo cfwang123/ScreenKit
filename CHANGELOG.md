@@ -19,6 +19,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Edit menu **Copy image** now copies the bitmap to the clipboard (previously copied as file; file copy moved to the new Copy file item). Toolbar button follows.
 - Edit menu: removed **Copy text** (still available via Ctrl+C and the result-panel copy button).
 - README screenshots recaptured: `docs/1 screenshot.png` (Chinese) and `docs/1 screenshot.en.png` (English), including translated Pack/Lang names.
+- English README OCR feature notes Korean/English word-space restoration (already in the Chinese README).
 
 #### Fixed
 
@@ -37,6 +38,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - 「编辑」菜单 **复制图片** 改为复制位图到剪贴板（原先复制为文件；文件复制移到新增的「复制文件」），工具栏“复制图”按钮同步。
 - 「编辑」菜单移除 **复制文字**（仍可用 Ctrl+C 与结果区“复制”按钮）。
 - README 截图已重截：`docs/1 screenshot.png`（中文）与 `docs/1 screenshot.en.png`（英文），含已翻译的 Pack/Lang 显示名。
+- 英文 README 截图识别说明补回韩语/英语词间空格处理（中文 README 已有）。
 
 #### 修复
 

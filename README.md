@@ -14,7 +14,7 @@ Current version: **1.0.4**
 
 | Area | Description |
 |------|-------------|
-| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition; multi-monitor DXGI capture. Optional overlay translation via LLM (default off) |
+| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition; multi-monitor DXGI capture. Korean/English word spaces are restored from visual gaps on the line (same for Latin text under the Chinese rec model); no spaces inserted between CJK characters. Optional overlay translation via LLM (default off) |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
