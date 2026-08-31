@@ -26,6 +26,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Fixed
 
 - English UI: OCR **Pack** / **Lang** combos used Chinese labels (`Rapid 全语种`, `Umi-OCR（多语言）`, `简体中文`, …). Display names now come from `ocr-display.json` (`name` / `nameEn`) and optional per-pack `pack.json`.
+- HTTP `POST /api/translate` always returned 940 (LLM not configured): the options snapshot used by the HTTP server omitted `[[llm]]` / `translate_llm`.
 
 ### 中文
 
@@ -47,6 +48,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 修复
 
 - 英文界面顶栏 **Pack / Lang** 下拉仍显示中文包名与变体（Rapid 全语种、Umi-OCR（多语言）、简体中文 等）。现从 `ocr-display.json` 的 `name` / `nameEn`（以及包内可选 `pack.json`）读取显示名。
+- HTTP `POST /api/translate` 一直返回 940（未配置翻译 LLM）：HTTP 用的配置快照漏了 `[[llm]]` / `translate_llm`。
 
 ## v1.0.4 (2026-08-31)
 

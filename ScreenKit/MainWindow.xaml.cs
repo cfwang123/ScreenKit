@@ -315,28 +315,8 @@ public partial class MainWindow : Window {
 		else synchttpstatus();
 	}
 
-	/// <summary>供 HTTP 服务复制当前 OCR 参数（后台线程可调，勿触碰 UI）。</summary>
-	OcrOptions snapshotopt() {
-		// 只读 opt 字段快照；顶栏变更时 applymodelchoice 已写回 opt
-		var o = opt;
-		return new OcrOptions {
-			ModelPackId = o.ModelPackId,
-			ModelVariant = o.ModelVariant,
-			ModelsDir = o.ModelsDir,
-			Device = o.Device,
-			DetLimitSideLen = o.DetLimitSideLen,
-			DetPadding = o.DetPadding,
-			DetThresh = o.DetThresh,
-			DetBoxThresh = o.DetBoxThresh,
-			DetUnclipRatio = o.DetUnclipRatio,
-			DetUseDilation = o.DetUseDilation,
-			RecImgH = o.RecImgH,
-			RecMaxWidth = o.RecMaxWidth,
-			RecAbsMaxWidth = o.RecAbsMaxWidth,
-			RecBatchNum = o.RecBatchNum,
-			UseCls = o.UseCls,
-		};
-	}
+	/// <summary>供 HTTP 服务复制当前参数（含 LLM / 翻译；后台线程可调，勿触碰 UI）。</summary>
+	OcrOptions snapshotopt() => (opt ?? new OcrOptions()).Clone();
 
 	// ───────── 托盘 / 热键 ─────────
 
