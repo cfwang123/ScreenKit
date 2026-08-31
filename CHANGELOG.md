@@ -10,13 +10,25 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
+- Edit menu: **Copy file** — copies the current image as a file (saved to `screenshots/` first, FileDrop on clipboard; paste in Explorer).
 - Edit menu: **Copy path** — copies the current image's file path. Images opened from a file copy the source path; screenshots / pasted images are saved to `screenshots/` first and the path text is copied (persist OLE text).
+
+#### Changed
+
+- Edit menu **Copy image** now copies the bitmap to the clipboard (previously copied as file; file copy moved to the new Copy file item). Toolbar button follows.
+- Edit menu: removed **Copy text** (still available via Ctrl+C and the result-panel copy button).
 
 ### 中文
 
 #### 新增
 
+- 「编辑」菜单新增 **复制文件**：当前图片先存 `screenshots/`，以文件（FileDrop）形式复制到剪贴板，可在资源管理器 Ctrl+V 粘贴。
 - 「编辑」菜单新增 **复制路径**：复制当前图片的文件路径。打开的图片复制源文件路径；截图 / 粘贴的图先存 `screenshots/` 再复制路径文本（persist OLE 文本）。
+
+#### 变更
+
+- 「编辑」菜单 **复制图片** 改为复制位图到剪贴板（原先复制为文件；文件复制移到新增的「复制文件」），工具栏“复制图”按钮同步。
+- 「编辑」菜单移除 **复制文字**（仍可用 Ctrl+C 与结果区“复制”按钮）。
 
 ## v1.0.4 (2026-08-31)
 

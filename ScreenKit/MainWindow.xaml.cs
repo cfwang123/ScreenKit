@@ -990,8 +990,8 @@ public partial class MainWindow : Window {
 		mngifrecord.Click += (_, _) => startgifrecord();
 		mngifrecordopt.Click += (_, _) => opengifrecordoptions();
 		// 编辑菜单
-		mncopytext.Click += (_, _) => copytext();
 		mncopyimg.Click += (_, _) => copyimage();
+		mncopyfile.Click += (_, _) => copyfile();
 		mncopypath.Click += (_, _) => copypath();
 		mntoggletext.Checked += (_, _) => {
 			if (btoggletext.IsChecked != true) btoggletext.IsChecked = true;
@@ -1086,10 +1086,10 @@ public partial class MainWindow : Window {
 			mngifrecordopt.Header = Loc.T("menu.gifrecordopt");
 			mngifrecordopt.ToolTip = Loc.T("menu.gifrecordopt.tip");
 
-			mncopytext.Header = Loc.T("menu.copytext");
-			mncopytext.ToolTip = Loc.T("menu.copytext.tip");
 			mncopyimg.Header = Loc.T("menu.copyimg");
 			mncopyimg.ToolTip = Loc.T("menu.copyimg.tip");
+			mncopyfile.Header = Loc.T("menu.copyfile");
+			mncopyfile.ToolTip = Loc.T("menu.copyfile.tip");
 			mncopypath.Header = Loc.T("menu.copypath");
 			mncopypath.ToolTip = Loc.T("menu.copypath.tip");
 			mntoggletext.Header = Loc.T("menu.toggletext");
@@ -2523,12 +2523,26 @@ public partial class MainWindow : Window {
 			return;
 		}
 		try {
-			// 写入 screenshots/ 并以文件形式复制到剪贴板（资源管理器可 Ctrl+V）
+			ImageUtil.Toclipboard(curimg);
+			setstatus("已复制图片");
+		}
+		catch (Exception ex) {
+			setstatus($"复制图片失败: {ex.Message}");
+		}
+	}
+
+	/// <summary>将当前图片以文件形式复制到剪贴板（先落盘 screenshots/，资源管理器可 Ctrl+V）。</summary>
+	void copyfile() {
+		if (curimg == null) {
+			setstatus("当前没有可复制的图片");
+			return;
+		}
+		try {
 			var path = ImageUtil.SaveScreenshotAndCopyAsFile(curimg, "copy");
 			setstatus("已复制为文件 · " + Path.GetFileName(path));
 		}
 		catch (Exception ex) {
-			setstatus($"复制图片失败: {ex.Message}");
+			setstatus($"复制文件失败: {ex.Message}");
 		}
 	}
 

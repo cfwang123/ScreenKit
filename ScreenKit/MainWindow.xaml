@@ -102,9 +102,9 @@
 				          ToolTip="帧率 / 最大宽高"/>
 			</MenuItem>
 			<MenuItem x:Name="mnedit" Header="编辑(_E)">
-				<MenuItem x:Name="mncopytext" Header="复制文字(_T)" InputGestureText="Ctrl+C"
-				          ToolTip="有图上选区时复制选中行，否则复制全部结果"/>
 				<MenuItem x:Name="mncopyimg" Header="复制图片(_I)"
+				          ToolTip="复制当前图片为位图到剪贴板"/>
+				<MenuItem x:Name="mncopyfile" Header="复制文件(_S)"
 				          ToolTip="将当前图片以文件形式复制到剪贴板（可粘贴到资源管理器）"/>
 				<MenuItem x:Name="mncopypath" Header="复制路径(_P)"
 				          ToolTip="复制当前图片的文件路径；截图/粘贴的图先存 screenshots/ 再复制"/>
@@ -249,7 +249,7 @@
 												</StackPanel>
 											</Button>
 											<Button x:Name="bcopyimg" Style="{StaticResource ToolBtnSm}"
-											        ToolTip="以文件形式复制当前图片到剪贴板（可粘贴到资源管理器）">
+											        ToolTip="复制当前图片为位图到剪贴板">
 												<StackPanel Orientation="Horizontal">
 													<TextBlock Text="🖼" FontSize="11" Margin="0,0,4,0"/>
 													<TextBlock x:Name="tbcopyimg" Text="复制图" FontSize="12"/>
