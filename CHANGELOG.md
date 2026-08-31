@@ -10,16 +10,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- LLM endpoint **thinking intensity** adds a **medium** option and now displays raw API values `none / low / medium / high / max` (config values unchanged; `none` still maps to `off` internally, `medium` / `mid` / `中` are kept instead of falling back to `low`).
-- Edit menu: **Copy file** — copies the current image as a file (saved to `screenshots/` first, FileDrop on clipboard; paste in Explorer).
-- Edit menu: **Copy path** — copies the current image's file path. Images opened from a file copy the source path; screenshots / pasted images are saved to `screenshots/` first and the path text is copied (persist OLE text).
+- Edit menu **Copy file**: current image is saved to `screenshots/` then copied as FileDrop (paste in Explorer). **Copy image** now copies the bitmap (toolbar follows).
+- Edit menu **Copy path**: copies the image file path (source path for opened files; screenshots / pasted images are saved to `screenshots/` first). **Copy text** removed from the menu (Ctrl+C and the result-panel button remain).
 
 #### Changed
 
-- Edit menu **Copy image** now copies the bitmap to the clipboard (previously copied as file; file copy moved to the new Copy file item). Toolbar button follows.
-- Edit menu: removed **Copy text** (still available via Ctrl+C and the result-panel copy button).
-- README screenshots recaptured: `docs/1 screenshot.png` (Chinese) and `docs/1 screenshot.en.png` (English), including translated Pack/Lang names.
-- English README OCR feature notes Korean/English word-space restoration (already in the Chinese README).
+- LLM thinking intensity adds **medium** and the dropdown shows raw API values `none / low / medium / high / max` (config unchanged; `none` still maps to `off`; `medium` / `mid` / `中` no longer fall back to `low`).
+- README screenshots recaptured (`docs/1 screenshot.png` / `docs/1 screenshot.en.png`). English README notes Korean/English OCR word-space restoration.
 
 #### Fixed
 
@@ -29,16 +26,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- LLM 接口 **思考强度** 新增 **medium** 档，且下拉直接显示 API 原值 `none / low / medium / high / max`（配置值不变；`none` 内部仍按 `off` 关思考，`medium` / `mid` / `中` 不再回落到 `low`）。
-- 「编辑」菜单新增 **复制文件**：当前图片先存 `screenshots/`，以文件（FileDrop）形式复制到剪贴板，可在资源管理器 Ctrl+V 粘贴。
-- 「编辑」菜单新增 **复制路径**：复制当前图片的文件路径。打开的图片复制源文件路径；截图 / 粘贴的图先存 `screenshots/` 再复制路径文本（persist OLE 文本）。
+- 「编辑」菜单 **复制文件**：当前图片先存 `screenshots/`，以 FileDrop 复制到剪贴板（资源管理器可粘贴）。**复制图片**改为复制位图（工具栏同步）。
+- 「编辑」菜单 **复制路径**：复制图片文件路径（打开的图用源路径；截图 / 粘贴的图先存 `screenshots/`）。菜单去掉 **复制文字**（仍可用 Ctrl+C 与结果区按钮）。
 
 #### 变更
 
-- 「编辑」菜单 **复制图片** 改为复制位图到剪贴板（原先复制为文件；文件复制移到新增的「复制文件」），工具栏“复制图”按钮同步。
-- 「编辑」菜单移除 **复制文字**（仍可用 Ctrl+C 与结果区“复制”按钮）。
-- README 截图已重截：`docs/1 screenshot.png`（中文）与 `docs/1 screenshot.en.png`（英文），含已翻译的 Pack/Lang 显示名。
-- 英文 README 截图识别说明补回韩语/英语词间空格处理（中文 README 已有）。
+- LLM 思考强度增加 **medium**，下拉显示 API 原值 `none / low / medium / high / max`（配置不变；`none` 仍按 `off`；`medium` / `mid` / `中` 不再回落到 `low`）。
+- README 截图已重截（`docs/1 screenshot.png` / `docs/1 screenshot.en.png`）。英文 README 补了韩语/英语 OCR 词间空格说明。
 
 #### 修复
 
@@ -50,47 +44,45 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- LLM translate / polish **continues** when `finish_reason` is `length` / `max_tokens` (up to 6 extra rounds, remaining timeout). Overlapping chunk tails are stripped. CLI: `ScreenKit --test-llm-continue`.
-- HTTP `POST /api/translate` (alias `/api/translate/batch`): LLM batch translate (no item-count cap; groups of 8, missing indexes retried one-by-one). `GET /api/status` includes `llm_translate`.
-- OCR tab: target-language combo (default **no translation**) and a **Translate** toggle. After OCR, if a language is set, the toggle turns on and overlay text is replaced with the translation (`ocr_translate_lang`). The result panel follows the same toggle (original vs translated) and shows translation elapsed time in the result meta.
-- Floating **translate popup** (always on top). Global hotkey **Ctrl+Alt+T** shows/hides it (empty = off). First open is empty; later opens keep the last source/translation. Paste is a button. Also: Tools menu, tray. Uses the Translate-tab engine (LLM or local ONNX). Esc hides; Ctrl+Enter translates.
+- LLM translate / polish **continues** when `finish_reason` is `length` / `max_tokens` (up to 6 extra rounds). CLI: `ScreenKit --test-llm-continue`.
+- HTTP `POST /api/translate` (alias `/api/translate/batch`): LLM batch translate (no item-count cap). `GET /api/status` includes `llm_translate`. `src`/`dst` accept the expanded language codes.
+- OCR tab: dest-language combo (default **no translation**) and a **Translate** toggle (`ocr_translate_lang`). After OCR the overlay and result panel show the translation when a language is set. Dest list matches LLM languages (zh/en/ja/ko, FR/DE/ES/RU/AR/TH, …; Traditional Chinese and Cantonese).
+- Floating **translate popup** (Tools / tray / **Ctrl+Alt+T**). First open is empty; later opens keep the last text; Paste is a button. Same engine as the Translate tab. Esc hides; Ctrl+Enter translates.
 
 #### Changed
 
-- LLM translate source/target combos list **many languages** (zh/en/ja/ko plus French, German, Spanish, Russian, Arabic, Thai, …; Traditional Chinese and Cantonese). Local ONNX still only lists installed model pairs. OCR overlay dest uses the same list. HTTP `src`/`dst` accept these codes.
+- Translate-tab LLM source/target combos list **many languages**; local ONNX still only lists installed model pairs.
 - Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
 - Chinese window / tray title is **屏幕截图工具** (English remains ScreenKit).
-- README screenshots updated: `docs/1 screenshot.png` (Chinese) and `docs/1 screenshot.en.png` (English), including overlay dest language and the Translate toggle.
 - Settings **LLM** tab hints recommend small models (Qwen3.5-4B / Qwen3-8B / Hunyuan-MT-7B) and thinking **Off** for polish and translation.
 
 #### Fixed
 
-- **Ctrl+Alt+T** now hides the translate popup whenever it is already visible (not only when it is the active window). The hotkey is registered on the main window, so the popup often lost `IsActive` before the handler ran and the second press only brought it to the front.
-- Switching the UI language now updates Translate tab hints/status, the translate popup, round-trip dialog strings, and the OCR “translate Xs” suffix (Loc zh/en). ASR/TTS/OCR runtime status lines are still mostly Chinese.
-- Copy-as-path after a screenshot sometimes left the clipboard empty: `OleSetClipboard(null)` then Win32 text then `OleFlushClipboard` emptied the text (Flush calls `EmptyClipboard` on a null OLE object). Path copy now sets a persist OLE text DataObject. CLI: `ScreenKit --test-clipboard-path` also covers re-copy last screenshot as path.
+- **Ctrl+Alt+T** hides the translate popup whenever it is already visible (not only when it is the active window).
+- Switching the UI language now updates Translate tab hints/status, the translate popup, round-trip dialog strings, and the OCR “translate Xs” suffix. ASR/TTS/OCR runtime status lines are still mostly Chinese.
+- Copy-as-path after a screenshot sometimes left the clipboard empty (`OleFlushClipboard` on a null OLE object). Path copy now sets a persist OLE text DataObject. CLI: `ScreenKit --test-clipboard-path`.
 
 ### 中文
 
 #### 新增
 
-- LLM 翻译 / 润色在 `finish_reason` 为 `length` / `max_tokens` 时**超长续写**（最多再 6 轮，受剩余超时限制），去掉片段重叠。CLI：`ScreenKit --test-llm-continue`。
-- HTTP `POST /api/translate`（别名 `/api/translate/batch`）：LLM 批量翻译，**不限制条数**（每批 8 条编号请求，缺号逐条补）。`GET /api/status` 增加 `llm_translate`。
-- 截图识别页：目标语言下拉（默认**不翻译**）+ **翻译**开关。识别完成时若已选语言则默认打开，图上叠字换成译文（`ocr_translate_lang`）。右侧识别结果随开关显示原文/译文，并在结果 meta 中显示翻译用时。
-- **翻译小窗**（置顶浮窗）。全局热键 **Ctrl+Alt+T** 呼出/隐藏（留空禁用）。首次打开为空，之后保留上次原文/译文；剪贴板需点「粘贴」。入口：工具菜单、托盘。引擎与翻译 Tab 相同（LLM 或本地 ONNX）。Esc 隐藏；Ctrl+Enter 翻译。
+- LLM 翻译 / 润色在 `finish_reason` 为 `length` / `max_tokens` 时**超长续写**（最多再 6 轮）。CLI：`ScreenKit --test-llm-continue`。
+- HTTP `POST /api/translate`（别名 `/api/translate/batch`）：LLM 批量翻译，不限制条数。`GET /api/status` 增加 `llm_translate`。`src`/`dst` 接受扩展语言代码。
+- 截图识别页：目标语言下拉（默认**不翻译**）+ **翻译**开关（`ocr_translate_lang`）。识别后叠字与结果区可显示译文。目标语与 LLM 语言列表相同（中英日韩、法德西俄阿泰等；含繁体与粤语）。
+- **翻译小窗**（工具菜单 / 托盘 / **Ctrl+Alt+T**）。首次为空，之后保留上次原文/译文；剪贴板需点「粘贴」。引擎与翻译 Tab 相同。Esc 隐藏；Ctrl+Enter 翻译。
 
 #### 变更
 
-- LLM 翻译源/目标语言下列出**多种语言**（中/英/日/韩，以及法/德/西/俄/阿/泰等；含繁体中文与粤语）。本地 ONNX 仍只列出已装模型方向。OCR 叠字目标语同一列表。HTTP `src`/`dst` 接受这些代码。
+- 翻译 Tab 的 LLM 源/目标语言下列出**多种语言**；本地 ONNX 仍只列出已装模型方向。
 - Release 编译**不再**复制或联接模型 / ORT / FFmpeg 目录。请自行把 `ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`、`onnxcpu64`、`onnxgpu64`、`onnxdml64`、`ffmpeg64` 放到 `bin/Release/net48/`（目录联接即可）。NuGet 的 GPU/DirectML 原生库也不再拷进输出。
 - 中文界面程序标题改为**屏幕截图工具**（英文仍为 ScreenKit）。
-- README 截图已重截：`docs/1 screenshot.png`（中文）与 `docs/1 screenshot.en.png`（英文），含叠字目标语和「翻译」开关。
-- 参数设置 **LLM接口** 增加提示：润色/翻译推荐小模型（Qwen3.5-4B / Qwen3-8B / Hunyuan-MT-7B），思考选关闭。
+- 参数设置 **LLM接口** 提示：润色/翻译推荐小模型（Qwen3.5-4B / Qwen3-8B / Hunyuan-MT-7B），思考选关闭。
 
 #### 修复
 
-- **Ctrl+Alt+T** 在翻译小窗已显示时一律隐藏（不再要求窗口在前台）。热键挂在主窗上，第二次按下时小窗往往已经不是 `IsActive`，原先只会把它拉到前面。
-- 切换界面语言时，翻译 Tab 提示/状态、翻译小窗、来回翻译对话框，以及 OCR 结果里的「翻译 Xs」会跟着变（中/英）。ASR/TTS/OCR 过程状态仍多为中文。
-- **截图复制为路径**有时截图完剪贴板是空的：`OleSetClipboard(null)` 后再 Win32 写文本并 `OleFlushClipboard`，Flush 会对空 OLE 对象执行 `EmptyClipboard`，刚写入的路径被清掉。现改为 persist 的 OLE 文本 DataObject。CLI：`ScreenKit --test-clipboard-path` 同时覆盖「重新复制为路径」。
+- **Ctrl+Alt+T** 在翻译小窗已显示时一律隐藏（不再要求窗口在前台）。
+- 切换界面语言时，翻译 Tab 提示/状态、翻译小窗、来回翻译对话框，以及 OCR 结果里的「翻译 Xs」会跟着变。ASR/TTS/OCR 过程状态仍多为中文。
+- **截图复制为路径**有时剪贴板是空的（`OleFlushClipboard` 清掉刚写入的文本）。现改为 persist 的 OLE 文本 DataObject。CLI：`ScreenKit --test-clipboard-path`。
 
 ## v1.0.3 (2026-08-30)
 
