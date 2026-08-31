@@ -48,6 +48,19 @@
 						           TextWrapping="Wrap" Margin="0,0,0,16"
 						           Text="0=不自动检查。仅在启动时判断：超过该天数未检查则查询 GitHub Releases。菜单「检查更新」随时可用。"/>
 
+						<TextBlock x:Name="lbsetproxy" Text="HTTP 代理" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<CheckBox x:Name="eproxyen" Content="启用" Margin="0,0,0,6"
+						          AutomationProperties.AutomationId="set.proxy.enable"/>
+						<TextBlock x:Name="lbsetproxyaddr" Text="地址" FontSize="12" Margin="0,0,0,4"
+						           Foreground="{StaticResource TextMuted}"/>
+						<TextBox x:Name="eproxyaddr" Height="32" Padding="8,4" Margin="0,0,0,4"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         VerticalContentAlignment="Center" Text="127.0.0.1:7897"
+						         AutomationProperties.AutomationId="set.proxy.addr"/>
+						<TextBlock x:Name="lbsetproxyhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,16"
+						           Text="访问 GitHub、Hugging Face 等非中国网站时使用。国内镜像直连。"/>
+
 						<TextBlock x:Name="lbsetlog" Text="系统日志" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<CheckBox x:Name="ecapturelog" Content="写入诊断日志（默认关闭）"
 						          Margin="0,0,0,4" IsChecked="False"

@@ -163,6 +163,8 @@ capture_log = false             # true → log/capture.log
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
 update_check_days = 7           # auto-check interval on startup (days); 0 = off. Menu Check for Updates always works.
+# http_proxy = false            # HTTP proxy for GitHub / Hugging Face / other non-China sites
+# http_proxy_addr = "127.0.0.1:7897"
 # ocr_translate_lang = ""       # OCR overlay/result target: empty = off; LLM lang code (zh/en/ja/ko/fr/…)
 
 [http]

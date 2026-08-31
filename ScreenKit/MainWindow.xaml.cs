@@ -88,6 +88,7 @@ public partial class MainWindow : Window {
 		trysetwindowicon();
 		// 先读配置再装模型栏
 		AppConfig.LoadInto(opt);
+		HttpProxy.ApplyFrom(opt);
 		Loc.SetFromConfig(opt.UiLang);
 		syncsnapcopyopts();
 		restorewindowbounds();
@@ -2818,6 +2819,7 @@ public partial class MainWindow : Window {
 		if (!dlg.Applied) return;
 		var old = opt;
 		opt = dlg.Result;
+		HttpProxy.ApplyFrom(opt);
 		syncsnapcopyopts();
 		try { refreshtrllm(); } catch { }
 		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);

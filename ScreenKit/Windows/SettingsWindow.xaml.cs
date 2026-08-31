@@ -171,6 +171,11 @@ public partial class SettingsWindow : Window {
 			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
 			lbsetupdatehint.Text = Loc.T("set.update.hint");
 			eupdatedays.ToolTip = Loc.T("set.update.hint");
+			lbsetproxy.Text = Loc.T("set.proxy");
+			eproxyen.Content = Loc.T("set.proxy.enable");
+			lbsetproxyaddr.Text = Loc.T("set.proxy.addr");
+			lbsetproxyhint.Text = Loc.T("set.proxy.hint");
+			eproxyaddr.ToolTip = Loc.T("set.proxy.hint");
 			lbsetlog.Text = Loc.T("set.log");
 			ecapturelog.Content = Loc.T("set.log.enable");
 			lbsetloghint.Text = Loc.T("set.log.hint");
@@ -377,6 +382,13 @@ public partial class SettingsWindow : Window {
 			? OcrOptions.DefaultTranslateLlmPrompt : o.TranslateLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
+		eproxyen.IsChecked = o.HttpProxyEnabled;
+		eproxyaddr.Text = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr;
+		syncproxyui();
+		eproxyen.Checked -= onproxyen;
+		eproxyen.Unchecked -= onproxyen;
+		eproxyen.Checked += onproxyen;
+		eproxyen.Unchecked += onproxyen;
 		// 三选一：路径 > 文件 > 图片
 		var asPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
 		var asFile = !asPath && o.SnapCopyAsFile && !o.SnapCopyAsImage;
@@ -512,6 +524,9 @@ public partial class SettingsWindow : Window {
 		Result.MinimizeToTray = emintray.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
+		Result.HttpProxyEnabled = eproxyen.IsChecked == true;
+		var proxyAddr = (eproxyaddr.Text ?? "").Trim();
+		Result.HttpProxyAddr = string.IsNullOrWhiteSpace(proxyAddr) ? "127.0.0.1:7897" : proxyAddr;
 		// 截图历史保留：Tag 天数，0=不限
 		var keepTag = (esnapkeep.SelectedItem as ComboBoxItem)?.Tag as string ?? "3";
 		if (!int.TryParse(keepTag, out var keepDays) || keepDays < 0)
@@ -585,6 +600,8 @@ public partial class SettingsWindow : Window {
 		MinimizeToTray = o.MinimizeToTray,
 		UpdateCheckDays = o.UpdateCheckDays,
 		LastUpdateCheckUnix = o.LastUpdateCheckUnix,
+		HttpProxyEnabled = o.HttpProxyEnabled,
+		HttpProxyAddr = o.HttpProxyAddr ?? "127.0.0.1:7897",
 		HttpEnabled = o.HttpEnabled,
 		HttpHost = o.HttpHost,
 		HttpPort = o.HttpPort,
@@ -821,6 +838,15 @@ public partial class SettingsWindow : Window {
 		it.Url = (ellmurl.Text ?? "").Trim();
 		it.Key = ellmkey.Password ?? "";
 		refreshllmdisp();
+	}
+
+	void onproxyen(object sender, RoutedEventArgs e) => syncproxyui();
+
+	void syncproxyui() {
+		var on = eproxyen.IsChecked == true;
+		eproxyaddr.IsEnabled = on;
+		lbsetproxyaddr.Opacity = on ? 1 : 0.45;
+		eproxyaddr.Opacity = on ? 1 : 0.55;
 	}
 
 	void syncvoicesplitui() {

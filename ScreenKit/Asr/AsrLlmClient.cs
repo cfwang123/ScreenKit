@@ -22,7 +22,6 @@ static class AsrLlmClient {
 		"只输出译文，保持相同编号（1. 2. 3. …），一条原文对应一条译文，不要合并或省略。";
 	static readonly Regex NumberedLine = new(@"^\s*(\d+)\.\s*",
 		RegexOptions.Multiline | RegexOptions.Compiled);
-	const string ProxyAddr = "http://127.0.0.1:7897";
 	const string CtxHint = "若提供上文，请结合上文纠正同音字、专有名词与指代；只输出「待润色」这一句的结果，不要重复上文、不要解释。";
 	const string ContinueUser = "从断点继续输出，不要重复已有内容，不要解释。";
 
@@ -347,7 +346,7 @@ static class AsrLlmClient {
 
 	static (int code, string body, int ms) postjson(string url, string key, string json, int timeoutMs, CancellationToken ct) {
 		var t0 = Environment.TickCount;
-		using var handler = makehandler(url);
+		using var handler = HttpProxy.CreateHandler();
 		using var http = new HttpClient(handler) {
 			Timeout = TimeSpan.FromMilliseconds(timeoutMs > 0 ? timeoutMs : TimeoutMs),
 		};
@@ -382,37 +381,6 @@ static class AsrLlmClient {
 			|| s.EndsWith("/openai/v1", StringComparison.OrdinalIgnoreCase))
 			return s + "/chat/completions";
 		return s + "/v1/chat/completions";
-	}
-
-	static HttpClientHandler makehandler(string url) {
-		var h = new HttpClientHandler();
-		if (needproxy(url)) {
-			h.Proxy = new WebProxy(ProxyAddr);
-			h.UseProxy = true;
-		}
-		return h;
-	}
-
-	static bool needproxy(string url) {
-		if (!Uri.TryCreate(url, UriKind.Absolute, out var u)) return false;
-		var host = u.Host ?? "";
-		if (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase)
-			|| host == "127.0.0.1" || host == "::1" || host == "[::1]")
-			return false;
-		if (IPAddress.TryParse(host, out var ip) && isprivate(ip))
-			return false;
-		return true;
-	}
-
-	static bool isprivate(IPAddress ip) {
-		if (IPAddress.IsLoopback(ip)) return true;
-		var b = ip.GetAddressBytes();
-		if (b.Length == 4) {
-			if (b[0] == 10) return true;
-			if (b[0] == 192 && b[1] == 168) return true;
-			if (b[0] == 172 && b[1] >= 16 && b[1] <= 31) return true;
-		}
-		return false;
 	}
 
 	/// <summary>解析 choices[0] 的正文与 finish_reason。供 CLI 自检。</summary>

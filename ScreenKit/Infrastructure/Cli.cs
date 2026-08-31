@@ -48,6 +48,12 @@ static class Cli {
 		if (AppUpdater.IsApplyUpdateArgs(args))
 			return AppUpdater.RunApplyUpdate(args);
 
+		try {
+			var o = new OcrOptions();
+			AppConfig.LoadInto(o);
+			HttpProxy.ApplyFrom(o);
+		}
+		catch { }
 		try { CudaBootstrap.Init(); } catch { }
 
 		ensureconsole();

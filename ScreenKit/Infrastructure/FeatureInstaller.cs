@@ -114,7 +114,7 @@ static class FeatureInstaller {
 			ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
 		}
 		catch { }
-		var c = new HttpClient();
+		var c = new HttpClient(HttpProxy.CreateHandler());
 		c.Timeout = TimeSpan.FromMinutes(60);
 		c.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ScreenKit-FeatureInstaller/1.0");
 		return c;

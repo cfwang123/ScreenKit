@@ -38,7 +38,7 @@ static class AppUpdater {
 			ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
 		}
 		catch { }
-		var c = new HttpClient();
+		var c = new HttpClient(HttpProxy.CreateHandler());
 		c.Timeout = TimeSpan.FromMinutes(30);
 		c.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ScreenKit-Updater/1.0");
 		c.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/vnd.github+json");

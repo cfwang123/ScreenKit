@@ -44,7 +44,7 @@ static class TtsInstallCatalog {
 	static string lastSource = "";
 
 	static HttpClient createhttp() {
-		var c = new HttpClient();
+		var c = new HttpClient(HttpProxy.CreateHandler());
 		c.Timeout = TimeSpan.FromMinutes(5);
 		c.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ScreenKit-TtsInstall/1.0");
 		c.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/vnd.github+json");

@@ -110,6 +110,10 @@ static class AppConfig {
 				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
 			if (map.TryGetValue("update_last_check", out var ulc) && long.TryParse(ulc, out var ulcUnix))
 				o.LastUpdateCheckUnix = ulcUnix < 0 ? 0 : ulcUnix;
+			if (map.TryGetValue("http_proxy", out var hpx))
+				o.HttpProxyEnabled = parsebool(hpx, false);
+			if (map.TryGetValue("http_proxy_addr", out var hpa) && !string.IsNullOrWhiteSpace(hpa))
+				o.HttpProxyAddr = hpa.Trim().Trim('"');
 			if (map.TryGetValue("ocr_translate_lang", out var otl)) {
 				var t = (otl ?? "").Trim().Trim('"').ToLowerInvariant();
 				if (t is "off" or "none" or "no" or "-" or "不翻译") t = "";
@@ -370,6 +374,10 @@ static class AppConfig {
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");
 		sb.AppendLine($"update_last_check = {(o.LastUpdateCheckUnix < 0 ? 0 : o.LastUpdateCheckUnix)}");
+		sb.AppendLine($"# HTTP 代理：访问 GitHub 等非中国网站时使用；国内镜像直连");
+		sb.AppendLine($"http_proxy = {(o.HttpProxyEnabled ? "true" : "false")}");
+		var proxyAddr = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr.Trim();
+		sb.AppendLine($"http_proxy_addr = \"{esc(proxyAddr)}\"");
 		sb.AppendLine($"# OCR 页叠字/结果翻译目标语言：空=不翻译；LLM 语言代码（zh/en/ja/ko/fr/de/…）");
 		var ocrTr = (o.OcrTranslateLang ?? "").Trim().ToLowerInvariant();
 		if (ocrTr is not "zh" and not "en" and not "ja" and not "ko") ocrTr = "";
