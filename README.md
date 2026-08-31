@@ -14,7 +14,7 @@ Current version: **1.0.3**
 
 | Area | Description |
 |------|-------------|
-| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture. Word spaces in Korean/English (and Latin text under the Chinese rec model) are restored from visual gaps on the line; CJK characters are not split. Optional overlay translation: pick a target language (default off); after OCR the Translate toggle turns on and overlay text is replaced (needs LLM). |
+| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture. Word spaces in Korean/English (and Latin text under the Chinese rec model) are restored from visual gaps on the line; CJK characters are not split. Optional overlay translation: pick a target language (default off); after OCR the Translate toggle turns on and both overlay and the result panel show the translation (needs LLM), with elapsed time in the result meta. |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
@@ -161,7 +161,7 @@ minimize_to_tray = true
 capture_log = false             # true → log/capture.log
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
-# ocr_translate_lang = ""       # OCR overlay target: empty = off; zh | en | ja | ko
+# ocr_translate_lang = ""       # OCR overlay/result target: empty = off; zh | en | ja | ko
 
 [http]
 http_enabled = true

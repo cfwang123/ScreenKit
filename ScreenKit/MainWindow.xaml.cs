@@ -21,6 +21,8 @@ public partial class MainWindow : Window {
 	bool qrDoneForImg;
 	/// <summary>各结果 Tab 缓存的 meta 文案（切换 Tab 时恢复）。</summary>
 	string ocrMetaText = "推理 — · 端到端 — | 置信度 —";
+	/// <summary>OCR 耗时 meta，不含翻译后缀；applyocrmeta 据此拼 ocrMetaText。</summary>
+	string ocrMetaBase = "推理 — · 端到端 — | 置信度 —";
 	string qrMetaText = "条码 —";
 	bool panning;
 	Point panstart;
@@ -1533,7 +1535,7 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>
-	/// 按当前 eresult.Text 与 OCR 行内容建立行起始偏移。
+	/// 按当前 eresult.Text 与叠字/结果行（原文或译文）建立行起始偏移。
 	/// 兼容 \n / \r\n，避免 FullText 与 TextBox 换行不一致导致同步失效。
 	/// </summary>
 	bool ensurelineoff() {
@@ -1551,7 +1553,7 @@ public partial class MainWindow : Window {
 		var starts = new int[n];
 		var pos = 0;
 		for (int i = 0; i < n; i++) {
-			var line = last.Lines[i].Text ?? "";
+			var line = overlaytext(i);
 			if (i > 0) {
 				if (pos >= text.Length) { lineOff = null; return false; }
 				// 消费一行分隔符
@@ -1589,7 +1591,7 @@ public partial class MainWindow : Window {
 		if (!ensurelineoff()) return -1;
 		var n = last.Lines.Count;
 		line = Compat.Clamp(line, 0, n - 1);
-		var tlen = (last.Lines[line].Text ?? "").Length;
+		var tlen = overlaytext(line).Length;
 		return lineOff[line] + Compat.Clamp(ch, 0, tlen);
 	}
 
@@ -1600,7 +1602,7 @@ public partial class MainWindow : Window {
 		var text = eresult.Text ?? "";
 		offset = Compat.Clamp(offset, 0, text.Length);
 		for (int i = 0; i < n; i++) {
-			var tlen = (last.Lines[i].Text ?? "").Length;
+			var tlen = overlaytext(i).Length;
 			var lineStart = lineOff[i];
 			var lineEnd = lineStart + tlen;
 			var nextStart = i + 1 < n ? lineOff[i + 1] : text.Length;
@@ -1611,7 +1613,7 @@ public partial class MainWindow : Window {
 				return (i, tlen);
 			}
 		}
-		var lastLen = (last.Lines[n - 1].Text ?? "").Length;
+		var lastLen = overlaytext(n - 1).Length;
 		return (n - 1, lastLen);
 	}
 
@@ -3054,8 +3056,9 @@ public partial class MainWindow : Window {
 		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
 		var loadPart = r.LoadMs > 0 ? $" · 加载 {(r.LoadMs / 1000.0):0.00}s" : "";
 		// 详细耗时/置信度等只写右侧识别结果区，顶部状态不重复
-		ocrMetaText = $"推理 {inferS}s · 端到端 {wallS}s{loadPart} | 置信度 {conf:0.00} | {r.DeviceUsed}{model}{res} | {r.Lines.Count} 行 | 边长{opt.DetLimitSideLen}";
-		syncresultmetafromtab();
+		ocrMetaBase = $"推理 {inferS}s · 端到端 {wallS}s{loadPart} | 置信度 {conf:0.00} | {r.DeviceUsed}{model}{res} | {r.Lines.Count} 行 | 边长{opt.DetLimitSideLen}";
+		ocrTrMs = 0;
+		applyocrmeta();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		setstatus("完成");
 		drawoverlay();
@@ -3118,6 +3121,7 @@ public partial class MainWindow : Window {
 		}
 		catch { }
 		ocrMetaText = Loc.T("result.meta");
+		ocrMetaBase = ocrMetaText;
 		qrMetaText = Loc.T("result.qr.meta");
 		syncresultmetafromtab();
 		imgview.Source = bmp;

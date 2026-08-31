@@ -3,12 +3,13 @@ using System.Windows.Controls;
 
 namespace ScreenKit;
 
-/// <summary>OCR 页：目标语言 + 叠字翻译切换。</summary>
+/// <summary>OCR 页：目标语言 + 叠字/结果翻译切换。</summary>
 public partial class MainWindow {
 	/// <summary>与 last.Lines 对齐的译文；未译行为 null。</summary>
 	string[] ocrTrOut;
 	string ocrTrDst;
 	int ocrTrGen;
+	int ocrTrMs;
 	bool ocrTrUi;
 	CancellationTokenSource ocrTrCts;
 
@@ -62,14 +63,16 @@ public partial class MainWindow {
 		try { AppConfig.Save(opt); } catch { }
 		ocrTrOut = null;
 		ocrTrDst = null;
+		ocrTrMs = 0;
 		syncocrtrenabled();
 		if (string.IsNullOrEmpty(dst)) {
 			setocrtrchecked(false);
-			drawoverlay();
+			refreshocrtrview();
 			return;
 		}
 		if (last == null || last.Lines.Count == 0) return;
 		setocrtrchecked(true);
+		refreshocrtrview();
 		_ = runocrtranslateasync(ocrGen, dst);
 	}
 
@@ -84,7 +87,7 @@ public partial class MainWindow {
 			_ = runocrtranslateasync(ocrGen, dst);
 			return;
 		}
-		drawoverlay();
+		refreshocrtrview();
 	}
 
 	void setocrtrchecked(bool on) {
@@ -105,9 +108,10 @@ public partial class MainWindow {
 		ocrTrOut = null;
 		ocrTrDst = null;
 		ocrTrGen = 0;
+		ocrTrMs = 0;
 	}
 
-	/// <summary>叠字用文本：翻译开且有译文则用译文。</summary>
+	/// <summary>叠字/结果用文本：翻译开且有译文则用译文。</summary>
 	string overlaytext(int i) {
 		if (last == null || i < 0 || i >= last.Lines.Count) return "";
 		if (btoggletr.IsChecked == true && ocrTrOut != null && i < ocrTrOut.Length
@@ -116,11 +120,48 @@ public partial class MainWindow {
 		return last.Lines[i].Text ?? "";
 	}
 
-	/// <summary>OCR 出结果后：已选目标语言则默认打开翻译并替换叠字。</summary>
+	string resulttext() {
+		if (last == null || last.Lines.Count == 0) return "";
+		var n = last.Lines.Count;
+		var parts = new string[n];
+		for (int i = 0; i < n; i++)
+			parts[i] = overlaytext(i);
+		return string.Join(Environment.NewLine, parts);
+	}
+
+	void applyresulttext() {
+		if (last == null) return;
+		var t = resulttext();
+		if (string.Equals(eresult.Text ?? "", t, StringComparison.Ordinal)) return;
+		double off = 0;
+		try { off = eresult.VerticalOffset; } catch { }
+		lineOff = null;
+		lineOffSrc = null;
+		eresult.Text = t;
+		try { eresult.ScrollToVerticalOffset(off); } catch { }
+	}
+
+	void applyocrmeta() {
+		if (string.IsNullOrEmpty(ocrMetaBase)) return;
+		ocrMetaText = ocrTrMs > 0
+			? $"{ocrMetaBase} · 翻译 {(ocrTrMs / 1000.0):0.00}s"
+			: ocrMetaBase;
+		syncresultmetafromtab();
+	}
+
+	void refreshocrtrview() {
+		applyresulttext();
+		applyocrmeta();
+		drawoverlay();
+		if (hasselection()) queuesyncresultfromimg();
+	}
+
+	/// <summary>OCR 出结果后：已选目标语言则默认打开翻译并替换叠字/结果。</summary>
 	Task maybeocrtranslateasync() {
 		var dst = ocrtrdst();
 		if (string.IsNullOrEmpty(dst) || last == null || last.Lines.Count == 0) {
 			ocrTrOut = null;
+			ocrTrMs = 0;
 			setocrtrchecked(false);
 			syncocrtrenabled();
 			return Task.CompletedTask;
@@ -136,13 +177,13 @@ public partial class MainWindow {
 		if (string.IsNullOrEmpty(dst) || last == null) return;
 		if (ocrTrOut != null && ocrTrGen == gen && string.Equals(ocrTrDst, dst, StringComparison.Ordinal)
 			&& ocrTrOut.Length == last.Lines.Count) {
-			drawoverlay();
+			refreshocrtrview();
 			return;
 		}
 		var ep = opt.SelectedTranslateLlm() ?? opt.SelectedLlm();
 		if (!AsrLlmClient.IsEndpointReady(ep)) {
 			setstatus(Loc.T("st.ocr_tr_need_llm"));
-			drawoverlay();
+			refreshocrtrview();
 			return;
 		}
 		var items = new List<string>(last.Lines.Count);
@@ -152,7 +193,7 @@ public partial class MainWindow {
 		var src = LangDetect.DetectCode(probe);
 		if (string.Equals(src, dst, StringComparison.OrdinalIgnoreCase)) {
 			setstatus(Loc.T("st.ocr_tr_same"));
-			drawoverlay();
+			refreshocrtrview();
 			return;
 		}
 		try { ocrTrCts?.Cancel(); } catch { }
@@ -160,6 +201,7 @@ public partial class MainWindow {
 		ocrTrCts = cts;
 		setstatus(Loc.T("st.ocr_tr_run"));
 		List<string> outs;
+		var t0 = Environment.TickCount;
 		try {
 			var o = opt;
 			outs = await Task.Run(() => AsrLlmClient.TranslateBatch(o, items, src, dst, 8, ep, cts.Token),
@@ -177,12 +219,14 @@ public partial class MainWindow {
 		ocrTrOut = outs?.ToArray();
 		ocrTrDst = dst;
 		ocrTrGen = gen;
+		ocrTrMs = Math.Max(0, Environment.TickCount - t0);
 		var n = 0;
 		if (ocrTrOut != null) {
 			foreach (var t in ocrTrOut)
 				if (!string.IsNullOrWhiteSpace(t)) n++;
 		}
-		setstatus(Loc.T("st.ocr_tr_ok", n));
-		drawoverlay();
+		var sec = (ocrTrMs / 1000.0).ToString("0.00");
+		setstatus(Loc.T("st.ocr_tr_ok", n, sec));
+		refreshocrtrview();
 	}
 }
