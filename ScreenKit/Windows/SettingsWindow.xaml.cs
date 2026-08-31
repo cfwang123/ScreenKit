@@ -231,6 +231,7 @@ public partial class SettingsWindow : Window {
 			lbsetllmthinkhint.Text = Loc.T("set.llm.think.hint");
 			itllmthinkoff.Content = Loc.T("set.llm.think.off");
 			itllmthinklow.Content = Loc.T("set.llm.think.low");
+			itllmthinkmedium.Content = Loc.T("set.llm.think.medium");
 			itllmthinkhigh.Content = Loc.T("set.llm.think.high");
 			itllmthinkmax.Content = Loc.T("set.llm.think.max");
 			lbsettrhint.Text = Loc.T("set.tr.hint");

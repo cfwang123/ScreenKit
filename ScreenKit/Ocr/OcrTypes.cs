@@ -244,7 +244,7 @@ public sealed class LlmEndpoint {
 	public string Url = "";
 	public string Key = "";
 	public string Model = "";
-	/// <summary>思考强度：off / low / high / max。GLM-5.3 等不能 off。</summary>
+	/// <summary>思考强度：off / low / medium / high / max。GLM-5.3 等不能 off。</summary>
 	public string Think = "low";
 
 	public string DisplayName {
@@ -262,7 +262,7 @@ public sealed class LlmEndpoint {
 		Think = NormThink(Think),
 	};
 
-	/// <summary>规范为 off | low | high | max；空或未知视为 low。</summary>
+	/// <summary>规范为 off | low | medium | high | max；空或未知视为 low。</summary>
 	public static string NormThink(string s) {
 		s = (s ?? "").Trim();
 		if (s.Equals("off", StringComparison.OrdinalIgnoreCase)
@@ -277,6 +277,10 @@ public sealed class LlmEndpoint {
 			|| s.Equals("highest", StringComparison.OrdinalIgnoreCase)
 			|| s == "最高" || s == "最大")
 			return "max";
+		if (s.Equals("medium", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("mid", StringComparison.OrdinalIgnoreCase)
+			|| s == "中")
+			return "medium";
 		return "low";
 	}
 

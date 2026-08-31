@@ -290,7 +290,7 @@ static class AsrLlmClient {
 		return (code, body, ms, think, sendMax);
 	}
 
-	/// <summary>think：off 关闭；low/high/max 开启并设 reasoning_effort；null 不带思考字段。</summary>
+	/// <summary>think：off 关闭；low/medium/high/max 开启并设 reasoning_effort；null 不带思考字段。</summary>
 	static Dictionary<string, object> makepayload(string model, object messages, string think, int maxTokens) {
 		var p = new Dictionary<string, object> {
 			["model"] = model,

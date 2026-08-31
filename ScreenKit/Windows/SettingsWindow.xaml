@@ -362,14 +362,15 @@
 							<ComboBox x:Name="ellmthink" Height="32" Margin="0,0,0,4"
 							          SelectionChanged="onllmthink"
 							          AutomationProperties.AutomationId="set.llm.think">
-								<ComboBoxItem x:Name="itllmthinkoff" Content="关闭" Tag="off"/>
-								<ComboBoxItem x:Name="itllmthinklow" Content="低" Tag="low" IsSelected="True"/>
-								<ComboBoxItem x:Name="itllmthinkhigh" Content="高" Tag="high"/>
-								<ComboBoxItem x:Name="itllmthinkmax" Content="最高" Tag="max"/>
+								<ComboBoxItem x:Name="itllmthinkoff" Content="none" Tag="off"/>
+								<ComboBoxItem x:Name="itllmthinklow" Content="low" Tag="low" IsSelected="True"/>
+								<ComboBoxItem x:Name="itllmthinkmedium" Content="medium" Tag="medium"/>
+								<ComboBoxItem x:Name="itllmthinkhigh" Content="high" Tag="high"/>
+								<ComboBoxItem x:Name="itllmthinkmax" Content="max" Tag="max"/>
 							</ComboBox>
 							<TextBlock x:Name="lbsetllmthinkhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 							           TextWrapping="Wrap"
-							           Text="润色/翻译请选「关闭」。GLM-5.3 等不能关思考时选「低」。"/>
+							           Text="润色/翻译请选 none。GLM-5.3 等不能关思考时选 low。"/>
 						</StackPanel>
 					</Grid>
 				</Grid>

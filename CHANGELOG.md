@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
+- LLM endpoint **thinking intensity** adds a **medium** option and now displays raw API values `none / low / medium / high / max` (config values unchanged; `none` still maps to `off` internally, `medium` / `mid` / `中` are kept instead of falling back to `low`).
 - Edit menu: **Copy file** — copies the current image as a file (saved to `screenshots/` first, FileDrop on clipboard; paste in Explorer).
 - Edit menu: **Copy path** — copies the current image's file path. Images opened from a file copy the source path; screenshots / pasted images are saved to `screenshots/` first and the path text is copied (persist OLE text).
 
@@ -22,6 +23,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
+- LLM 接口 **思考强度** 新增 **medium** 档，且下拉直接显示 API 原值 `none / low / medium / high / max`（配置值不变；`none` 内部仍按 `off` 关思考，`medium` / `mid` / `中` 不再回落到 `low`）。
 - 「编辑」菜单新增 **复制文件**：当前图片先存 `screenshots/`，以文件（FileDrop）形式复制到剪贴板，可在资源管理器 Ctrl+V 粘贴。
 - 「编辑」菜单新增 **复制路径**：复制当前图片的文件路径。打开的图片复制源文件路径；截图 / 粘贴的图先存 `screenshots/` 再复制路径文本（persist OLE 文本）。
 
