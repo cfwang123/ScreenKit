@@ -327,7 +327,8 @@
 							<ListBox x:Name="ellmlist" SelectionChanged="onllmselect"
 							         AutomationProperties.AutomationId="set.llm.list"/>
 						</DockPanel>
-						<StackPanel Grid.Column="2">
+						<ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+							<StackPanel Margin="0,0,6,0">
 							<TextBlock x:Name="lbsetllmname" Text="显示名称" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 							<TextBox x:Name="ellmname" Height="30" Padding="6,4" Margin="0,0,0,10"
@@ -371,7 +372,8 @@
 							<TextBlock x:Name="lbsetllmthinkhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 							           TextWrapping="Wrap"
 							           Text="润色/翻译请选 none。GLM-5.3 等不能关思考时选 low。"/>
-						</StackPanel>
+							</StackPanel>
+						</ScrollViewer>
 					</Grid>
 				</Grid>
 			</TabItem>
