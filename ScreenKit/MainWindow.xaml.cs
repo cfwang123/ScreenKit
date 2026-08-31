@@ -838,6 +838,27 @@ public partial class MainWindow : Window {
 		}
 	}
 
+	/// <summary>切界面语言后重绑模型/语言下拉，让 DisplayName 按当前语言刷新。</summary>
+	void refreshpacklabels() {
+		if (epack == null) return;
+		var pack = epack.SelectedItem;
+		var variant = evariant != null ? evariant.SelectedItem : null;
+		var loading = modelUiLoading;
+		modelUiLoading = true;
+		try {
+			var src = epack.ItemsSource;
+			epack.ItemsSource = null;
+			epack.ItemsSource = src;
+			if (pack != null) epack.SelectedItem = pack;
+			if (evariant == null) return;
+			var vsrc = evariant.ItemsSource;
+			evariant.ItemsSource = null;
+			evariant.ItemsSource = vsrc;
+			if (variant != null) evariant.SelectedItem = variant;
+		}
+		finally { modelUiLoading = loading; }
+	}
+
 	void fillvariants(ModelPack pack, string preferTitle) {
 		evariant.ItemsSource = pack.Variants;
 		if (pack.Variants.Count == 0) {
@@ -1122,6 +1143,7 @@ public partial class MainWindow : Window {
 			lbdetlen.Text = Loc.T("label.detlen");
 			epack.ToolTip = Loc.T("label.pack.tip");
 			evariant.ToolTip = Loc.T("label.variant.tip");
+			refreshpacklabels();
 			edevice.ToolTip = Loc.T("label.device.tip");
 			lbdetlen.ToolTip = Loc.T("label.detlen.tip");
 			edetlen.ToolTip = Loc.T("label.detlen.tip");

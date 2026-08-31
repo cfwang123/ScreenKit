@@ -1,0 +1,39 @@
+{
+  "packs": {
+    "umi": {
+      "name": "Umi-OCR（多语言）",
+      "nameEn": "Umi-OCR (multilingual)"
+    },
+    "rapid-ch": {
+      "name": "Rapid mobile 简中",
+      "nameEn": "Rapid mobile Simplified Chinese"
+    },
+    "rapid-i18n": {
+      "name": "Rapid 全语种",
+      "nameEn": "Rapid all-languages"
+    },
+    "rapid": {
+      "name": "Rapid",
+      "nameEn": "Rapid"
+    },
+    "default": {
+      "name": "默认模型",
+      "nameEn": "Default model"
+    }
+  },
+  "variants": {
+    "简体中文": "Simplified Chinese",
+    "简体中文 (det-v4)": "Simplified Chinese (det-v4)",
+    "简体中文 (det-v3)": "Simplified Chinese (det-v3)",
+    "简体中文 mobile": "Simplified Chinese (mobile)",
+    "English": "English",
+    "繁體中文": "Traditional Chinese",
+    "日本語": "Japanese",
+    "한국어": "Korean",
+    "Русский": "Russian",
+    "Русский / Cyrillic": "Russian / Cyrillic",
+    "Latin (FR/DE/ES/…)": "Latin (FR/DE/ES/…)",
+    "Arabic": "Arabic",
+    "默认": "Default"
+  }
+}

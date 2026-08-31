@@ -172,7 +172,7 @@
 								           VerticalAlignment="Center" Margin="0,0,4,0"/>
 								<ComboBox x:Name="evariant" Width="128" Height="30" Margin="0,0,8,0"
 								          VerticalContentAlignment="Center" FontSize="12"
-								          DisplayMemberPath="Title" ToolTip="语言 / 模型变体"/>
+								          DisplayMemberPath="DisplayName" ToolTip="语言 / 模型变体"/>
 								<TextBlock x:Name="lbdevice" Text="设备" FontSize="12" Foreground="{StaticResource TextMuted}"
 								           VerticalAlignment="Center" Margin="0,0,4,0"/>
 								<ComboBox x:Name="edevice" Width="100" Height="30" Margin="0,0,8,0"

@@ -41,6 +41,8 @@
     <None Include="wetext\**\*" CopyToOutputDirectory="PreserveNewest" Condition="Exists('wetext\processor_pipe.exe')" />
     <!-- 可选：离线把 HF Opus-MT 导出为 ONNX（运行时不再依赖 Python） -->
     <None Include="translate\export_opus_onnx.py" CopyToOutputDirectory="PreserveNewest" Condition="Exists('translate\export_opus_onnx.py')" />
+    <!-- OCR 模型包/变体显示名（zh + nameEn） -->
+    <None Include="Ocr\ocr-display.json" CopyToOutputDirectory="PreserveNewest" Link="ocr-display.json" />
   </ItemGroup>
 
   <!-- .NET Framework 程序集引用 -->
@@ -198,6 +200,7 @@
       <_SlimRoot Include="$(OutputPath)*.config" />
       <_SlimRoot Include="$(OutputPath)LICENSE" Condition="Exists('$(OutputPath)LICENSE')" />
       <_SlimRoot Include="$(OutputPath)THIRD_PARTY_NOTICES.md" Condition="Exists('$(OutputPath)THIRD_PARTY_NOTICES.md')" />
+      <_SlimRoot Include="$(OutputPath)ocr-display.json" Condition="Exists('$(OutputPath)ocr-display.json')" />
       <!-- 按需安装的原生库不进精简包（应用内「安装功能」下载） -->
       <_SlimRoot Remove="$(OutputPath)OpenCvSharpExtern.dll" />
       <_SlimRoot Remove="$(OutputPath)libSkiaSharp.dll" />

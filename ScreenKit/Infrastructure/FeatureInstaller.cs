@@ -4,6 +4,9 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
@@ -707,6 +710,8 @@ static class FeatureInstaller {
 			// 种子若无 configs 则补写
 			if (!File.Exists(Path.Combine(dst, "configs.txt")))
 				writeumiconfigs(dst);
+			else
+				writeumipackjson(dst);
 			// 字典别名
 			ensuredictalias(dst, "ppocr_keys_v1.txt", "dict_chinese.txt");
 			reportprog(progress, 1, note: "本地复制完成");
@@ -802,6 +807,19 @@ static class FeatureInstaller {
 		if (File.Exists(Path.Combine(dir, "rec_cyrillic_PP-OCRv3_infer.onnx")))
 			block("Русский", detV3, "rec_cyrillic_PP-OCRv3_infer.onnx", "dict_cyrillic.txt");
 		File.WriteAllText(Path.Combine(dir, "configs.txt"), sb.ToString().TrimEnd() + "\n", new UTF8Encoding(false));
+		writeumipackjson(dir);
+	}
+
+	static void writeumipackjson(string dir) {
+		writepackjson(dir, "Umi-OCR（多语言）", "Umi-OCR (multilingual)", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+			["简体中文 (det-v4)"] = "Simplified Chinese (det-v4)",
+			["简体中文 (det-v3)"] = "Simplified Chinese (det-v3)",
+			["English"] = "English",
+			["繁體中文"] = "Traditional Chinese",
+			["日本語"] = "Japanese",
+			["한국어"] = "Korean",
+			["Русский"] = "Russian",
+		});
 	}
 
 	static async Task installrapidi18n(IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
@@ -857,6 +875,10 @@ static class FeatureInstaller {
 			"ppocr_keys_v1.txt",
 		};
 		File.WriteAllLines(Path.Combine(dir, "configs.txt"), lines, new UTF8Encoding(false));
+		writepackjson(dir, "Rapid mobile 简中", "Rapid mobile Simplified Chinese",
+			new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+				["简体中文 mobile"] = "Simplified Chinese (mobile)",
+			});
 	}
 
 	static void writerapidi18nconfigs(string dir) {
@@ -909,6 +931,44 @@ arabic_PP-OCRv4_rec_mobile.onnx
 arabic_dict.txt
 ";
 		File.WriteAllText(Path.Combine(dir, "configs.txt"), block.Trim() + "\n", new UTF8Encoding(false));
+		writepackjson(dir, "Rapid 全语种", "Rapid all-languages",
+			new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+				["简体中文"] = "Simplified Chinese",
+				["English"] = "English",
+				["繁體中文"] = "Traditional Chinese",
+				["日本語"] = "Japanese",
+				["한국어"] = "Korean",
+				["Русский / Cyrillic"] = "Russian / Cyrillic",
+				["Latin (FR/DE/ES/…)"] = "Latin (FR/DE/ES/…)",
+				["Arabic"] = "Arabic",
+			});
+	}
+
+	/// <summary>模型包旁 pack.json：name / nameEn / variants（英文显示名）。</summary>
+	static void writepackjson(string dir, string nameZh, string nameEn, Dictionary<string, string> variantEn) {
+		if (string.IsNullOrWhiteSpace(dir)) return;
+		try {
+			Directory.CreateDirectory(dir);
+			var node = new JsonObject {
+				["name"] = nameZh ?? "",
+				["nameEn"] = nameEn ?? "",
+			};
+			var vs = new JsonObject();
+			if (variantEn != null) {
+				foreach (var kv in variantEn)
+					vs[kv.Key] = kv.Value;
+			}
+			node["variants"] = vs;
+			var opts = new JsonSerializerOptions {
+				WriteIndented = true,
+				Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+			};
+			File.WriteAllText(Path.Combine(dir, "pack.json"),
+				node.ToJsonString(opts) + "\n", new UTF8Encoding(false));
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("writepackjson " + dir, ex);
+		}
 	}
 
 	// ───────── ASR ─────────

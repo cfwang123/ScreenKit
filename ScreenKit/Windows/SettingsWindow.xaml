@@ -56,7 +56,7 @@
 
 						<TextBlock x:Name="lbsetvariant" Text="语言 / 模型变体" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<ComboBox x:Name="evariant" Height="32" Margin="0,0,0,6"
-						          DisplayMemberPath="Title"/>
+						          DisplayMemberPath="DisplayName"/>
 						<TextBlock x:Name="lbmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,14"
 						           Text=""/>

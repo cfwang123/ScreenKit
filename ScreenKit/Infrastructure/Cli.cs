@@ -453,6 +453,12 @@ static class Cli {
 	}
 
 	static int listmodels() {
+		try {
+			var opt = new OcrOptions();
+			AppConfig.LoadInto(opt);
+			Loc.SetFromConfig(opt.UiLang);
+		}
+		catch { }
 		var packs = ModelCatalog.Scan();
 		if (packs.Count == 0) {
 			Err("未发现模型包");
@@ -463,7 +469,7 @@ static class Cli {
 			Out($"[{p.Id}] {p.DisplayName}");
 			Out($"  目录: {p.Dir}");
 			foreach (var v in p.Variants)
-				Out($"  - {v.Title}  (det={v.DetFile}, rec={v.RecFile})");
+				Out($"  - {v.DisplayName}  (det={v.DetFile}, rec={v.RecFile})");
 		}
 		return 0;
 	}

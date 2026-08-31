@@ -19,6 +19,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Edit menu **Copy image** now copies the bitmap to the clipboard (previously copied as file; file copy moved to the new Copy file item). Toolbar button follows.
 - Edit menu: removed **Copy text** (still available via Ctrl+C and the result-panel copy button).
 
+#### Fixed
+
+- English UI: OCR **Pack** / **Lang** combos used Chinese labels (`Rapid 全语种`, `Umi-OCR（多语言）`, `简体中文`, …). Display names now come from `ocr-display.json` (`name` / `nameEn`) and optional per-pack `pack.json`.
+
 ### 中文
 
 #### 新增
@@ -31,6 +35,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - 「编辑」菜单 **复制图片** 改为复制位图到剪贴板（原先复制为文件；文件复制移到新增的「复制文件」），工具栏“复制图”按钮同步。
 - 「编辑」菜单移除 **复制文字**（仍可用 Ctrl+C 与结果区“复制”按钮）。
+
+#### 修复
+
+- 英文界面顶栏 **Pack / Lang** 下拉仍显示中文包名与变体（Rapid 全语种、Umi-OCR（多语言）、简体中文 等）。现从 `ocr-display.json` 的 `name` / `nameEn`（以及包内可选 `pack.json`）读取显示名。
 
 ## v1.0.4 (2026-08-31)
 

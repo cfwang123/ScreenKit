@@ -77,7 +77,7 @@ ScreenKit/bin/Release/net48/
 └── ffmpeg64/                # 录屏 FFmpeg shared（可选）
 ```
 
-每个 OCR 模型包需包含 ONNX、`configs.txt`，以及字典/keys 等该包所需文件。
+每个 OCR 模型包需包含 ONNX、`configs.txt`，以及字典/keys 等该包所需文件。可选 `pack.json`（`name` / `nameEn` / `variants`）提供英文界面显示名；内置默认在程序旁 `ocr-display.json`。
 
 **Release** 编译不会复制或联接这些目录（以及 `onnxcpu64` / `onnxgpu64` / `onnxdml64` / `ffmpeg64`）。请自行放到 `bin/Release/net48/` 下。
 
@@ -182,7 +182,7 @@ Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release
 - 菜单 **工具 → 界面语言** 切换 **中文 / English**（即时生效）
 - 或在 **参数设置 → 常规** 选择界面语言
 - 写入 `config.toml`：`ui_lang = "zh"` 或 `"en"`
-- 已覆盖菜单、参数设置（含热键 / LLM / 翻译）、OCR 工具栏（叠字目标语）、翻译 Tab 标签**以及**状态/提示、翻译小窗、来回翻译对话框、人脸 Tab、TTS/ASR 静态标签。OCR 结果 meta 仍为中文，仅「翻译 Xs」随界面语言。ASR/TTS/OCR **过程状态**仍多为中文。
+- 已覆盖菜单、参数设置（含热键 / LLM / 翻译）、OCR 工具栏（叠字目标语、**模型/语言**下拉显示名，`ocr-display.json` 的 `name` / `nameEn`）、翻译 Tab 标签**以及**状态/提示、翻译小窗、来回翻译对话框、人脸 Tab、TTS/ASR 静态标签。OCR 结果 meta 仍为中文，仅「翻译 Xs」随界面语言。ASR/TTS/OCR **过程状态**仍多为中文。
 
 ## CLI（简述）
 

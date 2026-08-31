@@ -1,16 +1,23 @@
 using System.IO;
 using System.Text;
+using System.Text.Json;
 
 namespace ScreenKit;
 
 /// <summary>一组 det/cls/rec/keys 的具体选择（语言或版本变体）。</summary>
 sealed class ModelVariant {
 	// 属性（非字段）：WPF ComboBox DisplayMemberPath 只能绑定属性
+	/// <summary>configs.txt 第一行，匹配/配置用。</summary>
 	public string Title { get; set; }
+	/// <summary>英文显示名（pack.json / ocr-display.json）。</summary>
+	public string TitleEn { get; set; }
 	public string DetFile { get; set; }
 	public string ClsFile { get; set; }
 	public string RecFile { get; set; }
 	public string KeysFile { get; set; }
+
+	public string DisplayName =>
+		Loc.IsEn && !string.IsNullOrWhiteSpace(TitleEn) ? TitleEn : (Title ?? "");
 
 	public string DetPath(string packDir) => Path.Combine(packDir, DetFile);
 	public string ClsPath(string packDir) => Path.Combine(packDir, ClsFile);
@@ -33,13 +40,23 @@ sealed class ModelVariant {
 /// <summary>
 /// 模型包：ocrmodels 下的一个子目录。
 /// 优先读 configs.txt（Umi-OCR 格式）；否则按文件名自动识别单变体。
+/// 显示名：pack.json（name / nameEn）优先，其次程序旁 ocr-display.json。
 /// </summary>
 sealed class ModelPack {
 	// 属性（非字段）：WPF ComboBox DisplayMemberPath 只能绑定属性
 	public string Id { get; set; }
-	public string DisplayName { get; set; }
+	public string NameZh { get; set; }
+	public string NameEn { get; set; }
 	public string Dir { get; set; }
 	public List<ModelVariant> Variants { get; set; } = new();
+
+	public string DisplayName {
+		get {
+			if (Loc.IsEn && !string.IsNullOrWhiteSpace(NameEn)) return NameEn;
+			if (!string.IsNullOrWhiteSpace(NameZh)) return NameZh;
+			return Id ?? "";
+		}
+	}
 
 	public ModelVariant FindVariant(string title) {
 		if (Variants.Count == 0) return null;
@@ -54,13 +71,18 @@ sealed class ModelPack {
 
 /// <summary>扫描 ocrmodels 根目录，解析 Umi configs.txt / 自动识别。</summary>
 static class ModelCatalog {
-	/// <summary>显示名映射：目录名 → UI 名。</summary>
+	/// <summary>显示名映射：目录名 → 中文 UI 名（无 JSON 时兜底）。</summary>
 	static readonly Dictionary<string, string> DisplayMap = new(StringComparer.OrdinalIgnoreCase) {
 		["umi"] = "Umi-OCR（多语言）",
 		["rapid-ch"] = "Rapid mobile 简中",
 		["rapid-i18n"] = "Rapid 全语种",
 		["rapid"] = "Rapid",
+		["default"] = "默认模型",
 	};
+
+	static Dictionary<string, (string zh, string en)> catalogPacks;
+	static Dictionary<string, string> catalogVariants;
+	static bool catalogLoaded;
 
 	/// <summary>程序目录旁固定文件夹 ocrmodels（仅此路径，不扫其它位置）。</summary>
 	public static string ModelsRoot() =>
@@ -97,7 +119,7 @@ static class ModelCatalog {
 			var rootPack = TryLoad(modelsRoot);
 			if (rootPack != null) {
 				rootPack.Id = "default";
-				rootPack.DisplayName = "默认模型";
+				applydisplay(rootPack);
 				list.Add(rootPack);
 			}
 		}
@@ -137,12 +159,13 @@ static class ModelCatalog {
 		var id = Path.GetFileName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
 		if (string.IsNullOrEmpty(id)) id = "default";
 
-		return new ModelPack {
+		var pack = new ModelPack {
 			Id = id,
-			DisplayName = DisplayMap.TryGetValue(id, out var dn) ? dn : id,
 			Dir = Path.GetFullPath(dir),
 			Variants = variants,
 		};
+		applydisplay(pack);
+		return pack;
 	}
 
 	/// <summary>
@@ -222,5 +245,97 @@ static class ModelCatalog {
 				KeysFile = keys,
 			},
 		};
+	}
+
+	static void applydisplay(ModelPack pack) {
+		if (pack == null) return;
+		ensurecatalog();
+		if (!string.IsNullOrEmpty(pack.Id)
+			&& catalogPacks != null
+			&& catalogPacks.TryGetValue(pack.Id, out var cat)) {
+			if (!string.IsNullOrEmpty(cat.zh)) pack.NameZh = cat.zh;
+			if (!string.IsNullOrEmpty(cat.en)) pack.NameEn = cat.en;
+		}
+		if (string.IsNullOrEmpty(pack.NameZh) && DisplayMap.TryGetValue(pack.Id ?? "", out var dn))
+			pack.NameZh = dn;
+		if (string.IsNullOrEmpty(pack.NameZh))
+			pack.NameZh = pack.Id;
+		applyvarianten(pack, catalogVariants);
+		loadpackjson(pack);
+	}
+
+	static void loadpackjson(ModelPack pack) {
+		if (pack == null || string.IsNullOrWhiteSpace(pack.Dir)) return;
+		var path = Path.Combine(pack.Dir, "pack.json");
+		if (!File.Exists(path)) return;
+		try {
+			using var fs = File.OpenRead(path);
+			using var doc = JsonDocument.Parse(fs);
+			var root = doc.RootElement;
+			if (root.ValueKind != JsonValueKind.Object) return;
+			var zh = jsonstr(root, "name") ?? jsonstr(root, "nameZh");
+			var en = jsonstr(root, "nameEn");
+			if (!string.IsNullOrWhiteSpace(zh)) pack.NameZh = zh;
+			if (!string.IsNullOrWhiteSpace(en)) pack.NameEn = en;
+			if (root.TryGetProperty("variants", out var vs) && vs.ValueKind == JsonValueKind.Object) {
+				var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+				foreach (var p in vs.EnumerateObject()) {
+					if (p.Value.ValueKind == JsonValueKind.String)
+						map[p.Name] = p.Value.GetString() ?? "";
+				}
+				applyvarianten(pack, map);
+			}
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("ModelCatalog.pack.json " + pack.Id, ex);
+		}
+	}
+
+	static void applyvarianten(ModelPack pack, Dictionary<string, string> map) {
+		if (pack?.Variants == null || map == null || map.Count == 0) return;
+		foreach (var v in pack.Variants) {
+			if (v == null || string.IsNullOrEmpty(v.Title)) continue;
+			if (map.TryGetValue(v.Title, out var en) && !string.IsNullOrWhiteSpace(en))
+				v.TitleEn = en;
+		}
+	}
+
+	static void ensurecatalog() {
+		if (catalogLoaded) return;
+		catalogLoaded = true;
+		catalogPacks = new Dictionary<string, (string zh, string en)>(StringComparer.OrdinalIgnoreCase);
+		catalogVariants = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ocr-display.json");
+		if (!File.Exists(path)) return;
+		try {
+			using var fs = File.OpenRead(path);
+			using var doc = JsonDocument.Parse(fs);
+			var root = doc.RootElement;
+			if (root.ValueKind != JsonValueKind.Object) return;
+			if (root.TryGetProperty("packs", out var packsEl) && packsEl.ValueKind == JsonValueKind.Object) {
+				foreach (var p in packsEl.EnumerateObject()) {
+					if (p.Value.ValueKind != JsonValueKind.Object) continue;
+					var zh = jsonstr(p.Value, "name") ?? jsonstr(p.Value, "nameZh") ?? "";
+					var en = jsonstr(p.Value, "nameEn") ?? "";
+					catalogPacks[p.Name] = (zh, en);
+				}
+			}
+			if (root.TryGetProperty("variants", out var varEl) && varEl.ValueKind == JsonValueKind.Object) {
+				foreach (var p in varEl.EnumerateObject()) {
+					if (p.Value.ValueKind == JsonValueKind.String)
+						catalogVariants[p.Name] = p.Value.GetString() ?? "";
+				}
+			}
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("ModelCatalog.ocr-display.json", ex);
+		}
+	}
+
+	static string jsonstr(JsonElement el, string name) {
+		if (!el.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.String)
+			return null;
+		var s = v.GetString();
+		return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 	}
 }

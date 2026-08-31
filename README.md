@@ -76,7 +76,7 @@ ScreenKit/bin/Release/net48/
 └── ffmpeg64/                # FFmpeg shared DLLs for record (optional)
 ```
 
-Each OCR pack needs ONNX models + `configs.txt` (and dict/keys as required by the pack).
+Each OCR pack needs ONNX models + `configs.txt` (and dict/keys as required by the pack). Optional `pack.json` (`name` / `nameEn` / `variants`) supplies English UI labels; built-in defaults live in `ocr-display.json` next to the exe.
 
 A **Release** build does not copy or junction these folders (or `onnxcpu64` / `onnxgpu64` / `onnxdml64` / `ffmpeg64`). Place them under `bin/Release/net48/` yourself.
 
@@ -263,7 +263,7 @@ Tray icon: left-click toggles the window; context menu includes voice input, **t
 - **Tools → Language** → **中文 / English** (applies immediately)
 - Or set UI language in **Settings → General**
 - Persisted in `config.toml` as `ui_lang = "zh"` or `"en"`
-- Covers menus, Settings, OCR toolbar (overlay dest language), Translate tab, translate popup, and Face tab.
+- Covers menus, Settings, OCR toolbar (overlay dest language, **Pack / Lang** combo names via `ocr-display.json` `nameEn`), Translate tab, translate popup, and Face tab.
 
 ## CLI
 
