@@ -2,7 +2,7 @@
 
 Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界面标题「屏幕截图工具」）：截图识别、截图标注、长截图、**区域录屏**、剪贴板识图、PDF 工作台、语音识别/合成、可选翻译，以及可选本机 HTTP API（PP-OCR / RapidOCR 模型包）。
 
-当前版本：**1.0.4**
+当前版本：**1.0.5**
 
 [English](README.md) · [中文](README.zh.md)
 
