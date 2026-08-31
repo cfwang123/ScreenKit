@@ -14,7 +14,7 @@ Current version: **1.0.3**
 
 | Area | Description |
 |------|-------------|
-| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture. Word spaces in Korean/English (and Latin text under the Chinese rec model) are restored from visual gaps on the line; CJK characters are not split. Optional overlay translation: pick a target language (default off); after OCR the Translate toggle turns on and both overlay and the result panel show the translation (needs LLM), with elapsed time in the result meta. |
+| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture. Word spaces in Korean/English (and Latin text under the Chinese rec model) are restored from visual gaps on the line; CJK characters are not split. Optional overlay translation: pick a target language from a long LLM list (default off); after OCR the Translate toggle turns on and both overlay and the result panel show the translation (needs LLM), with elapsed time in the result meta. |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
@@ -23,7 +23,7 @@ Current version: **1.0.3**
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
-| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`). Edit the prompt in **Settings → Translate** (`{src}`/`{dst}` placeholders). Pick the engine on the Translate tab. Truncated LLM output is continued automatically. |
+| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`). Edit the prompt in **Settings → Translate** (`{src}`/`{dst}` placeholders). Pick the engine on the Translate tab. LLM source/target lists many languages (ONNX still follows installed pairs). Truncated LLM output is continued automatically. |
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
@@ -161,7 +161,7 @@ minimize_to_tray = true
 capture_log = false             # true → log/capture.log
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
-# ocr_translate_lang = ""       # OCR overlay/result target: empty = off; zh | en | ja | ko
+# ocr_translate_lang = ""       # OCR overlay/result target: empty = off; LLM lang code (zh/en/ja/ko/fr/…)
 
 [http]
 http_enabled = true

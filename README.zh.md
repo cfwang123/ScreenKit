@@ -14,7 +14,7 @@ Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界�
 
 | 模块 | 说明 |
 |------|------|
-| **截图识别** | 框选区域 → 按结果区当前 OCR / 条码 Tab 识别文字或条码/二维码，识别后保持当前 Tab；多显示器 DXGI 抓屏。韩语/英语词间空格按画面词距补回（中文模型下的拉丁文同样）；汉字之间不插空格。可选目标语言；识别完成后若已选则默认打开「翻译」，图上叠字和右侧识别结果换成译文（需 LLM），并显示翻译用时。 |
+| **截图识别** | 框选区域 → 按结果区当前 OCR / 条码 Tab 识别文字或条码/二维码，识别后保持当前 Tab；多显示器 DXGI 抓屏。韩语/英语词间空格按画面词距补回（中文模型下的拉丁文同样）；汉字之间不插空格。可选多种目标语言；识别完成后若已选则默认打开「翻译」，图上叠字和右侧识别结果换成译文（需 LLM），并显示翻译用时。 |
 | **截图标注** | 微信式工具条：矩形 / 椭圆 / 箭头 / 画笔 / 文字、色点、撤销 / 保存 / 完成 |
 | **长截图** | 点选可滚动窗口 → 自动滚动拼接 → 上屏（不做 OCR） |
 | **区域录屏** | 点选窗口或拖拽框选 → HUD（可移动/缩放选区、可拖动控制条）→ MP4（**仅 FFmpeg** x264/x265/AV1）+ 可选系统声/麦克风 |
@@ -244,7 +244,7 @@ x86host.exe --list-sapi
 - `[pdf]`：导出与内部光栅 DPI  
 - `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；`asr_llm` 为润色选用的 LLM 显示名称（空则用列表第一项）。润色提示词仍在 `[asr]`（`asr_llm_prompt`）。会去掉 `<think>` 等推理块。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中 · Esc 停止」或「润色中」及原文（同一行）；已输出后第二行清空。识别/润色中按 Esc 立刻结束本轮听写且不输出。  
 - `[[llm]]`：多套 OpenAI 兼容接口（`name` / `url` / `key` / `model` / `think`）。润色/翻译推荐小模型（如 `Qwen/Qwen3.5-4B`、`Qwen/Qwen3-8B`、`tencent/Hunyuan-MT-7B`），`think` 选 `off`。`think`：`off` / `low` / `high` / `max`，默认 `low`（GLM-5.3 不能 `off`）。`off` 发 `thinking.type=disabled`；`low`/`high`/`max` 发 `thinking.type=enabled` 与 `reasoning_effort`。若 `off` 被拒绝（模型强制思考）则改 `low` 再试；其它 400 再去掉思考字段。显示名称默认等于模型 id。设置窗可复制当前条目。key 勿提交公开仓库。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 已废弃，不再读取。  
-- `[translate]`：`translate_compute`（本地 ONNX 设备）；`translate_llm` 空则走 Opus-MT ONNX，否则为 `[[llm]]` 显示名称；`translate_llm_prompt` 为 LLM 翻译提示词（`{src}`/`{dst}` 替换为源/目标语言，在**参数设置 → 翻译**编辑）。翻译 Tab 切换引擎；LLM 可选中/英/日/韩（自动仍为中英互译）。LLM 返回 `finish_reason=length` 时自动续写（每轮最多 4096 token，最多再 6 轮）。  
+- `[translate]`：`translate_compute`（本地 ONNX 设备）；`translate_llm` 空则走 Opus-MT ONNX，否则为 `[[llm]]` 显示名称；`translate_llm_prompt` 为 LLM 翻译提示词（`{src}`/`{dst}` 替换为源/目标语言，在**参数设置 → 翻译**编辑）。翻译 Tab 切换引擎；LLM 源/目标为多种语言（中英日韩、法德西俄阿泰等；自动仍为中英互译）。本地 ONNX 仍按已装模型对列出。LLM 返回 `finish_reason=length` 时自动续写（每轮最多 4096 token，最多再 6 轮）。  
 - `[record]`：编码（x264 / x265 / av1）、帧率、`record_crf`（x264/x265）、`record_av1_crf`（AV1）、音频、`record_lock_aspect`（录制中缩放选区是否锁定比例）
 - `[gif_record]`：GIF 默认输出帧率（1–24）、最大宽高、默认颜色数/缩放  
 

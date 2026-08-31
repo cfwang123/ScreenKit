@@ -5,8 +5,6 @@ namespace ScreenKit;
 
 /// <summary>MainWindow：翻译 Tab（本地 ONNX 或 LLM）。</summary>
 public partial class MainWindow {
-	static readonly string[] TrLlmLangs = { TrLang.Zh, TrLang.En, "ja", "ko" };
-
 	TranslateEngine trEngine;
 	List<TranslateModelInfo> trModels = new();
 	bool trUiLoading;
@@ -275,11 +273,11 @@ public partial class MainWindow {
 			.Distinct(StringComparer.OrdinalIgnoreCase)
 			.ToList();
 		if (usellm()) {
-			foreach (var s in TrLlmLangs)
+			foreach (var s in TrLang.LlmCodes)
 				if (!srcs.Any(x => string.Equals(x, s, StringComparison.OrdinalIgnoreCase)))
 					srcs.Add(s);
 		}
-		srcs.Sort((a, b) => string.Compare(TrLang.Label(a), TrLang.Label(b), StringComparison.OrdinalIgnoreCase));
+		srcs.Sort(TrLang.CompareLlm);
 		foreach (var s in srcs) {
 			etrsrclng.Items.Add(new ComboBoxItem {
 				Content = TrLang.Label(s),
@@ -312,13 +310,13 @@ public partial class MainWindow {
 			.Distinct(StringComparer.OrdinalIgnoreCase)
 			.ToList();
 		if (usellm()) {
-			foreach (var t in TrLlmLangs) {
+			foreach (var t in TrLang.LlmCodes) {
 				if (string.Equals(t, src, StringComparison.OrdinalIgnoreCase)) continue;
 				if (!tgts.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
 					tgts.Add(t);
 			}
 		}
-		tgts.Sort((a, b) => string.Compare(TrLang.Label(a), TrLang.Label(b), StringComparison.OrdinalIgnoreCase));
+		tgts.Sort(TrLang.CompareLlm);
 
 		foreach (var t in tgts) {
 			etrdstlng.Items.Add(new ComboBoxItem {

@@ -549,7 +549,7 @@ LLM batch translate (internally grouped by 8; missing indexes retried one-by-one
 |-------|-------------|
 | `items` / `texts` | String array, unlimited length. Elements may also be `{"text":"…"}` |
 | `text` | Single string; treated as a one-item batch |
-| `src` / `dst` | `zh` / `en` / `ja` / `ko`. If omitted, auto zh↔en from the first non-empty item |
+| `src` / `dst` | Language codes (`zh` / `en` / `ja` / `ko` / `fr` / `de` / `es` / `ru` / `ar` / `th` / `cht` / …). If omitted, auto zh↔en from the first non-empty item |
 | `dir` | Optional pair such as `zh-en` |
 | `chunk` | Items per LLM call, default 8, range 1–10 |
 | `llm` | Optional `[[llm]]` display name or model id; default `translate_llm`, else first list entry |

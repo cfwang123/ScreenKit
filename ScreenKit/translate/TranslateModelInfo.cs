@@ -28,13 +28,82 @@ static class TrLang {
 	public const string Zh = "zh";
 	public const string En = "en";
 
+	/// <summary>LLM 翻译可选语言（ONNX 仍只列出已装模型）。常用语种靠前。</summary>
+	public static readonly string[] LlmCodes = {
+		"zh", "en", "ja", "ko", "cht", "yue",
+		"fr", "de", "es", "pt", "ru", "it",
+		"ar", "th", "vi", "id", "ms", "hi",
+		"tr", "pl", "nl", "uk", "sv", "cs",
+		"el", "he", "fa", "bn", "fi", "hu",
+		"ro", "da", "no", "tl", "my", "km",
+		"lo", "mn", "uz", "kk", "ug",
+	};
+
+	static readonly HashSet<string> LlmSet = new(LlmCodes, StringComparer.OrdinalIgnoreCase);
+
 	public static string Label(string code) => Loc.LangName(code);
 
+	public static bool IsLlm(string code) {
+		code = Normalize(code);
+		return code.Length > 0 && code != Auto && LlmSet.Contains(code);
+	}
+
+	public static int CompareLlm(string a, string b) {
+		var d = llmrank(a).CompareTo(llmrank(b));
+		if (d != 0) return d;
+		return string.Compare(Label(a), Label(b), StringComparison.OrdinalIgnoreCase);
+	}
+
+	static int llmrank(string code) {
+		code = Normalize(code);
+		for (int i = 0; i < LlmCodes.Length; i++)
+			if (string.Equals(LlmCodes[i], code, StringComparison.OrdinalIgnoreCase))
+				return i;
+		return 1000;
+	}
+
 	public static string Normalize(string code) => (code ?? "").Trim().ToLowerInvariant() switch {
-		"zho" or "chinese" or "cn" => Zh,
+		"zho" or "chinese" or "cn" or "zh-cn" or "zh-hans" or "zh_cn" => Zh,
 		"eng" or "english" => En,
 		"jpn" or "japanese" => "ja",
 		"kor" or "korean" => "ko",
+		"zh-tw" or "zh-hk" or "zh-hant" or "zh_tw" or "zh_hk" or "cht" or "tchinese" => "cht",
+		"yue" or "cantonese" => "yue",
+		"fra" or "fre" or "french" => "fr",
+		"deu" or "ger" or "german" => "de",
+		"spa" or "spanish" => "es",
+		"por" or "portuguese" => "pt",
+		"rus" or "russian" => "ru",
+		"ita" or "italian" => "it",
+		"ara" or "arabic" => "ar",
+		"tha" or "thai" => "th",
+		"vie" or "vietnamese" => "vi",
+		"ind" or "indonesian" => "id",
+		"msa" or "may" or "malay" => "ms",
+		"hin" or "hindi" => "hi",
+		"tur" or "turkish" => "tr",
+		"pol" or "polish" => "pl",
+		"nld" or "dut" or "dutch" => "nl",
+		"ukr" or "ukrainian" => "uk",
+		"swe" or "swedish" => "sv",
+		"ces" or "cze" or "czech" => "cs",
+		"ell" or "gre" or "greek" => "el",
+		"heb" or "iw" or "hebrew" => "he",
+		"fas" or "per" or "persian" or "farsi" => "fa",
+		"ben" or "bengali" => "bn",
+		"fin" or "finnish" => "fi",
+		"hun" or "hungarian" => "hu",
+		"ron" or "rum" or "romanian" => "ro",
+		"dan" or "danish" => "da",
+		"nor" or "norwegian" => "no",
+		"tgl" or "fil" or "filipino" or "tagalog" => "tl",
+		"mya" or "burmese" => "my",
+		"khm" or "khmer" => "km",
+		"lao" => "lo",
+		"mon" or "mongolian" => "mn",
+		"uzb" or "uzbek" => "uz",
+		"kaz" or "kazakh" => "kk",
+		"uig" or "uyghur" or "uighur" => "ug",
 		var c => c,
 	};
 

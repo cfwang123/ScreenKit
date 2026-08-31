@@ -265,8 +265,9 @@
 													<TextBlock x:Name="tbtext" Text="文字" FontSize="12"/>
 												</StackPanel>
 											</ToggleButton>
-											<ComboBox x:Name="etrocrdst" Width="92" Height="28" Margin="0,0,6,0"
+											<ComboBox x:Name="etrocrdst" Width="128" Height="28" Margin="0,0,6,0"
 											          FontSize="12" VerticalAlignment="Center"
+											          MaxDropDownHeight="400"
 											          ToolTip="叠加翻译的目标语言，默认不翻译"
 											          AutomationProperties.AutomationId="ocr.tr.dst"/>
 											<ToggleButton x:Name="btoggletr" Style="{StaticResource ToolToggleSm}"
@@ -933,11 +934,13 @@
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="etrsrclng" Grid.Row="0" Grid.Column="1" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
+								          MaxDropDownHeight="400"
 								          ToolTip="先选源语言；「自动」仅支持中英互译（按汉字占比判定）"/>
 								<TextBlock x:Name="lbtrdst" Grid.Row="0" Grid.Column="3" Text="目标语言" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="etrdstlng" Grid.Row="0" Grid.Column="4" Height="32"
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
+								          MaxDropDownHeight="400"
 								          ToolTip="根据已安装模型与源语言列出可选目标；自动=中英互译"/>
 								<TextBlock x:Name="lbtrengine" Grid.Row="0" Grid.Column="6" Text="引擎" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>

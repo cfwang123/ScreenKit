@@ -85,7 +85,7 @@ static class AsrLlmClient {
 		return complete(ep, prompt, user, TimeoutMs, ct);
 	}
 
-	/// <summary>LLM 翻译；失败抛异常。src/dst 为语言代码（zh/en/ja/ko）。</summary>
+	/// <summary>LLM 翻译；失败抛异常。src/dst 为语言代码（见 TrLang.LlmCodes）。</summary>
 	public static string Translate(OcrOptions o, string text, string src, string dst, CancellationToken ct = default) =>
 		Translate(o, o?.SelectedTranslateLlm(), text, src, dst, ct);
 

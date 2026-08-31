@@ -27,10 +27,8 @@ public partial class MainWindow {
 			var want = normocrtrdst(opt.OcrTranslateLang);
 			etrocrdst.Items.Clear();
 			etrocrdst.Items.Add(new ComboBoxItem { Content = Loc.T("ocr.tr.dst.none"), Tag = "" });
-			etrocrdst.Items.Add(new ComboBoxItem { Content = Loc.T("ocr.tr.dst.zh"), Tag = "zh" });
-			etrocrdst.Items.Add(new ComboBoxItem { Content = Loc.T("ocr.tr.dst.en"), Tag = "en" });
-			etrocrdst.Items.Add(new ComboBoxItem { Content = Loc.T("ocr.tr.dst.ja"), Tag = "ja" });
-			etrocrdst.Items.Add(new ComboBoxItem { Content = Loc.T("ocr.tr.dst.ko"), Tag = "ko" });
+			foreach (var c in TrLang.LlmCodes)
+				etrocrdst.Items.Add(new ComboBoxItem { Content = TrLang.Label(c), Tag = c });
 			ComboBoxItem pick = null;
 			foreach (ComboBoxItem it in etrocrdst.Items) {
 				var tag = it.Tag as string ?? "";
@@ -47,7 +45,7 @@ public partial class MainWindow {
 
 	static string normocrtrdst(string s) {
 		s = TrLang.Normalize(s ?? "");
-		return s is "zh" or "en" or "ja" or "ko" ? s : "";
+		return TrLang.IsLlm(s) ? s : "";
 	}
 
 	string ocrtrdst() {
