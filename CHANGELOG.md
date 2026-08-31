@@ -11,6 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Changed
 
 - Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
+- Chinese window / tray title is **屏幕截图工具** (English remains ScreenKit).
 
 #### Fixed
 
@@ -21,6 +22,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 变更
 
 - Release 编译**不再**复制或联接模型 / ORT / FFmpeg 目录。请自行把 `ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`、`onnxcpu64`、`onnxgpu64`、`onnxdml64`、`ffmpeg64` 放到 `bin/Release/net48/`（目录联接即可）。NuGet 的 GPU/DirectML 原生库也不再拷进输出。
+- 中文界面程序标题改为**屏幕截图工具**（英文仍为 ScreenKit）。
 
 #### 修复
 

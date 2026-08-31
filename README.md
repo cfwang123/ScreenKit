@@ -1,6 +1,6 @@
 # ScreenKit
 
-Windows desktop tool (project ScreenKit, exe `ScreenKit.exe`): screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
+Windows desktop tool (project ScreenKit, exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
 
 Current version: **1.0.3**
 

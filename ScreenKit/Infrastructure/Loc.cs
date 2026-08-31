@@ -62,7 +62,7 @@ static class Loc {
 	// ───────── 中文 ─────────
 	static readonly Dictionary<string, string> ZhMap = new(StringComparer.OrdinalIgnoreCase) {
 		// 窗口 / 通用
-		["app.title"] = "ScreenKit",
+		["app.title"] = "屏幕截图工具",
 		["app.brand"] = "截图识别",
 		["ready"] = "就绪",
 		["ok"] = "确定",
@@ -298,7 +298,7 @@ static class Loc {
 		["tray.gifrecordopt"] = "GIF录屏选项…",
 		["tray.settings"] = "参数设置…",
 		["tray.exit"] = "退出",
-		["tray.tip"] = "ScreenKit",
+		["tray.tip"] = "屏幕截图工具",
 
 		// 设置窗（常用）
 		["set.title"] = "参数设置",
