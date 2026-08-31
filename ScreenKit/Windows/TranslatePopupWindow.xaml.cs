@@ -90,7 +90,8 @@ public partial class TranslatePopupWindow : Window {
 		edstlng.ToolTip = Loc.T("tr.dst.tip");
 		if (string.IsNullOrWhiteSpace(lbstatus.Text)
 			|| lbstatus.Text == Loc.T("tr.popup.hint")
-			|| lbstatus.Text == "Ctrl+Enter 翻译 · Esc 隐藏")
+			|| lbstatus.Text == "Ctrl+Enter 翻译 · Esc 隐藏"
+			|| lbstatus.Text == "Ctrl+Enter translate · Esc hide")
 			lbstatus.Text = Loc.T("tr.popup.hint");
 		var keepSrc = selected(esrclng);
 		var keepDst = selected(edstlng);
@@ -326,7 +327,7 @@ public partial class TranslatePopupWindow : Window {
 				var prefer = TranslateEngine.PreferFromMode(computemode(o));
 				result = await Task.Run(() => {
 					if (!eng.EnsureLoaded(dirKey, dir, prefer))
-						throw new InvalidOperationException(eng.LastError ?? "加载失败");
+						throw new InvalidOperationException(eng.LastError ?? Loc.T("tr.load.fail"));
 					ct.ThrowIfCancellationRequested();
 					return eng.Translate(dirKey, textIn, ct);
 				}, ct).ConfigureAwait(true);

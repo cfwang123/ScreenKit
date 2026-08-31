@@ -149,7 +149,7 @@ public partial class MainWindow {
 				etrdst.Text = t;
 			}
 			syncmodelcombo();
-			lbtrstatus.Text = "已交换语言";
+			lbtrstatus.Text = Loc.T("tr.swap.done");
 		};
 
 		scantrmodels();
@@ -237,29 +237,24 @@ public partial class MainWindow {
 		if (llm) {
 			var ep = currenttrllm();
 			var n = ep != null ? ep.DisplayName : "";
-			lbtrhint.Text = $"翻译走 LLM「{n}」。提示词在「参数设置 → 翻译」。"
-				+ " URL / Key / 思考强度在「LLM接口」。";
+			lbtrhint.Text = Loc.T("tr.hint.llm", n);
 		}
 		else {
 			var ready = trModels.Count(m => m.IsReady);
 			lbtrhint.Text = ready > 0
-				? $"模型：{TranslateModelScanner.ResolveRoot()} · 可用 {ready} 对 · 进程内 ONNX（CUDA/DML 同 OCR）"
-				: $"未找到 ONNX 模型 → {TranslateModelScanner.ModelsRoot()}（需 opus-mt-*-onnx）";
+				? Loc.T("tr.hint.onnx", TranslateModelScanner.ResolveRoot(), ready)
+				: Loc.T("tr.hint.onnx.none", TranslateModelScanner.ModelsRoot());
 		}
 	}
 
 	void scantrmodels() {
 		try {
 			trModels = TranslateModelScanner.Scan();
-			var root = TranslateModelScanner.ResolveRoot();
-			var ready = trModels.Count(m => m.IsReady);
-			lbtrhint.Text = ready > 0
-				? $"模型：{root} · 可用 {ready} 对 · 进程内 ONNX（CUDA/DML 同 OCR）"
-				: $"未找到 ONNX 模型 → {TranslateModelScanner.ModelsRoot()}（需 opus-mt-*-onnx）";
+			synctrengineui();
 		}
 		catch (Exception ex) {
 			trModels = new List<TranslateModelInfo>();
-			lbtrhint.Text = "扫描失败: " + ex.Message;
+			lbtrhint.Text = Loc.T("tr.scan.fail", ex.Message);
 		}
 	}
 
@@ -271,12 +266,12 @@ public partial class MainWindow {
 			syncmodelcombo();
 			if (usellm()) {
 				var ep = currenttrllm();
-				lbtrstatus.Text = "就绪 · LLM " + (ep != null ? ep.DisplayName : "");
+				lbtrstatus.Text = Loc.T("tr.ready.llm", ep != null ? ep.DisplayName : "");
 			}
 			else if (trModels.Count == 0 || !trModels.Any(m => m.IsReady))
-				lbtrstatus.Text = "无翻译模型 · 见 翻译功能TODO.md";
+				lbtrstatus.Text = Loc.T("tr.ready.none");
 			else
-				lbtrstatus.Text = $"就绪 · {trModels.Count(m => m.IsReady)} 对模型";
+				lbtrstatus.Text = Loc.T("tr.ready.onnx", trModels.Count(m => m.IsReady));
 		}
 		finally {
 			trUiLoading = false;
@@ -456,11 +451,11 @@ public partial class MainWindow {
 		model = null;
 		var textIn = etrsrc?.Text ?? "";
 		if (string.IsNullOrWhiteSpace(textIn)) {
-			lbtrstatus.Text = "请输入原文";
+			lbtrstatus.Text = Loc.T("tr.popup.need_src");
 			return false;
 		}
 		if (textIn.Length > 8000) {
-			lbtrstatus.Text = "原文过长（建议 ≤8000 字），请分段";
+			lbtrstatus.Text = Loc.T("tr.popup.too_long");
 			return false;
 		}
 
@@ -469,7 +464,7 @@ public partial class MainWindow {
 		var uiDst = selectedlang(etrdstlng);
 		if (uiSrc == TrLang.Auto || uiDst == TrLang.Auto) {
 			if (!((src == TrLang.Zh && dst == TrLang.En) || (src == TrLang.En && dst == TrLang.Zh))) {
-				lbtrstatus.Text = "自动模式仅支持中英互译";
+				lbtrstatus.Text = Loc.T("tr.popup.auto_zhen");
 				return false;
 			}
 		}
@@ -478,7 +473,7 @@ public partial class MainWindow {
 		if (usellm()) {
 			var ep = currenttrllm();
 			if (!AsrLlmClient.IsEndpointReady(ep)) {
-				lbtrstatus.Text = "请先在「LLM接口」填写 URL 与模型 id";
+				lbtrstatus.Text = Loc.T("tr.need.llm");
 				return false;
 			}
 			model = null;
@@ -493,11 +488,11 @@ public partial class MainWindow {
 				&& string.Equals(m.DirKey, dirKey, StringComparison.OrdinalIgnoreCase));
 		}
 		if (model == null || !model.IsReady) {
-			lbtrstatus.Text = $"缺少 {TrLang.Label(src)}→{TrLang.Label(dst)} 模型（{dirKey}）";
+			lbtrstatus.Text = Loc.T("tr.need.model", TrLang.Label(src), TrLang.Label(dst), dirKey);
 			return false;
 		}
 		if (trEngine == null) {
-			lbtrstatus.Text = "翻译引擎不可用";
+			lbtrstatus.Text = Loc.T("tr.popup.need_engine");
 			return false;
 		}
 		return true;
@@ -529,8 +524,8 @@ public partial class MainWindow {
 		var llm = usellm();
 		var ep = currenttrllm();
 		lbtrstatus.Text = llm
-			? $"LLM 翻译中…（{TrLang.Label(src)}→{TrLang.Label(dst)} · {ep.DisplayName}）"
-			: $"加载 / 翻译中…（{TrLang.Label(src)}→{TrLang.Label(dst)} · {prefer}）";
+			? Loc.T("tr.run.llm", TrLang.Label(src), TrLang.Label(dst), ep.DisplayName)
+			: Loc.T("tr.run.onnx", TrLang.Label(src), TrLang.Label(dst), prefer);
 
 		try {
 			string result;
@@ -549,32 +544,33 @@ public partial class MainWindow {
 				var dirKey = key;
 				result = await Task.Run(() => {
 					if (!engine.EnsureLoaded(dirKey, modelDir, prefer))
-						throw new InvalidOperationException(engine.LastError ?? "加载失败");
+						throw new InvalidOperationException(engine.LastError ?? Loc.T("tr.load.fail"));
 					ct.ThrowIfCancellationRequested();
 					return engine.Translate(dirKey, text, ct);
 				}, ct).ConfigureAwait(true);
 			}
 
 			etrdst.Text = result ?? "";
+			var empty = string.IsNullOrWhiteSpace(result) ? Loc.T("tr.empty.out") : "";
 			if (llm)
-				lbtrstatus.Text = $"完成 · {TrLang.Label(src)}→{TrLang.Label(dst)} · LLM {ep.DisplayName} · {sw.ElapsedMilliseconds} ms"
-					+ (string.IsNullOrWhiteSpace(result) ? " · （空译文）" : "");
+				lbtrstatus.Text = Loc.T("tr.ok.llm", TrLang.Label(src), TrLang.Label(dst), ep.DisplayName,
+					sw.ElapsedMilliseconds) + empty;
 			else {
 				var dev = string.IsNullOrEmpty(trEngine.LastDevice) ? prefer : trEngine.LastDevice;
 				var be = string.IsNullOrEmpty(trEngine.LastBackend) ? "" : trEngine.LastBackend + "/";
-				lbtrstatus.Text = $"完成 · {TrLang.Label(src)}→{TrLang.Label(dst)} · {be}{dev} · {sw.ElapsedMilliseconds} ms"
-					+ (string.IsNullOrWhiteSpace(result) ? " · （空译文）" : "");
+				lbtrstatus.Text = Loc.T("tr.ok.onnx", TrLang.Label(src), TrLang.Label(dst), be + dev,
+					sw.ElapsedMilliseconds) + empty;
 			}
 		}
 		catch (OperationCanceledException) {
-			lbtrstatus.Text = "已取消";
+			lbtrstatus.Text = Loc.T("tr.cancelled");
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("translate", ex);
 			var msg = ex.Message ?? "";
 			if (!llm && (prefer == "cuda" || Compat.Contains(msg, "CUDA", StringComparison.OrdinalIgnoreCase)))
-				msg += " · 提示：翻译 ONNX 与 OCR 共用 onnxgpu64，请确认 GPU 包/驱动可用";
-			lbtrstatus.Text = "失败: " + msg;
+				msg += Loc.T("tr.cuda.hint");
+			lbtrstatus.Text = Loc.T("tr.fail", msg);
 		}
 		finally {
 			trBusy = false;
@@ -605,7 +601,7 @@ public partial class MainWindow {
 			btrgo.IsEnabled = false;
 			btrpingpong.IsEnabled = false;
 			btrstop.IsEnabled = false;
-			lbtrstatus.Text = $"来回翻译 {TranslatePingPongWindow.DefaultRounds} 次…（LLM）";
+			lbtrstatus.Text = Loc.T("tr.pp.run.llm", TranslatePingPongWindow.DefaultRounds);
 			try {
 				var dlg = new TranslatePingPongWindow(
 					textIn, fwdLabel, revLabel, TranslatePingPongWindow.DefaultRounds,
@@ -616,7 +612,7 @@ public partial class MainWindow {
 			}
 			catch (Exception ex) {
 				CaptureLog.Ex("runpingpong", ex);
-				lbtrstatus.Text = "来回翻译失败: " + ex.Message;
+				lbtrstatus.Text = Loc.T("tr.pp.fail", ex.Message);
 			}
 			finally {
 				trBusy = false;
@@ -632,7 +628,7 @@ public partial class MainWindow {
 		var reverse = trModels.FirstOrDefault(m => m.IsReady
 			&& string.Equals(m.DirKey, revKey, StringComparison.OrdinalIgnoreCase));
 		if (reverse == null || !reverse.IsReady) {
-			lbtrstatus.Text = $"来回翻译需要双向模型：已有 {key}，缺少 {revKey}";
+			lbtrstatus.Text = Loc.T("tr.pp.need.rev", key, revKey);
 			return;
 		}
 
@@ -643,7 +639,7 @@ public partial class MainWindow {
 		btrgo.IsEnabled = false;
 		btrpingpong.IsEnabled = false;
 		btrstop.IsEnabled = false;
-		lbtrstatus.Text = $"来回翻译 {TranslatePingPongWindow.DefaultRounds} 次…";
+		lbtrstatus.Text = Loc.T("tr.pp.run", TranslatePingPongWindow.DefaultRounds);
 
 		try {
 			var dlg = new TranslatePingPongWindow(
@@ -654,7 +650,7 @@ public partial class MainWindow {
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("runpingpong", ex);
-			lbtrstatus.Text = "来回翻译失败: " + ex.Message;
+			lbtrstatus.Text = Loc.T("tr.pp.fail", ex.Message);
 		}
 		finally {
 			trBusy = false;
@@ -669,11 +665,11 @@ public partial class MainWindow {
 		if (!string.IsNullOrEmpty(dlg.FinalText)) {
 			etrdst.Text = dlg.FinalText;
 			lbtrstatus.Text = dlg.Completed
-				? $"来回翻译完成 · 已写入译文区 · {TranslatePingPongWindow.DefaultRounds} 次往返"
-				: "来回翻译已结束（未完整跑完）· 已写入当前结果";
+				? Loc.T("tr.pp.done", TranslatePingPongWindow.DefaultRounds)
+				: Loc.T("tr.pp.partial");
 		}
 		else
-			lbtrstatus.Text = "来回翻译已关闭";
+			lbtrstatus.Text = Loc.T("tr.pp.closed");
 	}
 
 	void applytrlang() {
@@ -717,6 +713,7 @@ public partial class MainWindow {
 		trUiLoading = true;
 		try { filltrlangcombos(); }
 		finally { trUiLoading = keep; }
+		synctrengineui();
 	}
 }
 

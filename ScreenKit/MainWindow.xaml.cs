@@ -557,7 +557,7 @@ public partial class MainWindow : Window {
 				}
 				catch (Exception ex) {
 					CaptureLog.Ex("hotkeyTr Fired", ex);
-					try { setstatus("翻译小窗热键失败: " + ex.Message); } catch { }
+					try { setstatus(Loc.T("st.tr_popup_hk_fail", ex.Message)); } catch { }
 				}
 			}));
 			// 句柄就绪后再注册
@@ -1154,7 +1154,11 @@ public partial class MainWindow : Window {
 			tabresultocr.Header = Loc.T("result.tab.ocr");
 			tabresultqr.Header = Loc.T("result.tab.qr");
 			lbocrrunningbadge.Text = Loc.T("result.running");
-			if (string.IsNullOrWhiteSpace(ocrMetaText) || ocrMetaText.StartsWith("推理") || ocrMetaText.StartsWith("Infer"))
+			if (last != null && !string.IsNullOrWhiteSpace(ocrMetaBase)
+				&& (ocrMetaBase.StartsWith("推理") || ocrMetaBase.StartsWith("Infer"))
+				&& ocrMetaBase.IndexOf('s') >= 0)
+				applyocrmeta();
+			else if (string.IsNullOrWhiteSpace(ocrMetaText) || ocrMetaText.StartsWith("推理") || ocrMetaText.StartsWith("Infer"))
 				ocrMetaText = Loc.T("result.meta");
 			if (string.IsNullOrWhiteSpace(qrMetaText)
 				|| qrMetaText.StartsWith("条码") || qrMetaText.StartsWith("二维码")

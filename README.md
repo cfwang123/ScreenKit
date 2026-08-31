@@ -264,14 +264,14 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 | `Ctrl+Alt+B` | Live caption |
 | `Ctrl+Alt+T` | Translate popup show / hide |
 
-Tray icon: left-click toggles the window; context menu includes voice input, clipboard OCR, on-capture copy mode (image / file / path), and exit. Switching copy mode re-copies the **last screenshot** to the clipboard in the new form. Closing the main window typically **hides** to tray rather than exiting. **Capture → Voice input** in the main menu is the same toggle.
+Tray icon: left-click toggles the window; context menu includes voice input, **translate popup**, clipboard OCR, on-capture copy mode (image / file / path), and exit. Switching copy mode re-copies the **last screenshot** to the clipboard in the new form. Closing the main window typically **hides** to tray rather than exiting. **Capture → Voice input** and **Tools → Translate popup** match the hotkeys.
 
 ### UI language
 
 - **Tools → Language** → **中文 / English** (applies immediately)
 - Or set UI language in **Settings → General**
 - Persisted in `config.toml` as `ui_lang = "zh"` or `"en"`
-- v1.0.3 covers main tabs, settings, annotate/install-features/PDF windows, feature catalog, and voice-input HUD (log area stays Chinese)
+- Covers menus, Settings (including hotkeys / LLM / Translate), OCR toolbar (overlay dest language), Translate tab labels **and** status/hints, translate popup, round-trip dialog, Face tab, TTS/ASR static labels. OCR result meta stays Chinese except the **Translate Xs** suffix. ASR/TTS/OCR **runtime** status lines are still mostly Chinese.
 
 ## CLI
 

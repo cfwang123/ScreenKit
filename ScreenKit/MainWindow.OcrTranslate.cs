@@ -142,7 +142,7 @@ public partial class MainWindow {
 	void applyocrmeta() {
 		if (string.IsNullOrEmpty(ocrMetaBase)) return;
 		ocrMetaText = ocrTrMs > 0
-			? $"{ocrMetaBase} · 翻译 {(ocrTrMs / 1000.0):0.00}s"
+			? $"{ocrMetaBase} · {Loc.T("ocr.tr.time", (ocrTrMs / 1000.0).ToString("0.00"))}"
 			: ocrMetaBase;
 		syncresultmetafromtab();
 	}

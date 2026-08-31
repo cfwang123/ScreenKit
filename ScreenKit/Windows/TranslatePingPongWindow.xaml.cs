@@ -75,25 +75,30 @@ partial class TranslatePingPongWindow : Window {
 		rounds < 1 ? 1 : (rounds > 50 ? 50 : rounds);
 
 	void bindchrome() {
-		Title = $"来回翻译 {rounds} 次";
-		lbtitle.Text = $"来回翻译 {rounds} 次 · {fwdLabel} ⇄ {revLabel}";
-		lbhint.Text = $"每一「次」= {fwdLabel} + {revLabel}；共 {rounds} 次往返（{rounds * 2} 步），下方显示每一步结果。";
+		Title = Loc.T("pp.title", rounds);
+		lbtitle.Text = Loc.T("pp.sub", rounds, fwdLabel, revLabel);
+		lbhint.Text = Loc.T("pp.hint", fwdLabel, revLabel, rounds, rounds * 2);
+		bcancel.Content = Loc.T("cancel");
+		bcancel.ToolTip = Loc.T("pp.cancel.tip");
+		bcopy.Content = Loc.T("pp.copy");
+		bcopy.ToolTip = Loc.T("pp.copy.tip");
+		bclose.Content = Loc.T("pp.close");
 
 		bcancel.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
-			lbstatus.Text = "正在取消…";
+			lbstatus.Text = Loc.T("cancelling");
 		};
 		bcopy.Click += (_, _) => {
 			try {
 				if (string.IsNullOrEmpty(lastText)) {
-					lbstatus.Text = "尚无结果可复制";
+					lbstatus.Text = Loc.T("pp.empty");
 					return;
 				}
 				Clipboard.SetText(lastText);
-				lbstatus.Text = "已复制最终结果";
+				lbstatus.Text = Loc.T("pp.copied");
 			}
 			catch (Exception ex) {
-				lbstatus.Text = "复制失败: " + ex.Message;
+				lbstatus.Text = Loc.T("pp.copy.fail", ex.Message);
 			}
 		};
 		bclose.Click += (_, _) => Close();
@@ -132,10 +137,10 @@ partial class TranslatePingPongWindow : Window {
 			elog.ScrollToEnd();
 		}
 
-		appendui($"【原文】{fwdLabel} ⇄ {revLabel}");
+		appendui(Loc.T("pp.src", fwdLabel, revLabel));
 		appendui(text);
 		appendui("");
-		lbstatus.Text = engine != null ? "加载模型…" : "LLM 翻译中…";
+		lbstatus.Text = engine != null ? Loc.T("pp.load") : Loc.T("pp.llm.run");
 
 		var swAll = System.Diagnostics.Stopwatch.StartNew();
 		try {
@@ -147,21 +152,21 @@ partial class TranslatePingPongWindow : Window {
 			if (eng != null) {
 				await Task.Run(() => {
 					if (!eng.EnsureLoaded(fwd.DirKey, fwd.ModelDir, pref))
-						throw new InvalidOperationException("正向模型: " + (eng.LastError ?? "加载失败"));
+						throw new InvalidOperationException(Loc.T("pp.fwd.err", eng.LastError ?? Loc.T("tr.load.fail")));
 					ct.ThrowIfCancellationRequested();
 					if (!eng.EnsureLoaded(rev.DirKey, rev.ModelDir, pref))
-						throw new InvalidOperationException("反向模型: " + (eng.LastError ?? "加载失败"));
+						throw new InvalidOperationException(Loc.T("pp.rev.err", eng.LastError ?? Loc.T("tr.load.fail")));
 				}, ct).ConfigureAwait(true);
 			}
 
 			var dev = eng != null
 				? (string.IsNullOrEmpty(engine.LastDevice) ? prefer : engine.LastDevice)
 				: "LLM";
-			lbstatus.Text = $"翻译中… · {dev}";
+			lbstatus.Text = Loc.T("pp.run.dev", dev);
 
 			for (var r = 1; r <= rounds; r++) {
 				ct.ThrowIfCancellationRequested();
-				lbstatus.Text = $"第 {r}/{rounds} 次 · {fwdLabel}…";
+				lbstatus.Text = Loc.T("pp.round", r, rounds, fwdLabel);
 				var t1 = text;
 				var out1 = await Task.Run(() => {
 					ct.ThrowIfCancellationRequested();
@@ -173,13 +178,13 @@ partial class TranslatePingPongWindow : Window {
 				text = out1;
 				lastText = text;
 				var stepFwd = (r - 1) * 2 + 1;
-				appendui($"── 第 {r} 次 · 步骤 {stepFwd} · {fwdLabel} ──");
+				appendui(Loc.T("pp.step", r, stepFwd, fwdLabel));
 				appendui(text);
 				appendui("");
 				await Dispatcher.Yield(DispatcherPriority.Background);
 
 				ct.ThrowIfCancellationRequested();
-				lbstatus.Text = $"第 {r}/{rounds} 次 · {revLabel}…";
+				lbstatus.Text = Loc.T("pp.round", r, rounds, revLabel);
 				var t2 = text;
 				var out2 = await Task.Run(() => {
 					ct.ThrowIfCancellationRequested();
@@ -191,7 +196,7 @@ partial class TranslatePingPongWindow : Window {
 				text = out2;
 				lastText = text;
 				var stepRev = r * 2;
-				appendui($"── 第 {r} 次 · 步骤 {stepRev} · {revLabel} ──");
+				appendui(Loc.T("pp.step", r, stepRev, revLabel));
 				appendui(text);
 				appendui("");
 				await Dispatcher.Yield(DispatcherPriority.Background);
@@ -200,21 +205,21 @@ partial class TranslatePingPongWindow : Window {
 			Completed = true;
 			FinalText = text;
 			swAll.Stop();
-			appendui($"【完成】共 {rounds} 次往返 · {rounds * 2} 步 · {swAll.ElapsedMilliseconds} ms");
-			lbstatus.Text = $"完成 · {rounds} 次往返 · {dev} · {swAll.ElapsedMilliseconds} ms";
+			appendui(Loc.T("pp.ok.log", rounds, rounds * 2, swAll.ElapsedMilliseconds));
+			lbstatus.Text = Loc.T("pp.ok", rounds, dev, swAll.ElapsedMilliseconds);
 			bcopy.IsEnabled = true;
 		}
 		catch (OperationCanceledException) {
 			FinalText = lastText;
-			appendui("【已取消】");
-			lbstatus.Text = "已取消 · 可复制当前结果";
+			appendui(Loc.T("pp.cancelled.log"));
+			lbstatus.Text = Loc.T("pp.cancelled");
 			bcopy.IsEnabled = !string.IsNullOrEmpty(lastText);
 		}
 		catch (Exception ex) {
 			FinalText = lastText;
 			CaptureLog.Ex("TranslatePingPong", ex);
-			appendui("【失败】" + ex.Message);
-			lbstatus.Text = "失败: " + ex.Message;
+			appendui(Loc.T("pp.fail.log", ex.Message));
+			lbstatus.Text = Loc.T("pp.fail", ex.Message);
 			bcopy.IsEnabled = !string.IsNullOrEmpty(lastText);
 		}
 		finally {
