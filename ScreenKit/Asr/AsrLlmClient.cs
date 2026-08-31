@@ -73,7 +73,7 @@ static class AsrLlmClient {
 		var model = (ep.Model ?? "").Trim();
 		var prompt = (o.AsrLlmPrompt ?? "").Trim();
 		if (string.IsNullOrEmpty(prompt))
-			prompt = OcrOptions.DefaultAsrLlmPrompt;
+			prompt = OcrOptions.DefaultPolishPrompt();
 		context = clipend(context, MaxCtx);
 		if (context.Length > 0)
 			prompt = $"{prompt}\n{CtxHint}";
@@ -98,7 +98,7 @@ static class AsrLlmClient {
 		ct.ThrowIfCancellationRequested();
 		var prompt = (o?.TranslateLlmPrompt ?? "").Trim();
 		if (string.IsNullOrEmpty(prompt))
-			prompt = OcrOptions.DefaultTranslateLlmPrompt;
+			prompt = OcrOptions.DefaultTranslatePrompt();
 		var srcL = TrLang.Label(src);
 		var dstL = TrLang.Label(dst);
 		prompt = prompt.Replace("{src}", srcL).Replace("{dst}", dstL)

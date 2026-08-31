@@ -29,6 +29,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	bool disposed;
 	volatile bool running;
 	HttpApiServices svc;
+	public event Action<string> Logged;
 
 	public HttpOcrServer(Func<OcrOptions> optionsFactory, OcrRunner sharedRunner) {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
@@ -96,16 +97,21 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handle(HttpListenerContext ctx) {
+		var t0 = Environment.TickCount;
+		var method = "";
+		var pathRaw = "";
 		try {
 			var req = ctx.Request;
+			method = req.HttpMethod ?? "";
+			pathRaw = (req.Url?.AbsolutePath ?? "/").TrimEnd('/');
+			if (pathRaw.Length == 0) pathRaw = "/";
 			// CORS 预检
-			if (string.Equals(req.HttpMethod, "OPTIONS", StringComparison.OrdinalIgnoreCase)) {
+			if (string.Equals(method, "OPTIONS", StringComparison.OrdinalIgnoreCase)) {
 				writecors(ctx, 204);
 				return;
 			}
 
-			var path = (req.Url?.AbsolutePath ?? "/").TrimEnd('/').ToLowerInvariant();
-			if (path.Length == 0) path = "/";
+			var path = pathRaw.ToLowerInvariant();
 
 			if (path is "/api/ocr/get_options" or "/api/ocr/get_options/") {
 				if (!isget(req)) {
@@ -235,6 +241,19 @@ sealed partial class HttpOcrServer : IDisposable {
 		catch (Exception ex) {
 			try { writejson(ctx, 500, err(900, $"内部错误: {ex.Message}")); } catch { }
 		}
+		finally {
+			if (!string.Equals(method, "OPTIONS", StringComparison.OrdinalIgnoreCase)) {
+				var ms = unchecked(Environment.TickCount - t0);
+				var st = 0;
+				try { st = ctx.Response.StatusCode; } catch { }
+				emitlog(method, pathRaw, st, ms);
+			}
+		}
+	}
+
+	void emitlog(string method, string path, int status, int ms) {
+		var line = $"{DateTime.Now:HH:mm:ss}  {method}  {path}  {status}  {ms}ms";
+		try { Logged?.Invoke(line); } catch { }
 	}
 
 	static bool isget(HttpListenerRequest req) =>

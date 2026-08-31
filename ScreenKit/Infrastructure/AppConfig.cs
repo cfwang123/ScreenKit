@@ -241,7 +241,7 @@ static class AppConfig {
 				o.AsrLlm = (asrLlm ?? "").Trim();
 			if (map.TryGetValue("asr_llm_prompt", out var alp)) {
 				var p = (alp ?? "").Replace("\\n", "\n").Replace("\\t", "\t");
-				o.AsrLlmPrompt = string.IsNullOrWhiteSpace(p) ? OcrOptions.DefaultAsrLlmPrompt : p;
+				o.AsrLlmPrompt = string.IsNullOrWhiteSpace(p) ? OcrOptions.DefaultPolishPrompt() : p;
 			}
 			o.LlmList = parsellm(text);
 			// 翻译
@@ -252,7 +252,7 @@ static class AppConfig {
 			if (map.TryGetValue("translate_llm_prompt", out var trlp)) {
 				var p = (trlp ?? "").Replace("\\n", "\n").Replace("\\t", "\t");
 				o.TranslateLlmPrompt = string.IsNullOrWhiteSpace(p)
-					? OcrOptions.DefaultTranslateLlmPrompt : p;
+					? OcrOptions.DefaultTranslatePrompt() : p;
 			}
 			if (map.TryGetValue("face_compute", out var fc) && !string.IsNullOrWhiteSpace(fc))
 				o.FaceCompute = fc.Trim();

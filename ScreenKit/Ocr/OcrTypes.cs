@@ -195,11 +195,19 @@ public sealed class OcrOptions {
 	/// <summary>语音润色选用的 LLM 显示名称（空则用列表第一项）。</summary>
 	public string AsrLlm = "";
 	/// <summary>润色系统提示词；空则用默认。</summary>
-	public string AsrLlmPrompt = DefaultAsrLlmPrompt;
+	public string AsrLlmPrompt = DefaultAsrLlmPromptZh;
 
-	/// <summary>离线听写润色默认提示词。</summary>
-	public const string DefaultAsrLlmPrompt =
+	/// <summary>离线听写润色默认提示词（中文）。</summary>
+	public const string DefaultAsrLlmPromptZh =
 		"请润色以下语音识别文本：纠正错别字和明显识别错误，补全标点，保持原意与口语，不要扩写、不要解释、不要加引号。只输出润色后的正文。";
+	/// <summary>离线听写润色默认提示词（英文）。</summary>
+	public const string DefaultAsrLlmPromptEn =
+		"Polish the following speech-recognition transcript: fix typos and obvious recognition errors, add punctuation, keep the original meaning and spoken style. Do not expand, explain, or add quotation marks. Output only the polished text.";
+	/// <summary>兼容旧名：中文默认。</summary>
+	public const string DefaultAsrLlmPrompt = DefaultAsrLlmPromptZh;
+	/// <summary>按当前界面语言取润色默认提示词。</summary>
+	public static string DefaultPolishPrompt() =>
+		Loc.IsEn ? DefaultAsrLlmPromptEn : DefaultAsrLlmPromptZh;
 
 	// ─── 翻译（config.toml [translate]） ───
 	/// <summary>Auto / Gpu / Cpu / Igpu（Opus-MT 进程内 ONNX）。</summary>
@@ -207,11 +215,19 @@ public sealed class OcrOptions {
 	/// <summary>翻译用 LLM 显示名称；空则走本地 ONNX。</summary>
 	public string TranslateLlm = "";
 	/// <summary>LLM 翻译系统提示词；空则用默认。<c>{src}</c>/<c>{dst}</c> 替换为语言名。</summary>
-	public string TranslateLlmPrompt = DefaultTranslateLlmPrompt;
+	public string TranslateLlmPrompt = DefaultTranslateLlmPromptZh;
 
-	/// <summary>LLM 翻译默认提示词。</summary>
-	public const string DefaultTranslateLlmPrompt =
+	/// <summary>LLM 翻译默认提示词（中文）。</summary>
+	public const string DefaultTranslateLlmPromptZh =
 		"请将用户给出的文本从{src}翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。只输出译文。";
+	/// <summary>LLM 翻译默认提示词（英文）。</summary>
+	public const string DefaultTranslateLlmPromptEn =
+		"Translate the user's text from {src} to {dst}. Stay faithful to the original. Do not expand, explain, or add quotation marks. Output only the translation.";
+	/// <summary>兼容旧名：中文默认。</summary>
+	public const string DefaultTranslateLlmPrompt = DefaultTranslateLlmPromptZh;
+	/// <summary>按当前界面语言取翻译默认提示词。</summary>
+	public static string DefaultTranslatePrompt() =>
+		Loc.IsEn ? DefaultTranslateLlmPromptEn : DefaultTranslateLlmPromptZh;
 
 	// ─── 人脸识别（config.toml [face]） ───
 	/// <summary>Auto / Gpu / Cpu / Igpu。</summary>

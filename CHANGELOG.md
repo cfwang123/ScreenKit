@@ -10,6 +10,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
+- Polish / translate prompt **Default** button (resets to Chinese or English default for the current UI language).
+- Main-window **HTTP API** tab: brief call log and a manual request builder (templates for status / OCR / ASR / TTS / ITN / translate / face).
 - **HTTP proxy** (Settings → General, `http_proxy` / `http_proxy_addr`): used for GitHub, Hugging Face, and other non-China sites; China mirrors go direct. Default off, address `127.0.0.1:7897`.
 - **Auto-update interval** (Settings → General, default 7 days, `update_check_days`; 0 = off). On startup only, if that many days have passed since the last successful check, query GitHub Releases. Tools → Check for Updates is unchanged.
 - Edit menu **Copy file**: current image is saved to `screenshots/` then copied as FileDrop (paste in Explorer). **Copy image** now copies the bitmap (toolbar follows).
@@ -27,6 +29,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
+- 润色 / 翻译提示词 **默认** 按钮：按当前界面语言重置为中文或英文默认提示词。
+- 主界面 **HTTP接口** Tab：简短调用日志，并可按模板手动构造请求（status / OCR / ASR / TTS / ITN / 翻译 / 人脸）。
 - **HTTP 代理**（参数设置 → 常规，`http_proxy` / `http_proxy_addr`）：访问 GitHub、Hugging Face 等非中国网站时使用，国内镜像直连。默认关闭，地址 `127.0.0.1:7897`。
 - **自动更新间隔**（参数设置 → 常规，默认 7 天，`update_check_days`；0=不自动检查）。仅在启动时判断：超过该天数未成功检查则查询 GitHub Releases。菜单「检查更新」不受限。
 - 「编辑」菜单 **复制文件**：当前图片先存 `screenshots/`，以 FileDrop 复制到剪贴板（资源管理器可粘贴）。**复制图片**改为复制位图（工具栏同步）。

@@ -303,8 +303,14 @@
 						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 						<ComboBox x:Name="easrllm" Height="32" Margin="0,0,0,10"
 						          AutomationProperties.AutomationId="set.asr.llm.pick"/>
-						<TextBlock x:Name="lbsetasrllmprompt" Text="润色提示词" FontSize="11"
-						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<DockPanel Margin="0,0,0,4">
+							<Button x:Name="basrllmpromptreset" DockPanel.Dock="Right"
+							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.asr.llm.prompt.default"/>
+							<TextBlock x:Name="lbsetasrllmprompt" Text="润色提示词" FontSize="11"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+						</DockPanel>
 						<TextBox x:Name="easrllmprompt" MinHeight="88" Padding="6,4"
 						         BorderBrush="{StaticResource BorderSoft}"
 						         TextWrapping="Wrap" AcceptsReturn="True"
@@ -413,7 +419,14 @@
 						<TextBlock x:Name="lbsettrhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,12"
 						           Text="引擎在主窗口翻译 Tab 选择（本地 ONNX 或 LLM）。此处只配 LLM 翻译提示词。"/>
-						<TextBlock x:Name="lbsettrllmprompt" Text="LLM提示词" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<DockPanel Margin="0,0,0,6">
+							<Button x:Name="btrllmpromptreset" DockPanel.Dock="Right"
+							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.tr.llm.prompt.default"/>
+							<TextBlock x:Name="lbsettrllmprompt" Text="LLM提示词" FontWeight="SemiBold"
+							           VerticalAlignment="Center"/>
+						</DockPanel>
 						<TextBlock x:Name="lbsettrllmprompthint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,6"
 						           Text="src / dst 占位符会替换为源/目标语言名。空则用默认。"/>

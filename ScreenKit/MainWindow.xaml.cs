@@ -108,6 +108,7 @@ public partial class MainWindow : Window {
 		inittray();
 		inithotkey();
 		inithttpserver();
+		inithttptab();
 		// 服务模式：启动后后台预热，引擎常驻
 		if (opt.ServiceMode)
 			tryservicewarmup("启动预热");
@@ -286,6 +287,8 @@ public partial class MainWindow : Window {
 				ScanAsr = () => AsrModelScanner.Scan(),
 				ScanTts = () => TtsModelScanner.Scan(),
 			});
+			if (httpServer != null)
+				httpServer.Logged += onhttplog;
 			if (opt.HttpEnabled)
 				starthttp();
 		}
@@ -303,11 +306,13 @@ public partial class MainWindow : Window {
 		catch (Exception ex) {
 			setstatus(Loc.T("st.http_fail", ex.Message));
 		}
+		synchttpstatus();
 	}
 
 	void restarthttp() {
 		try { httpServer?.Stop(); } catch { }
 		if (opt.HttpEnabled) starthttp();
+		else synchttpstatus();
 	}
 
 	/// <summary>供 HTTP 服务复制当前 OCR 参数（后台线程可调，勿触碰 UI）。</summary>
@@ -1138,6 +1143,7 @@ public partial class MainWindow : Window {
 			tabtts.Header = Loc.T("tab.tts");
 			tabasr.Header = Loc.T("tab.asr");
 			tabtr.Header = Loc.T("tab.translate");
+			try { applyhttplang(); } catch { }
 
 			// 顶栏
 			lbpack.Text = Loc.T("label.pack");

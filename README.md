@@ -29,7 +29,7 @@ Current version: **1.0.4**
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
-| **HTTP API** | Local JSON API (default `127.0.0.1:1224`) |
+| **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + manual request |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
 ## Requirements

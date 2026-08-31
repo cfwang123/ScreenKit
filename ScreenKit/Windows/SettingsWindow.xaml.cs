@@ -38,6 +38,10 @@ public partial class SettingsWindow : Window {
 
 		easrvoicesplit.Checked += (_, _) => syncvoicesplitui();
 		easrvoicesplit.Unchecked += (_, _) => syncvoicesplitui();
+		basrllmpromptreset.Click += (_, _) =>
+			easrllmprompt.Text = OcrOptions.DefaultPolishPrompt();
+		btrllmpromptreset.Click += (_, _) =>
+			etrllmprompt.Text = OcrOptions.DefaultTranslatePrompt();
 
 		bcancel.Click += (_, _) => { Applied = false; Close(); };
 		bok.Click += (_, _) => {
@@ -224,6 +228,8 @@ public partial class SettingsWindow : Window {
 			lbsetasrllmhint.Text = Loc.T("set.asr.llm.hint");
 			lbsetasrllmpick.Text = Loc.T("set.asr.llm.pick");
 			lbsetasrllmprompt.Text = Loc.T("set.asr.llm.prompt");
+			basrllmpromptreset.Content = Loc.T("set.prompt.default");
+			basrllmpromptreset.ToolTip = Loc.T("set.prompt.default.tip");
 			lbsetllmhint.Text = Loc.T("set.llm.hint");
 			ellmlog.Content = Loc.T("set.llm.log");
 			lbsetllmloghint.Text = Loc.T("set.llm.log.hint");
@@ -245,6 +251,8 @@ public partial class SettingsWindow : Window {
 			itllmthinkmax.Content = Loc.T("set.llm.think.max");
 			lbsettrhint.Text = Loc.T("set.tr.hint");
 			lbsettrllmprompt.Text = Loc.T("set.tr.llm.prompt");
+			btrllmpromptreset.Content = Loc.T("set.prompt.default");
+			btrllmpromptreset.ToolTip = Loc.T("set.prompt.default.tip");
 			lbsettrllmprompthint.Text = Loc.T("set.tr.llm.prompt.hint");
 			etrllmprompt.ToolTip = Loc.T("set.tr.llm.prompt.tip");
 			lbsethttp.Text = Loc.T("set.http");
@@ -377,9 +385,9 @@ public partial class SettingsWindow : Window {
 		easrlivesplit.IsChecked = o.AsrLiveSplit;
 		loadllms(o);
 		easrllmprompt.Text = string.IsNullOrWhiteSpace(o.AsrLlmPrompt)
-			? OcrOptions.DefaultAsrLlmPrompt : o.AsrLlmPrompt;
+			? OcrOptions.DefaultPolishPrompt() : o.AsrLlmPrompt;
 		etrllmprompt.Text = string.IsNullOrWhiteSpace(o.TranslateLlmPrompt)
-			? OcrOptions.DefaultTranslateLlmPrompt : o.TranslateLlmPrompt;
+			? OcrOptions.DefaultTranslatePrompt() : o.TranslateLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		eproxyen.IsChecked = o.HttpProxyEnabled;
@@ -517,10 +525,10 @@ public partial class SettingsWindow : Window {
 		var pick = easrllm.SelectedItem as LlmEndpoint;
 		Result.AsrLlm = pick != null ? pick.DisplayName : "";
 		var prompt = (easrllmprompt.Text ?? "").Trim();
-		Result.AsrLlmPrompt = string.IsNullOrEmpty(prompt) ? OcrOptions.DefaultAsrLlmPrompt : prompt;
+		Result.AsrLlmPrompt = string.IsNullOrEmpty(prompt) ? OcrOptions.DefaultPolishPrompt() : prompt;
 		var trPrompt = (etrllmprompt.Text ?? "").Trim();
 		Result.TranslateLlmPrompt = string.IsNullOrEmpty(trPrompt)
-			? OcrOptions.DefaultTranslateLlmPrompt : trPrompt;
+			? OcrOptions.DefaultTranslatePrompt() : trPrompt;
 		Result.MinimizeToTray = emintray.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
