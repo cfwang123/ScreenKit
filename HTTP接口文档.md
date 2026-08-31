@@ -2,7 +2,7 @@
 
 **语言：** [中文](HTTP接口文档.md) · [English](HTTP-API.md)
 
-本机 HTTP API：提供 OCR 接口，并扩展 ASR / TTS / ITN / 人脸。
+本机 HTTP API：提供 OCR 接口，并扩展 ASR / TTS / ITN / 条码 / 人脸。
 
 默认仅监听本机；**不要**在未受控网络上暴露该端口。
 
@@ -67,7 +67,7 @@ http_port = 1224
 | code | 含义（摘要） |
 |------|----------------|
 | 100 | 成功 |
-| 101 | OCR 未检测到文字；人脸未检测到人脸 |
+| 101 | OCR 未检测到文字；条码未检出；人脸未检测到人脸 |
 | 404 | 未知路径 |
 | 800 | 请求解析失败 / 体为空 |
 | 801 | 请求为空 |
@@ -81,6 +81,7 @@ http_port = 1224
 | 910+ | ASR 相关 |
 | 920+ | TTS 相关 |
 | 930+ | 人脸相关（930 无模型，931 识别失败，932 无检测/识别文件） |
+| 950 | 条码/二维码识别失败 |
 
 ---
 
@@ -92,6 +93,7 @@ http_port = 1224
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
 | GET | `/api/ocr/get_options` | OCR 可选项描述 |
 | POST | `/api/ocr` | 图片 OCR |
+| POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR） |
 | GET | `/api/asr/models` | 列出 ASR 模型 |
 | POST | `/api/asr` | 语音识别 |
 | GET | `/api/tts/models` | 列出 TTS 模型 |
@@ -120,6 +122,7 @@ http_port = 1224
       "GET  /api/status",
       "GET  /api/ocr/get_options",
       "POST /api/ocr   JSON{base64,options} 或 multipart",
+      "POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码",
       "GET  /api/asr/models",
       "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
       "GET  /api/tts/models",
@@ -152,6 +155,7 @@ http_port = 1224
 | `tts_models` | int | 扫描到的 TTS 模型数量 |
 | `face_ready` | bool | `facemodels` 是否已有检测+识别模型 |
 | `face_models` | int | 扫描到的人脸 ONNX 数量 |
+| `barcode` | bool | 条码/二维码接口可用（ZXingCpp，无需额外模型） |
 | `itn` | bool | WeText ITN 是否可用 |
 | `itn_error` | string | ITN 不可用时的原因 |
 
@@ -175,7 +179,7 @@ curl -s "http://127.0.0.1:1224/api/status"
 | `ocr.maxSideLen` | 检测边长上限 | `1024` |
 | `ocr.language` | 识别语言/模型变体标题 | `""`（用主窗当前模型） |
 | `ocr.device` | 设备：`cpu` / `gpu` / `intel` | `cpu` |
-| `ocr.barcode` | 同时识别条码/二维码 | `false` |
+| `ocr.barcode` | 同时识别条码/二维码 | `false`（仅条码请用 `POST /api/qr`） |
 | `tbpu.parser` | 排版方案（兼容保留） | `multi_line` |
 | `data.format` | 返回格式：`dict` 或 `text` | `dict` |
 
@@ -687,7 +691,74 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ---
 
-## 11. 与主窗口的关系
+## 12. 条码 / 二维码
+
+只扫条码，**不跑 OCR**。与结果区 **条码** Tab 同一套 ZXingCpp 流程（QR、Aztec、Data Matrix、PDF417、EAN-8/13、UPC-A/E、Code 39/93/128、Codabar、ITF，外加轻量 OpenCV QR 补充）。别名：`POST /api/barcode`、`POST /api/barcodes`（同一处理）。OCR 顺带扫码仍用 `POST /api/ocr` 的 `options.ocr.barcode`。
+
+### 12.1 POST `/api/qr`
+
+**JSON：**
+
+```json
+{
+  "base64": "<图片 base64>",
+  "path": "D:\\sample.png",
+  "format": "dict"
+}
+```
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `base64` | 二选一 | 图片字节（png/jpg/bmp/webp 等） |
+| `path` | 二选一 | 服务端本地文件路径（与 ASR/人脸相同注意点） |
+| `image` / `img` | — | `base64` 的别名 |
+| `format` | 否 | `dict`（默认）或 `text`；也可用 `data.format` / `options.data.format` |
+
+**multipart：** 文件字段 `file` / `image` / `img` / `upload`，与 OCR 相同。
+
+**成功（`format=dict`）：**
+
+```json
+{
+  "code": 100,
+  "data": [
+    {
+      "type": "QRCode",
+      "text": "https://example.com",
+      "box": [[12.0, 40.0], [180.0, 40.0], [180.0, 210.0], [12.0, 210.0]]
+    }
+  ],
+  "count": 1,
+  "time": 18,
+  "timestamp": 1710000000
+}
+```
+
+`type` / `text` / `box` 与 `POST /api/ocr` 的 `barcodes[]` 一致。
+
+**成功（`format=text`）：** `data` 为 `[QRCode] https://example.com` 这种多行文本。
+
+**未检出：** `code=101`，`count=0`；`data` 为「未检测到条码或二维码」（dict）或 `""`（text）。识别异常：`950`。
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/qr" -F "file=@code.png"
+```
+
+```python
+import json, base64, urllib.request
+b64 = base64.b64encode(open("code.png", "rb").read()).decode("ascii")
+req = urllib.request.Request(
+    "http://127.0.0.1:1224/api/qr",
+    data=json.dumps({"base64": b64}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
+```
+
+---
+
+## 13. 与主窗口的关系
 
 | 行为 | 说明 |
 |------|------|
@@ -698,18 +769,18 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ---
 
-## 12. 安全建议
+## 14. 安全建议
 
 1. 默认只绑 `127.0.0.1`，勿改为 `0.0.0.0` 除非有防火墙与鉴权。
 2. **无鉴权、无 HTTPS**，仅信任本机或可信局域网。
-3. `POST /api/asr` 与 `POST /api/face` 的 `path` / `path_b` 会读服务端本地文件，勿对不可信来源开放。
+3. `POST /api/asr`、`POST /api/face`、`POST /api/qr` 的 `path` / `path_b` 会读服务端本地文件，勿对不可信来源开放。
 4. 大图 / 长音频会占用 CPU/GPU 与内存；注意并发（当前实现按请求并行 `Task.Run`，引擎侧有锁）。
 
 ---
 
-## 13. 相关
+## 15. 相关
 
-- 程序内：`ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs`
+- 程序内：`ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs` · `HttpOcrServer.Qr.cs`
 - 配置：`config.toml`（`http_enabled` / `http_host` / `http_port` / `service_mode`）
 - 总览：[README.zh.md](README.zh.md) · [README.md](README.md)
 - 英文版：[HTTP-API.md](HTTP-API.md)

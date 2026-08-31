@@ -19,6 +19,7 @@ namespace ScreenKit;
 /// <item>GET  /api/tts/models · POST /api/tts</item>
 /// <item>POST /api/itn</item>
 /// <item>POST /api/translate · /api/translate/batch</item>
+/// <item>POST /api/qr · /api/barcode</item>
 /// <item>GET  /api/face/models · POST /api/face</item>
 /// </list>
 /// </summary>
@@ -135,6 +136,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/qr" or "/api/barcode" or "/api/barcodes") {
+				if (!ispost(req)) {
+					writejson(ctx, 405, err(805, "qr 仅支持 POST"));
+					return;
+				}
+				handleqr(ctx);
+				return;
+			}
+
 			if (path is "/api/status" or "/api/health") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "status 仅支持 GET"));
@@ -226,6 +236,7 @@ sealed partial class HttpOcrServer : IDisposable {
 							"GET  /api/status",
 							"GET  /api/ocr/get_options",
 							"POST /api/ocr   JSON{base64,options} 或 multipart",
+							"POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码",
 							"GET  /api/asr/models",
 							"POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
 							"GET  /api/tts/models",
@@ -289,6 +300,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				["tts_models"] = ttsN,
 				["face_ready"] = FaceModels.IsReady(),
 				["face_models"] = faceN,
+				["barcode"] = true,
 				["itn"] = WetextItn.IsAvailable,
 				["itn_error"] = WetextItn.IsAvailable ? "" : (WetextItn.LastError ?? ""),
 				["llm_translate"] = AsrLlmClient.IsEndpointReady(

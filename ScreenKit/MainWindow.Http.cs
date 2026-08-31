@@ -42,6 +42,10 @@ public partial class MainWindow {
 			Title = "POST /api/ocr", Method = "POST", Path = "/api/ocr",
 			Body = "{\n  \"base64\": \"\",\n  \"options\": {}\n}",
 		});
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/qr", Method = "POST", Path = "/api/qr",
+			Body = "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}",
+		});
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/asr/models", Method = "GET", Path = "/api/asr/models", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl {
 			Title = "POST /api/asr", Method = "POST", Path = "/api/asr",

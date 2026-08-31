@@ -224,6 +224,7 @@ x86host.exe --list-sapi
 
 - `GET  /api` · `/api/status` — 能力与状态
 - `POST /api/ocr` — 图片（JSON base64 或 multipart）
+- `POST /api/qr` — 仅条码/二维码（`/api/barcode`；JSON base64/path 或 multipart）
 - `GET  /api/ocr/get_options` — 当前 OCR 参数快照
 - `GET  /api/asr/models` · `POST /api/asr` — 语音识别（base64/本地 path）
 - `GET  /api/tts/models` · `POST /api/tts` — 语音合成（返回 wav base64）

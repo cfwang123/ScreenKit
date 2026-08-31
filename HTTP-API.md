@@ -2,7 +2,7 @@
 
 **Languages:** [English](HTTP-API.md) · [中文](HTTP接口文档.md)
 
-Local HTTP API: OCR endpoints, plus ASR / TTS / ITN / face extensions.
+Local HTTP API: OCR endpoints, plus ASR / TTS / ITN / barcode / face extensions.
 
 By default the server binds to loopback only. **Do not** expose this port on untrusted networks.
 
@@ -67,7 +67,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | code | Meaning (summary) |
 |------|-------------------|
 | 100 | Success |
-| 101 | OCR: no text detected; Face: no face detected |
+| 101 | OCR: no text; barcode: none found; Face: no face |
 | 404 | Unknown path |
 | 800 | Request parse failure / empty body |
 | 801 | Empty request |
@@ -81,6 +81,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | 910+ | ASR-related |
 | 920+ | TTS-related |
 | 930+ | Face-related (930 no models, 931 failed, 932 missing det/rec files) |
+| 950 | Barcode / QR scan failed |
 
 ---
 
@@ -92,6 +93,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET | `/api/status` · `/api/health` | Service and capability status |
 | GET | `/api/ocr/get_options` | OCR option descriptors |
 | POST | `/api/ocr` | Image OCR |
+| POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR) |
 | GET | `/api/asr/models` | List ASR models |
 | POST | `/api/asr` | Speech recognition |
 | GET | `/api/tts/models` | List TTS models |
@@ -120,6 +122,7 @@ Returns service name and endpoint list.
       "GET  /api/status",
       "GET  /api/ocr/get_options",
       "POST /api/ocr   JSON{base64,options} or multipart",
+      "POST /api/qr    JSON{base64|path} or multipart barcode/QR",
       "GET  /api/asr/models",
       "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
       "GET  /api/tts/models",
@@ -152,6 +155,7 @@ Health check and capability probe.
 | `tts_models` | int | Scanned TTS model count |
 | `face_ready` | bool | Whether `facemodels` has det+rec ONNX |
 | `face_models` | int | Scanned face ONNX count |
+| `barcode` | bool | Barcode / QR endpoint available (ZXingCpp, no extra model) |
 | `itn` | bool | WeText ITN available |
 | `itn_error` | string | Reason when ITN is unavailable |
 
@@ -175,7 +179,7 @@ Returns option descriptors: each entry has `title` / `toolTip` / `default` / opt
 | `ocr.maxSideLen` | Detection side limit | `1024` |
 | `ocr.language` | Language / model variant title | `""` (use main window model) |
 | `ocr.device` | Device: `cpu` / `gpu` / `intel` | `cpu` |
-| `ocr.barcode` | Also scan barcodes / QR codes | `false` |
+| `ocr.barcode` | Also scan barcodes / QR codes | `false` (barcode-only: `POST /api/qr`) |
 | `tbpu.parser` | Layout mode (kept for compatibility) | `multi_line` |
 | `data.format` | Response format: `dict` or `text` | `dict` |
 
@@ -650,7 +654,74 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ---
 
-## 11. Relationship to the main window
+## 12. QR / barcode
+
+Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the result-panel **Barcode** tab (QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, plus a light OpenCV QR fallback). Aliases: `POST /api/barcode`, `POST /api/barcodes` (same handler). Combined OCR+barcode remains `POST /api/ocr` with `options.ocr.barcode`.
+
+### 12.1 POST `/api/qr`
+
+**JSON:**
+
+```json
+{
+  "base64": "<image base64>",
+  "path": "D:\\sample.png",
+  "format": "dict"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `base64` | one of | Image bytes (png/jpg/bmp/webp, …) |
+| `path` | one of | Server-local file path (same caveat as ASR/face) |
+| `image` / `img` | — | Aliases of `base64` |
+| `format` | no | `dict` (default) or `text`; also `data.format` or `options.data.format` |
+
+**multipart:** file field `file` / `image` / `img` / `upload`, same as OCR.
+
+**Success (`format=dict`):**
+
+```json
+{
+  "code": 100,
+  "data": [
+    {
+      "type": "QRCode",
+      "text": "https://example.com",
+      "box": [[12.0, 40.0], [180.0, 40.0], [180.0, 210.0], [12.0, 210.0]]
+    }
+  ],
+  "count": 1,
+  "time": 18,
+  "timestamp": 1710000000
+}
+```
+
+`type` / `text` / `box` match the `barcodes[]` objects on `POST /api/ocr`.
+
+**Success (`format=text`):** `data` is lines like `[QRCode] https://example.com`.
+
+**None found:** `code=101`, `count=0`; `data` is `"未检测到条码或二维码"` (dict) or `""` (text). Scan errors: `950`.
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/qr" -F "file=@code.png"
+```
+
+```python
+import json, base64, urllib.request
+b64 = base64.b64encode(open("code.png", "rb").read()).decode("ascii")
+req = urllib.request.Request(
+    "http://127.0.0.1:1224/api/qr",
+    data=json.dumps({"base64": b64}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
+```
+
+---
+
+## 13. Relationship to the main window
 
 | Behavior | Description |
 |----------|-------------|
@@ -661,17 +732,17 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ---
 
-## 12. Security notes
+## 14. Security notes
 
 1. Default bind is `127.0.0.1`. Do not use `0.0.0.0` without a firewall and authentication plan.
 2. **No auth, no HTTPS** — trust only the local machine or a controlled LAN.
-3. `POST /api/asr` and `POST /api/face` `path` / `path_b` read server-local files; never expose this to untrusted clients.
+3. `POST /api/asr`, `POST /api/face`, and `POST /api/qr` `path` / `path_b` read server-local files; never expose this to untrusted clients.
 4. Large images / long audio use CPU/GPU and memory; watch concurrency (requests run via `Task.Run`; engines use locks).
 
 ---
 
-## 13. Related
+## 15. Related
 
-- Implementation: `ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs`
+- Implementation: `ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs` · `HttpOcrServer.Qr.cs`
 - Config: `config.toml` (`http_enabled` / `http_host` / `http_port` / `service_mode`)
 - Overview: [README.md](README.md) · [README.zh.md](README.zh.md)

@@ -310,6 +310,7 @@ When enabled, a local server listens on `http_host:http_port` (default loopback 
 
 - `GET  /api` · `/api/status` — capabilities
 - `POST /api/ocr` — image (JSON base64 or multipart)
+- `POST /api/qr` — barcode / QR only (`/api/barcode`; JSON base64/path or multipart)
 - `GET  /api/ocr/get_options` — OCR options snapshot
 - `GET  /api/asr/models` · `POST /api/asr` — speech recognition
 - `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64)
