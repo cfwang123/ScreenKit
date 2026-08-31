@@ -67,6 +67,7 @@ public partial class SettingsWindow : Window {
 		bindhotkey(ehotkeyboard, bhkboardcap, bhkboardclear);
 		bindhotkey(ehotkeyvoice, bhkvoicecap, bhkvoiceclear);
 		bindhotkey(ehotkeylive, bhklivecap, bhkliveclear);
+		bindhotkey(ehotkeytr, bhktrcap, bhktrclear);
 	}
 
 	void bindhotkey(WpfTextBox box, WpfButton cap, WpfButton clear) {
@@ -194,6 +195,7 @@ public partial class SettingsWindow : Window {
 			lbhkhintboard.Text = Loc.T("set.hotkey.board");
 			lbhkhintvoice.Text = Loc.T("set.hotkey.voice");
 			lbhkhintlive.Text = Loc.T("set.hotkey.live");
+			lbhkhinttr.Text = Loc.T("set.hotkey.translate");
 			lbsetasrmode.Text = Loc.T("set.asr.mode");
 			lbsetasrmodehint.Text = Loc.T("set.asr.mode.hint");
 			easrvoicestream.Content = Loc.T("set.asr.mode.stream");
@@ -254,6 +256,8 @@ public partial class SettingsWindow : Window {
 			bhkvoicecap.Content = Loc.T("set.hotkey.capture");
 			bhkliveclear.Content = Loc.T("set.hotkey.clear");
 			bhklivecap.Content = Loc.T("set.hotkey.capture");
+			bhktrclear.Content = Loc.T("set.hotkey.clear");
+			bhktrcap.Content = Loc.T("set.hotkey.capture");
 			bhkclear.ToolTip = Loc.T("set.hotkey.clear.tip");
 			bhkcap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			bhksnapclear.ToolTip = Loc.T("set.hotkey.clear.tip");
@@ -266,6 +270,8 @@ public partial class SettingsWindow : Window {
 			bhkvoicecap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			bhkliveclear.ToolTip = Loc.T("set.hotkey.clear.tip");
 			bhklivecap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			bhktrclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhktrcap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			lbsetsnap.Text = Loc.T("set.snap");
 			lbsetsnaphint.Text = Loc.T("set.snap.hint");
 			lbsetsnapfmt.Text = Loc.T("set.snap.fmt");
@@ -344,6 +350,7 @@ public partial class SettingsWindow : Window {
 		ehotkeyboard.Text = o.HotkeyBoard ?? "";
 		ehotkeyvoice.Text = o.HotkeyVoiceInput ?? "";
 		ehotkeylive.Text = o.HotkeyLiveCaption ?? "";
+		ehotkeytr.Text = o.HotkeyTranslate ?? "";
 		var voiceOffline = string.Equals((o.AsrVoiceMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
 			|| string.Equals((o.AsrVoiceMode ?? "").Trim(), "离线", StringComparison.OrdinalIgnoreCase);
 		easrvoiceoffline.IsChecked = voiceOffline;
@@ -475,6 +482,7 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeyboard, Loc.T("set.hotkey.board"), out Result.HotkeyBoard, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyvoice, Loc.T("set.hotkey.voice"), out Result.HotkeyVoiceInput, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeylive, Loc.T("set.hotkey.live"), out Result.HotkeyLiveCaption, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeytr, Loc.T("set.hotkey.translate"), out Result.HotkeyTranslate, tabsethk)) return false;
 		Result.AsrVoiceMode = easrvoiceoffline.IsChecked == true ? "offline" : "stream";
 		Result.AsrVoicePolish = easrvoicepolish.IsChecked == true;
 		Result.AsrVoiceSplit = easrvoicesplit.IsChecked == true;
@@ -565,6 +573,7 @@ public partial class SettingsWindow : Window {
 		HotkeyBoard = o.HotkeyBoard,
 		HotkeyVoiceInput = o.HotkeyVoiceInput,
 		HotkeyLiveCaption = o.HotkeyLiveCaption,
+		HotkeyTranslate = o.HotkeyTranslate,
 		MinimizeToTray = o.MinimizeToTray,
 		HttpEnabled = o.HttpEnabled,
 		HttpHost = o.HttpHost,

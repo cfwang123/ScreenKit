@@ -23,12 +23,12 @@ Current version: **1.0.3**
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
-| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`). Edit the prompt in **Settings → Translate** (`{src}`/`{dst}` placeholders). Pick the engine on the Translate tab. LLM source/target lists many languages (ONNX still follows installed pairs). Truncated LLM output is continued automatically. |
+| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`). Edit the prompt in **Settings → Translate** (`{src}`/`{dst}` placeholders). Pick the engine on the Translate tab. LLM source/target lists many languages (ONNX still follows installed pairs). A floating translate popup (`Ctrl+Alt+T`) pastes the clipboard and translates. Truncated LLM output is continued automatically. |
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
-| **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input (configurable) |
+| **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`) |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
@@ -157,6 +157,7 @@ use_cls = true
 hotkey = "Ctrl+Alt+O"           # show / hide main window
 hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
 hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
+# hotkey_translate = "Ctrl+Alt+T" # translate popup show/hide
 minimize_to_tray = true
 capture_log = false             # true → log/capture.log
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
@@ -261,6 +262,7 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 | `Ctrl+Alt+W` | Screenshot and OCR |
 | `Ctrl+Alt+V` | Voice input (press again to stop) |
 | `Ctrl+Alt+B` | Live caption |
+| `Ctrl+Alt+T` | Translate popup show / hide |
 
 Tray icon: left-click toggles the window; context menu includes voice input, clipboard OCR, on-capture copy mode (image / file / path), and exit. Switching copy mode re-copies the **last screenshot** to the clipboard in the new form. Closing the main window typically **hides** to tray rather than exiting. **Capture → Voice input** in the main menu is the same toggle.
 

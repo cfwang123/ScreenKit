@@ -66,6 +66,8 @@ public sealed class OcrOptions {
 	public string HotkeyVoiceInput = "Ctrl+Alt+V";
 	/// <summary>系统实时字幕热键：开始/结束桌面流式字幕。默认 Ctrl+Alt+B。空 = 禁用。</summary>
 	public string HotkeyLiveCaption = "Ctrl+Alt+B";
+	/// <summary>翻译小窗热键：呼出/隐藏。默认 Ctrl+Alt+T。空 = 禁用。</summary>
+	public string HotkeyTranslate = "Ctrl+Alt+T";
 	/// <summary>最小化时隐藏到通知栏。</summary>
 	public bool MinimizeToTray = true;
 	/// <summary>是否启用 HTTP 识图 API（Umi 风格）。</summary>

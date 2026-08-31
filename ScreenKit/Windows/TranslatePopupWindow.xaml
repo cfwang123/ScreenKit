@@ -1,0 +1,77 @@
+<Window x:Class="ScreenKit.TranslatePopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="翻译"
+        Height="420" Width="440"
+        MinHeight="300" MinWidth="360"
+        WindowStyle="ToolWindow"
+        Topmost="True"
+        ShowInTaskbar="True"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="tr.popup">
+	<Grid Margin="10">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="True">
+			<Button x:Name="bswap" DockPanel.Dock="Right" Content="⇄" Style="{StaticResource GhostBtn}"
+			        Width="36" Height="28" Padding="0" Margin="6,0,0,0" FontSize="14"
+			        ToolTip="交换源/目标语言" AutomationProperties.AutomationId="tr.popup.swap"/>
+			<ComboBox x:Name="edstlng" DockPanel.Dock="Right" Width="120" Height="28"
+			          VerticalContentAlignment="Center" MaxDropDownHeight="400"
+			          AutomationProperties.AutomationId="tr.popup.dst"/>
+			<TextBlock x:Name="lbdst" DockPanel.Dock="Right" Text="→" VerticalAlignment="Center"
+			           Margin="6,0" Foreground="{StaticResource TextMuted}"/>
+			<ComboBox x:Name="esrclng" Height="28" VerticalContentAlignment="Center"
+			          MaxDropDownHeight="400" Margin="0,0,0,0"
+			          AutomationProperties.AutomationId="tr.popup.src"/>
+		</DockPanel>
+
+		<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+			<TextBlock x:Name="lbsrc" DockPanel.Dock="Top" Text="原文" FontSize="11"
+			           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+			<Border Background="{StaticResource BgPanel}" CornerRadius="8"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+				<TextBox x:Name="esrc" AcceptsReturn="True" TextWrapping="Wrap"
+				         VerticalScrollBarVisibility="Auto" BorderThickness="0"
+				         Background="Transparent" Padding="8" FontSize="13"
+				         AutomationProperties.AutomationId="tr.popup.esrc"/>
+			</Border>
+		</DockPanel>
+
+		<DockPanel Grid.Row="2" Margin="0,0,0,8" LastChildFill="True">
+			<TextBlock x:Name="lbout" DockPanel.Dock="Top" Text="译文" FontSize="11"
+			           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+			<Border Background="{StaticResource BgPanel}" CornerRadius="8"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+				<TextBox x:Name="edst" AcceptsReturn="True" TextWrapping="Wrap"
+				         VerticalScrollBarVisibility="Auto" BorderThickness="0"
+				         Background="Transparent" Padding="8" FontSize="13"
+				         IsReadOnly="True" IsReadOnlyCaretVisible="True"
+				         AutomationProperties.AutomationId="tr.popup.edst"/>
+			</Border>
+		</DockPanel>
+
+		<DockPanel Grid.Row="3">
+			<Button x:Name="bgo" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource ToolBtn}"
+			        Height="30" Padding="14,4" Margin="6,0,0,0"
+			        AutomationProperties.AutomationId="tr.popup.go"/>
+			<Button x:Name="bcopy" DockPanel.Dock="Right" Content="复制" Style="{StaticResource GhostBtn}"
+			        Height="30" Padding="10,4" Margin="0"
+			        AutomationProperties.AutomationId="tr.popup.copy"/>
+			<Button x:Name="bpaste" DockPanel.Dock="Left" Content="粘贴" Style="{StaticResource GhostBtn}"
+			        Height="30" Padding="10,4" Margin="0,0,6,0"
+			        AutomationProperties.AutomationId="tr.popup.paste"/>
+			<TextBlock x:Name="lbstatus" VerticalAlignment="Center" FontSize="11"
+			           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
+			           Text="Ctrl+Enter 翻译 · Esc 隐藏"/>
+		</DockPanel>
+	</Grid>
+</Window>

@@ -17,6 +17,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miSnap;
 	Forms.ToolStripMenuItem miBoard;
 	Forms.ToolStripMenuItem miVoice;
+	Forms.ToolStripMenuItem miTranslate;
 	Forms.ToolStripMenuItem miClip;
 	Forms.ToolStripMenuItem miClipFile;
 	Forms.ToolStripMenuItem miPdf;
@@ -37,8 +38,8 @@ sealed class TrayIcon : IDisposable {
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
 	System.Drawing.Point menuScreenLoc;
 
-	/// <summary>返回 (呼出, 截图识别, 截图标注, 屏幕画板, 语音输入) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string board, string voice)> HotkeyProvider { get; set; }
+	/// <summary>返回 (呼出, 截图识别, 截图标注, 屏幕画板, 语音输入, 翻译小窗) 快捷键文案；空串表示无。</summary>
+	public Func<(string show, string ocr, string snap, string board, string voice, string tr)> HotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -109,6 +110,7 @@ sealed class TrayIcon : IDisposable {
 		miSnap = item("tray.snap", () => SnapRequested?.Invoke());
 		miBoard = item("tray.board", () => BoardRequested?.Invoke());
 		miVoice = item("tray.voice", () => VoiceRequested?.Invoke());
+		miTranslate = item("tray.translate", () => TranslateRequested?.Invoke());
 		miClip = item("tray.clip", () => {
 			showwindow();
 			ClipboardOcrRequested?.Invoke();
@@ -143,6 +145,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miSnap);
 		menu.Items.Add(miBoard);
 		menu.Items.Add(miVoice);
+		menu.Items.Add(miTranslate);
 		menu.Items.Add(miClip);
 		menu.Items.Add(miClipFile);
 		menu.Items.Add(miPdf);
@@ -272,10 +275,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", board = "", voice = "";
+		string show = "", ocr = "", snap = "", board = "", voice = "", tr = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, board, voice) = HotkeyProvider();
+				(show, ocr, snap, board, voice, tr) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
@@ -283,6 +286,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miSnap, snap);
 		setshortcut(miBoard, board);
 		setshortcut(miVoice, voice);
+		setshortcut(miTranslate, tr);
 		// 其余无全局热键，清空以免残留
 		setshortcut(miClip, null);
 		setshortcut(miClipFile, null);
@@ -314,6 +318,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miSnap, "tray.snap");
 			settext(miBoard, "tray.board");
 			settext(miVoice, "tray.voice");
+			settext(miTranslate, "tray.translate");
 			settext(miClip, "tray.clip");
 			settext(miClipFile, "tray.clipfile");
 			settext(miPdf, "tray.pdf");
@@ -342,6 +347,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action SnapRequested;
 	public event Action BoardRequested;
 	public event Action VoiceRequested;
+	public event Action TranslateRequested;
 	public event Action PdfRequested;
 	public event Action SnapshotsRequested;
 	public event Action RecordRequested;

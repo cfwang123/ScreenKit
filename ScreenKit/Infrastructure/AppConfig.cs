@@ -50,6 +50,8 @@ static class AppConfig {
 				o.HotkeyVoiceInput = (hkvi ?? "").Trim();
 			if (map.TryGetValue("hotkey_live_caption", out var hklc))
 				o.HotkeyLiveCaption = (hklc ?? "").Trim();
+			if (map.TryGetValue("hotkey_translate", out var hktr))
+				o.HotkeyTranslate = (hktr ?? "").Trim();
 			if (map.TryGetValue("minimize_to_tray", out var mtt))
 				o.MinimizeToTray = parsebool(mtt, true);
 			if (map.TryGetValue("capture_log", out var cl))
@@ -332,6 +334,8 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_voice_input = \"{esc((o.HotkeyVoiceInput ?? "").Trim())}\"");
 		sb.AppendLine($"# 系统实时字幕（桌面流式字幕；再按一次结束；默认 Ctrl+Alt+B）");
 		sb.AppendLine($"hotkey_live_caption = \"{esc((o.HotkeyLiveCaption ?? "").Trim())}\"");
+		sb.AppendLine($"# 翻译小窗（呼出/隐藏；默认 Ctrl+Alt+T）");
+		sb.AppendLine($"hotkey_translate = \"{esc((o.HotkeyTranslate ?? "").Trim())}\"");
 		sb.AppendLine($"minimize_to_tray = {(o.MinimizeToTray ? "true" : "false")}");
 		sb.AppendLine($"# 系统诊断日志（默认 false）：log/capture.log + 录屏 log/record_*.log");
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");

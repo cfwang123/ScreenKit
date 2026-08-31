@@ -117,6 +117,9 @@
 				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
 				          AutomationProperties.AutomationId="menu.settings"
 				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
+				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
+				          AutomationProperties.AutomationId="menu.translate.popup"
+				          ToolTip="浮窗翻译；热键再按一次隐藏"/>
 				<MenuItem x:Name="mninstall" Header="安装功能(_I)…"
 				          AutomationProperties.AutomationId="menu.install"
 				          ToolTip="安装 OCR/ASR 模型、GPU、核显等组件（中文系统优先国内镜像）"/>

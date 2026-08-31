@@ -162,6 +162,31 @@ public partial class MainWindow {
 		filltrengine();
 		filltrlangcombos();
 		synctrengineui();
+		try { trPopup?.Reload(); } catch { }
+	}
+
+	void ensuretranslatepopup() {
+		if (trPopup != null) return;
+		trPopup = new TranslatePopupWindow(() => opt, trEngine);
+		trPopup.Closed += (_, _) => trPopup = null;
+	}
+
+	void showtranslatepopup() {
+		ensuretranslatepopup();
+		trPopup.ShowFromHotkey();
+	}
+
+	void toggletranslatepopup() {
+		ensuretranslatepopup();
+		if (trPopup.IsVisible && trPopup.IsActive) {
+			trPopup.Hide();
+			return;
+		}
+		if (trPopup.IsVisible) {
+			trPopup.Activate();
+			return;
+		}
+		trPopup.ShowFromHotkey();
 	}
 
 	void filltrengine() {

@@ -66,6 +66,8 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyBoard;  // 屏幕画板
 	GlobalHotkey hotkeyVoice;  // 语音输入
 	GlobalHotkey hotkeyLive;   // 系统实时字幕
+	GlobalHotkey hotkeyTr;     // 翻译小窗
+	TranslatePopupWindow trPopup;
 	HttpOcrServer httpServer;
 	readonly OcrRunner runner = new();
 	bool forceExit;
@@ -332,13 +334,14 @@ public partial class MainWindow : Window {
 	void inittray() {
 		try {
 			tray = new TrayIcon(this);
-			// 托盘右侧快捷键文案：主窗 / 截图识别 / 截图标注 / 屏幕画板 / 语音输入
+			// 托盘右侧快捷键文案：主窗 / 截图识别 / 截图标注 / 屏幕画板 / 语音输入 / 翻译小窗
 			tray.HotkeyProvider = () => (
 				fmttrayhk(opt.Hotkey),
 				fmttrayhk(opt.HotkeySnapOcr),
 				fmttrayhk(opt.HotkeySnap),
 				fmttrayhk(opt.HotkeyBoard),
-				fmttrayhk(opt.HotkeyVoiceInput));
+				fmttrayhk(opt.HotkeyVoiceInput),
+				fmttrayhk(opt.HotkeyTranslate));
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
 			tray.MenuOpening += () => {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;
@@ -369,6 +372,11 @@ public partial class MainWindow : Window {
 				if (!trayMenuMainVisible)
 					keepmainhidden();
 				toggleasrvoice();
+			}));
+			tray.TranslateRequested += () => Dispatcher.BeginInvoke(new Action(() => {
+				if (!trayMenuMainVisible)
+					keepmainhidden();
+				showtranslatepopup();
 			}));
 			tray.ClipboardOcrRequested += () => _ = hotkeyclipboardasync();
 			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(() => {
@@ -541,6 +549,17 @@ public partial class MainWindow : Window {
 					try { setstatus("实时字幕热键失败: " + ex.Message); } catch { }
 				}
 			}));
+			hotkeyTr = new GlobalHotkey(this, 0x7007);
+			hotkeyTr.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try {
+					CaptureLog.Info("hotkeyTr Fired");
+					toggletranslatepopup();
+				}
+				catch (Exception ex) {
+					CaptureLog.Ex("hotkeyTr Fired", ex);
+					try { setstatus("翻译小窗热键失败: " + ex.Message); } catch { }
+				}
+			}));
 			// 句柄就绪后再注册
 			SourceInitialized += (_, _) => registerhotkey();
 			Loaded += (_, _) => {
@@ -550,7 +569,8 @@ public partial class MainWindow : Window {
 					|| (hotkeySnapOcr != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapOcr) && !hotkeySnapOcr.IsRegistered)
 					|| (hotkeyBoard != null && !string.IsNullOrWhiteSpace(opt.HotkeyBoard) && !hotkeyBoard.IsRegistered)
 					|| (hotkeyVoice != null && !string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput) && !hotkeyVoice.IsRegistered)
-					|| (hotkeyLive != null && !string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption) && !hotkeyLive.IsRegistered);
+					|| (hotkeyLive != null && !string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption) && !hotkeyLive.IsRegistered)
+					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered);
 				if (need)
 					registerhotkey();
 			};
@@ -587,6 +607,10 @@ public partial class MainWindow : Window {
 			hotkeyLive.Attach();
 			if (!hotkeyLive.Register(opt.HotkeyLiveCaption)) errs.Add(hotkeyLive.LastError);
 		}
+		if (hotkeyTr != null) {
+			hotkeyTr.Attach();
+			if (!hotkeyTr.Register(opt.HotkeyTranslate)) errs.Add(hotkeyTr.LastError);
+		}
 		if (errs.Count > 0) {
 			var msg = string.Join(" · ", errs);
 			setstatus(msg);
@@ -600,7 +624,8 @@ public partial class MainWindow : Window {
 				fmt(hotkeySnap?.CurrentHotkey),
 				fmt(hotkeySnapOcr?.CurrentHotkey),
 				fmt(hotkeyVoice?.CurrentHotkey),
-				fmt(hotkeyLive?.CurrentHotkey)));
+				fmt(hotkeyLive?.CurrentHotkey),
+				fmt(hotkeyTr?.CurrentHotkey)));
 			try {
 				CaptureLog.Info("registerhotkey ok voice=" + (hotkeyVoice?.CurrentHotkey ?? "")
 					+ " live=" + (hotkeyLive?.CurrentHotkey ?? "")
@@ -663,6 +688,8 @@ public partial class MainWindow : Window {
 		try { hotkeySnapOcr?.Dispose(); } catch { }
 		try { hotkeyVoice?.Dispose(); } catch { }
 		try { hotkeyLive?.Dispose(); } catch { }
+		try { hotkeyTr?.Dispose(); } catch { }
+		try { trPopup?.ForceClose(); } catch { }
 		try { tray?.Dispose(); } catch { }
 		// 不在此 Dispose runner/ORT
 		try { Environment.Exit(0); } catch { }
@@ -977,6 +1004,7 @@ public partial class MainWindow : Window {
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
 		mnsettings.Click += (_, _) => opensettings();
+		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
 		mnlangzh.Click += (_, _) => setlang("zh");
@@ -1067,6 +1095,8 @@ public partial class MainWindow : Window {
 
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
+			mntrpopup.Header = Loc.T("menu.translate.popup");
+			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mninstall.Header = Loc.T("menu.install");
 			mninstall.ToolTip = Loc.T("menu.install.tip");
 			mndiag.Header = Loc.T("menu.diag");
@@ -1148,6 +1178,7 @@ public partial class MainWindow : Window {
 			try { applyttslang(); } catch { }
 			try { applyasrlang(); } catch { }
 			try { applytrlang(); } catch { }
+			try { trPopup?.ApplyLang(); } catch { }
 			try { applyfacelang(); } catch { }
 			try { tray?.ApplyLang(); } catch { }
 		}
@@ -1168,10 +1199,12 @@ public partial class MainWindow : Window {
 			var snap = fmttrayhk(opt.HotkeySnap);
 			var board = fmttrayhk(opt.HotkeyBoard);
 			var voice = fmttrayhk(opt.HotkeyVoiceInput);
+			var tr = fmttrayhk(opt.HotkeyTranslate);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
+			mntrpopup.InputGestureText = tr;
 			try { tray?.ApplyHotkeys(); } catch { }
 		}
 		catch { }
@@ -2692,7 +2725,8 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeySnapOcr, opt.HotkeySnapOcr, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyBoard, opt.HotkeyBoard, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyVoiceInput, opt.HotkeyVoiceInput, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(old.HotkeyLiveCaption, opt.HotkeyLiveCaption, StringComparison.OrdinalIgnoreCase))
+			|| !string.Equals(old.HotkeyLiveCaption, opt.HotkeyLiveCaption, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase))
 			registerhotkey();
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
@@ -3014,6 +3048,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey board: {opt.HotkeyBoard}");
 		sb.AppendLine($"Hotkey voice input: {opt.HotkeyVoiceInput}");
 		sb.AppendLine($"Hotkey live caption: {opt.HotkeyLiveCaption}");
+		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpHost}:{opt.HttpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");
 		sb.AppendLine($"FaceDet={opt.FaceDetModel} FaceReg={opt.FaceRegModel} FaceCompute={opt.FaceCompute}");
