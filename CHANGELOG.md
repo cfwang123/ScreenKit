@@ -4,6 +4,20 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
+## unreleased
+
+### English
+
+#### Added
+
+- Edit menu: **Copy path** — copies the current image's file path. Images opened from a file copy the source path; screenshots / pasted images are saved to `screenshots/` first and the path text is copied (persist OLE text).
+
+### 中文
+
+#### 新增
+
+- 「编辑」菜单新增 **复制路径**：复制当前图片的文件路径。打开的图片复制源文件路径；截图 / 粘贴的图先存 `screenshots/` 再复制路径文本（persist OLE 文本）。
+
 ## v1.0.4 (2026-08-31)
 
 ### English

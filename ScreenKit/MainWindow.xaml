@@ -106,6 +106,8 @@
 				          ToolTip="有图上选区时复制选中行，否则复制全部结果"/>
 				<MenuItem x:Name="mncopyimg" Header="复制图片(_I)"
 				          ToolTip="将当前图片以文件形式复制到剪贴板（可粘贴到资源管理器）"/>
+				<MenuItem x:Name="mncopypath" Header="复制路径(_P)"
+				          ToolTip="复制当前图片的文件路径；截图/粘贴的图先存 screenshots/ 再复制"/>
 				<Separator/>
 				<MenuItem x:Name="mntoggletext" Header="显示文字叠加(_W)" IsCheckable="True" IsChecked="True"
 				          ToolTip="叠加识别文字（Umi 黑底白字）；在文字上拖选"/>

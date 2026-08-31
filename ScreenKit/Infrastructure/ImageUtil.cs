@@ -569,6 +569,10 @@ static class ImageUtil {
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern bool GlobalUnlock(IntPtr hMem);
 
+	/// <summary>将文件完整路径作为文本写入剪贴板（公开入口，供主窗复制图片路径等）。</summary>
+	public static void CopyPathToClipboard(string path) =>
+		copypathtoclipboard(path);
+
 	/// <summary>
 	/// 将文件完整路径作为文本写入剪贴板（可贴到终端/对话框等）。
 	/// 必须走 OLE 文本 DataObject（persist）：Win32 SetClipboardData 后再 OleFlushClipboard

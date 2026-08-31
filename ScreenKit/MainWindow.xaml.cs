@@ -13,6 +13,7 @@ public partial class MainWindow : Window {
 	OcrResult last;
 	QrResult lastQr;
 	BitmapSource curimg;
+	string curimgsrcpath;
 	bool busy;
 	/// <summary>当前忙碌类型：ocr / qr（仅 busy 时有意义）。</summary>
 	string busyKind;
@@ -991,6 +992,7 @@ public partial class MainWindow : Window {
 		// 编辑菜单
 		mncopytext.Click += (_, _) => copytext();
 		mncopyimg.Click += (_, _) => copyimage();
+		mncopypath.Click += (_, _) => copypath();
 		mntoggletext.Checked += (_, _) => {
 			if (btoggletext.IsChecked != true) btoggletext.IsChecked = true;
 			drawoverlay();
@@ -1088,6 +1090,8 @@ public partial class MainWindow : Window {
 			mncopytext.ToolTip = Loc.T("menu.copytext.tip");
 			mncopyimg.Header = Loc.T("menu.copyimg");
 			mncopyimg.ToolTip = Loc.T("menu.copyimg.tip");
+			mncopypath.Header = Loc.T("menu.copypath");
+			mncopypath.ToolTip = Loc.T("menu.copypath.tip");
 			mntoggletext.Header = Loc.T("menu.toggletext");
 			mntoggletext.ToolTip = Loc.T("menu.toggletext.tip");
 			mncancelocr.Header = Loc.T("menu.cancelocr");
@@ -2528,6 +2532,30 @@ public partial class MainWindow : Window {
 		}
 	}
 
+	/// <summary>复制当前图片的文件路径：打开的文件用源路径；截图/粘贴的图先存 screenshots/。</summary>
+	void copypath() {
+		if (curimg == null) {
+			setstatus("当前没有可复制的图片");
+			return;
+		}
+		try {
+			string path;
+			if (!string.IsNullOrWhiteSpace(curimgsrcpath) && File.Exists(curimgsrcpath)) {
+				path = curimgsrcpath;
+				ImageUtil.CopyPathToClipboard(path);
+			}
+			else {
+				// 截图/粘贴等无源文件：落盘 screenshots/ 并复制路径文本
+				path = ImageUtil.SaveScreenshotAndCopy(curimg, "copy", copyAsImage: false,
+					copyAsFile: false, copyAsPath: true);
+			}
+			setstatus("已复制路径 · " + path);
+		}
+		catch (Exception ex) {
+			setstatus($"复制路径失败: {ex.Message}");
+		}
+	}
+
 	/// <summary>将图片区当前显示的图片保存为文件。</summary>
 	void saveimage() {
 		if (curimg == null) {
@@ -2583,7 +2611,7 @@ public partial class MainWindow : Window {
 		var wall0 = Environment.TickCount;
 		try {
 			var bmp = ImageUtil.Fromfile(path);
-			setimage(bmp);
+			setimage(bmp, path);
 			await ensureactivetabasync(wall0);
 		}
 		catch (Exception ex) {
@@ -3139,7 +3167,7 @@ public partial class MainWindow : Window {
 
 	// ───────── image / overlay ─────────
 
-	void setimage(BitmapSource bmp) {
+	void setimage(BitmapSource bmp, string srcPath = null) {
 		CaptureLog.Info($"setimage in={CaptureLog.Bmp(bmp)}");
 		if (bmp == null) {
 			CaptureLog.Info("setimage SKIP null");
@@ -3148,6 +3176,7 @@ public partial class MainWindow : Window {
 		bmp = ImageUtil.Withdpi(bmp, 96, 96);
 		CaptureLog.Info($"setimage after Withdpi={CaptureLog.Bmp(bmp)}");
 		curimg = bmp;
+		curimgsrcpath = srcPath;
 		// 新图：OCR / 二维码各重置为未识别，结果区清空
 		ocrDoneForImg = false;
 		qrDoneForImg = false;
