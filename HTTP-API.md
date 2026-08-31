@@ -380,6 +380,8 @@ Requires offline models under `asrmodels`. Streaming / dictation models are for 
 }
 ```
 
+`type` is an English keyword: `SenseVoice` / `Paraformer` / `Transducer` / `Whisper` / `ZipformerCtc`. Use `streaming` for live vs offline.
+
 ### 7.2 POST `/api/asr`
 
 **Request JSON:**

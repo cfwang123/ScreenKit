@@ -309,7 +309,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		foreach (var m in list) {
 			arr.Add(new JsonObject {
 				["name"] = m.DisplayName ?? "",
-				["type"] = m.TypeLabel ?? m.Type.ToString(),
+				["type"] = m.Type.ToString(),
 				["streaming"] = m.IsStreaming,
 				["sample_rate"] = m.SampleRate,
 			});

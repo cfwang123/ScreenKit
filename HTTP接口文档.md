@@ -380,6 +380,8 @@ print(urllib.request.urlopen(req).read().decode("utf-8"))
 }
 ```
 
+`type` 为英文关键字：`SenseVoice` / `Paraformer` / `Transducer` / `Whisper` / `ZipformerCtc`。是否流式看 `streaming`。
+
 ### 7.2 POST `/api/asr`
 
 **请求 JSON：**

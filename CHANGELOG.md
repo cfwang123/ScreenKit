@@ -21,6 +21,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - LLM thinking intensity adds **medium** and the dropdown shows raw API values `none / low / medium / high / max` (config unchanged; `none` still maps to `off`; `medium` / `mid` / `中` no longer fall back to `low`).
 - HTTP JSON responses write UTF-8 Chinese directly (no `\uXXXX` escapes).
+- `GET /api/asr/models` `type` is an English keyword (`SenseVoice` / `Transducer` / …), not a UI label such as `流式 Transducer`.
 
 #### Fixed
 
@@ -41,6 +42,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - LLM 思考强度增加 **medium**，下拉显示 API 原值 `none / low / medium / high / max`（配置不变；`none` 仍按 `off`；`medium` / `mid` / `中` 不再回落到 `low`）。
 - HTTP JSON 响应直接输出 UTF-8 中文，不再使用 `\uXXXX` 转义。
+- `GET /api/asr/models` 的 `type` 改为英文关键字（`SenseVoice` / `Transducer` 等），不再返回「流式 Transducer」这类界面文案。
 
 #### 修复
 
