@@ -265,6 +265,19 @@
 													<TextBlock x:Name="tbtext" Text="文字" FontSize="12"/>
 												</StackPanel>
 											</ToggleButton>
+											<ComboBox x:Name="etrocrdst" Width="92" Height="28" Margin="0,0,6,0"
+											          FontSize="12" VerticalAlignment="Center"
+											          ToolTip="叠加翻译的目标语言，默认不翻译"
+											          AutomationProperties.AutomationId="ocr.tr.dst"/>
+											<ToggleButton x:Name="btoggletr" Style="{StaticResource ToolToggleSm}"
+											              IsEnabled="False"
+											              ToolTip="将图上叠字换成译文；识别完成后若已选目标语言则默认开启"
+											              AutomationProperties.AutomationId="ocr.tr.toggle">
+												<StackPanel Orientation="Horizontal">
+													<TextBlock Text="文" FontSize="11" Margin="0,0,4,0"/>
+													<TextBlock x:Name="tbtr" Text="翻译" FontSize="12"/>
+												</StackPanel>
+											</ToggleButton>
 										</StackPanel>
 										<StackPanel DockPanel.Dock="Right" Orientation="Horizontal"
 										            VerticalAlignment="Center" HorizontalAlignment="Right">

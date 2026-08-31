@@ -546,6 +546,7 @@ public partial class SettingsWindow : Window {
 		ModelVariant = o.ModelVariant,
 		ModelsDir = o.ModelsDir,
 		UiLang = o.UiLang ?? "zh",
+		OcrTranslateLang = o.OcrTranslateLang ?? "",
 		Device = o.Device,
 		DetLimitSideLen = o.DetLimitSideLen,
 		DetPadding = o.DetPadding,

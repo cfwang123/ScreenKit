@@ -104,6 +104,12 @@ static class AppConfig {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
 			}
+			if (map.TryGetValue("ocr_translate_lang", out var otl)) {
+				var t = (otl ?? "").Trim().Trim('"').ToLowerInvariant();
+				if (t is "off" or "none" or "no" or "-" or "不翻译") t = "";
+				else t = TrLang.Normalize(t);
+				o.OcrTranslateLang = t is "zh" or "en" or "ja" or "ko" ? t : "";
+			}
 			// 安装向导：键存在则读；旧配置无此键视为已提示（不打扰升级用户）
 			if (map.TryGetValue("install_prompt_done", out var ipd))
 				o.InstallPromptDone = parsebool(ipd, true);
@@ -352,6 +358,10 @@ static class AppConfig {
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");
+		sb.AppendLine($"# OCR 页叠字翻译目标语言：空=不翻译；zh | en | ja | ko");
+		var ocrTr = (o.OcrTranslateLang ?? "").Trim().ToLowerInvariant();
+		if (ocrTr is not "zh" and not "en" and not "ja" and not "ko") ocrTr = "";
+		sb.AppendLine($"ocr_translate_lang = \"{ocrTr}\"");
 		sb.AppendLine($"# 首次启动安装向导是否已提示过");
 		sb.AppendLine($"install_prompt_done = {(o.InstallPromptDone ? "true" : "false")}");
 		sb.AppendLine($"# 主窗位置与大小（DIP）");

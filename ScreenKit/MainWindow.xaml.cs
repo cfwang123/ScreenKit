@@ -91,6 +91,7 @@ public partial class MainWindow : Window {
 		applydefaultmodel();
 		initmodelbar();
 		inittoolbar();
+		initocrtranslate();
 		initviewport();
 		inittts();
 		initasr();
@@ -1107,6 +1108,10 @@ public partial class MainWindow : Window {
 			bsaveclip.ToolTip = Loc.T("tb.save.tip");
 			tbtext.Text = Loc.T("tb.text");
 			btoggletext.ToolTip = Loc.T("tb.text.tip");
+			tbtr.Text = Loc.T("tb.tr");
+			btoggletr.ToolTip = Loc.T("tb.tr.tip");
+			etrocrdst.ToolTip = Loc.T("ocr.tr.dst.tip");
+			fillocrtrdst();
 			lbimgsize.ToolTip = Loc.T("img.size.tip");
 			lbzoom.ToolTip = Loc.T("img.zoom.tip");
 
@@ -1405,7 +1410,7 @@ public partial class MainWindow : Window {
 					ancLine = 0;
 					ancCh = 0;
 					curLine = last.Lines.Count - 1;
-					curCh = last.Lines[curLine].Text?.Length ?? 0;
+					curCh = overlaytext(curLine).Length;
 					drawoverlay();
 					syncresultfromimg();
 					setstatus($"已全选 {selcount()} 字 · Ctrl+C 复制");
@@ -1477,7 +1482,7 @@ public partial class MainWindow : Window {
 	void selectline(int line) {
 		if (last == null || last.Lines.Count == 0) return;
 		line = Compat.Clamp(line, 0, last.Lines.Count - 1);
-		var len = (last.Lines[line].Text ?? "").Length;
+		var len = overlaytext(line).Length;
 		ancLine = line;
 		ancCh = 0;
 		curLine = line;
@@ -1749,14 +1754,14 @@ public partial class MainWindow : Window {
 		ordercarets(out var sl, out var sc, out var el, out var ec);
 		var sb = new StringBuilder();
 		if (sl == el) {
-			var t = last.Lines[sl].Text ?? "";
+			var t = overlaytext(sl);
 			sc = Compat.Clamp(sc, 0, t.Length);
 			ec = Compat.Clamp(ec, 0, t.Length);
 			if (ec > sc) sb.Append(t, sc, ec - sc);
 			return sb.ToString();
 		}
 		for (int i = sl; i <= el; i++) {
-			var t = last.Lines[i].Text ?? "";
+			var t = overlaytext(i);
 			if (i == sl) {
 				sc = Compat.Clamp(sc, 0, t.Length);
 				if (sc < t.Length) sb.Append(t, sc, t.Length - sc);
@@ -1855,7 +1860,7 @@ public partial class MainWindow : Window {
 			var line = last.Lines[i];
 			if (line.Box == null || line.Box.Length < 4) continue;
 			if (pointinbox(x, y, line.Box, pad))
-				return (i, charat(line, x, y));
+				return (i, charat(i, x, y));
 			var cx = (line.Box[0].X + line.Box[1].X + line.Box[2].X + line.Box[3].X) / 4f;
 			var cy = (line.Box[0].Y + line.Box[1].Y + line.Box[2].Y + line.Box[3].Y) / 4f;
 			var d = Math.Abs(x - cx) + Math.Abs(y - cy);
@@ -1865,13 +1870,15 @@ public partial class MainWindow : Window {
 			}
 		}
 		if (allowNearest && selecting && best >= 0)
-			return (best, charat(last.Lines[best], x, y));
+			return (best, charat(best, x, y));
 		return (-1, 0);
 	}
 
 	/// <summary>将舞台坐标投影到行框局部 x，按宽度比例得到字符光标。</summary>
-	static int charat(OcrLine line, float x, float y) {
-		var text = line.Text ?? "";
+	int charat(int i, float x, float y) {
+		if (last == null || i < 0 || i >= last.Lines.Count) return 0;
+		var line = last.Lines[i];
+		var text = overlaytext(i);
 		var len = text.Length;
 		if (len == 0 || line.Box == null || line.Box.Length < 4) return 0;
 		var p0 = line.Box[0];
@@ -3054,6 +3061,7 @@ public partial class MainWindow : Window {
 		drawoverlay();
 		// 结果面板出来后左侧视口尺寸已稳定，再 fit 一次保证居中
 		schedulefit();
+		_ = maybeocrtranslateasync();
 	}
 
 	void showqrresult(QrResult r, int wallMs, bool focusResult = true) {
@@ -3103,6 +3111,7 @@ public partial class MainWindow : Window {
 		qrDoneForImg = false;
 		last = null;
 		lastQr = null;
+		cancelocrtranslate();
 		try {
 			eresult.Text = "";
 			eqrresult.Text = "";
@@ -3182,7 +3191,8 @@ public partial class MainWindow : Window {
 		for (int i = 0; i < last.Lines.Count; i++) {
 			var line = last.Lines[i];
 			if (line.Box == null || line.Box.Length < 4) continue;
-			if (string.IsNullOrEmpty(line.Text)) continue;
+			var show = overlaytext(i);
+			if (string.IsNullOrEmpty(show)) continue;
 
 			var p0 = line.Box[0];
 			var p1 = line.Box[1];
@@ -3191,7 +3201,7 @@ public partial class MainWindow : Window {
 			var w = Math.Max(2.0, dist(p0, p1));
 			var h = Math.Max(2.0, dist(p0, p3));
 			var angle = Math.Atan2(p1.Y - p0.Y, p1.X - p0.X) * 180.0 / Math.PI;
-			var len = line.Text.Length;
+			var len = show.Length;
 
 			// 行内选区比例 [t0,t1) ∈ [0,1]
 			float t0 = 0, t1 = 0;
@@ -3220,7 +3230,7 @@ public partial class MainWindow : Window {
 
 			// 底：半透明黑 + 白字（Umi）
 			var tb = new TextBlock {
-				Text = line.Text,
+				Text = show,
 				Foreground = TextFg,
 				FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI"),
 				FontWeight = FontWeights.Medium,

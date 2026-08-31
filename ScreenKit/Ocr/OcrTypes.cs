@@ -112,6 +112,8 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsPath = false;
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
+	/// <summary>OCR 页叠字翻译目标语言：空=不翻译；zh / en / ja / ko。</summary>
+	public string OcrTranslateLang = "";
 	/// <summary>是否已弹出过首次「安装功能」向导（false = 下次启动仍提示）。</summary>
 	public bool InstallPromptDone;
 	/// <summary>录屏编码参数。</summary>
