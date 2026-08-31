@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ScreenKit;
 
@@ -14,6 +15,14 @@ static class AsrLlmClient {
 	const int MAXCONTINUE = 6;
 	const int ROUNDTOKENS = 4096;
 	const int MINROUNDMS = 2000;
+	const int BATCHCHUNK = 8;
+	const int BATCHCHUNKMAX = 10;
+	const int BATCHITEMSMAX = 50;
+	const string BatchPrompt =
+		"请将用户给出的编号条目从{src}翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。" +
+		"只输出译文，保持相同编号（1. 2. 3. …），一条原文对应一条译文，不要合并或省略。";
+	static readonly Regex NumberedLine = new(@"^\s*(\d+)\.\s*",
+		RegexOptions.Multiline | RegexOptions.Compiled);
 	const string ProxyAddr = "http://127.0.0.1:7897";
 	const string CtxHint = "若提供上文，请结合上文纠正同音字、专有名词与指代；只输出「待润色」这一句的结果，不要重复上文、不要解释。";
 	const string ContinueUser = "从断点继续输出，不要重复已有内容，不要解释。";
@@ -78,14 +87,18 @@ static class AsrLlmClient {
 	}
 
 	/// <summary>LLM 翻译；失败抛异常。src/dst 为语言代码（zh/en/ja/ko）。</summary>
-	public static string Translate(OcrOptions o, string text, string src, string dst, CancellationToken ct = default) {
+	public static string Translate(OcrOptions o, string text, string src, string dst, CancellationToken ct = default) =>
+		Translate(o, o?.SelectedTranslateLlm(), text, src, dst, ct);
+
+	/// <summary>指定接口的 LLM 翻译。</summary>
+	public static string Translate(OcrOptions o, LlmEndpoint ep, string text, string src, string dst,
+		CancellationToken ct = default) {
 		text = (text ?? "").Trim();
 		if (text.Length == 0) return text;
-		var ep = o?.SelectedTranslateLlm();
 		if (!IsEndpointReady(ep))
 			throw new InvalidOperationException("未配置翻译 LLM（需 URL 与模型 id）");
 		ct.ThrowIfCancellationRequested();
-		var prompt = (o.TranslateLlmPrompt ?? "").Trim();
+		var prompt = (o?.TranslateLlmPrompt ?? "").Trim();
 		if (string.IsNullOrEmpty(prompt))
 			prompt = OcrOptions.DefaultTranslateLlmPrompt;
 		var srcL = TrLang.Label(src);
@@ -100,6 +113,87 @@ static class AsrLlmClient {
 		if (string.IsNullOrWhiteSpace(outText))
 			throw new InvalidOperationException("LLM 译文去掉思考块后为空");
 		return outText.Trim();
+	}
+
+	/// <summary>
+	/// 批量翻译：按 chunk（默认 8，最大 10）编号一次请求；缺号再逐条补。
+	/// 返回与 items 等长的译文（空输入对应空串）。
+	/// </summary>
+	public static List<string> TranslateBatch(OcrOptions o, IList<string> items, string src, string dst,
+		int chunk = 0, LlmEndpoint ep = null, CancellationToken ct = default) {
+		if (items == null || items.Count == 0) return new List<string>();
+		if (items.Count > BATCHITEMSMAX)
+			throw new InvalidOperationException($"批量最多 {BATCHITEMSMAX} 条");
+		ep ??= o?.SelectedTranslateLlm() ?? o?.SelectedLlm();
+		if (!IsEndpointReady(ep))
+			throw new InvalidOperationException("未配置翻译 LLM（需 URL 与模型 id）");
+		src = TrLang.Normalize(src);
+		dst = TrLang.Normalize(dst);
+		if (chunk <= 0) chunk = BATCHCHUNK;
+		chunk = Compat.Clamp(chunk, 1, BATCHCHUNKMAX);
+		var result = new string[items.Count];
+		for (var i = 0; i < result.Length; i++) result[i] = "";
+		for (var off = 0; off < items.Count; off += chunk) {
+			ct.ThrowIfCancellationRequested();
+			var n = Math.Min(chunk, items.Count - off);
+			var slice = new List<string>();
+			var idx = new List<int>();
+			for (var i = 0; i < n; i++) {
+				var t = (items[off + i] ?? "").Trim();
+				if (t.Length == 0) continue;
+				slice.Add(t);
+				idx.Add(off + i);
+			}
+			if (slice.Count == 0) continue;
+			var parsed = translatechunk(ep, slice, src, dst, ct);
+			for (var i = 0; i < slice.Count; i++) {
+				var got = i < parsed.Count ? parsed[i] : null;
+				if (!string.IsNullOrWhiteSpace(got)) {
+					result[idx[i]] = got.Trim();
+					continue;
+				}
+				LlmLog.Info($"batch miss i={idx[i] + 1}, fallback one");
+				result[idx[i]] = Translate(o, ep, slice[i], src, dst, ct);
+			}
+		}
+		return new List<string>(result);
+	}
+
+	static List<string> translatechunk(LlmEndpoint ep, List<string> slice, string src, string dst,
+		CancellationToken ct) {
+		var srcL = TrLang.Label(src);
+		var dstL = TrLang.Label(dst);
+		var prompt = BatchPrompt.Replace("{src}", srcL).Replace("{dst}", dstL);
+		var sb = new StringBuilder();
+		for (var i = 0; i < slice.Count; i++) {
+			if (i > 0) sb.Append('\n');
+			sb.Append(i + 1);
+			sb.Append(". ");
+			sb.Append(slice[i]);
+		}
+		LlmLog.Info($"translate batch n={slice.Count} {src}->{dst} model={ep.Model}");
+		var raw = complete(ep, prompt, sb.ToString(), TranslateTimeoutMs, ct);
+		raw = stripthink(raw ?? "");
+		return ParseNumbered(raw, slice.Count);
+	}
+
+	/// <summary>从「1. …」编号文本解析 n 条；缺号为 null。供 CLI / HTTP。</summary>
+	public static List<string> ParseNumbered(string text, int n) {
+		var list = new List<string>(n);
+		for (var i = 0; i < n; i++) list.Add(null);
+		text = text ?? "";
+		if (n <= 0 || text.Length == 0) return list;
+		var hits = NumberedLine.Matches(text);
+		for (var i = 0; i < hits.Count; i++) {
+			var m = hits[i];
+			if (!int.TryParse(m.Groups[1].Value, out var num)) continue;
+			if (num < 1 || num > n || list[num - 1] != null) continue;
+			var start = m.Index + m.Length;
+			var end = i + 1 < hits.Count ? hits[i + 1].Index : text.Length;
+			if (end < start) end = start;
+			list[num - 1] = text.Substring(start, end - start).Trim();
+		}
+		return list;
 	}
 
 	static string complete(LlmEndpoint ep, string prompt, string user, int timeoutMs, CancellationToken ct) {

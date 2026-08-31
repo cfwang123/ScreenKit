@@ -96,6 +96,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET | `/api/tts/models` | List TTS models |
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
+| POST | `/api/translate` · `/api/translate/batch` | LLM batch translate (needs `[[llm]]`) |
 | GET | `/api/face/models` | List face ONNX files |
 | POST | `/api/face` | Face detect / embedding / compare two images |
 
@@ -123,6 +124,7 @@ Returns service name and endpoint list.
       "GET  /api/tts/models",
       "POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
       "POST /api/itn   JSON{text}  WeText+rules",
+      "POST /api/translate  JSON{items[],src?,dst?}  LLM batch translate",
       "GET  /api/face/models",
       "POST /api/face  JSON{base64|base64_b|path} or multipart"
     ]
@@ -526,11 +528,41 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 ---
 
-## 10. Face
+## 10. POST `/api/translate` · `/api/translate/batch`
+
+LLM batch translate (numbered groups of 5–10; missing indexes retried one-by-one). Requires `[[llm]]` in settings and `translate_llm` (or pass `llm` in the request). `/api/translate/batch` is the same handler.
+
+**Request:**
+
+```json
+{
+  "src": "zh",
+  "dst": "en",
+  "items": [
+    "单击目标窗口 · Esc 取消",
+    "按 Ctrl+Alt+V 开始听写"
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `items` / `texts` | String array, max 50. Elements may also be `{"text":"…"}` |
+| `text` | Single string; treated as a one-item batch |
+| `src` / `dst` | `zh` / `en` / `ja` / `ko`. If omitted, auto zh↔en from the first non-empty item |
+| `dir` | Optional pair such as `zh-en` |
+| `chunk` | Items per LLM call, default 8, range 1–10 |
+| `llm` | Optional `[[llm]]` display name or model id; default `translate_llm`, else first list entry |
+
+**Response:** `data.items[]` with `i` / `text` / `out`. `data.miss` is how many non-empty inputs came back empty. `GET /api/status` → `llm_translate` is true when a translate LLM is configured.
+
+---
+
+## 11. Face
 
 Needs det+rec ONNX under `facemodels/`. Download InsightFace **buffalo_l** from **Tools → Install features**. Aliases: `POST /api/face/compare`, `POST /api/face/extract` (same handler).
 
-### 10.1 GET `/api/face/models`
+### 11.1 GET `/api/face/models`
 
 ```json
 {
@@ -547,7 +579,7 @@ Needs det+rec ONNX under `facemodels/`. Download InsightFace **buffalo_l** from 
 }
 ```
 
-### 10.2 POST `/api/face`
+### 11.2 POST `/api/face`
 
 One image: detect the largest face and extract an embedding. Two images: cosine similarity and same-person decision.
 
@@ -637,6 +669,6 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ## 13. Related
 
-- Implementation: `ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs`
+- Implementation: `ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs`
 - Config: `config.toml` (`http_enabled` / `http_host` / `http_port` / `service_mode`)
 - Overview: [README.md](README.md) · [README.zh.md](README.zh.md)

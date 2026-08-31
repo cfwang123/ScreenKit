@@ -11,6 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Added
 
 - LLM translate / polish **continues** when `finish_reason` is `length` / `max_tokens` (up to 6 extra rounds, remaining timeout). Overlapping chunk tails are stripped. CLI: `ScreenKit --test-llm-continue`.
+- HTTP `POST /api/translate` (alias `/api/translate/batch`): LLM batch translate of up to 50 strings (groups of 8, missing indexes retried one-by-one). `GET /api/status` includes `llm_translate`.
 
 #### Changed
 
@@ -26,6 +27,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 新增
 
 - LLM 翻译 / 润色在 `finish_reason` 为 `length` / `max_tokens` 时**超长续写**（最多再 6 轮，受剩余超时限制），去掉片段重叠。CLI：`ScreenKit --test-llm-continue`。
+- HTTP `POST /api/translate`（别名 `/api/translate/batch`）：LLM 批量翻译，最多 50 条（每批 8 条编号请求，缺号逐条补）。`GET /api/status` 增加 `llm_translate`。
 
 #### 变更
 

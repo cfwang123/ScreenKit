@@ -316,6 +316,7 @@ When enabled, a local server listens on `http_host:http_port` (default loopback 
 - `GET  /api/asr/models` · `POST /api/asr` — speech recognition
 - `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64)
 - `POST /api/itn` — inverse text normalization
+- `POST /api/translate` — LLM batch translate (`items[]`; needs configured LLM)
 - `GET  /api/face/models` · `POST /api/face` — face detect / compare
 
 Bind to `127.0.0.1` unless you intentionally expose the service on a trusted network.

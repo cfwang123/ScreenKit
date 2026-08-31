@@ -96,6 +96,7 @@ http_port = 1224
 | GET | `/api/tts/models` | 列出 TTS 模型 |
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
+| POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译（需已配置 `[[llm]]`） |
 | GET | `/api/face/models` | 列出人脸 ONNX |
 | POST | `/api/face` | 人脸检测 / 特征 / 两图比对 |
 
@@ -123,6 +124,7 @@ http_port = 1224
       "GET  /api/tts/models",
       "POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
       "POST /api/itn   JSON{text}  WeText+规则后处理",
+      "POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译",
       "GET  /api/face/models",
       "POST /api/face  JSON{base64|base64_b|path} 或 multipart"
     ]
@@ -526,11 +528,78 @@ open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 
 ---
 
-## 10. 人脸
+## 10. POST `/api/translate` · `/api/translate/batch`
+
+LLM 批量翻译（编号一次 5–10 条，缺号再逐条补）。需在参数设置配置 `[[llm]]`，并指定 `translate_llm`（或请求里传 `llm`）。别名 `/api/translate/batch` 同一处理。
+
+**请求：**
+
+```json
+{
+  "src": "zh",
+  "dst": "en",
+  "items": [
+    "单击目标窗口 · Esc 取消",
+    "按 Ctrl+Alt+V 开始听写"
+  ]
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `items` / `texts` | 字符串数组，最多 50 条。元素也可以是 `{"text":"…"}` |
+| `text` | 单条时可用，等价于 `items` 只有一项 |
+| `src` / `dst` | 语言代码 `zh` / `en` / `ja` / `ko`。可省略，则按首条非空文本做中英互译自动检测 |
+| `dir` | 可选，如 `zh-en`，与 `src`/`dst` 二选一 |
+| `chunk` | 每批送给模型的条数，默认 8，范围 1–10 |
+| `llm` | 可选，`[[llm]]` 显示名称或模型 id；默认 `translate_llm`，再否则列表第一项 |
+
+**响应：**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "src": "zh",
+    "dst": "en",
+    "model": "Qwen/Qwen3.5-4B",
+    "llm": "硅基 Qwen3.5-4B",
+    "chunk": 8,
+    "count": 2,
+    "miss": 0,
+    "items": [
+      { "i": 1, "text": "单击目标窗口 · Esc 取消", "out": "Click the target window · Esc to cancel" },
+      { "i": 2, "text": "按 Ctrl+Alt+V 开始听写", "out": "Press Ctrl+Alt+V to start dictation." }
+    ]
+  },
+  "time": 2100,
+  "timestamp": 1710000000
+}
+```
+
+`GET /api/status` 的 `llm_translate` 为 true 时表示已配置可用的翻译 LLM。
+
+```python
+import json, urllib.request
+req = urllib.request.Request(
+    "http://127.0.0.1:1224/api/translate",
+    data=json.dumps({
+        "src": "zh", "dst": "en",
+        "items": ["单击目标窗口 · Esc 取消", "增加文本语音合成"],
+    }).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
+```
+
+---
+
+## 11. 人脸
 
 依赖程序目录 `facemodels/` 中有检测+识别 ONNX。可在 **工具 → 安装功能** 下载 InsightFace **buffalo_l**。别名：`POST /api/face/compare`、`POST /api/face/extract`（同一处理）。
 
-### 10.1 GET `/api/face/models`
+### 11.1 GET `/api/face/models`
 
 ```json
 {
@@ -547,7 +616,7 @@ open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 }
 ```
 
-### 10.2 POST `/api/face`
+### 11.2 POST `/api/face`
 
 一张图：检测最大脸并提取特征。两张图：两侧特征余弦相似度并判定是否同一人。
 
@@ -637,7 +706,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ## 13. 相关
 
-- 程序内：`ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs`
+- 程序内：`ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs`
 - 配置：`config.toml`（`http_enabled` / `http_host` / `http_port` / `service_mode`）
 - 总览：[README.zh.md](README.zh.md) · [README.md](README.md)
 - 英文版：[HTTP-API.md](HTTP-API.md)

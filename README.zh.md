@@ -227,6 +227,7 @@ x86host.exe --list-sapi
 - `GET  /api/asr/models` · `POST /api/asr` — 语音识别（base64/本地 path）
 - `GET  /api/tts/models` · `POST /api/tts` — 语音合成（返回 wav base64）
 - `POST /api/itn` — 文本逆归一化（WeText + 规则）
+- `POST /api/translate` — LLM 批量翻译（`items[]`，需已配置 LLM）
 - `GET  /api/face/models` · `POST /api/face` — 人脸检测 / 比对
 
 默认绑定 `127.0.0.1`，勿在未受控网络上暴露。

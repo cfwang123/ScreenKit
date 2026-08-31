@@ -17,6 +17,7 @@ namespace ScreenKit;
 /// <item>GET  /api/asr/models · POST /api/asr</item>
 /// <item>GET  /api/tts/models · POST /api/tts</item>
 /// <item>POST /api/itn</item>
+/// <item>POST /api/translate · /api/translate/batch</item>
 /// <item>GET  /api/face/models · POST /api/face</item>
 /// </list>
 /// </summary>
@@ -178,6 +179,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/translate" or "/api/translate/batch") {
+				if (!ispost(req)) {
+					writejson(ctx, 405, err(805, "translate 仅支持 POST"));
+					return;
+				}
+				handletranslate(ctx);
+				return;
+			}
+
 			if (path is "/api/face/models") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "face/models 仅支持 GET"));
@@ -211,6 +221,7 @@ sealed partial class HttpOcrServer : IDisposable {
 							"GET  /api/tts/models",
 							"POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
 							"POST /api/itn   JSON{text}  WeText+规则后处理",
+							"POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译",
 							"GET  /api/face/models",
 							"POST /api/face  JSON{base64|base64_b|path} 或 multipart 人脸检测/比对",
 						},
@@ -257,6 +268,8 @@ sealed partial class HttpOcrServer : IDisposable {
 				["face_models"] = faceN,
 				["itn"] = WetextItn.IsAvailable,
 				["itn_error"] = WetextItn.IsAvailable ? "" : (WetextItn.LastError ?? ""),
+				["llm_translate"] = AsrLlmClient.IsEndpointReady(
+					o.SelectedTranslateLlm() ?? o.SelectedLlm()),
 			},
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
 		});

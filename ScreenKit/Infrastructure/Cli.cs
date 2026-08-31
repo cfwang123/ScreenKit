@@ -1449,6 +1449,13 @@ static class Cli {
 		if (text != "done" || AsrLlmClient.FinishIsTruncated(finish))
 			fail($"ParseChoice stop text={text} finish={finish}");
 
+		var numbered = AsrLlmClient.ParseNumbered("1. Hello\n2. World\n3. Third", 3);
+		if (numbered.Count != 3 || numbered[0] != "Hello" || numbered[1] != "World" || numbered[2] != "Third")
+			fail("ParseNumbered 1-3 got=" + string.Join("|", numbered));
+		numbered = AsrLlmClient.ParseNumbered("1. only first\n3. skipped two", 3);
+		if (numbered[0] != "only first" || numbered[1] != null || numbered[2] != "skipped two")
+			fail("ParseNumbered miss got=" + string.Join("|", numbered.Select(x => x ?? "(null)")));
+
 		Out(bad == 0 ? "=== OK：续写判定与拼接 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}
