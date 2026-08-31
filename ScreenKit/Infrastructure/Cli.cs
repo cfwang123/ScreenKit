@@ -1446,14 +1446,12 @@ static class Cli {
 		bmp.Freeze();
 		var bad = 0;
 		for (var n = 1; n <= 3; n++) {
-			Out($"--- round {n} ---");
+			Out($"--- round {n} save-as-path after image ---");
 			try { ImageUtil.Toclipboard(bmp); }
 			catch (Exception ex) {
 				Out("pre Toclipboard: " + ex.Message);
 			}
-			var preImg = false;
-			try { preImg = Clipboard.ContainsImage(); } catch { }
-			Out($"pre ContainsImage={preImg}");
+			Out("pre formats: " + ImageUtil.ClipboardFormatList());
 
 			string path;
 			try {
@@ -1466,20 +1464,41 @@ static class Cli {
 				continue;
 			}
 			Out("saved " + path);
-
-			string got = null;
+			Out("post formats: " + ImageUtil.ClipboardFormatList());
 			var onlyPath = false;
-			try { got = Clipboard.GetText(); } catch (Exception ex) { Out("GetText: " + ex.Message); }
-			try { onlyPath = ImageUtil.ClipboardIsPathOnly(path); } catch (Exception ex) { Out("ClipboardIsPathOnly: " + ex.Message); }
-			Out($"post text={got}");
+			try { onlyPath = ImageUtil.ClipboardIsPathOnly(path); }
+			catch (Exception ex) { Out("ClipboardIsPathOnly: " + ex.Message); }
 			Out($"post ClipboardIsPathOnly={onlyPath}");
-
 			if (!onlyPath) {
 				Err("FAIL: 剪贴板不是纯路径文本（仍含位图/文件，粘贴会变成 ▀）");
 				bad++;
 			}
 			else Out("round OK");
 		}
+
+		Out("--- recopy last as path after image ---");
+		try { ImageUtil.Toclipboard(bmp); }
+		catch (Exception ex) { Out("pre Toclipboard: " + ex.Message); }
+		Out("pre formats: " + ImageUtil.ClipboardFormatList());
+		string recopy = null;
+		try { recopy = ImageUtil.RecopyLastScreenshot(false, false, true); }
+		catch (Exception ex) {
+			Err("RecopyLastScreenshot fail: " + ex.Message);
+			bad++;
+		}
+		Out("recopy " + recopy);
+		Out("post formats: " + ImageUtil.ClipboardFormatList());
+		var recopyOk = false;
+		try {
+			recopyOk = !string.IsNullOrWhiteSpace(recopy) && ImageUtil.ClipboardIsPathOnly(recopy);
+		}
+		catch (Exception ex) { Out("ClipboardIsPathOnly: " + ex.Message); }
+		if (!recopyOk) {
+			Err("FAIL: 重新复制为路径未成功");
+			bad++;
+		}
+		else Out("recopy OK");
+
 		Out(bad == 0 ? "=== OK：复制为路径不残留位图 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}

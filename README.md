@@ -19,7 +19,7 @@ Current version: **1.0.3**
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
 | **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF |
-| **Clipboard** | Paste image and run OCR; copy image / text; menu/tray can switch on-capture copy mode (image / file / path) and re-copy the last screenshot. Copy-as-path writes Win32 text only (drops OLE delayed bitmaps) so leftover screenshots are not pasted as `▀` |
+| **Clipboard** | Paste image and run OCR; copy image / text; menu/tray can switch on-capture copy mode (image / file / path) and re-copy the last screenshot. Copy-as-path writes a persist OLE text object (no leftover bitmap, no empty clipboard after Flush) |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |

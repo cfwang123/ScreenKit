@@ -12,11 +12,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
 
+#### Fixed
+
+- Copy-as-path after a screenshot sometimes left the clipboard empty: `OleSetClipboard(null)` then Win32 text then `OleFlushClipboard` emptied the text (Flush calls `EmptyClipboard` on a null OLE object). Path copy now sets a persist OLE text DataObject. CLI: `ScreenKit --test-clipboard-path` also covers re-copy last screenshot as path.
+
 ### 中文
 
 #### 变更
 
 - Release 编译**不再**复制或联接模型 / ORT / FFmpeg 目录。请自行把 `ocrmodels`、`asrmodels`、`ttsmodels`、`translatemodels`、`facemodels`、`onnxcpu64`、`onnxgpu64`、`onnxdml64`、`ffmpeg64` 放到 `bin/Release/net48/`（目录联接即可）。NuGet 的 GPU/DirectML 原生库也不再拷进输出。
+
+#### 修复
+
+- **截图复制为路径**有时截图完剪贴板是空的：`OleSetClipboard(null)` 后再 Win32 写文本并 `OleFlushClipboard`，Flush 会对空 OLE 对象执行 `EmptyClipboard`，刚写入的路径被清掉。现改为 persist 的 OLE 文本 DataObject。CLI：`ScreenKit --test-clipboard-path` 同时覆盖「重新复制为路径」。
 
 ## v1.0.3 (2026-08-30)
 

@@ -544,19 +544,12 @@ static class ImageUtil {
 	const uint CF_TEXT = 1, CF_BITMAP = 2, CF_METAFILEPICT = 3, CF_TIFF = 6;
 	const uint CF_OEMTEXT = 7, CF_DIB = 8, CF_UNICODETEXT = 13, CF_ENHMETAFILE = 14;
 	const uint CF_HDROP = 15, CF_LOCALE = 16, CF_DIBV5 = 17;
-	const uint GMEM_MOVEABLE = 0x0002;
 
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool OpenClipboard(IntPtr hWndNewOwner);
 
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool CloseClipboard();
-
-	[DllImport("user32.dll", SetLastError = true)]
-	static extern bool EmptyClipboard();
-
-	[DllImport("user32.dll", SetLastError = true)]
-	static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
 
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern IntPtr GetClipboardData(uint uFormat);
@@ -570,25 +563,17 @@ static class ImageUtil {
 	[DllImport("ole32.dll")]
 	static extern int OleSetClipboard(IntPtr pDataObj);
 
-	[DllImport("ole32.dll")]
-	static extern int OleFlushClipboard();
-
-	[DllImport("kernel32.dll", SetLastError = true)]
-	static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
-
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern IntPtr GlobalLock(IntPtr hMem);
 
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern bool GlobalUnlock(IntPtr hMem);
 
-	[DllImport("kernel32.dll", SetLastError = true)]
-	static extern IntPtr GlobalFree(IntPtr hMem);
-
 	/// <summary>
 	/// 将文件完整路径作为文本写入剪贴板（可贴到终端/对话框等）。
-	/// 先 OleSetClipboard(null) 丢掉 WPF 延迟渲染的旧 IDataObject，再 Win32 只写入文本并 Flush。
-	/// 不能再用 WPF GetText/ContainsImage 校验：会把旧位图重新挂上，微信等就粘成「▀」。
+	/// 必须走 OLE 文本 DataObject（persist）：Win32 SetClipboardData 后再 OleFlushClipboard
+	/// 会把刚写入的文本清掉（Flush 对 null IDataObject 执行 EmptyClipboard），表现为截图完未复制。
+	/// 校验只用 Win32 枚举，不用 WPF GetText/ContainsImage：会把上一张延迟位图重新挂上，微信粘成「▀」。
 	/// </summary>
 	static void copypathtoclipboard(string path) {
 		if (string.IsNullOrWhiteSpace(path))
@@ -598,12 +583,17 @@ static class ImageUtil {
 		Exception last = null;
 		for (var i = 0; i < 8; i++) {
 			try {
-				if (win32settext(full) && cliptextispath(full)) return;
+				try { OleSetClipboard(IntPtr.Zero); } catch { }
+				var data = new DataObject();
+				data.SetText(full);
+				setclip(data, persist: true);
+				if (cliptextispath(full)) return;
+				last = new InvalidOperationException("剪贴板校验失败: " + ClipboardFormatList());
 			}
 			catch (Exception ex) { last = ex; }
 			try { Thread.Sleep(30 + i * 20); } catch { }
 		}
-		throw new InvalidOperationException("复制路径到剪贴板失败: " + (last?.Message ?? "残留位图未清除"), last);
+		throw new InvalidOperationException("复制路径到剪贴板失败: " + (last?.Message ?? "未知"), last);
 	}
 
 	/// <summary>剪贴板是否仅为该路径文本、无位图/文件拖放。供 CLI 自检。</summary>
@@ -611,6 +601,24 @@ static class ImageUtil {
 		if (string.IsNullOrWhiteSpace(path)) return false;
 		try { path = Path.GetFullPath(path); } catch { }
 		return cliptextispath(path);
+	}
+
+	/// <summary>Win32 枚举剪贴板格式（诊断用，不走 WPF Clipboard）。</summary>
+	public static string ClipboardFormatList() {
+		if (!OpenClipboard(IntPtr.Zero)) return "OpenClipboard fail";
+		try {
+			var sb = new StringBuilder();
+			uint f = 0;
+			while ((f = EnumClipboardFormats(f)) != 0) {
+				if (sb.Length > 0) sb.Append(',');
+				sb.Append(fmtname(f));
+			}
+			var got = win32readunicode();
+			if (sb.Length == 0) sb.Append("(empty)");
+			sb.Append(" text=").Append(got ?? "(null)");
+			return sb.ToString();
+		}
+		finally { CloseClipboard(); }
 	}
 
 	/// <summary>Win32 枚举：只要文本（允许 Locale），不要图/HDROP。</summary>
@@ -635,15 +643,30 @@ static class ImageUtil {
 			return true;
 		if (f is CF_TEXT or CF_OEMTEXT or CF_UNICODETEXT or CF_LOCALE)
 			return false;
-		var sb = new StringBuilder(128);
-		if (GetClipboardFormatName(f, sb, sb.Capacity) <= 0) return false;
-		var n = sb.ToString();
+		var n = fmtname(f);
 		if (n.IndexOf("Bitmap", StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		if (n.IndexOf("PNG", StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		if (n.IndexOf("DIB", StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		if (n.IndexOf("FileDrop", StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		if (n.IndexOf("FileName", StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		return false;
+	}
+
+	static string fmtname(uint f) {
+		if (f == CF_TEXT) return "CF_TEXT";
+		if (f == CF_BITMAP) return "CF_BITMAP";
+		if (f == CF_METAFILEPICT) return "CF_METAFILEPICT";
+		if (f == CF_TIFF) return "CF_TIFF";
+		if (f == CF_OEMTEXT) return "CF_OEMTEXT";
+		if (f == CF_DIB) return "CF_DIB";
+		if (f == CF_UNICODETEXT) return "CF_UNICODETEXT";
+		if (f == CF_ENHMETAFILE) return "CF_ENHMETAFILE";
+		if (f == CF_HDROP) return "CF_HDROP";
+		if (f == CF_LOCALE) return "CF_LOCALE";
+		if (f == CF_DIBV5) return "CF_DIBV5";
+		var sb = new StringBuilder(128);
+		if (GetClipboardFormatName(f, sb, sb.Capacity) > 0) return sb.ToString();
+		return f.ToString();
 	}
 
 	static string win32readunicode() {
@@ -653,52 +676,6 @@ static class ImageUtil {
 		if (p == IntPtr.Zero) return null;
 		try { return Marshal.PtrToStringUni(p); }
 		finally { GlobalUnlock(h); }
-	}
-
-	static bool win32settext(string text) {
-		// 拆掉上一张截图的 OLE 延迟 IDataObject（SetDataObject copy:false）
-		try { OleSetClipboard(IntPtr.Zero); } catch { }
-		if (!OpenClipboard(IntPtr.Zero)) return false;
-		var ok = false;
-		try {
-			if (!EmptyClipboard()) return false;
-			var uni = alloccliptext(Encoding.Unicode.GetBytes(text + "\0"));
-			if (!setclipdata(CF_UNICODETEXT, uni)) return false;
-			try {
-				var ansi = alloccliptext(Encoding.Default.GetBytes(text + "\0"));
-				setclipdata(CF_TEXT, ansi);
-			}
-			catch { }
-			ok = true;
-			return true;
-		}
-		finally {
-			CloseClipboard();
-			if (ok) {
-				try { OleFlushClipboard(); } catch { }
-			}
-		}
-	}
-
-	static bool setclipdata(uint format, IntPtr hMem) {
-		if (hMem == IntPtr.Zero) return false;
-		if (SetClipboardData(format, hMem) != IntPtr.Zero) return true;
-		GlobalFree(hMem);
-		return false;
-	}
-
-	static IntPtr alloccliptext(byte[] bytes) {
-		if (bytes == null || bytes.Length == 0) return IntPtr.Zero;
-		var h = GlobalAlloc(GMEM_MOVEABLE, (UIntPtr)(uint)bytes.Length);
-		if (h == IntPtr.Zero) return IntPtr.Zero;
-		var p = GlobalLock(h);
-		if (p == IntPtr.Zero) {
-			GlobalFree(h);
-			return IntPtr.Zero;
-		}
-		try { Marshal.Copy(bytes, 0, p, bytes.Length); }
-		finally { GlobalUnlock(h); }
-		return h;
 	}
 
 	/// <summary>保存为 png/jpg/bmp（按扩展名）。jpg 质量默认用当前配置，可覆盖。</summary>
