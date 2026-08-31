@@ -11,8 +11,12 @@ static class AsrLlmClient {
 	const int TimeoutMs = 12_000;
 	const int TranslateTimeoutMs = 90_000;
 	const int MaxCtx = 1200;
+	const int MAXCONTINUE = 6;
+	const int ROUNDTOKENS = 4096;
+	const int MINROUNDMS = 2000;
 	const string ProxyAddr = "http://127.0.0.1:7897";
 	const string CtxHint = "若提供上文，请结合上文纠正同音字、专有名词与指代；只输出「待润色」这一句的结果，不要重复上文、不要解释。";
+	const string ContinueUser = "从断点继续输出，不要重复已有内容，不要解释。";
 
 	public static bool IsEndpointReady(LlmEndpoint ep) =>
 		ep != null
@@ -103,42 +107,106 @@ static class AsrLlmClient {
 		var model = (ep.Model ?? "").Trim();
 		var key = (ep.Key ?? "").Trim();
 		var think = LlmEndpoint.NormThink(ep.Think);
-		var json = JsonSerializer.Serialize(makepayload(model, prompt, user, think));
+		var sendMax = true;
+		var acc = "";
+		var wall0 = Environment.TickCount;
+		for (var round = 0; round <= MAXCONTINUE; round++) {
+			ct.ThrowIfCancellationRequested();
+			var used = unchecked(Environment.TickCount - wall0);
+			var left = timeoutMs - used;
+			if (round > 0 && left < MINROUNDMS) {
+				LlmLog.Info($"continue stop: time left {left}ms accLen={acc.Length}");
+				break;
+			}
+			var roundMs = round == 0 ? timeoutMs : Math.Max(MINROUNDMS, left);
+			object messages = round == 0
+				? new object[] {
+					new { role = "system", content = prompt },
+					new { role = "user", content = user },
+				}
+				: new object[] {
+					new { role = "system", content = prompt },
+					new { role = "user", content = user },
+					new { role = "assistant", content = acc },
+					new { role = "user", content = ContinueUser },
+				};
+			int code;
+			string body;
+			int ms;
+			try {
+				(code, body, ms, think, sendMax) = postround(url, key, model, messages, think, sendMax, roundMs, ct);
+			}
+			catch (OperationCanceledException) {
+				if (ct.IsCancellationRequested) throw;
+				if (acc.Length > 0) {
+					LlmLog.Info($"continue timeout, return partial accLen={acc.Length}");
+					break;
+				}
+				throw;
+			}
+			LlmLog.Info($"resp round={round} {code} {ms}ms len={body.Length} {clip(body, 4000)}");
+			if (code < 200 || code >= 300) {
+				if (acc.Length > 0) {
+					LlmLog.Info($"continue HTTP {code}, return partial accLen={acc.Length}");
+					break;
+				}
+				var snippet = body.Length > 240 ? body.Substring(0, 240) : body;
+				throw new InvalidOperationException($"HTTP {code}: {snippet}");
+			}
+			var (chunk, finish) = ParseChoice(body);
+			chunk = stripthink(chunk);
+			if (chunk.Length == 0) {
+				if (acc.Length == 0) {
+					LlmLog.Info($"extract empty finish={finish}");
+					return "";
+				}
+				LlmLog.Info($"continue empty chunk finish={finish}, stop accLen={acc.Length}");
+				break;
+			}
+			acc = round == 0 ? chunk : MergeContinue(acc, chunk);
+			LlmLog.Info($"extracted round={round} finish={finish} chunkLen={chunk.Length} accLen={acc.Length} {clip(acc, 500)}");
+			if (!FinishIsTruncated(finish)) break;
+			if (round == MAXCONTINUE)
+				LlmLog.Info($"continue hit max rounds, return partial accLen={acc.Length}");
+		}
+		return acc;
+	}
+
+	static (int code, string body, int ms, string think, bool sendMax) postround(
+		string url, string key, string model, object messages, string think, bool sendMax,
+		int timeoutMs, CancellationToken ct) {
+		var json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0));
 		LlmLog.Info("req " + clip(json, 4000));
 		var (code, body, ms) = postjson(url, key, json, timeoutMs, ct);
-		LlmLog.Info($"resp {code} {ms}ms len={body.Length} {clip(body, 4000)}");
 		if (code == 400 && think == "off" && mustthink(body)) {
 			think = "low";
-			json = JsonSerializer.Serialize(makepayload(model, prompt, user, think));
+			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0));
 			LlmLog.Info("retry think=low (model forbids off) " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
-			LlmLog.Info($"resp {code} {ms}ms len={body.Length} {clip(body, 4000)}");
 		}
-		if (code == 400) {
-			json = JsonSerializer.Serialize(makepayload(model, prompt, user, null));
+		if (code == 400 && !string.IsNullOrEmpty(think)) {
+			think = null;
+			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0));
 			LlmLog.Info("retry without think fields " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
-			LlmLog.Info($"resp {code} {ms}ms len={body.Length} {clip(body, 4000)}");
 		}
-		if (code < 200 || code >= 300) {
-			var snippet = body.Length > 240 ? body.Substring(0, 240) : body;
-			throw new InvalidOperationException($"HTTP {code}: {snippet}");
+		if (code == 400 && sendMax) {
+			sendMax = false;
+			json = JsonSerializer.Serialize(makepayload(model, messages, think, 0));
+			LlmLog.Info("retry without max_tokens " + clip(json, 4000));
+			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		}
-		var extracted = extractcontent(body);
-		LlmLog.Info("extracted " + clip(extracted, 500));
-		return extracted;
+		return (code, body, ms, think, sendMax);
 	}
 
 	/// <summary>think：off 关闭；low/high/max 开启并设 reasoning_effort；null 不带思考字段。</summary>
-	static Dictionary<string, object> makepayload(string model, string prompt, string user, string think) {
+	static Dictionary<string, object> makepayload(string model, object messages, string think, int maxTokens) {
 		var p = new Dictionary<string, object> {
 			["model"] = model,
 			["temperature"] = 0.2,
-			["messages"] = new object[] {
-				new { role = "system", content = prompt },
-				new { role = "user", content = user },
-			},
+			["messages"] = messages,
 		};
+		if (maxTokens > 0) p["max_tokens"] = maxTokens;
 		if (string.IsNullOrEmpty(think)) return p;
 		if (think == "off") {
 			p["thinking"] = new Dictionary<string, string> { ["type"] = "disabled" };
@@ -149,6 +217,31 @@ static class AsrLlmClient {
 		p["thinking"] = new Dictionary<string, string> { ["type"] = "enabled" };
 		p["reasoning_effort"] = think;
 		return p;
+	}
+
+	/// <summary>finish_reason 是否为输出长度截断（应续写）。</summary>
+	public static bool FinishIsTruncated(string finish) {
+		if (string.IsNullOrWhiteSpace(finish)) return false;
+		finish = finish.Trim();
+		if (finish.Equals("length", StringComparison.OrdinalIgnoreCase)) return true;
+		if (finish.Equals("max_tokens", StringComparison.OrdinalIgnoreCase)) return true;
+		if (finish.Equals("max_output_tokens", StringComparison.OrdinalIgnoreCase)) return true;
+		return false;
+	}
+
+	/// <summary>把续写片段接到已有正文后；若新片段开头与旧文尾重叠则去掉重叠。</summary>
+	public static string MergeContinue(string acc, string next) {
+		acc = acc ?? "";
+		next = next ?? "";
+		if (next.Length == 0) return acc;
+		if (acc.Length == 0) return next;
+		var n = Math.Min(acc.Length, next.Length);
+		if (n > 120) n = 120;
+		for (var k = n; k >= 8; k--) {
+			if (string.CompareOrdinal(next, 0, acc, acc.Length - k, k) == 0)
+				return acc + next.Substring(k);
+		}
+		return acc + next;
 	}
 
 	static bool mustthink(string body) {
@@ -231,7 +324,8 @@ static class AsrLlmClient {
 		return false;
 	}
 
-	static string extractcontent(string json) {
+	/// <summary>解析 choices[0] 的正文与 finish_reason。供 CLI 自检。</summary>
+	public static (string text, string finish) ParseChoice(string json) {
 		using var doc = JsonDocument.Parse(json);
 		var root = doc.RootElement;
 		if (!root.TryGetProperty("choices", out var choices)
@@ -239,15 +333,21 @@ static class AsrLlmClient {
 			|| choices.GetArrayLength() == 0)
 			throw new InvalidOperationException("响应无 choices");
 		var c0 = choices[0];
+		var finish = "";
+		if (c0.TryGetProperty("finish_reason", out var fr) && fr.ValueKind == JsonValueKind.String)
+			finish = fr.GetString() ?? "";
+		else if (c0.TryGetProperty("finishReason", out var fr2) && fr2.ValueKind == JsonValueKind.String)
+			finish = fr2.GetString() ?? "";
 		if (c0.TryGetProperty("message", out var msg)) {
 			var text = readtext(msg, "content");
-			if (text.Length > 0) return stripthink(text);
-			LlmLog.Info("message.content empty kind=" +
-				(msg.TryGetProperty("content", out var c) ? c.ValueKind.ToString() : "missing"));
-			return "";
+			if (text.Length == 0)
+				LlmLog.Info("message.content empty kind=" +
+					(msg.TryGetProperty("content", out var c) ? c.ValueKind.ToString() : "missing")
+					+ " finish=" + finish);
+			return (text, finish);
 		}
 		if (c0.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
-			return stripthink(t.GetString() ?? "");
+			return (t.GetString() ?? "", finish);
 		throw new InvalidOperationException("响应无 message");
 	}
 

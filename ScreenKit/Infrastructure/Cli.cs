@@ -30,6 +30,7 @@ static class Cli {
 				or "--test-capture-during-record" or "--test-overlay-during-record"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-clipboard-path"
+				or "--test-llm-continue"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--asr" or "--list-asr"
@@ -174,6 +175,8 @@ static class Cli {
 					return listface();
 				case "--test-face-overlay":
 					return testfaceoverlay();
+				case "--test-llm-continue":
+					return runtestllmcontinue();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -1415,6 +1418,41 @@ static class Cli {
 		}
 	}
 
+	/// <summary>LLM 超长续写：finish_reason 判定与片段拼接（不去网）。</summary>
+	static int runtestllmcontinue() {
+		Out("=== LLM 超长续写 --test-llm-continue ===");
+		var bad = 0;
+		void fail(string m) {
+			Err("FAIL " + m);
+			bad++;
+		}
+		if (!AsrLlmClient.FinishIsTruncated("length")) fail("length 应为截断");
+		if (!AsrLlmClient.FinishIsTruncated("max_tokens")) fail("max_tokens 应为截断");
+		if (!AsrLlmClient.FinishIsTruncated("MAX_OUTPUT_TOKENS")) fail("max_output_tokens 应为截断");
+		if (AsrLlmClient.FinishIsTruncated("stop")) fail("stop 不应为截断");
+		if (AsrLlmClient.FinishIsTruncated("")) fail("空 finish 不应为截断");
+
+		var merged = AsrLlmClient.MergeContinue("abcdefghijklMNOPQRST", "MNOPQRSTuvwxyz");
+		if (merged != "abcdefghijklMNOPQRSTuvwxyz") fail("重叠拼接 got=" + merged);
+		merged = AsrLlmClient.MergeContinue("hello", " world");
+		if (merged != "hello world") fail("无重叠拼接 got=" + merged);
+		merged = AsrLlmClient.MergeContinue("", "only");
+		if (merged != "only") fail("空 acc got=" + merged);
+
+		var json = "{\"choices\":[{\"finish_reason\":\"length\",\"message\":{\"role\":\"assistant\",\"content\":\"HELLO\"}}]}";
+		var (text, finish) = AsrLlmClient.ParseChoice(json);
+		if (text != "HELLO") fail("ParseChoice text got=" + text);
+		if (!AsrLlmClient.FinishIsTruncated(finish)) fail("ParseChoice finish=" + finish);
+
+		json = "{\"choices\":[{\"finish_reason\":\"stop\",\"message\":{\"content\":\"done\"}}]}";
+		(text, finish) = AsrLlmClient.ParseChoice(json);
+		if (text != "done" || AsrLlmClient.FinishIsTruncated(finish))
+			fail($"ParseChoice stop text={text} finish={finish}");
+
+		Out(bad == 0 ? "=== OK：续写判定与拼接 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	/// <summary>
 	/// 先放入位图再「复制为路径」，确认剪贴板只剩路径文本、无残留图。
 	/// 残留 CF_DIB 时部分输入框会把图粘成「▀」。
@@ -1517,6 +1555,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-clipboard-path
+  ScreenKit --test-llm-continue
   ScreenKit --test-face-overlay
   ScreenKit --list-models
   ScreenKit --list-tts
@@ -1555,6 +1594,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
       --test-clipboard-path  先放位图再复制为路径，确认剪贴板无残留图
+      --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
       --repeat    --test-record-codec 连续次数（默认 1）
       --seconds   --test-record-avsync / --test-gif-record / --test-record-codec 录制秒数
@@ -1595,6 +1635,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-gif-record --seconds 2 -o log\gif_record
   ScreenKit --test-record-codec av1 --repeat 2 --seconds 2 -o log\record_codec
   ScreenKit --test-clipboard-path
+  ScreenKit --test-llm-continue
   ScreenKit --test-face-overlay
   ScreenKit --record-snap --region 100,100,800,600 -o log\record_snap
   ScreenKit --list-models

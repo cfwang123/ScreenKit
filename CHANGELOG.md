@@ -8,6 +8,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 ### English
 
+#### Added
+
+- LLM translate / polish **continues** when `finish_reason` is `length` / `max_tokens` (up to 6 extra rounds, remaining timeout). Overlapping chunk tails are stripped. CLI: `ScreenKit --test-llm-continue`.
+
 #### Changed
 
 - Release build does **not** copy or junction model / ORT / FFmpeg folders. Place `ocrmodels`, `asrmodels`, `ttsmodels`, `translatemodels`, `facemodels`, `onnxcpu64`, `onnxgpu64`, `onnxdml64`, and `ffmpeg64` under `bin/Release/net48/` yourself (junctions are fine). NuGet GPU/DirectML natives are no longer copied into the output.
@@ -18,6 +22,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Copy-as-path after a screenshot sometimes left the clipboard empty: `OleSetClipboard(null)` then Win32 text then `OleFlushClipboard` emptied the text (Flush calls `EmptyClipboard` on a null OLE object). Path copy now sets a persist OLE text DataObject. CLI: `ScreenKit --test-clipboard-path` also covers re-copy last screenshot as path.
 
 ### 中文
+
+#### 新增
+
+- LLM 翻译 / 润色在 `finish_reason` 为 `length` / `max_tokens` 时**超长续写**（最多再 6 轮，受剩余超时限制），去掉片段重叠。CLI：`ScreenKit --test-llm-continue`。
 
 #### 变更
 
