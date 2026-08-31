@@ -106,6 +106,10 @@ static class AppConfig {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
 			}
+			if (map.TryGetValue("update_check_days", out var ucd) && int.TryParse(ucd, out var ucDays))
+				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
+			if (map.TryGetValue("update_last_check", out var ulc) && long.TryParse(ulc, out var ulcUnix))
+				o.LastUpdateCheckUnix = ulcUnix < 0 ? 0 : ulcUnix;
 			if (map.TryGetValue("ocr_translate_lang", out var otl)) {
 				var t = (otl ?? "").Trim().Trim('"').ToLowerInvariant();
 				if (t is "off" or "none" or "no" or "-" or "不翻译") t = "";
@@ -362,6 +366,10 @@ static class AppConfig {
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");
+		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
+		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
+		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");
+		sb.AppendLine($"update_last_check = {(o.LastUpdateCheckUnix < 0 ? 0 : o.LastUpdateCheckUnix)}");
 		sb.AppendLine($"# OCR 页叠字/结果翻译目标语言：空=不翻译；LLM 语言代码（zh/en/ja/ko/fr/de/…）");
 		var ocrTr = (o.OcrTranslateLang ?? "").Trim().ToLowerInvariant();
 		if (ocrTr is not "zh" and not "en" and not "ja" and not "ko") ocrTr = "";

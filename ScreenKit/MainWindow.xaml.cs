@@ -115,9 +115,11 @@ public partial class MainWindow : Window {
 		// 调整大小/移动后延迟写入（真正退出时也会再存）
 		LocationChanged += (_, _) => scheduleboundsave();
 		SizeChanged += (_, _) => scheduleboundsave();
-		// 首次启动：空闲时弹出安装向导
+		// 首次启动：空闲时弹出安装向导；否则按间隔自动检查更新
 		if (!opt.InstallPromptDone)
 			Loaded += onfirstinstallprompt;
+		else
+			Loaded += onautoupdate;
 	}
 
 	void onfirstinstallprompt(object sender, RoutedEventArgs e) {
@@ -2693,29 +2695,65 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	async void openupdate() {
+	void onautoupdate(object sender, RoutedEventArgs e) {
+		Loaded -= onautoupdate;
+		if (!autoupdatedue()) return;
+		Dispatcher.BeginInvoke(new Action(() => {
+			try { _ = runupdateasync(silent: true); }
+			catch (Exception ex) { CaptureLog.Ex("auto update", ex); }
+		}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+	}
+
+	bool autoupdatedue() {
+		var days = opt.UpdateCheckDays;
+		if (days <= 0) return false;
+		if (days > 3650) days = 3650;
+		if (opt.LastUpdateCheckUnix <= 0) return true;
+		try {
+			var last = DateTimeOffset.FromUnixTimeSeconds(opt.LastUpdateCheckUnix).UtcDateTime;
+			return (DateTime.UtcNow - last).TotalDays >= days;
+		}
+		catch {
+			return true;
+		}
+	}
+
+	void markupdatecheck() {
+		opt.LastUpdateCheckUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		try { AppConfig.Save(opt); } catch { }
+	}
+
+	async void openupdate() => await runupdateasync(silent: false);
+
+	async Task runupdateasync(bool silent) {
 		UpdateProgressWindow prog = null;
 		try {
-			prog = new UpdateProgressWindow { Owner = this };
-			prog.Show();
-			prog.Report("check", 0);
-
-			var info = await AppUpdater.CheckLatestAsync(prog.Token).ConfigureAwait(true);
-			if (prog.WasCancelled) return;
-
-			if (!info.HasUpdate) {
+			UpdateInfo info;
+			if (silent) {
+				info = await AppUpdater.CheckLatestAsync().ConfigureAwait(true);
+				markupdatecheck();
+				if (!info.HasUpdate) return;
+			}
+			else {
+				prog = new UpdateProgressWindow { Owner = this };
+				prog.Show();
+				prog.Report("check", 0);
+				info = await AppUpdater.CheckLatestAsync(prog.Token).ConfigureAwait(true);
+				if (prog.WasCancelled) return;
+				markupdatecheck();
+				if (!info.HasUpdate) {
+					prog.ForceClose();
+					prog = null;
+					MessageBox.Show(this,
+						Loc.T("update.latest", info.CurrentVersion, info.Version),
+						Loc.T("update.title"),
+						MessageBoxButton.OK,
+						MessageBoxImage.Information);
+					return;
+				}
 				prog.ForceClose();
 				prog = null;
-				MessageBox.Show(this,
-					Loc.T("update.latest", info.CurrentVersion, info.Version),
-					Loc.T("update.title"),
-					MessageBoxButton.OK,
-					MessageBoxImage.Information);
-				return;
 			}
-
-			prog.ForceClose();
-			prog = null;
 
 			var sizeText = info.SizeBytes > 0
 				? FeatureInstaller.FormatBytes(info.SizeBytes)
@@ -2756,6 +2794,10 @@ public partial class MainWindow : Window {
 		catch (Exception ex) {
 			try { prog?.ForceClose(); } catch { }
 			prog = null;
+			if (silent) {
+				CaptureLog.Ex("auto update", ex);
+				return;
+			}
 			MessageBox.Show(this,
 				Loc.T("update.fail", ex.Message),
 				Loc.T("update.title"),

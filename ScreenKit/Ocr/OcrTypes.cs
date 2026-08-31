@@ -114,6 +114,10 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsPath = false;
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
+	/// <summary>启动时自动检查更新的间隔（天）。默认 7；0 = 不自动检查。菜单「检查更新」不受限。</summary>
+	public int UpdateCheckDays = 7;
+	/// <summary>上次成功查询 GitHub Releases 的 UTC unix 秒；0 = 从未检查。</summary>
+	public long LastUpdateCheckUnix;
 	/// <summary>OCR 页叠字翻译目标语言：空=不翻译；zh / en / ja / ko。</summary>
 	public string OcrTranslateLang = "";
 	/// <summary>是否已弹出过首次「安装功能」向导（false = 下次启动仍提示）。</summary>

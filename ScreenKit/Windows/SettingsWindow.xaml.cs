@@ -167,6 +167,10 @@ public partial class SettingsWindow : Window {
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
 			emintray.Content = Loc.T("set.tray");
+			lbsetupdate.Text = Loc.T("set.update");
+			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
+			lbsetupdatehint.Text = Loc.T("set.update.hint");
+			eupdatedays.ToolTip = Loc.T("set.update.hint");
 			lbsetlog.Text = Loc.T("set.log");
 			ecapturelog.Content = Loc.T("set.log.enable");
 			lbsetloghint.Text = Loc.T("set.log.hint");
@@ -372,6 +376,7 @@ public partial class SettingsWindow : Window {
 		etrllmprompt.Text = string.IsNullOrWhiteSpace(o.TranslateLlmPrompt)
 			? OcrOptions.DefaultTranslateLlmPrompt : o.TranslateLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
+		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		// 三选一：路径 > 文件 > 图片
 		var asPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
 		var asFile = !asPath && o.SnapCopyAsFile && !o.SnapCopyAsImage;
@@ -505,6 +510,8 @@ public partial class SettingsWindow : Window {
 		Result.TranslateLlmPrompt = string.IsNullOrEmpty(trPrompt)
 			? OcrOptions.DefaultTranslateLlmPrompt : trPrompt;
 		Result.MinimizeToTray = emintray.IsChecked == true;
+		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
+		Result.UpdateCheckDays = updDays;
 		// 截图历史保留：Tag 天数，0=不限
 		var keepTag = (esnapkeep.SelectedItem as ComboBoxItem)?.Tag as string ?? "3";
 		if (!int.TryParse(keepTag, out var keepDays) || keepDays < 0)
@@ -576,6 +583,8 @@ public partial class SettingsWindow : Window {
 		HotkeyLiveCaption = o.HotkeyLiveCaption,
 		HotkeyTranslate = o.HotkeyTranslate,
 		MinimizeToTray = o.MinimizeToTray,
+		UpdateCheckDays = o.UpdateCheckDays,
+		LastUpdateCheckUnix = o.LastUpdateCheckUnix,
 		HttpEnabled = o.HttpEnabled,
 		HttpHost = o.HttpHost,
 		HttpPort = o.HttpPort,

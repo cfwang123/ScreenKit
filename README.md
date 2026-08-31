@@ -162,6 +162,7 @@ minimize_to_tray = true
 capture_log = false             # true → log/capture.log
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
+update_check_days = 7           # auto-check interval on startup (days); 0 = off. Menu Check for Updates always works.
 # ocr_translate_lang = ""       # OCR overlay/result target: empty = off; LLM lang code (zh/en/ja/ko/fr/…)
 
 [http]

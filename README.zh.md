@@ -240,7 +240,7 @@ x86host.exe --list-sapi
 设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。参数设置窗按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口。主要段落：
 
 - `[ocr]`：模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值等  
-- `[ui]`：热键、托盘、界面语言、`capture_log`、`llm_log`（`log/llm.log`，润色请求/响应，不含 key）  
+- `[ui]`：热键、托盘、界面语言、`update_check_days`（启动时自动检查更新间隔，默认 7 天，0=不自动检查；菜单「检查更新」不受限）、`capture_log`、`llm_log`（`log/llm.log`，润色请求/响应，不含 key）  
 - `[http]`：本机 API 开关与端口、服务模式  
 - `[pdf]`：导出与内部光栅 DPI  
 - `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；`asr_llm` 为润色选用的 LLM 显示名称（空则用列表第一项）。润色提示词仍在 `[asr]`（`asr_llm_prompt`）。会去掉 `<think>` 等推理块。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中 · Esc 停止」或「润色中」及原文（同一行）；已输出后第二行清空。识别/润色中按 Esc 立刻结束本轮听写且不输出。  
