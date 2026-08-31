@@ -285,7 +285,7 @@
 					<StackPanel Grid.Row="0" Margin="0,0,0,10">
 						<TextBlock x:Name="lbsetllmhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap"
-						           Text="可配置多个 OpenAI 兼容接口。显示名称默认等于模型 id；改模型 id 时若名称仍等于旧 id 或为空则同步。"/>
+						           Text="可配置多个 OpenAI 兼容接口。显示名称默认等于模型 id；改模型 id 时若名称仍等于旧 id 或为空则同步。Key 勿写入公开仓库。润色与翻译推荐小模型（如 Qwen3.5-4B），思考选「关闭」。"/>
 						<CheckBox x:Name="ellmlog" Margin="0,10,0,0"
 						          Content="写入 LLM 日志（log/llm.log）"
 						          AutomationProperties.AutomationId="set.llm.log"/>
@@ -336,11 +336,14 @@
 							             AutomationProperties.AutomationId="set.llm.key"/>
 							<TextBlock x:Name="lbsetllmmodel" Text="模型 id" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-							<TextBox x:Name="ellmmodel" Height="30" Padding="6,4" Margin="0,0,0,10"
+							<TextBox x:Name="ellmmodel" Height="30" Padding="6,4" Margin="0,0,0,4"
 							         BorderBrush="{StaticResource BorderSoft}"
 							         VerticalContentAlignment="Center" TextChanged="onllmmodel"
-							         ToolTip="如 gpt-4o-mini"
+							         ToolTip="如 Qwen/Qwen3.5-4B（推荐）、Qwen/Qwen3-8B"
 							         AutomationProperties.AutomationId="set.llm.model"/>
+							<TextBlock x:Name="lbsetllmmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+							           TextWrapping="Wrap" Margin="0,0,0,10"
+							           Text="推荐：Qwen/Qwen3.5-4B、Qwen/Qwen3-8B、tencent/Hunyuan-MT-7B（快、便宜，适合润色/翻译）。大推理模型开思考会很慢，听写 12 秒内容易超时。"/>
 							<TextBlock x:Name="lbsetllmthink" Text="思考强度" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 							<ComboBox x:Name="ellmthink" Height="32" Margin="0,0,0,4"
@@ -353,7 +356,7 @@
 							</ComboBox>
 							<TextBlock x:Name="lbsetllmthinkhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 							           TextWrapping="Wrap"
-							           Text="GLM-5.3 等模型不能关闭思考，请选「低」。润色建议用低。"/>
+							           Text="润色/翻译请选「关闭」。GLM-5.3 等不能关思考时选「低」。"/>
 						</StackPanel>
 					</Grid>
 				</Grid>

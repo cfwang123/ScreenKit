@@ -223,6 +223,8 @@ public partial class SettingsWindow : Window {
 			lbsetllmurl.Text = Loc.T("set.llm.url");
 			lbsetllmkey.Text = Loc.T("set.llm.key");
 			lbsetllmmodel.Text = Loc.T("set.llm.model");
+			lbsetllmmodelhint.Text = Loc.T("set.llm.model.hint");
+			ellmmodel.ToolTip = Loc.T("set.llm.model.tip");
 			lbsetllmthink.Text = Loc.T("set.llm.think");
 			lbsetllmthinkhint.Text = Loc.T("set.llm.think.hint");
 			itllmthinkoff.Content = Loc.T("set.llm.think.off");

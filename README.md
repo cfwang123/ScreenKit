@@ -200,8 +200,8 @@ asr_llm = "gpt-4o-mini"         # display name of the [[llm]] entry used for pol
 name = "gpt-4o-mini"            # display name; defaults to model id
 url = "https://api.openai.com/v1"
 # key = ""                    # do not commit secrets
-model = "gpt-4o-mini"
-think = "low"                   # off | low | high | max; default low (GLM-5.3 cannot off)
+model = "gpt-4o-mini"           # polish/translate: prefer small models e.g. Qwen/Qwen3.5-4B
+think = "low"                   # off | low | high | max; Off for small models; GLM-5.3 cannot off
 # Polish sends prior output in the same session as context (homophones / names).
 # off → thinking.type=disabled; low/high/max → thinking.type=enabled + reasoning_effort.
 # If off is rejected (model always thinks), retry with low; other 400s drop think fields.
