@@ -959,7 +959,7 @@ arabic_dict.txt
 					vs[kv.Key] = kv.Value;
 			}
 			node["variants"] = vs;
-			var opts = new JsonSerializerOptions {
+			var opts = new JsonSerializerOptions(JsonSerializerOptions.Default) {
 				WriteIndented = true,
 				Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 			};

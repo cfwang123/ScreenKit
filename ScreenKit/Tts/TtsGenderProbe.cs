@@ -258,7 +258,7 @@ static class TtsGenderProbe {
 				spkObj.Remove(k);
 		}
 
-		var opts = new JsonSerializerOptions {
+		var opts = new JsonSerializerOptions(JsonSerializerOptions.Default) {
 			WriteIndented = true,
 			Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 		};

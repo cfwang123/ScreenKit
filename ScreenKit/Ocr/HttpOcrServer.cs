@@ -31,7 +31,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	volatile bool running;
 	HttpApiServices svc;
 	public event Action<string> Logged;
-	static readonly JsonSerializerOptions JsonUtf8 = new() {
+	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
 

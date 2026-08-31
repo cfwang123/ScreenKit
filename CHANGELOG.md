@@ -27,6 +27,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - English UI: OCR **Pack** / **Lang** combos used Chinese labels (`Rapid 全语种`, `Umi-OCR（多语言）`, `简体中文`, …). Display names now come from `ocr-display.json` (`name` / `nameEn`) and optional per-pack `pack.json`.
 - HTTP `POST /api/translate` always returned 940 (LLM not configured): the options snapshot used by the HTTP server omitted `[[llm]]` / `translate_llm`.
+- HTTP JSON 500 (`TypeInfoResolver`): STJ 8 requires a type-info resolver on `JsonSerializerOptions` before first use. The UTF-8 CJK encoder options omitted it, so `GET /api/face/models` (and other `/api/*` JSON) returned code 900.
 
 ### 中文
 
@@ -49,6 +50,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - 英文界面顶栏 **Pack / Lang** 下拉仍显示中文包名与变体（Rapid 全语种、Umi-OCR（多语言）、简体中文 等）。现从 `ocr-display.json` 的 `name` / `nameEn`（以及包内可选 `pack.json`）读取显示名。
 - HTTP `POST /api/translate` 一直返回 940（未配置翻译 LLM）：HTTP 用的配置快照漏了 `[[llm]]` / `translate_llm`。
+- HTTP JSON 响应 500（缺 TypeInfoResolver）：STJ 8 首次使用序列化选项前必须指定 TypeInfoResolver；为输出 UTF-8 中文而加的选项漏了该项，导致 `GET /api/face/models`（以及其它 `/api/*` JSON）返回 900。
 
 ## v1.0.4 (2026-08-31)
 
