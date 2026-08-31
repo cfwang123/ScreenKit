@@ -4,7 +4,7 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
-## unreleased
+## v1.0.4 (2026-08-31)
 
 ### English
 

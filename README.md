@@ -2,7 +2,7 @@
 
 Windows desktop tool (project ScreenKit, exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
 
-Current version: **1.0.3**
+Current version: **1.0.4**
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 

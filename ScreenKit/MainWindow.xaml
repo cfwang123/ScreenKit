@@ -1,7 +1,7 @@
 <Window x:Class="ScreenKit.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="ScreenKit v1.0.3"
+        Title="ScreenKit v1.0.4"
         Height="720" Width="1180"
         MinHeight="520" MinWidth="860"
         WindowStartupLocation="Manual"
