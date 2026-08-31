@@ -23,6 +23,7 @@ http_port = 1224
 | Base URL | `http://{http_host}:{http_port}` |
 | Default | `http://127.0.0.1:1224` |
 | Content-Type | Prefer `application/json; charset=utf-8` for JSON request/response |
+| JSON text | UTF-8 CJK as-is (not `\uXXXX` escapes) |
 | CORS | `*` allowed for local web debugging |
 | OPTIONS | Preflight supported (204) |
 

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NAudio.Wave;
@@ -30,6 +31,9 @@ sealed partial class HttpOcrServer : IDisposable {
 	volatile bool running;
 	HttpApiServices svc;
 	public event Action<string> Logged;
+	static readonly JsonSerializerOptions JsonUtf8 = new() {
+		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+	};
 
 	public HttpOcrServer(Func<OcrOptions> optionsFactory, OcrRunner sharedRunner) {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
@@ -1331,7 +1335,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	};
 
 	static void writejson(HttpListenerContext ctx, int httpStatus, JsonNode body) {
-		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString());
+		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));
 		var res = ctx.Response;
 		res.StatusCode = httpStatus;
 		res.ContentType = "application/json; charset=utf-8";

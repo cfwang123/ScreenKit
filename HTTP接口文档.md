@@ -23,6 +23,7 @@ http_port = 1224
 | 基址 | `http://{http_host}:{http_port}` |
 | 默认 | `http://127.0.0.1:1224` |
 | Content-Type | 请求/响应 JSON 均建议 `application/json; charset=utf-8` |
+| JSON 文本 | 中文等直接 UTF-8 输出，不用 `\uXXXX` 转义 |
 | CORS | 已允许 `*`，便于本机网页调试 |
 | OPTIONS | 支持预检（204） |
 
