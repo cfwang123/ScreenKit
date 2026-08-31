@@ -14,16 +14,16 @@ Current version: **1.0.4**
 
 | Area | Description |
 |------|-------------|
-| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition according to the current result tab; keeps the selected tab; multi-monitor DXGI capture. Word spaces in Korean/English (and Latin text under the Chinese rec model) are restored from visual gaps on the line; CJK characters are not split. Optional overlay translation: pick a target language from a long LLM list (default off); after OCR the Translate toggle turns on and both overlay and the result panel show the translation (needs LLM), with elapsed time in the result meta. |
+| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition; multi-monitor DXGI capture. Optional overlay translation via LLM (default off) |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
 | **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF |
-| **Clipboard** | Paste image and run OCR; copy image / text / path (Edit menu: images without a source file are saved to `screenshots/` first, then the path text is copied); menu/tray can switch on-capture copy mode (image / file / path) and re-copy the last screenshot. Copy-as-path writes a persist OLE text object (no leftover bitmap, no empty clipboard after Flush) |
+| **Clipboard** | Paste image and run OCR; copy image / text / path; menu/tray can switch on-capture copy mode (image / file / path) |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
-| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`). Edit the prompt in **Settings → Translate** (`{src}`/`{dst}` placeholders). Pick the engine on the Translate tab. LLM source/target lists many languages (ONNX still follows installed pairs). A floating translate popup (`Ctrl+Alt+T`) starts empty and keeps the last result; use Paste for the clipboard. Truncated LLM output is continued automatically. |
+| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`); pick the engine on the Translate tab; floating translate popup (`Ctrl+Alt+T`) |
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
@@ -205,12 +205,6 @@ url = "https://api.openai.com/v1"
 model = "gpt-4o-mini"           # polish/translate: prefer small models e.g. Qwen/Qwen3.5-4B
 think = "low"                   # off | low | high | max; Off for small models; GLM-5.3 cannot off
 # Polish sends prior output in the same session as context (homophones / names).
-# off → thinking.type=disabled; low/high/max → thinking.type=enabled + reasoning_effort.
-# If off is rejected (model always thinks), retry with low; other 400s drop think fields.
-# Long replies: if finish_reason is length/max_tokens, continue (max 6 extra rounds).
-# Voice HUD: line 1 stays “listening…”; line 2 is “识别中” / “润色中” plus transcript.
-# After polish+inject, line 2 is cleared.
-# Esc during recognize/polish stops the session with no inject.
 
 [translate]
 translate_compute = "Auto"      # Auto | Gpu | Cpu | Igpu (local Opus-MT ONNX)
@@ -234,11 +228,11 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 
 1. **Capture → Screen record** (or the toolbar button): click a window or drag a region.
 2. **HUD** (drawn outside the capture area):
-   - Red frame; drag the **5px strip outside the red line** to move, or **8 grips** to resize. **Before Start**, aspect ratio is free; **after Start**, resizing locks aspect ratio unless disabled in record options (`record_lock_aspect = false`). Encoded resolution is fixed when you press Start.
+   - Red frame; drag the **5px strip** to move, or **8 grips** to resize. Aspect ratio is free before **Start** and locked afterwards unless disabled in record options (`record_lock_aspect = false`).
    - Floating **control bar**: drag via the left grip; **collapse** to mini bar; **Options** before Start (record/GIF settings); start/pause share one slot.
    - Bar auto-positions above/below the region and stays within the **current monitor** (multi-monitor safe).
 3. Stop → confirm save → MP4 is written; Explorer opens and selects the file.
-4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, **CRF** (x264/x265) and **AV1 CRF** (AV1 only, separate scale 0–63, default 56), audio source, max output size. AV1 needs an encoder in `ffmpeg64` (libsvtav1 / libaom-av1); a missing encoder fails with a message and does **not** fall back to x264.
+4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, **CRF** (x264/x265) and **AV1 CRF** (AV1 only, separate scale 0–63, default 56), audio source, max output size. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64`.
 
 ### GIF recording
 
@@ -249,8 +243,6 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 **Notes**
 
 - MP4 / GIF recording requires **FFmpeg shared** under `ffmpeg64/` (install in-app or place manually). OpenCV is **not** used for video encode.
-- System-loopback audio pads silence on wall-clock gaps so late sound is not shifted to the start of the file.
-- Temporary files live under the app `tmp/` folder and are cleaned up after a successful save.
 - GIF size grows quickly with resolution and duration — use preview scale/FPS and the max-size limit.
 
 ## Default hotkeys
@@ -264,14 +256,14 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
 | `Ctrl+Alt+B` | Live caption |
 | `Ctrl+Alt+T` | Translate popup show / hide |
 
-Tray icon: left-click toggles the window; context menu includes voice input, **translate popup**, clipboard OCR, on-capture copy mode (image / file / path), and exit. Switching copy mode re-copies the **last screenshot** to the clipboard in the new form. Closing the main window typically **hides** to tray rather than exiting. **Capture → Voice input** and **Tools → Translate popup** match the hotkeys.
+Tray icon: left-click toggles the window; context menu includes voice input, **translate popup**, clipboard OCR, on-capture copy mode (image / file / path), and exit. Closing the main window typically **hides** to tray rather than exiting.
 
 ### UI language
 
 - **Tools → Language** → **中文 / English** (applies immediately)
 - Or set UI language in **Settings → General**
 - Persisted in `config.toml` as `ui_lang = "zh"` or `"en"`
-- Covers menus, Settings (including hotkeys / LLM / Translate), OCR toolbar (overlay dest language), Translate tab labels **and** status/hints, translate popup, round-trip dialog, Face tab, TTS/ASR static labels. OCR result meta stays Chinese except the **Translate Xs** suffix. ASR/TTS/OCR **runtime** status lines are still mostly Chinese.
+- Covers menus, Settings, OCR toolbar (overlay dest language), Translate tab, translate popup, and Face tab.
 
 ## CLI
 
