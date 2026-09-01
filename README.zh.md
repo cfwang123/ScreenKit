@@ -56,8 +56,7 @@ OCR/
 ├── scripts/publish-release.mjs
 ├── README.md
 ├── README.zh.md
-├── CHANGELOG.md
-└── AGENTS.md
+└── CHANGELOG.md
 ```
 
 **源码目录不包含模型与大型运行库。** 请放到可执行文件旁，或在程序内「安装功能」下载：

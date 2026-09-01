@@ -55,8 +55,7 @@ OCR/
 ├── scripts/publish-release.mjs
 ├── README.md
 ├── README.zh.md
-├── CHANGELOG.md
-└── AGENTS.md
+└── CHANGELOG.md
 ```
 
 Model packs and large native runtimes are **not** stored in source. Place or install them next to the executable:
