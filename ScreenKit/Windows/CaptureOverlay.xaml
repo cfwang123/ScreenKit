@@ -277,11 +277,22 @@
 					      Fill="Transparent" Stretch="Uniform" Width="14" Height="14"
 					      Data="M2,2 L12,12 M12,2 L2,12"/>
 				</Button>
+				<!-- 完成：对勾 + 下拉（复制为图片/文件/路径） -->
 				<Button x:Name="bok" Style="{StaticResource WxIconBtn}" ToolTip="完成并复制 (Enter)"
-				        Width="36" Height="36" Margin="1,0">
+				        Width="36" Height="36" Margin="1,0,0,0"
+				        AutomationProperties.AutomationId="overlay.ok"
+				        AutomationProperties.Name="完成并复制">
 					<Path Stroke="#07C160" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
 					      StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform" Width="16" Height="16"
 					      Data="M2,8.5 L6.5,13 L14,3.5"/>
+				</Button>
+				<Button x:Name="bcopydrop" Style="{StaticResource WxIconBtn}" ToolTip="复制方式"
+				        Width="22" Height="36" Margin="0,0,1,0" Padding="0"
+				        AutomationProperties.AutomationId="overlay.copydrop"
+				        AutomationProperties.Name="复制方式下拉">
+					<!-- 下拉三角；菜单在 Resources，由代码 PlacementTarget 打开 -->
+					<Path Fill="#07C160" Stretch="Uniform" Width="10" Height="6"
+					      Data="M0,0 L10,0 L5,6 Z"/>
 				</Button>
 			</StackPanel>
 		</Border>
@@ -289,6 +300,31 @@
 		<ComboBox x:Name="ecolor" Visibility="Collapsed">
 			<ComboBoxItem Content="红" Tag="#FA5151" IsSelected="True"/>
 		</ComboBox>
+		<!-- 复制方式下拉面板（同窗内，避免 Topmost 下 ContextMenu 立刻被关掉） -->
+		<Border x:Name="pcopyas" Visibility="Collapsed" Background="#FFFFFFF2" CornerRadius="10"
+		        BorderBrush="#E8E8E8" BorderThickness="1" Padding="4"
+		        SnapsToDevicePixels="True">
+			<Border.Effect>
+				<DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.16" Color="#000000"/>
+			</Border.Effect>
+			<StackPanel>
+				<Button x:Name="mncopyimg" Style="{StaticResource WxIconBtn}" Height="32" Width="Auto"
+				        MinWidth="132" HorizontalContentAlignment="Left" Padding="10,0"
+				        Margin="0,0,0,2" FontSize="13"
+				        AutomationProperties.AutomationId="overlay.copy.img"
+				        Content="复制为图片"/>
+				<Button x:Name="mncopyfile" Style="{StaticResource WxIconBtn}" Height="32" Width="Auto"
+				        MinWidth="132" HorizontalContentAlignment="Left" Padding="10,0"
+				        Margin="0,0,0,2" FontSize="13"
+				        AutomationProperties.AutomationId="overlay.copy.file"
+				        Content="复制为文件"/>
+				<Button x:Name="mncopypath" Style="{StaticResource WxIconBtn}" Height="32" Width="Auto"
+				        MinWidth="132" HorizontalContentAlignment="Left" Padding="10,0"
+				        FontSize="13"
+				        AutomationProperties.AutomationId="overlay.copy.path"
+				        Content="复制为路径"/>
+			</StackPanel>
+		</Border>
 		<!-- 提示 -->
 		<Border x:Name="bhint" Background="#CC111827" CornerRadius="8" Padding="12,8"
 		        Canvas.Left="24" Canvas.Top="24">

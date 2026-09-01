@@ -91,6 +91,9 @@ public partial class MainWindow : Window {
 		HttpProxy.ApplyFrom(opt);
 		Loc.SetFromConfig(opt.UiLang);
 		syncsnapcopyopts();
+		// 标注条下拉选复制方式：写入默认配置，不重复制上次截图
+		CaptureOverlay.SnapCopyModeChosen += (asImg, asFile, asPath) =>
+			applysnapcopyopts(asImg, asFile, asPath, recopy: false);
 		restorewindowbounds();
 		// 启动时按配置清理过期截图历史
 		try { ImageUtil.CleanupScreenshots(opt.ScreenshotKeepDays); } catch { }
@@ -410,8 +413,12 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;
 	}
 
-	/// <summary>写入 opt + ImageUtil，并同步主菜单/托盘（三选一）；切换后按新方式重复制上次截图。</summary>
-	void applysnapcopyopts(bool asImg, bool asFile, bool asPath, bool fromTray = false) {
+	/// <summary>
+	/// 写入 opt + ImageUtil，并同步主菜单/托盘（三选一）。
+	/// <paramref name="recopy"/> 为 true 时按新方式重复制上次截图（菜单/托盘切换）；
+	/// 标注条下拉完成复制时传 false（即将写入本次截图）。
+	/// </summary>
+	void applysnapcopyopts(bool asImg, bool asFile, bool asPath, bool fromTray = false, bool recopy = true) {
 		// 三选一：路径 > 文件 > 图片
 		if (asPath) {
 			opt.SnapCopyAsImage = false;
@@ -432,7 +439,8 @@ public partial class MainWindow : Window {
 		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath, skipTray: fromTray);
 		try { AppConfig.Save(opt); } catch { }
 		// 菜单/托盘切换复制方式：立刻用新方式重写剪贴板（不新建 screenshots/ 文件）
-		recopylastsnap();
+		if (recopy)
+			recopylastsnap();
 	}
 
 	/// <summary>按当前配置把上次截图再写入剪贴板；无历史则提示。</summary>

@@ -38,6 +38,14 @@ public partial class CaptureOverlay : Window {
 	/// <summary>标注阶段调整选区：移动 / 八向缩放。</summary>
 	enum AdjHit { None, Move, N, S, E, W, NE, NW, SE, SW }
 
+	/// <summary>
+	/// 标注条下拉选择复制方式时通知主窗写入配置并同步菜单/托盘
+	///（参数：asImage, asFile, asPath；调用方勿再重复制上次截图）。
+	/// </summary>
+	public static event Action<bool, bool, bool> SnapCopyModeChosen;
+
+
+
 	[StructLayout(LayoutKind.Sequential)]
 	struct NativePoint {
 		public int X, Y;
@@ -747,6 +755,103 @@ public partial class CaptureOverlay : Window {
 		bocr.Click += (_, _) => finishocr();
 		bok.Click += (_, _) => finishcopy();
 		bcancel.Click += (_, _) => session?.Cancel();
+		mncopyimg.Click += (_, _) => finishcopywithmode(asImg: true, asFile: false, asPath: false);
+		mncopyfile.Click += (_, _) => finishcopywithmode(asImg: false, asFile: true, asPath: false);
+		mncopypath.Click += (_, _) => finishcopywithmode(asImg: false, asFile: false, asPath: true);
+		bcopydrop.Click += (_, _) => togglecopymenu();
+		// 点面板外关闭下拉（同窗内面板，不会被 Topmost 兄弟窗立刻吞掉）
+		PreviewMouseDown += oncopymenupreviewdown;
+	}
+
+	/// <summary>切换「复制为…」同窗下拉面板。</summary>
+	void togglecopymenu() {
+		if (pcopyas.Visibility == Visibility.Visible) {
+			closecopymenu();
+			return;
+		}
+		opencopymenu();
+	}
+
+	/// <summary>在工具条旁打开复制方式面板。</summary>
+	void opencopymenu() {
+		try {
+			mncopyimg.Content = Loc.T("overlay.copy.img");
+			mncopyfile.Content = Loc.T("overlay.copy.file");
+			mncopypath.Content = Loc.T("overlay.copy.path");
+			bcopydrop.ToolTip = Loc.T("overlay.copydrop.tip");
+			var pathMode = ImageUtil.CurrentSnapCopyAsPath
+				&& !ImageUtil.CurrentSnapCopyAsImage && !ImageUtil.CurrentSnapCopyAsFile;
+			var fileMode = !pathMode && ImageUtil.CurrentSnapCopyAsFile
+				&& !ImageUtil.CurrentSnapCopyAsImage;
+			// 当前默认项前缀勾选标记
+			mncopyimg.Content = (pathMode || fileMode ? "   " : "✓ ") + Loc.T("overlay.copy.img");
+			mncopyfile.Content = (fileMode ? "✓ " : "   ") + Loc.T("overlay.copy.file");
+			mncopypath.Content = (pathMode ? "✓ " : "   ") + Loc.T("overlay.copy.path");
+			pcopyas.UpdateLayout();
+			// 相对下拉按钮：下方、右对齐
+			bcopydrop.UpdateLayout();
+			var pt = bcopydrop.TranslatePoint(new Point(0, bcopydrop.ActualHeight + 4), proot);
+			pcopyas.Visibility = Visibility.Visible;
+			pcopyas.UpdateLayout();
+			var menuW = pcopyas.ActualWidth > 1 ? pcopyas.ActualWidth : 140;
+			var menuH = pcopyas.ActualHeight > 1 ? pcopyas.ActualHeight : 110;
+			var x = pt.X + bcopydrop.ActualWidth - menuW;
+			var y = pt.Y;
+			if (x < 8) x = 8;
+			if (x + menuW > ActualWidth - 8) x = Math.Max(8, ActualWidth - menuW - 8);
+			if (y + menuH > ActualHeight - 8) y = Math.Max(8, pt.Y - menuH - bcopydrop.ActualHeight - 8);
+			Canvas.SetLeft(pcopyas, x);
+			Canvas.SetTop(pcopyas, y);
+			Panel.SetZIndex(pcopyas, 1000);
+		}
+		catch (Exception ex) { CaptureLog.Ex("opencopymenu", ex); }
+	}
+
+	void closecopymenu() {
+		try { pcopyas.Visibility = Visibility.Collapsed; } catch { }
+	}
+
+	void oncopymenupreviewdown(object sender, MouseButtonEventArgs e) {
+		if (pcopyas.Visibility != Visibility.Visible) return;
+		var src = e.OriginalSource as DependencyObject;
+		if (src != null && (isdescendant(pcopyas, src) || isdescendant(bcopydrop, src)))
+			return;
+		closecopymenu();
+	}
+
+	static bool isdescendant(DependencyObject root, DependencyObject node) {
+		while (node != null) {
+			if (ReferenceEquals(node, root)) return true;
+			node = VisualTreeHelper.GetParent(node);
+		}
+		return false;
+	}
+
+	/// <summary>改默认复制方式 → 完成标注并按该方式写入剪贴板。</summary>
+	void finishcopywithmode(bool asImg, bool asFile, bool asPath) {
+		closecopymenu();
+		// 三选一：路径 > 文件 > 图片
+		if (asPath) {
+			ImageUtil.CurrentSnapCopyAsImage = false;
+			ImageUtil.CurrentSnapCopyAsFile = false;
+			ImageUtil.CurrentSnapCopyAsPath = true;
+			asImg = false; asFile = false; asPath = true;
+		}
+		else if (asFile && !asImg) {
+			ImageUtil.CurrentSnapCopyAsImage = false;
+			ImageUtil.CurrentSnapCopyAsFile = true;
+			ImageUtil.CurrentSnapCopyAsPath = false;
+			asImg = false; asFile = true; asPath = false;
+		}
+		else {
+			ImageUtil.CurrentSnapCopyAsImage = true;
+			ImageUtil.CurrentSnapCopyAsFile = false;
+			ImageUtil.CurrentSnapCopyAsPath = false;
+			asImg = true; asFile = false; asPath = false;
+		}
+		try { SnapCopyModeChosen?.Invoke(asImg, asFile, asPath); }
+		catch (Exception ex) { CaptureLog.Ex("SnapCopyModeChosen", ex); }
+		finishcopy();
 	}
 
 	// ───────── 框选阶段 ─────────
@@ -2085,6 +2190,7 @@ public partial class CaptureOverlay : Window {
 		applyregionui(clearStrokes: false);
 		bpane.Visibility = Visibility.Visible;
 		bbar.Visibility = Visibility.Visible;
+		try { bcopydrop.ToolTip = Loc.T("overlay.copydrop.tip"); } catch { }
 		if (boardMode) {
 			// 全屏画板：无绿框、无缩放手柄、无暗角遮罩
 			bpane.BorderThickness = new Thickness(0);
@@ -3288,6 +3394,11 @@ public partial class CaptureOverlay : Window {
 		// 文字编辑中：Esc 交给 TextBox；不关闭遮罩
 		if (editHost != null && e.Key == Key.Escape) return;
 		if (e.Key == Key.Escape) {
+			if (pcopyas.Visibility == Visibility.Visible) {
+				closecopymenu();
+				e.Handled = true;
+				return;
+			}
 			// 有选中文字时先取消选中
 			if (selText != null) {
 				cleartextsel();

@@ -7,6 +7,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 ## unreleased
 
 - OCR 检测在限制边长 / 对齐 32 后，把框坐标按缩放比映射回原图像素（HTTP `box` 亦为原图坐标）。
+- 截图标注工具条「完成」旁增加下拉：复制为图片 / 文件 / 路径；点选后关闭标注并复制，同时把该方式设为默认（同步菜单/托盘/配置）。下拉用同窗面板（非 ContextMenu），避免全屏 Topmost 下弹出即关。
+- Annotate toolbar: dropdown next to Done for copy-as image / file / path; choosing one finishes, copies, and updates the default mode. In-window panel (not ContextMenu) so it stays open under Topmost overlays.
 
 ## v1.0.5 (2026-08-31 ~ 09-01)
 
