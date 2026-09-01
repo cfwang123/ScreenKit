@@ -254,7 +254,7 @@ Recognize text in an image. Supported input modes:
 |-------|-------------|
 | `text` | Line text |
 | `score` | Confidence |
-| `box` | Four-point box `[[x,y],…]` (image pixels) |
+| `box` | Four-point box `[[x,y],…]` in **original image pixels** (detection may downscale by `maxSideLen`; coordinates are mapped back) |
 | `end` | Line ending; fixed `"\n"` |
 
 #### Success with barcodes (`ocr.barcode = true`)

@@ -308,7 +308,7 @@ In the UI, choose engine **SAPI**: local voices plus **x86-only** entries (displ
 When enabled, a local server listens on `http_host:http_port` (default loopback only).
 
 - `GET  /api` · `/api/status` — capabilities
-- `POST /api/ocr` — image (JSON base64 or multipart)
+- `POST /api/ocr` — image (JSON base64 or multipart); `box` is original-image pixels (mapped back after side-length limit)
 - `POST /api/qr` — barcode / QR only (`/api/barcode`; JSON base64/path or multipart)
 - `GET  /api/ocr/get_options` — OCR options snapshot
 - `GET  /api/asr/models` · `POST /api/asr` — speech recognition

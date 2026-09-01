@@ -222,7 +222,7 @@ x86host.exe --list-sapi
 启用后监听 `http_host:http_port`（默认仅本机）。
 
 - `GET  /api` · `/api/status` — 能力与状态
-- `POST /api/ocr` — 图片（JSON base64 或 multipart）
+- `POST /api/ocr` — 图片（JSON base64 或 multipart）；`box` 为原图像素（限制边长后已还原）
 - `POST /api/qr` — 仅条码/二维码（`/api/barcode`；JSON base64/path 或 multipart）
 - `GET  /api/ocr/get_options` — 当前 OCR 参数快照
 - `GET  /api/asr/models` · `POST /api/asr` — 语音识别（base64/本地 path）

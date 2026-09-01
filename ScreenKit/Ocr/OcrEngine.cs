@@ -172,8 +172,10 @@ sealed class OcrEngine : IDisposable {
 		}
 
 		try {
-			var (resized, _, _) = resizelimit(work, opt.DetLimitSideLen, 32);
+			var (resized, ratioH, ratioW) = resizelimit(work, opt.DetLimitSideLen, 32);
 			try {
+				if (ratioH < 1e-6f) ratioH = 1f;
+				if (ratioW < 1e-6f) ratioW = 1f;
 				var tensor = tonchw05(resized);
 				using var results = det.Run(new[] { NamedOnnxValue.CreateFromTensor(detIn, tensor) });
 				var outT = results.First().AsTensor<float>();
@@ -187,18 +189,17 @@ sealed class OcrEngine : IDisposable {
 				var pred = new float[h * w];
 				Array.Copy(flat, 0, pred, 0, h * w);
 
-				// 坐标：特征图 → padding 图 → 原图
-				var boxes = dbpost(pred, h, w, work.Rows, work.Cols);
-				if (pad > 0) {
-					foreach (var box in boxes) {
-						for (int i = 0; i < box.Length; i++) {
-							box[i] = new Point2f(
-								Compat.Clamp(box[i].X - pad, 0, srcW - 1),
-								Compat.Clamp(box[i].Y - pad, 0, srcH - 1));
-						}
+				// 特征图 → 限制边长后的图，再按缩放比回到原图（含 padding）
+				var boxes = dbpost(pred, h, w, resized.Rows, resized.Cols);
+				foreach (var box in boxes) {
+					for (int i = 0; i < box.Length; i++) {
+						var x = box[i].X / ratioW - pad;
+						var y = box[i].Y / ratioH - pad;
+						box[i] = new Point2f(
+							Compat.Clamp(x, 0, srcW - 1),
+							Compat.Clamp(y, 0, srcH - 1));
 					}
 				}
-				// 合并同行近邻框（如「供」「方」被拆成两框）
 				return mergeboxes(boxes);
 			}
 			finally {
