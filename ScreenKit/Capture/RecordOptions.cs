@@ -28,6 +28,10 @@ public sealed class RecordOptions {
 	public int MaxHeight = 1080;
 	/// <summary>录制开始后，HUD 缩放选区时是否锁定宽高比（开始前始终自由缩放）。</summary>
 	public bool LockAspectWhileRecording = true;
+	/// <summary>叠加系统鼠标指针（GDI 抓屏本身不含光标）。</summary>
+	public bool RecordMouse = true;
+	/// <summary>在点击处画散开高亮圈（左黄 / 右蓝 / 中绿）。</summary>
+	public bool HighlightClicks = true;
 
 	public bool IsHevc => IsHevcName(Codec);
 
@@ -78,6 +82,8 @@ public sealed class RecordOptions {
 		MaxWidth = MaxWidth,
 		MaxHeight = MaxHeight,
 		LockAspectWhileRecording = LockAspectWhileRecording,
+		RecordMouse = RecordMouse,
+		HighlightClicks = HighlightClicks,
 	};
 
 	/// <summary>将另一实例字段复制到当前对象（HUD 等持有只读引用时使用）。</summary>
@@ -96,6 +102,8 @@ public sealed class RecordOptions {
 		MaxWidth = o.MaxWidth;
 		MaxHeight = o.MaxHeight;
 		LockAspectWhileRecording = o.LockAspectWhileRecording;
+		RecordMouse = o.RecordMouse;
+		HighlightClicks = o.HighlightClicks;
 		Clamp();
 	}
 
@@ -152,7 +160,12 @@ public sealed class RecordOptions {
 				"MicAndSpeakers" => $"麦+扬 {AudioKbps}k/{AudioHz}Hz/{ch}",
 				_ => $"扬声器 {AudioKbps}k/{AudioHz}Hz/{ch}",
 			};
-		return $"{Codec} · {Fps}fps · {CrfLabel} · {sizePart} · {aud}";
+		var mouse = RecordMouse
+			? (HighlightClicks ? "鼠标+点击" : "鼠标")
+			: (HighlightClicks ? "点击高亮" : null);
+		return mouse == null
+			? $"{Codec} · {Fps}fps · {CrfLabel} · {sizePart} · {aud}"
+			: $"{Codec} · {Fps}fps · {CrfLabel} · {sizePart} · {aud} · {mouse}";
 	}
 
 	/// <summary>将采集宽高 fit 到最大框内（保持比例，偶数）。</summary>

@@ -17,8 +17,8 @@ Current version: **1.0.5**
 | **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition; multi-monitor DXGI capture. Korean/English word spaces are restored from visual gaps on the line (same for Latin text under the Chinese rec model); no spaces inserted between CJK characters. Optional overlay translation via LLM (default off) |
 | **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm; dropdown next to confirm for copy-as image / file / path (finishes and sets default) |
 | **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
-| **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio |
-| **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF |
+| **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio; optional mouse cursor and click highlight |
+| **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF; same mouse / click-highlight options |
 | **Clipboard** | Paste image and run OCR; Edit menu: copy image / file / path; copy text via Ctrl+C or the result-panel button; menu/tray can switch on-capture copy mode (image / file / path) |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
@@ -188,6 +188,8 @@ record_max_size = false
 record_max_w = 1920
 record_max_h = 1080
 record_lock_aspect = true      # lock aspect when resizing HUD region after Start (free before Start)
+record_mouse = true             # overlay system cursor (GDI capture has none)
+record_click_highlight = true   # yellow/blue/green click ripples
 
 [asr]
 asr_voice_mode = "stream"       # stream = live; offline = record until hotkey stop, then one-shot ASR
@@ -220,6 +222,8 @@ gif_max_w = 1280
 gif_max_h = 720
 gif_colors = 128                # palette colors in preview (32/64/128/256)
 gif_scale = 100                 # default scale % in preview
+gif_mouse = true                # overlay system cursor
+gif_click_highlight = true      # click ripples (same as record)
 ```
 
 Leave a hotkey string empty to disable that hotkey.
@@ -234,17 +238,18 @@ Do **not** commit real `config.toml` if it encodes machine-specific paths or pre
    - Floating **control bar**: drag via the left grip; **collapse** to mini bar; **Options** before Start (record/GIF settings); start/pause share one slot.
    - Bar auto-positions above/below the region and stays within the **current monitor** (multi-monitor safe).
 3. Stop → confirm save → MP4 is written; Explorer opens and selects the file.
-4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, **CRF** (x264/x265) and **AV1 CRF** (AV1 only, separate scale 0–63, default 56), audio source, max output size. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64`.
+4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, **CRF** (x264/x265) and **AV1 CRF** (AV1 only, separate scale 0–63, default 56), audio source, max output size, **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64`.
 
 ### GIF recording
 
 1. **Capture → GIF record**: same window/region pick.
 2. Same HUD; capture at **24 fps**; after Stop, the **preview window** lets you set output FPS (1–24), scale, and palette colors, then save a **silent GIF**.
-3. **Capture → GIF record options**: default output FPS, max width/height, default colors.
+3. **Capture → GIF record options**: default output FPS, max width/height, default colors, **record mouse** / **highlight clicks**.
 
 **Notes**
 
 - MP4 / GIF recording requires **FFmpeg shared** under `ffmpeg64/` (install in-app or place manually). OpenCV is **not** used for video encode.
+- GDI capture has no cursor: enable **record mouse** to overlay the system pointer; **highlight clicks** draws a short yellow (left) / blue (right) / green (middle) ripple.
 - GIF size grows quickly with resolution and duration — use preview scale/FPS and the max-size limit.
 
 ## Default hotkeys

@@ -175,6 +175,10 @@ static class AppConfig {
 				o.Record.MaxHeight = rMaxH;
 			if (map.TryGetValue("record_lock_aspect", out var rla))
 				o.Record.LockAspectWhileRecording = parsebool(rla, true);
+			if (map.TryGetValue("record_mouse", out var rmo))
+				o.Record.RecordMouse = parsebool(rmo, true);
+			if (map.TryGetValue("record_click_highlight", out var rch))
+				o.Record.HighlightClicks = parsebool(rch, true);
 			o.Record.Clamp();
 			// GIF 录屏
 			o.GifRecord ??= new GifOptions();
@@ -190,6 +194,10 @@ static class AppConfig {
 				o.GifRecord.Colors = gColors;
 			if (map.TryGetValue("gif_scale", out var gs) && int.TryParse(gs, out var gScale))
 				o.GifRecord.ScalePercent = gScale;
+			if (map.TryGetValue("gif_mouse", out var gmo))
+				o.GifRecord.RecordMouse = parsebool(gmo, true);
+			if (map.TryGetValue("gif_click_highlight", out var gch))
+				o.GifRecord.HighlightClicks = parsebool(gch, true);
 			o.GifRecord.Clamp();
 			// TTS
 			if (map.TryGetValue("tts_engine", out var te) && !string.IsNullOrWhiteSpace(te))
@@ -426,6 +434,9 @@ static class AppConfig {
 		sb.AppendLine($"record_max_h = {rec.MaxHeight}");
 		sb.AppendLine($"# 录制中 HUD 缩放选区时锁定宽高比（开始前不限制）");
 		sb.AppendLine($"record_lock_aspect = {(rec.LockAspectWhileRecording ? "true" : "false")}");
+		sb.AppendLine($"# 叠加鼠标指针 / 点击高亮圈（GDI 抓屏不含光标）");
+		sb.AppendLine($"record_mouse = {(rec.RecordMouse ? "true" : "false")}");
+		sb.AppendLine($"record_click_highlight = {(rec.HighlightClicks ? "true" : "false")}");
 		sb.AppendLine();
 		var gif = o.GifRecord ?? new GifOptions();
 		gif.Clamp();
@@ -439,6 +450,9 @@ static class AppConfig {
 		sb.AppendLine($"# 预览默认：调色板颜色数 32|64|128|256；缩放 25~100%");
 		sb.AppendLine($"gif_colors = {gif.Colors}");
 		sb.AppendLine($"gif_scale = {gif.ScalePercent}");
+		sb.AppendLine($"# 叠加鼠标指针 / 点击高亮圈");
+		sb.AppendLine($"gif_mouse = {(gif.RecordMouse ? "true" : "false")}");
+		sb.AppendLine($"gif_click_highlight = {(gif.HighlightClicks ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("[tts]");
 		sb.AppendLine("# 引擎 Sapi | Sherpa；计算 Auto | Gpu | Cpu | Igpu");

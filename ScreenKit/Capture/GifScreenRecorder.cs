@@ -9,6 +9,7 @@ namespace ScreenKit;
 sealed class GifScreenRecorder : IDisposable {
 	System.Drawing.Rectangle region;
 	readonly GifOptions gifOpt;
+	readonly RecordCursorOverlay cursorOv;
 	readonly int fps;
 	int grabW, grabH;
 	readonly string videoTmp;
@@ -67,6 +68,7 @@ sealed class GifScreenRecorder : IDisposable {
 		this.region = r;
 		gifOpt = (options ?? new GifOptions()).Clone();
 		gifOpt.Clamp();
+		cursorOv = new RecordCursorOverlay(gifOpt.RecordMouse, gifOpt.HighlightClicks);
 		fps = GifOptions.CaptureFps;
 		TmpStore.CleanupExpired();
 		videoTmp = TmpStore.NewPath("gif", ".mp4");
@@ -85,7 +87,8 @@ sealed class GifScreenRecorder : IDisposable {
 		grabW = r0.Width;
 		grabH = r0.Height;
 		RecordLog.Step("start",
-			$"region={r0.Width}x{r0.Height}@{r0.Left},{r0.Top} fps={fps}");
+			$"region={r0.Width}x{r0.Height}@{r0.Left},{r0.Top} fps={fps} " +
+			$"mouse={gifOpt.RecordMouse} clickHl={gifOpt.HighlightClicks}");
 		RecordLog.Step("paths", $"video={videoTmp}");
 
 		if (!FfmpegLoader.TryInit(out var ffErr)) {
@@ -264,6 +267,8 @@ sealed class GifScreenRecorder : IDisposable {
 			g.CopyFromScreen(r.Left, r.Top, 0, 0, new System.Drawing.Size(w, h),
 				System.Drawing.CopyPixelOperation.SourceCopy);
 		}
+		if (cursorOv != null && cursorOv.Enabled)
+			cursorOv.Apply(src, r);
 
 		System.Drawing.Bitmap bmp = src;
 		System.Drawing.Bitmap scaled = null;

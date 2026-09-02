@@ -27,6 +27,8 @@ public partial class GifOptionsWindow : Window {
 		emaxen.IsChecked = o.MaxSizeEnabled;
 		emaxw.Text = o.MaxWidth.ToString();
 		emaxh.Text = o.MaxHeight.ToString();
+		emouse.IsChecked = o.RecordMouse;
+		eclickhl.IsChecked = o.HighlightClicks;
 	}
 
 	bool saveui() {
@@ -45,6 +47,8 @@ public partial class GifOptionsWindow : Window {
 			MaxHeight = maxH,
 			Colors = Result.Colors,
 			ScalePercent = Result.ScalePercent,
+			RecordMouse = emouse.IsChecked == true,
+			HighlightClicks = eclickhl.IsChecked == true,
 		};
 		Result.Clamp();
 		return true;

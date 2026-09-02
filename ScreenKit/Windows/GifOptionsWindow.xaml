@@ -62,8 +62,19 @@
 					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 				</Grid>
 				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
-				           Margin="0,0,0,4"
+				           Margin="0,0,0,14"
 				           Text="例如 1280×720：更大选区会缩小进该范围，不放大。"/>
+
+				<TextBlock Text="鼠标" FontWeight="SemiBold" Margin="0,0,0,6"/>
+				<CheckBox x:Name="emouse" Content="录制鼠标" Margin="0,0,0,4" IsChecked="True"
+				          AutomationProperties.AutomationId="opt.gif.mouse"
+				          AutomationProperties.Name="录制鼠标"/>
+				<CheckBox x:Name="eclickhl" Content="高亮鼠标点击" Margin="0,0,0,4" IsChecked="True"
+				          AutomationProperties.AutomationId="opt.gif.clickhl"
+				          AutomationProperties.Name="高亮鼠标点击"/>
+				<TextBlock FontSize="11" Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
+				           Margin="0,0,0,4"
+				           Text="抓屏本身不含指针。勾选后叠加系统光标。点击高亮：左键黄圈、右键蓝圈、中键绿圈，约 0.45 秒散开。"/>
 			</StackPanel>
 		</ScrollViewer>
 

@@ -13,6 +13,7 @@ sealed class ScreenRecorder : IDisposable {
 	System.Drawing.Rectangle region;
 	int grabW, grabH; // Start 后锁定：抓帧缩放到此尺寸再写入编码器
 	readonly RecordOptions recOpt;
+	readonly RecordCursorOverlay cursorOv;
 	readonly int fps;
 	readonly int outW, outH;
 	readonly RecordAudioMode audioMode;
@@ -69,6 +70,7 @@ sealed class ScreenRecorder : IDisposable {
 		this.region = r;
 		recOpt = (options ?? new RecordOptions()).Clone();
 		recOpt.Clamp();
+		cursorOv = new RecordCursorOverlay(recOpt.RecordMouse, recOpt.HighlightClicks);
 		fps = recOpt.Fps;
 		recOpt.FitSize(r.Width, r.Height, out outW, out outH);
 		audioMode = audio;
@@ -92,7 +94,8 @@ sealed class ScreenRecorder : IDisposable {
 		RecordLog.Step("start",
 			$"region={region.Width}x{region.Height}@{region.Left},{region.Top} fps={fps} " +
 			$"codec={recOpt.Codec} crf={recOpt.Crf} av1_crf={recOpt.Av1Crf} audio={audioMode} hz={recOpt.AudioHz} " +
-			$"mono={recOpt.AudioMono} kbps={recOpt.AudioKbps} out={outW}x{outH}");
+			$"mono={recOpt.AudioMono} kbps={recOpt.AudioKbps} out={outW}x{outH} " +
+			$"mouse={recOpt.RecordMouse} clickHl={recOpt.HighlightClicks}");
 		RecordLog.Step("paths", $"video={videoTmp} wav={wavTmp}");
 
 		grabW = region.Width;
@@ -332,7 +335,12 @@ sealed class ScreenRecorder : IDisposable {
 	}
 
 	/// <summary>截取当前录制区域一帧（不中断录屏），返回冻结的 BitmapSource。</summary>
-	public BitmapSource CaptureStill() => CaptureRegion(region);
+	public BitmapSource CaptureStill() {
+		System.Drawing.Rectangle r;
+		lock (gate) r = region;
+		using var bmp = grabbitmap(r);
+		return bmp == null ? null : bitmapToSource(bmp);
+	}
 
 	/// <summary>
 	/// 静态：截取指定区域。
@@ -475,11 +483,8 @@ sealed class ScreenRecorder : IDisposable {
 		var tw = grabW > 0 ? grabW : w;
 		var th = grabH > 0 ? grabH : h;
 
-		using var src = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-		using (var g = System.Drawing.Graphics.FromImage(src)) {
-			g.CopyFromScreen(r.Left, r.Top, 0, 0, new System.Drawing.Size(w, h),
-				System.Drawing.CopyPixelOperation.SourceCopy);
-		}
+		using var src = grabbitmap(r);
+		if (src == null) return;
 
 		System.Drawing.Bitmap bmp = src;
 		System.Drawing.Bitmap scaled = null;
@@ -513,6 +518,20 @@ sealed class ScreenRecorder : IDisposable {
 		finally {
 			scaled?.Dispose();
 		}
+	}
+
+	System.Drawing.Bitmap grabbitmap(System.Drawing.Rectangle r) {
+		var w = r.Width;
+		var h = r.Height;
+		if (w < 1 || h < 1) return null;
+		var bmp = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		using (var g = System.Drawing.Graphics.FromImage(bmp)) {
+			g.CopyFromScreen(r.Left, r.Top, 0, 0, new System.Drawing.Size(w, h),
+				System.Drawing.CopyPixelOperation.SourceCopy);
+		}
+		if (cursorOv != null && cursorOv.Enabled)
+			cursorOv.Apply(bmp, r);
+		return bmp;
 	}
 
 	public void Dispose() {

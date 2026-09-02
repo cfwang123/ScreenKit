@@ -73,6 +73,8 @@ public partial class RecordOptionsWindow : Window {
 		emaxw.Text = o.MaxWidth.ToString();
 		emaxh.Text = o.MaxHeight.ToString();
 		elockasp.IsChecked = o.LockAspectWhileRecording;
+		emouse.IsChecked = o.RecordMouse;
+		eclickhl.IsChecked = o.HighlightClicks;
 	}
 
 	bool saveui() {
@@ -96,6 +98,8 @@ public partial class RecordOptionsWindow : Window {
 		o.MaxWidth = mw;
 		o.MaxHeight = mh;
 		o.LockAspectWhileRecording = elockasp.IsChecked == true;
+		o.RecordMouse = emouse.IsChecked == true;
+		o.HighlightClicks = eclickhl.IsChecked == true;
 		o.Clamp();
 		return true;
 	}

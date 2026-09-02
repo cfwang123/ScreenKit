@@ -91,7 +91,7 @@
 				<MenuItem x:Name="mnrecordopt" Header="录屏选项(_E)…"
 				          AutomationProperties.AutomationId="menu.recordopt"
 				          AutomationProperties.Name="录屏选项"
-				          ToolTip="编码 / 帧率 / CRF / 最大宽高"/>
+				          ToolTip="编码 / 帧率 / CRF / 最大宽高 / 鼠标"/>
 				<MenuItem x:Name="mngifrecord" Header="GIF录屏(_G)…"
 				          AutomationProperties.AutomationId="menu.gifrecord"
 				          AutomationProperties.Name="GIF录屏"
@@ -99,7 +99,7 @@
 				<MenuItem x:Name="mngifrecordopt" Header="GIF录屏选项(_F)…"
 				          AutomationProperties.AutomationId="menu.gifrecordopt"
 				          AutomationProperties.Name="GIF录屏选项"
-				          ToolTip="帧率 / 最大宽高"/>
+				          ToolTip="帧率 / 最大宽高 / 鼠标"/>
 			</MenuItem>
 			<MenuItem x:Name="mnedit" Header="编辑(_E)">
 				<MenuItem x:Name="mncopyimg" Header="复制图片(_I)"

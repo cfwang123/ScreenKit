@@ -17,6 +17,10 @@ public sealed class GifOptions {
 	public int Colors = 128;
 	/// <summary>预览默认缩放百分比 25–100。</summary>
 	public int ScalePercent = 100;
+	/// <summary>叠加系统鼠标指针（GDI 抓屏本身不含光标）。</summary>
+	public bool RecordMouse = true;
+	/// <summary>在点击处画散开高亮圈（左黄 / 右蓝 / 中绿）。</summary>
+	public bool HighlightClicks = true;
 
 	public GifOptions Clone() => new() {
 		Fps = Fps,
@@ -25,6 +29,8 @@ public sealed class GifOptions {
 		MaxHeight = MaxHeight,
 		Colors = Colors,
 		ScalePercent = ScalePercent,
+		RecordMouse = RecordMouse,
+		HighlightClicks = HighlightClicks,
 	};
 
 	/// <summary>将另一实例字段复制到当前对象。</summary>
@@ -36,6 +42,8 @@ public sealed class GifOptions {
 		MaxHeight = o.MaxHeight;
 		Colors = o.Colors;
 		ScalePercent = o.ScalePercent;
+		RecordMouse = o.RecordMouse;
+		HighlightClicks = o.HighlightClicks;
 		Clamp();
 	}
 
@@ -62,7 +70,12 @@ public sealed class GifOptions {
 		var sizePart = MaxSizeEnabled
 			? (captureW > 0 ? $"out {ow}×{oh}" : $"max {MaxWidth}×{MaxHeight}")
 			: "full";
-		return $"GIF · 采{CaptureFps}→出{Fps}fps · {Colors}色 · 无声 · {sizePart}";
+		var mouse = RecordMouse
+			? (HighlightClicks ? "鼠标+点击" : "鼠标")
+			: (HighlightClicks ? "点击高亮" : null);
+		return mouse == null
+			? $"GIF · 采{CaptureFps}→出{Fps}fps · {Colors}色 · 无声 · {sizePart}"
+			: $"GIF · 采{CaptureFps}→出{Fps}fps · {Colors}色 · 无声 · {sizePart} · {mouse}";
 	}
 
 	/// <summary>将采集宽高 fit 到最大框内（保持比例）。</summary>

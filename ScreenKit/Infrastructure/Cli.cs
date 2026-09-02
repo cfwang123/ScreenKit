@@ -29,6 +29,7 @@ static class Cli {
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
+				or "--test-record-cursor"
 				or "--test-clipboard-path"
 				or "--test-llm-continue"
 				or "--test-face-overlay"
@@ -88,6 +89,7 @@ static class Cli {
 		bool doTestRecordAvsync = false;
 		bool doTestGifRecord = false;
 		bool doTestRecordCodec = false;
+		bool doTestRecordCursor = false;
 		bool doTestClipboardPath = false;
 		string testRecordCodec = "av1";
 		int testRecordRepeat = 1;
@@ -150,6 +152,9 @@ static class Cli {
 						doTestRecordCodec = true;
 						if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
 							testRecordCodec = Next();
+						break;
+					case "--test-record-cursor":
+						doTestRecordCursor = true;
 						break;
 					case "--test-clipboard-path":
 						doTestClipboardPath = true;
@@ -323,6 +328,20 @@ static class Cli {
 			}
 			catch (Exception ex) {
 				Err($"GIF 录屏测试失败: {ex.Message}");
+				Err(ex.ToString());
+				return 1;
+			}
+			finally {
+				try { log?.Dispose(); } catch { }
+			}
+		}
+
+		if (doTestRecordCursor) {
+			try {
+				return RecordCursorTest.Run(snapOut, Out);
+			}
+			catch (Exception ex) {
+				Err($"录屏鼠标叠加测试失败: {ex.Message}");
 				Err(ex.ToString());
 				return 1;
 			}
@@ -1573,6 +1592,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-avsync [--seconds 10] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
+  ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
   ScreenKit --test-face-overlay
@@ -1612,6 +1632,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-avsync  有声0.1s/静音0.1s循环→录N秒→分析音画同步
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
+      --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径，确认剪贴板无残留图
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
@@ -1653,6 +1674,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-avsync --seconds 10 -o log\record_avsync
   ScreenKit --test-gif-record --seconds 2 -o log\gif_record
   ScreenKit --test-record-codec av1 --repeat 2 --seconds 2 -o log\record_codec
+  ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
   ScreenKit --test-face-overlay
