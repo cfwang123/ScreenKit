@@ -560,9 +560,6 @@ static class ImageUtil {
 	[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	static extern int GetClipboardFormatName(uint format, StringBuilder lpszFormatName, int cchMaxCount);
 
-	[DllImport("ole32.dll")]
-	static extern int OleSetClipboard(IntPtr pDataObj);
-
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern IntPtr GlobalLock(IntPtr hMem);
 
@@ -575,9 +572,9 @@ static class ImageUtil {
 
 	/// <summary>
 	/// 将文件完整路径作为文本写入剪贴板（可贴到终端/对话框等）。
-	/// 必须走 OLE 文本 DataObject（persist）：Win32 SetClipboardData 后再 OleFlushClipboard
-	/// 会把刚写入的文本清掉（Flush 对 null IDataObject 执行 EmptyClipboard），表现为截图完未复制。
-	/// 校验只用 Win32 枚举，不用 WPF GetText/ContainsImage：会把上一张延迟位图重新挂上，微信粘成「▀」。
+	/// 路径就是一段短字符串：Clipboard.SetText 即可。不要先 OleSetClipboard(null)——
+	/// 那会把上一张延迟渲染的大图 Flush 出来，剪贴板历史/云同步下能卡住几分钟，还可能留下 DIB，
+	/// 微信等优先贴图的程序就会粘成「▀」。校验只用 Win32 枚举，不用 WPF GetText/ContainsImage。
 	/// </summary>
 	static void copypathtoclipboard(string path) {
 		if (string.IsNullOrWhiteSpace(path))
@@ -585,12 +582,9 @@ static class ImageUtil {
 		var full = path;
 		try { full = Path.GetFullPath(path); } catch { }
 		Exception last = null;
-		for (var i = 0; i < 8; i++) {
+		for (var i = 0; i < 4; i++) {
 			try {
-				try { OleSetClipboard(IntPtr.Zero); } catch { }
-				var data = new DataObject();
-				data.SetText(full);
-				setclip(data, persist: true);
+				Clipboard.SetText(full);
 				if (cliptextispath(full)) return;
 				last = new InvalidOperationException("剪贴板校验失败: " + ClipboardFormatList());
 			}

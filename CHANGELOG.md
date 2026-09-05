@@ -12,11 +12,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - Screen record / GIF record options **Record mouse** and **Highlight mouse clicks** (`record_mouse` / `record_click_highlight`, `gif_mouse` / `gif_click_highlight`). GDI capture has no pointer; the overlay draws the system cursor and a short yellow / blue / green ripple for left / right / middle clicks. CLI: `ScreenKit --test-record-cursor`.
 
+#### Fixed
+
+- Copy-as-path after a delayed-render bitmap no longer calls `OleSetClipboard(null)` (that flushed the old screenshot, froze the UI for minutes, and could leave a DIB so WeChat pasted `▀`). Path copy now uses `Clipboard.SetText`. CLI: `ScreenKit --test-clipboard-path`.
+
 ### 中文
 
 #### 新增
 
 - 录屏 / GIF 录屏选项 **录制鼠标**、**高亮鼠标点击**（`record_mouse` / `record_click_highlight`，`gif_mouse` / `gif_click_highlight`）。GDI 抓屏不含指针，叠加系统光标，并在左/右/中键处画短暂黄/蓝/绿散开圈。CLI：`ScreenKit --test-record-cursor`。
+
+#### 修复
+
+- **截图复制为路径**：不再先 `OleSetClipboard(null)`（会把上一张延迟渲染的大图 Flush 出来，界面卡几分钟，还可能留下 DIB，微信粘成「▀」）。改为 `Clipboard.SetText`。CLI：`ScreenKit --test-clipboard-path`。
 
 ## v1.0.5 (2026-08-31 ~ 09-01)
 
