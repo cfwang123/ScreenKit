@@ -13,7 +13,7 @@ sealed class HttpApiServices {
 	public AsrEngine AsrEngine { get; set; }
 	public object AsrGate { get; set; } = new();
 
-	/// <summary>共享 Sherpa TTS（可 null）。</summary>
+	/// <summary>共享 Sherpa TTS（可 null）。SAPI / WinRT 由 HTTP 服务自行实例化。</summary>
 	public TtsEngine TtsEngine { get; set; }
 	public object TtsGate { get; set; } = new();
 

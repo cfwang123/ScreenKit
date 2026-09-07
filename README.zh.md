@@ -194,6 +194,7 @@ ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # 本机 SAPI +（x64 时）x86host 发音人
+ScreenKit --test-http-tts           # HTTP /api/tts 校验 SAPI / Windows WAV
 ScreenKit --probe-cuda
 ScreenKit --help
 ```
@@ -227,7 +228,7 @@ x86host.exe --list-sapi
 - `POST /api/qr` — 仅条码/二维码（`/api/barcode`；JSON base64/path 或 multipart）
 - `GET  /api/ocr/get_options` — 当前 OCR 参数快照
 - `GET  /api/asr/models` · `POST /api/asr` — 语音识别（base64/本地 path）
-- `GET  /api/tts/models` · `POST /api/tts` — 语音合成（返回 wav base64）
+- `GET  /api/tts/models` · `POST /api/tts` — 语音合成（返回 wav base64）：Sherpa、SAPI、Windows（`engine=winrt`）
 - `POST /api/itn` — 文本逆归一化（WeText + 规则）
 - `POST /api/translate` — LLM 批量翻译（`items[]`，需已配置 LLM）
 - `GET  /api/face/models` · `POST /api/face` — 人脸检测 / 比对

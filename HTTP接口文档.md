@@ -79,7 +79,7 @@ http_port = 1224
 | 900 | 内部错误 |
 | 901 | OCR 识别失败 |
 | 910+ | ASR 相关 |
-| 920+ | TTS 相关 |
+| 920+ | TTS 相关（921 Sherpa 不可用，922 无模型/发音人，923 音频空，924 合成失败，925 未知 engine） |
 | 930+ | 人脸相关（930 无模型，931 识别失败，932 无检测/识别文件） |
 | 950 | 条码/二维码识别失败 |
 
@@ -126,7 +126,7 @@ http_port = 1224
       "GET  /api/asr/models",
       "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
       "GET  /api/tts/models",
-      "POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
+      "POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}",
       "POST /api/itn   JSON{text}  WeText+规则后处理",
       "POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译",
       "GET  /api/face/models",
@@ -151,8 +151,10 @@ http_port = 1224
 | `ocr_engine` | bool | OCR 运行器是否可用 |
 | `asr_engine` | bool | ASR 引擎是否注入 |
 | `tts_engine` | bool | TTS（Sherpa）引擎是否注入 |
+| `tts_sapi` | bool | 本机 SAPI 发音人是否可用 |
+| `tts_winrt` | bool | Windows（WinRT / OneCore）语音是否可用 |
 | `asr_models` | int | 扫描到的 ASR 模型数量 |
-| `tts_models` | int | 扫描到的 TTS 模型数量 |
+| `tts_models` | int | 扫描到的 Sherpa TTS 模型数量 |
 | `face_ready` | bool | `facemodels` 是否已有检测+识别模型 |
 | `face_models` | int | 扫描到的人脸 ONNX 数量 |
 | `barcode` | bool | 条码/二维码接口可用（ZXingCpp，无需额外模型） |
@@ -434,7 +436,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 ## 8. TTS（语音合成）
 
-当前 HTTP 走 **Sherpa** TTS 引擎；需 `ttsmodels` 中有可用模型。
+三种引擎：**Sherpa**（`ttsmodels` 下 ONNX 包）、**SAPI**（经典 `System.Speech`，含经 `x86host.exe` 的 32 位音）、**Windows**（`engine=winrt`，WinRT / OneCore 神经语音）。省略 `engine` 时：有 Sherpa 模型则走旧路径；否则依次回落 Windows、SAPI。
 
 ### 8.1 GET `/api/tts/models`
 
@@ -444,27 +446,47 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
   "data": [
     {
       "name": "vits-zh",
+      "engine": "sherpa",
       "type": "Vits",
       "speakers": [
         { "id": 0, "name": "speaker0", "lang": "zh", "gender": "" }
       ]
+    },
+    {
+      "name": "SAPI",
+      "engine": "sapi",
+      "type": "Sapi",
+      "speakers": [
+        { "id": 0, "name": "Microsoft Huihui Desktop", "lang": "zh", "gender": "female", "key": "sapi:Microsoft Huihui Desktop" }
+      ]
+    },
+    {
+      "name": "Windows",
+      "engine": "winrt",
+      "type": "WinRt",
+      "speakers": [
+        { "id": 0, "name": "{voice-id}", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
+      ]
     }
   ],
-  "count": 1
+  "count": 3
 }
 ```
 
-每个模型最多列出 64 个 speaker。
+Sherpa 每个模型最多列出 64 个 speaker。SAPI / Windows 列出全部已装发音人。仅 x86 可见的 SAPI 音 `key` 前缀为 `sapi-x86:`。
 
 ### 8.2 POST `/api/tts`
 
 | 字段 | 必填 | 说明 |
 |------|------|------|
 | `text` | 是 | 待合成文本，最长 20000 字 |
-| `model` | 否 | 模型显示名 |
-| `speaker_id` / `sid` | 否 | 发音人 id，默认 0 |
+| `engine` | 否 | `sherpa` / `sapi` / `winrt`（别名 `windows`、`sapi5`）。空则从 `model`/`voice` 推断，有 Sherpa 则仍走 Sherpa |
+| `model` | 否 | Sherpa 显示名，或 `SAPI` / `Windows` |
+| `voice` / `speaker` | 否 | SAPI/Windows 发音人名或 `key`（`sapi:…` / `sapi-x86:…` / `winrt:…`） |
+| `speaker_id` / `sid` | 否 | 发音人序号（Sherpa 的 sid，或该引擎列表下标），默认 0 |
 | `speed` | 否 | 语速 0.5～2.0，默认 1.0 |
-| `device` / `compute` | 否 | `auto` / `gpu` / `cpu` / `igpu` |
+| `volume` | 否 | 0～100，默认 100（SAPI / Windows；Sherpa 忽略） |
+| `device` / `compute` | 否 | 仅 Sherpa：`auto` / `gpu` / `cpu` / `igpu` |
 
 **成功响应：**
 
@@ -476,29 +498,33 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
     "sample_rate": 22050,
     "samples": 44100,
     "wav_base64": "<整段 WAV 文件的 base64>",
-    "model": "vits-zh",
+    "engine": "winrt",
+    "model": "Windows",
+    "voice": "winrt:{voice-id}",
     "speaker_id": 0,
-    "provider": "CPU"
+    "provider": "WinRT"
   },
   "time": 300,
   "timestamp": 1710000000
 }
 ```
 
-解码 `wav_base64` 即为标准 WAV 文件字节。
+`provider` 为 Sherpa 的 EP（`CPU` / CUDA 等），或 `SAPI` / `SAPI x86` / `WinRT`。解码 `wav_base64` 即为标准 WAV 文件字节。
 
 ```python
 import base64, json, urllib.request
 
 req = urllib.request.Request(
     "http://127.0.0.1:1224/api/tts",
-    data=json.dumps({"text": "你好，世界", "speed": 1.0}).encode("utf-8"),
+    data=json.dumps({"text": "你好，世界", "engine": "winrt", "speed": 1.0}).encode("utf-8"),
     headers={"Content-Type": "application/json"},
     method="POST",
 )
 data = json.loads(urllib.request.urlopen(req).read().decode("utf-8"))
 open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 ```
+
+命令行：`ScreenKit --test-http-tts` 在本机环回拉起服务，校验 SAPI / Windows 的 WAV。
 
 ---
 

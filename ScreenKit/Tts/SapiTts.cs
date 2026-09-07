@@ -106,6 +106,26 @@ sealed class SapiTts : IDisposable {
 		return outWavPath;
 	}
 
+	/// <summary>合成到 float[]（临时 WAV 再读回，用完删除）。</summary>
+	public (float[] samples, int sampleRate) SynthToFloat(string text) {
+		var wav = TmpStore.NewPath("sapi_http", ".wav");
+		try {
+			ExportWav(text, wav);
+			using var reader = new AudioFileReader(wav);
+			var sr = reader.WaveFormat.SampleRate;
+			var list = new List<float>();
+			var buf = new float[4096];
+			int n;
+			while ((n = reader.Read(buf, 0, buf.Length)) > 0) {
+				for (var k = 0; k < n; k++) list.Add(buf[k]);
+			}
+			return (list.ToArray(), sr);
+		}
+		finally {
+			try { if (File.Exists(wav)) File.Delete(wav); } catch { }
+		}
+	}
+
 	/// <summary>
 	/// 合成到 MP3。先 SAPI 写临时 WAV，再 MediaFoundation / ffmpeg 转 MP3。
 	/// </summary>

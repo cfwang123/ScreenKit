@@ -99,7 +99,6 @@ sealed class WinRtTts : IDisposable {
 	public async Task<(float[] samples, int sampleRate)> Synthesize(string text) {
 		if (string.IsNullOrWhiteSpace(text))
 			return (Array.Empty<float>(), 22050);
-		SpeechSynthesisStream stream;
 		try {
 			using var syn = new SpeechSynthesizer();
 			if (!string.IsNullOrEmpty(selectedVoiceId)) {
@@ -108,22 +107,30 @@ sealed class WinRtTts : IDisposable {
 			}
 			try { syn.Options.SpeakingRate = rate; } catch { }
 			try { syn.Options.AudioVolume = volume; } catch { }
-			stream = await syn.SynthesizeTextToStreamAsync(text).AsTask().ConfigureAwait(false);
+			var stream = await syn.SynthesizeTextToStreamAsync(text).AsTask().ConfigureAwait(true);
+			var size = (int)Math.Min((long)stream.Size, int.MaxValue);
+			if (size <= 0)
+				throw new InvalidOperationException("WinRT 合成流为空");
+			byte[] buf;
+			using (var dr = new DataReader(stream.GetInputStreamAt(0))) {
+				await dr.LoadAsync((uint)size).AsTask().ConfigureAwait(true);
+				buf = new byte[size];
+				dr.ReadBytes(buf);
+			}
+			var (samples, sr) = wavetofloat(buf);
+			if (samples == null || samples.Length == 0) {
+				var head = buf.Length > 0
+					? BitConverter.ToString(buf, 0, Math.Min(16, buf.Length))
+					: "";
+				throw new InvalidOperationException($"WinRT WAV 无采样 bytes={buf.Length} head={head}");
+			}
+			return (samples, sr);
 		}
+		catch (InvalidOperationException) { throw; }
 		catch (Exception ex) {
 			CaptureLog.Ex("WinRtTts synth", ex);
 			throw new InvalidOperationException("WinRT 合成失败: " + ex.Message, ex);
 		}
-		var size = (int)Math.Min((long)stream.Size, int.MaxValue);
-		if (size <= 0)
-			return (Array.Empty<float>(), 22050);
-		byte[] buf;
-		using (var dr = new DataReader(stream.GetInputStreamAt(0))) {
-			await dr.LoadAsync((uint)size).AsTask().ConfigureAwait(false);
-			buf = new byte[size];
-			dr.ReadBytes(buf);
-		}
-		return wavetofloat(buf);
 	}
 
 	static (float[], int) wavetofloat(byte[] wav) {
@@ -143,7 +150,11 @@ sealed class WinRtTts : IDisposable {
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("WinRtTts wav parse", ex);
-			return (Array.Empty<float>(), 22050);
+			var head = wav != null && wav.Length > 0
+				? BitConverter.ToString(wav, 0, Math.Min(16, wav.Length))
+				: "";
+			throw new InvalidOperationException(
+				$"WinRT WAV 解析失败 bytes={wav?.Length ?? 0} head={head}: {ex.Message}", ex);
 		}
 	}
 

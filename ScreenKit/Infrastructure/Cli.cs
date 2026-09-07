@@ -1,6 +1,8 @@
 using System.IO;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 
 namespace ScreenKit;
 
@@ -32,6 +34,7 @@ static class Cli {
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
 				or "--test-llm-continue"
+				or "--test-http-tts"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--asr" or "--list-asr"
@@ -188,6 +191,8 @@ static class Cli {
 					return testfaceoverlay();
 				case "--test-llm-continue":
 					return runtestllmcontinue();
+				case "--test-http-tts":
+					return runtesthttptts();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -1449,6 +1454,116 @@ static class Cli {
 		}
 	}
 
+	/// <summary>HTTP /api/tts：SAPI 与 Windows（WinRT）合成 WAV（本机环回，不依赖 Sherpa）。</summary>
+	static int runtesthttptts() {
+		Out("=== HTTP TTS SAPI/WinRT --test-http-tts ===");
+		var bad = 0;
+		void fail(string m) {
+			Err("FAIL " + m);
+			bad++;
+		}
+		HttpOcrServer srv = null;
+		OcrRunner runner = null;
+		try {
+			runner = new OcrRunner();
+			srv = new HttpOcrServer(() => new OcrOptions(), runner);
+			srv.SetServices(new HttpApiServices {
+				GetOpts = () => new OcrOptions(),
+				ScanTts = () => new List<TtsModelInfo>(),
+			});
+			var port = 0;
+			for (var p = 18765; p <= 18769; p++) {
+				try {
+					srv.Start("127.0.0.1", p);
+					port = p;
+					break;
+				}
+				catch (Exception ex) {
+					Out($"bind {p} fail: {ex.Message}");
+				}
+			}
+			if (port == 0) {
+				fail("无法绑定 127.0.0.1:18765-18769");
+				return 1;
+			}
+			var baseUrl = $"http://127.0.0.1:{port}";
+			Out("listen " + baseUrl);
+			using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
+
+			var modelsJson = Task.Run(() =>
+				http.GetStringAsync(baseUrl + "/api/tts/models").GetAwaiter().GetResult())
+				.GetAwaiter().GetResult();
+			Out("models " + (modelsJson.Length > 400 ? modelsJson.Substring(0, 400) + "…" : modelsJson));
+			using var doc = JsonDocument.Parse(modelsJson);
+			if (doc.RootElement.GetProperty("code").GetInt32() != 100)
+				fail("models code != 100");
+			var hasSapi = false;
+			var hasWin = false;
+			if (doc.RootElement.TryGetProperty("data", out var data)
+				&& data.ValueKind == JsonValueKind.Array) {
+				foreach (var m in data.EnumerateArray()) {
+					var eng = m.TryGetProperty("engine", out var e) ? e.GetString() ?? "" : "";
+					if (eng == "sapi") hasSapi = true;
+					if (eng == "winrt") hasWin = true;
+				}
+			}
+			Out($"hasSapi={hasSapi} hasWinrt={hasWin}");
+			if (!hasSapi && !hasWin) fail("models 无 SAPI / Windows 条目");
+
+			if (hasSapi) testhttpttspost(http, baseUrl, "sapi", fail);
+			if (hasWin) testhttpttspost(http, baseUrl, "winrt", fail);
+			if (hasSapi || hasWin) {
+				var fb = httpttspost(http, baseUrl, "{\"text\":\"你好\"}");
+				using var dFb = JsonDocument.Parse(fb);
+				if (dFb.RootElement.GetProperty("code").GetInt32() != 100)
+					fail("省略 engine 回落失败 " + fb);
+				else Out("omit engine OK " + dFb.RootElement.GetProperty("data").GetProperty("engine"));
+			}
+
+			var unknown = httpttspost(http, baseUrl, "{\"text\":\"hi\",\"engine\":\"nope\"}");
+			using (var d2 = JsonDocument.Parse(unknown)) {
+				if (d2.RootElement.GetProperty("code").GetInt32() != 925)
+					fail("未知 engine 应为 925 got=" + unknown);
+				else Out("unknown engine 925 OK");
+			}
+		}
+		catch (Exception ex) {
+			fail(ex.ToString());
+		}
+		finally {
+			try { srv?.Dispose(); } catch { }
+			try { runner?.Dispose(); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：HTTP TTS SAPI/WinRT ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static void testhttpttspost(HttpClient http, string baseUrl, string engine, Action<string> fail) {
+		var json = httpttspost(http, baseUrl, $"{{\"text\":\"你好\",\"engine\":\"{engine}\"}}");
+		using var doc = JsonDocument.Parse(json);
+		var code = doc.RootElement.GetProperty("code").GetInt32();
+		if (code != 100) {
+			fail($"{engine} code={code} {json}");
+			return;
+		}
+		var data = doc.RootElement.GetProperty("data");
+		var b64 = data.GetProperty("wav_base64").GetString() ?? "";
+		var wav = Convert.FromBase64String(b64);
+		if (wav.Length < 100 || wav[0] != (byte)'R' || wav[1] != (byte)'I') {
+			fail($"{engine} wav 不是 RIFF len={wav.Length}");
+			return;
+		}
+		Out($"{engine} OK wav={wav.Length} sr={data.GetProperty("sample_rate")} provider={data.GetProperty("provider")}");
+	}
+
+	static string httpttspost(HttpClient http, string baseUrl, string json) {
+		return Task.Run(() => {
+			using var content = new StringContent(json, Encoding.UTF8, "application/json");
+			using var resp = http.PostAsync(baseUrl + "/api/tts", content).GetAwaiter().GetResult();
+			return resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
+		}).GetAwaiter().GetResult();
+	}
+
 	/// <summary>LLM 超长续写：finish_reason 判定与片段拼接（不去网）。</summary>
 	static int runtestllmcontinue() {
 		Out("=== LLM 超长续写 --test-llm-continue ===");
@@ -1595,6 +1710,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
+  ScreenKit --test-http-tts
   ScreenKit --test-face-overlay
   ScreenKit --list-models
   ScreenKit --list-tts
@@ -1635,6 +1751,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径，确认剪贴板无残留图
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
+      --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
       --repeat    --test-record-codec 连续次数（默认 1）
       --seconds   --test-record-avsync / --test-gif-record / --test-record-codec 录制秒数
@@ -1677,6 +1794,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
+  ScreenKit --test-http-tts
   ScreenKit --test-face-overlay
   ScreenKit --record-snap --region 100,100,800,600 -o log\record_snap
   ScreenKit --list-models

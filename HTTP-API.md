@@ -79,7 +79,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | 900 | Internal error |
 | 901 | OCR recognition failed |
 | 910+ | ASR-related |
-| 920+ | TTS-related |
+| 920+ | TTS-related (921 Sherpa unavailable, 922 no model/voice, 923 empty audio, 924 synth failed, 925 unknown engine) |
 | 930+ | Face-related (930 no models, 931 failed, 932 missing det/rec files) |
 | 950 | Barcode / QR scan failed |
 
@@ -126,7 +126,7 @@ Returns service name and endpoint list.
       "GET  /api/asr/models",
       "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
       "GET  /api/tts/models",
-      "POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
+      "POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}",
       "POST /api/itn   JSON{text}  WeText+rules",
       "POST /api/translate  JSON{items[],src?,dst?}  LLM batch translate",
       "GET  /api/face/models",
@@ -151,8 +151,10 @@ Health check and capability probe.
 | `ocr_engine` | bool | OCR runner available |
 | `asr_engine` | bool | ASR engine injected |
 | `tts_engine` | bool | TTS (Sherpa) engine injected |
+| `tts_sapi` | bool | Local SAPI voices available |
+| `tts_winrt` | bool | Windows (WinRT / OneCore) voices available |
 | `asr_models` | int | Scanned ASR model count |
-| `tts_models` | int | Scanned TTS model count |
+| `tts_models` | int | Scanned Sherpa TTS model count |
 | `face_ready` | bool | Whether `facemodels` has det+rec ONNX |
 | `face_models` | int | Scanned face ONNX count |
 | `barcode` | bool | Barcode / QR endpoint available (ZXingCpp, no extra model) |
@@ -434,7 +436,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 ## 8. TTS (speech synthesis)
 
-HTTP uses the **Sherpa** TTS engine; usable models must exist under `ttsmodels`.
+Three engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), and **Windows** (`engine=winrt`, WinRT / OneCore neural voices). Omitting `engine` keeps the old Sherpa path when a Sherpa model exists; otherwise it falls back to Windows then SAPI.
 
 ### 8.1 GET `/api/tts/models`
 
@@ -444,27 +446,47 @@ HTTP uses the **Sherpa** TTS engine; usable models must exist under `ttsmodels`.
   "data": [
     {
       "name": "vits-zh",
+      "engine": "sherpa",
       "type": "Vits",
       "speakers": [
         { "id": 0, "name": "speaker0", "lang": "zh", "gender": "" }
       ]
+    },
+    {
+      "name": "SAPI",
+      "engine": "sapi",
+      "type": "Sapi",
+      "speakers": [
+        { "id": 0, "name": "Microsoft Huihui Desktop", "lang": "zh", "gender": "female", "key": "sapi:Microsoft Huihui Desktop" }
+      ]
+    },
+    {
+      "name": "Windows",
+      "engine": "winrt",
+      "type": "WinRt",
+      "speakers": [
+        { "id": 0, "name": "{voice-id}", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
+      ]
     }
   ],
-  "count": 1
+  "count": 3
 }
 ```
 
-At most 64 speakers are listed per model.
+Sherpa lists at most 64 speakers per model. SAPI / Windows list all installed voices. x86-only SAPI voices have `key` prefix `sapi-x86:`.
 
 ### 8.2 POST `/api/tts`
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `text` | Yes | Text to synthesize, max 20000 characters |
-| `model` | No | Model display name |
-| `speaker_id` / `sid` | No | Speaker id, default 0 |
+| `engine` | No | `sherpa` / `sapi` / `winrt` (aliases: `windows`, `sapi5`). Empty = infer from `model` / `voice`, else Sherpa if present |
+| `model` | No | Sherpa display name, or `SAPI` / `Windows` |
+| `voice` / `speaker` | No | SAPI/Windows voice name or `key` (`sapi:…` / `sapi-x86:…` / `winrt:…`) |
+| `speaker_id` / `sid` | No | Speaker index (Sherpa sid, or index into that engine’s list). Default 0 |
 | `speed` | No | Rate 0.5–2.0, default 1.0 |
-| `device` / `compute` | No | `auto` / `gpu` / `cpu` / `igpu` |
+| `volume` | No | 0–100, default 100 (SAPI / Windows; ignored by Sherpa) |
+| `device` / `compute` | No | Sherpa only: `auto` / `gpu` / `cpu` / `igpu` |
 
 **Success response:**
 
@@ -476,29 +498,33 @@ At most 64 speakers are listed per model.
     "sample_rate": 22050,
     "samples": 44100,
     "wav_base64": "<base64 of full WAV file>",
-    "model": "vits-zh",
+    "engine": "winrt",
+    "model": "Windows",
+    "voice": "winrt:{voice-id}",
     "speaker_id": 0,
-    "provider": "CPU"
+    "provider": "WinRT"
   },
   "time": 300,
   "timestamp": 1710000000
 }
 ```
 
-Decode `wav_base64` to obtain standard WAV bytes.
+`provider` is Sherpa’s EP (`CPU` / CUDA / …), or `SAPI` / `SAPI x86` / `WinRT`. Decode `wav_base64` to obtain standard WAV bytes.
 
 ```python
 import base64, json, urllib.request
 
 req = urllib.request.Request(
     "http://127.0.0.1:1224/api/tts",
-    data=json.dumps({"text": "Hello, world", "speed": 1.0}).encode("utf-8"),
+    data=json.dumps({"text": "Hello, world", "engine": "winrt", "speed": 1.0}).encode("utf-8"),
     headers={"Content-Type": "application/json"},
     method="POST",
 )
 data = json.loads(urllib.request.urlopen(req).read().decode("utf-8"))
 open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 ```
+
+CLI: `ScreenKit --test-http-tts` starts a loopback server and checks SAPI / Windows WAV output.
 
 ---
 

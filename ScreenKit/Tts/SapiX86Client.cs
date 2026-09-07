@@ -50,6 +50,11 @@ static class SapiX86Client {
 
 	public static bool ExeAvailable => !string.IsNullOrEmpty(FindExe());
 
+	/// <summary>x86host 是否已在听（不拉起进程）。</summary>
+	public static bool IsRunning() {
+		lock (Gate) return tryprobe(out _);
+	}
+
 	/// <summary>确保服务可用，返回 base URL。</summary>
 	public static string EnsureServer() {
 		lock (Gate) {

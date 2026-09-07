@@ -240,7 +240,7 @@ sealed partial class HttpOcrServer : IDisposable {
 							"GET  /api/asr/models",
 							"POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
 							"GET  /api/tts/models",
-							"POST /api/tts   JSON{text, model?, speaker_id?, speed?}",
+							"POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}",
 							"POST /api/itn   JSON{text}  WeText+规则后处理",
 							"POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译",
 							"GET  /api/face/models",
@@ -296,6 +296,8 @@ sealed partial class HttpOcrServer : IDisposable {
 				["ocr_engine"] = runner != null,
 				["asr_engine"] = svc?.AsrEngine != null,
 				["tts_engine"] = svc?.TtsEngine != null,
+				["tts_sapi"] = ttssapiavailable(),
+				["tts_winrt"] = ttswinrtavailable(),
 				["asr_models"] = asrN,
 				["tts_models"] = ttsN,
 				["face_ready"] = FaceModels.IsReady(),
@@ -453,125 +455,6 @@ sealed partial class HttpOcrServer : IDisposable {
 		finally {
 			if (tmpPath != null)
 				try { File.Delete(tmpPath); } catch { }
-		}
-	}
-
-	void handlettsmodels(HttpListenerContext ctx) {
-		List<TtsModelInfo> list = null;
-		try { list = svc?.ScanTts?.Invoke(); } catch (Exception ex) {
-			writejson(ctx, 200, err(920, "扫描 TTS 失败: " + ex.Message));
-			return;
-		}
-		list ??= new List<TtsModelInfo>();
-		var arr = new JsonArray();
-		foreach (var m in list) {
-			var speakers = new JsonArray();
-			if (m.Speakers != null) {
-				foreach (var s in m.Speakers.Take(64)) {
-					speakers.Add(new JsonObject {
-						["id"] = s.Id,
-						["name"] = s.Name ?? "",
-						["lang"] = s.Lang ?? "",
-						["gender"] = s.Gender ?? "",
-					});
-				}
-			}
-			arr.Add(new JsonObject {
-				["name"] = m.DisplayName ?? "",
-				["type"] = m.Type.ToString(),
-				["speakers"] = speakers,
-			});
-		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-		});
-	}
-
-	void handletts(HttpListenerContext ctx) {
-		if (svc?.TtsEngine == null) {
-			writejson(ctx, 200, err(921, "TTS 引擎不可用（Sherpa）"));
-			return;
-		}
-		JsonObject jo;
-		try { jo = readjsonbody(ctx.Request); }
-		catch (Exception ex) {
-			writejson(ctx, 200, err(800, ex.Message));
-			return;
-		}
-		var text = jo["text"]?.GetValue<string>() ?? "";
-		if (string.IsNullOrWhiteSpace(text)) {
-			writejson(ctx, 200, err(802, "缺少 text"));
-			return;
-		}
-		if (text.Length > 20000) {
-			writejson(ctx, 200, err(803, "text 过长（上限 20000 字）"));
-			return;
-		}
-
-		var modelName = jo["model"]?.GetValue<string>() ?? "";
-		var sid = 0;
-		if (jo["speaker_id"] != null) sid = asint(jo["speaker_id"], 0);
-		else if (jo["sid"] != null) sid = asint(jo["sid"], 0);
-		var speed = 1f;
-		if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
-		var compute = parsecompute(jo["device"]?.GetValue<string>() ?? jo["compute"]?.GetValue<string>() ?? "auto");
-
-		var models = svc.ScanTts?.Invoke() ?? new List<TtsModelInfo>();
-		TtsModelInfo model = null;
-		if (!string.IsNullOrWhiteSpace(modelName))
-			model = models.FirstOrDefault(m =>
-				string.Equals(m.DisplayName, modelName, StringComparison.OrdinalIgnoreCase))
-				?? models.FirstOrDefault(m =>
-					Compat.Contains(m.DisplayName, modelName, StringComparison.OrdinalIgnoreCase));
-		if (model == null) {
-			var opt = getOpts?.Invoke();
-			if (!string.IsNullOrEmpty(opt?.TtsModel))
-				model = models.FirstOrDefault(m =>
-					string.Equals(m.DisplayName, opt.TtsModel, StringComparison.OrdinalIgnoreCase));
-		}
-		model ??= models.FirstOrDefault();
-		if (model == null) {
-			writejson(ctx, 200, err(922, "无可用 TTS 模型"));
-			return;
-		}
-
-		var t0 = Environment.TickCount;
-		try {
-			float[] samples;
-			int sr;
-			string provider;
-			lock (svc.TtsGate ?? new object()) {
-				var eng = svc.TtsEngine;
-				eng.Mode = compute;
-				eng.LoadModel(model);
-				provider = eng.Provider;
-				(samples, sr) = eng.Synthesize(text, sid, speed);
-			}
-			if (samples == null || samples.Length == 0) {
-				writejson(ctx, 200, err(923, "合成结果为空"));
-				return;
-			}
-			var wav = floatstowav(samples, sr);
-			var ms = Math.Max(0, Environment.TickCount - t0);
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["format"] = "wav",
-					["sample_rate"] = sr,
-					["samples"] = samples.Length,
-					["wav_base64"] = Convert.ToBase64String(wav),
-					["model"] = model.DisplayName,
-					["speaker_id"] = sid,
-					["provider"] = provider,
-				},
-				["time"] = ms,
-				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			});
-		}
-		catch (Exception ex) {
-			writejson(ctx, 200, err(924, "合成失败: " + ex.Message));
 		}
 	}
 
@@ -1371,6 +1254,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		disposed = true;
 		Stop();
 		disposeface();
+		disposettsvoices();
 		// runner 由 MainWindow 持有并释放，此处不 Dispose
 	}
 }

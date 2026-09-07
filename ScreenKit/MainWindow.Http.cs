@@ -57,6 +57,14 @@ public partial class MainWindow {
 			Body = "{\n  \"text\": \"你好\"\n}",
 		});
 		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/tts (SAPI)", Method = "POST", Path = "/api/tts",
+			Body = "{\n  \"text\": \"你好\",\n  \"engine\": \"sapi\"\n}",
+		});
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/tts (Windows)", Method = "POST", Path = "/api/tts",
+			Body = "{\n  \"text\": \"你好\",\n  \"engine\": \"winrt\"\n}",
+		});
+		ehttptpl.Items.Add(new HttpTpl {
 			Title = "POST /api/itn", Method = "POST", Path = "/api/itn",
 			Body = "{\n  \"text\": \"二零二四年一月一日\"\n}",
 		});

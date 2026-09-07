@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
+- HTTP `POST /api/tts` / `GET /api/tts/models`: **SAPI** and **Windows** (WinRT / OneCore) voices in addition to Sherpa. Request `engine` is `sherpa` / `sapi` / `winrt` (alias `windows`); `voice` accepts `sapi:…` / `sapi-x86:…` / `winrt:…`. Status adds `tts_sapi` / `tts_winrt`. CLI: `ScreenKit --test-http-tts`.
 - Screen record / GIF record options **Record mouse** and **Highlight mouse clicks** (`record_mouse` / `record_click_highlight`, `gif_mouse` / `gif_click_highlight`). GDI capture has no pointer; the overlay draws the system cursor and a short yellow / blue / green ripple for left / right / middle clicks. CLI: `ScreenKit --test-record-cursor`.
 
 #### Fixed
@@ -20,6 +21,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
+- HTTP `POST /api/tts` / `GET /api/tts/models`：在 Sherpa 之外支持 **SAPI** 与 **Windows**（WinRT / OneCore）语音。请求 `engine` 为 `sherpa` / `sapi` / `winrt`（别名 `windows`）；`voice` 可用 `sapi:…` / `sapi-x86:…` / `winrt:…`。`/api/status` 增加 `tts_sapi` / `tts_winrt`。CLI：`ScreenKit --test-http-tts`。
 - 录屏 / GIF 录屏选项 **录制鼠标**、**高亮鼠标点击**（`record_mouse` / `record_click_highlight`，`gif_mouse` / `gif_click_highlight`）。GDI 抓屏不含指针，叠加系统光标，并在左/右/中键处画短暂黄/蓝/绿散开圈。CLI：`ScreenKit --test-record-cursor`。
 
 #### 修复

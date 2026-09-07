@@ -282,6 +282,7 @@ ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
+ScreenKit --test-http-tts           # HTTP /api/tts SAPI + Windows WAV
 ScreenKit --probe-cuda
 ScreenKit --help
 ```
@@ -317,7 +318,7 @@ When enabled, a local server listens on `http_host:http_port` (default loopback 
 - `POST /api/qr` — barcode / QR only (`/api/barcode`; JSON base64/path or multipart)
 - `GET  /api/ocr/get_options` — OCR options snapshot
 - `GET  /api/asr/models` · `POST /api/asr` — speech recognition
-- `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64)
+- `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64): Sherpa, SAPI, or Windows (`engine=winrt`) voices
 - `POST /api/itn` — inverse text normalization
 - `POST /api/translate` — LLM batch translate (`items[]`; needs configured LLM)
 - `GET  /api/face/models` · `POST /api/face` — face detect / compare
