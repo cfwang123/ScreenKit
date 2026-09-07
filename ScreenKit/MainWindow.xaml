@@ -895,6 +895,92 @@
 					</Grid>
 				</TabItem>
 
+				<!-- Tab：LLM 对话（纯文本，单会话） -->
+				<TabItem x:Name="tabchat" Header="LLM对话"
+				         AutomationProperties.AutomationId="tab.chat">
+					<Grid Margin="0">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"/>
+							<RowDefinition Height="*"/>
+							<RowDefinition Height="Auto"/>
+						</Grid.RowDefinitions>
+
+						<DockPanel Grid.Row="0" Margin="12,10,12,8" LastChildFill="False">
+							<TextBlock x:Name="lbchatbrand" Text="LLM对话" FontSize="18" FontWeight="SemiBold"
+							           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
+							           Margin="0,0,16,0"/>
+							<TextBlock x:Name="lbchatllm" Text="模型" FontSize="12"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+							           Margin="0,0,6,0"/>
+							<ComboBox x:Name="echatllm" Width="200" Height="30" Margin="0,0,12,0"
+							          VerticalAlignment="Center"
+							          AutomationProperties.AutomationId="chat.llm"/>
+							<TextBlock x:Name="lbchatstatus" Text="就绪" FontSize="12"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+							<Button x:Name="bchatclear" DockPanel.Dock="Right" Content="清空"
+							        Style="{StaticResource ToolBtn}" Height="30" Padding="12,4"
+							        AutomationProperties.AutomationId="chat.clear"/>
+						</DockPanel>
+
+						<Border Grid.Row="1" Background="#EDEDED" BorderBrush="{StaticResource BorderSoft}"
+						        BorderThickness="0,1">
+							<ScrollViewer x:Name="svchat" VerticalScrollBarVisibility="Auto"
+							              HorizontalScrollBarVisibility="Disabled" Padding="8,4">
+								<ItemsControl x:Name="icchat">
+									<ItemsControl.ItemTemplate>
+										<DataTemplate>
+											<Grid Margin="8,4">
+												<Border x:Name="bdbubble" MaxWidth="520" Padding="10,8"
+												        CornerRadius="8" HorizontalAlignment="Left"
+												        Background="White">
+													<TextBlock Text="{Binding Text}" TextWrapping="Wrap"
+													           FontSize="14" Foreground="#111827"/>
+												</Border>
+											</Grid>
+											<DataTemplate.Triggers>
+												<DataTrigger Binding="{Binding IsUser}" Value="True">
+													<Setter TargetName="bdbubble" Property="HorizontalAlignment" Value="Right"/>
+													<Setter TargetName="bdbubble" Property="Background" Value="#95EC69"/>
+												</DataTrigger>
+												<DataTrigger Binding="{Binding IsError}" Value="True">
+													<Setter TargetName="bdbubble" Property="HorizontalAlignment" Value="Left"/>
+													<Setter TargetName="bdbubble" Property="Background" Value="#F3F4F6"/>
+												</DataTrigger>
+											</DataTemplate.Triggers>
+										</DataTemplate>
+									</ItemsControl.ItemTemplate>
+								</ItemsControl>
+							</ScrollViewer>
+						</Border>
+
+						<Border Grid.Row="2" Background="{StaticResource BgPanel}"
+						        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0"
+						        Padding="12,8">
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="*"/>
+									<ColumnDefinition Width="12"/>
+									<ColumnDefinition Width="Auto"/>
+								</Grid.ColumnDefinitions>
+								<TextBox x:Name="echatinput" MinHeight="56" MaxHeight="140" Padding="10,8"
+								         BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+								         TextWrapping="Wrap" AcceptsReturn="True"
+								         VerticalScrollBarVisibility="Auto"
+								         FontSize="14"
+								         AutomationProperties.AutomationId="chat.input"/>
+								<StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+									<Button x:Name="bchatsend" Content="发送" Style="{StaticResource PrimaryBtn}"
+									        Width="88" Height="36"
+									        AutomationProperties.AutomationId="chat.send"/>
+									<TextBlock x:Name="lbchathint" Text="Enter 发送 · Shift+Enter 换行"
+									           FontSize="11" Foreground="{StaticResource TextMuted}"
+									           Margin="0,6,0,0" HorizontalAlignment="Center"/>
+								</StackPanel>
+							</Grid>
+						</Border>
+					</Grid>
+				</TabItem>
+
 				<!-- Tab：翻译（Opus-MT 中英） -->
 				<TabItem x:Name="tabtr" Header="翻译">
 					<Grid Margin="12">

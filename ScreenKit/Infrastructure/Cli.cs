@@ -34,6 +34,7 @@ static class Cli {
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
 				or "--test-llm-continue"
+				or "--test-llm-chat"
 				or "--test-http-tts"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
@@ -191,6 +192,8 @@ static class Cli {
 					return testfaceoverlay();
 				case "--test-llm-continue":
 					return runtestllmcontinue();
+				case "--test-llm-chat":
+					return runtestllmchat();
 				case "--test-http-tts":
 					return runtesthttptts();
 				case "--list-install":
@@ -1564,6 +1567,65 @@ static class Cli {
 		}).GetAwaiter().GetResult();
 	}
 
+	/// <summary>LLM 对话历史裁剪与续写数组形状（不去网）。</summary>
+	static int runtestllmchat() {
+		Out("=== LLM 对话 --test-llm-chat ===");
+		var bad = 0;
+		void fail(string m) {
+			Err("FAIL " + m);
+			bad++;
+		}
+		var h = new LlmChatHistory();
+		for (var i = 1; i <= 40; i++) {
+			h.Add("user", $"u{i}");
+			h.Add("assistant", $"a{i}");
+		}
+		var snap = h.Snapshot();
+		if (snap.Count > LlmChatHistory.MAXTURNS)
+			fail($"turns {snap.Count} > {LlmChatHistory.MAXTURNS}");
+		if (snap.Count == 0) fail("snapshot empty");
+		if (snap[0].Role != "user") fail("trim 后须以 user 开头 got=" + snap[0].Role);
+		if (snap[snap.Count - 1].Role != "assistant") fail("末条应为 assistant");
+		var msgs = h.ToMessages();
+		if (msgs.Count != snap.Count) fail("ToMessages count");
+		if (msgs[0].role != "user" || msgs[msgs.Count - 1].role != "assistant")
+			fail("ToMessages roles");
+
+		h.Clear();
+		if (h.Count != 0) fail("Clear");
+		h.Add("assistant", "orphan");
+		h.Add("user", "u1");
+		h.Add("user", "u2");
+		h.Add("assistant", "a2");
+		for (var i = 0; i < 40; i++) {
+			h.Add("user", new string('x', 400));
+			h.Add("assistant", new string('y', 400));
+		}
+		snap = h.Snapshot();
+		if (snap.Count > LlmChatHistory.MAXTURNS) fail("MAXTURNS after long");
+		if (snap.Count > 0 && snap[0].Role != "user")
+			fail("连续 user 裁剪后不得 assistant-first got=" + snap[0].Role);
+
+		object orig = new object[] {
+			new { role = "system", content = "s" },
+			new { role = "user", content = "u1" },
+			new { role = "assistant", content = "a1" },
+			new { role = "user", content = "u2" },
+		};
+		var c1 = AsrLlmClient.AppendContinue(orig, "p1") as object[];
+		var c2 = AsrLlmClient.AppendContinue(orig, "p2") as object[];
+		if (c1 == null || c1.Length != 6) fail("AppendContinue len1=" + (c1?.Length ?? -1));
+		if (c2 == null || c2.Length != 6) fail("AppendContinue 须拷贝原始数组 len2=" + (c2?.Length ?? -1));
+		var acc = orig;
+		acc = AsrLlmClient.AppendContinue(acc, "p1");
+		acc = AsrLlmClient.AppendContinue(orig, "p1p2") as object[];
+		if (acc is not object[] a3 || a3.Length != 6)
+			fail("二次续写仍应对原始拷贝");
+
+		Out(bad == 0 ? "=== OK：对话历史与续写 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	/// <summary>LLM 超长续写：finish_reason 判定与片段拼接（不去网）。</summary>
 	static int runtestllmcontinue() {
 		Out("=== LLM 超长续写 --test-llm-continue ===");
@@ -1710,6 +1772,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
+  ScreenKit --test-llm-chat
   ScreenKit --test-http-tts
   ScreenKit --test-face-overlay
   ScreenKit --list-models
@@ -1751,6 +1814,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径，确认剪贴板无残留图
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
+      --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
       --repeat    --test-record-codec 连续次数（默认 1）
@@ -1794,6 +1858,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
+  ScreenKit --test-llm-chat
   ScreenKit --test-http-tts
   ScreenKit --test-face-overlay
   ScreenKit --record-snap --region 100,100,800,600 -o log\record_snap

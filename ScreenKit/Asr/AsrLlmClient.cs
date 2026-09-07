@@ -7,10 +7,11 @@ using System.Text.RegularExpressions;
 
 namespace ScreenKit;
 
-/// <summary>OpenAI 兼容 Chat Completions：听写润色、LLM 翻译。</summary>
+/// <summary>OpenAI 兼容 Chat Completions：听写润色、LLM 翻译、多轮对话。</summary>
 static class AsrLlmClient {
 	const int TimeoutMs = 12_000;
 	const int TranslateTimeoutMs = 90_000;
+	const int ChatTimeoutMs = 60_000;
 	const int MaxCtx = 1200;
 	const int MAXCONTINUE = 6;
 	const int ROUNDTOKENS = 4096;
@@ -33,6 +34,8 @@ static class AsrLlmClient {
 	public static bool IsConfigured(OcrOptions o) => IsEndpointReady(o?.SelectedLlm());
 
 	public static bool IsTranslateReady(OcrOptions o) => IsEndpointReady(o?.SelectedTranslateLlm());
+
+	public static bool IsChatReady(OcrOptions o) => IsEndpointReady(o?.SelectedChatLlm());
 
 	/// <summary>已配置则请求润色；失败或未配置返回原文。context 为本轮已输出上文。</summary>
 	public static string Polish(OcrOptions o, string text, string context = "", CancellationToken ct = default) {
@@ -192,11 +195,56 @@ static class AsrLlmClient {
 		return list;
 	}
 
+	/// <summary>
+	/// 多轮对话。history 仅 user/assistant，末条必须是本轮 user。
+	/// 先发 think=off；400 cannot-disable 再走现有回退。空正文抛异常。
+	/// </summary>
+	public static string Chat(OcrOptions o, IReadOnlyList<(string role, string content)> history,
+		CancellationToken ct = default) {
+		var ep = o?.SelectedChatLlm();
+		if (!IsEndpointReady(ep))
+			throw new InvalidOperationException("未配置对话 LLM（需 URL 与模型 id）");
+		var prompt = (o.ChatLlmPrompt ?? "").Trim();
+		if (string.IsNullOrEmpty(prompt))
+			prompt = OcrOptions.DefaultChatLlmPrompt();
+		var msgs = new List<object> { new { role = "system", content = prompt } };
+		var first = "";
+		var last = "";
+		if (history != null) {
+			foreach (var (role, content) in history) {
+				var r = (role ?? "").Trim().ToLowerInvariant();
+				if (r is not "user" and not "assistant") continue;
+				var t = (content ?? "").Trim();
+				if (t.Length == 0) continue;
+				if (first.Length == 0) first = r;
+				last = r;
+				msgs.Add(new { role = r, content = t });
+			}
+		}
+		if (msgs.Count < 2 || first != "user" || last != "user")
+			throw new InvalidOperationException("对话历史须以 user 开头且末条为 user");
+		LlmLog.Info($"chat model={ep.Model} n={msgs.Count - 1} think=off");
+		var outText = complete(ep, msgs.ToArray(), ChatTimeoutMs, 0.7f, "off", ct);
+		outText = stripthink(outText ?? "").Trim();
+		if (outText.Length == 0)
+			throw new InvalidOperationException("LLM 返回空回复");
+		return outText;
+	}
+
 	static string complete(LlmEndpoint ep, string prompt, string user, int timeoutMs, CancellationToken ct) {
+		object messages = new object[] {
+			new { role = "system", content = prompt },
+			new { role = "user", content = user },
+		};
+		return complete(ep, messages, timeoutMs, 0.2f, LlmEndpoint.NormThink(ep.Think), ct);
+	}
+
+	static string complete(LlmEndpoint ep, object messages, int timeoutMs, float temperature, string think,
+		CancellationToken ct) {
 		var url = normalizeurl(ep.Url);
 		var model = (ep.Model ?? "").Trim();
 		var key = (ep.Key ?? "").Trim();
-		var think = LlmEndpoint.NormThink(ep.Think);
+		think = string.IsNullOrEmpty(think) ? think : LlmEndpoint.NormThink(think);
 		var sendMax = true;
 		var acc = "";
 		var wall0 = Environment.TickCount;
@@ -209,22 +257,13 @@ static class AsrLlmClient {
 				break;
 			}
 			var roundMs = round == 0 ? timeoutMs : Math.Max(MINROUNDMS, left);
-			object messages = round == 0
-				? new object[] {
-					new { role = "system", content = prompt },
-					new { role = "user", content = user },
-				}
-				: new object[] {
-					new { role = "system", content = prompt },
-					new { role = "user", content = user },
-					new { role = "assistant", content = acc },
-					new { role = "user", content = ContinueUser },
-				};
+			var send = round == 0 ? messages : AppendContinue(messages, acc);
 			int code;
 			string body;
 			int ms;
 			try {
-				(code, body, ms, think, sendMax) = postround(url, key, model, messages, think, sendMax, roundMs, ct);
+				(code, body, ms, think, sendMax) = postround(url, key, model, send, think, sendMax,
+					roundMs, temperature, ct);
 			}
 			catch (OperationCanceledException) {
 				if (ct.IsCancellationRequested) throw;
@@ -262,27 +301,40 @@ static class AsrLlmClient {
 		return acc;
 	}
 
+	/// <summary>每轮从原始 messages 拷贝再追加 assistant(acc)+ContinueUser，禁止在同一 List 上累积。</summary>
+	internal static object AppendContinue(object messages, string acc) {
+		var list = new List<object>();
+		if (messages is System.Collections.IEnumerable en && messages is not string) {
+			foreach (var x in en) {
+				if (x != null) list.Add(x);
+			}
+		}
+		list.Add(new { role = "assistant", content = acc ?? "" });
+		list.Add(new { role = "user", content = ContinueUser });
+		return list.ToArray();
+	}
+
 	static (int code, string body, int ms, string think, bool sendMax) postround(
 		string url, string key, string model, object messages, string think, bool sendMax,
-		int timeoutMs, CancellationToken ct) {
-		var json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0));
+		int timeoutMs, float temperature, CancellationToken ct) {
+		var json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature));
 		LlmLog.Info("req " + clip(json, 4000));
 		var (code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		if (code == 400 && think == "off" && mustthink(body)) {
 			think = "low";
-			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0));
+			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature));
 			LlmLog.Info("retry think=low (model forbids off) " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		}
 		if (code == 400 && !string.IsNullOrEmpty(think)) {
 			think = null;
-			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0));
+			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature));
 			LlmLog.Info("retry without think fields " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		}
 		if (code == 400 && sendMax) {
 			sendMax = false;
-			json = JsonSerializer.Serialize(makepayload(model, messages, think, 0));
+			json = JsonSerializer.Serialize(makepayload(model, messages, think, 0, temperature));
 			LlmLog.Info("retry without max_tokens " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		}
@@ -290,10 +342,11 @@ static class AsrLlmClient {
 	}
 
 	/// <summary>think：off 关闭；low/medium/high/max 开启并设 reasoning_effort；null 不带思考字段。</summary>
-	static Dictionary<string, object> makepayload(string model, object messages, string think, int maxTokens) {
+	static Dictionary<string, object> makepayload(string model, object messages, string think, int maxTokens,
+		float temperature) {
 		var p = new Dictionary<string, object> {
 			["model"] = model,
-			["temperature"] = 0.2,
+			["temperature"] = temperature,
 			["messages"] = messages,
 		};
 		if (maxTokens > 0) p["max_tokens"] = maxTokens;

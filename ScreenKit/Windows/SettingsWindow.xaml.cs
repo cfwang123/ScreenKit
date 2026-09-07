@@ -42,6 +42,8 @@ public partial class SettingsWindow : Window {
 			easrllmprompt.Text = OcrOptions.DefaultPolishPrompt();
 		btrllmpromptreset.Click += (_, _) =>
 			etrllmprompt.Text = OcrOptions.DefaultTranslatePrompt();
+		bchatllmpromptreset.Click += (_, _) =>
+			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
 
 		bcancel.Click += (_, _) => { Applied = false; Close(); };
 		bok.Click += (_, _) => {
@@ -230,6 +232,11 @@ public partial class SettingsWindow : Window {
 			lbsetasrllmprompt.Text = Loc.T("set.asr.llm.prompt");
 			basrllmpromptreset.Content = Loc.T("set.prompt.default");
 			basrllmpromptreset.ToolTip = Loc.T("set.prompt.default.tip");
+			lbsetchat.Text = Loc.T("set.chat");
+			lbsetchathint.Text = Loc.T("set.chat.hint");
+			lbsetchatllmprompt.Text = Loc.T("set.chat.llm.prompt");
+			bchatllmpromptreset.Content = Loc.T("set.prompt.default");
+			bchatllmpromptreset.ToolTip = Loc.T("set.prompt.default.tip");
 			lbsetllmhint.Text = Loc.T("set.llm.hint");
 			ellmlog.Content = Loc.T("set.llm.log");
 			lbsetllmloghint.Text = Loc.T("set.llm.log.hint");
@@ -388,6 +395,8 @@ public partial class SettingsWindow : Window {
 			? OcrOptions.DefaultPolishPrompt() : o.AsrLlmPrompt;
 		etrllmprompt.Text = string.IsNullOrWhiteSpace(o.TranslateLlmPrompt)
 			? OcrOptions.DefaultTranslatePrompt() : o.TranslateLlmPrompt;
+		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
+			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		eproxyen.IsChecked = o.HttpProxyEnabled;
@@ -526,6 +535,9 @@ public partial class SettingsWindow : Window {
 		Result.AsrLlm = pick != null ? pick.DisplayName : "";
 		var prompt = (easrllmprompt.Text ?? "").Trim();
 		Result.AsrLlmPrompt = string.IsNullOrEmpty(prompt) ? OcrOptions.DefaultPolishPrompt() : prompt;
+		var chatPrompt = (echatllmprompt.Text ?? "").Trim();
+		Result.ChatLlmPrompt = string.IsNullOrEmpty(chatPrompt)
+			? OcrOptions.DefaultChatLlmPrompt() : chatPrompt;
 		var trPrompt = (etrllmprompt.Text ?? "").Trim();
 		Result.TranslateLlmPrompt = string.IsNullOrEmpty(trPrompt)
 			? OcrOptions.DefaultTranslatePrompt() : trPrompt;

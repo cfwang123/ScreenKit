@@ -196,6 +196,10 @@ public sealed class OcrOptions {
 	public string AsrLlm = "";
 	/// <summary>润色系统提示词；空则用默认。</summary>
 	public string AsrLlmPrompt = DefaultAsrLlmPromptZh;
+	/// <summary>LLM 对话选用的接口显示名称（空则用润色所选 / 列表第一项）。</summary>
+	public string ChatLlm = "";
+	/// <summary>对话系统提示词；空则用默认。</summary>
+	public string ChatLlmPrompt = DefaultChatLlmPromptZh;
 
 	/// <summary>离线听写润色默认提示词（中文）。</summary>
 	public const string DefaultAsrLlmPromptZh =
@@ -208,6 +212,16 @@ public sealed class OcrOptions {
 	/// <summary>按当前界面语言取润色默认提示词。</summary>
 	public static string DefaultPolishPrompt() =>
 		Loc.IsEn ? DefaultAsrLlmPromptEn : DefaultAsrLlmPromptZh;
+
+	/// <summary>LLM 对话默认提示词（中文）。</summary>
+	public const string DefaultChatLlmPromptZh =
+		"你是 ScreenKit 里的助手。用用户使用的语言简洁回答。不要编造本机路径、密钥或未提供的事实。";
+	/// <summary>LLM 对话默认提示词（英文）。</summary>
+	public const string DefaultChatLlmPromptEn =
+		"You are an assistant in ScreenKit. Reply concisely in the user's language. Do not invent local paths, secrets, or facts that were not provided.";
+	/// <summary>按当前界面语言取对话默认提示词。</summary>
+	public static string DefaultChatLlmPrompt() =>
+		Loc.IsEn ? DefaultChatLlmPromptEn : DefaultChatLlmPromptZh;
 
 	// ─── 翻译（config.toml [translate]） ───
 	/// <summary>Auto / Gpu / Cpu / Igpu（Opus-MT 进程内 ONNX）。</summary>
@@ -322,6 +336,8 @@ public sealed class OcrOptions {
 			.Where(x => x != null).Select(x => x.Clone()).ToList(),
 		AsrLlm = AsrLlm ?? "",
 		AsrLlmPrompt = AsrLlmPrompt ?? DefaultAsrLlmPrompt,
+		ChatLlm = ChatLlm ?? "",
+		ChatLlmPrompt = ChatLlmPrompt ?? DefaultChatLlmPromptZh,
 		TranslateCompute = TranslateCompute,
 		TranslateLlm = TranslateLlm ?? "",
 		TranslateLlmPrompt = TranslateLlmPrompt ?? DefaultTranslateLlmPrompt,
@@ -354,6 +370,13 @@ public sealed class OcrOptions {
 
 	/// <summary>翻译选用的 LLM；未选或找不到返回 null（走本地 ONNX）。</summary>
 	public LlmEndpoint SelectedTranslateLlm() => FindLlm(TranslateLlm);
+
+	/// <summary>对话用 LLM；未选则回退润色所选 / 列表第一项。</summary>
+	public LlmEndpoint SelectedChatLlm() {
+		var hit = FindLlm(ChatLlm);
+		if (hit != null) return hit;
+		return SelectedLlm();
+	}
 }
 
 /// <summary>OpenAI 兼容 Chat Completions 接口（显示名称默认等于模型 id）。</summary>

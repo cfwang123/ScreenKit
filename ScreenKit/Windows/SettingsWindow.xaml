@@ -316,6 +316,24 @@
 						         TextWrapping="Wrap" AcceptsReturn="True"
 						         VerticalScrollBarVisibility="Auto"
 						         AutomationProperties.AutomationId="set.asr.llm.prompt"/>
+
+						<TextBlock x:Name="lbsetchat" Text="LLM 对话" FontWeight="SemiBold" Margin="0,16,0,6"/>
+						<TextBlock x:Name="lbsetchathint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="主窗口「LLM对话」Tab 的系统提示词。选用的接口在该 Tab 下拉框选择（空则用上面的润色 LLM）。"/>
+						<DockPanel Margin="0,0,0,4">
+							<Button x:Name="bchatllmpromptreset" DockPanel.Dock="Right"
+							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.chat.llm.prompt.default"/>
+							<TextBlock x:Name="lbsetchatllmprompt" Text="对话提示词" FontSize="11"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+						</DockPanel>
+						<TextBox x:Name="echatllmprompt" MinHeight="88" Padding="6,4"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         TextWrapping="Wrap" AcceptsReturn="True"
+						         VerticalScrollBarVisibility="Auto"
+						         AutomationProperties.AutomationId="set.chat.llm.prompt"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

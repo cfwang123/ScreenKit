@@ -104,6 +104,7 @@ public partial class MainWindow : Window {
 		initviewport();
 		inittts();
 		initasr();
+		initchat();
 		inittranslate();
 		initface();
 		applylang();
@@ -1130,6 +1131,7 @@ public partial class MainWindow : Window {
 			tabocr.Header = Loc.T("tab.ocr");
 			tabtts.Header = Loc.T("tab.tts");
 			tabasr.Header = Loc.T("tab.asr");
+			try { applychatlang(); } catch { }
 			tabtr.Header = Loc.T("tab.translate");
 			try { applyhttplang(); } catch { }
 
@@ -2816,6 +2818,7 @@ public partial class MainWindow : Window {
 		HttpProxy.ApplyFrom(opt);
 		syncsnapcopyopts();
 		try { refreshtrllm(); } catch { }
+		try { fillchatllm(); } catch { }
 		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
 		try { ImageUtil.CleanupScreenshots(opt.ScreenshotKeepDays); } catch { }
 		// 界面语言
