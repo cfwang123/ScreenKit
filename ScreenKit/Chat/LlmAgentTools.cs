@@ -134,26 +134,99 @@ static class LlmAgentTools {
 		if (count < 1) count = 1;
 		if (count > 8) count = 8;
 		ct.ThrowIfCancellationRequested();
-		var url = "https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString(q);
-		string html;
+		var sb = new StringBuilder();
+		// 天气：wttr.in（curl UA 返回纯文本；浏览器 UA 会变成 HTML）
+		if (tryweathercity(q, out var city)) {
+			try {
+				var line = httpget(
+					"https://wttr.in/" + Uri.EscapeDataString(city) + "?lang=zh&format=3",
+					SearchTimeoutMs, ct, ua: "curl/8.0.0");
+				line = (line ?? "").Trim();
+				if (line.Length > 0 && !line.StartsWith("<", StringComparison.Ordinal))
+					sb.Append("weather: ").Append(line).Append('\n');
+				var j1 = httpget(
+					"https://wttr.in/" + Uri.EscapeDataString(city) + "?lang=zh&format=j1",
+					SearchTimeoutMs, ct, ua: "curl/8.0.0");
+				var detail = formatwttr(j1);
+				if (detail.Length > 0) sb.Append(detail).Append('\n');
+			}
+			catch (Exception ex) {
+				sb.Append("weather fetch failed: ").Append(ex.Message).Append('\n');
+			}
+		}
+		// 通用：DDG HTML（常被 anomaly 挑战挡住）
 		try {
-			html = httpget(url, SearchTimeoutMs, ct);
+			var url = "https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString(q);
+			var html = httpget(url, SearchTimeoutMs, ct);
+			var items = parseddg(html, count);
+			if (items.Count > 0) {
+				sb.Append("web results:\n");
+				for (var i = 0; i < items.Count; i++) {
+					var (title, link, snippet) = items[i];
+					sb.Append(i + 1).Append(". ").Append(title).Append('\n');
+					sb.Append("   ").Append(link).Append('\n');
+					if (snippet.Length > 0)
+						sb.Append("   ").Append(snippet).Append('\n');
+				}
+			}
+			else if (html != null && (html.IndexOf("anomaly", StringComparison.OrdinalIgnoreCase) >= 0
+				|| html.IndexOf("challenge-form", StringComparison.OrdinalIgnoreCase) >= 0))
+				sb.Append("note: duckduckgo challenge page (no organic results).\n");
 		}
 		catch (Exception ex) {
-			return "error: search failed: " + ex.Message;
+			sb.Append("duckduckgo failed: ").Append(ex.Message).Append('\n');
 		}
-		var items = parseddg(html, count);
-		if (items.Count == 0)
-			return "no results (parse empty). Try another query or web_fetch a known URL.";
-		var sb = new StringBuilder();
-		for (var i = 0; i < items.Count; i++) {
-			var (title, link, snippet) = items[i];
-			sb.Append(i + 1).Append(". ").Append(title).Append('\n');
-			sb.Append("   ").Append(link).Append('\n');
-			if (snippet.Length > 0)
-				sb.Append("   ").Append(snippet).Append('\n');
+		var text = sb.ToString().Trim();
+		if (text.Length == 0)
+			return "no results. For weather use query like「城市+天气」; or web_fetch a known URL.";
+		return text;
+	}
+
+	/// <summary>从「太仓天气」「weather in Taicang」等抽出地点。</summary>
+	static bool tryweathercity(string q, out string city) {
+		city = null;
+		q = (q ?? "").Trim();
+		if (q.Length == 0) return false;
+		var lower = q.ToLowerInvariant();
+		var isWx = q.Contains("天气") || q.Contains("气温") || q.Contains("气象")
+			|| lower.Contains("weather") || lower.Contains("forecast") || lower.Contains("temperature");
+		if (!isWx) return false;
+		var s = q;
+		foreach (var w in new[] { "今天", "今日", "明天", "实时", "现在", "查询", "怎么样", "如何",
+			"的天气", "天气情况", "天气预报", "天气", "气温", "气象",
+			"weather", "forecast", "temperature", "in", "for", "today", "now", "？" , "?" })
+			s = Regex.Replace(s, Regex.Escape(w), " ", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"\s+", " ").Trim(" ,，。.;；".ToCharArray());
+		if (s.Length == 0) s = "Beijing";
+		if (s.Length > 40) s = s.Substring(0, 40);
+		city = s;
+		return true;
+	}
+
+	static string formatwttr(string json) {
+		if (string.IsNullOrWhiteSpace(json) || json[0] != '{') return "";
+		try {
+			using var doc = JsonDocument.Parse(json);
+			var root = doc.RootElement;
+			if (!root.TryGetProperty("current_condition", out var arr)
+				|| arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0)
+				return "";
+			var c = arr[0];
+			string desc = "";
+			if (c.TryGetProperty("lang_zh", out var zh) && zh.ValueKind == JsonValueKind.Array
+				&& zh.GetArrayLength() > 0 && zh[0].TryGetProperty("value", out var zv))
+				desc = zv.GetString() ?? "";
+			if (desc.Length == 0 && c.TryGetProperty("weatherDesc", out var wd)
+				&& wd.ValueKind == JsonValueKind.Array && wd.GetArrayLength() > 0
+				&& wd[0].TryGetProperty("value", out var wv))
+				desc = wv.GetString() ?? "";
+			var temp = c.TryGetProperty("temp_C", out var t) ? t.GetString() : "";
+			var feel = c.TryGetProperty("FeelsLikeC", out var f) ? f.GetString() : "";
+			var hum = c.TryGetProperty("humidity", out var h) ? h.GetString() : "";
+			var wind = c.TryGetProperty("windspeedKmph", out var w) ? w.GetString() : "";
+			return $"detail: {desc}, {temp}°C (feels {feel}°C), humidity {hum}%, wind {wind} km/h";
 		}
-		return sb.ToString().TrimEnd();
+		catch { return ""; }
 	}
 
 	static List<(string title, string link, string snippet)> parseddg(string html, int count) {
@@ -431,14 +504,16 @@ static class LlmAgentTools {
 		return sb.ToString();
 	}
 
-	static string httpget(string url, int timeoutMs, CancellationToken ct) {
+	static string httpget(string url, int timeoutMs, CancellationToken ct, string ua = null) {
 		using var handler = HttpProxy.CreateHandler();
 		using var http = new HttpClient(handler) {
 			Timeout = TimeSpan.FromMilliseconds(timeoutMs),
 		};
 		using var req = new HttpRequestMessage(HttpMethod.Get, url);
 		req.Headers.TryAddWithoutValidation("User-Agent",
-			"Mozilla/5.0 (compatible; ScreenKit/1.0; +local-agent)");
+			string.IsNullOrWhiteSpace(ua)
+				? "Mozilla/5.0 (compatible; ScreenKit/1.0; +local-agent)"
+				: ua);
 		using var resp = http.SendAsync(req, ct).GetAwaiter().GetResult();
 		var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
 		if (!resp.IsSuccessStatusCode)

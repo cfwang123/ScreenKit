@@ -1603,6 +1603,24 @@ static class Cli {
 			if (calls[0].Name != "web_search") fail("name0");
 			if (calls[1].Name != "list_dir") fail("name1");
 		}
+
+		// 天气查询（wttr.in，需联网/代理）
+		try {
+			var wx = LlmAgentTools.Execute(new LlmToolCall {
+				Name = "web_search",
+				ArgsJson = "{\"query\":\"太仓天气\"}",
+			}, CancellationToken.None);
+			Out("weather search: " + clipcli(wx, 200));
+			if (wx == null || (wx.IndexOf("weather:", StringComparison.OrdinalIgnoreCase) < 0
+				&& wx.IndexOf("°C", StringComparison.Ordinal) < 0
+				&& wx.IndexOf("detail:", StringComparison.OrdinalIgnoreCase) < 0))
+				Out("WARN: weather search 无温度结果（检查代理/网络）");
+			else
+				Out("weather search OK");
+		}
+		catch (Exception ex) {
+			Out("WARN weather: " + ex.Message);
+		}
 		var stripped = LlmAgentTools.StripCalls(
 			"<tool_call>{\"name\":\"x\",\"arguments\":{}}</tool_call>hello");
 		if (stripped != "hello") fail("StripCalls got=" + stripped);
