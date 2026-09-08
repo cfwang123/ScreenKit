@@ -25,11 +25,19 @@ static class AsrLlmClient {
 		RegexOptions.Multiline | RegexOptions.Compiled);
 	const string CtxHint = "若提供上文，请结合上文纠正同音字、专有名词与指代；只输出「待润色」这一句的结果，不要重复上文、不要解释。";
 	const string ContinueUser = "从断点继续输出，不要重复已有内容，不要解释。";
+	/// <summary>OpenCode Go/Zen 要求的会话头；进程内稳定，满足 MissingSessionID。</summary>
+	static readonly string OpenCodeSessionId = Guid.NewGuid().ToString("D");
 
 	public static bool IsEndpointReady(LlmEndpoint ep) =>
 		ep != null
 		&& !string.IsNullOrWhiteSpace(ep.Url)
 		&& !string.IsNullOrWhiteSpace(ep.Model);
+
+	/// <summary>是否为 OpenCode（Zen/Go）端点，需带 x-opencode-session。</summary>
+	public static bool IsOpenCodeUrl(string url) {
+		if (string.IsNullOrWhiteSpace(url)) return false;
+		return url.IndexOf("opencode.ai", StringComparison.OrdinalIgnoreCase) >= 0;
+	}
 
 	public static bool IsConfigured(OcrOptions o) => IsEndpointReady(o?.SelectedLlm());
 
@@ -442,8 +450,15 @@ static class AsrLlmClient {
 		using var req = new HttpRequestMessage(HttpMethod.Post, url);
 		req.Content = new StringContent(json, Encoding.UTF8, "application/json");
 		req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+		req.Headers.TryAddWithoutValidation("User-Agent", "ScreenKit/1.0");
 		if (key.Length > 0)
 			req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+		// OpenCode Go（mimo-v2.5 等）：缺 x-opencode-session 会 MissingSessionID
+		if (IsOpenCodeUrl(url)) {
+			req.Headers.TryAddWithoutValidation("x-opencode-session", OpenCodeSessionId);
+			req.Headers.TryAddWithoutValidation("x-opencode-client", "ScreenKit");
+			LlmLog.Info("opencode session header on");
+		}
 		using var resp = http.SendAsync(req, ct).GetAwaiter().GetResult();
 		var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
 		var ms = unchecked(Environment.TickCount - t0);

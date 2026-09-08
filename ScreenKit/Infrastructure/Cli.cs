@@ -1685,6 +1685,14 @@ static class Cli {
 			Err("FAIL " + m);
 			bad++;
 		}
+		if (!AsrLlmClient.IsOpenCodeUrl("https://opencode.ai/zen/go/v1/chat/completions"))
+			fail("IsOpenCodeUrl go");
+		if (!AsrLlmClient.IsOpenCodeUrl("https://opencode.ai/zen/v1/chat/completions"))
+			fail("IsOpenCodeUrl zen");
+		if (AsrLlmClient.IsOpenCodeUrl("https://api.siliconflow.cn/v1/chat/completions"))
+			fail("IsOpenCodeUrl should be false for siliconflow");
+		else
+			Out("IsOpenCodeUrl OK");
 		var h = new LlmChatHistory();
 		for (var i = 1; i <= 40; i++) {
 			h.Add("user", $"u{i}");
