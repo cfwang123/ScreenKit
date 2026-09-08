@@ -198,6 +198,7 @@ ScreenKit --list-sapi              # 本机 SAPI +（x64 时）x86host 发音人
 ScreenKit --test-http-tts           # HTTP /api/tts 校验 SAPI / Windows WAV
 ScreenKit --test-llm-chat           # LLM 对话历史裁剪（不去网）
 ScreenKit --test-llm-agent          # Agent 沙箱/解析/读写脚本（不去网）
+ScreenKit --test-http-chat          # HTTP /api/chat（无 LLM 时期望 960/961）
 ScreenKit --probe-cuda
 ScreenKit --help
 ```

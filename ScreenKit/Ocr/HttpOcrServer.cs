@@ -19,6 +19,7 @@ namespace ScreenKit;
 /// <item>GET  /api/tts/models · POST /api/tts</item>
 /// <item>POST /api/itn</item>
 /// <item>POST /api/translate · /api/translate/batch</item>
+/// <item>POST /api/chat  LLM 对话（文本/语音入，可选 TTS）</item>
 /// <item>POST /api/qr · /api/barcode</item>
 /// <item>GET  /api/face/models · POST /api/face</item>
 /// </list>
@@ -208,6 +209,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/chat") {
+				if (!ispost(req)) {
+					writejson(ctx, 405, err(805, "chat 仅支持 POST"));
+					return;
+				}
+				handlechat(ctx);
+				return;
+			}
+
 			if (path is "/api/face/models") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "face/models 仅支持 GET"));
@@ -243,6 +253,7 @@ sealed partial class HttpOcrServer : IDisposable {
 							"POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}",
 							"POST /api/itn   JSON{text}  WeText+规则后处理",
 							"POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译",
+							"POST /api/chat  JSON{text|base64|path, messages?, tts?, agent?, llm?}  LLM对话",
 							"GET  /api/face/models",
 							"POST /api/face  JSON{base64|base64_b|path} 或 multipart 人脸检测/比对",
 						},
@@ -307,6 +318,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				["itn_error"] = WetextItn.IsAvailable ? "" : (WetextItn.LastError ?? ""),
 				["llm_translate"] = AsrLlmClient.IsEndpointReady(
 					o.SelectedTranslateLlm() ?? o.SelectedLlm()),
+				["llm_chat"] = AsrLlmClient.IsChatReady(o),
 			},
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
 		});

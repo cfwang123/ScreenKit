@@ -82,6 +82,7 @@ http_port = 1224
 | 920+ | TTS 相关（921 Sherpa 不可用，922 无模型/发音人，923 音频空，924 合成失败，925 未知 engine） |
 | 930+ | 人脸相关（930 无模型，931 识别失败，932 无检测/识别文件） |
 | 950 | 条码/二维码识别失败 |
+| 960+ | LLM 对话（960 未配置 LLM，961 缺文本/音频，962 语音识别失败，963 对话失败） |
 
 ---
 
@@ -100,6 +101,7 @@ http_port = 1224
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
 | POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译（需已配置 `[[llm]]`） |
+| POST | `/api/chat` | LLM 对话（文本或语音入；可选 TTS 返回 `wav_base64`） |
 | GET | `/api/face/models` | 列出人脸 ONNX |
 | POST | `/api/face` | 人脸检测 / 特征 / 两图比对 |
 
@@ -160,6 +162,8 @@ http_port = 1224
 | `barcode` | bool | 条码/二维码接口可用（ZXingCpp，无需额外模型） |
 | `itn` | bool | WeText ITN 是否可用 |
 | `itn_error` | string | ITN 不可用时的原因 |
+| `llm_translate` | bool | 是否已配置可用的翻译 LLM |
+| `llm_chat` | bool | 是否已配置可用的对话 LLM |
 
 **示例：**
 
@@ -624,6 +628,85 @@ req = urllib.request.Request(
     method="POST",
 )
 print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
+```
+
+---
+
+## 11. POST `/api/chat`
+
+LLM 多轮对话。支持**文本**或**语音**用户消息；始终返回文本回复；可选 **TTS**（`tts`/`speak`/`auto_tts`）在响应中附带 WAV 的 `wav_base64`。需已配置 `[[llm]]`（`chat_llm` 或请求里 `llm`）。
+
+**请求（文本）：**
+
+```json
+{
+  "text": "用一句话介绍你自己",
+  "messages": [
+    { "role": "user", "content": "你好" },
+    { "role": "assistant", "content": "你好，有什么可以帮你？" }
+  ],
+  "tts": true,
+  "engine": "sapi",
+  "agent": false,
+  "llm": ""
+}
+```
+
+**请求（语音消息）：** 不传 `text`，传音频 `base64` 或本机 `path`（与 `/api/asr` 相同），先 ASR 再对话。
+
+```json
+{
+  "base64": "<wav/mp3/... base64>",
+  "lang": "zh",
+  "asr_model": "",
+  "tts": true,
+  "engine": "winrt"
+}
+```
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `text` / `message` / `content` | 文本与音频二选一 | 本轮用户文本，最长 8000 字 |
+| `base64` / `path` | 文本与音频二选一 | 用户语音；有文本时优先文本 |
+| `messages` | 否 | 此前历史（仅 `user`/`assistant`）；**不含**本轮 user（本轮用 `text`/ASR） |
+| `tts` / `speak` / `auto_tts` / `auto_speak` | 否 | 任一为 true 则合成回复语音，默认 false |
+| `agent` | 否 | 是否走对话 Agent（工具）；默认取配置 `chat_agent` |
+| `llm` / `chat_llm` | 否 | `[[llm]]` 显示名或模型 id；默认 `chat_llm` |
+| `engine` / `voice` / `speaker_id` / `speed` / `volume` / `tts_model` | 否 | TTS 参数，语义同 `/api/tts` |
+| `asr_model` / `lang` / `itn` / `postprocess` / `device` | 否 | 语音入时的 ASR 参数，语义同 `/api/asr` |
+
+**成功响应：**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "text": "我是 ScreenKit 里的助手。",
+    "reply": "我是 ScreenKit 里的助手。",
+    "user_text": "用一句话介绍你自己",
+    "llm": "硅基 Qwen",
+    "model": "Qwen/Qwen3.5-4B",
+    "agent": false,
+    "asr_ms": 0,
+    "llm_ms": 800,
+    "tts_ms": 200,
+    "format": "wav",
+    "sample_rate": 22050,
+    "wav_base64": "<整段 WAV base64>",
+    "engine": "sapi",
+    "total_ms": 1000
+  },
+  "time": 1000,
+  "timestamp": 1710000000
+}
+```
+
+TTS 失败时仍返回文本（`code=100`），并带 `tts_error` 说明。业务码：`960` 未配置 LLM，`961` 缺输入，`962` 语音识别失败，`963` 对话失败。
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/chat" \
+  -H "Content-Type: application/json" \
+  -d "{\"text\":\"你好\",\"tts\":true,\"engine\":\"sapi\"}"
 ```
 
 ---

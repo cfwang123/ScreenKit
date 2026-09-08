@@ -100,6 +100,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
 | POST | `/api/translate` · `/api/translate/batch` | LLM batch translate (needs `[[llm]]`) |
+| POST | `/api/chat` | LLM chat (text or audio in; optional TTS `wav_base64`) |
 | GET | `/api/face/models` | List face ONNX files |
 | POST | `/api/face` | Face detect / embedding / compare two images |
 
@@ -160,6 +161,8 @@ Health check and capability probe.
 | `barcode` | bool | Barcode / QR endpoint available (ZXingCpp, no extra model) |
 | `itn` | bool | WeText ITN available |
 | `itn_error` | string | Reason when ITN is unavailable |
+| `llm_translate` | bool | Translate LLM configured |
+| `llm_chat` | bool | Chat LLM configured |
 
 **Example:**
 
@@ -591,11 +594,35 @@ LLM batch translate (internally grouped by 8; missing indexes retried one-by-one
 
 ---
 
-## 11. Face
+## 11. POST `/api/chat`
+
+LLM chat. **Text** or **audio** user message; always returns text; optional **TTS** (`tts` / `speak` / `auto_tts`) adds WAV `wav_base64`. Needs `[[llm]]` (`chat_llm` or request `llm`).
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `text` / `message` / `content` | text **or** audio | Current user text (max 8000) |
+| `base64` / `path` | text **or** audio | User speech; text wins if both set |
+| `messages` | no | Prior `user`/`assistant` turns (not including current user) |
+| `tts` / `speak` / `auto_tts` | no | Any true → synthesize reply audio (default false) |
+| `agent` | no | Tool agent; default from `chat_agent` |
+| `llm` | no | Endpoint display name / model id |
+| TTS / ASR fields | no | Same as `/api/tts` and `/api/asr` (`engine`, `voice`, `asr_model`, `lang`, …) |
+
+**Success `data`:** `text`/`reply`, `user_text`, `llm_ms` / `asr_ms` / `tts_ms`, optional `wav_base64` + `format`/`sample_rate`/`engine`. TTS failure still returns text with `tts_error`. Codes: `960` no LLM, `961` missing input, `962` ASR fail, `963` chat fail. Status flag: `llm_chat`.
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/chat" \
+  -H "Content-Type: application/json" \
+  -d "{\"text\":\"hello\",\"tts\":true,\"engine\":\"sapi\"}"
+```
+
+---
+
+## 12. Face
 
 Needs det+rec ONNX under `facemodels/`. Download InsightFace **buffalo_l** from **Tools → Install features**. Aliases: `POST /api/face/compare`, `POST /api/face/extract` (same handler).
 
-### 11.1 GET `/api/face/models`
+### 12.1 GET `/api/face/models`
 
 ```json
 {
@@ -612,7 +639,7 @@ Needs det+rec ONNX under `facemodels/`. Download InsightFace **buffalo_l** from 
 }
 ```
 
-### 11.2 POST `/api/face`
+### 12.2 POST `/api/face`
 
 One image: detect the largest face and extract an embedding. Two images: cosine similarity and same-person decision.
 

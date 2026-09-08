@@ -72,6 +72,14 @@ public partial class MainWindow {
 			Title = "POST /api/translate", Method = "POST", Path = "/api/translate",
 			Body = "{\n  \"items\": [\"你好\"],\n  \"src\": \"zh\",\n  \"dst\": \"en\"\n}",
 		});
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/chat", Method = "POST", Path = "/api/chat",
+			Body = "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}",
+		});
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/chat + TTS", Method = "POST", Path = "/api/chat",
+			Body = "{\n  \"text\": \"用一句话介绍你自己\",\n  \"tts\": true,\n  \"engine\": \"sapi\"\n}",
+		});
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/face/models", Method = "GET", Path = "/api/face/models", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl {
 			Title = "POST /api/face", Method = "POST", Path = "/api/face",

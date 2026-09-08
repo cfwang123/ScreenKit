@@ -37,6 +37,7 @@ static class Cli {
 				or "--test-llm-chat"
 				or "--test-llm-agent"
 				or "--test-http-tts"
+				or "--test-http-chat"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--asr" or "--list-asr"
@@ -199,6 +200,8 @@ static class Cli {
 					return runtestllmagent();
 				case "--test-http-tts":
 					return runtesthttptts();
+				case "--test-http-chat":
+					return runtesthttpchat();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -1460,6 +1463,113 @@ static class Cli {
 		}
 	}
 
+	/// <summary>HTTP /api/chat：无 LLM 时期望 960；有配置则可带 tts=sapi。</summary>
+	static int runtesthttpchat() {
+		Out("=== HTTP LLM 对话 --test-http-chat ===");
+		var bad = 0;
+		void fail(string m) {
+			Err("FAIL " + m);
+			bad++;
+		}
+		HttpOcrServer srv = null;
+		OcrRunner runner = null;
+		try {
+			var cfg = new OcrOptions();
+			AppConfig.LoadInto(cfg);
+			runner = new OcrRunner();
+			srv = new HttpOcrServer(() => cfg, runner);
+			srv.SetServices(new HttpApiServices {
+				GetOpts = () => cfg,
+				ScanTts = () => new List<TtsModelInfo>(),
+				ScanAsr = () => new List<AsrModelInfo>(),
+			});
+			var port = 0;
+			for (var p = 18770; p <= 18774; p++) {
+				try {
+					srv.Start("127.0.0.1", p);
+					port = p;
+					break;
+				}
+				catch (Exception ex) {
+					Out($"bind {p} fail: {ex.Message}");
+				}
+			}
+			if (port == 0) {
+				fail("无法绑定 127.0.0.1:18770-18774");
+				return 1;
+			}
+			var baseUrl = $"http://127.0.0.1:{port}";
+			Out("listen " + baseUrl);
+			using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+
+			var st = Task.Run(() => http.GetStringAsync(baseUrl + "/api/status").GetAwaiter().GetResult())
+				.GetAwaiter().GetResult();
+			Out("status " + (st.Length > 300 ? st.Substring(0, 300) + "…" : st));
+			using (var sd = JsonDocument.Parse(st)) {
+				if (sd.RootElement.GetProperty("code").GetInt32() != 100)
+					fail("status code");
+				if (!sd.RootElement.GetProperty("data").TryGetProperty("llm_chat", out _))
+					fail("status missing llm_chat");
+				else
+					Out("llm_chat=" + sd.RootElement.GetProperty("data").GetProperty("llm_chat"));
+			}
+
+			// 空请求 → 960 或 961
+			var emptyBody = new StringContent("{}", Encoding.UTF8, "application/json");
+			var emptyResp = Task.Run(() => http.PostAsync(baseUrl + "/api/chat", emptyBody).GetAwaiter().GetResult())
+				.GetAwaiter().GetResult();
+			var emptyJson = emptyResp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+			Out("empty " + emptyJson);
+			using (var ed = JsonDocument.Parse(emptyJson)) {
+				var code = ed.RootElement.GetProperty("code").GetInt32();
+				if (code is not 960 and not 961)
+					fail("empty expect 960/961 got " + code);
+				else
+					Out("empty OK code=" + code);
+			}
+
+			if (AsrLlmClient.IsChatReady(cfg)) {
+				Out("--- live chat (LLM configured) ---");
+				var body = new StringContent(
+					"{\"text\":\"用三个字回答：你好\",\"tts\":true,\"engine\":\"sapi\",\"agent\":false}",
+					Encoding.UTF8, "application/json");
+				var resp = Task.Run(() => http.PostAsync(baseUrl + "/api/chat", body).GetAwaiter().GetResult())
+					.GetAwaiter().GetResult();
+				var json = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+				Out("chat " + (json.Length > 500 ? json.Substring(0, 500) + "…" : json));
+				using var cd = JsonDocument.Parse(json);
+				if (cd.RootElement.GetProperty("code").GetInt32() != 100)
+					fail("live chat code");
+				else {
+					var data = cd.RootElement.GetProperty("data");
+					var text = data.GetProperty("text").GetString() ?? "";
+					if (text.Length == 0) fail("live chat empty text");
+					else Out("reply OK len=" + text.Length);
+					if (data.TryGetProperty("wav_base64", out var b64)
+						&& b64.ValueKind == JsonValueKind.String
+						&& (b64.GetString()?.Length ?? 0) > 100)
+						Out("tts wav_base64 OK");
+					else if (data.TryGetProperty("tts_error", out var te))
+						Out("tts_error (可接受): " + te);
+					else
+						Out("WARN: no wav_base64");
+				}
+			}
+			else
+				Out("SKIP live chat（未配置 chat LLM）");
+		}
+		catch (Exception ex) {
+			fail(ex.Message);
+			Err(ex.ToString());
+		}
+		finally {
+			try { srv?.Dispose(); } catch { }
+			try { runner?.Dispose(); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：HTTP chat ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	/// <summary>HTTP /api/tts：SAPI 与 Windows（WinRT）合成 WAV（本机环回，不依赖 Sherpa）。</summary>
 	static int runtesthttptts() {
 		Out("=== HTTP TTS SAPI/WinRT --test-http-tts ===");
@@ -1951,6 +2061,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
   ScreenKit --test-http-tts
+  ScreenKit --test-http-chat
   ScreenKit --test-face-overlay
   ScreenKit --list-models
   ScreenKit --list-tts
@@ -1994,6 +2105,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
+      --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
       --repeat    --test-record-codec 连续次数（默认 1）
       --seconds   --test-record-avsync / --test-gif-record / --test-record-codec 录制秒数
@@ -2039,6 +2151,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
   ScreenKit --test-http-tts
+  ScreenKit --test-http-chat
   ScreenKit --test-face-overlay
   ScreenKit --record-snap --region 100,100,800,600 -o log\record_snap
   ScreenKit --list-models
