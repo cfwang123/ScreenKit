@@ -669,7 +669,7 @@ LLM 多轮对话。支持**文本**或**语音**用户消息；始终返回文�
 | `text` / `message` / `content` | 文本与音频二选一 | 本轮用户文本，最长 8000 字 |
 | `base64` / `path` | 文本与音频二选一 | 用户语音；有文本时优先文本 |
 | `messages` | 否 | 此前历史（仅 `user`/`assistant`）；**不含**本轮 user（本轮用 `text`/ASR） |
-| `tts` / `speak` / `auto_tts` / `auto_speak` | 否 | 任一为 true 则合成回复语音，默认 false |
+| `auto_tts` / `tts` / `speak` / `auto_speak` | 否 | 是否把回复合成语音并返回 `wav_base64`。优先用请求值；**都未传**则用配置 `chat_auto_tts`（与界面「自动朗读」相同）。显式 `false` 可关掉 |
 | `agent` | 否 | 是否走对话 Agent（工具）；默认取配置 `chat_agent` |
 | `llm` / `chat_llm` | 否 | `[[llm]]` 显示名或模型 id；默认 `chat_llm` |
 | `engine` / `voice` / `speaker_id` / `speed` / `volume` / `tts_model` | 否 | TTS 参数，语义同 `/api/tts` |

@@ -74,11 +74,11 @@ public partial class MainWindow {
 		});
 		ehttptpl.Items.Add(new HttpTpl {
 			Title = "POST /api/chat", Method = "POST", Path = "/api/chat",
-			Body = "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}",
+			Body = "{\n  \"text\": \"你好\",\n  \"auto_tts\": false,\n  \"agent\": false\n}",
 		});
 		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/chat + TTS", Method = "POST", Path = "/api/chat",
-			Body = "{\n  \"text\": \"用一句话介绍你自己\",\n  \"tts\": true,\n  \"engine\": \"sapi\"\n}",
+			Title = "POST /api/chat + auto_tts", Method = "POST", Path = "/api/chat",
+			Body = "{\n  \"text\": \"用一句话介绍你自己\",\n  \"auto_tts\": true,\n  \"engine\": \"sapi\"\n}",
 		});
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/face/models", Method = "GET", Path = "/api/face/models", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl {

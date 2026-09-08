@@ -603,7 +603,7 @@ LLM chat. **Text** or **audio** user message; always returns text; optional **TT
 | `text` / `message` / `content` | text **or** audio | Current user text (max 8000) |
 | `base64` / `path` | text **or** audio | User speech; text wins if both set |
 | `messages` | no | Prior `user`/`assistant` turns (not including current user) |
-| `tts` / `speak` / `auto_tts` | no | Any true → synthesize reply audio (default false) |
+| `auto_tts` / `tts` / `speak` / `auto_speak` | no | Speak reply and return `wav_base64`. Request wins; if omitted, uses config `chat_auto_tts` (same as UI Auto speak). Explicit `false` disables |
 | `agent` | no | Tool agent; default from `chat_agent` |
 | `llm` | no | Endpoint display name / model id |
 | TTS / ASR fields | no | Same as `/api/tts` and `/api/asr` (`engine`, `voice`, `asr_model`, `lang`, …) |

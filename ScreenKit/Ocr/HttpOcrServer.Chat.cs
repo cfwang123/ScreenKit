@@ -97,10 +97,8 @@ sealed partial class HttpOcrServer {
 				return;
 			}
 
-			var wantTts = asbool(jo["tts"], false)
-				|| asbool(jo["speak"], false)
-				|| asbool(jo["auto_tts"], false)
-				|| asbool(jo["auto_speak"], false);
+			// 与界面「自动朗读」一致：请求可传 auto_tts/tts；未传则用配置 chat_auto_tts
+			var wantTts = resolvechattts(jo, o.ChatAutoTts);
 
 			var data = new JsonObject {
 				["text"] = reply,
@@ -109,6 +107,7 @@ sealed partial class HttpOcrServer {
 				["llm"] = ep.DisplayName,
 				["model"] = ep.Model ?? "",
 				["agent"] = wantAgent,
+				["auto_tts"] = wantTts,
 				["asr_ms"] = asrMs,
 				["llm_ms"] = llmMs,
 			};
@@ -283,5 +282,18 @@ sealed partial class HttpOcrServer {
 			list.Add((role, content));
 		}
 		return list;
+	}
+
+	/// <summary>
+	/// 解析是否自动 TTS。优先请求字段；都未传则用配置默认值。
+	/// 显式 false 可关掉配置默认的自动朗读。
+	/// </summary>
+	static bool resolvechattts(JsonObject jo, bool configDefault) {
+		if (jo == null) return configDefault;
+		if (jo["auto_tts"] != null) return asbool(jo["auto_tts"], configDefault);
+		if (jo["auto_speak"] != null) return asbool(jo["auto_speak"], configDefault);
+		if (jo["tts"] != null) return asbool(jo["tts"], configDefault);
+		if (jo["speak"] != null) return asbool(jo["speak"], configDefault);
+		return configDefault;
 	}
 }

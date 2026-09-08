@@ -1531,7 +1531,7 @@ static class Cli {
 			if (AsrLlmClient.IsChatReady(cfg)) {
 				Out("--- live chat (LLM configured) ---");
 				var body = new StringContent(
-					"{\"text\":\"用三个字回答：你好\",\"tts\":true,\"engine\":\"sapi\",\"agent\":false}",
+					"{\"text\":\"用三个字回答：你好\",\"auto_tts\":true,\"engine\":\"sapi\",\"agent\":false}",
 					Encoding.UTF8, "application/json");
 				var resp = Task.Run(() => http.PostAsync(baseUrl + "/api/chat", body).GetAwaiter().GetResult())
 					.GetAwaiter().GetResult();
