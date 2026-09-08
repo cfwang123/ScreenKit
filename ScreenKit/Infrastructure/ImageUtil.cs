@@ -332,6 +332,7 @@ static class ImageUtil {
 	/// <returns>保存的完整路径。</returns>
 	public static string SaveScreenshotAndCopy(BitmapSource src, string prefix = "shot",
 		bool? copyAsImage = null, bool? copyAsFile = null, bool? copyAsPath = null) {
+		var tAll = Environment.TickCount;
 		if (src == null) throw new ArgumentNullException(nameof(src));
 		var asImg = copyAsImage ?? CurrentSnapCopyAsImage;
 		var asFile = copyAsFile ?? CurrentSnapCopyAsFile;
@@ -340,8 +341,11 @@ static class ImageUtil {
 		if (asPath) { asImg = false; asFile = false; asPath = true; }
 		else if (asFile && !asImg) { asImg = false; asFile = true; asPath = false; }
 		else { asImg = true; asFile = false; asPath = false; }
+		var mode = asPath ? "path" : asFile ? "file" : "image";
 		// 保存用图：可选等比缩小（OCR 主流程仍用原图）
+		var t0 = Environment.TickCount;
 		var toSave = prepareforcapture(src);
+		var prepMs = Environment.TickCount - t0;
 		var dir = ScreenshotsDir;
 		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
 		var baseName = $"{(string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim())}_{stamp}";
@@ -350,10 +354,72 @@ static class ImageUtil {
 		// 极罕见同毫秒：追加序号
 		for (var i = 1; File.Exists(path) && i < 100; i++)
 			path = Path.Combine(dir, $"{baseName}_{i}{ext}");
+		t0 = Environment.TickCount;
 		Savefile(toSave, path, CurrentScreenshotJpgQuality);
+		var encMs = Environment.TickCount - t0;
 		LastScreenshotPath = path;
-		if (asImg || asFile || asPath)
+		var clipMs = 0;
+		if (asImg || asFile || asPath) {
+			t0 = Environment.TickCount;
 			copysnapshotclipboard(toSave, path, asImg, asFile, asPath);
+			clipMs = Environment.TickCount - t0;
+		}
+		var totalMs = Environment.TickCount - tAll;
+		CaptureLog.Info(
+			$"SaveScreenshotAndCopy mode={mode} prep={prepMs}ms encode={encMs}ms clip={clipMs}ms total={totalMs}ms "
+			+ $"bmp={CaptureLog.Bmp(toSave)} path={path}");
+		if (totalMs >= 500)
+			CaptureLog.Info($"SaveScreenshotAndCopy SLOW total={totalMs}ms (prep={prepMs} encode={encMs} clip={clipMs})");
+		return path;
+	}
+
+	/// <summary>
+	/// 异步落盘：编码在线程池，剪贴板仍回调用方同步上下文（需 STA）。
+	/// 遮罩关闭后调用，避免 PNG 编码堵死 UI。
+	/// </summary>
+	public static async Task<string> SaveScreenshotAndCopyAsync(BitmapSource src, string prefix = "shot",
+		bool? copyAsImage = null, bool? copyAsFile = null, bool? copyAsPath = null) {
+		var tAll = Environment.TickCount;
+		if (src == null) throw new ArgumentNullException(nameof(src));
+		var asImg = copyAsImage ?? CurrentSnapCopyAsImage;
+		var asFile = copyAsFile ?? CurrentSnapCopyAsFile;
+		var asPath = copyAsPath ?? CurrentSnapCopyAsPath;
+		if (asPath) { asImg = false; asFile = false; asPath = true; }
+		else if (asFile && !asImg) { asImg = false; asFile = true; asPath = false; }
+		else { asImg = true; asFile = false; asPath = false; }
+		var mode = asPath ? "path" : asFile ? "file" : "image";
+		var t0 = Environment.TickCount;
+		var toSave = prepareforcapture(src);
+		if (!toSave.IsFrozen) {
+			var wb = new WriteableBitmap(toSave);
+			wb.Freeze();
+			toSave = wb;
+		}
+		var prepMs = Environment.TickCount - t0;
+		var dir = ScreenshotsDir;
+		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+		var baseName = $"{(string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim())}_{stamp}";
+		var ext = screenshotext();
+		var path = Path.Combine(dir, baseName + ext);
+		for (var i = 1; File.Exists(path) && i < 100; i++)
+			path = Path.Combine(dir, $"{baseName}_{i}{ext}");
+		var quality = CurrentScreenshotJpgQuality;
+		t0 = Environment.TickCount;
+		await Task.Run(() => Savefile(toSave, path, quality)).ConfigureAwait(true);
+		var encMs = Environment.TickCount - t0;
+		LastScreenshotPath = path;
+		var clipMs = 0;
+		if (asImg || asFile || asPath) {
+			t0 = Environment.TickCount;
+			copysnapshotclipboard(toSave, path, asImg, asFile, asPath);
+			clipMs = Environment.TickCount - t0;
+		}
+		var totalMs = Environment.TickCount - tAll;
+		CaptureLog.Info(
+			$"SaveScreenshotAndCopyAsync mode={mode} prep={prepMs}ms encode={encMs}ms clip={clipMs}ms total={totalMs}ms "
+			+ $"bmp={CaptureLog.Bmp(toSave)} path={path}");
+		if (totalMs >= 500)
+			CaptureLog.Info($"SaveScreenshotAndCopyAsync SLOW total={totalMs}ms (prep={prepMs} encode={encMs} clip={clipMs})");
 		return path;
 	}
 
@@ -545,11 +611,19 @@ static class ImageUtil {
 	const uint CF_OEMTEXT = 7, CF_DIB = 8, CF_UNICODETEXT = 13, CF_ENHMETAFILE = 14;
 	const uint CF_HDROP = 15, CF_LOCALE = 16, CF_DIBV5 = 17;
 
+	const uint GMEM_MOVEABLE = 0x0002;
+
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool OpenClipboard(IntPtr hWndNewOwner);
 
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool CloseClipboard();
+
+	[DllImport("user32.dll", SetLastError = true)]
+	static extern bool EmptyClipboard();
+
+	[DllImport("user32.dll", SetLastError = true)]
+	static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
 
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern IntPtr GetClipboardData(uint uFormat);
@@ -559,6 +633,12 @@ static class ImageUtil {
 
 	[DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	static extern int GetClipboardFormatName(uint format, StringBuilder lpszFormatName, int cchMaxCount);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern IntPtr GlobalFree(IntPtr hMem);
 
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern IntPtr GlobalLock(IntPtr hMem);
@@ -572,9 +652,10 @@ static class ImageUtil {
 
 	/// <summary>
 	/// 将文件完整路径作为文本写入剪贴板（可贴到终端/对话框等）。
-	/// 路径就是一段短字符串：Clipboard.SetText 即可。不要先 OleSetClipboard(null)——
-	/// 那会把上一张延迟渲染的大图 Flush 出来，剪贴板历史/云同步下能卡住几分钟，还可能留下 DIB，
-	/// 微信等优先贴图的程序就会粘成「▀」。校验只用 Win32 枚举，不用 WPF GetText/ContainsImage。
+	/// 必须走纯 Win32（OpenClipboard → EmptyClipboard → CF_UNICODETEXT），不要 Clipboard.SetText /
+	/// OleSetClipboard：本进程若刚用 SetDataObject(copy:false) 放过延迟位图，再次 OleSetClipboard
+	/// 会先 OleFlushClipboard 旧图，剪贴板历史/云同步下能卡数秒到数分钟，还可能残留 DIB 导致微信粘成「▀」。
+	/// EmptyClipboard 只 Release 旧 IDataObject，不渲染延迟格式。校验只用 Win32 枚举。
 	/// </summary>
 	static void copypathtoclipboard(string path) {
 		if (string.IsNullOrWhiteSpace(path))
@@ -583,15 +664,56 @@ static class ImageUtil {
 		try { full = Path.GetFullPath(path); } catch { }
 		Exception last = null;
 		for (var i = 0; i < 4; i++) {
+			var t0 = Environment.TickCount;
 			try {
-				Clipboard.SetText(full);
+				win32setunicodetext(full);
+				var ms = Environment.TickCount - t0;
+				CaptureLog.Info($"copypath win32 try={i + 1} {ms}ms formats={ClipboardFormatList()}");
+				if (ms >= 200)
+					CaptureLog.Info($"copypath SLOW {ms}ms (EmptyClipboard/SetClipboardData；若仍很慢查剪贴板监听进程)");
 				if (cliptextispath(full)) return;
 				last = new InvalidOperationException("剪贴板校验失败: " + ClipboardFormatList());
 			}
-			catch (Exception ex) { last = ex; }
+			catch (Exception ex) {
+				last = ex;
+				CaptureLog.Ex($"copypath try={i + 1} cost={Environment.TickCount - t0}ms", ex);
+			}
 			try { Thread.Sleep(30 + i * 20); } catch { }
 		}
 		throw new InvalidOperationException("复制路径到剪贴板失败: " + (last?.Message ?? "未知"), last);
+	}
+
+	/// <summary>Win32 写入 Unicode 文本；成功后内存由剪贴板接管。</summary>
+	static void win32setunicodetext(string text) {
+		var bytes = Encoding.Unicode.GetBytes(text + "\0");
+		var h = GlobalAlloc(GMEM_MOVEABLE, (UIntPtr)bytes.Length);
+		if (h == IntPtr.Zero)
+			throw new InvalidOperationException("GlobalAlloc 失败");
+		var p = GlobalLock(h);
+		if (p == IntPtr.Zero) {
+			GlobalFree(h);
+			throw new InvalidOperationException("GlobalLock 失败");
+		}
+		try { Marshal.Copy(bytes, 0, p, bytes.Length); }
+		finally { GlobalUnlock(h); }
+		if (!OpenClipboard(IntPtr.Zero)) {
+			GlobalFree(h);
+			throw new InvalidOperationException("OpenClipboard 失败 err=" + Marshal.GetLastWin32Error());
+		}
+		try {
+			if (!EmptyClipboard()) {
+				GlobalFree(h);
+				throw new InvalidOperationException("EmptyClipboard 失败 err=" + Marshal.GetLastWin32Error());
+			}
+			if (SetClipboardData(CF_UNICODETEXT, h) == IntPtr.Zero) {
+				var err = Marshal.GetLastWin32Error();
+				GlobalFree(h);
+				throw new InvalidOperationException("SetClipboardData 失败 err=" + err);
+			}
+			// 所有权已交剪贴板，勿 GlobalFree
+			h = IntPtr.Zero;
+		}
+		finally { CloseClipboard(); }
 	}
 
 	/// <summary>剪贴板是否仅为该路径文本、无位图/文件拖放。供 CLI 自检。</summary>

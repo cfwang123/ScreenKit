@@ -7,6 +7,8 @@ namespace ScreenKit;
 /// <summary>
 /// 系统诊断日志（截图侧）：exe 旁 log/capture.log。
 /// 由 config.toml 的 capture_log 控制，默认关闭；与 RecordLog 共用开关。
+/// 排查截图卡顿时打开：会记录 SaveScreenshot 各阶段耗时（prep/encode/clip）
+/// 与 copypath win32 写入耗时；≥500ms 标 SLOW。
 /// </summary>
 static class CaptureLog {
 	static readonly object gate = new();

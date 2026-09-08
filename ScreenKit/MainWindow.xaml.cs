@@ -2011,9 +2011,9 @@ public partial class MainWindow : Window {
 					keepmainhidden();
 				return;
 			}
-			// 写入 screenshots/ 并按配置复制到剪贴板
+			// 写入 screenshots/ 并按配置复制到剪贴板（编码在后台，不堵 UI）
 			try {
-				var path = ImageUtil.SaveScreenshotAndCopy(bmp, "ocr");
+				var path = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, "ocr");
 				CaptureLog.Info("captureasync saved " + path);
 			}
 			catch (Exception ex) { CaptureLog.Ex("captureasync SaveScreenshot", ex); }
@@ -2348,6 +2348,12 @@ public partial class MainWindow : Window {
 	async Task afterannotateasync(BitmapSource resultImg, bool wantOcr, string label,
 		bool showMainAfter = true, bool mainWasVisible = true) {
 		clearselection();
+		// 遮罩已关：后台编码落盘再写剪贴板，避免堵 UI
+		try {
+			var path = await ImageUtil.SaveScreenshotAndCopyAsync(resultImg, wantOcr ? "ocr" : "shot");
+			CaptureLog.Info($"{label} saved {path}");
+		}
+		catch (Exception ex) { CaptureLog.Ex(label + " SaveScreenshot", ex); }
 		try {
 			setimage(resultImg);
 			CaptureLog.Info($"{label} setimage ok {CaptureLog.Bmp(curimg)}");

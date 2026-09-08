@@ -1695,9 +1695,11 @@ static class Cli {
 
 	static int runtestclipboardpathCore() {
 		Out("=== 剪贴板复制为路径 --test-clipboard-path ===");
+		CaptureLog.Enabled = true;
+		var bad = 0;
+		// 小图：正确性
 		var bmp = new WriteableBitmap(16, 16, 96, 96, PixelFormats.Bgra32, null);
 		bmp.Freeze();
-		var bad = 0;
 		for (var n = 1; n <= 3; n++) {
 			Out($"--- round {n} save-as-path after image ---");
 			try { ImageUtil.Toclipboard(bmp); }
@@ -1751,6 +1753,62 @@ static class Cli {
 			bad++;
 		}
 		else Out("recopy OK");
+
+		// 大图：延迟位图后改路径，clip 阶段应仍很快（不再 OleFlush 旧图）
+		Out("--- large delayed-image then path (timing) ---");
+		var big = new WriteableBitmap(3840, 2160, 96, 96, PixelFormats.Bgra32, null);
+		big.Freeze();
+		var tImg = Environment.TickCount;
+		try { ImageUtil.Toclipboard(big); }
+		catch (Exception ex) { Out("large Toclipboard: " + ex.Message); }
+		Out($"large Toclipboard(persist:false) {Environment.TickCount - tImg}ms");
+		Out("pre formats: " + ImageUtil.ClipboardFormatList());
+		string bigPath = null;
+		var tPath = Environment.TickCount;
+		try {
+			bigPath = ImageUtil.SaveScreenshotAndCopy(big, "clippathbig",
+				copyAsImage: false, copyAsFile: false, copyAsPath: true);
+		}
+		catch (Exception ex) {
+			Err("large SaveScreenshotAndCopy fail: " + ex.Message);
+			bad++;
+		}
+		var pathTotal = Environment.TickCount - tPath;
+		Out($"large save-as-path total={pathTotal}ms path={bigPath}");
+		Out("post formats: " + ImageUtil.ClipboardFormatList());
+		var bigOk = false;
+		try {
+			bigOk = !string.IsNullOrWhiteSpace(bigPath) && ImageUtil.ClipboardIsPathOnly(bigPath);
+		}
+		catch (Exception ex) { Out("ClipboardIsPathOnly: " + ex.Message); }
+		if (!bigOk) {
+			Err("FAIL: 大图后复制为路径未成功");
+			bad++;
+		}
+		else Out("large path OK");
+		// 对比：延迟大图后 Clipboard.SetText（旧路径，常会 OleFlush 旧图）vs Win32 CopyPath
+		var dummy = bigPath ?? @"C:\tmp\dummy.png";
+		try { ImageUtil.Toclipboard(big); } catch { }
+		var tSetText = Environment.TickCount;
+		try { Clipboard.SetText(dummy + ".settext"); }
+		catch (Exception ex) { Out("Clipboard.SetText after large: " + ex.Message); }
+		var setTextMs = Environment.TickCount - tSetText;
+		Out($"Clipboard.SetText after delayed large image: {setTextMs}ms (旧路径对照)");
+
+		try { ImageUtil.Toclipboard(big); } catch { }
+		var tClip = Environment.TickCount;
+		try { ImageUtil.CopyPathToClipboard(dummy); }
+		catch (Exception ex) {
+			Err("CopyPathToClipboard after large image: " + ex.Message);
+			bad++;
+		}
+		var clipOnly = Environment.TickCount - tClip;
+		Out($"CopyPathToClipboard after delayed large image: {clipOnly}ms");
+		if (clipOnly >= 2000) {
+			Err($"FAIL: 路径写入过慢 {clipOnly}ms（疑似仍 Flush 旧位图）");
+			bad++;
+		}
+		else Out("path-after-image timing OK");
 
 		Out(bad == 0 ? "=== OK：复制为路径不残留位图 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
@@ -1812,7 +1870,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
-      --test-clipboard-path  先放位图再复制为路径，确认剪贴板无残留图
+      --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV

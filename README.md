@@ -159,7 +159,7 @@ hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
 hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
 # hotkey_translate = "Ctrl+Alt+T" # translate popup show/hide
 minimize_to_tray = true
-capture_log = false             # true → log/capture.log
+capture_log = false             # true → log/capture.log (DPI + save timings)
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
 update_check_days = 7           # auto-check interval on startup (days); 0 = off. Menu Check for Updates always works.
@@ -281,7 +281,7 @@ Tray icon: left-click toggles the window; context menu includes voice input, **t
 ```text
 ScreenKit --image <path> [options]
 ScreenKit --snap [--out <dir>]
-ScreenKit --test-clipboard-path
+ScreenKit --test-clipboard-path   # path copy after delayed image; 4K timing
 ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
@@ -334,7 +334,7 @@ Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[HTTP接口文档.md](
 
 ## Capture diagnostics
 
-Set `capture_log = true` in `config.toml` to write `log/capture.log` (multi-monitor / DPI troubleshooting). Keep it off for normal use.
+Set `capture_log = true` in `config.toml` to write `log/capture.log` (multi-monitor / DPI troubleshooting, and screenshot save timings: prep/encode/clip; `SLOW` if ≥500ms). Keep it off for normal use.
 
 Set `llm_log = true` (Settings → LLM) to write `log/llm.log` for polish HTTP traces. API keys are not written. Keep it off for normal use.
 

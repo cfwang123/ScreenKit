@@ -3441,14 +3441,14 @@ public partial class CaptureOverlay : Window {
 		try {
 			committextedit();
 			cleartextsel();
+			var t0 = Environment.TickCount;
 			var bmp = renderresult();
+			CaptureLog.Info($"finishconfirm render={Environment.TickCount - t0}ms bmp={CaptureLog.Bmp(bmp)} wantOcr={wantOcr}");
 			ResultImage = bmp;
 			Confirmed = true;
 			if (session != null) session.WantOcr = wantOcr;
-			// 先关全屏遮罩再落盘/剪贴板，避免 PNG 编码 + 剪贴板重试时界面假死数秒
+			// 只关遮罩；落盘/剪贴板由主窗在 Run 返回后异步做，避免 PNG 编码堵在 DispatcherFrame 内
 			session?.Complete(bmp, SelectedDip);
-			try { ImageUtil.SaveScreenshotAndCopy(bmp, wantOcr ? "ocr" : "shot"); }
-			catch (Exception ex) { CaptureLog.Ex("SaveScreenshotAndCopy", ex); }
 		}
 		catch (Exception ex) {
 			MessageBox.Show(ex.Message, wantOcr ? "OCR 失败" : "复制失败",
@@ -3472,10 +3472,10 @@ public partial class CaptureOverlay : Window {
 			var ok = sfd.ShowDialog(this) == true;
 			Topmost = true;
 			if (!ok) return;
+			var t0 = Environment.TickCount;
 			ImageUtil.Savefile(bmp, sfd.FileName);
-			// 同时写入历史目录并按配置复制到剪贴板
-			try { ImageUtil.SaveScreenshotAndCopy(bmp, "shot"); }
-			catch { }
+			CaptureLog.Info($"savefile user-path encode={Environment.TickCount - t0}ms path={sfd.FileName}");
+			// 历史目录 + 剪贴板由主窗 Run 返回后异步写入，此处只关遮罩
 			ResultImage = bmp;
 			Confirmed = true;
 			if (session != null) session.WantOcr = false;

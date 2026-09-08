@@ -20,7 +20,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Fixed
 
-- Copy-as-path after a delayed-render bitmap no longer calls `OleSetClipboard(null)` (that flushed the old screenshot, froze the UI for minutes, and could leave a DIB so WeChat pasted `▀`). Path copy now uses `Clipboard.SetText`. CLI: `ScreenKit --test-clipboard-path`.
+- Copy-as-path after a same-process delayed-render bitmap no longer goes through `Clipboard.SetText` / `OleSetClipboard` (that still flushed the old image first and froze the UI for seconds). Path text uses Win32 `EmptyClipboard` + `CF_UNICODETEXT` only. Screenshot encode runs after the overlay closes, on a background thread. `capture_log` records prep/encode/clip timings (`SLOW` if ≥500ms). CLI: `ScreenKit --test-clipboard-path` (includes 4K timing).
 
 ### 中文
 
@@ -36,7 +36,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 修复
 
-- **截图复制为路径**：不再先 `OleSetClipboard(null)`（会把上一张延迟渲染的大图 Flush 出来，界面卡几分钟，还可能留下 DIB，微信粘成「▀」）。改为 `Clipboard.SetText`。CLI：`ScreenKit --test-clipboard-path`。
+- **截图复制为路径**卡几秒：同进程刚用延迟位图写入剪贴板后，`Clipboard.SetText`/`OleSetClipboard` 仍会先 Flush 旧图。现改为纯 Win32 `EmptyClipboard` + `CF_UNICODETEXT`（只 Release、不渲染延迟格式）。遮罩关闭后再后台编码落盘；`capture_log` 记录 prep/encode/clip 耗时（≥500ms 标 `SLOW`）。CLI：`ScreenKit --test-clipboard-path`（含 4K 计时）。
 
 ## v1.0.5 (2026-08-31 ~ 09-01)
 
