@@ -15,6 +15,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Agent weather: `web_search` with「城市+天气」uses wttr.in; if the model refuses without tools, one forced nudge retry.
 - LLM requests to `opencode.ai` (Go/Zen, e.g. `mimo-v2.5`) send `x-opencode-session` / `x-opencode-client` so Go no longer returns `MissingSessionID`.
 - LLM chat: **Mic** voice input (no focus inject), **Speak** / **Auto speak** TTS using the Speech Synthesis tab voice; `chat_auto_tts` in config (default on).
+- LLM chat timing log panel: per-round `llm` / `asr` / `tts` / `total` ms.
 - HTTP `POST /api/tts` / `GET /api/tts/models`: **SAPI** and **Windows** (WinRT / OneCore) voices in addition to Sherpa. Request `engine` is `sherpa` / `sapi` / `winrt` (alias `windows`); `voice` accepts `sapi:…` / `sapi-x86:…` / `winrt:…`. Status adds `tts_sapi` / `tts_winrt`. CLI: `ScreenKit --test-http-tts`.
 - Screen record / GIF record options **Record mouse** and **Highlight mouse clicks** (`record_mouse` / `record_click_highlight`, `gif_mouse` / `gif_click_highlight`). GDI capture has no pointer; the overlay draws the system cursor and a short yellow / blue / green ripple for left / right / middle clicks. CLI: `ScreenKit --test-record-cursor`.
 
@@ -35,6 +36,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Agent 天气：`web_search` 对「城市+天气」走 wttr.in；模型空谈「无法获取」时强制再要一轮 tool_call。
 - 访问 `opencode.ai`（Go/Zen，如 `mimo-v2.5`）时自动带 `x-opencode-session` / `x-opencode-client`，避免 `MissingSessionID`。
 - LLM对话：**语音**输入（不注入其它窗口）、**朗读** / **自动朗读**（用语音合成 Tab 当前发音人）；配置 `chat_auto_tts`（默认开）。
+- LLM对话增加**用时日志**栏：每轮记录 `llm` / `asr` / `tts` / `total` 毫秒。
 - HTTP `POST /api/tts` / `GET /api/tts/models`：在 Sherpa 之外支持 **SAPI** 与 **Windows**（WinRT / OneCore）语音。请求 `engine` 为 `sherpa` / `sapi` / `winrt`（别名 `windows`）；`voice` 可用 `sapi:…` / `sapi-x86:…` / `winrt:…`。`/api/status` 增加 `tts_sapi` / `tts_winrt`。CLI：`ScreenKit --test-http-tts`。
 - 录屏 / GIF 录屏选项 **录制鼠标**、**高亮鼠标点击**（`record_mouse` / `record_click_highlight`，`gif_mouse` / `gif_click_highlight`）。GDI 抓屏不含指针，叠加系统光标，并在左/右/中键处画短暂黄/蓝/绿散开圈。CLI：`ScreenKit --test-record-cursor`。
 

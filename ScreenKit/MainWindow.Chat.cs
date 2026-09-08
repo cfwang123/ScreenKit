@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -16,6 +17,11 @@ public partial class MainWindow {
 	bool chatBusy;
 	bool chatSpeaking;
 	bool chatUiLoading;
+	int chatRound;
+	/// <summary>对话麦开始聆听 TickCount；0=非语音轮。</summary>
+	int chatAsrStart;
+	/// <summary>本轮待计入的 ASR 用时（聆听+识别，ms）；发送后清零。</summary>
+	int chatPendingAsrMs;
 
 	void initchat() {
 		chatPlayer = new TtsPlayer();
@@ -24,6 +30,7 @@ public partial class MainWindow {
 		bchatclear.Click += (_, _) => onchatclear();
 		if (bchatmic != null) bchatmic.Click += (_, _) => onchatmic();
 		if (bchatspeak != null) bchatspeak.Click += (_, _) => onchatspeak();
+		if (bchatlogclear != null) bchatlogclear.Click += (_, _) => clearchatlog();
 		echatllm.SelectionChanged += (_, _) => {
 			if (chatUiLoading) return;
 			savechatllm();
@@ -141,6 +148,10 @@ public partial class MainWindow {
 		chatHist.Clear();
 		chatItems.Clear();
 		chatLastAssistant = "";
+		chatRound = 0;
+		chatPendingAsrMs = 0;
+		chatAsrStart = 0;
+		clearchatlog();
 		setchatstatus(Loc.T("chat.status.idle"));
 	}
 
@@ -149,6 +160,9 @@ public partial class MainWindow {
 			setchatstatus(Loc.T("chat.status.thinking"));
 			return;
 		}
+		// 开始聆听时打点；结束成句在 onchatutterance 算 asr 用时
+		if (!(asrVoiceChatCapture && asrVoice != null && asrVoice.IsActive))
+			chatAsrStart = Environment.TickCount;
 		togglechatvoice();
 	}
 
@@ -170,6 +184,11 @@ public partial class MainWindow {
 	void onchatutterance(string text) {
 		text = (text ?? "").Trim();
 		if (text.Length == 0) return;
+		if (chatAsrStart != 0) {
+			chatPendingAsrMs = Math.Max(0, Environment.TickCount - chatAsrStart);
+			chatAsrStart = 0;
+			addchatlog($"asr 成句 {chatPendingAsrMs}ms · {clipchatlog(text, 40)}");
+		}
 		if (chatBusy) {
 			// 识别忙时先塞进输入框，不打断当前回复
 			echatinput.Text = string.IsNullOrWhiteSpace(echatinput.Text)
@@ -225,12 +244,18 @@ public partial class MainWindow {
 		chatHist.Add("user", text);
 		var history = chatHist.ToMessages();
 		var useAgent = o.ChatAgent;
+		var asrMs = chatPendingAsrMs;
+		chatPendingAsrMs = 0;
+		chatRound++;
+		var round = chatRound;
 		var cts = new CancellationTokenSource();
 		chatCts = cts;
 		setchatbusy(true);
 		setchatstatus(Loc.T("chat.status.thinking"));
+		var llm0 = Environment.TickCount;
 		_ = Task.Run(() => {
 			try {
+				string reply;
 				if (useAgent) {
 					var result = LlmAgent.Run(o, history,
 						st => Dispatcher.BeginInvoke(new Action(() => {
@@ -240,38 +265,49 @@ public partial class MainWindow {
 							if (cts == chatCts) addchatbubble("tool", note);
 						})),
 						cts.Token);
-					Dispatcher.BeginInvoke(new Action(() => finishchat(result?.Reply, null, cts)));
+					reply = result?.Reply;
 				}
 				else {
-					var reply = AsrLlmClient.Chat(o, history, cts.Token);
-					Dispatcher.BeginInvoke(new Action(() => finishchat(reply, null, cts)));
+					reply = AsrLlmClient.Chat(o, history, cts.Token);
 				}
+				var llmMs = Math.Max(0, Environment.TickCount - llm0);
+				Dispatcher.BeginInvoke(new Action(() =>
+					finishchat(reply, null, cts, round, asrMs, llmMs, useAgent)));
 			}
 			catch (OperationCanceledException) {
-				Dispatcher.BeginInvoke(new Action(() => finishchat(null, "cancel", cts)));
+				var llmMs = Math.Max(0, Environment.TickCount - llm0);
+				Dispatcher.BeginInvoke(new Action(() =>
+					finishchat(null, "cancel", cts, round, asrMs, llmMs, useAgent)));
 			}
 			catch (Exception ex) {
-				Dispatcher.BeginInvoke(new Action(() => finishchat(null, ex.Message, cts)));
+				var llmMs = Math.Max(0, Environment.TickCount - llm0);
+				Dispatcher.BeginInvoke(new Action(() =>
+					finishchat(null, ex.Message, cts, round, asrMs, llmMs, useAgent)));
 			}
 		});
 	}
 
-	void finishchat(string reply, string err, CancellationTokenSource cts) {
+	void finishchat(string reply, string err, CancellationTokenSource cts,
+		int round, int asrMs, int llmMs, bool agent) {
 		if (cts != chatCts) return;
 		setchatbusy(false);
 		chatCts = null;
 		if (err == "cancel") {
+			addchatlog($"#{round} 取消 · llm={llmMs}ms" + (asrMs > 0 ? $" asr={asrMs}ms" : ""));
 			setchatstatus(Loc.T("chat.status.idle"));
 			return;
 		}
 		if (!string.IsNullOrEmpty(err)) {
 			addchatbubble("error", err);
+			addchatlog($"#{round} 失败 · llm={llmMs}ms" + (asrMs > 0 ? $" asr={asrMs}ms" : "")
+				+ " · " + clipchatlog(err, 60));
 			setchatstatus(err);
 			return;
 		}
 		reply = (reply ?? "").Trim();
 		if (reply.Length == 0) {
 			addchatbubble("error", Loc.T("chat.err.empty"));
+			addchatlog($"#{round} 空回复 · llm={llmMs}ms" + (asrMs > 0 ? $" asr={asrMs}ms" : ""));
 			setchatstatus(Loc.T("chat.err.empty"));
 			return;
 		}
@@ -280,10 +316,14 @@ public partial class MainWindow {
 		chatLastAssistant = reply;
 		setchatstatus(Loc.T("chat.status.idle"));
 		if (echatautotts?.IsChecked == true)
-			_ = chatspeakasync(reply);
+			_ = chatspeakasync(reply, round, asrMs, llmMs, agent);
+		else {
+			logchatround(round, asrMs, llmMs, ttsMs: 0, agent, reply);
+		}
 	}
 
-	async Task chatspeakasync(string text) {
+	async Task chatspeakasync(string text, int round = 0, int asrMs = 0, int llmMs = 0,
+		bool agent = false) {
 		text = (text ?? "").Trim();
 		if (text.Length == 0) return;
 		stopchattts();
@@ -291,24 +331,77 @@ public partial class MainWindow {
 		var ct = chatTtsCts.Token;
 		chatSpeaking = true;
 		updatechatmicui();
+		var tts0 = Environment.TickCount;
 		try {
 			await speaktextasync(text, chatPlayer, ct, s => {
 				if (!ct.IsCancellationRequested) setchatstatus(s);
 			}).ConfigureAwait(true);
+			var ttsMs = Math.Max(0, Environment.TickCount - tts0);
+			if (round > 0)
+				logchatround(round, asrMs, llmMs, ttsMs, agent, text);
+			else
+				addchatlog($"朗读 {ttsMs}ms · {clipchatlog(text, 40)}");
 			if (!ct.IsCancellationRequested)
 				setchatstatus(Loc.T("chat.status.idle"));
 		}
 		catch (OperationCanceledException) {
+			var ttsMs = Math.Max(0, Environment.TickCount - tts0);
+			if (round > 0)
+				addchatlog($"#{round} 朗读取消 · llm={llmMs}ms tts={ttsMs}ms"
+					+ (asrMs > 0 ? $" asr={asrMs}ms" : ""));
 			setchatstatus(Loc.T("chat.status.idle"));
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("chatspeak", ex);
+			var ttsMs = Math.Max(0, Environment.TickCount - tts0);
+			if (round > 0)
+				addchatlog($"#{round} 朗读失败 · tts={ttsMs}ms · {clipchatlog(ex.Message, 40)}");
 			setchatstatus(ex.Message);
 		}
 		finally {
 			chatSpeaking = false;
 			updatechatmicui();
 		}
+	}
+
+	void logchatround(int round, int asrMs, int llmMs, int ttsMs, bool agent, string reply) {
+		var sb = new StringBuilder();
+		sb.Append('#').Append(round);
+		if (agent) sb.Append(" agent");
+		sb.Append(" · llm=").Append(llmMs).Append("ms");
+		if (asrMs > 0) sb.Append(" asr=").Append(asrMs).Append("ms");
+		if (ttsMs > 0) sb.Append(" tts=").Append(ttsMs).Append("ms");
+		var total = llmMs + Math.Max(0, asrMs) + Math.Max(0, ttsMs);
+		sb.Append(" total=").Append(total).Append("ms");
+		sb.Append(" · ").Append(clipchatlog(reply, 36));
+		addchatlog(sb.ToString());
+	}
+
+	void addchatlog(string line) {
+		if (echatlog == null) return;
+		line = (line ?? "").Trim();
+		if (line.Length == 0) return;
+		var stamp = DateTime.Now.ToString("HH:mm:ss");
+		var row = stamp + "  " + line;
+		try {
+			if (echatlog.Text.Length > 0)
+				echatlog.AppendText(Environment.NewLine + row);
+			else
+				echatlog.Text = row;
+			svchatlog?.ScrollToEnd();
+		}
+		catch { }
+		try { CaptureLog.Info("chat " + line); } catch { }
+	}
+
+	void clearchatlog() {
+		try { if (echatlog != null) echatlog.Text = ""; } catch { }
+	}
+
+	static string clipchatlog(string s, int max) {
+		s = (s ?? "").Replace('\r', ' ').Replace('\n', ' ').Trim();
+		if (s.Length <= max) return s;
+		return s.Substring(0, max) + "…";
 	}
 
 	void stopchattts() {
@@ -366,6 +459,8 @@ public partial class MainWindow {
 		bchatsend.Content = Loc.T(chatBusy ? "chat.stop" : "chat.send");
 		if (bchatmic != null) bchatmic.ToolTip = Loc.T("chat.mic.tip");
 		if (bchatspeak != null) bchatspeak.ToolTip = Loc.T("chat.speak.tip");
+		if (lbchatlog != null) lbchatlog.Text = Loc.T("chat.log");
+		if (bchatlogclear != null) bchatlogclear.Content = Loc.T("chat.log.clear");
 		updatechatmicui();
 		if (!chatBusy && !chatSpeaking && !(asrVoiceChatCapture && asrVoice != null && asrVoice.IsActive))
 			setchatstatus(Loc.T("chat.status.idle"));

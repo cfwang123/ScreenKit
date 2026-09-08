@@ -23,7 +23,7 @@ Current version: **1.0.5**
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
-| **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, Clear; `[[llm]]` pick. **Tools** agent (search / `tmp/llm/`); **Mic** voice input; **Auto speak** / **Speak** via TTS tab voice |
+| **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, Clear; `[[llm]]` pick. **Tools** agent; **Mic** / **Auto speak**; bottom timing log (`llm`/`asr`/`tts` ms) |
 | **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`); pick the engine on the Translate tab; floating translate popup (`Ctrl+Alt+T`) |
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |

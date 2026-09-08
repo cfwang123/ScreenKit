@@ -903,6 +903,7 @@
 							<RowDefinition Height="Auto"/>
 							<RowDefinition Height="*"/>
 							<RowDefinition Height="Auto"/>
+							<RowDefinition Height="Auto"/>
 						</Grid.RowDefinitions>
 
 						<DockPanel Grid.Row="0" Margin="12,10,12,8" LastChildFill="False">
@@ -965,7 +966,29 @@
 							</ScrollViewer>
 						</Border>
 
-						<Border Grid.Row="2" Background="{StaticResource BgPanel}"
+						<Border Grid.Row="2" Background="#1E293B" BorderBrush="{StaticResource BorderSoft}"
+						        BorderThickness="0,1,0,0" Padding="8,4" MinHeight="72" MaxHeight="140">
+							<DockPanel>
+								<DockPanel DockPanel.Dock="Top" Margin="0,0,0,4" LastChildFill="False">
+									<TextBlock x:Name="lbchatlog" Text="用时日志" FontSize="11"
+									           Foreground="#94A3B8" VerticalAlignment="Center"/>
+									<Button x:Name="bchatlogclear" DockPanel.Dock="Right" Content="清日志"
+									        Style="{StaticResource ToolBtn}" Height="22" Padding="8,0"
+									        FontSize="11"
+									        AutomationProperties.AutomationId="chat.log.clear"/>
+								</DockPanel>
+								<ScrollViewer x:Name="svchatlog" VerticalScrollBarVisibility="Auto"
+								              HorizontalScrollBarVisibility="Disabled">
+									<TextBox x:Name="echatlog" IsReadOnly="True" BorderThickness="0"
+									         Background="Transparent" Foreground="#E2E8F0"
+									         FontFamily="Consolas" FontSize="11"
+									         TextWrapping="Wrap" AcceptsReturn="True"
+									         AutomationProperties.AutomationId="chat.log"/>
+								</ScrollViewer>
+							</DockPanel>
+						</Border>
+
+						<Border Grid.Row="3" Background="{StaticResource BgPanel}"
 						        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0"
 						        Padding="12,8">
 							<Grid>
