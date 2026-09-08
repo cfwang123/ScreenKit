@@ -14,6 +14,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - HTTP `POST /api/tts` / `GET /api/tts/models`: **SAPI** and **Windows** (WinRT / OneCore) voices in addition to Sherpa. Request `engine` is `sherpa` / `sapi` / `winrt` (alias `windows`); `voice` accepts `sapi:…` / `sapi-x86:…` / `winrt:…`. Status adds `tts_sapi` / `tts_winrt`. CLI: `ScreenKit --test-http-tts`.
 - Screen record / GIF record options **Record mouse** and **Highlight mouse clicks** (`record_mouse` / `record_click_highlight`, `gif_mouse` / `gif_click_highlight`). GDI capture has no pointer; the overlay draws the system cursor and a short yellow / blue / green ripple for left / right / middle clicks. CLI: `ScreenKit --test-record-cursor`.
 
+#### Changed
+
+- Expired screenshot history is cleaned **only at startup** on a background thread (not during capture or when applying Settings), so the UI is not blocked.
+
 #### Fixed
 
 - Copy-as-path after a delayed-render bitmap no longer calls `OleSetClipboard(null)` (that flushed the old screenshot, froze the UI for minutes, and could leave a DIB so WeChat pasted `▀`). Path copy now uses `Clipboard.SetText`. CLI: `ScreenKit --test-clipboard-path`.
@@ -25,6 +29,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - 主界面 **LLM对话** Tab：微信式气泡、进程内单一会话、可清空。配置 `chat_llm` / `chat_llm_prompt`（未选接口则用润色 LLM）。本版不接 ASR/TTS。CLI：`ScreenKit --test-llm-chat`。
 - HTTP `POST /api/tts` / `GET /api/tts/models`：在 Sherpa 之外支持 **SAPI** 与 **Windows**（WinRT / OneCore）语音。请求 `engine` 为 `sherpa` / `sapi` / `winrt`（别名 `windows`）；`voice` 可用 `sapi:…` / `sapi-x86:…` / `winrt:…`。`/api/status` 增加 `tts_sapi` / `tts_winrt`。CLI：`ScreenKit --test-http-tts`。
 - 录屏 / GIF 录屏选项 **录制鼠标**、**高亮鼠标点击**（`record_mouse` / `record_click_highlight`，`gif_mouse` / `gif_click_highlight`）。GDI 抓屏不含指针，叠加系统光标，并在左/右/中键处画短暂黄/蓝/绿散开圈。CLI：`ScreenKit --test-record-cursor`。
+
+#### 变更
+
+- 过期截图历史**仅启动时**在后台线程清理（截图保存、应用设置时不再同步删除），避免卡住界面。
 
 #### 修复
 

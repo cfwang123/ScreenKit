@@ -296,12 +296,6 @@ static class ImageUtil {
 		}
 	}
 
-	/// <summary>
-	/// 当前截图历史保留天数（主窗配置同步；0=不限）。
-	/// 保存截图时用于清理过期文件。
-	/// </summary>
-	public static int CurrentScreenshotKeepDays = 3;
-
 	/// <summary>截图保存格式 png / jpg（主窗配置同步）。</summary>
 	public static string CurrentScreenshotFormat = "png";
 
@@ -332,15 +326,13 @@ static class ImageUtil {
 	/// <summary>
 	/// 保存到 screenshots/（文件名含时间戳便于排序），并按当前配置写入剪贴板
 	///（图片 / 文件 / 路径文本，三选一）。
-	/// 保存前按保留天数清理过期文件（≤0 表示不限，不清理）。
 	/// 按配置应用最大宽高（等比缩小）与保存格式/JPG 质量。
+	/// 不清理过期历史（仅启动时后台清理，见 CleanupScreenshotsBackground）。
 	/// </summary>
 	/// <returns>保存的完整路径。</returns>
 	public static string SaveScreenshotAndCopy(BitmapSource src, string prefix = "shot",
-		int? keepDays = null, bool? copyAsImage = null, bool? copyAsFile = null,
-		bool? copyAsPath = null) {
+		bool? copyAsImage = null, bool? copyAsFile = null, bool? copyAsPath = null) {
 		if (src == null) throw new ArgumentNullException(nameof(src));
-		var keep = keepDays ?? CurrentScreenshotKeepDays;
 		var asImg = copyAsImage ?? CurrentSnapCopyAsImage;
 		var asFile = copyAsFile ?? CurrentSnapCopyAsFile;
 		var asPath = copyAsPath ?? CurrentSnapCopyAsPath;
@@ -348,7 +340,6 @@ static class ImageUtil {
 		if (asPath) { asImg = false; asFile = false; asPath = true; }
 		else if (asFile && !asImg) { asImg = false; asFile = true; asPath = false; }
 		else { asImg = true; asFile = false; asPath = false; }
-		try { CleanupScreenshots(keep); } catch { }
 		// 保存用图：可选等比缩小（OCR 主流程仍用原图）
 		var toSave = prepareforcapture(src);
 		var dir = ScreenshotsDir;
@@ -458,10 +449,8 @@ static class ImageUtil {
 	/// <summary>
 	/// 保存到 screenshots/，并以「复制文件」放入剪贴板（兼容旧调用）。
 	/// </summary>
-	public static string SaveScreenshotAndCopyAsFile(BitmapSource src, string prefix = "shot",
-		int? keepDays = null) =>
-		SaveScreenshotAndCopy(src, prefix, keepDays, copyAsImage: false, copyAsFile: true,
-			copyAsPath: false);
+	public static string SaveScreenshotAndCopyAsFile(BitmapSource src, string prefix = "shot") =>
+		SaveScreenshotAndCopy(src, prefix, copyAsImage: false, copyAsFile: true, copyAsPath: false);
 
 	/// <summary>按选项写入剪贴板：位图 / FileDrop / 路径文本（三选一）。</summary>
 	static void copysnapshotclipboard(BitmapSource src, string path,
@@ -477,6 +466,7 @@ static class ImageUtil {
 	/// <summary>
 	/// 删除 screenshots/ 中超过 keepDays 天的文件。
 	/// keepDays ≤ 0：不限，不删除。
+	/// 同步、可能较慢；UI 请用 CleanupScreenshotsBackground。
 	/// </summary>
 	public static int CleanupScreenshots(int keepDays) {
 		if (keepDays <= 0) return 0;
@@ -494,6 +484,16 @@ static class ImageUtil {
 			catch { }
 		}
 		return n;
+	}
+
+	/// <summary>
+	/// 后台清理过期截图历史，不阻塞调用线程。keepDays ≤ 0 不启动。
+	/// </summary>
+	public static void CleanupScreenshotsBackground(int keepDays) {
+		if (keepDays <= 0) return;
+		_ = Task.Run(() => {
+			try { CleanupScreenshots(keepDays); } catch { }
+		});
 	}
 
 	/// <summary>打开截图历史目录（资源管理器）。</summary>

@@ -95,8 +95,8 @@ public partial class MainWindow : Window {
 		CaptureOverlay.SnapCopyModeChosen += (asImg, asFile, asPath) =>
 			applysnapcopyopts(asImg, asFile, asPath, recopy: false);
 		restorewindowbounds();
-		// 启动时按配置清理过期截图历史
-		try { ImageUtil.CleanupScreenshots(opt.ScreenshotKeepDays); } catch { }
+		// 启动时后台清理过期截图历史，不阻塞 UI
+		ImageUtil.CleanupScreenshotsBackground(opt.ScreenshotKeepDays);
 		applydefaultmodel();
 		initmodelbar();
 		inittoolbar();
@@ -401,7 +401,6 @@ public partial class MainWindow : Window {
 	}
 
 	void syncsnapcopyopts() {
-		ImageUtil.CurrentScreenshotKeepDays = opt.ScreenshotKeepDays;
 		var fmt = (opt.ScreenshotFormat ?? "png").Trim().ToLowerInvariant();
 		ImageUtil.CurrentScreenshotFormat = fmt is "jpg" or "jpeg" ? "jpg" : "png";
 		ImageUtil.CurrentScreenshotJpgQuality = Compat.Clamp(
@@ -2820,7 +2819,6 @@ public partial class MainWindow : Window {
 		try { refreshtrllm(); } catch { }
 		try { fillchatllm(); } catch { }
 		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
-		try { ImageUtil.CleanupScreenshots(opt.ScreenshotKeepDays); } catch { }
 		// 界面语言
 		if (!string.Equals(old.UiLang, opt.UiLang, StringComparison.OrdinalIgnoreCase)) {
 			Loc.SetFromConfig(opt.UiLang);

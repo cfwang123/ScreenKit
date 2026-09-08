@@ -466,7 +466,7 @@
 						<TextBlock x:Name="lbsetsnap" Text="截图保存" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsetsnaphint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,4" TextWrapping="Wrap"
-						           Text="screenshots/ 目录保留时间；超过后自动删除。默认 3 天，可选不限。"/>
+						           Text="screenshots/ 目录保留时间；启动时后台清理过期文件，截图时不清理。默认 3 天，可选不限。"/>
 						<ComboBox x:Name="esnapkeep" Height="32" Margin="0,0,0,12"
 						          AutomationProperties.AutomationId="set.screenshot.keep">
 							<ComboBoxItem Content="1 天" Tag="1"/>

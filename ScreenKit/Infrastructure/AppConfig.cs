@@ -363,7 +363,7 @@ static class AppConfig {
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");
 		sb.AppendLine($"# LLM 请求日志（默认 false）：log/llm.log，勿提交含隐私的日志");
 		sb.AppendLine($"llm_log = {(o.LlmLog ? "true" : "false")}");
-		sb.AppendLine($"# 截图历史 screenshots/ 保留天数（默认 3；0=不限）");
+		sb.AppendLine($"# 截图历史 screenshots/ 保留天数（默认 3；0=不限；仅启动时后台清理）");
 		sb.AppendLine($"screenshot_keep_days = {Compat.Clamp(o.ScreenshotKeepDays < 0 ? 0 : o.ScreenshotKeepDays, 0, 3650)}");
 		sb.AppendLine($"# 截图完成时剪贴板：复制为图片 / 复制为文件 / 复制为路径（三选一）");
 		var snapPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
