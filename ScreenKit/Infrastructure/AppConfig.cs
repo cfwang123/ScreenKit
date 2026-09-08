@@ -259,6 +259,8 @@ static class AppConfig {
 			}
 			if (map.TryGetValue("chat_agent", out var chatAg))
 				o.ChatAgent = parsebool(chatAg, true);
+			if (map.TryGetValue("chat_auto_tts", out var chatAt))
+				o.ChatAutoTts = parsebool(chatAt, true);
 			o.LlmList = parsellm(text);
 			// 翻译
 			if (map.TryGetValue("translate_compute", out var trc) && !string.IsNullOrWhiteSpace(trc))
@@ -510,6 +512,7 @@ static class AppConfig {
 		chatPromptSave = chatPromptSave.Replace("\r\n", "\n").Replace("\n", "\\n").Replace("\t", "\\t");
 		sb.AppendLine($"chat_llm_prompt = \"{esc(chatPromptSave)}\"");
 		sb.AppendLine($"chat_agent = {(o.ChatAgent ? "true" : "false")}");
+		sb.AppendLine($"chat_auto_tts = {(o.ChatAutoTts ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("# LLM 接口列表（OpenAI 兼容）；think = off|low|high|max；key 勿提交公开仓库");
 		if (o.LlmList != null) {

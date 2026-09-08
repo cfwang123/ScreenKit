@@ -45,6 +45,12 @@ sealed class AsrVoiceInput : IDisposable {
 	/// <summary>自动分句间隔（秒）：静音达到此时长才切一句，连续说话不切。</summary>
 	public int SplitIntervalSec { get; set; } = 5;
 
+	/// <summary>
+	/// 仅采集成句文本，不注入焦点窗口（LLM 对话麦克风用）。
+	/// 成句走 <see cref="UtteranceReady"/>，不润色、不 TextInjector。
+	/// </summary>
+	public bool CaptureOnly { get; set; }
+
 	int splitsec() => Compat.Clamp(SplitIntervalSec, 1, 30);
 
 	string gethist() {
@@ -140,6 +146,8 @@ sealed class AsrVoiceInput : IDisposable {
 	public event Action<string> PartialText;
 	/// <summary>一句已注入焦点窗口（润色后或无需润色）。</summary>
 	public event Action TextCommitted;
+	/// <summary>CaptureOnly 模式下成句全文（不注入）。</summary>
+	public event Action<string> UtteranceReady;
 
 	public void Toggle() {
 		if (IsActive) Stop();
@@ -326,8 +334,8 @@ sealed class AsrVoiceInput : IDisposable {
 					var show = AsrTextNorm.Postprocess(partial);
 					try { PartialText?.Invoke(show); } catch { }
 					try { StatusChanged?.Invoke("… " + trimshow(show)); } catch { }
-					// 自动分句：等成句后再润色并一次性输出，不把半句打进焦点窗
-					if (!SplitSentences && !aborted())
+					// 自动分句 / CaptureOnly：等成句再输出，不把半句打进焦点窗
+					if (!SplitSentences && !CaptureOnly && !aborted())
 						injectdelta(partial);
 				}
 				if (hitEnd && !aborted())
@@ -417,6 +425,24 @@ sealed class AsrVoiceInput : IDisposable {
 		}
 		beginrec();
 		try {
+			if (CaptureOnly) {
+				if (SplitSentences)
+					done = AsrTextNorm.EnsureSentenceEnd(done);
+				if (aborted()) {
+					lastPartial = "";
+					lastInjected = "";
+					skipout();
+					return;
+				}
+				try { UtteranceReady?.Invoke(done); } catch { }
+				lastPartial = "";
+				lastInjected = "";
+				addhist(done);
+				try { TextCommitted?.Invoke(); } catch { }
+				if (IsActive)
+					try { StatusChanged?.Invoke("对话聆听中…"); } catch { }
+				return;
+			}
 			if (SplitSentences && Polish != null)
 				done = dopolish(done);
 			if (aborted()) {
@@ -532,6 +558,15 @@ sealed class AsrVoiceInput : IDisposable {
 			if (aborted()) { skipout(); return; }
 			text = AsrTextNorm.Postprocess((text ?? "").Trim());
 			if (text.Length == 0) return;
+			if (CaptureOnly) {
+				if (SplitSentences)
+					text = AsrTextNorm.EnsureSentenceEnd(text);
+				if (aborted()) { skipout(); return; }
+				try { UtteranceReady?.Invoke(text); } catch { }
+				addhist(text);
+				try { TextCommitted?.Invoke(); } catch { }
+				return;
+			}
 			if (Polish != null)
 				text = dopolish(text);
 			if (aborted()) { skipout(); return; }

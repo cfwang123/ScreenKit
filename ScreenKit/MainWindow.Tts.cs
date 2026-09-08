@@ -753,6 +753,109 @@ public partial class MainWindow {
 		updatettsctrlui();
 	}
 
+	/// <summary>
+	/// 用语音合成 Tab 当前引擎/发音人/语速/音量合成并播放（对话等调用）。
+	/// 使用独立 <paramref name="player"/>，不打断 Tab 的 ttsPlayer 状态机以外的并行需调用方自备 CTS。
+	/// </summary>
+	async Task speaktextasync(string text, TtsPlayer player, CancellationToken ct,
+		Action<string> onStatus = null) {
+		text = (text ?? "").Trim();
+		if (text.Length == 0 || player == null) return;
+		var segments = TtsTextSplitter.Split(text);
+		if (segments.Count == 0) return;
+
+		var eng = currentttsengine();
+		SapiVoiceItem sapiItem = ettsvoice.SelectedItem as SapiVoiceItem;
+		var useX86Sapi = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source == "sapi-x86";
+		string sapiVoice = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source != "sapi-x86"
+			? sapiItem.Name : null;
+		string winRtKey = eng == TtsEngineKind.WinRt && sapiItem != null ? sapiItem.Key : null;
+		var rateUi = ettsrate.Value;
+		var volUi = (int)ettsvol.Value;
+		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
+		var model = ettsmodel.SelectedItem as TtsModelInfo;
+		var sid = ettsvoice.SelectedItem is TtsSpeakerInfo sp ? sp.Id : 0;
+		var compute = TtsComputeMode.Auto;
+		if (ettscompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode m)
+			compute = m;
+
+		if (eng == TtsEngineKind.Sherpa && model == null) {
+			if (!FeaturePrompt.EnsureTtsModels(this))
+				throw new InvalidOperationException("未安装发音人模型");
+			try { scanttssmodels(); } catch { }
+			model = ettsmodel.SelectedItem as TtsModelInfo;
+			if (model == null) throw new InvalidOperationException("请选择 TTS 模型");
+		}
+
+		onStatus?.Invoke(Loc.T("chat.status.speaking"));
+		if (eng == TtsEngineKind.Sapi) {
+			if (useX86Sapi) {
+				if (!SapiX86Client.ExeAvailable)
+					throw new InvalidOperationException("无 x86host.exe");
+			}
+			else {
+				if (sapiTts == null) throw new InvalidOperationException("SAPI 不可用");
+				if (!string.IsNullOrEmpty(sapiVoice)) sapiTts.SelectVoice(sapiVoice);
+				sapiTts.Rate = sapiRate;
+				sapiTts.Volume = volUi;
+			}
+		}
+		else if (eng == TtsEngineKind.WinRt) {
+			if (winRtTts == null) throw new InvalidOperationException("WinRT 不可用");
+			if (!string.IsNullOrEmpty(winRtKey)) winRtTts.SelectVoice(winRtKey);
+			winRtTts.SetRateVolume(rateUi, volUi);
+		}
+		else {
+			if (sherpaTts == null) throw new InvalidOperationException("Sherpa 不可用");
+			await Task.Run(() => {
+				sherpaTts.Mode = compute;
+				sherpaTts.LoadModel(model);
+			}, ct).ConfigureAwait(true);
+		}
+
+		foreach (var seg in segments) {
+			ct.ThrowIfCancellationRequested();
+			float[] samples = null;
+			var sr = 22050;
+			if (eng == TtsEngineKind.WinRt) {
+				(samples, sr) = await winRtTts.Synthesize(seg.Text).ConfigureAwait(true);
+			}
+			else {
+				await Task.Run(() => {
+					if (eng == TtsEngineKind.Sapi) {
+						if (useX86Sapi) {
+							(samples, sr) = SapiX86Client.SynthToFloat(
+								seg.Text, sapiItem.Name, sapiRate, volUi);
+						}
+						else {
+							var wav = TmpStore.NewPath("chat_tts", ".wav");
+							try {
+								sapiTts.ExportWav(seg.Text, wav);
+								using var reader = new NAudio.Wave.AudioFileReader(wav);
+								sr = reader.WaveFormat.SampleRate;
+								var list = new List<float>();
+								var buf = new float[4096];
+								int n;
+								while ((n = reader.Read(buf, 0, buf.Length)) > 0) {
+									for (int k = 0; k < n; k++) list.Add(buf[k]);
+								}
+								samples = list.ToArray();
+							}
+							finally {
+								try { if (File.Exists(wav)) File.Delete(wav); } catch { }
+							}
+						}
+					}
+					else {
+						(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi);
+					}
+				}, ct).ConfigureAwait(true);
+			}
+			if (samples == null || samples.Length == 0) continue;
+			await player.PlayAsync(samples, sr, ct).ConfigureAwait(true);
+		}
+	}
+
 	void ttstogglepause() {
 		if (!ttsSession) return;
 		if (ttsPaused) {

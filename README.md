@@ -23,7 +23,7 @@ Current version: **1.0.5**
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
-| **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, one in-memory thread, Clear; uses a configured `[[llm]]`. Optional **Tools** agent: web search/fetch, read/write app `tmp/llm/`, run scripts there (no ASR/TTS yet) |
+| **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, Clear; `[[llm]]` pick. **Tools** agent (search / `tmp/llm/`); **Mic** voice input; **Auto speak** / **Speak** via TTS tab voice |
 | **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`); pick the engine on the Translate tab; floating translate popup (`Ctrl+Alt+T`) |
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
@@ -206,6 +206,7 @@ asr_llm = "gpt-4o-mini"         # display name of the [[llm]] entry used for pol
 # chat_llm = ""                 # LLM chat tab; empty = same as polish
 # chat_llm_prompt = "..."
 # chat_agent = true             # Tools: web search + tmp/llm/ files/scripts
+# chat_auto_tts = true          # speak assistant replies automatically
 
 [[llm]]
 name = "gpt-4o-mini"            # display name; defaults to model id

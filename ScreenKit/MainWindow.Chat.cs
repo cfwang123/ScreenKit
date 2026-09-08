@@ -10,13 +10,20 @@ public partial class MainWindow {
 	readonly LlmChatHistory chatHist = new();
 	readonly ObservableCollection<LlmChatBubble> chatItems = new();
 	CancellationTokenSource chatCts;
+	CancellationTokenSource chatTtsCts;
+	TtsPlayer chatPlayer;
+	string chatLastAssistant = "";
 	bool chatBusy;
+	bool chatSpeaking;
 	bool chatUiLoading;
 
 	void initchat() {
+		chatPlayer = new TtsPlayer();
 		icchat.ItemsSource = chatItems;
 		bchatsend.Click += (_, _) => onchatsend();
 		bchatclear.Click += (_, _) => onchatclear();
+		if (bchatmic != null) bchatmic.Click += (_, _) => onchatmic();
+		if (bchatspeak != null) bchatspeak.Click += (_, _) => onchatspeak();
 		echatllm.SelectionChanged += (_, _) => {
 			if (chatUiLoading) return;
 			savechatllm();
@@ -26,8 +33,14 @@ public partial class MainWindow {
 			echatagent.Checked += (_, _) => savechatagent(true);
 			echatagent.Unchecked += (_, _) => savechatagent(false);
 		}
+		if (echatautotts != null) {
+			echatautotts.IsChecked = opt.ChatAutoTts;
+			echatautotts.Checked += (_, _) => savechatautotts(true);
+			echatautotts.Unchecked += (_, _) => savechatautotts(false);
+		}
 		echatinput.PreviewKeyDown += onchatinputkey;
 		fillchatllm();
+		updatechatmicui();
 		setchatstatus(Loc.T("chat.status.idle"));
 	}
 
@@ -68,6 +81,8 @@ public partial class MainWindow {
 				echatllm.SelectedItem = pick ?? echatllm.Items[0];
 			if (echatagent != null)
 				echatagent.IsChecked = opt.ChatAgent;
+			if (echatautotts != null)
+				echatautotts.IsChecked = opt.ChatAutoTts;
 		}
 		finally { chatUiLoading = false; }
 	}
@@ -97,6 +112,17 @@ public partial class MainWindow {
 		}
 	}
 
+	void savechatautotts(bool on) {
+		if (chatUiLoading) return;
+		try {
+			opt.ChatAutoTts = on;
+			AppConfig.Save(opt);
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("savechatautotts", ex);
+		}
+	}
+
 	void onchatinputkey(object sender, KeyEventArgs e) {
 		if (e.Key != Key.Enter) return;
 		if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) return;
@@ -105,19 +131,76 @@ public partial class MainWindow {
 	}
 
 	void onchatclear() {
+		stopchattts();
 		if (chatBusy) {
 			try { chatCts?.Cancel(); } catch { }
 			try { LlmAgentTools.CancelRunning(); } catch { }
 		}
+		if (asrVoiceChatCapture && asrVoice != null && asrVoice.IsActive)
+			try { togglechatvoice(); } catch { }
 		chatHist.Clear();
 		chatItems.Clear();
+		chatLastAssistant = "";
 		setchatstatus(Loc.T("chat.status.idle"));
+	}
+
+	void onchatmic() {
+		if (chatBusy) {
+			setchatstatus(Loc.T("chat.status.thinking"));
+			return;
+		}
+		togglechatvoice();
+	}
+
+	void onchatspeak() {
+		if (chatSpeaking) {
+			stopchattts();
+			setchatstatus(Loc.T("chat.status.idle"));
+			return;
+		}
+		var text = chatLastAssistant;
+		if (string.IsNullOrWhiteSpace(text)) {
+			setchatstatus(Loc.T("chat.err.notts"));
+			return;
+		}
+		_ = chatspeakasync(text);
+	}
+
+	/// <summary>ASR CaptureOnly 成句 → 填入并发送。</summary>
+	void onchatutterance(string text) {
+		text = (text ?? "").Trim();
+		if (text.Length == 0) return;
+		if (chatBusy) {
+			// 识别忙时先塞进输入框，不打断当前回复
+			echatinput.Text = string.IsNullOrWhiteSpace(echatinput.Text)
+				? text : (echatinput.Text.TrimEnd() + " " + text);
+			setchatstatus(Loc.T("chat.status.thinking"));
+			return;
+		}
+		echatinput.Text = text;
+		// 成句后停麦再发送，避免占麦
+		if (asrVoiceChatCapture && asrVoice != null && asrVoice.IsActive) {
+			try { togglechatvoice(); } catch { }
+		}
+		onchatsend();
+	}
+
+	void updatechatmicui() {
+		if (bchatmic == null) return;
+		var on = asrVoiceChatCapture && asrVoice != null && asrVoice.IsActive;
+		bchatmic.Content = Loc.T(on ? "chat.mic.on" : "chat.mic");
+		bchatmic.IsEnabled = !chatBusy;
+		if (bchatspeak != null) {
+			bchatspeak.Content = Loc.T(chatSpeaking ? "chat.speak.stop" : "chat.speak");
+			bchatspeak.IsEnabled = !chatBusy || chatSpeaking;
+		}
 	}
 
 	void onchatsend() {
 		if (chatBusy) {
 			try { chatCts?.Cancel(); } catch { }
 			try { LlmAgentTools.CancelRunning(); } catch { }
+			stopchattts();
 			return;
 		}
 		var text = (echatinput.Text ?? "").Trim();
@@ -125,6 +208,7 @@ public partial class MainWindow {
 		if (text.Length > 8000)
 			text = text.Substring(0, 8000);
 
+		stopchattts();
 		var o = opt.Clone();
 		var pick = currentchatllm();
 		if (pick != null)
@@ -193,7 +277,45 @@ public partial class MainWindow {
 		}
 		addchatbubble("assistant", reply);
 		chatHist.Add("assistant", reply);
+		chatLastAssistant = reply;
 		setchatstatus(Loc.T("chat.status.idle"));
+		if (echatautotts?.IsChecked == true)
+			_ = chatspeakasync(reply);
+	}
+
+	async Task chatspeakasync(string text) {
+		text = (text ?? "").Trim();
+		if (text.Length == 0) return;
+		stopchattts();
+		chatTtsCts = new CancellationTokenSource();
+		var ct = chatTtsCts.Token;
+		chatSpeaking = true;
+		updatechatmicui();
+		try {
+			await speaktextasync(text, chatPlayer, ct, s => {
+				if (!ct.IsCancellationRequested) setchatstatus(s);
+			}).ConfigureAwait(true);
+			if (!ct.IsCancellationRequested)
+				setchatstatus(Loc.T("chat.status.idle"));
+		}
+		catch (OperationCanceledException) {
+			setchatstatus(Loc.T("chat.status.idle"));
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("chatspeak", ex);
+			setchatstatus(ex.Message);
+		}
+		finally {
+			chatSpeaking = false;
+			updatechatmicui();
+		}
+	}
+
+	void stopchattts() {
+		try { chatTtsCts?.Cancel(); } catch { }
+		try { chatPlayer?.Stop(); } catch { }
+		chatSpeaking = false;
+		updatechatmicui();
 	}
 
 	void addchatbubble(string role, string text) {
@@ -217,6 +339,8 @@ public partial class MainWindow {
 		bchatclear.IsEnabled = !on;
 		echatllm.IsEnabled = !on;
 		if (echatagent != null) echatagent.IsEnabled = !on;
+		if (echatautotts != null) echatautotts.IsEnabled = !on;
+		updatechatmicui();
 	}
 
 	void setchatstatus(string s) {
@@ -233,10 +357,17 @@ public partial class MainWindow {
 			echatagent.Content = Loc.T("chat.agent");
 			echatagent.ToolTip = Loc.T("chat.agent.tip");
 		}
+		if (echatautotts != null) {
+			echatautotts.Content = Loc.T("chat.autotts");
+			echatautotts.ToolTip = Loc.T("chat.autotts.tip");
+		}
 		bchatclear.Content = Loc.T("chat.clear");
 		lbchathint.Text = Loc.T("chat.hint");
 		bchatsend.Content = Loc.T(chatBusy ? "chat.stop" : "chat.send");
-		if (!chatBusy)
+		if (bchatmic != null) bchatmic.ToolTip = Loc.T("chat.mic.tip");
+		if (bchatspeak != null) bchatspeak.ToolTip = Loc.T("chat.speak.tip");
+		updatechatmicui();
+		if (!chatBusy && !chatSpeaking && !(asrVoiceChatCapture && asrVoice != null && asrVoice.IsActive))
 			setchatstatus(Loc.T("chat.status.idle"));
 		fillchatllm();
 	}

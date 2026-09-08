@@ -217,8 +217,17 @@ public partial class MainWindow {
 		asrVoice.SplitSentences = opt.AsrVoiceSplit;
 		asrVoice.SplitIntervalSec = opt.AsrVoiceSplitSec;
 		asrVoice.ActiveChanged += active => Dispatcher.BeginInvoke(new Action(() => {
-			if (active) showasrvoicehud();
-			else hideasrvoicehud();
+			if (active) {
+				if (!asrVoiceChatCapture) showasrvoicehud();
+			}
+			else {
+				hideasrvoicehud();
+				if (asrVoiceChatCapture) {
+					asrVoiceChatCapture = false;
+					try { asrVoice.CaptureOnly = false; } catch { }
+				}
+			}
+			try { updatechatmicui(); } catch { }
 		}));
 		asrVoice.StatusChanged += s => Dispatcher.BeginInvoke(new Action(() => {
 			try { applyvoicehudmsg(s); } catch { }
@@ -237,15 +246,30 @@ public partial class MainWindow {
 		}));
 		asrVoice.PartialText += t => Dispatcher.BeginInvoke(new Action(() => {
 			try { asrVoiceHud?.SetDetail("", t); } catch { }
+			if (asrVoiceChatCapture)
+				try { setchatstatus(Loc.T("chat.status.listening") + " " + (t ?? "")); } catch { }
+		}));
+		asrVoice.UtteranceReady += t => Dispatcher.BeginInvoke(new Action(() => {
+			try { onchatutterance(t); } catch (Exception ex) { CaptureLog.Ex("chat utterance", ex); }
 		}));
 	}
 
-	/// <summary>全局热键 / 菜单：切换语音输入（设置中可选流式或离线）。</summary>
-	void toggleasrvoice(bool fromHotkey = false) {
+	/// <summary>当前听写是否为 LLM 对话麦克风（CaptureOnly）。</summary>
+	bool asrVoiceChatCapture;
+
+	void toggleasrvoice(bool fromHotkey = false) =>
+		toggleasrvoicecore(fromHotkey, captureOnly: false);
+
+	/// <summary>LLM 对话麦克风：成句不注入焦点窗，走 UtteranceReady。</summary>
+	void togglechatvoice() =>
+		toggleasrvoicecore(fromHotkey: false, captureOnly: true);
+
+	void toggleasrvoicecore(bool fromHotkey, bool captureOnly) {
 		try {
 			CaptureLog.Info("toggleasrvoice enter busy=" + asrVoiceBusy
 				+ " active=" + (asrVoice != null && asrVoice.IsActive)
 				+ " fromHk=" + fromHotkey
+				+ " captureOnly=" + captureOnly
 				+ " voiceHk=" + (opt.HotkeyVoiceInput ?? "")
 				+ " voiceReg=" + (hotkeyVoice != null && hotkeyVoice.IsRegistered));
 		}
@@ -256,6 +280,7 @@ public partial class MainWindow {
 			return;
 		}
 		if (asrVoice != null && asrVoice.IsActive) {
+			// 热键听写 vs 对话麦：互斥结束
 			asrVoiceBusy = true;
 			try {
 				// 先注销，避免结束时仍按着热键 / 注入文字再次 WM_HOTKEY 立刻重开
@@ -267,20 +292,33 @@ public partial class MainWindow {
 				return;
 			}
 			var v = asrVoice;
+			var wasChat = asrVoiceChatCapture;
 			Task.Run(() => {
 				Exception err = null;
 				try { v.Stop(); }
 				catch (Exception ex) { err = ex; }
 				Dispatcher.BeginInvoke(new Action(() => {
 					lastVoiceStop = Environment.TickCount;
+					asrVoiceChatCapture = false;
+					try { if (asrVoice != null) asrVoice.CaptureOnly = false; } catch { }
 					if (err != null)
 						notifyvoice("结束失败: " + err.Message, err: true);
 					else
-						notifyvoice("语音输入已结束");
+						notifyvoice(wasChat ? "对话聆听已结束" : "语音输入已结束");
 					asrVoiceBusy = false;
 					resumevoicehotkeywhenclear();
+					try { updatechatmicui(); } catch { }
 				}));
 			});
+			return;
+		}
+
+		if (!captureOnly && asrVoiceChatCapture) {
+			notifyvoice(Loc.T("chat.err.micbusy"), err: true);
+			return;
+		}
+		if (captureOnly && asrVoice != null && asrVoice.IsActive) {
+			setchatstatus(Loc.T("chat.err.micbusy"));
 			return;
 		}
 
@@ -349,9 +387,14 @@ public partial class MainWindow {
 		var streamCopy = streamModel;
 		var offlineCopy = offlineModel;
 
-		// 立刻反馈（主窗隐藏时也要看到）
+		// 立刻反馈（主窗隐藏时也要看到；对话麦不弹 HUD）
 		var loadingTip = preferStream ? "语音输入 · 加载流式模型…" : "语音输入 · 加载离线模型…";
-		notifyvoice(loadingTip, showHud: true);
+		if (captureOnly) {
+			setchatstatus(loadingTip);
+			notifyvoice(loadingTip, showHud: false);
+		}
+		else
+			notifyvoice(loadingTip, showHud: true);
 
 		Task.Run(() => {
 			Exception loadEx = null;
@@ -415,20 +458,33 @@ public partial class MainWindow {
 					// ResolveStreamEngine 用已缓存模型，勿再碰 UI
 					_voiceStreamModel = streamCopy;
 					_voiceOfflineModel = offlineCopy;
-					asrVoice.SplitSentences = opt.AsrVoiceSplit;
+					asrVoice.CaptureOnly = captureOnly;
+					asrVoiceChatCapture = captureOnly;
+					asrVoice.SplitSentences = captureOnly ? false : opt.AsrVoiceSplit;
 					asrVoice.SplitIntervalSec = opt.AsrVoiceSplitSec;
 					asrVoice.Start();
 					var modeTip = asrVoice.IsStreamingMode ? "流式" : "离线";
-					var hk = string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput)
-						? "热键" : opt.HotkeyVoiceInput.Trim();
-					var ok = $"{modeTip}听写中 · 再按 {hk} 结束";
-					notifyvoice(ok, showHud: true);
-					showasrvoicehud();
+					if (captureOnly) {
+						setchatstatus(Loc.T("chat.status.listening"));
+						try { updatechatmicui(); } catch { }
+						notifyvoice($"{modeTip}对话聆听中 · 再点「语音」结束", showHud: false);
+					}
+					else {
+						var hk = string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput)
+							? "热键" : opt.HotkeyVoiceInput.Trim();
+						var ok = $"{modeTip}听写中 · 再按 {hk} 结束";
+						notifyvoice(ok, showHud: true);
+						showasrvoicehud();
+					}
 				}
 				catch (Exception ex) {
 					CaptureLog.Ex("toggleasrvoice start", ex);
-					notifyvoice("启动失败: " + ex.Message, err: true, showHud: true);
-					schedulehidevoicehud(3200);
+					asrVoiceChatCapture = false;
+					try { if (asrVoice != null) asrVoice.CaptureOnly = false; } catch { }
+					notifyvoice("启动失败: " + ex.Message, err: true, showHud: !captureOnly);
+					if (!captureOnly) schedulehidevoicehud(3200);
+					else setchatstatus("启动失败: " + ex.Message);
+					try { updatechatmicui(); } catch { }
 				}
 				finally {
 					asrVoiceBusy = false;

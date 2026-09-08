@@ -23,7 +23,7 @@ Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界�
 | **文字叠加** | 图上叠加文字层，拖选复制 |
 | **PDF 工作台** | 打开 PDF → 分页识别 → 改字 → 导出可检索 PDF（不可见文字层） |
 | **ASR / TTS** | 离线语音识别（sherpa-onnx）与语音合成（Sherpa + SAPI / WinRT 系统音）；应用内安装发音人 |
-| **LLM对话** | 主界面 Tab：微信式气泡、进程内单一会话、可清空。选用已配置的 `[[llm]]`。勾选「工具」后可搜索网页、读写程序目录 `tmp/llm/`、运行其中的脚本。本版不接语音识别/合成。 |
+| **LLM对话** | 主界面 Tab：微信式气泡、进程内单一会话、可清空。选用已配置的 `[[llm]]`。勾选「工具」可搜索/读写 `tmp/llm/`；「语音」成句送对话、「自动朗读」用语音合成 Tab 发音人播报回复。 |
 | **翻译** | 本地 Opus-MT ONNX，或选用已配置的 **LLM**。提示词在参数设置 → 翻译（`{src}`/`{dst}` 替换为语言名）。翻译 Tab 切换引擎。翻译小窗（`Ctrl+Alt+T`）首次为空，之后保留上次结果；剪贴板需点「粘贴」。LLM 译文被长度截断时自动续写。 |
 | **人脸识别** | InsightFace ONNX：左右图检测/比对，可选关键点与性别年龄叠加；模型在 `facemodels/`（「安装功能」可下载 buffalo_l） |
 | **SAPI x86 助手** | 旁路 `x86host.exe`（仅 32 位 SAPI Web），调用仅 x86 可见的经典系统发音人 |
@@ -249,7 +249,7 @@ x86host.exe --list-sapi
 - `[http]`：本机 API 开关与端口、服务模式  
 - `[pdf]`：导出与内部光栅 DPI  
 - `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；`asr_llm` 为润色选用的 LLM 显示名称（空则用列表第一项）。润色提示词仍在 `[asr]`（`asr_llm_prompt`）。会去掉 `<think>` 等推理块。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中 · Esc 停止」或「润色中」及原文（同一行）；已输出后第二行清空。识别/润色中按 Esc 立刻结束本轮听写且不输出。  
-- `chat_llm` / `chat_llm_prompt` / `chat_agent`：主窗「LLM对话」选用的 `[[llm]]` 显示名（空=润色所选）、系统提示词、是否启用工具（默认 true；工作目录为程序旁 `tmp/llm/`）。
+- `chat_llm` / `chat_llm_prompt` / `chat_agent` / `chat_auto_tts`：主窗「LLM对话」接口、系统提示词、工具开关（默认 true）、助手回复自动朗读（默认 true）。
 - `[[llm]]`：多套 OpenAI 兼容接口（`name` / `url` / `key` / `model` / `think`）。润色/翻译推荐小模型（如 `Qwen/Qwen3.5-4B`、`Qwen/Qwen3-8B`、`tencent/Hunyuan-MT-7B`），`think` 选 `off`。`think`：`off` / `low` / `medium` / `high` / `max`，默认 `low`（GLM-5.3 不能 `off`）。`off` 发 `thinking.type=disabled`；`low`/`medium`/`high`/`max` 发 `thinking.type=enabled` 与 `reasoning_effort`。若 `off` 被拒绝（模型强制思考）则改 `low` 再试；其它 400 再去掉思考字段。显示名称默认等于模型 id。设置窗可复制当前条目。key 勿提交公开仓库。访问 **opencode.ai**（Go/Zen，如 `mimo-v2.5`）时会自动加 `x-opencode-session` 头。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 已废弃，不再读取。  
 - `[translate]`：`translate_compute`（本地 ONNX 设备）；`translate_llm` 空则走 Opus-MT ONNX，否则为 `[[llm]]` 显示名称；`translate_llm_prompt` 为 LLM 翻译提示词（`{src}`/`{dst}` 替换为源/目标语言，在**参数设置 → 翻译**编辑）。翻译 Tab 切换引擎；LLM 源/目标为多种语言（中英日韩、法德西俄阿泰等；自动仍为中英互译）。本地 ONNX 仍按已装模型对列出。LLM 返回 `finish_reason=length` 时自动续写（每轮最多 4096 token，最多再 6 轮）。  
 - `[record]`：编码（x264 / x265 / av1）、帧率、`record_crf`（x264/x265）、`record_av1_crf`（AV1）、音频、`record_lock_aspect`（录制中缩放选区是否锁定比例）、`record_mouse` / `record_click_highlight`（叠加光标与点击高亮）

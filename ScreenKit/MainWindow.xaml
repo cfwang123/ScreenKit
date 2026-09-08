@@ -919,6 +919,10 @@
 							          VerticalAlignment="Center"
 							          ToolTip="启用后可搜索网页、读写程序目录 tmp/llm/、运行其中的脚本"
 							          AutomationProperties.AutomationId="chat.agent"/>
+							<CheckBox x:Name="echatautotts" Content="自动朗读" Margin="0,0,12,0"
+							          VerticalAlignment="Center"
+							          ToolTip="助手回复后用「语音合成」Tab 当前发音人自动朗读"
+							          AutomationProperties.AutomationId="chat.autotts"/>
 							<TextBlock x:Name="lbchatstatus" Text="就绪" FontSize="12"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 							<Button x:Name="bchatclear" DockPanel.Dock="Right" Content="清空"
@@ -977,12 +981,22 @@
 								         FontSize="14"
 								         AutomationProperties.AutomationId="chat.input"/>
 								<StackPanel Grid.Column="2" VerticalAlignment="Bottom">
-									<Button x:Name="bchatsend" Content="发送" Style="{StaticResource PrimaryBtn}"
-									        Width="88" Height="36"
-									        AutomationProperties.AutomationId="chat.send"/>
-									<TextBlock x:Name="lbchathint" Text="Enter 发送 · Shift+Enter 换行"
+									<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+										<Button x:Name="bchatmic" Content="语音" Style="{StaticResource ToolBtn}"
+										        Width="56" Height="36" Margin="0,0,6,0"
+										        ToolTip="语音输入到对话；再点结束"
+										        AutomationProperties.AutomationId="chat.mic"/>
+										<Button x:Name="bchatspeak" Content="朗读" Style="{StaticResource ToolBtn}"
+										        Width="56" Height="36" Margin="0,0,6,0"
+										        ToolTip="朗读最近一条助手回复"
+										        AutomationProperties.AutomationId="chat.speak"/>
+										<Button x:Name="bchatsend" Content="发送" Style="{StaticResource PrimaryBtn}"
+										        Width="72" Height="36"
+										        AutomationProperties.AutomationId="chat.send"/>
+									</StackPanel>
+									<TextBlock x:Name="lbchathint" Text="Enter 发送 · Shift+Enter 换行 · 语音用麦克风"
 									           FontSize="11" Foreground="{StaticResource TextMuted}"
-									           Margin="0,6,0,0" HorizontalAlignment="Center"/>
+									           Margin="0,6,0,0" HorizontalAlignment="Right"/>
 								</StackPanel>
 							</Grid>
 						</Border>

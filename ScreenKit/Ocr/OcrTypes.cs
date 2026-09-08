@@ -203,6 +203,8 @@ public sealed class OcrOptions {
 	public string ChatLlmPrompt = DefaultChatLlmPromptZh;
 	/// <summary>LLM 对话是否启用简单 Agent 工具（搜索 / tmp/llm 读写 / 脚本）。</summary>
 	public bool ChatAgent = true;
+	/// <summary>LLM 对话助手回复后是否自动 TTS 朗读。</summary>
+	public bool ChatAutoTts = true;
 
 	/// <summary>离线听写润色默认提示词（中文）。</summary>
 	public const string DefaultAsrLlmPromptZh =
@@ -342,6 +344,7 @@ public sealed class OcrOptions {
 		ChatLlm = ChatLlm ?? "",
 		ChatLlmPrompt = ChatLlmPrompt ?? DefaultChatLlmPromptZh,
 		ChatAgent = ChatAgent,
+		ChatAutoTts = ChatAutoTts,
 		TranslateCompute = TranslateCompute,
 		TranslateLlm = TranslateLlm ?? "",
 		TranslateLlmPrompt = TranslateLlmPrompt ?? DefaultTranslateLlmPrompt,
