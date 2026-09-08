@@ -11,6 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Added
 
 - Main-window **LLM chat** tab: WeChat-style bubbles, a single in-memory thread, Clear. Uses `chat_llm` / `chat_llm_prompt` (empty LLM pick falls back to the polish endpoint). No ASR/TTS. CLI: `ScreenKit --test-llm-chat`.
+- LLM chat **Tools** (agent): optional web search / fetch, read-write under app `tmp/llm/`, run `.py`/`.ps1`/`.bat`/`.cmd` there. Text `<tool_call>` protocol; `chat_agent` in config (default on). CLI: `ScreenKit --test-llm-agent`.
 - HTTP `POST /api/tts` / `GET /api/tts/models`: **SAPI** and **Windows** (WinRT / OneCore) voices in addition to Sherpa. Request `engine` is `sherpa` / `sapi` / `winrt` (alias `windows`); `voice` accepts `sapi:…` / `sapi-x86:…` / `winrt:…`. Status adds `tts_sapi` / `tts_winrt`. CLI: `ScreenKit --test-http-tts`.
 - Screen record / GIF record options **Record mouse** and **Highlight mouse clicks** (`record_mouse` / `record_click_highlight`, `gif_mouse` / `gif_click_highlight`). GDI capture has no pointer; the overlay draws the system cursor and a short yellow / blue / green ripple for left / right / middle clicks. CLI: `ScreenKit --test-record-cursor`.
 
@@ -27,6 +28,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 新增
 
 - 主界面 **LLM对话** Tab：微信式气泡、进程内单一会话、可清空。配置 `chat_llm` / `chat_llm_prompt`（未选接口则用润色 LLM）。本版不接 ASR/TTS。CLI：`ScreenKit --test-llm-chat`。
+- LLM对话 **工具**（简单 Agent）：可选网页搜索/抓取、读写程序目录 `tmp/llm/`、运行其中的 `.py`/`.ps1`/`.bat`/`.cmd`。文本 `<tool_call>` 协议；配置 `chat_agent`（默认开）。CLI：`ScreenKit --test-llm-agent`。
 - HTTP `POST /api/tts` / `GET /api/tts/models`：在 Sherpa 之外支持 **SAPI** 与 **Windows**（WinRT / OneCore）语音。请求 `engine` 为 `sherpa` / `sapi` / `winrt`（别名 `windows`）；`voice` 可用 `sapi:…` / `sapi-x86:…` / `winrt:…`。`/api/status` 增加 `tts_sapi` / `tts_winrt`。CLI：`ScreenKit --test-http-tts`。
 - 录屏 / GIF 录屏选项 **录制鼠标**、**高亮鼠标点击**（`record_mouse` / `record_click_highlight`，`gif_mouse` / `gif_click_highlight`）。GDI 抓屏不含指针，叠加系统光标，并在左/右/中键处画短暂黄/蓝/绿散开圈。CLI：`ScreenKit --test-record-cursor`。
 

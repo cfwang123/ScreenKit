@@ -6,12 +6,13 @@ sealed class LlmChatTurn {
 	public string Text = "";
 }
 
-/// <summary>气泡绑定项（含界面错误泡，不进历史）。</summary>
+/// <summary>气泡绑定项（含界面错误/工具泡，不进历史）。</summary>
 sealed class LlmChatBubble {
 	public string Role { get; set; } = "";
 	public string Text { get; set; } = "";
 	public bool IsUser { get; set; }
 	public bool IsError { get; set; }
+	public bool IsTool { get; set; }
 }
 
 /// <summary>进程内单会话。最多 60 条（30 轮），总字数 ≤ 12000。不落盘。</summary>

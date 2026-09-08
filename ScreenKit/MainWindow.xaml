@@ -915,6 +915,10 @@
 							<ComboBox x:Name="echatllm" Width="200" Height="30" Margin="0,0,12,0"
 							          VerticalAlignment="Center"
 							          AutomationProperties.AutomationId="chat.llm"/>
+							<CheckBox x:Name="echatagent" Content="工具" Margin="0,0,12,0"
+							          VerticalAlignment="Center"
+							          ToolTip="启用后可搜索网页、读写程序目录 tmp/llm/、运行其中的脚本"
+							          AutomationProperties.AutomationId="chat.agent"/>
 							<TextBlock x:Name="lbchatstatus" Text="就绪" FontSize="12"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 							<Button x:Name="bchatclear" DockPanel.Dock="Right" Content="清空"
@@ -945,6 +949,10 @@
 												<DataTrigger Binding="{Binding IsError}" Value="True">
 													<Setter TargetName="bdbubble" Property="HorizontalAlignment" Value="Left"/>
 													<Setter TargetName="bdbubble" Property="Background" Value="#F3F4F6"/>
+												</DataTrigger>
+												<DataTrigger Binding="{Binding IsTool}" Value="True">
+													<Setter TargetName="bdbubble" Property="HorizontalAlignment" Value="Left"/>
+													<Setter TargetName="bdbubble" Property="Background" Value="#E8EEF5"/>
 												</DataTrigger>
 											</DataTemplate.Triggers>
 										</DataTemplate>

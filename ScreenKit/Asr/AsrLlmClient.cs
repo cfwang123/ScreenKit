@@ -231,6 +231,42 @@ static class AsrLlmClient {
 		return outText;
 	}
 
+	/// <summary>
+	/// Agent 单轮：整包 messages，think=off，不做 length 续写（避免截断 tool_call）。
+	/// </summary>
+	public static string ChatOnce(LlmEndpoint ep, object messages, int timeoutMs, float temperature,
+		CancellationToken ct = default) {
+		if (!IsEndpointReady(ep))
+			throw new InvalidOperationException("未配置对话 LLM（需 URL 与模型 id）");
+		if (messages == null)
+			throw new ArgumentNullException(nameof(messages));
+		if (timeoutMs <= 0) timeoutMs = ChatTimeoutMs;
+		LlmLog.Info($"chat-once model={ep.Model} think=off temp={temperature}");
+		var outText = completeonce(ep, messages, timeoutMs, temperature, "off", ct);
+		return stripthink(outText ?? "").Trim();
+	}
+
+	/// <summary>单轮 POST；与 complete 相同的 think/max_tokens 回退，但不续写。</summary>
+	static string completeonce(LlmEndpoint ep, object messages, int timeoutMs, float temperature,
+		string think, CancellationToken ct) {
+		var url = normalizeurl(ep.Url);
+		var model = (ep.Model ?? "").Trim();
+		var key = (ep.Key ?? "").Trim();
+		think = string.IsNullOrEmpty(think) ? think : LlmEndpoint.NormThink(think);
+		var sendMax = true;
+		ct.ThrowIfCancellationRequested();
+		var (code, body, ms, _, _) = postround(url, key, model, messages, think, sendMax,
+			timeoutMs, temperature, ct);
+		LlmLog.Info($"resp once {code} {ms}ms len={body.Length} {clip(body, 4000)}");
+		if (code < 200 || code >= 300) {
+			var snippet = body.Length > 240 ? body.Substring(0, 240) : body;
+			throw new InvalidOperationException($"HTTP {code}: {snippet}");
+		}
+		var (chunk, finish) = ParseChoice(body);
+		LlmLog.Info($"extracted once finish={finish} len={chunk.Length}");
+		return chunk ?? "";
+	}
+
 	static string complete(LlmEndpoint ep, string prompt, string user, int timeoutMs, CancellationToken ct) {
 		object messages = new object[] {
 			new { role = "system", content = prompt },

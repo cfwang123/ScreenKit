@@ -35,6 +35,7 @@ static class Cli {
 				or "--test-clipboard-path"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
+				or "--test-llm-agent"
 				or "--test-http-tts"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
@@ -194,6 +195,8 @@ static class Cli {
 					return runtestllmcontinue();
 				case "--test-llm-chat":
 					return runtestllmchat();
+				case "--test-llm-agent":
+					return runtestllmagent();
 				case "--test-http-tts":
 					return runtesthttptts();
 				case "--list-install":
@@ -1567,6 +1570,95 @@ static class Cli {
 		}).GetAwaiter().GetResult();
 	}
 
+	/// <summary>Agent 沙箱路径、tool_call 解析、读写/脚本（默认不去网）。</summary>
+	static int runtestllmagent() {
+		Out("=== LLM Agent --test-llm-agent ===");
+		var bad = 0;
+		void fail(string m) {
+			Err("FAIL " + m);
+			bad++;
+		}
+
+		_ = LlmAgentPaths.Root;
+		Out("root=" + LlmAgentPaths.Root);
+		if (!LlmAgentPaths.TryResolve("a/b.txt", out var fullOk, out var relOk, out var errOk) || errOk != null)
+			fail("resolve a/b.txt: " + errOk);
+		else
+			Out("resolve ok rel=" + relOk + " full=" + fullOk);
+		if (LlmAgentPaths.TryResolve("../x.txt", out _, out _, out var errEsc))
+			fail("resolve ../x.txt should fail");
+		else
+			Out("escape rejected: " + errEsc);
+		if (LlmAgentPaths.TryResolve(@"C:\Windows\notepad.exe", out _, out _, out var errAbs))
+			fail("resolve absolute outside should fail");
+		else
+			Out("abs outside rejected: " + errAbs);
+
+		var calls = LlmAgentTools.ParseCalls(
+			"先搜一下 <tool_call>{\"name\":\"web_search\",\"arguments\":{\"query\":\"ScreenKit\"}}</tool_call>\n" +
+			"<tool_call>{\"name\":\"list_dir\",\"arguments\":{\"path\":\".\"}}</tool_call> 再答");
+		if (calls.Count != 2) fail("ParseCalls count=" + calls.Count);
+		else {
+			Out("ParseCalls n=2 names=" + calls[0].Name + "," + calls[1].Name);
+			if (calls[0].Name != "web_search") fail("name0");
+			if (calls[1].Name != "list_dir") fail("name1");
+		}
+		var stripped = LlmAgentTools.StripCalls(
+			"<tool_call>{\"name\":\"x\",\"arguments\":{}}</tool_call>hello");
+		if (stripped != "hello") fail("StripCalls got=" + stripped);
+
+		var writeCall = new LlmToolCall {
+			Name = "write_file",
+			ArgsJson = "{\"path\":\"agent_test_note.txt\",\"content\":\"hello-agent\"}",
+		};
+		var wr = LlmAgentTools.Execute(writeCall, CancellationToken.None);
+		Out("write: " + wr);
+		if (wr == null || !wr.StartsWith("ok", StringComparison.OrdinalIgnoreCase))
+			fail("write_file: " + wr);
+		var rd = LlmAgentTools.Execute(new LlmToolCall {
+			Name = "read_file",
+			ArgsJson = "{\"path\":\"agent_test_note.txt\"}",
+		}, CancellationToken.None);
+		Out("read: " + clipcli(rd, 80));
+		if (rd == null || rd.IndexOf("hello-agent", StringComparison.Ordinal) < 0)
+			fail("read_file mismatch");
+		var ls = LlmAgentTools.Execute(new LlmToolCall {
+			Name = "list_dir",
+			ArgsJson = "{\"path\":\".\"}",
+		}, CancellationToken.None);
+		Out("list: " + clipcli(ls, 120));
+		if (ls == null || ls.IndexOf("agent_test_note.txt", StringComparison.Ordinal) < 0)
+			fail("list_dir missing note");
+
+		// 可选：本机 python
+		try {
+			File.WriteAllText(Path.Combine(LlmAgentPaths.Root, "agent_echo.py"),
+				"import sys\nprint('pyok', sys.argv[1] if len(sys.argv)>1 else '')\n",
+				Encoding.UTF8);
+			var py = LlmAgentTools.Execute(new LlmToolCall {
+				Name = "run_script",
+				ArgsJson = "{\"path\":\"agent_echo.py\",\"args\":[\"hi\"]}",
+			}, CancellationToken.None);
+			Out("run_script py: " + clipcli(py, 160));
+			if (py != null && py.IndexOf("pyok", StringComparison.Ordinal) >= 0)
+				Out("python script OK");
+			else
+				Out("SKIP/WARN python script (python 可能未在 PATH): " + clipcli(py, 120));
+		}
+		catch (Exception ex) {
+			Out("SKIP python: " + ex.Message);
+		}
+
+		Out(bad == 0 ? "=== OK：LLM Agent 沙箱/解析 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static string clipcli(string s, int max) {
+		s = s ?? "";
+		if (s.Length <= max) return s;
+		return s.Substring(0, max) + "…";
+	}
+
 	/// <summary>LLM 对话历史裁剪与续写数组形状（不去网）。</summary>
 	static int runtestllmchat() {
 		Out("=== LLM 对话 --test-llm-chat ===");
@@ -1831,6 +1923,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
+  ScreenKit --test-llm-agent
   ScreenKit --test-http-tts
   ScreenKit --test-face-overlay
   ScreenKit --list-models
@@ -1873,6 +1966,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
+      --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
       --repeat    --test-record-codec 连续次数（默认 1）
@@ -1917,6 +2011,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-clipboard-path
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
+  ScreenKit --test-llm-agent
   ScreenKit --test-http-tts
   ScreenKit --test-face-overlay
   ScreenKit --record-snap --region 100,100,800,600 -o log\record_snap

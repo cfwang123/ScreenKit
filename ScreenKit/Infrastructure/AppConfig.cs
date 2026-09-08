@@ -257,6 +257,8 @@ static class AppConfig {
 				var p = (clp ?? "").Replace("\\n", "\n").Replace("\\t", "\t");
 				o.ChatLlmPrompt = string.IsNullOrWhiteSpace(p) ? OcrOptions.DefaultChatLlmPrompt() : p;
 			}
+			if (map.TryGetValue("chat_agent", out var chatAg))
+				o.ChatAgent = parsebool(chatAg, true);
 			o.LlmList = parsellm(text);
 			// 翻译
 			if (map.TryGetValue("translate_compute", out var trc) && !string.IsNullOrWhiteSpace(trc))
@@ -501,12 +503,13 @@ static class AppConfig {
 			? OcrOptions.DefaultAsrLlmPrompt : o.AsrLlmPrompt;
 		promptSave = promptSave.Replace("\r\n", "\n").Replace("\n", "\\n").Replace("\t", "\\t");
 		sb.AppendLine($"asr_llm_prompt = \"{esc(promptSave)}\"");
-		sb.AppendLine($"# LLM 对话（主窗 Tab；chat_llm 空=用润色所选）");
+		sb.AppendLine($"# LLM 对话（主窗 Tab；chat_llm 空=用润色所选；chat_agent=搜索/tmp/llm/脚本）");
 		sb.AppendLine($"chat_llm = \"{esc(o.ChatLlm ?? "")}\"");
 		var chatPromptSave = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		chatPromptSave = chatPromptSave.Replace("\r\n", "\n").Replace("\n", "\\n").Replace("\t", "\\t");
 		sb.AppendLine($"chat_llm_prompt = \"{esc(chatPromptSave)}\"");
+		sb.AppendLine($"chat_agent = {(o.ChatAgent ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("# LLM 接口列表（OpenAI 兼容）；think = off|low|high|max；key 勿提交公开仓库");
 		if (o.LlmList != null) {

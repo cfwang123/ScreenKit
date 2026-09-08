@@ -21,6 +21,11 @@ public partial class MainWindow {
 			if (chatUiLoading) return;
 			savechatllm();
 		};
+		if (echatagent != null) {
+			echatagent.IsChecked = opt.ChatAgent;
+			echatagent.Checked += (_, _) => savechatagent(true);
+			echatagent.Unchecked += (_, _) => savechatagent(false);
+		}
 		echatinput.PreviewKeyDown += onchatinputkey;
 		fillchatllm();
 		setchatstatus(Loc.T("chat.status.idle"));
@@ -61,6 +66,8 @@ public partial class MainWindow {
 			}
 			else
 				echatllm.SelectedItem = pick ?? echatllm.Items[0];
+			if (echatagent != null)
+				echatagent.IsChecked = opt.ChatAgent;
 		}
 		finally { chatUiLoading = false; }
 	}
@@ -79,6 +86,17 @@ public partial class MainWindow {
 		}
 	}
 
+	void savechatagent(bool on) {
+		if (chatUiLoading) return;
+		try {
+			opt.ChatAgent = on;
+			AppConfig.Save(opt);
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("savechatagent", ex);
+		}
+	}
+
 	void onchatinputkey(object sender, KeyEventArgs e) {
 		if (e.Key != Key.Enter) return;
 		if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) return;
@@ -89,6 +107,7 @@ public partial class MainWindow {
 	void onchatclear() {
 		if (chatBusy) {
 			try { chatCts?.Cancel(); } catch { }
+			try { LlmAgentTools.CancelRunning(); } catch { }
 		}
 		chatHist.Clear();
 		chatItems.Clear();
@@ -98,6 +117,7 @@ public partial class MainWindow {
 	void onchatsend() {
 		if (chatBusy) {
 			try { chatCts?.Cancel(); } catch { }
+			try { LlmAgentTools.CancelRunning(); } catch { }
 			return;
 		}
 		var text = (echatinput.Text ?? "").Trim();
@@ -109,6 +129,7 @@ public partial class MainWindow {
 		var pick = currentchatllm();
 		if (pick != null)
 			o.ChatLlm = pick.DisplayName;
+		o.ChatAgent = echatagent?.IsChecked == true;
 		if (!AsrLlmClient.IsChatReady(o)) {
 			addchatbubble("error", Loc.T("chat.err.nollm"));
 			setchatstatus(Loc.T("chat.err.nollm"));
@@ -119,14 +140,28 @@ public partial class MainWindow {
 		addchatbubble("user", text);
 		chatHist.Add("user", text);
 		var history = chatHist.ToMessages();
+		var useAgent = o.ChatAgent;
 		var cts = new CancellationTokenSource();
 		chatCts = cts;
 		setchatbusy(true);
 		setchatstatus(Loc.T("chat.status.thinking"));
 		_ = Task.Run(() => {
 			try {
-				var reply = AsrLlmClient.Chat(o, history, cts.Token);
-				Dispatcher.BeginInvoke(new Action(() => finishchat(reply, null, cts)));
+				if (useAgent) {
+					var result = LlmAgent.Run(o, history,
+						st => Dispatcher.BeginInvoke(new Action(() => {
+							if (cts == chatCts) setchatstatus(st);
+						})),
+						note => Dispatcher.BeginInvoke(new Action(() => {
+							if (cts == chatCts) addchatbubble("tool", note);
+						})),
+						cts.Token);
+					Dispatcher.BeginInvoke(new Action(() => finishchat(result?.Reply, null, cts)));
+				}
+				else {
+					var reply = AsrLlmClient.Chat(o, history, cts.Token);
+					Dispatcher.BeginInvoke(new Action(() => finishchat(reply, null, cts)));
+				}
 			}
 			catch (OperationCanceledException) {
 				Dispatcher.BeginInvoke(new Action(() => finishchat(null, "cancel", cts)));
@@ -169,6 +204,7 @@ public partial class MainWindow {
 			Text = text,
 			IsUser = role == "user",
 			IsError = role == "error",
+			IsTool = role == "tool",
 		});
 		Dispatcher.BeginInvoke(new Action(() => {
 			try { svchat.ScrollToEnd(); } catch { }
@@ -180,6 +216,7 @@ public partial class MainWindow {
 		bchatsend.Content = Loc.T(on ? "chat.stop" : "chat.send");
 		bchatclear.IsEnabled = !on;
 		echatllm.IsEnabled = !on;
+		if (echatagent != null) echatagent.IsEnabled = !on;
 	}
 
 	void setchatstatus(string s) {
@@ -192,6 +229,10 @@ public partial class MainWindow {
 		tabchat.Header = Loc.T("tab.chat");
 		lbchatbrand.Text = Loc.T("tab.chat");
 		lbchatllm.Text = Loc.T("chat.llm");
+		if (echatagent != null) {
+			echatagent.Content = Loc.T("chat.agent");
+			echatagent.ToolTip = Loc.T("chat.agent.tip");
+		}
 		bchatclear.Content = Loc.T("chat.clear");
 		lbchathint.Text = Loc.T("chat.hint");
 		bchatsend.Content = Loc.T(chatBusy ? "chat.stop" : "chat.send");
