@@ -634,7 +634,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 11. POST `/api/chat`
 
-LLM 多轮对话。支持**文本**或**语音**用户消息；始终返回文本回复；可选 **TTS**（`tts`/`speak`/`auto_tts`）在响应中附带 WAV 的 `wav_base64`。需已配置 `[[llm]]`（`chat_llm` 或请求里 `llm`）。
+LLM 多轮对话。支持**文本**或**语音**用户消息；始终返回文本回复；仅当请求 **`tts`: true** 时在响应中附带 WAV 的 `wav_base64`（不看配置、也不看其它字段名）。需已配置 `[[llm]]`（`chat_llm` 或请求里 `llm`）。
 
 **请求（文本）：**
 
@@ -651,6 +651,8 @@ LLM 多轮对话。支持**文本**或**语音**用户消息；始终返回文�
   "llm": ""
 }
 ```
+
+（`tts` 省略或 `false` 时只返回文本。）
 
 **请求（语音消息）：** 不传 `text`，传音频 `base64` 或本机 `path`（与 `/api/asr` 相同），先 ASR 再对话。
 
@@ -669,7 +671,7 @@ LLM 多轮对话。支持**文本**或**语音**用户消息；始终返回文�
 | `text` / `message` / `content` | 文本与音频二选一 | 本轮用户文本，最长 8000 字 |
 | `base64` / `path` | 文本与音频二选一 | 用户语音；有文本时优先文本 |
 | `messages` | 否 | 此前历史（仅 `user`/`assistant`）；**不含**本轮 user（本轮用 `text`/ASR） |
-| `auto_tts` / `tts` / `speak` / `auto_speak` | 否 | 是否把回复合成语音并返回 `wav_base64`。优先用请求值；**都未传**则用配置 `chat_auto_tts`（与界面「自动朗读」相同）。显式 `false` 可关掉 |
+| `tts` | 否 | **仅此字段**控制是否合成语音并返回 `wav_base64`；`true` 才合成，默认/`false` 不合成 |
 | `agent` | 否 | 是否走对话 Agent（工具）；默认取配置 `chat_agent` |
 | `llm` / `chat_llm` | 否 | `[[llm]]` 显示名或模型 id；默认 `chat_llm` |
 | `engine` / `voice` / `speaker_id` / `speed` / `volume` / `tts_model` | 否 | TTS 参数，语义同 `/api/tts` |

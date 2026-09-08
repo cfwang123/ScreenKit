@@ -596,14 +596,14 @@ LLM batch translate (internally grouped by 8; missing indexes retried one-by-one
 
 ## 11. POST `/api/chat`
 
-LLM chat. **Text** or **audio** user message; always returns text; optional **TTS** (`tts` / `speak` / `auto_tts`) adds WAV `wav_base64`. Needs `[[llm]]` (`chat_llm` or request `llm`).
+LLM chat. **Text** or **audio** user message; always returns text; WAV `wav_base64` only when request **`tts`: true** (ignores config and other field names). Needs `[[llm]]` (`chat_llm` or request `llm`).
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `text` / `message` / `content` | text **or** audio | Current user text (max 8000) |
 | `base64` / `path` | text **or** audio | User speech; text wins if both set |
 | `messages` | no | Prior `user`/`assistant` turns (not including current user) |
-| `auto_tts` / `tts` / `speak` / `auto_speak` | no | Speak reply and return `wav_base64`. Request wins; if omitted, uses config `chat_auto_tts` (same as UI Auto speak). Explicit `false` disables |
+| `tts` | no | **Only this field** controls TTS; `true` → `wav_base64`, default/`false` → text only |
 | `agent` | no | Tool agent; default from `chat_agent` |
 | `llm` | no | Endpoint display name / model id |
 | TTS / ASR fields | no | Same as `/api/tts` and `/api/asr` (`engine`, `voice`, `asr_model`, `lang`, …) |
