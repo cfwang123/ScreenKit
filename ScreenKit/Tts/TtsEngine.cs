@@ -17,6 +17,8 @@ sealed class TtsEngine : IDisposable {
 	bool hasNumberFst;
 	/// <summary>当前模型是否有 lexicon/dict（中文前端）。</summary>
 	bool hasFrontend;
+	/// <summary>Mimic3 在 ORT CUDA 初始化中可能触发原生访问冲突，只允许 CPU。</summary>
+	bool forceCpu;
 	/// <summary>tts_config.json 的 volume 增益。</summary>
 	float volumeGain = 1f;
 
@@ -119,6 +121,7 @@ sealed class TtsEngine : IDisposable {
 		Unload();
 		modelDir = model.ModelDir;
 		GpuFallbackReason = null;
+		forceCpu = Compat.Contains(model.DisplayName, "mimic3", StringComparison.OrdinalIgnoreCase);
 		hasNumberFst = File.Exists(Path.Combine(modelDir, "number.fst"));
 		hasFrontend = model.HasLexicon || model.HasDictDir
 			|| File.Exists(Path.Combine(modelDir, "lexicon.txt"));
@@ -132,7 +135,12 @@ sealed class TtsEngine : IDisposable {
 			loadVits(model);
 
 		try {
-			var warm = tts.GenerateWithConfig("预热", new OfflineTtsGenerationConfig { Speed = 1f }, null);
+			var warmText = TtsLang.Match(model.Lang, TtsLang.Ko) ? "테스트"
+				: TtsLang.Match(model.Lang, TtsLang.Ja) ? "テスト"
+				: TtsLang.Match(model.Lang, TtsLang.Vi) ? "thử"
+				: TtsLang.Match(model.Lang, TtsLang.En) ? "test"
+				: "预热";
+			var warm = tts.GenerateWithConfig(warmText, new OfflineTtsGenerationConfig { Speed = 1f }, null);
 			TtsAudioFix.Free(warm);
 		}
 		catch { }
@@ -149,6 +157,11 @@ sealed class TtsEngine : IDisposable {
 			vits.Lexicon = Path.Combine(modelDir, "lexicon.txt");
 		if (model.HasDictDir)
 			vits.DictDir = Path.Combine(modelDir, "dict");
+		var dataDir = Path.Combine(modelDir, "espeak-ng-data");
+		if (!Directory.Exists(dataDir))
+			dataDir = Path.Combine(TtsModelScanner.ModelsRoot(), "espeak-ng-data");
+		if (Directory.Exists(dataDir))
+			vits.DataDir = dataDir;
 		var mcfg = new OfflineTtsModelConfig { Vits = vits, NumThreads = 4 };
 		createTts(mcfg);
 	}
@@ -168,12 +181,13 @@ sealed class TtsEngine : IDisposable {
 	}
 
 	void createTts(OfflineTtsModelConfig mcfg) {
-		var cudaOk = ProbeCuda(out var cudaReason);
+		var cudaReason = "";
+		var cudaOk = !forceCpu && ProbeCuda(out cudaReason);
 		// 官方 NuGet sherpa 无 DirectML，勿尝试（否则会静默 CPU 却报 directml）
 		var dmlOk = ProbeSherpaDml(out var dmlReason);
 		var reasons = new List<string>();
 
-		var tryList = mode switch {
+		var tryList = forceCpu ? Array.Empty<string>() : mode switch {
 			TtsComputeMode.Cpu => Array.Empty<string>(),
 			TtsComputeMode.Gpu => new[] { "cuda" },
 			TtsComputeMode.Igpu => Array.Empty<string>(), // 见 dmlReason
@@ -181,7 +195,9 @@ sealed class TtsEngine : IDisposable {
 			_ => autoCudaOk && cudaOk ? new[] { "cuda" } : Array.Empty<string>(),
 		};
 
-		if (mode == TtsComputeMode.Auto && tryList.Length == 0) {
+		if (forceCpu)
+			reasons.Add("CUDA: Mimic3 模型禁用 CUDA（避免 ONNX Runtime 原生崩溃）");
+		else if (mode == TtsComputeMode.Auto && tryList.Length == 0) {
 			if (!cudaOk) reasons.Add("CUDA: " + cudaReason);
 			reasons.Add("DML: " + dmlReason);
 		}

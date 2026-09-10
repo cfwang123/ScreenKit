@@ -288,6 +288,7 @@ ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
+ScreenKit --test-tts-sherpa <model> # load and synthesize with a Sherpa voice (`-d auto|gpu|cpu`)
 ScreenKit --test-http-tts           # HTTP /api/tts SAPI + Windows WAV
 ScreenKit --test-llm-chat           # LLM chat history trim (offline)
 ScreenKit --test-llm-agent          # agent sandbox / parse / files+script (offline)

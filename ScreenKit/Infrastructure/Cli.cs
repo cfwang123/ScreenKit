@@ -29,6 +29,7 @@ static class Cli {
 			if (a is "--image" or "-i" or "--probe-cuda" or "--list-models" or "--list-tts"
 				or "--list-sapi"
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
+				or "--test-tts-sherpa"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
@@ -104,6 +105,9 @@ static class Cli {
 		int recordAvsyncSec = 10;
 		bool noCls = false;
 		bool probeTtsGender = false;
+		bool doTestTtsSherpa = false;
+		string testTtsModel = null;
+		string testTtsText = "안녕하세요. 한국어 음성 합성 테스트입니다.";
 		bool writeConfig = true;
 		string onlyTtsModel = null;
 		int? detLimit = null;
@@ -223,6 +227,13 @@ static class Cli {
 					break;
 				case "--probe-tts-gender":
 						probeTtsGender = true;
+						break;
+					case "--test-tts-sherpa":
+						doTestTtsSherpa = true;
+						testTtsModel = Next();
+						break;
+					case "--tts-text":
+						testTtsText = Next();
 						break;
 					case "--no-write-config":
 						writeConfig = false;
@@ -404,6 +415,17 @@ static class Cli {
 			}
 		}
 
+		if (doTestTtsSherpa) {
+			try {
+				return runtestttssherpa(testTtsModel, testTtsText, device);
+			}
+			catch (Exception ex) {
+				Err($"Sherpa TTS 测试失败: {ex.Message}");
+				Err(ex.ToString());
+				return 1;
+			}
+		}
+
 		if (translateText != null) {
 			try {
 				return runtranslate(translateText, translateDir, device);
@@ -530,6 +552,31 @@ static class Cli {
 			if (m.Speakers.Count > 8)
 				Out($"      ... +{m.Speakers.Count - 8} more");
 		}
+		return 0;
+	}
+
+	static int runtestttssherpa(string modelName, string text, string device) {
+		var models = TtsModelScanner.Scan();
+		var model = models.FirstOrDefault(m =>
+			string.Equals(m.DisplayName, modelName, StringComparison.OrdinalIgnoreCase))
+			?? models.FirstOrDefault(m => Compat.Contains(m.DisplayName, modelName, StringComparison.OrdinalIgnoreCase));
+		if (model == null) throw new ArgumentException("未找到 TTS 模型: " + modelName);
+		var mode = device switch {
+			"gpu" or "cuda" => TtsComputeMode.Gpu,
+			"cpu" => TtsComputeMode.Cpu,
+			"igpu" or "dml" or "directml" => TtsComputeMode.Igpu,
+			_ => TtsComputeMode.Auto,
+		};
+		Out($"模型: {model.DisplayName} · lang={model.Lang} · request={mode}");
+		using var engine = new TtsEngine { Mode = mode };
+		engine.LoadModel(model);
+		var (samples, sampleRate) = engine.Synthesize(text, 0, 1f, false);
+		if (samples == null || samples.Length == 0 || sampleRate <= 0)
+			throw new InvalidOperationException("合成结果为空");
+		Out($"OK provider={engine.Provider} sampleRate={sampleRate} samples={samples.Length} "
+			+ $"seconds={samples.Length / (double)sampleRate:F2}");
+		if (!string.IsNullOrEmpty(engine.GpuFallbackReason))
+			Out("Fallback: " + engine.GpuFallbackReason);
 		return 0;
 	}
 
@@ -2063,6 +2110,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-tts
   ScreenKit --test-http-chat
   ScreenKit --test-face-overlay
+  ScreenKit --test-tts-sherpa <模型名> [--tts-text "文本"]
   ScreenKit --list-models
   ScreenKit --list-tts
   ScreenKit --list-sapi
@@ -2107,6 +2155,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
       --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
+      --test-tts-sherpa  用 CPU 加载指定 Sherpa 模型并完成一次合成
+      --tts-text   --test-tts-sherpa 的测试文本（默认韩语测试句）
       --repeat    --test-record-codec 连续次数（默认 1）
       --seconds   --test-record-avsync / --test-gif-record / --test-record-codec 录制秒数
       --region    物理像素区域 L,T,W,H（默认主屏中心）
@@ -2153,6 +2203,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-tts
   ScreenKit --test-http-chat
   ScreenKit --test-face-overlay
+  ScreenKit --test-tts-sherpa vits-mimic3-ko_KO-kss_low
   ScreenKit --record-snap --region 100,100,800,600 -o log\record_snap
   ScreenKit --list-models
   ScreenKit --list-tts

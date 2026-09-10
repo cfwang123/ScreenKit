@@ -117,7 +117,7 @@ sealed class TtsModelInfo {
 	public bool HasRuleFsts { get; set; }
 	/// <summary>播放/导出增益（来自 tts_config.json 的 volume，默认 1）。</summary>
 	public float Volume { get; set; } = 1f;
-	/// <summary>模型默认语言 zh/en，可逗号多语，如 zh,en。</summary>
+	/// <summary>模型默认语言（两位 ISO），可逗号分隔多语种，如 zh,en。</summary>
 	public string Lang { get; set; } = "";
 	/// <summary>模型默认性别 male/female（单人模型常用）。</summary>
 	public string Gender { get; set; } = "";
@@ -125,7 +125,7 @@ sealed class TtsModelInfo {
 	public bool IsMultiSpeaker => Speakers.Count > 1;
 	public override string ToString() => DisplayName;
 
-	/// <summary>目录名推断语言（zh / en / zh,en）。按 token 匹配，避免 fanchen 含 en 误判。</summary>
+	/// <summary>从目录名 token 推断语言，避免 fanchen 含 en 等子串误判。</summary>
 	public static string InferLangFromName(string name) {
 		if (string.IsNullOrEmpty(name)) return "";
 		var n = name.ToLowerInvariant();
@@ -139,6 +139,9 @@ sealed class TtsModelInfo {
 		if (zh && en) return $"{TtsLang.Zh},{TtsLang.En}";
 		if (zh) return TtsLang.Zh;
 		if (en) return TtsLang.En;
+		var other = parts.Select(TtsLang.Normalize)
+			.FirstOrDefault(p => p is TtsLang.Vi or TtsLang.Ja or TtsLang.Ko or TtsLang.Yue);
+		if (!string.IsNullOrEmpty(other)) return other;
 		return "";
 	}
 }
@@ -147,7 +150,7 @@ sealed class TtsSpeakerInfo {
 	public string Name { get; set; } = "";
 	public string ChineseName { get; set; } = "";
 	public int Id { get; set; }
-	/// <summary>语言 zh / en。</summary>
+	/// <summary>语言（两位 ISO）。</summary>
 	public string Lang { get; set; } = "";
 	/// <summary>性别 male / female。</summary>
 	public string Gender { get; set; } = "";

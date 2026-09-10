@@ -195,6 +195,7 @@ ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # 本机 SAPI +（x64 时）x86host 发音人
+ScreenKit --test-tts-sherpa <模型名> # 加载并合成一次 Sherpa 发音人（`-d auto|gpu|cpu`）
 ScreenKit --test-http-tts           # HTTP /api/tts 校验 SAPI / Windows WAV
 ScreenKit --test-llm-chat           # LLM 对话历史裁剪（不去网）
 ScreenKit --test-llm-agent          # Agent 沙箱/解析/读写脚本（不去网）
