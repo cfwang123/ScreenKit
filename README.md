@@ -119,7 +119,7 @@ Runs Release build, then packs `ScreenKit/bin/Release/ScreenKit/` (folder includ
 1. First launch may open the install wizard (defaults: OpenCV, **ORT CPU**, OCR `rapid-ch`, first two ASR packs, FFmpeg; GPU/iGPU **off**).
 2. Later: **Tools → Install features**
    - **Components**: OpenCV, Skia, PDFium, Sherpa, **ORT CPU (`onnxcpu64`)**, OCR/ASR packs, CUDA, DirectML, FFmpeg.
-   - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process and do not require system `tar` / `bzip2`.
+   - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process and do not require system `tar` / `bzip2`; a junction-based `ttsmodels` directory is supported.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
 
 | Runtime | Role | Typical size |

@@ -1,12 +1,15 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Win32.SafeHandles;
 using SharpCompress.Common;
 using SharpCompress.Readers;
 
@@ -110,6 +113,15 @@ static class FeatureInstaller {
 	];
 
 	static readonly HttpClient Http = createhttp();
+
+	[DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
+	static extern SafeFileHandle createfile(
+		string fileName, uint desiredAccess, FileShare shareMode, IntPtr securityAttributes,
+		FileMode creationDisposition, uint flagsAndAttributes, IntPtr templateFile);
+
+	[DllImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", CharSet = CharSet.Unicode, SetLastError = true)]
+	static extern uint getfinalpathnamebyhandle(
+		SafeFileHandle file, StringBuilder filePath, uint filePathLength, uint flags);
 
 	static HttpClient createhttp() {
 		try {
@@ -1660,17 +1672,44 @@ arabic_dict.txt
 
 	static void extractarchive(string archive, string destDir, IProgress<string> log) {
 		Directory.CreateDirectory(destDir);
+		var extractDir = resolvefinaldir(destDir);
+		if (!string.Equals(extractDir, Path.GetFullPath(destDir), StringComparison.OrdinalIgnoreCase))
+			log?.Report("解压目录链接 → " + extractDir);
 		var ext = Path.GetExtension(archive).ToLowerInvariant();
 		if (ext == ".zip") {
-			ZipFile.ExtractToDirectory(archive, destDir);
+			ZipFile.ExtractToDirectory(archive, extractDir);
 			return;
 		}
 		using (var reader = ReaderFactory.OpenReader(archive)) {
-			reader.WriteAllToDirectory(destDir, new ExtractionOptions {
+			reader.WriteAllToDirectory(extractDir, new ExtractionOptions {
 				ExtractFullPath = true,
 				Overwrite = true,
 			});
 		}
+	}
+
+	static string resolvefinaldir(string dir) {
+		const uint BACKUP_SEMANTICS = 0x02000000;
+		var full = Path.GetFullPath(dir);
+		using var handle = createfile(
+			full, 0, FileShare.ReadWrite | FileShare.Delete, IntPtr.Zero,
+			FileMode.Open, BACKUP_SEMANTICS, IntPtr.Zero);
+		if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error(), "无法解析解压目录: " + full);
+		var path = new StringBuilder(512);
+		var length = getfinalpathnamebyhandle(handle, path, (uint)path.Capacity, 0);
+		if (length == 0) throw new Win32Exception(Marshal.GetLastWin32Error(), "无法解析解压目录: " + full);
+		if (length >= path.Capacity) {
+			path.Capacity = checked((int)length + 1);
+			length = getfinalpathnamebyhandle(handle, path, (uint)path.Capacity, 0);
+			if (length == 0 || length >= path.Capacity)
+				throw new Win32Exception(Marshal.GetLastWin32Error(), "无法解析解压目录: " + full);
+		}
+		var result = path.ToString();
+		if (result.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase))
+			return @"\\" + result.Substring(8);
+		if (result.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase))
+			return result.Substring(4);
+		return result;
 	}
 
 	// ───────── 本地种子 / NuGet ─────────

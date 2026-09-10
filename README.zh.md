@@ -120,7 +120,7 @@ Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release
 1. 首次启动可出现安装向导（默认勾选：OpenCV、**ORT CPU**、OCR `rapid-ch`、ASR 前两项、FFmpeg；**不勾** GPU/核显）。
 2. 之后：**工具 → 安装功能**
    - **功能组件**：OpenCV、Skia、PDFium、Sherpa、**ORT CPU（onnxcpu64）**、OCR/ASR 包、CUDA、DirectML、FFmpeg。
-   - **发音人**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统安装 `tar` / `bzip2`。
+   - **发音人**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统安装 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。
 3. 使用某功能时若缺依赖，会提示打开安装窗（例如：没有任何 ORT 时做 OCR → 提示安装 `onnxcpu64`）。
 
 | 运行库 | 用途 | 约体积 |
