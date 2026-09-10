@@ -22,7 +22,7 @@ Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界�
 | **剪贴板** | 粘贴图片识别；「编辑」菜单复制图片 / 文件 / 路径；复制文字用 Ctrl+C 或结果区按钮；菜单/托盘可切换截图完成时「复制为图片 / 文件 / 路径」 |
 | **文字叠加** | 图上叠加文字层，拖选复制 |
 | **PDF 工作台** | 打开 PDF → 分页识别 → 改字 → 导出可检索 PDF（不可见文字层） |
-| **ASR / TTS** | 离线语音识别（sherpa-onnx）与语音合成（Sherpa + SAPI / WinRT 系统音）；应用内安装发音人 |
+| **ASR / TTS** | 离线语音识别；Sherpa/SAPI/WinRT 离线合成及 Edge 在线自然语音 |
 | **LLM对话** | 主界面 Tab：微信式气泡、进程内单一会话、可清空。选用已配置的 `[[llm]]`。勾选「工具」可搜索/读写 `tmp/llm/`；「语音」成句送对话、「自动朗读」用语音合成 Tab 发音人播报回复；底部用时日志显示每轮 llm/asr/tts。 |
 | **翻译** | 本地 Opus-MT ONNX，或选用已配置的 **LLM**。提示词在参数设置 → 翻译（`{src}`/`{dst}` 替换为语言名）。翻译 Tab 切换引擎。翻译小窗（`Ctrl+Alt+T`）首次为空，之后保留上次结果；剪贴板需点「粘贴」。LLM 译文被长度截断时自动续写。 |
 | **人脸识别** | InsightFace ONNX：左右图检测/比对，可选关键点与性别年龄叠加；模型在 `facemodels/`（「安装功能」可下载 buffalo_l） |
@@ -133,6 +133,8 @@ Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release
 
 界面或系统区域为中文时，下载优先国内镜像（ModelScope / HF 镜像 / GitHub 代理）。
 
+**Edge 在线**引擎无需安装模型或填写 API Key，可使用 300 多个 Microsoft 自然语音（含韩语）。该功能必须联网，发音人目录和合成文本会发送到 Microsoft Edge“朗读”服务；它不是收费的 Azure Speech API，而是非官方 Edge 接口，未来可用性可能变化。程序会沿用“HTTP 代理”设置。
+
 可选环境变量（本地完整库路径，勿把本机密钥/绝对路径写进对外文档）：
 
 | 变量 | 含义 |
@@ -196,7 +198,9 @@ ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # 本机 SAPI +（x64 时）x86host 发音人
 ScreenKit --test-tts-sherpa <模型名> # 加载并合成一次 Sherpa 发音人（`-d auto|gpu|cpu`）
-ScreenKit --test-http-tts           # HTTP /api/tts 校验 SAPI / Windows WAV
+ScreenKit --list-edge-tts           # 联网列出 Edge 自然语音
+ScreenKit --test-edge-tts ko-KR-SunHiNeural
+ScreenKit --test-http-tts           # HTTP /api/tts 校验 SAPI / Windows / Edge WAV
 ScreenKit --test-llm-chat           # LLM 对话历史裁剪（不去网）
 ScreenKit --test-llm-agent          # Agent 沙箱/解析/读写脚本（不去网）
 ScreenKit --test-http-chat          # HTTP /api/chat（无 LLM 时期望 960/961）
@@ -233,7 +237,7 @@ x86host.exe --list-sapi
 - `POST /api/qr` — 仅条码/二维码（`/api/barcode`；JSON base64/path 或 multipart）
 - `GET  /api/ocr/get_options` — 当前 OCR 参数快照
 - `GET  /api/asr/models` · `POST /api/asr` — 语音识别（base64/本地 path）
-- `GET  /api/tts/models` · `POST /api/tts` — 语音合成（返回 wav base64）：Sherpa、SAPI、Windows（`engine=winrt`）
+- `GET  /api/tts/models` · `POST /api/tts` — 语音合成（返回 wav base64）：Sherpa、SAPI、Windows（`engine=winrt`）、Edge 在线（`engine=edge`）
 - `POST /api/itn` — 文本逆归一化（WeText + 规则）
 - `POST /api/translate` — LLM 批量翻译（`items[]`，需已配置 LLM）
 - `GET  /api/face/models` · `POST /api/face` — 人脸检测 / 比对

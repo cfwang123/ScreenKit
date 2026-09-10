@@ -154,6 +154,7 @@ Health check and capability probe.
 | `tts_engine` | bool | TTS (Sherpa) engine injected |
 | `tts_sapi` | bool | Local SAPI voices available |
 | `tts_winrt` | bool | Windows (WinRT / OneCore) voices available |
+| `tts_edge` | bool | Edge online voice feature is built in (actual synthesis still needs network access) |
 | `asr_models` | int | Scanned ASR model count |
 | `tts_models` | int | Scanned Sherpa TTS model count |
 | `face_ready` | bool | Whether `facemodels` has det+rec ONNX |
@@ -439,7 +440,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 ## 8. TTS (speech synthesis)
 
-Three engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), and **Windows** (`engine=winrt`, WinRT / OneCore neural voices). Omitting `engine` keeps the old Sherpa path when a Sherpa model exists; otherwise it falls back to Windows then SAPI.
+Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), **Windows** (`engine=winrt`, WinRT / OneCore neural voices), and **Edge online** (`engine=edge`, no model/API key, Internet required). Omitting `engine` keeps the old Sherpa path when a Sherpa model exists; otherwise it falls back to Windows then SAPI.
 
 ### 8.1 GET `/api/tts/models`
 
@@ -470,25 +471,33 @@ Three engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Sys
       "speakers": [
         { "id": 0, "name": "{voice-id}", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
       ]
+    },
+    {
+      "name": "Edge Online",
+      "engine": "edge",
+      "type": "Edge",
+      "speakers": [
+        { "id": 0, "name": "ko-KR-SunHiNeural", "lang": "ko", "gender": "female", "key": "edge:ko-KR-SunHiNeural" }
+      ]
     }
   ],
-  "count": 3
+  "count": 4
 }
 ```
 
-Sherpa lists at most 64 speakers per model. SAPI / Windows list all installed voices. x86-only SAPI voices have `key` prefix `sapi-x86:`.
+Sherpa lists at most 64 speakers per model. SAPI / Windows list all installed voices; the Edge online catalog is fetched from Microsoft. x86-only SAPI voices have `key` prefix `sapi-x86:`.
 
 ### 8.2 POST `/api/tts`
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `text` | Yes | Text to synthesize, max 20000 characters |
-| `engine` | No | `sherpa` / `sapi` / `winrt` (aliases: `windows`, `sapi5`). Empty = infer from `model` / `voice`, else Sherpa if present |
-| `model` | No | Sherpa display name, or `SAPI` / `Windows` |
-| `voice` / `speaker` | No | SAPI/Windows voice name or `key` (`sapi:…` / `sapi-x86:…` / `winrt:…`) |
+| `engine` | No | `sherpa` / `sapi` / `winrt` / `edge` (plus aliases). Empty = infer from `model` / `voice`, else Sherpa if present |
+| `model` | No | Sherpa display name, or `SAPI` / `Windows` / `Edge Online` |
+| `voice` / `speaker` | No | System/online voice name or `key` (`sapi:…` / `sapi-x86:…` / `winrt:…` / `edge:…`) |
 | `speaker_id` / `sid` | No | Speaker index (Sherpa sid, or index into that engine’s list). Default 0 |
 | `speed` | No | Rate 0.5–2.0, default 1.0 |
-| `volume` | No | 0–100, default 100 (SAPI / Windows; ignored by Sherpa) |
+| `volume` | No | 0–100, default 100 (SAPI / Windows / Edge; ignored by Sherpa) |
 | `device` / `compute` | No | Sherpa only: `auto` / `gpu` / `cpu` / `igpu` |
 
 **Success response:**
@@ -512,7 +521,7 @@ Sherpa lists at most 64 speakers per model. SAPI / Windows list all installed vo
 }
 ```
 
-`provider` is Sherpa’s EP (`CPU` / CUDA / …), or `SAPI` / `SAPI x86` / `WinRT`. Decode `wav_base64` to obtain standard WAV bytes.
+`provider` is Sherpa’s EP (`CPU` / CUDA / …), or `SAPI` / `SAPI x86` / `WinRT` / `Edge Online`. Decode `wav_base64` to obtain standard WAV bytes.
 
 ```python
 import base64, json, urllib.request
@@ -527,7 +536,7 @@ data = json.loads(urllib.request.urlopen(req).read().decode("utf-8"))
 open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 ```
 
-CLI: `ScreenKit --test-http-tts` starts a loopback server and checks SAPI / Windows WAV output.
+CLI: `ScreenKit --test-http-tts` starts a loopback server and checks SAPI / Windows / Edge WAV output.
 
 ---
 

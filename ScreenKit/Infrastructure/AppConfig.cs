@@ -465,12 +465,12 @@ static class AppConfig {
 		sb.AppendLine($"gif_click_highlight = {(gif.HighlightClicks ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("[tts]");
-		sb.AppendLine("# 引擎 Sapi | Sherpa；计算 Auto | Gpu | Cpu | Igpu");
+		sb.AppendLine("# 引擎 Sapi | WinRt | Edge | Sherpa；Edge 为在线自然语音");
 		sb.AppendLine($"tts_engine = \"{esc(string.IsNullOrWhiteSpace(o.TtsEngine) ? "Sherpa" : o.TtsEngine)}\"");
 		sb.AppendLine($"tts_compute = \"{esc(string.IsNullOrWhiteSpace(o.TtsCompute) ? "Auto" : o.TtsCompute)}\"");
 		sb.AppendLine($"tts_model = \"{esc(o.TtsModel ?? "")}\"");
 		sb.AppendLine($"tts_voice = \"{esc(o.TtsVoice ?? "")}\"");
-		sb.AppendLine($"# 筛选 zh|en|空；male|female|空");
+		sb.AppendLine($"# 筛选语言码（zh/en/ko/vi 等）或空；male|female|空");
 		sb.AppendLine($"tts_lang = \"{esc(o.TtsLangFilter ?? "")}\"");
 		sb.AppendLine($"tts_gender = \"{esc(o.TtsGenderFilter ?? "")}\"");
 		sb.AppendLine($"tts_rate = {o.TtsRate.ToString("0.##", CultureInfo.InvariantCulture)}");

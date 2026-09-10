@@ -29,7 +29,7 @@ static class Cli {
 			if (a is "--image" or "-i" or "--probe-cuda" or "--list-models" or "--list-tts"
 				or "--list-sapi"
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
-				or "--test-tts-sherpa"
+				or "--test-tts-sherpa" or "--test-edge-tts" or "--list-edge-tts"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
@@ -106,7 +106,9 @@ static class Cli {
 		bool noCls = false;
 		bool probeTtsGender = false;
 		bool doTestTtsSherpa = false;
+		bool doTestEdgeTts = false;
 		string testTtsModel = null;
+		string testEdgeVoice = "zh-CN-XiaoxiaoNeural";
 		string testTtsText = "안녕하세요. 한국어 음성 합성 테스트입니다.";
 		bool writeConfig = true;
 		string onlyTtsModel = null;
@@ -190,6 +192,8 @@ static class Cli {
 					return listtts();
 				case "--list-sapi":
 					return listsapi();
+				case "--list-edge-tts":
+					return listedgettvoices();
 				case "--list-asr":
 					return listasr();
 				case "--list-face":
@@ -231,6 +235,11 @@ static class Cli {
 					case "--test-tts-sherpa":
 						doTestTtsSherpa = true;
 						testTtsModel = Next();
+						break;
+					case "--test-edge-tts":
+						doTestEdgeTts = true;
+						if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
+							testEdgeVoice = Next();
 						break;
 					case "--tts-text":
 						testTtsText = Next();
@@ -426,6 +435,17 @@ static class Cli {
 			}
 		}
 
+		if (doTestEdgeTts) {
+			try {
+				return runtestedgetts(testEdgeVoice, testTtsText);
+			}
+			catch (Exception ex) {
+				Err($"Edge 在线 TTS 测试失败: {ex.Message}");
+				Err(ex.ToString());
+				return 1;
+			}
+		}
+
 		if (translateText != null) {
 			try {
 				return runtranslate(translateText, translateDir, device);
@@ -577,6 +597,29 @@ static class Cli {
 			+ $"seconds={samples.Length / (double)sampleRate:F2}");
 		if (!string.IsNullOrEmpty(engine.GpuFallbackReason))
 			Out("Fallback: " + engine.GpuFallbackReason);
+		return 0;
+	}
+
+	static int listedgettvoices() {
+		using var edge = new EdgeOnlineTts();
+		var voices = edge.LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult();
+		Out($"=== Edge 在线语音 · Count={voices.Count} ===");
+		foreach (var voice in voices)
+			Out($"{voice.Key} · {voice.Culture} · {voice.Gender}");
+		return voices.Count > 0 ? 0 : 1;
+	}
+
+	static int runtestedgetts(string voice, string text) {
+		using var edge = new EdgeOnlineTts();
+		var voices = edge.LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult();
+		if (!edge.SelectVoice(voice))
+			throw new ArgumentException($"未找到 Edge 在线语音: {voice}（目录共 {voices.Count} 个）");
+		edge.SetRateVolume(1, 100);
+		var (samples, sampleRate) = edge.Synthesize(text).GetAwaiter().GetResult();
+		if (samples == null || samples.Length == 0 || sampleRate <= 0)
+			throw new InvalidOperationException("合成结果为空");
+		Out($"OK voice={voice} sampleRate={sampleRate} samples={samples.Length} "
+			+ $"seconds={samples.Length / (double)sampleRate:F2}");
 		return 0;
 	}
 
@@ -1617,9 +1660,9 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
-	/// <summary>HTTP /api/tts：SAPI 与 Windows（WinRT）合成 WAV（本机环回，不依赖 Sherpa）。</summary>
+	/// <summary>HTTP /api/tts：SAPI、Windows 与 Edge 在线合成 WAV。</summary>
 	static int runtesthttptts() {
-		Out("=== HTTP TTS SAPI/WinRT --test-http-tts ===");
+		Out("=== HTTP TTS SAPI/WinRT/Edge --test-http-tts ===");
 		var bad = 0;
 		void fail(string m) {
 			Err("FAIL " + m);
@@ -1662,19 +1705,23 @@ static class Cli {
 				fail("models code != 100");
 			var hasSapi = false;
 			var hasWin = false;
+			var hasEdge = false;
 			if (doc.RootElement.TryGetProperty("data", out var data)
 				&& data.ValueKind == JsonValueKind.Array) {
 				foreach (var m in data.EnumerateArray()) {
 					var eng = m.TryGetProperty("engine", out var e) ? e.GetString() ?? "" : "";
 					if (eng == "sapi") hasSapi = true;
 					if (eng == "winrt") hasWin = true;
+					if (eng == "edge") hasEdge = true;
 				}
 			}
-			Out($"hasSapi={hasSapi} hasWinrt={hasWin}");
+			Out($"hasSapi={hasSapi} hasWinrt={hasWin} hasEdge={hasEdge}");
 			if (!hasSapi && !hasWin) fail("models 无 SAPI / Windows 条目");
+			if (!hasEdge) fail("models 无 Edge Online 条目");
 
 			if (hasSapi) testhttpttspost(http, baseUrl, "sapi", fail);
 			if (hasWin) testhttpttspost(http, baseUrl, "winrt", fail);
+			if (hasEdge) testhttpttspost(http, baseUrl, "edge", fail);
 			if (hasSapi || hasWin) {
 				var fb = httpttspost(http, baseUrl, "{\"text\":\"你好\"}");
 				using var dFb = JsonDocument.Parse(fb);
@@ -1697,7 +1744,7 @@ static class Cli {
 			try { srv?.Dispose(); } catch { }
 			try { runner?.Dispose(); } catch { }
 		}
-		Out(bad == 0 ? "=== OK：HTTP TTS SAPI/WinRT ===" : $"=== FAIL bad={bad} ===");
+		Out(bad == 0 ? "=== OK：HTTP TTS SAPI/WinRT/Edge ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}
 
@@ -2111,6 +2158,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-chat
   ScreenKit --test-face-overlay
   ScreenKit --test-tts-sherpa <模型名> [--tts-text "文本"]
+  ScreenKit --test-edge-tts [发音人] [--tts-text "文本"]
+  ScreenKit --list-edge-tts
   ScreenKit --list-models
   ScreenKit --list-tts
   ScreenKit --list-sapi
@@ -2156,7 +2205,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
       --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
       --test-tts-sherpa  用 CPU 加载指定 Sherpa 模型并完成一次合成
-      --tts-text   --test-tts-sherpa 的测试文本（默认韩语测试句）
+      --test-edge-tts  联网调用 Edge 自然语音并校验返回音频
+      --tts-text   TTS 测试文本（默认韩语测试句）
       --repeat    --test-record-codec 连续次数（默认 1）
       --seconds   --test-record-avsync / --test-gif-record / --test-record-codec 录制秒数
       --region    物理像素区域 L,T,W,H（默认主屏中心）
@@ -2165,6 +2215,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --list-models 列出可用 OCR 模型包与变体
       --list-tts    列出 TTS（Sherpa）模型
       --list-sapi   列出 SAPI（x64 会按需启动 x86host.exe Web 合并 32 位音）
+      --list-edge-tts  联网列出 Edge 自然语音
       --list-asr    列出 ASR（Sherpa）语音识别模型
       --list-face   列出人脸 ONNX（程序旁 facemodels）
       --asr         识别音频文件（wav/mp3/flac 等），输出文本
@@ -2204,6 +2255,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-chat
   ScreenKit --test-face-overlay
   ScreenKit --test-tts-sherpa vits-mimic3-ko_KO-kss_low
+  ScreenKit --test-edge-tts ko-KR-SunHiNeural
   ScreenKit --record-snap --region 100,100,800,600 -o log\record_snap
   ScreenKit --list-models
   ScreenKit --list-tts

@@ -5,15 +5,18 @@ using System.Windows.Threading;
 
 namespace ScreenKit;
 
-/// <summary>HTTP TTS：Sherpa + SAPI + Windows（WinRT）语音。</summary>
+/// <summary>HTTP TTS：Sherpa + SAPI + Windows（WinRT）+ Edge 在线语音。</summary>
 sealed partial class HttpOcrServer {
 	const int VoiceCacheMs = 30_000;
 	readonly object sapiGate = new();
 	readonly object winRtGate = new();
+	readonly object edgeGate = new();
 	SapiTts httpSapi;
 	WinRtTts httpWinRt;
+	EdgeOnlineTts httpEdge;
 	List<SapiVoiceItem> cachedSapiVoices;
 	List<SapiVoiceItem> cachedWinRtVoices;
+	List<SapiVoiceItem> cachedEdgeVoices;
 	int lastVoiceScan;
 
 	void handlettsmodels(HttpListenerContext ctx) {
@@ -62,7 +65,7 @@ sealed partial class HttpOcrServer {
 		var compute = parsecompute(jo["device"]?.GetValue<string>() ?? jo["compute"]?.GetValue<string>() ?? "auto");
 
 		if (!tryparseengine(engineRaw, out var kind)) {
-			writejson(ctx, 200, err(925, "未知 engine（sherpa / sapi / winrt）"));
+			writejson(ctx, 200, err(925, "未知 engine（sherpa / sapi / winrt / edge）"));
 			return;
 		}
 		if (kind == null)
@@ -87,6 +90,9 @@ sealed partial class HttpOcrServer {
 			else if (kind == TtsEngineKind.WinRt)
 				(samples, sr, provider, modelOut, voiceOut, sidOut, engOut) =
 					synthwinrt(text, voice, sid, speed, volume);
+			else if (kind == TtsEngineKind.Edge)
+				(samples, sr, provider, modelOut, voiceOut, sidOut, engOut) =
+					synthedge(text, voice, sid, speed, volume);
 			else
 				(samples, sr, provider, modelOut, voiceOut, sidOut, engOut) =
 					synthsherpa(text, modelName, sidVal, speed, compute);
@@ -155,6 +161,8 @@ sealed partial class HttpOcrServer {
 		refreshvoices();
 		addsysmodel(arr, "SAPI", "sapi", "Sapi", cachedSapiVoices);
 		addsysmodel(arr, "Windows", "winrt", "WinRt", cachedWinRtVoices);
+		cachedEdgeVoices ??= listedgevoices();
+		addsysmodel(arr, "Edge Online", "edge", "Edge", cachedEdgeVoices);
 		return arr;
 	}
 
@@ -291,6 +299,28 @@ sealed partial class HttpOcrServer {
 		return (samples, srOut, "WinRT", "Windows", pick.Key, list.IndexOf(pick), "winrt");
 	}
 
+	(float[] samples, int sr, string provider, string model, string voice, int sid, string engine)
+		synthedge(string text, string voice, int? sid, float speed, int volume) {
+		lock (edgeGate) {
+			var eng = ensureedge();
+			var list = eng.LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult().ToList();
+			cachedEdgeVoices = list;
+			var pick = pickvoice(list, voice, sid);
+			if (pick == null)
+				throw new InvalidOperationException("未找到 Edge 在线发音人: " + (voice ?? ""));
+			if (!eng.SelectVoice(pick.Key))
+				throw new InvalidOperationException("无法选择 Edge 在线发音人: " + pick.Name);
+			eng.SetRateVolume(speed, volume);
+			var parts = new List<(float[] s, int sr)>();
+			var segs = TtsTextSplitter.Split(text);
+			if (segs.Count == 0) segs.Add(new TtsSegment { Text = text });
+			foreach (var seg in segs)
+				parts.Add(eng.Synthesize(seg.Text).GetAwaiter().GetResult());
+			var (samples, sr) = concatsamples(parts);
+			return (samples, sr, "Edge Online", "Edge Online", pick.Key, list.IndexOf(pick), "edge");
+		}
+	}
+
 	TtsEngineKind inferengine(string modelName, string voice) {
 		var v = (voice ?? "").Trim();
 		if (v.StartsWith("sapi-x86:", StringComparison.OrdinalIgnoreCase)
@@ -298,6 +328,8 @@ sealed partial class HttpOcrServer {
 			return TtsEngineKind.Sapi;
 		if (v.StartsWith("winrt:", StringComparison.OrdinalIgnoreCase))
 			return TtsEngineKind.WinRt;
+		if (v.StartsWith("edge:", StringComparison.OrdinalIgnoreCase))
+			return TtsEngineKind.Edge;
 
 		var m = (modelName ?? "").Trim();
 		if (m.Equals("SAPI", StringComparison.OrdinalIgnoreCase)
@@ -307,6 +339,9 @@ sealed partial class HttpOcrServer {
 			|| m.Equals("WinRT", StringComparison.OrdinalIgnoreCase)
 			|| m.Equals("WinRt", StringComparison.OrdinalIgnoreCase))
 			return TtsEngineKind.WinRt;
+		if (m.Equals("Edge", StringComparison.OrdinalIgnoreCase)
+			|| m.Equals("Edge Online", StringComparison.OrdinalIgnoreCase))
+			return TtsEngineKind.Edge;
 
 		var sherpa = svc?.ScanTts?.Invoke();
 		if (!string.IsNullOrEmpty(m) && sherpa != null) {
@@ -339,6 +374,10 @@ sealed partial class HttpOcrServer {
 		}
 		if (s is "winrt" or "windows" or "onecore" or "win") {
 			kind = TtsEngineKind.WinRt;
+			return true;
+		}
+		if (s is "edge" or "edge-online" or "edge_tts") {
+			kind = TtsEngineKind.Edge;
 			return true;
 		}
 		return false;
@@ -429,6 +468,16 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
+	List<SapiVoiceItem> listedgevoices() {
+		try {
+			return ensureedge().LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult().ToList();
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("http tts edge enum", ex);
+			return new List<SapiVoiceItem>();
+		}
+	}
+
 	SapiTts ensuresapi() {
 		lock (sapiGate) {
 			httpSapi ??= new SapiTts();
@@ -440,6 +489,13 @@ sealed partial class HttpOcrServer {
 		lock (winRtGate) {
 			httpWinRt ??= new WinRtTts();
 			return httpWinRt;
+		}
+	}
+
+	EdgeOnlineTts ensureedge() {
+		lock (edgeGate) {
+			httpEdge ??= new EdgeOnlineTts();
+			return httpEdge;
 		}
 	}
 
@@ -466,8 +522,13 @@ sealed partial class HttpOcrServer {
 			try { httpWinRt?.Dispose(); } catch { }
 			httpWinRt = null;
 		}
+		lock (edgeGate) {
+			try { httpEdge?.Dispose(); } catch { }
+			httpEdge = null;
+		}
 		cachedSapiVoices = null;
 		cachedWinRtVoices = null;
+		cachedEdgeVoices = null;
 	}
 
 	static string sapigender(VoiceGender g) => g switch {

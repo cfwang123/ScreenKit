@@ -256,7 +256,7 @@ sealed partial class HttpOcrServer {
 		var compute = parsecompute(str(jo, "device") ?? str(jo, "compute") ?? "auto");
 
 		if (!tryparseengine(engineRaw, out var kind))
-			throw new InvalidOperationException("未知 engine（sherpa / sapi / winrt）");
+			throw new InvalidOperationException("未知 engine（sherpa / sapi / winrt / edge）");
 		if (kind == null)
 			kind = inferengine(modelName, voice);
 		if (kind == TtsEngineKind.Sherpa && svc?.TtsEngine == null)
@@ -266,6 +266,8 @@ sealed partial class HttpOcrServer {
 			return synthsapi(text, voice, sid, speed, volume);
 		if (kind == TtsEngineKind.WinRt)
 			return synthwinrt(text, voice, sid, speed, volume);
+		if (kind == TtsEngineKind.Edge)
+			return synthedge(text, voice, sid, speed, volume);
 		return synthsherpa(text, modelName, sidVal, speed, compute);
 	}
 

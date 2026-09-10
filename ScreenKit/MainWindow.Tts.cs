@@ -9,11 +9,13 @@ namespace ScreenKit;
 public partial class MainWindow {
 	SapiTts sapiTts;
 	WinRtTts winRtTts;
+	EdgeOnlineTts edgeTts;
 	TtsEngine sherpaTts;
 	TtsPlayer ttsPlayer;
 	List<TtsModelInfo> ttsModels = new();
 	/// <summary>x86 Web 枚举到的 SAPI 发音人缓存（按需刷新）。</summary>
 	List<SapiVoiceItem> sapiX86VoicesCache = new();
+	List<SapiVoiceItem> edgeVoicesCache = new();
 	bool ttsUiLoading;
 	CancellationTokenSource ttsSpeakCts;
 	bool ttsSession;
@@ -35,6 +37,7 @@ public partial class MainWindow {
 			CaptureLog.Ex("WinRtTts init", ex);
 			winRtTts = null;
 		}
+		edgeTts = new EdgeOnlineTts();
 		try { sherpaTts = new TtsEngine(); }
 		catch (Exception ex) {
 			CaptureLog.Ex("TtsEngine init", ex);
@@ -49,12 +52,13 @@ public partial class MainWindow {
 			Tag = TtsEngineKind.WinRt,
 			IsEnabled = winRtTts != null && winRtTts.Voices.Count > 0,
 		});
+		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.edge"), Tag = TtsEngineKind.Edge });
 		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.sherpa"), Tag = TtsEngineKind.Sherpa });
 		// 默认：有 WinRT 越南语等现代语音时优先 WinRT，否则 Sherpa，再 SAPI
 		if (winRtTts != null && winRtTts.Voices.Count > 0)
 			ettsengine.SelectedIndex = 1;
 		else if (sherpaTts != null)
-			ettsengine.SelectedIndex = 2;
+			ettsengine.SelectedIndex = 3;
 		else
 			ettsengine.SelectedIndex = 0;
 
@@ -148,6 +152,14 @@ public partial class MainWindow {
 				}
 				catch (Exception ex) { lbttsstatus.Text = "选语音失败: " + ex.Message; }
 			}
+			else if (eng == TtsEngineKind.Edge
+				&& ettsvoice.SelectedItem is SapiVoiceItem ei) {
+				try {
+					edgeTts?.SelectVoice(ei.Key);
+					lbttsstatus.Text = "Edge 在线 · " + ei.DisplayName;
+				}
+				catch (Exception ex) { lbttsstatus.Text = "选语音失败: " + ex.Message; }
+			}
 			savettsprefs();
 		};
 		ettskbps.SelectionChanged += (_, _) => {
@@ -165,6 +177,8 @@ public partial class MainWindow {
 			rebuildttslangcombo(preserve: true);
 			applyttsengineui();
 			restorettsmodelandvoice();
+			if (currentttsengine() == TtsEngineKind.Edge)
+				_ = loadedgevoicesasync(force: true);
 		};
 		scanttssmodels();
 		// 扫描完 Sherpa 后再并入模型语言
@@ -182,6 +196,9 @@ public partial class MainWindow {
 				|| engName.Equals("Windows", StringComparison.OrdinalIgnoreCase)
 				|| engName.Equals("OneCore", StringComparison.OrdinalIgnoreCase)
 				? TtsEngineKind.WinRt
+				: engName.Equals("Edge", StringComparison.OrdinalIgnoreCase)
+					|| engName.Equals("EdgeOnline", StringComparison.OrdinalIgnoreCase)
+					? TtsEngineKind.Edge
 				: engName.Equals("Sapi", StringComparison.OrdinalIgnoreCase)
 					? TtsEngineKind.Sapi
 					: TtsEngineKind.Sherpa;
@@ -262,6 +279,10 @@ public partial class MainWindow {
 			}
 		}
 		catch { }
+		foreach (var v in edgeVoicesCache ?? Enumerable.Empty<SapiVoiceItem>()) {
+			var lg = TtsLang.Normalize(v.Lang);
+			if (!string.IsNullOrEmpty(lg)) set.Add(lg);
+		}
 		try {
 			foreach (var m in ttsModels ?? Enumerable.Empty<TtsModelInfo>()) {
 				foreach (var p in (m.Lang ?? "").Split(new[] { ',', '/', '|', '+' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -325,7 +346,7 @@ public partial class MainWindow {
 				}
 				if (found != null)
 					ettsmodel.SelectedItem = found;
-				// 仅 Sherpa 填模型发音人；SAPI/WinRT 已在 applyttsengineui 填好，勿再 fillttsspeakers 清空
+				// 仅 Sherpa 填模型发音人；其它引擎已在 applyttsengineui 填好，勿再清空
 				fillttsspeakers();
 			}
 			else if (eng == TtsEngineKind.Sapi) {
@@ -336,6 +357,10 @@ public partial class MainWindow {
 			else if (eng == TtsEngineKind.WinRt) {
 				if (ettsvoice.Items.Count == 0)
 					fillwinrtvoices();
+			}
+			else if (eng == TtsEngineKind.Edge) {
+				if (ettsvoice.Items.Count == 0)
+					filledgevoices();
 			}
 			restorettsvoice();
 		}
@@ -348,7 +373,7 @@ public partial class MainWindow {
 		if (string.IsNullOrEmpty(opt.TtsVoice)) return;
 		var want = opt.TtsVoice;
 		var eng = currentttsengine();
-		if (eng is TtsEngineKind.Sapi or TtsEngineKind.WinRt) {
+		if (eng is TtsEngineKind.Sapi or TtsEngineKind.WinRt or TtsEngineKind.Edge) {
 			foreach (var item in ettsvoice.Items) {
 				if (item is SapiVoiceItem wi
 					&& (string.Equals(wi.Key, want, StringComparison.OrdinalIgnoreCase)
@@ -379,6 +404,7 @@ public partial class MainWindow {
 			opt.TtsEngine = currentttsengine() switch {
 				TtsEngineKind.Sapi => "Sapi",
 				TtsEngineKind.WinRt => "WinRt",
+				TtsEngineKind.Edge => "Edge",
 				_ => "Sherpa",
 			};
 			if (ettscompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode cm)
@@ -488,6 +514,10 @@ public partial class MainWindow {
 			fillwinrtvoices();
 			return;
 		}
+		if (eng == TtsEngineKind.Edge) {
+			filledgevoices();
+			return;
+		}
 		var prev = ettsmodel.SelectedItem as TtsModelInfo;
 		ttsUiLoading = true;
 		try {
@@ -548,6 +578,14 @@ public partial class MainWindow {
 				? "WinRT 语音不可用（需 Windows 10+ 并安装语言语音包）"
 				: $"WinRT · {ettsvoice.Items.Count}/{winRtTts.Voices.Count} 个语音（OneCore/神经）";
 		}
+		else if (eng2 == TtsEngineKind.Edge) {
+			filledgevoices();
+			lbttsstatus.Text = edgeVoicesCache.Count == 0
+				? "Edge 在线 · 正在获取发音人…"
+				: $"Edge 在线 · {ettsvoice.Items.Count}/{edgeVoicesCache.Count} 个自然语音";
+			if (edgeVoicesCache.Count == 0)
+				_ = loadedgevoicesasync();
+		}
 		else {
 			// 先填本机 x64，再异步合并 x86 Web（按需启动）
 			fillsapivoices();
@@ -557,6 +595,59 @@ public partial class MainWindow {
 				: $"SAPI · {n} 个语音" + (SapiX86Client.ExeAvailable ? " · 正在拉取 x86…" : "");
 			if (SapiX86Client.ExeAvailable)
 				_ = mergesapix86async();
+		}
+	}
+
+	async Task loadedgevoicesasync(bool force = false) {
+		string error = null;
+		try {
+			var voices = await edgeTts.LoadVoicesAsync(CancellationToken.None, force).ConfigureAwait(true);
+			edgeVoicesCache = voices.ToList();
+		}
+		catch (Exception ex) {
+			error = ex.Message;
+			CaptureLog.Ex("Edge TTS voices", ex);
+		}
+		rebuildttslangcombo(preserve: true);
+		if (currentttsengine() != TtsEngineKind.Edge) return;
+		selectcombobytag(ettslang, TtsLang.Normalize(opt.TtsLangFilter));
+		filledgevoices();
+		restorettsvoice();
+		lbttsstatus.Text = string.IsNullOrEmpty(error)
+			? $"Edge 在线 · {ettsvoice.Items.Count}/{edgeVoicesCache.Count} 个自然语音"
+			: "Edge 在线语音目录失败: " + error;
+	}
+
+	void filledgevoices() {
+		ttsUiLoading = true;
+		try {
+			var previous = ettsvoice.SelectedItem is SapiVoiceItem old ? old.Key : opt.TtsVoice;
+			ettsvoice.Items.Clear();
+			ettsvoice.DisplayMemberPath = "DisplayName";
+			ttsfilterwant(out var wantLang, out var wantGender);
+			foreach (var v in edgeVoicesCache) {
+				if (!winrtvoicematches(v, wantLang, wantGender)) continue;
+				ettsvoice.Items.Add(v);
+			}
+			SapiVoiceItem pick = null;
+			foreach (SapiVoiceItem item in ettsvoice.Items) {
+				if (string.Equals(item.Key, previous, StringComparison.OrdinalIgnoreCase)) {
+					pick = item;
+					break;
+				}
+			}
+			if (pick == null) {
+				foreach (SapiVoiceItem item in ettsvoice.Items) {
+					if (item.Lang == TtsLang.Zh) { pick = item; break; }
+				}
+			}
+			if (pick == null && ettsvoice.Items.Count > 0)
+				pick = ettsvoice.Items[0] as SapiVoiceItem;
+			ettsvoice.SelectedItem = pick;
+			if (pick != null) edgeTts.SelectVoice(pick.Key);
+		}
+		finally {
+			ttsUiLoading = false;
 		}
 	}
 
@@ -770,6 +861,7 @@ public partial class MainWindow {
 		string sapiVoice = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source != "sapi-x86"
 			? sapiItem.Name : null;
 		string winRtKey = eng == TtsEngineKind.WinRt && sapiItem != null ? sapiItem.Key : null;
+		string edgeKey = eng == TtsEngineKind.Edge && sapiItem != null ? sapiItem.Key : null;
 		var rateUi = ettsrate.Value;
 		var volUi = (int)ettsvol.Value;
 		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
@@ -805,6 +897,11 @@ public partial class MainWindow {
 			if (!string.IsNullOrEmpty(winRtKey)) winRtTts.SelectVoice(winRtKey);
 			winRtTts.SetRateVolume(rateUi, volUi);
 		}
+		else if (eng == TtsEngineKind.Edge) {
+			if (edgeTts == null) throw new InvalidOperationException("Edge 在线语音不可用");
+			if (!edgeTts.SelectVoice(edgeKey)) throw new InvalidOperationException("请选择 Edge 在线发音人");
+			edgeTts.SetRateVolume(rateUi, volUi);
+		}
 		else {
 			if (sherpaTts == null) throw new InvalidOperationException("Sherpa 不可用");
 			await Task.Run(() => {
@@ -819,6 +916,9 @@ public partial class MainWindow {
 			var sr = 22050;
 			if (eng == TtsEngineKind.WinRt) {
 				(samples, sr) = await winRtTts.Synthesize(seg.Text).ConfigureAwait(true);
+			}
+			else if (eng == TtsEngineKind.Edge) {
+				(samples, sr) = await edgeTts.Synthesize(seg.Text, ct).ConfigureAwait(true);
 			}
 			else {
 				await Task.Run(() => {
@@ -977,6 +1077,7 @@ public partial class MainWindow {
 		string sapiVoice = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source != "sapi-x86"
 			? sapiItem.Name : null;
 		string winRtKey = eng == TtsEngineKind.WinRt && sapiItem != null ? sapiItem.Key : null;
+		string edgeKey = eng == TtsEngineKind.Edge && sapiItem != null ? sapiItem.Key : null;
 		var rateUi = ettsrate.Value;
 		var volUi = (int)ettsvol.Value;
 		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
@@ -1011,6 +1112,11 @@ public partial class MainWindow {
 					winRtTts.SelectVoice(winRtKey);
 				winRtTts.SetRateVolume(rateUi, volUi);
 			}
+			else if (eng == TtsEngineKind.Edge) {
+				if (edgeTts == null) { lbttsstatus.Text = "Edge 在线语音不可用"; return; }
+				if (!edgeTts.SelectVoice(edgeKey)) { lbttsstatus.Text = "请选择 Edge 在线发音人"; return; }
+				edgeTts.SetRateVolume(rateUi, volUi);
+			}
 			else {
 				if (sherpaTts == null) { lbttsstatus.Text = "Sherpa 引擎不可用"; return; }
 				if (model == null) { lbttsstatus.Text = "请选择模型"; return; }
@@ -1039,6 +1145,7 @@ public partial class MainWindow {
 						? $"SAPI x86 合成 {si + 1}/{segments.Count}…"
 						: $"SAPI 合成 {si + 1}/{segments.Count}…",
 					TtsEngineKind.WinRt => $"WinRT 合成 {si + 1}/{segments.Count}…",
+					TtsEngineKind.Edge => $"Edge 在线合成 {si + 1}/{segments.Count}…",
 					_ => $"Sherpa 合成 {si + 1}/{segments.Count}…",
 				};
 				updatettsctrlui();
@@ -1048,6 +1155,9 @@ public partial class MainWindow {
 				var tSyn = Environment.TickCount;
 				if (eng == TtsEngineKind.WinRt) {
 					(samples, sr) = await winRtTts.Synthesize(seg.Text).ConfigureAwait(true);
+				}
+				else if (eng == TtsEngineKind.Edge) {
+					(samples, sr) = await edgeTts.Synthesize(seg.Text, ct).ConfigureAwait(true);
 				}
 				else {
 					await Task.Run(() => {
@@ -1092,6 +1202,7 @@ public partial class MainWindow {
 				TtsEngineKind.Sapi => (useX86Sapi ? "SAPI x86" : "SAPI")
 					+ $" 完成 · {parts.Count} 段 · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}",
 				TtsEngineKind.WinRt => $"WinRT 完成 · {parts.Count} 段 · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}",
+				TtsEngineKind.Edge => $"Edge 在线完成 · {parts.Count} 段 · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}",
 				_ => $"Sherpa 完成 · {parts.Count} 段 · {provider} · 加载 {formatms(loadMs)} · 合成 {formatms(synthMs)} · 合计 {formatms(totalMs)}{tip}",
 			};
 			lbttsstatus.Text = doneText;
@@ -1183,6 +1294,7 @@ public partial class MainWindow {
 		string sapiVoice = eng == TtsEngineKind.Sapi && sapiItem != null && sapiItem.Source != "sapi-x86"
 			? sapiItem.Name : null;
 		string winRtKey = eng == TtsEngineKind.WinRt && sapiItem != null ? sapiItem.Key : null;
+		string edgeKey = eng == TtsEngineKind.Edge && sapiItem != null ? sapiItem.Key : null;
 		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
 		var model = ettsmodel.SelectedItem as TtsModelInfo;
 		var sid = ettsvoice.SelectedItem is TtsSpeakerInfo sp ? sp.Id : 0;
@@ -1271,6 +1383,25 @@ public partial class MainWindow {
 						throwif();
 						progDlg.Report("synth", i, segs.Count, doneChars, totalChars);
 						var (samples, srate) = await winRtTts.Synthesize(segs[i].Text).ConfigureAwait(false);
+						throwif();
+						sr = srate;
+						if (samples != null && samples.Length > 0)
+							parts.Add(samples);
+						doneChars += segs[i].Text?.Length ?? 0;
+						progDlg.Report("synth", i + 1, segs.Count, doneChars, totalChars);
+					}
+					synthMs = Math.Max(0, Environment.TickCount - tSynAll);
+				}
+				else if (eng == TtsEngineKind.Edge) {
+					if (edgeTts == null) throw new InvalidOperationException("Edge 在线语音不可用");
+					if (!edgeTts.SelectVoice(edgeKey))
+						throw new InvalidOperationException("请选择 Edge 在线发音人");
+					edgeTts.SetRateVolume(rateUi, volUi);
+					var tSynAll = Environment.TickCount;
+					for (var i = 0; i < segs.Count; i++) {
+						throwif();
+						progDlg.Report("synth", i, segs.Count, doneChars, totalChars);
+						var (samples, srate) = await edgeTts.Synthesize(segs[i].Text, ct).ConfigureAwait(false);
 						throwif();
 						sr = srate;
 						if (samples != null && samples.Length > 0)
@@ -1412,6 +1543,7 @@ public partial class MainWindow {
 				it.Content = k switch {
 					TtsEngineKind.Sapi => Loc.T("tts.engine.sapi"),
 					TtsEngineKind.WinRt => Loc.T("tts.engine.winrt"),
+					TtsEngineKind.Edge => Loc.T("tts.engine.edge"),
 					_ => Loc.T("tts.engine.sherpa"),
 				};
 		}
@@ -1433,6 +1565,7 @@ public partial class MainWindow {
 		try { ttsstop(); } catch { }
 		try { sapiTts?.Dispose(); } catch { }
 		try { winRtTts?.Dispose(); } catch { }
+		try { edgeTts?.Dispose(); } catch { }
 		try { sherpaTts?.Dispose(); } catch { }
 		try { ttsPlayer?.Dispose(); } catch { }
 	}

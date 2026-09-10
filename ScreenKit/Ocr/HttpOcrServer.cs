@@ -309,6 +309,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				["tts_engine"] = svc?.TtsEngine != null,
 				["tts_sapi"] = ttssapiavailable(),
 				["tts_winrt"] = ttswinrtavailable(),
+				["tts_edge"] = true,
 				["asr_models"] = asrN,
 				["tts_models"] = ttsN,
 				["face_ready"] = FaceModels.IsReady(),

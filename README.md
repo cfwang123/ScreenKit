@@ -22,7 +22,7 @@ Current version: **1.0.5**
 | **Clipboard** | Paste image and run OCR; Edit menu: copy image / file / path; copy text via Ctrl+C or the result-panel button; menu/tray can switch on-capture copy mode (image / file / path) |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
-| **ASR / TTS** | Offline speech recognition (sherpa-onnx) and TTS (Sherpa + SAPI / WinRT system voices); install voices in-app |
+| **ASR / TTS** | Offline speech recognition plus Sherpa/SAPI/WinRT offline TTS and Edge online natural voices |
 | **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, Clear; `[[llm]]` pick. **Tools** agent; **Mic** / **Auto speak**; bottom timing log (`llm`/`asr`/`tts` ms) |
 | **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`); pick the engine on the Translate tab; floating translate popup (`Ctrl+Alt+T`) |
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
@@ -131,6 +131,8 @@ Runs Release build, then packs `ScreenKit/bin/Release/ScreenKit/` (folder includ
 | **ffmpeg64** | Screen record encode/mux | ~72 MB |
 
 Download prefers CN mirrors when UI or system locale is Chinese.
+
+The **Edge online** TTS engine provides 300+ Microsoft natural voices, including Korean, without installing a model or entering an API key. It requires Internet access; voice listing and synthesis are sent to Microsoft's Edge Read Aloud service. This is not the paid Azure Speech API and uses an unofficial Edge endpoint, so availability can change. The configured HTTP proxy is honored.
 
 Optional env vars for local full libraries (do not commit secrets/paths into docs meant for others):
 
@@ -289,7 +291,9 @@ ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
 ScreenKit --test-tts-sherpa <model> # load and synthesize with a Sherpa voice (`-d auto|gpu|cpu`)
-ScreenKit --test-http-tts           # HTTP /api/tts SAPI + Windows WAV
+ScreenKit --list-edge-tts           # list Edge online natural voices
+ScreenKit --test-edge-tts ko-KR-SunHiNeural
+ScreenKit --test-http-tts           # HTTP /api/tts SAPI + Windows + Edge WAV
 ScreenKit --test-llm-chat           # LLM chat history trim (offline)
 ScreenKit --test-llm-agent          # agent sandbox / parse / files+script (offline)
 ScreenKit --probe-cuda
@@ -327,7 +331,7 @@ When enabled, a local server listens on `http_host:http_port` (default loopback 
 - `POST /api/qr` — barcode / QR only (`/api/barcode`; JSON base64/path or multipart)
 - `GET  /api/ocr/get_options` — OCR options snapshot
 - `GET  /api/asr/models` · `POST /api/asr` — speech recognition
-- `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64): Sherpa, SAPI, or Windows (`engine=winrt`) voices
+- `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64): Sherpa, SAPI, Windows (`engine=winrt`), or Edge online (`engine=edge`) voices
 - `POST /api/itn` — inverse text normalization
 - `POST /api/translate` — LLM batch translate (`items[]`; needs configured LLM)
 - `GET  /api/face/models` · `POST /api/face` — face detect / compare

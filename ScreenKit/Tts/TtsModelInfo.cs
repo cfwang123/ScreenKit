@@ -208,4 +208,6 @@ enum TtsEngineKind {
 	WinRt = 2,
 	/// <summary>Sherpa-ONNX 离线模型。</summary>
 	Sherpa = 1,
+	/// <summary>Microsoft Edge 在线自然语音。</summary>
+	Edge = 3,
 }

@@ -143,7 +143,7 @@ public sealed class OcrOptions {
 	public bool WinMax;
 
 	// ─── TTS 上次参数（config.toml [tts]） ───
-	/// <summary>Sapi / Sherpa。</summary>
+	/// <summary>Sapi / WinRt / Edge / Sherpa。</summary>
 	public string TtsEngine = "Sherpa";
 	/// <summary>Auto / Gpu / Cpu / Igpu。</summary>
 	public string TtsCompute = "Auto";
@@ -151,7 +151,7 @@ public sealed class OcrOptions {
 	public string TtsModel = "";
 	/// <summary>发音人 Name 或 SAPI Voice.Name。</summary>
 	public string TtsVoice = "";
-	/// <summary>筛选：zh / en / 空=全部。</summary>
+	/// <summary>筛选：语言码（zh / en / ko / vi 等），空=全部。</summary>
 	public string TtsLangFilter = "";
 	/// <summary>筛选：male / female / 空=全部。</summary>
 	public string TtsGenderFilter = "";

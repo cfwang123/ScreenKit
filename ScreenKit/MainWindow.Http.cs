@@ -65,6 +65,10 @@ public partial class MainWindow {
 			Body = "{\n  \"text\": \"你好\",\n  \"engine\": \"winrt\"\n}",
 		});
 		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/tts (Edge Online)", Method = "POST", Path = "/api/tts",
+			Body = "{\n  \"text\": \"안녕하세요\",\n  \"engine\": \"edge\",\n  \"voice\": \"edge:ko-KR-SunHiNeural\"\n}",
+		});
+		ehttptpl.Items.Add(new HttpTpl {
 			Title = "POST /api/itn", Method = "POST", Path = "/api/itn",
 			Body = "{\n  \"text\": \"二零二四年一月一日\"\n}",
 		});

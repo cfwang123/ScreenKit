@@ -155,6 +155,7 @@ http_port = 1224
 | `tts_engine` | bool | TTS（Sherpa）引擎是否注入 |
 | `tts_sapi` | bool | 本机 SAPI 发音人是否可用 |
 | `tts_winrt` | bool | Windows（WinRT / OneCore）语音是否可用 |
+| `tts_edge` | bool | Edge 在线自然语音功能是否已内置（实际合成仍取决于网络） |
 | `asr_models` | int | 扫描到的 ASR 模型数量 |
 | `tts_models` | int | 扫描到的 Sherpa TTS 模型数量 |
 | `face_ready` | bool | `facemodels` 是否已有检测+识别模型 |
@@ -440,7 +441,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 ## 8. TTS（语音合成）
 
-三种引擎：**Sherpa**（`ttsmodels` 下 ONNX 包）、**SAPI**（经典 `System.Speech`，含经 `x86host.exe` 的 32 位音）、**Windows**（`engine=winrt`，WinRT / OneCore 神经语音）。省略 `engine` 时：有 Sherpa 模型则走旧路径；否则依次回落 Windows、SAPI。
+四种引擎：**Sherpa**（`ttsmodels` 下 ONNX 包）、**SAPI**（经典 `System.Speech`，含经 `x86host.exe` 的 32 位音）、**Windows**（`engine=winrt`，WinRT / OneCore 神经语音）、**Edge 在线**（`engine=edge`，无需模型/API Key但必须联网）。省略 `engine` 时：有 Sherpa 模型则走旧路径；否则依次回落 Windows、SAPI。
 
 ### 8.1 GET `/api/tts/models`
 
@@ -471,25 +472,33 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
       "speakers": [
         { "id": 0, "name": "{voice-id}", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
       ]
+    },
+    {
+      "name": "Edge Online",
+      "engine": "edge",
+      "type": "Edge",
+      "speakers": [
+        { "id": 0, "name": "ko-KR-SunHiNeural", "lang": "ko", "gender": "female", "key": "edge:ko-KR-SunHiNeural" }
+      ]
     }
   ],
-  "count": 3
+  "count": 4
 }
 ```
 
-Sherpa 每个模型最多列出 64 个 speaker。SAPI / Windows 列出全部已装发音人。仅 x86 可见的 SAPI 音 `key` 前缀为 `sapi-x86:`。
+Sherpa 每个模型最多列出 64 个 speaker。SAPI / Windows 列出全部已装发音人，Edge 在线目录从 Microsoft 获取。仅 x86 可见的 SAPI 音 `key` 前缀为 `sapi-x86:`。
 
 ### 8.2 POST `/api/tts`
 
 | 字段 | 必填 | 说明 |
 |------|------|------|
 | `text` | 是 | 待合成文本，最长 20000 字 |
-| `engine` | 否 | `sherpa` / `sapi` / `winrt`（别名 `windows`、`sapi5`）。空则从 `model`/`voice` 推断，有 Sherpa 则仍走 Sherpa |
-| `model` | 否 | Sherpa 显示名，或 `SAPI` / `Windows` |
-| `voice` / `speaker` | 否 | SAPI/Windows 发音人名或 `key`（`sapi:…` / `sapi-x86:…` / `winrt:…`） |
+| `engine` | 否 | `sherpa` / `sapi` / `winrt` / `edge`（另有别名）。空则从 `model`/`voice` 推断，有 Sherpa 则仍走 Sherpa |
+| `model` | 否 | Sherpa 显示名，或 `SAPI` / `Windows` / `Edge Online` |
+| `voice` / `speaker` | 否 | 系统/在线发音人名或 `key`（`sapi:…` / `sapi-x86:…` / `winrt:…` / `edge:…`） |
 | `speaker_id` / `sid` | 否 | 发音人序号（Sherpa 的 sid，或该引擎列表下标），默认 0 |
 | `speed` | 否 | 语速 0.5～2.0，默认 1.0 |
-| `volume` | 否 | 0～100，默认 100（SAPI / Windows；Sherpa 忽略） |
+| `volume` | 否 | 0～100，默认 100（SAPI / Windows / Edge；Sherpa 忽略） |
 | `device` / `compute` | 否 | 仅 Sherpa：`auto` / `gpu` / `cpu` / `igpu` |
 
 **成功响应：**
@@ -513,7 +522,7 @@ Sherpa 每个模型最多列出 64 个 speaker。SAPI / Windows 列出全部已�
 }
 ```
 
-`provider` 为 Sherpa 的 EP（`CPU` / CUDA 等），或 `SAPI` / `SAPI x86` / `WinRT`。解码 `wav_base64` 即为标准 WAV 文件字节。
+`provider` 为 Sherpa 的 EP（`CPU` / CUDA 等），或 `SAPI` / `SAPI x86` / `WinRT` / `Edge Online`。解码 `wav_base64` 即为标准 WAV 文件字节。
 
 ```python
 import base64, json, urllib.request
@@ -528,7 +537,7 @@ data = json.loads(urllib.request.urlopen(req).read().decode("utf-8"))
 open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 ```
 
-命令行：`ScreenKit --test-http-tts` 在本机环回拉起服务，校验 SAPI / Windows 的 WAV。
+命令行：`ScreenKit --test-http-tts` 在本机环回拉起服务，校验 SAPI / Windows / Edge 的 WAV。
 
 ---
 

@@ -10,6 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
+- **Edge online natural voices** in the Speech Synthesis tab: 300+ voices including Korean, live language/gender filtering, playback, MP3 export, and chat auto-speak. No model or API key is required; Internet access is required and the configured HTTP proxy is honored. CLI: `--list-edge-tts`, `--test-edge-tts [voice]`.
 - Main-window **LLM chat** tab: WeChat-style bubbles, a single in-memory thread, Clear. Uses `chat_llm` / `chat_llm_prompt` (empty LLM pick falls back to the polish endpoint). No ASR/TTS. CLI: `ScreenKit --test-llm-chat`.
 - LLM chat **Tools** (agent): optional web search / fetch, read-write under app `tmp/llm/`, run `.py`/`.ps1`/`.bat`/`.cmd` there. Text `<tool_call>` protocol; `chat_agent` in config (default on). CLI: `ScreenKit --test-llm-agent`.
 - Agent weather: `web_search` with「城市+天气」uses wttr.in; if the model refuses without tools, one forced nudge retry.
@@ -17,7 +18,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - LLM chat: **Mic** voice input (no focus inject), **Speak** / **Auto speak** TTS using the Speech Synthesis tab voice; `chat_auto_tts` in config (default on).
 - LLM chat timing log panel: per-round `llm` / `asr` / `tts` / `total` ms.
 - HTTP `POST /api/chat`: text or audio user message, text reply; TTS/`wav_base64` only when request `tts=true`. Status `llm_chat`. CLI: `ScreenKit --test-http-chat`.
-- HTTP `POST /api/tts` / `GET /api/tts/models`: **SAPI** and **Windows** (WinRT / OneCore) voices in addition to Sherpa. Request `engine` is `sherpa` / `sapi` / `winrt` (alias `windows`); `voice` accepts `sapi:…` / `sapi-x86:…` / `winrt:…`. Status adds `tts_sapi` / `tts_winrt`. CLI: `ScreenKit --test-http-tts`.
+- HTTP `POST /api/tts` / `GET /api/tts/models`: **SAPI**, **Windows** (WinRT / OneCore), and **Edge online** voices in addition to Sherpa. Request `engine` also accepts `edge`; `voice` accepts `edge:…`. Status adds `tts_sapi` / `tts_winrt` / `tts_edge`. CLI: `ScreenKit --test-http-tts`.
 - Screen record / GIF record options **Record mouse** and **Highlight mouse clicks** (`record_mouse` / `record_click_highlight`, `gif_mouse` / `gif_click_highlight`). GDI capture has no pointer; the overlay draws the system cursor and a short yellow / blue / green ripple for left / right / middle clicks. CLI: `ScreenKit --test-record-cursor`.
 
 #### Changed
@@ -34,6 +35,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
+- 语音合成 Tab 增加 **Edge 在线自然语音**：300 多个发音人（含韩语），支持实时语言/性别筛选、朗读、MP3 导出及对话自动朗读；无需模型或 API Key，但必须联网，并沿用 HTTP 代理设置。CLI：`--list-edge-tts`、`--test-edge-tts [发音人]`。
 - 主界面 **LLM对话** Tab：微信式气泡、进程内单一会话、可清空。配置 `chat_llm` / `chat_llm_prompt`（未选接口则用润色 LLM）。本版不接 ASR/TTS。CLI：`ScreenKit --test-llm-chat`。
 - LLM对话 **工具**（简单 Agent）：可选网页搜索/抓取、读写程序目录 `tmp/llm/`、运行其中的 `.py`/`.ps1`/`.bat`/`.cmd`。文本 `<tool_call>` 协议；配置 `chat_agent`（默认开）。CLI：`ScreenKit --test-llm-agent`。
 - Agent 天气：`web_search` 对「城市+天气」走 wttr.in；模型空谈「无法获取」时强制再要一轮 tool_call。
@@ -41,7 +43,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - LLM对话：**语音**输入（不注入其它窗口）、**朗读** / **自动朗读**（用语音合成 Tab 当前发音人）；配置 `chat_auto_tts`（默认开）。
 - LLM对话增加**用时日志**栏：每轮记录 `llm` / `asr` / `tts` / `total` 毫秒。
 - HTTP `POST /api/chat`：文本或语音用户消息、文本回复；**仅**请求 `tts=true` 时返回 `wav_base64`。状态字段 `llm_chat`。CLI：`ScreenKit --test-http-chat`。
-- HTTP `POST /api/tts` / `GET /api/tts/models`：在 Sherpa 之外支持 **SAPI** 与 **Windows**（WinRT / OneCore）语音。请求 `engine` 为 `sherpa` / `sapi` / `winrt`（别名 `windows`）；`voice` 可用 `sapi:…` / `sapi-x86:…` / `winrt:…`。`/api/status` 增加 `tts_sapi` / `tts_winrt`。CLI：`ScreenKit --test-http-tts`。
+- HTTP `POST /api/tts` / `GET /api/tts/models`：在 Sherpa 之外支持 **SAPI**、**Windows**（WinRT / OneCore）与 **Edge 在线**语音。请求 `engine` 新增 `edge`，`voice` 可用 `edge:…`；`/api/status` 增加 `tts_sapi` / `tts_winrt` / `tts_edge`。CLI：`ScreenKit --test-http-tts`。
 - 录屏 / GIF 录屏选项 **录制鼠标**、**高亮鼠标点击**（`record_mouse` / `record_click_highlight`，`gif_mouse` / `gif_click_highlight`）。GDI 抓屏不含指针，叠加系统光标，并在左/右/中键处画短暂黄/蓝/绿散开圈。CLI：`ScreenKit --test-record-cursor`。
 
 #### 变更
