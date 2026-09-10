@@ -4,21 +4,17 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
-## unreleased
+## v1.0.6 (2026-09-10)
 
 ### English
 
 #### Added
 
-- **Edge online natural voices** in the Speech Synthesis tab: 300+ voices including Korean, live language/gender filtering, playback, MP3 export, and chat auto-speak. No model or API key is required; Internet access is required and the configured HTTP proxy is honored. CLI: `--list-edge-tts`, `--test-edge-tts [voice]`.
-- Main-window **LLM chat** tab: WeChat-style bubbles, a single in-memory thread, Clear. Uses `chat_llm` / `chat_llm_prompt` (empty LLM pick falls back to the polish endpoint). No ASR/TTS. CLI: `ScreenKit --test-llm-chat`.
-- LLM chat **Tools** (agent): optional web search / fetch, read-write under app `tmp/llm/`, run `.py`/`.ps1`/`.bat`/`.cmd` there. Text `<tool_call>` protocol; `chat_agent` in config (default on). CLI: `ScreenKit --test-llm-agent`.
-- Agent weather: `web_search` with「城市+天气」uses wttr.in; if the model refuses without tools, one forced nudge retry.
-- LLM requests to `opencode.ai` (Go/Zen, e.g. `mimo-v2.5`) send `x-opencode-session` / `x-opencode-client` so Go no longer returns `MissingSessionID`.
-- LLM chat: **Mic** voice input (no focus inject), **Speak** / **Auto speak** TTS using the Speech Synthesis tab voice; `chat_auto_tts` in config (default on).
-- LLM chat timing log panel: per-round `llm` / `asr` / `tts` / `total` ms.
-- HTTP `POST /api/chat`: text or audio user message, text reply; TTS/`wav_base64` only when request `tts=true`. Status `llm_chat`. CLI: `ScreenKit --test-http-chat`.
-- HTTP `POST /api/tts` / `GET /api/tts/models`: **SAPI**, **Windows** (WinRT / OneCore), and **Edge online** voices in addition to Sherpa. Request `engine` also accepts `edge`; `voice` accepts `edge:…`. Status adds `tts_sapi` / `tts_winrt` / `tts_edge`. CLI: `ScreenKit --test-http-tts`.
+- Main-window **LLM chat** tab: WeChat-style bubbles, one in-memory conversation, Clear, per-round timing, microphone input, Speak / Auto speak, and optional tools for web access plus sandboxed files/scripts under `tmp/llm/`. Configuration: `chat_llm`, `chat_llm_prompt`, `chat_agent`, `chat_auto_tts`. CLI: `--test-llm-chat`, `--test-llm-agent`.
+- Agent weather lookup through wttr.in and a forced tool-call retry when the model refuses a weather request without using tools.
+- HTTP `POST /api/chat`: text or audio input and text reply; optional TTS/WAV when `tts=true`. Status adds `llm_chat`; CLI: `--test-http-chat`.
+- Speech Synthesis adds **Edge online natural voices**: 300+ voices including Korean, language/gender filtering, playback, MP3 export, and chat auto-speak. No model/API key is needed; Internet access is required and the configured proxy is honored. CLI: `--list-edge-tts`, `--test-edge-tts [voice]`.
+- HTTP TTS adds **SAPI**, **Windows** (WinRT / OneCore), and **Edge online** alongside Sherpa. `engine` accepts `sapi`, `winrt`, or `edge`; `/api/status` adds `tts_sapi`, `tts_winrt`, and `tts_edge`. CLI: `--test-http-tts`.
 - Screen record / GIF record options **Record mouse** and **Highlight mouse clicks** (`record_mouse` / `record_click_highlight`, `gif_mouse` / `gif_click_highlight`). GDI capture has no pointer; the overlay draws the system cursor and a short yellow / blue / green ripple for left / right / middle clicks. CLI: `ScreenKit --test-record-cursor`.
 
 #### Changed
@@ -27,6 +23,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Fixed
 
+- LLM requests to `opencode.ai` now send `x-opencode-session` / `x-opencode-client`, preventing `MissingSessionID` for Go/Zen models.
 - TTS voice installation no longer relies on Windows `tar.exe` invoking an external `bzip2`; `.tar.bz2` model packages are now extracted in-process, including when `ttsmodels` is a junction.
 - Korean and other non-Chinese/English VITS voices are inferred from model-directory language tokens. Mimic3/Piper voices now receive their bundled/shared `espeak-ng-data` path; Mimic3 is forced to CPU because ONNX Runtime CUDA can terminate the process with an access violation. CLI regression test: `ScreenKit --test-tts-sherpa <model>`.
 - Copy-as-path after a same-process delayed-render bitmap no longer goes through `Clipboard.SetText` / `OleSetClipboard` (that still flushed the old image first and froze the UI for seconds). Path text uses Win32 `EmptyClipboard` + `CF_UNICODETEXT` only. Screenshot encode runs after the overlay closes, on a background thread. `capture_log` records prep/encode/clip timings (`SLOW` if ≥500ms). CLI: `ScreenKit --test-clipboard-path` (includes 4K timing).
@@ -35,15 +32,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- 语音合成 Tab 增加 **Edge 在线自然语音**：300 多个发音人（含韩语），支持实时语言/性别筛选、朗读、MP3 导出及对话自动朗读；无需模型或 API Key，但必须联网，并沿用 HTTP 代理设置。CLI：`--list-edge-tts`、`--test-edge-tts [发音人]`。
-- 主界面 **LLM对话** Tab：微信式气泡、进程内单一会话、可清空。配置 `chat_llm` / `chat_llm_prompt`（未选接口则用润色 LLM）。本版不接 ASR/TTS。CLI：`ScreenKit --test-llm-chat`。
-- LLM对话 **工具**（简单 Agent）：可选网页搜索/抓取、读写程序目录 `tmp/llm/`、运行其中的 `.py`/`.ps1`/`.bat`/`.cmd`。文本 `<tool_call>` 协议；配置 `chat_agent`（默认开）。CLI：`ScreenKit --test-llm-agent`。
-- Agent 天气：`web_search` 对「城市+天气」走 wttr.in；模型空谈「无法获取」时强制再要一轮 tool_call。
-- 访问 `opencode.ai`（Go/Zen，如 `mimo-v2.5`）时自动带 `x-opencode-session` / `x-opencode-client`，避免 `MissingSessionID`。
-- LLM对话：**语音**输入（不注入其它窗口）、**朗读** / **自动朗读**（用语音合成 Tab 当前发音人）；配置 `chat_auto_tts`（默认开）。
-- LLM对话增加**用时日志**栏：每轮记录 `llm` / `asr` / `tts` / `total` 毫秒。
-- HTTP `POST /api/chat`：文本或语音用户消息、文本回复；**仅**请求 `tts=true` 时返回 `wav_base64`。状态字段 `llm_chat`。CLI：`ScreenKit --test-http-chat`。
-- HTTP `POST /api/tts` / `GET /api/tts/models`：在 Sherpa 之外支持 **SAPI**、**Windows**（WinRT / OneCore）与 **Edge 在线**语音。请求 `engine` 新增 `edge`，`voice` 可用 `edge:…`；`/api/status` 增加 `tts_sapi` / `tts_winrt` / `tts_edge`。CLI：`ScreenKit --test-http-tts`。
+- 主界面增加 **LLM 对话** Tab：微信式气泡、单一内存会话、清空、每轮用时、麦克风输入、朗读/自动朗读，以及可选的网页和 `tmp/llm/` 沙箱文件/脚本工具。配置：`chat_llm`、`chat_llm_prompt`、`chat_agent`、`chat_auto_tts`。CLI：`--test-llm-chat`、`--test-llm-agent`。
+- Agent 天气查询接入 wttr.in；模型拒绝使用工具时会强制重试一次 tool_call。
+- HTTP `POST /api/chat`：支持文本或音频输入、文本回复；仅 `tts=true` 时返回 TTS/WAV。状态增加 `llm_chat`；CLI：`--test-http-chat`。
+- 语音合成增加 **Edge 在线自然语音**：300 多个发音人（含韩语），支持语言/性别筛选、朗读、MP3 导出及对话自动朗读；无需模型/API Key，但必须联网，并沿用代理设置。CLI：`--list-edge-tts`、`--test-edge-tts [发音人]`。
+- HTTP TTS 在 Sherpa 之外增加 **SAPI**、**Windows**（WinRT / OneCore）及 **Edge 在线**；`engine` 支持 `sapi`、`winrt`、`edge`，状态增加 `tts_sapi`、`tts_winrt`、`tts_edge`。CLI：`--test-http-tts`。
 - 录屏 / GIF 录屏选项 **录制鼠标**、**高亮鼠标点击**（`record_mouse` / `record_click_highlight`，`gif_mouse` / `gif_click_highlight`）。GDI 抓屏不含指针，叠加系统光标，并在左/右/中键处画短暂黄/蓝/绿散开圈。CLI：`ScreenKit --test-record-cursor`。
 
 #### 变更
@@ -52,6 +45,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 修复
 
+- 访问 `opencode.ai` 时自动发送 `x-opencode-session` / `x-opencode-client`，修复 Go/Zen 模型的 `MissingSessionID`。
 - TTS 发音人安装不再依赖 Windows `tar.exe` 调用外部 `bzip2`，改由程序内部解压 `.tar.bz2` 模型包，并支持 `ttsmodels` 为 Junction。
 - 韩语等非中英文 VITS 发音人可从模型目录语言 token 正确识别；Mimic3/Piper 加载时传入包内或共享的 `espeak-ng-data`。因 ONNX Runtime CUDA 会访问冲突并终止进程，Mimic3 固定安全回退 CPU。CLI 回归测试：`ScreenKit --test-tts-sherpa <模型名>`。
 - **截图复制为路径**卡几秒：同进程刚用延迟位图写入剪贴板后，`Clipboard.SetText`/`OleSetClipboard` 仍会先 Flush 旧图。现改为纯 Win32 `EmptyClipboard` + `CF_UNICODETEXT`（只 Release、不渲染延迟格式）。遮罩关闭后再后台编码落盘；`capture_log` 记录 prep/encode/clip 耗时（≥500ms 标 `SLOW`）。CLI：`ScreenKit --test-clipboard-path`（含 4K 计时）。
