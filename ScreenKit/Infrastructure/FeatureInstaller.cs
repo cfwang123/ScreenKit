@@ -7,6 +7,8 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using SharpCompress.Common;
+using SharpCompress.Readers;
 
 namespace ScreenKit;
 
@@ -1663,53 +1665,12 @@ arabic_dict.txt
 			ZipFile.ExtractToDirectory(archive, destDir);
 			return;
 		}
-		// tar.bz2 / tar.gz：Windows 10+ tar
-		var tar = findtar();
-		if (tar == null)
-			throw new InvalidOperationException("系统无 tar，无法解压 " + Path.GetFileName(archive));
-		var psi = new ProcessStartInfo {
-			FileName = tar,
-			Arguments = $"-xf \"{archive}\" -C \"{destDir}\"",
-			UseShellExecute = false,
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-			CreateNoWindow = true,
-		};
-		using (var p = Process.Start(psi)) {
-			if (p == null) throw new InvalidOperationException("无法启动 tar");
-			var err = p.StandardError.ReadToEnd();
-			var stdout = p.StandardOutput.ReadToEnd();
-			if (!p.WaitForExit(600_000)) {
-				try { p.Kill(); } catch { }
-				throw new InvalidOperationException("tar 解压超时");
-			}
-			if (p.ExitCode != 0)
-				throw new InvalidOperationException("tar 失败 exit=" + p.ExitCode + " " + err);
-			if (!string.IsNullOrWhiteSpace(stdout))
-				log?.Report(stdout.Trim());
+		using (var reader = ReaderFactory.OpenReader(archive)) {
+			reader.WriteAllToDirectory(destDir, new ExtractionOptions {
+				ExtractFullPath = true,
+				Overwrite = true,
+			});
 		}
-	}
-
-	static string findtar() {
-		var cmd = Path.Combine(Environment.SystemDirectory, "tar.exe");
-		if (File.Exists(cmd)) return cmd;
-		try {
-			var psi = new ProcessStartInfo {
-				FileName = "where",
-				Arguments = "tar",
-				UseShellExecute = false,
-				RedirectStandardOutput = true,
-				CreateNoWindow = true,
-			};
-			using var p = Process.Start(psi);
-			if (p == null) return null;
-			var o = p.StandardOutput.ReadToEnd();
-			p.WaitForExit(3000);
-			var line = o.Replace("\r", "\n").Split('\n')
-				.Select(s => s.Trim()).FirstOrDefault(s => s.Length > 0);
-			return string.IsNullOrEmpty(line) ? null : line;
-		}
-		catch { return null; }
 	}
 
 	// ───────── 本地种子 / NuGet ─────────

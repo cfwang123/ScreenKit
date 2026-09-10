@@ -15,6 +15,7 @@ This file summarizes **third-party components** that may be used at build time o
 | [PDFsharp](https://github.com/empira/PDFsharp) | PDF write | MIT |
 | [PDFtoImage](https://github.com/sungaila/PDFtoImage) | PDF rasterize | MIT (plus Pdfium/Skia natives) |
 | [NAudio](https://github.com/naudio/NAudio) | WASAPI capture | MIT |
+| [SharpCompress](https://github.com/adamhathcock/sharpcompress) | Model archive extraction | MIT |
 | [FFmpeg.AutoGen](https://github.com/Ruslan-B/FFmpeg.AutoGen) | FFmpeg P/Invoke | LGPL-3.0-or-later (bindings) |
 | [Vortice.DXGI / Direct3D11](https://github.com/amerkoleci/Vortice.Windows) | DXGI capture | MIT |
 
