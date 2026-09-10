@@ -4,6 +4,20 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
+## unreleased
+
+### English
+
+#### Documentation
+
+- Clarified that every CHANGELOG entry and GitHub Release description must include both English and Chinese.
+
+### 中文
+
+#### 文档
+
+- 明确要求每条 CHANGELOG 记录和 GitHub Release 说明均同时提供英文与中文。
+
 ## v1.0.6 (2026-09-10)
 
 ### English

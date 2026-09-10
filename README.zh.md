@@ -115,6 +115,12 @@ node scripts/publish-release.mjs
 
 Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release/screenkit_<版本>.7z`（压缩包内带 `ScreenKit/` 文件夹；需本机安装 7-Zip 且 `7z` 在 PATH）。`release/` 目录不提交 git。
 
+发布文档规范：
+
+- `CHANGELOG.md` 的每个版本记录必须同时包含对应的 **English** 和 **中文**章节。
+- 每个 GitHub Release 的说明也必须使用双语，先写英文摘要，再写中文摘要。
+- 校验值和链接属于语言无关内容，放在两种语言摘要之后，仅列一次。
+
 ## 应用内安装（推荐）
 
 1. 首次启动可出现安装向导（默认勾选：OpenCV、**ORT CPU**、OCR `rapid-ch`、ASR 前两项、FFmpeg；**不勾** GPU/核显）。

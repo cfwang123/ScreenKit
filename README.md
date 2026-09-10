@@ -114,6 +114,12 @@ node scripts/publish-release.mjs
 
 Runs Release build, then packs `ScreenKit/bin/Release/ScreenKit/` (folder included) into `release/screenkit_<version>.7z` (requires [7-Zip](https://www.7-zip.org/) on PATH). The `release/` folder is gitignored.
 
+Release documentation policy:
+
+- Every version entry in `CHANGELOG.md` must contain matching **English** and **中文** sections.
+- Every GitHub Release description must also be bilingual, with the English summary first and the Chinese summary second.
+- Keep checksums and links language-neutral and list them once after both summaries.
+
 ## In-app install (recommended)
 
 1. First launch may open the install wizard (defaults: OpenCV, **ORT CPU**, OCR `rapid-ch`, first two ASR packs, FFmpeg; GPU/iGPU **off**).
