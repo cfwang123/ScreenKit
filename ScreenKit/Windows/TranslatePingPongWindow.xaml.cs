@@ -16,6 +16,10 @@ partial class TranslatePingPongWindow : Window {
 	public string FinalText { get; private set; }
 	/// <summary>是否完整跑完（未取消且无异常）。</summary>
 	public bool Completed { get; private set; }
+	/// <summary>是否因结果与前序结果相同而提前结束。</summary>
+	public bool EarlyStopped { get; private set; }
+	/// <summary>实际完成的翻译步数。</summary>
+	public int CompletedSteps { get; private set; }
 
 	readonly TranslateEngine engine;
 	readonly TranslateModelInfo forward;
@@ -121,6 +125,8 @@ partial class TranslatePingPongWindow : Window {
 		if (running) return;
 		running = true;
 		Completed = false;
+		EarlyStopped = false;
+		CompletedSteps = 0;
 		FinalText = null;
 		bcopy.IsEnabled = false;
 		bcancel.IsEnabled = true;
@@ -129,6 +135,7 @@ partial class TranslatePingPongWindow : Window {
 		var sb = new StringBuilder();
 		var text = startText.Trim();
 		lastText = text;
+		var seen = new HashSet<string>(StringComparer.Ordinal) { text };
 
 		void appendui(string line) {
 			sb.AppendLine(line);
@@ -181,6 +188,11 @@ partial class TranslatePingPongWindow : Window {
 				appendui(Loc.T("pp.step", r, stepFwd, fwdLabel));
 				appendui(text);
 				appendui("");
+				CompletedSteps = stepFwd;
+				if (!seen.Add(text)) {
+					EarlyStopped = true;
+					break;
+				}
 				await Dispatcher.Yield(DispatcherPriority.Background);
 
 				ct.ThrowIfCancellationRequested();
@@ -199,14 +211,25 @@ partial class TranslatePingPongWindow : Window {
 				appendui(Loc.T("pp.step", r, stepRev, revLabel));
 				appendui(text);
 				appendui("");
+				CompletedSteps = stepRev;
+				if (!seen.Add(text)) {
+					EarlyStopped = true;
+					break;
+				}
 				await Dispatcher.Yield(DispatcherPriority.Background);
 			}
 
 			Completed = true;
 			FinalText = text;
 			swAll.Stop();
-			appendui(Loc.T("pp.ok.log", rounds, rounds * 2, swAll.ElapsedMilliseconds));
-			lbstatus.Text = Loc.T("pp.ok", rounds, dev, swAll.ElapsedMilliseconds);
+			if (EarlyStopped) {
+				appendui(Loc.T("pp.stable.log", CompletedSteps, swAll.ElapsedMilliseconds));
+				lbstatus.Text = Loc.T("pp.stable", CompletedSteps, dev, swAll.ElapsedMilliseconds);
+			}
+			else {
+				appendui(Loc.T("pp.ok.log", rounds, rounds * 2, swAll.ElapsedMilliseconds));
+				lbstatus.Text = Loc.T("pp.ok", rounds, dev, swAll.ElapsedMilliseconds);
+			}
 			bcopy.IsEnabled = true;
 		}
 		catch (OperationCanceledException) {

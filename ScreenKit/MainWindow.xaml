@@ -1176,7 +1176,7 @@
 							        Width="100" Margin="0,0,8,0" ToolTip="按所选方向翻译原文"/>
 							<Button x:Name="btrpingpong" Content="来回翻译20次" Style="{StaticResource ToolBtn}"
 							        Width="120" Margin="0,0,8,0"
-							        ToolTip="正向+反向往返 20 次，弹出窗口显示每一步中间结果"/>
+							        ToolTip="正向+反向最多往返 20 次；结果与前序结果相同时提前停止"/>
 							<Button x:Name="btrswap" Content="交换语言" Style="{StaticResource ToolBtn}"
 							        Width="96" Margin="0,0,8,0" ToolTip="交换源/目标语言；若有译文则与原文对调"/>
 							<Button x:Name="btrstop" Content="取消" Style="{StaticResource ToolBtn}"

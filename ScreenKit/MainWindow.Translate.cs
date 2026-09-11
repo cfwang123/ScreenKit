@@ -660,9 +660,12 @@ public partial class MainWindow {
 	void applypingpongresult(TranslatePingPongWindow dlg) {
 		if (!string.IsNullOrEmpty(dlg.FinalText)) {
 			etrdst.Text = dlg.FinalText;
-			lbtrstatus.Text = dlg.Completed
-				? Loc.T("tr.pp.done", TranslatePingPongWindow.DefaultRounds)
-				: Loc.T("tr.pp.partial");
+			if (dlg.EarlyStopped)
+				lbtrstatus.Text = Loc.T("tr.pp.stable", dlg.CompletedSteps);
+			else
+				lbtrstatus.Text = dlg.Completed
+					? Loc.T("tr.pp.done", TranslatePingPongWindow.DefaultRounds)
+					: Loc.T("tr.pp.partial");
 		}
 		else
 			lbtrstatus.Text = Loc.T("tr.pp.closed");

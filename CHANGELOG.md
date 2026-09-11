@@ -12,6 +12,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - The Speech Recognition tab's **Recognize** pane now exposes Offline / Streaming radio options for live captions.
 
+#### Changed
+
+- Round-trip translation still runs up to 20 trips, but now stops early when a translation matches any earlier result.
+
 #### Documentation
 
 - Clarified that every CHANGELOG entry and GitHub Release description must include both English and Chinese.
@@ -21,6 +25,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 新增
 
 - “语音识别”Tab 的“识别”子页增加实时字幕“离线 / 流式”单选项。
+
+#### 变更
+
+- 来回翻译仍最多执行 20 次；翻译结果与任一前序结果相同时提前停止。
 
 #### 文档
 

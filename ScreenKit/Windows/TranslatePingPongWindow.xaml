@@ -44,7 +44,7 @@
 			        Width="88" Height="32"/>
 			<TextBlock x:Name="lbhint" VerticalAlignment="Center" FontSize="11"
 			           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
-			           Text="每一「次」= 正向翻译 + 反向翻译；共 20 次往返，下方显示每一步中间结果。"/>
+			           Text="每一「次」= 正向翻译 + 反向翻译；最多 20 次往返，结果重复时提前停止。"/>
 		</DockPanel>
 	</Grid>
 </Window>
