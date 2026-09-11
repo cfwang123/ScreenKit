@@ -2,7 +2,7 @@
 
 Windows desktop tool (project ScreenKit, exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
 
-Current version: **1.0.6**
+Current version: **1.0.7**
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
@@ -30,6 +30,7 @@ Current version: **1.0.6**
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
+| **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP (`tab_*_visible`; all visible by default) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + manual request |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
@@ -213,7 +214,7 @@ asr_voice_mode = "stream"       # stream = live; offline = record until hotkey s
 asr_voice_polish = true         # LLM polish for voice input (needs selected [[llm]] url + model)
 asr_voice_split = true
 asr_voice_split_sec = 5         # split only after this many seconds of silence (1–30); do not cut continuous speech
-asr_live_mode = "stream"        # stream | offline (offline splits on silence)
+asr_live_mode = "stream"        # stream | offline; Recognize pane radios
 asr_live_polish = false         # LLM polish each live-caption sentence
 asr_live_split = true           # auto-split after polish / completed sentences
 asr_llm = "gpt-4o-mini"         # display name of the [[llm]] entry used for polish (empty = first)

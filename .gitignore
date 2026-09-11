@@ -55,6 +55,10 @@ third_party/
 **/x264*.dll
 **/x265*.dll
 
+# ── Python bytecode ─────────────────────────────────────
+**/__pycache__/
+*.pyc
+
 # ── Temp & scratch ───────────────────────────────────────
 tmp/
 **/tmp/
