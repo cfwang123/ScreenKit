@@ -647,6 +647,7 @@
 									<RowDefinition Height="Auto"/>
 									<RowDefinition Height="Auto"/>
 									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
 								</Grid.RowDefinitions>
 
 								<TextBlock x:Name="lbasrcompute" Grid.Row="0" Grid.Column="0" Text="计算设备" FontWeight="SemiBold"
@@ -678,9 +679,18 @@
 								          DisplayMemberPath="ListName"
 								          ToolTip="文件识别 / 批量字幕用（离线：SenseVoice / Whisper 等）"/>
 
-								<TextBlock x:Name="lbasropt" Grid.Row="3" Grid.Column="0" Text="选项" FontWeight="SemiBold"
+								<TextBlock x:Name="lbasrlivemode" Grid.Row="3" Grid.Column="0" Text="使用模型" FontWeight="SemiBold"
+								           VerticalAlignment="Center" Margin="0,0,8,8"/>
+								<ComboBox x:Name="easrlivemode" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="4"
+								          Height="32" VerticalContentAlignment="Center" Margin="0,0,0,8"
+								          ToolTip="用于系统实时字幕；文件识别和批量字幕始终使用离线模型">
+									<ComboBoxItem x:Name="itasrlivemodeoffline" Content="离线模型" Tag="offline"/>
+									<ComboBoxItem x:Name="itasrlivemodestream" Content="流式模型" Tag="stream" IsSelected="True"/>
+								</ComboBox>
+
+								<TextBlock x:Name="lbasropt" Grid.Row="4" Grid.Column="0" Text="选项" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,0"/>
-								<StackPanel Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="4"
+								<StackPanel Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="4"
 								            Orientation="Horizontal">
 									<CheckBox x:Name="casritn" Content="逆文本归一化 (ITN/标点)"
 									          IsChecked="True" VerticalAlignment="Center"

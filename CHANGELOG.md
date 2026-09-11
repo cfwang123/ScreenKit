@@ -8,11 +8,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 ### English
 
+#### Added
+
+- The Speech Recognition tab now exposes an offline/streaming model selector for live captions.
+
 #### Documentation
 
 - Clarified that every CHANGELOG entry and GitHub Release description must include both English and Chinese.
 
 ### 中文
+
+#### 新增
+
+- “语音识别”Tab 增加实时字幕使用离线模型或流式模型的选择项。
 
 #### 文档
 

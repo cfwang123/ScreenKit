@@ -22,7 +22,7 @@ Current version: **1.0.6**
 | **Clipboard** | Paste image and run OCR; Edit menu: copy image / file / path; copy text via Ctrl+C or the result-panel button; menu/tray can switch on-capture copy mode (image / file / path) |
 | **Overlay text** | Text layer on the image; drag-select and copy |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
-| **ASR / TTS** | Offline speech recognition plus Sherpa/SAPI/WinRT offline TTS and Edge online natural voices |
+| **ASR / TTS** | Speech-recognition tab can switch live captions between offline and streaming models; Sherpa/SAPI/WinRT offline TTS and Edge online natural voices |
 | **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, Clear; `[[llm]]` pick. **Tools** agent; **Mic** / **Auto speak**; bottom timing log (`llm`/`asr`/`tts` ms) |
 | **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`); pick the engine on the Translate tab; floating translate popup (`Ctrl+Alt+T`) |
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
