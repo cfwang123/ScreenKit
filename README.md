@@ -149,7 +149,7 @@ Optional env vars for local full libraries (do not commit secrets/paths into doc
 
 ## Configuration
 
-Settings are stored in `config.toml` beside the exe (also editable via **Tools → Settings** / **Record options**). The Settings window groups options into tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API.
+Settings are stored in `config.toml` beside the exe (also editable via **Tools → Settings** / **Record options**). The Settings window groups options into tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General** and apply immediately when saved.
 
 ```toml
 [ocr]

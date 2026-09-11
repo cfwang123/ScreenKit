@@ -34,6 +34,20 @@
 						<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）"
 						          Margin="0,0,0,16" IsChecked="True"/>
 
+						<TextBlock x:Name="lbsettabsvisible" Text="主界面 Tab" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsettabsvisiblehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,8"
+						           Text="选择主界面中显示的功能页；隐藏仅影响入口，不停用热键或后台功能。"/>
+						<WrapPanel Margin="0,0,0,16">
+							<CheckBox x:Name="etabocrvisible" Content="截图识别" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabttsvisible" Content="语音合成" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabasrvisible" Content="语音识别" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabchatvisible" Content="LLM对话" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabtranslatevisible" Content="翻译" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabfacevisible" Content="人脸识别" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabhttpvisible" Content="HTTP接口" Width="140" Margin="0,0,0,6"/>
+						</WrapPanel>
+
 						<TextBlock x:Name="lbsetupdate" Text="自动更新间隔" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<DockPanel Margin="0,0,0,4">
 							<TextBlock x:Name="lbsetupdatedaysunit" DockPanel.Dock="Right"

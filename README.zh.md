@@ -254,7 +254,7 @@ x86host.exe --list-sapi
 
 ## 配置摘要
 
-设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。参数设置窗按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口。主要段落：
+设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。参数设置窗按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口；主界面 Tab 显示复选框位于“常规”，保存后立即生效。主要段落：
 
 - `[ocr]`：模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值等  
 - `[ui]`：热键、托盘、界面语言；`tab_ocr_visible`、`tab_tts_visible`、`tab_asr_visible`、`tab_chat_visible`、`tab_translate_visible`、`tab_face_visible`、`tab_http_visible` 分别控制 7 个主界面 Tab（默认全部 `true`，仅隐藏入口）；`update_check_days`（启动时自动检查更新间隔，默认 7 天，0=不自动检查；菜单「检查更新」不受限）、`http_proxy` / `http_proxy_addr`（访问 GitHub 等非中国网站时的 HTTP 代理，国内镜像直连）、`capture_log`（`log/capture.log`：多屏/DPI，以及截图落盘 prep/encode/clip 耗时，≥500ms 标 `SLOW`）、`llm_log`（`log/llm.log`，润色请求/响应，不含 key）、`screenshot_keep_days`（截图历史保留天数，默认 3，0=不限；仅启动时后台清理，截图时不删）

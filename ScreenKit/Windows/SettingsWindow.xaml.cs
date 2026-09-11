@@ -173,6 +173,15 @@ public partial class SettingsWindow : Window {
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
 			emintray.Content = Loc.T("set.tray");
+			lbsettabsvisible.Text = Loc.T("set.tabs.visible");
+			lbsettabsvisiblehint.Text = Loc.T("set.tabs.visible.hint");
+			etabocrvisible.Content = Loc.T("tab.ocr");
+			etabttsvisible.Content = Loc.T("tab.tts");
+			etabasrvisible.Content = Loc.T("tab.asr");
+			etabchatvisible.Content = Loc.T("tab.chat");
+			etabtranslatevisible.Content = Loc.T("tab.translate");
+			etabfacevisible.Content = Loc.T("tab.face");
+			etabhttpvisible.Content = Loc.T("tab.http");
 			lbsetupdate.Text = Loc.T("set.update");
 			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
 			lbsetupdatehint.Text = Loc.T("set.update.hint");
@@ -398,6 +407,13 @@ public partial class SettingsWindow : Window {
 		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
+		etabocrvisible.IsChecked = o.TabOcrVisible;
+		etabttsvisible.IsChecked = o.TabTtsVisible;
+		etabasrvisible.IsChecked = o.TabAsrVisible;
+		etabchatvisible.IsChecked = o.TabChatVisible;
+		etabtranslatevisible.IsChecked = o.TabTranslateVisible;
+		etabfacevisible.IsChecked = o.TabFaceVisible;
+		etabhttpvisible.IsChecked = o.TabHttpVisible;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		eproxyen.IsChecked = o.HttpProxyEnabled;
 		eproxyaddr.Text = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr;
@@ -542,6 +558,13 @@ public partial class SettingsWindow : Window {
 		Result.TranslateLlmPrompt = string.IsNullOrEmpty(trPrompt)
 			? OcrOptions.DefaultTranslatePrompt() : trPrompt;
 		Result.MinimizeToTray = emintray.IsChecked == true;
+		Result.TabOcrVisible = etabocrvisible.IsChecked == true;
+		Result.TabTtsVisible = etabttsvisible.IsChecked == true;
+		Result.TabAsrVisible = etabasrvisible.IsChecked == true;
+		Result.TabChatVisible = etabchatvisible.IsChecked == true;
+		Result.TabTranslateVisible = etabtranslatevisible.IsChecked == true;
+		Result.TabFaceVisible = etabfacevisible.IsChecked == true;
+		Result.TabHttpVisible = etabhttpvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
 		Result.HttpProxyEnabled = eproxyen.IsChecked == true;

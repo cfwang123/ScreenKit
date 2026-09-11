@@ -2843,6 +2843,7 @@ public partial class MainWindow : Window {
 		var old = opt;
 		opt = dlg.Result;
 		HttpProxy.ApplyFrom(opt);
+		applymaintabvisibility();
 		syncsnapcopyopts();
 		try { refreshtrllm(); } catch { }
 		try { fillchatllm(); } catch { }
