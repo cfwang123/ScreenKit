@@ -814,7 +814,7 @@ public partial class MainWindow {
 		var paths = pickasrmediapaths(e.Data);
 		if (paths.Count == 0) return;
 		e.Handled = true;
-		try { maintabs.SelectedItem = tabasr; } catch { }
+		selectmaintab(tabasr);
 
 		// 多文件或已在字幕页 → 进字幕队列；单文件在识别页 → 加载识别
 		var onSrt = asrsubtabs?.SelectedItem == tabasrsrt;

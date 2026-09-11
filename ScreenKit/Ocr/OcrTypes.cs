@@ -115,6 +115,14 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsPath = false;
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
+	/// <summary>主界面各 Tab 是否显示；仅影响入口，不停用对应功能。</summary>
+	public bool TabOcrVisible = true;
+	public bool TabTtsVisible = true;
+	public bool TabAsrVisible = true;
+	public bool TabChatVisible = true;
+	public bool TabTranslateVisible = true;
+	public bool TabFaceVisible = true;
+	public bool TabHttpVisible = true;
 	/// <summary>启动时自动检查更新的间隔（天）。默认 7；0 = 不自动检查。菜单「检查更新」不受限。</summary>
 	public int UpdateCheckDays = 7;
 	/// <summary>上次成功查询 GitHub Releases 的 UTC unix 秒；0 = 从未检查。</summary>
@@ -301,6 +309,13 @@ public sealed class OcrOptions {
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,
 		UiLang = UiLang ?? "zh",
+		TabOcrVisible = TabOcrVisible,
+		TabTtsVisible = TabTtsVisible,
+		TabAsrVisible = TabAsrVisible,
+		TabChatVisible = TabChatVisible,
+		TabTranslateVisible = TabTranslateVisible,
+		TabFaceVisible = TabFaceVisible,
+		TabHttpVisible = TabHttpVisible,
 		UpdateCheckDays = UpdateCheckDays,
 		LastUpdateCheckUnix = LastUpdateCheckUnix,
 		HttpProxyEnabled = HttpProxyEnabled,

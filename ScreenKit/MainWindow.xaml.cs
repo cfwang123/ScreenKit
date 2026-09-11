@@ -90,6 +90,7 @@ public partial class MainWindow : Window {
 		AppConfig.LoadInto(opt);
 		HttpProxy.ApplyFrom(opt);
 		Loc.SetFromConfig(opt.UiLang);
+		applymaintabvisibility();
 		syncsnapcopyopts();
 		// 标注条下拉选复制方式：写入默认配置，不重复制上次截图
 		CaptureOverlay.SnapCopyModeChosen += (asImg, asFile, asPath) =>
@@ -126,6 +127,27 @@ public partial class MainWindow : Window {
 			Loaded += onfirstinstallprompt;
 		else
 			Loaded += onautoupdate;
+	}
+
+	void applymaintabvisibility() {
+		var tabs = new[] {
+			(tabocr, opt.TabOcrVisible),
+			(tabtts, opt.TabTtsVisible),
+			(tabasr, opt.TabAsrVisible),
+			(tabchat, opt.TabChatVisible),
+			(tabtr, opt.TabTranslateVisible),
+			(tabface, opt.TabFaceVisible),
+			(tabhttp, opt.TabHttpVisible),
+		};
+		foreach (var (tab, visible) in tabs)
+			tab.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+		if (maintabs.SelectedItem is TabItem selected && selected.Visibility == Visibility.Visible) return;
+		maintabs.SelectedItem = tabs.FirstOrDefault(x => x.Item2).Item1;
+	}
+
+	void selectmaintab(TabItem tab) {
+		if (tab == null || tab.Visibility != Visibility.Visible) return;
+		maintabs.SelectedItem = tab;
 	}
 
 	void onfirstinstallprompt(object sender, RoutedEventArgs e) {
@@ -537,7 +559,7 @@ public partial class MainWindow : Window {
 				try {
 					CaptureLog.Info("hotkeyLive Fired");
 					// 尽量切到语音识别页，方便看到状态
-					try { maintabs.SelectedItem = tabasr; } catch { }
+					selectmaintab(tabasr);
 					try { asrsubtabs.SelectedItem = tabasrrec; } catch { }
 					asrtogglelive();
 				}
@@ -2018,7 +2040,7 @@ public partial class MainWindow : Window {
 			}
 			catch (Exception ex) { CaptureLog.Ex("captureasync SaveScreenshot", ex); }
 			// 成功：切到截图识别页；showMainAfter 时弹出主窗，否则藏回托盘
-			try { maintabs.SelectedItem = tabocr; } catch { }
+			selectmaintab(tabocr);
 			if (showMainAfter)
 				bringtofront();
 			else if (!mainWasVisible)
@@ -2039,7 +2061,7 @@ public partial class MainWindow : Window {
 			CaptureLog.Info("captureasync ensureactivetab done");
 			if (showMainAfter) {
 				// 识别结束再确保主窗在前台并停在 tab1（长推理时用户可能切走）
-				try { maintabs.SelectedItem = tabocr; } catch { }
+				selectmaintab(tabocr);
 				bringtofront();
 			}
 			else if (!mainWasVisible)
@@ -2047,7 +2069,7 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("captureasync", ex);
-			try { maintabs.SelectedItem = tabocr; } catch { }
+			selectmaintab(tabocr);
 			if (showMainAfter)
 				bringtofront();
 			else if (!mainWasVisible)
@@ -2361,7 +2383,7 @@ public partial class MainWindow : Window {
 		catch (Exception ex) { CaptureLog.Ex(label + " setimage", ex); }
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		if (wantOcr) {
-			try { maintabs.SelectedItem = tabocr; } catch { }
+			selectmaintab(tabocr);
 			var kind = isresultqrtab() ? "条码" : "OCR";
 			if (isresultqrtab())
 				qrMetaText = $"{label} · {kind}识别中…";
@@ -2373,7 +2395,7 @@ public partial class MainWindow : Window {
 			bringtofront();
 			var wall0 = Environment.TickCount;
 			await ensureactivetabasync(wall0, focusResult: true);
-			try { maintabs.SelectedItem = tabocr; } catch { }
+			selectmaintab(tabocr);
 			bringtofront();
 		}
 		else {

@@ -170,6 +170,13 @@ minimize_to_tray = true
 capture_log = false             # true → log/capture.log (DPI + save timings)
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
+tab_ocr_visible = true          # main tabs; all default to true
+tab_tts_visible = true
+tab_asr_visible = true
+tab_chat_visible = true
+tab_translate_visible = true
+tab_face_visible = true
+tab_http_visible = true
 update_check_days = 7           # auto-check interval on startup (days); 0 = off. Menu Check for Updates always works.
 screenshot_keep_days = 3        # screenshot history retention (days); 0 = unlimited. Cleaned at startup only (background).
 # http_proxy = false            # HTTP proxy for GitHub / Hugging Face / other non-China sites

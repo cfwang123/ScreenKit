@@ -106,6 +106,20 @@ static class AppConfig {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
 			}
+			if (map.TryGetValue("tab_ocr_visible", out var tov))
+				o.TabOcrVisible = parsebool(tov, true);
+			if (map.TryGetValue("tab_tts_visible", out var ttv))
+				o.TabTtsVisible = parsebool(ttv, true);
+			if (map.TryGetValue("tab_asr_visible", out var tav))
+				o.TabAsrVisible = parsebool(tav, true);
+			if (map.TryGetValue("tab_chat_visible", out var tcv))
+				o.TabChatVisible = parsebool(tcv, true);
+			if (map.TryGetValue("tab_translate_visible", out var trv))
+				o.TabTranslateVisible = parsebool(trv, true);
+			if (map.TryGetValue("tab_face_visible", out var tfv))
+				o.TabFaceVisible = parsebool(tfv, true);
+			if (map.TryGetValue("tab_http_visible", out var thv))
+				o.TabHttpVisible = parsebool(thv, true);
 			if (map.TryGetValue("update_check_days", out var ucd) && int.TryParse(ucd, out var ucDays))
 				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
 			if (map.TryGetValue("update_last_check", out var ulc) && long.TryParse(ulc, out var ulcUnix))
@@ -388,6 +402,14 @@ static class AppConfig {
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");
+		sb.AppendLine($"# 主界面 Tab 显示开关（仅隐藏入口，不停用对应功能；默认全部 true）");
+		sb.AppendLine($"tab_ocr_visible = {(o.TabOcrVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_tts_visible = {(o.TabTtsVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_asr_visible = {(o.TabAsrVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_chat_visible = {(o.TabChatVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_translate_visible = {(o.TabTranslateVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_face_visible = {(o.TabFaceVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_http_visible = {(o.TabHttpVisible ? "true" : "false")}");
 		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");

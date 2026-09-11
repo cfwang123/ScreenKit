@@ -11,6 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Added
 
 - The Speech Recognition tab's **Recognize** pane now exposes Offline / Streaming radio options for live captions.
+- Seven `tab_*_visible` configuration switches can independently hide main-window tabs; all default to visible.
 
 #### Changed
 
@@ -25,6 +26,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 新增
 
 - “语音识别”Tab 的“识别”子页增加实时字幕“离线 / 流式”单选项。
+- 增加 7 个 `tab_*_visible` 配置开关，可分别隐藏主界面 Tab；默认全部显示。
 
 #### 变更
 
