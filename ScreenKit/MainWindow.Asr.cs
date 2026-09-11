@@ -85,7 +85,9 @@ public partial class MainWindow {
 		selectcombobytag(easrlang, string.IsNullOrWhiteSpace(opt.AsrLang) ? "auto" : opt.AsrLang);
 		casritn.IsChecked = opt.AsrItn;
 		selectcombobytag(easrsource, string.IsNullOrWhiteSpace(opt.AsrAudioSource) ? "Mic" : opt.AsrAudioSource);
-		selectcombobytag(easrlivemode, asrismodeoffline(opt.AsrLiveMode) ? "offline" : "stream");
+		var liveOffline = asrismodeoffline(opt.AsrLiveMode);
+		easrliveoffline.IsChecked = liveOffline;
+		easrlivestream.IsChecked = !liveOffline;
 
 		easrcompute.SelectionChanged += (_, _) => {
 			if (asrUiLoading) return;
@@ -137,7 +139,11 @@ public partial class MainWindow {
 			if (asrUiLoading) return;
 			saveasrprefs();
 		};
-		easrlivemode.SelectionChanged += (_, _) => {
+		easrliveoffline.Checked += (_, _) => {
+			if (asrUiLoading) return;
+			saveasrprefs();
+		};
+		easrlivestream.Checked += (_, _) => {
 			if (asrUiLoading) return;
 			saveasrprefs();
 		};
@@ -919,8 +925,7 @@ public partial class MainWindow {
 			opt.AsrItn = casritn.IsChecked == true;
 			if (easrsource.SelectedItem is ComboBoxItem si && si.Tag is string ss)
 				opt.AsrAudioSource = string.IsNullOrWhiteSpace(ss) ? "Mic" : ss;
-			if (easrlivemode.SelectedItem is ComboBoxItem mi && mi.Tag is string mode)
-				opt.AsrLiveMode = asrismodeoffline(mode) ? "offline" : "stream";
+			opt.AsrLiveMode = easrliveoffline.IsChecked == true ? "offline" : "stream";
 			AppConfig.Save(opt);
 		}
 		catch (Exception ex) {
@@ -1116,7 +1121,8 @@ public partial class MainWindow {
 		asrLiveBusy = true;
 		lbasrstatus.Text = $"实时字幕 · 加载流式模型…（{srcLabel}）";
 		basrlive.IsEnabled = false;
-		easrlivemode.IsEnabled = false;
+		easrliveoffline.IsEnabled = false;
+		easrlivestream.IsEnabled = false;
 		saveasrprefs();
 
 		Task.Run(() => {
@@ -1195,7 +1201,8 @@ public partial class MainWindow {
 					if (!asrLiveOn) {
 						basrlive.IsEnabled = true;
 						basrlive.Content = "系统实时字幕";
-						easrlivemode.IsEnabled = true;
+						easrliveoffline.IsEnabled = true;
+						easrlivestream.IsEnabled = true;
 					}
 				}
 			}));
@@ -1230,7 +1237,8 @@ public partial class MainWindow {
 		asrLiveBusy = true;
 		lbasrstatus.Text = $"实时字幕 · 加载离线模型…（{srcLabel}）";
 		basrlive.IsEnabled = false;
-		easrlivemode.IsEnabled = false;
+		easrliveoffline.IsEnabled = false;
+		easrlivestream.IsEnabled = false;
 		saveasrprefs();
 
 		Task.Run(() => {
@@ -1306,7 +1314,8 @@ public partial class MainWindow {
 					if (!asrLiveOn) {
 						basrlive.IsEnabled = true;
 						basrlive.Content = "系统实时字幕";
-						easrlivemode.IsEnabled = true;
+						easrliveoffline.IsEnabled = true;
+						easrlivestream.IsEnabled = true;
 					}
 				}
 			}));
@@ -1693,7 +1702,8 @@ public partial class MainWindow {
 			basrrun.IsEnabled = true;
 			basropen.IsEnabled = true;
 			easrsource.IsEnabled = true;
-			easrlivemode.IsEnabled = true;
+			easrliveoffline.IsEnabled = true;
+			easrlivestream.IsEnabled = true;
 			lbasrstatus.Text = finalFlush ? "实时字幕已结束" : "实时字幕已停止";
 			CaptureLog.Info("AsrLive stop");
 			try { AppConfig.Save(opt); } catch { }
@@ -2164,9 +2174,10 @@ public partial class MainWindow {
 		lbasroffline.Text = Loc.T("asr.offline");
 		easrmodel.ToolTip = Loc.T("asr.offline.tip");
 		lbasrlivemode.Text = Loc.T("asr.live.mode");
-		easrlivemode.ToolTip = Loc.T("asr.live.mode.tip");
-		itasrlivemodeoffline.Content = Loc.T("asr.live.mode.offline");
-		itasrlivemodestream.Content = Loc.T("asr.live.mode.stream");
+		easrliveoffline.Content = Loc.T("asr.live.mode.offline");
+		easrliveoffline.ToolTip = Loc.T("asr.live.mode.offline.tip");
+		easrlivestream.Content = Loc.T("asr.live.mode.stream");
+		easrlivestream.ToolTip = Loc.T("asr.live.mode.stream.tip");
 		lbasropt.Text = Loc.T("asr.opt");
 		casritn.Content = Loc.T("asr.itn");
 		casritn.ToolTip = Loc.T("asr.itn.tip");

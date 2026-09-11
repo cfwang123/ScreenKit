@@ -10,7 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- The Speech Recognition tab now exposes an offline/streaming model selector for live captions.
+- The Speech Recognition tab's **Recognize** pane now exposes Offline / Streaming radio options for live captions.
 
 #### Documentation
 
@@ -20,7 +20,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- “语音识别”Tab 增加实时字幕使用离线模型或流式模型的选择项。
+- “语音识别”Tab 的“识别”子页增加实时字幕“离线 / 流式”单选项。
 
 #### 文档
 
