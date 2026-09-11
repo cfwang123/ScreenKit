@@ -4,20 +4,6 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
-## unreleased
-
-### English
-
-#### Fixed
-
-- Speech Synthesis: rate and volume sliders no longer overlap the voice combo (the settings grid was missing a fifth row).
-
-### 中文
-
-#### 修复
-
-- 语音合成：语速、音量不再与发音人下拉框重叠（设置区 Grid 漏了第 5 行）。
-
 ## v1.0.7 (2026-09-11)
 
 ### English
@@ -30,6 +16,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Changed
 
 - Round-trip translation still runs up to 20 trips, but now stops early when a translation matches any earlier result.
+
+#### Fixed
+
+- Speech Synthesis: rate and volume sliders no longer overlap the voice combo (the settings grid was missing a fifth row).
 
 #### Documentation
 
@@ -45,6 +35,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 变更
 
 - 来回翻译仍最多执行 20 次；翻译结果与任一前序结果相同时提前停止。
+
+#### 修复
+
+- 语音合成：语速、音量不再与发音人下拉框重叠（设置区 Grid 漏了第 5 行）。
 
 #### 文档
 
