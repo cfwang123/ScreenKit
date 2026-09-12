@@ -8,15 +8,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 ### English
 
-#### Fixed
+#### Changed
 
-- Screenshot region drag still lagged behind the cursor because `AllowsTransparency` forced layered-window composition on a full-screen freeze. The overlay is now an opaque window (frozen bitmap already covers the screen), DropShadowEffect was removed from magnifier/toolbar (it forced software rendering), and selection UI updates immediately. Dim cutout remains four rectangles. CLI: `ScreenKit --test-capture-drag` (uses a real primary-screen freeze).
+- Reverted the screenshot-overlay drag performance experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the previous transparent overlay, dim mask, and green selection frame.
 
 ### 中文
 
-#### 修复
+#### 变更
 
-- **截屏框选绿框跟不上鼠标**：根因是 `AllowsTransparency` 全屏分层窗合成太慢（底图已是冻结截屏，本不需要窗口透明）。遮罩窗改为不透明；去掉放大镜/工具条的 `DropShadowEffect`（会逼软件渲染）；选区 UI 立即刷新；挖空仍为四矩形。CLI：`ScreenKit --test-capture-drag`（用主屏真实冻结图）。
+- **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
 
 ## v1.0.7 (2026-09-11)
 

@@ -2,15 +2,14 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None"
-        AllowsTransparency="False"
-        Background="Black"
+        AllowsTransparency="True"
+        Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         Cursor="Cross"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
-	<!-- 底图已是冻结截屏，无需窗口级透明；AllowsTransparency 会走分层窗合成，拖选极易掉帧 -->
 	<!-- 微信式：先截整屏作底图 → 框选裁剪 → 标注工具条 -->
 	<Window.Resources>
 		<!-- 微信式圆角图标按钮 -->
@@ -106,15 +105,8 @@
 		<Image x:Name="imgDesktop" Stretch="Fill" IsHitTestVisible="False"
 		       SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor"
 		       RenderOptions.EdgeMode="Aliased"/>
-		<!-- 外侧遮罩：四块矩形拼出挖空（不透明窗内 alpha 混合，避免分层窗） -->
-		<Rectangle x:Name="maskT" Fill="#99000000" IsHitTestVisible="False"
-		           SnapsToDevicePixels="True" RenderOptions.EdgeMode="Aliased"/>
-		<Rectangle x:Name="maskB" Fill="#99000000" IsHitTestVisible="False"
-		           SnapsToDevicePixels="True" RenderOptions.EdgeMode="Aliased"/>
-		<Rectangle x:Name="maskL" Fill="#99000000" IsHitTestVisible="False"
-		           SnapsToDevicePixels="True" RenderOptions.EdgeMode="Aliased"/>
-		<Rectangle x:Name="maskR" Fill="#99000000" IsHitTestVisible="False"
-		           SnapsToDevicePixels="True" RenderOptions.EdgeMode="Aliased"/>
+		<!-- 外侧遮罩（EvenOdd 挖空选区 / 窗口高亮） -->
+		<Path x:Name="mask" Fill="#99000000" SnapsToDevicePixels="True"/>
 		<!-- 窗口识别：仅绿色边框，不挖空遮罩 -->
 		<Rectangle x:Name="rwin" Stroke="#07C160" StrokeThickness="2"
 		           Fill="Transparent" Visibility="Collapsed" IsHitTestVisible="False"
@@ -142,7 +134,9 @@
 		<Border x:Name="bmag" Visibility="Collapsed" Background="#F7FFFFFF" CornerRadius="10"
 		        BorderBrush="#E0E0E0" BorderThickness="1" Padding="8" IsHitTestVisible="False"
 		        SnapsToDevicePixels="True">
-			<!-- 不用 DropShadowEffect：会逼整窗走软件渲染，拖选掉帧 -->
+			<Border.Effect>
+				<DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.16" Color="#000000"/>
+			</Border.Effect>
 			<StackPanel>
 				<!-- 2× 尺寸：224×224，像素块最近邻放大 -->
 				<Border x:Name="bmagview" Width="224" Height="224" BorderBrush="#07C160" BorderThickness="1"
@@ -188,6 +182,9 @@
 		<Border x:Name="bbar" Visibility="Collapsed" Background="#FFFFFFF2" CornerRadius="22"
 		        BorderBrush="#E8E8E8" BorderThickness="1" Padding="10,6"
 		        SnapsToDevicePixels="True">
+			<Border.Effect>
+				<DropShadowEffect BlurRadius="16" ShadowDepth="2" Direction="270" Opacity="0.18" Color="#000000"/>
+			</Border.Effect>
 			<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 				<!-- 绘制工具：Path 图标（矩形/圆加大描边） -->
 				<ToggleButton x:Name="trect" Style="{StaticResource WxIconToggle}" ToolTip="矩形">
@@ -307,6 +304,9 @@
 		<Border x:Name="pcopyas" Visibility="Collapsed" Background="#FFFFFFF2" CornerRadius="10"
 		        BorderBrush="#E8E8E8" BorderThickness="1" Padding="4"
 		        SnapsToDevicePixels="True">
+			<Border.Effect>
+				<DropShadowEffect BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.16" Color="#000000"/>
+			</Border.Effect>
 			<StackPanel>
 				<Button x:Name="mncopyimg" Style="{StaticResource WxIconBtn}" Height="32" Width="Auto"
 				        MinWidth="132" HorizontalContentAlignment="Left" Padding="10,0"

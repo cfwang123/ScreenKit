@@ -300,7 +300,6 @@ Tray icon: left-click toggles the window; context menu includes voice input, **t
 ScreenKit --image <path> [options]
 ScreenKit --snap [--out <dir>]
 ScreenKit --test-clipboard-path   # path copy after delayed image; 4K timing
-ScreenKit --test-capture-drag     # region-select mask drag micro-benchmark
 ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
