@@ -105,8 +105,11 @@
 		<Image x:Name="imgDesktop" Stretch="Fill" IsHitTestVisible="False"
 		       SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="NearestNeighbor"
 		       RenderOptions.EdgeMode="Aliased"/>
-		<!-- 外侧遮罩（EvenOdd 挖空选区 / 窗口高亮） -->
-		<Path x:Name="mask" Fill="#99000000" SnapsToDevicePixels="True"/>
+		<!-- 外侧遮罩：四块矩形拼出挖空（勿用 PathGeometry EvenOdd，透明全屏窗每帧重建会卡） -->
+		<Rectangle x:Name="maskT" Fill="#99000000" IsHitTestVisible="False" SnapsToDevicePixels="True"/>
+		<Rectangle x:Name="maskB" Fill="#99000000" IsHitTestVisible="False" SnapsToDevicePixels="True"/>
+		<Rectangle x:Name="maskL" Fill="#99000000" IsHitTestVisible="False" SnapsToDevicePixels="True"/>
+		<Rectangle x:Name="maskR" Fill="#99000000" IsHitTestVisible="False" SnapsToDevicePixels="True"/>
 		<!-- 窗口识别：仅绿色边框，不挖空遮罩 -->
 		<Rectangle x:Name="rwin" Stroke="#07C160" StrokeThickness="2"
 		           Fill="Transparent" Visibility="Collapsed" IsHitTestVisible="False"

@@ -4,6 +4,20 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
+## unreleased
+
+### English
+
+#### Fixed
+
+- Screenshot region drag stutter: the dim overlay no longer rebuilds a full-screen `PathGeometry` on every mouse move. It now uses four rectangles, coalesces UI updates to the render frame, and skips size-hint text layout when the size is unchanged. CLI: `ScreenKit --test-capture-drag`.
+
+### 中文
+
+#### 修复
+
+- **截屏框选拖动卡顿**：遮罩不再每帧重建全屏 `PathGeometry` 挖空，改为四矩形拼挖空；选区 UI 合并到渲染帧更新，尺寸提示文案仅在变化时改。CLI：`ScreenKit --test-capture-drag`。
+
 ## v1.0.7 (2026-09-11)
 
 ### English

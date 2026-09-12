@@ -34,6 +34,7 @@ static class Cli {
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
+				or "--test-capture-drag"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -98,6 +99,8 @@ static class Cli {
 		bool doTestRecordCodec = false;
 		bool doTestRecordCursor = false;
 		bool doTestClipboardPath = false;
+		bool doTestCaptureDrag = false;
+		int testCaptureDragFrames = 300;
 		string testRecordCodec = "av1";
 		int testRecordRepeat = 1;
 		string recordRegion = null; // L,T,W,H 物理像素
@@ -170,6 +173,13 @@ static class Cli {
 						break;
 					case "--test-clipboard-path":
 						doTestClipboardPath = true;
+						break;
+					case "--test-capture-drag":
+						doTestCaptureDrag = true;
+						if (i + 1 < args.Length && int.TryParse(args[i + 1], out var dragN) && dragN > 0) {
+							testCaptureDragFrames = dragN;
+							i++;
+						}
 						break;
 					case "--repeat":
 						testRecordRepeat = int.Parse(Next());
@@ -405,6 +415,20 @@ static class Cli {
 			}
 			catch (Exception ex) {
 				Err($"剪贴板路径测试失败: {ex.Message}");
+				Err(ex.ToString());
+				return 1;
+			}
+			finally {
+				try { log?.Dispose(); } catch { }
+			}
+		}
+
+		if (doTestCaptureDrag) {
+			try {
+				return runtestcapturedrag(testCaptureDragFrames);
+			}
+			catch (Exception ex) {
+				Err($"截图框选拖动基准失败: {ex.Message}");
 				Err(ex.ToString());
 				return 1;
 			}
@@ -1990,6 +2014,51 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	/// <summary>框选挖空拖动微基准（测 updatemask / 绿框更新成本）。</summary>
+	static int runtestcapturedrag(int frames) {
+		int code = 1;
+		Exception threadEx = null;
+		var t = new Thread(() => {
+			try {
+				Out("=== 截图框选拖动 --test-capture-drag ===");
+				var summary = CaptureOverlay.BenchSelectDrag(frames);
+				Out(summary);
+				// 含 Render 的单帧平均应低于约一帧预算；过慢视为回归
+				var avgMs = 0.0;
+				var maxMs = 0.0;
+				var parts = summary.Split(' ');
+				foreach (var p in parts) {
+					if (p.StartsWith("avg=", StringComparison.Ordinal))
+						double.TryParse(p.Substring(4).TrimEnd('m', 's'),
+							System.Globalization.NumberStyles.Float,
+							System.Globalization.CultureInfo.InvariantCulture, out avgMs);
+					else if (p.StartsWith("max=", StringComparison.Ordinal))
+						double.TryParse(p.Substring(4).TrimEnd('m', 's'),
+							System.Globalization.NumberStyles.Float,
+							System.Globalization.CultureInfo.InvariantCulture, out maxMs);
+				}
+				if (avgMs > 8.0 || maxMs > 40.0) {
+					Out($"FAIL avg={avgMs:F3}ms max={maxMs:F2}ms（框选刷新过慢）");
+					code = 1;
+				}
+				else {
+					Out("=== OK ===");
+					code = 0;
+				}
+			}
+			catch (Exception ex) {
+				threadEx = ex;
+				code = 1;
+			}
+		});
+		t.SetApartmentState(ApartmentState.STA);
+		t.IsBackground = true;
+		t.Start();
+		t.Join();
+		if (threadEx != null) throw threadEx;
+		return code;
+	}
+
 	/// <summary>
 	/// 先放入位图再「复制为路径」，确认剪贴板只剩路径文本、无残留图。
 	/// 残留 CF_DIB 时部分输入框会把图粘成「▀」。
@@ -2151,6 +2220,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
+  ScreenKit --test-capture-drag [帧数]
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
@@ -2198,6 +2268,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
+      --test-capture-drag  框选挖空微基准（可选帧数，默认 300）
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2248,6 +2319,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-codec av1 --repeat 2 --seconds 2 -o log\record_codec
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
+  ScreenKit --test-capture-drag
+  ScreenKit --test-capture-drag 600
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent

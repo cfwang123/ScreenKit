@@ -200,6 +200,7 @@ Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release
 ScreenKit --image <路径> [选项]
 ScreenKit --snap [--out <目录>]
 ScreenKit --test-clipboard-path   # 延迟位图后改路径；含 4K 计时
+ScreenKit --test-capture-drag     # 框选挖空拖动微基准（可选帧数）
 ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face

@@ -273,6 +273,10 @@ public partial class CaptureOverlay : Window {
 				w.refreshannotateui(clearStrokes);
 		}
 
+		/// <summary>框选 UI 合并到下一帧再刷（MouseMove 可能高于刷新率）。</summary>
+		bool dragUiPending;
+		EventHandler dragUiHandler;
+
 		public bool BeginDrag(CaptureOverlay who, int vx, int vy) {
 			if (Finishing) return false;
 			if (DragOwner != null && DragOwner != who) return false;
@@ -280,14 +284,39 @@ public partial class CaptureOverlay : Window {
 			DragVX0 = DragVX1 = vx;
 			DragVY0 = DragVY1 = vy;
 			RegionDrag = false;
+			cancelflushdragui();
 			return true;
 		}
 
 		public void UpdateDrag(int vx, int vy) {
 			DragVX1 = vx;
 			DragVY1 = vy;
+			// 坐标立即更新；挖空/绿框合并到 CompositionTarget，避免一帧多次全屏重排
+			if (dragUiPending) return;
+			dragUiPending = true;
+			dragUiHandler ??= (_, _) => {
+				cancelflushdragui();
+				flushdragui();
+			};
+			CompositionTarget.Rendering += dragUiHandler;
+		}
+
+		/// <summary>松手前强制刷出最后一帧选区 UI。</summary>
+		public void FlushDragUi() {
+			cancelflushdragui();
+			flushdragui();
+		}
+
+		void flushdragui() {
 			foreach (var w in Windows)
 				w.applyvirtualsel(DragVX0, DragVY0, DragVX1, DragVY1);
+		}
+
+		void cancelflushdragui() {
+			if (!dragUiPending && dragUiHandler == null) return;
+			if (dragUiHandler != null)
+				CompositionTarget.Rendering -= dragUiHandler;
+			dragUiPending = false;
 		}
 
 		/// <summary>从各屏冻结图按虚拟矩形拼接（跨屏）。</summary>
@@ -373,6 +402,7 @@ public partial class CaptureOverlay : Window {
 				CaptureLog.Info("Session.Complete SKIP already finishing");
 				return;
 			}
+			cancelflushdragui();
 			Finishing = true;
 			Confirmed = true;
 			// 已冻结位图与窗体生命周期无关，勿再全图拷贝（大图可卡数秒）
@@ -397,6 +427,7 @@ public partial class CaptureOverlay : Window {
 				CaptureLog.Info("Session.Cancel SKIP already finishing");
 				return;
 			}
+			cancelflushdragui();
 			Finishing = true;
 			Confirmed = false;
 			Image = null;
@@ -415,6 +446,53 @@ public partial class CaptureOverlay : Window {
 				}
 				catch (Exception ex) { CaptureLog.Ex("Session.closeall", ex); }
 			}
+		}
+	}
+
+	/// <summary>
+	/// 框选挖空微基准（CLI <c>--test-capture-drag</c>）：连续改选区测 updatemask 成本。
+	/// </summary>
+	public static string BenchSelectDrag(int frames = 300) {
+		frames = Compat.Clamp(frames, 30, 5000);
+		var wb = new WriteableBitmap(1920, 1080, 96, 96, PixelFormats.Bgra32, null);
+		wb.Freeze();
+		var session = new Session(false);
+		var ov = new CaptureOverlay(session, new System.Drawing.Rectangle(0, 0, 1920, 1080), wb);
+		session.Windows.Add(ov);
+		try {
+			ov.Show();
+			ov.UpdateLayout();
+			for (int i = 0; i < 5; i++)
+				ov.applyvirtualsel(20, 20, 200 + i, 150 + i);
+			ov.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+
+			var times = new long[frames];
+			var sw = System.Diagnostics.Stopwatch.StartNew();
+			for (int i = 0; i < frames; i++) {
+				var t0 = sw.ElapsedTicks;
+				ov.applyvirtualsel(30, 40, 30 + 8 + (i % 800), 40 + 6 + ((i * 3) % 600));
+				// 等到 Render：含透明窗合成，更接近真实拖动一帧
+				ov.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+				times[i] = sw.ElapsedTicks - t0;
+			}
+			sw.Stop();
+			var tickMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+			double sum = 0, max = 0;
+			var over16 = 0;
+			foreach (var t in times) {
+				var ms = t * tickMs;
+				sum += ms;
+				if (ms > max) max = ms;
+				if (ms > 16.0) over16++;
+			}
+			return $"frames={frames} sum={sum:F1}ms avg={sum / frames:F3}ms max={max:F2}ms over16ms={over16} wall={sw.ElapsedMilliseconds}ms";
+		}
+		finally {
+			try {
+				ov.closingFromSession = true;
+				ov.Close();
+			}
+			catch { }
 		}
 	}
 
@@ -607,8 +685,10 @@ public partial class CaptureOverlay : Window {
 	/// <summary>悬停 UI 节流（避免每像素移动都钻 HWND / 重建放大镜导致全屏卡顿）。</summary>
 	long lastHoverTick;
 	int lastHoverLx = int.MinValue, lastHoverLy = int.MinValue;
-	/// <summary>遮罩缓存，相同矩形不重建 Geometry。</summary>
+	/// <summary>遮罩缓存，相同挖空矩形跳过。</summary>
 	double lastMaskX = double.NaN, lastMaskY, lastMaskW, lastMaskH;
+	/// <summary>框选尺寸提示上次值（避免每像素改 Text 触发布局）。</summary>
+	int lastHintPw = int.MinValue, lastHintPh = int.MinValue;
 	/// <summary>放大镜上次采样原点（底图像素）。</summary>
 	int lastMagSx = int.MinValue, lastMagSy = int.MinValue;
 	/// <summary>跨屏拼接重裁节流（仅 viewPort 不可用时）。</summary>
@@ -680,6 +760,11 @@ public partial class CaptureOverlay : Window {
 		imgDesktop.Height = dipH;
 		Canvas.SetLeft(imgDesktop, 0);
 		Canvas.SetTop(imgDesktop, 0);
+		// 冻结底图缓存为位图层，拖动改遮罩时少重绘大图
+		try {
+			imgDesktop.CacheMode = new BitmapCache { RenderAtScale = 1, EnableClearType = false };
+		}
+		catch { }
 
 		SourceInitialized += (_, _) => {
 			try {
@@ -1007,10 +1092,16 @@ public partial class CaptureOverlay : Window {
 			session.UpdateDrag(cx, cy);
 			var pw = Math.Abs(session.DragVX1 - session.DragVX0);
 			var ph = Math.Abs(session.DragVY1 - session.DragVY0);
-			lbcap.Text = $"{pw} × {ph} · 可跨屏 · 松手确认 · Esc 取消";
-			updatehintdodge(canvas, allowFlip: false);
+			// 尺寸文案仅在变化时改，避免拖动时 TextBlock 反复测宽布局
+			if (pw != lastHintPw || ph != lastHintPh) {
+				lastHintPw = pw;
+				lastHintPh = ph;
+				lbcap.Text = $"{pw} × {ph} · 可跨屏 · 松手确认 · Esc 取消";
+				updatehintdodge(canvas, allowFlip: false);
+			}
 		}
 		else {
+			lastHintPw = lastHintPh = int.MinValue;
 			updatehoverui(cx, cy, lx, ly, canvas);
 		}
 	}
@@ -1087,6 +1178,8 @@ public partial class CaptureOverlay : Window {
 		if (phase != Phase.Select || !dragging) return;
 		dragging = false;
 		try { proot.ReleaseMouseCapture(); } catch { }
+		// 合并帧可能还没刷，先落最后一帧绿框/挖空
+		try { session?.FlushDragUi(); } catch { }
 		trycursor(out var cx, out var cy);
 		if (!trylocal(out var lx, out var ly, e.GetPosition(proot))) {
 			if (session != null) session.DragOwner = null;
@@ -3521,18 +3614,52 @@ public partial class CaptureOverlay : Window {
 	}
 
 	void updatemask(double x, double y, double w, double h) {
-		// 相同挖空区不重建 Geometry（悬停高频路径）
+		// 相同挖空区跳过（悬停/拖动高频路径）
 		if (!double.IsNaN(lastMaskX)
 			&& Math.Abs(lastMaskX - x) < 0.25 && Math.Abs(lastMaskY - y) < 0.25
 			&& Math.Abs(lastMaskW - w) < 0.25 && Math.Abs(lastMaskH - h) < 0.25)
 			return;
 		lastMaskX = x; lastMaskY = y; lastMaskW = w; lastMaskH = h;
 		var (W, H) = clientsize();
-		var g = new PathGeometry { FillRule = FillRule.EvenOdd };
-		g.AddGeometry(new RectangleGeometry(new Rect(0, 0, W, H)));
-		if (w > 0.5 && h > 0.5)
-			g.AddGeometry(new RectangleGeometry(new Rect(x, y, w, h)));
-		mask.Data = g;
+		// 四矩形拼挖空：只改 Canvas 坐标，避免 PathGeometry EvenOdd 在透明窗上每帧重建
+		if (w <= 0.5 || h <= 0.5) {
+			setmaskrect(maskT, 0, 0, W, H);
+			setmaskrect(maskB, 0, 0, 0, 0);
+			setmaskrect(maskL, 0, 0, 0, 0);
+			setmaskrect(maskR, 0, 0, 0, 0);
+			return;
+		}
+		var hx = Math.Max(0.0, x);
+		var hy = Math.Max(0.0, y);
+		var hr = Math.Min(W, x + w);
+		var hb = Math.Min(H, y + h);
+		var hw = Math.Max(0.0, hr - hx);
+		var hh = Math.Max(0.0, hb - hy);
+		if (hw < 0.5 || hh < 0.5) {
+			setmaskrect(maskT, 0, 0, W, H);
+			setmaskrect(maskB, 0, 0, 0, 0);
+			setmaskrect(maskL, 0, 0, 0, 0);
+			setmaskrect(maskR, 0, 0, 0, 0);
+			return;
+		}
+		setmaskrect(maskT, 0, 0, W, hy);
+		setmaskrect(maskB, 0, hy + hh, W, Math.Max(0.0, H - (hy + hh)));
+		setmaskrect(maskL, 0, hy, hx, hh);
+		setmaskrect(maskR, hx + hw, hy, Math.Max(0.0, W - (hx + hw)), hh);
+	}
+
+	static void setmaskrect(WpfRectangle r, double left, double top, double width, double height) {
+		if (width < 0.5 || height < 0.5) {
+			if (r.Visibility != Visibility.Collapsed)
+				r.Visibility = Visibility.Collapsed;
+			return;
+		}
+		if (r.Visibility != Visibility.Visible)
+			r.Visibility = Visibility.Visible;
+		Canvas.SetLeft(r, left);
+		Canvas.SetTop(r, top);
+		r.Width = width;
+		r.Height = height;
 	}
 
 	/// <summary>按屏幕 DIP 矩形截取（回退路径）。相对虚拟屏原点均匀映射到物理像素。</summary>
