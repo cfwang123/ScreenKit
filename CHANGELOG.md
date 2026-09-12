@@ -10,13 +10,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Fixed
 
-- Screenshot region drag stutter: the dim overlay no longer rebuilds a full-screen `PathGeometry` on every mouse move. It now uses four rectangles, coalesces UI updates to the render frame, and skips size-hint text layout when the size is unchanged. CLI: `ScreenKit --test-capture-drag`.
+- Screenshot region drag still lagged behind the cursor because `AllowsTransparency` forced layered-window composition on a full-screen freeze. The overlay is now an opaque window (frozen bitmap already covers the screen), DropShadowEffect was removed from magnifier/toolbar (it forced software rendering), and selection UI updates immediately. Dim cutout remains four rectangles. CLI: `ScreenKit --test-capture-drag` (uses a real primary-screen freeze).
 
 ### 中文
 
 #### 修复
 
-- **截屏框选拖动卡顿**：遮罩不再每帧重建全屏 `PathGeometry` 挖空，改为四矩形拼挖空；选区 UI 合并到渲染帧更新，尺寸提示文案仅在变化时改。CLI：`ScreenKit --test-capture-drag`。
+- **截屏框选绿框跟不上鼠标**：根因是 `AllowsTransparency` 全屏分层窗合成太慢（底图已是冻结截屏，本不需要窗口透明）。遮罩窗改为不透明；去掉放大镜/工具条的 `DropShadowEffect`（会逼软件渲染）；选区 UI 立即刷新；挖空仍为四矩形。CLI：`ScreenKit --test-capture-drag`（用主屏真实冻结图）。
 
 ## v1.0.7 (2026-09-11)
 

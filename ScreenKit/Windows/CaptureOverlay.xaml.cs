@@ -273,10 +273,6 @@ public partial class CaptureOverlay : Window {
 				w.refreshannotateui(clearStrokes);
 		}
 
-		/// <summary>框选 UI 合并到下一帧再刷（MouseMove 可能高于刷新率）。</summary>
-		bool dragUiPending;
-		EventHandler dragUiHandler;
-
 		public bool BeginDrag(CaptureOverlay who, int vx, int vy) {
 			if (Finishing) return false;
 			if (DragOwner != null && DragOwner != who) return false;
@@ -284,39 +280,23 @@ public partial class CaptureOverlay : Window {
 			DragVX0 = DragVX1 = vx;
 			DragVY0 = DragVY1 = vy;
 			RegionDrag = false;
-			cancelflushdragui();
 			return true;
 		}
 
 		public void UpdateDrag(int vx, int vy) {
+			if (vx == DragVX1 && vy == DragVY1) return;
 			DragVX1 = vx;
 			DragVY1 = vy;
-			// 坐标立即更新；挖空/绿框合并到 CompositionTarget，避免一帧多次全屏重排
-			if (dragUiPending) return;
-			dragUiPending = true;
-			dragUiHandler ??= (_, _) => {
-				cancelflushdragui();
-				flushdragui();
-			};
-			CompositionTarget.Rendering += dragUiHandler;
-		}
-
-		/// <summary>松手前强制刷出最后一帧选区 UI。</summary>
-		public void FlushDragUi() {
-			cancelflushdragui();
+			// 不透明窗下直接刷：合并到下一帧反而让绿框明显落后鼠标
 			flushdragui();
 		}
+
+		/// <summary>松手前再刷一帧（兼容旧调用）。</summary>
+		public void FlushDragUi() => flushdragui();
 
 		void flushdragui() {
 			foreach (var w in Windows)
 				w.applyvirtualsel(DragVX0, DragVY0, DragVX1, DragVY1);
-		}
-
-		void cancelflushdragui() {
-			if (!dragUiPending && dragUiHandler == null) return;
-			if (dragUiHandler != null)
-				CompositionTarget.Rendering -= dragUiHandler;
-			dragUiPending = false;
 		}
 
 		/// <summary>从各屏冻结图按虚拟矩形拼接（跨屏）。</summary>
@@ -402,7 +382,6 @@ public partial class CaptureOverlay : Window {
 				CaptureLog.Info("Session.Complete SKIP already finishing");
 				return;
 			}
-			cancelflushdragui();
 			Finishing = true;
 			Confirmed = true;
 			// 已冻结位图与窗体生命周期无关，勿再全图拷贝（大图可卡数秒）
@@ -427,7 +406,6 @@ public partial class CaptureOverlay : Window {
 				CaptureLog.Info("Session.Cancel SKIP already finishing");
 				return;
 			}
-			cancelflushdragui();
 			Finishing = true;
 			Confirmed = false;
 			Image = null;
@@ -450,28 +428,43 @@ public partial class CaptureOverlay : Window {
 	}
 
 	/// <summary>
-	/// 框选挖空微基准（CLI <c>--test-capture-drag</c>）：连续改选区测 updatemask 成本。
+	/// 框选挖空微基准（CLI <c>--test-capture-drag</c>）：用主屏真实冻结图连续改选区。
 	/// </summary>
 	public static string BenchSelectDrag(int frames = 300) {
 		frames = Compat.Clamp(frames, 30, 5000);
-		var wb = new WriteableBitmap(1920, 1080, 96, 96, PixelFormats.Bgra32, null);
-		wb.Freeze();
+		var scr = System.Windows.Forms.Screen.PrimaryScreen
+			?? System.Windows.Forms.Screen.AllScreens.FirstOrDefault();
+		if (scr == null)
+			return "FAIL no screen";
+		BitmapSource freeze;
+		System.Drawing.Rectangle ovr;
+		try {
+			freeze = CaptureMonitor(scr, out _, out _, out ovr);
+			if (freeze == null) return "FAIL capture null";
+			if (ovr.Width < 8 || ovr.Height < 8) ovr = scr.Bounds;
+		}
+		catch (Exception ex) {
+			return "FAIL capture " + ex.Message;
+		}
 		var session = new Session(false);
-		var ov = new CaptureOverlay(session, new System.Drawing.Rectangle(0, 0, 1920, 1080), wb);
+		var ov = new CaptureOverlay(session, ovr, freeze);
 		session.Windows.Add(ov);
 		try {
 			ov.Show();
 			ov.UpdateLayout();
+			var maxW = Math.Max(64, ovr.Width - 40);
+			var maxH = Math.Max(64, ovr.Height - 40);
 			for (int i = 0; i < 5; i++)
-				ov.applyvirtualsel(20, 20, 200 + i, 150 + i);
+				ov.applyvirtualsel(ovr.Left + 20, ovr.Top + 20, ovr.Left + 200 + i, ovr.Top + 150 + i);
 			ov.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
 
 			var times = new long[frames];
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 			for (int i = 0; i < frames; i++) {
 				var t0 = sw.ElapsedTicks;
-				ov.applyvirtualsel(30, 40, 30 + 8 + (i % 800), 40 + 6 + ((i * 3) % 600));
-				// 等到 Render：含透明窗合成，更接近真实拖动一帧
+				var x1 = ovr.Left + 30 + (i % Math.Max(1, maxW - 30));
+				var y1 = ovr.Top + 40 + ((i * 3) % Math.Max(1, maxH - 40));
+				ov.applyvirtualsel(ovr.Left + 20, ovr.Top + 20, x1, y1);
 				ov.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
 				times[i] = sw.ElapsedTicks - t0;
 			}
@@ -485,7 +478,7 @@ public partial class CaptureOverlay : Window {
 				if (ms > max) max = ms;
 				if (ms > 16.0) over16++;
 			}
-			return $"frames={frames} sum={sum:F1}ms avg={sum / frames:F3}ms max={max:F2}ms over16ms={over16} wall={sw.ElapsedMilliseconds}ms";
+			return $"frames={frames} bmp={freeze.PixelWidth}x{freeze.PixelHeight} opaque={!ov.AllowsTransparency} sum={sum:F1}ms avg={sum / frames:F3}ms max={max:F2}ms over16ms={over16} wall={sw.ElapsedMilliseconds}ms";
 		}
 		finally {
 			try {
@@ -687,8 +680,6 @@ public partial class CaptureOverlay : Window {
 	int lastHoverLx = int.MinValue, lastHoverLy = int.MinValue;
 	/// <summary>遮罩缓存，相同挖空矩形跳过。</summary>
 	double lastMaskX = double.NaN, lastMaskY, lastMaskW, lastMaskH;
-	/// <summary>框选尺寸提示上次值（避免每像素改 Text 触发布局）。</summary>
-	int lastHintPw = int.MinValue, lastHintPh = int.MinValue;
 	/// <summary>放大镜上次采样原点（底图像素）。</summary>
 	int lastMagSx = int.MinValue, lastMagSy = int.MinValue;
 	/// <summary>跨屏拼接重裁节流（仅 viewPort 不可用时）。</summary>
@@ -1087,21 +1078,13 @@ public partial class CaptureOverlay : Window {
 			rwin.Visibility = Visibility.Collapsed;
 			hasHoverWin = false;
 			bmag.Visibility = Visibility.Collapsed;
+			// 拖选时隐藏提示条，少一次布局/合成
+			bhint.Visibility = Visibility.Collapsed;
 		}
 		if (regionDrag && session != null) {
 			session.UpdateDrag(cx, cy);
-			var pw = Math.Abs(session.DragVX1 - session.DragVX0);
-			var ph = Math.Abs(session.DragVY1 - session.DragVY0);
-			// 尺寸文案仅在变化时改，避免拖动时 TextBlock 反复测宽布局
-			if (pw != lastHintPw || ph != lastHintPh) {
-				lastHintPw = pw;
-				lastHintPh = ph;
-				lbcap.Text = $"{pw} × {ph} · 可跨屏 · 松手确认 · Esc 取消";
-				updatehintdodge(canvas, allowFlip: false);
-			}
 		}
 		else {
-			lastHintPw = lastHintPh = int.MinValue;
 			updatehoverui(cx, cy, lx, ly, canvas);
 		}
 	}
@@ -1116,19 +1099,25 @@ public partial class CaptureOverlay : Window {
 		// 经 desk 像素再映到画布，与最终裁切/标注层同一路径，避免框选时内容微偏
 		if (!tryvirtualtodesk(left, top, Math.Max(1, right - left), Math.Max(1, bottom - top),
 				out var dl, out var dt, out var dw, out var dh)) {
-			rsel.Visibility = Visibility.Collapsed;
+			if (rsel.Visibility != Visibility.Collapsed)
+				rsel.Visibility = Visibility.Collapsed;
 			updatemask(0, 0, 0, 0);
 			return;
 		}
 		var (ox, oy, ow, oh) = localtooverlay(dl, dt, dw, dh);
-		Canvas.SetLeft(rsel, ox);
-		Canvas.SetTop(rsel, oy);
-		rsel.Width = Math.Max(0, ow);
-		rsel.Height = Math.Max(0, oh);
-		rsel.Visibility = Visibility.Visible;
+		ow = Math.Max(0, ow);
+		oh = Math.Max(0, oh);
+		if (rsel.Visibility != Visibility.Visible)
+			rsel.Visibility = Visibility.Visible;
+		// 亚像素内不变则跳过依赖属性写入（拖选热路径）
+		if (Math.Abs(Canvas.GetLeft(rsel) - ox) > 0.1 || Math.Abs(Canvas.GetTop(rsel) - oy) > 0.1
+			|| Math.Abs(rsel.Width - ow) > 0.1 || Math.Abs(rsel.Height - oh) > 0.1) {
+			Canvas.SetLeft(rsel, ox);
+			Canvas.SetTop(rsel, oy);
+			rsel.Width = ow;
+			rsel.Height = oh;
+		}
 		updatemask(ox, oy, ow, oh);
-		rwin.Visibility = Visibility.Collapsed;
-		bmag.Visibility = Visibility.Collapsed;
 	}
 
 	/// <summary>
@@ -3656,10 +3645,10 @@ public partial class CaptureOverlay : Window {
 		}
 		if (r.Visibility != Visibility.Visible)
 			r.Visibility = Visibility.Visible;
-		Canvas.SetLeft(r, left);
-		Canvas.SetTop(r, top);
-		r.Width = width;
-		r.Height = height;
+		if (Math.Abs(Canvas.GetLeft(r) - left) > 0.1) Canvas.SetLeft(r, left);
+		if (Math.Abs(Canvas.GetTop(r) - top) > 0.1) Canvas.SetTop(r, top);
+		if (Math.Abs(r.Width - width) > 0.1) r.Width = width;
+		if (Math.Abs(r.Height - height) > 0.1) r.Height = height;
 	}
 
 	/// <summary>按屏幕 DIP 矩形截取（回退路径）。相对虚拟屏原点均匀映射到物理像素。</summary>
