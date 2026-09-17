@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg">
+
+    <TextView
+        android:id="@+id/lbstatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:text="未连接"
+        android:textColor="@color/muted"
+        android:textSize="13sp" />
+
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <Button android:id="@+id/brefresh" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="刷新" />
+            <Button android:id="@+id/bupload" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="上传" />
+            <Button android:id="@+id/bsync" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="同步" />
+            <Button android:id="@+id/btext" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="文本同步" />
+            <Button android:id="@+id/bfolder" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="绑定文件夹" />
+            <Button android:id="@+id/bpick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="换电脑" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/lbpath"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="4dp"
+        android:text="/"
+        android:textColor="@color/text"
+        android:textSize="13sp" />
+
+    <ListView
+        android:id="@+id/lvfiles"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

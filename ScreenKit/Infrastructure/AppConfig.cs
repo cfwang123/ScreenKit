@@ -155,6 +155,17 @@ static class AppConfig {
 				o.HttpHost = hh.Trim().Trim('"');
 			if (map.TryGetValue("http_port", out var hp) && int.TryParse(hp, out var port))
 				o.HttpPort = Compat.Clamp(port, 1, 65535);
+			if (map.TryGetValue("sendfile_enabled", out var sfe))
+				o.SendFileEnabled = parsebool(sfe, true);
+			if (map.TryGetValue("sendfile_port", out var sfp) && int.TryParse(sfp, out var sfPort))
+				o.SendFilePort = Compat.Clamp(sfPort, 1, 65535);
+			if (map.TryGetValue("sendfile_udp_port", out var sfup) && int.TryParse(sfup, out var sfUdp))
+				o.SendFileUdpPort = Compat.Clamp(sfUdp, 1, 65535);
+			if (map.TryGetValue("sendfile_name", out var sfn))
+				o.SendFileName = (sfn ?? "").Trim().Trim('"');
+			if (map.TryGetValue("sendfile_pc_id", out var sfid) && !string.IsNullOrWhiteSpace(sfid))
+				o.SendFilePcId = sfid.Trim().Trim('"');
+			o.SendFileDevices = parsesendfiledevices(text);
 			if (map.TryGetValue("service_mode", out var sm))
 				o.ServiceMode = parsebool(sm, false);
 			if (map.TryGetValue("pdf_invisible_text", out var pit))
@@ -438,6 +449,24 @@ static class AppConfig {
 		sb.AppendLine($"# 服务模式：引擎常驻预热，不主动释放");
 		sb.AppendLine($"service_mode = {(o.ServiceMode ? "true" : "false")}");
 		sb.AppendLine();
+		sb.AppendLine("[sendfile]");
+		sb.AppendLine("# 局域网文件传输（手机 App com.whj.screenkit）；需首次配对");
+		sb.AppendLine($"sendfile_enabled = {(o.SendFileEnabled ? "true" : "false")}");
+		sb.AppendLine($"sendfile_port = {(o.SendFilePort <= 0 ? 17532 : o.SendFilePort)}");
+		sb.AppendLine($"sendfile_udp_port = {(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort)}");
+		sb.AppendLine($"sendfile_name = \"{esc(o.SendFileName ?? "")}\"");
+		sb.AppendLine($"sendfile_pc_id = \"{esc(o.SendFilePcId ?? "")}\"");
+		if (o.SendFileDevices != null) {
+			foreach (var d in o.SendFileDevices) {
+				if (d == null || string.IsNullOrWhiteSpace(d.Id)) continue;
+				sb.AppendLine("[[sendfile_device]]");
+				sb.AppendLine($"id = \"{esc(d.Id ?? "")}\"");
+				sb.AppendLine($"name = \"{esc(d.Name ?? "")}\"");
+				sb.AppendLine($"token = \"{esc(d.Token ?? "")}\"");
+				sb.AppendLine();
+			}
+		}
+		sb.AppendLine();
 		sb.AppendLine("[pdf]");
 		sb.AppendLine($"# PDF 识别后叠加不可见文字层（可检索/复制）");
 		sb.AppendLine($"pdf_invisible_text = {(o.PdfInvisibleText ? "true" : "false")}");
@@ -620,6 +649,47 @@ static class AppConfig {
 		if (s.Equals("false", StringComparison.OrdinalIgnoreCase) || s == "0" || s.Equals("no", StringComparison.OrdinalIgnoreCase))
 			return false;
 		return def;
+	}
+
+	/// <summary>解析 <c>[[sendfile_device]]</c> 数组表。</summary>
+	static List<SendFileDevice> parsesendfiledevices(string text) {
+		var list = new List<SendFileDevice>();
+		if (string.IsNullOrEmpty(text)) return list;
+		SendFileDevice cur = null;
+		foreach (var raw in text.Replace("\r\n", "\n").Split('\n')) {
+			var line = raw.Trim();
+			if (line.Length == 0 || line[0] == '#') continue;
+			if (line[0] == '[') {
+				cur = null;
+				if (line.StartsWith("[[", StringComparison.Ordinal) && line.EndsWith("]]")) {
+					var name = line[2..^2].Trim();
+					if (name.Equals("sendfile_device", StringComparison.OrdinalIgnoreCase)) {
+						cur = new SendFileDevice();
+						list.Add(cur);
+					}
+				}
+				continue;
+			}
+			if (cur == null) continue;
+			var eq = line.IndexOf('=');
+			if (eq <= 0) continue;
+			var key = line[..eq].Trim();
+			var val = line[(eq + 1)..].Trim();
+			var hash = val.IndexOf('#');
+			if (hash >= 0 && !(val.StartsWith("\"") && val.LastIndexOf('"') > 0 && hash > val.LastIndexOf('"')))
+				val = val[..hash].Trim();
+			if (val.Length >= 2 && val[0] == '"' && val[val.Length - 1] == '"')
+				val = val[1..^1].Replace("\\\"", "\"").Replace("\\\\", "\\");
+			if (key.Equals("id", StringComparison.OrdinalIgnoreCase))
+				cur.Id = val;
+			else if (key.Equals("name", StringComparison.OrdinalIgnoreCase))
+				cur.Name = val;
+			else if (key.Equals("token", StringComparison.OrdinalIgnoreCase)
+				|| key.Equals("key", StringComparison.OrdinalIgnoreCase))
+				cur.Token = val;
+		}
+		list.RemoveAll(d => d == null || string.IsNullOrWhiteSpace(d.Id));
+		return list;
 	}
 
 	/// <summary>解析 <c>[[llm]]</c> 数组表。</summary>

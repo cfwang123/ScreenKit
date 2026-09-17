@@ -76,6 +76,18 @@ public sealed class OcrOptions {
 	public string HttpHost = "127.0.0.1";
 	/// <summary>HTTP 端口，默认与 Umi-OCR 一致 1224。</summary>
 	public int HttpPort = 1224;
+	/// <summary>局域网文件传输服务（手机 App）。</summary>
+	public bool SendFileEnabled = true;
+	/// <summary>文件传输 HTTP 端口。</summary>
+	public int SendFilePort = 17532;
+	/// <summary>UDP 发现端口。</summary>
+	public int SendFileUdpPort = 17531;
+	/// <summary>局域网显示名；空则用机器名。</summary>
+	public string SendFileName = "";
+	/// <summary>本机稳定 id，供手机记住电脑。</summary>
+	public string SendFilePcId = "";
+	/// <summary>已配对手机。</summary>
+	public List<SendFileDevice> SendFileDevices = new();
 	/// <summary>
 	/// 服务模式：启动/改参后立即预热引擎并常驻，不主动释放模型内存。
 	/// 关闭时保持懒加载（改参后丢弃，下次识别再加载）。
@@ -294,6 +306,13 @@ public sealed class OcrOptions {
 		HttpEnabled = HttpEnabled,
 		HttpHost = HttpHost,
 		HttpPort = HttpPort,
+		SendFileEnabled = SendFileEnabled,
+		SendFilePort = SendFilePort,
+		SendFileUdpPort = SendFileUdpPort,
+		SendFileName = SendFileName ?? "",
+		SendFilePcId = SendFilePcId ?? "",
+		SendFileDevices = (SendFileDevices ?? new List<SendFileDevice>())
+			.Where(x => x != null).Select(x => x.Clone()).ToList(),
 		ServiceMode = ServiceMode,
 		PdfInvisibleText = PdfInvisibleText,
 		PdfDpi = PdfDpi,
@@ -398,6 +417,24 @@ public sealed class OcrOptions {
 		var hit = FindLlm(ChatLlm);
 		if (hit != null) return hit;
 		return SelectedLlm();
+	}
+}
+
+/// <summary>已配对的手机端。</summary>
+public sealed class SendFileDevice {
+	public string Id = "";
+	public string Name = "";
+	public string Token = "";
+
+	public SendFileDevice Clone() => new() {
+		Id = Id ?? "",
+		Name = Name ?? "",
+		Token = Token ?? "",
+	};
+
+	public override string ToString() {
+		var n = string.IsNullOrWhiteSpace(Name) ? Id : Name;
+		return n ?? "";
 	}
 }
 

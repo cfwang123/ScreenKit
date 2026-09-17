@@ -8,11 +8,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 ### English
 
+#### Added
+
+- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a Text sync window (one-line list + Copy). Companion Android app: `android/` (`com.whj.screenkit`).
+
 #### Changed
 
 - Reverted the screenshot-overlay drag performance experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the previous transparent overlay, dim mask, and green selection frame.
 
 ### 中文
+
+#### 新增
+
+- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、文本同步窗（单行列表 + 复制）。配套安卓应用：`android/`（`com.whj.screenkit`）。
 
 #### 变更
 

@@ -32,6 +32,7 @@ Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界�
 | **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入 · 翻译小窗（可配置、可清空禁用） |
 | **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口（`tab_*_visible`，默认全部显示） |
 | **HTTP API** | 本机 JSON 接口（默认 `127.0.0.1:1224`）。主界面 Tab：调用日志 + 手动发请求 |
+| **PC 文件传输** | 独立局域网服务（HTTP 17532 + UDP 发现 17531）。手机 App `android/`（`com.whj.screenkit`「PC文件传输」）浏览程序旁 `sendfile/`、上传/下载/删除，并可单向同步到手机绑定文件夹。首次连接电脑弹窗确认。工具菜单/托盘「文本同步」与手机「文本同步」互发文本（列表单行 + 复制），不同步系统剪贴板。 |
 | **CLI** | 批量识图、列模型 / SAPI 发音人、探测 CUDA、多屏抓取自检 |
 
 ## 运行环境
@@ -200,6 +201,7 @@ Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release
 ScreenKit --image <路径> [选项]
 ScreenKit --snap [--out <目录>]
 ScreenKit --test-clipboard-path   # 延迟位图后改路径；含 4K 计时
+ScreenKit --test-sendfile         # sendfile 路径沙箱与列出/上传/删除
 ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
@@ -239,6 +241,8 @@ x86host.exe --list-sapi
 
 启用后监听 `http_host:http_port`（默认仅本机）。
 
+另有独立 **PC 文件传输** 服务（默认 HTTP `17532`、UDP 发现 `17531`，需配对），详见 [HTTP接口文档.md](HTTP接口文档.md) 与 [android/README.md](android/README.md)。
+
 - `GET  /api` · `/api/status` — 能力与状态
 - `POST /api/ocr` — 图片（JSON base64 或 multipart）；`box` 为原图像素（限制边长后已还原）
 - `POST /api/qr` — 仅条码/二维码（`/api/barcode`；JSON base64/path 或 multipart）
@@ -259,7 +263,8 @@ x86host.exe --list-sapi
 
 - `[ocr]`：模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值等  
 - `[ui]`：热键、托盘、界面语言；`tab_ocr_visible`、`tab_tts_visible`、`tab_asr_visible`、`tab_chat_visible`、`tab_translate_visible`、`tab_face_visible`、`tab_http_visible` 分别控制 7 个主界面 Tab（默认全部 `true`，仅隐藏入口）；`update_check_days`（启动时自动检查更新间隔，默认 7 天，0=不自动检查；菜单「检查更新」不受限）、`http_proxy` / `http_proxy_addr`（访问 GitHub 等非中国网站时的 HTTP 代理，国内镜像直连）、`capture_log`（`log/capture.log`：多屏/DPI，以及截图落盘 prep/encode/clip 耗时，≥500ms 标 `SLOW`）、`llm_log`（`log/llm.log`，润色请求/响应，不含 key）、`screenshot_keep_days`（截图历史保留天数，默认 3，0=不限；仅启动时后台清理，截图时不删）
-- `[http]`：本机 API 开关与端口、服务模式  
+- `[http]`：本机 API 开关与端口、服务模式
+- `[sendfile]`：局域网文件传输（端口、显示名、已配对设备）  
 - `[pdf]`：导出与内部光栅 DPI  
 - `[asr]`：离线/流式模型、听写 `asr_voice_mode`（`stream`/`offline`）、`asr_voice_polish` / `asr_voice_split`（自动分句时成句即润色并输入）、`asr_voice_split_sec`（仅静音达到该秒数才切句，默认 5，连续说话不切）；实时字幕 `asr_live_mode`（`stream`/`offline` 静音切句）、`asr_live_polish` / `asr_live_split`；`asr_llm` 为润色选用的 LLM 显示名称（空则用列表第一项）。润色提示词仍在 `[asr]`（`asr_llm_prompt`）。会去掉 `<think>` 等推理块。润色时附带本轮已输出上文（约千字），模型只返回当前句。听写时浮窗第一行保持「听写中」提示；第二行显示「识别中 · Esc 停止」或「润色中」及原文（同一行）；已输出后第二行清空。识别/润色中按 Esc 立刻结束本轮听写且不输出。  
 - `chat_llm` / `chat_llm_prompt` / `chat_agent` / `chat_auto_tts`：主窗「LLM对话」接口、系统提示词、工具开关（默认 true）、助手回复自动朗读（默认 true）。

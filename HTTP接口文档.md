@@ -898,7 +898,33 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ---
 
-## 15. 相关
+## 15. PC 文件传输（局域网，需配对）
+
+这不是 1224 端口的 OCR HTTP API。在 **参数设置 → 接口 → PC 文件传输** 启用。默认 HTTP **17532**，UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
+
+配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
+
+发现：向 UDP 17531 广播 `SCREENKIT_DISCOVER`，电脑应答 JSON `{v,name,httpPort,pcId}`。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/sendfile/pair` | body `{id,name}`；首次在电脑弹窗确认 |
+| GET | `/api/sendfile/info` | 显示名 / pcId |
+| GET | `/api/sendfile/list?path=&deep=` | `deep=1` 递归 |
+| GET | `/api/sendfile/download?path=` | 二进制流 |
+| POST | `/api/sendfile/upload?path=` | 原始 body |
+| POST | `/api/sendfile/mkdir` | body `{path}` |
+| DELETE | `/api/sendfile/delete?path=` | 文件或目录 |
+| POST | `/api/sendfile/text` | body `{text}` → 电脑文本同步列表 |
+| GET | `/api/sendfile/text?since=` | 电脑发给该手机的消息 |
+
+JSON `code` 100 成功；401/403 未配对；410 路径非法。
+
+安卓应用：[android/README.md](android/README.md)。
+
+---
+
+## 16. 相关
 
 - 程序内：`ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs` · `HttpOcrServer.Qr.cs`
 - 配置：`config.toml`（`http_enabled` / `http_host` / `http_port` / `service_mode`）

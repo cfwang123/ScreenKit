@@ -32,6 +32,7 @@ Current version: **1.0.7**
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP (`tab_*_visible`; all visible by default) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + manual request |
+| **PC file transfer** | Separate LAN service (HTTP 17532 + UDP discovery 17531). Phone app under `android/` (`com.whj.screenkit`, “PC文件传输”) browses `sendfile/` next to the exe (upload/download/delete) and one-way syncs into a bound folder. First connection shows a confirm dialog. Tools/tray **Text sync** exchanges text with the phone (one-line list + Copy); it does not sync the system clipboard. |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
 ## Requirements
@@ -190,6 +191,13 @@ http_host = "127.0.0.1"
 http_port = 1224
 service_mode = false            # keep engine warm
 
+[sendfile]
+sendfile_enabled = true         # LAN file transfer for the phone app
+sendfile_port = 17532
+sendfile_udp_port = 17531
+sendfile_name = ""              # empty = machine name
+# [[sendfile_device]]           # paired phones (id / name / token)
+
 [pdf]
 pdf_invisible_text = true
 pdf_dpi = 150                   # internal raster DPI; page size follows original PDF
@@ -339,6 +347,8 @@ In the UI, choose engine **SAPI**: local voices plus **x86-only** entries (displ
 ## HTTP API (overview)
 
 When enabled, a local server listens on `http_host:http_port` (default loopback only).
+
+A separate **PC file transfer** service (HTTP `17532`, UDP discovery `17531`, pairing required) is documented in [HTTP-API.md](HTTP-API.md) and [android/README.md](android/README.md).
 
 - `GET  /api` · `/api/status` — capabilities
 - `POST /api/ocr` — image (JSON base64 or multipart); `box` is original-image pixels (mapped back after side-length limit)

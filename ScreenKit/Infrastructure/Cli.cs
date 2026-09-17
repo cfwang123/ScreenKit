@@ -34,6 +34,7 @@ static class Cli {
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
+				or "--test-sendfile"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -210,6 +211,8 @@ static class Cli {
 					return runtesthttptts();
 				case "--test-http-chat":
 					return runtesthttpchat();
+				case "--test-sendfile":
+					return testsendfile();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2198,6 +2201,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
+      --test-sendfile  sendfile 路径沙箱与列出/上传/删除（临时目录，不弹配对）
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2281,6 +2285,55 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			Console.SetError(new StreamWriter(fsErr, new UTF8Encoding(false)) { AutoFlush = true });
 		}
 		catch { }
+	}
+
+	static int testsendfile() {
+		var dir = Path.Combine(Path.GetTempPath(), "sk_sf_" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(dir);
+		try {
+			SendFilePaths.SetRootForTest(dir);
+			SendFilePaths.EnsureRoot();
+			if (SendFilePaths.TryResolve("..\\..\\Windows", out _, out _)) {
+				Err("sendfile: 目录穿越应失败");
+				return 1;
+			}
+			if (SendFilePaths.TryResolve("C:\\Windows\\notepad.exe", out _, out _)) {
+				Err("sendfile: 绝对路径应失败");
+				return 1;
+			}
+			if (!SendFilePaths.TryResolve("a/b.txt", out var full, out var err)) {
+				Err("sendfile: 相对路径失败 " + err);
+				return 1;
+			}
+			using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("hello")))
+				SendFileOps.SaveStream("a/b.txt", ms);
+			if (!File.Exists(full)) {
+				Err("sendfile: 上传后文件不存在");
+				return 1;
+			}
+			SendFileOps.Mkdir("sub");
+			var items = SendFileOps.List("", false);
+			if (items == null || items.Count < 1) {
+				Err("sendfile: list 为空");
+				return 1;
+			}
+			var deep = SendFileOps.List("", true);
+			if (deep == null) {
+				Err("sendfile: deep list 失败");
+				return 1;
+			}
+			SendFileOps.Delete("a/b.txt");
+			if (File.Exists(full)) {
+				Err("sendfile: 删除失败");
+				return 1;
+			}
+			Out("sendfile path/ops ok");
+			return 0;
+		}
+		finally {
+			SendFilePaths.SetRootForTest(null);
+			try { Directory.Delete(dir, true); } catch { }
+		}
 	}
 
 	static void Out(string s) {

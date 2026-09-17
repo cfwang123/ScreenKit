@@ -91,6 +91,17 @@ tmp/install-cache/
 sample/
 *.lnk
 
+# ── SendFile runtime folder (next to exe; also if created at repo root) ─
+/sendfile/
+
+# ── Android app ──────────────────────────────────────────
+android/.gradle/
+android/**/build/
+android/local.properties
+android/.idea/
+android/*.iml
+!android/app/src/main/res/**
+
 # ── Local record / GIF test scratch ──────────────────────
 **/gif_test/
 record_*.log

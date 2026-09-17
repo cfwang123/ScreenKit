@@ -44,6 +44,7 @@ public partial class SettingsWindow : Window {
 			etrllmprompt.Text = OcrOptions.DefaultTranslatePrompt();
 		bchatllmpromptreset.Click += (_, _) =>
 			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
+		bsfunpair.Click += (_, _) => unpairselected();
 
 		bcancel.Click += (_, _) => { Applied = false; Close(); };
 		bok.Click += (_, _) => {
@@ -276,6 +277,14 @@ public partial class SettingsWindow : Window {
 			ehttpen.Content = Loc.T("set.http.enable");
 			lbsethttphost.Text = Loc.T("set.http.host");
 			lbsethttpport.Text = Loc.T("set.http.port");
+			lbsetsf.Text = Loc.T("set.sendfile");
+			lbsetsfhint.Text = Loc.T("set.sendfile.hint");
+			esfen.Content = Loc.T("set.sendfile.enable");
+			lbsetsfname.Text = Loc.T("set.sendfile.name");
+			lbsetsfport.Text = Loc.T("set.sendfile.port");
+			lbsetsfudp.Text = Loc.T("set.sendfile.udp");
+			lbsetsfdev.Text = Loc.T("set.sendfile.devices");
+			bsfunpair.Content = Loc.T("set.sendfile.unpair");
 			bok.Content = Loc.T("set.ok");
 			bcancel.Content = Loc.T("set.cancel");
 			bhkclear.Content = Loc.T("set.hotkey.clear");
@@ -472,6 +481,11 @@ public partial class SettingsWindow : Window {
 		ehttphost.Text = string.IsNullOrWhiteSpace(o.HttpHost) ? "127.0.0.1" : o.HttpHost;
 		ehttpport.Text = o.HttpPort > 0 ? o.HttpPort.ToString() : "1224";
 		eservicemode.IsChecked = o.ServiceMode;
+		esfen.IsChecked = o.SendFileEnabled;
+		esfname.Text = o.SendFileName ?? "";
+		esfport.Text = (o.SendFilePort > 0 ? o.SendFilePort : 17532).ToString();
+		esfudp.Text = (o.SendFileUdpPort > 0 ? o.SendFileUdpPort : 17531).ToString();
+		refreshsfdev();
 		epdftext.IsChecked = o.PdfInvisibleText;
 		ecapturelog.IsChecked = o.CaptureLog;
 		ellmlog.IsChecked = o.LlmLog;
@@ -607,6 +621,22 @@ public partial class SettingsWindow : Window {
 		}
 		Result.HttpPort = port;
 		Result.ServiceMode = eservicemode.IsChecked == true;
+		Result.SendFileEnabled = esfen.IsChecked == true;
+		Result.SendFileName = (esfname.Text ?? "").Trim();
+		if (!int.TryParse((esfport.Text ?? "").Trim(), out var sfPort) || sfPort < 1 || sfPort > 65535) {
+			tabset.SelectedItem = tabsethttp;
+			MessageBox.Show(this, Loc.T("set.sendfile.port.bad"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		Result.SendFilePort = sfPort;
+		if (!int.TryParse((esfudp.Text ?? "").Trim(), out var sfUdp) || sfUdp < 1 || sfUdp > 65535) {
+			tabset.SelectedItem = tabsethttp;
+			MessageBox.Show(this, Loc.T("set.sendfile.port.bad"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		Result.SendFileUdpPort = sfUdp;
 		Result.PdfInvisibleText = epdftext.IsChecked == true;
 		Result.CaptureLog = ecapturelog.IsChecked == true;
 		Result.LlmLog = ellmlog.IsChecked == true;
@@ -616,6 +646,31 @@ public partial class SettingsWindow : Window {
 	}
 
 	static OcrOptions clone(OcrOptions o) => o?.Clone() ?? new();
+
+	void refreshsfdev() {
+		esfdev.Items.Clear();
+		var list = Result.SendFileDevices;
+		if (list == null || list.Count == 0) {
+			esfdev.Items.Add(Loc.T("set.sendfile.none"));
+			bsfunpair.IsEnabled = false;
+			return;
+		}
+		bsfunpair.IsEnabled = true;
+		foreach (var d in list) {
+			if (d == null || string.IsNullOrWhiteSpace(d.Id)) continue;
+			var label = string.IsNullOrWhiteSpace(d.Name) ? d.Id : $"{d.Name}  ({d.Id})";
+			esfdev.Items.Add(new ListBoxItem { Content = label, Tag = d.Id });
+		}
+	}
+
+	void unpairselected() {
+		if (esfdev.SelectedItem is not ListBoxItem it) return;
+		var id = it.Tag as string;
+		if (string.IsNullOrWhiteSpace(id) || Result.SendFileDevices == null) return;
+		Result.SendFileDevices.RemoveAll(d =>
+			d != null && string.Equals(d.Id, id, StringComparison.OrdinalIgnoreCase));
+		refreshsfdev();
+	}
 
 	void loadllms(OcrOptions o) {
 		llmsync = true;

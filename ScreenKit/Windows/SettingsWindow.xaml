@@ -600,6 +600,48 @@
 						<TextBlock x:Name="lbsetservicehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap"
 						           Text="启用后启动与改参会立即加载引擎并保持常驻；关闭则为懒加载（改参后丢弃，下次识别再加载）"/>
+
+						<TextBlock x:Name="lbsetsf" Text="PC 文件传输（局域网）"
+						           FontWeight="SemiBold" Margin="0,20,0,6"/>
+						<TextBlock x:Name="lbsetsfhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="手机 App「PC文件传输」搜索本机；首次连接需弹窗确认。目录为程序旁 sendfile/"/>
+						<CheckBox x:Name="esfen" Content="启用文件传输服务" Margin="0,0,0,10" IsChecked="True"
+						          AutomationProperties.AutomationId="set.sendfile.enable"/>
+						<TextBlock x:Name="lbsetsfname" Text="电脑显示名" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="esfname" Height="30" Padding="6,4" Margin="0,0,0,10"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         AutomationProperties.AutomationId="set.sendfile.name"/>
+						<Grid Margin="0,0,0,10">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="12"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<StackPanel Grid.Column="0">
+								<TextBlock x:Name="lbsetsfport" Text="HTTP 端口" FontSize="11"
+								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+								<TextBox x:Name="esfport" Height="30" Padding="6,4"
+								         BorderBrush="{StaticResource BorderSoft}" Text="17532"
+								         AutomationProperties.AutomationId="set.sendfile.port"/>
+							</StackPanel>
+							<StackPanel Grid.Column="2">
+								<TextBlock x:Name="lbsetsfudp" Text="UDP 发现端口" FontSize="11"
+								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+								<TextBox x:Name="esfudp" Height="30" Padding="6,4"
+								         BorderBrush="{StaticResource BorderSoft}" Text="17531"
+								         AutomationProperties.AutomationId="set.sendfile.udp"/>
+							</StackPanel>
+						</Grid>
+						<TextBlock x:Name="lbsetsfdev" Text="已配对设备" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<ListBox x:Name="esfdev" Height="90" Margin="0,0,0,8"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         AutomationProperties.AutomationId="set.sendfile.devices"/>
+						<Button x:Name="bsfunpair" Content="解除配对" Style="{StaticResource ToolBtn}"
+						        HorizontalAlignment="Left" Padding="12,6"
+						        AutomationProperties.AutomationId="set.sendfile.unpair"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

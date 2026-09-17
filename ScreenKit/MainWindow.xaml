@@ -119,6 +119,9 @@
 				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
 				          AutomationProperties.AutomationId="menu.settings"
 				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
+				<MenuItem x:Name="mntextsync" Header="文本同步(_X)…"
+				          AutomationProperties.AutomationId="menu.sendfile"
+				          ToolTip="与手机互发文本；列表中点复制"/>
 				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
 				          AutomationProperties.AutomationId="menu.translate.popup"
 				          ToolTip="浮窗翻译；热键再按一次隐藏"/>

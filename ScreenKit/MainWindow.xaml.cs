@@ -70,6 +70,8 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyTr;     // 翻译小窗
 	TranslatePopupWindow trPopup;
 	HttpOcrServer httpServer;
+	SendFileServer sendFile;
+	TextSyncWindow textSyncWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -113,6 +115,7 @@ public partial class MainWindow : Window {
 		inittray();
 		inithotkey();
 		inithttpserver();
+		initsendfile();
 		inithttptab();
 		// 服务模式：启动后后台预热，引擎常驻
 		if (opt.ServiceMode)
@@ -341,6 +344,81 @@ public partial class MainWindow : Window {
 		else synchttpstatus();
 	}
 
+	void initsendfile() {
+		try {
+			sendFile = new SendFileServer(() => opt, () => {
+				try { AppConfig.Save(opt); } catch { }
+			});
+			sendFile.Auth.AskPair = askpair;
+			sendFile.Logged += s => Dispatcher.BeginInvoke(new Action(() => {
+				if (!string.IsNullOrWhiteSpace(s)) setstatus(s);
+			}));
+			if (opt.SendFileEnabled)
+				startsendfile();
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("st.sendfile_fail", ex.Message));
+		}
+	}
+
+	bool askpair(string name, string ip) {
+		var ok = false;
+		try {
+			Dispatcher.Invoke(() => {
+				var msg = Loc.T("sendfile.pair.ask", name ?? "", ip ?? "");
+				Window owner = null;
+				if (IsVisible && WindowState != WindowState.Minimized)
+					owner = this;
+				var r = owner != null
+					? MessageBox.Show(owner, msg, Loc.T("sendfile.pair.title"),
+						MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No)
+					: MessageBox.Show(msg, Loc.T("sendfile.pair.title"),
+						MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+				ok = r == MessageBoxResult.Yes;
+			});
+		}
+		catch { return false; }
+		return ok;
+	}
+
+	void startsendfile() {
+		if (sendFile == null) return;
+		try {
+			sendFile.Start();
+			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
+			setstatus(Loc.T("st.sendfile_ok", port));
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("st.sendfile_fail", ex.Message));
+		}
+	}
+
+	void restartsendfile() {
+		try { sendFile?.Stop(); } catch { }
+		if (opt.SendFileEnabled) startsendfile();
+		else setstatus(Loc.T("st.sendfile_off"));
+	}
+
+	void showtextsync() {
+		if (sendFile == null) {
+			MessageBox.Show(this, Loc.T("st.sendfile_fail", "not started"), Loc.T("sendfile.text.title"),
+				MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
+		if (textSyncWin != null) {
+			try {
+				textSyncWin.Show();
+				textSyncWin.Activate();
+				return;
+			}
+			catch { textSyncWin = null; }
+		}
+		textSyncWin = new TextSyncWindow(sendFile);
+		attachdialogowner(textSyncWin);
+		textSyncWin.Closed += (_, _) => textSyncWin = null;
+		textSyncWin.Show();
+	}
+
 	/// <summary>供 HTTP 服务复制当前参数（含 LLM / 翻译；后台线程可调，勿触碰 UI）。</summary>
 	OcrOptions snapshotopt() => (opt ?? new OcrOptions()).Clone();
 
@@ -407,6 +485,7 @@ public partial class MainWindow : Window {
 			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
 			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(opengifrecordoptions));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(opensettings));
+			tray.TextSyncRequested += () => Dispatcher.BeginInvoke(new Action(showtextsync));
 			tray.ForceExitRequested += () => {
 				forceExit = true;
 				try { Close(); } catch { }
@@ -702,6 +781,7 @@ public partial class MainWindow : Window {
 		}
 		catch { }
 		try { httpServer?.Stop(); } catch { }
+		try { sendFile?.Stop(); } catch { }
 		try { hotkey?.Dispose(); } catch { }
 		try { hotkeySnap?.Dispose(); } catch { }
 		try { hotkeySnapOcr?.Dispose(); } catch { }
@@ -1045,6 +1125,7 @@ public partial class MainWindow : Window {
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
 		mnsettings.Click += (_, _) => opensettings();
+		mntextsync.Click += (_, _) => showtextsync();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
@@ -1138,6 +1219,7 @@ public partial class MainWindow : Window {
 
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
+			mntextsync.Header = Loc.T("menu.sendfile");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mninstall.Header = Loc.T("menu.install");
@@ -2868,6 +2950,9 @@ public partial class MainWindow : Window {
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
 			|| !string.Equals(old.HttpHost, opt.HttpHost, StringComparison.OrdinalIgnoreCase))
 			restarthttp();
+		if (old.SendFileEnabled != opt.SendFileEnabled || old.SendFilePort != opt.SendFilePort
+			|| old.SendFileUdpPort != opt.SendFileUdpPort)
+			restartsendfile();
 
 		// session 级变更：模型/设备；runtime 级：边长/阈值/cls（不拆 session）
 		var needSessionReload = old.Device != opt.Device
@@ -2882,14 +2967,15 @@ public partial class MainWindow : Window {
 		var serviceOff = !opt.ServiceMode && old.ServiceMode;
 
 		var httpInfo = opt.HttpEnabled ? $" · HTTP :{opt.HttpPort}" : "";
+		var sfInfo = opt.SendFileEnabled ? $" · SendFile :{opt.SendFilePort}" : "";
 		var modeInfo = opt.ServiceMode ? " · 服务模式" : "";
 
 		if (opt.ServiceMode) {
 			// 常驻：session/runtime 变更或刚打开服务模式 → 预热，不 Invalidate
 			if (needSessionReload || needRuntimeSync || serviceOn || !runner.HasEngine)
-				tryservicewarmup($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{modeInfo}");
+				tryservicewarmup($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{sfInfo}{modeInfo}");
 			else
-				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{modeInfo}");
+				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{sfInfo}{modeInfo}");
 		}
 		else {
 			// 非服务模式：session 变更才丢弃；runtime 下次识别时 ApplyRuntime
@@ -2901,9 +2987,9 @@ public partial class MainWindow : Window {
 				try { runner.Warmup(snapshotopt()); } catch { }
 			}
 			if (serviceOff)
-				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo} · 已关闭服务模式（引擎保持至下次改模型）");
+				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{sfInfo} · 已关闭服务模式（引擎保持至下次改模型）");
 			else
-				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}");
+				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{sfInfo}");
 		}
 	}
 
@@ -3186,6 +3272,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey live caption: {opt.HotkeyLiveCaption}");
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpHost}:{opt.HttpPort}" : "off")}");
+		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{opt.SendFilePort}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");
 		sb.AppendLine($"FaceDet={opt.FaceDetModel} FaceReg={opt.FaceRegModel} FaceCompute={opt.FaceCompute}");
 		sb.AppendLine($"Runner.HasEngine: {runner.HasEngine}");

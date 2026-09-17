@@ -803,7 +803,33 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ---
 
-## 15. Related
+## 15. PC file transfer (LAN, pairing required)
+
+This is **not** the OCR HTTP API on port 1224. Enable under **Settings → API → PC file transfer**. Default HTTP **17532**, UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
+
+Headers after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
+
+Discovery: UDP broadcast `SCREENKIT_DISCOVER` to port 17531; the PC replies with JSON `{v,name,httpPort,pcId}`.
+
+| Method | Path | Notes |
+|--------|------|--------|
+| POST | `/api/sendfile/pair` | body `{id,name}`; first time shows a confirm dialog on the PC |
+| GET | `/api/sendfile/info` | name / pcId |
+| GET | `/api/sendfile/list?path=&deep=` | `deep=1` recursive |
+| GET | `/api/sendfile/download?path=` | octet-stream |
+| POST | `/api/sendfile/upload?path=` | raw body |
+| POST | `/api/sendfile/mkdir` | body `{path}` |
+| DELETE | `/api/sendfile/delete?path=` | file or directory |
+| POST | `/api/sendfile/text` | body `{text}` → PC text-sync list |
+| GET | `/api/sendfile/text?since=` | messages from PC to this phone |
+
+JSON `code` 100 = success; 401/403 unpaired; 410 bad path.
+
+Android app: [android/README.md](android/README.md).
+
+---
+
+## 16. Related
 
 - Implementation: `ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs` · `HttpOcrServer.Qr.cs`
 - Config: `config.toml` (`http_enabled` / `http_host` / `http_port` / `service_mode`)
