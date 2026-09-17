@@ -1,0 +1,4 @@
+- 总是用中文回复。
+- 改完可运行的 Android 代码后执行 `node build.js run`（debug 编译+安装+启动）。
+- 用户说 `install` 时用 `node build.js install`（release）。
+- 仅改文档 / 纯分析 / 用户明确说不要安装时，可跳过。
