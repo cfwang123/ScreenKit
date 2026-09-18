@@ -9,6 +9,7 @@ public sealed class SfJob {
 	public long Done;
 	public string Err = "";
 	public string StoreRel = "";
+	public long Unix;
 }
 
 /// <summary>传输任务：等待 / 进行中 / 完成 / 失败，带字节进度。</summary>
@@ -32,6 +33,7 @@ public sealed class SendFileJobs {
 				State = Wait,
 				Size = size < 0 ? 0 : size,
 				StoreRel = storeRel ?? "",
+				Unix = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
 			};
 			all.Insert(0, j);
 			while (all.Count > MAXKEEP) all.RemoveAt(all.Count - 1);
@@ -78,6 +80,7 @@ public sealed class SendFileJobs {
 			j.State = ok ? Done : Fail;
 			j.Err = err ?? "";
 			if (ok && j.Size > 0) j.Done = j.Size;
+			j.Unix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		}
 		fire(force: true);
 	}
@@ -99,6 +102,7 @@ public sealed class SendFileJobs {
 		Done = j.Done,
 		Err = j.Err,
 		StoreRel = j.StoreRel,
+		Unix = j.Unix,
 	};
 
 	void fire(bool force) {

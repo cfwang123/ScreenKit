@@ -18,6 +18,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - File sync lives on the main **File sync** tab; the Tools menu and tray **Text sync** items were removed.
 - File sync tab no longer browses `sendfile/`. Dragging or pasting files/folders/images on the PC sends them to the phone’s bound folder **only while the phone app is connected**; otherwise nothing is sent. Files shared from the phone always land in the PC `sendfile/` folder. Both PC and Android show a pending transfer list with send/receive progress.
 - Text sync copy list shows only the latest message (PC and phone).
+- File sync tab adds a **transfer log** on the PC (completed/failed entries with time and size); the queue above it only shows in-progress items.
 
 #### Fixed
 
@@ -35,6 +36,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - 文件同步改到主界面 **文件同步** Tab；已去掉工具菜单和托盘里的「文本同步」入口。
 - 文件同步 Tab 不再浏览电脑 `sendfile/`。电脑上拖入或粘贴文件/文件夹/图片：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。手机分享/多选上传一律写到电脑 `sendfile/`。电脑和手机都显示待传列表与传输进度。
 - 文本同步复制区只显示最新一条（电脑、手机均如此）。
+- 电脑文件同步 Tab 增加**传输记录**栏（完成/失败、时间、大小）；上方队列只显示进行中的任务。
 
 #### 修复
 

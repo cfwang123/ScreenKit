@@ -1528,51 +1528,74 @@
 										        AutomationProperties.AutomationId="sendfile.open"/>
 									</WrapPanel>
 									<Grid>
-										<ListView x:Name="lvsfjobs" BorderThickness="0" Background="Transparent"
-										          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-										          AutomationProperties.AutomationId="sendfile.jobs">
-											<ListView.ItemContainerStyle>
-												<Style TargetType="ListViewItem">
-													<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-													<Setter Property="Padding" Value="0,4"/>
-												</Style>
-											</ListView.ItemContainerStyle>
-											<ListView.ItemTemplate>
-												<DataTemplate>
-													<Grid Margin="0,2,0,6">
-														<Grid.RowDefinitions>
-															<RowDefinition Height="Auto"/>
-															<RowDefinition Height="Auto"/>
-															<RowDefinition Height="Auto"/>
-														</Grid.RowDefinitions>
-														<Grid>
-															<Grid.ColumnDefinitions>
-																<ColumnDefinition Width="*"/>
-																<ColumnDefinition Width="Auto"/>
-															</Grid.ColumnDefinitions>
-															<TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
-															           FontSize="14" Foreground="{StaticResource TextPrimary}"/>
-															<TextBlock Grid.Column="1" Text="{Binding PctText}" Margin="8,0,0,0"
-															           FontSize="12" Foreground="{StaticResource TextMuted}"/>
+										<Grid.RowDefinitions>
+											<RowDefinition Height="*"/>
+											<RowDefinition Height="Auto"/>
+											<RowDefinition Height="0.45*"/>
+										</Grid.RowDefinitions>
+										<Grid Grid.Row="0">
+											<ListView x:Name="lvsfjobs" BorderThickness="0" Background="Transparent"
+											          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+											          AutomationProperties.AutomationId="sendfile.jobs">
+												<ListView.ItemContainerStyle>
+													<Style TargetType="ListViewItem">
+														<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+														<Setter Property="Padding" Value="0,4"/>
+													</Style>
+												</ListView.ItemContainerStyle>
+												<ListView.ItemTemplate>
+													<DataTemplate>
+														<Grid Margin="0,2,0,6">
+															<Grid.RowDefinitions>
+																<RowDefinition Height="Auto"/>
+																<RowDefinition Height="Auto"/>
+																<RowDefinition Height="Auto"/>
+															</Grid.RowDefinitions>
+															<Grid>
+																<Grid.ColumnDefinitions>
+																	<ColumnDefinition Width="*"/>
+																	<ColumnDefinition Width="Auto"/>
+																</Grid.ColumnDefinitions>
+																<TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+																           FontSize="14" Foreground="{StaticResource TextPrimary}"/>
+																<TextBlock Grid.Column="1" Text="{Binding PctText}" Margin="8,0,0,0"
+																           FontSize="12" Foreground="{StaticResource TextMuted}"/>
+															</Grid>
+															<TextBlock Grid.Row="1" Text="{Binding Sub}" FontSize="12"
+															           Foreground="{StaticResource TextMuted}"
+															           TextTrimming="CharacterEllipsis" Margin="0,2,0,4"/>
+															<ProgressBar Grid.Row="2" Height="6" Minimum="0" Maximum="100"
+															             Value="{Binding Percent}"
+															             Visibility="{Binding BarVis}"/>
 														</Grid>
-														<TextBlock Grid.Row="1" Text="{Binding Sub}" FontSize="12"
-														           Foreground="{StaticResource TextMuted}"
-														           TextTrimming="CharacterEllipsis" Margin="0,2,0,4"/>
-														<ProgressBar Grid.Row="2" Height="6" Minimum="0" Maximum="100"
-														             Value="{Binding Percent}"
-														             Visibility="{Binding BarVis}"/>
-													</Grid>
+													</DataTemplate>
+												</ListView.ItemTemplate>
+											</ListView>
+											<TextBlock x:Name="lbsfdrop"
+											           Text="拖入文件 / 文件夹 / 图片"
+											           FontSize="16" FontWeight="SemiBold"
+											           Foreground="{StaticResource TextMuted}"
+											           TextWrapping="Wrap" TextAlignment="Center"
+											           HorizontalAlignment="Center" VerticalAlignment="Center"
+											           IsHitTestVisible="False"
+											           AutomationProperties.AutomationId="sendfile.drop"/>
+										</Grid>
+										<TextBlock x:Name="lbsflog" Grid.Row="1" Text="传输记录"
+										           FontSize="12" FontWeight="SemiBold"
+										           Foreground="{StaticResource TextPrimary}"
+										           Margin="0,8,0,4"/>
+										<ListBox x:Name="lstsflog" Grid.Row="2" BorderThickness="0"
+										         Background="Transparent"
+										         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+										         AutomationProperties.AutomationId="sendfile.log">
+											<ListBox.ItemTemplate>
+												<DataTemplate>
+													<TextBlock Text="{Binding Line}" TextWrapping="Wrap"
+													           FontSize="12" Foreground="{StaticResource TextMuted}"
+													           Margin="0,2"/>
 												</DataTemplate>
-											</ListView.ItemTemplate>
-										</ListView>
-										<TextBlock x:Name="lbsfdrop"
-										           Text="拖入文件 / 文件夹 / 图片"
-										           FontSize="16" FontWeight="SemiBold"
-										           Foreground="{StaticResource TextMuted}"
-										           TextWrapping="Wrap" TextAlignment="Center"
-										           HorizontalAlignment="Center" VerticalAlignment="Center"
-										           IsHitTestVisible="False"
-										           AutomationProperties.AutomationId="sendfile.drop"/>
+											</ListBox.ItemTemplate>
+										</ListBox>
 									</Grid>
 								</DockPanel>
 							</Border>

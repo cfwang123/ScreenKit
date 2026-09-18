@@ -10,6 +10,10 @@ sealed class SfTextRow {
 	public string Full { get; set; } = "";
 }
 
+sealed class SfLogRow {
+	public string Line { get; set; } = "";
+}
+
 sealed class SfJobRow : INotifyPropertyChanged {
 	public long Id;
 	string title = "", sub = "", pcttext = "";
@@ -43,10 +47,10 @@ sealed class SfJobRow : INotifyPropertyChanged {
 			: Loc.T("sf.job.done");
 		Sub = j.State == SendFileJobs.Fail
 			? (j.Err ?? "")
-			: sfsize(j.Done) + " / " + sfsize(j.Size);
+			: SizeText(j.Done) + " / " + SizeText(j.Size);
 	}
 
-	static string sfsize(long n) {
+	public static string SizeText(long n) {
 		if (n < 1024) return $"{n} B";
 		if (n < 1024 * 1024) return $"{n / 1024.0:0.#} KB";
 		if (n < 1024L * 1024 * 1024) return $"{n / (1024.0 * 1024):0.#} MB";
@@ -58,6 +62,8 @@ sealed class SfJobRow : INotifyPropertyChanged {
 public partial class MainWindow {
 	readonly ObservableCollection<SfTextRow> sfMsgs = new();
 	readonly ObservableCollection<SfJobRow> sfJobs = new();
+	readonly ObservableCollection<SfLogRow> sfLogs = new();
+	readonly HashSet<long> sfLogged = new();
 	System.Windows.Threading.DispatcherTimer sfPhoneTick;
 	bool sfInboxHooked;
 	bool sfJobsHooked;
@@ -65,6 +71,7 @@ public partial class MainWindow {
 	void initsendfiletab() {
 		lstsfmsgs.ItemsSource = sfMsgs;
 		lvsfjobs.ItemsSource = sfJobs;
+		lstsflog.ItemsSource = sfLogs;
 		bsfpaste.Click += (_, _) => sfpaste();
 		bsfopen.Click += (_, _) => sfopenexplorer();
 		psffiles.Drop += onsfdrop;
@@ -110,18 +117,46 @@ public partial class MainWindow {
 	}
 
 	void syncsfjobs() {
-		if (lvsfjobs == null || sendFile == null) return;
+		if (sendFile == null) return;
 		var snap = sendFile.Jobs.Snapshot();
-		foreach (var j in snap) {
-			var row = sfJobs.FirstOrDefault(r => r.Id == j.Id);
-			if (row == null) {
-				row = new SfJobRow();
-				sfJobs.Add(row);
+		var live = snap.Where(j => j.State == SendFileJobs.Wait || j.State == SendFileJobs.Run).ToList();
+		if (lvsfjobs != null) {
+			for (var i = sfJobs.Count - 1; i >= 0; i--) {
+				var id = sfJobs[i].Id;
+				if (!live.Any(j => j.Id == id)) sfJobs.RemoveAt(i);
 			}
-			row.Apply(j);
+			foreach (var j in live) {
+				var row = sfJobs.FirstOrDefault(r => r.Id == j.Id);
+				if (row == null) {
+					row = new SfJobRow();
+					sfJobs.Add(row);
+				}
+				row.Apply(j);
+			}
+		}
+		foreach (var j in snap) {
+			if (j.State != SendFileJobs.Done && j.State != SendFileJobs.Fail) continue;
+			if (!sfLogged.Add(j.Id)) continue;
+			sfLogs.Insert(0, new SfLogRow { Line = sflogline(j) });
+			while (sfLogs.Count > 200)
+				sfLogs.RemoveAt(sfLogs.Count - 1);
 		}
 		if (lbsfdrop != null)
 			lbsfdrop.Visibility = sfJobs.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+	}
+
+	static string sflogline(SfJob j) {
+		var t = "—";
+		try {
+			if (j.Unix > 0)
+				t = DateTimeOffset.FromUnixTimeSeconds(j.Unix).ToLocalTime().ToString("HH:mm:ss");
+		}
+		catch { t = DateTime.Now.ToString("HH:mm:ss"); }
+		var dir = j.ToPhone ? Loc.T("sf.dir.out") : Loc.T("sf.dir.in");
+		var st = j.State == SendFileJobs.Fail
+			? Loc.T("sf.job.fail") + (string.IsNullOrWhiteSpace(j.Err) ? "" : " " + j.Err)
+			: Loc.T("sf.job.done");
+		return $"{t}  {dir}  {j.Name}  {st}  {SfJobRow.SizeText(j.Size)}";
 	}
 
 	void hookstext() {
@@ -338,6 +373,7 @@ public partial class MainWindow {
 			bsfopen.Content = Loc.T("sf.tab.open");
 			lbsftexthint.Text = Loc.T("sf.text.hint");
 			bsfsend.Content = Loc.T("sendfile.text.send");
+			if (lbsflog != null) lbsflog.Text = Loc.T("sf.log");
 			syncsfstatus();
 		}
 		catch { }

@@ -257,6 +257,7 @@ static class Loc {
 		["sf.job.wait"] = "等待",
 		["sf.job.done"] = "完成",
 		["sf.job.fail"] = "失败",
+		["sf.log"] = "传输记录",
 
 		// 工具栏
 		["tb.ocr"] = "截图识别",
@@ -1344,6 +1345,7 @@ static class Loc {
 		["sf.job.wait"] = "Waiting",
 		["sf.job.done"] = "Done",
 		["sf.job.fail"] = "Failed",
+		["sf.log"] = "Transfer log",
 
 		["tb.ocr"] = "OCR",
 		["tb.ocr.tip"] = "Region capture + OCR",
