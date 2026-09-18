@@ -134,8 +134,8 @@ public partial class MainWindow {
 			}
 			catch { }
 		};
-		foreach (var m in sendFile.Text.SnapshotInbox())
-			if (m != null) sfaddrow(m.Text);
+		var last = sendFile.Text.SnapshotInbox().LastOrDefault();
+		if (last != null) sfaddrow(last.Text);
 	}
 
 	void stopsfwatch() {
@@ -285,9 +285,8 @@ public partial class MainWindow {
 
 	void sfaddrow(string full) {
 		full = full ?? "";
-		sfMsgs.Insert(0, new SfTextRow { Line = sfoneline(full), Full = full });
-		while (sfMsgs.Count > 200)
-			sfMsgs.RemoveAt(sfMsgs.Count - 1);
+		sfMsgs.Clear();
+		sfMsgs.Add(new SfTextRow { Line = sfoneline(full), Full = full });
 	}
 
 	static string sfoneline(string s) {

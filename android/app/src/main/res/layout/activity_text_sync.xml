@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="电脑发来的文本（点复制取全文）"
+        android:text="电脑发来的文本（只显示最新一条，点复制取全文）"
         android:textColor="@color/muted"
         android:paddingBottom="8dp" />
 

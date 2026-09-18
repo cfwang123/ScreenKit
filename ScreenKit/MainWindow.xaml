@@ -1582,7 +1582,7 @@
 							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
 								<DockPanel Margin="12">
 									<TextBlock x:Name="lbsftexthint" DockPanel.Dock="Top"
-									           Text="与手机互发文本（单行显示，复制取全文）"
+									           Text="与手机互发文本；只显示最新一条，复制取全文"
 									           FontSize="12" Foreground="{StaticResource TextMuted}"
 									           TextWrapping="Wrap" Margin="0,0,0,8"/>
 									<DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">

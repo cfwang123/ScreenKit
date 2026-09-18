@@ -51,10 +51,10 @@ class TextSyncActivity : AppCompatActivity() {
                 try {
                     val neu = withContext(Dispatchers.IO) { a.pullText(since) }
                     if (neu.isNotEmpty()) {
-                        for (m in neu) {
-                            msgs.add(0, m)
-                            if (m.id > since) since = m.id
-                        }
+                        val m = neu.maxByOrNull { it.id } ?: neu.last()
+                        if (m.id > since) since = m.id
+                        msgs.clear()
+                        msgs.add(m)
                         adapter.notifyDataSetChanged()
                     }
                 } catch (_: Exception) {
