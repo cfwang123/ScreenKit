@@ -5,11 +5,6 @@ using System.Globalization;
 
 namespace ScreenKit;
 
-sealed class SfTextRow {
-	public string Line { get; set; } = "";
-	public string Full { get; set; } = "";
-}
-
 sealed class SfLogRow {
 	public string Line { get; set; } = "";
 }
@@ -60,7 +55,6 @@ sealed class SfJobRow : INotifyPropertyChanged {
 
 /// <summary>MainWindow：文件同步 Tab（拖到手机 / 接收手机文件 / 文本）。</summary>
 public partial class MainWindow {
-	readonly ObservableCollection<SfTextRow> sfMsgs = new();
 	readonly ObservableCollection<SfJobRow> sfJobs = new();
 	readonly ObservableCollection<SfLogRow> sfLogs = new();
 	readonly HashSet<long> sfLogged = new();
@@ -69,7 +63,6 @@ public partial class MainWindow {
 	bool sfJobsHooked;
 
 	void initsendfiletab() {
-		lstsfmsgs.ItemsSource = sfMsgs;
 		lvsfjobs.ItemsSource = sfJobs;
 		lstsflog.ItemsSource = sfLogs;
 		bsfpaste.Click += (_, _) => sfpaste();
@@ -319,29 +312,8 @@ public partial class MainWindow {
 	}
 
 	void sfaddrow(string full) {
-		full = full ?? "";
-		sfMsgs.Clear();
-		sfMsgs.Add(new SfTextRow { Line = sfoneline(full), Full = full });
-	}
-
-	static string sfoneline(string s) {
-		s = (s ?? "").Replace("\r\n", "\n").Replace('\r', '\n');
-		var i = s.IndexOf('\n');
-		if (i >= 0) s = s.Substring(0, i) + "…";
-		return s;
-	}
-
-	void onsfcopy(object sender, RoutedEventArgs e) {
-		var row = (sender as FrameworkElement)?.Tag as SfTextRow
-			?? (sender as Button)?.DataContext as SfTextRow;
-		if (row == null) return;
-		try {
-			Clipboard.SetText(row.Full ?? "");
-		}
-		catch (Exception ex) {
-			MessageBox.Show(this, Loc.T("st.copy_fail", ex.Message), Loc.T("sendfile.text.title"),
-				MessageBoxButton.OK, MessageBoxImage.Warning);
-		}
+		if (esfmsg == null) return;
+		esfmsg.Text = full ?? "";
 	}
 
 	void syncsfstatus() {

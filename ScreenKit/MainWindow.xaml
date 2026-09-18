@@ -1605,7 +1605,7 @@
 							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
 								<DockPanel Margin="12">
 									<TextBlock x:Name="lbsftexthint" DockPanel.Dock="Top"
-									           Text="与手机互发文本；只显示最新一条，复制取全文"
+									           Text="与手机互发文本；只显示最新一条，可选中复制"
 									           FontSize="12" Foreground="{StaticResource TextMuted}"
 									           TextWrapping="Wrap" Margin="0,0,0,8"/>
 									<DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
@@ -1617,25 +1617,16 @@
 										         BorderBrush="{StaticResource BorderSoft}"
 										         AutomationProperties.AutomationId="sendfile.text.input"/>
 									</DockPanel>
-									<ScrollViewer VerticalScrollBarVisibility="Auto">
-										<ItemsControl x:Name="lstsfmsgs">
-											<ItemsControl.ItemTemplate>
-												<DataTemplate>
-													<DockPanel Margin="0,0,0,8" LastChildFill="True">
-														<Button DockPanel.Dock="Right" Content="复制"
-														        Style="{StaticResource ToolBtn}"
-														        Padding="10,4" Margin="8,0,0,0"
-														        Tag="{Binding}" Click="onsfcopy"
-														        AutomationProperties.AutomationId="sendfile.text.copy"/>
-														<TextBlock Text="{Binding Line}" TextTrimming="CharacterEllipsis"
-														           VerticalAlignment="Center" FontSize="14"
-														           Foreground="{StaticResource TextPrimary}"
-														           ToolTip="{Binding Full}"/>
-													</DockPanel>
-												</DataTemplate>
-											</ItemsControl.ItemTemplate>
-										</ItemsControl>
-									</ScrollViewer>
+									<TextBox x:Name="esfmsg" IsReadOnly="True"
+									         AcceptsReturn="True" TextWrapping="Wrap"
+									         VerticalScrollBarVisibility="Auto"
+									         HorizontalScrollBarVisibility="Disabled"
+									         Padding="8,6" FontSize="14"
+									         BorderBrush="{StaticResource BorderSoft}"
+									         VerticalContentAlignment="Top"
+									         IsReadOnlyCaretVisible="True"
+									         IsInactiveSelectionHighlightEnabled="True"
+									         AutomationProperties.AutomationId="sendfile.text.latest"/>
 								</DockPanel>
 							</Border>
 						</Grid>
