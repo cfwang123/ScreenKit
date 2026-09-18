@@ -25,6 +25,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Fixed
 
 - PC file transfer HTTP `:17532` never listened: `HttpListener` registered every LAN address and Windows returned Access denied, so the whole server failed to start. It now binds `0.0.0.0` / IPv6 dual-stack with a TCP listener (no URL ACL), so `localhost` / `127.0.0.1` and phones on the LAN can connect.
+- Phone pairing confirm dialog no longer sets the main window as `Owner`, so it still appears when the main window is hidden to the tray.
 
 ### 中文
 
@@ -45,6 +46,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 修复
 
 - PC 文件传输 HTTP `:17532` 实际没在听：`HttpListener` 把每块网卡 IP 都登记成前缀，Windows 返回拒绝访问，整段服务启动失败。现改为 TCP 监听 `0.0.0.0` / IPv6 双栈（不需要 URL ACL），`localhost` / `127.0.0.1` 和局域网手机都能连上。
+- 手机配对确认弹窗不再绑定主窗口为 `Owner`，主窗托盘隐藏时仍能弹出。
 
 ## v1.0.7 (2026-09-11)
 
