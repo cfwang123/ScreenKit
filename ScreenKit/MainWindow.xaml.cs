@@ -71,7 +71,6 @@ public partial class MainWindow : Window {
 	TranslatePopupWindow trPopup;
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
-	TextSyncWindow textSyncWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -117,6 +116,7 @@ public partial class MainWindow : Window {
 		inithttpserver();
 		initsendfile();
 		inithttptab();
+		initsendfiletab();
 		// 服务模式：启动后后台预热，引擎常驻
 		if (opt.ServiceMode)
 			tryservicewarmup("启动预热");
@@ -141,6 +141,7 @@ public partial class MainWindow : Window {
 			(tabtr, opt.TabTranslateVisible),
 			(tabface, opt.TabFaceVisible),
 			(tabhttp, opt.TabHttpVisible),
+			(tabsf, opt.TabSendFileVisible),
 		};
 		foreach (var (tab, visible) in tabs)
 			tab.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
@@ -387,6 +388,7 @@ public partial class MainWindow : Window {
 			sendFile.Start();
 			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
 			setstatus(Loc.T("st.sendfile_ok", port));
+			syncsfstatus();
 		}
 		catch (Exception ex) {
 			setstatus(Loc.T("st.sendfile_fail", ex.Message));
@@ -396,27 +398,10 @@ public partial class MainWindow : Window {
 	void restartsendfile() {
 		try { sendFile?.Stop(); } catch { }
 		if (opt.SendFileEnabled) startsendfile();
-		else setstatus(Loc.T("st.sendfile_off"));
-	}
-
-	void showtextsync() {
-		if (sendFile == null) {
-			MessageBox.Show(this, Loc.T("st.sendfile_fail", "not started"), Loc.T("sendfile.text.title"),
-				MessageBoxButton.OK, MessageBoxImage.Information);
-			return;
+		else {
+			setstatus(Loc.T("st.sendfile_off"));
+			syncsfstatus();
 		}
-		if (textSyncWin != null) {
-			try {
-				textSyncWin.Show();
-				textSyncWin.Activate();
-				return;
-			}
-			catch { textSyncWin = null; }
-		}
-		textSyncWin = new TextSyncWindow(sendFile);
-		attachdialogowner(textSyncWin);
-		textSyncWin.Closed += (_, _) => textSyncWin = null;
-		textSyncWin.Show();
 	}
 
 	/// <summary>供 HTTP 服务复制当前参数（含 LLM / 翻译；后台线程可调，勿触碰 UI）。</summary>
@@ -485,7 +470,6 @@ public partial class MainWindow : Window {
 			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
 			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(opengifrecordoptions));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(opensettings));
-			tray.TextSyncRequested += () => Dispatcher.BeginInvoke(new Action(showtextsync));
 			tray.ForceExitRequested += () => {
 				forceExit = true;
 				try { Close(); } catch { }
@@ -782,6 +766,7 @@ public partial class MainWindow : Window {
 		catch { }
 		try { httpServer?.Stop(); } catch { }
 		try { sendFile?.Stop(); } catch { }
+		try { stopsfwatch(); } catch { }
 		try { hotkey?.Dispose(); } catch { }
 		try { hotkeySnap?.Dispose(); } catch { }
 		try { hotkeySnapOcr?.Dispose(); } catch { }
@@ -1125,7 +1110,6 @@ public partial class MainWindow : Window {
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
 		mnsettings.Click += (_, _) => opensettings();
-		mntextsync.Click += (_, _) => showtextsync();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
@@ -1219,7 +1203,6 @@ public partial class MainWindow : Window {
 
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
-			mntextsync.Header = Loc.T("menu.sendfile");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mninstall.Header = Loc.T("menu.install");
@@ -1237,6 +1220,7 @@ public partial class MainWindow : Window {
 			try { applychatlang(); } catch { }
 			tabtr.Header = Loc.T("tab.translate");
 			try { applyhttplang(); } catch { }
+			try { applysflang(); } catch { }
 
 			// 顶栏
 			lbpack.Text = Loc.T("label.pack");
@@ -1563,8 +1547,14 @@ public partial class MainWindow : Window {
 				return;
 			}
 			if (Keyboard.Modifiers == ModifierKeys.Control && e.Key == Key.V) {
-				await pasteasync();
-				e.Handled = true;
+				if (issftab() && !istextinputfocused()) {
+					sfpaste();
+					e.Handled = true;
+				}
+				else if (!istextinputfocused()) {
+					await pasteasync();
+					e.Handled = true;
+				}
 			}
 			else if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.A) {
 				await captureasync(hideMain: false);
