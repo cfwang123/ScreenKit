@@ -30,9 +30,9 @@ Current version: **1.0.7**
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
 | **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
-| **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP (`tab_*_visible`; all visible by default) |
+| **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`; all visible by default) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + manual request |
-| **PC file transfer** | Separate LAN service (HTTP 17532 + UDP discovery 17531). Phone app under `android/` (`com.whj.screenkit`, “PC文件传输”) browses `sendfile/` next to the exe (upload/download/delete) and one-way syncs into a bound folder. First connection shows a confirm dialog. Tools/tray **Text sync** exchanges text with the phone (one-line list + Copy); it does not sync the system clipboard. |
+| **PC file transfer** | Separate LAN service (HTTP 17532 on all interfaces + UDP discovery 17531). Main-window **File sync** tab browses `sendfile/` next to the exe: drag-drop, paste files/folders/images, paste text (text sync with the phone). Companion Android app under `android/` (`com.whj.screenkit`). First connection shows a confirm dialog. Other apps can share multiple files into the app; in-app **Upload** allows multi-select. |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
 ## Requirements
@@ -179,6 +179,7 @@ tab_chat_visible = true
 tab_translate_visible = true
 tab_face_visible = true
 tab_http_visible = true
+tab_sendfile_visible = true
 update_check_days = 7           # auto-check interval on startup (days); 0 = off. Menu Check for Updates always works.
 screenshot_keep_days = 3        # screenshot history retention (days); 0 = unlimited. Cleaned at startup only (background).
 # http_proxy = false            # HTTP proxy for GitHub / Hugging Face / other non-China sites

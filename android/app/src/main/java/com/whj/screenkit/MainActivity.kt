@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.Log
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Toast
@@ -19,6 +20,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "SKSend"
+    }
     private lateinit var bind: ActivityMainBinding
     private lateinit var prefs: Prefs
     private var api: Api? = null
@@ -27,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     private val job = Job()
     private val io = CoroutineScope(Dispatchers.Main + job)
     private var pendingText: String? = null
-    private var pendingFile: Uri? = null
+    private val pendingFiles = ArrayList<Uri>()
 
     private val pickPc = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -48,9 +52,9 @@ class MainActivity : AppCompatActivity() {
         toast("已绑定文件夹")
     }
 
-    private val pickUpload = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@registerForActivityResult
-        uploaduri(uri)
+    private val pickUpload = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isNullOrEmpty()) return@registerForActivityResult
+        uploaduris(uris)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(bind.root)
         supportActionBar?.title = getString(R.string.app_name)
         prefs = Prefs(this)
-        grabshare(intent)
+        if (savedInstanceState == null) grabshare(intent)
         bind.brefresh.setOnClickListener { loadlist() }
         bind.bupload.setOnClickListener { pickUpload.launch(arrayOf("*/*")) }
         bind.bsync.setOnClickListener { dosync() }
@@ -100,15 +104,44 @@ class MainActivity : AppCompatActivity() {
         job.cancel()
     }
 
+    @Suppress("DEPRECATION")
     private fun grabshare(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_SEND) return
+        if (intent == null) return
+        val action = intent.action ?: return
+        if (action != Intent.ACTION_SEND && action != Intent.ACTION_SEND_MULTIPLE) return
         val text = intent.getStringExtra(Intent.EXTRA_TEXT)
-        if (!text.isNullOrEmpty()) {
+        if (action == Intent.ACTION_SEND && !text.isNullOrEmpty()) {
             pendingText = text
             return
         }
-        val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-        if (uri != null) pendingFile = uri
+        val uris = shareuris(intent)
+        if (uris.isNotEmpty()) {
+            pendingFiles.clear()
+            pendingFiles.addAll(uris)
+        } else if (!text.isNullOrEmpty()) {
+            pendingText = text
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun shareuris(intent: Intent): List<Uri> {
+        val out = ArrayList<Uri>()
+        if (intent.action == Intent.ACTION_SEND_MULTIPLE) {
+            val list = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+            if (list != null) {
+                for (u in list) if (u != null && u !in out) out.add(u)
+            }
+        } else {
+            intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)?.let { out.add(it) }
+        }
+        val clip = intent.clipData
+        if (clip != null) {
+            for (i in 0 until clip.itemCount) {
+                val u = clip.getItemAt(i)?.uri ?: continue
+                if (u !in out) out.add(u)
+            }
+        }
+        return out
     }
 
     private fun applyconn() {
@@ -136,9 +169,12 @@ class MainActivity : AppCompatActivity() {
     private fun tryconnect(): Boolean {
         val a = api ?: return false
         return try {
+            Log.i(TAG, "tryconnect ${a.host}:${a.port}")
             var obj = a.info()
+            Log.i(TAG, "info code=${obj.optInt("code")} data=${obj.opt("data")}")
             if (obj.optInt("code") == 401 || obj.optInt("code") == 403) {
                 obj = a.pair()
+                Log.i(TAG, "pair code=${obj.optInt("code")} data=${obj.opt("data")}")
                 if (obj.optInt("code") == 100) {
                     prefs.token = a.token
                     obj = a.info()
@@ -150,7 +186,8 @@ class MainActivity : AppCompatActivity() {
             prefs.lastPcId = data?.optString("pcId") ?: prefs.lastPcId
             prefs.token = a.token
             true
-        } catch (_: Exception) {
+        } catch (ex: Exception) {
+            Log.w(TAG, "tryconnect fail", ex)
             false
         }
     }
@@ -159,9 +196,9 @@ class MainActivity : AppCompatActivity() {
         val a = api ?: return
         bind.lbstatus.text = "已连接 ${prefs.lastName.ifEmpty { a.host }}  ${a.host}:${a.port}"
         val t = pendingText
-        val f = pendingFile
+        val files = ArrayList(pendingFiles)
         pendingText = null
-        pendingFile = null
+        pendingFiles.clear()
         if (t != null) {
             io.launch {
                 val err = withContext(Dispatchers.IO) {
@@ -176,7 +213,7 @@ class MainActivity : AppCompatActivity() {
                 else toast("已发送文本到电脑")
             }
         }
-        if (f != null) uploaduri(f)
+        if (files.isNotEmpty()) uploaduris(files)
         loadlist()
     }
 
@@ -201,6 +238,7 @@ class MainActivity : AppCompatActivity() {
             }
             items.clear()
             items.addAll(r.first.sortedWith(compareBy({ !it.dir }, { it.name.lowercase() })))
+            Log.i(TAG, "list rel=$rel n=${items.size}")
             bind.lbpath.text = if (rel.isEmpty()) "/" else "/$rel"
             bind.lvfiles.adapter = ArrayAdapter(
                 this@MainActivity,
@@ -240,27 +278,53 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun uploaduri(uri: Uri) {
+    private fun uploaduris(uris: List<Uri>) {
         val a = api ?: return
-        val name = queryname(uri) ?: "upload.bin"
-        val dest = if (rel.isEmpty()) name else "$rel/$name"
+        if (uris.isEmpty()) return
+        val connected = bind.lbstatus.text?.toString() ?: ""
         io.launch {
-            val err = withContext(Dispatchers.IO) {
-                try {
-                    val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?: return@withContext "无法读取文件"
-                    a.upload(dest, bytes)
-                    null
-                } catch (ex: Exception) {
-                    ex.message
+            var ok = 0
+            var fail = 0
+            var lastErr: String? = null
+            val used = HashSet<String>()
+            withContext(Dispatchers.IO) {
+                for ((i, uri) in uris.withIndex()) {
+                    withContext(Dispatchers.Main) {
+                        bind.lbstatus.text = "正在上传 ${i + 1}/${uris.size}…"
+                    }
+                    try {
+                        val raw = queryname(uri) ?: "upload.bin"
+                        val name = uniqname(raw, used)
+                        val dest = if (rel.isEmpty()) name else "$rel/$name"
+                        val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                            ?: throw RuntimeException("无法读取 $name")
+                        a.upload(dest, bytes)
+                        ok++
+                    } catch (ex: Exception) {
+                        fail++
+                        lastErr = ex.message
+                        Log.w(TAG, "upload fail $uri", ex)
+                    }
                 }
             }
-            if (err != null) toast("上传失败: $err")
-            else {
-                toast("已上传 $name")
-                loadlist()
+            if (connected.isNotEmpty()) bind.lbstatus.text = connected
+            when {
+                fail == 0 -> toast(if (ok == 1) "已上传 1 个文件" else "已上传 $ok 个文件")
+                ok == 0 -> toast("上传失败: ${lastErr ?: "未知错误"}")
+                else -> toast("上传成功 $ok 个，失败 $fail 个")
             }
+            if (ok > 0) loadlist()
         }
+    }
+
+    private fun uniqname(name: String, used: HashSet<String>): String {
+        if (used.add(name)) return name
+        val dot = name.lastIndexOf('.')
+        val base = if (dot > 0) name.substring(0, dot) else name
+        val ext = if (dot > 0) name.substring(dot) else ""
+        var n = 2
+        while (!used.add("$base ($n)$ext")) n++
+        return "$base ($n)$ext"
     }
 
     private fun downloadone(it: RemoteItem) {
@@ -349,13 +413,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun queryname(uri: Uri): String? {
-        val c = contentResolver.query(uri, null, null, null, null) ?: return null
-        c.use {
-            if (!it.moveToFirst()) return null
-            val i = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (i < 0) return null
-            return it.getString(i)
-        }
+        try {
+            val c = contentResolver.query(uri, null, null, null, null)
+            c?.use {
+                if (it.moveToFirst()) {
+                    val i = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (i >= 0) {
+                        val n = it.getString(i)
+                        if (!n.isNullOrEmpty()) return n
+                    }
+                }
+            }
+        } catch (_: Exception) { }
+        val last = uri.lastPathSegment ?: return null
+        val n = last.substringAfterLast('/')
+        return n.ifEmpty { null }
     }
 
     private fun toast(s: String) {

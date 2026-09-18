@@ -30,9 +30,9 @@ Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界�
 | **推理设备** | CPU · NVIDIA CUDA（GPU）· 核显 DirectML；未装加速时自动 CPU |
 | **安装功能** | 应用内下载模型与运行库（中文环境优先国内镜像） |
 | **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入 · 翻译小窗（可配置、可清空禁用） |
-| **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口（`tab_*_visible`，默认全部显示） |
+| **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口 / 文件同步（`tab_*_visible`，默认全部显示） |
 | **HTTP API** | 本机 JSON 接口（默认 `127.0.0.1:1224`）。主界面 Tab：调用日志 + 手动发请求 |
-| **PC 文件传输** | 独立局域网服务（HTTP 17532 + UDP 发现 17531）。手机 App `android/`（`com.whj.screenkit`「PC文件传输」）浏览程序旁 `sendfile/`、上传/下载/删除，并可单向同步到手机绑定文件夹。首次连接电脑弹窗确认。工具菜单/托盘「文本同步」与手机「文本同步」互发文本（列表单行 + 复制），不同步系统剪贴板。 |
+| **PC 文件传输** | 独立局域网服务（HTTP 17532 监听所有网卡 + UDP 发现 17531）。主界面 **文件同步** Tab 浏览程序旁 `sendfile/`：拖入文件、粘贴文件/文件夹/图片、粘贴文本（与手机文本同步）。配套 App：`android/`（`com.whj.screenkit`「PC文件传输」）。首次连接电脑弹窗确认。其它应用可一次分享多个文件到本 App，App 内「上传」可多选。 |
 | **CLI** | 批量识图、列模型 / SAPI 发音人、探测 CUDA、多屏抓取自检 |
 
 ## 运行环境
@@ -262,7 +262,7 @@ x86host.exe --list-sapi
 设置保存在 exe 旁 `config.toml`（也可用 **工具 → 参数设置** / **录屏选项** 编辑）。参数设置窗按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口；主界面 Tab 显示复选框位于“常规”，保存后立即生效。主要段落：
 
 - `[ocr]`：模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值等  
-- `[ui]`：热键、托盘、界面语言；`tab_ocr_visible`、`tab_tts_visible`、`tab_asr_visible`、`tab_chat_visible`、`tab_translate_visible`、`tab_face_visible`、`tab_http_visible` 分别控制 7 个主界面 Tab（默认全部 `true`，仅隐藏入口）；`update_check_days`（启动时自动检查更新间隔，默认 7 天，0=不自动检查；菜单「检查更新」不受限）、`http_proxy` / `http_proxy_addr`（访问 GitHub 等非中国网站时的 HTTP 代理，国内镜像直连）、`capture_log`（`log/capture.log`：多屏/DPI，以及截图落盘 prep/encode/clip 耗时，≥500ms 标 `SLOW`）、`llm_log`（`log/llm.log`，润色请求/响应，不含 key）、`screenshot_keep_days`（截图历史保留天数，默认 3，0=不限；仅启动时后台清理，截图时不删）
+- `[ui]`：热键、托盘、界面语言；`tab_ocr_visible`、`tab_tts_visible`、`tab_asr_visible`、`tab_chat_visible`、`tab_translate_visible`、`tab_face_visible`、`tab_http_visible`、`tab_sendfile_visible` 分别控制 8 个主界面 Tab（默认全部 `true`，仅隐藏入口）；`update_check_days`（启动时自动检查更新间隔，默认 7 天，0=不自动检查；菜单「检查更新」不受限）、`http_proxy` / `http_proxy_addr`（访问 GitHub 等非中国网站时的 HTTP 代理，国内镜像直连）、`capture_log`（`log/capture.log`：多屏/DPI，以及截图落盘 prep/encode/clip 耗时，≥500ms 标 `SLOW`）、`llm_log`（`log/llm.log`，润色请求/响应，不含 key）、`screenshot_keep_days`（截图历史保留天数，默认 3，0=不限；仅启动时后台清理，截图时不删）
 - `[http]`：本机 API 开关与端口、服务模式
 - `[sendfile]`：局域网文件传输（端口、显示名、已配对设备）  
 - `[pdf]`：导出与内部光栅 DPI  

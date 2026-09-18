@@ -10,7 +10,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a main-window **File sync** tab (browse, drag-drop, paste files/folders/images, paste text to the phone). Companion Android app: `android/` (`com.whj.screenkit`).
+- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a main-window **File sync** tab (browse, drag-drop, paste files/folders/images, paste text to the phone). Companion Android app: `android/` (`com.whj.screenkit`); share multiple files from other apps, and the in-app **Upload** button allows multi-select.
 
 #### Changed
 
@@ -25,7 +25,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab（浏览、拖入、粘贴文件/文件夹/图片、粘贴文本发给手机）。配套安卓应用：`android/`（`com.whj.screenkit`）。
+- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab（浏览、拖入、粘贴文件/文件夹/图片、粘贴文本发给手机）。配套安卓应用：`android/`（`com.whj.screenkit`）；其它应用可一次分享多个文件，App 内「上传」支持多选。
 
 #### 变更
 
