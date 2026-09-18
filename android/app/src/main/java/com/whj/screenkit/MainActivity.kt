@@ -5,14 +5,16 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
 import com.whj.screenkit.databinding.ActivityMainBinding
+import com.whj.screenkit.databinding.ItemSyncLogBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,22 +22,29 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+data class SyncLog(val title: String, val sub: String, val ok: Boolean)
 
 class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "SKSend"
+        private const val MAXLOG = 200
     }
     private lateinit var bind: ActivityMainBinding
     private lateinit var prefs: Prefs
     private var api: Api? = null
-    private var rel = ""
-    private val items = ArrayList<RemoteItem>()
     private val job = Job()
     private val io = CoroutineScope(Dispatchers.Main + job)
     private var pendingText: String? = null
     private val pendingFiles = ArrayList<Uri>()
     private var pulling = false
     private var askedFolder = false
+    private val logs = ArrayList<SyncLog>()
+    private lateinit var logAdapter: LogAdapter
+    private val timeFmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     private val pickPc = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -68,31 +77,15 @@ class MainActivity : AppCompatActivity() {
         setContentView(bind.root)
         supportActionBar?.title = getString(R.string.app_name)
         prefs = Prefs(this)
+        logAdapter = LogAdapter()
+        bind.lvlog.adapter = logAdapter
         if (savedInstanceState == null) grabshare(intent)
-        bind.brefresh.setOnClickListener { loadlist() }
         bind.bupload.setOnClickListener { pickUpload.launch(arrayOf("*/*")) }
-        bind.bsync.setOnClickListener { dosync() }
         bind.btext.setOnClickListener {
             startActivity(Intent(this, TextSyncActivity::class.java))
         }
         bind.bfolder.setOnClickListener { pickFolder.launch(null) }
         bind.bpick.setOnClickListener { openpick() }
-        bind.lbpath.setOnClickListener { goup() }
-        bind.lvfiles.onItemClickListener = AdapterView.OnItemClickListener { _, _, pos, _ ->
-            if (pos < 0 || pos >= items.size) return@OnItemClickListener
-            val it = items[pos]
-            if (it.dir) {
-                rel = it.path
-                loadlist()
-            } else {
-                downloadone(it)
-            }
-        }
-        bind.lvfiles.onItemLongClickListener = AdapterView.OnItemLongClickListener { _, _, pos, _ ->
-            if (pos < 0 || pos >= items.size) return@OnItemLongClickListener true
-            confirmdelete(items[pos])
-            true
-        }
         connectlast()
     }
 
@@ -215,73 +208,19 @@ class MainActivity : AppCompatActivity() {
                         ex.message
                     }
                 }
-                if (err != null) toast("发送失败: $err")
-                else toast("已发送文本到电脑")
+                if (err != null) {
+                    addlog(toPc = true, "文本", ok = false, err)
+                    toast("发送失败: $err")
+                } else {
+                    addlog(toPc = true, "文本", ok = true)
+                }
             }
         }
         if (files.isNotEmpty()) uploaduris(files)
-        loadlist()
     }
 
     private fun openpick() {
         pickPc.launch(Intent(this, PickPcActivity::class.java))
-    }
-
-    private fun loadlist() {
-        val a = api ?: return
-        io.launch {
-            val r = withContext(Dispatchers.IO) {
-                try {
-                    a.list(rel, false) to null
-                } catch (ex: Exception) {
-                    emptyList<RemoteItem>() to (ex.message ?: "list 失败")
-                }
-            }
-            val err = r.second
-            if (err != null) {
-                toast(err)
-                return@launch
-            }
-            items.clear()
-            items.addAll(r.first.sortedWith(compareBy({ !it.dir }, { it.name.lowercase() })))
-            Log.i(TAG, "list rel=$rel n=${items.size}")
-            bind.lbpath.text = if (rel.isEmpty()) "/" else "/$rel"
-            bind.lvfiles.adapter = ArrayAdapter(
-                this@MainActivity,
-                android.R.layout.simple_list_item_1,
-                items.map { if (it.dir) "📁 ${it.name}" else "📄 ${it.name}" },
-            )
-        }
-    }
-
-    private fun goup() {
-        if (rel.isEmpty()) return
-        val i = rel.lastIndexOf('/')
-        rel = if (i <= 0) "" else rel.substring(0, i)
-        loadlist()
-    }
-
-    private fun confirmdelete(it: RemoteItem) {
-        AlertDialog.Builder(this)
-            .setTitle("删除")
-            .setMessage("删除 ${it.path} ？")
-            .setPositiveButton("删除") { _, _ ->
-                val a = api ?: return@setPositiveButton
-                io.launch {
-                    val err = withContext(Dispatchers.IO) {
-                        try {
-                            a.delete(it.path)
-                            null
-                        } catch (ex: Exception) {
-                            ex.message
-                        }
-                    }
-                    if (err != null) toast(err)
-                    else loadlist()
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
     }
 
     private fun uploaduris(uris: List<Uri>) {
@@ -298,28 +237,28 @@ class MainActivity : AppCompatActivity() {
                     withContext(Dispatchers.Main) {
                         bind.lbstatus.text = "正在上传 ${i + 1}/${uris.size}…"
                     }
+                    val raw = queryname(uri) ?: "upload.bin"
+                    val name = uniqname(raw, used)
                     try {
-                        val raw = queryname(uri) ?: "upload.bin"
-                        val name = uniqname(raw, used)
-                        val dest = name
                         val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                             ?: throw RuntimeException("无法读取 $name")
-                        a.upload(dest, bytes)
+                        a.upload(name, bytes)
                         ok++
+                        withContext(Dispatchers.Main) { addlog(toPc = true, name, ok = true) }
                     } catch (ex: Exception) {
                         fail++
                         lastErr = ex.message
                         Log.w(TAG, "upload fail $uri", ex)
+                        withContext(Dispatchers.Main) { addlog(toPc = true, name, ok = false, ex.message) }
                     }
                 }
             }
             if (connected.isNotEmpty()) bind.lbstatus.text = connected
             when {
-                fail == 0 -> toast(if (ok == 1) "已上传 1 个文件" else "已上传 $ok 个文件")
+                fail == 0 -> { }
                 ok == 0 -> toast("上传失败: ${lastErr ?: "未知错误"}")
                 else -> toast("上传成功 $ok 个，失败 $fail 个")
             }
-            if (ok > 0) loadlist()
         }
     }
 
@@ -355,22 +294,29 @@ class MainActivity : AppCompatActivity() {
             }
             return
         }
-        var ok = 0
         withContext(Dispatchers.IO) {
             for (it in items) {
+                val rel = it.rel.ifEmpty { it.name }
+                if (rel.isEmpty()) continue
                 try {
-                    val rel = it.rel.ifEmpty { it.name }
-                    if (rel.isEmpty()) continue
                     writefile(folder, rel, a.download(it.path))
                     a.pulldone(it.id)
-                    ok++
+                    withContext(Dispatchers.Main) { addlog(toPc = false, rel, ok = true) }
                 } catch (ex: Exception) {
                     Log.w(TAG, "recv ${it.path}", ex)
+                    withContext(Dispatchers.Main) { addlog(toPc = false, rel, ok = false, ex.message) }
                 }
             }
         }
-        if (ok > 0)
-            toast(if (ok == 1) "已从电脑收到 1 个文件" else "已从电脑收到 $ok 个文件")
+    }
+
+    private fun addlog(toPc: Boolean, name: String, ok: Boolean, err: String? = null) {
+        val dir = if (toPc) "发往电脑" else "来自电脑"
+        val t = timeFmt.format(Date())
+        val sub = if (ok) t else "$t  ${err ?: "失败"}"
+        logs.add(0, SyncLog("$dir  $name", sub, ok))
+        while (logs.size > MAXLOG) logs.removeAt(logs.lastIndex)
+        logAdapter.notifyDataSetChanged()
     }
 
     private fun uniqname(name: String, used: HashSet<String>): String {
@@ -383,71 +329,10 @@ class MainActivity : AppCompatActivity() {
         return "$base ($n)$ext"
     }
 
-    private fun downloadone(it: RemoteItem) {
-        val folder = boundfolder()
-        if (folder == null) {
-            toast("请先绑定文件夹")
-            pickFolder.launch(null)
-            return
-        }
-        val a = api ?: return
-        io.launch {
-            val err = withContext(Dispatchers.IO) {
-                try {
-                    writefile(folder, it.path, a.download(it.path))
-                    null
-                } catch (ex: Exception) {
-                    ex.message
-                }
-            }
-            if (err != null) toast("下载失败: $err")
-            else toast("已保存 ${it.name}")
-        }
-    }
-
-    private fun dosync() {
-        val folder = boundfolder()
-        if (folder == null) {
-            toast("请先绑定文件夹")
-            pickFolder.launch(null)
-            return
-        }
-        val a = api ?: return
-        bind.lbstatus.text = "正在同步…"
-        io.launch {
-            val err = withContext(Dispatchers.IO) {
-                try {
-                    val all = a.list("", true).filter { !it.dir }
-                    var n = 0
-                    for (it in all) {
-                        val existing = findchild(folder, it.path)
-                        if (existing != null && existing.length() == it.size) continue
-                        writefile(folder, it.path, a.download(it.path))
-                        n++
-                    }
-                    "同步完成，更新 $n 个文件"
-                } catch (ex: Exception) {
-                    "同步失败: ${ex.message}"
-                }
-            }
-            bind.lbstatus.text = "已连接 ${prefs.lastName.ifEmpty { a.host }}  ${a.host}:${a.port}"
-            toast(err)
-        }
-    }
-
     private fun boundfolder(): DocumentFile? {
         val s = prefs.folderUri
         if (s.isEmpty()) return null
         return DocumentFile.fromTreeUri(this, Uri.parse(s))
-    }
-
-    private fun findchild(root: DocumentFile, relPath: String): DocumentFile? {
-        var cur: DocumentFile? = root
-        val parts = relPath.replace('\\', '/').split('/').filter { it.isNotEmpty() }
-        for (p in parts) {
-            cur = cur?.findFile(p) ?: return null
-        }
-        return cur
     }
 
     private fun writefile(root: DocumentFile, relPath: String, bytes: ByteArray) {
@@ -488,5 +373,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun toast(s: String) {
         Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
+    }
+
+    private inner class LogAdapter : BaseAdapter() {
+        override fun getCount() = logs.size
+        override fun getItem(position: Int) = logs[position]
+        override fun getItemId(position: Int) = position.toLong()
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val row = if (convertView != null) {
+                ItemSyncLogBinding.bind(convertView)
+            } else {
+                ItemSyncLogBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+            }
+            val m = logs[position]
+            row.lbtitle.text = m.title
+            row.lbsub.text = m.sub
+            return row.root
+        }
     }
 }
