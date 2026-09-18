@@ -1,10 +1,13 @@
 package com.whj.screenkit
 
+import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
+import android.webkit.MimeTypeMap
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,6 +36,9 @@ data class SyncLog(
     var pct: Int,
     var done: Boolean,
     var ok: Boolean,
+    var fromPc: Boolean = false,
+    var fileUri: Uri? = null,
+    var fileRel: String = "",
 )
 
 class MainActivity : AppCompatActivity() {
@@ -87,6 +93,9 @@ class MainActivity : AppCompatActivity() {
         prefs = Prefs(this)
         logAdapter = LogAdapter()
         bind.lvlog.adapter = logAdapter
+        bind.lvlog.setOnItemClickListener { _, _, pos, _ ->
+            if (pos in logs.indices) openrecv(logs[pos])
+        }
         if (savedInstanceState == null) grabshare(intent)
         bind.bupload.setOnClickListener { pickUpload.launch(arrayOf("*/*")) }
         bind.btext.setOnClickListener {
@@ -217,10 +226,10 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (err != null) {
-                    upsert("txt", "发往电脑  文本", err, 0, done = true, ok = false)
+                    upsert("txt", "发往电脑  文本", err, 0, done = true, ok = false, fromPc = false)
                     toast("发送失败: $err")
                 } else {
-                    upsert("txt", "发往电脑  文本", timeFmt.format(Date()), 100, done = true, ok = true)
+                    upsert("txt", "发往电脑  文本", timeFmt.format(Date()), 100, done = true, ok = true, fromPc = false)
                 }
             }
         }
@@ -240,7 +249,7 @@ class MainActivity : AppCompatActivity() {
         for (uri in uris) {
             val name = uniqname(queryname(uri) ?: "upload.bin", used)
             jobs.add(uri to name)
-            upsert("up-$name", "发往电脑  $name", "等待", 0, done = false, ok = true)
+            upsert("up-$name", "发往电脑  $name", "等待", 0, done = false, ok = true, fromPc = false, fileRel = name)
         }
         io.launch {
             var ok = 0
@@ -324,7 +333,7 @@ class MainActivity : AppCompatActivity() {
             for (it in items) {
                 val rel = it.rel.ifEmpty { it.name }
                 if (rel.isEmpty()) continue
-                upsert("dn-${it.id}", "来自电脑  $rel", "等待", 0, done = false, ok = true)
+                upsert("dn-${it.id}", "来自电脑  $rel", "等待", 0, done = false, ok = true, fromPc = true, fileRel = rel)
             }
         }
         withContext(Dispatchers.IO) {
@@ -333,15 +342,15 @@ class MainActivity : AppCompatActivity() {
                 if (rel.isEmpty()) continue
                 val key = "dn-${it.id}"
                 try {
-                    writefile(folder, rel, it.path, it.size) { done, total ->
+                    val saved = writefile(folder, rel, it.path, it.size) { done, total ->
                         val pct = if (total > 0) (done * 100 / total).toInt() else 0
                         runOnUiThread {
-                            upsert(key, "来自电脑  $rel", fmtprog(done, total), pct, done = false, ok = true)
+                            upsert(key, "来自电脑  $rel", fmtprog(done, total), pct, done = false, ok = true, fromPc = true, fileRel = rel)
                         }
                     }
                     a.pulldone(it.id)
                     withContext(Dispatchers.Main) {
-                        upsert(key, "来自电脑  $rel", timeFmt.format(Date()), 100, done = true, ok = true)
+                        upsert(key, "来自电脑  $rel", timeFmt.format(Date()), 100, done = true, ok = true, fromPc = true, fileUri = saved, fileRel = rel)
                     }
                 } catch (ex: Exception) {
                     Log.w(TAG, "recv ${it.path}", ex)
@@ -353,7 +362,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun upsert(key: String, title: String, sub: String, pct: Int, done: Boolean, ok: Boolean, force: Boolean = true) {
+    private fun upsert(
+        key: String,
+        title: String,
+        sub: String,
+        pct: Int,
+        done: Boolean,
+        ok: Boolean,
+        force: Boolean = true,
+        fromPc: Boolean? = null,
+        fileUri: Uri? = null,
+        fileRel: String? = null,
+    ) {
         val now = System.currentTimeMillis()
         if (!force && !done && now - lastLogUi < 150) return
         lastLogUi = now
@@ -365,8 +385,11 @@ class MainActivity : AppCompatActivity() {
             row.pct = pct
             row.done = done
             row.ok = ok
+            if (fromPc != null) row.fromPc = fromPc
+            if (fileUri != null) row.fileUri = fileUri
+            if (!fileRel.isNullOrEmpty()) row.fileRel = fileRel
         } else {
-            logs.add(0, SyncLog(key, title, sub, pct, done, ok))
+            logs.add(0, SyncLog(key, title, sub, pct, done, ok, fromPc == true, fileUri, fileRel ?: ""))
             while (logs.size > MAXLOG) logs.removeAt(logs.lastIndex)
         }
         logAdapter.notifyDataSetChanged()
@@ -405,10 +428,10 @@ class MainActivity : AppCompatActivity() {
         storePath: String,
         size: Long,
         onProg: (Long, Long) -> Unit,
-    ) {
+    ): Uri {
         val a = api ?: throw RuntimeException("未连接")
         val parts = relPath.replace('\\', '/').split('/').filter { it.isNotEmpty() }
-        if (parts.isEmpty()) return
+        if (parts.isEmpty()) throw RuntimeException("路径为空")
         var dir = root
         for (i in 0 until parts.size - 1) {
             val name = parts[i]
@@ -418,7 +441,7 @@ class MainActivity : AppCompatActivity() {
         val fname = parts.last()
         val old = dir.findFile(fname)
         if (old != null && old.isFile) old.delete()
-        val f = dir.createFile("application/octet-stream", fname)
+        val f = dir.createFile(mimeof(fname), fname)
             ?: throw RuntimeException("无法创建 $fname")
         val pair = a.downloadStream(storePath)
         val ins = pair.first
@@ -435,6 +458,69 @@ class MainActivity : AppCompatActivity() {
                     onProg(done, total)
                 }
             } ?: throw RuntimeException("无法写入 $fname")
+        }
+        return f.uri
+    }
+
+    private fun findfile(root: DocumentFile?, relPath: String): DocumentFile? {
+        if (root == null) return null
+        var cur = root
+        val parts = relPath.replace('\\', '/').split('/').filter { it.isNotEmpty() }
+        for (p in parts) {
+            cur = cur?.findFile(p) ?: return null
+        }
+        return cur
+    }
+
+    private fun openrecv(m: SyncLog) {
+        if (!m.fromPc) return
+        if (!m.done) {
+            toast("文件还在接收")
+            return
+        }
+        if (!m.ok) {
+            toast("接收失败，无法打开")
+            return
+        }
+        var uri = m.fileUri
+        if (uri == null && m.fileRel.isNotEmpty())
+            uri = findfile(boundfolder(), m.fileRel)?.uri
+        if (uri == null) {
+            toast("找不到文件，请确认已绑定文件夹")
+            return
+        }
+        val name = m.fileRel.substringAfterLast('/').ifEmpty { m.fileRel }
+        val mime = mimeof(name)
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setDataAndType(uri, mime)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+        intent.clipData = ClipData.newUri(contentResolver, name, uri)
+        try {
+            startActivity(Intent.createChooser(intent, "选择打开方式"))
+        } catch (_: ActivityNotFoundException) {
+            toast("没有可打开此文件的应用")
+        } catch (ex: Exception) {
+            toast(ex.message ?: "无法打开")
+        }
+    }
+
+    private fun mimeof(name: String): String {
+        val ext = name.substringAfterLast('.', "").lowercase(Locale.getDefault())
+        if (ext.isEmpty()) return "application/octet-stream"
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
+    }
+
+    private fun iconof(name: String): Int {
+        val mime = mimeof(name)
+        val ext = name.substringAfterLast('.', "").lowercase(Locale.getDefault())
+        return when {
+            mime.startsWith("image/") -> R.drawable.ic_file_image
+            mime.startsWith("video/") -> R.drawable.ic_file_video
+            mime.startsWith("audio/") -> R.drawable.ic_file_audio
+            mime == "application/pdf" || ext == "pdf" -> R.drawable.ic_file_pdf
+            mime.startsWith("text/") || ext in listOf("txt", "md", "csv", "log", "json", "xml") -> R.drawable.ic_file_text
+            ext in listOf("zip", "rar", "7z", "gz", "tar") -> R.drawable.ic_file_zip
+            else -> R.drawable.ic_file
         }
     }
 
@@ -484,6 +570,9 @@ class MainActivity : AppCompatActivity() {
                 ItemSyncLogBinding.inflate(LayoutInflater.from(parent.context), parent, false)
             }
             val m = logs[position]
+            val name = m.fileRel.substringAfterLast('/').ifEmpty { m.fileRel }
+            row.icfile.setImageResource(if (name.isNotEmpty()) iconof(name) else R.drawable.ic_file)
+            row.icfile.visibility = if (m.fromPc || name.isNotEmpty()) View.VISIBLE else View.GONE
             row.lbtitle.text = m.title
             row.lbsub.text = m.sub
             if (m.done) {
