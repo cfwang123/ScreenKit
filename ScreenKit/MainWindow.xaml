@@ -1527,13 +1527,53 @@
 										        Height="30" Padding="10,2"
 										        AutomationProperties.AutomationId="sendfile.open"/>
 									</WrapPanel>
-									<TextBlock x:Name="lbsfdrop"
-									           Text="拖入文件 / 文件夹 / 图片"
-									           FontSize="16" FontWeight="SemiBold"
-									           Foreground="{StaticResource TextMuted}"
-									           TextWrapping="Wrap" TextAlignment="Center"
-									           HorizontalAlignment="Center" VerticalAlignment="Center"
-									           AutomationProperties.AutomationId="sendfile.drop"/>
+									<Grid>
+										<ListView x:Name="lvsfjobs" BorderThickness="0" Background="Transparent"
+										          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+										          AutomationProperties.AutomationId="sendfile.jobs">
+											<ListView.ItemContainerStyle>
+												<Style TargetType="ListViewItem">
+													<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+													<Setter Property="Padding" Value="0,4"/>
+												</Style>
+											</ListView.ItemContainerStyle>
+											<ListView.ItemTemplate>
+												<DataTemplate>
+													<Grid Margin="0,2,0,6">
+														<Grid.RowDefinitions>
+															<RowDefinition Height="Auto"/>
+															<RowDefinition Height="Auto"/>
+															<RowDefinition Height="Auto"/>
+														</Grid.RowDefinitions>
+														<Grid>
+															<Grid.ColumnDefinitions>
+																<ColumnDefinition Width="*"/>
+																<ColumnDefinition Width="Auto"/>
+															</Grid.ColumnDefinitions>
+															<TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+															           FontSize="14" Foreground="{StaticResource TextPrimary}"/>
+															<TextBlock Grid.Column="1" Text="{Binding PctText}" Margin="8,0,0,0"
+															           FontSize="12" Foreground="{StaticResource TextMuted}"/>
+														</Grid>
+														<TextBlock Grid.Row="1" Text="{Binding Sub}" FontSize="12"
+														           Foreground="{StaticResource TextMuted}"
+														           TextTrimming="CharacterEllipsis" Margin="0,2,0,4"/>
+														<ProgressBar Grid.Row="2" Height="6" Minimum="0" Maximum="100"
+														             Value="{Binding Percent}"
+														             Visibility="{Binding BarVis}"/>
+													</Grid>
+												</DataTemplate>
+											</ListView.ItemTemplate>
+										</ListView>
+										<TextBlock x:Name="lbsfdrop"
+										           Text="拖入文件 / 文件夹 / 图片"
+										           FontSize="16" FontWeight="SemiBold"
+										           Foreground="{StaticResource TextMuted}"
+										           TextWrapping="Wrap" TextAlignment="Center"
+										           HorizontalAlignment="Center" VerticalAlignment="Center"
+										           IsHitTestVisible="False"
+										           AutomationProperties.AutomationId="sendfile.drop"/>
+									</Grid>
 								</DockPanel>
 							</Border>
 							<GridSplitter Grid.Column="1" Width="10" HorizontalAlignment="Stretch"

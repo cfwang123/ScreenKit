@@ -252,6 +252,11 @@ static class Loc {
 		["sf.tab.phone.off"] = "无手机连接",
 		["sf.drop.on"] = "拖入文件 / 文件夹 / 图片，将传到手机",
 		["sf.drop.off"] = "无手机连接，拖入不会传输",
+		["sf.dir.out"] = "发往手机",
+		["sf.dir.in"] = "来自手机",
+		["sf.job.wait"] = "等待",
+		["sf.job.done"] = "完成",
+		["sf.job.fail"] = "失败",
 
 		// 工具栏
 		["tb.ocr"] = "截图识别",
@@ -1334,6 +1339,11 @@ static class Loc {
 		["sf.tab.phone.off"] = "No phone connected",
 		["sf.drop.on"] = "Drop files / folders / images to send to the phone",
 		["sf.drop.off"] = "No phone connected; drops are ignored",
+		["sf.dir.out"] = "To phone",
+		["sf.dir.in"] = "From phone",
+		["sf.job.wait"] = "Waiting",
+		["sf.job.done"] = "Done",
+		["sf.job.fail"] = "Failed",
 
 		["tb.ocr"] = "OCR",
 		["tb.ocr.tip"] = "Region capture + OCR",

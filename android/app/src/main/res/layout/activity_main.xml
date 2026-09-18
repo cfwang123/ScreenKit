@@ -40,7 +40,7 @@
         android:paddingEnd="12dp"
         android:paddingTop="8dp"
         android:paddingBottom="4dp"
-        android:text="同步记录"
+        android:text="传输列表"
         android:textColor="@color/text"
         android:textSize="13sp" />
 

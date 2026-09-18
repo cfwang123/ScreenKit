@@ -16,7 +16,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - Reverted the screenshot-overlay drag performance experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the previous transparent overlay, dim mask, and green selection frame.
 - File sync lives on the main **File sync** tab; the Tools menu and tray **Text sync** items were removed.
-- File sync tab no longer browses `sendfile/`. Dragging or pasting files/folders/images on the PC sends them to the phone’s bound folder **only while the phone app is connected**; otherwise nothing is sent. Files shared from the phone always land in the PC `sendfile/` folder. The Android app likewise dropped the remote file list and shows a transfer log instead.
+- File sync tab no longer browses `sendfile/`. Dragging or pasting files/folders/images on the PC sends them to the phone’s bound folder **only while the phone app is connected**; otherwise nothing is sent. Files shared from the phone always land in the PC `sendfile/` folder. Both PC and Android show a pending transfer list with send/receive progress.
 
 #### Fixed
 
@@ -32,7 +32,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 - **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
 - 文件同步改到主界面 **文件同步** Tab；已去掉工具菜单和托盘里的「文本同步」入口。
-- 文件同步 Tab 不再浏览电脑 `sendfile/`。电脑上拖入或粘贴文件/文件夹/图片：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。手机分享/多选上传一律写到电脑 `sendfile/`。安卓主界面同样去掉文件列表，改为同步记录。
+- 文件同步 Tab 不再浏览电脑 `sendfile/`。电脑上拖入或粘贴文件/文件夹/图片：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。手机分享/多选上传一律写到电脑 `sendfile/`。电脑和手机都显示待传列表与传输进度。
 
 #### 修复
 

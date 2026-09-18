@@ -14,11 +14,11 @@ sealed class SendFileOutbox {
 	readonly Dictionary<string, List<SfOutFile>> map = new(StringComparer.OrdinalIgnoreCase);
 	long nextId = 1;
 
-	public void Add(string deviceId, string storeRel, string phoneRel, long size) {
-		if (string.IsNullOrWhiteSpace(deviceId)) return;
+	public SfOutFile Add(string deviceId, string storeRel, string phoneRel, long size) {
+		if (string.IsNullOrWhiteSpace(deviceId)) return null;
 		storeRel = (storeRel ?? "").Replace('\\', '/').Trim('/');
 		phoneRel = (phoneRel ?? "").Replace('\\', '/').Trim('/');
-		if (storeRel.Length == 0 || phoneRel.Length == 0) return;
+		if (storeRel.Length == 0 || phoneRel.Length == 0) return null;
 		var name = Path.GetFileName(phoneRel);
 		if (string.IsNullOrEmpty(name)) name = Path.GetFileName(storeRel);
 		lock (gate) {
@@ -26,13 +26,15 @@ sealed class SendFileOutbox {
 				list = new List<SfOutFile>();
 				map[deviceId] = list;
 			}
-			list.Add(new SfOutFile {
+			var it = new SfOutFile {
 				Id = nextId++,
 				StoreRel = storeRel,
 				PhoneRel = phoneRel,
 				Name = name ?? "",
 				Size = size < 0 ? 0 : size,
-			});
+			};
+			list.Add(it);
+			return it;
 		}
 	}
 

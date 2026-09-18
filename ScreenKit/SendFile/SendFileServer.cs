@@ -21,6 +21,7 @@ public sealed class SendFileServer : IDisposable {
 	public readonly SendFileAuth Auth;
 	public readonly SendFileText Text = new();
 	readonly SendFileOutbox Outbox = new();
+	public readonly SendFileJobs Jobs = new();
 	public string LastDeviceId = "";
 	string lastSeenId = "";
 	int lastSeenTick;
@@ -85,7 +86,9 @@ public sealed class SendFileServer : IDisposable {
 		if (File.Exists(full)) {
 			long size = 0;
 			try { size = new FileInfo(full).Length; } catch { }
-			Outbox.Add(deviceId, destRel, stripstaging(destRel), size);
+			var phoneRel = stripstaging(destRel);
+			Outbox.Add(deviceId, destRel, phoneRel, size);
+			Jobs.Add(Path.GetFileName(phoneRel), toPhone: true, size, destRel);
 			return 1;
 		}
 		if (!Directory.Exists(full)) return 0;
@@ -94,7 +97,9 @@ public sealed class SendFileServer : IDisposable {
 			var rel = SendFilePaths.RelFrom(f);
 			long size = 0;
 			try { size = new FileInfo(f).Length; } catch { }
-			Outbox.Add(deviceId, rel, stripstaging(rel), size);
+			var phoneRel = stripstaging(rel);
+			Outbox.Add(deviceId, rel, phoneRel, size);
+			Jobs.Add(Path.GetFileName(phoneRel), toPhone: true, size, rel);
 			n++;
 		}
 		return n;
@@ -277,6 +282,7 @@ public sealed class SendFileServer : IDisposable {
 			InputStream = input,
 			ContentEncoding = encodingof(headers["Content-Type"]),
 			RemoteEndPoint = remote,
+			ContentLength = clen,
 		};
 		var res = new SfRes(ns);
 		return new SfCtx { Request = req, Response = res };
@@ -496,8 +502,12 @@ public sealed class SendFileServer : IDisposable {
 			return;
 		}
 		var it = Outbox.Remove(dev.Id, id);
-		if (it != null && isstaging(it.StoreRel)) {
-			try { SendFileOps.Delete(it.StoreRel); } catch { }
+		if (it != null) {
+			var job = Jobs.FindStore(it.StoreRel);
+			if (job != null) Jobs.Finish(job.Id, true, null);
+			if (isstaging(it.StoreRel)) {
+				try { SendFileOps.Delete(it.StoreRel); } catch { }
+			}
 		}
 		writejson(ctx, 200, ok(new JsonObject { ["id"] = id }));
 	}
@@ -538,6 +548,7 @@ public sealed class SendFileServer : IDisposable {
 			writejson(ctx, 200, err(410, "文件不存在"));
 			return;
 		}
+		var job = Jobs.FindStore(rel.Replace('\\', '/').Trim('/'));
 		FileStream fs = null;
 		try {
 			fs = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -548,7 +559,17 @@ public sealed class SendFileServer : IDisposable {
 			res.Headers["Access-Control-Allow-Origin"] = "*";
 			var fn = Path.GetFileName(full) ?? "file";
 			res.Headers["Content-Disposition"] = $"attachment; filename*=UTF-8''{Uri.EscapeDataString(fn)}";
-			fs.CopyTo(res.OutputStream);
+			if (job != null) Jobs.SetRun(job.Id);
+			var buf = new byte[64 * 1024];
+			int n;
+			while ((n = fs.Read(buf, 0, buf.Length)) > 0) {
+				res.OutputStream.Write(buf, 0, n);
+				if (job != null) Jobs.AddDone(job.Id, n);
+			}
+		}
+		catch (Exception ex) {
+			if (job != null) Jobs.Finish(job.Id, false, ex.Message);
+			throw;
 		}
 		finally {
 			try { fs?.Dispose(); } catch { }
@@ -559,12 +580,22 @@ public sealed class SendFileServer : IDisposable {
 
 	void handleupload(SfCtx ctx) {
 		var rel = ctx.Request.QueryString["path"] ?? "";
+		var name = Path.GetFileName((rel ?? "").Replace('\\', '/'));
+		if (string.IsNullOrEmpty(name)) name = "file";
+		var job = Jobs.Add(name, toPhone: false, ctx.Request.ContentLength, "");
+		Jobs.SetRun(job.Id);
 		try {
-			SendFileOps.SaveStream(rel, ctx.Request.InputStream);
+			SendFileOps.SaveStream(rel, ctx.Request.InputStream, n => Jobs.AddDone(job.Id, n));
+			Jobs.Finish(job.Id, true, null);
 			writejson(ctx, 200, ok(new JsonObject { ["path"] = rel ?? "" }));
 		}
 		catch (InvalidOperationException ex) {
+			Jobs.Finish(job.Id, false, ex.Message);
 			writejson(ctx, 200, err(410, ex.Message));
+		}
+		catch (Exception ex) {
+			Jobs.Finish(job.Id, false, ex.Message);
+			throw;
 		}
 	}
 
@@ -769,6 +800,7 @@ sealed class SfReq {
 	public Stream InputStream;
 	public Encoding ContentEncoding;
 	public IPEndPoint RemoteEndPoint;
+	public long ContentLength;
 }
 
 sealed class SfQuery {

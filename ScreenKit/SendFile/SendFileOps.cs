@@ -128,7 +128,7 @@ static class SendFileOps {
 			copydir(d, Path.Combine(dest, Path.GetFileName(d)));
 	}
 
-	public static void SaveStream(string rel, Stream src) {
+	public static void SaveStream(string rel, Stream src, Action<int> onchunk = null) {
 		if (string.IsNullOrWhiteSpace(rel) || rel.EndsWith("/") || rel.EndsWith("\\"))
 			throw new InvalidOperationException("需要文件路径");
 		if (!SendFilePaths.TryResolve(rel, out var full, out var err))
@@ -137,7 +137,12 @@ static class SendFileOps {
 		if (!string.IsNullOrEmpty(dir))
 			Directory.CreateDirectory(dir);
 		using var fs = new FileStream(full, FileMode.Create, FileAccess.Write, FileShare.None);
-		src.CopyTo(fs);
+		var buf = new byte[64 * 1024];
+		int n;
+		while ((n = src.Read(buf, 0, buf.Length)) > 0) {
+			fs.Write(buf, 0, n);
+			onchunk?.Invoke(n);
+		}
 	}
 
 	static bool hiddendir(string full) {

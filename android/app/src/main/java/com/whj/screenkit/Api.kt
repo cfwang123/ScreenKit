@@ -3,7 +3,9 @@ package com.whj.screenkit
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okio.BufferedSink
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.InputStream
@@ -109,8 +111,32 @@ class Api(
     }
 
     fun upload(rel: String, bytes: ByteArray) {
+        upload(rel, bytes.inputStream(), bytes.size.toLong()) { _, _ -> }
+    }
+
+    fun upload(rel: String, ins: InputStream, size: Long, onProg: (Long, Long) -> Unit) {
         val q = URLEncoder.encode(rel, "UTF-8")
-        val body = bytes.toRequestBody("application/octet-stream".toMediaType())
+        val mime = "application/octet-stream".toMediaType()
+        val body = object : RequestBody() {
+            override fun contentType() = mime
+            override fun contentLength() = if (size > 0) size else -1
+            override fun writeTo(sink: BufferedSink) {
+                val buf = ByteArray(64 * 1024)
+                var done = 0L
+                var last = 0L
+                while (true) {
+                    val n = ins.read(buf)
+                    if (n <= 0) break
+                    sink.write(buf, 0, n)
+                    done += n
+                    if (done - last >= 32 * 1024 || (size > 0 && done >= size)) {
+                        last = done
+                        onProg(done, size)
+                    }
+                }
+                if (done != last) onProg(done, size)
+            }
+        }
         val obj = parse(
             http.newCall(req("/api/sendfile/upload?path=$q").post(body).build()).execute().body?.string() ?: "",
             200,

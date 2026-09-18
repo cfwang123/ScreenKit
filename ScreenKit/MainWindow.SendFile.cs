@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 
@@ -9,14 +10,61 @@ sealed class SfTextRow {
 	public string Full { get; set; } = "";
 }
 
+sealed class SfJobRow : INotifyPropertyChanged {
+	public long Id;
+	string title = "", sub = "", pcttext = "";
+	int percent;
+	Visibility barvis = Visibility.Collapsed;
+	public string Title { get => title; set => set(ref title, value, nameof(Title)); }
+	public string Sub { get => sub; set => set(ref sub, value, nameof(Sub)); }
+	public string PctText { get => pcttext; set => set(ref pcttext, value, nameof(PctText)); }
+	public int Percent { get => percent; set => set(ref percent, value, nameof(Percent)); }
+	public Visibility BarVis { get => barvis; set => set(ref barvis, value, nameof(BarVis)); }
+	public event PropertyChangedEventHandler PropertyChanged;
+	void set<T>(ref T field, T value, string name) {
+		if (Equals(field, value)) return;
+		field = value;
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+	}
+
+	public void Apply(SfJob j) {
+		if (j == null) return;
+		Id = j.Id;
+		Title = (j.ToPhone ? Loc.T("sf.dir.out") : Loc.T("sf.dir.in")) + "  " + (j.Name ?? "");
+		var pct = j.Size > 0 ? (int)(j.Done * 100 / j.Size) : (j.State == SendFileJobs.Done ? 100 : 0);
+		if (pct < 0) pct = 0;
+		if (pct > 100) pct = 100;
+		Percent = pct;
+		BarVis = j.State == SendFileJobs.Done || j.State == SendFileJobs.Fail
+			? Visibility.Collapsed : Visibility.Visible;
+		PctText = j.State == SendFileJobs.Wait ? Loc.T("sf.job.wait")
+			: j.State == SendFileJobs.Run ? pct + "%"
+			: j.State == SendFileJobs.Fail ? Loc.T("sf.job.fail")
+			: Loc.T("sf.job.done");
+		Sub = j.State == SendFileJobs.Fail
+			? (j.Err ?? "")
+			: sfsize(j.Done) + " / " + sfsize(j.Size);
+	}
+
+	static string sfsize(long n) {
+		if (n < 1024) return $"{n} B";
+		if (n < 1024 * 1024) return $"{n / 1024.0:0.#} KB";
+		if (n < 1024L * 1024 * 1024) return $"{n / (1024.0 * 1024):0.#} MB";
+		return $"{n / (1024.0 * 1024 * 1024):0.#} GB";
+	}
+}
+
 /// <summary>MainWindow：文件同步 Tab（拖到手机 / 接收手机文件 / 文本）。</summary>
 public partial class MainWindow {
 	readonly ObservableCollection<SfTextRow> sfMsgs = new();
+	readonly ObservableCollection<SfJobRow> sfJobs = new();
 	System.Windows.Threading.DispatcherTimer sfPhoneTick;
 	bool sfInboxHooked;
+	bool sfJobsHooked;
 
 	void initsendfiletab() {
 		lstsfmsgs.ItemsSource = sfMsgs;
+		lvsfjobs.ItemsSource = sfJobs;
 		bsfpaste.Click += (_, _) => sfpaste();
 		bsfopen.Click += (_, _) => sfopenexplorer();
 		psffiles.Drop += onsfdrop;
@@ -40,6 +88,7 @@ public partial class MainWindow {
 			if (issftab()) syncsfstatus();
 		};
 		hookstext();
+		hooksfjobs();
 		sfPhoneTick = new System.Windows.Threading.DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(1),
 		};
@@ -50,6 +99,30 @@ public partial class MainWindow {
 	}
 
 	bool issftab() => tabsf != null && ReferenceEquals(maintabs.SelectedItem, tabsf);
+
+	void hooksfjobs() {
+		if (sfJobsHooked || sendFile == null) return;
+		sfJobsHooked = true;
+		sendFile.Jobs.Changed += () => {
+			try { Dispatcher.BeginInvoke(new Action(syncsfjobs)); } catch { }
+		};
+		syncsfjobs();
+	}
+
+	void syncsfjobs() {
+		if (lvsfjobs == null || sendFile == null) return;
+		var snap = sendFile.Jobs.Snapshot();
+		foreach (var j in snap) {
+			var row = sfJobs.FirstOrDefault(r => r.Id == j.Id);
+			if (row == null) {
+				row = new SfJobRow();
+				sfJobs.Add(row);
+			}
+			row.Apply(j);
+		}
+		if (lbsfdrop != null)
+			lbsfdrop.Visibility = sfJobs.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+	}
 
 	void hookstext() {
 		if (sfInboxHooked || sendFile == null) return;
@@ -249,10 +322,12 @@ public partial class MainWindow {
 		}
 		else
 			lbsfstatus.Text = Loc.T("sf.tab.off");
-		if (lbsfdrop != null)
+		if (lbsfdrop != null) {
 			lbsfdrop.Text = sendFile != null && sendFile.PhoneOnline
 				? Loc.T("sf.drop.on")
 				: Loc.T("sf.drop.off");
+			if (sfJobs.Count > 0) lbsfdrop.Visibility = Visibility.Collapsed;
+		}
 	}
 
 	void applysflang() {
