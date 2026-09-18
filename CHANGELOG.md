@@ -10,21 +10,31 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a Text sync window (one-line list + Copy). Companion Android app: `android/` (`com.whj.screenkit`).
+- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a main-window **File sync** tab (browse, drag-drop, paste files/folders/images, paste text to the phone). Companion Android app: `android/` (`com.whj.screenkit`).
 
 #### Changed
 
 - Reverted the screenshot-overlay drag performance experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the previous transparent overlay, dim mask, and green selection frame.
+- File sync lives on the main **File sync** tab; the Tools menu and tray **Text sync** items were removed.
+
+#### Fixed
+
+- PC file transfer HTTP `:17532` never listened: `HttpListener` registered every LAN address and Windows returned Access denied, so the whole server failed to start. It now binds `0.0.0.0` / IPv6 dual-stack with a TCP listener (no URL ACL), so `localhost` / `127.0.0.1` and phones on the LAN can connect.
 
 ### 中文
 
 #### 新增
 
-- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、文本同步窗（单行列表 + 复制）。配套安卓应用：`android/`（`com.whj.screenkit`）。
+- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab（浏览、拖入、粘贴文件/文件夹/图片、粘贴文本发给手机）。配套安卓应用：`android/`（`com.whj.screenkit`）。
 
 #### 变更
 
 - **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
+- 文件同步改到主界面 **文件同步** Tab；已去掉工具菜单和托盘里的「文本同步」入口。
+
+#### 修复
+
+- PC 文件传输 HTTP `:17532` 实际没在听：`HttpListener` 把每块网卡 IP 都登记成前缀，Windows 返回拒绝访问，整段服务启动失败。现改为 TCP 监听 `0.0.0.0` / IPv6 双栈（不需要 URL ACL），`localhost` / `127.0.0.1` 和局域网手机都能连上。
 
 ## v1.0.7 (2026-09-11)
 

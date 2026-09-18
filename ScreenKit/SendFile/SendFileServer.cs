@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -16,7 +14,7 @@ public sealed class SendFileServer : IDisposable {
 	readonly object listenLock = new();
 	readonly Func<OcrOptions> getOpts;
 	readonly Action save;
-	HttpListener listener;
+	TcpListener tcp;
 	UdpClient udp;
 	volatile bool running;
 	bool disposed;
@@ -31,6 +29,7 @@ public sealed class SendFileServer : IDisposable {
 
 	const string DISCOVER = "SCREENKIT_DISCOVER";
 	const int MAXTEXT = 65536;
+	const int MAXHDR = 65536;
 
 	public SendFileServer(Func<OcrOptions> optionsFactory, Action saveCfg) {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
@@ -49,19 +48,7 @@ public sealed class SendFileServer : IDisposable {
 		ensurepcid(o);
 		lock (listenLock) {
 			Stop();
-			var l = new HttpListener();
-			var n = 0;
-			foreach (var ip in lanips()) {
-				try {
-					l.Prefixes.Add($"http://{ip}:{httpPort}/");
-					n++;
-				}
-				catch { }
-			}
-			if (n == 0)
-				throw new InvalidOperationException("无法绑定 HTTP 前缀");
-			l.Start();
-			listener = l;
+			tcp = bindtcp(httpPort);
 			running = true;
 			_ = Task.Run(acceptloop);
 			try {
@@ -79,19 +66,16 @@ public sealed class SendFileServer : IDisposable {
 
 	public void Stop() {
 		running = false;
-		HttpListener l;
+		TcpListener t;
 		UdpClient u;
 		lock (listenLock) {
-			l = listener;
-			listener = null;
+			t = tcp;
+			tcp = null;
 			u = udp;
 			udp = null;
 		}
-		if (l != null) {
-			try { l.Abort(); } catch {
-				try { l.Stop(); } catch { }
-			}
-			try { l.Close(); } catch { }
+		if (t != null) {
+			try { t.Stop(); } catch { }
 		}
 		if (u != null) {
 			try { u.Close(); } catch { }
@@ -110,23 +94,158 @@ public sealed class SendFileServer : IDisposable {
 		try { save?.Invoke(); } catch { }
 	}
 
+	static TcpListener bindtcp(int port) {
+		TcpListener l6 = null;
+		try {
+			l6 = new TcpListener(IPAddress.IPv6Any, port);
+			l6.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+			l6.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+			l6.Start();
+			return l6;
+		}
+		catch {
+			try { l6?.Stop(); } catch { }
+		}
+		var l = new TcpListener(IPAddress.Any, port);
+		l.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+		l.Start();
+		return l;
+	}
+
 	async Task acceptloop() {
 		while (running) {
-			HttpListener l;
-			lock (listenLock) l = listener;
-			if (l == null || !l.IsListening) break;
-			HttpListenerContext ctx;
+			TcpListener l;
+			lock (listenLock) l = tcp;
+			if (l == null) break;
+			TcpClient c;
 			try {
-				ctx = await l.GetContextAsync().ConfigureAwait(false);
+				c = await l.AcceptTcpClientAsync().ConfigureAwait(false);
 			}
 			catch (ObjectDisposedException) { break; }
-			catch (HttpListenerException) { break; }
+			catch (SocketException) {
+				if (!running) break;
+				continue;
+			}
 			catch {
 				if (!running) break;
 				continue;
 			}
-			_ = Task.Run(() => handle(ctx));
+			_ = Task.Run(() => serve(c));
 		}
+	}
+
+	void serve(TcpClient c) {
+		try {
+			c.NoDelay = true;
+			c.ReceiveTimeout = 120000;
+			c.SendTimeout = 120000;
+			var ns = c.GetStream();
+			var ctx = readctx(ns, c.Client.RemoteEndPoint as IPEndPoint);
+			if (ctx == null) return;
+			handle(ctx);
+			try { ctx.Response.Close(); } catch { }
+		}
+		catch { }
+		finally {
+			try { c.Close(); } catch { }
+		}
+	}
+
+	static SfCtx readctx(NetworkStream ns, IPEndPoint remote) {
+		var buf = new byte[MAXHDR];
+		var n = 0;
+		var end = -1;
+		while (n < MAXHDR) {
+			var r = ns.Read(buf, n, Math.Min(1024, MAXHDR - n));
+			if (r <= 0) return null;
+			n += r;
+			end = findhdrend(buf, n);
+			if (end >= 0) break;
+		}
+		if (end < 0) return null;
+		var text = Encoding.ASCII.GetString(buf, 0, end);
+		var lines = text.Split(new[] { "\r\n" }, StringSplitOptions.None);
+		if (lines.Length == 0) return null;
+		var parts = lines[0].Split(new[] { ' ' }, 3, StringSplitOptions.RemoveEmptyEntries);
+		if (parts.Length < 2) return null;
+		var method = parts[0];
+		var target = parts[1];
+		Uri uri;
+		try { uri = new Uri("http://localhost" + (target.StartsWith("/") ? target : "/" + target)); }
+		catch { return null; }
+		var headers = new SfHeaders();
+		for (var i = 1; i < lines.Length; i++) {
+			var line = lines[i];
+			if (string.IsNullOrEmpty(line)) continue;
+			var colon = line.IndexOf(':');
+			if (colon <= 0) continue;
+			headers[line.Substring(0, colon).Trim()] = line.Substring(colon + 1).Trim();
+		}
+		long clen = 0;
+		var cls = headers["Content-Length"];
+		if (!string.IsNullOrEmpty(cls))
+			long.TryParse(cls, NumberStyles.Integer, CultureInfo.InvariantCulture, out clen);
+		if (clen < 0) clen = 0;
+		byte[] leftover;
+		if (n > end) {
+			leftover = new byte[n - end];
+			Buffer.BlockCopy(buf, end, leftover, 0, n - end);
+		}
+		else leftover = Array.Empty<byte>();
+		var input = new SfIn(ns, leftover, clen);
+		var query = parsequery(uri.Query);
+		var req = new SfReq {
+			HttpMethod = method,
+			Url = uri,
+			QueryString = query,
+			Headers = headers,
+			InputStream = input,
+			ContentEncoding = encodingof(headers["Content-Type"]),
+			RemoteEndPoint = remote,
+		};
+		var res = new SfRes(ns);
+		return new SfCtx { Request = req, Response = res };
+	}
+
+	static int findhdrend(byte[] b, int n) {
+		for (var i = 0; i + 3 < n; i++) {
+			if (b[i] == 13 && b[i + 1] == 10 && b[i + 2] == 13 && b[i + 3] == 10)
+				return i + 4;
+		}
+		return -1;
+	}
+
+	static SfQuery parsequery(string q) {
+		var query = new SfQuery();
+		if (string.IsNullOrEmpty(q)) return query;
+		if (q[0] == '?') q = q.Substring(1);
+		foreach (var part in q.Split('&')) {
+			if (part.Length == 0) continue;
+			var eq = part.IndexOf('=');
+			string k, v;
+			if (eq < 0) { k = part; v = ""; }
+			else { k = part.Substring(0, eq); v = part.Substring(eq + 1); }
+			query.Set(unesc(k), unesc(v));
+		}
+		return query;
+	}
+
+	static string unesc(string s) {
+		if (string.IsNullOrEmpty(s)) return "";
+		try { return Uri.UnescapeDataString(s.Replace('+', ' ')); }
+		catch { return s; }
+	}
+
+	static Encoding encodingof(string ct) {
+		if (string.IsNullOrEmpty(ct)) return Encoding.UTF8;
+		var i = ct.IndexOf("charset=", StringComparison.OrdinalIgnoreCase);
+		if (i < 0) return Encoding.UTF8;
+		var cs = ct.Substring(i + 8).Trim();
+		var semi = cs.IndexOf(';');
+		if (semi >= 0) cs = cs.Substring(0, semi).Trim();
+		cs = cs.Trim('"', '\'');
+		try { return Encoding.GetEncoding(cs); }
+		catch { return Encoding.UTF8; }
 	}
 
 	void udploop() {
@@ -164,7 +283,7 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	void handle(HttpListenerContext ctx) {
+	void handle(SfCtx ctx) {
 		try {
 			var req = ctx.Request;
 			var method = req.HttpMethod ?? "";
@@ -233,7 +352,7 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	void handlepair(HttpListenerContext ctx) {
+	void handlepair(SfCtx ctx) {
 		var body = readjson(ctx.Request);
 		var id = str(body, "id");
 		var name = str(body, "name");
@@ -266,7 +385,7 @@ public sealed class SendFileServer : IDisposable {
 		}));
 	}
 
-	void handleinfo(HttpListenerContext ctx, SendFileDevice dev) {
+	void handleinfo(SfCtx ctx, SendFileDevice dev) {
 		var o = getOpts() ?? new OcrOptions();
 		SendFilePaths.EnsureRoot();
 		writejson(ctx, 200, ok(new JsonObject {
@@ -277,7 +396,7 @@ public sealed class SendFileServer : IDisposable {
 		}));
 	}
 
-	void handlelist(HttpListenerContext ctx) {
+	void handlelist(SfCtx ctx) {
 		var rel = ctx.Request.QueryString["path"] ?? "";
 		var deep = truthy(ctx.Request.QueryString["deep"]);
 		try {
@@ -292,7 +411,7 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	void handledownload(HttpListenerContext ctx) {
+	void handledownload(SfCtx ctx) {
 		var rel = ctx.Request.QueryString["path"] ?? "";
 		if (!SendFilePaths.TryResolve(rel, out var full, out var pathErr)) {
 			writejson(ctx, 200, err(410, pathErr ?? "路径非法"));
@@ -321,7 +440,7 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	void handleupload(HttpListenerContext ctx) {
+	void handleupload(SfCtx ctx) {
 		var rel = ctx.Request.QueryString["path"] ?? "";
 		try {
 			SendFileOps.SaveStream(rel, ctx.Request.InputStream);
@@ -332,7 +451,7 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	void handlemkdir(HttpListenerContext ctx) {
+	void handlemkdir(SfCtx ctx) {
 		var body = readjson(ctx.Request);
 		var rel = str(body, "path");
 		if (string.IsNullOrWhiteSpace(rel))
@@ -346,7 +465,7 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	void handledelete(HttpListenerContext ctx) {
+	void handledelete(SfCtx ctx) {
 		var rel = ctx.Request.QueryString["path"] ?? "";
 		if (string.IsNullOrWhiteSpace(rel)) {
 			var body = readjson(ctx.Request);
@@ -361,7 +480,7 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	void handletextget(HttpListenerContext ctx, SendFileDevice dev) {
+	void handletextget(SfCtx ctx, SendFileDevice dev) {
 		long since = 0;
 		var q = ctx.Request.QueryString["since"];
 		if (!string.IsNullOrWhiteSpace(q))
@@ -378,7 +497,7 @@ public sealed class SendFileServer : IDisposable {
 		writejson(ctx, 200, ok(arr));
 	}
 
-	void handletextpost(HttpListenerContext ctx) {
+	void handletextpost(SfCtx ctx) {
 		var body = readjson(ctx.Request);
 		var text = str(body, "text");
 		if (text.Length > MAXTEXT) text = text.Substring(0, MAXTEXT);
@@ -390,7 +509,7 @@ public sealed class SendFileServer : IDisposable {
 		writejson(ctx, 200, ok(new JsonObject { ["id"] = msg.Id }));
 	}
 
-	SendFileDevice authed(HttpListenerRequest req) {
+	SendFileDevice authed(SfReq req) {
 		var id = req.Headers["X-Device-Id"] ?? req.QueryString["device"] ?? "";
 		var token = bearertoken(req);
 		if (string.IsNullOrEmpty(token))
@@ -398,14 +517,14 @@ public sealed class SendFileServer : IDisposable {
 		return Auth.Find(id, token);
 	}
 
-	static string bearertoken(HttpListenerRequest req) {
+	static string bearertoken(SfReq req) {
 		var h = req.Headers["Authorization"] ?? "";
 		if (h.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
 			return h.Substring(7).Trim();
 		return "";
 	}
 
-	static JsonObject readjson(HttpListenerRequest req) {
+	static JsonObject readjson(SfReq req) {
 		try {
 			using var sr = new StreamReader(req.InputStream, req.ContentEncoding ?? Encoding.UTF8);
 			var s = sr.ReadToEnd();
@@ -447,7 +566,7 @@ public sealed class SendFileServer : IDisposable {
 		["data"] = msg ?? "",
 	};
 
-	static void writecors(HttpListenerContext ctx, int status) {
+	static void writecors(SfCtx ctx, int status) {
 		var res = ctx.Response;
 		res.StatusCode = status;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
@@ -457,7 +576,7 @@ public sealed class SendFileServer : IDisposable {
 		try { res.Close(); } catch { }
 	}
 
-	static void writejson(HttpListenerContext ctx, int httpStatus, JsonNode body) {
+	static void writejson(SfCtx ctx, int httpStatus, JsonNode body) {
 		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));
 		var res = ctx.Response;
 		res.StatusCode = httpStatus;
@@ -476,28 +595,11 @@ public sealed class SendFileServer : IDisposable {
 		}
 	}
 
-	static List<string> lanips() {
-		var list = new List<string> { "127.0.0.1" };
-		try {
-			foreach (var ni in NetworkInterface.GetAllNetworkInterfaces()) {
-				if (ni.OperationalStatus != OperationalStatus.Up) continue;
-				if (ni.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
-				foreach (var ua in ni.GetIPProperties().UnicastAddresses) {
-					if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
-					var ip = ua.Address.ToString();
-					if (!list.Contains(ip)) list.Add(ip);
-				}
-			}
-		}
-		catch { }
-		return list;
-	}
-
-	static void tryfirewall(int tcp, int udp) {
+	static void tryfirewall(int tcpPort, int udpPort) {
 		runnetsh($"advfirewall firewall delete rule name=\"ScreenKit SendFile TCP\"");
 		runnetsh($"advfirewall firewall delete rule name=\"ScreenKit SendFile UDP\"");
-		runnetsh($"advfirewall firewall add rule name=\"ScreenKit SendFile TCP\" dir=in action=allow protocol=TCP localport={tcp}");
-		runnetsh($"advfirewall firewall add rule name=\"ScreenKit SendFile UDP\" dir=in action=allow protocol=UDP localport={udp}");
+		runnetsh($"advfirewall firewall add rule name=\"ScreenKit SendFile TCP\" dir=in action=allow protocol=TCP localport={tcpPort}");
+		runnetsh($"advfirewall firewall add rule name=\"ScreenKit SendFile UDP\" dir=in action=allow protocol=UDP localport={udpPort}");
 	}
 
 	static void runnetsh(string args) {
@@ -519,5 +621,188 @@ public sealed class SendFileServer : IDisposable {
 
 	void log(string s) {
 		try { Logged?.Invoke(s); } catch { }
+	}
+}
+
+sealed class SfCtx {
+	public SfReq Request;
+	public SfRes Response;
+}
+
+sealed class SfReq {
+	public string HttpMethod;
+	public Uri Url;
+	public SfQuery QueryString;
+	public SfHeaders Headers;
+	public Stream InputStream;
+	public Encoding ContentEncoding;
+	public IPEndPoint RemoteEndPoint;
+}
+
+sealed class SfQuery {
+	readonly Dictionary<string, string> map = new(StringComparer.OrdinalIgnoreCase);
+	public string this[string key] =>
+		key != null && map.TryGetValue(key, out var v) ? v : null;
+	public void Set(string k, string v) {
+		if (string.IsNullOrEmpty(k)) return;
+		map[k] = v ?? "";
+	}
+}
+
+sealed class SfHeaders {
+	readonly List<KeyValuePair<string, string>> items = new();
+	public string this[string key] {
+		get {
+			foreach (var kv in items) {
+				if (string.Equals(kv.Key, key, StringComparison.OrdinalIgnoreCase))
+					return kv.Value;
+			}
+			return null;
+		}
+		set {
+			for (var i = 0; i < items.Count; i++) {
+				if (string.Equals(items[i].Key, key, StringComparison.OrdinalIgnoreCase)) {
+					items[i] = new KeyValuePair<string, string>(items[i].Key, value ?? "");
+					return;
+				}
+			}
+			items.Add(new KeyValuePair<string, string>(key, value ?? ""));
+		}
+	}
+	public IEnumerable<KeyValuePair<string, string>> All => items;
+}
+
+sealed class SfRes {
+	readonly SfOut output;
+	public int StatusCode = 200;
+	public string ContentType;
+	public Encoding ContentEncoding;
+	public long ContentLength64 = -1;
+	public readonly SfHeaders Headers = new();
+	public Stream OutputStream => output;
+
+	public SfRes(Stream ns) {
+		output = new SfOut(ns, this);
+	}
+
+	public void Close() {
+		output.Finish();
+	}
+}
+
+sealed class SfOut : Stream {
+	readonly Stream inner;
+	readonly SfRes res;
+	bool sent;
+
+	public SfOut(Stream inner, SfRes res) {
+		this.inner = inner;
+		this.res = res;
+	}
+
+	public override bool CanRead => false;
+	public override bool CanSeek => false;
+	public override bool CanWrite => true;
+	public override long Length => throw new NotSupportedException();
+	public override long Position {
+		get => throw new NotSupportedException();
+		set => throw new NotSupportedException();
+	}
+
+	public override void Flush() {
+		try { inner.Flush(); } catch { }
+	}
+
+	public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+	public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+	public override void SetLength(long value) => throw new NotSupportedException();
+
+	public override void Write(byte[] buffer, int offset, int count) {
+		sendhdr();
+		if (count > 0) inner.Write(buffer, offset, count);
+	}
+
+	public void Finish() {
+		sendhdr();
+		try { inner.Flush(); } catch { }
+	}
+
+	void sendhdr() {
+		if (sent) return;
+		sent = true;
+		var sb = new StringBuilder();
+		sb.Append("HTTP/1.1 ").Append(res.StatusCode).Append(' ').Append(reason(res.StatusCode)).Append("\r\n");
+		if (!string.IsNullOrEmpty(res.ContentType))
+			sb.Append("Content-Type: ").Append(res.ContentType).Append("\r\n");
+		if (res.ContentLength64 >= 0)
+			sb.Append("Content-Length: ").Append(res.ContentLength64.ToString(CultureInfo.InvariantCulture)).Append("\r\n");
+		var sawConn = false;
+		foreach (var kv in res.Headers.All) {
+			if (kv.Key.Equals("Connection", StringComparison.OrdinalIgnoreCase)) sawConn = true;
+			sb.Append(kv.Key).Append(": ").Append(kv.Value).Append("\r\n");
+		}
+		if (!sawConn) sb.Append("Connection: close\r\n");
+		sb.Append("\r\n");
+		var hb = Encoding.ASCII.GetBytes(sb.ToString());
+		inner.Write(hb, 0, hb.Length);
+	}
+
+	static string reason(int code) => code switch {
+		200 => "OK",
+		204 => "No Content",
+		401 => "Unauthorized",
+		403 => "Forbidden",
+		404 => "Not Found",
+		405 => "Method Not Allowed",
+		500 => "Internal Server Error",
+		_ => "OK",
+	};
+}
+
+sealed class SfIn : Stream {
+	readonly Stream inner;
+	readonly byte[] head;
+	readonly long limit;
+	int pos;
+	long taken;
+
+	public SfIn(Stream inner, byte[] leftover, long limit) {
+		this.inner = inner;
+		head = leftover ?? Array.Empty<byte>();
+		this.limit = limit < 0 ? 0 : limit;
+	}
+
+	public override bool CanRead => true;
+	public override bool CanSeek => false;
+	public override bool CanWrite => false;
+	public override long Length => limit;
+	public override long Position {
+		get => taken;
+		set => throw new NotSupportedException();
+	}
+
+	public override void Flush() { }
+	public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+	public override void SetLength(long value) => throw new NotSupportedException();
+	public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+	public override int Read(byte[] buffer, int offset, int count) {
+		if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+		var left = limit - taken;
+		if (left <= 0 || count <= 0) return 0;
+		if (count > left) count = (int)left;
+		var n = 0;
+		if (pos < head.Length) {
+			var c = Math.Min(count, head.Length - pos);
+			Buffer.BlockCopy(head, pos, buffer, offset, c);
+			pos += c;
+			n += c;
+			offset += c;
+			count -= c;
+		}
+		if (count > 0)
+			n += inner.Read(buffer, offset, count);
+		taken += n;
+		return n;
 	}
 }

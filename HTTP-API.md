@@ -805,7 +805,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 15. PC file transfer (LAN, pairing required)
 
-This is **not** the OCR HTTP API on port 1224. Enable under **Settings → API → PC file transfer**. Default HTTP **17532**, UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
+This is **not** the OCR HTTP API on port 1224. Enable under **Settings → API → PC file transfer**. Default HTTP **17532** (all interfaces, including `127.0.0.1` / `localhost`), UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
 
 Headers after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
 
@@ -820,7 +820,7 @@ Discovery: UDP broadcast `SCREENKIT_DISCOVER` to port 17531; the PC replies with
 | POST | `/api/sendfile/upload?path=` | raw body |
 | POST | `/api/sendfile/mkdir` | body `{path}` |
 | DELETE | `/api/sendfile/delete?path=` | file or directory |
-| POST | `/api/sendfile/text` | body `{text}` → PC text-sync list |
+| POST | `/api/sendfile/text` | body `{text}` → File sync tab text list |
 | GET | `/api/sendfile/text?since=` | messages from PC to this phone |
 
 JSON `code` 100 = success; 401/403 unpaired; 410 bad path.

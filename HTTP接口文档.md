@@ -900,7 +900,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 15. PC 文件传输（局域网，需配对）
 
-这不是 1224 端口的 OCR HTTP API。在 **参数设置 → 接口 → PC 文件传输** 启用。默认 HTTP **17532**，UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
+这不是 1224 端口的 OCR HTTP API。在 **参数设置 → 接口 → PC 文件传输** 启用。默认 HTTP **17532**（监听所有网卡，含 `127.0.0.1` / `localhost`），UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
 
 配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
 
@@ -915,7 +915,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 | POST | `/api/sendfile/upload?path=` | 原始 body |
 | POST | `/api/sendfile/mkdir` | body `{path}` |
 | DELETE | `/api/sendfile/delete?path=` | 文件或目录 |
-| POST | `/api/sendfile/text` | body `{text}` → 电脑文本同步列表 |
+| POST | `/api/sendfile/text` | body `{text}` → 电脑「文件同步」Tab 文本列表 |
 | GET | `/api/sendfile/text?since=` | 电脑发给该手机的消息 |
 
 JSON `code` 100 成功；401/403 未配对；410 路径非法。
