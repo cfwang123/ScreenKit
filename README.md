@@ -20,7 +20,7 @@ Current version: **1.0.7**
 | **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio; optional mouse cursor and click highlight |
 | **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF; same mouse / click-highlight options |
 | **Clipboard** | Paste image and run OCR; Edit menu: copy image / file / path; copy text via Ctrl+C or the result-panel button; menu/tray can switch on-capture copy mode (image / file / path) |
-| **Overlay text** | Text layer on the image; drag-select and copy |
+| **Overlay text** | Text layer on the image; click-release selects one OCR block, click empty clears, drag-select stays in the dragged range (no snap-expand); Ctrl+C copies |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
 | **ASR / TTS** | Speech-recognition tab can switch live captions between offline and streaming models; Sherpa/SAPI/WinRT offline TTS and Edge online natural voices |
 | **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, Clear; `[[llm]]` pick. **Tools** agent; **Mic** / **Auto speak**; bottom timing log (`llm`/`asr`/`tts` ms) |

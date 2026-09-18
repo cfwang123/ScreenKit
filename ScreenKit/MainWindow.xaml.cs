@@ -31,7 +31,7 @@ public partial class MainWindow : Window {
 	const double ZMIN = 0.05;
 	const double ZMAX = 16;
 
-	// 文字选区：单击整行，拖选字符级；空白处平移
+	// 文字选区：松开才选整块；拖选只按拖过的字符、不吸附扩展；点空白取消
 	// 光标位置 (line, ch)，ch ∈ [0, text.Length]，选区为文档序 [anchor, caret)
 	int ancLine = -1, ancCh;
 	int curLine = -1, curCh;
@@ -1327,7 +1327,7 @@ public partial class MainWindow : Window {
 		// 视口可聚焦：图→文同步时临时 Focus 结果区后可交还
 		pviewport.Focusable = true;
 
-		// 文本区：拖选实时同步；单击整行必须等 TextBox 自己落完 caret 后再做（见 finishtextsel）
+		// 文本区：拖选实时同步；单击松开选整块须等 TextBox 自己落完 caret（见 finishtextsel）
 		eresult.SelectionChanged += (_, _) => {
 			if (syncingSel) return;
 			if (textMouseDown) {
@@ -1355,10 +1355,11 @@ public partial class MainWindow : Window {
 				textSelDragged = true;
 		};
 		// Preview 过早：TextBox 随后还会改 caret/选区，必须延迟到其处理完成
-		eresult.PreviewMouseLeftButtonUp += (_, _) => {
+		eresult.PreviewMouseLeftButtonUp += (_, e) => {
 			var dragged = textSelDragged;
+			var pt = e.GetPosition(eresult);
 			textMouseDown = false;
-			Dispatcher.BeginInvoke(new Action(() => finishtextsel(dragged)),
+			Dispatcher.BeginInvoke(new Action(() => finishtextsel(dragged, pt)),
 				System.Windows.Threading.DispatcherPriority.Input);
 		};
 		eresult.LostMouseCapture += (_, _) => { textMouseDown = false; };
@@ -1393,17 +1394,12 @@ public partial class MainWindow : Window {
 			selDragged = false;
 
 			if (hit.Item1 >= 0) {
-				// 按下：先整行预览；拖动后改为从落点字符起的部分选
+				// 按下只记落点，松开才选整块；拖开则按字符选
 				selecting = true;
 				downLine = hit.Item1;
 				downCh = hit.Item2;
 				downStage = stagePt;
-				selectline(downLine);
 				pviewport.Cursor = Cursors.IBeam;
-				drawoverlay();
-				// 延迟同步：避免 MouseDown 处理中 Focus/Select 被当前事件冲掉
-				queuesyncresultfromimg();
-				setstatus($"选区 · 单击整行 · 拖动选部分 · Ctrl+C 复制");
 			}
 			else {
 				// 空白：平移；并清选区
@@ -1416,6 +1412,7 @@ public partial class MainWindow : Window {
 					clearselection();
 					drawoverlay();
 					queuesyncresultfromimg();
+					setstatus("已取消选区");
 				}
 			}
 
@@ -1443,7 +1440,7 @@ public partial class MainWindow : Window {
 					ancLine = downLine;
 					ancCh = downCh;
 				}
-				var hit = hittestchar(stagePt, allowNearest: true);
+				var hit = hittestchar(stagePt, allowNearest: false);
 				if (hit.Item1 >= 0) {
 					var ol = curLine;
 					var oc = curCh;
@@ -1470,21 +1467,24 @@ public partial class MainWindow : Window {
 			if (selecting) {
 				selecting = false;
 				try { pviewport.ReleaseMouseCapture(); } catch { }
-				// 单击未拖动：保持整行（按下时已 selectline）
-				if (!selDragged && downLine >= 0 && last != null
-					&& downLine < last.Lines.Count)
-					selectline(downLine);
-				// 拖选但未形成有效区间：至少落到整行
-				else if (selDragged && !hasselection() && downLine >= 0
-					&& last != null && downLine < last.Lines.Count)
-					selectline(downLine);
+				var stagePt = e.GetPosition(pstage);
+				if (!selDragged) {
+					var hit = mntoggletext.IsChecked == true && last != null
+						? hittestchar(stagePt, allowNearest: false)
+						: (-1, 0);
+					if (hit.Item1 >= 0)
+						selectline(hit.Item1);
+					else
+						clearselection();
+				}
 
 				drawoverlay();
-				// 抬起后再同步一次，保证最终选区写入 TextBox
 				queuesyncresultfromimg();
 				if (hasselection())
 					setstatus($"已选中 {selcount()} 字 · Ctrl+C 复制选中");
-				updatehovercursor(e.GetPosition(pstage));
+				else if (!selDragged)
+					setstatus("已取消选区");
+				updatehovercursor(stagePt);
 				e.Handled = true;
 				return;
 			}
@@ -1650,31 +1650,31 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>
-	/// 文本区鼠标抬起后：单击→整行；拖选→按实际选区同步图上。
+	/// 文本区鼠标抬起后：点在字上→选该 OCR 块；点空白→取消；拖选→按实际选区、不扩展。
 	/// 必须延迟调用，避免被 TextBox 自己的点击处理覆盖。
 	/// </summary>
-	void finishtextsel(bool dragged) {
+	void finishtextsel(bool dragged, Point pt) {
 		if (syncingSel || last == null || last.Lines.Count == 0) return;
 		if (!ensurelineoff()) return;
 
 		if (dragged) {
 			if (eresult.SelectionLength > 0)
 				syncimgfromresult();
+			else {
+				clearselection();
+				drawoverlay();
+			}
 			return;
 		}
 
-		// 单击：按 caret 落点所在 OCR 行整行选中
-		var text = eresult.Text ?? "";
-		if (text.Length == 0) return;
-		var idx = eresult.SelectionLength > 0
-			? eresult.SelectionStart
-			: eresult.CaretIndex;
-		if (idx >= text.Length) idx = text.Length - 1;
-		if (idx < 0) return;
-		// 落在换行上时退到上一可见字符
-		while (idx > 0 && (text[idx] == '\r' || text[idx] == '\n'))
-			idx--;
-		if (text[idx] == '\r' || text[idx] == '\n') return;
+		var idx = hitresultchar(pt);
+		if (idx < 0) {
+			clearselection();
+			drawoverlay();
+			syncresultfromimg();
+			setstatus("已取消选区");
+			return;
+		}
 
 		if (!trylineat(idx, out var line)) return;
 		selectline(line);
@@ -1682,6 +1682,23 @@ public partial class MainWindow : Window {
 		syncresultfromimg();
 		if (hasselection())
 			setstatus($"已选中 {selcount()} 字 · Ctrl+C 复制选中");
+	}
+
+	/// <summary>结果区坐标是否落在正文上；空白/换行返回 -1。</summary>
+	int hitresultchar(Point pt) {
+		try {
+			var text = eresult.Text ?? "";
+			if (text.Length == 0) return -1;
+			var idx = eresult.GetCharacterIndexFromPoint(pt, false);
+			if (idx < 0 || idx >= text.Length) return -1;
+			if (text[idx] == '\r' || text[idx] == '\n') return -1;
+			var rect = eresult.GetRectFromCharacterIndex(idx);
+			if (rect.IsEmpty) return -1;
+			rect.Inflate(6, 6);
+			if (!rect.Contains(pt)) return -1;
+			return idx;
+		}
+		catch { return -1; }
 	}
 
 	/// <summary>
@@ -1873,7 +1890,7 @@ public partial class MainWindow : Window {
 		var start = eresult.SelectionStart;
 		var len = eresult.SelectionLength;
 		if (len <= 0) {
-			// 无文本选区时不主动清图（单击整行由 finishtextsel 负责）
+			// 无文本选区时不主动清图（单击选块由 finishtextsel 负责）
 			return;
 		}
 
@@ -1998,7 +2015,7 @@ public partial class MainWindow : Window {
 
 	/// <summary>
 	/// 命中 (行, 字符光标)。字符光标 ch ∈ [0, len]，沿行框宽度比例估算。
-	/// allowNearest：拖选时行间空隙吸附最近行。
+	/// allowNearest：行间空隙吸附最近行（拖选不用，避免自动扩展）。
 	/// </summary>
 	(int line, int ch) hittestchar(Point stagePt, bool allowNearest) {
 		if (last == null || last.Lines.Count == 0) return (-1, 0);
