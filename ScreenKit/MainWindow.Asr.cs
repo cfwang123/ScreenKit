@@ -803,7 +803,11 @@ public partial class MainWindow {
 		catch { }
 	}
 
+	bool isasrtab() => tabasr != null && ReferenceEquals(maintabs.SelectedItem, tabasr);
+
 	void asronpreviewdragover(object sender, DragEventArgs e) {
+		// 仅语音识别页拦截：文件同步等其它 Tab 有自己的拖放
+		if (!isasrtab()) return;
 		if (hasasrmediadrop(e.Data)) {
 			e.Effects = DragDropEffects.Copy;
 			e.Handled = true;
@@ -811,10 +815,10 @@ public partial class MainWindow {
 	}
 
 	void asronpreviewdrop(object sender, DragEventArgs e) {
+		if (!isasrtab()) return;
 		var paths = pickasrmediapaths(e.Data);
 		if (paths.Count == 0) return;
 		e.Handled = true;
-		selectmaintab(tabasr);
 
 		// 多文件或已在字幕页 → 进字幕队列；单文件在识别页 → 加载识别
 		var onSrt = asrsubtabs?.SelectedItem == tabasrsrt;
