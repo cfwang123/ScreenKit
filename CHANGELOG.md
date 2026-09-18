@@ -20,7 +20,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - Text sync copy list shows only the latest message (PC and phone).
 - File sync tab adds a **transfer log** on the PC (completed/failed entries with time and size); the queue above it only shows in-progress items.
 - Android receive list shows a file-type icon; tapping a finished item opens the system “Open with” chooser.
-- Android title-bar hamburger: **Settings** (bind receive folder), **Switch PC**, and **Text sync**. The old on-screen bind-folder / switch-PC buttons are removed.
+- Android title-bar hamburger: **Settings** (bind receive folder) and **Switch PC**. Text sync is a button to the right of Upload, with 10dp spacing.
 
 #### Fixed
 
@@ -40,7 +40,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - 文本同步复制区只显示最新一条（电脑、手机均如此）。
 - 电脑文件同步 Tab 增加**传输记录**栏（完成/失败、时间、大小）；上方队列只显示进行中的任务。
 - 安卓接收列表显示文件类型图标；点已完成项用系统「选择打开方式」打开。
-- 安卓标题栏三横菜单：**参数设置**（绑定接收文件夹）、**换电脑**、**文本同步**；去掉主界面绑定/换电脑按钮。
+- 安卓标题栏三横菜单：**参数设置**（绑定接收文件夹）、**换电脑**。文本同步按钮在上传右侧，间距 10dp。
 
 #### 修复
 
