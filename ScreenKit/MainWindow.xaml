@@ -119,9 +119,6 @@
 				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
 				          AutomationProperties.AutomationId="menu.settings"
 				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
-				<MenuItem x:Name="mntextsync" Header="文本同步(_X)…"
-				          AutomationProperties.AutomationId="menu.sendfile"
-				          ToolTip="与手机互发文本；列表中点复制"/>
 				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
 				          AutomationProperties.AutomationId="menu.translate.popup"
 				          ToolTip="浮窗翻译；热键再按一次隐藏"/>
@@ -1486,6 +1483,97 @@
 									         TextWrapping="Wrap" AcceptsReturn="True"
 									         BorderBrush="{StaticResource BorderSoft}"/>
 								</Grid>
+							</Border>
+						</Grid>
+					</Grid>
+				</TabItem>
+
+				<!-- Tab：文件同步 -->
+				<TabItem x:Name="tabsf" Header="文件同步"
+				         AutomationProperties.AutomationId="tab.sendfile">
+					<Grid Margin="12" x:Name="psftab" AllowDrop="True" Focusable="True">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"/>
+							<RowDefinition Height="*"/>
+						</Grid.RowDefinitions>
+						<DockPanel Grid.Row="0" Margin="0,0,0,10" LastChildFill="True">
+							<TextBlock x:Name="lbsfbrand" DockPanel.Dock="Left" Text="文件同步"
+							           FontSize="18" FontWeight="SemiBold"
+							           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
+							           Margin="0,0,16,0"/>
+							<TextBlock x:Name="lbsfstatus" Text="" FontSize="12"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+							           TextTrimming="CharacterEllipsis"/>
+						</DockPanel>
+						<Grid Grid.Row="1">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*" MinWidth="280"/>
+								<ColumnDefinition Width="10"/>
+								<ColumnDefinition Width="0.7*" MinWidth="240"/>
+							</Grid.ColumnDefinitions>
+							<Border Grid.Column="0" Background="{StaticResource BgPanel}" CornerRadius="12"
+							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+							        AllowDrop="True" x:Name="psffiles">
+								<DockPanel Margin="12">
+									<TextBlock x:Name="lbsfhint" DockPanel.Dock="Top"
+									           Text="有手机连接时，拖入或粘贴的文件会传到手机绑定文件夹；无连接则不传。"
+									           FontSize="12" Foreground="{StaticResource TextMuted}"
+									           TextWrapping="Wrap" Margin="0,0,0,8"/>
+									<WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+										<Button x:Name="bsfpaste" Content="粘贴" Style="{StaticResource ToolBtn}"
+										        Height="30" Padding="10,2"
+										        AutomationProperties.AutomationId="sendfile.paste"/>
+										<Button x:Name="bsfopen" Content="打开接收目录" Style="{StaticResource ToolBtn}"
+										        Height="30" Padding="10,2"
+										        AutomationProperties.AutomationId="sendfile.open"/>
+									</WrapPanel>
+									<TextBlock x:Name="lbsfdrop"
+									           Text="拖入文件 / 文件夹 / 图片"
+									           FontSize="16" FontWeight="SemiBold"
+									           Foreground="{StaticResource TextMuted}"
+									           TextWrapping="Wrap" TextAlignment="Center"
+									           HorizontalAlignment="Center" VerticalAlignment="Center"
+									           AutomationProperties.AutomationId="sendfile.drop"/>
+								</DockPanel>
+							</Border>
+							<GridSplitter Grid.Column="1" Width="10" HorizontalAlignment="Stretch"
+							              Background="Transparent" ShowsPreview="False"/>
+							<Border Grid.Column="2" Background="{StaticResource BgPanel}" CornerRadius="12"
+							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+								<DockPanel Margin="12">
+									<TextBlock x:Name="lbsftexthint" DockPanel.Dock="Top"
+									           Text="与手机互发文本（单行显示，复制取全文）"
+									           FontSize="12" Foreground="{StaticResource TextMuted}"
+									           TextWrapping="Wrap" Margin="0,0,0,8"/>
+									<DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+										<Button x:Name="bsfsend" DockPanel.Dock="Right" Content="发送"
+										        Style="{StaticResource PrimaryBtn}" Width="88" Margin="8,0,0,0"
+										        AutomationProperties.AutomationId="sendfile.text.send"/>
+										<TextBox x:Name="esfsend" Height="64" AcceptsReturn="True" TextWrapping="Wrap"
+										         VerticalScrollBarVisibility="Auto" Padding="8,6"
+										         BorderBrush="{StaticResource BorderSoft}"
+										         AutomationProperties.AutomationId="sendfile.text.input"/>
+									</DockPanel>
+									<ScrollViewer VerticalScrollBarVisibility="Auto">
+										<ItemsControl x:Name="lstsfmsgs">
+											<ItemsControl.ItemTemplate>
+												<DataTemplate>
+													<DockPanel Margin="0,0,0,8" LastChildFill="True">
+														<Button DockPanel.Dock="Right" Content="复制"
+														        Style="{StaticResource ToolBtn}"
+														        Padding="10,4" Margin="8,0,0,0"
+														        Tag="{Binding}" Click="onsfcopy"
+														        AutomationProperties.AutomationId="sendfile.text.copy"/>
+														<TextBlock Text="{Binding Line}" TextTrimming="CharacterEllipsis"
+														           VerticalAlignment="Center" FontSize="14"
+														           Foreground="{StaticResource TextPrimary}"
+														           ToolTip="{Binding Full}"/>
+													</DockPanel>
+												</DataTemplate>
+											</ItemsControl.ItemTemplate>
+										</ItemsControl>
+									</ScrollViewer>
+								</DockPanel>
 							</Border>
 						</Grid>
 					</Grid>

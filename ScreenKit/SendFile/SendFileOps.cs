@@ -22,10 +22,14 @@ static class SendFileOps {
 		if (deep)
 			walk(full, arr);
 		else {
-			foreach (var d in Directory.GetDirectories(full))
+			foreach (var d in Directory.GetDirectories(full)) {
+				if (hiddendir(d)) continue;
 				arr.Add(item(d, dir: true));
-			foreach (var f in Directory.GetFiles(full))
+			}
+			foreach (var f in Directory.GetFiles(full)) {
+				if (hiddendir(f)) continue;
 				arr.Add(item(f, dir: false));
+			}
 		}
 		return arr;
 	}
@@ -50,6 +54,80 @@ static class SendFileOps {
 			throw new InvalidOperationException("路径不存在");
 	}
 
+	/// <summary>把外部文件或文件夹拷进 destDirRel（根用空串）。返回目标相对路径。</summary>
+	public static string Import(string srcFull, string destDirRel) {
+		if (string.IsNullOrWhiteSpace(srcFull))
+			throw new InvalidOperationException("源路径空");
+		srcFull = Path.GetFullPath(srcFull);
+		var isDir = Directory.Exists(srcFull);
+		if (!isDir && !File.Exists(srcFull))
+			throw new InvalidOperationException("源不存在");
+		var name = Path.GetFileName(srcFull);
+		if (string.IsNullOrEmpty(name))
+			throw new InvalidOperationException("源名非法");
+		var destRel = string.IsNullOrWhiteSpace(destDirRel) ? name : destDirRel.Trim('/') + "/" + name;
+		destRel = UniqueRel(destRel, isDir);
+		if (!SendFilePaths.TryResolve(destRel, out var destFull, out var err))
+			throw new InvalidOperationException(err ?? "路径非法");
+		if (string.Equals(srcFull, destFull, StringComparison.OrdinalIgnoreCase))
+			return destRel;
+		if (isDir) {
+			if (isunder(destFull, srcFull))
+				throw new InvalidOperationException("不能复制到自身内部");
+			copydir(srcFull, destFull);
+		}
+		else {
+			var dir = Path.GetDirectoryName(destFull);
+			if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+			File.Copy(srcFull, destFull);
+		}
+		return destRel;
+	}
+
+	public static string UniqueRel(string destRel, bool dir) {
+		destRel = (destRel ?? "").Replace('\\', '/').Trim('/');
+		if (SendFilePaths.TryResolve(destRel, out var full, out _)
+			&& !File.Exists(full) && !Directory.Exists(full))
+			return destRel;
+		var parent = "";
+		var i = destRel.LastIndexOf('/');
+		var leaf = destRel;
+		if (i >= 0) {
+			parent = destRel.Substring(0, i);
+			leaf = destRel.Substring(i + 1);
+		}
+		var ext = dir ? "" : Path.GetExtension(leaf);
+		var stem = dir ? leaf : Path.GetFileNameWithoutExtension(leaf);
+		if (string.IsNullOrEmpty(stem)) stem = "item";
+		for (var n = 1; n < 10000; n++) {
+			var name = dir ? $"{stem} ({n})" : $"{stem} ({n}){ext}";
+			var rel = parent.Length == 0 ? name : parent + "/" + name;
+			if (SendFilePaths.TryResolve(rel, out var f, out _)
+				&& !File.Exists(f) && !Directory.Exists(f))
+				return rel;
+		}
+		return destRel;
+	}
+
+	static bool isunder(string child, string parent) {
+		var p = trail(parent);
+		var c = trail(child);
+		return c.StartsWith(p, StringComparison.OrdinalIgnoreCase);
+	}
+
+	static string trail(string p) {
+		p = (p ?? "").TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+		return p + Path.DirectorySeparatorChar;
+	}
+
+	static void copydir(string src, string dest) {
+		Directory.CreateDirectory(dest);
+		foreach (var f in Directory.GetFiles(src))
+			File.Copy(f, Path.Combine(dest, Path.GetFileName(f)), overwrite: false);
+		foreach (var d in Directory.GetDirectories(src))
+			copydir(d, Path.Combine(dest, Path.GetFileName(d)));
+	}
+
 	public static void SaveStream(string rel, Stream src) {
 		if (string.IsNullOrWhiteSpace(rel) || rel.EndsWith("/") || rel.EndsWith("\\"))
 			throw new InvalidOperationException("需要文件路径");
@@ -62,13 +140,21 @@ static class SendFileOps {
 		src.CopyTo(fs);
 	}
 
+	static bool hiddendir(string full) {
+		var name = Path.GetFileName(full);
+		return !string.IsNullOrEmpty(name) && name[0] == '.';
+	}
+
 	static void walk(string dir, JsonArray arr) {
 		foreach (var d in Directory.GetDirectories(dir)) {
+			if (hiddendir(d)) continue;
 			arr.Add(item(d, dir: true));
 			walk(d, arr);
 		}
-		foreach (var f in Directory.GetFiles(dir))
+		foreach (var f in Directory.GetFiles(dir)) {
+			if (hiddendir(f)) continue;
 			arr.Add(item(f, dir: false));
+		}
 	}
 
 	static JsonObject item(string full, bool dir) {

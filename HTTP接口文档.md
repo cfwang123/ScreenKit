@@ -917,6 +917,8 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 | DELETE | `/api/sendfile/delete?path=` | 文件或目录 |
 | POST | `/api/sendfile/text` | body `{text}` → 电脑「文件同步」Tab 文本列表 |
 | GET | `/api/sendfile/text?since=` | 电脑发给该手机的消息 |
+| GET | `/api/sendfile/pull` | 电脑待发给该手机的文件 `{items:[{id,path,rel,name,size}]}`（`path` 用于 download） |
+| POST | `/api/sendfile/pulldone` | body `{id}`，确认已收下并删除电脑暂存 |
 
 JSON `code` 100 成功；401/403 未配对；410 路径非法。
 

@@ -20,6 +20,14 @@ data class RemoteItem(
 
 data class TextMsg(val id: Long, val text: String)
 
+data class PullItem(
+    val id: Long,
+    val path: String,
+    val rel: String,
+    val name: String,
+    val size: Long,
+)
+
 class Api(
     var host: String,
     var port: Int,
@@ -135,6 +143,39 @@ class Api(
         val len = r.body?.contentLength() ?: -1
         val ins = r.body?.byteStream() ?: throw RuntimeException("空响应")
         return ins to len
+    }
+
+    fun pull(): List<PullItem> {
+        val obj = get("/api/sendfile/pull")
+        if (obj.optInt("code") != 100) throw RuntimeException(obj.optString("data"))
+        val data = obj.optJSONObject("data") ?: JSONObject()
+        val arr = data.optJSONArray("items") ?: JSONArray()
+        val out = ArrayList<PullItem>()
+        for (i in 0 until arr.length()) {
+            val it = arr.optJSONObject(i) ?: continue
+            val rel = it.optString("rel").ifEmpty { it.optString("name") }
+            if (rel.isEmpty()) continue
+            out.add(
+                PullItem(
+                    id = it.optLong("id"),
+                    path = it.optString("path"),
+                    rel = rel,
+                    name = it.optString("name"),
+                    size = it.optLong("size"),
+                ),
+            )
+        }
+        return out
+    }
+
+    fun pulldone(id: Long) {
+        val body = JSONObject().put("id", id).toString()
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val obj = parse(
+            http.newCall(req("/api/sendfile/pulldone").post(body).build()).execute().body?.string() ?: "",
+            200,
+        )
+        if (obj.optInt("code") != 100) throw RuntimeException(obj.optString("data"))
     }
 
     fun sendText(text: String) {

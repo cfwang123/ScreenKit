@@ -32,7 +32,7 @@ Current version: **1.0.7**
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`; all visible by default) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + manual request |
-| **PC file transfer** | Separate LAN service (HTTP 17532 on all interfaces + UDP discovery 17531). Main-window **File sync** tab browses `sendfile/` next to the exe: drag-drop, paste files/folders/images, paste text (text sync with the phone). Companion Android app under `android/` (`com.whj.screenkit`). First connection shows a confirm dialog. Other apps can share multiple files into the app; in-app **Upload** allows multi-select. |
+| **PC file transfer** | Separate LAN service (HTTP 17532 on all interfaces + UDP discovery 17531). **File sync** tab: with the phone app connected, files dropped/pasted on the PC go to the phone’s bound folder (ignored if offline); files shared from the phone land in `sendfile/` next to the exe. Companion Android app under `android/` (`com.whj.screenkit`). First connection shows a confirm dialog. |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
 
 ## Requirements

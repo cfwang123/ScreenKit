@@ -16,6 +16,8 @@ import com.whj.screenkit.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -32,6 +34,8 @@ class MainActivity : AppCompatActivity() {
     private val io = CoroutineScope(Dispatchers.Main + job)
     private var pendingText: String? = null
     private val pendingFiles = ArrayList<Uri>()
+    private var pulling = false
+    private var askedFolder = false
 
     private val pickPc = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -49,6 +53,7 @@ class MainActivity : AppCompatActivity() {
             Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
         )
         prefs.folderUri = uri.toString()
+        askedFolder = false
         toast("已绑定文件夹")
     }
 
@@ -195,6 +200,7 @@ class MainActivity : AppCompatActivity() {
     private fun afterconnect() {
         val a = api ?: return
         bind.lbstatus.text = "已连接 ${prefs.lastName.ifEmpty { a.host }}  ${a.host}:${a.port}"
+        startpull()
         val t = pendingText
         val files = ArrayList(pendingFiles)
         pendingText = null
@@ -295,7 +301,7 @@ class MainActivity : AppCompatActivity() {
                     try {
                         val raw = queryname(uri) ?: "upload.bin"
                         val name = uniqname(raw, used)
-                        val dest = if (rel.isEmpty()) name else "$rel/$name"
+                        val dest = name
                         val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
                             ?: throw RuntimeException("无法读取 $name")
                         a.upload(dest, bytes)
@@ -315,6 +321,56 @@ class MainActivity : AppCompatActivity() {
             }
             if (ok > 0) loadlist()
         }
+    }
+
+    private fun startpull() {
+        if (pulling) return
+        pulling = true
+        io.launch {
+            try {
+                while (isActive) {
+                    try {
+                        recvpull()
+                    } catch (ex: Exception) {
+                        Log.w(TAG, "pull", ex)
+                    }
+                    delay(1500)
+                }
+            } finally {
+                pulling = false
+            }
+        }
+    }
+
+    private suspend fun recvpull() {
+        val a = api ?: return
+        val items = withContext(Dispatchers.IO) { a.pull() }
+        if (items.isEmpty()) return
+        val folder = boundfolder()
+        if (folder == null) {
+            if (!askedFolder) {
+                askedFolder = true
+                toast("请先绑定文件夹，才能接收电脑文件")
+                pickFolder.launch(null)
+            }
+            return
+        }
+        var ok = 0
+        withContext(Dispatchers.IO) {
+            for (it in items) {
+                try {
+                    val rel = it.rel.ifEmpty { it.name }
+                    if (rel.isEmpty()) continue
+                    writefile(folder, rel, a.download(it.path))
+                    a.pulldone(it.id)
+                    ok++
+                } catch (ex: Exception) {
+                    Log.w(TAG, "recv ${it.path}", ex)
+                }
+            }
+        }
+        if (ok > 0)
+            toast(if (ok == 1) "已从电脑收到 1 个文件" else "已从电脑收到 $ok 个文件")
     }
 
     private fun uniqname(name: String, used: HashSet<String>): String {

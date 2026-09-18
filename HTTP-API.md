@@ -822,6 +822,8 @@ Discovery: UDP broadcast `SCREENKIT_DISCOVER` to port 17531; the PC replies with
 | DELETE | `/api/sendfile/delete?path=` | file or directory |
 | POST | `/api/sendfile/text` | body `{text}` → File sync tab text list |
 | GET | `/api/sendfile/text?since=` | messages from PC to this phone |
+| GET | `/api/sendfile/pull` | files queued from the PC for this phone `{items:[{id,path,rel,name,size}]}` (`path` is for download) |
+| POST | `/api/sendfile/pulldone` | body `{id}`; ack and delete the PC staging copy |
 
 JSON `code` 100 = success; 401/403 unpaired; 410 bad path.
 

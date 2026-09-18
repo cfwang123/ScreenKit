@@ -20,7 +20,10 @@ public sealed class SendFileServer : IDisposable {
 	bool disposed;
 	public readonly SendFileAuth Auth;
 	public readonly SendFileText Text = new();
+	readonly SendFileOutbox Outbox = new();
 	public string LastDeviceId = "";
+	string lastSeenId = "";
+	int lastSeenTick;
 	public event Action<string> Logged;
 
 	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
@@ -28,8 +31,10 @@ public sealed class SendFileServer : IDisposable {
 	};
 
 	const string DISCOVER = "SCREENKIT_DISCOVER";
+	const string STAGING = ".to_phone";
 	const int MAXTEXT = 65536;
 	const int MAXHDR = 65536;
+	const int ONLINE_MS = 10000;
 
 	public SendFileServer(Func<OcrOptions> optionsFactory, Action saveCfg) {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
@@ -38,6 +43,76 @@ public sealed class SendFileServer : IDisposable {
 	}
 
 	public bool IsRunning => running;
+
+	public bool PhoneOnline {
+		get {
+			if (!running || string.IsNullOrEmpty(lastSeenId)) return false;
+			return unchecked(Environment.TickCount - lastSeenTick) < ONLINE_MS;
+		}
+	}
+
+	public string OnlineDeviceId => PhoneOnline ? lastSeenId : "";
+
+	void touch(string id) {
+		if (string.IsNullOrWhiteSpace(id)) return;
+		lastSeenId = id;
+		lastSeenTick = Environment.TickCount;
+		LastDeviceId = id;
+	}
+
+	/// <summary>把本地文件/文件夹拷进 .to_phone 并入队；返回入队文件数。</summary>
+	public int PushFilesToPhone(string deviceId, IEnumerable<string> srcPaths) {
+		if (string.IsNullOrWhiteSpace(deviceId) || srcPaths == null) return 0;
+		var n = 0;
+		foreach (var src in srcPaths) {
+			if (string.IsNullOrWhiteSpace(src)) continue;
+			try {
+				var destRel = SendFileOps.Import(src, STAGING);
+				n += enqueueimported(deviceId, destRel);
+			}
+			catch { }
+		}
+		return n;
+	}
+
+	public int PushStoreToPhone(string deviceId, string storeRel) {
+		if (string.IsNullOrWhiteSpace(deviceId)) return 0;
+		return enqueueimported(deviceId, storeRel);
+	}
+
+	int enqueueimported(string deviceId, string destRel) {
+		if (!SendFilePaths.TryResolve(destRel, out var full, out _)) return 0;
+		if (File.Exists(full)) {
+			long size = 0;
+			try { size = new FileInfo(full).Length; } catch { }
+			Outbox.Add(deviceId, destRel, stripstaging(destRel), size);
+			return 1;
+		}
+		if (!Directory.Exists(full)) return 0;
+		var n = 0;
+		foreach (var f in Directory.GetFiles(full, "*", SearchOption.AllDirectories)) {
+			var rel = SendFilePaths.RelFrom(f);
+			long size = 0;
+			try { size = new FileInfo(f).Length; } catch { }
+			Outbox.Add(deviceId, rel, stripstaging(rel), size);
+			n++;
+		}
+		return n;
+	}
+
+	static string stripstaging(string rel) {
+		rel = (rel ?? "").Replace('\\', '/').Trim('/');
+		var p = STAGING + "/";
+		if (rel.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+			return rel.Substring(p.Length);
+		return rel;
+	}
+
+	static bool isstaging(string rel) {
+		rel = (rel ?? "").Replace('\\', '/').Trim('/');
+		return rel.Equals(STAGING, StringComparison.OrdinalIgnoreCase)
+			|| rel.StartsWith(STAGING + "/", StringComparison.OrdinalIgnoreCase);
+	}
 
 	public void Start() {
 		Compat.ThrowIfDisposed(disposed, this);
@@ -304,7 +379,7 @@ public sealed class SendFileServer : IDisposable {
 				writejson(ctx, 401, err(401, "未配对或 token 无效"));
 				return;
 			}
-			LastDeviceId = dev.Id ?? "";
+			touch(dev.Id);
 			if (path is "/api/sendfile/info") {
 				if (!isget(method)) { writejson(ctx, 405, err(805, "info 仅支持 GET")); return; }
 				handleinfo(ctx, dev);
@@ -345,6 +420,16 @@ public sealed class SendFileServer : IDisposable {
 				writejson(ctx, 405, err(805, "text 仅支持 GET/POST"));
 				return;
 			}
+			if (path is "/api/sendfile/pull") {
+				if (!isget(method)) { writejson(ctx, 405, err(805, "pull 仅支持 GET")); return; }
+				handlepull(ctx, dev);
+				return;
+			}
+			if (path is "/api/sendfile/pulldone") {
+				if (!ispost(method)) { writejson(ctx, 405, err(805, "pulldone 仅支持 POST")); return; }
+				handlepulldone(ctx, dev);
+				return;
+			}
 			writejson(ctx, 404, err(404, "未知路径"));
 		}
 		catch (Exception ex) {
@@ -364,7 +449,7 @@ public sealed class SendFileServer : IDisposable {
 		var tokenHdr = bearertoken(ctx.Request);
 		var existing = Auth.Find(id, tokenHdr ?? "");
 		if (existing != null) {
-			LastDeviceId = existing.Id;
+			touch(existing.Id);
 			writejson(ctx, 200, ok(new JsonObject {
 				["token"] = existing.Token,
 				["name"] = getOpts()?.SendFileName ?? Environment.MachineName,
@@ -377,12 +462,44 @@ public sealed class SendFileServer : IDisposable {
 			writejson(ctx, 403, err(403, "已拒绝配对"));
 			return;
 		}
-		LastDeviceId = dev.Id;
+		touch(dev.Id);
 		writejson(ctx, 200, ok(new JsonObject {
 			["token"] = dev.Token,
 			["name"] = getOpts()?.SendFileName ?? Environment.MachineName,
 			["pcId"] = getOpts()?.SendFilePcId ?? "",
 		}));
+	}
+
+	void handlepull(SfCtx ctx, SendFileDevice dev) {
+		var list = Outbox.List(dev.Id);
+		var arr = new JsonArray();
+		foreach (var it in list) {
+			arr.Add(new JsonObject {
+				["id"] = it.Id,
+				["path"] = it.StoreRel ?? "",
+				["rel"] = it.PhoneRel ?? "",
+				["name"] = it.Name ?? "",
+				["size"] = it.Size,
+			});
+		}
+		writejson(ctx, 200, ok(new JsonObject { ["items"] = arr }));
+	}
+
+	void handlepulldone(SfCtx ctx, SendFileDevice dev) {
+		var body = readjson(ctx.Request);
+		var id = jsonlong(body, "id");
+		if (id <= 0) {
+			long.TryParse(ctx.Request.QueryString["id"] ?? "", NumberStyles.Integer, CultureInfo.InvariantCulture, out id);
+		}
+		if (id <= 0) {
+			writejson(ctx, 200, err(802, "缺少 id"));
+			return;
+		}
+		var it = Outbox.Remove(dev.Id, id);
+		if (it != null && isstaging(it.StoreRel)) {
+			try { SendFileOps.Delete(it.StoreRel); } catch { }
+		}
+		writejson(ctx, 200, ok(new JsonObject { ["id"] = id }));
 	}
 
 	void handleinfo(SfCtx ctx, SendFileDevice dev) {
@@ -532,6 +649,21 @@ public sealed class SendFileServer : IDisposable {
 			return JsonNode.Parse(s) as JsonObject ?? new JsonObject();
 		}
 		catch { return new JsonObject(); }
+	}
+
+	static long jsonlong(JsonObject o, string key) {
+		if (o == null) return 0;
+		try {
+			if (!o.TryGetPropertyValue(key, out var n) || n == null) return 0;
+			if (n is JsonValue jv) {
+				try { return jv.GetValue<long>(); } catch { }
+				try { return jv.GetValue<int>(); } catch { }
+				if (long.TryParse(jv.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var x))
+					return x;
+			}
+		}
+		catch { }
+		return 0;
 	}
 
 	static string str(JsonObject o, string key) {

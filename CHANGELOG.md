@@ -10,12 +10,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### Added
 
-- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a main-window **File sync** tab (browse, drag-drop, paste files/folders/images, paste text to the phone). Companion Android app: `android/` (`com.whj.screenkit`); share multiple files from other apps, and the in-app **Upload** button allows multi-select.
+- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a main-window **File sync** tab. Companion Android app: `android/` (`com.whj.screenkit`); share multiple files from other apps, and the in-app **Upload** button allows multi-select.
 
 #### Changed
 
 - Reverted the screenshot-overlay drag performance experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the previous transparent overlay, dim mask, and green selection frame.
 - File sync lives on the main **File sync** tab; the Tools menu and tray **Text sync** items were removed.
+- File sync tab no longer browses `sendfile/`. Dragging or pasting files/folders/images on the PC sends them to the phone’s bound folder **only while the phone app is connected**; otherwise nothing is sent. Files shared from the phone always land in the PC `sendfile/` folder.
 
 #### Fixed
 
@@ -25,12 +26,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 
 #### 新增
 
-- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab（浏览、拖入、粘贴文件/文件夹/图片、粘贴文本发给手机）。配套安卓应用：`android/`（`com.whj.screenkit`）；其它应用可一次分享多个文件，App 内「上传」支持多选。
+- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab。配套安卓应用：`android/`（`com.whj.screenkit`）；其它应用可一次分享多个文件，App 内「上传」支持多选。
 
 #### 变更
 
 - **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
 - 文件同步改到主界面 **文件同步** Tab；已去掉工具菜单和托盘里的「文本同步」入口。
+- 文件同步 Tab 不再浏览电脑 `sendfile/`。电脑上拖入或粘贴文件/文件夹/图片：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。手机分享/多选上传一律写到电脑 `sendfile/`。
 
 #### 修复
 
