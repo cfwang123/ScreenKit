@@ -119,10 +119,12 @@ class MainActivity : AppCompatActivity() {
         val pop = PopupMenu(this, bar ?: bind.root, Gravity.START)
         pop.menu.add(0, 1, 0, "参数设置")
         pop.menu.add(0, 2, 1, "换电脑")
+        pop.menu.add(0, 3, 2, "文本同步")
         pop.setOnMenuItemClickListener {
             when (it.itemId) {
                 1 -> startActivity(Intent(this, SettingsActivity::class.java))
                 2 -> openpick()
+                3 -> startActivity(Intent(this, TextSyncActivity::class.java))
             }
             true
         }
