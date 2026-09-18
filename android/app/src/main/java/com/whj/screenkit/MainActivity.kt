@@ -8,13 +8,16 @@ import android.os.Bundle
 import android.provider.OpenableColumns
 import android.util.Log
 import android.webkit.MimeTypeMap
+import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.documentfile.provider.DocumentFile
 import com.whj.screenkit.databinding.ActivityMainBinding
 import com.whj.screenkit.databinding.ItemSyncLogBinding
@@ -90,6 +93,8 @@ class MainActivity : AppCompatActivity() {
         bind = ActivityMainBinding.inflate(layoutInflater)
         setContentView(bind.root)
         supportActionBar?.title = getString(R.string.app_name)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu)
         prefs = Prefs(this)
         logAdapter = LogAdapter()
         bind.lvlog.adapter = logAdapter
@@ -98,12 +103,30 @@ class MainActivity : AppCompatActivity() {
         }
         if (savedInstanceState == null) grabshare(intent)
         bind.bupload.setOnClickListener { pickUpload.launch(arrayOf("*/*")) }
-        bind.btext.setOnClickListener {
-            startActivity(Intent(this, TextSyncActivity::class.java))
-        }
-        bind.bfolder.setOnClickListener { pickFolder.launch(null) }
-        bind.bpick.setOnClickListener { openpick() }
         connectlast()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            showmenu()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun showmenu() {
+        val bar = findViewById<View>(androidx.appcompat.R.id.action_bar)
+        val pop = PopupMenu(this, bar ?: bind.root, Gravity.START)
+        pop.menu.add(0, 1, 0, "参数设置")
+        pop.menu.add(0, 2, 1, "换电脑")
+        pop.setOnMenuItemClickListener {
+            when (it.itemId) {
+                1 -> startActivity(Intent(this, SettingsActivity::class.java))
+                2 -> openpick()
+            }
+            true
+        }
+        pop.show()
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@color/bg">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="接收文件夹"
+        android:textColor="@color/text"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="电脑拖来的文件保存在此。未绑定则无法接收。"
+        android:textColor="@color/muted"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/lbfolder"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="未绑定"
+        android:textColor="@color/text"
+        android:textSize="15sp" />
+
+    <Button
+        android:id="@+id/bfolder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="绑定文件夹" />
+</LinearLayout>

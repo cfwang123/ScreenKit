@@ -17,19 +17,14 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:paddingStart="8dp"
         android:paddingEnd="8dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
+        <Button
+            android:id="@+id/bupload"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
-            <Button android:id="@+id/bupload" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="上传" />
-            <Button android:id="@+id/btext" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="文本同步" />
-            <Button android:id="@+id/bfolder" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="绑定文件夹" />
-            <Button android:id="@+id/bpick" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="换电脑" />
-        </LinearLayout>
+            android:text="上传" />
     </LinearLayout>
 
     <TextView

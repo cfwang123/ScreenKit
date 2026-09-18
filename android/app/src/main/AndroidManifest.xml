@@ -43,9 +43,8 @@
             android:exported="false"
             android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".TextSyncActivity"
+            android:name=".SettingsActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity"
-            android:windowSoftInputMode="adjustResize" />
+            android:parentActivityName=".MainActivity" />
     </application>
 </manifest>
