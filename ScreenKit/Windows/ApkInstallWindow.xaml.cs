@@ -7,6 +7,7 @@ public partial class ApkInstallWindow : Window {
 	readonly SendFileServer server;
 	readonly OcrOptions opt;
 	string url = "";
+	string statusok = "";
 
 	internal ApkInstallWindow(SendFileServer sf, OcrOptions o) {
 		server = sf;
@@ -16,6 +17,7 @@ public partial class ApkInstallWindow : Window {
 		bclose.Click += (_, _) => Close();
 		bcopy.Click += (_, _) => copyurl();
 		bopen.Click += (_, _) => openurl();
+		eurl.SelectionChanged += (_, _) => applyurl();
 		WindowEsc.Attach(this);
 		Loaded += (_, _) => { _ = load(); };
 	}
@@ -25,6 +27,7 @@ public partial class ApkInstallWindow : Window {
 		lbtitle.Text = Loc.T("sf.apk.title");
 		lbstatus.Text = Loc.T("sf.apk.loading");
 		lbhint.Text = Loc.T("sf.apk.hint");
+		lburl.Text = Loc.T("sf.apk.url");
 		bcopy.Content = Loc.T("sf.apk.copy");
 		bopen.Content = Loc.T("sf.apk.open");
 		bclose.Content = Loc.T("sf.apk.close");
@@ -61,20 +64,19 @@ public partial class ApkInstallWindow : Window {
 				return;
 			}
 			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
-			url = ApkHost.Url(ips[0], port);
-			eurl.Text = string.Join(Environment.NewLine, ips.Select(ip => ApkHost.Url(ip, port)));
-			bcopy.IsEnabled = true;
-			bopen.IsEnabled = true;
+			eurl.Items.Clear();
+			foreach (var ip in ips)
+				eurl.Items.Add(ApkHost.Url(ip, port));
+			eurl.IsEnabled = eurl.Items.Count > 0;
+			eurl.SelectedIndex = eurl.Items.Count > 0 ? 0 : -1;
 			long size = 0;
 			try { size = new FileInfo(file).Length; } catch { }
 			var sizeText = size > 0 ? FeatureInstaller.FormatBytes(size) : "—";
-			lbstatus.Text = Loc.T("sf.apk.ver", ApkHost.VersionOf(file))
+			statusok = Loc.T("sf.apk.ver", ApkHost.VersionOf(file))
 				+ "  ·  " + Path.GetFileName(file) + "  ·  " + sizeText;
+			lbstatus.Text = statusok;
 			lbhint.Text = Loc.T("sf.apk.hint");
-			try { iqr.Source = QrMake.Encode(url, 8); }
-			catch (Exception ex) {
-				lbstatus.Text = (lbstatus.Text ?? "") + "\n" + Loc.T("sf.apk.qrfail", ex.Message);
-			}
+			applyurl();
 		}
 		catch (Exception ex) {
 			if (!IsLoaded) return;
@@ -82,10 +84,31 @@ public partial class ApkInstallWindow : Window {
 		}
 	}
 
+	void applyurl() {
+		url = (eurl.SelectedItem as string ?? "").Trim();
+		bcopy.Content = Loc.T("sf.apk.copy");
+		bcopy.IsEnabled = url.Length > 0;
+		bopen.IsEnabled = url.Length > 0;
+		if (url.Length == 0) {
+			iqr.Source = null;
+			return;
+		}
+		try {
+			iqr.Source = QrMake.Encode(url, 8);
+			if (!string.IsNullOrEmpty(statusok)) lbstatus.Text = statusok;
+		}
+		catch (Exception ex) {
+			iqr.Source = null;
+			lbstatus.Text = Loc.T("sf.apk.qrfail", ex.Message);
+		}
+	}
+
 	void fail(string msg) {
 		lbstatus.Text = msg ?? "";
 		bcopy.IsEnabled = false;
 		bopen.IsEnabled = false;
+		eurl.IsEnabled = false;
+		iqr.Source = null;
 	}
 
 	void copyurl() {

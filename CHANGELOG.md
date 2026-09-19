@@ -11,7 +11,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Added
 
 - LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a main-window **File sync** tab. Companion Android app: `android/` (`com.whj.screenkit`); share multiple files from other apps, and the in-app **Upload** button allows multi-select.
-- File sync tab **Install on phone**: dialog shows a LAN URL served by this PC (`GET /apk` on the file-transfer port, no pairing) and a QR code (`--test-apk-qr`). Release build copies the newest Android APK into `apk/` next to the exe (only when the source is newer).
+- File sync tab **Install on phone**: dialog shows a LAN URL served by this PC (`GET /apk` on the file-transfer port, no pairing) and a QR code (`--test-apk-qr`). When the PC has several LAN addresses, pick which one the QR uses. Release build copies the newest Android APK into `apk/` next to the exe (only when the source is newer).
 
 #### Changed
 
@@ -35,7 +35,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 新增
 
 - 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab。配套安卓应用：`android/`（`com.whj.screenkit`）；其它应用可一次分享多个文件，App 内「上传」支持多选。
-- 文件同步 Tab **安装到手机**：弹窗显示本机局域网下载地址（文件传输端口 `GET /apk`，无需配对）和二维码（`--test-apk-qr`）。编译时把 android 最新 APK 拷到程序旁 `apk/`（仅当源更新）。
+- 文件同步 Tab **安装到手机**：弹窗显示本机局域网下载地址（文件传输端口 `GET /apk`，无需配对）和二维码（`--test-apk-qr`）。多网卡时可选择二维码使用的地址。编译时把 android 最新 APK 拷到程序旁 `apk/`（仅当源更新）。
 
 #### 变更
 

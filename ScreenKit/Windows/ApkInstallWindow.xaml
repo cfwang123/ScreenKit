@@ -40,13 +40,15 @@
 			       AutomationProperties.AutomationId="apk.qr"/>
 		</Border>
 
-		<TextBox x:Name="eurl" Grid.Row="3" IsReadOnly="True" TextWrapping="Wrap"
-		         AcceptsReturn="True" BorderBrush="{StaticResource BorderSoft}"
-		         Padding="8,6" FontSize="12" MinHeight="52" MaxHeight="88"
-		         VerticalScrollBarVisibility="Auto"
-		         IsReadOnlyCaretVisible="True"
-		         IsInactiveSelectionHighlightEnabled="True"
-		         AutomationProperties.AutomationId="apk.url"/>
+		<DockPanel Grid.Row="3">
+			<TextBlock x:Name="lburl" DockPanel.Dock="Top" FontSize="12"
+			           Foreground="{StaticResource TextMuted}"
+			           Text="二维码地址" Margin="0,0,0,4"/>
+			<ComboBox x:Name="eurl" Height="32" FontSize="12"
+			          BorderBrush="{StaticResource BorderSoft}"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="apk.url"/>
+		</DockPanel>
 
 		<TextBlock x:Name="lbhint" Grid.Row="4" FontSize="12" Margin="0,8,0,12"
 		           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
