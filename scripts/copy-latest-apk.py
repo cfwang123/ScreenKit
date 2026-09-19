@@ -37,7 +37,6 @@ def collect_sources() -> list[Path]:
     globs = [
         ANDROID / "release" / "*.apk",
         ANDROID / "app" / "build" / "outputs" / "apk" / "release" / "*.apk",
-        ANDROID / "app" / "build" / "outputs" / "apk" / "debug" / "*.apk",
     ]
     out: list[Path] = []
     for g in globs:
@@ -58,15 +57,14 @@ def rank(path: Path) -> tuple:
     ver = parse_ver(path.name)
     if ver == (0, 0, 0):
         ver = parse_ver(gradle_version())
-    return (0 if is_debug(path) else 1, ver, st.st_mtime, st.st_size)
+    return (ver, st.st_mtime, st.st_size)
 
 
 def pick_latest(files: list[Path]) -> Path | None:
-    if not files:
-        return None
     release = [p for p in files if not is_debug(p)]
-    pool = release or files
-    return max(pool, key=rank)
+    if not release:
+        return None
+    return max(release, key=rank)
 
 
 def dest_name(src: Path) -> str:
@@ -75,8 +73,7 @@ def dest_name(src: Path) -> str:
         return n
     ver = parse_ver(n)
     ver_s = gradle_version() if ver == (0, 0, 0) else f"{ver[0]}.{ver[1]}.{ver[2]}"
-    suffix = "-debug" if is_debug(src) else ""
-    return f"screenkit{ver_s}{suffix}.apk"
+    return f"screenkit{ver_s}.apk"
 
 
 def existing_apks(dest_dir: Path) -> list[Path]:
@@ -96,14 +93,12 @@ def newer_than(src: Path, dest: Path | None) -> str | None:
     """返回需要复制的原因；None 表示跳过。"""
     if dest is None or not dest.is_file():
         return "目标不存在"
-    sv, dv = rank(src)[1], rank(dest)[1]
+    sv, dv = rank(src)[0], rank(dest)[0]
+    if is_debug(dest) and not is_debug(src):
+        return "release 覆盖 debug"
     if sv > dv:
         return f"版本 {fmt_ver(sv)} > {fmt_ver(dv)}"
     if sv < dv:
-        return None
-    if not is_debug(src) and is_debug(dest):
-        return "release 覆盖 debug"
-    if is_debug(src) and not is_debug(dest):
         return None
     ss, ds = src.stat(), dest.stat()
     if ss.st_mtime > ds.st_mtime + 1 or ss.st_size != ds.st_size:
@@ -115,9 +110,23 @@ def fmt_ver(v: tuple[int, int, int]) -> str:
     return f"{v[0]}.{v[1]}.{v[2]}"
 
 
+def purge_debug(apk_dir: Path) -> None:
+    if not apk_dir.is_dir():
+        return
+    for f in existing_apks(apk_dir):
+        if not is_debug(f):
+            continue
+        try:
+            f.unlink()
+            print(f"已删除 debug APK: {f.name}")
+        except OSError as ex:
+            print(f"删除 debug APK 失败 {f.name}: {ex}")
+
+
 def copy_to(src: Path, out_dir: Path) -> None:
     apk_dir = out_dir / "apk"
     apk_dir.mkdir(parents=True, exist_ok=True)
+    purge_debug(apk_dir)
     name = dest_name(src)
     dest = apk_dir / name
     old = pick_latest(existing_apks(apk_dir))
@@ -147,9 +156,11 @@ def main(argv: list[str]) -> int:
     srcs = collect_sources()
     src = pick_latest(srcs)
     if src is None:
-        print("未找到 android APK，跳过复制")
+        print("未找到 android release APK，跳过复制")
+        for d in dests:
+            purge_debug(d / "apk")
         return 0
-    print(f"最新 APK: {src}")
+    print(f"最新 release APK: {src}")
     for d in dests:
         try:
             copy_to(src, d)

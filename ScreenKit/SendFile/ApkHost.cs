@@ -21,6 +21,7 @@ static class ApkHost {
 				if (!Directory.Exists(dir)) continue;
 				foreach (var f in Directory.GetFiles(dir, "*.apk")) {
 					try {
+						if (isdebug(f)) continue;
 						if (new FileInfo(f).Length > 64)
 							found.Add(Path.GetFullPath(f));
 					}
@@ -99,6 +100,13 @@ static class ApkHost {
 		return $"http://{ip}:{port}{HttpPath}";
 	}
 
+	static bool isdebug(string path) {
+		var s = (path ?? "").Replace('\\', '/').ToLowerInvariant();
+		var n = Path.GetFileName(s) ?? "";
+		return n.IndexOf("debug", StringComparison.Ordinal) >= 0
+			|| s.IndexOf("/debug/", StringComparison.Ordinal) >= 0;
+	}
+
 	static int score(string path) {
 		var n = Path.GetFileName(path).ToLowerInvariant();
 		var d = (Path.GetDirectoryName(path) ?? "").Replace('\\', '/').ToLowerInvariant();
@@ -106,7 +114,6 @@ static class ApkHost {
 		if (n.StartsWith("screenkit")) s += 100;
 		if (d.EndsWith("/apk")) s += 50;
 		if (d.IndexOf("/release", StringComparison.Ordinal) >= 0) s += 10;
-		if (n.IndexOf("debug", StringComparison.Ordinal) >= 0) s -= 40;
 		return s;
 	}
 
@@ -128,7 +135,6 @@ static class ApkHost {
 			catch { break; }
 			yield return Path.Combine(dir, "android", "release");
 			yield return Path.Combine(dir, "android", "app", "build", "outputs", "apk", "release");
-			yield return Path.Combine(dir, "android", "app", "build", "outputs", "apk", "debug");
 		}
 	}
 }

@@ -180,8 +180,9 @@
     <PropertyGroup>
       <_CopyApkPy>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\scripts\copy-latest-apk.py'))</_CopyApkPy>
       <_ApkOutDir>$([System.IO.Path]::GetFullPath('$(OutputPath)').Replace('\', '/'))</_ApkOutDir>
+      <_SlimApkDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\bin\Release\ScreenKit').Replace('\', '/'))</_SlimApkDir>
     </PropertyGroup>
-    <Exec Command="chcp 65001>nul &amp; python -X utf8 &quot;$(_CopyApkPy)&quot; &quot;$(_ApkOutDir)&quot;"
+    <Exec Command="chcp 65001>nul &amp; python -X utf8 &quot;$(_CopyApkPy)&quot; &quot;$(_ApkOutDir)&quot; &quot;$(_SlimApkDir)&quot;"
           Condition="Exists('$(_CopyApkPy)')"
           IgnoreExitCode="true"
           StandardOutputImportance="high" />
