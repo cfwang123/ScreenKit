@@ -807,12 +807,13 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 This is **not** the OCR HTTP API on port 1224. Enable under **Settings → API → PC file transfer**. Default HTTP **17532** (all interfaces, including `127.0.0.1` / `localhost`), UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
 
-Headers after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
+`GET /apk` needs **no pairing** (phone scans the QR before the app is installed). Other routes after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
 
 Discovery: UDP broadcast `SCREENKIT_DISCOVER` to port 17531; the PC replies with JSON `{v,name,httpPort,pcId}`.
 
 | Method | Path | Notes |
 |--------|------|--------|
+| GET | `/apk` | APK bytes from this PC (no pairing; File sync **Install on phone** QR) |
 | POST | `/api/sendfile/pair` | body `{id,name}`; first time shows a confirm dialog on the PC |
 | GET | `/api/sendfile/info` | name / pcId |
 | GET | `/api/sendfile/list?path=&deep=` | `deep=1` recursive |

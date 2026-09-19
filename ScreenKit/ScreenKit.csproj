@@ -175,6 +175,18 @@
              Condition="!Exists('$(OutputPath)sherpa-onnx-c-api.dll')" />
   </Target>
 
+  <!-- 把 android 最新 APK 拷到输出 apk/（仅当源版本/时间更新）；无 APK 不失败 -->
+  <Target Name="CopyLatestApk" AfterTargets="KeepSherpaNative">
+    <PropertyGroup>
+      <_CopyApkPy>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\scripts\copy-latest-apk.py'))</_CopyApkPy>
+      <_ApkOutDir>$([System.IO.Path]::GetFullPath('$(OutputPath)').Replace('\', '/'))</_ApkOutDir>
+    </PropertyGroup>
+    <Exec Command="chcp 65001>nul &amp; python -X utf8 &quot;$(_CopyApkPy)&quot; &quot;$(_ApkOutDir)&quot;"
+          Condition="Exists('$(_CopyApkPy)')"
+          IgnoreExitCode="true"
+          StandardOutputImportance="high" />
+  </Target>
+
   <!-- NuGet 可能把 ORT 原生 DLL 拷到输出根 / runtimes；删掉以免和手动放置的 onnx*64 冲突。不创建、不联接 onnx 目录。 -->
   <Target Name="CleanupOnnxRuntimeDupes" AfterTargets="Build">
     <ItemGroup>
@@ -189,7 +201,7 @@
     仅托管程序 + wetext/Assets/许可证；模型与 ORT/OpenCV/Sherpa/FFmpeg 等通过应用内「安装功能」获取。
     翻译模型需自行放到 translatemodels/（不在安装窗内）。
   -->
-  <Target Name="PackageSlimRelease" AfterTargets="KeepSherpaNative;CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="PackageSlimRelease" AfterTargets="CopyLatestApk;CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>
       <_SlimOut>$(MSBuildProjectDirectory)\bin\Release\ScreenKit</_SlimOut>
       <_SlimOutLegacy>$(MSBuildProjectDirectory)\bin\Release\WpfOCR</_SlimOutLegacy>
@@ -218,6 +230,7 @@
       <_SlimRoot Remove="$(OutputPath)WpfOCR.exe.config" />
       <_SlimWet Include="$(OutputPath)wetext\**\*.*" Condition="Exists('$(OutputPath)wetext')" />
       <_SlimAssets Include="$(OutputPath)Assets\**\*.*" Condition="Exists('$(OutputPath)Assets')" />
+      <_SlimApk Include="$(OutputPath)apk\*.apk" Condition="Exists('$(OutputPath)apk')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_SlimWet)"
@@ -228,6 +241,9 @@
           DestinationFiles="@(_SlimAssets->'$(_SlimOut)\Assets\%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true"
           Condition="'@(_SlimAssets)' != ''" />
+    <MakeDir Directories="$(_SlimOut)\apk" Condition="'@(_SlimApk)' != ''" />
+    <Copy SourceFiles="@(_SlimApk)" DestinationFolder="$(_SlimOut)\apk" SkipUnchangedFiles="true"
+          Condition="'@(_SlimApk)' != ''" />
     <!-- 若上次发布残留按需库/junk，删掉以免误带进压缩包 -->
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />

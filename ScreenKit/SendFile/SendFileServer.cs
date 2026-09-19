@@ -380,6 +380,14 @@ public sealed class SendFileServer : IDisposable {
 				handlepair(ctx);
 				return;
 			}
+			if (path is "/apk") {
+				if (!isget(method) && !ishead(method)) {
+					writejson(ctx, 405, err(805, "apk 仅支持 GET/HEAD"));
+					return;
+				}
+				handleapk(ctx, ishead(method));
+				return;
+			}
 			var dev = authed(req);
 			if (dev == null) {
 				writejson(ctx, 401, err(401, "未配对或 token 无效"));
@@ -535,6 +543,40 @@ public sealed class SendFileServer : IDisposable {
 		}
 		catch (InvalidOperationException ex) {
 			writejson(ctx, 200, err(410, ex.Message));
+		}
+	}
+
+	void handleapk(SfCtx ctx, bool head) {
+		var full = ApkHost.FindFile();
+		if (string.IsNullOrEmpty(full) || !File.Exists(full)) {
+			writejson(ctx, 404, err(404, "未找到 APK"));
+			return;
+		}
+		FileStream fs = null;
+		try {
+			var fi = new FileInfo(full);
+			var res = ctx.Response;
+			res.StatusCode = 200;
+			res.ContentType = "application/vnd.android.package-archive";
+			res.ContentLength64 = fi.Length;
+			res.Headers["Access-Control-Allow-Origin"] = "*";
+			var fn = Path.GetFileName(full) ?? "screenkit.apk";
+			res.Headers["Content-Disposition"] = $"attachment; filename*=UTF-8''{Uri.EscapeDataString(fn)}";
+			if (head) {
+				try { res.OutputStream.Close(); } catch { }
+				try { res.Close(); } catch { }
+				return;
+			}
+			fs = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read);
+			var buf = new byte[64 * 1024];
+			int n;
+			while ((n = fs.Read(buf, 0, buf.Length)) > 0)
+				res.OutputStream.Write(buf, 0, n);
+		}
+		finally {
+			try { fs?.Dispose(); } catch { }
+			try { ctx.Response.OutputStream.Close(); } catch { }
+			try { ctx.Response.Close(); } catch { }
 		}
 	}
 
@@ -718,6 +760,7 @@ public sealed class SendFileServer : IDisposable {
 
 	static bool isget(string m) => string.Equals(m, "GET", StringComparison.OrdinalIgnoreCase);
 	static bool ispost(string m) => string.Equals(m, "POST", StringComparison.OrdinalIgnoreCase);
+	static bool ishead(string m) => string.Equals(m, "HEAD", StringComparison.OrdinalIgnoreCase);
 
 	static JsonObject ok(JsonNode data) => new() {
 		["code"] = 100,

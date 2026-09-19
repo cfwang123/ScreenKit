@@ -67,6 +67,7 @@ public partial class MainWindow {
 		lstsflog.ItemsSource = sfLogs;
 		bsfpaste.Click += (_, _) => sfpaste();
 		bsfopen.Click += (_, _) => sfopenexplorer();
+		bsfapk.Click += (_, _) => showapkinstall();
 		psffiles.Drop += onsfdrop;
 		psffiles.DragOver += onsfdover;
 		psftab.Drop += onsfdrop;
@@ -99,6 +100,11 @@ public partial class MainWindow {
 	}
 
 	bool issftab() => tabsf != null && ReferenceEquals(maintabs.SelectedItem, tabsf);
+
+	void showapkinstall() {
+		var w = new ApkInstallWindow(sendFile, opt) { Owner = this };
+		w.ShowDialog();
+	}
 
 	void hooksfjobs() {
 		if (sfJobsHooked || sendFile == null) return;
@@ -343,6 +349,7 @@ public partial class MainWindow {
 			lbsfhint.Text = Loc.T("sf.tab.hint");
 			bsfpaste.Content = Loc.T("sf.tab.paste");
 			bsfopen.Content = Loc.T("sf.tab.open");
+			if (bsfapk != null) bsfapk.Content = Loc.T("sf.tab.apk");
 			lbsftexthint.Text = Loc.T("sf.text.hint");
 			bsfsend.Content = Loc.T("sendfile.text.send");
 			if (lbsflog != null) lbsflog.Text = Loc.T("sf.log");

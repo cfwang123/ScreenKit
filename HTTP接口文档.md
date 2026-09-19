@@ -902,12 +902,13 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 这不是 1224 端口的 OCR HTTP API。在 **参数设置 → 接口 → PC 文件传输** 启用。默认 HTTP **17532**（监听所有网卡，含 `127.0.0.1` / `localhost`），UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
 
-配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
+`GET /apk` **无需配对**（给未装 App 的手机扫码下载）。其它接口配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
 
 发现：向 UDP 17531 广播 `SCREENKIT_DISCOVER`，电脑应答 JSON `{v,name,httpPort,pcId}`。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
+| GET | `/apk` | 本机 APK 二进制（无需配对；主界面「安装到手机」二维码） |
 | POST | `/api/sendfile/pair` | body `{id,name}`；首次在电脑弹窗确认 |
 | GET | `/api/sendfile/info` | 显示名 / pcId |
 | GET | `/api/sendfile/list?path=&deep=` | `deep=1` 递归 |

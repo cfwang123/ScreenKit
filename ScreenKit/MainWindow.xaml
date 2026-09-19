@@ -1501,6 +1501,10 @@
 							           FontSize="18" FontWeight="SemiBold"
 							           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
 							           Margin="0,0,16,0"/>
+							<Button x:Name="bsfapk" DockPanel.Dock="Right" Content="安装到手机"
+							        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
+							        VerticalAlignment="Center" Margin="12,0,0,0"
+							        AutomationProperties.AutomationId="sendfile.apk"/>
 							<TextBlock x:Name="lbsfstatus" Text="" FontSize="12"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
 							           TextTrimming="CharacterEllipsis"/>

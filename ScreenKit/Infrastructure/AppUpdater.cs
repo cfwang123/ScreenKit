@@ -22,12 +22,25 @@ sealed class UpdateInfo {
 	public string CurrentVersion { get; set; }
 }
 
+/// <summary>GitHub Releases 上最新 Android APK。</summary>
+sealed class ApkInfo {
+	public string Version { get; set; }
+	public string TagName { get; set; }
+	public string DownloadUrl { get; set; }
+	public string DisplayUrl { get; set; }
+	public string AssetName { get; set; }
+	public long SizeBytes { get; set; }
+	public string HtmlUrl { get; set; }
+	public bool HasApk { get; set; }
+}
+
 /// <summary>
 /// 自更新：查询 GitHub Releases → 下载到 tmp/ → 复制主程序到 tmp/ →
 /// 命令行模式解压覆盖安装目录 → 可选重启。
 /// </summary>
 static class AppUpdater {
 	const string REPO_API = "https://api.github.com/repos/cfwang123/ScreenKit/releases/latest";
+	const string REPO_API_LIST = "https://api.github.com/repos/cfwang123/ScreenKit/releases?per_page=30";
 	const string REPO_PAGE = "https://github.com/cfwang123/ScreenKit/releases";
 	const string UPDATER_EXE = "ScreenKit_updater.exe";
 
@@ -173,24 +186,29 @@ static class AppUpdater {
 	/// <summary>查询最新 Release；网络失败抛异常。</summary>
 	public static async Task<UpdateInfo> CheckLatestAsync(CancellationToken ct = default) {
 		var cur = CurrentVersion();
-		var urls = FeatureInstaller.ExpandUrls(REPO_API);
-		Exception last = null;
-		foreach (var url in urls) {
-			ct.ThrowIfCancellationRequested();
-			try {
-				using var req = new HttpRequestMessage(HttpMethod.Get, url);
-				using var resp = await Http.SendAsync(req, ct).ConfigureAwait(false);
-				resp.EnsureSuccessStatusCode();
-				var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-				var info = parserrelease(json, cur);
-				if (info != null) return info;
-			}
-			catch (Exception ex) {
-				last = ex;
-			}
+		var json = await fetchjson(REPO_API, ct).ConfigureAwait(false);
+		var info = parserrelease(json, cur);
+		if (info != null) return info;
+		throw new InvalidOperationException("无法解析更新信息");
+	}
+
+	/// <summary>查询最新 Android APK；无 APK 时仍返回发布页链接。</summary>
+	public static async Task<ApkInfo> CheckLatestApkAsync(CancellationToken ct = default) {
+		var latestJson = await fetchjson(REPO_API, ct).ConfigureAwait(false);
+		var latest = parseapkobj(latestJson);
+		if (latest != null && latest.HasApk) return latest;
+		try {
+			var listJson = await fetchjson(REPO_API_LIST, ct).ConfigureAwait(false);
+			var fromList = parseapklist(listJson);
+			if (fromList != null && fromList.HasApk) return fromList;
 		}
-		throw new InvalidOperationException(
-			"无法获取更新信息" + (last != null ? "：" + last.Message : ""), last);
+		catch { }
+		return latest ?? new ApkInfo {
+			HtmlUrl = REPO_PAGE,
+			DownloadUrl = REPO_PAGE,
+			DisplayUrl = REPO_PAGE,
+			HasApk = false,
+		};
 	}
 
 	/// <summary>下载更新包到 tmp/，返回本地路径。</summary>
@@ -263,6 +281,33 @@ static class AppUpdater {
 		Environment.Exit(0);
 	}
 
+	static async Task<string> fetchjson(string apiUrl, CancellationToken ct) {
+		// API JSON 优先直连 GitHub（走配置代理）；ghproxy 镜像对 api.github.com 经常挂死
+		var urls = new List<string>();
+		if (!string.IsNullOrWhiteSpace(apiUrl)) urls.Add(apiUrl.Trim());
+		foreach (var u in FeatureInstaller.ExpandUrls(apiUrl)) {
+			if (!string.IsNullOrWhiteSpace(u) && !urls.Contains(u)) urls.Add(u);
+		}
+		Exception last = null;
+		foreach (var url in urls) {
+			ct.ThrowIfCancellationRequested();
+			try {
+				using var attempt = CancellationTokenSource.CreateLinkedTokenSource(ct);
+				attempt.CancelAfter(TimeSpan.FromSeconds(12));
+				using var req = new HttpRequestMessage(HttpMethod.Get, url);
+				using var resp = await Http.SendAsync(req, attempt.Token).ConfigureAwait(false);
+				resp.EnsureSuccessStatusCode();
+				var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+				if (!string.IsNullOrWhiteSpace(json)) return json;
+			}
+			catch (Exception ex) {
+				last = ex;
+			}
+		}
+		throw new InvalidOperationException(
+			"无法获取更新信息" + (last != null ? "：" + last.Message : ""), last);
+	}
+
 	// ───────── 解析 Release JSON ─────────
 
 	static UpdateInfo parserrelease(string json, string currentVersion) {
@@ -319,6 +364,76 @@ static class AppUpdater {
 			Body = body,
 			HasUpdate = has,
 			CurrentVersion = cur,
+		};
+	}
+
+	static ApkInfo parseapkobj(string json) {
+		using var doc = JsonDocument.Parse(json);
+		return parseapk(doc.RootElement);
+	}
+
+	static ApkInfo parseapklist(string json) {
+		using var doc = JsonDocument.Parse(json);
+		var root = doc.RootElement;
+		if (root.ValueKind != JsonValueKind.Array) return parseapk(root);
+		ApkInfo first = null;
+		foreach (var el in root.EnumerateArray()) {
+			var info = parseapk(el);
+			if (info == null) continue;
+			first ??= info;
+			if (info.HasApk) return info;
+		}
+		return first;
+	}
+
+	static ApkInfo parseapk(JsonElement root) {
+		var tag = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
+		var html = root.TryGetProperty("html_url", out var h) ? h.GetString() : REPO_PAGE;
+		var ver = normalizever(tag);
+		if (string.IsNullOrEmpty(ver))
+			ver = tag.Trim().TrimStart('v', 'V');
+
+		string assetUrl = null, assetName = null;
+		long assetSize = 0;
+		if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array) {
+			JsonElement? preferred = null;
+			JsonElement? anyApk = null;
+			foreach (var a in assets.EnumerateArray()) {
+				var an = a.TryGetProperty("name", out var anEl) ? anEl.GetString() : null;
+				if (string.IsNullOrEmpty(an)) continue;
+				var lower = an.ToLowerInvariant();
+				if (!lower.EndsWith(".apk")) continue;
+				anyApk ??= a;
+				if (lower.IndexOf("debug", StringComparison.Ordinal) >= 0) continue;
+				if (lower.StartsWith("screenkit") || lower.IndexOf("android", StringComparison.Ordinal) >= 0) {
+					preferred = a;
+					break;
+				}
+				preferred ??= a;
+			}
+			preferred ??= anyApk;
+			if (preferred != null) {
+				var a = preferred.Value;
+				assetName = a.TryGetProperty("name", out var an2) ? an2.GetString() : null;
+				assetUrl = a.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
+				if (a.TryGetProperty("size", out var sz) && sz.TryGetInt64(out var s))
+					assetSize = s;
+			}
+		}
+
+		var has = !string.IsNullOrEmpty(assetUrl);
+		var page = string.IsNullOrEmpty(html) ? REPO_PAGE : html;
+		var dl = has ? assetUrl : page;
+		var display = has ? (FeatureInstaller.ExpandUrls(dl).FirstOrDefault() ?? dl) : page;
+		return new ApkInfo {
+			Version = ver,
+			TagName = tag,
+			DownloadUrl = dl,
+			DisplayUrl = display,
+			AssetName = assetName,
+			SizeBytes = assetSize,
+			HtmlUrl = page,
+			HasApk = has,
 		};
 	}
 

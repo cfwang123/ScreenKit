@@ -32,7 +32,7 @@ Windows 桌面工具（工程名 ScreenKit，程序 `ScreenKit.exe`，中文界�
 | **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入 · 翻译小窗（可配置、可清空禁用） |
 | **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口 / 文件同步（`tab_*_visible`，默认全部显示） |
 | **HTTP API** | 本机 JSON 接口（默认 `127.0.0.1:1224`）。主界面 Tab：调用日志 + 手动发请求 |
-| **PC 文件传输** | 独立局域网服务（HTTP 17532 监听所有网卡 + UDP 发现 17531）。主界面 **文件同步** Tab：手机已连接时，电脑拖入/粘贴的文件发到手机绑定文件夹（无连接不传）；手机分享/上传写到电脑 `sendfile/`。电脑端显示待传进度与传输记录。配套 App：`android/`（`com.whj.screenkit`「PC文件传输」）。首次连接电脑弹窗确认。 |
+| **PC 文件传输** | 独立局域网服务（HTTP 17532 监听所有网卡 + UDP 发现 17531）。主界面 **文件同步** Tab：手机已连接时，电脑拖入/粘贴的文件发到手机绑定文件夹（无连接不传）；手机分享/上传写到电脑 `sendfile/`。电脑端显示待传进度与传输记录。**安装到手机** 弹窗显示本机局域网地址（`http://<电脑IP>:17532/apk`）和二维码。编译时把 `android/` 最新 APK 拷到程序旁 `apk/`（仅当源更新）。配套 App：`android/`（`com.whj.screenkit`「PC文件传输」）。首次连接电脑弹窗确认。 |
 | **CLI** | 批量识图、列模型 / SAPI 发音人、探测 CUDA、多屏抓取自检 |
 
 ## 运行环境
@@ -201,6 +201,7 @@ Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 目录打进 `release
 ScreenKit --image <路径> [选项]
 ScreenKit --snap [--out <目录>]
 ScreenKit --test-clipboard-path   # 延迟位图后改路径；含 4K 计时
+ScreenKit --test-apk-qr            # 生成本机 APK 下载二维码并回读；HTTP GET /apk
 ScreenKit --test-sendfile         # sendfile 路径沙箱与列出/上传/删除
 ScreenKit --test-face-overlay
 ScreenKit --list-models

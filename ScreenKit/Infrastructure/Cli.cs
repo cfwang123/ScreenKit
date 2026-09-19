@@ -35,6 +35,7 @@ static class Cli {
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
 				or "--test-sendfile"
+				or "--test-apk-qr"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -213,6 +214,8 @@ static class Cli {
 					return runtesthttpchat();
 				case "--test-sendfile":
 					return testsendfile();
+				case "--test-apk-qr":
+					return testapkqr();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2202,6 +2205,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除（临时目录，不弹配对）
+      --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2285,6 +2289,90 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			Console.SetError(new StreamWriter(fsErr, new UTF8Encoding(false)) { AutoFlush = true });
 		}
 		catch { }
+	}
+
+	static int testapkqr() {
+		const string sample = "http://192.168.1.8:17532/apk";
+		BitmapSource bmp;
+		try {
+			bmp = QrMake.Encode(sample, 6);
+		}
+		catch (Exception ex) {
+			Err("apk-qr encode: " + ex.Message);
+			return 1;
+		}
+		if (bmp == null || bmp.PixelWidth < 21 || bmp.PixelHeight < 21) {
+			Err("apk-qr encode: 图像过小");
+			return 1;
+		}
+		Out($"apk-qr encode {bmp.PixelWidth}x{bmp.PixelHeight}");
+		var pngPath = Path.Combine(TmpStore.Root, "apk_qr_test.png");
+		try {
+			using var fs = File.Create(pngPath);
+			var enc = new PngBitmapEncoder();
+			enc.Frames.Add(BitmapFrame.Create(bmp));
+			enc.Save(fs);
+			Out("apk-qr png=" + pngPath);
+		}
+		catch (Exception ex) {
+			Err("apk-qr save: " + ex.Message);
+			return 1;
+		}
+		if (NativeRuntime.HasOpenCv()) {
+			try {
+				var bytes = File.ReadAllBytes(pngPath);
+				var r = QrScan.Run(bytes);
+				var text = r?.Codes?.FirstOrDefault()?.Text ?? "";
+				if (!string.Equals(text, sample, StringComparison.Ordinal)) {
+					Err("apk-qr decode mismatch: " + text);
+					return 1;
+				}
+				Out("apk-qr decode ok");
+			}
+			catch (Exception ex) {
+				Err("apk-qr decode: " + ex.Message);
+				return 1;
+			}
+		}
+		else
+			Out("apk-qr decode skipped (no OpenCV)");
+
+		var dummy = Path.Combine(TmpStore.Root, "apk", "screenkit1.0.0.apk");
+		Directory.CreateDirectory(Path.GetDirectoryName(dummy));
+		var payload = Encoding.UTF8.GetBytes("PK\x03\x04screenkit-apk-test");
+		File.WriteAllBytes(dummy, payload);
+		ApkHost.SetFileForTest(dummy);
+		var port = 27532;
+		var o = new OcrOptions { SendFileEnabled = true, SendFilePort = port, SendFileUdpPort = 27531 };
+		SendFileServer sv = null;
+		try {
+			sv = new SendFileServer(() => o, () => { });
+			sv.Start();
+			if (!sv.IsRunning) {
+				Err("apk-qr http: server not running");
+				return 1;
+			}
+			var url = "http://127.0.0.1:" + port + "/apk";
+			Out("apk-qr GET " + url);
+			byte[] got;
+			using (var http = new HttpClient(HttpProxy.CreateHandler()) { Timeout = TimeSpan.FromSeconds(8) })
+				got = Task.Run(() => http.GetByteArrayAsync(url)).GetAwaiter().GetResult();
+			if (got == null || got.Length != payload.Length || !got.SequenceEqual(payload)) {
+				Err("apk-qr http mismatch len=" + (got == null ? -1 : got.Length));
+				return 1;
+			}
+			Out("apk-qr http ok");
+		}
+		catch (Exception ex) {
+			Err("apk-qr http: " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { sv?.Dispose(); } catch { }
+			ApkHost.SetFileForTest(null);
+		}
+		Out("apk-qr ok");
+		return 0;
 	}
 
 	static int testsendfile() {
