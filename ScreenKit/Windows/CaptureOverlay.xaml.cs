@@ -315,7 +315,10 @@ public partial class CaptureOverlay : Window {
 					break;
 				}
 			}
+			// 底图与屏像素 1:1 时才可直接裁；输出缩放（deskW≠Bounds）时走下面的拼接路径，
+			// 把内容拉伸到物理尺寸，保证导出尺寸 = 用户框选的物理像素
 			if (sole != null
+				&& sole.deskW == sole.monBoundW && sole.deskH == sole.monBoundH
 				&& soleInter.Left == left && soleInter.Top == top
 				&& soleInter.Width == pw && soleInter.Height == ph) {
 				var dl = (int)Math.Floor((soleInter.Left - sole.monL) * (double)sole.deskW / sole.monBoundW);
@@ -449,25 +452,26 @@ public partial class CaptureOverlay : Window {
 			.Where(s => s.Bounds.Width > 0 && s.Bounds.Height > 0)
 			.ToArray();
 		var freezes = new BitmapSource[screens.Length];
-		// 遮罩窗矩形必须与冻结图像素对齐（1:1），否则 Stretch 会模糊/微偏移
 		var overlays = new System.Drawing.Rectangle[screens.Length];
 		var t0 = Environment.TickCount;
+		// 遮罩窗矩形：帧与屏等比（显示器输出缩放，桌面 2400×1350 只抓到 1920×1080）时
+		// 仍按 Bounds 铺满整屏，底图由 Stretch 拉伸、坐标按 deskW/monBoundW 比例映射，
+		// 这样遮罩盖住整块屏、截图内容不会缩小贴左上；帧与屏不等比（抓取残缺）才退回帧尺寸。
 		System.Threading.Tasks.Parallel.For(0, screens.Length, i => {
 			try {
 				var s = screens[i];
 				freezes[i] = CaptureMonitor(s, out var fw, out var fh, out var ovr);
-				// 尺寸无效时回退 Bounds；原点优先用 DXGI/抓取给出的 overlay
-				if (ovr.Width < 8 || ovr.Height < 8)
-					ovr = s.Bounds;
-				// 若帧尺寸与 overlay 不一致，强制用帧尺寸贴在原点，保证显示 1:1
-				if (freezes[i] != null
-					&& (Math.Abs(freezes[i].PixelWidth - ovr.Width) > 0
-						|| Math.Abs(freezes[i].PixelHeight - ovr.Height) > 0)) {
-					ovr = new System.Drawing.Rectangle(
-						ovr.Left, ovr.Top, freezes[i].PixelWidth, freezes[i].PixelHeight);
+				var use = s.Bounds;
+				if (!framematchesbounds(freezes[i], s.Bounds)) {
+					if (ovr.Width < 8 || ovr.Height < 8)
+						ovr = s.Bounds;
+					if (freezes[i] != null)
+						ovr = new System.Drawing.Rectangle(ovr.Left, ovr.Top,
+							freezes[i].PixelWidth, freezes[i].PixelHeight);
+					use = ovr;
 				}
-				overlays[i] = ovr;
-				CaptureLog.Info($"Monitor#{i + 1} {(s.Primary ? "Primary" : "Sec")} {s.DeviceName} Bounds={s.Bounds} overlay={ovr} freeze={CaptureLog.Bmp(freezes[i])} out={fw}x{fh}");
+				overlays[i] = use;
+				CaptureLog.Info($"Monitor#{i + 1} {(s.Primary ? "Primary" : "Sec")} {s.DeviceName} Bounds={s.Bounds} overlay={use} freeze={CaptureLog.Bmp(freezes[i])} out={fw}x{fh}");
 			}
 			catch (Exception ex) {
 				CaptureLog.Ex($"Monitor#{i + 1} capture", ex);
@@ -531,6 +535,18 @@ public partial class CaptureOverlay : Window {
 		};
 		CaptureLog.Info($"Run return Confirmed={result.Confirmed} WantOcr={result.WantOcr} Image={CaptureLog.Bmp(result.Image)} SelectedDip={result.SelectedDip}");
 		return result;
+
+		// 帧与屏 Bounds 尺寸一致或等比缩放（视为该屏整屏画面）
+		static bool framematchesbounds(BitmapSource f, System.Drawing.Rectangle b) {
+			if (f == null || b.Width < 1 || b.Height < 1) return false;
+			var w = f.PixelWidth;
+			var h = f.PixelHeight;
+			if (w < 1 || h < 1) return false;
+			if (Math.Abs(w - b.Width) <= 2 && Math.Abs(h - b.Height) <= 2) return true;
+			var arb = b.Width / (double)b.Height;
+			var arf = w / (double)h;
+			return Math.Abs(arf - arb) / arb < 0.02;
+		}
 	}
 
 	readonly Session session;
@@ -1621,7 +1637,21 @@ public partial class CaptureOverlay : Window {
 		catch { }
 		CaptureLog.Info($"{tag} Bounds={b} desktopCaps={capsW}x{capsH}");
 
-		// 0) DXGI 优先：成功即用（不再用 score 阈值刷掉暗色桌面，否则会掉进 GDI 瀑布 ~1s）
+		// 0) DXGI 优先：帧尺寸与 Bounds 一致时直接采信（不再用 score 阈值刷掉暗色桌面，否则会掉进 GDI 瀑布 ~1s）
+		//    尺寸不一致（显示器输出缩放：桌面 2400×1350 只抓到 1920×1080）时并入候选，
+		//    让 GDI 的全分辨率候选参与竞争；DIP 尺寸小图会被尺寸 rank 压后。
+		var cands = new List<(string name, BitmapSource bmp, System.Drawing.Rectangle rect)>();
+		var bestIsDxgi = false;
+		void tryadd(string name, System.Drawing.Rectangle rect, Func<BitmapSource> f) {
+			try {
+				var img = f();
+				if (img != null && img.PixelWidth > 1 && img.PixelHeight > 1)
+					cands.Add((name, img,
+						new System.Drawing.Rectangle(rect.Left, rect.Top, img.PixelWidth, img.PixelHeight)));
+			}
+			catch (Exception ex) { CaptureLog.Ex(tag + " " + name, ex); }
+		}
+
 		try {
 			var dx = DxgiCapture.CaptureScreenEx(screen);
 			if (dx?.Image != null && dx.Image.PixelWidth >= 8 && dx.Image.PixelHeight >= 8) {
@@ -1632,36 +1662,31 @@ public partial class CaptureOverlay : Window {
 				var oy = dx.DesktopRect.Top;
 				if (Math.Abs(ox - b.Left) > b.Width / 2) ox = b.Left;
 				if (Math.Abs(oy - b.Top) > b.Height / 2) oy = b.Top;
-				overlayRect = new System.Drawing.Rectangle(ox, oy, dx.Image.PixelWidth, dx.Image.PixelHeight);
-				pixelW = dx.Image.PixelWidth;
-				pixelH = dx.Image.PixelHeight;
-				CaptureLog.Info($"{tag} PICK dxgi overlay={overlayRect}");
-				return dx.Image;
+				var rect = new System.Drawing.Rectangle(ox, oy, dx.Image.PixelWidth, dx.Image.PixelHeight);
+				if (Math.Abs(dx.Image.PixelWidth - b.Width) <= 2
+					&& Math.Abs(dx.Image.PixelHeight - b.Height) <= 2) {
+					overlayRect = rect;
+					pixelW = dx.Image.PixelWidth;
+					pixelH = dx.Image.PixelHeight;
+					CaptureLog.Info($"{tag} PICK dxgi overlay={overlayRect}");
+					return dx.Image;
+				}
+				tryadd("dxgi", rect, () => dx.Image);
 			}
 		}
 		catch (Exception ex) { CaptureLog.Ex(tag + " dxgi", ex); }
 
-		// 候选 GDI
-		var cands = new List<(string name, BitmapSource bmp)>();
-		void tryadd(string name, Func<BitmapSource> f) {
-			try {
-				var img = f();
-				if (img != null && img.PixelWidth > 1)
-					cands.Add((name, img));
-			}
-			catch (Exception ex) { CaptureLog.Ex(tag + " " + name, ex); }
-		}
-
+		// 候选 GDI（rect 原点用物理 Bounds，实际尺寸按帧算）
 		if (capsW > 0 && capsH > 0)
-			tryadd("deviceFull-caps", () => captureDeviceSize(screen.DeviceName, capsW, capsH, tag + " A-caps"));
-		tryadd("deviceFull-bounds", () => captureDeviceSize(screen.DeviceName, b.Width, b.Height, tag + " B-bounds"));
-		tryadd("desktop-bounds", () => captureRectDesktop(b.Left, b.Top, b.Width, b.Height, tag + " C-deskBounds"));
+			tryadd("deviceFull-caps", b, () => captureDeviceSize(screen.DeviceName, capsW, capsH, tag + " A-caps"));
+		tryadd("deviceFull-bounds", b, () => captureDeviceSize(screen.DeviceName, b.Width, b.Height, tag + " B-bounds"));
+		tryadd("desktop-bounds", b, () => captureRectDesktop(b.Left, b.Top, b.Width, b.Height, tag + " C-deskBounds"));
 		if (capsW > 0 && capsH > 0)
-			tryadd("desktop-caps", () => captureRectDesktop(b.Left, b.Top, capsW, capsH, tag + " D-deskCaps"));
-		tryadd("gdi-bounds", () => grabscreenVirtual(b.Left, b.Top, b.Width, b.Height, tag + " E-gdiBounds"));
+			tryadd("desktop-caps", b, () => captureRectDesktop(b.Left, b.Top, capsW, capsH, tag + " D-deskCaps"));
+		tryadd("gdi-bounds", b, () => grabscreenVirtual(b.Left, b.Top, b.Width, b.Height, tag + " E-gdiBounds"));
 		if (capsW > 0 && capsH > 0)
-			tryadd("gdi-caps", () => grabscreenVirtual(b.Left, b.Top, capsW, capsH, tag + " F-gdiCaps"));
-		tryadd("dpi-unaware", () => captureScreenDpiUnaware(screen.DeviceName, tag + " G-unaware"));
+			tryadd("gdi-caps", b, () => grabscreenVirtual(b.Left, b.Top, capsW, capsH, tag + " F-gdiCaps"));
+		tryadd("dpi-unaware", b, () => captureScreenDpiUnaware(screen.DeviceName, tag + " G-unaware"));
 
 		if (cands.Count == 0) {
 			pixelW = Math.Max(1, b.Width);
@@ -1670,18 +1695,31 @@ public partial class CaptureOverlay : Window {
 			return captureRectDesktop(b.Left, b.Top, pixelW, pixelH, tag + "-last");
 		}
 
+		// 尺寸 rank：0=与物理 Bounds 一致，1=等比且面积 ≥90%，2=其余（DIP 尺寸 / 抓取残缺）
+		// 先比档位再比内容分：宁可要尺寸对的候选，也不让 DIP 小图靠内容分胜出
+		var scored = new List<(string name, BitmapSource bmp, System.Drawing.Rectangle rect, double score, int rank)>();
+		foreach (var (name, bmp, rect) in cands) {
+			var sc = scoreCapture(bmp, out var detail);
+			var rank = sizerank(bmp, b);
+			CaptureLog.Info($"{tag} candidate {name} score={sc:0.###} rank={rank} {detail} {CaptureLog.Bmp(bmp)}");
+			scored.Add((name, bmp, rect, sc, rank));
+		}
 		BitmapSource best = null;
 		var bestScore = -1.0;
+		var bestRect = b;
 		string bestName = "";
-		foreach (var (name, bmp) in cands) {
-			var sc = scoreCapture(bmp, out var detail);
-			CaptureLog.Info($"{tag} candidate {name} score={sc:0.###} {detail} {CaptureLog.Bmp(bmp)}");
-			if (sc > bestScore) {
-				bestScore = sc;
-				best = bmp;
-				bestName = name;
+		foreach (var rank in new[] { 0, 1, 2 }) {
+			foreach (var c in scored) {
+				if (c.rank != rank || c.score <= bestScore) continue;
+				bestScore = c.score;
+				best = c.bmp;
+				bestRect = c.rect;
+				bestName = c.name;
 			}
+			// 该尺寸档有可用画面（非全黑）就定下来，不再退到更差的档
+			if (best != null && bestScore >= 0.05) break;
 		}
+		bestIsDxgi = bestName.StartsWith("dxgi", StringComparison.Ordinal);
 
 		// 仅当面积仍接近原图时才 crop（禁止 640 宽条「满分」冒充全屏）
 		if (best != null && bestScore < 0.5) {
@@ -1702,9 +1740,25 @@ public partial class CaptureOverlay : Window {
 		CaptureLog.Info($"{tag} PICK {bestName} score={bestScore:0.###}");
 		pixelW = best.PixelWidth;
 		pixelH = best.PixelHeight;
-		// GDI 帧尺寸作遮罩（1:1）
-		overlayRect = new System.Drawing.Rectangle(b.Left, b.Top, pixelW, pixelH);
+		// DXGI 保留输出原点；GDI 帧贴本屏物理原点（裁黑边后按帧尺寸）
+		overlayRect = bestIsDxgi && !bestName.EndsWith("+crop", StringComparison.Ordinal)
+			? bestRect
+			: new System.Drawing.Rectangle(b.Left, b.Top, pixelW, pixelH);
 		return best;
+
+		// 帧尺寸与屏物理 Bounds 的契合档位
+		static int sizerank(BitmapSource bmp, System.Drawing.Rectangle bounds) {
+			if (bmp == null || bounds.Width < 1 || bounds.Height < 1) return 2;
+			var w = bmp.PixelWidth;
+			var h = bmp.PixelHeight;
+			if (w < 1 || h < 1) return 2;
+			if (Math.Abs(w - bounds.Width) <= 2 && Math.Abs(h - bounds.Height) <= 2) return 0;
+			var arb = bounds.Width / (double)bounds.Height;
+			var arf = w / (double)h;
+			var areaRatio = w * (double)h / ((double)bounds.Width * bounds.Height);
+			if (areaRatio >= 0.9 && Math.Abs(arf - arb) / arb < 0.02) return 1;
+			return 2;
+		}
 	}
 
 	/// <summary>在指定 DPI 感知上下文中按设备名匹配显示器并抓取。</summary>

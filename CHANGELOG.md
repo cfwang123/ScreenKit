@@ -29,6 +29,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - PC file transfer HTTP `:17532` never listened: `HttpListener` registered every LAN address and Windows returned Access denied, so the whole server failed to start. It now binds `0.0.0.0` / IPv6 dual-stack with a TCP listener (no URL ACL), so `localhost` / `127.0.0.1` and phones on the LAN can connect.
 - Phone pairing confirm dialog no longer sets the main window as `Owner`, so it still appears when the main window is hidden to the tray.
 - Dropping files on the **File sync** tab no longer jumps to Speech Recognition: the ASR window-level media drop only applies while that tab is selected.
+- Three monitors with a scaled output (the right screen reports 2400×1350 but only yields a 1920×1080 frame): the right screen's frozen image landed at 80% size in the top-left of the overlay and saved region shots came out shrunk. Capture candidates are now ranked by how well the frame size matches the screen's physical bounds (a DPI-virtualized small frame no longer wins on content score alone), the mask window spans the full screen bounds again whenever the frame is a uniform scale of it, and a single-screen crop rescales to the physical selection size instead of returning frame-sized pixels.
 
 ### 中文
 
@@ -53,6 +54,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 - PC 文件传输 HTTP `:17532` 实际没在听：`HttpListener` 把每块网卡 IP 都登记成前缀，Windows 返回拒绝访问，整段服务启动失败。现改为 TCP 监听 `0.0.0.0` / IPv6 双栈（不需要 URL ACL），`localhost` / `127.0.0.1` 和局域网手机都能连上。
 - 手机配对确认弹窗不再绑定主窗口为 `Owner`，主窗托盘隐藏时仍能弹出。
 - 往 **文件同步** Tab 拖文件不再跳到语音识别：窗口级音视频拖放仅在语音识别页生效。
+- 三屏且右边屏为缩放输出（桌面 2400×1350，实际只能抓到 1920×1080 帧）时截图：遮罩里右屏冻结画面只有 80% 大小、贴在左上，框选存图内容也被缩小。现按「帧尺寸与屏物理 Bounds 的契合度」给抓取候选分档（DIP 虚拟化的小图不再只靠内容分胜出）；帧与屏等比时遮罩窗仍按整屏 Bounds 铺满；单屏裁切按物理选区尺寸输出，不再输出帧尺寸。
 
 ## v1.0.7 (2026-09-11)
 
