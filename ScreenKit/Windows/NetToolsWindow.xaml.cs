@@ -19,6 +19,8 @@ public partial class NetToolsWindow : Window {
 		bping.Click += (_, _) => _ = run("ping");
 		bdns.Click += (_, _) => _ = run("dns");
 		bwhois.Click += (_, _) => _ = run("whois");
+		btrace.Click += (_, _) => _ = run("trace");
+		blocate.Click += (_, _) => _ = run("locate");
 		bstop.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
 		};
@@ -51,6 +53,8 @@ public partial class NetToolsWindow : Window {
 		ToolBtnUi.Set(bping, ToolBtnUi.Play, Loc.T("nettool.ping"));
 		ToolBtnUi.Set(bdns, ToolBtnUi.Encode, Loc.T("nettool.dns"));
 		ToolBtnUi.Set(bwhois, ToolBtnUi.Font, Loc.T("nettool.whois"));
+		ToolBtnUi.Set(btrace, ToolBtnUi.Up, Loc.T("nettool.trace"));
+		ToolBtnUi.Set(blocate, ToolBtnUi.Encode, Loc.T("nettool.locate"));
 		ToolBtnUi.Set(bstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
 		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
@@ -62,6 +66,8 @@ public partial class NetToolsWindow : Window {
 		bping.IsEnabled = !on;
 		bdns.IsEnabled = !on;
 		bwhois.IsEnabled = !on;
+		btrace.IsEnabled = !on;
+		blocate.IsEnabled = !on;
 		bstop.IsEnabled = on;
 		ehost.IsEnabled = !on;
 		ecount.IsEnabled = !on;
@@ -81,7 +87,7 @@ public partial class NetToolsWindow : Window {
 	async Task run(string kind) {
 		if (busy) return;
 		var host = (ehost.Text ?? "").Trim();
-		if (host.Length == 0) {
+		if (kind != "locate" && host.Length == 0) {
 			lbstat.Text = Loc.T("nettool.empty");
 			ehost.Focus();
 			return;
@@ -94,9 +100,7 @@ public partial class NetToolsWindow : Window {
 		var token = cts.Token;
 		setbusy(true);
 		lbstat.Text = Loc.T("nettool.busy");
-		if (eout.Text.Length > 0)
-			append("");
-		append("----- " + kind + " " + host + " -----");
+		eout.Text = "";
 		try {
 			if (kind == "ping") {
 				await NetTools.Ping(host, count, 3000, s => Dispatcher.Invoke(() => append(s)), token)
@@ -105,6 +109,14 @@ public partial class NetToolsWindow : Window {
 			else if (kind == "dns") {
 				var s = await NetTools.Resolve(host, token).ConfigureAwait(true);
 				append(s);
+			}
+			else if (kind == "trace") {
+				await NetTools.Trace(host, 30, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "locate") {
+				await NetTools.Locate(s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
 			}
 			else {
 				var s = await NetTools.Whois(host, token).ConfigureAwait(true);

@@ -43,6 +43,10 @@
 			        AutomationProperties.AutomationId="nettool.dns"/>
 			<Button x:Name="bwhois" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.whois"/>
+			<Button x:Name="btrace" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="nettool.trace"/>
+			<Button x:Name="blocate" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="nettool.locate"/>
 			<Button x:Name="bstop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.stop"/>
 		</WrapPanel>

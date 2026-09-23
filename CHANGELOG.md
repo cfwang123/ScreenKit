@@ -28,7 +28,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - **Tools → Password generator**: crypto-random passwords; length, count, character sets, skip ambiguous `0OIl1`, at least one of each class. Tray and CLI `--test-pwgen`. Last settings are saved.
-- **Tools → Network tools**: Ping, DNS lookup, domain/IP WHOIS. Tray and CLI `--test-nettool`.
+- **Tools → Network tools**: Ping, DNS lookup, domain/IP WHOIS, traceroute, ping-locate (RTT to worldwide nodes). Each action clears previous output. Tray and CLI `--test-nettool`.
 
 #### Changed
 
@@ -39,7 +39,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - **工具 → 密码生成器**：加密随机；长度、条数、字符集、排除易混 `0OIl1`、每类至少一个。记住上次设置。托盘与 CLI `--test-pwgen`。
-- **工具 → 网络工具**：Ping、域名解析、域名/IP WHOIS。托盘与 CLI `--test-nettool`。
+- **工具 → 网络工具**：Ping、域名解析、域名/IP WHOIS、路由跟踪、Ping 定位（测全球节点 RTT）。每次点按钮清空旧输出。托盘与 CLI `--test-nettool`。
 
 #### 变更
 
