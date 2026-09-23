@@ -49,10 +49,10 @@ public partial class HashWindow : Window {
 		colname.Header = Loc.T("hash.col.name");
 		colsize.Header = Loc.T("hash.col.size");
 		colst.Header = Loc.T("hash.col.match");
-		badd.Content = Loc.T("hash.add");
-		bclear.Content = Loc.T("imgconv.clear");
-		bcopy.Content = Loc.T("hash.copy");
-		bclose.Content = Loc.T("imgconv.close");
+		ToolBtnUi.Set(badd, ToolBtnUi.Add, Loc.T("hash.add"));
+		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
+		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("hash.copy"));
+		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
 	void addfiles() {

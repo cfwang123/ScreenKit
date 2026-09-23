@@ -47,24 +47,24 @@ public partial class TextToolWindow : Window {
 		Title = Loc.T("texttool.title");
 		lbin.Text = Loc.T("texttool.in");
 		lbout.Text = Loc.T("texttool.out");
-		bb64e.Content = Loc.T("texttool.b64e");
-		bb64d.Content = Loc.T("texttool.b64d");
-		burle.Content = Loc.T("texttool.urle");
-		burld.Content = Loc.T("texttool.urld");
-		butf8.Content = Loc.T("texttool.utf8hex");
-		bgbk.Content = Loc.T("texttool.gbkhex");
-		bfu8.Content = Loc.T("texttool.fromutf8");
-		bfgbk.Content = Loc.T("texttool.fromgbk");
-		buesc.Content = Loc.T("texttool.uesc");
-		buunesc.Content = Loc.T("texttool.uunesc");
-		bupper.Content = Loc.T("texttool.upper");
-		blower.Content = Loc.T("texttool.lower");
-		btrim.Content = Loc.T("texttool.trim");
-		bcollapse.Content = Loc.T("texttool.collapse");
-		bempty.Content = Loc.T("texttool.noline");
-		bswap.Content = Loc.T("texttool.swap");
-		bcopy.Content = Loc.T("texttool.copy");
-		bclose.Content = Loc.T("imgconv.close");
+		ToolBtnUi.Set(bb64e, ToolBtnUi.Encode, Loc.T("texttool.b64e"));
+		ToolBtnUi.Set(bb64d, ToolBtnUi.Decode, Loc.T("texttool.b64d"));
+		ToolBtnUi.Set(burle, ToolBtnUi.Encode, Loc.T("texttool.urle"));
+		ToolBtnUi.Set(burld, ToolBtnUi.Decode, Loc.T("texttool.urld"));
+		ToolBtnUi.Set(butf8, ToolBtnUi.Encode, Loc.T("texttool.utf8hex"));
+		ToolBtnUi.Set(bgbk, ToolBtnUi.Encode, Loc.T("texttool.gbkhex"));
+		ToolBtnUi.Set(bfu8, ToolBtnUi.Decode, Loc.T("texttool.fromutf8"));
+		ToolBtnUi.Set(bfgbk, ToolBtnUi.Decode, Loc.T("texttool.fromgbk"));
+		ToolBtnUi.Set(buesc, ToolBtnUi.Encode, Loc.T("texttool.uesc"));
+		ToolBtnUi.Set(buunesc, ToolBtnUi.Decode, Loc.T("texttool.uunesc"));
+		ToolBtnUi.Set(bupper, ToolBtnUi.Font, Loc.T("texttool.upper"));
+		ToolBtnUi.Set(blower, ToolBtnUi.Font, Loc.T("texttool.lower"));
+		ToolBtnUi.Set(btrim, ToolBtnUi.Clear, Loc.T("texttool.trim"));
+		ToolBtnUi.Set(bcollapse, ToolBtnUi.Clear, Loc.T("texttool.collapse"));
+		ToolBtnUi.Set(bempty, ToolBtnUi.Clear, Loc.T("texttool.noline"));
+		ToolBtnUi.Set(bswap, ToolBtnUi.Swap, Loc.T("texttool.swap"));
+		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("texttool.copy"));
+		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
 	void run(Func<string, string> fn) {

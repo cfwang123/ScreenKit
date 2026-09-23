@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Image convert: list / icon view are compact icon buttons (the icon-view button no longer stretches across the toolbar). Thumbnails follow rotate and flip.
 - QR preview draws the caption as WPF text (clear, 4px below the code). Copy/save still bake a caption into the PNG. Hex mode parses hex into bytes then encodes.
+- Tool buttons use a pale fill and a Segoe MDL2 icon (add/folder/delete/rename/copy/save, etc.).
 
 ### 中文
 
@@ -43,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 图片格式转换：列表 / 图片改为小图标按钮（图片按钮不再被拉满整行）。缩略图随旋转、镜像一起转。
 - 二维码预览用界面文字画原文（更清晰，紧贴码下方 4px）。复制/保存仍把原文画进 PNG。新增 Hex：把十六进制转成二进制再编码。
+- 工具按钮改为浅底，并加上 Segoe MDL2 图标（添加/文件夹/删除/重命名/复制/保存等）。
 
 ## v1.0.8 (2026-09-23)
 

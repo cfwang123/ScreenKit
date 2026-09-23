@@ -77,10 +77,10 @@ public partial class ImgConvertWindow : Window {
 		lbout.Text = Loc.T("imgconv.out");
 		routsrc.Content = Loc.T("imgconv.outsrc");
 		routother.Content = Loc.T("imgconv.outother");
-		bbrowse.Content = Loc.T("imgconv.browse");
-		badd.Content = Loc.T("imgconv.add");
-		bremove.Content = Loc.T("imgconv.remove");
-		bclear.Content = Loc.T("imgconv.clear");
+		ToolBtnUi.Set(bbrowse, ToolBtnUi.Browse, Loc.T("imgconv.browse"));
+		ToolBtnUi.Set(badd, ToolBtnUi.Add, Loc.T("imgconv.add"));
+		ToolBtnUi.Set(bremove, ToolBtnUi.Delete, Loc.T("imgconv.remove"));
+		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
 		bviewlist.ToolTip = Loc.T("imgconv.view.list");
 		bviewthumb.ToolTip = Loc.T("imgconv.view.thumb");
 		System.Windows.Automation.AutomationProperties.SetName(bviewlist, Loc.T("imgconv.view.list"));
@@ -97,8 +97,8 @@ public partial class ImgConvertWindow : Window {
 		cmirror.Content = Loc.T("imgconv.mirror");
 		if (iprev.Source == null)
 			lbprevempty.Text = Loc.T("imgconv.preview.empty");
-		bgo.Content = Loc.T("imgconv.go");
-		bclose.Content = Loc.T("imgconv.close");
+		ToolBtnUi.Set(bgo, ToolBtnUi.Play, Loc.T("imgconv.go"));
+		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 		foreach (ComboBoxItem it in efmt.Items) {
 			var tag = it.Tag as string ?? "";
 			it.Content = tag switch {
@@ -514,7 +514,8 @@ public partial class ImgConvertWindow : Window {
 		routsrc.IsEnabled = !on;
 		routother.IsEnabled = !on;
 		bclose.IsEnabled = !on;
-		bgo.Content = on ? Loc.T("imgconv.cancel") : Loc.T("imgconv.go");
+		ToolBtnUi.Set(bgo, on ? ToolBtnUi.Cancel : ToolBtnUi.Play,
+			on ? Loc.T("imgconv.cancel") : Loc.T("imgconv.go"));
 		syncfmtui();
 		syncoutui();
 		syncselui();

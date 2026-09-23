@@ -61,12 +61,12 @@ public partial class BatchRenameWindow : Window {
 		colfrom.Header = Loc.T("rename.col.from");
 		colto.Header = Loc.T("rename.col.to");
 		colst.Header = Loc.T("rename.col.status");
-		badd.Content = Loc.T("rename.add");
-		bfolder.Content = Loc.T("rename.folder");
-		bremove.Content = Loc.T("rename.remove");
-		bclear.Content = Loc.T("imgconv.clear");
-		bgo.Content = Loc.T("rename.go");
-		bclose.Content = Loc.T("imgconv.close");
+		ToolBtnUi.Set(badd, ToolBtnUi.Add, Loc.T("rename.add"));
+		ToolBtnUi.Set(bfolder, ToolBtnUi.Folder, Loc.T("rename.folder"));
+		ToolBtnUi.Set(bremove, ToolBtnUi.Delete, Loc.T("rename.remove"));
+		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
+		ToolBtnUi.Set(bgo, ToolBtnUi.Rename, Loc.T("rename.go"));
+		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
 	RenameOptions opts() => new() {

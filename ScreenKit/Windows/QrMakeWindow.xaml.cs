@@ -45,9 +45,9 @@ public partial class QrMakeWindow : Window {
 		rhex.ToolTip = Loc.T("qrmake.hex.tip");
 		lbtext.Text = Loc.T("qrmake.text");
 		lbempty.Text = Loc.T("qrmake.empty");
-		bcopy.Content = Loc.T("qrmake.copy");
-		bsave.Content = Loc.T("qrmake.save");
-		bclose.Content = Loc.T("imgconv.close");
+		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("qrmake.copy"));
+		ToolBtnUi.Set(bsave, ToolBtnUi.Save, Loc.T("qrmake.save"));
+		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
 	string fmtid() => (efmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "qr";
