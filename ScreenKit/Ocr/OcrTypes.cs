@@ -133,6 +133,8 @@ public sealed class OcrOptions {
 	public bool ImgConvOutBeside = true;
 	/// <summary>图片格式转换自定义输出目录。</summary>
 	public string ImgConvOutDir = "";
+	/// <summary>true = 图片（缩略图）视图；false = 列表。</summary>
+	public bool ImgConvThumbView = true;
 	/// <summary>截图完成时复制为图片（与 AsFile / AsPath 三选一）。</summary>
 	public bool SnapCopyAsImage = true;
 	/// <summary>截图完成时复制为文件 FileDrop（与 AsImage / AsPath 三选一）。</summary>
@@ -346,6 +348,7 @@ public sealed class OcrOptions {
 		ImgConvMaxHeight = ImgConvMaxHeight,
 		ImgConvOutBeside = ImgConvOutBeside,
 		ImgConvOutDir = ImgConvOutDir ?? "",
+		ImgConvThumbView = ImgConvThumbView,
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,

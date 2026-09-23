@@ -10,6 +10,43 @@
         FontFamily="Segoe UI, Microsoft YaHei UI"
         AllowDrop="True"
         AutomationProperties.AutomationId="imgconv.window">
+	<Window.Resources>
+		<ItemsPanelTemplate x:Key="panelWrap">
+			<WrapPanel Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/>
+		</ItemsPanelTemplate>
+		<ItemsPanelTemplate x:Key="panelStack">
+			<VirtualizingStackPanel />
+		</ItemsPanelTemplate>
+		<Style x:Key="styleListItem" TargetType="ListViewItem">
+			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+			<Setter Property="ToolTip" Value="{Binding FilePath}"/>
+			<Setter Property="Padding" Value="0,2"/>
+		</Style>
+		<Style x:Key="styleThumbItem" TargetType="ListViewItem">
+			<Setter Property="HorizontalContentAlignment" Value="Center"/>
+			<Setter Property="VerticalContentAlignment" Value="Top"/>
+			<Setter Property="Width" Value="116"/>
+			<Setter Property="Margin" Value="2"/>
+			<Setter Property="Padding" Value="2"/>
+			<Setter Property="ToolTip" Value="{Binding FilePath}"/>
+		</Style>
+		<DataTemplate x:Key="tplThumb">
+			<StackPanel Width="108">
+				<Border Width="88" Height="88" HorizontalAlignment="Center"
+				        Background="{StaticResource BgImage}" CornerRadius="4"
+				        ClipToBounds="True">
+					<Image Source="{Binding Thumb}" Stretch="Uniform"
+					       RenderOptions.BitmapScalingMode="HighQuality"/>
+				</Border>
+				<TextBlock Text="{Binding FileName}" Margin="0,4,0,0"
+				           FontSize="11" TextAlignment="Center"
+				           TextTrimming="CharacterEllipsis"/>
+				<TextBlock Text="{Binding Status}" FontSize="10"
+				           Foreground="{StaticResource TextMuted}"
+				           TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+			</StackPanel>
+		</DataTemplate>
+	</Window.Resources>
 	<Grid Margin="16">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -119,9 +156,17 @@
 			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 			        AutomationProperties.AutomationId="imgconv.remove"/>
 			<Button x:Name="bclear" Content="清空" Style="{StaticResource ToolBtn}"
-			        Height="30" Padding="12,2"
+			        Height="30" Padding="12,2" Margin="0,0,10,0"
 			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 			        AutomationProperties.AutomationId="imgconv.clear"/>
+			<ToggleButton x:Name="bviewlist" Content="列表" Style="{StaticResource ToolToggle}"
+			              Height="30" Padding="12,2" Margin="0,0,4,0"
+			              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+			              AutomationProperties.AutomationId="imgconv.view.list"/>
+			<ToggleButton x:Name="bviewthumb" Content="图片" Style="{StaticResource ToolToggle}"
+			              Height="30" Padding="12,2" IsChecked="True"
+			              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+			              AutomationProperties.AutomationId="imgconv.view.thumb"/>
 		</DockPanel>
 
 		<!-- 列表 + 预览 -->
@@ -145,20 +190,21 @@
 						          AllowDrop="True"
 						          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 						          AutomationProperties.AutomationId="imgconv.list">
-							<ListView.ItemContainerStyle>
-								<Style TargetType="ListViewItem">
-									<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-									<Setter Property="ToolTip" Value="{Binding FilePath}"/>
-									<Setter Property="Padding" Value="0,2"/>
-								</Style>
-							</ListView.ItemContainerStyle>
 							<ListView.View>
-								<GridView>
-									<GridViewColumn x:Name="colname" Header="文件" Width="200"
+								<GridView x:Name="gv">
+									<GridViewColumn Width="44">
+										<GridViewColumn.CellTemplate>
+											<DataTemplate>
+												<Image Source="{Binding Thumb}" Width="32" Height="32"
+												       Stretch="Uniform"/>
+											</DataTemplate>
+										</GridViewColumn.CellTemplate>
+									</GridViewColumn>
+									<GridViewColumn x:Name="colname" Header="文件" Width="168"
 									                DisplayMemberBinding="{Binding FileName}"/>
-									<GridViewColumn x:Name="colxf" Header="变换" Width="80"
+									<GridViewColumn x:Name="colxf" Header="变换" Width="72"
 									                DisplayMemberBinding="{Binding XfText}"/>
-									<GridViewColumn x:Name="colst" Header="状态" Width="110"
+									<GridViewColumn x:Name="colst" Header="状态" Width="100"
 									                DisplayMemberBinding="{Binding Status}"/>
 								</GridView>
 							</ListView.View>

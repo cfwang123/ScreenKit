@@ -116,6 +116,8 @@ static class AppConfig {
 				o.ImgConvOutBeside = parsebool(icob, true);
 			if (map.TryGetValue("imgconv_out_dir", out var icod))
 				o.ImgConvOutDir = (icod ?? "").Trim().Trim('"');
+			if (map.TryGetValue("imgconv_thumb_view", out var ictv))
+				o.ImgConvThumbView = parsebool(ictv, true);
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul)) {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
@@ -435,6 +437,7 @@ static class AppConfig {
 		sb.AppendLine($"imgconv_max_h = {Compat.Clamp(o.ImgConvMaxHeight < 16 ? 1080 : o.ImgConvMaxHeight, 16, 16384)}");
 		sb.AppendLine($"imgconv_out_beside = {(o.ImgConvOutBeside ? "true" : "false")}");
 		sb.AppendLine($"imgconv_out_dir = \"{esc((o.ImgConvOutDir ?? "").Trim())}\"");
+		sb.AppendLine($"imgconv_thumb_view = {(o.ImgConvThumbView ? "true" : "false")}");
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");

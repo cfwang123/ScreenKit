@@ -26,7 +26,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- New **Tools** menu with **Image convert**: batch convert to JPG (default quality 60) / PNG / BMP; optional max width/height (same shrink-to-fit as screenshots); output to `output/` next to each source file or a chosen folder. Drag files/folders/images into the list; select one item to rotate 90/180/270° or flip. Convert-all shows progress. The window is larger (~1.7×) with a live preview of the selected file after applying quality, max size, rotate, and flip. Settings persist in `config.toml` (`imgconv_*`). CLI: `--test-img-convert`.
+- New **Tools** menu with **Image convert**: batch convert to JPG (default quality 60) / PNG / BMP; optional max width/height (same shrink-to-fit as screenshots); output to `output/` next to each source file or a chosen folder. Drag files/folders/images into the list; **Icons** view shows a small thumbnail per file (toggle **List**). Select one item to rotate 90/180/270° or flip. Convert-all shows progress. The window is larger (~1.7×) with a live preview of the selected file after applying quality, max size, rotate, and flip. Settings persist in `config.toml` (`imgconv_*`). CLI: `--test-img-convert`.
 
 #### Changed
 
@@ -41,7 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 新增 **工具** 菜单，含 **图片格式转换**：批量转为 JPG（默认质量 60%）/ PNG / BMP；可选限制最大宽高（与截图相同的等比缩小）；输出到每个源文件旁的 `output/` 或指定目录。列表可拖入文件、文件夹、图片；选中单张可旋转 90/180/270° 或镜像。一键全部转换并显示进度。窗口约放大到 1.7 倍，右侧预览已应用质量、宽高限制、旋转和镜像后的效果。参数写入 `config.toml`（`imgconv_*`）。CLI：`--test-img-convert`。
+- 新增 **工具** 菜单，含 **图片格式转换**：批量转为 JPG（默认质量 60%）/ PNG / BMP；可选限制最大宽高（与截图相同的等比缩小）；输出到每个源文件旁的 `output/` 或指定目录。列表可拖入文件、文件夹、图片；**图片**视图为每张显示小缩略图（可切回 **列表**）。选中单张可旋转 90/180/270° 或镜像。一键全部转换并显示进度。窗口约放大到 1.7 倍，右侧预览已应用质量、宽高限制、旋转和镜像后的效果。参数写入 `config.toml`（`imgconv_*`）。CLI：`--test-img-convert`。
 
 #### 变更
 

@@ -17,6 +17,7 @@ public partial class ImgConvertWindow : Window {
 	int prevSeq;
 	CancellationTokenSource cts;
 	CancellationTokenSource prevCts;
+	readonly SemaphoreSlim thumbGate = new(4);
 
 	public ImgConvertWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
@@ -38,6 +39,8 @@ public partial class ImgConvertWindow : Window {
 		badd.Click += (_, _) => addfiles();
 		bremove.Click += (_, _) => remove();
 		bclear.Click += (_, _) => clear();
+		bviewlist.Click += (_, _) => setview(false);
+		bviewthumb.Click += (_, _) => setview(true);
 		bbrowse.Click += (_, _) => browse();
 		bgo.Click += (_, _) => _ = go();
 		bclose.Click += (_, _) => Close();
@@ -78,6 +81,8 @@ public partial class ImgConvertWindow : Window {
 		badd.Content = Loc.T("imgconv.add");
 		bremove.Content = Loc.T("imgconv.remove");
 		bclear.Content = Loc.T("imgconv.clear");
+		bviewlist.Content = Loc.T("imgconv.view.list");
+		bviewthumb.Content = Loc.T("imgconv.view.thumb");
 		lbdrop.Text = Loc.T("imgconv.drop");
 		colname.Header = Loc.T("imgconv.col.name");
 		colxf.Header = Loc.T("imgconv.col.xf");
@@ -120,6 +125,10 @@ public partial class ImgConvertWindow : Window {
 		if (opt.ImgConvOutBeside) routsrc.IsChecked = true;
 		else routother.IsChecked = true;
 		eoutdir.Text = opt.ImgConvOutDir ?? "";
+		var thumbs = opt.ImgConvThumbView;
+		bviewthumb.IsChecked = thumbs;
+		bviewlist.IsChecked = !thumbs;
+		applyview();
 	}
 
 	bool saveui() {
@@ -139,6 +148,7 @@ public partial class ImgConvertWindow : Window {
 			opt.ImgConvMaxHeight = mh;
 		}
 		opt.ImgConvOutBeside = routsrc.IsChecked == true;
+		opt.ImgConvThumbView = bviewthumb.IsChecked == true;
 		opt.ImgConvOutDir = (eoutdir.Text ?? "").Trim();
 		if (!opt.ImgConvOutBeside && string.IsNullOrWhiteSpace(opt.ImgConvOutDir)) {
 			MessageBox.Show(this, Loc.T("imgconv.nodir"), Loc.T("imgconv.title"),
@@ -380,7 +390,9 @@ public partial class ImgConvertWindow : Window {
 		foreach (var p in paths) {
 			if (string.IsNullOrWhiteSpace(p) || !File.Exists(p)) continue;
 			if (!seen.Add(p)) continue;
-			rows.Add(new ImgConvRow(p));
+			var row = new ImgConvRow(p);
+			rows.Add(row);
+			_ = loadthumb(row);
 			n++;
 		}
 		refreshcount();
@@ -402,6 +414,72 @@ public partial class ImgConvertWindow : Window {
 		rows.Clear();
 		refreshcount();
 		syncselui();
+	}
+
+	void setview(bool thumbs) {
+		if (bviewthumb.IsChecked == thumbs && bviewlist.IsChecked == !thumbs
+			&& (lv.View == null) == thumbs)
+			return;
+		bviewthumb.IsChecked = thumbs;
+		bviewlist.IsChecked = !thumbs;
+		opt.ImgConvThumbView = thumbs;
+		applyview();
+	}
+
+	void applyview() {
+		var thumbs = bviewthumb.IsChecked == true;
+		if (thumbs) {
+			lv.View = null;
+			lv.ItemTemplate = Resources["tplThumb"] as DataTemplate;
+			lv.ItemsPanel = Resources["panelWrap"] as ItemsPanelTemplate;
+			lv.ItemContainerStyle = Resources["styleThumbItem"] as Style;
+			ScrollViewer.SetCanContentScroll(lv, false);
+		}
+		else {
+			lv.ItemTemplate = null;
+			lv.ItemsPanel = Resources["panelStack"] as ItemsPanelTemplate;
+			lv.ItemContainerStyle = Resources["styleListItem"] as Style;
+			lv.View = gv;
+			ScrollViewer.SetCanContentScroll(lv, true);
+		}
+	}
+
+	async Task loadthumb(ImgConvRow row) {
+		if (row == null) return;
+		try {
+			await thumbGate.WaitAsync().ConfigureAwait(true);
+			BitmapSource bmp = null;
+			var path = row.FilePath;
+			try {
+				bmp = await Task.Run(() => makethumb(path)).ConfigureAwait(true);
+			}
+			finally {
+				try { thumbGate.Release(); } catch { }
+			}
+			if (bmp == null) return;
+			if (!rows.Contains(row)) return;
+			row.Thumb = bmp;
+		}
+		catch { }
+	}
+
+	static BitmapSource makethumb(string path) {
+		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
+		try {
+			using var fs = File.OpenRead(path);
+			var bi = new BitmapImage();
+			bi.BeginInit();
+			bi.CacheOption = BitmapCacheOption.OnLoad;
+			bi.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+			bi.DecodePixelWidth = 96;
+			bi.StreamSource = fs;
+			bi.EndInit();
+			bi.Freeze();
+			return bi;
+		}
+		catch {
+			return null;
+		}
 	}
 
 	void browse() {
@@ -542,6 +620,7 @@ public partial class ImgConvertWindow : Window {
 		int rotate;
 		bool mirror;
 		string status;
+		BitmapSource thumb;
 
 		public string FilePath { get; }
 		public string FileName => System.IO.Path.GetFileName(FilePath) ?? FilePath;
@@ -589,6 +668,15 @@ public partial class ImgConvertWindow : Window {
 		public ImgConvRow(string path) {
 			FilePath = path ?? "";
 			status = Loc.T("imgconv.st.wait");
+		}
+
+		public BitmapSource Thumb {
+			get => thumb;
+			set {
+				if (ReferenceEquals(thumb, value)) return;
+				thumb = value;
+				OnPropertyChanged();
+			}
 		}
 
 		void OnPropertyChanged([CallerMemberName] string name = null) {
