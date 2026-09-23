@@ -24,35 +24,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-#### Added
-
-- New **Tools** menu with **Image convert**: batch convert to JPG (default quality 60) / PNG / BMP; optional max width/height (same shrink-to-fit as screenshots); output to `output/` next to each source file or a chosen folder. Drag files/folders/images into the list; **Icons** view shows a small thumbnail per file (toggle **List**). Select one item to rotate 90/180/270° or flip. Convert-all shows progress. The window is larger (~1.7×) with a live preview of the selected file after applying quality, max size, rotate, and flip. Settings persist in `config.toml` (`imgconv_*`). CLI: `--test-img-convert`.
-
-#### Changed
-
-- The previous **Tools** menu is renamed **Options** (settings, install features, language, updates, about).
-
-#### Fixed
-
-- Three-monitor screenshot: on a screen whose DPI differs from the system (often the third display), the whole overlay shrank to about 66% because a System-DPI-aware window was DWM-scaled after being pinned to the physical Bounds. Overlay HWNDs are created as Per-Monitor V2 and sized with that screen’s DPI; mixed-DPI still compensates for DWM. CLI: `ScreenKit --test-overlay-layout`.
-- A region that spans monitors can be moved and resized on every screen it covers (handles and drag on guest overlays). CLI: `ScreenKit --test-overlay-span-adj`.
-- Cross-monitor annotate: rectangle/ellipse/pen/arrow can be drawn on every screen the region covers (guest overlays show the host canvas). Moving the region uses a 10px band **outside** the frame.
-
 ### 中文
-
-#### 新增
-
-- 新增 **工具** 菜单，含 **图片格式转换**：批量转为 JPG（默认质量 60%）/ PNG / BMP；可选限制最大宽高（与截图相同的等比缩小）；输出到每个源文件旁的 `output/` 或指定目录。列表可拖入文件、文件夹、图片；**图片**视图为每张显示小缩略图（可切回 **列表**）。选中单张可旋转 90/180/270° 或镜像。一键全部转换并显示进度。窗口约放大到 1.7 倍，右侧预览已应用质量、宽高限制、旋转和镜像后的效果。参数写入 `config.toml`（`imgconv_*`）。CLI：`--test-img-convert`。
-
-#### 变更
-
-- 原 **工具** 菜单改名为 **选项**（参数设置、安装功能、界面语言、检查更新、关于）。
-
-#### 修复
-
-- 三屏截图：系统 DPI 与某块屏不一致时（常见为屏 3），整块遮罩会被 DWM 再缩到约 66%。遮罩 HWND 按 Per-Monitor V2 创建，并按该屏 DPI 钉到物理 Bounds。CLI：`ScreenKit --test-overlay-layout`。
-- 跨屏选区可在每一块相交的屏上拖动、缩放（副屏也显示手柄）。CLI：`ScreenKit --test-overlay-span-adj`。
-- 跨屏标注：矩形/椭圆/画笔/箭头可在选区覆盖的每一块屏上画（副屏显示宿主画布）。拖动选区改为框**外** 10px 热区。
 
 ## v1.0.8 (2026-09-23)
 
@@ -62,8 +34,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - LAN **PC file transfer** (HTTP `:17532`, UDP discovery `:17531`): first-connect pairing, `sendfile/` sandbox, main-window **File sync** tab. Companion Android app in `android/` (`com.whj.screenkit` / 「PC文件传输」). Other apps can share multiple files; in-app **Upload** is multi-select.
 - File sync **Install on phone**: LAN URL (`GET /apk` on the file-transfer port, no pairing) and QR code (`--test-apk-qr`). With several NICs, pick which address the QR uses (default: internet-reachable physical NIC). A Release build copies the newest Android **release** APK into `apk/` next to the exe (only when newer; debug APKs are ignored).
+- **Tools** menu **Image convert**: batch convert to JPG (default quality 60) / PNG / BMP; optional max width/height (same shrink-to-fit as screenshots); output to `output/` next to each source or a chosen folder. Drag files/folders/images into the list; **Icons** view shows a small thumbnail per file (toggle **List**). Select one item to rotate 90/180/270° or flip. Convert-all shows progress. The window is larger (~1.7×) with a live preview after applying quality, max size, rotate, and flip. Settings persist in `config.toml` (`imgconv_*`). CLI: `--test-img-convert`.
 
 #### Changed
+
+**Menus**
+
+- The previous **Tools** menu is renamed **Options** (settings, install features, language, updates, about). Image convert lives under the new **Tools** menu.
 
 **Install features**
 
@@ -82,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Reverted screenshot-overlay drag experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the transparent overlay, dim mask, and green selection frame.
 - Overlay / result text: a block is selected only on mouse-up; clicking empty space clears the selection; drag-select stays in the dragged range (no snap-expand to a whole line).
+- A region that spans monitors can be moved, resized, and drawn on (rect/ellipse/pen/arrow) from every screen it covers. Moving the region uses a 10px band **outside** the green frame.
 
 #### Fixed
 
@@ -90,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dropping files on the **File sync** tab no longer jumps to Speech Recognition: the ASR window-level media drop only applies while that tab is selected.
 - Three monitors with a scaled output (desktop 2400×1350, capture frame 1920×1080): the right screen’s frozen image sat at 80% size in the top-left of the overlay, and saved region shots were shrunk. Capture candidates are ranked by how well the frame matches the screen’s physical bounds; when the frame is a uniform scale of the screen the mask still covers full Bounds; a single-screen crop rescales to the physical selection size.
 - Android LAN discovery: Wi-Fi multicast lock, a second UDP probe, and a retry when the first scan is empty.
+- Three-monitor screenshot: on a screen whose DPI differs from the system, the whole overlay shrank to about 66%. Overlay HWNDs are created as Per-Monitor V2 and sized with that screen’s DPI. CLI: `ScreenKit --test-overlay-layout`.
 
 ### 中文
 
@@ -97,8 +76,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 局域网 **PC 文件传输**（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab。配套安卓应用：`android/`（`com.whj.screenkit`「PC文件传输」）。其它应用可一次分享多个文件，App 内「上传」支持多选。
 - 文件同步 **安装到手机**：本机局域网下载地址（文件传输端口 `GET /apk`，无需配对）和二维码（`--test-apk-qr`）。多网卡时可选择二维码地址（默认用能连外网的物理网卡）。编译时把 android 最新 **release** APK 拷到程序旁 `apk/`（仅当源更新；不用 debug）。
+- **工具** 菜单 **图片格式转换**：批量转为 JPG（默认质量 60%）/ PNG / BMP；可选限制最大宽高（与截图相同的等比缩小）；输出到每个源文件旁的 `output/` 或指定目录。列表可拖入文件、文件夹、图片；**图片**视图为每张显示小缩略图（可切回 **列表**）。选中单张可旋转 90/180/270° 或镜像。一键全部转换并显示进度。窗口约放大到 1.7 倍，右侧预览已应用质量、宽高限制、旋转和镜像后的效果。参数写入 `config.toml`（`imgconv_*`）。CLI：`--test-img-convert`。
 
 #### 变更
+
+**菜单**
+
+- 原 **工具** 菜单改名为 **选项**（参数设置、安装功能、界面语言、检查更新、关于）。图片格式转换在新的 **工具** 菜单下。
 
 **安装功能**
 
@@ -117,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
 - OCR 叠字/结果文本：松开鼠标才选中一块；点空白取消选择；拖选只保留拖过的范围，不再吸附扩展整行。
+- 跨屏选区可在每一块相交的屏上拖动、缩放、画矩形/椭圆/画笔/箭头。拖动选区热区在绿框**外** 10px。
 
 #### 修复
 
@@ -125,6 +110,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 往 **文件同步** Tab 拖文件不再跳到语音识别：窗口级音视频拖放仅在语音识别页生效。
 - 三屏且右边屏为缩放输出（桌面 2400×1350，实际只能抓到 1920×1080 帧）时截图：遮罩里右屏冻结画面只有 80% 大小、贴在左上，框选存图内容也被缩小。现按「帧尺寸与屏物理 Bounds 的契合度」给抓取候选分档；帧与屏等比时遮罩窗仍按整屏 Bounds 铺满；单屏裁切按物理选区尺寸输出。
 - 安卓局域网发现：申请 Wi-Fi 组播锁、重复发送 UDP 探测；第一次扫描为空时再扫一次。
+- 三屏截图：系统 DPI 与某块屏不一致时，整块遮罩会缩到约 66%。遮罩 HWND 按 Per-Monitor V2 创建，并按该屏 DPI 钉到物理 Bounds。CLI：`ScreenKit --test-overlay-layout`。
 
 ## v1.0.7 (2026-09-11)
 

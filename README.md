@@ -109,6 +109,10 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 
 Android details: [android/README.md](android/README.md).
 
+### Image convert
+
+**Tools → Image convert**: drop files, folders, or images; choose JPG / PNG / BMP; optional max width/height (same shrink-to-fit as screenshots); rotate 90/180/270° or flip the selected item. **Icons** shows a small thumbnail per file (**List** for details). The right pane previews the selected file after those settings. Convert-all writes next to each source under `output/` or into a chosen folder.
+
 ### Default hotkeys
 
 | Hotkey | Action |
