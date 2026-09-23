@@ -181,7 +181,27 @@ static class FeaturePick {
 			}
 			var primary = n.Kinds[n.Kinds.Length - 1];
 			var have = FeatureInstaller.Probe(primary) != FeatureInstallState.Missing;
-			n.SetCheck(have || ids.Contains(n.Id) || kinds.Contains(primary), fromUi: true);
+			var want = have || ids.Contains(n.Id) || kinds.Contains(primary);
+			if (!want) {
+				foreach (var k in n.Kinds) {
+					if (!kinds.Contains(k)) continue;
+					if (RecommendedIds.Contains(n.Id)) { want = true; break; }
+				}
+			}
+			n.SetCheck(want, fromUi: true);
+		}
+	}
+
+	public static void CollectDelta(IEnumerable<FeaturePickNode> roots, out HashSet<FeatureKind> add, out HashSet<FeatureKind> del) {
+		var sel = new HashSet<FeatureKind>();
+		CollectKinds(roots, sel);
+		add = new HashSet<FeatureKind>();
+		del = new HashSet<FeatureKind>();
+		foreach (FeatureKind k in Enum.GetValues(typeof(FeatureKind))) {
+			var st = FeatureInstaller.Probe(k);
+			var on = sel.Contains(k);
+			if (on && st != FeatureInstallState.Installed) add.Add(k);
+			else if (!on && st != FeatureInstallState.Missing) del.Add(k);
 		}
 	}
 

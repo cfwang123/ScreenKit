@@ -40,7 +40,7 @@
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbpickhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
-					           Text="勾选需要的功能。相对当前已装，显示将新增 / 删除的组件数与大小。确认后进入「功能组件」。发音人请到「发音人」页。"/>
+					           Text="已装功能默认勾选。绿色将安装、红色将卸载。点确认开始安装或删除。发音人请到「发音人」页。"/>
 					<Border Grid.Row="1" Background="{StaticResource BgPanel}"
 					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 					        CornerRadius="8" Padding="4">
@@ -112,54 +112,6 @@
 							</Border>
 						</StackPanel>
 					</DockPanel>
-				</Grid>
-			</TabItem>
-
-			<!-- Tab2：功能组件 -->
-			<TabItem x:Name="tabfeat" Header="功能组件"
-			         AutomationProperties.AutomationId="inst.tab.feat">
-				<Grid Margin="8">
-					<Grid.RowDefinitions>
-						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="*"/>
-					</Grid.RowDefinitions>
-					<TextBlock x:Name="lbfeathint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,6"
-					           FontSize="12" Foreground="{StaticResource TextMuted}"
-					           Text="勾选要安装的 OCR/ASR 模型或加速组件。中文系统优先国内镜像。"/>
-					<!-- 状态汇总 + 图例 -->
-					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
-						<StackPanel Orientation="Horizontal" DockPanel.Dock="Right"
-						            VerticalAlignment="Center" Margin="12,0,0,0">
-							<Border Background="#FEE2E2" CornerRadius="4" Padding="8,3" Margin="0,0,6,0">
-								<TextBlock x:Name="lblegmiss" Text="未安装" FontSize="11" FontWeight="SemiBold" Foreground="#B91C1C"/>
-							</Border>
-							<Border Background="#FEF3C7" CornerRadius="4" Padding="8,3" Margin="0,0,6,0">
-								<TextBlock x:Name="lblegpart" Text="部分" FontSize="11" FontWeight="SemiBold" Foreground="#B45309"/>
-							</Border>
-							<Border Background="#D1FAE5" CornerRadius="4" Padding="8,3">
-								<TextBlock x:Name="lblegok" Text="已安装" FontSize="11" FontWeight="SemiBold" Foreground="#047857"/>
-							</Border>
-						</StackPanel>
-						<StackPanel VerticalAlignment="Center">
-							<TextBlock x:Name="lbfeatsum"
-							           FontSize="12" FontWeight="SemiBold"
-							           Foreground="{StaticResource TextPrimary}"
-							           Text=""/>
-							<TextBlock x:Name="lbfeatsel" Margin="0,2,0,0"
-							           FontSize="12" FontWeight="SemiBold"
-							           Foreground="{StaticResource Accent}"
-							           Text=""
-							           AutomationProperties.AutomationId="inst.feat.size"/>
-						</StackPanel>
-					</DockPanel>
-					<Border Grid.Row="2" Background="{StaticResource BgPanel}"
-					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-					        CornerRadius="8" Padding="4">
-						<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8,6">
-							<StackPanel x:Name="eitems"/>
-						</ScrollViewer>
-					</Border>
 				</Grid>
 			</TabItem>
 

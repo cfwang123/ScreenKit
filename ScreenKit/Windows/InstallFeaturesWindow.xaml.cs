@@ -9,7 +9,7 @@ using System.Windows.Media;
 namespace ScreenKit;
 
 /// <summary>
-/// 安装功能：功能选择 → 功能组件 + 发音人（TTS）。
+/// 安装功能：功能选择（确认即安装/卸载）+ 发音人（TTS）。
 /// 发音人单独一页，不在功能选择树里处理。
 /// </summary>
 partial class InstallFeaturesWindow : Window {
@@ -24,10 +24,6 @@ partial class InstallFeaturesWindow : Window {
 
 	readonly List<FeaturePickNode> pickRoots = new();
 	readonly List<FeatureItem> featItems = new();
-	readonly Dictionary<FeatureItem, CheckBox> featChecks = new();
-	readonly Dictionary<FeatureItem, TextBlock> featStates = new();
-	readonly Dictionary<FeatureItem, Border> featStateBadges = new();
-	readonly Dictionary<FeatureItem, TextBlock> featSizes = new();
 
 	readonly ObservableCollection<TtsRow> ttsRows = new();
 	List<TtsInstallItem> ttsAll = new();
@@ -60,9 +56,6 @@ partial class InstallFeaturesWindow : Window {
 		if (openTtsTab) {
 			try { tabmain.SelectedItem = tabtts; } catch { }
 		}
-		else if (preferSelect != null && preferSelect.Length > 0) {
-			try { tabmain.SelectedItem = tabfeat; } catch { }
-		}
 		else {
 			try { tabmain.SelectedItem = tabpick; } catch { }
 		}
@@ -70,7 +63,7 @@ partial class InstallFeaturesWindow : Window {
 			if (busy) return;
 			Close();
 		});
-		bconfirm.Click += (_, _) => confirmpick();
+		bconfirm.Click += async (_, _) => await confirmpick();
 		breset.Click += (_, _) => resetpick();
 		etree.AddHandler(CheckBox.PreviewMouseLeftButtonDownEvent,
 			new MouseButtonEventHandler(onpickcheckdown), true);
@@ -112,7 +105,7 @@ partial class InstallFeaturesWindow : Window {
 		lvtss.ItemsSource = ttsRows;
 		Loaded += async (_, _) => {
 			rebuildpick();
-			rebuildfeat();
+			loadfeat();
 			applytabbuttons();
 			_ = loadtts(force: false);
 		};
@@ -130,17 +123,12 @@ partial class InstallFeaturesWindow : Window {
 		else Title = Loc.T("inst.title");
 		lbtitle.Text = Title;
 		tabpick.Header = Loc.T("inst.tab.pick");
-		tabfeat.Header = Loc.T("inst.tab.feat");
 		tabtts.Header = Loc.T("inst.tab.tts");
 		lbpickhint.Text = Loc.T("inst.pick.hint");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
 		breset.Content = Loc.T("inst.pick.reset");
 		breset.ToolTip = Loc.T("inst.pick.reset.tip");
-		lbfeathint.Text = Loc.T("inst.feat.hint");
-		lblegmiss.Text = Loc.T("inst.missing");
-		lblegpart.Text = Loc.T("inst.partial");
-		lblegok.Text = Loc.T("inst.installed");
 		lbttshint.Text = Loc.T("inst.tts.hint");
 		lbttslang.Text = Loc.T("inst.tts.lang");
 		cttsmissing.Content = Loc.T("inst.tts.onlymissing");
@@ -169,13 +157,13 @@ partial class InstallFeaturesWindow : Window {
 	}
 
 	void applytabbuttons() {
-		var onPick = tabmain.SelectedItem == tabpick;
-		binstall.IsEnabled = !busy && !onPick;
-		bdelete.IsEnabled = !busy && !onPick;
+		var onTts = tabmain.SelectedItem == tabtts;
+		binstall.IsEnabled = !busy && onTts;
+		bdelete.IsEnabled = !busy && onTts;
 		bconfirm.IsEnabled = !busy;
 		breset.IsEnabled = !busy;
-		binstall.IsDefault = !onPick && !busy;
-		bconfirm.IsDefault = onPick && !busy;
+		binstall.IsDefault = onTts && !busy;
+		bconfirm.IsDefault = !onTts && !busy;
 	}
 
 	// ───────── 功能选择 Tab ─────────
@@ -272,29 +260,23 @@ partial class InstallFeaturesWindow : Window {
 		}
 	}
 
-	void confirmpick() {
+	async Task confirmpick() {
 		if (busy) return;
-		var kinds = new HashSet<FeatureKind>();
-		FeaturePick.CollectKinds(pickRoots, kinds);
-		foreach (var it in featItems) {
-			it.Selected = kinds.Contains(it.Kind);
-			if (featChecks.TryGetValue(it, out var cb))
-				cb.IsChecked = it.Selected;
+		foreach (var it in featItems)
+			FeatureInstaller.RefreshState(it);
+		FeaturePick.CollectDelta(pickRoots, out var addKinds, out var delKinds);
+		var add = featItems.Where(x => addKinds.Contains(x.Kind)).ToList();
+		var del = featItems.Where(x => delKinds.Contains(x.Kind)).ToList();
+		if (add.Count == 0 && del.Count == 0) {
+			MessageBox.Show(this, Loc.T("inst.pick.nodelta"), Title,
+				MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
 		}
-		updatefeatsum();
-		try { tabmain.SelectedItem = tabfeat; } catch { }
-		applytabbuttons();
+		await runpick(add, del);
 	}
 
-	// ───────── 功能组件 Tab ─────────
-
-	void rebuildfeat() {
+	void loadfeat() {
 		featItems.Clear();
-		featChecks.Clear();
-		featStates.Clear();
-		featStateBadges.Clear();
-		featSizes.Clear();
-		eitems.Children.Clear();
 		featItems.AddRange(FeatureInstaller.BuildCatalog(
 			firstRunDefaults: firstRun,
 			preferSelect: firstRun ? null : preferSelect));
@@ -304,120 +286,6 @@ partial class InstallFeaturesWindow : Window {
 			lbmirror.Text = Loc.T("inst.mirror.prefer") + FeatureInstaller.MirrorHint();
 		else
 			lbmirror.Text = Loc.T("inst.mirror.default") + FeatureInstaller.MirrorHint();
-
-		string lastCat = null;
-		foreach (var it in featItems) {
-			if (lastCat == null || !string.Equals(lastCat, it.Category, StringComparison.Ordinal)) {
-				lastCat = it.Category;
-				var catTitle = it.Category switch {
-					"native" => Loc.T("feat.cat.native.opt"),
-					"ocr" => Loc.T("feat.cat.ocr"),
-					"asr" => Loc.T("feat.cat.asr"),
-					"face" => Loc.T("feat.cat.face"),
-					"accel" => Loc.T("feat.cat.accel"),
-					"media" => Loc.T("feat.cat.media"),
-					_ => it.Category,
-				};
-				eitems.Children.Add(new TextBlock {
-					Text = catTitle,
-					FontWeight = FontWeights.SemiBold,
-					FontSize = 13,
-					Margin = new Thickness(0, eitems.Children.Count == 0 ? 0 : 12, 0, 6),
-					Foreground = (Brush)FindResource("TextPrimary"),
-				});
-			}
-
-			var row = new DockPanel { Margin = new Thickness(0, 0, 0, 8), LastChildFill = true };
-
-			// 仅状态徽章着色（不改整行背景/边框）
-			var st = new TextBlock {
-				Text = it.StateText,
-				FontSize = 11,
-				FontWeight = FontWeights.SemiBold,
-				VerticalAlignment = VerticalAlignment.Center,
-				HorizontalAlignment = HorizontalAlignment.Center,
-			};
-			var badge = new Border {
-				Child = st,
-				CornerRadius = new CornerRadius(4),
-				Padding = new Thickness(8, 3, 8, 3),
-				Margin = new Thickness(8, 0, 0, 0),
-				VerticalAlignment = VerticalAlignment.Center,
-				MinWidth = 56,
-				HorizontalAlignment = HorizontalAlignment.Right,
-			};
-			DockPanel.SetDock(badge, Dock.Right);
-			featStates[it] = st;
-			featStateBadges[it] = badge;
-			row.Children.Add(badge);
-
-			var sz = new TextBlock {
-				Text = it.SizeText ?? "",
-				Width = 88,
-				VerticalAlignment = VerticalAlignment.Center,
-				HorizontalAlignment = HorizontalAlignment.Right,
-				FontSize = 11,
-				Margin = new Thickness(0, 0, 4, 0),
-				Foreground = (Brush)FindResource("TextMuted"),
-			};
-			DockPanel.SetDock(sz, Dock.Right);
-			featSizes[it] = sz;
-			row.Children.Add(sz);
-
-			var cb = new CheckBox {
-				IsChecked = it.Selected,
-				VerticalAlignment = VerticalAlignment.Top,
-				Margin = new Thickness(0, 2, 0, 0),
-			};
-			featChecks[it] = cb;
-			cb.Checked += (_, _) => { it.Selected = true; updatefeatsum(); };
-			cb.Unchecked += (_, _) => { it.Selected = false; updatefeatsum(); };
-
-			var textCol = new StackPanel { Margin = new Thickness(8, 0, 8, 0) };
-			textCol.Children.Add(new TextBlock {
-				Text = it.Title,
-				FontSize = 13,
-				Foreground = (Brush)FindResource("TextPrimary"),
-			});
-			textCol.Children.Add(new TextBlock {
-				Text = it.Detail + (it.NeedsRestart ? Loc.T("inst.restart.suffix") : ""),
-				FontSize = 11,
-				TextWrapping = TextWrapping.Wrap,
-				Foreground = (Brush)FindResource("TextMuted"),
-				Margin = new Thickness(0, 2, 0, 0),
-			});
-			cb.Content = textCol;
-			row.Children.Add(cb);
-			applyfeatbadgestyle(it);
-			eitems.Children.Add(row);
-		}
-		updatefeatsum();
-	}
-
-	void updatefeatsum() {
-		if (lbfeatsum == null) return;
-		var miss = featItems.Count(x => x.State == FeatureInstallState.Missing);
-		var part = featItems.Count(x => x.State == FeatureInstallState.Partial);
-		var ok = featItems.Count(x => x.State == FeatureInstallState.Installed);
-		if (miss + part > 0)
-			lbfeatsum.Text = string.Format(Loc.T("inst.feat.sum"), featItems.Count, miss, part, ok);
-		else
-			lbfeatsum.Text = string.Format(Loc.T("inst.feat.allok"), featItems.Count);
-		lbfeatsum.Foreground = miss + part > 0 ? MissFg : OkFg;
-		FeaturePick.MeasureItems(featItems, out var total, out var need);
-		if (lbfeatsel != null) {
-			lbfeatsel.Text = Loc.T("inst.pick.size",
-				FeatureInstaller.FormatBytes(total), FeatureInstaller.FormatBytes(need));
-			lbfeatsel.Foreground = need > 0 ? MissFg : OkFg;
-		}
-	}
-
-	void applyfeatbadgestyle(FeatureItem it) {
-		if (!featStateBadges.TryGetValue(it, out var badge)) return;
-		if (!featStates.TryGetValue(it, out var st)) return;
-		st.Text = it.StateText ?? "";
-		st.Foreground = statefg(it.State);
-		badge.Background = statebg(it.State);
 	}
 
 	// ───────── 发音人 Tab ─────────
@@ -535,17 +403,9 @@ partial class InstallFeaturesWindow : Window {
 				r.Notify();
 			}
 		}
-		else if (tabmain.SelectedItem == tabpick) {
+		else {
 			FeaturePick.SelectMissing(pickRoots);
 			updatepicksum();
-		}
-		else {
-			foreach (var it in featItems) {
-				it.Selected = it.State != FeatureInstallState.Installed;
-				if (featChecks.TryGetValue(it, out var cb))
-					cb.IsChecked = it.Selected;
-			}
-			updatefeatsum();
 		}
 	}
 
@@ -555,17 +415,9 @@ partial class InstallFeaturesWindow : Window {
 			setttscheckall(on);
 			cttsheader.IsChecked = on;
 		}
-		else if (tabmain.SelectedItem == tabpick) {
+		else {
 			FeaturePick.SelectAll(pickRoots, on);
 			updatepicksum();
-		}
-		else {
-			foreach (var it in featItems) {
-				it.Selected = on;
-				if (featChecks.TryGetValue(it, out var cb))
-					cb.IsChecked = on;
-			}
-			updatefeatsum();
 		}
 	}
 
@@ -600,8 +452,6 @@ partial class InstallFeaturesWindow : Window {
 		cttsmissing.IsEnabled = !on;
 		cttssupported.IsEnabled = !on;
 		etree.IsEnabled = !on;
-		foreach (var cb in featChecks.Values)
-			cb.IsEnabled = !on;
 		lvtss.IsEnabled = !on;
 		applytabbuttons();
 	}
@@ -672,36 +522,145 @@ partial class InstallFeaturesWindow : Window {
 		}
 	}
 
-	void refreshfeatui(FeatureItem it) {
+	void refreshfeat(FeatureItem it) {
+		if (it == null) return;
 		FeatureInstaller.RefreshState(it);
-		applyfeatbadgestyle(it);
-		if (featSizes.TryGetValue(it, out var sz))
-			sz.Text = it.SizeText ?? "";
-		if (featChecks.TryGetValue(it, out var cb)) {
-			if (it.State == FeatureInstallState.Installed) {
-				cb.IsChecked = false;
-				it.Selected = false;
+	}
+
+	void afterpickchange() {
+		foreach (var it in featItems)
+			refreshfeat(it);
+		FeaturePick.RefreshDiff(pickRoots);
+		updatepicksum();
+	}
+
+	async Task runpick(List<FeatureItem> add, List<FeatureItem> del) {
+		cts = new CancellationTokenSource();
+		setbusy(true);
+		setprogress(0);
+		setbytes("");
+		var ok = 0;
+		var fail = 0;
+		var needRestart = false;
+		var anyRefresh = false;
+		var log = new Progress<string>(appendlog);
+		long batchTotal = 0;
+		foreach (var it in add)
+			batchTotal += it.SizeBytes > 0 ? it.SizeBytes : FeatureInstaller.ExpectedSize(it.Kind);
+		var totalSteps = add.Count + del.Count;
+		var step = 0;
+		long batchDone = 0;
+		appendlog(FeatureInstaller.MirrorHint());
+		appendlog(Loc.T("inst.pick.apply.start", add.Count, del.Count, FeatureInstaller.FormatBytes(batchTotal)));
+		setbytes(batchTotal > 0
+			? FeatureInstaller.FormatBytes(0) + " / " + FeatureInstaller.FormatBytes(batchTotal)
+			: "");
+		try {
+			foreach (var it in del) {
+				cts.Token.ThrowIfCancellationRequested();
+				setstatus(string.Format(Loc.T("inst.delete.step"), step + 1, totalSteps, it.Title));
+				appendlog(string.Format(Loc.T("inst.delete.log"), it.Title));
+				try {
+					await Task.Run(() => FeatureInstaller.Uninstall(it.Kind, log)).ConfigureAwait(true);
+					ok++;
+					anyRefresh = true;
+					if (it.NeedsRestart) needRestart = true;
+					refreshfeat(it);
+					appendlog(string.Format(Loc.T("inst.delete.ok"), it.Title));
+				}
+				catch (OperationCanceledException) {
+					appendlog(Loc.T("inst.log.cancel"));
+					setstatus(Loc.T("inst.log.cancel"));
+					goto done;
+				}
+				catch (Exception ex) {
+					fail++;
+					appendlog(string.Format(Loc.T("inst.delete.fail"), ex.Message));
+					CaptureLog.Ex("Uninstall " + it.Id, ex);
+					refreshfeat(it);
+				}
+				step++;
+				setprogress(totalSteps > 0 ? step / (double)totalSteps : 1);
 			}
-			else
-				it.Selected = cb.IsChecked == true;
+			for (var i = 0; i < add.Count; i++) {
+				cts.Token.ThrowIfCancellationRequested();
+				var it = add[i];
+				var expect = it.SizeBytes > 0 ? it.SizeBytes : FeatureInstaller.ExpectedSize(it.Kind);
+				setstatus(string.Format(Loc.T("inst.install.step"), step + 1, totalSteps, it.Title, FeatureInstaller.FormatBytes(expect)));
+				if (batchTotal > 0)
+					setbytes(FeatureInstaller.FormatBytes(batchDone) + " / " + FeatureInstaller.FormatBytes(batchTotal));
+				appendlog("── " + it.Title + " · " + (it.SizeText ?? ""));
+				var idx = step;
+				var doneBase = batchDone;
+				var itemProg = new Progress<InstallProgress>(p =>
+					applyitemprogress(idx, totalSteps, doneBase, batchTotal, p));
+				try {
+					await Task.Run(async () => {
+						await FeatureInstaller.InstallAsync(it.Kind, log, itemProg, cts.Token)
+							.ConfigureAwait(false);
+					}, cts.Token).ConfigureAwait(true);
+					ok++;
+					anyRefresh = true;
+					if (it.NeedsRestart) needRestart = true;
+					refreshfeat(it);
+					appendlog(string.Format(Loc.T("inst.log.ok"), it.Title));
+				}
+				catch (OperationCanceledException) {
+					appendlog(Loc.T("inst.log.cancel"));
+					setstatus(Loc.T("inst.log.cancel"));
+					goto done;
+				}
+				catch (Exception ex) {
+					fail++;
+					appendlog(string.Format(Loc.T("inst.log.err"), ex.Message));
+					CaptureLog.Ex("InstallFeatures " + it.Id, ex);
+					refreshfeat(it);
+				}
+				batchDone += expect;
+				if (batchTotal > 0 && batchDone > batchTotal) batchDone = batchTotal;
+				step++;
+			}
+		done:
+			setprogress(1);
+			NeedRefresh = anyRefresh && ok > 0;
+			NeedRestart = needRestart;
+			afterpickchange();
+			var summary = string.Format(Loc.T("inst.install.done"), ok, fail);
+			setstatus(summary);
+			setbytes("");
+			appendlog(summary);
+			if (needRestart && ok > 0)
+				appendlog(Loc.T("inst.restart.hint"));
+			if (ok > 0) {
+				var msg = summary;
+				if (needRestart)
+					msg += Loc.T("inst.restart.msg");
+				MessageBox.Show(this, msg, Title, MessageBoxButton.OK,
+					fail > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
+			}
+			else if (fail > 0) {
+				MessageBox.Show(this, Loc.T("inst.install.allfail"), Title,
+					MessageBoxButton.OK, MessageBoxImage.Warning);
+			}
 		}
-		updatefeatsum();
+		finally {
+			setbusy(false);
+			try { cts?.Dispose(); } catch { }
+			cts = null;
+		}
 	}
 
 	async Task rundelete() {
 		foreach (var r in ttsRows)
 			r.Item.Selected = r.Selected;
-		// 功能：勾选且已安装/部分
-		var feats = featItems.Where(x => x.Selected
-			&& x.State is FeatureInstallState.Installed or FeatureInstallState.Partial).ToList();
 		var tts = ttsAll.Where(x => x.Selected && x.State == FeatureInstallState.Installed).ToList();
-		if (feats.Count == 0 && tts.Count == 0) {
+		if (tts.Count == 0) {
 			MessageBox.Show(this, Loc.T("inst.delete.none"), Title,
 				MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
-		var names = feats.Select(f => f.Title).Concat(tts.Select(t => t.Title)).Take(12).ToList();
-		var more = feats.Count + tts.Count - names.Count;
+		var names = tts.Select(t => t.Title).Take(12).ToList();
+		var more = tts.Count - names.Count;
 		var msg = string.Format(Loc.T("inst.delete.confirm"),
 			string.Join("\n· ", names),
 			more > 0 ? string.Format(Loc.T("inst.delete.more"), more) : "");
@@ -715,30 +674,10 @@ partial class InstallFeaturesWindow : Window {
 		setbytes("");
 		var ok = 0;
 		var fail = 0;
-		var total = feats.Count + tts.Count;
+		var total = tts.Count;
 		var step = 0;
 		try {
 			appendlog(string.Format(Loc.T("inst.delete.start"), total));
-			foreach (var it in feats) {
-				setstatus(string.Format(Loc.T("inst.delete.step"), step + 1, total, it.Title));
-				appendlog(string.Format(Loc.T("inst.delete.log"), it.Title));
-				try {
-					await Task.Run(() => FeatureInstaller.Uninstall(it.Kind, log)).ConfigureAwait(true);
-					ok++;
-					NeedRefresh = true;
-					if (it.NeedsRestart) NeedRestart = true;
-					refreshfeatui(it);
-					appendlog(string.Format(Loc.T("inst.delete.ok"), it.Title));
-				}
-				catch (Exception ex) {
-					fail++;
-					appendlog(string.Format(Loc.T("inst.delete.fail"), ex.Message));
-					CaptureLog.Ex("Uninstall " + it.Id, ex);
-					refreshfeatui(it);
-				}
-				step++;
-				setprogress(step / (double)total);
-			}
 			foreach (var it in tts) {
 				setstatus(string.Format(Loc.T("inst.delete.step"), step + 1, total, it.Title));
 				appendlog(string.Format(Loc.T("inst.delete.tts.log"), it.Title));
@@ -777,14 +716,11 @@ partial class InstallFeaturesWindow : Window {
 	}
 
 	async Task runinstall() {
-		// 合并两页勾选项
-		var feats = featItems.Where(x => x.Selected && x.State != FeatureInstallState.Installed).ToList();
-		// TTS：从 ttsAll 取 Selected（筛选外勾选也保留）
 		foreach (var r in ttsRows)
 			r.Item.Selected = r.Selected;
 		var tts = ttsAll.Where(x => x.Selected && x.State != FeatureInstallState.Installed).ToList();
 
-		if (feats.Count == 0 && tts.Count == 0) {
+		if (tts.Count == 0) {
 			MessageBox.Show(this, Loc.T("inst.install.none"), Title,
 				MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
@@ -801,64 +737,20 @@ partial class InstallFeaturesWindow : Window {
 		var log = new Progress<string>(appendlog);
 
 		long batchTotal = 0;
-		foreach (var it in feats)
-			batchTotal += it.SizeBytes > 0 ? it.SizeBytes : FeatureInstaller.ExpectedSize(it.Kind);
 		foreach (var it in tts)
 			batchTotal += it.SizeBytes;
 
 		appendlog(FeatureInstaller.MirrorHint());
-		appendlog(string.Format(Loc.T("inst.install.start"), feats.Count, tts.Count, FeatureInstaller.FormatBytes(batchTotal)));
+		appendlog(string.Format(Loc.T("inst.install.start"), 0, tts.Count, FeatureInstaller.FormatBytes(batchTotal)));
 
-		var totalSteps = feats.Count + tts.Count;
+		var totalSteps = tts.Count;
 		var step = 0;
-		// 已完成项的预估字节；当前项下载量叠加上去后显示「已下 / 合计」
 		long batchDone = 0;
 		setbytes(batchTotal > 0
 			? FeatureInstaller.FormatBytes(0) + " / " + FeatureInstaller.FormatBytes(batchTotal)
 			: "");
 
 		try {
-			// 功能组件
-			for (var i = 0; i < feats.Count; i++) {
-				cts.Token.ThrowIfCancellationRequested();
-				var it = feats[i];
-				var expect = it.SizeBytes > 0 ? it.SizeBytes : FeatureInstaller.ExpectedSize(it.Kind);
-				setstatus(string.Format(Loc.T("inst.install.step"), step + 1, totalSteps, it.Title, FeatureInstaller.FormatBytes(expect)));
-				if (batchTotal > 0)
-					setbytes(FeatureInstaller.FormatBytes(batchDone) + " / " + FeatureInstaller.FormatBytes(batchTotal));
-				appendlog("── " + it.Title + " · " + (it.SizeText ?? ""));
-				var idx = step;
-				var doneBase = batchDone;
-				var itemProg = new Progress<InstallProgress>(p =>
-					applyitemprogress(idx, totalSteps, doneBase, batchTotal, p));
-				try {
-					await Task.Run(async () => {
-						await FeatureInstaller.InstallAsync(it.Kind, log, itemProg, cts.Token)
-							.ConfigureAwait(false);
-					}, cts.Token).ConfigureAwait(true);
-					ok++;
-					anyRefresh = true;
-					if (it.NeedsRestart) needRestart = true;
-					refreshfeatui(it);
-					appendlog(string.Format(Loc.T("inst.log.ok"), it.Title));
-				}
-				catch (OperationCanceledException) {
-					appendlog(Loc.T("inst.log.cancel"));
-					setstatus(Loc.T("inst.log.cancel"));
-					goto done;
-				}
-				catch (Exception ex) {
-					fail++;
-					appendlog(string.Format(Loc.T("inst.log.err"), ex.Message));
-					CaptureLog.Ex("InstallFeatures " + it.Id, ex);
-					refreshfeatui(it);
-				}
-				batchDone += expect;
-				if (batchTotal > 0 && batchDone > batchTotal) batchDone = batchTotal;
-				step++;
-			}
-
-			// 发音人
 			for (var i = 0; i < tts.Count; i++) {
 				cts.Token.ThrowIfCancellationRequested();
 				var it = tts[i];
