@@ -55,6 +55,8 @@ public partial class ImgConvertWindow : Window {
 		ekeeppct.TextChanged += (_, _) => queuepreview();
 		routsrc.Checked += (_, _) => syncoutui();
 		routother.Checked += (_, _) => syncoutui();
+		routrep.Checked += (_, _) => syncoutui();
+		routrecycle.Checked += (_, _) => syncoutui();
 		lv.SelectionChanged += (_, _) => syncselui();
 		rrot0.Checked += (_, _) => applyxf();
 		rrot90.Checked += (_, _) => applyxf();
@@ -83,6 +85,10 @@ public partial class ImgConvertWindow : Window {
 		lbout.Text = Loc.T("imgconv.out");
 		routsrc.Content = Loc.T("imgconv.outsrc");
 		routother.Content = Loc.T("imgconv.outother");
+		routrep.Content = Loc.T("imgconv.outreplace");
+		routrecycle.Content = Loc.T("imgconv.outrecycle");
+		routrep.ToolTip = Loc.T("imgconv.outreplace.tip");
+		routrecycle.ToolTip = Loc.T("imgconv.outrecycle.tip");
 		ToolBtnUi.Set(bbrowse, ToolBtnUi.Browse, Loc.T("imgconv.browse"));
 		ToolBtnUi.Set(badd, ToolBtnUi.Add, Loc.T("imgconv.add"));
 		ToolBtnUi.Set(bremove, ToolBtnUi.Delete, Loc.T("imgconv.remove"));
@@ -130,8 +136,14 @@ public partial class ImgConvertWindow : Window {
 		emaxen.IsChecked = opt.ImgConvMaxSizeEnabled;
 		emaxw.Text = (opt.ImgConvMaxWidth < 16 ? 1920 : opt.ImgConvMaxWidth).ToString();
 		emaxh.Text = (opt.ImgConvMaxHeight < 16 ? 1080 : opt.ImgConvMaxHeight).ToString();
-		if (opt.ImgConvOutBeside) routsrc.IsChecked = true;
-		else routother.IsChecked = true;
+		var outMode = ImgConvert.NormOutMode(opt.ImgConvOutMode);
+		routsrc.IsChecked = outMode == ImgConvert.OUTBESIDE;
+		routother.IsChecked = outMode == ImgConvert.OUTOTHER;
+		routrep.IsChecked = outMode == ImgConvert.OUTREPLACE;
+		routrecycle.IsChecked = outMode == ImgConvert.OUTRECYCLE;
+		if (routsrc.IsChecked != true && routother.IsChecked != true
+			&& routrep.IsChecked != true && routrecycle.IsChecked != true)
+			routsrc.IsChecked = true;
 		eoutdir.Text = opt.ImgConvOutDir ?? "";
 		ekeeporig.IsChecked = opt.ImgConvKeepOrigEnabled;
 		var kp = Compat.Clamp(opt.ImgConvKeepOrigPct <= 0 ? 80 : opt.ImgConvKeepOrigPct, 1, 100);
@@ -163,10 +175,11 @@ public partial class ImgConvertWindow : Window {
 			if (!tryint(ekeeppct, Loc.T("imgconv.keeporig"), 1, 100, out var kp)) return false;
 			opt.ImgConvKeepOrigPct = kp;
 		}
-		opt.ImgConvOutBeside = routsrc.IsChecked == true;
+		opt.ImgConvOutMode = pickoutmode();
+		opt.ImgConvOutBeside = opt.ImgConvOutMode == ImgConvert.OUTBESIDE;
 		opt.ImgConvThumbView = bviewthumb.IsChecked == true;
 		opt.ImgConvOutDir = (eoutdir.Text ?? "").Trim();
-		if (!opt.ImgConvOutBeside && string.IsNullOrWhiteSpace(opt.ImgConvOutDir)) {
+		if (opt.ImgConvOutMode == ImgConvert.OUTOTHER && string.IsNullOrWhiteSpace(opt.ImgConvOutDir)) {
 			MessageBox.Show(this, Loc.T("imgconv.nodir"), Loc.T("imgconv.title"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			browse();
@@ -174,6 +187,13 @@ public partial class ImgConvertWindow : Window {
 			opt.ImgConvOutDir = (eoutdir.Text ?? "").Trim();
 		}
 		return true;
+	}
+
+	string pickoutmode() {
+		if (routother.IsChecked == true) return ImgConvert.OUTOTHER;
+		if (routrep.IsChecked == true) return ImgConvert.OUTREPLACE;
+		if (routrecycle.IsChecked == true) return ImgConvert.OUTRECYCLE;
+		return ImgConvert.OUTBESIDE;
 	}
 
 	bool tryint(TextBox box, string name, int min, int max, out int value) {
@@ -545,6 +565,8 @@ public partial class ImgConvertWindow : Window {
 		emaxh.IsEnabled = !on;
 		routsrc.IsEnabled = !on;
 		routother.IsEnabled = !on;
+		routrep.IsEnabled = !on;
+		routrecycle.IsEnabled = !on;
 		bclose.IsEnabled = !on;
 		ToolBtnUi.Set(bgo, on ? ToolBtnUi.Cancel : ToolBtnUi.Play,
 			on ? Loc.T("imgconv.cancel") : Loc.T("imgconv.go"));
@@ -566,6 +588,14 @@ public partial class ImgConvertWindow : Window {
 			return;
 		}
 		if (!saveui()) return;
+		if (ImgConvert.IsReplace(opt.ImgConvOutMode)) {
+			var ask = opt.ImgConvOutMode == ImgConvert.OUTRECYCLE
+				? Loc.T("imgconv.recycle.confirm", rows.Count)
+				: Loc.T("imgconv.replace.confirm", rows.Count);
+			var ans = MessageBox.Show(this, ask, Loc.T("imgconv.title"),
+				MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+			if (ans != MessageBoxResult.Yes) return;
+		}
 		try { AppConfig.Save(opt); } catch { }
 
 		cts = new CancellationTokenSource();
@@ -577,9 +607,11 @@ public partial class ImgConvertWindow : Window {
 		var maxEn = opt.ImgConvMaxSizeEnabled;
 		var maxW = opt.ImgConvMaxWidth;
 		var maxH = opt.ImgConvMaxHeight;
-		var beside = opt.ImgConvOutBeside;
+		var outMode = ImgConvert.NormOutMode(opt.ImgConvOutMode);
 		var outDir = opt.ImgConvOutDir;
 		var reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var it in rows)
+			reserved.Add(it.FilePath);
 		var total = rows.Count;
 		var ok = 0;
 		var fail = 0;
@@ -600,10 +632,15 @@ public partial class ImgConvertWindow : Window {
 				var rot = row.Rotate;
 				var mir = row.Mirror;
 				try {
-					var dst = ImgConvert.MakeOutPath(src, fmt, beside, outDir, reserved);
+					var dst = ImgConvert.MakeOutPath(src, fmt, outMode, outDir, reserved);
 					var usedOrig = await Task.Run(() => ImgConvert.ConvertOne(src, dst, fmt, quality,
 						maxEn, maxW, maxH, rot, mir, token,
-						opt.ImgConvKeepOrigEnabled, opt.ImgConvKeepOrigPct), token).ConfigureAwait(true);
+						opt.ImgConvKeepOrigEnabled, opt.ImgConvKeepOrigPct, outMode), token).ConfigureAwait(true);
+					if (!usedOrig && ImgConvert.IsReplace(outMode)
+						&& !string.Equals(src, dst, StringComparison.OrdinalIgnoreCase))
+						row.FilePath = dst;
+					if (!usedOrig && ImgConvert.IsReplace(outMode))
+						_ = loadthumb(row);
 					row.Status = usedOrig ? Loc.T("imgconv.st.orig") : Loc.T("imgconv.st.ok");
 					ok++;
 				}
@@ -653,12 +690,22 @@ public partial class ImgConvertWindow : Window {
 	}
 
 	sealed class ImgConvRow : INotifyPropertyChanged {
+		string filePath;
 		int rotate;
 		bool mirror;
 		string status;
 		BitmapSource thumb;
 
-		public string FilePath { get; }
+		public string FilePath {
+			get => filePath;
+			set {
+				if (string.Equals(filePath, value, StringComparison.OrdinalIgnoreCase)) return;
+				filePath = value ?? "";
+				OnPropertyChanged();
+				OnPropertyChanged(nameof(FileName));
+			}
+		}
+
 		public string FileName => System.IO.Path.GetFileName(FilePath) ?? FilePath;
 
 		public int Rotate {
@@ -705,7 +752,7 @@ public partial class ImgConvertWindow : Window {
 		public event PropertyChangedEventHandler PropertyChanged;
 
 		public ImgConvRow(string path) {
-			FilePath = path ?? "";
+			filePath = path ?? "";
 			status = Loc.T("imgconv.st.wait");
 		}
 

@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using OpenCvSharp;
@@ -15,6 +16,15 @@ namespace ScreenKit;
 /// <summary>批量图片格式转换：缩放 / 旋转 / 镜像 / 输出路径。</summary>
 static class ImgConvert {
 	const int MAXFILES = 2000;
+	public const string OUTBESIDE = "beside";
+	public const string OUTOTHER = "other";
+	public const string OUTREPLACE = "replace";
+	public const string OUTRECYCLE = "recycle";
+	const uint FO_DELETE = 3;
+	const ushort FOF_SILENT = 0x0004;
+	const ushort FOF_NOCONFIRMATION = 0x0010;
+	const ushort FOF_ALLOWUNDO = 0x0040;
+	const ushort FOF_NOERRORUI = 0x0400;
 
 	public static string NormFmt(string fmt) {
 		var f = (fmt ?? "jpg").Trim().ToLowerInvariant();
@@ -66,28 +76,56 @@ static class ImgConvert {
 		return path;
 	}
 
-	public static string MakeOutPath(string src, string fmt, bool beside, string customDir, ISet<string> reserved) {
+	public static string NormOutMode(string mode) {
+		var m = (mode ?? "").Trim().ToLowerInvariant();
+		if (m is "other" or "replace" or "recycle") return m;
+		return OUTBESIDE;
+	}
+
+	public static bool IsReplace(string mode) {
+		mode = NormOutMode(mode);
+		return mode is OUTREPLACE or OUTRECYCLE;
+	}
+
+	public static string MakeOutPath(string src, string fmt, bool beside, string customDir, ISet<string> reserved) =>
+		MakeOutPath(src, fmt, beside ? OUTBESIDE : OUTOTHER, customDir, reserved);
+
+	public static string MakeOutPath(string src, string fmt, string mode, string customDir, ISet<string> reserved) {
 		fmt = NormFmt(fmt);
+		mode = NormOutMode(mode);
 		var ext = "." + fmt;
 		var name = Path.GetFileNameWithoutExtension(src);
 		if (string.IsNullOrWhiteSpace(name)) name = "image";
 		string dir;
-		if (beside) {
+		if (mode == OUTOTHER) {
+			dir = (customDir ?? "").Trim();
+			if (string.IsNullOrEmpty(dir))
+				throw new InvalidOperationException(Loc.T("imgconv.nodir"));
+		}
+		else if (IsReplace(mode)) {
+			dir = Path.GetDirectoryName(src);
+			if (string.IsNullOrEmpty(dir))
+				dir = AppDomain.CurrentDomain.BaseDirectory;
+			var path = Path.Combine(dir, name + ext);
+			if (string.Equals(path, src, StringComparison.OrdinalIgnoreCase)) {
+				reserved?.Add(path);
+				return path;
+			}
+			path = unique(path, reserved);
+			reserved?.Add(path);
+			return path;
+		}
+		else {
 			var srcDir = Path.GetDirectoryName(src);
 			if (string.IsNullOrEmpty(srcDir))
 				srcDir = AppDomain.CurrentDomain.BaseDirectory;
 			dir = Path.Combine(srcDir, "output");
 		}
-		else {
-			dir = (customDir ?? "").Trim();
-			if (string.IsNullOrEmpty(dir))
-				throw new InvalidOperationException(Loc.T("imgconv.nodir"));
-		}
 		Directory.CreateDirectory(dir);
-		var path = Path.Combine(dir, name + ext);
-		path = unique(path, reserved);
-		reserved?.Add(path);
-		return path;
+		var outPath = Path.Combine(dir, name + ext);
+		outPath = unique(outPath, reserved);
+		reserved?.Add(outPath);
+		return outPath;
 	}
 
 	public static void ConvertOne(string src, string dst, string fmt, int quality,
@@ -99,7 +137,7 @@ static class ImgConvert {
 	/// <returns>true 表示因体积收益不足而写出原文件。</returns>
 	public static bool ConvertOne(string src, string dst, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool keepOrigEn, int keepOrigPct) {
+		bool keepOrigEn, int keepOrigPct, string outMode = null) {
 		var enc = encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
 		var dir = Path.GetDirectoryName(dst);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
@@ -107,13 +145,90 @@ static class ImgConvert {
 		try { origLen = new FileInfo(src).Length; } catch { }
 		var geom = rotate != 0 || mirror || enc.SrcW != enc.OutW || enc.SrcH != enc.OutH;
 		if (KeepOriginal(origLen, enc.Bytes.Length, keepOrigEn, keepOrigPct, geom)) {
-			var keep = keeppath(src, dst);
-			if (!string.Equals(keep, src, StringComparison.OrdinalIgnoreCase))
-				File.Copy(src, keep, overwrite: false);
+			if (!IsReplace(outMode)) {
+				var keep = keeppath(src, dst);
+				if (!string.Equals(keep, src, StringComparison.OrdinalIgnoreCase))
+					File.Copy(src, keep, overwrite: false);
+			}
 			return true;
+		}
+		if (IsReplace(outMode)) {
+			writereplace(src, dst, enc.Bytes, NormOutMode(outMode) == OUTRECYCLE);
+			return false;
 		}
 		File.WriteAllBytes(dst, enc.Bytes);
 		return false;
+	}
+
+	/// <summary>把文件移到回收站（可还原）。失败抛异常，不回退成永久删除。</summary>
+	public static void RecycleFile(string path) {
+		if (string.IsNullOrWhiteSpace(path)) return;
+		string full;
+		try { full = Path.GetFullPath(path); }
+		catch (Exception ex) { throw new IOException(ex.Message, ex); }
+		if (!File.Exists(full)) return;
+		var mem = Marshal.StringToHGlobalUni(full + "\0");
+		try {
+			var op = new ShFileOp {
+				wFunc = FO_DELETE,
+				pFrom = mem,
+				fFlags = (ushort)(FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT),
+			};
+			var rc = SHFileOperationW(ref op);
+			if (rc != 0) throw new IOException(Loc.T("imgconv.recycle.fail", rc));
+			if (op.fAnyOperationsAborted != 0)
+				throw new IOException(Loc.T("imgconv.recycle.abort"));
+			if (File.Exists(full))
+				throw new IOException(Loc.T("imgconv.recycle.fail", rc));
+		}
+		finally {
+			Marshal.FreeHGlobal(mem);
+		}
+	}
+
+	static void writereplace(string src, string dst, byte[] bytes, bool recycle) {
+		if (string.IsNullOrWhiteSpace(dst))
+			throw new InvalidOperationException(Loc.T("imgconv.nodir"));
+		var same = string.Equals(src, dst, StringComparison.OrdinalIgnoreCase);
+		if (!same) {
+			var dir = Path.GetDirectoryName(dst);
+			if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+			File.WriteAllBytes(dst, bytes);
+			delsrc(src, recycle);
+			return;
+		}
+		var tmp = maketmp(dst);
+		File.WriteAllBytes(tmp, bytes);
+		try {
+			delsrc(src, recycle);
+			File.Move(tmp, dst);
+		}
+		catch {
+			try {
+				if (!File.Exists(dst) && File.Exists(tmp)) File.Move(tmp, dst);
+				else if (File.Exists(src) && File.Exists(tmp)) File.Delete(tmp);
+			}
+			catch { }
+			throw;
+		}
+	}
+
+	static void delsrc(string src, bool recycle) {
+		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src)) return;
+		if (recycle) RecycleFile(src);
+		else File.Delete(src);
+	}
+
+	static string maketmp(string dst) {
+		var dir = Path.GetDirectoryName(dst) ?? "";
+		var name = Path.GetFileNameWithoutExtension(dst);
+		var ext = Path.GetExtension(dst);
+		for (var i = 0; i < 10000; i++) {
+			var suffix = i == 0 ? "" : i.ToString();
+			var p = Path.Combine(dir, $"{name}.__skconv__{suffix}{ext}");
+			if (!File.Exists(p)) return p;
+		}
+		return dst + ".sktmp";
 	}
 
 	/// <summary>压缩后体积 ≥ 原图的 pct% 则用原图；有旋转/镜像/实际缩放时仍用新图。</summary>
@@ -348,4 +463,19 @@ static class ImgConvert {
 		}
 		return path;
 	}
+
+	[StructLayout(LayoutKind.Explicit, Size = 64)]
+	struct ShFileOp {
+		[FieldOffset(0)] public IntPtr hwnd;
+		[FieldOffset(8)] public uint wFunc;
+		[FieldOffset(16)] public IntPtr pFrom;
+		[FieldOffset(24)] public IntPtr pTo;
+		[FieldOffset(32)] public ushort fFlags;
+		[FieldOffset(36)] public int fAnyOperationsAborted;
+		[FieldOffset(48)] public IntPtr hNameMappings;
+		[FieldOffset(56)] public IntPtr lpszProgressTitle;
+	}
+
+	[DllImport("shell32.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+	static extern int SHFileOperationW(ref ShFileOp op);
 }

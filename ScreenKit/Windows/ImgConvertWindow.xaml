@@ -164,6 +164,12 @@
 				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 				        AutomationProperties.AutomationId="imgconv.browse"/>
 			</Grid>
+			<RadioButton x:Name="routrep" GroupName="ImgConvOut" Margin="0,6,0,4"
+			             Content="替换源文件（永久删除）"
+			             AutomationProperties.AutomationId="imgconv.outreplace"/>
+			<RadioButton x:Name="routrecycle" GroupName="ImgConvOut" Margin="0,0,0,0"
+			             Content="替换源文件（回收站）"
+			             AutomationProperties.AutomationId="imgconv.outrecycle"/>
 		</StackPanel>
 
 		<!-- 列表工具条 -->

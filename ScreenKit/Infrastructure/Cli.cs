@@ -2409,6 +2409,79 @@ static class Cli {
 			}
 			else Out("rotate still writes new file OK");
 
+			var repDir = Path.Combine(dir, "rep");
+			Directory.CreateDirectory(repDir);
+			var repSrc = Path.Combine(repDir, "photo.png");
+			File.Copy(src, repSrc);
+			var reservedRep = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { repSrc };
+			var repDst = ImgConvert.MakeOutPath(repSrc, "jpg", ImgConvert.OUTREPLACE, null, reservedRep);
+			var expectJpg = Path.Combine(repDir, "photo.jpg");
+			if (!string.Equals(repDst, expectJpg, StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL: replace dest " + repDst);
+				bad++;
+			}
+			ImgConvert.ConvertOne(repSrc, repDst, "jpg", 60, false, 1920, 1080, 0, false,
+				CancellationToken.None, keepOrigEn: false, keepOrigPct: 80, ImgConvert.OUTREPLACE);
+			if (File.Exists(repSrc)) {
+				Err("FAIL: replace 后源 png 应已删除");
+				bad++;
+			}
+			else Out("replace deleted png OK");
+			if (!File.Exists(repDst)) {
+				Err("FAIL: replace jpg 未写出");
+				bad++;
+			}
+			else Out("replace jpg OK");
+
+			var sameSrc = Path.Combine(repDir, "same.jpg");
+			File.Copy(repDst, sameSrc);
+			var reservedSame = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { sameSrc };
+			var sameDst = ImgConvert.MakeOutPath(sameSrc, "jpg", ImgConvert.OUTREPLACE, null, reservedSame);
+			if (!string.Equals(sameDst, sameSrc, StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL: 同后缀 replace dest 应为源路径 " + sameDst);
+				bad++;
+			}
+			ImgConvert.ConvertOne(sameSrc, sameDst, "jpg", 20, false, 1920, 1080, 0, false,
+				CancellationToken.None, keepOrigEn: false, keepOrigPct: 80, ImgConvert.OUTREPLACE);
+			if (!File.Exists(sameSrc)) {
+				Err("FAIL: 同后缀 replace 后文件应仍在");
+				bad++;
+			}
+			else Out("same-ext replace OK");
+
+			var keepRep = Path.Combine(repDir, "keep.png");
+			File.Copy(src, keepRep);
+			var keepEnc = ImgConvert.Encode(keepRep, "jpg", 100, false, 1920, 1080, 0, false, CancellationToken.None);
+			var keepLen = new FileInfo(keepRep).Length;
+			var keepDst2 = ImgConvert.MakeOutPath(keepRep, "jpg", ImgConvert.OUTREPLACE, null,
+				new HashSet<string>(StringComparer.OrdinalIgnoreCase) { keepRep });
+			var keepUsed2 = ImgConvert.ConvertOne(keepRep, keepDst2, "jpg", 100, false, 1920, 1080, 0, false,
+				CancellationToken.None, keepOrigEn: true, keepOrigPct: 80, ImgConvert.OUTREPLACE);
+			if (keepEnc.Length * 100L >= keepLen * 80) {
+				if (!keepUsed2) {
+					Err("FAIL: replace+keepOrig 应跳过");
+					bad++;
+				}
+				if (!File.Exists(keepRep)) {
+					Err("FAIL: replace+keepOrig 不应删除源文件");
+					bad++;
+				}
+				if (File.Exists(keepDst2)) {
+					Err("FAIL: replace+keepOrig 不应写出新图");
+					bad++;
+				}
+				else Out("replace keepOrig skip OK");
+			}
+
+			var recFile = Path.Combine(dir, "recycle_me.bin");
+			File.WriteAllText(recFile, "recycle-test");
+			ImgConvert.RecycleFile(recFile);
+			if (File.Exists(recFile)) {
+				Err("FAIL: RecycleFile 后文件仍在");
+				bad++;
+			}
+			else Out("RecycleFile OK");
+
 			var rot = ImgConvert.Encode(src, "png", 60, true, 100, 100, 90, false, CancellationToken.None);
 			using var ms = new MemoryStream(rot);
 			using var rotImg = new System.Drawing.Bitmap(ms);
@@ -2732,7 +2805,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除（临时目录，不弹配对）
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
-      --test-img-convert  写测试 png，转 jpg（旋转90 + 限制 100×100）并校验尺寸
+      --test-img-convert  写测试 png，转 jpg（旋转90 + 限制 100×100）、替换源文件、回收站
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256

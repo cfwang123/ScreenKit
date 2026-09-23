@@ -129,8 +129,10 @@ public sealed class OcrOptions {
 	public int ImgConvMaxWidth = 1920;
 	/// <summary>图片格式转换最大高。</summary>
 	public int ImgConvMaxHeight = 1080;
-	/// <summary>true = 写到源文件目录下 output/；false = ImgConvOutDir。</summary>
+	/// <summary>true = 写到源文件目录下 output/；false = ImgConvOutDir。兼容旧配置。</summary>
 	public bool ImgConvOutBeside = true;
+	/// <summary>beside / other / replace / recycle。</summary>
+	public string ImgConvOutMode = "beside";
 	/// <summary>图片格式转换自定义输出目录。</summary>
 	public string ImgConvOutDir = "";
 	/// <summary>true = 图片（缩略图）视图；false = 列表。</summary>
@@ -360,6 +362,7 @@ public sealed class OcrOptions {
 		ImgConvMaxWidth = ImgConvMaxWidth,
 		ImgConvMaxHeight = ImgConvMaxHeight,
 		ImgConvOutBeside = ImgConvOutBeside,
+		ImgConvOutMode = ImgConvOutMode ?? "beside",
 		ImgConvOutDir = ImgConvOutDir ?? "",
 		ImgConvThumbView = ImgConvThumbView,
 		ImgConvKeepOrigEnabled = ImgConvKeepOrigEnabled,

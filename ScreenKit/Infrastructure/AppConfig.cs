@@ -112,8 +112,11 @@ static class AppConfig {
 				o.ImgConvMaxWidth = Compat.Clamp(icMaxW, 16, 16384);
 			if (map.TryGetValue("imgconv_max_h", out var icmh) && int.TryParse(icmh, out var icMaxH))
 				o.ImgConvMaxHeight = Compat.Clamp(icMaxH, 16, 16384);
-			if (map.TryGetValue("imgconv_out_beside", out var icob))
-				o.ImgConvOutBeside = parsebool(icob, true);
+			if (map.TryGetValue("imgconv_out_mode", out var icom) && !string.IsNullOrWhiteSpace(icom))
+				o.ImgConvOutMode = ImgConvert.NormOutMode(icom.Trim().Trim('"'));
+			else if (map.TryGetValue("imgconv_out_beside", out var icob))
+				o.ImgConvOutMode = parsebool(icob, true) ? ImgConvert.OUTBESIDE : ImgConvert.OUTOTHER;
+			o.ImgConvOutBeside = ImgConvert.NormOutMode(o.ImgConvOutMode) == ImgConvert.OUTBESIDE;
 			if (map.TryGetValue("imgconv_out_dir", out var icod))
 				o.ImgConvOutDir = (icod ?? "").Trim().Trim('"');
 			if (map.TryGetValue("imgconv_thumb_view", out var ictv))
@@ -449,13 +452,15 @@ static class AppConfig {
 		sb.AppendLine($"screenshot_max_w = {Compat.Clamp(o.ScreenshotMaxWidth < 16 ? 1920 : o.ScreenshotMaxWidth, 16, 16384)}");
 		sb.AppendLine($"screenshot_max_h = {Compat.Clamp(o.ScreenshotMaxHeight < 16 ? 1080 : o.ScreenshotMaxHeight, 16, 16384)}");
 		var icFmt = ImgConvert.NormFmt(o.ImgConvFormat);
-		sb.AppendLine($"# 图片格式转换：jpg | png | bmp；jpg 质量 1–100；输出到源文件 output/ 或自定义目录");
+		var icOut = ImgConvert.NormOutMode(o.ImgConvOutMode);
+		sb.AppendLine($"# 图片格式转换：jpg | png | bmp；输出 beside | other | replace | recycle");
 		sb.AppendLine($"imgconv_format = \"{icFmt}\"");
 		sb.AppendLine($"imgconv_jpg_quality = {Compat.Clamp(o.ImgConvJpgQuality <= 0 ? 60 : o.ImgConvJpgQuality, 1, 100)}");
 		sb.AppendLine($"imgconv_max_size = {(o.ImgConvMaxSizeEnabled ? "true" : "false")}");
 		sb.AppendLine($"imgconv_max_w = {Compat.Clamp(o.ImgConvMaxWidth < 16 ? 1920 : o.ImgConvMaxWidth, 16, 16384)}");
 		sb.AppendLine($"imgconv_max_h = {Compat.Clamp(o.ImgConvMaxHeight < 16 ? 1080 : o.ImgConvMaxHeight, 16, 16384)}");
-		sb.AppendLine($"imgconv_out_beside = {(o.ImgConvOutBeside ? "true" : "false")}");
+		sb.AppendLine($"imgconv_out_mode = \"{icOut}\"");
+		sb.AppendLine($"imgconv_out_beside = {(icOut == ImgConvert.OUTBESIDE ? "true" : "false")}");
 		sb.AppendLine($"imgconv_out_dir = \"{esc((o.ImgConvOutDir ?? "").Trim())}\"");
 		sb.AppendLine($"imgconv_thumb_view = {(o.ImgConvThumbView ? "true" : "false")}");
 		sb.AppendLine($"# 压缩后体积仍 ≥ 原图该比例则复制原文件（旋转/缩放除外）");
