@@ -25,7 +25,9 @@ public partial class MainWindow {
 	System.Windows.Threading.DispatcherTimer sfWatchTick;
 	bool sfMarquee;
 	bool sfDragReady;
+	bool sfCanDrag;
 	bool sfDragging;
+	bool sfRefreshing;
 	SfFileRow sfClickSel;
 	Point sfDown;
 	Point sfMarquee0;
@@ -44,9 +46,12 @@ public partial class MainWindow {
 		lvsffiles.SelectionChanged += (_, _) => sffilebtns();
 		lvsffiles.MouseDoubleClick += (_, _) => sffileopen();
 		lvsffiles.PreviewMouseLeftButtonDown += onsffiledown;
+		lvsffiles.MouseLeftButtonDown += (_, _) => { sfCanDrag = true; };
 		lvsffiles.PreviewMouseMove += onsffilemove;
 		lvsffiles.PreviewMouseLeftButtonUp += onsffileup;
-		lvsffiles.LostMouseCapture += (_, _) => sffileendmarquee();
+		lvsffiles.LostMouseCapture += (_, _) => {
+			if (!sfDragging) sffileendmarquee();
+		};
 		psffbrowse.Drop += onsffinboxdrop;
 		psffbrowse.DragOver += onsffinboxover;
 		if (psfdropphone != null) {
@@ -100,12 +105,13 @@ public partial class MainWindow {
 	}
 
 	void sffilerefresh() {
-		if (lvsffiles == null) return;
-		var keep = new HashSet<string>(
-			lvsffiles.SelectedItems.Cast<SfFileRow>().Select(x => x.Full),
-			StringComparer.OrdinalIgnoreCase);
-		sfFiles.Clear();
+		if (lvsffiles == null || sfRefreshing || sfDragging) return;
+		sfRefreshing = true;
 		try {
+			var keep = new HashSet<string>(
+				lvsffiles.SelectedItems.OfType<SfFileRow>().Select(x => x.Full),
+				StringComparer.OrdinalIgnoreCase);
+			sfFiles.Clear();
 			SendFilePaths.EnsureRoot();
 			var root = SendFilePaths.Root();
 			if (!Directory.Exists(root)) return;
@@ -132,9 +138,12 @@ public partial class MainWindow {
 		catch (Exception ex) {
 			setstatus(ex.Message);
 		}
-		if (lbsffempty != null)
-			lbsffempty.Visibility = sfFiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-		sffilebtns();
+		finally {
+			sfRefreshing = false;
+			if (lbsffempty != null)
+				lbsffempty.Visibility = sfFiles.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+			sffilebtns();
+		}
 	}
 
 	static bool sfhidden(string full) {
@@ -390,71 +399,92 @@ public partial class MainWindow {
 	}
 
 	void onsffiledown(object sender, MouseButtonEventArgs e) {
-		sfDown = e.GetPosition(null);
+		sfDown = e.GetPosition(lvsffiles);
 		sfDragReady = false;
+		sfCanDrag = false;
 		sfMarquee = false;
 		sfClickSel = null;
 		if (e.ChangedButton != MouseButton.Left) return;
 		if (sffilechrome(e.OriginalSource as DependencyObject)) return;
 		var item = sffilehit(e.OriginalSource as DependencyObject);
 		if (item == null) {
-			if ((Keyboard.Modifiers & ModifierKeys.Control) == 0)
-				lvsffiles.SelectedItems.Clear();
 			sfMarquee = true;
 			sfMarquee0 = e.GetPosition(csfsel);
 			sfMarqueeKeep = new HashSet<SfFileRow>(
-				lvsffiles.SelectedItems.Cast<SfFileRow>());
+				lvsffiles.SelectedItems.OfType<SfFileRow>());
 			lvsffiles.CaptureMouse();
 			e.Handled = true;
 			return;
 		}
 		sfDragReady = true;
+		try { lvsffiles.Focus(); } catch { }
 		if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0)
 			return;
-		if (lvsffiles.SelectedItems.Contains(item)) {
-			sfClickSel = item;
-			e.Handled = true;
-			return;
-		}
-		lvsffiles.SelectedItems.Clear();
-		lvsffiles.SelectedItems.Add(item);
+		if (!lvsffiles.SelectedItems.Contains(item)) return;
+		sfClickSel = item;
+		sfCanDrag = true;
+		e.Handled = true;
 	}
 
 	void onsffilemove(object sender, MouseEventArgs e) {
 		if (e.LeftButton != MouseButtonState.Pressed) return;
-		var pos = e.GetPosition(null);
 		if (sfMarquee) {
 			sffilemarquee(e.GetPosition(csfsel));
 			return;
 		}
-		if (!sfDragReady || sfDragging) return;
+		if (!sfCanDrag || !sfDragReady || sfDragging) return;
+		var pos = e.GetPosition(lvsffiles);
 		if (Math.Abs(pos.X - sfDown.X) < SystemParameters.MinimumHorizontalDragDistance
 			&& Math.Abs(pos.Y - sfDown.Y) < SystemParameters.MinimumVerticalDragDistance)
 			return;
 		var paths = sffilesel();
 		if (paths.Count == 0) return;
+		sfDragReady = false;
+		sfClickSel = null;
+		sffiledodrag(paths);
+	}
+
+	void sffiledodrag(List<string> paths) {
+		if (paths == null || paths.Count == 0 || sfDragging) return;
+		var zones = new FrameworkElement[] { this, psftab, psffiles, psffbrowse, psfdropphone };
+		var allow = new bool[zones.Length];
+		for (var i = 0; i < zones.Length; i++)
+			allow[i] = zones[i] != null && zones[i].AllowDrop;
+		sfDragging = true;
 		try {
-			sfDragging = true;
-			sfClickSel = null;
-			var data = sffiledropdata(paths);
-			DragDrop.DoDragDrop(lvsffiles, data, DragDropEffects.Copy | DragDropEffects.Move);
+			for (var i = 0; i < zones.Length; i++) {
+				if (zones[i] != null) zones[i].AllowDrop = false;
+			}
+			DragDrop.DoDragDrop(lvsffiles, sffiledropdata(paths),
+				DragDropEffects.Copy | DragDropEffects.Move);
 		}
 		catch { }
 		finally {
 			sfDragging = false;
 			sfDragReady = false;
-			sffilerefresh();
+			sfCanDrag = false;
+			for (var i = 0; i < zones.Length; i++) {
+				if (zones[i] != null) zones[i].AllowDrop = allow[i];
+			}
 		}
 	}
 
 	void onsffileup(object sender, MouseButtonEventArgs e) {
 		sfDragReady = false;
+		sfCanDrag = false;
 		if (sfClickSel != null && !sfMarquee
 			&& (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == 0) {
 			lvsffiles.SelectedItems.Clear();
 			lvsffiles.SelectedItems.Add(sfClickSel);
 		}
 		sfClickSel = null;
+		if (sfMarquee) {
+			var w = rsfsel != null ? rsfsel.Width : 0;
+			var h = rsfsel != null ? rsfsel.Height : 0;
+			var tiny = double.IsNaN(w) || double.IsNaN(h) || (w < 3 && h < 3);
+			if (tiny && (Keyboard.Modifiers & ModifierKeys.Control) == 0)
+				lvsffiles.SelectedItems.Clear();
+		}
 		sffileendmarquee();
 	}
 
@@ -494,10 +524,13 @@ public partial class MainWindow {
 		sfMarqueeKeep = null;
 	}
 
-	static SfFileRow sffilehit(DependencyObject src) {
+	SfFileRow sffilehit(DependencyObject src) {
+		if (src == null || lvsffiles == null) return null;
+		if (ItemsControl.ContainerFromElement(lvsffiles, src) is ListViewItem lvi)
+			return lvi.DataContext as SfFileRow;
 		while (src != null) {
-			if (src is ListViewItem lvi)
-				return lvi.DataContext as SfFileRow;
+			if (src is ListViewItem row)
+				return row.DataContext as SfFileRow;
 			src = VisualTreeHelper.GetParent(src);
 		}
 		return null;

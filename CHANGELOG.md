@@ -38,6 +38,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - File-transfer pairing dialog stays always-on-top (no owner; still visible when the main window is in the tray). The phone shows a waiting dialog until the PC allows or denies; Cancel aborts.
 - `node build.js release` (Android) copies the APK next to ScreenKit.exe (`apk/`) and runs `slx ScreenKit` once.
 
+#### Fixed
+
+- File sync inbox list no longer freezes on click (OLE file-drag was starting on the press, then deadlocking against the tab’s own drop target).
+
 ### 中文
 
 #### 新增
@@ -52,6 +56,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 托盘打开的窗口不再挂主窗为 Owner（居中屏幕、独立任务栏项），避免跟着主窗最小化。
 - 文件传输配对弹窗始终置顶（不挂主窗；主窗在托盘时仍能点到）。手机端弹出等待窗直到电脑允许或拒绝，可取消。
 - 安卓 `node build.js release` 会把 APK 拷到 ScreenKit exe 旁 `apk/`，并 `slx ScreenKit` 编译一次。
+
+#### 修复
+
+- 文件同步接收列表点击不再卡死（按下时误进 OLE 拖放，并与本页投放区死锁）。
 
 ## v1.0.9 (2026-09-23)
 
