@@ -20,6 +20,7 @@ partial class InstallFeaturesWindow : Window {
 	static readonly Brush PartFg = freeze(Color.FromRgb(0xB4, 0x53, 0x09));
 	static readonly Brush OkBg = freeze(Color.FromRgb(0xD1, 0xFA, 0xE5));
 	static readonly Brush OkFg = freeze(Color.FromRgb(0x04, 0x78, 0x57));
+	static readonly Brush AddBg = freeze(Color.FromRgb(0xDC, 0xFC, 0xE7));
 
 	readonly List<FeaturePickNode> pickRoots = new();
 	readonly List<FeatureItem> featItems = new();
@@ -70,6 +71,7 @@ partial class InstallFeaturesWindow : Window {
 			Close();
 		});
 		bconfirm.Click += (_, _) => confirmpick();
+		breset.Click += (_, _) => resetpick();
 		etree.AddHandler(CheckBox.PreviewMouseLeftButtonDownEvent,
 			new MouseButtonEventHandler(onpickcheckdown), true);
 		etree.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(onpickclick), true);
@@ -133,6 +135,8 @@ partial class InstallFeaturesWindow : Window {
 		lbpickhint.Text = Loc.T("inst.pick.hint");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
+		breset.Content = Loc.T("inst.pick.reset");
+		breset.ToolTip = Loc.T("inst.pick.reset.tip");
 		lbfeathint.Text = Loc.T("inst.feat.hint");
 		lblegmiss.Text = Loc.T("inst.missing");
 		lblegpart.Text = Loc.T("inst.partial");
@@ -169,6 +173,7 @@ partial class InstallFeaturesWindow : Window {
 		binstall.IsEnabled = !busy && !onPick;
 		bdelete.IsEnabled = !busy && !onPick;
 		bconfirm.IsEnabled = !busy;
+		breset.IsEnabled = !busy;
 		binstall.IsDefault = !onPick && !busy;
 		bconfirm.IsDefault = onPick && !busy;
 	}
@@ -178,10 +183,7 @@ partial class InstallFeaturesWindow : Window {
 	void rebuildpick() {
 		pickRoots.Clear();
 		pickRoots.AddRange(FeaturePick.BuildTree());
-		if (preferSelect != null && preferSelect.Length > 0)
-			FeaturePick.ApplyKinds(pickRoots, preferSelect);
-		else
-			FeaturePick.ApplyIds(pickRoots, FeaturePick.RecommendedIds);
+		applypickdefault();
 		etree.ItemsSource = null;
 		etree.ItemsSource = pickRoots;
 		foreach (var n in pickRoots)
@@ -189,6 +191,22 @@ partial class InstallFeaturesWindow : Window {
 		updatepicksum();
 		Dispatcher.BeginInvoke(new Action(() => expandpick(etree)),
 			System.Windows.Threading.DispatcherPriority.Loaded);
+	}
+
+	void applypickdefault() {
+		if (preferSelect != null && preferSelect.Length > 0)
+			FeaturePick.ApplyInstalled(pickRoots, extraKinds: preferSelect);
+		else if (firstRun)
+			FeaturePick.ApplyInstalled(pickRoots, extraIds: FeaturePick.RecommendedIds);
+		else
+			FeaturePick.ApplyInstalled(pickRoots);
+		FeaturePick.RefreshDiff(pickRoots);
+	}
+
+	void resetpick() {
+		if (busy) return;
+		applypickdefault();
+		updatepicksum();
 	}
 
 	void watchpick(FeaturePickNode n) {
@@ -231,11 +249,27 @@ partial class InstallFeaturesWindow : Window {
 	}
 
 	void updatepicksum() {
-		if (lbpicksum == null) return;
-		FeaturePick.MeasureSelection(pickRoots, out var total, out var need);
-		lbpicksum.Text = Loc.T("inst.pick.size",
-			FeatureInstaller.FormatBytes(total), FeatureInstaller.FormatBytes(need));
-		lbpicksum.Foreground = need > 0 ? MissFg : OkFg;
+		if (lbadd == null || lbdel == null) return;
+		FeaturePick.DiffSelection(pickRoots, out var addN, out var addSz, out var delN, out var delSz);
+		lbadd.Text = Loc.T("inst.pick.delta.add", addN, FeatureInstaller.FormatBytes(addSz));
+		lbdel.Text = Loc.T("inst.pick.delta.del", delN, FeatureInstaller.FormatBytes(delSz));
+		var muted = (Brush)FindResource("TextMuted");
+		if (addN > 0) {
+			badd.Background = AddBg;
+			lbadd.Foreground = OkFg;
+		}
+		else {
+			badd.Background = Brushes.Transparent;
+			lbadd.Foreground = muted;
+		}
+		if (delN > 0) {
+			bdel.Background = MissBg;
+			lbdel.Foreground = MissFg;
+		}
+		else {
+			bdel.Background = Brushes.Transparent;
+			lbdel.Foreground = muted;
+		}
 	}
 
 	void confirmpick() {

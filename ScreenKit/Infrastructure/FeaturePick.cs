@@ -16,6 +16,9 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	public FeaturePickNode Parent { get; set; }
 	public bool IsGroup => Children.Count > 0;
 
+	/// <summary>相对已装：add 将安装（淡绿），del 将卸载（淡红），空为不变。</summary>
+	public string Diff { get; private set; } = "";
+
 	public override string ToString() => Title ?? Id ?? "";
 
 	public bool? IsChecked {
@@ -26,18 +29,58 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler PropertyChanged;
 
 	internal void SetCheck(bool? value, bool fromUi) {
-		if (check == value) return;
+		if (check == value) {
+			refreshdiff();
+			return;
+		}
 		check = value;
 		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsChecked)));
-		if (silent) return;
+		if (silent) {
+			refreshdiff();
+			return;
+		}
 		if (fromUi && value != null && Children.Count > 0) {
 			silent = true;
 			foreach (var c in Children)
 				c.SetCheck(value, fromUi: true);
 			silent = false;
 		}
+		refreshdiff();
 		if (Parent != null && !Parent.silent)
 			Parent.syncfromchildren();
+	}
+
+	internal void RefreshDiff() {
+		refreshdiff();
+		Parent?.RefreshDiff();
+	}
+
+	internal void RefreshDiffHere() => refreshdiff();
+
+	void refreshdiff() {
+		var next = diffof();
+		if (Diff == next) return;
+		Diff = next;
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Diff)));
+	}
+
+	string diffof() {
+		if (Children.Count > 0) {
+			var add = false;
+			var del = false;
+			foreach (var c in Children) {
+				if (c.Diff == "add") add = true;
+				else if (c.Diff == "del") del = true;
+			}
+			if (add && !del) return "add";
+			if (del && !add) return "del";
+			return "";
+		}
+		if (Kinds == null || Kinds.Length == 0) return "";
+		var have = FeatureInstaller.Probe(Kinds[Kinds.Length - 1]) != FeatureInstallState.Missing;
+		if (check == true && !have) return "add";
+		if (check != true && have) return "del";
+		return "";
 	}
 
 	void syncfromchildren() {
@@ -49,14 +92,13 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 			else if (c.IsChecked == false) off++;
 		}
 		bool? v = on == Children.Count ? true : off == Children.Count ? false : (bool?)null;
-		if (check == v) {
-			Parent?.syncfromchildren();
-			return;
+		if (check != v) {
+			silent = true;
+			check = v;
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsChecked)));
+			silent = false;
 		}
-		silent = true;
-		check = v;
-		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsChecked)));
-		silent = false;
+		refreshdiff();
 		Parent?.syncfromchildren();
 	}
 }
@@ -123,6 +165,49 @@ static class FeaturePick {
 		}
 	}
 
+	/// <summary>勾选主组件已装/部分安装的功能；可选再并上推荐 id 或指定组件。</summary>
+	public static void ApplyInstalled(IEnumerable<FeaturePickNode> roots,
+		IEnumerable<string> extraIds = null, FeatureKind[] extraKinds = null) {
+		var ids = extraIds == null
+			? new HashSet<string>(StringComparer.Ordinal)
+			: new HashSet<string>(extraIds, StringComparer.Ordinal);
+		var kinds = extraKinds == null || extraKinds.Length == 0
+			? new HashSet<FeatureKind>()
+			: new HashSet<FeatureKind>(extraKinds);
+		foreach (var n in Leaves(roots)) {
+			if (n.Kinds == null || n.Kinds.Length == 0) {
+				n.SetCheck(ids.Contains(n.Id), fromUi: true);
+				continue;
+			}
+			var primary = n.Kinds[n.Kinds.Length - 1];
+			var have = FeatureInstaller.Probe(primary) != FeatureInstallState.Missing;
+			n.SetCheck(have || ids.Contains(n.Id) || kinds.Contains(primary), fromUi: true);
+		}
+	}
+
+	/// <summary>相对当前磁盘：将安装的组件 / 将卸载的组件。</summary>
+	public static void DiffSelection(IEnumerable<FeaturePickNode> roots,
+		out int addN, out long addSz, out int delN, out long delSz) {
+		var sel = new HashSet<FeatureKind>();
+		CollectKinds(roots, sel);
+		addN = 0;
+		addSz = 0;
+		delN = 0;
+		delSz = 0;
+		foreach (FeatureKind k in Enum.GetValues(typeof(FeatureKind))) {
+			var st = FeatureInstaller.Probe(k);
+			var on = sel.Contains(k);
+			if (on && st != FeatureInstallState.Installed) {
+				addN++;
+				addSz += FeatureInstaller.ExpectedSize(k);
+			}
+			else if (!on && st != FeatureInstallState.Missing) {
+				delN++;
+				delSz += FeatureInstaller.ExpectedSize(k);
+			}
+		}
+	}
+
 	public static void SelectMissing(IEnumerable<FeaturePickNode> roots) {
 		foreach (var n in Leaves(roots)) {
 			var need = n.Kinds != null && n.Kinds.Any(k =>
@@ -134,6 +219,13 @@ static class FeaturePick {
 	public static void SelectAll(IEnumerable<FeaturePickNode> roots, bool on) {
 		foreach (var n in Leaves(roots))
 			n.SetCheck(on, fromUi: true);
+	}
+
+	public static void RefreshDiff(IEnumerable<FeaturePickNode> roots) {
+		foreach (var n in roots ?? []) {
+			RefreshDiff(n.Children);
+			n.RefreshDiffHere();
+		}
 	}
 
 	public static void CollectKinds(IEnumerable<FeaturePickNode> roots, HashSet<FeatureKind> set) {

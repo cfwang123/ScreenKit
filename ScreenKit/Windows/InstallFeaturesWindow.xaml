@@ -40,7 +40,7 @@
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbpickhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
-					           Text="勾选需要的功能。确认后进入「功能组件」并勾选对应项。发音人请到「发音人」页。"/>
+					           Text="勾选需要的功能。相对当前已装，显示将新增 / 删除的组件数与大小。确认后进入「功能组件」。发音人请到「发音人」页。"/>
 					<Border Grid.Row="1" Background="{StaticResource BgPanel}"
 					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 					        CornerRadius="8" Padding="4">
@@ -56,24 +56,39 @@
 							</TreeView.ItemContainerStyle>
 							<TreeView.ItemTemplate>
 								<HierarchicalDataTemplate ItemsSource="{Binding Children}">
-									<DockPanel LastChildFill="True" Margin="0,1,8,1">
-										<TextBlock DockPanel.Dock="Right"
-										           Text="{Binding SizeLabel}"
-										           Width="88" TextAlignment="Right"
-										           VerticalAlignment="Center" FontSize="11"
-										           Foreground="{StaticResource TextMuted}"/>
-										<CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
-										          IsThreeState="{Binding IsGroup}"
-										          VerticalAlignment="Center" Margin="0,0,8,0">
-											<StackPanel>
-												<TextBlock Text="{Binding Title}" FontSize="13"
-												           Foreground="{StaticResource TextPrimary}"/>
-												<TextBlock Text="{Binding Detail}" FontSize="11"
-												           TextWrapping="Wrap"
-												           Foreground="{StaticResource TextMuted}"/>
-											</StackPanel>
-										</CheckBox>
-									</DockPanel>
+									<Border CornerRadius="4" Padding="6,3" Margin="0,1,8,1">
+										<Border.Style>
+											<Style TargetType="Border">
+												<Setter Property="Background" Value="Transparent"/>
+												<Style.Triggers>
+													<DataTrigger Binding="{Binding Diff}" Value="add">
+														<Setter Property="Background" Value="#DCFCE7"/>
+													</DataTrigger>
+													<DataTrigger Binding="{Binding Diff}" Value="del">
+														<Setter Property="Background" Value="#FEE2E2"/>
+													</DataTrigger>
+												</Style.Triggers>
+											</Style>
+										</Border.Style>
+										<DockPanel LastChildFill="True">
+											<TextBlock DockPanel.Dock="Right"
+											           Text="{Binding SizeLabel}"
+											           Width="88" TextAlignment="Right"
+											           VerticalAlignment="Center" FontSize="11"
+											           Foreground="{StaticResource TextMuted}"/>
+											<CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+											          IsThreeState="{Binding IsGroup}"
+											          VerticalAlignment="Center" Margin="0,0,8,0">
+												<StackPanel>
+													<TextBlock Text="{Binding Title}" FontSize="13"
+													           Foreground="{StaticResource TextPrimary}"/>
+													<TextBlock Text="{Binding Detail}" FontSize="11"
+													           TextWrapping="Wrap"
+													           Foreground="{StaticResource TextMuted}"/>
+												</StackPanel>
+											</CheckBox>
+										</DockPanel>
+									</Border>
 								</HierarchicalDataTemplate>
 							</TreeView.ItemTemplate>
 						</TreeView>
@@ -82,11 +97,20 @@
 						<Button x:Name="bconfirm" DockPanel.Dock="Right" Content="确认"
 						        Style="{StaticResource PrimaryBtn}" Width="120" Height="32"
 						        AutomationProperties.AutomationId="inst.pick.confirm"/>
-						<TextBlock x:Name="lbpicksum" VerticalAlignment="Center"
-						           FontSize="13" FontWeight="SemiBold"
-						           Foreground="{StaticResource TextPrimary}"
-						           Text=""
-						           AutomationProperties.AutomationId="inst.pick.size"/>
+						<Button x:Name="breset" DockPanel.Dock="Right" Content="复位"
+						        Style="{StaticResource ToolBtn}" Width="80" Height="32"
+						        Margin="0,0,8,0"
+						        AutomationProperties.AutomationId="inst.pick.reset"/>
+						<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+							<Border x:Name="badd" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+								<TextBlock x:Name="lbadd" FontSize="12" FontWeight="SemiBold" Text=""
+								           AutomationProperties.AutomationId="inst.pick.add"/>
+							</Border>
+							<Border x:Name="bdel" CornerRadius="4" Padding="8,4">
+								<TextBlock x:Name="lbdel" FontSize="12" FontWeight="SemiBold" Text=""
+								           AutomationProperties.AutomationId="inst.pick.del"/>
+							</Border>
+						</StackPanel>
 					</DockPanel>
 				</Grid>
 			</TabItem>

@@ -773,11 +773,12 @@ static class Cli {
 		foreach (var it in list)
 			Out($"  [{it.StateText}] {(it.Selected ? "x" : " ")} {it.SizeText,-12} {it.Title}  ({it.Id})");
 		var tree = FeaturePick.BuildTree();
-		FeaturePick.ApplyIds(tree, FeaturePick.RecommendedIds);
-		FeaturePick.MeasureSelection(tree, out var total, out var need);
-		Out($"Pick recommended total={FeatureInstaller.FormatBytes(total)} need={FeatureInstaller.FormatBytes(need)}");
+		FeaturePick.ApplyInstalled(tree);
+		FeaturePick.RefreshDiff(tree);
+		FeaturePick.DiffSelection(tree, out var addN, out var addSz, out var delN, out var delSz);
+		Out($"Pick installed add={addN}/{FeatureInstaller.FormatBytes(addSz)} del={delN}/{FeatureInstaller.FormatBytes(delSz)}");
 		foreach (var n in FeaturePick.Leaves(tree))
-			Out($"  pick [{(n.IsChecked == true ? "x" : " ")}] {n.SizeLabel,-12} {n.Title}  ({n.Id})");
+			Out($"  pick [{(n.IsChecked == true ? "x" : " ")}] {n.Diff,-4} {n.SizeLabel,-12} {n.Title}  ({n.Id})");
 		return 0;
 	}
 
