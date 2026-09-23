@@ -4,12 +4,41 @@ namespace ScreenKit;
 
 /// <summary>工具 → 密码生成器。</summary>
 public partial class PasswordWindow : Window {
-	public PasswordWindow() {
+	readonly OcrOptions opt;
+
+	public PasswordWindow(OcrOptions options) {
+		opt = options ?? new OcrOptions();
 		InitializeComponent();
+		loadui();
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
+		Closing += (_, _) => saveui();
 		gen();
+	}
+
+	void loadui() {
+		elen.Text = Compat.Clamp(opt.PwLen <= 0 ? 16 : opt.PwLen, 4, 128).ToString();
+		ecount.Text = Compat.Clamp(opt.PwCount <= 0 ? 5 : opt.PwCount, 1, 50).ToString();
+		clower.IsChecked = opt.PwLower;
+		cupper.IsChecked = opt.PwUpper;
+		cdigit.IsChecked = opt.PwDigit;
+		csymbol.IsChecked = opt.PwSymbol;
+		cnoamb.IsChecked = opt.PwNoAmbiguous;
+		ceach.IsChecked = opt.PwEachClass;
+	}
+
+	void saveui() {
+		var o = opts();
+		opt.PwLen = o.Length;
+		opt.PwCount = o.Count;
+		opt.PwLower = o.Lower;
+		opt.PwUpper = o.Upper;
+		opt.PwDigit = o.Digit;
+		opt.PwSymbol = o.Symbol;
+		opt.PwNoAmbiguous = o.NoAmbiguous;
+		opt.PwEachClass = o.EachClass;
+		try { AppConfig.Save(opt); } catch { }
 	}
 
 	void initev() {
@@ -72,6 +101,7 @@ public partial class PasswordWindow : Window {
 			ecount.Text = o.Count.ToString();
 			var list = PasswordGen.Generate(o);
 			eout.Text = string.Join("\r\n", list);
+			saveui();
 			updatestat();
 		}
 		catch (Exception ex) {

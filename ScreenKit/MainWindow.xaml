@@ -135,6 +135,9 @@
 				<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
 				          AutomationProperties.AutomationId="menu.pwgen"
 				          ToolTip="随机密码，可选字符集"/>
+				<MenuItem x:Name="mnnettool" Header="网络工具(_N)…"
+				          AutomationProperties.AutomationId="menu.nettool"
+				          ToolTip="Ping、域名解析、WHOIS"/>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

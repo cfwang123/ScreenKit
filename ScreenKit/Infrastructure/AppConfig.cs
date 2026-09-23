@@ -122,6 +122,22 @@ static class AppConfig {
 				o.ImgConvKeepOrigEnabled = parsebool(icko, true);
 			if (map.TryGetValue("imgconv_keep_orig_pct", out var ickp) && int.TryParse(ickp, out var ickPct))
 				o.ImgConvKeepOrigPct = Compat.Clamp(ickPct, 1, 100);
+			if (map.TryGetValue("pwgen_len", out var pwl) && int.TryParse(pwl, out var pwLen))
+				o.PwLen = Compat.Clamp(pwLen, 4, 128);
+			if (map.TryGetValue("pwgen_count", out var pwc) && int.TryParse(pwc, out var pwCnt))
+				o.PwCount = Compat.Clamp(pwCnt, 1, 50);
+			if (map.TryGetValue("pwgen_lower", out var pwlo))
+				o.PwLower = parsebool(pwlo, true);
+			if (map.TryGetValue("pwgen_upper", out var pwup))
+				o.PwUpper = parsebool(pwup, true);
+			if (map.TryGetValue("pwgen_digit", out var pwdi))
+				o.PwDigit = parsebool(pwdi, true);
+			if (map.TryGetValue("pwgen_symbol", out var pwsy))
+				o.PwSymbol = parsebool(pwsy, true);
+			if (map.TryGetValue("pwgen_noamb", out var pwna))
+				o.PwNoAmbiguous = parsebool(pwna, false);
+			if (map.TryGetValue("pwgen_each", out var pwea))
+				o.PwEachClass = parsebool(pwea, true);
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul)) {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
@@ -445,6 +461,15 @@ static class AppConfig {
 		sb.AppendLine($"# 压缩后体积仍 ≥ 原图该比例则复制原文件（旋转/缩放除外）");
 		sb.AppendLine($"imgconv_keep_orig = {(o.ImgConvKeepOrigEnabled ? "true" : "false")}");
 		sb.AppendLine($"imgconv_keep_orig_pct = {Compat.Clamp(o.ImgConvKeepOrigPct <= 0 ? 80 : o.ImgConvKeepOrigPct, 1, 100)}");
+		sb.AppendLine($"# 密码生成器上次设置");
+		sb.AppendLine($"pwgen_len = {Compat.Clamp(o.PwLen <= 0 ? 16 : o.PwLen, 4, 128)}");
+		sb.AppendLine($"pwgen_count = {Compat.Clamp(o.PwCount <= 0 ? 5 : o.PwCount, 1, 50)}");
+		sb.AppendLine($"pwgen_lower = {(o.PwLower ? "true" : "false")}");
+		sb.AppendLine($"pwgen_upper = {(o.PwUpper ? "true" : "false")}");
+		sb.AppendLine($"pwgen_digit = {(o.PwDigit ? "true" : "false")}");
+		sb.AppendLine($"pwgen_symbol = {(o.PwSymbol ? "true" : "false")}");
+		sb.AppendLine($"pwgen_noamb = {(o.PwNoAmbiguous ? "true" : "false")}");
+		sb.AppendLine($"pwgen_each = {(o.PwEachClass ? "true" : "false")}");
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");

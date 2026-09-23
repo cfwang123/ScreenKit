@@ -139,6 +139,15 @@ public sealed class OcrOptions {
 	public bool ImgConvKeepOrigEnabled = true;
 	/// <summary>用原图的体积阈值，百分数，默认 80（100KB 原图则 ≥80KB 用原图）。</summary>
 	public int ImgConvKeepOrigPct = 80;
+	/// <summary>密码生成器上次设置。</summary>
+	public int PwLen = 16;
+	public int PwCount = 5;
+	public bool PwLower = true;
+	public bool PwUpper = true;
+	public bool PwDigit = true;
+	public bool PwSymbol = true;
+	public bool PwNoAmbiguous;
+	public bool PwEachClass = true;
 	/// <summary>截图完成时复制为图片（与 AsFile / AsPath 三选一）。</summary>
 	public bool SnapCopyAsImage = true;
 	/// <summary>截图完成时复制为文件 FileDrop（与 AsImage / AsPath 三选一）。</summary>
@@ -355,6 +364,14 @@ public sealed class OcrOptions {
 		ImgConvThumbView = ImgConvThumbView,
 		ImgConvKeepOrigEnabled = ImgConvKeepOrigEnabled,
 		ImgConvKeepOrigPct = ImgConvKeepOrigPct,
+		PwLen = PwLen,
+		PwCount = PwCount,
+		PwLower = PwLower,
+		PwUpper = PwUpper,
+		PwDigit = PwDigit,
+		PwSymbol = PwSymbol,
+		PwNoAmbiguous = PwNoAmbiguous,
+		PwEachClass = PwEachClass,
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,

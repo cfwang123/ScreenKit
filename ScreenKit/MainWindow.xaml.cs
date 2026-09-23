@@ -77,6 +77,7 @@ public partial class MainWindow : Window {
 	HashWindow hashWin;
 	TextToolWindow textToolWin;
 	PasswordWindow pwGenWin;
+	NetToolsWindow netToolWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -476,6 +477,7 @@ public partial class MainWindow : Window {
 			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash(fromTray: true)));
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
+			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => {
 				forceExit = true;
@@ -1122,6 +1124,7 @@ public partial class MainWindow : Window {
 		mnhash.Click += (_, _) => openhash();
 		mntexttool.Click += (_, _) => opentexttool();
 		mnpwgen.Click += (_, _) => openpwgen();
+		mnnettool.Click += (_, _) => opennettool();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
@@ -1228,6 +1231,8 @@ public partial class MainWindow : Window {
 			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
 			mnpwgen.Header = Loc.T("menu.pwgen");
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
+			mnnettool.Header = Loc.T("menu.nettool");
+			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
@@ -3264,7 +3269,10 @@ public partial class MainWindow : Window {
 		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool", fromTray);
 
 	void openpwgen(bool fromTray = false) =>
-		opentoolwin(ref pwGenWin, () => new PasswordWindow(), "menu.pwgen", fromTray);
+		opentoolwin(ref pwGenWin, () => new PasswordWindow(opt), "menu.pwgen", fromTray);
+
+	void opennettool(bool fromTray = false) =>
+		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.nettool", fromTray);
 
 	void opentoolwin<T>(ref T win, Func<T> create, string titleKey, bool fromTray = false) where T : Window {
 		try {
@@ -3283,6 +3291,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(hashWin, w)) hashWin = null;
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
+				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
 			};
 			w.Show();
 		}

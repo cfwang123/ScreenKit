@@ -33,6 +33,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miHash;
 	Forms.ToolStripMenuItem miTextTool;
 	Forms.ToolStripMenuItem miPwGen;
+	Forms.ToolStripMenuItem miNetTool;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
@@ -140,6 +141,7 @@ sealed class TrayIcon : IDisposable {
 		miHash = item("tray.hash", () => HashRequested?.Invoke());
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
+		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miQrMake);
@@ -147,6 +149,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miHash);
 		miTools.DropDownItems.Add(miTextTool);
 		miTools.DropDownItems.Add(miPwGen);
+		miTools.DropDownItems.Add(miNetTool);
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
@@ -328,6 +331,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miHash, null);
 		setshortcut(miTextTool, null);
 		setshortcut(miPwGen, null);
+		setshortcut(miNetTool, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
 	}
@@ -366,6 +370,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miHash, "tray.hash");
 			settext(miTextTool, "tray.texttool");
 			settext(miPwGen, "tray.pwgen");
+			settext(miNetTool, "tray.nettool");
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
@@ -396,6 +401,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action HashRequested;
 	public event Action TextToolRequested;
 	public event Action PwGenRequested;
+	public event Action NetToolRequested;
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>

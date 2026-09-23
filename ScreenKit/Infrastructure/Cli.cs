@@ -38,7 +38,7 @@ static class Cli {
 				or "--test-sendfile"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-pwgen"
+				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -235,6 +235,8 @@ static class Cli {
 					return testtexttool();
 				case "--test-pwgen":
 					return testpwgen();
+				case "--test-nettool":
+					return testnettool();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2628,6 +2630,33 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testnettool() {
+		Out("=== 网络工具 --test-nettool ===");
+		var bad = 0;
+		try {
+			var dns = Task.Run(() => NetTools.Resolve("127.0.0.1", CancellationToken.None)).GetAwaiter().GetResult();
+			Out(dns);
+			if (dns.IndexOf("127.0.0.1", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 127.0.0.1 解析");
+				bad++;
+			}
+			var lines = new List<string>();
+			Task.Run(() => NetTools.Ping("127.0.0.1", 1, 2000, s => lines.Add(s), CancellationToken.None))
+				.GetAwaiter().GetResult();
+			Out(string.Join("\n", lines));
+			if (!lines.Any(s => s.IndexOf("127.0.0.1", StringComparison.Ordinal) >= 0)) {
+				Err("FAIL: ping 127.0.0.1");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：网络工具 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -2651,6 +2680,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-hash
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
+  ScreenKit --test-nettool
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
@@ -2708,6 +2738,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-hash  计算并比对 SHA-256
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-pwgen  生成密码（长度、每类字符、排除易混）
+      --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2764,6 +2795,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-hash
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
+  ScreenKit --test-nettool
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
