@@ -2416,6 +2416,18 @@ static class Cli {
 			}
 			var c128 = QrMake.Encode("ABC-123", "code128", "utf8", 4, true);
 			Out($"code128 {c128.PixelWidth}x{c128.PixelHeight}");
+			var hexBytes = QrMake.ParseHex("68 65 6c 6c 6f");
+			if (hexBytes.Length != 5 || hexBytes[0] != 0x68) {
+				Err("FAIL: hex 解析");
+				bad++;
+			}
+			var hx = QrMake.Encode("68656c6c6f", "qr", "hex", 6, false);
+			var hello = QrMake.Encode("hello", "qr", "utf8", 6, false);
+			Out($"hex {hx.PixelWidth}x{hx.PixelHeight} hello {hello.PixelWidth}x{hello.PixelHeight}");
+			if (hx.PixelWidth != hello.PixelWidth) {
+				Err("FAIL: hex 与 utf8 hello 模块尺寸应相同");
+				bad++;
+			}
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);

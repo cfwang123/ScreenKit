@@ -26,21 +26,23 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- **Tools** menu: **QR / barcode** (caption under the image; UTF-8 or GBK, default UTF-8), **Batch rename** (Everything / FastCopy patterns: `%1`, `#` / `###`), **Hash** (MD5 / SHA-1 / SHA-256, paste to compare), **Text tools** (Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace). CLI: `--test-qr-make`, `--test-rename`, `--test-hash`, `--test-texttool`.
+- **Tools** menu: **QR / barcode** (caption under the image; UTF-8, GBK, or Hex bytes, default UTF-8), **Batch rename** (Everything / FastCopy patterns: `%1`, `#` / `###`), **Hash** (MD5 / SHA-1 / SHA-256, paste to compare), **Text tools** (Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace). CLI: `--test-qr-make`, `--test-rename`, `--test-hash`, `--test-texttool`.
 
 #### Changed
 
 - Image convert: list / icon view are compact icon buttons (the icon-view button no longer stretches across the toolbar). Thumbnails follow rotate and flip.
+- QR preview draws the caption as WPF text (clear, 4px below the code). Copy/save still bake a caption into the PNG. Hex mode parses hex into bytes then encodes.
 
 ### 中文
 
 #### 新增
 
-- **工具** 菜单：**二维码 / 条码生成**（图下显示一行原文；UTF-8 或 GBK，默认 UTF-8）、**批量重命名**（Everything / FastCopy 表达式：`%1`、`#` / `###`）、**校验哈希**（MD5 / SHA-1 / SHA-256，可粘贴比对）、**文本小工具**（Base64、URL、UTF-8/GBK 十六进制、Unicode 转义、大小写、空白）。CLI：`--test-qr-make`、`--test-rename`、`--test-hash`、`--test-texttool`。
+- **工具** 菜单：**二维码 / 条码生成**（图下显示一行原文；UTF-8、GBK 或 Hex 二进制，默认 UTF-8）、**批量重命名**（Everything / FastCopy 表达式：`%1`、`#` / `###`）、**校验哈希**（MD5 / SHA-1 / SHA-256，可粘贴比对）、**文本小工具**（Base64、URL、UTF-8/GBK 十六进制、Unicode 转义、大小写、空白）。CLI：`--test-qr-make`、`--test-rename`、`--test-hash`、`--test-texttool`。
 
 #### 变更
 
 - 图片格式转换：列表 / 图片改为小图标按钮（图片按钮不再被拉满整行）。缩略图随旋转、镜像一起转。
+- 二维码预览用界面文字画原文（更清晰，紧贴码下方 4px）。复制/保存仍把原文画进 PNG。新增 Hex：把十六进制转成二进制再编码。
 
 ## v1.0.8 (2026-09-23)
 

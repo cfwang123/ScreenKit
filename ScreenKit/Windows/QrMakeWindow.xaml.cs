@@ -29,6 +29,7 @@ public partial class QrMakeWindow : Window {
 		efmt.SelectionChanged += (_, _) => queue();
 		rutf8.Checked += (_, _) => queue();
 		rgbk.Checked += (_, _) => queue();
+		rhex.Checked += (_, _) => queue();
 		bcopy.Click += (_, _) => copy();
 		bsave.Click += (_, _) => save();
 		bclose.Click += (_, _) => Close();
@@ -40,6 +41,8 @@ public partial class QrMakeWindow : Window {
 		lbenc.Text = Loc.T("qrmake.enc");
 		rutf8.Content = Loc.T("qrmake.utf8");
 		rgbk.Content = Loc.T("qrmake.gbk");
+		rhex.Content = Loc.T("qrmake.hex");
+		rhex.ToolTip = Loc.T("qrmake.hex.tip");
 		lbtext.Text = Loc.T("qrmake.text");
 		lbempty.Text = Loc.T("qrmake.empty");
 		bcopy.Content = Loc.T("qrmake.copy");
@@ -48,7 +51,11 @@ public partial class QrMakeWindow : Window {
 	}
 
 	string fmtid() => (efmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "qr";
-	string encid() => rgbk.IsChecked == true ? "gbk" : "utf8";
+	string encid() {
+		if (rhex.IsChecked == true) return "hex";
+		if (rgbk.IsChecked == true) return "gbk";
+		return "utf8";
+	}
 
 	void queue() {
 		seq++;
@@ -65,6 +72,8 @@ public partial class QrMakeWindow : Window {
 			last = null;
 			lastText = "";
 			iprev.Source = null;
+			lbcaption.Text = "";
+			pprev.Visibility = Visibility.Collapsed;
 			lbempty.Visibility = Visibility.Visible;
 			lbstat.Text = "";
 			return;
@@ -72,11 +81,13 @@ public partial class QrMakeWindow : Window {
 		try {
 			await Task.Delay(120, token).ConfigureAwait(true);
 			if (n != seq) return;
-			var bmp = await Task.Run(() => QrMake.Encode(text, fmt, enc, 8, true), token).ConfigureAwait(true);
+			var bmp = await Task.Run(() => QrMake.Encode(text, fmt, enc, 8, false), token).ConfigureAwait(true);
 			if (n != seq) return;
 			last = bmp;
-			lastText = text;
+			lastText = text.Replace("\r", " ").Replace("\n", " ");
 			iprev.Source = bmp;
+			lbcaption.Text = lastText;
+			pprev.Visibility = Visibility.Visible;
 			lbempty.Visibility = Visibility.Collapsed;
 			lbstat.Text = $"{bmp.PixelWidth} × {bmp.PixelHeight}  ·  {fmt}  ·  {enc}";
 		}
@@ -85,15 +96,23 @@ public partial class QrMakeWindow : Window {
 			if (n != seq) return;
 			last = null;
 			iprev.Source = null;
+			lbcaption.Text = "";
+			pprev.Visibility = Visibility.Collapsed;
 			lbempty.Visibility = Visibility.Visible;
 			lbstat.Text = Loc.T("qrmake.fail", ex.Message);
 		}
 	}
 
+	BitmapSource exportimg() {
+		if (last == null) return null;
+		return QrMake.Encode(etext.Text ?? "", fmtid(), encid(), 8, true);
+	}
+
 	void copy() {
-		if (last == null) return;
 		try {
-			Clipboard.SetImage(last);
+			var bmp = exportimg();
+			if (bmp == null) return;
+			Clipboard.SetImage(bmp);
 			lbstat.Text = Loc.T("qrmake.copied");
 		}
 		catch (Exception ex) {
@@ -112,7 +131,7 @@ public partial class QrMakeWindow : Window {
 		};
 		if (sfd.ShowDialog(this) != true) return;
 		try {
-			ImageUtil.Savefile(last, sfd.FileName);
+			ImageUtil.Savefile(exportimg(), sfd.FileName);
 			lbstat.Text = Loc.T("qrmake.saved");
 		}
 		catch (Exception ex) {

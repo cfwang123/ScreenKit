@@ -32,10 +32,12 @@
 			<StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
 				<TextBlock x:Name="lbenc" Text="编码" FontWeight="SemiBold"
 				           VerticalAlignment="Center" Margin="0,0,8,0"/>
-				<RadioButton x:Name="rutf8" Content="UTF-8" IsChecked="True" Margin="0,0,12,0"
+				<RadioButton x:Name="rutf8" Content="UTF-8" IsChecked="True" Margin="0,0,10,0"
 				             AutomationProperties.AutomationId="qrmake.utf8"/>
-				<RadioButton x:Name="rgbk" Content="GBK"
+				<RadioButton x:Name="rgbk" Content="GBK" Margin="0,0,10,0"
 				             AutomationProperties.AutomationId="qrmake.gbk"/>
+				<RadioButton x:Name="rhex" Content="Hex"
+				             AutomationProperties.AutomationId="qrmake.hex"/>
 			</StackPanel>
 		</Grid>
 		<TextBlock x:Name="lbtext" Grid.Row="1" Text="内容" FontWeight="SemiBold" Margin="0,0,0,6"/>
@@ -49,9 +51,20 @@
 				<TextBlock x:Name="lbempty" Text="输入内容后生成"
 				           Foreground="{StaticResource TextMuted}"
 				           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-				<Image x:Name="iprev" Stretch="Uniform" Margin="12"
-				       RenderOptions.BitmapScalingMode="NearestNeighbor"
-				       AutomationProperties.AutomationId="qrmake.preview"/>
+				<DockPanel x:Name="pprev" Margin="16,12,16,10" Visibility="Collapsed">
+					<TextBlock x:Name="lbcaption" DockPanel.Dock="Bottom"
+					           TextAlignment="Center" FontSize="16"
+					           FontFamily="Microsoft YaHei UI"
+					           Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
+					           TextWrapping="NoWrap"
+					           SnapsToDevicePixels="True"
+					           TextOptions.TextFormattingMode="Display"
+					           AutomationProperties.AutomationId="qrmake.caption"/>
+					<Image x:Name="iprev" Stretch="Uniform" Margin="0"
+					       RenderOptions.BitmapScalingMode="NearestNeighbor"
+					       SnapsToDevicePixels="True"
+					       AutomationProperties.AutomationId="qrmake.preview"/>
+				</DockPanel>
 			</Grid>
 		</Border>
 		<DockPanel Grid.Row="4">

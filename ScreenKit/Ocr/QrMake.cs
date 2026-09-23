@@ -23,17 +23,31 @@ static class QrMake {
 	public static BitmapSource Encode(string text, int scale = 8) =>
 		Encode(text, "qr", "utf8", scale, caption: true);
 
+	public static byte[] ParseHex(string text) {
+		var n = HashTool.NormHex(text);
+		if (n.Length == 0) throw new ArgumentException("empty hex");
+		if ((n.Length & 1) != 0) throw new FormatException("hex odd length");
+		var bytes = new byte[n.Length / 2];
+		for (var i = 0; i < bytes.Length; i++)
+			bytes[i] = Convert.ToByte(n.Substring(i * 2, 2), 16);
+		return bytes;
+	}
+
 	public static BitmapSource Encode(string text, string format, string encoding, int scale, bool caption) {
 		if (string.IsNullOrEmpty(text)) throw new ArgumentException("empty");
 		if (scale < 1) scale = 1;
 		if (scale > 32) scale = 32;
 		ensureenc();
 		var fmt = parsefmt(format);
-		var gbk = isgbk(encoding);
+		var enc = (encoding ?? "utf8").Trim().ToLowerInvariant();
+		var hex = enc is "hex" or "bin" or "binary";
+		var gbk = isgbk(enc);
 		var linear = islinear(fmt);
 		using var creator = new BarcodeCreator(fmt);
 		ZXingCpp.Barcode barcode;
-		if (linear)
+		if (hex)
+			barcode = creator.From(ParseHex(text));
+		else if (linear)
 			barcode = creator.From(text);
 		else {
 			var bytes = gbk ? Encoding.GetEncoding(936).GetBytes(text) : Encoding.UTF8.GetBytes(text);
@@ -84,30 +98,38 @@ static class QrMake {
 	}
 
 	static BitmapSource withcaption(BitmapSource bmp, string text) {
-		var w = Math.Max(1, bmp.PixelWidth);
-		var h = Math.Max(1, bmp.PixelHeight);
+		var srcW = Math.Max(1, bmp.PixelWidth);
+		var srcH = Math.Max(1, bmp.PixelHeight);
+		var zoom = srcW < 360 ? (int)Math.Ceiling(360.0 / srcW) : 1;
+		var w = srcW * zoom;
+		var h = srcH * zoom;
 		var line = (text ?? "").Replace("\r", " ").Replace("\n", " ");
-		if (line.Length > 80) line = line.Substring(0, 79) + "…";
+		if (line.Length > 120) line = line.Substring(0, 119) + "…";
 		var dpi = 96.0;
+		var em = Math.Max(16, w / 18.0);
 		var ft = new FormattedText(
 			line,
 			CultureInfo.CurrentCulture,
 			FlowDirection.LeftToRight,
 			new Typeface("Microsoft YaHei UI"),
-			14,
+			em,
 			Brushes.Black, dpi);
 		ft.MaxTextWidth = w;
 		ft.MaxLineCount = 1;
 		ft.Trimming = TextTrimming.CharacterEllipsis;
-		var pad = 10.0;
-		var capH = Math.Ceiling(ft.Height) + pad * 2;
+		ft.TextAlignment = TextAlignment.Center;
+		var gap = 4.0;
+		var bot = 8.0;
+		var capH = Math.Ceiling(ft.Height) + gap + bot;
 		var totalH = (int)Math.Ceiling(h + capH);
 		var dv = new DrawingVisual();
+		RenderOptions.SetBitmapScalingMode(dv, BitmapScalingMode.NearestNeighbor);
+		TextOptions.SetTextFormattingMode(dv, TextFormattingMode.Display);
+		TextOptions.SetTextRenderingMode(dv, TextRenderingMode.ClearType);
 		using (var dc = dv.RenderOpen()) {
 			dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, w, totalH));
 			dc.DrawImage(bmp, new Rect(0, 0, w, h));
-			var x = Math.Max(0, (w - ft.Width) / 2);
-			dc.DrawText(ft, new Point(x, h + pad));
+			dc.DrawText(ft, new Point(0, h + gap));
 		}
 		var rtb = new RenderTargetBitmap(w, totalH, dpi, dpi, PixelFormats.Pbgra32);
 		rtb.Render(dv);
