@@ -8,6 +8,10 @@
 
 - 选电脑 / 填 IP 配对时弹出「等待电脑确认」，直到电脑点允许或拒绝才关闭；可取消。
 
+### 变更
+
+- `node build.js release` 在写出 `release/screenkit{version}.apk` 后，拷到 ScreenKit 的 exe 输出 `apk/`，并 `slx ScreenKit` 编译一次。
+
 ## v1.0.9 (2026-09-23)
 
 版本号随 ScreenKit 1.0.9 对齐（功能无变化）。

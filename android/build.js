@@ -33,7 +33,7 @@ PC文件传输 Android 构建脚本（com.whj.screenkit）
 
 命令:
   build     编译 APK（默认 release）
-  release   编译 release 并将 APK 移动到 release/screenkit{version}.apk
+  release   编译 release，复制到 release/ 与 ScreenKit 输出 apk/，再 slx 编译电脑端
   rebuild   清理后重新编译（clean + build）
   clean     清理构建产物
   run       安装到真机并启动（debug 包）
@@ -48,7 +48,7 @@ PC文件传输 Android 构建脚本（com.whj.screenkit）
   -s <serial> run / install 时指定设备序列号
 
 示例:
-  node build.js release
+  node build.js release     # 含拷到 ScreenKit 输出并 slx
   node build.js build --debug
   node build.js run
   node build.js install
@@ -436,9 +436,35 @@ function copyReleaseApk(apkPath) {
   return dest;
 }
 
+function pcRoot() {
+  return path.join(ROOT, '..');
+}
+
+/** 把 android/release 最新 APK 拷到 ScreenKit net48 与精简包 apk/ */
+function copyApkToPcExe() {
+  const root = pcRoot();
+  const py = path.join(root, 'scripts', 'copy-latest-apk.py');
+  const net48 = path.join(root, 'ScreenKit', 'bin', 'Release', 'net48');
+  const slim = path.join(root, 'ScreenKit', 'bin', 'Release', 'ScreenKit');
+  if (!fs.existsSync(py)) {
+    console.warn(`[release] 未找到 ${py}，跳过复制到 exe 目录`);
+    return;
+  }
+  console.log('[release] 复制 APK 到 ScreenKit 输出目录…');
+  run('python', ['-X', 'utf8', py, net48, slim], { cwd: root });
+}
+
+function compileScreenKit() {
+  const root = pcRoot();
+  console.log('[release] 编译 ScreenKit…');
+  run('slx', ['ScreenKit'], { cwd: root });
+}
+
 function releaseApk() {
   build('release');
   copyReleaseApk(getApkPath('release'));
+  copyApkToPcExe();
+  compileScreenKit();
 }
 
 function apk() {

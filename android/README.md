@@ -23,7 +23,7 @@ node build.js run          # debug 编译、安装、启动（需一台 adb 真�
 node build.js install      # release 增量编译、安装、启动
 node build.js build        # 默认 release APK
 node build.js build --debug
-node build.js release      # release 并复制到 release/screenkit{version}.apk
+node build.js release      # release，复制到 release/ 与 ScreenKit 输出 apk/，再 slx 编译电脑端
 node build.js apk
 node build.js devices
 node build.js rebuild --debug

@@ -3,3 +3,4 @@
 - 用户说 `install` 时用 `node build.js install`（release 增量编译+安装+启动）。
 - 仅改文档 / 纯分析 / 用户明确说不要安装时，可跳过。
 - 构建脚本对齐 reader：`build/release/rebuild/clean/run/install/apk/devices`，`--debug/--release/--force/-s`。
+- `node build.js release` 会把 APK 拷到 ScreenKit exe 输出 `apk/` 并 `slx ScreenKit`。

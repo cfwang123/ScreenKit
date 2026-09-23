@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Windows opened from the tray have no owner (centered on screen, own taskbar button) so they do not minimize with the main window.
 - File-transfer pairing dialog stays always-on-top (no owner; still visible when the main window is in the tray). The phone shows a waiting dialog until the PC allows or denies; Cancel aborts.
+- `node build.js release` (Android) copies the APK next to ScreenKit.exe (`apk/`) and runs `slx ScreenKit` once.
 
 ### 中文
 
@@ -48,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 托盘打开的窗口不再挂主窗为 Owner（居中屏幕、独立任务栏项），避免跟着主窗最小化。
 - 文件传输配对弹窗始终置顶（不挂主窗；主窗在托盘时仍能点到）。手机端弹出等待窗直到电脑允许或拒绝，可取消。
+- 安卓 `node build.js release` 会把 APK 拷到 ScreenKit exe 旁 `apk/`，并 `slx ScreenKit` 编译一次。
 
 ## v1.0.9 (2026-09-23)
 
