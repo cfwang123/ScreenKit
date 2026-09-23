@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.9 (2026-09-23)](#v109-2026-09-23)
 - [v1.0.8 (2026-09-23)](#v108-2026-09-23)
 - [v1.0.7 (2026-09-11)](#v107-2026-09-11)
 - [v1.0.6 (2026-09-10)](#v106-2026-09-10)
@@ -24,33 +25,47 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+### 中文
+
+## v1.0.9 (2026-09-23)
+
+### English
+
 #### Added
 
 - **Tools** menu: **QR / barcode** (caption under the image; UTF-8, GBK, or Hex bytes, default UTF-8), **Batch rename** (Everything / FastCopy patterns: `%1`, `#` / `###`), **Hash** (MD5 / SHA-1 / SHA-256, paste to compare), **Text tools** (Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, smart JSON pretty-print that keeps short arrays/objects on one line). CLI: `--test-qr-make`, `--test-rename`, `--test-hash`, `--test-texttool`.
+- Tray menu **Tools** submenu (same entries as the window Tools menu).
 
 #### Changed
 
-- Image convert: list / icon view are compact icon buttons (the icon-view button no longer stretches across the toolbar). Thumbnails follow rotate and flip.
+- Image convert: list / icon view are compact icon buttons; thumbnails follow rotate and flip. Optional “keep original if compressed size ≥ N% of original” (default on, 80%). Rotate / flip / actual resize still writes the new file.
 - QR preview draws the caption as WPF text (clear, 4px below the code). Copy/save still bake a caption into the PNG. Hex mode parses hex into bytes then encodes.
-- Tool buttons use a pale fill and a Segoe MDL2 icon (add/folder/delete/rename/copy/save, etc.).
-- Image convert: optional “keep original if compressed size ≥ N% of original” (default on, 80%). Rotate / flip / actual resize still writes the new file.
-- Tray menu has a **Tools** submenu (same entries as the window Tools menu).
+- Tool buttons use a pale fill and a Segoe MDL2 icon.
 - Batch rename: source files in a list (add/remove/move, sort by name / modified / added); new names in a textarea (editable). Changing the list or rules recalculates names.
+
+#### Fixed
+
+- Three-monitor / mixed-DPI screenshot overlay no longer shrinks to ~66%. CLI: `--test-overlay-layout`.
+- A region that spans monitors can be moved, resized, and drawn on from every screen it covers. Move hot-zone is 10px outside the green frame.
 
 ### 中文
 
 #### 新增
 
-- **工具** 菜单：**二维码 / 条码生成**（图下显示一行原文；UTF-8、GBK 或 Hex 二进制，默认 UTF-8）、**批量重命名**（Everything / FastCopy 表达式：`%1`、`#` / `###`）、**校验哈希**（MD5 / SHA-1 / SHA-256，可粘贴比对）、**文本小工具**（Base64、URL、UTF-8/GBK 十六进制、Unicode 转义、大小写、空白、JSON 智能美化：短数组/对象同一行）。CLI：`--test-qr-make`、`--test-rename`、`--test-hash`、`--test-texttool`。
+- **工具** 菜单：**二维码 / 条码生成**（图下原文；UTF-8 / GBK / Hex，默认 UTF-8）、**批量重命名**（Everything / FastCopy：`%1`、`#` / `###`）、**校验哈希**、**文本小工具**（含 JSON 智能美化）。CLI：`--test-qr-make`、`--test-rename`、`--test-hash`、`--test-texttool`。
+- 托盘右键增加 **工具** 子菜单。
 
 #### 变更
 
-- 图片格式转换：列表 / 图片改为小图标按钮（图片按钮不再被拉满整行）。缩略图随旋转、镜像一起转。
-- 二维码预览用界面文字画原文（更清晰，紧贴码下方 4px）。复制/保存仍把原文画进 PNG。新增 Hex：把十六进制转成二进制再编码。
-- 工具按钮改为浅底，并加上 Segoe MDL2 图标（添加/文件夹/删除/重命名/复制/保存等）。
-- 图片格式转换：可选「压缩后体积仍 ≥ 原图 N% 时用原图」（默认开、80%）。有旋转、镜像或实际缩小时仍用新图。
-- 托盘菜单增加 **工具** 子菜单（与窗口工具菜单相同）。
-- 批量重命名：源文件用列表（添加/删除/上下移动，点列头按名称、修改或添加日期排序）；目标名用文本框可手改。改列表或规则时自动重算新名。
+- 图片格式转换：列表/图片小图标按钮；缩略图随旋转镜像。可选「压缩后体积仍 ≥ 原图 N% 时用原图」（默认 80%）；有旋转或实际缩小时仍用新图。
+- 二维码预览用界面文字画原文；复制/保存仍写入 PNG。新增 Hex 编码。
+- 工具按钮浅底 + Segoe MDL2 图标。
+- 批量重命名：源文件列表（添加/删除/上下移动，点列头排序）；目标名文本框可手改。改列表或规则时自动重算。
+
+#### 修复
+
+- 三屏/混合 DPI 截图遮罩不再整窗缩到约 66%。CLI：`--test-overlay-layout`。
+- 跨屏选区可在每一块相交屏上拖动、缩放、画框。拖动热区在绿框外 10px。
 
 ## v1.0.8 (2026-09-23)
 

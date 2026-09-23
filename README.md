@@ -2,7 +2,7 @@
 
 Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, and LAN file transfer with an Android companion.
 
-**Current version: 1.0.8** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**Current version: 1.0.9** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
@@ -25,8 +25,8 @@ Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具
 
 | File | What |
 |------|------|
-| [`screenkit_1.0.8.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
-| `screenkit1.0.8.apk` | Android companion for LAN file/text sync (same release page, or **File sync → Install on phone**). |
+| [`screenkit_1.0.9.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
+| `screenkit1.0.9.apk` | Android companion for LAN file/text sync (same release page, or **File sync → Install on phone**). |
 
 Unpack the 7z and run `ScreenKit/ScreenKit.exe`. First launch may open the install wizard. Requires [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
 
