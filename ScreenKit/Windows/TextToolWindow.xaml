@@ -1,0 +1,58 @@
+<Window x:Class="ScreenKit.TextToolWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="文本小工具"
+        Width="760" Height="620"
+        MinWidth="560" MinHeight="440"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="texttool.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<DockPanel Grid.Row="0">
+			<TextBlock x:Name="lbin" DockPanel.Dock="Top" Text="输入" FontWeight="SemiBold" Margin="0,0,0,6"/>
+			<TextBox x:Name="ein" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+			         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="texttool.in"/>
+		</DockPanel>
+		<WrapPanel Grid.Row="1" Margin="0,10,0,10">
+			<Button x:Name="bb64e" Content="Base64 编码" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bb64d" Content="Base64 解码" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="burle" Content="URL 编码" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="burld" Content="URL 解码" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="butf8" Content="UTF-8 十六进制" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bgbk" Content="GBK 十六进制" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bfu8" Content="从 UTF-8 十六进制" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bfgbk" Content="从 GBK 十六进制" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="buesc" Content="Unicode 转义" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="buunesc" Content="Unicode 还原" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bupper" Content="大写" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="blower" Content="小写" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="btrim" Content="去首尾空白" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bcollapse" Content="压缩空白" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bempty" Content="去空行" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bswap" Content="上下对调" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+		</WrapPanel>
+		<DockPanel Grid.Row="2">
+			<TextBlock x:Name="lbout" DockPanel.Dock="Top" Text="输出" FontWeight="SemiBold" Margin="0,0,0,6"/>
+			<TextBox x:Name="eout" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+			         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="texttool.out"/>
+		</DockPanel>
+		<TextBlock x:Name="lbstat" Grid.Row="3" Margin="0,8,0,8" Foreground="{StaticResource TextMuted}"/>
+		<StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+			<Button x:Name="bcopy" Content="复制输出" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="texttool.copy"/>
+			<Button x:Name="bclose" Content="关闭" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="texttool.close"/>
+		</StackPanel>
+	</Grid>
+</Window>

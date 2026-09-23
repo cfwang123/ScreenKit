@@ -120,6 +120,18 @@
 				<MenuItem x:Name="mnimgconv" Header="图片格式转换(_C)…"
 				          AutomationProperties.AutomationId="menu.imgconv"
 				          ToolTip="批量转换图片格式，可缩放、旋转、镜像"/>
+				<MenuItem x:Name="mnqrmake" Header="二维码 / 条码生成(_Q)…"
+				          AutomationProperties.AutomationId="menu.qrmake"
+				          ToolTip="生成二维码或条码，图下显示原文"/>
+				<MenuItem x:Name="mnrename" Header="批量重命名(_R)…"
+				          AutomationProperties.AutomationId="menu.rename"
+				          ToolTip="Everything 风格批量改名"/>
+				<MenuItem x:Name="mnhash" Header="校验哈希(_H)…"
+				          AutomationProperties.AutomationId="menu.hash"
+				          ToolTip="MD5 / SHA-1 / SHA-256"/>
+				<MenuItem x:Name="mntexttool" Header="文本小工具(_X)…"
+				          AutomationProperties.AutomationId="menu.texttool"
+				          ToolTip="Base64、URL、UTF-8/GBK 十六进制"/>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

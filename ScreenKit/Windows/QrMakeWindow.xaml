@@ -1,0 +1,70 @@
+<Window x:Class="ScreenKit.QrMakeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="二维码 / 条码生成"
+        Width="560" Height="720"
+        MinWidth="440" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="qrmake.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="100"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<Grid Grid.Row="0" Margin="0,0,0,10">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="16"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbfmt" Text="类型" FontWeight="SemiBold"
+			           VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<ComboBox x:Name="efmt" Grid.Column="1" Height="32"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="qrmake.fmt"/>
+			<StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+				<TextBlock x:Name="lbenc" Text="编码" FontWeight="SemiBold"
+				           VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<RadioButton x:Name="rutf8" Content="UTF-8" IsChecked="True" Margin="0,0,12,0"
+				             AutomationProperties.AutomationId="qrmake.utf8"/>
+				<RadioButton x:Name="rgbk" Content="GBK"
+				             AutomationProperties.AutomationId="qrmake.gbk"/>
+			</StackPanel>
+		</Grid>
+		<TextBlock x:Name="lbtext" Grid.Row="1" Text="内容" FontWeight="SemiBold" Margin="0,0,0,6"/>
+		<TextBox x:Name="etext" Grid.Row="2" AcceptsReturn="True" TextWrapping="Wrap"
+		         VerticalScrollBarVisibility="Auto" Padding="8"
+		         BorderBrush="{StaticResource BorderSoft}"
+		         AutomationProperties.AutomationId="qrmake.text"/>
+		<Border Grid.Row="3" Margin="0,12,0,12" Background="White" CornerRadius="8"
+		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+			<Grid>
+				<TextBlock x:Name="lbempty" Text="输入内容后生成"
+				           Foreground="{StaticResource TextMuted}"
+				           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+				<Image x:Name="iprev" Stretch="Uniform" Margin="12"
+				       RenderOptions.BitmapScalingMode="NearestNeighbor"
+				       AutomationProperties.AutomationId="qrmake.preview"/>
+			</Grid>
+		</Border>
+		<DockPanel Grid.Row="4">
+			<TextBlock x:Name="lbstat" DockPanel.Dock="Left" VerticalAlignment="Center"
+			           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+				<Button x:Name="bcopy" Content="复制图片" Style="{StaticResource ToolBtn}"
+				        AutomationProperties.AutomationId="qrmake.copy"/>
+				<Button x:Name="bsave" Content="保存…" Style="{StaticResource ToolBtn}"
+				        AutomationProperties.AutomationId="qrmake.save"/>
+				<Button x:Name="bclose" Content="关闭" Style="{StaticResource ToolBtn}"
+				        AutomationProperties.AutomationId="qrmake.close"/>
+			</StackPanel>
+		</DockPanel>
+	</Grid>
+</Window>

@@ -14,6 +14,7 @@ public partial class App : System.Windows.Application {
 	volatile bool exitRequested;
 
 	protected override void OnStartup(StartupEventArgs e) {
+		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 		var args = e.Args ?? Array.Empty<string>();
 
 		// 自更新应用：尽早处理，不初始化 CUDA / 不占单实例锁 / 不启动 GUI

@@ -72,6 +72,10 @@ public partial class MainWindow : Window {
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
 	ImgConvertWindow imgConvWin;
+	QrMakeWindow qrMakeWin;
+	BatchRenameWindow renameWin;
+	HashWindow hashWin;
+	TextToolWindow textToolWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -1106,6 +1110,10 @@ public partial class MainWindow : Window {
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
 		mnimgconv.Click += (_, _) => openimgconv();
+		mnqrmake.Click += (_, _) => openqrmake();
+		mnrename.Click += (_, _) => openrename();
+		mnhash.Click += (_, _) => openhash();
+		mntexttool.Click += (_, _) => opentexttool();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
@@ -1202,6 +1210,14 @@ public partial class MainWindow : Window {
 
 			mnimgconv.Header = Loc.T("menu.imgconv");
 			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
+			mnqrmake.Header = Loc.T("menu.qrmake");
+			mnqrmake.ToolTip = Loc.T("menu.qrmake.tip");
+			mnrename.Header = Loc.T("menu.rename");
+			mnrename.ToolTip = Loc.T("menu.rename.tip");
+			mnhash.Header = Loc.T("menu.hash");
+			mnhash.ToolTip = Loc.T("menu.hash.tip");
+			mntexttool.Header = Loc.T("menu.texttool");
+			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
@@ -3217,6 +3233,43 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			MessageBox.Show(this, ex.Message, "诊断", MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
+	void openqrmake() =>
+		opentoolwin(ref qrMakeWin, () => new QrMakeWindow(), "menu.qrmake");
+
+	void openrename() =>
+		opentoolwin(ref renameWin, () => new BatchRenameWindow(), "menu.rename");
+
+	void openhash() =>
+		opentoolwin(ref hashWin, () => new HashWindow(), "menu.hash");
+
+	void opentexttool() =>
+		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool");
+
+	void opentoolwin<T>(ref T win, Func<T> create, string titleKey) where T : Window {
+		try {
+			if (win != null) {
+				if (win.WindowState == WindowState.Minimized)
+					win.WindowState = WindowState.Normal;
+				win.Activate();
+				return;
+			}
+			win = create();
+			var w = win;
+			attachdialogowner(w);
+			w.Closed += (_, _) => {
+				if (ReferenceEquals(qrMakeWin, w)) qrMakeWin = null;
+				else if (ReferenceEquals(renameWin, w)) renameWin = null;
+				else if (ReferenceEquals(hashWin, w)) hashWin = null;
+				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
+			};
+			w.Show();
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Loc.T(titleKey),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 

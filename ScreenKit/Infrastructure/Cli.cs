@@ -37,7 +37,8 @@ static class Cli {
 				or "--test-clipboard-path"
 				or "--test-sendfile"
 				or "--test-apk-qr"
-				or "--test-img-convert"
+				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
+				or "--test-hash" or "--test-texttool"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -224,6 +225,14 @@ static class Cli {
 					return testapkqr();
 				case "--test-img-convert":
 					return testimgconvert();
+				case "--test-qr-make":
+					return testqrmake();
+				case "--test-rename":
+					return testrename();
+				case "--test-hash":
+					return testhash();
+				case "--test-texttool":
+					return testtexttool();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2389,6 +2398,139 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testqrmake() {
+		Out("=== 二维码生成 --test-qr-make ===");
+		var bad = 0;
+		try {
+			var utf = QrMake.Encode("你好 ScreenKit", "qr", "utf8", 6, true);
+			var gbk = QrMake.Encode("你好 ScreenKit", "qr", "gbk", 6, true);
+			Out($"utf8 {utf.PixelWidth}x{utf.PixelHeight} gbk {gbk.PixelWidth}x{gbk.PixelHeight}");
+			if (utf.PixelHeight <= utf.PixelWidth) {
+				Err("FAIL: 图下应有原文，高度应大于宽度");
+				bad++;
+			}
+			var nocap = QrMake.Encode("hello", "qr", "utf8", 6, false);
+			if (nocap.PixelHeight >= utf.PixelHeight) {
+				Err("FAIL: 无标题图不应更高");
+				bad++;
+			}
+			var c128 = QrMake.Encode("ABC-123", "code128", "utf8", 4, true);
+			Out($"code128 {c128.PixelWidth}x{c128.PixelHeight}");
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：二维码生成 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testrename() {
+		Out("=== 批量重命名 --test-rename ===");
+		var bad = 0;
+		var dir = Path.Combine(Path.GetTempPath(), "sk_rename_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+		Directory.CreateDirectory(dir);
+		try {
+			var a = Path.Combine(dir, "img_001.jpg");
+			var b = Path.Combine(dir, "img_002.jpg");
+			File.WriteAllText(a, "a");
+			File.WriteAllText(b, "b");
+			var names = new[] { "img_001.jpg", "img_002.jpg" };
+			var (oldp, newp) = BatchRename.CommonPattern(names, false);
+			Out($"pattern old={oldp} new={newp}");
+			if (oldp.IndexOf("%1", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 公共模式应含 %1");
+				bad++;
+			}
+			var opt = new RenameOptions {
+				OldPattern = "img_%1.jpg",
+				NewPattern = "pic_###.jpg",
+			};
+			var plans = BatchRename.Plan(new[] { a, b }, names, opt);
+			if (plans.Count != 2 || plans[0].To != "pic_001.jpg" || plans[1].To != "pic_002.jpg") {
+				Err("FAIL: 编号展开 " + string.Join(",", plans.Select(p => p.To)));
+				bad++;
+			}
+			foreach (var p in plans) {
+				if (p.Kind == RenameKind.Ready) BatchRename.Apply(p);
+			}
+			if (!File.Exists(Path.Combine(dir, "pic_001.jpg")) || File.Exists(a)) {
+				Err("FAIL: 未改名到 pic_001.jpg");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		finally {
+			try { Directory.Delete(dir, true); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：批量重命名 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testhash() {
+		Out("=== 校验哈希 --test-hash ===");
+		var bad = 0;
+		var path = Path.Combine(Path.GetTempPath(), "sk_hash_" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".bin");
+		try {
+			File.WriteAllBytes(path, Encoding.UTF8.GetBytes("ScreenKit"));
+			var row = HashTool.Compute(path, CancellationToken.None);
+			Out($"md5={row.Md5} sha256={row.Sha256}");
+			if (row.Sha256.Length != 64 || row.Md5.Length != 32) {
+				Err("FAIL: 哈希长度");
+				bad++;
+			}
+			if (HashTool.MatchKind(row, row.Sha256) != "SHA-256") {
+				Err("FAIL: 比对 SHA-256");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		finally {
+			try { File.Delete(path); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：校验哈希 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testtexttool() {
+		Out("=== 文本小工具 --test-texttool ===");
+		var bad = 0;
+		try {
+			var s = "你好 ABC";
+			var b64 = TextTools.Base64Enc(s);
+			if (TextTools.Base64Dec(b64) != s) {
+				Err("FAIL: base64 往返");
+				bad++;
+			}
+			var hex = TextTools.GbkHex(s);
+			if (TextTools.FromGbkHex(hex) != s) {
+				Err("FAIL: gbk hex 往返 " + hex);
+				bad++;
+			}
+			if (TextTools.UrlDec(TextTools.UrlEnc("a b")) != "a b") {
+				Err("FAIL: url");
+				bad++;
+			}
+			var st = TextTools.Stats("a\nb");
+			if (st.Lines != 2 || st.Chars != 3) {
+				Err($"FAIL: stats lines={st.Lines} chars={st.Chars}");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：文本小工具 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -2407,6 +2549,10 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
+  ScreenKit --test-qr-make
+  ScreenKit --test-rename
+  ScreenKit --test-hash
+  ScreenKit --test-texttool
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
@@ -2459,6 +2605,10 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除（临时目录，不弹配对）
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 限制 100×100）并校验尺寸
+      --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
+      --test-rename  Everything 风格 %1 / ### 批量改名
+      --test-hash  计算并比对 SHA-256
+      --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2510,6 +2660,10 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
+  ScreenKit --test-qr-make
+  ScreenKit --test-rename
+  ScreenKit --test-hash
+  ScreenKit --test-texttool
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent

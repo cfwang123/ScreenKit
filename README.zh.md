@@ -69,6 +69,10 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **HTTP API** | 本机 JSON 接口（默认 `127.0.0.1:1224`）。主界面 Tab：调用日志 + 手动发请求。 |
 | **安装功能** | 功能选择树打开时勾选已装项；增删显示绿/红数量与大小；点确认即安装或卸载。发音人单独一页。中文环境优先国内镜像。 |
 | **图片格式转换** | 菜单 **工具 → 图片格式转换**：批量转 JPG/PNG/BMP，可限制最大宽高、旋转/镜像；列表支持图片视图（小缩略图）与列表视图；选中后预览已应用质量与变换的效果；输出到源文件旁 `output/` 或指定目录。 |
+| **二维码 / 条码** | **工具 → 二维码 / 条码生成**：QR、Data Matrix、Code 128/39、EAN、UPC。图下显示一行原文。编码 UTF-8 或 GBK（默认 UTF-8）。 |
+| **批量重命名** | **工具 → 批量重命名**：Everything 风格旧/新表达式（`%1` 捕获，`#` / `###` 编号），可选正则、忽略扩展名。 |
+| **校验哈希** | **工具 → 校验哈希**：MD5 / SHA-1 / SHA-256；可粘贴期望值比对。 |
+| **文本小工具** | **工具 → 文本小工具**：Base64、URL、UTF-8/GBK 十六进制、Unicode 转义、大小写、空白、字数。 |
 | **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入 · 翻译小窗（可配置、可清空禁用）。 |
 | **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口 / 文件同步（`tab_*_visible`）。 |
 | **推理设备** | CPU · NVIDIA CUDA · 核显 DirectML；未装加速时自动 CPU。 |
@@ -303,6 +307,10 @@ ScreenKit --test-overlay-span-adj # 跨屏选区副屏手柄
 ScreenKit --test-clipboard-path
 ScreenKit --test-apk-qr
 ScreenKit --test-img-convert
+ScreenKit --test-qr-make
+ScreenKit --test-rename
+ScreenKit --test-hash
+ScreenKit --test-texttool
 ScreenKit --test-sendfile
 ScreenKit --test-face-overlay
 ScreenKit --list-models
