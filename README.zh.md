@@ -2,7 +2,7 @@
 
 Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截图工具」）：截图识别、标注、条码/二维码、长截图、录屏/GIF、PDF 工作台、语音识别/合成、LLM 对话、翻译、人脸、本机 HTTP API，以及与安卓配套的局域网文件传输。
 
-**当前版本：1.0.9** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**当前版本：1.0.10** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 [English](README.md) · [中文](README.zh.md)
 
@@ -25,8 +25,8 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 | 文件 | 说明 |
 |------|------|
-| [`screenkit_1.0.9.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 精简包（exe + 托管依赖）。模型与运行库在程序内安装。 |
-| `screenkit1.0.9.apk` | 局域网文件/文本同步安卓客户端（同一发布页，或电脑 **文件同步 → 安装到手机**）。 |
+| [`screenkit_1.0.10.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 精简包（exe + 托管依赖）。模型与运行库在程序内安装。 |
+| `screenkit1.0.10.apk` | 局域网文件/文本同步安卓客户端（同一发布页，或电脑 **文件同步 → 安装到手机**）。 |
 
 解压后运行 `ScreenKit/ScreenKit.exe`。首次启动可出现安装向导。需要 [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
 
