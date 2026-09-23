@@ -2713,6 +2713,16 @@ static class Cli {
 				bad++;
 			}
 			catch (InvalidOperationException) { Out("empty charset OK"); }
+			var parsed = WordLex.Parse(
+				"```json\n[{\"lang\":\"zh\",\"native\":\"密码\",\"latin\":\"mi ma\"}," +
+				"{\"lang\":\"ja\",\"native\":\"パスワード\",\"latin\":\"pasuwaado\"}," +
+				"{\"lang\":\"ko\",\"native\":\"비밀번호\",\"latin\":\"bimilbeonho\"}]\n```");
+			if (parsed.Count != 3 || parsed[0].Code != "zh" || parsed[1].Latin != "pasuwaado"
+				|| parsed[2].Native != "비밀번호") {
+				Err("FAIL: WordLex.Parse " + string.Join(",", parsed.Select(r => r.Code + "=" + r.Latin)));
+				bad++;
+			}
+			else Out("WordLex.Parse OK");
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);

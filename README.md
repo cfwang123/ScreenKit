@@ -73,7 +73,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Batch rename** | **Tools → Batch rename**: source list (add/remove/move, sort by name / modified / added); new names in a textarea. Everything / FastCopy patterns (`%1`/`%2` shortest capture, `#` / `###`); changing the list or rules recalculates names. |
 | **Hash** | **Tools → Hash**: MD5 / SHA-1 / SHA-256; paste an expected hash to match. |
 | **Text tools** | **Tools → Text tools**: Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, counts, smart JSON pretty-print (short arrays/objects stay on one line). |
-| **Password generator** | **Tools → Password generator**: crypto-random; length, sets, skip `0OIl1`, at least one of each class. Remembers last settings. |
+| **Password generator** | **Tools → Password generator**: crypto-random; length, sets, skip `0OIl1`, at least one of each class. Remembers last settings. **Word lex** tab: LLM translations plus pinyin / romaji / romanization. |
 | **Network tools** | **Tools → Network tools**: Ping, DNS, WHOIS, traceroute, ping-locate, proxy-locate, HTTP speed-locate. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |

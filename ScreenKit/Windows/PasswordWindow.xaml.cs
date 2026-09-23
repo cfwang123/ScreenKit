@@ -1,19 +1,28 @@
+using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Input;
 
 namespace ScreenKit;
 
 /// <summary>工具 → 密码生成器。</summary>
 public partial class PasswordWindow : Window {
 	readonly OcrOptions opt;
+	readonly ObservableCollection<WordLexRow> lexRows = new();
+	CancellationTokenSource lexCts;
+	bool lexBusy;
 
 	public PasswordWindow(OcrOptions options) {
 		opt = options ?? new OcrOptions();
 		InitializeComponent();
+		lvlex.ItemsSource = lexRows;
 		loadui();
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
-		Closing += (_, _) => saveui();
+		Closing += (_, _) => {
+			try { lexCts?.Cancel(); } catch { }
+			saveui();
+		};
 		gen();
 	}
 
@@ -56,10 +65,22 @@ public partial class PasswordWindow : Window {
 		cnoamb.Checked += (_, _) => updatestat();
 		cnoamb.Unchecked += (_, _) => updatestat();
 		elen.TextChanged += (_, _) => updatestat();
+		blex.Click += (_, _) => golex();
+		blexcopy.Click += (_, _) => copylex(latinOnly: false);
+		blexlat.Click += (_, _) => copylex(latinOnly: true);
+		lvlex.MouseDoubleClick += (_, _) => copysel();
+		eword.PreviewKeyDown += (_, e) => {
+			if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None) {
+				golex();
+				e.Handled = true;
+			}
+		};
 	}
 
 	void applylang() {
 		Title = Loc.T("pwgen.title");
+		tabrand.Header = Loc.T("pwgen.tab.rand");
+		tablex.Header = Loc.T("pwgen.tab.lex");
 		lblen.Text = Loc.T("pwgen.len");
 		lbcount.Text = Loc.T("pwgen.count");
 		clower.Content = Loc.T("pwgen.lower");
@@ -69,8 +90,16 @@ public partial class PasswordWindow : Window {
 		cnoamb.Content = Loc.T("pwgen.noamb");
 		ceach.Content = Loc.T("pwgen.each");
 		lbout.Text = Loc.T("pwgen.out");
+		lblexhint.Text = Loc.T("pwgen.lex.hint");
+		lbword.Text = Loc.T("pwgen.lex.word");
+		collexlang.Header = Loc.T("pwgen.lex.col.lang");
+		collexnat.Header = Loc.T("pwgen.lex.col.native");
+		collexlat.Header = Loc.T("pwgen.lex.col.latin");
 		ToolBtnUi.Set(bgen, ToolBtnUi.Play, Loc.T("pwgen.gen"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
+		ToolBtnUi.Set(blex, ToolBtnUi.Play, Loc.T("pwgen.lex.go"));
+		ToolBtnUi.Set(blexcopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
+		ToolBtnUi.Set(blexlat, ToolBtnUi.Copy, Loc.T("pwgen.lex.latin"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 		updatestat();
 	}
@@ -131,6 +160,80 @@ public partial class PasswordWindow : Window {
 		}
 		catch {
 			lbstat.Text = "";
+		}
+	}
+
+	async void golex() {
+		if (lexBusy) return;
+		var word = (eword.Text ?? "").Trim();
+		if (word.Length == 0) {
+			lblexstat.Text = Loc.T("pwgen.lex.need");
+			try { eword.Focus(); } catch { }
+			return;
+		}
+		lexBusy = true;
+		blex.IsEnabled = false;
+		lblexstat.Text = Loc.T("pwgen.lex.busy");
+		try { lexCts?.Cancel(); } catch { }
+		lexCts = new CancellationTokenSource();
+		var ct = lexCts.Token;
+		var o = opt;
+		try {
+			var rows = await Task.Run(() => WordLex.Translate(o, word, ct), ct).ConfigureAwait(true);
+			if (ct.IsCancellationRequested) return;
+			lexRows.Clear();
+			foreach (var r in rows)
+				lexRows.Add(r);
+			lblexstat.Text = Loc.T("pwgen.lex.stat", rows.Count);
+		}
+		catch (OperationCanceledException) { }
+		catch (Exception ex) {
+			lblexstat.Text = Loc.T("pwgen.fail", ex.Message);
+		}
+		finally {
+			lexBusy = false;
+			blex.IsEnabled = true;
+		}
+	}
+
+	void copysel() {
+		var row = lvlex.SelectedItem as WordLexRow;
+		if (row == null) return;
+		var s = (row.Latin ?? "").Trim();
+		if (s.Length == 0) s = (row.Native ?? "").Trim();
+		if (s.Length == 0) return;
+		try {
+			Clipboard.SetText(s);
+			lblexstat.Text = Loc.T("pwgen.copied");
+		}
+		catch { }
+	}
+
+	void copylex(bool latinOnly) {
+		var lines = new List<string>();
+		IEnumerable<WordLexRow> src = lvlex.SelectedItems.Count > 0
+			? lvlex.SelectedItems.OfType<WordLexRow>()
+			: lexRows;
+		foreach (var r in src) {
+			if (r == null) continue;
+			if (latinOnly) {
+				if (!string.IsNullOrWhiteSpace(r.Latin))
+					lines.Add(r.Latin.Trim());
+			}
+			else {
+				var a = (r.Lang ?? "").Trim();
+				var b = (r.Native ?? "").Trim();
+				var c = (r.Latin ?? "").Trim();
+				lines.Add($"{a}\t{b}\t{c}".Trim());
+			}
+		}
+		if (lines.Count == 0) return;
+		try {
+			Clipboard.SetText(string.Join("\r\n", lines));
+			lblexstat.Text = Loc.T("pwgen.copied");
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 }
