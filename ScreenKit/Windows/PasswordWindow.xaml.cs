@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace ScreenKit;
@@ -10,6 +11,7 @@ public partial class PasswordWindow : Window {
 	readonly ObservableCollection<WordLexRow> lexRows = new();
 	CancellationTokenSource lexCts;
 	bool lexBusy;
+	bool lexUiLoading;
 
 	public PasswordWindow(OcrOptions options) {
 		opt = options ?? new OcrOptions();
@@ -17,6 +19,7 @@ public partial class PasswordWindow : Window {
 		lvlex.ItemsSource = lexRows;
 		loadui();
 		applylang();
+		filllexllm();
 		initev();
 		WindowEsc.Attach(this);
 		Closing += (_, _) => {
@@ -47,6 +50,8 @@ public partial class PasswordWindow : Window {
 		opt.PwSymbol = o.Symbol;
 		opt.PwNoAmbiguous = o.NoAmbiguous;
 		opt.PwEachClass = o.EachClass;
+		var ep = currentlexllm();
+		opt.PwLexLlm = ep != null ? ep.DisplayName : "";
 		try { AppConfig.Save(opt); } catch { }
 	}
 
@@ -65,6 +70,7 @@ public partial class PasswordWindow : Window {
 		cnoamb.Checked += (_, _) => updatestat();
 		cnoamb.Unchecked += (_, _) => updatestat();
 		elen.TextChanged += (_, _) => updatestat();
+		elexllm.SelectionChanged += (_, _) => savelexllm();
 		blex.Click += (_, _) => golex();
 		blexcopy.Click += (_, _) => copylex(latinOnly: false);
 		blexlat.Click += (_, _) => copylex(latinOnly: true);
@@ -91,6 +97,7 @@ public partial class PasswordWindow : Window {
 		ceach.Content = Loc.T("pwgen.each");
 		lbout.Text = Loc.T("pwgen.out");
 		lblexhint.Text = Loc.T("pwgen.lex.hint");
+		lblexllm.Text = Loc.T("pwgen.lex.llm");
 		lbword.Text = Loc.T("pwgen.lex.word");
 		collexlang.Header = Loc.T("pwgen.lex.col.lang");
 		collexnat.Header = Loc.T("pwgen.lex.col.native");
@@ -163,6 +170,64 @@ public partial class PasswordWindow : Window {
 		}
 	}
 
+	void filllexllm() {
+		lexUiLoading = true;
+		try {
+			var want = (opt.PwLexLlm ?? "").Trim();
+			if (want.Length == 0)
+				want = (opt.TranslateLlm ?? "").Trim();
+			if (want.Length == 0)
+				want = (opt.ChatLlm ?? "").Trim();
+			if (want.Length == 0)
+				want = (opt.AsrLlm ?? "").Trim();
+			elexllm.Items.Clear();
+			ComboBoxItem pick = null;
+			if (opt.LlmList != null) {
+				foreach (var ep in opt.LlmList) {
+					if (ep == null) continue;
+					var name = ep.DisplayName;
+					if (name.Length == 0) continue;
+					var it = new ComboBoxItem {
+						Content = name,
+						Tag = ep,
+						ToolTip = string.IsNullOrWhiteSpace(ep.Model) ? name : ep.Model,
+					};
+					elexllm.Items.Add(it);
+					if (pick == null &&
+						(string.Equals(name, want, StringComparison.OrdinalIgnoreCase)
+						|| string.Equals(ep.Model ?? "", want, StringComparison.OrdinalIgnoreCase)))
+						pick = it;
+				}
+			}
+			if (elexllm.Items.Count == 0) {
+				elexllm.Items.Add(new ComboBoxItem {
+					Content = Loc.T("chat.llm.none"),
+					Tag = null,
+					IsEnabled = false,
+				});
+				elexllm.SelectedIndex = 0;
+			}
+			else
+				elexllm.SelectedItem = pick ?? elexllm.Items[0];
+		}
+		finally { lexUiLoading = false; }
+	}
+
+	LlmEndpoint currentlexllm() {
+		var it = elexllm.SelectedItem as ComboBoxItem;
+		return it?.Tag as LlmEndpoint;
+	}
+
+	void savelexllm() {
+		if (lexUiLoading) return;
+		try {
+			var ep = currentlexllm();
+			opt.PwLexLlm = ep != null ? ep.DisplayName : "";
+			AppConfig.Save(opt);
+		}
+		catch { }
+	}
+
 	async void golex() {
 		if (lexBusy) return;
 		var word = (eword.Text ?? "").Trim();
@@ -178,8 +243,9 @@ public partial class PasswordWindow : Window {
 		lexCts = new CancellationTokenSource();
 		var ct = lexCts.Token;
 		var o = opt;
+		var ep = currentlexllm();
 		try {
-			var rows = await Task.Run(() => WordLex.Translate(o, word, ct), ct).ConfigureAwait(true);
+			var rows = await Task.Run(() => WordLex.Translate(o, word, ep, ct), ct).ConfigureAwait(true);
 			if (ct.IsCancellationRequested) return;
 			lexRows.Clear();
 			foreach (var r in rows)

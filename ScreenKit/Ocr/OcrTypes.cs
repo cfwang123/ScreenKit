@@ -150,6 +150,8 @@ public sealed class OcrOptions {
 	public bool PwSymbol = true;
 	public bool PwNoAmbiguous;
 	public bool PwEachClass = true;
+	/// <summary>单词译音所用 LLM 显示名；空则回退翻译/对话/润色所选。</summary>
+	public string PwLexLlm = "";
 	/// <summary>截图完成时复制为图片（与 AsFile / AsPath 三选一）。</summary>
 	public bool SnapCopyAsImage = true;
 	/// <summary>截图完成时复制为文件 FileDrop（与 AsImage / AsPath 三选一）。</summary>
@@ -375,6 +377,7 @@ public sealed class OcrOptions {
 		PwSymbol = PwSymbol,
 		PwNoAmbiguous = PwNoAmbiguous,
 		PwEachClass = PwEachClass,
+		PwLexLlm = PwLexLlm ?? "",
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,
@@ -469,6 +472,13 @@ public sealed class OcrOptions {
 		var hit = FindLlm(ChatLlm);
 		if (hit != null) return hit;
 		return SelectedLlm();
+	}
+
+	/// <summary>单词译音用 LLM；未选则回退翻译 / 对话 / 润色。</summary>
+	public LlmEndpoint SelectedPwLexLlm() {
+		var hit = FindLlm(PwLexLlm);
+		if (hit != null) return hit;
+		return SelectedTranslateLlm() ?? SelectedChatLlm() ?? SelectedLlm();
 	}
 }
 

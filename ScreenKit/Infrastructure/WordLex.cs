@@ -31,11 +31,12 @@ static class WordLex {
 		"latin: ASCII letters, optional spaces or hyphens, no diacritics. " +
 		"Keep translations short (one word or a short compound).";
 
-	public static List<WordLexRow> Translate(OcrOptions o, string word, CancellationToken ct = default) {
+	public static List<WordLexRow> Translate(OcrOptions o, string word, LlmEndpoint ep = null,
+		CancellationToken ct = default) {
 		word = (word ?? "").Trim();
 		if (word.Length == 0)
 			throw new InvalidOperationException("empty");
-		var ep = o?.SelectedTranslateLlm() ?? o?.SelectedChatLlm() ?? o?.SelectedLlm();
+		ep ??= o?.SelectedPwLexLlm();
 		if (!AsrLlmClient.IsEndpointReady(ep))
 			throw new InvalidOperationException(Loc.T("pwgen.lex.nollm"));
 		object messages = new object[] {

@@ -27,7 +27,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- **Tools → Password generator**: crypto-random passwords; length, count, character sets, skip ambiguous `0OIl1`, at least one of each class. Tray and CLI `--test-pwgen`. Last settings are saved. **Word lex** tab: LLM translates a word into Chinese/Japanese/Korean/English and more, with pinyin, romaji, and romanization.
+- **Tools → Password generator**: crypto-random passwords; length, count, character sets, skip ambiguous `0OIl1`, at least one of each class. Tray and CLI `--test-pwgen`. Last settings are saved. **Word lex** tab: pick an LLM (`pwgen_llm`), then translate a word into Chinese/Japanese/Korean/English and more, with pinyin, romaji, and romanization.
 - **Tools → Network tools**: Ping, DNS lookup, domain/IP WHOIS, traceroute, ping-locate, proxy-locate, and HTTP speed-locate (latency to regional sites via the system proxy). Each action clears previous output. Tray and CLI `--test-nettool`.
 - Image convert output: **Replace source (permanently delete)** and **Replace source (Recycle Bin)**. Convert-all asks before replacing. Same-name different-extension writes the new file then removes the original; same extension overwrites in place (Recycle Bin keeps the old file). “Keep original if still ≥ N%” skips and leaves the source. Settings: `imgconv_out_mode`. CLI: `--test-img-convert`.
 - **File sync** tab: flat inbox listing of `sendfile/` (no subfolder navigation). Select, marquee, cut/copy/paste, Delete to Recycle Bin, drag to Explorer. Drop on the list imports; drop on the lower zone still sends to the phone. File/image paste goes into the inbox; text paste still goes to the phone pane.
@@ -47,7 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- **工具 → 密码生成器**：加密随机；长度、条数、字符集、排除易混 `0OIl1`、每类至少一个。记住上次设置。托盘与 CLI `--test-pwgen`。**单词译音** Tab：用 LLM 译成中日韩英等，并给出拼音 / romaji / 罗马字。
+- **工具 → 密码生成器**：加密随机；长度、条数、字符集、排除易混 `0OIl1`、每类至少一个。记住上次设置。托盘与 CLI `--test-pwgen`。**单词译音** Tab：可选 LLM（`pwgen_llm`），译成中日韩英等，并给出拼音 / romaji / 罗马字。
 - **工具 → 网络工具**：Ping、域名解析、WHOIS、路由跟踪、Ping 定位、代理定位、HTTP 测速定位（系统代理访问各地站点测延迟）。每次点按钮清空旧输出。托盘与 CLI `--test-nettool`。
 - 图片格式转换输出路径新增：**替换源文件（永久删除）**、**替换源文件（回收站）**。全部转换前会确认。后缀不同则写出新文件再删源；同后缀原地覆盖（回收站会先把旧文件移走）。「体积仍 ≥ N% 用原图」时跳过、不删源。配置：`imgconv_out_mode`。CLI：`--test-img-convert`。
 - **文件同步** Tab：平铺浏览接收目录 `sendfile/`（不进入子目录）。可单选/多选、框选、剪切/复制/粘贴、删除到回收站、拖到资源管理器。拖到列表导入；拖到下方区域仍传到手机。粘贴文件/图片进入接收目录；粘贴文本仍到右侧。
