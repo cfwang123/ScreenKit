@@ -8,6 +8,7 @@ import com.whj.screenkit.databinding.ActivityPickPcBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -40,7 +41,13 @@ class PickPcActivity : AppCompatActivity() {
     private fun scan() {
         bind.bscan.isEnabled = false
         io.launch {
-            val list = withContext(Dispatchers.IO) { Discover.scan() }
+            var list = withContext(Dispatchers.IO) { Discover.scan(this@PickPcActivity) }
+            android.util.Log.i("SKSend", "discover ${list.size}: $list")
+            if (list.isEmpty()) {
+                delay(400)
+                list = withContext(Dispatchers.IO) { Discover.scan(this@PickPcActivity) }
+                android.util.Log.i("SKSend", "discover retry ${list.size}: $list")
+            }
             pcs.clear()
             pcs.addAll(list)
             bind.lvpcs.adapter = ArrayAdapter(

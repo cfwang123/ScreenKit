@@ -183,6 +183,7 @@ public partial class SettingsWindow : Window {
 			etabtranslatevisible.Content = Loc.T("tab.translate");
 			etabfacevisible.Content = Loc.T("tab.face");
 			etabhttpvisible.Content = Loc.T("tab.http");
+			etabsfvisible.Content = Loc.T("tab.sendfile");
 			lbsetupdate.Text = Loc.T("set.update");
 			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
 			lbsetupdatehint.Text = Loc.T("set.update.hint");
@@ -423,6 +424,7 @@ public partial class SettingsWindow : Window {
 		etabtranslatevisible.IsChecked = o.TabTranslateVisible;
 		etabfacevisible.IsChecked = o.TabFaceVisible;
 		etabhttpvisible.IsChecked = o.TabHttpVisible;
+		etabsfvisible.IsChecked = o.TabSendFileVisible;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		eproxyen.IsChecked = o.HttpProxyEnabled;
 		eproxyaddr.Text = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr;
@@ -579,6 +581,7 @@ public partial class SettingsWindow : Window {
 		Result.TabTranslateVisible = etabtranslatevisible.IsChecked == true;
 		Result.TabFaceVisible = etabfacevisible.IsChecked == true;
 		Result.TabHttpVisible = etabhttpvisible.IsChecked == true;
+		Result.TabSendFileVisible = etabsfvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
 		Result.HttpProxyEnabled = eproxyen.IsChecked == true;

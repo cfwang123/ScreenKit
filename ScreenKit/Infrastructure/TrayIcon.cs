@@ -27,7 +27,6 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miGifRecord;
 	Forms.ToolStripMenuItem miGifRecordOpt;
 	Forms.ToolStripMenuItem miSettings;
-	Forms.ToolStripMenuItem miSendFile;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
 	Forms.ToolStripMenuItem miSnapCopyPath;
@@ -129,7 +128,6 @@ sealed class TrayIcon : IDisposable {
 		miGifRecord = item("tray.gifrecord", () => GifRecordRequested?.Invoke());
 		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
-		miSendFile = item("tray.sendfile", () => TextSyncRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
 		miSnapCopyPath = checkitem("tray.snapcopypath", true);
@@ -162,7 +160,6 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miGifRecord);
 		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(miSettings);
-		menu.Items.Add(miSendFile);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miExit);
 		ni.ContextMenuStrip = menu;
@@ -334,7 +331,6 @@ sealed class TrayIcon : IDisposable {
 			settext(miGifRecord, "tray.gifrecord");
 			settext(miGifRecordOpt, "tray.gifrecordopt");
 			settext(miSettings, "tray.settings");
-			settext(miSendFile, "tray.sendfile");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
 		}
@@ -359,7 +355,6 @@ sealed class TrayIcon : IDisposable {
 	public event Action GifRecordRequested;
 	public event Action GifRecordOptionsRequested;
 	public event Action SettingsRequested;
-	public event Action TextSyncRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>
 	public event Action<bool, bool, bool> SnapCopyOptionsChanged;

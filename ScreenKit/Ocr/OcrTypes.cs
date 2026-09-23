@@ -135,6 +135,7 @@ public sealed class OcrOptions {
 	public bool TabTranslateVisible = true;
 	public bool TabFaceVisible = true;
 	public bool TabHttpVisible = true;
+	public bool TabSendFileVisible = true;
 	/// <summary>启动时自动检查更新的间隔（天）。默认 7；0 = 不自动检查。菜单「检查更新」不受限。</summary>
 	public int UpdateCheckDays = 7;
 	/// <summary>上次成功查询 GitHub Releases 的 UTC unix 秒；0 = 从未检查。</summary>
@@ -335,6 +336,7 @@ public sealed class OcrOptions {
 		TabTranslateVisible = TabTranslateVisible,
 		TabFaceVisible = TabFaceVisible,
 		TabHttpVisible = TabHttpVisible,
+		TabSendFileVisible = TabSendFileVisible,
 		UpdateCheckDays = UpdateCheckDays,
 		LastUpdateCheckUnix = LastUpdateCheckUnix,
 		HttpProxyEnabled = HttpProxyEnabled,

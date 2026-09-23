@@ -1,5 +1,7 @@
 package com.whj.screenkit
 
+import android.content.Context
+import android.net.wifi.WifiManager
 import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -16,8 +18,17 @@ data class PcInfo(
 }
 
 object Discover {
-    fun scan(timeoutMs: Int = 1500, udpPort: Int = 17531): List<PcInfo> {
+    fun scan(ctx: Context, timeoutMs: Int = 3000, udpPort: Int = 17531): List<PcInfo> {
         val found = LinkedHashMap<String, PcInfo>()
+        val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        val lock = try {
+            wifi?.createMulticastLock("sksend")?.also {
+                it.setReferenceCounted(false)
+                it.acquire()
+            }
+        } catch (_: Exception) {
+            null
+        }
         val sock = DatagramSocket()
         try {
             sock.broadcast = true
@@ -25,6 +36,10 @@ object Discover {
             val payload = "SCREENKIT_DISCOVER".toByteArray(StandardCharsets.UTF_8)
             val dest = InetAddress.getByName("255.255.255.255")
             sock.send(DatagramPacket(payload, payload.size, dest, udpPort))
+            try {
+                sock.send(DatagramPacket(payload, payload.size, dest, udpPort))
+            } catch (_: Exception) {
+            }
             val buf = ByteArray(2048)
             val deadline = System.currentTimeMillis() + timeoutMs
             while (System.currentTimeMillis() < deadline) {
@@ -46,6 +61,7 @@ object Discover {
             }
         } finally {
             try { sock.close() } catch (_: Exception) { }
+            try { if (lock?.isHeld == true) lock.release() } catch (_: Exception) { }
         }
         return found.values.toList()
     }

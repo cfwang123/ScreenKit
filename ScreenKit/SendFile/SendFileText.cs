@@ -47,6 +47,10 @@ public sealed class SendFileText {
 		}
 	}
 
+	public List<SendFileMsg> SnapshotInbox() {
+		lock (gate) return inbox.ToList();
+	}
+
 	SendFileMsg make(string text) {
 		lock (gate) {
 			return new SendFileMsg {

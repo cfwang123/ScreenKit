@@ -46,6 +46,7 @@
 							<CheckBox x:Name="etabtranslatevisible" Content="翻译" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabfacevisible" Content="人脸识别" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabhttpvisible" Content="HTTP接口" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabsfvisible" Content="文件同步" Width="140" Margin="0,0,0,6"/>
 						</WrapPanel>
 
 						<TextBlock x:Name="lbsetupdate" Text="自动更新间隔" FontWeight="SemiBold" Margin="0,0,0,6"/>

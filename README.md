@@ -1,10 +1,36 @@
 # ScreenKit
 
-Windows desktop tool (project ScreenKit, exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, recognize text (PP-OCR / RapidOCR packs), long screenshot, **screen recording**, PDF workbench, ASR/TTS, optional translation, and optional local HTTP API.
+Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, and LAN file transfer with an Android companion.
 
-Current version: **1.0.7**
+**Current version: 1.0.8** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
+
+## Contents
+
+1. [Download](#download)
+2. [Screenshots](#screenshots)
+3. [Features](#features)
+4. [Requirements](#requirements)
+5. [Using ScreenKit](#using-screenkit)
+6. [Install features](#install-features)
+7. [Configuration](#configuration)
+8. [HTTP API](#http-api-overview)
+9. [CLI](#cli)
+10. [x86host](#x86host-32-bit-sapi-only)
+11. [Build from source](#build-from-source)
+12. [License](#license)
+
+## Download
+
+| File | What |
+|------|------|
+| [`screenkit_1.0.8.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
+| `screenkit1.0.8.apk` | Android companion for LAN file/text sync (same release page, or **File sync → Install on phone**). |
+
+Unpack the 7z and run `ScreenKit/ScreenKit.exe`. First launch may open the install wizard. Requires [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
+
+Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 ## Screenshots
 
@@ -12,122 +38,99 @@ Current version: **1.0.7**
 
 ## Features
 
+### Capture and recognition
+
 | Area | Description |
 |------|-------------|
-| **Screenshot recognition** | Region capture → text OCR or barcode/QR recognition; multi-monitor DXGI capture. Korean/English word spaces are restored from visual gaps on the line (same for Latin text under the Chinese rec model); no spaces inserted between CJK characters. Optional overlay translation via LLM (default off) |
-| **Screenshot annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, color dots, undo / save / confirm; dropdown next to confirm for copy-as image / file / path (finishes and sets default) |
-| **Long screenshot** | Pick a window → auto-scroll stitch → open in viewer (no OCR) |
-| **Screen recording** | Window or region → HUD (move/resize region, draggable bar) → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio; optional mouse cursor and click highlight |
-| **GIF recording** | Same region flow → capture 24 fps → preview (output FPS, scale, palette) → silent GIF; same mouse / click-highlight options |
-| **Clipboard** | Paste image and run OCR; Edit menu: copy image / file / path; copy text via Ctrl+C or the result-panel button; menu/tray can switch on-capture copy mode (image / file / path) |
-| **Overlay text** | Text layer on the image; click-release selects one OCR block, click empty clears, drag-select stays in the dragged range (no snap-expand); Ctrl+C copies |
-| **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF (invisible text layer) |
-| **ASR / TTS** | Speech-recognition tab can switch live captions between offline and streaming models; Sherpa/SAPI/WinRT offline TTS and Edge online natural voices |
-| **LLM chat** | Main-window tab **LLM chat**: WeChat-style bubbles, Clear; `[[llm]]` pick. **Tools** agent; **Mic** / **Auto speak**; bottom timing log (`llm`/`asr`/`tts` ms) |
-| **Translation** | Opus-MT ONNX locally, or any configured **LLM** (`[[llm]]`); pick the engine on the Translate tab; 20-trip round-trip translation stops early when a result repeats; floating translate popup (`Ctrl+Alt+T`) |
-| **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
-| **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
-| **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
-| **Install features** | Feature tree checks what’s already installed; add (green) / remove (red) sizes; Reset; Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
-| **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
-| **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`; all visible by default) |
-| **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + manual request |
-| **PC file transfer** | Separate LAN service (HTTP 17532 on all interfaces + UDP discovery 17531). **File sync** tab: with the phone app connected, files dropped/pasted on the PC go to the phone’s bound folder (ignored if offline); files shared from the phone land in `sendfile/` next to the exe. The PC shows in-progress transfers and a transfer log. **Install on phone** shows a LAN URL (`http://<pc-ip>:17532/apk`) served by this PC and a QR code (defaults to an address that can reach the Internet when several NICs are present). A Release build copies the newest **release** APK from `android/` into `apk/` next to the exe (only when newer; debug APKs are ignored). Companion Android app under `android/` (`com.whj.screenkit`). First connection shows a confirm dialog (not owned by the main window, so it still appears when the app is in the tray). |
-| **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test |
+| **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. |
+| **Annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text; dropdown next to confirm for copy-as image / file / path. |
+| **Long screenshot** | Pick a scrollable window → auto-scroll stitch (no OCR). |
+| **Screen recording** | Window or region → HUD → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio; optional mouse cursor and click highlight. |
+| **GIF recording** | Same region flow → 24 fps capture → preview (FPS, scale, palette) → silent GIF. |
+| **Clipboard** | Paste image and OCR; Edit menu copy image / file / path; menu/tray sets on-capture copy mode. |
+| **Overlay text** | Click-release selects one OCR block; empty click clears; drag-select stays in range. Ctrl+C copies. |
+| **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF. |
+
+### Speech, LLM, translation, face
+
+| Area | Description |
+|------|-------------|
+| **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. |
+| **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
+| **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
+| **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
+| **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
+
+### Transfer, API, setup
+
+| Area | Description |
+|------|-------------|
+| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab: PC drops go to the phone’s bound folder while the app is connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. Companion: `android/` (`com.whj.screenkit`). |
+| **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
+| **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
+| **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
+| **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |
+| **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
+| **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test. |
 
 ## Requirements
 
 - Windows 10/11 (x64)
-- [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48) (runtime on end-user PCs)
-- Build: Visual Studio / MSBuild with .NET Framework 4.8 targeting pack (or SDK that can build `net48` WPF)
-- Optional: NVIDIA GPU + CUDA stack matching the ORT GPU package (`onnxgpu64`)
-- Optional: DirectML-capable GPU for the “核显” device option (`onnxdml64`)
-- Optional (screen record): FFmpeg **4.4 shared** libraries under `ffmpeg64/` next to the exe
+- [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
+- Build: Visual Studio / MSBuild with a `net48` WPF targeting pack
+- Optional: NVIDIA GPU + CUDA matching `onnxgpu64`; DirectML GPU for `onnxdml64`
+- Optional (record): FFmpeg **4.4 shared** under `ffmpeg64/` next to the exe
 
-## Project layout
+## Using ScreenKit
 
-```
-OCR/
-├── ScreenKit/                 # Application source (WPF, net48, x64)
-│   ├── Assets/
-│   └── bin/Release/
-│       ├── net48/          # Dev output (models / runtimes live here)
-│       └── ScreenKit/      # Slim package: ScreenKit.exe + x86host.exe + managed deps
-├── x86host/                # Standalone 32-bit SAPI web helper (x86host.exe only)
-├── docs/                   # README screenshots
-├── scripts/publish-release.mjs
-├── README.md
-├── README.zh.md
-└── CHANGELOG.md
-```
+### Screenshot, annotate, OCR
 
-Model packs and large native runtimes are **not** stored in source. Place or install them next to the executable:
+Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; the Done dropdown copies as image, file, or path and remembers the default.
 
-```
-ScreenKit/bin/Release/net48/
-├── ScreenKit.exe
-├── config.toml              # created/updated at runtime
-├── ocrmodels/               # OCR packs (rapid-ch, rapid-i18n, …)
-├── asrmodels/               # ASR packs (optional)
-├── ttsmodels/               # TTS voices (optional)
-├── translatemodels/         # Translation ONNX (optional)
-├── facemodels/              # Face ONNX (optional, InsightFace; Install Features can fetch buffalo_l)
-├── onnxcpu64/               # ONNX Runtime for CPU EP (on-demand install)
-├── onnxgpu64/               # CUDA ORT + CUDA libs (optional)
-├── onnxdml64/               # DirectML ORT (optional)
-└── ffmpeg64/                # FFmpeg shared DLLs for record (optional)
-```
+### Screen / GIF recording
 
-Each OCR pack needs ONNX models + `configs.txt` (and dict/keys as required by the pack). Optional `pack.json` (`name` / `nameEn` / `variants`) supplies English UI labels; built-in defaults live in `ocr-display.json` next to the exe.
+1. **Capture → Screen record** (or GIF record): click a window or drag a region.
+2. **HUD** (drawn outside the capture area):
+   - Red frame; drag the **5px strip** to move, or **8 grips** to resize. Aspect is free before **Start** and locked afterwards unless `record_lock_aspect = false`.
+   - Floating **control bar**: left grip to drag; collapse; **Options** before Start; start/pause share one slot. Stays on the current monitor.
+3. Stop → save MP4 (Explorer selects the file) or open the GIF preview (output FPS 1–24, scale, palette) then save a silent GIF.
+4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, CRF / AV1 CRF (0–63, default 56), audio, max size, **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64`.
 
-A **Release** build does not copy or junction these folders (or `onnxcpu64` / `onnxgpu64` / `onnxdml64` / `ffmpeg64`). Place them under `bin/Release/net48/` yourself.
+GDI capture has no cursor: enable **record mouse** to overlay the pointer; **highlight clicks** draws a short yellow (left) / blue (right) / green (middle) ripple. GIF size grows quickly — use preview scale/FPS and the max-size limit.
 
-## Build & run
+### File sync (PC ↔ Android)
 
-```bash
-cd ScreenKit
-dotnet build -c Release
-```
+1. On the PC, open the **File sync** tab (enable under Settings → API if needed; default on).
+2. **Install on phone**: LAN URL `http://<pc-ip>:17532/apk` and QR (defaults to an internet-reachable NIC). Phone and PC on the same LAN; scan with a browser to install.
+3. First connection: PC shows a pairing dialog (still appears when the main window is in the tray).
+4. While the phone app is connected, drop or paste files/folders/images on the PC tab to send them to the phone’s bound folder. Phone share/upload always writes to PC `sendfile/`.
+5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync shows the latest message in a read-only selectable box.
 
-Run:
+Android details: [android/README.md](android/README.md).
 
-```bash
-./ScreenKit/bin/Release/net48/ScreenKit.exe
-```
+### Default hotkeys
 
-A plain build does **not** ship models, `onnxcpu64`, full CUDA, or FFmpeg. Use **Tools → Install features** (or first-run wizard) inside the app.
+| Hotkey | Action |
+|--------|--------|
+| `Ctrl+Alt+O` | Toggle main window |
+| `Ctrl+Alt+Q` | Screenshot annotate |
+| `Ctrl+Alt+W` | Screenshot and OCR |
+| `Ctrl+Alt+V` | Voice input (press again to stop) |
+| `Ctrl+Alt+B` | Live caption |
+| `Ctrl+Alt+T` | Translate popup |
 
-### Slim release package (`bin\Release\ScreenKit\`)
+Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles the window; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray.
 
-Release builds also produce a **small redistributable** under `ScreenKit\bin\Release\ScreenKit\`:
+### UI language
 
-- Includes: `ScreenKit.exe`, **`x86host.exe`** (32-bit SAPI web), managed dependencies, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: OCR/ASR/TTS/face models, `onnxcpu64` / `onnxgpu64` / `onnxdml64`, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
-- End users install those via **Install features** (downloads from mirrors / NuGet CDN).
-- **Translation** is not covered by the installer: place Opus-MT ONNX under `translatemodels/` yourself if needed.
+**Tools → Language** → 中文 / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, and the translate popup.
 
-For local development with models and GPU already present, run **`bin\Release\net48\`** instead.
+## Install features
 
-### Release archive (`release/screenkit_x.x.x.7z`)
-
-```bash
-node scripts/publish-release.mjs
-```
-
-Runs Release build, then packs `ScreenKit/bin/Release/ScreenKit/` (folder included) into `release/screenkit_<version>.7z` (requires [7-Zip](https://www.7-zip.org/) on PATH). The `release/` folder is gitignored.
-
-Release documentation policy:
-
-- Every version entry in `CHANGELOG.md` must contain matching **English** and **中文** sections.
-- Every GitHub Release description must also be bilingual, with the English summary first and the Chinese summary second.
-- Keep checksums and links language-neutral and list them once after both summaries.
-
-## In-app install (recommended)
-
-1. First launch may open the install wizard (defaults: Simplified-Chinese OCR, first two ASR packs, recording; GPU/iGPU **off**).
+1. First launch may open the wizard (defaults: Simplified-Chinese OCR, first two ASR packs, recording; GPU/iGPU **off**).
 2. Later: **Tools → Install features**
    - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Voices are not on this tab.
-   - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process and do not require system `tar` / `bzip2`; a junction-based `ttsmodels` directory is supported.
+   - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
 
 | Runtime | Role | Typical size |
@@ -140,9 +143,9 @@ Release documentation policy:
 
 Download prefers CN mirrors when UI or system locale is Chinese.
 
-The **Edge online** TTS engine provides 300+ Microsoft natural voices, including Korean, without installing a model or entering an API key. It requires Internet access; voice listing and synthesis are sent to Microsoft's Edge Read Aloud service. This is not the paid Azure Speech API and uses an unofficial Edge endpoint, so availability can change. The configured HTTP proxy is honored.
+**Edge online** TTS: 300+ Microsoft natural voices (including Korean), no model or API key. Requires Internet; listing and synthesis go to Microsoft Edge Read Aloud (unofficial; not paid Azure Speech). The configured HTTP proxy is honored.
 
-Optional env vars for local full libraries (do not commit secrets/paths into docs meant for others):
+Optional env vars for local full libraries (do not commit secrets/paths):
 
 | Variable | Meaning |
 |----------|---------|
@@ -151,7 +154,24 @@ Optional env vars for local full libraries (do not commit secrets/paths into doc
 
 ## Configuration
 
-Settings are stored in `config.toml` beside the exe (also editable via **Tools → Settings** / **Record options**). The Settings window groups options into tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General** and apply immediately when saved.
+Settings live in `config.toml` beside the exe (**Tools → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**.
+
+| Section | Keys |
+|---------|------|
+| `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
+| `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days` |
+| `[http]` | OCR API bind (`127.0.0.1:1224`), service mode |
+| `[sendfile]` | LAN file transfer ports, display name, paired devices |
+| `[pdf]` | invisible text, raster DPI |
+| `[asr]` | voice/live mode, polish, split, `asr_llm` |
+| `[[llm]]` | OpenAI-compatible endpoints (`name` / `url` / `key` / `model` / `think`) |
+| `[translate]` | local ONNX device or `translate_llm` |
+| `[record]` / `[gif_record]` | codec, CRF, audio, mouse overlay |
+
+Do **not** commit a machine-specific `config.toml`.
+
+<details>
+<summary>Example <code>config.toml</code></summary>
 
 ```toml
 [ocr]
@@ -180,11 +200,11 @@ tab_translate_visible = true
 tab_face_visible = true
 tab_http_visible = true
 tab_sendfile_visible = true
-update_check_days = 7           # auto-check interval on startup (days); 0 = off. Menu Check for Updates always works.
-screenshot_keep_days = 3        # screenshot history retention (days); 0 = unlimited. Cleaned at startup only (background).
-# http_proxy = false            # HTTP proxy for GitHub / Hugging Face / other non-China sites
+update_check_days = 7           # auto-check interval on startup (days); 0 = off
+screenshot_keep_days = 3        # screenshot history; 0 = unlimited. Cleaned at startup only
+# http_proxy = false
 # http_proxy_addr = "127.0.0.1:7897"
-# ocr_translate_lang = ""       # OCR overlay/result target: empty = off; LLM lang code (zh/en/ja/ko/fr/…)
+# ocr_translate_lang = ""       # empty = off; LLM lang code (zh/en/ja/ko/…)
 
 [http]
 http_enabled = true
@@ -193,7 +213,7 @@ http_port = 1224
 service_mode = false            # keep engine warm
 
 [sendfile]
-sendfile_enabled = true         # LAN file transfer for the phone app
+sendfile_enabled = true
 sendfile_port = 17532
 sendfile_udp_port = 17531
 sendfile_name = ""              # empty = machine name
@@ -201,107 +221,84 @@ sendfile_name = ""              # empty = machine name
 
 [pdf]
 pdf_invisible_text = true
-pdf_dpi = 150                   # internal raster DPI; page size follows original PDF
+pdf_dpi = 150
 
 [record]
 record_codec = "x264"           # x264 | x265 | av1
 record_fps = 24
-record_crf = 28                 # x264/x265 only, 0–51, higher = smaller
-record_av1_crf = 56             # AV1 only, 0–63 (different scale; 56 ≈ half of x265 CRF28 size)
+record_crf = 28                 # x264/x265 only, 0–51
+record_av1_crf = 56             # AV1 only, 0–63 (56 ≈ half of x265 CRF28 size)
 record_audio = true
 record_audio_src = "Speakers"   # Speakers | Mic | MicAndSpeakers
 record_audio_kbps = 96
 record_max_size = false
 record_max_w = 1920
 record_max_h = 1080
-record_lock_aspect = true      # lock aspect when resizing HUD region after Start (free before Start)
-record_mouse = true             # overlay system cursor (GDI capture has none)
-record_click_highlight = true   # yellow/blue/green click ripples
+record_lock_aspect = true
+record_mouse = true
+record_click_highlight = true
 
 [asr]
-asr_voice_mode = "stream"       # stream = live; offline = record until hotkey stop, then one-shot ASR
-asr_voice_polish = true         # LLM polish for voice input (needs selected [[llm]] url + model)
+asr_voice_mode = "stream"       # stream | offline
+asr_voice_polish = true
 asr_voice_split = true
-asr_voice_split_sec = 5         # split only after this many seconds of silence (1–30); do not cut continuous speech
-asr_live_mode = "stream"        # stream | offline; Recognize pane radios
-asr_live_polish = false         # LLM polish each live-caption sentence
-asr_live_split = true           # auto-split after polish / completed sentences
-asr_llm = "gpt-4o-mini"         # display name of the [[llm]] entry used for polish (empty = first)
+asr_voice_split_sec = 5
+asr_live_mode = "stream"
+asr_live_polish = false
+asr_live_split = true
+asr_llm = "gpt-4o-mini"
 # asr_llm_prompt = "..."
-# chat_llm = ""                 # LLM chat tab; empty = same as polish
+# chat_llm = ""
 # chat_llm_prompt = "..."
-# chat_agent = true             # Tools: web search + tmp/llm/ files/scripts
-# chat_auto_tts = true          # speak assistant replies automatically
+# chat_agent = true
+# chat_auto_tts = true
 
 [[llm]]
-name = "gpt-4o-mini"            # display name; defaults to model id
+name = "gpt-4o-mini"
 url = "https://api.openai.com/v1"
-# key = ""                    # do not commit secrets
-model = "gpt-4o-mini"           # polish/translate: prefer small models e.g. Qwen/Qwen3.5-4B
-think = "low"                   # off | low | medium | high | max; Off for small models; GLM-5.3 cannot off
-# Polish sends prior output in the same session as context (homophones / names).
+# key = ""
+model = "gpt-4o-mini"
+think = "low"                   # off | low | medium | high | max
 
 [translate]
-translate_compute = "Auto"      # Auto | Gpu | Cpu | Igpu (local Opus-MT ONNX)
-# translate_llm = ""            # empty = local ONNX; else [[llm]] display name
+translate_compute = "Auto"      # Auto | Gpu | Cpu | Igpu
+# translate_llm = ""
 # translate_llm_prompt = "请将用户给出的文本从{src}翻译为{dst}。只输出译文。"
 
 [gif_record]
-gif_fps = 8                     # default output FPS in preview (1–24); capture is 24 fps
+gif_fps = 8
 gif_max_size = true
 gif_max_w = 1280
 gif_max_h = 720
-gif_colors = 128                # palette colors in preview (32/64/128/256)
-gif_scale = 100                 # default scale % in preview
-gif_mouse = true                # overlay system cursor
-gif_click_highlight = true      # click ripples (same as record)
+gif_colors = 128
+gif_scale = 100
+gif_mouse = true
+gif_click_highlight = true
 ```
 
-Leave a hotkey string empty to disable that hotkey.
+</details>
 
-Do **not** commit real `config.toml` if it encodes machine-specific paths or preferences you want private.
+`think`: `off` sends `thinking.type=disabled`; `low`/`medium`/`high`/`max` send `thinking.type=enabled` plus `reasoning_effort`. If `off` is rejected, retry with `low`. Access to **opencode.ai** adds `x-opencode-session` / `x-opencode-client`. Old keys `asr_llm_url` / `asr_llm_token` / `asr_llm_model` are ignored.
 
-## Screen recording
+Set `capture_log = true` for `log/capture.log` (DPI / save timings; `SLOW` if ≥500ms). Set `llm_log = true` for `log/llm.log` (API keys are not written). CLI `ScreenKit --snap` dumps full-monitor bitmaps under `log/snap/`.
 
-1. **Capture → Screen record** (or the toolbar button): click a window or drag a region.
-2. **HUD** (drawn outside the capture area):
-   - Red frame; drag the **5px strip** to move, or **8 grips** to resize. Aspect ratio is free before **Start** and locked afterwards unless disabled in record options (`record_lock_aspect = false`).
-   - Floating **control bar**: drag via the left grip; **collapse** to mini bar; **Options** before Start (record/GIF settings); start/pause share one slot.
-   - Bar auto-positions above/below the region and stays within the **current monitor** (multi-monitor safe).
-3. Stop → confirm save → MP4 is written; Explorer opens and selects the file.
-4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, **CRF** (x264/x265) and **AV1 CRF** (AV1 only, separate scale 0–63, default 56), audio source, max output size, **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64`.
+## HTTP API (overview)
 
-### GIF recording
+When enabled, the OCR API listens on `http_host:http_port` (default loopback only). Bind to `127.0.0.1` unless you intentionally expose it on a trusted network.
 
-1. **Capture → GIF record**: same window/region pick.
-2. Same HUD; capture at **24 fps**; after Stop, the **preview window** lets you set output FPS (1–24), scale, and palette colors, then save a **silent GIF**.
-3. **Capture → GIF record options**: default output FPS, max width/height, default colors, **record mouse** / **highlight clicks**.
+LAN **PC file transfer** (HTTP `17532`, UDP `17531`, pairing required) is separate: [HTTP-API.md](HTTP-API.md) · [android/README.md](android/README.md).
 
-**Notes**
+- `GET  /api` · `/api/status`
+- `POST /api/ocr` — `box` is original-image pixels
+- `POST /api/qr` — barcode / QR only (`/api/barcode`)
+- `GET  /api/ocr/get_options`
+- `GET  /api/asr/models` · `POST /api/asr`
+- `GET  /api/tts/models` · `POST /api/tts` — Sherpa, SAPI, Windows (`engine=winrt`), Edge (`engine=edge`)
+- `POST /api/itn`
+- `POST /api/translate` — LLM batch (`items[]`)
+- `GET  /api/face/models` · `POST /api/face`
 
-- MP4 / GIF recording requires **FFmpeg shared** under `ffmpeg64/` (install in-app or place manually). OpenCV is **not** used for video encode.
-- GDI capture has no cursor: enable **record mouse** to overlay the system pointer; **highlight clicks** draws a short yellow (left) / blue (right) / green (middle) ripple.
-- GIF size grows quickly with resolution and duration — use preview scale/FPS and the max-size limit.
-
-## Default hotkeys
-
-| Hotkey | Action |
-|--------|--------|
-| `Ctrl+Alt+O` | Toggle main window show / hide |
-| `Ctrl+Alt+Q` | Screenshot annotate |
-| `Ctrl+Alt+W` | Screenshot and OCR |
-| `Ctrl+Alt+V` | Voice input (press again to stop) |
-| `Ctrl+Alt+B` | Live caption |
-| `Ctrl+Alt+T` | Translate popup show / hide |
-
-Tray icon: left-click toggles the window; context menu includes voice input, **translate popup**, clipboard OCR, on-capture copy mode (image / file / path), and exit. Closing the main window typically **hides** to tray rather than exiting.
-
-### UI language
-
-- **Tools → Language** → **中文 / English** (applies immediately)
-- Or set UI language in **Settings → General**
-- Persisted in `config.toml` as `ui_lang = "zh"` or `"en"`
-- Covers menus, Settings, OCR toolbar (overlay dest language, **Pack / Lang** combo names via `ocr-display.json` `nameEn`), Translate tab, translate popup, and Face tab.
+Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[HTTP接口文档.md](HTTP接口文档.md)** (中文).
 
 ## CLI
 
@@ -310,16 +307,18 @@ ScreenKit --image <path> [options]
 ScreenKit --snap [--out <dir>]
 ScreenKit --test-clipboard-path   # path copy after delayed image; 4K timing
 ScreenKit --test-apk-qr            # encode/decode LAN APK QR; HTTP GET /apk
+ScreenKit --test-sendfile          # sendfile sandbox list/upload/delete
 ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
-ScreenKit --test-tts-sherpa <model> # load and synthesize with a Sherpa voice (`-d auto|gpu|cpu`)
-ScreenKit --list-edge-tts           # list Edge online natural voices
+ScreenKit --test-tts-sherpa <model> # `-d auto|gpu|cpu`
+ScreenKit --list-edge-tts
 ScreenKit --test-edge-tts ko-KR-SunHiNeural
-ScreenKit --test-http-tts           # HTTP /api/tts SAPI + Windows + Edge WAV
-ScreenKit --test-llm-chat           # LLM chat history trim (offline)
-ScreenKit --test-llm-agent          # agent sandbox / parse / files+script (offline)
+ScreenKit --test-http-tts
+ScreenKit --test-llm-chat
+ScreenKit --test-llm-agent
+ScreenKit --test-http-chat
 ScreenKit --probe-cuda
 ScreenKit --help
 ```
@@ -332,10 +331,10 @@ Some classic **SAPI** voices register only for 32-bit processes. Ship **`x86host
 
 | Item | Detail |
 |------|--------|
-| Role | HTTP helper: list SAPI voices + synth WAV; **no GUI**, no OCR/ASR |
-| Start | On demand by the x64 app, or run `x86host.exe` manually |
+| Role | HTTP helper: list SAPI voices + synth WAV; **no GUI** |
+| Start | On demand by the x64 app, or run `x86host.exe` |
 | Bind | `127.0.0.1` only, default port **17886** |
-| Idle | Exit after **60s** without requests (`--idle-ms` to override) |
+| Idle | Exit after **60s** (`--idle-ms` to override) |
 | API | `GET /api/sapi/status` · `GET /api/sapi/voices` · `POST /api/sapi/synth` · `POST /api/sapi/shutdown` |
 
 ```text
@@ -344,56 +343,81 @@ x86host.exe --port 17886 --idle-ms 60000
 x86host.exe --list-sapi
 ```
 
-In the UI, choose engine **SAPI**: local voices plus **x86-only** entries (display name ends with `· x86`); speak/export for those voices goes through x86host.
+In the UI, engine **SAPI** lists local voices plus **x86-only** entries (name ends with `· x86`).
 
-## HTTP API (overview)
+## Build from source
 
-When enabled, a local server listens on `http_host:http_port` (default loopback only).
+```
+OCR/
+├── ScreenKit/                 # WPF app (net48, x64)
+│   └── bin/Release/
+│       ├── net48/          # Dev output (models / runtimes live here)
+│       └── ScreenKit/      # Slim package: exe + x86host.exe + managed deps
+├── x86host/                # 32-bit SAPI HTTP helper
+├── android/                # Companion app (com.whj.screenkit)
+├── docs/                   # README screenshots
+├── scripts/publish-release.mjs
+├── README.md · README.zh.md · CHANGELOG.md
+└── HTTP-API.md · HTTP接口文档.md
+```
 
-A separate **PC file transfer** service (HTTP `17532`, UDP discovery `17531`, pairing required) is documented in [HTTP-API.md](HTTP-API.md) and [android/README.md](android/README.md).
+Model packs and large native runtimes are **not** in git. Place them next to the exe (or install in-app):
 
-- `GET  /api` · `/api/status` — capabilities
-- `POST /api/ocr` — image (JSON base64 or multipart); `box` is original-image pixels (mapped back after side-length limit)
-- `POST /api/qr` — barcode / QR only (`/api/barcode`; JSON base64/path or multipart)
-- `GET  /api/ocr/get_options` — OCR options snapshot
-- `GET  /api/asr/models` · `POST /api/asr` — speech recognition
-- `GET  /api/tts/models` · `POST /api/tts` — TTS (wav base64): Sherpa, SAPI, Windows (`engine=winrt`), or Edge online (`engine=edge`) voices
-- `POST /api/itn` — inverse text normalization
-- `POST /api/translate` — LLM batch translate (`items[]`; needs configured LLM)
-- `GET  /api/face/models` · `POST /api/face` — face detect / compare
+```
+ScreenKit/bin/Release/net48/
+├── ScreenKit.exe
+├── config.toml
+├── ocrmodels/  asrmodels/  ttsmodels/  translatemodels/  facemodels/
+├── onnxcpu64/  onnxgpu64/  onnxdml64/
+└── ffmpeg64/
+```
 
-Bind to `127.0.0.1` unless you intentionally expose the service on a trusted network.
+A **Release** build does not copy those folders. Each OCR pack needs ONNX + `configs.txt` (and dict/keys). Optional `pack.json` (`name` / `nameEn` / `variants`) supplies English UI labels; defaults live in `ocr-display.json`.
 
-Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[HTTP接口文档.md](HTTP接口文档.md)** (中文).
+```bash
+cd ScreenKit
+dotnet build -c Release
+./ScreenKit/bin/Release/net48/ScreenKit.exe
+```
 
-## Capture diagnostics
+### Slim package (`bin\Release\ScreenKit\`)
 
-Set `capture_log = true` in `config.toml` to write `log/capture.log` (multi-monitor / DPI troubleshooting, and screenshot save timings: prep/encode/clip; `SLOW` if ≥500ms). Keep it off for normal use.
+- Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
+- Does **not** include: OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
+- End users install those via **Install features**. Local Opus-MT ONNX is placed under `translatemodels/` by hand if needed.
 
-Set `llm_log = true` (Settings → LLM) to write `log/llm.log` for polish HTTP traces. API keys are not written. Keep it off for normal use.
+For local development with models already present, run **`bin\Release\net48\`**.
 
-CLI: `ScreenKit --snap` dumps full-monitor bitmaps under `log/snap/` (or `--out`).
+### Release archive
+
+```bash
+node scripts/publish-release.mjs
+```
+
+Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/screenkit_<version>.7z` (needs [7-Zip](https://www.7-zip.org/) on PATH). `release/` is gitignored.
+
+Release documentation:
+
+- Every `CHANGELOG.md` version has matching **English** and **中文** sections.
+- Every GitHub Release description is bilingual (English first, Chinese second).
+- Checksums and links are listed once after both summaries.
 
 ## License
 
-**ScreenKit application source code** (this repository’s `ScreenKit/` sources, scripts, and docs authored for the project) is released under the **MIT License**. See [LICENSE](LICENSE).
+**ScreenKit application source** is **MIT**. See [LICENSE](LICENSE).
 
 ```
 Copyright (c) 2026 ScreenKit Contributors
 ```
 
-You may use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to including the copyright and permission notice. **THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.**
+**THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.**
 
-### Third-party components
-
-Bundled or optional dependencies are **not** all MIT. Models, FFmpeg builds, CUDA/cuDNN, and some native libraries keep their own terms. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-Do **not** commit large ONNX weights, CUDA redistributables, or FFmpeg shared binaries into git without a redistribution plan that matches their licenses.
+Bundled or optional dependencies are **not** all MIT (models, FFmpeg, CUDA/cuDNN, some natives). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Do not commit large ONNX weights, CUDA redistributables, or FFmpeg shared binaries without a redistribution plan.
 
 ## See also
 
-- [LICENSE](LICENSE) — MIT (application source)
-- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) — dependency license notes
 - [CHANGELOG.md](CHANGELOG.md)
-- [HTTP-API.md](HTTP-API.md) · [HTTP接口文档.md](HTTP接口文档.md) — HTTP API
-- [README.zh.md](README.zh.md) — Chinese documentation
+- [HTTP-API.md](HTTP-API.md) · [HTTP接口文档.md](HTTP接口文档.md)
+- [android/README.md](android/README.md) — companion app
+- [LICENSE](LICENSE) · [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- [README.zh.md](README.zh.md)

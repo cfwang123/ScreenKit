@@ -120,6 +120,8 @@ static class AppConfig {
 				o.TabFaceVisible = parsebool(tfv, true);
 			if (map.TryGetValue("tab_http_visible", out var thv))
 				o.TabHttpVisible = parsebool(thv, true);
+			if (map.TryGetValue("tab_sendfile_visible", out var tsfv))
+				o.TabSendFileVisible = parsebool(tsfv, true);
 			if (map.TryGetValue("update_check_days", out var ucd) && int.TryParse(ucd, out var ucDays))
 				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
 			if (map.TryGetValue("update_last_check", out var ulc) && long.TryParse(ulc, out var ulcUnix))
@@ -421,6 +423,7 @@ static class AppConfig {
 		sb.AppendLine($"tab_translate_visible = {(o.TabTranslateVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_face_visible = {(o.TabFaceVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_http_visible = {(o.TabHttpVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_sendfile_visible = {(o.TabSendFileVisible ? "true" : "false")}");
 		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");

@@ -4,61 +4,103 @@ All notable changes to ScreenKit are documented here. / 本文件记录 ScreenKi
 
 Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are project milestones. / 格式基于 Keep a Changelog，版本号表示项目里程碑。
 
+Each version has matching **English** and **中文** sections. GitHub Release notes follow the same bilingual order. / 每个版本同时有英文与中文章节；GitHub Release 说明同样先英后中。
+
+## Versions / 版本索引
+
+- [unreleased](#unreleased)
+- [v1.0.8 (2026-09-23)](#v108-2026-09-23)
+- [v1.0.7 (2026-09-11)](#v107-2026-09-11)
+- [v1.0.6 (2026-09-10)](#v106-2026-09-10)
+- [v1.0.5 (2026-08-31 ~ 09-01)](#v105-2026-08-31--09-01)
+- [v1.0.4 (2026-08-31)](#v104-2026-08-31)
+- [v1.0.3 (2026-08-30)](#v103-2026-08-30)
+- [v1.0.2 (2026-08-26)](#v102-2026-08-26)
+- [v1.0.1 (2026-08-07)](#v101-2026-08-07)
+- [v1.0.0 (2026-08-01)](#v100-2026-08-01)
+- [v0.1.0](#v010-initial-milestone--初始里程碑)
+
 ## unreleased
+
+### English
+
+_(none yet)_
+
+### 中文
+
+（暂无）
+
+## v1.0.8 (2026-09-23)
 
 ### English
 
 #### Added
 
-- LAN **PC file transfer** service (HTTP `:17532`, UDP discovery `:17531`) with first-connect pairing, `sendfile/` sandbox, and a main-window **File sync** tab. Companion Android app: `android/` (`com.whj.screenkit`); share multiple files from other apps, and the in-app **Upload** button allows multi-select.
-- File sync tab **Install on phone**: dialog shows a LAN URL served by this PC (`GET /apk` on the file-transfer port, no pairing) and a QR code (`--test-apk-qr`). When the PC has several LAN addresses, pick which one the QR uses. Release build copies the newest Android **release** APK into `apk/` next to the exe (only when the source is newer; debug APKs are ignored).
+- LAN **PC file transfer** (HTTP `:17532`, UDP discovery `:17531`): first-connect pairing, `sendfile/` sandbox, main-window **File sync** tab. Companion Android app in `android/` (`com.whj.screenkit` / 「PC文件传输」). Other apps can share multiple files; in-app **Upload** is multi-select.
+- File sync **Install on phone**: LAN URL (`GET /apk` on the file-transfer port, no pairing) and QR code (`--test-apk-qr`). With several NICs, pick which address the QR uses (default: internet-reachable physical NIC). A Release build copies the newest Android **release** APK into `apk/` next to the exe (only when newer; debug APKs are ignored).
 
 #### Changed
 
-- Reverted the screenshot-overlay drag performance experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the previous transparent overlay, dim mask, and green selection frame.
-- File sync **Install on phone** QR defaults to a LAN address that can reach the Internet (physical NIC with a gateway / the outbound IPv4), and keeps virtual adapters (VMware, Hyper-V, etc.) further down the list.
-- **Install features**: a feature tree (installed items checked). Add (green) / remove (red) with sizes; **Reset** restores. **Confirm** installs and uninstalls immediately. Voices stay on their own tab.
-- File sync lives on the main **File sync** tab; the Tools menu and tray **Text sync** items were removed.
-- File sync tab no longer browses `sendfile/`. Dragging or pasting files/folders/images on the PC sends them to the phone’s bound folder **only while the phone app is connected**; otherwise nothing is sent. Files shared from the phone always land in the PC `sendfile/` folder. Both PC and Android show a pending transfer list with send/receive progress.
-- Text sync shows the latest message in a read-only selectable text box (PC and phone); the Copy button is removed.
-- File sync tab adds a **transfer log** on the PC (completed/failed entries with time and size); the queue above it only shows in-progress items.
+**Install features**
+
+- Feature tree opens with installed items checked. Add (green) / remove (red) with counts and sizes; **Reset** restores. **Confirm** installs and uninstalls immediately. Voices stay on their own tab.
+
+**File sync**
+
+- Lives on the main **File sync** tab; Tools menu and tray **Text sync** items were removed. Settings → General can hide the tab (`tab_sendfile_visible`).
+- The tab no longer browses PC `sendfile/`. Drops/pastes of files, folders, or images go to the phone’s bound folder **only while the app is connected**; otherwise nothing is sent. Files shared from the phone always land in PC `sendfile/`. Both sides show a pending list with send/receive progress.
+- PC tab adds a **transfer log** (completed/failed, time, size); the queue above it only shows in-progress items.
+- Text sync shows the latest message in a read-only selectable box (PC and phone); the Copy button is removed.
 - Android receive list shows a file-type icon; tapping a finished item opens the system “Open with” chooser.
-- Android title-bar hamburger: **Settings** (bind receive folder) and **Switch PC**. Text sync is a button to the right of Upload, with 10dp spacing.
-- OCR overlay / result text: a block is selected only on mouse-up; clicking empty space clears the selection; drag-select no longer snap-expands to a whole line.
+- Android title-bar hamburger: **Settings** (bind receive folder) and **Switch PC**. Text sync sits to the right of Upload (10dp gap).
+
+**Capture / OCR**
+
+- Reverted screenshot-overlay drag experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the transparent overlay, dim mask, and green selection frame.
+- Overlay / result text: a block is selected only on mouse-up; clicking empty space clears the selection; drag-select stays in the dragged range (no snap-expand to a whole line).
 
 #### Fixed
 
-- PC file transfer HTTP `:17532` never listened: `HttpListener` registered every LAN address and Windows returned Access denied, so the whole server failed to start. It now binds `0.0.0.0` / IPv6 dual-stack with a TCP listener (no URL ACL), so `localhost` / `127.0.0.1` and phones on the LAN can connect.
+- PC file transfer HTTP `:17532` never listened: `HttpListener` registered every LAN address and Windows returned Access denied. It now binds `0.0.0.0` / IPv6 dual-stack with a TCP listener (no URL ACL), so `localhost` and LAN phones can connect.
 - Phone pairing confirm dialog no longer sets the main window as `Owner`, so it still appears when the main window is hidden to the tray.
 - Dropping files on the **File sync** tab no longer jumps to Speech Recognition: the ASR window-level media drop only applies while that tab is selected.
-- Three monitors with a scaled output (the right screen reports 2400×1350 but only yields a 1920×1080 frame): the right screen's frozen image landed at 80% size in the top-left of the overlay and saved region shots came out shrunk. Capture candidates are now ranked by how well the frame size matches the screen's physical bounds (a DPI-virtualized small frame no longer wins on content score alone), the mask window spans the full screen bounds again whenever the frame is a uniform scale of it, and a single-screen crop rescales to the physical selection size instead of returning frame-sized pixels.
+- Three monitors with a scaled output (desktop 2400×1350, capture frame 1920×1080): the right screen’s frozen image sat at 80% size in the top-left of the overlay, and saved region shots were shrunk. Capture candidates are ranked by how well the frame matches the screen’s physical bounds; when the frame is a uniform scale of the screen the mask still covers full Bounds; a single-screen crop rescales to the physical selection size.
+- Android LAN discovery: Wi-Fi multicast lock, a second UDP probe, and a retry when the first scan is empty.
 
 ### 中文
 
 #### 新增
 
-- 局域网 **PC 文件传输** 服务（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab。配套安卓应用：`android/`（`com.whj.screenkit`）；其它应用可一次分享多个文件，App 内「上传」支持多选。
-- 文件同步 Tab **安装到手机**：弹窗显示本机局域网下载地址（文件传输端口 `GET /apk`，无需配对）和二维码（`--test-apk-qr`）。多网卡时可选择二维码使用的地址。编译时把 android 最新 **release** APK 拷到程序旁 `apk/`（仅当源更新；不用 debug）。
+- 局域网 **PC 文件传输**（HTTP `:17532`，UDP 发现 `:17531`）：首次连接弹窗配对、`sendfile/` 沙箱、主界面 **文件同步** Tab。配套安卓应用：`android/`（`com.whj.screenkit`「PC文件传输」）。其它应用可一次分享多个文件，App 内「上传」支持多选。
+- 文件同步 **安装到手机**：本机局域网下载地址（文件传输端口 `GET /apk`，无需配对）和二维码（`--test-apk-qr`）。多网卡时可选择二维码地址（默认用能连外网的物理网卡）。编译时把 android 最新 **release** APK 拷到程序旁 `apk/`（仅当源更新；不用 debug）。
 
 #### 变更
 
-- **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
-- 文件同步 **安装到手机** 二维码默认用能连外网的局域网地址（有网关的物理网卡 / 出网 IPv4），VMware、Hyper-V 等虚拟网卡排在后面。
-- **安装功能**：功能选择树打开时勾选已装项。增删显示新增（绿）/ 删除（红）数量与大小，可复位。点**确认**即安装或卸载。发音人仍在单独 Tab。
-- 文件同步改到主界面 **文件同步** Tab；已去掉工具菜单和托盘里的「文本同步」入口。
-- 文件同步 Tab 不再浏览电脑 `sendfile/`。电脑上拖入或粘贴文件/文件夹/图片：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。手机分享/多选上传一律写到电脑 `sendfile/`。电脑和手机都显示待传列表与传输进度。
+**安装功能**
+
+- 功能选择树打开时勾选已装项。增删显示新增（绿）/ 删除（红）数量与大小，可复位。点**确认**即安装或卸载。发音人仍在单独 Tab。
+
+**文件同步**
+
+- 改到主界面 **文件同步** Tab；已去掉工具菜单和托盘里的「文本同步」入口。参数设置 → 常规可隐藏该 Tab（`tab_sendfile_visible`）。
+- Tab 不再浏览电脑 `sendfile/`。电脑拖入或粘贴文件/文件夹/图片：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。手机分享/多选上传一律写到电脑 `sendfile/`。两端都显示待传列表与传输进度。
+- 电脑端增加**传输记录**栏（完成/失败、时间、大小）；上方队列只显示进行中的任务。
 - 文本同步以只读文本框显示最新一条（电脑、手机），可选中复制；已去掉复制按钮。
-- 电脑文件同步 Tab 增加**传输记录**栏（完成/失败、时间、大小）；上方队列只显示进行中的任务。
 - 安卓接收列表显示文件类型图标；点已完成项用系统「选择打开方式」打开。
 - 安卓标题栏三横菜单：**参数设置**（绑定接收文件夹）、**换电脑**。文本同步按钮在上传右侧，间距 10dp。
+
+**截图 / OCR**
+
+- **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
 - OCR 叠字/结果文本：松开鼠标才选中一块；点空白取消选择；拖选只保留拖过的范围，不再吸附扩展整行。
 
 #### 修复
 
-- PC 文件传输 HTTP `:17532` 实际没在听：`HttpListener` 把每块网卡 IP 都登记成前缀，Windows 返回拒绝访问，整段服务启动失败。现改为 TCP 监听 `0.0.0.0` / IPv6 双栈（不需要 URL ACL），`localhost` / `127.0.0.1` 和局域网手机都能连上。
+- PC 文件传输 HTTP `:17532` 实际没在听：`HttpListener` 把每块网卡 IP 都登记成前缀，Windows 返回拒绝访问，整段服务启动失败。现改为 TCP 监听 `0.0.0.0` / IPv6 双栈（不需要 URL ACL），`localhost` 和局域网手机都能连上。
 - 手机配对确认弹窗不再绑定主窗口为 `Owner`，主窗托盘隐藏时仍能弹出。
 - 往 **文件同步** Tab 拖文件不再跳到语音识别：窗口级音视频拖放仅在语音识别页生效。
-- 三屏且右边屏为缩放输出（桌面 2400×1350，实际只能抓到 1920×1080 帧）时截图：遮罩里右屏冻结画面只有 80% 大小、贴在左上，框选存图内容也被缩小。现按「帧尺寸与屏物理 Bounds 的契合度」给抓取候选分档（DIP 虚拟化的小图不再只靠内容分胜出）；帧与屏等比时遮罩窗仍按整屏 Bounds 铺满；单屏裁切按物理选区尺寸输出，不再输出帧尺寸。
+- 三屏且右边屏为缩放输出（桌面 2400×1350，实际只能抓到 1920×1080 帧）时截图：遮罩里右屏冻结画面只有 80% 大小、贴在左上，框选存图内容也被缩小。现按「帧尺寸与屏物理 Bounds 的契合度」给抓取候选分档；帧与屏等比时遮罩窗仍按整屏 Bounds 铺满；单屏裁切按物理选区尺寸输出。
+- 安卓局域网发现：申请 Wi-Fi 组播锁、重复发送 UDP 探测；第一次扫描为空时再扫一次。
 
 ## v1.0.7 (2026-09-11)
 
