@@ -92,6 +92,15 @@ static class ImgConvert {
 
 	public static void ConvertOne(string src, string dst, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
+		var bytes = Encode(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
+		var dir = Path.GetDirectoryName(dst);
+		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+		File.WriteAllBytes(dst, bytes);
+	}
+
+	/// <summary>按目标格式实际编码（JPG 质量会进码流），供预览与落盘共用。</summary>
+	public static byte[] Encode(string src, string fmt, int quality,
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
 		ct.ThrowIfCancellationRequested();
@@ -100,13 +109,12 @@ static class ImgConvert {
 		rotate = normrot(rotate);
 		Exception gdiEx = null;
 		try {
-			convertgdi(src, dst, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
-			return;
+			return encodegdi(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
 		}
 		catch (OperationCanceledException) { throw; }
 		catch (Exception ex) { gdiEx = ex; }
 		try {
-			convertwpf(src, dst, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
+			return encodewpf(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
 		}
 		catch (OperationCanceledException) { throw; }
 		catch (Exception wpfEx) {
@@ -114,7 +122,7 @@ static class ImgConvert {
 		}
 	}
 
-	static void convertgdi(string src, string dst, string fmt, int quality,
+	static byte[] encodegdi(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
 		using var loaded = new GdiBmp(src);
 		using var img = new GdiBmp(loaded);
@@ -143,16 +151,16 @@ static class ImgConvert {
 				}
 			}
 			ct.ThrowIfCancellationRequested();
-			var dir = Path.GetDirectoryName(dst);
-			if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-			savegdi(toSave, dst, fmt, quality);
+			using var ms = new MemoryStream();
+			savegdi(toSave, ms, fmt, quality);
+			return ms.ToArray();
 		}
 		finally {
 			resized?.Dispose();
 		}
 	}
 
-	static void convertwpf(string src, string dst, string fmt, int quality,
+	static byte[] encodewpf(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
 		var bmp = loadwpf(src);
 		ct.ThrowIfCancellationRequested();
@@ -165,7 +173,15 @@ static class ImgConvert {
 			bmp = wb;
 		}
 		ct.ThrowIfCancellationRequested();
-		ImageUtil.Savefile(bmp, dst, quality);
+		BitmapEncoder enc = fmt switch {
+			"jpg" => new JpegBitmapEncoder { QualityLevel = quality },
+			"bmp" => new BmpBitmapEncoder(),
+			_ => new PngBitmapEncoder(),
+		};
+		enc.Frames.Add(BitmapFrame.Create(bmp));
+		using var ms = new MemoryStream();
+		enc.Save(ms);
+		return ms.ToArray();
 	}
 
 	static BitmapSource loadwpf(string path) {
@@ -202,25 +218,25 @@ static class ImgConvert {
 		return wb;
 	}
 
-	static void savegdi(GdiImg img, string path, string fmt, int quality) {
+	static void savegdi(GdiImg img, Stream dst, string fmt, int quality) {
 		if (fmt == "jpg") {
 			using var flat = as24(img);
 			var to = (GdiImg)flat ?? img;
 			var codec = jpegcodec();
 			if (codec == null) {
-				to.Save(path, ImageFormat.Jpeg);
+				to.Save(dst, ImageFormat.Jpeg);
 				return;
 			}
 			using var ep = new EncoderParameters(1);
 			ep.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality);
-			to.Save(path, codec, ep);
+			to.Save(dst, codec, ep);
 			return;
 		}
 		if (fmt == "bmp") {
-			img.Save(path, ImageFormat.Bmp);
+			img.Save(dst, ImageFormat.Bmp);
 			return;
 		}
-		img.Save(path, ImageFormat.Png);
+		img.Save(dst, ImageFormat.Png);
 	}
 
 	static GdiBmp as24(GdiImg img) {

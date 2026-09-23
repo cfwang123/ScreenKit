@@ -171,6 +171,10 @@ static class Loc {
 		["imgconv.cancelling"] = "正在取消…",
 		["imgconv.cancelled"] = "已取消：成功 {0}，失败 {1}",
 		["imgconv.fail"] = "转换失败：{0}",
+		["imgconv.preview.empty"] = "选中图片后预览转换效果",
+		["imgconv.preview.loading"] = "正在生成预览…",
+		["imgconv.preview.fail"] = "预览失败：{0}",
+		["imgconv.preview.info"] = "{0} × {1}  ·  {2}  ·  {3}",
 
 		// 选项
 		["menu.settings"] = "参数设置(_S)…",
@@ -1361,6 +1365,10 @@ static class Loc {
 		["imgconv.cancelling"] = "Cancelling…",
 		["imgconv.cancelled"] = "Cancelled: {0} ok, {1} failed",
 		["imgconv.fail"] = "Convert failed: {0}",
+		["imgconv.preview.empty"] = "Select an image to preview the conversion",
+		["imgconv.preview.loading"] = "Generating preview…",
+		["imgconv.preview.fail"] = "Preview failed: {0}",
+		["imgconv.preview.info"] = "{0} × {1}  ·  {2}  ·  {3}",
 
 		["menu.settings"] = "_Settings…",
 		["menu.settings.tip"] = "Thresholds, hotkeys, HTTP, PDF…",

@@ -2222,9 +2222,12 @@ static class Cli {
 			const int w = 200, h = 100;
 			var pixels = new byte[w * h * 4];
 			for (var i = 0; i < pixels.Length; i += 4) {
-				pixels[i] = 0;
-				pixels[i + 1] = 0;
-				pixels[i + 2] = 255;
+				var n = i / 4;
+				var x = n % w;
+				var y = n / w;
+				pixels[i] = (byte)((x * 13 + y * 7) & 255);
+				pixels[i + 1] = (byte)((x * 5 + y * 17) & 255);
+				pixels[i + 2] = (byte)((x * 29 + y * 3) & 255);
 				pixels[i + 3] = 255;
 			}
 			var bmp = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);
@@ -2272,6 +2275,22 @@ static class Cli {
 				}
 				else Out("png size OK 200x100");
 			}
+
+			var q20 = ImgConvert.Encode(src, "jpg", 20, false, 1920, 1080, 0, false, CancellationToken.None);
+			var q90 = ImgConvert.Encode(src, "jpg", 90, false, 1920, 1080, 0, false, CancellationToken.None);
+			if (q20.Length * 5 / 4 >= q90.Length) {
+				Err($"FAIL: jpg 质量 20 ({q20.Length}) 应明显小于质量 90 ({q90.Length})");
+				bad++;
+			}
+			else Out($"jpg quality size OK 20={q20.Length} < 90={q90.Length}");
+			var rot = ImgConvert.Encode(src, "png", 60, true, 100, 100, 90, false, CancellationToken.None);
+			using var ms = new MemoryStream(rot);
+			using var rotImg = new System.Drawing.Bitmap(ms);
+			if (rotImg.Width != 50 || rotImg.Height != 100) {
+				Err($"FAIL: Encode 预览尺寸 {rotImg.Width}x{rotImg.Height} 期望 50x100");
+				bad++;
+			}
+			else Out("Encode preview size OK 50x100");
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);

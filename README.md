@@ -68,7 +68,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab: PC drops go to the phone’s bound folder while the app is connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. Companion: `android/` (`com.whj.screenkit`). |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
-| **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; write to `output/` next to each source or a chosen folder. |
+| **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; live preview of the selected file after those settings; write to `output/` next to each source or a chosen folder. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |

@@ -13,7 +13,10 @@ public partial class ImgConvertWindow : Window {
 	readonly ObservableCollection<ImgConvRow> rows = new();
 	bool busy;
 	bool syncing;
+	bool ready;
+	int prevSeq;
 	CancellationTokenSource cts;
+	CancellationTokenSource prevCts;
 
 	public ImgConvertWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
@@ -27,6 +30,8 @@ public partial class ImgConvertWindow : Window {
 		syncfmtui();
 		syncselui();
 		refreshcount();
+		ready = true;
+		queuepreview();
 	}
 
 	void initev() {
@@ -36,7 +41,12 @@ public partial class ImgConvertWindow : Window {
 		bbrowse.Click += (_, _) => browse();
 		bgo.Click += (_, _) => _ = go();
 		bclose.Click += (_, _) => Close();
-		efmt.SelectionChanged += (_, _) => syncfmtui();
+		efmt.SelectionChanged += (_, _) => { syncfmtui(); queuepreview(); };
+		ejpgq.TextChanged += (_, _) => queuepreview();
+		emaxen.Checked += (_, _) => queuepreview();
+		emaxen.Unchecked += (_, _) => queuepreview();
+		emaxw.TextChanged += (_, _) => queuepreview();
+		emaxh.TextChanged += (_, _) => queuepreview();
 		routsrc.Checked += (_, _) => syncoutui();
 		routother.Checked += (_, _) => syncoutui();
 		lv.SelectionChanged += (_, _) => syncselui();
@@ -78,6 +88,8 @@ public partial class ImgConvertWindow : Window {
 		rrot180.Content = Loc.T("imgconv.rot180");
 		rrot270.Content = Loc.T("imgconv.rot270");
 		cmirror.Content = Loc.T("imgconv.mirror");
+		if (iprev.Source == null)
+			lbprevempty.Text = Loc.T("imgconv.preview.empty");
 		bgo.Content = Loc.T("imgconv.go");
 		bclose.Content = Loc.T("imgconv.close");
 		foreach (ComboBoxItem it in efmt.Items) {
@@ -178,7 +190,10 @@ public partial class ImgConvertWindow : Window {
 		rrot180.IsEnabled = on;
 		rrot270.IsEnabled = on;
 		cmirror.IsEnabled = on;
-		if (it == null) return;
+		if (it == null) {
+			clearpreview();
+			return;
+		}
 		syncing = true;
 		rrot0.IsChecked = it.Rotate == 0;
 		rrot90.IsChecked = it.Rotate == 90;
@@ -186,6 +201,7 @@ public partial class ImgConvertWindow : Window {
 		rrot270.IsChecked = it.Rotate == 270;
 		cmirror.IsChecked = it.Mirror;
 		syncing = false;
+		queuepreview();
 	}
 
 	void applyxf() {
@@ -197,6 +213,93 @@ public partial class ImgConvertWindow : Window {
 		else if (rrot270.IsChecked == true) it.Rotate = 270;
 		else it.Rotate = 0;
 		it.Mirror = cmirror.IsChecked == true;
+		queuepreview();
+	}
+
+	void queuepreview() {
+		if (!ready || busy) return;
+		var it = lv.SelectedItem as ImgConvRow;
+		if (it == null || string.IsNullOrWhiteSpace(it.FilePath) || !File.Exists(it.FilePath)) {
+			clearpreview();
+			return;
+		}
+		prevSeq++;
+		var seq = prevSeq;
+		try { prevCts?.Cancel(); } catch { }
+		prevCts = new CancellationTokenSource();
+		var token = prevCts.Token;
+		_ = runpreview(seq, it.FilePath, it.Rotate, it.Mirror, token);
+	}
+
+	void clearpreview() {
+		prevSeq++;
+		try { prevCts?.Cancel(); } catch { }
+		iprev.Source = null;
+		lbprevinfo.Text = "";
+		lbprevempty.Text = Loc.T("imgconv.preview.empty");
+		lbprevempty.Visibility = Visibility.Visible;
+	}
+
+	bool peekopts(out string fmt, out int quality, out bool maxEn, out int maxW, out int maxH) {
+		fmt = ImgConvert.NormFmt((efmt.SelectedItem as ComboBoxItem)?.Tag as string);
+		quality = 60;
+		if (int.TryParse((ejpgq.Text ?? "").Trim(), out var q))
+			quality = Compat.Clamp(q, 1, 100);
+		maxEn = emaxen.IsChecked == true;
+		maxW = 1920;
+		maxH = 1080;
+		if (maxEn) {
+			if (!int.TryParse((emaxw.Text ?? "").Trim(), out maxW) || maxW < 16) maxEn = false;
+			if (!int.TryParse((emaxh.Text ?? "").Trim(), out maxH) || maxH < 16) maxEn = false;
+			maxW = Compat.Clamp(maxW, 16, 16384);
+			maxH = Compat.Clamp(maxH, 16, 16384);
+		}
+		return true;
+	}
+
+	async Task runpreview(int seq, string path, int rotate, bool mirror, CancellationToken token) {
+		lbprevempty.Text = Loc.T("imgconv.preview.loading");
+		lbprevempty.Visibility = Visibility.Visible;
+		try {
+			await Task.Delay(180, token).ConfigureAwait(true);
+			if (seq != prevSeq) return;
+			if (!peekopts(out var fmt, out var quality, out var maxEn, out var maxW, out var maxH))
+				return;
+			var bytes = await Task.Run(() =>
+				ImgConvert.Encode(path, fmt, quality, maxEn, maxW, maxH, rotate, mirror, token),
+				token).ConfigureAwait(true);
+			if (seq != prevSeq) return;
+			BitmapSource bmp;
+			using (var ms = new MemoryStream(bytes)) {
+				var bi = new BitmapImage();
+				bi.BeginInit();
+				bi.CacheOption = BitmapCacheOption.OnLoad;
+				bi.StreamSource = ms;
+				bi.EndInit();
+				bi.Freeze();
+				bmp = bi;
+			}
+			if (seq != prevSeq) return;
+			iprev.Source = bmp;
+			lbprevempty.Visibility = Visibility.Collapsed;
+			var fmtName = fmt switch {
+				"png" => Loc.T("imgconv.fmt.png"),
+				"bmp" => Loc.T("imgconv.fmt.bmp"),
+				_ => Loc.T("imgconv.fmt.jpg"),
+			};
+			var kind = fmt == "jpg" ? $"{fmtName} {quality}%" : fmtName;
+			lbprevinfo.Text = Loc.T("imgconv.preview.info",
+				bmp.PixelWidth, bmp.PixelHeight, kind,
+				FeatureInstaller.FormatBytes(bytes.Length));
+		}
+		catch (OperationCanceledException) { }
+		catch (Exception ex) {
+			if (seq != prevSeq) return;
+			iprev.Source = null;
+			lbprevinfo.Text = "";
+			lbprevempty.Text = Loc.T("imgconv.preview.fail", ex.Message);
+			lbprevempty.Visibility = Visibility.Visible;
+		}
 	}
 
 	void ondragover(object sender, DragEventArgs e) {
@@ -411,6 +514,7 @@ public partial class ImgConvertWindow : Window {
 			cts = null;
 			setbusy(false);
 			bgo.IsEnabled = true;
+			queuepreview();
 		}
 	}
 
@@ -423,6 +527,7 @@ public partial class ImgConvertWindow : Window {
 	}
 
 	void onclosing(object sender, System.ComponentModel.CancelEventArgs e) {
+		try { prevCts?.Cancel(); } catch { }
 		if (busy) {
 			try { cts?.Cancel(); } catch { }
 			e.Cancel = true;
