@@ -38,7 +38,7 @@ static class Cli {
 				or "--test-sendfile"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool"
+				or "--test-hash" or "--test-texttool" or "--test-pwgen"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -233,6 +233,8 @@ static class Cli {
 					return testhash();
 				case "--test-texttool":
 					return testtexttool();
+				case "--test-pwgen":
+					return testpwgen();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2577,6 +2579,55 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testpwgen() {
+		Out("=== 密码生成器 --test-pwgen ===");
+		var bad = 0;
+		try {
+			var o = new PasswordOpts { Length = 16, Count = 8, Lower = true, Upper = true, Digit = true, Symbol = true, EachClass = true };
+			var list = PasswordGen.Generate(o);
+			if (list.Length != 8) {
+				Err("FAIL: count");
+				bad++;
+			}
+			var set = new HashSet<string>();
+			foreach (var p in list) {
+				Out(p);
+				if (p.Length != 16) {
+					Err("FAIL: length " + p);
+					bad++;
+				}
+				if (!p.Any(char.IsLower) || !p.Any(char.IsUpper) || !p.Any(char.IsDigit)) {
+					Err("FAIL: missing class " + p);
+					bad++;
+				}
+				if (!set.Add(p)) {
+					Err("FAIL: duplicate " + p);
+					bad++;
+				}
+			}
+			o.NoAmbiguous = true;
+			o.Count = 1;
+			var one = PasswordGen.One(o);
+			if (one.IndexOfAny("0OIl1o".ToCharArray()) >= 0) {
+				Err("FAIL: ambiguous " + one);
+				bad++;
+			}
+			else Out("no-amb OK " + one);
+			try {
+				PasswordGen.One(new PasswordOpts { Lower = false, Upper = false, Digit = false, Symbol = false });
+				Err("FAIL: empty charset should throw");
+				bad++;
+			}
+			catch (InvalidOperationException) { Out("empty charset OK"); }
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：密码生成器 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -2599,6 +2650,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-rename
   ScreenKit --test-hash
   ScreenKit --test-texttool
+  ScreenKit --test-pwgen
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
@@ -2655,6 +2707,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256
       --test-texttool  Base64 / URL / GBK 十六进制往返
+      --test-pwgen  生成密码（长度、每类字符、排除易混）
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2710,6 +2763,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-rename
   ScreenKit --test-hash
   ScreenKit --test-texttool
+  ScreenKit --test-pwgen
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent

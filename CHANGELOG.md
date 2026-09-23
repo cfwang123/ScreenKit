@@ -25,7 +25,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- **Tools → Password generator**: crypto-random passwords; length, count, character sets, skip ambiguous `0OIl1`, at least one of each class. Tray and CLI `--test-pwgen`.
+
 ### 中文
+
+#### 新增
+
+- **工具 → 密码生成器**：加密随机；长度、条数、字符集、排除易混 `0OIl1`、每类至少一个。托盘菜单与 CLI `--test-pwgen`。
 
 ## v1.0.9 (2026-09-23)
 

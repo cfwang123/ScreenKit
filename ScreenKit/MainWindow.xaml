@@ -132,6 +132,9 @@
 				<MenuItem x:Name="mntexttool" Header="文本小工具(_X)…"
 				          AutomationProperties.AutomationId="menu.texttool"
 				          ToolTip="Base64、URL、UTF-8/GBK 十六进制"/>
+				<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
+				          AutomationProperties.AutomationId="menu.pwgen"
+				          ToolTip="随机密码，可选字符集"/>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

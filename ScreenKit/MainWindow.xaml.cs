@@ -76,6 +76,7 @@ public partial class MainWindow : Window {
 	BatchRenameWindow renameWin;
 	HashWindow hashWin;
 	TextToolWindow textToolWin;
+	PasswordWindow pwGenWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -474,6 +475,7 @@ public partial class MainWindow : Window {
 			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(openrename));
 			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(openhash));
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(opentexttool));
+			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(openpwgen));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(opensettings));
 			tray.ForceExitRequested += () => {
 				forceExit = true;
@@ -1119,6 +1121,7 @@ public partial class MainWindow : Window {
 		mnrename.Click += (_, _) => openrename();
 		mnhash.Click += (_, _) => openhash();
 		mntexttool.Click += (_, _) => opentexttool();
+		mnpwgen.Click += (_, _) => openpwgen();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
@@ -1223,6 +1226,8 @@ public partial class MainWindow : Window {
 			mnhash.ToolTip = Loc.T("menu.hash.tip");
 			mntexttool.Header = Loc.T("menu.texttool");
 			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
+			mnpwgen.Header = Loc.T("menu.pwgen");
+			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
@@ -3253,6 +3258,9 @@ public partial class MainWindow : Window {
 	void opentexttool() =>
 		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool");
 
+	void openpwgen() =>
+		opentoolwin(ref pwGenWin, () => new PasswordWindow(), "menu.pwgen");
+
 	void opentoolwin<T>(ref T win, Func<T> create, string titleKey) where T : Window {
 		try {
 			if (win != null) {
@@ -3269,6 +3277,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(renameWin, w)) renameWin = null;
 				else if (ReferenceEquals(hashWin, w)) hashWin = null;
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
+				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
 			};
 			w.Show();
 		}

@@ -32,6 +32,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miRename;
 	Forms.ToolStripMenuItem miHash;
 	Forms.ToolStripMenuItem miTextTool;
+	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
@@ -138,12 +139,14 @@ sealed class TrayIcon : IDisposable {
 		miRename = item("tray.rename", () => RenameRequested?.Invoke());
 		miHash = item("tray.hash", () => HashRequested?.Invoke());
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
+		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miQrMake);
 		miTools.DropDownItems.Add(miRename);
 		miTools.DropDownItems.Add(miHash);
 		miTools.DropDownItems.Add(miTextTool);
+		miTools.DropDownItems.Add(miPwGen);
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
@@ -324,6 +327,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miRename, null);
 		setshortcut(miHash, null);
 		setshortcut(miTextTool, null);
+		setshortcut(miPwGen, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
 	}
@@ -361,6 +365,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miRename, "tray.rename");
 			settext(miHash, "tray.hash");
 			settext(miTextTool, "tray.texttool");
+			settext(miPwGen, "tray.pwgen");
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
@@ -390,6 +395,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action RenameRequested;
 	public event Action HashRequested;
 	public event Action TextToolRequested;
+	public event Action PwGenRequested;
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>
