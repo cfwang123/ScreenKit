@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - File sync inbox list no longer freezes on click (OLE file-drag was starting on the press, then deadlocking against the tab’s own drop target).
+- Batch rename `%1` / `%2` are shortest-match captures (FastCopy). A pattern like `2026-09%1 %2` → `%2` keeps the title after the first space, not the fragment after the last space.
 
 ### 中文
 
@@ -60,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 文件同步接收列表点击不再卡死（按下时误进 OLE 拖放，并与本页投放区死锁）。
+- 批量重命名 `%1` / `%2` 改为最短匹配（与 FastCopy 相同）。`2026-09%1 %2` → `%2` 取第一个空格后的标题，不会变成最后一个空格后的「阴.mp4」。
 
 ## v1.0.9 (2026-09-23)
 

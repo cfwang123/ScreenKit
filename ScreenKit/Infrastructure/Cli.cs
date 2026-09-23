@@ -2574,6 +2574,25 @@ static class Cli {
 				Err("FAIL: 未改名到 pic_001.jpg");
 				bad++;
 			}
+			var opt2 = new RenameOptions {
+				OldPattern = "2026-09%1 %2",
+				NewPattern = "%2",
+			};
+			var longName = "2026-09-23 阴阳师直播（画饼续命）第一集（骨质发落 / 未知窥探 / 伪人 / 阴）.mp4";
+			var p2 = BatchRename.Plan(new[] { Path.Combine(dir, "t.mp4") }, new[] { longName }, opt2);
+			if (p2.Count != 1 || p2[0].To != "阴阳师直播（画饼续命）第一集（骨质发落 / 未知窥探 / 伪人 / 阴）.mp4") {
+				Err("FAIL: %1 最短匹配 %2 应为标题全文，得到 " + (p2.Count == 0 ? "(空)" : p2[0].To));
+				bad++;
+			}
+			else Out("%1 最短 / %2 标题 OK");
+			var miss = BatchRename.Plan(
+				new[] { Path.Combine(dir, "t2.mp4") },
+				new[] { "2026-03-21 阴阳师直播.mp4" },
+				opt2);
+			if (miss.Count != 1 || miss[0].To != "2026-03-21 阴阳师直播.mp4") {
+				Err("FAIL: 旧式不匹配时应保持原名 " + (miss.Count == 0 ? "(空)" : miss[0].To));
+				bad++;
+			}
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);

@@ -183,39 +183,60 @@ static class BatchRename {
 		else {
 			var glob = (opt.OldPattern ?? "").Trim();
 			if (glob.Length == 0 || glob == "%1") glob = "*";
-			else glob = applywild(glob);
-			pattern = globtoregex(glob);
+			pattern = wildtoregex(glob);
 		}
 		var flags = RegexOptions.CultureInvariant | RegexOptions.Singleline;
 		if (!opt.MatchCase) flags |= RegexOptions.IgnoreCase;
 		return new Regex(pattern, flags);
 	}
 
-	static string applywild(string pattern) {
-		var sb = new System.Text.StringBuilder(pattern.Length);
-		for (var i = 0; i < pattern.Length; i++) {
-			if (pattern[i] == '%' && i + 1 < pattern.Length && pattern[i + 1] >= '1' && pattern[i + 1] <= '9') {
-				var wider = i + 2 < pattern.Length && char.IsDigit(pattern[i + 2]);
-				if (!wider) {
-					sb.Append('*');
-					i++;
-					continue;
-				}
-			}
-			sb.Append(pattern[i]);
+	/// <summary>FastCopy：%1–%9 / * 为最短捕获；? 单字符。新表达式按编号取捕获。</summary>
+	static string wildtoregex(string glob) {
+		var used = new HashSet<int>();
+		for (var i = 0; i < glob.Length; i++) {
+			if (!slotat(glob, i, out var n, out var j)) continue;
+			used.Add(n);
+			i = j - 1;
 		}
-		return sb.ToString();
-	}
-
-	static string globtoregex(string glob) {
+		var auto = 1;
+		int nextauto() {
+			while (used.Contains(auto)) auto++;
+			var n = auto;
+			used.Add(n);
+			auto++;
+			return n;
+		}
 		var sb = new System.Text.StringBuilder("^");
-		foreach (var ch in glob) {
-			if (ch == '*') sb.Append("(.*)");
-			else if (ch == '?') sb.Append("(.)");
-			else sb.Append(Regex.Escape(ch.ToString()));
+		for (var i = 0; i < glob.Length; i++) {
+			if (slotat(glob, i, out var n, out var j)) {
+				sb.Append($"(?<s{n}>.*?)");
+				i = j - 1;
+				continue;
+			}
+			if (glob[i] == '*') {
+				sb.Append($"(?<s{nextauto()}>.*?)");
+				continue;
+			}
+			if (glob[i] == '?') {
+				sb.Append($"(?<s{nextauto()}>.)");
+				continue;
+			}
+			sb.Append(Regex.Escape(glob[i].ToString()));
 		}
 		sb.Append('$');
 		return sb.ToString();
+	}
+
+	static bool slotat(string s, int i, out int n, out int end) {
+		n = 0;
+		end = i;
+		if (i >= s.Length || s[i] != '%') return false;
+		if (i + 1 >= s.Length || !char.IsDigit(s[i + 1]) || s[i + 1] == '0') return false;
+		var j = i + 1;
+		while (j < s.Length && char.IsDigit(s[j])) j++;
+		if (!int.TryParse(s.Substring(i + 1, j - i - 1), out n) || n < 1) return false;
+		end = j;
+		return true;
 	}
 
 	static (string stem, string ext) SplitExt(string name) {
@@ -238,12 +259,23 @@ static class BatchRename {
 		}
 		var m = rx.Match(working);
 		if (!m.Success) return from;
-		var slots = new string[Math.Max(2, m.Groups.Count)];
-		slots[0] = "";
+		var slots = new string[10];
+		for (var i = 0; i < slots.Length; i++)
+			slots[i] = "";
 		slots[1] = working;
-		for (var g = 1; g < m.Groups.Count; g++) {
-			var v = m.Groups[g].Success ? m.Groups[g].Value : "";
-			if (g < slots.Length) slots[g] = v;
+		if (opt.UseRegex) {
+			for (var g = 1; g < m.Groups.Count; g++) {
+				if (g >= slots.Length) Array.Resize(ref slots, g + 1);
+				slots[g] = m.Groups[g].Success ? m.Groups[g].Value : "";
+			}
+		}
+		else {
+			for (var n = 1; n <= 99; n++) {
+				var g = m.Groups["s" + n];
+				if (g == null || !g.Success) continue;
+				if (n >= slots.Length) Array.Resize(ref slots, n + 1);
+				slots[n] = g.Value;
+			}
 		}
 		var nw = ExpandNewName(opt.NewPattern ?? "", slots, index);
 		if (nw.Length == 0) return from;
