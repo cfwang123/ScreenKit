@@ -2723,6 +2723,15 @@ static class Cli {
 				bad++;
 			}
 			else Out("WordLex.Parse OK");
+			var ancient = WordLex.Parse(
+				"[{\"lang\":\"wenyan\",\"native\":\"密語\",\"latin\":\"mi yu\"}," +
+				"{\"lang\":\"greek\",\"native\":\"κρυπτός\",\"latin\":\"kryptos\"}]");
+			if (ancient.Count != 2 || ancient[0].Code != "lzh" || ancient[1].Code != "grc"
+				|| ancient[0].Latin != "mi yu") {
+				Err("FAIL: WordLex.ancient " + string.Join(",", ancient.Select(r => r.Code + "=" + r.Latin)));
+				bad++;
+			}
+			else Out("WordLex.ancient OK");
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);

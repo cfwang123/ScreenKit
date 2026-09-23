@@ -16,18 +16,24 @@ static class WordLex {
 		"zh", "ja", "ko", "en",
 		"es", "fr", "de", "ru", "it", "pt",
 		"vi", "th", "ar", "hi", "id", "nl", "tr", "pl",
+		"lzh", "grc", "la", "sa", "hbo",
 	};
 
-	const string SysPrompt =
+	static readonly string SysPrompt =
 		"Translate one word or short phrase into many languages for password seeds. " +
 		"Reply with ONLY a JSON array, no markdown, no commentary. " +
 		"Each element: {\"lang\":\"code\",\"native\":\"in that script\",\"latin\":\"ASCII romanization\"}. " +
-		"lang codes in this order: zh,ja,ko,en,es,fr,de,ru,it,pt,vi,th,ar,hi,id,nl,tr,pl. " +
+		$"lang codes in this order: {string.Join(",", Codes)}. " +
 		"zh latin = Hanyu Pinyin without tones (e.g. mi ma). " +
 		"ja latin = Hepburn romaji (e.g. pasuwaado). " +
 		"ko latin = Revised Romanization ASCII (e.g. bimilbeonho). " +
 		"ru/ar/hi/th native = original script; latin = ASCII. " +
 		"en native and latin may be the same English word. " +
+		"lzh = Literary Chinese (文言文), classical wording not modern Mandarin; latin = pinyin without tones. " +
+		"grc = Ancient Greek (not modern), native polytonic Greek; latin = ASCII transliteration. " +
+		"la = Classical Latin; omit macrons; latin = ASCII. " +
+		"sa = Sanskrit, native Devanagari; latin = ASCII (no IAST diacritics). " +
+		"hbo = Biblical Hebrew, native Hebrew letters; latin = ASCII. " +
 		"latin: ASCII letters, optional spaces or hyphens, no diacritics. " +
 		"Keep translations short (one word or a short compound).";
 
@@ -74,10 +80,7 @@ static class WordLex {
 			var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			foreach (var el in root.EnumerateArray()) {
 				if (el.ValueKind != JsonValueKind.Object) continue;
-				var code = str(el, "lang", "code", "l").Trim().ToLowerInvariant();
-				if (code == "jp") code = "ja";
-				if (code == "kr") code = "ko";
-				if (code == "cn" || code == "zh-cn") code = "zh";
+				var code = normcode(str(el, "lang", "code", "l"));
 				var native = str(el, "native", "text", "word", "script");
 				var latin = str(el, "latin", "romaji", "pinyin", "roman", "ascii");
 				if (native.Length == 0 && latin.Length == 0) continue;
@@ -93,6 +96,21 @@ static class WordLex {
 		}
 		list.Sort((a, b) => rank(a.Code).CompareTo(rank(b.Code)));
 		return list;
+	}
+
+	static string normcode(string code) {
+		code = (code ?? "").Trim().ToLowerInvariant().Replace('_', '-');
+		if (code is "jp" or "jpn") return "ja";
+		if (code is "kr" or "kor") return "ko";
+		if (code is "cn" or "zh-cn") return "zh";
+		if (code is "lzh" or "zh-classical" or "classical-chinese" or "literary-chinese" or "wenyan")
+			return "lzh";
+		if (code is "grc" or "el" or "ell" or "gre" or "greek" or "ancient-greek")
+			return "grc";
+		if (code is "la" or "lat" or "latin") return "la";
+		if (code is "sa" or "san" or "skt" or "sanskrit") return "sa";
+		if (code is "hbo" or "bh" or "biblical-hebrew" or "ancient-hebrew") return "hbo";
+		return code;
 	}
 
 	static int rank(string code) {
