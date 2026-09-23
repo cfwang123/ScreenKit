@@ -32,6 +32,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The previous **Tools** menu is renamed **Options** (settings, install features, language, updates, about).
 
+#### Fixed
+
+- Three-monitor screenshot: on a screen whose DPI differs from the system (often the third display), the whole overlay shrank to about 66% because a System-DPI-aware window was DWM-scaled after being pinned to the physical Bounds. Overlay HWNDs are created as Per-Monitor V2 and sized with that screen’s DPI; mixed-DPI still compensates for DWM. CLI: `ScreenKit --test-overlay-layout`.
+
 ### 中文
 
 #### 新增
@@ -41,6 +45,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 原 **工具** 菜单改名为 **选项**（参数设置、安装功能、界面语言、检查更新、关于）。
+
+#### 修复
+
+- 三屏截图：系统 DPI 与某块屏不一致时（常见为屏 3），整块遮罩会被 DWM 再缩到约 66%。遮罩 HWND 按 Per-Monitor V2 创建，并按该屏 DPI 钉到物理 Bounds。CLI：`ScreenKit --test-overlay-layout`。
 
 ## v1.0.8 (2026-09-23)
 

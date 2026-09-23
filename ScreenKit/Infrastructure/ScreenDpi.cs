@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
+using System.Windows.Interop;
 
 namespace ScreenKit;
 
@@ -27,6 +28,36 @@ static class ScreenDpi {
 	[DllImport("Shcore.dll")]
 	static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 
+	[DllImport("Shcore.dll")]
+	static extern int GetProcessDpiAwareness(IntPtr hprocess, out int value);
+
+	[DllImport("kernel32.dll")]
+	static extern IntPtr GetCurrentProcess();
+
+	[DllImport("user32.dll")]
+	static extern uint GetDpiForWindow(IntPtr hwnd);
+
+	[DllImport("user32.dll")]
+	static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+		int X, int Y, int cx, int cy, uint uFlags);
+
+	[DllImport("user32.dll")]
+	static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct RECT {
+		public int Left, Top, Right, Bottom;
+	}
+
+	const uint SWP_NOACTIVATE = 0x0010;
+	const uint SWP_SHOWWINDOW = 0x0040;
+	static readonly IntPtr HwndTopmost = new(-1);
+	/// <summary>DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2</summary>
+	public static readonly IntPtr DpiPerMonitorV2 = new(-4);
+
 	/// <summary>虚拟屏物理像素矩形（与 CopyFromScreen / SystemInformation.VirtualScreen 一致）。</summary>
 	public static (int left, int top, int width, int height) VirtualScreenPixels() {
 		var vs = System.Windows.Forms.SystemInformation.VirtualScreen;
@@ -34,8 +65,8 @@ static class ScreenDpi {
 	}
 
 	/// <summary>
-	/// 进程/系统 DPI 缩放（96=1.0）。System DPI Aware 下 WPF DIP 一律用此比例，
-	/// 不可用副屏的 per-monitor Effective DPI 去算窗口 Width/Height，否则混合 DPI 会缩错。
+	/// 进程/系统 DPI 缩放（96=1.0）。System DPI Aware 下 WPF 默认用此比例。
+	/// 多屏遮罩窗请用 <see cref="PinWindowToPhysical"/>，按窗口所在屏 DPI 钉尺寸。
 	/// </summary>
 	public static double SystemScale() {
 		try {
@@ -56,6 +87,79 @@ static class ScreenDpi {
 	public static double PxToDip(double physicalPx) {
 		var s = SystemScale();
 		return s > 0 ? physicalPx / s : physicalPx;
+	}
+
+	/// <summary>窗口当前 DPI 缩放（GetDpiForWindow；失败回退系统缩放）。</summary>
+	public static double WindowScale(IntPtr hwnd) {
+		if (hwnd != IntPtr.Zero) {
+			try {
+				var dpi = GetDpiForWindow(hwnd);
+				if (dpi >= 48) return dpi / 96.0;
+			}
+			catch { }
+		}
+		return SystemScale();
+	}
+
+	/// <summary>
+	/// 把 WPF 窗钉到物理矩形。System DPI Aware 在「系统缩放≠该屏缩放」时 DWM 会再缩放 HWND，
+	/// 若仍按系统缩放设 DIP 再 SetWindowPos 成屏 Bounds，整窗会缩到 mon/sys（150% 系统 + 100% 屏 ≈ 66%）。
+	/// HWND 已是该屏 DPI 时 DIP=物理/窗缩放并钉 Bounds；否则 DIP=物理/屏缩放，HWND 预放大供 DWM 缩回。
+	/// </summary>
+	public static string PinWindowToPhysical(Window w, int physX, int physY, int physW, int physH) {
+		if (w == null) return "no-window";
+		physW = Math.Max(1, physW);
+		physH = Math.Max(1, physH);
+		var hwnd = new WindowInteropHelper(w).Handle;
+		if (hwnd == IntPtr.Zero) return "no-hwnd";
+
+		var sys = Math.Max(0.25, SystemScale());
+		var mon = Math.Max(0.25, GetMonitorScale(physX + physW / 2, physY + physH / 2));
+		SetWindowPos(hwnd, HwndTopmost, physX, physY, physW, physH, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		var hwndScale = Math.Max(0.25, WindowScale(hwnd));
+		var match = Math.Abs(hwndScale - mon) / Math.Max(hwndScale, mon) <= 0.06;
+		string path;
+		if (match) {
+			path = "match";
+			var dipW = physW / hwndScale;
+			var dipH = physH / hwndScale;
+			if (Math.Abs(w.Width - dipW) > 0.5) w.Width = dipW;
+			if (Math.Abs(w.Height - dipH) > 0.5) w.Height = dipH;
+			if (Math.Abs(w.Left - physX / hwndScale) > 0.5) w.Left = physX / hwndScale;
+			if (Math.Abs(w.Top - physY / hwndScale) > 0.5) w.Top = physY / hwndScale;
+			SetWindowPos(hwnd, HwndTopmost, physX, physY, physW, physH, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		}
+		else {
+			// System Aware + 异 DPI 屏：DWM 把 HWND 从系统缩放缩到该屏缩放
+			path = "compensate";
+			var dipW = physW / mon;
+			var dipH = physH / mon;
+			if (Math.Abs(w.Width - dipW) > 0.5) w.Width = dipW;
+			if (Math.Abs(w.Height - dipH) > 0.5) w.Height = dipH;
+			if (Math.Abs(w.Left - physX / sys) > 0.5) w.Left = physX / sys;
+			if (Math.Abs(w.Top - physY / sys) > 0.5) w.Top = physY / sys;
+			var hwndW = Math.Max(1, (int)Math.Round(physW * sys / mon));
+			var hwndH = Math.Max(1, (int)Math.Round(physH * sys / mon));
+			SetWindowPos(hwnd, HwndTopmost, physX, physY, hwndW, hwndH, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		}
+
+		GetWindowRect(hwnd, out var rc);
+		var rw = Math.Max(0, rc.Right - rc.Left);
+		var rh = Math.Max(0, rc.Bottom - rc.Top);
+		return $"path={path} hwnd={rc.Left},{rc.Top} {rw}x{rh} bounds={physX},{physY} {physW}x{physH} hwndScale={hwndScale:0.###} mon={mon:0.###} sys={sys:0.###} dip={w.Width:0.#}x{w.Height:0.#}";
+	}
+
+	/// <summary>本线程临时切到 Per-Monitor V2（创建遮罩 HWND 用）。</summary>
+	public static IDisposable PerMonitorV2Scope() => new DpiScope(DpiPerMonitorV2);
+
+	sealed class DpiScope : IDisposable {
+		readonly IntPtr prev;
+		public DpiScope(IntPtr ctx) {
+			prev = SetThreadDpiAwarenessContext(ctx);
+		}
+		public void Dispose() {
+			SetThreadDpiAwarenessContext(prev);
+		}
 	}
 
 	/// <summary>指定物理坐标附近显示器的缩放（96 DPI = 1.0）。</summary>
@@ -251,6 +355,18 @@ static class ScreenDpi {
 		VirtualScreenScale(out var sx, out var sy);
 		sb.AppendLine($"VirtualScreen scale (PX/DIP): {sx:0.####} x {sy:0.####}");
 		sb.AppendLine($"SystemScale (WPF DIP): {SystemScale():0.####}");
+		try {
+			if (GetProcessDpiAwareness(GetCurrentProcess(), out var aw) == 0)
+				sb.AppendLine("ProcessDpiAwareness: " + aw switch {
+					0 => "Unaware",
+					1 => "System",
+					2 => "PerMonitor",
+					_ => aw.ToString(),
+				});
+		}
+		catch (Exception ex) {
+			sb.AppendLine("ProcessDpiAwareness: " + ex.Message);
+		}
 		try {
 			using var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero);
 			sb.AppendLine($"System DPI (GDI): {g.DpiX:0.##} x {g.DpiY:0.##} (scale {g.DpiX / 96.0:0.##}x)");

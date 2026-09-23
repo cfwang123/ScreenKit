@@ -113,6 +113,7 @@ static class ScrollCapture {
 			frame.Continue = false;
 		}
 
+		using (ScreenDpi.PerMonitorV2Scope())
 		foreach (var scr in System.Windows.Forms.Screen.AllScreens) {
 			var b = scr.Bounds;
 			if (b.Width < 8 || b.Height < 8) continue;
@@ -159,8 +160,7 @@ static class ScrollCapture {
 			var monT = b.Top;
 			var monW = b.Width;
 			var monH = b.Height;
-			// System DPI Aware：WPF DIP 用系统缩放，勿用副屏 monScale
-			var scale = Math.Max(0.25, ScreenDpi.SystemScale());
+			var scale = Math.Max(0.25, ScreenDpi.GetMonitorScale(monL + monW / 2, monT + monH / 2));
 			ov.Width = monW / scale;
 			ov.Height = monH / scale;
 			ov.Left = monL / scale;
@@ -176,12 +176,12 @@ static class ScrollCapture {
 				mask.Data = g;
 			}
 
-			ov.SourceInitialized += (_, _) => {
-				var hwnd = new WindowInteropHelper(ov).Handle;
-				if (hwnd != IntPtr.Zero)
-					SetWindowPos(hwnd, HwndTopmost, monL, monT, monW, monH, SWP_SHOWWINDOW);
+			ov.SourceInitialized += (_, _) =>
+				ScreenDpi.PinWindowToPhysical(ov, monL, monT, monW, monH);
+			ov.Loaded += (_, _) => {
+				ScreenDpi.PinWindowToPhysical(ov, monL, monT, monW, monH);
+				setmask(0, 0, 0, 0);
 			};
-			ov.Loaded += (_, _) => setmask(0, 0, 0, 0);
 
 			void onmove(object s, MouseEventArgs e) {
 				if (!GetCursorPos(out var p)) return;

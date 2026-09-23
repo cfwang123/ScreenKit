@@ -269,7 +269,7 @@ gif_click_highlight = true
 
 `think`：`off` 发关闭思考；`low`/`medium`/`high`/`max` 发 `thinking.type=enabled` 与 `reasoning_effort`。若 `off` 被拒绝则改 `low` 再试。访问 **opencode.ai** 时自动加 `x-opencode-session` 头。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 已废弃。
 
-`capture_log = true` 写 `log/capture.log`（多屏/DPI、截图落盘耗时，≥500ms 标 `SLOW`）。`llm_log = true` 写 `log/llm.log`（不含 key）。CLI `ScreenKit --snap` 把整屏位图写到 `log/snap/`。
+`capture_log = true` 写 `log/capture.log`（多屏/DPI、截图落盘耗时，≥500ms 标 `SLOW`）。`llm_log = true` 写 `log/llm.log`（不含 key）。CLI `ScreenKit --snap` 把整屏位图写到 `log/snap/`；`--test-overlay-layout` 弹出截屏遮罩并记录各屏 HWND/DPI。
 
 ## HTTP API（简述）
 
@@ -294,6 +294,7 @@ gif_click_highlight = true
 ```text
 ScreenKit --image <路径> [选项]
 ScreenKit --snap [--out <目录>]
+ScreenKit --test-overlay-layout   # 截屏遮罩各屏 HWND/DPI
 ScreenKit --test-clipboard-path
 ScreenKit --test-apk-qr
 ScreenKit --test-img-convert

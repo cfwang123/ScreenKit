@@ -494,8 +494,11 @@ public partial class CaptureOverlay : Window {
 			CaptureLog.Info("DispatcherFrame end");
 			frame.Continue = false;
 		};
-		foreach (var w in session.Windows)
-			w.Show();
+		// 创建 HWND 时切 Per-Monitor V2，避免 System Aware 在异 DPI 屏上被 DWM 把整窗缩到 ~66%
+		using (ScreenDpi.PerMonitorV2Scope()) {
+			foreach (var w in session.Windows)
+				w.Show();
+		}
 		// 焦点给光标所在屏
 		CaptureOverlay focus = session.Windows[0];
 		try {
@@ -564,10 +567,12 @@ public partial class CaptureOverlay : Window {
 	/// <summary>Windows 虚拟坐标下本屏原点与 Bounds 尺寸（可能与 desk* 不同，如 2560×1600）。</summary>
 	readonly int monL, monT, monBoundW, monBoundH;
 	readonly System.Drawing.Rectangle monBounds;
-	/// <summary>本屏 Effective DPI 缩放（仅诊断；WPF 尺寸用 sysScale）。</summary>
+	/// <summary>本屏 Effective DPI 缩放。</summary>
 	readonly double monScale;
-	/// <summary>进程系统 DPI 缩放（WPF DIP = 物理 / sysScale）。</summary>
+	/// <summary>进程系统 DPI 缩放（初始摆位；钉窗后改用窗口 DPI）。</summary>
 	readonly double sysScale;
+	/// <summary>正在 PinWindowToPhysical，避免 Width 变更重入。</summary>
+	bool pinning;
 
 	Phase phase = Phase.Select;
 	Tool tool = Tool.Rect;
@@ -673,7 +678,6 @@ public partial class CaptureOverlay : Window {
 		monBoundW = Math.Max(1, monBounds.Width);
 		monBoundH = Math.Max(1, monBounds.Height);
 		monScale = ScreenDpi.GetMonitorScale(monL + monBoundW / 2, monT + monBoundH / 2);
-		// System DPI Aware：WPF DIP 必须用系统缩放，不能用副屏 monScale（混合 DPI 会把内容缩错）
 		sysScale = Math.Max(0.25, ScreenDpi.SystemScale());
 		desktopBmp = freeze ?? CaptureMonitor(monBounds, out _, out _);
 		// 底图用真实抓取尺寸（可为 1920×1200，与 Bounds 2560×1600 不同）
@@ -683,13 +687,14 @@ public partial class CaptureOverlay : Window {
 
 		InitializeComponent();
 
-		// 物理 Bounds → WPF DIP（系统缩放）；再 SetWindowPos 钉到物理矩形，二者一致才 1:1
-		var dipW = monBoundW / sysScale;
-		var dipH = monBoundH / sysScale;
+		// 先按该屏 DPI 估算 DIP；Show 后 PinWindowToPhysical 按 HWND 实际 DPI 钉死
+		var place = monScale >= 0.25 ? monScale : sysScale;
+		var dipW = monBoundW / place;
+		var dipH = monBoundH / place;
 		Width = dipW;
 		Height = dipH;
-		Left = monL / sysScale;
-		Top = monT / sysScale;
+		Left = monL / place;
+		Top = monT / place;
 
 		imgDesktop.Source = desktopBmp;
 		imgDesktop.Width = dipW;
@@ -701,23 +706,44 @@ public partial class CaptureOverlay : Window {
 			try {
 				var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
 				selfHwnd = hwnd;
-				// 必须用物理 Bounds 盖住该屏；与 Width=px/sysScale 对齐，避免 WPF 再把窗撑大/缩小
-				if (hwnd != IntPtr.Zero)
-					SetWindowPos(hwnd, HwndTopmost, monL, monT, monBoundW, monBoundH, SWP_SHOWWINDOW);
+				var src = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
+				src?.AddHook(dpisink);
 			}
 			catch { }
+			pinoverlay();
 		};
 
 		Loaded += (_, _) => {
-			// 以实际客户区为准（SetWindowPos 后 Actual* 应为 bounds/sysScale）
-			var aw = Math.Max(1.0, ActualWidth);
-			var ah = Math.Max(1.0, ActualHeight);
-			imgDesktop.Width = aw;
-			imgDesktop.Height = ah;
-			CaptureLog.Info($"Overlay Loaded mon=({monL},{monT}) Actual={aw:0.#}x{ah:0.#} expectDip={monBoundW / sysScale:0.#}x{monBoundH / sysScale:0.#}");
+			pinoverlay();
 			updatemask(0, 0, 0, 0);
 			try { proot.Focus(); } catch { }
 		};
+		ContentRendered += (_, _) => pinoverlay();
+
+		IntPtr dpisink(IntPtr hwnd, int msg, IntPtr wp, IntPtr lp, ref bool handled) {
+			const int WM_DPICHANGED = 0x02E0;
+			if (msg != WM_DPICHANGED) return IntPtr.Zero;
+			handled = true;
+			Dispatcher.BeginInvoke(new Action(pinoverlay));
+			return IntPtr.Zero;
+		}
+
+		void pinoverlay() {
+			if (pinning) return;
+			pinning = true;
+			try {
+				var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+				if (hwnd != IntPtr.Zero) selfHwnd = hwnd;
+				var msg = ScreenDpi.PinWindowToPhysical(this, monL, monT, monBoundW, monBoundH);
+				var aw = Math.Max(1.0, ActualWidth);
+				var ah = Math.Max(1.0, ActualHeight);
+				imgDesktop.Width = aw;
+				imgDesktop.Height = ah;
+				CaptureLog.Info($"Overlay pin mon=({monL},{monT}) {msg} Actual={aw:0.#}x{ah:0.#}");
+			}
+			catch (Exception ex) { CaptureLog.Ex("pinoverlay", ex); }
+			finally { pinning = false; }
+		}
 
 		Closed += (_, _) => {
 			CaptureLog.Info($"Closed mon=({monL},{monT}) Finishing={session?.Finishing} fromSession={closingFromSession}");

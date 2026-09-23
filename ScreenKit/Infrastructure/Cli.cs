@@ -31,6 +31,7 @@ static class Cli {
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
 				or "--test-tts-sherpa" or "--test-edge-tts" or "--list-edge-tts"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
+				or "--test-overlay-layout"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
@@ -157,6 +158,8 @@ static class Cli {
 					case "--test-overlay-during-record":
 						doTestOverlayDuringRecord = true;
 						break;
+					case "--test-overlay-layout":
+						return runtestoverlaylayout();
 					case "--test-record-avsync":
 						doTestRecordAvsync = true;
 						break;
@@ -1021,6 +1024,63 @@ static class Cli {
 			return 1;
 		}
 		return code;
+	}
+
+	/// <summary>弹出截屏遮罩约 1.6s，把各屏 HWND 与 Bounds 写入 cli_last.log / capture.log。</summary>
+	static int runtestoverlaylayout() {
+		AppConfig.applylogswitch(true);
+		CaptureLog.SessionStart("CLI --test-overlay-layout");
+		Out("=== 截屏遮罩布局 --test-overlay-layout ===");
+		Out(ScreenDpi.BuildReport());
+
+		var bad = 0;
+		var esc = new System.Windows.Threading.DispatcherTimer {
+			Interval = TimeSpan.FromMilliseconds(1600)
+		};
+		esc.Tick += (_, __) => {
+			esc.Stop();
+			try {
+				var i = 0;
+				foreach (var s in System.Windows.Forms.Screen.AllScreens) {
+					i++;
+					Out($"Screen#{i} {(s.Primary ? "Primary" : "Sec")} Bounds={s.Bounds} scale={ScreenDpi.GetMonitorScale(s.Bounds.Left + 1, s.Bounds.Top + 1):0.###}");
+				}
+				var app = Application.Current;
+				if (app != null) {
+					foreach (Window w in app.Windows) {
+						if (w is not CaptureOverlay) continue;
+						var hwnd = new System.Windows.Interop.WindowInteropHelper(w).Handle;
+						var hs = ScreenDpi.WindowScale(hwnd);
+						Out($"overlay LeftTop={w.Left:0},{w.Top:0} DIP={w.Width:0.#}x{w.Height:0.#} Actual={w.ActualWidth:0.#}x{w.ActualHeight:0.#} hwndScale={hs:0.###}");
+					}
+				}
+			}
+			catch (Exception ex) { Out("layout dump EX: " + ex.Message); }
+			try {
+				var n = 0;
+				var app = Application.Current;
+				if (app != null) {
+					foreach (Window w in app.Windows) {
+						if (w is CaptureOverlay) {
+							try { w.Close(); n++; } catch { }
+						}
+					}
+				}
+				Out("auto-close CaptureOverlay n=" + n);
+			}
+			catch (Exception ex) { Out("auto-close EX: " + ex.Message); }
+		};
+		esc.Start();
+		try {
+			var result = CaptureOverlay.Run();
+			Out($"Run done Confirmed={result.Confirmed}");
+		}
+		catch (Exception ex) {
+			Err("Run EX: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== overlay-layout 完成，详见 log/capture.log ===" : "=== overlay-layout 失败 ===");
+		return bad == 0 ? 0 : 1;
 	}
 
 	/// <summary>
@@ -2234,6 +2294,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --record-snap [--region L,T,W,H] [--wait-ms 800] [--out <目录>]
   ScreenKit --test-capture-during-record [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-overlay-during-record [--region L,T,W,H]
+  ScreenKit --test-overlay-layout
   ScreenKit --test-record-avsync [--seconds 10] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
@@ -2282,6 +2343,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --record-snap  开录→CaptureStill→存盘（诊断抓图）
       --test-capture-during-record  开录中走 CaptureOverlay 同款多屏冻结
       --test-overlay-during-record  开录+HUD 挂起后弹出截图遮罩（自动 ESC）
+      --test-overlay-layout  弹出截屏遮罩并记录各屏 HWND/DPI（自动关闭）
       --test-record-avsync  有声0.1s/静音0.1s循环→录N秒→分析音画同步
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）

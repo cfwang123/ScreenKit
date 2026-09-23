@@ -281,7 +281,7 @@ gif_click_highlight = true
 
 `think`: `off` sends `thinking.type=disabled`; `low`/`medium`/`high`/`max` send `thinking.type=enabled` plus `reasoning_effort`. If `off` is rejected, retry with `low`. Access to **opencode.ai** adds `x-opencode-session` / `x-opencode-client`. Old keys `asr_llm_url` / `asr_llm_token` / `asr_llm_model` are ignored.
 
-Set `capture_log = true` for `log/capture.log` (DPI / save timings; `SLOW` if ≥500ms). Set `llm_log = true` for `log/llm.log` (API keys are not written). CLI `ScreenKit --snap` dumps full-monitor bitmaps under `log/snap/`.
+Set `capture_log = true` for `log/capture.log` (DPI / save timings; `SLOW` if ≥500ms). Set `llm_log = true` for `log/llm.log` (API keys are not written). CLI `ScreenKit --snap` dumps full-monitor bitmaps under `log/snap/`; `--test-overlay-layout` shows the screenshot overlay and logs per-monitor HWND/DPI.
 
 ## HTTP API (overview)
 
@@ -306,6 +306,7 @@ Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[HTTP接口文档.md](
 ```text
 ScreenKit --image <path> [options]
 ScreenKit --snap [--out <dir>]
+ScreenKit --test-overlay-layout   # screenshot overlay HWND/DPI per monitor
 ScreenKit --test-clipboard-path   # path copy after delayed image; 4K timing
 ScreenKit --test-apk-qr            # encode/decode LAN APK QR; HTTP GET /apk
 ScreenKit --test-img-convert       # png→jpg rotate 90 + max 100×100
