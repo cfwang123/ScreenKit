@@ -131,7 +131,7 @@ public partial class CaptureOverlay : Window {
 	const int MIN_CROP = 8;
 	/// <summary>缩放手柄边长（DIP）。</summary>
 	const double HANDLE_SZ = 8;
-	/// <summary>选区边缘可拖动移动的热区（DIP）。</summary>
+	/// <summary>选区外围可拖动移动的热区（DIP，在框外而非框内）。</summary>
 	const double EDGE_MOVE = 10;
 
 	// 抓屏 API（对齐 ShareX Screenshot.CaptureRectangleNative）
@@ -560,6 +560,8 @@ public partial class CaptureOverlay : Window {
 	bool boardBackdrop;
 	/// <summary>截图标注副屏：冻结 + 选区遮罩，无工具条。</summary>
 	bool annotateGuest;
+	/// <summary>副屏显示宿主画笔（VisualBrush）。</summary>
+	WpfRectangle guestStrokeView;
 	/// <summary>本屏冻结底图（真实像素，如 1920×1200）。</summary>
 	readonly BitmapSource desktopBmp;
 	/// <summary>底图像素尺寸（desk*）；用于裁切。</summary>
@@ -1025,8 +1027,7 @@ public partial class CaptureOverlay : Window {
 				e.Handled = true;
 				return;
 			}
-			if (annotateGuest && usemultimonann())
-				Cursor = cursorfor(hittestguestadj(e.GetPosition(proot)));
+			Cursor = cursorfor(hittestannadj(e.GetPosition(proot)));
 			return;
 		}
 		if (boardMode || boardBackdrop) return;
@@ -1298,8 +1299,9 @@ public partial class CaptureOverlay : Window {
 		if (app == null) return 0;
 		foreach (Window win in app.Windows) {
 			if (win is not CaptureOverlay ov) continue;
-			log?.Invoke($"mon=({ov.monL},{ov.monT}) guest={ov.annotateGuest} handles={ov.phandles.Visibility} rsel={ov.rsel.Visibility} {ov.rsel.Width:0}x{ov.rsel.Height:0}");
-			if (ov.annotateGuest && ov.phandles.Visibility == Visibility.Visible)
+			log?.Invoke($"mon=({ov.monL},{ov.monT}) guest={ov.annotateGuest} handles={ov.phandles.Visibility} pane={ov.bpane.Visibility} {ov.bpane.Width:0}x{ov.bpane.Height:0}");
+			if (ov.annotateGuest && ov.phandles.Visibility == Visibility.Visible
+				&& ov.bpane.Visibility == Visibility.Visible)
 				guestsOk++;
 		}
 		return guestsOk;
@@ -2245,7 +2247,6 @@ public partial class CaptureOverlay : Window {
 		bmag.Visibility = Visibility.Collapsed;
 		bhint.Visibility = Visibility.Collapsed;
 		bbar.Visibility = Visibility.Collapsed;
-		bpane.Visibility = Visibility.Collapsed;
 		hasHoverWin = false;
 		adjDrag = false;
 		applyguestmask();
@@ -2265,25 +2266,88 @@ public partial class CaptureOverlay : Window {
 			updatemask(0, 0, 0, 0);
 			rsel.Visibility = Visibility.Collapsed;
 			phandles.Visibility = Visibility.Collapsed;
+			bpane.Visibility = Visibility.Collapsed;
 			return;
 		}
 		if (!tryvirtualtodesk(inter.Left, inter.Top, inter.Width, inter.Height,
 				out var dl, out var dt, out var dw, out var dh)) {
 			updatemask(0, 0, 0, 0);
 			phandles.Visibility = Visibility.Collapsed;
+			bpane.Visibility = Visibility.Collapsed;
 			return;
 		}
 		var (ox, oy, ow, oh) = localtooverlay(dl, dt, dw, dh);
-		Canvas.SetLeft(rsel, ox);
-		Canvas.SetTop(rsel, oy);
-		rsel.Width = Math.Max(0, ow);
-		rsel.Height = Math.Max(0, oh);
-		rsel.Visibility = Visibility.Visible;
-		rsel.Stroke = new SolidColorBrush(Color.FromRgb(0x07, 0xC1, 0x60));
+		rsel.Visibility = Visibility.Collapsed;
 		updatemask(ox, oy, ow, oh);
 		ensurehandles();
 		placehandles();
 		phandles.Visibility = Visibility.Visible;
+		layoutguestpane();
+	}
+
+	/// <summary>副屏画布：铺满整段选区，用 VisualBrush 显示宿主笔迹。</summary>
+	void layoutguestpane() {
+		var host = drawhost();
+		var bd = 2.0;
+		Canvas.SetLeft(bpane, selX - bd);
+		Canvas.SetTop(bpane, selY - bd);
+		bpane.Width = Math.Max(1, selW + bd * 2);
+		bpane.Height = Math.Max(1, selH + bd * 2);
+		bpane.Visibility = Visibility.Visible;
+		bpane.BorderThickness = new Thickness(2);
+		pstage.Width = Math.Max(1, selW);
+		pstage.Height = Math.Max(1, selH);
+		pdraw.Width = Math.Max(1, selW);
+		pdraw.Height = Math.Max(1, selH);
+		pdraw.Background = Brushes.Transparent;
+		if (imgshot.Visibility != Visibility.Collapsed) {
+			imgshot.Source = null;
+			imgshot.Visibility = Visibility.Collapsed;
+		}
+		if (host == this) {
+			if (guestStrokeView != null)
+				guestStrokeView.Visibility = Visibility.Collapsed;
+			return;
+		}
+		if (guestStrokeView == null) {
+			guestStrokeView = new WpfRectangle {
+				IsHitTestVisible = false,
+				HorizontalAlignment = HorizontalAlignment.Left,
+				VerticalAlignment = VerticalAlignment.Top,
+				SnapsToDevicePixels = true,
+			};
+			pstage.Children.Insert(0, guestStrokeView);
+		}
+		guestStrokeView.Width = Math.Max(1, selW);
+		guestStrokeView.Height = Math.Max(1, selH);
+		if (guestStrokeView.Fill is not VisualBrush vb || !ReferenceEquals(vb.Visual, host.pdraw)) {
+			guestStrokeView.Fill = new VisualBrush(host.pdraw) {
+				Stretch = Stretch.Fill,
+				AlignmentX = AlignmentX.Left,
+				AlignmentY = AlignmentY.Top,
+			};
+		}
+		guestStrokeView.Visibility = Visibility.Visible;
+	}
+
+	/// <summary>笔迹画在标注宿主上；副屏转发事件。</summary>
+	CaptureOverlay drawhost() {
+		var h = session?.AnnotateHost;
+		if (h != null && !h.annotateGuest) return h;
+		return this;
+	}
+
+	/// <summary>本屏 pdraw 坐标 → 宿主 pdraw 坐标（跨屏/混合 DPI）。</summary>
+	Point tohostpdraw(Point local, CaptureOverlay host) {
+		if (host == null || host == this) return local;
+		if (trycursor(out var vx, out var vy) && host.session != null) {
+			var fx = (vx - host.session.AnnVL) / (double)Math.Max(1, host.session.AnnVW);
+			var fy = (vy - host.session.AnnVT) / (double)Math.Max(1, host.session.AnnVH);
+			return new Point(fx * host.selW, fy * host.selH);
+		}
+		var sw = Math.Max(1e-6, selW);
+		var sh = Math.Max(1e-6, selH);
+		return new Point(local.X * host.selW / sw, local.Y * host.selH / sh);
 	}
 
 	/// <summary>多屏标注：每屏刷新（宿主画布 / guest 遮罩）。</summary>
@@ -2291,7 +2355,6 @@ public partial class CaptureOverlay : Window {
 		if (boardMode) return;
 		if (annotateGuest || (session != null && session.AnnotateHost != this && session.InAnnotate)) {
 			annotateGuest = true;
-			bpane.Visibility = Visibility.Collapsed;
 			bbar.Visibility = Visibility.Collapsed;
 			applyguestmask();
 			return;
@@ -2341,8 +2404,8 @@ public partial class CaptureOverlay : Window {
 			// 默认画矩形；移动/缩放只在边缘热区与 8 点手柄
 			settool(Tool.Rect);
 			lbcap.Text = session != null && session.Windows.Count > 1
-				? "可跨屏拖动选区 · 角/边缩放 · 双击/回车完成"
-				: "默认矩形 · 边缘拖动移动 · 角/边缩放 · 双击/回车完成";
+				? "可跨屏画框 · 框外拖动 · 角/边缩放 · 双击/回车完成"
+				: "默认矩形 · 框外 10px 拖动 · 角/边缩放 · 双击/回车完成";
 		}
 		// 刷新副屏遮罩
 		if (session != null && session.InAnnotate && !boardMode) {
@@ -2564,6 +2627,8 @@ public partial class CaptureOverlay : Window {
 			bbar.Visibility = Visibility.Visible;
 		if (phandles.Visibility == Visibility.Visible)
 			placehandles();
+		if (guestStrokeView != null)
+			guestStrokeView.Visibility = Visibility.Collapsed;
 		// 导出前再 materialize；预览阶段 ResultImage 可空
 		if (shot != null)
 			ResultImage = shot;
@@ -3017,8 +3082,8 @@ public partial class CaptureOverlay : Window {
 		CaptureLog.Info($"transfer annotate host -> mon=({best.monL},{best.monT})");
 	}
 
-	/// <summary>副屏命中：本屏手柄，或可见选区（整块可拖动）。</summary>
-	AdjHit hittestguestadj(Point p) {
+	/// <summary>手柄优先，其次选区外围 10px 为移动（框内留给画笔）。</summary>
+	AdjHit hittestannadj(Point p) {
 		if (handles != null && phandles.Visibility == Visibility.Visible) {
 			var pad = HANDLE_SZ / 2 + 3;
 			for (var i = 0; i < handles.Length; i++) {
@@ -3029,35 +3094,33 @@ public partial class CaptureOverlay : Window {
 					return handlehit(i);
 			}
 		}
-		if (rsel.Visibility == Visibility.Visible) {
-			var rx = Canvas.GetLeft(rsel);
-			var ry = Canvas.GetTop(rsel);
-			if (!double.IsNaN(rx) && !double.IsNaN(ry)
-				&& p.X >= rx && p.X <= rx + rsel.Width
-				&& p.Y >= ry && p.Y <= ry + rsel.Height)
-				return AdjHit.Move;
-		}
+		if (isoutermovehit(p)) return AdjHit.Move;
 		return AdjHit.None;
 	}
 
-	/// <summary>标注副屏按下：拖选区或缩放手柄。</summary>
+	/// <summary>标注按下：外围拖动或缩放手柄（框内不在此处理）。</summary>
 	bool tryannadjdown(MouseButtonEventArgs e) {
 		if (boardMode || boardBackdrop) return false;
-		if (!annotateGuest || !usemultimonann()) return false;
-		var hit = hittestguestadj(e.GetPosition(proot));
+		if (isoverbar(e.GetPosition(proot))) return false;
+		var hit = hittestannadj(e.GetPosition(proot));
 		if (hit == AdjHit.None) return false;
 		startadj(hit, e.GetPosition(proot));
 		return adjDrag;
 	}
 
-	/// <summary>画布坐标是否落在选区边缘热区（用于移动）。</summary>
-	bool isedgehit(Point pInDraw) {
-		var ex = Math.Min(EDGE_MOVE, Math.Max(4, selW / 4));
-		var ey = Math.Min(EDGE_MOVE, Math.Max(4, selH / 4));
-		if (pInDraw.X < 0 || pInDraw.Y < 0 || pInDraw.X > selW || pInDraw.Y > selH)
+	/// <summary>选区外围 EDGE_MOVE DIP 热区（不含框内）。</summary>
+	bool isoutermovehit(Point p) {
+		if (boardMode) return false;
+		if (selW < 1 || selH < 1) return false;
+		var pad = EDGE_MOVE;
+		var l = selX;
+		var t = selY;
+		var r = selX + selW;
+		var b = selY + selH;
+		if (p.X >= l && p.X <= r && p.Y >= t && p.Y <= b)
 			return false;
-		return pInDraw.X <= ex || pInDraw.Y <= ey
-			|| pInDraw.X >= selW - ex || pInDraw.Y >= selH - ey;
+		return p.X >= l - pad && p.X <= r + pad
+			&& p.Y >= t - pad && p.Y <= b + pad;
 	}
 
 	// ───────── 标注阶段 ─────────
@@ -3104,53 +3167,43 @@ public partial class CaptureOverlay : Window {
 		if (phase != Phase.Annotate) return;
 		if (e.ClickCount >= 2) return; // 双击由 Preview 完成
 		if (e.Handled) return;
-		if (adjDrag) return;
+		var dh = drawhost();
+		if (adjDrag || dh.adjDrag) return;
 		// 点在文字上由文字宿主接管
 		if (e.OriginalSource is DependencyObject od && findtexthost(od) != null)
 			return;
-		start = e.GetPosition(pdraw);
-		// 画板全屏：不移动选区；截图标注：仅边缘热区移动
-		if (!boardMode && isedgehit(start)) {
-			committextedit();
-			cleartextsel();
-			startadj(AdjHit.Move, e.GetPosition(proot));
+		var local = e.GetPosition(pdraw);
+		dh.start = tohostpdraw(local, dh);
+		if (dh.tool == Tool.Text) {
+			dh.addtext(dh.start);
 			e.Handled = true;
 			return;
 		}
-		if (tool == Tool.Text) {
-			// 空白处新建文字
-			addtext(start);
+		dh.committextedit();
+		dh.cleartextsel();
+		if (dh.tool == Tool.None) {
 			e.Handled = true;
 			return;
 		}
-		// 其它工具：先结束文字编辑/选中
-		committextedit();
-		cleartextsel();
-		if (tool == Tool.None) {
-			// 无工具时框内不绘制（取消选中全部工具的情况）
-			e.Handled = true;
-			return;
-		}
-		drawing = true;
-		var br = strokebrush();
-		var thick = curthick();
-		// Line = 自由画笔（Polyline）；Arrow = 直线箭头
-		if (tool == Tool.Line) {
+		dh.drawing = true;
+		var br = dh.strokebrush();
+		var thick = dh.curthick();
+		if (dh.tool == Tool.Line) {
 			var pl = new System.Windows.Shapes.Polyline {
 				Stroke = br,
 				StrokeThickness = thick,
 				StrokeStartLineCap = PenLineCap.Round,
 				StrokeEndLineCap = PenLineCap.Round,
 				StrokeLineJoin = PenLineJoin.Round,
-				Points = new PointCollection { start },
+				Points = new PointCollection { dh.start },
 			};
-			draft = pl;
-			pdraw.Children.Add(pl);
+			dh.draft = pl;
+			dh.pdraw.Children.Add(pl);
 			pdraw.CaptureMouse();
 			e.Handled = true;
 			return;
 		}
-		draft = tool switch {
+		dh.draft = dh.tool switch {
 			Tool.Rect => new WpfRectangle {
 				Stroke = br, StrokeThickness = thick, Fill = Brushes.Transparent,
 			},
@@ -3160,24 +3213,24 @@ public partial class CaptureOverlay : Window {
 			Tool.Arrow => new WpfLine {
 				Stroke = br, StrokeThickness = thick,
 				StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
-				X1 = start.X, Y1 = start.Y, X2 = start.X, Y2 = start.Y,
+				X1 = dh.start.X, Y1 = dh.start.Y, X2 = dh.start.X, Y2 = dh.start.Y,
 			},
 			_ => null,
 		};
-		if (draft is WpfRectangle rc) {
-			Canvas.SetLeft(rc, start.X);
-			Canvas.SetTop(rc, start.Y);
+		if (dh.draft is WpfRectangle rc) {
+			Canvas.SetLeft(rc, dh.start.X);
+			Canvas.SetTop(rc, dh.start.Y);
 			rc.Width = 0;
 			rc.Height = 0;
 		}
-		else if (draft is System.Windows.Shapes.Ellipse el) {
-			Canvas.SetLeft(el, start.X);
-			Canvas.SetTop(el, start.Y);
+		else if (dh.draft is System.Windows.Shapes.Ellipse el) {
+			Canvas.SetLeft(el, dh.start.X);
+			Canvas.SetTop(el, dh.start.Y);
 			el.Width = 0;
 			el.Height = 0;
 		}
-		if (draft != null) {
-			pdraw.Children.Add(draft);
+		if (dh.draft != null) {
+			dh.pdraw.Children.Add(dh.draft);
 			pdraw.CaptureMouse();
 		}
 		e.Handled = true;
@@ -3185,18 +3238,15 @@ public partial class CaptureOverlay : Window {
 
 	void ondrawmove(object sender, MouseEventArgs e) {
 		if (phase != Phase.Annotate) return;
-		if (adjDrag) {
-			doadjmove(e.GetPosition(proot));
+		var dh = drawhost();
+		if (adjDrag || dh.adjDrag) {
+			(adjDrag ? this : dh).doadjmove(e.GetPosition(proot));
 			return;
 		}
-		var p = e.GetPosition(pdraw);
-		if (!drawing || draft == null) {
-			// 悬停：画板始终十字；截图标注仅边缘显示移动光标
-			pdraw.Cursor = (!boardMode && isedgehit(p)) ? Cursors.SizeAll : Cursors.Cross;
-			return;
-		}
-		if (draft is System.Windows.Shapes.Polyline pl) {
-			// 自由画笔：点距过近则跳过，减轻点数
+		pdraw.Cursor = Cursors.Cross;
+		if (!dh.drawing || dh.draft == null) return;
+		var p = tohostpdraw(e.GetPosition(pdraw), dh);
+		if (dh.draft is System.Windows.Shapes.Polyline pl) {
 			if (pl.Points.Count > 0) {
 				var last = pl.Points[pl.Points.Count - 1];
 				var dx = p.X - last.X;
@@ -3206,48 +3256,47 @@ public partial class CaptureOverlay : Window {
 			pl.Points.Add(p);
 			return;
 		}
-		if (draft is WpfRectangle rc) {
-			var x = Math.Min(p.X, start.X);
-			var y = Math.Min(p.Y, start.Y);
+		if (dh.draft is WpfRectangle rc) {
+			var x = Math.Min(p.X, dh.start.X);
+			var y = Math.Min(p.Y, dh.start.Y);
 			Canvas.SetLeft(rc, x);
 			Canvas.SetTop(rc, y);
-			rc.Width = Math.Abs(p.X - start.X);
-			rc.Height = Math.Abs(p.Y - start.Y);
+			rc.Width = Math.Abs(p.X - dh.start.X);
+			rc.Height = Math.Abs(p.Y - dh.start.Y);
 		}
-		else if (draft is System.Windows.Shapes.Ellipse el) {
-			var x = Math.Min(p.X, start.X);
-			var y = Math.Min(p.Y, start.Y);
+		else if (dh.draft is System.Windows.Shapes.Ellipse el) {
+			var x = Math.Min(p.X, dh.start.X);
+			var y = Math.Min(p.Y, dh.start.Y);
 			Canvas.SetLeft(el, x);
 			Canvas.SetTop(el, y);
-			el.Width = Math.Abs(p.X - start.X);
-			el.Height = Math.Abs(p.Y - start.Y);
+			el.Width = Math.Abs(p.X - dh.start.X);
+			el.Height = Math.Abs(p.Y - dh.start.Y);
 		}
-		else if (draft is WpfLine ln) {
+		else if (dh.draft is WpfLine ln) {
 			ln.X2 = p.X;
 			ln.Y2 = p.Y;
 		}
 	}
 
 	void ondrawup(object sender, MouseButtonEventArgs e) {
-		if (phase == Phase.Annotate && adjDrag) {
-			endadj();
+		var dh = drawhost();
+		if (phase == Phase.Annotate && (adjDrag || dh.adjDrag)) {
+			(dh.adjDrag ? dh : this).endadj();
 			e.Handled = true;
 			return;
 		}
-		if (!drawing) return;
-		drawing = false;
+		if (!dh.drawing) return;
+		dh.drawing = false;
 		try { pdraw.ReleaseMouseCapture(); } catch { }
-		var p = e.GetPosition(pdraw);
-		if (draft is System.Windows.Shapes.Polyline pl) {
+		var p = tohostpdraw(e.GetPosition(pdraw), dh);
+		if (dh.draft is System.Windows.Shapes.Polyline pl) {
 			if (pl.Points.Count < 2) {
-				pdraw.Children.Remove(pl);
-				draft = null;
+				dh.pdraw.Children.Remove(pl);
+				dh.draft = null;
 				return;
 			}
-			// 单点点击：补一个极近点避免零长度
 			if (pl.Points.Count == 1)
 				pl.Points.Add(p);
-			// 路径过短丢弃
 			double len = 0;
 			for (var i = 1; i < pl.Points.Count; i++) {
 				var a = pl.Points[i - 1];
@@ -3257,46 +3306,46 @@ public partial class CaptureOverlay : Window {
 				len += Math.Sqrt(dx * dx + dy * dy);
 			}
 			if (len < 2) {
-				pdraw.Children.Remove(pl);
-				draft = null;
+				dh.pdraw.Children.Remove(pl);
+				dh.draft = null;
 				return;
 			}
-			strokes.Add(pl);
-			draft = null;
+			dh.strokes.Add(pl);
+			dh.draft = null;
 			return;
 		}
-		if (draft is WpfLine ln && tool == Tool.Arrow) {
-			pdraw.Children.Remove(ln);
-			var arrow = makearrow(start, p, strokebrush(), curthick());
+		if (dh.draft is WpfLine ln && dh.tool == Tool.Arrow) {
+			dh.pdraw.Children.Remove(ln);
+			var arrow = makearrow(dh.start, p, dh.strokebrush(), dh.curthick());
 			if (arrow != null) {
-				pdraw.Children.Add(arrow);
-				strokes.Add(arrow);
+				dh.pdraw.Children.Add(arrow);
+				dh.strokes.Add(arrow);
 			}
-			draft = null;
+			dh.draft = null;
 			return;
 		}
-		if (draft is WpfRectangle rc && (rc.Width < 2 || rc.Height < 2)) {
-			pdraw.Children.Remove(rc);
-			draft = null;
+		if (dh.draft is WpfRectangle rc && (rc.Width < 2 || rc.Height < 2)) {
+			dh.pdraw.Children.Remove(rc);
+			dh.draft = null;
 			return;
 		}
-		if (draft is System.Windows.Shapes.Ellipse el && (el.Width < 2 || el.Height < 2)) {
-			pdraw.Children.Remove(el);
-			draft = null;
+		if (dh.draft is System.Windows.Shapes.Ellipse el && (el.Width < 2 || el.Height < 2)) {
+			dh.pdraw.Children.Remove(el);
+			dh.draft = null;
 			return;
 		}
-		if (draft is WpfLine line) {
+		if (dh.draft is WpfLine line) {
 			var dx = line.X2 - line.X1;
 			var dy = line.Y2 - line.Y1;
 			if (Math.Sqrt(dx * dx + dy * dy) < 2) {
-				pdraw.Children.Remove(line);
-				draft = null;
+				dh.pdraw.Children.Remove(line);
+				dh.draft = null;
 				return;
 			}
 		}
-		if (draft != null) {
-			strokes.Add(draft);
-			draft = null;
+		if (dh.draft != null) {
+			dh.strokes.Add(dh.draft);
+			dh.draft = null;
 		}
 	}
 

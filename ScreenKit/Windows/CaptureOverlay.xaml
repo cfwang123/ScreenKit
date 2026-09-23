@@ -127,7 +127,7 @@
 				<Canvas x:Name="pdraw" Background="Transparent" SnapsToDevicePixels="True"/>
 			</Grid>
 		</Border>
-		<!-- 微信式：选区确认后 8 点缩放手柄（移动靠拖选区边缘） -->
+		<!-- 微信式：选区确认后 8 点缩放手柄（移动靠框外 10px） -->
 		<Canvas x:Name="phandles" Visibility="Collapsed" IsHitTestVisible="True"
 		        SnapsToDevicePixels="True"/>
 		<!-- 微信式放大镜 + 坐标/色值 -->

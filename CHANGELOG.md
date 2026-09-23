@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Three-monitor screenshot: on a screen whose DPI differs from the system (often the third display), the whole overlay shrank to about 66% because a System-DPI-aware window was DWM-scaled after being pinned to the physical Bounds. Overlay HWNDs are created as Per-Monitor V2 and sized with that screen’s DPI; mixed-DPI still compensates for DWM. CLI: `ScreenKit --test-overlay-layout`.
 - A region that spans monitors can be moved and resized on every screen it covers (handles and drag on guest overlays). CLI: `ScreenKit --test-overlay-span-adj`.
+- Cross-monitor annotate: rectangle/ellipse/pen/arrow can be drawn on every screen the region covers (guest overlays show the host canvas). Moving the region uses a 10px band **outside** the frame.
 
 ### 中文
 
@@ -51,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 三屏截图：系统 DPI 与某块屏不一致时（常见为屏 3），整块遮罩会被 DWM 再缩到约 66%。遮罩 HWND 按 Per-Monitor V2 创建，并按该屏 DPI 钉到物理 Bounds。CLI：`ScreenKit --test-overlay-layout`。
 - 跨屏选区可在每一块相交的屏上拖动、缩放（副屏也显示手柄）。CLI：`ScreenKit --test-overlay-span-adj`。
+- 跨屏标注：矩形/椭圆/画笔/箭头可在选区覆盖的每一块屏上画（副屏显示宿主画布）。拖动选区改为框**外** 10px 热区。
 
 ## v1.0.8 (2026-09-23)
 
