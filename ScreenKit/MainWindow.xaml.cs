@@ -462,21 +462,21 @@ public partial class MainWindow : Window {
 				if (tray != null) tray.showwindow();
 				saveimage();
 			}));
-			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench()));
+			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench(fromTray: true)));
 			// 截图历史：打开 screenshots 文件夹，不唤起主窗
 			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(opensnapshotsfolder));
 			// 录屏 / 录屏参数 / 系统参数：不唤起主窗，只打开对应功能窗
 			tray.RecordRequested += () => Dispatcher.BeginInvoke(new Action(startrecord));
-			tray.RecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(openrecordoptions));
+			tray.RecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => openrecordoptions(fromTray: true)));
 			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
-			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(opengifrecordoptions));
-			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(openimgconv));
-			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(openqrmake));
-			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(openrename));
-			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(openhash));
-			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(opentexttool));
-			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(openpwgen));
-			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(opensettings));
+			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => opengifrecordoptions(fromTray: true)));
+			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv(fromTray: true)));
+			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake(fromTray: true)));
+			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename(fromTray: true)));
+			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash(fromTray: true)));
+			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
+			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
+			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => {
 				forceExit = true;
 				try { Close(); } catch { }
@@ -2207,11 +2207,11 @@ public partial class MainWindow : Window {
 		try { Hide(); } catch { }
 	}
 
-	void openrecordoptions() {
+	void openrecordoptions(bool fromTray = false) {
 		try {
 			opt.Record ??= new RecordOptions();
 			var dlg = new RecordOptionsWindow(opt.Record);
-			attachdialogowner(dlg);
+			attachdialogowner(dlg, fromTray);
 			dlg.ShowDialog();
 			if (!dlg.Applied) return;
 			opt.Record = dlg.Result;
@@ -2224,11 +2224,11 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void opengifrecordoptions() {
+	void opengifrecordoptions(bool fromTray = false) {
 		try {
 			opt.GifRecord ??= new GifOptions();
 			var dlg = new GifOptionsWindow(opt.GifRecord);
-			attachdialogowner(dlg);
+			attachdialogowner(dlg, fromTray);
 			dlg.ShowDialog();
 			if (!dlg.Applied) return;
 			opt.GifRecord = dlg.Result;
@@ -2632,22 +2632,28 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>
-	/// 主窗可见时挂 Owner 并居中于主窗；隐藏/最小化（托盘）时不设 Owner，
-	/// 避免 ShowDialog 把主窗一并拉起，对话框改居中屏幕。
+	/// 主窗菜单打开：可见时挂 Owner 并居中于主窗。
+	/// 托盘打开（independent）：永不设 Owner，居中屏幕，避免跟着主窗最小化或被菜单误激活拖起主窗。
 	/// </summary>
-	void attachdialogowner(Window dlg) {
+	void attachdialogowner(Window dlg, bool independent = false) {
 		if (dlg == null) return;
 		try {
-			if (IsVisible && WindowState != WindowState.Minimized) {
+			if (independent || !IsVisible || WindowState == WindowState.Minimized) {
+				dlg.Owner = null;
+				dlg.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+				dlg.ShowInTaskbar = true;
+			}
+			else {
 				dlg.Owner = this;
 				dlg.WindowStartupLocation = WindowStartupLocation.CenterOwner;
 			}
-			else {
-				dlg.WindowStartupLocation = WindowStartupLocation.CenterScreen;
-			}
 		}
 		catch {
-			try { dlg.WindowStartupLocation = WindowStartupLocation.CenterScreen; } catch { }
+			try {
+				dlg.Owner = null;
+				dlg.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+			}
+			catch { }
 		}
 	}
 
@@ -2798,7 +2804,7 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>打开独立 PDF 识别工作台（可编辑、存草稿、导出）。</summary>
-	void openpdfworkbench(string pdfPath = null) {
+	void openpdfworkbench(string pdfPath = null, bool fromTray = false) {
 		try {
 			if (!FeaturePrompt.EnsurePdf(this)) {
 				setstatus("未安装 PDF 渲染库，已取消");
@@ -2812,9 +2818,8 @@ public partial class MainWindow : Window {
 			applymodelchoice(reload: false);
 			if (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir))
 				applydefaultmodel();
-			var win = new PdfOcrWindow(() => snapshotopt(), runner, pdfPath) {
-				Owner = this,
-			};
+			var win = new PdfOcrWindow(() => snapshotopt(), runner, pdfPath);
+			attachdialogowner(win, fromTray);
 			win.Show();
 			setstatus("已打开 PDF 识别工作台");
 		}
@@ -2949,11 +2954,11 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void opensettings() {
+	void opensettings(bool fromTray = false) {
 		// 打开前把顶栏当前选择写回 opt
 		applymodelchoice(reload: false);
 		var dlg = new SettingsWindow(opt);
-		attachdialogowner(dlg);
+		attachdialogowner(dlg, fromTray);
 		dlg.ShowDialog();
 		if (!dlg.Applied) return;
 		var old = opt;
@@ -3246,22 +3251,22 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void openqrmake() =>
-		opentoolwin(ref qrMakeWin, () => new QrMakeWindow(), "menu.qrmake");
+	void openqrmake(bool fromTray = false) =>
+		opentoolwin(ref qrMakeWin, () => new QrMakeWindow(), "menu.qrmake", fromTray);
 
-	void openrename() =>
-		opentoolwin(ref renameWin, () => new BatchRenameWindow(), "menu.rename");
+	void openrename(bool fromTray = false) =>
+		opentoolwin(ref renameWin, () => new BatchRenameWindow(), "menu.rename", fromTray);
 
-	void openhash() =>
-		opentoolwin(ref hashWin, () => new HashWindow(), "menu.hash");
+	void openhash(bool fromTray = false) =>
+		opentoolwin(ref hashWin, () => new HashWindow(), "menu.hash", fromTray);
 
-	void opentexttool() =>
-		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool");
+	void opentexttool(bool fromTray = false) =>
+		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool", fromTray);
 
-	void openpwgen() =>
-		opentoolwin(ref pwGenWin, () => new PasswordWindow(), "menu.pwgen");
+	void openpwgen(bool fromTray = false) =>
+		opentoolwin(ref pwGenWin, () => new PasswordWindow(), "menu.pwgen", fromTray);
 
-	void opentoolwin<T>(ref T win, Func<T> create, string titleKey) where T : Window {
+	void opentoolwin<T>(ref T win, Func<T> create, string titleKey, bool fromTray = false) where T : Window {
 		try {
 			if (win != null) {
 				if (win.WindowState == WindowState.Minimized)
@@ -3271,7 +3276,7 @@ public partial class MainWindow : Window {
 			}
 			win = create();
 			var w = win;
-			attachdialogowner(w);
+			attachdialogowner(w, fromTray);
 			w.Closed += (_, _) => {
 				if (ReferenceEquals(qrMakeWin, w)) qrMakeWin = null;
 				else if (ReferenceEquals(renameWin, w)) renameWin = null;
@@ -3287,7 +3292,7 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void openimgconv() {
+	void openimgconv(bool fromTray = false) {
 		try {
 			if (imgConvWin != null) {
 				if (imgConvWin.WindowState == WindowState.Minimized)
@@ -3296,7 +3301,7 @@ public partial class MainWindow : Window {
 				return;
 			}
 			imgConvWin = new ImgConvertWindow(opt);
-			attachdialogowner(imgConvWin);
+			attachdialogowner(imgConvWin, fromTray);
 			imgConvWin.Closed += (_, _) => {
 				imgConvWin = null;
 				try { AppConfig.Save(opt); } catch { }

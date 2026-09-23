@@ -29,11 +29,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - **Tools → Password generator**: crypto-random passwords; length, count, character sets, skip ambiguous `0OIl1`, at least one of each class. Tray and CLI `--test-pwgen`.
 
+#### Changed
+
+- Windows opened from the tray have no owner (centered on screen, own taskbar button) so they do not minimize with the main window.
+
 ### 中文
 
 #### 新增
 
 - **工具 → 密码生成器**：加密随机；长度、条数、字符集、排除易混 `0OIl1`、每类至少一个。托盘菜单与 CLI `--test-pwgen`。
+
+#### 变更
+
+- 托盘打开的窗口不再挂主窗为 Owner（居中屏幕、独立任务栏项），避免跟着主窗最小化。
 
 ## v1.0.9 (2026-09-23)
 
