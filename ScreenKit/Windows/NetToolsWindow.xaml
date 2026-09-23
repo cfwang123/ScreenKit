@@ -49,6 +49,8 @@
 			        AutomationProperties.AutomationId="nettool.locate"/>
 			<Button x:Name="bproxy" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.proxy"/>
+			<Button x:Name="bhttp" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="nettool.http"/>
 			<Button x:Name="bstop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.stop"/>
 		</WrapPanel>

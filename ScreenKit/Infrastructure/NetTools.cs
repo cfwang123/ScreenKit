@@ -185,19 +185,112 @@ static class NetTools {
 			line?.Invoke("全部超时，无法估计位置");
 			return;
 		}
+		line?.Invoke("推测位置：" + guessplace(ok.Select(r => (r.Place, r.Ms)).ToList()));
+	}
+
+	static readonly (string Name, string Url, string Place)[] HttpSpeedNodes = {
+		("百度", "https://www.baidu.com/favicon.ico", "北京"),
+		("淘宝", "https://www.taobao.com/favicon.ico", "杭州"),
+		("腾讯", "https://www.qq.com/favicon.ico", "深圳"),
+		("Cloudflare", "https://www.cloudflare.com/cdn-cgi/trace", "Cloudflare"),
+		("Google", "https://www.gstatic.com/generate_204", "Google"),
+		("微软", "https://www.msftconnecttest.com/connecttest.txt", "微软"),
+		("GitHub", "https://github.com/favicon.ico", "美国"),
+		("Apple", "https://www.apple.com/library/test/success.html", "美国"),
+	};
+
+	/// <summary>经系统代理 HTTP GET 若干站点，用最短耗时粗略估计出口位置。</summary>
+	public static async Task HttpSpeedLocate(Action<string> line, CancellationToken ct) {
+		line?.Invoke("HTTP 测速定位（系统代理）");
+		IWebProxy sys = null;
+		try {
+			sys = WebRequest.GetSystemWebProxy();
+			if (sys != null)
+				sys.Credentials = CredentialCache.DefaultCredentials;
+			var probe = new Uri("https://www.google.com/");
+			var px = sys?.GetProxy(probe);
+			if (px != null && px != probe && !string.Equals(px.Host, probe.Host, StringComparison.OrdinalIgnoreCase))
+				line?.Invoke("系统代理: " + px);
+			else
+				line?.Invoke("系统代理: 无（直连）");
+		}
+		catch (Exception ex) {
+			line?.Invoke("系统代理: " + ex.Message);
+		}
+		var handler = new HttpClientHandler {
+			UseProxy = sys != null,
+			Proxy = sys,
+			AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+		};
+		var rows = new List<(string Place, long? Ms)>();
+		using (handler)
+		using (var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) }) {
+			http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ScreenKit");
+			foreach (var n in HttpSpeedNodes) {
+				ct.ThrowIfCancellationRequested();
+				long? best = null;
+				string extra = "";
+				for (var i = 0; i < 2; i++) {
+					ct.ThrowIfCancellationRequested();
+					var sw = System.Diagnostics.Stopwatch.StartNew();
+					try {
+						using var resp = await http.GetAsync(n.Url, ct).ConfigureAwait(false);
+						var bytes = await resp.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+						sw.Stop();
+						var ms = sw.ElapsedMilliseconds;
+						if (best == null || ms < best.Value) best = ms;
+						if (n.Url.IndexOf("cdn-cgi/trace", StringComparison.OrdinalIgnoreCase) >= 0) {
+							var t = Encoding.UTF8.GetString(bytes ?? Array.Empty<byte>());
+							extra = parsecftrace(t);
+						}
+					}
+					catch (Exception ex) {
+						sw.Stop();
+						if (i == 1 && best == null)
+							extra = ex.InnerException?.Message ?? ex.Message;
+					}
+				}
+				rows.Add((n.Place, best));
+				var rtt = best != null ? best.Value + "ms" : "timeout";
+				var tail = extra.Length > 0 ? "  " + extra : "";
+				line?.Invoke($"{n.Place,-12} {n.Name,-12} {rtt}{tail}");
+			}
+		}
+		var ok = rows.Where(r => r.Ms != null).OrderBy(r => r.Ms.Value).ToList();
+		if (ok.Count == 0) {
+			line?.Invoke("全部超时，无法估计位置");
+			return;
+		}
+		line?.Invoke("推测位置：" + guessplace(ok));
+	}
+
+	static string parsecftrace(string t) {
+		if (string.IsNullOrEmpty(t)) return "";
+		string colo = "", loc = "";
+		foreach (var raw in t.Replace("\r", "").Split('\n')) {
+			var i = raw.IndexOf('=');
+			if (i <= 0) continue;
+			var k = raw.Substring(0, i);
+			var v = raw.Substring(i + 1).Trim();
+			if (k == "colo") colo = v;
+			else if (k == "loc") loc = v;
+		}
+		if (colo.Length == 0 && loc.Length == 0) return "";
+		return "colo=" + colo + (loc.Length > 0 ? " loc=" + loc : "");
+	}
+
+	static string guessplace(List<(string Place, long? Ms)> ok) {
+		if (ok == null || ok.Count == 0) return "";
 		var nearest = ok[0];
-		var guess = nearest.Place;
-		var cn = ok.Where(r => r.Place.StartsWith("杭州") || r.Place.StartsWith("深圳")
-			|| r.Place.StartsWith("北京") || r.Place.StartsWith("南京")).ToList();
+		var cn = ok.Where(r => r.Place == "杭州" || r.Place == "深圳"
+			|| r.Place == "北京" || r.Place == "南京").ToList();
 		if (cn.Count > 0 && cn[0].Ms <= 80)
-			guess = "中国大陆，接近 " + cn[0].Place;
-		else if (nearest.Place == "台湾" && nearest.Ms <= 60)
-			guess = "台湾附近";
-		else if (nearest.Ms <= 40)
-			guess = "接近 " + nearest.Place + " 节点";
-		else
-			guess = "较近：" + nearest.Place + "（" + nearest.Ms + "ms）";
-		line?.Invoke("推测位置：" + guess);
+			return "中国大陆，接近 " + cn[0].Place;
+		if (nearest.Place == "台湾" && nearest.Ms <= 60)
+			return "台湾附近";
+		if (nearest.Ms <= 40)
+			return "接近 " + nearest.Place + " 节点";
+		return "较近：" + nearest.Place + "（" + nearest.Ms + "ms）";
 	}
 
 	/// <summary>经 Windows 系统代理用 HTTP 查出口 IP 与地区。</summary>
