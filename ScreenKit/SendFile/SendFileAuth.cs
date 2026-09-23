@@ -95,10 +95,7 @@ public sealed class SendFileAuth {
 		var ok = false;
 		try {
 			app.Dispatcher.Invoke(() => {
-				var msg = Loc.T("sendfile.pair.ask", name ?? "", ip ?? "");
-				var r = MessageBox.Show(msg, Loc.T("sendfile.pair.title"),
-					MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
-				ok = r == MessageBoxResult.Yes;
+				ok = PairAskWindow.Ask(name, ip);
 			});
 		}
 		catch { return false; }

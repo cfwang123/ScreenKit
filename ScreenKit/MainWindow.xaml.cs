@@ -373,11 +373,7 @@ public partial class MainWindow : Window {
 		var ok = false;
 		try {
 			Dispatcher.Invoke(() => {
-				// 不绑定 Owner：主窗托盘隐藏时，有 Owner 的 MessageBox 会一起被藏住
-				var msg = Loc.T("sendfile.pair.ask", name ?? "", ip ?? "");
-				var r = MessageBox.Show(msg, Loc.T("sendfile.pair.title"),
-					MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
-				ok = r == MessageBoxResult.Yes;
+				ok = PairAskWindow.Ask(name, ip);
 			});
 		}
 		catch { return false; }

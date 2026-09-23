@@ -109,7 +109,7 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 
 1. On the PC, open the **File sync** tab (enable under Settings → API if needed; default on).
 2. **Install on phone**: LAN URL `http://<pc-ip>:17532/apk` and QR (defaults to an internet-reachable NIC). Phone and PC on the same LAN; scan with a browser to install.
-3. First connection: PC shows a pairing dialog (still appears when the main window is in the tray).
+3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
 4. While the phone app is connected, drop or paste files/folders/images on the PC tab to send them to the phone’s bound folder. Phone share/upload always writes to PC `sendfile/`.
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync shows the latest message in a read-only selectable box.
 

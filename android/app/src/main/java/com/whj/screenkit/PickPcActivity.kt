@@ -18,6 +18,7 @@ class PickPcActivity : AppCompatActivity() {
     private val pcs = ArrayList<PcInfo>()
     private val job = Job()
     private val io = CoroutineScope(Dispatchers.Main + job)
+    private var busy = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -78,35 +79,43 @@ class PickPcActivity : AppCompatActivity() {
     }
 
     private fun connect(pc: PcInfo) {
+        if (busy) return
+        busy = true
         io.launch {
-            val err = withContext(Dispatchers.IO) {
-                try {
-                    val api = Api(pc.host, pc.port, prefs.deviceId, prefs.token, prefs.deviceName)
-                    var obj = api.pair()
-                    if (obj.optInt("code") != 100) {
-                        obj = api.info()
-                        if (obj.optInt("code") != 100)
-                            return@withContext obj.optString("data", "连接失败")
-                    } else {
-                        prefs.token = api.token
-                        val data = obj.optJSONObject("data")
-                        prefs.lastName = data?.optString("name") ?: pc.name
-                        prefs.lastPcId = data?.optString("pcId") ?: pc.pcId
-                    }
-                    prefs.lastHost = pc.host
-                    prefs.lastPort = pc.port
-                    if (prefs.lastName.isEmpty()) prefs.lastName = pc.name
-                    null
+            try {
+                val api = Api(pc.host, pc.port, prefs.deviceId, prefs.token, prefs.deviceName)
+                val obj = try {
+                    pairWithWait(this@PickPcActivity, api, pc.toString())
                 } catch (ex: Exception) {
-                    ex.message ?: "连接失败"
+                    Toast.makeText(this@PickPcActivity, ex.message ?: "连接失败", Toast.LENGTH_LONG).show()
+                    return@launch
                 }
+                if (obj == null) return@launch
+                if (obj.optInt("code") != 100) {
+                    val info = try {
+                        withContext(Dispatchers.IO) { api.info() }
+                    } catch (ex: Exception) {
+                        Toast.makeText(this@PickPcActivity, obj.optString("data", ex.message ?: "连接失败"), Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                    if (info.optInt("code") != 100) {
+                        Toast.makeText(this@PickPcActivity, obj.optString("data", "连接失败"), Toast.LENGTH_LONG).show()
+                        return@launch
+                    }
+                } else {
+                    prefs.token = api.token
+                    val data = obj.optJSONObject("data")
+                    prefs.lastName = data?.optString("name") ?: pc.name
+                    prefs.lastPcId = data?.optString("pcId") ?: pc.pcId
+                }
+                prefs.lastHost = pc.host
+                prefs.lastPort = pc.port
+                if (prefs.lastName.isEmpty()) prefs.lastName = pc.name
+                setResult(RESULT_OK)
+                finish()
+            } finally {
+                busy = false
             }
-            if (err != null) {
-                Toast.makeText(this@PickPcActivity, err, Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            setResult(RESULT_OK)
-            finish()
         }
     }
 }

@@ -201,24 +201,25 @@ class MainActivity : AppCompatActivity() {
         applyconn()
         bind.lbstatus.text = "正在连接 ${prefs.lastName.ifEmpty { prefs.lastHost }}…"
         io.launch {
-            val ok = withContext(Dispatchers.IO) { tryconnect() }
+            val ok = tryconnect()
             if (ok) afterconnect()
             else openpick()
         }
     }
 
-    private fun tryconnect(): Boolean {
+    private suspend fun tryconnect(): Boolean {
         val a = api ?: return false
         return try {
             Log.i(TAG, "tryconnect ${a.host}:${a.port}")
-            var obj = a.info()
+            var obj = withContext(Dispatchers.IO) { a.info() }
             Log.i(TAG, "info code=${obj.optInt("code")} data=${obj.opt("data")}")
             if (obj.optInt("code") == 401 || obj.optInt("code") == 403) {
-                obj = a.pair()
+                obj = pairWithWait(this@MainActivity, a, prefs.lastName.ifEmpty { a.host })
+                    ?: return false
                 Log.i(TAG, "pair code=${obj.optInt("code")} data=${obj.opt("data")}")
                 if (obj.optInt("code") == 100) {
                     prefs.token = a.token
-                    obj = a.info()
+                    obj = withContext(Dispatchers.IO) { a.info() }
                 }
             }
             if (obj.optInt("code") != 100) return false

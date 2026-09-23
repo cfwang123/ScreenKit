@@ -42,6 +42,12 @@ class Api(
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(120, TimeUnit.SECONDS)
         .build()
+    private val pairHttp = OkHttpClient.Builder()
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(0, TimeUnit.MILLISECONDS)
+        .build()
 
     private fun base() = "http://$host:$port"
 
@@ -58,7 +64,7 @@ class Api(
         return parse(r.body?.string() ?: "", r.code)
     }
 
-    fun pair(): JSONObject {
+    fun newPairCall(): okhttp3.Call {
         val body = JSONObject()
             .put("id", deviceId)
             .put("name", deviceName)
@@ -68,7 +74,13 @@ class Api(
         b.header("X-Device-Id", deviceId)
         if (token.isNotEmpty())
             b.header("Authorization", "Bearer $token")
-        val r = http.newCall(b.build()).execute()
+        return pairHttp.newCall(b.build())
+    }
+
+    fun pair(): JSONObject = pair(newPairCall())
+
+    fun pair(call: okhttp3.Call): JSONObject {
+        val r = call.execute()
         val obj = parse(r.body?.string() ?: "", r.code)
         if (obj.optInt("code") == 100) {
             val data = obj.optJSONObject("data")
