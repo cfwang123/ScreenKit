@@ -28,7 +28,7 @@ Current version: **1.0.7**
 | **Face** | InsightFace ONNX detect/compare two images; optional landmarks and gender/age overlay; models in `facemodels/` (download **buffalo_l** via Install Features) |
 | **SAPI x86 helper** | Sidecar `x86host.exe` (32-bit SAPI web only) for classic voices visible only in x86 processes |
 | **Devices** | CPU · NVIDIA CUDA (GPU) · Intel / DirectML (iGPU); missing accel → CPU |
-| **Install features** | In-app download of models and runtimes (CN mirrors when locale is Chinese) |
+| **Install features** | Pick features in a tree (total size / remaining download size), confirm to check matching components, then install. Voices are on a separate tab. CN mirrors when locale is Chinese. |
 | **Hotkeys** | Toggle main window · snap annotate · snap OCR · voice input · translate popup (configurable) |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`; all visible by default) |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + manual request |
@@ -124,9 +124,10 @@ Release documentation policy:
 
 ## In-app install (recommended)
 
-1. First launch may open the install wizard (defaults: OpenCV, **ORT CPU**, OCR `rapid-ch`, first two ASR packs, FFmpeg; GPU/iGPU **off**).
+1. First launch may open the install wizard (defaults: Simplified-Chinese OCR, first two ASR packs, recording; GPU/iGPU **off**).
 2. Later: **Tools → Install features**
-   - **Components**: OpenCV, Skia, PDFium, Sherpa, **ORT CPU (`onnxcpu64`)**, OCR/ASR packs, CUDA, DirectML, FFmpeg.
+   - **Features**: tree of product features; shows **total size** and **remaining download size**. Confirm to check matching components. Voices are not on this tab.
+   - **Components**: OpenCV, Skia, PDFium, Sherpa, **ORT CPU (`onnxcpu64`)**, OCR/ASR packs, CUDA, DirectML, FFmpeg; selected items also show total / remaining size.
    - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process and do not require system `tar` / `bzip2`; a junction-based `ttsmodels` directory is supported.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
 

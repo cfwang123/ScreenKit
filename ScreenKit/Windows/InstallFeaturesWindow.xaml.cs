@@ -3,13 +3,14 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace ScreenKit;
 
 /// <summary>
-/// 安装功能：功能组件 + 发音人（TTS）双 Tab。
-/// 发音人支持语言筛选，列表来自 GitHub tts-models 全量包。
+/// 安装功能：功能选择 → 功能组件 + 发音人（TTS）。
+/// 发音人单独一页，不在功能选择树里处理。
 /// </summary>
 partial class InstallFeaturesWindow : Window {
 	// 状态徽章色（未安装用强对比，避免与「已安装」混淆）
@@ -20,6 +21,7 @@ partial class InstallFeaturesWindow : Window {
 	static readonly Brush OkBg = freeze(Color.FromRgb(0xD1, 0xFA, 0xE5));
 	static readonly Brush OkFg = freeze(Color.FromRgb(0x04, 0x78, 0x57));
 
+	readonly List<FeaturePickNode> pickRoots = new();
 	readonly List<FeatureItem> featItems = new();
 	readonly Dictionary<FeatureItem, CheckBox> featChecks = new();
 	readonly Dictionary<FeatureItem, TextBlock> featStates = new();
@@ -54,19 +56,23 @@ partial class InstallFeaturesWindow : Window {
 		this.openTtsTab = openTtsTab;
 		InitializeComponent();
 		applyinstlang();
-		if (firstRun) {
-			try { tabmain.SelectedItem = tabfeat; } catch { }
-		}
-		else if (openTtsTab) {
+		if (openTtsTab) {
 			try { tabmain.SelectedItem = tabtts; } catch { }
 		}
 		else if (preferSelect != null && preferSelect.Length > 0) {
 			try { tabmain.SelectedItem = tabfeat; } catch { }
 		}
+		else {
+			try { tabmain.SelectedItem = tabpick; } catch { }
+		}
 		WindowEsc.Attach(this, () => {
 			if (busy) return;
 			Close();
 		});
+		bconfirm.Click += (_, _) => confirmpick();
+		etree.AddHandler(CheckBox.PreviewMouseLeftButtonDownEvent,
+			new MouseButtonEventHandler(onpickcheckdown), true);
+		etree.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(onpickclick), true);
 		binstall.Click += async (_, _) => await runinstall();
 		bdelete.Click += async (_, _) => await rundelete();
 		bcancel.Click += (_, _) => {
@@ -97,13 +103,15 @@ partial class InstallFeaturesWindow : Window {
 			if (!ttsUiLoading) setttscheckall(false);
 		};
 		tabmain.SelectionChanged += async (_, _) => {
+			applytabbuttons();
 			if (tabmain.SelectedItem == tabtts && !ttsLoaded && !busy)
 				await loadtts(force: false);
 		};
 		lvtss.ItemsSource = ttsRows;
 		Loaded += async (_, _) => {
+			rebuildpick();
 			rebuildfeat();
-			// 预加载发音人列表（后台）
+			applytabbuttons();
 			_ = loadtts(force: false);
 		};
 		Closing += (_, e) => {
@@ -119,8 +127,12 @@ partial class InstallFeaturesWindow : Window {
 		else if (preferSelect != null && preferSelect.Length > 0) Title = Loc.T("inst.need.title");
 		else Title = Loc.T("inst.title");
 		lbtitle.Text = Title;
+		tabpick.Header = Loc.T("inst.tab.pick");
 		tabfeat.Header = Loc.T("inst.tab.feat");
 		tabtts.Header = Loc.T("inst.tab.tts");
+		lbpickhint.Text = Loc.T("inst.pick.hint");
+		bconfirm.Content = Loc.T("inst.pick.confirm");
+		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
 		lbfeathint.Text = Loc.T("inst.feat.hint");
 		lblegmiss.Text = Loc.T("inst.missing");
 		lblegpart.Text = Loc.T("inst.partial");
@@ -150,6 +162,94 @@ partial class InstallFeaturesWindow : Window {
 		}
 		if (string.IsNullOrWhiteSpace(lbstatus.Text) || lbstatus.Text == "就绪" || lbstatus.Text == Loc.T("ready"))
 			lbstatus.Text = Loc.T("ready");
+	}
+
+	void applytabbuttons() {
+		var onPick = tabmain.SelectedItem == tabpick;
+		binstall.IsEnabled = !busy && !onPick;
+		bdelete.IsEnabled = !busy && !onPick;
+		bconfirm.IsEnabled = !busy;
+		binstall.IsDefault = !onPick && !busy;
+		bconfirm.IsDefault = onPick && !busy;
+	}
+
+	// ───────── 功能选择 Tab ─────────
+
+	void rebuildpick() {
+		pickRoots.Clear();
+		pickRoots.AddRange(FeaturePick.BuildTree());
+		if (preferSelect != null && preferSelect.Length > 0)
+			FeaturePick.ApplyKinds(pickRoots, preferSelect);
+		else
+			FeaturePick.ApplyIds(pickRoots, FeaturePick.RecommendedIds);
+		etree.ItemsSource = null;
+		etree.ItemsSource = pickRoots;
+		foreach (var n in pickRoots)
+			watchpick(n);
+		updatepicksum();
+		Dispatcher.BeginInvoke(new Action(() => expandpick(etree)),
+			System.Windows.Threading.DispatcherPriority.Loaded);
+	}
+
+	void watchpick(FeaturePickNode n) {
+		if (n == null) return;
+		n.PropertyChanged += (_, e) => {
+			if (e.PropertyName == nameof(FeaturePickNode.IsChecked))
+				updatepicksum();
+		};
+		foreach (var c in n.Children)
+			watchpick(c);
+	}
+
+	void expandpick(ItemsControl ic) {
+		if (ic == null) return;
+		foreach (var o in ic.Items) {
+			if (ic.ItemContainerGenerator.ContainerFromItem(o) is TreeViewItem tvi) {
+				tvi.IsExpanded = true;
+				expandpick(tvi);
+			}
+		}
+	}
+
+	void onpickcheckdown(object sender, MouseButtonEventArgs e) {
+		if (busy) {
+			e.Handled = true;
+			return;
+		}
+		var src = e.OriginalSource as DependencyObject;
+		var cb = src as CheckBox ?? findparent<CheckBox>(src);
+		if (cb?.DataContext is not FeaturePickNode n || !n.IsGroup) return;
+		var allOn = n.Children.Count > 0 && n.Children.All(c => c.IsChecked == true);
+		n.SetCheck(!allOn, fromUi: true);
+		e.Handled = true;
+		updatepicksum();
+	}
+
+	void onpickclick(object sender, RoutedEventArgs e) {
+		if (busy) return;
+		updatepicksum();
+	}
+
+	void updatepicksum() {
+		if (lbpicksum == null) return;
+		FeaturePick.MeasureSelection(pickRoots, out var total, out var need);
+		lbpicksum.Text = Loc.T("inst.pick.size",
+			FeatureInstaller.FormatBytes(total), FeatureInstaller.FormatBytes(need));
+		lbpicksum.Foreground = need > 0 ? MissFg : OkFg;
+	}
+
+	void confirmpick() {
+		if (busy) return;
+		var kinds = new HashSet<FeatureKind>();
+		FeaturePick.CollectKinds(pickRoots, kinds);
+		foreach (var it in featItems) {
+			it.Selected = kinds.Contains(it.Kind);
+			if (featChecks.TryGetValue(it, out var cb))
+				cb.IsChecked = it.Selected;
+		}
+		updatefeatsum();
+		try { tabmain.SelectedItem = tabfeat; } catch { }
+		applytabbuttons();
 	}
 
 	// ───────── 功能组件 Tab ─────────
@@ -236,8 +336,8 @@ partial class InstallFeaturesWindow : Window {
 				Margin = new Thickness(0, 2, 0, 0),
 			};
 			featChecks[it] = cb;
-			cb.Checked += (_, _) => it.Selected = true;
-			cb.Unchecked += (_, _) => it.Selected = false;
+			cb.Checked += (_, _) => { it.Selected = true; updatefeatsum(); };
+			cb.Unchecked += (_, _) => { it.Selected = false; updatefeatsum(); };
 
 			var textCol = new StackPanel { Margin = new Thickness(8, 0, 8, 0) };
 			textCol.Children.Add(new TextBlock {
@@ -270,6 +370,12 @@ partial class InstallFeaturesWindow : Window {
 		else
 			lbfeatsum.Text = string.Format(Loc.T("inst.feat.allok"), featItems.Count);
 		lbfeatsum.Foreground = miss + part > 0 ? MissFg : OkFg;
+		FeaturePick.MeasureItems(featItems, out var total, out var need);
+		if (lbfeatsel != null) {
+			lbfeatsel.Text = Loc.T("inst.pick.size",
+				FeatureInstaller.FormatBytes(total), FeatureInstaller.FormatBytes(need));
+			lbfeatsel.Foreground = need > 0 ? MissFg : OkFg;
+		}
 	}
 
 	void applyfeatbadgestyle(FeatureItem it) {
@@ -395,12 +501,17 @@ partial class InstallFeaturesWindow : Window {
 				r.Notify();
 			}
 		}
+		else if (tabmain.SelectedItem == tabpick) {
+			FeaturePick.SelectMissing(pickRoots);
+			updatepicksum();
+		}
 		else {
 			foreach (var it in featItems) {
 				it.Selected = it.State != FeatureInstallState.Installed;
 				if (featChecks.TryGetValue(it, out var cb))
 					cb.IsChecked = it.Selected;
 			}
+			updatefeatsum();
 		}
 	}
 
@@ -410,13 +521,26 @@ partial class InstallFeaturesWindow : Window {
 			setttscheckall(on);
 			cttsheader.IsChecked = on;
 		}
+		else if (tabmain.SelectedItem == tabpick) {
+			FeaturePick.SelectAll(pickRoots, on);
+			updatepicksum();
+		}
 		else {
 			foreach (var it in featItems) {
 				it.Selected = on;
 				if (featChecks.TryGetValue(it, out var cb))
 					cb.IsChecked = on;
 			}
+			updatefeatsum();
 		}
+	}
+
+	static T findparent<T>(DependencyObject d) where T : class {
+		while (d != null) {
+			if (d is T t) return t;
+			d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+		}
+		return null;
 	}
 
 	static Brush statefg(FeatureInstallState st) => st switch {
@@ -433,8 +557,6 @@ partial class InstallFeaturesWindow : Window {
 
 	void setbusy(bool on) {
 		busy = on;
-		binstall.IsEnabled = !on;
-		bdelete.IsEnabled = !on;
 		bcancel.IsEnabled = on;
 		bmissing.IsEnabled = !on;
 		bnone.IsEnabled = !on;
@@ -443,9 +565,11 @@ partial class InstallFeaturesWindow : Window {
 		ettslang.IsEnabled = !on;
 		cttsmissing.IsEnabled = !on;
 		cttssupported.IsEnabled = !on;
+		etree.IsEnabled = !on;
 		foreach (var cb in featChecks.Values)
 			cb.IsEnabled = !on;
 		lvtss.IsEnabled = !on;
+		applytabbuttons();
 	}
 
 	void appendlog(string line) {

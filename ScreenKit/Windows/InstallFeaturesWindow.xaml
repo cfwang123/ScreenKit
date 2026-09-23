@@ -27,9 +27,73 @@
 		</StackPanel>
 
 		<TabControl x:Name="tabmain" Grid.Row="1" Margin="0,0,0,8"
-		            BorderBrush="{StaticResource BorderSoft}">
-			<!-- Tab：通用功能 -->
-			<TabItem x:Name="tabfeat" Header="功能组件">
+		            BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="inst.tabs">
+			<!-- Tab1：功能选择 -->
+			<TabItem x:Name="tabpick" Header="功能选择"
+			         AutomationProperties.AutomationId="inst.tab.pick">
+				<Grid Margin="8">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbpickhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+					           FontSize="12" Foreground="{StaticResource TextMuted}"
+					           Text="勾选需要的功能。确认后进入「功能组件」并勾选对应项。发音人请到「发音人」页。"/>
+					<Border Grid.Row="1" Background="{StaticResource BgPanel}"
+					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+					        CornerRadius="8" Padding="4">
+						<TreeView x:Name="etree" BorderThickness="0" Background="Transparent"
+						          VirtualizingStackPanel.IsVirtualizing="False"
+						          AutomationProperties.AutomationId="inst.pick.tree">
+							<TreeView.ItemContainerStyle>
+								<Style TargetType="TreeViewItem">
+									<Setter Property="IsExpanded" Value="True"/>
+									<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+									<Setter Property="Padding" Value="0,2"/>
+								</Style>
+							</TreeView.ItemContainerStyle>
+							<TreeView.ItemTemplate>
+								<HierarchicalDataTemplate ItemsSource="{Binding Children}">
+									<DockPanel LastChildFill="True" Margin="0,1,8,1">
+										<TextBlock DockPanel.Dock="Right"
+										           Text="{Binding SizeLabel}"
+										           Width="88" TextAlignment="Right"
+										           VerticalAlignment="Center" FontSize="11"
+										           Foreground="{StaticResource TextMuted}"/>
+										<CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+										          IsThreeState="{Binding IsGroup}"
+										          VerticalAlignment="Center" Margin="0,0,8,0">
+											<StackPanel>
+												<TextBlock Text="{Binding Title}" FontSize="13"
+												           Foreground="{StaticResource TextPrimary}"/>
+												<TextBlock Text="{Binding Detail}" FontSize="11"
+												           TextWrapping="Wrap"
+												           Foreground="{StaticResource TextMuted}"/>
+											</StackPanel>
+										</CheckBox>
+									</DockPanel>
+								</HierarchicalDataTemplate>
+							</TreeView.ItemTemplate>
+						</TreeView>
+					</Border>
+					<DockPanel Grid.Row="2" Margin="0,8,0,0">
+						<Button x:Name="bconfirm" DockPanel.Dock="Right" Content="确认"
+						        Style="{StaticResource PrimaryBtn}" Width="120" Height="32"
+						        AutomationProperties.AutomationId="inst.pick.confirm"/>
+						<TextBlock x:Name="lbpicksum" VerticalAlignment="Center"
+						           FontSize="13" FontWeight="SemiBold"
+						           Foreground="{StaticResource TextPrimary}"
+						           Text=""
+						           AutomationProperties.AutomationId="inst.pick.size"/>
+					</DockPanel>
+				</Grid>
+			</TabItem>
+
+			<!-- Tab2：功能组件 -->
+			<TabItem x:Name="tabfeat" Header="功能组件"
+			         AutomationProperties.AutomationId="inst.tab.feat">
 				<Grid Margin="8">
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto"/>
@@ -53,10 +117,17 @@
 								<TextBlock x:Name="lblegok" Text="已安装" FontSize="11" FontWeight="SemiBold" Foreground="#047857"/>
 							</Border>
 						</StackPanel>
-						<TextBlock x:Name="lbfeatsum" VerticalAlignment="Center"
-						           FontSize="12" FontWeight="SemiBold"
-						           Foreground="{StaticResource TextPrimary}"
-						           Text=""/>
+						<StackPanel VerticalAlignment="Center">
+							<TextBlock x:Name="lbfeatsum"
+							           FontSize="12" FontWeight="SemiBold"
+							           Foreground="{StaticResource TextPrimary}"
+							           Text=""/>
+							<TextBlock x:Name="lbfeatsel" Margin="0,2,0,0"
+							           FontSize="12" FontWeight="SemiBold"
+							           Foreground="{StaticResource Accent}"
+							           Text=""
+							           AutomationProperties.AutomationId="inst.feat.size"/>
+						</StackPanel>
 					</DockPanel>
 					<Border Grid.Row="2" Background="{StaticResource BgPanel}"
 					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
@@ -69,7 +140,8 @@
 			</TabItem>
 
 			<!-- Tab：发音人 TTS -->
-			<TabItem x:Name="tabtts" Header="发音人">
+			<TabItem x:Name="tabtts" Header="发音人"
+			         AutomationProperties.AutomationId="inst.tab.tts">
 				<Grid Margin="8">
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto"/>
