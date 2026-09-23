@@ -1545,75 +1545,133 @@
 							        AllowDrop="True" x:Name="psffiles">
 								<DockPanel Margin="12">
 									<TextBlock x:Name="lbsfhint" DockPanel.Dock="Top"
-									           Text="有手机连接时，拖入或粘贴的文件会传到手机绑定文件夹；无连接则不传。"
+									           Text="上表为接收目录（不进入子目录）。下方拖入传到手机。"
 									           FontSize="12" Foreground="{StaticResource TextMuted}"
 									           TextWrapping="Wrap" Margin="0,0,0,8"/>
 									<WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+										<Button x:Name="bsfcut" Content="剪切" Style="{StaticResource ToolBtn}"
+										        Height="30" Padding="10,2"
+										        AutomationProperties.AutomationId="sendfile.cut"/>
+										<Button x:Name="bsfcopy" Content="复制" Style="{StaticResource ToolBtn}"
+										        Height="30" Padding="10,2"
+										        AutomationProperties.AutomationId="sendfile.copy"/>
 										<Button x:Name="bsfpaste" Content="粘贴" Style="{StaticResource ToolBtn}"
 										        Height="30" Padding="10,2"
 										        AutomationProperties.AutomationId="sendfile.paste"/>
+										<Button x:Name="bsfdel" Content="删除" Style="{StaticResource ToolBtn}"
+										        Height="30" Padding="10,2"
+										        AutomationProperties.AutomationId="sendfile.delete"/>
 										<Button x:Name="bsfopen" Content="打开接收目录" Style="{StaticResource ToolBtn}"
 										        Height="30" Padding="10,2"
 										        AutomationProperties.AutomationId="sendfile.open"/>
 									</WrapPanel>
 									<Grid>
 										<Grid.RowDefinitions>
-											<RowDefinition Height="*"/>
+											<RowDefinition Height="*" MinHeight="120"/>
 											<RowDefinition Height="Auto"/>
-											<RowDefinition Height="0.45*"/>
+											<RowDefinition Height="Auto"/>
+											<RowDefinition Height="0.38*" MinHeight="60"/>
 										</Grid.RowDefinitions>
-										<Grid Grid.Row="0">
-											<ListView x:Name="lvsfjobs" BorderThickness="0" Background="Transparent"
-											          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-											          AutomationProperties.AutomationId="sendfile.jobs">
-												<ListView.ItemContainerStyle>
-													<Style TargetType="ListViewItem">
-														<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-														<Setter Property="Padding" Value="0,4"/>
-													</Style>
-												</ListView.ItemContainerStyle>
-												<ListView.ItemTemplate>
-													<DataTemplate>
-														<Grid Margin="0,2,0,6">
-															<Grid.RowDefinitions>
-																<RowDefinition Height="Auto"/>
-																<RowDefinition Height="Auto"/>
-																<RowDefinition Height="Auto"/>
-															</Grid.RowDefinitions>
-															<Grid>
-																<Grid.ColumnDefinitions>
-																	<ColumnDefinition Width="*"/>
-																	<ColumnDefinition Width="Auto"/>
-																</Grid.ColumnDefinitions>
-																<TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
-																           FontSize="14" Foreground="{StaticResource TextPrimary}"/>
-																<TextBlock Grid.Column="1" Text="{Binding PctText}" Margin="8,0,0,0"
-																           FontSize="12" Foreground="{StaticResource TextMuted}"/>
-															</Grid>
-															<TextBlock Grid.Row="1" Text="{Binding Sub}" FontSize="12"
-															           Foreground="{StaticResource TextMuted}"
-															           TextTrimming="CharacterEllipsis" Margin="0,2,0,4"/>
-															<ProgressBar Grid.Row="2" Height="6" Minimum="0" Maximum="100"
-															             Value="{Binding Percent}"
-															             Visibility="{Binding BarVis}"/>
-														</Grid>
-													</DataTemplate>
-												</ListView.ItemTemplate>
+										<Grid Grid.Row="0" x:Name="psffbrowse" AllowDrop="True"
+										      Background="Transparent"
+										      AutomationProperties.AutomationId="sendfile.browse">
+											<ListView x:Name="lvsffiles" BorderThickness="0" Background="Transparent"
+											          SelectionMode="Extended"
+											          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+											          AutomationProperties.AutomationId="sendfile.files">
+												<ListView.ContextMenu>
+													<ContextMenu>
+														<MenuItem x:Name="mnsfcut" Header="剪切"/>
+														<MenuItem x:Name="mnsfcopy" Header="复制"/>
+														<MenuItem x:Name="mnsfpaste" Header="粘贴"/>
+														<Separator/>
+														<MenuItem x:Name="mnsfdel" Header="删除"/>
+													</ContextMenu>
+												</ListView.ContextMenu>
+												<ListView.View>
+													<GridView>
+														<GridViewColumn x:Name="colsfn" Header="名称" Width="200"
+														                DisplayMemberBinding="{Binding Name}"/>
+														<GridViewColumn x:Name="colsfsz" Header="大小" Width="88"
+														                DisplayMemberBinding="{Binding SizeText}"/>
+														<GridViewColumn x:Name="colsftm" Header="修改时间" Width="128"
+														                DisplayMemberBinding="{Binding TimeText}"/>
+													</GridView>
+												</ListView.View>
 											</ListView>
-											<TextBlock x:Name="lbsfdrop"
-											           Text="拖入文件 / 文件夹 / 图片"
-											           FontSize="16" FontWeight="SemiBold"
+											<Canvas x:Name="csfsel" IsHitTestVisible="False">
+												<Rectangle x:Name="rsfsel" Stroke="{StaticResource Accent}"
+												           StrokeThickness="1" Fill="#333B82F6"
+												           Visibility="Collapsed"/>
+											</Canvas>
+											<TextBlock x:Name="lbsffempty"
+											           Text="接收目录为空"
+											           FontSize="15" FontWeight="SemiBold"
 											           Foreground="{StaticResource TextMuted}"
 											           TextWrapping="Wrap" TextAlignment="Center"
 											           HorizontalAlignment="Center" VerticalAlignment="Center"
 											           IsHitTestVisible="False"
-											           AutomationProperties.AutomationId="sendfile.drop"/>
+											           AutomationProperties.AutomationId="sendfile.files.empty"/>
 										</Grid>
-										<TextBlock x:Name="lbsflog" Grid.Row="1" Text="传输记录"
+										<Border Grid.Row="1" x:Name="psfdropphone" AllowDrop="True"
+										        Background="Transparent" MinHeight="40" Margin="0,8,0,0"
+										        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+										        CornerRadius="8"
+										        AutomationProperties.AutomationId="sendfile.dropzone">
+											<Grid>
+												<ListView x:Name="lvsfjobs" BorderThickness="0" Background="Transparent"
+												          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+												          MinHeight="36"
+												          AutomationProperties.AutomationId="sendfile.jobs">
+													<ListView.ItemContainerStyle>
+														<Style TargetType="ListViewItem">
+															<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+															<Setter Property="Padding" Value="0,4"/>
+														</Style>
+													</ListView.ItemContainerStyle>
+													<ListView.ItemTemplate>
+														<DataTemplate>
+															<Grid Margin="0,2,0,6">
+																<Grid.RowDefinitions>
+																	<RowDefinition Height="Auto"/>
+																	<RowDefinition Height="Auto"/>
+																	<RowDefinition Height="Auto"/>
+																</Grid.RowDefinitions>
+																<Grid>
+																	<Grid.ColumnDefinitions>
+																		<ColumnDefinition Width="*"/>
+																		<ColumnDefinition Width="Auto"/>
+																	</Grid.ColumnDefinitions>
+																	<TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"
+																	           FontSize="14" Foreground="{StaticResource TextPrimary}"/>
+																	<TextBlock Grid.Column="1" Text="{Binding PctText}" Margin="8,0,0,0"
+																	           FontSize="12" Foreground="{StaticResource TextMuted}"/>
+																</Grid>
+																<TextBlock Grid.Row="1" Text="{Binding Sub}" FontSize="12"
+																           Foreground="{StaticResource TextMuted}"
+																           TextTrimming="CharacterEllipsis" Margin="0,2,0,4"/>
+																<ProgressBar Grid.Row="2" Height="6" Minimum="0" Maximum="100"
+																             Value="{Binding Percent}"
+																             Visibility="{Binding BarVis}"/>
+															</Grid>
+														</DataTemplate>
+													</ListView.ItemTemplate>
+												</ListView>
+												<TextBlock x:Name="lbsfdrop"
+												           Text="拖入文件 / 文件夹 / 图片"
+												           FontSize="13" FontWeight="SemiBold"
+												           Foreground="{StaticResource TextMuted}"
+												           TextWrapping="Wrap" TextAlignment="Center"
+												           HorizontalAlignment="Center" VerticalAlignment="Center"
+												           IsHitTestVisible="False" Margin="8"
+												           AutomationProperties.AutomationId="sendfile.drop"/>
+											</Grid>
+										</Border>
+										<TextBlock x:Name="lbsflog" Grid.Row="2" Text="传输记录"
 										           FontSize="12" FontWeight="SemiBold"
 										           Foreground="{StaticResource TextPrimary}"
 										           Margin="0,8,0,4"/>
-										<ListBox x:Name="lstsflog" Grid.Row="2" BorderThickness="0"
+										<ListBox x:Name="lstsflog" Grid.Row="3" BorderThickness="0"
 										         Background="Transparent"
 										         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 										         AutomationProperties.AutomationId="sendfile.log">

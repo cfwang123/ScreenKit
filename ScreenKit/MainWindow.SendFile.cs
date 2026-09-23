@@ -65,19 +65,15 @@ public partial class MainWindow {
 	void initsendfiletab() {
 		lvsfjobs.ItemsSource = sfJobs;
 		lstsflog.ItemsSource = sfLogs;
-		bsfpaste.Click += (_, _) => sfpaste();
+		bsfpaste.Click += (_, _) => sffilepaste();
 		bsfopen.Click += (_, _) => sfopenexplorer();
 		bsfapk.Click += (_, _) => showapkinstall();
 		psffiles.Drop += onsfdrop;
 		psffiles.DragOver += onsfdover;
 		psftab.Drop += onsfdrop;
 		psftab.DragOver += onsfdover;
-		psftab.PreviewKeyDown += (_, e) => {
-			if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control) {
-				sfpaste();
-				e.Handled = true;
-			}
-		};
+		psftab.PreviewKeyDown += (_, e) => onsftabkey(e);
+		initsfbrowse();
 		bsfsend.Click += (_, _) => sfsend();
 		esfsend.PreviewKeyDown += (_, e) => {
 			if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None) {
@@ -86,7 +82,11 @@ public partial class MainWindow {
 			}
 		};
 		maintabs.SelectionChanged += (_, _) => {
-			if (issftab()) syncsfstatus();
+			if (issftab()) {
+				syncsfstatus();
+				sffilerefresh();
+				try { lvsffiles?.Focus(); } catch { }
+			}
 		};
 		hookstext();
 		hooksfjobs();
@@ -175,6 +175,16 @@ public partial class MainWindow {
 	void stopsfwatch() {
 		try { sfPhoneTick?.Stop(); } catch { }
 		sfPhoneTick = null;
+		try { sfWatchTick?.Stop(); } catch { }
+		sfWatchTick = null;
+		try {
+			if (sfWatch != null) {
+				sfWatch.EnableRaisingEvents = false;
+				sfWatch.Dispose();
+			}
+		}
+		catch { }
+		sfWatch = null;
 	}
 
 	void sfopenexplorer() {
@@ -189,6 +199,7 @@ public partial class MainWindow {
 	}
 
 	void onsfdover(object sender, DragEventArgs e) {
+		if (sfDragging) { e.Effects = DragDropEffects.None; e.Handled = true; return; }
 		e.Effects = e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop)
 			? DragDropEffects.Copy : DragDropEffects.None;
 		e.Handled = true;
@@ -196,6 +207,7 @@ public partial class MainWindow {
 
 	void onsfdrop(object sender, DragEventArgs e) {
 		e.Handled = true;
+		if (sfDragging) return;
 		if (e.Data == null || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
 		var files = e.Data.GetData(DataFormats.FileDrop) as string[];
 		if (files == null || files.Length == 0) return;
@@ -347,9 +359,20 @@ public partial class MainWindow {
 			tabsf.Header = Loc.T("tab.sendfile");
 			lbsfbrand.Text = Loc.T("sf.tab.brand");
 			lbsfhint.Text = Loc.T("sf.tab.hint");
+			if (bsfcut != null) bsfcut.Content = Loc.T("sf.tab.cut");
+			if (bsfcopy != null) bsfcopy.Content = Loc.T("sf.tab.copy");
 			bsfpaste.Content = Loc.T("sf.tab.paste");
+			if (bsfdel != null) bsfdel.Content = Loc.T("sf.tab.delete");
 			bsfopen.Content = Loc.T("sf.tab.open");
 			if (bsfapk != null) bsfapk.Content = Loc.T("sf.tab.apk");
+			if (mnsfcut != null) mnsfcut.Header = Loc.T("sf.tab.cut");
+			if (mnsfcopy != null) mnsfcopy.Header = Loc.T("sf.tab.copy");
+			if (mnsfpaste != null) mnsfpaste.Header = Loc.T("sf.tab.paste");
+			if (mnsfdel != null) mnsfdel.Header = Loc.T("sf.tab.delete");
+			if (colsfn != null) colsfn.Header = Loc.T("sf.col.name");
+			if (colsfsz != null) colsfsz.Header = Loc.T("sf.col.size");
+			if (colsftm != null) colsftm.Header = Loc.T("sf.col.time");
+			if (lbsffempty != null) lbsffempty.Text = Loc.T("sf.tab.empty");
 			lbsftexthint.Text = Loc.T("sf.text.hint");
 			bsfsend.Content = Loc.T("sendfile.text.send");
 			if (lbsflog != null) lbsflog.Text = Loc.T("sf.log");
