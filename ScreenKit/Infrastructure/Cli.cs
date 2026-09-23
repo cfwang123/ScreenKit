@@ -2306,6 +2306,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			return 1;
 		}
 		Out($"apk-qr encode {bmp.PixelWidth}x{bmp.PixelHeight}");
+		var ips = ApkHost.LanIPv4s();
+		Out("apk-qr ips " + (ips.Count == 0 ? "(none)" : string.Join(" ", ips)));
 		var pngPath = Path.Combine(TmpStore.Root, "apk_qr_test.png");
 		try {
 			using var fs = File.Create(pngPath);

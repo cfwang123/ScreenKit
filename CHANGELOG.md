@@ -16,6 +16,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### Changed
 
 - Reverted the screenshot-overlay drag performance experiments (four-rectangle mask / opaque window / related CLI). Region select again uses the previous transparent overlay, dim mask, and green selection frame.
+- File sync **Install on phone** QR defaults to a LAN address that can reach the Internet (physical NIC with a gateway / the outbound IPv4), and keeps virtual adapters (VMware, Hyper-V, etc.) further down the list.
 - File sync lives on the main **File sync** tab; the Tools menu and tray **Text sync** items were removed.
 - File sync tab no longer browses `sendfile/`. Dragging or pasting files/folders/images on the PC sends them to the phone’s bound folder **only while the phone app is connected**; otherwise nothing is sent. Files shared from the phone always land in the PC `sendfile/` folder. Both PC and Android show a pending transfer list with send/receive progress.
 - Text sync shows the latest message in a read-only selectable text box (PC and phone); the Copy button is removed.
@@ -41,6 +42,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/). Versions are pr
 #### 变更
 
 - **撤回**截屏遮罩拖动相关性能试验（四矩形挖空 / 不透明窗 / 相关 CLI）。框选恢复为原先的透明遮罩窗、半透明暗角与绿色选区框。
+- 文件同步 **安装到手机** 二维码默认用能连外网的局域网地址（有网关的物理网卡 / 出网 IPv4），VMware、Hyper-V 等虚拟网卡排在后面。
 - 文件同步改到主界面 **文件同步** Tab；已去掉工具菜单和托盘里的「文本同步」入口。
 - 文件同步 Tab 不再浏览电脑 `sendfile/`。电脑上拖入或粘贴文件/文件夹/图片：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。手机分享/多选上传一律写到电脑 `sendfile/`。电脑和手机都显示待传列表与传输进度。
 - 文本同步以只读文本框显示最新一条（电脑、手机），可选中复制；已去掉复制按钮。
