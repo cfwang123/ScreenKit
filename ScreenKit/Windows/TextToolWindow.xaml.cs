@@ -29,6 +29,7 @@ public partial class TextToolWindow : Window {
 		btrim.Click += (_, _) => run(s => s?.Trim() ?? "");
 		bcollapse.Click += (_, _) => run(TextTools.CollapseWs);
 		bempty.Click += (_, _) => run(TextTools.DropEmptyLines);
+		bjson.Click += (_, _) => run(TextTools.JsonPretty);
 		bswap.Click += (_, _) => {
 			var a = ein.Text;
 			ein.Text = eout.Text;
@@ -62,6 +63,7 @@ public partial class TextToolWindow : Window {
 		ToolBtnUi.Set(btrim, ToolBtnUi.Clear, Loc.T("texttool.trim"));
 		ToolBtnUi.Set(bcollapse, ToolBtnUi.Clear, Loc.T("texttool.collapse"));
 		ToolBtnUi.Set(bempty, ToolBtnUi.Clear, Loc.T("texttool.noline"));
+		ToolBtnUi.Set(bjson, ToolBtnUi.Encode, Loc.T("texttool.json"));
 		ToolBtnUi.Set(bswap, ToolBtnUi.Swap, Loc.T("texttool.swap"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("texttool.copy"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));

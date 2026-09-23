@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace ScreenKit;
 
@@ -117,6 +119,99 @@ static class TextTools {
 			}
 		}
 		return sb.ToString().Trim();
+	}
+
+	/// <summary>
+	/// 智能美化 JSON：短的纯值数组/对象压成一行（如 [0,"key",true,null]），
+	/// 含嵌套结构的再按 Tab 缩进展开。冒号后无空格，与 eprj2 project.json 同类。
+	/// </summary>
+	public static string JsonPretty(string text) {
+		text = (text ?? "").Trim();
+		if (text.Length == 0) return "";
+		using var doc = JsonDocument.Parse(text, new JsonDocumentOptions {
+			AllowTrailingCommas = true,
+			CommentHandling = JsonCommentHandling.Skip,
+		});
+		var sb = new StringBuilder(text.Length + 64);
+		writejson(sb, doc.RootElement, 0);
+		return sb.ToString();
+	}
+
+	const int JsonCompactMax = 100;
+
+	static readonly JsonSerializerOptions JsonCompactOpt = new() {
+		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+	};
+
+	static bool jsonleaf(JsonElement el) {
+		if (el.ValueKind == JsonValueKind.Array) {
+			foreach (var x in el.EnumerateArray()) {
+				if (x.ValueKind == JsonValueKind.Object || x.ValueKind == JsonValueKind.Array)
+					return false;
+			}
+			return true;
+		}
+		if (el.ValueKind == JsonValueKind.Object) {
+			foreach (var p in el.EnumerateObject()) {
+				if (p.Value.ValueKind == JsonValueKind.Object || p.Value.ValueKind == JsonValueKind.Array)
+					return false;
+			}
+			return true;
+		}
+		return true;
+	}
+
+	static string jsoncompact(JsonElement el) =>
+		JsonSerializer.Serialize(el, JsonCompactOpt);
+
+	static void writejson(StringBuilder sb, JsonElement el, int depth) {
+		if (el.ValueKind != JsonValueKind.Array && el.ValueKind != JsonValueKind.Object) {
+			sb.Append(jsoncompact(el));
+			return;
+		}
+		var compact = jsoncompact(el);
+		if (jsonleaf(el) && compact.Length <= JsonCompactMax) {
+			sb.Append(compact);
+			return;
+		}
+		if (el.ValueKind == JsonValueKind.Array) {
+			sb.Append('[');
+			var first = true;
+			foreach (var x in el.EnumerateArray()) {
+				if (!first) sb.Append(',');
+				first = false;
+				sb.Append('\n');
+				indent(sb, depth + 1);
+				writejson(sb, x, depth + 1);
+			}
+			if (!first) {
+				sb.Append('\n');
+				indent(sb, depth);
+			}
+			sb.Append(']');
+			return;
+		}
+		sb.Append('{');
+		var firstObj = true;
+		foreach (var p in el.EnumerateObject()) {
+			if (!firstObj) sb.Append(',');
+			firstObj = false;
+			sb.Append('\n');
+			indent(sb, depth + 1);
+			sb.Append(JsonSerializer.Serialize(p.Name, JsonCompactOpt));
+			sb.Append(':');
+			writejson(sb, p.Value, depth + 1);
+		}
+		if (!firstObj) {
+			sb.Append('\n');
+			indent(sb, depth);
+		}
+		sb.Append('}');
+	}
+
+	static void indent(StringBuilder sb, int depth) {
+		for (var i = 0; i < depth; i++)
+			sb.Append('\t');
 	}
 
 	public static string DropEmptyLines(string text) {

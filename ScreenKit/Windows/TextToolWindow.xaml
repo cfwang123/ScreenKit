@@ -39,6 +39,8 @@
 			<Button x:Name="btrim" Content="去首尾空白" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
 			<Button x:Name="bcollapse" Content="压缩空白" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
 			<Button x:Name="bempty" Content="去空行" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bjson" Content="JSON 美化" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="texttool.json"/>
 			<Button x:Name="bswap" Content="上下对调" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
 		</WrapPanel>
 		<DockPanel Grid.Row="2">

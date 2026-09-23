@@ -2534,6 +2534,13 @@ static class Cli {
 				Err($"FAIL: stats lines={st.Lines} chars={st.Chars}");
 				bad++;
 			}
+			var pretty = TextTools.JsonPretty("{\"a\":1,\"v\":[[0,\"k\",true,null]]}");
+			Out("json pretty:\n" + pretty);
+			if (pretty.IndexOf("[0,\"k\",true,null]", StringComparison.Ordinal) < 0
+				|| pretty.IndexOf("\n\t\"v\":[\n", StringComparison.Ordinal) < 0) {
+				Err("FAIL: json 短数组应在一行，外层展开");
+				bad++;
+			}
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);

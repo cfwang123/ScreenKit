@@ -26,7 +26,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- **Tools** menu: **QR / barcode** (caption under the image; UTF-8, GBK, or Hex bytes, default UTF-8), **Batch rename** (Everything / FastCopy patterns: `%1`, `#` / `###`), **Hash** (MD5 / SHA-1 / SHA-256, paste to compare), **Text tools** (Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace). CLI: `--test-qr-make`, `--test-rename`, `--test-hash`, `--test-texttool`.
+- **Tools** menu: **QR / barcode** (caption under the image; UTF-8, GBK, or Hex bytes, default UTF-8), **Batch rename** (Everything / FastCopy patterns: `%1`, `#` / `###`), **Hash** (MD5 / SHA-1 / SHA-256, paste to compare), **Text tools** (Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, smart JSON pretty-print that keeps short arrays/objects on one line). CLI: `--test-qr-make`, `--test-rename`, `--test-hash`, `--test-texttool`.
 
 #### Changed
 
@@ -38,7 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- **工具** 菜单：**二维码 / 条码生成**（图下显示一行原文；UTF-8、GBK 或 Hex 二进制，默认 UTF-8）、**批量重命名**（Everything / FastCopy 表达式：`%1`、`#` / `###`）、**校验哈希**（MD5 / SHA-1 / SHA-256，可粘贴比对）、**文本小工具**（Base64、URL、UTF-8/GBK 十六进制、Unicode 转义、大小写、空白）。CLI：`--test-qr-make`、`--test-rename`、`--test-hash`、`--test-texttool`。
+- **工具** 菜单：**二维码 / 条码生成**（图下显示一行原文；UTF-8、GBK 或 Hex 二进制，默认 UTF-8）、**批量重命名**（Everything / FastCopy 表达式：`%1`、`#` / `###`）、**校验哈希**（MD5 / SHA-1 / SHA-256，可粘贴比对）、**文本小工具**（Base64、URL、UTF-8/GBK 十六进制、Unicode 转义、大小写、空白、JSON 智能美化：短数组/对象同一行）。CLI：`--test-qr-make`、`--test-rename`、`--test-hash`、`--test-texttool`。
 
 #### 变更
 
