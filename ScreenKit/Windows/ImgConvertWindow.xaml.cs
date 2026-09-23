@@ -81,8 +81,10 @@ public partial class ImgConvertWindow : Window {
 		badd.Content = Loc.T("imgconv.add");
 		bremove.Content = Loc.T("imgconv.remove");
 		bclear.Content = Loc.T("imgconv.clear");
-		bviewlist.Content = Loc.T("imgconv.view.list");
-		bviewthumb.Content = Loc.T("imgconv.view.thumb");
+		bviewlist.ToolTip = Loc.T("imgconv.view.list");
+		bviewthumb.ToolTip = Loc.T("imgconv.view.thumb");
+		System.Windows.Automation.AutomationProperties.SetName(bviewlist, Loc.T("imgconv.view.list"));
+		System.Windows.Automation.AutomationProperties.SetName(bviewthumb, Loc.T("imgconv.view.thumb"));
 		lbdrop.Text = Loc.T("imgconv.drop");
 		colname.Header = Loc.T("imgconv.col.name");
 		colxf.Header = Loc.T("imgconv.col.xf");
@@ -642,8 +644,11 @@ public partial class ImgConvertWindow : Window {
 				mirror = value;
 				OnPropertyChanged();
 				OnPropertyChanged(nameof(XfText));
+				OnPropertyChanged(nameof(MirrorX));
 			}
 		}
+
+		public double MirrorX => mirror ? -1 : 1;
 
 		public string Status {
 			get => status;

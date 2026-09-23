@@ -30,13 +30,25 @@
 			<Setter Property="Padding" Value="2"/>
 			<Setter Property="ToolTip" Value="{Binding FilePath}"/>
 		</Style>
+		<DataTemplate x:Key="tplThumbImg">
+			<Viewbox>
+				<Image Source="{Binding Thumb}" Stretch="Uniform"
+				       RenderOptions.BitmapScalingMode="HighQuality">
+					<Image.LayoutTransform>
+						<TransformGroup>
+							<RotateTransform Angle="{Binding Rotate}"/>
+							<ScaleTransform ScaleX="{Binding MirrorX}"/>
+						</TransformGroup>
+					</Image.LayoutTransform>
+				</Image>
+			</Viewbox>
+		</DataTemplate>
 		<DataTemplate x:Key="tplThumb">
 			<StackPanel Width="108">
 				<Border Width="88" Height="88" HorizontalAlignment="Center"
 				        Background="{StaticResource BgImage}" CornerRadius="4"
 				        ClipToBounds="True">
-					<Image Source="{Binding Thumb}" Stretch="Uniform"
-					       RenderOptions.BitmapScalingMode="HighQuality"/>
+					<ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource tplThumbImg}"/>
 				</Border>
 				<TextBlock Text="{Binding FileName}" Margin="0,4,0,0"
 				           FontSize="11" TextAlignment="Center"
@@ -143,30 +155,43 @@
 		</StackPanel>
 
 		<!-- 列表工具条 -->
-		<DockPanel Grid.Row="3" Margin="0,0,0,6">
+		<DockPanel Grid.Row="3" Margin="0,0,0,6" LastChildFill="False">
 			<TextBlock x:Name="lbcount" DockPanel.Dock="Right"
 			           VerticalAlignment="Center" FontSize="12"
 			           Foreground="{StaticResource TextMuted}" Text="0 张"/>
-			<Button x:Name="badd" Content="添加" Style="{StaticResource ToolBtn}"
-			        Height="30" Padding="12,2" Margin="0,0,6,0"
-			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-			        AutomationProperties.AutomationId="imgconv.add"/>
-			<Button x:Name="bremove" Content="删除" Style="{StaticResource ToolBtn}"
-			        Height="30" Padding="12,2" Margin="0,0,6,0"
-			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-			        AutomationProperties.AutomationId="imgconv.remove"/>
-			<Button x:Name="bclear" Content="清空" Style="{StaticResource ToolBtn}"
-			        Height="30" Padding="12,2" Margin="0,0,10,0"
-			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-			        AutomationProperties.AutomationId="imgconv.clear"/>
-			<ToggleButton x:Name="bviewlist" Content="列表" Style="{StaticResource ToolToggle}"
-			              Height="30" Padding="12,2" Margin="0,0,4,0"
-			              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-			              AutomationProperties.AutomationId="imgconv.view.list"/>
-			<ToggleButton x:Name="bviewthumb" Content="图片" Style="{StaticResource ToolToggle}"
-			              Height="30" Padding="12,2" IsChecked="True"
-			              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-			              AutomationProperties.AutomationId="imgconv.view.thumb"/>
+			<StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+				<Button x:Name="badd" Content="添加" Style="{StaticResource ToolBtn}"
+				        Height="30" Padding="12,2" Margin="0,0,6,0"
+				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+				        AutomationProperties.AutomationId="imgconv.add"/>
+				<Button x:Name="bremove" Content="删除" Style="{StaticResource ToolBtn}"
+				        Height="30" Padding="12,2" Margin="0,0,6,0"
+				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+				        AutomationProperties.AutomationId="imgconv.remove"/>
+				<Button x:Name="bclear" Content="清空" Style="{StaticResource ToolBtn}"
+				        Height="30" Padding="12,2" Margin="0,0,10,0"
+				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+				        AutomationProperties.AutomationId="imgconv.clear"/>
+				<ToggleButton x:Name="bviewlist" Style="{StaticResource ToolToggleSm}"
+				              Width="32" Height="30" Padding="7,6" Margin="0,0,2,0"
+				              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+				              AutomationProperties.AutomationId="imgconv.view.list"
+				              AutomationProperties.Name="列表">
+					<Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+					      StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+					      Stretch="Uniform" Width="14" Height="14"
+					      Data="M1,3.5 H15 M1,8 H15 M1,12.5 H15"/>
+				</ToggleButton>
+				<ToggleButton x:Name="bviewthumb" Style="{StaticResource ToolToggleSm}"
+				              Width="32" Height="30" Padding="7,6" IsChecked="True"
+				              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+				              AutomationProperties.AutomationId="imgconv.view.thumb"
+				              AutomationProperties.Name="图片">
+					<Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+					      Stretch="Uniform" Width="14" Height="14"
+					      Data="M1,1 h6 v6 h-6 z M9,1 h6 v6 h-6 z M1,9 h6 v6 h-6 z M9,9 h6 v6 h-6 z"/>
+				</ToggleButton>
+			</StackPanel>
 		</DockPanel>
 
 		<!-- 列表 + 预览 -->
@@ -195,8 +220,10 @@
 									<GridViewColumn Width="44">
 										<GridViewColumn.CellTemplate>
 											<DataTemplate>
-												<Image Source="{Binding Thumb}" Width="32" Height="32"
-												       Stretch="Uniform"/>
+												<Viewbox Width="32" Height="32">
+													<ContentPresenter Content="{Binding}"
+													                  ContentTemplate="{StaticResource tplThumbImg}"/>
+												</Viewbox>
 											</DataTemplate>
 										</GridViewColumn.CellTemplate>
 									</GridViewColumn>

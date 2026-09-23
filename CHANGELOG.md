@@ -24,7 +24,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- Image convert: list / icon view are compact icon buttons (the icon-view button no longer stretches across the toolbar). Thumbnails follow rotate and flip.
+
 ### 中文
+
+#### 变更
+
+- 图片格式转换：列表 / 图片改为小图标按钮（图片按钮不再被拉满整行）。缩略图随旋转、镜像一起转。
 
 ## v1.0.8 (2026-09-23)
 
