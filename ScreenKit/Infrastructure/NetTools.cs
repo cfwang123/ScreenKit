@@ -1,8 +1,10 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -195,7 +197,98 @@ static class NetTools {
 			guess = "接近 " + nearest.Place + " 节点";
 		else
 			guess = "较近：" + nearest.Place + "（" + nearest.Ms + "ms）";
-		line?.Invoke("推测位置：" + guess);
+		line?.Invoke("ICMP 推测：" + guess);
+		line?.Invoke("");
+		await HttpLocate(line, ct).ConfigureAwait(false);
+	}
+
+	/// <summary>经 Windows 系统代理用 HTTP 查出口 IP 与地区。</summary>
+	public static async Task HttpLocate(Action<string> line, CancellationToken ct) {
+		line?.Invoke("HTTP 定位（系统代理）");
+		IWebProxy sys = null;
+		try {
+			sys = WebRequest.GetSystemWebProxy();
+			if (sys != null)
+				sys.Credentials = CredentialCache.DefaultCredentials;
+			var probe = new Uri("https://www.google.com/");
+			var px = sys?.GetProxy(probe);
+			if (px != null && px != probe && !string.Equals(px.Host, probe.Host, StringComparison.OrdinalIgnoreCase))
+				line?.Invoke("系统代理: " + px);
+			else
+				line?.Invoke("系统代理: 无（直连）");
+		}
+		catch (Exception ex) {
+			line?.Invoke("系统代理: " + ex.Message);
+		}
+		var urls = new[] {
+			"http://ip-api.com/json/?fields=status,message,country,regionName,city,isp,query&lang=zh-CN",
+			"https://ipinfo.io/json",
+			"https://api.ip.sb/geoip",
+		};
+		foreach (var url in urls) {
+			ct.ThrowIfCancellationRequested();
+			try {
+				var body = await httpget(url, sys, ct).ConfigureAwait(false);
+				line?.Invoke(url);
+				line?.Invoke(formatgeo(body));
+				return;
+			}
+			catch (Exception ex) {
+				line?.Invoke(url + "  " + (ex.InnerException?.Message ?? ex.Message));
+			}
+		}
+		line?.Invoke("HTTP 定位失败");
+	}
+
+	static async Task<string> httpget(string url, IWebProxy proxy, CancellationToken ct) {
+		var handler = new HttpClientHandler {
+			UseProxy = proxy != null,
+			Proxy = proxy,
+			AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate,
+		};
+		using (handler)
+		using (var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) }) {
+			http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ScreenKit");
+			using var resp = await http.GetAsync(url, ct).ConfigureAwait(false);
+			resp.EnsureSuccessStatusCode();
+			return await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+		}
+	}
+
+	static string formatgeo(string json) {
+		json = (json ?? "").Trim();
+		if (json.Length == 0) return "(empty)";
+		try {
+			using var doc = JsonDocument.Parse(json);
+			var r = doc.RootElement;
+			string get(params string[] keys) {
+				foreach (var k in keys) {
+					if (!r.TryGetProperty(k, out var v)) continue;
+					if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
+					if (v.ValueKind == JsonValueKind.Number || v.ValueKind == JsonValueKind.True
+						|| v.ValueKind == JsonValueKind.False)
+						return v.ToString();
+				}
+				return "";
+			}
+			if (string.Equals(get("status"), "fail", StringComparison.OrdinalIgnoreCase))
+				return "fail: " + get("message");
+			var ip = get("query", "ip");
+			var country = get("country", "country_name");
+			var region = get("regionName", "region");
+			var city = get("city");
+			var isp = get("isp", "org", "organization");
+			var sb = new StringBuilder();
+			if (ip.Length > 0) sb.AppendLine("IP: " + ip);
+			var where = string.Join(" ", new[] { country, region, city }.Where(s => s.Length > 0));
+			if (where.Length > 0) sb.AppendLine("位置: " + where);
+			if (isp.Length > 0) sb.AppendLine("ISP: " + isp);
+			var s = sb.ToString().TrimEnd();
+			return s.Length > 0 ? s : json;
+		}
+		catch {
+			return json.Length > 400 ? json.Substring(0, 400) + "…" : json;
+		}
 	}
 
 	public static async Task<string> Whois(string query, CancellationToken ct) {
