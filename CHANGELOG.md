@@ -24,6 +24,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+### English
+
+#### Changed
+
+- `scripts/publish-release.mjs` omits local `config.toml`, `cli_last.log`, and `log/` from the 7z (API keys / paths).
+
+### 中文
+
+#### 变更
+
+- `scripts/publish-release.mjs` 打包时排除本机 `config.toml`、`cli_last.log` 和 `log/`（避免把密钥/路径打进发布包）。
+
 ## v1.0.10 (2026-09-24)
 
 ### English

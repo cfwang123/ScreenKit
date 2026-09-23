@@ -71,7 +71,10 @@ function main() {
 	const zip7 = find7z();
 	const slimParent = path.dirname(slimDir);
 	const slimName = path.basename(slimDir);
-	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}"`;
+	// 排除本机配置与日志（可能含 API key / 路径）
+	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}" ` +
+		`"-x!${slimName}\\log" "-x!${slimName}\\log\\*" ` +
+		`"-x!${slimName}\\config.toml" "-x!${slimName}\\cli_last.log" "-x!${slimName}\\*.log"`;
 	console.log(`> ${cmd}`);
 	execSync(cmd, { cwd: slimParent, stdio: 'inherit', shell: true });
 
