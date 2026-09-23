@@ -50,6 +50,9 @@ public partial class ImgConvertWindow : Window {
 		emaxen.Unchecked += (_, _) => queuepreview();
 		emaxw.TextChanged += (_, _) => queuepreview();
 		emaxh.TextChanged += (_, _) => queuepreview();
+		ekeeporig.Checked += (_, _) => queuepreview();
+		ekeeporig.Unchecked += (_, _) => queuepreview();
+		ekeeppct.TextChanged += (_, _) => queuepreview();
 		routsrc.Checked += (_, _) => syncoutui();
 		routother.Checked += (_, _) => syncoutui();
 		lv.SelectionChanged += (_, _) => syncselui();
@@ -72,6 +75,9 @@ public partial class ImgConvertWindow : Window {
 		lbjpgq.Text = Loc.T("imgconv.jpgq");
 		ejpgq.ToolTip = Loc.T("imgconv.jpgq.tip");
 		emaxen.Content = Loc.T("imgconv.max");
+		ekeeporig.Content = Loc.T("imgconv.keeporig");
+		lbkeeppct.Text = Loc.T("imgconv.keeppct");
+		ekeeporig.ToolTip = Loc.T("imgconv.keeporig.tip");
 		lbmaxw.Text = Loc.T("imgconv.maxw");
 		lbmaxh.Text = Loc.T("imgconv.maxh");
 		lbout.Text = Loc.T("imgconv.out");
@@ -127,6 +133,9 @@ public partial class ImgConvertWindow : Window {
 		if (opt.ImgConvOutBeside) routsrc.IsChecked = true;
 		else routother.IsChecked = true;
 		eoutdir.Text = opt.ImgConvOutDir ?? "";
+		ekeeporig.IsChecked = opt.ImgConvKeepOrigEnabled;
+		var kp = Compat.Clamp(opt.ImgConvKeepOrigPct <= 0 ? 80 : opt.ImgConvKeepOrigPct, 1, 100);
+		ekeeppct.Text = kp.ToString();
 		var thumbs = opt.ImgConvThumbView;
 		bviewthumb.IsChecked = thumbs;
 		bviewlist.IsChecked = !thumbs;
@@ -148,6 +157,11 @@ public partial class ImgConvertWindow : Window {
 			if (!tryint(emaxh, Loc.T("imgconv.maxh"), 16, 16384, out var mh)) return false;
 			opt.ImgConvMaxWidth = mw;
 			opt.ImgConvMaxHeight = mh;
+		}
+		opt.ImgConvKeepOrigEnabled = ekeeporig.IsChecked == true;
+		if (opt.ImgConvKeepOrigEnabled) {
+			if (!tryint(ekeeppct, Loc.T("imgconv.keeporig"), 1, 100, out var kp)) return false;
+			opt.ImgConvKeepOrigPct = kp;
 		}
 		opt.ImgConvOutBeside = routsrc.IsChecked == true;
 		opt.ImgConvThumbView = bviewthumb.IsChecked == true;
@@ -300,9 +314,25 @@ public partial class ImgConvertWindow : Window {
 				_ => Loc.T("imgconv.fmt.jpg"),
 			};
 			var kind = fmt == "jpg" ? $"{fmtName} {quality}%" : fmtName;
-			lbprevinfo.Text = Loc.T("imgconv.preview.info",
+			var info = Loc.T("imgconv.preview.info",
 				bmp.PixelWidth, bmp.PixelHeight, kind,
 				FeatureInstaller.FormatBytes(bytes.Length));
+			try {
+				var origLen = new FileInfo(path).Length;
+				var geom = rotate != 0 || mirror;
+				if (!geom) {
+					using var fs = File.OpenRead(path);
+					using var srcImg = System.Drawing.Image.FromStream(fs, false, false);
+					geom = srcImg.Width != bmp.PixelWidth || srcImg.Height != bmp.PixelHeight;
+				}
+				if (ImgConvert.KeepOriginal(origLen, bytes.Length,
+					ekeeporig.IsChecked == true,
+					int.TryParse((ekeeppct.Text ?? "").Trim(), out var kp) ? kp : 80,
+					geom))
+					info += "  ·  " + Loc.T("imgconv.st.orig");
+			}
+			catch { }
+			lbprevinfo.Text = info;
 		}
 		catch (OperationCanceledException) { }
 		catch (Exception ex) {
@@ -509,6 +539,8 @@ public partial class ImgConvertWindow : Window {
 		bclear.IsEnabled = !on;
 		efmt.IsEnabled = !on;
 		emaxen.IsEnabled = !on;
+		ekeeporig.IsEnabled = !on;
+		ekeeppct.IsEnabled = !on && ekeeporig.IsChecked == true;
 		emaxw.IsEnabled = !on;
 		emaxh.IsEnabled = !on;
 		routsrc.IsEnabled = !on;
@@ -569,9 +601,10 @@ public partial class ImgConvertWindow : Window {
 				var mir = row.Mirror;
 				try {
 					var dst = ImgConvert.MakeOutPath(src, fmt, beside, outDir, reserved);
-					await Task.Run(() => ImgConvert.ConvertOne(src, dst, fmt, quality,
-						maxEn, maxW, maxH, rot, mir, token), token).ConfigureAwait(true);
-					row.Status = Loc.T("imgconv.st.ok");
+					var usedOrig = await Task.Run(() => ImgConvert.ConvertOne(src, dst, fmt, quality,
+						maxEn, maxW, maxH, rot, mir, token,
+						opt.ImgConvKeepOrigEnabled, opt.ImgConvKeepOrigPct), token).ConfigureAwait(true);
+					row.Status = usedOrig ? Loc.T("imgconv.st.orig") : Loc.T("imgconv.st.ok");
 					ok++;
 				}
 				catch (OperationCanceledException) { throw; }

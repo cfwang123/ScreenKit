@@ -2378,6 +2378,33 @@ static class Cli {
 				bad++;
 			}
 			else Out($"jpg quality size OK 20={q20.Length} < 90={q90.Length}");
+			var keepDst = Path.Combine(dir, "outkeep", "keep.jpg");
+			Directory.CreateDirectory(Path.GetDirectoryName(keepDst));
+			var usedOrig = ImgConvert.ConvertOne(src, keepDst, "jpg", 100, false, 1920, 1080, 0, false,
+				CancellationToken.None, keepOrigEn: true, keepOrigPct: 80);
+			var enc100 = ImgConvert.Encode(src, "jpg", 100, false, 1920, 1080, 0, false, CancellationToken.None);
+			var origLen = new FileInfo(src).Length;
+			Out($"keep-orig: orig={origLen} jpg100={enc100.Length} usedOrig={usedOrig}");
+			if (enc100.Length * 100L >= origLen * 80 && !usedOrig) {
+				Err("FAIL: jpg 体积 ≥ 原图 80% 应使用原图");
+				bad++;
+			}
+			if (usedOrig) {
+				var keepPath = Path.Combine(Path.GetDirectoryName(keepDst), Path.GetFileName(src));
+				if (!File.Exists(keepPath)) {
+					Err("FAIL: 原图未复制到 " + keepPath);
+					bad++;
+				}
+				else Out("keep-orig copied OK");
+			}
+			var rotKeep = ImgConvert.ConvertOne(src, Path.Combine(dir, "outkeep", "rot.jpg"), "jpg", 100, false, 1920, 1080, 90, false,
+				CancellationToken.None, keepOrigEn: true, keepOrigPct: 80);
+			if (rotKeep) {
+				Err("FAIL: 旋转后仍应写出新图");
+				bad++;
+			}
+			else Out("rotate still writes new file OK");
+
 			var rot = ImgConvert.Encode(src, "png", 60, true, 100, 100, 90, false, CancellationToken.None);
 			using var ms = new MemoryStream(rot);
 			using var rotImg = new System.Drawing.Bitmap(ms);

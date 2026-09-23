@@ -469,6 +469,11 @@ public partial class MainWindow : Window {
 			tray.RecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(openrecordoptions));
 			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
 			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(opengifrecordoptions));
+			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(openimgconv));
+			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(openqrmake));
+			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(openrename));
+			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(openhash));
+			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(opentexttool));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(opensettings));
 			tray.ForceExitRequested += () => {
 				forceExit = true;

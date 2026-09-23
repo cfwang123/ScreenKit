@@ -126,6 +126,18 @@
 				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 				         AutomationProperties.AutomationId="imgconv.maxh"/>
 			</Grid>
+			<StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+				<CheckBox x:Name="ekeeporig" VerticalAlignment="Center" IsChecked="True" Margin="0,0,8,0"
+				          AutomationProperties.AutomationId="imgconv.keeporig"/>
+				<TextBox x:Name="ekeeppct" Width="48" Height="28" Padding="6,2" Text="80"
+				         BorderBrush="{StaticResource BorderSoft}"
+				         VerticalContentAlignment="Center" Margin="0,0,6,0"
+				         IsEnabled="{Binding ElementName=ekeeporig, Path=IsChecked}"
+				         AutomationProperties.AutomationId="imgconv.keeppct"/>
+				<TextBlock x:Name="lbkeeppct" Text="% 时使用原图（旋转或缩放除外）"
+				           FontSize="12" Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center"/>
+			</StackPanel>
 		</StackPanel>
 
 		<!-- 输出路径 -->

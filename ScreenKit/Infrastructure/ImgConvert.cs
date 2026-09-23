@@ -92,14 +92,59 @@ static class ImgConvert {
 
 	public static void ConvertOne(string src, string dst, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
-		var bytes = Encode(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
+		ConvertOne(src, dst, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct,
+			keepOrigEn: false, keepOrigPct: 80);
+	}
+
+	/// <returns>true 表示因体积收益不足而写出原文件。</returns>
+	public static bool ConvertOne(string src, string dst, string fmt, int quality,
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
+		bool keepOrigEn, int keepOrigPct) {
+		var enc = encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
 		var dir = Path.GetDirectoryName(dst);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-		File.WriteAllBytes(dst, bytes);
+		var origLen = 0L;
+		try { origLen = new FileInfo(src).Length; } catch { }
+		var geom = rotate != 0 || mirror || enc.SrcW != enc.OutW || enc.SrcH != enc.OutH;
+		if (KeepOriginal(origLen, enc.Bytes.Length, keepOrigEn, keepOrigPct, geom)) {
+			var keep = keeppath(src, dst);
+			if (!string.Equals(keep, src, StringComparison.OrdinalIgnoreCase))
+				File.Copy(src, keep, overwrite: false);
+			return true;
+		}
+		File.WriteAllBytes(dst, enc.Bytes);
+		return false;
+	}
+
+	/// <summary>压缩后体积 ≥ 原图的 pct% 则用原图；有旋转/镜像/实际缩放时仍用新图。</summary>
+	public static bool KeepOriginal(long origLen, int newLen, bool enabled, int pct, bool geomChanged) {
+		if (!enabled || geomChanged || origLen <= 0 || newLen < 0) return false;
+		pct = Compat.Clamp(pct, 1, 100);
+		return newLen * 100L >= origLen * (long)pct;
+	}
+
+	static string keeppath(string src, string dst) {
+		var dir = Path.GetDirectoryName(dst) ?? "";
+		var name = Path.GetFileName(src);
+		if (string.IsNullOrEmpty(name)) name = Path.GetFileName(dst);
+		var path = Path.Combine(dir, name);
+		if (string.Equals(path, src, StringComparison.OrdinalIgnoreCase))
+			return Path.Combine(dir, Path.GetFileNameWithoutExtension(name) + "_orig" + Path.GetExtension(name));
+		return unique(path, null);
 	}
 
 	/// <summary>按目标格式实际编码（JPG 质量会进码流），供预览与落盘共用。</summary>
 	public static byte[] Encode(string src, string fmt, int quality,
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
+		return encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct).Bytes;
+	}
+
+	sealed class Encoded {
+		public byte[] Bytes;
+		public int SrcW, SrcH, OutW, OutH;
+	}
+
+	static Encoded encodex(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
@@ -122,9 +167,11 @@ static class ImgConvert {
 		}
 	}
 
-	static byte[] encodegdi(string src, string fmt, int quality,
+	static Encoded encodegdi(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
 		using var loaded = new GdiBmp(src);
+		var srcW = loaded.Width;
+		var srcH = loaded.Height;
 		using var img = new GdiBmp(loaded);
 		ct.ThrowIfCancellationRequested();
 		var xf = toflip(rotate, mirror);
@@ -153,16 +200,24 @@ static class ImgConvert {
 			ct.ThrowIfCancellationRequested();
 			using var ms = new MemoryStream();
 			savegdi(toSave, ms, fmt, quality);
-			return ms.ToArray();
+			return new Encoded {
+				Bytes = ms.ToArray(),
+				SrcW = srcW,
+				SrcH = srcH,
+				OutW = toSave.Width,
+				OutH = toSave.Height,
+			};
 		}
 		finally {
 			resized?.Dispose();
 		}
 	}
 
-	static byte[] encodewpf(string src, string fmt, int quality,
+	static Encoded encodewpf(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
 		var bmp = loadwpf(src);
+		var srcW = bmp.PixelWidth;
+		var srcH = bmp.PixelHeight;
 		ct.ThrowIfCancellationRequested();
 		bmp = transformwpf(bmp, rotate, mirror);
 		if (maxEn)
@@ -181,7 +236,13 @@ static class ImgConvert {
 		enc.Frames.Add(BitmapFrame.Create(bmp));
 		using var ms = new MemoryStream();
 		enc.Save(ms);
-		return ms.ToArray();
+		return new Encoded {
+			Bytes = ms.ToArray(),
+			SrcW = srcW,
+			SrcH = srcH,
+			OutW = bmp.PixelWidth,
+			OutH = bmp.PixelHeight,
+		};
 	}
 
 	static BitmapSource loadwpf(string path) {

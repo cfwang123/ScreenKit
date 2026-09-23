@@ -118,6 +118,10 @@ static class AppConfig {
 				o.ImgConvOutDir = (icod ?? "").Trim().Trim('"');
 			if (map.TryGetValue("imgconv_thumb_view", out var ictv))
 				o.ImgConvThumbView = parsebool(ictv, true);
+			if (map.TryGetValue("imgconv_keep_orig", out var icko))
+				o.ImgConvKeepOrigEnabled = parsebool(icko, true);
+			if (map.TryGetValue("imgconv_keep_orig_pct", out var ickp) && int.TryParse(ickp, out var ickPct))
+				o.ImgConvKeepOrigPct = Compat.Clamp(ickPct, 1, 100);
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul)) {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
@@ -438,6 +442,9 @@ static class AppConfig {
 		sb.AppendLine($"imgconv_out_beside = {(o.ImgConvOutBeside ? "true" : "false")}");
 		sb.AppendLine($"imgconv_out_dir = \"{esc((o.ImgConvOutDir ?? "").Trim())}\"");
 		sb.AppendLine($"imgconv_thumb_view = {(o.ImgConvThumbView ? "true" : "false")}");
+		sb.AppendLine($"# 压缩后体积仍 ≥ 原图该比例则复制原文件（旋转/缩放除外）");
+		sb.AppendLine($"imgconv_keep_orig = {(o.ImgConvKeepOrigEnabled ? "true" : "false")}");
+		sb.AppendLine($"imgconv_keep_orig_pct = {Compat.Clamp(o.ImgConvKeepOrigPct <= 0 ? 80 : o.ImgConvKeepOrigPct, 1, 100)}");
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");

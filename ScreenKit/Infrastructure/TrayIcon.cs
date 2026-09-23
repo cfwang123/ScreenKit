@@ -26,6 +26,12 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miRecordOpt;
 	Forms.ToolStripMenuItem miGifRecord;
 	Forms.ToolStripMenuItem miGifRecordOpt;
+	Forms.ToolStripMenuItem miTools;
+	Forms.ToolStripMenuItem miImgConv;
+	Forms.ToolStripMenuItem miQrMake;
+	Forms.ToolStripMenuItem miRename;
+	Forms.ToolStripMenuItem miHash;
+	Forms.ToolStripMenuItem miTextTool;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
@@ -127,6 +133,17 @@ sealed class TrayIcon : IDisposable {
 		miRecordOpt = item("tray.recordopt", () => RecordOptionsRequested?.Invoke());
 		miGifRecord = item("tray.gifrecord", () => GifRecordRequested?.Invoke());
 		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
+		miImgConv = item("tray.imgconv", () => ImgConvRequested?.Invoke());
+		miQrMake = item("tray.qrmake", () => QrMakeRequested?.Invoke());
+		miRename = item("tray.rename", () => RenameRequested?.Invoke());
+		miHash = item("tray.hash", () => HashRequested?.Invoke());
+		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
+		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
+		miTools.DropDownItems.Add(miImgConv);
+		miTools.DropDownItems.Add(miQrMake);
+		miTools.DropDownItems.Add(miRename);
+		miTools.DropDownItems.Add(miHash);
+		miTools.DropDownItems.Add(miTextTool);
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
@@ -159,6 +176,8 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miRecordOpt);
 		menu.Items.Add(miGifRecord);
 		menu.Items.Add(miGifRecordOpt);
+		menu.Items.Add(new Forms.ToolStripSeparator());
+		menu.Items.Add(miTools);
 		menu.Items.Add(miSettings);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miExit);
@@ -299,6 +318,12 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miRecordOpt, null);
 		setshortcut(miGifRecord, null);
 		setshortcut(miGifRecordOpt, null);
+		setshortcut(miTools, null);
+		setshortcut(miImgConv, null);
+		setshortcut(miQrMake, null);
+		setshortcut(miRename, null);
+		setshortcut(miHash, null);
+		setshortcut(miTextTool, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
 	}
@@ -330,6 +355,12 @@ sealed class TrayIcon : IDisposable {
 			settext(miRecordOpt, "tray.recordopt");
 			settext(miGifRecord, "tray.gifrecord");
 			settext(miGifRecordOpt, "tray.gifrecordopt");
+			settext(miTools, "tray.tools");
+			settext(miImgConv, "tray.imgconv");
+			settext(miQrMake, "tray.qrmake");
+			settext(miRename, "tray.rename");
+			settext(miHash, "tray.hash");
+			settext(miTextTool, "tray.texttool");
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
@@ -354,6 +385,11 @@ sealed class TrayIcon : IDisposable {
 	public event Action RecordOptionsRequested;
 	public event Action GifRecordRequested;
 	public event Action GifRecordOptionsRequested;
+	public event Action ImgConvRequested;
+	public event Action QrMakeRequested;
+	public event Action RenameRequested;
+	public event Action HashRequested;
+	public event Action TextToolRequested;
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>

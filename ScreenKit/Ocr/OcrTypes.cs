@@ -135,6 +135,10 @@ public sealed class OcrOptions {
 	public string ImgConvOutDir = "";
 	/// <summary>true = 图片（缩略图）视图；false = 列表。</summary>
 	public bool ImgConvThumbView = true;
+	/// <summary>压缩后体积仍 ≥ 原图该比例时用原图（旋转/缩放除外）。</summary>
+	public bool ImgConvKeepOrigEnabled = true;
+	/// <summary>用原图的体积阈值，百分数，默认 80（100KB 原图则 ≥80KB 用原图）。</summary>
+	public int ImgConvKeepOrigPct = 80;
 	/// <summary>截图完成时复制为图片（与 AsFile / AsPath 三选一）。</summary>
 	public bool SnapCopyAsImage = true;
 	/// <summary>截图完成时复制为文件 FileDrop（与 AsImage / AsPath 三选一）。</summary>
@@ -349,6 +353,8 @@ public sealed class OcrOptions {
 		ImgConvOutBeside = ImgConvOutBeside,
 		ImgConvOutDir = ImgConvOutDir ?? "",
 		ImgConvThumbView = ImgConvThumbView,
+		ImgConvKeepOrigEnabled = ImgConvKeepOrigEnabled,
+		ImgConvKeepOrigPct = ImgConvKeepOrigPct,
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,

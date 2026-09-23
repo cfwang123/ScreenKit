@@ -68,7 +68,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab: PC drops go to the phone’s bound folder while the app is connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. Companion: `android/` (`com.whj.screenkit`). |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
-| **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source or a chosen folder. |
+| **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source or a chosen folder. Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
 | **QR / barcode** | **Tools → QR / barcode**: QR, Data Matrix, Code 128/39, EAN, UPC. One line of original text under the image. UTF-8, GBK, or Hex bytes (default UTF-8). |
 | **Batch rename** | **Tools → Batch rename**: Everything-style old/new patterns (`%1` capture, `#` / `###` numbers), regex, ignore extension. |
 | **Hash** | **Tools → Hash**: MD5 / SHA-1 / SHA-256; paste an expected hash to match. |
