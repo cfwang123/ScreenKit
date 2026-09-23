@@ -172,6 +172,8 @@ static class ImageUtil {
 		return bmp;
 	}
 
+	public static bool IsImagePath(string path) => isimagepath(path);
+
 	static bool isimagepath(string path) {
 		var ext = Path.GetExtension(path)?.ToLowerInvariant();
 		return ext is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".webp" or ".tif" or ".tiff" or ".gif";

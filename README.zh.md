@@ -68,6 +68,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **PC 文件传输** | 局域网 HTTP `17532` + UDP 发现 `17531`。主界面 **文件同步** Tab：手机已连接时，电脑拖入发到手机绑定文件夹；手机分享写到电脑 `sendfile/`。**安装到手机** 显示局域网地址和二维码。配套 App：`android/`（`com.whj.screenkit`「PC文件传输」）。 |
 | **HTTP API** | 本机 JSON 接口（默认 `127.0.0.1:1224`）。主界面 Tab：调用日志 + 手动发请求。 |
 | **安装功能** | 功能选择树打开时勾选已装项；增删显示绿/红数量与大小；点确认即安装或卸载。发音人单独一页。中文环境优先国内镜像。 |
+| **图片格式转换** | 菜单 **工具 → 图片格式转换**：批量转 JPG/PNG/BMP，可限制最大宽高、旋转/镜像；输出到源文件旁 `output/` 或指定目录。 |
 | **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入 · 翻译小窗（可配置、可清空禁用）。 |
 | **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口 / 文件同步（`tab_*_visible`）。 |
 | **推理设备** | CPU · NVIDIA CUDA · 核显 DirectML；未装加速时自动 CPU。 |
@@ -123,12 +124,12 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 ### 界面语言
 
-菜单 **工具 → 界面语言** 切换 **中文 / English**，或在 **参数设置 → 常规** 选择（`ui_lang = "zh"` / `"en"`）。已覆盖菜单、参数设置、OCR 工具栏模型/语言显示名（`ocr-display.json` 的 `name` / `nameEn`）、翻译、人脸、翻译小窗等。
+菜单 **选项 → 界面语言** 切换 **中文 / English**，或在 **参数设置 → 常规** 选择（`ui_lang = "zh"` / `"en"`）。已覆盖菜单、参数设置、OCR 工具栏模型/语言显示名（`ocr-display.json` 的 `name` / `nameEn`）、翻译、人脸、翻译小窗等。
 
 ## 安装功能
 
 1. 首次启动可出现安装向导（默认勾选：截图识别简中、ASR 前两项、录屏；**不勾** GPU/核显）。
-2. 之后：**工具 → 安装功能**
+2. 之后：**选项 → 安装功能**
    - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。发音人不在此页。
    - **发音人**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。
 3. 使用某功能时若缺依赖，会提示打开安装窗（例如：没有任何 ORT 时做 OCR → 提示安装 `onnxcpu64`）。
@@ -154,12 +155,12 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 ## 配置
 
-设置保存在 exe 旁 `config.toml`（**工具 → 参数设置** / **录屏选项**）。参数设置按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口；主界面 Tab 显示复选框位于「常规」。
+设置保存在 exe 旁 `config.toml`（**选项 → 参数设置** / **录屏选项**）。参数设置按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口；主界面 Tab 显示复选框位于「常规」。
 
 | 段落 | 主要内容 |
 |------|----------|
 | `[ocr]` | 模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值 |
-| `[ui]` | 热键、托盘、`ui_lang`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days` |
+| `[ui]` | 热键、托盘、`ui_lang`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`imgconv_*` |
 | `[http]` | 本机 OCR API（`127.0.0.1:1224`）、服务模式 |
 | `[sendfile]` | 局域网文件传输端口、显示名、已配对设备 |
 | `[pdf]` | 不可见文字层、光栅 DPI |
@@ -295,6 +296,7 @@ ScreenKit --image <路径> [选项]
 ScreenKit --snap [--out <目录>]
 ScreenKit --test-clipboard-path
 ScreenKit --test-apk-qr
+ScreenKit --test-img-convert
 ScreenKit --test-sendfile
 ScreenKit --test-face-overlay
 ScreenKit --list-models

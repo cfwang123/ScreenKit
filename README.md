@@ -68,6 +68,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab: PC drops go to the phone’s bound folder while the app is connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. Companion: `android/` (`com.whj.screenkit`). |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
+| **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; write to `output/` next to each source or a chosen folder. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
@@ -123,12 +124,12 @@ Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles 
 
 ### UI language
 
-**Tools → Language** → 中文 / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, and the translate popup.
+**Options → Language** → 中文 / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, and the translate popup.
 
 ## Install features
 
 1. First launch may open the wizard (defaults: Simplified-Chinese OCR, first two ASR packs, recording; GPU/iGPU **off**).
-2. Later: **Tools → Install features**
+2. Later: **Options → Install features**
    - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Voices are not on this tab.
    - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
@@ -154,12 +155,12 @@ Optional env vars for local full libraries (do not commit secrets/paths):
 
 ## Configuration
 
-Settings live in `config.toml` beside the exe (**Tools → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**.
+Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**.
 
 | Section | Keys |
 |---------|------|
 | `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
-| `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days` |
+| `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `imgconv_*` |
 | `[http]` | OCR API bind (`127.0.0.1:1224`), service mode |
 | `[sendfile]` | LAN file transfer ports, display name, paired devices |
 | `[pdf]` | invisible text, raster DPI |
@@ -307,6 +308,7 @@ ScreenKit --image <path> [options]
 ScreenKit --snap [--out <dir>]
 ScreenKit --test-clipboard-path   # path copy after delayed image; 4K timing
 ScreenKit --test-apk-qr            # encode/decode LAN APK QR; HTTP GET /apk
+ScreenKit --test-img-convert       # png→jpg rotate 90 + max 100×100
 ScreenKit --test-sendfile          # sendfile sandbox list/upload/delete
 ScreenKit --test-face-overlay
 ScreenKit --list-models

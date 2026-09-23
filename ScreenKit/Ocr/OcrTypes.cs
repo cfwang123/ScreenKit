@@ -119,6 +119,20 @@ public sealed class OcrOptions {
 	public int ScreenshotMaxWidth = 1920;
 	/// <summary>截图保存最大高（像素）。</summary>
 	public int ScreenshotMaxHeight = 1080;
+	/// <summary>图片格式转换：目标格式 jpg / png / bmp（默认 jpg）。</summary>
+	public string ImgConvFormat = "jpg";
+	/// <summary>图片格式转换 JPG 质量 1–100（默认 60）。</summary>
+	public int ImgConvJpgQuality = 60;
+	/// <summary>图片格式转换是否限制最大宽高。</summary>
+	public bool ImgConvMaxSizeEnabled = false;
+	/// <summary>图片格式转换最大宽。</summary>
+	public int ImgConvMaxWidth = 1920;
+	/// <summary>图片格式转换最大高。</summary>
+	public int ImgConvMaxHeight = 1080;
+	/// <summary>true = 写到源文件目录下 output/；false = ImgConvOutDir。</summary>
+	public bool ImgConvOutBeside = true;
+	/// <summary>图片格式转换自定义输出目录。</summary>
+	public string ImgConvOutDir = "";
 	/// <summary>截图完成时复制为图片（与 AsFile / AsPath 三选一）。</summary>
 	public bool SnapCopyAsImage = true;
 	/// <summary>截图完成时复制为文件 FileDrop（与 AsImage / AsPath 三选一）。</summary>
@@ -325,6 +339,13 @@ public sealed class OcrOptions {
 		ScreenshotMaxSizeEnabled = ScreenshotMaxSizeEnabled,
 		ScreenshotMaxWidth = ScreenshotMaxWidth,
 		ScreenshotMaxHeight = ScreenshotMaxHeight,
+		ImgConvFormat = ImgConvFormat ?? "jpg",
+		ImgConvJpgQuality = ImgConvJpgQuality,
+		ImgConvMaxSizeEnabled = ImgConvMaxSizeEnabled,
+		ImgConvMaxWidth = ImgConvMaxWidth,
+		ImgConvMaxHeight = ImgConvMaxHeight,
+		ImgConvOutBeside = ImgConvOutBeside,
+		ImgConvOutDir = ImgConvOutDir ?? "",
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,

@@ -102,6 +102,20 @@ static class AppConfig {
 				o.ScreenshotMaxWidth = Compat.Clamp(sMaxW, 16, 16384);
 			if (map.TryGetValue("screenshot_max_h", out var smh) && int.TryParse(smh, out var sMaxH))
 				o.ScreenshotMaxHeight = Compat.Clamp(sMaxH, 16, 16384);
+			if (map.TryGetValue("imgconv_format", out var icfmt) && !string.IsNullOrWhiteSpace(icfmt))
+				o.ImgConvFormat = ImgConvert.NormFmt(icfmt.Trim().Trim('"'));
+			if (map.TryGetValue("imgconv_jpg_quality", out var icq) && int.TryParse(icq, out var icQ))
+				o.ImgConvJpgQuality = Compat.Clamp(icQ, 1, 100);
+			if (map.TryGetValue("imgconv_max_size", out var icms))
+				o.ImgConvMaxSizeEnabled = parsebool(icms, false);
+			if (map.TryGetValue("imgconv_max_w", out var icmw) && int.TryParse(icmw, out var icMaxW))
+				o.ImgConvMaxWidth = Compat.Clamp(icMaxW, 16, 16384);
+			if (map.TryGetValue("imgconv_max_h", out var icmh) && int.TryParse(icmh, out var icMaxH))
+				o.ImgConvMaxHeight = Compat.Clamp(icMaxH, 16, 16384);
+			if (map.TryGetValue("imgconv_out_beside", out var icob))
+				o.ImgConvOutBeside = parsebool(icob, true);
+			if (map.TryGetValue("imgconv_out_dir", out var icod))
+				o.ImgConvOutDir = (icod ?? "").Trim().Trim('"');
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul)) {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
@@ -412,6 +426,15 @@ static class AppConfig {
 		sb.AppendLine($"screenshot_max_size = {(o.ScreenshotMaxSizeEnabled ? "true" : "false")}");
 		sb.AppendLine($"screenshot_max_w = {Compat.Clamp(o.ScreenshotMaxWidth < 16 ? 1920 : o.ScreenshotMaxWidth, 16, 16384)}");
 		sb.AppendLine($"screenshot_max_h = {Compat.Clamp(o.ScreenshotMaxHeight < 16 ? 1080 : o.ScreenshotMaxHeight, 16, 16384)}");
+		var icFmt = ImgConvert.NormFmt(o.ImgConvFormat);
+		sb.AppendLine($"# 图片格式转换：jpg | png | bmp；jpg 质量 1–100；输出到源文件 output/ 或自定义目录");
+		sb.AppendLine($"imgconv_format = \"{icFmt}\"");
+		sb.AppendLine($"imgconv_jpg_quality = {Compat.Clamp(o.ImgConvJpgQuality <= 0 ? 60 : o.ImgConvJpgQuality, 1, 100)}");
+		sb.AppendLine($"imgconv_max_size = {(o.ImgConvMaxSizeEnabled ? "true" : "false")}");
+		sb.AppendLine($"imgconv_max_w = {Compat.Clamp(o.ImgConvMaxWidth < 16 ? 1920 : o.ImgConvMaxWidth, 16, 16384)}");
+		sb.AppendLine($"imgconv_max_h = {Compat.Clamp(o.ImgConvMaxHeight < 16 ? 1080 : o.ImgConvMaxHeight, 16, 16384)}");
+		sb.AppendLine($"imgconv_out_beside = {(o.ImgConvOutBeside ? "true" : "false")}");
+		sb.AppendLine($"imgconv_out_dir = \"{esc((o.ImgConvOutDir ?? "").Trim())}\"");
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");

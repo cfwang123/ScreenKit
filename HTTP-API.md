@@ -629,7 +629,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/chat" \
 
 ## 12. Face
 
-Needs det+rec ONNX under `facemodels/`. Download InsightFace **buffalo_l** from **Tools → Install features**. Aliases: `POST /api/face/compare`, `POST /api/face/extract` (same handler).
+Needs det+rec ONNX under `facemodels/`. Download InsightFace **buffalo_l** from **Options → Install features**. Aliases: `POST /api/face/compare`, `POST /api/face/extract` (same handler).
 
 ### 12.1 GET `/api/face/models`
 

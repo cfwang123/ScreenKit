@@ -71,6 +71,7 @@ public partial class MainWindow : Window {
 	TranslatePopupWindow trPopup;
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
+	ImgConvertWindow imgConvWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -1104,6 +1105,8 @@ public partial class MainWindow : Window {
 		};
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
+		mnimgconv.Click += (_, _) => openimgconv();
+		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mninstall.Click += (_, _) => openinstallfeatures();
@@ -1147,6 +1150,7 @@ public partial class MainWindow : Window {
 			mncap.Header = Loc.T("menu.capture");
 			mnedit.Header = Loc.T("menu.edit");
 			mntools.Header = Loc.T("menu.tools");
+			mnopts.Header = Loc.T("menu.options");
 			mnlang.Header = Loc.T("menu.lang");
 			mnlangzh.Header = Loc.T("menu.lang.zh");
 			mnlangen.Header = Loc.T("menu.lang.en");
@@ -1196,6 +1200,8 @@ public partial class MainWindow : Window {
 			mncancelocr.Header = Loc.T("menu.cancelocr");
 			mncancelocr.ToolTip = Loc.T("menu.cancelocr.tip");
 
+			mnimgconv.Header = Loc.T("menu.imgconv");
+			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
@@ -3211,6 +3217,28 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			MessageBox.Show(this, ex.Message, "诊断", MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
+	void openimgconv() {
+		try {
+			if (imgConvWin != null) {
+				if (imgConvWin.WindowState == WindowState.Minimized)
+					imgConvWin.WindowState = WindowState.Normal;
+				imgConvWin.Activate();
+				return;
+			}
+			imgConvWin = new ImgConvertWindow(opt);
+			attachdialogowner(imgConvWin);
+			imgConvWin.Closed += (_, _) => {
+				imgConvWin = null;
+				try { AppConfig.Save(opt); } catch { }
+			};
+			imgConvWin.Show();
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Loc.T("menu.imgconv"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 

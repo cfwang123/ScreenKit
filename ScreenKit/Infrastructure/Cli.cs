@@ -36,6 +36,7 @@ static class Cli {
 				or "--test-clipboard-path"
 				or "--test-sendfile"
 				or "--test-apk-qr"
+				or "--test-img-convert"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -216,6 +217,8 @@ static class Cli {
 					return testsendfile();
 				case "--test-apk-qr":
 					return testapkqr();
+				case "--test-img-convert":
+					return testimgconvert();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2149,6 +2152,78 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testimgconvert() {
+		Out("=== 图片格式转换 --test-img-convert ===");
+		var bad = 0;
+		var dir = Path.Combine(Path.GetTempPath(), "sk_imgconv_" + Guid.NewGuid().ToString("N")[..8]);
+		Directory.CreateDirectory(dir);
+		try {
+			var src = Path.Combine(dir, "src.png");
+			const int w = 200, h = 100;
+			var pixels = new byte[w * h * 4];
+			for (var i = 0; i < pixels.Length; i += 4) {
+				pixels[i] = 0;
+				pixels[i + 1] = 0;
+				pixels[i + 2] = 255;
+				pixels[i + 3] = 255;
+			}
+			var bmp = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);
+			bmp.Freeze();
+			ImageUtil.Savefile(bmp, src);
+			if (!File.Exists(src)) {
+				Err("FAIL: 源 png 未写出");
+				return 1;
+			}
+
+			var reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			var dst = ImgConvert.MakeOutPath(src, "jpg", true, null, reserved);
+			var expectDir = Path.Combine(dir, "output");
+			if (!dst.StartsWith(expectDir, StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL: 输出不在 output/ got=" + dst);
+				bad++;
+			}
+			ImgConvert.ConvertOne(src, dst, "jpg", 60, true, 100, 100, 90, false, CancellationToken.None);
+			if (!File.Exists(dst)) {
+				Err("FAIL: jpg 未写出 " + dst);
+				bad++;
+			}
+			else {
+				using var outImg = new System.Drawing.Bitmap(dst);
+				if (outImg.Width != 50 || outImg.Height != 100) {
+					Err($"FAIL: 尺寸 {outImg.Width}x{outImg.Height} 期望 50x100");
+					bad++;
+				}
+				else Out($"jpg size OK {outImg.Width}x{outImg.Height}");
+				var len = new FileInfo(dst).Length;
+				if (len < 80) {
+					Err("FAIL: jpg 过小 " + len);
+					bad++;
+				}
+				else Out($"jpg {len} bytes");
+			}
+
+			reserved.Clear();
+			var dst2 = ImgConvert.MakeOutPath(src, "png", false, dir, reserved);
+			ImgConvert.ConvertOne(src, dst2, "png", 60, false, 1920, 1080, 0, true, CancellationToken.None);
+			using (var out2 = new System.Drawing.Bitmap(dst2)) {
+				if (out2.Width != 200 || out2.Height != 100) {
+					Err($"FAIL: png 尺寸 {out2.Width}x{out2.Height}");
+					bad++;
+				}
+				else Out("png size OK 200x100");
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		finally {
+			try { Directory.Delete(dir, true); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：图片格式转换 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -2164,6 +2239,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
+  ScreenKit --test-img-convert
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
@@ -2213,6 +2289,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除（临时目录，不弹配对）
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
+      --test-img-convert  写测试 png，转 jpg（旋转90 + 限制 100×100）并校验尺寸
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2263,6 +2340,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-codec av1 --repeat 2 --seconds 2 -o log\record_codec
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
+  ScreenKit --test-img-convert
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent

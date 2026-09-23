@@ -1,0 +1,207 @@
+<Window x:Class="ScreenKit.ImgConvertWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="图片格式转换"
+        Width="760" Height="620"
+        MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="imgconv.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- 目标格式 -->
+		<Grid Grid.Row="0" Margin="0,0,0,10">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto" MinWidth="72"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="12"/>
+				<ColumnDefinition Width="Auto" MinWidth="72"/>
+				<ColumnDefinition Width="88"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbfmt" Grid.Column="0" Text="目标格式" FontWeight="SemiBold"
+			           VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<ComboBox x:Name="efmt" Grid.Column="1" Height="32"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="imgconv.fmt">
+				<ComboBoxItem Content="JPG" Tag="jpg" IsSelected="True"/>
+				<ComboBoxItem Content="PNG" Tag="png"/>
+				<ComboBoxItem Content="BMP" Tag="bmp"/>
+			</ComboBox>
+			<TextBlock x:Name="lbjpgq" Grid.Column="3" Text="JPG 质量"
+			           FontSize="12" Foreground="{StaticResource TextMuted}"
+			           VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<TextBox x:Name="ejpgq" Grid.Column="4" Height="30" Padding="6,4" Text="60"
+			         BorderBrush="{StaticResource BorderSoft}"
+			         VerticalContentAlignment="Center"
+			         ToolTip="1–100，越大越清晰、体积越大"
+			         AutomationProperties.AutomationId="imgconv.quality"/>
+		</Grid>
+
+		<!-- 最大宽高 -->
+		<StackPanel Grid.Row="1" Margin="0,0,0,10">
+			<CheckBox x:Name="emaxen" Content="限制最大宽高（等比缩小进框内，不放大）"
+			          Margin="0,0,0,8" IsChecked="False"
+			          AutomationProperties.AutomationId="imgconv.maxen"/>
+			<Grid IsEnabled="{Binding ElementName=emaxen, Path=IsChecked}">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="16"/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock x:Name="lbmaxw" Grid.Column="0" Text="最大宽" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<TextBox x:Name="emaxw" Grid.Column="1" Height="30" Padding="6,4" Text="1920"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         AutomationProperties.AutomationId="imgconv.maxw"/>
+				<TextBlock x:Name="lbmaxh" Grid.Column="3" Text="最大高" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<TextBox x:Name="emaxh" Grid.Column="4" Height="30" Padding="6,4" Text="1080"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         AutomationProperties.AutomationId="imgconv.maxh"/>
+			</Grid>
+		</StackPanel>
+
+		<!-- 输出路径 -->
+		<StackPanel Grid.Row="2" Margin="0,0,0,10">
+			<TextBlock x:Name="lbout" Text="输出路径" FontWeight="SemiBold" Margin="0,0,0,6"/>
+			<RadioButton x:Name="routsrc" GroupName="ImgConvOut" Margin="0,0,0,4"
+			             Content="源文件下的 output/" IsChecked="True"
+			             AutomationProperties.AutomationId="imgconv.outsrc"/>
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<RadioButton x:Name="routother" Grid.Column="0" GroupName="ImgConvOut"
+				             Content="其它" VerticalAlignment="Center" Margin="0,0,8,0"
+				             AutomationProperties.AutomationId="imgconv.outother"/>
+				<TextBox x:Name="eoutdir" Grid.Column="1" Height="30" Padding="6,4"
+				         BorderBrush="{StaticResource BorderSoft}"
+				         VerticalContentAlignment="Center" Margin="0,0,8,0"
+				         AutomationProperties.AutomationId="imgconv.outdir"/>
+				<Button x:Name="bbrowse" Grid.Column="2" Content="浏览…"
+				        Style="{StaticResource ToolBtn}" Height="30" Padding="12,2"
+				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+				        AutomationProperties.AutomationId="imgconv.browse"/>
+			</Grid>
+		</StackPanel>
+
+		<!-- 列表工具条 -->
+		<DockPanel Grid.Row="3" Margin="0,0,0,6">
+			<TextBlock x:Name="lbcount" DockPanel.Dock="Right"
+			           VerticalAlignment="Center" FontSize="12"
+			           Foreground="{StaticResource TextMuted}" Text="0 张"/>
+			<Button x:Name="badd" Content="添加" Style="{StaticResource ToolBtn}"
+			        Height="30" Padding="12,2" Margin="0,0,6,0"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+			        AutomationProperties.AutomationId="imgconv.add"/>
+			<Button x:Name="bremove" Content="删除" Style="{StaticResource ToolBtn}"
+			        Height="30" Padding="12,2" Margin="0,0,6,0"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+			        AutomationProperties.AutomationId="imgconv.remove"/>
+			<Button x:Name="bclear" Content="清空" Style="{StaticResource ToolBtn}"
+			        Height="30" Padding="12,2"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+			        AutomationProperties.AutomationId="imgconv.clear"/>
+		</DockPanel>
+
+		<!-- 列表 -->
+		<Border Grid.Row="4" Background="{StaticResource BgPanel}"
+		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+		        CornerRadius="8">
+			<Grid>
+				<ListView x:Name="lv" BorderThickness="0" Background="Transparent"
+				          AllowDrop="True"
+				          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+				          AutomationProperties.AutomationId="imgconv.list">
+					<ListView.ItemContainerStyle>
+						<Style TargetType="ListViewItem">
+							<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+							<Setter Property="ToolTip" Value="{Binding FilePath}"/>
+							<Setter Property="Padding" Value="0,2"/>
+						</Style>
+					</ListView.ItemContainerStyle>
+					<ListView.View>
+						<GridView>
+							<GridViewColumn x:Name="colname" Header="文件" Width="320"
+							                DisplayMemberBinding="{Binding FileName}"/>
+							<GridViewColumn x:Name="colxf" Header="变换" Width="120"
+							                DisplayMemberBinding="{Binding XfText}"/>
+							<GridViewColumn x:Name="colst" Header="状态" Width="200"
+							                DisplayMemberBinding="{Binding Status}"/>
+						</GridView>
+					</ListView.View>
+				</ListView>
+				<TextBlock x:Name="lbdrop" Text="拖入图片或文件夹"
+				           FontSize="15" FontWeight="SemiBold"
+				           Foreground="{StaticResource TextMuted}"
+				           HorizontalAlignment="Center" VerticalAlignment="Center"
+				           IsHitTestVisible="False"
+				           AutomationProperties.AutomationId="imgconv.drop"/>
+			</Grid>
+		</Border>
+
+		<!-- 单张旋转 / 镜像 -->
+		<DockPanel Grid.Row="5" Margin="0,10,0,10">
+			<TextBlock x:Name="lbrot" DockPanel.Dock="Left" Text="旋转"
+			           FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+			<RadioButton x:Name="rrot0" GroupName="ImgConvRot" Content="不旋转"
+			             VerticalAlignment="Center" Margin="0,0,12,0" IsChecked="True"
+			             AutomationProperties.AutomationId="imgconv.rot0"/>
+			<RadioButton x:Name="rrot90" GroupName="ImgConvRot" Content="90°"
+			             VerticalAlignment="Center" Margin="0,0,12,0"
+			             AutomationProperties.AutomationId="imgconv.rot90"/>
+			<RadioButton x:Name="rrot180" GroupName="ImgConvRot" Content="180°"
+			             VerticalAlignment="Center" Margin="0,0,12,0"
+			             AutomationProperties.AutomationId="imgconv.rot180"/>
+			<RadioButton x:Name="rrot270" GroupName="ImgConvRot" Content="270°"
+			             VerticalAlignment="Center" Margin="0,0,16,0"
+			             AutomationProperties.AutomationId="imgconv.rot270"/>
+			<CheckBox x:Name="cmirror" Content="镜像" VerticalAlignment="Center"
+			          AutomationProperties.AutomationId="imgconv.mirror"/>
+		</DockPanel>
+
+		<!-- 进度 -->
+		<DockPanel Grid.Row="6" Margin="0,0,0,10">
+			<TextBlock x:Name="lbpct" DockPanel.Dock="Right" MinWidth="40"
+			           HorizontalAlignment="Right" VerticalAlignment="Center"
+			           Foreground="{StaticResource TextMuted}" Text=""/>
+			<ProgressBar x:Name="pbar" Height="10" Minimum="0" Maximum="100" Value="0"
+			             AutomationProperties.AutomationId="imgconv.progress"/>
+		</DockPanel>
+
+		<DockPanel Grid.Row="7">
+			<TextBlock x:Name="lbstatus" VerticalAlignment="Center"
+			           FontSize="12" Foreground="{StaticResource TextMuted}"
+			           TextWrapping="Wrap" Text=""
+			           AutomationProperties.AutomationId="imgconv.status"/>
+			<Button x:Name="bclose" DockPanel.Dock="Right" Content="关闭"
+			        Style="{StaticResource ToolBtn}" Width="88" Height="32"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+			        IsCancel="True"
+			        AutomationProperties.AutomationId="imgconv.close"/>
+			<Button x:Name="bgo" DockPanel.Dock="Right" Content="全部转换"
+			        Style="{StaticResource PrimaryBtn}" Width="108" Height="32"
+			        Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="imgconv.go"/>
+		</DockPanel>
+	</Grid>
+</Window>

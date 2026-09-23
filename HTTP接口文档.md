@@ -724,7 +724,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/chat" \
 
 ## 11. 人脸
 
-依赖程序目录 `facemodels/` 中有检测+识别 ONNX。可在 **工具 → 安装功能** 下载 InsightFace **buffalo_l**。别名：`POST /api/face/compare`、`POST /api/face/extract`（同一处理）。
+依赖程序目录 `facemodels/` 中有检测+识别 ONNX。可在 **选项 → 安装功能** 下载 InsightFace **buffalo_l**。别名：`POST /api/face/compare`、`POST /api/face/extract`（同一处理）。
 
 ### 11.1 GET `/api/face/models`
 

@@ -24,11 +24,23 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-_(none yet)_
+#### Added
+
+- New **Tools** menu with **Image convert**: batch convert to JPG (default quality 60) / PNG / BMP; optional max width/height (same shrink-to-fit as screenshots); output to `output/` next to each source file or a chosen folder. Drag files/folders/images into the list; select one item to rotate 90/180/270° or flip. Convert-all shows progress. Settings persist in `config.toml` (`imgconv_*`). CLI: `--test-img-convert`.
+
+#### Changed
+
+- The previous **Tools** menu is renamed **Options** (settings, install features, language, updates, about).
 
 ### 中文
 
-（暂无）
+#### 新增
+
+- 新增 **工具** 菜单，含 **图片格式转换**：批量转为 JPG（默认质量 60%）/ PNG / BMP；可选限制最大宽高（与截图相同的等比缩小）；输出到每个源文件旁的 `output/` 或指定目录。列表可拖入文件、文件夹、图片；选中单张可旋转 90/180/270° 或镜像。一键全部转换并显示进度。参数写入 `config.toml`（`imgconv_*`）。CLI：`--test-img-convert`。
+
+#### 变更
+
+- 原 **工具** 菜单改名为 **选项**（参数设置、安装功能、界面语言、检查更新、关于）。
 
 ## v1.0.8 (2026-09-23)
 
