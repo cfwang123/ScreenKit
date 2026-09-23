@@ -31,7 +31,7 @@ static class Cli {
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
 				or "--test-tts-sherpa" or "--test-edge-tts" or "--list-edge-tts"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
-				or "--test-overlay-layout"
+				or "--test-overlay-layout" or "--test-overlay-span-adj"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
@@ -160,6 +160,8 @@ static class Cli {
 						break;
 					case "--test-overlay-layout":
 						return runtestoverlaylayout();
+					case "--test-overlay-span-adj":
+						return runtestoverlayspanadj();
 					case "--test-record-avsync":
 						doTestRecordAvsync = true;
 						break;
@@ -1024,6 +1026,90 @@ static class Cli {
 			return 1;
 		}
 		return code;
+	}
+
+	/// <summary>跨屏虚拟选区进入标注，检查副屏是否显示缩放手柄。</summary>
+	static int runtestoverlayspanadj() {
+		AppConfig.applylogswitch(true);
+		CaptureLog.SessionStart("CLI --test-overlay-span-adj");
+		Out("=== 跨屏选区拖动 --test-overlay-span-adj ===");
+		var screens = System.Windows.Forms.Screen.AllScreens
+			.Where(s => s.Bounds.Width > 8 && s.Bounds.Height > 8)
+			.ToArray();
+		if (screens.Length < 2) {
+			Out("SKIP 需要至少两块屏");
+			return 0;
+		}
+		var a = screens[0].Bounds;
+		var b = screens[1].Bounds;
+		var left = Math.Min(a.Left + a.Width / 4, b.Left + b.Width / 4);
+		var right = Math.Max(a.Right - a.Width / 4, b.Right - b.Width / 4);
+		var top = Math.Max(a.Top, b.Top) + 40;
+		var bot = Math.Min(a.Bottom, b.Bottom) - 40;
+		if (bot - top < 80) {
+			top = Math.Min(a.Top, b.Top) + 20;
+			bot = top + 160;
+		}
+		var rw = Math.Max(80, right - left);
+		var rh = Math.Max(80, bot - top);
+		Out($"span virt=({left},{top},{rw},{rh}) screens={screens.Length}");
+
+		var bad = 0;
+		var dumped = false;
+		var t1 = new System.Windows.Threading.DispatcherTimer {
+			Interval = TimeSpan.FromMilliseconds(800)
+		};
+		t1.Tick += (_, __) => {
+			t1.Stop();
+			try {
+				var n = CaptureOverlay.TestCommitSpan(left, top, rw, rh, Out);
+				Out("guests-with-handles=" + n);
+				dumped = true;
+				if (n < 1) {
+					Err("FAIL: 跨屏副屏没有缩放手柄");
+					bad++;
+				}
+			}
+			catch (Exception ex) {
+				Err("commit span EX: " + ex);
+				bad++;
+			}
+		};
+		var t2 = new System.Windows.Threading.DispatcherTimer {
+			Interval = TimeSpan.FromMilliseconds(1800)
+		};
+		t2.Tick += (_, __) => {
+			t2.Stop();
+			try {
+				var n = 0;
+				var app = Application.Current;
+				if (app != null) {
+					foreach (Window w in app.Windows) {
+						if (w is CaptureOverlay) {
+							try { w.Close(); n++; } catch { }
+						}
+					}
+				}
+				Out("auto-close CaptureOverlay n=" + n);
+			}
+			catch (Exception ex) { Out("auto-close EX: " + ex.Message); }
+		};
+		t1.Start();
+		t2.Start();
+		try {
+			var result = CaptureOverlay.Run(annotate: true);
+			Out($"Run done Confirmed={result.Confirmed}");
+		}
+		catch (Exception ex) {
+			Err("Run EX: " + ex);
+			bad++;
+		}
+		if (!dumped) {
+			Err("FAIL: 未进入标注");
+			bad++;
+		}
+		Out(bad == 0 ? "=== overlay-span-adj 完成 ===" : "=== overlay-span-adj 失败 ===");
+		return bad == 0 ? 0 : 1;
 	}
 
 	/// <summary>弹出截屏遮罩约 1.6s，把各屏 HWND 与 Bounds 写入 cli_last.log / capture.log。</summary>
@@ -2314,6 +2400,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-capture-during-record [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-overlay-during-record [--region L,T,W,H]
   ScreenKit --test-overlay-layout
+  ScreenKit --test-overlay-span-adj
   ScreenKit --test-record-avsync [--seconds 10] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
@@ -2363,6 +2450,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-capture-during-record  开录中走 CaptureOverlay 同款多屏冻结
       --test-overlay-during-record  开录+HUD 挂起后弹出截图遮罩（自动 ESC）
       --test-overlay-layout  弹出截屏遮罩并记录各屏 HWND/DPI（自动关闭）
+      --test-overlay-span-adj  跨屏选区进入标注，检查副屏手柄（自动关闭）
       --test-record-avsync  有声0.1s/静音0.1s循环→录N秒→分析音画同步
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）

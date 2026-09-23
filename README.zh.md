@@ -86,7 +86,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 ### 截图、标注、识别
 
-框选区域（热键或菜单）。结果区拆成 **OCR / 条码**。已选目标语且配置了 LLM 时，识别后可叠字翻译。标注工具在截图遮罩上；「完成」下拉可复制为图片、文件或路径，并记住默认方式。
+框选区域（热键或菜单）。结果区拆成 **OCR / 条码**。已选目标语且配置了 LLM 时，识别后可叠字翻译。标注工具在截图遮罩上；跨屏选区可在每一块相交的屏上拖动或缩放。「完成」下拉可复制为图片、文件或路径，并记住默认方式。
 
 ### 区域录屏 / GIF 录屏
 
@@ -295,6 +295,7 @@ gif_click_highlight = true
 ScreenKit --image <路径> [选项]
 ScreenKit --snap [--out <目录>]
 ScreenKit --test-overlay-layout   # 截屏遮罩各屏 HWND/DPI
+ScreenKit --test-overlay-span-adj # 跨屏选区副屏手柄
 ScreenKit --test-clipboard-path
 ScreenKit --test-apk-qr
 ScreenKit --test-img-convert

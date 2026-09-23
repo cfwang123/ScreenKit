@@ -915,7 +915,16 @@ public partial class CaptureOverlay : Window {
 	/// </summary>
 	bool tryconsumedblfinish(MouseButtonEventArgs e) {
 		if (phase != Phase.Annotate) return false;
-		if (annotateGuest || boardBackdrop) return false;
+		if (boardBackdrop) return false;
+		if (annotateGuest) {
+			if (e.ClickCount < 2) return false;
+			if (session?.AnnotateHost != null && session.AnnotateHost != this) {
+				e.Handled = true;
+				session.AnnotateHost.finishcopy();
+				return true;
+			}
+			return false;
+		}
 		if (editHost != null) return false;
 		if (e.OriginalSource is DependencyObject d && findtexthost(d) != null) return false;
 		try {
@@ -959,8 +968,11 @@ public partial class CaptureOverlay : Window {
 	}
 
 	void onselectdown(object sender, MouseButtonEventArgs e) {
-		// 标注阶段：点在选区外不处理（手柄/画布各自接管）
-		if (phase == Phase.Annotate) return;
+		// 标注阶段：宿主由手柄/画布接管；副屏点选区或手柄可拖动/缩放
+		if (phase == Phase.Annotate) {
+			if (tryannadjdown(e)) e.Handled = true;
+			return;
+		}
 		if (boardMode || boardBackdrop || annotateGuest) return;
 		if (phase != Phase.Select) return;
 		// 其它屏已在拖拽则忽略
@@ -1011,7 +1023,10 @@ public partial class CaptureOverlay : Window {
 			if (adjDrag) {
 				doadjmove(e.GetPosition(proot));
 				e.Handled = true;
+				return;
 			}
+			if (annotateGuest && usemultimonann())
+				Cursor = cursorfor(hittestguestadj(e.GetPosition(proot)));
 			return;
 		}
 		if (boardMode || boardBackdrop) return;
@@ -1260,6 +1275,34 @@ public partial class CaptureOverlay : Window {
 			}
 		}
 		enterannotate();
+	}
+
+	/// <summary>CLI：框选一段虚拟矩形进入标注，返回有手柄的副屏数量。</summary>
+	internal static int TestCommitSpan(int left, int top, int pw, int ph, Action<string> log) {
+		CaptureOverlay first = null;
+		var app = Application.Current;
+		if (app != null) {
+			foreach (Window win in app.Windows) {
+				if (win is CaptureOverlay ov) {
+					first = ov;
+					break;
+				}
+			}
+		}
+		if (first == null) {
+			log?.Invoke("FAIL no CaptureOverlay");
+			return -1;
+		}
+		first.commitvirtual(left, top, pw, ph);
+		var guestsOk = 0;
+		if (app == null) return 0;
+		foreach (Window win in app.Windows) {
+			if (win is not CaptureOverlay ov) continue;
+			log?.Invoke($"mon=({ov.monL},{ov.monT}) guest={ov.annotateGuest} handles={ov.phandles.Visibility} rsel={ov.rsel.Visibility} {ov.rsel.Width:0}x{ov.rsel.Height:0}");
+			if (ov.annotateGuest && ov.phandles.Visibility == Visibility.Visible)
+				guestsOk++;
+		}
+		return guestsOk;
 	}
 
 	/// <summary>虚拟矩形 → 本屏 desk 像素矩形（Floor/Ceiling，与 CropVirtual 一致）。</summary>
@@ -2203,30 +2246,31 @@ public partial class CaptureOverlay : Window {
 		bhint.Visibility = Visibility.Collapsed;
 		bbar.Visibility = Visibility.Collapsed;
 		bpane.Visibility = Visibility.Collapsed;
-		phandles.Visibility = Visibility.Collapsed;
 		hasHoverWin = false;
 		adjDrag = false;
 		applyguestmask();
 		CaptureLog.Info($"enterannotateguest mon=({monL},{monT})");
 	}
 
-	/// <summary>副屏：按会话虚拟选区更新遮罩挖空。</summary>
+	/// <summary>副屏：按会话虚拟选区更新遮罩挖空，并显示落在本屏的缩放手柄。</summary>
 	void applyguestmask() {
 		if (session == null || !session.InAnnotate) return;
 		var mon = new System.Drawing.Rectangle(monL, monT, monBoundW, monBoundH);
 		var ann = new System.Drawing.Rectangle(
 			session.AnnVL, session.AnnVT, Math.Max(1, session.AnnVW), Math.Max(1, session.AnnVH));
 		var inter = System.Drawing.Rectangle.Intersect(mon, ann);
+		// 手柄按整段虚拟选区定位（落在本屏的角/边可点）
+		selsnapfromdeskvirtual(session.AnnVL, session.AnnVT, session.AnnVW, session.AnnVH);
 		if (inter.Width < 1 || inter.Height < 1) {
-			// 选区不在本屏：整屏遮罩
 			updatemask(0, 0, 0, 0);
 			rsel.Visibility = Visibility.Collapsed;
+			phandles.Visibility = Visibility.Collapsed;
 			return;
 		}
-		// Bounds 相交 → 本屏 DIP（与底图 1:1 用 bounds 映射，与 applyvirtualsel 一致）
 		if (!tryvirtualtodesk(inter.Left, inter.Top, inter.Width, inter.Height,
 				out var dl, out var dt, out var dw, out var dh)) {
 			updatemask(0, 0, 0, 0);
+			phandles.Visibility = Visibility.Collapsed;
 			return;
 		}
 		var (ox, oy, ow, oh) = localtooverlay(dl, dt, dw, dh);
@@ -2237,6 +2281,9 @@ public partial class CaptureOverlay : Window {
 		rsel.Visibility = Visibility.Visible;
 		rsel.Stroke = new SolidColorBrush(Color.FromRgb(0x07, 0xC1, 0x60));
 		updatemask(ox, oy, ow, oh);
+		ensurehandles();
+		placehandles();
+		phandles.Visibility = Visibility.Visible;
 	}
 
 	/// <summary>多屏标注：每屏刷新（宿主画布 / guest 遮罩）。</summary>
@@ -2246,7 +2293,6 @@ public partial class CaptureOverlay : Window {
 			annotateGuest = true;
 			bpane.Visibility = Visibility.Collapsed;
 			bbar.Visibility = Visibility.Collapsed;
-			phandles.Visibility = Visibility.Collapsed;
 			applyguestmask();
 			return;
 		}
@@ -2649,12 +2695,9 @@ public partial class CaptureOverlay : Window {
 
 	void startadj(AdjHit hit, Point prootPos) {
 		if (phase != Phase.Annotate || hit == AdjHit.None) return;
-		if (boardMode || annotateGuest) return; // 画板/副屏不可缩放/移动选区
-		// 正在画图形时不抢
+		if (boardMode) return;
 		if (drawing) return;
-		// 仅宿主可调选区
-		if (session != null && session.InAnnotate && session.AnnotateHost != null && session.AnnotateHost != this)
-			return;
+		if (annotateGuest && !usemultimonann()) return;
 		adjHit = hit;
 		adjDrag = true;
 		canvaslocal(prootPos, out adjStartLX, out adjStartLY);
@@ -2760,21 +2803,21 @@ public partial class CaptureOverlay : Window {
 			session.AnnVT = t;
 			session.AnnVW = w;
 			session.AnnVH = h;
-			// 视口：只改框/偏移；跨屏拼接：节流重裁
+			// 视口：只改框/偏移；跨屏拼接：节流重裁。副屏拖动时刷新宿主画布。
 			if (canviewport()) {
 				if (tryvirtualtodesk(l, t, w, h, out var dl, out var dt, out var dw, out var dh)) {
 					cropL = dl; cropT = dt; cropW = dw; cropH = dh;
 				}
-				applyregionframeonly(clearStrokes: true);
+				applyadjui(frameOnly: true, clearStrokes: true);
 			}
 			else {
 				var now = Environment.TickCount;
 				if (lastAdjUiTick == 0 || unchecked(now - lastAdjUiTick) >= AdjUiMinMs) {
 					lastAdjUiTick = now;
-					applyregionui(clearStrokes: true);
+					applyadjui(frameOnly: false, clearStrokes: true);
 				}
 				else
-					applyregionframeonly(clearStrokes: true);
+					applyadjui(frameOnly: true, clearStrokes: true);
 			}
 			return;
 		}
@@ -2890,8 +2933,9 @@ public partial class CaptureOverlay : Window {
 		// 跨屏：选区中心落到另一屏时，把宿主切过去
 		if (usemultimonann()) {
 			trytransferannotatehost();
-			// 可能从视口切到拼接（或反过来），全量刷新内容模式
-			applyregionui(clearStrokes: false);
+			var host = session?.AnnotateHost ?? this;
+			if (host != this) host.applyregionui(clearStrokes: false);
+			else applyregionui(clearStrokes: false);
 			return;
 		}
 		// 视口模式松手只需对齐框；否则补一帧
@@ -2927,26 +2971,33 @@ public partial class CaptureOverlay : Window {
 		catch (Exception ex) { CaptureLog.Ex("applyregionframeonly", ex); }
 	}
 
+	/// <summary>副屏拖动时改宿主画布；宿主自己拖则走原路径。</summary>
+	void applyadjui(bool frameOnly, bool clearStrokes) {
+		if (usemultimonann() && session.AnnotateHost != null && session.AnnotateHost != this) {
+			if (frameOnly) session.AnnotateHost.applyregionframeonly(clearStrokes);
+			else session.AnnotateHost.applyregionui(clearStrokes);
+			return;
+		}
+		if (frameOnly) applyregionframeonly(clearStrokes);
+		else applyregionui(clearStrokes);
+	}
+
 	/// <summary>选区中心换屏时，切换标注宿主（工具条/画布跟到新屏）。</summary>
 	void trytransferannotatehost() {
 		if (session == null || !session.InAnnotate || boardMode) return;
 		var best = session.BestHostForAnn();
-		if (best == null || best == this) return;
-		if (session.AnnotateHost != this && session.AnnotateHost != null) return;
-		// 本屏降为 guest
-		annotateGuest = true;
-		bpane.Visibility = Visibility.Collapsed;
-		bbar.Visibility = Visibility.Collapsed;
-		phandles.Visibility = Visibility.Collapsed;
-		// 清理本屏画布（调选区时本就会清空笔画；此处再保险）
-		pdraw.Children.Clear();
-		strokes.Clear();
-		// 新宿主
+		if (best == null) return;
+		var cur = session.AnnotateHost ?? this;
+		if (best == cur) return;
+		cur.annotateGuest = true;
+		cur.bpane.Visibility = Visibility.Collapsed;
+		cur.bbar.Visibility = Visibility.Collapsed;
+		cur.pdraw.Children.Clear();
+		cur.strokes.Clear();
 		session.AnnotateHost = best;
 		best.annotateGuest = false;
 		best.phase = Phase.Annotate;
 		best.boardMode = false;
-		// 同步本屏局部 crop（用于单屏路径回退）
 		if (best.tryvirtualtodesk(session.AnnVL, session.AnnVT, session.AnnVW, session.AnnVH,
 				out var dl, out var dt, out var dw, out var dh)) {
 			best.cropL = dl;
@@ -2955,17 +3006,48 @@ public partial class CaptureOverlay : Window {
 			best.cropH = dh;
 		}
 		best.enterannotate();
-		// 其它屏保持 guest 遮罩
 		foreach (var w in session.Windows) {
 			if (w != best && !w.boardMode) {
 				w.annotateGuest = true;
 				w.bpane.Visibility = Visibility.Collapsed;
 				w.bbar.Visibility = Visibility.Collapsed;
-				w.phandles.Visibility = Visibility.Collapsed;
 				w.applyguestmask();
 			}
 		}
 		CaptureLog.Info($"transfer annotate host -> mon=({best.monL},{best.monT})");
+	}
+
+	/// <summary>副屏命中：本屏手柄，或可见选区（整块可拖动）。</summary>
+	AdjHit hittestguestadj(Point p) {
+		if (handles != null && phandles.Visibility == Visibility.Visible) {
+			var pad = HANDLE_SZ / 2 + 3;
+			for (var i = 0; i < handles.Length; i++) {
+				var hx = Canvas.GetLeft(handles[i]) + HANDLE_SZ / 2;
+				var hy = Canvas.GetTop(handles[i]) + HANDLE_SZ / 2;
+				if (double.IsNaN(hx) || double.IsNaN(hy)) continue;
+				if (Math.Abs(p.X - hx) <= pad && Math.Abs(p.Y - hy) <= pad)
+					return handlehit(i);
+			}
+		}
+		if (rsel.Visibility == Visibility.Visible) {
+			var rx = Canvas.GetLeft(rsel);
+			var ry = Canvas.GetTop(rsel);
+			if (!double.IsNaN(rx) && !double.IsNaN(ry)
+				&& p.X >= rx && p.X <= rx + rsel.Width
+				&& p.Y >= ry && p.Y <= ry + rsel.Height)
+				return AdjHit.Move;
+		}
+		return AdjHit.None;
+	}
+
+	/// <summary>标注副屏按下：拖选区或缩放手柄。</summary>
+	bool tryannadjdown(MouseButtonEventArgs e) {
+		if (boardMode || boardBackdrop) return false;
+		if (!annotateGuest || !usemultimonann()) return false;
+		var hit = hittestguestadj(e.GetPosition(proot));
+		if (hit == AdjHit.None) return false;
+		startadj(hit, e.GetPosition(proot));
+		return adjDrag;
 	}
 
 	/// <summary>画布坐标是否落在选区边缘热区（用于移动）。</summary>
@@ -3518,6 +3600,11 @@ public partial class CaptureOverlay : Window {
 	void finishocr() => finishconfirm(wantOcr: true);
 
 	void finishconfirm(bool wantOcr) {
+		var host = session?.AnnotateHost;
+		if (annotateGuest && host != null && host != this && !host.annotateGuest) {
+			host.finishconfirm(wantOcr);
+			return;
+		}
 		try {
 			committextedit();
 			cleartextsel();

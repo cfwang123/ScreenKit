@@ -86,7 +86,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 ### Screenshot, annotate, OCR
 
-Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; the Done dropdown copies as image, file, or path and remembers the default.
+Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; a region that spans monitors can be moved or resized on every screen it covers. The Done dropdown copies as image, file, or path and remembers the default.
 
 ### Screen / GIF recording
 
@@ -307,6 +307,7 @@ Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[HTTP接口文档.md](
 ScreenKit --image <path> [options]
 ScreenKit --snap [--out <dir>]
 ScreenKit --test-overlay-layout   # screenshot overlay HWND/DPI per monitor
+ScreenKit --test-overlay-span-adj # cross-monitor region handles on guest screens
 ScreenKit --test-clipboard-path   # path copy after delayed image; 4K timing
 ScreenKit --test-apk-qr            # encode/decode LAN APK QR; HTTP GET /apk
 ScreenKit --test-img-convert       # png→jpg rotate 90 + max 100×100
