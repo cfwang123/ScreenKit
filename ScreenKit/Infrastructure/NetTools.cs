@@ -197,9 +197,7 @@ static class NetTools {
 			guess = "接近 " + nearest.Place + " 节点";
 		else
 			guess = "较近：" + nearest.Place + "（" + nearest.Ms + "ms）";
-		line?.Invoke("ICMP 推测：" + guess);
-		line?.Invoke("");
-		await HttpLocate(line, ct).ConfigureAwait(false);
+		line?.Invoke("推测位置：" + guess);
 	}
 
 	/// <summary>经 Windows 系统代理用 HTTP 查出口 IP 与地区。</summary>
