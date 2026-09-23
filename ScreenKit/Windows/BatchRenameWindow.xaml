@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="批量重命名"
-        Width="920" Height="680"
-        MinWidth="720" MinHeight="480"
+        Width="1100" Height="720"
+        MinWidth="800" MinHeight="520"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{StaticResource BgApp}"
@@ -48,33 +48,77 @@
 			<CheckBox x:Name="cnoext" Content="忽略扩展名"
 			          AutomationProperties.AutomationId="rename.noext"/>
 		</StackPanel>
-		<ListView x:Name="lv" Grid.Row="3" BorderBrush="{StaticResource BorderSoft}"
-		          AutomationProperties.AutomationId="rename.list">
-			<ListView.View>
-				<GridView>
-					<GridViewColumn x:Name="colfrom" Header="原名" Width="280" DisplayMemberBinding="{Binding From}"/>
-					<GridViewColumn x:Name="colto" Header="新名" Width="280" DisplayMemberBinding="{Binding To}"/>
-					<GridViewColumn x:Name="colst" Header="状态" Width="120" DisplayMemberBinding="{Binding Status}"/>
-				</GridView>
-			</ListView.View>
-		</ListView>
+		<Grid Grid.Row="3">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="12"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+			<DockPanel Grid.Column="0">
+				<TextBlock x:Name="lbsrc" DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,6" Text="源文件"/>
+				<ListView x:Name="lv" BorderBrush="{StaticResource BorderSoft}"
+				          SelectionMode="Extended"
+				          AutomationProperties.AutomationId="rename.list">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn Width="220">
+								<GridViewColumn.Header>
+									<GridViewColumnHeader x:Name="colname" Content="名称" Tag="name" Click="onsort"/>
+								</GridViewColumn.Header>
+								<GridViewColumn.DisplayMemberBinding>
+									<Binding Path="From"/>
+								</GridViewColumn.DisplayMemberBinding>
+							</GridViewColumn>
+							<GridViewColumn Width="140">
+								<GridViewColumn.Header>
+									<GridViewColumnHeader x:Name="colmtime" Content="修改日期" Tag="mtime" Click="onsort"/>
+								</GridViewColumn.Header>
+								<GridViewColumn.DisplayMemberBinding>
+									<Binding Path="MTimeText"/>
+								</GridViewColumn.DisplayMemberBinding>
+							</GridViewColumn>
+							<GridViewColumn Width="140">
+								<GridViewColumn.Header>
+									<GridViewColumnHeader x:Name="coladded" Content="添加日期" Tag="added" Click="onsort"/>
+								</GridViewColumn.Header>
+								<GridViewColumn.DisplayMemberBinding>
+									<Binding Path="AddedText"/>
+								</GridViewColumn.DisplayMemberBinding>
+							</GridViewColumn>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</DockPanel>
+			<DockPanel Grid.Column="2">
+				<TextBlock x:Name="lbdst" DockPanel.Dock="Top" FontWeight="SemiBold" Margin="0,0,0,6" Text="目标文件名"/>
+				<TextBox x:Name="eto" AcceptsReturn="True" TextWrapping="NoWrap"
+				         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+				         FontFamily="Consolas, Microsoft YaHei UI" FontSize="13"
+				         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+				         AutomationProperties.AutomationId="rename.dst"/>
+			</DockPanel>
+		</Grid>
 		<TextBlock x:Name="lbstat" Grid.Row="4" Margin="0,8,0,8"
 		           Foreground="{StaticResource TextMuted}"/>
 		<DockPanel Grid.Row="5">
 			<StackPanel Orientation="Horizontal">
-				<Button x:Name="badd" Content="添加文件" Style="{StaticResource ToolBtn}"
+				<Button x:Name="badd" Style="{StaticResource ToolBtn}"
 				        AutomationProperties.AutomationId="rename.add"/>
-				<Button x:Name="bfolder" Content="添加文件夹" Style="{StaticResource ToolBtn}"
+				<Button x:Name="bfolder" Style="{StaticResource ToolBtn}"
 				        AutomationProperties.AutomationId="rename.folder"/>
-				<Button x:Name="bremove" Content="删除" Style="{StaticResource ToolBtn}"
+				<Button x:Name="bremove" Style="{StaticResource ToolBtn}"
 				        AutomationProperties.AutomationId="rename.remove"/>
-				<Button x:Name="bclear" Content="清空" Style="{StaticResource ToolBtn}"
+				<Button x:Name="bup" Style="{StaticResource ToolBtn}"
+				        AutomationProperties.AutomationId="rename.up"/>
+				<Button x:Name="bdown" Style="{StaticResource ToolBtn}"
+				        AutomationProperties.AutomationId="rename.down"/>
+				<Button x:Name="bclear" Style="{StaticResource ToolBtn}"
 				        AutomationProperties.AutomationId="rename.clear"/>
 			</StackPanel>
 			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-				<Button x:Name="bgo" Content="重命名" Style="{StaticResource ToolBtn}"
+				<Button x:Name="bgo" Style="{StaticResource ToolBtn}"
 				        AutomationProperties.AutomationId="rename.go"/>
-				<Button x:Name="bclose" Content="关闭" Style="{StaticResource ToolBtn}"
+				<Button x:Name="bclose" Style="{StaticResource ToolBtn}"
 				        AutomationProperties.AutomationId="rename.close"/>
 			</StackPanel>
 		</DockPanel>

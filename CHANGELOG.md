@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tool buttons use a pale fill and a Segoe MDL2 icon (add/folder/delete/rename/copy/save, etc.).
 - Image convert: optional “keep original if compressed size ≥ N% of original” (default on, 80%). Rotate / flip / actual resize still writes the new file.
 - Tray menu has a **Tools** submenu (same entries as the window Tools menu).
+- Batch rename: source files in a list (add/remove/move, sort by name / modified / added); new names in a textarea (editable). Changing the list or rules recalculates names.
 
 ### 中文
 
@@ -49,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具按钮改为浅底，并加上 Segoe MDL2 图标（添加/文件夹/删除/重命名/复制/保存等）。
 - 图片格式转换：可选「压缩后体积仍 ≥ 原图 N% 时用原图」（默认开、80%）。有旋转、镜像或实际缩小时仍用新图。
 - 托盘菜单增加 **工具** 子菜单（与窗口工具菜单相同）。
+- 批量重命名：源文件用列表（添加/删除/上下移动，点列头按名称、修改或添加日期排序）；目标名用文本框可手改。改列表或规则时自动重算新名。
 
 ## v1.0.8 (2026-09-23)
 
