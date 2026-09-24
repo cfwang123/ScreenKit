@@ -7,7 +7,11 @@ namespace ScreenKit;
 
 sealed class CastRecvSrv : IDisposable {
 	readonly List<TcpListener> listeners = new();
+	readonly HashSet<string> bound = new();
+	readonly object bindlock = new();
 	volatile bool stop;
+	volatile bool started;
+	int lastbind;
 	volatile bool busy;
 	volatile bool drop;
 	TcpClient curcli;
@@ -41,27 +45,36 @@ sealed class CastRecvSrv : IDisposable {
 	public bool Busy => busy;
 
 	public void Start() {
-		if (listeners.Count > 0) return;
-		if (!FfmpegLoader.TryInit(out var err))
-			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
-		stop = false;
-		if (!trybind(IPAddress.Any, exclusive: true)) {
-			Log?.Invoke($"TCP {CastProto.TCP_PORT} 0.0.0.0 被占，改绑 127.0.0.1（adb reverse）");
-			if (!trybind(IPAddress.Loopback, exclusive: true))
-				trybind(IPAddress.Loopback, exclusive: false);
-			trybind(IPAddress.Any, exclusive: false);
-		}
-		if (listeners.Count == 0)
-			throw new InvalidOperationException($"无法绑定 TCP {CastProto.TCP_PORT}");
-		foreach (var l in listeners) {
-			var lis = l;
-			new Thread(() => loop(lis)) { IsBackground = true, Name = "cast-recv" }.Start();
+		lock (bindlock) {
+			if (started) return;
+			if (!FfmpegLoader.TryInit(out var err))
+				throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
+			stop = false;
+			if (!trybind(IPAddress.Any, exclusive: true)) {
+				Log?.Invoke($"TCP {CastProto.TCP_PORT} 0.0.0.0 被占，按本机地址分别监听（抢走 WiFi/adb）");
+				if (!trybind(IPAddress.Loopback, exclusive: true))
+					trybind(IPAddress.Loopback, exclusive: false);
+				foreach (var a in CastNetUtil.V4Addrs())
+					if (!trybind(a, exclusive: true)) trybind(a, exclusive: false);
+				trybind(IPAddress.Any, exclusive: false);
+			}
+			if (listeners.Count == 0)
+				throw new InvalidOperationException($"无法绑定 TCP {CastProto.TCP_PORT}");
+			started = true;
+			foreach (var l in listeners.ToArray())
+				spawn(l);
 		}
 		ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall());
 		Log?.Invoke($"接收已启动 TCP {CastProto.TCP_PORT} ({listeners.Count} 路)");
 	}
 
+	void spawn(TcpListener lis) {
+		new Thread(() => loop(lis)) { IsBackground = true, Name = "cast-recv" }.Start();
+	}
+
 	bool trybind(IPAddress addr, bool exclusive) {
+		var key = addr.ToString();
+		if (bound.Contains(key)) return true;
 		TcpListener l = null;
 		try {
 			l = new TcpListener(addr, CastProto.TCP_PORT);
@@ -69,7 +82,9 @@ sealed class CastRecvSrv : IDisposable {
 			if (!exclusive)
 				l.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 			l.Start();
+			bound.Add(key);
 			listeners.Add(l);
+			if (started) spawn(l);
 			Log?.Invoke($"监听 {addr}:{CastProto.TCP_PORT} exclusive={exclusive}");
 			return true;
 		}
@@ -77,6 +92,17 @@ sealed class CastRecvSrv : IDisposable {
 			Log?.Invoke($"bind {addr} exclusive={exclusive}: {ex.Message}");
 			try { l?.Stop(); } catch { }
 			return false;
+		}
+	}
+
+	void refreshbind() {
+		if (!started || stop) return;
+		lock (bindlock) {
+			if (bound.Contains(IPAddress.Any.ToString()) && listeners.Count == 1) return;
+			if (!trybind(IPAddress.Loopback, exclusive: true))
+				trybind(IPAddress.Loopback, exclusive: false);
+			foreach (var a in CastNetUtil.V4Addrs())
+				if (!trybind(a, exclusive: true)) trybind(a, exclusive: false);
 		}
 	}
 
@@ -106,6 +132,10 @@ sealed class CastRecvSrv : IDisposable {
 			Kick();
 		if (busy && !hadhello && sessstart != 0 && now - sessstart > 2500)
 			Kick();
+		if (now - lastbind >= 3000 || lastbind == 0) {
+			lastbind = now;
+			refreshbind();
+		}
 	}
 
 	public void SendJson(object obj) {
@@ -457,11 +487,15 @@ sealed class CastRecvSrv : IDisposable {
 
 	public void Stop() {
 		stop = true;
+		started = false;
 		Kick();
-		foreach (var l in listeners) {
-			try { l.Stop(); } catch { }
+		lock (bindlock) {
+			foreach (var l in listeners) {
+				try { l.Stop(); } catch { }
+			}
+			listeners.Clear();
+			bound.Clear();
 		}
-		listeners.Clear();
 		resetdec();
 		busy = false;
 	}
