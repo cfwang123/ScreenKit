@@ -11,58 +11,29 @@ import android.view.Surface
 
 class VideoPipe(
     private val mp: MediaProjection,
-    val srcW: Int,
-    val srcH: Int,
-    private val dpi: Int,
+    var srcW: Int,
+    var srcH: Int,
+    private var dpi: Int,
     q: Quality,
     private val sink: FrameSink,
     private val onDead: () -> Unit = {},
 ) {
-    private val enc: MediaCodec
+    private lateinit var enc: MediaCodec
     private val vd: VirtualDisplay
-    private val surface: Surface
+    private lateinit var surface: Surface
     @Volatile private var running = true
     @Volatile private var stopped = false
-    private val th: Thread
-    val outW: Int
-    val outH: Int
+    private var th: Thread
+    var outW: Int = 0
+        private set
+    var outH: Int = 0
+        private set
     val fps: Int = q.fps
 
     init {
         val fit = q.fit(srcW, srcH)
-        outW = fit.first
-        outH = fit.second
-        val fmt = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, outW, outH)
-        fmt.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
-        fmt.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
-        fmt.setInteger(MediaFormat.KEY_FRAME_RATE, q.fps)
-        fmt.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
-        fmt.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
-        fmt.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel31)
-        enc = run {
-            var c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-            try {
-                c.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-                c
-            } catch (_: Exception) {
-                try { c.release() } catch (_: Exception) { }
-                c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-                val fmt2 = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, outW, outH)
-                fmt2.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
-                fmt2.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
-                fmt2.setInteger(MediaFormat.KEY_FRAME_RATE, q.fps)
-                fmt2.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
-                c.configure(fmt2, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-                c
-            }
-        }
-        surface = enc.createInputSurface()
-        enc.start()
-        try {
-            val b = android.os.Bundle()
-            b.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
-            enc.setParameters(b)
-        } catch (_: Exception) { }
+        if (!openEnc(fit.first, fit.second, q))
+            throw IllegalStateException("encoder")
         vd = mp.createVirtualDisplay(
             "skcast",
             outW,
@@ -74,6 +45,97 @@ class VideoPipe(
             null,
         )
         th = Thread({ loop() }, "venc").also { it.start() }
+    }
+
+    private fun makeFmt(w: Int, h: Int, q: Quality, withProfile: Boolean): MediaFormat {
+        val fmt = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, w, h)
+        fmt.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+        fmt.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
+        fmt.setInteger(MediaFormat.KEY_FRAME_RATE, q.fps)
+        fmt.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+        if (withProfile) {
+            fmt.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
+            val level = if (maxOf(w, h) >= 1080)
+                MediaCodecInfo.CodecProfileLevel.AVCLevel4
+            else
+                MediaCodecInfo.CodecProfileLevel.AVCLevel31
+            fmt.setInteger(MediaFormat.KEY_LEVEL, level)
+        }
+        return fmt
+    }
+
+    private fun openEnc(w: Int, h: Int, q: Quality): Boolean {
+        var c: MediaCodec? = null
+        var s: Surface? = null
+        try {
+            c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+            try {
+                c.configure(makeFmt(w, h, q, true), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+            } catch (_: Exception) {
+                try { c.release() } catch (_: Exception) { }
+                c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+                c.configure(makeFmt(w, h, q, false), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+            }
+            s = c.createInputSurface()
+            c.start()
+            try {
+                val b = android.os.Bundle()
+                b.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+                c.setParameters(b)
+            } catch (_: Exception) { }
+            enc = c
+            surface = s
+            outW = w
+            outH = h
+            return true
+        } catch (ex: Exception) {
+            android.util.Log.w("scst", "openEnc ${w}x${h} ${ex.message}")
+            try { s?.release() } catch (_: Exception) { }
+            try { c?.stop() } catch (_: Exception) { }
+            try { c?.release() } catch (_: Exception) { }
+            return false
+        }
+    }
+
+    private fun closeEnc() {
+        try { enc.stop() } catch (_: Exception) { }
+        try { enc.release() } catch (_: Exception) { }
+        try { surface.release() } catch (_: Exception) { }
+    }
+
+    private fun startLoop() {
+        running = true
+        stopped = false
+        th = Thread({ loop() }, "venc").also { it.start() }
+    }
+
+    /** 停发送后在主线程调用：保留 VirtualDisplay，只换编码器尺寸。 */
+    fun rebind(newSrcW: Int, newSrcH: Int, newDpi: Int, q: Quality): Boolean {
+        if (stopped) return false
+        val fit = q.fit(newSrcW, newSrcH)
+        val nw = fit.first
+        val nh = fit.second
+        try { vd.setSurface(null) } catch (_: Exception) { }
+        closeEnc()
+        if (!openEnc(nw, nh, q)) return false
+        try {
+            vd.resize(nw, nh, newDpi)
+            vd.setSurface(surface)
+        } catch (ex: Exception) {
+            android.util.Log.w("scst", "vd rebind ${ex.message}")
+            closeEnc()
+            return false
+        }
+        srcW = newSrcW
+        srcH = newSrcH
+        dpi = newDpi
+        android.util.Log.i("scst", "rebind ${nw}x${nh} src=${newSrcW}x${newSrcH}")
+        return true
+    }
+
+    fun resumeSend() {
+        if (stopped) return
+        startLoop()
     }
 
     private fun loop() {

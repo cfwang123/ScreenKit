@@ -291,8 +291,7 @@ sealed class CastRecvSrv : IDisposable {
 		ench = h;
 		var via = CastProto.Jstr(o, "via");
 		Log?.Invoke($"握手 {via} {n} {w}x{h}");
-		lock (nallock) pendingnal = null;
-		resetdec();
+		resetvdec();
 		OnHello?.Invoke(n, via);
 		if (dw0 > 0 && dh0 > 0) {
 			srcw = dw0;
@@ -388,6 +387,12 @@ sealed class CastRecvSrv : IDisposable {
 				$"{DateTime.Now:HH:mm:ss} fps={fpsv} audio={audiov}/{audiogotv} kbps={kbps} busy={(busy ? 1 : 0)} gap={gap}\n");
 		}
 		catch { }
+	}
+
+	void resetvdec() {
+		lock (declock) {
+			vdec?.Dispose(); vdec = null;
+		}
 	}
 
 	void resetdec() {

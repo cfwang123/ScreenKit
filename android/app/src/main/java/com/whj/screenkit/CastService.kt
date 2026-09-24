@@ -37,15 +37,12 @@ class CastService : Service() {
     private val cfgCb = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) {
             val now = android.os.SystemClock.elapsedRealtime()
-            if (now - lastcfg < 400) return
             lastcfg = now
             Handler(Looper.getMainLooper()).postDelayed({
-                if (mp == null) return@postDelayed
-                Thread({
-                    try { sendOrient() }
-                    catch (ex: Exception) { Log.w("scst", "orient ${ex.message}") }
-                }, "scst-orient").start()
-            }, 300)
+                if (lastcfg != now) return@postDelayed
+                if (mp == null || q == null || video == null) return@postDelayed
+                Thread({ onOrient() }, "scst-orient").start()
+            }, 500)
         }
         override fun onLowMemory() {}
     }
@@ -218,6 +215,64 @@ class CastService : Service() {
             .put("dw", dm.widthPixels)
             .put("dh", dm.heightPixels)
         s.send(Proto.T_JSON, o.toString().toByteArray(Charsets.UTF_8))
+    }
+
+    private fun onOrient() {
+        val cur = q ?: return
+        val v = synchronized(gate) {
+            if (replacing || mp == null) return
+            video
+        } ?: return
+        val dm = metrics()
+        val fit = cur.fit(dm.widthPixels, dm.heightPixels)
+        if (v.outW == fit.first && v.outH == fit.second) {
+            try { sendOrient() } catch (ex: Exception) { Log.w("scst", "orient ${ex.message}") }
+            return
+        }
+        val oldW = v.srcW
+        val oldH = v.srcH
+        val oldDpi = dm.densityDpi
+        Log.i("scst", "orient rebind ${dm.widthPixels}x${dm.heightPixels} enc ${v.outW}x${v.outH} -> ${fit.first}x${fit.second}")
+        replacing = true
+        try {
+            v.haltSend()
+            val ok = runOnMain { v.rebind(dm.widthPixels, dm.heightPixels, dm.densityDpi, cur) }
+            if (!ok) {
+                Log.w("scst", "orient rebind fail, restore ${oldW}x${oldH}")
+                val restored = runOnMain { v.rebind(oldW, oldH, oldDpi, cur) }
+                if (restored) runOnMain { v.resumeSend(); true }
+                try { sendOrient() } catch (ex: Exception) { Log.w("scst", "orient ${ex.message}") }
+            } else {
+                sendHello(v.outW, v.outH, v.fps, wantAudio)
+                runOnMain { v.resumeSend(); true }
+                sendBroadcast(
+                    Intent(ACTION_STAT).setPackage(packageName).putExtra(
+                        "msg",
+                        "投屏中 $via ${v.outW}x${v.outH}@${v.fps}",
+                    ),
+                )
+            }
+        } catch (ex: Exception) {
+            Log.w("scst", "orient ${ex.message}")
+            try { sendOrient() } catch (_: Exception) { }
+        } finally {
+            replacing = false
+        }
+    }
+
+    private fun runOnMain(fn: () -> Boolean): Boolean {
+        val latch = java.util.concurrent.CountDownLatch(1)
+        var ok = false
+        Handler(Looper.getMainLooper()).post {
+            try { ok = fn() } catch (ex: Exception) { Log.w("scst", "main ${ex.message}") }
+            latch.countDown()
+        }
+        return try {
+            latch.await()
+            ok
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun peerGone() {

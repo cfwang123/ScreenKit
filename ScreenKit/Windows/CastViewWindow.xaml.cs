@@ -136,6 +136,8 @@ public partial class CastViewWindow : Window {
 		Width = Math.Max(240, w * s);
 		Height = Math.Max(180, h * s);
 		sized = true;
+		Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
+		Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
 	}
 
 	void applychrome() {
