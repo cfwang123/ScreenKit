@@ -114,11 +114,8 @@ sealed class CastRecvSrv : IDisposable {
 	public void AttachStream(Stream s, string tag) {
 		if (s == null) return;
 		if (busy) {
-			Log?.Invoke($"{tag} 顶掉旧会话");
-			Kick();
-			var t0 = Environment.TickCount;
-			while (busy && Environment.TickCount - t0 < 2000)
-				Thread.Sleep(20);
+			Log?.Invoke($"{tag} 已有会话，忽略");
+			return;
 		}
 		Log?.Invoke($"{tag} 接入");
 		var hello = false;
@@ -194,11 +191,19 @@ sealed class CastRecvSrv : IDisposable {
 						if (dojson(payload)) hello = true;
 					}
 					else if (type == CastProto.T_VIDEO) {
+						if (!hello) {
+							hello = true;
+							OnHello?.Invoke("投屏");
+						}
 						if (payload != null) byteacc += payload.Length;
 						lock (nallock) pendingnal = payload;
 						nalsig.Set();
 					}
 					else if (type == CastProto.T_AUDIO) {
+						if (!hello) {
+							hello = true;
+							OnHello?.Invoke("投屏");
+						}
 						if (payload != null) byteacc += payload.Length;
 						audiogot++;
 						aqueue.Enqueue(payload);
@@ -260,7 +265,10 @@ sealed class CastRecvSrv : IDisposable {
 			}
 			return false;
 		}
-		if (cmd != "hello") return false;
+		if (cmd != "hello") {
+			Log?.Invoke($"json {cmd}");
+			return false;
+		}
 		var n = CastProto.Jstr(o, "name");
 		if (string.IsNullOrEmpty(n)) n = "发送端";
 		var w = CastProto.Jint(o, "w");

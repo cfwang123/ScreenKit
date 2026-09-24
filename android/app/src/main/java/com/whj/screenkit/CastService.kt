@@ -150,11 +150,13 @@ class CastService : Service() {
         this.wantAudio = wantAudio
         startCtrl(s)
         val dm = metrics()
+        val fit = q.fit(dm.widthPixels, dm.heightPixels)
+        sendHello(fit.first, fit.second, q.fps, wantAudio)
         val v = VideoPipe(projection, dm.widthPixels, dm.heightPixels, dm.densityDpi, q, s, ::peerGone)
         synchronized(gate) {
             video = v
         }
-        sendHello(v, wantAudio)
+        sendHello(v.outW, v.outH, v.fps, wantAudio)
         sendBroadcast(
             Intent(ACTION_STAT).setPackage(packageName).putExtra(
                 "msg",
@@ -186,22 +188,23 @@ class CastService : Service() {
         return dm
     }
 
-    private fun sendHello(v: VideoPipe, wantAudio: Boolean) {
+    private fun sendHello(outW: Int, outH: Int, fps: Int, wantAudio: Boolean) {
         val s = sink ?: return
         val dm = metrics()
         val hello = JSONObject()
             .put("cmd", "hello")
             .put("name", Build.MODEL)
-            .put("w", v.outW)
-            .put("h", v.outH)
+            .put("w", outW)
+            .put("h", outH)
             .put("dw", dm.widthPixels)
             .put("dh", dm.heightPixels)
-            .put("fps", v.fps)
+            .put("fps", fps)
             .put("br", this.q?.bitrate ?: 0)
             .put("audio", wantAudio)
             .put("pix", "h264")
             .put("aud", "aac")
         s.send(Proto.T_JSON, hello.toString().toByteArray(Charsets.UTF_8))
+        Log.i("scst", "hello $outW x $outH")
     }
 
     private fun sendOrient() {
@@ -351,7 +354,7 @@ class CastService : Service() {
             try { old?.stop() } catch (_: Exception) { }
             try { Thread.sleep(200) } catch (_: Exception) { }
             replacing = false
-            sendHello(nv, wantAudio)
+            sendHello(nv.outW, nv.outH, nv.fps, wantAudio)
             sendBroadcast(
                 Intent(ACTION_STAT).setPackage(packageName).putExtra(
                     "msg",

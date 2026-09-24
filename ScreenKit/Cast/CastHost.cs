@@ -80,12 +80,15 @@ static class CastHost {
 			view.SetSrc(dw, dh);
 		});
 		Recv.OnGone = () => {
-			hidebyuser = true;
-			lock (framegate) {
-				frameready = -1;
-				frameposted = false;
-			}
-			ui(() => view?.HideCast());
+			ui(() => {
+				if (Recv != null && Recv.Busy) return;
+				hidebyuser = true;
+				lock (framegate) {
+					frameready = -1;
+					frameposted = false;
+				}
+				view?.HideCast();
+			});
 		};
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
 		timer.Tick += (_, _) => ThreadPool.QueueUserWorkItem(_ => {

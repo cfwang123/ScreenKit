@@ -16,8 +16,8 @@ sealed class CastUsbScan {
 		if (lasttry != 0 && now - lasttry < 1500) return;
 		lasttry = now;
 		var ips = usbNeighbors();
-		addknown(ips);
 		if (ips.Count == 0) return;
+		addknown(ips);
 		scanning = true;
 		ThreadPool.QueueUserWorkItem(_ => {
 			try { scan(ips); }

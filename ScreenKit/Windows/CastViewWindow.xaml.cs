@@ -32,11 +32,13 @@ public partial class CastViewWindow : Window {
 	}
 
 	public void SetName(string n) {
-		lbname.Text = string.IsNullOrEmpty(n) ? Loc.T("cast.title") : n;
-		Title = lbname.Text;
+		var title = Loc.T("cast.title");
+		lbname.Text = string.IsNullOrEmpty(n) ? title : n;
+		Title = string.IsNullOrEmpty(n) || n == title ? title : $"{title} · {n}";
 	}
 
 	public void ShowCast() {
+		ShowInTaskbar = true;
 		if (WindowState == WindowState.Minimized) {
 			WindowStyle = WindowStyle.SingleBorderWindow;
 			WindowState = WindowState.Normal;
@@ -44,11 +46,19 @@ public partial class CastViewWindow : Window {
 			applychrome();
 		}
 		if (!IsVisible) Show();
+		if (Width < 200) Width = 640;
+		if (Height < 160) Height = 360;
+		WindowState = WindowState.Normal;
 		Activate();
 		Topmost = true;
-		Topmost = false;
 		Activate();
 		Focus();
+		var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+		t.Tick += (_, _) => {
+			t.Stop();
+			Topmost = false;
+		};
+		t.Start();
 	}
 
 	public void HideCast() {
