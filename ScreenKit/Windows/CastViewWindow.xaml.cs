@@ -75,20 +75,32 @@ public partial class CastViewWindow : Window {
 		if (srcw > 0 && srch > 0 && bmp == null) fitbox(srcw, srch);
 		centeronpointer();
 		showbar(true);
-		lbst.Text = CastHost.Recv?.StatText() ?? Loc.T("cast.stat.recv");
-		lbst.Visibility = Visibility.Visible;
-		stattimer.Start();
+		lbst.Visibility = Visibility.Collapsed;
+		stattimer.Stop();
 		ApplyScale();
-		Topmost = false;
+		tofront();
+	}
+
+	void tofront() {
+		Topmost = true;
 		Activate();
 		try { img.Focus(); } catch { }
 		try {
 			var h = new WindowInteropHelper(this).EnsureHandle();
 			ShowWindow(h, 9);
+			SetWindowPos(h, HwndTopmost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+			SetForegroundWindow(h);
 			GetWindowRect(h, out var rc);
 			PlaceText = $"hwnd={h.ToInt64():X} wr={rc.Left},{rc.Top} {rc.Right - rc.Left}x{rc.Bottom - rc.Top}";
 		}
 		catch (Exception ex) { PlaceText = ex.Message; }
+		Topmost = false;
+		try {
+			var h = new WindowInteropHelper(this).Handle;
+			if (h != IntPtr.Zero)
+				SetWindowPos(h, HwndNoTopmost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		}
+		catch { }
 	}
 
 	void centeronpointer() {
@@ -333,6 +345,18 @@ public partial class CastViewWindow : Window {
 
 	[DllImport("user32.dll")]
 	static extern bool ShowWindow(IntPtr h, int cmd);
+
+	[DllImport("user32.dll")]
+	static extern bool SetForegroundWindow(IntPtr h);
+
+	[DllImport("user32.dll")]
+	static extern bool SetWindowPos(IntPtr h, IntPtr insert, int x, int y, int cx, int cy, uint flags);
+
+	static readonly IntPtr HwndTopmost = new(-1);
+	static readonly IntPtr HwndNoTopmost = new(-2);
+	const uint SWP_NOSIZE = 0x0001;
+	const uint SWP_NOMOVE = 0x0002;
+	const uint SWP_SHOWWINDOW = 0x0040;
 
 	[DllImport("user32.dll")]
 	static extern bool GetCursorPos(out NativePoint p);

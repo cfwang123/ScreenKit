@@ -540,7 +540,7 @@ sealed class CastUsbHost : IDisposable {
 					dev = null;
 					continue;
 				}
-				usb.IdleMs = 2000;
+				usb.IdleMs = 500;
 				using var up = new NamedPipeClientStream(".", CastProto.USB_PIPE, PipeDirection.Out);
 				using var down = new NamedPipeClientStream(".", CastProto.USB_PIPE_DOWN, PipeDirection.In);
 				up.Connect(4000);

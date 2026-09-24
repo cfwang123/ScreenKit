@@ -394,7 +394,7 @@ class CastService : Service() {
             try { unregisterComponentCallbacks(cfgCb) } catch (_: Exception) { }
             cfgOn = false
         }
-        notifyPcStop()
+		notifyPcStop()
         try { sink?.send(Proto.T_JSON, """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)) } catch (_: Exception) { }
         try { audio?.stop() } catch (_: Exception) { }
         try { video?.stop() } catch (_: Exception) { }
@@ -422,7 +422,7 @@ class CastService : Service() {
             } catch (_: Exception) { }
         }
         if (host.isEmpty()) return
-        Thread({
+        val th = Thread({
             try {
                 val u = java.net.URL("http://$host:$port/api/cast/stop")
                 val c = u.openConnection() as java.net.HttpURLConnection
@@ -442,7 +442,9 @@ class CastService : Service() {
             } catch (ex: Exception) {
                 Log.w("scst", "http stop ${ex.message}")
             }
-        }, "scst-http-stop").start()
+        }, "scst-http-stop")
+        th.start()
+        try { th.join(400) } catch (_: Exception) { }
     }
 
     private fun startCtrl(s: FrameSink) {

@@ -10,7 +10,7 @@
 
 ### 变更
 
-- USB 投屏：hello 后再写探测包，等 USB 写出完成；电脑未开 ScreenKit 时提示「电脑未打开 ScreenKit」，不再显示投屏中。停止时向电脑 `GET /api/cast/stop`，画面窗立刻关。
+- 停止时向电脑 `GET /api/cast/stop`（等最多 400ms），画面窗立刻关。
 - USB 配件测试画面：手机自绘 640×360 动态块（不截屏）只走 AOA bulk（`scst_usb_pat`），不用 adb reverse、不用 WiFi。
 - 横屏按当前画质重绑编码器（保留 VirtualDisplay），不再只发方向裁切导致分辨率骤降；失败仍回落裁切。
 - USB 投屏：电脑开接收后自动拉起配件助手，不必再点 **USB配件**。助手一场结束后继续等，不再每 8 秒杀掉正在跑的助手。

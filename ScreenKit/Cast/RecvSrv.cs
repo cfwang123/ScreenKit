@@ -109,7 +109,6 @@ sealed class CastRecvSrv : IDisposable {
 				down = null;
 				var hello = runsession(duo);
 				try { duo.Dispose(); } catch { }
-				if (hello) OnGone?.Invoke();
 			}
 			catch (Exception ex) {
 				if (!stop) Log?.Invoke($"USB 管道: {ex.Message}");
@@ -279,7 +278,6 @@ sealed class CastRecvSrv : IDisposable {
 		var hello = false;
 		try { hello = runsession(s); }
 		catch (Exception ex) { Log?.Invoke($"{tag} 结束: {ex.Message}"); }
-		finally { if (hello) OnGone?.Invoke(); }
 	}
 
 	void loop(TcpListener lis) {
@@ -328,7 +326,6 @@ sealed class CastRecvSrv : IDisposable {
 		finally {
 			if (ReferenceEquals(curcli, cli)) curcli = null;
 			try { cli.Close(); } catch { }
-			if (hello) OnGone?.Invoke();
 		}
 	}
 
@@ -414,6 +411,7 @@ sealed class CastRecvSrv : IDisposable {
 				}
 			}
 			finally {
+				if (hello) OnGone?.Invoke();
 				decstop = true;
 				nalsig.Set();
 				asig.Set();

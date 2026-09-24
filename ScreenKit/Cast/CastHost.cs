@@ -109,6 +109,7 @@ static class CastHost {
 			view.SetSrc(dw, dh);
 		});
 		Recv.OnGone = () => {
+			hidebyuser = true;
 			var g = viewgen;
 			ui(() => hidecastif(g));
 		};
@@ -122,8 +123,7 @@ static class CastHost {
 				var now = Environment.TickCount;
 				if (now - lastadb > 8000 || lastadb == 0) {
 					lastadb = now;
-					if (!CastUsbHost.HelperBusy())
-						CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
+					CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
 				}
 				if (usbWant && (now - lastaoa > 8000 || lastaoa == 0)) {
 					lastaoa = now;
@@ -140,6 +140,7 @@ static class CastHost {
 			}
 			catch (Exception ex) { log(ex.Message); }
 			EnableUsbHost();
+			ThreadPool.QueueUserWorkItem(_ => CastAdbFwd.Reverse(CastProto.TCP_PORT, log));
 		}
 	}
 
@@ -235,6 +236,7 @@ static class CastHost {
 		if (Opt != null) Opt.CastRecvEnabled = true;
 		SaveOpt();
 		EnableUsbHost();
+		ThreadPool.QueueUserWorkItem(_ => CastAdbFwd.Reverse(CastProto.TCP_PORT, log));
 	}
 
 	public static void StopRecv() {
@@ -247,7 +249,7 @@ static class CastHost {
 
 	static void hidecastif(int g) {
 		if (g != viewgen) return;
-		if (Recv != null && Recv.Busy) return;
+		hidebyuser = true;
 		lock (framegate) {
 			frameready = -1;
 			frameposted = false;
