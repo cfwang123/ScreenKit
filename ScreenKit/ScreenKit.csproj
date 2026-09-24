@@ -35,6 +35,8 @@
   <ItemGroup>
     <None Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" Link="Assets\app.ico" />
     <None Include="Assets\appicon.png" CopyToOutputDirectory="PreserveNewest" Link="Assets\appicon.png" Condition="Exists('Assets\appicon.png')" />
+    <None Include="Assets\cast.ico" CopyToOutputDirectory="PreserveNewest" Link="Assets\cast.ico" Condition="Exists('Assets\cast.ico')" />
+    <None Include="Assets\cast.png" CopyToOutputDirectory="PreserveNewest" Link="Assets\cast.png" Condition="Exists('Assets\cast.png')" />
     <None Include="..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\LICENSE')" />
     <None Include="..\THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\THIRD_PARTY_NOTICES.md')" />
     <!-- WeText C++ ITN：processor_pipe + 中文 FST（需事先编译/拷贝到 ScreenKit/wetext） -->

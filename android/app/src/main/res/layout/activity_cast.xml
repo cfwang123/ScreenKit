@@ -56,7 +56,10 @@
             android:layout_width="match_parent"
             android:layout_height="160dp"
             android:layout_marginTop="4dp"
-            android:choiceMode="singleChoice" />
+            android:choiceMode="singleChoice"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="6dp"
+            android:listSelector="@android:color/transparent" />
 
         <LinearLayout
             android:layout_width="match_parent"

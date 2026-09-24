@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
+import android.widget.ListView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -73,6 +74,12 @@ class CastActivity : AppCompatActivity() {
                 )
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+        b.lpeers.choiceMode = ListView.CHOICE_MODE_SINGLE
+        b.lpeers.setOnItemClickListener { _, _, pos, _ ->
+            b.lpeers.setItemChecked(pos, true)
+            val p = peers.getOrNull(pos) ?: return@setOnItemClickListener
+            b.lbstat.text = "已选 ${p.name}  ${p.ip}"
         }
         b.bscan.setOnClickListener { scan() }
         b.bstart.setOnClickListener { startLan() }
@@ -150,19 +157,25 @@ class CastActivity : AppCompatActivity() {
                 peers = list
                 b.lpeers.adapter = ArrayAdapter(
                     this,
-                    android.R.layout.simple_list_item_1,
+                    R.layout.item_cast_peer,
                     list.map { it.toString() },
                 )
-                b.lbstat.text = "扫描到 ${list.size} 台"
+                if (list.size == 1) {
+                    b.lpeers.setItemChecked(0, true)
+                    b.lbstat.text = "已选 ${list[0].name}  ${list[0].ip}"
+                } else {
+                    b.lpeers.clearChoices()
+                    b.lbstat.text = "扫描到 ${list.size} 台，点选一台"
+                }
             }
         }.start()
     }
 
     private fun startLan() {
         val ix = b.lpeers.checkedItemPosition
-        val p = if (ix >= 0 && ix < peers.size) peers[ix] else peers.firstOrNull()
+        val p = if (ix >= 0 && ix < peers.size) peers[ix] else null
         if (p == null) {
-            toast("请先扫描并选择电脑")
+            toast("请先扫描并点选一台电脑")
             return
         }
         pendingMode = "tcp"

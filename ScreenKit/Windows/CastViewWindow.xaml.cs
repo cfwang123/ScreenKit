@@ -14,6 +14,7 @@ public partial class CastViewWindow : Window {
 
 	public CastViewWindow() {
 		InitializeComponent();
+		if (CastHost.WinIcon != null) Icon = CastHost.WinIcon;
 		applychrome();
 		WindowChrome.SetIsHitTestVisibleInChrome(bmin, true);
 		WindowChrome.SetIsHitTestVisibleInChrome(bmax, true);

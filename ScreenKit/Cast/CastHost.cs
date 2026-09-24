@@ -16,6 +16,26 @@ static class CastHost {
 	static Func<OcrOptions> opts;
 	static Action save;
 	static bool hidebyuser;
+	static ImageSource winicon;
+
+	public static ImageSource WinIcon {
+		get {
+			if (winicon != null) return winicon;
+			try {
+				var p = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "cast.ico");
+				if (!File.Exists(p)) return null;
+				var bmp = new BitmapImage();
+				bmp.BeginInit();
+				bmp.UriSource = new Uri(p);
+				bmp.CacheOption = BitmapCacheOption.OnLoad;
+				bmp.EndInit();
+				bmp.Freeze();
+				winicon = bmp;
+			}
+			catch { }
+			return winicon;
+		}
+	}
 
 	public static string Name => Environment.MachineName;
 	public static OcrOptions Opt => opts?.Invoke();

@@ -7,6 +7,7 @@ public partial class CastWindow : Window {
 
 	public CastWindow() {
 		InitializeComponent();
+		if (CastHost.WinIcon != null) Icon = CastHost.WinIcon;
 		WindowEsc.Attach(this);
 		foreach (var q in CastQuality.Presets) eq.Items.Add(q.Name);
 		eq.SelectedItem = CastHost.QualityName;

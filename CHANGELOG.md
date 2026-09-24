@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Screencast settings and view windows use a dedicated monitor/cast icon.
 - `scripts/publish-release.mjs` omits local `config.toml`, `cli_last.log`, and `log/` from the 7z (API keys / paths).
 
 ### 中文
@@ -42,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 投屏设置窗与画面窗使用独立显示器/投屏图标。
 - `scripts/publish-release.mjs` 打包时排除本机 `config.toml`、`cli_last.log` 和 `log/`（避免把密钥/路径打进发布包）。
 
 ## v1.0.10 (2026-09-24)
