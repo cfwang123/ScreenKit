@@ -26,7 +26,11 @@ object CastDiscover {
         try {
             sock.reuseAddress = true
             sock.broadcast = true
-            sock.bind(java.net.InetSocketAddress(Proto.UDP_PORT))
+            try {
+                sock.bind(java.net.InetSocketAddress(0))
+            } catch (_: Exception) {
+                sock.bind(java.net.InetSocketAddress(Proto.UDP_PORT))
+            }
             sock.soTimeout = 400
             val hello = """{"v":1,"app":"screencast","name":"phone","role":"send","tcp":0}"""
                 .toByteArray(Charsets.UTF_8)

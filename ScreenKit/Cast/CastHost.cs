@@ -63,7 +63,17 @@ static class CastHost {
 		Send = new CastSendCli();
 		Disc = new CastDisc("pc", () => Name);
 		Usb = new CastUsbHost { Recv = Recv };
-		UsbScan = new CastUsbScan { Recv = Recv, Log = log };
+		UsbScan = new CastUsbScan {
+			Recv = Recv,
+			Log = log,
+			ExtraIps = () => {
+				var l = new List<string>();
+				if (Disc == null) return l;
+				foreach (var p in Disc.Snapshot())
+					if (p.Role == "send") l.Add(p.Ip);
+				return l;
+			}
+		};
 		Recv.Log = log;
 		Send.Log = log;
 		Disc.Log = log;
@@ -74,7 +84,8 @@ static class CastHost {
 			ensureview();
 			view.SetName(n, via);
 			view.ShowCast();
-		});
+			log($"开窗 {view.Title} visible={view.IsVisible}");
+		}, true);
 		Recv.OnSrc = (dw, dh) => ui(() => {
 			ensureview();
 			view.SetSrc(dw, dh);
@@ -275,10 +286,14 @@ static class CastHost {
 		ui(() => set?.AppendLog(s));
 	}
 
-	static void ui(Action a) {
+	static void ui(Action a, bool sync = false) {
 		var d = Application.Current?.Dispatcher;
-		if (d == null) return;
+		if (d == null) {
+			try { a(); } catch { }
+			return;
+		}
 		if (d.CheckAccess()) a();
+		else if (sync) try { d.Invoke(a); } catch { }
 		else d.BeginInvoke(a);
 	}
 }

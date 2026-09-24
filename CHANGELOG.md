@@ -34,6 +34,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Password variants mostly translate into other languages then ASCII-romanize; at most one English paraphrase. They no longer reorder words, add digits, or use leetspeak.
+- Phone screencast scans on resume (ephemeral UDP, no bind on 19518). Viewer ShowCast is synchronous and centered.
+- USB tethering beacons on UDP so the PC can find the phone’s USB IP.
 - Landscape: do not recreate the encoder (that crashed on Redmi); send orient and crop. Viewer window is sized to the cropped frame, not phone pixels.
 - **USB 投屏** is accessory or USB tethering only (no adb). Enable 网络共享 in the notification shade.
 - Phone screencast failures show a short “连接失败” toast/status (no abstract/IOException dump).
@@ -68,6 +70,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 密码变体以其它语言译音（拼音 / 罗马字）为主，英文同义最多一条；不再调换词序、加数字或做 o→0 一类替换。
+- 打开投屏界面（onResume）自动扫描；发现不再死绑 UDP 19518。
+- USB 网络共享时手机发 UDP，电脑用该地址连入。
+- 画面窗同步打开并居中。
 - 横屏：不再重建编码器（红米上会闪退），只发方向并裁切；窗口按裁切后的画面适配，不用手机分辨率当窗口大小。
 - **USB 投屏**只走配件或 USB 网络共享，不用 adb。通知栏把 USB 设为「网络共享」。
 - 投屏连接失败只提示「连接失败」，不再把 abstract/IOException 打在状态栏。

@@ -7,6 +7,7 @@ namespace ScreenKit;
 sealed class CastUsbScan {
 	public CastRecvSrv Recv;
 	public Action<string> Log;
+	public Func<List<string>> ExtraIps;
 	int lasttry;
 	volatile bool scanning;
 
@@ -16,6 +17,13 @@ sealed class CastUsbScan {
 		if (lasttry != 0 && now - lasttry < 1500) return;
 		lasttry = now;
 		var ips = usbNeighbors();
+		if (ExtraIps != null) {
+			foreach (var ip in ExtraIps()) {
+				if (string.IsNullOrEmpty(ip) || ips.Contains(ip)) continue;
+				if (ip.StartsWith("192.168.42.") || ip.StartsWith("192.168.137."))
+					ips.Insert(0, ip);
+			}
+		}
 		if (ips.Count == 0) return;
 		addknown(ips);
 		scanning = true;

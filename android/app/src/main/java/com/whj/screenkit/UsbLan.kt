@@ -6,7 +6,10 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.util.Log
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.net.Inet4Address
+import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.Socket
@@ -29,6 +32,22 @@ object UsbLan {
     fun clear() {
         lastNet = null
         lastAddr = null
+    }
+
+    fun beacon() {
+        val payload = """{"v":1,"app":"screencast","name":"phone","role":"send","tcp":${Proto.TCP_PORT}}"""
+            .toByteArray(Charsets.UTF_8)
+        DatagramSocket(null).use { sock ->
+            sock.broadcast = true
+            sock.reuseAddress = true
+            try {
+                val a = lastAddr
+                if (a != null) sock.bind(InetSocketAddress(a, 0))
+            } catch (_: Exception) { }
+            try {
+                sock.send(DatagramPacket(payload, payload.size, InetAddress.getByName("255.255.255.255"), Proto.UDP_PORT))
+            } catch (_: Exception) { }
+        }
     }
 
     fun pickNet(ctx: Context): Network? {

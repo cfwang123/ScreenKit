@@ -137,16 +137,24 @@ class TcpSink private constructor(private val sock: Socket) : FrameSink {
 
         fun listen(net: android.net.Network?, port: Int = Proto.TCP_PORT): TcpSink {
             val ss = java.net.ServerSocket()
+            val stopBe = java.util.concurrent.atomic.AtomicBoolean(false)
             try {
                 ss.reuseAddress = true
                 ss.soTimeout = 45000
                 ss.bind(InetSocketAddress(port), 1)
                 android.util.Log.i("scst", "usb-lan listen ${ss.localSocketAddress} net=${net != null}")
+                Thread({
+                    while (!stopBe.get()) {
+                        try { UsbLan.beacon() } catch (_: Exception) { }
+                        try { Thread.sleep(400) } catch (_: Exception) { break }
+                    }
+                }, "usb-beacon").apply { isDaemon = true; start() }
                 val sock = ss.accept()
                 sock.tcpNoDelay = true
                 try { sock.sendBufferSize = 512 * 1024 } catch (_: Exception) { }
                 return TcpSink(sock)
             } finally {
+                stopBe.set(true)
                 try { ss.close() } catch (_: Exception) { }
             }
         }

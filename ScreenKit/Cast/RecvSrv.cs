@@ -35,6 +35,8 @@ sealed class CastRecvSrv : IDisposable {
 	int videomiss;
 	int fpsn, fpsv, audion, audiov, audiogot, audiogotv, kbps, rttms, laststat, lastping, lastframe, lastaudiolog, decms;
 	int audiohex;
+	int sessstart;
+	bool hadhello;
 	long byteacc;
 	public bool Running => !stop && lis != null;
 	public bool Busy => busy;
@@ -76,6 +78,8 @@ sealed class CastRecvSrv : IDisposable {
 			SendJson(new { cmd = "ping", t = now });
 		}
 		if (busy && lastpkt != 0 && now - lastpkt > 15000)
+			Kick();
+		if (busy && !hadhello && sessstart != 0 && now - sessstart > 2500)
 			Kick();
 	}
 
@@ -171,6 +175,8 @@ sealed class CastRecvSrv : IDisposable {
 		lock (sess) {
 			if (busy) return false;
 			busy = true;
+			hadhello = false;
+			sessstart = Environment.TickCount;
 			drop = false;
 			decstop = false;
 			curst = s;
@@ -188,11 +194,12 @@ sealed class CastRecvSrv : IDisposable {
 					}
 					lastpkt = Environment.TickCount;
 					if (type == CastProto.T_JSON) {
-						if (dojson(payload)) hello = true;
+						if (dojson(payload)) { hello = true; hadhello = true; }
 					}
 					else if (type == CastProto.T_VIDEO) {
 						if (!hello) {
 							hello = true;
+							hadhello = true;
 							OnHello?.Invoke("投屏", "");
 						}
 						if (payload != null) byteacc += payload.Length;
@@ -202,6 +209,7 @@ sealed class CastRecvSrv : IDisposable {
 					else if (type == CastProto.T_AUDIO) {
 						if (!hello) {
 							hello = true;
+							hadhello = true;
 							OnHello?.Invoke("投屏", "");
 						}
 						if (payload != null) byteacc += payload.Length;
@@ -221,6 +229,8 @@ sealed class CastRecvSrv : IDisposable {
 				if (ReferenceEquals(curst, s)) curst = null;
 				resetdec();
 				busy = false;
+				hadhello = false;
+				sessstart = 0;
 				lastpkt = 0;
 				fpsn = 0;
 				fpsv = 0;

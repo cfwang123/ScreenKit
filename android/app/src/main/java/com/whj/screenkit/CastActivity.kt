@@ -27,6 +27,7 @@ class CastActivity : AppCompatActivity() {
     private var pendingIp = ""
     private var pendingPort = Proto.TCP_PORT
     private var waitUsb = false
+    private var scanning = false
 
     private val proj = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         if (r.resultCode != RESULT_OK || r.data == null) {
@@ -107,10 +108,22 @@ class CastActivity : AppCompatActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         maybeTestIntent(intent)
-        if (intent?.getBooleanExtra("scst_go", false) != true &&
-            intent?.getBooleanExtra("scst_usb", false) != true &&
-            intent?.getBooleanExtra("scst_adb", false) != true
-        ) b.root.post { scan() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val skip = intent?.getBooleanExtra("scst_go", false) == true ||
+            intent?.getBooleanExtra("scst_usb", false) == true ||
+            intent?.getBooleanExtra("scst_adb", false) == true
+        if (skip) return
+        val st = b.lbstat.text?.toString().orEmpty()
+        if (st.contains("投屏中") || st.contains("正在启动") || st.contains("扫描中")) return
+        b.root.postDelayed({
+            if (isFinishing) return@postDelayed
+            val s2 = b.lbstat.text?.toString().orEmpty()
+            if (s2.contains("投屏中") || s2.contains("正在启动") || scanning) return@postDelayed
+            scan()
+        }, 300)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -164,15 +177,21 @@ class CastActivity : AppCompatActivity() {
     }
 
     private fun scan() {
+        if (scanning) return
+        scanning = true
         b.lbstat.text = "扫描中…"
         Thread {
             val list = try {
                 CastDiscover.scan(this)
             } catch (ex: Exception) {
-                runOnUiThread { toast("扫描失败: ${ex.message}") }
-                emptyList()
+                runOnUiThread {
+                    scanning = false
+                    toast("扫描失败")
+                }
+                return@Thread
             }
             runOnUiThread {
+                scanning = false
                 peers = list
                 b.lpeers.adapter = ArrayAdapter(
                     this,

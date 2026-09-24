@@ -48,9 +48,12 @@ public partial class CastViewWindow : Window {
 			applychrome();
 		}
 		if (!IsVisible) Show();
-		if (Width < 200) Width = 640;
-		if (Height < 160) Height = 360;
+		if (Width < 200 || double.IsNaN(Width)) Width = 640;
+		if (Height < 160 || double.IsNaN(Height)) Height = 360;
 		WindowState = WindowState.Normal;
+		var wa = SystemParameters.WorkArea;
+		Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
+		Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
 		Activate();
 		Topmost = true;
 		Activate();
