@@ -105,7 +105,7 @@ class TcpSink private constructor(private val sock: Socket) : FrameSink {
             try { sock.sendBufferSize = 512 * 1024 } catch (_: Exception) { }
             try { sock.receiveBufferSize = 256 * 1024 } catch (_: Exception) { }
             os = sock.getOutputStream()
-            setsndto(80)
+            setsndto(250)
             android.util.Log.i("scst", "tcp connected ${sock.remoteSocketAddress}")
             ath = Thread({ aloop() }, "tcp-a").also { it.start() }
             vth = Thread({ vloop() }, "tcp-v").also { it.start() }

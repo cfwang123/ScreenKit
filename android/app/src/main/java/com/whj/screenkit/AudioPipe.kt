@@ -22,18 +22,11 @@ class AudioPipe(
 
     init {
         if (Build.VERSION.SDK_INT < 29) throw IllegalStateException("系统内录音需要 Android 10+")
-        val bld = AudioPlaybackCaptureConfiguration.Builder(mp)
+        val cfg = AudioPlaybackCaptureConfiguration.Builder(mp)
             .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
             .addMatchingUsage(AudioAttributes.USAGE_GAME)
             .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
-            .addMatchingUsage(AudioAttributes.USAGE_NOTIFICATION)
-            .addMatchingUsage(AudioAttributes.USAGE_ALARM)
-            .addMatchingUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-            .addMatchingUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-            .addMatchingUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
-        if (Build.VERSION.SDK_INT >= 26)
-            bld.addMatchingUsage(AudioAttributes.USAGE_ASSISTANT)
-        val cfg = bld.build()
+            .build()
         val fmt = AudioFormat.Builder()
             .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
             .setSampleRate(48000)
@@ -61,8 +54,16 @@ class AudioPipe(
     private fun loop() {
         val pcm = ByteArray(4096)
         val info = MediaCodec.BufferInfo()
+        try {
         while (running) {
-            val n = try { rec.read(pcm, 0, pcm.size) } catch (_: Exception) { break }
+            val n = try { rec.read(pcm, 0, pcm.size) } catch (ex: Throwable) {
+                android.util.Log.w("scst", "aread ${ex.message}")
+                break
+            }
+            if (n == AudioRecord.ERROR_DEAD_OBJECT || n == AudioRecord.ERROR_INVALID_OPERATION) {
+                android.util.Log.w("scst", "aread err $n")
+                break
+            }
             if (n > 0) {
                 val inIx = enc.dequeueInputBuffer(10_000)
                 if (inIx >= 0) {
@@ -102,6 +103,9 @@ class AudioPipe(
                 }
             }
         }
+        } catch (ex: Throwable) {
+            android.util.Log.e("scst", "aenc ${ex.javaClass.simpleName} ${ex.message}")
+        }
     }
 
     fun stop() {
@@ -119,7 +123,7 @@ class AudioPipe(
             val p = ByteArray(packetLen)
             val srIdx = if (rate >= 48000) 3 else 4
             p[0] = 0xFF.toByte()
-            p[1] = 0xF1.toByte()
+            p[1] = 0xF9.toByte()
             p[2] = (((2 - 1) shl 6) + (srIdx shl 2) + (ch shr 2)).toByte()
             p[3] = (((ch and 3) shl 6) + (packetLen shr 11)).toByte()
             p[4] = ((packetLen and 0x7FF) shr 3).toByte()

@@ -34,6 +34,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Password variants also paraphrase with same-meaning words and short phrases; they no longer reorder words, add digits, or use leetspeak.
+- Screencast encoder uses the real aspect (not a square canvas) and recreates on rotate, so opening Bilibili in landscape does not kill the process.
+- USB 投屏 falls back to adb reverse when there is no accessory or USB tethering.
 - Phone screencast screen scans for PCs on open.
 - USB screencast: **USB 投屏** still uses accessory or USB tethering (phone listens / finds the PC); **USB 投屏(adb)** restores `adb reverse` (needs USB debugging). The PC repeats `adb reverse` in the background.
 - Screencast audio: a dedicated send thread plus an 80ms socket send timeout so AAC is not stuck behind video; capture matches more Android audio usages.
@@ -61,6 +63,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 密码变体增加转写：用意思相同的词或短句改写；不再调换词序、加数字或做 o→0 一类替换。
+- 投屏按真实宽高编码（不再用大方块），旋转时重建采集，避免进 B 站横屏把进程打崩。
+- USB 投屏在没有配件/网络共享时回落到 adb reverse。
 - 手机打开投屏界面即扫描电脑。
 - USB 投屏：原按钮走配件或 USB 网络共享；新增 **USB 投屏(adb)**，恢复 `adb reverse`（需 USB 调试）。电脑后台重复做 reverse。
 - 投屏声音：音频独立发送线程，套接字写超时 80ms，避免被视频堵住；系统内录音匹配更多 usage。

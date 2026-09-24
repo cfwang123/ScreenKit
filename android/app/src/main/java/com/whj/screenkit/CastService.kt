@@ -30,18 +30,37 @@ class CastService : Service() {
     private var wantAudio = false
     private var cfgOn = false
     @Volatile private var replacing = false
+    private var lastcfg = 0L
     private val gate = Any()
 
     private val cfgCb = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) {
+            val now = android.os.SystemClock.elapsedRealtime()
+            if (now - lastcfg < 1200) return
+            lastcfg = now
             Handler(Looper.getMainLooper()).postDelayed({
-                Thread({
-                    try { sendOrient() }
-                    catch (ex: Exception) { Log.w("scst", "orient ${ex.message}") }
-                }, "scst-orient").start()
-            }, 250)
+                val cur = this@CastService.q
+                if (cur == null || mp == null) return@postDelayed
+                val dm = metrics()
+                val v = video
+                if (v != null && v.srcW == dm.widthPixels && v.srcH == dm.heightPixels) {
+                    Thread({ try { sendOrient() } catch (_: Exception) { } }, "scst-orient").start()
+                    return@postDelayed
+                }
+                Log.i("scst", "orient recreate ${dm.widthPixels}x${dm.heightPixels}")
+                applyQuality(cur, force = true)
+            }, 500)
         }
         override fun onLowMemory() {}
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        val prev = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            Log.e("scst", "crash ${t.name} ${e.javaClass.simpleName} ${e.message}", e)
+            prev?.uncaughtException(t, e)
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -117,6 +136,7 @@ class CastService : Service() {
             ?: throw IllegalStateException("MediaProjection 为空")
         projection.registerCallback(object : MediaProjection.Callback() {
             override fun onStop() {
+                Log.w("scst", "projection onStop replacing=$replacing")
                 if (replacing) return
                 Handler(Looper.getMainLooper()).post {
                     if (replacing || mp == null) return@post
@@ -135,21 +155,24 @@ class CastService : Service() {
             video = v
         }
         sendHello(v, wantAudio)
-        var audioOk = false
-        if (wantAudio) {
-            try {
-                audio = AudioPipe(projection, s)
-                audioOk = true
-            } catch (ex: Exception) {
-                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "仅画面: ${ex.message}"))
-            }
-        }
         sendBroadcast(
             Intent(ACTION_STAT).setPackage(packageName).putExtra(
                 "msg",
-                "投屏中 ${v.outW}x${v.outH}@${v.fps}" + if (audioOk) " 有声" else " 无声",
+                "投屏中 ${v.outW}x${v.outH}@${v.fps}",
             ),
         )
+        if (wantAudio) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (mp == null) return@postDelayed
+                try {
+                    audio = AudioPipe(projection, s)
+                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 ${v.outW}x${v.outH}@${v.fps} 有声"))
+                } catch (ex: Exception) {
+                    Log.w("scst", "audio ${ex.message}")
+                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 ${v.outW}x${v.outH}@${v.fps} 无声"))
+                }
+            }, 400)
+        }
         if (!cfgOn) {
             registerComponentCallbacks(cfgCb)
             cfgOn = true

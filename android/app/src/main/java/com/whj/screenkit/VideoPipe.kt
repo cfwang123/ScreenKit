@@ -11,8 +11,8 @@ import android.view.Surface
 
 class VideoPipe(
     private val mp: MediaProjection,
-    srcW: Int,
-    srcH: Int,
+    val srcW: Int,
+    val srcH: Int,
     private val dpi: Int,
     q: Quality,
     private val sink: FrameSink,
@@ -30,9 +30,8 @@ class VideoPipe(
 
     init {
         val fit = q.fit(srcW, srcH)
-        val edge = maxOf(fit.first, fit.second)
-        outW = edge
-        outH = edge
+        outW = fit.first
+        outH = fit.second
         val fmt = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, outW, outH)
         fmt.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
         fmt.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
@@ -85,7 +84,8 @@ class VideoPipe(
         var peer = false
         var nframe = 0
         var lastidr = SystemClock.elapsedRealtime()
-        while (running) {
+        try {
+        while (running && !stopped) {
             val now = SystemClock.elapsedRealtime()
             if (now - lastidr > 2000) {
                 lastidr = now
@@ -97,7 +97,8 @@ class VideoPipe(
             }
             val ix = try {
                 enc.dequeueOutputBuffer(info, 80_000)
-            } catch (_: Exception) {
+            } catch (ex: Exception) {
+                android.util.Log.w("scst", "venc dq ${ex.message}")
                 continue
             }
             if (ix == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
@@ -150,6 +151,9 @@ class VideoPipe(
                     break
                 }
             }
+        }
+        } catch (ex: Throwable) {
+            android.util.Log.e("scst", "venc loop ${ex.javaClass.simpleName} ${ex.message}")
         }
         if (peer && !stopped) onDead()
     }
