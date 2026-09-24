@@ -27,9 +27,10 @@ sealed class CastRecvSrv : IDisposable {
 	CastAudioDecoder adec;
 	CastAudioPlay aplay;
 	readonly object declock = new();
-	readonly object nallock = new();
 	readonly AutoResetEvent nalsig = new(false);
-	byte[] pendingnal;
+	readonly ConcurrentQueue<byte[]> vqueue = new();
+	int vqlen;
+	const int VQMAX = 48;
 	readonly ConcurrentQueue<byte[]> aqueue = new();
 	readonly AutoResetEvent asig = new(false);
 	volatile bool decstop;
@@ -129,9 +130,9 @@ sealed class CastRecvSrv : IDisposable {
 			SendJson(new { cmd = "ping", t = now });
 		}
 		if (busy && lastpkt != 0 && now - lastpkt > 15000)
-			Kick();
+			Kick("15s 无包");
 		if (busy && !hadhello && sessstart != 0 && now - sessstart > 2500)
-			Kick();
+			Kick("握手超时");
 		if (now - lastbind >= 3000 || lastbind == 0) {
 			lastbind = now;
 			refreshbind();
@@ -164,7 +165,8 @@ sealed class CastRecvSrv : IDisposable {
 		return $"原始 {src}   编码 {enc}\n{fps}   {br}   音频 {au}   延时 {delay}   解码 {decms} ms";
 	}
 
-	public void Kick() {
+	public void Kick(string why = null) {
+		if (!string.IsNullOrEmpty(why) && busy) Log?.Invoke($"断开 {why}");
 		drop = true;
 		try { curst?.Close(); } catch { }
 		try { curcli?.Close(); } catch { }
@@ -214,7 +216,7 @@ sealed class CastRecvSrv : IDisposable {
 				return;
 			}
 			Log?.Invoke("新连接，断开旧会话");
-			Kick();
+			Kick("新连接");
 			var t0 = Environment.TickCount;
 			while (busy && Environment.TickCount - t0 < 2000)
 				Thread.Sleep(20);
@@ -285,7 +287,7 @@ sealed class CastRecvSrv : IDisposable {
 							OnHello?.Invoke("投屏", "");
 						}
 						if (payload != null) byteacc += payload.Length;
-						lock (nallock) pendingnal = payload;
+						enqueuev(payload);
 						nalsig.Set();
 					}
 					else if (type == CastProto.T_AUDIO) {
@@ -308,6 +310,7 @@ sealed class CastRecvSrv : IDisposable {
 				try { decth.Join(800); } catch { }
 				try { ath.Join(400); } catch { }
 				while (aqueue.TryDequeue(out _)) { }
+				drainv();
 				if (ReferenceEquals(curst, s)) curst = null;
 				resetdec();
 				busy = false;
@@ -369,11 +372,13 @@ sealed class CastRecvSrv : IDisposable {
 		var dh0 = CastProto.Jint(o, "dh");
 		hellofps = CastProto.Jint(o, "fps");
 		hellobr = CastProto.Jint(o, "br");
+		var oldw = encw;
+		var oldh = ench;
 		encw = w;
 		ench = h;
 		var via = CastProto.Jstr(o, "via");
 		Log?.Invoke($"握手 {via} {n} {w}x{h}");
-		resetvdec();
+		if (w <= 0 || h <= 0 || w != oldw || h != oldh) resetvdec();
 		OnHello?.Invoke(n, via);
 		if (dw0 > 0 && dh0 > 0) {
 			srcw = dw0;
@@ -396,15 +401,42 @@ sealed class CastRecvSrv : IDisposable {
 		}
 	}
 
+	void enqueuev(byte[] nal) {
+		if (nal == null || nal.Length == 0) return;
+		if (vqlen >= VQMAX) {
+			drainv();
+			if (!keynal(nal)) return;
+		}
+		vqueue.Enqueue(nal);
+		Interlocked.Increment(ref vqlen);
+	}
+
+	void drainv() {
+		while (vqueue.TryDequeue(out _)) { }
+		vqlen = 0;
+	}
+
+	static bool keynal(byte[] n) {
+		if (n == null || n.Length < 5) return false;
+		for (var i = 0; i < n.Length - 4; i++) {
+			int t;
+			if (n[i] == 0 && n[i + 1] == 0 && n[i + 2] == 1)
+				t = n[i + 3] & 0x1f;
+			else if (n[i] == 0 && n[i + 1] == 0 && n[i + 2] == 0 && n[i + 3] == 1)
+				t = n[i + 4] & 0x1f;
+			else continue;
+			if (t == 5 || t == 7) return true;
+		}
+		return false;
+	}
+
 	void decodeloop() {
 		while (!decstop && !stop && !drop) {
 			nalsig.WaitOne(200);
-			byte[] nal;
-			lock (nallock) {
-				nal = pendingnal;
-				pendingnal = null;
+			while (vqueue.TryDequeue(out var nal)) {
+				Interlocked.Decrement(ref vqlen);
+				if (nal != null) dovideo(nal);
 			}
-			if (nal != null) dovideo(nal);
 		}
 	}
 

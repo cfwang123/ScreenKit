@@ -41,6 +41,8 @@ public partial class CastViewWindow : Window {
 		Title = title;
 	}
 
+	public string PlaceText { get; private set; }
+
 	public void ShowCast() {
 		ShowInTaskbar = true;
 		ShowActivated = true;
@@ -55,19 +57,64 @@ public partial class CastViewWindow : Window {
 		WindowState = WindowState.Normal;
 		Visibility = Visibility.Visible;
 		Show();
-		var wa = SystemParameters.WorkArea;
-		Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
-		Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
-		if (Left < wa.Left) Left = wa.Left;
-		if (Top < wa.Top) Top = wa.Top;
-		Topmost = true;
-		Activate();
-		Focus();
-		try { img.Focus(); } catch { }
+		if (srcw > 0 && srch > 0 && bmp == null) fitbox(srcw, srch);
+		centeronpointer();
+		showbar(true);
+		lbst.Text = CastHost.Recv?.StatText() ?? Loc.T("cast.stat.recv");
+		lbst.Visibility = Visibility.Visible;
+		stattimer.Start();
+		tofront();
+		try { Dispatcher.BeginInvoke(new Action(tofront), DispatcherPriority.Loaded); }
+		catch { }
+	}
+
+	void tofront() {
 		try {
+			Topmost = false;
+			Topmost = true;
+			Activate();
+			Focus();
+			try { img.Focus(); } catch { }
 			var h = new WindowInteropHelper(this).EnsureHandle();
 			ShowWindow(h, 9);
-			SetForegroundWindow(h);
+			SetWindowPos(h, HwndTopmost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+			var fg = GetForegroundWindow();
+			var ft = GetWindowThreadProcessId(fg, out _);
+			var ct = GetCurrentThreadId();
+			if (ft != 0 && ft != ct) AttachThreadInput(ct, ft, true);
+			var ok = SetForegroundWindow(h);
+			if (ft != 0 && ft != ct) AttachThreadInput(ct, ft, false);
+			GetWindowRect(h, out var rc);
+			PlaceText = $"hwnd={h.ToInt64():X} fg={ok} wr={rc.Left},{rc.Top} {rc.Right - rc.Left}x{rc.Bottom - rc.Top}";
+		}
+		catch (Exception ex) { PlaceText = ex.Message; }
+	}
+
+	void centeronpointer() {
+		workarea(out var l, out var t, out var aw, out var ah);
+		Left = l + Math.Max(0, (aw - Width) / 2);
+		Top = t + Math.Max(0, (ah - Height) / 2);
+		if (Left < l) Left = l;
+		if (Top < t) Top = t;
+	}
+
+	void workarea(out double l, out double t, out double w, out double h) {
+		var wa = SystemParameters.WorkArea;
+		l = wa.Left;
+		t = wa.Top;
+		w = wa.Width;
+		h = wa.Height;
+		try {
+			if (!GetCursorPos(out var pt)) return;
+			var scr = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(pt.X, pt.Y));
+			var r = scr.WorkingArea;
+			var hwnd = new WindowInteropHelper(this).Handle;
+			var sc = ScreenDpi.WindowScale(hwnd);
+			if (sc < 0.25) sc = 1;
+			l = r.Left / sc;
+			t = r.Top / sc;
+			w = r.Width / sc;
+			h = r.Height / sc;
 		}
 		catch { }
 	}
@@ -88,6 +135,7 @@ public partial class CastViewWindow : Window {
 		srch = dh;
 		layoutcrop();
 		if (bmp != null) fitwin(true);
+		else if (dw > 0 && dh > 0) fitbox(dw, dh);
 	}
 
 	public void Push(byte[] px, int w, int h, int st) {
@@ -131,21 +179,23 @@ public partial class CastViewWindow : Window {
 		img.Margin = new Thickness(-ox, -oy, 0, 0);
 	}
 
+	void fitbox(double w, double h) {
+		if (WindowState == WindowState.Maximized || full) return;
+		if (w <= 1 || h <= 1) return;
+		workarea(out var l, out var t, out var aw, out var ah);
+		var s = Math.Min(1, Math.Min(aw * 0.85 / w, ah * 0.85 / h));
+		Width = Math.Max(240, w * s);
+		Height = Math.Max(180, h * s);
+		Left = l + Math.Max(0, (aw - Width) / 2);
+		Top = t + Math.Max(0, (ah - Height) / 2);
+	}
+
 	void fitwin(bool force) {
 		if (!force && sized) return;
 		if (WindowState == WindowState.Maximized || full) return;
 		if (pimg.Width <= 1 || pimg.Height <= 1) return;
-		var w = pimg.Width;
-		var h = pimg.Height;
-		var wa = SystemParameters.WorkArea;
-		var maxw = wa.Width * 0.85;
-		var maxh = wa.Height * 0.85;
-		var s = Math.Min(1, Math.Min(maxw / w, maxh / h));
-		Width = Math.Max(240, w * s);
-		Height = Math.Max(180, h * s);
+		fitbox(pimg.Width, pimg.Height);
 		sized = true;
-		Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
-		Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
 	}
 
 	void applychrome() {
@@ -268,9 +318,45 @@ public partial class CastViewWindow : Window {
 		e.Handled = true;
 	}
 
+	static readonly IntPtr HwndTopmost = new(-1);
+	const uint SWP_NOSIZE = 0x0001;
+	const uint SWP_NOMOVE = 0x0002;
+	const uint SWP_SHOWWINDOW = 0x0040;
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct NativePoint {
+		public int X, Y;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct NativeRect {
+		public int Left, Top, Right, Bottom;
+	}
+
 	[DllImport("user32.dll")]
 	static extern bool SetForegroundWindow(IntPtr h);
 
 	[DllImport("user32.dll")]
 	static extern bool ShowWindow(IntPtr h, int cmd);
+
+	[DllImport("user32.dll")]
+	static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
+	[DllImport("user32.dll")]
+	static extern IntPtr GetForegroundWindow();
+
+	[DllImport("user32.dll")]
+	static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+
+	[DllImport("user32.dll")]
+	static extern bool AttachThreadInput(uint a, uint b, bool attach);
+
+	[DllImport("kernel32.dll")]
+	static extern uint GetCurrentThreadId();
+
+	[DllImport("user32.dll")]
+	static extern bool GetCursorPos(out NativePoint p);
+
+	[DllImport("user32.dll")]
+	static extern bool GetWindowRect(IntPtr h, out NativeRect r);
 }

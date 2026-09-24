@@ -92,7 +92,7 @@ static class CastHost {
 					view.SetName(n, via);
 					view.ShowCast();
 					log($"开窗 {view.Title} vis={view.IsVisible} top={view.Topmost} " +
-						$"{view.Left:0},{view.Top:0} {view.Width:0}x{view.Height:0}");
+						$"{view.Left:0},{view.Top:0} {view.Width:0}x{view.Height:0} {view.PlaceText}");
 				}
 				catch (Exception ex) { log($"开窗失败: {ex.Message}"); }
 			}, prio: DispatcherPriority.Send);

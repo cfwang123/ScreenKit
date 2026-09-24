@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Wi‑Fi screencast: the viewer is forced topmost on the monitor under the mouse (not only the primary WorkArea), with a visible title bar. Duplicate hello no longer resets the H.264 decoder; video NALs are queued in order so Wi‑Fi is not stuck at 1 fps / a black window.
 - Screencast viewer: LibUsb never runs in the main process (that killed ScreenKit when a phone was plugged in, so the viewer never appeared). USB accessory uses a helper that requests AOA **and** bridges bulk to `127.0.0.1:19519`. Probe TCP connects no longer kick an active session. Auto-close no longer sets `hidebyuser`, so the next hello can show the window again.
 - USB adb screencast: if 19519 is held by a dead listener, bind `127.0.0.1` (wins adb reverse) and each LAN IP (wins Wi‑Fi). A still-open TCP is a real session, not a probe. Phone probe uses a 1.5s `127.0.0.1` ping.
 - Phone screencast keeps the selected quality in landscape: the encoder is rebound to the new size (same VirtualDisplay) instead of cropping a portrait frame. If rebind fails, crop is still the fallback.
@@ -75,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- WiFi 投屏已握手却看不见窗：画面窗强制置顶到鼠标所在屏（不再只居中主屏），并显示标题栏。手机连发两次 hello 不再拆掉解码器；视频按序排队，避免只剩 1fps 的黑窗。
 - 投屏窗反复不弹出：主进程不再调用 LibUsb（插着手机点 USB配件会把 ScreenKit 打崩）。配件助手会请求 AOA **并**把 bulk 桥到 `127.0.0.1:19519`。探测 TCP（立刻断开）不再踢掉正在投屏的会话。自动关窗不再记成用户关闭，下次 hello 还能弹出。
 - USB(adb) 投屏不弹窗：19519 被已死进程的幽灵监听占着，新进程独占绑定失败等于没在听。失败时改绑更具体的 `127.0.0.1`（adb）和本机每个网卡 IP（WiFi）。探测短连不算正式会话。
 - 手机投屏横屏保持所选画质：旋转时换编码器尺寸（不销毁 VirtualDisplay），不再从竖屏画面里裁一小条。失败仍回落裁切。
