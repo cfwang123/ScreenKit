@@ -389,6 +389,11 @@ public partial class MainWindow : Window {
 			setstatus(Loc.T("st.sendfile_ok", port));
 			syncsfstatus();
 		}
+		catch (System.Net.Sockets.SocketException ex) when (
+			ex.SocketErrorCode == System.Net.Sockets.SocketError.AddressAlreadyInUse) {
+			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
+			setstatus(Loc.T("st.sendfile_busy", port.ToString()));
+		}
 		catch (Exception ex) {
 			setstatus(Loc.T("st.sendfile_fail", ex.Message));
 		}

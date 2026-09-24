@@ -159,6 +159,7 @@ public sealed partial class SendFileServer : IDisposable {
 		}
 		if (t != null) {
 			try { t.Stop(); } catch { }
+			try { t.Server.Close(); } catch { }
 		}
 		if (u != null) {
 			try { u.Close(); } catch { }
@@ -182,15 +183,16 @@ public sealed partial class SendFileServer : IDisposable {
 		try {
 			l6 = new TcpListener(IPAddress.IPv6Any, port);
 			l6.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-			l6.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+			l6.Server.ExclusiveAddressUse = true;
 			l6.Start();
 			return l6;
 		}
 		catch {
 			try { l6?.Stop(); } catch { }
+			try { l6?.Server.Close(); } catch { }
 		}
 		var l = new TcpListener(IPAddress.Any, port);
-		l.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+		l.Server.ExclusiveAddressUse = true;
 		l.Start();
 		return l;
 	}
@@ -220,11 +222,15 @@ public sealed partial class SendFileServer : IDisposable {
 	void serve(TcpClient c) {
 		try {
 			c.NoDelay = true;
-			c.ReceiveTimeout = 120000;
-			c.SendTimeout = 120000;
+			c.ReceiveTimeout = 8000;
+			c.SendTimeout = 30000;
 			var ns = c.GetStream();
 			var ctx = readctx(ns, c.Client.RemoteEndPoint as IPEndPoint);
-			if (ctx == null) return;
+			if (ctx == null) {
+				writeraw(ns, 400, "Bad Request");
+				return;
+			}
+			try { c.ReceiveTimeout = 120000; } catch { }
 			handle(ctx);
 			try { ctx.Response.Close(); } catch { }
 		}
@@ -242,19 +248,29 @@ public sealed partial class SendFileServer : IDisposable {
 			var r = ns.Read(buf, n, Math.Min(1024, MAXHDR - n));
 			if (r <= 0) return null;
 			n += r;
+			if (n >= 1 && buf[0] == 0x16)
+				return null;
+			if (n >= 4 && !httplike(buf, n))
+				return null;
 			end = findhdrend(buf, n);
 			if (end >= 0) break;
 		}
 		if (end < 0) return null;
 		var text = Encoding.ASCII.GetString(buf, 0, end);
-		var lines = text.Split(new[] { "\r\n" }, StringSplitOptions.None);
+		var lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
 		if (lines.Length == 0) return null;
 		var parts = lines[0].Split(new[] { ' ' }, 3, StringSplitOptions.RemoveEmptyEntries);
 		if (parts.Length < 2) return null;
 		var method = parts[0];
 		var target = parts[1];
 		Uri uri;
-		try { uri = new Uri("http://localhost" + (target.StartsWith("/") ? target : "/" + target)); }
+		try {
+			if (target.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+				|| target.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+				uri = new Uri(target);
+			else
+				uri = new Uri("http://localhost" + (target.StartsWith("/") ? target : "/" + target));
+		}
 		catch { return null; }
 		var headers = new SfHeaders();
 		for (var i = 1; i < lines.Length; i++) {
@@ -292,11 +308,39 @@ public sealed partial class SendFileServer : IDisposable {
 	}
 
 	static int findhdrend(byte[] b, int n) {
-		for (var i = 0; i + 3 < n; i++) {
-			if (b[i] == 13 && b[i + 1] == 10 && b[i + 2] == 13 && b[i + 3] == 10)
+		for (var i = 0; i + 1 < n; i++) {
+			if (i + 3 < n && b[i] == 13 && b[i + 1] == 10 && b[i + 2] == 13 && b[i + 3] == 10)
 				return i + 4;
+			if (b[i] == 10 && b[i + 1] == 10)
+				return i + 2;
 		}
 		return -1;
+	}
+
+	static bool httplike(byte[] b, int n) {
+		if (n < 3) return true;
+		return startswith(b, n, "GET ") || startswith(b, n, "POST ") || startswith(b, n, "HEAD ")
+			|| startswith(b, n, "PUT ") || startswith(b, n, "DELETE ") || startswith(b, n, "OPTIONS ")
+			|| startswith(b, n, "PATCH ");
+	}
+
+	static bool startswith(byte[] b, int n, string s) {
+		if (n < s.Length) return false;
+		for (var i = 0; i < s.Length; i++) {
+			if (b[i] != (byte)s[i] && b[i] != (byte)char.ToLowerInvariant(s[i]))
+				return false;
+		}
+		return true;
+	}
+
+	static void writeraw(Stream ns, int status, string reason) {
+		try {
+			var line = $"HTTP/1.1 {status} {reason}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+			var hb = Encoding.ASCII.GetBytes(line);
+			ns.Write(hb, 0, hb.Length);
+			ns.Flush();
+		}
+		catch { }
 	}
 
 	static SfQuery parsequery(string q) {
@@ -994,6 +1038,7 @@ sealed class SfOut : Stream {
 		200 => "OK",
 		204 => "No Content",
 		302 => "Found",
+		400 => "Bad Request",
 		401 => "Unauthorized",
 		403 => "Forbidden",
 		404 => "Not Found",
