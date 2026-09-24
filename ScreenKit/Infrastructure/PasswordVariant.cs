@@ -8,29 +8,36 @@ sealed class PasswordVariantRow {
 	public string Note { get; set; } = "";
 }
 
-/// <summary>密码生成器：一句种子密码 → LLM 变体（转写、译词、大小写）。</summary>
+/// <summary>密码生成器：一句种子密码 → LLM 变体（多语译音、少量转写、大小写）。</summary>
 static class PasswordVariant {
 	public const int MinCount = 4;
 	public const int MaxCount = 20;
 	public const int DefaultCount = 10;
+
+	static readonly string OtherLangs = string.Join(",",
+		Array.FindAll(WordLex.Codes, c => !string.Equals(c, "en", StringComparison.OrdinalIgnoreCase)));
 
 	static readonly string SysPrompt =
 		"You invent memorable password variants from one seed phrase or password. " +
 		"Reply with ONLY a JSON array, no markdown, no commentary. " +
 		"Each element: {\"pw\":\"variant\",\"note\":\"short reason\"}. " +
 		"Never repeat the seed unchanged. Each pw must be distinct. " +
-		"Use several of these techniques, mixed: " +
-		"paraphrase: rewrite the same meaning with different words or a short phrase " +
-		"(synonyms, idioms, compact sentences), then join as CamelCase or concatenated ASCII; " +
-		"include several paraphrase-based variants; " +
-		"translate word parts into other languages then ASCII-romanize (pinyin, romaji, Revised Romanization, etc.); " +
-		"mix case (CamelCase). " +
+		"MOST variants (almost all) MUST be translations into languages OTHER than English, " +
+		"then spelled with ASCII romanization (English letters only), CamelCase or concatenated. " +
+		$"Prefer many different languages from: {OtherLangs}. " +
+		"zh latin = Hanyu Pinyin without tones; ja = Hepburn romaji; ko = Revised Romanization ASCII; " +
+		"ru/ar/hi/th native scripts become ASCII; lzh = literary Chinese pinyin; " +
+		"grc/la/sa/hbo = ASCII transliteration without diacritics. " +
+		"You MAY paraphrase the meaning in that language (same idea, natural wording), then romanize. " +
+		"At most ONE English paraphrase. Do not fill the list with English synonyms. " +
+		"pw is the romanized spelling only, never native-script characters. " +
+		"mix case (CamelCase) is ok. " +
 		"Keep each pw 8–32 characters when possible; ASCII letters only. " +
-		"Do not reorder the seed's words. " +
+		"Do not reorder the seed's words as the only change. " +
 		"Do not add digits, and do not substitute letters with digits (no o→0 e→3 i→1 a→4 s→5). " +
 		"Do not add punctuation or symbols (!@#$%^&*-_=+?~ and similar). " +
 		"No spaces (concatenate or CamelCase); no newlines. " +
-		"note: one short phrase in the same language as the seed (Chinese seed → Chinese note).";
+		"note: language name plus a short gloss in the same language as the seed.";
 
 	public static List<PasswordVariantRow> Generate(OcrOptions o, string seed, int count = DefaultCount,
 		LlmEndpoint ep = null, CancellationToken ct = default) {

@@ -28,12 +28,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (paraphrase with same-meaning words/short phrases, translate, mix case; no extra symbols, digits, leetspeak, or word-reordering). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
+- Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (mostly other-language translations spelled in ASCII romanization, mix case; at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
 - LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
 
 #### Changed
 
-- Password variants also paraphrase with same-meaning words and short phrases; they no longer reorder words, add digits, or use leetspeak.
+- Password variants mostly translate into other languages then ASCII-romanize; at most one English paraphrase. They no longer reorder words, add digits, or use leetspeak.
 - Phone screencast failures show a short “连接失败” toast/status (no abstract/IOException dump).
 - Viewer title is **投屏 · wifi/usb/usb(adb)**; the phone status shows the same type. The IP box is filled with the connected host.
 - Viewer title stays **投屏 · phone**, and the window is shown on the first video/audio packet (not only after JSON hello). Hello is sent before the encoder starts.
@@ -60,12 +60,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），得到转写（意思相同的词或短句）、译词、大小写等变体（不加符号、不加数字、不做 o→0、不调换词序）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
+- 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），多把意思译成其它语言再用拼音 / 罗马字拼写（可大小写；英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
 - 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
 
 #### 变更
 
-- 密码变体增加转写：用意思相同的词或短句改写；不再调换词序、加数字或做 o→0 一类替换。
+- 密码变体以其它语言译音（拼音 / 罗马字）为主，英文同义最多一条；不再调换词序、加数字或做 o→0 一类替换。
 - 投屏连接失败只提示「连接失败」，不再把 abstract/IOException 打在状态栏。
 - 画面窗标题为 **投屏 · wifi/usb/usb(adb)**；手机状态同样显示类型。手动 IP 自动填入连上的电脑地址。
 - 画面窗标题为 **投屏 · 手机型号**；收到第一包视频/音频就打开（不等 JSON hello）。hello 在编码器启动前先发。
