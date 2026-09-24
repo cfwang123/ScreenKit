@@ -91,7 +91,6 @@ static class CastHost {
 		if (Opt == null || Opt.CastRecvEnabled) {
 			try {
 				Recv.Start();
-				Usb.Start();
 			}
 			catch (Exception ex) { log(ex.Message); }
 		}
@@ -169,7 +168,6 @@ static class CastHost {
 		if (!Started) Start();
 		if (Recv != null && Recv.Running) return;
 		Recv.Start();
-		Usb?.Start();
 		if (Opt != null) Opt.CastRecvEnabled = true;
 		SaveOpt();
 	}

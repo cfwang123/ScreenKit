@@ -104,12 +104,22 @@ class CastActivity : AppCompatActivity() {
             IntentFilter(ACTION_USB_PERM),
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
+        maybeTestIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleUsb(intent)
+        maybeTestIntent(intent)
+    }
+
+    private fun maybeTestIntent(intent: Intent?) {
+        val ip = intent?.getStringExtra("scst_ip")?.trim().orEmpty()
+        if (ip.isEmpty()) return
+        b.eip.setText(ip)
+        if (intent?.getBooleanExtra("scst_go", false) == true)
+            b.eip.post { startManual() }
     }
 
     private val usbPermRec = object : BroadcastReceiver() {

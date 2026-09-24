@@ -16,7 +16,6 @@ sealed class CastUsbHost : IDisposable {
 
 	Thread th;
 	volatile bool stop;
-	int lastaoa;
 	public Action<string> Log;
 	public CastRecvSrv Recv;
 	public bool Connected { get; private set; }
@@ -39,10 +38,12 @@ sealed class CastUsbHost : IDisposable {
 	}
 
 	void tick() {
-		if (tryopen(GOOGLE_VID, AOA_PID) || tryopen(GOOGLE_VID, AOA_ADB_PID)) return;
-		if (Environment.TickCount - lastaoa < 4000 && lastaoa != 0) return;
-		lastaoa = Environment.TickCount;
-		tryaoa();
+		try {
+			if (tryopen(GOOGLE_VID, AOA_PID) || tryopen(GOOGLE_VID, AOA_ADB_PID)) return;
+		}
+		catch (Exception ex) {
+			status = $"USB: {ex.Message}";
+		}
 	}
 
 	bool tryopen(int vid, int pid) {

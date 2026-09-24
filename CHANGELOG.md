@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - USB screencast uses AOA accessory, or USB tethering (network share) if no accessory. No USB debugging.
 - Wi‑Fi screencast: create VirtualDisplay on the main thread and send SPS/PPS first so the PC is not stuck on a black window.
 - Wi‑Fi screencast no longer freezes on a still frame: the phone encoder no longer waits on TCP, and the PC reads packets independently of decode.
+- PC no longer polls LibUsb on every USB device at startup (that could kill ScreenKit while a phone is plugged in).
 - Wi‑Fi screencast no longer freezes after ~10s: discovery/`adb` and ping left the UI thread; display keeps only the latest frame.
 - Screencast settings and view windows use a dedicated monitor/cast icon.
 - Android **传文件** and **投屏** launchers use separate task stacks so both can stay open.
@@ -51,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - USB 投屏：AOA 配件，或通知栏「USB 网络共享」；不用 USB 调试。
 - WiFi 投屏黑屏：主线程创建 VirtualDisplay，并先发 SPS/PPS。
 - WiFi 投屏停在某一帧：手机编码不再等 TCP 写完；电脑收包与解码分开。
+- 电脑启动时不再用 LibUsb 枚举所有 USB 设备（插着手机时可能把 ScreenKit 打崩）。
 - WiFi 投屏十几秒后画面卡死：发现/`adb` 与 ping 移出 UI 线程，显示只保留最新一帧。
 - 投屏设置窗与画面窗使用独立显示器/投屏图标。
 - 安卓「传文件」与「投屏」分属独立任务栈，可同时打开。
