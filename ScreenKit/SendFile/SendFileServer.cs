@@ -1031,6 +1031,19 @@ public sealed partial class SendFileServer : IDisposable {
 		return s == "1" || s.Equals("true", StringComparison.OrdinalIgnoreCase) || s.Equals("yes", StringComparison.OrdinalIgnoreCase);
 	}
 
+	static bool flag(JsonObject o, string key) {
+		if (o == null || string.IsNullOrEmpty(key)) return false;
+		try {
+			if (!o.TryGetPropertyValue(key, out var n) || n == null) return false;
+			if (n is JsonValue jv) {
+				try { return jv.GetValue<bool>(); } catch { }
+				return truthy(jv.ToString());
+			}
+		}
+		catch { }
+		return false;
+	}
+
 	static bool isget(string m) => string.Equals(m, "GET", StringComparison.OrdinalIgnoreCase);
 	static bool ispost(string m) => string.Equals(m, "POST", StringComparison.OrdinalIgnoreCase);
 	static bool ishead(string m) => string.Equals(m, "HEAD", StringComparison.OrdinalIgnoreCase);

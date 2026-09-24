@@ -19,6 +19,8 @@ input[type=password]:focus{outline:none;border-color:#b8c6ff;box-shadow:0 0 0 3p
 .login .mark .ico{width:26px;height:26px}
 .login h1{margin:0 0 8px;font-size:22px;font-weight:650;text-align:center}
 .login p{margin:0 0 18px;text-align:center;font-size:14px}
+.keep{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0 0;font-size:14px;color:#5c6370}
+.keep input{width:18px;height:18px;margin:0}
 .login .go{width:100%;height:48px;margin-top:14px;border-radius:12px;background:#6b8cff;
 	color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
 .login .go .ico{width:18px;height:18px}

@@ -11,6 +11,7 @@
 	<h1 id="ltitle">文件管理</h1>
 	<p id="lhint" class="muted">登录后可上传、新建、删除。下载只需正确链接。</p>
 	<input id="epass" type="password" autocomplete="current-password"/>
+	<label class="keep"><input id="ekeep" type="checkbox"/> <span id="lkeep">保持登录</span></label>
 	<button id="blogin" type="button">登录</button>
 	<p id="lerr" class="err" hidden></p>
 	<p class="switch"><a href="/m">手机版</a></p>
@@ -26,6 +27,7 @@
 			<button id="bup" type="button">上传</button>
 			<button id="bmkdir" type="button">新建文件夹</button>
 			<button id="bref" type="button">刷新</button>
+			<button id="bzip" type="button">打包下载</button>
 			<button id="bdel" type="button" class="danger" hidden>删除所选</button>
 			<button id="bout" type="button" class="ghost">退出</button>
 		</div>

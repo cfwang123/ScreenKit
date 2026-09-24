@@ -25,8 +25,16 @@ window.sfweb = (function(){
 		on("bup", "click", function(){ el("efile").click(); });
 		on("bmkdir", "click", mkdir);
 		on("bref", "click", load);
+		on("bzip", "click", zipcur);
 		on("bdel", "click", delsel);
 		on("efile", "change", onfiles);
+		var keep = el("ekeep");
+		if (keep) {
+			try { keep.checked = localStorage.getItem("sk_web_keep") === "1"; } catch (e) {}
+			keep.addEventListener("change", function(){
+				try { localStorage.setItem("sk_web_keep", keep.checked ? "1" : "0"); } catch (e) {}
+			});
+		}
 		var p = el("epass");
 		if (p) p.addEventListener("keydown", function(e){
 			if (e.key === "Enter") login();
@@ -54,7 +62,9 @@ window.sfweb = (function(){
 			? "登录后可上传、新建、删除。下载只需正确链接。"
 			: "Sign in to upload or manage. A correct download URL is enough.");
 		settxt("blogin", zh ? "登录" : "Sign in");
+		settxt("lkeep", zh ? "保持登录" : "Stay signed in");
 		setph("epass", zh ? "登录密码" : "Password");
+		settxt("bzip", zh ? (t.mobile ? "打包" : "打包下载") : (t.mobile ? "Zip" : "Download zip"));
 		settxt("btitle", zh ? (t.mobile ? "文件" : "文件管理") : "Files");
 		settxt("bup", zh ? "上传" : "Upload");
 		settxt("bmkdir", zh ? (t.mobile ? "新建" : "新建文件夹") : (t.mobile ? "New" : "New folder"));
@@ -81,11 +91,14 @@ window.sfweb = (function(){
 	function login() {
 		var pass = (el("epass") && el("epass").value) || "";
 		if (!pass) { showerr("lerr", zh ? "请输入密码" : "Enter the password"); return; }
-		api("POST", "/api/web/login", {password: pass}, function(ok, data){
+		var keep = !!(el("ekeep") && el("ekeep").checked);
+		try { localStorage.setItem("sk_web_keep", keep ? "1" : "0"); } catch (e) {}
+		api("POST", "/api/web/login", {password: pass, keep: keep}, function(ok, data){
 			if (!ok) {
 				showerr("lerr", (data && data.data) || (zh ? "密码错误" : "Wrong password"));
 				return;
 			}
+			if (data && data.token) savetoken(data.token, keep || !!(data && data.keep));
 			if (el("epass")) el("epass").value = "";
 			hide("lerr");
 			me();
@@ -186,9 +199,15 @@ window.sfweb = (function(){
 		ct.textContent = when(it.mtime);
 		var ca = document.createElement("td");
 		ca.className = "acts";
-		if (!it.dir) {
+		if (it.dir) {
+			ca.appendChild(btna(zh ? "进入" : "Open", function(){ enter(it.path); }));
+			ca.appendChild(btna(zh ? "打包" : "Zip", function(){ zipone(it.path); }));
+			tr.addEventListener("dblclick", function(){ enter(it.path); });
+		}
+		else {
 			ca.appendChild(link(zh ? "下载" : "Download", dlurl(it.path), true));
 			ca.appendChild(btna(zh ? "复制链接" : "Copy link", function(){ copylink(it.path); }));
+			ca.appendChild(btna(zh ? "打包" : "Zip", function(){ zipone(it.path); }));
 		}
 		ca.appendChild(btna(zh ? "改名" : "Rename", function(){ rename(it); }));
 		ca.appendChild(btna(zh ? "删除" : "Delete", function(){ delone(it.path); }, true));
@@ -220,9 +239,15 @@ window.sfweb = (function(){
 		li.appendChild(rowel);
 		var acts = document.createElement("div");
 		acts.className = "acts";
-		if (!it.dir) {
+		if (it.dir) {
+			acts.appendChild(btna(zh ? "进入" : "Open", function(){ enter(it.path); }, false, "i-enter"));
+			acts.appendChild(btna(zh ? "打包" : "Zip", function(){ zipone(it.path); }, false, "i-zip"));
+			kind.addEventListener("click", function(){ enter(it.path); });
+		}
+		else {
 			acts.appendChild(link(zh ? "下载" : "Download", dlurl(it.path), true, "i-down"));
 			acts.appendChild(btna(zh ? "复制" : "Copy", function(){ copylink(it.path); }, false, "i-copy"));
+			acts.appendChild(btna(zh ? "打包" : "Zip", function(){ zipone(it.path); }, false, "i-zip"));
 		}
 		acts.appendChild(btna(zh ? "改名" : "Rename", function(){ rename(it); }, false, "i-edit"));
 		acts.appendChild(btna(zh ? "删除" : "Delete", function(){ delone(it.path); }, true, "i-trash"));
@@ -243,6 +268,32 @@ window.sfweb = (function(){
 			});
 		}
 		return a;
+	}
+
+	function enter(p) {
+		path = p || "";
+		load();
+	}
+
+	function zipurl(rels) {
+		if (!rels || !rels.length) return "/api/web/zip?path=";
+		if (rels.length === 1) return "/api/web/zip?path=" + enc(rels[0]);
+		return "/api/web/zip?paths=" + enc(rels.join("|"));
+	}
+
+	function zipone(p) {
+		window.location.href = zipurl([p || ""]);
+	}
+
+	function zipcur() {
+		var boxes = document.querySelectorAll("#rows input[type=checkbox]:checked");
+		var rels = [];
+		for (var i = 0; i < boxes.length; i++) {
+			var p = boxes[i].getAttribute("data-path") || "";
+			if (p) rels.push(p);
+		}
+		if (!rels.length) rels.push(path || "");
+		window.location.href = zipurl(rels);
 	}
 
 	function mkdir() {
@@ -359,7 +410,8 @@ window.sfweb = (function(){
 				var j = parse(txt);
 				var ok = r.ok && j && j.code === 100;
 				var payload = pick(ok, j, r.status, txt);
-				if (ok && payload && payload.token) savetoken(payload.token);
+				if (ok && payload && payload.token)
+					savetoken(payload.token, !!(payload.keep));
 				done(ok, payload);
 			});
 		}).catch(function(e){
@@ -390,14 +442,21 @@ window.sfweb = (function(){
 	function loadtoken() {
 		if (token) return token;
 		try { token = sessionStorage.getItem("sk_web") || ""; } catch (e) {}
+		if (token) return token;
+		try { token = localStorage.getItem("sk_web") || ""; } catch (e) {}
 		return token;
 	}
 
-	function savetoken(t) {
+	function savetoken(t, keep) {
 		token = t || "";
 		try {
 			if (token) sessionStorage.setItem("sk_web", token);
 			else sessionStorage.removeItem("sk_web");
+		}
+		catch (e) {}
+		try {
+			if (token && keep) localStorage.setItem("sk_web", token);
+			else localStorage.removeItem("sk_web");
 		}
 		catch (e) {}
 	}

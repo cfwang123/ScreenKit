@@ -3265,6 +3265,19 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 					return 1;
 				}
 			}
+			SendFileOps.Mkdir("sub");
+			using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("in-sub")))
+				SendFileOps.SaveStream("sub/a.txt", ms);
+			var zipBytes = Task.Run(() => http.GetByteArrayAsync(baseUrl + "/api/web/zip?path=sub")).GetAwaiter().GetResult();
+			if (zipBytes == null || zipBytes.Length < 4 || zipBytes[0] != (byte)'P' || zipBytes[1] != (byte)'K') {
+				Err("sendfile-web: zip 不是 PK");
+				return 1;
+			}
+			var keepLogin = postjson(http, baseUrl + "/api/web/login", "{\"password\":\"webtest\",\"keep\":true}");
+			if (keepLogin == null || keepLogin.IndexOf("\"keep\":true", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: keep 登录失败: " + keepLogin);
+				return 1;
+			}
 			Out("sendfile-web ok");
 			return 0;
 		}

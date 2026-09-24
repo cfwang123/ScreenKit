@@ -914,7 +914,8 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 | GET | `/f/<相对路径>` | 公开下载（无需登录；路径须正好落在 sendfile/） |
 | GET | `/d?p=` | 公开下载（查询串） |
 | GET | `/apk` | 本机 APK 二进制（无需配对；主界面「安装到手机」二维码） |
-| POST | `/api/web/login` | body `{password}` → Cookie `sk_web` + `{token}` |
+| POST | `/api/web/login` | body `{password, keep?}` → Cookie `sk_web` + `{token}`。`keep=true` 时 Cookie 30 天并落盘 |
+| GET/POST | `/api/web/zip?path=` · `?paths=a\|b` | 打包 zip 下载（需登录；目录或文件；多路径用 `\|`） |
 | POST | `/api/web/logout` | 清会话 |
 | GET | `/api/web/me` | 是否已登录 |
 | GET | `/api/web/list?path=` | 列出（需登录） |

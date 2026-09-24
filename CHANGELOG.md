@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web manager: `[hidden]` now wins over `#main{display:flex}`, so the login card and file table no longer stack. CJK font prefers YaHei.
 - File transfer: if the configured HTTP port is a leftover listen (process gone), bind the next free port, save it, and show that error instead of “service off”.
 - File-transfer HTTP and the web manager now share the HTTP API port (`1224` by default). There is no separate sendfile HTTP port. UDP discovery still uses `17531`.
+- Web manager: **Stay signed in** (30-day cookie, remembered across restarts). Folders have **Open** and **Zip**; the toolbar can zip the current folder or the selection.
 - Phone web manager (`/m`) is a white layout with light accents and SVG icons on every button.
 - Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (mostly other-language translations spelled in ASCII romanization, mix case; at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
 - LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
@@ -83,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页管理：`[hidden]` 不再被 `#main{display:flex}` 盖掉，登录框和文件表不会叠在一起；中文字体优先微软雅黑。
 - 文件传输：配置端口若是残留监听（进程已死），自动改绑后面的空闲端口并写入配置；网页窗显示真实原因，不再一律说「未启用」。
 - 文件传输 HTTP 与网页管理改为和 HTTP API 共用端口（默认 `1224`），不再单独占口。UDP 发现仍是 `17531`。
+- 网页管理：登录可勾选 **保持登录**（Cookie 30 天，进程重启仍有效）；文件夹可 **进入**、**打包 zip**；工具栏可打包当前目录或所选。
 - 手机网页管理（`/m`）改为白底、淡色点缀，按钮均带 SVG 图标。
 - 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），多把意思译成其它语言再用拼音 / 罗马字拼写（可大小写；英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
 - 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。

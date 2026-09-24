@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 using System.Text.Json.Nodes;
 
@@ -109,6 +110,14 @@ public sealed partial class SendFileServer {
 			handlewebrename(ctx);
 			return;
 		}
+		if (path is "/api/web/zip") {
+			if (!isget(method) && !ishead(method) && !ispost(method)) {
+				writejson(ctx, 405, err(805, "zip 仅支持 GET/POST"));
+				return;
+			}
+			handlewebzip(ctx, ishead(method));
+			return;
+		}
 		writejson(ctx, 404, err(404, "未知路径"));
 	}
 
@@ -117,17 +126,75 @@ public sealed partial class SendFileServer {
 		var pass = str(body, "password");
 		if (string.IsNullOrEmpty(pass))
 			pass = ctx.Request.QueryString["password"] ?? "";
-		var token = Web.Login(pass);
+		var keep = flag(body, "keep") || truthy(ctx.Request.QueryString["keep"]);
+		var token = Web.Login(pass, keep);
 		if (string.IsNullOrEmpty(token)) {
 			writejson(ctx, 401, err(401, "密码错误"));
 			return;
 		}
 		var res = ctx.Response;
-		res.Headers["Set-Cookie"] = SendFileWeb.SetCookie(token);
+		res.Headers["Set-Cookie"] = SendFileWeb.SetCookie(token, keep);
 		writejson(ctx, 200, ok(new JsonObject {
 			["ok"] = true,
 			["token"] = token,
+			["keep"] = keep,
 		}));
+	}
+
+	void handlewebzip(SfCtx ctx, bool head) {
+		var rels = zippaths(ctx);
+		string tmp = null;
+		try {
+			SendFileOps.ZipToTemp(rels, out tmp, out var zipName);
+			if (string.IsNullOrEmpty(tmp) || !File.Exists(tmp)) {
+				writejson(ctx, 200, err(410, "打包失败"));
+				return;
+			}
+			var fi = new FileInfo(tmp);
+			var res = ctx.Response;
+			res.StatusCode = 200;
+			res.ContentType = "application/zip";
+			res.ContentLength64 = fi.Length;
+			res.Headers["Content-Disposition"] = $"attachment; filename*=UTF-8''{Uri.EscapeDataString(zipName)}";
+			if (head) {
+				try { res.Close(); } catch { }
+				return;
+			}
+			using (var fs = new FileStream(tmp, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+				var buf = new byte[64 * 1024];
+				int n;
+				while ((n = fs.Read(buf, 0, buf.Length)) > 0)
+					res.OutputStream.Write(buf, 0, n);
+			}
+			try { res.OutputStream.Close(); } catch { }
+			try { res.Close(); } catch { }
+		}
+		catch (InvalidOperationException ex) {
+			writejson(ctx, 200, err(410, ex.Message));
+		}
+		finally {
+			try { if (tmp != null && File.Exists(tmp)) File.Delete(tmp); } catch { }
+		}
+	}
+
+	static List<string> zippaths(SfCtx ctx) {
+		var list = new List<string>();
+		var body = ispost(ctx.Request.HttpMethod) ? readjson(ctx.Request) : null;
+		if (body != null && body["paths"] is JsonArray arr) {
+			foreach (var n in arr) {
+				var s = n?.ToString() ?? "";
+				if (s.Length > 0) list.Add(s);
+			}
+		}
+		var one = ctx.Request.QueryString["path"] ?? "";
+		if (one.Length > 0) list.Add(one);
+		var many = ctx.Request.QueryString["paths"] ?? "";
+		if (many.Length > 0) {
+			foreach (var p in many.Split(new[] { '|', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+				list.Add(p.Trim());
+		}
+		if (list.Count == 0) list.Add("");
+		return list;
 	}
 
 	void handleweblogout(SfCtx ctx) {

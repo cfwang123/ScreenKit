@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Text.Json.Nodes;
 
 namespace ScreenKit;
@@ -156,6 +157,86 @@ static class SendFileOps {
 			File.Copy(f, Path.Combine(dest, Path.GetFileName(f)), overwrite: false);
 		foreach (var d in Directory.GetDirectories(src))
 			copydir(d, Path.Combine(dest, Path.GetFileName(d)));
+	}
+
+	/// <summary>把沙箱内若干文件/目录打成临时 zip。返回临时文件路径与下载名。</summary>
+	public static void ZipToTemp(IEnumerable<string> rels, out string tmp, out string zipName) {
+		tmp = null;
+		zipName = "sendfile.zip";
+		if (rels == null)
+			throw new InvalidOperationException("没有可打包的路径");
+		var list = new List<string>();
+		foreach (var r in rels) {
+			var rel = (r ?? "").Replace('\\', '/').Trim('/');
+			list.Add(rel);
+		}
+		if (list.Count == 0)
+			throw new InvalidOperationException("没有可打包的路径");
+		if (list.Count == 1) {
+			var one = list[0];
+			zipName = string.IsNullOrEmpty(one) ? "sendfile.zip" : Path.GetFileName(one) + ".zip";
+			if (string.IsNullOrEmpty(Path.GetFileName(one)))
+				zipName = "sendfile.zip";
+		}
+		tmp = Path.Combine(Path.GetTempPath(), "skzip_" + Guid.NewGuid().ToString("N") + ".zip");
+		try {
+			using (var zs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+			using (var zip = new ZipArchive(zs, ZipArchiveMode.Create)) {
+				var n = 0;
+				foreach (var rel in list)
+					n += zipadd(zip, rel);
+				if (n <= 0)
+					throw new InvalidOperationException("没有可打包的文件");
+			}
+		}
+		catch {
+			try { if (tmp != null && File.Exists(tmp)) File.Delete(tmp); } catch { }
+			throw;
+		}
+	}
+
+	static int zipadd(ZipArchive zip, string rel) {
+		if (!SendFilePaths.TryResolve(rel, out var full, out var err))
+			throw new InvalidOperationException(err ?? "路径非法");
+		if (File.Exists(full)) {
+			if (hiddendir(full)) return 0;
+			var name = string.IsNullOrEmpty(rel) ? Path.GetFileName(full) : Path.GetFileName(rel);
+			if (string.IsNullOrEmpty(name)) name = "file";
+			zip.CreateEntryFromFile(full, name, CompressionLevel.Fastest);
+			return 1;
+		}
+		if (!Directory.Exists(full))
+			throw new InvalidOperationException("路径不存在");
+		var prefix = string.IsNullOrEmpty(rel) ? "" : Path.GetFileName(rel.TrimEnd('/')) + "/";
+		if (string.IsNullOrEmpty(rel))
+			prefix = "";
+		return zipdir(zip, full, prefix);
+	}
+
+	static int zipdir(ZipArchive zip, string fullDir, string prefix) {
+		var n = 0;
+		string[] files;
+		string[] dirs;
+		try { files = Directory.GetFiles(fullDir); }
+		catch { files = Array.Empty<string>(); }
+		try { dirs = Directory.GetDirectories(fullDir); }
+		catch { dirs = Array.Empty<string>(); }
+		if (files.Length == 0 && dirs.Length == 0) {
+			if (!string.IsNullOrEmpty(prefix))
+				zip.CreateEntry(prefix);
+			return 0;
+		}
+		foreach (var f in files) {
+			if (hiddendir(f)) continue;
+			var name = prefix + Path.GetFileName(f);
+			zip.CreateEntryFromFile(f, name, CompressionLevel.Fastest);
+			n++;
+		}
+		foreach (var d in dirs) {
+			if (hiddendir(d)) continue;
+			n += zipdir(zip, d, prefix + Path.GetFileName(d) + "/");
+		}
+		return n;
 	}
 
 	public static void SaveStream(string rel, Stream src, Action<int> onchunk = null) {

@@ -17,6 +17,8 @@ input[type=password],input[type=text]{height:36px;padding:0 10px;border:1px soli
 .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 8px 24px #00000014}
 .login{width:360px;margin:12vh auto 0;padding:28px 28px 20px}
 .login h1{margin:0 0 8px;font-size:20px}
+.keep{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:13px;color:#4b5563;cursor:pointer;user-select:none}
+.keep input{width:16px;height:16px;margin:0;flex:0 0 auto}
 .login button{width:100%;height:36px;margin-top:12px;background:#2563eb;border-color:#2563eb;color:#fff}
 .login button:hover{background:#1d4ed8}
 .switch{margin-top:16px;text-align:right}

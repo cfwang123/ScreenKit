@@ -55,6 +55,12 @@
 	<symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 		<path d="m9 6 6 6-6 6"/>
 	</symbol>
+	<symbol id="i-zip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M10 8v2M10 13v6M8 16h4"/>
+	</symbol>
+	<symbol id="i-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M4 12h12M12 8l4 4-4 4"/><path d="M20 5v14"/>
+	</symbol>
 </svg>
 
 <div id="login" class="login">
@@ -62,6 +68,7 @@
 	<h1 id="ltitle">文件管理</h1>
 	<p id="lhint" class="muted">登录后可上传和管理。下载只需正确链接。</p>
 	<input id="epass" type="password" autocomplete="current-password" inputmode="text"/>
+	<label class="keep"><input id="ekeep" type="checkbox"/> <span id="lkeep">保持登录</span></label>
 	<button id="blogin" type="button" class="go">
 		<svg class="ico"><use href="#i-login"/></svg><span class="lbl">登录</span>
 	</button>
@@ -99,6 +106,9 @@
 		</button>
 		<button id="bref" type="button">
 			<svg class="ico"><use href="#i-refresh"/></svg><span class="lbl">刷新</span>
+		</button>
+		<button id="bzip" type="button">
+			<svg class="ico"><use href="#i-zip"/></svg><span class="lbl">打包</span>
 		</button>
 	</footer>
 </div>

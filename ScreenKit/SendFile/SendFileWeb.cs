@@ -1,21 +1,26 @@
+using System.Globalization;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace ScreenKit;
 
-/// <summary>网页文件管理：登录会话（内存 token / Cookie）。</summary>
+/// <summary>网页文件管理：登录会话（内存 token / Cookie；勾选保持登录则落盘）。</summary>
 public sealed class SendFileWeb {
 	readonly object gate = new();
-	readonly Dictionary<string, int> sessions = new(StringComparer.Ordinal);
+	readonly Dictionary<string, WebSess> sessions = new(StringComparer.Ordinal);
 	readonly Func<OcrOptions> getOpts;
 	readonly Action save;
-	const int SESSION_MS = 7 * 24 * 3600 * 1000;
+	const int KEEP_SEC = 30 * 24 * 3600;
+	const int TEMP_SEC = 12 * 3600;
 	const string COOKIE = "sk_web";
+	const string SESS_FILE = ".web_sess";
 	const string PASS_CHARS = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 	public SendFileWeb(Func<OcrOptions> optionsFactory, Action saveCfg) {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
 		save = saveCfg;
+		loadkeep();
 	}
 
 	/// <summary>密码为空时生成并写入配置。</summary>
@@ -35,33 +40,44 @@ public sealed class SendFileWeb {
 		return string.IsNullOrWhiteSpace(p) ? EnsurePass() : p.Trim();
 	}
 
-	public string Login(string password) {
+	public string Login(string password, bool keep) {
 		var want = CurrentPass();
 		if (string.IsNullOrEmpty(want) || !string.Equals(password ?? "", want, StringComparison.Ordinal))
 			return null;
 		var token = gentoken();
+		var now = unixnow();
 		lock (gate) {
 			prune();
-			sessions[token] = Environment.TickCount;
+			sessions[token] = new WebSess {
+				last = Environment.TickCount,
+				keep = keep,
+				exp = now + (keep ? KEEP_SEC : TEMP_SEC),
+			};
+			if (keep) savekeep();
 		}
 		return token;
 	}
 
 	public void Logout(string token) {
 		if (string.IsNullOrEmpty(token)) return;
-		lock (gate) sessions.Remove(token);
+		lock (gate) {
+			var had = sessions.Remove(token);
+			if (had) savekeep();
+		}
 	}
 
 	internal bool Authed(SfReq req) {
 		var token = tokenof(req);
 		if (string.IsNullOrEmpty(token)) return false;
+		var now = unixnow();
 		lock (gate) {
-			if (!sessions.TryGetValue(token, out var last)) return false;
-			if (unchecked(Environment.TickCount - last) >= SESSION_MS) {
+			if (!sessions.TryGetValue(token, out var s) || s == null) return false;
+			if (s.exp > 0 && now >= s.exp) {
 				sessions.Remove(token);
+				if (s.keep) savekeep();
 				return false;
 			}
-			sessions[token] = Environment.TickCount;
+			s.last = Environment.TickCount;
 			return true;
 		}
 	}
@@ -70,8 +86,10 @@ public sealed class SendFileWeb {
 
 	public static string CookieName => COOKIE;
 
-	public static string SetCookie(string token) =>
-		$"{COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800";
+	public static string SetCookie(string token, bool keep) {
+		var basec = $"{COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax";
+		return keep ? $"{basec}; Max-Age={KEEP_SEC}" : basec;
+	}
 
 	public static string ClearCookie() =>
 		$"{COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0";
@@ -111,14 +129,57 @@ public sealed class SendFileWeb {
 	}
 
 	void prune() {
-		var now = Environment.TickCount;
+		var now = unixnow();
 		var dead = new List<string>();
 		foreach (var kv in sessions) {
-			if (unchecked(now - kv.Value) >= SESSION_MS)
+			if (kv.Value != null && kv.Value.exp > 0 && now >= kv.Value.exp)
 				dead.Add(kv.Key);
 		}
 		foreach (var k in dead) sessions.Remove(k);
 	}
+
+	void loadkeep() {
+		try {
+			SendFilePaths.EnsureRoot();
+			var f = Path.Combine(SendFilePaths.Root(), SESS_FILE);
+			if (!File.Exists(f)) return;
+			var now = unixnow();
+			foreach (var line in File.ReadAllLines(f, Encoding.UTF8)) {
+				var p = (line ?? "").Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+				if (p.Length < 2) continue;
+				var tok = p[0].Trim();
+				if (tok.Length < 16) continue;
+				if (!long.TryParse(p[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var exp))
+					continue;
+				if (exp > 0 && now >= exp) continue;
+				sessions[tok] = new WebSess { last = Environment.TickCount, keep = true, exp = exp };
+			}
+		}
+		catch { }
+	}
+
+	void savekeep() {
+		try {
+			SendFilePaths.EnsureRoot();
+			var f = Path.Combine(SendFilePaths.Root(), SESS_FILE);
+			var now = unixnow();
+			var sb = new StringBuilder();
+			foreach (var kv in sessions) {
+				var s = kv.Value;
+				if (s == null || !s.keep) continue;
+				if (s.exp > 0 && now >= s.exp) continue;
+				sb.Append(kv.Key).Append(' ').Append(s.exp.ToString(CultureInfo.InvariantCulture)).Append('\n');
+			}
+			if (sb.Length == 0) {
+				if (File.Exists(f)) File.Delete(f);
+				return;
+			}
+			File.WriteAllText(f, sb.ToString(), Encoding.UTF8);
+		}
+		catch { }
+	}
+
+	static long unixnow() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
 	static string gentoken() {
 		var buf = new byte[24];
@@ -140,4 +201,10 @@ public sealed class SendFileWeb {
 			sb.Append(PASS_CHARS[buf[i] % PASS_CHARS.Length]);
 		return sb.ToString();
 	}
+}
+
+sealed class WebSess {
+	public int last;
+	public bool keep;
+	public long exp;
 }
