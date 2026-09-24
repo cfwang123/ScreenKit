@@ -21,7 +21,6 @@ sealed class CastDisc : IDisposable {
 	readonly Dictionary<string, CastPeer> peers = new();
 	public Action<string> Log;
 	bool stop;
-	int lastfwd, lastlog;
 
 	public CastDisc(string role, Func<string> name, int port = CastProto.UDP_PORT) {
 		this.role = role;
@@ -43,15 +42,6 @@ sealed class CastDisc : IDisposable {
 		sendto(bytes, IPAddress.Broadcast);
 		foreach (var b in subnetbroadcasts())
 			sendto(bytes, b);
-		if (Environment.TickCount - lastfwd > 4000) {
-			lastfwd = Environment.TickCount;
-			CastAdbFwd.Reverse(tcpPort, s => {
-				if (Environment.TickCount - lastlog > 15000) {
-					lastlog = Environment.TickCount;
-					Log?.Invoke(s);
-				}
-			});
-		}
 	}
 
 	void sendto(byte[] bytes, IPAddress ip) {

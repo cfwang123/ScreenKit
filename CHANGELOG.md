@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Wi‑Fi screencast no longer freezes after ~10s: discovery/`adb` and ping left the UI thread; display keeps only the latest frame.
 - Screencast settings and view windows use a dedicated monitor/cast icon.
 - Android **传文件** and **投屏** launchers use separate task stacks so both can stay open.
 - `scripts/publish-release.mjs` omits local `config.toml`, `cli_last.log`, and `log/` from the 7z (API keys / paths).
@@ -44,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- WiFi 投屏十几秒后画面卡死：发现/`adb` 与 ping 移出 UI 线程，显示只保留最新一帧。
 - 投屏设置窗与画面窗使用独立显示器/投屏图标。
 - 安卓「传文件」与「投屏」分属独立任务栈，可同时打开。
 - `scripts/publish-release.mjs` 打包时排除本机 `config.toml`、`cli_last.log` 和 `log/`（避免把密钥/路径打进发布包）。

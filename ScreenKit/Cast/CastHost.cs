@@ -17,6 +17,12 @@ static class CastHost {
 	static Action save;
 	static bool hidebyuser;
 	static ImageSource winicon;
+	static readonly object framegate = new();
+	static readonly byte[][] framebuf = new byte[2][];
+	static int frameready = -1;
+	static int framebusy = -1;
+	static int framew, frameh, framest;
+	static bool frameposted;
 
 	public static ImageSource WinIcon {
 		get {
@@ -72,20 +78,26 @@ static class CastHost {
 		});
 		Recv.OnGone = () => ui(() => view?.HideCast());
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-		timer.Tick += (_, _) => {
-			if (Recv != null && Recv.Running)
-				Disc?.Beacon(CastProto.TCP_PORT);
-			Recv?.Tick();
-		};
+		timer.Tick += (_, _) => ThreadPool.QueueUserWorkItem(_ => {
+			try {
+				if (Recv != null && Recv.Running)
+					Disc?.Beacon(CastProto.TCP_PORT);
+				Recv?.Tick();
+			}
+			catch { }
+		});
 		timer.Start();
 		Started = true;
 		if (Opt == null || Opt.CastRecvEnabled) {
 			try {
 				Recv.Start();
 				Usb.Start();
-				CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
 			}
 			catch (Exception ex) { log(ex.Message); }
+			ThreadPool.QueueUserWorkItem(_ => {
+				try { CastAdbFwd.Reverse(CastProto.TCP_PORT, log); }
+				catch { }
+			});
 		}
 	}
 
@@ -162,7 +174,10 @@ static class CastHost {
 		if (Recv != null && Recv.Running) return;
 		Recv.Start();
 		Usb?.Start();
-		CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
+		ThreadPool.QueueUserWorkItem(_ => {
+			try { CastAdbFwd.Reverse(CastProto.TCP_PORT, log); }
+			catch { }
+		});
 		if (Opt != null) Opt.CastRecvEnabled = true;
 		SaveOpt();
 	}
@@ -182,12 +197,53 @@ static class CastHost {
 	}
 
 	static void onframe(byte[] px, int w, int h, int st) {
-		ui(() => {
-			if (hidebyuser) return;
-			ensureview();
-			if (!view.IsVisible) view.ShowCast();
-			view.Push(px, w, h, st);
-		});
+		if (px == null || w <= 0 || h <= 0 || st < w * 4) return;
+		var n = (h - 1) * st + w * 4;
+		if (px.Length < n) return;
+		lock (framegate) {
+			var i = framebusy == 0 ? 1 : 0;
+			var buf = framebuf[i];
+			if (buf == null || buf.Length < n) {
+				buf = new byte[n];
+				framebuf[i] = buf;
+			}
+			Buffer.BlockCopy(px, 0, buf, 0, n);
+			framew = w;
+			frameh = h;
+			framest = st;
+			frameready = i;
+			if (frameposted) return;
+			frameposted = true;
+		}
+		ui(flushframe);
+	}
+
+	static void flushframe() {
+		while (true) {
+			byte[] px;
+			int w, h, st;
+			lock (framegate) {
+				var i = frameready;
+				if (i < 0) {
+					frameposted = false;
+					framebusy = -1;
+					return;
+				}
+				frameready = -1;
+				framebusy = i;
+				px = framebuf[i];
+				w = framew;
+				h = frameh;
+				st = framest;
+			}
+			try {
+				if (hidebyuser || px == null) continue;
+				ensureview();
+				if (!view.IsVisible) view.ShowCast();
+				view.Push(px, w, h, st);
+			}
+			catch { }
+		}
 	}
 
 	static void log(string s) {

@@ -53,7 +53,7 @@
 		<Viewbox Stretch="Uniform" StretchDirection="Both">
 			<Grid x:Name="pimg" ClipToBounds="True">
 				<Image x:Name="img" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top"
-				       RenderOptions.BitmapScalingMode="HighQuality"/>
+				       RenderOptions.BitmapScalingMode="LowQuality"/>
 			</Grid>
 		</Viewbox>
 		<TextBlock x:Name="lbst" VerticalAlignment="Bottom" HorizontalAlignment="Left"

@@ -103,12 +103,21 @@ sealed class CastRecvSrv : IDisposable {
 			try { cli = lis.AcceptTcpClient(); }
 			catch { if (stop) break; continue; }
 			if (cli == null) continue;
-			cli.NoDelay = true;
+			tune(cli);
 			var ep = cli.Client.RemoteEndPoint;
 			Log?.Invoke($"接入 {ep}");
 			var c = cli;
 			new Thread(() => onesess(c)) { IsBackground = true, Name = "cast-sess" }.Start();
 		}
+	}
+
+	static void tune(TcpClient cli) {
+		try {
+			cli.NoDelay = true;
+			cli.ReceiveBufferSize = 4 * 1024 * 1024;
+			cli.SendBufferSize = 512 * 1024;
+		}
+		catch { }
 	}
 
 	void onesess(TcpClient cli) {

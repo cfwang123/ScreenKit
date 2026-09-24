@@ -40,9 +40,14 @@ unsafe sealed class CastVideoDecoder : IDisposable {
 			var e = ffmpeg.avcodec_send_packet(dec, pkt);
 			ffmpeg.av_packet_unref(pkt);
 			if (e < 0 && e != ffmpeg.AVERROR(ffmpeg.EAGAIN)) return false;
-			var r = ffmpeg.avcodec_receive_frame(dec, frame);
-			if (r == ffmpeg.AVERROR(ffmpeg.EAGAIN) || r == ffmpeg.AVERROR_EOF) return false;
-			if (r < 0) return false;
+			var got = false;
+			while (true) {
+				var r = ffmpeg.avcodec_receive_frame(dec, frame);
+				if (r == ffmpeg.AVERROR(ffmpeg.EAGAIN) || r == ffmpeg.AVERROR_EOF) break;
+				if (r < 0) break;
+				got = true;
+			}
+			if (!got) return false;
 			w = frame->width;
 			h = frame->height;
 			if (w <= 0 || h <= 0 || w > 4096 || h > 4096) return false;
@@ -57,9 +62,7 @@ unsafe sealed class CastVideoDecoder : IDisposable {
 				dstSt[0] = stride;
 				ffmpeg.sws_scale(sws, frame->data, frame->linesize, 0, h, dst, dstSt);
 			}
-			var copy = new byte[stride * h];
-			Buffer.BlockCopy(bgra, 0, copy, 0, copy.Length);
-			pixels = copy;
+			pixels = bgra;
 			st = stride;
 			return true;
 		}
