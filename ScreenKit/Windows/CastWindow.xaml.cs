@@ -68,8 +68,10 @@ public partial class CastWindow : Window {
 	}
 
 	void tick() {
-		lbip.Text = $"{Loc.T("cast.local")} {CastHost.Name}  {CastNetUtil.LocalIps()}  TCP {CastProto.TCP_PORT}";
-		if (CastHost.Send != null && CastHost.Send.Running) lbstat.Text = Loc.T("cast.stat.send");
+		lbip.Text = $"{Loc.T("cast.local")} {CastHost.Name}  {CastNetUtil.LocalIps()}  {CastHost.Recv?.BindText ?? $"TCP {CastProto.TCP_PORT}"}";
+		if (CastHost.Recv != null && !CastHost.Recv.TcpOk && CastHost.Recv.Running)
+			lbstat.Text = CastHost.Recv.BindText;
+		else if (CastHost.Send != null && CastHost.Send.Running) lbstat.Text = Loc.T("cast.stat.send");
 		else if (CastHost.Recv != null && CastHost.Recv.Busy) lbstat.Text = Loc.T("cast.stat.recv");
 		else if (CastHost.Recv != null && CastHost.Recv.Running)
 			lbstat.Text = $"{Loc.T("cast.stat.wait")}  {CastHost.Usb?.Status}";

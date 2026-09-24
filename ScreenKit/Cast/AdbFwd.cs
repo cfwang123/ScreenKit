@@ -26,7 +26,8 @@ static class CastAdbFwd {
 		catch (Exception ex) { log?.Invoke($"adb kill-server: {ex.Message}"); }
 	}
 
-	public static bool Reverse(int port, Action<string> log) {
+	public static bool Reverse(int hostPort, Action<string> log) {
+		if (hostPort <= 0) hostPort = CastProto.TCP_PORT;
 		var exe = findadb();
 		if (exe == null) {
 			LastMsg = "未找到 adb.exe，USB(adb) 投屏不可用";
@@ -52,11 +53,13 @@ static class CastAdbFwd {
 			var state = parts[1];
 			if (state != "device") continue;
 			if (serial.StartsWith("emulator-")) continue;
-			var tcp = run(exe, $"-s {serial} reverse tcp:{port} tcp:{port}");
-			var abs = run(exe, $"-s {serial} reverse localabstract:{CastProto.ABSTRACT} tcp:{port}");
+			var tcp = run(exe, $"-s {serial} reverse tcp:{CastProto.TCP_PORT} tcp:{hostPort}");
+			var abs = run(exe, $"-s {serial} reverse localabstract:{CastProto.ABSTRACT} tcp:{hostPort}");
 			if (tcp != null || abs != null) {
 				ok = true;
-				LastMsg = $"USB adb 已转发 {serial}";
+				LastMsg = hostPort == CastProto.TCP_PORT
+					? $"USB adb 已转发 {serial}"
+					: $"USB adb 已转发 {serial} 设备{CastProto.TCP_PORT}->电脑{hostPort}";
 			}
 		}
 		if (!ok) LastMsg = "未发现 USB 调试设备";

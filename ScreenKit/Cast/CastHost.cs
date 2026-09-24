@@ -117,13 +117,13 @@ static class CastHost {
 		timer.Tick += (_, _) => ThreadPool.QueueUserWorkItem(_ => {
 			try {
 				if (Recv != null && Recv.Running)
-					Disc?.Beacon(CastProto.TCP_PORT);
+					Disc?.Beacon(tcpport());
 				Recv?.Tick();
 				UsbScan?.Tick();
 				var now = Environment.TickCount;
 				if (now - lastadb > 8000 || lastadb == 0) {
 					lastadb = now;
-					CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
+					reverseadb();
 				}
 				if (usbWant && (now - lastaoa > 8000 || lastaoa == 0)) {
 					lastaoa = now;
@@ -139,8 +139,9 @@ static class CastHost {
 				Recv.Start();
 			}
 			catch (Exception ex) { log(ex.Message); }
+			logexe();
 			EnableUsbHost();
-			ThreadPool.QueueUserWorkItem(_ => CastAdbFwd.Reverse(CastProto.TCP_PORT, log));
+			ThreadPool.QueueUserWorkItem(_ => reverseadb());
 		}
 	}
 
@@ -236,7 +237,7 @@ static class CastHost {
 		if (Opt != null) Opt.CastRecvEnabled = true;
 		SaveOpt();
 		EnableUsbHost();
-		ThreadPool.QueueUserWorkItem(_ => CastAdbFwd.Reverse(CastProto.TCP_PORT, log));
+		ThreadPool.QueueUserWorkItem(_ => reverseadb());
 	}
 
 	public static void StopRecv() {
@@ -323,6 +324,25 @@ static class CastHost {
 			}
 			catch { }
 		}
+	}
+
+	static int tcpport() => Recv != null && Recv.ListenPort > 0 ? Recv.ListenPort : CastProto.TCP_PORT;
+
+	static void reverseadb() => CastAdbFwd.Reverse(tcpport(), log);
+
+	static void logexe() {
+		try {
+			var self = System.Diagnostics.Process.GetCurrentProcess();
+			log($"接收进程 pid={self.Id} {self.MainModule?.FileName}");
+			foreach (var p in System.Diagnostics.Process.GetProcessesByName("ScreenKit")) {
+				if (p.Id == self.Id) continue;
+				var path = "";
+				try { path = p.MainModule?.FileName ?? ""; } catch { }
+				log($"还有另一个 ScreenKit pid={p.Id} {path}");
+			}
+			if (Recv != null) log(Recv.BindText);
+		}
+		catch (Exception ex) { log(ex.Message); }
 	}
 
 	static void log(string s) {

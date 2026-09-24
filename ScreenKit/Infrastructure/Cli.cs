@@ -39,7 +39,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
-				or "--test-cast" or "--test-aoa"
+				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -240,6 +240,8 @@ static class Cli {
 					return testnettool();
 				case "--test-cast":
 					return testcast();
+				case "--test-cast-recv":
+					return testcastrecv();
 				case "--test-aoa":
 					return testaoa();
 				case "--list-install":
@@ -2863,6 +2865,46 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testcastrecv() {
+		Out("=== 投屏 --test-cast-recv ===");
+		var hello = 0;
+		var srv = new CastRecvSrv();
+		srv.Log = Out;
+		srv.OnHello = (_, _) => Interlocked.Increment(ref hello);
+		try {
+			srv.Start();
+			if (!srv.TcpOk || srv.ListenPort <= 0) {
+				Err("FAIL: TCP 未真正监听 " + srv.BindText);
+				return 1;
+			}
+			Out(srv.BindText);
+			var buf = CastProto.PackJson(new { cmd = "hello", name = "t", w = 64, h = 64, via = "wifi" });
+			using (var c = new System.Net.Sockets.TcpClient()) {
+				c.Connect(System.Net.IPAddress.Loopback, srv.ListenPort);
+				var s = c.GetStream();
+				s.Write(buf, 0, buf.Length);
+				s.Flush();
+				var t0 = Environment.TickCount;
+				while (hello == 0 && unchecked(Environment.TickCount - t0) < 3000)
+					Thread.Sleep(50);
+			}
+			if (hello == 0) {
+				Err("FAIL: 本机连接未触发 hello");
+				return 1;
+			}
+			Out("本机 hello 开窗路径 ok");
+			Out("=== OK：投屏接收 ===");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			return 1;
+		}
+		finally {
+			try { srv.Dispose(); } catch { }
+		}
+	}
+
 	static int testaoa() {
 		Out("=== 投屏 --test-aoa ===");
 		CastUsbHost.Dump(Out);
@@ -2895,6 +2937,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-cast
+  ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
@@ -2954,6 +2997,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
+      --test-cast-recv  独占监听 TCP、本机 hello 必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
@@ -3013,6 +3057,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-cast
+  ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent

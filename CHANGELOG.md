@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Phone web manager (`/m`): compact full-width list with divider rows only; tap folder/file to open or download; long-press multi-select with download, ZIP, copy link, rename, and delete; bottom bar Upload / Camera / New; breadcrumb path and account sheet (no title or search bar).
 - Public `/f/…` download: `.txt` and `.md` use `Content-Disposition: attachment` so mobile browsers save the file instead of opening it inline.
+- WiFi/ADB viewer: exclusive listen only (no `ReuseAddress`). If 19519 is a dead-pid ghost socket, bind 19520+ and advertise that port; `adb reverse` maps device 19519 to the real host port. `--test-cast-recv` checks localhost hello reaches this process.
 - Screencast viewer comes to the front when it opens (not always-on-top). **Tab** overlay is off until Tab is pressed. USB adb reverse is kept even while the AOA helper is running. Stop hides the window before decoder teardown (no ~1s black frame).
 - Screencast viewer is no longer always-on-top. Picture scale can be **Fit** (letterbox) or **Fill** (crop); right-click the viewer or Tools → Screencast (`cast_view_fill`).
 - USB screencast: the receiver starts the AOA helper by itself (no extra **USB配件** click). The helper stays after a session instead of exiting, and is no longer killed every 8s.
@@ -100,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 手机网页管理（`/m`）：100% 宽度紧凑列表、行间仅分隔线；点击文件夹进入、点击文件下载；长按多选后操作栏支持下载、ZIP、复制链接、改名、删除；底部为上传、拍照、新建；保留面包屑与账户入口，去掉标题栏和搜索栏。
 - 公开下载 `/f/…`：`.txt`、`.md` 使用 `Content-Disposition: attachment`，手机浏览器会下载而不是页内打开。
+- WiFi/ADB 弹窗：TCP 只独占监听，禁止 `ReuseAddress`。`19519` 若被已退出进程占死，改听 `19520+` 并写入发现包；`adb reverse` 把手机 19519 转到电脑实际端口。`--test-cast-recv` 校验本机 hello 进本进程。
 - 弹出投屏窗时提到最前（不一直置顶）。**Tab** 信息默认不显示，按 Tab 才开。USB 配件助手在跑时仍保持 adb reverse。停止时先关窗再拆解码器，避免黑屏约 1 秒。
 - 投屏画面窗不再置顶。画面可选 **适应窗口**（fit，留边）或 **铺满窗口**（fill，裁切）；右键画面窗或「工具 → 投屏」里切换（`cast_view_fill`）。
 - USB 投屏：电脑开接收后自动拉起配件助手，不必再点 **USB配件**。助手一场结束后继续等，不再每 8 秒杀掉正在跑的助手。
