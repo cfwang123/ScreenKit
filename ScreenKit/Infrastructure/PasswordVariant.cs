@@ -8,7 +8,7 @@ sealed class PasswordVariantRow {
 	public string Note { get; set; } = "";
 }
 
-/// <summary>密码生成器：一句种子密码 → LLM 变体（译词、换序、加符号等）。</summary>
+/// <summary>密码生成器：一句种子密码 → LLM 变体（译词、换序、大小写等）。</summary>
 static class PasswordVariant {
 	public const int MinCount = 4;
 	public const int MaxCount = 20;
@@ -22,13 +22,13 @@ static class PasswordVariant {
 		"Use several of these techniques, mixed: " +
 		"translate word parts into other languages then ASCII-romanize (pinyin, romaji, Revised Romanization, etc.); " +
 		"reorder words or syllables; " +
-		"insert or wrap symbols from !@#$%^&*-_=+?~; " +
 		"light leetspeak (a→4 e→3 i→1 o→0 s→5) used sparingly; " +
 		"mix case (CamelCase); " +
 		"synonyms or related words; " +
 		"a small mnemonic number (year, count). " +
-		"Keep each pw 8–32 characters when possible; ASCII letters, digits, and the symbols above; " +
-		"no spaces (use - or _ if a separator is needed); no newlines. " +
+		"Keep each pw 8–32 characters when possible; ASCII letters and digits only. " +
+		"Do not add punctuation or symbols (!@#$%^&*-_=+?~ and similar). " +
+		"No spaces (concatenate or CamelCase); no newlines. " +
 		"note: one short phrase in the same language as the seed (Chinese seed → Chinese note).";
 
 	public static List<PasswordVariantRow> Generate(OcrOptions o, string seed, int count = DefaultCount,

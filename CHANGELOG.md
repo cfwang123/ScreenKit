@@ -28,7 +28,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (translate words, reorder, add symbols/digits, mix case / leetspeak). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
+- Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (translate words, reorder, add digits, mix case / leetspeak; no extra symbols). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
 - LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
 
 #### Changed
@@ -54,7 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），得到译词、换序、加符号数字、大小写 / leetspeak 等变体。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
+- 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），得到译词、换序、加数字、大小写 / leetspeak 等变体（不加符号）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
 - 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
 
 #### 变更
