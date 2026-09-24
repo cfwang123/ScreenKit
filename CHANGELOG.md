@@ -34,6 +34,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Password variants mostly translate into other languages then ASCII-romanize; at most one English paraphrase. They no longer reorder words, add digits, or use leetspeak.
+- Landscape: do not recreate the encoder (that crashed on Redmi); send orient and crop. Viewer window is sized to the cropped frame, not phone pixels.
+- **USB 投屏** is accessory or USB tethering only (no adb). Enable 网络共享 in the notification shade.
 - Phone screencast failures show a short “连接失败” toast/status (no abstract/IOException dump).
 - Viewer title is **投屏 · wifi/usb/usb(adb)**; the phone status shows the same type. The IP box is filled with the connected host.
 - Viewer title stays **投屏 · phone**, and the window is shown on the first video/audio packet (not only after JSON hello). Hello is sent before the encoder starts.
@@ -66,6 +68,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 密码变体以其它语言译音（拼音 / 罗马字）为主，英文同义最多一条；不再调换词序、加数字或做 o→0 一类替换。
+- 横屏：不再重建编码器（红米上会闪退），只发方向并裁切；窗口按裁切后的画面适配，不用手机分辨率当窗口大小。
+- **USB 投屏**只走配件或 USB 网络共享，不用 adb。通知栏把 USB 设为「网络共享」。
 - 投屏连接失败只提示「连接失败」，不再把 abstract/IOException 打在状态栏。
 - 画面窗标题为 **投屏 · wifi/usb/usb(adb)**；手机状态同样显示类型。手动 IP 自动填入连上的电脑地址。
 - 画面窗标题为 **投屏 · 手机型号**；收到第一包视频/音频就打开（不等 JSON hello）。hello 在编码器启动前先发。

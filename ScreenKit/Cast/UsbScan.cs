@@ -140,9 +140,9 @@ sealed class CastUsbScan {
 		var s = (ni.Name + " " + ni.Description).ToLowerInvariant();
 		if (s.Contains("vmware") || s.Contains("virtualbox") || s.Contains("hyper-v") || s.Contains("vethernet"))
 			return false;
-		if (s.Contains("rndis") || s.Contains("remote ndis") || s.Contains("远程") && s.Contains("ndis") ||
+		if (s.Contains("rndis") || s.Contains("remote ndis") || (s.Contains("远程") && s.Contains("ndis")) ||
 			s.Contains("android") || s.Contains("gadget") || s.Contains("网络共享") ||
-			s.Contains("usb ethernet") || s.Contains("usb 以太网") || s.Contains("usb网") ||
+			s.Contains("usb") || s.Contains("ncm") ||
 			s.Contains("mobile broadband"))
 			return true;
 		if (s.Contains("ndis") && (s.Contains("internet") || s.Contains("sharing") || s.Contains("共享")))

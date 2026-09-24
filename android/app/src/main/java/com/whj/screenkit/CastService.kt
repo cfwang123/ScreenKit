@@ -37,20 +37,15 @@ class CastService : Service() {
     private val cfgCb = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) {
             val now = android.os.SystemClock.elapsedRealtime()
-            if (now - lastcfg < 1200) return
+            if (now - lastcfg < 400) return
             lastcfg = now
             Handler(Looper.getMainLooper()).postDelayed({
-                val cur = this@CastService.q
-                if (cur == null || mp == null) return@postDelayed
-                val dm = metrics()
-                val v = video
-                if (v != null && v.srcW == dm.widthPixels && v.srcH == dm.heightPixels) {
-                    Thread({ try { sendOrient() } catch (_: Exception) { } }, "scst-orient").start()
-                    return@postDelayed
-                }
-                Log.i("scst", "orient recreate ${dm.widthPixels}x${dm.heightPixels}")
-                applyQuality(cur, force = true)
-            }, 500)
+                if (mp == null) return@postDelayed
+                Thread({
+                    try { sendOrient() }
+                    catch (ex: Exception) { Log.w("scst", "orient ${ex.message}") }
+                }, "scst-orient").start()
+            }, 300)
         }
         override fun onLowMemory() {}
     }

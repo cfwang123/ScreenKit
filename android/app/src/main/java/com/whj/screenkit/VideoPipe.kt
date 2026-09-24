@@ -30,8 +30,9 @@ class VideoPipe(
 
     init {
         val fit = q.fit(srcW, srcH)
-        outW = fit.first
-        outH = fit.second
+        val edge = maxOf(fit.first, fit.second)
+        outW = edge
+        outH = edge
         val fmt = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, outW, outH)
         fmt.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
         fmt.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)

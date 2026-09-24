@@ -75,13 +75,10 @@ public partial class CastViewWindow : Window {
 	}
 
 	public void SetSrc(int dw, int dh) {
-		var olda = srcw > 0 && srch > 0 ? (double)srcw / srch : 0;
 		srcw = dw;
 		srch = dh;
 		layoutcrop();
-		var newa = srch > 0 ? (double)srcw / srch : 0;
-		if (olda == 0 || Math.Abs(olda - newa) > 0.04)
-			fitwin(true);
+		if (bmp != null) fitwin(true);
 	}
 
 	public void Push(byte[] px, int w, int h, int st) {
@@ -94,7 +91,7 @@ public partial class CastViewWindow : Window {
 				img.Width = w;
 				img.Height = h;
 				layoutcrop();
-				fitwin(false);
+				fitwin(true);
 			}
 			bmp.WritePixels(new Int32Rect(0, 0, w, h), px, st, 0);
 		}
@@ -128,20 +125,9 @@ public partial class CastViewWindow : Window {
 	void fitwin(bool force) {
 		if (!force && sized) return;
 		if (WindowState == WindowState.Maximized || full) return;
-		double w, h;
-		if (pimg.Width > 1 && pimg.Height > 1) {
-			w = pimg.Width;
-			h = pimg.Height;
-		}
-		else if (srcw > 0 && srch > 0) {
-			w = srcw;
-			h = srch;
-		}
-		else if (bmp != null) {
-			w = bmp.PixelWidth;
-			h = bmp.PixelHeight;
-		}
-		else return;
+		if (pimg.Width <= 1 || pimg.Height <= 1) return;
+		var w = pimg.Width;
+		var h = pimg.Height;
 		var wa = SystemParameters.WorkArea;
 		var maxw = wa.Width * 0.85;
 		var maxh = wa.Height * 0.85;
