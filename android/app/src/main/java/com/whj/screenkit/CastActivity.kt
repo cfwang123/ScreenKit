@@ -27,6 +27,7 @@ class CastActivity : AppCompatActivity() {
     private var pendingIp = ""
     private var pendingPort = Proto.TCP_PORT
     private var waitUsb = false
+    private var waitPat = false
     private var scanning = false
 
     private val proj = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
@@ -114,6 +115,7 @@ class CastActivity : AppCompatActivity() {
         super.onResume()
         val skip = intent?.getBooleanExtra("scst_go", false) == true ||
             intent?.getBooleanExtra("scst_usb", false) == true ||
+            intent?.getBooleanExtra("scst_usb_pat", false) == true ||
             intent?.getBooleanExtra("scst_adb", false) == true
         if (skip) return
         val st = b.lbstat.text?.toString().orEmpty()
@@ -136,6 +138,13 @@ class CastActivity : AppCompatActivity() {
     }
 
     private fun maybeTestIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("scst_usb_pat", false) == true) {
+            b.eip.post {
+                waitPat = true
+                startUsb()
+            }
+            return
+        }
         if (intent?.getBooleanExtra("scst_usb", false) == true) {
             b.eip.post { startUsb() }
             return
@@ -283,7 +292,23 @@ class CastActivity : AppCompatActivity() {
             return
         }
         waitUsb = false
+        if (waitPat) {
+            startPatternSvc()
+            return
+        }
         requestProj()
+    }
+
+    private fun startPatternSvc() {
+        waitPat = false
+        val i = Intent(this, CastService::class.java)
+            .putExtra(CastService.EXTRA_PATTERN, true)
+            .putExtra(CastService.EXTRA_MODE, "usb")
+            .putExtra(CastService.EXTRA_AUDIO, false)
+            .putExtra(CastService.EXTRA_Q, b.eq.selectedItem as? String)
+        ContextCompat.startForegroundService(this, i)
+        b.lbstat.text = "USB 测试画面…"
+        toast("USB 测试画面")
     }
 
     private fun pollAccessory(n: Int) {
@@ -295,6 +320,12 @@ class CastActivity : AppCompatActivity() {
         }
         if (n >= 225) {
             waitUsb = false
+            if (waitPat) {
+                waitPat = false
+                b.lbstat.text = "没有 USB 配件"
+                toast("没有 USB 配件")
+                return
+            }
             pendingMode = "usb-lan"
             UsbLan.pickNet(this)
             b.lbstat.text = "未检测到配件，改用 USB 网络共享…"

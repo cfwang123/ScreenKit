@@ -39,6 +39,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- USB accessory test pattern: the phone encodes a moving 640×360 block (no MediaProjection) over AOA bulk only (`scst_usb_pat`). No adb reverse, no Wi‑Fi.
 - USB viewer: hello used to trigger an immediate `ping` on the same AOA bulk pipe, which can stall WinUSB so no video arrives and the window closes after 15s. Ping waits until the first frame. Handshake timeout is 8s. USB accessory bridges over named pipes (`ScreenKit.CastUsb` / `ScreenKit.CastUsbDown`) so a stuck TCP 19519 no longer blocks the viewer. Up and down are separate pipes so the helper can write video while waiting for PC control. Recv also tries to free 19519 from leftover ScreenKit processes.
 - Screencast viewer: LibUsb never runs in the main process (that killed ScreenKit when a phone was plugged in, so the viewer never appeared). USB accessory uses a helper that requests AOA **and** bridges bulk to `127.0.0.1:19519`. Probe TCP connects no longer kick an active session. Auto-close no longer sets `hidebyuser`, so the next hello can show the window again.
 - USB adb screencast: if 19519 is held by a dead listener, bind `127.0.0.1` (wins adb reverse) and each LAN IP (wins Wi‑Fi). A still-open TCP is a real session, not a probe. Phone probe uses a 1.5s `127.0.0.1` ping.
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- USB 配件测试画面：手机自绘 640×360 动态块（不截屏）只走 AOA bulk（`scst_usb_pat`），不用 adb reverse、不用 WiFi。
 - USB 非 adb 投屏：hello 后立刻在同一条 AOA bulk 上 `ping`，WinUSB 可能卡死，没有视频，15 秒关窗。改为收到第一帧再 ping。握手超时 8 秒。配件桥改走命名管道（`ScreenKit.CastUsb` 上行 / `ScreenKit.CastUsbDown` 下行），不再被卡住的 TCP 19519 挡住弹窗；同一条管道上读写并发会把视频堵死，窗口只握手不更新（黑屏 0 fps）。接收启动时仍会尽量清掉占用 19519 的残留 ScreenKit。
 - WiFi 投屏已握手却看不见窗：画面窗强制置顶到鼠标所在屏（不再只居中主屏），并显示标题栏。手机连发两次 hello 不再拆掉解码器；视频按序排队，避免只剩 1fps 的黑窗。
 - 投屏窗反复不弹出：主进程不再调用 LibUsb（插着手机点 USB配件会把 ScreenKit 打崩）。配件助手会请求 AOA **并**把 bulk 桥到 `127.0.0.1:19519`。探测 TCP（立刻断开）不再踢掉正在投屏的会话。自动关窗不再记成用户关闭，下次 hello 还能弹出。

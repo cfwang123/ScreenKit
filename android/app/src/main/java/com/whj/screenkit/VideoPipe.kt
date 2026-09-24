@@ -240,14 +240,14 @@ class VideoPipe(
     }
 
     companion object {
-        private fun annexOfCsd(buf: java.nio.ByteBuffer?): ByteArray {
+        internal fun annexOfCsd(buf: java.nio.ByteBuffer?): ByteArray {
             if (buf == null) return ByteArray(0)
             val data = ByteArray(buf.remaining())
             buf.get(data)
             return toAnnexB(data)
         }
 
-        private fun parseCsd(buf: java.nio.ByteBuffer?): Pair<ByteArray, ByteArray> {
+        internal fun parseCsd(buf: java.nio.ByteBuffer?): Pair<ByteArray, ByteArray> {
             if (buf == null) return ByteArray(0) to ByteArray(0)
             val data = ByteArray(buf.remaining())
             val pos = buf.position()

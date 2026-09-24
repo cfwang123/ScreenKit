@@ -1,4 +1,6 @@
 using System.IO;
+using System.IO.Pipes;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -413,8 +415,21 @@ sealed class CastUsbHost : IDisposable {
 		return false;
 	}
 
+	static void killstale(Action<string> log) {
+		var self = Process.GetCurrentProcess().Id;
+		foreach (var p in Process.GetProcessesByName("ScreenKit")) {
+			if (p.Id == self) continue;
+			try {
+				log?.Invoke($"结束残留 ScreenKit pid={p.Id}");
+				p.Kill();
+			}
+			catch { }
+		}
+	}
+
 	public static void SpawnAoaHelper(Action<string> log) {
 		try {
+			killstale(log);
 			using (var mx = new Mutex(false, "Local\\ScreenKit_CastAoa")) {
 				if (!mx.WaitOne(0, false)) return;
 				try { mx.ReleaseMutex(); } catch { }
@@ -458,7 +473,12 @@ sealed class CastUsbHost : IDisposable {
 				CastAdbFwd.KillServer(log);
 				Thread.Sleep(400);
 			}
-			Dump(log);
+			foreach (var iid in usbpresent()) {
+				if (iid.IndexOf("VID_18D1", StringComparison.OrdinalIgnoreCase) < 0
+					&& iid.IndexOf("VID_2717", StringComparison.OrdinalIgnoreCase) < 0)
+					continue;
+				log?.Invoke($"pnp {iid} svc={devsvc(iid)}");
+			}
 			var t0 = Environment.TickCount;
 			var lastreq = 0;
 			var started = false;
@@ -519,14 +539,14 @@ sealed class CastUsbHost : IDisposable {
 					dev = null;
 					continue;
 				}
-				using var cli = new TcpClient();
-				cli.NoDelay = true;
-				cli.Connect("127.0.0.1", CastProto.TCP_PORT);
-				using var ns = cli.GetStream();
-				ns.Write(first, 0, n);
-				ns.Flush();
-				log?.Invoke("USB AOA 已桥接到 127.0.0.1:19519");
-				pump(usb, ns);
+				using var up = new NamedPipeClientStream(".", CastProto.USB_PIPE, PipeDirection.Out);
+				using var down = new NamedPipeClientStream(".", CastProto.USB_PIPE_DOWN, PipeDirection.In);
+				up.Connect(4000);
+				down.Connect(4000);
+				up.Write(first, 0, n);
+				up.Flush();
+				log?.Invoke("USB AOA 已桥接到命名管道");
+				pump(usb, up, down);
 				log?.Invoke("USB AOA 会话结束");
 				return true;
 			}
@@ -565,10 +585,10 @@ sealed class CastUsbHost : IDisposable {
 		return s.IndexOf("MI_01", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
-	static void pump(Stream a, Stream b) {
+	static void pump(Stream usb, Stream up, Stream down) {
 		using var cts = new CancellationTokenSource();
-		var t1 = new Thread(() => copy(a, b, cts)) { IsBackground = true, Name = "aoa-u2t" };
-		var t2 = new Thread(() => copy(b, a, cts)) { IsBackground = true, Name = "aoa-t2u" };
+		var t1 = new Thread(() => copy(usb, up, cts)) { IsBackground = true, Name = "aoa-u2p" };
+		var t2 = new Thread(() => copy(down, usb, cts)) { IsBackground = true, Name = "aoa-p2u" };
 		t1.Start();
 		t2.Start();
 		t1.Join();

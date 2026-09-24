@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -7,6 +8,8 @@ namespace ScreenKit;
 static class CastProto {
 	public const int UDP_PORT = 19518;
 	public const int TCP_PORT = 19519;
+	public const string USB_PIPE = "ScreenKit.CastUsb";
+	public const string USB_PIPE_DOWN = "ScreenKit.CastUsbDown";
 	public const string ABSTRACT = "scst";
 	public const uint MAGIC = 0x53435354;
 	public const byte T_VIDEO = 1, T_AUDIO = 2, T_JSON = 3;
@@ -85,5 +88,41 @@ static class CastProto {
 			g += r;
 		}
 		return buf;
+	}
+}
+
+sealed class CastDuplexStream : Stream {
+	readonly Stream rd;
+	readonly Stream wr;
+
+	public CastDuplexStream(Stream rd, Stream wr) {
+		this.rd = rd;
+		this.wr = wr;
+	}
+
+	public override bool CanRead => true;
+	public override bool CanWrite => true;
+	public override bool CanSeek => false;
+	public override long Length => throw new NotSupportedException();
+	public override long Position {
+		get => throw new NotSupportedException();
+		set => throw new NotSupportedException();
+	}
+
+	public override int Read(byte[] buffer, int offset, int count) => rd.Read(buffer, offset, count);
+	public override void Write(byte[] buffer, int offset, int count) {
+		wr.Write(buffer, offset, count);
+		wr.Flush();
+	}
+	public override void Flush() => wr.Flush();
+	public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+	public override void SetLength(long value) => throw new NotSupportedException();
+
+	protected override void Dispose(bool disposing) {
+		if (disposing) {
+			try { rd.Dispose(); } catch { }
+			try { wr.Dispose(); } catch { }
+		}
+		base.Dispose(disposing);
 	}
 }

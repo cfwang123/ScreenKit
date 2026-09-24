@@ -24,6 +24,7 @@ import org.json.JSONObject
 class CastService : Service() {
     private var mp: MediaProjection? = null
     private var video: VideoPipe? = null
+    private var pattern: PatternPipe? = null
     private var audio: AudioPipe? = null
     private var sink: FrameSink? = null
     private var q: Quality? = null
@@ -69,13 +70,14 @@ class CastService : Service() {
             applyQuality(Quality.byName(qname))
             return START_STICKY
         }
-        startFg()
-        if (mp != null || sink != null || video != null) {
+        val pattern = intent?.getBooleanExtra(EXTRA_PATTERN, false) == true
+        if (mp != null || sink != null || video != null || this.pattern != null) {
             Log.i("scst", "restart, stop previous")
             replacing = true
             stopCast()
             replacing = true
         }
+        startFg(pattern)
         val code = intent?.getIntExtra(EXTRA_CODE, 0) ?: 0
         val data = if (Build.VERSION.SDK_INT >= 33) {
             intent?.getParcelableExtra(EXTRA_DATA, Intent::class.java)
@@ -93,6 +95,22 @@ class CastService : Service() {
         }
         val ip = intent?.getStringExtra(EXTRA_IP) ?: ""
         val port = intent?.getIntExtra(EXTRA_PORT, Proto.TCP_PORT) ?: Proto.TCP_PORT
+        if (pattern) {
+            Thread {
+                try {
+                    val s = openUsbSink()
+                    sink = s
+                    beginPattern(s)
+                    replacing = false
+                } catch (ex: Exception) {
+                    Log.w("scst", "pattern ${ex.javaClass.simpleName} ${ex.message}")
+                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "USB 测试失败"))
+                    stopCast()
+                    stopSelf()
+                }
+            }.start()
+            return START_STICKY
+        }
         if (data == null) {
             stopSelf()
             return START_NOT_STICKY
@@ -284,7 +302,7 @@ class CastService : Service() {
 
     private fun peerGone() {
         Handler(Looper.getMainLooper()).post {
-            if (mp == null) return@post
+            if (mp == null && pattern == null) return@post
             sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "电脑已断开"))
             stopCast()
             stopSelf()
@@ -298,7 +316,17 @@ class CastService : Service() {
         return UsbSink(usb, acc)
     }
 
-    private fun startFg() {
+    private fun beginPattern(s: FrameSink) {
+        startCtrl(s)
+        sendHello(640, 360, 15, false)
+        pattern = PatternPipe(640, 360, 15, 800_000, s, ::peerGone)
+        sendBroadcast(
+            Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "USB 测试画面 640x360"),
+        )
+        Log.i("scst", "pattern usb 640x360")
+    }
+
+    private fun startFg(pattern: Boolean = false) {
         val ch = "cast"
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= 26) {
@@ -325,7 +353,11 @@ class CastService : Service() {
             .setContentIntent(pi)
             .build()
         if (Build.VERSION.SDK_INT >= 29) {
-            startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+            val t = if (pattern && Build.VERSION.SDK_INT >= 31)
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            else
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+            startForeground(1, n, t)
         } else {
             startForeground(1, n)
         }
@@ -339,10 +371,12 @@ class CastService : Service() {
         try { sink?.send(Proto.T_JSON, """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)) } catch (_: Exception) { }
         try { audio?.stop() } catch (_: Exception) { }
         try { video?.stop() } catch (_: Exception) { }
+        try { pattern?.stop() } catch (_: Exception) { }
         try { sink?.close() } catch (_: Exception) { }
         try { mp?.stop() } catch (_: Exception) { }
         audio = null
         video = null
+        pattern = null
         sink = null
         mp = null
         q = null
@@ -445,5 +479,6 @@ class CastService : Service() {
         const val EXTRA_MODE = "mode"
         const val EXTRA_IP = "ip"
         const val EXTRA_PORT = "port"
+        const val EXTRA_PATTERN = "pattern"
     }
 }
