@@ -32,6 +32,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Screencast audio: the phone drains queued AAC before each video frame and never drops the encoder on a full send queue; ADTS is MPEG-4 `0xF1`.
+- Phone stop sends `bye` and closes the socket at once; a new TCP client kicks the old session; idle >15s drops it. The PC hides the viewer and ignores leftover frames.
+- USB tethering: the phone listens on the USB NIC and the PC connects out (USB adapters are often Public, so inbound 19519 is blocked). Port rules TCP 19519 / UDP 19518 are still added when ScreenKit can elevate.
 - USB screencast uses AOA accessory, or USB tethering (network share) if no accessory. No USB debugging.
 - Wi‑Fi screencast: create VirtualDisplay on the main thread and send SPS/PPS first so the PC is not stuck on a black window.
 - Wi‑Fi screencast no longer freezes on a still frame: the phone encoder no longer waits on TCP, and the PC reads packets independently of decode.
@@ -49,6 +52,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 投屏声音：控制包（含 AAC）排空后再发视频，队列满时不再停掉音频编码；ADTS 用 MPEG-4 `0xF1`。
+- 手机点停止会发 `bye` 并立刻关套接字；新 TCP 会顶掉旧会话，超过 15 秒无包也断开。电脑关掉画面窗并丢掉残留帧。
+- USB 网络共享：手机在 USB 网卡上监听，电脑主动连出（USB 网卡常是公用网络，进站 19519 会被防火墙拦住）。若有权限仍会加 TCP 19519 / UDP 19518 规则。
 - USB 投屏：AOA 配件，或通知栏「USB 网络共享」；不用 USB 调试。
 - WiFi 投屏黑屏：主线程创建 VirtualDisplay，并先发 SPS/PPS。
 - WiFi 投屏停在某一帧：手机编码不再等 TCP 写完；电脑收包与解码分开。

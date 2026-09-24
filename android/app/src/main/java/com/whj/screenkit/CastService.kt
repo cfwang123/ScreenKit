@@ -74,7 +74,11 @@ class CastService : Service() {
         }
         Thread {
             try {
-                val s: FrameSink = if (mode == "usb") openUsbSink() else TcpSink(ip, port)
+                val s: FrameSink = when (mode) {
+                    "usb" -> openUsbSink()
+                    "usb-lan" -> TcpSink.listen(UsbLan.lastNet)
+                    else -> TcpSink(ip, port)
+                }
                 sink = s
                 val latch = java.util.concurrent.CountDownLatch(1)
                 var fail: Exception? = null
@@ -238,6 +242,7 @@ class CastService : Service() {
             try { unregisterComponentCallbacks(cfgCb) } catch (_: Exception) { }
             cfgOn = false
         }
+        try { sink?.send(Proto.T_JSON, """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)) } catch (_: Exception) { }
         try { audio?.stop() } catch (_: Exception) { }
         try { video?.stop() } catch (_: Exception) { }
         try { sink?.close() } catch (_: Exception) { }

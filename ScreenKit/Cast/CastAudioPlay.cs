@@ -10,7 +10,7 @@ sealed class CastAudioPlay : IDisposable {
 	public CastAudioPlay(int sampleRate = 48000, int ch = 2) {
 		buf = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, ch)) {
 			DiscardOnBufferOverflow = true,
-			BufferDuration = TimeSpan.FromMilliseconds(400)
+			BufferDuration = TimeSpan.FromMilliseconds(1500)
 		};
 		wo = new WaveOutEvent();
 		wo.Init(buf);

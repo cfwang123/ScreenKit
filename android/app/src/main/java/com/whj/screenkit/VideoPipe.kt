@@ -130,10 +130,14 @@ class VideoPipe(
             } finally {
                 try { enc.releaseOutputBuffer(ix, false) } catch (_: Exception) { }
             }
-            if (nal != null && nal.isNotEmpty() && !sink.send(Proto.T_VIDEO, nal)) {
-                peer = true
-                running = false
-                break
+            if (nal != null && nal.isNotEmpty()) {
+                if (nframe <= 3 || nframe % 60 == 0)
+                    android.util.Log.i("scst", "venc $nframe ${nal.size}b")
+                if (!sink.send(Proto.T_VIDEO, nal)) {
+                    peer = true
+                    running = false
+                    break
+                }
             }
         }
         if (peer && !stopped) onDead()

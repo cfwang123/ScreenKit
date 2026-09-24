@@ -115,6 +115,10 @@ class CastActivity : AppCompatActivity() {
     }
 
     private fun maybeTestIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("scst_usb", false) == true) {
+            b.eip.post { startUsb() }
+            return
+        }
         val ip = intent?.getStringExtra("scst_ip")?.trim().orEmpty()
         if (ip.isEmpty()) return
         b.eip.setText(ip)
@@ -184,6 +188,7 @@ class CastActivity : AppCompatActivity() {
             toast("请先扫描并点选一台电脑")
             return
         }
+        UsbLan.clear()
         pendingMode = "tcp"
         pendingIp = p.ip
         pendingPort = p.tcp
@@ -203,6 +208,7 @@ class CastActivity : AppCompatActivity() {
             ip = sp[0]
             port = sp[1].toIntOrNull() ?: Proto.TCP_PORT
         }
+        UsbLan.clear()
         pendingMode = "tcp"
         pendingIp = ip
         pendingPort = port
@@ -220,14 +226,15 @@ class CastActivity : AppCompatActivity() {
             waitUsb = true
             b.lbstat.text = "正在探测 USB 网络…"
             Thread {
-                val ip = try { UsbLan.findPc(this) } catch (_: Exception) { null }
+                val net = try { UsbLan.pickNet(this) } catch (_: Exception) { null }
+                val hasIface = try { UsbLan.hasUsbIface() } catch (_: Exception) { false }
                 runOnUiThread {
-                    if (!ip.isNullOrEmpty()) {
-                        pendingMode = "tcp"
-                        pendingIp = ip
+                    if (net != null || hasIface) {
+                        pendingMode = "usb-lan"
+                        pendingIp = ""
                         pendingPort = Proto.TCP_PORT
                         waitUsb = false
-                        b.lbstat.text = "USB 网络 $ip"
+                        b.lbstat.text = "USB 网络：等待电脑连入"
                         requestProj()
                     } else {
                         toast("未检测到 USB 配件或 USB 网络。通知栏把 USB 设为「网络共享」即可，无需 USB 调试")

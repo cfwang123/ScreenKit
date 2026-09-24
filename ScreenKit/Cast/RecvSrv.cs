@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json.Nodes;
@@ -26,11 +27,14 @@ sealed class CastRecvSrv : IDisposable {
 	readonly object nallock = new();
 	readonly AutoResetEvent nalsig = new(false);
 	byte[] pendingnal;
+	readonly ConcurrentQueue<byte[]> aqueue = new();
+	readonly AutoResetEvent asig = new(false);
 	volatile bool decstop;
 	int lastpkt;
 	int encw, ench, srcw, srch, hellofps, hellobr;
 	int videomiss;
-	int fpsn, fpsv, kbps, rttms, laststat, lastping, lastframe, decms;
+	int fpsn, fpsv, audion, audiov, audiogot, audiogotv, kbps, rttms, laststat, lastping, lastframe, lastaudiolog, decms;
+	int audiohex;
 	long byteacc;
 	public bool Running => !stop && lis != null;
 	public bool Busy => busy;
@@ -45,6 +49,7 @@ sealed class CastRecvSrv : IDisposable {
 		lis.Start();
 		th = new Thread(loop) { IsBackground = true, Name = "cast-recv" };
 		th.Start();
+		ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall());
 		Log?.Invoke($"接收已启动 TCP {CastProto.TCP_PORT}");
 	}
 
@@ -53,14 +58,25 @@ sealed class CastRecvSrv : IDisposable {
 		if (now - laststat >= 1000 || laststat == 0) {
 			fpsv = fpsn;
 			fpsn = 0;
+			audiov = audion;
+			audion = 0;
+			audiogotv = audiogot;
+			audiogot = 0;
 			kbps = (int)(byteacc * 8 / 1000);
 			byteacc = 0;
 			laststat = now;
+			if (busy) writestat();
+			if (busy && (audiov > 0 || audiogotv > 0) && now - lastaudiolog >= 2000) {
+				lastaudiolog = now;
+				Log?.Invoke($"音频 {audiov}/{audiogotv} pkt/s");
+			}
 		}
 		if (busy && now - lastping >= 1000) {
 			lastping = now;
 			SendJson(new { cmd = "ping", t = now });
 		}
+		if (busy && lastpkt != 0 && now - lastpkt > 15000)
+			Kick();
 	}
 
 	public void SendJson(object obj) {
@@ -85,7 +101,8 @@ sealed class CastRecvSrv : IDisposable {
 		var delay = rttms > 0 ? $"{rttms} ms" : (gap > 0 ? $"间隔 {gap} ms" : "—");
 		var br = kbps > 0 ? $"{kbps / 1000.0:0.0} Mbps" : (hellobr > 0 ? $"标称 {hellobr / 1000000.0:0.0} Mbps" : "—");
 		var fps = hellofps > 0 ? $"{fpsv} fps (标称 {hellofps})" : $"{fpsv} fps";
-		return $"原始 {src}   编码 {enc}\n{fps}   {br}   延时 {delay}   解码 {decms} ms";
+		var au = audiogotv > 0 ? $"{audiov}/{audiogotv} pkt/s" : "无";
+		return $"原始 {src}   编码 {enc}\n{fps}   {br}   音频 {au}   延时 {delay}   解码 {decms} ms";
 	}
 
 	public void Kick() {
@@ -96,6 +113,13 @@ sealed class CastRecvSrv : IDisposable {
 
 	public void AttachStream(Stream s, string tag) {
 		if (s == null) return;
+		if (busy) {
+			Log?.Invoke($"{tag} 顶掉旧会话");
+			Kick();
+			var t0 = Environment.TickCount;
+			while (busy && Environment.TickCount - t0 < 2000)
+				Thread.Sleep(20);
+		}
 		Log?.Invoke($"{tag} 接入");
 		var hello = false;
 		try { hello = runsession(s); }
@@ -127,6 +151,13 @@ sealed class CastRecvSrv : IDisposable {
 	}
 
 	void onesess(TcpClient cli) {
+		if (busy) {
+			Log?.Invoke("新连接，断开旧会话");
+			Kick();
+			var t0 = Environment.TickCount;
+			while (busy && Environment.TickCount - t0 < 2000)
+				Thread.Sleep(20);
+		}
 		var hello = false;
 		curcli = cli;
 		try { hello = runsession(cli.GetStream()); }
@@ -147,12 +178,17 @@ sealed class CastRecvSrv : IDisposable {
 			decstop = false;
 			curst = s;
 			var decth = new Thread(decodeloop) { IsBackground = true, Name = "cast-vdec" };
+			var ath = new Thread(audioloop) { IsBackground = true, Name = "cast-adec" };
 			decth.Start();
+			ath.Start();
 			try {
 				resetdec();
 				lastpkt = Environment.TickCount;
 				while (!stop && !drop) {
-					if (!CastProto.TryRead(s, out var type, out var payload)) break;
+					if (!CastProto.TryRead(s, out var type, out var payload)) {
+						Log?.Invoke("对端关闭或读包失败");
+						break;
+					}
 					lastpkt = Environment.TickCount;
 					if (type == CastProto.T_JSON) {
 						if (dojson(payload)) hello = true;
@@ -162,19 +198,32 @@ sealed class CastRecvSrv : IDisposable {
 						lock (nallock) pendingnal = payload;
 						nalsig.Set();
 					}
-					else if (type == CastProto.T_AUDIO) doaudio(payload);
+					else if (type == CastProto.T_AUDIO) {
+						if (payload != null) byteacc += payload.Length;
+						audiogot++;
+						aqueue.Enqueue(payload);
+						asig.Set();
+					}
 				}
 			}
 			finally {
 				decstop = true;
 				nalsig.Set();
+				asig.Set();
 				try { decth.Join(800); } catch { }
+				try { ath.Join(400); } catch { }
+				while (aqueue.TryDequeue(out _)) { }
 				if (ReferenceEquals(curst, s)) curst = null;
 				resetdec();
 				busy = false;
 				lastpkt = 0;
 				fpsn = 0;
 				fpsv = 0;
+				audion = 0;
+				audiov = 0;
+				audiogot = 0;
+				audiogotv = 0;
+				audiohex = 0;
 				kbps = 0;
 				rttms = 0;
 				byteacc = 0;
@@ -191,6 +240,10 @@ sealed class CastRecvSrv : IDisposable {
 		catch { return false; }
 		if (o == null) return false;
 		var cmd = CastProto.Jstr(o, "cmd");
+		if (cmd == "bye") {
+			drop = true;
+			return true;
+		}
 		if (cmd == "pong") {
 			var t = CastProto.Jint(o, "t");
 			if (t != 0) rttms = Environment.TickCount - t;
@@ -235,6 +288,14 @@ sealed class CastRecvSrv : IDisposable {
 		return true;
 	}
 
+	void audioloop() {
+		while (!decstop && !stop && !drop) {
+			asig.WaitOne(200);
+			while (aqueue.TryDequeue(out var data))
+				doaudio(data);
+		}
+	}
+
 	void decodeloop() {
 		while (!decstop && !stop && !drop) {
 			nalsig.WaitOne(200);
@@ -274,20 +335,40 @@ sealed class CastRecvSrv : IDisposable {
 	void doaudio(byte[] data) {
 		try {
 			if (data == null || data.Length == 0) return;
-			if (data.Length >= 2 && data[0] == 0xFF && (data[1] & 0xF0) == 0xF0) {
-				byteacc += data.Length;
-				if (adec == null) adec = new CastAudioDecoder();
-				var pcm = adec.DecodeAdts(data);
-				if (pcm != null) {
-					if (aplay == null) aplay = new CastAudioPlay(adec.SampleRate, adec.Channels);
-					aplay.Push(pcm);
+			if (audiohex < 4) {
+				audiohex++;
+				var n = Math.Min(12, data.Length);
+				var hex = BitConverter.ToString(data, 0, n);
+				Log?.Invoke($"音频包 #{audiohex} {data.Length}B {hex}");
+				try {
+					var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+					Directory.CreateDirectory(dir);
+					File.AppendAllText(Path.Combine(dir, "cast_audio.txt"),
+						$"{DateTime.Now:HH:mm:ss} #{audiohex} {data.Length}B {hex}\n");
 				}
-				return;
+				catch { }
 			}
-			if (aplay == null) aplay = new CastAudioPlay();
-			aplay.Push(data);
+			if (data.Length < 2 || data[0] != 0xFF || (data[1] & 0xF0) != 0xF0) return;
+			byteacc += data.Length;
+			if (adec == null) adec = new CastAudioDecoder();
+			var pcm = adec.DecodeAdts(data);
+			if (pcm == null) return;
+			audion++;
+			if (aplay == null) aplay = new CastAudioPlay(adec.SampleRate, adec.Channels);
+			aplay.Push(pcm);
 		}
 		catch (Exception ex) { Log?.Invoke($"音频解码: {ex.Message}"); }
+	}
+
+	void writestat() {
+		try {
+			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+			Directory.CreateDirectory(dir);
+			var gap = lastpkt == 0 ? -1 : Environment.TickCount - lastpkt;
+			File.WriteAllText(Path.Combine(dir, "cast.log"),
+				$"{DateTime.Now:HH:mm:ss} fps={fpsv} audio={audiov}/{audiogotv} kbps={kbps} busy={(busy ? 1 : 0)} gap={gap}\n");
+		}
+		catch { }
 	}
 
 	void resetdec() {

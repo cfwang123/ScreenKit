@@ -7,6 +7,7 @@ static class CastHost {
 	public static CastSendCli Send { get; private set; }
 	public static CastDisc Disc { get; private set; }
 	public static CastUsbHost Usb { get; private set; }
+	public static CastUsbScan UsbScan { get; private set; }
 	public static bool Exiting { get; private set; }
 	public static bool Started { get; private set; }
 
@@ -61,6 +62,7 @@ static class CastHost {
 		Send = new CastSendCli();
 		Disc = new CastDisc("pc", () => Name);
 		Usb = new CastUsbHost { Recv = Recv };
+		UsbScan = new CastUsbScan { Recv = Recv, Log = log };
 		Recv.Log = log;
 		Send.Log = log;
 		Disc.Log = log;
@@ -76,13 +78,21 @@ static class CastHost {
 			ensureview();
 			view.SetSrc(dw, dh);
 		});
-		Recv.OnGone = () => ui(() => view?.HideCast());
+		Recv.OnGone = () => {
+			hidebyuser = true;
+			lock (framegate) {
+				frameready = -1;
+				frameposted = false;
+			}
+			ui(() => view?.HideCast());
+		};
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
 		timer.Tick += (_, _) => ThreadPool.QueueUserWorkItem(_ => {
 			try {
 				if (Recv != null && Recv.Running)
 					Disc?.Beacon(CastProto.TCP_PORT);
 				Recv?.Tick();
+				UsbScan?.Tick();
 			}
 			catch { }
 		});
@@ -187,6 +197,7 @@ static class CastHost {
 	}
 
 	static void onframe(byte[] px, int w, int h, int st) {
+		if (hidebyuser) return;
 		if (px == null || w <= 0 || h <= 0 || st < w * 4) return;
 		var n = (h - 1) * st + w * 4;
 		if (px.Length < n) return;
@@ -210,6 +221,14 @@ static class CastHost {
 
 	static void flushframe() {
 		while (true) {
+			if (hidebyuser) {
+				lock (framegate) {
+					frameready = -1;
+					frameposted = false;
+					framebusy = -1;
+				}
+				return;
+			}
 			byte[] px;
 			int w, h, st;
 			lock (framegate) {
@@ -237,6 +256,13 @@ static class CastHost {
 	}
 
 	static void log(string s) {
+		try {
+			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+			Directory.CreateDirectory(dir);
+			File.AppendAllText(Path.Combine(dir, "cast_sess.txt"),
+				$"{DateTime.Now:HH:mm:ss} {s}\n");
+		}
+		catch { }
 		ui(() => set?.AppendLog(s));
 	}
 

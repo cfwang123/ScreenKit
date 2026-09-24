@@ -32,29 +32,40 @@ unsafe sealed class CastAudioDecoder : IDisposable {
 			var e = ffmpeg.avcodec_send_packet(dec, pkt);
 			ffmpeg.av_packet_unref(pkt);
 			if (e < 0 && e != ffmpeg.AVERROR(ffmpeg.EAGAIN)) return null;
-			var r = ffmpeg.avcodec_receive_frame(dec, frame);
-			if (r < 0) return null;
-			ensureswr();
-			if (swr == null) return null;
-			var nb = frame->nb_samples;
-			if (nb <= 0) return null;
-			var outSamples = ffmpeg.swr_get_out_samples(swr, nb);
-			if (outSamples <= 0) outSamples = nb;
-			var bytes = outSamples * Channels * 2;
-			if (bytes <= 0 || bytes > 1_000_000) return null;
-			var pcm = new byte[bytes];
-			fixed (byte* dp = pcm) {
-				byte* dptr = dp;
-				var n = ffmpeg.swr_convert(swr, &dptr, outSamples, frame->extended_data, nb);
-				if (n < 0) return null;
-				var got = n * Channels * 2;
+			byte[] acc = null;
+			while (true) {
+				var r = ffmpeg.avcodec_receive_frame(dec, frame);
+				if (r < 0) break;
+				ensureswr();
+				if (swr == null) break;
+				var nb = frame->nb_samples;
+				if (nb <= 0) continue;
+				var outSamples = ffmpeg.swr_get_out_samples(swr, nb);
+				if (outSamples <= 0) outSamples = nb;
+				var bytes = outSamples * Channels * 2;
+				if (bytes <= 0 || bytes > 1_000_000) continue;
+				var pcm = new byte[bytes];
+				int got;
+				fixed (byte* dp = pcm) {
+					byte* dptr = dp;
+					var n = ffmpeg.swr_convert(swr, &dptr, outSamples, frame->extended_data, nb);
+					if (n < 0) continue;
+					got = n * Channels * 2;
+				}
 				if (got != pcm.Length) {
 					var trim = new byte[got];
 					Buffer.BlockCopy(pcm, 0, trim, 0, got);
-					return trim;
+					pcm = trim;
+				}
+				if (acc == null) acc = pcm;
+				else {
+					var nbuf = new byte[acc.Length + pcm.Length];
+					Buffer.BlockCopy(acc, 0, nbuf, 0, acc.Length);
+					Buffer.BlockCopy(pcm, 0, nbuf, acc.Length, pcm.Length);
+					acc = nbuf;
 				}
 			}
-			return pcm;
+			return acc;
 		}
 		catch {
 			return null;

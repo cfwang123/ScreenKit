@@ -17,6 +17,7 @@ class AudioPipe(
     private val rec: AudioRecord
     private val enc: MediaCodec
     private var running = true
+    private var nsent = 0
     private val th: Thread
 
     init {
@@ -41,10 +42,12 @@ class AudioPipe(
         aac.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
         aac.setInteger(MediaFormat.KEY_BIT_RATE, 128000)
         aac.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, min)
+        try { aac.setInteger(MediaFormat.KEY_IS_ADTS, 0) } catch (_: Exception) { }
         enc = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
         enc.configure(aac, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
         enc.start()
         rec.startRecording()
+        android.util.Log.i("scst", "audio start rec=${rec.state} recst=${rec.recordingState}")
         th = Thread({ loop() }, "aenc").also { it.start() }
     }
 
@@ -71,7 +74,15 @@ class AudioPipe(
                         val raw = ByteArray(info.size)
                         ob.position(info.offset)
                         ob.get(raw)
-                        if (!sink.send(Proto.T_AUDIO, addAdts(raw, 48000, 2))) {
+                        val pkt = if (raw.size >= 2 && raw[0] == 0xFF.toByte() && (raw[1].toInt() and 0xF0) == 0xF0)
+                            raw
+                        else
+                            addAdts(raw, 48000, 2)
+                        nsent++
+                        if (nsent <= 3 || nsent % 40 == 0)
+                            android.util.Log.i("scst", "aac $nsent ${pkt.size}b ${pkt[0].toInt() and 0xFF} ${pkt[1].toInt() and 0xFF}")
+                        if (!sink.send(Proto.T_AUDIO, pkt)) {
+                            android.util.Log.w("scst", "aac send fail after $nsent")
                             running = false
                             break
                         }
@@ -101,7 +112,7 @@ class AudioPipe(
             val p = ByteArray(packetLen)
             val srIdx = if (rate >= 48000) 3 else 4
             p[0] = 0xFF.toByte()
-            p[1] = 0xF9.toByte()
+            p[1] = 0xF1.toByte()
             p[2] = (((2 - 1) shl 6) + (srIdx shl 2) + (ch shr 2)).toByte()
             p[3] = (((ch and 3) shl 6) + (packetLen shr 11)).toByte()
             p[4] = ((packetLen and 0x7FF) shr 3).toByte()
