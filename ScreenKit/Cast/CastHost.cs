@@ -54,6 +54,13 @@ static class CastHost {
 	public static string QualityName =>
 		string.IsNullOrEmpty(Opt?.CastQuality) ? CastQuality.Presets[1].Name : Opt.CastQuality;
 	public static bool Audio => Opt?.CastAudio != false;
+	public static bool ViewFill => Opt?.CastViewFill == true;
+
+	public static void SetViewFill(bool fill) {
+		if (Opt != null) Opt.CastViewFill = fill;
+		SaveOpt();
+		view?.ApplyScale();
+	}
 
 	public static void Init(Func<OcrOptions> getopt, Action saveopt) {
 		opts = getopt;

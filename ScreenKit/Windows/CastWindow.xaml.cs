@@ -24,6 +24,16 @@ public partial class CastWindow : Window {
 		eq.SelectionChanged += eq_SelectionChanged;
 	}
 
+	void fillscale() {
+		var fill = CastHost.ViewFill;
+		escale.SelectionChanged -= escale_SelectionChanged;
+		escale.Items.Clear();
+		escale.Items.Add(Loc.T("cast.fit"));
+		escale.Items.Add(Loc.T("cast.fill"));
+		escale.SelectedIndex = fill ? 1 : 0;
+		escale.SelectionChanged += escale_SelectionChanged;
+	}
+
 	void applylang() {
 		Title = Loc.T("cast.title");
 		lbq.Text = Loc.T("cast.quality");
@@ -33,6 +43,8 @@ public partial class CastWindow : Window {
 		bstop.Content = Loc.T("cast.disconnect");
 		lbipman.Text = Loc.T("cast.ip");
 		bconnect.Content = Loc.T("cast.connect");
+		lbscale.Text = Loc.T("cast.scale");
+		fillscale();
 	}
 
 	void eq_SelectionChanged(object sender, SelectionChangedEventArgs e) {
@@ -40,6 +52,12 @@ public partial class CastWindow : Window {
 		save();
 		CastHost.ApplyQuality();
 		AppendLog($"{Loc.T("cast.quality")} {CastHost.QualityName}");
+	}
+
+	void escale_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+		if (!IsLoaded) return;
+		save();
+		CastHost.SetViewFill(escale.SelectedIndex == 1);
 	}
 
 	public void AppendLog(string s) {
@@ -79,6 +97,7 @@ public partial class CastWindow : Window {
 		if (o == null) return;
 		o.CastQuality = eq.SelectedItem as string ?? CastQuality.Presets[1].Name;
 		o.CastAudio = caudio.IsChecked == true;
+		o.CastViewFill = escale.SelectedIndex == 1;
 		CastHost.SaveOpt();
 	}
 

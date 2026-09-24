@@ -5,6 +5,7 @@
         WindowStyle="None" ResizeMode="CanResize"
         Background="#000" Foreground="#EEE"
         WindowStartupLocation="CenterScreen"
+        Topmost="False"
         Focusable="True"
         KeyboardNavigation.TabNavigation="None"
         PreviewKeyDown="win_PreviewKeyDown"
@@ -36,6 +37,10 @@
 	<Window.ContextMenu>
 		<ContextMenu x:Name="mn">
 			<MenuItem x:Name="mnfull" Header="全屏" Click="mnfull_Click"/>
+			<MenuItem x:Name="mnfit" Header="适应窗口" IsCheckable="True" IsChecked="True" Click="mnfit_Click"
+			          AutomationProperties.AutomationId="cast.view.fit"/>
+			<MenuItem x:Name="mnfill" Header="铺满窗口" IsCheckable="True" Click="mnfill_Click"
+			          AutomationProperties.AutomationId="cast.view.fill"/>
 			<MenuItem x:Name="mnmax" Header="最大化/还原" Click="mnmax_Click"/>
 			<MenuItem x:Name="mnmin" Header="最小化" Click="mnmin_Click"/>
 			<Separator/>
@@ -50,7 +55,7 @@
 	      MouseLeave="win_MouseLeave"
 	      PreviewMouseLeftButtonDown="win_PreviewMouseLeftButtonDown"
 	      MouseRightButtonUp="win_MouseRightButtonUp">
-		<Viewbox Stretch="Uniform" StretchDirection="Both">
+		<Viewbox x:Name="vbox" Stretch="Uniform" StretchDirection="Both">
 			<Grid x:Name="pimg" ClipToBounds="True">
 				<Image x:Name="img" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top"
 				       RenderOptions.BitmapScalingMode="LowQuality"/>

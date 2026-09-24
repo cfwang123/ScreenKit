@@ -15,6 +15,9 @@
 				<TextBlock x:Name="lbq" Text="画质" VerticalAlignment="Center" Margin="0,0,6,0"/>
 				<ComboBox x:Name="eq" Width="120" Margin="0,0,8,0"
 				          AutomationProperties.AutomationId="cast.quality"/>
+				<TextBlock x:Name="lbscale" Text="画面" VerticalAlignment="Center" Margin="0,0,6,0"/>
+				<ComboBox x:Name="escale" Width="100" Margin="0,0,8,0"
+				          AutomationProperties.AutomationId="cast.scale"/>
 				<CheckBox x:Name="caudio" Content="声音" IsChecked="True" VerticalAlignment="Center" Margin="0,0,8,0"
 				          AutomationProperties.AutomationId="cast.audio"/>
 				<Button x:Name="brecv" Content="开始接收" Width="88" Margin="0,0,6,0" Padding="4,2" Click="brecv_Click"

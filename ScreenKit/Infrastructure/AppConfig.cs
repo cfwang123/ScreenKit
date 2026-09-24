@@ -217,6 +217,8 @@ static class AppConfig {
 				o.CastQuality = cq.Trim().Trim('"');
 			if (map.TryGetValue("cast_audio", out var ca))
 				o.CastAudio = parsebool(ca, true);
+			if (map.TryGetValue("cast_view_fill", out var cvf))
+				o.CastViewFill = parsebool(cvf, false);
 			if (map.TryGetValue("service_mode", out var sm))
 				o.ServiceMode = parsebool(sm, false);
 			if (map.TryGetValue("pdf_invisible_text", out var pit))
@@ -552,6 +554,8 @@ static class AppConfig {
 		sb.AppendLine($"cast_recv_enabled = {(o.CastRecvEnabled ? "true" : "false")}");
 		sb.AppendLine($"cast_quality = \"{esc(string.IsNullOrWhiteSpace(o.CastQuality) ? "均衡 720p" : o.CastQuality)}\"");
 		sb.AppendLine($"cast_audio = {(o.CastAudio ? "true" : "false")}");
+		sb.AppendLine($"# 画面窗：false=适应窗口(fit) true=铺满窗口(fill)");
+		sb.AppendLine($"cast_view_fill = {(o.CastViewFill ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("[pdf]");
 		sb.AppendLine($"# PDF 识别后叠加不可见文字层（可检索/复制）");

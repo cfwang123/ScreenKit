@@ -31,6 +31,21 @@ public partial class CastViewWindow : Window {
 			e.Cancel = true;
 			CastHost.CloseCast();
 		};
+		applylang();
+		ApplyScale();
+	}
+
+	void applylang() {
+		mnfull.Header = Loc.T("cast.full");
+		mnfit.Header = Loc.T("cast.fit");
+		mnfill.Header = Loc.T("cast.fill");
+	}
+
+	public void ApplyScale() {
+		var fill = CastHost.ViewFill;
+		vbox.Stretch = fill ? Stretch.UniformToFill : Stretch.Uniform;
+		mnfit.IsChecked = !fill;
+		mnfill.IsChecked = fill;
 	}
 
 	public void SetName(string n, string via = null) {
@@ -63,29 +78,15 @@ public partial class CastViewWindow : Window {
 		lbst.Text = CastHost.Recv?.StatText() ?? Loc.T("cast.stat.recv");
 		lbst.Visibility = Visibility.Visible;
 		stattimer.Start();
-		tofront();
-		try { Dispatcher.BeginInvoke(new Action(tofront), DispatcherPriority.Loaded); }
-		catch { }
-	}
-
-	void tofront() {
+		ApplyScale();
+		Topmost = false;
+		Activate();
+		try { img.Focus(); } catch { }
 		try {
-			Topmost = false;
-			Topmost = true;
-			Activate();
-			Focus();
-			try { img.Focus(); } catch { }
 			var h = new WindowInteropHelper(this).EnsureHandle();
 			ShowWindow(h, 9);
-			SetWindowPos(h, HwndTopmost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-			var fg = GetForegroundWindow();
-			var ft = GetWindowThreadProcessId(fg, out _);
-			var ct = GetCurrentThreadId();
-			if (ft != 0 && ft != ct) AttachThreadInput(ct, ft, true);
-			var ok = SetForegroundWindow(h);
-			if (ft != 0 && ft != ct) AttachThreadInput(ct, ft, false);
 			GetWindowRect(h, out var rc);
-			PlaceText = $"hwnd={h.ToInt64():X} fg={ok} wr={rc.Left},{rc.Top} {rc.Right - rc.Left}x{rc.Bottom - rc.Top}";
+			PlaceText = $"hwnd={h.ToInt64():X} wr={rc.Left},{rc.Top} {rc.Right - rc.Left}x{rc.Bottom - rc.Top}";
 		}
 		catch (Exception ex) { PlaceText = ex.Message; }
 	}
@@ -275,6 +276,8 @@ public partial class CastViewWindow : Window {
 	void mnset_Click(object sender, RoutedEventArgs e) => CastHost.ShowSet();
 	void mndisc_Click(object sender, RoutedEventArgs e) => CastHost.Disconnect();
 	void mnfull_Click(object sender, RoutedEventArgs e) => togglefull();
+	void mnfit_Click(object sender, RoutedEventArgs e) => CastHost.SetViewFill(false);
+	void mnfill_Click(object sender, RoutedEventArgs e) => CastHost.SetViewFill(true);
 
 	void togglemax() {
 		if (full) togglefull();
@@ -318,11 +321,6 @@ public partial class CastViewWindow : Window {
 		e.Handled = true;
 	}
 
-	static readonly IntPtr HwndTopmost = new(-1);
-	const uint SWP_NOSIZE = 0x0001;
-	const uint SWP_NOMOVE = 0x0002;
-	const uint SWP_SHOWWINDOW = 0x0040;
-
 	[StructLayout(LayoutKind.Sequential)]
 	struct NativePoint {
 		public int X, Y;
@@ -334,25 +332,7 @@ public partial class CastViewWindow : Window {
 	}
 
 	[DllImport("user32.dll")]
-	static extern bool SetForegroundWindow(IntPtr h);
-
-	[DllImport("user32.dll")]
 	static extern bool ShowWindow(IntPtr h, int cmd);
-
-	[DllImport("user32.dll")]
-	static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
-
-	[DllImport("user32.dll")]
-	static extern IntPtr GetForegroundWindow();
-
-	[DllImport("user32.dll")]
-	static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
-
-	[DllImport("user32.dll")]
-	static extern bool AttachThreadInput(uint a, uint b, bool attach);
-
-	[DllImport("kernel32.dll")]
-	static extern uint GetCurrentThreadId();
 
 	[DllImport("user32.dll")]
 	static extern bool GetCursorPos(out NativePoint p);

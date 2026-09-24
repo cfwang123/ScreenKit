@@ -40,6 +40,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Screencast viewer is no longer always-on-top. Picture scale can be **Fit** (letterbox) or **Fill** (crop); right-click the viewer or Tools → Screencast (`cast_view_fill`).
 - USB screencast: the receiver starts the AOA helper by itself (no extra **USB配件** click). The helper stays after a session instead of exiting, and is no longer killed every 8s.
 - USB accessory test pattern: the phone encodes a moving 640×360 block (no MediaProjection) over AOA bulk only (`scst_usb_pat`). No adb reverse, no Wi‑Fi.
 - USB viewer: hello used to trigger an immediate `ping` on the same AOA bulk pipe, which can stall WinUSB so no video arrives and the window closes after 15s. Ping waits until the first frame. Handshake timeout is 8s. USB accessory bridges over named pipes (`ScreenKit.CastUsb` / `ScreenKit.CastUsbDown`) so a stuck TCP 19519 no longer blocks the viewer. Up and down are separate pipes so the helper can write video while waiting for PC control. Recv also tries to free 19519 from leftover ScreenKit processes.
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 投屏画面窗不再置顶。画面可选 **适应窗口**（fit，留边）或 **铺满窗口**（fill，裁切）；右键画面窗或「工具 → 投屏」里切换（`cast_view_fill`）。
 - USB 投屏：电脑开接收后自动拉起配件助手，不必再点 **USB配件**。助手一场结束后继续等，不再每 8 秒杀掉正在跑的助手。
 - USB 配件测试画面：手机自绘 640×360 动态块（不截屏）只走 AOA bulk（`scst_usb_pat`），不用 adb reverse、不用 WiFi。
 - USB 非 adb 投屏：hello 后立刻在同一条 AOA bulk 上 `ping`，WinUSB 可能卡死，没有视频，15 秒关窗。改为收到第一帧再 ping。握手超时 8 秒。配件桥改走命名管道（`ScreenKit.CastUsb` 上行 / `ScreenKit.CastUsbDown` 下行），不再被卡住的 TCP 19519 挡住弹窗；同一条管道上读写并发会把视频堵死，窗口只握手不更新（黑屏 0 fps）。接收启动时仍会尽量清掉占用 19519 的残留 ScreenKit。

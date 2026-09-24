@@ -96,6 +96,8 @@ public sealed class OcrOptions {
 	public string CastQuality = "均衡 720p";
 	/// <summary>投屏是否发送系统声音。</summary>
 	public bool CastAudio = true;
+	/// <summary>画面窗铺满（fill）或适应（fit）。</summary>
+	public bool CastViewFill;
 	/// <summary>
 	/// 服务模式：启动/改参后立即预热引擎并常驻，不主动释放模型内存。
 	/// 关闭时保持懒加载（改参后丢弃，下次识别再加载）。
@@ -359,6 +361,7 @@ public sealed class OcrOptions {
 		CastRecvEnabled = CastRecvEnabled,
 		CastQuality = CastQuality ?? "均衡 720p",
 		CastAudio = CastAudio,
+		CastViewFill = CastViewFill,
 		ServiceMode = ServiceMode,
 		PdfInvisibleText = PdfInvisibleText,
 		PdfDpi = PdfDpi,
