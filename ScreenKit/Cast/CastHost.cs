@@ -144,6 +144,7 @@ static class CastHost {
 				Recv.Start();
 			}
 			catch (Exception ex) { log(ex.Message); }
+			EnableUsbHost();
 		}
 	}
 
@@ -151,6 +152,8 @@ static class CastHost {
 		if (Exiting) return;
 		Exiting = true;
 		timer?.Stop();
+		usbWant = false;
+		CastUsbHost.StopAoaHelper(log);
 		try { Usb?.Dispose(); } catch { }
 		try { Recv?.Dispose(); } catch { }
 		try { Send?.Dispose(); } catch { }
@@ -164,6 +167,7 @@ static class CastHost {
 	public static void EnableUsbHost() {
 		usbWant = true;
 		lastaoa = Environment.TickCount;
+		if (CastUsbHost.HelperBusy()) return;
 		log("已启用 USB 配件主机（独立进程请求 AOA 并桥接）");
 		CastUsbHost.SpawnAoaHelper(log);
 	}
@@ -224,13 +228,16 @@ static class CastHost {
 
 	public static void StartRecv() {
 		if (!Started) Start();
-		if (Recv != null && Recv.Running) return;
-		Recv.Start();
+		if (Recv == null || !Recv.Running)
+			Recv.Start();
 		if (Opt != null) Opt.CastRecvEnabled = true;
 		SaveOpt();
+		EnableUsbHost();
 	}
 
 	public static void StopRecv() {
+		usbWant = false;
+		CastUsbHost.StopAoaHelper(log);
 		Recv?.Stop();
 		if (Opt != null) Opt.CastRecvEnabled = false;
 		SaveOpt();

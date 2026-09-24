@@ -429,11 +429,7 @@ sealed class CastUsbHost : IDisposable {
 
 	public static void SpawnAoaHelper(Action<string> log) {
 		try {
-			killstale(log);
-			using (var mx = new Mutex(false, "Local\\ScreenKit_CastAoa")) {
-				if (!mx.WaitOne(0, false)) return;
-				try { mx.ReleaseMutex(); } catch { }
-			}
+			if (HelperBusy()) return;
 			var exe = Environment.GetCommandLineArgs().FirstOrDefault()
 				?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
 			if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) {
@@ -452,9 +448,12 @@ sealed class CastUsbHost : IDisposable {
 				WorkingDirectory = Path.GetDirectoryName(exe) ?? AppDomain.CurrentDomain.BaseDirectory,
 			};
 			System.Diagnostics.Process.Start(psi);
+			log?.Invoke("AOA 助手已启动");
 		}
 		catch (Exception ex) { log?.Invoke($"AOA 助手: {ex.Message}"); }
 	}
+
+	public static void StopAoaHelper(Action<string> log) => killstale(log);
 
 	public static void RunAoaBridge(Action<string> log) {
 		bool created;
@@ -464,7 +463,7 @@ sealed class CastUsbHost : IDisposable {
 			return;
 		}
 		try {
-			log?.Invoke("AOA 助手：请求配件并桥接到本机 19519");
+			log?.Invoke("AOA 助手：等待手机 USB 投屏");
 			var hasAcc = false;
 			foreach (var iid in usbpresent()) {
 				if (isaeaiid(iid)) { hasAcc = true; break; }
@@ -479,14 +478,16 @@ sealed class CastUsbHost : IDisposable {
 					continue;
 				log?.Invoke($"pnp {iid} svc={devsvc(iid)}");
 			}
-			var t0 = Environment.TickCount;
 			var lastreq = 0;
 			var started = false;
-			while (Environment.TickCount - t0 < 90000) {
+			while (true) {
 				try { bindaoa(log); }
 				catch (Exception ex) { log?.Invoke($"绑定 WinUSB: {ex.Message}"); }
 				try {
-					if (trybridge(log)) return;
+					if (trybridge(log)) {
+						log?.Invoke("USB AOA 会话结束，继续等待");
+						continue;
+					}
 				}
 				catch (Exception ex) { log?.Invoke($"AOA 桥接: {ex.Message}"); }
 				var now = Environment.TickCount;
@@ -507,7 +508,6 @@ sealed class CastUsbHost : IDisposable {
 				}
 				Thread.Sleep(500);
 			}
-			log?.Invoke("AOA 助手超时：手机未进入配件。可改用通知栏 USB 网络共享，或 USB 投屏(adb)。若配件口被 spacedesk 占用，助手会尝试换成 WinUSB。");
 		}
 		finally {
 			try { mx.ReleaseMutex(); } catch { }
