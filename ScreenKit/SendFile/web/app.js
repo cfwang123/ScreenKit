@@ -7,6 +7,7 @@ window.sfweb = (function(){
 	var items = [];
 	var zh = true;
 	var busy = false;
+	var token = "";
 
 	return t;
 
@@ -69,14 +70,11 @@ window.sfweb = (function(){
 
 	function me() {
 		api("GET", "/api/web/me", null, function(ok, data){
-			if (ok && data && data.ok) {
-				show(true);
-				var bn = el("bname");
-				if (bn) bn.textContent = data.name || "";
-				load();
-				return;
-			}
-			show(false);
+			if (!ok) { show(false); return; }
+			show(true);
+			var bn = el("bname");
+			if (bn) bn.textContent = (data && data.name) || "";
+			load();
 		});
 	}
 
@@ -96,6 +94,7 @@ window.sfweb = (function(){
 
 	function logout() {
 		api("POST", "/api/web/logout", {}, function(){
+			savetoken("");
 			items = [];
 			show(false);
 		});
@@ -341,6 +340,8 @@ window.sfweb = (function(){
 
 	function api(method, url, body, done) {
 		var opt = {method: method, credentials: "same-origin", headers: {}};
+		var tok = loadtoken();
+		if (tok) opt.headers["X-Web-Token"] = tok;
 		if (body != null) {
 			opt.headers["Content-Type"] = "application/json; charset=utf-8";
 			opt.body = JSON.stringify(body);
@@ -349,7 +350,9 @@ window.sfweb = (function(){
 			return r.text().then(function(txt){
 				var j = parse(txt);
 				var ok = r.ok && j && j.code === 100;
-				done(ok, j || {code: r.status, data: txt});
+				var payload = pick(ok, j, r.status, txt);
+				if (ok && payload && payload.token) savetoken(payload.token);
+				done(ok, payload);
 			});
 		}).catch(function(e){
 			done(false, {code: 900, data: String(e)});
@@ -357,14 +360,38 @@ window.sfweb = (function(){
 	}
 
 	function rawpost(url, blob, done) {
-		fetch(url, {method: "POST", credentials: "same-origin", body: blob}).then(function(r){
+		var opt = {method: "POST", credentials: "same-origin", headers: {}, body: blob};
+		var tok = loadtoken();
+		if (tok) opt.headers["X-Web-Token"] = tok;
+		fetch(url, opt).then(function(r){
 			return r.text().then(function(txt){
 				var j = parse(txt);
-				done(r.ok && j && j.code === 100, j || {code: r.status, data: txt});
+				done(r.ok && j && j.code === 100, pick(r.ok && j && j.code === 100, j, r.status, txt));
 			});
 		}).catch(function(e){
 			done(false, {code: 900, data: String(e)});
 		});
+	}
+
+	function pick(ok, j, status, txt) {
+		if (ok && j && j.data != null && typeof j.data === "object")
+			return j.data;
+		return j || {code: status, data: txt};
+	}
+
+	function loadtoken() {
+		if (token) return token;
+		try { token = sessionStorage.getItem("sk_web") || ""; } catch (e) {}
+		return token;
+	}
+
+	function savetoken(t) {
+		token = t || "";
+		try {
+			if (token) sessionStorage.setItem("sk_web", token);
+			else sessionStorage.removeItem("sk_web");
+		}
+		catch (e) {}
 	}
 
 	function parse(txt) {
