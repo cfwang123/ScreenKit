@@ -213,7 +213,8 @@ class CastService : Service() {
         val pi = PendingIntent.getActivity(
             this,
             0,
-            Intent(this, CastActivity::class.java),
+            Intent(this, CastActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE,
         )
         val n = if (Build.VERSION.SDK_INT >= 26) {

@@ -26,7 +26,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | 文件 | 说明 |
 |------|------|
 | [`screenkit_1.0.10.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 精简包（exe + 托管依赖）。模型与运行库在程序内安装。 |
-| `screenkit1.0.10.apk` | 安卓客户端，桌面两个入口「传文件」「投屏」（同一发布页，或电脑 **文件同步 → 安装到手机**）。 |
+| `screenkit1.0.10.apk` | 安卓客户端，桌面两个入口「传文件」「投屏」（独立任务，可同时打开；同一发布页，或电脑 **文件同步 → 安装到手机**）。 |
 
 解压后运行 `ScreenKit/ScreenKit.exe`。首次启动可出现安装向导。需要 [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
 

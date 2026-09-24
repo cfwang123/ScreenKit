@@ -26,7 +26,7 @@ Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具
 | File | What |
 |------|------|
 | [`screenkit_1.0.10.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
-| `screenkit1.0.10.apk` | Android companion: **传文件** + **投屏** launchers (same release page, or **File sync → Install on phone**). |
+| `screenkit1.0.10.apk` | Android companion: **传文件** + **投屏** launchers in separate tasks (same release page, or **File sync → Install on phone**). |
 
 Unpack the 7z and run `ScreenKit/ScreenKit.exe`. First launch may open the install wizard. Requires [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
 

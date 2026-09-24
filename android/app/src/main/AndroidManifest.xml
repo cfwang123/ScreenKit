@@ -22,7 +22,10 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/label_file"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.whj.screenkit.file"
+            android:documentLaunchMode="never"
+            android:alwaysRetainTaskState="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -47,21 +50,27 @@
         <activity
             android:name=".PickPcActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".MainActivity"
+            android:taskAffinity="com.whj.screenkit.file" />
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".MainActivity"
+            android:taskAffinity="com.whj.screenkit.file" />
         <activity
             android:name=".TextSyncActivity"
             android:exported="false"
             android:parentActivityName=".MainActivity"
+            android:taskAffinity="com.whj.screenkit.file"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".CastActivity"
             android:exported="true"
             android:label="@string/label_cast"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.whj.screenkit.cast"
+            android:documentLaunchMode="never"
+            android:alwaysRetainTaskState="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density|uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
