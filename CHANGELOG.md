@@ -28,7 +28,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Standalone interactive redesign prototype for the phone web file manager (`ScreenKit/SendFile/web/m-prototype.html`): compact file rows, search/sort, breadcrumb navigation, bottom action sheets, custom rename/delete dialogs, upload feedback, and a matching login screen. It preserves every existing phone action without changing the production `/m` page.
+- Standalone interactive redesign prototype for the phone web file manager (`ScreenKit/SendFile/web/m-prototype.html`): a compact full-width list separated only by rules; tap a folder to open it or a file to download it; long-press to multi-select and use the download, ZIP, copy-link, rename, or delete action bar. It preserves the other phone actions without changing the production `/m` page.
 - File sync **web manager** on the same HTTP port (`17532`): desktop `/` and phone `/m`. Login (`sendfile_web_pass`, auto-generated if empty) is required to upload, mkdir, rename, or delete. A correct `/f/…` URL downloads without login. File sync tab **Web manager** shows the LAN URL, QR, and password. CLI `--test-sendfile` covers login and public download.
 - File-transfer HTTP bind is exclusive (no `ReuseAddress`). A dead leftover listener no longer accepts connections and hangs the browser; bad/TLS probes get `400` instead of an open hang.
 - Web manager: `[hidden]` now wins over `#main{display:flex}`, so the login card and file table no longer stack. CJK font prefers YaHei.
@@ -82,7 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 新增独立可交互的手机网页文件管理重设计原型（`ScreenKit/SendFile/web/m-prototype.html`）：紧凑文件行、搜索/排序、面包屑导航、底部操作面板、自定义改名/删除对话框、上传反馈及配套登录页；保留手机端已有全部操作，不改动正式 `/m` 页面。
+- 新增独立可交互的手机网页文件管理重设计原型（`ScreenKit/SendFile/web/m-prototype.html`）：100% 宽度紧凑列表，项目间仅保留分隔线；点击文件夹进入、点击文件下载，长按进入多选并显示下载、ZIP、复制链接、改名、删除操作栏；保留其它手机端操作，不改动正式 `/m` 页面。
 - 文件同步 **网页管理**（与手机传输同一 HTTP 端口 `17532`）：电脑版 `/`、手机版 `/m`。上传/建目录/改名/删除需登录（`sendfile_web_pass`，空则启动时自动生成）；正确的 `/f/…` 即可下载。文件同步 Tab **网页管理** 显示局域网地址、二维码和密码。CLI `--test-sendfile` 覆盖登录与公开下载。
 - 文件传输 HTTP 独占绑定（不再 `ReuseAddress`）。残留的死监听不再把浏览器连上后一直转圈；非 HTTP / TLS 探测立刻 `400`。
 - 网页管理：`[hidden]` 不再被 `#main{display:flex}` 盖掉，登录框和文件表不会叠在一起；中文字体优先微软雅黑。
