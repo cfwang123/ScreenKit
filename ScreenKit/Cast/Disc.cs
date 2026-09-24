@@ -36,7 +36,8 @@ sealed class CastDisc : IDisposable {
 	public void Beacon(int tcpPort) {
 		if (stop) return;
 		var json = JsonSerializer.Serialize(new {
-			v = 1, app = "screencast", name = name(), role, tcp = tcpPort
+			v = 1, app = "screencast", name = name(), role, tcp = tcpPort,
+			http = CastHost.Opt?.HttpPort > 0 ? CastHost.Opt.HttpPort : 1224
 		});
 		var bytes = Encoding.UTF8.GetBytes(json);
 		sendto(bytes, IPAddress.Broadcast);
@@ -115,7 +116,8 @@ sealed class CastDisc : IDisposable {
 
 	void reply(IPEndPoint ep, int tcpPort) {
 		var json = JsonSerializer.Serialize(new {
-			v = 1, app = "screencast", name = name(), role, tcp = tcpPort
+			v = 1, app = "screencast", name = name(), role, tcp = tcpPort,
+			http = CastHost.Opt?.HttpPort > 0 ? CastHost.Opt.HttpPort : 1224
 		});
 		var bytes = Encoding.UTF8.GetBytes(json);
 		try { u.Send(bytes, bytes.Length, new IPEndPoint(ep.Address, port)); }

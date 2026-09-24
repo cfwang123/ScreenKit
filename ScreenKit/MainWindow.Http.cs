@@ -36,6 +36,7 @@ public partial class MainWindow {
 		httpUiLoading = true;
 		ehttptpl.Items.Clear();
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/status", Method = "GET", Path = "/api/status", Body = "" });
+		ehttptpl.Items.Add(new HttpTpl { Title = "POST /api/cast/stop", Method = "POST", Path = "/api/cast/stop", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api", Method = "GET", Path = "/api", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/ocr/get_options", Method = "GET", Path = "/api/ocr/get_options", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl {

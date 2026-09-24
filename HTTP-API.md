@@ -101,6 +101,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
 | POST | `/api/translate` · `/api/translate/batch` | LLM batch translate (needs `[[llm]]`) |
 | POST | `/api/chat` | LLM chat (text or audio in; optional TTS `wav_base64`) |
+| GET/POST | `/api/cast/stop` | Close the screencast viewer and drop the current receive session |
 | GET | `/api/face/models` | List face ONNX files |
 | POST | `/api/face` | Face detect / embedding / compare two images |
 

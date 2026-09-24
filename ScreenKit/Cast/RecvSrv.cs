@@ -38,6 +38,7 @@ sealed class CastRecvSrv : IDisposable {
 	volatile bool decstop;
 	int lastpkt;
 	int encw, ench, srcw, srch, hellofps, hellobr;
+	string hellovia;
 	int videomiss;
 	int fpsn, fpsv, audion, audiov, audiogot, audiogotv, kbps, rttms, laststat, lastping, lastframe, lastaudiolog, decms;
 	int audiohex;
@@ -250,6 +251,7 @@ sealed class CastRecvSrv : IDisposable {
 
 	public string StatText() {
 		if (!busy) return Loc.T("cast.stat.idle");
+		var kind = CastHost.ViaTag(hellovia);
 		var gap = lastframe == 0 ? 0 : Environment.TickCount - lastframe;
 		var src = srcw > 0 && srch > 0 ? $"{srcw}x{srch}" : "—";
 		var enc = encw > 0 && ench > 0 ? $"{encw}x{ench}" : "—";
@@ -257,7 +259,7 @@ sealed class CastRecvSrv : IDisposable {
 		var br = kbps > 0 ? $"{kbps / 1000.0:0.0} Mbps" : (hellobr > 0 ? $"标称 {hellobr / 1000000.0:0.0} Mbps" : "—");
 		var fps = hellofps > 0 ? $"{fpsv} fps (标称 {hellofps})" : $"{fpsv} fps";
 		var au = audiogotv > 0 ? $"{audiov}/{audiogotv} pkt/s" : "无";
-		return $"原始 {src}   编码 {enc}\n{fps}   {br}   音频 {au}   延时 {delay}   解码 {decms} ms";
+		return $"{Loc.T("cast.stat.via")} {kind}\n原始 {src}   编码 {enc}\n{fps}   {br}   音频 {au}   延时 {delay}   解码 {decms} ms";
 	}
 
 	public void Kick(string why = null) {
@@ -437,6 +439,7 @@ sealed class CastRecvSrv : IDisposable {
 				byteacc = 0;
 				lastframe = 0;
 				videomiss = 0;
+				hellovia = null;
 			}
 		}
 		return hello;
@@ -450,6 +453,7 @@ sealed class CastRecvSrv : IDisposable {
 		var cmd = CastProto.Jstr(o, "cmd");
 		if (cmd == "bye") {
 			drop = true;
+			Kick("对端停止");
 			return true;
 		}
 		if (cmd == "probe") return false;
@@ -486,6 +490,7 @@ sealed class CastRecvSrv : IDisposable {
 		encw = w;
 		ench = h;
 		var via = CastProto.Jstr(o, "via");
+		hellovia = via;
 		Log?.Invoke($"握手 {via} {n} {w}x{h}");
 		if (w <= 0 || h <= 0 || w != oldw || h != oldh) resetvdec();
 		OnHello?.Invoke(n, via);

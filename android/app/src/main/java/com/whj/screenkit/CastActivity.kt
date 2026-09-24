@@ -26,6 +26,7 @@ class CastActivity : AppCompatActivity() {
     private var pendingMode = "tcp"
     private var pendingIp = ""
     private var pendingPort = Proto.TCP_PORT
+    private var pendingHttp = 1224
     private var waitUsb = false
     private var waitPat = false
     private var scanning = false
@@ -43,6 +44,7 @@ class CastActivity : AppCompatActivity() {
             .putExtra(CastService.EXTRA_MODE, pendingMode)
             .putExtra(CastService.EXTRA_IP, pendingIp)
             .putExtra(CastService.EXTRA_PORT, pendingPort)
+            .putExtra(CastService.EXTRA_HTTP, pendingHttp)
         ContextCompat.startForegroundService(this, i)
         b.lbstat.text = "正在启动…"
     }
@@ -246,6 +248,7 @@ class CastActivity : AppCompatActivity() {
         pendingMode = "tcp"
         pendingIp = p.ip
         pendingPort = p.tcp
+        pendingHttp = p.http
         fillIp(p.ip)
         requestProj()
     }
@@ -267,6 +270,7 @@ class CastActivity : AppCompatActivity() {
         pendingMode = "tcp"
         pendingIp = ip
         pendingPort = port
+        pendingHttp = 1224
         fillIp(ip)
         requestProj()
     }
@@ -279,8 +283,9 @@ class CastActivity : AppCompatActivity() {
             return
         }
         pendingMode = "usb"
-        pendingIp = ""
+        pendingIp = b.eip.text?.toString()?.trim().orEmpty()
         pendingPort = Proto.TCP_PORT
+        pendingHttp = 1224
         val usb = getSystemService(USB_SERVICE) as UsbManager
         val acc = usb.accessoryList?.firstOrNull()
         android.util.Log.i("scst", "startUsb acc=${acc?.manufacturer}/${acc?.model}/${acc?.version} n=${usb.accessoryList?.size ?: 0}")
@@ -318,6 +323,8 @@ class CastActivity : AppCompatActivity() {
             .putExtra(CastService.EXTRA_MODE, "usb")
             .putExtra(CastService.EXTRA_AUDIO, false)
             .putExtra(CastService.EXTRA_Q, b.eq.selectedItem as? String)
+            .putExtra(CastService.EXTRA_IP, pendingIp.ifEmpty { b.eip.text?.toString()?.trim().orEmpty() })
+            .putExtra(CastService.EXTRA_HTTP, pendingHttp)
         ContextCompat.startForegroundService(this, i)
         b.lbstat.text = "USB 测试画面…"
         toast("USB 测试画面")
@@ -351,8 +358,9 @@ class CastActivity : AppCompatActivity() {
 
     private fun startUsbAdb() {
         pendingMode = "usb-adb"
-        pendingIp = ""
+        pendingIp = b.eip.text?.toString()?.trim().orEmpty()
         pendingPort = Proto.TCP_PORT
+        pendingHttp = 1224
         b.lbstat.text = "正在探测 adb 转发…"
         Thread {
             val p = try { UsbLoop.probe() } catch (_: Exception) { null }

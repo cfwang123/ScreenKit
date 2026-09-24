@@ -110,19 +110,7 @@ static class CastHost {
 		});
 		Recv.OnGone = () => {
 			var g = viewgen;
-			ui(() => {
-				var d = Application.Current?.Dispatcher;
-				if (d == null) {
-					hidecastif(g);
-					return;
-				}
-				var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
-				t.Tick += (_, _) => {
-					t.Stop();
-					hidecastif(g);
-				};
-				t.Start();
-			});
+			ui(() => hidecastif(g));
 		};
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
 		timer.Tick += (_, _) => ThreadPool.QueueUserWorkItem(_ => {
@@ -208,9 +196,16 @@ static class CastHost {
 		else view.Activate();
 	}
 
+	public static string ViaTag(string via) {
+		if (string.IsNullOrEmpty(via)) return Loc.T("cast.via.net");
+		if (via.IndexOf("adb", StringComparison.OrdinalIgnoreCase) >= 0) return Loc.T("cast.via.adb");
+		if (via.StartsWith("usb", StringComparison.OrdinalIgnoreCase)) return Loc.T("cast.via.usb");
+		return Loc.T("cast.via.net");
+	}
+
 	public static void CloseCast() {
 		hidebyuser = true;
-		view?.HideCast();
+		ui(() => view?.HideCast());
 		Recv?.Kick();
 		log("已关闭画面并断开投屏");
 	}

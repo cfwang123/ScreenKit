@@ -107,6 +107,6 @@ data class Quality(
     }
 }
 
-data class Peer(val name: String, val ip: String, val tcp: Int, val role: String) {
+data class Peer(val name: String, val ip: String, val tcp: Int, val role: String, val http: Int = 1224) {
     override fun toString(): String = "$name  $ip:$tcp  [$role]"
 }

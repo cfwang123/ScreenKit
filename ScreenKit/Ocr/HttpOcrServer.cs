@@ -14,7 +14,7 @@ namespace ScreenKit;
 /// <summary>
 /// HTTP API（Umi 兼容 OCR + 本项目扩展）。
 /// <list type="bullet">
-/// <item>GET  /api · /api/status</item>
+/// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
 /// <item>GET  /api/tts/models · POST /api/tts</item>
@@ -209,6 +209,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/cast/stop") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "cast/stop 仅支持 GET 或 POST"));
+					return;
+				}
+				handlecaststop(ctx);
+				return;
+			}
+
 			if (path is "/api/asr/models") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "asr/models 仅支持 GET"));
@@ -298,6 +307,7 @@ sealed partial class HttpOcrServer : IDisposable {
 						["umi_compatible"] = true,
 						["endpoints"] = new JsonArray {
 							"GET  /api/status",
+							"GET/POST /api/cast/stop  立即关闭投屏画面",
 							"GET  /api/ocr/get_options",
 							"POST /api/ocr   JSON{base64,options} 或 multipart",
 							"POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码",
@@ -376,6 +386,14 @@ sealed partial class HttpOcrServer : IDisposable {
 				["llm_chat"] = AsrLlmClient.IsChatReady(o),
 			},
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+		});
+	}
+
+	void handlecaststop(HttpListenerContext ctx) {
+		try { CastHost.CloseCast(); } catch { }
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject { ["ok"] = true },
 		});
 	}
 

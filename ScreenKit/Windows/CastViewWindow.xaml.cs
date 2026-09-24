@@ -51,7 +51,7 @@ public partial class CastViewWindow : Window {
 	public void SetName(string n, string via = null) {
 		var title = Loc.T("cast.title");
 		if (!string.IsNullOrEmpty(via))
-			title = $"{title} · {via}";
+			title = $"{title} · {CastHost.ViaTag(via)}";
 		lbname.Text = string.IsNullOrEmpty(n) || n == Loc.T("cast.title") ? title : n;
 		Title = title;
 	}

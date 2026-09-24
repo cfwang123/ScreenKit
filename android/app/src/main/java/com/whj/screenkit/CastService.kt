@@ -30,6 +30,8 @@ class CastService : Service() {
     private var q: Quality? = null
     private var wantAudio = false
     private var via = "wifi"
+    private var httpHost = ""
+    private var httpPort = 1224
     private var cfgOn = false
     @Volatile private var replacing = false
     private val sessgen = java.util.concurrent.atomic.AtomicInteger()
@@ -96,6 +98,9 @@ class CastService : Service() {
         }
         val ip = intent?.getStringExtra(EXTRA_IP) ?: ""
         val port = intent?.getIntExtra(EXTRA_PORT, Proto.TCP_PORT) ?: Proto.TCP_PORT
+        httpHost = ip
+        httpPort = intent?.getIntExtra(EXTRA_HTTP, 1224) ?: 1224
+        if (httpPort <= 0) httpPort = 1224
         if (pattern) {
             val mygen = sessgen.incrementAndGet()
             Thread {
@@ -389,6 +394,7 @@ class CastService : Service() {
             try { unregisterComponentCallbacks(cfgCb) } catch (_: Exception) { }
             cfgOn = false
         }
+        notifyPcStop()
         try { sink?.send(Proto.T_JSON, """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)) } catch (_: Exception) { }
         try { audio?.stop() } catch (_: Exception) { }
         try { video?.stop() } catch (_: Exception) { }
@@ -403,6 +409,40 @@ class CastService : Service() {
         q = null
         replacing = false
         sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "已停止"))
+    }
+
+    private fun notifyPcStop() {
+        var host = httpHost
+        var port = httpPort
+        if (host.isEmpty()) {
+            try {
+                val p = Prefs(this)
+                host = p.lastHost
+                if (p.lastPort > 0) port = p.lastPort
+            } catch (_: Exception) { }
+        }
+        if (host.isEmpty()) return
+        Thread({
+            try {
+                val u = java.net.URL("http://$host:$port/api/cast/stop")
+                val c = u.openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 400
+                c.readTimeout = 400
+                c.requestMethod = "GET"
+                c.doInput = true
+                val code = try {
+                    c.inputStream.use { it.readBytes() }
+                    c.responseCode
+                } catch (_: Exception) {
+                    try { c.errorStream?.close() } catch (_: Exception) { }
+                    c.responseCode
+                }
+                c.disconnect()
+                Log.i("scst", "http stop $host:$port $code")
+            } catch (ex: Exception) {
+                Log.w("scst", "http stop ${ex.message}")
+            }
+        }, "scst-http-stop").start()
     }
 
     private fun startCtrl(s: FrameSink) {
@@ -514,6 +554,7 @@ class CastService : Service() {
         const val EXTRA_MODE = "mode"
         const val EXTRA_IP = "ip"
         const val EXTRA_PORT = "port"
+        const val EXTRA_HTTP = "http"
         const val EXTRA_PATTERN = "pattern"
     }
 }
