@@ -1,6 +1,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#f3f4f6;color:#111827;
-	font:16px/1.4 -apple-system,"PingFang SC","Microsoft YaHei UI",sans-serif}
+	font:16px/1.4 "Microsoft YaHei","Microsoft YaHei UI","PingFang SC","Segoe UI",sans-serif}
+[hidden]{display:none!important}
 a{color:#2563eb;text-decoration:none}
 .muted{color:#6b7280}
 .err{color:#b91c1c;margin:8px 16px}

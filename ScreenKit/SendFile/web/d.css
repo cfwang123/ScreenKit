@@ -1,6 +1,7 @@
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;height:100%;background:#f4f5f7;color:#1a1d21;
-	font:14px/1.45 "Segoe UI","Microsoft YaHei UI",sans-serif}
+	font:14px/1.45 "Microsoft YaHei","Microsoft YaHei UI","Segoe UI",sans-serif}
+[hidden]{display:none!important}
 a{color:#2563eb;text-decoration:none}
 a:hover{text-decoration:underline}
 .muted{color:#6b7280}
