@@ -2735,6 +2735,28 @@ static class Cli {
 				bad++;
 			}
 			else Out("WordLex.ancient OK");
+			var vars = PasswordVariant.Parse(
+				"```json\n[{\"pw\":\"Mima#2024\",\"note\":\"拼音加年份\"}," +
+				"{\"password\":\"pasuwaado!\",\"note\":\"日语罗马字\"}," +
+				"{\"pw\":\"BlueHorse#99\",\"note\":\"same as seed\"}]\n```",
+				"BlueHorse#99");
+			if (vars.Count != 2 || vars[0].Password != "Mima#2024" || vars[1].Password != "pasuwaado!"
+				|| vars[0].Note != "拼音加年份") {
+				Err("FAIL: PasswordVariant.Parse " +
+					string.Join(",", vars.Select(r => r.Password)));
+				bad++;
+			}
+			else Out("PasswordVariant.Parse OK");
+			var wrap = PasswordVariant.Parse(
+				"{\"variants\":[{\"pw\":\"a\",\"note\":\"x\"},{\"pw\":\"a\",\"note\":\"dup\"}," +
+				"{\"pw\":\"\",\"note\":\"empty\"},{\"variant\":\"b_c\",\"how\":\"join\"}]}");
+			if (wrap.Count != 2 || wrap[0].Password != "a" || wrap[1].Password != "b_c"
+				|| wrap[1].Note != "join") {
+				Err("FAIL: PasswordVariant.wrap " +
+					string.Join(",", wrap.Select(r => r.Password + "=" + r.Note)));
+				bad++;
+			}
+			else Out("PasswordVariant.wrap OK");
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);
@@ -2920,7 +2942,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256
       --test-texttool  Base64 / URL / GBK 十六进制往返
-      --test-pwgen  生成密码（长度、每类字符、排除易混）
+      --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
