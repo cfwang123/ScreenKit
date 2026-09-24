@@ -2,35 +2,104 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#ffffff"/>
 <title>ScreenKit 文件</title>
 <link rel="stylesheet" href="/web/m.css"/>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="sprites" aria-hidden="true">
+	<symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+	</symbol>
+	<symbol id="i-login" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M10 12h10M16 8l4 4-4 4"/><path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/>
+	</symbol>
+	<symbol id="i-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M14 12H4M8 8 4 12l4 4"/><path d="M14 5h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4"/>
+	</symbol>
+	<symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M12 16V5M8 9l4-4 4 4"/><path d="M5 19h14"/>
+	</symbol>
+	<symbol id="i-folderplus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M12 11v6M9 14h6"/>
+	</symbol>
+	<symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M20 12a8 8 0 1 0-2.2 5.5"/><path d="M20 12V7h-5"/>
+	</symbol>
+	<symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M12 5v11M8 12l4 4 4-4"/><path d="M5 19h14"/>
+	</symbol>
+	<symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<rect x="9" y="9" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/>
+	</symbol>
+	<symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5z"/>
+	</symbol>
+	<symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12"/>
+	</symbol>
+	<symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/>
+	</symbol>
+	<symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
+	</symbol>
+	<symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/>
+	</symbol>
+	<symbol id="i-pc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>
+	</symbol>
+	<symbol id="i-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+		<path d="m9 6 6 6-6 6"/>
+	</symbol>
+</svg>
+
 <div id="login" class="login">
+	<div class="mark"><svg class="ico"><use href="#i-lock"/></svg></div>
 	<h1 id="ltitle">文件管理</h1>
 	<p id="lhint" class="muted">登录后可上传和管理。下载只需正确链接。</p>
 	<input id="epass" type="password" autocomplete="current-password" inputmode="text"/>
-	<button id="blogin" type="button">登录</button>
+	<button id="blogin" type="button" class="go">
+		<svg class="ico"><use href="#i-login"/></svg><span class="lbl">登录</span>
+	</button>
 	<p id="lerr" class="err" hidden></p>
-	<p class="switch"><a href="/?pc=1">电脑版</a></p>
+	<p class="switch">
+		<a href="/?pc=1"><svg class="ico"><use href="#i-pc"/></svg><span>电脑版</span></a>
+	</p>
 </div>
+
 <div id="main" hidden>
 	<header>
 		<div class="top">
-			<strong id="btitle">文件</strong>
-			<button id="bout" type="button" class="ghost">退出</button>
+			<div class="brand">
+				<strong id="btitle">文件</strong>
+				<span id="bname" class="muted"></span>
+			</div>
+			<button id="bout" type="button" class="ghost">
+				<svg class="ico"><use href="#i-logout"/></svg><span class="lbl">退出</span>
+			</button>
 		</div>
 		<nav id="crumbs" class="crumbs"></nav>
 	</header>
 	<p id="err" class="err" hidden></p>
-	<p id="empty" class="muted empty" hidden></p>
+	<div id="empty" class="empty" hidden>
+		<svg class="ico"><use href="#i-folder"/></svg>
+		<span class="lbl">这个文件夹是空的</span>
+	</div>
 	<ul id="rows" class="list"></ul>
 	<footer>
-		<button id="bup" type="button">上传</button>
-		<button id="bmkdir" type="button">新建</button>
-		<button id="bref" type="button">刷新</button>
+		<button id="bup" type="button">
+			<svg class="ico"><use href="#i-upload"/></svg><span class="lbl">上传</span>
+		</button>
+		<button id="bmkdir" type="button">
+			<svg class="ico"><use href="#i-folderplus"/></svg><span class="lbl">新建</span>
+		</button>
+		<button id="bref" type="button">
+			<svg class="ico"><use href="#i-refresh"/></svg><span class="lbl">刷新</span>
+		</button>
 	</footer>
 </div>
 <input id="efile" type="file" multiple hidden/>

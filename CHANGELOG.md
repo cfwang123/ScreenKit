@@ -33,12 +33,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web manager: `[hidden]` now wins over `#main{display:flex}`, so the login card and file table no longer stack. CJK font prefers YaHei.
 - File transfer: if the configured HTTP port is a leftover listen (process gone), bind the next free port, save it, and show that error instead of “service off”.
 - Web manager login no longer bounces back to the sign-in page: the page now unwraps `{code,data}` and also sends `X-Web-Token` after login.
+- Phone web manager (`/m`) is a white layout with light accents and SVG icons on every button.
 - Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (mostly other-language translations spelled in ASCII romanization, mix case; at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
 - LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
 
 #### Changed
 
-- USB non-adb screencast: switch AOA via the phone’s WinUSB interface (usually **ADB Interface**, not MTP). Enumerate LibUsb devices, `GET_PROTOCOL` / `SEND_STRING` / `START`, then bind WinUSB to Google Accessory `18D1:2D00`. Phone auto-starts on `USB_ACCESSORY_ATTACHED` (HCCast-style) and polls for the accessory. CLI `--test-aoa`.
+- USB non-adb screencast: after AOA `START`, Google Accessory `18D1:2D00/2D01` is opened via WinUSB. If **spacedesk** owns `MI_00`, the helper force-binds the inbox `winusb.inf` **ADB** section (`DiInstallDevice`; the generic WinUSB section fails `CM_PROB_FAILED_ADD` without hardware DeviceInterfaceGUIDs) and scans bulk endpoints (HCCast-style), then bridges to `127.0.0.1:19519`. Phone waits ~90s for the accessory. CLI `--test-aoa`.
 - Screencast viewer: LibUsb never runs in the main process (that killed ScreenKit when a phone was plugged in, so the viewer never appeared). USB accessory uses a helper that requests AOA **and** bridges bulk to `127.0.0.1:19519`. Probe TCP connects no longer kick an active session. Auto-close no longer sets `hidebyuser`, so the next hello can show the window again.
 - USB adb screencast: if 19519 is held by a dead listener, bind `127.0.0.1` (wins adb reverse) and each LAN IP (wins Wi‑Fi). A still-open TCP is a real session, not a probe. Phone probe uses a 1.5s `127.0.0.1` ping.
 - Phone screencast keeps the selected quality in landscape: the encoder is rebound to the new size (same VirtualDisplay) instead of cropping a portrait frame. If rebind fails, crop is still the fallback.
@@ -81,12 +82,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页管理：`[hidden]` 不再被 `#main{display:flex}` 盖掉，登录框和文件表不会叠在一起；中文字体优先微软雅黑。
 - 文件传输：配置端口若是残留监听（进程已死），自动改绑后面的空闲端口并写入配置；网页窗显示真实原因，不再一律说「未启用」。
 - 网页管理登录后不再立刻回到登录页：页面解开 `{code,data}` 包装，并在登录后带 `X-Web-Token`。
+- 手机网页管理（`/m`）改为白底、淡色点缀，按钮均带 SVG 图标。
 - 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），多把意思译成其它语言再用拼音 / 罗马字拼写（可大小写；英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
 - 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
 
 #### 变更
 
-- USB 非 adb 投屏：AOA 控制传输从手机的 WinUSB 口发（一般是 **ADB Interface**，MTP 打不开）。枚举 LibUsb 设备后 `GET_PROTOCOL` / `SEND_STRING` / `START`，再给 Google 配件 `18D1:2D00` 装 WinUSB。手机在 `USB_ACCESSORY_ATTACHED` 时自动开投屏（对齐 HCCast），并轮询配件。CLI `--test-aoa`。
+- USB 非 adb 投屏：AOA `START` 后用 WinUSB 打开 Google 配件 `18D1:2D00/2D01`（不再走 LibUsb `AllDevices`）。若 **spacedesk** 占了 `MI_00`，助手用系统自带 WinUSB 强制绑定（`DiInstallDevice` + 配件 GUID），并按描述符扫 bulk 端点（对齐 HCCast）。随后桥到 `127.0.0.1:19519`。手机等待配件约 90 秒。CLI `--test-aoa`。
 - WiFi 投屏已握手却看不见窗：画面窗强制置顶到鼠标所在屏（不再只居中主屏），并显示标题栏。手机连发两次 hello 不再拆掉解码器；视频按序排队，避免只剩 1fps 的黑窗。
 - 投屏窗反复不弹出：主进程不再调用 LibUsb（插着手机点 USB配件会把 ScreenKit 打崩）。配件助手会请求 AOA **并**把 bulk 桥到 `127.0.0.1:19519`。探测 TCP（立刻断开）不再踢掉正在投屏的会话。自动关窗不再记成用户关闭，下次 hello 还能弹出。
 - USB(adb) 投屏不弹窗：19519 被已死进程的幽灵监听占着，新进程独占绑定失败等于没在听。失败时改绑更具体的 `127.0.0.1`（adb）和本机每个网卡 IP（WiFi）。探测短连不算正式会话。

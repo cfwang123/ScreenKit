@@ -65,7 +65,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 | Area | Description |
 |------|-------------|
-| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m`; login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
+| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (white UI, SVG icons); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
 | **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
@@ -113,14 +113,14 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
 4. The upper list is the PC `sendfile/` inbox (root only, no subfolder navigation; folders are rows, double-click opens Explorer). Select, marquee, cut/copy/paste, Delete to Recycle Bin, or drag to Explorer. Dropping files onto the list imports them. Drop on the **lower** zone to send to the phone while the app is connected; otherwise nothing is sent. File/image paste goes into the inbox; text paste still goes to the right-hand pane. Phone share/upload always writes to PC `sendfile/`.
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync shows the latest message in a read-only selectable box.
-6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/`, phone page `/m`. Sign in to upload, mkdir, rename, delete; a correct `/f/相对路径` URL downloads without login.
+6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/`, phone page `/m` (white UI, SVG icons). Sign in to upload, mkdir, rename, delete; a correct `/f/相对路径` URL downloads without login.
 
 Android details: [android/README.md](android/README.md).
 
 ### Screencast (PC ↔ Android / PC ↔ PC)
 
 1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network.
-2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB without network: on the PC open **Tools → Screencast** and click **USB配件** (helper process switches AOA and bridges; the UI process never calls LibUsb), plug the cable, on the phone tap **USB 投屏** and allow the accessory. After 12s without an accessory it falls back to USB tethering. **USB 投屏(adb)** needs USB debugging.
+2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB without adb reverse: on the PC open **Tools → Screencast** and click **USB配件** (helper switches AOA via WinUSB/ADB; if spacedesk owns the accessory interface it force-binds inbox WinUSB, then bridges bulk; the UI process never calls LibUsb). The phone can also auto-start when the accessory attaches. After ~90s without an accessory it falls back to USB tethering. **USB 投屏(adb)** uses `adb reverse` and needs USB debugging.
 3. A view window opens topmost on the monitor under the mouse (title bar visible). **Tab** toggles resolution / fps / bitrate / latency. Closing the window disconnects. Quality changes apply live. Landscape re-encodes at the same short-edge quality (does not crop a portrait frame).
 4. PC-to-PC: both receive; the sender scans and casts to the selected host.
 

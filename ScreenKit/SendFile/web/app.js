@@ -129,7 +129,7 @@ window.sfweb = (function(){
 		var nav = el("crumbs");
 		if (!nav) return;
 		nav.innerHTML = "";
-		nav.appendChild(crumba(zh ? "根目录" : "Root", ""));
+		nav.appendChild(crumba(zh ? "根目录" : "Root", "", true));
 		if (!path) return;
 		var parts = path.split("/");
 		var cur = "";
@@ -137,14 +137,17 @@ window.sfweb = (function(){
 			if (!parts[i]) continue;
 			nav.appendChild(sep());
 			cur = cur ? cur + "/" + parts[i] : parts[i];
-			nav.appendChild(crumba(parts[i], cur));
+			nav.appendChild(crumba(parts[i], cur, false));
 		}
 	}
 
-	function crumba(label, p) {
+	function crumba(label, p, home) {
 		var a = document.createElement("a");
 		a.href = "#";
-		a.textContent = label;
+		if (home && t.mobile) a.appendChild(svguse("i-home"));
+		var sp = document.createElement("span");
+		sp.textContent = label;
+		a.appendChild(sp);
 		a.addEventListener("click", function(e){
 			e.preventDefault();
 			path = p || "";
@@ -155,6 +158,11 @@ window.sfweb = (function(){
 
 	function sep() {
 		var s = document.createElement("span");
+		if (t.mobile) {
+			s.className = "sep";
+			s.appendChild(svguse("i-chevron"));
+			return s;
+		}
 		s.textContent = "/";
 		s.className = "muted";
 		return s;
@@ -197,9 +205,9 @@ window.sfweb = (function(){
 		li.className = "item";
 		var rowel = document.createElement("div");
 		rowel.className = "row";
-		var ico = document.createElement("div");
-		ico.className = "ico" + (it.dir ? "" : " file");
-		ico.textContent = it.dir ? "📁" : "📄";
+		var kind = document.createElement("div");
+		kind.className = "kind" + (it.dir ? "" : " file");
+		kind.appendChild(svguse(it.dir ? "i-folder" : "i-file"));
 		var meta = document.createElement("div");
 		meta.className = "meta";
 		meta.appendChild(namea(it));
@@ -207,17 +215,17 @@ window.sfweb = (function(){
 		sub.className = "sub";
 		sub.textContent = (it.dir ? (zh ? "文件夹" : "Folder") : size(it.size)) + "  ·  " + when(it.mtime);
 		meta.appendChild(sub);
-		rowel.appendChild(ico);
+		rowel.appendChild(kind);
 		rowel.appendChild(meta);
 		li.appendChild(rowel);
 		var acts = document.createElement("div");
 		acts.className = "acts";
 		if (!it.dir) {
-			acts.appendChild(link(zh ? "下载" : "Download", dlurl(it.path), true));
-			acts.appendChild(btna(zh ? "复制链接" : "Copy", function(){ copylink(it.path); }));
+			acts.appendChild(link(zh ? "下载" : "Download", dlurl(it.path), true, "i-down"));
+			acts.appendChild(btna(zh ? "复制" : "Copy", function(){ copylink(it.path); }, false, "i-copy"));
 		}
-		acts.appendChild(btna(zh ? "改名" : "Rename", function(){ rename(it); }));
-		acts.appendChild(btna(zh ? "删除" : "Delete", function(){ delone(it.path); }, true));
+		acts.appendChild(btna(zh ? "改名" : "Rename", function(){ rename(it); }, false, "i-edit"));
+		acts.appendChild(btna(zh ? "删除" : "Delete", function(){ delone(it.path); }, true, "i-trash"));
 		li.appendChild(acts);
 		return li;
 	}
@@ -451,7 +459,10 @@ window.sfweb = (function(){
 	}
 	function settxt(id, s) {
 		var n = el(id);
-		if (n) n.textContent = s;
+		if (!n) return;
+		var lbl = n.querySelector(".lbl");
+		if (lbl) lbl.textContent = s;
+		else n.textContent = s;
 	}
 	function setph(id, s) {
 		var n = el(id);
@@ -468,18 +479,37 @@ window.sfweb = (function(){
 		n.textContent = s || "";
 		n.hidden = !s;
 	}
-	function link(label, href, blank) {
+	function svguse(id) {
+		var ns = "http://www.w3.org/2000/svg";
+		var s = document.createElementNS(ns, "svg");
+		s.setAttribute("class", "ico");
+		s.setAttribute("aria-hidden", "true");
+		var u = document.createElementNS(ns, "use");
+		u.setAttribute("href", "#" + id);
+		u.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#" + id);
+		s.appendChild(u);
+		return s;
+	}
+	function link(label, href, blank, icon) {
 		var a = document.createElement("a");
-		a.textContent = label;
 		a.href = href;
 		if (blank) a.target = "_blank";
+		if (icon) a.appendChild(svguse(icon));
+		var sp = document.createElement("span");
+		sp.className = "lbl";
+		sp.textContent = label;
+		a.appendChild(sp);
 		return a;
 	}
-	function btna(label, fn, danger) {
+	function btna(label, fn, danger, icon) {
 		var b = document.createElement("button");
 		b.type = "button";
-		b.textContent = label;
 		if (danger) b.className = "danger";
+		if (icon) b.appendChild(svguse(icon));
+		var sp = document.createElement("span");
+		sp.className = "lbl";
+		sp.textContent = label;
+		b.appendChild(sp);
 		b.addEventListener("click", fn);
 		return b;
 	}
