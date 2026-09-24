@@ -8,7 +8,7 @@ sealed class PasswordVariantRow {
 	public string Note { get; set; } = "";
 }
 
-/// <summary>密码生成器：一句种子密码 → LLM 变体（转写、译词、换序、大小写等）。</summary>
+/// <summary>密码生成器：一句种子密码 → LLM 变体（转写、译词、大小写）。</summary>
 static class PasswordVariant {
 	public const int MinCount = 4;
 	public const int MaxCount = 20;
@@ -22,13 +22,12 @@ static class PasswordVariant {
 		"Use several of these techniques, mixed: " +
 		"paraphrase: rewrite the same meaning with different words or a short phrase " +
 		"(synonyms, idioms, compact sentences), then join as CamelCase or concatenated ASCII; " +
-		"include several paraphrase-based variants, not only letter-shuffles of the seed; " +
+		"include several paraphrase-based variants; " +
 		"translate word parts into other languages then ASCII-romanize (pinyin, romaji, Revised Romanization, etc.); " +
-		"reorder words or syllables; " +
-		"light leetspeak (a→4 e→3 i→1 o→0 s→5) used sparingly; " +
-		"mix case (CamelCase); " +
-		"a small mnemonic number (year, count). " +
-		"Keep each pw 8–32 characters when possible; ASCII letters and digits only. " +
+		"mix case (CamelCase). " +
+		"Keep each pw 8–32 characters when possible; ASCII letters only. " +
+		"Do not reorder the seed's words. " +
+		"Do not add digits, and do not substitute letters with digits (no o→0 e→3 i→1 a→4 s→5). " +
 		"Do not add punctuation or symbols (!@#$%^&*-_=+?~ and similar). " +
 		"No spaces (concatenate or CamelCase); no newlines. " +
 		"note: one short phrase in the same language as the seed (Chinese seed → Chinese note).";
