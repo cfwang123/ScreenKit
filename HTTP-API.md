@@ -805,7 +805,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 15. PC file transfer (LAN, pairing required)
 
-This is **not** the OCR HTTP API on port 1224. Enable under **Settings → API → PC file transfer**. Default HTTP **17532** (all interfaces, including `127.0.0.1` / `localhost`), UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
+Shares the HTTP API port (default **1224**). Enable under **Settings → API → PC file transfer**. Localhost uses the HTTP API listener; if that listener is not on all interfaces, each LAN IP is bound as well. UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
 
 `GET /apk` needs **no pairing** (phone scans the QR before the app is installed). `GET /` and `GET /m` are the web file manager (desktop / phone). `GET /f/<rel>` downloads **without login**. Web upload/list/delete need a login (cookie `sk_web` or `X-Web-Token`). Other phone routes after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
 

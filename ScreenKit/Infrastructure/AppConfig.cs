@@ -529,7 +529,8 @@ static class AppConfig {
 		sb.AppendLine("[sendfile]");
 		sb.AppendLine("# 局域网文件传输（手机 App com.whj.screenkit）；需首次配对");
 		sb.AppendLine($"sendfile_enabled = {(o.SendFileEnabled ? "true" : "false")}");
-		sb.AppendLine($"sendfile_port = {(o.SendFilePort <= 0 ? 17532 : o.SendFilePort)}");
+		sb.AppendLine($"# 文件传输 HTTP 与 http_port 共用，不再单独占口");
+		sb.AppendLine($"sendfile_port = {(o.HttpPort <= 0 ? 1224 : o.HttpPort)}");
 		sb.AppendLine($"sendfile_udp_port = {(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort)}");
 		sb.AppendLine($"sendfile_name = \"{esc(o.SendFileName ?? "")}\"");
 		sb.AppendLine($"sendfile_pc_id = \"{esc(o.SendFilePcId ?? "")}\"");

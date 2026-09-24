@@ -629,27 +629,14 @@
 						<TextBlock x:Name="lbsetsfwebpasshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"
 						           Text="浏览器打开 http://本机IP:端口/ 管理 sendfile/。上传和管理需此密码；下载只需正确链接。空则启动时自动生成。"/>
-						<Grid Margin="0,0,0,10">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="12"/>
-								<ColumnDefinition Width="*"/>
-							</Grid.ColumnDefinitions>
-							<StackPanel Grid.Column="0">
-								<TextBlock x:Name="lbsetsfport" Text="HTTP 端口" FontSize="11"
-								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-								<TextBox x:Name="esfport" Height="30" Padding="6,4"
-								         BorderBrush="{StaticResource BorderSoft}" Text="17532"
-								         AutomationProperties.AutomationId="set.sendfile.port"/>
-							</StackPanel>
-							<StackPanel Grid.Column="2">
-								<TextBlock x:Name="lbsetsfudp" Text="UDP 发现端口" FontSize="11"
-								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-								<TextBox x:Name="esfudp" Height="30" Padding="6,4"
-								         BorderBrush="{StaticResource BorderSoft}" Text="17531"
-								         AutomationProperties.AutomationId="set.sendfile.udp"/>
-							</StackPanel>
-						</Grid>
+						<TextBlock x:Name="lbsetsfporthint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="HTTP 与接口服务共用端口（默认 1224）。"/>
+						<TextBlock x:Name="lbsetsfudp" Text="UDP 发现端口" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="esfudp" Height="30" Padding="6,4" Margin="0,0,0,10"
+						         BorderBrush="{StaticResource BorderSoft}" Text="17531"
+						         AutomationProperties.AutomationId="set.sendfile.udp"/>
 						<TextBlock x:Name="lbsetsfdev" Text="已配对设备" FontSize="11"
 						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 						<ListBox x:Name="esfdev" Height="90" Margin="0,0,0,8"

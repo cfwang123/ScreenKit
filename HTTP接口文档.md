@@ -900,7 +900,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 15. PC 文件传输（局域网，需配对）
 
-这不是 1224 端口的 OCR HTTP API。在 **参数设置 → 接口 → PC 文件传输** 启用。默认 HTTP **17532**（监听所有网卡，含 `127.0.0.1` / `localhost`），UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
+与 HTTP API **共用同一端口**（默认 **1224**）。在 **参数设置 → 接口 → PC 文件传输** 启用。本机走 HTTP API；局域网在 API 未绑全部网卡时，会再绑各网卡 IP。UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
 
 `GET /apk` **无需配对**（给未装 App 的手机扫码下载）。`GET /`、`GET /m` 为网页文件管理（电脑 / 手机各一套）。`GET /f/<相对路径>` **无需登录**即可下载。网页上传/列出/删除等需登录（Cookie `sk_web` 或 `X-Web-Token`）。其它手机接口配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
 

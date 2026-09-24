@@ -78,8 +78,8 @@ public sealed class OcrOptions {
 	public int HttpPort = 1224;
 	/// <summary>局域网文件传输服务（手机 App）。</summary>
 	public bool SendFileEnabled = true;
-	/// <summary>文件传输 HTTP 端口。</summary>
-	public int SendFilePort = 17532;
+	/// <summary>旧字段，文件传输 HTTP 已与 HttpPort 共用；仅测试单独起服务时使用。</summary>
+	public int SendFilePort = 1224;
 	/// <summary>UDP 发现端口。</summary>
 	public int SendFileUdpPort = 17531;
 	/// <summary>局域网显示名；空则用机器名。</summary>

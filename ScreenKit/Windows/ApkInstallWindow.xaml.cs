@@ -63,7 +63,7 @@ public partial class ApkInstallWindow : Window {
 				fail(Loc.T("sf.apk.noip"));
 				return;
 			}
-			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
+			var port = server.ListenPort > 0 ? server.ListenPort : SendFileServer.FileHttpPort(opt);
 			eurl.Items.Clear();
 			foreach (var ip in ips)
 				eurl.Items.Add(ApkHost.Url(ip, port));

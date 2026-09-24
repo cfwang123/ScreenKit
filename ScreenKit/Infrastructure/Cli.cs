@@ -3049,7 +3049,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 	}
 
 	static int testapkqr() {
-		const string sample = "http://192.168.1.8:17532/apk";
+		const string sample = "http://192.168.1.8:1224/apk";
 		BitmapSource bmp;
 		try {
 			bmp = QrMake.Encode(sample, 6);

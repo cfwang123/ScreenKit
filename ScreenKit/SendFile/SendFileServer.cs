@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -15,6 +16,7 @@ public sealed partial class SendFileServer : IDisposable {
 	readonly Func<OcrOptions> getOpts;
 	readonly Action save;
 	TcpListener tcp;
+	readonly List<TcpListener> extras = new();
 	UdpClient udp;
 	volatile bool running;
 	bool disposed;
@@ -48,6 +50,61 @@ public sealed partial class SendFileServer : IDisposable {
 	}
 
 	public bool IsRunning => running;
+
+	/// <summary>文件传输 / 网页管理与 HTTP API 共用的端口（默认 1224）。</summary>
+	public static int FileHttpPort(OcrOptions o) {
+		var p = o?.HttpPort ?? 0;
+		return Compat.Clamp(p <= 0 ? 1224 : p, 1, 65535);
+	}
+
+	public static bool IsOurPath(string path) {
+		path = (path ?? "").ToLowerInvariant();
+		return path is "/" or "/m" or "/apk" or "/d" or "/f" or "/index.html" or "/m.html"
+			|| path.StartsWith("/f/")
+			|| path.StartsWith("/web/")
+			|| path.StartsWith("/api/web")
+			|| path.StartsWith("/api/sendfile");
+	}
+
+	public bool TryHandle(HttpListenerContext http) {
+		if (http == null || !running) return false;
+		var pathRaw = (http.Request.Url?.AbsolutePath ?? "/").TrimEnd('/');
+		if (pathRaw.Length == 0) pathRaw = "/";
+		if (!IsOurPath(pathRaw)) return false;
+		handle(fromhttp(http));
+		return true;
+	}
+
+	static SfCtx fromhttp(HttpListenerContext http) {
+		var req = http.Request;
+		var headers = new SfHeaders();
+		if (req.Headers != null) {
+			foreach (var key in req.Headers.AllKeys) {
+				if (key == null) continue;
+				headers[key] = req.Headers[key];
+			}
+		}
+		var query = new SfQuery();
+		if (req.QueryString != null) {
+			foreach (var key in req.QueryString.AllKeys) {
+				if (key == null) continue;
+				query.Set(key, req.QueryString[key]);
+			}
+		}
+		return new SfCtx {
+			Request = new SfReq {
+				HttpMethod = req.HttpMethod,
+				Url = req.Url,
+				QueryString = query,
+				Headers = headers,
+				InputStream = req.InputStream,
+				ContentEncoding = req.ContentEncoding ?? Encoding.UTF8,
+				RemoteEndPoint = req.RemoteEndPoint,
+				ContentLength = req.ContentLength64 < 0 ? 0 : req.ContentLength64,
+			},
+			Response = new SfRes(http.Response),
+		};
+	}
 
 	public bool PhoneOnline {
 		get {
@@ -123,10 +180,14 @@ public sealed partial class SendFileServer : IDisposable {
 			|| rel.StartsWith(STAGING + "/", StringComparison.OrdinalIgnoreCase);
 	}
 
-	public void Start() {
+	/// <param name="ownHttp">true：自己听 TCP（测试）；false：HTTP 走 API 端口，只听 UDP，必要时再绑局域网 IP。</param>
+	public void Start(bool ownHttp = true, bool bindLan = false) {
 		Compat.ThrowIfDisposed(disposed, this);
 		var o = getOpts() ?? new OcrOptions();
-		var wantHttp = Compat.Clamp(o.SendFilePort <= 0 ? 17532 : o.SendFilePort, 1, 65535);
+		var shared = FileHttpPort(o);
+		var wantHttp = ownHttp
+			? Compat.Clamp(o.SendFilePort <= 0 ? shared : o.SendFilePort, 1, 65535)
+			: shared;
 		var wantUdp = Compat.Clamp(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort, 1, 65535);
 		SendFilePaths.EnsureRoot();
 		ensurepcid(o);
@@ -135,44 +196,55 @@ public sealed partial class SendFileServer : IDisposable {
 		ListenPort = 0;
 		Exception last = null;
 		var used = 0;
-		for (var i = 0; i < 16; i++) {
-			var p = wantHttp + i;
-			if (p > 65535) break;
-			try {
-				lock (listenLock) {
-					Stop();
-					LastError = "";
-					tcp = bindtcp(p);
+		lock (listenLock) Stop();
+		running = true;
+		if (ownHttp) {
+			for (var i = 0; i < 16; i++) {
+				var p = wantHttp + i;
+				if (p > 65535) break;
+				try {
+					lock (listenLock) {
+						LastError = "";
+						tcp = bindtcp(p);
+						ListenPort = p;
+						_ = Task.Run(() => acceptloop(tcp));
+					}
+					if (!probehttp(p)) {
+						LastError = $"端口 {p} 已绑定但无应答（残留监听）";
+						lock (listenLock) Stop();
+						running = true;
+						ListenPort = 0;
+						continue;
+					}
+					used = p;
+					last = null;
+					break;
+				}
+				catch (Exception ex) {
+					last = ex;
+					LastError = ex.Message;
+					try { Stop(); } catch { }
 					running = true;
-					ListenPort = p;
-					_ = Task.Run(acceptloop);
-				}
-				if (!probehttp(p)) {
-					LastError = $"端口 {p} 已绑定但无应答（残留监听）";
-					lock (listenLock) Stop();
 					ListenPort = 0;
-					continue;
 				}
-				used = p;
-				last = null;
-				break;
 			}
-			catch (Exception ex) {
-				last = ex;
-				LastError = ex.Message;
-				try { Stop(); } catch { }
-				ListenPort = 0;
+			if (used <= 0) {
+				running = false;
+				if (last != null) throw last;
+				throw new InvalidOperationException(string.IsNullOrEmpty(LastError)
+					? $"端口 {wantHttp} 无法监听" : LastError);
 			}
+			if (used != wantHttp)
+				log($"HTTP 端口 {wantHttp} 占用，改用 {used}");
 		}
-		if (used <= 0) {
-			if (last != null) throw last;
-			throw new InvalidOperationException(string.IsNullOrEmpty(LastError)
-				? $"端口 {wantHttp} 无法监听" : LastError);
-		}
-		if (used != wantHttp) {
-			o.SendFilePort = used;
-			try { save?.Invoke(); } catch { }
-			log($"HTTP 端口 {wantHttp} 占用，改用 {used}");
+		else {
+			ListenPort = wantHttp;
+			used = wantHttp;
+			if (bindLan) {
+				var n = bindlan(wantHttp);
+				if (n <= 0)
+					log($"LAN HTTP :{wantHttp} 未绑到网卡（本机仍走 HTTP API）");
+			}
 		}
 		var udpPort = wantUdp;
 		lock (listenLock) {
@@ -206,16 +278,20 @@ public sealed partial class SendFileServer : IDisposable {
 	public void Stop() {
 		running = false;
 		TcpListener t;
+		List<TcpListener> more;
 		UdpClient u;
 		lock (listenLock) {
 			t = tcp;
 			tcp = null;
+			more = extras.Count > 0 ? new List<TcpListener>(extras) : null;
+			extras.Clear();
 			u = udp;
 			udp = null;
 		}
-		if (t != null) {
-			try { t.Stop(); } catch { }
-			try { t.Server.Close(); } catch { }
+		stoplistener(t);
+		if (more != null) {
+			foreach (var x in more)
+				stoplistener(x);
 		}
 		if (u != null) {
 			try { u.Close(); } catch { }
@@ -276,10 +352,48 @@ public sealed partial class SendFileServer : IDisposable {
 		return l;
 	}
 
-	async Task acceptloop() {
+	static void stoplistener(TcpListener t) {
+		if (t == null) return;
+		try { t.Stop(); } catch { }
+		try { t.Server.Close(); } catch { }
+	}
+
+	int bindlan(int port) {
+		var n = 0;
+		foreach (var ip in lanips()) {
+			try {
+				var l = new TcpListener(ip, port);
+				l.Server.ExclusiveAddressUse = true;
+				l.Start();
+				lock (listenLock) extras.Add(l);
+				_ = Task.Run(() => acceptloop(l));
+				n++;
+			}
+			catch (Exception ex) {
+				log($"LAN HTTP {ip}:{port} 失败: {ex.Message}");
+			}
+		}
+		return n;
+	}
+
+	static List<IPAddress> lanips() {
+		var list = new List<IPAddress>();
+		try {
+			foreach (var ni in NetworkInterface.GetAllNetworkInterfaces()) {
+				if (ni.OperationalStatus != OperationalStatus.Up) continue;
+				foreach (var ua in ni.GetIPProperties().UnicastAddresses) {
+					if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+					if (IPAddress.IsLoopback(ua.Address)) continue;
+					list.Add(ua.Address);
+				}
+			}
+		}
+		catch { }
+		return list;
+	}
+
+	async Task acceptloop(TcpListener l) {
 		while (running) {
-			TcpListener l;
-			lock (listenLock) l = tcp;
 			if (l == null) break;
 			TcpClient c;
 			try {
@@ -469,7 +583,7 @@ public sealed partial class SendFileServer : IDisposable {
 				var o = getOpts() ?? new OcrOptions();
 				if (!o.SendFileEnabled) continue;
 				var name = string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName.Trim();
-				var httpPort = Compat.Clamp(o.SendFilePort <= 0 ? 17532 : o.SendFilePort, 1, 65535);
+				var httpPort = ListenPort > 0 ? ListenPort : FileHttpPort(o);
 				var json = new JsonObject {
 					["v"] = 1,
 					["name"] = name,
@@ -1040,6 +1154,7 @@ sealed class SfHeaders {
 
 sealed class SfRes {
 	readonly SfOut output;
+	internal readonly HttpListenerResponse Http;
 	public int StatusCode = 200;
 	public string ContentType;
 	public Encoding ContentEncoding;
@@ -1048,7 +1163,13 @@ sealed class SfRes {
 	public Stream OutputStream => output;
 
 	public SfRes(Stream ns) {
-		output = new SfOut(ns, this);
+		Http = null;
+		output = new SfOut(ns, this, null);
+	}
+
+	public SfRes(HttpListenerResponse http) {
+		Http = http;
+		output = new SfOut(null, this, http);
 	}
 
 	public void Close() {
@@ -1058,12 +1179,14 @@ sealed class SfRes {
 
 sealed class SfOut : Stream {
 	readonly Stream inner;
+	readonly HttpListenerResponse http;
 	readonly SfRes res;
 	bool sent;
 
-	public SfOut(Stream inner, SfRes res) {
+	public SfOut(Stream inner, SfRes res, HttpListenerResponse http) {
 		this.inner = inner;
 		this.res = res;
+		this.http = http;
 	}
 
 	public override bool CanRead => false;
@@ -1076,8 +1199,10 @@ sealed class SfOut : Stream {
 	}
 
 	public override void Flush() {
-		try { inner.Flush(); } catch { }
+		try { dest()?.Flush(); } catch { }
 	}
+
+	Stream dest() => http != null ? http.OutputStream : inner;
 
 	public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 	public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
@@ -1085,17 +1210,38 @@ sealed class SfOut : Stream {
 
 	public override void Write(byte[] buffer, int offset, int count) {
 		sendhdr();
-		if (count > 0) inner.Write(buffer, offset, count);
+		var d = dest();
+		if (count > 0 && d != null) d.Write(buffer, offset, count);
 	}
 
 	public void Finish() {
 		sendhdr();
-		try { inner.Flush(); } catch { }
+		try { dest()?.Flush(); } catch { }
+		if (http != null) {
+			try { http.OutputStream.Close(); } catch { }
+			try { http.Close(); } catch { }
+		}
 	}
 
 	void sendhdr() {
 		if (sent) return;
 		sent = true;
+		if (http != null) {
+			http.StatusCode = res.StatusCode;
+			if (!string.IsNullOrEmpty(res.ContentType))
+				http.ContentType = res.ContentType;
+			if (res.ContentLength64 >= 0)
+				http.ContentLength64 = res.ContentLength64;
+			foreach (var kv in res.Headers.All) {
+				if (kv.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase)) continue;
+				if (kv.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) continue;
+				try { http.AppendHeader(kv.Key, kv.Value); }
+				catch {
+					try { http.Headers[kv.Key] = kv.Value; } catch { }
+				}
+			}
+			return;
+		}
 		var sb = new StringBuilder();
 		sb.Append("HTTP/1.1 ").Append(res.StatusCode).Append(' ').Append(reason(res.StatusCode)).Append("\r\n");
 		if (!string.IsNullOrEmpty(res.ContentType))

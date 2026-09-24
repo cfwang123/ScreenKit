@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -32,6 +33,8 @@ sealed partial class HttpOcrServer : IDisposable {
 	bool disposed;
 	volatile bool running;
 	HttpApiServices svc;
+	SendFileServer sendFile;
+	public bool LanAll;
 	public event Action<string> Logged;
 	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -45,24 +48,72 @@ sealed partial class HttpOcrServer : IDisposable {
 	/// <summary>注入 ASR/TTS 等扩展能力（可在服务启动后设置）。</summary>
 	public void SetServices(HttpApiServices services) => svc = services;
 
+	public void SetSendFile(SendFileServer sf) => sendFile = sf;
+
 	public bool IsRunning => running;
 
-	public void Start(string host, int port) {
+	public void Start(string host, int port, bool lan = false) {
 		Compat.ThrowIfDisposed(disposed, this);
 		host = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host.Trim();
+		if (host is "0.0.0.0" or "*" or "+") host = "+";
 		port = Compat.Clamp(port, 1, 65535);
 		lock (listenLock) {
 			Stop();
-			var prefix = $"http://{host}:{port}/";
+			LanAll = false;
 			var l = new HttpListener();
-			l.Prefixes.Add(prefix);
-			// 兼容无尾斜杠访问
-			try { l.Prefixes.Add($"http://{host}:{port}/api/"); } catch { }
-			l.Start();
+			addprefix(l, $"http://{host}:{port}/");
+			try { addprefix(l, $"http://{host}:{port}/api/"); } catch { }
+			if (lan && host != "+") {
+				tryurlacl(port);
+				try { addprefix(l, $"http://+:{port}/"); } catch { }
+				try { addprefix(l, $"http://127.0.0.1:{port}/"); } catch { }
+			}
+			if (host == "+") {
+				tryurlacl(port);
+				try { addprefix(l, $"http://127.0.0.1:{port}/"); } catch { }
+			}
+			try {
+				l.Start();
+			}
+			catch {
+				if (!lan) throw;
+				try { l.Abort(); } catch { }
+				l = new HttpListener();
+				addprefix(l, $"http://127.0.0.1:{port}/");
+				try { addprefix(l, $"http://127.0.0.1:{port}/api/"); } catch { }
+				l.Start();
+			}
+			foreach (var p in l.Prefixes) {
+				if (p.StartsWith("http://+:", StringComparison.OrdinalIgnoreCase)
+					|| p.StartsWith("http://*:", StringComparison.OrdinalIgnoreCase))
+					LanAll = true;
+			}
+			if (host == "+") LanAll = true;
 			listener = l;
 			running = true;
 			_ = Task.Run(acceptloop);
 		}
+	}
+
+	static void addprefix(HttpListener l, string prefix) {
+		if (l.Prefixes.Contains(prefix)) return;
+		l.Prefixes.Add(prefix);
+	}
+
+	static void tryurlacl(int port) {
+		try {
+			var psi = new ProcessStartInfo {
+				FileName = "netsh",
+				Arguments = $"http add urlacl url=http://+:{port}/ user=Everyone",
+				UseShellExecute = false,
+				CreateNoWindow = true,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+			};
+			using var p = Process.Start(psi);
+			p?.WaitForExit(4000);
+		}
+		catch { }
 	}
 
 	public void Stop() {
@@ -118,6 +169,9 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			var path = pathRaw.ToLowerInvariant();
+			if (sendFile != null && sendFile.IsRunning && SendFileServer.IsOurPath(path)
+				&& sendFile.TryHandle(ctx))
+				return;
 
 			if (path is "/api/ocr/get_options" or "/api/ocr/get_options/") {
 				if (!isget(req)) {

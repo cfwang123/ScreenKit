@@ -65,7 +65,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 | Area | Description |
 |------|-------------|
-| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (white UI, SVG icons); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
+| **PC file transfer** | Same HTTP API port (`1224`) + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (white UI, SVG icons); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
 | **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
@@ -109,7 +109,7 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 ### File sync (PC ↔ Android)
 
 1. On the PC, open the **File sync** tab (enable under Settings → API if needed; default on).
-2. **Install on phone**: LAN URL `http://<pc-ip>:17532/apk` and QR (defaults to an internet-reachable NIC). Phone and PC on the same LAN; scan with a browser to install.
+2. **Install on phone**: LAN URL `http://<pc-ip>:1224/apk` and QR (defaults to an internet-reachable NIC). Phone and PC on the same LAN; scan with a browser to install.
 3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
 4. The upper list is the PC `sendfile/` inbox (root only, no subfolder navigation; folders are rows, double-click opens Explorer). Select, marquee, cut/copy/paste, Delete to Recycle Bin, or drag to Explorer. Dropping files onto the list imports them. Drop on the **lower** zone to send to the phone while the app is connected; otherwise nothing is sent. File/image paste goes into the inbox; text paste still goes to the right-hand pane. Phone share/upload always writes to PC `sendfile/`.
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync shows the latest message in a read-only selectable box.
@@ -234,7 +234,7 @@ service_mode = false            # keep engine warm
 
 [sendfile]
 sendfile_enabled = true
-sendfile_port = 17532
+# sendfile HTTP shares http_port (1224)
 sendfile_udp_port = 17531
 sendfile_name = ""              # empty = machine name
 sendfile_web_pass = ""          # web manager login; empty = auto-generated on start
@@ -307,7 +307,7 @@ Set `capture_log = true` for `log/capture.log` (DPI / save timings; `SLOW` if �
 
 When enabled, the OCR API listens on `http_host:http_port` (default loopback only). Bind to `127.0.0.1` unless you intentionally expose it on a trusted network.
 
-LAN **PC file transfer** (HTTP `17532`, UDP `17531`, pairing required) is separate: [HTTP-API.md](HTTP-API.md) · [android/README.md](android/README.md).
+LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairing required): [HTTP-API.md](HTTP-API.md) · [android/README.md](android/README.md).
 
 - `GET  /api` · `/api/status`
 - `POST /api/ocr` — `box` is original-image pixels

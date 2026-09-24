@@ -327,7 +327,7 @@ public partial class MainWindow : Window {
 			});
 			if (httpServer != null)
 				httpServer.Logged += onhttplog;
-			if (opt.HttpEnabled)
+			if (opt.HttpEnabled || opt.SendFileEnabled)
 				starthttp();
 		}
 		catch (Exception ex) {
@@ -337,9 +337,15 @@ public partial class MainWindow : Window {
 
 	void starthttp() {
 		if (httpServer == null) return;
+		if (!opt.HttpEnabled && !opt.SendFileEnabled) {
+			try { httpServer.Stop(); } catch { }
+			synchttpstatus();
+			return;
+		}
 		try {
-			httpServer.Start(opt.HttpHost, opt.HttpPort);
-			setstatus(Loc.T("st.http_ok", opt.HttpHost, opt.HttpPort));
+			httpServer.Start(opt.HttpHost, SendFileServer.FileHttpPort(opt), opt.SendFileEnabled);
+			if (opt.HttpEnabled)
+				setstatus(Loc.T("st.http_ok", opt.HttpHost, opt.HttpPort));
 		}
 		catch (Exception ex) {
 			setstatus(Loc.T("st.http_fail", ex.Message));
@@ -349,7 +355,7 @@ public partial class MainWindow : Window {
 
 	void restarthttp() {
 		try { httpServer?.Stop(); } catch { }
-		if (opt.HttpEnabled) starthttp();
+		if (opt.HttpEnabled || opt.SendFileEnabled) starthttp();
 		else synchttpstatus();
 	}
 
@@ -362,6 +368,7 @@ public partial class MainWindow : Window {
 			sendFile.Logged += s => Dispatcher.BeginInvoke(new Action(() => {
 				if (!string.IsNullOrWhiteSpace(s)) setstatus(s);
 			}));
+			httpServer?.SetSendFile(sendFile);
 			if (opt.SendFileEnabled)
 				startsendfile();
 		}
@@ -384,15 +391,18 @@ public partial class MainWindow : Window {
 	void startsendfile() {
 		if (sendFile == null) return;
 		try {
-			sendFile.Start();
-			var port = sendFile.ListenPort > 0 ? sendFile.ListenPort
-				: (opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort);
+			httpServer?.SetSendFile(sendFile);
+			if (httpServer != null && !httpServer.IsRunning)
+				starthttp();
+			var bindLan = httpServer == null || !httpServer.LanAll;
+			sendFile.Start(ownHttp: false, bindLan: bindLan);
+			var port = sendFile.ListenPort > 0 ? sendFile.ListenPort : SendFileServer.FileHttpPort(opt);
 			setstatus(Loc.T("st.sendfile_ok", port));
 			syncsfstatus();
 		}
 		catch (System.Net.Sockets.SocketException ex) when (
 			ex.SocketErrorCode == System.Net.Sockets.SocketError.AddressAlreadyInUse) {
-			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
+			var port = SendFileServer.FileHttpPort(opt);
 			setstatus(string.IsNullOrWhiteSpace(sendFile?.LastError)
 				? Loc.T("st.sendfile_busy", port.ToString()) : sendFile.LastError);
 		}
@@ -3001,10 +3011,11 @@ public partial class MainWindow : Window {
 			registerhotkey();
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
+			|| old.SendFileEnabled != opt.SendFileEnabled
 			|| !string.Equals(old.HttpHost, opt.HttpHost, StringComparison.OrdinalIgnoreCase))
 			restarthttp();
-		if (old.SendFileEnabled != opt.SendFileEnabled || old.SendFilePort != opt.SendFilePort
-			|| old.SendFileUdpPort != opt.SendFileUdpPort)
+		if (old.SendFileEnabled != opt.SendFileEnabled || old.SendFileUdpPort != opt.SendFileUdpPort
+			|| old.HttpPort != opt.HttpPort)
 			restartsendfile();
 		if (old.CastRecvEnabled != opt.CastRecvEnabled) {
 			try {
@@ -3027,7 +3038,7 @@ public partial class MainWindow : Window {
 		var serviceOff = !opt.ServiceMode && old.ServiceMode;
 
 		var httpInfo = opt.HttpEnabled ? $" · HTTP :{opt.HttpPort}" : "";
-		var sfInfo = opt.SendFileEnabled ? $" · SendFile :{opt.SendFilePort}" : "";
+		var sfInfo = opt.SendFileEnabled ? $" · SendFile :{SendFileServer.FileHttpPort(opt)}" : "";
 		var modeInfo = opt.ServiceMode ? " · 服务模式" : "";
 
 		if (opt.ServiceMode) {
@@ -3413,7 +3424,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey live caption: {opt.HotkeyLiveCaption}");
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpHost}:{opt.HttpPort}" : "off")}");
-		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{opt.SendFilePort}/udp:{opt.SendFileUdpPort}" : "off")}");
+		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{SendFileServer.FileHttpPort(opt)}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");
 		sb.AppendLine($"FaceDet={opt.FaceDetModel} FaceReg={opt.FaceRegModel} FaceCompute={opt.FaceCompute}");
 		sb.AppendLine($"Runner.HasEngine: {runner.HasEngine}");

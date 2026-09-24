@@ -55,8 +55,7 @@ public partial class WebFileWindow : Window {
 			fail(Loc.T("sf.web.noip"));
 			return;
 		}
-		var port = server.ListenPort > 0 ? server.ListenPort
-			: (opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort);
+		var port = server.ListenPort > 0 ? server.ListenPort : SendFileServer.FileHttpPort(opt);
 		eurl.Items.Clear();
 		foreach (var ip in ips) {
 			eurl.Items.Add($"http://{ip}:{port}/");

@@ -103,7 +103,7 @@ static class ApkHost {
 	}
 
 	public static string Url(string ip, int port) {
-		port = port <= 0 ? 17532 : port;
+		port = port <= 0 ? 1224 : port;
 		return $"http://{ip}:{port}{HttpPath}";
 	}
 
