@@ -307,8 +307,8 @@ class CastActivity : AppCompatActivity() {
             val p = try { UsbLoop.probe() } catch (_: Exception) { null }
             runOnUiThread {
                 if (p.isNullOrEmpty()) {
-                    toast("未发现 adb 转发。电脑打开投屏接收，手机开 USB 调试后点此")
-                    b.lbstat.text = UsbLoop.lastErr.ifEmpty { "adb 转发未就绪" }
+                    toast("连接失败，请确认电脑已开投屏接收且手机开了 USB 调试")
+                    b.lbstat.text = "连接失败"
                 } else {
                     b.lbstat.text = "USB adb $p"
                     requestProj()

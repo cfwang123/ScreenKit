@@ -122,7 +122,8 @@ class CastService : Service() {
                 val e = fail
                 if (e != null) throw e
             } catch (ex: Exception) {
-                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "失败: ${ex.message}"))
+                Log.w("scst", "start ${ex.javaClass.simpleName} ${ex.message}")
+                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "连接失败"))
                 stopCast()
                 stopSelf()
             }
