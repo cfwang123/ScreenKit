@@ -92,7 +92,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         bind = ActivityMainBinding.inflate(layoutInflater)
         setContentView(bind.root)
-        supportActionBar?.title = getString(R.string.app_name)
+        supportActionBar?.title = getString(R.string.label_file)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu)
         prefs = Prefs(this)

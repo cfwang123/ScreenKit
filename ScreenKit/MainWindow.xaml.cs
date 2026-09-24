@@ -122,6 +122,7 @@ public partial class MainWindow : Window {
 		inithotkey();
 		inithttpserver();
 		initsendfile();
+		initcast();
 		inithttptab();
 		initsendfiletab();
 		// 服务模式：启动后后台预热，引擎常驻
@@ -474,6 +475,7 @@ public partial class MainWindow : Window {
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
+			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => {
 				forceExit = true;
@@ -771,6 +773,7 @@ public partial class MainWindow : Window {
 		catch { }
 		try { httpServer?.Stop(); } catch { }
 		try { sendFile?.Stop(); } catch { }
+		try { CastHost.Stop(); } catch { }
 		try { stopsfwatch(); } catch { }
 		try { hotkey?.Dispose(); } catch { }
 		try { hotkeySnap?.Dispose(); } catch { }
@@ -1121,6 +1124,7 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
+		mncast.Click += (_, _) => opencast();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
@@ -1229,6 +1233,8 @@ public partial class MainWindow : Window {
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnnettool.Header = Loc.T("menu.nettool");
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
+			mncast.Header = Loc.T("menu.cast");
+			mncast.ToolTip = Loc.T("menu.cast.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
@@ -2993,6 +2999,13 @@ public partial class MainWindow : Window {
 		if (old.SendFileEnabled != opt.SendFileEnabled || old.SendFilePort != opt.SendFilePort
 			|| old.SendFileUdpPort != opt.SendFileUdpPort)
 			restartsendfile();
+		if (old.CastRecvEnabled != opt.CastRecvEnabled) {
+			try {
+				if (opt.CastRecvEnabled) CastHost.StartRecv();
+				else CastHost.StopRecv();
+			}
+			catch (Exception ex) { setstatus(ex.Message); }
+		}
 
 		// session 级变更：模型/设备；runtime 级：边长/阈值/cls（不拆 session）
 		var needSessionReload = old.Device != opt.Device
@@ -3269,6 +3282,20 @@ public partial class MainWindow : Window {
 
 	void opennettool(bool fromTray = false) =>
 		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.nettool", fromTray);
+
+	void opencast() => CastHost.ShowSet();
+
+	void initcast() {
+		try {
+			CastHost.Init(() => opt, () => {
+				try { AppConfig.Save(opt); } catch { }
+			});
+			CastHost.Start();
+		}
+		catch (Exception ex) {
+			setstatus(ex.Message);
+		}
+	}
 
 	void opentoolwin<T>(ref T win, Func<T> create, string titleKey, bool fromTray = false) where T : Window {
 		try {

@@ -39,6 +39,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
+				or "--test-cast"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -237,6 +238,8 @@ static class Cli {
 					return testpwgen();
 				case "--test-nettool":
 					return testnettool();
+				case "--test-cast":
+					return testcast();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2768,6 +2771,74 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testcast() {
+		Out("=== 投屏 --test-cast ===");
+		var bad = 0;
+		try {
+			var hello = CastProto.PackJson(new { cmd = "hello", name = "t", w = 1280, h = 720 });
+			if (hello == null || hello.Length < 9) {
+				Err("FAIL: PackJson");
+				bad++;
+			}
+			using (var ms = new MemoryStream(hello)) {
+				if (!CastProto.TryRead(ms, out var type, out var payload) || type != CastProto.T_JSON) {
+					Err("FAIL: TryRead json");
+					bad++;
+				}
+				else {
+					var o = CastProto.ParseJson(payload);
+					if (CastProto.Jstr(o, "cmd") != "hello" || CastProto.Jint(o, "w") != 1280) {
+						Err("FAIL: ParseJson hello");
+						bad++;
+					}
+					else Out("pack/unpack hello ok");
+				}
+			}
+			var nal = new byte[] { 0, 0, 0, 1, 0x65 };
+			var vp = CastProto.Pack(CastProto.T_VIDEO, nal);
+			using (var ms = new MemoryStream(vp)) {
+				if (!CastProto.TryRead(ms, out var type, out var payload) || type != CastProto.T_VIDEO
+					|| payload == null || payload.Length != nal.Length) {
+					Err("FAIL: TryRead video");
+					bad++;
+				}
+				else Out("pack/unpack video ok");
+			}
+			var q = CastQuality.ByName("均衡 720p");
+			q.Fit(1080, 2400, out var ow, out var oh);
+			Out($"Fit 1080x2400 → {ow}x{oh}");
+			if (ow % 16 != 0 || oh % 16 != 0 || Math.Min(ow, oh) != 720) {
+				Err("FAIL: Fit 窄边 720");
+				bad++;
+			}
+			q.Fit(1920, 1080, out ow, out oh);
+			Out($"Fit 1920x1080 → {ow}x{oh}");
+			if (ow > 1920 || oh > 1080) {
+				Err("FAIL: Fit 不放大");
+				bad++;
+			}
+			if (FfmpegLoader.TryInit(out var ferr)) {
+				var enc = new CastVideoEncoder(64, 64, CastQuality.Presets[0]);
+				try {
+					var bgra = new byte[64 * 64 * 4];
+					for (int i = 0; i < bgra.Length; i += 4) { bgra[i] = 80; bgra[i + 1] = 40; bgra[i + 2] = 200; bgra[i + 3] = 255; }
+					var packed = enc.EncodeBgra(bgra, 64 * 4);
+					Out(packed != null && packed.Length > 0
+						? $"x264 encode {packed.Length} bytes ok"
+						: "x264 encode returned empty (may need more frames)");
+				}
+				finally { enc.Dispose(); }
+			}
+			else Out("skip encode: " + (ferr ?? "no ffmpeg64"));
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：投屏 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -2792,6 +2863,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-cast
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
@@ -2850,6 +2922,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-pwgen  生成密码（长度、每类字符、排除易混）
       --test-nettool  localhost 解析与 ping 127.0.0.1
+      --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
@@ -2907,6 +2980,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-cast
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent

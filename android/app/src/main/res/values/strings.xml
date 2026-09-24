@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PC文件传输</string>
+    <string name="app_name">ScreenKit</string>
+    <string name="label_file">传文件</string>
+    <string name="label_cast">投屏</string>
 </resources>

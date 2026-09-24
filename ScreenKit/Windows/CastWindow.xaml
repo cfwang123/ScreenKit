@@ -1,0 +1,43 @@
+<Window x:Class="ScreenKit.CastWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="投屏"
+        Height="420" Width="520"
+        MinHeight="320" MinWidth="400"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip"
+        AutomationProperties.AutomationId="cast.window">
+	<DockPanel Margin="12">
+		<StackPanel DockPanel.Dock="Top">
+			<TextBlock x:Name="lbip" FontSize="13" Margin="0,0,0,2"/>
+			<TextBlock x:Name="lbstat" FontSize="12" Margin="0,0,0,8"/>
+			<WrapPanel>
+				<TextBlock x:Name="lbq" Text="画质" VerticalAlignment="Center" Margin="0,0,6,0"/>
+				<ComboBox x:Name="eq" Width="120" Margin="0,0,8,0"
+				          AutomationProperties.AutomationId="cast.quality"/>
+				<CheckBox x:Name="caudio" Content="声音" IsChecked="True" VerticalAlignment="Center" Margin="0,0,8,0"
+				          AutomationProperties.AutomationId="cast.audio"/>
+				<Button x:Name="brecv" Content="开始接收" Width="88" Margin="0,0,6,0" Padding="4,2" Click="brecv_Click"
+				        AutomationProperties.AutomationId="cast.recv"/>
+				<Button x:Name="bscan" Content="扫描电脑" Width="88" Margin="0,0,6,0" Padding="4,2" Click="bscan_Click"
+				        AutomationProperties.AutomationId="cast.scan"/>
+			</WrapPanel>
+			<WrapPanel Margin="0,8,0,0">
+				<Button x:Name="bsend" Content="投向选中" Width="88" Margin="0,0,6,0" Padding="4,2" Click="bsend_Click"
+				        AutomationProperties.AutomationId="cast.send"/>
+				<Button x:Name="bstop" Content="断开" Width="64" Margin="0,0,6,0" Padding="4,2" Click="bstop_Click"
+				        AutomationProperties.AutomationId="cast.stop"/>
+				<TextBlock x:Name="lbipman" Text="手动 IP" VerticalAlignment="Center" Margin="8,0,6,0"/>
+				<TextBox x:Name="eip" Width="140" VerticalContentAlignment="Center"
+				         AutomationProperties.AutomationId="cast.ip"/>
+				<Button x:Name="bconnect" Content="连接" Width="56" Margin="6,0,0,0" Padding="4,2" Click="bconnect_Click"
+				        AutomationProperties.AutomationId="cast.connect"/>
+			</WrapPanel>
+		</StackPanel>
+		<TextBox x:Name="elog" DockPanel.Dock="Bottom" Height="90" Margin="0,8,0,0" IsReadOnly="True" TextWrapping="Wrap"
+		         VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11"
+		         AutomationProperties.AutomationId="cast.log"/>
+		<ListBox x:Name="lpeers" Margin="0,8,0,0"
+		         AutomationProperties.AutomationId="cast.peers"/>
+	</DockPanel>
+</Window>

@@ -1,0 +1,32 @@
+using NAudio.Wave;
+
+namespace ScreenKit;
+
+sealed class CastAudioPlay : IDisposable {
+	readonly WaveOutEvent wo;
+	readonly BufferedWaveProvider buf;
+	bool disposed;
+
+	public CastAudioPlay(int sampleRate = 48000, int ch = 2) {
+		buf = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, ch)) {
+			DiscardOnBufferOverflow = true,
+			BufferDuration = TimeSpan.FromMilliseconds(400)
+		};
+		wo = new WaveOutEvent();
+		wo.Init(buf);
+		wo.Play();
+	}
+
+	public void Push(byte[] pcm) {
+		if (disposed || pcm == null || pcm.Length == 0) return;
+		try { buf.AddSamples(pcm, 0, pcm.Length); }
+		catch { }
+	}
+
+	public void Dispose() {
+		if (disposed) return;
+		disposed = true;
+		try { wo.Stop(); } catch { }
+		wo.Dispose();
+	}
+}

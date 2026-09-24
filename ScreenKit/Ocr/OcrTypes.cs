@@ -88,6 +88,12 @@ public sealed class OcrOptions {
 	public string SendFilePcId = "";
 	/// <summary>已配对手机。</summary>
 	public List<SendFileDevice> SendFileDevices = new();
+	/// <summary>局域网投屏接收（UDP 19518 / TCP 19519）。</summary>
+	public bool CastRecvEnabled = true;
+	/// <summary>投屏画质档名（流畅 540p / 均衡 720p / 高清 1080p）。</summary>
+	public string CastQuality = "均衡 720p";
+	/// <summary>投屏是否发送系统声音。</summary>
+	public bool CastAudio = true;
 	/// <summary>
 	/// 服务模式：启动/改参后立即预热引擎并常驻，不主动释放模型内存。
 	/// 关闭时保持懒加载（改参后丢弃，下次识别再加载）。
@@ -347,6 +353,9 @@ public sealed class OcrOptions {
 		SendFilePcId = SendFilePcId ?? "",
 		SendFileDevices = (SendFileDevices ?? new List<SendFileDevice>())
 			.Where(x => x != null).Select(x => x.Clone()).ToList(),
+		CastRecvEnabled = CastRecvEnabled,
+		CastQuality = CastQuality ?? "均衡 720p",
+		CastAudio = CastAudio,
 		ServiceMode = ServiceMode,
 		PdfInvisibleText = PdfInvisibleText,
 		PdfDpi = PdfDpi,

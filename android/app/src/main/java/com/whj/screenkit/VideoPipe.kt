@@ -1,0 +1,176 @@
+package com.whj.screenkit
+
+import android.hardware.display.DisplayManager
+import android.hardware.display.VirtualDisplay
+import android.media.MediaCodec
+import android.media.MediaCodecInfo
+import android.media.MediaFormat
+import android.media.projection.MediaProjection
+import android.view.Surface
+
+class VideoPipe(
+    private val mp: MediaProjection,
+    srcW: Int,
+    srcH: Int,
+    private val dpi: Int,
+    q: Quality,
+    private val sink: FrameSink,
+    private val onDead: () -> Unit = {},
+) {
+    private val enc: MediaCodec
+    private val vd: VirtualDisplay
+    private val surface: Surface
+    @Volatile private var running = true
+    @Volatile private var stopped = false
+    private val th: Thread
+    val outW: Int
+    val outH: Int
+    val fps: Int = q.fps
+
+    init {
+        val fit = q.fit(srcW, srcH)
+        val edge = maxOf(fit.first, fit.second)
+        outW = edge
+        outH = edge
+        val fmt = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, outW, outH)
+        fmt.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+        fmt.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
+        fmt.setInteger(MediaFormat.KEY_FRAME_RATE, q.fps)
+        fmt.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+        enc = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+        enc.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        surface = enc.createInputSurface()
+        enc.start()
+        vd = mp.createVirtualDisplay(
+            "skcast",
+            outW,
+            outH,
+            dpi,
+            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+            surface,
+            null,
+            null,
+        )
+        th = Thread({ loop() }, "venc").also { it.start() }
+    }
+
+    private fun loop() {
+        val info = MediaCodec.BufferInfo()
+        var sps: ByteArray? = null
+        var pps: ByteArray? = null
+        var peer = false
+        while (running) {
+            val ix = try {
+                enc.dequeueOutputBuffer(info, 10_000)
+            } catch (_: Exception) {
+                continue
+            }
+            if (ix == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                val fmt = enc.outputFormat
+                sps = annexOfCsd(fmt.getByteBuffer("csd-0"))
+                pps = annexOfCsd(fmt.getByteBuffer("csd-1"))
+                continue
+            }
+            if (ix < 0) continue
+            try {
+                val buf = enc.getOutputBuffer(ix) ?: continue
+                val data = ByteArray(info.size)
+                buf.position(info.offset)
+                buf.limit(info.offset + info.size)
+                buf.get(data)
+                if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
+                    sps = toAnnexB(data)
+                    continue
+                }
+                var nal = toAnnexB(data)
+                val idr = isIdr(nal)
+                if (idr && sps != null) {
+                    val head = sps!! + (pps ?: ByteArray(0))
+                    nal = head + nal
+                }
+                if (!sink.send(Proto.T_VIDEO, nal)) {
+                    peer = true
+                    running = false
+                    break
+                }
+            } catch (_: Exception) {
+                continue
+            } finally {
+                try { enc.releaseOutputBuffer(ix, false) } catch (_: Exception) { }
+            }
+        }
+        if (peer && !stopped) onDead()
+    }
+
+    fun haltSend() {
+        running = false
+        try { th.join(800) } catch (_: Exception) { }
+    }
+
+    fun refresh() {
+        try { vd.resize(outW, outH, dpi) } catch (_: Exception) { }
+    }
+
+    fun stop() {
+        stopped = true
+        running = false
+        try { th.join(500) } catch (_: Exception) { }
+        try { vd.release() } catch (_: Exception) { }
+        try { surface.release() } catch (_: Exception) { }
+        try { enc.stop() } catch (_: Exception) { }
+        try { enc.release() } catch (_: Exception) { }
+    }
+
+    companion object {
+        private fun annexOfCsd(buf: java.nio.ByteBuffer?): ByteArray {
+            if (buf == null) return ByteArray(0)
+            val data = ByteArray(buf.remaining())
+            buf.get(data)
+            return toAnnexB(data)
+        }
+
+        fun toAnnexB(data: ByteArray): ByteArray {
+            if (data.size >= 4 && data[0] == 0.toByte() && data[1] == 0.toByte() &&
+                (data[2] == 1.toByte() || (data[2] == 0.toByte() && data[3] == 1.toByte()))
+            ) return data
+            val out = java.io.ByteArrayOutputStream(data.size + 16)
+            var i = 0
+            var any = false
+            while (i + 4 <= data.size) {
+                val n = ((data[i].toInt() and 0xFF) shl 24) or
+                    ((data[i + 1].toInt() and 0xFF) shl 16) or
+                    ((data[i + 2].toInt() and 0xFF) shl 8) or
+                    (data[i + 3].toInt() and 0xFF)
+                i += 4
+                if (n <= 0 || i + n > data.size) break
+                out.write(0); out.write(0); out.write(0); out.write(1)
+                out.write(data, i, n)
+                i += n
+                any = true
+            }
+            return if (!any) {
+                byteArrayOf(0, 0, 0, 1) + data
+            } else {
+                out.toByteArray()
+            }
+        }
+
+        private fun isIdr(nal: ByteArray): Boolean {
+            var i = 0
+            while (i + 4 < nal.size) {
+                if (nal[i] == 0.toByte() && nal[i + 1] == 0.toByte()) {
+                    val off = if (nal[i + 2] == 1.toByte()) i + 3
+                    else if (nal[i + 2] == 0.toByte() && nal[i + 3] == 1.toByte()) i + 4
+                    else -1
+                    if (off > 0) {
+                        val t = nal[off].toInt() and 0x1F
+                        if (t == 5) return true
+                        i = off
+                    }
+                }
+                i++
+            }
+            return false
+        }
+    }
+}

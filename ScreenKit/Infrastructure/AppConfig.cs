@@ -209,6 +209,12 @@ static class AppConfig {
 			if (map.TryGetValue("sendfile_pc_id", out var sfid) && !string.IsNullOrWhiteSpace(sfid))
 				o.SendFilePcId = sfid.Trim().Trim('"');
 			o.SendFileDevices = parsesendfiledevices(text);
+			if (map.TryGetValue("cast_recv_enabled", out var cre))
+				o.CastRecvEnabled = parsebool(cre, true);
+			if (map.TryGetValue("cast_quality", out var cq) && !string.IsNullOrWhiteSpace(cq))
+				o.CastQuality = cq.Trim().Trim('"');
+			if (map.TryGetValue("cast_audio", out var ca))
+				o.CastAudio = parsebool(ca, true);
 			if (map.TryGetValue("service_mode", out var sm))
 				o.ServiceMode = parsebool(sm, false);
 			if (map.TryGetValue("pdf_invisible_text", out var pit))
@@ -535,6 +541,12 @@ static class AppConfig {
 				sb.AppendLine();
 			}
 		}
+		sb.AppendLine();
+		sb.AppendLine("[cast]");
+		sb.AppendLine("# 局域网 / USB 投屏接收（手机或另一台电脑）");
+		sb.AppendLine($"cast_recv_enabled = {(o.CastRecvEnabled ? "true" : "false")}");
+		sb.AppendLine($"cast_quality = \"{esc(string.IsNullOrWhiteSpace(o.CastQuality) ? "均衡 720p" : o.CastQuality)}\"");
+		sb.AppendLine($"cast_audio = {(o.CastAudio ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("[pdf]");
 		sb.AppendLine($"# PDF 识别后叠加不可见文字层（可检索/复制）");

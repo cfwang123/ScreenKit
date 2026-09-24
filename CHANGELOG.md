@@ -26,11 +26,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519 / `adb reverse`. Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
+
 #### Changed
 
 - `scripts/publish-release.mjs` omits local `config.toml`, `cli_last.log`, and `log/` from the 7z (API keys / paths).
 
 ### 中文
+
+#### 新增
+
+- 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519 / `adb reverse`。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
 
 #### 变更
 

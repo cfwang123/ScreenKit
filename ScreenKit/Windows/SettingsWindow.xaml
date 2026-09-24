@@ -609,6 +609,13 @@
 						           Text="手机 App「PC文件传输」搜索本机；首次连接需弹窗确认。目录为程序旁 sendfile/"/>
 						<CheckBox x:Name="esfen" Content="启用文件传输服务" Margin="0,0,0,10" IsChecked="True"
 						          AutomationProperties.AutomationId="set.sendfile.enable"/>
+						<TextBlock x:Name="lbsetcast" Text="局域网投屏"
+						           FontWeight="SemiBold" Margin="0,16,0,6"/>
+						<TextBlock x:Name="lbsetcasthint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="手机桌面「投屏」或另一台电脑发现本机。UDP 19518 / TCP 19519。"/>
+						<CheckBox x:Name="ecasten" Content="启用投屏接收" Margin="0,0,0,10" IsChecked="True"
+						          AutomationProperties.AutomationId="set.cast.enable"/>
 						<TextBlock x:Name="lbsetsfname" Text="电脑显示名" FontSize="11"
 						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 						<TextBox x:Name="esfname" Height="30" Padding="6,4" Margin="0,0,0,10"

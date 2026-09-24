@@ -281,6 +281,9 @@ public partial class SettingsWindow : Window {
 			lbsetsf.Text = Loc.T("set.sendfile");
 			lbsetsfhint.Text = Loc.T("set.sendfile.hint");
 			esfen.Content = Loc.T("set.sendfile.enable");
+			lbsetcast.Text = Loc.T("set.cast");
+			lbsetcasthint.Text = Loc.T("set.cast.hint");
+			ecasten.Content = Loc.T("set.cast.enable");
 			lbsetsfname.Text = Loc.T("set.sendfile.name");
 			lbsetsfport.Text = Loc.T("set.sendfile.port");
 			lbsetsfudp.Text = Loc.T("set.sendfile.udp");
@@ -484,6 +487,7 @@ public partial class SettingsWindow : Window {
 		ehttpport.Text = o.HttpPort > 0 ? o.HttpPort.ToString() : "1224";
 		eservicemode.IsChecked = o.ServiceMode;
 		esfen.IsChecked = o.SendFileEnabled;
+		ecasten.IsChecked = o.CastRecvEnabled;
 		esfname.Text = o.SendFileName ?? "";
 		esfport.Text = (o.SendFilePort > 0 ? o.SendFilePort : 17532).ToString();
 		esfudp.Text = (o.SendFileUdpPort > 0 ? o.SendFileUdpPort : 17531).ToString();
@@ -625,6 +629,7 @@ public partial class SettingsWindow : Window {
 		Result.HttpPort = port;
 		Result.ServiceMode = eservicemode.IsChecked == true;
 		Result.SendFileEnabled = esfen.IsChecked == true;
+		Result.CastRecvEnabled = ecasten.IsChecked == true;
 		Result.SendFileName = (esfname.Text ?? "").Trim();
 		if (!int.TryParse((esfport.Text ?? "").Trim(), out var sfPort) || sfPort < 1 || sfPort > 65535) {
 			tabset.SelectedItem = tabsethttp;

@@ -1,6 +1,6 @@
 # ScreenKit
 
-Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, and LAN file transfer with an Android companion.
+Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
 
 **Current version: 1.0.10** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
@@ -26,7 +26,7 @@ Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具
 | File | What |
 |------|------|
 | [`screenkit_1.0.10.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
-| `screenkit1.0.10.apk` | Android companion for LAN file/text sync (same release page, or **File sync → Install on phone**). |
+| `screenkit1.0.10.apk` | Android companion: **传文件** + **投屏** launchers (same release page, or **File sync → Install on phone**). |
 
 Unpack the 7z and run `ScreenKit/ScreenKit.exe`. First launch may open the install wizard. Requires [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
 
@@ -65,7 +65,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 | Area | Description |
 |------|-------------|
-| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. Companion: `android/` (`com.whj.screenkit`). |
+| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
 | **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
@@ -75,6 +75,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Text tools** | **Tools → Text tools**: Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, counts, smart JSON pretty-print (short arrays/objects stay on one line). |
 | **Password generator** | **Tools → Password generator**: crypto-random; length, sets, skip `0OIl1`, at least one of each class. Remembers last settings. **Word lex** tab: pick an LLM, then translations (including Literary Chinese, Ancient Greek, Latin, Sanskrit, Biblical Hebrew) plus pinyin / romaji / romanization. |
 | **Network tools** | **Tools → Network tools**: Ping, DNS, WHOIS, traceroute, ping-locate, proxy-locate, HTTP speed-locate. |
+| **Screencast** | **Tools → Screencast** (same under the tray Tools menu): receive a phone or another PC over LAN/USB, or cast this desktop out. Quality 540p/720p/1080p, optional audio. Discovery UDP 19518, media TCP 19519. The phone app has a separate **投屏** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
@@ -114,6 +115,13 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync shows the latest message in a read-only selectable box.
 
 Android details: [android/README.md](android/README.md).
+
+### Screencast (PC ↔ Android / PC ↔ PC)
+
+1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network.
+2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP, or use **USB** after USB debugging.
+3. A borderless view window opens. **Tab** toggles resolution / fps / bitrate / latency. Closing the window disconnects. Quality changes apply live.
+4. PC-to-PC: both receive; the sender scans and casts to the selected host.
 
 ### Image convert
 
