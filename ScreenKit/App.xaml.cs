@@ -53,11 +53,33 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
-		// GUI 单实例
-		if (!trysingleinstance()) {
-			signalactivate();
-			Environment.Exit(0);
-			return;
+		void sesslog(string s) {
+			try {
+				var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+				Directory.CreateDirectory(dir);
+				File.AppendAllText(Path.Combine(dir, "cast_sess.txt"),
+					$"{DateTime.Now:HH:mm:ss} {s}\n");
+			}
+			catch { }
+		}
+
+		try { CastStale.Purge(sesslog); }
+		catch (Exception ex) { sesslog($"清残留: {ex.Message}"); }
+
+		// GUI 单实例（其它目录的旧进程已清掉；同目录二次启动仍唤起已有窗口）
+		var got = trysingleinstance();
+		if (!got && !CastStale.SamePathStillRunning()) {
+			try { CastStale.Purge(sesslog); } catch { }
+			Thread.Sleep(400);
+			got = trysingleinstance();
+		}
+		if (!got) {
+			if (CastStale.SamePathStillRunning()) {
+				signalactivate();
+				Environment.Exit(0);
+				return;
+			}
+			sesslog("单实例锁仍被占，继续启动");
 		}
 
 		initcuda();

@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Phone web manager (`/m`): compact full-width list with divider rows only; tap folder/file to open or download; long-press multi-select with download, ZIP, copy link, rename, and delete; bottom bar Upload / Camera / New; breadcrumb path and account sheet (no title or search bar).
 - Public `/f/…` download: `.txt` and `.md` use `Content-Disposition: attachment` so mobile browsers save the file instead of opening it inline.
+- On launch, ScreenKit ends leftover copies from another folder, orphan `--cast-aoa` helpers, and live processes listening on TCP 19519, then takes the single-instance lock. A second start from the **same** folder still activates the existing window.
 - WiFi/ADB viewer: exclusive listen only (no `ReuseAddress`). If 19519 is a dead-pid ghost socket, bind 19520+ and advertise that port; `adb reverse` maps device 19519 to the real host port. `--test-cast-recv` checks localhost hello reaches this process.
 - Screencast viewer comes to the front when it opens (not always-on-top). **Tab** overlay is off until Tab is pressed. USB adb reverse is kept even while the AOA helper is running. Stop hides the window before decoder teardown (no ~1s black frame).
 - Screencast viewer is no longer always-on-top. Picture scale can be **Fit** (letterbox) or **Fill** (crop); right-click the viewer or Tools → Screencast (`cast_view_fill`).
@@ -96,11 +97,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 手机网页管理（`/m`）改为白底、淡色点缀，按钮均带 SVG 图标。
 - 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），多把意思译成其它语言再用拼音 / 罗马字拼写（可大小写；英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
 - 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
+- **检查更新**：安卓传文件 App 侧栏菜单、手机网页 `/m` 账户面板均可从 GitHub Releases 查最新 APK（规则与 PC `AppUpdater` 一致）；网页经 `GET /api/web/apk-update` 由电脑代理（无需登录）。CLI `--test-sendfile` 会请求该接口。
 
 #### 变更
 
+- 安卓 **传文件** 改为单页：顶部连接状态、同页搜索/手填选电脑、上传、接收文件夹、文本同步与传输记录；仅侧栏保留 **参数设置**、**检查更新**（已移除独立选电脑页与文本同步页）。
+- 安卓传文件：手填 IP 默认端口改为 **1224**（原误用 17532，导致连不上、电脑不弹配对）；UDP 发现增加子网广播；先 `info` 再配对。
+- 电脑文件同步：手机上传完成后自动把文件路径复制到剪贴板并托盘提示。
+- 电脑文件同步：接收目录多选后点 **推送**，将所选文件/文件夹发给已连接手机。
+- 安卓传文件：「来自电脑」文本增加 **复制** 按钮，点文本区域也会复制。
+
 - 手机网页管理（`/m`）：100% 宽度紧凑列表、行间仅分隔线；点击文件夹进入、点击文件下载；长按多选后操作栏支持下载、ZIP、复制链接、改名、删除；底部为上传、拍照、新建；保留面包屑与账户入口，去掉标题栏和搜索栏。
 - 公开下载 `/f/…`：`.txt`、`.md` 使用 `Content-Disposition: attachment`，手机浏览器会下载而不是页内打开。
+- 启动时结束其它目录的旧 ScreenKit、残留 `--cast-aoa` 助手、以及占用 TCP 19519 的进程，再抢单实例锁。从**同一目录**再开仍只唤起已有窗口。
 - WiFi/ADB 弹窗：TCP 只独占监听，禁止 `ReuseAddress`。`19519` 若被已退出进程占死，改听 `19520+` 并写入发现包；`adb reverse` 把手机 19519 转到电脑实际端口。`--test-cast-recv` 校验本机 hello 进本进程。
 - 弹出投屏窗时提到最前（不一直置顶）。**Tab** 信息默认不显示，按 Tab 才开。USB 配件助手在跑时仍保持 adb reverse。停止时先关窗再拆解码器，避免黑屏约 1 秒。
 - 投屏画面窗不再置顶。画面可选 **适应窗口**（fit，留边）或 **铺满窗口**（fill，裁切）；右键画面窗或「工具 → 投屏」里切换（`cast_view_fill`）。
