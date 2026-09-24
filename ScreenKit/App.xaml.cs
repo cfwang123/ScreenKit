@@ -18,20 +18,22 @@ public partial class App : System.Windows.Application {
 		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 		var args = e.Args ?? Array.Empty<string>();
 
-		// USB AOA 请求：独立进程，避免 LibUsb 原生崩溃带走主界面
+		// USB AOA：独立进程请求配件并桥接 TCP，主进程绝不碰 LibUsb
 		if (args.Any(a => a == "--cast-aoa")) {
-			try {
-				CastUsbHost.RequestAoaOnce(s => {
-					try {
-						var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
-						Directory.CreateDirectory(dir);
-						File.AppendAllText(Path.Combine(dir, "cast_sess.txt"),
-							$"{DateTime.Now:HH:mm:ss} {s}\n");
-					}
-					catch { }
-				});
+			void lg(string s) {
+				try {
+					var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+					Directory.CreateDirectory(dir);
+					File.AppendAllText(Path.Combine(dir, "cast_sess.txt"),
+						$"{DateTime.Now:HH:mm:ss} {s}\n");
+				}
+				catch { }
 			}
-			catch { }
+			try {
+				lg("AOA 助手启动");
+				CastUsbHost.RunAoaBridge(lg);
+			}
+			catch (Exception ex) { lg($"AOA 助手异常: {ex.Message}"); }
 			Environment.Exit(0);
 			return;
 		}

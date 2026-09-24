@@ -98,7 +98,7 @@ public partial class CastWindow : Window {
 
 	void busb_Click(object sender, RoutedEventArgs e) {
 		CastHost.EnableUsbHost();
-		AppendLog("已请求 USB 配件（独立进程）；手机点「USB 投屏」并允许配件");
+		AppendLog("已启动 USB 配件助手；请在手机点「USB 投屏」并允许配件（看日志是否出现 AOA 协议/桥接）");
 	}
 
 	void bscan_Click(object sender, RoutedEventArgs e) {

@@ -153,6 +153,11 @@ sealed class CastRecvSrv : IDisposable {
 
 	void onesess(TcpClient cli) {
 		if (busy) {
+			if (!haspayload(cli, 400)) {
+				Log?.Invoke($"探测连接，忽略 {cli.Client?.RemoteEndPoint}");
+				try { cli.Close(); } catch { }
+				return;
+			}
 			Log?.Invoke("新连接，断开旧会话");
 			Kick();
 			var t0 = Environment.TickCount;
@@ -168,6 +173,24 @@ sealed class CastRecvSrv : IDisposable {
 			try { cli.Close(); } catch { }
 			if (hello) OnGone?.Invoke();
 		}
+	}
+
+	static bool haspayload(TcpClient cli, int ms) {
+		try {
+			var t0 = Environment.TickCount;
+			while (Environment.TickCount - t0 < ms) {
+				try {
+					if (cli.Available > 0) return true;
+					if (cli.Client == null || !cli.Connected) return false;
+					if (cli.Client.Poll(0, SelectMode.SelectRead) && cli.Available == 0)
+						return false;
+				}
+				catch { return false; }
+				Thread.Sleep(20);
+			}
+			return cli.Available > 0;
+		}
+		catch { return false; }
 	}
 
 	bool runsession(Stream s) {

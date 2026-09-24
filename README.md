@@ -119,7 +119,7 @@ Android details: [android/README.md](android/README.md).
 ### Screencast (PC ↔ Android / PC ↔ PC)
 
 1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network.
-2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB without network: on the PC open **Tools → Screencast** and click **USB配件**, plug the cable, on the phone tap **USB 投屏** and allow the accessory. **USB 投屏(adb)** needs USB debugging.
+2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB without network: on the PC open **Tools → Screencast** and click **USB配件** (helper process switches AOA and bridges; the UI process never calls LibUsb), plug the cable, on the phone tap **USB 投屏** and allow the accessory. After 12s without an accessory it falls back to USB tethering. **USB 投屏(adb)** needs USB debugging.
 3. A borderless view window opens. **Tab** toggles resolution / fps / bitrate / latency. Closing the window disconnects. Quality changes apply live. Landscape re-encodes at the same short-edge quality (does not crop a portrait frame).
 4. PC-to-PC: both receive; the sender scans and casts to the selected host.
 

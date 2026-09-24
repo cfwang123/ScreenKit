@@ -265,6 +265,20 @@ class CastActivity : AppCompatActivity() {
             pendingMode = "usb"
             b.lbstat.text = "等待 USB 配件…"
             toast("请用数据线连接电脑，允许 USB 配件（不用网络、不用 USB 调试）")
+            b.root.postDelayed({
+                if (!waitUsb || isFinishing) return@postDelayed
+                val a2 = (getSystemService(USB_SERVICE) as UsbManager).accessoryList?.firstOrNull()
+                if (a2 != null) {
+                    startUsb()
+                    return@postDelayed
+                }
+                waitUsb = false
+                pendingMode = "usb-lan"
+                UsbLan.pickNet(this)
+                b.lbstat.text = "未检测到配件，改用 USB 网络共享…"
+                toast("未检测到 USB 配件。请在通知栏打开 USB 网络共享后再试，或用 USB 投屏(adb)")
+                requestProj()
+            }, 12000)
             return
         }
         if (!usb.hasPermission(acc)) {

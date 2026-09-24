@@ -1,6 +1,8 @@
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using LibUsbDotNet;
 using LibUsbDotNet.Main;
 
@@ -106,14 +108,15 @@ sealed class CastUsbHost : IDisposable {
 	void tryaoa() => RequestAoaOnce(Log);
 
 	public static void RequestAoaOnce(Action<string> log) {
+		var any = false;
 		foreach (var vid in PhoneVids) {
 			UsbDevice dev = null;
 			try {
 				dev = UsbDevice.OpenUsbDevice(new UsbDeviceFinder(vid));
 				if (dev == null) continue;
+				any = true;
 				if (!getproto(dev, out var proto) || proto < 1) {
-					dev.Close();
-					dev = null;
+					log?.Invoke($"USB VID {vid:X4} 不支持 AOA");
 					continue;
 				}
 				log?.Invoke($"USB AOA 协议 v{proto} VID {vid:X4}");
@@ -130,26 +133,123 @@ sealed class CastUsbHost : IDisposable {
 			catch (Exception ex) { log?.Invoke($"AOA {vid:X4}: {ex.Message}"); }
 			finally { try { dev?.Close(); } catch { } }
 		}
+		if (!any)
+			log?.Invoke("未找到可切换配件的手机 USB 设备（WinUSB/libusb 打不开当前模式）");
 	}
 
 	public static void SpawnAoaHelper(Action<string> log) {
 		try {
+			using (var mx = new Mutex(false, "Local\\ScreenKit_CastAoa")) {
+				if (!mx.WaitOne(0, false)) return;
+				try { mx.ReleaseMutex(); } catch { }
+			}
 			var exe = Environment.GetCommandLineArgs().FirstOrDefault()
 				?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
 			if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) {
 				exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ScreenKit.exe");
 			}
-			if (!File.Exists(exe)) return;
+			if (!File.Exists(exe)) {
+				log?.Invoke("AOA 助手：找不到 ScreenKit.exe");
+				return;
+			}
 			var psi = new System.Diagnostics.ProcessStartInfo {
 				FileName = exe,
 				Arguments = "--cast-aoa",
 				UseShellExecute = false,
 				CreateNoWindow = true,
 				WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+				WorkingDirectory = Path.GetDirectoryName(exe) ?? AppDomain.CurrentDomain.BaseDirectory,
 			};
 			System.Diagnostics.Process.Start(psi);
 		}
 		catch (Exception ex) { log?.Invoke($"AOA 助手: {ex.Message}"); }
+	}
+
+	public static void RunAoaBridge(Action<string> log) {
+		bool created;
+		using var mx = new Mutex(true, "Local\\ScreenKit_CastAoa", out created);
+		if (!created) {
+			log?.Invoke("AOA 助手已在运行");
+			return;
+		}
+		try {
+			log?.Invoke("AOA 助手：请求配件并桥接到本机 19519");
+			var t0 = Environment.TickCount;
+			var lastreq = 0;
+			while (Environment.TickCount - t0 < 90000) {
+				try {
+					if (trybridge(log)) return;
+				}
+				catch (Exception ex) { log?.Invoke($"AOA 桥接: {ex.Message}"); }
+				var now = Environment.TickCount;
+				if (lastreq == 0 || now - lastreq > 3000) {
+					lastreq = now;
+					try { RequestAoaOnce(log); }
+					catch (Exception ex) { log?.Invoke($"AOA 请求: {ex.Message}"); }
+				}
+				Thread.Sleep(800);
+			}
+			log?.Invoke("AOA 助手超时：手机未进入配件。可改用通知栏 USB 网络共享，或 USB 投屏(adb)");
+		}
+		finally {
+			try { mx.ReleaseMutex(); } catch { }
+			try { UsbDevice.Exit(); } catch { }
+		}
+	}
+
+	static bool trybridge(Action<string> log) {
+		UsbDevice dev = null;
+		try {
+			dev = UsbDevice.OpenUsbDevice(new UsbDeviceFinder(GOOGLE_VID, AOA_PID))
+				?? UsbDevice.OpenUsbDevice(new UsbDeviceFinder(GOOGLE_VID, AOA_ADB_PID));
+			if (dev == null) return false;
+			var whole = dev as IUsbDevice;
+			whole?.SetConfiguration(1);
+			whole?.ClaimInterface(0);
+			if (!openeps(dev, out var rd, out var wr)) {
+				dev.Close();
+				return false;
+			}
+			log?.Invoke("USB AOA 已打开，连接本机接收");
+			using var usb = new CastUsbBulkStream(rd, wr);
+			using var cli = new TcpClient();
+			cli.NoDelay = true;
+			cli.Connect("127.0.0.1", CastProto.TCP_PORT);
+			using var ns = cli.GetStream();
+			log?.Invoke("USB AOA 已桥接到 127.0.0.1:19519");
+			pump(usb, ns);
+			log?.Invoke("USB AOA 会话结束");
+			return true;
+		}
+		finally {
+			try { dev?.Close(); } catch { }
+		}
+	}
+
+	static void pump(Stream a, Stream b) {
+		using var cts = new CancellationTokenSource();
+		var t1 = new Thread(() => copy(a, b, cts)) { IsBackground = true, Name = "aoa-u2t" };
+		var t2 = new Thread(() => copy(b, a, cts)) { IsBackground = true, Name = "aoa-t2u" };
+		t1.Start();
+		t2.Start();
+		t1.Join();
+		try { cts.Cancel(); } catch { }
+		t2.Join(800);
+	}
+
+	static void copy(Stream src, Stream dst, CancellationTokenSource cts) {
+		var buf = new byte[16384];
+		try {
+			while (!cts.IsCancellationRequested) {
+				var n = src.Read(buf, 0, buf.Length);
+				if (n <= 0) break;
+				dst.Write(buf, 0, n);
+				dst.Flush();
+			}
+		}
+		catch { }
+		try { cts.Cancel(); } catch { }
+		try { dst.Flush(); } catch { }
 	}
 
 	static bool getproto(UsbDevice dev, out short proto) {
@@ -180,7 +280,6 @@ sealed class CastUsbHost : IDisposable {
 
 	public void Dispose() {
 		stop = true;
-		try { UsbDevice.Exit(); } catch { }
 		th = null;
 	}
 }

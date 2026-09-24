@@ -84,15 +84,17 @@ static class CastHost {
 		Usb.Log = log;
 		Recv.OnFrame = onframe;
 		Recv.OnHello = (n, via) => {
-			var g = Interlocked.Increment(ref viewgen);
+			hidebyuser = false;
+			Interlocked.Increment(ref viewgen);
 			ui(() => {
-				if (g != viewgen) return;
-				hidebyuser = false;
-				ensureview();
-				view.SetName(n, via);
-				view.ShowCast();
-				log($"开窗 {view.Title} vis={view.IsVisible} top={view.Topmost} " +
-					$"{view.Left:0},{view.Top:0} {view.Width:0}x{view.Height:0}");
+				try {
+					ensureview();
+					view.SetName(n, via);
+					view.ShowCast();
+					log($"开窗 {view.Title} vis={view.IsVisible} top={view.Topmost} " +
+						$"{view.Left:0},{view.Top:0} {view.Width:0}x{view.Height:0}");
+				}
+				catch (Exception ex) { log($"开窗失败: {ex.Message}"); }
 			}, prio: DispatcherPriority.Send);
 		};
 		Recv.OnSrc = (dw, dh) => ui(() => {
@@ -127,12 +129,9 @@ static class CastHost {
 					lastadb = now;
 					CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
 				}
-				if (usbWant && (Usb == null || !Usb.Connected) &&
-					(now - lastaoa > 8000 || lastaoa == 0)) {
+				if (usbWant && (now - lastaoa > 8000 || lastaoa == 0)) {
 					lastaoa = now;
 					CastUsbHost.SpawnAoaHelper(log);
-					try { Usb?.StartAccessoryOnly(); }
-					catch (Exception ex) { log($"USB 主机: {ex.Message}"); }
 				}
 			}
 			catch { }
@@ -163,8 +162,9 @@ static class CastHost {
 
 	public static void EnableUsbHost() {
 		usbWant = true;
-		lastaoa = 0;
-		log("已启用 USB 配件主机（独立进程请求 AOA）");
+		lastaoa = Environment.TickCount;
+		log("已启用 USB 配件主机（独立进程请求 AOA 并桥接）");
+		CastUsbHost.SpawnAoaHelper(log);
 	}
 
 	public static void ShowSet() {
@@ -238,7 +238,6 @@ static class CastHost {
 	static void hidecastif(int g) {
 		if (g != viewgen) return;
 		if (Recv != null && Recv.Busy) return;
-		hidebyuser = true;
 		lock (framegate) {
 			frameready = -1;
 			frameposted = false;
