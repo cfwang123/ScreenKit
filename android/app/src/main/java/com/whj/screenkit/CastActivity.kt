@@ -80,6 +80,7 @@ class CastActivity : AppCompatActivity() {
         b.lpeers.setOnItemClickListener { _, _, pos, _ ->
             b.lpeers.setItemChecked(pos, true)
             val p = peers.getOrNull(pos) ?: return@setOnItemClickListener
+            fillIp(p.ip)
             b.lbstat.text = "已选 ${p.name}  ${p.ip}"
         }
         b.bscan.setOnClickListener { scan() }
@@ -91,7 +92,7 @@ class CastActivity : AppCompatActivity() {
             startService(Intent(this, CastService::class.java).setAction(CastService.ACTION_STOP))
         }
         askPerm()
-        refreshUsb()
+        loadIp()
         handleUsb(intent)
         ContextCompat.registerReceiver(
             this,
@@ -137,7 +138,6 @@ class CastActivity : AppCompatActivity() {
 
     private val usbPermRec = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            refreshUsb()
             if (intent?.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false) == true) {
                 toast("USB 配件已授权")
                 if (waitUsb) startUsb()
@@ -181,10 +181,18 @@ class CastActivity : AppCompatActivity() {
                 )
                 if (list.size == 1) {
                     b.lpeers.setItemChecked(0, true)
+                    fillIp(list[0].ip)
                     b.lbstat.text = "已选 ${list[0].name}  ${list[0].ip}"
                 } else {
-                    b.lpeers.clearChoices()
-                    b.lbstat.text = "扫描到 ${list.size} 台，点选一台"
+                    val last = b.eip.text?.toString()?.trim().orEmpty()
+                    val ix = list.indexOfFirst { it.ip == last }
+                    if (ix >= 0) {
+                        b.lpeers.setItemChecked(ix, true)
+                        b.lbstat.text = "已选 ${list[ix].name}  ${list[ix].ip}"
+                    } else {
+                        b.lpeers.clearChoices()
+                        b.lbstat.text = "扫描到 ${list.size} 台，点选一台"
+                    }
                 }
             }
         }.start()
@@ -201,6 +209,7 @@ class CastActivity : AppCompatActivity() {
         pendingMode = "tcp"
         pendingIp = p.ip
         pendingPort = p.tcp
+        fillIp(p.ip)
         requestProj()
     }
 
@@ -221,6 +230,7 @@ class CastActivity : AppCompatActivity() {
         pendingMode = "tcp"
         pendingIp = ip
         pendingPort = port
+        fillIp(ip)
         requestProj()
     }
 
@@ -247,7 +257,8 @@ class CastActivity : AppCompatActivity() {
                         pendingIp = ip
                         pendingPort = Proto.TCP_PORT
                         waitUsb = false
-                        b.lbstat.text = "USB 网络 $ip"
+                        fillIp(ip)
+                        b.lbstat.text = "usb $ip"
                         requestProj()
                     } else if (net != null || hasIface) {
                         pendingMode = "usb-lan"
@@ -311,18 +322,19 @@ class CastActivity : AppCompatActivity() {
         proj.launch(mgr.createScreenCaptureIntent())
     }
 
-    private fun refreshUsb() {
-        val usb = getSystemService(USB_SERVICE) as UsbManager
-        val n = usb.accessoryList?.size ?: 0
-        b.lbusb.text = if (n > 0)
-            "USB: 配件已连接（无需 USB 调试）"
-        else
-            "USB: 网络共享，或「USB 投屏(adb)」需 USB 调试"
+    private fun fillIp(ip: String) {
+        if (ip.isEmpty()) return
+        b.eip.setText(ip)
+        getSharedPreferences("skcast", MODE_PRIVATE).edit().putString("ip", ip).apply()
+    }
+
+    private fun loadIp() {
+        val ip = getSharedPreferences("skcast", MODE_PRIVATE).getString("ip", "") ?: ""
+        if (ip.isNotEmpty()) b.eip.setText(ip)
     }
 
     private fun handleUsb(intent: Intent?) {
         if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
-            refreshUsb()
             toast("USB 配件已连接")
             if (waitUsb) startUsb()
         }

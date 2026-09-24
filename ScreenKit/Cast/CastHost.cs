@@ -69,10 +69,10 @@ static class CastHost {
 		Disc.Log = log;
 		Usb.Log = log;
 		Recv.OnFrame = onframe;
-		Recv.OnHello = n => ui(() => {
+		Recv.OnHello = (n, via) => ui(() => {
 			hidebyuser = false;
 			ensureview();
-			view.SetName(n);
+			view.SetName(n, via);
 			view.ShowCast();
 		});
 		Recv.OnSrc = (dw, dh) => ui(() => {

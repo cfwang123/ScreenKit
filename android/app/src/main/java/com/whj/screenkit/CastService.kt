@@ -28,6 +28,7 @@ class CastService : Service() {
     private var sink: FrameSink? = null
     private var q: Quality? = null
     private var wantAudio = false
+    private var via = "wifi"
     private var cfgOn = false
     @Volatile private var replacing = false
     private var lastcfg = 0L
@@ -87,6 +88,11 @@ class CastService : Service() {
         val qname = intent?.getStringExtra(EXTRA_Q) ?: Quality.PRESETS[1].name
         val wantAudio = intent?.getBooleanExtra(EXTRA_AUDIO, true) == true
         val mode = intent?.getStringExtra(EXTRA_MODE) ?: "tcp"
+        via = when (mode) {
+            "usb", "usb-lan" -> "usb"
+            "usb-adb" -> "usb(adb)"
+            else -> "wifi"
+        }
         val ip = intent?.getStringExtra(EXTRA_IP) ?: ""
         val port = intent?.getIntExtra(EXTRA_PORT, Proto.TCP_PORT) ?: Proto.TCP_PORT
         if (data == null) {
@@ -160,7 +166,7 @@ class CastService : Service() {
         sendBroadcast(
             Intent(ACTION_STAT).setPackage(packageName).putExtra(
                 "msg",
-                "投屏中 ${v.outW}x${v.outH}@${v.fps}",
+                "投屏中 $via ${v.outW}x${v.outH}@${v.fps}",
             ),
         )
         if (wantAudio) {
@@ -168,10 +174,10 @@ class CastService : Service() {
                 if (mp == null) return@postDelayed
                 try {
                     audio = AudioPipe(projection, s)
-                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 ${v.outW}x${v.outH}@${v.fps} 有声"))
+                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 $via ${v.outW}x${v.outH}@${v.fps} 有声"))
                 } catch (ex: Exception) {
                     Log.w("scst", "audio ${ex.message}")
-                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 ${v.outW}x${v.outH}@${v.fps} 无声"))
+                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 $via ${v.outW}x${v.outH}@${v.fps} 无声"))
                 }
             }, 400)
         }
@@ -203,8 +209,9 @@ class CastService : Service() {
             .put("audio", wantAudio)
             .put("pix", "h264")
             .put("aud", "aac")
+            .put("via", via)
         s.send(Proto.T_JSON, hello.toString().toByteArray(Charsets.UTF_8))
-        Log.i("scst", "hello $outW x $outH")
+        Log.i("scst", "hello $via $outW x $outH")
     }
 
     private fun sendOrient() {
@@ -358,7 +365,7 @@ class CastService : Service() {
             sendBroadcast(
                 Intent(ACTION_STAT).setPackage(packageName).putExtra(
                     "msg",
-                    "投屏中 ${nv.outW}x${nv.outH}@${nv.fps}",
+                    "投屏中 $via ${nv.outW}x${nv.outH}@${nv.fps}",
                 ),
             )
         }.start()

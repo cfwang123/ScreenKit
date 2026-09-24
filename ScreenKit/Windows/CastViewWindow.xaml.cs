@@ -31,10 +31,12 @@ public partial class CastViewWindow : Window {
 		};
 	}
 
-	public void SetName(string n) {
+	public void SetName(string n, string via = null) {
 		var title = Loc.T("cast.title");
-		lbname.Text = string.IsNullOrEmpty(n) ? title : n;
-		Title = string.IsNullOrEmpty(n) || n == title ? title : $"{title} · {n}";
+		if (!string.IsNullOrEmpty(via))
+			title = $"{title} · {via}";
+		lbname.Text = string.IsNullOrEmpty(n) || n == Loc.T("cast.title") ? title : n;
+		Title = title;
 	}
 
 	public void ShowCast() {

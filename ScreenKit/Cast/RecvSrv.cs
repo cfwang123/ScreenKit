@@ -17,7 +17,7 @@ sealed class CastRecvSrv : IDisposable {
 	readonly object wlock = new();
 	public Action<string> Log;
 	public Action<byte[], int, int, int> OnFrame;
-	public Action<string> OnHello;
+	public Action<string, string> OnHello;
 	public Action<int, int> OnSrc;
 	public Action OnGone;
 	CastVideoDecoder vdec;
@@ -193,7 +193,7 @@ sealed class CastRecvSrv : IDisposable {
 					else if (type == CastProto.T_VIDEO) {
 						if (!hello) {
 							hello = true;
-							OnHello?.Invoke("投屏");
+							OnHello?.Invoke("投屏", "");
 						}
 						if (payload != null) byteacc += payload.Length;
 						lock (nallock) pendingnal = payload;
@@ -202,7 +202,7 @@ sealed class CastRecvSrv : IDisposable {
 					else if (type == CastProto.T_AUDIO) {
 						if (!hello) {
 							hello = true;
-							OnHello?.Invoke("投屏");
+							OnHello?.Invoke("投屏", "");
 						}
 						if (payload != null) byteacc += payload.Length;
 						audiogot++;
@@ -279,10 +279,11 @@ sealed class CastRecvSrv : IDisposable {
 		hellobr = CastProto.Jint(o, "br");
 		encw = w;
 		ench = h;
-		Log?.Invoke($"握手 {n} {w}x{h}");
+		var via = CastProto.Jstr(o, "via");
+		Log?.Invoke($"握手 {via} {n} {w}x{h}");
 		lock (nallock) pendingnal = null;
 		resetdec();
-		OnHello?.Invoke(n);
+		OnHello?.Invoke(n, via);
 		if (dw0 > 0 && dh0 > 0) {
 			srcw = dw0;
 			srch = dh0;
