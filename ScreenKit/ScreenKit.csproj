@@ -45,6 +45,7 @@
     <None Include="translate\export_opus_onnx.py" CopyToOutputDirectory="PreserveNewest" Condition="Exists('translate\export_opus_onnx.py')" />
     <!-- OCR 模型包/变体显示名（zh + nameEn） -->
     <None Include="Ocr\ocr-display.json" CopyToOutputDirectory="PreserveNewest" Link="ocr-display.json" />
+    <None Include="Cast\winusb-aoa.inf" CopyToOutputDirectory="PreserveNewest" Link="winusb-aoa.inf" />
     <None Include="SendFile\web\**\*" CopyToOutputDirectory="PreserveNewest" Link="web\%(Filename)%(Extension)" />
     <EmbeddedResource Include="SendFile\web\index.html" LogicalName="web.index.html" />
     <EmbeddedResource Include="SendFile\web\m.html" LogicalName="web.m.html" />

@@ -8,6 +8,24 @@ static class CastAdbFwd {
 	static string lastok;
 	public static string LastMsg { get; private set; }
 
+	public static void KillServer(Action<string> log) {
+		var exe = findadb();
+		if (exe == null) return;
+		try {
+			var p = new Process();
+			p.StartInfo.FileName = exe;
+			p.StartInfo.Arguments = "kill-server";
+			p.StartInfo.UseShellExecute = false;
+			p.StartInfo.CreateNoWindow = true;
+			p.StartInfo.RedirectStandardOutput = true;
+			p.StartInfo.RedirectStandardError = true;
+			p.Start();
+			if (!p.WaitForExit(5000)) try { p.Kill(); } catch { }
+			log?.Invoke("adb kill-server，释放 WinUSB 给 AOA");
+		}
+		catch (Exception ex) { log?.Invoke($"adb kill-server: {ex.Message}"); }
+	}
+
 	public static bool Reverse(int port, Action<string> log) {
 		var exe = findadb();
 		if (exe == null) {

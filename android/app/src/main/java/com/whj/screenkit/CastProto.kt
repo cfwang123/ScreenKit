@@ -32,7 +32,13 @@ object Proto {
         pack(T_JSON, obj.toString().toByteArray(Charsets.UTF_8))
 
     fun write(os: OutputStream, type: Byte, payload: ByteArray) {
-        os.write(pack(type, payload))
+        val buf = pack(type, payload)
+        var o = 0
+        while (o < buf.size) {
+            val n = minOf(16384, buf.size - o)
+            os.write(buf, o, n)
+            o += n
+        }
         os.flush()
     }
 

@@ -127,7 +127,8 @@ static class CastHost {
 				var now = Environment.TickCount;
 				if (now - lastadb > 8000 || lastadb == 0) {
 					lastadb = now;
-					CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
+					if (!CastUsbHost.HelperBusy())
+						CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
 				}
 				if (usbWant && (now - lastaoa > 8000 || lastaoa == 0)) {
 					lastaoa = now;

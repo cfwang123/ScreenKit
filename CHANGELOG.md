@@ -88,7 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- USB 非 adb 投屏：AOA `START` 后用 WinUSB 打开 Google 配件 `18D1:2D00/2D01`（不再走 LibUsb `AllDevices`）。若 **spacedesk** 占了 `MI_00`，助手用系统自带 WinUSB 强制绑定（`DiInstallDevice` + 配件 GUID），并按描述符扫 bulk 端点（对齐 HCCast）。随后桥到 `127.0.0.1:19519`。手机等待配件约 90 秒。CLI `--test-aoa`。
+- USB 非 adb 投屏：AOA `START` 后用 WinUSB 打开 Google 配件 `18D1:2D00/2D01`。若 **spacedesk** 占了 `MI_00`，助手用系统 `winusb.inf` 的 **ADB** 节强制绑定（`DiInstallDevice`；普通 WinUSB 节没有硬件 GUID，会 `CM_PROB_FAILED_ADD`），按描述符扫 bulk 端点（对齐 HCCast），再桥到 `127.0.0.1:19519`。手机等待配件约 90 秒。CLI `--test-aoa`。
 - WiFi 投屏已握手却看不见窗：画面窗强制置顶到鼠标所在屏（不再只居中主屏），并显示标题栏。手机连发两次 hello 不再拆掉解码器；视频按序排队，避免只剩 1fps 的黑窗。
 - 投屏窗反复不弹出：主进程不再调用 LibUsb（插着手机点 USB配件会把 ScreenKit 打崩）。配件助手会请求 AOA **并**把 bulk 桥到 `127.0.0.1:19519`。探测 TCP（立刻断开）不再踢掉正在投屏的会话。自动关窗不再记成用户关闭，下次 hello 还能弹出。
 - USB(adb) 投屏不弹窗：19519 被已死进程的幽灵监听占着，新进程独占绑定失败等于没在听。失败时改绑更具体的 `127.0.0.1`（adb）和本机每个网卡 IP（WiFi）。探测短连不算正式会话。

@@ -39,7 +39,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
-				or "--test-cast"
+				or "--test-cast" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
@@ -240,6 +240,8 @@ static class Cli {
 					return testnettool();
 				case "--test-cast":
 					return testcast();
+				case "--test-aoa":
+					return testaoa();
 				case "--list-install":
 					return listinstall();
 				case "--list-tts-install":
@@ -2861,6 +2863,13 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testaoa() {
+		Out("=== 投屏 --test-aoa ===");
+		CastUsbHost.Dump(Out);
+		Out("=== OK：USB 枚举 ===");
+		return 0;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -2945,6 +2954,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
+      --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）

@@ -117,11 +117,13 @@ class CastActivity : AppCompatActivity() {
             intent?.getBooleanExtra("scst_adb", false) == true
         if (skip) return
         val st = b.lbstat.text?.toString().orEmpty()
-        if (st.contains("投屏中") || st.contains("正在启动") || st.contains("扫描中")) return
+        if (waitUsb || pendingMode == "usb" || pendingMode == "usb-lan" || pendingMode == "usb-adb") return
+        if (st.contains("投屏中") || st.contains("正在启动") || st.contains("扫描中") || st.contains("等待 USB")) return
         b.root.postDelayed({
             if (isFinishing) return@postDelayed
+            if (waitUsb || pendingMode == "usb") return@postDelayed
             val s2 = b.lbstat.text?.toString().orEmpty()
-            if (s2.contains("投屏中") || s2.contains("正在启动") || scanning) return@postDelayed
+            if (s2.contains("投屏中") || s2.contains("正在启动") || s2.contains("等待 USB") || scanning) return@postDelayed
             scan()
         }, 300)
     }
@@ -260,25 +262,12 @@ class CastActivity : AppCompatActivity() {
         pendingPort = Proto.TCP_PORT
         val usb = getSystemService(USB_SERVICE) as UsbManager
         val acc = usb.accessoryList?.firstOrNull()
+        android.util.Log.i("scst", "startUsb acc=${acc?.manufacturer}/${acc?.model}/${acc?.version} n=${usb.accessoryList?.size ?: 0}")
         if (acc == null) {
             waitUsb = true
-            pendingMode = "usb"
             b.lbstat.text = "等待 USB 配件…"
-            toast("请用数据线连接电脑，允许 USB 配件（不用网络、不用 USB 调试）")
-            b.root.postDelayed({
-                if (!waitUsb || isFinishing) return@postDelayed
-                val a2 = (getSystemService(USB_SERVICE) as UsbManager).accessoryList?.firstOrNull()
-                if (a2 != null) {
-                    startUsb()
-                    return@postDelayed
-                }
-                waitUsb = false
-                pendingMode = "usb-lan"
-                UsbLan.pickNet(this)
-                b.lbstat.text = "未检测到配件，改用 USB 网络共享…"
-                toast("未检测到 USB 配件。请在通知栏打开 USB 网络共享后再试，或用 USB 投屏(adb)")
-                requestProj()
-            }, 12000)
+            toast("请用数据线连接电脑，允许 USB 配件")
+            pollAccessory(0)
             return
         }
         if (!usb.hasPermission(acc)) {
@@ -295,6 +284,26 @@ class CastActivity : AppCompatActivity() {
         }
         waitUsb = false
         requestProj()
+    }
+
+    private fun pollAccessory(n: Int) {
+        if (!waitUsb || isFinishing) return
+        val acc = (getSystemService(USB_SERVICE) as UsbManager).accessoryList?.firstOrNull()
+        if (acc != null) {
+            startUsb()
+            return
+        }
+        if (n >= 225) {
+            waitUsb = false
+            pendingMode = "usb-lan"
+            UsbLan.pickNet(this)
+            b.lbstat.text = "未检测到配件，改用 USB 网络共享…"
+            toast("未检测到 USB 配件。请在通知栏打开 USB 网络共享后再试，或用 USB 投屏(adb)")
+            requestProj()
+            return
+        }
+        if (n % 8 == 0) b.lbstat.text = "等待 USB 配件… ${n / 2}s"
+        b.root.postDelayed({ pollAccessory(n + 1) }, 400)
     }
 
     private fun startUsbAdb() {
@@ -335,7 +344,8 @@ class CastActivity : AppCompatActivity() {
     private fun handleUsb(intent: Intent?) {
         if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
             toast("USB 配件已连接")
-            if (waitUsb) startUsb()
+            waitUsb = true
+            startUsb()
         }
     }
 
