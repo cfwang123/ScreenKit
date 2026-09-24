@@ -22,6 +22,11 @@ sealed class CastRecvSrv : IDisposable {
 	CastVideoDecoder vdec;
 	CastAudioDecoder adec;
 	CastAudioPlay aplay;
+	readonly object declock = new();
+	readonly object nallock = new();
+	readonly AutoResetEvent nalsig = new(false);
+	byte[] pendingnal;
+	volatile bool decstop;
 	int lastpkt;
 	int encw, ench, srcw, srch, hellofps, hellobr;
 	int videomiss;
@@ -139,7 +144,10 @@ sealed class CastRecvSrv : IDisposable {
 			if (busy) return false;
 			busy = true;
 			drop = false;
+			decstop = false;
 			curst = s;
+			var decth = new Thread(decodeloop) { IsBackground = true, Name = "cast-vdec" };
+			decth.Start();
 			try {
 				resetdec();
 				lastpkt = Environment.TickCount;
@@ -149,11 +157,18 @@ sealed class CastRecvSrv : IDisposable {
 					if (type == CastProto.T_JSON) {
 						if (dojson(payload)) hello = true;
 					}
-					else if (type == CastProto.T_VIDEO) dovideo(payload);
+					else if (type == CastProto.T_VIDEO) {
+						if (payload != null) byteacc += payload.Length;
+						lock (nallock) pendingnal = payload;
+						nalsig.Set();
+					}
 					else if (type == CastProto.T_AUDIO) doaudio(payload);
 				}
 			}
 			finally {
+				decstop = true;
+				nalsig.Set();
+				try { decth.Join(800); } catch { }
 				if (ReferenceEquals(curst, s)) curst = null;
 				resetdec();
 				busy = false;
@@ -204,6 +219,7 @@ sealed class CastRecvSrv : IDisposable {
 		encw = w;
 		ench = h;
 		Log?.Invoke($"握手 {n} {w}x{h}");
+		lock (nallock) pendingnal = null;
 		resetdec();
 		OnHello?.Invoke(n);
 		if (dw0 > 0 && dh0 > 0) {
@@ -219,24 +235,37 @@ sealed class CastRecvSrv : IDisposable {
 		return true;
 	}
 
+	void decodeloop() {
+		while (!decstop && !stop && !drop) {
+			nalsig.WaitOne(200);
+			byte[] nal;
+			lock (nallock) {
+				nal = pendingnal;
+				pendingnal = null;
+			}
+			if (nal != null) dovideo(nal);
+		}
+	}
+
 	void dovideo(byte[] nal) {
 		try {
-			if (nal != null) byteacc += nal.Length;
-			if (vdec == null) vdec = new CastVideoDecoder();
-			var t0 = Environment.TickCount;
-			if (vdec.Decode(nal, out var px, out var w, out var h, out var st)) {
-				encw = w;
-				ench = h;
-				fpsn++;
-				videomiss = 0;
-				lastframe = Environment.TickCount;
-				decms = lastframe - t0;
-				OnFrame?.Invoke(px, w, h, st);
-			}
-			else {
-				videomiss++;
-				if (videomiss == 24 || videomiss % 120 == 0)
-					Log?.Invoke($"视频包 {videomiss} 个未解出帧");
+			lock (declock) {
+				if (vdec == null) vdec = new CastVideoDecoder();
+				var t0 = Environment.TickCount;
+				if (vdec.Decode(nal, out var px, out var w, out var h, out var st)) {
+					encw = w;
+					ench = h;
+					fpsn++;
+					videomiss = 0;
+					lastframe = Environment.TickCount;
+					decms = lastframe - t0;
+					OnFrame?.Invoke(px, w, h, st);
+				}
+				else {
+					videomiss++;
+					if (videomiss == 24 || videomiss % 120 == 0)
+						Log?.Invoke($"视频包 {videomiss} 个未解出帧");
+				}
 			}
 		}
 		catch (Exception ex) { Log?.Invoke($"视频解码: {ex.Message}"); }
@@ -262,9 +291,11 @@ sealed class CastRecvSrv : IDisposable {
 	}
 
 	void resetdec() {
-		vdec?.Dispose(); vdec = null;
-		adec?.Dispose(); adec = null;
-		aplay?.Dispose(); aplay = null;
+		lock (declock) {
+			vdec?.Dispose(); vdec = null;
+			adec?.Dispose(); adec = null;
+			aplay?.Dispose(); aplay = null;
+		}
 	}
 
 	public void Stop() {

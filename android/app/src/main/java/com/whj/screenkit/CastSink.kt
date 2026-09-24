@@ -86,39 +86,68 @@ class TcpSink(ip: String, port: Int) : FrameSink {
     private val sock = Socket()
     private val os: OutputStream
     @Volatile private var dead = false
+    private val gate = Any()
+    private var pendingVideo: ByteArray? = null
+    private val ctrl = java.util.concurrent.LinkedBlockingQueue<Pair<Byte, ByteArray>>(32)
+    private val th: Thread
 
     init {
         try {
             sock.tcpNoDelay = true
+            try { sock.sendBufferSize = 512 * 1024 } catch (_: Exception) { }
+            try { sock.receiveBufferSize = 256 * 1024 } catch (_: Exception) { }
             val addr = if (ip == "::1")
                 InetSocketAddress(InetAddress.getByName("::1"), port)
             else
                 InetSocketAddress(ip, port)
             sock.connect(addr, 4000)
             os = sock.getOutputStream()
+            th = Thread({ loop() }, "tcp-send").also { it.start() }
         } catch (ex: Exception) {
             try { sock.close() } catch (_: Exception) { }
             throw ex
         }
     }
 
-    @Synchronized
     override fun send(type: Byte, payload: ByteArray): Boolean {
         if (dead) return false
+        if (type == Proto.T_VIDEO) {
+            synchronized(gate) { pendingVideo = payload }
+            return true
+        }
+        if (ctrl.offer(type to payload)) return true
+        if (type == Proto.T_AUDIO) return true
         return try {
-            Proto.write(os, type, payload)
-            true
-        } catch (ex: NetworkOnMainThreadException) {
-            Log.e("scst", "TcpSink 主线程写网", ex)
-            false
+            ctrl.offer(type to payload, 200, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (_: Exception) {
+            !dead
+        }
+    }
+
+    private fun loop() {
+        try {
+            while (!dead) {
+                val p = ctrl.poll()
+                if (p != null) Proto.write(os, p.first, p.second)
+                val v = synchronized(gate) {
+                    val x = pendingVideo
+                    pendingVideo = null
+                    x
+                }
+                if (v != null) {
+                    Proto.write(os, Proto.T_VIDEO, v)
+                    continue
+                }
+                if (p == null) ctrl.poll(15, java.util.concurrent.TimeUnit.MILLISECONDS)
+            }
         } catch (_: Exception) {
             dead = true
-            false
         }
     }
 
     override fun close() {
         dead = true
+        try { th.interrupt() } catch (_: Exception) { }
         try { os.close() } catch (_: Exception) { }
         try { sock.close() } catch (_: Exception) { }
     }

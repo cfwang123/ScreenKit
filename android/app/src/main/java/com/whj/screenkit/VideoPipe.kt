@@ -103,6 +103,7 @@ class VideoPipe(
                 continue
             }
             if (ix < 0) continue
+            var nal: ByteArray? = null
             try {
                 val buf = enc.getOutputBuffer(ix) ?: continue
                 val data = ByteArray(info.size)
@@ -113,28 +114,26 @@ class VideoPipe(
                     val pair = parseCsd(java.nio.ByteBuffer.wrap(data))
                     sps = pair.first
                     if (pair.second.isNotEmpty()) pps = pair.second
-                    val head = (sps ?: ByteArray(0)) + (pps ?: ByteArray(0))
-                    if (head.isNotEmpty()) sink.send(Proto.T_VIDEO, head)
-                    sentCfg = true
-                    continue
-                }
-                var nal = toAnnexB(data)
-                val idr = isIdr(nal)
-                nframe++
-                if ((idr || !sentCfg || nframe <= 5) && sps != null) {
-                    val head = sps!! + (pps ?: ByteArray(0))
-                    nal = head + nal
-                    sentCfg = true
-                }
-                if (!sink.send(Proto.T_VIDEO, nal)) {
-                    peer = true
-                    running = false
-                    break
+                    nal = (sps ?: ByteArray(0)) + (pps ?: ByteArray(0))
+                    sentCfg = nal.isNotEmpty()
+                } else {
+                    nal = toAnnexB(data)
+                    val idr = isIdr(nal)
+                    nframe++
+                    if ((idr || !sentCfg || nframe <= 5) && sps != null) {
+                        nal = sps!! + (pps ?: ByteArray(0)) + nal
+                        sentCfg = true
+                    }
                 }
             } catch (_: Exception) {
-                continue
+                nal = null
             } finally {
                 try { enc.releaseOutputBuffer(ix, false) } catch (_: Exception) { }
+            }
+            if (nal != null && nal.isNotEmpty() && !sink.send(Proto.T_VIDEO, nal)) {
+                peer = true
+                running = false
+                break
             }
         }
         if (peer && !stopped) onDead()
