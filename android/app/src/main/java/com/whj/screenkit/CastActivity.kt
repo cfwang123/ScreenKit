@@ -26,6 +26,7 @@ class CastActivity : AppCompatActivity() {
     private var pendingMode = "tcp"
     private var pendingIp = ""
     private var pendingPort = Proto.TCP_PORT
+    private var waitUsb = false
 
     private val proj = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         if (r.resultCode != RESULT_OK || r.data == null) {
@@ -103,25 +104,20 @@ class CastActivity : AppCompatActivity() {
             IntentFilter(ACTION_USB_PERM),
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
-        maybeAdbUsb(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleUsb(intent)
-        maybeAdbUsb(intent)
-    }
-
-    private fun maybeAdbUsb(intent: Intent?) {
-        if (intent?.getBooleanExtra("scst_usb", false) == true) startUsb()
     }
 
     private val usbPermRec = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             refreshUsb()
             if (intent?.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false) == true) {
-                toast("USB 已授权，可点 USB 投屏")
+                toast("USB 配件已授权")
+                if (waitUsb) startUsb()
             }
         }
     }
@@ -206,41 +202,30 @@ class CastActivity : AppCompatActivity() {
     private fun startUsb() {
         android.util.Log.i("scst", "startUsb")
         pendingMode = "usb"
-        pendingIp = "127.0.0.1"
+        pendingIp = ""
         pendingPort = Proto.TCP_PORT
         val usb = getSystemService(USB_SERVICE) as UsbManager
         val acc = usb.accessoryList?.firstOrNull()
-        if (acc != null) {
-            if (!usb.hasPermission(acc)) {
-                val pi = PendingIntent.getBroadcast(
-                    this,
-                    0,
-                    Intent(ACTION_USB_PERM).setPackage(packageName),
-                    PendingIntent.FLAG_MUTABLE,
-                )
-                usb.requestPermission(acc, pi)
-                toast("请允许 USB 配件权限后再点 USB 投屏")
-                return
-            }
-            requestProj()
+        if (acc == null) {
+            waitUsb = true
+            toast("未检测到 USB 配件。插上数据线即可，无需 USB 调试；电脑 ScreenKit 会把手机切成配件")
+            b.lbstat.text = "等待 USB 配件…"
             return
         }
-        b.busb.isEnabled = false
-        b.lbstat.text = "正在检测 USB 转发…"
-        Thread {
-            val how = UsbLoop.probe()
-            runOnUiThread {
-                b.busb.isEnabled = true
-                if (!how.isNullOrEmpty()) {
-                    b.lbstat.text = "USB 转发就绪 ($how)"
-                    requestProj()
-                    return@runOnUiThread
-                }
-                val err = UsbLoop.lastErr.ifEmpty { "127.0.0.1 / ::1 / abstract 均失败" }
-                toast("电脑未建立 USB 转发。请打开电脑 ScreenKit 并保持 USB 调试")
-                b.lbstat.text = "USB 转发未就绪 $err"
-            }
-        }.start()
+        if (!usb.hasPermission(acc)) {
+            waitUsb = true
+            val pi = PendingIntent.getBroadcast(
+                this,
+                0,
+                Intent(ACTION_USB_PERM).setPackage(packageName),
+                PendingIntent.FLAG_MUTABLE,
+            )
+            usb.requestPermission(acc, pi)
+            toast("请允许 USB 配件权限")
+            return
+        }
+        waitUsb = false
+        requestProj()
     }
 
     private fun requestProj() {
@@ -252,15 +237,16 @@ class CastActivity : AppCompatActivity() {
         val usb = getSystemService(USB_SERVICE) as UsbManager
         val n = usb.accessoryList?.size ?: 0
         b.lbusb.text = if (n > 0)
-            "USB: Accessory 已连接"
+            "USB: 配件已连接（无需 USB 调试）"
         else
-            "USB: 数据线投屏（ADB 转发，不需要 Accessory）"
+            "USB: 插上数据线，电脑会切成配件（无需 USB 调试）"
     }
 
     private fun handleUsb(intent: Intent?) {
         if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
             refreshUsb()
-            toast("USB Accessory 已连接")
+            toast("USB 配件已连接")
+            if (waitUsb) startUsb()
         }
     }
 

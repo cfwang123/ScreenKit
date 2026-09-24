@@ -94,10 +94,6 @@ static class CastHost {
 				Usb.Start();
 			}
 			catch (Exception ex) { log(ex.Message); }
-			ThreadPool.QueueUserWorkItem(_ => {
-				try { CastAdbFwd.Reverse(CastProto.TCP_PORT, log); }
-				catch { }
-			});
 		}
 	}
 
@@ -174,10 +170,6 @@ static class CastHost {
 		if (Recv != null && Recv.Running) return;
 		Recv.Start();
 		Usb?.Start();
-		ThreadPool.QueueUserWorkItem(_ => {
-			try { CastAdbFwd.Reverse(CastProto.TCP_PORT, log); }
-			catch { }
-		});
 		if (Opt != null) Opt.CastRecvEnabled = true;
 		SaveOpt();
 	}

@@ -192,14 +192,8 @@ class CastService : Service() {
     private fun openUsbSink(): FrameSink {
         val usb = getSystemService(USB_SERVICE) as UsbManager
         val acc = usb.accessoryList?.firstOrNull()
-        if (acc != null) {
-            try {
-                return UsbSink(usb, acc)
-            } catch (ex: Exception) {
-                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "Accessory 失败，改走 USB ADB"))
-            }
-        }
-        return UsbLoop.open()
+            ?: throw IllegalStateException("没有 USB 配件。请插上数据线，电脑 ScreenKit 会切换配件（无需 USB 调试）")
+        return UsbSink(usb, acc)
     }
 
     private fun startFg() {

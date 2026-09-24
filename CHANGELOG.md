@@ -28,10 +28,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519 / `adb reverse`. Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
+- LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
 
 #### Changed
 
+- USB screencast uses Android Open Accessory bulk (PC switches the phone to accessory). USB debugging / `adb reverse` is not used.
 - Wi‑Fi screencast no longer freezes after ~10s: discovery/`adb` and ping left the UI thread; display keeps only the latest frame.
 - Screencast settings and view windows use a dedicated monitor/cast icon.
 - Android **传文件** and **投屏** launchers use separate task stacks so both can stay open.
@@ -41,10 +42,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519 / `adb reverse`。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
+- 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
 
 #### 变更
 
+- USB 投屏改为 AOA 配件 bulk，电脑切换配件；不用 USB 调试 / `adb reverse`。
 - WiFi 投屏十几秒后画面卡死：发现/`adb` 与 ping 移出 UI 线程，显示只保留最新一帧。
 - 投屏设置窗与画面窗使用独立显示器/投屏图标。
 - 安卓「传文件」与「投屏」分属独立任务栈，可同时打开。

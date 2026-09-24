@@ -75,7 +75,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Text tools** | **Tools → Text tools**: Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, counts, smart JSON pretty-print (short arrays/objects stay on one line). |
 | **Password generator** | **Tools → Password generator**: crypto-random; length, sets, skip `0OIl1`, at least one of each class. Remembers last settings. **Word lex** tab: pick an LLM, then translations (including Literary Chinese, Ancient Greek, Latin, Sanskrit, Biblical Hebrew) plus pinyin / romaji / romanization. |
 | **Network tools** | **Tools → Network tools**: Ping, DNS, WHOIS, traceroute, ping-locate, proxy-locate, HTTP speed-locate. |
-| **Screencast** | **Tools → Screencast** (same under the tray Tools menu): receive a phone or another PC over LAN/USB, or cast this desktop out. Quality 540p/720p/1080p, optional audio. Discovery UDP 19518, media TCP 19519. The phone app has a separate **投屏** launcher icon. |
+| **Screencast** | **Tools → Screencast** (same under the tray Tools menu): receive a phone or another PC over LAN/USB, or cast this desktop out. Quality 540p/720p/1080p, optional audio. Discovery UDP 19518, media TCP 19519. USB uses AOA accessory (no USB debugging). The phone app has a separate **投屏** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
@@ -119,7 +119,7 @@ Android details: [android/README.md](android/README.md).
 ### Screencast (PC ↔ Android / PC ↔ PC)
 
 1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network.
-2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP, or use **USB** after USB debugging.
+2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB: plug the cable (no USB debugging); the PC switches the phone to an accessory, then tap **USB 投屏**.
 3. A borderless view window opens. **Tab** toggles resolution / fps / bitrate / latency. Closing the window disconnects. Quality changes apply live.
 4. PC-to-PC: both receive; the sender scans and casts to the selected host.
 
