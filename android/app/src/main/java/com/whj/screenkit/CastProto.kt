@@ -45,11 +45,17 @@ object Proto {
     fun read(ins: InputStream): Pair<Byte, ByteArray>? {
         val hdr = ByteArray(9)
         if (!readfull(ins, hdr)) return null
-        val mag = ((hdr[0].toInt() and 0xFF) shl 24) or
-            ((hdr[1].toInt() and 0xFF) shl 16) or
-            ((hdr[2].toInt() and 0xFF) shl 8) or
-            (hdr[3].toInt() and 0xFF)
-        if (mag != MAGIC) return null
+        while (true) {
+            val mag = ((hdr[0].toInt() and 0xFF) shl 24) or
+                ((hdr[1].toInt() and 0xFF) shl 16) or
+                ((hdr[2].toInt() and 0xFF) shl 8) or
+                (hdr[3].toInt() and 0xFF)
+            if (mag == MAGIC) break
+            System.arraycopy(hdr, 1, hdr, 0, 8)
+            val n = try { ins.read() } catch (_: Exception) { return null }
+            if (n < 0) return null
+            hdr[8] = n.toByte()
+        }
         val type = hdr[4]
         val len = ((hdr[5].toInt() and 0xFF) shl 24) or
             ((hdr[6].toInt() and 0xFF) shl 16) or

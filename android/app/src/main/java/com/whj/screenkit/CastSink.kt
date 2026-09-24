@@ -359,6 +359,8 @@ class AbstractSink(name: String) : FrameSink {
 }
 
 class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
+    private class UsbPkt(val type: Byte, val payload: ByteArray, val done: java.util.concurrent.CountDownLatch? = null)
+
     private val pfd: ParcelFileDescriptor = manager.openAccessory(accessory)
         ?: throw IllegalStateException("openAccessory 失败")
     private val os = FileOutputStream(pfd.fileDescriptor)
@@ -366,7 +368,7 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
     @Volatile private var dead = false
     private val gate = Any()
     private var pendingVideo: ByteArray? = null
-    private val ctrl = java.util.concurrent.LinkedBlockingQueue<Pair<Byte, ByteArray>>(256)
+    private val ctrl = java.util.concurrent.LinkedBlockingQueue<UsbPkt>(256)
     private val wlock = Any()
     private val ath: Thread
     private val vth: Thread
@@ -384,16 +386,19 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
             return true
         }
         if (type == Proto.T_AUDIO) {
-            if (!ctrl.offer(type to payload)) {
+            if (!ctrl.offer(UsbPkt(type, payload))) {
                 ctrl.poll()
-                ctrl.offer(type to payload)
+                ctrl.offer(UsbPkt(type, payload))
             }
             return !dead
         }
+        val done = java.util.concurrent.CountDownLatch(1)
         return try {
-            ctrl.offer(type to payload, 400, java.util.concurrent.TimeUnit.MILLISECONDS) || !dead
+            if (!ctrl.offer(UsbPkt(type, payload, done), 400, java.util.concurrent.TimeUnit.MILLISECONDS))
+                return false
+            done.await(2000, java.util.concurrent.TimeUnit.MILLISECONDS) && !dead
         } catch (_: Exception) {
-            !dead
+            false
         }
     }
 
@@ -401,7 +406,11 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
         try {
             while (!dead) {
                 val p = ctrl.poll(20, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
-                synchronized(wlock) { Proto.write(os, p.first, p.second) }
+                try {
+                    synchronized(wlock) { Proto.write(os, p.type, p.payload) }
+                } finally {
+                    p.done?.countDown()
+                }
             }
         } catch (ex: Exception) {
             Log.w("scst", "usb-a ${ex.javaClass.simpleName} ${ex.message}")

@@ -7,11 +7,12 @@ sealed class CastUsbBulkStream : Stream {
 	readonly UsbEndpointReader reader;
 	readonly UsbEndpointWriter writer;
 	readonly int timeout;
+	public int IdleMs;
 
-	public CastUsbBulkStream(UsbEndpointReader reader, UsbEndpointWriter writer, int timeout = 30000) {
+	public CastUsbBulkStream(UsbEndpointReader reader, UsbEndpointWriter writer, int timeout = 400) {
 		this.reader = reader;
 		this.writer = writer;
-		this.timeout = timeout;
+		this.timeout = timeout < 50 ? 50 : timeout;
 	}
 
 	public override bool CanRead => true;
@@ -25,15 +26,16 @@ sealed class CastUsbBulkStream : Stream {
 
 	public override int Read(byte[] buffer, int offset, int count) {
 		var slice = offset == 0 && count == buffer.Length ? buffer : new byte[count];
+		var t0 = Environment.TickCount;
 		while (true) {
 			var ec = reader.Read(slice, timeout, out var n);
-			if (ec == ErrorCode.IoTimedOut || (ec == ErrorCode.None && n == 0))
-				continue;
-			if (ec != ErrorCode.None)
+			if (ec == ErrorCode.None && n > 0) {
+				if (slice != buffer) Buffer.BlockCopy(slice, 0, buffer, offset, n);
+				return n;
+			}
+			if (ec != ErrorCode.None && ec != ErrorCode.IoTimedOut && ec != ErrorCode.IoCancelled)
 				throw new IOException($"USB 读失败 {ec}");
-			if (n <= 0) continue;
-			if (slice != buffer) Buffer.BlockCopy(slice, 0, buffer, offset, n);
-			return n;
+			if (IdleMs > 0 && unchecked(Environment.TickCount - t0) > IdleMs) return 0;
 		}
 	}
 

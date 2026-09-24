@@ -530,7 +530,8 @@ sealed class CastUsbHost : IDisposable {
 					continue;
 				}
 				log?.Invoke($"USB AOA 已打开 {r.Vid:X4}:{r.Pid:X4} {r.Name}，等待手机发包");
-				using var usb = new CastUsbBulkStream(rd, wr, 8000);
+				using var usb = new CastUsbBulkStream(rd, wr, 400);
+				usb.IdleMs = 0;
 				var first = new byte[16384];
 				var n = usb.Read(first, 0, first.Length);
 				if (n <= 0) {
@@ -539,14 +540,13 @@ sealed class CastUsbHost : IDisposable {
 					dev = null;
 					continue;
 				}
+				usb.IdleMs = 2000;
 				using var up = new NamedPipeClientStream(".", CastProto.USB_PIPE, PipeDirection.Out);
 				using var down = new NamedPipeClientStream(".", CastProto.USB_PIPE_DOWN, PipeDirection.In);
 				up.Connect(4000);
 				down.Connect(4000);
-				up.Write(first, 0, n);
-				up.Flush();
 				log?.Invoke("USB AOA 已桥接到命名管道");
-				pump(usb, up, down);
+				pump(usb, up, down, first, n);
 				log?.Invoke("USB AOA 会话结束");
 				return true;
 			}
@@ -585,12 +585,16 @@ sealed class CastUsbHost : IDisposable {
 		return s.IndexOf("MI_01", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
-	static void pump(Stream usb, Stream up, Stream down) {
+	static void pump(Stream usb, Stream up, Stream down, byte[] first, int n) {
 		using var cts = new CancellationTokenSource();
-		var t1 = new Thread(() => copy(usb, up, cts)) { IsBackground = true, Name = "aoa-u2p" };
 		var t2 = new Thread(() => copy(down, usb, cts)) { IsBackground = true, Name = "aoa-p2u" };
-		t1.Start();
 		t2.Start();
+		if (first != null && n > 0) {
+			up.Write(first, 0, n);
+			up.Flush();
+		}
+		var t1 = new Thread(() => copy(usb, up, cts)) { IsBackground = true, Name = "aoa-u2p" };
+		t1.Start();
 		t1.Join();
 		try { cts.Cancel(); } catch { }
 		t2.Join(800);

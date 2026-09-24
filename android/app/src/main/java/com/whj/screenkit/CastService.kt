@@ -32,6 +32,7 @@ class CastService : Service() {
     private var via = "wifi"
     private var cfgOn = false
     @Volatile private var replacing = false
+    private val sessgen = java.util.concurrent.atomic.AtomicInteger()
     private var lastcfg = 0L
     private val gate = Any()
 
@@ -96,15 +97,19 @@ class CastService : Service() {
         val ip = intent?.getStringExtra(EXTRA_IP) ?: ""
         val port = intent?.getIntExtra(EXTRA_PORT, Proto.TCP_PORT) ?: Proto.TCP_PORT
         if (pattern) {
+            val mygen = sessgen.incrementAndGet()
             Thread {
                 try {
                     val s = openUsbSink()
+                    if (sessgen.get() != mygen) return@Thread
                     sink = s
                     beginPattern(s)
                     replacing = false
                 } catch (ex: Exception) {
+                    if (sessgen.get() != mygen) return@Thread
                     Log.w("scst", "pattern ${ex.javaClass.simpleName} ${ex.message}")
-                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "USB 测试失败"))
+                    val msg = ex.message?.takeIf { it.contains("电脑") } ?: "USB 测试失败"
+                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", msg))
                     stopCast()
                     stopSelf()
                 }
@@ -116,6 +121,7 @@ class CastService : Service() {
             return START_NOT_STICKY
         }
         Thread {
+            val mygen = sessgen.incrementAndGet()
             try {
                 val s: FrameSink = when (mode) {
                     "usb" -> openUsbSink()
@@ -123,7 +129,19 @@ class CastService : Service() {
                     "usb-adb" -> UsbLoop.open()
                     else -> TcpSink(ip, port)
                 }
+                if (sessgen.get() != mygen) return@Thread
                 sink = s
+                startCtrl(s)
+                if (mode == "usb") {
+                    val qtmp = Quality.byName(qname)
+                    this.q = qtmp
+                    this.wantAudio = wantAudio
+                    val dm = metrics()
+                    val fit = qtmp.fit(dm.widthPixels, dm.heightPixels)
+                    if (!sendHello(fit.first, fit.second, qtmp.fps, wantAudio) || !probeUsb())
+                        throw IllegalStateException("电脑未打开 ScreenKit")
+                }
+                if (sessgen.get() != mygen) return@Thread
                 val latch = java.util.concurrent.CountDownLatch(1)
                 var fail: Exception? = null
                 Handler(Looper.getMainLooper()).post {
@@ -139,8 +157,10 @@ class CastService : Service() {
                 val e = fail
                 if (e != null) throw e
             } catch (ex: Exception) {
+                if (sessgen.get() != mygen) return@Thread
                 Log.w("scst", "start ${ex.javaClass.simpleName} ${ex.message}")
-                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "连接失败"))
+                val msg = if (mode == "usb") (ex.message ?: "连接失败") else "连接失败"
+                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", msg))
                 stopCast()
                 stopSelf()
             }
@@ -172,7 +192,6 @@ class CastService : Service() {
         mp = projection
         this.q = q
         this.wantAudio = wantAudio
-        startCtrl(s)
         val dm = metrics()
         val fit = q.fit(dm.widthPixels, dm.heightPixels)
         sendHello(fit.first, fit.second, q.fps, wantAudio)
@@ -212,8 +231,8 @@ class CastService : Service() {
         return dm
     }
 
-    private fun sendHello(outW: Int, outH: Int, fps: Int, wantAudio: Boolean) {
-        val s = sink ?: return
+    private fun sendHello(outW: Int, outH: Int, fps: Int, wantAudio: Boolean): Boolean {
+        val s = sink ?: return false
         val dm = metrics()
         val hello = JSONObject()
             .put("cmd", "hello")
@@ -228,8 +247,9 @@ class CastService : Service() {
             .put("pix", "h264")
             .put("aud", "aac")
             .put("via", via)
-        s.send(Proto.T_JSON, hello.toString().toByteArray(Charsets.UTF_8))
-        Log.i("scst", "hello $via $outW x $outH")
+        val ok = s.send(Proto.T_JSON, hello.toString().toByteArray(Charsets.UTF_8))
+        Log.i("scst", "hello $via $outW x $outH ok=$ok")
+        return ok
     }
 
     private fun sendOrient() {
@@ -318,7 +338,8 @@ class CastService : Service() {
 
     private fun beginPattern(s: FrameSink) {
         startCtrl(s)
-        sendHello(640, 360, 15, false)
+        if (!sendHello(640, 360, 15, false) || !probeUsb())
+            throw IllegalStateException("电脑未打开 ScreenKit")
         pattern = PatternPipe(640, 360, 15, 800_000, s, ::peerGone)
         sendBroadcast(
             Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "USB 测试画面 640x360"),
@@ -407,6 +428,20 @@ class CastService : Service() {
                 }
             }
         }, "scst-ctrl").start()
+    }
+
+    private fun probeUsb(): Boolean {
+        val s = sink ?: return false
+        val pad = CharArray(3500) { 'x' }.concatToString()
+        val raw = JSONObject().put("cmd", "probe").put("z", pad).toString().toByteArray(Charsets.UTF_8)
+        repeat(12) {
+            if (!s.send(Proto.T_JSON, raw)) {
+                Log.w("scst", "usb probe fail @$it")
+                return false
+            }
+        }
+        Log.i("scst", "usb probe ok")
+        return true
     }
 
     private fun applyQuality(nq: Quality, force: Boolean = false) {

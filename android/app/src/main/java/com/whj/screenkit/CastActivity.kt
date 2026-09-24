@@ -51,7 +51,10 @@ class CastActivity : AppCompatActivity() {
 
     private val rec = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            b.lbstat.text = intent?.getStringExtra("msg") ?: ""
+            val msg = intent?.getStringExtra("msg") ?: ""
+            b.lbstat.text = msg
+            if (msg.contains("电脑未打开") || msg == "连接失败" || msg == "USB 测试失败")
+                toast(msg)
         }
     }
 
@@ -138,6 +141,10 @@ class CastActivity : AppCompatActivity() {
     }
 
     private fun maybeTestIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("scst_stop", false) == true) {
+            startService(Intent(this, CastService::class.java).setAction(CastService.ACTION_STOP))
+            return
+        }
         if (intent?.getBooleanExtra("scst_usb_pat", false) == true) {
             b.eip.post {
                 waitPat = true
@@ -266,6 +273,11 @@ class CastActivity : AppCompatActivity() {
 
     private fun startUsb() {
         android.util.Log.i("scst", "startUsb")
+        val st = b.lbstat.text?.toString().orEmpty()
+        if (st.contains("投屏中") || st.contains("USB 测试") || st.contains("正在启动")) {
+            android.util.Log.i("scst", "startUsb skip $st")
+            return
+        }
         pendingMode = "usb"
         pendingIp = ""
         pendingPort = Proto.TCP_PORT

@@ -222,8 +222,10 @@ sealed class CastRecvSrv : IDisposable {
 			lastping = now;
 			SendJson(new { cmd = "ping", t = now });
 		}
-		if (busy && lastpkt != 0 && now - lastpkt > 15000)
-			Kick("15s 无包");
+		if (busy && lastframe != 0 && lastpkt != 0 && now - lastpkt > 2500)
+			Kick("2.5s 无包");
+		if (busy && hadhello && lastframe == 0 && lastpkt != 0 && now - lastpkt > 8000)
+			Kick("无视频");
 		if (busy && !hadhello && sessstart != 0 && now - sessstart > 8000)
 			Kick("握手超时");
 		if (now - lastbind >= 3000 || lastbind == 0) {
@@ -350,6 +352,7 @@ sealed class CastRecvSrv : IDisposable {
 	bool runsession(Stream s) {
 		var hello = false;
 		var vlog = false;
+		var firstpkt = false;
 		lock (sess) {
 			if (busy) return false;
 			busy = true;
@@ -371,8 +374,15 @@ sealed class CastRecvSrv : IDisposable {
 						break;
 					}
 					lastpkt = Environment.TickCount;
+					if (!firstpkt) {
+						firstpkt = true;
+						Log?.Invoke($"首包 type={type} {payload?.Length ?? 0}B");
+					}
 					if (type == CastProto.T_JSON) {
-						if (dojson(payload)) { hello = true; hadhello = true; }
+						if (dojson(payload)) {
+							hello = true;
+							hadhello = true;
+						}
 					}
 					else if (type == CastProto.T_VIDEO) {
 						if (!hello) {
@@ -442,6 +452,7 @@ sealed class CastRecvSrv : IDisposable {
 			drop = true;
 			return true;
 		}
+		if (cmd == "probe") return false;
 		if (cmd == "pong") {
 			var t = CastProto.Jint(o, "t");
 			if (t != 0) rttms = Environment.TickCount - t;

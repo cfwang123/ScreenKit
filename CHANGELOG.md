@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- USB screencast: the phone probes the accessory with hello plus padded `probe` packets and waits for USB writes to finish (~2s). If ScreenKit/helper is not reading, it fails instead of showing 投屏中. Viewer Kick is 2.5s idle after video (was 15s); USB bulk read ends after 2s without data so stop closes the window quickly.
 - Screencast viewer is no longer always-on-top. Picture scale can be **Fit** (letterbox) or **Fill** (crop); right-click the viewer or Tools → Screencast (`cast_view_fill`).
 - USB screencast: the receiver starts the AOA helper by itself (no extra **USB配件** click). The helper stays after a session instead of exiting, and is no longer killed every 8s.
 - USB accessory test pattern: the phone encodes a moving 640×360 block (no MediaProjection) over AOA bulk only (`scst_usb_pat`). No adb reverse, no Wi‑Fi.
@@ -95,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- USB 投屏：手机 hello 后再写若干探测包，等 USB 写出完成（约 2 秒）；电脑未开 ScreenKit / 助手没在读则提示失败，不再显示「投屏中」。收到视频后空闲 2.5 秒断开（原 15 秒）；USB bulk 连续 2 秒无数据即结束，停止后窗口很快关闭。
 - 投屏画面窗不再置顶。画面可选 **适应窗口**（fit，留边）或 **铺满窗口**（fill，裁切）；右键画面窗或「工具 → 投屏」里切换（`cast_view_fill`）。
 - USB 投屏：电脑开接收后自动拉起配件助手，不必再点 **USB配件**。助手一场结束后继续等，不再每 8 秒杀掉正在跑的助手。
 - USB 配件测试画面：手机自绘 640×360 动态块（不截屏）只走 AOA bulk（`scst_usb_pat`），不用 adb reverse、不用 WiFi。
