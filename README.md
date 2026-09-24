@@ -75,7 +75,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Text tools** | **Tools → Text tools**: Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, counts, smart JSON pretty-print (short arrays/objects stay on one line). |
 | **Password generator** | **Tools → Password generator**: crypto-random; length, sets, skip `0OIl1`, at least one of each class. Remembers last settings. **Word lex** tab: pick an LLM, then translations (including Literary Chinese, Ancient Greek, Latin, Sanskrit, Biblical Hebrew) plus pinyin / romaji / romanization. **Variants** tab: from a seed password, the LLM mostly translates into other languages and spells them in ASCII romanization (at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). |
 | **Network tools** | **Tools → Network tools**: Ping, DNS, WHOIS, traceroute, ping-locate, proxy-locate, HTTP speed-locate. |
-| **Screencast** | **Tools → Screencast** (same under the tray Tools menu): receive a phone or another PC over LAN/USB, or cast this desktop out. Quality 540p/720p/1080p, optional audio. Discovery UDP 19518, media TCP 19519. USB: accessory / USB tethering (no debugging), or **USB 投屏(adb)** with USB debugging. The phone app has a separate **投屏** launcher icon. |
+| **Screencast** | **Tools → Screencast** (same under the tray Tools menu): receive a phone or another PC over LAN/USB, or cast this desktop out. Quality 540p/720p/1080p, optional audio. Discovery UDP 19518, media TCP 19519. USB without network: PC **USB配件** + phone **USB 投屏** (AOA bulk; no debugging). Or **USB 投屏(adb)** with USB debugging. The phone app has a separate **投屏** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
@@ -119,7 +119,7 @@ Android details: [android/README.md](android/README.md).
 ### Screencast (PC ↔ Android / PC ↔ PC)
 
 1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network.
-2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB (no debugging): plug the cable and tap **USB 投屏**. If accessory is missing, set USB to **network share** in the notification shade and tap again.
+2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB without network: on the PC open **Tools → Screencast** and click **USB配件**, plug the cable, on the phone tap **USB 投屏** and allow the accessory. **USB 投屏(adb)** needs USB debugging.
 3. A borderless view window opens. **Tab** toggles resolution / fps / bitrate / latency. Closing the window disconnects. Quality changes apply live.
 4. PC-to-PC: both receive; the sender scans and casts to the selected host.
 

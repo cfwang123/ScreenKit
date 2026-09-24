@@ -262,33 +262,9 @@ class CastActivity : AppCompatActivity() {
         val acc = usb.accessoryList?.firstOrNull()
         if (acc == null) {
             waitUsb = true
-            b.lbstat.text = "正在探测 USB 网络…"
-            Thread {
-                val ip = try { UsbLan.findPc(this) } catch (_: Exception) { null }
-                val net = try { UsbLan.pickNet(this) } catch (_: Exception) { null }
-                val hasIface = try { UsbLan.hasUsbIface() } catch (_: Exception) { false }
-                runOnUiThread {
-                    if (!ip.isNullOrEmpty()) {
-                        pendingMode = "tcp"
-                        pendingIp = ip
-                        pendingPort = Proto.TCP_PORT
-                        waitUsb = false
-                        fillIp(ip)
-                        b.lbstat.text = "usb $ip"
-                        requestProj()
-                    } else if (net != null || hasIface) {
-                        pendingMode = "usb-lan"
-                        pendingIp = ""
-                        pendingPort = Proto.TCP_PORT
-                        waitUsb = false
-                        b.lbstat.text = "USB 网络：等待电脑连入"
-                        requestProj()
-                    } else {
-                        toast("未检测到 USB 网络。请在通知栏把 USB 设为「网络共享」（不用 USB 调试）")
-                        b.lbstat.text = "连接失败"
-                    }
-                }
-            }.start()
+            pendingMode = "usb"
+            b.lbstat.text = "等待 USB 配件…"
+            toast("请用数据线连接电脑，允许 USB 配件（不用网络、不用 USB 调试）")
             return
         }
         if (!usb.hasPermission(acc)) {

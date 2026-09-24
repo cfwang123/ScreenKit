@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows;
@@ -16,6 +17,24 @@ public partial class App : System.Windows.Application {
 	protected override void OnStartup(StartupEventArgs e) {
 		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 		var args = e.Args ?? Array.Empty<string>();
+
+		// USB AOA 请求：独立进程，避免 LibUsb 原生崩溃带走主界面
+		if (args.Any(a => a == "--cast-aoa")) {
+			try {
+				CastUsbHost.RequestAoaOnce(s => {
+					try {
+						var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+						Directory.CreateDirectory(dir);
+						File.AppendAllText(Path.Combine(dir, "cast_sess.txt"),
+							$"{DateTime.Now:HH:mm:ss} {s}\n");
+					}
+					catch { }
+				});
+			}
+			catch { }
+			Environment.Exit(0);
+			return;
+		}
 
 		// 自更新应用：尽早处理，不初始化 CUDA / 不占单实例锁 / 不启动 GUI
 		if (AppUpdater.IsApplyUpdateArgs(args)) {

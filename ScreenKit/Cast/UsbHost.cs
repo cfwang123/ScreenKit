@@ -1,3 +1,5 @@
+using System.IO;
+using System.Linq;
 using System.Text;
 using LibUsbDotNet;
 using LibUsbDotNet.Main;
@@ -21,9 +23,17 @@ sealed class CastUsbHost : IDisposable {
 	public bool Connected { get; private set; }
 	string status = "USB: 未连接";
 	public string Status => status;
+	int lastaoa;
 
-	public void Start() {
+	bool aoaReq;
+
+	public void Start() => Start(true);
+
+	public void StartAccessoryOnly() => Start(false);
+
+	void Start(bool requestAoa) {
 		if (th != null) return;
+		aoaReq = requestAoa;
 		stop = false;
 		th = new Thread(loop) { IsBackground = true, Name = "cast-usb" };
 		th.Start();
@@ -40,6 +50,12 @@ sealed class CastUsbHost : IDisposable {
 	void tick() {
 		try {
 			if (tryopen(GOOGLE_VID, AOA_PID) || tryopen(GOOGLE_VID, AOA_ADB_PID)) return;
+			if (!aoaReq) return;
+			var now = Environment.TickCount;
+			if (lastaoa == 0 || now - lastaoa > 3000) {
+				lastaoa = now;
+				tryaoa();
+			}
 		}
 		catch (Exception ex) {
 			status = $"USB: {ex.Message}";
@@ -82,21 +98,25 @@ sealed class CastUsbHost : IDisposable {
 		return rd != null && wr != null;
 	}
 
-	void tryaoa() {
-		UsbRegDeviceList all;
-		try { all = UsbDevice.AllDevices; }
-		catch { return; }
-		if (all == null) return;
-		foreach (UsbRegistry reg in all) {
-			if (stop) return;
+	static readonly int[] PhoneVids = {
+		0x18D1, 0x2717, 0x04E8, 0x22D9, 0x2A70, 0x0E8D, 0x12D1, 0x2A45,
+		0x19D2, 0x0B05, 0x0489, 0x05C6, 0x0FCE, 0x1004, 0x04C5, 0x2A47,
+	};
+
+	void tryaoa() => RequestAoaOnce(Log);
+
+	public static void RequestAoaOnce(Action<string> log) {
+		foreach (var vid in PhoneVids) {
 			UsbDevice dev = null;
 			try {
-				if (!reg.Open(out dev) || dev == null) continue;
+				dev = UsbDevice.OpenUsbDevice(new UsbDeviceFinder(vid));
+				if (dev == null) continue;
 				if (!getproto(dev, out var proto) || proto < 1) {
 					dev.Close();
+					dev = null;
 					continue;
 				}
-				Log?.Invoke($"USB AOA 协议 v{proto} {reg.Name}");
+				log?.Invoke($"USB AOA 协议 v{proto} VID {vid:X4}");
 				sendstr(dev, 0, MFR);
 				sendstr(dev, 1, MODEL);
 				sendstr(dev, 2, "ScreenKit USB");
@@ -104,12 +124,32 @@ sealed class CastUsbHost : IDisposable {
 				sendstr(dev, 4, "https://screencast.local");
 				sendstr(dev, 5, "0001");
 				startaoa(dev);
-				status = "USB: 已请求配件，等待手机授权";
-				Log?.Invoke("已请求手机进入 USB 配件（无需 USB 调试）");
+				log?.Invoke("已请求手机进入 USB 配件（无需网络/USB 调试）");
+				return;
 			}
-			catch (Exception ex) { Log?.Invoke($"AOA 切换: {ex.Message}"); }
+			catch (Exception ex) { log?.Invoke($"AOA {vid:X4}: {ex.Message}"); }
 			finally { try { dev?.Close(); } catch { } }
 		}
+	}
+
+	public static void SpawnAoaHelper(Action<string> log) {
+		try {
+			var exe = Environment.GetCommandLineArgs().FirstOrDefault()
+				?? System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+			if (string.IsNullOrEmpty(exe) || !File.Exists(exe)) {
+				exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ScreenKit.exe");
+			}
+			if (!File.Exists(exe)) return;
+			var psi = new System.Diagnostics.ProcessStartInfo {
+				FileName = exe,
+				Arguments = "--cast-aoa",
+				UseShellExecute = false,
+				CreateNoWindow = true,
+				WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+			};
+			System.Diagnostics.Process.Start(psi);
+		}
+		catch (Exception ex) { log?.Invoke($"AOA 助手: {ex.Message}"); }
 	}
 
 	static bool getproto(UsbDevice dev, out short proto) {

@@ -41,29 +41,27 @@ public partial class CastViewWindow : Window {
 
 	public void ShowCast() {
 		ShowInTaskbar = true;
+		ShowActivated = true;
 		if (WindowState == WindowState.Minimized) {
 			WindowStyle = WindowStyle.SingleBorderWindow;
 			WindowState = WindowState.Normal;
 			WindowStyle = WindowStyle.None;
 			applychrome();
 		}
-		if (!IsVisible) Show();
-		if (Width < 200 || double.IsNaN(Width)) Width = 640;
-		if (Height < 160 || double.IsNaN(Height)) Height = 360;
+		if (double.IsNaN(Width) || Width < 200) Width = 640;
+		if (double.IsNaN(Height) || Height < 160) Height = 360;
 		WindowState = WindowState.Normal;
+		Visibility = Visibility.Visible;
+		Show();
 		var wa = SystemParameters.WorkArea;
 		Left = wa.Left + Math.Max(0, (wa.Width - Width) / 2);
 		Top = wa.Top + Math.Max(0, (wa.Height - Height) / 2);
-		Activate();
+		if (Left < wa.Left) Left = wa.Left;
+		if (Top < wa.Top) Top = wa.Top;
 		Topmost = true;
 		Activate();
 		Focus();
-		var t = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-		t.Tick += (_, _) => {
-			t.Stop();
-			Topmost = false;
-		};
-		t.Start();
+		try { img.Focus(); } catch { }
 	}
 
 	public void HideCast() {

@@ -96,6 +96,11 @@ public partial class CastWindow : Window {
 		catch (Exception ex) { AppendLog(ex.Message); }
 	}
 
+	void busb_Click(object sender, RoutedEventArgs e) {
+		CastHost.EnableUsbHost();
+		AppendLog("已请求 USB 配件（独立进程）；手机点「USB 投屏」并允许配件");
+	}
+
 	void bscan_Click(object sender, RoutedEventArgs e) {
 		CastHost.Disc?.Beacon(CastProto.TCP_PORT);
 		refreshpeers();

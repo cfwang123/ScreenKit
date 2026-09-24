@@ -19,6 +19,9 @@
 				          AutomationProperties.AutomationId="cast.audio"/>
 				<Button x:Name="brecv" Content="开始接收" Width="88" Margin="0,0,6,0" Padding="4,2" Click="brecv_Click"
 				        AutomationProperties.AutomationId="cast.recv"/>
+				<Button x:Name="busb" Content="USB配件" Width="88" Margin="0,0,6,0" Padding="4,2" Click="busb_Click"
+				        ToolTip="请求手机进入 USB 配件模式（不用网络/调试）"
+				        AutomationProperties.AutomationId="cast.usb"/>
 				<Button x:Name="bscan" Content="扫描电脑" Width="88" Margin="0,0,6,0" Padding="4,2" Click="bscan_Click"
 				        AutomationProperties.AutomationId="cast.scan"/>
 			</WrapPanel>

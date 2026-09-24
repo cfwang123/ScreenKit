@@ -337,23 +337,85 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
     private val pfd: ParcelFileDescriptor = manager.openAccessory(accessory)
         ?: throw IllegalStateException("openAccessory 失败")
     private val os = FileOutputStream(pfd.fileDescriptor)
+    private val ins = FileInputStream(pfd.fileDescriptor)
     @Volatile private var dead = false
+    private val gate = Any()
+    private var pendingVideo: ByteArray? = null
+    private val ctrl = java.util.concurrent.LinkedBlockingQueue<Pair<Byte, ByteArray>>(256)
+    private val wlock = Any()
+    private val ath: Thread
+    private val vth: Thread
 
-    @Synchronized
+    init {
+        Log.i("scst", "usb accessory opened ${accessory.manufacturer} ${accessory.model}")
+        ath = Thread({ aloop() }, "usb-a").also { it.start() }
+        vth = Thread({ vloop() }, "usb-v").also { it.start() }
+    }
+
     override fun send(type: Byte, payload: ByteArray): Boolean {
         if (dead) return false
+        if (type == Proto.T_VIDEO) {
+            synchronized(gate) { pendingVideo = payload }
+            return true
+        }
+        if (type == Proto.T_AUDIO) {
+            if (!ctrl.offer(type to payload)) {
+                ctrl.poll()
+                ctrl.offer(type to payload)
+            }
+            return !dead
+        }
         return try {
-            Proto.write(os, type, payload)
-            true
+            ctrl.offer(type to payload, 400, java.util.concurrent.TimeUnit.MILLISECONDS) || !dead
         } catch (_: Exception) {
+            !dead
+        }
+    }
+
+    private fun aloop() {
+        try {
+            while (!dead) {
+                val p = ctrl.poll(20, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
+                synchronized(wlock) { Proto.write(os, p.first, p.second) }
+            }
+        } catch (ex: Exception) {
+            Log.w("scst", "usb-a ${ex.javaClass.simpleName} ${ex.message}")
             dead = true
-            false
+        }
+    }
+
+    private fun vloop() {
+        try {
+            while (!dead) {
+                val v = synchronized(gate) {
+                    val x = pendingVideo
+                    pendingVideo = null
+                    x
+                }
+                if (v == null) {
+                    Thread.sleep(8)
+                    continue
+                }
+                try {
+                    synchronized(wlock) { Proto.write(os, Proto.T_VIDEO, v) }
+                } catch (ex: Exception) {
+                    Log.w("scst", "usb-v drop ${ex.javaClass.simpleName}")
+                }
+            }
+        } catch (ex: Exception) {
+            Log.w("scst", "usb-v ${ex.javaClass.simpleName} ${ex.message}")
+            dead = true
         }
     }
 
     override fun close() {
         dead = true
+        try { ath.interrupt() } catch (_: Exception) { }
+        try { vth.interrupt() } catch (_: Exception) { }
         try { os.close() } catch (_: Exception) { }
+        try { ins.close() } catch (_: Exception) { }
         try { pfd.close() } catch (_: Exception) { }
     }
+
+    override fun input(): InputStream? = ins
 }

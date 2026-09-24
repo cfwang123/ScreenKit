@@ -122,11 +122,6 @@ sealed class CastUsbScan {
 						var ip = $"{p}.{i}";
 						if (!own.Contains(ip) && !list.Contains(ip)) list.Add(ip);
 					}
-					for (var i = 1; i <= 254; i++) {
-						var ip = $"{p}.{i}";
-						if (own.Contains(ip) || list.Contains(ip)) continue;
-						list.Add(ip);
-					}
 				}
 			}
 		}
@@ -138,7 +133,6 @@ sealed class CastUsbScan {
 		string[] xs = {
 			"192.168.42.129", "192.168.42.1", "192.168.42.2",
 			"192.168.137.1", "192.168.137.2", "192.168.137.129",
-			"192.168.0.1", "192.168.1.1",
 		};
 		foreach (var ip in xs)
 			if (!list.Contains(ip)) list.Add(ip);
@@ -146,20 +140,20 @@ sealed class CastUsbScan {
 
 	static bool isusb(NetworkInterface ni) {
 		var s = (ni.Name + " " + ni.Description).ToLowerInvariant();
-		if (s.Contains("vmware") || s.Contains("virtualbox") || s.Contains("hyper-v") || s.Contains("vethernet"))
+		if (s.Contains("vmware") || s.Contains("virtualbox") || s.Contains("hyper-v") ||
+			s.Contains("vethernet") || s.Contains("tap-windows") || s.Contains("vpn"))
 			return false;
-		if (s.Contains("rndis") || s.Contains("remote ndis") || (s.Contains("远程") && s.Contains("ndis")) ||
-			s.Contains("android") || s.Contains("gadget") || s.Contains("网络共享") ||
-			s.Contains("usb") || s.Contains("ncm") ||
-			s.Contains("mobile broadband"))
-			return true;
-		if (s.Contains("ndis") && (s.Contains("internet") || s.Contains("sharing") || s.Contains("共享")))
-			return true;
 		foreach (var ua in ni.GetIPProperties().UnicastAddresses) {
 			if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
 			var ip = ua.Address.ToString();
 			if (ip.StartsWith("192.168.42.") || ip.StartsWith("192.168.137.")) return true;
 		}
+		if (s.Contains("rndis") || s.Contains("remote ndis") || (s.Contains("远程") && s.Contains("ndis")) ||
+			s.Contains("android") || s.Contains("gadget") || s.Contains("网络共享") ||
+			s.Contains("ncm") || s.Contains("mobile broadband"))
+			return true;
+		if (s.Contains("ndis") && (s.Contains("internet") || s.Contains("sharing") || s.Contains("共享")))
+			return true;
 		return false;
 	}
 }

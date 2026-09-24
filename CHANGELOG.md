@@ -34,6 +34,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Password variants mostly translate into other languages then ASCII-romanize; at most one English paraphrase. They no longer reorder words, add digits, or use leetspeak.
+- Viewer stays topmost and is centered; hello no longer uses a blocking UI invoke (could prevent the window from appearing). ShowCast always calls `Show()`, and OnGone delays hide so a quick reconnect cannot swallow the window.
+- USB screencast uses Android Open Accessory bulk (no IP, no adb). LibUsb is not touched at ScreenKit startup (that crashed the process while a phone was plugged in). Cast settings has **USB配件**: helper process `--cast-aoa` requests the switch; the main process only opens accessory 18D1:2D00/2D01. USB NIC scan only targets RNDIS/42/137.
+- AOA bulk read retries on USB timeout (a zero read was treated as EOF and killed the session).
 - Phone screencast scans on resume (ephemeral UDP, no bind on 19518). Viewer ShowCast is synchronous and centered.
 - USB tethering beacons on UDP so the PC can find the phone’s USB IP.
 - Landscape: do not recreate the encoder (that crashed on Redmi); send orient and crop. Viewer window is sized to the cropped frame, not phone pixels.
@@ -70,6 +73,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 密码变体以其它语言译音（拼音 / 罗马字）为主，英文同义最多一条；不再调换词序、加数字或做 o→0 一类替换。
+- 画面窗保持置顶并居中；hello 不再同步 Invoke UI（可能卡住不弹窗）。ShowCast 必调 `Show()`；OnGone 延迟关窗，避免重连瞬间把窗口关掉。
+- USB 投屏走 AOA 配件 bulk（不用 IP、不用 adb）。启动时不再碰 LibUsb（插着手机时会把主程序崩掉）。投屏设置里有 **USB配件**：独立进程 `--cast-aoa` 请求切换，主进程只打开配件 18D1:2D00/2D01。USB 网卡扫描只认 RNDIS/42/137。
+- AOA bulk 读在 USB 超时时重试（读到 0 会被当成 EOF 直接断会话）。
 - 打开投屏界面（onResume）自动扫描；发现不再死绑 UDP 19518。
 - USB 网络共享时手机发 UDP，电脑用该地址连入。
 - 画面窗同步打开并居中。

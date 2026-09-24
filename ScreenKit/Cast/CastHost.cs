@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows.Threading;
 
 namespace ScreenKit;
@@ -17,6 +18,7 @@ static class CastHost {
 	static Func<OcrOptions> opts;
 	static Action save;
 	static bool hidebyuser;
+	static int viewgen;
 	static ImageSource winicon;
 	static readonly object framegate = new();
 	static readonly byte[][] framebuf = new byte[2][];
@@ -25,6 +27,8 @@ static class CastHost {
 	static int framew, frameh, framest;
 	static bool frameposted;
 	static int lastadb;
+	static int lastaoa;
+	static bool usbWant;
 
 	public static ImageSource WinIcon {
 		get {
@@ -79,26 +83,36 @@ static class CastHost {
 		Disc.Log = log;
 		Usb.Log = log;
 		Recv.OnFrame = onframe;
-		Recv.OnHello = (n, via) => ui(() => {
-			hidebyuser = false;
-			ensureview();
-			view.SetName(n, via);
-			view.ShowCast();
-			log($"开窗 {view.Title} visible={view.IsVisible}");
-		}, true);
+		Recv.OnHello = (n, via) => {
+			var g = Interlocked.Increment(ref viewgen);
+			ui(() => {
+				if (g != viewgen) return;
+				hidebyuser = false;
+				ensureview();
+				view.SetName(n, via);
+				view.ShowCast();
+				log($"开窗 {view.Title} vis={view.IsVisible} top={view.Topmost} " +
+					$"{view.Left:0},{view.Top:0} {view.Width:0}x{view.Height:0}");
+			}, prio: DispatcherPriority.Send);
+		};
 		Recv.OnSrc = (dw, dh) => ui(() => {
 			ensureview();
 			view.SetSrc(dw, dh);
 		});
 		Recv.OnGone = () => {
+			var g = viewgen;
 			ui(() => {
-				if (Recv != null && Recv.Busy) return;
-				hidebyuser = true;
-				lock (framegate) {
-					frameready = -1;
-					frameposted = false;
+				var d = Application.Current?.Dispatcher;
+				if (d == null) {
+					hidecastif(g);
+					return;
 				}
-				view?.HideCast();
+				var t = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+				t.Tick += (_, _) => {
+					t.Stop();
+					hidecastif(g);
+				};
+				t.Start();
 			});
 		};
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -112,6 +126,13 @@ static class CastHost {
 				if (now - lastadb > 8000 || lastadb == 0) {
 					lastadb = now;
 					CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
+				}
+				if (usbWant && (Usb == null || !Usb.Connected) &&
+					(now - lastaoa > 8000 || lastaoa == 0)) {
+					lastaoa = now;
+					CastUsbHost.SpawnAoaHelper(log);
+					try { Usb?.StartAccessoryOnly(); }
+					catch (Exception ex) { log($"USB 主机: {ex.Message}"); }
 				}
 			}
 			catch { }
@@ -138,6 +159,12 @@ static class CastHost {
 		view = null;
 		set = null;
 		Started = false;
+	}
+
+	public static void EnableUsbHost() {
+		usbWant = true;
+		lastaoa = 0;
+		log("已启用 USB 配件主机（独立进程请求 AOA）");
 	}
 
 	public static void ShowSet() {
@@ -206,6 +233,18 @@ static class CastHost {
 		Recv?.Stop();
 		if (Opt != null) Opt.CastRecvEnabled = false;
 		SaveOpt();
+	}
+
+	static void hidecastif(int g) {
+		if (g != viewgen) return;
+		if (Recv != null && Recv.Busy) return;
+		hidebyuser = true;
+		lock (framegate) {
+			frameready = -1;
+			frameposted = false;
+		}
+		view?.HideCast();
+		log("关窗");
 	}
 
 	static void ensureview() {
@@ -286,14 +325,14 @@ static class CastHost {
 		ui(() => set?.AppendLog(s));
 	}
 
-	static void ui(Action a, bool sync = false) {
+	static void ui(Action a, bool sync = false, DispatcherPriority prio = DispatcherPriority.Normal) {
 		var d = Application.Current?.Dispatcher;
 		if (d == null) {
 			try { a(); } catch { }
 			return;
 		}
 		if (d.CheckAccess()) a();
-		else if (sync) try { d.Invoke(a); } catch { }
-		else d.BeginInvoke(a);
+		else if (sync) try { d.Invoke(a, prio); } catch { }
+		else d.BeginInvoke(a, prio);
 	}
 }

@@ -25,15 +25,16 @@ sealed class CastUsbBulkStream : Stream {
 
 	public override int Read(byte[] buffer, int offset, int count) {
 		var slice = offset == 0 && count == buffer.Length ? buffer : new byte[count];
-		var ec = reader.Read(slice, timeout, out var n);
-		if (ec == ErrorCode.Win32Error || ec == ErrorCode.IoTimedOut || n <= 0) {
-			if (ec == ErrorCode.IoTimedOut) return 0;
-			if (n <= 0) return 0;
+		while (true) {
+			var ec = reader.Read(slice, timeout, out var n);
+			if (ec == ErrorCode.IoTimedOut || (ec == ErrorCode.None && n == 0))
+				continue;
+			if (ec != ErrorCode.None)
+				throw new IOException($"USB 读失败 {ec}");
+			if (n <= 0) continue;
+			if (slice != buffer) Buffer.BlockCopy(slice, 0, buffer, offset, n);
+			return n;
 		}
-		if (ec != ErrorCode.None && ec != ErrorCode.IoTimedOut && n <= 0)
-			throw new IOException($"USB 读失败 {ec}");
-		if (slice != buffer && n > 0) Buffer.BlockCopy(slice, 0, buffer, offset, n);
-		return n;
 	}
 
 	public override void Write(byte[] buffer, int offset, int count) {
