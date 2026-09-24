@@ -385,14 +385,16 @@ public partial class MainWindow : Window {
 		if (sendFile == null) return;
 		try {
 			sendFile.Start();
-			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
+			var port = sendFile.ListenPort > 0 ? sendFile.ListenPort
+				: (opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort);
 			setstatus(Loc.T("st.sendfile_ok", port));
 			syncsfstatus();
 		}
 		catch (System.Net.Sockets.SocketException ex) when (
 			ex.SocketErrorCode == System.Net.Sockets.SocketError.AddressAlreadyInUse) {
 			var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
-			setstatus(Loc.T("st.sendfile_busy", port.ToString()));
+			setstatus(string.IsNullOrWhiteSpace(sendFile?.LastError)
+				? Loc.T("st.sendfile_busy", port.ToString()) : sendFile.LastError);
 		}
 		catch (Exception ex) {
 			setstatus(Loc.T("st.sendfile_fail", ex.Message));

@@ -36,8 +36,13 @@ public partial class WebFileWindow : Window {
 	}
 
 	void load() {
-		if (server == null || !server.IsRunning || !opt.SendFileEnabled) {
+		if (!opt.SendFileEnabled) {
 			fail(Loc.T("sf.web.nosvc"));
+			return;
+		}
+		if (server == null || !server.IsRunning) {
+			var err = server?.LastError;
+			fail(string.IsNullOrWhiteSpace(err) ? Loc.T("sf.web.down") : err);
 			return;
 		}
 		var pass = "";
@@ -50,7 +55,8 @@ public partial class WebFileWindow : Window {
 			fail(Loc.T("sf.web.noip"));
 			return;
 		}
-		var port = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
+		var port = server.ListenPort > 0 ? server.ListenPort
+			: (opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort);
 		eurl.Items.Clear();
 		foreach (var ip in ips) {
 			eurl.Items.Add($"http://{ip}:{port}/");

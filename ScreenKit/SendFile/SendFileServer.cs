@@ -24,6 +24,8 @@ public sealed partial class SendFileServer : IDisposable {
 	readonly SendFileOutbox Outbox = new();
 	public readonly SendFileJobs Jobs = new();
 	public string LastDeviceId = "";
+	public string LastError = "";
+	public int ListenPort;
 	string lastSeenId = "";
 	int lastSeenTick;
 	public event Action<string> Logged;
@@ -124,27 +126,81 @@ public sealed partial class SendFileServer : IDisposable {
 	public void Start() {
 		Compat.ThrowIfDisposed(disposed, this);
 		var o = getOpts() ?? new OcrOptions();
-		var httpPort = Compat.Clamp(o.SendFilePort <= 0 ? 17532 : o.SendFilePort, 1, 65535);
-		var udpPort = Compat.Clamp(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort, 1, 65535);
+		var wantHttp = Compat.Clamp(o.SendFilePort <= 0 ? 17532 : o.SendFilePort, 1, 65535);
+		var wantUdp = Compat.Clamp(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort, 1, 65535);
 		SendFilePaths.EnsureRoot();
 		ensurepcid(o);
 		try { Web.EnsurePass(); } catch { }
-		lock (listenLock) {
-			Stop();
-			tcp = bindtcp(httpPort);
-			running = true;
-			_ = Task.Run(acceptloop);
+		LastError = "";
+		ListenPort = 0;
+		Exception last = null;
+		var used = 0;
+		for (var i = 0; i < 16; i++) {
+			var p = wantHttp + i;
+			if (p > 65535) break;
 			try {
-				udp = new UdpClient(udpPort);
-				udp.EnableBroadcast = true;
-				_ = Task.Run(udploop);
+				lock (listenLock) {
+					Stop();
+					LastError = "";
+					tcp = bindtcp(p);
+					running = true;
+					ListenPort = p;
+					_ = Task.Run(acceptloop);
+				}
+				if (!probehttp(p)) {
+					LastError = $"端口 {p} 已绑定但无应答（残留监听）";
+					lock (listenLock) Stop();
+					ListenPort = 0;
+					continue;
+				}
+				used = p;
+				last = null;
+				break;
 			}
 			catch (Exception ex) {
-				log($"UDP :{udpPort} 失败: {ex.Message}");
+				last = ex;
+				LastError = ex.Message;
+				try { Stop(); } catch { }
+				ListenPort = 0;
 			}
 		}
-		tryfirewall(httpPort, udpPort);
-		log($"SendFile HTTP :{httpPort} UDP :{udpPort}");
+		if (used <= 0) {
+			if (last != null) throw last;
+			throw new InvalidOperationException(string.IsNullOrEmpty(LastError)
+				? $"端口 {wantHttp} 无法监听" : LastError);
+		}
+		if (used != wantHttp) {
+			o.SendFilePort = used;
+			try { save?.Invoke(); } catch { }
+			log($"HTTP 端口 {wantHttp} 占用，改用 {used}");
+		}
+		var udpPort = wantUdp;
+		lock (listenLock) {
+			for (var i = 0; i < 8; i++) {
+				var p = wantUdp + i;
+				if (p > 65535) break;
+				try {
+					udp = new UdpClient(p);
+					udp.EnableBroadcast = true;
+					_ = Task.Run(udploop);
+					udpPort = p;
+					if (p != wantUdp) {
+						o.SendFileUdpPort = p;
+						try { save?.Invoke(); } catch { }
+						log($"UDP 端口 {wantUdp} 占用，改用 {p}");
+					}
+					break;
+				}
+				catch (Exception ex) {
+					log($"UDP :{p} 失败: {ex.Message}");
+					try { udp?.Close(); } catch { }
+					udp = null;
+				}
+			}
+		}
+		tryfirewall(used, udpPort);
+		LastError = "";
+		log($"SendFile HTTP :{used} UDP :{udpPort}");
 	}
 
 	public void Stop() {
@@ -176,6 +232,29 @@ public sealed partial class SendFileServer : IDisposable {
 		if (!string.IsNullOrWhiteSpace(o.SendFilePcId)) return;
 		o.SendFilePcId = Guid.NewGuid().ToString("N");
 		try { save?.Invoke(); } catch { }
+	}
+
+	static bool probehttp(int port) {
+		var deadline = Environment.TickCount + 1500;
+		while (unchecked(deadline - Environment.TickCount) > 0) {
+			try {
+				using var c = new TcpClient();
+				var ar = c.BeginConnect(IPAddress.Loopback, port, null, null);
+				if (!ar.AsyncWaitHandle.WaitOne(200)) continue;
+				c.EndConnect(ar);
+				c.ReceiveTimeout = 400;
+				c.SendTimeout = 400;
+				var ns = c.GetStream();
+				var req = Encoding.ASCII.GetBytes("GET /?pc=1 HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n");
+				ns.Write(req, 0, req.Length);
+				var buf = new byte[8];
+				var n = ns.Read(buf, 0, buf.Length);
+				if (n >= 4 && buf[0] == (byte)'H' && buf[1] == (byte)'T' && buf[2] == (byte)'T' && buf[3] == (byte)'P')
+					return true;
+			}
+			catch { }
+		}
+		return false;
 	}
 
 	static TcpListener bindtcp(int port) {

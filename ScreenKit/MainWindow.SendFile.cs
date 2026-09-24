@@ -343,13 +343,16 @@ public partial class MainWindow {
 	void syncsfstatus() {
 		if (lbsfstatus == null) return;
 		if (opt.SendFileEnabled && sendFile != null && sendFile.IsRunning) {
-			var tcp = opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort;
+			var tcp = sendFile.ListenPort > 0 ? sendFile.ListenPort
+				: (opt.SendFilePort <= 0 ? 17532 : opt.SendFilePort);
 			var udp = opt.SendFileUdpPort <= 0 ? 17531 : opt.SendFileUdpPort;
 			var phone = sendFile.PhoneOnline
 				? Loc.T("sf.tab.phone.on")
 				: Loc.T("sf.tab.phone.off");
 			lbsfstatus.Text = Loc.T("sf.tab.on", tcp.ToString(), udp.ToString()) + "  ·  " + phone;
 		}
+		else if (opt.SendFileEnabled && sendFile != null && !string.IsNullOrWhiteSpace(sendFile.LastError))
+			lbsfstatus.Text = sendFile.LastError;
 		else
 			lbsfstatus.Text = Loc.T("sf.tab.off");
 		if (lbsfdrop != null) {

@@ -31,6 +31,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - File sync **web manager** on the same HTTP port (`17532`): desktop `/` and phone `/m`. Login (`sendfile_web_pass`, auto-generated if empty) is required to upload, mkdir, rename, or delete. A correct `/f/…` URL downloads without login. File sync tab **Web manager** shows the LAN URL, QR, and password. CLI `--test-sendfile` covers login and public download.
 - File-transfer HTTP bind is exclusive (no `ReuseAddress`). A dead leftover listener no longer accepts connections and hangs the browser; bad/TLS probes get `400` instead of an open hang.
 - Web manager: `[hidden]` now wins over `#main{display:flex}`, so the login card and file table no longer stack. CJK font prefers YaHei.
+- File transfer: if the configured HTTP port is a leftover listen (process gone), bind the next free port, save it, and show that error instead of “service off”.
 - Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (mostly other-language translations spelled in ASCII romanization, mix case; at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
 - LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文件同步 **网页管理**（与手机传输同一 HTTP 端口 `17532`）：电脑版 `/`、手机版 `/m`。上传/建目录/改名/删除需登录（`sendfile_web_pass`，空则启动时自动生成）；正确的 `/f/…` 即可下载。文件同步 Tab **网页管理** 显示局域网地址、二维码和密码。CLI `--test-sendfile` 覆盖登录与公开下载。
 - 文件传输 HTTP 独占绑定（不再 `ReuseAddress`）。残留的死监听不再把浏览器连上后一直转圈；非 HTTP / TLS 探测立刻 `400`。
 - 网页管理：`[hidden]` 不再被 `#main{display:flex}` 盖掉，登录框和文件表不会叠在一起；中文字体优先微软雅黑。
+- 文件传输：配置端口若是残留监听（进程已死），自动改绑后面的空闲端口并写入配置；网页窗显示真实原因，不再一律说「未启用」。
 - 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），多把意思译成其它语言再用拼音 / 罗马字拼写（可大小写；英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
 - 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
 
