@@ -30,13 +30,9 @@ object UsbLoop {
     fun probe(): String? {
         val errs = ArrayList<String>()
         if (pingTcp("127.0.0.1", 1500)) {
-            Log.i(TAG, "probe ok 127.0.0.1")
+            Log.i(TAG, "probe ok 127.0.0.1:${SendPorts.HTTP}")
             return "127.0.0.1"
         } else errs.add("v4")
-        if (pingAbstract(1500)) {
-            Log.i(TAG, "probe ok abstract:${Proto.ABSTRACT}")
-            return "abstract"
-        } else errs.add("abstract")
         val msg = errs.joinToString("; ")
         Log.w(TAG, "probe fail $msg")
         lastErr = msg
@@ -44,57 +40,21 @@ object UsbLoop {
     }
 
     fun open(): FrameSink {
-        var last: Exception? = null
-        try {
-            return openAbstract()
-        } catch (ex: Exception) {
-            last = ex
-            Log.w(TAG, "open abstract ${ex.message}")
-        }
-        try {
-            return TcpSink("127.0.0.1", Proto.TCP_PORT, net = null)
-        } catch (ex: Exception) {
-            last = ex
-            Log.w(TAG, "open 127.0.0.1 ${ex.message}")
-        }
-        throw IllegalStateException("USB 转发连不上: ${last?.message}", last)
+        return WsSink("127.0.0.1", SendPorts.HTTP)
     }
 
     var lastErr: String = ""
         private set
 
-    private fun openAbstract(): FrameSink = AbstractSink(Proto.ABSTRACT)
-
     private fun pingTcp(ip: String, ms: Int): Boolean {
         val s = Socket()
         return try {
-            s.connect(InetSocketAddress(ip, Proto.TCP_PORT), ms)
+            s.connect(InetSocketAddress(ip, SendPorts.HTTP), ms)
             true
         } catch (_: Exception) {
             false
         } finally {
             try { s.close() } catch (_: Exception) { }
-        }
-    }
-
-    private fun pingAbstract(ms: Int): Boolean {
-        val sock = LocalSocket()
-        return try {
-            val err = java.util.concurrent.atomic.AtomicReference<Exception>()
-            val th = Thread({
-                try { sock.connect(LocalSocketAddress(Proto.ABSTRACT)) }
-                catch (ex: Exception) { err.set(ex) }
-            }, "abs-probe")
-            th.start()
-            th.join(ms.toLong())
-            if (th.isAlive) {
-                try { sock.close() } catch (_: Exception) { }
-                false
-            } else err.get() == null
-        } catch (_: Exception) {
-            false
-        } finally {
-            try { sock.close() } catch (_: Exception) { }
         }
     }
 }

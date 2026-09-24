@@ -6,8 +6,9 @@ using System.Text.Json.Nodes;
 namespace ScreenKit;
 
 static class CastProto {
-	public const int UDP_PORT = 19518;
+	/// <summary>USB 网络共享时手机监听口（电脑主动连出，不在本机占口）。</summary>
 	public const int TCP_PORT = 19519;
+	public const string WS_PATH = "/cast";
 	public const string USB_PIPE = "ScreenKit.CastUsb";
 	public const string USB_PIPE_DOWN = "ScreenKit.CastUsbDown";
 	public const string ABSTRACT = "scst";

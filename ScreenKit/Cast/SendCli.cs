@@ -1,10 +1,10 @@
-using System.Net.Sockets;
+using System.Net.WebSockets;
 
 namespace ScreenKit;
 
 sealed class CastSendCli : IDisposable {
-	TcpClient cli;
-	NetworkStream ns;
+	ClientWebSocket ws;
+	Stream st;
 	Thread th;
 	volatile bool stop;
 	CastScreenGrab grab;
@@ -17,30 +17,31 @@ sealed class CastSendCli : IDisposable {
 	readonly object encs = new();
 	readonly object nslock = new();
 	public Action<string> Log;
-	public bool Running => !stop && cli != null;
+	public bool Running => !stop && st != null;
 
 	public void Start(string ip, int port, CastQuality quality, bool audio) {
-		if (cli != null) return;
+		if (st != null) return;
 		if (!FfmpegLoader.TryInit(out var err))
 			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
 		q = quality ?? CastQuality.Presets[1];
 		wantAudio = audio;
 		stop = false;
 		interval = Math.Max(8, 1000 / q.Fps);
-		cli = new TcpClient();
-		cli.NoDelay = true;
-		cli.Connect(ip, port);
-		ns = cli.GetStream();
+		if (port <= 0) port = 1224;
+		ws = new ClientWebSocket();
+		var uri = new Uri($"ws://{ip}:{port}{CastProto.WS_PATH}");
+		ws.ConnectAsync(uri, CancellationToken.None).GetAwaiter().GetResult();
+		st = new CastWsStream(ws);
 		grab = new CastScreenGrab();
 		venc = new CastVideoEncoder(grab.Width, grab.Height, q);
 		sendjson();
 		th = new Thread(loop) { IsBackground = true, Name = "cast-send" };
 		th.Start();
-		Log?.Invoke($"已连接到 {ip}:{port} 编码 {venc.OutWidth}x{venc.OutHeight}@{q.Fps}");
+		Log?.Invoke($"已连接到 {uri} 编码 {venc.OutWidth}x{venc.OutHeight}@{q.Fps}");
 	}
 
 	public void ApplyQ(CastQuality nq) {
-		if (nq == null || grab == null || ns == null) return;
+		if (nq == null || grab == null || st == null) return;
 		q = nq;
 		interval = Math.Max(8, 1000 / q.Fps);
 		try {
@@ -65,9 +66,10 @@ sealed class CastSendCli : IDisposable {
 			br = q.Bitrate,
 			audio = wantAudio,
 			pix = "h264",
-			aud = "aac"
+			aud = "aac",
+			via = "wifi",
 		});
-		lock (nslock) ns.Write(pkt, 0, pkt.Length);
+		lock (nslock) st.Write(pkt, 0, pkt.Length);
 	}
 
 	void loop() {
@@ -92,7 +94,7 @@ sealed class CastSendCli : IDisposable {
 				lock (encs) nal = venc?.EncodeBgra(bgra, stride);
 				if (nal != null) {
 					var pkt = CastProto.Pack(CastProto.T_VIDEO, nal);
-					lock (nslock) ns.Write(pkt, 0, pkt.Length);
+					lock (nslock) st.Write(pkt, 0, pkt.Length);
 				}
 				if (wantAudio && acap != null) {
 					var n = acap.Take(apcm);
@@ -100,7 +102,7 @@ sealed class CastSendCli : IDisposable {
 						var adts = aenc.EncodeS16(apcm, n);
 						if (adts != null) {
 							var pkt = CastProto.Pack(CastProto.T_AUDIO, adts);
-							lock (nslock) ns.Write(pkt, 0, pkt.Length);
+							lock (nslock) st.Write(pkt, 0, pkt.Length);
 						}
 					}
 				}
@@ -113,10 +115,10 @@ sealed class CastSendCli : IDisposable {
 
 	public void Stop() {
 		stop = true;
-		try { ns?.Close(); } catch { }
-		try { cli?.Close(); } catch { }
-		ns = null;
-		cli = null;
+		try { st?.Close(); } catch { }
+		try { ws?.Abort(); } catch { }
+		st = null;
+		ws = null;
 		venc?.Dispose(); venc = null;
 		aenc?.Dispose(); aenc = null;
 		acap?.Dispose(); acap = null;

@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace ScreenKit;
 
-/// <summary>启动时清其它目录的 ScreenKit、残留 AOA 助手、占用投屏 TCP 的进程。</summary>
+/// <summary>启动时清其它目录的 ScreenKit、残留 AOA 助手。</summary>
 static class CastStale {
 	public static void Purge(Action<string> log) {
 		var n = killprocs(log) + killport(CastProto.TCP_PORT, log);

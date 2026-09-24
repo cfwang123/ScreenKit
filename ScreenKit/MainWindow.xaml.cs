@@ -327,7 +327,7 @@ public partial class MainWindow : Window {
 			});
 			if (httpServer != null)
 				httpServer.Logged += onhttplog;
-			if (opt.HttpEnabled || opt.SendFileEnabled)
+			if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled)
 				starthttp();
 		}
 		catch (Exception ex) {
@@ -337,13 +337,14 @@ public partial class MainWindow : Window {
 
 	void starthttp() {
 		if (httpServer == null) return;
-		if (!opt.HttpEnabled && !opt.SendFileEnabled) {
+		if (!opt.HttpEnabled && !opt.SendFileEnabled && !opt.CastRecvEnabled) {
 			try { httpServer.Stop(); } catch { }
 			synchttpstatus();
 			return;
 		}
 		try {
-			httpServer.Start(opt.HttpHost, SendFileServer.FileHttpPort(opt), opt.SendFileEnabled);
+			var lan = opt.SendFileEnabled || opt.CastRecvEnabled;
+			httpServer.Start(opt.HttpHost, SendFileServer.FileHttpPort(opt), lan);
 			if (opt.HttpEnabled)
 				setstatus(Loc.T("st.http_ok", opt.HttpHost, opt.HttpPort));
 		}
@@ -355,7 +356,7 @@ public partial class MainWindow : Window {
 
 	void restarthttp() {
 		try { httpServer?.Stop(); } catch { }
-		if (opt.HttpEnabled || opt.SendFileEnabled) starthttp();
+		if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled) starthttp();
 		else synchttpstatus();
 	}
 
@@ -3012,6 +3013,7 @@ public partial class MainWindow : Window {
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
 			|| old.SendFileEnabled != opt.SendFileEnabled
+			|| old.CastRecvEnabled != opt.CastRecvEnabled
 			|| !string.Equals(old.HttpHost, opt.HttpHost, StringComparison.OrdinalIgnoreCase))
 			restarthttp();
 		if (old.SendFileEnabled != opt.SendFileEnabled || old.SendFileUdpPort != opt.SendFileUdpPort

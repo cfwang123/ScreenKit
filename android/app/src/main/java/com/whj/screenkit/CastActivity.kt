@@ -11,12 +11,16 @@ import android.hardware.usb.UsbManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
+import android.view.MenuItem
+import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import com.whj.screenkit.databinding.ActivityCastBinding
 
@@ -25,7 +29,7 @@ class CastActivity : AppCompatActivity() {
     private var peers = listOf<Peer>()
     private var pendingMode = "tcp"
     private var pendingIp = ""
-    private var pendingPort = Proto.TCP_PORT
+    private var pendingPort = SendPorts.HTTP
     private var pendingHttp = 1224
     private var waitUsb = false
     private var waitPat = false
@@ -65,6 +69,8 @@ class CastActivity : AppCompatActivity() {
         b = ActivityCastBinding.inflate(layoutInflater)
         setContentView(b.root)
         supportActionBar?.title = getString(R.string.label_cast)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu)
         b.eq.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
@@ -114,6 +120,27 @@ class CastActivity : AppCompatActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         maybeTestIntent(intent)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            showmenu()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    private fun showmenu() {
+        val bar = findViewById<View>(androidx.appcompat.R.id.action_bar)
+        val pop = PopupMenu(this, bar ?: b.root, Gravity.START)
+        pop.menu.add(0, 1, 0, getString(R.string.menu_goto_file))
+        pop.setOnMenuItemClickListener {
+            when (it.itemId) {
+                1 -> AppNav.openSendFile(this)
+            }
+            true
+        }
+        pop.show()
     }
 
     override fun onResume() {
@@ -261,11 +288,11 @@ class CastActivity : AppCompatActivity() {
             return
         }
         var ip = t
-        var port = Proto.TCP_PORT
+        var port = SendPorts.HTTP
         val sp = t.split(":")
         if (sp.size == 2) {
             ip = sp[0]
-            port = sp[1].toIntOrNull() ?: Proto.TCP_PORT
+            port = sp[1].toIntOrNull() ?: SendPorts.HTTP
         }
         UsbLan.clear()
         pendingMode = "tcp"
@@ -285,7 +312,7 @@ class CastActivity : AppCompatActivity() {
         }
         pendingMode = "usb"
         pendingIp = b.eip.text?.toString()?.trim().orEmpty()
-        pendingPort = Proto.TCP_PORT
+        pendingPort = SendPorts.HTTP
         pendingHttp = 1224
         val usb = getSystemService(USB_SERVICE) as UsbManager
         val acc = usb.accessoryList?.firstOrNull()
@@ -360,7 +387,7 @@ class CastActivity : AppCompatActivity() {
     private fun startUsbAdb() {
         pendingMode = "usb-adb"
         pendingIp = b.eip.text?.toString()?.trim().orEmpty()
-        pendingPort = Proto.TCP_PORT
+        pendingPort = SendPorts.HTTP
         pendingHttp = 1224
         b.lbstat.text = "正在探测 adb 转发…"
         Thread {
@@ -383,7 +410,7 @@ class CastActivity : AppCompatActivity() {
     }
 
     private fun fillPeer(p: Peer) {
-        val s = if (p.tcp > 0 && p.tcp != Proto.TCP_PORT) "${p.ip}:${p.tcp}" else p.ip
+        val s = if (p.http > 0 && p.http != SendPorts.HTTP) "${p.ip}:${p.http}" else p.ip
         fillIp(s)
     }
 

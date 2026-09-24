@@ -68,7 +68,7 @@ public partial class CastWindow : Window {
 	}
 
 	void tick() {
-		lbip.Text = $"{Loc.T("cast.local")} {CastHost.Name}  {CastNetUtil.LocalIps()}  {CastHost.Recv?.BindText ?? $"TCP {CastProto.TCP_PORT}"}";
+		lbip.Text = $"{Loc.T("cast.local")} {CastHost.Name}  {CastNetUtil.LocalIps()}  {CastHost.Recv?.BindText ?? $"HTTP {CastHost.TcpPort}{CastProto.WS_PATH}"}";
 		if (CastHost.Recv != null && !CastHost.Recv.TcpOk && CastHost.Recv.Running)
 			lbstat.Text = CastHost.Recv.BindText;
 		else if (CastHost.Send != null && CastHost.Send.Running) lbstat.Text = Loc.T("cast.stat.send");
@@ -123,7 +123,7 @@ public partial class CastWindow : Window {
 	}
 
 	void bscan_Click(object sender, RoutedEventArgs e) {
-		CastHost.Disc?.Beacon(CastHost.TcpPort);
+		CastHost.Disc?.Scan();
 		refreshpeers();
 		AppendLog(Loc.T("cast.log.scan", lpeers.Items.Count));
 	}
@@ -148,7 +148,7 @@ public partial class CastWindow : Window {
 	void bconnect_Click(object sender, RoutedEventArgs e) {
 		var ip = (eip.Text ?? "").Trim();
 		if (ip.Length == 0) { AppendLog(Loc.T("cast.log.needip")); return; }
-		var port = CastProto.TCP_PORT;
+		var port = CastHost.TcpPort;
 		var sp = ip.Split(':');
 		if (sp.Length == 2 && int.TryParse(sp[1], out var p)) { ip = sp[0]; port = p; }
 		connect(ip, port);

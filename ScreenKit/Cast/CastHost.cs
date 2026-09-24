@@ -116,8 +116,6 @@ static class CastHost {
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
 		timer.Tick += (_, _) => ThreadPool.QueueUserWorkItem(_ => {
 			try {
-				if (Recv != null && Recv.Running)
-					Disc?.Beacon(tcpport());
 				Recv?.Tick();
 				UsbScan?.Tick();
 				var now = Environment.TickCount;
@@ -326,7 +324,12 @@ static class CastHost {
 		}
 	}
 
-	public static int TcpPort => Recv != null && Recv.ListenPort > 0 ? Recv.ListenPort : CastProto.TCP_PORT;
+	public static int TcpPort {
+		get {
+			var p = Opt?.HttpPort ?? 0;
+			return p > 0 ? p : 1224;
+		}
+	}
 
 	static int tcpport() => TcpPort;
 

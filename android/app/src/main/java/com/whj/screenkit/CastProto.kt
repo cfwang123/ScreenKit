@@ -5,8 +5,8 @@ import java.io.InputStream
 import java.io.OutputStream
 
 object Proto {
-    const val UDP_PORT = 19518
     const val TCP_PORT = 19519
+    const val CAST_PATH = "/cast"
     const val ABSTRACT = "scst"
     const val MAGIC = 0x53435354
     const val T_VIDEO: Byte = 1

@@ -45,7 +45,7 @@ object UsbLan {
                 if (a != null) sock.bind(InetSocketAddress(a, 0))
             } catch (_: Exception) { }
             try {
-                sock.send(DatagramPacket(payload, payload.size, InetAddress.getByName("255.255.255.255"), Proto.UDP_PORT))
+                sock.send(DatagramPacket(payload, payload.size, InetAddress.getByName("255.255.255.255"), SendPorts.UDP_DISCOVER))
             } catch (_: Exception) { }
         }
     }
@@ -152,7 +152,7 @@ object UsbLan {
             lastNet = foundNet.get()
             Log.i(TAG, "usb-lan 找到 $ip net=${lastNet != null}")
         } else {
-            Log.w(TAG, "usb-lan 候选均连不上 TCP ${Proto.TCP_PORT}")
+            Log.w(TAG, "usb-lan 候选均连不上 HTTP ${SendPorts.HTTP}")
         }
         return ip
     }
@@ -162,7 +162,7 @@ object UsbLan {
             Socket().use { s ->
                 s.tcpNoDelay = true
                 try { net?.bindSocket(s) } catch (_: Exception) { }
-                s.connect(InetSocketAddress(ip, Proto.TCP_PORT), 250)
+                s.connect(InetSocketAddress(ip, SendPorts.HTTP), 250)
                 true
             }
         } catch (_: Exception) {

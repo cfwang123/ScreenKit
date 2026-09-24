@@ -132,7 +132,7 @@ class CastService : Service() {
                     "usb" -> openUsbSink()
                     "usb-lan" -> TcpSink.listen(UsbLan.lastNet)
                     "usb-adb" -> UsbLoop.open()
-                    else -> TcpSink(ip, port)
+                    else -> WsSink(ip, port)
                 }
                 if (sessgen.get() != mygen) return@Thread
                 sink = s

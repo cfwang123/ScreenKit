@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.WebSockets;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -14,6 +15,7 @@ namespace ScreenKit;
 /// <summary>
 /// HTTP API（Umi 兼容 OCR + 本项目扩展）。
 /// <list type="bullet">
+/// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
@@ -169,6 +171,10 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			var path = pathRaw.ToLowerInvariant();
+			if (path is "/cast") {
+				handlecast(ctx);
+				return;
+			}
 			if (sendFile != null && sendFile.IsRunning && SendFileServer.IsOurPath(path)
 				&& sendFile.TryHandle(ctx))
 				return;
@@ -387,6 +393,30 @@ sealed partial class HttpOcrServer : IDisposable {
 			},
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
 		});
+	}
+
+	void handlecast(HttpListenerContext ctx) {
+		var req = ctx.Request;
+		var up = req.Headers["Upgrade"] ?? "";
+		var wsreq = req.IsWebSocketRequest
+			|| up.IndexOf("websocket", StringComparison.OrdinalIgnoreCase) >= 0;
+		if (!wsreq) {
+			writejson(ctx, 426, err(805, "请用 WebSocket 连接 /cast"));
+			return;
+		}
+		if (CastHost.Recv == null || !CastHost.Recv.Running) {
+			writejson(ctx, 503, err(503, "投屏接收未开"));
+			return;
+		}
+		try {
+			var wsctx = ctx.AcceptWebSocketAsync(null).GetAwaiter().GetResult();
+			using var st = new CastWsStream(wsctx.WebSocket);
+			CastHost.Recv.AttachStream(st, "http");
+		}
+		catch (Exception ex) {
+			Logged?.Invoke($"cast ws: {ex.Message}");
+			try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
+		}
 	}
 
 	void handlecaststop(HttpListenerContext ctx) {

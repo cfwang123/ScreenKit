@@ -103,6 +103,7 @@ http_port = 1224
 | POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译（需已配置 `[[llm]]`） |
 | POST | `/api/chat` | LLM 对话（文本或语音入；可选 TTS 返回 `wav_base64`） |
 | GET/POST | `/api/cast/stop` | 立即关闭投屏画面窗并断开当前接收 |
+| WebSocket | `/cast` | 投屏媒体（与 HTTP 同端口；二进制帧为 SCST） |
 | GET | `/api/face/models` | 列出人脸 ONNX |
 | POST | `/api/face` | 人脸检测 / 特征 / 两图比对 |
 

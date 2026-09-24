@@ -1,5 +1,7 @@
 using System.IO;
+using System.Net;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -2871,25 +2873,43 @@ static class Cli {
 		var srv = new CastRecvSrv();
 		srv.Log = Out;
 		srv.OnHello = (_, _) => Interlocked.Increment(ref hello);
+		HttpListener http = null;
+		ClientWebSocket cws = null;
 		try {
 			srv.Start();
-			if (!srv.TcpOk || srv.ListenPort <= 0) {
-				Err("FAIL: TCP 未真正监听 " + srv.BindText);
+			if (!srv.Running) {
+				Err("FAIL: 接收未启动");
 				return 1;
 			}
 			Out(srv.BindText);
-			var buf = CastProto.PackJson(new { cmd = "hello", name = "t", w = 64, h = 64, via = "wifi" });
-			using (var c = new System.Net.Sockets.TcpClient()) {
-				c.Connect(System.Net.IPAddress.Loopback, srv.ListenPort);
-				var s = c.GetStream();
-				s.Write(buf, 0, buf.Length);
-				s.Flush();
-				var t0 = Environment.TickCount;
-				while (hello == 0 && unchecked(Environment.TickCount - t0) < 3000)
-					Thread.Sleep(50);
+			var port = 18765;
+			http = new HttpListener();
+			http.Prefixes.Add($"http://127.0.0.1:{port}/");
+			http.Start();
+			_ = Task.Run(() => {
+				var ctx = http.GetContext();
+				if (!ctx.Request.IsWebSocketRequest) {
+					Err("FAIL: 非 WebSocket 请求");
+					return;
+				}
+				var wsctx = ctx.AcceptWebSocketAsync(null).GetAwaiter().GetResult();
+				srv.AttachStream(new CastWsStream(wsctx.WebSocket), "test");
+			});
+			cws = new ClientWebSocket();
+			var uri = new Uri($"ws://127.0.0.1:{port}{CastProto.WS_PATH}");
+			if (!cws.ConnectAsync(uri, CancellationToken.None).Wait(4000)
+				|| cws.State != WebSocketState.Open) {
+				Err("FAIL: WebSocket 连不上 " + uri);
+				return 1;
 			}
+			var buf = CastProto.PackJson(new { cmd = "hello", name = "t", w = 64, h = 64, via = "wifi" });
+			cws.SendAsync(new ArraySegment<byte>(buf), WebSocketMessageType.Binary, true,
+				CancellationToken.None).Wait(2000);
+			var t0 = Environment.TickCount;
+			while (hello == 0 && unchecked(Environment.TickCount - t0) < 4000)
+				Thread.Sleep(50);
 			if (hello == 0) {
-				Err("FAIL: 本机连接未触发 hello");
+				Err("FAIL: 本机 /cast hello 未触发开窗路径");
 				return 1;
 			}
 			Out("本机 hello 开窗路径 ok");
@@ -2901,6 +2921,8 @@ static class Cli {
 			return 1;
 		}
 		finally {
+			try { cws?.Abort(); } catch { }
+			try { http?.Abort(); } catch { }
 			try { srv.Dispose(); } catch { }
 		}
 	}
@@ -2997,7 +3019,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
-      --test-cast-recv  独占监听 TCP、本机 hello 必须进本进程（WiFi/ADB 弹窗路径）
+      --test-cast-recv  HTTP /cast WebSocket hello 必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
@@ -3271,6 +3293,12 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			var mpage = Task.Run(() => http.GetStringAsync(baseUrl + "/m")).GetAwaiter().GetResult();
 			if (mpage == null || mpage.IndexOf("sfweb", StringComparison.Ordinal) < 0) {
 				Err("sendfile-web: /m 未返回页面");
+				return 1;
+			}
+			var apkUp = Task.Run(() => http.GetStringAsync(baseUrl + "/api/web/apk-update")).GetAwaiter().GetResult();
+			if (apkUp == null || apkUp.IndexOf("\"code\":100", StringComparison.Ordinal) < 0
+				|| apkUp.IndexOf("\"ok\":", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: apk-update 失败: " + apkUp);
 				return 1;
 			}
 			var listNaked = getbody(http, baseUrl + "/api/web/list");

@@ -36,7 +36,7 @@ public sealed partial class SendFileServer : IDisposable {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
 
-	const string DISCOVER = "SCREENKIT_DISCOVER";
+	public const string DISCOVER = "SCREENKIT_DISCOVER";
 	const string STAGING = ".to_phone";
 	const int MAXTEXT = 65536;
 	const int MAXHDR = 65536;
@@ -894,10 +894,11 @@ public sealed partial class SendFileServer : IDisposable {
 	}
 
 	void handleupload(SfCtx ctx) {
-		var rel = ctx.Request.QueryString["path"] ?? "";
-		var name = Path.GetFileName((rel ?? "").Replace('\\', '/'));
+		var rel = (ctx.Request.QueryString["path"] ?? "").Replace('\\', '/').Trim('/');
+		var name = Path.GetFileName(rel);
 		if (string.IsNullOrEmpty(name)) name = "file";
-		var job = Jobs.Add(name, toPhone: false, ctx.Request.ContentLength, "");
+		if (string.IsNullOrEmpty(rel)) rel = name;
+		var job = Jobs.Add(name, toPhone: false, ctx.Request.ContentLength, rel);
 		Jobs.SetRun(job.Id);
 		try {
 			SendFileOps.SaveStream(rel, ctx.Request.InputStream, n => Jobs.AddDone(job.Id, n));

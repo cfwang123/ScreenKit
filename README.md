@@ -75,7 +75,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Text tools** | **Tools → Text tools**: Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, counts, smart JSON pretty-print (short arrays/objects stay on one line). |
 | **Password generator** | **Tools → Password generator**: crypto-random; length, sets, skip `0OIl1`, at least one of each class. Remembers last settings. **Word lex** tab: pick an LLM, then translations (including Literary Chinese, Ancient Greek, Latin, Sanskrit, Biblical Hebrew) plus pinyin / romaji / romanization. **Variants** tab: from a seed password, the LLM mostly translates into other languages and spells them in ASCII romanization (at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). |
 | **Network tools** | **Tools → Network tools**: Ping, DNS, WHOIS, traceroute, ping-locate, proxy-locate, HTTP speed-locate. |
-| **Screencast** | **Tools → Screencast** (same under the tray Tools menu): receive a phone or another PC over LAN/USB, or cast this desktop out. Quality 540p/720p/1080p, optional audio. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Discovery UDP 19518, media TCP 19519. USB without network: receive starts the AOA helper. Or **USB 投屏(adb)** with USB debugging. The phone app has a separate **投屏** launcher icon. |
+| **Screencast** | **Tools → Screencast** (same under the tray Tools menu): receive a phone or another PC over LAN/USB, or cast this desktop out. Quality 540p/720p/1080p, optional audio. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). USB without network: receive starts the AOA helper. Or **USB 投屏(adb)** with USB debugging. The phone app has a separate **投屏** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
@@ -119,7 +119,7 @@ Android details: [android/README.md](android/README.md).
 
 ### Screencast (PC ↔ Android / PC ↔ PC)
 
-1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network. Launching this build ends leftover ScreenKit from another folder and anything still listening on TCP 19519. If 19519 is a dead-pid ghost socket, the PC listens on 19520+; Scan uses that port.
+1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network. Launching this build ends leftover ScreenKit from another folder. Wi‑Fi/ADB media uses the same HTTP port as file transfer (`/cast`); scan uses UDP 17531.
 2. Phone launcher **投屏** → allow capture / mic / notifications → **Scan** → pick the PC → **Start**. Or type an IP. USB without adb reverse: ScreenKit must be running (receive starts the AOA helper; **USB配件** still works). If the PC app is closed, USB 投屏 fails with **电脑未打开 ScreenKit** instead of showing 投屏中. If spacedesk owns the accessory interface it force-binds inbox WinUSB, then bridges bulk; the UI process never calls LibUsb. The phone can also auto-start when the accessory attaches. After ~90s without an accessory it falls back to USB tethering. **USB 投屏(adb)** uses `adb reverse` and needs USB debugging. USB-only test pattern (no capture): `scst_usb_pat`.
 3. A view window opens in front on the monitor under the mouse. **Tab** overlay (type / resolution / fps) is off until you press Tab. Closing the window disconnects. Quality changes apply live. Landscape re-encodes at the same short-edge quality (does not crop a portrait frame). Stopping on the phone closes the PC window immediately (`GET /api/cast/stop`).
 4. PC-to-PC: both receive; the sender scans and casts to the selected host.
@@ -311,6 +311,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 
 - `GET  /api` · `/api/status`
 - `GET/POST /api/cast/stop` — close screencast viewer now
+- WebSocket `/cast` — screencast media (same HTTP port)
 - `POST /api/ocr` — `box` is original-image pixels
 - `POST /api/qr` — barcode / QR only (`/api/barcode`)
 - `GET  /api/ocr/get_options`

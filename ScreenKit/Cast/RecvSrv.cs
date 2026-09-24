@@ -1,22 +1,15 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.IO.Pipes;
-using System.Net;
-using System.Net.Sockets;
 using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
 sealed class CastRecvSrv : IDisposable {
-	readonly List<TcpListener> listeners = new();
-	readonly HashSet<string> bound = new();
 	readonly object bindlock = new();
 	volatile bool stop;
 	volatile bool started;
-	int lastbind;
 	volatile bool busy;
 	volatile bool drop;
-	TcpClient curcli;
 	Stream curst;
 	readonly object sess = new();
 	readonly object wlock = new();
@@ -47,7 +40,6 @@ sealed class CastRecvSrv : IDisposable {
 	long byteacc;
 	bool pipeon;
 	int listenport;
-	volatile int acceptn;
 	public bool Running => !stop && started;
 	public bool Busy => busy;
 	public int ListenPort => listenport;
@@ -56,23 +48,18 @@ sealed class CastRecvSrv : IDisposable {
 
 	public void Start() {
 		lock (bindlock) {
-			if (started) {
-				ensuretcp();
-				return;
-			}
+			if (started) return;
 			if (!FfmpegLoader.TryInit(out var err))
 				throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
 			stop = false;
 			startpipe();
 			started = true;
-			ensuretcp();
+			listenport = CastHost.TcpPort;
+			TcpOk = true;
+			BindText = $"HTTP {listenport}{CastProto.WS_PATH}";
 		}
-		ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall(listenport > 0 ? listenport : CastProto.TCP_PORT));
+		ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall(listenport));
 		Log?.Invoke($"接收已启动 {BindText} USB管道");
-	}
-
-	void spawn(TcpListener lis) {
-		new Thread(() => loop(lis)) { IsBackground = true, Name = "cast-recv" }.Start();
 	}
 
 	void startpipe() {
@@ -114,144 +101,6 @@ sealed class CastRecvSrv : IDisposable {
 		}
 	}
 
-	void ensuretcp() {
-		if (stop) return;
-		if (TcpOk && listeners.Count > 0) return;
-		stoplisten();
-		for (var i = 0; i < 16; i++) {
-			var port = CastProto.TCP_PORT + i;
-			freeport(port);
-			Thread.Sleep(i == 0 ? 80 : 20);
-			if (!trybind(IPAddress.Any, port)) continue;
-			listenport = port;
-			foreach (var l in listeners.ToArray())
-				spawn(l);
-			if (selfprobe(port)) {
-				TcpOk = true;
-				BindText = port == CastProto.TCP_PORT
-					? $"TCP {port}"
-					: $"TCP {port}（{CastProto.TCP_PORT} 被占）";
-				Log?.Invoke($"已独占监听 0.0.0.0:{port}");
-				ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall(port));
-				return;
-			}
-			Log?.Invoke($"TCP {port} 已 bind 但本进程收不到连接（幽灵占用），换口");
-			stoplisten();
-		}
-		listenport = 0;
-		TcpOk = false;
-		BindText = $"TCP {CastProto.TCP_PORT} 未真正监听";
-		Log?.Invoke($"{BindText}，WiFi/ADB 不能弹窗；USB 配件仍走命名管道");
-	}
-
-	bool trybind(IPAddress addr, int port) {
-		var key = $"{addr}:{port}";
-		if (bound.Contains(key)) return true;
-		TcpListener l = null;
-		try {
-			l = new TcpListener(addr, port);
-			l.Server.ExclusiveAddressUse = true;
-			l.Start();
-			bound.Add(key);
-			listeners.Add(l);
-			return true;
-		}
-		catch (Exception ex) {
-			Log?.Invoke($"bind {addr}:{port} exclusive: {ex.Message}");
-			try { l?.Stop(); } catch { }
-			return false;
-		}
-	}
-
-	bool selfprobe(int port) {
-		var n0 = acceptn;
-		try {
-			using var c = new TcpClient();
-			var ar = c.BeginConnect(IPAddress.Loopback, port, null, null);
-			if (!ar.AsyncWaitHandle.WaitOne(800)) {
-				try { c.Close(); } catch { }
-				return false;
-			}
-			c.EndConnect(ar);
-			var t0 = Environment.TickCount;
-			while (acceptn == n0 && unchecked(Environment.TickCount - t0) < 800)
-				Thread.Sleep(20);
-			try { c.Close(); } catch { }
-			return acceptn > n0;
-		}
-		catch (Exception ex) {
-			Log?.Invoke($"selfprobe {port}: {ex.Message}");
-			return false;
-		}
-	}
-
-	void stoplisten() {
-		foreach (var l in listeners) {
-			try { l.Stop(); } catch { }
-		}
-		listeners.Clear();
-		bound.Clear();
-		TcpOk = false;
-		listenport = 0;
-	}
-
-	void freeport(int port) {
-		var self = Process.GetCurrentProcess().Id;
-		try {
-			var psi = new ProcessStartInfo {
-				FileName = "netstat",
-				Arguments = "-ano",
-				UseShellExecute = false,
-				RedirectStandardOutput = true,
-				CreateNoWindow = true,
-			};
-			var n = Process.Start(psi);
-			if (n == null) return;
-			var o = n.StandardOutput.ReadToEnd();
-			if (!n.WaitForExit(4000)) try { n.Kill(); } catch { }
-			var pids = new HashSet<int>();
-			var needle = $":{port}";
-			foreach (var line in o.Split('\n')) {
-				if (line.IndexOf(needle, StringComparison.Ordinal) < 0) continue;
-				if (line.IndexOf("LISTENING", StringComparison.OrdinalIgnoreCase) < 0
-					&& line.IndexOf("侦听", StringComparison.Ordinal) < 0)
-					continue;
-				var parts = line.Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-				if (parts.Length == 0) continue;
-				if (!int.TryParse(parts[parts.Length - 1], out var pid) || pid <= 4 || pid == self)
-					continue;
-				pids.Add(pid);
-			}
-			foreach (var pid in pids) {
-				var alive = false;
-				try {
-					var pr = Process.GetProcessById(pid);
-					alive = true;
-					Log?.Invoke($"TCP {port} 被 pid={pid} {pr.ProcessName} 占用，结束该进程");
-					pr.Kill();
-				}
-				catch {
-					Log?.Invoke($"TCP {port} 被已退出 pid={pid} 占着（幽灵套接字），换口");
-				}
-				if (!alive) continue;
-				try {
-					var tk = new ProcessStartInfo {
-						FileName = "taskkill",
-						Arguments = $"/F /PID {pid}",
-						UseShellExecute = false,
-						CreateNoWindow = true,
-						RedirectStandardOutput = true,
-						RedirectStandardError = true,
-					};
-					var p = Process.Start(tk);
-					p?.WaitForExit(2000);
-				}
-				catch { }
-			}
-		}
-		catch (Exception ex) { Log?.Invoke($"freeport: {ex.Message}"); }
-	}
-
 	public void Tick() {
 		var now = Environment.TickCount;
 		if (now - laststat >= 1000 || laststat == 0) {
@@ -280,10 +129,6 @@ sealed class CastRecvSrv : IDisposable {
 			Kick("无视频");
 		if (busy && !hadhello && sessstart != 0 && now - sessstart > 8000)
 			Kick("握手超时");
-		if (now - lastbind >= 3000 || lastbind == 0) {
-			lastbind = now;
-			lock (bindlock) ensuretcp();
-		}
 	}
 
 	public void SendJson(object obj) {
@@ -317,64 +162,20 @@ sealed class CastRecvSrv : IDisposable {
 		if (!string.IsNullOrEmpty(why) && busy) Log?.Invoke($"断开 {why}");
 		drop = true;
 		try { curst?.Close(); } catch { }
-		try { curcli?.Close(); } catch { }
 	}
 
 	public void AttachStream(Stream s, string tag) {
 		if (s == null) return;
 		if (busy) {
-			Log?.Invoke($"{tag} 已有会话，忽略");
-			return;
-		}
-		Log?.Invoke($"{tag} 接入");
-		var hello = false;
-		try { hello = runsession(s); }
-		catch (Exception ex) { Log?.Invoke($"{tag} 结束: {ex.Message}"); }
-	}
-
-	void loop(TcpListener lis) {
-		while (!stop) {
-			TcpClient cli = null;
-			try { cli = lis.AcceptTcpClient(); }
-			catch { break; }
-			if (cli == null) continue;
-			Interlocked.Increment(ref acceptn);
-			tune(cli);
-			var ep = cli.Client.RemoteEndPoint;
-			Log?.Invoke($"接入 {ep}");
-			var c = cli;
-			new Thread(() => onesess(c)) { IsBackground = true, Name = "cast-sess" }.Start();
-		}
-	}
-
-	static void tune(TcpClient cli) {
-		try {
-			cli.NoDelay = true;
-			cli.ReceiveBufferSize = 4 * 1024 * 1024;
-			cli.SendBufferSize = 512 * 1024;
-		}
-		catch { }
-	}
-
-	void onesess(TcpClient cli) {
-		if (busy) {
-			Log?.Invoke("新连接，断开旧会话");
+			Log?.Invoke($"{tag} 新连接，断开旧会话");
 			Kick("新连接");
 			var t0 = Environment.TickCount;
 			while (busy && Environment.TickCount - t0 < 2000)
 				Thread.Sleep(20);
 		}
-		var hello = false;
-		curcli = cli;
-		try {
-			try { cli.ReceiveTimeout = 20000; } catch { }
-			hello = runsession(cli.GetStream());
-		}
-		catch (Exception ex) { Log?.Invoke($"会话结束: {ex.Message}"); }
-		finally {
-			if (ReferenceEquals(curcli, cli)) curcli = null;
-			try { cli.Close(); } catch { }
-		}
+		Log?.Invoke($"{tag} 接入");
+		try { runsession(s); }
+		catch (Exception ex) { Log?.Invoke($"{tag} 结束: {ex.Message}"); }
 	}
 
 	bool runsession(Stream s) {
@@ -672,9 +473,6 @@ sealed class CastRecvSrv : IDisposable {
 			wake2.Connect(200);
 		}
 		catch { }
-		lock (bindlock) {
-			stoplisten();
-		}
 		pipeon = false;
 		resetdec();
 		busy = false;

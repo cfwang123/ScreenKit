@@ -90,7 +90,7 @@ public sealed class OcrOptions {
 	public List<SendFileDevice> SendFileDevices = new();
 	/// <summary>网页文件管理登录密码；空则启动时自动生成。</summary>
 	public string SendFileWebPass = "";
-	/// <summary>局域网投屏接收（UDP 19518 / TCP 19519）。</summary>
+	/// <summary>局域网投屏接收（UDP 17531 发现 / HTTP /cast 媒体）。</summary>
 	public bool CastRecvEnabled = true;
 	/// <summary>投屏画质档名（流畅 540p / 均衡 720p / 高清 1080p）。</summary>
 	public string CastQuality = "均衡 720p";
