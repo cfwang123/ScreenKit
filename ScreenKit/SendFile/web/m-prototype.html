@@ -34,38 +34,22 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);o
 	stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
 
 .app{width:100%;max-width:720px;min-height:100vh;margin:0 auto;padding-bottom:calc(124px + var(--safe-bottom))}
-.hero{padding:calc(22px + env(safe-area-inset-top,0px)) 20px 12px}
-.hero-top{display:flex;align-items:center;justify-content:space-between;gap:16px}
-.eyebrow{margin:0 0 3px;color:var(--primary);font-size:12px;font-weight:800;letter-spacing:.12em}
-.hero h1{margin:0;font-size:29px;line-height:1.2;letter-spacing:-.04em}
 .profile{width:44px;height:44px;border:1px solid var(--line);border-radius:15px;background:var(--surface);
 	color:var(--ink);display:grid;place-items:center;box-shadow:0 4px 16px rgba(27,31,59,.05)}
 .profile .icon{width:20px;height:20px}
 
-.path-wrap{position:sticky;top:0;z-index:5;padding:8px 16px 10px;
+.path-wrap{position:sticky;top:0;z-index:5;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 9px;
 	background:linear-gradient(to bottom,var(--page) 78%,rgba(246,247,251,0))}
-.path{display:flex;align-items:center;min-height:44px;padding:5px;border:1px solid var(--line);
+.path-row{display:flex;align-items:center;gap:8px}
+.path{display:flex;align-items:center;min-width:0;min-height:44px;padding:5px;border:1px solid var(--line);
 	border-radius:15px;background:rgba(255,255,255,.94);box-shadow:0 5px 18px rgba(27,31,59,.05);
-	overflow-x:auto;scrollbar-width:none}
+	overflow-x:auto;scrollbar-width:none;flex:1}
 .path::-webkit-scrollbar{display:none}
 .path button{display:inline-flex;align-items:center;gap:6px;min-width:max-content;height:32px;padding:0 9px;
 	border-radius:10px;background:transparent;color:var(--muted);font-size:13px;font-weight:700}
 .path button:last-child{background:var(--primary-soft);color:var(--primary)}
 .path .icon{width:16px;height:16px}
 .path .chevron{width:14px;height:14px;color:#b4b7c3}
-
-.tools{display:flex;gap:10px;padding:4px 20px 11px}
-.search{position:relative;flex:1}
-.search .icon{position:absolute;left:13px;top:50%;width:18px;height:18px;color:#9a9ead;transform:translateY(-50%)}
-.search input{width:100%;height:46px;padding:0 42px;border:1px solid var(--line);border-radius:14px;
-	background:var(--surface);color:var(--ink)}
-.search input::placeholder{color:#9a9ead}
-.search-clear{position:absolute;right:7px;top:7px;width:32px;height:32px;border-radius:10px;
-	background:transparent;color:#a1a5b2;display:grid;place-items:center}
-.search-clear .icon{position:static;width:17px;height:17px;transform:none}
-.sort{width:46px;height:46px;border:1px solid var(--line);border-radius:14px;background:var(--surface);
-	color:#555a6c;display:grid;place-items:center}
-.sort .icon{width:20px;height:20px}
 
 .section-head{display:flex;align-items:end;justify-content:space-between;padding:3px 20px 9px}
 .section-head h2{margin:0;font-size:14px}
@@ -106,7 +90,7 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);o
 .dock-wrap{position:fixed;z-index:10;left:0;right:0;bottom:0;padding:10px 14px calc(10px + var(--safe-bottom));
 	background:linear-gradient(to top,var(--page) 76%,rgba(246,247,251,0));pointer-events:none}
 .dock{width:min(100%,688px);height:74px;margin:0 auto;padding:7px;display:grid;
-	grid-template-columns:1fr 1.25fr 1fr 1fr;border:1px solid rgba(222,224,234,.9);border-radius:23px;
+	grid-template-columns:repeat(3,1fr);border:1px solid rgba(222,224,234,.9);border-radius:23px;
 	background:rgba(255,255,255,.96);box-shadow:0 16px 38px rgba(27,31,59,.15);
 	backdrop-filter:blur(16px);pointer-events:auto}
 .dock button{border-radius:16px;background:transparent;color:#74798a;display:flex;flex-direction:column;
@@ -204,8 +188,6 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);o
 	background:var(--primary-soft);color:var(--primary);font-size:11px;font-weight:800}
 
 @media (min-width:620px){
-	.hero{padding-left:24px;padding-right:24px}
-	.tools{padding-left:24px;padding-right:24px}
 	.section-head{padding-left:25px;padding-right:25px}
 }
 @media (prefers-reduced-motion:reduce){
@@ -223,13 +205,9 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);o
 	<symbol id="i-archive" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V21H7z"/><path d="M14 3.5v4h4M10 7h2m-2 3h2m-2 3h2v4h-2z"/></symbol>
 	<symbol id="i-home" viewBox="0 0 24 24"><path d="m4 11 8-7 8 7"/><path d="M6.5 9.5V20h11V9.5M10 20v-6h4v6"/></symbol>
 	<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
-	<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
-	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></symbol>
-	<symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
-	<symbol id="i-sort" viewBox="0 0 24 24"><path d="M8 5v14m0 0-3-3m3 3 3-3M16 19V5m0 0-3 3m3-3 3 3"/></symbol>
 	<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 14v5h14v-5"/></symbol>
+	<symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
 	<symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6A2.5 2.5 0 0 1 20.5 9.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M12 11v6m-3-3h6"/></symbol>
-	<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6"/><path d="M20 5v6h-6"/></symbol>
 	<symbol id="i-zip" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V21H7z"/><path d="M14 3.5v4h4M10 7h2m-2 3h2m-2 3h2v4h-2z"/></symbol>
 	<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
 	<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 20h14"/></symbol>
@@ -264,31 +242,13 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);o
 </section>
 
 <main id="app" class="app">
-	<header class="hero">
-		<div class="hero-top">
-			<div>
-				<p class="eyebrow">SCREENKIT</p>
-				<h1>我的文件</h1>
-			</div>
+	<div class="path-wrap">
+		<div class="path-row">
+			<nav id="path" class="path" aria-label="当前位置"></nav>
 			<button id="profileButton" class="profile" type="button" aria-label="账户与退出">
 				<svg class="icon"><use href="#i-user"/></svg>
 			</button>
 		</div>
-	</header>
-
-	<div class="path-wrap"><nav id="path" class="path" aria-label="当前位置"></nav></div>
-
-	<div class="tools">
-		<label class="search">
-			<svg class="icon"><use href="#i-search"/></svg>
-			<input id="search" type="search" placeholder="在当前文件夹中查找" autocomplete="off"/>
-			<button id="clearSearch" class="search-clear" type="button" aria-label="清空搜索" hidden>
-				<svg class="icon"><use href="#i-close"/></svg>
-			</button>
-		</label>
-		<button id="sortButton" class="sort" type="button" aria-label="排序">
-			<svg class="icon"><use href="#i-sort"/></svg>
-		</button>
 	</div>
 
 	<div class="section-head">
@@ -305,13 +265,13 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);o
 
 <div id="dock" class="dock-wrap">
 	<nav class="dock" aria-label="文件操作">
-		<button id="newFolderButton" type="button"><svg class="icon"><use href="#i-folder-plus"/></svg><span>新建</span></button>
 		<button id="uploadButton" class="upload" type="button"><svg class="icon"><use href="#i-upload"/></svg><span>上传</span></button>
-		<button id="refreshButton" type="button"><svg class="icon"><use href="#i-refresh"/></svg><span>刷新</span></button>
-		<button id="zipCurrentButton" type="button"><svg class="icon"><use href="#i-zip"/></svg><span>打包</span></button>
+		<button id="cameraButton" type="button"><svg class="icon"><use href="#i-camera"/></svg><span>拍照</span></button>
+		<button id="newFolderButton" type="button"><svg class="icon"><use href="#i-folder-plus"/></svg><span>新建</span></button>
 	</nav>
 </div>
 <input id="filePicker" type="file" multiple hidden/>
+<input id="cameraPicker" type="file" accept="image/*" capture="environment" hidden/>
 
 <div id="selectionBar" class="selection-wrap" hidden>
 	<div class="selection-bar">
@@ -330,12 +290,6 @@ button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);o
 </div>
 
 <div id="scrim" class="scrim"></div>
-
-<section id="sortSheet" class="sheet" role="dialog" aria-modal="true" aria-label="排序方式">
-	<div class="grab"></div>
-	<div class="sheet-title"><div><strong>排序方式</strong><small>仅影响当前显示顺序</small></div></div>
-	<div id="sortChoices" class="sheet-list"></div>
-</section>
 
 <section id="accountSheet" class="sheet" role="dialog" aria-modal="true" aria-label="账户">
 	<div class="grab"></div>
@@ -379,7 +333,6 @@ window.mobileFilePrototype = (function(){
 	var t = {init:init};
 	var currentPath = "";
 	var selected = [];
-	var sortMode = "type";
 	var dialogDone = null;
 	var toastTimer = 0;
 	var longPressTimer = 0;
@@ -418,25 +371,13 @@ window.mobileFilePrototype = (function(){
 	}
 
 	function bind() {
-		on("search","input",function(){
-			el("clearSearch").hidden = !el("search").value;
-			renderFiles();
-		});
-		on("clearSearch","click",function(){
-			el("search").value = "";
-			el("clearSearch").hidden = true;
-			renderFiles();
-		});
-		on("sortButton","click",function(){ openSheet("sortSheet"); });
 		on("profileButton","click",function(){ openSheet("accountSheet"); });
 		on("scrim","click",closeOverlays);
 		on("newFolderButton","click",newFolder);
 		on("uploadButton","click",function(){ el("filePicker").click(); });
-		on("filePicker","change",uploadFiles);
-		on("refreshButton","click",refresh);
-		on("zipCurrentButton","click",function(){
-			toast(currentPath ? "正在打包「" + leaf(currentPath) + "」" : "正在打包根目录");
-		});
+		on("cameraButton","click",function(){ el("cameraPicker").click(); });
+		on("filePicker","change",function(){ importFiles(el("filePicker"),"文件"); });
+		on("cameraPicker","change",function(){ importFiles(el("cameraPicker"),"照片"); });
 		on("cancelSelectionButton","click",clearSelection);
 		on("downloadSelectionButton","click",downloadSelected);
 		on("zipSelectionButton","click",zipSelected);
@@ -461,7 +402,6 @@ window.mobileFilePrototype = (function(){
 	function render() {
 		renderPath();
 		renderFiles();
-		renderSortChoices();
 	}
 
 	function renderPath() {
@@ -489,31 +429,20 @@ window.mobileFilePrototype = (function(){
 
 	function renderFiles() {
 		var source = (data[currentPath] || []).slice();
-		var query = el("search").value.trim().toLowerCase();
-		if (query) source = source.filter(function(item){ return item.name.toLowerCase().indexOf(query) >= 0; });
 		sortItems(source);
 		var list = el("fileList");
 		list.innerHTML = "";
 		for (var i = 0; i < source.length; i++) list.appendChild(fileRow(source[i]));
-		el("itemCount").textContent = source.length + " 项" + (query ? "匹配" : "");
+		el("itemCount").textContent = source.length + " 项";
 		el("empty").hidden = source.length !== 0;
 		updateSelectionBar();
 	}
 
 	function sortItems(items) {
 		items.sort(function(a,b){
-			if (sortMode === "type" && a.dir !== b.dir) return a.dir ? -1 : 1;
-			if (sortMode === "size") return sizeNumber(b.size) - sizeNumber(a.size);
-			if (sortMode === "time") return String(b.mtime).localeCompare(String(a.mtime),"zh-CN");
+			if (a.dir !== b.dir) return a.dir ? -1 : 1;
 			return a.name.localeCompare(b.name,"zh-CN");
 		});
-	}
-
-	function sizeNumber(value) {
-		var n = parseFloat(value) || 0;
-		if (/GB$/i.test(value || "")) return n * 1024 * 1024;
-		if (/MB$/i.test(value || "")) return n * 1024;
-		return n;
 	}
 
 	function fileRow(item) {
@@ -633,40 +562,10 @@ window.mobileFilePrototype = (function(){
 		el("copySelectionButton").disabled = count === 0;
 	}
 
-	function renderSortChoices() {
-		var modes = [
-			{id:"type",label:"文件夹优先"},
-			{id:"name",label:"按名称"},
-			{id:"time",label:"按修改时间"},
-			{id:"size",label:"按大小"}
-		];
-		var box = el("sortChoices");
-		box.innerHTML = "";
-		for (var i = 0; i < modes.length; i++) box.appendChild(sortChoice(modes[i]));
-	}
-
-	function sortChoice(mode) {
-		var button = document.createElement("button");
-		button.type = "button";
-		button.className = "sheet-choice" + (mode.id === sortMode ? " active" : "");
-		button.appendChild(document.createTextNode(mode.label));
-		if (mode.id === sortMode) button.appendChild(icon("i-check"));
-		button.addEventListener("click",function(){
-			sortMode = mode.id;
-			renderSortChoices();
-			renderFiles();
-			closeOverlays();
-			toast("已切换为" + mode.label);
-		});
-		return button;
-	}
-
 	function enter(path) {
 		selected = [];
 		currentPath = path || "";
 		if (!data[currentPath]) data[currentPath] = [];
-		el("search").value = "";
-		el("clearSearch").hidden = true;
 		closeOverlays();
 		render();
 		window.scrollTo({top:0,behavior:"smooth"});
@@ -772,30 +671,18 @@ window.mobileFilePrototype = (function(){
 		toast("正在将 " + count + " 项打包为 ZIP");
 	}
 
-	function uploadFiles() {
-		var picker = el("filePicker");
+	function importFiles(picker,label) {
 		if (!picker.files || !picker.files.length) return;
 		var items = data[currentPath] || (data[currentPath] = []);
 		var count = picker.files.length;
-		toast("正在上传 " + count + " 个文件…");
+		toast("正在上传 " + count + " 个" + label + "…");
 		setTimeout(function(){
 			for (var i = 0; i < picker.files.length; i++)
 				items.unshift({name:picker.files[i].name,size:humanSize(picker.files[i].size),mtime:"刚刚"});
 			renderFiles();
-			toast(count + " 个文件上传完成");
+			toast(count + " 个" + label + "上传完成");
 			picker.value = "";
 		},650);
-	}
-
-	function refresh() {
-		var button = el("refreshButton");
-		button.disabled = true;
-		toast("正在刷新…");
-		setTimeout(function(){
-			button.disabled = false;
-			renderFiles();
-			toast("已是最新内容");
-		},500);
 	}
 
 	function openTextDialog(title,hint,value,done) {
@@ -871,11 +758,6 @@ window.mobileFilePrototype = (function(){
 		if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
 		if (size < 1024 * 1024 * 1024) return (size / 1024 / 1024).toFixed(1) + " MB";
 		return (size / 1024 / 1024 / 1024).toFixed(2) + " GB";
-	}
-
-	function leaf(path) {
-		var parts = (path || "").split("/");
-		return parts[parts.length - 1] || "根目录";
 	}
 
 	function join(path,name) { return path ? path + "/" + name : name; }
