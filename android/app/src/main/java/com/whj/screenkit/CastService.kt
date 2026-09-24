@@ -70,6 +70,12 @@ class CastService : Service() {
             return START_STICKY
         }
         startFg()
+        if (mp != null || sink != null || video != null) {
+            Log.i("scst", "restart, stop previous")
+            replacing = true
+            stopCast()
+            replacing = true
+        }
         val code = intent?.getIntExtra(EXTRA_CODE, 0) ?: 0
         val data = if (Build.VERSION.SDK_INT >= 33) {
             intent?.getParcelableExtra(EXTRA_DATA, Intent::class.java)
@@ -111,6 +117,7 @@ class CastService : Service() {
                     latch.countDown()
                 }
                 latch.await()
+                replacing = false
                 val e = fail
                 if (e != null) throw e
             } catch (ex: Exception) {

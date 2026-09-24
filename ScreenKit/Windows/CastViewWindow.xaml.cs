@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using System.Windows.Shell;
 using System.Windows.Threading;
 
@@ -62,6 +64,12 @@ public partial class CastViewWindow : Window {
 		Activate();
 		Focus();
 		try { img.Focus(); } catch { }
+		try {
+			var h = new WindowInteropHelper(this).EnsureHandle();
+			ShowWindow(h, 9);
+			SetForegroundWindow(h);
+		}
+		catch { }
 	}
 
 	public void HideCast() {
@@ -259,4 +267,10 @@ public partial class CastViewWindow : Window {
 		else stattimer.Stop();
 		e.Handled = true;
 	}
+
+	[DllImport("user32.dll")]
+	static extern bool SetForegroundWindow(IntPtr h);
+
+	[DllImport("user32.dll")]
+	static extern bool ShowWindow(IntPtr h, int cmd);
 }

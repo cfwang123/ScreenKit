@@ -6,8 +6,7 @@ using System.Text.Json.Nodes;
 namespace ScreenKit;
 
 sealed class CastRecvSrv : IDisposable {
-	TcpListener lis;
-	Thread th;
+	readonly List<TcpListener> listeners = new();
 	volatile bool stop;
 	volatile bool busy;
 	volatile bool drop;
@@ -38,21 +37,47 @@ sealed class CastRecvSrv : IDisposable {
 	int sessstart;
 	bool hadhello;
 	long byteacc;
-	public bool Running => !stop && lis != null;
+	public bool Running => !stop && listeners.Count > 0;
 	public bool Busy => busy;
 
 	public void Start() {
-		if (lis != null) return;
+		if (listeners.Count > 0) return;
 		if (!FfmpegLoader.TryInit(out var err))
 			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
 		stop = false;
-		lis = new TcpListener(IPAddress.Any, CastProto.TCP_PORT);
-		lis.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-		lis.Start();
-		th = new Thread(loop) { IsBackground = true, Name = "cast-recv" };
-		th.Start();
+		if (!trybind(IPAddress.Any, exclusive: true)) {
+			Log?.Invoke($"TCP {CastProto.TCP_PORT} 0.0.0.0 被占，改绑 127.0.0.1（adb reverse）");
+			if (!trybind(IPAddress.Loopback, exclusive: true))
+				trybind(IPAddress.Loopback, exclusive: false);
+			trybind(IPAddress.Any, exclusive: false);
+		}
+		if (listeners.Count == 0)
+			throw new InvalidOperationException($"无法绑定 TCP {CastProto.TCP_PORT}");
+		foreach (var l in listeners) {
+			var lis = l;
+			new Thread(() => loop(lis)) { IsBackground = true, Name = "cast-recv" }.Start();
+		}
 		ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall());
-		Log?.Invoke($"接收已启动 TCP {CastProto.TCP_PORT}");
+		Log?.Invoke($"接收已启动 TCP {CastProto.TCP_PORT} ({listeners.Count} 路)");
+	}
+
+	bool trybind(IPAddress addr, bool exclusive) {
+		TcpListener l = null;
+		try {
+			l = new TcpListener(addr, CastProto.TCP_PORT);
+			l.Server.ExclusiveAddressUse = exclusive;
+			if (!exclusive)
+				l.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+			l.Start();
+			listeners.Add(l);
+			Log?.Invoke($"监听 {addr}:{CastProto.TCP_PORT} exclusive={exclusive}");
+			return true;
+		}
+		catch (Exception ex) {
+			Log?.Invoke($"bind {addr} exclusive={exclusive}: {ex.Message}");
+			try { l?.Stop(); } catch { }
+			return false;
+		}
 	}
 
 	public void Tick() {
@@ -128,7 +153,7 @@ sealed class CastRecvSrv : IDisposable {
 		finally { if (hello) OnGone?.Invoke(); }
 	}
 
-	void loop() {
+	void loop(TcpListener lis) {
 		while (!stop) {
 			TcpClient cli = null;
 			try { cli = lis.AcceptTcpClient(); }
@@ -153,7 +178,7 @@ sealed class CastRecvSrv : IDisposable {
 
 	void onesess(TcpClient cli) {
 		if (busy) {
-			if (!haspayload(cli, 400)) {
+			if (deadsoon(cli, 250)) {
 				Log?.Invoke($"探测连接，忽略 {cli.Client?.RemoteEndPoint}");
 				try { cli.Close(); } catch { }
 				return;
@@ -166,7 +191,10 @@ sealed class CastRecvSrv : IDisposable {
 		}
 		var hello = false;
 		curcli = cli;
-		try { hello = runsession(cli.GetStream()); }
+		try {
+			try { cli.ReceiveTimeout = 20000; } catch { }
+			hello = runsession(cli.GetStream());
+		}
 		catch (Exception ex) { Log?.Invoke($"会话结束: {ex.Message}"); }
 		finally {
 			if (ReferenceEquals(curcli, cli)) curcli = null;
@@ -175,22 +203,23 @@ sealed class CastRecvSrv : IDisposable {
 		}
 	}
 
-	static bool haspayload(TcpClient cli, int ms) {
+	static bool deadsoon(TcpClient cli, int ms) {
 		try {
 			var t0 = Environment.TickCount;
 			while (Environment.TickCount - t0 < ms) {
 				try {
-					if (cli.Available > 0) return true;
-					if (cli.Client == null || !cli.Connected) return false;
-					if (cli.Client.Poll(0, SelectMode.SelectRead) && cli.Available == 0)
-						return false;
+					if (cli.Available > 0) return false;
+					var sock = cli.Client;
+					if (sock == null || !cli.Connected) return true;
+					if (sock.Poll(0, SelectMode.SelectRead) && cli.Available == 0)
+						return true;
 				}
-				catch { return false; }
+				catch { return true; }
 				Thread.Sleep(20);
 			}
-			return cli.Available > 0;
+			return false;
 		}
-		catch { return false; }
+		catch { return true; }
 	}
 
 	bool runsession(Stream s) {
@@ -429,8 +458,10 @@ sealed class CastRecvSrv : IDisposable {
 	public void Stop() {
 		stop = true;
 		Kick();
-		try { lis?.Stop(); } catch { }
-		lis = null;
+		foreach (var l in listeners) {
+			try { l.Stop(); } catch { }
+		}
+		listeners.Clear();
 		resetdec();
 		busy = false;
 	}

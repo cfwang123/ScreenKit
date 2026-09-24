@@ -34,6 +34,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Screencast viewer: LibUsb never runs in the main process (that killed ScreenKit when a phone was plugged in, so the viewer never appeared). USB accessory uses a helper that requests AOA **and** bridges bulk to `127.0.0.1:19519`. Probe TCP connects no longer kick an active session. Auto-close no longer sets `hidebyuser`, so the next hello can show the window again.
+- USB adb screencast: if 19519 is held by a dead listener, bind `127.0.0.1` (wins adb reverse) and reuse the LAN wildcard. A still-open TCP is a real session, not a probe. Phone probe uses a 1.5s `127.0.0.1` ping.
 - Phone screencast keeps the selected quality in landscape: the encoder is rebound to the new size (same VirtualDisplay) instead of cropping a portrait frame. If rebind fails, crop is still the fallback.
 - Password variants mostly translate into other languages then ASCII-romanize; at most one English paraphrase. They no longer reorder words, add digits, or use leetspeak.
 - Viewer stays topmost and is centered; hello no longer uses a blocking UI invoke (could prevent the window from appearing). ShowCast always calls `Show()`, and OnGone delays hide so a quick reconnect cannot swallow the window.
@@ -75,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 投屏窗反复不弹出：主进程不再调用 LibUsb（插着手机点 USB配件会把 ScreenKit 打崩）。配件助手会请求 AOA **并**把 bulk 桥到 `127.0.0.1:19519`。探测 TCP（立刻断开）不再踢掉正在投屏的会话。自动关窗不再记成用户关闭，下次 hello 还能弹出。
+- USB(adb) 投屏不弹窗：19519 被已死进程的幽灵监听占着，新进程独占绑定失败等于没在听。失败时改绑更具体的 `127.0.0.1`（adb reverse 会命中）并 reuse 局域网。探测短连不算正式会话。
 - 手机投屏横屏保持所选画质：旋转时换编码器尺寸（不销毁 VirtualDisplay），不再从竖屏画面里裁一小条。失败仍回落裁切。
 - 密码变体以其它语言译音（拼音 / 罗马字）为主，英文同义最多一条；不再调换词序、加数字或做 o→0 一类替换。
 - 画面窗保持置顶并居中；hello 不再同步 Invoke UI（可能卡住不弹窗）。ShowCast 必调 `Show()`；OnGone 延迟关窗，避免重连瞬间把窗口关掉。

@@ -29,27 +29,14 @@ object UsbLoop {
 
     fun probe(): String? {
         val errs = ArrayList<String>()
-        try {
-            openAbstract().close()
-            Log.i(TAG, "probe ok abstract:${Proto.ABSTRACT}")
-            return "abstract"
-        } catch (ex: Exception) {
-            errs.add("abstract:${ex.javaClass.simpleName}:${ex.message}")
-        }
-        try {
-            TcpSink("::1", Proto.TCP_PORT, net = null).close()
-            Log.i(TAG, "probe ok ::1")
-            return "::1"
-        } catch (ex: Exception) {
-            errs.add("::1:${ex.javaClass.simpleName}:${ex.message}")
-        }
-        try {
-            TcpSink("127.0.0.1", Proto.TCP_PORT, net = null).close()
+        if (pingTcp("127.0.0.1", 1500)) {
             Log.i(TAG, "probe ok 127.0.0.1")
             return "127.0.0.1"
-        } catch (ex: Exception) {
-            errs.add("v4:${ex.javaClass.simpleName}:${ex.message}")
-        }
+        } else errs.add("v4")
+        if (pingAbstract(1500)) {
+            Log.i(TAG, "probe ok abstract:${Proto.ABSTRACT}")
+            return "abstract"
+        } else errs.add("abstract")
         val msg = errs.joinToString("; ")
         Log.w(TAG, "probe fail $msg")
         lastErr = msg
@@ -65,12 +52,6 @@ object UsbLoop {
             Log.w(TAG, "open abstract ${ex.message}")
         }
         try {
-            return TcpSink("::1", Proto.TCP_PORT, net = null)
-        } catch (ex: Exception) {
-            last = ex
-            Log.w(TAG, "open ::1 ${ex.message}")
-        }
-        try {
             return TcpSink("127.0.0.1", Proto.TCP_PORT, net = null)
         } catch (ex: Exception) {
             last = ex
@@ -83,6 +64,39 @@ object UsbLoop {
         private set
 
     private fun openAbstract(): FrameSink = AbstractSink(Proto.ABSTRACT)
+
+    private fun pingTcp(ip: String, ms: Int): Boolean {
+        val s = Socket()
+        return try {
+            s.connect(InetSocketAddress(ip, Proto.TCP_PORT), ms)
+            true
+        } catch (_: Exception) {
+            false
+        } finally {
+            try { s.close() } catch (_: Exception) { }
+        }
+    }
+
+    private fun pingAbstract(ms: Int): Boolean {
+        val sock = LocalSocket()
+        return try {
+            val err = java.util.concurrent.atomic.AtomicReference<Exception>()
+            val th = Thread({
+                try { sock.connect(LocalSocketAddress(Proto.ABSTRACT)) }
+                catch (ex: Exception) { err.set(ex) }
+            }, "abs-probe")
+            th.start()
+            th.join(ms.toLong())
+            if (th.isAlive) {
+                try { sock.close() } catch (_: Exception) { }
+                false
+            } else err.get() == null
+        } catch (_: Exception) {
+            false
+        } finally {
+            try { sock.close() } catch (_: Exception) { }
+        }
+    }
 }
 
 class TcpSink private constructor(private val sock: Socket) : FrameSink {
@@ -268,7 +282,18 @@ class AbstractSink(name: String) : FrameSink {
 
     init {
         try {
-            sock.connect(LocalSocketAddress(name))
+            val err = java.util.concurrent.atomic.AtomicReference<Exception>()
+            val th = Thread({
+                try { sock.connect(LocalSocketAddress(name)) }
+                catch (ex: Exception) { err.set(ex) }
+            }, "abs-conn")
+            th.start()
+            th.join(2000)
+            if (th.isAlive) {
+                try { sock.close() } catch (_: Exception) { }
+                throw java.io.IOException("abstract 连接超时")
+            }
+            err.get()?.let { throw it }
             os = sock.outputStream
             ath = Thread({ aloop() }, "abs-a").also { it.start() }
             vth = Thread({ vloop() }, "abs-v").also { it.start() }
