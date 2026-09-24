@@ -60,7 +60,7 @@ object CastDiscover {
                     val name = o.optString("name", ip)
                     val role = o.optString("role", "")
                     if (role == "send") continue
-                    found["$ip:$tcp"] = Peer(name, ip, tcp, role, o.optInt("http", 1224).let { if (it > 0) it else 1224 })
+                    found[ip] = Peer(name, ip, tcp, role, o.optInt("http", 1224).let { if (it > 0) it else 1224 })
                     Log.i(TAG, "discover $name $ip:$tcp $role")
                 } catch (_: Exception) {
                 }

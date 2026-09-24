@@ -87,8 +87,8 @@ class CastActivity : AppCompatActivity() {
         b.lpeers.setOnItemClickListener { _, _, pos, _ ->
             b.lpeers.setItemChecked(pos, true)
             val p = peers.getOrNull(pos) ?: return@setOnItemClickListener
-            fillIp(p.ip)
-            b.lbstat.text = "已选 ${p.name}  ${p.ip}"
+            fillPeer(p)
+            b.lbstat.text = "已选 ${p.name}  ${p.ip}:${p.tcp}"
         }
         b.bscan.setOnClickListener { scan() }
         b.bstart.setOnClickListener { startLan() }
@@ -220,14 +220,15 @@ class CastActivity : AppCompatActivity() {
                 )
                 if (list.size == 1) {
                     b.lpeers.setItemChecked(0, true)
-                    fillIp(list[0].ip)
-                    b.lbstat.text = "已选 ${list[0].name}  ${list[0].ip}"
+                    fillPeer(list[0])
+                    b.lbstat.text = "已选 ${list[0].name}  ${list[0].ip}:${list[0].tcp}"
                 } else {
                     val last = b.eip.text?.toString()?.trim().orEmpty()
-                    val ix = list.indexOfFirst { it.ip == last }
+                    val ix = list.indexOfFirst { it.ip == last || last.startsWith("${it.ip}:") }
                     if (ix >= 0) {
                         b.lpeers.setItemChecked(ix, true)
-                        b.lbstat.text = "已选 ${list[ix].name}  ${list[ix].ip}"
+                        fillPeer(list[ix])
+                        b.lbstat.text = "已选 ${list[ix].name}  ${list[ix].ip}:${list[ix].tcp}"
                     } else {
                         b.lpeers.clearChoices()
                         b.lbstat.text = "扫描到 ${list.size} 台，点选一台"
@@ -249,7 +250,7 @@ class CastActivity : AppCompatActivity() {
         pendingIp = p.ip
         pendingPort = p.tcp
         pendingHttp = p.http
-        fillIp(p.ip)
+        fillPeer(p)
         requestProj()
     }
 
@@ -379,6 +380,11 @@ class CastActivity : AppCompatActivity() {
     private fun requestProj() {
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         proj.launch(mgr.createScreenCaptureIntent())
+    }
+
+    private fun fillPeer(p: Peer) {
+        val s = if (p.tcp > 0 && p.tcp != Proto.TCP_PORT) "${p.ip}:${p.tcp}" else p.ip
+        fillIp(s)
     }
 
     private fun fillIp(ip: String) {

@@ -7,11 +7,15 @@ using System.Text;
 namespace ScreenKit;
 
 static class CastNetUtil {
-	public static void TryFirewall() {
+	public static void TryFirewall(int tcpPort = 0) {
+		if (tcpPort <= 0) tcpPort = CastProto.TCP_PORT;
 		runnetsh("advfirewall firewall delete rule name=\"ScreenKit Cast TCP\"");
+		runnetsh("advfirewall firewall delete rule name=\"ScreenKit Cast TCP extra\"");
 		runnetsh("advfirewall firewall delete rule name=\"ScreenKit Cast UDP\"");
-		runnetsh($"advfirewall firewall add rule name=\"ScreenKit Cast TCP\" dir=in action=allow protocol=TCP localport={CastProto.TCP_PORT}");
+		runnetsh("advfirewall firewall add rule name=\"ScreenKit Cast TCP\" dir=in action=allow protocol=TCP localport=19519-19534");
 		runnetsh($"advfirewall firewall add rule name=\"ScreenKit Cast UDP\" dir=in action=allow protocol=UDP localport={CastProto.UDP_PORT}");
+		if (tcpPort < 19519 || tcpPort > 19534)
+			runnetsh($"advfirewall firewall add rule name=\"ScreenKit Cast TCP extra\" dir=in action=allow protocol=TCP localport={tcpPort}");
 	}
 
 	static void runnetsh(string args) {

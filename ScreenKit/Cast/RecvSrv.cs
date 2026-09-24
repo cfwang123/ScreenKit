@@ -67,7 +67,7 @@ sealed class CastRecvSrv : IDisposable {
 			started = true;
 			ensuretcp();
 		}
-		ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall());
+		ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall(listenport > 0 ? listenport : CastProto.TCP_PORT));
 		Log?.Invoke($"接收已启动 {BindText} USB管道");
 	}
 
@@ -132,6 +132,7 @@ sealed class CastRecvSrv : IDisposable {
 					? $"TCP {port}"
 					: $"TCP {port}（{CastProto.TCP_PORT} 被占）";
 				Log?.Invoke($"已独占监听 0.0.0.0:{port}");
+				ThreadPool.QueueUserWorkItem(_ => CastNetUtil.TryFirewall(port));
 				return;
 			}
 			Log?.Invoke($"TCP {port} 已 bind 但本进程收不到连接（幽灵占用），换口");

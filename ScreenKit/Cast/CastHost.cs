@@ -326,7 +326,9 @@ static class CastHost {
 		}
 	}
 
-	static int tcpport() => Recv != null && Recv.ListenPort > 0 ? Recv.ListenPort : CastProto.TCP_PORT;
+	public static int TcpPort => Recv != null && Recv.ListenPort > 0 ? Recv.ListenPort : CastProto.TCP_PORT;
+
+	static int tcpport() => TcpPort;
 
 	static void reverseadb() => CastAdbFwd.Reverse(tcpport(), log);
 

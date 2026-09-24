@@ -109,7 +109,7 @@ sealed class CastDisc : IDisposable {
 			if (p.Name == name() && p.Role == role) return;
 			lock (peers) peers[p.Ip + ":" + p.Role] = p;
 			if (p.Role == "send")
-				reply(ep, CastProto.Jint(o, "tcp") == 0 ? CastProto.TCP_PORT : p.Tcp);
+				reply(ep, CastHost.TcpPort);
 		}
 		catch { }
 	}

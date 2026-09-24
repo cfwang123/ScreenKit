@@ -123,7 +123,7 @@ public partial class CastWindow : Window {
 	}
 
 	void bscan_Click(object sender, RoutedEventArgs e) {
-		CastHost.Disc?.Beacon(CastProto.TCP_PORT);
+		CastHost.Disc?.Beacon(CastHost.TcpPort);
 		refreshpeers();
 		AppendLog(Loc.T("cast.log.scan", lpeers.Items.Count));
 	}
@@ -133,10 +133,16 @@ public partial class CastWindow : Window {
 		if (string.IsNullOrEmpty(s)) { AppendLog(Loc.T("cast.log.needpeer")); return; }
 		var parts = s.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 		string host = null;
+		var port = CastHost.TcpPort;
 		foreach (var p in parts)
-			if (p.Contains(":")) { host = p.Split(':')[0]; break; }
+			if (p.Contains(":")) {
+				var hp = p.Split(':');
+				host = hp[0];
+				if (hp.Length > 1 && int.TryParse(hp[1], out var tp) && tp > 0) port = tp;
+				break;
+			}
 		if (host == null) { AppendLog(Loc.T("cast.log.badip")); return; }
-		connect(host, CastProto.TCP_PORT);
+		connect(host, port);
 	}
 
 	void bconnect_Click(object sender, RoutedEventArgs e) {
