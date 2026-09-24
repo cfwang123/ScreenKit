@@ -24,6 +24,7 @@ static class CastHost {
 	static int framebusy = -1;
 	static int framew, frameh, framest;
 	static bool frameposted;
+	static int lastadb;
 
 	public static ImageSource WinIcon {
 		get {
@@ -93,6 +94,11 @@ static class CastHost {
 					Disc?.Beacon(CastProto.TCP_PORT);
 				Recv?.Tick();
 				UsbScan?.Tick();
+				var now = Environment.TickCount;
+				if (now - lastadb > 8000 || lastadb == 0) {
+					lastadb = now;
+					CastAdbFwd.Reverse(CastProto.TCP_PORT, log);
+				}
 			}
 			catch { }
 		});

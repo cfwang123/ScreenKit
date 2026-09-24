@@ -86,6 +86,7 @@ class CastActivity : AppCompatActivity() {
         b.bstart.setOnClickListener { startLan() }
         b.bmanual.setOnClickListener { startManual() }
         b.busb.setOnClickListener { startUsb() }
+        b.busbadb.setOnClickListener { startUsbAdb() }
         b.bstop.setOnClickListener {
             startService(Intent(this, CastService::class.java).setAction(CastService.ACTION_STOP))
         }
@@ -105,6 +106,9 @@ class CastActivity : AppCompatActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         maybeTestIntent(intent)
+        if (intent?.getBooleanExtra("scst_go", false) != true &&
+            intent?.getBooleanExtra("scst_usb", false) != true
+        ) b.root.post { scan() }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -226,10 +230,18 @@ class CastActivity : AppCompatActivity() {
             waitUsb = true
             b.lbstat.text = "正在探测 USB 网络…"
             Thread {
+                val ip = try { UsbLan.findPc(this) } catch (_: Exception) { null }
                 val net = try { UsbLan.pickNet(this) } catch (_: Exception) { null }
                 val hasIface = try { UsbLan.hasUsbIface() } catch (_: Exception) { false }
                 runOnUiThread {
-                    if (net != null || hasIface) {
+                    if (!ip.isNullOrEmpty()) {
+                        pendingMode = "tcp"
+                        pendingIp = ip
+                        pendingPort = Proto.TCP_PORT
+                        waitUsb = false
+                        b.lbstat.text = "USB 网络 $ip"
+                        requestProj()
+                    } else if (net != null || hasIface) {
                         pendingMode = "usb-lan"
                         pendingIp = ""
                         pendingPort = Proto.TCP_PORT
@@ -237,8 +249,8 @@ class CastActivity : AppCompatActivity() {
                         b.lbstat.text = "USB 网络：等待电脑连入"
                         requestProj()
                     } else {
-                        toast("未检测到 USB 配件或 USB 网络。通知栏把 USB 设为「网络共享」即可，无需 USB 调试")
-                        b.lbstat.text = "等待 USB：配件或网络共享"
+                        toast("未检测到 USB 配件或 USB 网络。通知栏把 USB 设为「网络共享」，或用「USB 投屏(adb)」")
+                        b.lbstat.text = "等待 USB：配件 / 网络共享 / adb"
                     }
                 }
             }.start()
@@ -260,6 +272,25 @@ class CastActivity : AppCompatActivity() {
         requestProj()
     }
 
+    private fun startUsbAdb() {
+        pendingMode = "usb-adb"
+        pendingIp = ""
+        pendingPort = Proto.TCP_PORT
+        b.lbstat.text = "正在探测 adb 转发…"
+        Thread {
+            val p = try { UsbLoop.probe() } catch (_: Exception) { null }
+            runOnUiThread {
+                if (p.isNullOrEmpty()) {
+                    toast("未发现 adb 转发。电脑打开投屏接收，手机开 USB 调试后点此")
+                    b.lbstat.text = UsbLoop.lastErr.ifEmpty { "adb 转发未就绪" }
+                } else {
+                    b.lbstat.text = "USB adb $p"
+                    requestProj()
+                }
+            }
+        }.start()
+    }
+
     private fun requestProj() {
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         proj.launch(mgr.createScreenCaptureIntent())
@@ -271,7 +302,7 @@ class CastActivity : AppCompatActivity() {
         b.lbusb.text = if (n > 0)
             "USB: 配件已连接（无需 USB 调试）"
         else
-            "USB: 配件，或通知栏设为「网络共享」（无需 USB 调试）"
+            "USB: 网络共享，或「USB 投屏(adb)」需 USB 调试"
     }
 
     private fun handleUsb(intent: Intent?) {

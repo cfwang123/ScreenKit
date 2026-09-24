@@ -105,12 +105,25 @@
                 android:text="连接" />
         </LinearLayout>
 
-        <Button
-            android:id="@+id/busb"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="USB 投屏" />
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/busb"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="USB 投屏" />
+            <Button
+                android:id="@+id/busbadb"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="USB 投屏(adb)" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/bstop"

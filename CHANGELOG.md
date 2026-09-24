@@ -28,10 +28,16 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (translate words, reorder, add symbols/digits, mix case / leetspeak). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
 - LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 19518, media TCP 19519; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
 
 #### Changed
 
+- Phone screencast screen scans for PCs on open.
+- USB screencast: **USB 投屏** still uses accessory or USB tethering (phone listens / finds the PC); **USB 投屏(adb)** restores `adb reverse` (needs USB debugging). The PC repeats `adb reverse` in the background.
+- Screencast audio: a dedicated send thread plus an 80ms socket send timeout so AAC is not stuck behind video; capture matches more Android audio usages.
+- Viewer window refits when the phone rotates (crop + window aspect).
+- Screencast freeze: video writes drop on send timeout; IDR every 2s; `adb reverse` stays off the UI thread.
 - Screencast audio: the phone drains queued AAC before each video frame and never drops the encoder on a full send queue; ADTS is MPEG-4 `0xF1`.
 - Phone stop sends `bye` and closes the socket at once; a new TCP client kicks the old session; idle >15s drops it. The PC hides the viewer and ignores leftover frames.
 - USB tethering: the phone listens on the USB NIC and the PC connects out (USB adapters are often Public, so inbound 19519 is blocked). Port rules TCP 19519 / UDP 19518 are still added when ScreenKit can elevate.
@@ -48,10 +54,16 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），得到译词、换序、加符号数字、大小写 / leetspeak 等变体。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
 - 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现 UDP 19518，媒体 TCP 19519；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
 
 #### 变更
 
+- 手机打开投屏界面即扫描电脑。
+- USB 投屏：原按钮走配件或 USB 网络共享；新增 **USB 投屏(adb)**，恢复 `adb reverse`（需 USB 调试）。电脑后台重复做 reverse。
+- 投屏声音：音频独立发送线程，套接字写超时 80ms，避免被视频堵住；系统内录音匹配更多 usage。
+- 横屏后画面窗按手机比例重新适配。
+- 投屏卡死：视频写超时丢帧；每 2 秒要关键帧；`adb reverse` 不在 UI 线程。
 - 投屏声音：控制包（含 AAC）排空后再发视频，队列满时不再停掉音频编码；ADTS 用 MPEG-4 `0xF1`。
 - 手机点停止会发 `bye` 并立刻关套接字；新 TCP 会顶掉旧会话，超过 15 秒无包也断开。电脑关掉画面窗并丢掉残留帧。
 - USB 网络共享：手机在 USB 网卡上监听，电脑主动连出（USB 网卡常是公用网络，进站 19519 会被防火墙拦住）。若有权限仍会加 TCP 19519 / UDP 19518 规则。

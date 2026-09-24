@@ -6,6 +6,9 @@ import android.net.LocalSocket
 import android.net.LocalSocketAddress
 import android.os.ParcelFileDescriptor
 import android.os.NetworkOnMainThreadException
+import android.system.Os
+import android.system.OsConstants
+import android.system.StructTimeval
 import android.util.Log
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -87,8 +90,10 @@ class TcpSink private constructor(private val sock: Socket) : FrameSink {
     @Volatile private var dead = false
     private val gate = Any()
     private var pendingVideo: ByteArray? = null
-    private val ctrl = java.util.concurrent.LinkedBlockingQueue<Pair<Byte, ByteArray>>(128)
-    private val th: Thread
+    private val ctrl = java.util.concurrent.LinkedBlockingQueue<Pair<Byte, ByteArray>>(256)
+    private val wlock = Any()
+    private val ath: Thread
+    private val vth: Thread
 
     constructor(ip: String, port: Int, net: android.net.Network? = UsbLan.lastNet) : this(
         connectSock(ip, port, net)
@@ -100,8 +105,10 @@ class TcpSink private constructor(private val sock: Socket) : FrameSink {
             try { sock.sendBufferSize = 512 * 1024 } catch (_: Exception) { }
             try { sock.receiveBufferSize = 256 * 1024 } catch (_: Exception) { }
             os = sock.getOutputStream()
+            setsndto(80)
             android.util.Log.i("scst", "tcp connected ${sock.remoteSocketAddress}")
-            th = Thread({ loop() }, "tcp-send").also { it.start() }
+            ath = Thread({ aloop() }, "tcp-a").also { it.start() }
+            vth = Thread({ vloop() }, "tcp-v").also { it.start() }
         } catch (ex: Exception) {
             try { sock.close() } catch (_: Exception) { }
             throw ex
@@ -132,10 +139,8 @@ class TcpSink private constructor(private val sock: Socket) : FrameSink {
             val ss = java.net.ServerSocket()
             try {
                 ss.reuseAddress = true
-                ss.soTimeout = 20000
-                val local = UsbLan.lastAddr
-                if (local != null) ss.bind(InetSocketAddress(local, port), 1)
-                else ss.bind(InetSocketAddress(port), 1)
+                ss.soTimeout = 45000
+                ss.bind(InetSocketAddress(port), 1)
                 android.util.Log.i("scst", "usb-lan listen ${ss.localSocketAddress} net=${net != null}")
                 val sock = ss.accept()
                 sock.tcpNoDelay = true
@@ -167,39 +172,73 @@ class TcpSink private constructor(private val sock: Socket) : FrameSink {
         }
     }
 
-    private fun loop() {
-        var n = 0
+    private fun setsndto(ms: Int) {
+        try {
+            var fd: java.io.FileDescriptor? = null
+            try {
+                val m = sock.javaClass.getDeclaredMethod("getFileDescriptor\$")
+                m.isAccessible = true
+                fd = m.invoke(sock) as? java.io.FileDescriptor
+            } catch (_: Exception) {
+                val implF = sock.javaClass.getDeclaredField("impl")
+                implF.isAccessible = true
+                val impl = implF.get(sock)
+                val fdF = impl.javaClass.getDeclaredField("fd")
+                fdF.isAccessible = true
+                fd = fdF.get(impl) as? java.io.FileDescriptor
+            }
+            if (fd != null)
+                Os.setsockoptTimeval(
+                    fd,
+                    OsConstants.SOL_SOCKET,
+                    OsConstants.SO_SNDTIMEO,
+                    StructTimeval.fromMillis(ms.toLong()),
+                )
+        } catch (ex: Exception) {
+            Log.w("scst", "sndtimeo ${ex.message}")
+        }
+    }
+
+    private fun aloop() {
         try {
             while (!dead) {
-                drainCtrl()
+                val p = ctrl.poll(20, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
+                synchronized(wlock) { Proto.write(os, p.first, p.second) }
+            }
+        } catch (ex: Exception) {
+            Log.w("scst", "tcp-a ${ex.javaClass.simpleName} ${ex.message}")
+            dead = true
+        }
+    }
+
+    private fun vloop() {
+        try {
+            while (!dead) {
                 val v = synchronized(gate) {
                     val x = pendingVideo
                     pendingVideo = null
                     x
                 }
-                if (v != null) Proto.write(os, Proto.T_VIDEO, v)
-                else ctrl.poll(15, java.util.concurrent.TimeUnit.MILLISECONDS)
-                n++
-                if (n <= 8 || n % 60 == 0)
-                    android.util.Log.i("scst", "sent n=$n v=${v?.size ?: 0} q=${ctrl.size} dead=$dead")
+                if (v == null) {
+                    Thread.sleep(8)
+                    continue
+                }
+                try {
+                    synchronized(wlock) { Proto.write(os, Proto.T_VIDEO, v) }
+                } catch (ex: Exception) {
+                    Log.w("scst", "tcp-v drop ${ex.javaClass.simpleName}")
+                }
             }
-            drainCtrl()
         } catch (ex: Exception) {
-            android.util.Log.w("scst", "tcp-send n=$n ${ex.javaClass.simpleName} ${ex.message}")
+            Log.w("scst", "tcp-v ${ex.javaClass.simpleName} ${ex.message}")
             dead = true
-        }
-    }
-
-    private fun drainCtrl() {
-        while (true) {
-            val p = ctrl.poll() ?: break
-            Proto.write(os, p.first, p.second)
         }
     }
 
     override fun close() {
         dead = true
-        try { th.interrupt() } catch (_: Exception) { }
+        try { ath.interrupt() } catch (_: Exception) { }
+        try { vth.interrupt() } catch (_: Exception) { }
         try { sock.shutdownOutput() } catch (_: Exception) { }
         try { os.close() } catch (_: Exception) { }
         try { sock.close() } catch (_: Exception) { }
@@ -212,31 +251,73 @@ class AbstractSink(name: String) : FrameSink {
     private val sock = LocalSocket()
     private val os: OutputStream
     @Volatile private var dead = false
+    private val gate = Any()
+    private var pendingVideo: ByteArray? = null
+    private val ctrl = java.util.concurrent.LinkedBlockingQueue<Pair<Byte, ByteArray>>(256)
+    private val wlock = Any()
+    private val ath: Thread
+    private val vth: Thread
 
     init {
         try {
             sock.connect(LocalSocketAddress(name))
             os = sock.outputStream
+            ath = Thread({ aloop() }, "abs-a").also { it.start() }
+            vth = Thread({ vloop() }, "abs-v").also { it.start() }
         } catch (ex: Exception) {
             try { sock.close() } catch (_: Exception) { }
             throw ex
         }
     }
 
-    @Synchronized
     override fun send(type: Byte, payload: ByteArray): Boolean {
         if (dead) return false
-        return try {
-            Proto.write(os, type, payload)
-            true
-        } catch (_: Exception) {
-            dead = true
-            false
+        if (type == Proto.T_VIDEO) {
+            synchronized(gate) { pendingVideo = payload }
+            return true
         }
+        if (type == Proto.T_AUDIO) {
+            if (!ctrl.offer(type to payload)) {
+                ctrl.poll()
+                ctrl.offer(type to payload)
+            }
+            return !dead
+        }
+        return try {
+            ctrl.offer(type to payload, 400, java.util.concurrent.TimeUnit.MILLISECONDS) || !dead
+        } catch (_: Exception) {
+            !dead
+        }
+    }
+
+    private fun aloop() {
+        try {
+            while (!dead) {
+                val p = ctrl.poll(20, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
+                synchronized(wlock) { Proto.write(os, p.first, p.second) }
+            }
+        } catch (_: Exception) { dead = true }
+    }
+
+    private fun vloop() {
+        try {
+            while (!dead) {
+                val v = synchronized(gate) {
+                    val x = pendingVideo
+                    pendingVideo = null
+                    x
+                }
+                if (v == null) { Thread.sleep(8); continue }
+                try { synchronized(wlock) { Proto.write(os, Proto.T_VIDEO, v) } }
+                catch (_: Exception) { }
+            }
+        } catch (_: Exception) { dead = true }
     }
 
     override fun close() {
         dead = true
+        try { ath.interrupt() } catch (_: Exception) { }
+        try { vth.interrupt() } catch (_: Exception) { }
         try { os.close() } catch (_: Exception) { }
         try { sock.close() } catch (_: Exception) { }
     }

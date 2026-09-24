@@ -34,10 +34,12 @@ class CastService : Service() {
 
     private val cfgCb = object : ComponentCallbacks {
         override fun onConfigurationChanged(newConfig: Configuration) {
-            Thread({
-                try { sendOrient() }
-                catch (ex: Exception) { Log.w("scst", "orient ${ex.message}") }
-            }, "scst-orient").start()
+            Handler(Looper.getMainLooper()).postDelayed({
+                Thread({
+                    try { sendOrient() }
+                    catch (ex: Exception) { Log.w("scst", "orient ${ex.message}") }
+                }, "scst-orient").start()
+            }, 250)
         }
         override fun onLowMemory() {}
     }
@@ -77,6 +79,7 @@ class CastService : Service() {
                 val s: FrameSink = when (mode) {
                     "usb" -> openUsbSink()
                     "usb-lan" -> TcpSink.listen(UsbLan.lastNet)
+                    "usb-adb" -> UsbLoop.open()
                     else -> TcpSink(ip, port)
                 }
                 sink = s

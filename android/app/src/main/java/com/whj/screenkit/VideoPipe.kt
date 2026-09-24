@@ -6,6 +6,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.projection.MediaProjection
+import android.os.SystemClock
 import android.view.Surface
 
 class VideoPipe(
@@ -83,9 +84,19 @@ class VideoPipe(
         var sentCfg = false
         var peer = false
         var nframe = 0
+        var lastidr = SystemClock.elapsedRealtime()
         while (running) {
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastidr > 2000) {
+                lastidr = now
+                try {
+                    val b = android.os.Bundle()
+                    b.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+                    enc.setParameters(b)
+                } catch (_: Exception) { }
+            }
             val ix = try {
-                enc.dequeueOutputBuffer(info, 10_000)
+                enc.dequeueOutputBuffer(info, 80_000)
             } catch (_: Exception) {
                 continue
             }

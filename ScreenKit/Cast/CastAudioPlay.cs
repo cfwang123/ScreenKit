@@ -12,8 +12,9 @@ sealed class CastAudioPlay : IDisposable {
 			DiscardOnBufferOverflow = true,
 			BufferDuration = TimeSpan.FromMilliseconds(1500)
 		};
-		wo = new WaveOutEvent();
+		wo = new WaveOutEvent { DesiredLatency = 80 };
 		wo.Init(buf);
+		wo.Volume = 1f;
 		wo.Play();
 	}
 

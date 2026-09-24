@@ -33,6 +33,7 @@ object CastDiscover {
             val dests = ArrayList<InetAddress>()
             dests.add(InetAddress.getByName("255.255.255.255"))
             wifiBroadcast(wifi)?.let { dests.add(it) }
+            ifaceBroadcasts(dests)
             for (d in dests) {
                 try {
                     sock.send(DatagramPacket(hello, hello.size, d, Proto.UDP_PORT))
@@ -81,6 +82,20 @@ object CastDiscover {
             InetAddress.getByAddress(b)
         } catch (_: Exception) {
             null
+        }
+    }
+
+    private fun ifaceBroadcasts(dests: ArrayList<InetAddress>) {
+        val list = try { java.net.NetworkInterface.getNetworkInterfaces() } catch (_: Exception) { return }
+        if (list == null) return
+        for (ni in list) {
+            try {
+                if (!ni.isUp || ni.isLoopback) continue
+                for (a in ni.interfaceAddresses) {
+                    val b = a.broadcast ?: continue
+                    dests.add(b)
+                }
+            } catch (_: Exception) { }
         }
     }
 }
