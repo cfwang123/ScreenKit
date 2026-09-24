@@ -37,10 +37,32 @@ class VideoPipe(
         fmt.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
         fmt.setInteger(MediaFormat.KEY_FRAME_RATE, q.fps)
         fmt.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
-        enc = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-        enc.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        fmt.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
+        fmt.setInteger(MediaFormat.KEY_LEVEL, MediaCodecInfo.CodecProfileLevel.AVCLevel31)
+        enc = run {
+            var c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+            try {
+                c.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                c
+            } catch (_: Exception) {
+                try { c.release() } catch (_: Exception) { }
+                c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
+                val fmt2 = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, outW, outH)
+                fmt2.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
+                fmt2.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
+                fmt2.setInteger(MediaFormat.KEY_FRAME_RATE, q.fps)
+                fmt2.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+                c.configure(fmt2, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                c
+            }
+        }
         surface = enc.createInputSurface()
         enc.start()
+        try {
+            val b = android.os.Bundle()
+            b.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+            enc.setParameters(b)
+        } catch (_: Exception) { }
         vd = mp.createVirtualDisplay(
             "skcast",
             outW,
@@ -58,7 +80,9 @@ class VideoPipe(
         val info = MediaCodec.BufferInfo()
         var sps: ByteArray? = null
         var pps: ByteArray? = null
+        var sentCfg = false
         var peer = false
+        var nframe = 0
         while (running) {
             val ix = try {
                 enc.dequeueOutputBuffer(info, 10_000)
@@ -67,8 +91,15 @@ class VideoPipe(
             }
             if (ix == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 val fmt = enc.outputFormat
-                sps = annexOfCsd(fmt.getByteBuffer("csd-0"))
-                pps = annexOfCsd(fmt.getByteBuffer("csd-1"))
+                val pair = parseCsd(fmt.getByteBuffer("csd-0"))
+                sps = pair.first
+                pps = pair.second
+                if (pps.isEmpty()) pps = annexOfCsd(fmt.getByteBuffer("csd-1"))
+                val head = (sps ?: ByteArray(0)) + (pps ?: ByteArray(0))
+                if (head.isNotEmpty()) {
+                    sink.send(Proto.T_VIDEO, head)
+                    sentCfg = true
+                }
                 continue
             }
             if (ix < 0) continue
@@ -79,14 +110,21 @@ class VideoPipe(
                 buf.limit(info.offset + info.size)
                 buf.get(data)
                 if (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
-                    sps = toAnnexB(data)
+                    val pair = parseCsd(java.nio.ByteBuffer.wrap(data))
+                    sps = pair.first
+                    if (pair.second.isNotEmpty()) pps = pair.second
+                    val head = (sps ?: ByteArray(0)) + (pps ?: ByteArray(0))
+                    if (head.isNotEmpty()) sink.send(Proto.T_VIDEO, head)
+                    sentCfg = true
                     continue
                 }
                 var nal = toAnnexB(data)
                 val idr = isIdr(nal)
-                if (idr && sps != null) {
+                nframe++
+                if ((idr || !sentCfg || nframe <= 5) && sps != null) {
                     val head = sps!! + (pps ?: ByteArray(0))
                     nal = head + nal
+                    sentCfg = true
                 }
                 if (!sink.send(Proto.T_VIDEO, nal)) {
                     peer = true
@@ -127,6 +165,46 @@ class VideoPipe(
             val data = ByteArray(buf.remaining())
             buf.get(data)
             return toAnnexB(data)
+        }
+
+        private fun parseCsd(buf: java.nio.ByteBuffer?): Pair<ByteArray, ByteArray> {
+            if (buf == null) return ByteArray(0) to ByteArray(0)
+            val data = ByteArray(buf.remaining())
+            val pos = buf.position()
+            buf.get(data)
+            buf.position(pos)
+            if (data.size >= 4 && data[0] == 0.toByte() && data[1] == 0.toByte())
+                return toAnnexB(data) to ByteArray(0)
+            if (data.size > 7 && data[0] == 1.toByte()) {
+                var i = 5
+                val nSps = data[i].toInt() and 0x1F
+                i++
+                val sps = java.io.ByteArrayOutputStream()
+                repeat(nSps) {
+                    if (i + 2 > data.size) return@repeat
+                    val len = ((data[i].toInt() and 0xFF) shl 8) or (data[i + 1].toInt() and 0xFF)
+                    i += 2
+                    if (len <= 0 || i + len > data.size) return@repeat
+                    sps.write(0); sps.write(0); sps.write(0); sps.write(1)
+                    sps.write(data, i, len)
+                    i += len
+                }
+                if (i >= data.size) return sps.toByteArray() to ByteArray(0)
+                val nPps = data[i].toInt() and 0xFF
+                i++
+                val pps = java.io.ByteArrayOutputStream()
+                repeat(nPps) {
+                    if (i + 2 > data.size) return@repeat
+                    val len = ((data[i].toInt() and 0xFF) shl 8) or (data[i + 1].toInt() and 0xFF)
+                    i += 2
+                    if (len <= 0 || i + len > data.size) return@repeat
+                    pps.write(0); pps.write(0); pps.write(0); pps.write(1)
+                    pps.write(data, i, len)
+                    i += len
+                }
+                return sps.toByteArray() to pps.toByteArray()
+            }
+            return toAnnexB(data) to ByteArray(0)
         }
 
         fun toAnnexB(data: ByteArray): ByteArray {

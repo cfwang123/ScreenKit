@@ -24,6 +24,7 @@ sealed class CastRecvSrv : IDisposable {
 	CastAudioPlay aplay;
 	int lastpkt;
 	int encw, ench, srcw, srch, hellofps, hellobr;
+	int videomiss;
 	int fpsn, fpsv, kbps, rttms, laststat, lastping, lastframe, decms;
 	long byteacc;
 	public bool Running => !stop && lis != null;
@@ -163,6 +164,7 @@ sealed class CastRecvSrv : IDisposable {
 				rttms = 0;
 				byteacc = 0;
 				lastframe = 0;
+				videomiss = 0;
 			}
 		}
 		return hello;
@@ -226,9 +228,15 @@ sealed class CastRecvSrv : IDisposable {
 				encw = w;
 				ench = h;
 				fpsn++;
+				videomiss = 0;
 				lastframe = Environment.TickCount;
 				decms = lastframe - t0;
 				OnFrame?.Invoke(px, w, h, st);
+			}
+			else {
+				videomiss++;
+				if (videomiss == 24 || videomiss % 120 == 0)
+					Log?.Invoke($"视频包 {videomiss} 个未解出帧");
 			}
 		}
 		catch (Exception ex) { Log?.Invoke($"视频解码: {ex.Message}"); }

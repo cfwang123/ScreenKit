@@ -74,7 +74,21 @@ class CastService : Service() {
         }
         Thread {
             try {
-                begin(code, data, Quality.byName(qname), wantAudio, mode, ip, port)
+                val s: FrameSink = if (mode == "usb") openUsbSink() else TcpSink(ip, port)
+                sink = s
+                val latch = java.util.concurrent.CountDownLatch(1)
+                var fail: Exception? = null
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        beginCapture(code, data, Quality.byName(qname), wantAudio, s)
+                    } catch (ex: Exception) {
+                        fail = ex
+                    }
+                    latch.countDown()
+                }
+                latch.await()
+                val e = fail
+                if (e != null) throw e
             } catch (ex: Exception) {
                 sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "失败: ${ex.message}"))
                 stopCast()
@@ -84,14 +98,12 @@ class CastService : Service() {
         return START_STICKY
     }
 
-    private fun begin(
+    private fun beginCapture(
         code: Int,
         data: Intent,
         q: Quality,
         wantAudio: Boolean,
-        mode: String,
-        ip: String,
-        port: Int,
+        s: FrameSink,
     ) {
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = mgr.getMediaProjection(code, data)
@@ -109,12 +121,6 @@ class CastService : Service() {
         mp = projection
         this.q = q
         this.wantAudio = wantAudio
-        val s: FrameSink = if (mode == "usb") {
-            openUsbSink()
-        } else {
-            TcpSink(ip, port)
-        }
-        sink = s
         startCtrl(s)
         val dm = metrics()
         val v = VideoPipe(projection, dm.widthPixels, dm.heightPixels, dm.densityDpi, q, s, ::peerGone)
@@ -137,11 +143,9 @@ class CastService : Service() {
                 "投屏中 ${v.outW}x${v.outH}@${v.fps}" + if (audioOk) " 有声" else " 无声",
             ),
         )
-        Handler(Looper.getMainLooper()).post {
-            if (!cfgOn) {
-                registerComponentCallbacks(cfgCb)
-                cfgOn = true
-            }
+        if (!cfgOn) {
+            registerComponentCallbacks(cfgCb)
+            cfgOn = true
         }
     }
 
@@ -287,29 +291,40 @@ class CastService : Service() {
                 old?.haltSend()
             }
             val dm = metrics()
-            val v = try {
-                VideoPipe(projection, dm.widthPixels, dm.heightPixels, dm.densityDpi, nq, s, ::peerGone)
-            } catch (ex: Exception) {
+            val latch = java.util.concurrent.CountDownLatch(1)
+            var v: VideoPipe? = null
+            var fail: Exception? = null
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    v = VideoPipe(projection, dm.widthPixels, dm.heightPixels, dm.densityDpi, nq, s, ::peerGone)
+                } catch (ex: Exception) {
+                    fail = ex
+                }
+                latch.countDown()
+            }
+            latch.await()
+            val nv = v
+            if (nv == null) {
                 replacing = false
-                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "改画质失败: ${ex.message}"))
+                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "改画质失败: ${fail?.message}"))
                 return@Thread
             }
             synchronized(gate) {
                 if (mp == null) {
                     replacing = false
-                    try { v.stop() } catch (_: Exception) { }
+                    try { nv.stop() } catch (_: Exception) { }
                     return@Thread
                 }
-                video = v
+                video = nv
             }
             try { old?.stop() } catch (_: Exception) { }
             try { Thread.sleep(200) } catch (_: Exception) { }
             replacing = false
-            sendHello(v, wantAudio)
+            sendHello(nv, wantAudio)
             sendBroadcast(
                 Intent(ACTION_STAT).setPackage(packageName).putExtra(
                     "msg",
-                    "投屏中 ${v.outW}x${v.outH}@${v.fps}",
+                    "投屏中 ${nv.outW}x${nv.outH}@${nv.fps}",
                 ),
             )
         }.start()

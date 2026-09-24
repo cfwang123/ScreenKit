@@ -208,8 +208,23 @@ class CastActivity : AppCompatActivity() {
         val acc = usb.accessoryList?.firstOrNull()
         if (acc == null) {
             waitUsb = true
-            toast("未检测到 USB 配件。插上数据线即可，无需 USB 调试；电脑 ScreenKit 会把手机切成配件")
-            b.lbstat.text = "等待 USB 配件…"
+            b.lbstat.text = "正在探测 USB 网络…"
+            Thread {
+                val ip = try { UsbLan.findPc(this) } catch (_: Exception) { null }
+                runOnUiThread {
+                    if (!ip.isNullOrEmpty()) {
+                        pendingMode = "tcp"
+                        pendingIp = ip
+                        pendingPort = Proto.TCP_PORT
+                        waitUsb = false
+                        b.lbstat.text = "USB 网络 $ip"
+                        requestProj()
+                    } else {
+                        toast("未检测到 USB 配件或 USB 网络。通知栏把 USB 设为「网络共享」即可，无需 USB 调试")
+                        b.lbstat.text = "等待 USB：配件或网络共享"
+                    }
+                }
+            }.start()
             return
         }
         if (!usb.hasPermission(acc)) {
@@ -239,7 +254,7 @@ class CastActivity : AppCompatActivity() {
         b.lbusb.text = if (n > 0)
             "USB: 配件已连接（无需 USB 调试）"
         else
-            "USB: 插上数据线，电脑会切成配件（无需 USB 调试）"
+            "USB: 配件，或通知栏设为「网络共享」（无需 USB 调试）"
     }
 
     private fun handleUsb(intent: Intent?) {

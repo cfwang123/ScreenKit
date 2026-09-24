@@ -22,7 +22,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="USB: 插上数据线，电脑会切成配件（无需 USB 调试）"
+            android:text="USB: 配件，或通知栏设为「网络共享」（无需 USB 调试）"
             android:textSize="13sp" />
 
         <TextView
