@@ -2935,7 +2935,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
-      --test-sendfile  sendfile 路径沙箱与列出/上传/删除（临时目录，不弹配对）
+      --test-sendfile  sendfile 路径沙箱与列出/上传/删除；网页登录与公开下载
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 限制 100×100）、替换源文件、回收站
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
@@ -3159,18 +3159,126 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				Err("sendfile: deep list 失败");
 				return 1;
 			}
-			SendFileOps.Delete("a/b.txt");
-			if (File.Exists(full)) {
+			SendFileOps.Rename("a/b.txt", "a/c.txt");
+			if (!SendFilePaths.TryResolve("a/c.txt", out var renamed, out _) || !File.Exists(renamed)) {
+				Err("sendfile: 改名失败");
+				return 1;
+			}
+			SendFileOps.Delete("a/c.txt");
+			if (File.Exists(renamed)) {
 				Err("sendfile: 删除失败");
 				return 1;
 			}
 			Out("sendfile path/ops ok");
+			if (testsendfileweb() != 0) return 1;
 			return 0;
 		}
 		finally {
 			SendFilePaths.SetRootForTest(null);
 			try { Directory.Delete(dir, true); } catch { }
 		}
+	}
+
+	static int testsendfileweb() {
+		var dir = Path.Combine(Path.GetTempPath(), "sk_sfw_" + Guid.NewGuid().ToString("N"));
+		Directory.CreateDirectory(dir);
+		SendFileServer sv = null;
+		var port = 27533;
+		try {
+			SendFilePaths.SetRootForTest(dir);
+			SendFilePaths.EnsureRoot();
+			var o = new OcrOptions {
+				SendFileEnabled = true,
+				SendFilePort = port,
+				SendFileUdpPort = 27534,
+				SendFileWebPass = "webtest",
+			};
+			sv = new SendFileServer(() => o, () => { });
+			sv.Auth.AutoAccept = true;
+			sv.Start();
+			if (!sv.IsRunning) {
+				Err("sendfile-web: server not running");
+				return 1;
+			}
+			var baseUrl = "http://127.0.0.1:" + port;
+			var cookies = new System.Net.CookieContainer();
+			using var handler = new HttpClientHandler {
+				UseProxy = false,
+				UseCookies = true,
+				CookieContainer = cookies,
+			};
+			using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(12) };
+			var page = Task.Run(() => http.GetStringAsync(baseUrl + "/?pc=1")).GetAwaiter().GetResult();
+			if (page == null || page.IndexOf("sfweb", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: / 未返回页面");
+				return 1;
+			}
+			var mpage = Task.Run(() => http.GetStringAsync(baseUrl + "/m")).GetAwaiter().GetResult();
+			if (mpage == null || mpage.IndexOf("sfweb", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: /m 未返回页面");
+				return 1;
+			}
+			var listNaked = getbody(http, baseUrl + "/api/web/list");
+			if (listNaked == null || listNaked.IndexOf("\"code\":401", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: 未登录 list 应 401: " + listNaked);
+				return 1;
+			}
+			var bad = postjson(http, baseUrl + "/api/web/login", "{\"password\":\"nope\"}");
+			if (bad == null || bad.IndexOf("\"code\":401", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: 错密码应 401: " + bad);
+				return 1;
+			}
+			var okLogin = postjson(http, baseUrl + "/api/web/login", "{\"password\":\"webtest\"}");
+			if (okLogin == null || okLogin.IndexOf("\"code\":100", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: 登录失败: " + okLogin);
+				return 1;
+			}
+			var listed = Task.Run(() => http.GetStringAsync(baseUrl + "/api/web/list")).GetAwaiter().GetResult();
+			if (listed == null || listed.IndexOf("\"code\":100", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: 登录后 list 失败: " + listed);
+				return 1;
+			}
+			using (var up = new HttpRequestMessage(HttpMethod.Post, baseUrl + "/api/web/upload?path=web.txt")) {
+				up.Content = new ByteArrayContent(Encoding.UTF8.GetBytes("hello-web"));
+				var upResp = Task.Run(() => http.SendAsync(up)).GetAwaiter().GetResult();
+				var upBody = Task.Run(() => upResp.Content.ReadAsStringAsync()).GetAwaiter().GetResult();
+				if (upBody == null || upBody.IndexOf("\"code\":100", StringComparison.Ordinal) < 0) {
+					Err("sendfile-web: 上传失败: " + upBody);
+					return 1;
+				}
+			}
+			using (var naked = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(8) }) {
+				var got = Task.Run(() => naked.GetByteArrayAsync(baseUrl + "/f/web.txt")).GetAwaiter().GetResult();
+				var text = Encoding.UTF8.GetString(got ?? Array.Empty<byte>());
+				if (text != "hello-web") {
+					Err("sendfile-web: 公开下载不符: " + text);
+					return 1;
+				}
+			}
+			Out("sendfile-web ok");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("sendfile-web: " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { sv?.Dispose(); } catch { }
+			SendFilePaths.SetRootForTest(null);
+			try { Directory.Delete(dir, true); } catch { }
+		}
+	}
+
+	static string getbody(HttpClient http, string url) {
+		var resp = Task.Run(() => http.GetAsync(url)).GetAwaiter().GetResult();
+		return Task.Run(() => resp.Content.ReadAsStringAsync()).GetAwaiter().GetResult();
+	}
+
+	static string postjson(HttpClient http, string url, string json) {
+		using var req = new HttpRequestMessage(HttpMethod.Post, url);
+		req.Content = new StringContent(json ?? "{}", Encoding.UTF8, "application/json");
+		var resp = Task.Run(() => http.SendAsync(req)).GetAwaiter().GetResult();
+		return Task.Run(() => resp.Content.ReadAsStringAsync()).GetAwaiter().GetResult();
 	}
 
 	static void Out(string s) {

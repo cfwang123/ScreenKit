@@ -1,0 +1,45 @@
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#f3f4f6;color:#111827;
+	font:16px/1.4 -apple-system,"PingFang SC","Microsoft YaHei UI",sans-serif}
+a{color:#2563eb;text-decoration:none}
+.muted{color:#6b7280}
+.err{color:#b91c1c;margin:8px 16px}
+.ghost{background:transparent;border:1px solid #d1d5db;color:#374151}
+button{min-height:48px;padding:0 16px;border:0;border-radius:12px;
+	background:#2563eb;color:#fff;font:inherit;font-weight:600}
+button.ghost{background:#fff;color:#111827;border:1px solid #e5e7eb}
+input[type=password]{width:100%;min-height:48px;padding:0 14px;border:1px solid #d1d5db;
+	border-radius:12px;font:inherit;background:#fff}
+.login{padding:48px 20px 24px}
+.login h1{margin:0 0 10px;font-size:24px}
+.login p{margin:0 0 16px}
+.login button{width:100%;margin-top:14px}
+.switch{margin-top:24px;text-align:center}
+#main{padding-bottom:88px}
+header{position:sticky;top:0;z-index:2;background:#fff;border-bottom:1px solid #e5e7eb;
+	padding:12px 16px 10px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.top strong{font-size:20px}
+.top button{min-height:36px;padding:0 12px;font-size:14px}
+.crumbs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.crumbs a,.crumbs span{padding:6px 10px;background:#f3f4f6;border-radius:999px;font-size:14px}
+.list{list-style:none;margin:0;padding:8px 12px 16px}
+.item{background:#fff;border-radius:14px;margin:8px 0;padding:12px 14px;
+	box-shadow:0 1px 2px #0000000d}
+.item .row{display:flex;align-items:flex-start;gap:10px}
+.item .ico{width:36px;height:36px;border-radius:10px;background:#eff6ff;color:#1d4ed8;
+	display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto}
+.item .ico.file{background:#f3f4f6;color:#4b5563}
+.item .meta{flex:1;min-width:0}
+.item .nm{font-weight:600;word-break:break-all}
+.item .sub{color:#6b7280;font-size:13px;margin-top:4px}
+.item .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.item .acts a,.item .acts button{flex:1;min-height:40px;text-align:center;
+	border-radius:10px;font-size:14px;font-weight:600;line-height:40px}
+.item .acts a{background:#eff6ff;color:#1d4ed8}
+.item .acts button.danger{background:#fef2f2;color:#b91c1c}
+.empty{padding:32px 16px;text-align:center}
+footer{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;
+	padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+	background:#fff;border-top:1px solid #e5e7eb}
+footer button{flex:1}

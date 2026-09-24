@@ -65,7 +65,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 | Area | Description |
 |------|-------------|
-| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
+| **PC file transfer** | LAN HTTP `17532` + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): select, marquee, cut/copy/paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m`; login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
 | **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
 | **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
@@ -113,6 +113,7 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
 4. The upper list is the PC `sendfile/` inbox (root only, no subfolder navigation; folders are rows, double-click opens Explorer). Select, marquee, cut/copy/paste, Delete to Recycle Bin, or drag to Explorer. Dropping files onto the list imports them. Drop on the **lower** zone to send to the phone while the app is connected; otherwise nothing is sent. File/image paste goes into the inbox; text paste still goes to the right-hand pane. Phone share/upload always writes to PC `sendfile/`.
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync shows the latest message in a read-only selectable box.
+6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/`, phone page `/m`. Sign in to upload, mkdir, rename, delete; a correct `/f/相对路径` URL downloads without login.
 
 Android details: [android/README.md](android/README.md).
 
@@ -180,7 +181,7 @@ Settings live in `config.toml` beside the exe (**Options → Settings** / **Reco
 | `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
 | `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `imgconv_*` |
 | `[http]` | OCR API bind (`127.0.0.1:1224`), service mode |
-| `[sendfile]` | LAN file transfer ports, display name, paired devices |
+| `[sendfile]` | LAN file transfer ports, display name, web login password, paired devices |
 | `[pdf]` | invisible text, raster DPI |
 | `[asr]` | voice/live mode, polish, split, `asr_llm` |
 | `[[llm]]` | OpenAI-compatible endpoints (`name` / `url` / `key` / `model` / `think`) |
@@ -236,6 +237,7 @@ sendfile_enabled = true
 sendfile_port = 17532
 sendfile_udp_port = 17531
 sendfile_name = ""              # empty = machine name
+sendfile_web_pass = ""          # web manager login; empty = auto-generated on start
 # [[sendfile_device]]           # paired phones (id / name / token)
 
 [pdf]
@@ -335,7 +337,7 @@ ScreenKit --test-hash
 ScreenKit --test-texttool
 ScreenKit --test-pwgen
 ScreenKit --test-nettool
-ScreenKit --test-sendfile          # sendfile sandbox list/upload/delete
+ScreenKit --test-sendfile          # sendfile sandbox + web login / public download
 ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face

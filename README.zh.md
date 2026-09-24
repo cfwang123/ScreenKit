@@ -65,7 +65,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 | 模块 | 说明 |
 |------|------|
-| **PC 文件传输** | 局域网 HTTP `17532` + UDP 发现 `17531`。主界面 **文件同步** Tab：上表平铺浏览程序旁 `sendfile/`（不进子目录），可框选、剪切/复制/粘贴、删到回收站、拖到资源管理器。下方拖入在手机已连接时发到手机绑定文件夹；手机分享写到电脑 `sendfile/`。**安装到手机** 显示局域网地址和二维码。配套 App：`android/`（`com.whj.screenkit`，桌面「传文件」「投屏」）。 |
+| **PC 文件传输** | 局域网 HTTP `17532` + UDP 发现 `17531`。主界面 **文件同步** Tab：上表平铺浏览程序旁 `sendfile/`（不进子目录），可框选、剪切/复制/粘贴、删到回收站、拖到资源管理器。下方拖入在手机已连接时发到手机绑定文件夹；手机分享写到电脑 `sendfile/`。**安装到手机** 显示局域网地址和二维码。**网页管理**（同一端口）：电脑 `/`、手机 `/m`，登录后上传/管理，下载只需 `/f/…`。配套 App：`android/`（`com.whj.screenkit`，桌面「传文件」「投屏」）。 |
 | **HTTP API** | 本机 JSON 接口（默认 `127.0.0.1:1224`）。主界面 Tab：调用日志 + 手动发请求。 |
 | **安装功能** | 功能选择树打开时勾选已装项；增删显示绿/红数量与大小；点确认即安装或卸载。发音人单独一页。中文环境优先国内镜像。 |
 | **图片格式转换** | 菜单 **工具 → 图片格式转换**：批量转 JPG/PNG/BMP，可限制最大宽高、旋转/镜像；列表支持图片视图（小缩略图）与列表视图；选中后预览已应用质量与变换的效果；输出到源文件旁 `output/`、指定目录，或替换源文件（永久删除 / 回收站）。可选：压缩后体积仍 ≥ 原图 N% 时用原图（默认 80%；有旋转或实际缩小时仍用新图）。 |
@@ -113,6 +113,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 3. 首次连接：手机弹出等待窗（可取消）直到电脑允许配对。电脑弹窗始终置顶（主窗在托盘时仍能点到）。
 4. 上表为电脑 `sendfile/` 接收目录（只看根目录、不进子目录；文件夹显示为一行，双击用资源管理器打开）。可选中、框选、剪切/复制/粘贴、删除到回收站、拖到资源管理器。往列表上拖文件会导入接收目录。往**下方**拖放区拖入：仅在手机 App 已连接时发到手机绑定文件夹，无连接则不传。粘贴文件/图片进入接收目录；粘贴文本仍到右侧。手机分享/上传一律写到电脑 `sendfile/`。
 5. 两端显示待传进度；电脑还有传输记录。文本同步以只读框显示最新一条，可选中复制。
+6. **网页管理**（同一 HTTP 端口）：**文件同步 → 网页管理** 显示局域网地址、二维码和登录密码。电脑版 `/`，手机版 `/m`。登录后可上传、建目录、改名、删除；正确的 `/f/相对路径` 即可下载，无需登录。
 
 安卓端说明：[android/README.md](android/README.md)。
 
@@ -180,7 +181,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | `[ocr]` | 模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值 |
 | `[ui]` | 热键、托盘、`ui_lang`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`imgconv_*` |
 | `[http]` | 本机 OCR API（`127.0.0.1:1224`）、服务模式 |
-| `[sendfile]` | 局域网文件传输端口、显示名、已配对设备 |
+| `[sendfile]` | 局域网文件传输端口、显示名、网页登录密码、已配对设备 |
 | `[pdf]` | 不可见文字层、光栅 DPI |
 | `[asr]` | 听写/实时字幕模式、润色、分句、`asr_llm` |
 | `[[llm]]` | OpenAI 兼容接口（`name` / `url` / `key` / `model` / `think`） |
@@ -233,6 +234,7 @@ sendfile_enabled = true
 sendfile_port = 17532
 sendfile_udp_port = 17531
 sendfile_name = ""
+sendfile_web_pass = ""          # 网页管理登录密码；空则启动时自动生成
 
 [pdf]
 pdf_invisible_text = true
@@ -323,7 +325,7 @@ ScreenKit --test-hash
 ScreenKit --test-texttool
 ScreenKit --test-pwgen
 ScreenKit --test-nettool
-ScreenKit --test-sendfile
+ScreenKit --test-sendfile          # sendfile 沙箱 + 网页登录 / 公开下载
 ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face

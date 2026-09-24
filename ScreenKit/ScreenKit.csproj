@@ -45,6 +45,12 @@
     <None Include="translate\export_opus_onnx.py" CopyToOutputDirectory="PreserveNewest" Condition="Exists('translate\export_opus_onnx.py')" />
     <!-- OCR 模型包/变体显示名（zh + nameEn） -->
     <None Include="Ocr\ocr-display.json" CopyToOutputDirectory="PreserveNewest" Link="ocr-display.json" />
+    <None Include="SendFile\web\**\*" CopyToOutputDirectory="PreserveNewest" Link="web\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="SendFile\web\index.html" LogicalName="web.index.html" />
+    <EmbeddedResource Include="SendFile\web\m.html" LogicalName="web.m.html" />
+    <EmbeddedResource Include="SendFile\web\app.js" LogicalName="web.app.js" />
+    <EmbeddedResource Include="SendFile\web\d.css" LogicalName="web.d.css" />
+    <EmbeddedResource Include="SendFile\web\m.css" LogicalName="web.m.css" />
   </ItemGroup>
 
   <!-- .NET Framework 程序集引用 -->
@@ -235,6 +241,7 @@
       <_SlimWet Include="$(OutputPath)wetext\**\*.*" Condition="Exists('$(OutputPath)wetext')" />
       <_SlimAssets Include="$(OutputPath)Assets\**\*.*" Condition="Exists('$(OutputPath)Assets')" />
       <_SlimApk Include="$(OutputPath)apk\*.apk" Condition="Exists('$(OutputPath)apk')" />
+      <_SlimWeb Include="$(OutputPath)web\**\*.*" Condition="Exists('$(OutputPath)web')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_SlimWet)"
@@ -248,6 +255,9 @@
     <MakeDir Directories="$(_SlimOut)\apk" Condition="'@(_SlimApk)' != ''" />
     <Copy SourceFiles="@(_SlimApk)" DestinationFolder="$(_SlimOut)\apk" SkipUnchangedFiles="true"
           Condition="'@(_SlimApk)' != ''" />
+    <MakeDir Directories="$(_SlimOut)\web" Condition="'@(_SlimWeb)' != ''" />
+    <Copy SourceFiles="@(_SlimWeb)" DestinationFolder="$(_SlimOut)\web" SkipUnchangedFiles="true"
+          Condition="'@(_SlimWeb)' != ''" />
     <!-- 若上次发布残留按需库/junk，删掉以免误带进压缩包 -->
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />

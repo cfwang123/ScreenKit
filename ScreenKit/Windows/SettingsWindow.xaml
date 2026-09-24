@@ -621,6 +621,14 @@
 						<TextBox x:Name="esfname" Height="30" Padding="6,4" Margin="0,0,0,10"
 						         BorderBrush="{StaticResource BorderSoft}"
 						         AutomationProperties.AutomationId="set.sendfile.name"/>
+						<TextBlock x:Name="lbsetsfwebpass" Text="网页登录密码" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="esfwebpass" Height="30" Padding="6,4" Margin="0,0,0,4"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         AutomationProperties.AutomationId="set.sendfile.webpass"/>
+						<TextBlock x:Name="lbsetsfwebpasshint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,10" TextWrapping="Wrap"
+						           Text="浏览器打开 http://本机IP:端口/ 管理 sendfile/。上传和管理需此密码；下载只需正确链接。空则启动时自动生成。"/>
 						<Grid Margin="0,0,0,10">
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="*"/>

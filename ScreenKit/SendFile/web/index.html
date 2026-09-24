@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ScreenKit 文件</title>
+<link rel="stylesheet" href="/web/d.css"/>
+</head>
+<body>
+<div id="login" class="card login" hidden>
+	<h1 id="ltitle">文件管理</h1>
+	<p id="lhint" class="muted">登录后可上传、新建、删除。下载只需正确链接。</p>
+	<input id="epass" type="password" autocomplete="current-password"/>
+	<button id="blogin" type="button">登录</button>
+	<p id="lerr" class="err" hidden></p>
+	<p class="switch"><a href="/m">手机版</a></p>
+</div>
+<div id="main" hidden>
+	<header>
+		<div class="brand">
+			<strong id="btitle">文件管理</strong>
+			<span id="bname" class="muted"></span>
+		</div>
+		<nav id="crumbs" class="crumbs"></nav>
+		<div class="tools">
+			<button id="bup" type="button">上传</button>
+			<button id="bmkdir" type="button">新建文件夹</button>
+			<button id="bref" type="button">刷新</button>
+			<button id="bdel" type="button" class="danger" hidden>删除所选</button>
+			<button id="bout" type="button" class="ghost">退出</button>
+		</div>
+	</header>
+	<p id="err" class="err" hidden></p>
+	<p id="empty" class="muted empty" hidden></p>
+	<div class="tablewrap">
+		<table>
+			<thead>
+				<tr>
+					<th class="c0"><input id="eall" type="checkbox"/></th>
+					<th id="hname">名称</th>
+					<th id="hsize">大小</th>
+					<th id="htime">修改时间</th>
+					<th id="hact">操作</th>
+				</tr>
+			</thead>
+			<tbody id="rows"></tbody>
+		</table>
+	</div>
+</div>
+<input id="efile" type="file" multiple hidden/>
+<script src="/web/app.js"></script>
+<script>window.sfweb.init({mobile:false});</script>
+</body>
+</html>

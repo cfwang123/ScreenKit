@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>ScreenKit 文件</title>
+<link rel="stylesheet" href="/web/m.css"/>
+</head>
+<body>
+<div id="login" class="login" hidden>
+	<h1 id="ltitle">文件管理</h1>
+	<p id="lhint" class="muted">登录后可上传和管理。下载只需正确链接。</p>
+	<input id="epass" type="password" autocomplete="current-password" inputmode="text"/>
+	<button id="blogin" type="button">登录</button>
+	<p id="lerr" class="err" hidden></p>
+	<p class="switch"><a href="/?pc=1">电脑版</a></p>
+</div>
+<div id="main" hidden>
+	<header>
+		<div class="top">
+			<strong id="btitle">文件</strong>
+			<button id="bout" type="button" class="ghost">退出</button>
+		</div>
+		<nav id="crumbs" class="crumbs"></nav>
+	</header>
+	<p id="err" class="err" hidden></p>
+	<p id="empty" class="muted empty" hidden></p>
+	<ul id="rows" class="list"></ul>
+	<footer>
+		<button id="bup" type="button">上传</button>
+		<button id="bmkdir" type="button">新建</button>
+		<button id="bref" type="button">刷新</button>
+	</footer>
+</div>
+<input id="efile" type="file" multiple hidden/>
+<script src="/web/app.js"></script>
+<script>window.sfweb.init({mobile:true});</script>
+</body>
+</html>

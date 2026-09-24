@@ -208,6 +208,8 @@ static class AppConfig {
 				o.SendFileName = (sfn ?? "").Trim().Trim('"');
 			if (map.TryGetValue("sendfile_pc_id", out var sfid) && !string.IsNullOrWhiteSpace(sfid))
 				o.SendFilePcId = sfid.Trim().Trim('"');
+			if (map.TryGetValue("sendfile_web_pass", out var sfwp))
+				o.SendFileWebPass = (sfwp ?? "").Trim().Trim('"');
 			o.SendFileDevices = parsesendfiledevices(text);
 			if (map.TryGetValue("cast_recv_enabled", out var cre))
 				o.CastRecvEnabled = parsebool(cre, true);
@@ -531,6 +533,8 @@ static class AppConfig {
 		sb.AppendLine($"sendfile_udp_port = {(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort)}");
 		sb.AppendLine($"sendfile_name = \"{esc(o.SendFileName ?? "")}\"");
 		sb.AppendLine($"sendfile_pc_id = \"{esc(o.SendFilePcId ?? "")}\"");
+		sb.AppendLine($"# 网页管理登录密码（空则启动时自动生成）；下载 /f/ 无需登录");
+		sb.AppendLine($"sendfile_web_pass = \"{esc(o.SendFileWebPass ?? "")}\"");
 		if (o.SendFileDevices != null) {
 			foreach (var d in o.SendFileDevices) {
 				if (d == null || string.IsNullOrWhiteSpace(d.Id)) continue;

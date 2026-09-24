@@ -902,13 +902,26 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 这不是 1224 端口的 OCR HTTP API。在 **参数设置 → 接口 → PC 文件传输** 启用。默认 HTTP **17532**（监听所有网卡，含 `127.0.0.1` / `localhost`），UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
 
-`GET /apk` **无需配对**（给未装 App 的手机扫码下载）。其它接口配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
+`GET /apk` **无需配对**（给未装 App 的手机扫码下载）。`GET /`、`GET /m` 为网页文件管理（电脑 / 手机各一套）。`GET /f/<相对路径>` **无需登录**即可下载。网页上传/列出/删除等需登录（Cookie `sk_web` 或 `X-Web-Token`）。其它手机接口配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
 
 发现：向 UDP 17531 广播 `SCREENKIT_DISCOVER`，电脑应答 JSON `{v,name,httpPort,pcId}`。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
+| GET | `/` | 电脑版网页（手机 UA 会跳到 `/m`；`?pc=1` 强制电脑版） |
+| GET | `/m` | 手机版网页 |
+| GET | `/web/app.js` · `/web/d.css` · `/web/m.css` | 页面资源 |
+| GET | `/f/<相对路径>` | 公开下载（无需登录；路径须正好落在 sendfile/） |
+| GET | `/d?p=` | 公开下载（查询串） |
 | GET | `/apk` | 本机 APK 二进制（无需配对；主界面「安装到手机」二维码） |
+| POST | `/api/web/login` | body `{password}` → Cookie `sk_web` + `{token}` |
+| POST | `/api/web/logout` | 清会话 |
+| GET | `/api/web/me` | 是否已登录 |
+| GET | `/api/web/list?path=` | 列出（需登录） |
+| POST | `/api/web/upload?path=` | 原始 body 上传（需登录） |
+| POST | `/api/web/mkdir` | body `{path}`（需登录） |
+| POST | `/api/web/rename` | body `{from,to}`（需登录） |
+| DELETE | `/api/web/delete?path=` | 删除（需登录） |
 | POST | `/api/sendfile/pair` | body `{id,name}`；首次在电脑弹窗确认 |
 | GET | `/api/sendfile/info` | 显示名 / pcId |
 | GET | `/api/sendfile/list?path=&deep=` | `deep=1` 递归 |

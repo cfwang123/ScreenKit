@@ -285,6 +285,8 @@ public partial class SettingsWindow : Window {
 			lbsetcasthint.Text = Loc.T("set.cast.hint");
 			ecasten.Content = Loc.T("set.cast.enable");
 			lbsetsfname.Text = Loc.T("set.sendfile.name");
+			lbsetsfwebpass.Text = Loc.T("set.sendfile.webpass");
+			lbsetsfwebpasshint.Text = Loc.T("set.sendfile.webpass.hint");
 			lbsetsfport.Text = Loc.T("set.sendfile.port");
 			lbsetsfudp.Text = Loc.T("set.sendfile.udp");
 			lbsetsfdev.Text = Loc.T("set.sendfile.devices");
@@ -489,6 +491,7 @@ public partial class SettingsWindow : Window {
 		esfen.IsChecked = o.SendFileEnabled;
 		ecasten.IsChecked = o.CastRecvEnabled;
 		esfname.Text = o.SendFileName ?? "";
+		esfwebpass.Text = o.SendFileWebPass ?? "";
 		esfport.Text = (o.SendFilePort > 0 ? o.SendFilePort : 17532).ToString();
 		esfudp.Text = (o.SendFileUdpPort > 0 ? o.SendFileUdpPort : 17531).ToString();
 		refreshsfdev();
@@ -631,6 +634,7 @@ public partial class SettingsWindow : Window {
 		Result.SendFileEnabled = esfen.IsChecked == true;
 		Result.CastRecvEnabled = ecasten.IsChecked == true;
 		Result.SendFileName = (esfname.Text ?? "").Trim();
+		Result.SendFileWebPass = (esfwebpass.Text ?? "").Trim();
 		if (!int.TryParse((esfport.Text ?? "").Trim(), out var sfPort) || sfPort < 1 || sfPort > 65535) {
 			tabset.SelectedItem = tabsethttp;
 			MessageBox.Show(this, Loc.T("set.sendfile.port.bad"), Loc.T("settings"),

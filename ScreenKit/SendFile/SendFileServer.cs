@@ -10,7 +10,7 @@ using System.Text.Json.Nodes;
 namespace ScreenKit;
 
 /// <summary>局域网文件传输：UDP 发现 + HTTP（配对后访问 sendfile/）。</summary>
-public sealed class SendFileServer : IDisposable {
+public sealed partial class SendFileServer : IDisposable {
 	readonly object listenLock = new();
 	readonly Func<OcrOptions> getOpts;
 	readonly Action save;
@@ -19,6 +19,7 @@ public sealed class SendFileServer : IDisposable {
 	volatile bool running;
 	bool disposed;
 	public readonly SendFileAuth Auth;
+	public readonly SendFileWeb Web;
 	public readonly SendFileText Text = new();
 	readonly SendFileOutbox Outbox = new();
 	public readonly SendFileJobs Jobs = new();
@@ -41,6 +42,7 @@ public sealed class SendFileServer : IDisposable {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
 		save = saveCfg;
 		Auth = new SendFileAuth(getOpts, save);
+		Web = new SendFileWeb(getOpts, save);
 	}
 
 	public bool IsRunning => running;
@@ -126,6 +128,7 @@ public sealed class SendFileServer : IDisposable {
 		var udpPort = Compat.Clamp(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort, 1, 65535);
 		SendFilePaths.EnsureRoot();
 		ensurepcid(o);
+		try { Web.EnsurePass(); } catch { }
 		lock (listenLock) {
 			Stop();
 			tcp = bindtcp(httpPort);
@@ -388,6 +391,8 @@ public sealed class SendFileServer : IDisposable {
 				handleapk(ctx, ishead(method));
 				return;
 			}
+			if (tryweb(ctx, method, path, pathRaw))
+				return;
 			var dev = authed(req);
 			if (dev == null) {
 				writejson(ctx, 401, err(401, "未配对或 token 无效"));
@@ -581,7 +586,12 @@ public sealed class SendFileServer : IDisposable {
 	}
 
 	void handledownload(SfCtx ctx) {
-		var rel = ctx.Request.QueryString["path"] ?? "";
+		sendfile(ctx, ctx.Request.QueryString["path"] ?? "", ishead(ctx.Request.HttpMethod),
+			asAttachment: true, trackJob: true);
+	}
+
+	/// <summary>把 sendfile/ 内文件写入响应。路径非法或不是文件时返回 JSON 错误。</summary>
+	void sendfile(SfCtx ctx, string rel, bool head, bool asAttachment, bool trackJob) {
 		if (!SendFilePaths.TryResolve(rel, out var full, out var pathErr)) {
 			writejson(ctx, 200, err(410, pathErr ?? "路径非法"));
 			return;
@@ -590,17 +600,23 @@ public sealed class SendFileServer : IDisposable {
 			writejson(ctx, 200, err(410, "文件不存在"));
 			return;
 		}
-		var job = Jobs.FindStore(rel.Replace('\\', '/').Trim('/'));
+		var job = trackJob ? Jobs.FindStore((rel ?? "").Replace('\\', '/').Trim('/')) : null;
 		FileStream fs = null;
 		try {
 			fs = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read);
 			var res = ctx.Response;
 			res.StatusCode = 200;
-			res.ContentType = "application/octet-stream";
+			res.ContentType = mimeof(full);
 			res.ContentLength64 = fs.Length;
 			res.Headers["Access-Control-Allow-Origin"] = "*";
 			var fn = Path.GetFileName(full) ?? "file";
-			res.Headers["Content-Disposition"] = $"attachment; filename*=UTF-8''{Uri.EscapeDataString(fn)}";
+			var disp = asAttachment ? "attachment" : "inline";
+			res.Headers["Content-Disposition"] = $"{disp}; filename*=UTF-8''{Uri.EscapeDataString(fn)}";
+			if (head) {
+				try { res.OutputStream.Close(); } catch { }
+				try { res.Close(); } catch { }
+				return;
+			}
 			if (job != null) Jobs.SetRun(job.Id);
 			var buf = new byte[64 * 1024];
 			int n;
@@ -618,6 +634,26 @@ public sealed class SendFileServer : IDisposable {
 			try { ctx.Response.OutputStream.Close(); } catch { }
 			try { ctx.Response.Close(); } catch { }
 		}
+	}
+
+	static string mimeof(string full) {
+		var ext = (Path.GetExtension(full) ?? "").ToLowerInvariant();
+		return ext switch {
+			".png" => "image/png",
+			".jpg" or ".jpeg" => "image/jpeg",
+			".gif" => "image/gif",
+			".webp" => "image/webp",
+			".bmp" => "image/bmp",
+			".svg" => "image/svg+xml",
+			".txt" or ".log" or ".md" or ".csv" => "text/plain; charset=utf-8",
+			".json" => "application/json; charset=utf-8",
+			".pdf" => "application/pdf",
+			".mp3" => "audio/mpeg",
+			".wav" => "audio/wav",
+			".mp4" => "video/mp4",
+			".zip" => "application/zip",
+			_ => "application/octet-stream",
+		};
 	}
 
 	void handleupload(SfCtx ctx) {
@@ -777,7 +813,7 @@ public sealed class SendFileServer : IDisposable {
 		res.StatusCode = status;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS";
-		res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Device-Id, X-Token";
+		res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Device-Id, X-Token, X-Web-Token";
 		res.ContentLength64 = 0;
 		try { res.Close(); } catch { }
 	}
@@ -791,7 +827,7 @@ public sealed class SendFileServer : IDisposable {
 		res.ContentLength64 = bytes.Length;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS";
-		res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Device-Id, X-Token";
+		res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Device-Id, X-Token, X-Web-Token";
 		try {
 			res.OutputStream.Write(bytes, 0, bytes.Length);
 		}
@@ -957,6 +993,7 @@ sealed class SfOut : Stream {
 	static string reason(int code) => code switch {
 		200 => "OK",
 		204 => "No Content",
+		302 => "Found",
 		401 => "Unauthorized",
 		403 => "Forbidden",
 		404 => "Not Found",

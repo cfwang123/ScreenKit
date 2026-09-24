@@ -68,6 +68,7 @@ public partial class MainWindow {
 		bsfpaste.Click += (_, _) => sffilepaste();
 		bsfopen.Click += (_, _) => sfopenexplorer();
 		bsfapk.Click += (_, _) => showapkinstall();
+		if (bsfweb != null) bsfweb.Click += (_, _) => showwebfile();
 		psffiles.Drop += onsfdrop;
 		psffiles.DragOver += onsfdover;
 		psftab.Drop += onsfdrop;
@@ -103,6 +104,11 @@ public partial class MainWindow {
 
 	void showapkinstall() {
 		var w = new ApkInstallWindow(sendFile, opt) { Owner = this };
+		w.ShowDialog();
+	}
+
+	void showwebfile() {
+		var w = new WebFileWindow(sendFile, opt) { Owner = this };
 		w.ShowDialog();
 	}
 
@@ -365,6 +371,7 @@ public partial class MainWindow {
 			if (bsfdel != null) bsfdel.Content = Loc.T("sf.tab.delete");
 			bsfopen.Content = Loc.T("sf.tab.open");
 			if (bsfapk != null) bsfapk.Content = Loc.T("sf.tab.apk");
+			if (bsfweb != null) bsfweb.Content = Loc.T("sf.tab.web");
 			if (mnsfcut != null) mnsfcut.Header = Loc.T("sf.tab.cut");
 			if (mnsfcopy != null) mnsfcopy.Header = Loc.T("sf.tab.copy");
 			if (mnsfpaste != null) mnsfpaste.Header = Loc.T("sf.tab.paste");

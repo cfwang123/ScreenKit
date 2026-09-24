@@ -88,6 +88,8 @@ public sealed class OcrOptions {
 	public string SendFilePcId = "";
 	/// <summary>已配对手机。</summary>
 	public List<SendFileDevice> SendFileDevices = new();
+	/// <summary>网页文件管理登录密码；空则启动时自动生成。</summary>
+	public string SendFileWebPass = "";
 	/// <summary>局域网投屏接收（UDP 19518 / TCP 19519）。</summary>
 	public bool CastRecvEnabled = true;
 	/// <summary>投屏画质档名（流畅 540p / 均衡 720p / 高清 1080p）。</summary>
@@ -353,6 +355,7 @@ public sealed class OcrOptions {
 		SendFilePcId = SendFilePcId ?? "",
 		SendFileDevices = (SendFileDevices ?? new List<SendFileDevice>())
 			.Where(x => x != null).Select(x => x.Clone()).ToList(),
+		SendFileWebPass = SendFileWebPass ?? "",
 		CastRecvEnabled = CastRecvEnabled,
 		CastQuality = CastQuality ?? "均衡 720p",
 		CastAudio = CastAudio,

@@ -41,6 +41,36 @@ static class SendFileOps {
 		Directory.CreateDirectory(full);
 	}
 
+	/// <summary>沙箱内改名或移动；目标已存在则失败。</summary>
+	public static void Rename(string fromRel, string toRel) {
+		fromRel = (fromRel ?? "").Replace('\\', '/').Trim('/');
+		toRel = (toRel ?? "").Replace('\\', '/').Trim('/');
+		if (string.IsNullOrWhiteSpace(fromRel))
+			throw new InvalidOperationException("不能改名根目录");
+		if (string.IsNullOrWhiteSpace(toRel))
+			throw new InvalidOperationException("目标路径空");
+		if (!SendFilePaths.TryResolve(fromRel, out var fromFull, out var fromErr))
+			throw new InvalidOperationException(fromErr ?? "源路径非法");
+		if (!SendFilePaths.TryResolve(toRel, out var toFull, out var toErr))
+			throw new InvalidOperationException(toErr ?? "目标路径非法");
+		if (string.Equals(fromFull, toFull, StringComparison.OrdinalIgnoreCase))
+			return;
+		if (!File.Exists(fromFull) && !Directory.Exists(fromFull))
+			throw new InvalidOperationException("源不存在");
+		if (File.Exists(toFull) || Directory.Exists(toFull))
+			throw new InvalidOperationException("目标已存在");
+		var destDir = Path.GetDirectoryName(toFull);
+		if (!string.IsNullOrEmpty(destDir))
+			Directory.CreateDirectory(destDir);
+		if (Directory.Exists(fromFull)) {
+			if (isunder(toFull, fromFull))
+				throw new InvalidOperationException("不能移动到自身内部");
+			Directory.Move(fromFull, toFull);
+		}
+		else
+			File.Move(fromFull, toFull);
+	}
+
 	public static void Delete(string rel) {
 		if (string.IsNullOrWhiteSpace(rel) || rel == "." || rel == "/")
 			throw new InvalidOperationException("不能删除根目录");
