@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+<meta name="theme-color" content="#f6f7fb"/>
+<title>ScreenKit 文件管理 · 手机端 UI 原型</title>
+<style>
+:root{
+	--page:#f6f7fb;
+	--surface:#ffffff;
+	--surface-soft:#f0f2f8;
+	--ink:#171923;
+	--muted:#74798a;
+	--line:#e7e9f1;
+	--primary:#5b55e7;
+	--primary-dark:#4841ce;
+	--primary-soft:#eeedff;
+	--danger:#db4455;
+	--danger-soft:#fff0f2;
+	--shadow:0 16px 42px rgba(27,31,59,.12);
+	--safe-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--page);color:var(--ink);
+	font:15px/1.45 "Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif}
+body{min-width:320px;-webkit-tap-highlight-color:transparent}
+button,input{font:inherit}
+button{border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid rgba(91,85,231,.22);outline-offset:2px}
+[hidden]{display:none!important}
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+.icon{display:block;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;
+	stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+
+.app{width:100%;max-width:720px;min-height:100vh;margin:0 auto;padding-bottom:calc(104px + var(--safe-bottom))}
+.hero{padding:calc(22px + env(safe-area-inset-top,0px)) 20px 12px}
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.eyebrow{margin:0 0 3px;color:var(--primary);font-size:12px;font-weight:800;letter-spacing:.12em}
+.hero h1{margin:0;font-size:29px;line-height:1.2;letter-spacing:-.04em}
+.profile{width:44px;height:44px;border:1px solid var(--line);border-radius:15px;background:var(--surface);
+	color:var(--ink);display:grid;place-items:center;box-shadow:0 4px 16px rgba(27,31,59,.05)}
+.profile .icon{width:20px;height:20px}
+
+.path-wrap{position:sticky;top:0;z-index:5;padding:8px 16px 10px;
+	background:linear-gradient(to bottom,var(--page) 78%,rgba(246,247,251,0))}
+.path{display:flex;align-items:center;min-height:44px;padding:5px;border:1px solid var(--line);
+	border-radius:15px;background:rgba(255,255,255,.94);box-shadow:0 5px 18px rgba(27,31,59,.05);
+	overflow-x:auto;scrollbar-width:none}
+.path::-webkit-scrollbar{display:none}
+.path button{display:inline-flex;align-items:center;gap:6px;min-width:max-content;height:32px;padding:0 9px;
+	border-radius:10px;background:transparent;color:var(--muted);font-size:13px;font-weight:700}
+.path button:last-child{background:var(--primary-soft);color:var(--primary)}
+.path .icon{width:16px;height:16px}
+.path .chevron{width:14px;height:14px;color:#b4b7c3}
+
+.tools{display:flex;gap:10px;padding:4px 20px 11px}
+.search{position:relative;flex:1}
+.search .icon{position:absolute;left:13px;top:50%;width:18px;height:18px;color:#9a9ead;transform:translateY(-50%)}
+.search input{width:100%;height:46px;padding:0 42px;border:1px solid var(--line);border-radius:14px;
+	background:var(--surface);color:var(--ink)}
+.search input::placeholder{color:#9a9ead}
+.search-clear{position:absolute;right:7px;top:7px;width:32px;height:32px;border-radius:10px;
+	background:transparent;color:#a1a5b2;display:grid;place-items:center}
+.search-clear .icon{position:static;width:17px;height:17px;transform:none}
+.sort{width:46px;height:46px;border:1px solid var(--line);border-radius:14px;background:var(--surface);
+	color:#555a6c;display:grid;place-items:center}
+.sort .icon{width:20px;height:20px}
+
+.section-head{display:flex;align-items:end;justify-content:space-between;padding:3px 21px 9px}
+.section-head h2{margin:0;font-size:14px}
+.section-head span{color:var(--muted);font-size:12px}
+.list{display:grid;gap:9px;margin:0;padding:0 16px;list-style:none}
+.file-row{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) 42px;align-items:center;
+	min-height:76px;padding:10px 8px 10px 10px;border:1px solid var(--line);border-radius:18px;
+	background:var(--surface);box-shadow:0 3px 14px rgba(26,30,57,.035)}
+.file-row:active{transform:scale(.995)}
+.file-main{min-width:0;padding:0 8px;text-align:left;background:transparent;color:inherit}
+.file-name{display:block;overflow:hidden;font-size:15px;font-weight:750;text-overflow:ellipsis;white-space:nowrap}
+.file-meta{display:block;margin-top:4px;color:var(--muted);font-size:12px;font-weight:500}
+.file-icon{width:48px;height:48px;border-radius:15px;display:grid;place-items:center}
+.file-icon .icon{width:25px;height:25px}
+.file-icon.folder{background:#fff4d9;color:#e59b18}
+.file-icon.image{background:#e9f8f2;color:#18986f}
+.file-icon.video{background:#eeeaff;color:#7158dd}
+.file-icon.pdf{background:#fff0f2;color:#d94b5c}
+.file-icon.archive{background:#eaf3ff;color:#3c7fc5}
+.file-icon.file{background:#eef0f5;color:#707587}
+.more{width:40px;height:44px;border-radius:13px;background:transparent;color:#969aa8;display:grid;place-items:center}
+.more:active{background:var(--surface-soft);color:var(--ink)}
+.more .icon{width:22px;height:22px}
+.folder-arrow{position:absolute;right:15px;bottom:8px;color:#c3c6d1;font-size:11px;pointer-events:none}
+
+.empty{margin:20px 16px;padding:46px 24px;border:1px dashed #d9dce7;border-radius:22px;text-align:center}
+.empty-mark{width:64px;height:64px;margin:0 auto 14px;border-radius:21px;background:var(--primary-soft);
+	color:var(--primary);display:grid;place-items:center}
+.empty-mark .icon{width:29px;height:29px}
+.empty h3{margin:0 0 6px;font-size:17px}
+.empty p{margin:0;color:var(--muted);font-size:13px}
+
+.dock-wrap{position:fixed;z-index:10;left:0;right:0;bottom:0;padding:10px 14px calc(10px + var(--safe-bottom));
+	background:linear-gradient(to top,var(--page) 76%,rgba(246,247,251,0));pointer-events:none}
+.dock{width:min(100%,688px);height:74px;margin:0 auto;padding:7px;display:grid;
+	grid-template-columns:1fr 1.25fr 1fr 1fr;border:1px solid rgba(222,224,234,.9);border-radius:23px;
+	background:rgba(255,255,255,.96);box-shadow:0 16px 38px rgba(27,31,59,.15);
+	backdrop-filter:blur(16px);pointer-events:auto}
+.dock button{border-radius:16px;background:transparent;color:#74798a;display:flex;flex-direction:column;
+	align-items:center;justify-content:center;gap:3px;font-size:10px;font-weight:750}
+.dock button .icon{width:21px;height:21px}
+.dock .upload{margin:-2px 2px;background:var(--primary);color:#fff;box-shadow:0 7px 18px rgba(91,85,231,.3)}
+.dock .upload:active{background:var(--primary-dark)}
+
+.toast{position:fixed;z-index:40;left:50%;bottom:calc(103px + var(--safe-bottom));max-width:calc(100% - 40px);
+	padding:11px 16px;border-radius:13px;background:#252734;color:#fff;font-size:13px;font-weight:650;
+	box-shadow:var(--shadow);transform:translate(-50%,18px);opacity:0;pointer-events:none;
+	transition:opacity .2s ease,transform .2s ease}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.scrim{position:fixed;z-index:20;inset:0;background:rgba(18,20,30,.42);opacity:0;
+	transition:opacity .22s ease;pointer-events:none}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;z-index:30;left:50%;bottom:0;width:min(100%,720px);padding:8px 16px calc(18px + var(--safe-bottom));
+	border-radius:28px 28px 0 0;background:var(--surface);box-shadow:0 -14px 50px rgba(20,22,40,.18);
+	transform:translate(-50%,105%);transition:transform .25s cubic-bezier(.22,.8,.24,1)}
+.sheet.show{transform:translate(-50%,0)}
+.grab{width:38px;height:4px;margin:0 auto 17px;border-radius:99px;background:#d9dbe4}
+.sheet-title{display:flex;align-items:center;gap:12px;margin:0 3px 15px}
+.sheet-title .file-icon{width:43px;height:43px;border-radius:13px}
+.sheet-title .file-icon .icon{width:22px;height:22px}
+.sheet-title div{min-width:0}
+.sheet-title strong,.sheet-title small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-title strong{font-size:16px}
+.sheet-title small{margin-top:2px;color:var(--muted);font-size:12px}
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.action{min-height:78px;padding:10px 5px;border-radius:17px;background:var(--surface-soft);color:#4f5362;
+	display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:700}
+.action .icon{width:22px;height:22px;color:var(--primary)}
+.action.danger{background:var(--danger-soft);color:var(--danger)}
+.action.danger .icon{color:var(--danger)}
+.sheet-list{display:grid;gap:7px}
+.sheet-choice{height:50px;padding:0 15px;border-radius:14px;background:var(--surface-soft);color:var(--ink);
+	display:flex;align-items:center;justify-content:space-between;font-weight:700;text-align:left}
+.sheet-choice.active{background:var(--primary-soft);color:var(--primary)}
+.sheet-choice .icon{width:19px;height:19px}
+
+.dialog{position:fixed;z-index:35;left:50%;top:50%;width:min(calc(100% - 32px),420px);padding:22px;
+	border-radius:23px;background:var(--surface);box-shadow:var(--shadow);
+	transform:translate(-50%,-45%) scale(.97);opacity:0;pointer-events:none;
+	transition:opacity .18s ease,transform .18s ease}
+.dialog.show{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:auto}
+.dialog h3{margin:0 0 6px;font-size:19px}
+.dialog p{margin:0 0 17px;color:var(--muted);font-size:13px}
+.dialog input{width:100%;height:48px;padding:0 14px;border:1px solid var(--line);border-radius:14px;
+	background:var(--page);color:var(--ink)}
+.dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+.dialog-actions button{min-width:86px;height:42px;padding:0 15px;border-radius:13px;background:var(--surface-soft);
+	color:#5c6070;font-weight:750}
+.dialog-actions .primary{background:var(--primary);color:#fff}
+.dialog-actions .danger{background:var(--danger);color:#fff}
+
+.login{min-height:100vh;padding:calc(52px + env(safe-area-inset-top,0px)) 22px calc(32px + var(--safe-bottom));
+	background:
+		radial-gradient(circle at 92% 2%,rgba(128,113,255,.17),transparent 35%),
+		radial-gradient(circle at 0 55%,rgba(53,184,154,.09),transparent 29%),var(--page);
+	display:flex;align-items:center;justify-content:center}
+.login-card{width:min(100%,420px)}
+.login-logo{width:64px;height:64px;margin-bottom:26px;border-radius:21px;background:var(--primary);color:#fff;
+	display:grid;place-items:center;box-shadow:0 12px 30px rgba(91,85,231,.27)}
+.login-logo .icon{width:29px;height:29px}
+.login h1{margin:0 0 8px;font-size:31px;line-height:1.2;letter-spacing:-.04em}
+.login .lead{margin:0 0 30px;color:var(--muted)}
+.field-label{display:block;margin:0 0 8px;font-size:13px;font-weight:800}
+.password{position:relative}
+.password input{width:100%;height:54px;padding:0 49px 0 16px;border:1px solid var(--line);border-radius:16px;
+	background:var(--surface);color:var(--ink);box-shadow:0 4px 15px rgba(27,31,59,.04)}
+.password button{position:absolute;right:7px;top:7px;width:40px;height:40px;border-radius:12px;
+	background:transparent;color:#8d91a0;display:grid;place-items:center}
+.password .icon{width:20px;height:20px}
+.keep{display:flex;align-items:center;gap:9px;margin:15px 2px 22px;color:#606576;font-size:13px}
+.keep input{width:19px;height:19px;margin:0;accent-color:var(--primary)}
+.login-button{width:100%;height:54px;border-radius:16px;background:var(--primary);color:#fff;font-weight:800;
+	display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 11px 25px rgba(91,85,231,.25)}
+.login-button:active{background:var(--primary-dark)}
+.login-button .icon{width:20px;height:20px}
+.login-note{margin:22px 0 0;text-align:center;color:#969aa8;font-size:12px}
+.prototype-tag{display:inline-flex;align-items:center;gap:5px;margin-top:12px;padding:6px 9px;border-radius:99px;
+	background:var(--primary-soft);color:var(--primary);font-size:11px;font-weight:800}
+
+@media (min-width:620px){
+	.list{grid-template-columns:1fr 1fr}
+	.hero{padding-left:24px;padding-right:24px}
+	.tools{padding-left:24px;padding-right:24px}
+	.section-head{padding-left:25px;padding-right:25px}
+}
+@media (prefers-reduced-motion:reduce){
+	*{scroll-behavior:auto!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true">
+	<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6A2.5 2.5 0 0 1 20.5 9.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/></symbol>
+	<symbol id="i-file" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V21H7z"/><path d="M14 3.5v4h4"/></symbol>
+	<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="m5.5 17 4-4 3 3 2-2 4 3"/></symbol>
+	<symbol id="i-video" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/></symbol>
+	<symbol id="i-pdf" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V21H7z"/><path d="M14 3.5v4h4M9 16v-5h2a1.5 1.5 0 0 1 0 3H9m5 2v-5h3"/></symbol>
+	<symbol id="i-archive" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V21H7z"/><path d="M14 3.5v4h4M10 7h2m-2 3h2m-2 3h2v4h-2z"/></symbol>
+	<symbol id="i-home" viewBox="0 0 24 24"><path d="m4 11 8-7 8 7"/><path d="M6.5 9.5V20h11V9.5M10 20v-6h4v6"/></symbol>
+	<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+	<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+	<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16.5 16.5 4 4"/></symbol>
+	<symbol id="i-close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
+	<symbol id="i-sort" viewBox="0 0 24 24"><path d="M8 5v14m0 0-3-3m3 3 3-3M16 19V5m0 0-3 3m3-3 3 3"/></symbol>
+	<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M5 14v5h14v-5"/></symbol>
+	<symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h4l2 2h6A2.5 2.5 0 0 1 20.5 9.5v8A2.5 2.5 0 0 1 18 20H6a2.5 2.5 0 0 1-2.5-2.5z"/><path d="M12 11v6m-3-3h6"/></symbol>
+	<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6"/><path d="M20 5v6h-6"/></symbol>
+	<symbol id="i-zip" viewBox="0 0 24 24"><path d="M7 3.5h7l4 4V21H7z"/><path d="M14 3.5v4h4M10 7h2m-2 3h2m-2 3h2v4h-2z"/></symbol>
+	<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></symbol>
+	<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 20h14"/></symbol>
+	<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+	<symbol id="i-edit" viewBox="0 0 24 24"><path d="M13.5 6.5 17.5 10.5M5 19l1-4L16 5a2.8 2.8 0 0 1 4 4L10 19z"/></symbol>
+	<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5"/></symbol>
+	<symbol id="i-enter" viewBox="0 0 24 24"><path d="M4 12h13m0 0-4-4m4 4-4 4M20 5v14"/></symbol>
+	<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+	<symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+	<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+	<symbol id="i-login" viewBox="0 0 24 24"><path d="M10 12h10m0 0-4-4m4 4-4 4M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/></symbol>
+	<symbol id="i-logout" viewBox="0 0 24 24"><path d="M14 12H4m0 0 4-4m-4 4 4 4m6-11h4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4"/></symbol>
+</svg>
+
+<section id="login" class="login" hidden>
+	<div class="login-card">
+		<div class="login-logo"><svg class="icon"><use href="#i-lock"/></svg></div>
+		<h1>访问你的文件</h1>
+		<p class="lead">连接到 <strong>WANG-PC</strong>，安全管理电脑上的共享文件。</p>
+		<label class="field-label" for="password">访问密码</label>
+		<div class="password">
+			<input id="password" type="password" placeholder="输入 ScreenKit 中显示的密码" autocomplete="current-password"/>
+			<button id="togglePassword" type="button" aria-label="显示或隐藏密码"><svg class="icon"><use href="#i-eye"/></svg></button>
+		</div>
+		<label class="keep"><input id="keep" type="checkbox" checked/> 在这台设备上保持登录</label>
+		<button id="loginButton" class="login-button" type="button">
+			<svg class="icon"><use href="#i-login"/></svg><span>进入文件管理</span>
+		</button>
+		<p class="login-note">下载链接无需登录即可访问</p>
+		<span class="prototype-tag">交互原型 · 输入任意密码</span>
+	</div>
+</section>
+
+<main id="app" class="app">
+	<header class="hero">
+		<div class="hero-top">
+			<div>
+				<p class="eyebrow">SCREENKIT</p>
+				<h1>我的文件</h1>
+			</div>
+			<button id="profileButton" class="profile" type="button" aria-label="账户与退出">
+				<svg class="icon"><use href="#i-user"/></svg>
+			</button>
+		</div>
+	</header>
+
+	<div class="path-wrap"><nav id="path" class="path" aria-label="当前位置"></nav></div>
+
+	<div class="tools">
+		<label class="search">
+			<svg class="icon"><use href="#i-search"/></svg>
+			<input id="search" type="search" placeholder="在当前文件夹中查找" autocomplete="off"/>
+			<button id="clearSearch" class="search-clear" type="button" aria-label="清空搜索" hidden>
+				<svg class="icon"><use href="#i-close"/></svg>
+			</button>
+		</label>
+		<button id="sortButton" class="sort" type="button" aria-label="排序">
+			<svg class="icon"><use href="#i-sort"/></svg>
+		</button>
+	</div>
+
+	<div class="section-head">
+		<h2>当前位置</h2>
+		<span id="itemCount">0 项</span>
+	</div>
+	<ul id="fileList" class="list"></ul>
+	<div id="empty" class="empty" hidden>
+		<div class="empty-mark"><svg class="icon"><use href="#i-folder"/></svg></div>
+		<h3>这里还没有文件</h3>
+		<p>点击下方“上传”或“新建”开始整理</p>
+	</div>
+</main>
+
+<div id="dock" class="dock-wrap">
+	<nav class="dock" aria-label="文件操作">
+		<button id="newFolderButton" type="button"><svg class="icon"><use href="#i-folder-plus"/></svg><span>新建</span></button>
+		<button id="uploadButton" class="upload" type="button"><svg class="icon"><use href="#i-upload"/></svg><span>上传</span></button>
+		<button id="refreshButton" type="button"><svg class="icon"><use href="#i-refresh"/></svg><span>刷新</span></button>
+		<button id="zipCurrentButton" type="button"><svg class="icon"><use href="#i-zip"/></svg><span>打包</span></button>
+	</nav>
+</div>
+<input id="filePicker" type="file" multiple hidden/>
+
+<div id="scrim" class="scrim"></div>
+
+<section id="actionSheet" class="sheet" role="dialog" aria-modal="true" aria-label="文件操作">
+	<div class="grab"></div>
+	<div class="sheet-title">
+		<div id="sheetIcon" class="file-icon file"><svg class="icon"><use href="#i-file"/></svg></div>
+		<div><strong id="sheetName">文件名</strong><small id="sheetMeta">文件信息</small></div>
+	</div>
+	<div id="actionGrid" class="action-grid"></div>
+</section>
+
+<section id="sortSheet" class="sheet" role="dialog" aria-modal="true" aria-label="排序方式">
+	<div class="grab"></div>
+	<div class="sheet-title"><div><strong>排序方式</strong><small>仅影响当前显示顺序</small></div></div>
+	<div id="sortChoices" class="sheet-list"></div>
+</section>
+
+<section id="accountSheet" class="sheet" role="dialog" aria-modal="true" aria-label="账户">
+	<div class="grab"></div>
+	<div class="sheet-title">
+		<div class="file-icon archive"><svg class="icon"><use href="#i-user"/></svg></div>
+		<div><strong>WANG-PC</strong><small>已安全连接 · 网页文件管理</small></div>
+	</div>
+	<div class="sheet-list">
+		<button id="showLoginButton" class="sheet-choice" type="button">
+			<span>查看登录页原型</span><svg class="icon"><use href="#i-lock"/></svg>
+		</button>
+		<button id="logoutButton" class="sheet-choice" type="button">
+			<span>退出登录</span><svg class="icon"><use href="#i-logout"/></svg>
+		</button>
+	</div>
+</section>
+
+<section id="textDialog" class="dialog" role="dialog" aria-modal="true">
+	<h3 id="dialogTitle">新建文件夹</h3>
+	<p id="dialogHint">请输入文件夹名称</p>
+	<input id="dialogInput" type="text" autocomplete="off"/>
+	<div class="dialog-actions">
+		<button id="dialogCancel" type="button">取消</button>
+		<button id="dialogConfirm" class="primary" type="button">确定</button>
+	</div>
+</section>
+
+<section id="confirmDialog" class="dialog" role="dialog" aria-modal="true">
+	<h3>确认删除？</h3>
+	<p id="confirmText">删除后无法从网页恢复。</p>
+	<div class="dialog-actions">
+		<button id="confirmCancel" type="button">取消</button>
+		<button id="confirmDelete" class="danger" type="button">删除</button>
+	</div>
+</section>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+window.mobileFilePrototype = (function(){
+	var t = {init:init};
+	var currentPath = "";
+	var activeItem = null;
+	var sortMode = "type";
+	var dialogDone = null;
+	var toastTimer = 0;
+	var data = {
+		"": [
+			{name:"手机相册",dir:true,mtime:"今天 09:42"},
+			{name:"项目资料",dir:true,mtime:"昨天 18:20"},
+			{name:"产品演示.mp4",size:"128.6 MB",mtime:"今天 10:18"},
+			{name:"会议纪要.pdf",size:"2.4 MB",mtime:"昨天 16:05"},
+			{name:"Logo源文件.zip",size:"8.7 MB",mtime:"09月23日"},
+			{name:"IMG_20260924.jpg",size:"4.2 MB",mtime:"09月24日"}
+		],
+		"手机相册": [
+			{name:"旅行",dir:true,mtime:"09月21日"},
+			{name:"IMG_20260921_142633.jpg",size:"5.8 MB",mtime:"09月21日"},
+			{name:"IMG_20260921_150211.jpg",size:"4.9 MB",mtime:"09月21日"}
+		],
+		"手机相册/旅行": [
+			{name:"海边日落.jpg",size:"6.1 MB",mtime:"09月20日"},
+			{name:"短片.mp4",size:"42.8 MB",mtime:"09月20日"}
+		],
+		"项目资料": [
+			{name:"设计稿",dir:true,mtime:"昨天 17:44"},
+			{name:"需求说明.pdf",size:"1.1 MB",mtime:"昨天 14:20"},
+			{name:"交付清单.xlsx",size:"384 KB",mtime:"09月23日"}
+		],
+		"项目资料/设计稿": []
+	};
+
+	return t;
+
+	function init() {
+		bind();
+		render();
+		if (location.search.indexOf("login=1") >= 0) showLogin();
+	}
+
+	function bind() {
+		on("search","input",function(){
+			el("clearSearch").hidden = !el("search").value;
+			renderFiles();
+		});
+		on("clearSearch","click",function(){
+			el("search").value = "";
+			el("clearSearch").hidden = true;
+			renderFiles();
+		});
+		on("sortButton","click",function(){ openSheet("sortSheet"); });
+		on("profileButton","click",function(){ openSheet("accountSheet"); });
+		on("scrim","click",closeOverlays);
+		on("newFolderButton","click",newFolder);
+		on("uploadButton","click",function(){ el("filePicker").click(); });
+		on("filePicker","change",uploadFiles);
+		on("refreshButton","click",refresh);
+		on("zipCurrentButton","click",function(){
+			toast(currentPath ? "正在打包「" + leaf(currentPath) + "」" : "正在打包根目录");
+		});
+		on("dialogCancel","click",closeOverlays);
+		on("dialogConfirm","click",confirmTextDialog);
+		on("dialogInput","keydown",function(e){ if (e.key === "Enter") confirmTextDialog(); });
+		on("confirmCancel","click",closeOverlays);
+		on("confirmDelete","click",deleteActive);
+		on("showLoginButton","click",showLogin);
+		on("logoutButton","click",showLogin);
+		on("loginButton","click",login);
+		on("password","keydown",function(e){ if (e.key === "Enter") login(); });
+		on("togglePassword","click",function(){
+			var input = el("password");
+			input.type = input.type === "password" ? "text" : "password";
+		});
+	}
+
+	function render() {
+		renderPath();
+		renderFiles();
+		renderSortChoices();
+	}
+
+	function renderPath() {
+		var nav = el("path");
+		nav.innerHTML = "";
+		nav.appendChild(pathButton("根目录","",true));
+		var parts = currentPath ? currentPath.split("/") : [];
+		var path = "";
+		for (var i = 0; i < parts.length; i++) {
+			path = path ? path + "/" + parts[i] : parts[i];
+			nav.appendChild(icon("i-chevron","chevron"));
+			nav.appendChild(pathButton(parts[i],path,false));
+		}
+		setTimeout(function(){ nav.scrollLeft = nav.scrollWidth; },0);
+	}
+
+	function pathButton(label,path,home) {
+		var button = document.createElement("button");
+		button.type = "button";
+		if (home) button.appendChild(icon("i-home"));
+		button.appendChild(document.createTextNode(label));
+		button.addEventListener("click",function(){ enter(path); });
+		return button;
+	}
+
+	function renderFiles() {
+		var source = (data[currentPath] || []).slice();
+		var query = el("search").value.trim().toLowerCase();
+		if (query) source = source.filter(function(item){ return item.name.toLowerCase().indexOf(query) >= 0; });
+		sortItems(source);
+		var list = el("fileList");
+		list.innerHTML = "";
+		for (var i = 0; i < source.length; i++) list.appendChild(fileRow(source[i]));
+		el("itemCount").textContent = source.length + " 项" + (query ? "匹配" : "");
+		el("empty").hidden = source.length !== 0;
+	}
+
+	function sortItems(items) {
+		items.sort(function(a,b){
+			if (sortMode === "type" && a.dir !== b.dir) return a.dir ? -1 : 1;
+			if (sortMode === "size") return sizeNumber(b.size) - sizeNumber(a.size);
+			if (sortMode === "time") return String(b.mtime).localeCompare(String(a.mtime),"zh-CN");
+			return a.name.localeCompare(b.name,"zh-CN");
+		});
+	}
+
+	function sizeNumber(value) {
+		var n = parseFloat(value) || 0;
+		if (/GB$/i.test(value || "")) return n * 1024 * 1024;
+		if (/MB$/i.test(value || "")) return n * 1024;
+		return n;
+	}
+
+	function fileRow(item) {
+		var li = document.createElement("li");
+		li.className = "file-row";
+		var kind = fileKind(item);
+		li.appendChild(fileIcon(item));
+		var main = document.createElement("button");
+		main.type = "button";
+		main.className = "file-main";
+		main.innerHTML = '<span class="file-name"></span><span class="file-meta"></span>';
+		main.querySelector(".file-name").textContent = item.name;
+		main.querySelector(".file-meta").textContent = item.dir ? "文件夹 · " + item.mtime : item.size + " · " + item.mtime;
+		main.addEventListener("click",function(){
+			if (item.dir) enter(join(currentPath,item.name));
+			else download(item);
+		});
+		li.appendChild(main);
+		var more = document.createElement("button");
+		more.type = "button";
+		more.className = "more";
+		more.setAttribute("aria-label","更多操作：" + item.name);
+		more.appendChild(icon("i-more"));
+		more.addEventListener("click",function(){ showActions(item); });
+		li.appendChild(more);
+		if (item.dir) {
+			var arrow = document.createElement("span");
+			arrow.className = "folder-arrow";
+			arrow.textContent = "轻触进入";
+			li.appendChild(arrow);
+		}
+		li.setAttribute("data-kind",kind);
+		return li;
+	}
+
+	function fileKind(item) {
+		if (item.dir) return "folder";
+		if (/\.(jpg|jpeg|png|gif|webp)$/i.test(item.name)) return "image";
+		if (/\.(mp4|mov|mkv|avi)$/i.test(item.name)) return "video";
+		if (/\.pdf$/i.test(item.name)) return "pdf";
+		if (/\.(zip|7z|rar)$/i.test(item.name)) return "archive";
+		return "file";
+	}
+
+	function fileIcon(item) {
+		var kind = fileKind(item);
+		var names = {folder:"i-folder",image:"i-image",video:"i-video",pdf:"i-pdf",archive:"i-archive",file:"i-file"};
+		var box = document.createElement("div");
+		box.className = "file-icon " + kind;
+		box.appendChild(icon(names[kind]));
+		return box;
+	}
+
+	function showActions(item) {
+		activeItem = item;
+		var titleIcon = el("sheetIcon");
+		titleIcon.className = fileIcon(item).className;
+		titleIcon.innerHTML = fileIcon(item).innerHTML;
+		el("sheetName").textContent = item.name;
+		el("sheetMeta").textContent = item.dir ? "文件夹 · " + item.mtime : item.size + " · " + item.mtime;
+		var grid = el("actionGrid");
+		grid.innerHTML = "";
+		if (item.dir) grid.appendChild(action("进入","i-enter",function(){ enter(join(currentPath,item.name)); }));
+		else {
+			grid.appendChild(action("下载","i-download",function(){ download(item); }));
+			grid.appendChild(action("复制链接","i-copy",copyLink));
+		}
+		grid.appendChild(action("打包下载","i-zip",zipActive));
+		grid.appendChild(action("重命名","i-edit",renameActive));
+		grid.appendChild(action("删除","i-trash",confirmDelete,true));
+		openSheet("actionSheet");
+	}
+
+	function action(label,iconName,fn,danger) {
+		var button = document.createElement("button");
+		button.type = "button";
+		button.className = "action" + (danger ? " danger" : "");
+		button.appendChild(icon(iconName));
+		var text = document.createElement("span");
+		text.textContent = label;
+		button.appendChild(text);
+		button.addEventListener("click",fn);
+		return button;
+	}
+
+	function renderSortChoices() {
+		var modes = [
+			{id:"type",label:"文件夹优先"},
+			{id:"name",label:"按名称"},
+			{id:"time",label:"按修改时间"},
+			{id:"size",label:"按大小"}
+		];
+		var box = el("sortChoices");
+		box.innerHTML = "";
+		for (var i = 0; i < modes.length; i++) box.appendChild(sortChoice(modes[i]));
+	}
+
+	function sortChoice(mode) {
+		var button = document.createElement("button");
+		button.type = "button";
+		button.className = "sheet-choice" + (mode.id === sortMode ? " active" : "");
+		button.appendChild(document.createTextNode(mode.label));
+		if (mode.id === sortMode) button.appendChild(icon("i-check"));
+		button.addEventListener("click",function(){
+			sortMode = mode.id;
+			renderSortChoices();
+			renderFiles();
+			closeOverlays();
+			toast("已切换为" + mode.label);
+		});
+		return button;
+	}
+
+	function enter(path) {
+		currentPath = path || "";
+		if (!data[currentPath]) data[currentPath] = [];
+		el("search").value = "";
+		el("clearSearch").hidden = true;
+		closeOverlays();
+		render();
+		window.scrollTo({top:0,behavior:"smooth"});
+	}
+
+	function newFolder() {
+		openTextDialog("新建文件夹","请输入文件夹名称","",function(name){
+			if (!name) return;
+			var items = data[currentPath] || (data[currentPath] = []);
+			if (items.some(function(item){ return item.name === name; })) {
+				toast("已有同名文件或文件夹");
+				return;
+			}
+			items.unshift({name:name,dir:true,mtime:"刚刚"});
+			data[join(currentPath,name)] = [];
+			renderFiles();
+			toast("文件夹已创建");
+		});
+	}
+
+	function renameActive() {
+		if (!activeItem) return;
+		var item = activeItem;
+		openTextDialog("重命名","输入新的名称",item.name,function(name){
+			if (!name || name === item.name) return;
+			var oldPath = join(currentPath,item.name);
+			item.name = name;
+			if (item.dir && data[oldPath]) {
+				data[join(currentPath,name)] = data[oldPath];
+				delete data[oldPath];
+			}
+			renderFiles();
+			toast("已重命名");
+		});
+	}
+
+	function confirmDelete() {
+		closeOverlays();
+		if (!activeItem) return;
+		el("confirmText").textContent = "将删除「" + activeItem.name + "」，此操作无法从网页恢复。";
+		showDialog("confirmDialog");
+	}
+
+	function deleteActive() {
+		if (!activeItem) return;
+		var items = data[currentPath] || [];
+		var index = items.indexOf(activeItem);
+		if (index >= 0) items.splice(index,1);
+		if (activeItem.dir) delete data[join(currentPath,activeItem.name)];
+		closeOverlays();
+		renderFiles();
+		toast("已删除「" + activeItem.name + "」");
+		activeItem = null;
+	}
+
+	function download(item) {
+		closeOverlays();
+		toast("开始下载「" + item.name + "」");
+	}
+
+	function copyLink() {
+		if (!activeItem) return;
+		var url = location.origin + "/f/" + encodeURIComponent(join(currentPath,activeItem.name));
+		closeOverlays();
+		if (navigator.clipboard && navigator.clipboard.writeText)
+			navigator.clipboard.writeText(url).then(function(){ toast("下载链接已复制"); },function(){ toast("原型：下载链接已生成"); });
+		else toast("原型：下载链接已生成");
+	}
+
+	function zipActive() {
+		if (!activeItem) return;
+		closeOverlays();
+		toast("正在打包「" + activeItem.name + "」");
+	}
+
+	function uploadFiles() {
+		var picker = el("filePicker");
+		if (!picker.files || !picker.files.length) return;
+		var items = data[currentPath] || (data[currentPath] = []);
+		var count = picker.files.length;
+		toast("正在上传 " + count + " 个文件…");
+		setTimeout(function(){
+			for (var i = 0; i < picker.files.length; i++)
+				items.unshift({name:picker.files[i].name,size:humanSize(picker.files[i].size),mtime:"刚刚"});
+			renderFiles();
+			toast(count + " 个文件上传完成");
+			picker.value = "";
+		},650);
+	}
+
+	function refresh() {
+		var button = el("refreshButton");
+		button.disabled = true;
+		toast("正在刷新…");
+		setTimeout(function(){
+			button.disabled = false;
+			renderFiles();
+			toast("已是最新内容");
+		},500);
+	}
+
+	function openTextDialog(title,hint,value,done) {
+		closeOverlays();
+		el("dialogTitle").textContent = title;
+		el("dialogHint").textContent = hint;
+		el("dialogInput").value = value || "";
+		dialogDone = done;
+		showDialog("textDialog");
+		setTimeout(function(){
+			el("dialogInput").focus();
+			el("dialogInput").select();
+		},30);
+	}
+
+	function confirmTextDialog() {
+		var value = el("dialogInput").value.replace(/[\\/]/g,"").trim();
+		var done = dialogDone;
+		closeOverlays();
+		if (done) done(value);
+		dialogDone = null;
+	}
+
+	function openSheet(id) {
+		closeOverlays();
+		el("scrim").classList.add("show");
+		el(id).classList.add("show");
+	}
+
+	function showDialog(id) {
+		el("scrim").classList.add("show");
+		el(id).classList.add("show");
+	}
+
+	function closeOverlays() {
+		el("scrim").classList.remove("show");
+		var nodes = document.querySelectorAll(".sheet.show,.dialog.show");
+		for (var i = 0; i < nodes.length; i++) nodes[i].classList.remove("show");
+	}
+
+	function showLogin() {
+		closeOverlays();
+		el("app").hidden = true;
+		el("dock").hidden = true;
+		el("login").hidden = false;
+		el("password").value = "";
+		setTimeout(function(){ el("password").focus(); },30);
+	}
+
+	function login() {
+		if (!el("password").value) {
+			toast("请输入访问密码");
+			return;
+		}
+		el("login").hidden = true;
+		el("app").hidden = false;
+		el("dock").hidden = false;
+		toast("登录成功");
+	}
+
+	function toast(message) {
+		var node = el("toast");
+		node.textContent = message;
+		node.classList.add("show");
+		clearTimeout(toastTimer);
+		toastTimer = setTimeout(function(){ node.classList.remove("show"); },1900);
+	}
+
+	function humanSize(size) {
+		if (size < 1024) return size + " B";
+		if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+		if (size < 1024 * 1024 * 1024) return (size / 1024 / 1024).toFixed(1) + " MB";
+		return (size / 1024 / 1024 / 1024).toFixed(2) + " GB";
+	}
+
+	function leaf(path) {
+		var parts = (path || "").split("/");
+		return parts[parts.length - 1] || "根目录";
+	}
+
+	function join(path,name) { return path ? path + "/" + name : name; }
+	function el(id) { return document.getElementById(id); }
+	function on(id,event,fn) { el(id).addEventListener(event,fn); }
+	function icon(name,className) {
+		var ns = "http://www.w3.org/2000/svg";
+		var svg = document.createElementNS(ns,"svg");
+		svg.setAttribute("class","icon" + (className ? " " + className : ""));
+		svg.setAttribute("aria-hidden","true");
+		var use = document.createElementNS(ns,"use");
+		use.setAttribute("href","#" + name);
+		svg.appendChild(use);
+		return svg;
+	}
+})();
+window.mobileFilePrototype.init();
+</script>
+</body>
+</html>
