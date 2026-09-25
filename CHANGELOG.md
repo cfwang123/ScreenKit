@@ -30,6 +30,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Standalone interactive redesign prototype for the phone web file manager (`ScreenKit/SendFile/web/m-prototype.html`): a compact full-width list separated only by rules; no title/search bars; bottom Upload, Camera, and New actions. Tap a folder to open it or a file to download it; long-press to multi-select and use the download, ZIP, copy-link, rename, or delete action bar. It does not change the production `/m` page.
 - File sync **web manager** on the same HTTP port (`17532`): desktop `/` and phone `/m`. Login (`sendfile_web_pass`, auto-generated if empty) is required to upload, mkdir, rename, or delete. A correct `/f/…` URL downloads without login. File sync tab **Web manager** shows the LAN URL, QR, and password. CLI `--test-sendfile` covers login and public download.
+- Desktop web file manager (`/`): each row shows only **Download** in the Actions column; copy link, zip, rename, and delete are on the row right-click menu (folders: open, zip, rename, delete). Clicking a row toggles its checkbox (double-click a folder to open).
+- Web file manager cache: HTML is served with `no-store`; JS/CSS URLs in HTML get `?&lt;bootUnix&gt;` replaced on each ScreenKit run (first `SendFileServer` in the process).
 - File-transfer HTTP bind is exclusive (no `ReuseAddress`). A dead leftover listener no longer accepts connections and hangs the browser; bad/TLS probes get `400` instead of an open hang.
 - Web manager: `[hidden]` now wins over `#main{display:flex}`, so the login card and file table no longer stack. CJK font prefers YaHei.
 - File transfer: if the configured HTTP port is a leftover listen (process gone), bind the next free port, save it, and show that error instead of “service off”.
@@ -41,6 +43,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- USB accessory: phone starts reading the accessory fd as soon as it is opened, so the PC hello reply is not missed (the viewer was a black window for ~8s then closed). AOA helper still writes the hello reply before the USB read thread.
+- ADB/WiFi capture: encoder repeats a static frame and the VirtualDisplay is kicked a few times after start, so the viewer is not black until the phone is touched.
+- Phone discovery binds the UDP socket to Wi‑Fi (USB accessory no longer steals the default network). Unicast to the last PC IP. Discovery UDP is always **17531** (a bumped saved port left the phone scanning 17531 while the PC listened on 17535). File-transfer UDP replies even when only screencast receive is on.
 - USB screencast hello: write `hello` before reading the PC reply (accessory read+write on one fd can stall the write ~2s). AOA bridge no longer treats 500ms USB idle as EOF, so the hello reply can arrive.
 - WiFi/ADB screencast: the phone sends `hello` and must get a `hello` back before it starts capture or shows 投屏中; the PC opens the viewer only after that reply. A socket without this round-trip is not a session.
 - WiFi/ADB screencast no longer uses extra TCP 19519/19520+ or UDP 19518. Discovery shares UDP 17531 with file transfer; media is WebSocket `GET /cast` on the HTTP API port (default 1224). `adb reverse` maps the same HTTP port. `--test-cast-recv` checks a localhost `/cast` hello.
@@ -84,7 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - PC no longer polls LibUsb on every USB device at startup (that could kill ScreenKit while a phone is plugged in).
 - Wi‑Fi screencast no longer freezes after ~10s: discovery/`adb` and ping left the UI thread; display keeps only the latest frame.
 - Screencast settings and view windows use a dedicated monitor/cast icon.
-- Android **传文件** and **投屏** launchers use separate task stacks so both can stay open.
+- Android: single launcher **传文件/投屏** (English **ScreenKit**); screencast only from the in-app menu (no separate home icon or task affinity).
 - Android file transfer: **Web file manager** opens `http://<PC>:<port>/m` in the default browser (button when connected, also in the title-bar menu). Title-bar menus jump between file transfer and screencast.
 - `scripts/publish-release.mjs` omits local `config.toml`, `cli_last.log`, and `log/` from the 7z (API keys / paths).
 
@@ -98,6 +103,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 新增独立可交互的手机网页文件管理重设计原型（`ScreenKit/SendFile/web/m-prototype.html`）：100% 宽度紧凑列表，项目间仅保留分隔线；去掉标题栏和搜索栏，底部仅放上传、拍照、新建；点击文件夹进入、点击文件下载，长按进入多选并显示下载、ZIP、复制链接、改名、删除操作栏；不改动正式 `/m` 页面。
 - 文件同步 **网页管理**（与手机传输同一 HTTP 端口 `17532`）：电脑版 `/`、手机版 `/m`。上传/建目录/改名/删除需登录（`sendfile_web_pass`，空则启动时自动生成）；正确的 `/f/…` 即可下载。文件同步 Tab **网页管理** 显示局域网地址、二维码和密码。CLI `--test-sendfile` 覆盖登录与公开下载。
+- 电脑网页管理（`/`）：列表「操作」列仅保留 **下载**；复制链接、打包、改名、删除改为行 **右键菜单**（文件夹为进入、打包等）。点击行切换勾选（文件夹双击进入）。
+- 网页管理缓存：HTML 不缓存；`index.html` / `m.html` 内引用的 JS/CSS 带本进程启动时间戳查询参数，重启 ScreenKit 后浏览器拉取新静态资源。
 - 文件传输 HTTP 独占绑定（不再 `ReuseAddress`）。残留的死监听不再把浏览器连上后一直转圈；非 HTTP / TLS 探测立刻 `400`。
 - 网页管理：`[hidden]` 不再被 `#main{display:flex}` 盖掉，登录框和文件表不会叠在一起；中文字体优先微软雅黑。
 - 文件传输：配置端口若是残留监听（进程已死），自动改绑后面的空闲端口并写入配置；网页窗显示真实原因，不再一律说「未启用」。
@@ -110,11 +117,17 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- USB 配件：手机打开配件 fd 就开始读，电脑 hello 回包不再被丢掉（画面窗曾黑屏约 8 秒后关掉）。AOA 助手仍先写 hello 回包再开 USB 读线程。
+- ADB/WiFi 采集：编码器在静止画面时重复上一帧，VirtualDisplay 启动后主动踢几帧，电脑不再等到手机操作才出画。
+- 手机发现 UDP 绑到 Wi‑Fi（插着 USB 配件时不再走默认网卡）；并向上次电脑 IP 单播。发现口固定 **17531**（配置曾改口到 17535，手机仍扫 17531）。仅开投屏接收时，传文件 UDP 也会应答发现。
 - USB 投屏 hello：先写出再读电脑应答（配件同一 fd 上先阻塞读再写会把 hello 卡约 2 秒）；AOA 桥不再把 500ms 空闲当断开，hello 回包才能到达。
 - WiFi/ADB 投屏：手机发 hello，必须收到电脑 hello 才开始采集并显示「投屏中」；电脑回 hello 后才弹窗。只连上 socket 不算会话。
 - WiFi/ADB 投屏不再另占 TCP 19519/19520+ 或 UDP 19518。发现与传文件共用 UDP 17531，画面走 HTTP 口上的 WebSocket `GET /cast`（默认 1224）。`adb reverse` 转发同一 HTTP 口。`--test-cast-recv` 校验本机 `/cast` hello。
 - 安卓 **传文件** 改为单页：顶部连接状态、同页搜索/手填选电脑、上传、接收文件夹、文本同步与传输记录；仅侧栏保留 **参数设置**、**检查更新**（已移除独立选电脑页与文本同步页）。
 - 安卓传文件：连接后 **网页文件管理** 按钮/菜单用系统浏览器打开电脑 `/m`；传文件与投屏标题栏菜单可互相跳转。
+- 安卓：去掉桌面 **投屏** 图标；仅保留 **传文件/投屏** 入口（英文 **ScreenKit**），投屏从传文件标题栏菜单进入，同一任务栈（不再 `taskAffinity` 分栈）。
+- 安卓传文件：主界面按钮按文字宽度流式排列；**上传文件** / **拍照上传** / **网页文件管理** / **投屏**；参数设置可配拍照格式（JPG/PNG）、JPG 质量（默认 60%）、限制最长边（默认 2000px，可关）。
+- 安卓：传文件与投屏共用 **我的电脑** 居中弹窗（标题栏、选择连接、设别名、删除）；成功连接或开始投屏后自动记入列表。
 - 安卓传文件：手填 IP 默认端口改为 **1224**（原误用 17532，导致连不上、电脑不弹配对）；UDP 发现增加子网广播；先 `info` 再配对。
 - 电脑文件同步：手机上传或收到手机文本后自动复制到剪贴板，**主屏**工作区底部居中 Toast（非托盘气泡）。
 - 电脑文件同步：接收目录多选后点 **推送**，将所选文件/文件夹发给已连接手机。

@@ -52,9 +52,13 @@ sealed class CastUsbBulkStream : Stream {
 				part = new byte[chunk];
 				Buffer.BlockCopy(slice, o, part, 0, chunk);
 			}
-			var ec = writer.Write(part, timeout, out var n);
-			if (ec != ErrorCode.None) throw new IOException($"USB 写失败 {ec}");
-			if (n <= 0) throw new IOException("USB 写 0 字节");
+			var n = 0;
+			while (true) {
+				var ec = writer.Write(part, timeout, out n);
+				if (ec == ErrorCode.None && n > 0) break;
+				if (ec != ErrorCode.None && ec != ErrorCode.IoTimedOut && ec != ErrorCode.IoCancelled)
+					throw new IOException($"USB 写失败 {ec}");
+			}
 			if (n % 512 == 0) {
 				try { writer.Write(Array.Empty<byte>(), timeout, out _); }
 				catch { }

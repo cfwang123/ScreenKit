@@ -142,10 +142,7 @@ class CastService : Service() {
                 this.wantAudio = wantAudio
                 val dm = metrics()
                 val fit = qtmp.fit(dm.widthPixels, dm.heightPixels)
-                if (!sendHello(fit.first, fit.second, qtmp.fps, wantAudio))
-                    throw IllegalStateException("电脑未打开 ScreenKit")
-                startCtrl(s)
-                if (!waitHello())
+                if (!handshake(s, fit.first, fit.second, qtmp.fps, wantAudio))
                     throw IllegalStateException("电脑未打开 ScreenKit")
                 if (sessgen.get() != mygen) return@Thread
                 val latch = java.util.concurrent.CountDownLatch(1)
@@ -350,11 +347,19 @@ class CastService : Service() {
         return UsbSink(usb, acc)
     }
 
-    private fun beginPattern(s: FrameSink) {
-        if (!sendHello(640, 360, 15, false))
-            throw IllegalStateException("电脑未打开 ScreenKit")
+    private fun handshake(s: FrameSink, w: Int, h: Int, fps: Int, audio: Boolean): Boolean {
+        if (s is UsbSink) {
+            s.onQuality = { n -> applyQuality(Quality.byName(n)) }
+            if (!sendHello(w, h, fps, audio)) return false
+            return s.awaitHello(8000)
+        }
+        if (!sendHello(w, h, fps, audio)) return false
         startCtrl(s)
-        if (!waitHello())
+        return waitHello()
+    }
+
+    private fun beginPattern(s: FrameSink) {
+        if (!handshake(s, 640, 360, 15, false))
             throw IllegalStateException("电脑未打开 ScreenKit")
         pattern = PatternPipe(640, 360, 15, 800_000, s, ::peerGone)
         sendBroadcast(
@@ -460,7 +465,12 @@ class CastService : Service() {
 
     private fun startCtrl(s: FrameSink) {
         helloLatch = java.util.concurrent.CountDownLatch(1)
-        val ins = s.input() ?: return
+        val ins = s.input()
+        if (ins == null) {
+            android.util.Log.w("scst", "startCtrl no input")
+            return
+        }
+        android.util.Log.i("scst", "startCtrl")
         Thread({
             while (true) {
                 val pair = Proto.read(ins) ?: break

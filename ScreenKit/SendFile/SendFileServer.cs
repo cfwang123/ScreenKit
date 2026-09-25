@@ -188,7 +188,6 @@ public sealed partial class SendFileServer : IDisposable {
 		var wantHttp = ownHttp
 			? Compat.Clamp(o.SendFilePort <= 0 ? shared : o.SendFilePort, 1, 65535)
 			: shared;
-		var wantUdp = Compat.Clamp(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort, 1, 65535);
 		SendFilePaths.EnsureRoot();
 		ensurepcid(o);
 		try { Web.EnsurePass(); } catch { }
@@ -246,30 +245,23 @@ public sealed partial class SendFileServer : IDisposable {
 					log($"LAN HTTP :{wantHttp} 未绑到网卡（本机仍走 HTTP API）");
 			}
 		}
-		var udpPort = wantUdp;
+		var wantUdp = 17531;
+		if (o.SendFileUdpPort > 0 && o.SendFileUdpPort != wantUdp) {
+			o.SendFileUdpPort = wantUdp;
+			try { save?.Invoke(); } catch { }
+		}
 		lock (listenLock) {
-			for (var i = 0; i < 8; i++) {
-				var p = wantUdp + i;
-				if (p > 65535) break;
-				try {
-					udp = new UdpClient(p);
-					udp.EnableBroadcast = true;
-					_ = Task.Run(udploop);
-					udpPort = p;
-					if (p != wantUdp) {
-						o.SendFileUdpPort = p;
-						try { save?.Invoke(); } catch { }
-						log($"UDP 端口 {wantUdp} 占用，改用 {p}");
-					}
-					break;
-				}
-				catch (Exception ex) {
-					log($"UDP :{p} 失败: {ex.Message}");
-					try { udp?.Close(); } catch { }
-					udp = null;
-				}
+			try {
+				udp = bindudp(wantUdp);
+				_ = Task.Run(udploop);
+			}
+			catch (Exception ex) {
+				log($"UDP :{wantUdp} 失败: {ex.Message}");
+				try { udp?.Close(); } catch { }
+				udp = null;
 			}
 		}
+		var udpPort = udp != null ? wantUdp : 0;
 		tryfirewall(used, udpPort);
 		LastError = "";
 		log($"SendFile HTTP :{used} UDP :{udpPort}");
@@ -350,6 +342,14 @@ public sealed partial class SendFileServer : IDisposable {
 		l.Server.ExclusiveAddressUse = true;
 		l.Start();
 		return l;
+	}
+
+	static UdpClient bindudp(int port) {
+		var u = new UdpClient();
+		u.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+		u.EnableBroadcast = true;
+		u.Client.Bind(new IPEndPoint(IPAddress.Any, port));
+		return u;
 	}
 
 	static void stoplistener(TcpListener t) {
@@ -581,7 +581,7 @@ public sealed partial class SendFileServer : IDisposable {
 				var s = Encoding.UTF8.GetString(data).Trim();
 				if (!s.StartsWith(DISCOVER, StringComparison.OrdinalIgnoreCase)) continue;
 				var o = getOpts() ?? new OcrOptions();
-				if (!o.SendFileEnabled) continue;
+				if (!o.SendFileEnabled && !o.CastRecvEnabled) continue;
 				var name = string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName.Trim();
 				var httpPort = ListenPort > 0 ? ListenPort : FileHttpPort(o);
 				var json = new JsonObject {
@@ -590,6 +590,7 @@ public sealed partial class SendFileServer : IDisposable {
 					["httpPort"] = httpPort,
 					["pcId"] = o.SendFilePcId ?? "",
 					["cmd"] = "discover",
+					["cast"] = o.CastRecvEnabled,
 				}.ToJsonString(JsonUtf8);
 				var bytes = Encoding.UTF8.GetBytes(json);
 				try { u.Send(bytes, bytes.Length, ep); } catch { }

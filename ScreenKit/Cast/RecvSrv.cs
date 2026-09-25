@@ -119,6 +119,10 @@ sealed class CastRecvSrv : IDisposable {
 				Log?.Invoke($"音频 {audiov}/{audiogotv} pkt/s");
 			}
 		}
+		if (busy && hadhello && lastframe == 0 && sessstart != 0 && now - sessstart < 3000 && now - lastping >= 250) {
+			lastping = now;
+			SendJson(new { cmd = "hello", name = CastHost.Name });
+		}
 		if (busy && lastframe != 0 && now - lastping >= 1000) {
 			lastping = now;
 			SendJson(new { cmd = "ping", t = now });

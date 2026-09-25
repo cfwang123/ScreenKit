@@ -6,6 +6,10 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.projection.MediaProjection
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.Surface
 
@@ -45,6 +49,21 @@ class VideoPipe(
             null,
         )
         th = Thread({ loop() }, "venc").also { it.start() }
+        val h = Handler(Looper.getMainLooper())
+        h.postDelayed({ kick() }, 80)
+        h.postDelayed({ kick() }, 250)
+        h.postDelayed({ kick() }, 700)
+        h.postDelayed({ kick() }, 1500)
+    }
+
+    private fun kick() {
+        if (stopped) return
+        refresh()
+        try {
+            val b = Bundle()
+            b.putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+            enc.setParameters(b)
+        } catch (_: Exception) { }
     }
 
     private fun makeFmt(w: Int, h: Int, q: Quality, withProfile: Boolean): MediaFormat {
@@ -53,6 +72,10 @@ class VideoPipe(
         fmt.setInteger(MediaFormat.KEY_BIT_RATE, q.bitrate)
         fmt.setInteger(MediaFormat.KEY_FRAME_RATE, q.fps)
         fmt.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1)
+        if (Build.VERSION.SDK_INT >= 31)
+            fmt.setLong(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 50_000L)
+        if (Build.VERSION.SDK_INT >= 29)
+            fmt.setLong(MediaFormat.KEY_MAX_PTS_GAP_TO_ENCODER, 50_000L)
         if (withProfile) {
             fmt.setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
             val level = if (maxOf(w, h) >= 1080)

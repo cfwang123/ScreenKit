@@ -39,10 +39,7 @@ sealed class CastDisc : IDisposable {
 		u.BeginReceive(onrecv, null);
 	}
 
-	static int udpport() {
-		var p = CastHost.Opt?.SendFileUdpPort ?? 0;
-		return p > 0 ? p : 17531;
-	}
+	static int udpport() => 17531;
 
 	static int httpport() {
 		var p = CastHost.Opt?.HttpPort ?? 0;

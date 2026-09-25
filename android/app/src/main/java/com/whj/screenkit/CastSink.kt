@@ -10,6 +10,7 @@ import android.system.Os
 import android.system.OsConstants
 import android.system.StructTimeval
 import android.util.Log
+import org.json.JSONObject
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -332,11 +333,25 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
     private val wlock = Any()
     private val ath: Thread
     private val vth: Thread
+    private val rth: Thread
+    private val helloLatch = java.util.concurrent.CountDownLatch(1)
+    var onQuality: ((String) -> Unit)? = null
 
     init {
         Log.i("scst", "usb accessory opened ${accessory.manufacturer} ${accessory.model}")
         ath = Thread({ aloop() }, "usb-a").also { it.start() }
         vth = Thread({ vloop() }, "usb-v").also { it.start() }
+        rth = Thread({ rloop() }, "usb-r").also { it.start() }
+    }
+
+    fun awaitHello(ms: Long = 8000): Boolean {
+        val ok = try {
+            helloLatch.await(ms, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (_: Exception) {
+            false
+        }
+        Log.i("scst", "hello ack=$ok")
+        return ok && !dead
     }
 
     override fun send(type: Byte, payload: ByteArray): Boolean {
@@ -402,14 +417,47 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
         }
     }
 
+    private fun rloop() {
+        Log.i("scst", "usb-r start")
+        try {
+            while (!dead) {
+                val pair = Proto.read(ins) ?: break
+                if (pair.first != Proto.T_JSON) continue
+                val obj = try {
+                    JSONObject(String(pair.second, Charsets.UTF_8))
+                } catch (_: Exception) {
+                    continue
+                }
+                when (obj.optString("cmd")) {
+                    "hello" -> {
+                        Log.i("scst", "pc hello")
+                        helloLatch.countDown()
+                    }
+                    "ping" -> {
+                        val pong = JSONObject().put("cmd", "pong").put("t", obj.optLong("t"))
+                        send(Proto.T_JSON, pong.toString().toByteArray(Charsets.UTF_8))
+                    }
+                    "quality" -> {
+                        val name = obj.optString("name")
+                        if (name.isNotEmpty()) onQuality?.invoke(name)
+                    }
+                }
+            }
+        } catch (ex: Exception) {
+            Log.w("scst", "usb-r ${ex.javaClass.simpleName} ${ex.message}")
+            dead = true
+        }
+    }
+
     override fun close() {
         dead = true
         try { ath.interrupt() } catch (_: Exception) { }
         try { vth.interrupt() } catch (_: Exception) { }
+        try { rth.interrupt() } catch (_: Exception) { }
         try { os.close() } catch (_: Exception) { }
         try { ins.close() } catch (_: Exception) { }
         try { pfd.close() } catch (_: Exception) { }
     }
 
-    override fun input(): InputStream? = ins
+    override fun input(): InputStream? = null
 }

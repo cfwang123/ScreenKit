@@ -127,9 +127,15 @@ sealed class CastUsbHost : IDisposable {
 							else b = d.EndpointID;
 						}
 						if (a != null && b != null) {
-							inId = a;
-							outId = b;
-							break;
+							if (iface.Descriptor.InterfaceID == 0) {
+								inId = a;
+								outId = b;
+								break;
+							}
+							if (inId == null) {
+								inId = a;
+								outId = b;
+							}
 						}
 					}
 					if (inId != null) break;
@@ -281,12 +287,26 @@ sealed class CastUsbHost : IDisposable {
 		return true;
 	}
 
+	static int lastbind;
+
 	static void bindaoa(Action<string> log) {
-		if (aoaregs().Count > 0) return;
+		var need = false;
+		foreach (var iid in usbpresent()) {
+			if (!isaeaiid(iid)) continue;
+			if (!string.Equals(devsvc(iid), "WINUSB", StringComparison.OrdinalIgnoreCase)) {
+				need = true;
+				break;
+			}
+		}
+		if (!need) return;
+		var now = Environment.TickCount;
+		if (lastbind != 0 && now - lastbind < 8000) return;
+		lastbind = now;
 		foreach (var iid in usbpresent()) {
 			if (!isaeaiid(iid)) continue;
 			setguid(iid, log);
 			var svc = devsvc(iid);
+			if (string.Equals(svc, "WINUSB", StringComparison.OrdinalIgnoreCase)) continue;
 			log?.Invoke($"配件口 {svc} → WinUSB(ADB 节) {iid}");
 			if (forcewinusb(iid, log))
 				Thread.Sleep(800);
@@ -322,8 +342,14 @@ sealed class CastUsbHost : IDisposable {
 	}
 
 	static bool forcewinusb(string iid, Action<string> log) {
-		var inf = Path.GetFullPath(WinUsbInf);
-		if (!File.Exists(inf)) {
+		var aoaInf = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "winusb-aoa.inf");
+		if (tryforcewinusb(iid, Path.GetFullPath(WinUsbInf), log)) return true;
+		if (File.Exists(aoaInf) && tryforcewinusb(iid, Path.GetFullPath(aoaInf), log)) return true;
+		return false;
+	}
+
+	static bool tryforcewinusb(string iid, string inf, Action<string> log) {
+		if (string.IsNullOrEmpty(inf) || !File.Exists(inf)) {
 			log?.Invoke($"无 {inf}");
 			return false;
 		}
@@ -368,18 +394,18 @@ sealed class CastUsbHost : IDisposable {
 				return false;
 			}
 			SpDrvinfoData pick = default;
-			var have = false;
+			var best = 0;
 			for (var j = 0; ; j++) {
 				var drv = new SpDrvinfoData();
 				drv.CbSize = Marshal.SizeOf(typeof(SpDrvinfoData));
 				if (!SetupDiEnumDriverInfo(h, ref data, SPDIT_CLASSDRIVER, j, ref drv)) break;
-				if (!iswinusbdrv(drv.Description)) continue;
+				var score = drvscore(drv.Description, inf);
+				if (score <= best) continue;
 				pick = drv;
-				have = true;
-				break;
+				best = score;
 			}
-			if (!have) {
-				log?.Invoke("winusb.inf 里没有 WinUSB 设备项");
+			if (best == 0) {
+				log?.Invoke($"{Path.GetFileName(inf)} 里没有可用的 WinUSB 设备项");
 				return false;
 			}
 			if (!SetupDiSetSelectedDriver(h, ref data, ref pick)) {
@@ -400,9 +426,13 @@ sealed class CastUsbHost : IDisposable {
 		finally { SetupDiDestroyDeviceInfoList(h); }
 	}
 
-	static bool iswinusbdrv(string desc) {
-		if (string.IsNullOrEmpty(desc)) return false;
-		return desc.IndexOf("ADB", StringComparison.OrdinalIgnoreCase) >= 0;
+	static int drvscore(string desc, string inf) {
+		if (string.IsNullOrEmpty(desc)) return 0;
+		if (desc.IndexOf("ADB", StringComparison.OrdinalIgnoreCase) >= 0) return 3;
+		var aoa = inf != null && inf.IndexOf("winusb-aoa", StringComparison.OrdinalIgnoreCase) >= 0;
+		if (aoa && desc.IndexOf("ScreenKit", StringComparison.OrdinalIgnoreCase) >= 0) return 2;
+		if (aoa && desc.IndexOf("WinUSB", StringComparison.OrdinalIgnoreCase) >= 0) return 1;
+		return 0;
 	}
 
 	public static bool HelperBusy() {
@@ -479,7 +509,6 @@ sealed class CastUsbHost : IDisposable {
 				log?.Invoke($"pnp {iid} svc={devsvc(iid)}");
 			}
 			var lastreq = 0;
-			var started = false;
 			while (true) {
 				try { bindaoa(log); }
 				catch (Exception ex) { log?.Invoke($"绑定 WinUSB: {ex.Message}"); }
@@ -491,7 +520,7 @@ sealed class CastUsbHost : IDisposable {
 				}
 				catch (Exception ex) { log?.Invoke($"AOA 桥接: {ex.Message}"); }
 				var now = Environment.TickCount;
-				var due = !started || now - lastreq > 8000;
+				var due = lastreq == 0 || now - lastreq > 8000;
 				if (due && aoaregs().Count == 0) {
 					var acc = false;
 					foreach (var iid in usbpresent()) {
@@ -499,9 +528,9 @@ sealed class CastUsbHost : IDisposable {
 					}
 					if (!acc) {
 						lastreq = now;
-						try {
-							if (RequestAoaOnce(log)) started = true;
-						}
+						CastAdbFwd.KillServer(log);
+						Thread.Sleep(400);
+						try { RequestAoaOnce(log); }
 						catch (Exception ex) { log?.Invoke($"AOA 请求: {ex.Message}"); }
 					}
 					else lastreq = now;
@@ -519,7 +548,10 @@ sealed class CastUsbHost : IDisposable {
 		foreach (var r in aoaregs()) {
 			UsbDevice dev = null;
 			try {
-				if (!r.Open(out dev) || dev == null) continue;
+				if (!r.Open(out dev) || dev == null) {
+					log?.Invoke($"AOA 打开失败 {r.Vid:X4}:{r.Pid:X4} {r.Name}");
+					continue;
+				}
 				var whole = dev as IUsbDevice;
 				whole?.SetConfiguration(1);
 				whole?.ClaimInterface(0);
@@ -529,7 +561,10 @@ sealed class CastUsbHost : IDisposable {
 					dev = null;
 					continue;
 				}
-				log?.Invoke($"USB AOA 已打开 {r.Vid:X4}:{r.Pid:X4} {r.Name}，等待手机发包");
+				byte inEp = 0, outEp = 0;
+				try { inEp = rd.EndpointInfo.Descriptor.EndpointID; } catch { }
+				try { outEp = wr.EndpointInfo.Descriptor.EndpointID; } catch { }
+				log?.Invoke($"USB AOA 已打开 {r.Vid:X4}:{r.Pid:X4} {r.Name} {shortpath(r.SymbolicName)} in={inEp:X2} out={outEp:X2}，等待手机发包");
 				using var usb = new CastUsbBulkStream(rd, wr, 400);
 				usb.IdleMs = 0;
 				var first = new byte[16384];
@@ -546,7 +581,7 @@ sealed class CastUsbHost : IDisposable {
 				up.Connect(4000);
 				down.Connect(4000);
 				log?.Invoke("USB AOA 已桥接到命名管道");
-				pump(usb, up, down, first, n);
+				pump(usb, up, down, first, n, log);
 				log?.Invoke("USB AOA 会话结束");
 				return true;
 			}
@@ -571,6 +606,7 @@ sealed class CastUsbHost : IDisposable {
 			foreach (var r in wr) {
 				if (!isaeapid(r.Vid, r.Pid)) continue;
 				if (isadbchild(r)) continue;
+				if (!iswinusbiface(r)) continue;
 				var key = $"{r.Vid:X4}:{r.Pid:X4}:{r.SymbolicName}";
 				if (!seen.Add(key)) continue;
 				list.Add(r);
@@ -585,14 +621,59 @@ sealed class CastUsbHost : IDisposable {
 		return s.IndexOf("MI_01", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
-	static void pump(Stream usb, Stream up, Stream down, byte[] first, int n) {
+	static bool iswinusbiface(UsbRegistry r) {
+		var iid = iidfromsym(r.SymbolicName);
+		if (!string.IsNullOrEmpty(iid) &&
+			string.Equals(devsvc(iid), "WINUSB", StringComparison.OrdinalIgnoreCase))
+			return true;
+		var s = $"{r.SymbolicName} {r.Name}";
+		foreach (var present in usbpresent()) {
+			if (!isaeaiid(present)) continue;
+			if (!string.Equals(devsvc(present), "WINUSB", StringComparison.OrdinalIgnoreCase))
+				continue;
+			if (s.IndexOf(present, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+			if (s.IndexOf(present.Replace('\\', '#'), StringComparison.OrdinalIgnoreCase) >= 0)
+				return true;
+		}
+		return false;
+	}
+
+	static string iidfromsym(string sym) {
+		if (string.IsNullOrEmpty(sym)) return "";
+		var s = sym.Trim();
+		if (s.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase))
+			s = s.Substring(4);
+		var ix = s.IndexOf("#{");
+		if (ix >= 0) s = s.Substring(0, ix);
+		return s.Replace('#', '\\');
+	}
+
+	static void pump(Stream usb, Stream up, Stream down, byte[] first, int n, Action<string> log) {
 		using var cts = new CancellationTokenSource();
-		var t2 = new Thread(() => copy(down, usb, cts)) { IsBackground = true, Name = "aoa-p2u" };
-		t2.Start();
 		if (first != null && n > 0) {
 			up.Write(first, 0, n);
 			up.Flush();
 		}
+		var reply = new byte[16384];
+		var n2 = 0;
+		try { n2 = down.Read(reply, 0, reply.Length); }
+		catch (Exception ex) { log?.Invoke($"AOA 读回包 {ex.Message}"); }
+		log?.Invoke($"AOA 回包 {n2}B");
+		if (n2 > 0) {
+			try {
+				usb.Write(reply, 0, n2);
+				usb.Flush();
+				log?.Invoke($"AOA 已写 hello 回包 {n2}B");
+				for (var i = 0; i < 4; i++) {
+					Thread.Sleep(40);
+					usb.Write(reply, 0, n2);
+					usb.Flush();
+				}
+			}
+			catch (Exception ex) { log?.Invoke($"AOA 写回包 {ex.Message}"); }
+		}
+		var t2 = new Thread(() => copy(down, usb, cts)) { IsBackground = true, Name = "aoa-p2u" };
+		t2.Start();
 		var t1 = new Thread(() => copy(usb, up, cts)) { IsBackground = true, Name = "aoa-u2p" };
 		t1.Start();
 		t1.Join();
