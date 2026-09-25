@@ -664,11 +664,6 @@ sealed class CastUsbHost : IDisposable {
 				usb.Write(reply, 0, n2);
 				usb.Flush();
 				log?.Invoke($"AOA 已写 hello 回包 {n2}B");
-				for (var i = 0; i < 4; i++) {
-					Thread.Sleep(40);
-					usb.Write(reply, 0, n2);
-					usb.Flush();
-				}
 			}
 			catch (Exception ex) { log?.Invoke($"AOA 写回包 {ex.Message}"); }
 		}

@@ -6,4 +6,5 @@
     <color name="text">#1A202C</color>
     <color name="muted">#718096</color>
     <color name="accent_soft">#DBEAFE</color>
+    <color name="surface">#FFFFFF</color>
 </resources>

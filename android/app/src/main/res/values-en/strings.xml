@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ScreenKit</string>
+    <string name="label_launcher">ScreenKit</string>
+    <string name="label_file">ScreenKit</string>
+    <string name="label_cast">Cast</string>
+    <string name="btn_upload_files">Upload files</string>
+    <string name="btn_upload_camera">Camera</string>
+    <string name="menu_web_files">Web file manager</string>
+    <string name="menu_goto_cast">Cast</string>
+    <string name="menu_cast_active">Casting</string>
+    <string name="btn_cast_lan">Network cast</string>
+    <string name="toast_connect_pc_first">Connect to a PC first</string>
+    <string name="toast_no_browser">No browser available</string>
+    <string name="pc_devices_title">Saved PCs</string>
+    <string name="pc_devices_hint">Tap to connect; rename or remove</string>
+    <string name="pc_devices_empty">No saved PCs yet\nThey appear after a successful connection</string>
+    <string name="pc_devices_pick">Saved PCs</string>
+    <string name="pc_devices_alias">Alias</string>
+    <string name="pc_devices_alias_title">Set alias</string>
+    <string name="pc_devices_delete">Delete</string>
+    <string name="pc_devices_delete_msg">Remove “%1$s”?</string>
+    <string name="pc_devices_close">Close</string>
+    <string name="conn_ping_fail">Cannot reach %1$s (port not responding)</string>
+    <string name="conn_wait_pc">Waiting for %1$s…</string>
+</resources>

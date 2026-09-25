@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ScreenKit</string>
-    <string name="label_file">传文件</string>
+    <string name="label_launcher">传文件/投屏</string>
+    <string name="label_file">传文件/投屏</string>
     <string name="label_cast">投屏</string>
+    <string name="btn_upload_files">上传文件</string>
+    <string name="btn_upload_camera">拍照上传</string>
+    <string name="menu_web_files">网页文件管理</string>
+    <string name="menu_goto_cast">投屏</string>
+    <string name="menu_cast_active">投屏中</string>
+    <string name="btn_cast_lan">网络投屏</string>
+    <string name="toast_connect_pc_first">请先连接电脑</string>
+    <string name="toast_no_browser">无法打开浏览器</string>
+    <string name="pc_devices_title">我的电脑</string>
+    <string name="pc_devices_hint">点选连接；可设别名或删除</string>
+    <string name="pc_devices_empty">暂无已保存的电脑\n连接成功后会出现在这里</string>
+    <string name="pc_devices_pick">我的电脑</string>
+    <string name="pc_devices_alias">别名</string>
+    <string name="pc_devices_alias_title">设置别名</string>
+    <string name="pc_devices_delete">删除</string>
+    <string name="pc_devices_delete_msg">删除「%1$s」？</string>
+    <string name="pc_devices_close">关闭</string>
+    <string name="conn_ping_fail">无法连通 %1$s（端口无响应）</string>
+    <string name="conn_wait_pc">等待 %1$s 上线…</string>
 </resources>

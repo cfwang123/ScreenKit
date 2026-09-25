@@ -30,6 +30,7 @@ sealed class CastRecvSrv : IDisposable {
 	readonly AutoResetEvent asig = new(false);
 	volatile bool decstop;
 	int lastpkt;
+	int lastvid;
 	int encw, ench, srcw, srch, hellofps, hellobr;
 	string hellovia;
 	int videomiss;
@@ -119,7 +120,7 @@ sealed class CastRecvSrv : IDisposable {
 				Log?.Invoke($"音频 {audiov}/{audiogotv} pkt/s");
 			}
 		}
-		if (busy && hadhello && lastframe == 0 && sessstart != 0 && now - sessstart < 3000 && now - lastping >= 250) {
+		if (busy && hadhello && lastframe == 0 && lastvid == 0 && sessstart != 0 && now - sessstart < 3000 && now - lastping >= 250) {
 			lastping = now;
 			SendJson(new { cmd = "hello", name = CastHost.Name });
 		}
@@ -192,6 +193,7 @@ sealed class CastRecvSrv : IDisposable {
 			busy = true;
 			hadhello = false;
 			sessstart = Environment.TickCount;
+			lastvid = 0;
 			drop = false;
 			decstop = false;
 			curst = s;
@@ -219,6 +221,7 @@ sealed class CastRecvSrv : IDisposable {
 						}
 					}
 					else if (type == CastProto.T_VIDEO) {
+						lastvid = Environment.TickCount;
 						if (!hello) {
 							hello = true;
 							hadhello = true;
@@ -260,6 +263,7 @@ sealed class CastRecvSrv : IDisposable {
 				hadhello = false;
 				sessstart = 0;
 				lastpkt = 0;
+				lastvid = 0;
 				fpsn = 0;
 				fpsv = 0;
 				audion = 0;

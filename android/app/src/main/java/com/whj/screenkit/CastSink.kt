@@ -5,14 +5,12 @@ import android.hardware.usb.UsbManager
 import android.net.LocalSocket
 import android.net.LocalSocketAddress
 import android.os.ParcelFileDescriptor
-import android.os.NetworkOnMainThreadException
 import android.system.Os
 import android.system.OsConstants
+import android.system.StructPollfd
 import android.system.StructTimeval
 import android.util.Log
 import org.json.JSONObject
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetAddress
@@ -324,13 +322,13 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
 
     private val pfd: ParcelFileDescriptor = manager.openAccessory(accessory)
         ?: throw IllegalStateException("openAccessory 失败")
-    private val os = FileOutputStream(pfd.fileDescriptor)
-    private val ins = FileInputStream(pfd.fileDescriptor)
+    private val fd = pfd.fileDescriptor
     @Volatile private var dead = false
     private val gate = Any()
     private var pendingVideo: ByteArray? = null
     private val ctrl = java.util.concurrent.LinkedBlockingQueue<UsbPkt>(256)
     private val wlock = Any()
+    private val iolock = Any()
     private val ath: Thread
     private val vth: Thread
     private val rth: Thread
@@ -339,6 +337,11 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
 
     init {
         Log.i("scst", "usb accessory opened ${accessory.manufacturer} ${accessory.model}")
+        try {
+            Os.setsockoptTimeval(fd, OsConstants.SOL_SOCKET, OsConstants.SO_SNDTIMEO, StructTimeval.fromMillis(400))
+        } catch (ex: Exception) {
+            Log.w("scst", "usb sockopt ${ex.message}")
+        }
         ath = Thread({ aloop() }, "usb-a").also { it.start() }
         vth = Thread({ vloop() }, "usb-v").also { it.start() }
         rth = Thread({ rloop() }, "usb-r").also { it.start() }
@@ -382,7 +385,7 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
             while (!dead) {
                 val p = ctrl.poll(20, java.util.concurrent.TimeUnit.MILLISECONDS) ?: continue
                 try {
-                    synchronized(wlock) { Proto.write(os, p.type, p.payload) }
+                    synchronized(wlock) { rawWrite(Proto.pack(p.type, p.payload)) }
                 } finally {
                     p.done?.countDown()
                 }
@@ -406,7 +409,7 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
                     continue
                 }
                 try {
-                    synchronized(wlock) { Proto.write(os, Proto.T_VIDEO, v) }
+                    synchronized(wlock) { rawWrite(Proto.pack(Proto.T_VIDEO, v)) }
                 } catch (ex: Exception) {
                     Log.w("scst", "usb-v drop ${ex.javaClass.simpleName}")
                 }
@@ -421,7 +424,7 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
         Log.i("scst", "usb-r start")
         try {
             while (!dead) {
-                val pair = Proto.read(ins) ?: break
+                val pair = usbRead() ?: break
                 if (pair.first != Proto.T_JSON) continue
                 val obj = try {
                     JSONObject(String(pair.second, Charsets.UTF_8))
@@ -449,13 +452,101 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
         }
     }
 
+    private fun rawWrite(buf: ByteArray) {
+        var o = 0
+        while (o < buf.size) {
+            if (dead) throw java.io.IOException("usb dead")
+            val n = synchronized(iolock) {
+                try {
+                    Os.write(fd, buf, o, minOf(16383, buf.size - o))
+                } catch (ex: android.system.ErrnoException) {
+                    if (usbTimeout(ex) && !dead) 0 else throw ex
+                }
+            }
+            if (n == 0) {
+                try { Thread.sleep(8) } catch (_: Exception) { }
+                continue
+            }
+            if (n < 0) throw java.io.IOException("usb write $n")
+            o += n
+        }
+    }
+
+    private fun usbRead(): Pair<Byte, ByteArray>? {
+        val hdr = ByteArray(9)
+        if (!readfull(hdr)) return null
+        while (true) {
+            val mag = ((hdr[0].toInt() and 0xFF) shl 24) or
+                ((hdr[1].toInt() and 0xFF) shl 16) or
+                ((hdr[2].toInt() and 0xFF) shl 8) or
+                (hdr[3].toInt() and 0xFF)
+            if (mag == Proto.MAGIC) break
+            System.arraycopy(hdr, 1, hdr, 0, 8)
+            val one = ByteArray(1)
+            if (!readfull(one)) return null
+            hdr[8] = one[0]
+        }
+        val type = hdr[4]
+        val len = ((hdr[5].toInt() and 0xFF) shl 24) or
+            ((hdr[6].toInt() and 0xFF) shl 16) or
+            ((hdr[7].toInt() and 0xFF) shl 8) or
+            (hdr[8].toInt() and 0xFF)
+        if (len < 0 || len > 8 * 1024 * 1024) return null
+        if (len == 0) return type to ByteArray(0)
+        val payload = ByteArray(len)
+        if (!readfull(payload)) return null
+        return type to payload
+    }
+
+    private fun readfull(buf: ByteArray): Boolean {
+        var g = 0
+        val pf = StructPollfd()
+        pf.fd = fd
+        pf.events = OsConstants.POLLIN.toShort()
+        val pfds = arrayOf(pf)
+        while (g < buf.size) {
+            if (dead) return false
+            pf.revents = 0
+            val ready = try {
+                Os.poll(pfds, 80)
+            } catch (ex: Exception) {
+                Log.w("scst", "usb poll ${ex.message}")
+                return false
+            }
+            if (ready == 0) continue
+            if (ready < 0) return false
+            val rev = pf.revents.toInt()
+            if (rev and (OsConstants.POLLERR or OsConstants.POLLHUP or OsConstants.POLLNVAL) != 0)
+                return false
+            if (rev and OsConstants.POLLIN == 0) continue
+            val n = synchronized(iolock) {
+                try {
+                    Os.read(fd, buf, g, buf.size - g)
+                } catch (ex: android.system.ErrnoException) {
+                    if (usbTimeout(ex) && !dead) -2
+                    else {
+                        Log.w("scst", "usb-r ${ex.javaClass.simpleName} ${ex.message}")
+                        -1
+                    }
+                }
+            }
+            if (n == -2) continue
+            if (n <= 0) return false
+            g += n
+        }
+        return true
+    }
+
+    private fun usbTimeout(ex: android.system.ErrnoException): Boolean {
+        val n = ex.errno
+        return n == OsConstants.EAGAIN || n == OsConstants.EINTR || n == OsConstants.ETIMEDOUT
+    }
+
     override fun close() {
         dead = true
         try { ath.interrupt() } catch (_: Exception) { }
         try { vth.interrupt() } catch (_: Exception) { }
         try { rth.interrupt() } catch (_: Exception) { }
-        try { os.close() } catch (_: Exception) { }
-        try { ins.close() } catch (_: Exception) { }
         try { pfd.close() } catch (_: Exception) { }
     }
 

@@ -43,7 +43,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- USB accessory: phone starts reading the accessory fd as soon as it is opened, so the PC hello reply is not missed (the viewer was a black window for ~8s then closed). AOA helper still writes the hello reply before the USB read thread.
+- Phone Wi‑Fi screencast: picking a PC (scan list, My PCs, or the already-connected host) is enough to start; the start button no longer requires a still-checked list row. Media WebSocket uses the HTTP port (1224), not leftover 19519.
+- USB accessory screencast: the phone reads the accessory fd with a short timeout so video writes are not blocked (PC window stayed black after hello). Extra hello copies on the AOA bridge are gone; the PC stops repeating hello once video packets arrive.
 - ADB/WiFi capture: encoder repeats a static frame and the VirtualDisplay is kicked a few times after start, so the viewer is not black until the phone is touched.
 - Phone discovery binds the UDP socket to Wi‑Fi (USB accessory no longer steals the default network). Unicast to the last PC IP. Discovery UDP is always **17531** (a bumped saved port left the phone scanning 17531 while the PC listened on 17535). File-transfer UDP replies even when only screencast receive is on.
 - USB screencast hello: write `hello` before reading the PC reply (accessory read+write on one fd can stall the write ~2s). AOA bridge no longer treats 500ms USB idle as EOF, so the hello reply can arrive.
@@ -117,7 +118,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- USB 配件：手机打开配件 fd 就开始读，电脑 hello 回包不再被丢掉（画面窗曾黑屏约 8 秒后关掉）。AOA 助手仍先写 hello 回包再开 USB 读线程。
+- 手机 WiFi 投屏：扫描列表 / 我的电脑 / 传文件页已选主机均可直接开始，不再因列表勾选被清掉而提示未选择电脑。画面 WebSocket 走 HTTP 口（1224），不再误连 19519。
+- USB 配件投屏：配件 fd 短超时读，避免阻塞读卡住视频写（电脑弹窗后一直黑屏）。AOA 桥不再连写多份 hello；电脑收到视频包后停止重发 hello。
 - ADB/WiFi 采集：编码器在静止画面时重复上一帧，VirtualDisplay 启动后主动踢几帧，电脑不再等到手机操作才出画。
 - 手机发现 UDP 绑到 Wi‑Fi（插着 USB 配件时不再走默认网卡）；并向上次电脑 IP 单播。发现口固定 **17531**（配置曾改口到 17535，手机仍扫 17531）。仅开投屏接收时，传文件 UDP 也会应答发现。
 - USB 投屏 hello：先写出再读电脑应答（配件同一 fd 上先阻塞读再写会把 hello 卡约 2 秒）；AOA 桥不再把 500ms 空闲当断开，hello 回包才能到达。
@@ -128,6 +130,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安卓：去掉桌面 **投屏** 图标；仅保留 **传文件/投屏** 入口（英文 **ScreenKit**），投屏从传文件标题栏菜单进入，同一任务栈（不再 `taskAffinity` 分栈）。
 - 安卓传文件：主界面按钮按文字宽度流式排列；**上传文件** / **拍照上传** / **网页文件管理** / **投屏**；参数设置可配拍照格式（JPG/PNG）、JPG 质量（默认 60%）、限制最长边（默认 2000px，可关）。
 - 安卓：传文件与投屏共用 **我的电脑** 居中弹窗（标题栏、选择连接、设别名、删除）；成功连接或开始投屏后自动记入列表。
+- 安卓传文件：连接前先 **ping**（HTTP 端口 TCP 探测），不通则立即结束；选中电脑连接失败后每约 3 秒 ping，通则自动重连。
+- 安卓：传文件页投屏中主按钮显示 **投屏中**（高亮描边）；投屏页操作按钮改为流式宽度排列。
+- 安卓投屏页：**开始投屏** 按钮文案改为 **网络投屏**。
 - 安卓传文件：手填 IP 默认端口改为 **1224**（原误用 17532，导致连不上、电脑不弹配对）；UDP 发现增加子网广播；先 `info` 再配对。
 - 电脑文件同步：手机上传或收到手机文本后自动复制到剪贴板，**主屏**工作区底部居中 Toast（非托盘气泡）。
 - 电脑文件同步：接收目录多选后点 **推送**，将所选文件/文件夹发给已连接手机。

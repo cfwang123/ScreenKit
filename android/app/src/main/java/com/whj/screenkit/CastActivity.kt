@@ -11,16 +11,12 @@ import android.hardware.usb.UsbManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
-import android.view.Gravity
-import android.view.MenuItem
-import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import com.whj.screenkit.databinding.ActivityCastBinding
 
@@ -70,7 +66,6 @@ class CastActivity : AppCompatActivity() {
         setContentView(b.root)
         supportActionBar?.title = getString(R.string.label_cast)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_menu)
         b.eq.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
@@ -93,9 +88,9 @@ class CastActivity : AppCompatActivity() {
         b.lpeers.setOnItemClickListener { _, _, pos, _ ->
             b.lpeers.setItemChecked(pos, true)
             val p = peers.getOrNull(pos) ?: return@setOnItemClickListener
-            fillPeer(p)
-            b.lbstat.text = "已选 ${p.name}  ${p.ip}:${p.tcp}"
+            selectPeer(p)
         }
+        b.bdevices.setOnClickListener { showDeviceSheet() }
         b.bscan.setOnClickListener { scan() }
         b.bstart.setOnClickListener { startLan() }
         b.bmanual.setOnClickListener { startManual() }
@@ -122,25 +117,9 @@ class CastActivity : AppCompatActivity() {
         maybeTestIntent(intent)
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            showmenu()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
-    private fun showmenu() {
-        val bar = findViewById<View>(androidx.appcompat.R.id.action_bar)
-        val pop = PopupMenu(this, bar ?: b.root, Gravity.START)
-        pop.menu.add(0, 1, 0, getString(R.string.menu_goto_file))
-        pop.setOnMenuItemClickListener {
-            when (it.itemId) {
-                1 -> AppNav.openSendFile(this)
-            }
-            true
-        }
-        pop.show()
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
     }
 
     override fun onResume() {
@@ -191,7 +170,9 @@ class CastActivity : AppCompatActivity() {
         }
         val ip = intent?.getStringExtra("scst_ip")?.trim().orEmpty()
         if (ip.isEmpty()) return
-        b.eip.setText(ip)
+        pendingIp = ""
+        fillIp(ip)
+        resolvePendingFromUi()
         if (intent?.getBooleanExtra("scst_go", false) == true)
             b.eip.post { startManual() }
     }
@@ -247,15 +228,16 @@ class CastActivity : AppCompatActivity() {
                 )
                 if (list.size == 1) {
                     b.lpeers.setItemChecked(0, true)
-                    fillPeer(list[0])
-                    b.lbstat.text = "已选 ${list[0].name}  ${list[0].ip}:${list[0].tcp}"
+                    selectPeer(list[0])
                 } else {
-                    val last = b.eip.text?.toString()?.trim().orEmpty()
+                    val last = pendingIp.ifEmpty { b.eip.text?.toString()?.trim().orEmpty() }
                     val ix = list.indexOfFirst { it.ip == last || last.startsWith("${it.ip}:") }
                     if (ix >= 0) {
                         b.lpeers.setItemChecked(ix, true)
-                        fillPeer(list[ix])
-                        b.lbstat.text = "已选 ${list[ix].name}  ${list[ix].ip}:${list[ix].tcp}"
+                        selectPeer(list[ix])
+                    } else if (pendingIp.isNotEmpty()) {
+                        b.lpeers.clearChoices()
+                        b.lbstat.text = "已选 $pendingIp"
                     } else {
                         b.lpeers.clearChoices()
                         b.lbstat.text = "扫描到 ${list.size} 台，点选一台"
@@ -268,16 +250,22 @@ class CastActivity : AppCompatActivity() {
     private fun startLan() {
         val ix = b.lpeers.checkedItemPosition
         val p = if (ix >= 0 && ix < peers.size) peers[ix] else null
-        if (p == null) {
-            toast("请先扫描并点选一台电脑")
+        if (p != null) {
+            pendingIp = p.ip
+            pendingHttp = if (p.http > 0) p.http else SendPorts.HTTP
+            pendingPort = pendingHttp
+            fillPeer(p)
+        } else {
+            resolvePendingFromUi()
+            if (pendingHttp <= 0) pendingHttp = SendPorts.HTTP
+            pendingPort = pendingHttp
+        }
+        if (pendingIp.isEmpty()) {
+            toast("请先选择一台电脑")
             return
         }
         UsbLan.clear()
         pendingMode = "tcp"
-        pendingIp = p.ip
-        pendingPort = p.tcp
-        pendingHttp = p.http
-        fillPeer(p)
         requestProj()
     }
 
@@ -297,9 +285,9 @@ class CastActivity : AppCompatActivity() {
         UsbLan.clear()
         pendingMode = "tcp"
         pendingIp = ip
+        pendingHttp = port
         pendingPort = port
-        pendingHttp = 1224
-        fillIp(ip)
+        fillIp(if (port != SendPorts.HTTP) "$ip:$port" else ip)
         requestProj()
     }
 
@@ -405,8 +393,57 @@ class CastActivity : AppCompatActivity() {
     }
 
     private fun requestProj() {
+        rememberCastTarget()
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         proj.launch(mgr.createScreenCaptureIntent())
+    }
+
+    private fun showDeviceSheet() {
+        PcDeviceSheet.show(this) { e -> applyRecent(e) }
+    }
+
+    private fun applyRecent(e: PcHistoryEntry) {
+        selectPeer(e.toPeer())
+    }
+
+    private fun selectPeer(p: Peer) {
+        pendingMode = "tcp"
+        pendingIp = p.ip
+        pendingHttp = when {
+            p.http > 0 -> p.http
+            p.tcp > 0 && p.tcp != Proto.TCP_PORT -> p.tcp
+            else -> SendPorts.HTTP
+        }
+        pendingPort = pendingHttp
+        fillPeer(p)
+        val ix = peers.indexOfFirst { it.ip == p.ip }
+        if (ix >= 0) b.lpeers.setItemChecked(ix, true)
+        b.lbstat.text = "已选 ${p.name}  ${p.ip}:${pendingHttp}"
+    }
+
+    private fun rememberCastTarget() {
+        resolvePendingFromUi()
+        if (pendingIp.isEmpty()) return
+        val saved = PcHistory.load(this)
+        val name = peers.find { it.ip == pendingIp }?.name
+            ?: saved.find { it.host == pendingIp }?.name
+            ?: pendingIp
+        val http = if (pendingHttp > 0) pendingHttp else SendPorts.HTTP
+        val tcp = if (pendingPort > 0) pendingPort else SendPorts.HTTP
+        val alias = saved.find { it.host == pendingIp && it.http == http }?.alias ?: ""
+        PcHistory.remember(
+            this,
+            PcHistoryEntry(pendingIp, http, name, alias, "", tcp, System.currentTimeMillis()),
+        )
+    }
+
+    private fun resolvePendingFromUi() {
+        if (pendingIp.isNotEmpty()) return
+        val t = b.eip.text?.toString()?.trim().orEmpty()
+        if (t.isEmpty()) return
+        val sp = t.split(":")
+        pendingIp = sp[0].trim()
+        if (sp.size >= 2) pendingHttp = sp[1].trim().toIntOrNull() ?: SendPorts.HTTP
     }
 
     private fun fillPeer(p: Peer) {
@@ -421,6 +458,11 @@ class CastActivity : AppCompatActivity() {
     }
 
     private fun loadIp() {
+        val saved = PcHistory.load(this)
+        if (saved.isNotEmpty()) {
+            applyRecent(saved[0])
+            return
+        }
         val ip = getSharedPreferences("skcast", MODE_PRIVATE).getString("ip", "") ?: ""
         if (ip.isNotEmpty()) b.eip.setText(ip)
     }

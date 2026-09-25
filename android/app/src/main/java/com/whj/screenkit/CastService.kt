@@ -98,7 +98,6 @@ class CastService : Service() {
             else -> "wifi"
         }
         val ip = intent?.getStringExtra(EXTRA_IP) ?: ""
-        val port = intent?.getIntExtra(EXTRA_PORT, Proto.TCP_PORT) ?: Proto.TCP_PORT
         httpHost = ip
         httpPort = intent?.getIntExtra(EXTRA_HTTP, 1224) ?: 1224
         if (httpPort <= 0) httpPort = 1224
@@ -115,7 +114,7 @@ class CastService : Service() {
                     if (sessgen.get() != mygen) return@Thread
                     Log.w("scst", "pattern ${ex.javaClass.simpleName} ${ex.message}")
                     val msg = ex.message?.takeIf { it.contains("电脑") } ?: "USB 测试失败"
-                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", msg))
+                    broadcastStat(msg)
                     stopCast()
                     stopSelf()
                 }
@@ -133,7 +132,7 @@ class CastService : Service() {
                     "usb" -> openUsbSink()
                     "usb-lan" -> TcpSink.listen(UsbLan.lastNet)
                     "usb-adb" -> UsbLoop.open()
-                    else -> WsSink(ip, port)
+                    else -> WsSink(ip, if (httpPort > 0) httpPort else SendPorts.HTTP)
                 }
                 if (sessgen.get() != mygen) return@Thread
                 sink = s
@@ -163,7 +162,7 @@ class CastService : Service() {
                 if (sessgen.get() != mygen) return@Thread
                 Log.w("scst", "start ${ex.javaClass.simpleName} ${ex.message}")
                 val msg = ex.message?.takeIf { it.isNotBlank() } ?: "电脑未打开 ScreenKit"
-                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", msg))
+                broadcastStat(msg)
                 stopCast()
                 stopSelf()
             }
@@ -201,21 +200,16 @@ class CastService : Service() {
             video = v
         }
         sendHello(v.outW, v.outH, v.fps, wantAudio)
-        sendBroadcast(
-            Intent(ACTION_STAT).setPackage(packageName).putExtra(
-                "msg",
-                "投屏中 $via ${v.outW}x${v.outH}@${v.fps}",
-            ),
-        )
+        broadcastStat("投屏中 $via ${v.outW}x${v.outH}@${v.fps}")
         if (wantAudio) {
             Handler(Looper.getMainLooper()).postDelayed({
                 if (mp == null) return@postDelayed
                 try {
                     audio = AudioPipe(projection, s)
-                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 $via ${v.outW}x${v.outH}@${v.fps} 有声"))
+                    broadcastStat("投屏中 $via ${v.outW}x${v.outH}@${v.fps} 有声")
                 } catch (ex: Exception) {
                     Log.w("scst", "audio ${ex.message}")
-                    sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "投屏中 $via ${v.outW}x${v.outH}@${v.fps} 无声"))
+                    broadcastStat("投屏中 $via ${v.outW}x${v.outH}@${v.fps} 无声")
                 }
             }, 400)
         }
@@ -301,12 +295,7 @@ class CastService : Service() {
             } else {
                 sendHello(v.outW, v.outH, v.fps, wantAudio)
                 runOnMain { v.resumeSend(); true }
-                sendBroadcast(
-                    Intent(ACTION_STAT).setPackage(packageName).putExtra(
-                        "msg",
-                        "投屏中 $via ${v.outW}x${v.outH}@${v.fps}",
-                    ),
-                )
+                broadcastStat("投屏中 $via ${v.outW}x${v.outH}@${v.fps}")
             }
         } catch (ex: Exception) {
             Log.w("scst", "orient ${ex.message}")
@@ -334,7 +323,7 @@ class CastService : Service() {
     private fun peerGone() {
         Handler(Looper.getMainLooper()).post {
             if (mp == null && pattern == null) return@post
-            sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "电脑已断开"))
+            broadcastStat("电脑已断开")
             stopCast()
             stopSelf()
         }
@@ -362,9 +351,7 @@ class CastService : Service() {
         if (!handshake(s, 640, 360, 15, false))
             throw IllegalStateException("电脑未打开 ScreenKit")
         pattern = PatternPipe(640, 360, 15, 800_000, s, ::peerGone)
-        sendBroadcast(
-            Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "USB 测试画面 640x360"),
-        )
+        broadcastStat("USB 测试画面 640x360")
         Log.i("scst", "pattern usb 640x360")
     }
 
@@ -405,6 +392,11 @@ class CastService : Service() {
         }
     }
 
+    private fun broadcastStat(msg: String) {
+        statMsg = msg
+        broadcastStat(msg)
+    }
+
     private fun stopCast() {
         if (cfgOn) {
             try { unregisterComponentCallbacks(cfgCb) } catch (_: Exception) { }
@@ -424,7 +416,7 @@ class CastService : Service() {
         mp = null
         q = null
         replacing = false
-        sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "已停止"))
+        broadcastStat("已停止")
     }
 
     private fun notifyPcStop() {
@@ -528,7 +520,7 @@ class CastService : Service() {
             val nv = v
             if (nv == null) {
                 replacing = false
-                sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", "改画质失败: ${fail?.message}"))
+                broadcastStat("改画质失败: ${fail?.message}")
                 return@Thread
             }
             synchronized(gate) {
@@ -543,12 +535,7 @@ class CastService : Service() {
             try { Thread.sleep(200) } catch (_: Exception) { }
             replacing = false
             sendHello(nv.outW, nv.outH, nv.fps, wantAudio)
-            sendBroadcast(
-                Intent(ACTION_STAT).setPackage(packageName).putExtra(
-                    "msg",
-                    "投屏中 $via ${nv.outW}x${nv.outH}@${nv.fps}",
-                ),
-            )
+            broadcastStat("投屏中 $via ${nv.outW}x${nv.outH}@${nv.fps}")
         }.start()
     }
 
@@ -558,6 +545,11 @@ class CastService : Service() {
     }
 
     companion object {
+        @Volatile var statMsg = ""
+
+        fun isCastingMsg(msg: String): Boolean =
+            msg.contains("投屏中") || msg.contains("USB 测试")
+
         const val ACTION_STOP = "com.whj.screenkit.CAST_STOP"
         const val ACTION_QUALITY = "com.whj.screenkit.CAST_QUALITY"
         const val ACTION_STAT = "com.whj.screenkit.CAST_STAT"
