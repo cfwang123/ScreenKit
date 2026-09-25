@@ -4,9 +4,9 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="theme-color" content="#ffffff"/>
+<meta name="theme-color" content="#f6f7fb"/>
 <title>ScreenKit 文件</title>
-<link rel="stylesheet" href="/web/m.css"/>
+<link rel="stylesheet" href="/web/m.css?__SK_WEB_VER__"/>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="sprites" aria-hidden="true">
@@ -22,11 +22,11 @@
 	<symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
 		<path d="M12 16V5M8 9l4-4 4 4"/><path d="M5 19h14"/>
 	</symbol>
+	<symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/>
+	</symbol>
 	<symbol id="i-folderplus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
 		<path d="M4 7a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/><path d="M12 11v6M9 14h6"/>
-	</symbol>
-	<symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-		<path d="M20 12a8 8 0 1 0-2.2 5.5"/><path d="M20 12V7h-5"/>
 	</symbol>
 	<symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
 		<path d="M12 5v11M8 12l4 4 4-4"/><path d="M5 19h14"/>
@@ -43,6 +43,18 @@
 	<symbol id="i-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
 		<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/>
 	</symbol>
+	<symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="m5.5 17 4-4 3 3 2-2 4 3"/>
+	</symbol>
+	<symbol id="i-video" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>
+	</symbol>
+	<symbol id="i-pdf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 16v-5h2a1.5 1.5 0 0 1 0 3H9m5 2v-5h3"/>
+	</symbol>
+	<symbol id="i-archive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M10 8v2M10 13v6M8 16h4"/>
+	</symbol>
 	<symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
 		<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
 	</symbol>
@@ -58,8 +70,14 @@
 	<symbol id="i-zip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
 		<path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M10 8v2M10 13v6M8 16h4"/>
 	</symbol>
-	<symbol id="i-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-		<path d="M4 12h12M12 8l4 4-4 4"/><path d="M20 5v14"/>
+	<symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>
+	</symbol>
+	<symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+	</symbol>
+	<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+		<path d="m5 12 4 4L19 6"/>
 	</symbol>
 </svg>
 
@@ -73,47 +91,122 @@
 		<svg class="ico"><use href="#i-login"/></svg><span class="lbl">登录</span>
 	</button>
 	<p id="lerr" class="err" hidden></p>
+	<p class="langline">
+		<button type="button" class="langbtn" data-lang="zh">中文</button>
+		<button type="button" class="langbtn" data-lang="en">EN</button>
+	</p>
 	<p class="switch">
-		<a href="/?pc=1"><svg class="ico"><use href="#i-pc"/></svg><span>电脑版</span></a>
+		<a href="/?pc=1"><svg class="ico"><use href="#i-pc"/></svg><span id="ldesk">电脑版</span></a>
 	</p>
 </div>
 
-<div id="main" hidden>
-	<header>
-		<div class="top">
-			<div class="brand">
-				<strong id="btitle">文件</strong>
-				<span id="bname" class="muted"></span>
-			</div>
-			<button id="bout" type="button" class="ghost">
-				<svg class="ico"><use href="#i-logout"/></svg><span class="lbl">退出</span>
+<div id="main" class="app" hidden>
+	<div class="path-wrap">
+		<div class="path-row">
+			<nav id="crumbs" class="path" aria-label="当前位置"></nav>
+			<button id="mprofile" type="button" class="profile" aria-label="账户">
+				<svg class="ico"><use href="#i-user"/></svg>
 			</button>
 		</div>
-		<nav id="crumbs" class="crumbs"></nav>
-	</header>
+	</div>
 	<p id="err" class="err" hidden></p>
-	<div id="empty" class="empty" hidden>
-		<svg class="ico"><use href="#i-folder"/></svg>
-		<span class="lbl">这个文件夹是空的</span>
+	<div class="section-head">
+		<h2 id="mhint">长按项目可多选</h2>
+		<span id="mcount">0</span>
 	</div>
 	<ul id="rows" class="list"></ul>
-	<footer>
-		<button id="bup" type="button">
+	<div id="empty" class="empty" hidden>
+		<div class="empty-mark"><svg class="ico"><use href="#i-folder"/></svg></div>
+		<h3 id="emptytitle">这个文件夹是空的</h3>
+		<p id="emptyhint" class="muted">点击下方「上传」或「新建」</p>
+	</div>
+</div>
+
+<div id="mdock" class="dock-wrap" hidden>
+	<nav id="mdocknav" class="dock" aria-label="文件操作">
+		<button id="bup" type="button" class="upload">
 			<svg class="ico"><use href="#i-upload"/></svg><span class="lbl">上传</span>
+		</button>
+		<button id="bcam" type="button">
+			<svg class="ico"><use href="#i-camera"/></svg><span class="lbl" id="lcam">拍照</span>
 		</button>
 		<button id="bmkdir" type="button">
 			<svg class="ico"><use href="#i-folderplus"/></svg><span class="lbl">新建</span>
 		</button>
-		<button id="bref" type="button">
-			<svg class="ico"><use href="#i-refresh"/></svg><span class="lbl">刷新</span>
-		</button>
-		<button id="bzip" type="button">
-			<svg class="ico"><use href="#i-zip"/></svg><span class="lbl">打包</span>
-		</button>
-	</footer>
+	</nav>
 </div>
 <input id="efile" type="file" multiple hidden/>
-<script src="/web/app.js"></script>
+<input id="ecamera" type="file" accept="image/*" capture="environment" hidden/>
+
+<div id="mselbar" class="selection-wrap" hidden>
+	<div class="selection-bar">
+		<div class="selection-summary">
+			<strong id="mselcount">已选择 0 项</strong>
+			<button id="mselcancel" type="button"><span class="lbl" id="lmselcancel">取消选择</span></button>
+		</div>
+		<nav id="mselacts" class="selection-actions" aria-label="所选项目操作">
+			<button id="mseldown" type="button"><svg class="ico"><use href="#i-down"/></svg><span class="lbl" id="lmseldown">下载</span></button>
+			<button id="mselzip" type="button"><svg class="ico"><use href="#i-zip"/></svg><span class="lbl" id="lmselzip">下载 ZIP</span></button>
+			<button id="mselcopy" type="button"><svg class="ico"><use href="#i-copy"/></svg><span class="lbl" id="lmselcopy">复制链接</span></button>
+			<button id="mselrename" type="button"><svg class="ico"><use href="#i-edit"/></svg><span class="lbl" id="lmselrename">改名</span></button>
+			<button id="mseldel" class="danger" type="button"><svg class="ico"><use href="#i-trash"/></svg><span class="lbl" id="lmseldel">删除</span></button>
+		</nav>
+	</div>
+</div>
+
+<div id="mscrim" class="scrim"></div>
+
+<section id="maccount" class="sheet" role="dialog" aria-modal="true" aria-label="账户">
+	<div class="grab"></div>
+	<div class="sheet-title">
+		<div class="file-icon archive"><svg class="ico"><use href="#i-user"/></svg></div>
+		<div><strong id="bname">—</strong><small id="maccountsub">网页文件管理</small></div>
+	</div>
+	<div class="langline sheet-lang">
+		<button type="button" class="langbtn" data-lang="zh">中文</button>
+		<button type="button" class="langbtn" data-lang="en">EN</button>
+	</div>
+	<div class="sheet-list">
+		<button id="mcheckupdate" type="button" class="sheet-choice">
+			<span class="lbl" id="lmcheckupdate">检查更新</span><svg class="ico"><use href="#i-refresh"/></svg>
+		</button>
+		<button id="mlogout" type="button" class="sheet-choice">
+			<span class="lbl" id="lmlogout">退出登录</span><svg class="ico"><use href="#i-logout"/></svg>
+		</button>
+	</div>
+</section>
+
+<section id="mupdate" class="dialog" role="dialog" aria-modal="true">
+	<h3 id="mupdatetitle">检查更新</h3>
+	<p id="mupdatemsg" class="muted"></p>
+	<div class="dialog-actions">
+		<button id="mupdateclose" type="button"><span class="lbl" id="lmupdateclose">关闭</span></button>
+		<button id="mupdatedl" class="primary" type="button" hidden><span class="lbl" id="lmupdatedl">下载 APK</span></button>
+	</div>
+</section>
+
+<section id="mdialog" class="dialog" role="dialog" aria-modal="true">
+	<h3 id="mdtitle">新建文件夹</h3>
+	<p id="mdhint" class="muted"></p>
+	<input id="mdinput" type="text" autocomplete="off"/>
+	<div class="dialog-actions">
+		<button id="mdcancel" type="button"><span class="lbl" id="lmdcancel">取消</span></button>
+		<button id="mdok" class="primary" type="button"><span class="lbl" id="lmdok">确定</span></button>
+	</div>
+</section>
+
+<section id="mconfirm" class="dialog" role="dialog" aria-modal="true">
+	<h3 id="mctitle">确认删除？</h3>
+	<p id="mctext" class="muted"></p>
+	<div class="dialog-actions">
+		<button id="mccancel" type="button"><span class="lbl" id="lmccancel">取消</span></button>
+		<button id="mcok" class="danger" type="button"><span class="lbl" id="lmcok">删除</span></button>
+	</div>
+</section>
+
+<div id="mtoast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="/web/app.js?__SK_WEB_VER__"></script>
 <script>window.sfweb.init({mobile:true});</script>
 </body>
 </html>

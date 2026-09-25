@@ -629,6 +629,29 @@
 						<TextBlock x:Name="lbsetsfwebpasshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"
 						           Text="浏览器打开 http://本机IP:端口/ 管理 sendfile/。上传和管理需此密码；下载只需正确链接。空则启动时自动生成。"/>
+						<TextBlock x:Name="lbsetsfphoto" Text="拍照上传" FontWeight="SemiBold" Margin="0,8,0,4"/>
+						<TextBlock x:Name="lbsetsfphotohint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="手机 App 与网页「拍照」按这里压缩后再上传。"/>
+						<TextBlock x:Name="lbsetsfphotofmt" Text="格式" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<ComboBox x:Name="esfphotofmt" Height="30" Margin="0,0,0,8"
+						          AutomationProperties.AutomationId="set.sendfile.photo.fmt">
+							<ComboBoxItem Content="JPG" Tag="jpg" IsSelected="True"/>
+							<ComboBoxItem Content="PNG" Tag="png"/>
+						</ComboBox>
+						<TextBlock x:Name="lbsetsfphotoq" Text="JPG 质量（1–100）" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="esfphotoq" Height="30" Padding="6,4" Margin="0,0,0,8" Text="60"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         AutomationProperties.AutomationId="set.sendfile.photo.quality"/>
+						<CheckBox x:Name="esfphotolimit" Content="限制最长边" Margin="0,0,0,8" IsChecked="True"
+						          AutomationProperties.AutomationId="set.sendfile.photo.limit"/>
+						<TextBlock x:Name="lbsetsfphotomax" Text="最长边（像素）" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="esfphotomax" Height="30" Padding="6,4" Margin="0,0,0,10" Text="2000"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         AutomationProperties.AutomationId="set.sendfile.photo.max"/>
 						<TextBlock x:Name="lbsetsfporthint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,8" TextWrapping="Wrap"
 						           Text="HTTP 与接口服务共用端口（默认 1224）。"/>

@@ -147,6 +147,7 @@ public partial class CastViewWindow : Window {
 		srcw = dw;
 		srch = dh;
 		layoutcrop();
+		if (sized) return;
 		if (bmp != null) fitwin(true);
 		else if (dw > 0 && dh > 0) fitbox(dw, dh);
 	}
@@ -161,7 +162,7 @@ public partial class CastViewWindow : Window {
 				img.Width = w;
 				img.Height = h;
 				layoutcrop();
-				fitwin(true);
+				if (!sized) fitwin(true);
 			}
 			bmp.WritePixels(new Int32Rect(0, 0, w, h), px, st, 0);
 		}

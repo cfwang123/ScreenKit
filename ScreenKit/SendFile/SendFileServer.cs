@@ -739,7 +739,10 @@ public sealed partial class SendFileServer : IDisposable {
 				["size"] = it.Size,
 			});
 		}
-		writejson(ctx, 200, ok(new JsonObject { ["items"] = arr }));
+		writejson(ctx, 200, ok(new JsonObject {
+			["items"] = arr,
+			["usbAcc"] = CastHost.UsbNotifyPhone,
+		}));
 	}
 
 	void handlepulldone(SfCtx ctx, SendFileDevice dev) {
@@ -766,12 +769,25 @@ public sealed partial class SendFileServer : IDisposable {
 	void handleinfo(SfCtx ctx, SendFileDevice dev) {
 		var o = getOpts() ?? new OcrOptions();
 		SendFilePaths.EnsureRoot();
-		writejson(ctx, 200, ok(new JsonObject {
+		var info = new JsonObject {
 			["name"] = string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName,
 			["pcId"] = o.SendFilePcId ?? "",
 			["device"] = dev.Name ?? "",
 			["root"] = "sendfile",
-		}));
+		};
+		photojson(o, info);
+		writejson(ctx, 200, ok(info));
+	}
+
+	internal static void photojson(OcrOptions o, JsonObject dst) {
+		if (o == null) o = new OcrOptions();
+		var fmt = string.Equals(o.PhotoFmt, "png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
+		var q = o.PhotoJpgQuality <= 0 ? 60 : Compat.Clamp(o.PhotoJpgQuality, 1, 100);
+		var max = o.PhotoMaxPx <= 0 ? 2000 : Compat.Clamp(o.PhotoMaxPx, 64, 16000);
+		dst["photoFmt"] = fmt;
+		dst["photoQuality"] = q;
+		dst["photoLimit"] = o.PhotoLimitSize;
+		dst["photoMaxPx"] = max;
 	}
 
 	void handlelist(SfCtx ctx) {

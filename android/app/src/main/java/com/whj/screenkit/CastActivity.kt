@@ -2,7 +2,9 @@ package com.whj.screenkit
 
 import android.Manifest
 import android.app.PendingIntent
+import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -11,6 +13,7 @@ import android.hardware.usb.UsbManager
 import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.ListView
@@ -47,6 +50,7 @@ class CastActivity : AppCompatActivity() {
             .putExtra(CastService.EXTRA_HTTP, pendingHttp)
         ContextCompat.startForegroundService(this, i)
         b.lbstat.text = "正在启动…"
+        applyModeUi()
     }
 
     private val perm = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
@@ -55,6 +59,7 @@ class CastActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val msg = intent?.getStringExtra("msg") ?: ""
             b.lbstat.text = msg
+            applyModeUi()
             if (msg.contains("电脑未打开") || msg == "连接失败" || msg == "USB 测试失败")
                 toast(msg)
         }
@@ -92,16 +97,18 @@ class CastActivity : AppCompatActivity() {
         }
         b.bdevices.setOnClickListener { showDeviceSheet() }
         b.bscan.setOnClickListener { scan() }
-        b.bstart.setOnClickListener { startLan() }
+        b.bstart.setOnClickListener { startFromTarget() }
         b.bmanual.setOnClickListener { startManual() }
         b.busb.setOnClickListener { startUsb() }
         b.busbadb.setOnClickListener { startUsbAdb() }
         b.bstop.setOnClickListener {
+            cancelUsbWait()
             startService(Intent(this, CastService::class.java).setAction(CastService.ACTION_STOP))
         }
+        b.boff.setOnClickListener { askScreenOff() }
         askPerm()
         loadIp()
-        handleUsb(intent)
+        if (handleUsb(intent, leave = true)) return
         ContextCompat.registerReceiver(
             this,
             rec,
@@ -115,6 +122,7 @@ class CastActivity : AppCompatActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         maybeTestIntent(intent)
+        applyModeUi()
     }
 
     override fun onSupportNavigateUp(): Boolean {
@@ -122,29 +130,50 @@ class CastActivity : AppCompatActivity() {
         return true
     }
 
+    private var usbUiOn = false
+    private val usbUiTick = object : Runnable {
+        override fun run() {
+            if (!usbUiOn) return
+            refreshUsbLine()
+            b.root.postDelayed(this, 1000)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
+        usbUiOn = true
+        b.root.removeCallbacks(usbUiTick)
+        b.root.post(usbUiTick)
         val skip = intent?.getBooleanExtra("scst_go", false) == true ||
             intent?.getBooleanExtra("scst_usb", false) == true ||
             intent?.getBooleanExtra("scst_usb_pat", false) == true ||
-            intent?.getBooleanExtra("scst_adb", false) == true
+            intent?.getBooleanExtra("scst_adb", false) == true ||
+            intent?.getBooleanExtra("scst_adb_probe", false) == true ||
+            intent?.getBooleanExtra("scst_wifi_probe", false) == true
         if (skip) return
-        val st = b.lbstat.text?.toString().orEmpty()
-        if (waitUsb || pendingMode == "usb" || pendingMode == "usb-lan" || pendingMode == "usb-adb") return
-        if (st.contains("投屏中") || st.contains("正在启动") || st.contains("扫描中") || st.contains("等待 USB")) return
-        b.root.postDelayed({
-            if (isFinishing) return@postDelayed
-            if (waitUsb || pendingMode == "usb") return@postDelayed
-            val s2 = b.lbstat.text?.toString().orEmpty()
-            if (s2.contains("投屏中") || s2.contains("正在启动") || s2.contains("等待 USB") || scanning) return@postDelayed
-            scan()
-        }, 300)
+        applyModeUi()
+    }
+
+    override fun onPause() {
+        usbUiOn = false
+        b.root.removeCallbacks(usbUiTick)
+        super.onPause()
+    }
+
+    private fun refreshUsbLine() {
+        val usb = getSystemService(USB_SERVICE) as UsbManager
+        val on = usb.accessoryList?.isNotEmpty() == true
+        b.lbUsbacc.text = when {
+            on -> "USB配件：已连接"
+            waitUsb -> "USB配件：等待中"
+            else -> "USB配件：未连接"
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleUsb(intent)
+        handleUsb(intent, leave = false)
         maybeTestIntent(intent)
     }
 
@@ -164,8 +193,22 @@ class CastActivity : AppCompatActivity() {
             b.eip.post { startUsb() }
             return
         }
+        if (intent?.getBooleanExtra("scst_screen_off", false) == true) {
+            b.eip.post { startScreenOff(force = true) }
+            return
+        }
         if (intent?.getBooleanExtra("scst_adb", false) == true) {
             b.eip.post { startUsbAdb() }
+            return
+        }
+        if (intent?.getBooleanExtra("scst_adb_probe", false) == true) {
+            b.eip.post { runAdbProbeOnly() }
+            return
+        }
+        if (intent?.getBooleanExtra("scst_wifi_probe", false) == true) {
+            val ip0 = intent?.getStringExtra("scst_ip")?.trim().orEmpty()
+            if (ip0.isNotEmpty()) fillIp(ip0)
+            b.eip.post { runWifiProbeOnly() }
             return
         }
         val ip = intent?.getStringExtra("scst_ip")?.trim().orEmpty()
@@ -221,11 +264,16 @@ class CastActivity : AppCompatActivity() {
             runOnUiThread {
                 scanning = false
                 peers = list
+                b.lpeers.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
                 b.lpeers.adapter = ArrayAdapter(
                     this,
                     R.layout.item_cast_peer,
                     list.map { it.toString() },
                 )
+                if (list.isEmpty()) {
+                    if (!castingNow()) b.lbstat.text = "没有搜到电脑，请填写 IP"
+                    return@runOnUiThread
+                }
                 if (list.size == 1) {
                     b.lpeers.setItemChecked(0, true)
                     selectPeer(list[0])
@@ -235,16 +283,42 @@ class CastActivity : AppCompatActivity() {
                     if (ix >= 0) {
                         b.lpeers.setItemChecked(ix, true)
                         selectPeer(list[ix])
-                    } else if (pendingIp.isNotEmpty()) {
+                    } else if (!castingNow()) {
                         b.lpeers.clearChoices()
-                        b.lbstat.text = "已选 $pendingIp"
-                    } else {
-                        b.lpeers.clearChoices()
-                        b.lbstat.text = "扫描到 ${list.size} 台，点选一台"
+                        b.lbstat.text = "搜到 ${list.size} 台，点一台"
                     }
                 }
             }
         }.start()
+    }
+
+    private fun startFromTarget() {
+        val ix = b.lpeers.checkedItemPosition
+        if (b.lpeers.visibility == View.VISIBLE && ix >= 0 && ix < peers.size) {
+            val typed = b.eip.text?.toString()?.trim().orEmpty()
+            val p = peers[ix]
+            val shown = if (p.http > 0 && p.http != SendPorts.HTTP) "${p.ip}:${p.http}" else p.ip
+            if (typed.isEmpty() || typed == shown || typed == p.ip) {
+                selectPeer(p)
+                startLan()
+                return
+            }
+        }
+        startManual()
+    }
+
+    private fun castingNow(): Boolean {
+        val st = b.lbstat.text?.toString().orEmpty()
+        return st.contains("投屏中") || st.contains("正在启动") || st.contains("USB 测试")
+    }
+
+    private fun applyModeUi() {
+        val on = castingNow()
+        b.bstart.isEnabled = !on && !waitUsb
+        b.bstop.visibility = if (on || waitUsb) View.VISIBLE else View.GONE
+        b.boff.visibility = if (on) View.VISIBLE else View.GONE
+        if (on) b.bstop.text = "停止投屏"
+        else if (waitUsb) b.bstop.text = "取消等待"
     }
 
     private fun startLan() {
@@ -310,6 +384,7 @@ class CastActivity : AppCompatActivity() {
             b.lbstat.text = "等待 USB 配件…"
             toast("请用数据线连接电脑，允许 USB 配件")
             pollAccessory(0)
+            applyModeUi()
             return
         }
         if (!usb.hasPermission(acc)) {
@@ -322,6 +397,7 @@ class CastActivity : AppCompatActivity() {
             )
             usb.requestPermission(acc, pi)
             toast("请允许 USB 配件权限")
+            applyModeUi()
             return
         }
         waitUsb = false
@@ -344,6 +420,18 @@ class CastActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, i)
         b.lbstat.text = "USB 测试画面…"
         toast("USB 测试画面")
+    }
+
+    private fun cancelUsbWait() {
+        waitUsb = false
+        waitPat = false
+        if (pendingMode == "usb" || pendingMode == "usb-lan" || pendingMode == "usb-adb")
+            pendingMode = "tcp"
+        val st = b.lbstat.text?.toString().orEmpty()
+        if (st.contains("等待 USB") || st.contains("USB 配件"))
+            b.lbstat.text = "已停止"
+        refreshUsbLine()
+        applyModeUi()
     }
 
     private fun pollAccessory(n: Int) {
@@ -392,6 +480,48 @@ class CastActivity : AppCompatActivity() {
         }.start()
     }
 
+    private fun runAdbProbeOnly() {
+        b.lbstat.text = "adb 探测…"
+        Thread {
+            val p = try { UsbLoop.probe() } catch (_: Exception) { null }
+            val msg = if (p.isNullOrEmpty()) {
+                "adb probe fail ${UsbLoop.lastErr}"
+            } else {
+                "adb probe ok $p:${SendPorts.HTTP}"
+            }
+            android.util.Log.i("scst", msg)
+            runOnUiThread {
+                b.lbstat.text = msg
+                toast(msg)
+            }
+        }.start()
+    }
+
+    private fun runWifiProbeOnly() {
+        resolvePendingFromUi()
+        var ip = pendingIp
+        var port = if (pendingHttp > 0) pendingHttp else SendPorts.HTTP
+        val t = b.eip.text?.toString()?.trim().orEmpty()
+        if (t.isNotEmpty()) {
+            val sp = t.split(":")
+            ip = sp[0].trim()
+            if (sp.size >= 2) port = sp[1].trim().toIntOrNull() ?: SendPorts.HTTP
+        }
+        if (ip.isEmpty()) {
+            toast("请输入电脑 IP")
+            return
+        }
+        b.lbstat.text = "WiFi 探测 $ip:$port…"
+        Thread {
+            val msg = CastWifiProbe.run(ip, port)
+            android.util.Log.i("scst", msg)
+            runOnUiThread {
+                b.lbstat.text = msg
+                toast(msg)
+            }
+        }.start()
+    }
+
     private fun requestProj() {
         rememberCastTarget()
         val mgr = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
@@ -418,7 +548,7 @@ class CastActivity : AppCompatActivity() {
         fillPeer(p)
         val ix = peers.indexOfFirst { it.ip == p.ip }
         if (ix >= 0) b.lpeers.setItemChecked(ix, true)
-        b.lbstat.text = "已选 ${p.name}  ${p.ip}:${pendingHttp}"
+        if (!castingNow()) b.lbstat.text = "准备投屏"
     }
 
     private fun rememberCastTarget() {
@@ -449,11 +579,15 @@ class CastActivity : AppCompatActivity() {
     private fun fillPeer(p: Peer) {
         val s = if (p.http > 0 && p.http != SendPorts.HTTP) "${p.ip}:${p.http}" else p.ip
         fillIp(s)
+        val name = p.name.trim()
+        if (name.isNotEmpty() && !name.equals(p.ip, ignoreCase = true))
+            b.lbTarget.text = "投到 $name · $s"
     }
 
     private fun fillIp(ip: String) {
         if (ip.isEmpty()) return
         b.eip.setText(ip)
+        b.lbTarget.text = "投到 $ip"
         getSharedPreferences("skcast", MODE_PRIVATE).edit().putString("ip", ip).apply()
     }
 
@@ -464,15 +598,50 @@ class CastActivity : AppCompatActivity() {
             return
         }
         val ip = getSharedPreferences("skcast", MODE_PRIVATE).getString("ip", "") ?: ""
-        if (ip.isNotEmpty()) b.eip.setText(ip)
+        if (ip.isNotEmpty()) fillIp(ip)
+        else b.lbTarget.text = "还没有选择电脑"
     }
 
-    private fun handleUsb(intent: Intent?) {
-        if (intent?.action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
+    private fun handleUsb(intent: Intent?, leave: Boolean): Boolean {
+        if (intent?.action != UsbManager.ACTION_USB_ACCESSORY_ATTACHED) return false
+        refreshUsbLine()
+        if (waitUsb) {
             toast("USB 配件已连接")
-            waitUsb = true
             startUsb()
+            return false
         }
+        toast("USB 配件已连接，点 USB 开始投屏")
+        if (!leave) {
+            b.lbstat.text = "USB配件已连接，点 USB 开始投屏"
+            return false
+        }
+        finish()
+        return true
+    }
+
+    private val adminAsk = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (it.resultCode == RESULT_OK) startScreenOff(force = false)
+        else toast("未允许设备管理，无法熄屏")
+    }
+
+    private fun askScreenOff() {
+        if (!ScreenOff.adminOn(this)) {
+            val i = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, ComponentName(this, AdminRecv::class.java))
+                .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "熄屏后继续投屏。按电源键亮屏并退出熄屏投屏。")
+            adminAsk.launch(i)
+            return
+        }
+        startScreenOff(force = false)
+    }
+
+    private fun startScreenOff(force: Boolean) {
+        val st = b.lbstat.text?.toString().orEmpty()
+        if (!force && !CastService.isCastingMsg(st) && !CastService.isCastingMsg(CastService.statMsg)) {
+            toast("请先开始投屏")
+            return
+        }
+        startService(Intent(this, CastService::class.java).setAction(CastService.ACTION_SCREEN_OFF))
     }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()

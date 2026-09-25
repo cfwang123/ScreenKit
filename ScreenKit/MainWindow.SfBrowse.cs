@@ -1,14 +1,21 @@
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace ScreenKit;
 
-sealed class SfFileRow {
+sealed class SfFileRow : INotifyPropertyChanged {
 	public string Full { get; set; } = "";
 	public string Name { get; set; } = "";
 	public bool IsDir { get; set; }
@@ -16,6 +23,16 @@ sealed class SfFileRow {
 	public DateTime Mtime { get; set; }
 	public string SizeText { get; set; } = "";
 	public string TimeText { get; set; } = "";
+	ImageSource thumb;
+	public ImageSource Thumb {
+		get => thumb;
+		set {
+			if (ReferenceEquals(thumb, value)) return;
+			thumb = value;
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumb)));
+		}
+	}
+	public event PropertyChangedEventHandler PropertyChanged;
 }
 
 /// <summary>文件同步 Tab：接收目录平铺浏览（不进子目录）。</summary>
@@ -28,29 +45,48 @@ public partial class MainWindow {
 	bool sfCanDrag;
 	bool sfDragging;
 	bool sfRefreshing;
+	bool sfSelBatch;
 	SfFileRow sfClickSel;
 	Point sfDown;
 	Point sfMarquee0;
+	Point sfMarqueePt;
 	HashSet<SfFileRow> sfMarqueeKeep;
+	GridView sfGridView;
+	readonly HashSet<string> sfCutPaths = new(StringComparer.OrdinalIgnoreCase);
+	readonly SemaphoreSlim sfThumbGate = new(4);
+	int sfLastIdx = -1;
+	const double sfCutOpacity = 0.42;
 
 	void initsfbrowse() {
 		if (lvsffiles == null) return;
+		sfGridView = lvsffiles.View as GridView;
+		lvsffiles.IsSynchronizedWithCurrentItem = false;
+		lvsffiles.SelectionMode = SelectionMode.Multiple;
 		lvsffiles.ItemsSource = sfFiles;
+		if (bsfviewlist != null) bsfviewlist.Click += (_, _) => sfsetview(false);
+		if (bsfviewthumb != null) bsfviewthumb.Click += (_, _) => sfsetview(true);
 		bsfcut.Click += (_, _) => sffileclip(cut: true);
 		bsfcopy.Click += (_, _) => sffileclip(cut: false);
 		bsfdel.Click += (_, _) => sffiledel();
+		if (bsfpush != null) bsfpush.Click += (_, _) => sffilepush();
 		mnsfcut.Click += (_, _) => sffileclip(cut: true);
 		mnsfcopy.Click += (_, _) => sffileclip(cut: false);
 		mnsfpaste.Click += (_, _) => sffilepaste();
 		mnsfdel.Click += (_, _) => sffiledel();
-		lvsffiles.SelectionChanged += (_, _) => sffilebtns();
+		lvsffiles.SelectionChanged += (_, _) => {
+			if (sfSelBatch) return;
+			sffileonselectionchanged();
+		};
 		lvsffiles.MouseDoubleClick += (_, _) => sffileopen();
 		lvsffiles.PreviewMouseLeftButtonDown += onsffiledown;
 		lvsffiles.MouseLeftButtonDown += (_, _) => { sfCanDrag = true; };
 		lvsffiles.PreviewMouseMove += onsffilemove;
 		lvsffiles.PreviewMouseLeftButtonUp += onsffileup;
 		lvsffiles.LostMouseCapture += (_, _) => {
-			if (!sfDragging) sffileendmarquee();
+			if (sfDragging || !sfMarquee) return;
+			if (Mouse.LeftButton == MouseButtonState.Pressed && lvsffiles.CaptureMouse()) return;
+			sffilemarqueesel();
+			sffileendmarquee();
 		};
 		psffbrowse.Drop += onsffinboxdrop;
 		psffbrowse.DragOver += onsffinboxover;
@@ -59,8 +95,155 @@ public partial class MainWindow {
 			psfdropphone.DragOver += onsfdover;
 		}
 		sffilebtns();
+		if (bsfviewlist != null) bsfviewlist.IsChecked = !opt.SfBrowseThumbView;
+		if (bsfviewthumb != null) bsfviewthumb.IsChecked = opt.SfBrowseThumbView;
+		sfapplyview();
 		sffilerefresh();
 		sffilewatch();
+	}
+
+	void sfsetview(bool thumbs) {
+		if (bsfviewthumb?.IsChecked == thumbs && bsfviewlist?.IsChecked == !thumbs) return;
+		if (bsfviewthumb != null) bsfviewthumb.IsChecked = thumbs;
+		if (bsfviewlist != null) bsfviewlist.IsChecked = !thumbs;
+		opt.SfBrowseThumbView = thumbs;
+		sfapplyview();
+		if (thumbs) sfloadthumbs();
+	}
+
+	void sfapplyview() {
+		if (lvsffiles == null) return;
+		var thumbs = bsfviewthumb?.IsChecked == true;
+		if (thumbs) {
+			lvsffiles.View = null;
+			lvsffiles.ItemTemplate = psffbrowse.TryFindResource("sfTplThumb") as DataTemplate;
+			lvsffiles.ItemsPanel = psffbrowse.TryFindResource("sfPanelWrap") as ItemsPanelTemplate;
+			lvsffiles.ItemContainerStyle = psffbrowse.TryFindResource("sfStyleThumbItem") as Style;
+			ScrollViewer.SetCanContentScroll(lvsffiles, false);
+		}
+		else {
+			lvsffiles.ItemTemplate = null;
+			lvsffiles.ItemsPanel = psffbrowse.TryFindResource("sfPanelList") as ItemsPanelTemplate;
+			lvsffiles.ItemContainerStyle = psffbrowse.TryFindResource("sfStyleListItem") as Style;
+			lvsffiles.View = sfGridView;
+			ScrollViewer.SetCanContentScroll(lvsffiles, true);
+		}
+		sffileapplycutui();
+	}
+
+	void sfloadthumbs() {
+		if (bsfviewthumb?.IsChecked != true) return;
+		foreach (var row in sfFiles) {
+			if (row.IsDir || row.Thumb != null) continue;
+			_ = sfloadthumb(row);
+		}
+	}
+
+	async Task sfloadthumb(SfFileRow row) {
+		if (row == null || row.IsDir) return;
+		try {
+			await sfThumbGate.WaitAsync().ConfigureAwait(true);
+			BitmapSource bmp = null;
+			var full = row.Full;
+			try {
+				bmp = await Task.Run(() => sfmkthumb(full)).ConfigureAwait(true);
+			}
+			finally {
+				try { sfThumbGate.Release(); } catch { }
+			}
+			if (bmp == null || !sfFiles.Contains(row)) return;
+			row.Thumb = bmp;
+		}
+		catch { }
+	}
+
+	static BitmapSource sfmkthumb(string full) {
+		if (string.IsNullOrWhiteSpace(full)) return null;
+		if (Directory.Exists(full)) return null;
+		if (!File.Exists(full)) return null;
+		var ext = Path.GetExtension(full)?.ToLowerInvariant() ?? "";
+		if (ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp" or ".jfif") {
+			try {
+				using var fs = File.OpenRead(full);
+				var bi = new BitmapImage();
+				bi.BeginInit();
+				bi.CacheOption = BitmapCacheOption.OnLoad;
+				bi.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+				bi.DecodePixelWidth = 72;
+				bi.StreamSource = fs;
+				bi.EndInit();
+				bi.Freeze();
+				return bi;
+			}
+			catch {
+				return sfmkicon(full);
+			}
+		}
+		return sfmkicon(full);
+	}
+
+	static BitmapSource sfmkicon(string full) {
+		try {
+			using var icon = System.Drawing.Icon.ExtractAssociatedIcon(full);
+			if (icon == null) return null;
+			var src = Imaging.CreateBitmapSourceFromHIcon(
+				icon.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+			src.Freeze();
+			return src;
+		}
+		catch {
+			return null;
+		}
+	}
+
+	void sffileonselectionchanged() {
+		sffilebtns();
+		if (lvsffiles != null && lvsffiles.SelectedItems.Count == 1
+			&& lvsffiles.SelectedItems[0] is SfFileRow one) {
+			var ix = sfFiles.IndexOf(one);
+			if (ix >= 0) sfLastIdx = ix;
+		}
+		sffileapplycutui();
+	}
+
+	void sffileapplycutui() {
+		if (lvsffiles == null || sfMarquee) return;
+		foreach (var row in sfFiles) {
+			if (lvsffiles.ItemContainerGenerator.ContainerFromItem(row) is not ListViewItem lvi) continue;
+			lvi.Opacity = sfCutPaths.Contains(row.Full) ? sfCutOpacity : 1.0;
+		}
+	}
+
+	static bool sfsameSel(IList cur, HashSet<SfFileRow> want) {
+		if (cur.Count != want.Count) return false;
+		foreach (SfFileRow it in cur) {
+			if (!want.Contains(it)) return false;
+		}
+		return true;
+	}
+
+	void sfapplysel(HashSet<SfFileRow> want) {
+		if (lvsffiles == null || want == null) return;
+		if (sfsameSel(lvsffiles.SelectedItems, want)) return;
+		sfSelBatch = true;
+		try {
+			lvsffiles.SelectedItems.Clear();
+			foreach (var row in want) {
+				var live = sflive(row);
+				if (live == null || lvsffiles.SelectedItems.Contains(live)) continue;
+				lvsffiles.SelectedItems.Add(live);
+			}
+		}
+		finally {
+			sfSelBatch = false;
+		}
+		sffileonselectionchanged();
+	}
+
+	void sfclearcut() {
+		if (sfCutPaths.Count == 0) return;
+		sfCutPaths.Clear();
+		sffileapplycutui();
 	}
 
 	void sffilewatch() {
@@ -130,10 +313,12 @@ public partial class MainWindow {
 			});
 			foreach (var r in rows)
 				sfFiles.Add(r);
+			sfCutPaths.RemoveWhere(p => !File.Exists(p) && !Directory.Exists(p));
 			foreach (var r in sfFiles) {
 				if (keep.Contains(r.Full))
 					lvsffiles.SelectedItems.Add(r);
 			}
+			if (bsfviewthumb?.IsChecked == true) sfloadthumbs();
 		}
 		catch (Exception ex) {
 			setstatus(ex.Message);
@@ -178,12 +363,47 @@ public partial class MainWindow {
 	void sffilebtns() {
 		var n = lvsffiles?.SelectedItems.Count ?? 0;
 		var on = n > 0;
+		var phone = sendFile != null && sendFile.PhoneOnline;
 		if (bsfcut != null) bsfcut.IsEnabled = on;
 		if (bsfcopy != null) bsfcopy.IsEnabled = on;
 		if (bsfdel != null) bsfdel.IsEnabled = on;
+		if (bsfpush != null) bsfpush.IsEnabled = on && phone;
 		if (mnsfcut != null) mnsfcut.IsEnabled = on;
 		if (mnsfcopy != null) mnsfcopy.IsEnabled = on;
 		if (mnsfdel != null) mnsfdel.IsEnabled = on;
+	}
+
+	void sffilepush() {
+		var id = sendFile?.OnlineDeviceId;
+		if (string.IsNullOrEmpty(id)) {
+			setstatus(Loc.T("sf.nophone"));
+			return;
+		}
+		var paths = sffilesel();
+		if (paths.Count == 0) return;
+		setstatus(Loc.T("sf.sending"));
+		var svc = sendFile;
+		Task.Run(() => {
+			var n = 0;
+			string err = null;
+			try {
+				foreach (var full in paths) {
+					var rel = SendFilePaths.RelFrom(full);
+					if (string.IsNullOrWhiteSpace(rel)) continue;
+					n += svc.PushStoreToPhone(id, rel);
+				}
+			}
+			catch (Exception ex) { err = ex.Message; }
+			try {
+				Dispatcher.BeginInvoke(new Action(() => {
+					if (n > 0) setstatus(Loc.T("sf.to_phone", n.ToString()));
+					else setstatus(err ?? Loc.T("sf.nophone"));
+					syncsfstatus();
+					syncsfjobs();
+				}));
+			}
+			catch { }
+		});
 	}
 
 	List<string> sffilesel() {
@@ -216,6 +436,12 @@ public partial class MainWindow {
 			data.SetData("Preferred DropEffect",
 				new MemoryStream(BitConverter.GetBytes((int)fx)));
 			Clipboard.SetDataObject(data, true);
+			if (cut) {
+				sfCutPaths.Clear();
+				foreach (var p in paths) sfCutPaths.Add(p);
+			}
+			else sfclearcut();
+			sffileapplycutui();
 		}
 		catch (Exception ex) {
 			setstatus(ex.Message);
@@ -233,6 +459,7 @@ public partial class MainWindow {
 					var n = sffileimport(paths, move);
 					if (move && n > 0) {
 						try { Clipboard.Clear(); } catch { }
+						sfclearcut();
 					}
 					setstatus(Loc.T("sf.paste.ok", n.ToString()));
 					sffilerefresh();
@@ -356,6 +583,7 @@ public partial class MainWindow {
 		if (r != MessageBoxResult.Yes) return;
 		try {
 			RecycleBin.Send(paths);
+			foreach (var p in paths) sfCutPaths.Remove(p);
 			sffilerefresh();
 		}
 		catch (Exception ex) {
@@ -407,9 +635,27 @@ public partial class MainWindow {
 		if (e.ChangedButton != MouseButton.Left) return;
 		if (sffilechrome(e.OriginalSource as DependencyObject)) return;
 		var item = sffilehit(e.OriginalSource as DependencyObject);
+		if (item != null && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) {
+			var idx = sfFiles.IndexOf(item);
+			if (idx >= 0) {
+				var anchor = sfLastIdx >= 0 ? sfLastIdx : idx;
+				var lo = Math.Min(anchor, idx);
+				var hi = Math.Max(anchor, idx);
+				if ((Keyboard.Modifiers & ModifierKeys.Control) == 0)
+					lvsffiles.SelectedItems.Clear();
+				for (var i = lo; i <= hi; i++) {
+					var row = sfFiles[i];
+					if (!lvsffiles.SelectedItems.Contains(row))
+						lvsffiles.SelectedItems.Add(row);
+				}
+				e.Handled = true;
+				return;
+			}
+		}
 		if (item == null) {
 			sfMarquee = true;
 			sfMarquee0 = e.GetPosition(csfsel);
+			sfMarqueePt = sfMarquee0;
 			sfMarqueeKeep = new HashSet<SfFileRow>(
 				lvsffiles.SelectedItems.OfType<SfFileRow>());
 			lvsffiles.CaptureMouse();
@@ -420,7 +666,12 @@ public partial class MainWindow {
 		try { lvsffiles.Focus(); } catch { }
 		if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0)
 			return;
-		if (!lvsffiles.SelectedItems.Contains(item)) return;
+		if (!lvsffiles.SelectedItems.Contains(item)) {
+			sfapplysel(new HashSet<SfFileRow> { item });
+			sfCanDrag = true;
+			e.Handled = true;
+			return;
+		}
 		sfClickSel = item;
 		sfCanDrag = true;
 		e.Handled = true;
@@ -430,6 +681,7 @@ public partial class MainWindow {
 		if (e.LeftButton != MouseButtonState.Pressed) return;
 		if (sfMarquee) {
 			sffilemarquee(e.GetPosition(csfsel));
+			e.Handled = true;
 			return;
 		}
 		if (!sfCanDrag || !sfDragReady || sfDragging) return;
@@ -474,22 +726,80 @@ public partial class MainWindow {
 		sfCanDrag = false;
 		if (sfClickSel != null && !sfMarquee
 			&& (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == 0) {
-			lvsffiles.SelectedItems.Clear();
-			lvsffiles.SelectedItems.Add(sfClickSel);
+			var one = new HashSet<SfFileRow> { sfClickSel };
+			sfapplysel(one);
 		}
 		sfClickSel = null;
 		if (sfMarquee) {
-			var w = rsfsel != null ? rsfsel.Width : 0;
-			var h = rsfsel != null ? rsfsel.Height : 0;
-			var tiny = double.IsNaN(w) || double.IsNaN(h) || (w < 3 && h < 3);
-			if (tiny && (Keyboard.Modifiers & ModifierKeys.Control) == 0)
-				lvsffiles.SelectedItems.Clear();
+			var w = Math.Abs(sfMarqueePt.X - sfMarquee0.X);
+			var h = Math.Abs(sfMarqueePt.Y - sfMarquee0.Y);
+			var tiny = w < 3 && h < 3;
+			if (!tiny) sffilemarqueesel();
+			else if ((Keyboard.Modifiers & ModifierKeys.Control) == 0)
+				sfapplysel(new HashSet<SfFileRow>());
+			sffileendmarquee();
+			e.Handled = true;
+			return;
 		}
-		sffileendmarquee();
+	}
+
+	void sffilemarqueesel() {
+		if (lvsffiles == null || csfsel == null) return;
+		var host = (UIElement)psffbrowse ?? lvsffiles;
+		var x = Math.Min(sfMarquee0.X, sfMarqueePt.X);
+		var y = Math.Min(sfMarquee0.Y, sfMarqueePt.Y);
+		var w = Math.Abs(sfMarqueePt.X - sfMarquee0.X);
+		var h = Math.Abs(sfMarqueePt.Y - sfMarquee0.Y);
+		var origin = csfsel.TranslatePoint(new Point(x, y), host);
+		var box = new Rect(origin.X, origin.Y, Math.Max(1, w), Math.Max(1, h));
+		var keepCtrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+		var want = new HashSet<SfFileRow>();
+		if (keepCtrl && sfMarqueeKeep != null) {
+			foreach (var it in sfMarqueeKeep)
+				want.Add(it);
+		}
+		sfwalkrows((lvi, row) => {
+			if (lvi.ActualWidth <= 0 || lvi.ActualHeight <= 0) return;
+			var live = sflive(row);
+			if (live == null) return;
+			var p = lvi.TranslatePoint(new Point(0, 0), host);
+			var bounds = new Rect(p.X, p.Y, lvi.ActualWidth, lvi.ActualHeight);
+			if (!box.IntersectsWith(bounds)) return;
+			want.Add(live);
+		});
+		sfapplysel(want);
+	}
+
+	SfFileRow sflive(SfFileRow row) {
+		if (row == null) return null;
+		if (sfFiles.Contains(row)) return row;
+		foreach (var it in sfFiles) {
+			if (string.Equals(it.Full, row.Full, StringComparison.OrdinalIgnoreCase))
+				return it;
+		}
+		return null;
+	}
+
+	void sfwalkrows(Action<ListViewItem, SfFileRow> fn) {
+		if (lvsffiles == null || fn == null) return;
+		sfwalkrows(lvsffiles, fn);
+	}
+
+	static void sfwalkrows(DependencyObject node, Action<ListViewItem, SfFileRow> fn) {
+		var n = VisualTreeHelper.GetChildrenCount(node);
+		for (var i = 0; i < n; i++) {
+			var child = VisualTreeHelper.GetChild(node, i);
+			if (child is ListViewItem lvi) {
+				if (lvi.DataContext is SfFileRow row) fn(lvi, row);
+				continue;
+			}
+			sfwalkrows(child, fn);
+		}
 	}
 
 	void sffilemarquee(Point now) {
 		if (csfsel == null || rsfsel == null) return;
+		sfMarqueePt = now;
 		var x = Math.Min(sfMarquee0.X, now.X);
 		var y = Math.Min(sfMarquee0.Y, now.Y);
 		var w = Math.Abs(now.X - sfMarquee0.X);
@@ -499,22 +809,157 @@ public partial class MainWindow {
 		rsfsel.Width = w;
 		rsfsel.Height = h;
 		rsfsel.Visibility = Visibility.Visible;
-		var box = new Rect(x, y, Math.Max(1, w), Math.Max(1, h));
-		var keepCtrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
-		lvsffiles.SelectedItems.Clear();
-		if (keepCtrl && sfMarqueeKeep != null) {
-			foreach (var it in sfMarqueeKeep)
-				lvsffiles.SelectedItems.Add(it);
-		}
-		foreach (var row in sfFiles) {
-			if (lvsffiles.ItemContainerGenerator.ContainerFromItem(row) is not ListViewItem lvi)
-				continue;
-			var tl = lvi.TranslatePoint(new Point(0, 0), csfsel);
-			var bounds = new Rect(tl, lvi.RenderSize);
-			if (bounds.IntersectsWith(box) && !lvsffiles.SelectedItems.Contains(row))
-				lvsffiles.SelectedItems.Add(row);
-		}
+		if (w >= 3 || h >= 3) sffilemarqueesel();
 	}
+
+	internal void sfmarqueeuitest(string logPath) {
+		var lines = new List<string>();
+		void log(string s) => lines.Add(s);
+		try {
+			if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+			Activate();
+			maintabs.SelectedItem = tabsf;
+			Width = Math.Max(Width, 1100);
+			Height = Math.Max(Height, 760);
+			var root = SendFilePaths.Root();
+			Directory.CreateDirectory(root);
+			for (var i = 0; i < 6; i++) {
+				var p = Path.Combine(root, $"marquee-probe-{i}.txt");
+				if (!File.Exists(p)) File.WriteAllText(p, "x");
+			}
+			sffilerefresh();
+			UpdateLayout();
+			lvsffiles?.UpdateLayout();
+			log($"files={sfFiles.Count} thumb={bsfviewthumb?.IsChecked == true}");
+			var shown = 0;
+			sfwalkrows((lvi, row) => {
+				var pc = lvi.TranslatePoint(new Point(0, 0), csfsel);
+				var pb = lvi.TranslatePoint(new Point(0, 0), psffbrowse);
+				log($"row {row.Name} csf=({pc.X:0.#},{pc.Y:0.#}) browse=({pb.X:0.#},{pb.Y:0.#}) {lvi.ActualWidth:0.#}x{lvi.ActualHeight:0.#} tpl={(lvi.Template == null ? "null" : "ok")} sel={lvi.IsSelected}");
+				shown++;
+			});
+			log($"shown={shown}");
+			ListViewItem a = null, b = null;
+			var idx = 0;
+			sfwalkrows((lvi, _) => {
+				if (idx == 0) a = lvi;
+				if (idx == 2) b = lvi;
+				idx++;
+			});
+			if (a == null || b == null) {
+				log("FAIL no rows");
+				return;
+			}
+			log($"mode={lvsffiles.SelectionMode}");
+			sfMarquee = true;
+			sfMarquee0 = a.TranslatePoint(new Point(8, 2), csfsel);
+			sfMarqueePt = b.TranslatePoint(new Point(80, Math.Max(1, b.ActualHeight - 2)), csfsel);
+			sfMarqueeKeep = new HashSet<SfFileRow>();
+			sffilemarqueesel();
+			var thumbN = lvsffiles.SelectedItems.Count;
+			log($"probe-sel={thumbN}");
+			foreach (SfFileRow it in lvsffiles.SelectedItems) log($"probe-item {it.Name}");
+			sfwalkrows((lvi, row) => { if (lvi.IsSelected) log($"probe-hit {row.Name}"); });
+			sfMarquee = false;
+			lvsffiles.SelectedItems.Clear();
+			sfsetview(false);
+			UpdateLayout();
+			lvsffiles.UpdateLayout();
+			a = null; b = null; idx = 0;
+			sfwalkrows((lvi, _) => {
+				if (idx == 0) a = lvi;
+				if (idx == 2) b = lvi;
+				idx++;
+			});
+			sfMarquee = true;
+			sfMarquee0 = a.TranslatePoint(new Point(8, 2), csfsel);
+			sfMarqueePt = b.TranslatePoint(new Point(120, Math.Max(1, b.ActualHeight - 2)), csfsel);
+			sfMarqueeKeep = new HashSet<SfFileRow>();
+			sffilemarqueesel();
+			var listN = lvsffiles.SelectedItems.Count;
+			log($"list-sel={listN}");
+			foreach (SfFileRow it in lvsffiles.SelectedItems) log($"list-item {it.Name}");
+			sfwalkrows((lvi, row) => { if (lvi.IsSelected) log($"list-hit {row.Name}"); });
+			sfMarquee = false;
+			lvsffiles.SelectedItems.Clear();
+			sfsetview(true);
+			UpdateLayout();
+			lvsffiles.UpdateLayout();
+			new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle();
+			Activate();
+			a = null;
+			sfwalkrows((lvi, _) => { if (a == null) a = lvi; });
+			var downLocal = new Point(24, Math.Max(8, lvsffiles.ActualHeight - 12));
+			log($"bottomItem={sffilehit(lvsffiles.InputHitTest(downLocal) as DependencyObject) != null} lv={lvsffiles.ActualWidth:0}x{lvsffiles.ActualHeight:0}");
+			var down = sfclientpx(lvsffiles.TranslatePoint(downLocal, this));
+			var up = sfclientpx(a.TranslatePoint(new Point(40, 4), this));
+			log($"drag ({down.X:0},{down.Y:0}) -> ({up.X:0},{up.Y:0})");
+			var step = 0;
+			var timer = new System.Windows.Threading.DispatcherTimer {
+				Interval = TimeSpan.FromMilliseconds(40),
+			};
+			timer.Tick += (_, _) => {
+				if (step == 0) {
+					sfsetcursor((int)down.X, (int)down.Y);
+					sfmousebtn(true);
+				}
+				else if (step < 12) {
+					var t = step / 11.0;
+					var x = down.X + (up.X - down.X) * t;
+					var y = down.Y + (up.Y - down.Y) * t;
+					sfsetcursor((int)x, (int)y);
+				}
+				else if (step == 12) {
+					sfsetcursor((int)up.X, (int)up.Y);
+					sfmousebtn(false);
+				}
+				else {
+					timer.Stop();
+					var mouseN = lvsffiles.SelectedItems.Count;
+					log($"mouse-sel={mouseN} marquee={sfMarquee}");
+					sfwalkrows((lvi, row) => { if (lvi.IsSelected) log($"mouse-hit {row.Name}"); });
+					for (var i = 0; i < 6; i++) {
+						try { File.Delete(Path.Combine(root, $"marquee-probe-{i}.txt")); } catch { }
+					}
+					try { File.WriteAllLines(logPath, lines); } catch { }
+					var ok = thumbN >= 3 && listN >= 3 && mouseN >= 2;
+					System.Windows.Application.Current.Shutdown(ok ? 0 : 2);
+				}
+				step++;
+			};
+			timer.Start();
+			return;
+		}
+		catch (Exception ex) {
+			log(ex.ToString());
+		}
+		try { File.WriteAllLines(logPath, lines); } catch { }
+		System.Windows.Application.Current.Shutdown(3);
+	}
+
+	[System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+	struct SfWinPoint { public int X; public int Y; }
+
+	[System.Runtime.InteropServices.DllImport("user32.dll")]
+	static extern bool ClientToScreen(IntPtr hwnd, ref SfWinPoint pt);
+
+	Point sfclientpx(Point inWindow) {
+		var src = PresentationSource.FromVisual(this);
+		var d = src.CompositionTarget.TransformToDevice.Transform(inWindow);
+		var corner = new SfWinPoint();
+		ClientToScreen(new System.Windows.Interop.WindowInteropHelper(this).Handle, ref corner);
+		return new Point(corner.X + d.X, corner.Y + d.Y);
+	}
+
+	[System.Runtime.InteropServices.DllImport("user32.dll")]
+	static extern bool SetCursorPos(int x, int y);
+
+	[System.Runtime.InteropServices.DllImport("user32.dll")]
+	static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
+
+	static void sfsetcursor(int x, int y) => SetCursorPos(x, y);
+
+	static void sfmousebtn(bool down) => mouse_event(down ? 0x0002u : 0x0004u, 0, 0, 0, UIntPtr.Zero);
 
 	void sffileendmarquee() {
 		if (!sfMarquee) return;
@@ -522,6 +967,7 @@ public partial class MainWindow {
 		try { lvsffiles.ReleaseMouseCapture(); } catch { }
 		if (rsfsel != null) rsfsel.Visibility = Visibility.Collapsed;
 		sfMarqueeKeep = null;
+		sffileapplycutui();
 	}
 
 	SfFileRow sffilehit(DependencyObject src) {
@@ -547,7 +993,6 @@ public partial class MainWindow {
 
 	void onsftabkey(KeyEventArgs e) {
 		if (esfsend != null && esfsend.IsKeyboardFocusWithin) return;
-		if (esfmsg != null && esfmsg.IsKeyboardFocusWithin) return;
 		var ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
 		if (ctrl && e.Key == Key.C) { sffileclip(cut: false); e.Handled = true; return; }
 		if (ctrl && e.Key == Key.X) { sffileclip(cut: true); e.Handled = true; return; }

@@ -192,6 +192,12 @@ static class AppUpdater {
 		throw new InvalidOperationException("无法解析更新信息");
 	}
 
+	/// <summary>remote 是否比 local 新（与自更新比较规则一致）。</summary>
+	public static bool IsNewerVersion(string remote, string local) => isnewer(remote, local);
+
+	/// <summary>规范化版本号（去 v 前缀、取 x.y.z）。</summary>
+	public static string NormalizeVersion(string s) => normalizever(s);
+
 	/// <summary>查询最新 Android APK；无 APK 时仍返回发布页链接。</summary>
 	public static async Task<ApkInfo> CheckLatestApkAsync(CancellationToken ct = default) {
 		var latestJson = await fetchjson(REPO_API, ct).ConfigureAwait(false);

@@ -74,6 +74,11 @@ class CastService : Service() {
             applyQuality(Quality.byName(qname))
             return START_STICKY
         }
+        if (intent?.action == ACTION_SCREEN_OFF) {
+            if (ScreenOff.enter(this)) broadcastStat("熄屏投屏中，按电源键亮屏退出")
+            else broadcastStat("请先允许设备管理，才能熄屏投屏")
+            return START_STICKY
+        }
         val pattern = intent?.getBooleanExtra(EXTRA_PATTERN, false) == true
         if (mp != null || sink != null || video != null || this.pattern != null) {
             Log.i("scst", "restart, stop previous")
@@ -339,11 +344,29 @@ class CastService : Service() {
     private fun handshake(s: FrameSink, w: Int, h: Int, fps: Int, audio: Boolean): Boolean {
         if (s is UsbSink) {
             s.onQuality = { n -> applyQuality(Quality.byName(n)) }
-            if (!sendHello(w, h, fps, audio)) return false
-            return s.awaitHello(8000)
+            s.onBye = { peerGone() }
+            s.prepareHelloWait()
+            val dm = metrics()
+            val hello = JSONObject()
+                .put("cmd", "hello")
+                .put("name", Build.MODEL)
+                .put("w", w)
+                .put("h", h)
+                .put("dw", dm.widthPixels)
+                .put("dh", dm.heightPixels)
+                .put("fps", fps)
+                .put("br", this.q?.bitrate ?: 0)
+                .put("audio", audio)
+                .put("pix", "h264")
+                .put("aud", "aac")
+                .put("via", via)
+            val payload = hello.toString().toByteArray(Charsets.UTF_8)
+            if (!s.handshakeHello(payload, 8000)) return false
+            Log.i("scst", "hello $via $w x $h ok=true")
+            return true
         }
-        if (!sendHello(w, h, fps, audio)) return false
         startCtrl(s)
+        if (!sendHello(w, h, fps, audio)) return false
         return waitHello()
     }
 
@@ -394,7 +417,7 @@ class CastService : Service() {
 
     private fun broadcastStat(msg: String) {
         statMsg = msg
-        broadcastStat(msg)
+        sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", msg))
     }
 
     private fun stopCast() {
@@ -402,8 +425,13 @@ class CastService : Service() {
             try { unregisterComponentCallbacks(cfgCb) } catch (_: Exception) { }
             cfgOn = false
         }
-		notifyPcStop()
-        try { sink?.send(Proto.T_JSON, """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)) } catch (_: Exception) { }
+        ScreenOff.leave(this)
+        notifyPcStop()
+        val bye = """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)
+        try {
+            val s = sink
+            if (s is UsbSink) s.sendJsonNow(bye) else s?.send(Proto.T_JSON, bye)
+        } catch (_: Exception) { }
         try { audio?.stop() } catch (_: Exception) { }
         try { video?.stop() } catch (_: Exception) { }
         try { pattern?.stop() } catch (_: Exception) { }
@@ -476,6 +504,10 @@ class CastService : Service() {
                     "hello" -> {
                         Log.i("scst", "pc hello")
                         helloLatch.countDown()
+                    }
+                    "bye" -> {
+                        Log.i("scst", "pc bye")
+                        peerGone()
                     }
                     "ping" -> {
                         val pong = JSONObject().put("cmd", "pong").put("t", obj.optLong("t"))
@@ -551,6 +583,7 @@ class CastService : Service() {
             msg.contains("投屏中") || msg.contains("USB 测试")
 
         const val ACTION_STOP = "com.whj.screenkit.CAST_STOP"
+        const val ACTION_SCREEN_OFF = "com.whj.screenkit.CAST_SCREEN_OFF"
         const val ACTION_QUALITY = "com.whj.screenkit.CAST_QUALITY"
         const val ACTION_STAT = "com.whj.screenkit.CAST_STAT"
         const val EXTRA_CODE = "code"

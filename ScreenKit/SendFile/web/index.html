@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>ScreenKit 文件</title>
-<link rel="stylesheet" href="/web/d.css"/>
+<link rel="stylesheet" href="/web/d.css?__SK_WEB_VER__"/>
 </head>
 <body>
 <div id="login" class="card login">
@@ -14,7 +14,11 @@
 	<label class="keep"><input id="ekeep" type="checkbox"/> <span id="lkeep">保持登录</span></label>
 	<button id="blogin" type="button">登录</button>
 	<p id="lerr" class="err" hidden></p>
-	<p class="switch"><a href="/m">手机版</a></p>
+	<p class="langline">
+		<button type="button" class="langbtn" data-lang="zh">中文</button>
+		<button type="button" class="langbtn" data-lang="en">EN</button>
+	</p>
+	<p class="switch"><a id="lpc" href="/m">手机版</a></p>
 </div>
 <div id="main" hidden>
 	<header>
@@ -30,6 +34,10 @@
 			<button id="bzip" type="button">打包下载</button>
 			<button id="bdel" type="button" class="danger" hidden>删除所选</button>
 			<button id="bout" type="button" class="ghost">退出</button>
+			<span class="langline">
+				<button type="button" class="langbtn" data-lang="zh">中文</button>
+				<button type="button" class="langbtn" data-lang="en">EN</button>
+			</span>
 		</div>
 	</header>
 	<p id="err" class="err" hidden></p>
@@ -50,7 +58,7 @@
 	</div>
 </div>
 <input id="efile" type="file" multiple hidden/>
-<script src="/web/app.js"></script>
+<script src="/web/app.js?__SK_WEB_VER__"></script>
 <script>window.sfweb.init({mobile:false});</script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -48,7 +49,13 @@ public sealed partial class SendFileServer {
 			writejson(ctx, 404, err(404, "缺少文件路径"));
 			return;
 		}
-		sendfile(ctx, rel, head, asAttachment: false, trackJob: false);
+		sendfile(ctx, rel, head, asAttachment: webdlattach(rel), trackJob: false);
+	}
+
+	/// <summary>/f/ 公开下载：文本类扩展名用 attachment，避免手机浏览器直接打开。</summary>
+	static bool webdlattach(string rel) {
+		var ext = Path.GetExtension(rel ?? "").ToLowerInvariant();
+		return ext is ".txt" or ".md";
 	}
 
 	void handlewebapi(SfCtx ctx, string method, string path) {
@@ -76,6 +83,18 @@ public sealed partial class SendFileServer {
 				["ok"] = true,
 				["name"] = string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName,
 			}));
+			return;
+		}
+		if (path is "/api/web/photo") {
+			if (!isget(method)) { writejson(ctx, 405, err(805, "photo 仅支持 GET")); return; }
+			var photo = new JsonObject();
+			photojson(getOpts(), photo);
+			writejson(ctx, 200, ok(photo));
+			return;
+		}
+		if (path is "/api/web/apk-update") {
+			if (!isget(method)) { writejson(ctx, 405, err(805, "apk-update 仅支持 GET")); return; }
+			handlewebapkupdate(ctx);
 			return;
 		}
 		if (!Web.Authed(ctx.Request)) {
@@ -119,6 +138,44 @@ public sealed partial class SendFileServer {
 			return;
 		}
 		writejson(ctx, 404, err(404, "未知路径"));
+	}
+
+	void handlewebapkupdate(SfCtx ctx) {
+		var clientVer = ctx.Request.QueryString["v"] ?? ctx.Request.QueryString["version"] ?? "";
+		try {
+			using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(22));
+			var info = AppUpdater.CheckLatestApkAsync(cts.Token).GetAwaiter().GetResult();
+			var apkPath = ApkHost.FindFile();
+			var localApkVer = apkPath != null ? ApkHost.VersionOf(apkPath) : "";
+			var cur = AppUpdater.NormalizeVersion(clientVer);
+			if (string.IsNullOrEmpty(cur))
+				cur = AppUpdater.NormalizeVersion(localApkVer) ?? localApkVer;
+			var latest = info?.Version ?? "";
+			var hasUpdate = !string.IsNullOrEmpty(latest) && !string.IsNullOrEmpty(cur)
+				&& AppUpdater.IsNewerVersion(latest, cur);
+			var size = info?.SizeBytes ?? 0;
+			writejson(ctx, 200, ok(new JsonObject {
+				["ok"] = true,
+				["current"] = cur ?? "",
+				["latest"] = latest,
+				["tag"] = info?.TagName ?? "",
+				["hasUpdate"] = hasUpdate,
+				["hasApk"] = info != null && info.HasApk,
+				["downloadUrl"] = info?.DisplayUrl ?? info?.DownloadUrl ?? "",
+				["htmlUrl"] = info?.HtmlUrl ?? "",
+				["assetName"] = info?.AssetName ?? "",
+				["sizeBytes"] = size,
+				["sizeText"] = size > 0 ? FeatureInstaller.FormatBytes(size) : "",
+				["localApkVersion"] = localApkVer ?? "",
+				["localApkUrl"] = apkPath != null ? ApkHost.HttpPath : "",
+			}));
+		}
+		catch (Exception ex) {
+			writejson(ctx, 200, ok(new JsonObject {
+				["ok"] = false,
+				["error"] = ex.Message ?? "检查失败",
+			}));
+		}
 	}
 
 	void handleweblogin(SfCtx ctx) {
@@ -231,38 +288,65 @@ public sealed partial class SendFileServer {
 				writeredir(ctx, "/m");
 				return;
 			}
-			writewebfile(ctx, "index.html", "text/html; charset=utf-8", head);
+			writewebfile(ctx, "index.html", "text/html; charset=utf-8", head, html: true);
 			return;
 		}
 		if (path is "/m" or "/m.html") {
-			writewebfile(ctx, "m.html", "text/html; charset=utf-8", head);
+			writewebfile(ctx, "m.html", "text/html; charset=utf-8", head, html: true);
 			return;
 		}
-		if (path is "/web/app.js") {
-			writewebfile(ctx, "app.js", "application/javascript; charset=utf-8", head);
-			return;
-		}
-		if (path is "/web/d.css") {
-			writewebfile(ctx, "d.css", "text/css; charset=utf-8", head);
-			return;
-		}
-		if (path is "/web/m.css") {
-			writewebfile(ctx, "m.css", "text/css; charset=utf-8", head);
+		if (path.StartsWith("/web/")) {
+			var rel = path.Substring("/web/".Length);
+			if (string.IsNullOrEmpty(rel) || rel.IndexOfAny(new[] { '/', '\\' }) >= 0) {
+				writejson(ctx, 404, err(404, "未知路径"));
+				return;
+			}
+			var dot = rel.IndexOf('.');
+			if (dot < 0) {
+				writejson(ctx, 404, err(404, "未知路径"));
+				return;
+			}
+			writewebfile(ctx, rel, webmime(rel), head, html: false);
 			return;
 		}
 		writejson(ctx, 404, err(404, "未知路径"));
 	}
 
-	static void writewebfile(SfCtx ctx, string name, string contentType, bool head) {
+	static string webmime(string rel) {
+		var ext = Path.GetExtension(rel ?? "").ToLowerInvariant();
+		return ext switch {
+			".js" => "application/javascript; charset=utf-8",
+			".css" => "text/css; charset=utf-8",
+			".png" => "image/png",
+			".jpg" or ".jpeg" => "image/jpeg",
+			".gif" => "image/gif",
+			".webp" => "image/webp",
+			".svg" => "image/svg+xml",
+			".ico" => "image/x-icon",
+			_ => "application/octet-stream",
+		};
+	}
+
+	static void writewebfile(SfCtx ctx, string name, string contentType, bool head, bool html) {
 		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
 			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
 			return;
+		}
+		if (html) {
+			var text = Encoding.UTF8.GetString(bytes);
+			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
+			bytes = Encoding.UTF8.GetBytes(text);
 		}
 		var res = ctx.Response;
 		res.StatusCode = 200;
 		res.ContentType = contentType;
 		res.ContentLength64 = bytes.Length;
-		res.Headers["Cache-Control"] = "no-cache";
+		if (html) {
+			res.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+			res.Headers["Pragma"] = "no-cache";
+		}
+		else
+			res.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		try {
 			if (!head)
@@ -285,6 +369,19 @@ public sealed partial class SendFileServer {
 
 /// <summary>网页静态文件：优先读 exe 旁 web/，否则用嵌入资源。</summary>
 static class SendFileWebPages {
+	public const string VerPlaceholder = "__SK_WEB_VER__";
+	static long bootStamp;
+	static bool bootReady;
+
+	/// <summary>本进程内首次创建 SendFileServer 时写入，用于 HTML 内静态资源 ?v= 缓存失效。</summary>
+	public static void EnsureBootStamp() {
+		if (bootReady) return;
+		bootStamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+		bootReady = true;
+	}
+
+	public static string BootStamp => bootStamp.ToString(CultureInfo.InvariantCulture);
+
 	public static bool TryLoad(string name, out byte[] bytes) {
 		bytes = null;
 		if (string.IsNullOrWhiteSpace(name) || name.IndexOfAny(new[] { '/', '\\' }) >= 0)

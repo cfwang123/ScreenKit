@@ -36,6 +36,30 @@ sealed class CastUsbHost : IDisposable {
 	int lastaoa;
 
 	bool aoaReq;
+	const string AOA_BRIDGE_MX = "Local\\ScreenKit_CastAoaBridge";
+
+	public static bool AoaBridgeActive() {
+		try {
+			using var mx = Mutex.OpenExisting(AOA_BRIDGE_MX);
+			if (!mx.WaitOne(0)) return true;
+			mx.ReleaseMutex();
+		}
+		catch (WaitHandleCannotBeOpenedException) { }
+		catch { }
+		return false;
+	}
+
+	public static bool AccessoryPresent() {
+		try {
+			foreach (var id in usbpresent()) {
+				var u = id.ToUpperInvariant();
+				if (u.Contains("VID_18D1") && (u.Contains("PID_2D00") || u.Contains("PID_2D01")))
+					return true;
+			}
+		}
+		catch { }
+		return false;
+	}
 
 	public void Start() => Start(true);
 
@@ -437,12 +461,21 @@ sealed class CastUsbHost : IDisposable {
 
 	public static bool HelperBusy() {
 		try {
-			using var mx = new Mutex(false, "Local\\ScreenKit_CastAoa");
-			if (!mx.WaitOne(0, false)) return true;
-			try { mx.ReleaseMutex(); } catch { }
+			using var mx = Mutex.OpenExisting("Local\\ScreenKit_CastAoa");
+			if (!mx.WaitOne(0)) return true;
+			mx.ReleaseMutex();
 		}
+		catch (WaitHandleCannotBeOpenedException) { }
 		catch { }
 		return false;
+	}
+
+	public static void WaitForHelper(int ms = 4000) {
+		var t0 = Environment.TickCount;
+		while (unchecked(Environment.TickCount - t0) < ms) {
+			if (HelperBusy()) return;
+			Thread.Sleep(40);
+		}
 	}
 
 	static void killstale(Action<string> log) {
@@ -565,25 +598,44 @@ sealed class CastUsbHost : IDisposable {
 				try { inEp = rd.EndpointInfo.Descriptor.EndpointID; } catch { }
 				try { outEp = wr.EndpointInfo.Descriptor.EndpointID; } catch { }
 				log?.Invoke($"USB AOA 已打开 {r.Vid:X4}:{r.Pid:X4} {r.Name} {shortpath(r.SymbolicName)} in={inEp:X2} out={outEp:X2}，等待手机发包");
-				using var usb = new CastUsbBulkStream(rd, wr, 400);
-				usb.IdleMs = 0;
-				var first = new byte[16384];
-				var n = usb.Read(first, 0, first.Length);
-				if (n <= 0) {
-					log?.Invoke("AOA 读到空包");
-					dev.Close();
-					dev = null;
-					continue;
+				Mutex bridgeMx = null;
+				var bridgeHeld = false;
+				try {
+					bridgeMx = new Mutex(false, AOA_BRIDGE_MX);
+					bridgeHeld = bridgeMx.WaitOne(8000);
+					if (!bridgeHeld) {
+						log?.Invoke("AOA 桥接互斥超时");
+						dev.Close();
+						dev = null;
+						continue;
+					}
+					using var usb = new CastUsbBulkStream(rd, wr, 400);
+					usb.IdleMs = 0;
+					var first = new byte[16384];
+					var n = usb.Read(first, 0, first.Length);
+					if (n <= 0) {
+						log?.Invoke("AOA 读到空包");
+						dev.Close();
+						dev = null;
+						continue;
+					}
+					usb.IdleMs = 0;
+					using var up = new NamedPipeClientStream(".", CastProto.USB_PIPE, PipeDirection.Out);
+					using var down = new NamedPipeClientStream(".", CastProto.USB_PIPE_DOWN, PipeDirection.In);
+					up.Connect(4000);
+					down.Connect(4000);
+					log?.Invoke("USB AOA 已桥接到命名管道");
+					usb.IdleMs = 2000;
+					pump(usb, up, down, first, n, log);
+					log?.Invoke("USB AOA 会话结束");
+					return true;
 				}
-				usb.IdleMs = 0;
-				using var up = new NamedPipeClientStream(".", CastProto.USB_PIPE, PipeDirection.Out);
-				using var down = new NamedPipeClientStream(".", CastProto.USB_PIPE_DOWN, PipeDirection.In);
-				up.Connect(4000);
-				down.Connect(4000);
-				log?.Invoke("USB AOA 已桥接到命名管道");
-				pump(usb, up, down, first, n, log);
-				log?.Invoke("USB AOA 会话结束");
-				return true;
+				finally {
+					if (bridgeHeld && bridgeMx != null) {
+						try { bridgeMx.ReleaseMutex(); } catch { }
+					}
+					try { bridgeMx?.Dispose(); } catch { }
+				}
 			}
 			catch (Exception ex) {
 				log?.Invoke($"AOA 桥接 {r.Vid:X4}:{r.Pid:X4}: {ex.Message}");
@@ -648,9 +700,27 @@ sealed class CastUsbHost : IDisposable {
 		return s.Replace('#', '\\');
 	}
 
+	static bool tryquickhello(Stream usb, byte[] first, int n, Action<string> log) {
+		if (first == null || n < 14) return false;
+		uint mag = ((uint)first[0] << 24) | ((uint)first[1] << 16) | ((uint)first[2] << 8) | first[3];
+		if (mag != CastProto.MAGIC || first[4] != CastProto.T_JSON) return false;
+		try {
+			var q = CastProto.PackJson(new { cmd = "hello", name = CastHost.Name });
+			usb.Write(q, 0, q.Length);
+			usb.Flush();
+			log?.Invoke($"AOA 即时 hello {q.Length}B");
+			return true;
+		}
+		catch (Exception ex) {
+			log?.Invoke($"AOA 即时 hello {ex.Message}");
+			return false;
+		}
+	}
+
 	static void pump(Stream usb, Stream up, Stream down, byte[] first, int n, Action<string> log) {
 		using var cts = new CancellationTokenSource();
 		if (first != null && n > 0) {
+			tryquickhello(usb, first, n, log);
 			up.Write(first, 0, n);
 			up.Flush();
 		}
@@ -667,10 +737,10 @@ sealed class CastUsbHost : IDisposable {
 			}
 			catch (Exception ex) { log?.Invoke($"AOA 写回包 {ex.Message}"); }
 		}
-		var t2 = new Thread(() => copy(down, usb, cts)) { IsBackground = true, Name = "aoa-p2u" };
-		t2.Start();
 		var t1 = new Thread(() => copy(usb, up, cts)) { IsBackground = true, Name = "aoa-u2p" };
 		t1.Start();
+		var t2 = new Thread(() => copy(down, usb, cts)) { IsBackground = true, Name = "aoa-p2u" };
+		t2.Start();
 		t1.Join();
 		try { cts.Cancel(); } catch { }
 		t2.Join(800);

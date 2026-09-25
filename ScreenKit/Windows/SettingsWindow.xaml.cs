@@ -287,6 +287,12 @@ public partial class SettingsWindow : Window {
 			lbsetsfname.Text = Loc.T("set.sendfile.name");
 			lbsetsfwebpass.Text = Loc.T("set.sendfile.webpass");
 			lbsetsfwebpasshint.Text = Loc.T("set.sendfile.webpass.hint");
+			lbsetsfphoto.Text = Loc.T("set.sendfile.photo");
+			lbsetsfphotohint.Text = Loc.T("set.sendfile.photo.hint");
+			lbsetsfphotofmt.Text = Loc.T("set.sendfile.photo.fmt");
+			lbsetsfphotoq.Text = Loc.T("set.sendfile.photo.q");
+			esfphotolimit.Content = Loc.T("set.sendfile.photo.limit");
+			lbsetsfphotomax.Text = Loc.T("set.sendfile.photo.max");
 			lbsetsfporthint.Text = Loc.T("set.sendfile.shared");
 			lbsetsfudp.Text = Loc.T("set.sendfile.udp");
 			lbsetsfdev.Text = Loc.T("set.sendfile.devices");
@@ -492,6 +498,18 @@ public partial class SettingsWindow : Window {
 		ecasten.IsChecked = o.CastRecvEnabled;
 		esfname.Text = o.SendFileName ?? "";
 		esfwebpass.Text = o.SendFileWebPass ?? "";
+		var photoJpg = !string.Equals(o.PhotoFmt, "png", StringComparison.OrdinalIgnoreCase);
+		foreach (ComboBoxItem it in esfphotofmt.Items) {
+			var tag = (it.Tag as string) ?? "";
+			if (string.Equals(tag, photoJpg ? "jpg" : "png", StringComparison.OrdinalIgnoreCase)) {
+				esfphotofmt.SelectedItem = it;
+				break;
+			}
+		}
+		if (esfphotofmt.SelectedItem == null) esfphotofmt.SelectedIndex = 0;
+		esfphotoq.Text = (o.PhotoJpgQuality <= 0 ? 60 : Compat.Clamp(o.PhotoJpgQuality, 1, 100)).ToString();
+		esfphotolimit.IsChecked = o.PhotoLimitSize;
+		esfphotomax.Text = (o.PhotoMaxPx <= 0 ? 2000 : Compat.Clamp(o.PhotoMaxPx, 64, 16000)).ToString();
 		esfudp.Text = (o.SendFileUdpPort > 0 ? o.SendFileUdpPort : 17531).ToString();
 		refreshsfdev();
 		epdftext.IsChecked = o.PdfInvisibleText;
@@ -634,6 +652,14 @@ public partial class SettingsWindow : Window {
 		Result.CastRecvEnabled = ecasten.IsChecked == true;
 		Result.SendFileName = (esfname.Text ?? "").Trim();
 		Result.SendFileWebPass = (esfwebpass.Text ?? "").Trim();
+		var photoTag = ((esfphotofmt.SelectedItem as ComboBoxItem)?.Tag as string) ?? "jpg";
+		Result.PhotoFmt = string.Equals(photoTag, "png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
+		if (!tryint(esfphotoq, Loc.T("set.sendfile.photo.q"), 1, 100, out var photoQ, tabsethttp)) return false;
+		Result.PhotoJpgQuality = photoQ;
+		Result.PhotoLimitSize = esfphotolimit.IsChecked == true;
+		if (!tryint(esfphotomax, Loc.T("set.sendfile.photo.max"), 64, 16000, out var photoMax, tabsethttp))
+			return false;
+		Result.PhotoMaxPx = photoMax;
 		Result.SendFilePort = Result.HttpPort <= 0 ? 1224 : Result.HttpPort;
 		if (!int.TryParse((esfudp.Text ?? "").Trim(), out var sfUdp) || sfUdp < 1 || sfUdp > 65535) {
 			tabset.SelectedItem = tabsethttp;

@@ -1537,6 +1537,14 @@
 							        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
 							        VerticalAlignment="Center" Margin="12,0,0,0"
 							        AutomationProperties.AutomationId="sendfile.web"/>
+							<Button x:Name="bsfusb" DockPanel.Dock="Right" Content="连接安卓USB配件"
+							        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
+							        VerticalAlignment="Center" Margin="12,0,0,0"
+							        AutomationProperties.AutomationId="sendfile.usbacc"
+							        ToolTip="通知已连接的手机进入 USB 配件，并等待连接。2 分钟没有配件会自动关闭。"/>
+							<TextBlock x:Name="lbsfusbstat" DockPanel.Dock="Right" Text="USB配件：未连接"
+							           FontSize="12" Foreground="{StaticResource TextMuted}"
+							           VerticalAlignment="Center" Margin="12,0,0,0"/>
 							<TextBlock x:Name="lbsfstatus" Text="" FontSize="12"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
 							           TextTrimming="CharacterEllipsis"/>
@@ -1556,6 +1564,25 @@
 									           FontSize="12" Foreground="{StaticResource TextMuted}"
 									           TextWrapping="Wrap" Margin="0,0,0,8"/>
 									<WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+										<ToggleButton x:Name="bsfviewlist" Style="{StaticResource ToolToggleSm}"
+										              Width="32" Height="30" Padding="7,6" Margin="0,0,2,0"
+										              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+										              AutomationProperties.AutomationId="sendfile.view.list"
+										              ToolTip="列表">
+											<Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+											      StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+											      Stretch="Uniform" Width="14" Height="14"
+											      Data="M1,3.5 H15 M1,8 H15 M1,12.5 H15"/>
+										</ToggleButton>
+										<ToggleButton x:Name="bsfviewthumb" Style="{StaticResource ToolToggleSm}"
+										              Width="32" Height="30" Padding="7,6" Margin="0,0,8,0"
+										              BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+										              AutomationProperties.AutomationId="sendfile.view.thumb"
+										              ToolTip="缩略图">
+											<Path Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+											      Stretch="Uniform" Width="14" Height="14"
+											      Data="M1,1 h6 v6 h-6 z M9,1 h6 v6 h-6 z M1,9 h6 v6 h-6 z M9,9 h6 v6 h-6 z"/>
+										</ToggleButton>
 										<Button x:Name="bsfcut" Content="剪切" Style="{StaticResource ToolBtn}"
 										        Height="30" Padding="10,2"
 										        AutomationProperties.AutomationId="sendfile.cut"/>
@@ -1568,6 +1595,9 @@
 										<Button x:Name="bsfdel" Content="删除" Style="{StaticResource ToolBtn}"
 										        Height="30" Padding="10,2"
 										        AutomationProperties.AutomationId="sendfile.delete"/>
+										<Button x:Name="bsfpush" Content="推送" Style="{StaticResource ToolBtn}"
+										        Height="30" Padding="10,2" IsEnabled="False"
+										        AutomationProperties.AutomationId="sendfile.push"/>
 										<Button x:Name="bsfopen" Content="打开接收目录" Style="{StaticResource ToolBtn}"
 										        Height="30" Padding="10,2"
 										        AutomationProperties.AutomationId="sendfile.open"/>
@@ -1582,15 +1612,102 @@
 										<Grid Grid.Row="0" x:Name="psffbrowse" AllowDrop="True"
 										      Background="Transparent"
 										      AutomationProperties.AutomationId="sendfile.browse">
+											<Grid.Resources>
+												<ItemsPanelTemplate x:Key="sfPanelWrap">
+													<WrapPanel Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"/>
+												</ItemsPanelTemplate>
+												<ItemsPanelTemplate x:Key="sfPanelList">
+													<VirtualizingStackPanel/>
+												</ItemsPanelTemplate>
+												<Style x:Key="sfStyleListItem" TargetType="ListViewItem">
+													<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+													<Setter Property="Padding" Value="0,1"/>
+													<Setter Property="MinHeight" Value="22"/>
+													<Setter Property="FontSize" Value="12"/>
+												</Style>
+												<Style x:Key="sfStyleThumbItem" TargetType="ListViewItem">
+													<Setter Property="HorizontalContentAlignment" Value="Center"/>
+													<Setter Property="VerticalContentAlignment" Value="Top"/>
+													<Setter Property="Width" Value="84"/>
+													<Setter Property="Margin" Value="2"/>
+													<Setter Property="Padding" Value="2"/>
+												</Style>
+												<DataTemplate x:Key="sfTplThumb">
+													<StackPanel Width="76" ToolTip="{Binding Name}">
+														<Border Width="56" Height="56" HorizontalAlignment="Center"
+														        Background="{StaticResource BgPanel}" CornerRadius="4"
+														        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+														        ClipToBounds="True">
+															<Grid>
+																<Image Source="{Binding Thumb}" Stretch="Uniform"
+																       RenderOptions.BitmapScalingMode="HighQuality">
+																	<Image.Style>
+																		<Style TargetType="Image">
+																			<Setter Property="Visibility" Value="Visible"/>
+																			<Style.Triggers>
+																				<DataTrigger Binding="{Binding IsDir}" Value="True">
+																					<Setter Property="Visibility" Value="Collapsed"/>
+																				</DataTrigger>
+																				<DataTrigger Binding="{Binding Thumb}" Value="{x:Null}">
+																					<Setter Property="Visibility" Value="Collapsed"/>
+																				</DataTrigger>
+																			</Style.Triggers>
+																		</Style>
+																	</Image.Style>
+																</Image>
+																<TextBlock Text="📁" FontSize="22"
+																           HorizontalAlignment="Center" VerticalAlignment="Center">
+																	<TextBlock.Style>
+																		<Style TargetType="TextBlock">
+																			<Setter Property="Visibility" Value="Collapsed"/>
+																			<Style.Triggers>
+																				<DataTrigger Binding="{Binding IsDir}" Value="True">
+																					<Setter Property="Visibility" Value="Visible"/>
+																				</DataTrigger>
+																			</Style.Triggers>
+																		</Style>
+																	</TextBlock.Style>
+																</TextBlock>
+																<TextBlock Text="📄" FontSize="20"
+																           HorizontalAlignment="Center" VerticalAlignment="Center">
+																	<TextBlock.Style>
+																		<Style TargetType="TextBlock">
+																			<Setter Property="Visibility" Value="Collapsed"/>
+																			<Style.Triggers>
+																				<MultiDataTrigger>
+																					<MultiDataTrigger.Conditions>
+																						<Condition Binding="{Binding IsDir}" Value="False"/>
+																						<Condition Binding="{Binding Thumb}" Value="{x:Null}"/>
+																					</MultiDataTrigger.Conditions>
+																					<Setter Property="Visibility" Value="Visible"/>
+																				</MultiDataTrigger>
+																			</Style.Triggers>
+																		</Style>
+																	</TextBlock.Style>
+																</TextBlock>
+															</Grid>
+														</Border>
+														<TextBlock Text="{Binding Name}" Margin="0,3,0,0"
+														           FontSize="11" TextAlignment="Center"
+														           TextTrimming="CharacterEllipsis"/>
+													</StackPanel>
+												</DataTemplate>
+											</Grid.Resources>
 											<ListView x:Name="lvsffiles" BorderThickness="0" Background="Transparent"
-											          SelectionMode="Extended"
+											          SelectionMode="Multiple"
 											          ScrollViewer.HorizontalScrollBarVisibility="Auto"
 											          AutomationProperties.AutomationId="sendfile.files">
+												<ListView.Resources>
+													<Style TargetType="GridViewColumnHeader">
+														<Setter Property="Padding" Value="6,2"/>
+														<Setter Property="FontSize" Value="12"/>
+													</Style>
+												</ListView.Resources>
 												<ListView.ContextMenu>
 													<ContextMenu>
-														<MenuItem x:Name="mnsfcut" Header="剪切"/>
-														<MenuItem x:Name="mnsfcopy" Header="复制"/>
-														<MenuItem x:Name="mnsfpaste" Header="粘贴"/>
+														<MenuItem x:Name="mnsfcut" Header="剪切" InputGestureText="Ctrl+X"/>
+														<MenuItem x:Name="mnsfcopy" Header="复制" InputGestureText="Ctrl+C"/>
+														<MenuItem x:Name="mnsfpaste" Header="粘贴" InputGestureText="Ctrl+V"/>
 														<Separator/>
 														<MenuItem x:Name="mnsfdel" Header="删除"/>
 													</ContextMenu>
@@ -1698,29 +1815,24 @@
 							<Border Grid.Column="2" Background="{StaticResource BgPanel}" CornerRadius="12"
 							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
 								<DockPanel Margin="12">
-									<TextBlock x:Name="lbsftexthint" DockPanel.Dock="Top"
-									           Text="与手机互发文本；只显示最新一条，可选中复制"
-									           FontSize="12" Foreground="{StaticResource TextMuted}"
-									           TextWrapping="Wrap" Margin="0,0,0,8"/>
-									<DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
-										<Button x:Name="bsfsend" DockPanel.Dock="Right" Content="发送"
-										        Style="{StaticResource PrimaryBtn}" Width="88" Margin="8,0,0,0"
+									<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+									            HorizontalAlignment="Right" Margin="0,10,0,0">
+										<Button x:Name="bsfsend" Content="发送"
+										        Style="{StaticResource PrimaryBtn}" Width="72" Margin="0,0,8,0"
 										        AutomationProperties.AutomationId="sendfile.text.send"/>
-										<TextBox x:Name="esfsend" Height="64" AcceptsReturn="True" TextWrapping="Wrap"
-										         VerticalScrollBarVisibility="Auto" Padding="8,6"
-										         BorderBrush="{StaticResource BorderSoft}"
-										         AutomationProperties.AutomationId="sendfile.text.input"/>
-									</DockPanel>
-									<TextBox x:Name="esfmsg" IsReadOnly="True"
-									         AcceptsReturn="True" TextWrapping="Wrap"
+										<Button x:Name="bsfcopytext" Content="复制"
+										        Style="{StaticResource ToolBtn}" Width="72" Margin="0,0,8,0"
+										        AutomationProperties.AutomationId="sendfile.text.copy"/>
+										<Button x:Name="bsfcleartext" Content="清空"
+										        Style="{StaticResource ToolBtn}" Width="72"
+										        AutomationProperties.AutomationId="sendfile.text.clear"/>
+									</StackPanel>
+									<TextBox x:Name="esfsend" AcceptsReturn="True" TextWrapping="Wrap"
 									         VerticalScrollBarVisibility="Auto"
-									         HorizontalScrollBarVisibility="Disabled"
+									         VerticalContentAlignment="Top"
 									         Padding="8,6" FontSize="14"
 									         BorderBrush="{StaticResource BorderSoft}"
-									         VerticalContentAlignment="Top"
-									         IsReadOnlyCaretVisible="True"
-									         IsInactiveSelectionHighlightEnabled="True"
-									         AutomationProperties.AutomationId="sendfile.text.latest"/>
+									         AutomationProperties.AutomationId="sendfile.text.input"/>
 								</DockPanel>
 							</Border>
 						</Grid>

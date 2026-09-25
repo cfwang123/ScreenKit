@@ -35,6 +35,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miNetTool;
 	Forms.ToolStripMenuItem miCast;
+	Forms.ToolStripMenuItem miUsbAcc;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
@@ -42,6 +43,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miExit;
 	bool disposed;
 	bool snapCopyUi;
+	string usbStat = "";
 	/// <summary>刚点了 radio：菜单正常关掉后在原位再打开（避免 Cancel 关掉导致点外面关不上）。</summary>
 	bool reopenAfterRadio;
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
@@ -144,6 +146,7 @@ sealed class TrayIcon : IDisposable {
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
+		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miQrMake);
@@ -186,6 +189,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miGifRecord);
 		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(new Forms.ToolStripSeparator());
+		menu.Items.Add(miUsbAcc);
 		menu.Items.Add(miTools);
 		menu.Items.Add(miSettings);
 		menu.Items.Add(new Forms.ToolStripSeparator());
@@ -336,6 +340,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miPwGen, null);
 		setshortcut(miNetTool, null);
 		setshortcut(miCast, null);
+		setshortcut(miUsbAcc, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
 	}
@@ -376,6 +381,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miPwGen, "tray.pwgen");
 			settext(miNetTool, "tray.nettool");
 			settext(miCast, "tray.cast");
+			SetUsbAccStatus(usbStat);
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
@@ -408,6 +414,14 @@ sealed class TrayIcon : IDisposable {
 	public event Action PwGenRequested;
 	public event Action NetToolRequested;
 	public event Action CastRequested;
+	public event Action UsbAccessoryRequested;
+
+	public void SetUsbAccStatus(string status) {
+		usbStat = status ?? "";
+		if (miUsbAcc == null) return;
+		var name = Loc.T("tray.usbacc");
+		miUsbAcc.Text = usbStat.Length == 0 ? name : $"{name}（{usbStat}）";
+	}
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>

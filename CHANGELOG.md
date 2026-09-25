@@ -28,6 +28,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- USB accessory host has a switch on the tray menu and the file-sync tab (`cast_usb_accessory`). It no longer starts with screencast receive. After it is on, 2 minutes with no AOA bulk connection turns it off and saves that. Turning the switch off also ends the current cast session so Wi‑Fi/adb can connect. The AOA bridge ends after 2s with no USB data, so the viewer closes when the phone stops.
+- **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens a dialog “等待安卓USB配件中” and tells phones already connected for file sync to start the USB accessory (`usbAcc` on `GET /api/sendfile/pull`). PC and the phone show USB accessory status: connected / waiting / not connected. Closing the dialog while still waiting turns the host off. Plugging in USB does not start casting; the phone starts only after **USB** is tapped. Closing the viewer sends `bye` so the phone stops and the window stays closed. The wait dialog closes when the accessory connects. Phone **screen-off cast** locks the display and keeps sending; the power button wakes the screen and leaves that mode. Text sync is one box with Send, Copy, and Clear. Phone auto-connect uses LAN IP only and skips USB-subnet addresses.
 - Standalone interactive redesign prototype for the phone web file manager (`ScreenKit/SendFile/web/m-prototype.html`): a compact full-width list separated only by rules; no title/search bars; bottom Upload, Camera, and New actions. Tap a folder to open it or a file to download it; long-press to multi-select and use the download, ZIP, copy-link, rename, or delete action bar. It does not change the production `/m` page.
 - File sync **web manager** on the same HTTP port (`17532`): desktop `/` and phone `/m`. Login (`sendfile_web_pass`, auto-generated if empty) is required to upload, mkdir, rename, or delete. A correct `/f/…` URL downloads without login. File sync tab **Web manager** shows the LAN URL, QR, and password. CLI `--test-sendfile` covers login and public download.
 - Desktop web file manager (`/`): each row shows only **Download** in the Actions column; copy link, zip, rename, and delete are on the row right-click menu (folders: open, zip, rename, delete). Clicking a row toggles its checkbox (double-click a folder to open).
@@ -43,8 +45,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Phone Wi‑Fi screencast: picking a PC (scan list, My PCs, or the already-connected host) is enough to start; the start button no longer requires a still-checked list row. Media WebSocket uses the HTTP port (1224), not leftover 19519.
-- USB accessory screencast: the phone reads the accessory fd with a short timeout so video writes are not blocked (PC window stayed black after hello). Extra hello copies on the AOA bridge are gone; the PC stops repeating hello once video packets arrive.
+- Camera upload compression (format, JPG quality, long-edge limit) is set on the PC (**Settings → API**). The phone reads it from `GET /api/sendfile/info` after connect. The web **Camera** button compresses in the browser with the same values (`GET /api/web/photo`) before upload.
+- Phone Wi‑Fi screencast: pick a PC then start without a checked list row; media uses HTTP `/cast` (1224). Fix `CastService.broadcastStat` infinite recursion (StackOverflow crash).
+- USB accessory: write `hello` before `startRead()`; reply to `ping` via the ctrl queue without blocking the read thread.
 - ADB/WiFi capture: encoder repeats a static frame and the VirtualDisplay is kicked a few times after start, so the viewer is not black until the phone is touched.
 - Phone discovery binds the UDP socket to Wi‑Fi (USB accessory no longer steals the default network). Unicast to the last PC IP. Discovery UDP is always **17531** (a bumped saved port left the phone scanning 17531 while the PC listened on 17535). File-transfer UDP replies even when only screencast receive is on.
 - USB screencast hello: write `hello` before reading the PC reply (accessory read+write on one fd can stall the write ~2s). AOA bridge no longer treats 500ms USB idle as EOF, so the hello reply can arrive.
@@ -96,12 +99,24 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- Web file manager (`/` and `/m`): follows the browser language, with a **中文 / EN** switch. Desktop table headers, delete, and the phone/desktop links now switch too.
+- USB AOA: while the `--cast-aoa` helper holds its mutex (or an active bulk bridge), the main process no longer runs `adb reverse` (it was resetting WinUSB every ~8s and breaking the phone reading the PC `hello`). `HelperBusy()` uses `Mutex.OpenExisting`; recv start waits for the helper before the first reverse.
+- USB adb screencast: `adb reverse` runs again while the AOA helper is idle (only paused during an active AOA bulk bridge). Blocking reverse on `HelperBusy()` had broken **USB 投屏(adb)**.
+- WiFi screencast: start the control read thread before sending `hello`, so the PC reply is not missed (`hello ack=false`).
+- File sync inbox: marquee selects the files under the rectangle and keeps them selected. List selection no longer bubbles into the tab control and reloads the folder.
 - File sync: copy toast is a small topmost overlay at the **primary monitor work-area bottom center** (not anchored to the main window). `ScreenKit --test-ui-toast` smoke-test.
 
 ### 中文
 
 #### 新增
 
+- USB 配件主机：托盘菜单和文件同步页增加 **USB配件** 开关（`cast_usb_accessory`）。不再随投屏接收自动拉起。开启后 **2 分钟没有配件连接** 会自动关闭并写入配置。关掉开关会结束当前投屏会话，避免占住通道导致 Wi‑Fi/adb 连不上。配件桥 2 秒没有 USB 数据即结束，手机停止后电脑关窗。
+- **连接安卓USB配件**（托盘、文件同步页、投屏窗）点击后弹出「等待安卓USB配件中」，并通过文件同步 `GET /api/sendfile/pull` 的 `usbAcc` 通知已连接的手机去连 USB 配件。电脑和手机都显示 USB 配件状态：已连接 / 等待中 / 未连接。配件连上后自动关掉等待弹窗。等待中关掉弹窗会关闭主机。插上 USB 不会自动开始投屏，需在手机上点 **USB**。关掉画面会发 `bye`，手机停止后窗口不再被立刻重新打开。
+- 手机 **熄屏投屏**：投屏中锁屏后继续推画面，按电源键亮屏并退出该模式。
+- 文本同步改为一个输入框，按钮为 **发送**、**复制**、**清空**。电脑发来的文本会写入手机输入框（不再因输入框有焦点而丢掉）。手机自动连接只用局域网 IP，不走 USB 网段。
+- 投屏切横竖屏时，电脑窗口保持当前大小，画面在原窗口里适应或铺满。手机点 **停止** 会取消等待 USB 配件。
+- 拍照上传先申请相机权限再打开相机，避免未授权时闪退。
+- 投屏页先选电脑再开始；投屏中才显示停止和熄屏，USB 投屏单独放在下方。
 - 新增独立可交互的手机网页文件管理重设计原型（`ScreenKit/SendFile/web/m-prototype.html`）：100% 宽度紧凑列表，项目间仅保留分隔线；去掉标题栏和搜索栏，底部仅放上传、拍照、新建；点击文件夹进入、点击文件下载，长按进入多选并显示下载、ZIP、复制链接、改名、删除操作栏；不改动正式 `/m` 页面。
 - 文件同步 **网页管理**（与手机传输同一 HTTP 端口 `17532`）：电脑版 `/`、手机版 `/m`。上传/建目录/改名/删除需登录（`sendfile_web_pass`，空则启动时自动生成）；正确的 `/f/…` 即可下载。文件同步 Tab **网页管理** 显示局域网地址、二维码和密码。CLI `--test-sendfile` 覆盖登录与公开下载。
 - 电脑网页管理（`/`）：列表「操作」列仅保留 **下载**；复制链接、打包、改名、删除改为行 **右键菜单**（文件夹为进入、打包等）。点击行切换勾选（文件夹双击进入）。
@@ -118,8 +133,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 手机 WiFi 投屏：扫描列表 / 我的电脑 / 传文件页已选主机均可直接开始，不再因列表勾选被清掉而提示未选择电脑。画面 WebSocket 走 HTTP 口（1224），不再误连 19519。
-- USB 配件投屏：配件 fd 短超时读，避免阻塞读卡住视频写（电脑弹窗后一直黑屏）。AOA 桥不再连写多份 hello；电脑收到视频包后停止重发 hello。
+- 拍照压缩（格式、JPG 质量、最长边）改到电脑 **参数设置 → 接口**。手机连接后从 `GET /api/sendfile/info` 读取。网页 **拍照** 上传前用同一套参数在浏览器里压缩（`GET /api/web/photo`）。
+- 手机 WiFi 投屏：点选电脑后可直接开始；画面走 HTTP `/cast`（1224）。修复 `CastService.broadcastStat` 递归导致 StackOverflow 闪退。
+- USB 配件：先写出 hello 再 `startRead()` 读回包；ping 异步回 pong，避免读线程阻塞。
 - ADB/WiFi 采集：编码器在静止画面时重复上一帧，VirtualDisplay 启动后主动踢几帧，电脑不再等到手机操作才出画。
 - 手机发现 UDP 绑到 Wi‑Fi（插着 USB 配件时不再走默认网卡）；并向上次电脑 IP 单播。发现口固定 **17531**（配置曾改口到 17535，手机仍扫 17531）。仅开投屏接收时，传文件 UDP 也会应答发现。
 - USB 投屏 hello：先写出再读电脑应答（配件同一 fd 上先阻塞读再写会把 hello 卡约 2 秒）；AOA 桥不再把 500ms 空闲当断开，hello 回包才能到达。
@@ -133,6 +149,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安卓传文件：连接前先 **ping**（HTTP 端口 TCP 探测），不通则立即结束；选中电脑连接失败后每约 3 秒 ping，通则自动重连。
 - 安卓：传文件页投屏中主按钮显示 **投屏中**（高亮描边）；投屏页操作按钮改为流式宽度排列。
 - 安卓投屏页：**开始投屏** 按钮文案改为 **网络投屏**。
+- 电脑文件同步：接收目录支持 **列表 / 缩略图** 切换（紧凑行高与小缩略图）、框选与 Shift 多选、**Ctrl+X/C** 剪切复制（剪切项半透明显示）。
+- 修复文件同步框选时因频繁重算选中项导致界面卡死/闪退的问题。
+- 文件同步框选：拖动时按选框覆盖的行更新选中，松手后保持该选中。
 - 安卓传文件：手填 IP 默认端口改为 **1224**（原误用 17532，导致连不上、电脑不弹配对）；UDP 发现增加子网广播；先 `info` 再配对。
 - 电脑文件同步：手机上传或收到手机文本后自动复制到剪贴板，**主屏**工作区底部居中 Toast（非托盘气泡）。
 - 电脑文件同步：接收目录多选后点 **推送**，将所选文件/文件夹发给已连接手机。
@@ -140,6 +159,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
+- 网页文件管理（`/` 与 `/m`）：按浏览器语言显示中英文，并增加 **中文 / EN** 切换。电脑版表头、删除按钮和手机版/电脑版入口也会跟着切换。
+- USB 配件：AOA **bulk 桥接进行中**时主进程暂停 `adb reverse`（避免抢 WinUSB）。助手空等时仍会做 reverse，**USB 投屏(adb)** 不再因 `HelperBusy` 被永久跳过。
+- WiFi 投屏：先启动 `startCtrl` 读线程再发 hello，修复 `hello ack=false`；可用 `scst_wifi_probe` 自测 WebSocket 握手。
+- 电脑文件同步：框选能选中选框盖住的文件。原先列表选中事件冒泡到 Tab，被当成切换页面而整表刷新，选中因此丢失。
 - 电脑文件同步：接收后 Toast 固定在主显示器工作区底部居中（与语音浮层同类定位）。`ScreenKit --test-ui-toast` 可自测。
 
 - 手机网页管理（`/m`）：100% 宽度紧凑列表、行间仅分隔线；点击文件夹进入、点击文件下载；长按多选后操作栏支持下载、ZIP、复制链接、改名、删除；底部为上传、拍照、新建；保留面包屑与账户入口，去掉标题栏和搜索栏。

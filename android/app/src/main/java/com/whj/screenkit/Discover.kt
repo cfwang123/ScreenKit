@@ -53,7 +53,7 @@ object Discover {
             ifaceBroadcasts(dests)
             try {
                 val last = Prefs(ctx).lastHost.trim()
-                if (last.isNotEmpty()) dests.add(InetAddress.getByName(last))
+                if (last.isNotEmpty() && !isUsbHost(last)) dests.add(InetAddress.getByName(last))
             } catch (_: Exception) { }
             for (d in dests) {
                 try {
@@ -73,6 +73,7 @@ object Discover {
                     if (!s.startsWith("{")) continue
                     val o = JSONObject(s)
                     val host = pkt.address.hostAddress ?: continue
+                    if (isUsbHost(host)) continue
                     var port = o.optInt("httpPort", 0)
                     if (port <= 0) port = SendPorts.HTTP
                     val name = o.optString("name", host)
@@ -88,6 +89,43 @@ object Discover {
             try { if (lock?.isHeld == true) lock.release() } catch (_: Exception) { }
         }
         return found.values.toList()
+    }
+
+    fun isUsbHost(host: String): Boolean {
+        if (host.isEmpty()) return false
+        val addr = try { InetAddress.getByName(host) } catch (_: Exception) { return false }
+        val list = try { java.net.NetworkInterface.getNetworkInterfaces() } catch (_: Exception) { return false }
+            ?: return false
+        for (ni in list) {
+            try {
+                if (!isUsbIface(ni.name)) continue
+                for (ia in ni.interfaceAddresses) {
+                    val local = ia.address ?: continue
+                    if (sameNet(local, addr, ia.networkPrefixLength.toInt())) return true
+                }
+            } catch (_: Exception) { }
+        }
+        return false
+    }
+
+    private fun isUsbIface(name: String): Boolean {
+        val n = name.lowercase()
+        return n.contains("rndis") || n.contains("ncm") || n.contains("usb")
+    }
+
+    private fun sameNet(a: InetAddress, b: InetAddress, prefix: Int): Boolean {
+        val aa = a.address
+        val bb = b.address
+        if (aa.size != bb.size || prefix <= 0) return false
+        var left = prefix
+        for (i in aa.indices) {
+            if (left <= 0) break
+            val bits = if (left >= 8) 8 else left
+            val mask = (0xFF shl (8 - bits)) and 0xFF
+            if ((aa[i].toInt() and mask) != (bb[i].toInt() and mask)) return false
+            left -= bits
+        }
+        return true
     }
 
     private fun bindWifi(ctx: Context, sock: DatagramSocket) {
@@ -124,10 +162,11 @@ object Discover {
     private fun ifaceBroadcasts(dests: ArrayList<InetAddress>) {
         val list = try { java.net.NetworkInterface.getNetworkInterfaces() } catch (_: Exception) { return }
         if (list == null) return
-        for (ni in list) {
-            try {
-                if (!ni.isUp || ni.isLoopback) continue
-                for (a in ni.interfaceAddresses) {
+            for (ni in list) {
+                try {
+                    if (!ni.isUp || ni.isLoopback) continue
+                    if (isUsbIface(ni.name)) continue
+                    for (a in ni.interfaceAddresses) {
                     val b = a.broadcast ?: continue
                     if (!dests.contains(b)) dests.add(b)
                 }

@@ -10,7 +10,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.usb.accessory" android:required="false" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="true"
@@ -19,12 +28,20 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ScreenKit"
         android:usesCleartextTraffic="true">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/label_file"
+            android:label="@string/label_launcher"
             android:launchMode="singleTask"
-            android:taskAffinity="com.whj.screenkit.file"
             android:documentLaunchMode="never"
             android:alwaysRetainTaskState="true"
             android:windowSoftInputMode="adjustResize">
@@ -49,34 +66,15 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".PickPcActivity"
-            android:exported="false"
-            android:parentActivityName=".MainActivity"
-            android:taskAffinity="com.whj.screenkit.file" />
-        <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity"
-            android:taskAffinity="com.whj.screenkit.file" />
-        <activity
-            android:name=".TextSyncActivity"
-            android:exported="false"
-            android:parentActivityName=".MainActivity"
-            android:taskAffinity="com.whj.screenkit.file"
-            android:windowSoftInputMode="adjustResize" />
+            android:parentActivityName=".MainActivity" />
         <activity
             android:name=".CastActivity"
             android:exported="true"
             android:label="@string/label_cast"
-            android:launchMode="singleTask"
-            android:taskAffinity="com.whj.screenkit.cast"
-            android:documentLaunchMode="never"
-            android:alwaysRetainTaskState="true"
+            android:parentActivityName=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|density|uiMode">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED" />
             </intent-filter>
@@ -84,6 +82,17 @@
                 android:name="android.hardware.usb.action.USB_ACCESSORY_ATTACHED"
                 android:resource="@xml/accessory_filter" />
         </activity>
+        <receiver
+            android:name=".AdminRecv"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
         <service
             android:name=".CastService"
             android:exported="false"

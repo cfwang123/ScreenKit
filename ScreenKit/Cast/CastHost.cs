@@ -28,7 +28,25 @@ static class CastHost {
 	static bool frameposted;
 	static int lastadb;
 	static int lastaoa;
+	const int USB_IDLE_MS = 120000;
 	static bool usbWant;
+	static int usbIdleAt;
+	public static volatile bool UsbNotifyPhone;
+	public static bool UsbAccessoryOn => usbWant;
+
+	public static bool UsbLinked() => CastUsbHost.AoaBridgeActive() || CastUsbHost.AccessoryPresent();
+
+	public static string UsbAccStatus() {
+		if (UsbLinked()) return Loc.T("usbacc.on");
+		if (usbWant) return Loc.T("usbacc.wait");
+		return Loc.T("usbacc.off");
+	}
+
+	public static void BeginUsbAccessoryWait() {
+		UsbNotifyPhone = true;
+		SetUsbAccessory(true);
+	}
+	public static event Action UsbAccessoryChanged;
 
 	public static ImageSource WinIcon {
 		get {
@@ -123,9 +141,21 @@ static class CastHost {
 					lastadb = now;
 					reverseadb();
 				}
-				if (usbWant && (now - lastaoa > 8000 || lastaoa == 0)) {
-					lastaoa = now;
-					CastUsbHost.SpawnAoaHelper(log);
+				if (usbWant) {
+					if (UsbLinked())
+						usbIdleAt = now;
+					else if (usbIdleAt != 0 && unchecked(now - usbIdleAt) >= USB_IDLE_MS) {
+						usbWant = false;
+						usbIdleAt = 0;
+						ui(() => {
+							log("USB 配件 2 分钟无连接，已自动关闭");
+							SetUsbAccessory(false);
+						});
+					}
+					else if (now - lastaoa > 8000 || lastaoa == 0) {
+						lastaoa = now;
+						CastUsbHost.SpawnAoaHelper(log);
+					}
 				}
 			}
 			catch { }
@@ -138,7 +168,8 @@ static class CastHost {
 			}
 			catch (Exception ex) { log(ex.Message); }
 			logexe();
-			EnableUsbHost();
+			if (Opt != null && Opt.CastUsbAccessory)
+				EnableUsbHost();
 			ThreadPool.QueueUserWorkItem(_ => reverseadb());
 		}
 	}
@@ -161,10 +192,37 @@ static class CastHost {
 
 	public static void EnableUsbHost() {
 		usbWant = true;
-		lastaoa = Environment.TickCount;
+		usbIdleAt = Environment.TickCount;
+		lastaoa = usbIdleAt;
 		if (CastUsbHost.HelperBusy()) return;
 		log("已启用 USB 配件主机（独立进程请求 AOA 并桥接）");
 		CastUsbHost.SpawnAoaHelper(log);
+	}
+
+	public static void SetUsbAccessory(bool on) {
+		if (on) {
+			if (Opt != null) Opt.CastUsbAccessory = true;
+			SaveOpt();
+			if (!Started) Start();
+			else EnableUsbHost();
+			log("已开启 USB 配件（2 分钟无连接将自动关闭）");
+		}
+		else {
+			UsbNotifyPhone = false;
+			var was = usbWant || CastUsbHost.HelperBusy();
+			usbWant = false;
+			usbIdleAt = 0;
+			if (Opt != null) Opt.CastUsbAccessory = false;
+			SaveOpt();
+			if (was) {
+				try { Recv?.Kick("关闭 USB 配件"); } catch { }
+				CastUsbHost.StopAoaHelper(log);
+				log("已关闭 USB 配件");
+			}
+		}
+		ui(() => {
+			try { UsbAccessoryChanged?.Invoke(); } catch { }
+		});
 	}
 
 	public static void ShowSet() {
@@ -206,8 +264,18 @@ static class CastHost {
 	public static void CloseCast() {
 		hidebyuser = true;
 		ui(() => view?.HideCast());
-		Recv?.Kick();
-		log("已关闭画面并断开投屏");
+		var sent = false;
+		try { sent = Recv?.SendJson(new { cmd = "bye" }) == true; } catch { }
+		if (!sent) {
+			Recv?.Kick("关闭画面");
+			log("已关闭画面并断开投屏");
+			return;
+		}
+		ThreadPool.QueueUserWorkItem(_ => {
+			Thread.Sleep(400);
+			Recv?.Kick("关闭画面");
+			log("已关闭画面并断开投屏");
+		});
 	}
 
 	public static void Disconnect() {
@@ -234,13 +302,12 @@ static class CastHost {
 			Recv.Start();
 		if (Opt != null) Opt.CastRecvEnabled = true;
 		SaveOpt();
-		EnableUsbHost();
+		if (Opt != null && Opt.CastUsbAccessory)
+			EnableUsbHost();
 		ThreadPool.QueueUserWorkItem(_ => reverseadb());
 	}
 
 	public static void StopRecv() {
-		usbWant = false;
-		CastUsbHost.StopAoaHelper(log);
 		Recv?.Stop();
 		if (Opt != null) Opt.CastRecvEnabled = false;
 		SaveOpt();
@@ -333,7 +400,10 @@ static class CastHost {
 
 	static int tcpport() => TcpPort;
 
-	static void reverseadb() => CastAdbFwd.Reverse(tcpport(), log);
+	static void reverseadb() {
+		if (CastUsbHost.AoaBridgeActive()) return;
+		CastAdbFwd.Reverse(tcpport(), log);
+	}
 
 	static void logexe() {
 		try {

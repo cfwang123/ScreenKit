@@ -69,6 +69,8 @@ public partial class MainWindow {
 		bsfopen.Click += (_, _) => sfopenexplorer();
 		bsfapk.Click += (_, _) => showapkinstall();
 		if (bsfweb != null) bsfweb.Click += (_, _) => showwebfile();
+		if (bsfusb != null)
+			bsfusb.Click += (_, _) => CastUsbWaitWindow.ShowWait(this);
 		psffiles.Drop += onsfdrop;
 		psffiles.DragOver += onsfdover;
 		psftab.Drop += onsfdrop;
@@ -76,13 +78,16 @@ public partial class MainWindow {
 		psftab.PreviewKeyDown += (_, e) => onsftabkey(e);
 		initsfbrowse();
 		bsfsend.Click += (_, _) => sfsend();
+		if (bsfcopytext != null) bsfcopytext.Click += (_, _) => sfcopytext();
+		if (bsfcleartext != null) bsfcleartext.Click += (_, _) => { if (esfsend != null) esfsend.Clear(); };
 		esfsend.PreviewKeyDown += (_, e) => {
 			if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None) {
 				sfsend();
 				e.Handled = true;
 			}
 		};
-		maintabs.SelectionChanged += (_, _) => {
+		maintabs.SelectionChanged += (_, e) => {
+			if (!ReferenceEquals(e.OriginalSource, maintabs)) return;
 			if (issftab()) {
 				syncsfstatus();
 				sffilerefresh();
@@ -94,13 +99,23 @@ public partial class MainWindow {
 		sfPhoneTick = new System.Windows.Threading.DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(1),
 		};
-		sfPhoneTick.Tick += (_, _) => syncsfstatus();
+		sfPhoneTick.Tick += (_, _) => {
+			syncsfstatus();
+			syncusbaccui();
+		};
 		sfPhoneTick.Start();
 		syncsfstatus();
+		syncusbaccui();
 		applysflang();
 	}
 
 	bool issftab() => tabsf != null && ReferenceEquals(maintabs.SelectedItem, tabsf);
+
+	void syncusbaccui() {
+		var line = Loc.T("usbacc.line", CastHost.UsbAccStatus());
+		if (lbsfusbstat != null) lbsfusbstat.Text = line;
+		try { tray?.SetUsbAccStatus(CastHost.UsbAccStatus()); } catch { }
+	}
 
 	void showapkinstall() {
 		var w = new ApkInstallWindow(sendFile, opt) { Owner = this };
@@ -145,9 +160,27 @@ public partial class MainWindow {
 			sfLogs.Insert(0, new SfLogRow { Line = sflogline(j) });
 			while (sfLogs.Count > 200)
 				sfLogs.RemoveAt(sfLogs.Count - 1);
+			if (j.State == SendFileJobs.Done && !j.ToPhone)
+				sfclipreceived(j);
 		}
 		if (lbsfdrop != null)
 			lbsfdrop.Visibility = sfJobs.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+	}
+
+	void sfclipreceived(SfJob j) {
+		if (j == null) return;
+		var rel = string.IsNullOrWhiteSpace(j.StoreRel) ? j.Name : j.StoreRel;
+		if (string.IsNullOrWhiteSpace(rel)) return;
+		if (!SendFilePaths.TryResolve(rel, out var full, out _) || !File.Exists(full)) return;
+		try {
+			ImageUtil.CopyPathToClipboard(full);
+			var tip = Loc.T("sf.recv.clip", j.Name ?? Path.GetFileName(full));
+			UiToast.Show(this, tip);
+			setstatus(tip);
+		}
+		catch (Exception ex) {
+			try { setstatus(Loc.T("sf.recv.clip.fail", ex.Message)); } catch { }
+		}
 	}
 
 	static string sflogline(SfJob j) {
@@ -164,13 +197,31 @@ public partial class MainWindow {
 		return $"{t}  {dir}  {j.Name}  {st}  {SfJobRow.SizeText(j.Size)}";
 	}
 
+	void sftextin(string text) {
+		sfaddrow(text);
+		if (string.IsNullOrEmpty(text)) return;
+		try {
+			Clipboard.SetText(text);
+			var preview = text.Replace("\r\n", " ").Replace('\n', ' ').Trim();
+			if (preview.Length > 72) preview = preview.Substring(0, 72) + "…";
+			var tip = string.IsNullOrEmpty(preview)
+				? Loc.T("sf.recv.text.clip")
+				: Loc.T("sf.recv.text.clip", preview);
+			UiToast.Show(this, tip);
+			setstatus(tip);
+		}
+		catch (Exception ex) {
+			try { setstatus(Loc.T("sf.recv.text.clip.fail", ex.Message)); } catch { }
+		}
+	}
+
 	void hookstext() {
 		if (sfInboxHooked || sendFile == null) return;
 		sfInboxHooked = true;
 		sendFile.Text.InboxArrived += msg => {
 			if (msg == null) return;
 			try {
-				Dispatcher.BeginInvoke(new Action(() => sfaddrow(msg.Text)));
+				Dispatcher.BeginInvoke(new Action(() => sftextin(msg.Text)));
 			}
 			catch { }
 		};
@@ -310,7 +361,13 @@ public partial class MainWindow {
 		var text = (esfsend.Text ?? "").Trim();
 		if (text.Length == 0) return;
 		sfpushtext(text);
-		esfsend.Clear();
+	}
+
+	void sfcopytext() {
+		var text = esfsend?.Text ?? "";
+		if (text.Length == 0) return;
+		try { Clipboard.SetText(text); }
+		catch (Exception ex) { setstatus(ex.Message); }
 	}
 
 	void sfpushtext(string text) {
@@ -336,8 +393,9 @@ public partial class MainWindow {
 	}
 
 	void sfaddrow(string full) {
-		if (esfmsg == null) return;
-		esfmsg.Text = full ?? "";
+		if (esfsend == null) return;
+		esfsend.Text = full ?? "";
+		esfsend.CaretIndex = esfsend.Text.Length;
 	}
 
 	void syncsfstatus() {
@@ -360,6 +418,7 @@ public partial class MainWindow {
 				: Loc.T("sf.drop.off");
 			if (sfJobs.Count > 0) lbsfdrop.Visibility = Visibility.Collapsed;
 		}
+		sffilebtns();
 	}
 
 	void applysflang() {
@@ -371,9 +430,22 @@ public partial class MainWindow {
 			if (bsfcopy != null) bsfcopy.Content = Loc.T("sf.tab.copy");
 			bsfpaste.Content = Loc.T("sf.tab.paste");
 			if (bsfdel != null) bsfdel.Content = Loc.T("sf.tab.delete");
+			if (bsfpush != null) bsfpush.Content = Loc.T("sf.tab.push");
 			bsfopen.Content = Loc.T("sf.tab.open");
 			if (bsfapk != null) bsfapk.Content = Loc.T("sf.tab.apk");
 			if (bsfweb != null) bsfweb.Content = Loc.T("sf.tab.web");
+			if (bsfusb != null) {
+				bsfusb.Content = Loc.T("sf.tab.usb");
+				bsfusb.ToolTip = Loc.T("sf.tab.usb.tip");
+			}
+			if (bsfviewlist != null) {
+				bsfviewlist.ToolTip = Loc.T("sf.view.list");
+				System.Windows.Automation.AutomationProperties.SetName(bsfviewlist, Loc.T("sf.view.list"));
+			}
+			if (bsfviewthumb != null) {
+				bsfviewthumb.ToolTip = Loc.T("sf.view.thumb");
+				System.Windows.Automation.AutomationProperties.SetName(bsfviewthumb, Loc.T("sf.view.thumb"));
+			}
 			if (mnsfcut != null) mnsfcut.Header = Loc.T("sf.tab.cut");
 			if (mnsfcopy != null) mnsfcopy.Header = Loc.T("sf.tab.copy");
 			if (mnsfpaste != null) mnsfpaste.Header = Loc.T("sf.tab.paste");
@@ -382,8 +454,9 @@ public partial class MainWindow {
 			if (colsfsz != null) colsfsz.Header = Loc.T("sf.col.size");
 			if (colsftm != null) colsftm.Header = Loc.T("sf.col.time");
 			if (lbsffempty != null) lbsffempty.Text = Loc.T("sf.tab.empty");
-			lbsftexthint.Text = Loc.T("sf.text.hint");
 			bsfsend.Content = Loc.T("sendfile.text.send");
+			if (bsfcopytext != null) bsfcopytext.Content = Loc.T("sendfile.text.copy");
+			if (bsfcleartext != null) bsfcleartext.Content = Loc.T("sendfile.text.clear");
 			if (lbsflog != null) lbsflog.Text = Loc.T("sf.log");
 			syncsfstatus();
 		}

@@ -90,8 +90,18 @@ public sealed class OcrOptions {
 	public List<SendFileDevice> SendFileDevices = new();
 	/// <summary>网页文件管理登录密码；空则启动时自动生成。</summary>
 	public string SendFileWebPass = "";
+	/// <summary>手机/网页拍照上传：jpg 或 png。</summary>
+	public string PhotoFmt = "jpg";
+	/// <summary>拍照 JPG 质量 1–100。</summary>
+	public int PhotoJpgQuality = 60;
+	/// <summary>拍照是否限制最长边。</summary>
+	public bool PhotoLimitSize = true;
+	/// <summary>拍照最长边像素。</summary>
+	public int PhotoMaxPx = 2000;
 	/// <summary>局域网投屏接收（UDP 17531 发现 / HTTP /cast 媒体）。</summary>
 	public bool CastRecvEnabled = true;
+	/// <summary>USB 配件主机（AOA）。关闭时不拉起助手；开启后 2 分钟无连接会自动关掉。</summary>
+	public bool CastUsbAccessory;
 	/// <summary>投屏画质档名（流畅 540p / 均衡 720p / 高清 1080p）。</summary>
 	public string CastQuality = "均衡 720p";
 	/// <summary>投屏是否发送系统声音。</summary>
@@ -147,6 +157,8 @@ public sealed class OcrOptions {
 	public string ImgConvOutDir = "";
 	/// <summary>true = 图片（缩略图）视图；false = 列表。</summary>
 	public bool ImgConvThumbView = true;
+	/// <summary>文件同步接收目录：true = 缩略图；false = 列表。</summary>
+	public bool SfBrowseThumbView = false;
 	/// <summary>压缩后体积仍 ≥ 原图该比例时用原图（旋转/缩放除外）。</summary>
 	public bool ImgConvKeepOrigEnabled = true;
 	/// <summary>用原图的体积阈值，百分数，默认 80（100KB 原图则 ≥80KB 用原图）。</summary>
@@ -358,7 +370,12 @@ public sealed class OcrOptions {
 		SendFileDevices = (SendFileDevices ?? new List<SendFileDevice>())
 			.Where(x => x != null).Select(x => x.Clone()).ToList(),
 		SendFileWebPass = SendFileWebPass ?? "",
+		PhotoFmt = PhotoFmt ?? "jpg",
+		PhotoJpgQuality = PhotoJpgQuality,
+		PhotoLimitSize = PhotoLimitSize,
+		PhotoMaxPx = PhotoMaxPx,
 		CastRecvEnabled = CastRecvEnabled,
+		CastUsbAccessory = CastUsbAccessory,
 		CastQuality = CastQuality ?? "均衡 720p",
 		CastAudio = CastAudio,
 		CastViewFill = CastViewFill,
@@ -382,6 +399,7 @@ public sealed class OcrOptions {
 		ImgConvOutMode = ImgConvOutMode ?? "beside",
 		ImgConvOutDir = ImgConvOutDir ?? "",
 		ImgConvThumbView = ImgConvThumbView,
+		SfBrowseThumbView = SfBrowseThumbView,
 		ImgConvKeepOrigEnabled = ImgConvKeepOrigEnabled,
 		ImgConvKeepOrigPct = ImgConvKeepOrigPct,
 		PwLen = PwLen,

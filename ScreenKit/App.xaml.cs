@@ -88,6 +88,17 @@ public partial class App : System.Windows.Application {
 		var win = new MainWindow();
 		MainWindow = win;
 		win.Show();
+		if (args.Any(a => a == "--test-ui-toast")) {
+			win.Dispatcher.BeginInvoke(new Action(() => {
+				UiToast.Show(win, Loc.T("sf.recv.clip", "toast-test.bin"));
+			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+		}
+		if (args.Any(a => a == "--test-sf-marquee")) {
+			var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sf-marquee-test.log");
+			win.Dispatcher.BeginInvoke(new Action(() => {
+				win.sfmarqueeuitest(logPath);
+			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+		}
 	}
 
 	protected override void OnExit(ExitEventArgs e) {

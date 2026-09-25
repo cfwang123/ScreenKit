@@ -37,6 +37,8 @@ class Api(
     var token: String,
     var deviceName: String,
 ) {
+    var usbAccAsk = false
+        private set
     private val http = OkHttpClient.Builder()
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
@@ -187,6 +189,7 @@ class Api(
         val obj = get("/api/sendfile/pull")
         if (obj.optInt("code") != 100) throw RuntimeException(obj.optString("data"))
         val data = obj.optJSONObject("data") ?: JSONObject()
+        usbAccAsk = data.optBoolean("usbAcc")
         val arr = data.optJSONArray("items") ?: JSONArray()
         val out = ArrayList<PullItem>()
         for (i in 0 until arr.length()) {

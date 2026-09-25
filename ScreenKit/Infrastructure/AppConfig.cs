@@ -121,6 +121,8 @@ static class AppConfig {
 				o.ImgConvOutDir = (icod ?? "").Trim().Trim('"');
 			if (map.TryGetValue("imgconv_thumb_view", out var ictv))
 				o.ImgConvThumbView = parsebool(ictv, true);
+			if (map.TryGetValue("sf_browse_thumb_view", out var sftv))
+				o.SfBrowseThumbView = parsebool(sftv, false);
 			if (map.TryGetValue("imgconv_keep_orig", out var icko))
 				o.ImgConvKeepOrigEnabled = parsebool(icko, true);
 			if (map.TryGetValue("imgconv_keep_orig_pct", out var ickp) && int.TryParse(ickp, out var ickPct))
@@ -210,9 +212,21 @@ static class AppConfig {
 				o.SendFilePcId = sfid.Trim().Trim('"');
 			if (map.TryGetValue("sendfile_web_pass", out var sfwp))
 				o.SendFileWebPass = (sfwp ?? "").Trim().Trim('"');
+			if (map.TryGetValue("photo_fmt", out var phf) && !string.IsNullOrWhiteSpace(phf)) {
+				var fmt = phf.Trim().Trim('"').ToLowerInvariant();
+				o.PhotoFmt = fmt == "png" ? "png" : "jpg";
+			}
+			if (map.TryGetValue("photo_jpg_quality", out var phq) && int.TryParse(phq, out var phQ))
+				o.PhotoJpgQuality = Compat.Clamp(phQ, 1, 100);
+			if (map.TryGetValue("photo_limit", out var phl))
+				o.PhotoLimitSize = parsebool(phl, true);
+			if (map.TryGetValue("photo_max_px", out var phm) && int.TryParse(phm, out var phM))
+				o.PhotoMaxPx = Compat.Clamp(phM, 64, 16000);
 			o.SendFileDevices = parsesendfiledevices(text);
 			if (map.TryGetValue("cast_recv_enabled", out var cre))
 				o.CastRecvEnabled = parsebool(cre, true);
+			if (map.TryGetValue("cast_usb_accessory", out var cua))
+				o.CastUsbAccessory = parsebool(cua, false);
 			if (map.TryGetValue("cast_quality", out var cq) && !string.IsNullOrWhiteSpace(cq))
 				o.CastQuality = cq.Trim().Trim('"');
 			if (map.TryGetValue("cast_audio", out var ca))
@@ -475,6 +489,7 @@ static class AppConfig {
 		sb.AppendLine($"imgconv_out_beside = {(icOut == ImgConvert.OUTBESIDE ? "true" : "false")}");
 		sb.AppendLine($"imgconv_out_dir = \"{esc((o.ImgConvOutDir ?? "").Trim())}\"");
 		sb.AppendLine($"imgconv_thumb_view = {(o.ImgConvThumbView ? "true" : "false")}");
+		sb.AppendLine($"sf_browse_thumb_view = {(o.SfBrowseThumbView ? "true" : "false")}");
 		sb.AppendLine($"# 压缩后体积仍 ≥ 原图该比例则复制原文件（旋转/缩放除外）");
 		sb.AppendLine($"imgconv_keep_orig = {(o.ImgConvKeepOrigEnabled ? "true" : "false")}");
 		sb.AppendLine($"imgconv_keep_orig_pct = {Compat.Clamp(o.ImgConvKeepOrigPct <= 0 ? 80 : o.ImgConvKeepOrigPct, 1, 100)}");
@@ -538,6 +553,12 @@ static class AppConfig {
 		sb.AppendLine($"sendfile_pc_id = \"{esc(o.SendFilePcId ?? "")}\"");
 		sb.AppendLine($"# 网页管理登录密码（空则启动时自动生成）；下载 /f/ 无需登录");
 		sb.AppendLine($"sendfile_web_pass = \"{esc(o.SendFileWebPass ?? "")}\"");
+		sb.AppendLine($"# 手机 App / 网页拍照上传：jpg|png，质量 1–100，最长边");
+		var photoFmt = string.Equals(o.PhotoFmt, "png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
+		sb.AppendLine($"photo_fmt = \"{photoFmt}\"");
+		sb.AppendLine($"photo_jpg_quality = {Compat.Clamp(o.PhotoJpgQuality <= 0 ? 60 : o.PhotoJpgQuality, 1, 100)}");
+		sb.AppendLine($"photo_limit = {(o.PhotoLimitSize ? "true" : "false")}");
+		sb.AppendLine($"photo_max_px = {Compat.Clamp(o.PhotoMaxPx <= 0 ? 2000 : o.PhotoMaxPx, 64, 16000)}");
 		if (o.SendFileDevices != null) {
 			foreach (var d in o.SendFileDevices) {
 				if (d == null || string.IsNullOrWhiteSpace(d.Id)) continue;
@@ -552,6 +573,8 @@ static class AppConfig {
 		sb.AppendLine("[cast]");
 		sb.AppendLine("# 局域网 / USB 投屏接收（手机或另一台电脑）");
 		sb.AppendLine($"cast_recv_enabled = {(o.CastRecvEnabled ? "true" : "false")}");
+		sb.AppendLine($"# USB 配件主机；true 时启动后开启，2 分钟无连接会写回 false");
+		sb.AppendLine($"cast_usb_accessory = {(o.CastUsbAccessory ? "true" : "false")}");
 		sb.AppendLine($"cast_quality = \"{esc(string.IsNullOrWhiteSpace(o.CastQuality) ? "均衡 720p" : o.CastQuality)}\"");
 		sb.AppendLine($"cast_audio = {(o.CastAudio ? "true" : "false")}");
 		sb.AppendLine($"# 画面窗：false=适应窗口(fit) true=铺满窗口(fill)");

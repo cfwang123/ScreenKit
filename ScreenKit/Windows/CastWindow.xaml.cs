@@ -44,6 +44,8 @@ public partial class CastWindow : Window {
 		lbipman.Text = Loc.T("cast.ip");
 		bconnect.Content = Loc.T("cast.connect");
 		lbscale.Text = Loc.T("cast.scale");
+		busb.Content = Loc.T("sf.tab.usb");
+		busb.ToolTip = Loc.T("sf.tab.usb.tip");
 		fillscale();
 	}
 
@@ -118,8 +120,7 @@ public partial class CastWindow : Window {
 	}
 
 	void busb_Click(object sender, RoutedEventArgs e) {
-		CastHost.EnableUsbHost();
-		AppendLog("已启动 USB 配件助手；请在手机点「USB 投屏」并允许配件（看日志是否出现 AOA 协议/桥接）");
+		CastUsbWaitWindow.ShowWait(this);
 	}
 
 	void bscan_Click(object sender, RoutedEventArgs e) {
