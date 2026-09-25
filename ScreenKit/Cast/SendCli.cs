@@ -35,6 +35,10 @@ sealed class CastSendCli : IDisposable {
 		grab = new CastScreenGrab();
 		venc = new CastVideoEncoder(grab.Width, grab.Height, q);
 		sendjson();
+		if (!waithello()) {
+			Stop();
+			throw new InvalidOperationException("对方未应答 hello");
+		}
 		th = new Thread(loop) { IsBackground = true, Name = "cast-send" };
 		th.Start();
 		Log?.Invoke($"已连接到 {uri} 编码 {venc.OutWidth}x{venc.OutHeight}@{q.Fps}");
@@ -70,6 +74,21 @@ sealed class CastSendCli : IDisposable {
 			via = "wifi",
 		});
 		lock (nslock) st.Write(pkt, 0, pkt.Length);
+	}
+
+	bool waithello() {
+		var ok = false;
+		var th = new Thread(() => {
+			try {
+				if (!CastProto.TryRead(st, out var type, out var payload)) return;
+				if (type != CastProto.T_JSON) return;
+				ok = CastProto.Jstr(CastProto.ParseJson(payload), "cmd") == "hello";
+			}
+			catch { }
+		}) { IsBackground = true, Name = "cast-hello" };
+		th.Start();
+		if (!th.Join(5000)) return false;
+		return ok;
 	}
 
 	void loop() {

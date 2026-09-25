@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- WiFi/ADB screencast: the phone sends `hello` and must get a `hello` back before it starts capture or shows 投屏中; the PC opens the viewer only after that reply. A socket without this round-trip is not a session.
 - WiFi/ADB screencast no longer uses extra TCP 19519/19520+ or UDP 19518. Discovery shares UDP 17531 with file transfer; media is WebSocket `GET /cast` on the HTTP API port (default 1224). `adb reverse` maps the same HTTP port. `--test-cast-recv` checks a localhost `/cast` hello.
 - Phone web manager (`/m`): compact full-width list with divider rows only; tap folder/file to open or download; long-press multi-select with download, ZIP, copy link, rename, and delete; bottom bar Upload / Camera / New; breadcrumb path and account sheet (no title or search bar).
 - Public `/f/…` download: `.txt` and `.md` use `Content-Disposition: attachment` so mobile browsers save the file instead of opening it inline.
@@ -108,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- WiFi/ADB 投屏：手机发 hello，必须收到电脑 hello 才开始采集并显示「投屏中」；电脑回 hello 后才弹窗。只连上 socket 不算会话。
 - WiFi/ADB 投屏不再另占 TCP 19519/19520+ 或 UDP 19518。发现与传文件共用 UDP 17531，画面走 HTTP 口上的 WebSocket `GET /cast`（默认 1224）。`adb reverse` 转发同一 HTTP 口。`--test-cast-recv` 校验本机 `/cast` hello。
 - 安卓 **传文件** 改为单页：顶部连接状态、同页搜索/手填选电脑、上传、接收文件夹、文本同步与传输记录；仅侧栏保留 **参数设置**、**检查更新**（已移除独立选电脑页与文本同步页）。
 - 安卓传文件：连接后 **网页文件管理** 按钮/菜单用系统浏览器打开电脑 `/m`；传文件与投屏标题栏菜单可互相跳转。

@@ -35,6 +35,7 @@ class CastService : Service() {
     private var cfgOn = false
     @Volatile private var replacing = false
     private val sessgen = java.util.concurrent.atomic.AtomicInteger()
+    @Volatile private var helloLatch = java.util.concurrent.CountDownLatch(1)
     private var lastcfg = 0L
     private val gate = Any()
 
@@ -137,15 +138,13 @@ class CastService : Service() {
                 if (sessgen.get() != mygen) return@Thread
                 sink = s
                 startCtrl(s)
-                if (mode == "usb") {
-                    val qtmp = Quality.byName(qname)
-                    this.q = qtmp
-                    this.wantAudio = wantAudio
-                    val dm = metrics()
-                    val fit = qtmp.fit(dm.widthPixels, dm.heightPixels)
-                    if (!sendHello(fit.first, fit.second, qtmp.fps, wantAudio) || !probeUsb())
-                        throw IllegalStateException("电脑未打开 ScreenKit")
-                }
+                val qtmp = Quality.byName(qname)
+                this.q = qtmp
+                this.wantAudio = wantAudio
+                val dm = metrics()
+                val fit = qtmp.fit(dm.widthPixels, dm.heightPixels)
+                if (!handshake(fit.first, fit.second, qtmp.fps, wantAudio))
+                    throw IllegalStateException("电脑未打开 ScreenKit")
                 if (sessgen.get() != mygen) return@Thread
                 val latch = java.util.concurrent.CountDownLatch(1)
                 var fail: Exception? = null
@@ -164,7 +163,7 @@ class CastService : Service() {
             } catch (ex: Exception) {
                 if (sessgen.get() != mygen) return@Thread
                 Log.w("scst", "start ${ex.javaClass.simpleName} ${ex.message}")
-                val msg = if (mode == "usb") (ex.message ?: "连接失败") else "连接失败"
+                val msg = ex.message?.takeIf { it.isNotBlank() } ?: "电脑未打开 ScreenKit"
                 sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", msg))
                 stopCast()
                 stopSelf()
@@ -198,8 +197,6 @@ class CastService : Service() {
         this.q = q
         this.wantAudio = wantAudio
         val dm = metrics()
-        val fit = q.fit(dm.widthPixels, dm.heightPixels)
-        sendHello(fit.first, fit.second, q.fps, wantAudio)
         val v = VideoPipe(projection, dm.widthPixels, dm.heightPixels, dm.densityDpi, q, s, ::peerGone)
         synchronized(gate) {
             video = v
@@ -234,6 +231,17 @@ class CastService : Service() {
         @Suppress("DEPRECATION")
         (getSystemService(WINDOW_SERVICE) as WindowManager).defaultDisplay.getRealMetrics(dm)
         return dm
+    }
+
+    private fun handshake(outW: Int, outH: Int, fps: Int, wantAudio: Boolean): Boolean {
+        if (!sendHello(outW, outH, fps, wantAudio)) return false
+        val ok = try {
+            helloLatch.await(5000, java.util.concurrent.TimeUnit.MILLISECONDS)
+        } catch (_: Exception) {
+            false
+        }
+        Log.i("scst", "hello ack=$ok")
+        return ok
     }
 
     private fun sendHello(outW: Int, outH: Int, fps: Int, wantAudio: Boolean): Boolean {
@@ -343,7 +351,7 @@ class CastService : Service() {
 
     private fun beginPattern(s: FrameSink) {
         startCtrl(s)
-        if (!sendHello(640, 360, 15, false) || !probeUsb())
+        if (!handshake(640, 360, 15, false))
             throw IllegalStateException("电脑未打开 ScreenKit")
         pattern = PatternPipe(640, 360, 15, 800_000, s, ::peerGone)
         sendBroadcast(
@@ -374,7 +382,7 @@ class CastService : Service() {
             Notification.Builder(this)
         }
             .setContentTitle(getString(R.string.label_cast))
-            .setContentText("正在投屏")
+            .setContentText("正在连接")
             .setSmallIcon(android.R.drawable.ic_menu_share)
             .setContentIntent(pi)
             .build()
@@ -448,6 +456,7 @@ class CastService : Service() {
     }
 
     private fun startCtrl(s: FrameSink) {
+        helloLatch = java.util.concurrent.CountDownLatch(1)
         val ins = s.input() ?: return
         Thread({
             while (true) {
@@ -459,6 +468,10 @@ class CastService : Service() {
                     continue
                 }
                 when (obj.optString("cmd")) {
+                    "hello" -> {
+                        Log.i("scst", "pc hello")
+                        helloLatch.countDown()
+                    }
                     "ping" -> {
                         val pong = JSONObject().put("cmd", "pong").put("t", obj.optLong("t"))
                         s.send(Proto.T_JSON, pong.toString().toByteArray(Charsets.UTF_8))
@@ -470,20 +483,6 @@ class CastService : Service() {
                 }
             }
         }, "scst-ctrl").start()
-    }
-
-    private fun probeUsb(): Boolean {
-        val s = sink ?: return false
-        val pad = CharArray(3500) { 'x' }.concatToString()
-        val raw = JSONObject().put("cmd", "probe").put("z", pad).toString().toByteArray(Charsets.UTF_8)
-        repeat(12) {
-            if (!s.send(Proto.T_JSON, raw)) {
-                Log.w("scst", "usb probe fail @$it")
-                return false
-            }
-        }
-        Log.i("scst", "usb probe ok")
-        return true
     }
 
     private fun applyQuality(nq: Quality, force: Boolean = false) {

@@ -10,6 +10,7 @@
 
 ### 变更
 
+- 手机发 hello，电脑回 hello 后才开始投屏并显示「投屏中」；电脑此时才弹窗。未收到应答则提示「电脑未打开 ScreenKit」。
 - 扫描电脑与传文件共用 UDP 17531；画面走 HTTP `/cast`（默认 1224），不再连 19519/19520。
 - 停止时向电脑 `GET /api/cast/stop`（等最多 400ms），画面窗立刻关。
 - USB 配件测试画面：手机自绘 640×360 动态块（不截屏）只走 AOA bulk（`scst_usb_pat`），不用 adb reverse、不用 WiFi。

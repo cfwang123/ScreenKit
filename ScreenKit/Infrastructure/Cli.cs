@@ -2905,6 +2905,28 @@ static class Cli {
 			var buf = CastProto.PackJson(new { cmd = "hello", name = "t", w = 64, h = 64, via = "wifi" });
 			cws.SendAsync(new ArraySegment<byte>(buf), WebSocketMessageType.Binary, true,
 				CancellationToken.None).Wait(2000);
+			var rbuf = new byte[65536];
+			var rec = cws.ReceiveAsync(new ArraySegment<byte>(rbuf), CancellationToken.None);
+			if (!rec.Wait(4000)) {
+				Err("FAIL: 未收到 hello 应答");
+				return 1;
+			}
+			var got = rec.Result;
+			if (got.MessageType != WebSocketMessageType.Binary || got.Count < 9) {
+				Err("FAIL: hello 应答无效");
+				return 1;
+			}
+			using (var ms = new MemoryStream(rbuf, 0, got.Count)) {
+				if (!CastProto.TryRead(ms, out var type, out var payload) || type != CastProto.T_JSON) {
+					Err("FAIL: hello 应答不是 JSON 包");
+					return 1;
+				}
+				if (CastProto.Jstr(CastProto.ParseJson(payload), "cmd") != "hello") {
+					Err("FAIL: 应答 cmd 不是 hello");
+					return 1;
+				}
+			}
+			Out("hello 往返 ok");
 			var t0 = Environment.TickCount;
 			while (hello == 0 && unchecked(Environment.TickCount - t0) < 4000)
 				Thread.Sleep(50);
@@ -3019,7 +3041,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
-      --test-cast-recv  HTTP /cast WebSocket hello 必须进本进程（WiFi/ADB 弹窗路径）
+      --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）

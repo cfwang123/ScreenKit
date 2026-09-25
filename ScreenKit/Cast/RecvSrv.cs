@@ -131,18 +131,19 @@ sealed class CastRecvSrv : IDisposable {
 			Kick("握手超时");
 	}
 
-	public void SendJson(object obj) {
+	public bool SendJson(object obj) {
 		var s = curst;
-		if (s == null || obj == null) return;
+		if (s == null || obj == null) return false;
 		try {
 			var buf = CastProto.PackJson(obj);
 			lock (wlock) {
-				if (!ReferenceEquals(curst, s)) return;
+				if (!ReferenceEquals(curst, s)) return false;
 				s.Write(buf, 0, buf.Length);
 				s.Flush();
 			}
+			return true;
 		}
-		catch { }
+		catch { return false; }
 	}
 
 	public string StatText() {
@@ -319,6 +320,10 @@ sealed class CastRecvSrv : IDisposable {
 		ench = h;
 		var via = CastProto.Jstr(o, "via");
 		hellovia = via;
+		if (!SendJson(new { cmd = "hello", name = CastHost.Name })) {
+			Log?.Invoke($"握手应答失败 {via} {n} {w}x{h}");
+			return false;
+		}
 		Log?.Invoke($"握手 {via} {n} {w}x{h}");
 		if (w <= 0 || h <= 0 || w != oldw || h != oldh) resetvdec();
 		OnHello?.Invoke(n, via);
