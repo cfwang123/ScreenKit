@@ -2,7 +2,7 @@
 
 Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截图工具」）：截图识别、标注、条码/二维码、长截图、录屏/GIF、PDF 工作台、语音识别/合成、LLM 对话、翻译、人脸、本机 HTTP API，以及与安卓配套的局域网文件传输和投屏。
 
-**当前版本：1.0.10** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**当前版本：1.0.11** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 [English](README.md) · [中文](README.zh.md)
 
@@ -25,8 +25,8 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 | 文件 | 说明 |
 |------|------|
-| [`screenkit_1.0.10.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 精简包（exe + 托管依赖）。模型与运行库在程序内安装。 |
-| `screenkit1.0.10.apk` | 安卓客户端，桌面两个入口「传文件」「投屏」（独立任务，可同时打开；同一发布页，或电脑 **文件同步 → 安装到手机**）。 |
+| [`screenkit_1.0.11.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 精简包（exe + 托管依赖）。模型与运行库在程序内安装。 |
+| `screenkit1.0.11.apk` | 安卓客户端，桌面两个入口「传文件」「投屏」（独立任务，可同时打开；同一发布页，或电脑 **文件同步 → 安装到手机**）。 |
 
 解压后运行 `ScreenKit/ScreenKit.exe`。首次启动可出现安装向导。需要 [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
 
@@ -120,7 +120,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 ### 投屏（电脑 ↔ 安卓 / 电脑 ↔ 电脑）
 
 1. 电脑 **工具 → 投屏**（默认启动即接收；参数设置 → 接口可关）。同一 Wi‑Fi，不要访客隔离。启动本程序会结束其它目录的旧 ScreenKit。WiFi/ADB 画面走与传文件相同的 HTTP 口（`/cast`），扫描走 UDP 17531。
-2. 手机 **传文件/投屏** → **投屏**。页面会带上已保存的电脑 IP，确认后点 **开始投屏**，允许截屏。要换电脑用 **已保存的电脑** 或 **搜索局域网**。投屏中才出现 **停止投屏** 和 **熄屏投屏**。数据线投屏在页面下方单独一项。画面走 HTTP `/cast`（默认 1224）。电脑未开或未应答则提示 **电脑未打开 ScreenKit**。约 90 秒没有配件则改走 USB 网络共享。**USB 调试投屏** 走 `adb reverse`，需要 USB 调试。调试转发：`adb shell am start -n com.whj.screenkit/.CastActivity --ez scst_adb_probe true`（只看 127.0.0.1:1224 是否通）。WiFi 握手：`--es scst_ip <电脑局域网IP> --ez scst_wifi_probe true`。纯 USB 测试画面：`scst_usb_pat`。
+2. 手机 **传文件/投屏** → **投屏**。页面会带上已保存的电脑 IP，确认后点 **开始投屏**，允许截屏。要换电脑用 **已保存的电脑** 或 **搜索局域网**。投屏中才出现 **停止投屏** 和 **熄屏投屏**。数据线投屏在页面下方单独一项。画面走 HTTP `/cast`（默认 1224）。电脑未开、握手失败、中途断开或未授权截屏时弹出 **投屏失败** 对话框。约 90 秒没有配件则改走 USB 网络共享。**USB 调试投屏** 走 `adb reverse`，需要 USB 调试。调试转发：`adb shell am start -n com.whj.screenkit/.CastActivity --ez scst_adb_probe true`（只看 127.0.0.1:1224 是否通）。WiFi 握手：`--es scst_ip <电脑局域网IP> --ez scst_wifi_probe true`。纯 USB 测试画面：`scst_usb_pat`。
 3. 电脑弹出无边框画面窗并提到最前；**Tab** 信息默认不显示（按 Tab 才显示类型、分辨率、帧率等）。关闭画面即断开。画质档可即时改。横屏会按同一画质短边重编码，不把竖屏画面裁小。手机停止投屏时电脑窗口立刻关闭（`GET /api/cast/stop`）。
 4. 电脑互投：两端都开接收，发送端扫描后「投向选中」。
 

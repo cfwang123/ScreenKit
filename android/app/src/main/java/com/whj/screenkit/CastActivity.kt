@@ -19,8 +19,11 @@ import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.whj.screenkit.databinding.ActivityCastBinding
 
 class CastActivity : AppCompatActivity() {
@@ -33,10 +36,12 @@ class CastActivity : AppCompatActivity() {
     private var waitUsb = false
     private var waitPat = false
     private var scanning = false
+    private var errDlg: AlertDialog? = null
+    private var pendingErr: String? = null
 
     private val proj = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         if (r.resultCode != RESULT_OK || r.data == null) {
-            toast("未授权截屏")
+            showCastErr("未授权截屏，无法开始投屏")
             return@registerForActivityResult
         }
         val i = Intent(this, CastService::class.java)
@@ -58,10 +63,10 @@ class CastActivity : AppCompatActivity() {
     private val rec = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val msg = intent?.getStringExtra("msg") ?: ""
+            val err = intent?.getBooleanExtra("err", false) == true
             b.lbstat.text = msg
             applyModeUi()
-            if (msg.contains("电脑未打开") || msg == "连接失败" || msg == "USB 测试失败")
-                toast(msg)
+            if (err) showCastErr(msg)
         }
     }
 
@@ -150,8 +155,8 @@ class CastActivity : AppCompatActivity() {
             intent?.getBooleanExtra("scst_adb", false) == true ||
             intent?.getBooleanExtra("scst_adb_probe", false) == true ||
             intent?.getBooleanExtra("scst_wifi_probe", false) == true
-        if (skip) return
-        applyModeUi()
+        if (!skip) applyModeUi()
+        pendingErr?.let { showCastErr(it) }
     }
 
     override fun onPause() {
@@ -230,6 +235,8 @@ class CastActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        errDlg?.dismiss()
+        errDlg = null
         try { unregisterReceiver(rec) } catch (_: Exception) { }
         try { unregisterReceiver(usbPermRec) } catch (_: Exception) { }
         super.onDestroy()
@@ -309,7 +316,30 @@ class CastActivity : AppCompatActivity() {
 
     private fun castingNow(): Boolean {
         val st = b.lbstat.text?.toString().orEmpty()
+        if (st.contains("失败") || st.contains("已停止") || st.contains("已断开") || st.contains("未授权"))
+            return false
         return st.contains("投屏中") || st.contains("正在启动") || st.contains("USB 测试")
+    }
+
+    private fun showCastErr(msg: String) {
+        val text = msg.trim().ifEmpty { "投屏失败" }
+        if (isFinishing || isDestroyed) return
+        b.lbstat.text = text
+        applyModeUi()
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            pendingErr = text
+            return
+        }
+        pendingErr = null
+        errDlg?.dismiss()
+        val dlg = MaterialAlertDialogBuilder(this)
+            .setTitle("投屏失败")
+            .setMessage(text)
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+        dlg.setOnDismissListener { if (errDlg === dlg) errDlg = null }
+        errDlg = dlg
+        dlg.show()
     }
 
     private fun applyModeUi() {
@@ -445,8 +475,7 @@ class CastActivity : AppCompatActivity() {
             waitUsb = false
             if (waitPat) {
                 waitPat = false
-                b.lbstat.text = "没有 USB 配件"
-                toast("没有 USB 配件")
+                showCastErr("没有 USB 配件")
                 return
             }
             pendingMode = "usb-lan"
@@ -470,8 +499,7 @@ class CastActivity : AppCompatActivity() {
             val p = try { UsbLoop.probe() } catch (_: Exception) { null }
             runOnUiThread {
                 if (p.isNullOrEmpty()) {
-                    toast("连接失败，请确认电脑已开投屏接收且手机开了 USB 调试")
-                    b.lbstat.text = "连接失败"
+                    showCastErr("连接失败，请确认电脑已开投屏接收且手机开了 USB 调试")
                 } else {
                     b.lbstat.text = "USB adb $p"
                     requestProj()

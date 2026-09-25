@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.11 (2026-09-26)](#v1011-2026-09-26)
 - [v1.0.10 (2026-09-24)](#v1010-2026-09-24)
 - [v1.0.9 (2026-09-23)](#v109-2026-09-23)
 - [v1.0.8 (2026-09-23)](#v108-2026-09-23)
@@ -24,191 +25,29 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+## v1.0.11 (2026-09-26)
+
 ### English
 
 #### Added
 
-- USB accessory host has a switch on the tray menu and the file-sync tab (`cast_usb_accessory`). It no longer starts with screencast receive. After it is on, 2 minutes with no AOA bulk connection turns it off and saves that. Turning the switch off also ends the current cast session so Wi‑Fi/adb can connect. The AOA bridge ends after 2s with no USB data, so the viewer closes when the phone stops.
-- **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens a dialog “等待安卓USB配件中” and tells phones already connected for file sync to start the USB accessory (`usbAcc` on `GET /api/sendfile/pull`). PC and the phone show USB accessory status: connected / waiting / not connected. Closing the dialog while still waiting turns the host off. Plugging in USB does not start casting; the phone starts only after **USB** is tapped. Closing the viewer sends `bye` so the phone stops and the window stays closed. The wait dialog closes when the accessory connects. Phone **screen-off cast** locks the display and keeps sending; the power button wakes the screen and leaves that mode. Text sync is one box with Send, Copy, and Clear. Phone auto-connect uses LAN IP only and skips USB-subnet addresses.
-- Standalone interactive redesign prototype for the phone web file manager (`ScreenKit/SendFile/web/m-prototype.html`): a compact full-width list separated only by rules; no title/search bars; bottom Upload, Camera, and New actions. Tap a folder to open it or a file to download it; long-press to multi-select and use the download, ZIP, copy-link, rename, or delete action bar. It does not change the production `/m` page.
-- File sync **web manager** on the same HTTP port (`17532`): desktop `/` and phone `/m`. Login (`sendfile_web_pass`, auto-generated if empty) is required to upload, mkdir, rename, or delete. A correct `/f/…` URL downloads without login. File sync tab **Web manager** shows the LAN URL, QR, and password. CLI `--test-sendfile` covers login and public download.
-- Desktop web file manager (`/`): each row shows only **Download** in the Actions column; copy link, zip, rename, and delete are on the row right-click menu (folders: open, zip, rename, delete). Clicking a row toggles its checkbox (double-click a folder to open).
-- Web file manager cache: HTML is served with `no-store`; JS/CSS URLs in HTML get `?&lt;bootUnix&gt;` replaced on each ScreenKit run (first `SendFileServer` in the process).
-- File-transfer HTTP bind is exclusive (no `ReuseAddress`). A dead leftover listener no longer accepts connections and hangs the browser; bad/TLS probes get `400` instead of an open hang.
-- Web manager: `[hidden]` now wins over `#main{display:flex}`, so the login card and file table no longer stack. CJK font prefers YaHei.
-- File transfer: if the configured HTTP port is a leftover listen (process gone), bind the next free port, save it, and show that error instead of “service off”.
-- File-transfer HTTP and the web manager now share the HTTP API port (`1224` by default). There is no separate sendfile HTTP port. UDP discovery still uses `17531`.
-- Web manager: **Stay signed in** (30-day cookie, remembered across restarts). Folders have **Open** and **Zip**; the toolbar can zip the current folder or the selection.
-- Phone web manager (`/m`) is a white layout with light accents and SVG icons on every button.
-- Password generator **Variants** tab: type a password or phrase, pick an LLM (`pwgen_llm`), get memorable variants (mostly other-language translations spelled in ASCII romanization, mix case; at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). Double-click copies a row. CLI `--test-pwgen` covers JSON parse.
-- LAN/USB screencast: **Tools → Screencast** (tray Tools too). Receive a phone or another PC (H.264 + AAC), or cast this desktop out. Quality 540p/720p/1080p; optional audio. Discovery UDP 17531 (shared with file transfer), media WebSocket `/cast` on HTTP 1224; USB uses AOA accessory (no adb / USB debugging). Settings → HTTP tab can disable receive (`cast_recv_enabled`). CLI `--test-cast`.
-
-#### Changed
-
-- Camera upload compression (format, JPG quality, long-edge limit) is set on the PC (**Settings → API**). The phone reads it from `GET /api/sendfile/info` after connect. The web **Camera** button compresses in the browser with the same values (`GET /api/web/photo`) before upload.
-- Phone Wi‑Fi screencast: pick a PC then start without a checked list row; media uses HTTP `/cast` (1224). Fix `CastService.broadcastStat` infinite recursion (StackOverflow crash).
-- USB accessory: write `hello` before `startRead()`; reply to `ping` via the ctrl queue without blocking the read thread.
-- ADB/WiFi capture: encoder repeats a static frame and the VirtualDisplay is kicked a few times after start, so the viewer is not black until the phone is touched.
-- Phone discovery binds the UDP socket to Wi‑Fi (USB accessory no longer steals the default network). Unicast to the last PC IP. Discovery UDP is always **17531** (a bumped saved port left the phone scanning 17531 while the PC listened on 17535). File-transfer UDP replies even when only screencast receive is on.
-- USB screencast hello: write `hello` before reading the PC reply (accessory read+write on one fd can stall the write ~2s). AOA bridge no longer treats 500ms USB idle as EOF, so the hello reply can arrive.
-- WiFi/ADB screencast: the phone sends `hello` and must get a `hello` back before it starts capture or shows 投屏中; the PC opens the viewer only after that reply. A socket without this round-trip is not a session.
-- WiFi/ADB screencast no longer uses extra TCP 19519/19520+ or UDP 19518. Discovery shares UDP 17531 with file transfer; media is WebSocket `GET /cast` on the HTTP API port (default 1224). `adb reverse` maps the same HTTP port. `--test-cast-recv` checks a localhost `/cast` hello.
-- Phone web manager (`/m`): compact full-width list with divider rows only; tap folder/file to open or download; long-press multi-select with download, ZIP, copy link, rename, and delete; bottom bar Upload / Camera / New; breadcrumb path and account sheet (no title or search bar).
-- Public `/f/…` download: `.txt` and `.md` use `Content-Disposition: attachment` so mobile browsers save the file instead of opening it inline.
-- On launch, ScreenKit ends leftover copies from another folder, orphan `--cast-aoa` helpers, and live processes listening on TCP 19519, then takes the single-instance lock. A second start from the **same** folder still activates the existing window.
-- WiFi screencast: discovery replies with the **actual** listen port (not always 19519); firewall allows TCP 19519–19534. Phone scan uses that port (`ip:19520` when 19519 is ghosted).
-- WiFi/ADB viewer: exclusive listen only (no `ReuseAddress`). If 19519 is a dead-pid ghost socket, bind 19520+ and advertise that port; `adb reverse` maps device 19519 to the real host port. `--test-cast-recv` checks localhost hello reaches this process.
-- Screencast viewer comes to the front when it opens (not always-on-top). **Tab** overlay is off until Tab is pressed. USB adb reverse is kept even while the AOA helper is running. Stop hides the window before decoder teardown (no ~1s black frame).
-- Screencast viewer is no longer always-on-top. Picture scale can be **Fit** (letterbox) or **Fill** (crop); right-click the viewer or Tools → Screencast (`cast_view_fill`).
-- USB screencast: the receiver starts the AOA helper by itself (no extra **USB配件** click). The helper stays after a session instead of exiting, and is no longer killed every 8s.
-- USB accessory test pattern: the phone encodes a moving 640×360 block (no MediaProjection) over AOA bulk only (`scst_usb_pat`). No adb reverse, no Wi‑Fi.
-- USB viewer: hello used to trigger an immediate `ping` on the same AOA bulk pipe, which can stall WinUSB so no video arrives and the window closes after 15s. Ping waits until the first frame. Handshake timeout is 8s. USB accessory bridges over named pipes (`ScreenKit.CastUsb` / `ScreenKit.CastUsbDown`) so a stuck TCP 19519 no longer blocks the viewer. Up and down are separate pipes so the helper can write video while waiting for PC control. Recv also tries to free 19519 from leftover ScreenKit processes.
-- Screencast viewer: LibUsb never runs in the main process (that killed ScreenKit when a phone was plugged in, so the viewer never appeared). USB accessory uses a helper that requests AOA **and** bridges bulk to `127.0.0.1:19519`. Probe TCP connects no longer kick an active session. Auto-close no longer sets `hidebyuser`, so the next hello can show the window again.
-- USB adb screencast: if 19519 is held by a dead listener, bind `127.0.0.1` (wins adb reverse) and each LAN IP (wins Wi‑Fi). A still-open TCP is a real session, not a probe. Phone probe uses a 1.5s `127.0.0.1` ping.
-- Phone screencast keeps the selected quality in landscape: the encoder is rebound to the new size (same VirtualDisplay) instead of cropping a portrait frame. If rebind fails, crop is still the fallback.
-- Password variants mostly translate into other languages then ASCII-romanize; at most one English paraphrase. They no longer reorder words, add digits, or use leetspeak.
-- Viewer stays topmost and is centered; hello no longer uses a blocking UI invoke (could prevent the window from appearing). ShowCast always calls `Show()`, and OnGone delays hide so a quick reconnect cannot swallow the window.
-- USB screencast uses Android Open Accessory bulk (no IP, no adb). LibUsb is not touched at ScreenKit startup (that crashed the process while a phone was plugged in). Cast settings has **USB配件**: helper process `--cast-aoa` requests the switch; the main process only opens accessory 18D1:2D00/2D01. USB NIC scan only targets RNDIS/42/137.
-- AOA bulk read retries on USB timeout (a zero read was treated as EOF and killed the session).
-- Phone screencast scans on resume (ephemeral UDP, no bind on 19518). Viewer ShowCast is synchronous and centered.
-- USB tethering beacons on UDP so the PC can find the phone’s USB IP.
-- Landscape: do not recreate the encoder (that crashed on Redmi); send orient and crop. Viewer window is sized to the cropped frame, not phone pixels.
-- **USB 投屏** is accessory or USB tethering only (no adb). Enable 网络共享 in the notification shade.
-- Phone screencast failures show a short “连接失败” toast/status (no abstract/IOException dump).
-- Viewer title is **投屏 · wifi/usb/usb(adb)**; the phone status shows the same type. The IP box is filled with the connected host.
-- Viewer title stays **投屏 · phone**, and the window is shown on the first video/audio packet (not only after JSON hello). Hello is sent before the encoder starts.
-- Screencast encoder uses the real aspect (not a square canvas) and recreates on rotate, so opening Bilibili in landscape does not kill the process.
-- USB 投屏 falls back to adb reverse when there is no accessory or USB tethering.
-- Phone screencast screen scans for PCs on open.
-- USB screencast: **USB 投屏** still uses accessory or USB tethering (phone listens / finds the PC); **USB 投屏(adb)** restores `adb reverse` (needs USB debugging). The PC repeats `adb reverse` in the background.
-- Screencast audio: a dedicated send thread plus an 80ms socket send timeout so AAC is not stuck behind video; capture matches more Android audio usages.
-- Viewer window refits when the phone rotates (crop + window aspect).
-- Screencast freeze: video writes drop on send timeout; IDR every 2s; `adb reverse` stays off the UI thread.
-- Screencast audio: the phone drains queued AAC before each video frame and never drops the encoder on a full send queue; ADTS is MPEG-4 `0xF1`.
-- Phone stop sends `bye` and closes the socket at once; a new TCP client kicks the old session; idle >15s drops it. The PC hides the viewer and ignores leftover frames.
-- USB tethering: the phone listens on the USB NIC and the PC connects out (USB adapters are often Public, so inbound 19519 is blocked). Port rules TCP 19519 / UDP 19518 are still added when ScreenKit can elevate.
-- USB screencast uses AOA accessory, or USB tethering (network share) if no accessory. No USB debugging.
-- Wi‑Fi screencast: create VirtualDisplay on the main thread and send SPS/PPS first so the PC is not stuck on a black window.
-- Wi‑Fi screencast no longer freezes on a still frame: the phone encoder no longer waits on TCP, and the PC reads packets independently of decode.
-- PC no longer polls LibUsb on every USB device at startup (that could kill ScreenKit while a phone is plugged in).
-- Wi‑Fi screencast no longer freezes after ~10s: discovery/`adb` and ping left the UI thread; display keeps only the latest frame.
-- Screencast settings and view windows use a dedicated monitor/cast icon.
-- Android: single launcher **传文件/投屏** (English **ScreenKit**); screencast only from the in-app menu (no separate home icon or task affinity).
-- Android file transfer: **Web file manager** opens `http://<PC>:<port>/m` in the default browser (button when connected, also in the title-bar menu). Title-bar menus jump between file transfer and screencast.
-- `scripts/publish-release.mjs` omits local `config.toml`, `cli_last.log`, and `log/` from the 7z (API keys / paths).
-
-#### Fixed
-
-- Web file manager (`/` and `/m`): follows the browser language, with a **中文 / EN** switch. Desktop table headers, delete, and the phone/desktop links now switch too.
-- USB AOA: while the `--cast-aoa` helper holds its mutex (or an active bulk bridge), the main process no longer runs `adb reverse` (it was resetting WinUSB every ~8s and breaking the phone reading the PC `hello`). `HelperBusy()` uses `Mutex.OpenExisting`; recv start waits for the helper before the first reverse.
-- USB adb screencast: `adb reverse` runs again while the AOA helper is idle (only paused during an active AOA bulk bridge). Blocking reverse on `HelperBusy()` had broken **USB 投屏(adb)**.
-- WiFi screencast: start the control read thread before sending `hello`, so the PC reply is not missed (`hello ack=false`).
-- File sync inbox: marquee selects the files under the rectangle and keeps them selected. List selection no longer bubbles into the tab control and reloads the folder.
-- File sync: copy toast is a small topmost overlay at the **primary monitor work-area bottom center** (not anchored to the main window). `ScreenKit --test-ui-toast` smoke-test.
+- **Screencast** (**Tools → Screencast**, also on the tray): receive a phone or another PC, or cast this desktop out. Quality 540p/720p/1080p, optional audio. Wi‑Fi uses `/cast` on the HTTP port; USB uses the Android accessory. The picture can fit or fill, and the window keeps its size when the phone rotates. **Connect Android USB accessory** waits for the phone and shows connected, waiting, or not connected. Plugging in USB does not start casting. The phone can turn the screen off and keep casting; the power button wakes it and leaves that mode.
+- **Text sync**: one box with Send, Copy, and Clear. Text from the phone is written into that box.
+- **Web file manager** on the HTTP API port (default 1224): desktop `/` and phone `/m`. Login is required to upload, rename, or delete; a correct link downloads without login. Stay signed in, open a folder, or zip it. The file-sync tab shows the LAN address, QR code, and password. The phone page can check for a new APK.
+- **Password generator → Variants**: type a phrase, pick an LLM, and get memorable spellings in other languages. Double-click a row to copy.
+- **Camera upload** format, JPG quality, and long-edge limit are set on the PC (**Settings → API**). The phone and the web camera button use those values.
+- File-sync inbox can switch between list and thumbnails. **Push** sends the selection to the connected phone. A new file or text from the phone is copied to the clipboard, with a short toast.
 
 ### 中文
 
 #### 新增
 
-- USB 配件主机：托盘菜单和文件同步页增加 **USB配件** 开关（`cast_usb_accessory`）。不再随投屏接收自动拉起。开启后 **2 分钟没有配件连接** 会自动关闭并写入配置。关掉开关会结束当前投屏会话，避免占住通道导致 Wi‑Fi/adb 连不上。配件桥 2 秒没有 USB 数据即结束，手机停止后电脑关窗。
-- **连接安卓USB配件**（托盘、文件同步页、投屏窗）点击后弹出「等待安卓USB配件中」，并通过文件同步 `GET /api/sendfile/pull` 的 `usbAcc` 通知已连接的手机去连 USB 配件。电脑和手机都显示 USB 配件状态：已连接 / 等待中 / 未连接。配件连上后自动关掉等待弹窗。等待中关掉弹窗会关闭主机。插上 USB 不会自动开始投屏，需在手机上点 **USB**。关掉画面会发 `bye`，手机停止后窗口不再被立刻重新打开。
-- 手机 **熄屏投屏**：投屏中锁屏后继续推画面，按电源键亮屏并退出该模式。
-- 文本同步改为一个输入框，按钮为 **发送**、**复制**、**清空**。电脑发来的文本会写入手机输入框（不再因输入框有焦点而丢掉）。手机自动连接只用局域网 IP，不走 USB 网段。
-- 投屏切横竖屏时，电脑窗口保持当前大小，画面在原窗口里适应或铺满。手机点 **停止** 会取消等待 USB 配件。
-- 拍照上传先申请相机权限再打开相机，避免未授权时闪退。
-- 投屏页先选电脑再开始；投屏中才显示停止和熄屏，USB 投屏单独放在下方。
-- 新增独立可交互的手机网页文件管理重设计原型（`ScreenKit/SendFile/web/m-prototype.html`）：100% 宽度紧凑列表，项目间仅保留分隔线；去掉标题栏和搜索栏，底部仅放上传、拍照、新建；点击文件夹进入、点击文件下载，长按进入多选并显示下载、ZIP、复制链接、改名、删除操作栏；不改动正式 `/m` 页面。
-- 文件同步 **网页管理**（与手机传输同一 HTTP 端口 `17532`）：电脑版 `/`、手机版 `/m`。上传/建目录/改名/删除需登录（`sendfile_web_pass`，空则启动时自动生成）；正确的 `/f/…` 即可下载。文件同步 Tab **网页管理** 显示局域网地址、二维码和密码。CLI `--test-sendfile` 覆盖登录与公开下载。
-- 电脑网页管理（`/`）：列表「操作」列仅保留 **下载**；复制链接、打包、改名、删除改为行 **右键菜单**（文件夹为进入、打包等）。点击行切换勾选（文件夹双击进入）。
-- 网页管理缓存：HTML 不缓存；`index.html` / `m.html` 内引用的 JS/CSS 带本进程启动时间戳查询参数，重启 ScreenKit 后浏览器拉取新静态资源。
-- 文件传输 HTTP 独占绑定（不再 `ReuseAddress`）。残留的死监听不再把浏览器连上后一直转圈；非 HTTP / TLS 探测立刻 `400`。
-- 网页管理：`[hidden]` 不再被 `#main{display:flex}` 盖掉，登录框和文件表不会叠在一起；中文字体优先微软雅黑。
-- 文件传输：配置端口若是残留监听（进程已死），自动改绑后面的空闲端口并写入配置；网页窗显示真实原因，不再一律说「未启用」。
-- 文件传输 HTTP 与网页管理改为和 HTTP API 共用端口（默认 `1224`），不再单独占口。UDP 发现仍是 `17531`。
-- 网页管理：登录可勾选 **保持登录**（Cookie 30 天，进程重启仍有效）；文件夹可 **进入**、**打包 zip**；工具栏可打包当前目录或所选。
-- 手机网页管理（`/m`）改为白底、淡色点缀，按钮均带 SVG 图标。
-- 密码生成器 **变体** Tab：输入一句密码或短语，选 LLM（`pwgen_llm`），多把意思译成其它语言再用拼音 / 罗马字拼写（可大小写；英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。双击一行复制。CLI `--test-pwgen` 覆盖 JSON 解析。
-- 局域网 / USB 投屏：**工具 → 投屏**（托盘「工具」同样入口）。接收手机或另一台电脑画面（H.264 + AAC），也可把本机投出。画质 540p/720p/1080p，可关声音。发现与传文件共用 UDP 17531，画面走 HTTP `/cast`（默认 1224）；USB 走 AOA 配件（不用 adb / USB 调试）。参数设置 → 接口可关接收（`cast_recv_enabled`）。CLI `--test-cast`。
-- **检查更新**：安卓传文件 App 侧栏菜单、手机网页 `/m` 账户面板均可从 GitHub Releases 查最新 APK（规则与 PC `AppUpdater` 一致）；网页经 `GET /api/web/apk-update` 由电脑代理（无需登录）。CLI `--test-sendfile` 会请求该接口。
-
-#### 变更
-
-- 拍照压缩（格式、JPG 质量、最长边）改到电脑 **参数设置 → 接口**。手机连接后从 `GET /api/sendfile/info` 读取。网页 **拍照** 上传前用同一套参数在浏览器里压缩（`GET /api/web/photo`）。
-- 手机 WiFi 投屏：点选电脑后可直接开始；画面走 HTTP `/cast`（1224）。修复 `CastService.broadcastStat` 递归导致 StackOverflow 闪退。
-- USB 配件：先写出 hello 再 `startRead()` 读回包；ping 异步回 pong，避免读线程阻塞。
-- ADB/WiFi 采集：编码器在静止画面时重复上一帧，VirtualDisplay 启动后主动踢几帧，电脑不再等到手机操作才出画。
-- 手机发现 UDP 绑到 Wi‑Fi（插着 USB 配件时不再走默认网卡）；并向上次电脑 IP 单播。发现口固定 **17531**（配置曾改口到 17535，手机仍扫 17531）。仅开投屏接收时，传文件 UDP 也会应答发现。
-- USB 投屏 hello：先写出再读电脑应答（配件同一 fd 上先阻塞读再写会把 hello 卡约 2 秒）；AOA 桥不再把 500ms 空闲当断开，hello 回包才能到达。
-- WiFi/ADB 投屏：手机发 hello，必须收到电脑 hello 才开始采集并显示「投屏中」；电脑回 hello 后才弹窗。只连上 socket 不算会话。
-- WiFi/ADB 投屏不再另占 TCP 19519/19520+ 或 UDP 19518。发现与传文件共用 UDP 17531，画面走 HTTP 口上的 WebSocket `GET /cast`（默认 1224）。`adb reverse` 转发同一 HTTP 口。`--test-cast-recv` 校验本机 `/cast` hello。
-- 安卓 **传文件** 改为单页：顶部连接状态、同页搜索/手填选电脑、上传、接收文件夹、文本同步与传输记录；仅侧栏保留 **参数设置**、**检查更新**（已移除独立选电脑页与文本同步页）。
-- 安卓传文件：连接后 **网页文件管理** 按钮/菜单用系统浏览器打开电脑 `/m`；传文件与投屏标题栏菜单可互相跳转。
-- 安卓：去掉桌面 **投屏** 图标；仅保留 **传文件/投屏** 入口（英文 **ScreenKit**），投屏从传文件标题栏菜单进入，同一任务栈（不再 `taskAffinity` 分栈）。
-- 安卓传文件：主界面按钮按文字宽度流式排列；**上传文件** / **拍照上传** / **网页文件管理** / **投屏**；参数设置可配拍照格式（JPG/PNG）、JPG 质量（默认 60%）、限制最长边（默认 2000px，可关）。
-- 安卓：传文件与投屏共用 **我的电脑** 居中弹窗（标题栏、选择连接、设别名、删除）；成功连接或开始投屏后自动记入列表。
-- 安卓传文件：连接前先 **ping**（HTTP 端口 TCP 探测），不通则立即结束；选中电脑连接失败后每约 3 秒 ping，通则自动重连。
-- 安卓：传文件页投屏中主按钮显示 **投屏中**（高亮描边）；投屏页操作按钮改为流式宽度排列。
-- 安卓投屏页：**开始投屏** 按钮文案改为 **网络投屏**。
-- 电脑文件同步：接收目录支持 **列表 / 缩略图** 切换（紧凑行高与小缩略图）、框选与 Shift 多选、**Ctrl+X/C** 剪切复制（剪切项半透明显示）。
-- 修复文件同步框选时因频繁重算选中项导致界面卡死/闪退的问题。
-- 文件同步框选：拖动时按选框覆盖的行更新选中，松手后保持该选中。
-- 安卓传文件：手填 IP 默认端口改为 **1224**（原误用 17532，导致连不上、电脑不弹配对）；UDP 发现增加子网广播；先 `info` 再配对。
-- 电脑文件同步：手机上传或收到手机文本后自动复制到剪贴板，**主屏**工作区底部居中 Toast（非托盘气泡）。
-- 电脑文件同步：接收目录多选后点 **推送**，将所选文件/文件夹发给已连接手机。
-- 安卓传文件：「来自电脑」文本增加 **复制** 按钮，点文本区域也会复制。
-
-#### 修复
-
-- 网页文件管理（`/` 与 `/m`）：按浏览器语言显示中英文，并增加 **中文 / EN** 切换。电脑版表头、删除按钮和手机版/电脑版入口也会跟着切换。
-- USB 配件：AOA **bulk 桥接进行中**时主进程暂停 `adb reverse`（避免抢 WinUSB）。助手空等时仍会做 reverse，**USB 投屏(adb)** 不再因 `HelperBusy` 被永久跳过。
-- WiFi 投屏：先启动 `startCtrl` 读线程再发 hello，修复 `hello ack=false`；可用 `scst_wifi_probe` 自测 WebSocket 握手。
-- 电脑文件同步：框选能选中选框盖住的文件。原先列表选中事件冒泡到 Tab，被当成切换页面而整表刷新，选中因此丢失。
-- 电脑文件同步：接收后 Toast 固定在主显示器工作区底部居中（与语音浮层同类定位）。`ScreenKit --test-ui-toast` 可自测。
-
-- 手机网页管理（`/m`）：100% 宽度紧凑列表、行间仅分隔线；点击文件夹进入、点击文件下载；长按多选后操作栏支持下载、ZIP、复制链接、改名、删除；底部为上传、拍照、新建；保留面包屑与账户入口，去掉标题栏和搜索栏。
-- 公开下载 `/f/…`：`.txt`、`.md` 使用 `Content-Disposition: attachment`，手机浏览器会下载而不是页内打开。
-- 启动时结束其它目录的旧 ScreenKit、残留 `--cast-aoa` 助手、以及占用 TCP 19519 的进程，再抢单实例锁。从**同一目录**再开仍只唤起已有窗口。
-- WiFi 投屏：发现应答带**实际**监听端口（不再一律 19519）；防火墙放行 TCP 19519–19534。手机扫描使用该端口（19519 被占时为 `ip:19520`）。
-- WiFi/ADB 弹窗：TCP 只独占监听，禁止 `ReuseAddress`。`19519` 若被已退出进程占死，改听 `19520+` 并写入发现包；`adb reverse` 把手机 19519 转到电脑实际端口。`--test-cast-recv` 校验本机 hello 进本进程。
-- 弹出投屏窗时提到最前（不一直置顶）。**Tab** 信息默认不显示，按 Tab 才开。USB 配件助手在跑时仍保持 adb reverse。停止时先关窗再拆解码器，避免黑屏约 1 秒。
-- 投屏画面窗不再置顶。画面可选 **适应窗口**（fit，留边）或 **铺满窗口**（fill，裁切）；右键画面窗或「工具 → 投屏」里切换（`cast_view_fill`）。
-- USB 投屏：电脑开接收后自动拉起配件助手，不必再点 **USB配件**。助手一场结束后继续等，不再每 8 秒杀掉正在跑的助手。
-- USB 配件测试画面：手机自绘 640×360 动态块（不截屏）只走 AOA bulk（`scst_usb_pat`），不用 adb reverse、不用 WiFi。
-- USB 非 adb 投屏：hello 后立刻在同一条 AOA bulk 上 `ping`，WinUSB 可能卡死，没有视频，15 秒关窗。改为收到第一帧再 ping。握手超时 8 秒。配件桥改走命名管道（`ScreenKit.CastUsb` 上行 / `ScreenKit.CastUsbDown` 下行），不再被卡住的 TCP 19519 挡住弹窗；同一条管道上读写并发会把视频堵死，窗口只握手不更新（黑屏 0 fps）。接收启动时仍会尽量清掉占用 19519 的残留 ScreenKit。
-- WiFi 投屏已握手却看不见窗：画面窗强制置顶到鼠标所在屏（不再只居中主屏），并显示标题栏。手机连发两次 hello 不再拆掉解码器；视频按序排队，避免只剩 1fps 的黑窗。
-- 投屏窗反复不弹出：主进程不再调用 LibUsb（插着手机点 USB配件会把 ScreenKit 打崩）。配件助手会请求 AOA **并**把 bulk 桥到 `127.0.0.1:19519`。探测 TCP（立刻断开）不再踢掉正在投屏的会话。自动关窗不再记成用户关闭，下次 hello 还能弹出。
-- USB(adb) 投屏不弹窗：19519 被已死进程的幽灵监听占着，新进程独占绑定失败等于没在听。失败时改绑更具体的 `127.0.0.1`（adb）和本机每个网卡 IP（WiFi）。探测短连不算正式会话。
-- 手机投屏横屏保持所选画质：旋转时换编码器尺寸（不销毁 VirtualDisplay），不再从竖屏画面里裁一小条。失败仍回落裁切。
-- 密码变体以其它语言译音（拼音 / 罗马字）为主，英文同义最多一条；不再调换词序、加数字或做 o→0 一类替换。
-- 画面窗保持置顶并居中；hello 不再同步 Invoke UI（可能卡住不弹窗）。ShowCast 必调 `Show()`；OnGone 延迟关窗，避免重连瞬间把窗口关掉。
-- USB 投屏走 AOA 配件 bulk（不用 IP、不用 adb）。启动时不再碰 LibUsb（插着手机时会把主程序崩掉）。投屏设置里有 **USB配件**：独立进程 `--cast-aoa` 请求切换，主进程只打开配件 18D1:2D00/2D01。USB 网卡扫描只认 RNDIS/42/137。
-- AOA bulk 读在 USB 超时时重试（读到 0 会被当成 EOF 直接断会话）。
-- 打开投屏界面（onResume）自动扫描；发现不再死绑 UDP 19518。
-- USB 网络共享时手机发 UDP，电脑用该地址连入。
-- 画面窗同步打开并居中。
-- 横屏：不再重建编码器（红米上会闪退），只发方向并裁切；窗口按裁切后的画面适配，不用手机分辨率当窗口大小。
-- **USB 投屏**只走配件或 USB 网络共享，不用 adb。通知栏把 USB 设为「网络共享」。
-- 投屏连接失败只提示「连接失败」，不再把 abstract/IOException 打在状态栏。
-- 画面窗标题为 **投屏 · wifi/usb/usb(adb)**；手机状态同样显示类型。手动 IP 自动填入连上的电脑地址。
-- 画面窗标题为 **投屏 · 手机型号**；收到第一包视频/音频就打开（不等 JSON hello）。hello 在编码器启动前先发。
-- 投屏按真实宽高编码（不再用大方块），旋转时重建采集，避免进 B 站横屏把进程打崩。
-- USB 投屏在没有配件/网络共享时回落到 adb reverse。
-- 手机打开投屏界面即扫描电脑。
-- USB 投屏：原按钮走配件或 USB 网络共享；新增 **USB 投屏(adb)**，恢复 `adb reverse`（需 USB 调试）。电脑后台重复做 reverse。
-- 投屏声音：音频独立发送线程，套接字写超时 80ms，避免被视频堵住；系统内录音匹配更多 usage。
-- 横屏后画面窗按手机比例重新适配。
-- 投屏卡死：视频写超时丢帧；每 2 秒要关键帧；`adb reverse` 不在 UI 线程。
-- 投屏声音：控制包（含 AAC）排空后再发视频，队列满时不再停掉音频编码；ADTS 用 MPEG-4 `0xF1`。
-- 手机点停止会发 `bye` 并立刻关套接字；新 TCP 会顶掉旧会话，超过 15 秒无包也断开。电脑关掉画面窗并丢掉残留帧。
-- USB 网络共享：手机在 USB 网卡上监听，电脑主动连出（USB 网卡常是公用网络，进站 19519 会被防火墙拦住）。若有权限仍会加 TCP 19519 / UDP 19518 规则。
-- USB 投屏：AOA 配件，或通知栏「USB 网络共享」；不用 USB 调试。
-- WiFi 投屏黑屏：主线程创建 VirtualDisplay，并先发 SPS/PPS。
-- WiFi 投屏停在某一帧：手机编码不再等 TCP 写完；电脑收包与解码分开。
-- 电脑启动时不再用 LibUsb 枚举所有 USB 设备（插着手机时可能把 ScreenKit 打崩）。
-- WiFi 投屏十几秒后画面卡死：发现/`adb` 与 ping 移出 UI 线程，显示只保留最新一帧。
-- 投屏设置窗与画面窗使用独立显示器/投屏图标。
-- 安卓「传文件」与「投屏」分属独立任务栈，可同时打开。
-- `scripts/publish-release.mjs` 打包时排除本机 `config.toml`、`cli_last.log` 和 `log/`（避免把密钥/路径打进发布包）。
+- **投屏**（**工具 → 投屏**，托盘同样入口）：接收手机或另一台电脑的画面，也可把本机投出。画质 540p/720p/1080p，可关声音。Wi‑Fi 走 HTTP `/cast`，USB 走安卓配件。画面可适应或铺满，手机旋转时窗口大小不变。**连接安卓 USB 配件**会等待手机，并显示已连接、等待中或未连接。插上 USB 不会自动开始投屏。手机可熄屏继续投，按电源键亮屏退出。
+- **文本同步**：一个输入框，发送、复制、清空。手机发来的文字写入同一框。
+- **网页文件管理**（与 HTTP API 同一端口，默认 1224）：电脑 `/`、手机 `/m`。登录后才能上传、改名、删除；正确链接可直接下载。可保持登录，文件夹可进入或打包。文件同步页显示局域网地址、二维码和密码。手机网页可检查新版本。
+- **密码生成器 → 变体**：输入一句短语，选 LLM，得到其它语言的好记拼写。双击复制。
+- **拍照上传**的格式、JPG 质量和最长边改在电脑 **参数设置 → 接口**。手机和网页拍照都用这组参数。
+- 文件同步接收目录可在列表和缩略图之间切换。**推送**把所选发给已连接的手机。收到手机文件或文本后复制到剪贴板并短暂提示。
 
 ## v1.0.10 (2026-09-24)
 

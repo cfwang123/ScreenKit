@@ -119,7 +119,7 @@ class CastService : Service() {
                     if (sessgen.get() != mygen) return@Thread
                     Log.w("scst", "pattern ${ex.javaClass.simpleName} ${ex.message}")
                     val msg = ex.message?.takeIf { it.contains("电脑") } ?: "USB 测试失败"
-                    broadcastStat(msg)
+                    broadcastStat(msg, err = true)
                     stopCast()
                     stopSelf()
                 }
@@ -167,7 +167,7 @@ class CastService : Service() {
                 if (sessgen.get() != mygen) return@Thread
                 Log.w("scst", "start ${ex.javaClass.simpleName} ${ex.message}")
                 val msg = ex.message?.takeIf { it.isNotBlank() } ?: "电脑未打开 ScreenKit"
-                broadcastStat(msg)
+                broadcastStat(msg, err = true)
                 stopCast()
                 stopSelf()
             }
@@ -328,7 +328,7 @@ class CastService : Service() {
     private fun peerGone() {
         Handler(Looper.getMainLooper()).post {
             if (mp == null && pattern == null) return@post
-            broadcastStat("电脑已断开")
+            broadcastStat("电脑已断开", err = true)
             stopCast()
             stopSelf()
         }
@@ -415,9 +415,13 @@ class CastService : Service() {
         }
     }
 
-    private fun broadcastStat(msg: String) {
+    private fun broadcastStat(msg: String, err: Boolean = false) {
         statMsg = msg
-        sendBroadcast(Intent(ACTION_STAT).setPackage(packageName).putExtra("msg", msg))
+        sendBroadcast(
+            Intent(ACTION_STAT).setPackage(packageName)
+                .putExtra("msg", msg)
+                .putExtra("err", err),
+        )
     }
 
     private fun stopCast() {

@@ -2,7 +2,7 @@
 
 Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
 
-**Current version: 1.0.10** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**Current version: 1.0.11** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
@@ -25,8 +25,8 @@ Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具
 
 | File | What |
 |------|------|
-| [`screenkit_1.0.10.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
-| `screenkit1.0.10.apk` | Android companion: **传文件** + **投屏** launchers in separate tasks (same release page, or **File sync → Install on phone**). |
+| [`screenkit_1.0.11.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
+| `screenkit1.0.11.apk` | Android companion: **传文件** + **投屏** launchers in separate tasks (same release page, or **File sync → Install on phone**). |
 
 Unpack the 7z and run `ScreenKit/ScreenKit.exe`. First launch may open the install wizard. Requires [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
 
@@ -120,7 +120,7 @@ Android details: [android/README.md](android/README.md).
 ### Screencast (PC ↔ Android / PC ↔ PC)
 
 1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network. Launching this build ends leftover ScreenKit from another folder. Wi‑Fi/ADB media uses the same HTTP port as file transfer (`/cast`); scan uses UDP 17531.
-2. Phone **传文件/投屏** → **投屏**. The page fills the saved PC IP; confirm it and tap **开始投屏**, then allow screen capture. Use **已保存的电脑** or **搜索局域网** to pick another PC. **停止投屏** and **熄屏投屏** appear only while casting. USB cast is a separate section below. The phone sends `hello` and waits for the PC’s `hello` before capture; the PC viewer opens only after that reply. Wi‑Fi media uses HTTP `/cast` (default 1224). If the PC app is closed or does not reply, the phone shows **电脑未打开 ScreenKit**. After ~90s without an accessory it falls back to USB tethering. **USB 调试投屏** uses `adb reverse` and needs USB debugging. Debug forward: `adb shell am start -n com.whj.screenkit/.CastActivity --ez scst_adb_probe true`. WiFi hello: `--es scst_ip <PC LAN IP> --ez scst_wifi_probe true`. USB-only test pattern: `scst_usb_pat`.
+2. Phone **传文件/投屏** → **投屏**. The page fills the saved PC IP; confirm it and tap **开始投屏**, then allow screen capture. Use **已保存的电脑** or **搜索局域网** to pick another PC. **停止投屏** and **熄屏投屏** appear only while casting. USB cast is a separate section below. The phone sends `hello` and waits for the PC’s `hello` before capture; the PC viewer opens only after that reply. Wi‑Fi media uses HTTP `/cast` (default 1224). If the PC app is closed, the handshake fails, the PC disconnects, or screen capture is denied, the phone shows a **投屏失败** dialog. After ~90s without an accessory it falls back to USB tethering. **USB 调试投屏** uses `adb reverse` and needs USB debugging. Debug forward: `adb shell am start -n com.whj.screenkit/.CastActivity --ez scst_adb_probe true`. WiFi hello: `--es scst_ip <PC LAN IP> --ez scst_wifi_probe true`. USB-only test pattern: `scst_usb_pat`.
 3. A view window opens in front on the monitor under the mouse. **Tab** overlay (type / resolution / fps) is off until you press Tab. Closing the window disconnects. Quality changes apply live. Landscape re-encodes at the same short-edge quality (does not crop a portrait frame). Stopping on the phone closes the PC window immediately (`GET /api/cast/stop`).
 4. PC-to-PC: both receive; the sender scans and casts to the selected host.
 
