@@ -137,13 +137,15 @@ class CastService : Service() {
                 }
                 if (sessgen.get() != mygen) return@Thread
                 sink = s
-                startCtrl(s)
                 val qtmp = Quality.byName(qname)
                 this.q = qtmp
                 this.wantAudio = wantAudio
                 val dm = metrics()
                 val fit = qtmp.fit(dm.widthPixels, dm.heightPixels)
-                if (!handshake(fit.first, fit.second, qtmp.fps, wantAudio))
+                if (!sendHello(fit.first, fit.second, qtmp.fps, wantAudio))
+                    throw IllegalStateException("电脑未打开 ScreenKit")
+                startCtrl(s)
+                if (!waitHello())
                     throw IllegalStateException("电脑未打开 ScreenKit")
                 if (sessgen.get() != mygen) return@Thread
                 val latch = java.util.concurrent.CountDownLatch(1)
@@ -233,10 +235,9 @@ class CastService : Service() {
         return dm
     }
 
-    private fun handshake(outW: Int, outH: Int, fps: Int, wantAudio: Boolean): Boolean {
-        if (!sendHello(outW, outH, fps, wantAudio)) return false
+    private fun waitHello(): Boolean {
         val ok = try {
-            helloLatch.await(5000, java.util.concurrent.TimeUnit.MILLISECONDS)
+            helloLatch.await(8000, java.util.concurrent.TimeUnit.MILLISECONDS)
         } catch (_: Exception) {
             false
         }
@@ -350,8 +351,10 @@ class CastService : Service() {
     }
 
     private fun beginPattern(s: FrameSink) {
+        if (!sendHello(640, 360, 15, false))
+            throw IllegalStateException("电脑未打开 ScreenKit")
         startCtrl(s)
-        if (!handshake(640, 360, 15, false))
+        if (!waitHello())
             throw IllegalStateException("电脑未打开 ScreenKit")
         pattern = PatternPipe(640, 360, 15, 800_000, s, ::peerGone)
         sendBroadcast(

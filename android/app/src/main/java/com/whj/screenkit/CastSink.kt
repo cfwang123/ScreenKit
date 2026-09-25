@@ -356,7 +356,7 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
         return try {
             if (!ctrl.offer(UsbPkt(type, payload, done), 400, java.util.concurrent.TimeUnit.MILLISECONDS))
                 return false
-            done.await(2000, java.util.concurrent.TimeUnit.MILLISECONDS) && !dead
+            done.await(8000, java.util.concurrent.TimeUnit.MILLISECONDS) && !dead
         } catch (_: Exception) {
             false
         }

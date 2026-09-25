@@ -39,8 +39,16 @@ static class CastProto {
 		payload = null;
 		var hdr = readfull(s, 9);
 		if (hdr == null) return false;
-		uint mag = ((uint)hdr[0] << 24) | ((uint)hdr[1] << 16) | ((uint)hdr[2] << 8) | hdr[3];
-		if (mag != MAGIC) return false;
+		while (true) {
+			uint mag = ((uint)hdr[0] << 24) | ((uint)hdr[1] << 16) | ((uint)hdr[2] << 8) | hdr[3];
+			if (mag == MAGIC) break;
+			Buffer.BlockCopy(hdr, 1, hdr, 0, 8);
+			int b;
+			try { b = s.ReadByte(); }
+			catch { return false; }
+			if (b < 0) return false;
+			hdr[8] = (byte)b;
+		}
 		type = hdr[4];
 		int len = (int)readu32(hdr, 5);
 		if (len < 0 || len > 8 * 1024 * 1024) return false;
