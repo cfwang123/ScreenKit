@@ -99,6 +99,12 @@ public partial class App : System.Windows.Application {
 				win.sfmarqueeuitest(logPath);
 			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 		}
+		if (args.Any(a => a == "--test-sf-menu")) {
+			var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "sf-menu-test.log");
+			win.Dispatcher.BeginInvoke(new Action(() => {
+				win.sfmenutest(logPath);
+			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+		}
 	}
 
 	protected override void OnExit(ExitEventArgs e) {

@@ -446,9 +446,11 @@ public partial class MainWindow {
 				bsfviewthumb.ToolTip = Loc.T("sf.view.thumb");
 				System.Windows.Automation.AutomationProperties.SetName(bsfviewthumb, Loc.T("sf.view.thumb"));
 			}
+			if (mnsfopen != null) mnsfopen.Header = Loc.T("sf.menu.open");
 			if (mnsfcut != null) mnsfcut.Header = Loc.T("sf.tab.cut");
 			if (mnsfcopy != null) mnsfcopy.Header = Loc.T("sf.tab.copy");
 			if (mnsfpaste != null) mnsfpaste.Header = Loc.T("sf.tab.paste");
+			if (mnsfpush != null) mnsfpush.Header = Loc.T("sf.tab.push");
 			if (mnsfdel != null) mnsfdel.Header = Loc.T("sf.tab.delete");
 			if (colsfn != null) colsfn.Header = Loc.T("sf.col.name");
 			if (colsfsz != null) colsfsz.Header = Loc.T("sf.col.size");

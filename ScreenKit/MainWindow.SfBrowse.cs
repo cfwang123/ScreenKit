@@ -47,6 +47,7 @@ public partial class MainWindow {
 	bool sfRefreshing;
 	bool sfSelBatch;
 	SfFileRow sfClickSel;
+	HashSet<SfFileRow> sfRightKeep;
 	Point sfDown;
 	Point sfMarquee0;
 	Point sfMarqueePt;
@@ -69,16 +70,27 @@ public partial class MainWindow {
 		bsfcopy.Click += (_, _) => sffileclip(cut: false);
 		bsfdel.Click += (_, _) => sffiledel();
 		if (bsfpush != null) bsfpush.Click += (_, _) => sffilepush();
+		if (mnsfopen != null) mnsfopen.Click += (_, _) => sffileopen();
 		mnsfcut.Click += (_, _) => sffileclip(cut: true);
 		mnsfcopy.Click += (_, _) => sffileclip(cut: false);
 		mnsfpaste.Click += (_, _) => sffilepaste();
+		if (mnsfpush != null) mnsfpush.Click += (_, _) => sffilepush();
 		mnsfdel.Click += (_, _) => sffiledel();
 		lvsffiles.SelectionChanged += (_, _) => {
 			if (sfSelBatch) return;
 			sffileonselectionchanged();
 		};
-		lvsffiles.MouseDoubleClick += (_, _) => sffileopen();
 		lvsffiles.PreviewMouseLeftButtonDown += onsffiledown;
+		lvsffiles.PreviewMouseRightButtonDown += onsffileright;
+		lvsffiles.PreviewMouseRightButtonUp += onsffilerightup;
+		lvsffiles.AddHandler(UIElement.MouseRightButtonDownEvent,
+			new MouseButtonEventHandler(onsffilerightfix), true);
+		lvsffiles.AddHandler(UIElement.MouseRightButtonUpEvent,
+			new MouseButtonEventHandler(onsffilerightfix), true);
+		if (lvsffiles.ContextMenu != null) {
+			lvsffiles.ContextMenu.Opened += (_, _) => sffilerightrestore();
+			lvsffiles.ContextMenu.Closed += (_, _) => { sfRightKeep = null; };
+		}
 		lvsffiles.MouseLeftButtonDown += (_, _) => { sfCanDrag = true; };
 		lvsffiles.PreviewMouseMove += onsffilemove;
 		lvsffiles.PreviewMouseLeftButtonUp += onsffileup;
@@ -368,8 +380,10 @@ public partial class MainWindow {
 		if (bsfcopy != null) bsfcopy.IsEnabled = on;
 		if (bsfdel != null) bsfdel.IsEnabled = on;
 		if (bsfpush != null) bsfpush.IsEnabled = on && phone;
+		if (mnsfopen != null) mnsfopen.IsEnabled = on;
 		if (mnsfcut != null) mnsfcut.IsEnabled = on;
 		if (mnsfcopy != null) mnsfcopy.IsEnabled = on;
+		if (mnsfpush != null) mnsfpush.IsEnabled = on && phone;
 		if (mnsfdel != null) mnsfdel.IsEnabled = on;
 	}
 
@@ -592,15 +606,21 @@ public partial class MainWindow {
 	}
 
 	void sffileopen() {
-		var it = lvsffiles?.SelectedItem as SfFileRow;
+		if (lvsffiles == null) return;
+		foreach (SfFileRow it in lvsffiles.SelectedItems)
+			sffileshell(it);
+	}
+
+	void sffileshell(SfFileRow it) {
 		if (it == null || string.IsNullOrWhiteSpace(it.Full)) return;
 		try {
-			if (it.IsDir) {
+			if (it.IsDir || Directory.Exists(it.Full)) {
 				Process.Start(new ProcessStartInfo {
 					FileName = "explorer.exe", Arguments = $"\"{it.Full}\"", UseShellExecute = true,
 				});
 				return;
 			}
+			if (!File.Exists(it.Full)) return;
 			Process.Start(new ProcessStartInfo { FileName = it.Full, UseShellExecute = true });
 		}
 		catch (Exception ex) {
@@ -635,6 +655,16 @@ public partial class MainWindow {
 		if (e.ChangedButton != MouseButton.Left) return;
 		if (sffilechrome(e.OriginalSource as DependencyObject)) return;
 		var item = sffilehit(e.OriginalSource as DependencyObject);
+		if (item != null && e.ClickCount >= 2) {
+			if (!lvsffiles.SelectedItems.Contains(item))
+				sfapplysel(new HashSet<SfFileRow> { item });
+			sfClickSel = null;
+			sfDragReady = false;
+			sfCanDrag = false;
+			e.Handled = true;
+			sffileshell(item);
+			return;
+		}
 		if (item != null && (Keyboard.Modifiers & ModifierKeys.Shift) != 0) {
 			var idx = sfFiles.IndexOf(item);
 			if (idx >= 0) {
@@ -675,6 +705,43 @@ public partial class MainWindow {
 		sfClickSel = item;
 		sfCanDrag = true;
 		e.Handled = true;
+	}
+
+	/// <summary>多选模式下右键会反选当前项。记下应保留的选区，冒泡阶段再写回去。</summary>
+	void onsffileright(object sender, MouseButtonEventArgs e) {
+		if (e.ChangedButton != MouseButton.Right || lvsffiles == null) return;
+		if (sffilechrome(e.OriginalSource as DependencyObject)) return;
+		var item = sffilehit(e.OriginalSource as DependencyObject);
+		if (item != null && !lvsffiles.SelectedItems.Contains(item))
+			sfapplysel(new HashSet<SfFileRow> { item });
+		sfRightKeep = new HashSet<SfFileRow>(lvsffiles.SelectedItems.OfType<SfFileRow>());
+		e.Handled = true;
+		sffilebtns();
+	}
+
+	void onsffilerightfix(object sender, MouseButtonEventArgs e) {
+		if (e.ChangedButton != MouseButton.Right) return;
+		sffilerightrestore();
+	}
+
+	void onsffilerightup(object sender, MouseButtonEventArgs e) {
+		if (e.ChangedButton != MouseButton.Right) return;
+		if (sffilechrome(e.OriginalSource as DependencyObject)) return;
+		sffilerightrestore();
+		var menu = lvsffiles?.ContextMenu;
+		if (menu == null) return;
+		menu.PlacementTarget = lvsffiles;
+		menu.IsOpen = true;
+		e.Handled = true;
+		Dispatcher.BeginInvoke(
+			System.Windows.Threading.DispatcherPriority.Input,
+			new Action(sffilerightrestore));
+	}
+
+	void sffilerightrestore() {
+		if (sfRightKeep == null || lvsffiles == null) return;
+		if (sfsameSel(lvsffiles.SelectedItems, sfRightKeep)) return;
+		sfapplysel(sfRightKeep);
 	}
 
 	void onsffilemove(object sender, MouseEventArgs e) {
@@ -810,6 +877,151 @@ public partial class MainWindow {
 		rsfsel.Height = h;
 		rsfsel.Visibility = Visibility.Visible;
 		if (w >= 3 || h >= 3) sffilemarqueesel();
+	}
+
+	internal void sfmenutest(string logPath) {
+		var lines = new List<string>();
+		var code = 2;
+		try {
+			WindowState = WindowState.Normal;
+			Left = 80;
+			Top = 60;
+			Width = 1100;
+			Height = 780;
+			Topmost = true;
+			Activate();
+			maintabs.SelectedItem = tabsf;
+			if (sfWatch != null) sfWatch.EnableRaisingEvents = false;
+			try { sfWatchTick?.Stop(); } catch { }
+			var root = SendFilePaths.Root();
+			Directory.CreateDirectory(root);
+			for (var i = 0; i < 3; i++)
+				File.WriteAllText(Path.Combine(root, $"menu-probe-{i}.txt"), "x");
+			sfsetview(false);
+			sffilerefresh();
+			UpdateLayout();
+			lvsffiles?.UpdateLayout();
+			SfFileRow a = null, b = null;
+			foreach (var row in sfFiles) {
+				if (row.Name == "menu-probe-0.txt") a = row;
+				if (row.Name == "menu-probe-1.txt") b = row;
+			}
+			if (a == null || b == null || lvsffiles == null) {
+				lines.Add("missing rows");
+				try { File.WriteAllLines(logPath, lines); } catch { }
+				Environment.Exit(2);
+				return;
+			}
+			sfapplysel(new HashSet<SfFileRow> { a, b });
+			lvsffiles.ScrollIntoView(a);
+			UpdateLayout();
+			lvsffiles.UpdateLayout();
+			var lvi = lvsffiles.ItemContainerGenerator.ContainerFromItem(a) as ListViewItem;
+			lines.Add($"before={lvsffiles.SelectedItems.Count} lvi={(lvi == null ? "null" : "ok")}");
+			if (lvi == null) {
+				try { File.WriteAllLines(logPath, lines); } catch { }
+				Environment.Exit(2);
+				return;
+			}
+			var local = lvi.TranslatePoint(new Point(12, 8), this);
+			var screen = sfclientpx(local);
+			lines.Add($"click=({screen.X:0},{screen.Y:0}) row=({lvi.ActualWidth:0}x{lvi.ActualHeight:0}) activeWin={IsActive}");
+			try { bsfopen?.Focus(); } catch { }
+			UpdateLayout();
+			string paint(ListViewItem row) {
+				if (row == null || VisualTreeHelper.GetChildrenCount(row) == 0) return "nochild";
+				var bd = VisualTreeHelper.GetChild(row, 0) as Border;
+				return $"sel={row.IsSelected} child={VisualTreeHelper.GetChild(row, 0).GetType().Name} bg={bd?.Background}";
+			}
+			var visualOk = litrow(lvi)
+				&& !Selector.GetIsSelectionActive(lvsffiles)
+				&& lvsffiles.SelectedItems.Count == 2;
+			lines.Add($"unfocused active={Selector.GetIsSelectionActive(lvsffiles)} {paint(lvi)} visual={visualOk}");
+			if (lvsffiles.ContextMenu != null) {
+				lvsffiles.ContextMenu.PlacementTarget = lvsffiles;
+				lvsffiles.ContextMenu.IsOpen = true;
+				UpdateLayout();
+				lines.Add($"menuopen active={Selector.GetIsSelectionActive(lvsffiles)} lit={litrow(lvi)} {paint(lvi)}");
+				lvsffiles.ContextMenu.IsOpen = false;
+			}
+			bool litrow(ListViewItem row) {
+				if (row == null || !row.IsSelected || VisualTreeHelper.GetChildrenCount(row) == 0) return false;
+				if (VisualTreeHelper.GetChild(row, 0) is not Border bd) return false;
+				if (bd.Background is not SolidColorBrush br) return false;
+				var hi = System.Windows.SystemColors.HighlightColor;
+				return br.Color.A == 255 && br.Color.R == hi.R && br.Color.G == hi.G && br.Color.B == hi.B;
+			}
+			var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(80) };
+			var step = 0;
+			var listOk = false;
+			timer.Tick += (_, _) => {
+				if (step == 0) sfsetcursor((int)screen.X, (int)screen.Y);
+				else if (step == 1) mouse_event(0x0008, 0, 0, 0, UIntPtr.Zero);
+				else if (step == 2) mouse_event(0x0010, 0, 0, 0, UIntPtr.Zero);
+				else if (step == 3) {
+					var n = lvsffiles.SelectedItems.Count;
+					var names = new List<string>();
+					foreach (SfFileRow it in lvsffiles.SelectedItems) names.Add(it.Name);
+					names.Sort(StringComparer.OrdinalIgnoreCase);
+					var open = lvsffiles.ContextMenu != null && lvsffiles.ContextMenu.IsOpen;
+					var active = Selector.GetIsSelectionActive(lvsffiles);
+					var box = lvsffiles.ItemContainerGenerator.ContainerFromItem(a) as ListViewItem;
+					var listLit = litrow(box);
+					lines.Add($"list after={n} [{string.Join(",", names)}] menu={open} active={active} lit={listLit}");
+					var both = names.Contains("menu-probe-0.txt") && names.Contains("menu-probe-1.txt");
+					listOk = n == 2 && both && open && listLit;
+					if (lvsffiles.ContextMenu != null) lvsffiles.ContextMenu.IsOpen = false;
+					sfsetview(true);
+					sfapplysel(new HashSet<SfFileRow> { a, b });
+					lvsffiles.ScrollIntoView(a);
+					UpdateLayout();
+					lvsffiles.UpdateLayout();
+					var thumb = lvsffiles.ItemContainerGenerator.ContainerFromItem(a) as ListViewItem;
+					if (thumb == null) {
+						lines.Add("thumb lvi=null");
+						step = 100;
+					}
+					else {
+						var tp = sfclientpx(thumb.TranslatePoint(new Point(8, 6), this));
+						screen = tp;
+						lines.Add($"thumb click=({screen.X:0},{screen.Y:0}) row=({thumb.ActualWidth:0}x{thumb.ActualHeight:0})");
+					}
+				}
+				else if (step == 4) sfsetcursor((int)screen.X, (int)screen.Y);
+				else if (step == 5) mouse_event(0x0008, 0, 0, 0, UIntPtr.Zero);
+				else if (step == 6) mouse_event(0x0010, 0, 0, 0, UIntPtr.Zero);
+				else {
+					timer.Stop();
+					var n = lvsffiles.SelectedItems.Count;
+					var names = new List<string>();
+					foreach (SfFileRow it in lvsffiles.SelectedItems) names.Add(it.Name);
+					names.Sort(StringComparer.OrdinalIgnoreCase);
+					var open = lvsffiles.ContextMenu != null && lvsffiles.ContextMenu.IsOpen;
+					var active = Selector.GetIsSelectionActive(lvsffiles);
+					var box = lvsffiles.ItemContainerGenerator.ContainerFromItem(a) as ListViewItem;
+					var listLit = litrow(box);
+					lines.Add($"thumb after={n} [{string.Join(",", names)}] menu={open} active={active} lit={listLit}");
+					if (lvsffiles.ContextMenu != null) lvsffiles.ContextMenu.IsOpen = false;
+					for (var i = 0; i < 3; i++) {
+						try { File.Delete(Path.Combine(root, $"menu-probe-{i}.txt")); } catch { }
+					}
+					var both = names.Contains("menu-probe-0.txt") && names.Contains("menu-probe-1.txt");
+					code = (visualOk && listOk && n == 2 && both && open && listLit) ? 0 : 2;
+					lines.Add($"exit={code}");
+					try { File.WriteAllLines(logPath, lines); } catch { }
+					Environment.Exit(code);
+				}
+				step++;
+			};
+			timer.Start();
+			return;
+		}
+		catch (Exception ex) {
+			lines.Add(ex.ToString());
+			code = 3;
+		}
+		try { File.WriteAllLines(logPath, lines); } catch { }
+		Environment.Exit(code);
 	}
 
 	internal void sfmarqueeuitest(string logPath) {

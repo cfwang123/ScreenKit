@@ -47,6 +47,7 @@ public sealed partial class SendFileServer : IDisposable {
 		save = saveCfg;
 		Auth = new SendFileAuth(getOpts, save);
 		Web = new SendFileWeb(getOpts, save);
+		SendFileWebPages.EnsureBootStamp();
 	}
 
 	public bool IsRunning => running;
@@ -919,6 +920,8 @@ public sealed partial class SendFileServer : IDisposable {
 		Jobs.SetRun(job.Id);
 		try {
 			SendFileOps.SaveStream(rel, ctx.Request.InputStream, n => Jobs.AddDone(job.Id, n));
+			if (truthy(ctx.Request.QueryString["photo"]))
+				fitphoto(rel);
 			Jobs.Finish(job.Id, true, null);
 			writejson(ctx, 200, ok(new JsonObject { ["path"] = rel ?? "" }));
 		}
@@ -930,6 +933,17 @@ public sealed partial class SendFileServer : IDisposable {
 			Jobs.Finish(job.Id, false, ex.Message);
 			throw;
 		}
+	}
+
+	void fitphoto(string rel) {
+		if (!SendFilePaths.TryResolve(rel, out var full, out _)) return;
+		if (string.IsNullOrEmpty(full) || !File.Exists(full)) return;
+		var o = getOpts() ?? new OcrOptions();
+		var fmt = string.Equals(o.PhotoFmt, "png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
+		var q = o.PhotoJpgQuality <= 0 ? 60 : Compat.Clamp(o.PhotoJpgQuality, 1, 100);
+		var max = o.PhotoMaxPx <= 0 ? 2000 : Compat.Clamp(o.PhotoMaxPx, 64, 16000);
+		try { ImgConvert.FitPhoto(full, fmt, q, o.PhotoLimitSize, max); }
+		catch { }
 	}
 
 	void handlemkdir(SfCtx ctx) {

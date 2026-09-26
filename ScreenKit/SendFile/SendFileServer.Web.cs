@@ -373,14 +373,30 @@ static class SendFileWebPages {
 	static long bootStamp;
 	static bool bootReady;
 
-	/// <summary>本进程内首次创建 SendFileServer 时写入，用于 HTML 内静态资源 ?v= 缓存失效。</summary>
+	/// <summary>本进程内首次创建 SendFileServer 时写入。HTML 里的脚本地址还要带上 web/ 文件修改时间，避免 ?0 被浏览器永久缓存。</summary>
 	public static void EnsureBootStamp() {
 		if (bootReady) return;
 		bootStamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 		bootReady = true;
 	}
 
-	public static string BootStamp => bootStamp.ToString(CultureInfo.InvariantCulture);
+	public static string BootStamp {
+		get {
+			EnsureBootStamp();
+			var stamp = bootStamp;
+			try {
+				var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web");
+				if (Directory.Exists(dir)) {
+					foreach (var f in Directory.EnumerateFiles(dir)) {
+						var t = new DateTimeOffset(File.GetLastWriteTimeUtc(f)).ToUnixTimeSeconds();
+						if (t > stamp) stamp = t;
+					}
+				}
+			}
+			catch { }
+			return stamp.ToString(CultureInfo.InvariantCulture);
+		}
+	}
 
 	public static bool TryLoad(string name, out byte[] bytes) {
 		bytes = null;

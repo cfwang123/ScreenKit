@@ -105,7 +105,7 @@ class MainActivity : AppCompatActivity() {
         toast("已绑定文件夹")
     }
 
-    private var cameraSnapUri: Uri? = null
+    private var cameraSnapFile: File? = null
 
     private val pickUpload = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNullOrEmpty()) return@registerForActivityResult
@@ -113,8 +113,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val takePhoto = registerForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
-        val raw = cameraSnapUri
-        cameraSnapUri = null
+        val raw = cameraSnapFile
+        cameraSnapFile = null
         if (!ok || raw == null) return@registerForActivityResult
         if (!connected) {
             toast(getString(R.string.toast_connect_pc_first))
@@ -818,13 +818,14 @@ class MainActivity : AppCompatActivity() {
         try {
             val dir = File(cacheDir, "cam").apply { mkdirs() }
             val raw = File(dir, "snap_${System.currentTimeMillis()}.jpg")
-            if (!raw.exists()) raw.createNewFile()
+            if (raw.exists()) raw.delete()
+            raw.createNewFile()
             val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", raw)
-            cameraSnapUri = uri
+            cameraSnapFile = raw
             takePhoto.launch(uri)
         } catch (ex: Exception) {
             Log.w(TAG, "open camera", ex)
-            cameraSnapUri = null
+            cameraSnapFile = null
             toast("无法打开相机")
         }
     }

@@ -470,23 +470,43 @@ window.sfweb = (function(){
 		if (!f || !f.files || !f.files.length) return;
 		var file = f.files[0];
 		f.value = "";
-		camcompress(file, function(out){ uploadfiles([out || file]); });
+		camcompress(file, function(out){
+			if (!out) {
+				mfail(zh ? "压缩照片失败" : "Could not compress the photo");
+				return;
+			}
+			uploadfiles([out], true);
+		});
 	}
 
 	function camcompress(file, done) {
 		api("GET", "/api/web/photo", null, function(ok, data){
-			if (!ok || !data) { done(null); return; }
-			var fmt = data.photoFmt === "png" ? "png" : "jpg";
-			var q = data.photoQuality > 0 ? data.photoQuality : 60;
-			if (q < 1) q = 1;
-			if (q > 100) q = 100;
-			var limit = data.photoLimit !== false;
-			var max = data.photoMaxPx > 0 ? data.photoMaxPx : 2000;
-			if (max < 64) max = 64;
-			if (max > 16000) max = 16000;
-			var mime = fmt === "png" ? "image/png" : "image/jpeg";
-			drawcam(file, limit ? max : 0, mime, q / 100, camname(fmt), done);
+			var opt = photopt(ok && data ? data : null);
+			drawcam(file, opt.limit ? opt.max : 0, opt.mime, opt.q / 100, opt.name, function(out){
+				if (out) { done(out); return; }
+				done(asname(file, opt.name, opt.mime));
+			});
 		});
+	}
+
+	function photopt(data) {
+		data = data || {};
+		var fmt = data.photoFmt === "png" ? "png" : "jpg";
+		var q = data.photoQuality > 0 ? data.photoQuality : 60;
+		if (q < 1) q = 1;
+		if (q > 100) q = 100;
+		var limit = data.photoLimit !== false;
+		var max = data.photoMaxPx > 0 ? data.photoMaxPx : 2000;
+		if (max < 64) max = 64;
+		if (max > 16000) max = 16000;
+		return {
+			fmt: fmt,
+			q: q,
+			limit: limit,
+			max: max,
+			mime: fmt === "png" ? "image/png" : "image/jpeg",
+			name: camname(fmt)
+		};
 	}
 
 	function camname(fmt) {
@@ -498,44 +518,74 @@ window.sfweb = (function(){
 	}
 
 	function drawcam(file, max, mime, quality, name, done) {
-		if (!window.createImageBitmap) { done(null); return; }
-		var p;
-		try { p = createImageBitmap(file, {imageOrientation: "from-image"}); }
-		catch (e) {
-			try { p = createImageBitmap(file); }
-			catch (e2) { done(null); return; }
-		}
-		p.then(function(bmp){
-			var w = bmp.width;
-			var h = bmp.height;
-			if (max > 0 && (w > max || h > max)) {
-				var s = Math.min(max / w, max / h);
-				w = Math.max(1, Math.round(w * s));
-				h = Math.max(1, Math.round(h * s));
-			}
-			var c = document.createElement("canvas");
-			c.width = w;
-			c.height = h;
-			var g = c.getContext("2d");
-			if (!g) {
-				if (bmp.close) bmp.close();
-				done(null);
-				return;
-			}
-			g.drawImage(bmp, 0, 0, w, h);
-			if (bmp.close) bmp.close();
-			c.toBlob(function(blob){
-				if (!blob) { done(null); return; }
-				try { done(new File([blob], name, {type: mime})); }
-				catch (e) {
-					blob.name = name;
-					done(blob);
-				}
-			}, mime, quality);
-		}, function(){ done(null); });
+		var url = URL.createObjectURL(file);
+		var img = new Image();
+		img.onload = function() {
+			URL.revokeObjectURL(url);
+			var sw = img.naturalWidth || img.width;
+			var sh = img.naturalHeight || img.height;
+			paintof(sw, sh, max, function(g, w, h) {
+				g.drawImage(img, 0, 0, w, h);
+			}, mime, quality, name, done);
+		};
+		img.onerror = function() {
+			URL.revokeObjectURL(url);
+			drawbmp(file, max, mime, quality, name, done);
+		};
+		img.src = url;
 	}
 
-	function uploadfiles(files) {
+	function drawbmp(file, max, mime, quality, name, done) {
+		if (!window.createImageBitmap) { done(null); return; }
+		var p;
+		try { p = createImageBitmap(file); }
+		catch (e) { done(null); return; }
+		p.then(function(bmp) {
+			paintof(bmp.width, bmp.height, max, function(g, w, h) {
+				g.drawImage(bmp, 0, 0, w, h);
+			}, mime, quality, name, function(out) {
+				if (bmp.close) bmp.close();
+				done(out);
+			});
+		}, function() { done(null); });
+	}
+
+	function paintof(sw, sh, max, draw, mime, quality, name, done) {
+		var w = sw;
+		var h = sh;
+		if (!(w > 0) || !(h > 0)) { done(null); return; }
+		if (max > 0 && (w > max || h > max)) {
+			var s = Math.min(max / w, max / h);
+			w = Math.max(1, Math.round(w * s));
+			h = Math.max(1, Math.round(h * s));
+		}
+		var c = document.createElement("canvas");
+		c.width = w;
+		c.height = h;
+		var g = c.getContext("2d");
+		if (!g) { done(null); return; }
+		if (mime === "image/jpeg") {
+			g.fillStyle = "#fff";
+			g.fillRect(0, 0, w, h);
+		}
+		try { draw(g, w, h); }
+		catch (e) { done(null); return; }
+		if (!c.toBlob) { done(null); return; }
+		c.toBlob(function(blob) {
+			if (!blob) { done(null); return; }
+			done(asname(blob, name, mime));
+		}, mime, quality);
+	}
+
+	function asname(blob, name, mime) {
+		try { return new File([blob], name, {type: mime || blob.type || ""}); }
+		catch (e) {
+			try { blob.name = name; } catch (e2) {}
+			return blob;
+		}
+	}
+
+	function uploadfiles(files, photo) {
 		if (!files || !files.length || busy) return;
 		busy = true;
 		var i = 0;
@@ -551,7 +601,9 @@ window.sfweb = (function(){
 			var note = (zh ? "上传中 " : "Uploading ") + f.name + " (" + i + "/" + files.length + ")";
 			if (t.mobile) mtoast(note);
 			else showerr("err", note);
-			rawpost("/api/web/upload?path=" + enc(rel), f, function(ok, data){
+			var url = "/api/web/upload?path=" + enc(rel);
+			if (photo) url += "&photo=1";
+			rawpost(url, f, function(ok, data){
 				if (!ok) mfail(msg(data) || (zh ? "上传失败" : "Upload failed"));
 				step();
 			});

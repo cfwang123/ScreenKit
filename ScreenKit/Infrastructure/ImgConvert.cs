@@ -254,6 +254,83 @@ static class ImgConvert {
 		return encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct).Bytes;
 	}
 
+	/// <summary>
+	/// 网页拍照：最长边超限、扩展名不符或带 EXIF 方向时，按拍照参数覆盖原文件。
+	/// 浏览器已经压到限制内则不再压第二次。
+	/// </summary>
+	public static bool FitPhoto(string path, string fmt, int quality, bool limit, int maxPx) {
+		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return false;
+		fmt = NormFmt(fmt);
+		quality = Compat.Clamp(quality <= 0 ? 60 : quality, 1, 100);
+		if (maxPx < 64) maxPx = 2000;
+		if (!peekphoto(path, out var w, out var h, out var rot, out var mirror)) return false;
+		var ext = Path.GetExtension(path) ?? "";
+		var extOk = fmt == "jpg"
+			? ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+				|| ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
+			: ext.Equals(ExtOf(fmt), StringComparison.OrdinalIgnoreCase);
+		var over = limit && Math.Max(w, h) > maxPx;
+		if (extOk && !over && rot == 0 && !mirror) return false;
+		var bytes = Encode(path, fmt, quality, limit, maxPx, maxPx, rot, mirror, CancellationToken.None);
+		if (bytes == null || bytes.Length == 0) return false;
+		var tmp = path + ".photo.tmp";
+		File.WriteAllBytes(tmp, bytes);
+		try {
+			File.Replace(tmp, path, null);
+		}
+		catch {
+			File.Copy(tmp, path, true);
+			try { File.Delete(tmp); } catch { }
+		}
+		return true;
+	}
+
+	static bool peekphoto(string path, out int w, out int h, out int rot, out bool mirror) {
+		w = 0;
+		h = 0;
+		rot = 0;
+		mirror = false;
+		try {
+			using var img = GdiImg.FromFile(path);
+			w = img.Width;
+			h = img.Height;
+			exifpose(img, out rot, out mirror);
+			return w > 0 && h > 0;
+		}
+		catch {
+			return false;
+		}
+	}
+
+	static void exifpose(GdiImg img, out int rot, out bool mirror) {
+		rot = 0;
+		mirror = false;
+		try {
+			const int id = 0x0112;
+			var ids = img.PropertyIdList;
+			if (ids == null) return;
+			var has = false;
+			for (var i = 0; i < ids.Length; i++) {
+				if (ids[i] != id) continue;
+				has = true;
+				break;
+			}
+			if (!has) return;
+			var item = img.GetPropertyItem(id);
+			if (item?.Value == null || item.Value.Length < 1) return;
+			switch (item.Value[0]) {
+				case 2: mirror = true; break;
+				case 3: rot = 180; break;
+				case 4: rot = 180; mirror = true; break;
+				case 5: rot = 90; mirror = true; break;
+				case 6: rot = 90; break;
+				case 7: rot = 270; mirror = true; break;
+				case 8: rot = 270; break;
+			}
+		}
+		catch { }
+	}
+
 	sealed class Encoded {
 		public byte[] Bytes;
 		public int SrcW, SrcH, OutW, OutH;

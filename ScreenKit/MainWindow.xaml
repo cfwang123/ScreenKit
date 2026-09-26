@@ -1624,6 +1624,34 @@
 													<Setter Property="Padding" Value="0,1"/>
 													<Setter Property="MinHeight" Value="22"/>
 													<Setter Property="FontSize" Value="12"/>
+													<Setter Property="Template">
+														<Setter.Value>
+															<ControlTemplate TargetType="ListViewItem">
+																<Border x:Name="Bd" Background="{TemplateBinding Background}"
+																        BorderBrush="{TemplateBinding BorderBrush}"
+																        BorderThickness="{TemplateBinding BorderThickness}"
+																        Padding="{TemplateBinding Padding}"
+																        SnapsToDevicePixels="True">
+																	<GridViewRowPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+																	                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+																	                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+																</Border>
+																<ControlTemplate.Triggers>
+																	<MultiTrigger>
+																		<MultiTrigger.Conditions>
+																			<Condition Property="IsMouseOver" Value="True"/>
+																			<Condition Property="IsSelected" Value="False"/>
+																		</MultiTrigger.Conditions>
+																		<Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"/>
+																	</MultiTrigger>
+																	<Trigger Property="IsSelected" Value="True">
+																		<Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+																		<Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+																	</Trigger>
+																</ControlTemplate.Triggers>
+															</ControlTemplate>
+														</Setter.Value>
+													</Setter>
 												</Style>
 												<Style x:Key="sfStyleThumbItem" TargetType="ListViewItem">
 													<Setter Property="HorizontalContentAlignment" Value="Center"/>
@@ -1631,6 +1659,34 @@
 													<Setter Property="Width" Value="84"/>
 													<Setter Property="Margin" Value="2"/>
 													<Setter Property="Padding" Value="2"/>
+													<Setter Property="Template">
+														<Setter.Value>
+															<ControlTemplate TargetType="ListViewItem">
+																<Border x:Name="Bd" Background="{TemplateBinding Background}"
+																        BorderBrush="{TemplateBinding BorderBrush}"
+																        BorderThickness="{TemplateBinding BorderThickness}"
+																        Padding="{TemplateBinding Padding}"
+																        SnapsToDevicePixels="True">
+																	<ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+																	                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+																	                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+																</Border>
+																<ControlTemplate.Triggers>
+																	<MultiTrigger>
+																		<MultiTrigger.Conditions>
+																			<Condition Property="IsMouseOver" Value="True"/>
+																			<Condition Property="IsSelected" Value="False"/>
+																		</MultiTrigger.Conditions>
+																		<Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"/>
+																	</MultiTrigger>
+																	<Trigger Property="IsSelected" Value="True">
+																		<Setter TargetName="Bd" Property="Background" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+																		<Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+																	</Trigger>
+																</ControlTemplate.Triggers>
+															</ControlTemplate>
+														</Setter.Value>
+													</Setter>
 												</Style>
 												<DataTemplate x:Key="sfTplThumb">
 													<StackPanel Width="76" ToolTip="{Binding Name}">
@@ -1705,10 +1761,13 @@
 												</ListView.Resources>
 												<ListView.ContextMenu>
 													<ContextMenu>
+														<MenuItem x:Name="mnsfopen" Header="打开"/>
+														<Separator/>
 														<MenuItem x:Name="mnsfcut" Header="剪切" InputGestureText="Ctrl+X"/>
 														<MenuItem x:Name="mnsfcopy" Header="复制" InputGestureText="Ctrl+C"/>
 														<MenuItem x:Name="mnsfpaste" Header="粘贴" InputGestureText="Ctrl+V"/>
 														<Separator/>
+														<MenuItem x:Name="mnsfpush" Header="推送"/>
 														<MenuItem x:Name="mnsfdel" Header="删除"/>
 													</ContextMenu>
 												</ListView.ContextMenu>

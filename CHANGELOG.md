@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.12 (2026-09-26)](#v1012-2026-09-26)
 - [v1.0.11 (2026-09-26)](#v1011-2026-09-26)
 - [v1.0.10 (2026-09-24)](#v1010-2026-09-24)
 - [v1.0.9 (2026-09-23)](#v109-2026-09-23)
@@ -25,12 +26,16 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+## v1.0.12 (2026-09-26)
+
 ### English
 
 #### Fixed
 
 - Screencast: rotating the phone keeps the viewer’s size, position, and maximized or full-screen state. The picture still fits or fills inside that window.
 - Screencast: cast sound stays continuous. The picture waits only as long as the sound is actually behind, using capture timestamps, and the phone prefers a low-latency AAC encoder.
+- Camera upload: the Android app decodes the camera file directly, so it no longer fails with “could not process the photo”. The web camera compresses with an image element; if the browser cannot, the PC still applies the JPG, quality, and long-edge settings. The phone page now loads a new script after the PC app updates; reopen the page before taking another photo.
+- File sync list: double-click opens a file with the system. Right-click keeps the current selection (including the highlight while the menu is open) and shows Open, Cut, Copy, Paste, Push, and Delete for those items.
 
 #### Removed
 
@@ -42,6 +47,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 投屏：手机切换横竖屏时，电脑画面窗保持原来的大小、位置，以及最大化和全屏状态。画面仍在该窗口内适应或铺满。
 - 投屏：声音连续播放。画面按采集时间对准正在播出的声音，只等待实际落后的那段，不再固定晚 0.5 秒。手机优先用低延迟 AAC。
+- 拍照上传：安卓改为直接读缓存里的照片，不再因解码失败提示「处理照片失败」。网页拍照改用图片元素压缩；浏览器压不了时，电脑仍按 JPG、质量和最长边处理。网页脚本以前被浏览器永久缓存，更新电脑程序后要重新打开页面再拍。
+- 文件同步列表：双击文件用系统打开。右键保持当前选中（菜单打开时高亮仍在），并对这些项弹出打开、剪切、复制、粘贴、推送、删除。
 
 #### 移除
 
