@@ -59,26 +59,32 @@ public partial class CastViewWindow : Window {
 	public string PlaceText { get; private set; }
 
 	public void ShowCast() {
+		// 已在显示（含最大化/全屏）：横竖屏会再发 hello，不能改大小、位置和窗口状态
+		var keep = IsVisible;
 		ShowInTaskbar = true;
-		ShowActivated = true;
-		if (WindowState == WindowState.Minimized) {
+		ShowActivated = !keep;
+		if (!keep && WindowState == WindowState.Minimized) {
 			WindowStyle = WindowStyle.SingleBorderWindow;
 			WindowState = WindowState.Normal;
 			WindowStyle = WindowStyle.None;
 			applychrome();
 		}
-		if (double.IsNaN(Width) || Width < 200) Width = 640;
-		if (double.IsNaN(Height) || Height < 160) Height = 360;
-		WindowState = WindowState.Normal;
+		if (!keep) {
+			if (double.IsNaN(Width) || Width < 200) Width = 640;
+			if (double.IsNaN(Height) || Height < 160) Height = 360;
+			WindowState = WindowState.Normal;
+		}
 		Visibility = Visibility.Visible;
 		Show();
-		if (srcw > 0 && srch > 0 && bmp == null) fitbox(srcw, srch);
-		centeronpointer();
+		if (!keep) {
+			if (srcw > 0 && srch > 0 && bmp == null) fitbox(srcw, srch);
+			centeronpointer();
+		}
 		showbar(true);
 		lbst.Visibility = Visibility.Collapsed;
 		stattimer.Stop();
 		ApplyScale();
-		tofront();
+		if (!keep) tofront();
 	}
 
 	void tofront() {
@@ -147,7 +153,10 @@ public partial class CastViewWindow : Window {
 		srcw = dw;
 		srch = dh;
 		layoutcrop();
-		if (sized) return;
+		if (sized || WindowState == WindowState.Maximized || full) {
+			sized = true;
+			return;
+		}
 		if (bmp != null) fitwin(true);
 		else if (dw > 0 && dh > 0) fitbox(dw, dh);
 	}
@@ -162,7 +171,8 @@ public partial class CastViewWindow : Window {
 				img.Width = w;
 				img.Height = h;
 				layoutcrop();
-				if (!sized) fitwin(true);
+				if (!sized && WindowState != WindowState.Maximized && !full) fitwin(true);
+				else sized = true;
 			}
 			bmp.WritePixels(new Int32Rect(0, 0, w, h), px, st, 0);
 		}
