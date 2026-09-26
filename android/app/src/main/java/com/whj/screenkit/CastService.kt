@@ -9,6 +9,7 @@ import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
+import android.graphics.drawable.Icon
 import android.hardware.usb.UsbManager
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -54,6 +55,14 @@ class CastService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        ScreenOff.listener = { on ->
+            val v = video
+            val msg = if (on) "熄屏投屏中，按电源键亮屏退出"
+            else if (v != null) "投屏中 $via ${v.outW}x${v.outH}@${v.fps}"
+            else "投屏中"
+            broadcastStat(msg)
+            try { v?.poke() } catch (_: Exception) { }
+        }
         val prev = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             Log.e("scst", "crash ${t.name} ${e.javaClass.simpleName} ${e.message}", e)
@@ -75,8 +84,15 @@ class CastService : Service() {
             return START_STICKY
         }
         if (intent?.action == ACTION_SCREEN_OFF) {
-            if (ScreenOff.enter(this)) broadcastStat("熄屏投屏中，按电源键亮屏退出")
-            else broadcastStat("请先允许设备管理，才能熄屏投屏")
+            if (mp == null && video == null && pattern == null) {
+                tell("请先开始投屏")
+                return START_STICKY
+            }
+            if (ScreenOff.active) ScreenOff.leave(this, wake = true)
+            else when (ScreenOff.enter(this)) {
+                ScreenOff.NEED_WRITE -> tell("请允许修改系统设置，熄屏后电脑仍能看到画面", needWrite = true)
+                ScreenOff.FAIL -> tell("无法熄屏投屏")
+            }
             return START_STICKY
         }
         val pattern = intent?.getBooleanExtra(EXTRA_PATTERN, false) == true
@@ -379,40 +395,72 @@ class CastService : Service() {
     }
 
     private fun startFg(pattern: Boolean = false) {
-        val ch = "cast"
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= 26) {
-            nm.createNotificationChannel(
-                NotificationChannel(ch, "投屏", NotificationManager.IMPORTANCE_LOW),
-            )
-        }
-        val pi = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, CastActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            PendingIntent.FLAG_IMMUTABLE,
-        )
-        val n = if (Build.VERSION.SDK_INT >= 26) {
-            Notification.Builder(this, ch)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
-            .setContentTitle(getString(R.string.label_cast))
-            .setContentText("正在连接")
-            .setSmallIcon(android.R.drawable.ic_menu_share)
-            .setContentIntent(pi)
-            .build()
+        ensureChannel()
+        val n = castNote("正在连接")
         if (Build.VERSION.SDK_INT >= 29) {
             val t = if (pattern && Build.VERSION.SDK_INT >= 31)
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
             else
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
-            startForeground(1, n, t)
+            startForeground(NOTIF_ID, n, t)
         } else {
-            startForeground(1, n)
+            startForeground(NOTIF_ID, n)
         }
+    }
+
+    private fun ensureChannel() {
+        if (Build.VERSION.SDK_INT < 26) return
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        val ch = NotificationChannel(NOTIF_CH, "投屏", NotificationManager.IMPORTANCE_DEFAULT)
+        ch.setSound(null, null)
+        ch.enableVibration(false)
+        nm.createNotificationChannel(ch)
+    }
+
+    private fun castNote(text: String): Notification {
+        val open = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, CastActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val off = PendingIntent.getActivity(
+            this,
+            2,
+            Intent(this, CastActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra("scst_screen_off", true),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val label = if (ScreenOff.active) "退出熄屏" else "熄屏投屏"
+        val b = if (Build.VERSION.SDK_INT >= 26) {
+            Notification.Builder(this, NOTIF_CH)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        return b
+            .setContentTitle(getString(R.string.label_cast))
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.ic_menu_share)
+            .setContentIntent(open)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .addAction(
+                Notification.Action.Builder(
+                    Icon.createWithResource(this, android.R.drawable.ic_lock_power_off),
+                    label,
+                    off,
+                ).build(),
+            )
+            .build()
+    }
+
+    private fun showNote(text: String) {
+        ensureChannel()
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIF_ID, castNote(text))
     }
 
     private fun broadcastStat(msg: String, err: Boolean = false) {
@@ -422,6 +470,16 @@ class CastService : Service() {
                 .putExtra("msg", msg)
                 .putExtra("err", err),
         )
+        if (msg != "已停止") showNote(msg)
+    }
+
+    private fun tell(toast: String, needWrite: Boolean = false) {
+        sendBroadcast(
+            Intent(ACTION_STAT).setPackage(packageName)
+                .putExtra("msg", statMsg)
+                .putExtra("toast", toast)
+                .putExtra("need_write", needWrite),
+        )
     }
 
     private fun stopCast() {
@@ -429,7 +487,7 @@ class CastService : Service() {
             try { unregisterComponentCallbacks(cfgCb) } catch (_: Exception) { }
             cfgOn = false
         }
-        ScreenOff.leave(this)
+        ScreenOff.leave(this, notify = false)
         notifyPcStop()
         val bye = """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)
         try {
@@ -577,6 +635,7 @@ class CastService : Service() {
 
     override fun onDestroy() {
         stopCast()
+        ScreenOff.listener = null
         super.onDestroy()
     }
 
@@ -599,5 +658,7 @@ class CastService : Service() {
         const val EXTRA_PORT = "port"
         const val EXTRA_HTTP = "http"
         const val EXTRA_PATTERN = "pattern"
+        private const val NOTIF_ID = 1
+        private const val NOTIF_CH = "cast.ctrl"
     }
 }

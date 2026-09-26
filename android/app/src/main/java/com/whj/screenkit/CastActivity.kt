@@ -2,17 +2,17 @@ package com.whj.screenkit
 
 import android.Manifest
 import android.app.PendingIntent
-import android.app.admin.DevicePolicyManager
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbManager
 import android.media.projection.MediaProjectionManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -64,8 +64,13 @@ class CastActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val msg = intent?.getStringExtra("msg") ?: ""
             val err = intent?.getBooleanExtra("err", false) == true
-            b.lbstat.text = msg
+            val toastMsg = intent?.getStringExtra("toast").orEmpty()
+            val needWrite = intent?.getBooleanExtra("need_write", false) == true
+            if (msg.isNotEmpty()) b.lbstat.text = msg
             applyModeUi()
+            if (toastMsg.isNotEmpty()) toast(toastMsg)
+            if (needWrite) promptWrite()
+            if (msg.contains("熄屏投屏中")) moveTaskToBack(true)
             if (err) showCastErr(msg)
         }
     }
@@ -347,6 +352,7 @@ class CastActivity : AppCompatActivity() {
         b.bstart.isEnabled = !on && !waitUsb
         b.bstop.visibility = if (on || waitUsb) View.VISIBLE else View.GONE
         b.boff.visibility = if (on) View.VISIBLE else View.GONE
+        b.boff.text = if (ScreenOff.active) "退出熄屏" else "熄屏投屏"
         if (on) b.bstop.text = "停止投屏"
         else if (waitUsb) b.bstop.text = "取消等待"
     }
@@ -647,25 +653,28 @@ class CastActivity : AppCompatActivity() {
         return true
     }
 
-    private val adminAsk = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        if (it.resultCode == RESULT_OK) startScreenOff(force = false)
-        else toast("未允许设备管理，无法熄屏")
+    private var writeWaiting = false
+    private val writeAsk = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        writeWaiting = false
+        if (Settings.System.canWrite(this)) startScreenOff(force = true)
+        else toast("未允许修改系统设置，无法熄屏")
     }
 
-    private fun askScreenOff() {
-        if (!ScreenOff.adminOn(this)) {
-            val i = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-                .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, ComponentName(this, AdminRecv::class.java))
-                .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "熄屏后继续投屏。按电源键亮屏并退出熄屏投屏。")
-            adminAsk.launch(i)
+    private fun askScreenOff() = startScreenOff(force = false)
+
+    private fun promptWrite() {
+        if (Settings.System.canWrite(this)) {
+            startScreenOff(force = true)
             return
         }
-        startScreenOff(force = false)
+        if (writeWaiting) return
+        writeWaiting = true
+        writeAsk.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:$packageName")))
     }
 
     private fun startScreenOff(force: Boolean) {
         val st = b.lbstat.text?.toString().orEmpty()
-        if (!force && !CastService.isCastingMsg(st) && !CastService.isCastingMsg(CastService.statMsg)) {
+        if (!force && !CastService.isCastingMsg(st) && !CastService.isCastingMsg(CastService.statMsg) && !ScreenOff.active) {
             toast("请先开始投屏")
             return
         }
