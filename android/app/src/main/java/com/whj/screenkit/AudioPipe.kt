@@ -6,6 +6,7 @@ import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
+import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.media.projection.MediaProjection
 import android.os.Build
@@ -18,6 +19,7 @@ class AudioPipe(
     private val enc: MediaCodec
     private var running = true
     private var nsent = 0
+    private var pts = 0L
     private val th: Thread
 
     init {
@@ -33,22 +35,78 @@ class AudioPipe(
             .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
             .build()
         val min = AudioRecord.getMinBufferSize(48000, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT)
+        val bufBytes = if (min > 0) min else 4096
         rec = AudioRecord.Builder()
             .setAudioFormat(fmt)
-            .setBufferSizeInBytes(min * 2)
+            .setBufferSizeInBytes(bufBytes)
             .setAudioPlaybackCaptureConfig(cfg)
             .build()
+        enc = openEnc(bufBytes)
+        rec.startRecording()
+        android.util.Log.i("scst", "audio start enc=${enc.name} buf=$bufBytes rec=${rec.state}")
+        th = Thread({ loop() }, "aenc").also { it.start() }
+    }
+
+    private fun openEnc(maxIn: Int): MediaCodec {
+        val soft = ArrayList<String>()
+        val hard = ArrayList<String>()
+        try {
+            val list = MediaCodecList(MediaCodecList.REGULAR_CODECS)
+            for (info in list.codecInfos) {
+                if (!info.isEncoder) continue
+                var aac = false
+                for (t in info.supportedTypes)
+                    if (t.equals(MediaFormat.MIMETYPE_AUDIO_AAC, true)) aac = true
+                if (!aac) continue
+                val low = info.name.lowercase()
+                if (low.contains("google") || low.contains("c2.android")) soft.add(info.name)
+                else hard.add(info.name)
+            }
+        } catch (ex: Exception) {
+            android.util.Log.w("scst", "aac list ${ex.message}")
+        }
+        var last: Exception? = null
+        for (lowlat in intArrayOf(1, 0)) {
+            val fmt = makeFmt(maxIn, lowlat == 1)
+            for (group in listOf(soft, hard)) {
+                for (name in group) {
+                    var c: MediaCodec? = null
+                    try {
+                        c = MediaCodec.createByCodecName(name)
+                        c.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                        c.start()
+                        android.util.Log.i("scst", "aac enc $name lowlat=$lowlat")
+                        return c
+                    } catch (ex: Exception) {
+                        last = ex
+                        android.util.Log.w("scst", "aac enc $name ${ex.message}")
+                        try { c?.release() } catch (_: Exception) { }
+                    }
+                }
+            }
+        }
+        try {
+            val c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
+            c.configure(makeFmt(maxIn, false), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+            c.start()
+            android.util.Log.i("scst", "aac enc ${c.name} fallback")
+            return c
+        } catch (ex: Exception) {
+            throw last ?: ex
+        }
+    }
+
+    private fun makeFmt(maxIn: Int, lowlat: Boolean): MediaFormat {
         val aac = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, 48000, 2)
         aac.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
         aac.setInteger(MediaFormat.KEY_BIT_RATE, 128000)
-        aac.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, min)
+        aac.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, maxIn)
         try { aac.setInteger(MediaFormat.KEY_IS_ADTS, 0) } catch (_: Exception) { }
-        enc = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
-        enc.configure(aac, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-        enc.start()
-        rec.startRecording()
-        android.util.Log.i("scst", "audio start rec=${rec.state} recst=${rec.recordingState}")
-        th = Thread({ loop() }, "aenc").also { it.start() }
+        if (lowlat && Build.VERSION.SDK_INT >= 23)
+            aac.setInteger(MediaFormat.KEY_PRIORITY, 0)
+        if (lowlat && Build.VERSION.SDK_INT >= 30)
+            aac.setInteger(MediaFormat.KEY_LATENCY, 1)
+        return aac
     }
 
     private fun loop() {
@@ -70,7 +128,9 @@ class AudioPipe(
                     val ib = enc.getInputBuffer(inIx)
                     ib?.clear()
                     ib?.put(pcm, 0, n)
-                    enc.queueInputBuffer(inIx, 0, n, System.nanoTime() / 1000, 0)
+                    val samples = n / 4
+                    enc.queueInputBuffer(inIx, 0, n, pts, 0)
+                    pts += samples * 1_000_000L / 48000
                 }
             }
             while (true) {

@@ -351,6 +351,7 @@ sealed class CastRecvSrv : IDisposable {
 	void audioloop() {
 		while (!decstop && !stop && !drop) {
 			asig.WaitOne(200);
+			while (aqueue.Count > 4 && aqueue.TryDequeue(out _)) { }
 			while (aqueue.TryDequeue(out var data))
 				doaudio(data);
 		}
