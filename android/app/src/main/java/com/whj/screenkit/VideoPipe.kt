@@ -194,7 +194,7 @@ class VideoPipe(
                 if (pps.isEmpty()) pps = annexOfCsd(fmt.getByteBuffer("csd-1"))
                 val head = (sps ?: ByteArray(0)) + (pps ?: ByteArray(0))
                 if (head.isNotEmpty()) {
-                    sink.send(Proto.T_VIDEO, head)
+                    sink.send(Proto.T_VIDEO, Proto.withPts(0, head))
                     sentCfg = true
                 }
                 continue
@@ -230,7 +230,7 @@ class VideoPipe(
             if (nal != null && nal.isNotEmpty()) {
                 if (nframe <= 3 || nframe % 60 == 0)
                     android.util.Log.i("scst", "venc $nframe ${nal.size}b")
-                if (!sink.send(Proto.T_VIDEO, nal)) {
+                if (!sink.send(Proto.T_VIDEO, Proto.withPts(Proto.monoUs(info.presentationTimeUs), nal))) {
                     peer = true
                     running = false
                     break

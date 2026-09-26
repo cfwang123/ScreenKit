@@ -251,6 +251,7 @@ class CastService : Service() {
             .put("audio", wantAudio)
             .put("pix", "h264")
             .put("aud", "aac")
+            .put("pts", true)
             .put("via", via)
         val ok = s.send(Proto.T_JSON, hello.toString().toByteArray(Charsets.UTF_8))
         Log.i("scst", "hello $via $outW x $outH ok=$ok")

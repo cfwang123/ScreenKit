@@ -6,6 +6,7 @@ import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
+import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.media.projection.MediaProjection
 import android.os.Build
@@ -19,6 +20,7 @@ class AudioPipe(
     private var running = true
     private var nsent = 0
     private var pts = 0L
+    private var capUs = 0L
     private val th: Thread
 
     init {
@@ -47,16 +49,57 @@ class AudioPipe(
     }
 
     private fun openEnc(maxIn: Int): MediaCodec {
+        val names = ArrayList<String>()
+        val rest = ArrayList<String>()
+        try {
+            val list = MediaCodecList(MediaCodecList.REGULAR_CODECS)
+            for (info in list.codecInfos) {
+                if (!info.isEncoder) continue
+                var aac = false
+                for (t in info.supportedTypes)
+                    if (t.equals(MediaFormat.MIMETYPE_AUDIO_AAC, true)) aac = true
+                if (!aac) continue
+                val low = info.name.lowercase()
+                if (low.contains("google") || low.contains("c2.android")) names.add(info.name)
+                else rest.add(info.name)
+            }
+        } catch (ex: Exception) {
+            android.util.Log.w("scst", "aac list ${ex.message}")
+        }
+        names.addAll(rest)
+        for (lowlat in intArrayOf(1, 0)) {
+            for (name in names) {
+                var c: MediaCodec? = null
+                try {
+                    c = MediaCodec.createByCodecName(name)
+                    c.configure(makeFmt(maxIn, lowlat == 1), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+                    c.start()
+                    android.util.Log.i("scst", "aac enc $name lowlat=$lowlat")
+                    return c
+                } catch (ex: Exception) {
+                    android.util.Log.w("scst", "aac enc $name ${ex.message}")
+                    try { c?.release() } catch (_: Exception) { }
+                }
+            }
+        }
+        val c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
+        c.configure(makeFmt(maxIn, false), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        c.start()
+        android.util.Log.i("scst", "aac enc ${c.name} fallback")
+        return c
+    }
+
+    private fun makeFmt(maxIn: Int, lowlat: Boolean): MediaFormat {
         val aac = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, 48000, 2)
         aac.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
         aac.setInteger(MediaFormat.KEY_BIT_RATE, 128000)
         aac.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, maxOf(maxIn, 4096))
         try { aac.setInteger(MediaFormat.KEY_IS_ADTS, 0) } catch (_: Exception) { }
-        val c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
-        c.configure(aac, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-        c.start()
-        android.util.Log.i("scst", "aac enc ${c.name}")
-        return c
+        if (lowlat && Build.VERSION.SDK_INT >= 23)
+            aac.setInteger(MediaFormat.KEY_PRIORITY, 0)
+        if (lowlat && Build.VERSION.SDK_INT >= 30)
+            aac.setInteger(MediaFormat.KEY_LATENCY, 1)
+        return aac
     }
 
     private fun loop() {
@@ -88,8 +131,10 @@ class AudioPipe(
                         ib.clear()
                         ib.put(hold, 0, holdN)
                         val samples = holdN / 4
-                        enc.queueInputBuffer(inIx, 0, holdN, pts, 0)
-                        pts += samples * 1_000_000L / 48000
+                        val durUs = samples * 1_000_000L / 48000
+                        capUs = System.nanoTime() / 1000 - durUs
+                        enc.queueInputBuffer(inIx, 0, holdN, capUs, 0)
+                        pts = capUs + durUs
                     } else {
                         enc.queueInputBuffer(inIx, 0, 0, pts, 0)
                     }
@@ -112,7 +157,8 @@ class AudioPipe(
                         nsent++
                         if (nsent <= 3 || nsent % 40 == 0)
                             android.util.Log.i("scst", "aac $nsent ${pkt.size}b ${pkt[0].toInt() and 0xFF} ${pkt[1].toInt() and 0xFF}")
-                        if (!sink.send(Proto.T_AUDIO, pkt)) {
+                        val outPts = if (info.presentationTimeUs > 0) info.presentationTimeUs else capUs
+                        if (!sink.send(Proto.T_AUDIO, Proto.withPts(Proto.monoUs(outPts), pkt))) {
                             android.util.Log.w("scst", "aac send fail after $nsent")
                             running = false
                             break

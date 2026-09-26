@@ -126,7 +126,7 @@ class PatternPipe(
                     if (ib != null) {
                         ib.clear()
                         ib.put(nv12)
-                        enc.queueInputBuffer(inIx, 0, nv12.size, n * 1_000_000L / fps, 0)
+                        enc.queueInputBuffer(inIx, 0, nv12.size, System.nanoTime() / 1000, 0)
                     }
                     n++
                 }
@@ -141,7 +141,7 @@ class PatternPipe(
                         if (pps.isEmpty()) pps = VideoPipe.annexOfCsd(fmt.getByteBuffer("csd-1"))
                         val head = (sps ?: ByteArray(0)) + (pps ?: ByteArray(0))
                         if (head.isNotEmpty()) {
-                            sink.send(Proto.T_VIDEO, head)
+                            sink.send(Proto.T_VIDEO, Proto.withPts(0, head))
                             sentCfg = true
                         }
                         continue
@@ -169,7 +169,7 @@ class PatternPipe(
                         if (nal.isNotEmpty()) {
                             if (n <= 3 || n % 30 == 0)
                                 Log.i("scst", "pattern $n ${nal.size}b")
-                            if (!sink.send(Proto.T_VIDEO, nal)) {
+                            if (!sink.send(Proto.T_VIDEO, Proto.withPts(Proto.monoUs(info.presentationTimeUs), nal))) {
                                 peer = true
                                 running = false
                                 break

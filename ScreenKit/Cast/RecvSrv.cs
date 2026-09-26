@@ -6,7 +6,12 @@ namespace ScreenKit;
 
 struct Vnal {
 	public byte[] nal;
-	public int due;
+	public long pts;
+}
+
+struct Apkt {
+	public byte[] data;
+	public long pts;
 }
 
 sealed class CastRecvSrv : IDisposable {
@@ -31,9 +36,15 @@ sealed class CastRecvSrv : IDisposable {
 	readonly ConcurrentQueue<Vnal> vqueue = new();
 	int vqlen;
 	const int VQMAX = 48;
-	const int VDELAY = 500;
 	bool delayv;
-	readonly ConcurrentQueue<byte[]> aqueue = new();
+	bool haspts;
+	readonly object synclock = new();
+	long aend;
+	int aendTick;
+	int atail;
+	int avtick;
+	int avshown;
+	readonly ConcurrentQueue<Apkt> aqueue = new();
 	readonly AutoResetEvent asig = new(false);
 	volatile bool decstop;
 	int lastpkt;
@@ -200,6 +211,10 @@ sealed class CastRecvSrv : IDisposable {
 			busy = true;
 			hadhello = false;
 			delayv = true;
+			haspts = false;
+			lock (synclock) { aend = 0; aendTick = 0; atail = 0; }
+			avtick = 0;
+			avshown = -1;
 			sessstart = Environment.TickCount;
 			lastvid = 0;
 			drop = false;
@@ -240,7 +255,8 @@ sealed class CastRecvSrv : IDisposable {
 							Log?.Invoke($"首个视频包 {payload?.Length ?? 0}B");
 						}
 						if (payload != null) byteacc += payload.Length;
-						enqueuev(payload);
+						var nal = strippts(payload, out var vpts);
+						enqueuev(nal, vpts);
 						nalsig.Set();
 					}
 					else if (type == CastProto.T_AUDIO) {
@@ -251,7 +267,8 @@ sealed class CastRecvSrv : IDisposable {
 						}
 						if (payload != null) byteacc += payload.Length;
 						audiogot++;
-						aqueue.Enqueue(payload);
+						var adata = strippts(payload, out var apts);
+						aqueue.Enqueue(new Apkt { data = adata, pts = apts });
 						asig.Set();
 					}
 				}
@@ -338,6 +355,8 @@ sealed class CastRecvSrv : IDisposable {
 		hellovia = via;
 		if (o["audio"] is JsonValue jav && jav.TryGetValue<bool>(out var aon))
 			delayv = aon;
+		if (o["pts"] is JsonValue jpts && jpts.TryGetValue<bool>(out var pon))
+			haspts = pon;
 		if (!SendJson(new { cmd = "hello", name = CastHost.Name })) {
 			Log?.Invoke($"握手应答失败 {via} {n} {w}x{h}");
 			return false;
@@ -361,19 +380,64 @@ sealed class CastRecvSrv : IDisposable {
 	void audioloop() {
 		while (!decstop && !stop && !drop) {
 			asig.WaitOne(200);
-			while (aqueue.TryDequeue(out var data))
-				doaudio(data);
+			while (aqueue.TryDequeue(out var pkt))
+				doaudio(pkt);
 		}
 	}
 
-	void enqueuev(byte[] nal) {
+	byte[] strippts(byte[] p, out long pts) {
+		pts = 0;
+		if (!haspts || p == null || p.Length < 8) return p;
+		for (var i = 0; i < 8; i++)
+			pts = (pts << 8) | p[i];
+		var d = new byte[p.Length - 8];
+		Buffer.BlockCopy(p, 8, d, 0, d.Length);
+		return d;
+	}
+
+	void noteaudio(long endPts) {
+		lock (synclock) {
+			aend = endPts;
+			aendTick = Environment.TickCount;
+			atail = aplay != null ? aplay.TailMs : CastAudioPlay.DeviceMs;
+		}
+	}
+
+	int vidhold(long vpts) {
+		if (!delayv || !haspts || vpts <= 0) return 0;
+		long end;
+		int tick, tail;
+		lock (synclock) {
+			end = aend;
+			tick = aendTick;
+			tail = atail;
+		}
+		if (end <= 0) {
+			if (sessstart != 0 && Environment.TickCount - sessstart < 600) return 30;
+			return 0;
+		}
+		var elapsed = Environment.TickCount - tick;
+		if (elapsed < 0) elapsed = 0;
+		if (elapsed > 2000) elapsed = 2000;
+		var speaker = end - (long)tail * 1000L + (long)elapsed * 1000L;
+		var ahead = (int)((vpts - speaker) / 1000L);
+		if (ahead < 0) ahead = 0;
+		if (ahead > 1000) ahead = 1000;
+		if (Math.Abs(ahead - avshown) >= 40 && Environment.TickCount - avtick >= 1000) {
+			avshown = ahead;
+			avtick = Environment.TickCount;
+			Log?.Invoke($"音画对齐 {ahead}ms");
+		}
+		return ahead;
+	}
+
+	void enqueuev(byte[] nal, long pts) {
 		if (nal == null || nal.Length == 0) return;
 		if (vqlen >= VQMAX) {
 			drainv();
 			if (!keynal(nal)) return;
 		}
-		var due = delayv ? Environment.TickCount + VDELAY : Environment.TickCount;
-		vqueue.Enqueue(new Vnal { nal = nal, due = due });
+		vqueue.Enqueue(new Vnal { nal = nal, pts = pts });
 		Interlocked.Increment(ref vqlen);
 	}
 
@@ -409,9 +473,9 @@ sealed class CastRecvSrv : IDisposable {
 				held = pkt.nal != null;
 				if (!held) continue;
 			}
-			var wait = pkt.due - Environment.TickCount;
+			var wait = vidhold(pkt.pts);
 			if (wait > 0) {
-				if (wait > 200) wait = 200;
+				if (wait > 50) wait = 50;
 				nalsig.WaitOne(wait);
 				continue;
 			}
@@ -444,7 +508,8 @@ sealed class CastRecvSrv : IDisposable {
 		catch (Exception ex) { Log?.Invoke($"视频解码: {ex.Message}"); }
 	}
 
-	void doaudio(byte[] data) {
+	void doaudio(Apkt pkt) {
+		var data = pkt.data;
 		try {
 			if (data == null || data.Length == 0) return;
 			if (audiohex < 4) {
@@ -467,6 +532,8 @@ sealed class CastRecvSrv : IDisposable {
 			if (pcm == null) return;
 			audion++;
 			if (aplay == null) aplay = new CastAudioPlay(adec.SampleRate, adec.Channels);
+			var dur = (long)pcm.Length * 1000000L / (adec.SampleRate * adec.Channels * 2);
+			if (pkt.pts > 0) noteaudio(pkt.pts + dur);
 			aplay.Push(pcm);
 		}
 		catch (Exception ex) { Log?.Invoke($"音频解码: {ex.Message}"); }

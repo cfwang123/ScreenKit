@@ -13,6 +13,26 @@ object Proto {
     const val T_AUDIO: Byte = 2
     const val T_JSON: Byte = 3
 
+    fun withPts(ptsUs: Long, payload: ByteArray): ByteArray {
+        val body = ByteArray(8 + payload.size)
+        var v = ptsUs
+        for (i in 7 downTo 0) {
+            body[i] = v.toByte()
+            v = v ushr 8
+        }
+        if (payload.isNotEmpty()) System.arraycopy(payload, 0, body, 8, payload.size)
+        return body
+    }
+
+    fun monoUs(t: Long): Long {
+        if (t <= 0L) return 0L
+        val nowNs = System.nanoTime()
+        val nowUs = nowNs / 1000
+        val asUs = kotlin.math.abs(t - nowUs)
+        val asNs = kotlin.math.abs(t - nowNs)
+        return if (asNs < asUs) t / 1000 else t
+    }
+
     fun pack(type: Byte, payload: ByteArray): ByteArray {
         val buf = ByteArray(9 + payload.size)
         buf[0] = (MAGIC ushr 24).toByte()
