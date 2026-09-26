@@ -10,9 +10,9 @@ sealed class CastAudioPlay : IDisposable {
 	public CastAudioPlay(int sampleRate = 48000, int ch = 2) {
 		buf = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, ch)) {
 			DiscardOnBufferOverflow = true,
-			BufferDuration = TimeSpan.FromMilliseconds(200)
+			BufferDuration = TimeSpan.FromMilliseconds(250)
 		};
-		wo = new WaveOutEvent { DesiredLatency = 40, NumberOfBuffers = 2 };
+		wo = new WaveOutEvent { DesiredLatency = 80, NumberOfBuffers = 3 };
 		wo.Init(buf);
 		wo.Volume = 1f;
 		wo.Play();
@@ -21,8 +21,6 @@ sealed class CastAudioPlay : IDisposable {
 	public void Push(byte[] pcm) {
 		if (disposed || pcm == null || pcm.Length == 0) return;
 		try {
-			if (buf.BufferedDuration > TimeSpan.FromMilliseconds(80))
-				buf.ClearBuffer();
 			buf.AddSamples(pcm, 0, pcm.Length);
 		}
 		catch { }

@@ -4,6 +4,11 @@ using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
+struct Vnal {
+	public byte[] nal;
+	public int due;
+}
+
 sealed class CastRecvSrv : IDisposable {
 	readonly object bindlock = new();
 	volatile bool stop;
@@ -23,9 +28,11 @@ sealed class CastRecvSrv : IDisposable {
 	CastAudioPlay aplay;
 	readonly object declock = new();
 	readonly AutoResetEvent nalsig = new(false);
-	readonly ConcurrentQueue<byte[]> vqueue = new();
+	readonly ConcurrentQueue<Vnal> vqueue = new();
 	int vqlen;
 	const int VQMAX = 48;
+	const int VDELAY = 500;
+	bool delayv;
 	readonly ConcurrentQueue<byte[]> aqueue = new();
 	readonly AutoResetEvent asig = new(false);
 	volatile bool decstop;
@@ -192,6 +199,7 @@ sealed class CastRecvSrv : IDisposable {
 			if (busy) return false;
 			busy = true;
 			hadhello = false;
+			delayv = true;
 			sessstart = Environment.TickCount;
 			lastvid = 0;
 			drop = false;
@@ -328,6 +336,8 @@ sealed class CastRecvSrv : IDisposable {
 		ench = h;
 		var via = CastProto.Jstr(o, "via");
 		hellovia = via;
+		if (o["audio"] is JsonValue jav && jav.TryGetValue<bool>(out var aon))
+			delayv = aon;
 		if (!SendJson(new { cmd = "hello", name = CastHost.Name })) {
 			Log?.Invoke($"握手应答失败 {via} {n} {w}x{h}");
 			return false;
@@ -351,7 +361,6 @@ sealed class CastRecvSrv : IDisposable {
 	void audioloop() {
 		while (!decstop && !stop && !drop) {
 			asig.WaitOne(200);
-			while (aqueue.Count > 4 && aqueue.TryDequeue(out _)) { }
 			while (aqueue.TryDequeue(out var data))
 				doaudio(data);
 		}
@@ -363,7 +372,8 @@ sealed class CastRecvSrv : IDisposable {
 			drainv();
 			if (!keynal(nal)) return;
 		}
-		vqueue.Enqueue(nal);
+		var due = delayv ? Environment.TickCount + VDELAY : Environment.TickCount;
+		vqueue.Enqueue(new Vnal { nal = nal, due = due });
 		Interlocked.Increment(ref vqlen);
 	}
 
@@ -387,12 +397,26 @@ sealed class CastRecvSrv : IDisposable {
 	}
 
 	void decodeloop() {
+		var held = false;
+		var pkt = new Vnal();
 		while (!decstop && !stop && !drop) {
-			nalsig.WaitOne(200);
-			while (vqueue.TryDequeue(out var nal)) {
+			if (!held) {
+				if (!vqueue.TryDequeue(out pkt)) {
+					nalsig.WaitOne(200);
+					continue;
+				}
 				Interlocked.Decrement(ref vqlen);
-				if (nal != null) dovideo(nal);
+				held = pkt.nal != null;
+				if (!held) continue;
 			}
+			var wait = pkt.due - Environment.TickCount;
+			if (wait > 0) {
+				if (wait > 200) wait = 200;
+				nalsig.WaitOne(wait);
+				continue;
+			}
+			held = false;
+			dovideo(pkt.nal);
 		}
 	}
 

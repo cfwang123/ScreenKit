@@ -30,7 +30,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Screencast: rotating the phone keeps the viewer’s size, position, and maximized or full-screen state. The picture still fits or fills inside that window.
-- Screencast: cast audio stays with the picture. Extra queued sound is dropped instead of playing about a second late.
+- Screencast: the picture is shown about 0.5s later so it lines up with the sound. Sound plays through instead of being cut.
 
 #### Removed
 
@@ -41,7 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 投屏：手机切换横竖屏时，电脑画面窗保持原来的大小、位置，以及最大化和全屏状态。画面仍在该窗口内适应或铺满。
-- 投屏：声音跟上画面。积压的音频会丢掉，不再比画面晚大约一秒。
+- 投屏：画面大约晚 0.5 秒再显示，以便和声音对齐。声音连续播放，不再被截断。
 
 #### 移除
 
