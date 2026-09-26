@@ -196,6 +196,10 @@ class TcpSink private constructor(private val sock: Socket) : FrameSink {
     private fun vloop() {
         try {
             while (!dead) {
+                if (!ctrl.isEmpty()) {
+                    Thread.sleep(2)
+                    continue
+                }
                 val v = synchronized(gate) {
                     val x = pendingVideo
                     pendingVideo = null
@@ -295,6 +299,10 @@ class AbstractSink(name: String) : FrameSink {
     private fun vloop() {
         try {
             while (!dead) {
+                if (!ctrl.isEmpty()) {
+                    Thread.sleep(2)
+                    continue
+                }
                 val v = synchronized(gate) {
                     val x = pendingVideo
                     pendingVideo = null
@@ -430,6 +438,10 @@ class UsbSink(manager: UsbManager, accessory: UsbAccessory) : FrameSink {
     private fun vloop() {
         try {
             while (!dead) {
+                if (!ctrl.isEmpty()) {
+                    Thread.sleep(2)
+                    continue
+                }
                 val v = synchronized(gate) {
                     val x = pendingVideo
                     pendingVideo = null

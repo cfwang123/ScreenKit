@@ -6,7 +6,6 @@ import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
-import android.media.MediaCodecList
 import android.media.MediaFormat
 import android.media.projection.MediaProjection
 import android.os.Build
@@ -35,7 +34,7 @@ class AudioPipe(
             .setChannelMask(AudioFormat.CHANNEL_IN_STEREO)
             .build()
         val min = AudioRecord.getMinBufferSize(48000, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT)
-        val bufBytes = if (min > 0) min else 4096
+        val bufBytes = maxOf(if (min > 0) min * 2 else 8192, 38400)
         rec = AudioRecord.Builder()
             .setAudioFormat(fmt)
             .setBufferSizeInBytes(bufBytes)
@@ -48,89 +47,53 @@ class AudioPipe(
     }
 
     private fun openEnc(maxIn: Int): MediaCodec {
-        val soft = ArrayList<String>()
-        val hard = ArrayList<String>()
-        try {
-            val list = MediaCodecList(MediaCodecList.REGULAR_CODECS)
-            for (info in list.codecInfos) {
-                if (!info.isEncoder) continue
-                var aac = false
-                for (t in info.supportedTypes)
-                    if (t.equals(MediaFormat.MIMETYPE_AUDIO_AAC, true)) aac = true
-                if (!aac) continue
-                val low = info.name.lowercase()
-                if (low.contains("google") || low.contains("c2.android")) soft.add(info.name)
-                else hard.add(info.name)
-            }
-        } catch (ex: Exception) {
-            android.util.Log.w("scst", "aac list ${ex.message}")
-        }
-        var last: Exception? = null
-        for (lowlat in intArrayOf(1, 0)) {
-            val fmt = makeFmt(maxIn, lowlat == 1)
-            for (group in listOf(soft, hard)) {
-                for (name in group) {
-                    var c: MediaCodec? = null
-                    try {
-                        c = MediaCodec.createByCodecName(name)
-                        c.configure(fmt, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-                        c.start()
-                        android.util.Log.i("scst", "aac enc $name lowlat=$lowlat")
-                        return c
-                    } catch (ex: Exception) {
-                        last = ex
-                        android.util.Log.w("scst", "aac enc $name ${ex.message}")
-                        try { c?.release() } catch (_: Exception) { }
-                    }
-                }
-            }
-        }
-        try {
-            val c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
-            c.configure(makeFmt(maxIn, false), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-            c.start()
-            android.util.Log.i("scst", "aac enc ${c.name} fallback")
-            return c
-        } catch (ex: Exception) {
-            throw last ?: ex
-        }
-    }
-
-    private fun makeFmt(maxIn: Int, lowlat: Boolean): MediaFormat {
         val aac = MediaFormat.createAudioFormat(MediaFormat.MIMETYPE_AUDIO_AAC, 48000, 2)
         aac.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
         aac.setInteger(MediaFormat.KEY_BIT_RATE, 128000)
-        aac.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, maxIn)
+        aac.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, maxOf(maxIn, 4096))
         try { aac.setInteger(MediaFormat.KEY_IS_ADTS, 0) } catch (_: Exception) { }
-        if (lowlat && Build.VERSION.SDK_INT >= 23)
-            aac.setInteger(MediaFormat.KEY_PRIORITY, 0)
-        if (lowlat && Build.VERSION.SDK_INT >= 30)
-            aac.setInteger(MediaFormat.KEY_LATENCY, 1)
-        return aac
+        val c = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
+        c.configure(aac, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        c.start()
+        android.util.Log.i("scst", "aac enc ${c.name}")
+        return c
     }
 
     private fun loop() {
-        val pcm = ByteArray(4096)
+        val hold = ByteArray(4096)
+        var holdN = 0
+        var holding = false
         val info = MediaCodec.BufferInfo()
         try {
         while (running) {
-            val n = try { rec.read(pcm, 0, pcm.size) } catch (ex: Throwable) {
-                android.util.Log.w("scst", "aread ${ex.message}")
-                break
+            if (!holding) {
+                val n = try { rec.read(hold, 0, hold.size) } catch (ex: Throwable) {
+                    android.util.Log.w("scst", "aread ${ex.message}")
+                    break
+                }
+                if (n == AudioRecord.ERROR_DEAD_OBJECT || n == AudioRecord.ERROR_INVALID_OPERATION) {
+                    android.util.Log.w("scst", "aread err $n")
+                    break
+                }
+                if (n > 0) {
+                    holdN = n
+                    holding = true
+                }
             }
-            if (n == AudioRecord.ERROR_DEAD_OBJECT || n == AudioRecord.ERROR_INVALID_OPERATION) {
-                android.util.Log.w("scst", "aread err $n")
-                break
-            }
-            if (n > 0) {
-                val inIx = enc.dequeueInputBuffer(10_000)
+            if (holding) {
+                val inIx = enc.dequeueInputBuffer(2_000)
                 if (inIx >= 0) {
                     val ib = enc.getInputBuffer(inIx)
-                    ib?.clear()
-                    ib?.put(pcm, 0, n)
-                    val samples = n / 4
-                    enc.queueInputBuffer(inIx, 0, n, pts, 0)
-                    pts += samples * 1_000_000L / 48000
+                    if (ib != null) {
+                        ib.clear()
+                        ib.put(hold, 0, holdN)
+                        val samples = holdN / 4
+                        enc.queueInputBuffer(inIx, 0, holdN, pts, 0)
+                        pts += samples * 1_000_000L / 48000
+                    } else {
+                        enc.queueInputBuffer(inIx, 0, 0, pts, 0)
+                    }
+                    holding = false
                 }
             }
             while (true) {

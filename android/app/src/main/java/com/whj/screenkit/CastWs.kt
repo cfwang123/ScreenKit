@@ -145,6 +145,10 @@ class WsSink(ip: String, port: Int) : FrameSink {
     private fun vloop() {
         try {
             while (!dead) {
+                if (!ctrl.isEmpty()) {
+                    Thread.sleep(2)
+                    continue
+                }
                 val v = synchronized(gate) {
                     val x = pendingVideo
                     pendingVideo = null
