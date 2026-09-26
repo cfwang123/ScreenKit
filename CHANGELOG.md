@@ -30,14 +30,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Screencast: rotating the phone keeps the viewer’s size, position, and maximized or full-screen state. The picture still fits or fills inside that window.
-- Screencast: turning the phone screen off no longer sends a black picture. The cast notification has a screen-off button; press the power key to leave that mode.
+
+#### Removed
+
+- Screencast: removed screen-off casting. The phone page and the cast notification no longer offer it.
 
 ### 中文
 
 #### 修复
 
 - 投屏：手机切换横竖屏时，电脑画面窗保持原来的大小、位置，以及最大化和全屏状态。画面仍在该窗口内适应或铺满。
-- 投屏：熄屏投屏不再让电脑黑屏。投屏通知里增加「熄屏投屏」，按电源键退出。首次可能要允许修改系统设置。
+
+#### 移除
+
+- 投屏：去掉熄屏投屏。投屏页和通知里不再提供该按钮。
 
 ## v1.0.11 (2026-09-26)
 

@@ -9,10 +9,8 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbManager
 import android.media.projection.MediaProjectionManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -64,13 +62,8 @@ class CastActivity : AppCompatActivity() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val msg = intent?.getStringExtra("msg") ?: ""
             val err = intent?.getBooleanExtra("err", false) == true
-            val toastMsg = intent?.getStringExtra("toast").orEmpty()
-            val needWrite = intent?.getBooleanExtra("need_write", false) == true
-            if (msg.isNotEmpty()) b.lbstat.text = msg
+            b.lbstat.text = msg
             applyModeUi()
-            if (toastMsg.isNotEmpty()) toast(toastMsg)
-            if (needWrite) promptWrite()
-            if (msg.contains("熄屏投屏中")) moveTaskToBack(true)
             if (err) showCastErr(msg)
         }
     }
@@ -115,7 +108,6 @@ class CastActivity : AppCompatActivity() {
             cancelUsbWait()
             startService(Intent(this, CastService::class.java).setAction(CastService.ACTION_STOP))
         }
-        b.boff.setOnClickListener { askScreenOff() }
         askPerm()
         loadIp()
         if (handleUsb(intent, leave = true)) return
@@ -201,10 +193,6 @@ class CastActivity : AppCompatActivity() {
         }
         if (intent?.getBooleanExtra("scst_usb", false) == true) {
             b.eip.post { startUsb() }
-            return
-        }
-        if (intent?.getBooleanExtra("scst_screen_off", false) == true) {
-            b.eip.post { startScreenOff(force = true) }
             return
         }
         if (intent?.getBooleanExtra("scst_adb", false) == true) {
@@ -351,8 +339,6 @@ class CastActivity : AppCompatActivity() {
         val on = castingNow()
         b.bstart.isEnabled = !on && !waitUsb
         b.bstop.visibility = if (on || waitUsb) View.VISIBLE else View.GONE
-        b.boff.visibility = if (on) View.VISIBLE else View.GONE
-        b.boff.text = if (ScreenOff.active) "退出熄屏" else "熄屏投屏"
         if (on) b.bstop.text = "停止投屏"
         else if (waitUsb) b.bstop.text = "取消等待"
     }
@@ -651,34 +637,6 @@ class CastActivity : AppCompatActivity() {
         }
         finish()
         return true
-    }
-
-    private var writeWaiting = false
-    private val writeAsk = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        writeWaiting = false
-        if (Settings.System.canWrite(this)) startScreenOff(force = true)
-        else toast("未允许修改系统设置，无法熄屏")
-    }
-
-    private fun askScreenOff() = startScreenOff(force = false)
-
-    private fun promptWrite() {
-        if (Settings.System.canWrite(this)) {
-            startScreenOff(force = true)
-            return
-        }
-        if (writeWaiting) return
-        writeWaiting = true
-        writeAsk.launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:$packageName")))
-    }
-
-    private fun startScreenOff(force: Boolean) {
-        val st = b.lbstat.text?.toString().orEmpty()
-        if (!force && !CastService.isCastingMsg(st) && !CastService.isCastingMsg(CastService.statMsg) && !ScreenOff.active) {
-            toast("请先开始投屏")
-            return
-        }
-        startService(Intent(this, CastService::class.java).setAction(CastService.ACTION_SCREEN_OFF))
     }
 
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_SHORT).show()

@@ -9,7 +9,6 @@ import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
-import android.graphics.drawable.Icon
 import android.hardware.usb.UsbManager
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
@@ -55,14 +54,6 @@ class CastService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        ScreenOff.listener = { on ->
-            val v = video
-            val msg = if (on) "熄屏投屏中，按电源键亮屏退出"
-            else if (v != null) "投屏中 $via ${v.outW}x${v.outH}@${v.fps}"
-            else "投屏中"
-            broadcastStat(msg)
-            try { v?.poke() } catch (_: Exception) { }
-        }
         val prev = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             Log.e("scst", "crash ${t.name} ${e.javaClass.simpleName} ${e.message}", e)
@@ -81,18 +72,6 @@ class CastService : Service() {
         if (intent?.action == ACTION_QUALITY) {
             val qname = intent.getStringExtra(EXTRA_Q) ?: Quality.PRESETS[1].name
             applyQuality(Quality.byName(qname))
-            return START_STICKY
-        }
-        if (intent?.action == ACTION_SCREEN_OFF) {
-            if (mp == null && video == null && pattern == null) {
-                tell("请先开始投屏")
-                return START_STICKY
-            }
-            if (ScreenOff.active) ScreenOff.leave(this, wake = true)
-            else when (ScreenOff.enter(this)) {
-                ScreenOff.NEED_WRITE -> tell("请允许修改系统设置，熄屏后电脑仍能看到画面", needWrite = true)
-                ScreenOff.FAIL -> tell("无法熄屏投屏")
-            }
             return START_STICKY
         }
         val pattern = intent?.getBooleanExtra(EXTRA_PATTERN, false) == true
@@ -425,15 +404,6 @@ class CastService : Service() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val off = PendingIntent.getActivity(
-            this,
-            2,
-            Intent(this, CastActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                .putExtra("scst_screen_off", true),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val label = if (ScreenOff.active) "退出熄屏" else "熄屏投屏"
         val b = if (Build.VERSION.SDK_INT >= 26) {
             Notification.Builder(this, NOTIF_CH)
         } else {
@@ -447,13 +417,6 @@ class CastService : Service() {
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .addAction(
-                Notification.Action.Builder(
-                    Icon.createWithResource(this, android.R.drawable.ic_lock_power_off),
-                    label,
-                    off,
-                ).build(),
-            )
             .build()
     }
 
@@ -473,21 +436,11 @@ class CastService : Service() {
         if (msg != "已停止") showNote(msg)
     }
 
-    private fun tell(toast: String, needWrite: Boolean = false) {
-        sendBroadcast(
-            Intent(ACTION_STAT).setPackage(packageName)
-                .putExtra("msg", statMsg)
-                .putExtra("toast", toast)
-                .putExtra("need_write", needWrite),
-        )
-    }
-
     private fun stopCast() {
         if (cfgOn) {
             try { unregisterComponentCallbacks(cfgCb) } catch (_: Exception) { }
             cfgOn = false
         }
-        ScreenOff.leave(this, notify = false)
         notifyPcStop()
         val bye = """{"cmd":"bye"}""".toByteArray(Charsets.UTF_8)
         try {
@@ -635,7 +588,6 @@ class CastService : Service() {
 
     override fun onDestroy() {
         stopCast()
-        ScreenOff.listener = null
         super.onDestroy()
     }
 
@@ -646,7 +598,6 @@ class CastService : Service() {
             msg.contains("投屏中") || msg.contains("USB 测试")
 
         const val ACTION_STOP = "com.whj.screenkit.CAST_STOP"
-        const val ACTION_SCREEN_OFF = "com.whj.screenkit.CAST_SCREEN_OFF"
         const val ACTION_QUALITY = "com.whj.screenkit.CAST_QUALITY"
         const val ACTION_STAT = "com.whj.screenkit.CAST_STAT"
         const val EXTRA_CODE = "code"

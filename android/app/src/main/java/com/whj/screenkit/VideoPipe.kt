@@ -56,8 +56,6 @@ class VideoPipe(
         h.postDelayed({ kick() }, 1500)
     }
 
-    fun poke() = kick()
-
     private fun kick() {
         if (stopped) return
         refresh()
