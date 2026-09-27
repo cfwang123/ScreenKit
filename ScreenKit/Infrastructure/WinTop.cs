@@ -27,6 +27,7 @@ static class WinTop {
 	const uint GW_OWNER = 4;
 	const uint GA_ROOT = 2;
 	const int DWMWA_CLOAKED = 14;
+	const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
 	const uint SWP_NOSIZE = 0x0001;
 	const uint SWP_NOMOVE = 0x0002;
 	const uint SWP_NOACTIVATE = 0x0010;
@@ -98,6 +99,23 @@ static class WinTop {
 		if (h == IntPtr.Zero) return IntPtr.Zero;
 		var root = GetAncestor(h, GA_ROOT);
 		return root == IntPtr.Zero ? h : root;
+	}
+
+	/// <summary>可见外框（不含阴影）。最小化或过小则失败。</summary>
+	public static bool TryBounds(IntPtr hwnd, out int x, out int y, out int w, out int h) {
+		x = y = w = h = 0;
+		if (!IsAlive(hwnd) || IsIconic(hwnd)) return false;
+		RECT rc;
+		var ok = false;
+		try { ok = DwmGetWindowAttributeRect(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, out rc, 16) == 0; }
+		catch { ok = false; rc = default; }
+		if (!ok && !GetWindowRect(hwnd, out rc)) return false;
+		w = rc.Right - rc.Left;
+		h = rc.Bottom - rc.Top;
+		if (w < 8 || h < 8) return false;
+		x = rc.Left;
+		y = rc.Top;
+		return true;
 	}
 
 	public static IntPtr CreateProbe() {
@@ -174,6 +192,11 @@ static class WinTop {
 		public int Y;
 	}
 
+	[StructLayout(LayoutKind.Sequential)]
+	struct RECT {
+		public int Left, Top, Right, Bottom;
+	}
+
 	[DllImport("user32.dll")]
 	static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
 
@@ -182,6 +205,12 @@ static class WinTop {
 
 	[DllImport("user32.dll")]
 	static extern bool IsWindowVisible(IntPtr hwnd);
+
+	[DllImport("user32.dll")]
+	static extern bool IsIconic(IntPtr hwnd);
+
+	[DllImport("user32.dll")]
+	static extern bool GetWindowRect(IntPtr hwnd, out RECT rc);
 
 	[DllImport("user32.dll")]
 	static extern int GetWindowLong(IntPtr hwnd, int index);
@@ -219,4 +248,7 @@ static class WinTop {
 
 	[DllImport("dwmapi.dll")]
 	static extern int DwmGetWindowAttribute(IntPtr hwnd, int attr, out int value, int size);
+
+	[DllImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")]
+	static extern int DwmGetWindowAttributeRect(IntPtr hwnd, int attr, out RECT rc, int size);
 }

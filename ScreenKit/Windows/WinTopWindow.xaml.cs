@@ -1,10 +1,12 @@
 using System.Runtime.InteropServices;
+using System.Windows.Threading;
 
 namespace ScreenKit;
 
 /// <summary>工具 → 窗口管理：选择 HWND，设置或取消固定在前面。</summary>
 public partial class WinTopWindow : Window {
 	const int WH_MOUSE_LL = 14;
+	const int WM_MOUSEMOVE = 0x0200;
 	const int WM_LBUTTONDOWN = 0x0201;
 	const int WM_RBUTTONDOWN = 0x0204;
 
@@ -12,12 +14,19 @@ public partial class WinTopWindow : Window {
 	IntPtr hook;
 	HookProc hookproc;
 	volatile bool picking;
+	volatile int mouseX, mouseY;
+	DispatcherTimer timer;
+	WinTopFrame frame;
+	IntPtr hoverHwnd;
 
 	public WinTopWindow() {
 		InitializeComponent();
 		applylang();
 		initev();
 		WindowEsc.Attach(this, onesc);
+		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+		timer.Tick += (_, _) => syncframe();
+		timer.Start();
 		reload();
 	}
 
@@ -33,12 +42,18 @@ public partial class WinTopWindow : Window {
 				ehwnd.Text = row.HwndHex;
 				lbstat.Text = Loc.T("wintop.sel", row.HwndHex, row.Title);
 			}
+			if (!picking) syncframe();
 		};
 		lv.MouseDoubleClick += (_, _) => {
 			if (lv.SelectedItem is WinTopRow row)
 				apply(!row.Top);
 		};
-		Closing += (_, _) => endpick();
+		Closing += (_, _) => {
+			endpick();
+			try { timer.Stop(); } catch { }
+			try { frame?.Close(); } catch { }
+			frame = null;
+		};
 	}
 
 	void applylang() {
@@ -63,6 +78,7 @@ public partial class WinTopWindow : Window {
 		if (picking) {
 			endpick();
 			lbstat.Text = Loc.T("wintop.pick.cancel");
+			syncframe();
 			return;
 		}
 		Close();
@@ -150,6 +166,11 @@ public partial class WinTopWindow : Window {
 		}
 		Cursor = Cursors.Cross;
 		lbstat.Text = Loc.T("wintop.pick.hint");
+		if (GetCursorPos(out var pt)) {
+			mouseX = pt.X;
+			mouseY = pt.Y;
+		}
+		syncframe();
 	}
 
 	void endpick() {
@@ -163,9 +184,35 @@ public partial class WinTopWindow : Window {
 		}
 	}
 
+	void syncframe() {
+		var h = picking ? hover() : current();
+		if (frame == null) {
+			if (h == IntPtr.Zero) return;
+			frame = new WinTopFrame();
+		}
+		frame.Place(h);
+		if (!picking || h == IntPtr.Zero || h == hoverHwnd) return;
+		hoverHwnd = h;
+		try {
+			var row = WinTop.Describe(h);
+			lbstat.Text = Loc.T("wintop.sel", row.HwndHex, row.Title);
+		}
+		catch { }
+	}
+
+	IntPtr hover() {
+		var h = WinTop.RootAt(mouseX, mouseY);
+		if (frame != null && h == frame.Handle) return frame.Target;
+		return h;
+	}
+
 	IntPtr onhook(int nCode, IntPtr wParam, IntPtr lParam) {
 		if (nCode >= 0 && picking) {
 			var msg = wParam.ToInt32();
+			if (msg == WM_MOUSEMOVE || msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN) {
+				mouseX = Marshal.ReadInt32(lParam);
+				mouseY = Marshal.ReadInt32(lParam, 4);
+			}
 			if (msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN) {
 				picking = false;
 				var x = Marshal.ReadInt32(lParam);
@@ -182,11 +229,14 @@ public partial class WinTopWindow : Window {
 		endpick();
 		if (!choose) {
 			lbstat.Text = Loc.T("wintop.pick.cancel");
+			syncframe();
 			return;
 		}
 		var h = WinTop.RootAt(x, y);
+		if (frame != null && h == frame.Handle) h = frame.Target;
 		if (!WinTop.IsAlive(h)) {
 			lbstat.Text = Loc.T("wintop.pick.miss");
+			syncframe();
 			return;
 		}
 		var found = false;
@@ -202,10 +252,20 @@ public partial class WinTopWindow : Window {
 		efilter.Text = "";
 		ehwnd.Text = "0x" + h.ToInt64().ToString("X");
 		showlist(h);
+		syncframe();
 		try { Activate(); } catch { }
 	}
 
+	[StructLayout(LayoutKind.Sequential)]
+	struct NativePoint {
+		public int X;
+		public int Y;
+	}
+
 	delegate IntPtr HookProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+	[DllImport("user32.dll")]
+	static extern bool GetCursorPos(out NativePoint pt);
 
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern IntPtr SetWindowsHookEx(int idHook, HookProc lpfn, IntPtr hMod, uint dwThreadId);
