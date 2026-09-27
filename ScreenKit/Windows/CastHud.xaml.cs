@@ -26,11 +26,17 @@ public partial class CastHud : Window {
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+	static readonly SolidColorBrush DotLive = freeze(0xC6, 0x28, 0x28);
+	static readonly SolidColorBrush DotIdle = freeze(0x9E, 0x9E, 0x9E);
+
 	System.Drawing.Rectangle region;
-	readonly int startedAt;
 	DispatcherTimer timer;
 	bool barCollapsed;
 	bool closing;
+	bool started;
+	bool paused;
+	int elapsed;
+	int lastui;
 	double? barUserX, barUserY;
 	DragKind dragKind;
 	Point dragOrigin;
@@ -39,16 +45,21 @@ public partial class CastHud : Window {
 	double dragBarMinX, dragBarMinY, dragBarMaxX, dragBarMaxY;
 
 	public event Action StopRequested;
+	public event Action StartRequested;
+	public event Action PauseRequested;
 	public event Action<System.Drawing.Rectangle> RegionChanged;
+	public Func<(bool audio, string src)> ReadOptions;
+	public Action<bool, string> WriteOptions;
+	public System.Drawing.Rectangle Region => region;
 
 	public CastHud(System.Drawing.Rectangle region, string target) {
 		this.region = even(region);
-		startedAt = Environment.TickCount;
 		InitializeComponent();
 		lbregion.Text = $"{this.region.Width}×{this.region.Height}";
 		lbto.Text = target ?? "";
-		lbstate.Text = Loc.T("cast.hud.live");
-		bstop.ToolTip = bstopM.ToolTip = Loc.T("cast.tab.stop");
+		bopt.Content = boptM.Content = Loc.T("cast.tab.opt");
+		bopt.ToolTip = boptM.ToolTip = Loc.T("cast.tab.opt");
+		bstart.ToolTip = bstartM.ToolTip = Loc.T("cast.hud.start");
 
 		var (vlDip, vtDip, vwDip, vhDip) = ScreenDpi.VirtualScreenDip();
 		Left = vlDip;
@@ -74,10 +85,29 @@ public partial class CastHud : Window {
 		Closed += (_, _) => { try { timer?.Stop(); } catch { } };
 		bstop.Click += (_, _) => requeststop();
 		bstopM.Click += (_, _) => requeststop();
+		bstart.Click += (_, _) => onstart();
+		bstartM.Click += (_, _) => onstart();
+		bpause.Click += (_, _) => onpause();
+		bpauseM.Click += (_, _) => onpause();
+		bopt.Click += (_, _) => onoptions();
+		boptM.Click += (_, _) => onoptions();
 		bcollapse.Click += (_, _) => setcollapsed(true);
 		bexpand.Click += (_, _) => setcollapsed(false);
+		setui();
 		initdrag();
 		WindowEsc.Attach(this, requeststop);
+	}
+
+	public void MarkLive() {
+		started = true;
+		paused = false;
+		lastui = Environment.TickCount;
+		setui();
+	}
+
+	public void MarkPaused(bool on) {
+		paused = on;
+		setui();
 	}
 
 	public void Retop() {
@@ -97,11 +127,77 @@ public partial class CastHud : Window {
 		try { StopRequested?.Invoke(); } catch { }
 	}
 
+	void onstart() {
+		if (started || closing) return;
+		try { StartRequested?.Invoke(); } catch { }
+	}
+
+	void onpause() {
+		if (!started || closing) return;
+		try { PauseRequested?.Invoke(); } catch { }
+	}
+
+	void onoptions() {
+		if (started || closing) return;
+		var audio = true;
+		var src = "Speakers";
+		try {
+			if (ReadOptions != null) (audio, src) = ReadOptions();
+		}
+		catch { }
+		var dlg = new CastOptWindow(audio, src);
+		try { dlg.Owner = Application.Current?.MainWindow; } catch { }
+		var wasTop = Topmost;
+		Topmost = false;
+		bool ok;
+		try { ok = dlg.ShowDialog() == true; }
+		finally { Topmost = wasTop; }
+		if (!ok) return;
+		try { WriteOptions?.Invoke(dlg.Audio, dlg.Src); } catch { }
+	}
+
+	void setui() {
+		var before = started ? Visibility.Collapsed : Visibility.Visible;
+		var after = started ? Visibility.Visible : Visibility.Collapsed;
+		bopt.Visibility = boptM.Visibility = before;
+		bstart.Visibility = bstartM.Visibility = before;
+		bpause.Visibility = bpauseM.Visibility = after;
+		var showPause = paused ? Visibility.Collapsed : Visibility.Visible;
+		var showPlay = paused ? Visibility.Visible : Visibility.Collapsed;
+		icoPause.Visibility = icoPauseM.Visibility = showPause;
+		icoResume.Visibility = icoResumeM.Visibility = showPlay;
+		var tip = paused ? Loc.T("cast.hud.resume") : Loc.T("cast.hud.pause");
+		bpause.ToolTip = bpauseM.ToolTip = tip;
+		bstop.ToolTip = bstopM.ToolTip = started ? Loc.T("cast.tab.stop") : Loc.T("cast.hud.cancel");
+		if (!started) lbstate.Text = Loc.T("cast.hud.ready");
+		else if (paused) lbstate.Text = Loc.T("cast.hud.paused");
+		else lbstate.Text = Loc.T("cast.hud.live");
+		var live = started && !paused;
+		edot.Fill = edotM.Fill = live ? DotLive : DotIdle;
+		edot.Opacity = edotM.Opacity = 1;
+		layout(false);
+	}
+
+	static SolidColorBrush freeze(byte r, byte g, byte b) {
+		var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+		brush.Freeze();
+		return brush;
+	}
+
 	void tick() {
-		var ms = Environment.TickCount - startedAt;
-		if (ms < 0) ms = 0;
-		var ts = TimeSpan.FromMilliseconds(ms);
+		var now = Environment.TickCount;
+		if (lastui != 0 && started && !paused) {
+			var d = now - lastui;
+			if (d > 0 && d < 2000) elapsed += d;
+		}
+		lastui = now;
+		var ts = TimeSpan.FromMilliseconds(Math.Max(0, elapsed));
 		lbtime.Text = $"{(int)ts.TotalHours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+		if (started && !paused) {
+			var on = (now / 500) % 2 == 0;
+			edot.Opacity = edotM.Opacity = on ? 1 : 0.35;
+		}
+		else edot.Opacity = edotM.Opacity = 1;
 	}
 
 	void setcollapsed(bool on) {

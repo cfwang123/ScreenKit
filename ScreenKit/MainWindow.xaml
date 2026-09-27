@@ -1915,6 +1915,10 @@
 							        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
 							        VerticalAlignment="Center" Margin="8,0,0,0" Visibility="Collapsed"
 							        AutomationProperties.AutomationId="cast.tab.stop"/>
+							<Button x:Name="bcastpause" DockPanel.Dock="Right" Content="暂停"
+							        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
+							        VerticalAlignment="Center" Margin="8,0,0,0" Visibility="Collapsed"
+							        AutomationProperties.AutomationId="cast.tab.pause"/>
 							<Button x:Name="bcaststart" DockPanel.Dock="Right" Content="开始投屏"
 							        Style="{StaticResource PrimaryBtn}" Height="30" Padding="12,2"
 							        VerticalAlignment="Center" Margin="8,0,0,0"
@@ -1997,9 +2001,13 @@
 									<CheckBox x:Name="ccastaudio" Content="同时发送声音" Margin="0,14,0,0"
 									          IsChecked="True"
 									          AutomationProperties.AutomationId="cast.tab.audio"/>
+									<TextBlock x:Name="lbcastsrc" Text="声音来源" Margin="0,10,0,4" FontSize="12"
+									           Foreground="{StaticResource TextMuted}"/>
+									<ComboBox x:Name="ecastsrc" Height="30" VerticalContentAlignment="Center"
+									          AutomationProperties.AutomationId="cast.tab.src"/>
 									<TextBlock x:Name="lbcasthint" Margin="0,12,0,0" FontSize="12"
 									           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
-									           Text="开始后先框选区域，和截图一样：单击窗口或拖拽。对方电脑需已打开本程序。"/>
+									           Text="点开始后先框选区域。选好后可改声音和来源，再点开始才发送。对方电脑需已打开本程序。"/>
 								</StackPanel>
 							</Border>
 						</Grid>

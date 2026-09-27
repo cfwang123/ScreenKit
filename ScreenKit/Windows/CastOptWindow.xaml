@@ -1,0 +1,24 @@
+<Window x:Class="ScreenKit.CastOptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="投屏选项"
+        Width="320"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI">
+	<StackPanel Margin="16">
+		<CheckBox x:Name="caudio" Content="同时发送声音" IsChecked="True"
+		          AutomationProperties.AutomationId="cast.opt.audio"/>
+		<TextBlock x:Name="lbsrc" Text="声音来源" FontWeight="SemiBold" Margin="0,14,0,6"/>
+		<ComboBox x:Name="esrc" Height="32" VerticalContentAlignment="Center"
+		          IsEnabled="{Binding ElementName=caudio, Path=IsChecked}"
+		          AutomationProperties.AutomationId="cast.opt.src"/>
+		<Button x:Name="bok" Content="确定" HorizontalAlignment="Right"
+		        Style="{StaticResource PrimaryBtn}" Height="30" Width="88" Margin="0,16,0,0"
+		        AutomationProperties.AutomationId="cast.opt.ok"/>
+	</StackPanel>
+</Window>

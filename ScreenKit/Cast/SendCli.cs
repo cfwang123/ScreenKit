@@ -14,22 +14,30 @@ sealed class CastSendCli : IDisposable {
 	CastAudioCap acap;
 	CastQuality q;
 	bool wantAudio;
+	RecordAudioMode audmode;
+	volatile bool paused;
 	int interval;
 	readonly object encs = new();
 	readonly object grablk = new();
 	readonly object nslock = new();
 	public Action<string> Log;
 	public bool Running => !stop && st != null;
+	public bool Paused => paused;
 
 	public void Start(string ip, int port, CastQuality quality, bool audio) =>
-		Start(ip, port, quality, audio, Rectangle.Empty);
+		Start(ip, port, quality, audio, Rectangle.Empty, RecordAudioMode.Speakers);
 
-	public void Start(string ip, int port, CastQuality quality, bool audio, Rectangle region) {
+	public void Start(string ip, int port, CastQuality quality, bool audio, Rectangle region) =>
+		Start(ip, port, quality, audio, region, RecordAudioMode.Speakers);
+
+	public void Start(string ip, int port, CastQuality quality, bool audio, Rectangle region, RecordAudioMode src) {
 		if (st != null) return;
 		if (!FfmpegLoader.TryInit(out var err))
 			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
 		q = quality ?? CastQuality.Presets[1];
 		wantAudio = audio;
+		audmode = src == RecordAudioMode.Off ? RecordAudioMode.Speakers : src;
+		paused = false;
 		stop = false;
 		interval = Math.Max(8, 1000 / q.Fps);
 		if (port <= 0) port = 1224;
@@ -80,6 +88,11 @@ sealed class CastSendCli : IDisposable {
 			}
 		}
 		if (!moved) sendjson();
+	}
+
+	public void SetPaused(bool on) {
+		paused = on;
+		if (on) { try { acap?.Clear(); } catch { } }
 	}
 
 	public void ApplyQ(CastQuality nq) {
@@ -135,13 +148,23 @@ sealed class CastSendCli : IDisposable {
 		byte[] apcm = wantAudio ? new byte[48000] : null;
 		try {
 			if (wantAudio) {
-				try { acap = new CastAudioCap(); aenc = new CastAudioEncoder(acap.SampleRate, acap.Channels); }
+				try {
+					acap = new CastAudioCap(audmode);
+					if (acap.FellBack) Log?.Invoke("麦克风不可用，仅发送扬声器");
+					aenc = new CastAudioEncoder(acap.SampleRate, acap.Channels);
+				}
 				catch (Exception ex) {
-					Log?.Invoke($"系统声音采集失败，仅画面: {ex.Message}");
+					Log?.Invoke($"声音采集失败，仅画面: {ex.Message}");
 					wantAudio = false;
 				}
 			}
 			while (!stop) {
+				if (paused) {
+					Thread.Sleep(30);
+					next = Environment.TickCount;
+					try { acap?.Clear(); } catch { }
+					continue;
+				}
 				var now = Environment.TickCount;
 				if (now - next < 0) { Thread.Sleep(1); continue; }
 				next = now + interval;

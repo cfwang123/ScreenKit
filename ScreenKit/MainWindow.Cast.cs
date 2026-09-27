@@ -45,13 +45,15 @@ public partial class MainWindow {
 		castfill = false;
 		loadlastcast();
 		refreshcastlist();
-		ccastaudio.Checked += (_, _) => savecastopt();
-		ccastaudio.Unchecked += (_, _) => savecastopt();
+		ccastaudio.Checked += (_, _) => { savecastopt(); syncastbtns(); };
+		ccastaudio.Unchecked += (_, _) => { savecastopt(); syncastbtns(); };
+		ecastsrc.SelectionChanged += (_, _) => savecastopt();
 		ecastmaxw.LostFocus += (_, _) => oncastlimit();
 		ecastmaxh.LostFocus += (_, _) => oncastlimit();
 		lcastpeers.SelectionChanged += (_, _) => oncastpeer();
 		bcastscan.Click += async (_, _) => await scancast();
 		bcaststart.Click += async (_, _) => await startcast();
+		bcastpause.Click += (_, _) => togglecastpause();
 		bcaststop.Click += (_, _) => stopcast();
 		casttimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
 		casttimer.Tick += (_, _) => tickcast();
@@ -71,9 +73,12 @@ public partial class MainWindow {
 		lbcastmaxh.Text = Loc.T("cast.tab.maxh");
 		lbcasthint.Text = Loc.T("cast.tab.hint");
 		ccastaudio.Content = Loc.T("cast.tab.audio");
+		lbcastsrc.Text = Loc.T("cast.tab.src");
+		fillcastsrc();
 		bcastscan.Content = Loc.T("cast.tab.scan");
 		bcaststart.Content = Loc.T("cast.tab.start");
 		bcaststop.Content = Loc.T("cast.tab.stop");
+		syncastbtns();
 		ecastip.ToolTip = Loc.T("cast.tab.iph");
 		if (!castlive && string.IsNullOrWhiteSpace(ecastip.Text))
 			lbcasttarget.Text = Loc.T("cast.tab.notarget");
@@ -113,6 +118,7 @@ public partial class MainWindow {
 	void savecastopt() {
 		if (opt == null || castfill) return;
 		opt.CastAudio = ccastaudio.IsChecked == true;
+		opt.CastAudioSrc = castsrctag();
 		opt.CastMaxW = readcastlimit(ecastmaxw.Text);
 		opt.CastMaxH = readcastlimit(ecastmaxh.Text);
 		try { AppConfig.Save(opt); } catch { }
@@ -270,7 +276,48 @@ public partial class MainWindow {
 		return true;
 	}
 
+	void fillcastsrc() {
+		var tag = ecastsrc.SelectedItem is ComboBoxItem it ? it.Tag as string : opt?.CastAudioSrc;
+		var was = castfill;
+		castfill = true;
+		ecastsrc.Items.Clear();
+		ecastsrc.Items.Add(new ComboBoxItem { Content = Loc.T("cast.tab.src.spk"), Tag = "Speakers" });
+		ecastsrc.Items.Add(new ComboBoxItem { Content = Loc.T("cast.tab.src.mic"), Tag = "Mic" });
+		ecastsrc.Items.Add(new ComboBoxItem { Content = Loc.T("cast.tab.src.both"), Tag = "MicAndSpeakers" });
+		selectcastsrc(tag);
+		castfill = was;
+	}
+
+	void selectcastsrc(string tag) {
+		tag = normcastsrc(tag);
+		foreach (ComboBoxItem it in ecastsrc.Items)
+			if (string.Equals(it.Tag as string, tag, StringComparison.OrdinalIgnoreCase)) {
+				ecastsrc.SelectedItem = it;
+				return;
+			}
+		if (ecastsrc.Items.Count > 0) ecastsrc.SelectedIndex = 0;
+	}
+
+	static string normcastsrc(string s) {
+		if (string.Equals(s, "Mic", StringComparison.OrdinalIgnoreCase)) return "Mic";
+		if (string.Equals(s, "MicAndSpeakers", StringComparison.OrdinalIgnoreCase)) return "MicAndSpeakers";
+		return "Speakers";
+	}
+
+	string castsrctag() => normcastsrc((ecastsrc.SelectedItem as ComboBoxItem)?.Tag as string);
+
+	RecordAudioMode castsrcmode() {
+		var t = castsrctag();
+		if (t == "Mic") return RecordAudioMode.Mic;
+		if (t == "MicAndSpeakers") return RecordAudioMode.MicAndSpeakers;
+		return RecordAudioMode.Speakers;
+	}
+
 	async Task startcast() {
+		if (casthud != null && !castlive) {
+			begincast();
+			return;
+		}
 		if (CastHost.Send != null && CastHost.Send.Running) return;
 		if (capturing || activeRecordHud != null) {
 			lbcaststat.Text = Loc.T("cast.tab.busy");
@@ -313,6 +360,21 @@ public partial class MainWindow {
 			lbcaststat.Text = Loc.T("cast.tab.cancel");
 			return;
 		}
+		castw = rect.Value.Width;
+		casth = rect.Value.Height;
+		castto = port > 0 && port != CastHost.TcpPort ? $"{ip}:{port}" : ip;
+		lbcaststat.Text = Loc.T("cast.tab.armed");
+		lbcasttarget.Text = Loc.T("cast.tab.target", $"{name} · {castto}");
+		showcasthud(rect.Value, castto);
+		syncastbtns();
+	}
+
+	void begincast() {
+		if (casthud == null || castlive) return;
+		if (!trycasttarget(out var ip, out var port, out var name)) {
+			lbcaststat.Text = Loc.T("cast.tab.needip");
+			return;
+		}
 		try {
 			savecastopt();
 			if (CastHost.Send == null) {
@@ -325,16 +387,17 @@ public partial class MainWindow {
 				lbcaststat.Text = Loc.T("cast.tab.fail");
 				return;
 			}
+			var rect = casthud.Region;
 			CastHost.Send.Stop();
-			CastHost.Send.Start(ip, port, castboxq(), ccastaudio.IsChecked == true, rect.Value);
+			CastHost.Send.Start(ip, port, castboxq(), ccastaudio.IsChecked == true, rect, castsrcmode());
 			remembercast(name, ip, port);
 			castlive = true;
-			castw = rect.Value.Width;
-			casth = rect.Value.Height;
+			castw = rect.Width;
+			casth = rect.Height;
 			castto = port > 0 && port != CastHost.TcpPort ? $"{ip}:{port}" : ip;
 			lbcaststat.Text = Loc.T("cast.tab.sending", castw, casth, castto);
 			lbcasttarget.Text = Loc.T("cast.tab.target", $"{name} · {castto}");
-			showcasthud(rect.Value, castto);
+			casthud.MarkLive();
 		}
 		catch (Exception ex) {
 			castlive = false;
@@ -349,14 +412,27 @@ public partial class MainWindow {
 		syncastbtns();
 	}
 
+	void togglecastpause() {
+		if (!castlive || CastHost.Send == null || !CastHost.Send.Running) return;
+		var on = !CastHost.Send.Paused;
+		try { CastHost.Send.SetPaused(on); } catch { return; }
+		casthud?.MarkPaused(on);
+		lbcaststat.Text = on
+			? Loc.T("cast.tab.paused", castw, casth, castto)
+			: Loc.T("cast.tab.sending", castw, casth, castto);
+		syncastbtns();
+	}
+
 	void stopcast() {
 		if (castclosing) return;
+		if (!castlive && casthud == null) return;
 		castclosing = true;
 		try {
+			var was = castlive;
 			castlive = false;
 			closecasthud();
-			try { CastHost.Send?.Stop(); } catch { }
-			lbcaststat.Text = Loc.T("cast.tab.stopped");
+			if (was) { try { CastHost.Send?.Stop(); } catch { } }
+			lbcaststat.Text = was ? Loc.T("cast.tab.stopped") : Loc.T("cast.tab.cancel");
 			syncastbtns();
 		}
 		finally { castclosing = false; }
@@ -365,11 +441,23 @@ public partial class MainWindow {
 	void showcasthud(System.Drawing.Rectangle r, string to) {
 		closecasthud();
 		var hud = new CastHud(r, to);
+		hud.ReadOptions = () => (ccastaudio.IsChecked == true, castsrctag());
+		hud.WriteOptions = (audio, src) => {
+			castfill = true;
+			ccastaudio.IsChecked = audio;
+			selectcastsrc(src);
+			castfill = false;
+			savecastopt();
+			syncastbtns();
+		};
 		hud.StopRequested += () => Dispatcher.BeginInvoke(new Action(stopcast));
+		hud.StartRequested += () => Dispatcher.BeginInvoke(new Action(begincast));
+		hud.PauseRequested += () => Dispatcher.BeginInvoke(new Action(togglecastpause));
 		hud.RegionChanged += nr => {
-			try { CastHost.Send?.SetRegion(nr); } catch { }
 			castw = nr.Width;
 			casth = nr.Height;
+			if (!castlive) return;
+			try { CastHost.Send?.SetRegion(nr); } catch { }
 		};
 		casthud = hud;
 		hud.Show();
@@ -398,14 +486,26 @@ public partial class MainWindow {
 	void tickcast() {
 		var on = CastHost.Send != null && CastHost.Send.Running;
 		if (castlive && !on) stopcast();
-		else if (castlive && on && castw > 0)
-			lbcaststat.Text = Loc.T("cast.tab.sending", castw, casth, castto);
+		else if (castlive && on && castw > 0) {
+			var hold = CastHost.Send.Paused;
+			lbcaststat.Text = hold
+				? Loc.T("cast.tab.paused", castw, casth, castto)
+				: Loc.T("cast.tab.sending", castw, casth, castto);
+		}
 		syncastbtns();
 	}
 
 	void syncastbtns() {
 		var on = CastHost.Send != null && CastHost.Send.Running;
-		bcaststart.IsEnabled = !on && !castpicking;
-		bcaststop.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+		var armed = casthud != null && !castlive;
+		bcaststart.IsEnabled = !on && !castpicking && !castlive;
+		bcaststop.Visibility = on || armed ? Visibility.Visible : Visibility.Collapsed;
+		bcastpause.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+		if (on)
+			bcastpause.Content = CastHost.Send.Paused ? Loc.T("cast.tab.resume") : Loc.T("cast.tab.pause");
+		var canopt = !castlive;
+		ccastaudio.IsEnabled = canopt;
+		ecastsrc.IsEnabled = canopt && ccastaudio.IsChecked == true;
+		ecastip.IsEnabled = canopt;
 	}
 }

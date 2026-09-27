@@ -30,13 +30,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Screencast tab: cast this PC to another PC on the LAN. Saved PCs stay listed on the left; click one to fill the IP. Output is limited by max width and height (default 1000×1000, shrink to fit, never enlarge). Start still picks a region the same way as a screenshot (click a window or drag). While casting, the region shows a red frame and a toolbar (drag, resize, stop). The frame is excluded from the picture.
+- Screencast tab: cast this PC to another PC on the LAN. Saved PCs stay listed on the left; click one to fill the IP. Output is limited by max width and height (default 1000×1000, shrink to fit, never enlarge). Start picks a region the same way as a screenshot (click a window or drag), then waits so audio and its source (speakers, microphone, or both) can be changed before sending. The region shows a red frame and a toolbar (drag, resize, start, pause, stop). Pause keeps the connection and stops picture and audio until resume. The frame is excluded from the picture.
 
 ### 中文
 
 #### 新增
 
-- 主界面 **投屏** Tab：把本机画面投到另一台电脑。已保存的电脑直接列在左侧，点一项即填入 IP。输出按最大宽高限制（默认 1000×1000，等比缩小、不放大）。开始前先框选区域（单击窗口或拖拽，和截图一样）。投屏中选区显示红框和操作条（可拖动、缩放、停止），红框不进入画面。
+- 主界面 **投屏** Tab：把本机画面投到另一台电脑。已保存的电脑直接列在左侧，点一项即填入 IP。输出按最大宽高限制（默认 1000×1000，等比缩小、不放大）。开始后先框选区域（单击窗口或拖拽，和截图一样），选好后可改声音开关和来源（扬声器、麦克风或两者），再点开始才发送。选区显示红框和操作条（可拖动、缩放、开始、暂停、停止）。暂停只停画面和声音，连接保留，可继续。红框不进入画面。
 
 ## v1.0.12 (2026-09-26)
 

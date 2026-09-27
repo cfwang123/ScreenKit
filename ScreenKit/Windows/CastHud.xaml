@@ -45,6 +45,8 @@
 			<Setter Property="IsHitTestVisible" Value="True"/>
 			<Setter Property="SnapsToDevicePixels" Value="True"/>
 		</Style>
+		<Geometry x:Key="GeoPlay">M 3,2 L 12,8 L 3,14 Z</Geometry>
+		<Geometry x:Key="GeoPause">M 2.5,2.5 H 5.5 V 13.5 H 2.5 Z M 9.5,2.5 H 12.5 V 13.5 H 9.5 Z</Geometry>
 		<Geometry x:Key="GeoStop">M 3,3 H 13 V 13 H 3 Z</Geometry>
 		<Geometry x:Key="GeoChevronL">M 10,2.5 L 4,8 L 10,13.5</Geometry>
 		<Geometry x:Key="GeoChevronR">M 4,2.5 L 10,8 L 4,13.5</Geometry>
@@ -75,7 +77,7 @@
 		<Border x:Name="bmini" Background="#F7E600" CornerRadius="4"
 		        BorderBrush="#C4B800" BorderThickness="1"
 		        Padding="2,3,4,3" Height="28" Visibility="Collapsed"
-		        Cursor="SizeAll" ToolTip="拖动移动 · 展开 / 停止">
+		        Cursor="SizeAll" ToolTip="拖动移动 · 展开 / 开始 / 暂停 / 停止">
 			<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 				<Button x:Name="bexpand" Style="{StaticResource HudIconBtn}" Width="22" Padding="0" Margin="0,0,2,0"
 				        ToolTip="展开控制条" AutomationProperties.AutomationId="cast.hud.expand">
@@ -83,7 +85,23 @@
 					      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
 					      Fill="Transparent" Stretch="Uniform" Width="10" Height="12"/>
 				</Button>
-				<Ellipse Width="8" Height="8" Fill="#C62828" Margin="2,0,6,0"/>
+				<Ellipse x:Name="edotM" Width="8" Height="8" Fill="#9E9E9E" Margin="2,0,6,0"/>
+				<Button x:Name="boptM" Content="选项" Style="{StaticResource HudLinkBtn}"
+				        Padding="4,0" Margin="0,0,2,0" ToolTip="投屏选项"
+				        AutomationProperties.AutomationId="cast.hud.options.mini"/>
+				<Button x:Name="bstartM" Style="{StaticResource HudIconBtn}" ToolTip="开始投屏"
+				        AutomationProperties.AutomationId="cast.hud.start.mini">
+					<Path Data="{StaticResource GeoPlay}" Fill="#111" Stretch="Uniform" Width="11" Height="11"/>
+				</Button>
+				<Button x:Name="bpauseM" Style="{StaticResource HudIconBtn}" Visibility="Collapsed" ToolTip="暂停"
+				        AutomationProperties.AutomationId="cast.hud.pause.mini">
+					<Grid Width="14" Height="14">
+						<Path x:Name="icoPauseM" Data="{StaticResource GeoPause}" Fill="#111"
+						      Stretch="Uniform" Width="12" Height="12"/>
+						<Path x:Name="icoResumeM" Data="{StaticResource GeoPlay}" Fill="#111"
+						      Stretch="Uniform" Width="11" Height="11" Visibility="Collapsed"/>
+					</Grid>
+				</Button>
 				<Button x:Name="bstopM" Style="{StaticResource HudIconBtn}" ToolTip="停止投屏"
 				        AutomationProperties.AutomationId="cast.hud.stop.mini">
 					<Path Data="{StaticResource GeoStop}" Fill="#111" Stretch="Uniform" Width="11" Height="11"/>
@@ -101,8 +119,8 @@
 					      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
 					      Fill="Transparent" Stretch="Uniform" Width="10" Height="12"/>
 				</Button>
-				<Ellipse Width="8" Height="8" Fill="#C62828" Margin="0,0,8,0"/>
-				<TextBlock x:Name="lbstate" Text="投屏中" FontSize="12" FontWeight="Bold"
+				<Ellipse x:Name="edot" Width="8" Height="8" Fill="#9E9E9E" Margin="0,0,8,0"/>
+				<TextBlock x:Name="lbstate" Text="就绪" FontSize="12" FontWeight="Bold"
 				           Foreground="#111" VerticalAlignment="Center" Margin="0,0,10,0"/>
 				<TextBlock x:Name="lbtime" Text="00:00:00" FontSize="12" FontFamily="Consolas, Cascadia Mono"
 				           FontWeight="SemiBold" Foreground="#111" VerticalAlignment="Center"
@@ -113,6 +131,22 @@
 				           VerticalAlignment="Center" Margin="0,0,8,0"
 				           MaxWidth="220" TextTrimming="CharacterEllipsis"/>
 				<Rectangle Width="1" Height="14" Fill="#99000000" Margin="0,0,4,0"/>
+				<Button x:Name="bopt" Content="选项" Style="{StaticResource HudLinkBtn}"
+				        Padding="4,0" Margin="0,0,2,0" ToolTip="投屏选项"
+				        AutomationProperties.AutomationId="cast.hud.options"/>
+				<Button x:Name="bstart" Style="{StaticResource HudIconBtn}" ToolTip="开始投屏"
+				        AutomationProperties.AutomationId="cast.hud.start">
+					<Path Data="{StaticResource GeoPlay}" Fill="#111" Stretch="Uniform" Width="11" Height="11"/>
+				</Button>
+				<Button x:Name="bpause" Style="{StaticResource HudIconBtn}" Visibility="Collapsed" ToolTip="暂停"
+				        AutomationProperties.AutomationId="cast.hud.pause">
+					<Grid Width="14" Height="14">
+						<Path x:Name="icoPause" Data="{StaticResource GeoPause}" Fill="#111"
+						      Stretch="Uniform" Width="12" Height="12"/>
+						<Path x:Name="icoResume" Data="{StaticResource GeoPlay}" Fill="#111"
+						      Stretch="Uniform" Width="11" Height="11" Visibility="Collapsed"/>
+					</Grid>
+				</Button>
 				<Button x:Name="bstop" Style="{StaticResource HudIconBtn}" ToolTip="停止投屏"
 				        AutomationProperties.AutomationId="cast.hud.stop">
 					<Path Data="{StaticResource GeoStop}" Fill="#111" Stretch="Uniform" Width="11" Height="11"/>

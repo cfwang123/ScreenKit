@@ -239,6 +239,8 @@ static class AppConfig {
 				o.CastMaxH = Compat.Clamp(cmaxhN, 160, 8192);
 			if (map.TryGetValue("cast_audio", out var ca))
 				o.CastAudio = parsebool(ca, true);
+			if (map.TryGetValue("cast_audio_src", out var casrc) && !string.IsNullOrWhiteSpace(casrc))
+				o.CastAudioSrc = casrc.Trim().Trim('"');
 			if (map.TryGetValue("cast_view_fill", out var cvf))
 				o.CastViewFill = parsebool(cvf, false);
 			if (map.TryGetValue("service_mode", out var sm))
@@ -586,6 +588,8 @@ static class AppConfig {
 		sb.AppendLine($"cast_usb_accessory = {(o.CastUsbAccessory ? "true" : "false")}");
 		sb.AppendLine($"cast_quality = \"{esc(string.IsNullOrWhiteSpace(o.CastQuality) ? "均衡 720p" : o.CastQuality)}\"");
 		sb.AppendLine($"cast_audio = {(o.CastAudio ? "true" : "false")}");
+		sb.AppendLine($"# 声音来源 Speakers / Mic / MicAndSpeakers");
+		sb.AppendLine($"cast_audio_src = \"{esc(string.IsNullOrWhiteSpace(o.CastAudioSrc) ? "Speakers" : o.CastAudioSrc)}\"");
 		sb.AppendLine($"# 最近投屏的电脑 name|ip|port，分号分隔");
 		sb.AppendLine($"cast_recent = \"{esc(o.CastRecent ?? "")}\"");
 		sb.AppendLine($"# 投屏页最大宽高（等比缩小进框内，不放大）");

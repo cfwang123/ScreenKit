@@ -104,8 +104,10 @@ public sealed class OcrOptions {
 	public bool CastUsbAccessory;
 	/// <summary>投屏画质档名（流畅 540p / 均衡 720p / 高清 1080p）。</summary>
 	public string CastQuality = "均衡 720p";
-	/// <summary>投屏是否发送系统声音。</summary>
+	/// <summary>投屏是否发送声音。</summary>
 	public bool CastAudio = true;
+	/// <summary>投屏声音来源：Speakers / Mic / MicAndSpeakers。</summary>
+	public string CastAudioSrc = "Speakers";
 	/// <summary>画面窗铺满（fill）或适应（fit）。</summary>
 	public bool CastViewFill;
 	/// <summary>最近投屏目标，name|ip|port 用分号分隔，最新在前。</summary>
@@ -385,6 +387,7 @@ public sealed class OcrOptions {
 		CastUsbAccessory = CastUsbAccessory,
 		CastQuality = CastQuality ?? "均衡 720p",
 		CastAudio = CastAudio,
+		CastAudioSrc = string.IsNullOrWhiteSpace(CastAudioSrc) ? "Speakers" : CastAudioSrc,
 		CastViewFill = CastViewFill,
 		CastRecent = CastRecent ?? "",
 		CastMaxW = CastMaxW,
