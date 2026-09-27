@@ -34,6 +34,8 @@ public partial class MainWindow {
 	int castw, casth;
 	string castto = "";
 	readonly List<CastPcRow> castscan = new();
+	CastHud casthud;
+	bool castclosing;
 
 	void initcasttab() {
 		castfill = true;
@@ -332,6 +334,7 @@ public partial class MainWindow {
 			castto = port > 0 && port != CastHost.TcpPort ? $"{ip}:{port}" : ip;
 			lbcaststat.Text = Loc.T("cast.tab.sending", castw, casth, castto);
 			lbcasttarget.Text = Loc.T("cast.tab.target", $"{name} · {castto}");
+			showcasthud(rect.Value, castto);
 		}
 		catch (Exception ex) {
 			castlive = false;
@@ -347,18 +350,54 @@ public partial class MainWindow {
 	}
 
 	void stopcast() {
-		castlive = false;
-		try { CastHost.Send?.Stop(); } catch { }
-		lbcaststat.Text = Loc.T("cast.tab.stopped");
-		syncastbtns();
+		if (castclosing) return;
+		castclosing = true;
+		try {
+			castlive = false;
+			closecasthud();
+			try { CastHost.Send?.Stop(); } catch { }
+			lbcaststat.Text = Loc.T("cast.tab.stopped");
+			syncastbtns();
+		}
+		finally { castclosing = false; }
+	}
+
+	void showcasthud(System.Drawing.Rectangle r, string to) {
+		closecasthud();
+		var hud = new CastHud(r, to);
+		hud.StopRequested += () => Dispatcher.BeginInvoke(new Action(stopcast));
+		hud.RegionChanged += nr => {
+			try { CastHost.Send?.SetRegion(nr); } catch { }
+			castw = nr.Width;
+			casth = nr.Height;
+		};
+		casthud = hud;
+		hud.Show();
+	}
+
+	void closecasthud() {
+		var h = casthud;
+		casthud = null;
+		if (h == null) return;
+		try { h.Close(); } catch { }
+	}
+
+	void hidecasthud() {
+		try { casthud?.Hide(); } catch { }
+	}
+
+	void showcasthudagain() {
+		try {
+			if (casthud == null) return;
+			casthud.Show();
+			casthud.Retop();
+		}
+		catch { }
 	}
 
 	void tickcast() {
 		var on = CastHost.Send != null && CastHost.Send.Running;
-		if (castlive && !on) {
-			castlive = false;
-			lbcaststat.Text = Loc.T("cast.tab.stopped");
-		}
+		if (castlive && !on) stopcast();
 		else if (castlive && on && castw > 0)
 			lbcaststat.Text = Loc.T("cast.tab.sending", castw, casth, castto);
 		syncastbtns();

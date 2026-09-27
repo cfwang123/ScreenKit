@@ -16,6 +16,7 @@ sealed class CastSendCli : IDisposable {
 	bool wantAudio;
 	int interval;
 	readonly object encs = new();
+	readonly object grablk = new();
 	readonly object nslock = new();
 	public Action<string> Log;
 	public bool Running => !stop && st != null;
@@ -47,6 +48,38 @@ sealed class CastSendCli : IDisposable {
 		th = new Thread(loop) { IsBackground = true, Name = "cast-send" };
 		th.Start();
 		Log?.Invoke($"已连接到 {uri} 编码 {venc.OutWidth}x{venc.OutHeight}@{q.Fps}");
+	}
+
+	public void SetRegion(Rectangle region) {
+		if (grab == null || st == null) return;
+		if (region.Width % 2 != 0) region.Width--;
+		if (region.Height % 2 != 0) region.Height--;
+		if (region.Width < 16 || region.Height < 16) return;
+		var moved = false;
+		lock (grablk) {
+			if (grab == null) return;
+			if (grab.Width == region.Width && grab.Height == region.Height) {
+				grab.Move(region.X, region.Y);
+				moved = true;
+			}
+			else {
+				var ng = new CastScreenGrab(region);
+				CastVideoEncoder nv;
+				try { nv = new CastVideoEncoder(ng.Width, ng.Height, q); }
+				catch {
+					ng.Dispose();
+					return;
+				}
+				var old = grab;
+				grab = ng;
+				lock (encs) {
+					venc?.Dispose();
+					venc = nv;
+				}
+				old.Dispose();
+			}
+		}
+		if (!moved) sendjson();
 	}
 
 	public void ApplyQ(CastQuality nq) {
@@ -97,8 +130,7 @@ sealed class CastSendCli : IDisposable {
 	}
 
 	void loop() {
-		var stride = grab.Width * 4;
-		var bgra = new byte[stride * grab.Height];
+		byte[] bgra = null;
 		var next = Environment.TickCount;
 		byte[] apcm = wantAudio ? new byte[48000] : null;
 		try {
@@ -113,9 +145,16 @@ sealed class CastSendCli : IDisposable {
 				var now = Environment.TickCount;
 				if (now - next < 0) { Thread.Sleep(1); continue; }
 				next = now + interval;
-				if (!grab.Grab(bgra, stride)) continue;
 				byte[] nal = null;
-				lock (encs) nal = venc?.EncodeBgra(bgra, stride);
+				int stride;
+				lock (grablk) {
+					if (grab == null) continue;
+					stride = grab.Width * 4;
+					var need = stride * grab.Height;
+					if (bgra == null || bgra.Length < need) bgra = new byte[need];
+					if (!grab.Grab(bgra, stride)) continue;
+					lock (encs) nal = venc?.EncodeBgra(bgra, stride);
+				}
 				if (nal != null) {
 					var pkt = CastProto.Pack(CastProto.T_VIDEO, nal);
 					lock (nslock) st.Write(pkt, 0, pkt.Length);

@@ -6,6 +6,7 @@ using System.Windows.Forms;
 namespace ScreenKit;
 
 sealed class CastScreenGrab : IDisposable {
+	readonly object gate = new();
 	Bitmap bmp;
 	Graphics g;
 	int ox, oy, w, h;
@@ -43,7 +44,18 @@ sealed class CastScreenGrab : IDisposable {
 		g = Graphics.FromImage(bmp);
 	}
 
+	public void Move(int x, int y) {
+		lock (gate) { ox = x; oy = y; }
+	}
+
 	public bool Grab(byte[] dst, int stride) {
+		lock (gate) {
+			if (g == null || bmp == null) return false;
+			return grabcore(dst, stride);
+		}
+	}
+
+	bool grabcore(byte[] dst, int stride) {
 		var ok = grabblt();
 		if (!ok) {
 			try {
@@ -77,9 +89,11 @@ sealed class CastScreenGrab : IDisposable {
 	}
 
 	public void Dispose() {
-		g?.Dispose();
-		bmp?.Dispose();
-		g = null;
-		bmp = null;
+		lock (gate) {
+			g?.Dispose();
+			bmp?.Dispose();
+			g = null;
+			bmp = null;
+		}
 	}
 }

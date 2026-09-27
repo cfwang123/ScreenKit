@@ -2168,6 +2168,7 @@ public partial class MainWindow : Window {
 				hud.SuspendForCapture();
 				await Task.Delay(40);
 			}
+			hidecasthud();
 			CaptureLog.Info($"captureasync start hideMain={hideMain} showMainAfter={showMainAfter} wasVis={mainWasVisible} busy={busy} recording={(hud != null)}");
 			var bmp = await capturescreenasync(hideMain);
 			CaptureLog.Info($"captureasync got bmp={CaptureLog.Bmp(bmp)}");
@@ -2228,6 +2229,7 @@ public partial class MainWindow : Window {
 		}
 		finally {
 			try { hud?.ResumeAfterCapture(); } catch { }
+			showcasthudagain();
 			capturing = false;
 		}
 	}
@@ -2463,6 +2465,7 @@ public partial class MainWindow : Window {
 				CaptureLog.Info("screenboard suspend RecordHud");
 				hud.SuspendForCapture();
 			}
+			hidecasthud();
 			if (restoreUi) {
 				try { Hide(); } catch { WindowState = WindowState.Minimized; }
 				await Task.Delay(40);
@@ -2494,6 +2497,7 @@ public partial class MainWindow : Window {
 		}
 		finally {
 			try { hud?.ResumeAfterCapture(); } catch { }
+			showcasthudagain();
 			capturing = false;
 			if (!showMainAfter && !mainWasVisible)
 				keepmainhidden();
@@ -2588,6 +2592,7 @@ public partial class MainWindow : Window {
 				CaptureLog.Info("snapannotate suspend RecordHud");
 				hud.SuspendForCapture();
 			}
+			hidecasthud();
 			// 仅工具栏点击时隐藏主窗；热键不隐藏
 			if (restoreUi) {
 				try { Hide(); } catch { WindowState = WindowState.Minimized; }
@@ -2620,6 +2625,7 @@ public partial class MainWindow : Window {
 		}
 		finally {
 			try { hud?.ResumeAfterCapture(); } catch { }
+			showcasthudagain();
 			capturing = false;
 			// 遮罩关闭后系统可能拉起主窗
 			if (!showMainAfter && !mainWasVisible)
