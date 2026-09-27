@@ -138,6 +138,9 @@
 				<MenuItem x:Name="mnnettool" Header="网络工具(_N)…"
 				          AutomationProperties.AutomationId="menu.nettool"
 				          ToolTip="Ping、域名解析、WHOIS"/>
+				<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
+				          AutomationProperties.AutomationId="menu.wintop"
+				          ToolTip="选择窗口，设置或取消固定在前面"/>
 				<MenuItem x:Name="mncast" Header="投屏(_S)…"
 				          AutomationProperties.AutomationId="menu.cast"
 				          ToolTip="局域网 / USB 投屏"/>

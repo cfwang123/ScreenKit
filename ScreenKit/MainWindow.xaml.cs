@@ -78,6 +78,7 @@ public partial class MainWindow : Window {
 	TextToolWindow textToolWin;
 	PasswordWindow pwGenWin;
 	NetToolsWindow netToolWin;
+	WinTopWindow winTopWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -497,6 +498,7 @@ public partial class MainWindow : Window {
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
+			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => {
@@ -1146,6 +1148,7 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
+		mnwintop.Click += (_, _) => openwintop();
 		mncast.Click += (_, _) => opencast();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
@@ -1255,6 +1258,8 @@ public partial class MainWindow : Window {
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnnettool.Header = Loc.T("menu.nettool");
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
+			mnwintop.Header = Loc.T("menu.wintop");
+			mnwintop.ToolTip = Loc.T("menu.wintop.tip");
 			mncast.Header = Loc.T("menu.cast");
 			mncast.ToolTip = Loc.T("menu.cast.tip");
 			mnsettings.Header = Loc.T("menu.settings");
@@ -3314,6 +3319,9 @@ public partial class MainWindow : Window {
 	void opennettool(bool fromTray = false) =>
 		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.nettool", fromTray);
 
+	void openwintop(bool fromTray = false) =>
+		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop", fromTray);
+
 	void opencast() => CastHost.ShowSet();
 
 	void initcast() {
@@ -3348,6 +3356,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
+				else if (ReferenceEquals(winTopWin, w)) winTopWin = null;
 			};
 			w.Show();
 		}

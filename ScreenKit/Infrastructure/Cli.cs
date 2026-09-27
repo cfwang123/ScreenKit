@@ -41,6 +41,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
+				or "--test-wintop"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -240,6 +241,8 @@ static class Cli {
 					return testpwgen();
 				case "--test-nettool":
 					return testnettool();
+				case "--test-wintop":
+					return testwintop();
 				case "--test-cast":
 					return testcast();
 				case "--test-cast-recv":
@@ -2799,6 +2802,61 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testwintop() {
+		Out("=== 窗口管理 --test-wintop ===");
+		var bad = 0;
+		var h = IntPtr.Zero;
+		try {
+			if (!WinTop.TryParse("0x10", out var parsed) || parsed.ToInt64() != 0x10) {
+				Err("FAIL: parse 0x10");
+				bad++;
+			}
+			if (!WinTop.TryParse("16", out var dec) || dec.ToInt64() != 16) {
+				Err("FAIL: parse decimal");
+				bad++;
+			}
+			if (WinTop.SetTop(IntPtr.Zero, true, out _)) {
+				Err("FAIL: zero hwnd");
+				bad++;
+			}
+			h = WinTop.CreateProbe();
+			if (h == IntPtr.Zero) {
+				Err("FAIL: CreateProbe " + Marshal.GetLastWin32Error());
+				bad++;
+			}
+			else {
+				Out("probe " + h.ToInt64().ToString("X"));
+				if (WinTop.IsTop(h)) {
+					Err("FAIL: probe starts topmost");
+					bad++;
+				}
+				if (!WinTop.SetTop(h, true, out var e1) || !WinTop.IsTop(h)) {
+					Err("FAIL: set top err=" + e1);
+					bad++;
+				}
+				if (!WinTop.SetTop(h, false, out var e2) || WinTop.IsTop(h)) {
+					Err("FAIL: clear top err=" + e2);
+					bad++;
+				}
+			}
+			var list = WinTop.List();
+			Out("windows " + list.Count);
+			if (list.Count == 0) {
+				Err("FAIL: empty list");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		finally {
+			WinTop.DestroyProbe(h);
+		}
+		Out(bad == 0 ? "=== OK：窗口管理 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static int testcast() {
 		Out("=== 投屏 --test-cast ===");
 		var bad = 0;
@@ -2980,6 +3038,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-wintop
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
@@ -3040,6 +3099,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
+      --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
@@ -3100,6 +3160,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-wintop
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
