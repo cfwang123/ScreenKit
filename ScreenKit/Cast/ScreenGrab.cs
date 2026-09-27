@@ -8,7 +8,7 @@ namespace ScreenKit;
 sealed class CastScreenGrab : IDisposable {
 	Bitmap bmp;
 	Graphics g;
-	int w, h;
+	int ox, oy, w, h;
 
 	public int Width => w;
 	public int Height => h;
@@ -25,8 +25,18 @@ sealed class CastScreenGrab : IDisposable {
 
 	public CastScreenGrab() {
 		var b = Screen.PrimaryScreen.Bounds;
-		w = b.Width / 2 * 2;
-		h = b.Height / 2 * 2;
+		init(0, 0, b.Width, b.Height);
+	}
+
+	public CastScreenGrab(System.Drawing.Rectangle region) {
+		init(region.X, region.Y, region.Width, region.Height);
+	}
+
+	void init(int x, int y, int rw, int rh) {
+		ox = x;
+		oy = y;
+		w = rw / 2 * 2;
+		h = rh / 2 * 2;
 		if (w < 16) w = 16;
 		if (h < 16) h = 16;
 		bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -37,7 +47,7 @@ sealed class CastScreenGrab : IDisposable {
 		var ok = grabblt();
 		if (!ok) {
 			try {
-				g.CopyFromScreen(0, 0, 0, 0, new System.Drawing.Size(w, h), CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);
+				g.CopyFromScreen(ox, oy, 0, 0, new System.Drawing.Size(w, h), CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);
 				ok = true;
 			}
 			catch { return false; }
@@ -58,7 +68,7 @@ sealed class CastScreenGrab : IDisposable {
 		if (hdcSrc == IntPtr.Zero) return false;
 		var hdcDst = g.GetHdc();
 		try {
-			return BitBlt(hdcDst, 0, 0, w, h, hdcSrc, 0, 0, SRCCOPY | CAPTUREBLT);
+			return BitBlt(hdcDst, 0, 0, w, h, hdcSrc, ox, oy, SRCCOPY | CAPTUREBLT);
 		}
 		finally {
 			g.ReleaseHdc(hdcDst);

@@ -165,6 +165,8 @@ static class AppConfig {
 				o.TabHttpVisible = parsebool(thv, true);
 			if (map.TryGetValue("tab_sendfile_visible", out var tsfv))
 				o.TabSendFileVisible = parsebool(tsfv, true);
+			if (map.TryGetValue("tab_cast_visible", out var tcastv))
+				o.TabCastVisible = parsebool(tcastv, true);
 			if (map.TryGetValue("update_check_days", out var ucd) && int.TryParse(ucd, out var ucDays))
 				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
 			if (map.TryGetValue("update_last_check", out var ulc) && long.TryParse(ulc, out var ulcUnix))
@@ -229,6 +231,8 @@ static class AppConfig {
 				o.CastUsbAccessory = parsebool(cua, false);
 			if (map.TryGetValue("cast_quality", out var cq) && !string.IsNullOrWhiteSpace(cq))
 				o.CastQuality = cq.Trim().Trim('"');
+			if (map.TryGetValue("cast_recent", out var crecent))
+				o.CastRecent = (crecent ?? "").Trim().Trim('"');
 			if (map.TryGetValue("cast_audio", out var ca))
 				o.CastAudio = parsebool(ca, true);
 			if (map.TryGetValue("cast_view_fill", out var cvf))
@@ -515,6 +519,7 @@ static class AppConfig {
 		sb.AppendLine($"tab_face_visible = {(o.TabFaceVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_http_visible = {(o.TabHttpVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_sendfile_visible = {(o.TabSendFileVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_cast_visible = {(o.TabCastVisible ? "true" : "false")}");
 		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");
@@ -577,6 +582,8 @@ static class AppConfig {
 		sb.AppendLine($"cast_usb_accessory = {(o.CastUsbAccessory ? "true" : "false")}");
 		sb.AppendLine($"cast_quality = \"{esc(string.IsNullOrWhiteSpace(o.CastQuality) ? "均衡 720p" : o.CastQuality)}\"");
 		sb.AppendLine($"cast_audio = {(o.CastAudio ? "true" : "false")}");
+		sb.AppendLine($"# 最近投屏的电脑 name|ip|port，分号分隔");
+		sb.AppendLine($"cast_recent = \"{esc(o.CastRecent ?? "")}\"");
 		sb.AppendLine($"# 画面窗：false=适应窗口(fit) true=铺满窗口(fill)");
 		sb.AppendLine($"cast_view_fill = {(o.CastViewFill ? "true" : "false")}");
 		sb.AppendLine();

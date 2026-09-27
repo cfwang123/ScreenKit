@@ -26,6 +26,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+### English
+
+#### Added
+
+- Screencast tab: cast this PC to another PC on the LAN. Pick a saved PC or scan, then choose a region the same way as a screenshot (click a window or drag). Quality and audio match the existing cast presets.
+
+### 中文
+
+#### 新增
+
+- 主界面 **投屏** Tab：把本机画面投到另一台电脑。可选已保存的电脑或搜索局域网，开始前先框选区域（单击窗口或拖拽，和截图一样）。画质与声音沿用现有档位。
+
 ## v1.0.12 (2026-09-26)
 
 ### English

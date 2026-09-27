@@ -125,6 +125,7 @@ public partial class MainWindow : Window {
 		initcast();
 		inithttptab();
 		initsendfiletab();
+		initcasttab();
 		// 服务模式：启动后后台预热，引擎常驻
 		if (opt.ServiceMode)
 			tryservicewarmup("启动预热");
@@ -150,6 +151,7 @@ public partial class MainWindow : Window {
 			(tabface, opt.TabFaceVisible),
 			(tabhttp, opt.TabHttpVisible),
 			(tabsf, opt.TabSendFileVisible),
+			(tabcast, opt.TabCastVisible),
 		};
 		foreach (var (tab, visible) in tabs)
 			tab.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
@@ -1275,6 +1277,7 @@ public partial class MainWindow : Window {
 			tabtr.Header = Loc.T("tab.translate");
 			try { applyhttplang(); } catch { }
 			try { applysflang(); } catch { }
+			try { applycastlang(); } catch { }
 
 			// 顶栏
 			lbpack.Text = Loc.T("label.pack");

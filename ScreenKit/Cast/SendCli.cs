@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Net.WebSockets;
 
 namespace ScreenKit;
@@ -19,7 +20,10 @@ sealed class CastSendCli : IDisposable {
 	public Action<string> Log;
 	public bool Running => !stop && st != null;
 
-	public void Start(string ip, int port, CastQuality quality, bool audio) {
+	public void Start(string ip, int port, CastQuality quality, bool audio) =>
+		Start(ip, port, quality, audio, Rectangle.Empty);
+
+	public void Start(string ip, int port, CastQuality quality, bool audio, Rectangle region) {
 		if (st != null) return;
 		if (!FfmpegLoader.TryInit(out var err))
 			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
@@ -32,7 +36,8 @@ sealed class CastSendCli : IDisposable {
 		var uri = new Uri($"ws://{ip}:{port}{CastProto.WS_PATH}");
 		ws.ConnectAsync(uri, CancellationToken.None).GetAwaiter().GetResult();
 		st = new CastWsStream(ws);
-		grab = new CastScreenGrab();
+		grab = region.Width >= 16 && region.Height >= 16
+			? new CastScreenGrab(region) : new CastScreenGrab();
 		venc = new CastVideoEncoder(grab.Width, grab.Height, q);
 		sendjson();
 		if (!waithello()) {
@@ -129,6 +134,8 @@ sealed class CastSendCli : IDisposable {
 		}
 		catch (Exception ex) {
 			if (!stop) Log?.Invoke($"发送中断: {ex.Message}");
+			stop = true;
+			try { st?.Close(); } catch { }
 		}
 	}
 

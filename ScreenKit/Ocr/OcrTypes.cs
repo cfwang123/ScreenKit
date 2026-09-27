@@ -108,6 +108,8 @@ public sealed class OcrOptions {
 	public bool CastAudio = true;
 	/// <summary>画面窗铺满（fill）或适应（fit）。</summary>
 	public bool CastViewFill;
+	/// <summary>最近投屏目标，name|ip|port 用分号分隔，最新在前。</summary>
+	public string CastRecent = "";
 	/// <summary>
 	/// 服务模式：启动/改参后立即预热引擎并常驻，不主动释放模型内存。
 	/// 关闭时保持懒加载（改参后丢弃，下次识别再加载）。
@@ -191,6 +193,7 @@ public sealed class OcrOptions {
 	public bool TabFaceVisible = true;
 	public bool TabHttpVisible = true;
 	public bool TabSendFileVisible = true;
+	public bool TabCastVisible = true;
 	/// <summary>启动时自动检查更新的间隔（天）。默认 7；0 = 不自动检查。菜单「检查更新」不受限。</summary>
 	public int UpdateCheckDays = 7;
 	/// <summary>上次成功查询 GitHub Releases 的 UTC unix 秒；0 = 从未检查。</summary>
@@ -379,6 +382,7 @@ public sealed class OcrOptions {
 		CastQuality = CastQuality ?? "均衡 720p",
 		CastAudio = CastAudio,
 		CastViewFill = CastViewFill,
+		CastRecent = CastRecent ?? "",
 		ServiceMode = ServiceMode,
 		PdfInvisibleText = PdfInvisibleText,
 		PdfDpi = PdfDpi,
@@ -423,6 +427,7 @@ public sealed class OcrOptions {
 		TabFaceVisible = TabFaceVisible,
 		TabHttpVisible = TabHttpVisible,
 		TabSendFileVisible = TabSendFileVisible,
+		TabCastVisible = TabCastVisible,
 		UpdateCheckDays = UpdateCheckDays,
 		LastUpdateCheckUnix = LastUpdateCheckUnix,
 		HttpProxyEnabled = HttpProxyEnabled,

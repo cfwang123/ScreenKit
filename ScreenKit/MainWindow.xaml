@@ -1897,6 +1897,69 @@
 						</Grid>
 					</Grid>
 				</TabItem>
+
+				<!-- Tab：投屏（投到另一台电脑） -->
+				<TabItem x:Name="tabcast" Header="投屏"
+				         AutomationProperties.AutomationId="tab.cast">
+					<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+						<StackPanel Margin="12" MaxWidth="560" HorizontalAlignment="Left">
+							<TextBlock x:Name="lbcaststat" Text="准备投屏" FontSize="20" FontWeight="SemiBold"
+							           Foreground="{StaticResource TextPrimary}"/>
+							<TextBlock x:Name="lbcasttarget" Text="还没有选择电脑" Margin="0,4,0,0"
+							           FontSize="13" Foreground="{StaticResource TextMuted}"
+							           TextWrapping="Wrap"/>
+							<Border Margin="0,16,0,0" Padding="16" CornerRadius="12"
+							        Background="{StaticResource BgPanel}"
+							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+								<StackPanel>
+									<TextBlock x:Name="lbcastto" Text="投到这台电脑" FontSize="15" FontWeight="SemiBold"
+									           Foreground="{StaticResource TextPrimary}"/>
+									<TextBox x:Name="ecastip" Margin="0,8,0,0" Height="32" Padding="8,0"
+									         VerticalContentAlignment="Center"
+									         BorderBrush="{StaticResource BorderSoft}"
+									         AutomationProperties.AutomationId="cast.tab.ip"
+									         ToolTip="电脑 IP，如 192.168.1.8"/>
+									<StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+										<Button x:Name="bcastsaved" Content="已保存的电脑"
+										        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
+										        Margin="0,0,8,0"
+										        AutomationProperties.AutomationId="cast.tab.saved"/>
+										<Button x:Name="bcastscan" Content="搜索局域网"
+										        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
+										        AutomationProperties.AutomationId="cast.tab.scan"/>
+									</StackPanel>
+									<ListBox x:Name="lcastpeers" Height="180" Margin="0,8,0,0"
+									         Visibility="Collapsed"
+									         BorderBrush="{StaticResource BorderSoft}"
+									         AutomationProperties.AutomationId="cast.tab.peers"/>
+								</StackPanel>
+							</Border>
+							<Border Margin="0,12,0,0" Padding="16" CornerRadius="12"
+							        Background="{StaticResource BgPanel}"
+							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+								<StackPanel>
+									<TextBlock x:Name="lbcastq" Text="画质" FontSize="15" FontWeight="SemiBold"
+									           Foreground="{StaticResource TextPrimary}"/>
+									<ComboBox x:Name="ecastq" Margin="0,8,0,0" Height="32"
+									          AutomationProperties.AutomationId="cast.tab.quality"/>
+									<CheckBox x:Name="ccastaudio" Content="同时发送声音" Margin="0,10,0,0"
+									          IsChecked="True"
+									          AutomationProperties.AutomationId="cast.tab.audio"/>
+									<TextBlock x:Name="lbcasthint" Margin="0,8,0,0" FontSize="12"
+									           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
+									           Text="开始后先框选区域，和截图一样：单击窗口或拖拽。对方电脑需已打开本程序。"/>
+								</StackPanel>
+							</Border>
+							<Button x:Name="bcaststart" Content="开始投屏" Margin="0,16,0,0" Height="36"
+							        Style="{StaticResource PrimaryBtn}" HorizontalAlignment="Stretch"
+							        AutomationProperties.AutomationId="cast.tab.start"/>
+							<Button x:Name="bcaststop" Content="停止投屏" Margin="0,8,0,0" Height="36"
+							        Style="{StaticResource ToolBtn}" HorizontalAlignment="Stretch"
+							        Visibility="Collapsed"
+							        AutomationProperties.AutomationId="cast.tab.stop"/>
+						</StackPanel>
+					</ScrollViewer>
+				</TabItem>
 		</TabControl>
 	</Grid>
 </Window>
