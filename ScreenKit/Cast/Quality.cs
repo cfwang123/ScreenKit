@@ -3,6 +3,8 @@ namespace ScreenKit;
 sealed class CastQuality {
 	public string Name;
 	public int Width, Height, Fps, Bitrate, Crf;
+	/// <summary>true：宽高都进框内等比缩小；false：按短边限制（画质档）。</summary>
+	public bool BoxFit;
 
 	public static readonly CastQuality[] Presets = {
 		new() { Name = "流畅 540p", Width = 960, Height = 540, Fps = 15, Bitrate = 1_200_000, Crf = 28 },
@@ -18,9 +20,17 @@ sealed class CastQuality {
 
 	public void Fit(int srcW, int srcH, out int outW, out int outH) {
 		if (srcW <= 0 || srcH <= 0) { outW = Width; outH = Height; return; }
-		var cap = Math.Min(Width, Height);
-		var srcMin = Math.Min(srcW, srcH);
-		var s = Math.Min(1, cap / (double)srcMin);
+		double s;
+		if (BoxFit) {
+			var sw = Width / (double)srcW;
+			var sh = Height / (double)srcH;
+			s = Math.Min(1, Math.Min(sw, sh));
+		}
+		else {
+			var cap = Math.Min(Width, Height);
+			var srcMin = Math.Min(srcW, srcH);
+			s = Math.Min(1, cap / (double)srcMin);
+		}
 		outW = Math.Max(16, ((int)(srcW * s) / 16) * 16);
 		outH = Math.Max(16, ((int)(srcH * s) / 16) * 16);
 	}

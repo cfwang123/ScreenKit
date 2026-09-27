@@ -110,6 +110,10 @@ public sealed class OcrOptions {
 	public bool CastViewFill;
 	/// <summary>最近投屏目标，name|ip|port 用分号分隔，最新在前。</summary>
 	public string CastRecent = "";
+	/// <summary>投屏页输出最大宽（等比进框，不放大）。</summary>
+	public int CastMaxW = 1000;
+	/// <summary>投屏页输出最大高（等比进框，不放大）。</summary>
+	public int CastMaxH = 1000;
 	/// <summary>
 	/// 服务模式：启动/改参后立即预热引擎并常驻，不主动释放模型内存。
 	/// 关闭时保持懒加载（改参后丢弃，下次识别再加载）。
@@ -383,6 +387,8 @@ public sealed class OcrOptions {
 		CastAudio = CastAudio,
 		CastViewFill = CastViewFill,
 		CastRecent = CastRecent ?? "",
+		CastMaxW = CastMaxW,
+		CastMaxH = CastMaxH,
 		ServiceMode = ServiceMode,
 		PdfInvisibleText = PdfInvisibleText,
 		PdfDpi = PdfDpi,

@@ -233,6 +233,10 @@ static class AppConfig {
 				o.CastQuality = cq.Trim().Trim('"');
 			if (map.TryGetValue("cast_recent", out var crecent))
 				o.CastRecent = (crecent ?? "").Trim().Trim('"');
+			if (map.TryGetValue("cast_max_w", out var cmaxw) && int.TryParse(cmaxw, out var cmaxwN))
+				o.CastMaxW = Compat.Clamp(cmaxwN, 160, 8192);
+			if (map.TryGetValue("cast_max_h", out var cmaxh) && int.TryParse(cmaxh, out var cmaxhN))
+				o.CastMaxH = Compat.Clamp(cmaxhN, 160, 8192);
 			if (map.TryGetValue("cast_audio", out var ca))
 				o.CastAudio = parsebool(ca, true);
 			if (map.TryGetValue("cast_view_fill", out var cvf))
@@ -584,6 +588,9 @@ static class AppConfig {
 		sb.AppendLine($"cast_audio = {(o.CastAudio ? "true" : "false")}");
 		sb.AppendLine($"# 最近投屏的电脑 name|ip|port，分号分隔");
 		sb.AppendLine($"cast_recent = \"{esc(o.CastRecent ?? "")}\"");
+		sb.AppendLine($"# 投屏页最大宽高（等比缩小进框内，不放大）");
+		sb.AppendLine($"cast_max_w = {Compat.Clamp(o.CastMaxW <= 0 ? 1000 : o.CastMaxW, 160, 8192)}");
+		sb.AppendLine($"cast_max_h = {Compat.Clamp(o.CastMaxH <= 0 ? 1000 : o.CastMaxH, 160, 8192)}");
 		sb.AppendLine($"# 画面窗：false=适应窗口(fit) true=铺满窗口(fill)");
 		sb.AppendLine($"cast_view_fill = {(o.CastViewFill ? "true" : "false")}");
 		sb.AppendLine();

@@ -28,25 +28,26 @@ sealed class CastPcRow {
 public partial class MainWindow {
 	DispatcherTimer casttimer;
 	bool castfill;
+	bool castsuppress;
 	bool castpicking;
 	bool castlive;
 	int castw, casth;
 	string castto = "";
+	readonly List<CastPcRow> castscan = new();
 
 	void initcasttab() {
-		fillcastq();
+		castfill = true;
 		ccastaudio.IsChecked = CastHost.Audio;
+		ecastmaxw.Text = (opt?.CastMaxW > 0 ? opt.CastMaxW : 1000).ToString();
+		ecastmaxh.Text = (opt?.CastMaxH > 0 ? opt.CastMaxH : 1000).ToString();
+		castfill = false;
 		loadlastcast();
-		ecastq.SelectionChanged += (_, _) => {
-			if (castfill) return;
-			savecastopt();
-			if (CastHost.Send != null && CastHost.Send.Running)
-				CastHost.Send.ApplyQ(CastHost.CurQ());
-		};
+		refreshcastlist();
 		ccastaudio.Checked += (_, _) => savecastopt();
 		ccastaudio.Unchecked += (_, _) => savecastopt();
+		ecastmaxw.LostFocus += (_, _) => oncastlimit();
+		ecastmaxh.LostFocus += (_, _) => oncastlimit();
 		lcastpeers.SelectionChanged += (_, _) => oncastpeer();
-		bcastsaved.Click += (_, _) => showcastsaved();
 		bcastscan.Click += async (_, _) => await scancast();
 		bcaststart.Click += async (_, _) => await startcast();
 		bcaststop.Click += (_, _) => stopcast();
@@ -58,38 +59,60 @@ public partial class MainWindow {
 
 	void applycastlang() {
 		tabcast.Header = Loc.T("tab.cast");
+		lbcastbrand.Text = Loc.T("tab.cast");
+		lbcastsaved.Text = Loc.T("cast.tab.saved");
+		lbcastempty.Text = Loc.T("cast.tab.nosaved");
 		lbcastto.Text = Loc.T("cast.tab.to");
-		lbcastq.Text = Loc.T("cast.quality");
+		lbcastlimit.Text = Loc.T("cast.tab.limit");
+		lbcastlimithint.Text = Loc.T("cast.tab.limit.hint");
+		lbcastmaxw.Text = Loc.T("cast.tab.maxw");
+		lbcastmaxh.Text = Loc.T("cast.tab.maxh");
 		lbcasthint.Text = Loc.T("cast.tab.hint");
 		ccastaudio.Content = Loc.T("cast.tab.audio");
-		bcastsaved.Content = Loc.T("cast.tab.saved");
 		bcastscan.Content = Loc.T("cast.tab.scan");
 		bcaststart.Content = Loc.T("cast.tab.start");
 		bcaststop.Content = Loc.T("cast.tab.stop");
 		ecastip.ToolTip = Loc.T("cast.tab.iph");
-		var keep = ecastq.SelectedItem as string;
-		fillcastq();
-		if (!string.IsNullOrEmpty(keep)) ecastq.SelectedItem = keep;
-		if (ecastq.SelectedIndex < 0) ecastq.SelectedIndex = 1;
 		if (!castlive && string.IsNullOrWhiteSpace(ecastip.Text))
 			lbcasttarget.Text = Loc.T("cast.tab.notarget");
 		if (!castlive && (lbcaststat.Text == "准备投屏" || string.IsNullOrEmpty(lbcaststat.Text)))
 			lbcaststat.Text = Loc.T("cast.tab.ready");
 	}
 
-	void fillcastq() {
+	void oncastlimit() {
+		if (castfill) return;
 		castfill = true;
-		ecastq.Items.Clear();
-		foreach (var q in CastQuality.Presets) ecastq.Items.Add(q.Name);
-		ecastq.SelectedItem = CastHost.QualityName;
-		if (ecastq.SelectedIndex < 0) ecastq.SelectedIndex = 1;
+		ecastmaxw.Text = readcastlimit(ecastmaxw.Text).ToString();
+		ecastmaxh.Text = readcastlimit(ecastmaxh.Text).ToString();
 		castfill = false;
+		savecastopt();
+		if (CastHost.Send != null && CastHost.Send.Running)
+			CastHost.Send.ApplyQ(castboxq());
+	}
+
+	static int readcastlimit(string text) {
+		if (!int.TryParse((text ?? "").Trim(), out var n) || n <= 0) n = 1000;
+		return Compat.Clamp(n, 160, 8192);
+	}
+
+	CastQuality castboxq() {
+		var baseq = CastQuality.Presets[1];
+		return new CastQuality {
+			Name = "box",
+			Width = readcastlimit(ecastmaxw.Text),
+			Height = readcastlimit(ecastmaxh.Text),
+			Fps = baseq.Fps,
+			Bitrate = baseq.Bitrate,
+			Crf = baseq.Crf,
+			BoxFit = true,
+		};
 	}
 
 	void savecastopt() {
 		if (opt == null || castfill) return;
-		opt.CastQuality = ecastq.SelectedItem as string ?? CastQuality.Presets[1].Name;
 		opt.CastAudio = ccastaudio.IsChecked == true;
+		opt.CastMaxW = readcastlimit(ecastmaxw.Text);
+		opt.CastMaxH = readcastlimit(ecastmaxh.Text);
 		try { AppConfig.Save(opt); } catch { }
 	}
 
@@ -131,6 +154,7 @@ public partial class MainWindow {
 		foreach (var x in list) parts.Add($"{x.Name}|{x.Ip}|{x.Port}");
 		opt.CastRecent = string.Join(";", parts);
 		try { AppConfig.Save(opt); } catch { }
+		refreshcastlist();
 	}
 
 	void fillcastip(CastPcRow row) {
@@ -141,26 +165,37 @@ public partial class MainWindow {
 	}
 
 	void oncastpeer() {
+		if (castsuppress) return;
 		if (lcastpeers.SelectedItem is not CastPcRow row) return;
 		fillcastip(row);
 		if (!castlive) lbcaststat.Text = Loc.T("cast.tab.ready");
 	}
 
-	void showrows(List<CastPcRow> rows) {
+	void refreshcastlist() {
+		castsuppress = true;
+		var rows = loadcastsaved();
+		foreach (var s in castscan) {
+			if (s == null || string.IsNullOrWhiteSpace(s.Ip)) continue;
+			var dup = false;
+			foreach (var r in rows)
+				if (string.Equals(r.Ip, s.Ip, StringComparison.OrdinalIgnoreCase) && r.Port == s.Port) {
+					dup = true;
+					break;
+				}
+			if (!dup) rows.Add(s);
+		}
+		var keep = lcastpeers.SelectedItem as CastPcRow;
 		lcastpeers.Items.Clear();
 		foreach (var r in rows) lcastpeers.Items.Add(r);
-		lcastpeers.Visibility = rows.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-	}
-
-	void showcastsaved() {
-		var saved = loadcastsaved();
-		if (saved.Count == 0) {
-			lbcaststat.Text = Loc.T("cast.tab.nosaved");
-			lcastpeers.Visibility = Visibility.Collapsed;
-			return;
+		lbcastempty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+		if (keep != null) {
+			foreach (CastPcRow r in lcastpeers.Items)
+				if (string.Equals(r.Ip, keep.Ip, StringComparison.OrdinalIgnoreCase) && r.Port == keep.Port) {
+					lcastpeers.SelectedItem = r;
+					break;
+				}
 		}
-		showrows(saved);
-		lbcaststat.Text = Loc.T("cast.tab.savedn", saved.Count);
+		castsuppress = false;
 	}
 
 	async Task scancast() {
@@ -173,29 +208,35 @@ public partial class MainWindow {
 			CastHost.Disc?.Scan();
 			await Task.Delay(800);
 			var found = CastHost.Disc?.Snapshot() ?? new List<CastPeer>();
-			var rows = new List<CastPcRow>();
+			castscan.Clear();
 			foreach (var p in found) {
 				if (p == null || string.IsNullOrWhiteSpace(p.Ip)) continue;
 				if (p.Role == "send") continue;
-				rows.Add(new CastPcRow {
+				castscan.Add(new CastPcRow {
 					Name = p.Name,
 					Ip = p.Ip,
 					Port = p.Tcp > 0 ? p.Tcp : CastHost.TcpPort,
 				});
 			}
-			showrows(rows);
-			if (rows.Count == 0) {
+			refreshcastlist();
+			if (castscan.Count == 0) {
 				lbcaststat.Text = Loc.T("cast.tab.none");
 				return;
 			}
 			CastPcRow hit = null;
 			if (trycasttarget(out var ip, out _, out _)) {
-				foreach (var r in rows)
+				foreach (var r in castscan)
 					if (string.Equals(r.Ip, ip, StringComparison.OrdinalIgnoreCase)) { hit = r; break; }
 			}
-			if (rows.Count == 1) hit = rows[0];
-			if (hit != null) lcastpeers.SelectedItem = hit;
-			else lbcaststat.Text = Loc.T("cast.tab.found", rows.Count);
+			if (castscan.Count == 1) hit = castscan[0];
+			if (hit != null) {
+				foreach (CastPcRow r in lcastpeers.Items)
+					if (string.Equals(r.Ip, hit.Ip, StringComparison.OrdinalIgnoreCase) && r.Port == hit.Port) {
+						lcastpeers.SelectedItem = r;
+						break;
+					}
+			}
+			else lbcaststat.Text = Loc.T("cast.tab.found", castscan.Count);
 		}
 		finally { bcastscan.IsEnabled = true; }
 	}
@@ -283,7 +324,7 @@ public partial class MainWindow {
 				return;
 			}
 			CastHost.Send.Stop();
-			CastHost.Send.Start(ip, port, CastHost.CurQ(), ccastaudio.IsChecked == true, rect.Value);
+			CastHost.Send.Start(ip, port, castboxq(), ccastaudio.IsChecked == true, rect.Value);
 			remembercast(name, ip, port);
 			castlive = true;
 			castw = rect.Value.Width;
