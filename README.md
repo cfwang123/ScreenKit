@@ -66,7 +66,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | Area | Description |
 |------|-------------|
 | **PC file transfer** | Same HTTP API port (`1224`) + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): **list / thumbnails** toggle, marquee and Shift/Ctrl multi-select, **Ctrl+X/C** cut/copy (cut items shown faded), paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (compact list, long-press multi-select, Upload/Camera/New); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
-| **HTTP API** | Local JSON API (default `127.0.0.1:1224`). Main-window tab: call log + request builder. |
+| **HTTP API** | JSON API (default port `1224`). **Allow LAN access** opens every interface; otherwise it listens on `127.0.0.1` only. Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
 | **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional max size, rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
 | **QR / barcode** | **Tools → QR / barcode**: QR, Data Matrix, Code 128/39, EAN, UPC. One line of original text under the image. UTF-8, GBK, or Hex bytes (default UTF-8). |
@@ -181,7 +181,7 @@ Settings live in `config.toml` beside the exe (**Options → Settings** / **Reco
 |---------|------|
 | `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
 | `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `imgconv_*` |
-| `[http]` | OCR API bind (`127.0.0.1:1224`), service mode |
+| `[http]` | OCR API (`http_lan`, port `1224`), service mode |
 | `[sendfile]` | LAN file transfer ports, display name, web login password, paired devices |
 | `[pdf]` | invisible text, raster DPI |
 | `[asr]` | voice/live mode, polish, split, `asr_llm` |
@@ -229,7 +229,7 @@ screenshot_keep_days = 3        # screenshot history; 0 = unlimited. Cleaned at 
 
 [http]
 http_enabled = true
-http_host = "127.0.0.1"
+http_lan = true                 # false listens on 127.0.0.1 only
 http_port = 1224
 service_mode = false            # keep engine warm
 
@@ -310,7 +310,7 @@ Set `capture_log = true` for `log/capture.log` (DPI / save timings; `SLOW` if �
 
 ## HTTP API (overview)
 
-When enabled, the OCR API listens on `http_host:http_port` (default loopback only). Bind to `127.0.0.1` unless you intentionally expose it on a trusted network.
+When enabled, the OCR API listens on `http_port` (default `1224`). `http_lan = true` (default) accepts this PC and the LAN; `false` listens on `127.0.0.1` only. File transfer, the web manager, and Wi-Fi cast share this port and need LAN access left on. There is no authentication — do not expose it on an untrusted network.
 
 LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairing required): [HTTP-API.md](HTTP-API.md) · [android/README.md](android/README.md).
 

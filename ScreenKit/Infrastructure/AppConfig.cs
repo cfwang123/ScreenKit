@@ -198,8 +198,9 @@ static class AppConfig {
 				o.WinMax = parsebool(wmax, false);
 			if (map.TryGetValue("http_enabled", out var he))
 				o.HttpEnabled = parsebool(he, true);
-			if (map.TryGetValue("http_host", out var hh) && !string.IsNullOrWhiteSpace(hh))
-				o.HttpHost = hh.Trim().Trim('"');
+			var hasLanKey = map.TryGetValue("http_lan", out var hl);
+			var sawHost = map.TryGetValue("http_host", out var hh);
+			var oldHost = sawHost ? (hh ?? "").Trim().Trim('"') : "";
 			if (map.TryGetValue("http_port", out var hp) && int.TryParse(hp, out var port))
 				o.HttpPort = Compat.Clamp(port, 1, 65535);
 			if (map.TryGetValue("sendfile_enabled", out var sfe))
@@ -227,6 +228,10 @@ static class AppConfig {
 			o.SendFileDevices = parsesendfiledevices(text);
 			if (map.TryGetValue("cast_recv_enabled", out var cre))
 				o.CastRecvEnabled = parsebool(cre, true);
+			if (hasLanKey)
+				o.HttpLan = parsebool(hl, true);
+			else if (sawHost)
+				o.HttpLan = httphostislan(oldHost) || o.SendFileEnabled || o.CastRecvEnabled;
 			if (map.TryGetValue("cast_usb_accessory", out var cua))
 				o.CastUsbAccessory = parsebool(cua, false);
 			if (map.TryGetValue("cast_quality", out var cq) && !string.IsNullOrWhiteSpace(cq))
@@ -549,7 +554,8 @@ static class AppConfig {
 		sb.AppendLine();
 		sb.AppendLine("[http]");
 		sb.AppendLine($"http_enabled = {(o.HttpEnabled ? "true" : "false")}");
-		sb.AppendLine($"http_host = \"{esc(string.IsNullOrWhiteSpace(o.HttpHost) ? "127.0.0.1" : o.HttpHost)}\"");
+		sb.AppendLine("# 允许局域网访问。false 时只监听 127.0.0.1");
+		sb.AppendLine($"http_lan = {(o.HttpLan ? "true" : "false")}");
 		sb.AppendLine($"http_port = {o.HttpPort}");
 		sb.AppendLine($"# 服务模式：引擎常驻预热，不主动释放");
 		sb.AppendLine($"service_mode = {(o.ServiceMode ? "true" : "false")}");
@@ -770,6 +776,14 @@ static class AppConfig {
 			return OcrDevice.IntelGpu;
 		// Auto 已废弃，旧配置按 CPU
 		return OcrDevice.Cpu;
+	}
+
+	static bool httphostislan(string host) {
+		if (string.IsNullOrWhiteSpace(host)) return false;
+		host = host.Trim().Trim('"');
+		if (host.Length >= 2 && host[0] == '[' && host[host.Length - 1] == ']')
+			host = host.Substring(1, host.Length - 2);
+		return host is not ("127.0.0.1" or "localhost" or "::1" or "0:0:0:0:0:0:0:1");
 	}
 
 	static bool parsebool(string s, bool def) {

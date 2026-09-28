@@ -4,7 +4,7 @@
 
 Local HTTP API: OCR endpoints, plus ASR / TTS / ITN / barcode / face extensions.
 
-By default the server binds to loopback only. **Do not** expose this port on untrusted networks.
+LAN access is on by default. Turn it off to listen on this PC only. **Do not** expose this port on untrusted networks.
 
 ---
 
@@ -14,14 +14,14 @@ Turn on HTTP under **Settings**, or edit `config.toml` next to the executable:
 
 ```toml
 http_enabled = true
-http_host = "127.0.0.1"
+http_lan = true
 http_port = 1224
 ```
 
 | Item | Description |
 |------|-------------|
-| Base URL | `http://{http_host}:{http_port}` |
-| Default | `http://127.0.0.1:1224` |
+| Base URL | `http://127.0.0.1:{http_port}`. With `http_lan = true`, LAN clients use this PC’s NIC address on the same port |
+| Default | Port `1224`, `http_lan = true` (this PC and the LAN). `http_lan = false` listens on `127.0.0.1` only |
 | Content-Type | Prefer `application/json; charset=utf-8` for JSON request/response |
 | JSON text | UTF-8 CJK as-is (not `\uXXXX` escapes) |
 | CORS | `*` allowed for local web debugging |
@@ -798,7 +798,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 14. Security notes
 
-1. Default bind is `127.0.0.1`. Do not use `0.0.0.0` without a firewall and authentication plan.
+1. Default is `http_lan = true` (every interface). Set `http_lan = false` to listen on `127.0.0.1` only. Do not expose the port on an untrusted network; there is no firewall rule or authentication built in.
 2. **No auth, no HTTPS** — trust only the local machine or a controlled LAN.
 3. `POST /api/asr`, `POST /api/face`, and `POST /api/qr` `path` / `path_b` read server-local files; never expose this to untrusted clients.
 4. Large images / long audio use CPU/GPU and memory; watch concurrency (requests run via `Task.Run`; engines use locks).
@@ -807,7 +807,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 15. PC file transfer (LAN, pairing required)
 
-Shares the HTTP API port (default **1224**). Enable under **Settings → API → PC file transfer**. Localhost uses the HTTP API listener; if that listener is not on all interfaces, each LAN IP is bound as well. UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
+Shares the HTTP API port (default **1224**). Enable under **Settings → API → PC file transfer**. Phones and browsers on the LAN also need **Allow LAN access** (`http_lan = true`). UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
 
 `GET /apk` needs **no pairing** (phone scans the QR before the app is installed). `GET /` and `GET /m` are the web file manager (desktop / phone). `GET /f/<rel>` downloads **without login**. Web upload/list/delete need a login (cookie `sk_web` or `X-Web-Token`). Other phone routes after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
 
@@ -851,5 +851,5 @@ Android app: [android/README.md](android/README.md).
 ## 16. Related
 
 - Implementation: `ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs` · `HttpOcrServer.Qr.cs`
-- Config: `config.toml` (`http_enabled` / `http_host` / `http_port` / `service_mode`)
+- Config: `config.toml` (`http_enabled` / `http_lan` / `http_port` / `service_mode`)
 - Overview: [README.md](README.md) · [README.zh.md](README.zh.md)

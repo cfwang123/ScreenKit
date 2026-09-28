@@ -277,7 +277,8 @@ public partial class SettingsWindow : Window {
 			lbsethttp.Text = Loc.T("set.http");
 			lbsethttphint.Text = Loc.T("set.http.hint");
 			ehttpen.Content = Loc.T("set.http.enable");
-			lbsethttphost.Text = Loc.T("set.http.host");
+			ehttplan.Content = Loc.T("set.http.lan");
+			lbsethttplanhint.Text = Loc.T("set.http.lan.hint");
 			lbsethttpport.Text = Loc.T("set.http.port");
 			lbsetsf.Text = Loc.T("set.sendfile");
 			lbsetsfhint.Text = Loc.T("set.sendfile.hint");
@@ -493,7 +494,7 @@ public partial class SettingsWindow : Window {
 		syncsnapfmtenabled();
 		esnapfmt.SelectionChanged += (_, _) => syncsnapfmtenabled();
 		ehttpen.IsChecked = o.HttpEnabled;
-		ehttphost.Text = string.IsNullOrWhiteSpace(o.HttpHost) ? "127.0.0.1" : o.HttpHost;
+		ehttplan.IsChecked = o.HttpLan;
 		ehttpport.Text = o.HttpPort > 0 ? o.HttpPort.ToString() : "1224";
 		eservicemode.IsChecked = o.ServiceMode;
 		esfen.IsChecked = o.SendFileEnabled;
@@ -641,8 +642,7 @@ public partial class SettingsWindow : Window {
 		Result.SnapCopyAsFile = asFile;
 		Result.SnapCopyAsPath = asPath;
 		Result.HttpEnabled = ehttpen.IsChecked == true;
-		var host = (ehttphost.Text ?? "").Trim();
-		Result.HttpHost = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host;
+		Result.HttpLan = ehttplan.IsChecked == true;
 		if (!int.TryParse((ehttpport.Text ?? "").Trim(), out var port) || port < 1 || port > 65535) {
 			tabset.SelectedItem = tabsethttp;
 			MessageBox.Show(this, Loc.T("set.http.port.bad"), Loc.T("settings"),

@@ -4,7 +4,7 @@
 
 本机 HTTP API：提供 OCR 接口，并扩展 ASR / TTS / ITN / 条码 / 人脸。
 
-默认仅监听本机；**不要**在未受控网络上暴露该端口。
+默认允许局域网访问；关掉后只听本机。**不要**在未受控网络上暴露该端口。
 
 ---
 
@@ -14,14 +14,14 @@
 
 ```toml
 http_enabled = true
-http_host = "127.0.0.1"
+http_lan = true
 http_port = 1224
 ```
 
 | 项 | 说明 |
 |----|------|
-| 基址 | `http://{http_host}:{http_port}` |
-| 默认 | `http://127.0.0.1:1224` |
+| 基址 | `http://127.0.0.1:{http_port}`；`http_lan = true` 时局域网用本机网卡 IP，同一端口 |
+| 默认 | 端口 `1224`，`http_lan = true`（本机与局域网）。`http_lan = false` 时只听 `127.0.0.1` |
 | Content-Type | 请求/响应 JSON 均建议 `application/json; charset=utf-8` |
 | JSON 文本 | 中文等直接 UTF-8 输出，不用 `\uXXXX` 转义 |
 | CORS | 已允许 `*`，便于本机网页调试 |
@@ -893,7 +893,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 14. 安全建议
 
-1. 默认只绑 `127.0.0.1`，勿改为 `0.0.0.0` 除非有防火墙与鉴权。
+1. 默认 `http_lan = true`，监听所有网卡。只要本机使用时设 `http_lan = false`（只听 `127.0.0.1`）。无防火墙与鉴权时不要暴露到不可信网络。
 2. **无鉴权、无 HTTPS**，仅信任本机或可信局域网。
 3. `POST /api/asr`、`POST /api/face`、`POST /api/qr` 的 `path` / `path_b` 会读服务端本地文件，勿对不可信来源开放。
 4. 大图 / 长音频会占用 CPU/GPU 与内存；注意并发（当前实现按请求并行 `Task.Run`，引擎侧有锁）。
@@ -902,7 +902,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 ## 15. PC 文件传输（局域网，需配对）
 
-与 HTTP API **共用同一端口**（默认 **1224**）。在 **参数设置 → 接口 → PC 文件传输** 启用。本机走 HTTP API；局域网在 API 未绑全部网卡时，会再绑各网卡 IP。UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
+与 HTTP API **共用同一端口**（默认 **1224**）。在 **参数设置 → 接口 → PC 文件传输** 启用。手机和网页从局域网访问时，须同时勾选 **允许局域网访问**（`http_lan = true`）。UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
 
 `GET /apk` **无需配对**（给未装 App 的手机扫码下载）。`GET /`、`GET /m` 为网页文件管理（电脑 / 手机各一套）。`GET /f/<相对路径>` **无需登录**即可下载。网页上传/列出/删除等需登录（Cookie `sk_web` 或 `X-Web-Token`）。其它手机接口配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
 
@@ -946,6 +946,6 @@ JSON `code` 100 成功；401/403 未配对；410 路径非法。
 ## 16. 相关
 
 - 程序内：`ScreenKit/Ocr/HttpOcrServer.cs` · `HttpOcrServer.Face.cs` · `HttpOcrServer.Translate.cs` · `HttpOcrServer.Qr.cs`
-- 配置：`config.toml`（`http_enabled` / `http_host` / `http_port` / `service_mode`）
+- 配置：`config.toml`（`http_enabled` / `http_lan` / `http_port` / `service_mode`）
 - 总览：[README.zh.md](README.zh.md) · [README.md](README.md)
 - 英文版：[HTTP-API.md](HTTP-API.md)

@@ -72,8 +72,10 @@ public sealed class OcrOptions {
 	public bool MinimizeToTray = true;
 	/// <summary>是否启用 HTTP 识图 API（Umi 风格）。</summary>
 	public bool HttpEnabled = true;
-	/// <summary>HTTP 监听地址，默认仅本机。</summary>
-	public string HttpHost = "127.0.0.1";
+	/// <summary>允许局域网访问。关闭时 HTTP 只听 127.0.0.1。</summary>
+	public bool HttpLan = true;
+	/// <summary>状态栏与诊断里显示的监听地址。</summary>
+	public string HttpShowHost() => HttpLan ? "0.0.0.0" : "127.0.0.1";
 	/// <summary>HTTP 端口，默认与 Umi-OCR 一致 1224。</summary>
 	public int HttpPort = 1224;
 	/// <summary>局域网文件传输服务（手机 App）。</summary>
@@ -369,7 +371,7 @@ public sealed class OcrOptions {
 		HotkeyTranslate = HotkeyTranslate,
 		MinimizeToTray = MinimizeToTray,
 		HttpEnabled = HttpEnabled,
-		HttpHost = HttpHost,
+		HttpLan = HttpLan,
 		HttpPort = HttpPort,
 		SendFileEnabled = SendFileEnabled,
 		SendFilePort = SendFilePort,

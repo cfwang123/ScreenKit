@@ -578,25 +578,17 @@
 						           Margin="0,0,0,8" TextWrapping="Wrap"
 						           Text="POST /api/ocr · 支持 JSON base64 与 multipart 上传；GET /api/ocr/get_options"/>
 						<CheckBox x:Name="ehttpen" Content="启用 HTTP API" Margin="0,0,0,10" IsChecked="True"/>
-						<Grid Margin="0,0,0,10">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="12"/>
-								<ColumnDefinition Width="100"/>
-							</Grid.ColumnDefinitions>
-							<StackPanel Grid.Column="0">
-								<TextBlock x:Name="lbsethttphost" Text="监听地址" FontSize="11"
-								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-								<TextBox x:Name="ehttphost" Height="30" Padding="6,4"
-								         BorderBrush="{StaticResource BorderSoft}" Text="127.0.0.1"/>
-							</StackPanel>
-							<StackPanel Grid.Column="2">
-								<TextBlock x:Name="lbsethttpport" Text="端口" FontSize="11"
-								           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-								<TextBox x:Name="ehttpport" Height="30" Padding="6,4"
-								         BorderBrush="{StaticResource BorderSoft}" Text="1224"/>
-							</StackPanel>
-						</Grid>
+						<CheckBox x:Name="ehttplan" Content="允许局域网访问" Margin="0,0,0,4" IsChecked="True"
+						          AutomationProperties.AutomationId="set.http.lan"/>
+						<TextBlock x:Name="lbsethttplanhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,10" TextWrapping="Wrap"
+						           Text="关闭时只监听 127.0.0.1。勾选后本机与局域网都可访问（识图、文件传输、网页管理、Wi-Fi 投屏共用此端口）。"/>
+						<StackPanel Margin="0,0,0,10" Width="100" HorizontalAlignment="Left">
+							<TextBlock x:Name="lbsethttpport" Text="端口" FontSize="11"
+							           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+							<TextBox x:Name="ehttpport" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" Text="1224"/>
+						</StackPanel>
 						<CheckBox x:Name="eservicemode" Content="服务模式（引擎常驻预热，不释放模型内存）"
 						          Margin="0,4,0,4" IsChecked="False"/>
 						<TextBlock x:Name="lbsetservicehint" FontSize="11" Foreground="{StaticResource TextMuted}"

@@ -346,10 +346,9 @@ public partial class MainWindow : Window {
 			return;
 		}
 		try {
-			var lan = opt.SendFileEnabled || opt.CastRecvEnabled;
-			httpServer.Start(opt.HttpHost, SendFileServer.FileHttpPort(opt), lan);
+			httpServer.Start(opt.HttpLan ? "+" : "127.0.0.1", SendFileServer.FileHttpPort(opt));
 			if (opt.HttpEnabled)
-				setstatus(Loc.T("st.http_ok", opt.HttpHost, opt.HttpPort));
+				setstatus(Loc.T("st.http_ok", opt.HttpShowHost(), opt.HttpPort));
 		}
 		catch (Exception ex) {
 			setstatus(Loc.T("st.http_fail", ex.Message));
@@ -3069,7 +3068,7 @@ public partial class MainWindow : Window {
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
 			|| old.SendFileEnabled != opt.SendFileEnabled
 			|| old.CastRecvEnabled != opt.CastRecvEnabled
-			|| !string.Equals(old.HttpHost, opt.HttpHost, StringComparison.OrdinalIgnoreCase))
+			|| old.HttpLan != opt.HttpLan)
 			restarthttp();
 		if (old.SendFileEnabled != opt.SendFileEnabled || old.SendFileUdpPort != opt.SendFileUdpPort
 			|| old.HttpPort != opt.HttpPort)
@@ -3486,7 +3485,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey voice input: {opt.HotkeyVoiceInput}");
 		sb.AppendLine($"Hotkey live caption: {opt.HotkeyLiveCaption}");
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
-		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpHost}:{opt.HttpPort}" : "off")}");
+		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off")}");
 		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{SendFileServer.FileHttpPort(opt)}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");
 		sb.AppendLine($"FaceDet={opt.FaceDetModel} FaceReg={opt.FaceRegModel} FaceCompute={opt.FaceCompute}");

@@ -131,7 +131,7 @@ public partial class MainWindow {
 	void synchttpstatus() {
 		if (lbhttpstatus == null) return;
 		if (opt.HttpEnabled && httpServer != null && httpServer.IsRunning)
-			lbhttpstatus.Text = $"http://{opt.HttpHost}:{opt.HttpPort}";
+			lbhttpstatus.Text = $"http://{opt.HttpShowHost()}:{opt.HttpPort}";
 		else
 			lbhttpstatus.Text = Loc.T("http.tab.off");
 	}
@@ -153,10 +153,7 @@ public partial class MainWindow {
 	}
 
 	string httpbaseurl() {
-		var host = (opt.HttpHost ?? "").Trim();
-		if (string.IsNullOrEmpty(host) || host == "0.0.0.0" || host == "*" || host == "+")
-			host = "127.0.0.1";
-		return $"http://{host}:{opt.HttpPort}";
+		return $"http://127.0.0.1:{opt.HttpPort}";
 	}
 
 	async Task httpSendAsync() {
