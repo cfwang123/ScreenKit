@@ -2461,6 +2461,7 @@ public partial class MainWindow : Window {
 		BitmapSource resultImg = null;
 		var confirmed = false;
 		var wantOcr = false;
+		var wantOpen = false;
 		var mainWasVisible = mainWasVisibleOverride
 			?? (IsVisible && WindowState != WindowState.Minimized);
 		var hud = activeRecordHud;
@@ -2482,12 +2483,17 @@ public partial class MainWindow : Window {
 			var cap = CaptureOverlay.RunBoard();
 			confirmed = cap.Confirmed;
 			wantOcr = cap.WantOcr;
+			wantOpen = cap.WantOpen;
 			resultImg = cap.Image;
-			CaptureLog.Info($"screenboard result confirmed={confirmed} wantOcr={wantOcr} img={CaptureLog.Bmp(resultImg)}");
+			CaptureLog.Info($"screenboard result confirmed={confirmed} wantOcr={wantOcr} wantOpen={wantOpen} img={CaptureLog.Bmp(resultImg)}");
 			if (!confirmed)
 				setstatus("已取消屏幕画板");
+			else if (wantOcr)
+				setstatus("屏幕画板 · 识别中…");
+			else if (wantOpen)
+				setstatus("屏幕画板 · 正在用系统软件打开…");
 			else
-				setstatus(wantOcr ? "屏幕画板 · 识别中…" : "屏幕画板完成");
+				setstatus("屏幕画板完成");
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("screenboard", ex);
@@ -2508,7 +2514,7 @@ public partial class MainWindow : Window {
 				keepmainhidden();
 			if (confirmed && resultImg != null) {
 				await afterannotateasync(resultImg, wantOcr, "屏幕画板",
-					showMainAfter: showMainAfter, mainWasVisible: mainWasVisible);
+					showMainAfter: showMainAfter, mainWasVisible: mainWasVisible, wantOpen: wantOpen);
 			}
 			else {
 				// Esc 取消：不唤起主窗
@@ -2523,14 +2529,31 @@ public partial class MainWindow : Window {
 	/// 仅完成/复制（未识别）时仍尊重 showMainAfter。
 	/// </summary>
 	async Task afterannotateasync(BitmapSource resultImg, bool wantOcr, string label,
-		bool showMainAfter = true, bool mainWasVisible = true) {
+		bool showMainAfter = true, bool mainWasVisible = true, bool wantOpen = false) {
 		clearselection();
 		// 遮罩已关：后台编码落盘再写剪贴板，避免堵 UI
+		string saved = null;
 		try {
-			var path = await ImageUtil.SaveScreenshotAndCopyAsync(resultImg, wantOcr ? "ocr" : "shot");
-			CaptureLog.Info($"{label} saved {path}");
+			saved = await ImageUtil.SaveScreenshotAndCopyAsync(resultImg, wantOcr ? "ocr" : "shot");
+			CaptureLog.Info($"{label} saved {saved}");
 		}
 		catch (Exception ex) { CaptureLog.Ex(label + " SaveScreenshot", ex); }
+		var opened = false;
+		if (wantOpen && !string.IsNullOrEmpty(saved)) {
+			try {
+				System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+					FileName = saved,
+					UseShellExecute = true,
+				});
+				opened = true;
+				CaptureLog.Info($"{label} open {saved}");
+			}
+			catch (Exception ex) {
+				CaptureLog.Ex(label + " open", ex);
+				setstatus("用系统软件打开失败: " + ex.Message);
+				showwarnmsg(ex.Message, "打开失败");
+			}
+		}
 		try {
 			setimage(resultImg);
 			CaptureLog.Info($"{label} setimage ok {CaptureLog.Bmp(curimg)}");
@@ -2554,11 +2577,21 @@ public partial class MainWindow : Window {
 			bringtofront();
 		}
 		else {
-			ocrMetaText = label + " · 未识别";
+			ocrMetaText = wantOpen ? label + " · 已用系统软件打开" : label + " · 未识别";
 			syncresultmetafromtab();
 			drawoverlay();
-			setstatus($"{label}已显示 · {resultImg.PixelWidth}×{resultImg.PixelHeight}");
-			if (showMainAfter)
+			if (wantOpen && opened)
+				setstatus($"已用系统软件打开 · {Path.GetFileName(saved)}");
+			else if (wantOpen && string.IsNullOrEmpty(saved))
+				setstatus("截图已完成，但没有可打开的文件");
+			else if (!wantOpen)
+				setstatus($"{label}已显示 · {resultImg.PixelWidth}×{resultImg.PixelHeight}");
+			if (wantOpen) {
+				// 系统查看器留在前面；主窗本来隐藏则继续隐藏
+				if (!showMainAfter && !mainWasVisible)
+					keepmainhidden();
+			}
+			else if (showMainAfter)
 				// 确认完成时前置主窗，便于查看结果
 				restoretotopifvisible();
 			else if (!mainWasVisible)
@@ -2587,6 +2620,7 @@ public partial class MainWindow : Window {
 		BitmapSource resultImg = null;
 		var confirmed = false;
 		var wantOcr = false;
+		var wantOpen = false;
 		var mainWasVisible = mainWasVisibleOverride
 			?? (IsVisible && WindowState != WindowState.Minimized);
 		var hud = activeRecordHud;
@@ -2610,12 +2644,17 @@ public partial class MainWindow : Window {
 			var cap = CaptureOverlay.Run(annotate: true);
 			confirmed = cap.Confirmed;
 			wantOcr = cap.WantOcr;
+			wantOpen = cap.WantOpen;
 			resultImg = cap.Image;
-			CaptureLog.Info($"snapannotate result confirmed={confirmed} wantOcr={wantOcr} img={CaptureLog.Bmp(resultImg)}");
+			CaptureLog.Info($"snapannotate result confirmed={confirmed} wantOcr={wantOcr} wantOpen={wantOpen} img={CaptureLog.Bmp(resultImg)}");
 			if (!confirmed)
 				setstatus("已取消截图标注");
+			else if (wantOcr)
+				setstatus("截图标注 · 识别中…");
+			else if (wantOpen)
+				setstatus("截图标注 · 正在用系统软件打开…");
 			else
-				setstatus(wantOcr ? "截图标注 · 识别中…" : "截图标注完成");
+				setstatus("截图标注完成");
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("snapannotate", ex);
@@ -2637,7 +2676,7 @@ public partial class MainWindow : Window {
 				keepmainhidden();
 			if (confirmed && resultImg != null) {
 				await afterannotateasync(resultImg, wantOcr, "截图标注",
-					showMainAfter: showMainAfter, mainWasVisible: mainWasVisible);
+					showMainAfter: showMainAfter, mainWasVisible: mainWasVisible, wantOpen: wantOpen);
 			}
 			else {
 				// Esc 取消：不唤起/前置主窗

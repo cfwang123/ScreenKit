@@ -94,7 +94,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 ### Screenshot, annotate, OCR
 
-Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; a region that spans monitors can be drawn on, moved, or resized on every screen it covers (move hot-zone is 10px outside the frame). The Done dropdown copies as image, file, or path and remembers the default.
+Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; a region that spans monitors can be drawn on, moved, or resized on every screen it covers (move hot-zone is 10px outside the frame). The toolbar can open the shot with the default app. The Done dropdown copies as image, file, or path and remembers the default.
 
 ### Screen / GIF recording
 

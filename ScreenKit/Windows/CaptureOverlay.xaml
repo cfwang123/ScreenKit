@@ -250,7 +250,7 @@
 
 				<Border Width="1" Height="22" Background="#E0E0E0" Margin="8,0" VerticalAlignment="Center"/>
 
-				<!-- 操作：撤销 · 保存 · OCR 识图 · 取消 · 完成 -->
+				<!-- 操作：撤销 · 保存 · 用系统打开 · OCR 识图 · 取消 · 完成 -->
 				<Button x:Name="bundo" Style="{StaticResource WxIconBtn}" ToolTip="撤销 (Ctrl+Z)">
 					<Path Stroke="#1A1A1A" StrokeThickness="1.8" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
 					      StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform" Width="16" Height="16"
@@ -260,6 +260,14 @@
 					<!-- FontAwesome download：托盘 + 向下箭头 -->
 					<Path Fill="#1A1A1A" Stretch="Uniform" Width="16" Height="16"
 					      Data="M8,1 V9.2 L5.2,6.4 4,7.6 8.5,12.1 13,7.6 11.8,6.4 9,9.2 V1 Z M2,13 V15 H15 V13 H2 Z"/>
+				</Button>
+				<Button x:Name="bopen" Style="{StaticResource WxIconBtn}" ToolTip="截屏后用系统软件打开"
+				        AutomationProperties.AutomationId="overlay.open"
+				        AutomationProperties.Name="截屏后用系统软件打开">
+					<!-- 方框 + 右上外开箭头 -->
+					<Path Stroke="#1A1A1A" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+					      StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform" Width="16" Height="16"
+					      Data="M1.6,6.2 H8.2 V13.4 H1.6 Z M7.2,2.2 H13.6 V8.6 M8.4,7.4 L13.6,2.2 M10.4,2.2 H13.6 V5.4"/>
 				</Button>
 				<!-- OCR 识图：完成标注并识别 -->
 				<Button x:Name="bocr" Style="{StaticResource WxIconBtn}" ToolTip="截图并识别 (OCR)"

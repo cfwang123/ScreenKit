@@ -23,6 +23,8 @@ public sealed class CaptureResult {
 	public bool Confirmed;
 	/// <summary>确认后是否立即 OCR（标注工具条「OCR 识图」）。</summary>
 	public bool WantOcr;
+	/// <summary>确认后用系统默认程序打开刚保存的截图。</summary>
+	public bool WantOpen;
 	public BitmapSource Image;
 	public Rect SelectedDip;
 }
@@ -202,6 +204,8 @@ public partial class CaptureOverlay : Window {
 		public bool Confirmed;
 		/// <summary>完成时是否请求 OCR。</summary>
 		public bool WantOcr;
+		/// <summary>完成后用系统默认程序打开截图文件。</summary>
+		public bool WantOpen;
 		public BitmapSource Image;
 		public Rect SelectedDip;
 		public event Action Finished;
@@ -533,10 +537,11 @@ public partial class CaptureOverlay : Window {
 		var result = new CaptureResult {
 			Confirmed = session.Confirmed,
 			WantOcr = session.WantOcr,
+			WantOpen = session.WantOpen,
 			Image = session.Image,
 			SelectedDip = session.SelectedDip,
 		};
-		CaptureLog.Info($"Run return Confirmed={result.Confirmed} WantOcr={result.WantOcr} Image={CaptureLog.Bmp(result.Image)} SelectedDip={result.SelectedDip}");
+		CaptureLog.Info($"Run return Confirmed={result.Confirmed} WantOcr={result.WantOcr} WantOpen={result.WantOpen} Image={CaptureLog.Bmp(result.Image)} SelectedDip={result.SelectedDip}");
 		return result;
 
 		// 帧与屏 Bounds 尺寸一致或等比缩放（视为该屏整屏画面）
@@ -796,6 +801,7 @@ public partial class CaptureOverlay : Window {
 		ttext.Unchecked += (_, _) => { if (tool == Tool.Text) settool(Tool.None); };
 		bundo.Click += (_, _) => undo();
 		bsave.Click += (_, _) => savefile();
+		bopen.Click += (_, _) => finishopen();
 		bocr.Click += (_, _) => finishocr();
 		bok.Click += (_, _) => finishcopy();
 		bcancel.Click += (_, _) => session?.Cancel();
@@ -2379,7 +2385,11 @@ public partial class CaptureOverlay : Window {
 		applyregionui(clearStrokes: false);
 		bpane.Visibility = Visibility.Visible;
 		bbar.Visibility = Visibility.Visible;
-		try { bcopydrop.ToolTip = Loc.T("overlay.copydrop.tip"); } catch { }
+		try {
+			bcopydrop.ToolTip = Loc.T("overlay.copydrop.tip");
+			bopen.ToolTip = Loc.T("overlay.open.tip");
+		}
+		catch { }
 		if (boardMode) {
 			// 全屏画板：无绿框、无缩放手柄、无暗角遮罩
 			bpane.BorderThickness = new Thickness(0);
@@ -3643,15 +3653,18 @@ public partial class CaptureOverlay : Window {
 	// ───────── 完成 ─────────
 
 	/// <summary>完成并按配置写入剪贴板（screenshots/ 历史）。</summary>
-	void finishcopy() => finishconfirm(wantOcr: false);
+	void finishcopy() => finishconfirm(wantOcr: false, wantOpen: false);
 
 	/// <summary>完成标注 → 保存/复制 → 主窗 OCR 识别。</summary>
-	void finishocr() => finishconfirm(wantOcr: true);
+	void finishocr() => finishconfirm(wantOcr: true, wantOpen: false);
 
-	void finishconfirm(bool wantOcr) {
+	/// <summary>完成标注 → 保存后用系统默认程序打开。</summary>
+	void finishopen() => finishconfirm(wantOcr: false, wantOpen: true);
+
+	void finishconfirm(bool wantOcr, bool wantOpen) {
 		var host = session?.AnnotateHost;
 		if (annotateGuest && host != null && host != this && !host.annotateGuest) {
-			host.finishconfirm(wantOcr);
+			host.finishconfirm(wantOcr, wantOpen);
 			return;
 		}
 		try {
@@ -3659,16 +3672,19 @@ public partial class CaptureOverlay : Window {
 			cleartextsel();
 			var t0 = Environment.TickCount;
 			var bmp = renderresult();
-			CaptureLog.Info($"finishconfirm render={Environment.TickCount - t0}ms bmp={CaptureLog.Bmp(bmp)} wantOcr={wantOcr}");
+			CaptureLog.Info($"finishconfirm render={Environment.TickCount - t0}ms bmp={CaptureLog.Bmp(bmp)} wantOcr={wantOcr} wantOpen={wantOpen}");
 			ResultImage = bmp;
 			Confirmed = true;
-			if (session != null) session.WantOcr = wantOcr;
+			if (session != null) {
+				session.WantOcr = wantOcr;
+				session.WantOpen = wantOpen && !wantOcr;
+			}
 			// 只关遮罩；落盘/剪贴板由主窗在 Run 返回后异步做，避免 PNG 编码堵在 DispatcherFrame 内
 			session?.Complete(bmp, SelectedDip);
 		}
 		catch (Exception ex) {
-			MessageBox.Show(ex.Message, wantOcr ? "OCR 失败" : "复制失败",
-				MessageBoxButton.OK, MessageBoxImage.Warning);
+			var title = wantOcr ? "OCR 失败" : wantOpen ? "打开失败" : "复制失败";
+			MessageBox.Show(ex.Message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 
