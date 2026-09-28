@@ -78,7 +78,7 @@ public partial class CastViewWindow : Window {
 		Show();
 		if (!keep) {
 			if (srcw > 0 && srch > 0 && bmp == null) fitbox(srcw, srch);
-			centeronpointer();
+			centeronprimary();
 		}
 		showbar(true);
 		lbst.Visibility = Visibility.Collapsed;
@@ -109,33 +109,26 @@ public partial class CastViewWindow : Window {
 		catch { }
 	}
 
-	void centeronpointer() {
-		workarea(out var l, out var t, out var aw, out var ah);
-		Left = l + Math.Max(0, (aw - Width) / 2);
-		Top = t + Math.Max(0, (ah - Height) / 2);
-		if (Left < l) Left = l;
-		if (Top < t) Top = t;
+	/// <summary>新开窗口落在主屏工作区中心，不跟光标（副屏接缝上会只露出一半）。</summary>
+	void centeronprimary() {
+		primarywork(out var l, out var t, out var aw, out var ah);
+		placein(l, t, aw, ah);
 	}
 
-	void workarea(out double l, out double t, out double w, out double h) {
+	/// <summary>主屏工作区，与 Window.Left/Top 同一套 DIP。</summary>
+	static void primarywork(out double l, out double t, out double w, out double h) {
 		var wa = SystemParameters.WorkArea;
 		l = wa.Left;
 		t = wa.Top;
 		w = wa.Width;
 		h = wa.Height;
-		try {
-			if (!GetCursorPos(out var pt)) return;
-			var scr = System.Windows.Forms.Screen.FromPoint(new System.Drawing.Point(pt.X, pt.Y));
-			var r = scr.WorkingArea;
-			var hwnd = new WindowInteropHelper(this).Handle;
-			var sc = ScreenDpi.WindowScale(hwnd);
-			if (sc < 0.25) sc = 1;
-			l = r.Left / sc;
-			t = r.Top / sc;
-			w = r.Width / sc;
-			h = r.Height / sc;
-		}
-		catch { }
+	}
+
+	void placein(double l, double t, double aw, double ah) {
+		if (aw > 1 && Width > aw) Width = aw;
+		if (ah > 1 && Height > ah) Height = ah;
+		Left = l + Math.Max(0, (aw - Width) / 2);
+		Top = t + Math.Max(0, (ah - Height) / 2);
 	}
 
 	public void HideCast() {
@@ -206,12 +199,11 @@ public partial class CastViewWindow : Window {
 	void fitbox(double w, double h) {
 		if (WindowState == WindowState.Maximized || full) return;
 		if (w <= 1 || h <= 1) return;
-		workarea(out var l, out var t, out var aw, out var ah);
+		primarywork(out var l, out var t, out var aw, out var ah);
 		var s = Math.Min(1, Math.Min(aw * 0.85 / w, ah * 0.85 / h));
 		Width = Math.Max(240, w * s);
 		Height = Math.Max(180, h * s);
-		Left = l + Math.Max(0, (aw - Width) / 2);
-		Top = t + Math.Max(0, (ah - Height) / 2);
+		placein(l, t, aw, ah);
 	}
 
 	void fitwin(bool force) {
@@ -345,11 +337,6 @@ public partial class CastViewWindow : Window {
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
-	struct NativePoint {
-		public int X, Y;
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
 	struct NativeRect {
 		public int Left, Top, Right, Bottom;
 	}
@@ -368,9 +355,6 @@ public partial class CastViewWindow : Window {
 	const uint SWP_NOSIZE = 0x0001;
 	const uint SWP_NOMOVE = 0x0002;
 	const uint SWP_SHOWWINDOW = 0x0040;
-
-	[DllImport("user32.dll")]
-	static extern bool GetCursorPos(out NativePoint p);
 
 	[DllImport("user32.dll")]
 	static extern bool GetWindowRect(IntPtr h, out NativeRect r);

@@ -34,6 +34,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Tools → Window manager**: list visible top-level windows (title, process, HWND). Select a row, click to pick a window, or type an HWND, then pin it in front or unpin it. While picking, a green frame follows the window under the cursor; the selected window keeps the frame. Tray entry and CLI `--test-wintop`.
 - Screencast tab: cast this PC to another PC on the LAN. Saved PCs stay listed on the left; click one to fill the IP. Output is limited by max width and height (default 1000×1000, shrink to fit, never enlarge). Start picks a region the same way as a screenshot (click a window or drag), then waits so audio and its source (speakers, microphone, or both) can be changed before sending. The region shows a red frame and a toolbar (drag, resize, start, pause, stop). Pause keeps the connection and stops picture and audio until resume. The frame is excluded from the picture.
 
+#### Fixed
+
+- Screencast viewer opens centered on the primary monitor’s work area. A new session no longer follows the cursor onto another monitor and hangs half off its edge. Size, position, and maximized state still stay put when the phone rotates.
+
 ### 中文
 
 #### 新增
@@ -41,6 +45,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 截图标注工具条增加图标「截屏后用系统软件打开」：截完后按平时方式保存并复制，再用系统默认程序打开该文件。主窗不抢到查看器前面。
 - **工具 → 窗口管理**：列出可见顶层窗口（标题、进程、HWND）。可选中、点选或填入 HWND，再设置或取消固定在前面。点选时绿框跟着光标下的窗口，选中后绿框留在该窗口上。托盘同样入口。CLI：`--test-wintop`。
 - 主界面 **投屏** Tab：把本机画面投到另一台电脑。已保存的电脑直接列在左侧，点一项即填入 IP。输出按最大宽高限制（默认 1000×1000，等比缩小、不放大）。开始后先框选区域（单击窗口或拖拽，和截图一样），选好后可改声音开关和来源（扬声器、麦克风或两者），再点开始才发送。选区显示红框和操作条（可拖动、缩放、开始、暂停、停止）。暂停只停画面和声音，连接保留，可继续。红框不进入画面。
+
+#### 修复
+
+- 接收投屏的画面窗默认开在主屏幕工作区中心。新开会话不再跟着光标跑到其它屏，避免停在屏边缘只露出一半。手机切换横竖屏时，窗口的大小、位置和最大化状态仍保持不变。
 
 ## v1.0.12 (2026-09-26)
 
