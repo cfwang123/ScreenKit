@@ -48,6 +48,7 @@ sealed class CastDisc : IDisposable {
 
 	public void Scan() {
 		if (stop) return;
+		rememberself();
 		var bytes = Encoding.ASCII.GetBytes(SendFileServer.DISCOVER);
 		var p = udpport();
 		sendto(bytes, IPAddress.Broadcast, p);
@@ -128,14 +129,48 @@ sealed class CastDisc : IDisposable {
 			if (string.IsNullOrEmpty(p.Name)) p.Name = ep.Address.ToString();
 			if (string.IsNullOrEmpty(p.Role)) p.Role = "pc";
 			if (p.Role == "send") return;
-			if (p.Name == name() && islocal(ep.Address)) return;
+			if (islocal(ep.Address)) {
+				var show = selfshowip();
+				if (!string.IsNullOrEmpty(show)) p.Ip = show;
+				if (string.IsNullOrEmpty(p.Name)) p.Name = showname();
+			}
 			lock (peers) peers[p.Ip] = p;
 		}
 		catch { }
 	}
 
+	void rememberself() {
+		var ip = selfshowip();
+		if (string.IsNullOrEmpty(ip)) return;
+		var p = new CastPeer {
+			Name = showname(),
+			Ip = ip,
+			Role = "pc",
+			Tcp = httpport(),
+			LastSeen = Environment.TickCount,
+		};
+		lock (peers) peers[p.Ip] = p;
+	}
+
+	string showname() {
+		var o = CastHost.Opt;
+		if (!string.IsNullOrWhiteSpace(o?.SendFileName)) return o.SendFileName.Trim();
+		var n = name();
+		return string.IsNullOrWhiteSpace(n) ? Environment.MachineName : n;
+	}
+
+	static string selfshowip() {
+		var o = CastHost.Opt;
+		if (o != null && !o.HttpLan) return "127.0.0.1";
+		var list = ApkHost.LanIPv4s();
+		if (list != null && list.Count > 0) return list[0];
+		foreach (var a in CastNetUtil.V4Addrs())
+			return a.ToString();
+		return "127.0.0.1";
+	}
+
 	static bool islocal(IPAddress ip) {
-		if (IPAddress.IsLoopback(ip)) return true;
+		if (ip == null || IPAddress.IsLoopback(ip)) return true;
 		foreach (var a in CastNetUtil.V4Addrs())
 			if (a.Equals(ip)) return true;
 		return false;

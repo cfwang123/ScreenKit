@@ -1,3 +1,4 @@
+using System.Net;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -20,8 +21,22 @@ sealed class CastPcRow {
 
 	public override string ToString() {
 		var host = HostText;
-		if (string.IsNullOrWhiteSpace(Name) || Name == Ip) return host;
-		return $"{Name}  {host}";
+		var name = Name;
+		if (isselfip(Ip)) {
+			var tag = Loc.T("cast.local");
+			name = string.IsNullOrWhiteSpace(name) || name == Ip ? tag : $"{name}（{tag}）";
+		}
+		if (string.IsNullOrWhiteSpace(name) || name == Ip) return host;
+		return $"{name}  {host}";
+	}
+
+	static bool isselfip(string ip) {
+		if (string.IsNullOrWhiteSpace(ip)) return false;
+		if (ip == "127.0.0.1" || ip.Equals("localhost", StringComparison.OrdinalIgnoreCase)) return true;
+		if (!IPAddress.TryParse(ip, out var a)) return false;
+		foreach (var x in CastNetUtil.V4Addrs())
+			if (x.Equals(a)) return true;
+		return false;
 	}
 }
 
