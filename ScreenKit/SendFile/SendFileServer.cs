@@ -425,6 +425,12 @@ public sealed partial class SendFileServer : IDisposable {
 				return;
 			}
 			try { c.ReceiveTimeout = 120000; } catch { }
+			var path = (ctx.Request.Url?.AbsolutePath ?? "/").TrimEnd('/');
+			if (path.Length == 0) path = "/";
+			if (path.Equals("/cast", StringComparison.OrdinalIgnoreCase)) {
+				castupgrade(ns, ctx);
+				return;
+			}
 			handle(ctx);
 			try { ctx.Response.Close(); } catch { }
 		}
@@ -496,6 +502,7 @@ public sealed partial class SendFileServer : IDisposable {
 			ContentEncoding = encodingof(headers["Content-Type"]),
 			RemoteEndPoint = remote,
 			ContentLength = clen,
+			Prefetch = leftover,
 		};
 		var res = new SfRes(ns);
 		return new SfCtx { Request = req, Response = res };
@@ -1162,6 +1169,7 @@ sealed class SfReq {
 	public Encoding ContentEncoding;
 	public IPEndPoint RemoteEndPoint;
 	public long ContentLength;
+	public byte[] Prefetch;
 }
 
 sealed class SfQuery {

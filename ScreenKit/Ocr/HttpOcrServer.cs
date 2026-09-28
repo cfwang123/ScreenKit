@@ -78,12 +78,12 @@ sealed partial class HttpOcrServer : IDisposable {
 				l.Start();
 			}
 			catch {
-				if (!lan) throw;
 				try { l.Abort(); } catch { }
 				l = new HttpListener();
 				addprefix(l, $"http://127.0.0.1:{port}/");
 				try { addprefix(l, $"http://127.0.0.1:{port}/api/"); } catch { }
 				l.Start();
+				host = "127.0.0.1";
 			}
 			foreach (var p in l.Prefixes) {
 				if (p.StartsWith("http://+:", StringComparison.OrdinalIgnoreCase)
