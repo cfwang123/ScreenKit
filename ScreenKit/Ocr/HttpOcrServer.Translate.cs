@@ -44,13 +44,14 @@ sealed partial class HttpOcrServer {
 			if (dst.Length == 0 || dst == TrLang.Auto) dst = adst;
 		}
 
-		var chunk = 8;
+		var chunk = 0;
 		if (jo["chunk"] != null && jo["chunk"].GetValueKind() == JsonValueKind.Number)
 			chunk = jo["chunk"].GetValue<int>();
 		else {
 			var cs = str(jo, "chunk");
 			if (!string.IsNullOrWhiteSpace(cs) && int.TryParse(cs, out var cv)) chunk = cv;
 		}
+		chunk = AsrLlmClient.NormBatchChunk(o, chunk);
 
 		var t0 = Environment.TickCount;
 		List<string> outs;
@@ -82,7 +83,7 @@ sealed partial class HttpOcrServer {
 				["dst"] = dst,
 				["model"] = ep.Model ?? "",
 				["llm"] = ep.DisplayName ?? "",
-				["chunk"] = Compat.Clamp(chunk <= 0 ? 8 : chunk, 1, 10),
+				["chunk"] = chunk,
 				["count"] = items.Count,
 				["miss"] = miss,
 				["items"] = arr,

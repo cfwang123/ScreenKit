@@ -186,7 +186,7 @@ Settings live in `config.toml` beside the exe (**Options → Settings** / **Reco
 | `[pdf]` | invisible text, raster DPI |
 | `[asr]` | voice/live mode, polish, split, `asr_llm` |
 | `[[llm]]` | OpenAI-compatible endpoints (`name` / `url` / `key` / `model` / `think`) |
-| `[translate]` | local ONNX device or `translate_llm` |
+| `[translate]` | local ONNX device, `translate_llm`, `translate_llm_batch` |
 | `[record]` / `[gif_record]` | codec, CRF, audio, mouse overlay |
 
 Do **not** commit a machine-specific `config.toml`.
@@ -286,12 +286,13 @@ name = "gpt-4o-mini"
 url = "https://api.openai.com/v1"
 # key = ""
 model = "gpt-4o-mini"
-think = "low"                   # off | low | medium | high | max
+think = "low"                   # preset or typed token (minimal, …)
 
 [translate]
 translate_compute = "Auto"      # Auto | Gpu | Cpu | Igpu
 # translate_llm = ""
 # translate_llm_prompt = "请将用户给出的文本从{src}翻译为{dst}。只输出译文。"
+translate_llm_batch = 8         # items per LLM call, 1–64
 
 [gif_record]
 gif_fps = 8
@@ -306,7 +307,7 @@ gif_click_highlight = true
 
 </details>
 
-`think`: `off` sends `thinking.type=disabled`; `low`/`medium`/`high`/`max` send `thinking.type=enabled` plus `reasoning_effort`. If `off` is rejected, retry with `low`. Access to **opencode.ai** adds `x-opencode-session` / `x-opencode-client`. Old keys `asr_llm_url` / `asr_llm_token` / `asr_llm_model` are ignored.
+`think`: `off` sends `thinking.type=disabled`. Any other token (`low` / `medium` / `high` / `max`, or a typed value such as `minimal`) sends `thinking.type=enabled` plus `reasoning_effort`. If `off` is rejected, retry with `low`. Access to **opencode.ai** adds `x-opencode-session` / `x-opencode-client`. Old keys `asr_llm_url` / `asr_llm_token` / `asr_llm_model` are ignored. `translate_llm_batch` is how many lines one LLM translate call takes (default 8).
 
 Set `capture_log = true` for `log/capture.log` (DPI / save timings; `SLOW` if ≥500ms). Set `llm_log = true` for `log/llm.log` (API keys are not written). CLI `ScreenKit --snap` dumps full-monitor bitmaps under `log/snap/`; `--test-overlay-layout` shows the screenshot overlay and logs per-monitor HWND/DPI.
 

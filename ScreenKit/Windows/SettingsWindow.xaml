@@ -428,6 +428,7 @@
 							<TextBlock x:Name="lbsetllmthink" Text="思考强度" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 							<ComboBox x:Name="ellmthink" Height="32" Margin="0,0,0,4"
+							          IsEditable="True" IsTextSearchEnabled="False"
 							          SelectionChanged="onllmthink"
 							          AutomationProperties.AutomationId="set.llm.think">
 								<ComboBoxItem x:Name="itllmthinkoff" Content="none" Tag="off"/>
@@ -452,7 +453,16 @@
 					<StackPanel>
 						<TextBlock x:Name="lbsettrhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,12"
-						           Text="引擎在主窗口翻译 Tab 选择（本地 ONNX 或 LLM）。此处只配 LLM 翻译提示词。"/>
+						           Text="引擎在主窗口翻译 Tab 选择（本地 ONNX 或 LLM）。此处配 LLM 一批条数和提示词。"/>
+						<TextBlock x:Name="lbsettrllmbatch" Text="一批翻译数量" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="etrllmbatch" Width="88" Height="30" Padding="6,4" Margin="0,0,0,4"
+						         HorizontalAlignment="Left" Text="8"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+						         AutomationProperties.AutomationId="set.tr.llm.batch"/>
+						<TextBlock x:Name="lbsettrllmbatchhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,12"
+						           Text="每次请求发给 LLM 的条数（1–64，默认 8）。"/>
 						<DockPanel Margin="0,0,0,6">
 							<Button x:Name="btrllmpromptreset" DockPanel.Dock="Right"
 							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"

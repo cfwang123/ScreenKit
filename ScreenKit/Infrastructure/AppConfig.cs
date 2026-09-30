@@ -395,6 +395,8 @@ static class AppConfig {
 				o.TranslateLlmPrompt = string.IsNullOrWhiteSpace(p)
 					? OcrOptions.DefaultTranslatePrompt() : p;
 			}
+			if (map.TryGetValue("translate_llm_batch", out var trb) && int.TryParse(trb, out var trBatch))
+				o.TranslateLlmBatch = Compat.Clamp(trBatch, 1, OcrOptions.TranslateLlmBatchMax);
 			if (map.TryGetValue("face_compute", out var fc) && !string.IsNullOrWhiteSpace(fc))
 				o.FaceCompute = fc.Trim();
 			if (map.TryGetValue("face_det_model", out var fdm))
@@ -717,7 +719,7 @@ static class AppConfig {
 		sb.AppendLine($"chat_agent = {(o.ChatAgent ? "true" : "false")}");
 		sb.AppendLine($"chat_auto_tts = {(o.ChatAutoTts ? "true" : "false")}");
 		sb.AppendLine();
-		sb.AppendLine("# LLM 接口列表（OpenAI 兼容）；think = off|low|high|max；key 勿提交公开仓库");
+		sb.AppendLine("# LLM 接口列表（OpenAI 兼容）；think 为预设或手输；key 勿提交公开仓库");
 		if (o.LlmList != null) {
 			foreach (var it in o.LlmList) {
 				if (it == null) continue;
@@ -741,6 +743,7 @@ static class AppConfig {
 			? OcrOptions.DefaultTranslateLlmPrompt : o.TranslateLlmPrompt;
 		trPromptSave = trPromptSave.Replace("\r\n", "\n").Replace("\n", "\\n").Replace("\t", "\\t");
 		sb.AppendLine($"translate_llm_prompt = \"{esc(trPromptSave)}\"");
+		sb.AppendLine($"translate_llm_batch = {Compat.Clamp(o.TranslateLlmBatch <= 0 ? 8 : o.TranslateLlmBatch, 1, OcrOptions.TranslateLlmBatchMax)}");
 		sb.AppendLine();
 		sb.AppendLine("[face]");
 		sb.AppendLine("# 人脸识别 InsightFace ONNX：模型在程序旁 facemodels/");

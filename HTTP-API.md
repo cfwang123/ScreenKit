@@ -577,7 +577,7 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 ## 10. POST `/api/translate` · `/api/translate/batch`
 
-LLM batch translate (internally grouped by 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Requires `[[llm]]` in settings and `translate_llm` (or pass `llm` in the request). `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
+LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Requires `[[llm]]` in settings and `translate_llm` (or pass `llm` in the request). `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
 
 **Request:**
 
@@ -598,7 +598,7 @@ LLM batch translate (internally grouped by 8; missing indexes retried one-by-one
 | `text` | Single string; treated as a one-item batch |
 | `src` / `dst` | Language codes (`zh` / `en` / `ja` / `ko` / `fr` / `de` / `es` / `ru` / `ar` / `th` / `cht` / …). If omitted, auto zh↔en from the first non-empty item |
 | `dir` | Optional pair such as `zh-en` |
-| `chunk` | Items per LLM call, default 8, range 1–10 |
+| `chunk` | Items per LLM call. Omitted uses `translate_llm_batch` (default 8). Range 1–64 |
 | `llm` | Optional `[[llm]]` display name or model id; default `translate_llm`, else first list entry |
 
 **Response:** `data.items[]` with `i` / `text` / `out`. `data.miss` is how many non-empty inputs came back empty. `GET /api/status` → `llm_translate` is true when a translate LLM is configured.

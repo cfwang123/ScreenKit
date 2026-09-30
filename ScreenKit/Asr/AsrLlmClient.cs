@@ -16,8 +16,7 @@ static class AsrLlmClient {
 	const int MAXCONTINUE = 6;
 	const int ROUNDTOKENS = 4096;
 	const int MINROUNDMS = 2000;
-	const int BATCHCHUNK = 8;
-	const int BATCHCHUNKMAX = 10;
+
 	const string BatchPrompt =
 		"请将用户给出的编号条目从{src}翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。" +
 		"只输出译文，保持相同编号（1. 2. 3. …），一条原文对应一条译文，不要合并或省略。";
@@ -124,8 +123,14 @@ static class AsrLlmClient {
 		return outText.Trim();
 	}
 
+	/// <summary>一批条数。chunk≤0 用设置里的 TranslateLlmBatch（默认 8），再夹到 1–上限。</summary>
+	public static int NormBatchChunk(OcrOptions o, int chunk) {
+		if (chunk <= 0) chunk = o != null && o.TranslateLlmBatch > 0 ? o.TranslateLlmBatch : 8;
+		return Compat.Clamp(chunk, 1, OcrOptions.TranslateLlmBatchMax);
+	}
+
 	/// <summary>
-	/// 批量翻译：按 chunk（默认 8，最大 10）编号一次请求；缺号再逐条补。
+	/// 批量翻译：按一批条数编号一次请求；缺号再逐条补。
 	/// 返回与 items 等长的译文（空输入对应空串）。
 	/// </summary>
 	public static List<string> TranslateBatch(OcrOptions o, IList<string> items, string src, string dst,
@@ -136,8 +141,7 @@ static class AsrLlmClient {
 			throw new InvalidOperationException("未配置翻译 LLM（需 URL 与模型 id）");
 		src = TrLang.Normalize(src);
 		dst = TrLang.Normalize(dst);
-		if (chunk <= 0) chunk = BATCHCHUNK;
-		chunk = Compat.Clamp(chunk, 1, BATCHCHUNKMAX);
+		chunk = NormBatchChunk(o, chunk);
 		var result = new string[items.Count];
 		for (var i = 0; i < result.Length; i++) result[i] = "";
 		for (var off = 0; off < items.Count; off += chunk) {
@@ -385,7 +389,7 @@ static class AsrLlmClient {
 		return (code, body, ms, think, sendMax);
 	}
 
-	/// <summary>think：off 关闭；low/medium/high/max 开启并设 reasoning_effort；null 不带思考字段。</summary>
+	/// <summary>think：off 关闭；其它值开启并设 reasoning_effort；null 不带思考字段。</summary>
 	static Dictionary<string, object> makepayload(string model, object messages, string think, int maxTokens,
 		float temperature) {
 		var p = new Dictionary<string, object> {

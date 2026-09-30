@@ -318,6 +318,10 @@ public sealed class OcrOptions {
 	public string TranslateLlm = "";
 	/// <summary>LLM 翻译系统提示词；空则用默认。<c>{src}</c>/<c>{dst}</c> 替换为语言名。</summary>
 	public string TranslateLlmPrompt = DefaultTranslateLlmPromptZh;
+	/// <summary>LLM 一批翻译的条数（1–<see cref="TranslateLlmBatchMax"/>，默认 8）。</summary>
+	public int TranslateLlmBatch = 8;
+	/// <summary>一批翻译条数上限。</summary>
+	public const int TranslateLlmBatchMax = 64;
 
 	/// <summary>LLM 翻译默认提示词（中文）。</summary>
 	public const string DefaultTranslateLlmPromptZh =
@@ -480,6 +484,7 @@ public sealed class OcrOptions {
 		TranslateCompute = TranslateCompute,
 		TranslateLlm = TranslateLlm ?? "",
 		TranslateLlmPrompt = TranslateLlmPrompt ?? DefaultTranslateLlmPrompt,
+		TranslateLlmBatch = TranslateLlmBatch,
 		FaceCompute = FaceCompute,
 		FaceDetModel = FaceDetModel,
 		FaceRegModel = FaceRegModel,
@@ -549,7 +554,7 @@ public sealed class LlmEndpoint {
 	public string Url = "";
 	public string Key = "";
 	public string Model = "";
-	/// <summary>思考强度：off / low / medium / high / max。GLM-5.3 等不能 off。</summary>
+	/// <summary>思考强度：预设 off / low / medium / high / max，也可手输（如 minimal）。</summary>
 	public string Think = "low";
 
 	public string DisplayName {
@@ -567,15 +572,18 @@ public sealed class LlmEndpoint {
 		Think = NormThink(Think),
 	};
 
-	/// <summary>规范为 off | low | medium | high | max；空或未知视为 low。</summary>
+	/// <summary>预设规范为 off | low | medium | high | max；其它字母数字手输原样保留。空视为 low。</summary>
 	public static string NormThink(string s) {
 		s = (s ?? "").Trim();
+		if (s.Length == 0) return "low";
 		if (s.Equals("off", StringComparison.OrdinalIgnoreCase)
 			|| s.Equals("disabled", StringComparison.OrdinalIgnoreCase)
 			|| s.Equals("none", StringComparison.OrdinalIgnoreCase)
 			|| s.Equals("false", StringComparison.OrdinalIgnoreCase)
 			|| s == "关闭" || s == "关")
 			return "off";
+		if (s.Equals("low", StringComparison.OrdinalIgnoreCase) || s == "低")
+			return "low";
 		if (s.Equals("high", StringComparison.OrdinalIgnoreCase) || s == "高")
 			return "high";
 		if (s.Equals("max", StringComparison.OrdinalIgnoreCase)
@@ -586,7 +594,16 @@ public sealed class LlmEndpoint {
 			|| s.Equals("mid", StringComparison.OrdinalIgnoreCase)
 			|| s == "中")
 			return "medium";
-		return "low";
+		var buf = new char[32];
+		var n = 0;
+		foreach (var ch in s) {
+			var ok = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9')
+				|| ch == '_' || ch == '-';
+			if (!ok) continue;
+			buf[n++] = ch;
+			if (n >= buf.Length) break;
+		}
+		return n == 0 ? "low" : new string(buf, 0, n);
 	}
 
 	public override string ToString() {

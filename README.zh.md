@@ -186,7 +186,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | `[pdf]` | 不可见文字层、光栅 DPI |
 | `[asr]` | 听写/实时字幕模式、润色、分句、`asr_llm` |
 | `[[llm]]` | OpenAI 兼容接口（`name` / `url` / `key` / `model` / `think`） |
-| `[translate]` | 本地 ONNX 设备或 `translate_llm` |
+| `[translate]` | 本地 ONNX 设备、`translate_llm`、`translate_llm_batch` |
 | `[record]` / `[gif_record]` | 编码、CRF、音频、鼠标叠加 |
 
 勿将含本机路径或隐私偏好的 `config.toml` 提交到公开仓库。
@@ -274,12 +274,13 @@ name = "gpt-4o-mini"
 url = "https://api.openai.com/v1"
 # key = ""
 model = "gpt-4o-mini"
-think = "low"                   # off | low | medium | high | max
+think = "low"                   # 预设或手输（minimal 等）
 
 [translate]
 translate_compute = "Auto"
 # translate_llm = ""
 # translate_llm_prompt = "请将用户给出的文本从{src}翻译为{dst}。只输出译文。"
+translate_llm_batch = 8         # 一批条数，1–64
 
 [gif_record]
 gif_fps = 8
@@ -294,7 +295,7 @@ gif_click_highlight = true
 
 </details>
 
-`think`：`off` 发关闭思考；`low`/`medium`/`high`/`max` 发 `thinking.type=enabled` 与 `reasoning_effort`。若 `off` 被拒绝则改 `low` 再试。访问 **opencode.ai** 时自动加 `x-opencode-session` 头。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 已废弃。
+`think`：`off` 发关闭思考。其它值（`low` / `medium` / `high` / `max`，或手输的 `minimal` 等）发 `thinking.type=enabled` 与 `reasoning_effort`。若 `off` 被拒绝则改 `low` 再试。访问 **opencode.ai** 时自动加 `x-opencode-session` 头。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 已废弃。`translate_llm_batch` 是一次 LLM 翻译请求带几条（默认 8）。
 
 `capture_log = true` 写 `log/capture.log`（多屏/DPI、截图落盘耗时，≥500ms 标 `SLOW`）。`llm_log = true` 写 `log/llm.log`（不含 key）。CLI `ScreenKit --snap` 把整屏位图写到 `log/snap/`；`--test-overlay-layout` 弹出截屏遮罩并记录各屏 HWND/DPI。
 

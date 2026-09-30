@@ -35,6 +35,8 @@ public partial class SettingsWindow : Window {
 
 		ellmlist.ItemsSource = llms;
 		easrllm.ItemsSource = llms;
+		ellmthink.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
+			new TextChangedEventHandler(onllmthinktext));
 
 		easrvoicesplit.Checked += (_, _) => syncvoicesplitui();
 		easrvoicesplit.Unchecked += (_, _) => syncvoicesplitui();
@@ -269,6 +271,8 @@ public partial class SettingsWindow : Window {
 			itllmthinkhigh.Content = Loc.T("set.llm.think.high");
 			itllmthinkmax.Content = Loc.T("set.llm.think.max");
 			lbsettrhint.Text = Loc.T("set.tr.hint");
+			lbsettrllmbatch.Text = Loc.T("set.tr.llm.batch");
+			lbsettrllmbatchhint.Text = Loc.T("set.tr.llm.batch.hint");
 			lbsettrllmprompt.Text = Loc.T("set.tr.llm.prompt");
 			btrllmpromptreset.Content = Loc.T("set.prompt.default");
 			btrllmpromptreset.ToolTip = Loc.T("set.prompt.default.tip");
@@ -426,6 +430,8 @@ public partial class SettingsWindow : Window {
 			? OcrOptions.DefaultPolishPrompt() : o.AsrLlmPrompt;
 		etrllmprompt.Text = string.IsNullOrWhiteSpace(o.TranslateLlmPrompt)
 			? OcrOptions.DefaultTranslatePrompt() : o.TranslateLlmPrompt;
+		etrllmbatch.Text = Compat.Clamp(o.TranslateLlmBatch <= 0 ? 8 : o.TranslateLlmBatch,
+			1, OcrOptions.TranslateLlmBatchMax).ToString();
 		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
@@ -598,6 +604,9 @@ public partial class SettingsWindow : Window {
 		var trPrompt = (etrllmprompt.Text ?? "").Trim();
 		Result.TranslateLlmPrompt = string.IsNullOrEmpty(trPrompt)
 			? OcrOptions.DefaultTranslatePrompt() : trPrompt;
+		if (!tryint(etrllmbatch, Loc.T("set.tr.llm.batch"), 1, OcrOptions.TranslateLlmBatchMax,
+			out var trBatch, tabsettr)) return false;
+		Result.TranslateLlmBatch = trBatch;
 		Result.MinimizeToTray = emintray.IsChecked == true;
 		Result.TabOcrVisible = etabocrvisible.IsChecked == true;
 		Result.TabTtsVisible = etabttsvisible.IsChecked == true;
@@ -757,16 +766,24 @@ public partial class SettingsWindow : Window {
 		foreach (ComboBoxItem x in ellmthink.Items) {
 			if ((x.Tag as string) == want) {
 				ellmthink.SelectedItem = x;
+				ellmthink.Text = x.Content as string ?? want;
 				return;
 			}
 		}
-		ellmthink.SelectedIndex = 1;
+		ellmthink.SelectedIndex = -1;
+		ellmthink.Text = want;
 	}
 
 	string thinktag() {
-		if (ellmthink.SelectedItem is ComboBoxItem x && x.Tag is string t && t.Length > 0)
-			return LlmEndpoint.NormThink(t);
-		return "low";
+		var text = (ellmthink.Text ?? "").Trim();
+		foreach (ComboBoxItem x in ellmthink.Items) {
+			var content = x.Content as string ?? "";
+			var tag = x.Tag as string ?? "";
+			if (text.Equals(content, StringComparison.OrdinalIgnoreCase)
+				|| text.Equals(tag, StringComparison.OrdinalIgnoreCase))
+				return LlmEndpoint.NormThink(tag.Length > 0 ? tag : content);
+		}
+		return LlmEndpoint.NormThink(text);
 	}
 
 	void flushllm() {
@@ -780,6 +797,11 @@ public partial class SettingsWindow : Window {
 	}
 
 	void onllmthink(object sender, SelectionChangedEventArgs e) {
+		if (llmsync) return;
+		flushllm();
+	}
+
+	void onllmthinktext(object sender, TextChangedEventArgs e) {
 		if (llmsync) return;
 		flushllm();
 	}

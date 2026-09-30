@@ -202,7 +202,7 @@ public partial class MainWindow {
 		var t0 = Environment.TickCount;
 		try {
 			var o = opt;
-			outs = await Task.Run(() => AsrLlmClient.TranslateBatch(o, items, src, dst, 8, ep, cts.Token),
+			outs = await Task.Run(() => AsrLlmClient.TranslateBatch(o, items, src, dst, 0, ep, cts.Token),
 				cts.Token).ConfigureAwait(true);
 		}
 		catch (OperationCanceledException) {
