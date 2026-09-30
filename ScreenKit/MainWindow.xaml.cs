@@ -68,6 +68,7 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyVoice;  // 语音输入
 	GlobalHotkey hotkeyLive;   // 系统实时字幕
 	GlobalHotkey hotkeyTr;     // 翻译小窗
+	GlobalHotkey hotkeySnapCopy; // 切换截图复制方式
 	TranslatePopupWindow trPopup;
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
@@ -438,7 +439,8 @@ public partial class MainWindow : Window {
 				fmttrayhk(opt.HotkeySnap),
 				fmttrayhk(opt.HotkeyBoard),
 				fmttrayhk(opt.HotkeyVoiceInput),
-				fmttrayhk(opt.HotkeyTranslate));
+				fmttrayhk(opt.HotkeyTranslate),
+				fmttrayhk(opt.HotkeySnapCopy));
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
 			tray.MenuOpening += () => {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;
@@ -552,9 +554,30 @@ public partial class MainWindow : Window {
 		syncsnapcopyopts();
 		setsnapcopyui(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath, skipTray: fromTray);
 		try { AppConfig.Save(opt); } catch { }
-		// 菜单/托盘切换复制方式：立刻用新方式重写剪贴板（不新建 screenshots/ 文件）
-		if (recopy)
+		// 菜单/托盘/热键切换：底部 toast + 按新方式重写剪贴板（不新建 screenshots/ 文件）
+		if (recopy) {
+			try { UiToast.Show(this, snapcopymodetext()); } catch { }
 			recopylastsnap();
+		}
+	}
+
+	/// <summary>当前截图复制方式的短文案（底部 toast）。</summary>
+	string snapcopymodetext() {
+		if (opt.SnapCopyAsPath)
+			return Loc.T("toast.snapcopy.path");
+		if (opt.SnapCopyAsFile && !opt.SnapCopyAsImage)
+			return Loc.T("toast.snapcopy.file");
+		return Loc.T("toast.snapcopy.img");
+	}
+
+	/// <summary>图片 → 文件 → 路径 → 图片。</summary>
+	void cyclesnapcopy() {
+		if (opt.SnapCopyAsPath)
+			applysnapcopyopts(asImg: true, asFile: false, asPath: false);
+		else if (opt.SnapCopyAsFile && !opt.SnapCopyAsImage)
+			applysnapcopyopts(asImg: false, asFile: false, asPath: true);
+		else
+			applysnapcopyopts(asImg: false, asFile: true, asPath: false);
 	}
 
 	/// <summary>按当前配置把上次截图再写入剪贴板；无历史则提示。</summary>
@@ -671,6 +694,17 @@ public partial class MainWindow : Window {
 					try { setstatus(Loc.T("st.tr_popup_hk_fail", ex.Message)); } catch { }
 				}
 			}));
+			hotkeySnapCopy = new GlobalHotkey(this, 0x7008);
+			hotkeySnapCopy.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try {
+					CaptureLog.Info("hotkeySnapCopy Fired");
+					cyclesnapcopy();
+				}
+				catch (Exception ex) {
+					CaptureLog.Ex("hotkeySnapCopy Fired", ex);
+					try { setstatus(ex.Message); } catch { }
+				}
+			}));
 			// 句柄就绪后再注册
 			SourceInitialized += (_, _) => registerhotkey();
 			Loaded += (_, _) => {
@@ -681,7 +715,8 @@ public partial class MainWindow : Window {
 					|| (hotkeyBoard != null && !string.IsNullOrWhiteSpace(opt.HotkeyBoard) && !hotkeyBoard.IsRegistered)
 					|| (hotkeyVoice != null && !string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput) && !hotkeyVoice.IsRegistered)
 					|| (hotkeyLive != null && !string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption) && !hotkeyLive.IsRegistered)
-					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered);
+					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered)
+					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered);
 				if (need)
 					registerhotkey();
 			};
@@ -721,6 +756,10 @@ public partial class MainWindow : Window {
 		if (hotkeyTr != null) {
 			hotkeyTr.Attach();
 			if (!hotkeyTr.Register(opt.HotkeyTranslate)) errs.Add(hotkeyTr.LastError);
+		}
+		if (hotkeySnapCopy != null) {
+			hotkeySnapCopy.Attach();
+			if (!hotkeySnapCopy.Register(opt.HotkeySnapCopy)) errs.Add(hotkeySnapCopy.LastError);
 		}
 		if (errs.Count > 0) {
 			var msg = string.Join(" · ", errs);
@@ -1376,11 +1415,15 @@ public partial class MainWindow : Window {
 			var board = fmttrayhk(opt.HotkeyBoard);
 			var voice = fmttrayhk(opt.HotkeyVoiceInput);
 			var tr = fmttrayhk(opt.HotkeyTranslate);
+			var copy = fmttrayhk(opt.HotkeySnapCopy);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
 			mntrpopup.InputGestureText = tr;
+			if (mnsnapcopyimg != null) mnsnapcopyimg.InputGestureText = copy;
+			if (mnsnapcopyfile != null) mnsnapcopyfile.InputGestureText = copy;
+			if (mnsnapcopypath != null) mnsnapcopypath.InputGestureText = copy;
 			try { tray?.ApplyHotkeys(); } catch { }
 		}
 		catch { }
@@ -3061,7 +3104,8 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyBoard, opt.HotkeyBoard, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyVoiceInput, opt.HotkeyVoiceInput, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyLiveCaption, opt.HotkeyLiveCaption, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase))
+			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase))
 			registerhotkey();
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
@@ -3484,6 +3528,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey voice input: {opt.HotkeyVoiceInput}");
 		sb.AppendLine($"Hotkey live caption: {opt.HotkeyLiveCaption}");
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
+		sb.AppendLine($"Hotkey snap copy: {opt.HotkeySnapCopy}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off")}");
 		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{SendFileServer.FileHttpPort(opt)}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");

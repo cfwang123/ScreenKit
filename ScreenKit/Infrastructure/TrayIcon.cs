@@ -50,8 +50,8 @@ sealed class TrayIcon : IDisposable {
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
 	System.Drawing.Point menuScreenLoc;
 
-	/// <summary>返回 (呼出, 截图识别, 截图标注, 屏幕画板, 语音输入, 翻译小窗) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string board, string voice, string tr)> HotkeyProvider { get; set; }
+	/// <summary>返回 (呼出, 截图识别, 截图标注, 屏幕画板, 语音输入, 翻译小窗, 切换复制方式) 快捷键文案；空串表示无。</summary>
+	public Func<(string show, string ocr, string snap, string board, string voice, string tr, string copy)> HotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -310,10 +310,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", board = "", voice = "", tr = "";
+		string show = "", ocr = "", snap = "", board = "", voice = "", tr = "", copy = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, board, voice, tr) = HotkeyProvider();
+				(show, ocr, snap, board, voice, tr, copy) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
@@ -327,9 +327,9 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miClipFile, null);
 		setshortcut(miPdf, null);
 		setshortcut(miSnapshots, null);
-		setshortcut(miSnapCopyImg, null);
-		setshortcut(miSnapCopyFile, null);
-		setshortcut(miSnapCopyPath, null);
+		setshortcut(miSnapCopyImg, copy);
+		setshortcut(miSnapCopyFile, copy);
+		setshortcut(miSnapCopyPath, copy);
 		setshortcut(miRecord, null);
 		setshortcut(miRecordOpt, null);
 		setshortcut(miGifRecord, null);

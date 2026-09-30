@@ -139,8 +139,9 @@ Android details: [android/README.md](android/README.md).
 | `Ctrl+Alt+V` | Voice input (press again to stop) |
 | `Ctrl+Alt+B` | Live caption |
 | `Ctrl+Alt+T` | Translate popup |
+| `Ctrl+Alt+P` | Cycle on-capture copy (image → file → path) |
 
-Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles the window; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray.
+Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles the window; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray. Switching the copy mode from the menu, tray, or `Ctrl+Alt+P` recopies the last screenshot and shows a toast at the bottom center of the screen.
 
 ### UI language
 
@@ -209,6 +210,7 @@ hotkey = "Ctrl+Alt+O"           # show / hide main window
 hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
 hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
 # hotkey_translate = "Ctrl+Alt+T" # translate popup show/hide
+# hotkey_snap_copy = "Ctrl+Alt+P" # cycle copy as image / file / path
 minimize_to_tray = true
 capture_log = false             # true → log/capture.log (DPI + save timings)
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)

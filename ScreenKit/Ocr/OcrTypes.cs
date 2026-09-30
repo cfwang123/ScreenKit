@@ -68,6 +68,8 @@ public sealed class OcrOptions {
 	public string HotkeyLiveCaption = "Ctrl+Alt+B";
 	/// <summary>翻译小窗热键：呼出/隐藏。默认 Ctrl+Alt+T。空 = 禁用。</summary>
 	public string HotkeyTranslate = "Ctrl+Alt+T";
+	/// <summary>切换截图复制方式（图片 → 文件 → 路径）。默认 Ctrl+Alt+P。空 = 禁用。</summary>
+	public string HotkeySnapCopy = "Ctrl+Alt+P";
 	/// <summary>最小化时隐藏到通知栏。</summary>
 	public bool MinimizeToTray = true;
 	/// <summary>是否启用 HTTP 识图 API（Umi 风格）。</summary>
@@ -369,6 +371,7 @@ public sealed class OcrOptions {
 		HotkeyVoiceInput = HotkeyVoiceInput,
 		HotkeyLiveCaption = HotkeyLiveCaption,
 		HotkeyTranslate = HotkeyTranslate,
+		HotkeySnapCopy = HotkeySnapCopy,
 		MinimizeToTray = MinimizeToTray,
 		HttpEnabled = HttpEnabled,
 		HttpLan = HttpLan,

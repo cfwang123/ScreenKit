@@ -52,6 +52,8 @@ static class AppConfig {
 				o.HotkeyLiveCaption = (hklc ?? "").Trim();
 			if (map.TryGetValue("hotkey_translate", out var hktr))
 				o.HotkeyTranslate = (hktr ?? "").Trim();
+			if (map.TryGetValue("hotkey_snap_copy", out var hksc))
+				o.HotkeySnapCopy = (hksc ?? "").Trim();
 			if (map.TryGetValue("minimize_to_tray", out var mtt))
 				o.MinimizeToTray = parsebool(mtt, true);
 			if (map.TryGetValue("capture_log", out var cl))
@@ -487,6 +489,8 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_live_caption = \"{esc((o.HotkeyLiveCaption ?? "").Trim())}\"");
 		sb.AppendLine($"# 翻译小窗（呼出/隐藏；默认 Ctrl+Alt+T）");
 		sb.AppendLine($"hotkey_translate = \"{esc((o.HotkeyTranslate ?? "").Trim())}\"");
+		sb.AppendLine($"# 切换截图复制方式（图片 / 文件 / 路径循环；默认 Ctrl+Alt+P）");
+		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
 		sb.AppendLine($"minimize_to_tray = {(o.MinimizeToTray ? "true" : "false")}");
 		sb.AppendLine($"# 系统诊断日志（默认 false）：log/capture.log + 录屏 log/record_*.log");
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");
