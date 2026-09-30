@@ -294,13 +294,21 @@
 					      StrokeLineJoin="Round" Fill="Transparent" Stretch="Uniform" Width="16" Height="16"
 					      Data="M2,8.5 L6.5,13 L14,3.5"/>
 				</Button>
+				<!-- 复制方式：文字 + p + 下拉，外观类似组合框 -->
 				<Button x:Name="bcopydrop" Style="{StaticResource WxIconBtn}" ToolTip="复制方式"
-				        Width="22" Height="36" Margin="0,0,1,0" Padding="0"
+				        Width="Auto" Height="32" MinWidth="108" Margin="2,0,2,0"
 				        AutomationProperties.AutomationId="overlay.copydrop"
-				        AutomationProperties.Name="复制方式下拉">
-					<!-- 下拉三角；菜单在 Resources，由代码 PlacementTarget 打开 -->
-					<Path Fill="#07C160" Stretch="Uniform" Width="10" Height="6"
-					      Data="M0,0 L10,0 L5,6 Z"/>
+				        AutomationProperties.Name="复制方式">
+					<Border Padding="10,0,8,0" Background="Transparent">
+						<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+							<TextBlock x:Name="lbcopymode" Text="复制为图片" FontSize="13"
+							           Foreground="#1A1A1A" VerticalAlignment="Center"/>
+							<TextBlock x:Name="lbcopykey" Text="p" FontSize="12" Foreground="#8A8A8A"
+							           Margin="6,1,6,0" VerticalAlignment="Center"/>
+							<Path Fill="#5C5C5C" Stretch="Uniform" Width="9" Height="5"
+							      VerticalAlignment="Center" Data="M0,0 L9,0 L4.5,5 Z"/>
+						</StackPanel>
+					</Border>
 				</Button>
 			</StackPanel>
 		</Border>

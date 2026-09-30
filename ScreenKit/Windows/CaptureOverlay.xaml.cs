@@ -825,18 +825,7 @@ public partial class CaptureOverlay : Window {
 	/// <summary>在工具条旁打开复制方式面板。</summary>
 	void opencopymenu() {
 		try {
-			mncopyimg.Content = Loc.T("overlay.copy.img");
-			mncopyfile.Content = Loc.T("overlay.copy.file");
-			mncopypath.Content = Loc.T("overlay.copy.path");
-			bcopydrop.ToolTip = Loc.T("overlay.copydrop.tip");
-			var pathMode = ImageUtil.CurrentSnapCopyAsPath
-				&& !ImageUtil.CurrentSnapCopyAsImage && !ImageUtil.CurrentSnapCopyAsFile;
-			var fileMode = !pathMode && ImageUtil.CurrentSnapCopyAsFile
-				&& !ImageUtil.CurrentSnapCopyAsImage;
-			// 当前默认项前缀勾选标记
-			mncopyimg.Content = (pathMode || fileMode ? "   " : "✓ ") + Loc.T("overlay.copy.img");
-			mncopyfile.Content = (fileMode ? "✓ " : "   ") + Loc.T("overlay.copy.file");
-			mncopypath.Content = (pathMode ? "✓ " : "   ") + Loc.T("overlay.copy.path");
+			refreshcopydrop();
 			pcopyas.UpdateLayout();
 			// 相对下拉按钮：下方、右对齐
 			bcopydrop.UpdateLayout();
@@ -877,10 +866,31 @@ public partial class CaptureOverlay : Window {
 		return false;
 	}
 
-	/// <summary>改默认复制方式 → 完成标注并按该方式写入剪贴板。</summary>
-	void finishcopywithmode(bool asImg, bool asFile, bool asPath) {
-		closecopymenu();
-		// 三选一：路径 > 文件 > 图片
+	/// <summary>当前是否「复制为路径 / 文件」（否则为图片）。</summary>
+	static void cursnapcopymode(out bool pathMode, out bool fileMode) {
+		pathMode = ImageUtil.CurrentSnapCopyAsPath
+			&& !ImageUtil.CurrentSnapCopyAsImage && !ImageUtil.CurrentSnapCopyAsFile;
+		fileMode = !pathMode && ImageUtil.CurrentSnapCopyAsFile
+			&& !ImageUtil.CurrentSnapCopyAsImage;
+	}
+
+	/// <summary>工具条组合框文案与下拉勾选，跟当前复制方式走。</summary>
+	void refreshcopydrop() {
+		cursnapcopymode(out var pathMode, out var fileMode);
+		var img = Loc.T("overlay.copy.img");
+		var file = Loc.T("overlay.copy.file");
+		var path = Loc.T("overlay.copy.path");
+		if (lbcopymode != null)
+			lbcopymode.Text = pathMode ? path : (fileMode ? file : img);
+		if (lbcopykey != null) lbcopykey.Text = "p";
+		try { bcopydrop.ToolTip = Loc.T("overlay.copydrop.tip"); } catch { }
+		mncopyimg.Content = (pathMode || fileMode ? "   " : "✓ ") + img;
+		mncopyfile.Content = (fileMode ? "✓ " : "   ") + file;
+		mncopypath.Content = (pathMode ? "✓ " : "   ") + path;
+	}
+
+	/// <summary>写入当前复制方式并通知主窗记住（不完成截图）。</summary>
+	void applysnapcopymode(bool asImg, bool asFile, bool asPath) {
 		if (asPath) {
 			ImageUtil.CurrentSnapCopyAsImage = false;
 			ImageUtil.CurrentSnapCopyAsFile = false;
@@ -901,6 +911,27 @@ public partial class CaptureOverlay : Window {
 		}
 		try { SnapCopyModeChosen?.Invoke(asImg, asFile, asPath); }
 		catch (Exception ex) { CaptureLog.Ex("SnapCopyModeChosen", ex); }
+		refreshcopydrop();
+	}
+
+	/// <summary>P：图片 → 文件 → 路径，只改方式，不完成。</summary>
+	void cyclesnapcopy() {
+		var open = pcopyas.Visibility == Visibility.Visible;
+		cursnapcopymode(out var pathMode, out var fileMode);
+		if (pathMode)
+			applysnapcopymode(asImg: true, asFile: false, asPath: false);
+		else if (fileMode)
+			applysnapcopymode(asImg: false, asFile: false, asPath: true);
+		else
+			applysnapcopymode(asImg: false, asFile: true, asPath: false);
+		try { placebar(); } catch { }
+		if (open) opencopymenu();
+	}
+
+	/// <summary>改默认复制方式 → 完成标注并按该方式写入剪贴板。</summary>
+	void finishcopywithmode(bool asImg, bool asFile, bool asPath) {
+		closecopymenu();
+		applysnapcopymode(asImg, asFile, asPath);
 		finishcopy();
 	}
 
@@ -2386,7 +2417,7 @@ public partial class CaptureOverlay : Window {
 		bpane.Visibility = Visibility.Visible;
 		bbar.Visibility = Visibility.Visible;
 		try {
-			bcopydrop.ToolTip = Loc.T("overlay.copydrop.tip");
+			refreshcopydrop();
 			bopen.ToolTip = Loc.T("overlay.open.tip");
 		}
 		catch { }
@@ -3645,6 +3676,19 @@ public partial class CaptureOverlay : Window {
 			}
 			else if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control) {
 				undo();
+				e.Handled = true;
+			}
+			else if (e.Key == Key.P && Keyboard.Modifiers == ModifierKeys.None
+				&& editHost == null
+				&& Keyboard.FocusedElement is not System.Windows.Controls.TextBox) {
+				// 副屏按键转到宿主工具条
+				var host = session?.AnnotateHost;
+				if (host != null && host != this) {
+					if (host.editHost != null) return;
+					host.cyclesnapcopy();
+				}
+				else
+					cyclesnapcopy();
 				e.Handled = true;
 			}
 		}
