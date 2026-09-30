@@ -554,10 +554,13 @@ window.sfweb = (function(){
 		var w = sw;
 		var h = sh;
 		if (!(w > 0) || !(h > 0)) { done(null); return; }
-		if (max > 0 && (w > max || h > max)) {
-			var s = Math.min(max / w, max / h);
-			w = Math.max(1, Math.round(w * s));
-			h = Math.max(1, Math.round(h * s));
+		if (max > 0) {
+			var side = Math.min(w, h);
+			if (side > max) {
+				var s = max / side;
+				w = Math.max(1, Math.round(w * s));
+				h = Math.max(1, Math.round(h * s));
+			}
 		}
 		var c = document.createElement("canvas");
 		c.width = w;

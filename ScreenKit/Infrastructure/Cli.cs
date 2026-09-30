@@ -2387,6 +2387,27 @@ static class Cli {
 					}
 					else Out("short side no upscale OK");
 				}
+				var photo = Path.Combine(dir, "photo.png");
+				File.Copy(src, photo, true);
+				if (!ImgConvert.FitPhoto(photo, "png", 60, true, 80)) {
+					Err("FAIL: 拍照较短边应缩小");
+					bad++;
+				}
+				else {
+					using var ph = new System.Drawing.Bitmap(photo);
+					if (ph.Width != 160 || ph.Height != 80) {
+						Err($"FAIL: 拍照较短边 {ph.Width}x{ph.Height} 期望 160x80");
+						bad++;
+					}
+					else Out("photo short side 160x80 OK");
+				}
+				var photoStay = Path.Combine(dir, "photo_stay.png");
+				File.Copy(src, photoStay, true);
+				if (ImgConvert.FitPhoto(photoStay, "png", 60, true, 150)) {
+					Err("FAIL: 拍照较短边已不超过时不应再压");
+					bad++;
+				}
+				else Out("photo short side skip OK");
 				var len = new FileInfo(dst).Length;
 				if (len < 80) {
 					Err("FAIL: jpg 过小 " + len);

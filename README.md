@@ -114,7 +114,7 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
 4. The upper list is the PC `sendfile/` inbox (root only, no subfolder navigation; folders are rows). **Double-click** a file to open it with the system, or a folder to open Explorer. The **right-click** menu acts on the current selection (Open, Cut, Copy, Paste, Push, Delete) and does not clear a multi-selection when you click an already selected row. Use the toolbar to switch **list / thumbnails**; marquee, Shift range, and Ctrl multi-select; **Ctrl+X/C/V** cut/copy/paste (cut rows appear semi-transparent), Delete to Recycle Bin, or drag to Explorer. Dropping files onto the list imports them. Drop on the **lower** zone to send to the phone while the app is connected; otherwise nothing is sent. File/image paste goes into the inbox; text paste still goes to the right-hand pane. Phone share/upload always writes to PC `sendfile/`.
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync is one text box with **Send**, **Copy**, and **Clear**. The phone auto-connects by LAN IP only, not over USB.
-6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/`, phone page `/m`. The page follows the browser language and has a **中文 / EN** switch (saved in the browser). Sign in to upload, mkdir, rename, delete; optional **Stay signed in**. Phone UI: breadcrumb path, compact list (tap to open/download, long-press to multi-select), bottom **Upload / Camera / New**. **Camera** compresses in the browser before upload, using **Settings → API** (format, JPG quality, long edge). If the browser cannot compress, the PC applies the same settings. Reopen the page after updating the PC app, then take the photo. Zip/copy/rename/delete from the selection bar. A correct `/f/相对路径` URL downloads without login. Design reference: `ScreenKit/SendFile/web/m-prototype.html`.
+6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/`, phone page `/m`. The page follows the browser language and has a **中文 / EN** switch (saved in the browser). Sign in to upload, mkdir, rename, delete; optional **Stay signed in**. Phone UI: breadcrumb path, compact list (tap to open/download, long-press to multi-select), bottom **Upload / Camera / New**. **Camera** compresses in the browser before upload, using **Settings → API** (format, JPG quality, shorter-side cap). If the browser cannot compress, the PC applies the same settings. Reopen the page after updating the PC app, then take the photo. Zip/copy/rename/delete from the selection bar. A correct `/f/相对路径` URL downloads without login. Design reference: `ScreenKit/SendFile/web/m-prototype.html`.
 
 Android details: [android/README.md](android/README.md).
 
@@ -241,7 +241,7 @@ sendfile_name = ""              # empty = machine name
 sendfile_web_pass = ""          # web manager login; empty = auto-generated on start
 photo_fmt = "jpg"               # phone app + web Camera: jpg | png
 photo_jpg_quality = 60          # 1–100
-photo_limit = true              # fit the long edge
+photo_limit = true              # cap the shorter side (shrink only)
 photo_max_px = 2000             # 64–16000
 # [[sendfile_device]]           # paired phones (id / name / token)
 

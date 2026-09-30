@@ -578,7 +578,7 @@ static class AppConfig {
 		sb.AppendLine($"sendfile_pc_id = \"{esc(o.SendFilePcId ?? "")}\"");
 		sb.AppendLine($"# 网页管理登录密码（空则启动时自动生成）；下载 /f/ 无需登录");
 		sb.AppendLine($"sendfile_web_pass = \"{esc(o.SendFileWebPass ?? "")}\"");
-		sb.AppendLine($"# 手机 App / 网页拍照上传：jpg|png，质量 1–100，最长边");
+		sb.AppendLine($"# 手机 App / 网页拍照上传：jpg|png，质量 1–100，较短边上限");
 		var photoFmt = string.Equals(o.PhotoFmt, "png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
 		sb.AppendLine($"photo_fmt = \"{photoFmt}\"");
 		sb.AppendLine($"photo_jpg_quality = {Compat.Clamp(o.PhotoJpgQuality <= 0 ? 60 : o.PhotoJpgQuality, 1, 100)}");

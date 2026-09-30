@@ -258,7 +258,7 @@ static class ImgConvert {
 	}
 
 	/// <summary>
-	/// 网页拍照：最长边超限、扩展名不符或带 EXIF 方向时，按拍照参数覆盖原文件。
+	/// 网页拍照：较短边超限、扩展名不符或带 EXIF 方向时，按拍照参数覆盖原文件。
 	/// 浏览器已经压到限制内则不再压第二次。
 	/// </summary>
 	public static bool FitPhoto(string path, string fmt, int quality, bool limit, int maxPx) {
@@ -272,9 +272,9 @@ static class ImgConvert {
 			? ext.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
 				|| ext.Equals(".jpeg", StringComparison.OrdinalIgnoreCase)
 			: ext.Equals(ExtOf(fmt), StringComparison.OrdinalIgnoreCase);
-		var over = limit && Math.Max(w, h) > maxPx;
+		var over = limit && Math.Min(w, h) > maxPx;
 		if (extOk && !over && rot == 0 && !mirror) return false;
-		var bytes = Encode(path, fmt, quality, limit, maxPx, maxPx, rot, mirror, CancellationToken.None);
+		var bytes = Encode(path, fmt, quality, limit, maxPx, maxPx, rot, mirror, CancellationToken.None, shortSide: true);
 		if (bytes == null || bytes.Length == 0) return false;
 		var tmp = path + ".photo.tmp";
 		File.WriteAllBytes(tmp, bytes);

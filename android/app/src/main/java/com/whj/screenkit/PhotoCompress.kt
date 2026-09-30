@@ -12,6 +12,7 @@ import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /** 按电脑下发的拍照参数缩放、压缩后再上传。 */
 object PhotoCompress {
@@ -84,13 +85,15 @@ object PhotoCompress {
         }
     }
 
+    /** 较短边超过 maxPx 则等比缩小，不放大。 */
     private fun fit(bmp: Bitmap, maxPx: Int): Bitmap {
         val w = bmp.width
         val h = bmp.height
-        if (w <= maxPx && h <= maxPx) return bmp
-        val s = min(maxPx.toFloat() / w, maxPx.toFloat() / h)
-        val nw = max(1, (w * s).toInt())
-        val nh = max(1, (h * s).toInt())
+        val side = min(w, h)
+        if (side <= maxPx) return bmp
+        val s = maxPx.toFloat() / side
+        val nw = max(1, (w * s).roundToInt())
+        val nh = max(1, (h * s).roundToInt())
         val scaled = Bitmap.createScaledBitmap(bmp, nw, nh, true)
         if (scaled != bmp) bmp.recycle()
         return scaled
@@ -138,7 +141,7 @@ object PhotoCompress {
         var sample = 1
         var cw = w
         var ch = h
-        while (cw > maxPx * 2 || ch > maxPx * 2) {
+        while (min(cw, ch) > maxPx * 2) {
             sample *= 2
             cw /= 2
             ch /= 2

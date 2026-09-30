@@ -638,9 +638,9 @@
 						<TextBox x:Name="esfphotoq" Height="30" Padding="6,4" Margin="0,0,0,8" Text="60"
 						         BorderBrush="{StaticResource BorderSoft}"
 						         AutomationProperties.AutomationId="set.sendfile.photo.quality"/>
-						<CheckBox x:Name="esfphotolimit" Content="限制最长边" Margin="0,0,0,8" IsChecked="True"
+						<CheckBox x:Name="esfphotolimit" Content="限制较短边" Margin="0,0,0,8" IsChecked="True"
 						          AutomationProperties.AutomationId="set.sendfile.photo.limit"/>
-						<TextBlock x:Name="lbsetsfphotomax" Text="最长边（像素）" FontSize="11"
+						<TextBlock x:Name="lbsetsfphotomax" Text="较短边（像素）" FontSize="11"
 						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 						<TextBox x:Name="esfphotomax" Height="30" Padding="6,4" Margin="0,0,0,10" Text="2000"
 						         BorderBrush="{StaticResource BorderSoft}"

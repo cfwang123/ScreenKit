@@ -96,9 +96,9 @@ public sealed class OcrOptions {
 	public string PhotoFmt = "jpg";
 	/// <summary>拍照 JPG 质量 1–100。</summary>
 	public int PhotoJpgQuality = 60;
-	/// <summary>拍照是否限制最长边。</summary>
+	/// <summary>拍照是否限制较短边（超过则等比缩小，不放大）。</summary>
 	public bool PhotoLimitSize = true;
-	/// <summary>拍照最长边像素。</summary>
+	/// <summary>拍照较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
 	public int PhotoMaxPx = 2000;
 	/// <summary>局域网投屏接收（UDP 17531 发现 / HTTP /cast 媒体）。</summary>
 	public bool CastRecvEnabled = true;

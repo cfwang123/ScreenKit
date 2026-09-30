@@ -37,6 +37,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Image convert: the max width/height box is now **Cap shorter side**. If the smaller side is over the limit, the image shrinks to fit; it is never enlarged. Config keys are `imgconv_short` and `imgconv_short_px` (default 1080). An old `imgconv_max_w` / `imgconv_max_h` pair is read once as the smaller of the two.
+- Phone camera upload and the web camera use that same shorter-side cap. **Settings → API** still has one pixel value (`photo_max_px`, default 2000). The phone and the browser shrink only when the smaller side is over it; the PC applies the same rule if the browser could not.
 - Screencast tab **Scan LAN** lists this PC as well. Several local addresses fold into one row, marked “This PC”.
 - Settings → API: the listen-address box is now **Allow LAN access**. Checked (default) listens on every interface; unchecked listens on `127.0.0.1` only. File transfer, the web manager, and Wi-Fi cast share this port. Config key is `http_lan`. An old `http_host` of `127.0.0.1` stays LAN-open when file transfer or cast was already on.
 
@@ -56,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 图片格式转换：原来的最大宽高改为 **限制较短边**。宽和高里较小的一边超过设定值时等比缩小，不超过则不放大。配置键 `imgconv_short`、`imgconv_short_px`（默认 1080）。旧的 `imgconv_max_w` / `imgconv_max_h` 只在没有新键时读一次，取两者中较小的数。
+- 手机拍照上传和网页拍照改为同一套较短边限制。**参数设置 → 接口** 仍是一个像素值（`photo_max_px`，默认 2000）。手机和浏览器只在较短边超过时等比缩小；浏览器压不了时，电脑按同一规则再处理。
 - 投屏页 **搜索局域网** 会列出本机。多块网卡并成一条，名称后标「本机」。
 - **参数设置 → 接口**：监听地址改为勾选 **允许局域网访问**。勾选（默认）时所有网卡可连；不勾选时只听 `127.0.0.1`。文件传输、网页管理和 Wi-Fi 投屏共用此端口。配置键为 `http_lan`。旧配置里 `http_host` 为 `127.0.0.1` 且已开文件传输或投屏时，升级后仍允许局域网。
 
