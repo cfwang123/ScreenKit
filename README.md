@@ -150,7 +150,7 @@ Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles 
 ## Install features
 
 1. First launch may open the wizard (defaults: Simplified-Chinese OCR, first two ASR packs, recording; GPU/iGPU **off**).
-2. Later: **Options → Install features**
+2. Later: **Help → Install features**
    - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Voices are not on this tab.
    - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).

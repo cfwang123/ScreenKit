@@ -153,9 +153,6 @@
 				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
 				          AutomationProperties.AutomationId="menu.translate.popup"
 				          ToolTip="浮窗翻译；热键再按一次隐藏"/>
-				<MenuItem x:Name="mninstall" Header="安装功能(_I)…"
-				          AutomationProperties.AutomationId="menu.install"
-				          ToolTip="安装 OCR/ASR 模型、GPU、核显等组件（中文系统优先国内镜像）"/>
 				<MenuItem x:Name="mndiag" Header="诊断(_D)…"
 				          ToolTip="CUDA / DirectML / 路径 / 显示器 DPI"/>
 				<Separator/>
@@ -167,8 +164,19 @@
 				<MenuItem x:Name="mnupdate" Header="检查更新(_U)…"
 				          AutomationProperties.AutomationId="menu.update"
 				          ToolTip="从 GitHub Releases 检查并下载更新"/>
+			</MenuItem>
+			<MenuItem x:Name="mnhelp" Header="帮助(_H)"
+			          AutomationProperties.AutomationId="menu.help">
+				<MenuItem x:Name="mninstall" Header="安装功能(_I)…"
+				          AutomationProperties.AutomationId="menu.install"
+				          ToolTip="安装 OCR/ASR 模型、GPU、核显等组件（中文系统优先国内镜像）"/>
 				<MenuItem x:Name="mnabout" Header="关于(_A)…"
+				          AutomationProperties.AutomationId="menu.about"
 				          ToolTip="版本与许可证"/>
+				<Separator/>
+				<MenuItem x:Name="mngithub" Header="GitHub 主页(_G)"
+				          AutomationProperties.AutomationId="menu.github"
+				          ToolTip="在浏览器打开项目主页"/>
 			</MenuItem>
 		</Menu>
 

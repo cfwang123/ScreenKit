@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Main menu **Help** holds **Install features**, **About**, and **GitHub** (opens https://github.com/cfwang123/ScreenKit). Install features and About are no longer under Options.
 - LLM **thinking intensity** is an editable dropdown. Presets stay none / low / medium / high / max; other tokens such as `minimal` are kept and sent as `reasoning_effort`.
 - **Settings → Translate** adds **LLM batch size** (`translate_llm_batch`, default 8, range 1–64). OCR line translation and `POST /api/translate` use it. A request `chunk` still overrides that default.
 - Image convert: the max width/height box is now **Cap shorter side**. If the smaller side is over the limit, the image shrinks to fit; it is never enlarged. Config keys are `imgconv_short` and `imgconv_short_px` (default 1080). An old `imgconv_max_w` / `imgconv_max_h` pair is read once as the smaller of the two.
@@ -65,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 主菜单增加 **帮助**。**安装功能**、**关于** 从「选项」移到这里，并增加 **GitHub 主页**（浏览器打开 https://github.com/cfwang123/ScreenKit）。
 - LLM **思考强度**改为可手输的下拉。预设仍是 none / low / medium / high / max；手输的 `minimal` 等会原样作为 `reasoning_effort` 发出。
 - **参数设置 → 翻译**增加 **一批翻译数量**（`translate_llm_batch`，默认 8，范围 1–64）。识别多行翻译和 `POST /api/translate` 按这个数分组。请求里的 `chunk` 仍可覆盖。
 - 图片格式转换：原来的最大宽高改为 **限制较短边**。宽和高里较小的一边超过设定值时等比缩小，不超过则不放大。配置键 `imgconv_short`、`imgconv_short_px`（默认 1080）。旧的 `imgconv_max_w` / `imgconv_max_h` 只在没有新键时读一次，取两者中较小的数。

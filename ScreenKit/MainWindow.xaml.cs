@@ -1196,6 +1196,7 @@ public partial class MainWindow : Window {
 		mnlangen.Click += (_, _) => setlang("en");
 		mnupdate.Click += (_, _) => openupdate();
 		mnabout.Click += (_, _) => openabout();
+		mngithub.Click += (_, _) => opengithub();
 		// 结果区快捷复制 / 识别中取消
 		bcopy.Click += (_, _) => copytext();
 		bcancelocrpanel.Click += (_, _) => cancelocr();
@@ -1232,6 +1233,7 @@ public partial class MainWindow : Window {
 			mnedit.Header = Loc.T("menu.edit");
 			mntools.Header = Loc.T("menu.tools");
 			mnopts.Header = Loc.T("menu.options");
+			mnhelp.Header = Loc.T("menu.help");
 			mnlang.Header = Loc.T("menu.lang");
 			mnlangzh.Header = Loc.T("menu.lang.zh");
 			mnlangen.Header = Loc.T("menu.lang.en");
@@ -1311,6 +1313,8 @@ public partial class MainWindow : Window {
 			mnupdate.ToolTip = Loc.T("menu.update.tip");
 			mnabout.Header = Loc.T("menu.about");
 			mnabout.ToolTip = Loc.T("menu.about.tip");
+			mngithub.Header = Loc.T("menu.github");
+			mngithub.ToolTip = Loc.T("menu.github.tip");
 
 			tabocr.Header = Loc.T("tab.ocr");
 			tabtts.Header = Loc.T("tab.tts");
@@ -2957,6 +2961,19 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			MessageBox.Show(this, ex.Message, Loc.T("about.title"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
+	void opengithub() {
+		try {
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = "https://github.com/cfwang123/ScreenKit",
+				UseShellExecute = true,
+			});
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Loc.T("menu.github"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
