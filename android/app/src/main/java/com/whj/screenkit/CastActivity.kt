@@ -124,6 +124,7 @@ class CastActivity : AppCompatActivity() {
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
         maybeTestIntent(intent)
+        restoreLiveStat()
         applyModeUi()
     }
 
@@ -152,6 +153,7 @@ class CastActivity : AppCompatActivity() {
             intent?.getBooleanExtra("scst_adb", false) == true ||
             intent?.getBooleanExtra("scst_adb_probe", false) == true ||
             intent?.getBooleanExtra("scst_wifi_probe", false) == true
+        restoreLiveStat()
         if (!skip) applyModeUi()
         pendingErr?.let { showCastErr(it) }
     }
@@ -312,6 +314,14 @@ class CastActivity : AppCompatActivity() {
         if (st.contains("失败") || st.contains("已停止") || st.contains("已断开") || st.contains("未授权"))
             return false
         return st.contains("投屏中") || st.contains("正在启动") || st.contains("USB 测试")
+    }
+
+    /** 离开后再进投屏页时，界面是新建的，状态只留在服务里。 */
+    private fun restoreLiveStat() {
+        val msg = CastService.statMsg
+        if (!CastService.isCastingMsg(msg)) return
+        if (b.lbstat.text?.toString() != msg) b.lbstat.text = msg
+        applyModeUi()
     }
 
     private fun showCastErr(msg: String) {
