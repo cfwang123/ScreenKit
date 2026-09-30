@@ -94,7 +94,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 ### 截图、标注、识别
 
-框选区域（热键或菜单）。结果区拆成 **OCR / 条码**。已选目标语且配置了 LLM 时，识别后可叠字翻译。标注工具在截图遮罩上；跨屏选区可在每一块相交的屏上画框、拖动或缩放（拖动热区在绿框外侧 10px）。「完成」下拉可复制为图片、文件或路径，并记住默认方式。
+框选区域（热键或菜单）。结果区拆成 **OCR / 条码**。已选目标语且配置了 LLM 时，识别后可叠字翻译。标注工具在截图遮罩上；跨屏选区可在每一块相交的屏上画框、拖动或缩放（拖动热区在绿框外侧 10px）。「完成」下拉可复制为图片、文件或路径，并记住默认方式。**参数设置 → 截图** 可限制较短边：宽和高里较小的一边超过设定值时等比缩小，不超过则不放大。只影响 `screenshots/` 与复制为文件，识别仍用原图。
 
 ### 区域录屏 / GIF 录屏
 
@@ -180,7 +180,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | 段落 | 主要内容 |
 |------|----------|
 | `[ocr]` | 模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值 |
-| `[ui]` | 热键、托盘、`ui_lang`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`imgconv_*` |
+| `[ui]` | 热键、托盘、`ui_lang`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`screenshot_short`、`imgconv_*` |
 | `[http]` | OCR API（`http_lan`、端口 `1224`）、服务模式 |
 | `[sendfile]` | 局域网文件传输端口、显示名、网页登录密码、已配对设备 |
 | `[pdf]` | 不可见文字层、光栅 DPI |
@@ -221,6 +221,8 @@ tab_http_visible = true
 tab_sendfile_visible = true
 update_check_days = 7
 screenshot_keep_days = 3
+screenshot_short = false        # 限制较短边（超过则等比缩小，不放大）
+screenshot_short_px = 1080      # 16–16384
 # http_proxy = false
 # http_proxy_addr = "127.0.0.1:7897"
 

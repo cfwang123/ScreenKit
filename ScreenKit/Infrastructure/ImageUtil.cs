@@ -304,14 +304,11 @@ static class ImageUtil {
 	/// <summary>JPG 质量 1–100（主窗配置同步）。</summary>
 	public static int CurrentScreenshotJpgQuality = 92;
 
-	/// <summary>是否限制截图保存最大宽高（主窗配置同步）。</summary>
-	public static bool CurrentScreenshotMaxSizeEnabled = false;
+	/// <summary>是否限制截图保存较短边（主窗配置同步）。</summary>
+	public static bool CurrentScreenshotShortEnabled = false;
 
-	/// <summary>截图保存最大宽（主窗配置同步）。</summary>
-	public static int CurrentScreenshotMaxWidth = 1920;
-
-	/// <summary>截图保存最大高（主窗配置同步）。</summary>
-	public static int CurrentScreenshotMaxHeight = 1080;
+	/// <summary>截图较短边上限（主窗配置同步）。</summary>
+	public static int CurrentScreenshotShortPx = 1080;
 
 	/// <summary>截图完成时是否以位图放入剪贴板（与 AsFile / AsPath 三选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsImage = true;
@@ -328,7 +325,7 @@ static class ImageUtil {
 	/// <summary>
 	/// 保存到 screenshots/（文件名含时间戳便于排序），并按当前配置写入剪贴板
 	///（图片 / 文件 / 路径文本，三选一）。
-	/// 按配置应用最大宽高（等比缩小）与保存格式/JPG 质量。
+	/// 按配置限制较短边（超过则等比缩小，不放大）与保存格式/JPG 质量。
 	/// 不清理过期历史（仅启动时后台清理，见 CleanupScreenshotsBackground）。
 	/// </summary>
 	/// <returns>保存的完整路径。</returns>
@@ -479,15 +476,13 @@ static class ImageUtil {
 		return f is "jpg" or "jpeg" ? ".jpg" : ".png";
 	}
 
-	/// <summary>按配置等比缩小到最大框内（不放大）；未启用则原样返回。</summary>
-	public static BitmapSource FitScreenshotMaxSize(BitmapSource src,
-		bool? maxEnabled = null, int? maxW = null, int? maxH = null) {
+	/// <summary>按配置限制较短边（超过则等比缩小，不放大）；未启用则原样返回。</summary>
+	public static BitmapSource FitScreenshotShort(BitmapSource src,
+		bool? enabled = null, int? maxShort = null) {
 		if (src == null) return null;
-		var en = maxEnabled ?? CurrentScreenshotMaxSizeEnabled;
+		var en = enabled ?? CurrentScreenshotShortEnabled;
 		if (!en) return src;
-		var mw = Math.Max(16, maxW ?? CurrentScreenshotMaxWidth);
-		var mh = Math.Max(16, maxH ?? CurrentScreenshotMaxHeight);
-		return FitMaxSize(src, mw, mh);
+		return FitShortSide(src, maxShort ?? CurrentScreenshotShortPx);
 	}
 
 	/// <summary>等比 fit 到 maxW×maxH 内（不放大）。已在框内则原样返回。</summary>
@@ -528,9 +523,9 @@ static class ImageUtil {
 		return bmp;
 	}
 
-	/// <summary>截图落盘前预处理：DPI 统一 + 可选最大宽高。</summary>
+	/// <summary>截图落盘前预处理：DPI 统一 + 可选较短边限制。</summary>
 	static BitmapSource prepareforcapture(BitmapSource src) =>
-		FitScreenshotMaxSize(Withdpi(src));
+		FitScreenshotShort(Withdpi(src));
 
 	/// <summary>
 	/// 保存到 screenshots/，并以「复制文件」放入剪贴板（兼容旧调用）。

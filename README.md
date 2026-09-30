@@ -94,7 +94,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 ### Screenshot, annotate, OCR
 
-Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; a region that spans monitors can be drawn on, moved, or resized on every screen it covers (move hot-zone is 10px outside the frame). The toolbar can open the shot with the default app. The Done dropdown copies as image, file, or path and remembers the default.
+Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; a region that spans monitors can be drawn on, moved, or resized on every screen it covers (move hot-zone is 10px outside the frame). The toolbar can open the shot with the default app. The Done dropdown copies as image, file, or path and remembers the default. **Settings → Capture** can cap the shorter side: if the smaller of width and height is over the limit, the saved file shrinks to fit and is never enlarged. That applies to `screenshots/` and copy-as-file; OCR still uses the full image.
 
 ### Screen / GIF recording
 
@@ -180,7 +180,7 @@ Settings live in `config.toml` beside the exe (**Options → Settings** / **Reco
 | Section | Keys |
 |---------|------|
 | `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
-| `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `imgconv_*` |
+| `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `screenshot_short`, `imgconv_*` |
 | `[http]` | OCR API (`http_lan`, port `1224`), service mode |
 | `[sendfile]` | LAN file transfer ports, display name, web login password, paired devices |
 | `[pdf]` | invisible text, raster DPI |
@@ -223,6 +223,8 @@ tab_http_visible = true
 tab_sendfile_visible = true
 update_check_days = 7           # auto-check interval on startup (days); 0 = off
 screenshot_keep_days = 3        # screenshot history; 0 = unlimited. Cleaned at startup only
+screenshot_short = false        # cap the shorter side (shrink only)
+screenshot_short_px = 1080      # 16–16384
 # http_proxy = false
 # http_proxy_addr = "127.0.0.1:7897"
 # ocr_translate_lang = ""       # empty = off; LLM lang code (zh/en/ja/ko/…)

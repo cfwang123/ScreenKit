@@ -334,9 +334,8 @@ public partial class SettingsWindow : Window {
 			lbsetsnapfmt.Text = Loc.T("set.snap.fmt");
 			lbsnapjpgq.Text = Loc.T("set.snap.jpgq");
 			esnapjpgq.ToolTip = Loc.T("set.snap.jpgq.tip");
-			esnapmaxen.Content = Loc.T("set.snap.max");
-			lbsetsnapmaxw.Text = Loc.T("set.snap.maxw");
-			lbsetsnapmaxh.Text = Loc.T("set.snap.maxh");
+			esnapshorten.Content = Loc.T("set.snap.max");
+			lbsetsnapshort.Text = Loc.T("set.snap.short");
 			lbsetsnapmaxhint.Text = Loc.T("set.snap.max.hint");
 			lbsetsnapcopy.Text = Loc.T("set.snap.copy");
 			lbsetsnapcopyhint.Text = Loc.T("set.snap.copy.hint");
@@ -475,7 +474,7 @@ public partial class SettingsWindow : Window {
 			// 自定义天数：尽量贴近或默认 3
 			esnapkeep.SelectedIndex = 1;
 		}
-		// 保存格式 / jpg 质量 / 最大宽高
+		// 保存格式 / jpg 质量 / 较短边
 		var fmt = (o.ScreenshotFormat ?? "png").Trim().ToLowerInvariant();
 		var wantJpg = fmt is "jpg" or "jpeg";
 		foreach (ComboBoxItem it in esnapfmt.Items) {
@@ -488,9 +487,8 @@ public partial class SettingsWindow : Window {
 		if (esnapfmt.SelectedItem == null) esnapfmt.SelectedIndex = 0;
 		var jq = o.ScreenshotJpgQuality <= 0 ? 92 : Compat.Clamp(o.ScreenshotJpgQuality, 1, 100);
 		esnapjpgq.Text = jq.ToString();
-		esnapmaxen.IsChecked = o.ScreenshotMaxSizeEnabled;
-		esnapmaxw.Text = (o.ScreenshotMaxWidth < 16 ? 1920 : o.ScreenshotMaxWidth).ToString();
-		esnapmaxh.Text = (o.ScreenshotMaxHeight < 16 ? 1080 : o.ScreenshotMaxHeight).ToString();
+		esnapshorten.IsChecked = o.ScreenshotShortEnabled;
+		esnapshort.Text = (o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx).ToString();
 		syncsnapfmtenabled();
 		esnapfmt.SelectionChanged += (_, _) => syncsnapfmtenabled();
 		ehttpen.IsChecked = o.HttpEnabled;
@@ -620,7 +618,7 @@ public partial class SettingsWindow : Window {
 		if (!int.TryParse(keepTag, out var keepDays) || keepDays < 0)
 			keepDays = 3;
 		Result.ScreenshotKeepDays = keepDays > 3650 ? 3650 : keepDays;
-		// 保存格式 / jpg 质量 / 最大宽高
+		// 保存格式 / jpg 质量 / 较短边
 		var fmtTag = (esnapfmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "png";
 		Result.ScreenshotFormat = string.Equals(fmtTag, "jpg", StringComparison.OrdinalIgnoreCase) ? "jpg" : "png";
 		if (!int.TryParse((esnapjpgq.Text ?? "").Trim(), out var jpgQ) || jpgQ < 1 || jpgQ > 100) {
@@ -630,11 +628,9 @@ public partial class SettingsWindow : Window {
 			return false;
 		}
 		Result.ScreenshotJpgQuality = jpgQ;
-		Result.ScreenshotMaxSizeEnabled = esnapmaxen.IsChecked == true;
-		if (!tryint(esnapmaxw, Loc.T("set.maxw.name"), 16, 16384, out var smw, tabsetsnap)) return false;
-		if (!tryint(esnapmaxh, Loc.T("set.maxh.name"), 16, 16384, out var smh, tabsetsnap)) return false;
-		Result.ScreenshotMaxWidth = smw;
-		Result.ScreenshotMaxHeight = smh;
+		Result.ScreenshotShortEnabled = esnapshorten.IsChecked == true;
+		if (!tryint(esnapshort, Loc.T("set.snap.short.name"), 16, 16384, out var sshort, tabsetsnap)) return false;
+		Result.ScreenshotShortPx = sshort;
 		// 三选一
 		var asPath = esnapcopypath.IsChecked == true;
 		var asFile = !asPath && esnapcopyfile.IsChecked == true;

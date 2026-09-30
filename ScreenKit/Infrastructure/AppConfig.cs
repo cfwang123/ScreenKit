@@ -89,19 +89,27 @@ static class AppConfig {
 				o.SnapCopyAsFile = false;
 				o.SnapCopyAsPath = false;
 			}
-			// 截图保存：格式 / jpg 质量 / 最大宽高
+			// 截图保存：格式 / jpg 质量 / 较短边
 			if (map.TryGetValue("screenshot_format", out var sfmt) && !string.IsNullOrWhiteSpace(sfmt)) {
 				var f = sfmt.Trim().Trim('"').ToLowerInvariant();
 				o.ScreenshotFormat = f is "jpg" or "jpeg" ? "jpg" : "png";
 			}
 			if (map.TryGetValue("screenshot_jpg_quality", out var sjq) && int.TryParse(sjq, out var jpgQ))
 				o.ScreenshotJpgQuality = Compat.Clamp(jpgQ, 1, 100);
-			if (map.TryGetValue("screenshot_max_size", out var sms))
-				o.ScreenshotMaxSizeEnabled = parsebool(sms, false);
-			if (map.TryGetValue("screenshot_max_w", out var smw) && int.TryParse(smw, out var sMaxW))
-				o.ScreenshotMaxWidth = Compat.Clamp(sMaxW, 16, 16384);
-			if (map.TryGetValue("screenshot_max_h", out var smh) && int.TryParse(smh, out var sMaxH))
-				o.ScreenshotMaxHeight = Compat.Clamp(sMaxH, 16, 16384);
+			if (map.TryGetValue("screenshot_short", out var ssh))
+				o.ScreenshotShortEnabled = parsebool(ssh, false);
+			else if (map.TryGetValue("screenshot_max_size", out var sms))
+				o.ScreenshotShortEnabled = parsebool(sms, false);
+			if (map.TryGetValue("screenshot_short_px", out var ssp) && int.TryParse(ssp, out var sShort))
+				o.ScreenshotShortPx = Compat.Clamp(sShort, 16, 16384);
+			else if (map.TryGetValue("screenshot_max_w", out var smw) && int.TryParse(smw, out var oldW)) {
+				var px = oldW;
+				if (map.TryGetValue("screenshot_max_h", out var smh) && int.TryParse(smh, out var oldH))
+					px = Math.Min(oldW, oldH);
+				o.ScreenshotShortPx = Compat.Clamp(px, 16, 16384);
+			}
+			else if (map.TryGetValue("screenshot_max_h", out var smhOnly) && int.TryParse(smhOnly, out var onlyH))
+				o.ScreenshotShortPx = Compat.Clamp(onlyH, 16, 16384);
 			if (map.TryGetValue("imgconv_format", out var icfmt) && !string.IsNullOrWhiteSpace(icfmt))
 				o.ImgConvFormat = ImgConvert.NormFmt(icfmt.Trim().Trim('"'));
 			if (map.TryGetValue("imgconv_jpg_quality", out var icq) && int.TryParse(icq, out var icQ))
@@ -494,12 +502,11 @@ static class AppConfig {
 		var shotFmt = string.Equals(o.ScreenshotFormat, "jpg", StringComparison.OrdinalIgnoreCase)
 			|| string.Equals(o.ScreenshotFormat, "jpeg", StringComparison.OrdinalIgnoreCase)
 			? "jpg" : "png";
-		sb.AppendLine($"# 截图保存格式 png | jpg；jpg 质量 1–100；最大宽高可关（等比缩小不放大）");
+		sb.AppendLine($"# 截图保存格式 png | jpg；jpg 质量 1–100；较短边可关（超过则等比缩小，不放大）");
 		sb.AppendLine($"screenshot_format = \"{shotFmt}\"");
 		sb.AppendLine($"screenshot_jpg_quality = {Compat.Clamp(o.ScreenshotJpgQuality <= 0 ? 92 : o.ScreenshotJpgQuality, 1, 100)}");
-		sb.AppendLine($"screenshot_max_size = {(o.ScreenshotMaxSizeEnabled ? "true" : "false")}");
-		sb.AppendLine($"screenshot_max_w = {Compat.Clamp(o.ScreenshotMaxWidth < 16 ? 1920 : o.ScreenshotMaxWidth, 16, 16384)}");
-		sb.AppendLine($"screenshot_max_h = {Compat.Clamp(o.ScreenshotMaxHeight < 16 ? 1080 : o.ScreenshotMaxHeight, 16, 16384)}");
+		sb.AppendLine($"screenshot_short = {(o.ScreenshotShortEnabled ? "true" : "false")}");
+		sb.AppendLine($"screenshot_short_px = {Compat.Clamp(o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx, 16, 16384)}");
 		var icFmt = ImgConvert.NormFmt(o.ImgConvFormat);
 		var icOut = ImgConvert.NormOutMode(o.ImgConvOutMode);
 		sb.AppendLine($"# 图片格式转换：jpg | png | bmp；输出 beside | other | replace | recycle");

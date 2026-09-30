@@ -520,9 +520,8 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentScreenshotFormat = fmt is "jpg" or "jpeg" ? "jpg" : "png";
 		ImageUtil.CurrentScreenshotJpgQuality = Compat.Clamp(
 			opt.ScreenshotJpgQuality <= 0 ? 92 : opt.ScreenshotJpgQuality, 1, 100);
-		ImageUtil.CurrentScreenshotMaxSizeEnabled = opt.ScreenshotMaxSizeEnabled;
-		ImageUtil.CurrentScreenshotMaxWidth = Math.Max(16, opt.ScreenshotMaxWidth);
-		ImageUtil.CurrentScreenshotMaxHeight = Math.Max(16, opt.ScreenshotMaxHeight);
+		ImageUtil.CurrentScreenshotShortEnabled = opt.ScreenshotShortEnabled;
+		ImageUtil.CurrentScreenshotShortPx = Math.Max(16, opt.ScreenshotShortPx);
 		ImageUtil.CurrentSnapCopyAsImage = opt.SnapCopyAsImage;
 		ImageUtil.CurrentSnapCopyAsFile = opt.SnapCopyAsFile;
 		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;

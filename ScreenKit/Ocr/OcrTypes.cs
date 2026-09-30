@@ -143,12 +143,10 @@ public sealed class OcrOptions {
 	public string ScreenshotFormat = "png";
 	/// <summary>JPG 质量 1–100（仅 format=jpg 时生效；默认 92）。</summary>
 	public int ScreenshotJpgQuality = 92;
-	/// <summary>是否限制截图保存最大宽高（等比缩小，不放大）。</summary>
-	public bool ScreenshotMaxSizeEnabled = false;
-	/// <summary>截图保存最大宽（像素）。</summary>
-	public int ScreenshotMaxWidth = 1920;
-	/// <summary>截图保存最大高（像素）。</summary>
-	public int ScreenshotMaxHeight = 1080;
+	/// <summary>是否限制截图保存较短边（超过则等比缩小，不放大）。</summary>
+	public bool ScreenshotShortEnabled = false;
+	/// <summary>截图较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
+	public int ScreenshotShortPx = 1080;
 	/// <summary>图片格式转换：目标格式 jpg / png / bmp（默认 jpg）。</summary>
 	public string ImgConvFormat = "jpg";
 	/// <summary>图片格式转换 JPG 质量 1–100（默认 60）。</summary>
@@ -400,9 +398,8 @@ public sealed class OcrOptions {
 		ScreenshotKeepDays = ScreenshotKeepDays,
 		ScreenshotFormat = ScreenshotFormat ?? "png",
 		ScreenshotJpgQuality = ScreenshotJpgQuality,
-		ScreenshotMaxSizeEnabled = ScreenshotMaxSizeEnabled,
-		ScreenshotMaxWidth = ScreenshotMaxWidth,
-		ScreenshotMaxHeight = ScreenshotMaxHeight,
+		ScreenshotShortEnabled = ScreenshotShortEnabled,
+		ScreenshotShortPx = ScreenshotShortPx,
 		ImgConvFormat = ImgConvFormat ?? "jpg",
 		ImgConvJpgQuality = ImgConvJpgQuality,
 		ImgConvShortEnabled = ImgConvShortEnabled,
