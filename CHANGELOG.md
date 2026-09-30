@@ -44,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Android cast screen shows **投屏中** again after leaving to the main screen and opening cast. The service was still casting; the new screen had reset to “ready”.
+- Android debug and release builds now sign with the same keystore (`android/app/debug.keystore`). Installing one over the other keeps the app’s private data.
 - Phone screencast no longer fails with “WebSocket handshake failed”. A LAN address was answered by the file-transfer socket, which rejected `/cast` as unpaired. That socket now completes the WebSocket upgrade and passes the session to the viewer.
 - Screencast viewer opens centered on the primary monitor’s work area. A new session no longer follows the cursor onto another monitor and hangs half off its edge. Size, position, and maximized state still stay put when the phone rotates.
 
@@ -65,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 安卓投屏中退回主界面再打开投屏页，会重新显示「投屏中」和停止按钮。服务仍在投，只是新开的页面把状态清成了「准备投屏」。
+- 安卓 debug 与 release 固定用同一把钥匙（`android/app/debug.keystore`）。互相覆盖安装会保留私有数据。
 - 手机投屏不再出现「WebSocket 握手失败」。局域网 IP 上是文件传输的套接字在应答，它把 `/cast` 当成未配对请求拒绝了。现在这个套接字会完成 WebSocket 升级，再把会话交给投屏窗口。
 - 接收投屏的画面窗默认开在主屏幕工作区中心。新开会话不再跟着光标跑到其它屏，避免停在屏边缘只露出一半。手机切换横竖屏时，窗口的大小、位置和最大化状态仍保持不变。
 

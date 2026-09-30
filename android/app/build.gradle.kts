@@ -17,7 +17,25 @@ android {
         versionName = "1.0.12"
     }
 
+    val sharedStore = file("debug.keystore")
+    signingConfigs {
+        getByName("debug") {
+            if (!sharedStore.isFile) {
+                throw GradleException(
+                    "缺少 app/debug.keystore。debug 与 release 必须共用这一把钥匙，覆盖安装才不会清掉私有数据。",
+                )
+            }
+            storeFile = sharedStore
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")

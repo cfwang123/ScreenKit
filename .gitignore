@@ -125,6 +125,9 @@ record_*.log
 # ── Publish output (scripts/publish-release.mjs) ─────────
 release/
 
+# debug 与 release 共用的调试钥匙，只留本机
+android/app/debug.keystore
+
 # ── Archives & dumps ─────────────────────────────────────
 *.zip
 *.7z

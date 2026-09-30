@@ -162,7 +162,8 @@ function adbAllowFail(args, deviceSerial) {
 }
 
 /**
- * 安装 APK。若签名与已装包不一致（debug ↔ release），先卸载再装。
+ * 安装 APK。debug 与 release 应是同一把钥匙，覆盖安装保留数据。
+ * 只有手机上的包是别的钥匙签的，才卸载再装。
  */
 function adbInstallApk(apkPath, deviceSerial) {
   console.log('[install] 安装中…');

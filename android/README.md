@@ -30,7 +30,7 @@ node build.js devices
 node build.js rebuild --debug
 ```
 
-minSdk 24 / targetSdk 34。当前 debug/release 均用 debug 签名，便于覆盖安装。
+minSdk 24 / targetSdk 34。debug 与 release 都用 `app/debug.keystore`（别名 `androiddebugkey`，口令 `android`）。同一把钥匙、同一个包名，互相覆盖安装会保留私有数据。不要换成另一把钥匙，也不要删掉这个文件。
 
 ## 协议
 
