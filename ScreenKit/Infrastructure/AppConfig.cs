@@ -106,12 +106,20 @@ static class AppConfig {
 				o.ImgConvFormat = ImgConvert.NormFmt(icfmt.Trim().Trim('"'));
 			if (map.TryGetValue("imgconv_jpg_quality", out var icq) && int.TryParse(icq, out var icQ))
 				o.ImgConvJpgQuality = Compat.Clamp(icQ, 1, 100);
-			if (map.TryGetValue("imgconv_max_size", out var icms))
-				o.ImgConvMaxSizeEnabled = parsebool(icms, false);
-			if (map.TryGetValue("imgconv_max_w", out var icmw) && int.TryParse(icmw, out var icMaxW))
-				o.ImgConvMaxWidth = Compat.Clamp(icMaxW, 16, 16384);
-			if (map.TryGetValue("imgconv_max_h", out var icmh) && int.TryParse(icmh, out var icMaxH))
-				o.ImgConvMaxHeight = Compat.Clamp(icMaxH, 16, 16384);
+			if (map.TryGetValue("imgconv_short", out var icss))
+				o.ImgConvShortEnabled = parsebool(icss, false);
+			else if (map.TryGetValue("imgconv_max_size", out var icms))
+				o.ImgConvShortEnabled = parsebool(icms, false);
+			if (map.TryGetValue("imgconv_short_px", out var icsp) && int.TryParse(icsp, out var icShort))
+				o.ImgConvShortPx = Compat.Clamp(icShort, 16, 16384);
+			else if (map.TryGetValue("imgconv_max_w", out var icmw) && int.TryParse(icmw, out var oldW)) {
+				var px = oldW;
+				if (map.TryGetValue("imgconv_max_h", out var icmh) && int.TryParse(icmh, out var oldH))
+					px = Math.Min(oldW, oldH);
+				o.ImgConvShortPx = Compat.Clamp(px, 16, 16384);
+			}
+			else if (map.TryGetValue("imgconv_max_h", out var icmhOnly) && int.TryParse(icmhOnly, out var onlyH))
+				o.ImgConvShortPx = Compat.Clamp(onlyH, 16, 16384);
 			if (map.TryGetValue("imgconv_out_mode", out var icom) && !string.IsNullOrWhiteSpace(icom))
 				o.ImgConvOutMode = ImgConvert.NormOutMode(icom.Trim().Trim('"'));
 			else if (map.TryGetValue("imgconv_out_beside", out var icob))
@@ -497,9 +505,9 @@ static class AppConfig {
 		sb.AppendLine($"# 图片格式转换：jpg | png | bmp；输出 beside | other | replace | recycle");
 		sb.AppendLine($"imgconv_format = \"{icFmt}\"");
 		sb.AppendLine($"imgconv_jpg_quality = {Compat.Clamp(o.ImgConvJpgQuality <= 0 ? 60 : o.ImgConvJpgQuality, 1, 100)}");
-		sb.AppendLine($"imgconv_max_size = {(o.ImgConvMaxSizeEnabled ? "true" : "false")}");
-		sb.AppendLine($"imgconv_max_w = {Compat.Clamp(o.ImgConvMaxWidth < 16 ? 1920 : o.ImgConvMaxWidth, 16, 16384)}");
-		sb.AppendLine($"imgconv_max_h = {Compat.Clamp(o.ImgConvMaxHeight < 16 ? 1080 : o.ImgConvMaxHeight, 16, 16384)}");
+		sb.AppendLine($"# 较短边上限：宽高里较小的一边超过则等比缩小，不放大");
+		sb.AppendLine($"imgconv_short = {(o.ImgConvShortEnabled ? "true" : "false")}");
+		sb.AppendLine($"imgconv_short_px = {Compat.Clamp(o.ImgConvShortPx < 16 ? 1080 : o.ImgConvShortPx, 16, 16384)}");
 		sb.AppendLine($"imgconv_out_mode = \"{icOut}\"");
 		sb.AppendLine($"imgconv_out_beside = {(icOut == ImgConvert.OUTBESIDE ? "true" : "false")}");
 		sb.AppendLine($"imgconv_out_dir = \"{esc((o.ImgConvOutDir ?? "").Trim())}\"");

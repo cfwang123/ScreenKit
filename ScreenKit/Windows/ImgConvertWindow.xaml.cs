@@ -46,10 +46,9 @@ public partial class ImgConvertWindow : Window {
 		bclose.Click += (_, _) => Close();
 		efmt.SelectionChanged += (_, _) => { syncfmtui(); queuepreview(); };
 		ejpgq.TextChanged += (_, _) => queuepreview();
-		emaxen.Checked += (_, _) => queuepreview();
-		emaxen.Unchecked += (_, _) => queuepreview();
-		emaxw.TextChanged += (_, _) => queuepreview();
-		emaxh.TextChanged += (_, _) => queuepreview();
+		eshorten.Checked += (_, _) => queuepreview();
+		eshorten.Unchecked += (_, _) => queuepreview();
+		eshort.TextChanged += (_, _) => queuepreview();
 		ekeeporig.Checked += (_, _) => queuepreview();
 		ekeeporig.Unchecked += (_, _) => queuepreview();
 		ekeeppct.TextChanged += (_, _) => queuepreview();
@@ -76,12 +75,11 @@ public partial class ImgConvertWindow : Window {
 		lbfmt.Text = Loc.T("imgconv.fmt");
 		lbjpgq.Text = Loc.T("imgconv.jpgq");
 		ejpgq.ToolTip = Loc.T("imgconv.jpgq.tip");
-		emaxen.Content = Loc.T("imgconv.max");
+		eshorten.Content = Loc.T("imgconv.short");
 		ekeeporig.Content = Loc.T("imgconv.keeporig");
 		lbkeeppct.Text = Loc.T("imgconv.keeppct");
 		ekeeporig.ToolTip = Loc.T("imgconv.keeporig.tip");
-		lbmaxw.Text = Loc.T("imgconv.maxw");
-		lbmaxh.Text = Loc.T("imgconv.maxh");
+		lbshort.Text = Loc.T("imgconv.shortpx");
 		lbout.Text = Loc.T("imgconv.out");
 		routsrc.Content = Loc.T("imgconv.outsrc");
 		routother.Content = Loc.T("imgconv.outother");
@@ -133,9 +131,8 @@ public partial class ImgConvertWindow : Window {
 		if (efmt.SelectedItem == null) efmt.SelectedIndex = 0;
 		var q = Compat.Clamp(opt.ImgConvJpgQuality <= 0 ? 60 : opt.ImgConvJpgQuality, 1, 100);
 		ejpgq.Text = q.ToString();
-		emaxen.IsChecked = opt.ImgConvMaxSizeEnabled;
-		emaxw.Text = (opt.ImgConvMaxWidth < 16 ? 1920 : opt.ImgConvMaxWidth).ToString();
-		emaxh.Text = (opt.ImgConvMaxHeight < 16 ? 1080 : opt.ImgConvMaxHeight).ToString();
+		eshorten.IsChecked = opt.ImgConvShortEnabled;
+		eshort.Text = (opt.ImgConvShortPx < 16 ? 1080 : opt.ImgConvShortPx).ToString();
 		var outMode = ImgConvert.NormOutMode(opt.ImgConvOutMode);
 		routsrc.IsChecked = outMode == ImgConvert.OUTBESIDE;
 		routother.IsChecked = outMode == ImgConvert.OUTOTHER;
@@ -163,12 +160,10 @@ public partial class ImgConvertWindow : Window {
 			return false;
 		}
 		opt.ImgConvJpgQuality = q;
-		opt.ImgConvMaxSizeEnabled = emaxen.IsChecked == true;
-		if (opt.ImgConvMaxSizeEnabled) {
-			if (!tryint(emaxw, Loc.T("imgconv.maxw"), 16, 16384, out var mw)) return false;
-			if (!tryint(emaxh, Loc.T("imgconv.maxh"), 16, 16384, out var mh)) return false;
-			opt.ImgConvMaxWidth = mw;
-			opt.ImgConvMaxHeight = mh;
+		opt.ImgConvShortEnabled = eshorten.IsChecked == true;
+		if (opt.ImgConvShortEnabled) {
+			if (!tryint(eshort, Loc.T("imgconv.shortpx"), 16, 16384, out var sp)) return false;
+			opt.ImgConvShortPx = sp;
 		}
 		opt.ImgConvKeepOrigEnabled = ekeeporig.IsChecked == true;
 		if (opt.ImgConvKeepOrigEnabled) {
@@ -286,19 +281,16 @@ public partial class ImgConvertWindow : Window {
 		lbprevempty.Visibility = Visibility.Visible;
 	}
 
-	bool peekopts(out string fmt, out int quality, out bool maxEn, out int maxW, out int maxH) {
+	bool peekopts(out string fmt, out int quality, out bool shortEn, out int shortPx) {
 		fmt = ImgConvert.NormFmt((efmt.SelectedItem as ComboBoxItem)?.Tag as string);
 		quality = 60;
 		if (int.TryParse((ejpgq.Text ?? "").Trim(), out var q))
 			quality = Compat.Clamp(q, 1, 100);
-		maxEn = emaxen.IsChecked == true;
-		maxW = 1920;
-		maxH = 1080;
-		if (maxEn) {
-			if (!int.TryParse((emaxw.Text ?? "").Trim(), out maxW) || maxW < 16) maxEn = false;
-			if (!int.TryParse((emaxh.Text ?? "").Trim(), out maxH) || maxH < 16) maxEn = false;
-			maxW = Compat.Clamp(maxW, 16, 16384);
-			maxH = Compat.Clamp(maxH, 16, 16384);
+		shortEn = eshorten.IsChecked == true;
+		shortPx = 1080;
+		if (shortEn) {
+			if (!int.TryParse((eshort.Text ?? "").Trim(), out shortPx) || shortPx < 16) shortEn = false;
+			shortPx = Compat.Clamp(shortPx, 16, 16384);
 		}
 		return true;
 	}
@@ -309,10 +301,10 @@ public partial class ImgConvertWindow : Window {
 		try {
 			await Task.Delay(180, token).ConfigureAwait(true);
 			if (seq != prevSeq) return;
-			if (!peekopts(out var fmt, out var quality, out var maxEn, out var maxW, out var maxH))
+			if (!peekopts(out var fmt, out var quality, out var shortEn, out var shortPx))
 				return;
 			var bytes = await Task.Run(() =>
-				ImgConvert.Encode(path, fmt, quality, maxEn, maxW, maxH, rotate, mirror, token),
+				ImgConvert.Encode(path, fmt, quality, shortEn, shortPx, 0, rotate, mirror, token, shortSide: true),
 				token).ConfigureAwait(true);
 			if (seq != prevSeq) return;
 			BitmapSource bmp;
@@ -558,11 +550,10 @@ public partial class ImgConvertWindow : Window {
 		bremove.IsEnabled = !on;
 		bclear.IsEnabled = !on;
 		efmt.IsEnabled = !on;
-		emaxen.IsEnabled = !on;
+		eshorten.IsEnabled = !on;
 		ekeeporig.IsEnabled = !on;
 		ekeeppct.IsEnabled = !on && ekeeporig.IsChecked == true;
-		emaxw.IsEnabled = !on;
-		emaxh.IsEnabled = !on;
+		eshort.IsEnabled = !on;
 		routsrc.IsEnabled = !on;
 		routother.IsEnabled = !on;
 		routrep.IsEnabled = !on;
@@ -604,9 +595,8 @@ public partial class ImgConvertWindow : Window {
 		bgo.IsEnabled = true;
 		var fmt = ImgConvert.NormFmt(opt.ImgConvFormat);
 		var quality = opt.ImgConvJpgQuality;
-		var maxEn = opt.ImgConvMaxSizeEnabled;
-		var maxW = opt.ImgConvMaxWidth;
-		var maxH = opt.ImgConvMaxHeight;
+		var shortEn = opt.ImgConvShortEnabled;
+		var shortPx = opt.ImgConvShortPx;
 		var outMode = ImgConvert.NormOutMode(opt.ImgConvOutMode);
 		var outDir = opt.ImgConvOutDir;
 		var reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -634,8 +624,8 @@ public partial class ImgConvertWindow : Window {
 				try {
 					var dst = ImgConvert.MakeOutPath(src, fmt, outMode, outDir, reserved);
 					var usedOrig = await Task.Run(() => ImgConvert.ConvertOne(src, dst, fmt, quality,
-						maxEn, maxW, maxH, rot, mir, token,
-						opt.ImgConvKeepOrigEnabled, opt.ImgConvKeepOrigPct, outMode), token).ConfigureAwait(true);
+						shortEn, shortPx, 0, rot, mir, token,
+						opt.ImgConvKeepOrigEnabled, opt.ImgConvKeepOrigPct, outMode, shortSide: true), token).ConfigureAwait(true);
 					if (!usedOrig && ImgConvert.IsReplace(outMode)
 						&& !string.Equals(src, dst, StringComparison.OrdinalIgnoreCase))
 						row.FilePath = dst;

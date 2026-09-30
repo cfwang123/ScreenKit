@@ -502,9 +502,27 @@ static class ImageUtil {
 		var s = Math.Min((double)maxW / w, (double)maxH / h);
 		var nw = Math.Max(1, (int)Math.Round(w * s));
 		var nh = Math.Max(1, (int)Math.Round(h * s));
+		return scalesize(src, w, h, nw, nh);
+	}
+
+	/// <summary>较短边超过 maxShort 时等比缩小，不放大。较短边已不超过则原样返回。</summary>
+	public static BitmapSource FitShortSide(BitmapSource src, int maxShort) {
+		if (src == null) return null;
+		maxShort = Math.Max(16, maxShort);
+		var w = src.PixelWidth;
+		var h = src.PixelHeight;
+		if (w <= 0 || h <= 0) return src;
+		var side = Math.Min(w, h);
+		if (side <= maxShort) return src;
+		var s = (double)maxShort / side;
+		var nw = Math.Max(1, (int)Math.Round(w * s));
+		var nh = Math.Max(1, (int)Math.Round(h * s));
+		return scalesize(src, w, h, nw, nh);
+	}
+
+	static BitmapSource scalesize(BitmapSource src, int w, int h, int nw, int nh) {
 		var scale = new ScaleTransform((double)nw / w, (double)nh / h);
 		var tb = new TransformedBitmap(Withdpi(src), scale);
-		// 物化：避免后续编码持有变换链
 		var bmp = new WriteableBitmap(tb);
 		bmp.Freeze();
 		return bmp;

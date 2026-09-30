@@ -135,10 +135,11 @@ static class ImgConvert {
 	}
 
 	/// <returns>true 表示因体积收益不足而写出原文件。</returns>
+	/// <param name="shortSide">true：maxW 是较短边上限，只等比缩小。false：宽高是框，只缩小进框内（网页拍照）。</param>
 	public static bool ConvertOne(string src, string dst, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool keepOrigEn, int keepOrigPct, string outMode = null) {
-		var enc = encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
+		bool keepOrigEn, int keepOrigPct, string outMode = null, bool shortSide = false) {
+		var enc = encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
 		var dir = Path.GetDirectoryName(dst);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 		var origLen = 0L;
@@ -249,9 +250,11 @@ static class ImgConvert {
 	}
 
 	/// <summary>按目标格式实际编码（JPG 质量会进码流），供预览与落盘共用。</summary>
+	/// <param name="shortSide">true：maxW 是较短边上限，只等比缩小、不放大。false：宽高框内缩小。</param>
 	public static byte[] Encode(string src, string fmt, int quality,
-		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
-		return encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct).Bytes;
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
+		bool shortSide = false) {
+		return encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide).Bytes;
 	}
 
 	/// <summary>
@@ -337,7 +340,8 @@ static class ImgConvert {
 	}
 
 	static Encoded encodex(string src, string fmt, int quality,
-		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
+		bool shortSide) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
 		ct.ThrowIfCancellationRequested();
@@ -346,12 +350,12 @@ static class ImgConvert {
 		rotate = normrot(rotate);
 		Exception gdiEx = null;
 		try {
-			return encodegdi(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
+			return encodegdi(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
 		}
 		catch (OperationCanceledException) { throw; }
 		catch (Exception ex) { gdiEx = ex; }
 		try {
-			return encodewpf(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct);
+			return encodewpf(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
 		}
 		catch (OperationCanceledException) { throw; }
 		catch (Exception wpfEx) {
@@ -360,7 +364,8 @@ static class ImgConvert {
 	}
 
 	static Encoded encodegdi(string src, string fmt, int quality,
-		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
+		bool shortSide) {
 		using var loaded = new GdiBmp(src);
 		var srcW = loaded.Width;
 		var srcH = loaded.Height;
@@ -372,22 +377,13 @@ static class ImgConvert {
 		GdiImg toSave = img;
 		GdiBmp resized = null;
 		try {
-			if (maxEn) {
-				maxW = Math.Max(16, maxW);
-				maxH = Math.Max(16, maxH);
-				var w = img.Width;
-				var h = img.Height;
-				if (w > maxW || h > maxH) {
-					var s = Math.Min((double)maxW / w, (double)maxH / h);
-					var nw = Math.Max(1, (int)Math.Round(w * s));
-					var nh = Math.Max(1, (int)Math.Round(h * s));
-					resized = new GdiBmp(nw, nh);
-					using var g = GdiGfx.FromImage(resized);
-					g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-					g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-					g.DrawImage(img, 0, 0, nw, nh);
-					toSave = resized;
-				}
+			if (maxEn && fitbox(img.Width, img.Height, maxW, maxH, shortSide, out var nw, out var nh)) {
+				resized = new GdiBmp(nw, nh);
+				using var g = GdiGfx.FromImage(resized);
+				g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+				g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+				g.DrawImage(img, 0, 0, nw, nh);
+				toSave = resized;
 			}
 			ct.ThrowIfCancellationRequested();
 			using var ms = new MemoryStream();
@@ -405,15 +401,41 @@ static class ImgConvert {
 		}
 	}
 
+	/// <summary>shortSide：较短边超过 boxW 则等比缩小。否则缩进 boxW×boxH。不需要缩放时返回 false。</summary>
+	static bool fitbox(int w, int h, int boxW, int boxH, bool shortSide, out int nw, out int nh) {
+		nw = w;
+		nh = h;
+		if (w <= 0 || h <= 0) return false;
+		double s;
+		if (shortSide) {
+			var lim = Math.Max(16, boxW);
+			var side = Math.Min(w, h);
+			if (side <= lim) return false;
+			s = (double)lim / side;
+		}
+		else {
+			boxW = Math.Max(16, boxW);
+			boxH = Math.Max(16, boxH);
+			if (w <= boxW && h <= boxH) return false;
+			s = Math.Min((double)boxW / w, (double)boxH / h);
+		}
+		nw = Math.Max(1, (int)Math.Round(w * s));
+		nh = Math.Max(1, (int)Math.Round(h * s));
+		return nw != w || nh != h;
+	}
+
 	static Encoded encodewpf(string src, string fmt, int quality,
-		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct) {
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
+		bool shortSide) {
 		var bmp = loadwpf(src);
 		var srcW = bmp.PixelWidth;
 		var srcH = bmp.PixelHeight;
 		ct.ThrowIfCancellationRequested();
 		bmp = transformwpf(bmp, rotate, mirror);
 		if (maxEn)
-			bmp = ImageUtil.FitMaxSize(bmp, maxW, maxH);
+			bmp = shortSide
+				? ImageUtil.FitShortSide(bmp, maxW)
+				: ImageUtil.FitMaxSize(bmp, maxW, maxH);
 		if (!bmp.IsFrozen) {
 			var wb = new WriteableBitmap(bmp);
 			wb.Freeze();

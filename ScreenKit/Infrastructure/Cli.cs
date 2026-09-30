@@ -2368,6 +2368,25 @@ static class Cli {
 					bad++;
 				}
 				else Out($"jpg size OK {outImg.Width}x{outImg.Height}");
+				var shortDst = Path.Combine(dir, "short.jpg");
+				ImgConvert.ConvertOne(src, shortDst, "jpg", 60, true, 40, 0, 90, false, CancellationToken.None,
+					keepOrigEn: false, keepOrigPct: 80, shortSide: true);
+				using (var sh = new System.Drawing.Bitmap(shortDst)) {
+					if (sh.Width != 40 || sh.Height != 80) {
+						Err($"FAIL: 较短边 {sh.Width}x{sh.Height} 期望 40x80");
+						bad++;
+					}
+					else Out("short side 40x80 OK");
+				}
+				var stay = ImgConvert.Encode(src, "png", 60, true, 150, 0, 0, false, CancellationToken.None, shortSide: true);
+				using (var msStay = new MemoryStream(stay))
+				using (var stayImg = new System.Drawing.Bitmap(msStay)) {
+					if (stayImg.Width != 200 || stayImg.Height != 100) {
+						Err($"FAIL: 较短边不放大 {stayImg.Width}x{stayImg.Height}");
+						bad++;
+					}
+					else Out("short side no upscale OK");
+				}
 				var len = new FileInfo(dst).Length;
 				if (len < 80) {
 					Err("FAIL: jpg 过小 " + len);
@@ -3092,7 +3111,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除；网页登录与公开下载
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
-      --test-img-convert  写测试 png，转 jpg（旋转90 + 限制 100×100）、替换源文件、回收站
+      --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256

@@ -153,12 +153,10 @@ public sealed class OcrOptions {
 	public string ImgConvFormat = "jpg";
 	/// <summary>图片格式转换 JPG 质量 1–100（默认 60）。</summary>
 	public int ImgConvJpgQuality = 60;
-	/// <summary>图片格式转换是否限制最大宽高。</summary>
-	public bool ImgConvMaxSizeEnabled = false;
-	/// <summary>图片格式转换最大宽。</summary>
-	public int ImgConvMaxWidth = 1920;
-	/// <summary>图片格式转换最大高。</summary>
-	public int ImgConvMaxHeight = 1080;
+	/// <summary>图片格式转换是否限制较短边（超过则等比缩小，不放大）。</summary>
+	public bool ImgConvShortEnabled = false;
+	/// <summary>较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
+	public int ImgConvShortPx = 1080;
 	/// <summary>true = 写到源文件目录下 output/；false = ImgConvOutDir。兼容旧配置。</summary>
 	public bool ImgConvOutBeside = true;
 	/// <summary>beside / other / replace / recycle。</summary>
@@ -407,9 +405,8 @@ public sealed class OcrOptions {
 		ScreenshotMaxHeight = ScreenshotMaxHeight,
 		ImgConvFormat = ImgConvFormat ?? "jpg",
 		ImgConvJpgQuality = ImgConvJpgQuality,
-		ImgConvMaxSizeEnabled = ImgConvMaxSizeEnabled,
-		ImgConvMaxWidth = ImgConvMaxWidth,
-		ImgConvMaxHeight = ImgConvMaxHeight,
+		ImgConvShortEnabled = ImgConvShortEnabled,
+		ImgConvShortPx = ImgConvShortPx,
 		ImgConvOutBeside = ImgConvOutBeside,
 		ImgConvOutMode = ImgConvOutMode ?? "beside",
 		ImgConvOutDir = ImgConvOutDir ?? "",
