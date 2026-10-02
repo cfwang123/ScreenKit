@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Screenshot page image bar uses the built-in WPF toolbar (button, toggle, separator, language combo). It is shorter, and items that do not fit go to the overflow menu instead of being clipped.
 - Main menu **Help** holds **Install features**, **Check for Updates**, **About**, and **GitHub** (opens https://github.com/cfwang123/ScreenKit). Those items are no longer under Options.
 - LLM **thinking intensity** is an editable dropdown. Presets stay none / low / medium / high / max; other tokens such as `minimal` are kept and sent as `reasoning_effort`.
 - **Settings → Translate** adds **LLM batch size** (`translate_llm_batch`, default 8, range 1–64). OCR line translation and `POST /api/translate` use it. A request `chunk` still overrides that default.
@@ -66,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 截图识别页的图区工具条改为 WPF 自带 `ToolBar`（按钮、开关、分隔线、目标语言下拉）。高度更矮；窗口变窄时放不下的项进入溢出菜单，不再被裁切。
 - 主菜单增加 **帮助**。**安装功能**、**检查更新**、**关于** 从「选项」移到这里，并增加 **GitHub 主页**（浏览器打开 https://github.com/cfwang123/ScreenKit）。
 - LLM **思考强度**改为可手输的下拉。预设仍是 none / low / medium / high / max；手输的 `minimal` 等会原样作为 `reasoning_effort` 发出。
 - **参数设置 → 翻译**增加 **一批翻译数量**（`translate_llm_batch`，默认 8，范围 1–64）。识别多行翻译和 `POST /api/translate` 按这个数分组。请求里的 `chunk` 仍可覆盖。

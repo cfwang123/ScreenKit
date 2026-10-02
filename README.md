@@ -42,7 +42,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 | Area | Description |
 |------|-------------|
-| **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. |
+| **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. The image bar is a compact WPF toolbar; items that do not fit move to the overflow menu. |
 | **Annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text; dropdown next to confirm for copy-as image / file / path. |
 | **Long screenshot** | Pick a scrollable window → auto-scroll stitch (no OCR). |
 | **Screen recording** | Window or region → HUD → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio; optional mouse cursor and click highlight. |
