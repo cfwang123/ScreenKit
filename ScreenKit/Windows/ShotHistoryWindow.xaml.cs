@@ -36,7 +36,8 @@ public partial class ShotHistoryWindow : Window {
 	public const int ActOcr = 1;
 	public const int ActOpen = 2;
 
-	public Func<BitmapSource, int, Task<string>> CommitAsync { get; set; }
+	/// <summary>bmp、未标注时的原文件路径（有标注则为 null）、动作。</summary>
+	public Func<BitmapSource, string, int, Task<string>> CommitAsync { get; set; }
 	public Action<bool, bool, bool> CopyModeChanged { get; set; }
 
 	enum Tool { Rect, Ellipse, Arrow, Pen, Text }
@@ -184,7 +185,7 @@ public partial class ShotHistoryWindow : Window {
 		bcancel.ToolTip = Loc.T("hist.cancel.tip");
 		bok.ToolTip = Loc.T("hist.ok.tip");
 		bocr.ToolTip = Loc.T("hist.ocr.tip");
-		bopen.ToolTip = Loc.T("overlay.open.tip");
+		bopen.ToolTip = Loc.T("hist.open.tip");
 		bcopydrop.ToolTip = Loc.T("hist.copydrop.tip");
 		mncopyimg.Content = Loc.T("overlay.copy.img");
 		mncopyfile.Content = Loc.T("overlay.copy.file");
@@ -803,10 +804,20 @@ public partial class ShotHistoryWindow : Window {
 		try {
 			var bmp = flatten();
 			if (bmp == null) return;
+			var reuse = marks.Count == 0 ? srcpath : null;
 			string path = null;
-			if (CommitAsync != null) path = await CommitAsync(bmp, act).ConfigureAwait(true);
+			if (CommitAsync != null) path = await CommitAsync(bmp, reuse, act).ConfigureAwait(true);
 			if (string.IsNullOrEmpty(path)) return;
-			lbstat.Text = Loc.T("hist.saved", Path.GetFileName(path));
+			var name = Path.GetFileName(path);
+			var same = !string.IsNullOrEmpty(reuse)
+				&& string.Equals(path, reuse, StringComparison.OrdinalIgnoreCase);
+			if (same) {
+				lbstat.Text = act == ActOpen ? Loc.T("hist.opened", name)
+					: act == ActOcr ? Loc.T("hist.reused", name)
+					: Loc.T("hist.copied", name);
+				return;
+			}
+			lbstat.Text = Loc.T("hist.saved", name);
 			Reload(path);
 		}
 		catch (Exception ex) {

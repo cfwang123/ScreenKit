@@ -2670,7 +2670,7 @@ public partial class MainWindow : Window {
 			showwarnmsg(ex.Message, Loc.T("hist.title"));
 			return;
 		}
-		histwin.CommitAsync = histcommit;
+		histwin.CommitAsync = (bmp, reuse, act) => histcommit(bmp, reuse, act);
 		histwin.CopyModeChanged = (asImg, asFile, asPath) =>
 			applysnapcopyopts(asImg, asFile, asPath, recopy: false);
 		histwin.Closed += (_, _) => histwin = null;
@@ -2678,11 +2678,15 @@ public partial class MainWindow : Window {
 		histwin.Show();
 	}
 
-	async Task<string> histcommit(BitmapSource bmp, int act) {
+	async Task<string> histcommit(BitmapSource bmp, string reusePath, int act) {
 		if (bmp == null) return null;
-		string saved = null;
+		var reuse = !string.IsNullOrEmpty(reusePath) && File.Exists(reusePath);
+		string saved = reuse ? reusePath : null;
 		try {
-			saved = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, act == ShotHistoryWindow.ActOcr ? "ocr" : "shot");
+			if (!reuse)
+				saved = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, act == ShotHistoryWindow.ActOcr ? "ocr" : "shot");
+			else if (act == ShotHistoryWindow.ActCopy)
+				ImageUtil.CopyExistingScreenshot(bmp, reusePath);
 		}
 		catch (Exception ex) {
 			setstatus(Loc.T("hist.fail", ex.Message));
@@ -2711,8 +2715,10 @@ public partial class MainWindow : Window {
 				showwarnmsg(ex.Message, Loc.T("hist.title"));
 			}
 		}
-		else
+		else if (!reuse)
 			setstatus(Loc.T("hist.saved", System.IO.Path.GetFileName(saved)));
+		else
+			setstatus(Loc.T("hist.copied", System.IO.Path.GetFileName(saved)));
 		return saved;
 	}
 

@@ -533,6 +533,20 @@ static class ImageUtil {
 	public static string SaveScreenshotAndCopyAsFile(BitmapSource src, string prefix = "shot") =>
 		SaveScreenshotAndCopy(src, prefix, copyAsImage: false, copyAsFile: true, copyAsPath: false);
 
+	/// <summary>按当前复制方式把已有截图写入剪贴板，不新建文件。</summary>
+	public static void CopyExistingScreenshot(BitmapSource src, string path) {
+		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+			throw new FileNotFoundException("截图文件不存在", path);
+		var asImg = CurrentSnapCopyAsImage;
+		var asFile = CurrentSnapCopyAsFile;
+		var asPath = CurrentSnapCopyAsPath;
+		if (asPath) { asImg = false; asFile = false; asPath = true; }
+		else if (asFile && !asImg) { asImg = false; asFile = true; asPath = false; }
+		else { asImg = true; asFile = false; asPath = false; }
+		if (asImg && src == null) src = Fromfile(path);
+		copysnapshotclipboard(src, path, asImg, asFile, asPath);
+	}
+
 	/// <summary>按选项写入剪贴板：位图 / FileDrop / 路径文本（三选一）。</summary>
 	static void copysnapshotclipboard(BitmapSource src, string path,
 		bool asImage, bool asFile, bool asPath) {
