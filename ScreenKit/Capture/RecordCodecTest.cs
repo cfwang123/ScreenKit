@@ -152,6 +152,8 @@ static class RecordCodecTest {
 				log("FAIL 文件过小");
 				return false;
 			}
+			if (want == "mf" && !muxaac(dest, outDir, log))
+				return false;
 			return true;
 		}
 		catch (Exception ex) {
@@ -163,6 +165,74 @@ static class RecordCodecTest {
 			try { rec?.DiscardTemps(); } catch { }
 			try { rec?.Dispose(); } catch { }
 		}
+	}
+
+	static bool muxaac(string video, string outDir, Action<string> log) {
+		var wav = Path.Combine(outDir, "mux_22050.wav");
+		var dst = Path.Combine(outDir, "mux_aac.mp4");
+		try {
+			writewav(wav, 22050, 1, 500);
+			Exception muxEx = null;
+			var th = new Thread(() => {
+				try { MfH264Writer.MuxAac(video, wav, dst, 96, 22050, true); }
+				catch (Exception ex) { muxEx = ex; }
+			});
+			th.IsBackground = true;
+			th.SetApartmentState(ApartmentState.MTA);
+			th.Start();
+			if (!th.Join(20000)) {
+				log("FAIL 合成超时");
+				return false;
+			}
+			if (muxEx != null) throw muxEx;
+			var n = (int)Math.Min(new FileInfo(dst).Length, 256 * 1024);
+			var buf = new byte[n];
+			using (var fs = File.OpenRead(dst))
+				fs.Read(buf, 0, n);
+			var s = System.Text.Encoding.ASCII.GetString(buf);
+			var ok = s.Contains("mp4a") || s.Contains("aac ");
+			log(ok
+				? $"mux aac OK bytes={new FileInfo(dst).Length}（22050 重采样到 44100）"
+				: "FAIL 合成后没有 AAC 音轨");
+			return ok;
+		}
+		catch (Exception ex) {
+			log("FAIL mux aac: " + ex.Message);
+			RecordLog.Ex("MuxAac", ex);
+			return false;
+		}
+		finally {
+			try { File.Delete(wav); } catch { }
+		}
+	}
+
+	static void writewav(string path, int hz, int ch, int ms) {
+		var frames = hz * ms / 1000;
+		var data = frames * ch * 2;
+		using var fs = File.Create(path);
+		void u32(int v) {
+			fs.WriteByte((byte)v);
+			fs.WriteByte((byte)(v >> 8));
+			fs.WriteByte((byte)(v >> 16));
+			fs.WriteByte((byte)(v >> 24));
+		}
+		void u16(int v) {
+			fs.WriteByte((byte)v);
+			fs.WriteByte((byte)(v >> 8));
+		}
+		fs.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"), 0, 4);
+		u32(36 + data);
+		fs.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "), 0, 8);
+		u32(16);
+		u16(1);
+		u16(ch);
+		u32(hz);
+		u32(hz * ch * 2);
+		u16(ch * 2);
+		u16(16);
+		fs.Write(System.Text.Encoding.ASCII.GetBytes("data"), 0, 4);
+		u32(data);
+		fs.Write(new byte[data], 0, data);
 	}
 
 	static string probe(string want, string dest) {

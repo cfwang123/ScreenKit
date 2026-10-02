@@ -162,45 +162,57 @@ sealed class MfH264Writer : IRecordVideoSink {
 			}
 			finally { MfApi.Release(attr); }
 
-			sink.AddStream(videoType, out var vindex);
-			sink.SetInputMediaType(vindex, videoType, null);
+			int vindex;
+			try { sink.AddStream(videoType, out vindex); }
+			catch (Exception ex) { throw new InvalidOperationException("添加视频轨: " + ex.Message, ex); }
+			try { sink.SetInputMediaType(vindex, videoType, null); }
+			catch (Exception ex) { throw new InvalidOperationException("设置视频输入: " + ex.Message, ex); }
 
-			using var pcm = new RecordPcm(wavPath, rate, mono);
+			// 系统 AAC 只接受 44100 / 48000，以及 96–192 kbps 这几档码率。
+			var hz = aachz(rate);
+			var bytesPerSec = aacbytes(kbps);
+			using var pcm = new RecordPcm(wavPath, hz, mono);
 			var ch = pcm.Channels;
-			var hz = pcm.Rate;
-			var bits = 16;
 			var block = pcm.BlockAlign;
-			var aacRate = Math.Max(16000, kbps) * 1000;
 
 			MfApi.Check(MfApi.MFCreateMediaType(out aac), "aac type");
 			setguid(aac, MfApi.MajorType, MfApi.MediaAudio);
 			setguid(aac, MfApi.SubType, MfApi.FmtAac);
 			setu32(aac, MfApi.AudioRate, hz);
 			setu32(aac, MfApi.AudioChannels, ch);
-			setu32(aac, MfApi.AudioBits, bits);
-			setu32(aac, MfApi.AvgBitrate, aacRate);
+			setu32(aac, MfApi.AudioBits, 16);
+			setu32(aac, MfApi.AudioAvgBytes, bytesPerSec);
+			setu32(aac, MfApi.AvgBitrate, bytesPerSec * 8);
 			setu32(aac, MfApi.AacPayload, 0);
-			sink.AddStream(aac, out var aindex);
+			setu32(aac, MfApi.AacProfile, 0x29);
+			var aindex = 0;
+			try { sink.AddStream(aac, out aindex); }
+			catch (Exception ex) { throw new InvalidOperationException("添加 AAC 音轨: " + ex.Message, ex); }
 
 			MfApi.Check(MfApi.MFCreateMediaType(out pcmType), "pcm type");
 			setguid(pcmType, MfApi.MajorType, MfApi.MediaAudio);
 			setguid(pcmType, MfApi.SubType, MfApi.FmtPcm);
 			setu32(pcmType, MfApi.AudioRate, hz);
 			setu32(pcmType, MfApi.AudioChannels, ch);
-			setu32(pcmType, MfApi.AudioBits, bits);
+			setu32(pcmType, MfApi.AudioBits, 16);
 			setu32(pcmType, MfApi.AudioBlock, block);
 			setu32(pcmType, MfApi.AudioAvgBytes, hz * block);
-			sink.SetInputMediaType(aindex, pcmType, null);
+			try { sink.SetInputMediaType(aindex, pcmType, null); }
+			catch (Exception ex) { throw new InvalidOperationException("设置 PCM 输入: " + ex.Message, ex); }
 			sink.BeginWriting();
 
-			const int End = 0x1;
+			// MF_SOURCE_READERF_ERROR = 1，ENDOFSTREAM = 2。
+			const int ReaderError = 0x1;
+			const int ReaderEnd = 0x2;
 			while (true) {
 				reader.ReadSample(0, 0, out _, out var flags, out _, out var sample);
 				try {
+					if ((flags & ReaderError) != 0)
+						throw new InvalidOperationException("读取视频失败");
 					if (sample != null) sink.WriteSample(vindex, sample);
 				}
 				finally { MfApi.Release(sample); }
-				if ((flags & End) != 0) break;
+				if ((flags & ReaderEnd) != 0) break;
 			}
 
 			var chunkBytes = 1024 * block;
@@ -212,7 +224,9 @@ sealed class MfH264Writer : IRecordVideoSink {
 				writepcm(sink, aindex, buf, got, block, hz, ref frameAt);
 				if (got < chunkBytes) break;
 			}
-			sink.FinalizeWriter();
+			var hr = sink.FinalizeWriter();
+			if (hr < 0)
+				throw new InvalidOperationException("合成收尾失败 0x" + hr.ToString("X8"));
 		}
 		finally {
 			MfApi.Release(pcmType);
@@ -245,6 +259,19 @@ sealed class MfH264Writer : IRecordVideoSink {
 			MfApi.Release(sample);
 			MfApi.Release(buf);
 		}
+	}
+
+	static int aachz(int hz) => hz >= 46000 ? 48000 : 44100;
+
+	static int aacbytes(int kbps) {
+		var b = Math.Max(1, kbps) * 1000 / 8;
+		var best = 12000;
+		var dist = Math.Abs(b - best);
+		foreach (var c in new[] { 16000, 20000, 24000 }) {
+			var d = Math.Abs(b - c);
+			if (d < dist) { best = c; dist = d; }
+		}
+		return best;
 	}
 
 	static void setguid(IMFAttributes a, Guid key, Guid val) => a.SetGUID(ref key, ref val);
@@ -285,6 +312,7 @@ static class MfApi {
 	public static readonly Guid AudioAvgBytes = new("1aab75c8-cfef-451c-ab95-ac034b8e1731");
 	public static readonly Guid AudioBlock = new("322de230-9eeb-43bd-ab7a-ff412251541d");
 	public static readonly Guid AacPayload = new("bfbabe79-7434-4d1c-94f0-72a3b9e17188");
+	public static readonly Guid AacProfile = new("7632f0e6-9538-4d61-acda-ea29c8c14456");
 	public static readonly Guid TranscodeContainer = new("150ff23f-4abc-478b-ac4f-e1916fba1cca");
 	public static readonly Guid EnableHardware = new("a634a91c-822b-41b9-a494-4de4643612b0");
 
