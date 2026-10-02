@@ -30,6 +30,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- Screenshot toolbar **History** opens the `screenshots/` folder as thumbnails. Select one to preview (wheel zoom, drag to pan, double-click fits). The annotate bar under the preview draws rect, ellipse, arrow, pen, and text. Done, OCR, and Open with the default app each save a new screenshot and copy it (image, file, or path). The source file is left as it is. The copy-mode menu only remembers the choice; P cycles it and does not save.
 - Hotkey to cycle the on-capture clipboard mode (image → file → path), default **Ctrl+Alt+P** (Settings → hotkeys, `hotkey_snap_copy`). Each switch shows a toast at the bottom center of the screen and recopies the last screenshot.
 - Annotate bar copy control shows the current mode as a combo (text plus `p`). Picking an item finishes the shot with that mode and saves it. `P` on the bar cycles the mode and does not finish.
 - Screenshot toolbar: an icon opens the shot with the default app after capture (same save and clipboard path as Done; the main window stays behind the viewer).
@@ -59,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 截图识别页工具栏增加 **截图历史**。打开 `screenshots/`，左侧缩略图，右侧预览（滚轮缩放、拖动平移、双击适应）。预览下方是标注条（矩形、椭圆、箭头、画笔、文字）。完成、OCR、用系统软件打开都会另存一张新截图并按当前方式复制（图片 / 文件 / 路径）。不改源文件。复制方式下拉只记住选择；P 只切换、不保存。
 - 增加快捷键切换截图复制方式（图片 → 文件 → 路径），默认 **Ctrl+Alt+P**（参数设置里的热键，`hotkey_snap_copy`）。每次切换在屏幕底部中央弹出提示，并把上次截图按新方式再写入剪贴板。
 - 截图标注条上的复制方式改为组合框，显示当前方式（如「复制为图片 p」）。下拉选一项会立刻按该方式完成并记住。标注时按 `P` 只切换方式，不结束本次截图。
 - 截图标注工具条增加图标「截屏后用系统软件打开」：截完后按平时方式保存并复制，再用系统默认程序打开该文件。主窗不抢到查看器前面。

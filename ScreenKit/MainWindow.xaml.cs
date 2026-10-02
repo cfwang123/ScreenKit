@@ -76,6 +76,7 @@ public partial class MainWindow : Window {
 	QrMakeWindow qrMakeWin;
 	BatchRenameWindow renameWin;
 	HashWindow hashWin;
+	ShotHistoryWindow histwin;
 	TextToolWindow textToolWin;
 	PasswordWindow pwGenWin;
 	NetToolsWindow netToolWin;
@@ -1126,6 +1127,7 @@ public partial class MainWindow : Window {
 		// 主窗内点截图：不隐藏主窗（冻结画面会带上主窗；需要无主窗时用热键）
 		bcapture.Click += async (_, _) => await captureasync(hideMain: false);
 		bsnap.Click += async (_, _) => await snapannotateasync(restoreUi: false);
+		bhistory.Click += (_, _) => openhistory();
 		bpaste.Click += async (_, _) => await pasteasync();
 		bcopyimg.Click += (_, _) => copyimage();
 		bsaveclip.Click += (_, _) => saveimage();
@@ -1347,6 +1349,9 @@ public partial class MainWindow : Window {
 			bcapture.ToolTip = Loc.T("tb.ocr.tip");
 			tbsnap.Text = Loc.T("tb.snap");
 			bsnap.ToolTip = Loc.T("tb.snap.tip");
+			tbhistory.Text = Loc.T("tb.history");
+			bhistory.ToolTip = Loc.T("tb.history.tip");
+			try { histwin?.ApplyLang(); } catch { }
 			tbpaste.Text = Loc.T("tb.paste");
 			bpaste.ToolTip = Loc.T("tb.paste.tip");
 			tbcopyimg.Text = Loc.T("tb.copyimg");
@@ -2642,6 +2647,73 @@ public partial class MainWindow : Window {
 			else if (!mainWasVisible)
 				keepmainhidden();
 		}
+	}
+
+	void openhistory() {
+		try {
+			if (histwin != null) {
+				if (histwin.WindowState == WindowState.Minimized)
+					histwin.WindowState = WindowState.Normal;
+				histwin.Show();
+				histwin.Activate();
+				histwin.OnReopen();
+				return;
+			}
+		}
+		catch { histwin = null; }
+		try {
+			histwin = new ShotHistoryWindow();
+		}
+		catch (Exception ex) {
+			histwin = null;
+			setstatus(Loc.T("hist.fail", ex.Message));
+			showwarnmsg(ex.Message, Loc.T("hist.title"));
+			return;
+		}
+		histwin.CommitAsync = histcommit;
+		histwin.CopyModeChanged = (asImg, asFile, asPath) =>
+			applysnapcopyopts(asImg, asFile, asPath, recopy: false);
+		histwin.Closed += (_, _) => histwin = null;
+		attachdialogowner(histwin);
+		histwin.Show();
+	}
+
+	async Task<string> histcommit(BitmapSource bmp, int act) {
+		if (bmp == null) return null;
+		string saved = null;
+		try {
+			saved = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, act == ShotHistoryWindow.ActOcr ? "ocr" : "shot");
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("hist.fail", ex.Message));
+			showwarnmsg(ex.Message, Loc.T("hist.title"));
+			return null;
+		}
+		try { setimage(bmp, saved); }
+		catch (Exception ex) { CaptureLog.Ex("hist setimage", ex); }
+		if (act == ShotHistoryWindow.ActOcr) {
+			selectmaintab(tabocr);
+			try { if (histwin != null) histwin.Owner = null; } catch { }
+			bringtofront();
+			await ensureactivetabasync(focusResult: true);
+			selectmaintab(tabocr);
+			bringtofront();
+		}
+		else if (act == ShotHistoryWindow.ActOpen && !string.IsNullOrEmpty(saved)) {
+			try {
+				System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+					FileName = saved,
+					UseShellExecute = true,
+				});
+			}
+			catch (Exception ex) {
+				setstatus(Loc.T("hist.fail", ex.Message));
+				showwarnmsg(ex.Message, Loc.T("hist.title"));
+			}
+		}
+		else
+			setstatus(Loc.T("hist.saved", System.IO.Path.GetFileName(saved)));
+		return saved;
 	}
 
 	void opensnapshotsfolder() {
