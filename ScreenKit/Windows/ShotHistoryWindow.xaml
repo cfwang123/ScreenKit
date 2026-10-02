@@ -264,6 +264,10 @@
 							<ComboBoxItem Content="32" Tag="32"/>
 						</ComboBox>
 						<Border Width="1" Height="22" Background="#E0E0E0" Margin="8,0" VerticalAlignment="Center"/>
+						<Button x:Name="bcopy" Style="{StaticResource WxIconBtn}" ToolTip="复制图片 (Ctrl+C)"
+						        Width="Auto" Height="32" MinWidth="56" Margin="2,0"
+						        AutomationProperties.AutomationId="hist.copy"
+						        Content="复制"/>
 						<Button x:Name="bundo" Style="{StaticResource WxIconBtn}" ToolTip="撤销 (Ctrl+Z)"
 						        AutomationProperties.AutomationId="hist.undo">
 							<Path Stroke="#1A1A1A" StrokeThickness="1.8" StrokeStartLineCap="Round"

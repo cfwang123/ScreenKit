@@ -149,6 +149,7 @@ public partial class ShotHistoryWindow : Window {
 		tarrow.Checked += (_, _) => { if (tarrow.IsChecked == true) settool(Tool.Arrow); };
 		tpen.Checked += (_, _) => { if (tpen.IsChecked == true) settool(Tool.Pen); };
 		ttext.Checked += (_, _) => { if (ttext.IsChecked == true) settool(Tool.Text); };
+		bcopy.Click += (_, _) => copyimg();
 		bundo.Click += (_, _) => undo();
 		bcancel.Click += (_, _) => dropmarks();
 		bok.Click += async (_, _) => await commit(ActCopy);
@@ -181,6 +182,8 @@ public partial class ShotHistoryWindow : Window {
 		tarrow.ToolTip = Loc.T("hist.arrow");
 		tpen.ToolTip = Loc.T("hist.pen");
 		ttext.ToolTip = Loc.T("hist.text");
+		bcopy.Content = Loc.T("hist.copy");
+		bcopy.ToolTip = Loc.T("hist.copy.tip");
 		bundo.ToolTip = Loc.T("hist.undo");
 		bcancel.ToolTip = Loc.T("hist.cancel.tip");
 		bok.ToolTip = Loc.T("hist.ok.tip");
@@ -282,6 +285,7 @@ public partial class ShotHistoryWindow : Window {
 	void syncbuttons() {
 		var on = src != null && !saving;
 		bok.IsEnabled = on;
+		bcopy.IsEnabled = on;
 		bocr.IsEnabled = on;
 		bopen.IsEnabled = on;
 		bcopydrop.IsEnabled = on;
@@ -447,6 +451,11 @@ public partial class ShotHistoryWindow : Window {
 		if (Keyboard.FocusedElement is TextBox) {
 			if (e.Key == Key.Escape) { canceltext(); e.Handled = true; }
 			else if (e.Key == Key.Enter) { committext(); e.Handled = true; }
+			return;
+		}
+		if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control) {
+			copyimg();
+			e.Handled = true;
 			return;
 		}
 		if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control) {
@@ -795,6 +804,21 @@ public partial class ShotHistoryWindow : Window {
 			dc.DrawEllipse(null, pen, new Point(r.X + r.Width / 2, r.Y + r.Height / 2), r.Width / 2, r.Height / 2);
 		else
 			dc.DrawRectangle(null, pen, r);
+	}
+
+	void copyimg() {
+		if (src == null || saving) return;
+		try {
+			var editing = etext != null && !string.IsNullOrWhiteSpace(etext.Text);
+			var plain = marks.Count == 0 && !editing;
+			var bmp = plain ? src : flatten();
+			if (bmp == null) return;
+			ImageUtil.Toclipboard(bmp, plain ? srcpath : null);
+			lbstat.Text = Loc.T("hist.copyok");
+		}
+		catch (Exception ex) {
+			lbstat.Text = Loc.T("hist.fail", ex.Message);
+		}
 	}
 
 	async Task commit(int act) {
