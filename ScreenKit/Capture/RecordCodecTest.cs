@@ -1,7 +1,8 @@
 namespace ScreenKit;
 
 /// <summary>
-/// 录屏 codec 短测：走 ScreenRecorder + FfmpegMp4Writer，探测写出文件的视频编码。
+/// 录屏 codec 短测：走 ScreenRecorder，探测写出文件的视频编码。
+/// x264/x265/AV1 用 FFmpeg；mf 用系统 H.264；mjpeg 用 MJPEG AVI。
 /// </summary>
 static class RecordCodecTest {
 	public static int Run(string codecArg, string outDir, string regionArg, int seconds, int repeat,
@@ -27,17 +28,22 @@ static class RecordCodecTest {
 		var bad = 0;
 		if (!clampkeeps(want, log))
 			bad++;
+		if (!shortsideok(log))
+			bad++;
 
-		try {
-			var found = FfmpegMp4Writer.FindEncoderName(new RecordOptions { Codec = want });
-			log($"find_encoder selected={want} opened={found}");
+		if (want != "mf" && want != "mjpeg") {
+			try {
+				var found = FfmpegMp4Writer.FindEncoderName(new RecordOptions { Codec = want });
+				log($"find_encoder selected={want} opened={found}");
+			}
+			catch (Exception ex) {
+				log("FAIL find_encoder: " + ex.Message);
+				RecordLog.Ex("FindEncoderName", ex);
+				RecordLog.End("fail");
+				return 1;
+			}
 		}
-		catch (Exception ex) {
-			log("FAIL find_encoder: " + ex.Message);
-			RecordLog.Ex("FindEncoderName", ex);
-			RecordLog.End("fail");
-			return 1;
-		}
+		else log($"skip find_encoder codec={want}");
 
 		var region = parseregion(regionArg);
 		log($"region={region.X},{region.Y} {region.Width}x{region.Height}");
@@ -61,7 +67,11 @@ static class RecordCodecTest {
 			? new[] { "av1", "AV1", "av01", "libaom-av1" }
 			: want == "x265"
 				? new[] { "x265", "hevc", "h265" }
-				: new[] { "x264", "h264" };
+				: want == "mf"
+					? new[] { "mf", "mediafoundation", "h264_mf" }
+					: want == "mjpeg"
+						? new[] { "mjpeg", "mjpg", "mjpegavi" }
+						: new[] { "x264", "h264" };
 		foreach (var a in aliases) {
 			var o = new RecordOptions { Codec = a };
 			o.Clamp();
@@ -71,6 +81,29 @@ static class RecordCodecTest {
 			}
 		}
 		log($"Clamp 保持 {want}（别名 {string.Join("/", aliases)}）");
+		return true;
+	}
+
+	static bool shortsideok(Action<string> log) {
+		var o = new RecordOptions { MaxSizeEnabled = true, ShortPx = 100, Codec = "mf" };
+		o.Clamp();
+		o.FitSize(200, 400, out var w, out var h);
+		if (w != 100 || h != 200) {
+			log($"FAIL 短边缩小 {w}x{h} 期望 100x200");
+			return false;
+		}
+		o.FitSize(80, 40, out w, out h);
+		if (w != 80 || h != 40) {
+			log($"FAIL 短边未超不应放大 {w}x{h}");
+			return false;
+		}
+		o.MaxSizeEnabled = false;
+		o.FitSize(200, 400, out w, out h);
+		if (w != 200 || h != 400) {
+			log($"FAIL 关闭短边限制仍缩放 {w}x{h}");
+			return false;
+		}
+		log("短边限制：超过才缩小，不放大");
 		return true;
 	}
 
@@ -105,9 +138,10 @@ static class RecordCodecTest {
 				log("FAIL 未写出临时文件");
 				return false;
 			}
-			var dest = Path.Combine(outDir, $"rec_{want}_{idx}_{DateTime.Now:HHmmss}.mp4");
+			var ext = opt.FileExt;
+			var dest = Path.Combine(outDir, $"rec_{want}_{idx}_{DateTime.Now:HHmmss}{ext}");
 			File.Copy(src, dest, true);
-			var probed = FfmpegMp4Writer.ProbeVideoCodec(dest);
+			var probed = probe(want, dest);
 			var sz = new FileInfo(dest).Length;
 			log($"wrote {dest} bytes={sz} probe={probed} selected={want}");
 			if (!codecmatch(want, probed)) {
@@ -131,12 +165,37 @@ static class RecordCodecTest {
 		}
 	}
 
+	static string probe(string want, string dest) {
+		if (want == "mf")
+			return MfH264Writer.LooksLikeH264(dest) ? "h264" : "not-h264";
+		if (want == "mjpeg")
+			return looksmjpeg(dest) ? "mjpeg" : "not-mjpeg";
+		return FfmpegMp4Writer.ProbeVideoCodec(dest);
+	}
+
+	static bool looksmjpeg(string path) {
+		try {
+			var n = (int)Math.Min(new FileInfo(path).Length, 4096);
+			if (n < 32) return false;
+			var buf = new byte[n];
+			using (var fs = File.OpenRead(path))
+				if (fs.Read(buf, 0, n) < 32) return false;
+			var s = System.Text.Encoding.ASCII.GetString(buf);
+			return s.StartsWith("RIFF") && s.Contains("AVI ") && s.Contains("MJPG");
+		}
+		catch { return false; }
+	}
+
 	static bool codecmatch(string want, string probed) {
 		probed = (probed ?? "").Trim().ToLowerInvariant();
 		if (want == "av1")
 			return probed == "av1" || probed == "av01" || probed.Contains("av1");
 		if (want == "x265")
 			return probed == "hevc" || probed == "h265" || probed.Contains("hevc");
+		if (want == "mjpeg")
+			return probed == "mjpeg" || probed == "mjpg";
+		if (want == "mf")
+			return probed == "h264" || probed == "avc1";
 		return probed == "h264" || probed == "avc" || probed.Contains("264");
 	}
 

@@ -21,7 +21,8 @@ sealed class ScreenRecorder : IDisposable {
 	readonly string wavTmp;
 	readonly object gate = new();
 
-	FfmpegMp4Writer ff;
+	IRecordVideoSink sink;
+	Exception sinkEx;
 	AudioCapture audio;
 	Thread thread;
 	volatile bool stop;
@@ -75,7 +76,7 @@ sealed class ScreenRecorder : IDisposable {
 		recOpt.FitSize(r.Width, r.Height, out outW, out outH);
 		audioMode = audio;
 		TmpStore.CleanupExpired();
-		videoTmp = TmpStore.NewPath("rec", ".mp4");
+		videoTmp = TmpStore.NewPath("rec", recOpt.FileExt);
 		wavTmp = Path.ChangeExtension(videoTmp, ".wav");
 		finalPath = videoTmp;
 	}
@@ -101,35 +102,27 @@ sealed class ScreenRecorder : IDisposable {
 		grabW = region.Width;
 		grabH = region.Height;
 
-		// 仅 FFmpeg.AutoGen（程序目录 ffmpeg64）
-		if (!FfmpegLoader.TryInit(out var ffErr)) {
-			RecordLog.Step("ffmpeg_dll", "fail: " + (ffErr ?? "unknown"));
-			// 弹窗提示安装
-			if (!FeaturePrompt.EnsureFfmpeg() || !FfmpegLoader.TryInit(out ffErr))
-				throw new InvalidOperationException(
-					"无法加载 FFmpeg。请通过「安装功能」安装 FFmpeg，"
-					+ "或将 FFmpeg 4.4 shared 库放到程序目录 ffmpeg64/。\n" + (ffErr ?? ""));
-		}
-		RecordLog.Step("ffmpeg_dll", "ok root=" + (FfmpegLoader.DllRoot ?? ""));
-		try {
-			ff = new FfmpegMp4Writer(videoTmp, grabW, grabH, recOpt);
-			Backend = $"FFmpeg/{ff.CodecName}/{ff.OpenedEncoder} {ff.OutWidth}x{ff.OutHeight}@{fps} {recOpt.CrfLabel}";
-			RecordLog.Step("video_writer", Backend);
-		}
-		catch (Exception ex) {
-			CaptureLog.Ex("FfmpegMp4Writer", ex);
-			RecordLog.Ex("FfmpegMp4Writer", ex);
-			ff = null;
-			if (recOpt.IsAv1)
-				throw new InvalidOperationException(
-					"AV1 不可用: " + ex.Message
-					+ "\n请换含 libaom-av1 / libsvtav1 的 ffmpeg64（不会改用 x264）。", ex);
-			if (recOpt.IsHevc)
-				throw new InvalidOperationException(
-					"x265 不可用: " + ex.Message + "\n请改用 x264，或换含 libx265 的 ffmpeg64。", ex);
-			throw new InvalidOperationException(
-				"无法创建 FFmpeg 视频编码器: " + ex.Message
-				+ "\n请检查 ffmpeg64 是否完整（avcodec 等）。", ex);
+		Exception openEx = null;
+		var opened = new ManualResetEventSlim(false);
+		var run = new ManualResetEventSlim(false);
+		thread = new Thread(() => {
+			try { openvideo(); }
+			catch (Exception ex) { openEx = ex; }
+			opened.Set();
+			if (openEx != null) return;
+			run.Wait();
+			try {
+				if (!stop) loop();
+			}
+			finally { closesink(); }
+		}) { IsBackground = true, Name = "ScreenRecorder" };
+		thread.Start();
+		if (!opened.Wait(20000))
+			throw new InvalidOperationException("录屏编码器启动超时");
+		if (openEx != null) {
+			try { thread.Join(3000); } catch { }
+			thread = null;
+			throw openEx;
 		}
 
 		if (audioMode != RecordAudioMode.Off) {
@@ -145,6 +138,10 @@ sealed class ScreenRecorder : IDisposable {
 			catch (Exception ex) {
 				CaptureLog.Ex("AudioCapture", ex);
 				RecordLog.Ex("AudioCapture.Start", ex);
+				stop = true;
+				try { run.Set(); } catch { }
+				try { thread?.Join(5000); } catch { }
+				thread = null;
 				throw new InvalidOperationException("无法开始录音: " + ex.Message, ex);
 			}
 		}
@@ -153,9 +150,49 @@ sealed class ScreenRecorder : IDisposable {
 		}
 
 		startTick = Compat.TickCount64;
-		thread = new Thread(loop) { IsBackground = true, Name = "ScreenRecorder" };
-		thread.Start();
+		run.Set();
 		RecordLog.Step("thread", "ScreenRecorder loop started");
+	}
+
+	void openvideo() {
+		if (recOpt.NeedsFfmpeg) {
+			if (!FfmpegLoader.TryInit(out var ffErr)) {
+				RecordLog.Step("ffmpeg_dll", "fail: " + (ffErr ?? "unknown"));
+				if (!FeaturePrompt.EnsureFfmpeg() || !FfmpegLoader.TryInit(out ffErr))
+					throw new InvalidOperationException(
+						"无法加载 FFmpeg。请通过「安装功能」安装 FFmpeg，"
+						+ "或将 FFmpeg 4.4 shared 库放到程序目录 ffmpeg64/。\n" + (ffErr ?? ""));
+			}
+			RecordLog.Step("ffmpeg_dll", "ok root=" + (FfmpegLoader.DllRoot ?? ""));
+		}
+		try {
+			if (recOpt.IsMjpeg)
+				sink = new MjpegAviWriter(videoTmp, grabW, grabH, recOpt);
+			else if (recOpt.IsMf)
+				sink = new MfH264Writer(videoTmp, grabW, grabH, recOpt);
+			else
+				sink = new FfmpegMp4Writer(videoTmp, grabW, grabH, recOpt);
+			var kind = recOpt.NeedsFfmpeg ? "FFmpeg" : recOpt.IsMjpeg ? "MJPEG" : "MediaFoundation";
+			Backend = $"{kind}/{sink.CodecName}/{sink.OpenedEncoder} {sink.OutWidth}x{sink.OutHeight}@{fps} {recOpt.CrfLabel}";
+			RecordLog.Step("video_writer", Backend);
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("video_writer", ex);
+			RecordLog.Ex("video_writer", ex);
+			sink = null;
+			if (recOpt.IsAv1)
+				throw new InvalidOperationException(
+					"AV1 不可用: " + ex.Message
+					+ "\n请换含 libaom-av1 / libsvtav1 的 ffmpeg64（不会改用 x264）。", ex);
+			if (recOpt.IsHevc)
+				throw new InvalidOperationException(
+					"x265 不可用: " + ex.Message + "\n请改用 x264，或换含 libx265 的 ffmpeg64。", ex);
+			if (recOpt.NeedsFfmpeg)
+				throw new InvalidOperationException(
+					"无法创建 FFmpeg 视频编码器: " + ex.Message
+					+ "\n请检查 ffmpeg64 是否完整（avcodec 等）。", ex);
+			throw new InvalidOperationException("无法创建视频编码器: " + ex.Message, ex);
+		}
 	}
 
 	public void Pause() {
@@ -196,13 +233,9 @@ sealed class ScreenRecorder : IDisposable {
 		finalizeDone = false;
 
 		report("正在写入视频索引…");
-		lock (gate) {
-			try { ff?.Finish(); } catch (Exception ex) { RecordLog.Ex("ff.Finish", ex); }
-			try { ff?.Dispose(); } catch { }
-			ff = null;
-
-		}
 		RecordLog.Step("video_finalize", RecordLog.FileInfo(videoTmp));
+		if (sinkEx != null)
+			throw new InvalidOperationException("视频收尾失败: " + sinkEx.Message, sinkEx);
 
 		if (audioMode == RecordAudioMode.Off || cap == null) {
 			finalizeDone = true;
@@ -247,14 +280,21 @@ sealed class ScreenRecorder : IDisposable {
 				try {
 					var merged = Path.Combine(
 						Path.GetDirectoryName(videoTmp) ?? TmpStore.Root,
-						Path.GetFileNameWithoutExtension(videoTmp) + "_av.mp4");
+						Path.GetFileNameWithoutExtension(videoTmp) + "_av" + recOpt.FileExt);
 					report("正在合成音轨…");
 					RecordLog.Step("merge_begin",
 						$"v={RecordLog.FileInfo(videoTmp)} a={RecordLog.FileInfo(wavTmp)} out={merged} " +
-						$"kbps={recOpt.AudioKbps} mono={recOpt.AudioMono} hz={recOpt.AudioHz}");
-					FfmpegRemux.MergeVideoAudio(videoTmp, wavTmp, merged,
-						recOpt.AudioKbps, recOpt.AudioMono, out var mergeErr, recOpt.AudioHz);
-					var hasStream = File.Exists(merged) && FfmpegRemux.HasAudioStream(merged);
+						$"kbps={recOpt.AudioKbps} mono={recOpt.AudioMono} hz={recOpt.AudioHz} codec={recOpt.Codec}");
+					string mergeErr = null;
+					if (recOpt.IsMjpeg)
+						MjpegAviWriter.MuxPcm(videoTmp, wavTmp, merged, recOpt.AudioHz, recOpt.AudioMono);
+					else if (recOpt.IsMf)
+						MfH264Writer.MuxAac(videoTmp, wavTmp, merged, recOpt.AudioKbps, recOpt.AudioHz, recOpt.AudioMono);
+					else
+						FfmpegRemux.MergeVideoAudio(videoTmp, wavTmp, merged,
+							recOpt.AudioKbps, recOpt.AudioMono, out mergeErr, recOpt.AudioHz);
+					var hasStream = File.Exists(merged) && new FileInfo(merged).Length > 100
+						&& (recOpt.NeedsFfmpeg ? FfmpegRemux.HasAudioStream(merged) : string.IsNullOrEmpty(mergeErr));
 					RecordLog.Step("merge_result",
 						$"hasAudioStream={hasStream} err={mergeErr ?? "-"} " + RecordLog.FileInfo(merged));
 					if (hasStream) {
@@ -317,7 +357,7 @@ sealed class ScreenRecorder : IDisposable {
 		tryDelete(wavTmp);
 		var mergedGuess = Path.Combine(
 			Path.GetDirectoryName(videoTmp) ?? TmpStore.Root,
-			Path.GetFileNameWithoutExtension(videoTmp) + "_av.mp4");
+			Path.GetFileNameWithoutExtension(videoTmp) + "_av" + (recOpt?.FileExt ?? ".mp4"));
 		if (!string.Equals(finalPath, mergedGuess, StringComparison.OrdinalIgnoreCase))
 			tryDelete(mergedGuess);
 	}
@@ -474,6 +514,22 @@ sealed class ScreenRecorder : IDisposable {
 			$"frames={frames} frameEx={frameEx} lastPts={lastPts} elapsed={Elapsed}");
 	}
 
+	// Media Foundation 的 SinkWriter 不能跨线程调用，收尾必须留在录制线程。
+	void closesink() {
+		IRecordVideoSink s;
+		lock (gate) {
+			s = sink;
+			sink = null;
+		}
+		if (s == null) return;
+		try { s.Finish(); }
+		catch (Exception ex) {
+			sinkEx = ex;
+			RecordLog.Ex("sink.Finish", ex);
+		}
+		try { s.Dispose(); } catch { }
+	}
+
 	void grabandwrite(long pts) {
 		System.Drawing.Rectangle r;
 		lock (gate) r = region;
@@ -502,12 +558,12 @@ sealed class ScreenRecorder : IDisposable {
 				System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 			try {
 				lock (gate) {
-					if (ff == null) return;
+					if (sink == null) return;
 					var stride = data.Stride;
 					var bytes = new byte[Math.Abs(stride) * th];
 					Marshal.Copy(data.Scan0, bytes, 0, bytes.Length);
 					for (int i = 3; i < bytes.Length; i += 4) bytes[i] = 255;
-					ff.WriteBgra(bytes, Math.Abs(stride), pts);
+					sink.WriteBgra(bytes, Math.Abs(stride), pts);
 					frames++;
 				}
 			}

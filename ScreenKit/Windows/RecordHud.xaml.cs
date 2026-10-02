@@ -979,11 +979,13 @@ public partial class RecordHud : Window {
 			}
 
 			// 不等合成：立刻选输出路径
+			var ext = recOpt?.FileExt ?? ".mp4";
+			var avi = string.Equals(ext, ".avi", StringComparison.OrdinalIgnoreCase);
 			var sfd = new Microsoft.Win32.SaveFileDialog {
 				Title = "保存录屏",
-				Filter = "MP4 视频|*.mp4",
-				FileName = $"rec_{DateTime.Now:yyyyMMdd_HHmmss}.mp4",
-				DefaultExt = ".mp4",
+				Filter = avi ? "AVI 视频|*.avi" : "MP4 视频|*.mp4",
+				FileName = $"rec_{DateTime.Now:yyyyMMdd_HHmmss}{ext}",
+				DefaultExt = ext,
 				AddExtension = true,
 				OverwritePrompt = true,
 			};

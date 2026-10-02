@@ -40,6 +40,10 @@ public enum FeatureKind {
 	NativeSherpa,
 	/// <summary>InsightFace buffalo_l：检测+识别+关键点+性别年龄，约 326MB。</summary>
 	FaceInsight,
+	/// <summary>系统 Media Foundation H.264，无需下载。</summary>
+	MediaFoundation,
+	/// <summary>系统 MJPEG AVI，无需下载。</summary>
+	Mjpeg,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -218,6 +222,8 @@ static class FeatureInstaller {
 			make(FeatureKind.FaceInsight, "face"),
 			make(FeatureKind.CudaGpu, "accel", true),
 			make(FeatureKind.DirectMl, "accel", true),
+			make(FeatureKind.MediaFoundation, "media"),
+			make(FeatureKind.Mjpeg, "media"),
 			make(FeatureKind.Ffmpeg, "media"),
 		};
 		HashSet<FeatureKind> selectSet;
@@ -294,6 +300,11 @@ static class FeatureInstaller {
 		};
 		// 体积：已装显示本机占用，否则显示预期下载约数
 		var onDisk = measuresize(it.Kind);
+		if (it.Kind is FeatureKind.MediaFoundation or FeatureKind.Mjpeg) {
+			it.SizeBytes = 0;
+			it.SizeText = Loc.T("feat.size.builtin");
+			return;
+		}
 		if (onDisk > 0 && it.State != FeatureInstallState.Missing) {
 			it.SizeBytes = onDisk;
 			it.SizeText = Loc.T("feat.size.local", FormatBytes(onDisk));
@@ -410,6 +421,9 @@ static class FeatureInstaller {
 			return Directory.Exists(FfmpegDir)
 				&& Directory.GetFiles(FfmpegDir, "avcodec-*.dll").Length > 0
 				? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.MediaFoundation:
+		case FeatureKind.Mjpeg:
+			return FeatureInstallState.Installed;
 		case FeatureKind.FaceInsight:
 			return probeface();
 		default:
@@ -565,6 +579,10 @@ static class FeatureInstaller {
 		case FeatureKind.Ffmpeg:
 			await installffmpeg(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.MediaFoundation:
+		case FeatureKind.Mjpeg:
+			log?.Report(Loc.T("feat.size.builtin"));
+			break;
 		case FeatureKind.FaceInsight:
 			await installfaceinsight(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -623,6 +641,10 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.Ffmpeg:
 			deletedir(FfmpegDir, log);
+			break;
+		case FeatureKind.MediaFoundation:
+		case FeatureKind.Mjpeg:
+			log?.Report(Loc.T("feat.size.builtin"));
 			break;
 		case FeatureKind.FaceInsight:
 			uninstallface(log);

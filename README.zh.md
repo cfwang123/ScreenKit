@@ -45,7 +45,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **截图识别** | 框选区域 → 按结果区 OCR / 条码 Tab 识别；多显示器 DXGI。韩语/英语词间空格按画面词距补回；汉字之间不插空格。可选 LLM 叠字翻译。图区工具条是紧凑的 WPF 工具栏，放不下的项进入溢出菜单。**截图历史** 用缩略图列出 `screenshots/`，可平移缩放预览，并在预览下方标注。有标注时完成、OCR 或用系统打开会另存并复制；没有标注时直接用原图，不生成新图。完成、OCR 或用系统打开后关闭历史窗口，在主界面显示这张图；OCR 会接着识别。复制和 Ctrl+C 只把当前图片放入剪贴板，不关闭窗口。 |
 | **截图标注** | 微信式工具条：矩形 / 椭圆 / 箭头 / 画笔 / 文字；「截屏后用系统软件打开」；完成旁下拉「复制为图片 / 文件 / 路径」。 |
 | **长截图** | 点选可滚动窗口 → 自动滚动拼接（不做 OCR）。 |
-| **区域录屏** | 点选窗口或框选 → HUD → MP4（**仅 FFmpeg** x264/x265/AV1）+ 可选系统声/麦克风；可选叠加鼠标与点击高亮。 |
+| **区域录屏** | 点选窗口或框选 → HUD → MP4 或 AVI + 可选系统声/麦克风；可选叠加鼠标与点击高亮。编码：x264 / x265 / AV1（FFmpeg）、Windows Media Foundation H.264（MP4，不用下载）、MJPEG AVI（不用下载）。 |
 | **GIF 录屏** | 同选区流程 → 采集 24fps → 预览（帧率/缩放/调色板）→ 无声 GIF。 |
 | **剪贴板** | 粘贴图片识别；「编辑」菜单复制图片 / 文件 / 路径；菜单/托盘可切换截图完成时的复制方式。 |
 | **文字叠加** | 松开才选一块，点空白取消，拖选不自动扩展；Ctrl+C 复制。 |
@@ -88,7 +88,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 - 终端用户：[.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 - 编译：Visual Studio / MSBuild（可编 `net48` WPF）
 - 可选：NVIDIA 显卡 + 与 `onnxgpu64` 匹配的 CUDA；支持 DirectML 的 GPU（`onnxdml64`）
-- 可选（录屏）：exe 旁 `ffmpeg64/` 放置 FFmpeg **4.4 shared**
+- 可选（x264 / x265 / AV1 与 GIF）：exe 旁 `ffmpeg64/` 放置 FFmpeg **4.4 shared**。系统 H.264 与 MJPEG AVI 不用下载。
 
 ## 使用说明
 
@@ -102,10 +102,10 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 2. **HUD**（画在选区外）：
    - 红框；拖动**红线外侧 5px**移动，或 **8 向手柄**缩放。**开始前**可自由改比例；**开始后**按 `record_lock_aspect`（默认锁定）。
    - 浮动**控制条**：左侧手柄拖动；可收起；开始前显示**选项**；开始与暂停同一位置。限制在当前显示器内。
-3. 停止后保存 MP4（资源管理器选中文件），或打开 GIF 预览（输出帧率 1–24、缩放、调色板）再保存无声 GIF。
-4. **捕获 → 录屏选项**：编码（x264 / x265 / AV1）、帧率、CRF / AV1 CRF（0–63，默认 56）、音频、最大尺寸、**录制鼠标** / **高亮鼠标点击**。AV1 需要 `ffmpeg64` 含 libsvtav1 / libaom-av1；找不到编码器会明确失败，不会改回 x264。
+3. 停止后保存 MP4 或 AVI（资源管理器选中文件），或打开 GIF 预览（输出帧率 1–24、缩放、调色板）再保存无声 GIF。
+4. **捕获 → 录屏选项**：编码（x264 / x265 / AV1 / 系统 H.264 / MJPEG AVI）、帧率。CRF 只在 x264/x265 时显示，AV1 CRF（0–63，默认 56）只在 AV1 时显示。还有音频、**限制较短边**（和截图一样，超过才等比缩小、不放大）、**录制鼠标** / **高亮鼠标点击**。AV1 需要 `ffmpeg64` 含 libsvtav1 / libaom-av1；找不到编码器会明确失败，不会改回 x264。系统 H.264 与 MJPEG 不用 FFmpeg。MJPEG 大约到 1.9GB 会停止。
 
-GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮鼠标点击** 在左键黄圈 / 右键蓝圈 / 中键绿圈处短暂散开。GIF 体积随分辨率与时长快速增大，请用预览缩放/帧率及最大尺寸限制。
+GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮鼠标点击** 在左键黄圈 / 右键蓝圈 / 中键绿圈处短暂散开。GIF 体积随分辨率与时长快速增大，请用预览缩放/帧率及最大尺寸限制。GIF 仍是最大宽高框。
 
 ### 文件同步（电脑 ↔ 安卓）
 
@@ -149,7 +149,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 ## 安装功能
 
-1. 首次启动可出现安装向导（默认勾选：截图识别简中、ASR 前两项、录屏；**不勾** GPU/核显）。
+1. 首次启动可出现安装向导（默认勾选：截图识别简中、ASR 前两项、录屏用的 FFmpeg；**不勾** GPU/核显）。系统 H.264 与 MJPEG 已内置，不用下载。
 2. 之后：**帮助 → 安装功能**
    - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。发音人不在此页。
    - **发音人**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。
@@ -161,7 +161,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN（可选） | 较大 |
 | **onnxdml64** | 核显 DirectML EP（可选） | ~18 MB |
 | **OpenCV** | 截图 / 图像管线 | ~61 MB |
-| **ffmpeg64** | 录屏编码封装 | ~72 MB |
+| **ffmpeg64** | x264 / x265 / AV1 与 GIF | ~72 MB |
 
 界面或系统区域为中文时，下载优先国内镜像（ModelScope / HF 镜像 / GitHub 代理）。
 
@@ -250,13 +250,15 @@ pdf_invisible_text = true
 pdf_dpi = 150
 
 [record]
-record_codec = "x264"
+record_codec = "x264"           # x264 | x265 | av1 | mf | mjpeg
 record_fps = 24
-record_crf = 28
-record_av1_crf = 56
+record_crf = 28                 # 仅 x264/x265，0–51
+record_av1_crf = 56             # 仅 AV1，0–63
 record_audio = true
 record_audio_src = "Speakers"
 record_audio_kbps = 96
+record_short = false            # 限制较短边（超过则等比缩小，不放大）
+record_short_px = 1080
 record_lock_aspect = true
 record_mouse = true
 record_click_highlight = true

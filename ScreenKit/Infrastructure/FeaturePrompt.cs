@@ -184,6 +184,8 @@ static class FeaturePrompt {
 		FeatureKind.NativePdfium => "PDFium (pdfium.dll)",
 		FeatureKind.NativeSherpa => "Sherpa (sherpa-onnx-c-api.dll)",
 		FeatureKind.Ffmpeg => "FFmpeg (ffmpeg64)",
+		FeatureKind.MediaFoundation => "Media Foundation H.264",
+		FeatureKind.Mjpeg => "MJPEG AVI",
 		FeatureKind.OcrRapidCh => "OCR 模型 rapid-ch",
 		FeatureKind.OcrUmi => "OCR 模型 umi",
 		FeatureKind.OcrRapidI18n => "OCR 模型 rapid-i18n",

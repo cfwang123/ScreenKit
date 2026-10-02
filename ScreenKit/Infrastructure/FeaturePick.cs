@@ -12,6 +12,8 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	public string Detail { get; set; }
 	public FeatureKind[] Kinds { get; set; }
 	public string SizeLabel { get; set; }
+	/// <summary>系统自带，勾选锁住，不参与安装或卸载。</summary>
+	public bool Locked { get; set; }
 	public List<FeaturePickNode> Children { get; } = new();
 	public FeaturePickNode Parent { get; set; }
 	public bool IsGroup => Children.Count > 0;
@@ -29,6 +31,7 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	public event PropertyChangedEventHandler PropertyChanged;
 
 	internal void SetCheck(bool? value, bool fromUi) {
+		if (Locked) value = true;
 		if (check == value) {
 			refreshdiff();
 			return;
@@ -105,7 +108,7 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 
 /// <summary>功能选择树：用户勾选产品功能，确认后映射到 FeatureKind 组件。</summary>
 static class FeaturePick {
-	public static readonly string[] RecommendedIds = ["ocr.ch", "asr.sv", "asr.zip", "rec"];
+	public static readonly string[] RecommendedIds = ["ocr.ch", "asr.sv", "asr.zip", "rec.ffmpeg"];
 
 	public static List<FeaturePickNode> BuildTree() => [
 		group("ocr", "feat.pick.ocr", "feat.pick.ocr.detail",
@@ -129,7 +132,10 @@ static class FeaturePick {
 		leaf("face", "feat.pick.face", "feat.pick.face.detail", FeatureKind.FaceInsight),
 		leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium),
-		leaf("rec", "feat.pick.rec", "feat.pick.rec.detail", FeatureKind.Ffmpeg),
+		group("rec", "feat.pick.rec", "feat.pick.rec.detail",
+			builtin("rec.mf", "feat.pick.rec.mf", "feat.pick.rec.mf.detail", FeatureKind.MediaFoundation),
+			builtin("rec.mjpeg", "feat.pick.rec.mjpeg", "feat.pick.rec.mjpeg.detail", FeatureKind.Mjpeg),
+			leaf("rec.ffmpeg", "feat.pick.rec.ffmpeg", "feat.pick.rec.ffmpeg.detail", FeatureKind.Ffmpeg)),
 		group("accel", "feat.pick.accel", "feat.pick.accel.detail",
 			leaf("accel.cuda", "feat.pick.accel.cuda", "feat.CudaGpu.detail", FeatureKind.CudaGpu),
 			leaf("accel.dml", "feat.pick.accel.dml", "feat.DirectMl.detail", FeatureKind.DirectMl),
@@ -200,6 +206,7 @@ static class FeaturePick {
 		foreach (FeatureKind k in Enum.GetValues(typeof(FeatureKind))) {
 			var st = FeatureInstaller.Probe(k);
 			var on = sel.Contains(k);
+			if (builtin(k)) continue;
 			if (on && st != FeatureInstallState.Installed) add.Add(k);
 			else if (!on && st != FeatureInstallState.Missing) del.Add(k);
 		}
@@ -217,6 +224,7 @@ static class FeaturePick {
 		foreach (FeatureKind k in Enum.GetValues(typeof(FeatureKind))) {
 			var st = FeatureInstaller.Probe(k);
 			var on = sel.Contains(k);
+			if (builtin(k)) continue;
 			if (on && st != FeatureInstallState.Installed) {
 				addN++;
 				addSz += FeatureInstaller.ExpectedSize(k);
@@ -299,6 +307,16 @@ static class FeaturePick {
 			c.Parent = n;
 			n.Children.Add(c);
 		}
+		return n;
+	}
+
+	static bool builtin(FeatureKind k) =>
+		k is FeatureKind.MediaFoundation or FeatureKind.Mjpeg;
+
+	static FeaturePickNode builtin(string id, string titleKey, string detailKey, FeatureKind kind) {
+		var n = leaf(id, titleKey, detailKey, kind);
+		n.SizeLabel = Loc.T("feat.size.builtin");
+		n.Locked = true;
 		return n;
 	}
 

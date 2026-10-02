@@ -2334,8 +2334,9 @@ public partial class MainWindow : Window {
 			setstatus("请等待当前截图/录屏结束");
 			return;
 		}
-		// 录屏依赖 ffmpeg64
-		if (!FeaturePrompt.EnsureFfmpeg(this)) {
+		var ro0 = (opt.Record ?? new RecordOptions()).Clone();
+		ro0.Clamp();
+		if (ro0.NeedsFfmpeg && !FeaturePrompt.EnsureFfmpeg(this)) {
 			setstatus("未安装 FFmpeg，已取消录屏");
 			return;
 		}

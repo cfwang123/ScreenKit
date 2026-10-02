@@ -45,7 +45,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. The image bar is a compact WPF toolbar; items that do not fit move to the overflow menu. **History** lists `screenshots/` as thumbnails, previews with pan and zoom, and annotates under that preview. With marks, Done, OCR, or Open saves a new screenshot and copies it. With no marks they use the original file and do not write a new one. Done, OCR, and Open then close the history window and show the picture on the main window; OCR also recognizes it. Copy and Ctrl+C put the current picture on the clipboard and leave the window open. |
 | **Annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text; dropdown next to confirm for copy-as image / file / path. |
 | **Long screenshot** | Pick a scrollable window → auto-scroll stitch (no OCR). |
-| **Screen recording** | Window or region → HUD → MP4 (x264/x265/AV1 via **FFmpeg only**) + optional system/mic audio; optional mouse cursor and click highlight. |
+| **Screen recording** | Window or region → HUD → MP4 or AVI + optional system/mic audio; optional mouse cursor and click highlight. Codecs: x264 / x265 / AV1 (FFmpeg), Windows Media Foundation H.264 (MP4, no download), MJPEG AVI (no download). |
 | **GIF recording** | Same region flow → 24 fps capture → preview (FPS, scale, palette) → silent GIF. |
 | **Clipboard** | Paste image and OCR; Edit menu copy image / file / path; menu/tray sets on-capture copy mode. |
 | **Overlay text** | Click-release selects one OCR block; empty click clears; drag-select stays in range. Ctrl+C copies. |
@@ -88,7 +88,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 - [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 - Build: Visual Studio / MSBuild with a `net48` WPF targeting pack
 - Optional: NVIDIA GPU + CUDA matching `onnxgpu64`; DirectML GPU for `onnxdml64`
-- Optional (record): FFmpeg **4.4 shared** under `ffmpeg64/` next to the exe
+- Optional (x264 / x265 / AV1 and GIF): FFmpeg **4.4 shared** under `ffmpeg64/` next to the exe. Media Foundation H.264 and MJPEG AVI need no download.
 
 ## Using ScreenKit
 
@@ -102,10 +102,10 @@ Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overla
 2. **HUD** (drawn outside the capture area):
    - Red frame; drag the **5px strip** to move, or **8 grips** to resize. Aspect is free before **Start** and locked afterwards unless `record_lock_aspect = false`.
    - Floating **control bar**: left grip to drag; collapse; **Options** before Start; start/pause share one slot. Stays on the current monitor.
-3. Stop → save MP4 (Explorer selects the file) or open the GIF preview (output FPS 1–24, scale, palette) then save a silent GIF.
-4. **Capture → Record options**: codec (x264 / x265 / AV1), FPS, CRF / AV1 CRF (0–63, default 56), audio, max size, **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64`.
+3. Stop → save MP4 or AVI (Explorer selects the file) or open the GIF preview (output FPS 1–24, scale, palette) then save a silent GIF.
+4. **Capture → Record options**: codec (x264 / x265 / AV1 / Media Foundation H.264 / MJPEG AVI), FPS, CRF (x264/x265 only) or AV1 CRF (0–63, default 56; hidden for the other codecs), audio, **shorter-side cap** (shrink only, same rule as screenshots), **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64` and fails clearly with no fallback to x264. Media Foundation and MJPEG do not use FFmpeg. MJPEG stops around 1.9 GB.
 
-GDI capture has no cursor: enable **record mouse** to overlay the pointer; **highlight clicks** draws a short yellow (left) / blue (right) / green (middle) ripple. GIF size grows quickly — use preview scale/FPS and the max-size limit.
+GDI capture has no cursor: enable **record mouse** to overlay the pointer; **highlight clicks** draws a short yellow (left) / blue (right) / green (middle) ripple. GIF size grows quickly — use preview scale/FPS and the max-size limit. GIF still uses a max width and height box.
 
 ### File sync (PC ↔ Android)
 
@@ -254,16 +254,15 @@ pdf_invisible_text = true
 pdf_dpi = 150
 
 [record]
-record_codec = "x264"           # x264 | x265 | av1
+record_codec = "x264"           # x264 | x265 | av1 | mf | mjpeg
 record_fps = 24
 record_crf = 28                 # x264/x265 only, 0–51
 record_av1_crf = 56             # AV1 only, 0–63 (56 ≈ half of x265 CRF28 size)
 record_audio = true
 record_audio_src = "Speakers"   # Speakers | Mic | MicAndSpeakers
 record_audio_kbps = 96
-record_max_size = false
-record_max_w = 1920
-record_max_h = 1080
+record_short = false            # cap the shorter side (shrink only)
+record_short_px = 1080          # 16–16384
 record_lock_aspect = true
 record_mouse = true
 record_click_highlight = true

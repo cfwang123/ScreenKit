@@ -3068,7 +3068,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-overlay-span-adj
   ScreenKit --test-record-avsync [--seconds 10] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
-  ScreenKit --test-record-codec [av1|x264|x265] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
+  ScreenKit --test-record-codec [av1|x264|x265|mf|mjpeg] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
@@ -3127,7 +3127,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-overlay-span-adj  跨屏选区进入标注，检查副屏手柄（自动关闭）
       --test-record-avsync  有声0.1s/静音0.1s循环→录N秒→分析音画同步
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
-      --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（默认 av1）
+      --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（av1|x264|x265|mf|mjpeg，默认 av1）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除；网页登录与公开下载
@@ -3191,6 +3191,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-avsync --seconds 10 -o log\record_avsync
   ScreenKit --test-gif-record --seconds 2 -o log\gif_record
   ScreenKit --test-record-codec av1 --repeat 2 --seconds 2 -o log\record_codec
+  ScreenKit --test-record-codec mf --seconds 2
+  ScreenKit --test-record-codec mjpeg --seconds 2
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert

@@ -292,12 +292,24 @@ static class AppConfig {
 				o.Record.AudioHz = rAhz;
 			if (map.TryGetValue("record_audio_mono", out var ram))
 				o.Record.AudioMono = parsebool(ram, false);
-			if (map.TryGetValue("record_max_size", out var rms))
-				o.Record.MaxSizeEnabled = parsebool(rms, false);
-			if (map.TryGetValue("record_max_w", out var rmw) && int.TryParse(rmw, out var rMaxW))
-				o.Record.MaxWidth = rMaxW;
-			if (map.TryGetValue("record_max_h", out var rmh) && int.TryParse(rmh, out var rMaxH))
-				o.Record.MaxHeight = rMaxH;
+			var hasShort = map.ContainsKey("record_short") || map.ContainsKey("record_short_px");
+			if (hasShort) {
+				if (map.TryGetValue("record_short", out var rsh))
+					o.Record.MaxSizeEnabled = parsebool(rsh, false);
+				if (map.TryGetValue("record_short_px", out var rsp) && int.TryParse(rsp, out var rShort))
+					o.Record.ShortPx = rShort;
+			}
+			else {
+				if (map.TryGetValue("record_max_size", out var rms))
+					o.Record.MaxSizeEnabled = parsebool(rms, false);
+				var rw = 0;
+				var rh = 0;
+				var hasW = map.TryGetValue("record_max_w", out var rmw) && int.TryParse(rmw, out rw);
+				var hasH = map.TryGetValue("record_max_h", out var rmh) && int.TryParse(rmh, out rh);
+				if (hasW && hasH) o.Record.ShortPx = Math.Min(rw, rh);
+				else if (hasW) o.Record.ShortPx = rw;
+				else if (hasH) o.Record.ShortPx = rh;
+			}
 			if (map.TryGetValue("record_lock_aspect", out var rla))
 				o.Record.LockAspectWhileRecording = parsebool(rla, true);
 			if (map.TryGetValue("record_mouse", out var rmo))
@@ -634,7 +646,7 @@ static class AppConfig {
 		var rec = o.Record ?? new RecordOptions();
 		rec.Clamp();
 		sb.AppendLine("[record]");
-		sb.AppendLine($"# 录屏：x264 / x265 / av1");
+		sb.AppendLine($"# 录屏：x264 / x265 / av1 / mf / mjpeg");
 		sb.AppendLine($"record_codec = \"{esc(rec.Codec)}\"");
 		sb.AppendLine($"record_fps = {rec.Fps}");
 		sb.AppendLine($"# x264/x265 CRF 0~51，越大体积越小");
@@ -647,10 +659,9 @@ static class AppConfig {
 		sb.AppendLine($"record_audio_kbps = {rec.AudioKbps}");
 		sb.AppendLine($"record_audio_hz = {rec.AudioHz}");
 		sb.AppendLine($"record_audio_mono = {(rec.AudioMono ? "true" : "false")}");
-		sb.AppendLine($"# 限制输出最大宽高（等比 fit）");
-		sb.AppendLine($"record_max_size = {(rec.MaxSizeEnabled ? "true" : "false")}");
-		sb.AppendLine($"record_max_w = {rec.MaxWidth}");
-		sb.AppendLine($"record_max_h = {rec.MaxHeight}");
+		sb.AppendLine($"# 限制较短边：宽高里较小的一边超过则等比缩小，不放大");
+		sb.AppendLine($"record_short = {(rec.MaxSizeEnabled ? "true" : "false")}");
+		sb.AppendLine($"record_short_px = {Compat.Clamp(rec.ShortPx < 16 ? 1080 : rec.ShortPx, 16, 16384)}");
 		sb.AppendLine($"# 录制中 HUD 缩放选区时锁定宽高比（开始前不限制）");
 		sb.AppendLine($"record_lock_aspect = {(rec.LockAspectWhileRecording ? "true" : "false")}");
 		sb.AppendLine($"# 叠加鼠标指针 / 点击高亮圈（GDI 抓屏不含光标）");

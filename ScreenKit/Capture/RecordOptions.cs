@@ -2,7 +2,7 @@ namespace ScreenKit;
 
 /// <summary>录屏编码参数（可持久化到 config.toml）。</summary>
 public sealed class RecordOptions {
-	/// <summary>x264 / x265 / av1。</summary>
+	/// <summary>x264 / x265 / av1 / mf / mjpeg。</summary>
 	public string Codec = "x264";
 	/// <summary>帧率 5–60。</summary>
 	public int Fps = 24;
@@ -20,12 +20,10 @@ public sealed class RecordOptions {
 	public int AudioHz = 22050;
 	/// <summary>单声道（低码率更清晰；默认立体声）。</summary>
 	public bool AudioMono = false;
-	/// <summary>是否启用最大宽高限制（fit 缩放）。</summary>
+	/// <summary>是否限制较短边（超过则等比缩小，不放大）。</summary>
 	public bool MaxSizeEnabled = false;
-	/// <summary>输出最大宽（偶数）。</summary>
-	public int MaxWidth = 1920;
-	/// <summary>输出最大高（偶数）。</summary>
-	public int MaxHeight = 1080;
+	/// <summary>较短边上限（像素）。宽和高里较小的一边超过才缩小。</summary>
+	public int ShortPx = 1080;
 	/// <summary>录制开始后，HUD 缩放选区时是否锁定宽高比（开始前始终自由缩放）。</summary>
 	public bool LockAspectWhileRecording = true;
 	/// <summary>叠加系统鼠标指针（GDI 抓屏本身不含光标）。</summary>
@@ -36,6 +34,17 @@ public sealed class RecordOptions {
 	public bool IsHevc => IsHevcName(Codec);
 
 	public bool IsAv1 => IsAv1Name(Codec);
+
+	public bool IsMf => IsMfName(Codec);
+
+	public bool IsMjpeg => IsMjpegName(Codec);
+
+	/// <summary>x264 / x265 / AV1 需要 ffmpeg64。mf 与 mjpeg 用系统编码器。</summary>
+	public bool NeedsFfmpeg => !IsMf && !IsMjpeg;
+
+	public bool UsesX264Crf => !IsAv1 && NeedsFfmpeg;
+
+	public string FileExt => IsMjpeg ? ".avi" : ".mp4";
 
 	public static bool IsHevcName(string codec) =>
 		string.Equals(codec, "x265", StringComparison.OrdinalIgnoreCase)
@@ -50,10 +59,22 @@ public sealed class RecordOptions {
 		|| string.Equals(codec, "libsvtav1", StringComparison.OrdinalIgnoreCase)
 		|| string.Equals(codec, "librav1e", StringComparison.OrdinalIgnoreCase);
 
-	/// <summary>规范化为 x264 / x265 / av1，未知值回落 x264。</summary>
+	public static bool IsMfName(string codec) =>
+		string.Equals(codec, "mf", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "mediafoundation", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "h264_mf", StringComparison.OrdinalIgnoreCase);
+
+	public static bool IsMjpegName(string codec) =>
+		string.Equals(codec, "mjpeg", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "mjpg", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "mjpegavi", StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>规范化为 x264 / x265 / av1 / mf / mjpeg，未知值回落 x264。</summary>
 	public static string NormalizeCodec(string codec) {
 		if (IsAv1Name(codec)) return "av1";
 		if (IsHevcName(codec)) return "x265";
+		if (IsMfName(codec)) return "mf";
+		if (IsMjpegName(codec)) return "mjpeg";
 		return "x264";
 	}
 
@@ -79,8 +100,7 @@ public sealed class RecordOptions {
 		AudioHz = AudioHz,
 		AudioMono = AudioMono,
 		MaxSizeEnabled = MaxSizeEnabled,
-		MaxWidth = MaxWidth,
-		MaxHeight = MaxHeight,
+		ShortPx = ShortPx,
 		LockAspectWhileRecording = LockAspectWhileRecording,
 		RecordMouse = RecordMouse,
 		HighlightClicks = HighlightClicks,
@@ -99,19 +119,18 @@ public sealed class RecordOptions {
 		AudioHz = o.AudioHz;
 		AudioMono = o.AudioMono;
 		MaxSizeEnabled = o.MaxSizeEnabled;
-		MaxWidth = o.MaxWidth;
-		MaxHeight = o.MaxHeight;
+		ShortPx = o.ShortPx;
 		LockAspectWhileRecording = o.LockAspectWhileRecording;
 		RecordMouse = o.RecordMouse;
 		HighlightClicks = o.HighlightClicks;
 		Clamp();
 	}
 
-	/// <summary>当前编码实际使用的 CRF（AV1 用 Av1Crf，否则 Crf）。</summary>
+	/// <summary>当前编码实际使用的 CRF（AV1 用 Av1Crf，x264/x265 用 Crf）。</summary>
 	public int EffectiveCrf => IsAv1 ? Av1Crf : Crf;
 
-	/// <summary>摘要用质量标签，如 CRF28 / AV1-CRF56。</summary>
-	public string CrfLabel => IsAv1 ? $"AV1-CRF{Av1Crf}" : $"CRF{Crf}";
+	/// <summary>摘要用质量标签。系统编码没有 CRF。</summary>
+	public string CrfLabel => IsAv1 ? $"AV1-CRF{Av1Crf}" : UsesX264Crf ? $"CRF{Crf}" : IsMjpeg ? "MJPEG" : "H.264";
 
 	/// <summary>常用合法采样率（规范化输出）。</summary>
 	public static readonly int[] AudioHzChoices = { 8000, 11025, 16000, 22050, 32000, 44100, 48000 };
@@ -123,8 +142,7 @@ public sealed class RecordOptions {
 		Av1Crf = Compat.Clamp(Av1Crf, 0, 63);
 		AudioKbps = Compat.Clamp(AudioKbps, 8, 128);
 		AudioHz = snapaudiohz(AudioHz);
-		MaxWidth = Math.Max(16, MaxWidth / 2 * 2);
-		MaxHeight = Math.Max(16, MaxHeight / 2 * 2);
+		ShortPx = Compat.Clamp(ShortPx < 16 ? 1080 : ShortPx, 16, 16384);
 		if (string.IsNullOrWhiteSpace(AudioSource)
 			|| (AudioSource != "Speakers" && AudioSource != "Mic" && AudioSource != "MicAndSpeakers"))
 			AudioSource = "Speakers";
@@ -151,7 +169,7 @@ public sealed class RecordOptions {
 		Clamp();
 		FitSize(captureW > 0 ? captureW : 1920, captureH > 0 ? captureH : 1080, out var ow, out var oh);
 		var sizePart = MaxSizeEnabled
-			? (captureW > 0 ? $"out {ow}×{oh}" : $"max {MaxWidth}×{MaxHeight}")
+			? (captureW > 0 ? $"out {ow}×{oh}" : $"short {ShortPx}")
 			: "full";
 		var ch = AudioMono ? "mono" : "stereo";
 		var aud = !AudioEnabled ? "无声"
@@ -168,18 +186,18 @@ public sealed class RecordOptions {
 			: $"{Codec} · {Fps}fps · {CrfLabel} · {sizePart} · {aud} · {mouse}";
 	}
 
-	/// <summary>将采集宽高 fit 到最大框内（保持比例，偶数）。</summary>
+	/// <summary>较短边超过 ShortPx 时等比缩小，不放大。输出宽高为偶数。</summary>
 	public void FitSize(int srcW, int srcH, out int outW, out int outH) {
 		srcW = Math.Max(2, srcW / 2 * 2);
 		srcH = Math.Max(2, srcH / 2 * 2);
-		if (!MaxSizeEnabled || MaxWidth < 16 || MaxHeight < 16) {
+		var limit = ShortPx < 16 ? 1080 : ShortPx;
+		var side = Math.Min(srcW, srcH);
+		if (!MaxSizeEnabled || side <= limit) {
 			outW = srcW;
 			outH = srcH;
 			return;
 		}
-		var sx = (double)MaxWidth / srcW;
-		var sy = (double)MaxHeight / srcH;
-		var s = Math.Min(1.0, Math.Min(sx, sy));
+		var s = (double)limit / side;
 		outW = Math.Max(16, (int)Math.Round(srcW * s) / 2 * 2);
 		outH = Math.Max(16, (int)Math.Round(srcH * s) / 2 * 2);
 	}

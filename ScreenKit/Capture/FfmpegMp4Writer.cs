@@ -8,7 +8,7 @@ namespace ScreenKit;
 /// FFmpeg.AutoGen + x264/x265/AV1 边收 BGRA 帧边写 MP4。
 /// 支持 CRF、输出分辨率 fit 缩放。
 /// </summary>
-unsafe sealed class FfmpegMp4Writer : IDisposable {
+unsafe sealed class FfmpegMp4Writer : IRecordVideoSink {
 	// 优先 SVT-AV1：同 CRF 下比 libaom realtime 更小更快（录屏实时场景）
 	static readonly string[] Av1EncNames = { "libsvtav1", "libaom-av1", "librav1e" };
 
