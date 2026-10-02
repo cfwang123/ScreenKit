@@ -2695,10 +2695,10 @@ public partial class MainWindow : Window {
 		}
 		try { setimage(bmp, saved); }
 		catch (Exception ex) { CaptureLog.Ex("hist setimage", ex); }
+		closehist();
+		selectmaintab(tabocr);
+		bringtofront();
 		if (act == ShotHistoryWindow.ActOcr) {
-			selectmaintab(tabocr);
-			try { if (histwin != null) histwin.Owner = null; } catch { }
-			bringtofront();
 			await ensureactivetabasync(focusResult: true);
 			selectmaintab(tabocr);
 			bringtofront();
@@ -2720,6 +2720,13 @@ public partial class MainWindow : Window {
 		else
 			setstatus(Loc.T("hist.copied", System.IO.Path.GetFileName(saved)));
 		return saved;
+	}
+
+	void closehist() {
+		var w = histwin;
+		if (w == null) return;
+		try { w.Close(); }
+		catch { histwin = null; }
 	}
 
 	void opensnapshotsfolder() {

@@ -808,24 +808,14 @@ public partial class ShotHistoryWindow : Window {
 			string path = null;
 			if (CommitAsync != null) path = await CommitAsync(bmp, reuse, act).ConfigureAwait(true);
 			if (string.IsNullOrEmpty(path)) return;
-			var name = Path.GetFileName(path);
-			var same = !string.IsNullOrEmpty(reuse)
-				&& string.Equals(path, reuse, StringComparison.OrdinalIgnoreCase);
-			if (same) {
-				lbstat.Text = act == ActOpen ? Loc.T("hist.opened", name)
-					: act == ActOcr ? Loc.T("hist.reused", name)
-					: Loc.T("hist.copied", name);
-				return;
-			}
-			lbstat.Text = Loc.T("hist.saved", name);
-			Reload(path);
+			if (IsLoaded) Close();
 		}
 		catch (Exception ex) {
 			lbstat.Text = Loc.T("hist.fail", ex.Message);
 		}
 		finally {
 			saving = false;
-			syncbuttons();
+			if (IsLoaded) syncbuttons();
 		}
 	}
 
