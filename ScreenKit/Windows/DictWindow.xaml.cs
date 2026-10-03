@@ -449,7 +449,7 @@ public partial class DictWindow : UserControl {
 		var g = ++sgen;
 		var q = text;
 		Task.Run(() => {
-			try { return DictDb.Ready ? DictDb.Search(q, "", 8) : new List<DictHit>(); }
+			try { return DictDb.Search(q, "", 8); }
 			catch { return new List<DictHit>(); }
 		}).ContinueWith(t => {
 			Dispatcher.BeginInvoke(new Action(() => {

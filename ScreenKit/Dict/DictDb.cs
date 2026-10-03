@@ -88,62 +88,98 @@ static class DictDb {
 	const int MAXPHRASES = 8;
 	const int MAXSENTENCES = 6;
 
+	const int IDLE_MS = 5 * 60 * 1000;
+
 	static SqliteConnection conn;
 	static readonly object dblock = new();
+	static Timer idletimer;
 	static bool batteries;
 	static string dberr = "";
+	static string dbpath = "";
+	static int lastuse;
 
 	public static bool Ready => conn != null;
 	/// <summary>missing：库文件不在；其它为打开失败说明。</summary>
 	public static string Error => dberr;
 
 	public static bool Init(string path) {
-		lock (dblock) {
-			closeunlocked();
-			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) {
-				dberr = "missing";
-				return false;
-			}
-			try {
-				ensurebatteries();
-				var csb = new SqliteConnectionStringBuilder {
-					DataSource = path,
-					Mode = SqliteOpenMode.ReadOnly,
-					Cache = SqliteCacheMode.Shared,
-					Pooling = false,
-				};
-				var c = new SqliteConnection(csb.ToString());
-				c.Open();
-				pragma(c, "PRAGMA query_only = ON;");
-				pragma(c, "PRAGMA mmap_size = 268435456;");
-				pragma(c, "PRAGMA case_sensitive_like = ON;");
-				pragma(c, "PRAGMA temp_store = MEMORY;");
-				using (var cmd = c.CreateCommand()) {
-					cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('lookup_key','entry')";
-					if (Convert.ToInt64(cmd.ExecuteScalar()) < 2) {
-						c.Dispose();
-						dberr = "dict.db schema";
-						return false;
-					}
-				}
-				conn = c;
-				dberr = "";
-				return true;
-			}
-			catch (Exception ex) {
-				dberr = ex.Message;
-				return false;
-			}
-		}
+		lock (dblock) return openunlocked(path);
 	}
 
 	public static void Close() {
 		lock (dblock) closeunlocked();
 	}
 
+	/// <summary>已打开则记下使用时间。空闲关掉之后按上次路径再打开。</summary>
+	static bool readyunlocked() {
+		if (conn != null) {
+			lastuse = Environment.TickCount;
+			return true;
+		}
+		if (string.IsNullOrEmpty(dbpath)) return false;
+		return openunlocked(dbpath);
+	}
+
+	static bool openunlocked(string path) {
+		closeunlocked();
+		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) {
+			dberr = "missing";
+			return false;
+		}
+		try {
+			ensurebatteries();
+			var csb = new SqliteConnectionStringBuilder {
+				DataSource = path,
+				Mode = SqliteOpenMode.ReadOnly,
+				Cache = SqliteCacheMode.Shared,
+				Pooling = false,
+			};
+			var c = new SqliteConnection(csb.ToString());
+			c.Open();
+			pragma(c, "PRAGMA query_only = ON;");
+			pragma(c, "PRAGMA mmap_size = 268435456;");
+			pragma(c, "PRAGMA case_sensitive_like = ON;");
+			pragma(c, "PRAGMA temp_store = MEMORY;");
+			using (var cmd = c.CreateCommand()) {
+				cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('lookup_key','entry')";
+				if (Convert.ToInt64(cmd.ExecuteScalar()) < 2) {
+					c.Dispose();
+					dberr = "dict.db schema";
+					return false;
+				}
+			}
+			conn = c;
+			dbpath = path;
+			dberr = "";
+			lastuse = Environment.TickCount;
+			if (idletimer == null)
+				idletimer = new Timer(onidle, null, OnnxIdle.TickMs, OnnxIdle.TickMs);
+			return true;
+		}
+		catch (Exception ex) {
+			dberr = ex.Message;
+			return false;
+		}
+	}
+
+	static void onidle(object _) {
+		var closed = false;
+		try {
+			lock (dblock) {
+				if (conn == null || !OnnxIdle.Due(lastuse, IDLE_MS)) return;
+				closeunlocked();
+				closed = true;
+			}
+		}
+		catch { return; }
+		if (!closed) return;
+		try { CaptureLog.Info("dict db idle close"); } catch { }
+	}
+
 	static void closeunlocked() {
 		try { conn?.Dispose(); } catch { }
 		conn = null;
+		lastuse = 0;
 	}
 
 	static void ensurebatteries() {
@@ -155,7 +191,7 @@ static class DictDb {
 	/// <summary>dict 为空查全部，否则 zh / en / ja / ko。limit 为界面条数上限。</summary>
 	public static List<DictHit> Search(string rawq, string dict, int limit) {
 		var empty = new List<DictHit>();
-		if (conn == null || string.IsNullOrWhiteSpace(rawq)) return empty;
+		if (string.IsNullOrWhiteSpace(rawq)) return empty;
 		if (limit < 1) limit = 1;
 		if (limit > 300) limit = 300;
 		var q = normalize(rawq);
@@ -163,7 +199,7 @@ static class DictDb {
 		var d = normdict(dict);
 		var hits = new List<DictHit>();
 		lock (dblock) {
-			if (conn == null) return empty;
+			if (!readyunlocked()) return empty;
 			prefixkeys(q, d, hits);
 			var prefixN = uniquecount(hits);
 			var wantContains = shouldruncontains(q, prefixN, limit);
@@ -181,16 +217,17 @@ static class DictDb {
 			outlist.Add(h);
 			if (outlist.Count >= limit) break;
 		}
-		lock (dblock) fillmeta(outlist);
+		lock (dblock) {
+			if (readyunlocked()) fillmeta(outlist);
+		}
 		return outlist;
 	}
 
 	public static DictEntry Get(long id) {
-		if (conn == null) return null;
 		DictEntry e;
 		string jsontext;
 		lock (dblock) {
-			if (conn == null) return null;
+			if (!readyunlocked()) return null;
 			using var cmd = conn.CreateCommand();
 			cmd.CommandText = "SELECT id, dict, headword, json FROM entry WHERE id = @id";
 			cmd.Parameters.AddWithValue("@id", id);
