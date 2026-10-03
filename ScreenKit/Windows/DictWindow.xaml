@@ -1,11 +1,6 @@
-<Window x:Class="ScreenKit.DictWindow"
+<UserControl x:Class="ScreenKit.DictWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="词典"
-        Height="680" Width="980"
-        MinHeight="420" MinWidth="720"
-        WindowStartupLocation="CenterScreen"
-        ShowInTaskbar="True"
         Background="{StaticResource BgApp}"
         FontFamily="Segoe UI, Microsoft YaHei UI"
         FontSize="13"
@@ -148,4 +143,4 @@
 			</Border>
 		</Popup>
 	</Grid>
-</Window>
+</UserControl>

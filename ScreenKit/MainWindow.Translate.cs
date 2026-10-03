@@ -12,6 +12,10 @@ public partial class MainWindow {
 	bool trBusy;
 
 	void inittranslate() {
+		dicthost.OnTranslate = text => {
+			ensuretranslatepopup();
+			trPopup.ShowText(text);
+		};
 		try { trEngine = new TranslateEngine(); }
 		catch (Exception ex) {
 			CaptureLog.Ex("TranslateEngine init", ex);
@@ -185,20 +189,35 @@ public partial class MainWindow {
 		trPopup.ShowFromHotkey();
 	}
 
-	void toggledictwindow() {
-		if (dictWin == null) {
-			dictWin = new DictWindow();
-			dictWin.OnTranslate = text => {
-				ensuretranslatepopup();
-				trPopup.ShowText(text);
-			};
-			dictWin.Closed += (_, _) => dictWin = null;
-		}
-		if (dictWin.IsVisible) {
-			dictWin.Hide();
+	void showdicttab() => opendicttab();
+
+	void toggledicttab() {
+		var ondict = IsVisible && WindowState != WindowState.Minimized
+			&& ReferenceEquals(maintabs.SelectedItem, tabdict);
+		if (ondict) {
+			if (tray != null) tray.hidewindow();
+			else try { Hide(); } catch { }
 			return;
 		}
-		dictWin.ShowFromHotkey();
+		opendicttab();
+	}
+
+	void opendicttab() {
+		if (!opt.TabDictVisible) {
+			opt.TabDictVisible = true;
+			applymaintabvisibility();
+			try { AppConfig.Save(opt); } catch { }
+		}
+		if (tray != null) tray.showwindow();
+		else {
+			if (!IsVisible) Show();
+			if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+			try { Activate(); } catch { }
+		}
+		selectmaintab(tabdict);
+		Dispatcher.BeginInvoke(new Action(() => {
+			try { dicthost.FocusSearch(); } catch { }
+		}), System.Windows.Threading.DispatcherPriority.Background);
 	}
 
 	void filltrengine() {

@@ -71,7 +71,7 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeySnapCopy; // 切换截图复制方式
 	GlobalHotkey hotkeyDict;  // 词典
 	TranslatePopupWindow trPopup;
-	DictWindow dictWin;
+
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
 	ImgConvertWindow imgConvWin;
@@ -218,6 +218,7 @@ public partial class MainWindow : Window {
 			(tabhttp, opt.TabHttpVisible),
 			(tabsf, opt.TabSendFileVisible),
 			(tabcast, opt.TabCastVisible),
+			(tabdict, opt.TabDictVisible),
 		};
 		foreach (var (tab, visible) in tabs)
 			tab.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
@@ -774,7 +775,7 @@ public partial class MainWindow : Window {
 			hotkeyDict.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
 					CaptureLog.Info("hotkeyDict Fired");
-					toggledictwindow();
+					toggledicttab();
 				}
 				catch (Exception ex) {
 					CaptureLog.Ex("hotkeyDict Fired", ex);
@@ -926,7 +927,7 @@ public partial class MainWindow : Window {
 		try { hotkeyTr?.Dispose(); } catch { }
 		try { hotkeyDict?.Dispose(); } catch { }
 		try { trPopup?.ForceClose(); } catch { }
-		try { dictWin?.ForceClose(); } catch { }
+		try { dicthost?.Shutdown(); } catch { }
 		try { tray?.Dispose(); } catch { }
 		// 不在此 Dispose runner/ORT
 		try { Environment.Exit(0); } catch { }
@@ -1275,7 +1276,7 @@ public partial class MainWindow : Window {
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
-		mndict.Click += (_, _) => toggledictwindow();
+		mndict.Click += (_, _) => showdicttab();
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
 		mnlangzh.Click += (_, _) => setlang("zh");
@@ -1409,6 +1410,7 @@ public partial class MainWindow : Window {
 			tabasr.Header = Loc.T("tab.asr");
 			try { applychatlang(); } catch { }
 			tabtr.Header = Loc.T("tab.translate");
+			tabdict.Header = Loc.T("tab.dict");
 			try { applyhttplang(); } catch { }
 			try { applysflang(); } catch { }
 			try { applycastlang(); } catch { }
@@ -1489,7 +1491,7 @@ public partial class MainWindow : Window {
 			try { applyasrlang(); } catch { }
 			try { applytrlang(); } catch { }
 			try { trPopup?.ApplyLang(); } catch { }
-			try { dictWin?.ApplyLang(); } catch { }
+			try { dicthost?.ApplyLang(); } catch { }
 			try { applyfacelang(); } catch { }
 			try { tray?.ApplyLang(); } catch { }
 		}

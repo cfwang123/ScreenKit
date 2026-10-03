@@ -32,8 +32,8 @@ sealed class DictSelRow {
 
 enum DRole { Body, Title, Pron, Pos, Number, Label, ExLabel, Example }
 
-/// <summary>英日韩词典：只读 exe 旁的 dict.db。热键再按一次隐藏。</summary>
-public partial class DictWindow : Window {
+/// <summary>英日韩词典：只读 exe 旁的 dict.db。嵌在主窗口词典页。</summary>
+public partial class DictWindow : UserControl {
 	static readonly Brush CPron = freeze(110, 110, 110);
 	static readonly Brush CPos = freeze(136, 48, 168);
 	static readonly Brush CNumber = freeze(210, 85, 20);
@@ -51,7 +51,6 @@ public partial class DictWindow : Window {
 	int dgen;
 	int sgen;
 	bool filling;
-	bool forceClose;
 	bool speaking;
 	bool suppress;
 	long wantid;
@@ -71,14 +70,10 @@ public partial class DictWindow : Window {
 	}
 
 	void initui() {
-		WindowEsc.Attach(this, () => {
-			if (psel.IsOpen) { psel.IsOpen = false; return; }
-			Hide();
-		});
-		Closing += (_, e) => {
-			if (forceClose) return;
-			e.Cancel = true;
-			Hide();
+		PreviewKeyDown += (_, e) => {
+			if (e.Key != Key.Escape || !psel.IsOpen) return;
+			psel.IsOpen = false;
+			e.Handled = true;
 		};
 		tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
 		tick.Tick += (_, _) => ontick();
@@ -148,21 +143,16 @@ public partial class DictWindow : Window {
 		}
 	}
 
-	public void ForceClose() {
-		forceClose = true;
+	public void Shutdown() {
 		try { tick?.Stop(); } catch { }
 		try { player?.Dispose(); } catch { }
 		try { tts?.Dispose(); } catch { }
 		player = null;
 		tts = null;
-		try { Close(); } catch { }
 	}
 
-	public void ShowFromHotkey() {
+	public void FocusSearch() {
 		ensuredb();
-		if (!IsVisible) Show();
-		if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
-		Activate();
 		try {
 			esearch.Focus();
 			esearch.SelectAll();
@@ -173,7 +163,6 @@ public partial class DictWindow : Window {
 	public void ApplyLang() => applylang();
 
 	void applylang() {
-		Title = Loc.T("dict.title");
 		bspeak.Content = Loc.T("dict.speak");
 		bspeakzh.Content = Loc.T("dict.speakzh");
 		bspeak.ToolTip = Loc.T("dict.speak.tip");
