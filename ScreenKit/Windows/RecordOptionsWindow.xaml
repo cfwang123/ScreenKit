@@ -28,7 +28,6 @@
 					<ComboBoxItem Content="x265 (H.265/HEVC，更小体积)" Tag="x265"/>
 					<ComboBoxItem Content="AV1 (更小体积，需较新播放器)" Tag="av1"/>
 					<ComboBoxItem Content="Media Foundation (系统 H.264，无需 FFmpeg)" Tag="mf"/>
-					<ComboBoxItem Content="MJPEG (AVI，无需 FFmpeg)" Tag="mjpeg"/>
 				</ComboBox>
 				<TextBlock x:Name="lbcode" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
 				           TextWrapping="Wrap"

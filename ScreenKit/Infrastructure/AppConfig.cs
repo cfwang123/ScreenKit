@@ -646,7 +646,7 @@ static class AppConfig {
 		var rec = o.Record ?? new RecordOptions();
 		rec.Clamp();
 		sb.AppendLine("[record]");
-		sb.AppendLine($"# 录屏：x264 / x265 / av1 / mf / mjpeg");
+		sb.AppendLine($"# 录屏：x264 / x265 / av1 / mf（mjpeg 已隐藏，读入后改为 mf）");
 		sb.AppendLine($"record_codec = \"{esc(rec.Codec)}\"");
 		sb.AppendLine($"record_fps = {rec.Fps}");
 		sb.AppendLine($"# x264/x265 CRF 0~51，越大体积越小");

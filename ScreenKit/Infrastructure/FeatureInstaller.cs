@@ -223,7 +223,6 @@ static class FeatureInstaller {
 			make(FeatureKind.CudaGpu, "accel", true),
 			make(FeatureKind.DirectMl, "accel", true),
 			make(FeatureKind.MediaFoundation, "media"),
-			make(FeatureKind.Mjpeg, "media"),
 			make(FeatureKind.Ffmpeg, "media"),
 		};
 		HashSet<FeatureKind> selectSet;

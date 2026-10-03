@@ -134,7 +134,6 @@ static class FeaturePick {
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium),
 		group("rec", "feat.pick.rec", "feat.pick.rec.detail",
 			builtin("rec.mf", "feat.pick.rec.mf", "feat.pick.rec.mf.detail", FeatureKind.MediaFoundation),
-			builtin("rec.mjpeg", "feat.pick.rec.mjpeg", "feat.pick.rec.mjpeg.detail", FeatureKind.Mjpeg),
 			leaf("rec.ffmpeg", "feat.pick.rec.ffmpeg", "feat.pick.rec.ffmpeg.detail", FeatureKind.Ffmpeg)),
 		group("accel", "feat.pick.accel", "feat.pick.accel.detail",
 			leaf("accel.cuda", "feat.pick.accel.cuda", "feat.CudaGpu.detail", FeatureKind.CudaGpu),

@@ -69,12 +69,12 @@ public sealed class RecordOptions {
 		|| string.Equals(codec, "mjpg", StringComparison.OrdinalIgnoreCase)
 		|| string.Equals(codec, "mjpegavi", StringComparison.OrdinalIgnoreCase);
 
-	/// <summary>规范化为 x264 / x265 / av1 / mf / mjpeg，未知值回落 x264。</summary>
+	/// <summary>规范化为 x264 / x265 / av1 / mf，未知值回落 x264。MJPEG AVI 先隐藏，已保存的值改走系统 H.264。</summary>
 	public static string NormalizeCodec(string codec) {
 		if (IsAv1Name(codec)) return "av1";
 		if (IsHevcName(codec)) return "x265";
 		if (IsMfName(codec)) return "mf";
-		if (IsMjpegName(codec)) return "mjpeg";
+		if (IsMjpegName(codec)) return "mf";
 		return "x264";
 	}
 

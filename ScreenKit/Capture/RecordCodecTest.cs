@@ -2,7 +2,7 @@ namespace ScreenKit;
 
 /// <summary>
 /// 录屏 codec 短测：走 ScreenRecorder，探测写出文件的视频编码。
-/// x264/x265/AV1 用 FFmpeg；mf 用系统 H.264；mjpeg 用 MJPEG AVI。
+/// x264/x265/AV1 用 FFmpeg；mf 用系统 H.264。mjpeg 读入后按 mf。
 /// </summary>
 static class RecordCodecTest {
 	public static int Run(string codecArg, string outDir, string regionArg, int seconds, int repeat,
@@ -82,10 +82,8 @@ static class RecordCodecTest {
 			: want == "x265"
 				? new[] { "x265", "hevc", "h265" }
 				: want == "mf"
-					? new[] { "mf", "mediafoundation", "h264_mf" }
-					: want == "mjpeg"
-						? new[] { "mjpeg", "mjpg", "mjpegavi" }
-						: new[] { "x264", "h264" };
+					? new[] { "mf", "mediafoundation", "h264_mf", "mjpeg", "mjpg", "mjpegavi" }
+					: new[] { "x264", "h264" };
 		foreach (var a in aliases) {
 			var o = new RecordOptions { Codec = a };
 			o.Clamp();
