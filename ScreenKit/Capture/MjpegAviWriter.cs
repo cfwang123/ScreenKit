@@ -9,6 +9,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 
 	readonly int srcW, srcH, fps;
 	readonly AviFile avi;
+	byte[] held;
 	long frameIndex;
 	bool disposed;
 
@@ -39,12 +40,19 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 		if (pts < frameIndex) pts = frameIndex;
 		var jpeg = RecordBgra.Jpeg(bgra, stride, srcW, srcH, OutWidth, OutHeight, JpegQuality);
 		var gap = pts - frameIndex;
-		for (var i = 0; i <= gap; i++) {
-			if (avi.Length + jpeg.Length > SizeCap)
-				throw new InvalidOperationException("MJPEG AVI 超过约 1.9GB，请缩短录制或改用 H.264");
-			avi.WriteVideo(jpeg);
-		}
+		// 漏掉的时刻重复上一张。把新画面填回过去，播放时画面会早于声音。
+		var fill = held ?? jpeg;
+		for (var i = 0; i < gap; i++)
+			writevideo(fill);
+		writevideo(jpeg);
+		held = jpeg;
 		frameIndex = pts + 1;
+	}
+
+	void writevideo(byte[] jpeg) {
+		if (avi.Length + jpeg.Length > SizeCap)
+			throw new InvalidOperationException("MJPEG AVI 超过约 1.9GB，请缩短录制或改用 H.264");
+		avi.WriteVideo(jpeg);
 	}
 
 	public void Finish() {
@@ -76,9 +84,21 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			var n = (int)Math.Min(int.MaxValue, want - audioBytes);
 			if (n <= 0) continue;
 			var buf = new byte[n];
-			pcm.Read16(buf, n);
-			dst.WriteAudio(buf);
-			audioBytes += n;
+			var got = pcm.Read16(buf, n);
+			if (got <= 0) {
+				dst.WriteAudio(buf);
+				audioBytes += n;
+			}
+			else if (got < n) {
+				var part = new byte[got];
+				Buffer.BlockCopy(buf, 0, part, 0, got);
+				dst.WriteAudio(part);
+				audioBytes += got;
+			}
+			else {
+				dst.WriteAudio(buf);
+				audioBytes += n;
+			}
 		}
 		dst.Finish();
 	}
@@ -92,9 +112,9 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 	sealed class AviFile : IDisposable {
 		FileStream fs;
 		long riffSizePos, avihFramesPos, avihMaxBytesPos, avihSuggestPos;
-		long strhLenPos, strhSuggestPos, audLenPos, moviSizePos, moviFccPos;
+		long strhLenPos, strhSuggestPos, audLenPos, audSuggestPos, moviSizePos, moviFccPos;
 		readonly List<(string id, int offset, int len)> index = new();
-		int frames, maxJpeg, fps = 1, audBlock = 1;
+		int frames, maxJpeg, maxAud, fps = 1, audBlock = 1;
 		long audioBytes;
 		bool withAudio, finished;
 
@@ -164,6 +184,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			else audLenPos = fs.Position;
 			u32(0);
 			if (video) strhSuggestPos = fs.Position;
+			else audSuggestPos = fs.Position;
 			u32((uint)sampleSize);
 			u32(0xFFFFFFFFu);
 			u32((uint)sampleSize);
@@ -202,6 +223,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 
 		public void WriteAudio(byte[] pcm) {
 			if (!withAudio || pcm == null || pcm.Length == 0) return;
+			if (pcm.Length > maxAud) maxAud = pcm.Length;
 			chunk("01wb", pcm);
 			audioBytes += pcm.Length;
 		}
@@ -226,6 +248,8 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			patch(strhSuggestPos, maxJpeg);
 			if (withAudio && audLenPos > 0)
 				patch(audLenPos, (int)(audioBytes / Math.Max(1, audBlock)));
+			if (withAudio && audSuggestPos > 0)
+				patch(audSuggestPos, Math.Max(maxAud, audBlock));
 			fs.Flush();
 		}
 

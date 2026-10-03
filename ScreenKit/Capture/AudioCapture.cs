@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
@@ -28,12 +29,16 @@ sealed class AudioCapture : IDisposable {
 
 	WasapiLoopbackCapture loop;
 	WasapiCapture mic;
-	WaveFileWriter writerLoop;
-	WaveFileWriter writerMic;
+	WavPlace writerLoop;
+	WavPlace writerMic;
 	WaveFormat fmtLoop;
 	WaveFormat fmtMic;
 	long bytesLoop;
 	long bytesMic;
+	long realLoop;
+	long realMic;
+	int overwriteCount;
+	long overwriteBytes;
 	string pathLoop;
 	string pathMic;
 	long startTick;
@@ -100,6 +105,10 @@ sealed class AudioCapture : IDisposable {
 		pauseAccum = 0;
 		bytesLoop = 0;
 		bytesMic = 0;
+		realLoop = 0;
+		realMic = 0;
+		overwriteCount = 0;
+		overwriteBytes = 0;
 		firstDataTick = 0;
 		dataCallbacks = 0;
 		padBytesTotal = 0;
@@ -119,7 +128,7 @@ sealed class AudioCapture : IDisposable {
 				$"fmt={fmtLoop} rate={fmtLoop.SampleRate} ch={fmtLoop.Channels} bits={fmtLoop.BitsPerSample} " +
 				$"bps={fmtLoop.AverageBytesPerSecond} queue={QueuePcm} path={pathLoop}");
 			if (!QueuePcm)
-				writerLoop = new WaveFileWriter(pathLoop, fmtLoop);
+				writerLoop = WavPlace.Create(pathLoop, fmtLoop);
 			loop.DataAvailable += (_, e) => ondata(0, ref bytesLoop, writerLoop, fmtLoop, e, "loop");
 			loop.RecordingStopped += (_, e) => {
 				if (e.Exception != null) {
@@ -143,7 +152,7 @@ sealed class AudioCapture : IDisposable {
 				RecordLog.Step("mic_open",
 					$"fmt={fmtMic} rate={fmtMic.SampleRate} ch={fmtMic.Channels} queue={QueuePcm} path={pathMic}");
 				if (!QueuePcm)
-					writerMic = new WaveFileWriter(pathMic, fmtMic);
+					writerMic = WavPlace.Create(pathMic, fmtMic);
 				mic.DataAvailable += (_, e) => ondata(1, ref bytesMic, writerMic, fmtMic, e, "mic");
 				mic.RecordingStopped += (_, e) => {
 					if (e.Exception != null) {
@@ -217,7 +226,7 @@ sealed class AudioCapture : IDisposable {
 			padto(1, ref bytesMic, writerMic, fmtMic, expectedbytes(fmtMic, ms));
 	}
 
-	void ondata(int src, ref long written, WaveFileWriter w, WaveFormat fmt, WaveInEventArgs e, string tag) {
+	void ondata(int src, ref long written, WavPlace w, WaveFormat fmt, WaveInEventArgs e, string tag) {
 		if (stop || paused || e.BytesRecorded <= 0) return;
 		if (!QueuePcm && w == null) return;
 		lock (gate) {
@@ -228,14 +237,19 @@ sealed class AudioCapture : IDisposable {
 						$"{tag} ms={FirstDataMs} bytes={e.BytesRecorded} fmt={fmt}");
 				}
 				dataCallbacks++;
-				// 先补静音缺口，再把本包接到时间轴末尾。
-				// 注意：若设备时钟略快于墙钟导致 written 超前，不裁剪样本；静音段墙钟会追上。
-				var want = expectedbytes(fmt, effectivems());
-				var before = want - e.BytesRecorded;
-				if (before < written) before = written;
-				padto(src, ref written, w, fmt, before);
-				writebytes(src, w, e.Buffer, e.BytesRecorded);
-				written += e.BytesRecorded;
+				if (QueuePcm) {
+					// 队列不支持改写，仍按到达顺序接在末尾。
+					var want = expectedbytes(fmt, effectivems());
+					var before = want - e.BytesRecorded;
+					if (before < written) before = written;
+					padto(src, ref written, w, fmt, before);
+					writebytes(src, w, e.Buffer, e.BytesRecorded);
+					written += e.BytesRecorded;
+				}
+				else if (src == 0)
+					placepacket(w, fmt, e.Buffer, e.BytesRecorded, ref written, ref realLoop);
+				else
+					placepacket(w, fmt, e.Buffer, e.BytesRecorded, ref written, ref realMic);
 				// 约 30s 一次音频进度（不每包刷）
 				var now = Compat.TickCount64;
 				if (now - lastBeatTick >= 30_000) {
@@ -245,6 +259,7 @@ sealed class AudioCapture : IDisposable {
 					RecordLog.Step("audio_beat",
 						$"{tag} wallMs={effectivems()} writtenMs={writtenMs} written={written} " +
 						$"callbacks={dataCallbacks} padTotal={padBytesTotal} " +
+						$"overwrite={overwriteCount}/{overwriteBytes} " +
 						$"loop={bytesLoop} mic={bytesMic}");
 				}
 			}
@@ -254,7 +269,55 @@ sealed class AudioCapture : IDisposable {
 		}
 	}
 
-	void padto(int src, ref long written, WaveFileWriter w, WaveFormat fmt, long target) {
+	/// <summary>
+	/// 把本包放到「结束于当前墙钟」的位置。
+	/// 离上一包真实采样不到约 250ms 时视为同一段连续声音，紧接写入，避免按墙钟垫出十几毫秒的裂缝。
+	/// 静音已经垫过、而这包又落在那段静音上时，改写静音。接到末尾会让声音整段偏晚。
+	/// </summary>
+	void placepacket(WavPlace w, WaveFormat fmt, byte[] buf, int count, ref long written, ref long realEnd) {
+		if (w == null || fmt == null || buf == null) return;
+		var align = Math.Max(1, fmt.BlockAlign);
+		if (count > buf.Length) count = buf.Length;
+		count -= count % align;
+		if (count <= 0) return;
+		var wall = expectedbytes(fmt, effectivems());
+		var start = wall - count;
+		if (start < 0) {
+			var skip = (int)(-start);
+			skip -= skip % align;
+			if (skip >= count) return;
+			var slice = new byte[count - skip];
+			Buffer.BlockCopy(buf, skip, slice, 0, slice.Length);
+			buf = slice;
+			count = slice.Length;
+			start = 0;
+		}
+		start -= start % align;
+		var hole = start - realEnd;
+		// realEnd 为 0 时还没有真实采样，不能把第一段声音粘到文件头。
+		var cont = realEnd > 0 && hole <= Math.Max(align * 4L, fmt.AverageBytesPerSecond / 4);
+		if (cont) {
+			w.WriteAt(realEnd, buf, 0, count);
+			realEnd += count;
+		}
+		else if (start > written) {
+			padBytesTotal += start - written;
+			w.PadTo(start);
+			w.WriteAt(start, buf, 0, count);
+			realEnd = start + count;
+		}
+		else {
+			if (start < written) {
+				overwriteCount++;
+				overwriteBytes += written - start;
+			}
+			w.WriteAt(start, buf, 0, count);
+			realEnd = start + count;
+		}
+		written = w.DataLength;
+	}
+
+	void padto(int src, ref long written, WavPlace w, WaveFormat fmt, long target) {
 		if (fmt == null) return;
 		if (!QueuePcm && w == null) return;
 		var align = Math.Max(1, fmt.BlockAlign);
@@ -262,6 +325,11 @@ sealed class AudioCapture : IDisposable {
 		var gap = target - written;
 		if (gap < align) return;
 		padBytesTotal += gap;
+		if (!QueuePcm) {
+			w.PadTo(target);
+			written = w.DataLength;
+			return;
+		}
 		var buf = new byte[SilenceChunk];
 		while (gap > 0) {
 			var n = (int)Math.Min(gap, buf.Length);
@@ -273,7 +341,7 @@ sealed class AudioCapture : IDisposable {
 		}
 	}
 
-	void writebytes(int src, WaveFileWriter w, byte[] buf, int count) {
+	void writebytes(int src, WavPlace w, byte[] buf, int count) {
 		if (count <= 0 || buf == null) return;
 		if (count > buf.Length) count = buf.Length;
 		if (QueuePcm) {
@@ -283,7 +351,44 @@ sealed class AudioCapture : IDisposable {
 			lock (qgate) q.Enqueue(copy);
 			return;
 		}
-		w.Write(buf, 0, count);
+		w.WriteAt(w.DataLength, buf, 0, count);
+	}
+
+	/// <summary>静音垫上后，迟到的整段采样必须盖住静音，不能接到末尾。</summary>
+	internal static string CheckWavPlace() {
+		var path = Path.Combine(Path.GetTempPath(), "sk_wavplace.wav");
+		try {
+			var fmt = WaveFormat.CreateIeeeFloatWaveFormat(8000, 1);
+			var bps = fmt.AverageBytesPerSecond;
+			var half = bps / 2;
+			half -= half % 4;
+			using (var w = WavPlace.Create(path, fmt)) {
+				w.PadTo(bps);
+				var tone = new byte[half];
+				for (var i = 0; i < tone.Length; i += 4) {
+					tone[i] = 0;
+					tone[i + 1] = 0;
+					tone[i + 2] = 0x80;
+					tone[i + 3] = 0x3F;
+				}
+				w.WriteAt(half, tone, 0, tone.Length);
+				if (w.DataLength != bps) return "长度 " + w.DataLength;
+			}
+			using (var r = new AudioFileReader(path)) {
+				var buf = new float[bps / 4];
+				var n = r.Read(buf, 0, buf.Length);
+				if (n < buf.Length / 2) return "读到 " + n;
+				if (Math.Abs(buf[1]) > 0.02f) return "头部应是静音 " + buf[1];
+				var at = half / 4 + 4;
+				if (at >= n) return "后半越界";
+				if (Math.Abs(buf[at] - 1f) > 0.02f) return "后半 " + buf[at];
+			}
+			return null;
+		}
+		catch (Exception ex) { return ex.Message; }
+		finally {
+			try { if (File.Exists(path)) File.Delete(path); } catch { }
+		}
 	}
 
 	public void Pause() {
@@ -310,7 +415,8 @@ sealed class AudioCapture : IDisposable {
 		stopped = true;
 		RecordLog.Step("AudioCapture.Stop",
 			$"ms={effectivems()} callbacks={dataCallbacks} firstDataMs={FirstDataMs} " +
-			$"loop={bytesLoop} mic={bytesMic} padTotal={padBytesTotal}");
+			$"loop={bytesLoop} mic={bytesMic} padTotal={padBytesTotal} " +
+			$"overwrite={overwriteCount}/{overwriteBytes}");
 		stop = true;
 		try { padThread?.Join(500); } catch { }
 		padThread = null;
@@ -325,15 +431,16 @@ sealed class AudioCapture : IDisposable {
 				padtowardwall(0);
 				CaptureLog.Info($"Audio pad stop ms={ms} loopBytes={bytesLoop} micBytes={bytesMic}");
 				RecordLog.Step("audio_pad_stop",
-					$"ms={ms} loopBytes={bytesLoop} micBytes={bytesMic} padTotal={padBytesTotal}");
+					$"ms={ms} loopBytes={bytesLoop} micBytes={bytesMic} padTotal={padBytesTotal} " +
+					$"real={realLoop}/{realMic} overwrite={overwriteCount}/{overwriteBytes}");
 			}
 			catch (Exception ex) {
 				CaptureLog.Ex("Audio pad stop", ex);
 				RecordLog.Ex("Audio pad stop", ex);
 			}
-			try { writerLoop?.Flush(); writerLoop?.Dispose(); } catch (Exception ex) { RecordLog.Ex("writerLoop.Dispose", ex); }
+			try { writerLoop?.Dispose(); } catch (Exception ex) { RecordLog.Ex("writerLoop.Dispose", ex); }
 			writerLoop = null;
-			try { writerMic?.Flush(); writerMic?.Dispose(); } catch (Exception ex) { RecordLog.Ex("writerMic.Dispose", ex); }
+			try { writerMic?.Dispose(); } catch (Exception ex) { RecordLog.Ex("writerMic.Dispose", ex); }
 			writerMic = null;
 		}
 		try { loop?.Dispose(); } catch { }
@@ -473,6 +580,76 @@ sealed class AudioCapture : IDisposable {
 		if (disposed) return;
 		disposed = true;
 		try { Stop(); } catch { }
+	}
+}
+
+/// <summary>可按采样位置改写的 WAV。补过的静音之后还能被真实采样盖住。</summary>
+sealed class WavPlace : IDisposable {
+	FileStream fs;
+	long headerLen;
+	long dataLen;
+	bool closed;
+
+	public long DataLength => dataLen;
+
+	public static WavPlace Create(string path, WaveFormat fmt) {
+		var dir = Path.GetDirectoryName(path);
+		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+		var w = new WavPlace();
+		w.fs = new FileStream(path, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+		using (var ms = new MemoryStream())
+		using (var bw = new BinaryWriter(ms)) {
+			fmt.Serialize(bw);
+			var fmtBytes = ms.ToArray();
+			w.fs.Write(Encoding.ASCII.GetBytes("RIFF"), 0, 4);
+			w.fs.Write(BitConverter.GetBytes(0), 0, 4);
+			w.fs.Write(Encoding.ASCII.GetBytes("WAVE"), 0, 4);
+			// Serialize 只写 fmt 块大小和内容，不含 "fmt " 标记
+			w.fs.Write(Encoding.ASCII.GetBytes("fmt "), 0, 4);
+			w.fs.Write(fmtBytes, 0, fmtBytes.Length);
+			w.fs.Write(Encoding.ASCII.GetBytes("data"), 0, 4);
+			w.fs.Write(BitConverter.GetBytes(0), 0, 4);
+			w.headerLen = w.fs.Length;
+		}
+		w.patch();
+		return w;
+	}
+
+	public void PadTo(long offset) {
+		if (closed || offset <= dataLen) return;
+		fs.SetLength(headerLen + offset);
+		dataLen = offset;
+		patch();
+	}
+
+	public void WriteAt(long offset, byte[] buf, int index, int count) {
+		if (closed || buf == null || count <= 0 || offset < 0) return;
+		var end = offset + count;
+		if (end > dataLen) {
+			fs.SetLength(headerLen + end);
+			dataLen = end;
+		}
+		fs.Position = headerLen + offset;
+		fs.Write(buf, index, count);
+		patch();
+	}
+
+	public void Dispose() {
+		if (closed) return;
+		closed = true;
+		try { patch(); } catch { }
+		try { fs?.Dispose(); } catch { }
+		fs = null;
+	}
+
+	void patch() {
+		if (fs == null) return;
+		var end = headerLen + dataLen;
+		if (fs.Length < end) fs.SetLength(end);
+		fs.Position = 4;
+		fs.Write(BitConverter.GetBytes((int)(end - 8)), 0, 4);
+		fs.Position = headerLen - 4;
+		fs.Write(BitConverter.GetBytes((int)dataLen), 0, 4);
 	}
 }
 

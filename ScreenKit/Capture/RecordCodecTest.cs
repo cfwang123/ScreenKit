@@ -26,6 +26,12 @@ static class RecordCodecTest {
 		log($"seconds={seconds} repeat={repeat} out={outDir}");
 
 		var bad = 0;
+		var place = AudioCapture.CheckWavPlace();
+		if (place != null) {
+			log("FAIL wav place: " + place);
+			bad++;
+		}
+		else log("wav place OK");
 		if (!clampkeeps(want, log))
 			bad++;
 		if (!shortsideok(log))
