@@ -48,6 +48,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
+| **Dictionary** | **Options → Dictionary** (`Ctrl+Alt+D`, press again to hide). Looks up Chinese, English, Japanese, and Korean in `dict.db` beside the program. **Speak** uses an installed Windows voice for the headword. **Read Chinese** speaks the gloss. The database is not in the release archive. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -129,13 +130,14 @@ Android details: [android/README.md](android/README.md).
 | `Ctrl+Alt+V` | Voice input (press again to stop) |
 | `Ctrl+Alt+B` | Live caption |
 | `Ctrl+Alt+T` | Translate popup |
+| `Ctrl+Alt+D` | Dictionary window (press again to hide) |
 | `Ctrl+Alt+P` | Cycle on-capture copy (image → file → path) |
 
 Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles the window; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray. Switching the copy mode from the menu, tray, or `Ctrl+Alt+P` recopies the last screenshot and shows a toast at the bottom center of the screen. After a region is selected, the annotate bar shows the copy mode as a combo (for example “Copy as image p”). Choosing an item finishes the shot with that mode and remembers it. `P` on the bar cycles image / file / path and does not finish.
 
 ### UI language
 
-**Options → Language** → Chinese / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, and the translate popup.
+**Options → Language** → Chinese / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, the translate popup, and the dictionary window.
 
 ## Install features
 
@@ -200,6 +202,7 @@ hotkey = "Ctrl+Alt+O"           # show / hide main window
 hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
 hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
 # hotkey_translate = "Ctrl+Alt+T" # translate popup show/hide
+# hotkey_dict = "Ctrl+Alt+D"      # dictionary window show/hide
 # hotkey_snap_copy = "Ctrl+Alt+P" # cycle copy as image / file / path
 minimize_to_tray = true
 capture_log = false             # true → log/capture.log (DPI + save timings)
@@ -340,6 +343,7 @@ ScreenKit --test-texttool
 ScreenKit --test-pwgen
 ScreenKit --test-nettool
 ScreenKit --test-wintop           # list windows; pin/unpin a probe HWND
+ScreenKit --test-dict-search      # read-only lookup in dict.db beside the exe
 ScreenKit --test-sendfile          # sendfile sandbox + web login / public download
 ScreenKit --test-face-overlay
 ScreenKit --list-models
@@ -416,7 +420,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
+- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, or `dict.db`. Place `dict.db` beside the executable yourself. The Windows SQLite library `e_sqlite3.dll` is included.
 - End users install those via **Install features**. Local Opus-MT ONNX is placed under `translatemodels/` by hand if needed.
 
 For local development with models already present, run **`bin\Release\net48\`**.

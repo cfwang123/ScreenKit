@@ -262,6 +262,19 @@
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.snapcopy"/>
 						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintDict" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="词典窗口 · 呼出/隐藏，默认 Ctrl+Alt+D；留空禁用"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkdictclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkdictcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeydict" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.dict"/>
+						</DockPanel>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

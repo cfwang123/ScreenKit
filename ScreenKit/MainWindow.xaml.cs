@@ -69,7 +69,9 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyLive;   // 系统实时字幕
 	GlobalHotkey hotkeyTr;     // 翻译小窗
 	GlobalHotkey hotkeySnapCopy; // 切换截图复制方式
+	GlobalHotkey hotkeyDict;  // 词典
 	TranslatePopupWindow trPopup;
+	DictWindow dictWin;
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
 	ImgConvertWindow imgConvWin;
@@ -768,6 +770,17 @@ public partial class MainWindow : Window {
 					try { setstatus(ex.Message); } catch { }
 				}
 			}));
+			hotkeyDict = new GlobalHotkey(this, 0x7009);
+			hotkeyDict.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try {
+					CaptureLog.Info("hotkeyDict Fired");
+					toggledictwindow();
+				}
+				catch (Exception ex) {
+					CaptureLog.Ex("hotkeyDict Fired", ex);
+					try { setstatus(Loc.T("st.dict_hk_fail", ex.Message)); } catch { }
+				}
+			}));
 			// 句柄就绪后再注册
 			SourceInitialized += (_, _) => registerhotkey();
 			Loaded += (_, _) => {
@@ -779,7 +792,8 @@ public partial class MainWindow : Window {
 					|| (hotkeyVoice != null && !string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput) && !hotkeyVoice.IsRegistered)
 					|| (hotkeyLive != null && !string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption) && !hotkeyLive.IsRegistered)
 					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered)
-					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered);
+					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered)
+					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered);
 				if (need)
 					registerhotkey();
 			};
@@ -824,6 +838,10 @@ public partial class MainWindow : Window {
 			hotkeySnapCopy.Attach();
 			if (!hotkeySnapCopy.Register(opt.HotkeySnapCopy)) errs.Add(hotkeySnapCopy.LastError);
 		}
+		if (hotkeyDict != null) {
+			hotkeyDict.Attach();
+			if (!hotkeyDict.Register(opt.HotkeyDict)) errs.Add(hotkeyDict.LastError);
+		}
 		if (errs.Count > 0) {
 			var msg = string.Join(" · ", errs);
 			setstatus(msg);
@@ -838,7 +856,8 @@ public partial class MainWindow : Window {
 				fmt(hotkeySnapOcr?.CurrentHotkey),
 				fmt(hotkeyVoice?.CurrentHotkey),
 				fmt(hotkeyLive?.CurrentHotkey),
-				fmt(hotkeyTr?.CurrentHotkey)));
+				fmt(hotkeyTr?.CurrentHotkey),
+				fmt(hotkeyDict?.CurrentHotkey)));
 			try {
 				CaptureLog.Info("registerhotkey ok voice=" + (hotkeyVoice?.CurrentHotkey ?? "")
 					+ " live=" + (hotkeyLive?.CurrentHotkey ?? "")
@@ -905,7 +924,9 @@ public partial class MainWindow : Window {
 		try { hotkeyVoice?.Dispose(); } catch { }
 		try { hotkeyLive?.Dispose(); } catch { }
 		try { hotkeyTr?.Dispose(); } catch { }
+		try { hotkeyDict?.Dispose(); } catch { }
 		try { trPopup?.ForceClose(); } catch { }
+		try { dictWin?.ForceClose(); } catch { }
 		try { tray?.Dispose(); } catch { }
 		// 不在此 Dispose runner/ORT
 		try { Environment.Exit(0); } catch { }
@@ -1254,6 +1275,7 @@ public partial class MainWindow : Window {
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
+		mndict.Click += (_, _) => toggledictwindow();
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
 		mnlangzh.Click += (_, _) => setlang("zh");
@@ -1369,6 +1391,8 @@ public partial class MainWindow : Window {
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
+			mndict.Header = Loc.T("menu.dict");
+			mndict.ToolTip = Loc.T("menu.dict.tip");
 			mninstall.Header = Loc.T("menu.install");
 			mninstall.ToolTip = Loc.T("menu.install.tip");
 			mndiag.Header = Loc.T("menu.diag");
@@ -1465,6 +1489,7 @@ public partial class MainWindow : Window {
 			try { applyasrlang(); } catch { }
 			try { applytrlang(); } catch { }
 			try { trPopup?.ApplyLang(); } catch { }
+			try { dictWin?.ApplyLang(); } catch { }
 			try { applyfacelang(); } catch { }
 			try { tray?.ApplyLang(); } catch { }
 		}
@@ -1487,11 +1512,13 @@ public partial class MainWindow : Window {
 			var voice = fmttrayhk(opt.HotkeyVoiceInput);
 			var tr = fmttrayhk(opt.HotkeyTranslate);
 			var copy = fmttrayhk(opt.HotkeySnapCopy);
+			var dict = fmttrayhk(opt.HotkeyDict);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
 			mntrpopup.InputGestureText = tr;
+			mndict.InputGestureText = dict;
 			if (mnsnapcopyimg != null) mnsnapcopyimg.InputGestureText = copy;
 			if (mnsnapcopyfile != null) mnsnapcopyfile.InputGestureText = copy;
 			if (mnsnapcopypath != null) mnsnapcopypath.InputGestureText = copy;
@@ -3270,7 +3297,8 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyVoiceInput, opt.HotkeyVoiceInput, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyLiveCaption, opt.HotkeyLiveCaption, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase))
+			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase))
 			registerhotkey();
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
@@ -3699,6 +3727,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey live caption: {opt.HotkeyLiveCaption}");
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
 		sb.AppendLine($"Hotkey snap copy: {opt.HotkeySnapCopy}");
+		sb.AppendLine($"Hotkey dictionary: {opt.HotkeyDict}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off")}");
 		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{SendFileServer.FileHttpPort(opt)}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");

@@ -185,6 +185,18 @@ public partial class MainWindow {
 		trPopup.ShowFromHotkey();
 	}
 
+	void toggledictwindow() {
+		if (dictWin == null) {
+			dictWin = new DictWindow();
+			dictWin.Closed += (_, _) => dictWin = null;
+		}
+		if (dictWin.IsVisible) {
+			dictWin.Hide();
+			return;
+		}
+		dictWin.ShowFromHotkey();
+	}
+
 	void filltrengine() {
 		trUiLoading = true;
 		try {

@@ -42,6 +42,7 @@ static class Cli {
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-wintop"
+				or "--test-dict-search"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -243,6 +244,10 @@ static class Cli {
 					return testnettool();
 				case "--test-wintop":
 					return testwintop();
+				case "--test-dict-search":
+					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
+						return testdict(Next());
+					return testdict(null);
 				case "--test-cast":
 					return testcast();
 				case "--test-cast-recv":
@@ -3054,6 +3059,48 @@ static class Cli {
 		return 0;
 	}
 
+	static int testdict(string one) {
+		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict.db");
+		if (!DictDb.Init(path)) {
+			Out(DictDb.Error == "missing" ? "dict.db not found beside exe" : ("dict open fail: " + DictDb.Error));
+			return 2;
+		}
+		long len;
+		using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+			len = fs.Length;
+		var ticks = File.GetLastWriteTimeUtc(path).Ticks;
+		string[] qs = string.IsNullOrWhiteSpace(one) ? new[] { "学生", "hello" } : new[] { one };
+		foreach (var q in qs) {
+			var hits = DictDb.Search(q, "", 12);
+			Out("q=" + q + " n=" + hits.Count);
+			var shown = 0;
+			foreach (var h in hits) {
+				Out("  " + h.Dict + " " + h.Headword + " | " + h.Preview);
+				if (++shown >= 5) break;
+			}
+			if (hits.Count == 0) {
+				Out("no hits");
+				return 3;
+			}
+			var top = hits[0];
+			var entry = DictDb.Get(top.Id);
+			if (entry == null) {
+				Out("get miss id=" + top.Id);
+				return 4;
+			}
+			Out("  detail " + entry.Word + " zh=" + (entry.ZhSpeak().Length > 0 ? "yes" : "no"));
+		}
+		long len2;
+		using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+			len2 = fs.Length;
+		if (len2 != len || File.GetLastWriteTimeUtc(path).Ticks != ticks) {
+			Out("dict.db changed");
+			return 5;
+		}
+		Out("dict ok readonly bytes=" + len);
+		return 0;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -3079,6 +3126,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-wintop
+  ScreenKit --test-dict-search
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
@@ -3140,6 +3188,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
+      --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
@@ -3202,6 +3251,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-wintop
+  ScreenKit --test-dict-search
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue

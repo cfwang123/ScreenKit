@@ -74,7 +74,8 @@ function main() {
 	// 排除本机配置与日志（可能含 API key / 路径）
 	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}" ` +
 		`"-x!${slimName}\\log" "-x!${slimName}\\log\\*" ` +
-		`"-x!${slimName}\\config.toml" "-x!${slimName}\\cli_last.log" "-x!${slimName}\\*.log"`;
+		`"-x!${slimName}\\config.toml" "-x!${slimName}\\cli_last.log" "-x!${slimName}\\*.log" ` +
+		`"-x!${slimName}\\dict.db" "-x!${slimName}\\dict.db-wal" "-x!${slimName}\\dict.db-shm"`;
 	console.log(`> ${cmd}`);
 	execSync(cmd, { cwd: slimParent, stdio: 'inherit', shell: true });
 

@@ -103,6 +103,9 @@
     <!-- DXGI 抓屏：3.x 仅 net8，改用 2.4.2 netstandard2.0 -->
     <PackageReference Include="Vortice.Direct3D11" Version="2.4.2" />
     <PackageReference Include="Vortice.DXGI" Version="2.4.2" />
+    <!-- 词典只读 dict.db。8.0 支持 net48；勿用 10.0 -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.10" />
   </ItemGroup>
 
   <!--
@@ -252,6 +255,8 @@
     </ItemGroup>
     <Delete Files="@(_SlimJunk)" TreatErrorsAsWarnings="true" Condition="'@(_SlimJunk)' != ''" />
     <Delete Files="$(OutputPath)WpfOCR.exe;$(OutputPath)WpfOCR.exe.config" TreatErrorsAsWarnings="true" />
+    <!-- 词典库只放开发输出旁，不进精简包 -->
+    <Delete Files="$(_SlimOut)\dict.db;$(_SlimOut)\dict.db-wal;$(_SlimOut)\dict.db-shm" TreatErrorsAsWarnings="true" />
     <RemoveDir Directories="$(_SlimOutLegacy)" ContinueOnError="true" />
     <Message Importance="high" Text="Slim release package: $(_SlimOut)" />
   </Target>
@@ -271,6 +276,17 @@
     <Copy SourceFiles="$(_X86HostCfg)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" Condition="Exists('$(_X86HostCfg)')" />
     <Message Importance="high" Text="x86host.exe copied to slim package (SAPI 32-bit web)" Condition="Exists('$(_X86HostOut)')" />
     <Warning Text="未生成 x86host.exe。请: dotnet build x86host/x86host.csproj -c Release" Condition="!Exists('$(_X86HostOut)')" />
+  </Target>
+
+  <!-- 本机若已有词典库，链到开发输出。其它机器没有该文件则跳过。失败不让编译失败。不链进精简包。 -->
+  <Target Name="LinkDictDb" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <_DictSrc>F:\VS_Projects\dictionary\db\dict.db</_DictSrc>
+      <_DictDst>$(OutputPath)dict.db</_DictDst>
+    </PropertyGroup>
+    <Exec Command="mklink &quot;$(_DictDst)&quot; &quot;$(_DictSrc)&quot;"
+          Condition="Exists('$(_DictSrc)') And !Exists('$(_DictDst)')"
+          ContinueOnError="true" />
   </Target>
 
 </Project>

@@ -48,6 +48,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **ASR / TTS** | 实时字幕可选离线或流式。Sherpa / SAPI / WinRT 离线合成及 Edge 在线自然语音。 |
 | **LLM对话** | 微信式气泡、清空、麦克风、朗读/自动朗读，可选网页与 `tmp/llm/` 工具。 |
 | **翻译** | 本地 Opus-MT ONNX 或已配置的 **LLM**；来回翻译最多 20 次，结果重复时提前停止；小窗 `Ctrl+Alt+T`。 |
+| **词典** | **选项 → 词典**（`Ctrl+Alt+D`，再按一次隐藏）。用程序旁的 `dict.db` 查中文、英语、日语、韩语。**发音** 用已安装的 Windows 语音读词头，**读中文** 朗读释义。词典库不在发布包里。 |
 | **人脸识别** | InsightFace ONNX 检测/比对，可选关键点与性别年龄。模型在 `facemodels/`。 |
 | **SAPI x86 助手** | 旁路 `x86host.exe`，调用仅 32 位可见的经典发音人。 |
 
@@ -129,13 +130,14 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | `Ctrl+Alt+V` | 语音输入（再按结束） |
 | `Ctrl+Alt+B` | 实时字幕 |
 | `Ctrl+Alt+T` | 翻译小窗呼出 / 隐藏 |
+| `Ctrl+Alt+D` | 词典窗口呼出 / 隐藏 |
 | `Ctrl+Alt+P` | 切换截图复制方式（图片 → 文件 → 路径） |
 
 热键字符串留空表示禁用。托盘：左键单击切换窗口；右键含语音输入、翻译小窗、从剪贴板识别、截图完成复制方式、退出。关闭主窗口通常**隐藏到托盘**。在菜单、托盘或按 `Ctrl+Alt+P` 切换三种截图复制方式时，会立刻用新方式把**上次截图**再写入剪贴板，并在屏幕底部中央弹出提示。框选进入标注后，操作条上的复制方式显示为组合框（如「复制为图片 p」）。点开并选一项会立刻按该方式完成并记住；在标注条上按 `P` 只在图片 / 文件 / 路径之间切换，不结束本次截图。
 
 ### 界面语言
 
-菜单 **选项 → 界面语言** 切换 **中文 / English**，或在 **参数设置 → 常规** 选择（`ui_lang = "zh"` / `"en"`）。已覆盖菜单、参数设置、OCR 工具栏模型/语言显示名（`ocr-display.json` 的 `name` / `nameEn`）、翻译、人脸、翻译小窗等。
+菜单 **选项 → 界面语言** 切换 **中文 / English**，或在 **参数设置 → 常规** 选择（`ui_lang = "zh"` / `"en"`）。已覆盖菜单、参数设置、OCR 工具栏模型/语言显示名（`ocr-display.json` 的 `name` / `nameEn`）、翻译、人脸、翻译小窗、词典窗口等。
 
 ## 安装功能
 
@@ -200,6 +202,7 @@ hotkey = "Ctrl+Alt+O"
 hotkey_snap = "Ctrl+Alt+Q"
 hotkey_snap_ocr = "Ctrl+Alt+W"
 # hotkey_snap_copy = "Ctrl+Alt+P"  # 切换截图复制：图片 / 文件 / 路径
+# hotkey_dict = "Ctrl+Alt+D"        # 词典窗口呼出 / 隐藏
 minimize_to_tray = true
 capture_log = false
 ui_lang = "zh"
@@ -331,6 +334,7 @@ ScreenKit --test-texttool
 ScreenKit --test-pwgen
 ScreenKit --test-nettool
 ScreenKit --test-wintop           # 枚举窗口，并对探测窗设置/取消固定在前面
+ScreenKit --test-dict-search      # 只读查询程序旁的 dict.db
 ScreenKit --test-sendfile          # sendfile 沙箱 + 网页登录 / 公开下载
 ScreenKit --test-face-overlay
 ScreenKit --list-models
@@ -407,7 +411,7 @@ dotnet build -c Release
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
 - **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`。
+- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict.db`。词典库请自行放在程序旁边。Windows SQLite 库 `e_sqlite3.dll` 会打进包。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 
 本机开发且已有模型时，请继续用 **`bin\Release\net48\`**。
