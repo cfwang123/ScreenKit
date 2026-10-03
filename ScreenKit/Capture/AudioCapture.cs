@@ -48,6 +48,9 @@ sealed class AudioCapture : IDisposable {
 	long lastBeatTick;
 	long padBytesTotal;
 	Thread padThread;
+	readonly object qgate = new();
+	readonly Queue<byte[]> qloop = new();
+	readonly Queue<byte[]> qmic = new();
 
 	public string WavPath => wavPath;
 	public int OutRate => outRate;
@@ -59,9 +62,25 @@ sealed class AudioCapture : IDisposable {
 	/// <summary>
 	/// 为 true 时单路（扬声器/麦克风）停录不二次重采样规范化。
 	/// 长录屏可显著缩短结束时间；采样率/声道由后续合成阶段处理。
-	/// 麦+扬混音仍会规范化。
+	/// 麦+扬混音仍会规范化。系统 H.264 用 <see cref="QueuePcm"/>，不写 WAV。
 	/// </summary>
 	public bool SkipNormalize { get; set; }
+	/// <summary>
+	/// 为 true 时不写 WAV。设备字节（含墙钟静音）进入队列，由录制线程拉走。
+	/// </summary>
+	public bool QueuePcm { get; set; }
+	public WaveFormat LoopFormat => fmtLoop;
+	public WaveFormat MicFormat => fmtMic;
+
+	/// <summary>取出一路排队的设备字节。0 为扬声器环回，1 为麦克风。</summary>
+	public bool TryTake(int source, out byte[] data) {
+		var q = source == 0 ? qloop : qmic;
+		lock (qgate) {
+			if (q.Count == 0) { data = null; return false; }
+			data = q.Dequeue();
+			return true;
+		}
+	}
 	/// <summary>首包音频相对开始的毫秒；-1 表示从未收到。</summary>
 	public long FirstDataMs =>
 		firstDataTick == 0 || startTick == 0 ? -1 : Math.Max(0, firstDataTick - startTick);
@@ -98,9 +117,10 @@ sealed class AudioCapture : IDisposable {
 			CaptureLog.Info($"Loopback format={fmtLoop}");
 			RecordLog.Step("loopback_open",
 				$"fmt={fmtLoop} rate={fmtLoop.SampleRate} ch={fmtLoop.Channels} bits={fmtLoop.BitsPerSample} " +
-				$"bps={fmtLoop.AverageBytesPerSecond} path={pathLoop}");
-			writerLoop = new WaveFileWriter(pathLoop, fmtLoop);
-			loop.DataAvailable += (_, e) => ondata(ref bytesLoop, writerLoop, fmtLoop, e, "loop");
+				$"bps={fmtLoop.AverageBytesPerSecond} queue={QueuePcm} path={pathLoop}");
+			if (!QueuePcm)
+				writerLoop = new WaveFileWriter(pathLoop, fmtLoop);
+			loop.DataAvailable += (_, e) => ondata(0, ref bytesLoop, writerLoop, fmtLoop, e, "loop");
 			loop.RecordingStopped += (_, e) => {
 				if (e.Exception != null) {
 					CaptureLog.Ex("Loopback", e.Exception);
@@ -121,9 +141,10 @@ sealed class AudioCapture : IDisposable {
 				mic = new WasapiCapture();
 				fmtMic = mic.WaveFormat;
 				RecordLog.Step("mic_open",
-					$"fmt={fmtMic} rate={fmtMic.SampleRate} ch={fmtMic.Channels} path={pathMic}");
-				writerMic = new WaveFileWriter(pathMic, fmtMic);
-				mic.DataAvailable += (_, e) => ondata(ref bytesMic, writerMic, fmtMic, e, "mic");
+					$"fmt={fmtMic} rate={fmtMic.SampleRate} ch={fmtMic.Channels} queue={QueuePcm} path={pathMic}");
+				if (!QueuePcm)
+					writerMic = new WaveFileWriter(pathMic, fmtMic);
+				mic.DataAvailable += (_, e) => ondata(1, ref bytesMic, writerMic, fmtMic, e, "mic");
 				mic.RecordingStopped += (_, e) => {
 					if (e.Exception != null) {
 						CaptureLog.Ex("Mic", e.Exception);
@@ -190,14 +211,15 @@ sealed class AudioCapture : IDisposable {
 	/// <summary>若已写时长落后墙钟，补静音到 wall-slack（不缩短已写内容）。</summary>
 	void padtowardwall(int slackMs) {
 		var ms = Math.Max(0, effectivems() - Math.Max(0, slackMs));
-		if (writerLoop != null && fmtLoop != null)
-			padto(ref bytesLoop, writerLoop, fmtLoop, expectedbytes(fmtLoop, ms));
-		if (writerMic != null && fmtMic != null)
-			padto(ref bytesMic, writerMic, fmtMic, expectedbytes(fmtMic, ms));
+		if (fmtLoop != null && (QueuePcm || writerLoop != null))
+			padto(0, ref bytesLoop, writerLoop, fmtLoop, expectedbytes(fmtLoop, ms));
+		if (fmtMic != null && (QueuePcm || writerMic != null))
+			padto(1, ref bytesMic, writerMic, fmtMic, expectedbytes(fmtMic, ms));
 	}
 
-	void ondata(ref long written, WaveFileWriter w, WaveFormat fmt, WaveInEventArgs e, string tag) {
-		if (stop || paused || w == null || e.BytesRecorded <= 0) return;
+	void ondata(int src, ref long written, WaveFileWriter w, WaveFormat fmt, WaveInEventArgs e, string tag) {
+		if (stop || paused || e.BytesRecorded <= 0) return;
+		if (!QueuePcm && w == null) return;
 		lock (gate) {
 			try {
 				if (firstDataTick == 0) {
@@ -211,8 +233,8 @@ sealed class AudioCapture : IDisposable {
 				var want = expectedbytes(fmt, effectivems());
 				var before = want - e.BytesRecorded;
 				if (before < written) before = written;
-				padto(ref written, w, fmt, before);
-				w.Write(e.Buffer, 0, e.BytesRecorded);
+				padto(src, ref written, w, fmt, before);
+				writebytes(src, w, e.Buffer, e.BytesRecorded);
 				written += e.BytesRecorded;
 				// 约 30s 一次音频进度（不每包刷）
 				var now = Compat.TickCount64;
@@ -232,25 +254,36 @@ sealed class AudioCapture : IDisposable {
 		}
 	}
 
-	void padto(ref long written, WaveFileWriter w, WaveFormat fmt, long target) {
-		if (w == null || fmt == null) return;
+	void padto(int src, ref long written, WaveFileWriter w, WaveFormat fmt, long target) {
+		if (fmt == null) return;
+		if (!QueuePcm && w == null) return;
 		var align = Math.Max(1, fmt.BlockAlign);
 		target -= target % align;
 		var gap = target - written;
 		if (gap < align) return;
 		padBytesTotal += gap;
-		writesilence(ref written, w, gap);
+		var buf = new byte[SilenceChunk];
+		while (gap > 0) {
+			var n = (int)Math.Min(gap, buf.Length);
+			n -= n % align;
+			if (n <= 0) break;
+			writebytes(src, w, buf, n);
+			written += n;
+			gap -= n;
+		}
 	}
 
-	static void writesilence(ref long written, WaveFileWriter w, long bytes) {
-		if (bytes <= 0) return;
-		var buf = new byte[SilenceChunk];
-		while (bytes > 0) {
-			var n = (int)Math.Min(bytes, SilenceChunk);
-			w.Write(buf, 0, n);
-			written += n;
-			bytes -= n;
+	void writebytes(int src, WaveFileWriter w, byte[] buf, int count) {
+		if (count <= 0 || buf == null) return;
+		if (count > buf.Length) count = buf.Length;
+		if (QueuePcm) {
+			var copy = new byte[count];
+			Buffer.BlockCopy(buf, 0, copy, 0, count);
+			var q = src == 0 ? qloop : qmic;
+			lock (qgate) q.Enqueue(copy);
+			return;
 		}
+		w.Write(buf, 0, count);
 	}
 
 	public void Pause() {
@@ -308,6 +341,10 @@ sealed class AudioCapture : IDisposable {
 		try { mic?.Dispose(); } catch { }
 		mic = null;
 
+		if (QueuePcm) {
+			RecordLog.Step("audio_finalize_end", "queue only");
+			return;
+		}
 		// 混合或规范化到目标 wavPath
 		try {
 			RecordLog.Step("audio_finalize_begin",

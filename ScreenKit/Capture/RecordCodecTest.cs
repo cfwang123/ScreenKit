@@ -53,6 +53,8 @@ static class RecordCodecTest {
 			if (!onerun(want, region, seconds, outDir, i, log))
 				bad++;
 		}
+		if (want == "mf" && !liveaac(region, outDir, log))
+			bad++;
 
 		RecordLog.End(bad == 0 ? "ok" : "fail");
 		if (bad == 0)
@@ -152,8 +154,6 @@ static class RecordCodecTest {
 				log("FAIL 文件过小");
 				return false;
 			}
-			if (want == "mf" && !muxaac(dest, outDir, log))
-				return false;
 			return true;
 		}
 		catch (Exception ex) {
@@ -167,72 +167,122 @@ static class RecordCodecTest {
 		}
 	}
 
-	static bool muxaac(string video, string outDir, Action<string> log) {
-		var wav = Path.Combine(outDir, "mux_22050.wav");
-		var dst = Path.Combine(outDir, "mux_aac.mp4");
+	/// <summary>系统 H.264 在录制时写入 AAC，不再于结束时合成第二份文件。</summary>
+	static bool liveaac(System.Drawing.Rectangle region, string outDir, Action<string> log) {
+		if (MfH264Writer.AacHz(22050) != 44100 || MfH264Writer.AacHz(44100) != 44100
+			|| MfH264Writer.AacHz(8000) != 44100 || MfH264Writer.AacHz(48000) != 48000
+			|| MfH264Writer.AacHz(50000) != 48000) {
+			log("FAIL AacHz");
+			return false;
+		}
+		var direct = Path.Combine(outDir, "live_aac.mp4");
+		try { if (File.Exists(direct)) File.Delete(direct); } catch { }
+		Exception writeEx = null;
+		var th = new Thread(() => {
+			try {
+				var opt = new RecordOptions {
+					Codec = "mf", Fps = 10, AudioHz = 22050, AudioMono = true, AudioKbps = 96,
+				};
+				opt.Clamp();
+				using var w = new MfH264Writer(direct, 320, 180, opt, true);
+				if (w.AudioRate != 44100)
+					throw new InvalidOperationException("AudioRate=" + w.AudioRate);
+				var frame = new byte[320 * 180 * 4];
+				var stride = 320 * 4;
+				for (var i = 0; i < 4; i++)
+					w.WriteBgra(frame, stride, i);
+				var bytes = w.AudioRate / 5 * w.AudioChannels * 2;
+				w.WritePcm(new byte[bytes], bytes);
+				if (!w.WroteAudio)
+					throw new InvalidOperationException("没有写入 PCM");
+			}
+			catch (Exception ex) { writeEx = ex; }
+		});
+		th.IsBackground = true;
+		th.SetApartmentState(ApartmentState.MTA);
+		th.Start();
+		if (!th.Join(20000)) {
+			log("FAIL 直接写入 AAC 超时");
+			return false;
+		}
+		if (writeEx != null) {
+			log("FAIL 直接写入 AAC: " + writeEx.Message);
+			RecordLog.Ex("liveaac.write", writeEx);
+			return false;
+		}
+		if (!hasaac(direct, log, "live writer")) return false;
+
+		ScreenRecorder rec = null;
+		string copied = null;
 		try {
-			writewav(wav, 22050, 1, 500);
-			Exception muxEx = null;
-			var th = new Thread(() => {
-				try { MfH264Writer.MuxAac(video, wav, dst, 96, 22050, true); }
-				catch (Exception ex) { muxEx = ex; }
-			});
-			th.IsBackground = true;
-			th.SetApartmentState(ApartmentState.MTA);
-			th.Start();
-			if (!th.Join(20000)) {
-				log("FAIL 合成超时");
+			var opt = new RecordOptions {
+				Codec = "mf", Fps = 10, AudioHz = 22050, AudioMono = false, AudioKbps = 96, AudioEnabled = true,
+			};
+			opt.Clamp();
+			rec = new ScreenRecorder(region, RecordAudioMode.Speakers, opt);
+			rec.Start();
+			log($"live backend={rec.Backend}");
+			if (rec.Backend == null || rec.Backend.IndexOf("44100", StringComparison.Ordinal) < 0) {
+				log("FAIL 录制采样率未改成 44100: " + rec.Backend);
 				return false;
 			}
-			if (muxEx != null) throw muxEx;
-			var n = (int)Math.Min(new FileInfo(dst).Length, 256 * 1024);
-			var buf = new byte[n];
-			using (var fs = File.OpenRead(dst))
-				fs.Read(buf, 0, n);
-			var s = System.Text.Encoding.ASCII.GetString(buf);
-			var ok = s.Contains("mp4a") || s.Contains("aac ");
-			log(ok
-				? $"mux aac OK bytes={new FileInfo(dst).Length}（22050 重采样到 44100）"
-				: "FAIL 合成后没有 AAC 音轨");
-			return ok;
+			Thread.Sleep(1000);
+			rec.Stop();
+			rec.WaitFinalize(15000);
+			if (!string.IsNullOrEmpty(rec.AudioError)) {
+				log("FAIL 录屏声音: " + rec.AudioError);
+				return false;
+			}
+			if (!rec.HasAudio) {
+				log("FAIL 录屏没有写入声音");
+				return false;
+			}
+			var src = rec.TempPath ?? "";
+			if (src.IndexOf("_av", StringComparison.OrdinalIgnoreCase) >= 0) {
+				log("FAIL 仍生成了合成文件 " + src);
+				return false;
+			}
+			copied = Path.Combine(outDir, "live_spk_" + DateTime.Now.ToString("HHmmss") + ".mp4");
+			File.Copy(src, copied, true);
+			if (!hasaac(copied, log, "live speakers")) return false;
+			log("live aac OK（录制时 44100，无第二次合成）");
+			return true;
 		}
 		catch (Exception ex) {
-			log("FAIL mux aac: " + ex.Message);
-			RecordLog.Ex("MuxAac", ex);
+			log("FAIL live speakers: " + ex.Message);
+			RecordLog.Ex("liveaac.speakers", ex);
 			return false;
 		}
 		finally {
-			try { File.Delete(wav); } catch { }
+			try { rec?.DiscardTemps(); } catch { }
+			try { rec?.Dispose(); } catch { }
 		}
 	}
 
-	static void writewav(string path, int hz, int ch, int ms) {
-		var frames = hz * ms / 1000;
-		var data = frames * ch * 2;
-		using var fs = File.Create(path);
-		void u32(int v) {
-			fs.WriteByte((byte)v);
-			fs.WriteByte((byte)(v >> 8));
-			fs.WriteByte((byte)(v >> 16));
-			fs.WriteByte((byte)(v >> 24));
+	static bool hasaac(string path, Action<string> log, string label) {
+		try {
+			if (!MfH264Writer.LooksLikeH264(path)) {
+				log($"FAIL {label} 不是 H.264");
+				return false;
+			}
+			var n = (int)Math.Min(new FileInfo(path).Length, 1024 * 1024);
+			var buf = new byte[n];
+			using (var fs = File.OpenRead(path))
+				if (fs.Read(buf, 0, n) < 12) {
+					log($"FAIL {label} 读文件失败");
+					return false;
+				}
+			var s = System.Text.Encoding.ASCII.GetString(buf);
+			var ok = s.Contains("mp4a") || s.Contains("aac ");
+			log(ok
+				? $"{label} OK bytes={new FileInfo(path).Length}"
+				: $"FAIL {label} 没有 AAC 音轨");
+			return ok;
 		}
-		void u16(int v) {
-			fs.WriteByte((byte)v);
-			fs.WriteByte((byte)(v >> 8));
+		catch (Exception ex) {
+			log($"FAIL {label}: " + ex.Message);
+			return false;
 		}
-		fs.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"), 0, 4);
-		u32(36 + data);
-		fs.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "), 0, 8);
-		u32(16);
-		u16(1);
-		u16(ch);
-		u32(hz);
-		u32(hz * ch * 2);
-		u16(ch * 2);
-		u16(16);
-		fs.Write(System.Text.Encoding.ASCII.GetBytes("data"), 0, 4);
-		u32(data);
-		fs.Write(new byte[data], 0, data);
 	}
 
 	static string probe(string want, string dest) {

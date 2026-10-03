@@ -10,20 +10,33 @@ sealed class MfH264Writer : IRecordVideoSink {
 	long frameIndex;
 	bool disposed;
 	bool started;
+	readonly bool withAudio;
 	IMFSinkWriter writer;
 	IMFMediaType inType;
 	int stream;
+	int astream = -1;
+	int ablock = 2;
 	int stride;
+	long aframes;
+	bool finished;
 
 	public int OutWidth { get; }
 	public int OutHeight { get; }
 	public string CodecName { get; }
 	public string OpenedEncoder { get; private set; } = "H264";
+	public int AudioRate { get; private set; }
+	public int AudioChannels { get; private set; }
+	public bool HasAudioStream => astream >= 0;
+	public bool WroteAudio { get; private set; }
 
-	public MfH264Writer(string path, int captureW, int captureH, RecordOptions opt) {
+	/// <summary>系统 AAC 只接受 44100 与 48000。不低于 46000 用 48000，其余用 44100。</summary>
+	public static int AacHz(int hz) => hz >= 46000 ? 48000 : 44100;
+
+	public MfH264Writer(string path, int captureW, int captureH, RecordOptions opt, bool withAudio = false) {
 		this.path = path ?? throw new ArgumentNullException(nameof(path));
 		opt ??= new RecordOptions();
 		opt.Clamp();
+		this.withAudio = withAudio;
 		srcW = Math.Max(2, captureW / 2 * 2);
 		srcH = Math.Max(2, captureH / 2 * 2);
 		opt.FitSize(srcW, srcH, out var ow, out var oh);
@@ -33,10 +46,14 @@ sealed class MfH264Writer : IRecordVideoSink {
 		CodecName = opt.Codec;
 		if (ow < 16 || oh < 16) throw new ArgumentException("录制区域过小");
 		stride = ow * 4;
-		open();
+		try { open(opt); }
+		catch {
+			Dispose();
+			throw;
+		}
 	}
 
-	void open() {
+	void open(RecordOptions opt) {
 		MfApi.Startup();
 		started = true;
 		var dir = Path.GetDirectoryName(path);
@@ -74,8 +91,47 @@ sealed class MfH264Writer : IRecordVideoSink {
 		setu32(inType, MfApi.Stride, stride);
 		setu32(inType, MfApi.AllSamplesIndependent, 1);
 		writer.SetInputMediaType(stream, inType, null);
+		if (withAudio) openaudio(opt);
 		writer.BeginWriting();
 		OpenedEncoder = "H264";
+	}
+
+	void openaudio(RecordOptions opt) {
+		AudioRate = AacHz(opt.AudioHz);
+		AudioChannels = opt.AudioMono ? 1 : 2;
+		ablock = AudioChannels * 2;
+		var bytesPerSec = aacbytes(opt.AudioKbps);
+		IMFMediaType aac = null;
+		IMFMediaType pcm = null;
+		try {
+			MfApi.Check(MfApi.MFCreateMediaType(out aac), "aac type");
+			setguid(aac, MfApi.MajorType, MfApi.MediaAudio);
+			setguid(aac, MfApi.SubType, MfApi.FmtAac);
+			setu32(aac, MfApi.AudioRate, AudioRate);
+			setu32(aac, MfApi.AudioChannels, AudioChannels);
+			setu32(aac, MfApi.AudioBits, 16);
+			setu32(aac, MfApi.AudioAvgBytes, bytesPerSec);
+			setu32(aac, MfApi.AvgBitrate, bytesPerSec * 8);
+			setu32(aac, MfApi.AacPayload, 0);
+			setu32(aac, MfApi.AacProfile, 0x29);
+			try { writer.AddStream(aac, out astream); }
+			catch (Exception ex) { throw new InvalidOperationException("添加 AAC 音轨: " + ex.Message, ex); }
+
+			MfApi.Check(MfApi.MFCreateMediaType(out pcm), "pcm type");
+			setguid(pcm, MfApi.MajorType, MfApi.MediaAudio);
+			setguid(pcm, MfApi.SubType, MfApi.FmtPcm);
+			setu32(pcm, MfApi.AudioRate, AudioRate);
+			setu32(pcm, MfApi.AudioChannels, AudioChannels);
+			setu32(pcm, MfApi.AudioBits, 16);
+			setu32(pcm, MfApi.AudioBlock, ablock);
+			setu32(pcm, MfApi.AudioAvgBytes, AudioRate * ablock);
+			try { writer.SetInputMediaType(astream, pcm, null); }
+			catch (Exception ex) { throw new InvalidOperationException("设置 PCM 输入: " + ex.Message, ex); }
+		}
+		finally {
+			MfApi.Release(pcm);
+			MfApi.Release(aac);
+		}
 	}
 
 	int bitrate() {
@@ -118,8 +174,17 @@ sealed class MfH264Writer : IRecordVideoSink {
 		}
 	}
 
+	public void WritePcm(byte[] data, int count) {
+		if (disposed || writer == null || astream < 0 || data == null || count <= 0) return;
+		count -= count % Math.Max(1, ablock);
+		if (count <= 0) return;
+		writepcm(writer, astream, data, count, ablock, AudioRate, ref aframes);
+		WroteAudio = true;
+	}
+
 	public void Finish() {
-		if (writer == null) return;
+		if (writer == null || finished) return;
+		finished = true;
 		var hr = writer.FinalizeWriter();
 		if (hr < 0)
 			throw new InvalidOperationException("IMFSinkWriter.Finalize 失败 0x" + hr.ToString("X8"));
@@ -135,105 +200,6 @@ sealed class MfH264Writer : IRecordVideoSink {
 		writer = null;
 		if (started) {
 			started = false;
-			try { MfApi.Shutdown(); } catch { }
-		}
-	}
-
-	/// <summary>把无声 H.264 MP4 与 WAV 合成 AAC 音轨。原视频样本直接拷贝，不重编码画面。</summary>
-	public static void MuxAac(string videoPath, string wavPath, string outPath, int kbps, int rate, bool mono) {
-		MfApi.Startup();
-		IMFSourceReader reader = null;
-		IMFSinkWriter sink = null;
-		IMFMediaType videoType = null;
-		IMFMediaType aac = null;
-		IMFMediaType pcmType = null;
-		try {
-			MfApi.Check(MfApi.MFCreateSourceReaderFromURL(videoPath, null, out reader), "MFCreateSourceReaderFromURL");
-			reader.SetStreamSelection(unchecked((int)0xFFFFFFFE), false);
-			reader.SetStreamSelection(0, true);
-			reader.GetNativeMediaType(0, 0, out videoType);
-
-			MfApi.Check(MfApi.MFCreateAttributes(out var attr, 4), "MFCreateAttributes mux");
-			try {
-				setguid(attr, MfApi.TranscodeContainer, MfApi.ContainerMpeg4);
-				setu32(attr, MfApi.EnableHardware, 1);
-				MfApi.Check(MfApi.MFCreateSinkWriterFromURL(outPath, IntPtr.Zero, attr, out sink),
-					"MFCreateSinkWriterFromURL mux");
-			}
-			finally { MfApi.Release(attr); }
-
-			int vindex;
-			try { sink.AddStream(videoType, out vindex); }
-			catch (Exception ex) { throw new InvalidOperationException("添加视频轨: " + ex.Message, ex); }
-			try { sink.SetInputMediaType(vindex, videoType, null); }
-			catch (Exception ex) { throw new InvalidOperationException("设置视频输入: " + ex.Message, ex); }
-
-			// 系统 AAC 只接受 44100 / 48000，以及 96–192 kbps 这几档码率。
-			var hz = aachz(rate);
-			var bytesPerSec = aacbytes(kbps);
-			using var pcm = new RecordPcm(wavPath, hz, mono);
-			var ch = pcm.Channels;
-			var block = pcm.BlockAlign;
-
-			MfApi.Check(MfApi.MFCreateMediaType(out aac), "aac type");
-			setguid(aac, MfApi.MajorType, MfApi.MediaAudio);
-			setguid(aac, MfApi.SubType, MfApi.FmtAac);
-			setu32(aac, MfApi.AudioRate, hz);
-			setu32(aac, MfApi.AudioChannels, ch);
-			setu32(aac, MfApi.AudioBits, 16);
-			setu32(aac, MfApi.AudioAvgBytes, bytesPerSec);
-			setu32(aac, MfApi.AvgBitrate, bytesPerSec * 8);
-			setu32(aac, MfApi.AacPayload, 0);
-			setu32(aac, MfApi.AacProfile, 0x29);
-			var aindex = 0;
-			try { sink.AddStream(aac, out aindex); }
-			catch (Exception ex) { throw new InvalidOperationException("添加 AAC 音轨: " + ex.Message, ex); }
-
-			MfApi.Check(MfApi.MFCreateMediaType(out pcmType), "pcm type");
-			setguid(pcmType, MfApi.MajorType, MfApi.MediaAudio);
-			setguid(pcmType, MfApi.SubType, MfApi.FmtPcm);
-			setu32(pcmType, MfApi.AudioRate, hz);
-			setu32(pcmType, MfApi.AudioChannels, ch);
-			setu32(pcmType, MfApi.AudioBits, 16);
-			setu32(pcmType, MfApi.AudioBlock, block);
-			setu32(pcmType, MfApi.AudioAvgBytes, hz * block);
-			try { sink.SetInputMediaType(aindex, pcmType, null); }
-			catch (Exception ex) { throw new InvalidOperationException("设置 PCM 输入: " + ex.Message, ex); }
-			sink.BeginWriting();
-
-			// MF_SOURCE_READERF_ERROR = 1，ENDOFSTREAM = 2。
-			const int ReaderError = 0x1;
-			const int ReaderEnd = 0x2;
-			while (true) {
-				reader.ReadSample(0, 0, out _, out var flags, out _, out var sample);
-				try {
-					if ((flags & ReaderError) != 0)
-						throw new InvalidOperationException("读取视频失败");
-					if (sample != null) sink.WriteSample(vindex, sample);
-				}
-				finally { MfApi.Release(sample); }
-				if ((flags & ReaderEnd) != 0) break;
-			}
-
-			var chunkBytes = 1024 * block;
-			var buf = new byte[chunkBytes];
-			long frameAt = 0;
-			while (true) {
-				var got = pcm.Read16(buf, chunkBytes);
-				if (got <= 0) break;
-				writepcm(sink, aindex, buf, got, block, hz, ref frameAt);
-				if (got < chunkBytes) break;
-			}
-			var hr = sink.FinalizeWriter();
-			if (hr < 0)
-				throw new InvalidOperationException("合成收尾失败 0x" + hr.ToString("X8"));
-		}
-		finally {
-			MfApi.Release(pcmType);
-			MfApi.Release(aac);
-			MfApi.Release(videoType);
-			MfApi.Release(sink);
-			MfApi.Release(reader);
 			try { MfApi.Shutdown(); } catch { }
 		}
 	}
@@ -260,8 +226,6 @@ sealed class MfH264Writer : IRecordVideoSink {
 			MfApi.Release(buf);
 		}
 	}
-
-	static int aachz(int hz) => hz >= 46000 ? 48000 : 44100;
 
 	static int aacbytes(int kbps) {
 		var b = Math.Max(1, kbps) * 1000 / 8;
@@ -362,10 +326,6 @@ static class MfApi {
 	[DllImport("mfreadwrite.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
 	public static extern int MFCreateSinkWriterFromURL(
 		[MarshalAs(UnmanagedType.LPWStr)] string url, IntPtr stream, IMFAttributes attr, out IMFSinkWriter pp);
-
-	[DllImport("mfreadwrite.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
-	public static extern int MFCreateSourceReaderFromURL(
-		[MarshalAs(UnmanagedType.LPWStr)] string url, IMFAttributes attr, out IMFSourceReader pp);
 }
 
 [ComImport, Guid("2CD2D921-C447-44A7-A13C-4ADABFC247E3"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
@@ -485,16 +445,4 @@ interface IMFSinkWriter {
 	void GetStatistics(int index, IntPtr stats);
 }
 
-[ComImport, Guid("70ae66f2-c809-4e4f-8915-bdcb406b7993"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IMFSourceReader {
-	void GetStreamSelection(int index, [MarshalAs(UnmanagedType.Bool)] out bool selected);
-	void SetStreamSelection(int index, [MarshalAs(UnmanagedType.Bool)] bool selected);
-	void GetNativeMediaType(int stream, int typeIndex, out IMFMediaType type);
-	void GetCurrentMediaType(int stream, out IMFMediaType type);
-	void SetCurrentMediaType(int stream, IntPtr reserved, IMFMediaType type);
-	void SetCurrentPosition(ref Guid timeFormat, IntPtr position);
-	void ReadSample(int stream, int flags, out int actual, out int streamFlags, out long timestamp, out IMFSample sample);
-	void Flush(int stream);
-	void GetServiceForStream(int stream, ref Guid service, ref Guid riid, out IntPtr ppv);
-	void GetPresentationAttribute(int stream, ref Guid attr, IntPtr value);
-}
+

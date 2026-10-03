@@ -22,7 +22,10 @@ sealed class ScreenRecorder : IDisposable {
 	readonly object gate = new();
 
 	IRecordVideoSink sink;
+	MfH264Writer mfSink;
+	MfLivePcm live;
 	Exception sinkEx;
+	string audioError;
 	AudioCapture audio;
 	Thread thread;
 	volatile bool stop;
@@ -71,6 +74,9 @@ sealed class ScreenRecorder : IDisposable {
 		this.region = r;
 		recOpt = (options ?? new RecordOptions()).Clone();
 		recOpt.Clamp();
+		// 只改本次会话。系统 AAC 不接受 22050 等采样率，录的时候就用 44100 或 48000。
+		if (recOpt.IsMf && audio != RecordAudioMode.Off)
+			recOpt.AudioHz = MfH264Writer.AacHz(recOpt.AudioHz);
 		cursorOv = new RecordCursorOverlay(recOpt.RecordMouse, recOpt.HighlightClicks);
 		fps = recOpt.Fps;
 		recOpt.FitSize(r.Width, r.Height, out outW, out outH);
@@ -128,9 +134,17 @@ sealed class ScreenRecorder : IDisposable {
 		if (audioMode != RecordAudioMode.Off) {
 			try {
 				audio = new AudioCapture(wavTmp, audioMode, recOpt.AudioHz, recOpt.AudioMono);
-				// 单路音源：停录时不二次规范化，交给合成阶段一次完成（长录屏可省数十秒）
-				audio.SkipNormalize = audioMode is RecordAudioMode.Speakers or RecordAudioMode.Mic;
+				if (recOpt.IsMf)
+					audio.QueuePcm = true;
+				else
+					// 单路音源：停录时不二次规范化，交给合成阶段一次完成（长录屏可省数十秒）
+					audio.SkipNormalize = audioMode is RecordAudioMode.Speakers or RecordAudioMode.Mic;
 				audio.Start();
+				if (live != null) {
+					live.Bind(audio.LoopFormat, audio.MicFormat);
+					RecordLog.Step("mf_audio_fmt",
+						$"aac={mfSink.AudioRate}Hz/{mfSink.AudioChannels}ch loop={audio.LoopFormat} mic={audio.MicFormat}");
+				}
 				var ch = recOpt.AudioMono ? "mono" : "stereo";
 				Backend += $"+{audioMode}@{recOpt.AudioHz}Hz/{ch}";
 				RecordLog.Step("audio_start", Backend + " " + RecordLog.FileInfo(wavTmp));
@@ -168,8 +182,13 @@ sealed class ScreenRecorder : IDisposable {
 		try {
 			if (recOpt.IsMjpeg)
 				sink = new MjpegAviWriter(videoTmp, grabW, grabH, recOpt);
-			else if (recOpt.IsMf)
-				sink = new MfH264Writer(videoTmp, grabW, grabH, recOpt);
+			else if (recOpt.IsMf) {
+				var w = new MfH264Writer(videoTmp, grabW, grabH, recOpt, audioMode != RecordAudioMode.Off);
+				sink = w;
+				mfSink = w;
+				if (w.HasAudioStream)
+					live = new MfLivePcm(w.AudioRate, w.AudioChannels);
+			}
 			else
 				sink = new FfmpegMp4Writer(videoTmp, grabW, grabH, recOpt);
 			var kind = recOpt.NeedsFfmpeg ? "FFmpeg" : recOpt.IsMjpeg ? "MJPEG" : "MediaFoundation";
@@ -212,7 +231,8 @@ sealed class ScreenRecorder : IDisposable {
 	}
 
 	/// <summary>
-	/// 停止采集并写完视频索引后立即返回；音频收尾与音视频合成在后台继续。
+	/// 停止采集并写完视频索引后立即返回。FFmpeg / MJPEG 的音轨合成在后台继续。
+	/// 系统 H.264 的 AAC 已在录制线程写入，不再另存一份合成文件。
 	/// 保存前请 <see cref="WaitFinalize"/> 再取 <see cref="TempPath"/>。
 	/// </summary>
 	public void Stop() {
@@ -220,17 +240,47 @@ sealed class ScreenRecorder : IDisposable {
 		stopped = true;
 		RecordLog.Step("stop_begin", $"frames={frames} elapsed={Elapsed} " + RecordLog.FileInfo(videoTmp));
 		report("正在停止采集…");
+		var cap = audio;
+		// 系统 H.264：先把尾部静音放进队列，录制线程收尾时写入同一个 MP4，再 Finalize。
+		if (recOpt.IsMf && cap != null) {
+			report("正在收尾音频…");
+			try { cap.Stop(); }
+			catch (Exception ex) {
+				RecordLog.Ex("audio.Stop", ex);
+				audioError = ex.Message;
+			}
+		}
 		stop = true;
 		try { thread?.Join(15000); } catch (Exception ex) { RecordLog.Ex("thread.Join", ex); }
 		thread = null;
 		RecordLog.Step("video_loop_done", $"frames={frames} " + RecordLog.FileInfo(videoTmp));
 
-		// 视频 trailer 与音频收尾/合成并行：先保证纯视频可播，立刻可弹保存框
-		var cap = audio;
-		audio = null;
 		finalPath = videoTmp;
 		HasAudio = false;
 		finalizeDone = false;
+
+		if (recOpt.IsMf) {
+			try { cap?.Dispose(); } catch { }
+			audio = null;
+			if (cap != null) {
+				HasAudio = mfSink != null && mfSink.WroteAudio && string.IsNullOrEmpty(audioError);
+				if (!HasAudio && string.IsNullOrEmpty(audioError))
+					audioError = "未采集到音频数据（请确认系统有声音输出/麦克风权限）";
+			}
+			AudioError = audioError;
+			finalizeDone = true;
+			finalizeTask = Task.CompletedTask;
+			report("完成");
+			RecordLog.Step("stop_end",
+				$"HasAudio={HasAudio} AudioError={AudioError ?? "-"} final={RecordLog.FileInfo(finalPath)} (mf_live)");
+			RecordLog.End(HasAudio || cap == null ? "ok" : "no_audio");
+			if (sinkEx != null)
+				throw new InvalidOperationException("视频收尾失败: " + sinkEx.Message, sinkEx);
+			return;
+		}
+
+		// 视频 trailer 与音频收尾/合成并行：先保证纯视频可播，立刻可弹保存框
+		audio = null;
 
 		report("正在写入视频索引…");
 		RecordLog.Step("video_finalize", RecordLog.FileInfo(videoTmp));
@@ -288,8 +338,6 @@ sealed class ScreenRecorder : IDisposable {
 					string mergeErr = null;
 					if (recOpt.IsMjpeg)
 						MjpegAviWriter.MuxPcm(videoTmp, wavTmp, merged, recOpt.AudioHz, recOpt.AudioMono);
-					else if (recOpt.IsMf)
-						MfH264Writer.MuxAac(videoTmp, wavTmp, merged, recOpt.AudioKbps, recOpt.AudioHz, recOpt.AudioMono);
 					else
 						FfmpegRemux.MergeVideoAudio(videoTmp, wavTmp, merged,
 							recOpt.AudioKbps, recOpt.AudioMono, out mergeErr, recOpt.AudioHz);
@@ -425,7 +473,10 @@ sealed class ScreenRecorder : IDisposable {
 	/// <summary>最终文件是否含音轨（尽力判断）。</summary>
 	public bool HasAudio { get; private set; }
 	/// <summary>音频相关错误说明。</summary>
-	public string AudioError { get; private set; }
+	public string AudioError {
+		get => audioError;
+		private set => audioError = value;
+	}
 
 	/// <summary>有效录制时长（排除暂停）。</summary>
 	public TimeSpan Elapsed {
@@ -463,6 +514,7 @@ sealed class ScreenRecorder : IDisposable {
 		var frameEx = 0;
 		long lastPts = -1;
 		while (!stop) {
+			drainmf(false);
 			if (paused) {
 				Thread.Sleep(40);
 				continue;
@@ -514,8 +566,19 @@ sealed class ScreenRecorder : IDisposable {
 			$"frames={frames} frameEx={frameEx} lastPts={lastPts} elapsed={Elapsed}");
 	}
 
+	void drainmf(bool flush) {
+		if (live == null || mfSink == null || audio == null) return;
+		try { live.Drain(audio, mfSink, flush); }
+		catch (Exception ex) {
+			RecordLog.Ex("mf.audio", ex);
+			if (string.IsNullOrEmpty(audioError)) audioError = ex.Message;
+			live = null;
+		}
+	}
+
 	// Media Foundation 的 SinkWriter 不能跨线程调用，收尾必须留在录制线程。
 	void closesink() {
+		drainmf(true);
 		IRecordVideoSink s;
 		lock (gate) {
 			s = sink;

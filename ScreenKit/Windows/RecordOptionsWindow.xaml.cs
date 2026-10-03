@@ -118,7 +118,7 @@ public partial class RecordOptionsWindow : Window {
 			: o.IsHevc
 				? "x265 需要 ffmpeg64 含 libx265。失败不会改用 x264。质量用下方 CRF。"
 				: o.IsMf
-					? "使用 Windows 自带 Media Foundation 的 H.264，写成 MP4，不用安装 FFmpeg。没有 CRF，码率随分辨率。声音会重采样到 44.1kHz 或 48kHz。"
+					? "使用 Windows 自带 Media Foundation 的 H.264，写成 MP4，不用安装 FFmpeg。没有 CRF，码率随分辨率。录制时声音用 44.1kHz 或 48kHz，结束时不再另做一次合成。"
 					: o.IsMjpeg
 						? "每帧一张 JPEG，写成 AVI，不用安装 FFmpeg。没有 CRF，文件比 H.264 大。超过约 1.9GB 会停止。"
 						: "x264 需要 ffmpeg64。质量用下方 CRF。";
