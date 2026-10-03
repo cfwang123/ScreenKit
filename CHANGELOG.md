@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Record options show CRF only for x264/x265, and AV1 CRF only for AV1. Media Foundation and MJPEG hide both; the stored numbers stay.
 - Screen recording adds Windows Media Foundation H.264 (MP4, no FFmpeg) and MJPEG AVI (no FFmpeg, about 1.9 GB cap). x264, x265, AV1, and GIF still need FFmpeg and still fail clearly with no fallback. Install features lists the two system codecs as built-in; FFmpeg stays the optional download for x264/x265/AV1 and GIF.
 - MJPEG AVI is hidden from record options and from install features. A saved `record_codec` of `mjpeg` is read as system H.264. The encoder code stays in the program.
+- The first-launch install window selects nothing. Confirm installs only what you check, and does not remove packages already on disk. Later, **Help → Install features** still checks what is installed. System H.264 stays checked.
 - Phone camera upload and the web camera use that same shorter-side cap. **Settings → API** still has one pixel value (`photo_max_px`, default 2000). The phone and the browser shrink only when the smaller side is over it; the PC applies the same rule if the browser could not.
 - Screencast tab **Scan LAN** lists this PC as well. Several local addresses fold into one row, marked “This PC”.
 - Settings → API: the listen-address box is now **Allow LAN access**. Checked (default) listens on every interface; unchecked listens on `127.0.0.1` only. File transfer, the web manager, and Wi-Fi cast share this port. Config key is `http_lan`. An old `http_host` of `127.0.0.1` stays LAN-open when file transfer or cast was already on.
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 录屏选项里，CRF 只在 x264/x265 时显示，AV1 CRF 只在 AV1 时显示。系统 H.264 与 MJPEG 两项都隐藏，已保存的数值仍保留。
 - 录屏增加 Windows Media Foundation H.264（MP4，不用 FFmpeg）和 MJPEG AVI（不用 FFmpeg，大约 1.9GB 停止）。x264、x265、AV1 和 GIF 仍要 FFmpeg，失败时明确报错，不会改用别的编码器。安装功能里这两项标为系统自带；FFmpeg 仍是 x264/x265/AV1 与 GIF 的可选下载。
 - 录屏选项和安装功能里不再显示 MJPEG AVI。配置里如果还是 `record_codec = mjpeg`，读入后改为系统 H.264。编码器代码仍留在程序里。
+- 第一次启动的安装窗口默认不勾选。点确认只安装勾上的项，不会删掉已经在磁盘上的组件。之后从 **帮助 → 安装功能** 打开，仍会勾上已安装的功能。系统 H.264 保持勾选。
 - 手机拍照上传和网页拍照改为同一套较短边限制。**参数设置 → 接口** 仍是一个像素值（`photo_max_px`，默认 2000）。手机和浏览器只在较短边超过时等比缩小；浏览器压不了时，电脑按同一规则再处理。
 - 投屏页 **搜索局域网** 会列出本机。多块网卡并成一条，名称后标「本机」。
 - **参数设置 → 接口**：监听地址改为勾选 **允许局域网访问**。勾选（默认）时所有网卡可连；不勾选时只听 `127.0.0.1`。文件传输、网页管理和 Wi-Fi 投屏共用此端口。配置键为 `http_lan`。旧配置里 `http_host` 为 `127.0.0.1` 且已开文件传输或投屏时，升级后仍允许局域网。

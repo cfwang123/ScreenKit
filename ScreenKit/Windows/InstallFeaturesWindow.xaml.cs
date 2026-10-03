@@ -44,7 +44,7 @@ partial class InstallFeaturesWindow : Window {
 	public bool NeedRefresh { get; private set; }
 	public bool NeedRestart { get; private set; }
 
-	/// <param name="firstRun">首次启动：默认勾选推荐组件。</param>
+	/// <param name="firstRun">首次启动：默认不勾选。</param>
 	/// <param name="preferSelect">使用前提示时预勾选的组件。</param>
 	/// <param name="openTtsTab">打开时切到发音人 Tab。</param>
 	public InstallFeaturesWindow(bool firstRun = false, FeatureKind[] preferSelect = null, bool openTtsTab = false) {
@@ -124,11 +124,11 @@ partial class InstallFeaturesWindow : Window {
 		lbtitle.Text = Title;
 		tabpick.Header = Loc.T("inst.tab.pick");
 		tabtts.Header = Loc.T("inst.tab.tts");
-		lbpickhint.Text = Loc.T("inst.pick.hint");
+		lbpickhint.Text = Loc.T(firstRun ? "inst.pick.hint.first" : "inst.pick.hint");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
 		breset.Content = Loc.T("inst.pick.reset");
-		breset.ToolTip = Loc.T("inst.pick.reset.tip");
+		breset.ToolTip = Loc.T(firstRun ? "inst.pick.reset.tip.first" : "inst.pick.reset.tip");
 		lbttshint.Text = Loc.T("inst.tts.hint");
 		lbttslang.Text = Loc.T("inst.tts.lang");
 		cttsmissing.Content = Loc.T("inst.tts.onlymissing");
@@ -185,7 +185,7 @@ partial class InstallFeaturesWindow : Window {
 		if (preferSelect != null && preferSelect.Length > 0)
 			FeaturePick.ApplyInstalled(pickRoots, extraKinds: preferSelect);
 		else if (firstRun)
-			FeaturePick.ApplyInstalled(pickRoots, extraIds: FeaturePick.RecommendedIds);
+			FeaturePick.ApplyNone(pickRoots);
 		else
 			FeaturePick.ApplyInstalled(pickRoots);
 		FeaturePick.RefreshDiff(pickRoots);
@@ -238,7 +238,7 @@ partial class InstallFeaturesWindow : Window {
 
 	void updatepicksum() {
 		if (lbadd == null || lbdel == null) return;
-		FeaturePick.DiffSelection(pickRoots, out var addN, out var addSz, out var delN, out var delSz);
+		FeaturePick.DiffSelection(pickRoots, out var addN, out var addSz, out var delN, out var delSz, firstRun);
 		lbadd.Text = Loc.T("inst.pick.delta.add", addN, FeatureInstaller.FormatBytes(addSz));
 		lbdel.Text = Loc.T("inst.pick.delta.del", delN, FeatureInstaller.FormatBytes(delSz));
 		var muted = (Brush)FindResource("TextMuted");
@@ -264,7 +264,7 @@ partial class InstallFeaturesWindow : Window {
 		if (busy) return;
 		foreach (var it in featItems)
 			FeatureInstaller.RefreshState(it);
-		FeaturePick.CollectDelta(pickRoots, out var addKinds, out var delKinds);
+		FeaturePick.CollectDelta(pickRoots, out var addKinds, out var delKinds, firstRun);
 		var add = featItems.Where(x => addKinds.Contains(x.Kind)).ToList();
 		var del = featItems.Where(x => delKinds.Contains(x.Kind)).ToList();
 		if (add.Count == 0 && del.Count == 0) {

@@ -188,18 +188,7 @@ static class FeatureInstaller {
 		FeatureKind.Ffmpeg,
 	];
 
-	/// <summary>首次启动向导：推荐项 + OpenCV / CPU ORT / Sherpa / FFmpeg（不含 GPU/核显）。</summary>
-	public static readonly FeatureKind[] FirstRunDefaults = [
-		FeatureKind.NativeOpenCv,
-		FeatureKind.OrtCpu,
-		FeatureKind.NativeSherpa,
-		FeatureKind.OcrRapidCh,
-		FeatureKind.AsrSenseVoice,
-		FeatureKind.AsrStreamZipformer,
-		FeatureKind.Ffmpeg,
-	];
-
-	/// <param name="firstRunDefaults">true：勾选 <see cref="FirstRunDefaults"/>。</param>
+	/// <param name="firstRunDefaults">true：首次启动，不预勾任何组件。</param>
 	/// <param name="preferSelect">
 	/// 非空：使用前提示，仅勾选这些项；
 	/// 否则（非 firstRun）：勾选 <see cref="RecommendedSelect"/>（不是「全部未装」）。
@@ -227,7 +216,7 @@ static class FeatureInstaller {
 		};
 		HashSet<FeatureKind> selectSet;
 		if (firstRunDefaults)
-			selectSet = new HashSet<FeatureKind>(FirstRunDefaults);
+			selectSet = new HashSet<FeatureKind>();
 		else if (preferSelect != null && preferSelect.Length > 0)
 			selectSet = new HashSet<FeatureKind>(preferSelect);
 		else

@@ -14,6 +14,8 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	public string SizeLabel { get; set; }
 	/// <summary>系统自带，勾选锁住，不参与安装或卸载。</summary>
 	public bool Locked { get; set; }
+	/// <summary>取消勾选已装功能时不记为卸载（首次启动向导）。</summary>
+	public bool KeepInstalled { get; set; }
 	public List<FeaturePickNode> Children { get; } = new();
 	public FeaturePickNode Parent { get; set; }
 	public bool IsGroup => Children.Count > 0;
@@ -82,7 +84,7 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 		if (Kinds == null || Kinds.Length == 0) return "";
 		var have = FeatureInstaller.Probe(Kinds[Kinds.Length - 1]) != FeatureInstallState.Missing;
 		if (check == true && !have) return "add";
-		if (check != true && have) return "del";
+		if (check != true && have && !KeepInstalled) return "del";
 		return "";
 	}
 
@@ -157,6 +159,14 @@ static class FeaturePick {
 			n.SetCheck(set.Contains(n.Id), fromUi: true);
 	}
 
+	/// <summary>首次启动：可选功能全部不勾。系统自带项仍锁住。已装内容不记为卸载。</summary>
+	public static void ApplyNone(IEnumerable<FeaturePickNode> roots) {
+		foreach (var n in Leaves(roots)) {
+			n.KeepInstalled = true;
+			n.SetCheck(false, fromUi: true);
+		}
+	}
+
 	public static void ApplyKinds(IEnumerable<FeaturePickNode> roots, FeatureKind[] kinds) {
 		var set = kinds == null || kinds.Length == 0
 			? new HashSet<FeatureKind>()
@@ -197,7 +207,7 @@ static class FeaturePick {
 		}
 	}
 
-	public static void CollectDelta(IEnumerable<FeaturePickNode> roots, out HashSet<FeatureKind> add, out HashSet<FeatureKind> del) {
+	public static void CollectDelta(IEnumerable<FeaturePickNode> roots, out HashSet<FeatureKind> add, out HashSet<FeatureKind> del, bool keepInstalled = false) {
 		var sel = new HashSet<FeatureKind>();
 		CollectKinds(roots, sel);
 		add = new HashSet<FeatureKind>();
@@ -207,13 +217,13 @@ static class FeaturePick {
 			var on = sel.Contains(k);
 			if (builtin(k)) continue;
 			if (on && st != FeatureInstallState.Installed) add.Add(k);
-			else if (!on && st != FeatureInstallState.Missing) del.Add(k);
+			else if (!keepInstalled && !on && st != FeatureInstallState.Missing) del.Add(k);
 		}
 	}
 
 	/// <summary>相对当前磁盘：将安装的组件 / 将卸载的组件。</summary>
 	public static void DiffSelection(IEnumerable<FeaturePickNode> roots,
-		out int addN, out long addSz, out int delN, out long delSz) {
+		out int addN, out long addSz, out int delN, out long delSz, bool keepInstalled = false) {
 		var sel = new HashSet<FeatureKind>();
 		CollectKinds(roots, sel);
 		addN = 0;
@@ -228,7 +238,7 @@ static class FeaturePick {
 				addN++;
 				addSz += FeatureInstaller.ExpectedSize(k);
 			}
-			else if (!on && st != FeatureInstallState.Missing) {
+			else if (!keepInstalled && !on && st != FeatureInstallState.Missing) {
 				delN++;
 				delSz += FeatureInstaller.ExpectedSize(k);
 			}

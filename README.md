@@ -149,7 +149,7 @@ Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles 
 
 ## Install features
 
-1. First launch may open the wizard (defaults: Simplified-Chinese OCR, first two ASR packs, recording; GPU/iGPU **off**).
+1. First launch may open the wizard (nothing selected). System H.264 stays checked and needs no download.
 2. Later: **Help → Install features**
    - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Voices are not on this tab.
    - **Voices**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported.
