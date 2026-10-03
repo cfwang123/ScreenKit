@@ -59,6 +59,17 @@ public partial class TranslatePopupWindow : Window {
 		try { esrc.Focus(); } catch { }
 	}
 
+	/// <summary>词典选区：打开小窗并填入原文。</summary>
+	public void ShowText(string text) {
+		ShowFromHotkey();
+		esrc.Text = text ?? "";
+		try {
+			esrc.Focus();
+			esrc.SelectAll();
+		}
+		catch { }
+	}
+
 	public void Reload() {
 		var prevSrc = selected(esrclng);
 		var prevDst = selected(edstlng);

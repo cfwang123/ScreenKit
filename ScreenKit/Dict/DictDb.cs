@@ -416,7 +416,10 @@ static class DictDb {
 	static void parsecmp(DictEntry e, JsonNode n) {
 		e.Word = str(n["w"]);
 		e.Pron = str(n["o"]);
+		if (e.Kanji.Length == 0) e.Kanji = str(n["k"]);
 		if (e.Pos.Length == 0) e.Pos = str(n["p"]);
+		if (e.Etymology.Length == 0) e.Etymology = str(n["y"]);
+		if (e.Usage.Count == 0) addstrings(n["u"], e.Usage, 8);
 		e.Extra = str(n["x"]);
 		if (e.Extra.Length == 0) e.Extra = str(n["r"]);
 		if (n["c"] is JsonArray ca) {

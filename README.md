@@ -48,7 +48,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
-| **Dictionary** | **Options → Dictionary** (`Ctrl+Alt+D`, press again to hide). Looks up Chinese, English, Japanese, and Korean headwords in `dict.db` beside the program. Filter: all, Chinese, English, Japanese, or Korean. **Speak** uses an installed Windows voice for the headword. **Read Chinese** speaks the gloss. The database is not in the release archive. |
+| **Dictionary** | **Options → Dictionary** (`Ctrl+Alt+D`, press again to hide). Looks up Chinese, English, Japanese, and Korean headwords in `dict.db` beside the program. Filter: all, Chinese, English, Japanese, or Korean. The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Select text to open a popup of matching headwords, plus Speak, Search, Translate, and Copy. **Speak** uses an installed Windows voice for the headword. **Read Chinese** speaks the gloss. The database is not in the release archive. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 

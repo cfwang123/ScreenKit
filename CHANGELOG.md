@@ -37,6 +37,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Dictionary list is two lines (language and headword, then gloss) with a per-row speak button. Entry text is smaller and colors pronunciation, part of speech, sense numbers, language labels, and examples. Selecting text opens a popup of matching headwords plus Speak, Search, Translate, and Copy.
 - README: removed the Download section. The English README no longer contains Chinese text.
 
 ### 中文
@@ -49,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 词典列表改为两行（语言与词头、释义），每行可发音。详情字号缩小，读音、词性、义项编号、语种标签、例句分色。选中文字后弹出匹配词条，以及发音、搜索、翻译、复制。
 - README：去掉下载一节。英文 README 不再出现中文。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)

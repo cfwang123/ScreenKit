@@ -5,19 +5,41 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace ScreenKit;
 
 public sealed class DictRow {
 	public long Id { get; set; }
-	public string Head { get; set; } = "";
-	public string Meta { get; set; } = "";
+	public string Dict { get; set; } = "";
+	public string Word { get; set; } = "";
+	public string Title { get; set; } = "";
 	public string Preview { get; set; } = "";
+	public override string ToString() => Title ?? "";
 }
+
+sealed class DictSelRow {
+	public long Id { get; set; }
+	public string Word { get; set; } = "";
+	public string Title { get; set; } = "";
+	public string Gloss { get; set; } = "";
+	public override string ToString() => Title ?? "";
+}
+
+enum DRole { Body, Title, Pron, Pos, Number, Label, ExLabel, Example }
 
 /// <summary>英日韩词典：只读 exe 旁的 dict.db。热键再按一次隐藏。</summary>
 public partial class DictWindow : Window {
+	static readonly Brush CPron = freeze(110, 110, 110);
+	static readonly Brush CPos = freeze(136, 48, 168);
+	static readonly Brush CNumber = freeze(210, 85, 20);
+	static readonly Brush CLabel = freeze(40, 90, 170);
+	static readonly Brush CExLabel = freeze(20, 130, 70);
+	static readonly Brush CExample = freeze(45, 120, 75);
+
 	WinRtTts tts;
 	TtsPlayer player;
 	DispatcherTimer tick;
@@ -25,12 +47,21 @@ public partial class DictWindow : Window {
 	bool pending;
 	int gen;
 	int dgen;
+	int sgen;
 	bool filling;
 	bool forceClose;
 	bool speaking;
+	bool suppress;
+	long wantid;
+	string seltext = "";
 	string curword = "";
 	string curzh = "";
 	string curlang = "";
+	Point downpt;
+	bool dragsel;
+
+	/// <summary>选区「翻译」：主窗打开翻译小窗并填入原文。</summary>
+	public Action<string> OnTranslate;
 
 	public DictWindow() {
 		InitializeComponent();
@@ -38,7 +69,10 @@ public partial class DictWindow : Window {
 	}
 
 	void initui() {
-		WindowEsc.Attach(this, Hide);
+		WindowEsc.Attach(this, () => {
+			if (psel.IsOpen) { psel.IsOpen = false; return; }
+			Hide();
+		});
 		Closing += (_, e) => {
 			if (forceClose) return;
 			e.Cancel = true;
@@ -46,23 +80,62 @@ public partial class DictWindow : Window {
 		};
 		tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
 		tick.Tick += (_, _) => ontick();
-		esearch.TextChanged += (_, _) => queue();
-		elang.SelectionChanged += (_, _) => queue();
+		esearch.TextChanged += (_, _) => {
+			if (suppress) return;
+			wantid = 0;
+			queuesearch();
+		};
+		elang.SelectionChanged += (_, _) => queuesearch();
 		lhits.SelectionChanged += (_, _) => {
 			if (filling) return;
 			if (lhits.SelectedItem is DictRow row) loaddetail(row);
 		};
+		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
 		bspeak.Click += (_, _) => _ = speak(curword, speaklang(curlang));
 		bspeakzh.Click += (_, _) => _ = speak(curzh, "zh");
+		bselspeak.Click += (_, _) => _ = speak(seltext, speaklang(curlang));
+		bselsearch.Click += (_, _) => {
+			var q = seltext;
+			psel.IsOpen = false;
+			searchword(q);
+		};
+		bseltr.Click += (_, _) => {
+			var q = seltext;
+			psel.IsOpen = false;
+			if (q.Length == 0) return;
+			if (OnTranslate != null) OnTranslate(q);
+			else lbstatus.Text = Loc.T("dict.sel.notr");
+		};
+		bselcopy.Click += (_, _) => copytext(seltext);
+		lsel.PreviewMouseLeftButtonUp += (_, _) => {
+			if (lsel.SelectedItem is DictSelRow row) openhit(row);
+		};
+		edetail.PreviewMouseLeftButtonDown += (_, e) => {
+			downpt = e.GetPosition(edetail);
+			dragsel = false;
+		};
+		edetail.PreviewMouseMove += (_, e) => {
+			if (e.LeftButton != MouseButtonState.Pressed) return;
+			var p = e.GetPosition(edetail);
+			if (Math.Abs(p.X - downpt.X) + Math.Abs(p.Y - downpt.Y) > 6) dragsel = true;
+		};
+		edetail.PreviewMouseLeftButtonUp += (_, _) => {
+			if (!dragsel) return;
+			Dispatcher.BeginInvoke(new Action(openselpop), DispatcherPriority.Background);
+		};
+		edetail.PreviewMouseRightButtonUp += (_, e) => {
+			e.Handled = true;
+			openselpop();
+		};
+		PreviewMouseDown += (_, e) => {
+			if (!psel.IsOpen) return;
+			if (e.OriginalSource is DependencyObject d && under(psel.Child, d)) return;
+			psel.IsOpen = false;
+		};
 		elang.SelectedIndex = 0;
 		applylang();
+		cleardetail();
 		return;
-
-		void queue() {
-			lastedit = Environment.TickCount;
-			pending = true;
-			if (!tick.IsEnabled) tick.Start();
-		}
 
 		void ontick() {
 			if (!pending) { tick.Stop(); return; }
@@ -103,6 +176,11 @@ public partial class DictWindow : Window {
 		bspeakzh.Content = Loc.T("dict.speakzh");
 		bspeak.ToolTip = Loc.T("dict.speak.tip");
 		bspeakzh.ToolTip = Loc.T("dict.speakzh.tip");
+		bselspeak.Content = Loc.T("dict.speak");
+		bselsearch.Content = Loc.T("dict.sel.search");
+		bseltr.Content = Loc.T("dict.sel.translate");
+		bselcopy.Content = Loc.T("dict.sel.copy");
+		lbselwait.Text = Loc.T("dict.sel.searching");
 		setfilter(0, Loc.T("dict.filter.all"));
 		setfilter(1, Loc.T("dict.filter.zh"));
 		setfilter(2, Loc.T("dict.filter.en"));
@@ -113,6 +191,12 @@ public partial class DictWindow : Window {
 	void setfilter(int index, string text) {
 		if (index < 0 || index >= elang.Items.Count) return;
 		if (elang.Items[index] is ComboBoxItem it) it.Content = text;
+	}
+
+	void queuesearch() {
+		lastedit = Environment.TickCount;
+		pending = true;
+		if (tick != null && !tick.IsEnabled) tick.Start();
 	}
 
 	void ensuredb() {
@@ -140,10 +224,7 @@ public partial class DictWindow : Window {
 			filling = true;
 			lhits.ItemsSource = null;
 			filling = false;
-			edetail.Clear();
-			curword = "";
-			curzh = "";
-			curlang = "";
+			cleardetail();
 			lbstatus.Text = Loc.T("dict.ready");
 			return;
 		}
@@ -171,30 +252,45 @@ public partial class DictWindow : Window {
 		var rows = new List<DictRow>(hits.Count);
 		foreach (var h in hits) {
 			if (h.Id == 0) continue;
-			var meta = new StringBuilder();
-			meta.Append(langlabel(h.Dict));
-			if (h.Reading.Length > 0) meta.Append(" · ").Append(h.Reading);
-			if (h.Pos.Length > 0) meta.Append(" · ").Append(h.Pos);
-			if (h.Via.Length > 0) meta.Append(" · ").Append(Loc.T("dict.via", h.Via));
+			var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
+			var lang = langlabel(h.Dict);
+			var title = lang.Length > 0 ? "[" + lang + "] " + word : word;
+			var preview = h.Preview ?? "";
+			if (h.Via.Length > 0) {
+				var via = Loc.T("dict.via", h.Via);
+				preview = preview.Length > 0 ? preview + "  ·  " + via : via;
+			}
 			rows.Add(new DictRow {
 				Id = h.Id,
-				Head = h.Headword.Length > 0 ? h.Headword : h.Matched,
-				Meta = meta.ToString(),
-				Preview = h.Preview ?? "",
+				Dict = h.Dict ?? "",
+				Word = word,
+				Title = title,
+				Preview = preview,
 			});
+		}
+		var pick = 0;
+		if (wantid != 0) {
+			for (var i = 0; i < rows.Count; i++) {
+				if (rows[i].Id != wantid) continue;
+				pick = i;
+				break;
+			}
+			wantid = 0;
 		}
 		filling = true;
 		lhits.ItemsSource = rows;
-		if (rows.Count > 0) lhits.SelectedIndex = 0;
+		if (rows.Count > 0) lhits.SelectedIndex = pick;
 		filling = false;
 		lbstatus.Text = Loc.T("dict.count", rows.Count);
-		if (rows.Count > 0) loaddetail(rows[0]);
-		else {
-			edetail.Clear();
-			curword = "";
-			curzh = "";
-			curlang = "";
-		}
+		if (rows.Count > 0) loaddetail(rows[pick]);
+		else cleardetail();
+	}
+
+	void onrowspeak(object sender, RoutedEventArgs e) {
+		if (e.OriginalSource is not Button b) return;
+		if (b.DataContext is not DictRow row) return;
+		e.Handled = true;
+		_ = speak(row.Word, speaklang(row.Dict));
 	}
 
 	void loaddetail(DictRow row) {
@@ -212,93 +308,217 @@ public partial class DictWindow : Window {
 		});
 	}
 
+	void cleardetail() {
+		psel.IsOpen = false;
+		curword = "";
+		curzh = "";
+		curlang = "";
+		edetail.Document = newdoc();
+	}
+
 	void filldetail(DictEntry e) {
-		if (e == null) {
-			edetail.Clear();
-			curword = "";
-			curzh = "";
-			curlang = "";
-			return;
-		}
+		if (e == null) { cleardetail(); return; }
+		psel.IsOpen = false;
 		curlang = e.Dict ?? "";
 		curword = e.Word.Length > 0 ? e.Word : e.Headword;
 		curzh = e.ZhSpeak();
-		var sb = new StringBuilder();
-		sb.Append(curword);
-		if (e.Kanji.Length > 0 && e.Kanji != curword) sb.Append("  ").Append(e.Kanji);
-		sb.AppendLine();
-		var meta = new List<string>();
-		var lang = langlabel(e.Dict);
-		if (lang.Length > 0) meta.Add(lang);
+		var doc = newdoc();
+		var head = para(2);
+		addrun(head, curword, DRole.Title);
+		if (e.Kanji.Length > 0 && e.Kanji != curword) addrun(head, "  " + e.Kanji, DRole.Body);
+		doc.Blocks.Add(head);
 		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
-		if (reading.Length > 0) meta.Add(reading);
-		if (e.Pos.Length > 0) meta.Add(e.Pos);
-		if (meta.Count > 0) sb.AppendLine(string.Join(" · ", meta));
-		if (e.Usage.Count > 0) sb.AppendLine(string.Join(" · ", e.Usage));
-		sb.AppendLine();
-		var n = 1;
-		string lastpos = null;
-		foreach (var s in e.Senses) {
-			if (s.Pos.Length > 0 && s.Pos != lastpos && s.Pos != e.Pos) {
-				sb.AppendLine(s.Pos);
-				lastpos = s.Pos;
+		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1));
+		var zharticle = e.Dict == "zh" && e.Extra.Length > 0;
+		if (e.Pos.Length > 0) doc.Blocks.Add(one(e.Pos, DRole.Pos, 1));
+		if (!zharticle) {
+			var tags = new List<string>();
+			foreach (var u in e.Usage) {
+				if (u == null || u.Length == 0 || u == e.Pos) continue;
+				tags.Add(u);
 			}
-			sb.Append(n++).Append(". ");
-			var any = false;
-			any |= appendbit(sb, s.Zh, s.ZhDef, any);
-			any |= appendbit(sb, s.En, s.EnDef, any);
-			if (s.Ko.Length > 0) {
-				if (any) sb.Append("  ");
-				sb.Append(s.Ko);
-				any = true;
+			if (tags.Count > 0) {
+				var p = para(1);
+				addrun(p, Loc.T("dict.lab.tags"), DRole.Label);
+				addrun(p, string.Join(" · ", tags), DRole.Body);
+				doc.Blocks.Add(p);
 			}
-			any |= appendbit(sb, s.Ja, s.JaDef, any);
-			if (!any) sb.Append(Loc.T("dict.empty.sense"));
-			sb.AppendLine();
-			foreach (var p in s.Phrases) linepair(sb, "  · ", p.Text, p.Zh);
-			foreach (var p in s.Sentences) linepair(sb, "  ", p.Text, p.Zh);
+			if (e.Etymology.Length > 0) {
+				doc.Blocks.Add(one(Loc.T("dict.lab.etym"), DRole.Label, 0));
+				foreach (var line in splitlines(e.Etymology)) doc.Blocks.Add(one(line, DRole.Body, 0));
+			}
+			foreach (var c in e.Conjugations) {
+				var p = para(0);
+				addrun(p, Loc.T("dict.lab.conj"), DRole.Label);
+				addrun(p, c, DRole.Body);
+				doc.Blocks.Add(p);
+			}
+			if (e.See.Count > 0) {
+				var p = para(1);
+				addrun(p, Loc.T("dict.lab.see") + " ", DRole.Label);
+				var first = true;
+				foreach (var s in e.See) {
+					if (s == null || s.Length == 0) continue;
+					if (!first) addrun(p, " · ", DRole.Body);
+					first = false;
+					addlink(p, s, s);
+				}
+				doc.Blocks.Add(p);
+			}
+			var n = 1;
+			string lastpos = null;
+			var anySense = false;
+			foreach (var s in e.Senses) {
+				if (anySense) doc.Blocks.Add(para(4));
+				anySense = true;
+				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
+					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1));
+					lastpos = s.Pos;
+				}
+				var numbered = false;
+				void gloss(string tag, string lemma, string def) {
+					if (lemma.Length == 0 && def.Length == 0) return;
+					var p = para(0);
+					if (!numbered) {
+						addrun(p, n + ". ", DRole.Number);
+						numbered = true;
+						n++;
+					}
+					if (tag.Length > 0) addrun(p, tag + " ", DRole.Label);
+					addrun(p, join2(lemma, def), DRole.Body);
+					doc.Blocks.Add(p);
+				}
+				if (s.Ko.Length > 0) gloss("", s.Ko, "");
+				gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef);
+				gloss(Loc.T("dict.lab.en"), s.En, s.EnDef);
+				gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef);
+				var linkphrase = e.Dict != "ko";
+				foreach (var ph in s.Phrases) {
+					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
+					var p = para(0);
+					addrun(p, Loc.T("dict.lab.phrase") + " ", DRole.Label);
+					if (linkphrase && ph.Text.Length > 0) addlink(p, ph.Text, firsttoken(ph.Text));
+					else addrun(p, ph.Text, DRole.Body);
+					doc.Blocks.Add(p);
+					if (ph.Zh.Length > 0) {
+						var z = para(0);
+						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label);
+						addrun(z, ph.Zh, DRole.Body);
+						doc.Blocks.Add(z);
+					}
+				}
+				if (s.Sentences.Count > 0) doc.Blocks.Add(one(Loc.T("dict.lab.example"), DRole.ExLabel, 0));
+				foreach (var ex in s.Sentences) {
+					if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
+					doc.Blocks.Add(one("· " + ex.Text, DRole.Example, 0));
+					if (ex.Zh.Length > 0) {
+						var z = para(0);
+						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label);
+						addrun(z, ex.Zh, DRole.Body);
+						doc.Blocks.Add(z);
+					}
+				}
+				if (!numbered && s.Phrases.Count == 0 && s.Sentences.Count == 0) {
+					var p = para(0);
+					addrun(p, n + ". ", DRole.Number);
+					n++;
+					addrun(p, Loc.T("dict.empty.sense"), DRole.Pron);
+					doc.Blocks.Add(p);
+				}
+				else if (!numbered) {
+					doc.Blocks.Add(one(n + ".", DRole.Number, 0));
+					n++;
+				}
+			}
 		}
-		if (e.Conjugations.Count > 0) {
-			sb.AppendLine();
-			sb.AppendLine(Loc.T("dict.conj"));
-			foreach (var c in e.Conjugations) sb.AppendLine(c);
+		if (e.Extra.Length > 0 && (zharticle || e.Dict != "zh")) {
+			if (doc.Blocks.Count > 0) doc.Blocks.Add(para(6));
+			foreach (var line in splitlines(e.Extra)) doc.Blocks.Add(one(line, DRole.Body, 0));
 		}
-		if (e.Etymology.Length > 0) {
-			sb.AppendLine();
-			sb.AppendLine(e.Etymology);
-		}
-		if (e.See.Count > 0) {
-			sb.AppendLine();
-			sb.AppendLine(Loc.T("dict.see", string.Join(" · ", e.See)));
-		}
-		if (e.Extra.Length > 0) {
-			sb.AppendLine();
-			sb.AppendLine(e.Extra);
-		}
-		edetail.Text = sb.ToString().TrimEnd();
+		edetail.Document = doc;
 		edetail.ScrollToHome();
 	}
 
-	static bool appendbit(StringBuilder sb, string lemma, string def, bool started) {
-		if (lemma.Length == 0 && def.Length == 0) return false;
-		if (started) sb.Append("  ");
-		if (lemma.Length > 0) sb.Append(lemma);
-		if (def.Length > 0) {
-			if (lemma.Length > 0) sb.Append("  ");
-			sb.Append(def);
+	void openselpop() {
+		var text = edetail.Selection == null ? "" : edetail.Selection.Text ?? "";
+		text = oneline(text);
+		if (text.Length == 0) return;
+		if (text.Length > 80) text = text.Substring(0, 80);
+		seltext = text;
+		try {
+			var rect = edetail.Selection.Start.GetCharacterRect(LogicalDirection.Forward);
+			var pt = edetail.PointToScreen(new Point(rect.Left, rect.Bottom + 4));
+			psel.HorizontalOffset = pt.X;
+			psel.VerticalOffset = pt.Y;
 		}
-		return true;
+		catch { }
+		psel.IsOpen = true;
+		showselhits(null, true);
+		var g = ++sgen;
+		var q = text;
+		Task.Run(() => {
+			try { return DictDb.Ready ? DictDb.Search(q, "", 8) : new List<DictHit>(); }
+			catch { return new List<DictHit>(); }
+		}).ContinueWith(t => {
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (g != sgen || !psel.IsOpen) return;
+				showselhits(t.Result, false);
+			}));
+		});
 	}
 
-	static void linepair(StringBuilder sb, string indent, string a, string b) {
-		if (a.Length == 0 && b.Length == 0) return;
-		sb.Append(indent);
-		sb.Append(a);
-		if (b.Length > 0) {
-			if (a.Length > 0) sb.Append("  ");
-			sb.Append(b);
+	void showselhits(List<DictHit> hits, bool searching) {
+		var rows = new List<DictSelRow>();
+		if (hits != null) {
+			foreach (var h in hits) {
+				if (h.Id == 0) continue;
+				var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
+				var lang = langlabel(h.Dict);
+				rows.Add(new DictSelRow {
+					Id = h.Id,
+					Word = word,
+					Title = lang.Length > 0 ? "[" + lang + "] " + word : word,
+					Gloss = h.Preview ?? "",
+				});
+				if (rows.Count >= 8) break;
+			}
 		}
-		sb.AppendLine();
+		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+		lsel.ItemsSource = rows;
+		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+	}
+
+	void openhit(DictSelRow row) {
+		if (row == null || row.Word.Length == 0) return;
+		psel.IsOpen = false;
+		wantid = row.Id;
+		if ((esearch.Text ?? "") == row.Word) runsearch();
+		else {
+			suppress = true;
+			esearch.Text = row.Word;
+			suppress = false;
+			queuesearch();
+		}
+	}
+
+	void searchword(string q) {
+		q = oneline(q);
+		if (q.Length == 0) return;
+		wantid = 0;
+		if ((esearch.Text ?? "") == q) runsearch();
+		else {
+			suppress = true;
+			esearch.Text = q;
+			suppress = false;
+			queuesearch();
+		}
+	}
+
+	static void copytext(string text) {
+		if (string.IsNullOrEmpty(text)) return;
+		try { Clipboard.SetText(text); }
+		catch { }
 	}
 
 	async Task speak(string text, string lang) {
@@ -355,5 +575,113 @@ public partial class DictWindow : Window {
 		if (dict == "ko") return Loc.T("dict.filter.ko");
 		if (dict == "zh") return Loc.T("dict.filter.zh");
 		return "";
+	}
+
+	static FlowDocument newdoc() {
+		return new FlowDocument {
+			PagePadding = new Thickness(2),
+			FontSize = 13,
+			FontFamily = new FontFamily("Segoe UI, Microsoft YaHei UI"),
+		};
+	}
+
+	static Paragraph para(double bottom) {
+		return new Paragraph { Margin = new Thickness(0, 0, 0, bottom), LineHeight = 18 };
+	}
+
+	static Paragraph one(string text, DRole role, double bottom) {
+		var p = para(bottom);
+		addrun(p, text, role);
+		return p;
+	}
+
+	static void addrun(Paragraph p, string text, DRole role) {
+		if (text == null || text.Length == 0 || p == null) return;
+		var run = new Run(text);
+		var b = brush(role);
+		if (b != null) run.Foreground = b;
+		if (role == DRole.Title) run.FontWeight = FontWeights.SemiBold;
+		p.Inlines.Add(run);
+	}
+
+	void addlink(Paragraph p, string label, string query) {
+		if (label == null || label.Length == 0 || p == null) return;
+		var link = new Hyperlink(new Run(label)) {
+			Foreground = CLabel,
+			TextDecorations = null,
+		};
+		var q = query ?? label;
+		link.Click += (_, _) => searchword(q);
+		p.Inlines.Add(link);
+	}
+
+	static Brush brush(DRole role) {
+		if (role == DRole.Pron) return CPron;
+		if (role == DRole.Pos) return CPos;
+		if (role == DRole.Number) return CNumber;
+		if (role == DRole.Label) return CLabel;
+		if (role == DRole.ExLabel) return CExLabel;
+		if (role == DRole.Example) return CExample;
+		return null;
+	}
+
+	static SolidColorBrush freeze(byte r, byte g, byte b) {
+		var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+		brush.Freeze();
+		return brush;
+	}
+
+	static string bracket(string s) {
+		if (s.Length == 0) return s;
+		if (s[0] == '[' || s[0] == '［') return s;
+		return "[" + s + "]";
+	}
+
+	static string join2(string a, string b) {
+		if (string.IsNullOrEmpty(a)) return b ?? "";
+		if (string.IsNullOrEmpty(b)) return a;
+		return a + "  " + b;
+	}
+
+	static string firsttoken(string phrase) {
+		var t = (phrase ?? "").Trim();
+		var i = t.IndexOf(' ');
+		if (i < 0) i = t.IndexOf('　');
+		if (i <= 0) return t;
+		return t.Substring(0, i);
+	}
+
+	static List<string> splitlines(string text) {
+		var list = new List<string>();
+		if (string.IsNullOrEmpty(text)) return list;
+		var parts = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+		foreach (var p in parts) list.Add(p);
+		return list;
+	}
+
+	static string oneline(string text) {
+		if (string.IsNullOrWhiteSpace(text)) return "";
+		var sb = new StringBuilder(text.Length);
+		var sp = false;
+		foreach (var c in text) {
+			if (c == '\r' || c == '\n' || c == '\t' || c == ' ') {
+				sp = sb.Length > 0;
+				continue;
+			}
+			if (sp) { sb.Append(' '); sp = false; }
+			sb.Append(c);
+		}
+		return sb.ToString();
+	}
+
+	static bool under(DependencyObject root, DependencyObject node) {
+		while (node != null) {
+			if (node == root) return true;
+			DependencyObject next = null;
+			try { next = VisualTreeHelper.GetParent(node); } catch { }
+			if (next == null) next = LogicalTreeHelper.GetParent(node);
+			node = next;
+		}
+		return false;
 	}
 }

@@ -188,6 +188,10 @@ public partial class MainWindow {
 	void toggledictwindow() {
 		if (dictWin == null) {
 			dictWin = new DictWindow();
+			dictWin.OnTranslate = text => {
+				ensuretranslatepopup();
+				trPopup.ShowText(text);
+			};
 			dictWin.Closed += (_, _) => dictWin = null;
 		}
 		if (dictWin.IsVisible) {

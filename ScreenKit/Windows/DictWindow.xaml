@@ -8,21 +8,22 @@
         ShowInTaskbar="True"
         Background="{StaticResource BgApp}"
         FontFamily="Segoe UI, Microsoft YaHei UI"
+        FontSize="13"
         AutomationProperties.AutomationId="dict.window">
-	<Grid Margin="12">
+	<Grid Margin="10">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
-		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="True">
-			<Button x:Name="bspeakzh" DockPanel.Dock="Right" Content="读中文" Height="32" MinWidth="72"
-			        Margin="6,0,0,0" Padding="10,0" Style="{StaticResource GhostBtn}"
+		<DockPanel Grid.Row="0" Margin="0,0,0,6" LastChildFill="True">
+			<Button x:Name="bspeakzh" DockPanel.Dock="Right" Content="读中文" Height="28" MinWidth="64"
+			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 			        AutomationProperties.AutomationId="dict.speakzh"/>
-			<Button x:Name="bspeak" DockPanel.Dock="Right" Content="发音" Height="32" MinWidth="64"
-			        Margin="6,0,0,0" Padding="10,0" Style="{StaticResource GhostBtn}"
+			<Button x:Name="bspeak" DockPanel.Dock="Right" Content="发音" Height="28" MinWidth="52"
+			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 			        AutomationProperties.AutomationId="dict.speak"/>
-			<ComboBox x:Name="elang" DockPanel.Dock="Right" Width="110" Height="32"
+			<ComboBox x:Name="elang" DockPanel.Dock="Right" Width="100" Height="28" FontSize="13"
 			          VerticalContentAlignment="Center"
 			          AutomationProperties.AutomationId="dict.filter">
 				<ComboBoxItem Tag="" Content="全部"/>
@@ -31,13 +32,13 @@
 				<ComboBoxItem Tag="ja" Content="日语"/>
 				<ComboBoxItem Tag="ko" Content="韩语"/>
 			</ComboBox>
-			<TextBox x:Name="esearch" Height="32" FontSize="16" Padding="8,4"
+			<TextBox x:Name="esearch" Height="28" FontSize="13" Padding="8,2"
 			         VerticalContentAlignment="Center"
 			         AutomationProperties.AutomationId="dict.search"/>
 		</DockPanel>
 		<Grid Grid.Row="1">
 			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="360" MinWidth="220"/>
+				<ColumnDefinition Width="340" MinWidth="200"/>
 				<ColumnDefinition Width="Auto"/>
 				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
@@ -45,26 +46,104 @@
 			         BorderBrush="{StaticResource BorderSoft}"
 			         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 			         AutomationProperties.AutomationId="dict.hits">
+				<ListBox.ItemContainerStyle>
+					<Style TargetType="ListBoxItem">
+						<Setter Property="Padding" Value="6,1"/>
+						<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+						<Setter Property="FontSize" Value="13"/>
+					</Style>
+				</ListBox.ItemContainerStyle>
 				<ListBox.ItemTemplate>
 					<DataTemplate>
-						<StackPanel Margin="2,3">
-							<TextBlock Text="{Binding Head}" FontSize="15" TextTrimming="CharacterEllipsis"/>
-							<TextBlock Text="{Binding Meta}" Opacity="0.62" FontSize="12" TextTrimming="CharacterEllipsis"/>
-							<TextBlock Text="{Binding Preview}" Opacity="0.82" FontSize="12" TextTrimming="CharacterEllipsis"/>
-						</StackPanel>
+						<Grid>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="Auto"/>
+							</Grid.ColumnDefinitions>
+							<StackPanel Margin="0,1" VerticalAlignment="Center">
+								<TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Text="{Binding Preview}" FontSize="13" Opacity="0.62"
+								           TextTrimming="CharacterEllipsis"/>
+							</StackPanel>
+							<Button Grid.Column="1" Content="🔊" FontSize="13" Width="28" Height="28"
+							        Margin="4,0,0,0" Padding="0" VerticalAlignment="Center"
+							        Background="Transparent" BorderThickness="0" Foreground="#2878BE"
+							        Cursor="Hand" Focusable="False"
+							        AutomationProperties.AutomationId="dict.row.speak"/>
+						</Grid>
 					</DataTemplate>
 				</ListBox.ItemTemplate>
 			</ListBox>
 			<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center"
 			              Background="{StaticResource BorderSoft}"/>
-			<TextBox x:Name="edetail" Grid.Column="2" Margin="8,0,0,0"
-			         IsReadOnly="True" IsReadOnlyCaretVisible="True"
-			         TextWrapping="Wrap" AcceptsReturn="True"
-			         VerticalScrollBarVisibility="Auto" FontSize="15"
-			         Padding="12" BorderBrush="{StaticResource BorderSoft}"
-			         AutomationProperties.AutomationId="dict.detail"/>
+			<RichTextBox x:Name="edetail" Grid.Column="2" Margin="8,0,0,0"
+			             IsReadOnly="True" IsReadOnlyCaretVisible="True" IsDocumentEnabled="True"
+			             VerticalScrollBarVisibility="Auto" FontSize="13"
+			             Padding="8,6" BorderBrush="{StaticResource BorderSoft}"
+			             ContextMenu="{x:Null}"
+			             AutomationProperties.AutomationId="dict.detail">
+				<FlowDocument PagePadding="2" FontSize="13"/>
+			</RichTextBox>
 		</Grid>
-		<TextBlock x:Name="lbstatus" Grid.Row="2" Margin="2,8,0,0" FontSize="12"
+		<TextBlock x:Name="lbstatus" Grid.Row="2" Margin="2,6,0,0" FontSize="12"
 		           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>
+		<Popup x:Name="psel" Placement="Absolute" StaysOpen="True" AllowsTransparency="True">
+			<Border Background="#FCFCFC" BorderBrush="#A0A0A0" BorderThickness="1"
+			        CornerRadius="4" Padding="8,6" MinWidth="280" MaxWidth="360">
+				<Border.Effect>
+					<DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.22" Direction="270"/>
+				</Border.Effect>
+				<StackPanel>
+					<TextBlock x:Name="lbselwait" Text="搜索中…" FontSize="13" Foreground="#6E6E6E"
+					           Margin="2,0,0,4"/>
+					<ListBox x:Name="lsel" MaxHeight="200" FontSize="13" BorderThickness="0"
+					         Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+					         AutomationProperties.AutomationId="dict.sel.hits">
+						<ListBox.ItemContainerStyle>
+							<Style TargetType="ListBoxItem">
+								<Setter Property="Padding" Value="4,2"/>
+								<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+								<Setter Property="Background" Value="Transparent"/>
+								<Style.Triggers>
+									<Trigger Property="IsMouseOver" Value="True">
+										<Setter Property="Background" Value="#0067C0"/>
+										<Setter Property="Foreground" Value="White"/>
+									</Trigger>
+								</Style.Triggers>
+							</Style>
+						</ListBox.ItemContainerStyle>
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<Grid>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="1.1*"/>
+										<ColumnDefinition Width="*"/>
+									</Grid.ColumnDefinitions>
+									<TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis"
+									           Margin="0,0,8,0"/>
+									<TextBlock Grid.Column="1" Text="{Binding Gloss}" FontSize="13" Opacity="0.72"
+									           TextTrimming="CharacterEllipsis"/>
+								</Grid>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+					<Separator x:Name="spsel" Margin="0,4,0,6"/>
+					<WrapPanel>
+						<Button x:Name="bselspeak" Content="发音" Height="26" MinWidth="52" Margin="0,0,6,0"
+						        Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
+						        AutomationProperties.AutomationId="dict.sel.speak"/>
+						<Button x:Name="bselsearch" Content="搜索" Height="26" MinWidth="52" Margin="0,0,6,0"
+						        Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
+						        AutomationProperties.AutomationId="dict.sel.search"/>
+						<Button x:Name="bseltr" Content="翻译" Height="26" MinWidth="52" Margin="0,0,6,0"
+						        Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
+						        AutomationProperties.AutomationId="dict.sel.translate"/>
+						<Button x:Name="bselcopy" Content="复制" Height="26" MinWidth="52"
+						        Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
+						        AutomationProperties.AutomationId="dict.sel.copy"/>
+					</WrapPanel>
+				</StackPanel>
+			</Border>
+		</Popup>
 	</Grid>
 </Window>
