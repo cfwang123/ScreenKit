@@ -54,7 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
-- MJPEG AVI stays in sync when sound starts and stops. A late burst is written back over the silence already padded for that moment, instead of being stuck on the end. While catching up, missed pictures keep the previous frame.
+- MJPEG AVI stays in sync when sound starts and stops. A late burst is written back over the silence already padded for that moment, instead of being stuck on the end. While catching up, missed pictures keep the previous frame. The audio time base is one sample per tick. Players that ignore the block size no longer play the sound at double speed.
 - Media Foundation recordings write AAC while capturing. The rate is 44.1 kHz or 48 kHz from the start, because system AAC rejects other rates such as 22.05 kHz (`0xC00D36B4`). Saving no longer builds a second file to mix the sound in.
 - Android cast screen shows **投屏中** again after leaving to the main screen and opening cast. The service was still casting; the new screen had reset to “ready”.
 - Android debug and release builds now sign with the same keystore (`android/app/debug.keystore`). Installing one over the other keeps the app’s private data.
@@ -89,7 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
-- MJPEG AVI 在声音时断时续时和画面保持对齐。迟到的一段声音会写回已经垫上的静音，不再拖在末尾。补帧时重复上一张画面。
+- MJPEG AVI 在声音时断时续时和画面保持对齐。迟到的一段声音会写回已经垫上的静音，不再拖在末尾。补帧时重复上一张画面。声音时间基改成一个采样一格，忽略块大小的播放器不会再把声音放成两倍速。
 - 系统 H.264 在录制时就把声音写成 AAC。采样率从一开始就是 44.1kHz 或 48kHz，因为系统 AAC 不接受 22050Hz 等其它采样率（`0xC00D36B4`）。保存时不再另做一次合成。
 - 安卓投屏中退回主界面再打开投屏页，会重新显示「投屏中」和停止按钮。服务仍在投，只是新开的页面把状态清成了「准备投屏」。
 - 安卓 debug 与 release 固定用同一把钥匙（`android/app/debug.keystore`）。互相覆盖安装会保留私有数据。

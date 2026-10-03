@@ -103,6 +103,99 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 		dst.Finish();
 	}
 
+	/// <summary>音轨必须是 scale=1、rate=采样率，否则部分播放器会两倍速。</summary>
+	internal static string CheckAudioClock() {
+		var dir = Path.Combine(Path.GetTempPath(), "sk_mjpeg_clk");
+		var avi = Path.Combine(dir, "v.avi");
+		var wav = Path.Combine(dir, "a.wav");
+		var dst = Path.Combine(dir, "av.avi");
+		try {
+			Directory.CreateDirectory(dir);
+			var opt = new RecordOptions { Codec = "mjpeg", Fps = 10 };
+			opt.Clamp();
+			using (var w = new MjpegAviWriter(avi, 32, 32, opt)) {
+				var bgra = new byte[32 * 32 * 4];
+				for (var i = 0; i < 10; i++)
+					w.WriteBgra(bgra, 32 * 4, i);
+				w.Finish();
+			}
+			writepcm(wav, 22050, 22050);
+			MuxPcm(avi, wav, dst, 22050, true);
+			if (!readclock(dst, out var scale, out var rate, out var length, out var fmtSize))
+				return "读不到音轨";
+			if (scale != 1 || rate != 22050)
+				return $"时间基 {scale}/{rate}";
+			if (fmtSize != 16)
+				return "strf " + fmtSize;
+			if (length < 22000 || length > 22100)
+				return "样本数 " + length;
+			return null;
+		}
+		catch (Exception ex) { return ex.Message; }
+		finally {
+			try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch { }
+		}
+	}
+
+	static void writepcm(string path, int rate, int samples) {
+		using var fs = File.Create(path);
+		var data = samples * 2;
+		void raw(byte[] b) => fs.Write(b, 0, b.Length);
+		raw(Encoding.ASCII.GetBytes("RIFF"));
+		raw(BitConverter.GetBytes(36 + data));
+		raw(Encoding.ASCII.GetBytes("WAVEfmt "));
+		raw(BitConverter.GetBytes(16));
+		raw(BitConverter.GetBytes((short)1));
+		raw(BitConverter.GetBytes((short)1));
+		raw(BitConverter.GetBytes(rate));
+		raw(BitConverter.GetBytes(rate * 2));
+		raw(BitConverter.GetBytes((short)2));
+		raw(BitConverter.GetBytes((short)16));
+		raw(Encoding.ASCII.GetBytes("data"));
+		raw(BitConverter.GetBytes(data));
+		fs.Write(new byte[data], 0, data);
+	}
+
+	static bool readclock(string path, out int scale, out int rate, out int length, out int fmtSize) {
+		scale = rate = length = fmtSize = 0;
+		var data = File.ReadAllBytes(path);
+		var pos = 12;
+		while (pos + 8 <= data.Length) {
+			var id = Encoding.ASCII.GetString(data, pos, 4);
+			var size = BitConverter.ToInt32(data, pos + 4);
+			var body = pos + 8;
+			if (size < 0 || body + size > data.Length) return false;
+			if (id == "LIST") {
+				var typ = Encoding.ASCII.GetString(data, body, 4);
+				if (typ == "strl")
+					readstrl(data, body + 4, body + size, ref scale, ref rate, ref length, ref fmtSize);
+				else if (typ == "hdrl")
+					pos = body + 4;
+			}
+			if (id != "LIST" || Encoding.ASCII.GetString(data, body, 4) != "hdrl")
+				pos = body + size + (size & 1);
+		}
+		return rate > 0 && fmtSize > 0;
+	}
+
+	static void readstrl(byte[] data, int start, int end, ref int scale, ref int rate, ref int length, ref int fmtSize) {
+		var pos = start;
+		while (pos + 8 <= end) {
+			var id = Encoding.ASCII.GetString(data, pos, 4);
+			var size = BitConverter.ToInt32(data, pos + 4);
+			var body = pos + 8;
+			if (size < 0 || body + size > data.Length) return;
+			if (id == "strh" && size >= 48 && Encoding.ASCII.GetString(data, body, 4) == "auds") {
+				scale = BitConverter.ToInt32(data, body + 20);
+				rate = BitConverter.ToInt32(data, body + 24);
+				length = BitConverter.ToInt32(data, body + 32);
+			}
+			else if (id == "strf" && size >= 16 && data[body] == 1)
+				fmtSize = size;
+			pos = body + size + (size & 1);
+		}
+	}
+
 	sealed class VideoInfo {
 		public int Width, Height, Fps;
 		public List<byte[]> Frames;
@@ -114,7 +207,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 		long riffSizePos, avihFramesPos, avihMaxBytesPos, avihSuggestPos;
 		long strhLenPos, strhSuggestPos, audLenPos, audSuggestPos, moviSizePos, moviFccPos;
 		readonly List<(string id, int offset, int len)> index = new();
-		int frames, maxJpeg, maxAud, fps = 1, audBlock = 1;
+		int frames, maxJpeg, maxAud, fps = 1, audBlock = 1, audRate;
 		long audioBytes;
 		bool withAudio, finished;
 
@@ -123,6 +216,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 		public void Begin(string path, int w, int h, int frameRate, int sampleRate, int channels) {
 			fps = Math.Max(1, frameRate);
 			withAudio = channels > 0 && sampleRate > 0;
+			audRate = Math.Max(1, sampleRate);
 			audBlock = withAudio ? channels * 2 : 1;
 			var dir = Path.GetDirectoryName(path);
 			if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
@@ -153,8 +247,10 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			u32((uint)h);
 			u32(0); u32(0); u32(0); u32(0);
 			writestrh("vids", "MJPG", 1, fps, 0, w, h, video: true);
+			// 声音的一格是一个采样（dwScale=1，dwRate=采样率）。
+			// 若写成 dwScale=块字节、dwRate=每秒字节，按「样本数/dwRate」计时的播放器会把声音放成两倍速。
 			if (withAudio)
-				writestrh("auds", null, audBlock, sampleRate * audBlock, audBlock, 0, 0, video: false);
+				writestrh("auds", null, 1, audRate, audBlock, 0, 0, video: false);
 			patch(hdrlSizePos, (int)(fs.Position - hdrlStart));
 			fcc("LIST");
 			moviSizePos = fs.Position;
@@ -201,15 +297,15 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 				u32(0); u32(0); u32(0); u32(0); u32(0);
 			}
 			else {
+				// PCM 用 16 字节 WAVEFORMAT，不带 cbSize。
 				fcc("strf");
-				u32(18);
+				u32(16);
 				u16(1);
-				u16((ushort)(sampleSize / 2));
-				u32((uint)(rate / Math.Max(1, sampleSize)));
-				u32((uint)rate);
-				u16((ushort)sampleSize);
+				u16((ushort)Math.Max(1, audBlock / 2));
+				u32((uint)audRate);
+				u32((uint)(audRate * Math.Max(1, audBlock)));
+				u16((ushort)audBlock);
 				u16(16);
-				u16(0);
 			}
 			patch(listSizePos, (int)(fs.Position - start));
 		}
@@ -236,7 +332,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			u32((uint)(index.Count * 16));
 			foreach (var e in index) {
 				fcc(e.id);
-				u32(e.id == "00dc" ? 0x10u : 0u);
+				u32(0x10u);
 				u32((uint)e.offset);
 				u32((uint)e.len);
 			}

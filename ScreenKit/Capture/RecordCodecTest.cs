@@ -32,6 +32,12 @@ static class RecordCodecTest {
 			bad++;
 		}
 		else log("wav place OK");
+		var clock = MjpegAviWriter.CheckAudioClock();
+		if (clock != null) {
+			log("FAIL avi audio clock: " + clock);
+			bad++;
+		}
+		else log("avi audio clock OK");
 		if (!clampkeeps(want, log))
 			bad++;
 		if (!shortsideok(log))
