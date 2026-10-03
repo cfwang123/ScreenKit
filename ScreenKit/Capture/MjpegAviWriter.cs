@@ -103,7 +103,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 		dst.Finish();
 	}
 
-	/// <summary>音轨必须是 scale=1、rate=采样率，否则部分播放器会两倍速。</summary>
+	/// <summary>音轨 dwScale=块字节，dwRate=每秒字节。1 秒 22050Hz 单声道应为 2/44100。</summary>
 	internal static string CheckAudioClock() {
 		var dir = Path.Combine(Path.GetTempPath(), "sk_mjpeg_clk");
 		var avi = Path.Combine(dir, "v.avi");
@@ -123,12 +123,15 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			MuxPcm(avi, wav, dst, 22050, true);
 			if (!readclock(dst, out var scale, out var rate, out var length, out var fmtSize))
 				return "读不到音轨";
-			if (scale != 1 || rate != 22050)
+			if (scale != 2 || rate != 44100)
 				return $"时间基 {scale}/{rate}";
 			if (fmtSize != 16)
 				return "strf " + fmtSize;
 			if (length < 22000 || length > 22100)
 				return "样本数 " + length;
+			var dur = (double)length * scale / rate;
+			if (dur < 0.99 || dur > 1.01)
+				return "时长 " + dur.ToString("0.000");
 			return null;
 		}
 		catch (Exception ex) { return ex.Message; }
@@ -247,10 +250,11 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			u32((uint)h);
 			u32(0); u32(0); u32(0); u32(0);
 			writestrh("vids", "MJPG", 1, fps, 0, w, h, video: true);
-			// 声音的一格是一个采样（dwScale=1，dwRate=采样率）。
-			// 若写成 dwScale=块字节、dwRate=每秒字节，按「样本数/dwRate」计时的播放器会把声音放成两倍速。
+			// dwRate 是每秒字节数，dwScale 是一块的字节数。
+			// 按「字节下标/dwRate」计时的播放器才会和画面同一条时间。
+			// dwScale=1、dwRate=采样率时，这种播放器把 16bit 声音放成半速，画面在动时听到的是静音。
 			if (withAudio)
-				writestrh("auds", null, 1, audRate, audBlock, 0, 0, video: false);
+				writestrh("auds", null, audBlock, audRate * audBlock, audBlock, 0, 0, video: false);
 			patch(hdrlSizePos, (int)(fs.Position - hdrlStart));
 			fcc("LIST");
 			moviSizePos = fs.Position;
