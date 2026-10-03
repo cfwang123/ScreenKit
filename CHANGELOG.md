@@ -29,15 +29,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-#### Changed
-
-- The default LLM translate prompt no longer names the source language. It only says to translate into `{dst}`. A saved `translate_llm_prompt` that still contains `{src}` is left as it is.
-
 ### 中文
-
-#### 变更
-
-- LLM 翻译默认提示词不再写源语言，只要求翻译为 `{dst}`。配置里已经保存的 `translate_llm_prompt` 若仍含 `{src}`，不会被改掉。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 
@@ -69,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Settings → API: the listen-address box is now **Allow LAN access**. Checked (default) listens on every interface; unchecked listens on `127.0.0.1` only. File transfer, the web manager, and Wi-Fi cast share this port. Config key is `http_lan`. An old `http_host` of `127.0.0.1` stays LAN-open when file transfer or cast was already on.
 - The Windows release package no longer includes the Android APK.
 - **Install on phone** can check GitHub Releases and download the latest APK. The QR code still serves that file from this PC over the LAN.
+- The default LLM translate prompt no longer names the source language. It only says to translate into `{dst}`. A saved `translate_llm_prompt` that still contains `{src}` is left as it is.
 
 #### Fixed
 
@@ -106,6 +99,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **参数设置 → 接口**：监听地址改为勾选 **允许局域网访问**。勾选（默认）时所有网卡可连；不勾选时只听 `127.0.0.1`。文件传输、网页管理和 Wi-Fi 投屏共用此端口。配置键为 `http_lan`。旧配置里 `http_host` 为 `127.0.0.1` 且已开文件传输或投屏时，升级后仍允许局域网。
 - Windows 发布包不再附带安卓 APK。
 - **安装到手机**可以检查 GitHub Releases，并下载最新 APK。二维码仍从这台电脑的局域网地址提供刚下载的文件。
+- LLM 翻译默认提示词不再写源语言，只要求翻译为 `{dst}`。配置里已经保存的 `translate_llm_prompt` 若仍含 `{src}`，不会被改掉。
 
 #### 修复
 
