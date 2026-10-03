@@ -87,7 +87,9 @@
 		</Grid>
 		<TextBlock x:Name="lbstatus" Grid.Row="2" Margin="2,6,0,0" FontSize="12"
 		           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>
-		<Popup x:Name="psel" Placement="Absolute" StaysOpen="True" AllowsTransparency="True">
+		<Popup x:Name="psel" Placement="Relative"
+		       PlacementTarget="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
+		       StaysOpen="True" AllowsTransparency="True">
 			<Border Background="#FCFCFC" BorderBrush="#A0A0A0" BorderThickness="1"
 			        CornerRadius="4" Padding="8,6" MinWidth="280" MaxWidth="360">
 				<Border.Effect>

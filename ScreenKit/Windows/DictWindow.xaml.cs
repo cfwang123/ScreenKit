@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -39,6 +40,7 @@ public partial class DictWindow : Window {
 	static readonly Brush CLabel = freeze(40, 90, 170);
 	static readonly Brush CExLabel = freeze(20, 130, 70);
 	static readonly Brush CExample = freeze(45, 120, 75);
+	static readonly Brush CSpeak = freeze(40, 120, 190);
 
 	WinRtTts tts;
 	TtsPlayer player;
@@ -408,9 +410,14 @@ public partial class DictWindow : Window {
 					}
 				}
 				if (s.Sentences.Count > 0) doc.Blocks.Add(one(Loc.T("dict.lab.example"), DRole.ExLabel, 0));
+				var exlang = speaklang(e.Dict);
 				foreach (var ex in s.Sentences) {
 					if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
-					doc.Blocks.Add(one("· " + ex.Text, DRole.Example, 0));
+					var ep = para(0);
+					addrun(ep, "· " + ex.Text, DRole.Example);
+					var say = examplesrc(ex.Text);
+					if (say.Length > 0) addspeak(ep, say, exlang);
+					doc.Blocks.Add(ep);
 					if (ex.Zh.Length > 0) {
 						var z = para(0);
 						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label);
@@ -445,13 +452,7 @@ public partial class DictWindow : Window {
 		if (text.Length == 0) return;
 		if (text.Length > 80) text = text.Substring(0, 80);
 		seltext = text;
-		try {
-			var rect = edetail.Selection.Start.GetCharacterRect(LogicalDirection.Forward);
-			var pt = edetail.PointToScreen(new Point(rect.Left, rect.Bottom + 4));
-			psel.HorizontalOffset = pt.X;
-			psel.VerticalOffset = pt.Y;
-		}
-		catch { }
+		placepop();
 		psel.IsOpen = true;
 		showselhits(null, true);
 		var g = ++sgen;
@@ -465,6 +466,37 @@ public partial class DictWindow : Window {
 				showselhits(t.Result, false);
 			}));
 		});
+	}
+
+	void placepop() {
+		psel.PlacementTarget = this;
+		psel.Placement = PlacementMode.Relative;
+		var rect = new Rect(12, 12, 0, 16);
+		try {
+			if (edetail.Selection != null)
+				rect = edetail.Selection.Start.GetCharacterRect(LogicalDirection.Forward);
+		}
+		catch { }
+		var below = new Point(12, 40);
+		var above = new Point(12, 24);
+		try {
+			below = edetail.TranslatePoint(new Point(rect.Left, rect.Bottom + 4), this);
+			above = edetail.TranslatePoint(new Point(rect.Left, rect.Top), this);
+		}
+		catch { }
+		var x = below.X;
+		var y = below.Y;
+		const double popW = 360;
+		const double popH = 280;
+		if (x + popW > ActualWidth - 8) x = ActualWidth - popW - 8;
+		if (x < 8) x = 8;
+		if (y + popH > ActualHeight - 8) {
+			var up = above.Y - popH - 4;
+			y = up >= 8 ? up : Math.Max(8, ActualHeight - popH - 8);
+		}
+		if (y < 8) y = 8;
+		psel.HorizontalOffset = x;
+		psel.VerticalOffset = y;
 	}
 
 	void showselhits(List<DictHit> hits, bool searching) {
@@ -604,6 +636,24 @@ public partial class DictWindow : Window {
 		p.Inlines.Add(run);
 	}
 
+	void addspeak(Paragraph p, string text, string lang) {
+		if (p == null || string.IsNullOrEmpty(text)) return;
+		p.Inlines.Add(new Run(" "));
+		var run = new Run("\uE767") {
+			FontFamily = new FontFamily("Segoe MDL2 Assets"),
+			FontSize = 13,
+			Foreground = CSpeak,
+		};
+		var link = new Hyperlink(run) {
+			Foreground = CSpeak,
+			TextDecorations = null,
+		};
+		var say = text;
+		var voice = lang;
+		link.Click += (_, _) => _ = speak(say, voice);
+		p.Inlines.Add(link);
+	}
+
 	void addlink(Paragraph p, string label, string query) {
 		if (label == null || label.Length == 0 || p == null) return;
 		var link = new Hyperlink(new Run(label)) {
@@ -643,6 +693,13 @@ public partial class DictWindow : Window {
 		return a + "  " + b;
 	}
 
+	static string examplesrc(string text) {
+		var t = (text ?? "").Trim().TrimStart('·').Trim();
+		var i = t.IndexOf("  ", StringComparison.Ordinal);
+		if (i > 0) t = t.Substring(0, i).Trim();
+		return t;
+	}
+
 	static string firsttoken(string phrase) {
 		var t = (phrase ?? "").Trim();
 		var i = t.IndexOf(' ');
@@ -661,6 +718,7 @@ public partial class DictWindow : Window {
 
 	static string oneline(string text) {
 		if (string.IsNullOrWhiteSpace(text)) return "";
+		text = text.Replace("🔊", "").Replace("\uE767", "");
 		var sb = new StringBuilder(text.Length);
 		var sp = false;
 		foreach (var c in text) {
