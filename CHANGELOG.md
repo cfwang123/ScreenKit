@@ -29,17 +29,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-#### Changed
-
-- The Windows release package no longer includes the Android APK.
-- **Install on phone** can check GitHub Releases and download the latest APK. The QR code still serves that file from this PC over the LAN.
-
 ### 中文
-
-#### 变更
-
-- Windows 发布包不再附带安卓 APK。
-- **安装到手机**可以检查 GitHub Releases，并下载最新 APK。二维码仍从这台电脑的局域网地址提供刚下载的文件。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 
@@ -69,6 +59,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Phone camera upload and the web camera use that same shorter-side cap. **Settings → API** still has one pixel value (`photo_max_px`, default 2000). The phone and the browser shrink only when the smaller side is over it; the PC applies the same rule if the browser could not.
 - Screencast tab **Scan LAN** lists this PC as well. Several local addresses fold into one row, marked “This PC”.
 - Settings → API: the listen-address box is now **Allow LAN access**. Checked (default) listens on every interface; unchecked listens on `127.0.0.1` only. File transfer, the web manager, and Wi-Fi cast share this port. Config key is `http_lan`. An old `http_host` of `127.0.0.1` stays LAN-open when file transfer or cast was already on.
+- The Windows release package no longer includes the Android APK.
+- **Install on phone** can check GitHub Releases and download the latest APK. The QR code still serves that file from this PC over the LAN.
 
 #### Fixed
 
@@ -104,6 +96,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 手机拍照上传和网页拍照改为同一套较短边限制。**参数设置 → 接口** 仍是一个像素值（`photo_max_px`，默认 2000）。手机和浏览器只在较短边超过时等比缩小；浏览器压不了时，电脑按同一规则再处理。
 - 投屏页 **搜索局域网** 会列出本机。多块网卡并成一条，名称后标「本机」。
 - **参数设置 → 接口**：监听地址改为勾选 **允许局域网访问**。勾选（默认）时所有网卡可连；不勾选时只听 `127.0.0.1`。文件传输、网页管理和 Wi-Fi 投屏共用此端口。配置键为 `http_lan`。旧配置里 `http_host` 为 `127.0.0.1` 且已开文件传输或投屏时，升级后仍允许局域网。
+- Windows 发布包不再附带安卓 APK。
+- **安装到手机**可以检查 GitHub Releases，并下载最新 APK。二维码仍从这台电脑的局域网地址提供刚下载的文件。
 
 #### 修复
 

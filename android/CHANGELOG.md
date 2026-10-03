@@ -4,15 +4,12 @@
 
 ## unreleased
 
-### 变更
-
-- `node build.js release` 只写出 `android/release/`。不再把 APK 拷进电脑端发布包。
-
 ## v1.0.13 (2026-09-27 ~ 10-03)
 
 ### 变更
 
 - **拍照上传**按较短边限制：宽和高里较小的一边超过电脑上的像素值时等比缩小，不超过则不放大。数值仍来自电脑参数设置。
+- `node build.js release` 只写出 `android/release/`。不再把 APK 拷进电脑端发布包。
 - debug 与 release 固定用 `app/debug.keystore` 签名。互相覆盖安装保留私有数据。
 
 ### 修复
