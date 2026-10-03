@@ -18,7 +18,7 @@ static class AsrLlmClient {
 	const int MINROUNDMS = 2000;
 
 	const string BatchPrompt =
-		"请将用户给出的编号条目从{src}翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。" +
+		"请将用户给出的编号条目翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。" +
 		"只输出译文，保持相同编号（1. 2. 3. …），一条原文对应一条译文，不要合并或省略。";
 	static readonly Regex NumberedLine = new(@"^\s*(\d+)\.\s*",
 		RegexOptions.Multiline | RegexOptions.Compiled);

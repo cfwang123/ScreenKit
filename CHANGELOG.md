@@ -29,7 +29,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- The default LLM translate prompt no longer names the source language. It only says to translate into `{dst}`. A saved `translate_llm_prompt` that still contains `{src}` is left as it is.
+
 ### 中文
+
+#### 变更
+
+- LLM 翻译默认提示词不再写源语言，只要求翻译为 `{dst}`。配置里已经保存的 `translate_llm_prompt` 若仍含 `{src}`，不会被改掉。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 

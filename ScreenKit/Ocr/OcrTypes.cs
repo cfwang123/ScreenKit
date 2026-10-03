@@ -327,10 +327,10 @@ public sealed class OcrOptions {
 
 	/// <summary>LLM 翻译默认提示词（中文）。</summary>
 	public const string DefaultTranslateLlmPromptZh =
-		"请将用户给出的文本从{src}翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。只输出译文。";
+		"请将用户给出的文本翻译为{dst}。忠实原文，不要扩写、不要解释、不要加引号。只输出译文。";
 	/// <summary>LLM 翻译默认提示词（英文）。</summary>
 	public const string DefaultTranslateLlmPromptEn =
-		"Translate the user's text from {src} to {dst}. Stay faithful to the original. Do not expand, explain, or add quotation marks. Output only the translation.";
+		"Translate the user's text to {dst}. Stay faithful to the original. Do not expand, explain, or add quotation marks. Output only the translation.";
 	/// <summary>兼容旧名：中文默认。</summary>
 	public const string DefaultTranslateLlmPrompt = DefaultTranslateLlmPromptZh;
 	/// <summary>按当前界面语言取翻译默认提示词。</summary>

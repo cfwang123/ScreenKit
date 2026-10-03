@@ -283,7 +283,7 @@ think = "low"                   # 预设或手输（minimal 等）
 [translate]
 translate_compute = "Auto"
 # translate_llm = ""
-# translate_llm_prompt = "请将用户给出的文本从{src}翻译为{dst}。只输出译文。"
+# translate_llm_prompt = "请将用户给出的文本翻译为{dst}。只输出译文。"
 translate_llm_batch = 8         # 一批条数，1–64
 
 [gif_record]
