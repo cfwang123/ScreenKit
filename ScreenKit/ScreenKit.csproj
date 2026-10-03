@@ -281,9 +281,13 @@
   <!-- 本机若已有词典库，链到开发输出。其它机器没有该文件则跳过。失败不让编译失败。不链进精简包。 -->
   <Target Name="LinkDictDb" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>
-      <_DictSrc>F:\VS_Projects\dictionary\db\dict.db</_DictSrc>
+      <_DictSrc>D:\VS_Projects\AIPrototype\PC\rustdict\db\dict.db</_DictSrc>
       <_DictDst>$(OutputPath)dict.db</_DictDst>
     </PropertyGroup>
+    <!-- 已有符号链接则先卸掉再重链，避免还指向没有汉语的旧库。普通文件不删。 -->
+    <Exec Command="cmd /c fsutil reparsepoint query &quot;$(_DictDst)&quot; &gt;nul &amp;&amp; del &quot;$(_DictDst)&quot;"
+          Condition="Exists('$(_DictSrc)') And Exists('$(_DictDst)')"
+          ContinueOnError="true" />
     <Exec Command="mklink &quot;$(_DictDst)&quot; &quot;$(_DictSrc)&quot;"
           Condition="Exists('$(_DictSrc)') And !Exists('$(_DictDst)')"
           ContinueOnError="true" />

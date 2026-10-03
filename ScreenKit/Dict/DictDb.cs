@@ -20,6 +20,7 @@ sealed class DictHit {
 	public string Via = "";
 	public int Rank;
 	public int ViaRank = -1;
+	public bool IsHead;
 }
 
 sealed class DictText {
@@ -151,7 +152,7 @@ static class DictDb {
 		batteries = true;
 	}
 
-	/// <summary>dict 为空查全部，否则 en / ja / ko。limit 为界面条数上限。</summary>
+	/// <summary>dict 为空查全部，否则 zh / en / ja / ko。limit 为界面条数上限。</summary>
 	public static List<DictHit> Search(string rawq, string dict, int limit) {
 		var empty = new List<DictHit>();
 		if (conn == null || string.IsNullOrWhiteSpace(rawq)) return empty;
@@ -191,7 +192,7 @@ static class DictDb {
 		lock (dblock) {
 			if (conn == null) return null;
 			using var cmd = conn.CreateCommand();
-			cmd.CommandText = "SELECT id, dict, headword, reading, pos, json FROM entry WHERE id = @id";
+			cmd.CommandText = "SELECT id, dict, headword, json FROM entry WHERE id = @id";
 			cmd.Parameters.AddWithValue("@id", id);
 			using var r = cmd.ExecuteReader();
 			if (!r.Read()) return null;
@@ -199,10 +200,8 @@ static class DictDb {
 				Id = r.GetInt64(0),
 				Dict = r.IsDBNull(1) ? "" : r.GetString(1),
 				Headword = r.IsDBNull(2) ? "" : r.GetString(2),
-				Reading = r.IsDBNull(3) ? "" : r.GetString(3),
-				Pos = r.IsDBNull(4) ? "" : r.GetString(4),
 			};
-			jsontext = r.IsDBNull(5) ? "" : r.GetString(5);
+			jsontext = r.IsDBNull(3) ? "" : r.GetString(3);
 		}
 		parsejson(e, jsontext);
 		if (e.Word.Length == 0) e.Word = e.Headword;
@@ -213,7 +212,7 @@ static class DictDb {
 
 	static void prefixkeys(string q, string dict, List<DictHit> hits) {
 		using var cmd = conn.CreateCommand();
-		cmd.CommandText = "SELECT entry_id, key, dict FROM lookup_key " +
+		cmd.CommandText = "SELECT entry_id, key, dict, is_head FROM lookup_key " +
 			"WHERE key LIKE @p ESCAPE '\\' AND (@d = '' OR dict = @d) LIMIT @n";
 		cmd.Parameters.AddWithValue("@p", escape(q) + "%");
 		cmd.Parameters.AddWithValue("@d", dict);
@@ -223,8 +222,8 @@ static class DictDb {
 
 	static void exactkeys(string q, string dict, List<DictHit> hits, string via, int viarank) {
 		using var cmd = conn.CreateCommand();
-		cmd.CommandText = "SELECT entry_id, key, dict FROM lookup_key " +
-			"WHERE key = @p AND (@d = '' OR dict = @d) ORDER BY key_len ASC LIMIT @n";
+		cmd.CommandText = "SELECT entry_id, key, dict, is_head FROM lookup_key " +
+			"WHERE key = @p AND (@d = '' OR dict = @d) ORDER BY is_head DESC, key_len ASC LIMIT @n";
 		cmd.Parameters.AddWithValue("@p", q);
 		cmd.Parameters.AddWithValue("@d", dict);
 		cmd.Parameters.AddWithValue("@n", 40);
@@ -233,7 +232,7 @@ static class DictDb {
 
 	static void containskeys(string q, string dict, List<DictHit> hits) {
 		using var cmd = conn.CreateCommand();
-		cmd.CommandText = "SELECT entry_id, key, dict FROM lookup_key " +
+		cmd.CommandText = "SELECT entry_id, key, dict, is_head FROM lookup_key " +
 			"WHERE key LIKE @p ESCAPE '\\' AND key NOT LIKE @pre ESCAPE '\\' " +
 			"AND (@d = '' OR dict = @d) LIMIT @n";
 		var esc = escape(q);
@@ -277,6 +276,7 @@ static class DictDb {
 				Rank = rankof(q, key),
 				Via = via ?? "",
 				ViaRank = viarank,
+				IsHead = r.FieldCount > 3 && !r.IsDBNull(3) && r.GetInt64(3) != 0,
 			};
 			hits.Add(h);
 		}
@@ -288,9 +288,9 @@ static class DictDb {
 		var seen = new HashSet<long>();
 		foreach (var h in hits)
 			if (seen.Add(h.Id)) ids.Add(h.Id);
-		var map = new Dictionary<long, DictHit>();
+		var map = new Dictionary<long, DictEntry>();
 		using var cmd = conn.CreateCommand();
-		var sql = new StringBuilder("SELECT id, headword, reading, pos, preview FROM entry WHERE id IN (");
+		var sql = new StringBuilder("SELECT id, headword, json FROM entry WHERE id IN (");
 		for (var i = 0; i < ids.Count; i++) {
 			if (i > 0) sql.Append(',');
 			sql.Append("@i").Append(i);
@@ -300,23 +300,38 @@ static class DictDb {
 		cmd.CommandText = sql.ToString();
 		using (var r = cmd.ExecuteReader()) {
 			while (r.Read()) {
-				var row = new DictHit {
+				var row = new DictEntry {
 					Id = r.GetInt64(0),
 					Headword = r.IsDBNull(1) ? "" : r.GetString(1),
-					Reading = r.IsDBNull(2) ? "" : r.GetString(2),
-					Pos = r.IsDBNull(3) ? "" : r.GetString(3),
-					Preview = r.IsDBNull(4) ? "" : r.GetString(4),
 				};
+				parsejson(row, r.IsDBNull(2) ? "" : r.GetString(2));
 				map[row.Id] = row;
 			}
 		}
 		foreach (var h in hits) {
 			if (!map.TryGetValue(h.Id, out var e)) continue;
-			h.Headword = e.Headword;
-			h.Reading = e.Reading;
+			h.Headword = e.Word.Length > 0 ? e.Word : e.Headword;
+			h.Reading = e.Pron;
 			h.Pos = e.Pos;
-			h.Preview = e.Preview;
+			h.Preview = listpreview(e);
 		}
+	}
+
+	static string listpreview(DictEntry e) {
+		if (e.Senses.Count > 0) {
+			var s = e.Senses[0];
+			var zh = join2(s.Zh, s.ZhDef);
+			if (zh.Length > 0) return trunc(zh, 80);
+			var en = join2(s.En, s.EnDef);
+			if (en.Length > 0) return trunc(en, 80);
+			if (s.Ko.Length > 0) return trunc(s.Ko, 80);
+		}
+		return trunc(e.Extra, 80);
+	}
+
+	static string trunc(string s, int n) {
+		if (string.IsNullOrEmpty(s) || s.Length <= n) return s ?? "";
+		return s.Substring(0, n);
 	}
 
 	static bool shouldruncontains(string q, int prefixUnique, int limit) {
@@ -343,6 +358,8 @@ static class DictDb {
 			if (r != 0) return r;
 			r = a.ViaRank.CompareTo(b.ViaRank);
 			if (r != 0) return r;
+			r = b.IsHead.CompareTo(a.IsHead);
+			if (r != 0) return r;
 			r = dictrank(a.Dict).CompareTo(dictrank(b.Dict));
 			if (r != 0) return r;
 			r = a.Matched.Length.CompareTo(b.Matched.Length);
@@ -354,9 +371,10 @@ static class DictDb {
 	}
 
 	static int dictrank(string d) {
-		if (d == "en") return 0;
-		if (d == "ja") return 1;
-		if (d == "ko") return 2;
+		if (d == "zh") return 0;
+		if (d == "en") return 1;
+		if (d == "ja") return 2;
+		if (d == "ko") return 3;
 		return 9;
 	}
 
@@ -369,7 +387,7 @@ static class DictDb {
 
 	static string normdict(string dict) {
 		var d = (dict ?? "").Trim().ToLowerInvariant();
-		if (d == "en" || d == "ja" || d == "ko") return d;
+		if (d == "zh" || d == "en" || d == "ja" || d == "ko") return d;
 		return "";
 	}
 
@@ -400,6 +418,7 @@ static class DictDb {
 		e.Pron = str(n["o"]);
 		if (e.Pos.Length == 0) e.Pos = str(n["p"]);
 		e.Extra = str(n["x"]);
+		if (e.Extra.Length == 0) e.Extra = str(n["r"]);
 		if (n["c"] is JsonArray ca) {
 			foreach (var c in ca) {
 				if (e.Conjugations.Count >= 12) break;

@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Dictionary window (**Options → Dictionary**, default hotkey `Ctrl+Alt+D`, `hotkey_dict`). Read-only lookup in `dict.db` beside the program for Chinese, English, Japanese, and Korean. **Speak** uses an installed Windows voice for the headword; **Read Chinese** speaks the gloss. The database is not in the release archive.
+- Dictionary filter includes Chinese headwords (`dict=zh`). **Speak** uses a Chinese voice for those headwords. List text is read from the entry JSON.
 - `onnx_unload_min` (default 5) unloads idle ONNX sessions for OCR, translation, face, speech recognition, and speech synthesis. `0` keeps them loaded. Service mode does not auto-unload.
 
 #### Changed
@@ -43,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 词典窗口（**选项 → 词典**，默认热键 `Ctrl+Alt+D`，配置键 `hotkey_dict`）。只读查询程序旁的 `dict.db`，支持中文、英语、日语、韩语。**发音** 用已安装的 Windows 语音读词头，**读中文** 朗读释义。词典库不进发布包。
+- 词典筛选增加汉语（`dict=zh`）。汉语词头发音走中文语音。列表释义从词条 JSON 读取。
 - `onnx_unload_min`（默认 5 分钟）在空闲后卸载 OCR、翻译、人脸、语音识别和合成的 ONNX 会话。`0` 表示不自动卸载。服务模式不会自动卸载。
 
 #### 变更

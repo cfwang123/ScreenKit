@@ -104,9 +104,10 @@ public partial class DictWindow : Window {
 		bspeak.ToolTip = Loc.T("dict.speak.tip");
 		bspeakzh.ToolTip = Loc.T("dict.speakzh.tip");
 		setfilter(0, Loc.T("dict.filter.all"));
-		setfilter(1, Loc.T("dict.filter.en"));
-		setfilter(2, Loc.T("dict.filter.ja"));
-		setfilter(3, Loc.T("dict.filter.ko"));
+		setfilter(1, Loc.T("dict.filter.zh"));
+		setfilter(2, Loc.T("dict.filter.en"));
+		setfilter(3, Loc.T("dict.filter.ja"));
+		setfilter(4, Loc.T("dict.filter.ko"));
 	}
 
 	void setfilter(int index, string text) {
@@ -344,7 +345,7 @@ public partial class DictWindow : Window {
 	}
 
 	static string speaklang(string dict) {
-		if (dict == "ja" || dict == "ko" || dict == "en") return dict;
+		if (dict == "zh" || dict == "ja" || dict == "ko" || dict == "en") return dict;
 		return "en";
 	}
 

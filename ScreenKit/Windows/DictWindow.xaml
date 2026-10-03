@@ -26,6 +26,7 @@
 			          VerticalContentAlignment="Center"
 			          AutomationProperties.AutomationId="dict.filter">
 				<ComboBoxItem Tag="" Content="全部"/>
+				<ComboBoxItem Tag="zh" Content="汉语"/>
 				<ComboBoxItem Tag="en" Content="英语"/>
 				<ComboBoxItem Tag="ja" Content="日语"/>
 				<ComboBoxItem Tag="ko" Content="韩语"/>
