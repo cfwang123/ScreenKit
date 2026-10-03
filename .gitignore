@@ -23,6 +23,12 @@ TODO.md
 *.log
 cli_last.log
 
+# 词典库与 SQLite 日志（本机文件，不提交；发布包也不带）
+dict.db
+dict.db-wal
+dict.db-shm
+dict.db-journal
+
 # ── Local config / secrets (may contain host prefs) ──────
 **/config.toml
 *.local.toml
