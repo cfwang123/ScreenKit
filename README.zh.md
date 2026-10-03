@@ -4,33 +4,23 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 **当前版本：1.0.13** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
+更新日志：[CHANGELOG.md](CHANGELOG.md)（每个版本均有英文 + 中文）。
+
 [English](README.md) · [中文](README.zh.md)
 
 ## 目录
 
-1. [下载](#下载)
-2. [截图](#截图)
-3. [功能一览](#功能一览)
-4. [运行环境](#运行环境)
-5. [使用说明](#使用说明)
-6. [安装功能](#安装功能)
-7. [配置](#配置)
-8. [HTTP API](#http-api简述)
-9. [CLI](#cli简述)
-10. [x86host](#x86host仅-32-位-sapi)
-11. [从源码编译](#从源码编译)
-12. [许可证](#许可证)
-
-## 下载
-
-| 文件 | 说明 |
-|------|------|
-| [`screenkit_1.0.13.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 精简包（exe + 托管依赖）。模型与运行库在程序内安装。 |
-| `screenkit1.0.13.apk` | 安卓客户端，桌面两个入口「传文件」「投屏」（独立任务，可同时打开；同一发布页，或电脑 **文件同步 → 安装到手机**）。 |
-
-解压后运行 `ScreenKit/ScreenKit.exe`。首次启动可出现安装向导。需要 [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
-
-更新日志：[CHANGELOG.md](CHANGELOG.md)（每个版本均有英文 + 中文）。
+1. [截图](#截图)
+2. [功能一览](#功能一览)
+3. [运行环境](#运行环境)
+4. [使用说明](#使用说明)
+5. [安装功能](#安装功能)
+6. [配置](#配置)
+7. [HTTP API](#http-api简述)
+8. [CLI](#cli简述)
+9. [x86host](#x86host仅-32-位-sapi)
+10. [从源码编译](#从源码编译)
+11. [许可证](#许可证)
 
 ## 截图
 

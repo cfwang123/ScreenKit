@@ -29,7 +29,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- README: removed the Download section. The English README no longer contains Chinese text.
+
 ### 中文
+
+#### 变更
+
+- README：去掉下载一节。英文 README 不再出现中文。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 

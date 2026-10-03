@@ -1,36 +1,26 @@
 # ScreenKit
 
-Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
+Windows desktop tool (`ScreenKit.exe`): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
 
 **Current version: 1.0.13** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
-**Languages:** [English](README.md) · [中文](README.zh.md)
+Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
+
+**Languages:** [English](README.md) · [Chinese](README.zh.md)
 
 ## Contents
 
-1. [Download](#download)
-2. [Screenshots](#screenshots)
-3. [Features](#features)
-4. [Requirements](#requirements)
-5. [Using ScreenKit](#using-screenkit)
-6. [Install features](#install-features)
-7. [Configuration](#configuration)
-8. [HTTP API](#http-api-overview)
-9. [CLI](#cli)
-10. [x86host](#x86host-32-bit-sapi-only)
-11. [Build from source](#build-from-source)
-12. [License](#license)
-
-## Download
-
-| File | What |
-|------|------|
-| [`screenkit_1.0.13.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
-| `screenkit1.0.13.apk` | Android companion: **传文件** + **投屏** launchers in separate tasks (same release page, or **File sync → Install on phone**). |
-
-Unpack the 7z and run `ScreenKit/ScreenKit.exe`. First launch may open the install wizard. Requires [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
-
-Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
+1. [Screenshots](#screenshots)
+2. [Features](#features)
+3. [Requirements](#requirements)
+4. [Using ScreenKit](#using-screenkit)
+5. [Install features](#install-features)
+6. [Configuration](#configuration)
+7. [HTTP API](#http-api-overview)
+8. [CLI](#cli)
+9. [x86host](#x86host-32-bit-sapi-only)
+10. [Build from source](#build-from-source)
+11. [License](#license)
 
 ## Screenshots
 
@@ -65,7 +55,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 | Area | Description |
 |------|-------------|
-| **PC file transfer** | Same HTTP API port (`1224`) + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): **list / thumbnails** toggle, marquee and Shift/Ctrl multi-select, **Ctrl+X/C** cut/copy (cut items shown faded), paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** checks and downloads the latest APK, then shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (compact list, long-press multi-select, Upload/Camera/New); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
+| **PC file transfer** | Same HTTP API port (`1224`) + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): **list / thumbnails** toggle, marquee and Shift/Ctrl multi-select, **Ctrl+X/C** cut/copy (cut items shown faded), paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** checks and downloads the latest APK, then shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (compact list, long-press multi-select, Upload/Camera/New); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **File transfer** / **Screencast**). |
 | **HTTP API** | JSON API (default port `1224`). **Allow LAN access** opens every interface; otherwise it listens on `127.0.0.1` only. Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
 | **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional shorter-side cap (shrink only), rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
@@ -76,7 +66,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Password generator** | **Tools → Password generator**: crypto-random; length, sets, skip `0OIl1`, at least one of each class. Remembers last settings. **Word lex** tab: pick an LLM, then translations (including Literary Chinese, Ancient Greek, Latin, Sanskrit, Biblical Hebrew) plus pinyin / romaji / romanization. **Variants** tab: from a seed password, the LLM mostly translates into other languages and spells them in ASCII romanization (at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). |
 | **Network tools** | **Tools → Network tools**: Ping, DNS, WHOIS, traceroute, ping-locate, proxy-locate, HTTP speed-locate. |
 | **Window manager** | **Tools → Window manager**: list visible top-level windows, pick one by clicking, or enter an HWND. A green frame follows the window under the cursor while picking, and stays on the selected window. Pin in front or unpin (`HWND_TOPMOST`). |
-| **Screencast** | Main window **Screencast** tab: cast this PC to another. Saved PCs stay in the left list; click one to fill the IP, or type an address / **Scan LAN**. **Max size** defaults to 1000×1000 (shrink to fit, never enlarge). **Start cast** first picks a region the same way as a screenshot (click a window or drag). Sending waits until Start is pressed again, so audio and its source (speakers, microphone, or both) can be changed. The red frame and toolbar can start, pause, or stop; pause keeps the connection and stops picture and audio until resume. The frame is not part of the picture. **Tools → Screencast** (same under the tray) still receives a phone or another PC, and can cast the whole desktop (quality 540p/720p/1080p). Audio plays continuously; the picture waits only as long as the sound is behind. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Rotating the phone keeps the viewer’s size, position, and maximized state; the picture fits or fills inside that window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens “等待安卓USB配件中” and tells a phone already connected for file sync to enter accessory mode. Both sides show connected / waiting / not connected. It turns off after 2 minutes with no connection. Or **USB 投屏(adb)** with USB debugging. The phone app has a separate **投屏** launcher icon. |
+| **Screencast** | Main window **Screencast** tab: cast this PC to another. Saved PCs stay in the left list; click one to fill the IP, or type an address / **Scan LAN**. **Max size** defaults to 1000×1000 (shrink to fit, never enlarge). **Start cast** first picks a region the same way as a screenshot (click a window or drag). Sending waits until Start is pressed again, so audio and its source (speakers, microphone, or both) can be changed. The red frame and toolbar can start, pause, or stop; pause keeps the connection and stops picture and audio until resume. The frame is not part of the picture. **Tools → Screencast** (same under the tray) still receives a phone or another PC, and can cast the whole desktop (quality 540p/720p/1080p). Audio plays continuously; the picture waits only as long as the sound is behind. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Rotating the phone keeps the viewer’s size, position, and maximized state; the picture fits or fills inside that window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens “Waiting for Android USB accessory” and tells a phone already connected for file sync to enter accessory mode. Both sides show connected / waiting / not connected. It turns off after 2 minutes with no connection. Or **USB cast (adb)** with USB debugging. The phone app has a separate **Screencast** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync / Screencast (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
@@ -114,14 +104,14 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
 4. The upper list is the PC `sendfile/` inbox (root only, no subfolder navigation; folders are rows). **Double-click** a file to open it with the system, or a folder to open Explorer. The **right-click** menu acts on the current selection (Open, Cut, Copy, Paste, Push, Delete) and does not clear a multi-selection when you click an already selected row. Use the toolbar to switch **list / thumbnails**; marquee, Shift range, and Ctrl multi-select; **Ctrl+X/C/V** cut/copy/paste (cut rows appear semi-transparent), Delete to Recycle Bin, or drag to Explorer. Dropping files onto the list imports them. Drop on the **lower** zone to send to the phone while the app is connected; otherwise nothing is sent. File/image paste goes into the inbox; text paste still goes to the right-hand pane. Phone share/upload always writes to PC `sendfile/`.
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync is one text box with **Send**, **Copy**, and **Clear**. The phone auto-connects by LAN IP only, not over USB.
-6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/`, phone page `/m`. The page follows the browser language and has a **中文 / EN** switch (saved in the browser). Sign in to upload, mkdir, rename, delete; optional **Stay signed in**. Phone UI: breadcrumb path, compact list (tap to open/download, long-press to multi-select), bottom **Upload / Camera / New**. **Camera** compresses in the browser before upload, using **Settings → API** (format, JPG quality, shorter-side cap). If the browser cannot compress, the PC applies the same settings. Reopen the page after updating the PC app, then take the photo. Zip/copy/rename/delete from the selection bar. A correct `/f/相对路径` URL downloads without login. Design reference: `ScreenKit/SendFile/web/m-prototype.html`.
+6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/`, phone page `/m`. The page follows the browser language and has a **Chinese / EN** switch (saved in the browser). Sign in to upload, mkdir, rename, delete; optional **Stay signed in**. Phone UI: breadcrumb path, compact list (tap to open/download, long-press to multi-select), bottom **Upload / Camera / New**. **Camera** compresses in the browser before upload, using **Settings → API** (format, JPG quality, shorter-side cap). If the browser cannot compress, the PC applies the same settings. Reopen the page after updating the PC app, then take the photo. Zip/copy/rename/delete from the selection bar. A correct `/f/<relative-path>` URL downloads without login. Design reference: `ScreenKit/SendFile/web/m-prototype.html`.
 
 Android details: [android/README.md](android/README.md).
 
 ### Screencast (PC ↔ Android / PC ↔ PC)
 
 1. PC **Tools → Screencast** (receive starts with the app; Settings → API can turn it off). Same Wi‑Fi, not a guest network. Launching this build ends leftover ScreenKit from another folder. Wi‑Fi/ADB media uses the same HTTP port as file transfer (`/cast`); scan uses UDP 17531.
-2. Phone **传文件/投屏** → **投屏**. The page fills the saved PC IP; confirm it and tap **开始投屏**, then allow screen capture. Use **已保存的电脑** or **搜索局域网** to pick another PC. **停止投屏** appears only while casting. USB cast is a separate section below. The phone sends `hello` and waits for the PC’s `hello` before capture; the PC viewer opens only after that reply. Wi‑Fi media uses HTTP `/cast` (default 1224). The file-transfer listener on a LAN address completes that WebSocket handshake as well. If the PC app is closed, the handshake fails, the PC disconnects, or screen capture is denied, the phone shows a **投屏失败** dialog. After ~90s without an accessory it falls back to USB tethering. **USB 调试投屏** uses `adb reverse` and needs USB debugging. Debug forward: `adb shell am start -n com.whj.screenkit/.CastActivity --ez scst_adb_probe true`. WiFi hello: `--es scst_ip <PC LAN IP> --ez scst_wifi_probe true`. USB-only test pattern: `scst_usb_pat`.
+2. Phone **File transfer / Screencast** → **Screencast**. The page fills the saved PC IP; confirm it and tap **Start cast**, then allow screen capture. Use **Saved PCs** or **Scan LAN** to pick another PC. **Stop cast** appears only while casting. USB cast is a separate section below. The phone sends `hello` and waits for the PC’s `hello` before capture; the PC viewer opens only after that reply. Wi‑Fi media uses HTTP `/cast` (default 1224). The file-transfer listener on a LAN address completes that WebSocket handshake as well. If the PC app is closed, the handshake fails, the PC disconnects, or screen capture is denied, the phone shows a **Cast failed** dialog. After ~90s without an accessory it falls back to USB tethering. **USB debugging cast** uses `adb reverse` and needs USB debugging. Debug forward: `adb shell am start -n com.whj.screenkit/.CastActivity --ez scst_adb_probe true`. WiFi hello: `--es scst_ip <PC LAN IP> --ez scst_wifi_probe true`. USB-only test pattern: `scst_usb_pat`.
 3. A view window opens in front, centered on the primary monitor. **Tab** overlay (type / resolution / fps) is off until you press Tab. Closing the window disconnects. Quality changes apply live. Landscape re-encodes at the same short-edge quality (does not crop a portrait frame). Stopping on the phone closes the PC window immediately (`GET /api/cast/stop`).
 4. PC-to-PC: the receiver keeps this app open (receive is on by default). On the sender, open the **Screencast** tab, click a saved PC to fill the IP (or scan the LAN, which includes this PC), set max width and height, tap **Start cast**, then click a window or drag a region. **Tools → Screencast** can still scan and cast the whole desktop using a quality preset.
 
@@ -145,7 +135,7 @@ Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles 
 
 ### UI language
 
-**Options → Language** → 中文 / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, and the translate popup.
+**Options → Language** → Chinese / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, and the translate popup.
 
 ## Install features
 
@@ -198,7 +188,7 @@ Do **not** commit a machine-specific `config.toml`.
 ```toml
 [ocr]
 model_pack = "rapid-ch"
-model_variant = "简体中文 mobile"
+model_variant = "mobile"          # pack variant id; a Chinese pack may store a Chinese label
 device = "Cpu"          # Cpu | Gpu | IntelGpu
 det_limit = 960
 det_thresh = 0.3
@@ -292,7 +282,7 @@ think = "low"                   # preset or typed token (minimal, …)
 [translate]
 translate_compute = "Auto"      # Auto | Gpu | Cpu | Igpu
 # translate_llm = ""
-# translate_llm_prompt = "请将用户给出的文本翻译为{dst}。只输出译文。"
+# translate_llm_prompt = "Translate the user's text to {dst}. Output only the translation."
 translate_llm_batch = 8         # items per LLM call, 1–64
 
 [gif_record]
@@ -330,7 +320,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 - `POST /api/translate` — LLM batch (`items[]`)
 - `GET  /api/face/models` · `POST /api/face`
 
-Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[HTTP接口文档.md](HTTP接口文档.md)** (中文).
+Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[Chinese HTTP API](HTTP%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3.md)**.
 
 ## CLI
 
@@ -400,7 +390,7 @@ OCR/
 ├── docs/                   # README screenshots
 ├── scripts/publish-release.mjs
 ├── README.md · README.zh.md · CHANGELOG.md
-└── HTTP-API.md · HTTP接口文档.md
+└── HTTP-API.md · Chinese HTTP API doc
 ```
 
 Model packs and large native runtimes are **not** in git. Place them next to the exe (or install in-app):
@@ -440,7 +430,7 @@ Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/scre
 
 Release documentation:
 
-- Every `CHANGELOG.md` version has matching **English** and **中文** sections.
+- Every `CHANGELOG.md` version has matching **English** and **Chinese** sections.
 - Every GitHub Release description is bilingual (English first, Chinese second).
 - Checksums and links are listed once after both summaries.
 
@@ -459,7 +449,7 @@ Bundled or optional dependencies are **not** all MIT (models, FFmpeg, CUDA/cuDNN
 ## See also
 
 - [CHANGELOG.md](CHANGELOG.md)
-- [HTTP-API.md](HTTP-API.md) · [HTTP接口文档.md](HTTP接口文档.md)
+- [HTTP-API.md](HTTP-API.md) · [Chinese HTTP API](HTTP%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3.md)
 - [android/README.md](android/README.md) — companion app
 - [LICENSE](LICENSE) · [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 - [README.zh.md](README.zh.md)
