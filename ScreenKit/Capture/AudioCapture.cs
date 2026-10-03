@@ -271,8 +271,8 @@ sealed class AudioCapture : IDisposable {
 
 	/// <summary>
 	/// 把本包放到「结束于当前墙钟」的位置。
-	/// 离上一包真实采样不到约 250ms 时视为同一段连续声音，紧接写入，避免按墙钟垫出十几毫秒的裂缝。
-	/// 静音已经垫过、而这包又落在那段静音上时，改写静音。接到末尾会让声音整段偏晚。
+	/// 只有大约 20ms 以内的缝才接在上一包后面，免得一声卡顿把后面整段声音提前。
+	/// 缝更大，或本包开始位置已经落在已写内容里时，按墙钟改写静音，不接到末尾。
 	/// </summary>
 	void placepacket(WavPlace w, WaveFormat fmt, byte[] buf, int count, ref long written, ref long realEnd) {
 		if (w == null || fmt == null || buf == null) return;
@@ -293,28 +293,39 @@ sealed class AudioCapture : IDisposable {
 			start = 0;
 		}
 		start -= start % align;
-		var hole = start - realEnd;
-		// realEnd 为 0 时还没有真实采样，不能把第一段声音粘到文件头。
-		var cont = realEnd > 0 && hole <= Math.Max(align * 4L, fmt.AverageBytesPerSecond / 4);
-		if (cont) {
+		var at = choosewritepos(start, realEnd, align, fmt.AverageBytesPerSecond);
+		if (at == realEnd && realEnd > 0) {
 			w.WriteAt(realEnd, buf, 0, count);
 			realEnd += count;
 		}
-		else if (start > written) {
+		else if (at > written) {
 			padBytesTotal += start - written;
 			w.PadTo(start);
 			w.WriteAt(start, buf, 0, count);
 			realEnd = start + count;
 		}
 		else {
-			if (start < written) {
+			if (at < written) {
 				overwriteCount++;
-				overwriteBytes += written - start;
+				overwriteBytes += written - at;
 			}
-			w.WriteAt(start, buf, 0, count);
-			realEnd = start + count;
+			w.WriteAt(at, buf, 0, count);
+			realEnd = at + count;
 		}
 		written = w.DataLength;
+	}
+
+	/// <summary>
+	/// 本包在文件中的起点。大约 20ms 以内的正向缝接在上一包末尾；
+	/// 更长的停顿、或与已写采样重叠时，用墙钟起点（可改写已垫的静音）。
+	/// realEnd 为 0 时还没有真实采样，不能粘到文件头。
+	/// </summary>
+	internal static long choosewritepos(long start, long realEnd, int align, int bytesPerSec) {
+		var glue = Math.Max((long)Math.Max(1, align) * 4, Math.Max(1, bytesPerSec) / 50L);
+		var hole = start - realEnd;
+		if (realEnd > 0 && hole >= 0 && hole <= glue)
+			return realEnd;
+		return start;
 	}
 
 	void padto(int src, ref long written, WavPlace w, WaveFormat fmt, long target) {
@@ -354,8 +365,21 @@ sealed class AudioCapture : IDisposable {
 		w.WriteAt(w.DataLength, buf, 0, count);
 	}
 
-	/// <summary>静音垫上后，迟到的整段采样必须盖住静音，不能接到末尾。</summary>
+	/// <summary>静音垫上后，迟到的整段采样必须盖住静音，不能接到末尾。短暂停顿也不能把后面的声音整段提前。</summary>
 	internal static string CheckWavPlace() {
+		var rate = 32000;
+		var align = 4;
+		var sec = (long)rate;
+		if (choosewritepos(sec, 0, align, rate) != sec)
+			return "第一包不能粘到文件头";
+		var gap100 = sec / 10;
+		if (choosewritepos(8000 + gap100, 8000, align, rate) != 8000 + gap100)
+			return "100ms 停顿被提前";
+		var gap10 = sec / 100;
+		if (choosewritepos(8000 + gap10, 8000, align, rate) != 8000)
+			return "10ms 缝应接上";
+		if (choosewritepos(7000, 8000, align, rate) != 7000)
+			return "重叠应改写";
 		var path = Path.Combine(Path.GetTempPath(), "sk_wavplace.wav");
 		try {
 			var fmt = WaveFormat.CreateIeeeFloatWaveFormat(8000, 1);

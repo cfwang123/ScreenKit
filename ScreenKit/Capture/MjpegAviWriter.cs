@@ -9,7 +9,6 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 
 	readonly int srcW, srcH, fps;
 	readonly AviFile avi;
-	byte[] held;
 	long frameIndex;
 	bool disposed;
 
@@ -40,12 +39,10 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 		if (pts < frameIndex) pts = frameIndex;
 		var jpeg = RecordBgra.Jpeg(bgra, stride, srcW, srcH, OutWidth, OutHeight, JpegQuality);
 		var gap = pts - frameIndex;
-		// 漏掉的时刻重复上一张。把新画面填回过去，播放时画面会早于声音。
-		var fill = held ?? jpeg;
-		for (var i = 0; i < gap; i++)
-			writevideo(fill);
-		writevideo(jpeg);
-		held = jpeg;
+		// 漏掉的时刻用这一张填上，和系统 H.264 一样。
+		// 重复上一张时，这段时间的声音已经是新的，播放就是有声而画面不动，之后一直偏。
+		for (var i = 0; i <= gap; i++)
+			writevideo(jpeg);
 		frameIndex = pts + 1;
 	}
 
@@ -84,16 +81,15 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			var n = (int)Math.Min(int.MaxValue, want - audioBytes);
 			if (n <= 0) continue;
 			var buf = new byte[n];
-			var got = pcm.Read16(buf, n);
+			var got = readfull(pcm, buf, n);
 			if (got <= 0) {
 				dst.WriteAudio(buf);
 				audioBytes += n;
 			}
 			else if (got < n) {
-				var part = new byte[got];
-				Buffer.BlockCopy(buf, 0, part, 0, got);
-				dst.WriteAudio(part);
-				audioBytes += got;
+				// 文件结束：尾部静音补满这一帧，避免最后一截把时间轴拉短。
+				dst.WriteAudio(buf);
+				audioBytes += n;
 			}
 			else {
 				dst.WriteAudio(buf);
@@ -101,6 +97,20 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			}
 		}
 		dst.Finish();
+	}
+
+	/// <summary>读满 <paramref name="n"/> 字节。重采样一次读不满时继续读，不把一帧拆成短块。</summary>
+	static int readfull(RecordPcm pcm, byte[] buf, int n) {
+		var filled = 0;
+		while (filled < n) {
+			var need = n - filled;
+			var slice = new byte[need];
+			var r = pcm.Read16(slice, need);
+			if (r <= 0) break;
+			Buffer.BlockCopy(slice, 0, buf, filled, r);
+			filled += r;
+		}
+		return filled;
 	}
 
 	/// <summary>音轨 dwScale=块字节，dwRate=每秒字节。1 秒 22050Hz 单声道应为 2/44100。</summary>
@@ -239,7 +249,8 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			avihMaxBytesPos = fs.Position;
 			u32(0);
 			u32(0);
-			u32(withAudio ? 0x110u : 0x10u);
+			// HASINDEX | ISINTERLEAVED | TRUSTCKTYPE。关键帧标记只打在画面块上。
+			u32(withAudio ? 0x910u : 0x10u);
 			avihFramesPos = fs.Position;
 			u32(0);
 			u32(0);
@@ -273,7 +284,8 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			u32(56);
 			fcc(typ);
 			if (handler != null && handler.Length == 4) fcc(handler);
-			else u32(0);
+			else if (video) u32(0);
+			else u32(1);
 			u32(0);
 			u16(0); u16(0);
 			u32(0);
@@ -336,7 +348,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 			u32((uint)(index.Count * 16));
 			foreach (var e in index) {
 				fcc(e.id);
-				u32(0x10u);
+				u32(e.id == "00dc" ? 0x10u : 0u);
 				u32((uint)e.offset);
 				u32((uint)e.len);
 			}
