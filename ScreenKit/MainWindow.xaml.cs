@@ -132,6 +132,7 @@ public partial class MainWindow : Window {
 		// 服务模式：启动后后台预热，引擎常驻
 		if (opt.ServiceMode)
 			tryservicewarmup("启动预热");
+		initonnxidle();
 		StateChanged += onstatechanged;
 		Closing += onclosing;
 		// 调整大小/移动后延迟写入（真正退出时也会再存）
@@ -142,6 +143,66 @@ public partial class MainWindow : Window {
 			Loaded += onfirstinstallprompt;
 		else
 			Loaded += onautoupdate;
+	}
+
+	void initonnxidle() {
+		onnxIdleTimer = new System.Windows.Threading.DispatcherTimer {
+			Interval = TimeSpan.FromMilliseconds(OnnxIdle.TickMs),
+		};
+		onnxIdleTimer.Tick += (_, _) => onnxidletick();
+		onnxIdleTimer.Start();
+	}
+
+	void onnxidletick() {
+		if (opt.ServiceMode) {
+			onnxidletouch();
+			return;
+		}
+		var ms = OnnxIdle.LimitMs(opt.OnnxUnloadMin);
+		if (ms <= 0) return;
+		var n = 0;
+		try { if (runner.IdleUnload(ms)) n++; } catch { }
+		try { if (trEngine != null && trEngine.IdleUnload(ms)) n++; } catch { }
+		try { if (asrEngine != null && asrEngine.IdleUnload(ms)) n++; } catch { }
+		try { if (asrStreamEngine != null && asrStreamEngine.IdleUnload(ms)) n++; } catch { }
+		try { if (sherpaTts != null && sherpaTts.IdleUnload(ms)) n++; } catch { }
+		try {
+			if (facePipe != null && facePipe.IdleUnload(ms)) {
+				facePipe = null;
+				n++;
+			}
+		}
+		catch { }
+		try {
+			if (faceLmk != null && faceLmk.IdleUnload(ms)) {
+				faceLmk = null;
+				faceLmkName = "";
+				n++;
+			}
+		}
+		catch { }
+		try {
+			if (faceAttr != null && faceAttr.IdleUnload(ms)) {
+				faceAttr = null;
+				faceAttrName = "";
+				n++;
+			}
+		}
+		catch { }
+		try { if (httpServer != null && httpServer.IdleUnloadOnnx(ms)) n++; } catch { }
+		if (n > 0) setstatus(Loc.T("onnx.idle.unloaded", opt.OnnxUnloadMin));
+	}
+
+	void onnxidletouch() {
+		try { runner.TouchIdle(); } catch { }
+		try { trEngine?.TouchIdle(); } catch { }
+		try { asrEngine?.TouchIdle(); } catch { }
+		try { asrStreamEngine?.TouchIdle(); } catch { }
+		try { sherpaTts?.TouchIdle(); } catch { }
+		try { facePipe?.TouchIdle(); } catch { }
+		try { faceLmk?.TouchIdle(); } catch { }
+		try { faceAttr?.TouchIdle(); } catch { }
+		try { httpServer?.TouchOnnxIdle(); } catch { }
 	}
 
 	void applymaintabvisibility() {
@@ -223,6 +284,7 @@ public partial class MainWindow : Window {
 	}
 
 	System.Windows.Threading.DispatcherTimer boundsSaveTimer;
+	System.Windows.Threading.DispatcherTimer onnxIdleTimer;
 
 	void scheduleboundsave() {
 		if (forceExit) return;
@@ -3259,8 +3321,13 @@ public partial class MainWindow : Window {
 				// 已加载则同步 runtime，避免下次识别用旧阈值
 				try { runner.Warmup(snapshotopt()); } catch { }
 			}
-			if (serviceOff)
-				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{sfInfo} · 已关闭服务模式（引擎保持至下次改模型）");
+			if (serviceOff) {
+				onnxidletouch();
+				var idleNote = opt.OnnxUnloadMin <= 0
+					? "不自动卸载"
+					: $"空闲 {opt.OnnxUnloadMin} 分钟后卸载";
+				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{sfInfo} · 已关闭服务模式（{idleNote}）");
+			}
 			else
 				setstatus($"参数已保存 · 热键 {opt.Hotkey}{httpInfo}{sfInfo}");
 		}

@@ -268,6 +268,8 @@ static class AppConfig {
 				o.CastViewFill = parsebool(cvf, false);
 			if (map.TryGetValue("service_mode", out var sm))
 				o.ServiceMode = parsebool(sm, false);
+			if (map.TryGetValue("onnx_unload_min", out var oum) && int.TryParse(oum, out var oumN))
+				o.OnnxUnloadMin = OnnxIdle.ClampMin(oumN);
 			if (map.TryGetValue("pdf_invisible_text", out var pit))
 				o.PdfInvisibleText = parsebool(pit, true);
 			if (map.TryGetValue("pdf_dpi", out var pd) && int.TryParse(pd, out var pdfDpi))
@@ -590,8 +592,10 @@ static class AppConfig {
 		sb.AppendLine("# 允许局域网访问。false 时只监听 127.0.0.1");
 		sb.AppendLine($"http_lan = {(o.HttpLan ? "true" : "false")}");
 		sb.AppendLine($"http_port = {o.HttpPort}");
-		sb.AppendLine($"# 服务模式：引擎常驻预热，不主动释放");
+		sb.AppendLine($"# 服务模式：引擎常驻预热。开启时不按空闲卸载");
 		sb.AppendLine($"service_mode = {(o.ServiceMode ? "true" : "false")}");
+		sb.AppendLine($"# ONNX 空闲卸载（分钟）。识别/翻译/人脸/语音。0=不自动卸载。服务模式不卸载");
+		sb.AppendLine($"onnx_unload_min = {OnnxIdle.ClampMin(o.OnnxUnloadMin)}");
 		sb.AppendLine();
 		sb.AppendLine("[sendfile]");
 		sb.AppendLine("# 局域网文件传输（手机 App com.whj.screenkit）；需首次配对");

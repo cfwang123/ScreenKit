@@ -5,8 +5,12 @@ namespace ScreenKit;
 
 /// <summary>检测 → 对齐 → 人脸特征。关键点/属性由界面层单独叠加。</summary>
 sealed class FacePipeline : IDisposable {
+	readonly object gate = new();
 	readonly IFaceDetector detector;
 	readonly FaceRecognizer recognizer;
+	int lastuse;
+	int busy;
+	bool released;
 
 	public string EpLabel { get; }
 
@@ -17,6 +21,7 @@ sealed class FacePipeline : IDisposable {
 			recognizer = new FaceRecognizer(regModelPath, mode);
 			detector = det;
 			EpLabel = FaceOnnx.EpLabel(FaceOnnx.LastEp);
+			lastuse = Environment.TickCount;
 		}
 		catch {
 			det?.Dispose();
@@ -61,7 +66,39 @@ sealed class FacePipeline : IDisposable {
 		return result;
 	}
 
+	public void TouchIdle() {
+		lock (gate) {
+			if (!released) lastuse = Environment.TickCount;
+		}
+	}
+
+	public bool IdleUnload(int limitMs) {
+		lock (gate) {
+			if (released || busy > 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			released = true;
+			disposeinner();
+			lastuse = 0;
+			return true;
+		}
+	}
+
 	void extract(Mat image, FaceExtractResult result) {
+		lock (gate) {
+			if (released) throw new ObjectDisposedException(nameof(FacePipeline));
+			busy++;
+		}
+		try {
+			extractcore(image, result);
+		}
+		finally {
+			lock (gate) {
+				if (busy > 0) busy--;
+				if (!released) lastuse = Environment.TickCount;
+			}
+		}
+	}
+
+	void extractcore(Mat image, FaceExtractResult result) {
 		var detectSw = Stopwatch.StartNew();
 		var faces = detector.Detect(image);
 		detectSw.Stop();
@@ -90,6 +127,15 @@ sealed class FacePipeline : IDisposable {
 	}
 
 	public void Dispose() {
+		lock (gate) {
+			if (released) return;
+			released = true;
+			disposeinner();
+			lastuse = 0;
+		}
+	}
+
+	void disposeinner() {
 		recognizer?.Dispose();
 		detector?.Dispose();
 	}

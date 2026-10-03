@@ -791,7 +791,8 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 |----------|-------------|
 | OCR model | If `ocr.language` is omitted, uses the main window’s current pack/variant |
 | Device | May override with `ocr.device`; otherwise uses main-window device |
-| Service mode | `service_mode = true` preloads engines for frequent API calls |
+| Service mode | `service_mode = true` preloads engines for frequent API calls and does not unload them on idle |
+| Idle unload | `onnx_unload_min` (default 5) unloads OCR, translation, face, speech recognition, and speech synthesis after that many idle minutes. `0` disables it. Ignored while service mode is on |
 | Parameter changes | Changing model/device in the UI invalidates engines; next request reloads |
 
 ---

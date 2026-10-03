@@ -121,10 +121,15 @@ public sealed class OcrOptions {
 	/// <summary>投屏页输出最大高（等比进框，不放大）。</summary>
 	public int CastMaxH = 1000;
 	/// <summary>
-	/// 服务模式：启动/改参后立即预热引擎并常驻，不主动释放模型内存。
-	/// 关闭时保持懒加载（改参后丢弃，下次识别再加载）。
+	/// 服务模式：启动/改参后立即预热引擎并常驻，不按空闲时间卸载。
+	/// 关闭时保持懒加载（改参后丢弃，下次识别再加载），并按 <see cref="OnnxUnloadMin"/> 空闲卸载。
 	/// </summary>
 	public bool ServiceMode = false;
+	/// <summary>
+	/// ONNX / Sherpa 会话空闲多少分钟后卸载。默认 5。0 = 不自动卸载。
+	/// 服务模式开启时忽略此项。
+	/// </summary>
+	public int OnnxUnloadMin = OnnxIdle.DefaultMin;
 	/// <summary>PDF 导出时叠加不可见文字层（可检索/可复制）。</summary>
 	public bool PdfInvisibleText = true;
 	/// <summary>
@@ -398,6 +403,7 @@ public sealed class OcrOptions {
 		CastMaxW = CastMaxW,
 		CastMaxH = CastMaxH,
 		ServiceMode = ServiceMode,
+		OnnxUnloadMin = OnnxUnloadMin,
 		PdfInvisibleText = PdfInvisibleText,
 		PdfDpi = PdfDpi,
 		CaptureLog = CaptureLog,

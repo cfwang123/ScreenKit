@@ -172,7 +172,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 |------|----------|
 | `[ocr]` | 模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值 |
 | `[ui]` | 热键、托盘、`ui_lang`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`screenshot_short`、`imgconv_*` |
-| `[http]` | OCR API（`http_lan`、端口 `1224`）、服务模式 |
+| `[http]` | OCR API（`http_lan`、端口 `1224`）、服务模式、`onnx_unload_min` |
 | `[sendfile]` | 局域网文件传输端口、显示名、网页登录密码、已配对设备 |
 | `[pdf]` | 不可见文字层、光栅 DPI |
 | `[asr]` | 听写/实时字幕模式、润色、分句、`asr_llm` |
@@ -222,7 +222,8 @@ screenshot_short_px = 1080      # 16–16384
 http_enabled = true
 http_lan = true                 # false 时只监听 127.0.0.1
 http_port = 1224
-service_mode = false
+service_mode = false            # 常驻预热；开启时不按空闲卸载
+onnx_unload_min = 5             # 识别/翻译/人脸/语音空闲 N 分钟后卸载；0=不自动卸载
 
 [sendfile]
 sendfile_enabled = true

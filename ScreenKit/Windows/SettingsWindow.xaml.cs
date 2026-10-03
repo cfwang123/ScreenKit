@@ -214,6 +214,8 @@ public partial class SettingsWindow : Window {
 			eusecls.Content = Loc.T("set.cls");
 			eservicemode.Content = Loc.T("set.service");
 			lbsetservicehint.Text = Loc.T("set.service.hint");
+			lbsetonnxidle.Text = Loc.T("set.onnx.idle");
+			lbsetonnxidlehint.Text = Loc.T("set.onnx.idle.hint");
 			lbsetpdf.Text = Loc.T("set.pdf");
 			epdftext.Content = Loc.T("set.pdf.text");
 			lbsetpdfhint.Text = Loc.T("set.pdf.hint");
@@ -508,6 +510,7 @@ public partial class SettingsWindow : Window {
 		ehttplan.IsChecked = o.HttpLan;
 		ehttpport.Text = o.HttpPort > 0 ? o.HttpPort.ToString() : "1224";
 		eservicemode.IsChecked = o.ServiceMode;
+		eonnxidle.Text = OnnxIdle.ClampMin(o.OnnxUnloadMin).ToString();
 		esfen.IsChecked = o.SendFileEnabled;
 		ecasten.IsChecked = o.CastRecvEnabled;
 		esfname.Text = o.SendFileName ?? "";
@@ -664,6 +667,9 @@ public partial class SettingsWindow : Window {
 		}
 		Result.HttpPort = port;
 		Result.ServiceMode = eservicemode.IsChecked == true;
+		if (!tryint(eonnxidle, Loc.T("set.onnx.idle.name"), 0, OnnxIdle.MaxMin, out var idleMin, tabsethttp))
+			return false;
+		Result.OnnxUnloadMin = idleMin;
 		Result.SendFileEnabled = esfen.IsChecked == true;
 		Result.CastRecvEnabled = ecasten.IsChecked == true;
 		Result.SendFileName = (esfname.Text ?? "").Trim();

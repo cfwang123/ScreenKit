@@ -8,6 +8,7 @@ sealed class TranslateEngine : IDisposable {
 	readonly Dictionary<string, OpusMtOnnx> loaded = new(StringComparer.OrdinalIgnoreCase);
 	/// <summary>dirKey → 加载时的 prefer。</summary>
 	readonly Dictionary<string, string> loadedPrefer = new(StringComparer.OrdinalIgnoreCase);
+	int lastuse;
 	string lastError = "";
 	bool disposed;
 
@@ -39,6 +40,7 @@ sealed class TranslateEngine : IDisposable {
 				LastDevice = had.DeviceLabel;
 				LastBackend = had.Backend;
 				lastError = "";
+				lastuse = Environment.TickCount;
 				return true;
 			}
 			// prefer 变化：卸掉旧会话
@@ -72,6 +74,7 @@ sealed class TranslateEngine : IDisposable {
 				eng.Load(mode);
 				loaded[key] = eng;
 				loadedPrefer[key] = prefer;
+				lastuse = Environment.TickCount;
 				LastDevice = eng.DeviceLabel;
 				LastBackend = eng.Backend;
 				lastError = "";
@@ -122,32 +125,47 @@ sealed class TranslateEngine : IDisposable {
 			if (!loaded.TryGetValue(key, out var eng))
 				throw new InvalidOperationException(lastError.Length > 0 ? lastError : $"未加载模型 {key}");
 			var result = eng.Translate(text, maxNewTokens: 256, numBeams: 4);
+			lastuse = Environment.TickCount;
 			LastDevice = eng.DeviceLabel;
 			LastBackend = eng.Backend;
 			return result;
 		}
 	}
 
+	public void TouchIdle() {
+		lock (Gate) {
+			if (loaded.Count > 0) lastuse = Environment.TickCount;
+		}
+	}
+
+	/// <summary>全部已加载方向都空闲超过 limitMs 时一起释放。</summary>
+	public bool IdleUnload(int limitMs) {
+		lock (Gate) {
+			if (loaded.Count == 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			unloadall();
+			return true;
+		}
+	}
+
 	/// <summary>切换计算设备时清空已加载会话（同方向需重新 Load）。</summary>
 	public void UnloadAll() {
-		lock (Gate) {
-			foreach (var kv in loaded) {
-				try { kv.Value.Dispose(); } catch { }
-			}
-			loaded.Clear();
-			loadedPrefer.Clear();
+		lock (Gate) unloadall();
+	}
+
+	void unloadall() {
+		foreach (var kv in loaded) {
+			try { kv.Value.Dispose(); } catch { }
 		}
+		loaded.Clear();
+		loadedPrefer.Clear();
+		lastuse = 0;
 	}
 
 	public void Dispose() {
 		lock (Gate) {
 			if (disposed) return;
 			disposed = true;
-			foreach (var kv in loaded) {
-				try { kv.Value.Dispose(); } catch { }
-			}
-			loaded.Clear();
-			loadedPrefer.Clear();
+			unloadall();
 		}
 	}
 }

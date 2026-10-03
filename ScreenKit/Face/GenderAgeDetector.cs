@@ -10,20 +10,48 @@ sealed class GenderAgeDetector : IDisposable {
 	const int InputSize = 96;
 	const float HalfSize = InputSize / 2f;
 
+	readonly object gate = new();
 	readonly InferenceSession session;
 	readonly string inputName;
 	readonly string outputName;
+	int lastuse;
+	int busy;
+	bool released;
 
 	public GenderAgeDetector(string modelPath, TtsComputeMode mode = TtsComputeMode.Cpu) {
 		session = FaceOnnx.Open(modelPath, mode, out _);
 		inputName = FaceOnnx.InputName(session);
 		outputName = session.OutputMetadata.First().Key;
+		lastuse = Environment.TickCount;
+	}
+
+	public void TouchIdle() {
+		lock (gate) {
+			if (!released) lastuse = Environment.TickCount;
+		}
+	}
+
+	public bool IdleUnload(int limitMs) {
+		lock (gate) {
+			if (released || busy > 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			released = true;
+			try { session.Dispose(); } catch { }
+			lastuse = 0;
+			return true;
+		}
 	}
 
 	public GenderAgeResult Predict(Mat bgrImage, FaceBox face) {
 		if (bgrImage == null) throw new ArgumentNullException(nameof(bgrImage));
 		if (face == null) throw new ArgumentNullException(nameof(face));
+		enter();
+		try {
+			return predict(bgrImage, face);
+		}
+		finally { leave(); }
+	}
 
+	GenderAgeResult predict(Mat bgrImage, FaceBox face) {
 		float w = face.X2 - face.X1;
 		float h = face.Y2 - face.Y1;
 		float cx = (face.X1 + face.X2) * 0.5f;
@@ -74,5 +102,26 @@ sealed class GenderAgeDetector : IDisposable {
 		return null;
 	}
 
-	public void Dispose() => session?.Dispose();
+	void enter() {
+		lock (gate) {
+			if (released) throw new ObjectDisposedException(nameof(GenderAgeDetector));
+			busy++;
+		}
+	}
+
+	void leave() {
+		lock (gate) {
+			if (busy > 0) busy--;
+			if (!released) lastuse = Environment.TickCount;
+		}
+	}
+
+	public void Dispose() {
+		lock (gate) {
+			if (released) return;
+			released = true;
+			try { session.Dispose(); } catch { }
+			lastuse = 0;
+		}
+	}
 }

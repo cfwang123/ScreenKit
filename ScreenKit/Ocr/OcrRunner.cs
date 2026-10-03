@@ -9,6 +9,7 @@ sealed class OcrRunner : IDisposable {
 	readonly object gate = new();
 	OcrEngine eng;
 	string engKey = "";
+	int lastuse;
 	bool disposed;
 
 	public string ModelLabel {
@@ -55,6 +56,27 @@ sealed class OcrRunner : IDisposable {
 		lock (gate) return ensure(opt);
 	}
 
+	/// <summary>服务模式保活：有会话时刷新空闲计时。</summary>
+	public void TouchIdle() {
+		lock (gate) {
+			if (eng != null) lastuse = Environment.TickCount;
+		}
+	}
+
+	/// <summary>空闲超过 limitMs 则后台释放。服务模式由调用方跳过。</summary>
+	public bool IdleUnload(int limitMs) {
+		OcrEngine old;
+		lock (gate) {
+			if (eng == null || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			old = eng;
+			eng = null;
+			engKey = "";
+			lastuse = 0;
+		}
+		_ = Task.Run(() => { try { old.Dispose(); } catch { } });
+		return true;
+	}
+
 	/// <summary>参数/模型变更后丢弃缓存，下次识别再加载。服务模式请改用 <see cref="Warmup"/>。</summary>
 	public void Invalidate() {
 		OcrEngine old;
@@ -75,6 +97,7 @@ sealed class OcrRunner : IDisposable {
 		if (eng != null && engKey == k) {
 			// 边长/阈值等不重建 session，只改推理参数
 			eng.ApplyRuntime(opt);
+			lastuse = Environment.TickCount;
 			return 0;
 		}
 		OcrEngine old = eng;
@@ -83,6 +106,7 @@ sealed class OcrRunner : IDisposable {
 		eng = new OcrEngine(opt);
 		var loadMs = Math.Max(0, Environment.TickCount - t0);
 		engKey = k;
+		lastuse = Environment.TickCount;
 		if (old != null)
 			_ = Task.Run(() => { try { old.Dispose(); } catch { } });
 		return loadMs;

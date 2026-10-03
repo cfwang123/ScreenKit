@@ -5,8 +5,10 @@ namespace ScreenKit;
 
 /// <summary>Sherpa-ONNX 离线语音识别（SenseVoice / Paraformer / Transducer / Whisper）。</summary>
 sealed class AsrEngine : IDisposable {
+	readonly object gate = new();
 	OfflineRecognizer recognizer;
 	string loadedKey;
+	int lastuse;
 	bool disposed;
 	bool autoCudaOk = true;
 	TtsComputeMode mode = TtsComputeMode.Auto;
@@ -29,19 +31,38 @@ sealed class AsrEngine : IDisposable {
 
 	public void UnloadSafe() => Unload();
 
+	public void TouchIdle() {
+		lock (gate) {
+			if (recognizer != null) lastuse = Environment.TickCount;
+		}
+	}
+
+	public bool IdleUnload(int limitMs) {
+		lock (gate) {
+			if (recognizer == null || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			drop();
+			return true;
+		}
+	}
+
 	public void LoadModel(AsrModelInfo model, string language = "auto", bool useItn = true) {
 		if (model == null) throw new ArgumentNullException(nameof(model));
 		if (model.IsStreaming)
 			throw new InvalidOperationException(
 				"该模型为流式包，请用于语音输入热键，或在文件识别中选离线模型: " + model.DisplayName);
 		var key = $"{model.ModelDir}|{model.Type}|{language}|{useItn}|{mode}";
-		if (recognizer != null && loadedKey == key) return;
-
-		Unload();
-		FeatSampleRate = model.SampleRate > 0 ? model.SampleRate : 16000;
-		var mcfg = buildModelConfig(model, language, useItn);
-		createRecognizer(ref mcfg);
-		loadedKey = key;
+		lock (gate) {
+			if (recognizer != null && loadedKey == key) {
+				lastuse = Environment.TickCount;
+				return;
+			}
+			drop();
+			FeatSampleRate = model.SampleRate > 0 ? model.SampleRate : 16000;
+			var mcfg = buildModelConfig(model, language, useItn);
+			createRecognizer(ref mcfg);
+			loadedKey = key;
+			lastuse = Environment.TickCount;
+		}
 	}
 
 	static OfflineModelConfig buildModelConfig(AsrModelInfo model, string language, bool useItn) {
@@ -168,21 +189,24 @@ sealed class AsrEngine : IDisposable {
 
 	/// <summary>识别并返回 token / 时间戳（用于 SRT）。</summary>
 	public AsrResult RecognizeDetailed(float[] samples, int sampleRate) {
-		if (recognizer == null) throw new InvalidOperationException("模型未加载");
 		if (samples == null || samples.Length == 0) return AsrResult.Empty;
 		if (sampleRate != FeatSampleRate)
 			samples = AsrAudio.Resample(samples, sampleRate, FeatSampleRate);
-		using var stream = recognizer.CreateStream();
-		stream.AcceptWaveform(FeatSampleRate, samples);
-		recognizer.Decode(stream);
-		var r = stream.Result;
-		if (r == null) return AsrResult.Empty;
-		return new AsrResult {
-			Text = r.Text?.Trim() ?? "",
-			Tokens = r.Tokens ?? Array.Empty<string>(),
-			Timestamps = r.Timestamps ?? Array.Empty<float>(),
-			Durations = r.Durations ?? Array.Empty<float>(),
-		};
+		lock (gate) {
+			if (recognizer == null) throw new InvalidOperationException("模型未加载");
+			using var stream = recognizer.CreateStream();
+			stream.AcceptWaveform(FeatSampleRate, samples);
+			recognizer.Decode(stream);
+			var r = stream.Result;
+			lastuse = Environment.TickCount;
+			if (r == null) return AsrResult.Empty;
+			return new AsrResult {
+				Text = r.Text?.Trim() ?? "",
+				Tokens = r.Tokens ?? Array.Empty<string>(),
+				Timestamps = r.Timestamps ?? Array.Empty<float>(),
+				Durations = r.Durations ?? Array.Empty<float>(),
+			};
+		}
 	}
 
 	/// <summary>
@@ -299,9 +323,14 @@ sealed class AsrEngine : IDisposable {
 	}
 
 	void Unload() {
+		lock (gate) drop();
+	}
+
+	void drop() {
 		try { recognizer?.Dispose(); } catch { }
 		recognizer = null;
 		loadedKey = null;
+		lastuse = 0;
 	}
 
 	public void Dispose() {

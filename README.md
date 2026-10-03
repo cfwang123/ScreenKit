@@ -172,7 +172,7 @@ Settings live in `config.toml` beside the exe (**Options → Settings** / **Reco
 |---------|------|
 | `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
 | `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `screenshot_short`, `imgconv_*` |
-| `[http]` | OCR API (`http_lan`, port `1224`), service mode |
+| `[http]` | OCR API (`http_lan`, port `1224`), service mode, `onnx_unload_min` |
 | `[sendfile]` | LAN file transfer ports, display name, web login password, paired devices |
 | `[pdf]` | invisible text, raster DPI |
 | `[asr]` | voice/live mode, polish, split, `asr_llm` |
@@ -225,7 +225,8 @@ screenshot_short_px = 1080      # 16–16384
 http_enabled = true
 http_lan = true                 # false listens on 127.0.0.1 only
 http_port = 1224
-service_mode = false            # keep engine warm
+service_mode = false            # keep engines warm; skips idle unload
+onnx_unload_min = 5             # unload idle ONNX sessions after N minutes; 0 = never
 
 [sendfile]
 sendfile_enabled = true

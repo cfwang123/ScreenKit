@@ -7,9 +7,11 @@ namespace ScreenKit;
 
 /// <summary>Sherpa-ONNX Offline TTS（VITS / Matcha），支持 CUDA / DirectML 核显 / CPU。</summary>
 sealed class TtsEngine : IDisposable {
+	readonly object gate = new();
 	OfflineTts tts;
 	string modelDir;
 	string loadedKey;
+	int lastuse;
 	bool disposed;
 	bool autoCudaOk = true;
 	TtsComputeMode mode = TtsComputeMode.Auto;
@@ -57,6 +59,20 @@ sealed class TtsEngine : IDisposable {
 	}
 
 	public void UnloadSafe() => Unload();
+
+	public void TouchIdle() {
+		lock (gate) {
+			if (tts != null) lastuse = Environment.TickCount;
+		}
+	}
+
+	public bool IdleUnload(int limitMs) {
+		lock (gate) {
+			if (tts == null || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			drop();
+			return true;
+		}
+	}
 
 	public static bool ProbeCuda(out string reason) {
 		reason = "";
@@ -116,9 +132,18 @@ sealed class TtsEngine : IDisposable {
 	public void LoadModel(TtsModelInfo model) {
 		if (model == null) throw new ArgumentNullException(nameof(model));
 		var key = $"{model.ModelDir}|{model.OnnxFile}|{model.VocoderPath}|{model.Type}|{mode}";
-		if (tts != null && loadedKey == key) return;
+		lock (gate) {
+			if (tts != null && loadedKey == key) {
+				lastuse = Environment.TickCount;
+				return;
+			}
+			drop();
+			loadmodel(model, key);
+			lastuse = Environment.TickCount;
+		}
+	}
 
-		Unload();
+	void loadmodel(TtsModelInfo model, string key) {
 		modelDir = model.ModelDir;
 		GpuFallbackReason = null;
 		forceCpu = Compat.Contains(model.DisplayName, "mimic3", StringComparison.OrdinalIgnoreCase);
@@ -280,27 +305,30 @@ sealed class TtsEngine : IDisposable {
 
 	/// <param name="applyVolume">false 时不做 tts_config volume 增益（音高探测用，避免削波）。</param>
 	public (float[] samples, int sampleRate) Synthesize(string text, int sid = 0, float speed = 1f, bool applyVolume = true) {
-		if (tts == null) throw new InvalidOperationException("模型未加载");
-		// 长数字串一律逐位读；短数字：有 number.fst 则留给 FST，否则转中文
-		var normalized = NormalizeText(text, preferFstNumbers: hasNumberFst, convertLetters: true);
-		var genCfg = new OfflineTtsGenerationConfig {
-			Sid = sid,
-			Speed = speed,
-			SilenceScale = 0.2f,
-		};
-		var audio = tts.GenerateWithConfig(normalized, genCfg, null);
-		if (audio == null || audio.Samples == null || audio.Samples.Length == 0) {
+		lock (gate) {
+			if (tts == null) throw new InvalidOperationException("模型未加载");
+			// 长数字串一律逐位读；短数字：有 number.fst 则留给 FST，否则转中文
+			var normalized = NormalizeText(text, preferFstNumbers: hasNumberFst, convertLetters: true);
+			var genCfg = new OfflineTtsGenerationConfig {
+				Sid = sid,
+				Speed = speed,
+				SilenceScale = 0.2f,
+			};
+			var audio = tts.GenerateWithConfig(normalized, genCfg, null);
+			if (audio == null || audio.Samples == null || audio.Samples.Length == 0) {
+				TtsAudioFix.Free(audio);
+				throw new Exception("合成失败：输出为空");
+			}
+			var samples = new float[audio.Samples.Length];
+			audio.Samples.CopyTo(samples, 0);
+			var sr = audio.SampleRate;
 			TtsAudioFix.Free(audio);
-			throw new Exception("合成失败：输出为空");
+			// tts_config.json volume：线性放大，并硬限幅防削波爆音
+			if (applyVolume && Math.Abs(volumeGain - 1f) > 1e-4f)
+				applygain(samples, volumeGain);
+			lastuse = Environment.TickCount;
+			return (samples, sr);
 		}
-		var samples = new float[audio.Samples.Length];
-		audio.Samples.CopyTo(samples, 0);
-		var sr = audio.SampleRate;
-		TtsAudioFix.Free(audio);
-		// tts_config.json volume：线性放大，并硬限幅防削波爆音
-		if (applyVolume && Math.Abs(volumeGain - 1f) > 1e-4f)
-			applygain(samples, volumeGain);
-		return (samples, sr);
 	}
 
 	static void applygain(float[] samples, float gain) {
@@ -421,6 +449,10 @@ sealed class TtsEngine : IDisposable {
 	}
 
 	void Unload() {
+		lock (gate) drop();
+	}
+
+	void drop() {
 		var t = tts;
 		tts = null;
 		modelDir = null;
@@ -428,6 +460,7 @@ sealed class TtsEngine : IDisposable {
 		hasNumberFst = false;
 		hasFrontend = false;
 		volumeGain = 1f;
+		lastuse = 0;
 		TtsAudioFix.FreeTts(t);
 	}
 

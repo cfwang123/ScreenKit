@@ -192,6 +192,30 @@ sealed partial class HttpOcrServer {
 		httpAttrKey = key;
 	}
 
+	public void TouchOnnxIdle() {
+		lock (httpFaceLock) {
+			httpFace?.TouchIdle();
+			httpAttr?.TouchIdle();
+		}
+	}
+
+	public bool IdleUnloadOnnx(int limitMs) {
+		var dropped = false;
+		lock (httpFaceLock) {
+			if (httpFace != null && httpFace.IdleUnload(limitMs)) {
+				httpFace = null;
+				httpFaceKey = "";
+				dropped = true;
+			}
+			if (httpAttr != null && httpAttr.IdleUnload(limitMs)) {
+				httpAttr = null;
+				httpAttrKey = "";
+				dropped = true;
+			}
+		}
+		return dropped;
+	}
+
 	void disposeface() {
 		lock (httpFaceLock) {
 			try { httpFace?.Dispose(); } catch { }

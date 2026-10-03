@@ -604,7 +604,17 @@
 						          Margin="0,4,0,4" IsChecked="False"/>
 						<TextBlock x:Name="lbsetservicehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap"
-						           Text="启用后启动与改参会立即加载引擎并保持常驻；关闭则为懒加载（改参后丢弃，下次识别再加载）"/>
+						           Text="启用后启动与改参会立即加载引擎并保持常驻；关闭则为懒加载（改参后丢弃，下次识别再加载）。服务模式不会按空闲时间卸载。"/>
+						<StackPanel Margin="0,10,0,4" Width="160" HorizontalAlignment="Left">
+							<TextBlock x:Name="lbsetonnxidle" Text="ONNX 空闲卸载（分钟）" FontSize="11"
+							           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+							<TextBox x:Name="eonnxidle" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" Text="5"
+							         AutomationProperties.AutomationId="set.onnx.idle"/>
+						</StackPanel>
+						<TextBlock x:Name="lbsetonnxidlehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,4"
+						           Text="识别、翻译、人脸、语音识别和合成空闲达到该分钟数后释放。默认 5，0 表示不自动卸载。"/>
 
 						<TextBlock x:Name="lbsetsf" Text="PC 文件传输（局域网）"
 						           FontWeight="SemiBold" Margin="0,20,0,6"/>

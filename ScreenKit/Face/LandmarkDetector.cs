@@ -9,10 +9,14 @@ sealed class LandmarkDetector : IDisposable {
 	const int InputSize = 192;
 	const float HalfSize = InputSize / 2f;
 
+	readonly object gate = new();
 	readonly InferenceSession session;
 	readonly string inputName;
 	readonly int lmkDim;
 	readonly int lmkNum;
+	int lastuse;
+	int busy;
+	bool released;
 
 	public int LandmarkDim => lmkDim;
 	public int LandmarkNum => lmkNum;
@@ -31,12 +35,36 @@ sealed class LandmarkDetector : IDisposable {
 			lmkDim = 2;
 			lmkNum = outDim / 2;
 		}
+		lastuse = Environment.TickCount;
+	}
+
+	public void TouchIdle() {
+		lock (gate) {
+			if (!released) lastuse = Environment.TickCount;
+		}
+	}
+
+	public bool IdleUnload(int limitMs) {
+		lock (gate) {
+			if (released || busy > 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			released = true;
+			try { session.Dispose(); } catch { }
+			lastuse = 0;
+			return true;
+		}
 	}
 
 	public float[] Detect(Mat bgrImage, FaceBox face) {
 		if (bgrImage == null) throw new ArgumentNullException(nameof(bgrImage));
 		if (face == null) throw new ArgumentNullException(nameof(face));
+		enter();
+		try {
+			return detect(bgrImage, face);
+		}
+		finally { leave(); }
+	}
 
+	float[] detect(Mat bgrImage, FaceBox face) {
 		float w = face.X2 - face.X1;
 		float h = face.Y2 - face.Y1;
 		float cx = (face.X1 + face.X2) * 0.5f;
@@ -106,5 +134,26 @@ sealed class LandmarkDetector : IDisposable {
 		throw new InvalidOperationException("模型未返回输出");
 	}
 
-	public void Dispose() => session?.Dispose();
+	void enter() {
+		lock (gate) {
+			if (released) throw new ObjectDisposedException(nameof(LandmarkDetector));
+			busy++;
+		}
+	}
+
+	void leave() {
+		lock (gate) {
+			if (busy > 0) busy--;
+			if (!released) lastuse = Environment.TickCount;
+		}
+	}
+
+	public void Dispose() {
+		lock (gate) {
+			if (released) return;
+			released = true;
+			try { session.Dispose(); } catch { }
+			lastuse = 0;
+		}
+	}
 }

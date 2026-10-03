@@ -29,11 +29,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- `onnx_unload_min` (default 5) unloads idle ONNX sessions for OCR, translation, face, speech recognition, and speech synthesis. `0` keeps them loaded. Service mode does not auto-unload.
+
 #### Changed
 
 - README: removed the Download section. The English README no longer contains Chinese text.
 
 ### 中文
+
+#### 新增
+
+- `onnx_unload_min`（默认 5 分钟）在空闲后卸载 OCR、翻译、人脸、语音识别和合成的 ONNX 会话。`0` 表示不自动卸载。服务模式不会自动卸载。
 
 #### 变更
 

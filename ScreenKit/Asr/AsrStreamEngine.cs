@@ -5,8 +5,10 @@ namespace ScreenKit;
 
 /// <summary>Sherpa-ONNX 流式语音识别（Online Zipformer Transducer / CTC）。</summary>
 sealed class AsrStreamEngine : IDisposable {
+	readonly object gate = new();
 	OnlineRecognizer recognizer;
 	string loadedKey;
+	int lastuse;
 	bool disposed;
 	bool autoCudaOk = true;
 	TtsComputeMode mode = TtsComputeMode.Auto;
@@ -29,17 +31,36 @@ sealed class AsrStreamEngine : IDisposable {
 
 	public void UnloadSafe() => Unload();
 
+	public void TouchIdle() {
+		lock (gate) {
+			if (recognizer != null) lastuse = Environment.TickCount;
+		}
+	}
+
+	public bool IdleUnload(int limitMs) {
+		lock (gate) {
+			if (recognizer == null || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			drop();
+			return true;
+		}
+	}
+
 	public void LoadModel(AsrModelInfo model) {
 		if (model == null) throw new ArgumentNullException(nameof(model));
 		if (!model.IsStreaming)
 			throw new InvalidOperationException("非流式模型，请用离线引擎: " + model.DisplayName);
 		var key = $"{model.ModelDir}|{model.Type}|stream|{mode}";
-		if (recognizer != null && loadedKey == key) return;
-
-		Unload();
-		FeatSampleRate = model.SampleRate > 0 ? model.SampleRate : 16000;
-		createRecognizer(model);
-		loadedKey = key;
+		lock (gate) {
+			if (recognizer != null && loadedKey == key) {
+				lastuse = Environment.TickCount;
+				return;
+			}
+			drop();
+			FeatSampleRate = model.SampleRate > 0 ? model.SampleRate : 16000;
+			createRecognizer(model);
+			loadedKey = key;
+			lastuse = Environment.TickCount;
+		}
 	}
 
 	void createRecognizer(AsrModelInfo model) {
@@ -145,47 +166,68 @@ sealed class AsrStreamEngine : IDisposable {
 	}
 
 	public OnlineStream CreateStream() {
-		if (recognizer == null) throw new InvalidOperationException("流式模型未加载");
-		return recognizer.CreateStream();
+		lock (gate) {
+			if (recognizer == null) throw new InvalidOperationException("流式模型未加载");
+			lastuse = Environment.TickCount;
+			return recognizer.CreateStream();
+		}
 	}
 
 	/// <summary>送入波形并尽可能 Decode（可能多次）。</summary>
 	public void AcceptAndDecode(OnlineStream stream, float[] samples, int sampleRate) {
-		if (recognizer == null || stream == null) return;
-		if (samples == null || samples.Length == 0) return;
+		if (stream == null || samples == null || samples.Length == 0) return;
 		if (sampleRate != FeatSampleRate && sampleRate > 0)
 			samples = AsrAudio.Resample(samples, sampleRate, FeatSampleRate);
-		stream.AcceptWaveform(FeatSampleRate, samples);
-		while (recognizer.IsReady(stream))
-			recognizer.Decode(stream);
+		lock (gate) {
+			if (recognizer == null) return;
+			stream.AcceptWaveform(FeatSampleRate, samples);
+			while (recognizer.IsReady(stream))
+				recognizer.Decode(stream);
+			lastuse = Environment.TickCount;
+		}
 	}
 
 	public void InputFinished(OnlineStream stream) {
 		if (stream == null) return;
-		stream.InputFinished();
-		if (recognizer == null) return;
-		while (recognizer.IsReady(stream))
-			recognizer.Decode(stream);
+		lock (gate) {
+			stream.InputFinished();
+			if (recognizer == null) return;
+			while (recognizer.IsReady(stream))
+				recognizer.Decode(stream);
+			lastuse = Environment.TickCount;
+		}
 	}
 
-	public bool IsEndpoint(OnlineStream stream) =>
-		recognizer != null && stream != null && recognizer.IsEndpoint(stream);
+	public bool IsEndpoint(OnlineStream stream) {
+		lock (gate)
+			return recognizer != null && stream != null && recognizer.IsEndpoint(stream);
+	}
 
 	public string GetText(OnlineStream stream) {
-		if (recognizer == null || stream == null) return "";
-		var r = recognizer.GetResult(stream);
-		return r?.Text?.Trim() ?? "";
+		lock (gate) {
+			if (recognizer == null || stream == null) return "";
+			var r = recognizer.GetResult(stream);
+			return r?.Text?.Trim() ?? "";
+		}
 	}
 
 	public void Reset(OnlineStream stream) {
-		if (recognizer == null || stream == null) return;
-		recognizer.Reset(stream);
+		if (stream == null) return;
+		lock (gate) {
+			if (recognizer == null) return;
+			recognizer.Reset(stream);
+		}
 	}
 
 	void Unload() {
+		lock (gate) drop();
+	}
+
+	void drop() {
 		try { recognizer?.Dispose(); } catch { }
 		recognizer = null;
 		loadedKey = null;
+		lastuse = 0;
 	}
 
 	public void Dispose() {
