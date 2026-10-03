@@ -29,7 +29,17 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- The Windows release package no longer includes the Android APK.
+- **Install on phone** can check GitHub Releases and download the latest APK. The QR code still serves that file from this PC over the LAN.
+
 ### 中文
+
+#### 变更
+
+- Windows 发布包不再附带安卓 APK。
+- **安装到手机**可以检查 GitHub Releases，并下载最新 APK。二维码仍从这台电脑的局域网地址提供刚下载的文件。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 

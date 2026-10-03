@@ -19,6 +19,8 @@
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
 		<TextBlock x:Name="lbtitle" Grid.Row="0" FontSize="16" FontWeight="SemiBold"
@@ -28,10 +30,14 @@
 
 		<TextBlock x:Name="lbstatus" Grid.Row="1" FontSize="13"
 		           Foreground="{StaticResource TextMuted}"
-		           TextWrapping="Wrap" Text="正在获取最新版本…" Margin="0,0,0,12"
+		           TextWrapping="Wrap" Text="正在获取最新版本…" Margin="0,0,0,8"
 		           AutomationProperties.AutomationId="apk.status"/>
 
-		<Border Grid.Row="2" Width="248" Height="248" HorizontalAlignment="Center"
+		<ProgressBar x:Name="pdown" Grid.Row="2" Height="6" Minimum="0" Maximum="1"
+		             Margin="0,0,0,12" Visibility="Collapsed"
+		             AutomationProperties.AutomationId="apk.progress"/>
+
+		<Border Grid.Row="3" Width="248" Height="248" HorizontalAlignment="Center"
 		        Background="White" CornerRadius="8"
 		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 		        Margin="0,0,0,12">
@@ -40,7 +46,7 @@
 			       AutomationProperties.AutomationId="apk.qr"/>
 		</Border>
 
-		<DockPanel Grid.Row="3">
+		<DockPanel Grid.Row="4">
 			<TextBlock x:Name="lburl" DockPanel.Dock="Top" FontSize="12"
 			           Foreground="{StaticResource TextMuted}"
 			           Text="二维码地址" Margin="0,0,0,4"/>
@@ -50,11 +56,21 @@
 			          AutomationProperties.AutomationId="apk.url"/>
 		</DockPanel>
 
-		<TextBlock x:Name="lbhint" Grid.Row="4" FontSize="12" Margin="0,8,0,12"
+		<TextBlock x:Name="lbhint" Grid.Row="5" FontSize="12" Margin="0,8,0,12"
 		           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"
 		           Text="用手机浏览器扫描二维码下载 APK，允许未知来源后安装。"/>
 
-		<DockPanel Grid.Row="5" LastChildFill="False">
+		<DockPanel Grid.Row="6" LastChildFill="False" Margin="0,0,0,8">
+			<Button x:Name="bcheck" DockPanel.Dock="Left" Content="检查最新"
+			        Style="{StaticResource ToolBtn}" Height="32" Padding="12,2"
+			        Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="apk.check"/>
+			<Button x:Name="bget" DockPanel.Dock="Left" Content="下载最新"
+			        Style="{StaticResource ToolBtn}" Height="32" Padding="12,2"
+			        AutomationProperties.AutomationId="apk.download"/>
+		</DockPanel>
+
+		<DockPanel Grid.Row="7" LastChildFill="False">
 			<Button x:Name="bclose" DockPanel.Dock="Right" Content="关闭"
 			        Style="{StaticResource PrimaryBtn}" Width="88" Height="32"
 			        IsCancel="True" IsDefault="True"

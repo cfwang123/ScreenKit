@@ -9,12 +9,15 @@ namespace ScreenKit;
 static class ApkHost {
 	public const string HttpPath = "/apk";
 	static string testFile;
+	static string chosen;
 
 	public static void SetFileForTest(string path) => testFile = path;
 
 	public static string FindFile() {
 		if (!string.IsNullOrWhiteSpace(testFile) && File.Exists(testFile))
 			return testFile;
+		if (!string.IsNullOrWhiteSpace(chosen) && File.Exists(chosen) && !isdebug(chosen))
+			return chosen;
 		var found = new List<string>();
 		foreach (var dir in searchdirs()) {
 			try {
@@ -40,25 +43,38 @@ static class ApkHost {
 			.First();
 	}
 
-	/// <summary>本地没有 APK 时，尝试从 GitHub Releases 拉到 tmp/apk/，再由本机 HTTP 提供。</summary>
-	public static async Task<string> EnsureAsync(CancellationToken ct = default) {
-		var hit = FindFile();
-		if (!string.IsNullOrEmpty(hit)) return hit;
-		var info = await AppUpdater.CheckLatestApkAsync(ct).ConfigureAwait(false);
+	/// <summary>把 GitHub Releases 上的 APK 下载到 tmp/apk/，并作为 GET /apk 要提供的文件。</summary>
+	public static async Task<string> DownloadAsync(ApkInfo info, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (info == null || !info.HasApk || string.IsNullOrWhiteSpace(info.DownloadUrl))
-			return null;
+			throw new InvalidOperationException("发布页上没有 APK");
 		var name = info.AssetName;
 		if (string.IsNullOrWhiteSpace(name) || !name.EndsWith(".apk", StringComparison.OrdinalIgnoreCase))
 			name = "screenkit.apk";
 		foreach (var c in Path.GetInvalidFileNameChars())
 			name = name.Replace(c, '_');
 		var dest = Path.Combine(TmpStore.Root, "apk", name);
-		if (File.Exists(dest) && new FileInfo(dest).Length > 64)
-			return dest;
+		Directory.CreateDirectory(Path.GetDirectoryName(dest));
+		if (File.Exists(dest)) {
+			long len = 0;
+			try { len = new FileInfo(dest).Length; } catch { }
+			if (len > 64 && (info.SizeBytes <= 0 || len == info.SizeBytes)) {
+				chosen = dest;
+				return dest;
+			}
+		}
 		var urls = FeatureInstaller.ExpandUrls(info.DownloadUrl);
-		await FeatureInstaller.DownloadUrlAsync(urls, dest, null, null, ct, info.SizeBytes)
+		await FeatureInstaller.DownloadUrlAsync(urls, dest, null, progress, ct, info.SizeBytes)
 			.ConfigureAwait(false);
-		return File.Exists(dest) && new FileInfo(dest).Length > 64 ? dest : null;
+		if (!File.Exists(dest) || new FileInfo(dest).Length <= 64)
+			throw new InvalidOperationException("下载失败或文件过小");
+		chosen = dest;
+		return dest;
+	}
+
+	/// <summary>记下本机已选中的 APK，GET /apk 优先提供它。</summary>
+	public static void UseFile(string path) {
+		if (!string.IsNullOrWhiteSpace(path) && File.Exists(path) && !isdebug(path))
+			chosen = Path.GetFullPath(path);
 	}
 
 	public static string VersionOf(string path) {

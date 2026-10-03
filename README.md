@@ -65,7 +65,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 
 | Area | Description |
 |------|-------------|
-| **PC file transfer** | Same HTTP API port (`1224`) + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): **list / thumbnails** toggle, marquee and Shift/Ctrl multi-select, **Ctrl+X/C** cut/copy (cut items shown faded), paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (compact list, long-press multi-select, Upload/Camera/New); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
+| **PC file transfer** | Same HTTP API port (`1224`) + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): **list / thumbnails** toggle, marquee and Shift/Ctrl multi-select, **Ctrl+X/C** cut/copy (cut items shown faded), paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** checks and downloads the latest APK, then shows a LAN URL and QR. **Web manager** (same port): desktop `/`, phone `/m` (compact list, long-press multi-select, Upload/Camera/New); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **传文件** / **投屏**). |
 | **HTTP API** | JSON API (default port `1224`). **Allow LAN access** opens every interface; otherwise it listens on `127.0.0.1` only. Main-window tab: call log + request builder. |
 | **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. Voices on a separate tab. CN mirrors when locale is Chinese. |
 | **Image convert** | **Tools → Image convert**: batch JPG/PNG/BMP, optional shorter-side cap (shrink only), rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings; write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). |
@@ -110,7 +110,7 @@ GDI capture has no cursor: enable **record mouse** to overlay the pointer; **hig
 ### File sync (PC ↔ Android)
 
 1. On the PC, open the **File sync** tab (enable under Settings → API if needed; default on).
-2. **Install on phone**: LAN URL `http://<pc-ip>:1224/apk` and QR (defaults to an internet-reachable NIC). Phone and PC on the same LAN; scan with a browser to install.
+2. **Install on phone**: check and download the latest APK from GitHub, then show LAN URL `http://<pc-ip>:1224/apk` and a QR code (defaults to an internet-reachable NIC). Phone and PC on the same LAN; scan with a browser to install. The Windows release package does not include the APK.
 3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
 4. The upper list is the PC `sendfile/` inbox (root only, no subfolder navigation; folders are rows). **Double-click** a file to open it with the system, or a folder to open Explorer. The **right-click** menu acts on the current selection (Open, Cut, Copy, Paste, Push, Delete) and does not clear a multi-selection when you click an already selected row. Use the toolbar to switch **list / thumbnails**; marquee, Shift range, and Ctrl multi-select; **Ctrl+X/C/V** cut/copy/paste (cut rows appear semi-transparent), Delete to Recycle Bin, or drag to Explorer. Dropping files onto the list imports them. Drop on the **lower** zone to send to the phone while the app is connected; otherwise nothing is sent. File/image paste goes into the inbox; text paste still goes to the right-hand pane. Phone share/upload always writes to PC `sendfile/`.
 5. Both sides show in-progress transfers; the PC also has a transfer log. Text sync is one text box with **Send**, **Copy**, and **Clear**. The phone auto-connects by LAN IP only, not over USB.
@@ -425,7 +425,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
+- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`.
 - End users install those via **Install features**. Local Opus-MT ONNX is placed under `translatemodels/` by hand if needed.
 
 For local development with models already present, run **`bin\Release\net48\`**.

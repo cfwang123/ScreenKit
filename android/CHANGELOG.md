@@ -4,6 +4,10 @@
 
 ## unreleased
 
+### 变更
+
+- `node build.js release` 只写出 `android/release/`。不再把 APK 拷进电脑端发布包。
+
 ## v1.0.13 (2026-09-27 ~ 10-03)
 
 ### 变更
