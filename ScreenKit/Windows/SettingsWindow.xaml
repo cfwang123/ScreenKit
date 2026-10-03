@@ -288,7 +288,7 @@
 						<TextBlock x:Name="lbdicttts" Text="词典发音" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbdictttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
-						           Text="自动优先该语言的本地 SAPI，没有则用 Edge 在线。与语音合成页无关。Edge 需要联网。"/>
+						           Text="Edge 只显示 Edge 发音人，本地 SAPI 只显示本地发音人。自动两项都显示。"/>
 
 						<TextBlock x:Name="lbdictzh" Text="汉语" FontWeight="SemiBold" Margin="0,4,0,4"/>
 						<DockPanel Margin="0,0,0,4">
@@ -296,12 +296,12 @@
 							<ComboBox x:Name="edictzheng" Height="30"
 							          AutomationProperties.AutomationId="set.dict.zh.engine"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,4">
+						<DockPanel x:Name="pdictzhsapi" Margin="0,0,0,4">
 							<TextBlock x:Name="lbdictzhsapi" Text="本地发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictzhsapi" Height="30"
 							          AutomationProperties.AutomationId="set.dict.zh.sapi"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,8">
+						<DockPanel x:Name="pdictzhedge" Margin="0,0,0,8">
 							<TextBlock x:Name="lbdictzhedge" Text="Edge 发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictzhedge" Height="30"
 							          AutomationProperties.AutomationId="set.dict.zh.edge"/>
@@ -313,12 +313,12 @@
 							<ComboBox x:Name="edicteneng" Height="30"
 							          AutomationProperties.AutomationId="set.dict.en.engine"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,4">
+						<DockPanel x:Name="pdictensapi" Margin="0,0,0,4">
 							<TextBlock x:Name="lbdictensapi" Text="本地发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictensapi" Height="30"
 							          AutomationProperties.AutomationId="set.dict.en.sapi"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,8">
+						<DockPanel x:Name="pdictenedge" Margin="0,0,0,8">
 							<TextBlock x:Name="lbdictenedge" Text="Edge 发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictenedge" Height="30"
 							          AutomationProperties.AutomationId="set.dict.en.edge"/>
@@ -330,12 +330,12 @@
 							<ComboBox x:Name="edictjaeng" Height="30"
 							          AutomationProperties.AutomationId="set.dict.ja.engine"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,4">
+						<DockPanel x:Name="pdictjasapi" Margin="0,0,0,4">
 							<TextBlock x:Name="lbdictjasapi" Text="本地发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictjasapi" Height="30"
 							          AutomationProperties.AutomationId="set.dict.ja.sapi"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,8">
+						<DockPanel x:Name="pdictjaedge" Margin="0,0,0,8">
 							<TextBlock x:Name="lbdictjaedge" Text="Edge 发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictjaedge" Height="30"
 							          AutomationProperties.AutomationId="set.dict.ja.edge"/>
@@ -347,12 +347,12 @@
 							<ComboBox x:Name="edictkoeng" Height="30"
 							          AutomationProperties.AutomationId="set.dict.ko.engine"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,4">
+						<DockPanel x:Name="pdictkosapi" Margin="0,0,0,4">
 							<TextBlock x:Name="lbdictkosapi" Text="本地发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictkosapi" Height="30"
 							          AutomationProperties.AutomationId="set.dict.ko.sapi"/>
 						</DockPanel>
-						<DockPanel Margin="0,0,0,8">
+						<DockPanel x:Name="pdictkoedge" Margin="0,0,0,8">
 							<TextBlock x:Name="lbdictkoedge" Text="Edge 发音人" Width="108" VerticalAlignment="Center"/>
 							<ComboBox x:Name="edictkoedge" Height="30"
 							          AutomationProperties.AutomationId="set.dict.ko.edge"/>

@@ -940,6 +940,26 @@ public partial class SettingsWindow : Window {
 	}
 
 	List<(string Lang, string Name)> dictlocals = new();
+	bool dictvoicehook;
+
+	void hookdictvoice() {
+		if (dictvoicehook) return;
+		dictvoicehook = true;
+		hookone(edictzheng, pdictzhsapi, pdictzhedge);
+		hookone(edicteneng, pdictensapi, pdictenedge);
+		hookone(edictjaeng, pdictjasapi, pdictjaedge);
+		hookone(edictkoeng, pdictkosapi, pdictkoedge);
+		return;
+		void hookone(ComboBox eng, DockPanel local, DockPanel edge) {
+			eng.SelectionChanged += (_, _) => syncdictvoice(eng, local, edge);
+		}
+	}
+
+	static void syncdictvoice(ComboBox eng, DockPanel local, DockPanel edge) {
+		var kind = DictTts.NormEngine((eng.SelectedItem as ComboBoxItem)?.Tag as string);
+		local.Visibility = kind == DictTts.EDGE ? Visibility.Collapsed : Visibility.Visible;
+		edge.Visibility = kind == DictTts.SAPI ? Visibility.Collapsed : Visibility.Visible;
+	}
 
 	void setdictrowlabels() {
 		var eng = Loc.T("set.dict.engine");
@@ -960,11 +980,12 @@ public partial class SettingsWindow : Window {
 	}
 
 	void loaddicttts(OcrOptions o) {
+		hookdictvoice();
 		dictlocals = DictTts.LocalVoices();
-		filldictlang(edictzheng, edictzhsapi, edictzhedge, "zh", o?.DictTtsZh);
-		filldictlang(edicteneng, edictensapi, edictenedge, "en", o?.DictTtsEn);
-		filldictlang(edictjaeng, edictjasapi, edictjaedge, "ja", o?.DictTtsJa);
-		filldictlang(edictkoeng, edictkosapi, edictkoedge, "ko", o?.DictTtsKo);
+		filldictlang(edictzheng, edictzhsapi, edictzhedge, pdictzhsapi, pdictzhedge, "zh", o?.DictTtsZh);
+		filldictlang(edicteneng, edictensapi, edictenedge, pdictensapi, pdictenedge, "en", o?.DictTtsEn);
+		filldictlang(edictjaeng, edictjasapi, edictjaedge, pdictjasapi, pdictjaedge, "ja", o?.DictTtsJa);
+		filldictlang(edictkoeng, edictkosapi, edictkoedge, pdictkosapi, pdictkoedge, "ko", o?.DictTtsKo);
 	}
 
 	void savedicttts() {
@@ -974,7 +995,7 @@ public partial class SettingsWindow : Window {
 		Result.DictTtsKo = readdictlang(edictkoeng, edictkosapi, edictkoedge, "ko");
 	}
 
-	void filldictlang(ComboBox eng, ComboBox sapi, ComboBox edge, string lang, DictTtsLang pref) {
+	void filldictlang(ComboBox eng, ComboBox sapi, ComboBox edge, DockPanel localRow, DockPanel edgeRow, string lang, DictTtsLang pref) {
 		if (pref == null) pref = DictTtsLang.Make(DictTts.DefaultEdge(lang));
 		filltag(eng, new[] {
 			(Loc.T("dict.tts.auto"), DictTts.AUTO),
@@ -1003,6 +1024,7 @@ public partial class SettingsWindow : Window {
 		}
 		if (!have) edges.Add((wantEdge, wantEdge));
 		filltag(edge, edges, wantEdge);
+		syncdictvoice(eng, localRow, edgeRow);
 	}
 
 	static void filltag(ComboBox box, IEnumerable<(string Label, string Tag)> items, string selected) {

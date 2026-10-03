@@ -39,7 +39,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Dictionary list is two lines (language and headword, then gloss) with a per-row speak button. Entry text is smaller and colors pronunciation, part of speech, sense numbers, language labels, and examples. Selecting text opens a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button.
 - Dictionary is a main-window tab (`tab_dict_visible`, on by default). Its hotkey shows the main window and selects that tab, enabling it when it was hidden. Pressing it again while that tab is showing hides the main window. The hotkey is off by default (`hotkey_dict` empty).
-- Dictionary speech (**Settings → Dictionary**): each of Chinese, English, Japanese, and Korean has an engine (`auto`, `sapi`, or `edge`), a local SAPI voice, and an Edge voice. Defaults: Auto, Xiaoxiao, Aria, Nanami, SunHi. Auto uses local SAPI, then Edge online. This does not change the Speech tab. A saved `hotkey_dict` is kept.
+- Dictionary speech (**Settings → Dictionary**): each of Chinese, English, Japanese, and Korean has an engine (`auto`, `sapi`, or `edge`), a local SAPI voice, and an Edge voice. Defaults: Auto, Xiaoxiao, Aria, Nanami, SunHi. Auto uses local SAPI, then Edge online. Edge shows only the Edge voice; local SAPI shows only the local voice; Auto shows both. This does not change the Speech tab. A saved `hotkey_dict` is kept.
 - README: removed the Download section. The English README no longer contains Chinese text.
 
 ### 中文
@@ -54,7 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 词典列表改为两行（语言与词头、释义），每行可发音。详情字号缩小，读音、词性、义项编号、语种标签、例句分色。选中文字后，浮窗出现在选区旁边，含匹配词条以及发音、搜索、翻译、复制。每条例句末尾有发音按钮。
 - 词典改为主窗口的一页（`tab_dict_visible`，默认显示）。热键打开主窗口并切到该页；已在该页时再按隐藏主窗口。页被隐藏时会先启用。热键默认不注册（`hotkey_dict` 留空）。
-- 词典发音（**参数设置 → 词典**）：汉、英、日、韩各自有引擎（`auto` / `sapi` / `edge`）、本地 SAPI 发音人和 Edge 发音人。默认自动，Edge 为晓晓、Aria、Nanami、SunHi。自动先用本地 SAPI，没有再走 Edge 在线。不改语音合成页。已经保存的 `hotkey_dict` 会保留。
+- 词典发音（**参数设置 → 词典**）：汉、英、日、韩各自有引擎（`auto` / `sapi` / `edge`）、本地 SAPI 发音人和 Edge 发音人。默认自动，Edge 为晓晓、Aria、Nanami、SunHi。自动先用本地 SAPI，没有再走 Edge 在线。选 Edge 只显示 Edge 发音人，选本地 SAPI 只显示本地发音人，自动两项都显示。不改语音合成页。已经保存的 `hotkey_dict` 会保留。
 - README：去掉下载一节。英文 README 不再出现中文。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
