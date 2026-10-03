@@ -162,6 +162,13 @@ public partial class DictWindow : UserControl {
 		catch { }
 	}
 
+	/// <summary>把外部选区填进搜索框并查询。过长只取前 80 字。</summary>
+	public void SearchText(string q) {
+		q = oneline(q);
+		if (q.Length > 80) q = q.Substring(0, 80).Trim();
+		searchword(q);
+	}
+
 	public void ApplyLang() => applylang();
 
 	void applylang() {

@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary is a main-window tab (`tab_dict_visible`, on by default). Its hotkey shows the main window and selects that tab, enabling it when it was hidden. Pressing it again while that tab is showing hides the main window. The hotkey is off by default (`hotkey_dict` empty).
 - Dictionary speech (**Settings → Dictionary**): each of Chinese, English, Japanese, and Korean has an engine (`auto`, `sapi`, or `edge`), a local SAPI voice, and an Edge voice. Defaults: Auto, Xiaoxiao, Aria, Nanami, SunHi. Auto uses local SAPI, then Edge online. Edge shows only the Edge voice; local SAPI shows only the local voice; Auto shows both. This does not change the Speech tab. A saved `hotkey_dict` is kept.
 - The dictionary SQLite connection closes after 5 minutes without a lookup and opens again on the next search.
+- The dictionary hotkey sends Ctrl+C to the foreground window, searches that text, then restores the clipboard. If the clipboard does not change, or the copy is blank, the dictionary opens and does not search.
 - README: removed the Download section. The English README no longer contains Chinese text.
 
 ### 中文
@@ -57,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典改为主窗口的一页（`tab_dict_visible`，默认显示）。热键打开主窗口并切到该页；已在该页时再按隐藏主窗口。页被隐藏时会先启用。热键默认不注册（`hotkey_dict` 留空）。
 - 词典发音（**参数设置 → 词典**）：汉、英、日、韩各自有引擎（`auto` / `sapi` / `edge`）、本地 SAPI 发音人和 Edge 发音人。默认自动，Edge 为晓晓、Aria、Nanami、SunHi。自动先用本地 SAPI，没有再走 Edge 在线。选 Edge 只显示 Edge 发音人，选本地 SAPI 只显示本地发音人，自动两项都显示。不改语音合成页。已经保存的 `hotkey_dict` 会保留。
 - 词典 SQLite 连接在连续 5 分钟没有查询后关闭，下次查询再打开。
+- 词典热键向前台窗口发 Ctrl+C，用复制到的文字查询，然后还原剪贴板。剪贴板没有变化，或复制结果是空白，就只打开词典、不搜索。
 - README：去掉下载一节。英文 README 不再出现中文。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)

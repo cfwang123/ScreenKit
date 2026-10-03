@@ -200,10 +200,13 @@ public partial class MainWindow {
 			else try { Hide(); } catch { }
 			return;
 		}
-		opendicttab();
+		var q = "";
+		try { q = TextInjector.CopySelection(); }
+		catch (Exception ex) { try { CaptureLog.Ex("dict sel", ex); } catch { } }
+		opendicttab(q);
 	}
 
-	void opendicttab() {
+	void opendicttab(string query = null) {
 		if (!opt.TabDictVisible) {
 			opt.TabDictVisible = true;
 			applymaintabvisibility();
@@ -216,8 +219,11 @@ public partial class MainWindow {
 			try { Activate(); } catch { }
 		}
 		selectmaintab(tabdict);
+		var q = query;
 		Dispatcher.BeginInvoke(new Action(() => {
 			try { dicthost.FocusSearch(); } catch { }
+			if (!string.IsNullOrWhiteSpace(q))
+				try { dicthost.SearchText(q); } catch { }
 		}), System.Windows.Threading.DispatcherPriority.Background);
 	}
 

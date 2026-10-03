@@ -25,6 +25,21 @@ static class Cli {
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern IntPtr GetStdHandle(int nStdHandle);
 
+	[DllImport("user32.dll")]
+	static extern IntPtr GetForegroundWindow();
+
+	[DllImport("user32.dll")]
+	static extern bool SetForegroundWindow(IntPtr hWnd);
+
+	[DllImport("user32.dll")]
+	static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+
+	[DllImport("user32.dll")]
+	static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+	[DllImport("kernel32.dll")]
+	static extern uint GetCurrentThreadId();
+
 	public static bool IsCli(string[] args) {
 		if (args == null || args.Length == 0) return false;
 		foreach (var a in args) {
@@ -42,7 +57,7 @@ static class Cli {
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-wintop"
-				or "--test-dict-search"
+				or "--test-dict-search" or "--test-dict-sel"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -248,6 +263,8 @@ static class Cli {
 					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
 						return testdict(Next());
 					return testdict(null);
+				case "--test-dict-sel":
+					return testselcopy();
 				case "--test-cast":
 					return testcast();
 				case "--test-cast-recv":
@@ -3101,6 +3118,58 @@ static class Cli {
 		return 0;
 	}
 
+	static int testselcopy() {
+		System.Windows.Forms.Form form = null;
+		System.Windows.Forms.TextBox box = null;
+		var ready = new ManualResetEvent(false);
+		Exception fail = null;
+		var t = new Thread(() => {
+			try {
+				form = new System.Windows.Forms.Form {
+					Text = "dictsel",
+					Width = 320,
+					Height = 80,
+					StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen,
+				};
+				box = new System.Windows.Forms.TextBox { Dock = System.Windows.Forms.DockStyle.Fill, Text = "hello" };
+				form.Controls.Add(box);
+				form.Shown += (_, _) => {
+					try {
+						var fg = GetForegroundWindow();
+						var cur = GetCurrentThreadId();
+						var fgThread = GetWindowThreadProcessId(fg, out _);
+						var attached = fgThread != 0 && fgThread != cur && AttachThreadInput(cur, fgThread, true);
+						form.Activate();
+						SetForegroundWindow(form.Handle);
+						box.Focus();
+						box.Select(0, 5);
+						if (attached) AttachThreadInput(cur, fgThread, false);
+					}
+					catch (Exception ex) { fail = ex; }
+					ready.Set();
+				};
+				System.Windows.Forms.Application.Run(form);
+			}
+			catch (Exception ex) { fail = ex; ready.Set(); }
+		});
+		t.SetApartmentState(ApartmentState.STA);
+		t.Start();
+		if (!ready.WaitOne(4000) || fail != null || form == null || box == null) {
+			try { form?.BeginInvoke(new Action(() => form.Close())); } catch { }
+			Out(fail != null ? fail.Message : "sel timeout");
+			return 1;
+		}
+		var got = TextInjector.CopySelection();
+		form.Invoke(new Action(() => box.Select(0, 0)));
+		var none = TextInjector.CopySelection();
+		try { form.Invoke(new Action(() => form.Close())); } catch { }
+		t.Join(2000);
+		Out("got=[" + got + "] none=[" + none + "]");
+		if (got != "hello") return 2;
+		if (none.Length != 0) return 3;
+		return 0;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
@@ -3127,6 +3196,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-nettool
   ScreenKit --test-wintop
   ScreenKit --test-dict-search
+  ScreenKit --test-dict-sel
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
@@ -3189,6 +3259,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
+      --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
@@ -3252,6 +3323,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-nettool
   ScreenKit --test-wintop
   ScreenKit --test-dict-search
+  ScreenKit --test-dict-sel
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue

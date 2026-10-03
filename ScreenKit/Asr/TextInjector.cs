@@ -57,7 +57,70 @@ static class TextInjector {
 	[DllImport("user32.dll")]
 	static extern IntPtr GetForegroundWindow();
 
+	[DllImport("user32.dll")]
+	static extern uint GetClipboardSequenceNumber();
+
 	static readonly int InputSize = Marshal.SizeOf(typeof(INPUT));
+
+	/// <summary>
+	/// 向前台窗口发 Ctrl+C。剪贴板序号不变，或新内容是空白，视为没有选区，返回空。
+	/// 不读原来的剪贴板文字。读完后恢复原剪贴板。
+	/// </summary>
+	public static string CopySelection() {
+		Forms.IDataObject old = null;
+		try { old = Forms.Clipboard.GetDataObject(); } catch { }
+		var seq = GetClipboardSequenceNumber();
+		releasemods();
+		Thread.Sleep(30);
+		var inputs = new List<INPUT>(4);
+		addVk(inputs, (ushort)Forms.Keys.ControlKey, false);
+		addVk(inputs, (ushort)Forms.Keys.C, false);
+		addVk(inputs, (ushort)Forms.Keys.C, true);
+		addVk(inputs, (ushort)Forms.Keys.ControlKey, true);
+		if (!flush(inputs)) {
+			restoreclip(old);
+			return "";
+		}
+		var text = "";
+		var copied = false;
+		for (var i = 0; i < 10; i++) {
+			Thread.Sleep(30);
+			if (GetClipboardSequenceNumber() == seq) continue;
+			copied = true;
+			try {
+				if (Forms.Clipboard.ContainsText())
+					text = Forms.Clipboard.GetText() ?? "";
+			}
+			catch { }
+			break;
+		}
+		restoreclip(old);
+		if (!copied || string.IsNullOrWhiteSpace(text)) return "";
+		text = text.Trim();
+		if (text.Length > 500) text = text.Substring(0, 500);
+		return text;
+	}
+
+	static void releasemods() {
+		var inputs = new List<INPUT>(5);
+		addVk(inputs, (ushort)Forms.Keys.ControlKey, true);
+		addVk(inputs, (ushort)Forms.Keys.Menu, true);
+		addVk(inputs, (ushort)Forms.Keys.ShiftKey, true);
+		addVk(inputs, (ushort)Forms.Keys.LWin, true);
+		addVk(inputs, (ushort)Forms.Keys.RWin, true);
+		flush(inputs);
+	}
+
+	static void restoreclip(Forms.IDataObject old) {
+		if (old == null) return;
+		for (var i = 0; i < 3; i++) {
+			try {
+				Forms.Clipboard.SetDataObject(old, true);
+				return;
+			}
+			catch { Thread.Sleep(30); }
+		}
+	}
 
 	/// <summary>向焦点控件注入文本。先 Unicode 按键，失败再用剪贴板粘贴。</summary>
 	public static bool TypeText(string text) {
