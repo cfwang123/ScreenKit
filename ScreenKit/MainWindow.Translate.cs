@@ -16,6 +16,7 @@ public partial class MainWindow {
 			ensuretranslatepopup();
 			trPopup.ShowText(text);
 		};
+		dicthost.Options = () => opt;
 		try { trEngine = new TranslateEngine(); }
 		catch (Exception ex) {
 			CaptureLog.Ex("TranslateEngine init", ex);

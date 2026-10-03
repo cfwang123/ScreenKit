@@ -56,6 +56,10 @@ static class AppConfig {
 				o.HotkeySnapCopy = (hksc ?? "").Trim();
 			if (map.TryGetValue("hotkey_dict", out var hkdict))
 				o.HotkeyDict = (hkdict ?? "").Trim();
+			readdicttts(map, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
+			readdicttts(map, "en", o.DictTtsEn, "en-US-AriaNeural");
+			readdicttts(map, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
+			readdicttts(map, "ko", o.DictTtsKo, "ko-KR-SunHiNeural");
 			if (map.TryGetValue("minimize_to_tray", out var mtt))
 				o.MinimizeToTray = parsebool(mtt, true);
 			if (map.TryGetValue("capture_log", out var cl))
@@ -509,8 +513,13 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_translate = \"{esc((o.HotkeyTranslate ?? "").Trim())}\"");
 		sb.AppendLine($"# 切换截图复制方式（图片 / 文件 / 路径循环；默认 Ctrl+Alt+P）");
 		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
-		sb.AppendLine($"# 词典窗口（呼出/隐藏；默认 Ctrl+Alt+D）");
+		sb.AppendLine($"# 词典页（打开主窗口并切换；已在该页时隐藏；默认空=不注册）");
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
+		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|sapi|edge；sapi 留空=自动");
+		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
+		writedicttts(sb, "en", o.DictTtsEn, "en-US-AriaNeural");
+		writedicttts(sb, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
+		writedicttts(sb, "ko", o.DictTtsKo, "ko-KR-SunHiNeural");
 		sb.AppendLine($"minimize_to_tray = {(o.MinimizeToTray ? "true" : "false")}");
 		sb.AppendLine($"# 系统诊断日志（默认 false）：log/capture.log + 录屏 log/record_*.log");
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");
@@ -928,6 +937,28 @@ static class AppConfig {
 	}
 
 	/// <summary>极简 TOML：忽略节名，收集 key = value（支持引号字符串与裸值）。</summary>
+	static void readdicttts(Dictionary<string, string> map, string lang, DictTtsLang pref, string defEdge) {
+		if (pref == null) return;
+		if (map.TryGetValue("dict_tts_" + lang + "_engine", out var eng))
+			pref.Engine = DictTts.NormEngine(eng);
+		if (map.TryGetValue("dict_tts_" + lang + "_sapi", out var sapi))
+			pref.Sapi = (sapi ?? "").Trim();
+		if (map.TryGetValue("dict_tts_" + lang + "_edge", out var edge)) {
+			var name = (edge ?? "").Trim();
+			if (name.Length > 0) pref.Edge = name;
+		}
+		if (string.IsNullOrWhiteSpace(pref.Edge)) pref.Edge = defEdge;
+	}
+
+	static void writedicttts(StringBuilder sb, string lang, DictTtsLang pref, string defEdge) {
+		if (pref == null) pref = DictTtsLang.Make(defEdge);
+		var edge = (pref.Edge ?? "").Trim();
+		if (edge.Length == 0) edge = defEdge;
+		sb.AppendLine($"dict_tts_{lang}_engine = \"{esc(DictTts.NormEngine(pref.Engine))}\"");
+		sb.AppendLine($"dict_tts_{lang}_sapi = \"{esc((pref.Sapi ?? "").Trim())}\"");
+		sb.AppendLine($"dict_tts_{lang}_edge = \"{esc(edge)}\"");
+	}
+
 	static Dictionary<string, string> parsetoml(string text) {
 		var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 		if (string.IsNullOrEmpty(text)) return map;

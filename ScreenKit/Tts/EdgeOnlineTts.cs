@@ -70,6 +70,15 @@ sealed class EdgeOnlineTts : IDisposable {
 		return true;
 	}
 
+	/// <summary>直接用 ShortName，不要求已经拉过在线语音表。</summary>
+	public void SetVoiceName(string shortName) {
+		var name = (shortName ?? "").Trim();
+		if (name.StartsWith("edge:", StringComparison.OrdinalIgnoreCase))
+			name = name.Substring(5);
+		if (name.Length == 0) return;
+		voice = name;
+	}
+
 	public void SetRateVolume(double rate, int volume) {
 		this.rate = Compat.Clamp(rate, 0.5, 2.0);
 		this.volume = Compat.Clamp(volume, 0, 100);

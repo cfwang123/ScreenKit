@@ -170,6 +170,7 @@ public partial class SettingsWindow : Window {
 			tabsetgen.Header = Loc.T("set.tab.general");
 			tabsetocr.Header = Loc.T("set.tab.ocr");
 			tabsethk.Header = Loc.T("set.tab.hotkey");
+			tabsetdict.Header = Loc.T("tab.dict");
 			tabsetasr.Header = Loc.T("set.tab.asr");
 			tabsetllm.Header = Loc.T("set.tab.llm");
 			tabsettr.Header = Loc.T("set.tab.translate");
@@ -232,6 +233,13 @@ public partial class SettingsWindow : Window {
 			lbhkhinttr.Text = Loc.T("set.hotkey.translate");
 			lbhkhintsnapcopy.Text = Loc.T("set.hotkey.snapcopy");
 			lbhkhintDict.Text = Loc.T("set.hotkey.dict");
+			lbdicttts.Text = Loc.T("set.dict.tts");
+			lbdictttshint.Text = Loc.T("set.dict.tts.hint");
+			lbdictzh.Text = Loc.T("dict.filter.zh");
+			lbdicten.Text = Loc.T("dict.filter.en");
+			lbdictja.Text = Loc.T("dict.filter.ja");
+			lbdictko.Text = Loc.T("dict.filter.ko");
+			setdictrowlabels();
 			lbsetasrmode.Text = Loc.T("set.asr.mode");
 			lbsetasrmodehint.Text = Loc.T("set.asr.mode.hint");
 			easrvoicestream.Content = Loc.T("set.asr.mode.stream");
@@ -424,6 +432,7 @@ public partial class SettingsWindow : Window {
 		ehotkeytr.Text = o.HotkeyTranslate ?? "";
 		ehotkeysnapcopy.Text = o.HotkeySnapCopy ?? "";
 		ehotkeydict.Text = o.HotkeyDict ?? "";
+		loaddicttts(o);
 		var voiceOffline = string.Equals((o.AsrVoiceMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
 			|| string.Equals((o.AsrVoiceMode ?? "").Trim(), "离线", StringComparison.OrdinalIgnoreCase);
 		easrvoiceoffline.IsChecked = voiceOffline;
@@ -598,6 +607,7 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeytr, Loc.T("set.hotkey.translate"), out Result.HotkeyTranslate, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeysnapcopy, Loc.T("set.hotkey.snapcopy"), out Result.HotkeySnapCopy, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydict, Loc.T("set.hotkey.dict"), out Result.HotkeyDict, tabsethk)) return false;
+		savedicttts();
 		Result.AsrVoiceMode = easrvoiceoffline.IsChecked == true ? "offline" : "stream";
 		Result.AsrVoicePolish = easrvoicepolish.IsChecked == true;
 		Result.AsrVoiceSplit = easrvoicesplit.IsChecked == true;
@@ -927,6 +937,93 @@ public partial class SettingsWindow : Window {
 		eproxyaddr.IsEnabled = on;
 		lbsetproxyaddr.Opacity = on ? 1 : 0.45;
 		eproxyaddr.Opacity = on ? 1 : 0.55;
+	}
+
+	List<(string Lang, string Name)> dictlocals = new();
+
+	void setdictrowlabels() {
+		var eng = Loc.T("set.dict.engine");
+		var local = Loc.T("set.dict.local");
+		var edge = Loc.T("set.dict.edge");
+		lbdictzheng.Text = eng;
+		lbdicteneng.Text = eng;
+		lbdictjaeng.Text = eng;
+		lbdictkoeng.Text = eng;
+		lbdictzhsapi.Text = local;
+		lbdictensapi.Text = local;
+		lbdictjasapi.Text = local;
+		lbdictkosapi.Text = local;
+		lbdictzhedge.Text = edge;
+		lbdictenedge.Text = edge;
+		lbdictjaedge.Text = edge;
+		lbdictkoedge.Text = edge;
+	}
+
+	void loaddicttts(OcrOptions o) {
+		dictlocals = DictTts.LocalVoices();
+		filldictlang(edictzheng, edictzhsapi, edictzhedge, "zh", o?.DictTtsZh);
+		filldictlang(edicteneng, edictensapi, edictenedge, "en", o?.DictTtsEn);
+		filldictlang(edictjaeng, edictjasapi, edictjaedge, "ja", o?.DictTtsJa);
+		filldictlang(edictkoeng, edictkosapi, edictkoedge, "ko", o?.DictTtsKo);
+	}
+
+	void savedicttts() {
+		Result.DictTtsZh = readdictlang(edictzheng, edictzhsapi, edictzhedge, "zh");
+		Result.DictTtsEn = readdictlang(edicteneng, edictensapi, edictenedge, "en");
+		Result.DictTtsJa = readdictlang(edictjaeng, edictjasapi, edictjaedge, "ja");
+		Result.DictTtsKo = readdictlang(edictkoeng, edictkosapi, edictkoedge, "ko");
+	}
+
+	void filldictlang(ComboBox eng, ComboBox sapi, ComboBox edge, string lang, DictTtsLang pref) {
+		if (pref == null) pref = DictTtsLang.Make(DictTts.DefaultEdge(lang));
+		filltag(eng, new[] {
+			(Loc.T("dict.tts.auto"), DictTts.AUTO),
+			(Loc.T("dict.tts.sapi"), DictTts.SAPI),
+			(Loc.T("dict.tts.edge"), DictTts.EDGE),
+		}, DictTts.NormEngine(pref.Engine));
+		var locals = new List<(string, string)> { (Loc.T("dict.tts.pickauto"), "") };
+		foreach (var v in dictlocals) {
+			if (!string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase)) continue;
+			locals.Add((v.Name, v.Name));
+		}
+		var wantSapi = (pref.Sapi ?? "").Trim();
+		var have = false;
+		foreach (var it in locals) {
+			if (string.Equals(it.Item2, wantSapi, StringComparison.OrdinalIgnoreCase)) have = true;
+		}
+		if (wantSapi.Length > 0 && !have) locals.Add((wantSapi, wantSapi));
+		filltag(sapi, locals, wantSapi);
+		var edges = new List<(string, string)>();
+		foreach (var v in DictTts.EdgeVoices(lang))
+			edges.Add((Loc.T(v.LocKey), v.Id));
+		var wantEdge = DictTts.EdgeName(lang, pref.Edge);
+		have = false;
+		foreach (var it in edges) {
+			if (string.Equals(it.Item2, wantEdge, StringComparison.OrdinalIgnoreCase)) have = true;
+		}
+		if (!have) edges.Add((wantEdge, wantEdge));
+		filltag(edge, edges, wantEdge);
+	}
+
+	static void filltag(ComboBox box, IEnumerable<(string Label, string Tag)> items, string selected) {
+		box.Items.Clear();
+		ComboBoxItem hit = null;
+		foreach (var it in items) {
+			var row = new ComboBoxItem { Content = it.Label, Tag = it.Tag ?? "" };
+			box.Items.Add(row);
+			if (hit == null && string.Equals((string)row.Tag, selected ?? "", StringComparison.OrdinalIgnoreCase))
+				hit = row;
+		}
+		if (hit != null) box.SelectedItem = hit;
+		else if (box.Items.Count > 0) box.SelectedIndex = 0;
+	}
+
+	static DictTtsLang readdictlang(ComboBox eng, ComboBox sapi, ComboBox edge, string lang) {
+		return new DictTtsLang {
+			Engine = DictTts.NormEngine((eng.SelectedItem as ComboBoxItem)?.Tag as string),
+			Sapi = ((sapi.SelectedItem as ComboBoxItem)?.Tag as string) ?? "",
+			Edge = DictTts.EdgeName(lang, (edge.SelectedItem as ComboBoxItem)?.Tag as string),
+		};
 	}
 
 	void syncvoicesplitui() {

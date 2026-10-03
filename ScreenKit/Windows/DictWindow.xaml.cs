@@ -42,7 +42,7 @@ public partial class DictWindow : UserControl {
 	static readonly Brush CExample = freeze(45, 120, 75);
 	static readonly Brush CSpeak = freeze(40, 120, 190);
 
-	WinRtTts tts;
+	EdgeOnlineTts edge;
 	TtsPlayer player;
 	DispatcherTimer tick;
 	int lastedit;
@@ -63,6 +63,8 @@ public partial class DictWindow : UserControl {
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗并填入原文。</summary>
 	public Action<string> OnTranslate;
+	/// <summary>当前选项。发音读这里的词典引擎和发音人。</summary>
+	public Func<OcrOptions> Options;
 
 	public DictWindow() {
 		InitializeComponent();
@@ -146,9 +148,9 @@ public partial class DictWindow : UserControl {
 	public void Shutdown() {
 		try { tick?.Stop(); } catch { }
 		try { player?.Dispose(); } catch { }
-		try { tts?.Dispose(); } catch { }
+		try { edge?.Dispose(); } catch { }
 		player = null;
-		tts = null;
+		edge = null;
 	}
 
 	public void FocusSearch() {
@@ -550,17 +552,29 @@ public partial class DictWindow : UserControl {
 		}
 		speaking = true;
 		try {
-			if (tts == null) tts = new WinRtTts();
 			if (player == null) player = new TtsPlayer();
-			var voice = pickvoice(lang);
-			if (voice == null) {
-				lbstatus.Text = Loc.T("dict.novoice", lang);
-				return;
+			var pref = DictTts.For(Options != null ? Options() : null, lang);
+			float[] samples = null;
+			var sr = 0;
+			if (pref.Engine != DictTts.EDGE) {
+				var got = await Task.Run(() => DictTts.SynthSapi(text, lang, pref.Sapi)).ConfigureAwait(true);
+				if (!got.missing && got.samples != null && got.samples.Length > 0) {
+					samples = got.samples;
+					sr = got.sampleRate;
+				}
+				else if (pref.Engine == DictTts.SAPI && !got.missing)
+					throw new InvalidOperationException(Loc.T("dict.novoice", langlabel(lang)));
 			}
-			tts.SelectVoice(voice.Key);
-			var (samples, sr) = await tts.Synthesize(text);
 			if (samples == null || samples.Length == 0) {
-				lbstatus.Text = Loc.T("dict.novoice", lang);
+				if (edge == null) edge = new EdgeOnlineTts();
+				edge.SetVoiceName(DictTts.EdgeName(lang, pref.Edge));
+				edge.SetRateVolume(1, 100);
+				var got = await edge.Synthesize(text).ConfigureAwait(true);
+				samples = got.samples;
+				sr = got.sampleRate;
+			}
+			if (samples == null || samples.Length == 0) {
+				lbstatus.Text = Loc.T("dict.novoice", langlabel(lang));
 				return;
 			}
 			player.Play(samples, sr);
@@ -570,19 +584,6 @@ public partial class DictWindow : UserControl {
 			lbstatus.Text = ex.Message;
 		}
 		finally { speaking = false; }
-	}
-
-	SapiVoiceItem pickvoice(string lang) {
-		if (tts == null || string.IsNullOrEmpty(lang)) return null;
-		SapiVoiceItem fallback = null;
-		foreach (var v in tts.Voices) {
-			if (!string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase)) continue;
-			if (fallback == null) fallback = v;
-			if (lang == "zh" && v.Culture != null &&
-				v.Culture.StartsWith("zh-CN", StringComparison.OrdinalIgnoreCase))
-				return v;
-		}
-		return fallback;
 	}
 
 	static string speaklang(string dict) {

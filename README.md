@@ -48,7 +48,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
-| **Dictionary** | A main-window tab (**Options → Dictionary**, `Ctrl+Alt+D`). The hotkey shows the main window and selects that tab, enabling it if it was hidden. Pressing it again while that tab is showing hides the main window. Looks up Chinese, English, Japanese, and Korean headwords in `dict.db` beside the program. Filter: all, Chinese, English, Japanese, or Korean. The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Select text to open a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button. **Speak** uses an installed Windows voice for the headword. **Read Chinese** speaks the gloss. The database is not in the release archive. |
+| **Dictionary** | A main-window tab (**Options → Dictionary**). The hotkey is off by default; set `hotkey_dict` to show the main window and select that tab (it enables the tab if it was hidden) and to hide the main window when that tab is already showing. Looks up Chinese, English, Japanese, and Korean headwords in `dict.db` beside the program. Filter: all, Chinese, English, Japanese, or Korean. The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Select text to open a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button. **Speak** and **Read Chinese** use Settings → Dictionary: per language, engine Auto / local SAPI / Edge, a local voice, and an Edge voice. Auto tries local SAPI, then Edge online. This does not change the Speech tab. The database is not in the release archive. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -130,10 +130,9 @@ Android details: [android/README.md](android/README.md).
 | `Ctrl+Alt+V` | Voice input (press again to stop) |
 | `Ctrl+Alt+B` | Live caption |
 | `Ctrl+Alt+T` | Translate popup |
-| `Ctrl+Alt+D` | Show the main window and select the dictionary tab; press again to hide the main window |
 | `Ctrl+Alt+P` | Cycle on-capture copy (image → file → path) |
 
-Leave a hotkey string empty in Settings to disable it. Tray: left-click toggles the window; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray. Switching the copy mode from the menu, tray, or `Ctrl+Alt+P` recopies the last screenshot and shows a toast at the bottom center of the screen. After a region is selected, the annotate bar shows the copy mode as a combo (for example “Copy as image p”). Choosing an item finishes the shot with that mode and remembers it. `P` on the bar cycles image / file / path and does not finish.
+Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey is empty by default. Tray: left-click toggles the window; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray. Switching the copy mode from the menu, tray, or `Ctrl+Alt+P` recopies the last screenshot and shows a toast at the bottom center of the screen. After a region is selected, the annotate bar shows the copy mode as a combo (for example “Copy as image p”). Choosing an item finishes the shot with that mode and remembers it. `P` on the bar cycles image / file / path and does not finish.
 
 ### UI language
 
@@ -202,7 +201,13 @@ hotkey = "Ctrl+Alt+O"           # show / hide main window
 hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
 hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
 # hotkey_translate = "Ctrl+Alt+T" # translate popup show/hide
-# hotkey_dict = "Ctrl+Alt+D"      # show main window on the dictionary tab; press again to hide
+# hotkey_dict = ""                # dictionary tab; empty = off. Example: "Ctrl+Alt+D"
+# dict_tts_zh_engine = "auto"     # auto | sapi | edge; same keys for en, ja, ko
+# dict_tts_zh_sapi = ""           # local SAPI voice; empty = automatic
+# dict_tts_zh_edge = "zh-CN-XiaoxiaoNeural"
+# dict_tts_en_edge = "en-US-AriaNeural"
+# dict_tts_ja_edge = "ja-JP-NanamiNeural"
+# dict_tts_ko_edge = "ko-KR-SunHiNeural"
 # hotkey_snap_copy = "Ctrl+Alt+P" # cycle copy as image / file / path
 minimize_to_tray = true
 capture_log = false             # true → log/capture.log (DPI + save timings)

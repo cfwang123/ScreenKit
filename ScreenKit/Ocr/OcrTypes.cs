@@ -30,6 +30,25 @@ public readonly struct Point2f {
 	public override string ToString() => $"({X:F1},{Y:F1})";
 }
 
+/// <summary>词典某语言的发音：引擎 auto|sapi|edge，本地发音人，Edge ShortName。</summary>
+public sealed class DictTtsLang {
+	public string Engine = "auto";
+	public string Sapi = "";
+	public string Edge = "";
+
+	public DictTtsLang Clone() => new() {
+		Engine = Engine ?? "auto",
+		Sapi = Sapi ?? "",
+		Edge = Edge ?? "",
+	};
+
+	public static DictTtsLang Make(string edge) => new() {
+		Engine = "auto",
+		Sapi = "",
+		Edge = edge ?? "",
+	};
+}
+
 public sealed class OcrOptions {
 	/// <summary>模型包 Id（ocrmodels 子目录名，如 umi / rapid-ch）。</summary>
 	public string ModelPackId = "umi";
@@ -70,8 +89,13 @@ public sealed class OcrOptions {
 	public string HotkeyTranslate = "Ctrl+Alt+T";
 	/// <summary>切换截图复制方式（图片 → 文件 → 路径）。默认 Ctrl+Alt+P。空 = 禁用。</summary>
 	public string HotkeySnapCopy = "Ctrl+Alt+P";
-	/// <summary>词典窗口热键：呼出/隐藏。默认 Ctrl+Alt+D。空 = 禁用。</summary>
-	public string HotkeyDict = "Ctrl+Alt+D";
+	/// <summary>词典页热键：打开主窗口并切到词典页；已在该页时隐藏。默认空 = 不注册。</summary>
+	public string HotkeyDict = "";
+	/// <summary>词典发音，按语言。与语音合成页的引擎、发音人无关。</summary>
+	public DictTtsLang DictTtsZh = DictTtsLang.Make("zh-CN-XiaoxiaoNeural");
+	public DictTtsLang DictTtsEn = DictTtsLang.Make("en-US-AriaNeural");
+	public DictTtsLang DictTtsJa = DictTtsLang.Make("ja-JP-NanamiNeural");
+	public DictTtsLang DictTtsKo = DictTtsLang.Make("ko-KR-SunHiNeural");
 	/// <summary>最小化时隐藏到通知栏。</summary>
 	public bool MinimizeToTray = true;
 	/// <summary>是否启用 HTTP 识图 API（Umi 风格）。</summary>
@@ -381,6 +405,10 @@ public sealed class OcrOptions {
 		HotkeyTranslate = HotkeyTranslate,
 		HotkeySnapCopy = HotkeySnapCopy,
 		HotkeyDict = HotkeyDict,
+		DictTtsZh = (DictTtsZh ?? DictTtsLang.Make("zh-CN-XiaoxiaoNeural")).Clone(),
+		DictTtsEn = (DictTtsEn ?? DictTtsLang.Make("en-US-AriaNeural")).Clone(),
+		DictTtsJa = (DictTtsJa ?? DictTtsLang.Make("ja-JP-NanamiNeural")).Clone(),
+		DictTtsKo = (DictTtsKo ?? DictTtsLang.Make("ko-KR-SunHiNeural")).Clone(),
 		MinimizeToTray = MinimizeToTray,
 		HttpEnabled = HttpEnabled,
 		HttpLan = HttpLan,
