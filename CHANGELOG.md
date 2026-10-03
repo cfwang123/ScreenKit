@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.13 (2026-09-27 ~ 10-03)](#v1013-2026-09-27--10-03)
 - [v1.0.12 (2026-09-26)](#v1012-2026-09-26)
 - [v1.0.11 (2026-09-26)](#v1011-2026-09-26)
 - [v1.0.10 (2026-09-24)](#v1010-2026-09-24)
@@ -25,6 +26,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v0.1.0](#v010-initial-milestone--初始里程碑)
 
 ## unreleased
+
+### English
+
+### 中文
+
+## v1.0.13 (2026-09-27 ~ 10-03)
 
 ### English
 
@@ -46,9 +53,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Image convert: the max width/height box is now **Cap shorter side**. If the smaller side is over the limit, the image shrinks to fit; it is never enlarged. Config keys are `imgconv_short` and `imgconv_short_px` (default 1080). An old `imgconv_max_w` / `imgconv_max_h` pair is read once as the smaller of the two.
 - Screenshot save uses the same shorter-side cap. **Settings → Capture** has one pixel value (`screenshot_short` / `screenshot_short_px`, default 1080). Files in `screenshots/` and copy-as-file shrink only when the smaller side is over it; OCR still uses the full image. An old `screenshot_max_w` / `screenshot_max_h` pair is read once as the smaller of the two. GIF and PC-to-PC cast still use a max width and height box.
 - Screen recording uses that same shorter-side cap (`record_short` / `record_short_px`, default 1080, shrink only). An old `record_max_w` / `record_max_h` pair is read once as the smaller of the two.
-- Record options show CRF only for x264/x265, and AV1 CRF only for AV1. Media Foundation and MJPEG hide both; the stored numbers stay.
-- Screen recording adds Windows Media Foundation H.264 (MP4, no FFmpeg) and MJPEG AVI (no FFmpeg, about 1.9 GB cap). x264, x265, AV1, and GIF still need FFmpeg and still fail clearly with no fallback. Install features lists the two system codecs as built-in; FFmpeg stays the optional download for x264/x265/AV1 and GIF.
-- MJPEG AVI is hidden from record options and from install features. A saved `record_codec` of `mjpeg` is read as system H.264. The encoder code stays in the program.
+- Record options show CRF only for x264/x265, and AV1 CRF only for AV1. Media Foundation hides both; the stored numbers stay.
+- Screen recording adds Windows Media Foundation H.264 (MP4, no FFmpeg). x264, x265, AV1, and GIF still need FFmpeg and still fail clearly with no fallback. Install features lists system H.264 as built-in; FFmpeg stays the optional download for x264/x265/AV1 and GIF.
 - The first-launch install window selects nothing. Confirm installs only what you check, and does not remove packages already on disk. Later, **Help → Install features** still checks what is installed. System H.264 stays checked.
 - Phone camera upload and the web camera use that same shorter-side cap. **Settings → API** still has one pixel value (`photo_max_px`, default 2000). The phone and the browser shrink only when the smaller side is over it; the PC applies the same rule if the browser could not.
 - Screencast tab **Scan LAN** lists this PC as well. Several local addresses fold into one row, marked “This PC”.
@@ -56,7 +62,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
-- MJPEG AVI stays in sync when sound starts and stops. A late burst is written back over the silence already padded for that moment, instead of being stuck on the end. A gap shorter than about a fifth of a second no longer pulls the rest of the soundtrack early. While catching up, missed pictures use the new frame, same as system H.264, so the picture does not sit still under later sound. The sound clock is bytes per second, and the scale is the block size. Audio chunks are not marked as keyframes.
 - Media Foundation recordings write AAC while capturing. The rate is 44.1 kHz or 48 kHz from the start, because system AAC rejects other rates such as 22.05 kHz (`0xC00D36B4`). Saving no longer builds a second file to mix the sound in.
 - Android cast screen shows **投屏中** again after leaving to the main screen and opening cast. The service was still casting; the new screen had reset to “ready”.
 - Android debug and release builds now sign with the same keystore (`android/app/debug.keystore`). Installing one over the other keeps the app’s private data.
@@ -83,9 +88,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 图片格式转换：原来的最大宽高改为 **限制较短边**。宽和高里较小的一边超过设定值时等比缩小，不超过则不放大。配置键 `imgconv_short`、`imgconv_short_px`（默认 1080）。旧的 `imgconv_max_w` / `imgconv_max_h` 只在没有新键时读一次，取两者中较小的数。
 - 截图保存改为同一套较短边限制。**参数设置 → 截图** 只有一个像素值（`screenshot_short` / `screenshot_short_px`，默认 1080）。写入 `screenshots/` 和复制为文件时，只在较短边超过时等比缩小；识别仍用原图。旧的 `screenshot_max_w` / `screenshot_max_h` 只在没有新键时读一次，取两者中较小的数。GIF 和电脑互投仍是最大宽高框。
 - 录屏改为同一套较短边限制（`record_short` / `record_short_px`，默认 1080，超过才等比缩小、不放大）。旧的 `record_max_w` / `record_max_h` 只在没有新键时读一次，取两者中较小的数。
-- 录屏选项里，CRF 只在 x264/x265 时显示，AV1 CRF 只在 AV1 时显示。系统 H.264 与 MJPEG 两项都隐藏，已保存的数值仍保留。
-- 录屏增加 Windows Media Foundation H.264（MP4，不用 FFmpeg）和 MJPEG AVI（不用 FFmpeg，大约 1.9GB 停止）。x264、x265、AV1 和 GIF 仍要 FFmpeg，失败时明确报错，不会改用别的编码器。安装功能里这两项标为系统自带；FFmpeg 仍是 x264/x265/AV1 与 GIF 的可选下载。
-- 录屏选项和安装功能里不再显示 MJPEG AVI。配置里如果还是 `record_codec = mjpeg`，读入后改为系统 H.264。编码器代码仍留在程序里。
+- 录屏选项里，CRF 只在 x264/x265 时显示，AV1 CRF 只在 AV1 时显示。系统 H.264 隐藏这两项，已保存的数值仍保留。
+- 录屏增加 Windows Media Foundation H.264（MP4，不用 FFmpeg）。x264、x265、AV1 和 GIF 仍要 FFmpeg，失败时明确报错，不会改用别的编码器。安装功能里系统 H.264 标为系统自带；FFmpeg 仍是 x264/x265/AV1 与 GIF 的可选下载。
 - 第一次启动的安装窗口默认不勾选。点确认只安装勾上的项，不会删掉已经在磁盘上的组件。之后从 **帮助 → 安装功能** 打开，仍会勾上已安装的功能。系统 H.264 保持勾选。
 - 手机拍照上传和网页拍照改为同一套较短边限制。**参数设置 → 接口** 仍是一个像素值（`photo_max_px`，默认 2000）。手机和浏览器只在较短边超过时等比缩小；浏览器压不了时，电脑按同一规则再处理。
 - 投屏页 **搜索局域网** 会列出本机。多块网卡并成一条，名称后标「本机」。
@@ -93,7 +97,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
-- MJPEG AVI 在声音时断时续时和画面保持对齐。迟到的一段声音会写回已经垫上的静音，不再拖在末尾。大约五分之一秒以内的缝隙不再把后面整段声音提前。补帧时用新画面填上，和系统 H.264 一样，避免有声时画面还停在旧的一帧。声音按每秒字节数计时，刻度是一块的字节数。音频块不再标成关键帧。
 - 系统 H.264 在录制时就把声音写成 AAC。采样率从一开始就是 44.1kHz 或 48kHz，因为系统 AAC 不接受 22050Hz 等其它采样率（`0xC00D36B4`）。保存时不再另做一次合成。
 - 安卓投屏中退回主界面再打开投屏页，会重新显示「投屏中」和停止按钮。服务仍在投，只是新开的页面把状态清成了「准备投屏」。
 - 安卓 debug 与 release 固定用同一把钥匙（`android/app/debug.keystore`）。互相覆盖安装会保留私有数据。

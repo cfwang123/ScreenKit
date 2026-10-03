@@ -2,7 +2,7 @@
 
 Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具**): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
 
-**Current version: 1.0.12** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**Current version: 1.0.13** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 **Languages:** [English](README.md) · [中文](README.zh.md)
 
@@ -25,8 +25,8 @@ Windows desktop tool (exe `ScreenKit.exe`; Chinese UI title **屏幕截图工具
 
 | File | What |
 |------|------|
-| [`screenkit_1.0.12.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
-| `screenkit1.0.12.apk` | Android companion: **传文件** + **投屏** launchers in separate tasks (same release page, or **File sync → Install on phone**). |
+| [`screenkit_1.0.13.7z`](https://github.com/cfwang123/ScreenKit/releases/latest) | Windows x64 app (slim package: exe + managed deps). Install models and runtimes in-app. |
+| `screenkit1.0.13.apk` | Android companion: **传文件** + **投屏** launchers in separate tasks (same release page, or **File sync → Install on phone**). |
 
 Unpack the 7z and run `ScreenKit/ScreenKit.exe`. First launch may open the install wizard. Requires [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
 
@@ -45,7 +45,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English + 中文 per version).
 | **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. The image bar is a compact WPF toolbar; items that do not fit move to the overflow menu. **History** lists `screenshots/` as thumbnails, previews with pan and zoom, and annotates under that preview. With marks, Done, OCR, or Open saves a new screenshot and copies it. With no marks they use the original file and do not write a new one. Done, OCR, and Open then close the history window and show the picture on the main window; OCR also recognizes it. Copy and Ctrl+C put the current picture on the clipboard and leave the window open. |
 | **Annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text; dropdown next to confirm for copy-as image / file / path. |
 | **Long screenshot** | Pick a scrollable window → auto-scroll stitch (no OCR). |
-| **Screen recording** | Window or region → HUD → MP4 + optional system/mic audio; optional mouse cursor and click highlight. Codecs: x264 / x265 / AV1 (FFmpeg), Windows Media Foundation H.264 (MP4, no download). MJPEG AVI is hidden. |
+| **Screen recording** | Window or region → HUD → MP4 + optional system/mic audio; optional mouse cursor and click highlight. Codecs: x264 / x265 / AV1 (FFmpeg), Windows Media Foundation H.264 (MP4, no download). |
 | **GIF recording** | Same region flow → 24 fps capture → preview (FPS, scale, palette) → silent GIF. |
 | **Clipboard** | Paste image and OCR; Edit menu copy image / file / path; menu/tray sets on-capture copy mode. |
 | **Overlay text** | Click-release selects one OCR block; empty click clears; drag-select stays in range. Ctrl+C copies. |
@@ -103,7 +103,7 @@ Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overla
    - Red frame; drag the **5px strip** to move, or **8 grips** to resize. Aspect is free before **Start** and locked afterwards unless `record_lock_aspect = false`.
    - Floating **control bar**: left grip to drag; collapse; **Options** before Start; start/pause share one slot. Stays on the current monitor.
 3. Stop → save MP4 (Explorer selects the file) or open the GIF preview (output FPS 1–24, scale, palette) then save a silent GIF.
-4. **Capture → Record options**: codec (x264 / x265 / AV1 / Media Foundation H.264), FPS, CRF (x264/x265 only) or AV1 CRF (0–63, default 56; hidden for the other codecs), audio, **shorter-side cap** (shrink only, same rule as screenshots), **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64` and fails clearly with no fallback to x264. Media Foundation does not use FFmpeg. System H.264 writes AAC during capture at 44.1 kHz or 48 kHz, and does not mix a second file when saving. MJPEG AVI is hidden; a saved `mjpeg` value is read as system H.264.
+4. **Capture → Record options**: codec (x264 / x265 / AV1 / Media Foundation H.264), FPS, CRF (x264/x265 only) or AV1 CRF (0–63, default 56; hidden for the other codecs), audio, **shorter-side cap** (shrink only, same rule as screenshots), **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64` and fails clearly with no fallback to x264. Media Foundation does not use FFmpeg. System H.264 writes AAC during capture at 44.1 kHz or 48 kHz, and does not mix a second file when saving. A saved `record_codec` of `mjpeg` is read as system H.264.
 
 GDI capture has no cursor: enable **record mouse** to overlay the pointer; **highlight clicks** draws a short yellow (left) / blue (right) / green (middle) ripple. GIF size grows quickly — use preview scale/FPS and the max-size limit. GIF still uses a max width and height box.
 
