@@ -1,6 +1,6 @@
 namespace ScreenKit;
 
-enum TtsModelType { Vits, Matcha }
+enum TtsModelType { Vits, Matcha, Supertonic }
 
 /// <summary>语言标签：两位 ISO（zh/en/vi…）；可空表示未知。</summary>
 static class TtsLang {
@@ -10,6 +10,17 @@ static class TtsLang {
 	public const string Ja = "ja";
 	public const string Ko = "ko";
 	public const string Yue = "yue";
+	/// <summary>Supertonic 3 的 31 种语言（含日语）。官方日语页用的就是这一包。</summary>
+	public const string Supertonic3 =
+		"en,ko,ja,ar,bg,cs,da,de,el,es,et,fi,fr,hi,hr,hu,id,it,lt,lv,nl,pl,pt,ro,ru,sk,sl,sv,tr,uk,vi";
+
+	/// <summary>从目录名或包名得到 Supertonic 语言。不是 Supertonic 时返回空。</summary>
+	public static string SupertonicLangs(string name) {
+		var n = (name ?? "").ToLowerInvariant();
+		if (n.Contains("supertonic-3") || n.Contains("supertonic_3")) return Supertonic3;
+		if (n.Contains("supertonic")) return En;
+		return "";
+	}
 
 	public static string Normalize(string s) {
 		if (string.IsNullOrWhiteSpace(s)) return "";
@@ -110,6 +121,13 @@ sealed class TtsModelInfo {
 	public TtsModelType Type { get; set; } = TtsModelType.Vits;
 	/// <summary>VITS: model.onnx | Matcha: model-steps-*.onnx</summary>
 	public string OnnxFile { get; set; } = "model.onnx";
+	public string SupertonicDuration { get; set; } = "";
+	public string SupertonicEncoder { get; set; } = "";
+	public string SupertonicVector { get; set; } = "";
+	public string SupertonicVocoder { get; set; } = "";
+	public string SupertonicJson { get; set; } = "";
+	public string SupertonicIndexer { get; set; } = "";
+	public string SupertonicVoice { get; set; } = "";
 	/// <summary>Matcha vocoder 完整路径。</summary>
 	public string VocoderPath { get; set; } = "";
 	public bool HasLexicon { get; set; }

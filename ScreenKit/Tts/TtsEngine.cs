@@ -1,3 +1,4 @@
+using System.Collections;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -5,7 +6,7 @@ using SherpaOnnx;
 
 namespace ScreenKit;
 
-/// <summary>Sherpa-ONNX Offline TTS（VITS / Matcha），支持 CUDA / DirectML 核显 / CPU。</summary>
+/// <summary>Sherpa-ONNX Offline TTS（VITS / Matcha / Supertonic），支持 CUDA / CPU。</summary>
 sealed class TtsEngine : IDisposable {
 	readonly object gate = new();
 	OfflineTts tts;
@@ -21,6 +22,9 @@ sealed class TtsEngine : IDisposable {
 	bool hasFrontend;
 	/// <summary>Mimic3 在 ORT CUDA 初始化中可能触发原生访问冲突，只允许 CPU。</summary>
 	bool forceCpu;
+	/// <summary>当前模型是 Supertonic。合成时要带 lang，并且不做中文逐字替换。</summary>
+	bool supertonic;
+	string synthLangs = "";
 	/// <summary>tts_config.json 的 volume 增益。</summary>
 	float volumeGain = 1f;
 
@@ -153,19 +157,33 @@ sealed class TtsEngine : IDisposable {
 		volumeGain = model.Volume > 0 && !float.IsNaN(model.Volume) && !float.IsInfinity(model.Volume)
 			? Compat.Clamp(model.Volume, 0.05f, 16f)
 			: 1f;
+		supertonic = model.Type == TtsModelType.Supertonic;
+		synthLangs = model.Lang ?? "";
 
 		if (model.Type == TtsModelType.Matcha)
 			loadMatcha(model);
+		else if (model.Type == TtsModelType.Supertonic)
+			loadSupertonic(model);
 		else
 			loadVits(model);
 
 		try {
-			var warmText = TtsLang.Match(model.Lang, TtsLang.Ko) ? "테스트"
-				: TtsLang.Match(model.Lang, TtsLang.Ja) ? "テスト"
-				: TtsLang.Match(model.Lang, TtsLang.Vi) ? "thử"
-				: TtsLang.Match(model.Lang, TtsLang.En) ? "test"
-				: "预热";
-			var warm = tts.GenerateWithConfig(warmText, new OfflineTtsGenerationConfig { Speed = 1f }, null);
+			var warmCfg = new OfflineTtsGenerationConfig { Speed = 1f };
+			string warmText;
+			if (supertonic) {
+				warmCfg.NumSteps = 8;
+				var warmLang = TtsLang.Match(synthLangs, TtsLang.Ja) ? TtsLang.Ja : TtsLang.En;
+				warmCfg.Extra["lang"] = warmLang;
+				warmText = warmLang == TtsLang.Ja ? "テスト" : "test";
+			}
+			else {
+				warmText = TtsLang.Match(model.Lang, TtsLang.Ko) ? "테스트"
+					: TtsLang.Match(model.Lang, TtsLang.Ja) ? "テスト"
+					: TtsLang.Match(model.Lang, TtsLang.Vi) ? "thử"
+					: TtsLang.Match(model.Lang, TtsLang.En) ? "test"
+					: "预热";
+			}
+			var warm = tts.GenerateWithConfig(warmText, warmCfg, null);
 			TtsAudioFix.Free(warm);
 		}
 		catch { }
@@ -188,6 +206,28 @@ sealed class TtsEngine : IDisposable {
 		if (Directory.Exists(dataDir))
 			vits.DataDir = dataDir;
 		var mcfg = new OfflineTtsModelConfig { Vits = vits, NumThreads = 4 };
+		createTts(mcfg);
+	}
+
+	void loadSupertonic(TtsModelInfo model) {
+		if (string.IsNullOrEmpty(model.SupertonicDuration)
+			|| string.IsNullOrEmpty(model.SupertonicEncoder)
+			|| string.IsNullOrEmpty(model.SupertonicVector)
+			|| string.IsNullOrEmpty(model.SupertonicVocoder)
+			|| string.IsNullOrEmpty(model.SupertonicJson)
+			|| string.IsNullOrEmpty(model.SupertonicIndexer)
+			|| string.IsNullOrEmpty(model.SupertonicVoice))
+			throw new InvalidOperationException("Supertonic 模型文件不完整");
+		var super = new OfflineTtsSupertonicModelConfig {
+			DurationPredictor = model.SupertonicDuration,
+			TextEncoder = model.SupertonicEncoder,
+			VectorEstimator = model.SupertonicVector,
+			Vocoder = model.SupertonicVocoder,
+			TtsJson = model.SupertonicJson,
+			UnicodeIndexer = model.SupertonicIndexer,
+			VoiceStyle = model.SupertonicVoice,
+		};
+		var mcfg = new OfflineTtsModelConfig { Supertonic = super, NumThreads = 2 };
 		createTts(mcfg);
 	}
 
@@ -304,16 +344,22 @@ sealed class TtsEngine : IDisposable {
 	}
 
 	/// <param name="applyVolume">false 时不做 tts_config volume 增益（音高探测用，避免削波）。</param>
-	public (float[] samples, int sampleRate) Synthesize(string text, int sid = 0, float speed = 1f, bool applyVolume = true) {
+	public (float[] samples, int sampleRate) Synthesize(string text, int sid = 0, float speed = 1f, bool applyVolume = true, string lang = null) {
 		lock (gate) {
 			if (tts == null) throw new InvalidOperationException("模型未加载");
-			// 长数字串一律逐位读；短数字：有 number.fst 则留给 FST，否则转中文
-			var normalized = NormalizeText(text, preferFstNumbers: hasNumberFst, convertLetters: true);
+			// Supertonic 按语种读原文。中文逐字替换会把日文假名以外的字母读成中文。
+			var normalized = supertonic
+				? (text ?? "").Replace("\u200b", "").Replace("\ufeff", "")
+				: NormalizeText(text, preferFstNumbers: hasNumberFst, convertLetters: true);
 			var genCfg = new OfflineTtsGenerationConfig {
 				Sid = sid,
 				Speed = speed,
 				SilenceScale = 0.2f,
 			};
+			if (supertonic) {
+				genCfg.NumSteps = 8;
+				genCfg.Extra["lang"] = supertoniclang(normalized, lang);
+			}
 			var audio = tts.GenerateWithConfig(normalized, genCfg, null);
 			if (audio == null || audio.Samples == null || audio.Samples.Length == 0) {
 				TtsAudioFix.Free(audio);
@@ -329,6 +375,47 @@ sealed class TtsEngine : IDisposable {
 			lastuse = Environment.TickCount;
 			return (samples, sr);
 		}
+	}
+
+	string supertoniclang(string text, string prefer) {
+		var p = TtsLang.Normalize(prefer);
+		if (!string.IsNullOrEmpty(p) && TtsLang.Match(synthLangs, p))
+			return p;
+		var guess = guessscript(text);
+		if (!string.IsNullOrEmpty(guess) && TtsLang.Match(synthLangs, guess))
+			return guess;
+		if (TtsLang.Match(synthLangs, TtsLang.En)) return TtsLang.En;
+		var comma = (synthLangs ?? "").IndexOf(',');
+		var first = comma > 0 ? synthLangs.Substring(0, comma) : synthLangs;
+		return string.IsNullOrEmpty(first) ? TtsLang.En : first;
+	}
+
+	static string guessscript(string text) {
+		if (string.IsNullOrEmpty(text)) return "";
+		var kana = 0;
+		var hang = 0;
+		var han = 0;
+		var arab = 0;
+		var cyr = 0;
+		var greek = 0;
+		var deva = 0;
+		foreach (var c in text) {
+			if ((c >= 0x3040 && c <= 0x30FF) || (c >= 0xFF66 && c <= 0xFF9D)) kana++;
+			else if (c >= 0xAC00 && c <= 0xD7A3) hang++;
+			else if (c >= 0x4E00 && c <= 0x9FFF) han++;
+			else if (c >= 0x0600 && c <= 0x06FF) arab++;
+			else if (c >= 0x0400 && c <= 0x04FF) cyr++;
+			else if (c >= 0x0370 && c <= 0x03FF) greek++;
+			else if (c >= 0x0900 && c <= 0x097F) deva++;
+		}
+		if (kana > 0) return TtsLang.Ja;
+		if (hang > 0) return TtsLang.Ko;
+		if (arab > 0) return "ar";
+		if (cyr > 0) return "ru";
+		if (greek > 0) return "el";
+		if (deva > 0) return "hi";
+		if (han > 0) return TtsLang.Ja;
+		return "";
 	}
 
 	static void applygain(float[] samples, float gain) {

@@ -456,12 +456,18 @@ public partial class MainWindow {
 			var root = TtsModelScanner.ResolveRoot();
 			lbttshint.Text = ttsModels.Count > 0
 				? $"模型根目录：{root} · 共 {ttsModels.Count} 个"
-				: $"未找到模型。请将 VITS/Matcha 放到：{root}";
+				: $"未找到模型。请将 VITS/Matcha/Supertonic 放到：{root}";
 		}
 		catch (Exception ex) {
 			ttsModels = new List<TtsModelInfo>();
 			lbttshint.Text = "扫描模型失败: " + ex.Message;
 		}
+	}
+
+	string currentttslang() {
+		if (ettslang.SelectedItem is ComboBoxItem li && li.Tag is string ls)
+			return ls ?? "";
+		return "";
 	}
 
 	void ttsfilterwant(out string wantLang, out string wantGender) {
@@ -947,7 +953,7 @@ public partial class MainWindow {
 						}
 					}
 					else {
-						(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi);
+						(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi, lang: currentttslang());
 					}
 				}, ct).ConfigureAwait(true);
 			}
@@ -1186,7 +1192,7 @@ public partial class MainWindow {
 							}
 						}
 						else {
-							(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi);
+							(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi, lang: currentttslang());
 						}
 					}, ct).ConfigureAwait(true);
 				}
@@ -1425,7 +1431,7 @@ public partial class MainWindow {
 					for (var i = 0; i < segs.Count; i++) {
 						throwif();
 						progDlg.Report("synth", i, segs.Count, doneChars, totalChars);
-						var (samples, srate) = sherpaTts.Synthesize(segs[i].Text, sid, speed);
+						var (samples, srate) = sherpaTts.Synthesize(segs[i].Text, sid, speed, lang: currentttslang());
 						throwif();
 						sr = srate;
 						if (samples != null && samples.Length > 0)

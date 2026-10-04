@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace ScreenKit;
 
-/// <summary>扫描程序目录 <c>ttsmodels</c> 下的 VITS / Matcha 模型（仅此固定路径）。</summary>
+/// <summary>扫描程序目录 <c>ttsmodels</c> 下的 VITS / Matcha / Supertonic 模型（仅此固定路径）。</summary>
 static class TtsModelScanner {
 	/// <summary>程序目录旁固定文件夹 ttsmodels。</summary>
 	public static string ModelsRoot() =>
@@ -23,6 +23,11 @@ static class TtsModelScanner {
 			string[] onnxFiles;
 			try { onnxFiles = Directory.GetFiles(dir, "*.onnx"); }
 			catch { continue; }
+
+			if (trysupertonic(dir, onnxFiles, out var super)) {
+				result.Add(super);
+				continue;
+			}
 
 			// Matcha
 			var matchaOnnx = onnxFiles.FirstOrDefault(f =>
@@ -123,17 +128,69 @@ static class TtsModelScanner {
 		return result;
 	}
 
+	static bool trysupertonic(string dir, string[] onnxFiles, out TtsModelInfo info) {
+		info = null;
+		var json = Path.Combine(dir, "tts.json");
+		var indexer = Path.Combine(dir, "unicode_indexer.bin");
+		var voice = Path.Combine(dir, "voice.bin");
+		if (!File.Exists(json) || !File.Exists(indexer) || !File.Exists(voice)) return false;
+		var dur = pickonnx(onnxFiles, "duration_predictor");
+		var enc = pickonnx(onnxFiles, "text_encoder");
+		var vec = pickonnx(onnxFiles, "vector_estimator");
+		var voc = pickonnx(onnxFiles, "vocoder");
+		if (dur == null || enc == null || vec == null || voc == null) return false;
+		var name = Path.GetFileName(dir) ?? "";
+		var langs = TtsLang.SupertonicLangs(name);
+		if (string.IsNullOrEmpty(langs)) langs = TtsLang.Supertonic3;
+		info = new TtsModelInfo {
+			DisplayName = name,
+			ModelDir = dir,
+			Type = TtsModelType.Supertonic,
+			OnnxFile = Path.GetFileName(voc),
+			SupertonicDuration = dur,
+			SupertonicEncoder = enc,
+			SupertonicVector = vec,
+			SupertonicVocoder = voc,
+			SupertonicJson = json,
+			SupertonicIndexer = indexer,
+			SupertonicVoice = voice,
+			Lang = langs,
+		};
+		for (var i = 0; i < 10; i++)
+			info.Speakers.Add(new TtsSpeakerInfo { Name = "speaker" + i, Id = i });
+		return true;
+	}
+
+	/// <summary>同前缀有多个 onnx 时优先 int8。</summary>
+	static string pickonnx(string[] files, string prefix) {
+		string hit = null;
+		if (files == null) return null;
+		foreach (var f in files) {
+			var name = Path.GetFileName(f) ?? "";
+			if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) continue;
+			if (!name.EndsWith(".onnx", StringComparison.OrdinalIgnoreCase)) continue;
+			if (hit == null) { hit = f; continue; }
+			var hitInt8 = Compat.Contains(Path.GetFileName(hit), ".int8.", StringComparison.OrdinalIgnoreCase);
+			var thisInt8 = Compat.Contains(name, ".int8.", StringComparison.OrdinalIgnoreCase);
+			if (thisInt8 && !hitInt8) hit = f;
+		}
+		return hit;
+	}
+
 	static void filldefaults(TtsModelInfo m) {
 		if (string.IsNullOrEmpty(m.Lang))
 			m.Lang = TtsModelInfo.InferLangFromName(m.DisplayName);
 		var defLang = "";
+		var wide = false;
 		if (!string.IsNullOrEmpty(m.Lang)) {
 			var parts = m.Lang.Split(new[] { ',', '/', '|', '+' }, StringSplitOptions.RemoveEmptyEntries);
+			wide = parts.Length > 2;
 			if (parts.Length > 0) defLang = TtsLang.Normalize(parts[0]);
 		}
 		var defGender = TtsGender.Normalize(m.Gender);
 		foreach (var sp in m.Speakers) {
-			if (string.IsNullOrEmpty(sp.Lang) && !string.IsNullOrEmpty(defLang))
+			// 多于两种语言的模型（Supertonic 3）发音人本身不绑一种语言，筛选走模型语言列表
+			if (!wide && string.IsNullOrEmpty(sp.Lang) && !string.IsNullOrEmpty(defLang))
 				sp.Lang = defLang;
 			if (string.IsNullOrEmpty(sp.Gender) && !string.IsNullOrEmpty(defGender))
 				sp.Gender = defGender;

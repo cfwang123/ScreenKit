@@ -25,7 +25,7 @@ sealed class TtsInstallItem {
 	public FeatureInstallState State { get; set; }
 	public string StateText { get; set; }
 	public bool Selected { get; set; }
-	/// <summary>当前应用扫描器是否通常能识别（VITS/Matcha）。</summary>
+	/// <summary>当前应用扫描器是否能加载（VITS / Matcha / Piper / Supertonic）。</summary>
 	public bool AppSupported { get; set; }
 	public string Detail { get; set; }
 }
@@ -119,8 +119,8 @@ static class TtsInstallCatalog {
 	public static List<(string Code, string Label)> LanguageOptions(IEnumerable<TtsInstallItem> items) {
 		var set = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 		foreach (var it in items ?? Enumerable.Empty<TtsInstallItem>()) {
-			if (!string.IsNullOrEmpty(it.Lang))
-				set.Add(it.Lang);
+			foreach (var code in splitlang(it.Lang))
+				set.Add(code);
 		}
 		var list = new List<(string, string)> { ("", "全部语言") };
 		// 常用语言置顶
@@ -132,6 +132,19 @@ static class TtsInstallCatalog {
 		foreach (var c in set)
 			list.Add((c, langdisplay(c)));
 		return list;
+	}
+
+	/// <summary>zh,en 保持一项。更长的逗号列表（Supertonic 3）拆成各语言，语言下拉里才会出现日文。</summary>
+	static IEnumerable<string> splitlang(string lang) {
+		if (string.IsNullOrEmpty(lang)) yield break;
+		if (!lang.Contains(",") || lang == "zh,en") {
+			yield return lang;
+			yield break;
+		}
+		foreach (var p in lang.Split(',')) {
+			var s = p.Trim();
+			if (s.Length > 0) yield return s;
+		}
 	}
 
 	public static IEnumerable<TtsInstallItem> Filter(
@@ -412,8 +425,8 @@ static class TtsInstallCatalog {
 				Engine = eng,
 				SizeBytes = size,
 				SizeText = "约 " + FeatureInstaller.FormatBytes(size),
-				AppSupported = eng is "vits" or "matcha" or "piper",
-				Detail = eng + (eng is "vits" or "matcha" or "piper" ? "" : " · 当前引擎可能未接"),
+				AppSupported = enginesupported(eng),
+				Detail = eng + (enginesupported(eng) ? "" : " · 当前引擎可能未接"),
 			};
 			list.Add(item);
 		}
@@ -444,7 +457,8 @@ static class TtsInstallCatalog {
 		if (n.StartsWith("kokoro") || n.Contains("kokoro")) return "kokoro";
 		if (n.StartsWith("kitten") || n.Contains("kitten")) return "kitten";
 		if (n.Contains("zipvoice")) return "zipvoice";
-		if (n.Contains("supertonic") || n.Contains("pocket-tts")) return "other";
+		if (n.Contains("supertonic")) return "supertonic";
+		if (n.Contains("pocket-tts")) return "other";
 		if (n.StartsWith("vits") || n.Contains("vits") || n.Contains("coqui") || n.Contains("mimic3") || n.Contains("mms-") || n.Contains("icefall"))
 			return "vits";
 		return "other";
@@ -458,6 +472,9 @@ static class TtsInstallCatalog {
 		var n = id.ToLowerInvariant().Replace('.', '-');
 
 		// 显式双语 / 多语
+		var superLang = TtsLang.SupertonicLangs(n);
+		if (!string.IsNullOrEmpty(superLang)) return superLang;
+
 		if (n.Contains("zh_en") || n.Contains("zh-en") || n.Contains("melo-tts-zh")
 			|| n.Contains("multi-lang") || n.Contains("multilang"))
 			return n.Contains("multi") ? "multi" : "zh,en";
@@ -519,11 +536,16 @@ static class TtsInstallCatalog {
 		return "other";
 	}
 
+	static bool enginesupported(string eng) =>
+		eng is "vits" or "matcha" or "piper" or "supertonic";
+
 	static string langdisplay(string lang) {
 		lang = (lang ?? "").Trim().ToLowerInvariant();
 		if (string.IsNullOrEmpty(lang)) return "未知";
 		if (lang == "multi") return "多语 (multi)";
 		if (lang == "zh,en") return "中英 (zh,en)";
+		if (lang.Contains(","))
+			return TtsLang.Match(lang, TtsLang.Ja) ? "多语 (含日文)" : "多语";
 		if (lang == "other") return "其它";
 		return TtsLang.DisplayName(lang);
 	}
@@ -559,8 +581,8 @@ static class TtsInstallCatalog {
 				var id = el.GetProperty("Id").GetString();
 				var arch = el.GetProperty("ArchiveName").GetString();
 				var size = el.TryGetProperty("SizeBytes", out var s) ? s.GetInt64() : 0;
-				var lang = el.TryGetProperty("Lang", out var l) ? l.GetString() : inferlang(id);
-				var eng = el.TryGetProperty("Engine", out var e) ? e.GetString() : inferengine(id);
+				var lang = inferlang(id);
+				var eng = inferengine(id);
 				list.Add(new TtsInstallItem {
 					Id = id,
 					Title = el.TryGetProperty("Title", out var t) ? t.GetString() : id,
@@ -573,7 +595,7 @@ static class TtsInstallCatalog {
 					Engine = eng,
 					SizeBytes = size,
 					SizeText = "约 " + FeatureInstaller.FormatBytes(size),
-					AppSupported = eng is "vits" or "matcha" or "piper",
+					AppSupported = enginesupported(eng),
 					Detail = eng,
 				});
 			}
@@ -616,7 +638,7 @@ static class TtsInstallCatalog {
 				Engine = eng,
 				SizeBytes = size,
 				SizeText = "约 " + FeatureInstaller.FormatBytes(size),
-				AppSupported = eng is "vits" or "matcha" or "piper",
+				AppSupported = enginesupported(eng),
 				Detail = eng,
 			});
 		}

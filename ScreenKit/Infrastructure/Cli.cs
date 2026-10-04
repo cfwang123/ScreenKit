@@ -856,6 +856,9 @@ static class Cli {
 		}
 		Out($"Source={TtsInstallCatalog.LastSource}");
 		Out($"Count={list.Count}");
+		var optJa = TtsInstallCatalog.LanguageOptions(list).Any(x => x.Code == "ja");
+		var jaN = list.Count(x => x.AppSupported && TtsLang.Match(x.Lang, "ja"));
+		Out($"option-ja={optJa} ja-supported={jaN}");
 		var byLang = list.GroupBy(x => x.Lang).OrderBy(g => g.Key);
 		foreach (var g in byLang)
 			Out($"  lang[{g.Key}]={g.Count()}");

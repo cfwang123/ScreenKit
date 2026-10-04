@@ -259,7 +259,7 @@ static class DictTts {
 		lock (OnnxGate) {
 			onnxEng ??= new TtsEngine();
 			onnxEng.LoadModel(model);
-			return onnxEng.Synthesize(text, sid, (float)rate);
+			return onnxEng.Synthesize(text, sid, (float)rate, lang: lang);
 		}
 	}
 
