@@ -3510,7 +3510,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；划词词条再开窗口；浮窗不挡选区，失活即关
-      --test-dict-tts  词典发音缓存保留 1 天，以及语速换算
+      --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL

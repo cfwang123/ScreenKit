@@ -442,7 +442,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 ## 8. TTS (speech synthesis)
 
-Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), **Windows** (`engine=winrt`, WinRT / OneCore neural voices), and **Edge online** (`engine=edge`, no model/API key, Internet required). Omitting `engine` keeps the old Sherpa path when a Sherpa model exists; otherwise it falls back to Windows then SAPI.
+Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), **Windows** (`engine=winrt`, WinRT / OneCore neural voices), and **Edge online** (`engine=edge`, no model/API key, Internet required). Omitting `engine` keeps the Sherpa path when a Sherpa model exists; otherwise it uses Windows speech when a voice is installed, or Edge online when none is.
 
 ### 8.1 GET `/api/tts/models`
 
@@ -494,7 +494,7 @@ Sherpa lists at most 64 speakers per model. SAPI / Windows list all installed vo
 | Field | Required | Description |
 |-------|----------|-------------|
 | `text` | Yes | Text to synthesize, max 20000 characters |
-| `engine` | No | `sherpa` / `sapi` / `winrt` / `edge` (plus aliases). Empty = infer from `model` / `voice`, else Sherpa if present |
+| `engine` | No | `sherpa` / `sapi` / `winrt` / `edge` (plus aliases). Empty = infer from `model` / `voice`; Sherpa if a model is present, otherwise Windows speech or Edge online |
 | `model` | No | Sherpa display name, or `SAPI` / `Windows` / `Edge Online` |
 | `voice` / `speaker` | No | System/online voice name or `key` (`sapi:…` / `sapi-x86:…` / `winrt:…` / `edge:…`) |
 | `speaker_id` / `sid` | No | Speaker index (Sherpa sid, or index into that engine’s list). Default 0 |

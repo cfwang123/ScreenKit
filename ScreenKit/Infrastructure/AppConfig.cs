@@ -705,8 +705,8 @@ static class AppConfig {
 		sb.AppendLine($"gif_click_highlight = {(gif.HighlightClicks ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("[tts]");
-		sb.AppendLine("# 引擎 Sapi | WinRt | Edge | Sherpa；Edge 为在线自然语音");
-		sb.AppendLine($"tts_engine = \"{esc(string.IsNullOrWhiteSpace(o.TtsEngine) ? "Sherpa" : o.TtsEngine)}\"");
+		sb.AppendLine("# 引擎 Sapi | WinRt | Edge | Sherpa；空则启动时有 Windows 语音用 WinRT，否则 Edge");
+		sb.AppendLine($"tts_engine = \"{esc(o.TtsEngine ?? "")}\"");
 		sb.AppendLine($"tts_compute = \"{esc(string.IsNullOrWhiteSpace(o.TtsCompute) ? "Auto" : o.TtsCompute)}\"");
 		sb.AppendLine($"tts_model = \"{esc(o.TtsModel ?? "")}\"");
 		sb.AppendLine($"tts_voice = \"{esc(o.TtsVoice ?? "")}\"");

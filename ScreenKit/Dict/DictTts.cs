@@ -4,7 +4,7 @@ using System.Speech.Synthesis;
 
 namespace ScreenKit;
 
-/// <summary>词典发音。用本程序的 ONNX / SAPI / Windows 语音 / Edge，不改语音合成页。</summary>
+/// <summary>词典发音。用本程序的 ONNX / SAPI / Windows 语音 / Edge，不改语音合成页。自动：该语言有 Windows 语音则用，否则 Edge。</summary>
 static class DictTts {
 	public const string AUTO = "auto";
 	public const string ONNX = "onnx";
@@ -195,6 +195,11 @@ static class DictTts {
 		var id = cachepath(EDGE, "en-US-AriaNeural", 1, "en", "hello");
 		if (!id.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)) return 5;
 		if (Path.GetFileName(id).Length < 8) return 5;
+		var auto = resolve(new DictTtsLang { Engine = AUTO }, "zh");
+		var hasWin = winrtvoices("zh").Count > 0;
+		if (hasWin && auto != WINRT) return 6;
+		if (!hasWin && auto != EDGE) return 6;
+		if (resolve(new DictTtsLang { Engine = SAPI }, "zh") != SAPI) return 7;
 		return 0;
 	}
 
@@ -213,7 +218,6 @@ static class DictTts {
 		var engine = NormEngine(pref.Engine);
 		if (engine != AUTO) return engine;
 		if (winrtvoices(lang).Count > 0) return WINRT;
-		if (sapifor(lang).Count > 0) return SAPI;
 		return EDGE;
 	}
 

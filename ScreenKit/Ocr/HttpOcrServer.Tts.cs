@@ -355,9 +355,7 @@ sealed partial class HttpOcrServer {
 		refreshvoices();
 		if (cachedWinRtVoices != null && cachedWinRtVoices.Count > 0)
 			return TtsEngineKind.WinRt;
-		if (cachedSapiVoices != null && cachedSapiVoices.Count > 0)
-			return TtsEngineKind.Sapi;
-		return TtsEngineKind.Sherpa;
+		return TtsEngineKind.Edge;
 	}
 
 	static bool tryparseengine(string raw, out TtsEngineKind? kind) {

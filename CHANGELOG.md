@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Speech with no saved engine uses Windows speech when a voice is installed, otherwise Edge online. A saved engine is kept. Dictionary Auto does the same per language: that language's Windows speech, otherwise Edge. SAPI and ONNX stay explicit choices.
 - README adds a Dictionary section: how the tab works, and where `dict.db` comes from.
 - Japanese and Korean headwords are spoken only up to the first comma. The full headword stays on screen. English and Chinese are unchanged.
 - Dictionary selection popup sits outside the selected text. It closes when its window is no longer the active window.
@@ -75,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 语音合成未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。已经保存的引擎保持不变。词典「自动」按语言同样处理：该语言有 Windows 语音就用，没有再用 Edge。SAPI 和 ONNX 仍需点选。
 - README 增加「词典」一节，说明页内用法和 `dict.db` 的数据来源。
 - 日语、韩语词头发音只读到第一个逗号之前。词头原文仍完整显示。英语和汉语不变。
 - 词典划词浮窗避开选中的文字。所在窗口不再是当前窗口时，浮窗关掉。

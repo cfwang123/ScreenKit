@@ -54,13 +54,8 @@ public partial class MainWindow {
 		});
 		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.edge"), Tag = TtsEngineKind.Edge });
 		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.sherpa"), Tag = TtsEngineKind.Sherpa });
-		// 默认：有 WinRT 越南语等现代语音时优先 WinRT，否则 Sherpa，再 SAPI
-		if (winRtTts != null && winRtTts.Voices.Count > 0)
-			ettsengine.SelectedIndex = 1;
-		else if (sherpaTts != null)
-			ettsengine.SelectedIndex = 3;
-		else
-			ettsengine.SelectedIndex = 0;
+		// 未保存引擎：有 Windows 语音用 WinRT，否则 Edge 在线
+		ettsengine.SelectedIndex = ttsfallbackengine() == TtsEngineKind.WinRt ? 1 : 2;
 
 		ettscompute.Items.Clear();
 		ettscompute.Items.Add(new ComboBoxItem { Content = Loc.Compute(TtsComputeMode.Auto), Tag = TtsComputeMode.Auto });
@@ -192,24 +187,26 @@ public partial class MainWindow {
 	void restorettsprefs() {
 		try {
 			var engName = (opt.TtsEngine ?? "").Trim();
-			var wantEng = engName.Equals("WinRt", StringComparison.OrdinalIgnoreCase)
-				|| engName.Equals("Windows", StringComparison.OrdinalIgnoreCase)
-				|| engName.Equals("OneCore", StringComparison.OrdinalIgnoreCase)
-				? TtsEngineKind.WinRt
-				: engName.Equals("Edge", StringComparison.OrdinalIgnoreCase)
-					|| engName.Equals("EdgeOnline", StringComparison.OrdinalIgnoreCase)
-					? TtsEngineKind.Edge
-				: engName.Equals("Sapi", StringComparison.OrdinalIgnoreCase)
-					? TtsEngineKind.Sapi
-					: TtsEngineKind.Sherpa;
-			if (wantEng == TtsEngineKind.Sherpa && sherpaTts == null)
-				wantEng = winRtTts != null && winRtTts.Voices.Count > 0 ? TtsEngineKind.WinRt : TtsEngineKind.Sapi;
-			if (wantEng == TtsEngineKind.WinRt && (winRtTts == null || winRtTts.Voices.Count == 0))
-				wantEng = TtsEngineKind.Sapi;
-			foreach (ComboBoxItem it in ettsengine.Items) {
-				if (it.Tag is TtsEngineKind k && k == wantEng) {
-					ettsengine.SelectedItem = it;
-					break;
+			if (engName.Length > 0) {
+				var wantEng = engName.Equals("WinRt", StringComparison.OrdinalIgnoreCase)
+					|| engName.Equals("Windows", StringComparison.OrdinalIgnoreCase)
+					|| engName.Equals("OneCore", StringComparison.OrdinalIgnoreCase)
+					? TtsEngineKind.WinRt
+					: engName.Equals("Edge", StringComparison.OrdinalIgnoreCase)
+						|| engName.Equals("EdgeOnline", StringComparison.OrdinalIgnoreCase)
+						? TtsEngineKind.Edge
+					: engName.Equals("Sapi", StringComparison.OrdinalIgnoreCase)
+						? TtsEngineKind.Sapi
+						: TtsEngineKind.Sherpa;
+				if (wantEng == TtsEngineKind.Sherpa && sherpaTts == null)
+					wantEng = ttsfallbackengine();
+				if (wantEng == TtsEngineKind.WinRt && (winRtTts == null || winRtTts.Voices.Count == 0))
+					wantEng = TtsEngineKind.Edge;
+				foreach (ComboBoxItem it in ettsengine.Items) {
+					if (it.Tag is TtsEngineKind k && k == wantEng) {
+						ettsengine.SelectedItem = it;
+						break;
+					}
 				}
 			}
 			var wantComp = (opt.TtsCompute ?? "Auto").Trim().ToLowerInvariant() switch {
@@ -465,7 +462,13 @@ public partial class MainWindow {
 	TtsEngineKind currentttsengine() {
 		if (ettsengine.SelectedItem is ComboBoxItem it && it.Tag is TtsEngineKind k)
 			return k;
-		return TtsEngineKind.Sapi;
+		return ttsfallbackengine();
+	}
+
+	/// <summary>没有已保存引擎，或所选引擎不可用时：有 Windows 语音用 WinRT，否则 Edge。</summary>
+	TtsEngineKind ttsfallbackengine() {
+		if (winRtTts != null && winRtTts.Voices.Count > 0) return TtsEngineKind.WinRt;
+		return TtsEngineKind.Edge;
 	}
 
 	void scanttssmodels() {

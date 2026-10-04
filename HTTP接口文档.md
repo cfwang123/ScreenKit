@@ -443,7 +443,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 ## 8. TTS（语音合成）
 
-四种引擎：**Sherpa**（`ttsmodels` 下 ONNX 包）、**SAPI**（经典 `System.Speech`，含经 `x86host.exe` 的 32 位音）、**Windows**（`engine=winrt`，WinRT / OneCore 神经语音）、**Edge 在线**（`engine=edge`，无需模型/API Key但必须联网）。省略 `engine` 时：有 Sherpa 模型则走旧路径；否则依次回落 Windows、SAPI。
+四种引擎：**Sherpa**（`ttsmodels` 下 ONNX 包）、**SAPI**（经典 `System.Speech`，含经 `x86host.exe` 的 32 位音）、**Windows**（`engine=winrt`，WinRT / OneCore 神经语音）、**Edge 在线**（`engine=edge`，无需模型/API Key但必须联网）。省略 `engine` 时：有 Sherpa 模型则走 Sherpa；否则有 Windows 语音就用它，没有再用 Edge 在线。
 
 ### 8.1 GET `/api/tts/models`
 
@@ -495,7 +495,7 @@ Sherpa 每个模型最多列出 64 个 speaker。SAPI / Windows 列出全部已�
 | 字段 | 必填 | 说明 |
 |------|------|------|
 | `text` | 是 | 待合成文本，最长 20000 字 |
-| `engine` | 否 | `sherpa` / `sapi` / `winrt` / `edge`（另有别名）。空则从 `model`/`voice` 推断，有 Sherpa 则仍走 Sherpa |
+| `engine` | 否 | `sherpa` / `sapi` / `winrt` / `edge`（另有别名）。空则从 `model`/`voice` 推断；有 Sherpa 模型走 Sherpa，否则 Windows 语音或 Edge 在线 |
 | `model` | 否 | Sherpa 显示名，或 `SAPI` / `Windows` / `Edge Online` |
 | `voice` / `speaker` | 否 | 系统/在线发音人名或 `key`（`sapi:…` / `sapi-x86:…` / `winrt:…` / `edge:…`） |
 | `speaker_id` / `sid` | 否 | 发音人序号（Sherpa 的 sid，或该引擎列表下标），默认 0 |
