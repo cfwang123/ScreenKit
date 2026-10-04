@@ -574,7 +574,8 @@
 								<DockPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Margin="0,0,0,8">
 									<ComboBox x:Name="ettslang" MinWidth="140" Height="32" Margin="0,0,8,0"
 									          VerticalContentAlignment="Center"
-									          ToolTip="按语言筛选。列表为当前引擎可用语言（SAPI / WinRT / Sherpa 并集）"/>
+									          AutomationProperties.AutomationId="tts.lang"
+									          ToolTip="按语言筛选。有名称的语言在前，其余按代码排列"/>
 									<ComboBox x:Name="ettsgender" Width="110" Height="32"
 									          VerticalContentAlignment="Center"
 									          ToolTip="按性别筛选发音人"/>

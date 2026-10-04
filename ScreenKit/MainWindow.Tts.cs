@@ -310,8 +310,14 @@ public partial class MainWindow {
 		try {
 			ettslang.Items.Clear();
 			ettslang.Items.Add(new ComboBoxItem { Content = Loc.T("lang.all"), Tag = "" });
-			foreach (var lg in set.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+			foreach (var lg in TtsLang.Named) {
+				if (!set.Contains(lg)) continue;
 				ettslang.Items.Add(new ComboBoxItem { Content = TtsLang.DisplayName(lg), Tag = lg });
+			}
+			foreach (var lg in set) {
+				if (TtsLang.HasName(lg)) continue;
+				ettslang.Items.Add(new ComboBoxItem { Content = lg, Tag = lg });
+			}
 			selectcombobytag(ettslang, prev);
 		}
 		finally {

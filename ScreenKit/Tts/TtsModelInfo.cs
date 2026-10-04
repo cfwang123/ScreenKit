@@ -50,6 +50,16 @@ static class TtsLang {
 		var x => x,
 	};
 
+	/// <summary>有本地化名称的语言。语音合成语言下拉里这些排在纯代码前面。</summary>
+	public static readonly string[] Named = { Zh, En, Ja, Ko, Vi, Yue, "fr", "de", "es" };
+
+	public static bool HasName(string lang) {
+		lang = Normalize(lang);
+		foreach (var n in Named)
+			if (n == lang) return true;
+		return false;
+	}
+
 	/// <summary>筛选下拉显示名。</summary>
 	public static string DisplayName(string lang) {
 		lang = Normalize(lang);
@@ -61,6 +71,9 @@ static class TtsLang {
 			Ja => $"{Loc.T("lang.ja")} (ja)",
 			Ko => $"{Loc.T("lang.ko")} (ko)",
 			Yue => $"{Loc.T("lang.yue")} (yue)",
+			"fr" => $"{Loc.T("lang.fr")} (fr)",
+			"de" => $"{Loc.T("lang.de")} (de)",
+			"es" => $"{Loc.T("lang.es")} (es)",
 			_ => lang,
 		};
 	}
