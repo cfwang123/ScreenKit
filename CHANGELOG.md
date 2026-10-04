@@ -43,7 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The dictionary SQLite connection closes after 5 minutes without a lookup and opens again on the next search.
 - Dictionary speech for Chinese, English, Japanese, and Korean can use ONNX, SAPI, Windows speech, or Edge voices from this program's TTS, plus a rate from 0.5 to 2. Auto tries Windows speech, then SAPI, then Edge. Spoken audio is cached in `tmp/voice` and kept for 1 day.
 - The dictionary hotkey shows the main window and reads the clipboard text. It searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence or a blank clipboard opens the dictionary and does not search. It does not send Ctrl+C.
-- **Help → Install features → Voices**: Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). The language list includes 日文, and the Speech page can load that model. Synthesis passes `lang` (the language filter, otherwise the script of the text).
+- **Help → Install features → Voices**: Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). The language list includes 日文, and the Speech page can load that model. Synthesis passes `lang` (the language filter, otherwise the script of the text). The language filter is read on the UI thread before synthesis starts.
 - README: removed the Download section. The English README no longer contains Chinese text.
 
 ### 中文
@@ -62,7 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典 SQLite 连接在连续 5 分钟没有查询后关闭，下次查询再打开。
 - 词典汉、英、日、韩发音可选本程序的 ONNX、SAPI、Windows 语音或 Edge 发音人，并可选语速（0.5～2）。自动先用 Windows 语音，没有再用 SAPI，再没有用 Edge。发音缓存在 `tmp/voice`，保留 1 天。
 - 词典热键弹出主窗口并读取剪贴板文字。内容像一个单词才搜索：汉字 1–4 个，英文 1–20 个字母，带假名的日语最多 12 字，韩语 1–8 个音节。句子或空白只打开词典、不搜索。不再向前台发 Ctrl+C。
-- **帮助 → 安装功能 → 发音人**出现日文。日语模型是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`）。语音合成可以加载它，并按界面语言或文本文字选择 `lang`。
+- **帮助 → 安装功能 → 发音人**出现日文。日语模型是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`）。语音合成可以加载它，并按界面语言或文本文字选择 `lang`。语言筛选在界面线程读好后再合成，避免点发音时跨线程访问控件。
 - README：去掉下载一节。英文 README 不再出现中文。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)

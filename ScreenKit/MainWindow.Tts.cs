@@ -873,6 +873,7 @@ public partial class MainWindow {
 		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
 		var model = ettsmodel.SelectedItem as TtsModelInfo;
 		var sid = ettsvoice.SelectedItem is TtsSpeakerInfo sp ? sp.Id : 0;
+		var synthLang = currentttslang();
 		var compute = TtsComputeMode.Auto;
 		if (ettscompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode m)
 			compute = m;
@@ -953,7 +954,7 @@ public partial class MainWindow {
 						}
 					}
 					else {
-						(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi, lang: currentttslang());
+						(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi, lang: synthLang);
 					}
 				}, ct).ConfigureAwait(true);
 			}
@@ -1089,6 +1090,7 @@ public partial class MainWindow {
 		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
 		var model = ettsmodel.SelectedItem as TtsModelInfo;
 		var sid = ettsvoice.SelectedItem is TtsSpeakerInfo sp ? sp.Id : 0;
+		var synthLang = currentttslang();
 		var compute = TtsComputeMode.Auto;
 		if (ettscompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode m)
 			compute = m;
@@ -1192,7 +1194,7 @@ public partial class MainWindow {
 							}
 						}
 						else {
-							(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi, lang: currentttslang());
+							(samples, sr) = sherpaTts.Synthesize(seg.Text, sid, (float)rateUi, lang: synthLang);
 						}
 					}, ct).ConfigureAwait(true);
 				}
@@ -1304,6 +1306,7 @@ public partial class MainWindow {
 		var sapiRate = (int)Math.Round((rateUi - 1.0) * 10);
 		var model = ettsmodel.SelectedItem as TtsModelInfo;
 		var sid = ettsvoice.SelectedItem is TtsSpeakerInfo sp ? sp.Id : 0;
+		var synthLang = currentttslang();
 		var compute = TtsComputeMode.Auto;
 		if (ettscompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode m)
 			compute = m;
@@ -1431,7 +1434,7 @@ public partial class MainWindow {
 					for (var i = 0; i < segs.Count; i++) {
 						throwif();
 						progDlg.Report("synth", i, segs.Count, doneChars, totalChars);
-						var (samples, srate) = sherpaTts.Synthesize(segs[i].Text, sid, speed, lang: currentttslang());
+						var (samples, srate) = sherpaTts.Synthesize(segs[i].Text, sid, speed, lang: synthLang);
 						throwif();
 						sr = srate;
 						if (samples != null && samples.Length > 0)
