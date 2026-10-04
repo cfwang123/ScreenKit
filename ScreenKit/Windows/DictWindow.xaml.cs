@@ -90,7 +90,7 @@ public partial class DictWindow : UserControl {
 			if (lhits.SelectedItem is DictRow row) loaddetail(row);
 		};
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
-		bspeak.Click += (_, _) => _ = speak(curword, speaklang(curlang));
+		bspeak.Click += (_, _) => _ = speak(SpeakHead(curword, curlang), speaklang(curlang));
 		bspeakzh.Click += (_, _) => _ = speak(curzh, "zh");
 		bselspeak.Click += (_, _) => _ = speak(seltext, speaklang(curlang));
 		bselsearch.Click += (_, _) => {
@@ -300,7 +300,7 @@ public partial class DictWindow : UserControl {
 		if (e.OriginalSource is not Button b) return;
 		if (b.DataContext is not DictRow row) return;
 		e.Handled = true;
-		_ = speak(row.Word, speaklang(row.Dict));
+		_ = speak(SpeakHead(row.Word, row.Dict), speaklang(row.Dict));
 	}
 
 	void loaddetail(DictRow row) {
@@ -653,6 +653,17 @@ public partial class DictWindow : UserControl {
 				: ex.Message;
 		}
 		finally { speaking = false; }
+	}
+
+	/// <summary>日语、韩语词头只读到第一个逗号之前。英文和中文整段照读。</summary>
+	internal static string SpeakHead(string text, string lang) {
+		if (string.IsNullOrEmpty(text)) return "";
+		if (lang != "ja" && lang != "ko") return text;
+		var i = text.IndexOf(',');
+		var j = text.IndexOf('，');
+		var cut = i < 0 ? j : j < 0 ? i : Math.Min(i, j);
+		if (cut <= 0) return text;
+		return text.Substring(0, cut).Trim();
 	}
 
 	static string speaklang(string dict) {

@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Japanese and Korean headwords are spoken only up to the first comma. The full headword stays on screen. English and Chinese are unchanged.
 - Dictionary selection popup sits outside the selected text. It closes when its window is no longer the active window.
 - Dictionary: a matching headword in the selection popup, and a word link in the entry, open a new dictionary window for that word. The page you were reading stays.
 - Dictionary: selecting text and choosing Search opens a new window with the same dictionary page and looks up that text. The main-window tab is unchanged.
@@ -73,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 日语、韩语词头发音只读到第一个逗号之前。词头原文仍完整显示。英语和汉语不变。
 - 词典划词浮窗避开选中的文字。所在窗口不再是当前窗口时，浮窗关掉。
 - 词典：划词浮窗里点匹配词条，或详情里点词语链接，都再开一个词典窗口查询该词。正在看的这一页不变。
 - 词典：选中文字后点「搜索」，用主窗口词典页同一套界面再开一个窗口，并查询这段文字。主窗口里的词典页不变。

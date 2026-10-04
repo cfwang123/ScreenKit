@@ -3341,6 +3341,20 @@ static class Cli {
 			Out("fail in=[" + row[0] + "] got=[" + got + "] want=[" + row[1] + "]");
 			bad++;
 		}
+		string[][] heads = {
+			new[] { "당번, 당番", "ko", "당번" },
+			new[] { "食べる，たべる", "ja", "食べる" },
+			new[] { "하나", "ko", "하나" },
+			new[] { ",앞", "ko", ",앞" },
+			new[] { "hello, world", "en", "hello, world" },
+			new[] { "一，二", "zh", "一，二" },
+		};
+		foreach (var row in heads) {
+			var got = DictWindow.SpeakHead(row[0], row[1]);
+			if (got == row[2]) continue;
+			Out("fail head in=[" + row[0] + "] got=[" + got + "] want=[" + row[2] + "]");
+			bad++;
+		}
 		if (bad != 0) return 1;
 		Out("dict word ok n=" + rows.Length);
 		return 0;
