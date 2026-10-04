@@ -167,7 +167,7 @@ Optional env vars for local full libraries (do not commit secrets/paths):
 
 ## Configuration
 
-Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**. **Options → Memory** shows process memory and can unload a loaded OCR, translation, face, or speech model.
+Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**. **Options → Memory** shows process memory, unloads a loaded OCR, translation, face, or speech model, and can uninstall the ONNX CPU / CUDA / DirectML runtime. Unload forces a full GC. The status bar shows loaded engines and memory; click it to open that window.
 
 | Section | Keys |
 |---------|------|

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime;
 using System.Runtime.InteropServices;
 
 namespace ScreenKit;
@@ -62,12 +63,14 @@ static class MemUsage {
 		return 0;
 	}
 
-	/// <summary>释放托管垃圾后，请系统收回空闲工作集。</summary>
+	/// <summary>阻塞式完整回收（含大对象堆压缩），再请系统收回空闲工作集。显存和已映射的原生库不一定马上变小。</summary>
 	public static void Trim() {
 		try {
-			GC.Collect();
+			GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+			GC.Collect(2, GCCollectionMode.Forced, true, true);
 			GC.WaitForPendingFinalizers();
-			GC.Collect();
+			GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+			GC.Collect(2, GCCollectionMode.Forced, true, true);
 		}
 		catch { }
 		try { EmptyWorkingSet(Process.GetCurrentProcess().Handle); } catch { }
@@ -90,6 +93,9 @@ static class MemUsage {
 		}
 		var p = Read();
 		if (p.WorkingSet <= 0 || p.PrivateBytes <= 0) return 3;
+		var g2 = GC.CollectionCount(2);
+		Trim();
+		if (GC.CollectionCount(2) <= g2) return 4;
 		return 0;
 	}
 }

@@ -136,6 +136,7 @@ public partial class MainWindow : Window {
 		if (opt.ServiceMode)
 			tryservicewarmup("启动预热");
 		initonnxidle();
+		initstbar();
 		StateChanged += onstatechanged;
 		Closing += onclosing;
 		// 调整大小/移动后延迟写入（真正退出时也会再存）
@@ -1316,6 +1317,7 @@ public partial class MainWindow : Window {
 			var arch = Environment.Is64BitProcess ? "" : " · x86";
 			Title = $"{Loc.T("app.title")} v{AppUpdater.CurrentVersion()}{arch}";
 			lbbrand.Text = Loc.T("app.brand");
+			refreshstbar();
 
 			// 菜单
 			mnfile.Header = Loc.T("menu.file");
@@ -3578,7 +3580,7 @@ public partial class MainWindow : Window {
 	}
 
 	void openmem() =>
-		opentoolwin(ref memWin, () => new MemWindow(MemSnapNow, UnloadMem), "menu.mem");
+		opentoolwin(ref memWin, () => new MemWindow(MemSnapNow, UnloadMem, UnloadAllMem), "menu.mem");
 
 	void opendiag() {
 		try {

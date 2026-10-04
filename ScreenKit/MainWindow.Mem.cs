@@ -1,6 +1,57 @@
 namespace ScreenKit;
 
 public partial class MainWindow {
+	System.Windows.Threading.DispatcherTimer stbarTimer;
+
+	void initstbar() {
+		bstbar.Click += (_, _) => openmem();
+		refreshstbar();
+		stbarTimer = new System.Windows.Threading.DispatcherTimer {
+			Interval = TimeSpan.FromSeconds(2),
+		};
+		stbarTimer.Tick += (_, _) => refreshstbar();
+		stbarTimer.Start();
+	}
+
+	void refreshstbar() {
+		if (bstbar == null) return;
+		try {
+			var text = statusbartext();
+			bstbar.Content = text;
+			bstbar.ToolTip = text + "\n" + Loc.T("stbar.tip");
+		}
+		catch { }
+	}
+
+	string statusbartext() {
+		var snap = MemSnapNow();
+		var parts = new List<string>();
+		var flavor = flavortag(CudaBootstrap.LoadedOrtFlavor());
+		parts.Add(flavor.Length == 0 ? Loc.T("stbar.ort.none") : Loc.T("stbar.ort", flavor));
+		foreach (var it in snap.Items) {
+			var eng = Loc.T("mem.eng." + (it.Engine ?? ""));
+			parts.Add(Loc.T("stbar.item", eng, devtag(it.Device), FeatureInstaller.FormatBytes(it.Bytes)));
+		}
+		parts.Add(Loc.T("stbar.ws", FeatureInstaller.FormatBytes(snap.WorkingSet)));
+		return string.Join("    ·    ", parts);
+	}
+
+	static string flavortag(string flavor) => flavor switch {
+		"cuda" => "gpu",
+		"dml" => "dml",
+		"cpu" => "cpu",
+		_ => "",
+	};
+
+	static string devtag(string device) {
+		var d = (device ?? "").Trim();
+		var l = d.ToLowerInvariant();
+		if (l.Contains("dml") || l.Contains("directml") || d.Contains("核显")) return "dml";
+		if (l.Contains("cuda") || l.Contains("gpu") || l.Contains("nvidia")) return "gpu";
+		if (d.Length == 0 || l.Contains("cpu")) return "cpu";
+		return d;
+	}
+
 	internal MemSnap MemSnapNow() {
 		var snap = MemUsage.Read();
 		var items = snap.Items;
@@ -59,6 +110,24 @@ public partial class MainWindow {
 
 	/// <summary>空字符串表示已卸。返回 busy 表示这项正在使用。</summary>
 	internal string UnloadMem(string id) {
+		var r = unloadmem(id, trim: true);
+		kickstbar();
+		return r;
+	}
+
+	/// <summary>卸掉当前能卸的模型并强制回收。返回 busy 表示有一项正在使用、没有全卸。</summary>
+	internal string UnloadAllMem() {
+		var snap = MemSnapNow();
+		var busy = false;
+		foreach (var it in snap.Items) {
+			if (unloadmem(it.Id, trim: false) == "busy") busy = true;
+		}
+		MemUsage.Trim();
+		kickstbar();
+		return busy ? "busy" : "";
+	}
+
+	string unloadmem(string id, bool trim) {
 		id ??= "";
 		if ((id == "asr" || id == "asrstream") && asrLiveOn) return "busy";
 		if (id == "ocr")
@@ -90,7 +159,12 @@ public partial class MainWindow {
 		else if (id == "httpface" || id == "httpattr") {
 			if (httpServer != null && !httpServer.UnloadFaceMem(id)) return "busy";
 		}
-		MemUsage.Trim();
+		if (trim) MemUsage.Trim();
 		return "";
+	}
+
+	void kickstbar() {
+		try { Dispatcher.BeginInvoke(new Action(refreshstbar)); }
+		catch { }
 	}
 }

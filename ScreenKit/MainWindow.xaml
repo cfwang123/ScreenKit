@@ -13,6 +13,7 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
 		<!-- 顶部菜单：全部功能入口 -->
@@ -2054,6 +2055,28 @@
 					<local:DictWindow x:Name="dicthost"/>
 				</TabItem>
 		</TabControl>
+
+		<Button x:Name="bstbar" Grid.Row="2" Content="ONNX 未加载"
+		        HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+		        Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
+		        BorderThickness="0,1,0,0" Foreground="{StaticResource TextMuted}"
+		        FontSize="12" Padding="10,5" Cursor="Hand"
+		        ToolTip="已加载的引擎和内存，点击打开内存占用"
+		        AutomationProperties.AutomationId="status.bar">
+			<Button.Template>
+				<ControlTemplate TargetType="Button">
+					<Border Background="{TemplateBinding Background}"
+					        BorderBrush="{TemplateBinding BorderBrush}"
+					        BorderThickness="{TemplateBinding BorderThickness}"
+					        Padding="{TemplateBinding Padding}">
+						<TextBlock Text="{TemplateBinding Content}" TextTrimming="CharacterEllipsis"
+						           HorizontalAlignment="Left" VerticalAlignment="Center"
+						           Foreground="{TemplateBinding Foreground}"
+						           FontSize="{TemplateBinding FontSize}"/>
+					</Border>
+				</ControlTemplate>
+			</Button.Template>
+		</Button>
 	</Grid>
 </Window>
 

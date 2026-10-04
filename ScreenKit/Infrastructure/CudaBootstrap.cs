@@ -70,6 +70,20 @@ static class CudaBootstrap {
 	/// <summary>当前进程锁定的 ORT 后端。</summary>
 	public static OrtBackend LoadedBackend { get; private set; } = OrtBackend.None;
 
+	/// <summary>进程里 onnxruntime.dll 来自哪一套：cpu、cuda、dml。未载入为空。</summary>
+	public static string LoadedOrtFlavor() {
+		var path = "";
+		try { path = modulepath(GetModuleHandle("onnxruntime.dll")) ?? ""; }
+		catch { return ""; }
+		if (path.Length == 0) return "";
+		if (path.IndexOf("onnxdml64", StringComparison.OrdinalIgnoreCase) >= 0) return "dml";
+		if (path.IndexOf("onnxgpu64", StringComparison.OrdinalIgnoreCase) >= 0) return "cuda";
+		if (path.IndexOf("onnxcpu64", StringComparison.OrdinalIgnoreCase) >= 0) return "cpu";
+		if (LoadedBackend == OrtBackend.Dml) return "dml";
+		if (LoadedBackend == OrtBackend.Cuda) return "cuda";
+		return "cpu";
+	}
+
 	/// <summary>简短状态，供 UI / 日志。</summary>
 	public static string GpuStatus { get; private set; } = "未初始化";
 
