@@ -447,7 +447,8 @@ static class CudaBootstrap {
 		foreach (var n in names) {
 			own.TryGetValue(n, out var c);
 			var keepOrt = n.Equals("onnxruntime.dll", StringComparison.OrdinalIgnoreCase);
-			freeloop(n, keepOrt ? c : 8);
+			// Sherpa 的 CUDA 会话会给 cuDNN、cublasLt 重复 LoadLibrary，十几次才减完。
+			freeloop(n, keepOrt ? c : 64);
 		}
 		loadedMods.Clear();
 		gpuLibsLoaded = false;
@@ -480,14 +481,18 @@ static class CudaBootstrap {
 		names.Add(fn);
 	}
 
-	/// <summary>CUDA EP 先卸，它的静态依赖随后卸。onnxruntime.dll 最后，且只减本程序的引用。</summary>
+	/// <summary>
+	/// CUDA EP 先卸，再卸会加载别的库的那一层，cudnn_graph 靠后。
+	/// onnxruntime.dll 最后，且只减本程序的引用。
+	/// </summary>
 	static int nativerank(string name) {
 		if (name.Equals("onnxruntime.dll", StringComparison.OrdinalIgnoreCase)) return 50;
 		if (name.IndexOf("providers_cuda", StringComparison.OrdinalIgnoreCase) >= 0) return 0;
 		if (name.IndexOf("providers", StringComparison.OrdinalIgnoreCase) >= 0) return 1;
 		if (name.Equals("DirectML.dll", StringComparison.OrdinalIgnoreCase)) return 1;
-		if (name.StartsWith("cublas64", StringComparison.OrdinalIgnoreCase)) return 10;
 		if (name.StartsWith("cudnn64", StringComparison.OrdinalIgnoreCase)) return 10;
+		if (name.StartsWith("cublas64", StringComparison.OrdinalIgnoreCase)) return 11;
+		if (name.IndexOf("cudnn_graph", StringComparison.OrdinalIgnoreCase) >= 0) return 40;
 		return 20;
 	}
 

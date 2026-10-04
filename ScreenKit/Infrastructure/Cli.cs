@@ -671,6 +671,18 @@ static class Cli {
 			+ $"seconds={samples.Length / (double)sampleRate:F2}");
 		if (!string.IsNullOrEmpty(engine.GpuFallbackReason))
 			Out("Fallback: " + engine.GpuFallbackReason);
+		var before = System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64;
+		engine.UnloadSafe();
+		GC.Collect();
+		GC.WaitForPendingFinalizers();
+		GC.Collect();
+		CudaBootstrap.ReleaseNow();
+		var after = System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64;
+		Out($"mem heavy={CudaBootstrap.HeavyMapped()} priv={before} -> {after}");
+		if (CudaBootstrap.HeavyMapped()) {
+			Err("FAIL: CUDA 库仍映射");
+			return 2;
+		}
 		return 0;
 	}
 
