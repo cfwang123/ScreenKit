@@ -4,7 +4,14 @@ public partial class MainWindow {
 	System.Windows.Threading.DispatcherTimer stbarTimer;
 
 	void initstbar() {
+		// 系统 ToolTip 会吃掉第一次点击。提示就写在状态栏上，按下即打开。
+		bstbar.ToolTip = null;
+		ToolTipService.SetIsEnabled(bstbar, false);
 		bstbar.Click += (_, _) => openmem();
+		bstbar.PreviewMouseLeftButtonDown += (_, e) => {
+			openmem();
+			e.Handled = true;
+		};
 		refreshstbar();
 		stbarTimer = new System.Windows.Threading.DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(2),
@@ -15,11 +22,7 @@ public partial class MainWindow {
 
 	void refreshstbar() {
 		if (bstbar == null) return;
-		try {
-			var text = statusbartext();
-			bstbar.Content = text;
-			bstbar.ToolTip = text + "\n" + Loc.T("stbar.tip");
-		}
+		try { bstbar.Content = statusbartext(); }
 		catch { }
 	}
 
@@ -33,6 +36,7 @@ public partial class MainWindow {
 			parts.Add(Loc.T("stbar.item", eng, devtag(it.Device), FeatureInstaller.FormatBytes(it.Bytes)));
 		}
 		parts.Add(Loc.T("stbar.ws", FeatureInstaller.FormatBytes(snap.WorkingSet)));
+		parts.Add(Loc.T("stbar.tip"));
 		return string.Join("    ·    ", parts);
 	}
 

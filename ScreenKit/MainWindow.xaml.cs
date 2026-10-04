@@ -3579,8 +3579,17 @@ public partial class MainWindow : Window {
 		setstatus("正在取消识别…");
 	}
 
-	void openmem() =>
+	void openmem() {
 		opentoolwin(ref memWin, () => new MemWindow(MemSnapNow, UnloadMem, UnloadAllMem), "menu.mem");
+		try {
+			if (memWin == null) return;
+			if (!memWin.IsVisible) memWin.Show();
+			if (memWin.WindowState == WindowState.Minimized)
+				memWin.WindowState = WindowState.Normal;
+			memWin.Activate();
+		}
+		catch { }
+	}
 
 	void opendiag() {
 		try {
