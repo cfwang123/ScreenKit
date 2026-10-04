@@ -48,6 +48,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded OCR, translation, face, speech-recognition, and speech model by its weight-file size. Unload frees that one model and asks Windows to return idle pages. A model that is in use stays loaded.
 - README: removed the Download section. The English README no longer contains Chinese text.
 
+#### Fixed
+
+- Supertonic no longer clips the last syllable. It stops the waveform at a predicted length, so a still-loud final mora (such as カ in アンニョンハシムニカ) was cut off. The text sent to the model now ends with a short pause. The text on screen is unchanged.
+
 ### 中文
 
 #### 新增
@@ -68,6 +72,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 语音合成的语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。法语、德语、西班牙语显示译名。
 - **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的识别、翻译、人脸、语音识别和语音合成模型。选中一项可卸载并请系统收回空闲内存。正在使用的模型不会卸。
 - README：去掉下载一节。英文 README 不再出现中文。
+
+#### 修复
+
+- Supertonic 不再截断最后一个音。它按预测时长切断波形，末字还在发声时会被切掉（例如「アンニョンハシムニカ」的「カ」）。送给模型的文本末尾加了一小段停顿，界面上的原文不变。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 
