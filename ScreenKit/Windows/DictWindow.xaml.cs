@@ -55,7 +55,6 @@ public partial class DictWindow : UserControl {
 	long wantid;
 	string seltext = "";
 	string curword = "";
-	string curzh = "";
 	string curlang = "";
 	Point downpt;
 	bool dragsel;
@@ -91,7 +90,6 @@ public partial class DictWindow : UserControl {
 		};
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
 		bspeak.Click += (_, _) => _ = speak(SpeakHead(curword, curlang), speaklang(curlang));
-		bspeakzh.Click += (_, _) => _ = speak(curzh, "zh");
 		bselspeak.Click += (_, _) => _ = speak(seltext, speaklang(curlang));
 		bselsearch.Click += (_, _) => {
 			var q = seltext;
@@ -183,9 +181,7 @@ public partial class DictWindow : UserControl {
 
 	void applylang() {
 		bspeak.Content = Loc.T("dict.speak");
-		bspeakzh.Content = Loc.T("dict.speakzh");
 		bspeak.ToolTip = Loc.T("dict.speak.tip");
-		bspeakzh.ToolTip = Loc.T("dict.speakzh.tip");
 		bselspeak.Content = Loc.T("dict.speak");
 		bselsearch.Content = Loc.T("dict.sel.search");
 		bseltr.Content = Loc.T("dict.sel.translate");
@@ -321,7 +317,6 @@ public partial class DictWindow : UserControl {
 	void cleardetail() {
 		psel.IsOpen = false;
 		curword = "";
-		curzh = "";
 		curlang = "";
 		edetail.Document = newdoc();
 	}
@@ -331,7 +326,6 @@ public partial class DictWindow : UserControl {
 		psel.IsOpen = false;
 		curlang = e.Dict ?? "";
 		curword = e.Word.Length > 0 ? e.Word : e.Headword;
-		curzh = e.ZhSpeak();
 		var doc = newdoc();
 		var head = para(2);
 		addrun(head, curword, DRole.Title);

@@ -32,12 +32,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - **Help → Install features → Windows speech** lists `Language.TextToSpeech` packs and the voices Windows reports. Install or remove runs only when this process is an administrator; otherwise the DISM command is shown and can be copied. The speech page lists a new voice after ScreenKit restarts.
-- Dictionary window (**Options → Dictionary**, `hotkey_dict`). Read-only lookup in `dict.db` beside the program for Chinese, English, Japanese, and Korean. **Speak** and **Read Chinese** use the dictionary speech settings. The database is not in the release archive.
+- Dictionary window (**Options → Dictionary**, `hotkey_dict`). Read-only lookup in `dict.db` beside the program for Chinese, English, Japanese, and Korean. **Speak** uses the dictionary speech settings. The database is not in the release archive.
 - Dictionary filter includes Chinese headwords (`dict=zh`). **Speak** uses a Chinese voice for those headwords. List text is read from the entry JSON.
 - `onnx_unload_min` (default 5) unloads idle ONNX sessions for OCR, translation, face, speech recognition, and speech synthesis. `0` keeps them loaded. Service mode does not auto-unload.
 
 #### Changed
 
+- The dictionary toolbar no longer has **Read Chinese**. **Speak** still reads the headword.
 - Speech with no saved engine uses Windows speech when a voice is installed, otherwise Edge online. A saved engine is kept. Dictionary Auto does the same per language: that language's Windows speech, otherwise Edge. SAPI and ONNX stay explicit choices.
 - README adds a Dictionary section: how the tab works, and where `dict.db` comes from.
 - Japanese and Korean headwords are spoken only up to the first comma. The full headword stays on screen. English and Chinese are unchanged.
@@ -70,12 +71,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - **帮助 → 安装功能 → Windows语音**列出 `Language.TextToSpeech` 功能包和 Windows 报告的发音人。本进程是管理员时才能安装或卸载，否则只显示 DISM 命令并可复制。重启本程序后，语音合成页才会列出新发音人。
-- 词典窗口（**选项 → 词典**，配置键 `hotkey_dict`）。只读查询程序旁的 `dict.db`，支持中文、英语、日语、韩语。**发音**、**读中文** 走词典发音设置。词典库不进发布包。
+- 词典窗口（**选项 → 词典**，配置键 `hotkey_dict`）。只读查询程序旁的 `dict.db`，支持中文、英语、日语、韩语。**发音**走词典发音设置。词典库不进发布包。
 - 词典筛选增加汉语（`dict=zh`）。汉语词头发音走中文语音。列表释义从词条 JSON 读取。
 - `onnx_unload_min`（默认 5 分钟）在空闲后卸载 OCR、翻译、人脸、语音识别和合成的 ONNX 会话。`0` 表示不自动卸载。服务模式不会自动卸载。
 
 #### 变更
 
+- 词典工具栏去掉「读中文」。**发音**仍读词头。
 - 语音合成未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。已经保存的引擎保持不变。词典「自动」按语言同样处理：该语言有 Windows 语音就用，没有再用 Edge。SAPI 和 ONNX 仍需点选。
 - README 增加「词典」一节，说明页内用法和 `dict.db` 的数据来源。
 - 日语、韩语词头发音只读到第一个逗号之前。词头原文仍完整显示。英语和汉语不变。

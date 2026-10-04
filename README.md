@@ -86,7 +86,7 @@ ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next 
 - The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Each example has a speak button.
 - Select text in the entry to open a popup outside the selection, with matching headwords plus Speak, Search, Translate, and Copy. The popup closes when that window is no longer active.
 - Search, a matching headword in the popup, or a word link in the entry opens another dictionary window and looks up that text. The page you were reading stays.
-- **Speak** and **Read Chinese** use **Settings → Dictionary**. Each of Chinese, English, Japanese, and Korean has an engine (Auto / ONNX / SAPI / Windows speech / Edge), that engine's voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed. ONNX is chosen explicitly. Japanese and Korean headwords are spoken only up to the first comma. Audio is cached in `tmp/voice` and kept for 1 day. This does not change the Speech tab.
+- **Speak** uses **Settings → Dictionary**. Each of Chinese, English, Japanese, and Korean has an engine (Auto / ONNX / SAPI / Windows speech / Edge), that engine's voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed. ONNX is chosen explicitly. Japanese and Korean headwords are spoken only up to the first comma. Audio is cached in `tmp/voice` and kept for 1 day. This does not change the Speech tab.
 
 ### Data sources
 

@@ -12,9 +12,6 @@
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 		<DockPanel Grid.Row="0" Margin="0,0,0,6" LastChildFill="True">
-			<Button x:Name="bspeakzh" DockPanel.Dock="Right" Content="读中文" Height="28" MinWidth="64"
-			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
-			        AutomationProperties.AutomationId="dict.speakzh"/>
 			<Button x:Name="bspeak" DockPanel.Dock="Right" Content="发音" Height="28" MinWidth="52"
 			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 			        AutomationProperties.AutomationId="dict.speak"/>
