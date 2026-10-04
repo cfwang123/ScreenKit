@@ -1,3 +1,4 @@
+using System.Windows.Threading;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -61,6 +62,7 @@ static class Cli {
 				or "--test-ort-lazy"
 				or "--test-ort-release"
 				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
+				or "--test-dict-host"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -276,6 +278,8 @@ static class Cli {
 					return testselcopy();
 				case "--test-dict-word":
 					return testdictword();
+				case "--test-dict-host":
+					return testdicthost();
 				case "--test-dict-tts":
 					return DictTts.TestCache();
 				case "--test-cast":
@@ -3173,6 +3177,30 @@ static class Cli {
 		return 0;
 	}
 
+	static int testdicthost() {
+		Out("=== 词典新窗口 --test-dict-host ===");
+		var win = new DictHostWindow("hello", () => new OcrOptions(), _ => { });
+		win.Show();
+		var start = Environment.TickCount;
+		var n = 0;
+		while (Environment.TickCount - start < 8000) {
+			var frame = new DispatcherFrame();
+			win.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
+			Dispatcher.PushFrame(frame);
+			n = win.HitCount;
+			if (n > 0) break;
+		}
+		var title = win.Title ?? "";
+		Out($"title={title} hits={n}");
+		try { win.Close(); } catch { }
+		if (n <= 0 || title.IndexOf("hello", StringComparison.OrdinalIgnoreCase) < 0) {
+			Err("FAIL: 新词典窗口没有查出 hello");
+			return 1;
+		}
+		Out("=== OK：选词搜索打开词典窗口 ===");
+		return 0;
+	}
+
 	static int testdictword() {
 		string[][] rows = {
 			new[] { "字", "字" },
@@ -3364,6 +3392,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
+      --test-dict-host  选词搜索打开独立词典窗口并查出 hello
       --test-dict-tts  词典发音缓存保留 1 天，以及语速换算
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）

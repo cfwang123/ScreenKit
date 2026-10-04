@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Dictionary: selecting text and choosing Search opens a new window with the same dictionary page and looks up that text. The main-window tab is unchanged.
 - **Options → Memory**: Unload on the ONNX GPU row releases the CUDA libraries this process loaded, including the extra references a Sherpa GPU voice keeps. The row stays only when those libraries are still mapped. The result shows working set and private bytes. Switching that voice to CPU first is not required.
 - **Help → Install features** renames the Voices tab to **ONNX speech models**.
 - Dictionary list is two lines (language and headword, then gloss) with a per-row speak button. Entry text is smaller and colors pronunciation, part of speech, sense numbers, language labels, and examples. Selecting text opens a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button.
@@ -70,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 词典：选中文字后点「搜索」，用主窗口词典页同一套界面再开一个窗口，并查询这段文字。主窗口里的词典页不变。
 - **选项 → 内存占用**：ONNX GPU 这一行的「从内存卸载」会释放本进程加载的 CUDA 库，包括 Sherpa GPU 发音人多占的引用。只有这些库仍映射着时才留在列表里。结果同时显示工作集和专用内存。不必先把发音人改成 CPU。
 - **帮助 → 安装功能**里原来的「发音人」页改名为 **onnx语音模型**。
 - 词典列表改为两行（语言与词头、释义），每行可发音。详情字号缩小，读音、词性、义项编号、语种标签、例句分色。选中文字后，浮窗出现在选区旁边，含匹配词条以及发音、搜索、翻译、复制。每条例句末尾有发音按钮。

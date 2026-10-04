@@ -32,7 +32,7 @@ sealed class DictSelRow {
 
 enum DRole { Body, Title, Pron, Pos, Number, Label, ExLabel, Example }
 
-/// <summary>英日韩词典：只读 exe 旁的 dict.db。嵌在主窗口词典页。</summary>
+/// <summary>英日韩词典：只读 exe 旁的 dict.db。主窗口词典页和独立词典窗口共用这一页。</summary>
 public partial class DictWindow : UserControl {
 	static readonly Brush CPron = freeze(110, 110, 110);
 	static readonly Brush CPos = freeze(136, 48, 168);
@@ -95,7 +95,7 @@ public partial class DictWindow : UserControl {
 		bselsearch.Click += (_, _) => {
 			var q = seltext;
 			psel.IsOpen = false;
-			searchword(q);
+			opensearch(q);
 		};
 		bseltr.Click += (_, _) => {
 			var q = seltext;
@@ -158,6 +158,15 @@ public partial class DictWindow : UserControl {
 		}
 		catch { }
 	}
+
+	/// <summary>选区浮层开着时关掉它。没有浮层时返回 false。</summary>
+	public bool CloseSel() {
+		if (psel == null || !psel.IsOpen) return false;
+		psel.IsOpen = false;
+		return true;
+	}
+
+	internal int HitCount => lhits.Items.Count;
 
 	/// <summary>把外部选区填进搜索框并查询。过长只取前 80 字。</summary>
 	public void SearchText(string q) {
@@ -527,6 +536,15 @@ public partial class DictWindow : UserControl {
 			suppress = false;
 			queuesearch();
 		}
+	}
+
+	void opensearch(string q) {
+		q = oneline(q);
+		if (q.Length == 0) return;
+		if (q.Length > 80) q = q.Substring(0, 80).Trim();
+		var win = new DictHostWindow(q, Options, OnTranslate);
+		win.Show();
+		win.Activate();
 	}
 
 	void searchword(string q) {
