@@ -56,6 +56,8 @@ public partial class DictWindow : UserControl {
 	string seltext = "";
 	string curword = "";
 	string curlang = "";
+	string filter = "";
+	ToggleButton[] filts;
 	Point downpt;
 	bool dragsel;
 	Window hostwin;
@@ -83,7 +85,6 @@ public partial class DictWindow : UserControl {
 			wantid = 0;
 			queuesearch();
 		};
-		elang.SelectionChanged += (_, _) => queuesearch();
 		lhits.SelectionChanged += (_, _) => {
 			if (filling) return;
 			if (lhits.SelectedItem is DictRow row) loaddetail(row);
@@ -132,10 +133,31 @@ public partial class DictWindow : UserControl {
 			if (e.OriginalSource is DependencyObject d && under(psel.Child, d)) return;
 			psel.IsOpen = false;
 		};
-		elang.SelectedIndex = 0;
+		filts = new[] { bfiltall, bfiltzh, bfiltja, bfiltko, bfilten };
+		wirefilter(bfiltall, "");
+		wirefilter(bfiltzh, "zh");
+		wirefilter(bfiltja, "ja");
+		wirefilter(bfiltko, "ko");
+		wirefilter(bfilten, "en");
+		bfiltall.IsChecked = true;
 		applylang();
 		cleardetail();
 		return;
+
+		void wirefilter(ToggleButton b, string dict) {
+			b.Checked += (_, _) => {
+				foreach (var o in filts)
+					if (!ReferenceEquals(o, b)) o.IsChecked = false;
+				if (filter == dict) return;
+				filter = dict;
+				queuesearch();
+			};
+			b.Unchecked += (_, _) => {
+				foreach (var o in filts)
+					if (o.IsChecked == true) return;
+				b.IsChecked = true;
+			};
+		}
 
 		void ontick() {
 			if (!pending) { tick.Stop(); return; }
@@ -187,16 +209,11 @@ public partial class DictWindow : UserControl {
 		bseltr.Content = Loc.T("dict.sel.translate");
 		bselcopy.Content = Loc.T("dict.sel.copy");
 		lbselwait.Text = Loc.T("dict.sel.searching");
-		setfilter(0, Loc.T("dict.filter.all"));
-		setfilter(1, Loc.T("dict.filter.zh"));
-		setfilter(2, Loc.T("dict.filter.en"));
-		setfilter(3, Loc.T("dict.filter.ja"));
-		setfilter(4, Loc.T("dict.filter.ko"));
-	}
-
-	void setfilter(int index, string text) {
-		if (index < 0 || index >= elang.Items.Count) return;
-		if (elang.Items[index] is ComboBoxItem it) it.Content = text;
+		bfiltall.Content = Loc.T("dict.filter.all");
+		bfiltzh.Content = Loc.T("dict.filter.zh");
+		bfiltja.Content = Loc.T("dict.filter.ja");
+		bfiltko.Content = Loc.T("dict.filter.ko");
+		bfilten.Content = Loc.T("dict.filter.en");
 	}
 
 	void queuesearch() {
@@ -223,8 +240,7 @@ public partial class DictWindow : UserControl {
 		ensuredb();
 		if (!DictDb.Ready) return;
 		var q = esearch.Text ?? "";
-		var dict = "";
-		if (elang.SelectedItem is ComboBoxItem it && it.Tag is string tag) dict = tag;
+		var dict = filter ?? "";
 		if (string.IsNullOrWhiteSpace(q)) {
 			gen++;
 			filling = true;
@@ -452,13 +468,12 @@ public partial class DictWindow : UserControl {
 		var text = edetail.Selection == null ? "" : edetail.Selection.Text ?? "";
 		text = oneline(text);
 		if (text.Length == 0) return;
-		if (text.Length > 80) text = text.Substring(0, 80);
 		seltext = text;
+		var q = text.Length > 80 ? text.Substring(0, 80) : text;
 		placepop();
 		psel.IsOpen = true;
 		showselhits(null, true);
 		var g = ++sgen;
-		var q = text;
 		Task.Run(() => {
 			try { return DictDb.Search(q, "", 8); }
 			catch { return new List<DictHit>(); }

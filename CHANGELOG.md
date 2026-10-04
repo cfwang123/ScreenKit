@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Dictionary language filters are buttons in a row: All, Chinese, Japanese, Korean, English. Selecting text and choosing Speak reads the whole selection.
 - The dictionary toolbar no longer has **Read Chinese**. **Speak** still reads the headword.
 - Speech with no saved engine uses Windows speech when a voice is installed, otherwise Edge online. A saved engine is kept. Dictionary Auto does the same per language: that language's Windows speech, otherwise Edge. SAPI and ONNX stay explicit choices.
 - README adds a Dictionary section: how the tab works, and where `dict.db` comes from.
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 词典语言改为并列按钮：全部、汉语、日语、韩语、英语。选中文字后点发音，读完整选区。
 - 词典工具栏去掉「读中文」。**发音**仍读词头。
 - 语音合成未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。已经保存的引擎保持不变。词典「自动」按语言同样处理：该语言有 Windows 语音就用，没有再用 Edge。SAPI 和 ONNX 仍需点选。
 - README 增加「词典」一节，说明页内用法和 `dict.db` 的数据来源。

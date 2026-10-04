@@ -15,15 +15,24 @@
 			<Button x:Name="bspeak" DockPanel.Dock="Right" Content="发音" Height="28" MinWidth="52"
 			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 			        AutomationProperties.AutomationId="dict.speak"/>
-			<ComboBox x:Name="elang" DockPanel.Dock="Right" Width="100" Height="28" FontSize="13"
-			          VerticalContentAlignment="Center"
-			          AutomationProperties.AutomationId="dict.filter">
-				<ComboBoxItem Tag="" Content="全部"/>
-				<ComboBoxItem Tag="zh" Content="汉语"/>
-				<ComboBoxItem Tag="en" Content="英语"/>
-				<ComboBoxItem Tag="ja" Content="日语"/>
-				<ComboBoxItem Tag="ko" Content="韩语"/>
-			</ComboBox>
+			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"
+			            AutomationProperties.AutomationId="dict.filter">
+				<ToggleButton x:Name="bfiltall" Content="全部" Height="28" Padding="8,0" FontSize="12"
+				              Style="{StaticResource ToolToggle}"
+				              AutomationProperties.AutomationId="dict.filter.all"/>
+				<ToggleButton x:Name="bfiltzh" Content="汉语" Height="28" Padding="8,0" FontSize="12"
+				              Style="{StaticResource ToolToggle}"
+				              AutomationProperties.AutomationId="dict.filter.zh"/>
+				<ToggleButton x:Name="bfiltja" Content="日语" Height="28" Padding="8,0" FontSize="12"
+				              Style="{StaticResource ToolToggle}"
+				              AutomationProperties.AutomationId="dict.filter.ja"/>
+				<ToggleButton x:Name="bfiltko" Content="韩语" Height="28" Padding="8,0" FontSize="12"
+				              Style="{StaticResource ToolToggle}"
+				              AutomationProperties.AutomationId="dict.filter.ko"/>
+				<ToggleButton x:Name="bfilten" Content="英语" Height="28" Padding="8,0" FontSize="12"
+				              Style="{StaticResource ToolToggle}"
+				              AutomationProperties.AutomationId="dict.filter.en"/>
+			</StackPanel>
 			<TextBox x:Name="esearch" Height="28" FontSize="13" Padding="8,2"
 			         VerticalContentAlignment="Center"
 			         AutomationProperties.AutomationId="dict.search"/>
