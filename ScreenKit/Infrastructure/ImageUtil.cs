@@ -818,6 +818,18 @@ static class ImageUtil {
 		return f.ToString();
 	}
 
+	/// <summary>只读 CF_UNICODETEXT，不渲染位图或文件。没有文本或打不开剪贴板时返回空。</summary>
+	public static string ClipboardUnicodeText() {
+		for (var i = 0; i < 3; i++) {
+			if (OpenClipboard(IntPtr.Zero)) {
+				try { return win32readunicode() ?? ""; }
+				finally { CloseClipboard(); }
+			}
+			if (i < 2) System.Threading.Thread.Sleep(10);
+		}
+		return "";
+	}
+
 	static string win32readunicode() {
 		var h = GetClipboardData(CF_UNICODETEXT);
 		if (h == IntPtr.Zero) return null;

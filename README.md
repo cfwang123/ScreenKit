@@ -48,7 +48,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
-| **Dictionary** | A main-window tab (**Options → Dictionary**). The hotkey is off by default; set `hotkey_dict` to show the main window and select that tab (it enables the tab if it was hidden) and to hide the main window when that tab is already showing. Looks up Chinese, English, Japanese, and Korean headwords in `dict.db` beside the program. Filter: all, Chinese, English, Japanese, or Korean. The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Select text to open a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button. **Speak** and **Read Chinese** use Settings → Dictionary: per language, engine Auto / local SAPI / Edge, a local voice, and an Edge voice. Edge shows only the Edge voice; local SAPI shows only the local voice; Auto shows both. Auto tries local SAPI, then Edge online. This does not change the Speech tab. The read-only SQLite connection closes after 5 minutes without a lookup and opens again on the next search. The hotkey sends Ctrl+C to the foreground window and searches that text, then restores the clipboard. If the clipboard does not change, or the copy is blank, it opens the dictionary and does not search. The database is not in the release archive. |
+| **Dictionary** | A main-window tab (**Options → Dictionary**). The hotkey is off by default; set `hotkey_dict` to show the main window and select that tab (it enables the tab if it was hidden) and to hide the main window when that tab is already showing. Looks up Chinese, English, Japanese, and Korean headwords in `dict.db` beside the program. Filter: all, Chinese, English, Japanese, or Korean. The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Select text to open a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button. **Speak** and **Read Chinese** use Settings → Dictionary: per language, engine Auto / local SAPI / Edge, a local voice, and an Edge voice. Edge shows only the Edge voice; local SAPI shows only the local voice; Auto shows both. Auto tries local SAPI, then Edge online. This does not change the Speech tab. The read-only SQLite connection closes after 5 minutes without a lookup and opens again on the next search. The hotkey shows the main window and reads the clipboard. It searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence, a blank clipboard, or anything else opens the dictionary and does not search. The database is not in the release archive. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -201,7 +201,7 @@ hotkey = "Ctrl+Alt+O"           # show / hide main window
 hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
 hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
 # hotkey_translate = "Ctrl+Alt+T" # translate popup show/hide
-# hotkey_dict = ""                # dictionary tab; empty = off. Example: "Ctrl+Alt+D"
+# hotkey_dict = ""                # dictionary tab; empty = off. Clipboard word only. Example: "Ctrl+Alt+D"
 # dict_tts_zh_engine = "auto"     # auto | sapi | edge; same keys for en, ja, ko
 # dict_tts_zh_sapi = ""           # local SAPI voice; empty = automatic
 # dict_tts_zh_edge = "zh-CN-XiaoxiaoNeural"
@@ -351,6 +351,7 @@ ScreenKit --test-nettool
 ScreenKit --test-wintop           # list windows; pin/unpin a probe HWND
 ScreenKit --test-dict-search      # read-only lookup in dict.db beside the exe
 ScreenKit --test-dict-sel         # copy a selected word with Ctrl+C and read it back
+ScreenKit --test-dict-word        # clipboard text is one dictionary word?
 ScreenKit --test-sendfile          # sendfile sandbox + web login / public download
 ScreenKit --test-face-overlay
 ScreenKit --list-models

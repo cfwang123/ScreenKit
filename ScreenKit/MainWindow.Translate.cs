@@ -200,10 +200,15 @@ public partial class MainWindow {
 			else try { Hide(); } catch { }
 			return;
 		}
+		opendicttab(null);
 		var q = "";
-		try { q = TextInjector.CopySelection(); }
-		catch (Exception ex) { try { CaptureLog.Ex("dict sel", ex); } catch { } }
-		opendicttab(q);
+		try { q = DictClip.Word(ImageUtil.ClipboardUnicodeText()); }
+		catch (Exception ex) { try { CaptureLog.Ex("dict clip", ex); } catch { } }
+		if (q.Length == 0) return;
+		var word = q;
+		Dispatcher.BeginInvoke(new Action(() => {
+			try { dicthost.SearchText(word); } catch { }
+		}), System.Windows.Threading.DispatcherPriority.Background);
 	}
 
 	void opendicttab(string query = null) {

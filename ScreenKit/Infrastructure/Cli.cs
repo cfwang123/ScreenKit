@@ -57,7 +57,7 @@ static class Cli {
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-wintop"
-				or "--test-dict-search" or "--test-dict-sel"
+				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -265,6 +265,8 @@ static class Cli {
 					return testdict(null);
 				case "--test-dict-sel":
 					return testselcopy();
+				case "--test-dict-word":
+					return testdictword();
 				case "--test-cast":
 					return testcast();
 				case "--test-cast-recv":
@@ -3118,6 +3120,48 @@ static class Cli {
 		return 0;
 	}
 
+	static int testdictword() {
+		string[][] rows = {
+			new[] { "字", "字" },
+			new[] { "中国", "中国" },
+			new[] { "中华人民", "中华人民" },
+			new[] { "中华人民共", "" },
+			new[] { "a", "a" },
+			new[] { "hello", "hello" },
+			new[] { "don't", "don't" },
+			new[] { "well-known", "well-known" },
+			new[] { new string('b', 20), new string('b', 20) },
+			new[] { new string('b', 21), "" },
+			new[] { " hello ", "hello" },
+			new[] { "「中国」", "中国" },
+			new[] { "hello.", "hello" },
+			new[] { "你好。", "你好" },
+			new[] { "hello world", "" },
+			new[] { "你好，世界", "" },
+			new[] { "你好hello", "" },
+			new[] { "123", "" },
+			new[] { "こんにちは", "こんにちは" },
+			new[] { "食べる", "食べる" },
+			new[] { "안녕하세요", "안녕하세요" },
+			new[] { new string('あ', 12), new string('あ', 12) },
+			new[] { new string('あ', 13), "" },
+			new[] { new string('한', 8), new string('한', 8) },
+			new[] { new string('한', 9), "" },
+			new[] { "", "" },
+			new[] { "Ｈｅｌｌｏ", "Hello" },
+		};
+		var bad = 0;
+		foreach (var row in rows) {
+			var got = DictClip.Word(row[0]);
+			if (got == row[1]) continue;
+			Out("fail in=[" + row[0] + "] got=[" + got + "] want=[" + row[1] + "]");
+			bad++;
+		}
+		if (bad != 0) return 1;
+		Out("dict word ok n=" + rows.Length);
+		return 0;
+	}
+
 	static int testselcopy() {
 		System.Windows.Forms.Form form = null;
 		System.Windows.Forms.TextBox box = null;
@@ -3197,6 +3241,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wintop
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
+  ScreenKit --test-dict-word
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
@@ -3260,6 +3305,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
+      --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
@@ -3324,6 +3370,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wintop
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
+  ScreenKit --test-dict-word
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue

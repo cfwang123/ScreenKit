@@ -156,7 +156,7 @@
 				          ToolTip="浮窗翻译；热键再按一次隐藏"/>
 				<MenuItem x:Name="mndict" Header="词典(_K)"
 				          AutomationProperties.AutomationId="menu.dict"
-				          ToolTip="打开主窗口并切到词典页；热键再按一次隐藏主窗口"/>
+				          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
 				<MenuItem x:Name="mndiag" Header="诊断(_D)…"
 				          ToolTip="CUDA / DirectML / 路径 / 显示器 DPI"/>
 				<Separator/>
