@@ -291,6 +291,17 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	/// <summary>刷新右侧快捷键显示（不注册 WinForms 快捷键，仅展示）。</summary>
+	public void SetModules(bool ocr, bool asr, bool translate) {
+		try {
+			if (miOcr != null) miOcr.Enabled = ocr;
+			if (miClip != null) miClip.Enabled = ocr;
+			if (miPdf != null) miPdf.Enabled = ocr;
+			if (miVoice != null) miVoice.Enabled = asr;
+			if (miTranslate != null) miTranslate.Enabled = translate;
+		}
+		catch { }
+	}
+
 	public void ApplyHotkeys() {
 		try { applyhotkeys(); } catch { }
 	}

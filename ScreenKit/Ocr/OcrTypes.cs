@@ -233,6 +233,21 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsPath = false;
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
+	/// <summary>功能模块是否启用。关闭后隐藏对应页，并停用热键与托盘入口。</summary>
+	public bool ModOcr = true;
+	public bool ModTts = true;
+	public bool ModAsr = true;
+	public bool ModTranslate = true;
+	public bool ModChat = true;
+	public bool ModFace = true;
+	public bool ModDict = true;
+	/// <summary>HTTP 各模块。关闭后该路径返回未启用。总开关 HttpEnabled 优先。</summary>
+	public bool HttpOcr = true;
+	public bool HttpTts = true;
+	public bool HttpAsr = true;
+	public bool HttpTranslate = true;
+	public bool HttpChat = true;
+	public bool HttpFace = true;
 	/// <summary>主界面各 Tab 是否显示；仅影响入口，不停用对应功能。</summary>
 	public bool TabOcrVisible = true;
 	public bool TabTtsVisible = true;
@@ -481,6 +496,19 @@ public sealed class OcrOptions {
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,
 		UiLang = UiLang ?? "zh",
+		ModOcr = ModOcr,
+		ModTts = ModTts,
+		ModAsr = ModAsr,
+		ModTranslate = ModTranslate,
+		ModChat = ModChat,
+		ModFace = ModFace,
+		ModDict = ModDict,
+		HttpOcr = HttpOcr,
+		HttpTts = HttpTts,
+		HttpAsr = HttpAsr,
+		HttpTranslate = HttpTranslate,
+		HttpChat = HttpChat,
+		HttpFace = HttpFace,
 		TabOcrVisible = TabOcrVisible,
 		TabTtsVisible = TabTtsVisible,
 		TabAsrVisible = TabAsrVisible,

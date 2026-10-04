@@ -177,11 +177,16 @@ public partial class MainWindow {
 	}
 
 	void showtranslatepopup() {
+		if (!opt.ModTranslate) return;
 		ensuretranslatepopup();
 		trPopup.ShowFromHotkey();
 	}
 
 	void toggletranslatepopup() {
+		if (!opt.ModTranslate) {
+			try { trPopup?.Hide(); } catch { }
+			return;
+		}
 		ensuretranslatepopup();
 		if (trPopup.IsVisible) {
 			trPopup.Hide();
@@ -193,6 +198,7 @@ public partial class MainWindow {
 	void showdicttab() => opendicttab();
 
 	void toggledicttab() {
+		if (!opt.ModDict) return;
 		var ondict = IsVisible && WindowState != WindowState.Minimized
 			&& ReferenceEquals(maintabs.SelectedItem, tabdict);
 		if (ondict) {
@@ -212,6 +218,7 @@ public partial class MainWindow {
 	}
 
 	void opendicttab(string query = null) {
+		if (!opt.ModDict) return;
 		if (!opt.TabDictVisible) {
 			opt.TabDictVisible = true;
 			applymaintabvisibility();

@@ -14,9 +14,17 @@
 
 ```toml
 http_enabled = true
+http_ocr = true
+http_tts = true
+http_asr = true
+http_translate = true
+http_chat = true
+http_face = true
 http_lan = true
 http_port = 1224
 ```
+
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status` 和 `/api/cast/stop` 仍可用。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -76,6 +84,7 @@ http_port = 1224
 | 804 | options 解释失败 |
 | 805 | 方法不允许（应用层提示；同时 HTTP 可能为 405） |
 | 806 | base64 解码失败 |
+| 810 | 该接口模块已关闭（参数设置 → 接口） |
 | 900 | 内部错误 |
 | 901 | OCR 识别失败 |
 | 910+ | ASR 相关 |
@@ -107,7 +116,7 @@ http_port = 1224
 | GET | `/api/face/models` | 列出人脸 ONNX |
 | POST | `/api/face` | 人脸检测 / 特征 / 两图比对 |
 
-路径大小写不敏感；尾部 `/` 可有可无。
+路径大小写不敏感；尾部 `/` 可有可无。参数设置 → 接口里关掉的模块不会出现在 `GET /api` 里，请求返回 810。
 
 ---
 
@@ -152,6 +161,12 @@ http_port = 1224
 |------|------|------|
 | `app` | string | `"ScreenKit"` |
 | `http_enabled` | bool | 配置中是否启用 HTTP |
+| `http_ocr` | bool | OCR 与条码路径是否启用 |
+| `http_tts` | bool | TTS 路径是否启用 |
+| `http_asr` | bool | ASR 与 ITN 路径是否启用 |
+| `http_translate` | bool | 翻译路径是否启用 |
+| `http_chat` | bool | 对话路径是否启用 |
+| `http_face` | bool | 人脸路径是否启用 |
 | `ocr_engine` | bool | OCR 运行器是否可用 |
 | `asr_engine` | bool | ASR 引擎是否注入 |
 | `tts_engine` | bool | TTS（Sherpa）引擎是否注入 |

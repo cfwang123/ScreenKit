@@ -179,6 +179,15 @@ public partial class SettingsWindow : Window {
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
 			emintray.Content = Loc.T("set.tray");
+			lbsetmod.Text = Loc.T("set.mod");
+			lbsetmodhint.Text = Loc.T("set.mod.hint");
+			emodocr.Content = Loc.T("tab.ocr");
+			emodtts.Content = Loc.T("tab.tts");
+			emodasr.Content = Loc.T("tab.asr");
+			emodtranslate.Content = Loc.T("tab.translate");
+			emodchat.Content = Loc.T("tab.chat");
+			emodface.Content = Loc.T("tab.face");
+			emoddict.Content = Loc.T("tab.dict");
 			lbsettabsvisible.Text = Loc.T("set.tabs.visible");
 			lbsettabsvisiblehint.Text = Loc.T("set.tabs.visible.hint");
 			etabocrvisible.Content = Loc.T("tab.ocr");
@@ -296,6 +305,14 @@ public partial class SettingsWindow : Window {
 			lbsethttp.Text = Loc.T("set.http");
 			lbsethttphint.Text = Loc.T("set.http.hint");
 			ehttpen.Content = Loc.T("set.http.enable");
+			lbsethttpmod.Text = Loc.T("set.http.mod");
+			lbsethttpmodhint.Text = Loc.T("set.http.mod.hint");
+			ehttpocr.Content = Loc.T("tab.ocr");
+			ehttptts.Content = Loc.T("tab.tts");
+			ehttpasr.Content = Loc.T("tab.asr");
+			ehttptranslate.Content = Loc.T("tab.translate");
+			ehttpchat.Content = Loc.T("tab.chat");
+			ehttpface.Content = Loc.T("tab.face");
 			ehttplan.Content = Loc.T("set.http.lan");
 			lbsethttplanhint.Text = Loc.T("set.http.lan.hint");
 			lbsethttpport.Text = Loc.T("set.http.port");
@@ -457,6 +474,13 @@ public partial class SettingsWindow : Window {
 		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
+		emodocr.IsChecked = o.ModOcr;
+		emodtts.IsChecked = o.ModTts;
+		emodasr.IsChecked = o.ModAsr;
+		emodtranslate.IsChecked = o.ModTranslate;
+		emodchat.IsChecked = o.ModChat;
+		emodface.IsChecked = o.ModFace;
+		emoddict.IsChecked = o.ModDict;
 		etabocrvisible.IsChecked = o.TabOcrVisible;
 		etabttsvisible.IsChecked = o.TabTtsVisible;
 		etabasrvisible.IsChecked = o.TabAsrVisible;
@@ -521,6 +545,12 @@ public partial class SettingsWindow : Window {
 		syncsnapfmtenabled();
 		esnapfmt.SelectionChanged += (_, _) => syncsnapfmtenabled();
 		ehttpen.IsChecked = o.HttpEnabled;
+		ehttpocr.IsChecked = o.HttpOcr;
+		ehttptts.IsChecked = o.HttpTts;
+		ehttpasr.IsChecked = o.HttpAsr;
+		ehttptranslate.IsChecked = o.HttpTranslate;
+		ehttpchat.IsChecked = o.HttpChat;
+		ehttpface.IsChecked = o.HttpFace;
 		ehttplan.IsChecked = o.HttpLan;
 		ehttpport.Text = o.HttpPort > 0 ? o.HttpPort.ToString() : "1224";
 		eservicemode.IsChecked = o.ServiceMode;
@@ -635,6 +665,13 @@ public partial class SettingsWindow : Window {
 			out var trBatch, tabsettr)) return false;
 		Result.TranslateLlmBatch = trBatch;
 		Result.MinimizeToTray = emintray.IsChecked == true;
+		Result.ModOcr = emodocr.IsChecked == true;
+		Result.ModTts = emodtts.IsChecked == true;
+		Result.ModAsr = emodasr.IsChecked == true;
+		Result.ModTranslate = emodtranslate.IsChecked == true;
+		Result.ModChat = emodchat.IsChecked == true;
+		Result.ModFace = emodface.IsChecked == true;
+		Result.ModDict = emoddict.IsChecked == true;
 		Result.TabOcrVisible = etabocrvisible.IsChecked == true;
 		Result.TabTtsVisible = etabttsvisible.IsChecked == true;
 		Result.TabAsrVisible = etabasrvisible.IsChecked == true;
@@ -675,6 +712,12 @@ public partial class SettingsWindow : Window {
 		Result.SnapCopyAsFile = asFile;
 		Result.SnapCopyAsPath = asPath;
 		Result.HttpEnabled = ehttpen.IsChecked == true;
+		Result.HttpOcr = ehttpocr.IsChecked == true;
+		Result.HttpTts = ehttptts.IsChecked == true;
+		Result.HttpAsr = ehttpasr.IsChecked == true;
+		Result.HttpTranslate = ehttptranslate.IsChecked == true;
+		Result.HttpChat = ehttpchat.IsChecked == true;
+		Result.HttpFace = ehttpface.IsChecked == true;
 		Result.HttpLan = ehttplan.IsChecked == true;
 		if (!int.TryParse((ehttpport.Text ?? "").Trim(), out var port) || port < 1 || port > 65535) {
 			tabset.SelectedItem = tabsethttp;

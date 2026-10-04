@@ -230,16 +230,16 @@ public partial class MainWindow : Window {
 
 	void applymaintabvisibility() {
 		var tabs = new[] {
-			(tabocr, opt.TabOcrVisible),
-			(tabtts, opt.TabTtsVisible),
-			(tabasr, opt.TabAsrVisible),
-			(tabchat, opt.TabChatVisible),
-			(tabtr, opt.TabTranslateVisible),
-			(tabface, opt.TabFaceVisible),
+			(tabocr, opt.TabOcrVisible && opt.ModOcr),
+			(tabtts, opt.TabTtsVisible && opt.ModTts),
+			(tabasr, opt.TabAsrVisible && opt.ModAsr),
+			(tabchat, opt.TabChatVisible && opt.ModChat),
+			(tabtr, opt.TabTranslateVisible && opt.ModTranslate),
+			(tabface, opt.TabFaceVisible && opt.ModFace),
 			(tabhttp, opt.TabHttpVisible),
 			(tabsf, opt.TabSendFileVisible),
 			(tabcast, opt.TabCastVisible),
-			(tabdict, opt.TabDictVisible),
+			(tabdict, opt.TabDictVisible && opt.ModDict),
 		};
 		foreach (var (tab, visible) in tabs)
 			tab.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
@@ -838,7 +838,7 @@ public partial class MainWindow : Window {
 		}
 		if (hotkeySnapOcr != null) {
 			hotkeySnapOcr.Attach();
-			if (!hotkeySnapOcr.Register(opt.HotkeySnapOcr)) errs.Add(hotkeySnapOcr.LastError);
+			if (!hotkeySnapOcr.Register(opt.ModOcr ? opt.HotkeySnapOcr : "")) errs.Add(hotkeySnapOcr.LastError);
 		}
 		if (hotkeyBoard != null) {
 			hotkeyBoard.Attach();
@@ -846,15 +846,15 @@ public partial class MainWindow : Window {
 		}
 		if (hotkeyVoice != null) {
 			hotkeyVoice.Attach();
-			if (!hotkeyVoice.Register(opt.HotkeyVoiceInput)) errs.Add(hotkeyVoice.LastError);
+			if (!hotkeyVoice.Register(opt.ModAsr ? opt.HotkeyVoiceInput : "")) errs.Add(hotkeyVoice.LastError);
 		}
 		if (hotkeyLive != null) {
 			hotkeyLive.Attach();
-			if (!hotkeyLive.Register(opt.HotkeyLiveCaption)) errs.Add(hotkeyLive.LastError);
+			if (!hotkeyLive.Register(opt.ModAsr ? opt.HotkeyLiveCaption : "")) errs.Add(hotkeyLive.LastError);
 		}
 		if (hotkeyTr != null) {
 			hotkeyTr.Attach();
-			if (!hotkeyTr.Register(opt.HotkeyTranslate)) errs.Add(hotkeyTr.LastError);
+			if (!hotkeyTr.Register(opt.ModTranslate ? opt.HotkeyTranslate : "")) errs.Add(hotkeyTr.LastError);
 		}
 		if (hotkeySnapCopy != null) {
 			hotkeySnapCopy.Attach();
@@ -862,7 +862,7 @@ public partial class MainWindow : Window {
 		}
 		if (hotkeyDict != null) {
 			hotkeyDict.Attach();
-			if (!hotkeyDict.Register(opt.HotkeyDict)) errs.Add(hotkeyDict.LastError);
+			if (!hotkeyDict.Register(opt.ModDict ? opt.HotkeyDict : "")) errs.Add(hotkeyDict.LastError);
 		}
 		if (errs.Count > 0) {
 			var msg = string.Join(" · ", errs);
@@ -977,6 +977,7 @@ public partial class MainWindow : Window {
 
 	/// <summary>托盘菜单：显示窗口并从剪贴板识别。</summary>
 	async Task hotkeyclipboardasync() {
+		if (!opt.ModOcr) return;
 		try {
 			if (tray != null) tray.showwindow();
 			else {
@@ -1519,8 +1520,23 @@ public partial class MainWindow : Window {
 			try { dicthost?.ApplyLang(); } catch { }
 			try { applyfacelang(); } catch { }
 			try { tray?.ApplyLang(); } catch { }
+			applymodui();
 		}
 		catch { }
+	}
+
+	void applymodui() {
+		mncapture.IsEnabled = opt.ModOcr;
+		mnpdf.IsEnabled = opt.ModOcr;
+		mnvoice.IsEnabled = opt.ModAsr;
+		mntrpopup.IsEnabled = opt.ModTranslate;
+		mndict.IsEnabled = opt.ModDict;
+		try { tray?.SetModules(opt.ModOcr, opt.ModAsr, opt.ModTranslate); } catch { }
+		if (!opt.ModTranslate) try { trPopup?.Hide(); } catch { }
+		if (!opt.ModAsr) {
+			if (asrLiveOn) try { stopasrlive(false); } catch { }
+			if (asrVoice != null && asrVoice.IsActive) try { asrVoice.Stop(); } catch { }
+		}
 	}
 
 	void applycomputebox(ComboBox box) {
@@ -2322,6 +2338,7 @@ public partial class MainWindow : Window {
 	/// <paramref name="showMainAfter"/>：true=成功后唤起主窗；false=托盘后台识别（全程不 Show/Activate/Focus 主窗）。
 	/// </summary>
 	async Task captureasync(bool hideMain, bool showMainAfter = true, bool? mainWasVisibleOverride = null) {
+		if (!opt.ModOcr) return;
 		// 仅防截图重入；OCR busy 时仍允许再截（否则第一次识别中第二次热键会静默失效）
 		if (capturing) {
 			CaptureLog.Info("captureasync SKIP capturing=true");
@@ -3132,6 +3149,7 @@ public partial class MainWindow : Window {
 
 	/// <summary>打开独立 PDF 识别工作台（可编辑、存草稿、导出）。</summary>
 	void openpdfworkbench(string pdfPath = null, bool fromTray = false) {
+		if (!opt.ModOcr) return;
 		try {
 			if (!FeaturePrompt.EnsurePdf(this)) {
 				setstatus("未安装 PDF 渲染库，已取消");
@@ -3305,6 +3323,7 @@ public partial class MainWindow : Window {
 		opt = dlg.Result;
 		HttpProxy.ApplyFrom(opt);
 		applymaintabvisibility();
+		applymodui();
 		syncsnapcopyopts();
 		try { refreshtrllm(); } catch { }
 		try { fillchatllm(); } catch { }
@@ -3325,7 +3344,9 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyLiveCaption, opt.HotkeyLiveCaption, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase))
+			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase)
+			|| old.ModOcr != opt.ModOcr || old.ModAsr != opt.ModAsr
+			|| old.ModTranslate != opt.ModTranslate || old.ModDict != opt.ModDict)
 			registerhotkey();
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort

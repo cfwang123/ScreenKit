@@ -34,6 +34,27 @@
 						<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）"
 						          Margin="0,0,0,16" IsChecked="True"/>
 
+						<TextBlock x:Name="lbsetmod" Text="启用模块" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsetmodhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,8"
+						           Text="关闭后隐藏对应页，并停用热键和托盘入口。下方「主界面 Tab」只隐藏入口。"/>
+						<WrapPanel Margin="0,0,0,16">
+							<CheckBox x:Name="emodocr" Content="截图识别" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.mod.ocr"/>
+							<CheckBox x:Name="emodtts" Content="语音合成" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.mod.tts"/>
+							<CheckBox x:Name="emodasr" Content="语音识别" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.mod.asr"/>
+							<CheckBox x:Name="emodtranslate" Content="翻译" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.mod.translate"/>
+							<CheckBox x:Name="emodchat" Content="LLM对话" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.mod.chat"/>
+							<CheckBox x:Name="emodface" Content="人脸识别" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.mod.face"/>
+							<CheckBox x:Name="emoddict" Content="词典" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.mod.dict"/>
+						</WrapPanel>
+
 						<TextBlock x:Name="lbsettabsvisible" Text="主界面 Tab" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsettabsvisiblehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
@@ -684,6 +705,24 @@
 						           Margin="0,0,0,8" TextWrapping="Wrap"
 						           Text="POST /api/ocr · 支持 JSON base64 与 multipart 上传；GET /api/ocr/get_options"/>
 						<CheckBox x:Name="ehttpen" Content="启用 HTTP API" Margin="0,0,0,10" IsChecked="True"/>
+						<TextBlock x:Name="lbsethttpmod" Text="接口模块" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsethttpmodhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,8"
+						           Text="关闭后该路径返回未启用。总开关关闭时这些接口都不可用。"/>
+						<WrapPanel Margin="0,0,0,10">
+							<CheckBox x:Name="ehttpocr" Content="截图识别" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.http.ocr"/>
+							<CheckBox x:Name="ehttptts" Content="语音合成" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.http.tts"/>
+							<CheckBox x:Name="ehttpasr" Content="语音识别" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.http.asr"/>
+							<CheckBox x:Name="ehttptranslate" Content="翻译" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.http.translate"/>
+							<CheckBox x:Name="ehttpchat" Content="LLM对话" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.http.chat"/>
+							<CheckBox x:Name="ehttpface" Content="人脸识别" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.http.face"/>
+						</WrapPanel>
 						<CheckBox x:Name="ehttplan" Content="允许局域网访问" Margin="0,0,0,4" IsChecked="True"
 						          AutomationProperties.AutomationId="set.http.lan"/>
 						<TextBlock x:Name="lbsethttplanhint" FontSize="11" Foreground="{StaticResource TextMuted}"

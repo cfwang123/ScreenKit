@@ -171,6 +171,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			var path = pathRaw.ToLowerInvariant();
+			var optNow = getOpts?.Invoke() ?? new OcrOptions();
 			if (path is "/cast") {
 				handlecast(ctx);
 				return;
@@ -180,6 +181,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 
 			if (path is "/api/ocr/get_options" or "/api/ocr/get_options/") {
+				if (!apiok(ctx, optNow.HttpOcr)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "get_options 仅支持 GET"));
 					return;
@@ -189,6 +191,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/ocr" or "/api/ocr/") {
+				if (!apiok(ctx, optNow.HttpOcr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "ocr 仅支持 POST"));
 					return;
@@ -198,6 +201,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/qr" or "/api/barcode" or "/api/barcodes") {
+				if (!apiok(ctx, optNow.HttpOcr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "qr 仅支持 POST"));
 					return;
@@ -225,6 +229,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/asr/models") {
+				if (!apiok(ctx, optNow.HttpAsr)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "asr/models 仅支持 GET"));
 					return;
@@ -234,6 +239,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/asr") {
+				if (!apiok(ctx, optNow.HttpAsr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "asr 仅支持 POST"));
 					return;
@@ -243,6 +249,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/tts/models") {
+				if (!apiok(ctx, optNow.HttpTts)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "tts/models 仅支持 GET"));
 					return;
@@ -252,6 +259,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/tts") {
+				if (!apiok(ctx, optNow.HttpTts)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "tts 仅支持 POST"));
 					return;
@@ -261,6 +269,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/itn") {
+				if (!apiok(ctx, optNow.HttpAsr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "itn 仅支持 POST"));
 					return;
@@ -270,6 +279,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/translate" or "/api/translate/batch") {
+				if (!apiok(ctx, optNow.HttpTranslate)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "translate 仅支持 POST"));
 					return;
@@ -279,6 +289,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/chat") {
+				if (!apiok(ctx, optNow.HttpChat)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "chat 仅支持 POST"));
 					return;
@@ -288,6 +299,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/face/models") {
+				if (!apiok(ctx, optNow.HttpFace)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "face/models 仅支持 GET"));
 					return;
@@ -297,6 +309,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/face" or "/api/face/compare" or "/api/face/extract") {
+				if (!apiok(ctx, optNow.HttpFace)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "face 仅支持 POST"));
 					return;
@@ -311,22 +324,7 @@ sealed partial class HttpOcrServer : IDisposable {
 					["data"] = new JsonObject {
 						["name"] = AppNames.Current + " HTTP API",
 						["umi_compatible"] = true,
-						["endpoints"] = new JsonArray {
-							"GET  /api/status",
-							"GET/POST /api/cast/stop  立即关闭投屏画面",
-							"GET  /api/ocr/get_options",
-							"POST /api/ocr   JSON{base64,options} 或 multipart",
-							"POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码",
-							"GET  /api/asr/models",
-							"POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
-							"GET  /api/tts/models",
-							"POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}",
-							"POST /api/itn   JSON{text}  WeText+规则后处理",
-							"POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译",
-							"POST /api/chat  JSON{text|base64|path, messages?, tts?, agent?, llm?}  LLM对话",
-							"GET  /api/face/models",
-							"POST /api/face  JSON{base64|base64_b|path} 或 multipart 人脸检测/比对",
-						},
+						["endpoints"] = apilist(optNow),
 					},
 				});
 				return;
@@ -374,6 +372,12 @@ sealed partial class HttpOcrServer : IDisposable {
 			["data"] = new JsonObject {
 				["app"] = "ScreenKit",
 				["http_enabled"] = o.HttpEnabled,
+				["http_ocr"] = o.HttpOcr,
+				["http_tts"] = o.HttpTts,
+				["http_asr"] = o.HttpAsr,
+				["http_translate"] = o.HttpTranslate,
+				["http_chat"] = o.HttpChat,
+				["http_face"] = o.HttpFace,
 				["ocr_engine"] = runner != null,
 				["asr_engine"] = svc?.AsrEngine != null,
 				["tts_engine"] = svc?.TtsEngine != null,
@@ -1343,6 +1347,42 @@ sealed partial class HttpOcrServer : IDisposable {
 		["code"] = code,
 		["data"] = msg ?? "",
 	};
+
+	static bool apiok(HttpListenerContext ctx, bool on) {
+		if (on) return true;
+		writejson(ctx, 200, err(810, "该接口未启用（参数设置 → 接口）"));
+		return false;
+	}
+
+	static JsonArray apilist(OcrOptions o) {
+		var a = new JsonArray {
+			"GET  /api/status",
+			"GET/POST /api/cast/stop  立即关闭投屏画面",
+		};
+		if (o.HttpOcr) {
+			a.Add("GET  /api/ocr/get_options");
+			a.Add("POST /api/ocr   JSON{base64,options} 或 multipart");
+			a.Add("POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码");
+		}
+		if (o.HttpAsr) {
+			a.Add("GET  /api/asr/models");
+			a.Add("POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}");
+			a.Add("POST /api/itn   JSON{text}  WeText+规则后处理");
+		}
+		if (o.HttpTts) {
+			a.Add("GET  /api/tts/models");
+			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}");
+		}
+		if (o.HttpTranslate)
+			a.Add("POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译");
+		if (o.HttpChat)
+			a.Add("POST /api/chat  JSON{text|base64|path, messages?, tts?, agent?, llm?}  LLM对话");
+		if (o.HttpFace) {
+			a.Add("GET  /api/face/models");
+			a.Add("POST /api/face  JSON{base64|base64_b|path} 或 multipart 人脸检测/比对");
+		}
+		return a;
+	}
 
 	static void writejson(HttpListenerContext ctx, int httpStatus, JsonNode body) {
 		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));

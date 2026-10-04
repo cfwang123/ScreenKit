@@ -276,6 +276,7 @@ public partial class MainWindow {
 		toggleasrvoicecore(fromHotkey: false, captureOnly: true);
 
 	void toggleasrvoicecore(bool fromHotkey, bool captureOnly) {
+		if (!opt.ModAsr) return;
 		try {
 			CaptureLog.Info("toggleasrvoice enter busy=" + asrVoiceBusy
 				+ " active=" + (asrVoice != null && asrVoice.IsActive)
@@ -1063,6 +1064,10 @@ public partial class MainWindow {
 	// ───────── 系统实时字幕 ─────────
 
 	void asrtogglelive() {
+		if (!opt.ModAsr) {
+			if (asrLiveOn) stopasrlive(false);
+			return;
+		}
 		if (asrLiveBusy) {
 			lbasrstatus.Text = "实时字幕忙，请稍候…";
 			return;

@@ -70,7 +70,8 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **窗口管理** | **工具 → 窗口管理**：列出可见顶层窗口，可点选或填入 HWND，设置或取消固定在前面。点选时绿框预览光标下的窗口，选中后绿框留在该窗口上。 |
 | **投屏** | 主界面 **投屏** Tab：把本机投到另一台电脑。左侧一直列出已保存的电脑，点一项即填入 IP，也可手填或 **搜索局域网**（含本机）。**限制宽高** 默认 1000×1000（等比缩小进框内，不放大）。**开始投屏** 后先框选区域（单击窗口或拖拽，和截图一样）。选好后可改声音开关和来源（扬声器、麦克风或两者），再点开始才发送。红框和操作条可开始、暂停或停止；暂停只停画面和声音，连接保留，可继续。红框不进入对方画面。**工具 → 投屏**（托盘同样入口）仍用于接收手机或另一台电脑，也可整屏投出（画质 540p/720p/1080p）。声音连续播放；画面按声音实际落后的时间自动对齐。画面窗默认在主屏幕中心打开，不置顶；画面可选适应窗口或铺满窗口。手机切横竖屏时窗口的大小、位置和最大化状态保持不变，只在当前窗口里适应或铺满。发现与传文件共用 UDP 17531，画面走 HTTP `/cast`（默认 1224）。**连接安卓USB配件**在托盘、文件同步页和投屏窗：点击后弹出「等待安卓USB配件中」，并通知已连接的手机进入配件；两端显示已连接 / 等待中 / 未连接。2 分钟无连接自动关闭。或 **USB 投屏(adb)**（需 USB 调试）。手机 App 桌面有独立「投屏」图标。 |
 | **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入 · 翻译小窗（可配置、可清空禁用）。 |
-| **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口 / 文件同步 / 投屏（`tab_*_visible`）。 |
+| **启用模块** | 参数设置 → 常规可开关截图识别、语音合成、语音识别、LLM对话、翻译、人脸、词典（`mod_*`，默认开）。关闭后隐藏对应页，并停用热键和托盘入口。参数设置 → 接口可分别关闭 OCR、TTS、ASR、翻译、对话、人脸的 HTTP 路径（`http_ocr` 等）。关闭时该路径返回 810。 |
+| **主界面 Tab** | 参数设置 → 常规可分别隐藏截图识别 / 语音合成 / 语音识别 / LLM对话 / 翻译 / 人脸 / HTTP接口 / 文件同步 / 投屏（`tab_*_visible`）。隐藏只影响入口，热键仍可用。 |
 | **推理设备** | CPU · NVIDIA CUDA · 核显 DirectML；未装加速时自动 CPU。 |
 | **CLI** | 批量识图、列模型 / SAPI 发音人、探测 CUDA、多屏抓取自检。 |
 
@@ -192,13 +193,13 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 ## 配置
 
-设置保存在 exe 旁 `config.toml`（**选项 → 参数设置** / **录屏选项**）。参数设置按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口；主界面 Tab 显示复选框位于「常规」。**选项 → 内存占用**可查看进程内存。列表含已加载的模型和 ONNX 运行库，每行可从内存卸载并强制回收托管内存。卸 ONNX 这一行时，同时释放本进程加载的 CUDA、CPU 或 DirectML 原生库，Sherpa 正在用 GPU 发音人时也可以卸。运行库第一次用到才加载，空闲超时后卸载。窗口底部状态栏汇总已加载的 ONNX、模型个数和文件合计大小，点击状态栏打开该窗口。
+设置保存在 exe 旁 `config.toml`（**选项 → 参数设置** / **录屏选项**）。参数设置按 Tab 分组：常规、识别、热键、语音、LLM接口、翻译、截图、接口。「常规」里有启用模块和主界面 Tab 显示。「接口」可分别关闭各 HTTP 路径。**选项 → 内存占用**可查看进程内存。列表含已加载的模型和 ONNX 运行库，每行可从内存卸载并强制回收托管内存。卸 ONNX 这一行时，同时释放本进程加载的 CUDA、CPU 或 DirectML 原生库，Sherpa 正在用 GPU 发音人时也可以卸。运行库第一次用到才加载，空闲超时后卸载。窗口底部状态栏汇总已加载的 ONNX、模型个数和文件合计大小，点击状态栏打开该窗口。
 
 | 段落 | 主要内容 |
 |------|----------|
 | `[ocr]` | 模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值 |
-| `[ui]` | 热键、托盘、`ui_lang`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`screenshot_short`、`imgconv_*` |
-| `[http]` | OCR API（`http_lan`、端口 `1224`）、服务模式、`onnx_unload_min` |
+| `[ui]` | 热键、托盘、`ui_lang`、`mod_*`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`screenshot_short`、`imgconv_*` |
+| `[http]` | OCR API（`http_enabled`、`http_ocr` 等模块开关、`http_lan`、端口 `1224`）、服务模式、`onnx_unload_min` |
 | `[sendfile]` | 局域网文件传输端口、显示名、网页登录密码、已配对设备 |
 | `[pdf]` | 不可见文字层、光栅 DPI |
 | `[asr]` | 听写/实时字幕模式、润色、分句、`asr_llm` |
@@ -237,7 +238,14 @@ hotkey_snap_ocr = "Ctrl+Alt+W"
 minimize_to_tray = true
 capture_log = false
 ui_lang = "zh"
-tab_ocr_visible = true
+mod_ocr = true                  # false 隐藏对应页并停用热键；默认 true
+mod_tts = true
+mod_asr = true
+mod_translate = true
+mod_chat = true
+mod_face = true
+mod_dict = true
+tab_ocr_visible = true          # 只隐藏入口，热键仍可用
 tab_tts_visible = true
 tab_asr_visible = true
 tab_chat_visible = true
@@ -255,6 +263,12 @@ screenshot_short_px = 1080      # 16–16384
 
 [http]
 http_enabled = true
+http_ocr = true                 # false 时该路径返回 810；默认 true
+http_tts = true
+http_asr = true
+http_translate = true
+http_chat = true
+http_face = true
 http_lan = true                 # false 时只监听 127.0.0.1
 http_port = 1224
 service_mode = false            # 常驻预热；开启时不按空闲卸载

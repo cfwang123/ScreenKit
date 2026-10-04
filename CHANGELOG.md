@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- **Settings → General** can turn OCR, TTS, ASR, chat, translate, face, and dictionary on or off (`mod_*`, default on). Off hides that page and stops its hotkey and tray entry. **Settings → API** can turn each HTTP path off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). A disabled path returns code 810 and is left out of `GET /api`. Main-tab checkboxes still only hide the page.
 - Dictionary language filters are buttons in a row: All, Chinese, Japanese, Korean, English. Selecting text and choosing Speak reads the whole selection.
 - The dictionary toolbar no longer has **Read Chinese**. **Speak** still reads the headword.
 - Speech with no saved engine uses Windows speech when a voice is installed, otherwise Edge online. A saved engine is kept. Dictionary Auto does the same per language: that language's Windows speech, otherwise Edge. SAPI and ONNX stay explicit choices.
@@ -78,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- **参数设置 → 常规**可启用或停用截图识别、语音合成、语音识别、LLM对话、翻译、人脸、词典（`mod_*`，默认开）。关闭后隐藏对应页，并停用热键和托盘入口。**参数设置 → 接口**可分别关闭 OCR、TTS、ASR、翻译、对话、人脸的 HTTP 路径（`http_ocr` 等）。关闭时返回 810，`GET /api` 也不再列出。主界面 Tab 显示开关仍只隐藏入口。
 - 词典语言改为并列按钮：全部、汉语、日语、韩语、英语。选中文字后点发音，读完整选区。
 - 词典工具栏去掉「读中文」。**发音**仍读词头。
 - 语音合成未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。已经保存的引擎保持不变。词典「自动」按语言同样处理：该语言有 Windows 语音就用，没有再用 Edge。SAPI 和 ONNX 仍需点选。

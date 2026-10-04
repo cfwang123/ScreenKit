@@ -70,7 +70,8 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **Window manager** | **Tools → Window manager**: list visible top-level windows, pick one by clicking, or enter an HWND. A green frame follows the window under the cursor while picking, and stays on the selected window. Pin in front or unpin (`HWND_TOPMOST`). |
 | **Screencast** | Main window **Screencast** tab: cast this PC to another. Saved PCs stay in the left list; click one to fill the IP, or type an address / **Scan LAN**. **Max size** defaults to 1000×1000 (shrink to fit, never enlarge). **Start cast** first picks a region the same way as a screenshot (click a window or drag). Sending waits until Start is pressed again, so audio and its source (speakers, microphone, or both) can be changed. The red frame and toolbar can start, pause, or stop; pause keeps the connection and stops picture and audio until resume. The frame is not part of the picture. **Tools → Screencast** (same under the tray) still receives a phone or another PC, and can cast the whole desktop (quality 540p/720p/1080p). Audio plays continuously; the picture waits only as long as the sound is behind. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Rotating the phone keeps the viewer’s size, position, and maximized state; the picture fits or fills inside that window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens “Waiting for Android USB accessory” and tells a phone already connected for file sync to enter accessory mode. Both sides show connected / waiting / not connected. It turns off after 2 minutes with no connection. Or **USB cast (adb)** with USB debugging. The phone app has a separate **Screencast** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
-| **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync / Screencast (`tab_*_visible`). |
+| **Modules** | Settings → General turns OCR, TTS, ASR, chat, translate, face, and dictionary on or off (`mod_*`, default on). Off hides that page and stops its hotkey and tray entry. Settings → API turns each HTTP path on or off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). Off returns code 810. |
+| **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync / Screencast (`tab_*_visible`). Hiding a tab does not stop its hotkey. |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test. |
 
@@ -192,13 +193,13 @@ Optional env vars for local full libraries (do not commit secrets/paths):
 
 ## Configuration
 
-Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**. **Options → Memory** shows process memory and lists each loaded model and the ONNX runtime if one is loaded. Each row can unload that item from memory and forces a full GC. Unload on the ONNX row also frees the native CUDA, CPU, or DirectML libraries this process loaded, including while a Sherpa voice is using the GPU. The runtime loads on first use and unloads after the idle timeout. The status bar summarizes the loaded ONNX runtime and model count with their total file size. Click the bar to open that window.
+Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. **General** has module switches and main-tab visibility. **API** can turn each HTTP path off. **Options → Memory** shows process memory and lists each loaded model and the ONNX runtime if one is loaded. Each row can unload that item from memory and forces a full GC. Unload on the ONNX row also frees the native CUDA, CPU, or DirectML libraries this process loaded, including while a Sherpa voice is using the GPU. The runtime loads on first use and unloads after the idle timeout. The status bar summarizes the loaded ONNX runtime and model count with their total file size. Click the bar to open that window.
 
 | Section | Keys |
 |---------|------|
 | `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
-| `[ui]` | hotkeys, tray, `ui_lang`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `screenshot_short`, `imgconv_*` |
-| `[http]` | OCR API (`http_lan`, port `1224`), service mode, `onnx_unload_min` |
+| `[ui]` | hotkeys, tray, `ui_lang`, `mod_*`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `screenshot_short`, `imgconv_*` |
+| `[http]` | OCR API (`http_enabled`, `http_ocr` and the other module flags, `http_lan`, port `1224`), service mode, `onnx_unload_min` |
 | `[sendfile]` | LAN file transfer ports, display name, web login password, paired devices |
 | `[pdf]` | invisible text, raster DPI |
 | `[asr]` | voice/live mode, polish, split, `asr_llm` |
@@ -239,7 +240,14 @@ minimize_to_tray = true
 capture_log = false             # true → log/capture.log (DPI + save timings)
 # llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
 ui_lang = "zh"                  # zh | en
-tab_ocr_visible = true          # main tabs; all default to true
+mod_ocr = true                  # false hides the page and stops its hotkey; default true
+mod_tts = true
+mod_asr = true
+mod_translate = true
+mod_chat = true
+mod_face = true
+mod_dict = true
+tab_ocr_visible = true          # main tabs; all default to true. Hide only; hotkeys stay
 tab_tts_visible = true
 tab_asr_visible = true
 tab_chat_visible = true
@@ -258,6 +266,12 @@ screenshot_short_px = 1080      # 16–16384
 
 [http]
 http_enabled = true
+http_ocr = true                 # false returns code 810 for that path; default true
+http_tts = true
+http_asr = true
+http_translate = true
+http_chat = true
+http_face = true
 http_lan = true                 # false listens on 127.0.0.1 only
 http_port = 1224
 service_mode = false            # keep engines warm; skips idle unload

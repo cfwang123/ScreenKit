@@ -14,9 +14,17 @@ Turn on HTTP under **Settings**, or edit `config.toml` next to the executable:
 
 ```toml
 http_enabled = true
+http_ocr = true
+http_tts = true
+http_asr = true
+http_translate = true
+http_chat = true
+http_face = true
 http_lan = true
 http_port = 1224
 ```
+
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status` and `/api/cast/stop` stay available. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -76,6 +84,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | 804 | Failed to interpret options |
 | 805 | Method not allowed (app-level; HTTP may also be 405) |
 | 806 | base64 decode failed |
+| 810 | That API module is turned off (Settings → API) |
 | 900 | Internal error |
 | 901 | OCR recognition failed |
 | 910+ | ASR-related |
@@ -106,7 +115,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET | `/api/face/models` | List face ONNX files |
 | POST | `/api/face` | Face detect / embedding / compare two images |
 
-Paths are case-insensitive; a trailing `/` is optional.
+Paths are case-insensitive; a trailing `/` is optional. A module turned off under Settings → API is omitted from `GET /api` and returns code 810.
 
 ---
 
@@ -151,6 +160,12 @@ Health check and capability probe.
 |-------|------|-------------|
 | `app` | string | `"ScreenKit"` |
 | `http_enabled` | bool | Whether HTTP is enabled in config |
+| `http_ocr` | bool | OCR and barcode paths enabled |
+| `http_tts` | bool | TTS paths enabled |
+| `http_asr` | bool | ASR and ITN paths enabled |
+| `http_translate` | bool | Translate path enabled |
+| `http_chat` | bool | Chat path enabled |
+| `http_face` | bool | Face paths enabled |
 | `ocr_engine` | bool | OCR runner available |
 | `asr_engine` | bool | ASR engine injected |
 | `tts_engine` | bool | TTS (Sherpa) engine injected |

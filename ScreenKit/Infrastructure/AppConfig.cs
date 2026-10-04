@@ -173,6 +173,20 @@ static class AppConfig {
 				var L = ul.Trim().Trim('"').ToLowerInvariant();
 				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
 			}
+			if (map.TryGetValue("mod_ocr", out var moc))
+				o.ModOcr = parsebool(moc, true);
+			if (map.TryGetValue("mod_tts", out var mtts))
+				o.ModTts = parsebool(mtts, true);
+			if (map.TryGetValue("mod_asr", out var mas))
+				o.ModAsr = parsebool(mas, true);
+			if (map.TryGetValue("mod_translate", out var mtr))
+				o.ModTranslate = parsebool(mtr, true);
+			if (map.TryGetValue("mod_chat", out var mch))
+				o.ModChat = parsebool(mch, true);
+			if (map.TryGetValue("mod_face", out var mfa))
+				o.ModFace = parsebool(mfa, true);
+			if (map.TryGetValue("mod_dict", out var mdi))
+				o.ModDict = parsebool(mdi, true);
 			if (map.TryGetValue("tab_ocr_visible", out var tov))
 				o.TabOcrVisible = parsebool(tov, true);
 			if (map.TryGetValue("tab_tts_visible", out var ttv))
@@ -224,6 +238,18 @@ static class AppConfig {
 				o.WinMax = parsebool(wmax, false);
 			if (map.TryGetValue("http_enabled", out var he))
 				o.HttpEnabled = parsebool(he, true);
+			if (map.TryGetValue("http_ocr", out var hoc))
+				o.HttpOcr = parsebool(hoc, true);
+			if (map.TryGetValue("http_tts", out var htt))
+				o.HttpTts = parsebool(htt, true);
+			if (map.TryGetValue("http_asr", out var hasr))
+				o.HttpAsr = parsebool(hasr, true);
+			if (map.TryGetValue("http_translate", out var htr))
+				o.HttpTranslate = parsebool(htr, true);
+			if (map.TryGetValue("http_chat", out var hch))
+				o.HttpChat = parsebool(hch, true);
+			if (map.TryGetValue("http_face", out var hfa))
+				o.HttpFace = parsebool(hfa, true);
 			var hasLanKey = map.TryGetValue("http_lan", out var hl);
 			var sawHost = map.TryGetValue("http_host", out var hh);
 			var oldHost = sawHost ? (hh ?? "").Trim().Trim('"') : "";
@@ -571,6 +597,14 @@ static class AppConfig {
 		sb.AppendLine($"# 界面语言 zh | en");
 		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
 		sb.AppendLine($"ui_lang = \"{uiLang}\"");
+		sb.AppendLine($"# 功能模块。false 隐藏对应页并停用热键；默认 true");
+		sb.AppendLine($"mod_ocr = {(o.ModOcr ? "true" : "false")}");
+		sb.AppendLine($"mod_tts = {(o.ModTts ? "true" : "false")}");
+		sb.AppendLine($"mod_asr = {(o.ModAsr ? "true" : "false")}");
+		sb.AppendLine($"mod_translate = {(o.ModTranslate ? "true" : "false")}");
+		sb.AppendLine($"mod_chat = {(o.ModChat ? "true" : "false")}");
+		sb.AppendLine($"mod_face = {(o.ModFace ? "true" : "false")}");
+		sb.AppendLine($"mod_dict = {(o.ModDict ? "true" : "false")}");
 		sb.AppendLine($"# 主界面 Tab 显示开关（仅隐藏入口，不停用对应功能；默认全部 true）");
 		sb.AppendLine($"tab_ocr_visible = {(o.TabOcrVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_tts_visible = {(o.TabTtsVisible ? "true" : "false")}");
@@ -605,6 +639,13 @@ static class AppConfig {
 		sb.AppendLine();
 		sb.AppendLine("[http]");
 		sb.AppendLine($"http_enabled = {(o.HttpEnabled ? "true" : "false")}");
+		sb.AppendLine("# 各接口模块。false 时该路径返回未启用；默认 true");
+		sb.AppendLine($"http_ocr = {(o.HttpOcr ? "true" : "false")}");
+		sb.AppendLine($"http_tts = {(o.HttpTts ? "true" : "false")}");
+		sb.AppendLine($"http_asr = {(o.HttpAsr ? "true" : "false")}");
+		sb.AppendLine($"http_translate = {(o.HttpTranslate ? "true" : "false")}");
+		sb.AppendLine($"http_chat = {(o.HttpChat ? "true" : "false")}");
+		sb.AppendLine($"http_face = {(o.HttpFace ? "true" : "false")}");
 		sb.AppendLine("# 允许局域网访问。false 时只监听 127.0.0.1");
 		sb.AppendLine($"http_lan = {(o.HttpLan ? "true" : "false")}");
 		sb.AppendLine($"http_port = {o.HttpPort}");
