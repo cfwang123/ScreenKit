@@ -58,6 +58,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-wintop"
 				or "--test-mem"
+				or "--test-ort-lazy"
 				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
@@ -262,6 +263,8 @@ static class Cli {
 					return testwintop();
 				case "--test-mem":
 					return testmem();
+				case "--test-ort-lazy":
+					return testortlazy();
 				case "--test-dict-search":
 					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
 						return testdict(Next());
@@ -2883,6 +2886,15 @@ static class Cli {
 		return code;
 	}
 
+	static int testortlazy() {
+		Out("=== ORT 按需加载 --test-ort-lazy ===");
+		var code = CudaBootstrap.TestLazy(out var detail);
+		Out(detail ?? "");
+		if (code != 0) Err("FAIL code=" + code);
+		else Out("=== OK：启动未加载，使用后可再建会话 ===");
+		return code;
+	}
+
 	static int testwintop() {
 		Out("=== 窗口管理 --test-wintop ===");
 		var bad = 0;
@@ -3323,6 +3335,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-mem  进程内存读取，以及模型文件大小统计
+      --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）

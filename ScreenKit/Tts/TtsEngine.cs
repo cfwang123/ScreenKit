@@ -95,11 +95,7 @@ sealed class TtsEngine : IDisposable {
 		reason = "";
 		try {
 			try { CudaBootstrap.Init(); } catch { }
-			// 文件齐全后再尝试真正加载 CUDA EP（会写 log/cuda_bootstrap.log）
-			try { CudaBootstrap.EnsureGpuLibsLoaded(); } catch (Exception ex) {
-				reason = ex.Message;
-				return false;
-			}
+			// 只看文件和驱动。真正加载 CUDA EP 留到建会话。
 			if (!CudaBootstrap.IsGpuReady) {
 				reason = CudaBootstrap.GpuStatus ?? "CUDA 未就绪";
 				return false;

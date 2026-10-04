@@ -241,6 +241,14 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
+	public bool HasFaceLive() {
+		lock (httpFaceLock) {
+			if (httpFace != null && httpFace.IsLive) return true;
+			if (httpAttr != null && httpAttr.IsLive) return true;
+			return false;
+		}
+	}
+
 	public bool IdleUnloadOnnx(int limitMs) {
 		var dropped = false;
 		lock (httpFaceLock) {

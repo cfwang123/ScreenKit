@@ -195,7 +195,25 @@ public partial class MainWindow : Window {
 		}
 		catch { }
 		try { if (httpServer != null && httpServer.IdleUnloadOnnx(ms)) n++; } catch { }
+		if (n > 0) CudaBootstrap.HoldNative(8000);
+		if (!onnxbusy()) {
+			try { if (CudaBootstrap.ReleaseIfIdle(ms)) n++; } catch { }
+		}
 		if (n > 0) setstatus(Loc.T("onnx.idle.unloaded", opt.OnnxUnloadMin));
+	}
+
+	bool onnxbusy() {
+		try { if (runner != null && runner.HasEngine) return true; } catch { }
+		try { if (trEngine != null && trEngine.IsRunning) return true; } catch { }
+		try { if (asrEngine != null && asrEngine.IsLoaded) return true; } catch { }
+		try { if (asrStreamEngine != null && asrStreamEngine.IsLoaded) return true; } catch { }
+		try { if (sherpaTts != null && sherpaTts.IsLoaded) return true; } catch { }
+		try { if (DictTts.TryOnnxMem(out _, out _, out _)) return true; } catch { }
+		try { if (facePipe != null && facePipe.IsLive) return true; } catch { }
+		try { if (faceLmk != null && faceLmk.IsLive) return true; } catch { }
+		try { if (faceAttr != null && faceAttr.IsLive) return true; } catch { }
+		try { if (httpServer != null && httpServer.HasFaceLive()) return true; } catch { }
+		return false;
 	}
 
 	void onnxidletouch() {

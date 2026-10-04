@@ -143,6 +143,7 @@ public partial class MainWindow {
 
 	/// <summary>空字符串表示已卸。返回 busy 表示这项正在使用。</summary>
 	internal string UnloadMem(string id) {
+		CudaBootstrap.HoldNative(8000);
 		string r;
 		if (id == "ort")
 			r = unloadort();

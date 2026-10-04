@@ -12,6 +12,7 @@ namespace ScreenKit;
 /// <item>Intel 核显等：onnxdml64/（DirectML 版 ORT + DirectML.dll）</item>
 /// <item>CUDA 与 DML 的 onnxruntime.dll 互斥，首次建会话时锁定后端；切换需重启进程</item>
 /// <item>cuDNN 等大库仅在真正建 CUDA session 时加载</item>
+/// <item>启动只登记路径，不 LoadLibrary。第一次推理才加载，空闲后再尝试释放本程序持有的引用</item>
 /// </list>
 /// </summary>
 static class CudaBootstrap {
@@ -51,6 +52,10 @@ static class CudaBootstrap {
 	static bool gpuLibsLoaded;
 	static List<string> searchDirs = new();
 	static readonly object gate = new();
+	static readonly List<IntPtr> loadedMods = new();
+	static int lastort;
+	static int nativeHoldUntil;
+	static bool nativeKept;
 
 	/// <summary>exe 旁是否存在 onnxgpu64 目录。</summary>
 	public static bool HasOnnxGpu64Dir { get; private set; }
@@ -127,8 +132,8 @@ static class CudaBootstrap {
 	}
 
 	/// <summary>
-	/// 启动探测：注册 DLL 搜索路径、检查 CUDA/DML 文件，
-	/// 并用<strong>绝对路径</strong>预加载 onnxruntime（防止 System32 旧 stub 抢先占位）。
+	/// 启动探测：注册 DLL 搜索路径、检查 CUDA/DML 文件。不加载 onnxruntime。
+	/// 第一次建会话前由 <see cref="EnsureOrtForDevice"/> 用绝对路径加载，避开 System32 旧 stub。
 	/// </summary>
 	public static void Init() {
 		lock (gate) {
@@ -156,24 +161,65 @@ static class CudaBootstrap {
 			// 未安装 GPU/核显时二者为 false，OCR 走 CPU EP，只需任意合法 onnxruntime.dll
 			IsGpuReady = probecuda(log);
 			IsDmlReady = probedml(log);
-
-			// 关键：必须在任何 Microsoft.ML.OnnxRuntime 托管代码触达原生入口前，
-			// 用完整路径 LoadLibrary 真实 ORT。否则 DllImport("onnxruntime") 会命中
-			// C:\Windows\System32\onnxruntime.dll（约 2KB 旧 stub，无 OrtGetApiBase）。
-			// 预加载：不要求已装 GPU/核显，CPU 包即可。
 			IsOrtReady = false;
-			if (tryloadanyort(log, out var preloaded)) {
-				LoadedBackend = preloaded;
-				IsOrtReady = true;
-				log.AppendLine("Init preloaded ORT: " + backendname(preloaded));
-			}
-			else
-				log.AppendLine("Init: 未预加载 onnxruntime（请检查 onnxcpu64 / onnxgpu64 / onnxdml64）");
+			log.AppendLine("Init: 不加载 onnxruntime，第一次推理再加载");
 
 			GpuStatus = buildstatus();
 			log.AppendLine(GpuStatus);
 			LastReport = log.ToString();
 		}
+	}
+
+	/// <summary>模型刚开始在后台释放。这段时间内不要卸原生库。</summary>
+	public static void HoldNative(int ms) {
+		if (ms < 0) ms = 0;
+		lock (gate) {
+			var until = Environment.TickCount + ms;
+			if (until == 0) until = 1;
+			nativeHoldUntil = until;
+		}
+	}
+
+	/// <summary>
+	/// 没有会话、且距离加载已超过 limitMs 时，释放本程序 LoadLibrary 的引用。
+	/// 托管 ORT 或 Sherpa 仍占用时，库会留在进程里，本方法返回 false 且不再重复释放。
+	/// </summary>
+	public static bool ReleaseIfIdle(int limitMs) {
+		lock (gate) {
+			if (limitMs <= 0 || nativeKept) return false;
+			if (lastort == 0) return false;
+			var now = Environment.TickCount;
+			if (nativeHoldUntil != 0 && now - nativeHoldUntil < 0) return false;
+			if (!OnnxIdle.Due(lastort, limitMs)) return false;
+			return releasenative();
+		}
+	}
+
+	/// <summary>启动未加载；第一次 Ensure 才映射；释放后仍可再建 SessionOptions。</summary>
+	public static int TestLazy(out string detail) {
+		var sb = new StringBuilder();
+		Init();
+		sb.Append("flavor0=").Append(LoadedOrtFlavor() ?? "");
+		if (!string.IsNullOrEmpty(LoadedOrtFlavor())) {
+			detail = sb.ToString();
+			return 1;
+		}
+		EnsureOrtForDevice(OcrDevice.Cpu);
+		sb.Append(" flavor1=").Append(LoadedOrtFlavor() ?? "");
+		if (string.IsNullOrEmpty(LoadedOrtFlavor())) {
+			detail = sb.ToString();
+			return 2;
+		}
+		using (var so = new SessionOptions()) { _ = so; }
+		sb.Append(" opt1=ok");
+		bool gone;
+		lock (gate) gone = releasenative();
+		sb.Append(" gone=").Append(gone);
+		sb.Append(" flavor2=").Append(LoadedOrtFlavor() ?? "");
+		using (var so2 = new SessionOptions()) { _ = so2; }
+		sb.Append(" opt2=ok flavor3=").Append(LoadedOrtFlavor() ?? "");
+		detail = sb.ToString();
+		return 0;
 	}
 
 	/// <summary>
@@ -233,10 +279,43 @@ static class CudaBootstrap {
 					LoadedBackend = OrtBackend.Cuda;
 			}
 			IsOrtReady = true;
+			markloaded();
 			GpuStatus = buildstatus();
 			log.AppendLine(GpuStatus);
 			writelog(log);
 		}
+	}
+
+	static void markloaded() {
+		if (lastort != 0) return;
+		var now = Environment.TickCount;
+		lastort = now == 0 ? 1 : now;
+		nativeKept = false;
+	}
+
+	static IntPtr loadtracked(string path) {
+		var h = LoadLibrary(path);
+		if (h != IntPtr.Zero) loadedMods.Add(h);
+		return h;
+	}
+
+	static bool releasenative() {
+		for (var i = loadedMods.Count - 1; i >= 0; i--) {
+			try { FreeLibrary(loadedMods[i]); } catch { }
+		}
+		loadedMods.Clear();
+		if (string.IsNullOrEmpty(LoadedOrtFlavor())) {
+			IsOrtReady = false;
+			LoadedBackend = OrtBackend.None;
+			gpuLibsLoaded = false;
+			lastort = 0;
+			nativeKept = false;
+			nativeHoldUntil = 0;
+			GpuStatus = buildstatus();
+			return true;
+		}
+		nativeKept = true;
+		return false;
 	}
 
 	static void writelog(StringBuilder log) {
@@ -346,7 +425,7 @@ static class CudaBootstrap {
 					continue;
 				}
 				try {
-					var h = LoadLibrary(full);
+					var h = loadtracked(full);
 					var ok = h != IntPtr.Zero;
 					var err = ok ? 0 : Marshal.GetLastWin32Error();
 					log.AppendLine($"Load {(ok ? "OK" : $"FAIL({err})")}: {name}");
@@ -373,7 +452,7 @@ static class CudaBootstrap {
 					gpuLibsLoaded = false;
 					// 回退：再试一次显式 LoadLibrary，便于日志
 					if (!string.IsNullOrEmpty(epPath)) {
-						var h = LoadLibrary(epPath);
+						var h = loadtracked(epPath);
 						var err = h != IntPtr.Zero ? 0 : Marshal.GetLastWin32Error();
 						log.AppendLine($"Fallback LoadLibrary providers_cuda: {(h != IntPtr.Zero ? "OK" : "FAIL(" + err + ")")}");
 						if (err != 0) epFailCode = err;
@@ -700,7 +779,7 @@ static class CudaBootstrap {
 		foreach (var p in dmlCandidates.Distinct(StringComparer.OrdinalIgnoreCase)) {
 			if (!File.Exists(p)) continue;
 			try {
-				var h = LoadLibrary(p);
+				var h = loadtracked(p);
 				log.AppendLine($"DirectML {(h != IntPtr.Zero ? "OK" : "FAIL")}: {p}");
 				if (h != IntPtr.Zero) break;
 			}
@@ -725,7 +804,7 @@ static class CudaBootstrap {
 				continue;
 			}
 			try {
-				var h = LoadLibrary(full);
+				var h = loadtracked(full);
 				if (h == IntPtr.Zero) {
 					log.AppendLine($"ORT Load FAIL({Marshal.GetLastWin32Error()}): {full}");
 					continue;
@@ -750,7 +829,7 @@ static class CudaBootstrap {
 				if (byNameApi == IntPtr.Zero) {
 					log.AppendLine("ORT short-name still points to bad module; evict+retry load");
 					evictbadortmodule(log);
-					h = LoadLibrary(full);
+					h = loadtracked(full);
 					if (h == IntPtr.Zero || GetProcAddress(h, "OrtGetApiBase") == IntPtr.Zero) {
 						log.AppendLine("ORT re-load after evict failed: " + full);
 						continue;
@@ -767,7 +846,7 @@ static class CudaBootstrap {
 				}
 				var shared = Path.Combine(Path.GetDirectoryName(full) ?? "", "onnxruntime_providers_shared.dll");
 				if (File.Exists(shared)) {
-					var hs = LoadLibrary(shared);
+					var hs = loadtracked(shared);
 					log.AppendLine($"providers_shared {(hs != IntPtr.Zero ? "OK" : "FAIL")}: {shared}");
 				}
 				return true;
