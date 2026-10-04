@@ -515,7 +515,7 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
 		sb.AppendLine($"# 词典页（打开主窗口并切换；剪贴板像单词才搜索；已在该页时隐藏；默认空=不注册）");
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
-		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|sapi|edge；sapi 留空=自动");
+		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
 		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 		writedicttts(sb, "en", o.DictTtsEn, "en-US-AriaNeural");
 		writedicttts(sb, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
@@ -947,6 +947,13 @@ static class AppConfig {
 			var name = (edge ?? "").Trim();
 			if (name.Length > 0) pref.Edge = name;
 		}
+		if (map.TryGetValue("dict_tts_" + lang + "_onnx", out var onnx))
+			pref.Onnx = (onnx ?? "").Trim();
+		if (map.TryGetValue("dict_tts_" + lang + "_winrt", out var winrt))
+			pref.WinRt = (winrt ?? "").Trim();
+		if (map.TryGetValue("dict_tts_" + lang + "_rate", out var rate)
+			&& double.TryParse(rate, NumberStyles.Float, CultureInfo.InvariantCulture, out var rv))
+			pref.Rate = DictTts.NormRate(rv);
 		if (string.IsNullOrWhiteSpace(pref.Edge)) pref.Edge = defEdge;
 	}
 
@@ -954,9 +961,13 @@ static class AppConfig {
 		if (pref == null) pref = DictTtsLang.Make(defEdge);
 		var edge = (pref.Edge ?? "").Trim();
 		if (edge.Length == 0) edge = defEdge;
+		var rate = DictTts.NormRate(pref.Rate).ToString("0.0#", CultureInfo.InvariantCulture);
 		sb.AppendLine($"dict_tts_{lang}_engine = \"{esc(DictTts.NormEngine(pref.Engine))}\"");
 		sb.AppendLine($"dict_tts_{lang}_sapi = \"{esc((pref.Sapi ?? "").Trim())}\"");
+		sb.AppendLine($"dict_tts_{lang}_winrt = \"{esc((pref.WinRt ?? "").Trim())}\"");
+		sb.AppendLine($"dict_tts_{lang}_onnx = \"{esc((pref.Onnx ?? "").Trim())}\"");
 		sb.AppendLine($"dict_tts_{lang}_edge = \"{esc(edge)}\"");
+		sb.AppendLine($"dict_tts_{lang}_rate = {rate}");
 	}
 
 	static Dictionary<string, string> parsetoml(string text) {

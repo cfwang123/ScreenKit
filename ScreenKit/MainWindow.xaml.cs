@@ -168,6 +168,7 @@ public partial class MainWindow : Window {
 		try { if (asrEngine != null && asrEngine.IdleUnload(ms)) n++; } catch { }
 		try { if (asrStreamEngine != null && asrStreamEngine.IdleUnload(ms)) n++; } catch { }
 		try { if (sherpaTts != null && sherpaTts.IdleUnload(ms)) n++; } catch { }
+		try { if (DictTts.IdleUnload(ms)) n++; } catch { }
 		try {
 			if (facePipe != null && facePipe.IdleUnload(ms)) {
 				facePipe = null;

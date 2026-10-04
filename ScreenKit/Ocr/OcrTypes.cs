@@ -30,22 +30,34 @@ public readonly struct Point2f {
 	public override string ToString() => $"({X:F1},{Y:F1})";
 }
 
-/// <summary>词典某语言的发音：引擎 auto|sapi|edge，本地发音人，Edge ShortName。</summary>
+/// <summary>词典某语言的发音。引擎 auto|onnx|sapi|winrt|edge。语速 0.5～2。</summary>
 public sealed class DictTtsLang {
 	public string Engine = "auto";
 	public string Sapi = "";
 	public string Edge = "";
+	/// <summary>ONNX：模型显示名 + TAB + 发音人 id。</summary>
+	public string Onnx = "";
+	/// <summary>Windows 语音 id。</summary>
+	public string WinRt = "";
+	/// <summary>语速倍率，1 为常速。</summary>
+	public double Rate = 1;
 
 	public DictTtsLang Clone() => new() {
 		Engine = Engine ?? "auto",
 		Sapi = Sapi ?? "",
 		Edge = Edge ?? "",
+		Onnx = Onnx ?? "",
+		WinRt = WinRt ?? "",
+		Rate = Rate,
 	};
 
 	public static DictTtsLang Make(string edge) => new() {
 		Engine = "auto",
 		Sapi = "",
 		Edge = edge ?? "",
+		Onnx = "",
+		WinRt = "",
+		Rate = 1,
 	};
 }
 

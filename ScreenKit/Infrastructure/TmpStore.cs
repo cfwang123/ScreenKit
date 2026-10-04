@@ -31,6 +31,7 @@ static class TmpStore {
 			var cutoff = DateTime.Now.AddHours(-Math.Max(1, expireHours));
 			foreach (var f in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)) {
 				try {
+					if (isvoicecache(f)) continue;
 					var t = File.GetLastWriteTime(f);
 					if (t < cutoff) File.Delete(f);
 				}
@@ -38,5 +39,12 @@ static class TmpStore {
 			}
 		}
 		catch { }
+	}
+
+	/// <summary>词典发音缓存在 tmp/voice，单独保留 1 天，不走上面的 10 小时清理。</summary>
+	static bool isvoicecache(string path) {
+		var voice = Path.GetFullPath(Path.Combine(Root, "voice"));
+		var full = Path.GetFullPath(path);
+		return full.StartsWith(voice + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
 	}
 }

@@ -48,7 +48,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **ASR / TTS** | 实时字幕可选离线或流式。Sherpa / SAPI / WinRT 离线合成及 Edge 在线自然语音。 |
 | **LLM对话** | 微信式气泡、清空、麦克风、朗读/自动朗读，可选网页与 `tmp/llm/` 工具。 |
 | **翻译** | 本地 Opus-MT ONNX 或已配置的 **LLM**；来回翻译最多 20 次，结果重复时提前停止；小窗 `Ctrl+Alt+T`。 |
-| **词典** | 主窗口的一个页（**选项 → 词典**）。热键默认不注册；在 `hotkey_dict` 里设置后，打开主窗口并切到词典页（该页若被关掉会先启用），已在该页时再按则隐藏主窗口。用程序旁的 `dict.db` 查汉语、英语、日语、韩语词头，可按全部 / 汉语 / 英语 / 日语 / 韩语筛选。列表两行：语言与词头、释义，右侧可发音。详情字号更小，读音、词性、义项编号、语种标签、例句分色。选中文字后，浮窗出现在选区旁边，含匹配词条以及发音、搜索、翻译、复制。每条例句末尾有发音按钮。**发音**、**读中文** 走 **参数设置 → 词典**：每种语言可选引擎（自动 / 本地 SAPI / Edge）、本地发音人和 Edge 发音人。选 Edge 只显示 Edge 发音人，选本地 SAPI 只显示本地发音人，自动两项都显示。自动先试本地 SAPI，没有再走 Edge 在线。与语音合成页无关。只读 SQLite 连接在连续 5 分钟没有查询后关闭，下次查询再打开。热键弹出主窗口并读取剪贴板。内容像一个单词才搜索：汉字 1–4 个，英文 1–20 个字母，带假名的日语最多 12 字，韩语 1–8 个音节。句子、空白或其它内容只打开词典、不搜索。词典库不在发布包里。 |
+| **词典** | 主窗口的一个页（**选项 → 词典**）。热键默认不注册；在 `hotkey_dict` 里设置后，打开主窗口并切到词典页（该页若被关掉会先启用），已在该页时再按则隐藏主窗口。用程序旁的 `dict.db` 查汉语、英语、日语、韩语词头，可按全部 / 汉语 / 英语 / 日语 / 韩语筛选。列表两行：语言与词头、释义，右侧可发音。详情字号更小，读音、词性、义项编号、语种标签、例句分色。选中文字后，浮窗出现在选区旁边，含匹配词条以及发音、搜索、翻译、复制。每条例句末尾有发音按钮。**发音**、**读中文** 走 **参数设置 → 词典**：每种语言可选引擎（自动 / ONNX / SAPI / Windows 语音 / Edge）、对应发音人和语速（0.5～2）。自动先用 Windows 语音，没有再用 SAPI，再没有用 Edge。ONNX 需点选。发音写入 `tmp/voice`，保留 1 天。与语音合成页无关。只读 SQLite 连接在连续 5 分钟没有查询后关闭，下次查询再打开。热键弹出主窗口并读取剪贴板。内容像一个单词才搜索：汉字 1–4 个，英文 1–20 个字母，带假名的日语最多 12 字，韩语 1–8 个音节。句子、空白或其它内容只打开词典、不搜索。词典库不在发布包里。 |
 | **人脸识别** | InsightFace ONNX 检测/比对，可选关键点与性别年龄。模型在 `facemodels/`。 |
 | **SAPI x86 助手** | 旁路 `x86host.exe`，调用仅 32 位可见的经典发音人。 |
 
@@ -202,7 +202,8 @@ hotkey_snap = "Ctrl+Alt+Q"
 hotkey_snap_ocr = "Ctrl+Alt+W"
 # hotkey_snap_copy = "Ctrl+Alt+P"  # 切换截图复制：图片 / 文件 / 路径
 # hotkey_dict = ""                  # 词典页；留空=不注册。剪贴板像单词才搜索。例："Ctrl+Alt+D"
-# dict_tts_zh_engine = "auto"       # auto | sapi | edge；en / ja / ko 同样
+# dict_tts_zh_engine = "auto"       # auto | onnx | sapi | winrt | edge；en / ja / ko 同样
+# dict_tts_zh_rate = 1.0            # 0.5–2。发音缓存 tmp/voice，保留 1 天
 # dict_tts_zh_sapi = ""             # 本地 SAPI 发音人；留空=自动
 # dict_tts_zh_edge = "zh-CN-XiaoxiaoNeural"
 # dict_tts_en_edge = "en-US-AriaNeural"
@@ -343,6 +344,7 @@ ScreenKit --test-wintop           # 枚举窗口，并对探测窗设置/取消�
 ScreenKit --test-dict-search      # 只读查询程序旁的 dict.db
 ScreenKit --test-dict-sel         # 用 Ctrl+C 复制选中的词再读回来
 ScreenKit --test-dict-word        # 剪贴板文字是否像一个词典单词
+ScreenKit --test-dict-tts         # 词典发音缓存保留 1 天，以及语速换算
 ScreenKit --test-sendfile          # sendfile 沙箱 + 网页登录 / 公开下载
 ScreenKit --test-face-overlay
 ScreenKit --list-models

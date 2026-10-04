@@ -42,7 +42,6 @@ public partial class DictWindow : UserControl {
 	static readonly Brush CExample = freeze(45, 120, 75);
 	static readonly Brush CSpeak = freeze(40, 120, 190);
 
-	EdgeOnlineTts edge;
 	TtsPlayer player;
 	DispatcherTimer tick;
 	int lastedit;
@@ -148,9 +147,7 @@ public partial class DictWindow : UserControl {
 	public void Shutdown() {
 		try { tick?.Stop(); } catch { }
 		try { player?.Dispose(); } catch { }
-		try { edge?.Dispose(); } catch { }
 		player = null;
-		edge = null;
 	}
 
 	public void FocusSearch() {
@@ -561,34 +558,14 @@ public partial class DictWindow : UserControl {
 		try {
 			if (player == null) player = new TtsPlayer();
 			var pref = DictTts.For(Options != null ? Options() : null, lang);
-			float[] samples = null;
-			var sr = 0;
-			if (pref.Engine != DictTts.EDGE) {
-				var got = await Task.Run(() => DictTts.SynthSapi(text, lang, pref.Sapi)).ConfigureAwait(true);
-				if (!got.missing && got.samples != null && got.samples.Length > 0) {
-					samples = got.samples;
-					sr = got.sampleRate;
-				}
-				else if (pref.Engine == DictTts.SAPI && !got.missing)
-					throw new InvalidOperationException(Loc.T("dict.novoice", langlabel(lang)));
-			}
-			if (samples == null || samples.Length == 0) {
-				if (edge == null) edge = new EdgeOnlineTts();
-				edge.SetVoiceName(DictTts.EdgeName(lang, pref.Edge));
-				edge.SetRateVolume(1, 100);
-				var got = await edge.Synthesize(text).ConfigureAwait(true);
-				samples = got.samples;
-				sr = got.sampleRate;
-			}
-			if (samples == null || samples.Length == 0) {
-				lbstatus.Text = Loc.T("dict.novoice", langlabel(lang));
-				return;
-			}
-			player.Play(samples, sr);
+			var path = await DictTts.EnsureWav(pref, lang, text).ConfigureAwait(true);
+			player.PlayFile(path);
 			lbstatus.Text = Loc.T("dict.speaking", langlabel(lang));
 		}
 		catch (Exception ex) {
-			lbstatus.Text = ex.Message;
+			lbstatus.Text = ex.Message == "novoice"
+				? Loc.T("dict.novoice", langlabel(lang))
+				: ex.Message;
 		}
 		finally { speaking = false; }
 	}

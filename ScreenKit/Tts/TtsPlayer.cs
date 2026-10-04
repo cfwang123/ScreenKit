@@ -42,6 +42,16 @@ sealed class TtsPlayer : IDisposable {
 		_ = PlayAsync(samples, sampleRate);
 	}
 
+	/// <summary>播放已有音频文件，不删除该文件（词典发音缓存）。</summary>
+	public void PlayFile(string path) {
+		Stop();
+		if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+		reader = new WaveFileReader(path);
+		player = new WaveOutEvent();
+		player.Init(reader);
+		player.Play();
+	}
+
 	/// <summary>播放并等待自然结束或 Stop；Pause 期间继续等待。</summary>
 	public async Task PlayAsync(float[] samples, int sampleRate, CancellationToken ct = default) {
 		Stop();

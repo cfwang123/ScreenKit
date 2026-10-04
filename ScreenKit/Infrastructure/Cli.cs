@@ -57,7 +57,7 @@ static class Cli {
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-wintop"
-				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word"
+				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -267,6 +267,8 @@ static class Cli {
 					return testselcopy();
 				case "--test-dict-word":
 					return testdictword();
+				case "--test-dict-tts":
+					return DictTts.TestCache();
 				case "--test-cast":
 					return testcast();
 				case "--test-cast-recv":
@@ -3242,6 +3244,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
+  ScreenKit --test-dict-tts
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
@@ -3306,6 +3309,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
+      --test-dict-tts  词典发音缓存保留 1 天，以及语速换算
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
@@ -3371,6 +3375,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
+  ScreenKit --test-dict-tts
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
