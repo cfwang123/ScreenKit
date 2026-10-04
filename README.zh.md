@@ -92,7 +92,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 `dict.db` 把四种词典放在同一个文件里。ScreenKit 不生成这个文件。
 
-- **汉语。** 汉字、词语、成语来自 [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary)（拼音辞典）。许可为 MIT。上游说明里注明部分材料来源不明。不含新华词典，也不带古代名著全文。
+- **汉语。** 汉字、词语、成语来自 [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary)（拼音辞典）。许可为 MIT。上游说明里注明部分材料来源不明。
 - **日语。** 词汇释义来自 [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)（EDRDG），与 Takoboto 使用的是同一套词典，但不是 Takoboto 提供的文件。许可为 [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html)。再分发须保留 EDRDG 署名，并遵守其更新条款。不含汉字辞典、Tatoeba 例句和部首资料。
 - **韩语。** 国立国语院词典的衍生数据。许可为 CC BY-SA 2.0 KR。
 - **英语。** 抽样释义与 *Oxford Dictionary of English* 的措辞一致。当前这份文件由谁制作、能否再分发，尚未核实。它不是 [ECDICT](https://github.com/skywind3000/ECDICT)。在授权查清或换成许可清楚的数据之前，只供个人研究，不要放进公开发布包。
