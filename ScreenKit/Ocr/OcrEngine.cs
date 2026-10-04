@@ -26,6 +26,7 @@ sealed class OcrEngine : IDisposable {
 
 	public string DeviceUsed => deviceUsed;
 	public string ModelLabel => modelLabel;
+	public long WeightBytes { get; }
 
 	public OcrEngine(OcrOptions options) {
 		opt = options ?? throw new ArgumentNullException(nameof(options));
@@ -43,6 +44,7 @@ sealed class OcrEngine : IDisposable {
 		variant.Validate(packDir);
 
 		charset = loadkeys(keysPath);
+		WeightBytes = MemUsage.FileWeight(detPath) + MemUsage.FileWeight(clsPath) + MemUsage.FileWeight(recPath);
 		(det, cls, rec, deviceUsed) = createsessions(detPath, clsPath, recPath, opt.Device);
 		detIn = det.InputMetadata.Keys.First();
 		clsIn = cls.InputMetadata.Keys.First();

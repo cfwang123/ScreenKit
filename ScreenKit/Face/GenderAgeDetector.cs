@@ -14,12 +14,21 @@ sealed class GenderAgeDetector : IDisposable {
 	readonly InferenceSession session;
 	readonly string inputName;
 	readonly string outputName;
+	readonly string modelPath;
 	int lastuse;
 	int busy;
 	bool released;
 
+	public string MemName => Path.GetFileName(modelPath);
+	public long WeightBytes { get; }
+	public string EpLabel { get; }
+	public bool IsLive { get { lock (gate) return !released; } }
+
 	public GenderAgeDetector(string modelPath, TtsComputeMode mode = TtsComputeMode.Cpu) {
+		this.modelPath = modelPath ?? "";
+		WeightBytes = MemUsage.FileWeight(this.modelPath);
 		session = FaceOnnx.Open(modelPath, mode, out _);
+		EpLabel = FaceOnnx.EpLabel(FaceOnnx.LastEp);
 		inputName = FaceOnnx.InputName(session);
 		outputName = session.OutputMetadata.First().Key;
 		lastuse = Environment.TickCount;
@@ -34,6 +43,17 @@ sealed class GenderAgeDetector : IDisposable {
 	public bool IdleUnload(int limitMs) {
 		lock (gate) {
 			if (released || busy > 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			released = true;
+			try { session.Dispose(); } catch { }
+			lastuse = 0;
+			return true;
+		}
+	}
+
+	public bool TryRelease() {
+		lock (gate) {
+			if (released) return true;
+			if (busy > 0) return false;
 			released = true;
 			try { session.Dispose(); } catch { }
 			lastuse = 0;

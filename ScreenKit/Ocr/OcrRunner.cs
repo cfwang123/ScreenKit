@@ -24,6 +24,27 @@ sealed class OcrRunner : IDisposable {
 		get { lock (gate) return eng != null; }
 	}
 
+	public bool TryMem(out string name, out string device, out long bytes) {
+		lock (gate) {
+			name = eng?.ModelLabel ?? "";
+			device = eng?.DeviceUsed ?? "";
+			bytes = eng?.WeightBytes ?? 0;
+			return eng != null;
+		}
+	}
+
+	/// <summary>立刻释放当前 OCR 会话。调用方在后台线程执行。</summary>
+	public void UnloadNow() {
+		OcrEngine old;
+		lock (gate) {
+			old = eng;
+			eng = null;
+			engKey = "";
+			lastuse = 0;
+		}
+		try { old?.Dispose(); } catch { }
+	}
+
 	public OcrResult Run(OcrOptions opt, Mat bgr) {
 		Compat.ThrowIfDisposed(disposed, this);
 		NativeRuntime.EnsureOpenCv();

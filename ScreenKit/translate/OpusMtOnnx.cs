@@ -23,6 +23,8 @@ sealed class OpusMtOnnx : IDisposable {
 
 	public string DeviceLabel { get; private set; } = "cpu";
 	public string Backend => "onnx";
+	public string ModelDir => modelDir;
+	public long WeightBytes { get; private set; }
 
 	public OpusMtOnnx(string modelDir) {
 		this.modelDir = Path.GetFullPath(modelDir ?? "");
@@ -48,6 +50,7 @@ sealed class OpusMtOnnx : IDisposable {
 			enc = e;
 			dec = d;
 			DeviceLabel = label;
+			WeightBytes = MemUsage.DirWeight(modelDir);
 		}
 	}
 

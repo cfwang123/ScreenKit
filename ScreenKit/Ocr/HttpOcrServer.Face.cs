@@ -199,6 +199,48 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
+	public void CopyFaceMem(List<MemHold> list) {
+		lock (httpFaceLock) {
+			if (httpFace != null && httpFace.IsLive)
+				list.Add(new MemHold {
+					Id = "httpface",
+					Engine = "httpface",
+					Name = httpFace.MemName ?? "",
+					Device = httpFace.EpLabel ?? "",
+					Bytes = httpFace.WeightBytes,
+				});
+			if (httpAttr != null && httpAttr.IsLive)
+				list.Add(new MemHold {
+					Id = "httpattr",
+					Engine = "httpattr",
+					Name = httpAttr.MemName ?? "",
+					Device = httpAttr.EpLabel ?? "",
+					Bytes = httpAttr.WeightBytes,
+				});
+		}
+	}
+
+	/// <summary>正在推理时返回 false。</summary>
+	public bool UnloadFaceMem(string id) {
+		lock (httpFaceLock) {
+			if (id == "httpface") {
+				if (httpFace == null) return true;
+				if (!httpFace.TryRelease()) return false;
+				httpFace = null;
+				httpFaceKey = "";
+				return true;
+			}
+			if (id == "httpattr") {
+				if (httpAttr == null) return true;
+				if (!httpAttr.TryRelease()) return false;
+				httpAttr = null;
+				httpAttrKey = "";
+				return true;
+			}
+			return true;
+		}
+	}
+
 	public bool IdleUnloadOnnx(int limitMs) {
 		var dropped = false;
 		lock (httpFaceLock) {

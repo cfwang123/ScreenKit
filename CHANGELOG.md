@@ -45,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The dictionary hotkey shows the main window and reads the clipboard text. It searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence or a blank clipboard opens the dictionary and does not search. It does not send Ctrl+C.
 - **Help → Install features → Voices**: Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). The language list includes 日文, and the Speech page can load that model. Synthesis passes `lang` (the language filter, otherwise the script of the text). The language filter is read on the UI thread before synthesis starts.
 - Speech language filter lists named languages first (Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, Spanish), then the remaining codes alphabetically. French, German, and Spanish use their names.
+- **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded OCR, translation, face, speech-recognition, and speech model by its weight-file size. Unload frees that one model and asks Windows to return idle pages. A model that is in use stays loaded.
 - README: removed the Download section. The English README no longer contains Chinese text.
 
 ### 中文
@@ -65,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典热键弹出主窗口并读取剪贴板文字。内容像一个单词才搜索：汉字 1–4 个，英文 1–20 个字母，带假名的日语最多 12 字，韩语 1–8 个音节。句子或空白只打开词典、不搜索。不再向前台发 Ctrl+C。
 - **帮助 → 安装功能 → 发音人**出现日文。日语模型是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`）。语音合成可以加载它，并按界面语言或文本文字选择 `lang`。语言筛选在界面线程读好后再合成，避免点发音时跨线程访问控件。
 - 语音合成的语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。法语、德语、西班牙语显示译名。
+- **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的识别、翻译、人脸、语音识别和语音合成模型。选中一项可卸载并请系统收回空闲内存。正在使用的模型不会卸。
 - README：去掉下载一节。英文 README 不再出现中文。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)

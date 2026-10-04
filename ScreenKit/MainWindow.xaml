@@ -157,6 +157,9 @@
 				<MenuItem x:Name="mndict" Header="词典(_K)"
 				          AutomationProperties.AutomationId="menu.dict"
 				          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
+				<MenuItem x:Name="mnmem" Header="内存占用(_M)…"
+				          AutomationProperties.AutomationId="menu.mem"
+				          ToolTip="查看进程内存，卸载已加载的模型"/>
 				<MenuItem x:Name="mndiag" Header="诊断(_D)…"
 				          ToolTip="CUDA / DirectML / 路径 / 显示器 DPI"/>
 				<Separator/>

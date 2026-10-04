@@ -8,6 +8,8 @@ sealed class AsrStreamEngine : IDisposable {
 	readonly object gate = new();
 	OnlineRecognizer recognizer;
 	string loadedKey;
+	string memName;
+	long memBytes;
 	int lastuse;
 	bool disposed;
 	bool autoCudaOk = true;
@@ -59,7 +61,18 @@ sealed class AsrStreamEngine : IDisposable {
 			FeatSampleRate = model.SampleRate > 0 ? model.SampleRate : 16000;
 			createRecognizer(model);
 			loadedKey = key;
+			memName = model.DisplayName ?? "";
+			memBytes = MemUsage.DirWeight(model.ModelDir);
 			lastuse = Environment.TickCount;
+		}
+	}
+
+	public bool TryMem(out string name, out string device, out long bytes) {
+		lock (gate) {
+			name = memName ?? "";
+			device = Provider ?? "";
+			bytes = memBytes;
+			return recognizer != null && name.Length > 0;
 		}
 	}
 
@@ -227,6 +240,8 @@ sealed class AsrStreamEngine : IDisposable {
 		try { recognizer?.Dispose(); } catch { }
 		recognizer = null;
 		loadedKey = null;
+		memName = null;
+		memBytes = 0;
 		lastuse = 0;
 	}
 

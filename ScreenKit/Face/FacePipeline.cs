@@ -13,6 +13,9 @@ sealed class FacePipeline : IDisposable {
 	bool released;
 
 	public string EpLabel { get; }
+	public string MemName { get; }
+	public long WeightBytes { get; }
+	public bool IsLive { get { lock (gate) return !released; } }
 
 	public FacePipeline(string detModelPath, string regModelPath, float detThresh, TtsComputeMode mode) {
 		IFaceDetector det = null;
@@ -21,6 +24,8 @@ sealed class FacePipeline : IDisposable {
 			recognizer = new FaceRecognizer(regModelPath, mode);
 			detector = det;
 			EpLabel = FaceOnnx.EpLabel(FaceOnnx.LastEp);
+			MemName = Path.GetFileName(detModelPath) + " + " + Path.GetFileName(regModelPath);
+			WeightBytes = MemUsage.FileWeight(detModelPath) + MemUsage.FileWeight(regModelPath);
 			lastuse = Environment.TickCount;
 		}
 		catch {
@@ -75,6 +80,18 @@ sealed class FacePipeline : IDisposable {
 	public bool IdleUnload(int limitMs) {
 		lock (gate) {
 			if (released || busy > 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			released = true;
+			disposeinner();
+			lastuse = 0;
+			return true;
+		}
+	}
+
+	/// <summary>正在推理时返回 false，不释放。</summary>
+	public bool TryRelease() {
+		lock (gate) {
+			if (released) return true;
+			if (busy > 0) return false;
 			released = true;
 			disposeinner();
 			lastuse = 0;

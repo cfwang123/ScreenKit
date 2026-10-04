@@ -156,6 +156,23 @@ static class DictTts {
 		}
 	}
 
+	public static bool TryOnnxMem(out string name, out string device, out long bytes) {
+		lock (OnnxGate) {
+			if (onnxEng != null && onnxEng.TryMem(out name, out device, out bytes))
+				return true;
+			name = "";
+			device = "";
+			bytes = 0;
+			return false;
+		}
+	}
+
+	public static void UnloadOnnx() {
+		lock (OnnxGate) {
+			try { onnxEng?.UnloadSafe(); } catch { }
+		}
+	}
+
 	/// <summary>自检：过期文件删掉，一天内的留下；语速换算。</summary>
 	public static int TestCache() {
 		var dir = cachedir();

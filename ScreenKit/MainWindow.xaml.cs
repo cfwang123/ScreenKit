@@ -83,6 +83,7 @@ public partial class MainWindow : Window {
 	PasswordWindow pwGenWin;
 	NetToolsWindow netToolWin;
 	WinTopWindow winTopWin;
+	MemWindow memWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
@@ -1278,6 +1279,7 @@ public partial class MainWindow : Window {
 		mnsettings.Click += (_, _) => opensettings();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mndict.Click += (_, _) => showdicttab();
+		mnmem.Click += (_, _) => openmem();
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
 		mnlangzh.Click += (_, _) => setlang("zh");
@@ -1395,6 +1397,8 @@ public partial class MainWindow : Window {
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mndict.Header = Loc.T("menu.dict");
 			mndict.ToolTip = Loc.T("menu.dict.tip");
+			mnmem.Header = Loc.T("menu.mem");
+			mnmem.ToolTip = Loc.T("menu.mem.tip");
 			mninstall.Header = Loc.T("menu.install");
 			mninstall.ToolTip = Loc.T("menu.install.tip");
 			mndiag.Header = Loc.T("menu.diag");
@@ -3573,6 +3577,9 @@ public partial class MainWindow : Window {
 		setstatus("正在取消识别…");
 	}
 
+	void openmem() =>
+		opentoolwin(ref memWin, () => new MemWindow(MemSnapNow, UnloadMem), "menu.mem");
+
 	void opendiag() {
 		try {
 			var win = new DiagnosticsWindow(appExtraReport) { Owner = this };
@@ -3639,6 +3646,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
 				else if (ReferenceEquals(winTopWin, w)) winTopWin = null;
+				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
 			w.Show();
 		}

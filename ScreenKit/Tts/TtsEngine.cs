@@ -12,6 +12,8 @@ sealed class TtsEngine : IDisposable {
 	OfflineTts tts;
 	string modelDir;
 	string loadedKey;
+	string memName;
+	long memBytes;
 	int lastuse;
 	bool disposed;
 	bool autoCudaOk = true;
@@ -50,6 +52,15 @@ sealed class TtsEngine : IDisposable {
 	public string Provider { get; private set; } = "cpu";
 	public string GpuFallbackReason { get; private set; }
 	public bool IsLoaded => tts != null;
+
+	public bool TryMem(out string name, out string device, out long bytes) {
+		lock (gate) {
+			name = memName ?? "";
+			device = Provider ?? "";
+			bytes = memBytes;
+			return tts != null && name.Length > 0;
+		}
+	}
 
 	public TtsComputeMode Mode {
 		get => mode;
@@ -188,6 +199,8 @@ sealed class TtsEngine : IDisposable {
 		}
 		catch { }
 
+		memName = model.DisplayName ?? Path.GetFileName(modelDir);
+		memBytes = MemUsage.DirWeight(modelDir);
 		loadedKey = key;
 	}
 
@@ -544,6 +557,8 @@ sealed class TtsEngine : IDisposable {
 		tts = null;
 		modelDir = null;
 		loadedKey = null;
+		memName = null;
+		memBytes = 0;
 		hasNumberFst = false;
 		hasFrontend = false;
 		volumeGain = 1f;

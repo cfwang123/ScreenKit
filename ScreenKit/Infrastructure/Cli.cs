@@ -57,6 +57,7 @@ static class Cli {
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-wintop"
+				or "--test-mem"
 				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
@@ -259,6 +260,8 @@ static class Cli {
 					return testnettool();
 				case "--test-wintop":
 					return testwintop();
+				case "--test-mem":
+					return testmem();
 				case "--test-dict-search":
 					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
 						return testdict(Next());
@@ -2871,6 +2874,15 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testmem() {
+		Out("=== 内存占用 --test-mem ===");
+		var code = MemUsage.SelfTest();
+		var p = MemUsage.Read();
+		Out($"ws={p.WorkingSet} priv={p.PrivateBytes} gc={p.GcBytes} self={code}");
+		if (code != 0) Err("FAIL self=" + code);
+		return code;
+	}
+
 	static int testwintop() {
 		Out("=== 窗口管理 --test-wintop ===");
 		var bad = 0;
@@ -3244,6 +3256,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-wintop
+  ScreenKit --test-mem
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
@@ -3309,6 +3322,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
+      --test-mem  进程内存读取，以及模型文件大小统计
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
@@ -3375,6 +3389,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-wintop
+  ScreenKit --test-mem
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word

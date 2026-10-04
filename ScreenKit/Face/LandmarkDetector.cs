@@ -12,6 +12,7 @@ sealed class LandmarkDetector : IDisposable {
 	readonly object gate = new();
 	readonly InferenceSession session;
 	readonly string inputName;
+	readonly string modelPath;
 	readonly int lmkDim;
 	readonly int lmkNum;
 	int lastuse;
@@ -20,9 +21,16 @@ sealed class LandmarkDetector : IDisposable {
 
 	public int LandmarkDim => lmkDim;
 	public int LandmarkNum => lmkNum;
+	public string MemName => Path.GetFileName(modelPath);
+	public long WeightBytes { get; }
+	public string EpLabel { get; }
+	public bool IsLive { get { lock (gate) return !released; } }
 
 	public LandmarkDetector(string modelPath, TtsComputeMode mode = TtsComputeMode.Cpu) {
+		this.modelPath = modelPath ?? "";
+		WeightBytes = MemUsage.FileWeight(this.modelPath);
 		session = FaceOnnx.Open(modelPath, mode, out _);
+		EpLabel = FaceOnnx.EpLabel(FaceOnnx.LastEp);
 		inputName = FaceOnnx.InputName(session);
 		var outMeta = session.OutputMetadata.First();
 		var dims = outMeta.Value.Dimensions;
@@ -47,6 +55,17 @@ sealed class LandmarkDetector : IDisposable {
 	public bool IdleUnload(int limitMs) {
 		lock (gate) {
 			if (released || busy > 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
+			released = true;
+			try { session.Dispose(); } catch { }
+			lastuse = 0;
+			return true;
+		}
+	}
+
+	public bool TryRelease() {
+		lock (gate) {
+			if (released) return true;
+			if (busy > 0) return false;
 			released = true;
 			try { session.Dispose(); } catch { }
 			lastuse = 0;

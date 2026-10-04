@@ -152,6 +152,32 @@ sealed class TranslateEngine : IDisposable {
 		lock (Gate) unloadall();
 	}
 
+	public void CopyMem(List<MemHold> list) {
+		lock (Gate) {
+			foreach (var kv in loaded) {
+				list.Add(new MemHold {
+					Id = "tr:" + kv.Key,
+					Engine = "tr",
+					Name = kv.Key,
+					Device = kv.Value.DeviceLabel ?? "",
+					Bytes = kv.Value.WeightBytes,
+				});
+			}
+		}
+	}
+
+	public bool UnloadOne(string key) {
+		lock (Gate) {
+			key = (key ?? "").ToLowerInvariant();
+			if (!loaded.TryGetValue(key, out var eng)) return false;
+			try { eng.Dispose(); } catch { }
+			loaded.Remove(key);
+			loadedPrefer.Remove(key);
+			if (loaded.Count == 0) lastuse = 0;
+			return true;
+		}
+	}
+
 	void unloadall() {
 		foreach (var kv in loaded) {
 			try { kv.Value.Dispose(); } catch { }

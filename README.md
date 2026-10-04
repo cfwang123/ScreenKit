@@ -167,7 +167,7 @@ Optional env vars for local full libraries (do not commit secrets/paths):
 
 ## Configuration
 
-Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**.
+Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**. **Options → Memory** shows process memory and can unload a loaded OCR, translation, face, or speech model.
 
 | Section | Keys |
 |---------|------|
