@@ -12,15 +12,16 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 1. [Screenshots](#screenshots)
 2. [Features](#features)
-3. [Requirements](#requirements)
-4. [Using ScreenKit](#using-screenkit)
-5. [Install features](#install-features)
-6. [Configuration](#configuration)
-7. [HTTP API](#http-api-overview)
-8. [CLI](#cli)
-9. [x86host](#x86host-32-bit-sapi-only)
-10. [Build from source](#build-from-source)
-11. [License](#license)
+3. [Dictionary](#dictionary)
+4. [Requirements](#requirements)
+5. [Using ScreenKit](#using-screenkit)
+6. [Install features](#install-features)
+7. [Configuration](#configuration)
+8. [HTTP API](#http-api-overview)
+9. [CLI](#cli)
+10. [x86host](#x86host-32-bit-sapi-only)
+11. [Build from source](#build-from-source)
+12. [License](#license)
 
 ## Screenshots
 
@@ -48,7 +49,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. The Speech language list shows named languages first, then the remaining codes. SAPI and Windows speech list only languages that have a voice. Supertonic uses a fixed noise seed, so the same text sounds the same each time. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
-| **Dictionary** | A main-window tab (**Options → Dictionary**). The hotkey is off by default; set `hotkey_dict` to show the main window and select that tab (it enables the tab if it was hidden) and to hide the main window when that tab is already showing. Looks up Chinese, English, Japanese, and Korean headwords in `dict.db` beside the program. Filter: all, Chinese, English, Japanese, or Korean. The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Select text to open a popup outside the selected text, with matching headwords plus Speak, Search, Translate, and Copy. The popup closes when that window is not active. Search opens another dictionary window and looks up the selection. A matching headword in that popup, and a word link in the entry, open a new window the same way. Each example has a speak button. Japanese and Korean headwords are spoken only up to the first comma. **Speak** and **Read Chinese** use Settings → Dictionary: per language, engine Auto / ONNX / SAPI / Windows speech / Edge, that engine's voice, and a rate from 0.5 to 2. Auto tries Windows speech, then SAPI, then Edge. ONNX is chosen explicitly. Spoken audio is cached in `tmp/voice` and kept for 1 day. This does not change the Speech tab. The read-only SQLite connection closes after 5 minutes without a lookup and opens again on the next search. The hotkey shows the main window and reads the clipboard. It searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence, a blank clipboard, or anything else opens the dictionary and does not search. The database is not in the release archive. |
+| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). `dict.db` is not in the release archive. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -72,6 +73,29 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / Translate / Face / HTTP / File sync / Screencast (`tab_*_visible`). |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test. |
+
+## Dictionary
+
+ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next to the program. The release archive does not include it. A lookup does not modify the file. The connection closes after 5 minutes without a search and opens again on the next one.
+
+### Using it
+
+- Open it from the main window (**Options → Dictionary**). The tab is on by default (`tab_dict_visible`).
+- The hotkey `hotkey_dict` is off until you set it. It shows the main window and selects that tab, turning the tab on if it was hidden. Pressing it again while the tab is already showing hides the main window. It reads the clipboard and searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence, a blank clipboard, or anything else only opens the dictionary.
+- Filter: all, Chinese, English, Japanese, or Korean.
+- The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Each example has a speak button.
+- Select text in the entry to open a popup outside the selection, with matching headwords plus Speak, Search, Translate, and Copy. The popup closes when that window is no longer active.
+- Search, a matching headword in the popup, or a word link in the entry opens another dictionary window and looks up that text. The page you were reading stays.
+- **Speak** and **Read Chinese** use **Settings → Dictionary**. Each of Chinese, English, Japanese, and Korean has an engine (Auto / ONNX / SAPI / Windows speech / Edge), that engine's voice, and a rate from 0.5 to 2. Auto tries Windows speech, then SAPI, then Edge. ONNX is chosen explicitly. Japanese and Korean headwords are spoken only up to the first comma. Audio is cached in `tmp/voice` and kept for 1 day. This does not change the Speech tab.
+
+### Data sources
+
+`dict.db` holds four dictionaries in one file. ScreenKit does not build the file.
+
+- **Chinese.** Characters, words, and idioms from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). License: MIT. The upstream project notes that the origin of some material is unclear. Xinhua dictionary text and classical full texts are not included.
+- **Japanese.** Vocabulary senses from the [JMdict/EDICT Dictionary Project](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG), the same dictionary family used by Takoboto. The file is not supplied by Takoboto. License: [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project's update terms. Kanji-dictionary data, Tatoeba example sentences, and radical files are not in this database.
+- **Korean.** A derivative of the National Institute of Korean Language dictionary. License: CC BY-SA 2.0 KR.
+- **English.** Sample wording matches the *Oxford Dictionary of English*. Who produced the current file, and whether it may be redistributed, has not been verified. It is not [ECDICT](https://github.com/skywind3000/ECDICT). Until the rights are clear, or the English data is replaced, use it only for personal research and do not include it in a public release.
 
 ## Requirements
 
@@ -431,7 +455,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, or `dict.db`. Place `dict.db` beside the executable yourself. The Windows SQLite library `e_sqlite3.dll` is included.
+- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, or `dict.db`. Place `dict.db` beside the executable yourself. See [Dictionary](#dictionary) for where that data comes from. The Windows SQLite library `e_sqlite3.dll` is included.
 - End users install those via **Install features**. Local Opus-MT ONNX is placed under `translatemodels/` by hand if needed.
 
 For local development with models already present, run **`bin\Release\net48\`**.
