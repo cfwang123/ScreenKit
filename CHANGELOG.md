@@ -50,7 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
-- Supertonic no longer clips the last syllable. It stops the waveform at a predicted length, so a still-loud final mora (such as カ in アンニョンハシムニカ) was cut off. The text sent to the model now ends with a short pause. The text on screen is unchanged.
+- Supertonic uses a fixed noise seed. A random seed made the same word sound different on every speak (the last カ in アンニョンハシムニカ could come out as another syllable). Repeating the same text, voice, and rate now produces the same audio.
 
 ### 中文
 
@@ -75,7 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
-- Supertonic 不再截断最后一个音。它按预测时长切断波形，末字还在发声时会被切掉（例如「アンニョンハシムニカ」的「カ」）。送给模型的文本末尾加了一小段停顿，界面上的原文不变。
+- Supertonic 使用固定噪声种子。种子随机时，同一个字每次读音都不同（「アンニョンハシムニカ」末尾的「カ」会变成别的音节）。同一段文字、同一个发音人、同一语速现在得到同一段声音。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 

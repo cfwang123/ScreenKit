@@ -26,6 +26,8 @@ sealed class TtsEngine : IDisposable {
 	bool forceCpu;
 	/// <summary>当前模型是 Supertonic。合成时要带 lang，并且不做中文逐字替换。</summary>
 	bool supertonic;
+	/// <summary>Supertonic 噪声种子。-1 会让同一个字每次读音不同。</summary>
+	const int SUPERTONIC_SEED = 14;
 	string synthLangs = "";
 	/// <summary>tts_config.json 的 volume 增益。</summary>
 	float volumeGain = 1f;
@@ -364,9 +366,6 @@ sealed class TtsEngine : IDisposable {
 			var normalized = supertonic
 				? (text ?? "").Replace("\u200b", "").Replace("\ufeff", "")
 				: NormalizeText(text, preferFstNumbers: hasNumberFst, convertLetters: true);
-			// 预测时长一到就截断波形。末字还响着时会被切掉，补停顿让截断落在末字之后。
-			if (supertonic)
-				normalized = supertonictail(normalized);
 			var genCfg = new OfflineTtsGenerationConfig {
 				Sid = sid,
 				Speed = speed,
@@ -375,6 +374,7 @@ sealed class TtsEngine : IDisposable {
 			if (supertonic) {
 				genCfg.NumSteps = 8;
 				genCfg.Extra["lang"] = supertoniclang(normalized, lang);
+				genCfg.Extra["seed"] = SUPERTONIC_SEED;
 			}
 			var audio = tts.GenerateWithConfig(normalized, genCfg, null);
 			if (audio == null || audio.Samples == null || audio.Samples.Length == 0) {
@@ -391,17 +391,6 @@ sealed class TtsEngine : IDisposable {
 			lastuse = Environment.TickCount;
 			return (samples, sr);
 		}
-	}
-
-	/// <summary>补足四个省略号。界面原文不变，只加在送进模型的文本上。</summary>
-	static string supertonictail(string text) {
-		if (string.IsNullOrWhiteSpace(text)) return text ?? "";
-		var t = text.TrimEnd();
-		var n = 0;
-		for (var i = t.Length - 1; i >= 0 && t[i] == '\u2026'; i--)
-			n++;
-		if (n >= 4) return t;
-		return t + new string('\u2026', 4 - n);
 	}
 
 	string supertoniclang(string text, string prefer) {

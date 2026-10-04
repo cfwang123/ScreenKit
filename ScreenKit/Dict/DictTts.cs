@@ -130,7 +130,9 @@ static class DictTts {
 		var engine = resolve(pref, lang);
 		var voice = voiceof(pref, lang, engine);
 		var rate = NormRate(pref.Rate);
-		var path = cachepath(engine, voice, rate, lang, text);
+		// 种子写进键，避免沿用种子随机时留下的旧 wav。
+		var cacheEng = engine == ONNX ? engine + ":s14" : engine;
+		var path = cachepath(cacheEng, voice, rate, lang, text);
 		if (fresh(path)) return path;
 		var got = await synth(engine, voice, lang, text, rate).ConfigureAwait(true);
 		if (got.samples == null || got.samples.Length == 0 || got.sampleRate <= 0)
