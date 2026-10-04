@@ -35,7 +35,8 @@
 						<GridViewColumn.CellTemplate>
 							<DataTemplate>
 								<Button Content="{Binding ActionText}" Style="{StaticResource ToolBtn}"
-								        Padding="8,2" Margin="0,2" Click="onrowunload"
+								        Padding="8,2" Margin="0,2"
+								        PreviewMouseLeftButtonDown="onrowdown"
 								        AutomationProperties.AutomationId="mem.row.unload"/>
 							</DataTemplate>
 						</GridViewColumn.CellTemplate>

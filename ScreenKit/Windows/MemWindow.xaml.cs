@@ -9,6 +9,7 @@ public partial class MemWindow : Window {
 	readonly ObservableCollection<MemHold> rows = new();
 	bool unloading;
 	string selId = "";
+	int msgAt;
 
 	internal MemWindow(Func<MemSnap> read, Func<string, string> unload) {
 		this.read = read ?? throw new ArgumentNullException(nameof(read));
@@ -54,7 +55,7 @@ public partial class MemWindow : Window {
 		bclose.Content = Loc.T("mem.close");
 	}
 
-	void onrowunload(object sender, RoutedEventArgs e) {
+	void onrowdown(object sender, MouseButtonEventArgs e) {
 		if (sender is Button b && b.DataContext is MemHold row)
 			unloadrow(row);
 		e.Handled = true;
@@ -78,9 +79,11 @@ public partial class MemWindow : Window {
 			sum += it.Bytes;
 		}
 		if (!force && samerows(items)) {
-			lbsum.Text = items.Count == 0
-				? Loc.T("mem.empty")
-				: Loc.T("mem.sum", items.Count, FeatureInstaller.FormatBytes(sum));
+			if (!msgfresh()) {
+				lbsum.Text = items.Count == 0
+					? Loc.T("mem.empty")
+					: Loc.T("mem.sum", items.Count, FeatureInstaller.FormatBytes(sum));
+			}
 			return;
 		}
 		rows.Clear();
@@ -116,35 +119,61 @@ public partial class MemWindow : Window {
 		unloadrow(row);
 	}
 
+	void markmsg() {
+		var t = Environment.TickCount;
+		msgAt = t == 0 ? 1 : t;
+	}
+
+	bool msgfresh() => msgAt != 0 && Environment.TickCount - msgAt < 12000;
+
 	void unloadrow(MemHold row) {
-		if (unloading) return;
+		if (unloading) {
+			lbsum.Text = Loc.T("mem.working");
+			markmsg();
+			return;
+		}
 		if (row == null || string.IsNullOrEmpty(row.Id)) return;
 		unloading = true;
 		bunload.IsEnabled = false;
+		lbsum.Text = Loc.T("mem.working");
+		markmsg();
 		var id = row.Id;
 		var name = row.Name ?? "";
-		var before = 0L;
-		try { before = MemUsage.Read().WorkingSet; } catch { }
+		var beforeWs = 0L;
+		var beforePriv = 0L;
+		try {
+			var snap = MemUsage.Read();
+			beforeWs = snap.WorkingSet;
+			beforePriv = snap.PrivateBytes;
+		}
+		catch { }
 		Task.Run(() => unload(id)).ContinueWith(t => {
 			Dispatcher.BeginInvoke(new Action(() => {
 				unloading = false;
-				bunload.IsEnabled = true;
 				string msg;
 				if (t.IsFaulted)
 					msg = t.Exception?.GetBaseException().Message ?? "";
 				else if (t.Result == "busy")
 					msg = Loc.T("mem.busy");
 				else {
-					var after = 0L;
-					try { after = MemUsage.Read().WorkingSet; } catch { }
-					msg = Loc.T("mem.reclaim", name, FeatureInstaller.FormatBytes(before),
-						FeatureInstaller.FormatBytes(after));
+					var afterWs = 0L;
+					var afterPriv = 0L;
+					try {
+						var snap = MemUsage.Read();
+						afterWs = snap.WorkingSet;
+						afterPriv = snap.PrivateBytes;
+					}
+					catch { }
+					msg = Loc.T("mem.reclaim", name,
+						FeatureInstaller.FormatBytes(beforeWs), FeatureInstaller.FormatBytes(afterWs),
+						FeatureInstaller.FormatBytes(beforePriv), FeatureInstaller.FormatBytes(afterPriv));
 					if (t.Result == "resident")
 						msg = msg + Loc.T("mem.ort.resident");
 				}
-				lbsum.Text = msg;
 				fill(true);
-				if (!string.IsNullOrEmpty(msg)) lbsum.Text = msg;
+				bunload.IsEnabled = lv.SelectedItem is MemHold;
+				lbsum.Text = msg;
+				markmsg();
 			}));
 		});
 	}

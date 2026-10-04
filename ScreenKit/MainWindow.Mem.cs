@@ -32,7 +32,9 @@ public partial class MainWindow {
 
 	string statusbartext() {
 		var snap = MemSnapNow();
-		var flavor = flavorname(CudaBootstrap.LoadedOrtFlavor());
+		var raw = CudaBootstrap.LoadedOrtFlavor();
+		if ((raw == "cuda" || raw == "dml") && !CudaBootstrap.HeavyMapped()) raw = "";
+		var flavor = flavorname(raw);
 		var models = 0;
 		long sum = 0;
 		foreach (var it in snap.Items) {
@@ -132,6 +134,7 @@ public partial class MainWindow {
 	static void addortruntime(List<MemHold> items) {
 		var flavor = CudaBootstrap.LoadedOrtFlavor();
 		if (string.IsNullOrEmpty(flavor)) return;
+		if ((flavor == "cuda" || flavor == "dml") && !CudaBootstrap.HeavyMapped()) return;
 		var name = flavor == "dml" ? "DirectML" : flavor == "cpu" ? "CPU" : "CUDA";
 		items.Insert(0, hold("ort", "ort", name, flavortag(flavor), ortpackagesize(flavor)));
 	}
@@ -182,7 +185,11 @@ public partial class MainWindow {
 		}
 		MemUsage.Trim();
 		if (busy) return "busy";
-		if (!string.IsNullOrEmpty(CudaBootstrap.LoadedOrtFlavor())) return "resident";
+		try { CudaBootstrap.ReleaseNow(); } catch { }
+		var flavor = CudaBootstrap.LoadedOrtFlavor();
+		if (flavor == "cuda" || flavor == "dml")
+			return CudaBootstrap.HeavyMapped() ? "resident" : "";
+		if (!string.IsNullOrEmpty(flavor)) return "resident";
 		return "";
 	}
 

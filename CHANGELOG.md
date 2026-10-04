@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- **Options → Memory**: Unload on the ONNX GPU row releases the CUDA libraries this process loaded. The row stays only when those libraries are still mapped. The result shows working set and private bytes.
 - **Help → Install features** renames the Voices tab to **ONNX speech models**.
 - Dictionary list is two lines (language and headword, then gloss) with a per-row speak button. Entry text is smaller and colors pronunciation, part of speech, sense numbers, language labels, and examples. Selecting text opens a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button.
 - Dictionary is a main-window tab (`tab_dict_visible`, on by default). Its hotkey shows the main window and selects that tab, enabling it when it was hidden. Pressing it again while that tab is showing hides the main window. The hotkey is off by default (`hotkey_dict` empty).
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- **选项 → 内存占用**：ONNX GPU 这一行的「从内存卸载」会释放本进程加载的 CUDA 库。只有这些库仍映射着时才留在列表里。结果同时显示工作集和专用内存。
 - **帮助 → 安装功能**里原来的「发音人」页改名为 **onnx语音模型**。
 - 词典列表改为两行（语言与词头、释义），每行可发音。详情字号缩小，读音、词性、义项编号、语种标签、例句分色。选中文字后，浮窗出现在选区旁边，含匹配词条以及发音、搜索、翻译、复制。每条例句末尾有发音按钮。
 - 词典改为主窗口的一页（`tab_dict_visible`，默认显示）。热键打开主窗口并切到该页；已在该页时再按隐藏主窗口。页被隐藏时会先启用。热键默认不注册（`hotkey_dict` 留空）。

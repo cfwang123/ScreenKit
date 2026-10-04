@@ -53,9 +53,28 @@ static class CudaBootstrap {
 	static List<string> searchDirs = new();
 	static readonly object gate = new();
 	static readonly List<IntPtr> loadedMods = new();
+	/// <summary>ORT 自己 LoadLibrary 的 CUDA/DML 依赖。按文件名再卸，路径必须在本程序目录里。</summary>
+	static readonly string[] KnownNative = {
+		"cudart64_12.dll", "cudart64_13.dll",
+		"nvJitLink_120_0.dll", "nvJitLink_130_0.dll",
+		"cublasLt64_12.dll", "cublasLt64_13.dll",
+		"cublas64_12.dll", "cublas64_13.dll",
+		"cufft64_11.dll", "cufft64_12.dll", "cufft64_13.dll",
+		"cudnn_ops64_9.dll", "cudnn_graph64_9.dll", "cudnn_cnn64_9.dll",
+		"cudnn_engines_precompiled64_9.dll", "cudnn_engines_runtime_compiled64_9.dll",
+		"cudnn_engines_tensor_ir64_9.dll", "cudnn_ext64_9.dll",
+		"cudnn_heuristic64_9.dll", "cudnn_adv64_9.dll", "cudnn64_9.dll",
+		"onnxruntime_providers_shared.dll",
+		"onnxruntime_providers_cuda.dll",
+		"DirectML.dll",
+		"onnxruntime.dll",
+	};
 	static int lastort;
 	static int nativeHoldUntil;
 	static bool nativeKept;
+	static bool cudaDetached;
+	static bool dmlDetached;
+	static Action<string> relLog;
 
 	/// <summary>exe 旁是否存在 onnxgpu64 目录。</summary>
 	public static bool HasOnnxGpu64Dir { get; private set; }
@@ -74,6 +93,17 @@ static class CudaBootstrap {
 
 	/// <summary>当前进程锁定的 ORT 后端。</summary>
 	public static OrtBackend LoadedBackend { get; private set; } = OrtBackend.None;
+
+	/// <summary>cuBLAS / cuDNN / CUDA EP / DirectML 是否仍映射在本进程。不含 onnxruntime.dll。</summary>
+	public static bool HeavyMapped() {
+		foreach (var n in KnownNative) {
+			if (n.Equals("onnxruntime.dll", StringComparison.OrdinalIgnoreCase)) continue;
+			var h = GetModuleHandle(n);
+			if (h == IntPtr.Zero) continue;
+			if (ourown(modulepath(h) ?? "")) return true;
+		}
+		return false;
+	}
 
 	/// <summary>进程里 onnxruntime.dll 来自哪一套：cpu、cuda、dml。未载入为空。</summary>
 	public static string LoadedOrtFlavor() {
@@ -180,6 +210,15 @@ static class CudaBootstrap {
 		}
 	}
 
+	/// <summary>立刻释放本进程映射的 ORT / CUDA / DirectML。卸不掉时返回 false。</summary>
+	public static bool ReleaseNow() {
+		lock (gate) {
+			nativeKept = false;
+			nativeHoldUntil = 0;
+			return releasenative();
+		}
+	}
+
 	/// <summary>
 	/// 没有会话、且距离加载已超过 limitMs 时，释放本程序 LoadLibrary 的引用。
 	/// 托管 ORT 或 Sherpa 仍占用时，库会留在进程里，本方法返回 false 且不再重复释放。
@@ -222,6 +261,78 @@ static class CudaBootstrap {
 		return 0;
 	}
 
+	/// <summary>加载 CUDA 库后释放，确认大库卸掉且还能建 CPU 会话。进程崩溃时看 log/ort_rel.txt。</summary>
+	public static int TestRelease(out string detail) {
+		var sb = new StringBuilder();
+		var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log", "ort_rel.txt");
+		try { if (File.Exists(logPath)) File.Delete(logPath); } catch { }
+		relLog = s => {
+			sb.AppendLine(s);
+			try {
+				Directory.CreateDirectory(Path.GetDirectoryName(logPath));
+				File.AppendAllText(logPath, s + "\n");
+			}
+			catch { }
+		};
+		try {
+			Init();
+			var before = procpriv();
+			relnote($"start flavor={LoadedOrtFlavor()} heavy={HeavyMapped()} priv={before}");
+			EnsureGpuLibsLoaded();
+			relnote($"gpu ready={IsGpuReady} flavor={LoadedOrtFlavor()} heavy={HeavyMapped()} priv={procpriv()}");
+			relnote("mods " + mappednative());
+			using (var so = new SessionOptions()) {
+				try {
+					so.AppendExecutionProvider_CUDA(0);
+					relnote("cuda-ep ok");
+				}
+				catch (Exception ex) {
+					relnote("cuda-ep " + ex.Message);
+				}
+			}
+			GC.Collect();
+			GC.WaitForPendingFinalizers();
+			GC.Collect();
+			bool gone;
+			lock (gate) gone = releasenative();
+			relnote($"released={gone} flavor={LoadedOrtFlavor()} heavy={HeavyMapped()} priv={procpriv()} drop={before - procpriv()}");
+			relnote("mods " + mappednative());
+			using (var so2 = new SessionOptions()) { _ = so2; }
+			relnote("opt2 ok");
+			var dropped = !HeavyMapped();
+			EnsureGpuLibsLoaded();
+			relnote($"again ready={IsGpuReady} heavy={HeavyMapped()} priv={procpriv()}");
+			detail = sb.ToString();
+			if (!dropped) return 2;
+			if (!IsGpuReady || !HeavyMapped()) return 3;
+			return 0;
+		}
+		catch (Exception ex) {
+			relnote("EX " + ex);
+			detail = sb.ToString();
+			return 1;
+		}
+		finally {
+			relLog = null;
+		}
+	}
+
+	static long procpriv() {
+		try { return System.Diagnostics.Process.GetCurrentProcess().PrivateMemorySize64; }
+		catch { return 0; }
+	}
+
+	static string mappednative() {
+		var sb = new StringBuilder();
+		foreach (var n in KnownNative) {
+			var h = GetModuleHandle(n);
+			if (h == IntPtr.Zero) continue;
+			if (sb.Length > 0) sb.Append(' ');
+			sb.Append(n);
+		}
+		return sb.Length == 0 ? "(none)" : sb.ToString();
+	}
+
 	/// <summary>
 	/// 按设备确保已加载匹配的 ORT 原生库。
 	/// CUDA 与 DML 互斥；已锁定后换后端会抛错（需重启）。
@@ -230,6 +341,10 @@ static class CudaBootstrap {
 	public static void EnsureOrtForDevice(OcrDevice device) {
 		lock (gate) {
 			Init();
+			if (device == OcrDevice.Gpu && cudaDetached)
+				throw new InvalidOperationException("CUDA 库已从本进程卸下，再次使用 GPU 前请重启");
+			if (device == OcrDevice.IntelGpu && dmlDetached)
+				throw new InvalidOperationException("DirectML 已从本进程卸下，再次使用前请重启");
 
 			// CPU：只要已有合法 ORT 即可（不区分 CUDA/DML 包）
 			if (device == OcrDevice.Cpu && IsOrtReady && LoadedBackend != OrtBackend.None)
@@ -299,23 +414,125 @@ static class CudaBootstrap {
 		return h;
 	}
 
+	static void relnote(string s) {
+		try { relLog?.Invoke(s); } catch { }
+	}
+
+	static void releaseortenv() {
+		try {
+			if (!OrtEnv.IsCreated) return;
+			var env = OrtEnv.Instance();
+			if (env != null && !env.IsInvalid && !env.IsClosed)
+				env.Dispose();
+			relnote("env disposed");
+		}
+		catch (Exception ex) {
+			relnote("env " + ex.Message);
+		}
+	}
+
 	static bool releasenative() {
-		for (var i = loadedMods.Count - 1; i >= 0; i--) {
-			try { FreeLibrary(loadedMods[i]); } catch { }
+		if (HeavyMapped()) releaseortenv();
+		var own = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+		foreach (var h in loadedMods) {
+			var fn = Path.GetFileName(modulepath(h) ?? "");
+			if (string.IsNullOrEmpty(fn)) continue;
+			own.TryGetValue(fn, out var c);
+			own[fn] = c + 1;
+		}
+		var names = new List<string>();
+		foreach (var n in own.Keys) addname(names, n);
+		foreach (var n in KnownNative) addname(names, n);
+		names.Sort((a, b) => nativerank(a) - nativerank(b));
+		foreach (var n in names) {
+			own.TryGetValue(n, out var c);
+			var keepOrt = n.Equals("onnxruntime.dll", StringComparison.OrdinalIgnoreCase);
+			freeloop(n, keepOrt ? c : 8);
 		}
 		loadedMods.Clear();
+		gpuLibsLoaded = false;
+		if (cudaDetached) IsGpuReady = false;
+		if (dmlDetached) IsDmlReady = false;
 		if (string.IsNullOrEmpty(LoadedOrtFlavor())) {
 			IsOrtReady = false;
 			LoadedBackend = OrtBackend.None;
-			gpuLibsLoaded = false;
 			lastort = 0;
 			nativeKept = false;
 			nativeHoldUntil = 0;
-			GpuStatus = buildstatus();
+			GpuStatus = cudaDetached
+				? "CUDA 库已从本进程卸下，再次使用 GPU 前请重启"
+				: buildstatus();
 			return true;
 		}
-		nativeKept = true;
+		nativeKept = HeavyMapped();
+		GpuStatus = cudaDetached
+			? "CUDA 库已从本进程卸下，再次使用 GPU 前请重启"
+			: buildstatus();
 		return false;
+	}
+
+	static void addname(List<string> names, string pathOrFile) {
+		if (string.IsNullOrEmpty(pathOrFile)) return;
+		var fn = Path.GetFileName(pathOrFile);
+		if (string.IsNullOrEmpty(fn)) return;
+		foreach (var n in names)
+			if (n.Equals(fn, StringComparison.OrdinalIgnoreCase)) return;
+		names.Add(fn);
+	}
+
+	/// <summary>CUDA EP 先卸，它的静态依赖随后卸。onnxruntime.dll 最后，且只减本程序的引用。</summary>
+	static int nativerank(string name) {
+		if (name.Equals("onnxruntime.dll", StringComparison.OrdinalIgnoreCase)) return 50;
+		if (name.IndexOf("providers_cuda", StringComparison.OrdinalIgnoreCase) >= 0) return 0;
+		if (name.IndexOf("providers", StringComparison.OrdinalIgnoreCase) >= 0) return 1;
+		if (name.Equals("DirectML.dll", StringComparison.OrdinalIgnoreCase)) return 1;
+		if (name.StartsWith("cublas64", StringComparison.OrdinalIgnoreCase)) return 10;
+		if (name.StartsWith("cudnn64", StringComparison.OrdinalIgnoreCase)) return 10;
+		return 20;
+	}
+
+	static void freeloop(string name, int limit) {
+		if (limit <= 0) {
+			relnote($"keep {name}");
+			return;
+		}
+		for (var i = 0; i < limit; i++) {
+			var h = GetModuleHandle(name);
+			if (h == IntPtr.Zero) {
+				relnote($"gone {name}");
+				return;
+			}
+			var path = modulepath(h) ?? "";
+			if (!ourown(path)) {
+				relnote($"skip {name} {path}");
+				return;
+			}
+			if (name.IndexOf("providers_cuda", StringComparison.OrdinalIgnoreCase) >= 0)
+				cudaDetached = true;
+			if (name.Equals("DirectML.dll", StringComparison.OrdinalIgnoreCase))
+				dmlDetached = true;
+			relnote($"free {name} #{i} {path}");
+			bool ok;
+			try { ok = FreeLibrary(h); }
+			catch (Exception ex) {
+				relnote($"ex {name} {ex.Message}");
+				return;
+			}
+			if (!ok) {
+				relnote($"fail {name} err={Marshal.GetLastWin32Error()}");
+				return;
+			}
+		}
+		relnote($"stop {name} left={GetModuleHandle(name) != IntPtr.Zero}");
+	}
+
+	static bool ourown(string path) {
+		if (string.IsNullOrEmpty(path)) return false;
+		if (path.IndexOf("onnxgpu64", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (path.IndexOf("onnxcpu64", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (path.IndexOf("onnxdml64", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		var baseDir = AppDomain.CurrentDomain.BaseDirectory ?? "";
+		return baseDir.Length > 0 && path.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase);
 	}
 
 	static void writelog(StringBuilder log) {
@@ -336,6 +553,11 @@ static class CudaBootstrap {
 	public static void EnsureGpuLibsLoaded() {
 		lock (gate) {
 			Init();
+			if (cudaDetached) {
+				IsGpuReady = false;
+				GpuStatus = "CUDA 库已从本进程卸下，再次使用 GPU 前请重启";
+				return;
+			}
 			// 已成功加载过则跳过；失败后允许再次尝试（例如用户升级驱动后）
 			if (gpuLibsLoaded && IsGpuReady) return;
 

@@ -59,6 +59,7 @@ static class Cli {
 				or "--test-wintop"
 				or "--test-mem"
 				or "--test-ort-lazy"
+				or "--test-ort-release"
 				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
@@ -265,6 +266,8 @@ static class Cli {
 					return testmem();
 				case "--test-ort-lazy":
 					return testortlazy();
+				case "--test-ort-release":
+					return testortrelease();
 				case "--test-dict-search":
 					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
 						return testdict(Next());
@@ -2895,6 +2898,15 @@ static class Cli {
 		return code;
 	}
 
+	static int testortrelease() {
+		Out("=== ORT 释放 --test-ort-release ===");
+		var code = CudaBootstrap.TestRelease(out var detail);
+		Out(detail ?? "");
+		if (code != 0) Err("FAIL code=" + code);
+		else Out("=== OK：CUDA 库已卸，会话仍可建 ===");
+		return code;
+	}
+
 	static int testwintop() {
 		Out("=== 窗口管理 --test-wintop ===");
 		var bad = 0;
@@ -3336,6 +3348,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-mem  进程内存读取，以及模型文件大小统计
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
+      --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
