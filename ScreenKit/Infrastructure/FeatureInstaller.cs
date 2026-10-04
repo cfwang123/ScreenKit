@@ -12,6 +12,7 @@ using System.Text.Json.Nodes;
 using Microsoft.Win32.SafeHandles;
 using SharpCompress.Common;
 using SharpCompress.Readers;
+using SharpSevenZip;
 
 namespace ScreenKit;
 
@@ -44,6 +45,8 @@ public enum FeatureKind {
 	MediaFoundation,
 	/// <summary>系统 MJPEG AVI，无需下载。</summary>
 	Mjpeg,
+	/// <summary>词典 dict.db。从固定 Release dict-db 的 dict.7z 解出，不进应用更新包。</summary>
+	DictDb,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -107,6 +110,9 @@ static class FeatureInstaller {
 	const string AsrRelease = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models";
 	const string FaceBuffaloLZip = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip";
 	const string FaceBuffaloLHf = "https://huggingface.co/deepinsight/insightface/resolve/main/models/buffalo_l.zip";
+	/// <summary>固定标签 dict-db，不跟随最新 Release，避免被当成应用更新包。</summary>
+	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict.7z";
+	const long DICT7Z_BYTES = 261009277L;
 	static readonly string[] FaceBuffaloLFiles = [
 		"det_10g.onnx", "w600k_r50.onnx", "genderage.onnx", "2d106det.onnx", "1k3d68.onnx",
 	];
@@ -209,6 +215,7 @@ static class FeatureInstaller {
 			make(FeatureKind.AsrWhisperBase, "asr"),
 			make(FeatureKind.AsrSileroVad, "asr"),
 			make(FeatureKind.FaceInsight, "face"),
+			make(FeatureKind.DictDb, "dict"),
 			make(FeatureKind.CudaGpu, "accel", true),
 			make(FeatureKind.DirectMl, "accel", true),
 			make(FeatureKind.MediaFoundation, "media"),
@@ -265,6 +272,7 @@ static class FeatureInstaller {
 		FeatureKind.OrtCpu => 16L * 1024 * 1024,
 		FeatureKind.Ffmpeg => 72L * 1024 * 1024,
 		FeatureKind.FaceInsight => 326L * 1024 * 1024,
+		FeatureKind.DictDb => DICT7Z_BYTES,
 		_ => 0,
 	};
 
@@ -330,6 +338,7 @@ static class FeatureInstaller {
 			case FeatureKind.OrtCpu: return dirsize(OnnxCpuDir);
 			case FeatureKind.Ffmpeg: return dirsize(FfmpegDir);
 			case FeatureKind.FaceInsight: return dirsize(FaceModelsDir);
+			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict.db"));
 			default: return 0;
 			}
 		}
@@ -414,6 +423,8 @@ static class FeatureInstaller {
 			return FeatureInstallState.Installed;
 		case FeatureKind.FaceInsight:
 			return probeface();
+		case FeatureKind.DictDb:
+			return probedict();
 		default:
 			return FeatureInstallState.Missing;
 		}
@@ -574,6 +585,9 @@ static class FeatureInstaller {
 		case FeatureKind.FaceInsight:
 			await installfaceinsight(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.DictDb:
+			await installdict(log, progress, ct).ConfigureAwait(false);
+			break;
 		default:
 			throw new InvalidOperationException("未知功能: " + kind);
 		}
@@ -636,6 +650,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.FaceInsight:
 			uninstallface(log);
+			break;
+		case FeatureKind.DictDb:
+			uninstalldict(log);
 			break;
 		default:
 			throw new InvalidOperationException("未知功能: " + kind);
@@ -1136,6 +1153,83 @@ arabic_dict.txt
 			deletefile(Path.Combine(FaceModelsDir, name), log);
 		foreach (var extra in new[] { "det_500m.onnx", "w600k_mbf.onnx" })
 			deletefile(Path.Combine(FaceModelsDir, extra), log);
+	}
+
+	// ───────── 词典 dict.7z ─────────
+
+	static string dictdbpath() => Path.Combine(BaseDir, "dict.db");
+
+	static FeatureInstallState probedict() {
+		var path = dictdbpath();
+		try {
+			if (!File.Exists(path)) return FeatureInstallState.Missing;
+			var n = new FileInfo(path).Length;
+			if (n >= 100L * 1024 * 1024) return FeatureInstallState.Installed;
+			return n > 0 ? FeatureInstallState.Partial : FeatureInstallState.Missing;
+		}
+		catch { return FeatureInstallState.Missing; }
+	}
+
+	static async Task installdict(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		if (probedict() == FeatureInstallState.Installed) {
+			log?.Report("dict.db 已存在，跳过");
+			reportprog(progress, 1, note: "已存在");
+			return;
+		}
+		Directory.CreateDirectory(CacheDir);
+		var arc = Path.Combine(CacheDir, "dict.7z");
+		if (File.Exists(arc)) {
+			long have = 0;
+			try { have = new FileInfo(arc).Length; } catch { }
+			if (have != DICT7Z_BYTES) {
+				try { File.Delete(arc); } catch { }
+			}
+		}
+		await downloadfirst(ExpandUrls(DICT7Z_URL), arc, log, progress, ct,
+			expectedTotal: DICT7Z_BYTES, overallWeight: 0.9).ConfigureAwait(false);
+		var unpack = Path.Combine(CacheDir, "dict-unpack");
+		if (Directory.Exists(unpack)) {
+			try { Directory.Delete(unpack, true); } catch { }
+		}
+		Directory.CreateDirectory(unpack);
+		log?.Report("解压 dict.7z …");
+		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : DICT7Z_BYTES;
+		reportprog(progress, 0.92, zlen, zlen, "dict.7z", "解压中…");
+		extract7z(arc, unpack, log);
+		string found = null;
+		try {
+			found = Directory.GetFiles(unpack, "dict.db", SearchOption.AllDirectories).FirstOrDefault();
+		}
+		catch { }
+		if (string.IsNullOrEmpty(found))
+			throw new InvalidOperationException("dict.7z 里没有 dict.db");
+		var dest = dictdbpath();
+		unlinkifreparse(dest);
+		if (File.Exists(dest)) File.Delete(dest);
+		try { if (File.Exists(dest + "-wal")) File.Delete(dest + "-wal"); } catch { }
+		try { if (File.Exists(dest + "-shm")) File.Delete(dest + "-shm"); } catch { }
+		File.Move(found, dest);
+		reportprog(progress, 1, zlen, zlen, "dict.db", "完成");
+		log?.Report("词典 dict.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
+	}
+
+	static void uninstalldict(IProgress<string> log) {
+		var dest = dictdbpath();
+		unlinkifreparse(dest);
+		deletefile(dest, log);
+		deletefile(dest + "-wal", log);
+		deletefile(dest + "-shm", log);
+	}
+
+	/// <summary>符号链接先卸掉再写，避免解压写穿到链接目标。</summary>
+	static void unlinkifreparse(string path) {
+		try {
+			var attr = File.GetAttributes(path);
+			if ((attr & FileAttributes.ReparsePoint) != 0)
+				File.Delete(path);
+		}
+		catch { }
 	}
 
 	// ───────── GPU / DML / FFmpeg ─────────
@@ -1674,7 +1768,19 @@ arabic_dict.txt
 		long expectedTotal = 0) =>
 		downloadfirst(urls, dest, log, progress, ct, expectedTotal: expectedTotal);
 
-	/// <summary>解压 zip / tar.bz2 到目标目录。</summary>
+	/// <summary>用 7za.dll 解压 .7z。只支持 7z，不走系统 7z.exe。</summary>
+	static void extract7z(string archive, string destDir, IProgress<string> log) {
+		var lib = Path.Combine(BaseDir, "7za.dll");
+		if (!File.Exists(lib))
+			throw new InvalidOperationException("缺少 7za.dll");
+		SharpSevenZipBase.SetLibraryPath(lib);
+		Directory.CreateDirectory(destDir);
+		log?.Report("7za 解压 " + Path.GetFileName(archive));
+		using (var ext = new SharpSevenZipExtractor(archive))
+			ext.ExtractArchive(destDir);
+	}
+
+	/// <summary>解压 zip / 7z / tar.bz2 到目标目录。</summary>
 	public static void ExtractArchive(string archive, string destDir, IProgress<string> log) =>
 		extractarchive(archive, destDir, log);
 
@@ -1688,6 +1794,10 @@ arabic_dict.txt
 		var ext = Path.GetExtension(archive).ToLowerInvariant();
 		if (ext == ".zip") {
 			ZipFile.ExtractToDirectory(archive, extractDir);
+			return;
+		}
+		if (ext == ".7z") {
+			extract7z(archive, extractDir, log);
 			return;
 		}
 		using (var reader = ReaderFactory.OpenReader(archive)) {

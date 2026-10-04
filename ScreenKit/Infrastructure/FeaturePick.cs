@@ -132,6 +132,7 @@ static class FeaturePick {
 			leaf("asr.vad", "feat.pick.asr.vad", "feat.AsrSileroVad.detail",
 				FeatureKind.NativeSherpa, FeatureKind.AsrSileroVad)),
 		leaf("face", "feat.pick.face", "feat.pick.face.detail", FeatureKind.FaceInsight),
+		leaf("dict", "feat.pick.dict", "feat.pick.dict.detail", FeatureKind.DictDb),
 		leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium),
 		group("rec", "feat.pick.rec", "feat.pick.rec.detail",

@@ -49,7 +49,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **ASR / TTS** | 实时字幕可选离线或流式。Sherpa / SAPI / WinRT 离线合成及 Edge 在线自然语音。未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。语音合成的语言下拉先列出有名称的语言，其余按代码排列。SAPI 和 Windows 语音只列出有发音人的语言。Supertonic 使用固定噪声种子，同一段文字每次读音相同。 |
 | **LLM对话** | 微信式气泡、清空、麦克风、朗读/自动朗读，可选网页与 `tmp/llm/` 工具。 |
 | **翻译** | 本地 Opus-MT ONNX 或已配置的 **LLM**；来回翻译最多 20 次，结果重复时提前停止；小窗 `Ctrl+Alt+T`。 |
-| **词典** | 主窗口里查汉语、英语、日语、韩语。详见 [词典](#词典)。`dict.db` 不在发布包里。 |
+| **词典** | 主窗口里查汉语、英语、日语、韩语。详见 [词典](#词典)。`dict.db` 不在发布包里，可在 **帮助 → 安装功能** 下载。 |
 | **人脸识别** | InsightFace ONNX 检测/比对，可选关键点与性别年龄。模型在 `facemodels/`。 |
 | **SAPI x86 助手** | 旁路 `x86host.exe`，调用仅 32 位可见的经典发音人。 |
 
@@ -77,7 +77,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 ## 词典
 
-用程序旁边的只读 SQLite 文件 `dict.db` 查词。发布包不含这个文件。查询不会改库。连续 5 分钟没有查询后连接关闭，下次查询再打开。
+用程序旁边的只读 SQLite 文件 `dict.db` 查词。发布包不含这个文件。**帮助 → 安装功能** 可下载 `dict.7z` 并解压到程序旁边。查询不会改库。连续 5 分钟没有查询后连接关闭，下次查询再打开。
 
 ### 用法
 
@@ -167,7 +167,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 1. 首次启动可出现安装向导（默认不勾选。系统 H.264 保持勾选，不用下载）。
 2. 之后：**帮助 → 安装功能**
-   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。
+   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典一项下载固定地址上的 `dict.7z`（不是应用更新包），用 `7za.dll` 解出 `dict.db`。
    - **onnx语音模型**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。日文是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`），在语言里选日文。这一包同时包含 Supertonic 3 的其它语言。
    - **Windows语音**：列出 `Language.TextToSpeech` 功能包，以及 Windows 报告的发音人。本进程是管理员时才能安装或卸载；否则只显示 DISM 命令，可复制。装好后需重启本程序，语音合成页才会列出新发音人。
 3. 使用某功能时若缺依赖，会提示打开安装窗（例如：没有任何 ORT 时做 OCR → 提示安装 `onnxcpu64`）。
@@ -460,7 +460,7 @@ dotnet build -c Release
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
 - **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict.db`。词典库请自行放在程序旁边。数据从哪来见 [词典](#词典)。Windows SQLite 库 `e_sqlite3.dll` 会打进包。
+- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict.db`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。`7za.dll` 和 Windows SQLite 库 `e_sqlite3.dll` 会打进包。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 
 本机开发且已有模型时，请继续用 **`bin\Release\net48\`**。

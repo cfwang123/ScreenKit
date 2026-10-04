@@ -49,7 +49,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. With no saved engine, Windows speech is used when a voice is installed, otherwise Edge online. The Speech language list shows named languages first, then the remaining codes. SAPI and Windows speech list only languages that have a voice. Supertonic uses a fixed noise seed, so the same text sounds the same each time. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
-| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). `dict.db` is not in the release archive. |
+| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). `dict.db` is not in the release archive. **Help → Install features** can download it. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -77,7 +77,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 ## Dictionary
 
-ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next to the program. The release archive does not include it. A lookup does not modify the file. The connection closes after 5 minutes without a search and opens again on the next one.
+ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next to the program. The release archive does not include it. **Help → Install features** can download `dict.7z` and extract it there. A lookup does not modify the file. The connection closes after 5 minutes without a search and opens again on the next one.
 
 ### Using it
 
@@ -167,7 +167,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 1. First launch may open the wizard (nothing selected). System H.264 stays checked and needs no download.
 2. Later: **Help → Install features**
-   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab.
+   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary downloads `dict.7z` from a fixed URL (not the app update package) and extracts `dict.db` with `7za.dll`.
    - **ONNX speech models**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported. Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). Choose Japanese in the language list. That pack also speaks the other Supertonic 3 languages.
    - **Windows speech**: lists `Language.TextToSpeech` packs and the voices Windows reports for each language. Install or remove runs only when ScreenKit is an administrator; otherwise the DISM command is shown and can be copied. Restart ScreenKit before the speech page lists a newly installed voice.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
@@ -469,7 +469,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, or `dict.db`. Place `dict.db` beside the executable yourself. See [Dictionary](#dictionary) for where that data comes from. The Windows SQLite library `e_sqlite3.dll` is included.
+- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, or `dict.db`. Install the dictionary from **Help → Install features**, or place `dict.db` beside the executable yourself. See [Dictionary](#dictionary) for where that data comes from. `7za.dll` and the Windows SQLite library `e_sqlite3.dll` are included.
 - End users install those via **Install features**. Local Opus-MT ONNX is placed under `translatemodels/` by hand if needed.
 
 For local development with models already present, run **`bin\Release\net48\`**.

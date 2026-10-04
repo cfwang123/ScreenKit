@@ -16,6 +16,8 @@ This file summarizes **third-party components** that may be used at build time o
 | [PDFtoImage](https://github.com/sungaila/PDFtoImage) | PDF rasterize | MIT (plus Pdfium/Skia natives) |
 | [NAudio](https://github.com/naudio/NAudio) | WASAPI capture | MIT |
 | [SharpCompress](https://github.com/adamhathcock/sharpcompress) | Model archive extraction | MIT |
+| [SharpSevenZip](https://github.com/JeremyAnsel/SharpSevenZip) | Calls `7za.dll` to extract `.7z` | LGPL-3.0-or-later |
+| [7-Zip](https://www.7-zip.org/) `7za.dll` | 7z extraction only (about 400 KB) | LGPL-2.1-or-later; see `License.7za.txt` |
 | [FFmpeg.AutoGen](https://github.com/Ruslan-B/FFmpeg.AutoGen) | FFmpeg P/Invoke | LGPL-3.0-or-later (bindings) |
 | [Vortice.DXGI / Direct3D11](https://github.com/amerkoleci/Vortice.Windows) | DXGI capture | MIT |
 

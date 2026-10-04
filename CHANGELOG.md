@@ -31,6 +31,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- **Help → Install features** can download and install the dictionary. It fetches `dict.7z` from the fixed GitHub release `dict-db` and extracts `dict.db` with the bundled `7za.dll`. That file is not part of the app update package.
 - **Help → Install features → Windows speech** lists `Language.TextToSpeech` packs and the voices Windows reports. Install or remove runs only when this process is an administrator; otherwise the DISM command is shown and can be copied. The speech page lists a new voice after ScreenKit restarts.
 - Dictionary window (**Options → Dictionary**, `hotkey_dict`). Read-only lookup in `dict.db` beside the program for Chinese, English, Japanese, and Korean. **Speak** uses the dictionary speech settings. The database is not in the release archive.
 - Dictionary filter includes Chinese headwords (`dict=zh`). **Speak** uses a Chinese voice for those headwords. List text is read from the entry JSON.
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- **帮助 → 安装功能**可下载并安装词典。从固定的 GitHub Release `dict-db` 取 `dict.7z`，用随程序的 `7za.dll` 解出 `dict.db`。这个文件不进应用更新包。
 - **帮助 → 安装功能 → Windows语音**列出 `Language.TextToSpeech` 功能包和 Windows 报告的发音人。本进程是管理员时才能安装或卸载，否则只显示 DISM 命令并可复制。重启本程序后，语音合成页才会列出新发音人。
 - 词典窗口（**选项 → 词典**，配置键 `hotkey_dict`）。只读查询程序旁的 `dict.db`，支持中文、英语、日语、韩语。**发音**走词典发音设置。词典库不进发布包。
 - 词典筛选增加汉语（`dict=zh`）。汉语词头发音走中文语音。列表释义从词条 JSON 读取。

@@ -197,6 +197,7 @@ static class FeaturePrompt {
 		FeatureKind.DirectMl => "核显 DirectML (onnxdml64)",
 		FeatureKind.OrtCpu => "ONNX Runtime CPU (onnxcpu64)",
 		FeatureKind.FaceInsight => "人脸 InsightFace buffalo_l",
+		FeatureKind.DictDb => "词典 dict.db",
 		_ => k.ToString(),
 	};
 }
