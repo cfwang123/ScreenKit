@@ -247,6 +247,7 @@ public partial class MainWindow {
 
 	/// <summary>
 	/// 按当前引擎枚举可用语言，填入 ettslang（全部 + 各语言）。
+	/// SAPI、Windows 语音只列已有发音人的语言。
 	/// </summary>
 	void rebuildttslangcombo(bool preserve) {
 		var prev = "";
@@ -256,53 +257,20 @@ public partial class MainWindow {
 			prev = TtsLang.Normalize(opt.TtsLangFilter);
 
 		var set = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-		try {
-			if (sapiTts != null) {
-				foreach (var v in sapiTts.Voices) {
-					var lg = TtsLang.Normalize(v.Culture?.TwoLetterISOLanguageName ?? v.Culture?.Name ?? "");
-					if (!string.IsNullOrEmpty(lg)) set.Add(lg);
-				}
+		var eng = currentttsengine();
+		if (eng == TtsEngineKind.Sapi)
+			collectsapilangs(set);
+		else if (eng == TtsEngineKind.WinRt)
+			collectwinrtlangs(set);
+		else if (eng == TtsEngineKind.Edge)
+			collectedgelangs(set);
+		else {
+			collectsherpalangs(set);
+			if (set.Count == 0) {
+				set.Add(TtsLang.Zh);
+				set.Add(TtsLang.En);
+				set.Add(TtsLang.Vi);
 			}
-			// 缓存的 x86 音也可贡献语言筛选项（不在此拉起服务）
-			foreach (var v in sapiX86VoicesCache ?? Enumerable.Empty<SapiVoiceItem>()) {
-				var lg = TtsLang.Normalize(v.Lang);
-				if (!string.IsNullOrEmpty(lg)) set.Add(lg);
-			}
-		}
-		catch { }
-		try {
-			if (winRtTts != null) {
-				foreach (var v in winRtTts.Voices) {
-					var lg = TtsLang.Normalize(v.Lang);
-					if (!string.IsNullOrEmpty(lg)) set.Add(lg);
-				}
-			}
-		}
-		catch { }
-		foreach (var v in edgeVoicesCache ?? Enumerable.Empty<SapiVoiceItem>()) {
-			var lg = TtsLang.Normalize(v.Lang);
-			if (!string.IsNullOrEmpty(lg)) set.Add(lg);
-		}
-		try {
-			foreach (var m in ttsModels ?? Enumerable.Empty<TtsModelInfo>()) {
-				foreach (var p in (m.Lang ?? "").Split(new[] { ',', '/', '|', '+' }, StringSplitOptions.RemoveEmptyEntries)) {
-					var lg = TtsLang.Normalize(p);
-					if (!string.IsNullOrEmpty(lg)) set.Add(lg);
-				}
-				if (m.Speakers == null) continue;
-				foreach (var s in m.Speakers) {
-					var lg = TtsLang.Normalize(s.Lang);
-					if (!string.IsNullOrEmpty(lg)) set.Add(lg);
-				}
-			}
-		}
-		catch { }
-
-		// 无数据时给常见默认
-		if (set.Count == 0) {
-			set.Add(TtsLang.Zh);
-			set.Add(TtsLang.En);
-			set.Add(TtsLang.Vi);
 		}
 
 		var wasLoading = ttsUiLoading;
@@ -323,6 +291,50 @@ public partial class MainWindow {
 		finally {
 			ttsUiLoading = wasLoading;
 		}
+	}
+
+	void collectsapilangs(SortedSet<string> set) {
+		try {
+			if (sapiTts != null) {
+				foreach (var v in sapiTts.Voices)
+					addttslang(set, v.Culture?.Name ?? v.Culture?.TwoLetterISOLanguageName);
+			}
+			foreach (var v in sapiX86VoicesCache ?? Enumerable.Empty<SapiVoiceItem>())
+				addttslang(set, v.Lang);
+		}
+		catch { }
+	}
+
+	void collectwinrtlangs(SortedSet<string> set) {
+		try {
+			if (winRtTts == null) return;
+			foreach (var v in winRtTts.Voices)
+				addttslang(set, string.IsNullOrEmpty(v.Lang) ? v.Culture : v.Lang);
+		}
+		catch { }
+	}
+
+	void collectedgelangs(SortedSet<string> set) {
+		foreach (var v in edgeVoicesCache ?? Enumerable.Empty<SapiVoiceItem>())
+			addttslang(set, v.Lang);
+	}
+
+	void collectsherpalangs(SortedSet<string> set) {
+		try {
+			foreach (var m in ttsModels ?? Enumerable.Empty<TtsModelInfo>()) {
+				foreach (var p in (m.Lang ?? "").Split(new[] { ',', '/', '|', '+' }, StringSplitOptions.RemoveEmptyEntries))
+					addttslang(set, p);
+				if (m.Speakers == null) continue;
+				foreach (var s in m.Speakers)
+					addttslang(set, s.Lang);
+			}
+		}
+		catch { }
+	}
+
+	static void addttslang(SortedSet<string> set, string raw) {
+		var lg = TtsLang.Normalize(raw);
+		if (!string.IsNullOrEmpty(lg)) set.Add(lg);
 	}
 
 	static void selectcombobytag(ComboBox cb, string tag) {
@@ -677,6 +689,7 @@ public partial class MainWindow {
 		}
 		if (currentttsengine() != TtsEngineKind.Sapi) return;
 		var prevKey = ettsvoice.SelectedItem is SapiVoiceItem cur ? cur.Key : null;
+		rebuildttslangcombo(preserve: true);
 		fillsapivoices();
 		if (!string.IsNullOrEmpty(prevKey)) {
 			foreach (var item in ettsvoice.Items) {

@@ -45,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The dictionary hotkey shows the main window and reads the clipboard text. It searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence or a blank clipboard opens the dictionary and does not search. It does not send Ctrl+C.
 - **Help → Install features → Voices**: Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). The language list includes 日文, and the Speech page can load that model. Synthesis passes `lang` (the language filter, otherwise the script of the text). The language filter is read on the UI thread before synthesis starts.
 - Speech language filter lists named languages first (Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, Spanish), then the remaining codes alphabetically. French, German, and Spanish use their names.
+- SAPI and Windows speech language lists show only languages that have an installed voice. Sherpa model languages are not mixed into those two lists.
 - **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded OCR, translation, face, speech-recognition, and speech model by its weight-file size. Unload frees that one model and asks Windows to return idle pages. A model that is in use stays loaded.
 - The main-window status bar shows the loaded ONNX runtime (cpu / gpu / directml), each loaded model with its device and weight-file size, and the process working set. Click the bar or its hint to open Memory.
 - README: removed the Download section. The English README no longer contains Chinese text.
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典热键弹出主窗口并读取剪贴板文字。内容像一个单词才搜索：汉字 1–4 个，英文 1–20 个字母，带假名的日语最多 12 字，韩语 1–8 个音节。句子或空白只打开词典、不搜索。不再向前台发 Ctrl+C。
 - **帮助 → 安装功能 → 发音人**出现日文。日语模型是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`）。语音合成可以加载它，并按界面语言或文本文字选择 `lang`。语言筛选在界面线程读好后再合成，避免点发音时跨线程访问控件。
 - 语音合成的语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。法语、德语、西班牙语显示译名。
+- SAPI 和 Windows 语音的语言下拉只显示有发音人的语言，不再混入 Sherpa 模型的语言。
 - **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的识别、翻译、人脸、语音识别和语音合成模型。选中一项可卸载并请系统收回空闲内存。正在使用的模型不会卸。
 - 主窗口状态栏显示已载入的 ONNX 运行库（cpu / gpu / directml）、每个已载入模型的设备和权重文件大小，以及进程工作集。点击状态栏或这条提示，弹出内存占用。
 - README：去掉下载一节。英文 README 不再出现中文。

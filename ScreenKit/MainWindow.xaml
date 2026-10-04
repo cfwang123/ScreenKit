@@ -565,7 +565,8 @@
 								<TextBlock x:Name="lbttsengine" Grid.Row="0" Grid.Column="0" Text="引擎" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
 								<ComboBox x:Name="ettsengine" Grid.Row="0" Grid.Column="1" Height="32"
-								          VerticalContentAlignment="Center" Margin="0,0,0,8"/>
+								          VerticalContentAlignment="Center" Margin="0,0,0,8"
+								          AutomationProperties.AutomationId="tts.engine"/>
 
 								<TextBlock x:Name="lbttscompute" Grid.Row="0" Grid.Column="3" Text="计算设备" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
