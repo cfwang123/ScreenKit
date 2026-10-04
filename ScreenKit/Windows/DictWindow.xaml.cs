@@ -59,6 +59,7 @@ public partial class DictWindow : UserControl {
 	string curlang = "";
 	Point downpt;
 	bool dragsel;
+	Window hostwin;
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗并填入原文。</summary>
 	public Action<string> OnTranslate;
@@ -125,6 +126,9 @@ public partial class DictWindow : UserControl {
 			e.Handled = true;
 			openselpop();
 		};
+		psel.Opened += (_, _) =>
+			Dispatcher.BeginInvoke(new Action(placepop), DispatcherPriority.Loaded);
+		Loaded += (_, _) => hookhost();
 		PreviewMouseDown += (_, e) => {
 			if (!psel.IsOpen) return;
 			if (e.OriginalSource is DependencyObject d && under(psel.Child, d)) return;
@@ -472,35 +476,86 @@ public partial class DictWindow : UserControl {
 		});
 	}
 
+	Rect selbox() {
+		try {
+			var sel = edetail.Selection;
+			if (sel == null || sel.IsEmpty) return Rect.Empty;
+			var a = sel.Start.GetCharacterRect(LogicalDirection.Forward);
+			var b = sel.End.GetCharacterRect(LogicalDirection.Backward);
+			if (a.IsEmpty && b.IsEmpty) return Rect.Empty;
+			if (a.IsEmpty) return b;
+			if (b.IsEmpty) return a;
+			var top = Math.Min(a.Top, b.Top);
+			var bottom = Math.Max(a.Bottom, b.Bottom);
+			var left = a.Top <= b.Top ? a.Left : b.Left;
+			var right = Math.Max(a.Right, b.Right);
+			return new Rect(left, top, Math.Max(1, right - left), Math.Max(1, bottom - top));
+		}
+		catch { return Rect.Empty; }
+	}
+
+	Size popsize() {
+		var w = 300.0;
+		var h = 72.0;
+		if (psel.Child is FrameworkElement fe) {
+			fe.Measure(new Size(360, 900));
+			if (fe.DesiredSize.Width > 1) w = fe.DesiredSize.Width;
+			if (fe.DesiredSize.Height > 1) h = fe.DesiredSize.Height;
+		}
+		return new Size(w, h);
+	}
+
 	void placepop() {
 		psel.PlacementTarget = this;
 		psel.Placement = PlacementMode.Relative;
-		var rect = new Rect(12, 12, 0, 16);
+		var box = selbox();
+		var view = new Rect(0, 0, Math.Max(1, edetail.ActualWidth), Math.Max(1, edetail.ActualHeight));
+		var vis = Rect.Intersect(box, view);
+		if (vis.IsEmpty) vis = box.IsEmpty ? new Rect(12, 12, 1, 16) : box;
+		Point tl, br;
 		try {
-			if (edetail.Selection != null)
-				rect = edetail.Selection.Start.GetCharacterRect(LogicalDirection.Forward);
+			tl = edetail.TranslatePoint(vis.TopLeft, this);
+			br = edetail.TranslatePoint(vis.BottomRight, this);
 		}
-		catch { }
-		var below = new Point(12, 40);
-		var above = new Point(12, 24);
-		try {
-			below = edetail.TranslatePoint(new Point(rect.Left, rect.Bottom + 4), this);
-			above = edetail.TranslatePoint(new Point(rect.Left, rect.Top), this);
+		catch { return; }
+		var pop = popsize();
+		const double gap = 6;
+		var yBelow = br.Y + gap;
+		var yAbove = tl.Y - pop.Height - gap;
+		var fitBelow = yBelow + pop.Height <= ActualHeight - 4;
+		var fitAbove = yAbove >= 4;
+		double y;
+		if (fitBelow) y = yBelow;
+		else if (fitAbove) y = yAbove;
+		else {
+			var roomBelow = ActualHeight - yBelow;
+			y = roomBelow >= tl.Y ? yBelow : Math.Max(4, yAbove);
 		}
-		catch { }
-		var x = below.X;
-		var y = below.Y;
-		const double popW = 360;
-		const double popH = 280;
-		if (x + popW > ActualWidth - 8) x = ActualWidth - popW - 8;
+		var x = tl.X;
+		if (x + pop.Width > ActualWidth - 8) x = ActualWidth - pop.Width - 8;
 		if (x < 8) x = 8;
-		if (y + popH > ActualHeight - 8) {
-			var up = above.Y - popH - 4;
-			y = up >= 8 ? up : Math.Max(8, ActualHeight - popH - 8);
-		}
-		if (y < 8) y = 8;
+		if (y < 4) y = 4;
 		psel.HorizontalOffset = x;
 		psel.VerticalOffset = y;
+	}
+
+	/// <summary>浮窗在竖直方向是否压住选区。供命令行检查。</summary>
+	internal bool PopOverlapsSel() {
+		if (psel == null || !psel.IsOpen) return false;
+		var box = selbox();
+		if (box.IsEmpty) return false;
+		var view = new Rect(0, 0, Math.Max(1, edetail.ActualWidth), Math.Max(1, edetail.ActualHeight));
+		var vis = Rect.Intersect(box, view);
+		if (vis.IsEmpty) vis = box;
+		Point tl, br;
+		try {
+			tl = edetail.TranslatePoint(vis.TopLeft, this);
+			br = edetail.TranslatePoint(vis.BottomRight, this);
+		}
+		catch { return false; }
+		var top = psel.VerticalOffset;
+		var bot = top + popsize().Height;
+		return bot > tl.Y + 1 && top < br.Y - 1;
 	}
 
 	void showselhits(List<DictHit> hits, bool searching) {
@@ -523,6 +578,25 @@ public partial class DictWindow : UserControl {
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+		if (psel.IsOpen) placepop();
+	}
+
+	void hookhost() {
+		var w = Window.GetWindow(this);
+		if (w == null || ReferenceEquals(w, hostwin)) return;
+		if (hostwin != null) hostwin.Deactivated -= onhostoff;
+		hostwin = w;
+		hostwin.Deactivated += onhostoff;
+	}
+
+	void onhostoff(object sender, EventArgs e) {
+		if (psel == null || !psel.IsOpen) return;
+		var w = hostwin;
+		Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => {
+			if (!psel.IsOpen) return;
+			if (w != null && w.IsActive) return;
+			psel.IsOpen = false;
+		}));
 	}
 
 	void openhit(DictSelRow row) {

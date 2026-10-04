@@ -3199,6 +3199,56 @@ static class Cli {
 			Err("FAIL: 新词典窗口没有查出 hello");
 			return 1;
 		}
+		var laid = false;
+		var t0 = Environment.TickCount;
+		while (Environment.TickCount - t0 < 8000) {
+			pump();
+			if (win.host.edetail.Document != null && win.host.edetail.Document.Blocks.Count > 0) {
+				laid = true;
+				break;
+			}
+		}
+		if (!laid) {
+			try { win.Close(); } catch { }
+			Err("FAIL: 词典详情没有排版");
+			return 3;
+		}
+		var startp = win.host.edetail.Document.ContentStart;
+		var endp = startp;
+		for (var i = 0; i < 240; i++) {
+			var npos = endp.GetNextInsertionPosition(System.Windows.Documents.LogicalDirection.Forward);
+			if (npos == null) break;
+			endp = npos;
+		}
+		win.host.edetail.Selection.Select(startp, endp);
+		typeof(DictWindow).GetMethod("openselpop", BindingFlags.Instance | BindingFlags.NonPublic)
+			.Invoke(win.host, null);
+		for (var i = 0; i < 6; i++) pump();
+		var popOpen = win.host.psel.IsOpen;
+		var overlap = win.host.PopOverlapsSel();
+		Out($"selpop open={popOpen} overlap={overlap} y={win.host.psel.VerticalOffset:0}");
+		if (!popOpen || overlap) {
+			try { win.Close(); } catch { }
+			Err("FAIL: 划词浮窗挡住选中文字");
+			return 4;
+		}
+		var probe = new Window {
+			Width = 240,
+			Height = 140,
+			Title = "dict-pop-off",
+			WindowStartupLocation = WindowStartupLocation.CenterScreen,
+		};
+		probe.Show();
+		probe.Activate();
+		for (var i = 0; i < 8; i++) pump();
+		var hidden = !win.host.psel.IsOpen;
+		Out($"away active={win.IsActive} hidden={hidden}");
+		try { probe.Close(); } catch { }
+		if (!hidden) {
+			try { win.Close(); } catch { }
+			Err("FAIL: 窗口失活后划词浮窗还在");
+			return 5;
+		}
 		var box = win.host.esearch.Text ?? "";
 		DictHostWindow other = null;
 		try {
@@ -3222,13 +3272,17 @@ static class Cli {
 		Out("=== OK：选词搜索与划词词条都打开词典窗口 ===");
 		return 0;
 
+		static void pump() {
+			var frame = new DispatcherFrame();
+			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
+			Dispatcher.PushFrame(frame);
+		}
+
 		static int waithits(DictHostWindow d, int ms) {
 			var start = Environment.TickCount;
 			var hits = 0;
 			while (Environment.TickCount - start < ms) {
-				var frame = new DispatcherFrame();
-				d.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
-				Dispatcher.PushFrame(frame);
+				pump();
 				hits = d.HitCount;
 				if (hits > 0) break;
 			}
@@ -3441,7 +3495,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
-      --test-dict-host  选词搜索打开独立词典窗口并查出 hello；划词词条再开窗口
+      --test-dict-host  选词搜索打开独立词典窗口并查出 hello；划词词条再开窗口；浮窗不挡选区，失活即关
       --test-dict-tts  词典发音缓存保留 1 天，以及语速换算
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
