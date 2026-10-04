@@ -47,7 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Speech language filter lists named languages first (Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, Spanish), then the remaining codes alphabetically. French, German, and Spanish use their names.
 - SAPI and Windows speech language lists show only languages that have an installed voice. Sherpa model languages are not mixed into those two lists.
 - **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded OCR, translation, face, speech-recognition, and speech model by its weight-file size. Unload frees that one model and asks Windows to return idle pages. A model that is in use stays loaded.
-- The main-window status bar shows the loaded ONNX runtime (cpu / gpu / directml), each loaded model with its device and weight-file size, and the process working set. Click the bar to open Memory.
+- The main-window status bar summarizes what is loaded, for example `ONNX GPU loaded, 1 models, 1.73GB total`. The total is the runtime package plus model files. Click the bar to open Memory.
 - README: removed the Download section. The English README no longer contains Chinese text.
 - **Options → Memory** lists the loaded ONNX runtime with the loaded models. Each row has **Unload from memory**, which frees that row, runs a blocking full GC, and compacts the large-object heap. A runtime still mapped in this process stays until restart. A row in use cannot be unloaded.
 - ONNX CPU/GPU runtimes are not loaded at startup. The first OCR, translation, face, speech, or dictionary ONNX use loads the matching runtime. After `onnx_unload_min` idle minutes the sessions unload, then this process drops the native libraries it loaded. A DLL still held by the managed runtime or Sherpa stays mapped until exit. Service mode still warms up and does not unload.
@@ -76,7 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 语音合成的语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。法语、德语、西班牙语显示译名。
 - SAPI 和 Windows 语音的语言下拉只显示有发音人的语言，不再混入 Sherpa 模型的语言。
 - **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的识别、翻译、人脸、语音识别和语音合成模型。选中一项可卸载并请系统收回空闲内存。正在使用的模型不会卸。
-- 主窗口状态栏显示已载入的 ONNX 运行库（cpu / gpu / directml）、每个已载入模型的设备和权重文件大小，以及进程工作集。点击状态栏打开内存占用。
+- 主窗口状态栏改为汇总，例如「已加载ONNX GPU、1个模型 共1.73GB」。合计是运行库和模型文件的大小。点击状态栏打开内存占用。
 - README：去掉下载一节。英文 README 不再出现中文。
 - **选项 → 内存占用**把已载入的 ONNX 运行库和模型列在一起。每行有「从内存卸载」，释放该项并做阻塞式完整 GC、压缩大对象堆。已经映射进本进程的运行库要重启后才从内存里消失。正在使用的项不能卸。
 - ONNX 的 CPU/GPU 运行库不再在启动时加载。第一次识别、翻译、人脸、语音或词典里的 ONNX 才会加载。空闲达到 `onnx_unload_min` 分钟后先卸会话，再释放本程序加载的原生库。托管运行时或 Sherpa 仍占用的 DLL 会留到退出。服务模式仍会预热，并且不按空闲卸载。

@@ -32,16 +32,45 @@ public partial class MainWindow {
 
 	string statusbartext() {
 		var snap = MemSnapNow();
-		var parts = new List<string>();
-		var flavor = flavortag(CudaBootstrap.LoadedOrtFlavor());
-		parts.Add(flavor.Length == 0 ? Loc.T("stbar.ort.none") : Loc.T("stbar.ort", flavor));
+		var flavor = flavorname(CudaBootstrap.LoadedOrtFlavor());
+		var models = 0;
+		long sum = 0;
 		foreach (var it in snap.Items) {
-			if (it.Id == "ort") continue;
-			var eng = Loc.T("mem.eng." + (it.Engine ?? ""));
-			parts.Add(Loc.T("stbar.item", eng, devtag(it.Device), FeatureInstaller.FormatBytes(it.Bytes)));
+			sum += it.Bytes;
+			if (it.Id != "ort") models++;
 		}
-		parts.Add(Loc.T("stbar.ws", FeatureInstaller.FormatBytes(snap.WorkingSet)));
-		return string.Join("    ·    ", parts);
+		var size = stbarsiz(sum);
+		if (flavor.Length == 0 && models == 0) return Loc.T("stbar.none");
+		if (flavor.Length == 0) return Loc.T("stbar.models", models, size);
+		if (models == 0) return Loc.T("stbar.ortonly", flavor, size);
+		return Loc.T("stbar.sum", flavor, models, size);
+	}
+
+	static string flavorname(string flavor) => flavor switch {
+		"cuda" => "GPU",
+		"dml" => "DML",
+		"cpu" => "CPU",
+		_ => "",
+	};
+
+	static string stbarsiz(long bytes) {
+		if (bytes < 0) bytes = 0;
+		const long KB = 1024;
+		const long MB = 1024 * 1024;
+		const long GB = 1024L * 1024 * 1024;
+		if (bytes >= GB) {
+			var hundredths = (bytes * 100 + GB / 2) / GB;
+			return (hundredths / 100) + "." + (hundredths % 100).ToString("00") + "GB";
+		}
+		if (bytes >= MB) {
+			var tenths = (bytes * 10 + MB / 2) / MB;
+			var whole = tenths / 10;
+			var frac = tenths % 10;
+			if (whole >= 100 || frac == 0) return whole + "MB";
+			return whole + "." + frac + "MB";
+		}
+		if (bytes >= KB) return ((bytes + KB / 2) / KB) + "KB";
+		return bytes + "B";
 	}
 
 	static string flavortag(string flavor) => flavor switch {
@@ -50,15 +79,6 @@ public partial class MainWindow {
 		"cpu" => "cpu",
 		_ => "",
 	};
-
-	static string devtag(string device) {
-		var d = (device ?? "").Trim();
-		var l = d.ToLowerInvariant();
-		if (l.Contains("dml") || l.Contains("directml") || d.Contains("核显")) return "dml";
-		if (l.Contains("cuda") || l.Contains("gpu") || l.Contains("nvidia")) return "gpu";
-		if (d.Length == 0 || l.Contains("cpu")) return "cpu";
-		return d;
-	}
 
 	internal MemSnap MemSnapNow() {
 		var snap = MemUsage.Read();

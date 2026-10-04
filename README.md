@@ -167,7 +167,7 @@ Optional env vars for local full libraries (do not commit secrets/paths):
 
 ## Configuration
 
-Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**. **Options → Memory** shows process memory and lists each loaded model and the ONNX runtime if one is loaded. Each row can unload that item from memory and forces a full GC. The runtime loads on first use and unloads after the idle timeout. The status bar shows loaded engines and memory. Click the bar to open that window.
+Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Speech, LLM, Translate, Capture, API. Main-tab visibility checkboxes are under **General**. **Options → Memory** shows process memory and lists each loaded model and the ONNX runtime if one is loaded. Each row can unload that item from memory and forces a full GC. The runtime loads on first use and unloads after the idle timeout. The status bar summarizes the loaded ONNX runtime and model count with their total file size. Click the bar to open that window.
 
 | Section | Keys |
 |---------|------|
