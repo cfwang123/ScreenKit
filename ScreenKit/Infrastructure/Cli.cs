@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows.Threading;
 using System.IO;
 using System.Net;
@@ -3179,26 +3180,74 @@ static class Cli {
 
 	static int testdicthost() {
 		Out("=== 词典新窗口 --test-dict-host ===");
-		var win = new DictHostWindow("hello", () => new OcrOptions(), _ => { });
-		win.Show();
-		var start = Environment.TickCount;
-		var n = 0;
-		while (Environment.TickCount - start < 8000) {
-			var frame = new DispatcherFrame();
-			win.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
-			Dispatcher.PushFrame(frame);
-			n = win.HitCount;
-			if (n > 0) break;
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		DictHostWindow win = null;
+		try {
+			win = new DictHostWindow("hello", () => new OcrOptions(), _ => { });
+			win.Show();
 		}
+		catch (Exception ex) {
+			Out("show " + ex);
+			return 1;
+		}
+		var n = waithits(win, 8000);
 		var title = win.Title ?? "";
 		Out($"title={title} hits={n}");
-		try { win.Close(); } catch { }
 		if (n <= 0 || title.IndexOf("hello", StringComparison.OrdinalIgnoreCase) < 0) {
+			try { win.Close(); } catch { }
 			Err("FAIL: 新词典窗口没有查出 hello");
 			return 1;
 		}
-		Out("=== OK：选词搜索打开词典窗口 ===");
+		var box = win.host.esearch.Text ?? "";
+		DictHostWindow other = null;
+		try {
+			typeof(DictWindow).GetMethod("openhit", BindingFlags.Instance | BindingFlags.NonPublic)
+				.Invoke(win.host, new object[] { new DictSelRow { Word = "world", Id = 0 } });
+			other = otherdict(win);
+		}
+		catch (Exception ex) {
+			Out("openhit " + ex.Message);
+		}
+		var n2 = other == null ? 0 : waithits(other, 8000);
+		var title2 = other == null ? "" : (other.Title ?? "");
+		var stayed = (win.host.esearch.Text ?? "") == box && box.IndexOf("hello", StringComparison.OrdinalIgnoreCase) >= 0;
+		Out($"sel=world title2={title2} hits2={n2} stayed={stayed}");
+		try { if (other != null) other.Close(); } catch { }
+		try { win.Close(); } catch { }
+		if (other == null || n2 <= 0 || !stayed || title2.IndexOf("world", StringComparison.OrdinalIgnoreCase) < 0) {
+			Err("FAIL: 划词词条没有在新窗口查询");
+			return 2;
+		}
+		Out("=== OK：选词搜索与划词词条都打开词典窗口 ===");
 		return 0;
+
+		static int waithits(DictHostWindow d, int ms) {
+			var start = Environment.TickCount;
+			var hits = 0;
+			while (Environment.TickCount - start < ms) {
+				var frame = new DispatcherFrame();
+				d.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
+				Dispatcher.PushFrame(frame);
+				hits = d.HitCount;
+				if (hits > 0) break;
+			}
+			return hits;
+		}
+
+		static DictHostWindow otherdict(params DictHostWindow[] skip) {
+			foreach (Window w in Application.Current.Windows) {
+				if (w is not DictHostWindow d) continue;
+				var known = false;
+				if (skip != null) {
+					foreach (var s in skip) {
+						if (ReferenceEquals(s, d)) known = true;
+					}
+				}
+				if (!known) return d;
+			}
+			return null;
+		}
 	}
 
 	static int testdictword() {
@@ -3392,7 +3441,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
-      --test-dict-host  选词搜索打开独立词典窗口并查出 hello
+      --test-dict-host  选词搜索打开独立词典窗口并查出 hello；划词词条再开窗口
       --test-dict-tts  词典发音缓存保留 1 天，以及语速换算
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）

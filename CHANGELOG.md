@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Dictionary: a matching headword in the selection popup, and a word link in the entry, open a new dictionary window for that word. The page you were reading stays.
 - Dictionary: selecting text and choosing Search opens a new window with the same dictionary page and looks up that text. The main-window tab is unchanged.
 - **Options → Memory**: Unload on the ONNX GPU row releases the CUDA libraries this process loaded, including the extra references a Sherpa GPU voice keeps. The row stays only when those libraries are still mapped. The result shows working set and private bytes. Switching that voice to CPU first is not required.
 - **Help → Install features** renames the Voices tab to **ONNX speech models**.
@@ -71,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 词典：划词浮窗里点匹配词条，或详情里点词语链接，都再开一个词典窗口查询该词。正在看的这一页不变。
 - 词典：选中文字后点「搜索」，用主窗口词典页同一套界面再开一个窗口，并查询这段文字。主窗口里的词典页不变。
 - **选项 → 内存占用**：ONNX GPU 这一行的「从内存卸载」会释放本进程加载的 CUDA 库，包括 Sherpa GPU 发音人多占的引用。只有这些库仍映射着时才留在列表里。结果同时显示工作集和专用内存。不必先把发音人改成 CPU。
 - **帮助 → 安装功能**里原来的「发音人」页改名为 **onnx语音模型**。

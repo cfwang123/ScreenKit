@@ -8,7 +8,7 @@ namespace ScreenKit;
 public partial class DictHostWindow : Window {
 	static int slot;
 
-	public DictHostWindow(string query, Func<OcrOptions> options, Action<string> onTranslate) {
+	public DictHostWindow(string query, Func<OcrOptions> options, Action<string> onTranslate, long id = 0) {
 		InitializeComponent();
 		var n = slot++;
 		host.Options = options;
@@ -22,7 +22,7 @@ public partial class DictHostWindow : Window {
 			Left += 28 * (n % 8);
 			Top += 28 * (n % 8);
 		};
-		Loaded += (_, _) => host.SearchText(query);
+		Loaded += (_, _) => host.SearchText(query, id);
 		Closed += (_, _) => host.Shutdown();
 	}
 

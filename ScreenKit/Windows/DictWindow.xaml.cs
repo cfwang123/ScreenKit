@@ -168,11 +168,11 @@ public partial class DictWindow : UserControl {
 
 	internal int HitCount => lhits.Items.Count;
 
-	/// <summary>把外部选区填进搜索框并查询。过长只取前 80 字。</summary>
-	public void SearchText(string q) {
+	/// <summary>把外部选区填进搜索框并查询。过长只取前 80 字。id 不为 0 时选中该词条。</summary>
+	public void SearchText(string q, long id = 0) {
 		q = oneline(q);
 		if (q.Length > 80) q = q.Substring(0, 80).Trim();
-		searchword(q);
+		searchword(q, id);
 	}
 
 	public void ApplyLang() => applylang();
@@ -528,29 +528,22 @@ public partial class DictWindow : UserControl {
 	void openhit(DictSelRow row) {
 		if (row == null || row.Word.Length == 0) return;
 		psel.IsOpen = false;
-		wantid = row.Id;
-		if ((esearch.Text ?? "") == row.Word) runsearch();
-		else {
-			suppress = true;
-			esearch.Text = row.Word;
-			suppress = false;
-			queuesearch();
-		}
+		opensearch(row.Word, row.Id);
 	}
 
-	void opensearch(string q) {
+	void opensearch(string q, long id = 0) {
 		q = oneline(q);
 		if (q.Length == 0) return;
 		if (q.Length > 80) q = q.Substring(0, 80).Trim();
-		var win = new DictHostWindow(q, Options, OnTranslate);
+		var win = new DictHostWindow(q, Options, OnTranslate, id);
 		win.Show();
 		win.Activate();
 	}
 
-	void searchword(string q) {
+	void searchword(string q, long id = 0) {
 		q = oneline(q);
 		if (q.Length == 0) return;
-		wantid = 0;
+		wantid = id;
 		if ((esearch.Text ?? "") == q) runsearch();
 		else {
 			suppress = true;
@@ -653,7 +646,7 @@ public partial class DictWindow : UserControl {
 			TextDecorations = null,
 		};
 		var q = query ?? label;
-		link.Click += (_, _) => searchword(q);
+		link.Click += (_, _) => opensearch(q);
 		p.Inlines.Add(link);
 	}
 
