@@ -2,9 +2,13 @@ namespace ScreenKit;
 
 public partial class MainWindow {
 	System.Windows.Threading.DispatcherTimer stbarTimer;
+	static string ortFlavorCached = "";
+	static long ortBytesCached;
+	static int ortBytesAt;
+	static bool ortBytesOk;
 
 	void initstbar() {
-		// 系统 ToolTip 会吃掉第一次点击。提示就写在状态栏上，按下即打开。
+		// 系统 ToolTip 会吃掉第一次点击。按下即打开内存窗口。
 		bstbar.ToolTip = null;
 		ToolTipService.SetIsEnabled(bstbar, false);
 		bstbar.Click += (_, _) => openmem();
@@ -32,11 +36,11 @@ public partial class MainWindow {
 		var flavor = flavortag(CudaBootstrap.LoadedOrtFlavor());
 		parts.Add(flavor.Length == 0 ? Loc.T("stbar.ort.none") : Loc.T("stbar.ort", flavor));
 		foreach (var it in snap.Items) {
+			if (it.Id == "ort") continue;
 			var eng = Loc.T("mem.eng." + (it.Engine ?? ""));
 			parts.Add(Loc.T("stbar.item", eng, devtag(it.Device), FeatureInstaller.FormatBytes(it.Bytes)));
 		}
 		parts.Add(Loc.T("stbar.ws", FeatureInstaller.FormatBytes(snap.WorkingSet)));
-		parts.Add(Loc.T("stbar.tip"));
 		return string.Join("    ·    ", parts);
 	}
 
@@ -101,7 +105,32 @@ public partial class MainWindow {
 		}
 		catch { }
 		try { httpServer?.CopyFaceMem(items); } catch { }
+		addortruntime(items);
 		return snap;
+	}
+
+	static void addortruntime(List<MemHold> items) {
+		var flavor = CudaBootstrap.LoadedOrtFlavor();
+		if (string.IsNullOrEmpty(flavor)) return;
+		var name = flavor == "dml" ? "DirectML" : flavor == "cpu" ? "CPU" : "CUDA";
+		items.Insert(0, hold("ort", "ort", name, flavortag(flavor), ortpackagesize(flavor)));
+	}
+
+	// 状态栏每 2 秒读一次。CUDA 目录约 1.5 GB，量体积做 30 秒缓存。
+	static long ortpackagesize(string flavor) {
+		var now = Environment.TickCount;
+		if (ortBytesOk && flavor == ortFlavorCached && now - ortBytesAt < 30000)
+			return ortBytesCached;
+		var kind = flavor == "dml" ? FeatureKind.DirectMl
+			: flavor == "cpu" ? FeatureKind.OrtCpu
+			: FeatureKind.CudaGpu;
+		var info = new FeatureItem { Kind = kind };
+		FeatureInstaller.RefreshState(info);
+		ortFlavorCached = flavor;
+		ortBytesCached = info.SizeBytes;
+		ortBytesAt = now;
+		ortBytesOk = true;
+		return ortBytesCached;
 	}
 
 	static MemHold hold(string id, string engine, string name, string device, long bytes) => new() {
@@ -114,21 +143,26 @@ public partial class MainWindow {
 
 	/// <summary>空字符串表示已卸。返回 busy 表示这项正在使用。</summary>
 	internal string UnloadMem(string id) {
-		var r = unloadmem(id, trim: true);
+		string r;
+		if (id == "ort")
+			r = unloadort();
+		else
+			r = unloadmem(id, trim: true);
 		kickstbar();
 		return r;
 	}
 
-	/// <summary>卸掉当前能卸的模型并强制回收。返回 busy 表示有一项正在使用、没有全卸。</summary>
-	internal string UnloadAllMem() {
+	string unloadort() {
 		var snap = MemSnapNow();
 		var busy = false;
 		foreach (var it in snap.Items) {
+			if (it.Id == "ort") continue;
 			if (unloadmem(it.Id, trim: false) == "busy") busy = true;
 		}
 		MemUsage.Trim();
-		kickstbar();
-		return busy ? "busy" : "";
+		if (busy) return "busy";
+		if (!string.IsNullOrEmpty(CudaBootstrap.LoadedOrtFlavor())) return "resident";
+		return "";
 	}
 
 	string unloadmem(string id, bool trim) {

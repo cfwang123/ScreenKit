@@ -47,9 +47,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Speech language filter lists named languages first (Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, Spanish), then the remaining codes alphabetically. French, German, and Spanish use their names.
 - SAPI and Windows speech language lists show only languages that have an installed voice. Sherpa model languages are not mixed into those two lists.
 - **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded OCR, translation, face, speech-recognition, and speech model by its weight-file size. Unload frees that one model and asks Windows to return idle pages. A model that is in use stays loaded.
-- The main-window status bar shows the loaded ONNX runtime (cpu / gpu / directml), each loaded model with its device and weight-file size, and the process working set. Click the bar or its hint to open Memory.
+- The main-window status bar shows the loaded ONNX runtime (cpu / gpu / directml), each loaded model with its device and weight-file size, and the process working set. Click the bar to open Memory.
 - README: removed the Download section. The English README no longer contains Chinese text.
-- **Options → Memory** can uninstall the ONNX CPU, CUDA, or DirectML runtime that is on disk. Unload runs a blocking full GC, compacts the large-object heap, then asks Windows to return idle pages. A runtime still mapped in this process stays in memory until restart. A model that is in use is not unloaded, and its runtime is not deleted.
+- **Options → Memory** lists the loaded ONNX runtime with the loaded models. Each row has **Unload from memory**, which frees that row, runs a blocking full GC, and compacts the large-object heap. A runtime still mapped in this process stays until restart. A row in use cannot be unloaded.
 
 #### Fixed
 
@@ -75,9 +75,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 语音合成的语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。法语、德语、西班牙语显示译名。
 - SAPI 和 Windows 语音的语言下拉只显示有发音人的语言，不再混入 Sherpa 模型的语言。
 - **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的识别、翻译、人脸、语音识别和语音合成模型。选中一项可卸载并请系统收回空闲内存。正在使用的模型不会卸。
-- 主窗口状态栏显示已载入的 ONNX 运行库（cpu / gpu / directml）、每个已载入模型的设备和权重文件大小，以及进程工作集。点击状态栏或这条提示，弹出内存占用。
+- 主窗口状态栏显示已载入的 ONNX 运行库（cpu / gpu / directml）、每个已载入模型的设备和权重文件大小，以及进程工作集。点击状态栏打开内存占用。
 - README：去掉下载一节。英文 README 不再出现中文。
-- **选项 → 内存占用**可以卸载本机已安装的 ONNX CPU、CUDA 或 DirectML 运行库。卸载会做阻塞式完整 GC、压缩大对象堆，再请系统收回空闲工作集。已经映射进本进程的运行库要重启后才从内存里消失。正在使用的模型不会卸，对应的运行库也不会删。
+- **选项 → 内存占用**把已载入的 ONNX 运行库和模型列在一起。每行有「从内存卸载」，释放该项并做阻塞式完整 GC、压缩大对象堆。已经映射进本进程的运行库要重启后才从内存里消失。正在使用的项不能卸。
 
 #### 修复
 

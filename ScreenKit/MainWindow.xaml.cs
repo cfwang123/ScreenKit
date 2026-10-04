@@ -3580,7 +3580,7 @@ public partial class MainWindow : Window {
 	}
 
 	void openmem() {
-		opentoolwin(ref memWin, () => new MemWindow(MemSnapNow, UnloadMem, UnloadAllMem), "menu.mem");
+		opentoolwin(ref memWin, () => new MemWindow(MemSnapNow, UnloadMem), "menu.mem");
 		try {
 			if (memWin == null) return;
 			if (!memWin.IsVisible) memWin.Show();

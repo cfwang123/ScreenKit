@@ -13,6 +13,7 @@ sealed class MemHold {
 	public long Bytes { get; set; }
 	public string EngineText { get; set; } = "";
 	public string BytesText { get; set; } = "";
+	public string ActionText { get; set; } = "";
 }
 
 sealed class MemSnap {
