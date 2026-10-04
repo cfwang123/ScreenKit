@@ -9,8 +9,8 @@ using System.Windows.Media;
 namespace ScreenKit;
 
 /// <summary>
-/// 安装功能：功能选择（确认即安装/卸载）+ 发音人（TTS）。
-/// 发音人单独一页，不在功能选择树里处理。
+/// 安装功能：功能选择（确认即安装/卸载）、onnx 语音模型、Windows 语音。
+/// onnx 语音模型与 Windows 语音不在功能选择树里处理。
 /// </summary>
 partial class InstallFeaturesWindow : Window {
 	// 状态徽章色（未安装用强对比，避免与「已安装」混淆）
@@ -46,7 +46,7 @@ partial class InstallFeaturesWindow : Window {
 
 	/// <param name="firstRun">首次启动：默认不勾选。</param>
 	/// <param name="preferSelect">使用前提示时预勾选的组件。</param>
-	/// <param name="openTtsTab">打开时切到发音人 Tab。</param>
+	/// <param name="openTtsTab">打开时切到 onnx语音模型 Tab。</param>
 	public InstallFeaturesWindow(bool firstRun = false, FeatureKind[] preferSelect = null, bool openTtsTab = false) {
 		this.firstRun = firstRun;
 		this.preferSelect = preferSelect;
@@ -68,8 +68,14 @@ partial class InstallFeaturesWindow : Window {
 		etree.AddHandler(CheckBox.PreviewMouseLeftButtonDownEvent,
 			new MouseButtonEventHandler(onpickcheckdown), true);
 		etree.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(onpickclick), true);
-		binstall.Click += async (_, _) => await runinstall();
-		bdelete.Click += async (_, _) => await rundelete();
+		binstall.Click += async (_, _) => {
+			if (tabmain.SelectedItem == tabwin) await runwin(true);
+			else await runinstall();
+		};
+		bdelete.Click += async (_, _) => {
+			if (tabmain.SelectedItem == tabwin) await runwin(false);
+			else await rundelete();
+		};
 		bcancel.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
 		};
@@ -97,12 +103,23 @@ partial class InstallFeaturesWindow : Window {
 			// 仅在用户点表头时清空；避免筛选重建误触
 			if (!ttsUiLoading) setttscheckall(false);
 		};
+		bwinrefresh.Click += async (_, _) => await loadwin(true);
+		bwincopy.Click += (_, _) => copywincmd();
+		cwinonly.Checked += (_, _) => applywinfilter();
+		cwinonly.Unchecked += (_, _) => applywinfilter();
+		cwinheader.Checked += (_, _) => setwincheck(true);
+		cwinheader.Unchecked += (_, _) => {
+			if (!winUiLoading) setwincheck(false);
+		};
 		tabmain.SelectionChanged += async (_, _) => {
 			applytabbuttons();
 			if (tabmain.SelectedItem == tabtts && !ttsLoaded && !busy)
 				await loadtts(force: false);
+			if (tabmain.SelectedItem == tabwin && !winLoaded && !busy)
+				await loadwin(false);
 		};
 		lvtss.ItemsSource = ttsRows;
+		lvwin.ItemsSource = winRows;
 		Loaded += async (_, _) => {
 			rebuildpick();
 			loadfeat();
@@ -110,10 +127,13 @@ partial class InstallFeaturesWindow : Window {
 			_ = loadtts(force: false);
 		};
 		Closing += (_, e) => {
-			if (!busy) return;
-			e.Cancel = true;
-			MessageBox.Show(this, Loc.T("inst.busy"), Title,
-				MessageBoxButton.OK, MessageBoxImage.Information);
+			if (busy) {
+				e.Cancel = true;
+				MessageBox.Show(this, Loc.T("inst.busy"), Title,
+					MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
+			try { cts?.Cancel(); } catch { }
 		};
 	}
 
@@ -124,6 +144,7 @@ partial class InstallFeaturesWindow : Window {
 		lbtitle.Text = Title;
 		tabpick.Header = Loc.T("inst.tab.pick");
 		tabtts.Header = Loc.T("inst.tab.tts");
+		tabwin.Header = Loc.T("inst.tab.win");
 		lbpickhint.Text = Loc.T(firstRun ? "inst.pick.hint.first" : "inst.pick.hint");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
@@ -136,6 +157,12 @@ partial class InstallFeaturesWindow : Window {
 		cttssupported.ToolTip = Loc.T("inst.tts.onlysupported.tip");
 		bttsrefresh.Content = Loc.T("inst.tts.refresh");
 		cttsheader.ToolTip = Loc.T("inst.tts.selectall");
+		lbwinhint.Text = Loc.T("inst.win.hint");
+		cwinonly.Content = Loc.T("inst.win.only");
+		bwinrefresh.Content = Loc.T("inst.win.refresh");
+		bwincopy.Content = Loc.T("inst.win.copy");
+		cwinheader.ToolTip = Loc.T("inst.tts.selectall");
+		lbwinadmin.Text = WinTtsPack.IsAdmin() ? Loc.T("inst.win.admin") : Loc.T("inst.win.user");
 		bmissing.Content = Loc.T("inst.sel.missing");
 		bmissing.ToolTip = Loc.T("inst.sel.missing.tip");
 		bnone.Content = Loc.T("inst.sel.none");
@@ -152,18 +179,26 @@ partial class InstallFeaturesWindow : Window {
 			gv.Columns[4].Header = Loc.T("inst.col.size");
 			gv.Columns[5].Header = Loc.T("inst.col.state");
 		}
+		if (lvwin.View is GridView gvwin && gvwin.Columns.Count >= 5) {
+			gvwin.Columns[1].Header = Loc.T("inst.win.col.lang");
+			gvwin.Columns[2].Header = Loc.T("inst.win.col.voice");
+			gvwin.Columns[3].Header = Loc.T("inst.win.col.state");
+			gvwin.Columns[4].Header = Loc.T("inst.win.col.pack");
+		}
 		if (string.IsNullOrWhiteSpace(lbstatus.Text) || lbstatus.Text == "就绪" || lbstatus.Text == Loc.T("ready"))
 			lbstatus.Text = Loc.T("ready");
 	}
 
 	void applytabbuttons() {
-		var onTts = tabmain.SelectedItem == tabtts;
-		binstall.IsEnabled = !busy && onTts;
-		bdelete.IsEnabled = !busy && onTts;
+		var onPack = tabmain.SelectedItem == tabtts || tabmain.SelectedItem == tabwin;
+		var ready = !busy && !winQuerying;
+		binstall.IsEnabled = ready && onPack;
+		bdelete.IsEnabled = ready && onPack;
 		bconfirm.IsEnabled = !busy;
 		breset.IsEnabled = !busy;
-		binstall.IsDefault = onTts && !busy;
-		bconfirm.IsDefault = !onTts && !busy;
+		bcancel.IsEnabled = busy || winQuerying;
+		binstall.IsDefault = ready && onPack;
+		bconfirm.IsDefault = !onPack && ready;
 	}
 
 	// ───────── 功能选择 Tab ─────────
@@ -403,6 +438,12 @@ partial class InstallFeaturesWindow : Window {
 				r.Notify();
 			}
 		}
+		else if (tabmain.SelectedItem == tabwin) {
+			winUiLoading = true;
+			foreach (var r in winRows) r.Selected = r.State != WinPackState.Installed;
+			winUiLoading = false;
+			refreshwincmd();
+		}
 		else {
 			FeaturePick.SelectMissing(pickRoots);
 			updatepicksum();
@@ -414,6 +455,10 @@ partial class InstallFeaturesWindow : Window {
 		if (tabmain.SelectedItem == tabtts) {
 			setttscheckall(on);
 			cttsheader.IsChecked = on;
+		}
+		else if (tabmain.SelectedItem == tabwin) {
+			setwincheck(on);
+			cwinheader.IsChecked = on;
 		}
 		else {
 			FeaturePick.SelectAll(pickRoots, on);
@@ -443,7 +488,6 @@ partial class InstallFeaturesWindow : Window {
 
 	void setbusy(bool on) {
 		busy = on;
-		bcancel.IsEnabled = on;
 		bmissing.IsEnabled = !on;
 		bnone.IsEnabled = !on;
 		ball.IsEnabled = !on;
@@ -453,6 +497,10 @@ partial class InstallFeaturesWindow : Window {
 		cttssupported.IsEnabled = !on;
 		etree.IsEnabled = !on;
 		lvtss.IsEnabled = !on;
+		lvwin.IsEnabled = !on;
+		bwinrefresh.IsEnabled = !on;
+		cwinonly.IsEnabled = !on;
+		cwinheader.IsEnabled = !on;
 		applytabbuttons();
 	}
 
