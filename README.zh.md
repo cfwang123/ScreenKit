@@ -16,12 +16,11 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 4. [运行环境](#运行环境)
 5. [使用说明](#使用说明)
 6. [安装功能](#安装功能)
-7. [配置](#配置)
-8. [HTTP API](#http-api简述)
-9. [CLI](#cli简述)
-10. [x86host](#x86host仅-32-位-sapi)
-11. [从源码编译](#从源码编译)
-12. [许可证](#许可证)
+7. [HTTP API](#http-api简述)
+8. [CLI](#cli简述)
+9. [x86host](#x86host仅-32-位-sapi)
+10. [从源码编译](#从源码编译)
+11. [许可证](#许可证)
 
 ## 截图
 
@@ -194,158 +193,6 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 |------|------|
 | `WPF_OCR_CUDA_LIB` | 完整 CUDA / onnxgpu64 DLL 目录 |
 | `WPF_OCR_FFMPEG_LIB` | FFmpeg 4.4 shared DLL 目录 |
-
-## 配置
-
-设置保存在 exe 旁 `config.toml`（**选项 → 参数设置** / **录屏选项**）。参数设置按 Tab 分组：常规、识别、热键、词典、语音、LLM接口、翻译、截图、接口。「常规」里有主界面 Tab 显示。模块开关在 `config.toml` 的 `mod_*`。「接口」可分别关闭各 HTTP 路径。**选项 → 内存占用**可查看进程内存。列表含已加载的模型和 ONNX 运行库，每行可从内存卸载并强制回收托管内存。卸 ONNX 这一行时，同时释放本进程加载的 CUDA、CPU 或 DirectML 原生库，Sherpa 正在用 GPU 发音人时也可以卸。运行库第一次用到才加载，空闲超时后卸载。窗口底部状态栏汇总已加载的 ONNX、模型个数和文件合计大小，点击状态栏打开该窗口。**帮助 → 诊断** 列出 CUDA、DirectML、原生库、路径和显示器 DPI。已就绪显示绿色 **正常**，没开的可选项显示 **未启用**，异常显示红字。
-
-| 段落 | 主要内容 |
-|------|----------|
-| `[ocr]` | 模型包、设备（`Cpu` / `Gpu` / `IntelGpu`）、检测阈值 |
-| `[ui]` | 热键、托盘、`ui_lang`、`mod_*`、`tab_*_visible`、`update_check_days`、`http_proxy`、`capture_log`、`llm_log`、`screenshot_keep_days`、`screenshot_short`、`imgconv_*` |
-| `[http]` | OCR API（`http_enabled`、`http_ocr` 等模块开关、`http_lan`、端口 `1224`）、服务模式、`onnx_unload_min` |
-| `[sendfile]` | 局域网文件传输端口、显示名、网页登录密码、已配对设备 |
-| `[pdf]` | 不可见文字层、光栅 DPI |
-| `[asr]` | 听写/实时字幕模式、润色、分句、`asr_llm` |
-| `[[llm]]` | OpenAI 兼容接口（`name` / `url` / `key` / `model` / `think`） |
-| `[translate]` | 本地 ONNX 设备、`translate_llm`、`translate_llm_batch` |
-| `[record]` / `[gif_record]` | 编码、CRF、音频、鼠标叠加 |
-
-勿将含本机路径或隐私偏好的 `config.toml` 提交到公开仓库。
-
-<details>
-<summary>示例 <code>config.toml</code></summary>
-
-```toml
-[ocr]
-model_pack = "rapid-ch"
-model_variant = "简体中文 mobile"
-device = "Cpu"          # Cpu | Gpu | IntelGpu
-det_limit = 960
-det_thresh = 0.3
-det_box_thresh = 0.5
-use_cls = true
-
-[ui]
-hotkey = "Ctrl+Alt+O"
-hotkey_snap = "Ctrl+Alt+Q"
-hotkey_snap_ocr = "Ctrl+Alt+W"
-# hotkey_snap_copy = "Ctrl+Alt+P"  # 切换截图复制：图片 / 文件 / 路径
-# hotkey_dict = ""                  # 词典页；留空=不注册。剪贴板像单词才搜索。例："Ctrl+Alt+D"
-# dict_tts_zh_engine = "auto"       # auto | onnx | sapi | winrt | edge；en / ja / ko 同样
-# dict_tts_zh_rate = 1.0            # 0.5–2。发音缓存 tmp/voice，保留 1 天
-# dict_tts_zh_sapi = ""             # 本地 SAPI 发音人；留空=自动
-# dict_tts_zh_edge = "zh-CN-XiaoxiaoNeural"
-# dict_tts_en_edge = "en-US-AriaNeural"
-# dict_tts_ja_edge = "ja-JP-NanamiNeural"
-# dict_tts_ko_edge = "ko-KR-SunHiNeural"
-minimize_to_tray = true
-capture_log = false
-ui_lang = "zh"
-mod_ocr = true                  # false 隐藏对应页并停用热键；默认 true
-mod_tts = true
-mod_asr = true
-mod_translate = true
-mod_chat = true
-mod_face = true
-mod_dict = true
-tab_ocr_visible = true          # 只隐藏入口，热键仍可用
-tab_tts_visible = true
-tab_asr_visible = true
-tab_chat_visible = true
-tab_translate_visible = true
-tab_face_visible = true
-tab_http_visible = true
-tab_sendfile_visible = true
-tab_dict_visible = true          # 主窗口词典页；默认显示
-update_check_days = 7
-screenshot_keep_days = 3
-screenshot_short = false        # 限制较短边（超过则等比缩小，不放大）
-screenshot_short_px = 1080      # 16–16384
-# http_proxy = false
-# http_proxy_addr = "127.0.0.1:7897"
-
-[http]
-http_enabled = true
-http_ocr = true                 # false 时该路径返回 810；默认 true
-http_tts = true
-http_asr = true
-http_translate = true
-http_chat = true
-http_face = true
-http_lan = true                 # false 时只监听 127.0.0.1
-http_port = 1224
-service_mode = false            # 常驻预热；开启时不按空闲卸载
-onnx_unload_min = 5             # 第一次用到才加载 ONNX；空闲 N 分钟后卸载会话和运行库；0=不自动卸载
-
-[sendfile]
-sendfile_enabled = true
-# 文件传输 HTTP 与 http_port 共用（1224）
-sendfile_udp_port = 17531
-sendfile_name = ""
-sendfile_web_pass = ""          # 网页管理登录密码；空则启动时自动生成
-photo_fmt = "jpg"               # 手机 App 与网页拍照：jpg | png
-photo_jpg_quality = 60          # 1–100
-photo_limit = true              # 限制较短边（超过则等比缩小，不放大）
-photo_max_px = 2000             # 64–16000
-
-[pdf]
-pdf_invisible_text = true
-pdf_dpi = 150
-
-[record]
-record_codec = "x264"           # x264 | x265 | av1 | mf（mjpeg 读入后改为 mf）
-record_fps = 24
-record_crf = 28                 # 仅 x264/x265，0–51
-record_av1_crf = 56             # 仅 AV1，0–63
-record_audio = true
-record_audio_src = "Speakers"
-record_audio_kbps = 96
-record_short = false            # 限制较短边（超过则等比缩小，不放大）
-record_short_px = 1080
-record_lock_aspect = true
-record_mouse = true
-record_click_highlight = true
-
-[asr]
-asr_voice_mode = "stream"
-asr_voice_polish = true
-asr_voice_split = true
-asr_voice_split_sec = 5
-asr_live_mode = "stream"
-asr_live_polish = false
-asr_live_split = true
-asr_llm = "gpt-4o-mini"
-
-[[llm]]
-name = "gpt-4o-mini"
-url = "https://api.openai.com/v1"
-# key = ""
-model = "gpt-4o-mini"
-think = "low"                   # 预设或手输（minimal 等）
-
-[translate]
-translate_compute = "Auto"
-# translate_llm = ""
-# translate_llm_prompt = "请将用户给出的文本翻译为{dst}。只输出译文。"
-translate_llm_batch = 8         # 一批条数，1–64
-
-[gif_record]
-gif_fps = 8
-gif_max_size = true
-gif_max_w = 1280
-gif_max_h = 720
-gif_colors = 128
-gif_scale = 100
-gif_mouse = true
-gif_click_highlight = true
-```
-
-</details>
-
-`think`：`off` 发关闭思考。其它值（`low` / `medium` / `high` / `max`，或手输的 `minimal` 等）发 `thinking.type=enabled` 与 `reasoning_effort`。若 `off` 被拒绝则改 `low` 再试。访问 **opencode.ai** 时自动加 `x-opencode-session` 头。旧键 `asr_llm_url` / `asr_llm_token` / `asr_llm_model` 已废弃。`translate_llm_batch` 是一次 LLM 翻译请求带几条（默认 8）。
-
-`capture_log = true` 写 `log/capture.log`（多屏/DPI、截图落盘耗时，≥500ms 标 `SLOW`）。`llm_log = true` 写 `log/llm.log`（不含 key）。CLI `ScreenKit --snap` 把整屏位图写到 `log/snap/`；`--test-overlay-layout` 弹出截屏遮罩并记录各屏 HWND/DPI。
 
 ## HTTP API（简述）
 

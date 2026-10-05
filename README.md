@@ -16,12 +16,11 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 4. [Requirements](#requirements)
 5. [Using ScreenKit](#using-screenkit)
 6. [Install features](#install-features)
-7. [Configuration](#configuration)
-8. [HTTP API](#http-api-overview)
-9. [CLI](#cli)
-10. [x86host](#x86host-32-bit-sapi-only)
-11. [Build from source](#build-from-source)
-12. [License](#license)
+7. [HTTP API](#http-api-overview)
+8. [CLI](#cli)
+9. [x86host](#x86host-32-bit-sapi-only)
+10. [Build from source](#build-from-source)
+11. [License](#license)
 
 ## Screenshots
 
@@ -194,167 +193,6 @@ Optional env vars for local full libraries (do not commit secrets/paths):
 |----------|---------|
 | `WPF_OCR_CUDA_LIB` | Folder with full CUDA / onnxgpu64 DLLs |
 | `WPF_OCR_FFMPEG_LIB` | Folder with FFmpeg 4.4 shared DLLs |
-
-## Configuration
-
-Settings live in `config.toml` beside the exe (**Options → Settings** / **Record options**). Tabs: General, OCR, Hotkeys, Dictionary, Speech, LLM, Translate, Capture, API. **General** has main-tab visibility. Module switches are `mod_*` in `config.toml`. **API** can turn each HTTP path off. **Options → Memory** shows process memory and lists each loaded model and the ONNX runtime if one is loaded. Each row can unload that item from memory and forces a full GC. Unload on the ONNX row also frees the native CUDA, CPU, or DirectML libraries this process loaded, including while a Sherpa voice is using the GPU. The runtime loads on first use and unloads after the idle timeout. The status bar summarizes the loaded ONNX runtime and model count with their total file size. Click the bar to open that window. **Help → Diagnostics** lists CUDA, DirectML, native libraries, paths, and display DPI. A ready check shows green **正常**. An optional item that is off shows **未启用**. A failed check is red.
-
-| Section | Keys |
-|---------|------|
-| `[ocr]` | pack, variant, device (`Cpu` / `Gpu` / `IntelGpu`), det thresholds |
-| `[ui]` | hotkeys, tray, `ui_lang`, `mod_*`, `tab_*_visible`, `update_check_days`, `http_proxy`, `capture_log`, `llm_log`, `screenshot_keep_days`, `screenshot_short`, `imgconv_*` |
-| `[http]` | OCR API (`http_enabled`, `http_ocr` and the other module flags, `http_lan`, port `1224`), service mode, `onnx_unload_min` |
-| `[sendfile]` | LAN file transfer ports, display name, web login password, paired devices |
-| `[pdf]` | invisible text, raster DPI |
-| `[asr]` | voice/live mode, polish, split, `asr_llm` |
-| `[[llm]]` | OpenAI-compatible endpoints (`name` / `url` / `key` / `model` / `think`) |
-| `[translate]` | local ONNX device, `translate_llm`, `translate_llm_batch` |
-| `[record]` / `[gif_record]` | codec, CRF, audio, mouse overlay |
-
-Do **not** commit a machine-specific `config.toml`.
-
-<details>
-<summary>Example <code>config.toml</code></summary>
-
-```toml
-[ocr]
-model_pack = "rapid-ch"
-model_variant = "mobile"          # pack variant id; a Chinese pack may store a Chinese label
-device = "Cpu"          # Cpu | Gpu | IntelGpu
-det_limit = 960
-det_thresh = 0.3
-det_box_thresh = 0.5
-use_cls = true
-
-[ui]
-hotkey = "Ctrl+Alt+O"           # show / hide main window
-hotkey_snap = "Ctrl+Alt+Q"      # screenshot annotate
-hotkey_snap_ocr = "Ctrl+Alt+W"  # screenshot + OCR
-# hotkey_translate = "Ctrl+Alt+T" # translate popup show/hide
-# hotkey_dict = ""                # dictionary tab; empty = off. Clipboard word only. Example: "Ctrl+Alt+D"
-# dict_tts_zh_engine = "auto"     # auto | onnx | sapi | winrt | edge; same keys for en, ja, ko
-# dict_tts_zh_rate = 1.0          # 0.5–2; audio cache tmp/voice, kept 1 day
-# dict_tts_zh_sapi = ""           # local SAPI voice; empty = automatic
-# dict_tts_zh_edge = "zh-CN-XiaoxiaoNeural"
-# dict_tts_en_edge = "en-US-AriaNeural"
-# dict_tts_ja_edge = "ja-JP-NanamiNeural"
-# dict_tts_ko_edge = "ko-KR-SunHiNeural"
-# hotkey_snap_copy = "Ctrl+Alt+P" # cycle copy as image / file / path
-minimize_to_tray = true
-capture_log = false             # true → log/capture.log (DPI + save timings)
-# llm_log = false               # true → log/llm.log (polish HTTP; API key not written)
-ui_lang = "zh"                  # zh | en
-mod_ocr = true                  # false hides the page and stops its hotkey; default true
-mod_tts = true
-mod_asr = true
-mod_translate = true
-mod_chat = true
-mod_face = true
-mod_dict = true
-tab_ocr_visible = true          # main tabs; all default to true. Hide only; hotkeys stay
-tab_tts_visible = true
-tab_asr_visible = true
-tab_chat_visible = true
-tab_translate_visible = true
-tab_face_visible = true
-tab_http_visible = true
-tab_sendfile_visible = true
-tab_dict_visible = true
-update_check_days = 7           # auto-check interval on startup (days); 0 = off
-screenshot_keep_days = 3        # screenshot history; 0 = unlimited. Cleaned at startup only
-screenshot_short = false        # cap the shorter side (shrink only)
-screenshot_short_px = 1080      # 16–16384
-# http_proxy = false
-# http_proxy_addr = "127.0.0.1:7897"
-# ocr_translate_lang = ""       # empty = off; LLM lang code (zh/en/ja/ko/…)
-
-[http]
-http_enabled = true
-http_ocr = true                 # false returns code 810 for that path; default true
-http_tts = true
-http_asr = true
-http_translate = true
-http_chat = true
-http_face = true
-http_lan = true                 # false listens on 127.0.0.1 only
-http_port = 1224
-service_mode = false            # keep engines warm; skips idle unload
-onnx_unload_min = 5             # load ONNX on first use; unload sessions and the runtime after N idle minutes; 0 = never
-
-[sendfile]
-sendfile_enabled = true
-# sendfile HTTP shares http_port (1224)
-sendfile_udp_port = 17531
-sendfile_name = ""              # empty = machine name
-sendfile_web_pass = ""          # web manager login; empty = auto-generated on start
-photo_fmt = "jpg"               # phone app + web Camera: jpg | png
-photo_jpg_quality = 60          # 1–100
-photo_limit = true              # cap the shorter side (shrink only)
-photo_max_px = 2000             # 64–16000
-# [[sendfile_device]]           # paired phones (id / name / token)
-
-[pdf]
-pdf_invisible_text = true
-pdf_dpi = 150
-
-[record]
-record_codec = "x264"           # x264 | x265 | av1 | mf (mjpeg is read as mf)
-record_fps = 24
-record_crf = 28                 # x264/x265 only, 0–51
-record_av1_crf = 56             # AV1 only, 0–63 (56 ≈ half of x265 CRF28 size)
-record_audio = true
-record_audio_src = "Speakers"   # Speakers | Mic | MicAndSpeakers
-record_audio_kbps = 96
-record_short = false            # cap the shorter side (shrink only)
-record_short_px = 1080          # 16–16384
-record_lock_aspect = true
-record_mouse = true
-record_click_highlight = true
-
-[asr]
-asr_voice_mode = "stream"       # stream | offline
-asr_voice_polish = true
-asr_voice_split = true
-asr_voice_split_sec = 5
-asr_live_mode = "stream"
-asr_live_polish = false
-asr_live_split = true
-asr_llm = "gpt-4o-mini"
-# asr_llm_prompt = "..."
-# chat_llm = ""
-# chat_llm_prompt = "..."
-# chat_agent = true
-# chat_auto_tts = true
-
-[[llm]]
-name = "gpt-4o-mini"
-url = "https://api.openai.com/v1"
-# key = ""
-model = "gpt-4o-mini"
-think = "low"                   # preset or typed token (minimal, …)
-
-[translate]
-translate_compute = "Auto"      # Auto | Gpu | Cpu | Igpu
-# translate_llm = ""
-# translate_llm_prompt = "Translate the user's text to {dst}. Output only the translation."
-translate_llm_batch = 8         # items per LLM call, 1–64
-
-[gif_record]
-gif_fps = 8
-gif_max_size = true
-gif_max_w = 1280
-gif_max_h = 720
-gif_colors = 128
-gif_scale = 100
-gif_mouse = true
-gif_click_highlight = true
-```
-
-</details>
-
-`think`: `off` sends `thinking.type=disabled`. Any other token (`low` / `medium` / `high` / `max`, or a typed value such as `minimal`) sends `thinking.type=enabled` plus `reasoning_effort`. If `off` is rejected, retry with `low`. Access to **opencode.ai** adds `x-opencode-session` / `x-opencode-client`. Old keys `asr_llm_url` / `asr_llm_token` / `asr_llm_model` are ignored. `translate_llm_batch` is how many lines one LLM translate call takes (default 8).
-
-Set `capture_log = true` for `log/capture.log` (DPI / save timings; `SLOW` if ≥500ms). Set `llm_log = true` for `log/llm.log` (API keys are not written). CLI `ScreenKit --snap` dumps full-monitor bitmaps under `log/snap/`; `--test-overlay-layout` shows the screenshot overlay and logs per-monitor HWND/DPI.
 
 ## HTTP API (overview)
 
