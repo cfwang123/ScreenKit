@@ -287,7 +287,6 @@ static class MfApi {
 	public static readonly Guid FmtAac = new("00001610-0000-0010-8000-00aa00389b71");
 	public static readonly Guid FmtPcm = new("00000001-0000-0010-8000-00aa00389b71");
 	public static readonly Guid ContainerMpeg4 = new("dc6cd05d-b9d0-40ef-bd35-fa622c1ab28a");
-	public static readonly Guid EnableHw = EnableHardware;
 
 	public static long Pack(uint hi, uint lo) => (long)(((ulong)hi << 32) | lo);
 

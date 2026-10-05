@@ -128,7 +128,6 @@ public partial class CaptureOverlay : Window {
 	// 放大镜：源采样边长 × 每像素放大倍数 = 视图边长（2× 于原 112）
 	const int MAG_SRC = 14;
 	const int MAG_SCALE = 16;
-	const int MAG_VIEW = MAG_SRC * MAG_SCALE; // 224
 	/// <summary>选区最小边长（底图像素）。</summary>
 	const int MIN_CROP = 8;
 	/// <summary>缩放手柄边长（DIP）。</summary>
@@ -177,10 +176,8 @@ public partial class CaptureOverlay : Window {
 	[DllImport("user32.dll")]
 	static extern IntPtr SetThreadDpiAwarenessContext(IntPtr dpiContext);
 
-	// -1 = UNAWARE, -2 = SYSTEM_AWARE, -3 = PER_MONITOR, -4 = PER_MONITOR_V2
+	// -1 = UNAWARE
 	static readonly IntPtr DpiUnaware = new(-1);
-	static readonly IntPtr DpiSystemAware = new(-2);
-	static readonly IntPtr DpiPerMonitorV2 = new(-4);
 
 	const int DESKTOPHORZRES = 118;
 	const int DESKTOPVERTRES = 117;
@@ -1358,13 +1355,6 @@ public partial class CaptureOverlay : Window {
 		return true;
 	}
 
-	/// <summary>单屏：虚拟矩形 → 本屏 desk 裁切。</summary>
-	BitmapSource croplocalfromvirtual(int left, int top, int pw, int ph) {
-		if (!tryvirtualtodesk(left, top, pw, ph, out var dl, out var dt, out var dw, out var dh))
-			throw new InvalidOperationException("选区与本屏无交集");
-		return croplocal(dl, dt, dw, dh);
-	}
-
 	// ───────── 窗口识别 / 放大镜 / 取色 ─────────
 
 	static List<WinHit> enumtopwindows() {
@@ -1660,19 +1650,6 @@ public partial class CaptureOverlay : Window {
 		if (proot != null && proot.ActualWidth > 1) w = proot.ActualWidth;
 		if (proot != null && proot.ActualHeight > 1) h = proot.ActualHeight;
 		return (Math.Max(1.0, w), Math.Max(1.0, h));
-	}
-
-	void applyselui(int x1, int y1, int x2, int y2) {
-		var left = Math.Min(x1, x2);
-		var top = Math.Min(y1, y2);
-		var pw = Math.Max(0, Math.Abs(x2 - x1));
-		var ph = Math.Max(0, Math.Abs(y2 - y1));
-		var (ox, oy, ow, oh) = localtooverlay(left, top, pw, ph);
-		Canvas.SetLeft(rsel, ox);
-		Canvas.SetTop(rsel, oy);
-		rsel.Width = ow;
-		rsel.Height = oh;
-		updatemask(ox, oy, ow, oh);
 	}
 
 	/// <summary>虚拟屏像素矩形 → 本屏画布 DIP（可部分在屏外）。</summary>
@@ -2379,20 +2356,6 @@ public partial class CaptureOverlay : Window {
 		var sw = Math.Max(1e-6, selW);
 		var sh = Math.Max(1e-6, selH);
 		return new Point(local.X * host.selW / sw, local.Y * host.selH / sh);
-	}
-
-	/// <summary>多屏标注：每屏刷新（宿主画布 / guest 遮罩）。</summary>
-	internal void refreshannotateui(bool clearStrokes) {
-		if (boardMode) return;
-		if (annotateGuest || (session != null && session.AnnotateHost != this && session.InAnnotate)) {
-			annotateGuest = true;
-			bbar.Visibility = Visibility.Collapsed;
-			applyguestmask();
-			return;
-		}
-		// 宿主
-		annotateGuest = false;
-		applyregionui(clearStrokes);
 	}
 
 	void enterannotate() {

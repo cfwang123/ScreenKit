@@ -94,7 +94,6 @@ static class NativeRuntime {
 	public static long SkiaSizeHint => 11L * 1024 * 1024;
 	public static long PdfiumSizeHint => 6L * 1024 * 1024;
 	public static long SherpaSizeHint => 5L * 1024 * 1024;
-	public static long SkiaPdfSizeHint => SkiaSizeHint + PdfiumSizeHint;
 
 	// ───────── 确保（缺失则弹窗提示安装，不静默下载） ─────────
 

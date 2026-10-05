@@ -29,7 +29,6 @@ sealed class SentencePieceUnigram {
 		root = buildtrie(pieces, types);
 	}
 
-	public int VocabSize => pieces.Length;
 	public string IdToPiece(int id) =>
 		id >= 0 && id < pieces.Length ? pieces[id] : pieces[unkId];
 

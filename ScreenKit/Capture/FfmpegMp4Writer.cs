@@ -29,7 +29,6 @@ unsafe sealed class FfmpegMp4Writer : IRecordVideoSink {
 	public int OutWidth => outW;
 	public int OutHeight => outH;
 	public string Path => path;
-	public long FrameCount => frameIndex;
 	/// <summary>规范化后的用户 codec：x264 / x265 / av1。</summary>
 	public string CodecName { get; }
 	/// <summary>实际打开的 FFmpeg 编码器名（如 libaom-av1）。</summary>

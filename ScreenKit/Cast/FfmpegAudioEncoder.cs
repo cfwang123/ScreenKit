@@ -12,7 +12,6 @@ unsafe sealed class CastAudioEncoder : IDisposable {
 	int leftoverN;
 	bool disposed;
 	readonly int inRate, inCh;
-	public int FrameSamples => enc != null ? enc->frame_size : 1024;
 
 	public CastAudioEncoder(int inRate = 48000, int inCh = 2) {
 		if (!FfmpegLoader.TryInit(out var err))

@@ -11,7 +11,6 @@ static class CastProto {
 	public const string WS_PATH = "/cast";
 	public const string USB_PIPE = "ScreenKit.CastUsb";
 	public const string USB_PIPE_DOWN = "ScreenKit.CastUsbDown";
-	public const string ABSTRACT = "scst";
 	public const uint MAGIC = 0x53435354;
 	public const byte T_VIDEO = 1, T_AUDIO = 2, T_JSON = 3;
 

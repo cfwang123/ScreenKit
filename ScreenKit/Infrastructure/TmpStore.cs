@@ -7,9 +7,6 @@ static class TmpStore {
 	/// <summary>默认保留 10 小时。</summary>
 	public const int ExpireHours = 10;
 
-	/// <summary>「复制文件」固定路径，连续复制复用同一文件。</summary>
-	public static string ClipCopyPath => Path.Combine(Root, "clip_copy.png");
-
 	public static string Root {
 		get {
 			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tmp");

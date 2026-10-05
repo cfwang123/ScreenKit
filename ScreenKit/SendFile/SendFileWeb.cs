@@ -84,8 +84,6 @@ public sealed class SendFileWeb {
 
 	internal static string TokenOf(SfReq req) => tokenof(req);
 
-	public static string CookieName => COOKIE;
-
 	public static string SetCookie(string token, bool keep) {
 		var basec = $"{COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax";
 		return keep ? $"{basec}; Max-Age={KEEP_SEC}" : basec;

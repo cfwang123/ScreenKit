@@ -38,8 +38,6 @@ public partial class AsrCaptionOsdWindow : Window {
 	/// <summary>拖动/缩放后通知设置窗同步宽高。</summary>
 	public event Action GeometryChanged;
 
-	public bool IsEditMode => editMode;
-
 	public AsrCaptionOsdWindow(AsrCaptionStyle style, Action onSave = null) {
 		this.style = style ?? new AsrCaptionStyle();
 		this.onSave = onSave;

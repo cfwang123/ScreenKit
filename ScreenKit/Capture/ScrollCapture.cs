@@ -34,12 +34,6 @@ static class ScrollCapture {
 	const uint CAPTUREBLT = 0x40000000;
 	const uint PW_RENDERFULLCONTENT = 0x00000002;
 	const int WM_MOUSEWHEEL = 0x020A;
-	const int WM_VSCROLL = 0x0115;
-	const int SB_PAGEDOWN = 3;
-	const int SB_LINEDOWN = 1;
-	const int VK_NEXT = 0x22;
-	const int WM_KEYDOWN = 0x0100;
-	const int WM_KEYUP = 0x0101;
 	const uint MOUSEEVENTF_WHEEL = 0x0800;
 	static readonly IntPtr HwndTopmost = new(-1);
 

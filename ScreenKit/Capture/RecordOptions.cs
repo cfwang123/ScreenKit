@@ -126,9 +126,6 @@ public sealed class RecordOptions {
 		Clamp();
 	}
 
-	/// <summary>当前编码实际使用的 CRF（AV1 用 Av1Crf，x264/x265 用 Crf）。</summary>
-	public int EffectiveCrf => IsAv1 ? Av1Crf : Crf;
-
 	/// <summary>摘要用质量标签。系统编码没有 CRF。</summary>
 	public string CrfLabel => IsAv1 ? $"AV1-CRF{Av1Crf}" : UsesX264Crf ? $"CRF{Crf}" : IsMjpeg ? "MJPEG" : "H.264";
 

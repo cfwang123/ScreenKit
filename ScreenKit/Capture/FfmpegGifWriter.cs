@@ -22,7 +22,6 @@ unsafe sealed class FfmpegGifWriter : IDisposable {
 	public int OutWidth => outW;
 	public int OutHeight => outH;
 	public string Path => path;
-	public long FrameCount => frameIndex;
 
 	public FfmpegGifWriter(string path, int captureW, int captureH, GifOptions opt) {
 		if (!FfmpegLoader.TryInit(out var err))

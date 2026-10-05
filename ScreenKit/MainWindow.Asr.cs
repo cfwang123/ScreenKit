@@ -694,11 +694,6 @@ public partial class MainWindow {
 		}
 	}
 
-	bool tryresolveasrmodel(out AsrModelInfo model) {
-		// 兼容旧调用：默认解析离线模型
-		return tryresolveofflinemodel(out model);
-	}
-
 	bool tryresolvestreammodel(out AsrModelInfo model) {
 		model = null;
 		if (asrModels == null || asrModels.Count == 0) {
@@ -755,12 +750,6 @@ public partial class MainWindow {
 		}
 		model = asrModels.FirstOrDefault(x => !x.IsStreaming);
 		return model != null;
-	}
-
-	string asrcurlang() {
-		if (easrlang?.SelectedItem is ComboBoxItem li && li.Tag is string ls && !string.IsNullOrWhiteSpace(ls))
-			return ls;
-		return string.IsNullOrWhiteSpace(opt.AsrLang) ? "auto" : opt.AsrLang;
 	}
 
 	TtsComputeMode asrcurcompute() {

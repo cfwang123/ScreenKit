@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Settings → General** no longer shows the module switches. `mod_*` in `config.toml` is unchanged.
 - Diagnostics shows an optional item that is off as **未启用**: service mode, CUDA / DirectML not installed, ONNX not loaded yet, face models absent, OCR engine not loaded. A missing file or a failed check still shows red **不正常**.
 - Removed the unused OpenCV video library `opencv_videoio_ffmpeg4110_64.dll`. It is no longer in **Help → Install features** or Diagnostics. A build deletes any copy under the output folder. Recording still uses `ffmpeg64`.
+- Removed unreferenced helpers and properties (ASR model lookup, capture overlay, scroll constants, and unread recording / speech / dictionary fields). `IFontResolver` methods stay.
 
 #### Added
 
@@ -59,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **参数设置 → 常规** 不再显示启用模块。`config.toml` 里的 `mod_*` 不变。
 - 诊断里没开的可选项显示 **未启用**：服务模式、未安装的 CUDA / DirectML、尚未加载的 ONNX、没有人脸模型、识别引擎未加载。缺文件或失败仍显示红字 **不正常**。
 - 去掉用不到的 OpenCV 视频库 `opencv_videoio_ffmpeg4110_64.dll`。**帮助 → 安装功能** 和诊断里都不再出现。编译时会删掉输出目录里的这份文件。录屏仍用 `ffmpeg64`。
+- 删掉没有引用的函数和字段（语音识别选模型、截图遮罩、滚动常量和未读取的录屏 / 语音 / 分词属性）。`IFontResolver` 的方法保留。
 
 #### 新增
 

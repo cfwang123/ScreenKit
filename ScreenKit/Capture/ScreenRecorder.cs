@@ -55,8 +55,6 @@ sealed class ScreenRecorder : IDisposable {
 	}
 	public bool IsPaused => paused;
 	public bool IsRunning => thread != null && thread.IsAlive;
-	/// <summary>采集已停且视频索引写完；音轨合成可能仍在后台。</summary>
-	public bool IsCaptureStopped => stopped;
 	/// <summary>音轨收尾+合成是否已结束（无音频时 Stop 后即为 true）。</summary>
 	public bool IsFinalizeDone => finalizeDone;
 	public string Backend { get; private set; }

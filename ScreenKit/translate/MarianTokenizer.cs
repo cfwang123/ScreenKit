@@ -15,11 +15,8 @@ sealed class MarianTokenizer {
 	readonly int padId;
 	readonly int bosId;
 
-	public int UnkId => unkId;
 	public int EosId => eosId;
 	public int PadId => padId;
-	public int BosId => bosId;
-	public int VocabSize => idToPiece.Length;
 
 	MarianTokenizer(
 		SentencePieceUnigram sourceSpm,

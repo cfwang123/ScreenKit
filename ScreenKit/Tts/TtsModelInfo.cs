@@ -153,7 +153,6 @@ sealed class TtsModelInfo {
 	/// <summary>模型默认性别 male/female（单人模型常用）。</summary>
 	public string Gender { get; set; } = "";
 	public List<TtsSpeakerInfo> Speakers { get; set; } = new();
-	public bool IsMultiSpeaker => Speakers.Count > 1;
 	public override string ToString() => DisplayName;
 
 	/// <summary>从目录名 token 推断语言，避免 fanchen 含 en 等子串误判。</summary>

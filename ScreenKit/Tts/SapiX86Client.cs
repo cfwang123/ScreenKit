@@ -14,7 +14,6 @@ namespace ScreenKit;
 /// </summary>
 static class SapiX86Client {
 	public const int DefaultPort = 17886;
-	public const int DefaultIdleMs = 60_000;
 	const int StartWaitMs = 12_000;
 	const int HttpTimeoutMs = 120_000;
 

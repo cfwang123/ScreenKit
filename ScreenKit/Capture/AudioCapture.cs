@@ -57,9 +57,6 @@ sealed class AudioCapture : IDisposable {
 	readonly Queue<byte[]> qloop = new();
 	readonly Queue<byte[]> qmic = new();
 
-	public string WavPath => wavPath;
-	public int OutRate => outRate;
-	public bool OutMono => outMono;
 	public long BytesLoop => bytesLoop;
 	public long BytesMic => bytesMic;
 	/// <summary>累计补入的静音字节（环回静音缺口）。</summary>
