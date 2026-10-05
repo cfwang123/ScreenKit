@@ -180,6 +180,7 @@ static class FeaturePrompt {
 
 	static string kindlabel(FeatureKind k) => k switch {
 		FeatureKind.NativeOpenCv => "OpenCV 运行库",
+		FeatureKind.NativeOpenCvVideo => "OpenCV 视频库 (opencv_videoio_ffmpeg)",
 		FeatureKind.NativeSkia => "Skia 渲染库",
 		FeatureKind.NativePdfium => "PDFium (pdfium.dll)",
 		FeatureKind.NativeSherpa => "Sherpa (sherpa-onnx-c-api.dll)",

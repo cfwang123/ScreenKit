@@ -75,7 +75,8 @@ function main() {
 	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}" ` +
 		`"-x!${slimName}\\log" "-x!${slimName}\\log\\*" ` +
 		`"-x!${slimName}\\config.toml" "-x!${slimName}\\cli_last.log" "-x!${slimName}\\*.log" ` +
-		`"-x!${slimName}\\dict.db" "-x!${slimName}\\dict.db-wal" "-x!${slimName}\\dict.db-shm"`;
+		`"-x!${slimName}\\dict.db" "-x!${slimName}\\dict.db-wal" "-x!${slimName}\\dict.db-shm" ` +
+		`"-x!${slimName}\\opencv_videoio_ffmpeg*.dll"`;
 	console.log(`> ${cmd}`);
 	execSync(cmd, { cwd: slimParent, stdio: 'inherit', shell: true });
 

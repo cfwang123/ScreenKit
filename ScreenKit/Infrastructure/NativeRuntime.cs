@@ -8,7 +8,7 @@ namespace ScreenKit;
 
 /// <summary>
 /// 重型原生库按需安装：OpenCvSharpExtern / libSkiaSharp / pdfium / sherpa-onnx-c-api（精简包）。本机 net48 编译保留 Sherpa。
-/// 录屏仅用 ffmpeg64，不使用 opencv_videoio_ffmpeg。
+/// 录屏仅用 ffmpeg64。opencv_videoio_ffmpeg 不进发布包，在「安装功能」里单独安装。
 /// 从 NuGet 官方/国内 CDN 下载对应版本 nupkg 后解压到程序目录。
 /// </summary>
 static class NativeRuntime {
@@ -23,6 +23,7 @@ static class NativeRuntime {
 	const string SherpaVer = "1.13.3";
 
 	const string OpenCvExtern = "OpenCvSharpExtern.dll";
+	const string OpenCvVideo = "opencv_videoio_ffmpeg4110_64.dll";
 	const string LibSkia = "libSkiaSharp.dll";
 	const string Pdfium = "pdfium.dll";
 	const string SherpaCApi = "sherpa-onnx-c-api.dll";
@@ -49,6 +50,10 @@ static class NativeRuntime {
 		File.Exists(Path.Combine(BaseDir, OpenCvExtern))
 		|| File.Exists(Path.Combine(BaseDir, "dll", "x64", OpenCvExtern));
 
+	public static bool HasOpenCvVideo() =>
+		File.Exists(Path.Combine(BaseDir, OpenCvVideo))
+		|| File.Exists(Path.Combine(BaseDir, "dll", "x64", OpenCvVideo));
+
 	public static bool HasSkia() =>
 		File.Exists(Path.Combine(BaseDir, LibSkia))
 		|| File.Exists(Path.Combine(BaseDir, "x64", LibSkia));
@@ -65,6 +70,7 @@ static class NativeRuntime {
 		|| File.Exists(Path.Combine(BaseDir, "runtimes", "win-x64", "native", SherpaCApi));
 
 	public static long OpenCvSizeHint => 61L * 1024 * 1024;
+	public static long OpenCvVideoSizeHint => 28L * 1024 * 1024;
 	public static long SkiaSizeHint => 11L * 1024 * 1024;
 	public static long PdfiumSizeHint => 6L * 1024 * 1024;
 	public static long SherpaSizeHint => 5L * 1024 * 1024;
@@ -129,6 +135,17 @@ static class NativeRuntime {
 		opencvOk = HasOpenCv();
 	}
 
+	public static async Task InstallOpenCvVideo(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await extractfromnupkg(
+			OpencvPkg, OpencvVer,
+			new[] {
+				("runtimes/win-x64/native/" + OpenCvVideo, OpenCvVideo),
+			},
+			log, progress, ct, OpenCvVideoSizeHint).ConfigureAwait(false);
+		copybeside(OpenCvVideo, Path.Combine("dll", "x64"));
+	}
+
 	public static async Task InstallSkia(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		await extractfromnupkg(
@@ -180,6 +197,12 @@ static class NativeRuntime {
 			Path.Combine("dll", "x64", OpenCvExtern),
 			Path.Combine("runtimes", "win-x64", "native", OpenCvExtern));
 		opencvOk = false;
+	}
+
+	public static void UninstallOpenCvVideo(IProgress<string> log = null) {
+		deletefiles(log, OpenCvVideo,
+			Path.Combine("dll", "x64", OpenCvVideo),
+			Path.Combine("runtimes", "win-x64", "native", OpenCvVideo));
 	}
 
 	public static void UninstallSkia(IProgress<string> log = null) {
@@ -329,10 +352,11 @@ static class NativeRuntime {
 		var sb = new StringBuilder();
 		sb.AppendLine("=== 原生运行库（按需） ===");
 		sb.AppendLine($"OpenCvSharpExtern: {(HasOpenCv() ? "OK" : "缺失")}  ({OpenCvExtern})");
+		sb.AppendLine($"opencv_videoio_ffmpeg: {(HasOpenCvVideo() ? "OK" : "缺失")}  ({OpenCvVideo})");
 		sb.AppendLine($"libSkiaSharp: {(HasSkia() ? "OK" : "缺失")}  ({LibSkia})");
 		sb.AppendLine($"pdfium: {(HasPdfium() ? "OK" : "缺失")}  ({Pdfium})");
 		sb.AppendLine($"sherpa-onnx-c-api: {(HasSherpa() ? "OK" : "缺失")}  ({SherpaCApi})");
-		sb.AppendLine("录屏: 仅 ffmpeg64（不使用 opencv_videoio_ffmpeg）");
+		sb.AppendLine("录屏: 仅 ffmpeg64（不用 opencv_videoio_ffmpeg）");
 		return sb.ToString();
 	}
 }

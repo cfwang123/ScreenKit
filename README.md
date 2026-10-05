@@ -177,7 +177,8 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 | **onnxcpu64** | CPU ONNX Runtime (required for OCR if no GPU/iGPU ORT) | ~16 MB |
 | **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN (optional) | large |
 | **onnxdml64** | DirectML EP for iGPU (optional) | ~18 MB |
-| **OpenCV** | Capture / image pipeline | ~61 MB |
+| **OpenCV** | Capture / image pipeline (`OpenCvSharpExtern.dll`) | ~61 MB |
+| **OpenCV video** | `opencv_videoio_ffmpeg4110_64.dll`. Not used by OCR or recording. **Help → Install features → OpenCV video** | ~28 MB |
 | **ffmpeg64** | Screen record encode/mux | ~72 MB |
 
 Download prefers CN mirrors when UI or system locale is Chinese.
@@ -469,7 +470,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, or `dict.db`. Install the dictionary from **Help → Install features**, or place `dict.db` beside the executable yourself. See [Dictionary](#dictionary) for where that data comes from. `7za.dll` and the Windows SQLite library `e_sqlite3.dll` are included.
+- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `opencv_videoio_ffmpeg4110_64.dll`, `ffmpeg64`, or `dict.db`. Install the dictionary from **Help → Install features**, or place `dict.db` beside the executable yourself. See [Dictionary](#dictionary) for where that data comes from. `7za.dll` and the Windows SQLite library `e_sqlite3.dll` are included.
 - End users install those via **Install features**. Local Opus-MT ONNX is placed under `translatemodels/` by hand if needed.
 
 For local development with models already present, run **`bin\Release\net48\`**.

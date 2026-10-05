@@ -94,9 +94,8 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 `dict.db` 把四种词典放在同一个文件里。ScreenKit 不生成这个文件。
 
 - **汉语。** 汉字、词语、成语来自 [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary)（拼音辞典）。许可为 MIT。上游说明里注明部分材料来源不明。
-- **日语。** 词汇释义来自 [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)（EDRDG），与 Takoboto 使用的是同一套词典，但不是 Takoboto 提供的文件。许可为 [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html)。再分发须保留 EDRDG 署名，并遵守其更新条款。不含汉字辞典、Tatoeba 例句和部首资料。
+- **日语。** 词汇释义来自 [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)（EDRDG）。许可为 [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html)。再分发须保留 EDRDG 署名，并遵守其更新条款。
 - **韩语。** 国立国语院词典的衍生数据。许可为 CC BY-SA 2.0 KR。
-- **英语。** 抽样释义与 *Oxford Dictionary of English* 的措辞一致。当前这份文件由谁制作、能否再分发，尚未核实。它不是 [ECDICT](https://github.com/skywind3000/ECDICT)。在授权查清或换成许可清楚的数据之前，只供个人研究，不要放进公开发布包。
 
 ## 运行环境
 
@@ -177,7 +176,8 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **onnxcpu64** | CPU 推理用 ONNX Runtime（无 GPU/核显 ORT 时 OCR 需要） | ~16 MB |
 | **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN（可选） | 较大 |
 | **onnxdml64** | 核显 DirectML EP（可选） | ~18 MB |
-| **OpenCV** | 截图 / 图像管线 | ~61 MB |
+| **OpenCV** | 截图 / 图像管线（`OpenCvSharpExtern.dll`） | ~61 MB |
+| **OpenCV 视频** | `opencv_videoio_ffmpeg4110_64.dll`。识别和录屏不用。**帮助 → 安装功能 → OpenCV 视频** | ~28 MB |
 | **ffmpeg64** | x264 / x265 / AV1 与 GIF | ~72 MB |
 
 界面或系统区域为中文时，下载优先国内镜像（ModelScope / HF 镜像 / GitHub 代理）。
@@ -460,7 +460,7 @@ dotnet build -c Release
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
 - **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict.db`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。`7za.dll` 和 Windows SQLite 库 `e_sqlite3.dll` 会打进包。
+- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`opencv_videoio_ffmpeg4110_64.dll`、`ffmpeg64`、`dict.db`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。`7za.dll` 和 Windows SQLite 库 `e_sqlite3.dll` 会打进包。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 
 本机开发且已有模型时，请继续用 **`bin\Release\net48\`**。

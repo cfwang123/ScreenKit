@@ -223,6 +223,7 @@
       <_SlimRoot Include="$(OutputPath)ocr-display.json" Condition="Exists('$(OutputPath)ocr-display.json')" />
       <!-- 按需安装的原生库不进精简包（应用内「安装功能」下载） -->
       <_SlimRoot Remove="$(OutputPath)OpenCvSharpExtern.dll" />
+      <_SlimRoot Remove="$(OutputPath)opencv_videoio_ffmpeg*.dll" />
       <_SlimRoot Remove="$(OutputPath)libSkiaSharp.dll" />
       <_SlimRoot Remove="$(OutputPath)pdfium.dll" />
       <_SlimRoot Remove="$(OutputPath)sherpa-onnx-c-api.dll" />
@@ -256,6 +257,7 @@
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
       <_SlimJunk Include="$(_SlimOut)\OpenCvSharpExtern.dll;$(_SlimOut)\libSkiaSharp.dll;$(_SlimOut)\pdfium.dll;$(_SlimOut)\sherpa-onnx-c-api.dll" />
+      <_SlimJunk Include="$(_SlimOut)\opencv_videoio_ffmpeg*.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
     </ItemGroup>

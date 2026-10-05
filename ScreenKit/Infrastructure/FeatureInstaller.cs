@@ -33,6 +33,8 @@ public enum FeatureKind {
 	Ffmpeg,
 	/// <summary>OpenCvSharpExtern.dll（OCR 必需，约 61MB）。</summary>
 	NativeOpenCv,
+	/// <summary>opencv_videoio_ffmpeg4110_64.dll（OpenCV 读视频，约 28MB）。识别和录屏不用。</summary>
+	NativeOpenCvVideo,
 	/// <summary>libSkiaSharp.dll（PDF 渲染，约 11MB）。</summary>
 	NativeSkia,
 	/// <summary>pdfium.dll（PDF 渲染，约 6MB，按需）。</summary>
@@ -202,6 +204,7 @@ static class FeatureInstaller {
 	public static List<FeatureItem> BuildCatalog(bool firstRunDefaults = false, FeatureKind[] preferSelect = null) {
 		var list = new List<FeatureItem> {
 			make(FeatureKind.NativeOpenCv, "native"),
+			make(FeatureKind.NativeOpenCvVideo, "native"),
 			make(FeatureKind.NativeSkia, "native"),
 			make(FeatureKind.NativePdfium, "native"),
 			make(FeatureKind.NativeSherpa, "native"),
@@ -255,6 +258,7 @@ static class FeatureInstaller {
 	/// <summary>各功能包预期体积（约数，用于列表与进度分母）。</summary>
 	public static long ExpectedSize(FeatureKind kind) => kind switch {
 		FeatureKind.NativeOpenCv => NativeRuntime.OpenCvSizeHint,
+		FeatureKind.NativeOpenCvVideo => NativeRuntime.OpenCvVideoSizeHint,
 		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint,
 		FeatureKind.NativePdfium => NativeRuntime.PdfiumSizeHint,
 		FeatureKind.NativeSherpa => NativeRuntime.SherpaSizeHint,
@@ -316,6 +320,8 @@ static class FeatureInstaller {
 			switch (kind) {
 			case FeatureKind.NativeOpenCv:
 				return filesize(Path.Combine(BaseDir, "OpenCvSharpExtern.dll"));
+			case FeatureKind.NativeOpenCvVideo:
+				return filesize(Path.Combine(BaseDir, "opencv_videoio_ffmpeg4110_64.dll"));
 			case FeatureKind.NativeSkia:
 				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"));
 			case FeatureKind.NativePdfium:
@@ -377,6 +383,8 @@ static class FeatureInstaller {
 		switch (kind) {
 		case FeatureKind.NativeOpenCv:
 			return NativeRuntime.HasOpenCv() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.NativeOpenCvVideo:
+			return NativeRuntime.HasOpenCvVideo() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSkia:
 			return NativeRuntime.HasSkia() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativePdfium:
@@ -527,6 +535,9 @@ static class FeatureInstaller {
 		case FeatureKind.NativeOpenCv:
 			await NativeRuntime.InstallOpenCv(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.NativeOpenCvVideo:
+			await NativeRuntime.InstallOpenCvVideo(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.NativeSkia:
 			await NativeRuntime.InstallSkia(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -598,6 +609,9 @@ static class FeatureInstaller {
 		switch (kind) {
 		case FeatureKind.NativeOpenCv:
 			NativeRuntime.UninstallOpenCv(log);
+			break;
+		case FeatureKind.NativeOpenCvVideo:
+			NativeRuntime.UninstallOpenCvVideo(log);
 			break;
 		case FeatureKind.NativeSkia:
 			NativeRuntime.UninstallSkia(log);

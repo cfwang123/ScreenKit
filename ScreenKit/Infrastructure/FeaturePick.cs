@@ -135,6 +135,8 @@ static class FeaturePick {
 		leaf("dict", "feat.pick.dict", "feat.pick.dict.detail", FeatureKind.DictDb),
 		leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium),
+		leaf("ocvvideo", "feat.pick.ocvvideo", "feat.pick.ocvvideo.detail",
+			FeatureKind.NativeOpenCvVideo),
 		group("rec", "feat.pick.rec", "feat.pick.rec.detail",
 			builtin("rec.mf", "feat.pick.rec.mf", "feat.pick.rec.mf.detail", FeatureKind.MediaFoundation),
 			leaf("rec.ffmpeg", "feat.pick.rec.ffmpeg", "feat.pick.rec.ffmpeg.detail", FeatureKind.Ffmpeg)),
