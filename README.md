@@ -77,17 +77,18 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 ## Dictionary
 
-ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next to the program. The release archive does not include it. **Help → Install features** can download `dict.7z` and extract it there. Extracting downloads `7za.dll` and `SharpSevenZip.dll` when they are missing. Opening the file needs `e_sqlite3.dll`. A lookup does not modify the file. The connection closes after 5 minutes without a search and opens again on the next one.
+Look up Chinese, English, Japanese, and Korean. The release archive does not include the dictionary file. **Help → Install features** downloads it next to the program.
 
 ### Using it
 
-- Open it from the main window (**Options → Dictionary**). The tab is on by default (`tab_dict_visible`).
-- The hotkey `hotkey_dict` is off until you set it. It shows the main window and selects that tab, turning the tab on if it was hidden. Pressing it again while the tab is already showing hides the main window. It reads the clipboard and searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence, a blank clipboard, or anything else only opens the dictionary.
-- Language filters are buttons in a row: All, Chinese, Japanese, Korean, English.
-- The hit list is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Each example has a speak button.
-- Select text in the entry to open a popup outside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Speak reads the whole selection. The popup closes when that window is no longer active.
-- Search, a matching headword in the popup, or a word link in the entry opens another dictionary window and looks up that text. The page you were reading stays.
-- **Speak** uses **Settings → Dictionary**. Each of Chinese, English, Japanese, and Korean has an engine (Auto / ONNX / SAPI / Windows speech / Edge), that engine's voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed. ONNX is chosen explicitly. Japanese and Korean headwords are spoken only up to the first comma. Audio is cached in `tmp/voice` and kept for 1 day. This does not change the Speech tab.
+- **Options → Dictionary** opens the tab. It is shown by default.
+- The hotkey is off until you set it. It shows the main window and this tab, and turns the tab on if it was hidden. Press it again while the tab is showing to hide the main window.
+- It searches the clipboard only when the text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence, a blank clipboard, or anything else only opens the dictionary.
+- Language buttons: All, Chinese, Japanese, Korean, English.
+- Each hit is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Each example can be spoken.
+- Select text in the entry to open a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Speak reads the whole selection. The popup closes when you leave that window.
+- Search, a matching headword, or a word link opens another dictionary window. The page you were reading stays.
+- **Settings → Dictionary** sets, for each language, an engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed. Japanese and Korean headwords are spoken only up to the first comma.
 
 ### Data sources
 
