@@ -16,12 +16,13 @@
 		<TextBlock Grid.Row="0" Text="CUDA / DirectML / 路径 / 显示器 DPI"
 		           FontSize="15" FontWeight="SemiBold" FontFamily="Segoe UI, Microsoft YaHei UI"
 		           Foreground="{StaticResource TextPrimary}" Margin="0,0,0,10"/>
-		<TextBox x:Name="elog" Grid.Row="1"
-		         IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
-		         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-		         FontSize="12" Padding="10"
-		         BorderBrush="{StaticResource BorderSoft}"
-		         Background="{StaticResource BgPanel}"/>
+		<RichTextBox x:Name="elog" Grid.Row="1"
+		             IsReadOnly="True" IsUndoEnabled="False"
+		             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+		             FontSize="12" Padding="10"
+		             BorderBrush="{StaticResource BorderSoft}"
+		             Background="{StaticResource BgPanel}"
+		             FontFamily="Consolas, Microsoft YaHei UI"/>
 		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
 			<Button x:Name="brefresh" Content="刷新" Style="{StaticResource ToolBtn}" Width="88" Margin="0,0,8,0"/>
 			<Button x:Name="bcopy" Content="复制全部" Style="{StaticResource ToolBtn}" Width="96" Margin="0,0,8,0"/>

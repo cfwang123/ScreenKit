@@ -1,13 +1,21 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Documents;
+using System.Windows.Media;
 
 namespace ScreenKit;
 
 /// <summary>诊断页：CUDA / DirectML / 路径 / 多显示器 DPI。</summary>
 partial class DiagnosticsWindow : Window {
+	static readonly SolidColorBrush OkBrush = freeze(0x1B, 0x7A, 0x32);
+	static readonly SolidColorBrush BadBrush = freeze(0xC6, 0x28, 0x28);
+	static readonly Regex StatRe = new(@"(?<=:\s|=\s?)(True|False|OK)|缺失|不可用|失败", RegexOptions.Compiled);
+
 	readonly Func<string> extraReport;
+	string plain = "";
 
 	internal DiagnosticsWindow(Func<string> appExtraReport = null) {
 		InitializeComponent();
@@ -15,7 +23,7 @@ partial class DiagnosticsWindow : Window {
 		brefresh.Click += (_, _) => refresh();
 		bcopy.Click += (_, _) => {
 			try {
-				Clipboard.SetText(elog.Text ?? "");
+				Clipboard.SetText(plain ?? "");
 			}
 			catch (Exception ex) {
 				MessageBox.Show(this, ex.Message, "复制", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -70,9 +78,49 @@ partial class DiagnosticsWindow : Window {
 			try { sb.AppendLine(extraReport()); }
 			catch (Exception ex) { sb.AppendLine("App: " + ex.Message); }
 		}
-		elog.Text = sb.ToString();
-		elog.CaretIndex = 0;
+		showreport(sb.ToString());
+	}
+
+	void showreport(string raw) {
+		raw ??= "";
+		var doc = new FlowDocument {
+			FontFamily = new FontFamily("Consolas, Microsoft YaHei UI"),
+			FontSize = 12,
+			PagePadding = new Thickness(0),
+		};
+		var para = new Paragraph { Margin = new Thickness(0) };
+		var sb = new StringBuilder();
+		var i = 0;
+		foreach (Match m in StatRe.Matches(raw)) {
+			add(raw.Substring(i, m.Index - i), null);
+			var tok = m.Value;
+			if (tok is "True" or "OK") add("正常", OkBrush);
+			else if (tok is "False" or "缺失") add("不正常", BadBrush);
+			else add(tok, BadBrush);
+			i = m.Index + m.Length;
+		}
+		add(raw.Substring(i), null);
+		doc.Blocks.Add(para);
+		elog.Document = doc;
+		plain = sb.ToString();
 		elog.ScrollToHome();
+
+		void add(string s, Brush brush) {
+			if (s.Length == 0) return;
+			sb.Append(s);
+			var run = new Run(s);
+			if (brush != null) {
+				run.Foreground = brush;
+				run.FontWeight = FontWeights.SemiBold;
+			}
+			para.Inlines.Add(run);
+		}
+	}
+
+	static SolidColorBrush freeze(byte r, byte g, byte b) {
+		var br = new SolidColorBrush(Color.FromRgb(r, g, b));
+		br.Freeze();
+		return br;
 	}
 
 	void openlogdir() {

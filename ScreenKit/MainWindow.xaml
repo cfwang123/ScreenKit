@@ -161,8 +161,6 @@
 				<MenuItem x:Name="mnmem" Header="内存占用(_M)…"
 				          AutomationProperties.AutomationId="menu.mem"
 				          ToolTip="查看进程内存，卸载已加载的模型"/>
-				<MenuItem x:Name="mndiag" Header="诊断(_D)…"
-				          ToolTip="CUDA / DirectML / 路径 / 显示器 DPI"/>
 				<Separator/>
 				<MenuItem x:Name="mnlang" Header="界面语言(_L)">
 					<MenuItem x:Name="mnlangzh" Header="中文" IsCheckable="True" IsChecked="True"/>
@@ -177,6 +175,9 @@
 				<MenuItem x:Name="mnupdate" Header="检查更新(_U)…"
 				          AutomationProperties.AutomationId="menu.update"
 				          ToolTip="从 GitHub Releases 检查并下载更新"/>
+				<MenuItem x:Name="mndiag" Header="诊断(_D)…"
+				          AutomationProperties.AutomationId="menu.diag"
+				          ToolTip="CUDA / DirectML / 路径 / 显示器 DPI"/>
 				<MenuItem x:Name="mnabout" Header="关于(_A)…"
 				          AutomationProperties.AutomationId="menu.about"
 				          ToolTip="版本与许可证"/>
