@@ -77,7 +77,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 ## Dictionary
 
-ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next to the program. The release archive does not include it. **Help → Install features** can download `dict.7z` and extract it there. A lookup does not modify the file. The connection closes after 5 minutes without a search and opens again on the next one.
+ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next to the program. The release archive does not include it. **Help → Install features** can download `dict.7z` and extract it there. Extracting downloads `7za.dll` and `SharpSevenZip.dll` when they are missing. Opening the file needs `e_sqlite3.dll`. A lookup does not modify the file. The connection closes after 5 minutes without a search and opens again on the next one.
 
 ### Using it
 

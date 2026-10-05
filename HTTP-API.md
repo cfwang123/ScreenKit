@@ -176,7 +176,7 @@ Health check and capability probe.
 | `tts_models` | int | Scanned Sherpa TTS model count |
 | `face_ready` | bool | Whether `facemodels` has det+rec ONNX |
 | `face_models` | int | Scanned face ONNX count |
-| `barcode` | bool | Barcode / QR endpoint available (ZXingCpp, no extra model) |
+| `barcode` | bool | Barcode / QR endpoint is built in (no extra model). Scanning still needs `ZXing.dll`, which is not in the release archive |
 | `itn` | bool | WeText ITN available |
 | `itn_error` | string | Reason when ITN is unavailable |
 | `llm_translate` | bool | Translate LLM configured |
@@ -735,7 +735,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ## 12. QR / barcode
 
-Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the result-panel **Barcode** tab (QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, plus a light OpenCV QR fallback). Aliases: `POST /api/barcode`, `POST /api/barcodes` (same handler). Combined OCR+barcode remains `POST /api/ocr` with `options.ocr.barcode`.
+Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the result-panel **Barcode** tab (QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, plus a light OpenCV QR fallback). `ZXing.dll` is not in the release archive. **Help → Install features** downloads it. A request without that file returns code 950. Aliases: `POST /api/barcode`, `POST /api/barcodes` (same handler). Combined OCR+barcode remains `POST /api/ocr` with `options.ocr.barcode`.
 
 ### 12.1 POST `/api/qr`
 

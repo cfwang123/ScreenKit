@@ -28,25 +28,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
-### English
-
-#### Changed
-
-- `ZXing.dll`, `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll`, and `e_sqlite3.dll` are no longer in the release archive. **Help → Install features** can download each one. Barcode scan and QR images ask for ZXing. Opening the dictionary asks for SQLite. Extracting a 7z (the dictionary pack) downloads 7za and SharpSevenZip if they are missing. Extracting `tar.bz2` speech or ASR packs downloads SharpCompress if it is missing.
-
-### 中文
-
-#### 变更
-
-- `ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll` 不再打进发布包。**帮助 → 安装功能**可以分别下载。识别条码、生成二维码时若没有 ZXing，会提示安装。打开词典时若没有 SQLite，会提示安装。解压 7z（词典包）时若没有 7za 或 SharpSevenZip，会先下载。解压语音或识别模型的 `tar.bz2` 时若没有 SharpCompress，会先下载。
-
 ## v1.0.14 (2026-10-04 ~ 10-05)
 
 ### English
 
 #### Added
 
-- Dictionary on the main window (**Options → Dictionary**, `tab_dict_visible`, on by default). Read-only lookup in `dict.db` next to the program for Chinese, English, Japanese, and Korean. The file is not in the release archive. **Help → Install features** downloads `dict.7z` from the fixed GitHub release `dict-db` and extracts `dict.db` with the bundled `7za.dll`.
+- Dictionary on the main window (**Options → Dictionary**, `tab_dict_visible`, on by default). Read-only lookup in `dict.db` next to the program for Chinese, English, Japanese, and Korean. The file is not in the release archive. **Help → Install features** downloads `dict.7z` from the fixed GitHub release `dict-db` and extracts `dict.db`.
 - **Help → Install features → Windows speech** lists `Language.TextToSpeech` packs and the voices Windows reports. Install or remove runs only when this process is an administrator; otherwise the DISM command is shown and can be copied. The speech page lists a new voice after ScreenKit restarts.
 - **Settings → General** can turn OCR, TTS, ASR, chat, translate, face, and dictionary on or off (`mod_*`, default on). Off hides that page and stops its hotkey and tray entry. **Settings → API** can turn each HTTP path off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). A disabled path returns code 810 and is left out of `GET /api`. Main-tab checkboxes still only hide the page.
 
@@ -58,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary speech (**Settings → Dictionary**): each of Chinese, English, Japanese, and Korean has an engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, otherwise Edge online. Japanese and Korean headwords are spoken only up to the first comma. Spoken audio is cached in `tmp/voice` and kept for 1 day. The SQLite connection closes after 5 minutes without a lookup. This does not change the Speech tab.
 - Speech with no saved engine uses Windows speech when a voice is installed, otherwise Edge online. A saved engine is kept. The language list shows named languages first (Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, Spanish), then the remaining codes. SAPI and Windows speech list only languages that have an installed voice.
 - `opencv_videoio_ffmpeg4110_64.dll` is no longer in the release archive. OCR and recording do not use it. **Help → Install features → OpenCV video** downloads it from the OpenCV NuGet package when needed.
+- `ZXing.dll`, `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll`, and `e_sqlite3.dll` are no longer in the release archive. **Help → Install features** can download each one. Barcode scan and QR images ask for ZXing. Opening the dictionary asks for SQLite. Extracting a 7z (the dictionary pack) downloads 7za and SharpSevenZip if they are missing. Extracting `tar.bz2` speech or ASR packs downloads SharpCompress if it is missing.
 - **Help → Install features** renames Voices to **ONNX speech models**. Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). The Speech page can load that model and passes `lang` from the language filter, or from the script of the text.
 - ONNX CPU/GPU runtimes are not loaded at startup. The first OCR, translation, face, speech, or dictionary ONNX use loads the matching runtime. After `onnx_unload_min` idle minutes (default 5; `0` keeps them loaded) the sessions unload, then this process drops the native libraries it loaded. A DLL still held by the managed runtime or Sherpa stays mapped until exit. Service mode still warms up and does not unload.
 - **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded model by its weight-file size together with the mapped ONNX runtime. **Unload from memory** frees that row, runs a full GC, and compacts the large-object heap. A runtime still mapped in this process stays until restart. A row in use cannot be unloaded. Unload on the ONNX GPU row also releases the CUDA libraries this process loaded, including the extra references a Sherpa GPU voice keeps. The row stays only when those libraries are still mapped. The status bar summarizes what is loaded, for example `ONNX GPU loaded, 1 models, 1.73GB total`. Click the bar to open Memory.
@@ -70,7 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 主窗口增加词典页（**选项 → 词典**，`tab_dict_visible`，默认显示）。只读查询程序旁的 `dict.db`，支持汉语、英语、日语、韩语。词典库不进发布包。**帮助 → 安装功能**从固定的 GitHub Release `dict-db` 下载 `dict.7z`，用随程序的 `7za.dll` 解出 `dict.db`。
+- 主窗口增加词典页（**选项 → 词典**，`tab_dict_visible`，默认显示）。只读查询程序旁的 `dict.db`，支持汉语、英语、日语、韩语。词典库不进发布包。**帮助 → 安装功能**从固定的 GitHub Release `dict-db` 下载 `dict.7z` 并解出 `dict.db`。
 - **帮助 → 安装功能 → Windows语音**列出 `Language.TextToSpeech` 功能包和 Windows 报告的发音人。本进程是管理员时才能安装或卸载，否则只显示 DISM 命令并可复制。重启本程序后，语音合成页才会列出新发音人。
 - **参数设置 → 常规**可启用或停用截图识别、语音合成、语音识别、LLM对话、翻译、人脸、词典（`mod_*`，默认开）。关闭后隐藏对应页，并停用热键和托盘入口。**参数设置 → 接口**可分别关闭 OCR、TTS、ASR、翻译、对话、人脸的 HTTP 路径（`http_ocr` 等）。关闭时返回 810，`GET /api` 也不再列出。主界面 Tab 显示开关仍只隐藏入口。
 
@@ -82,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典发音（**参数设置 → 词典**）：汉、英、日、韩各自可选引擎（自动 / ONNX / SAPI / Windows 语音 / Edge）、发音人和语速（0.5～2）。自动先用该语言的 Windows 语音，没有再用 Edge 在线。日语、韩语词头发音只读到第一个逗号之前。发音缓存在 `tmp/voice`，保留 1 天。连续 5 分钟没有查询后 SQLite 连接关闭，下次查询再打开。不改语音合成页。
 - 语音合成未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。已经保存的引擎保持不变。语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。SAPI 和 Windows 语音只列出有发音人的语言。
 - `opencv_videoio_ffmpeg4110_64.dll` 不再打进发布包。识别和录屏不用它。需要时在 **帮助 → 安装功能 → OpenCV 视频** 从 OpenCV 的 NuGet 包下载。
+- `ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll` 不再打进发布包。**帮助 → 安装功能**可以分别下载。识别条码、生成二维码时若没有 ZXing，会提示安装。打开词典时若没有 SQLite，会提示安装。解压 7z（词典包）时若没有 7za 或 SharpSevenZip，会先下载。解压语音或识别模型的 `tar.bz2` 时若没有 SharpCompress，会先下载。
 - **帮助 → 安装功能**里原来的「发音人」页改名为 **onnx语音模型**。日语模型是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`）。语音合成可以加载它，并按界面语言或文字选择 `lang`。
 - ONNX 的 CPU/GPU 运行库不再在启动时加载。第一次识别、翻译、人脸、语音或词典里的 ONNX 才会加载。空闲达到 `onnx_unload_min` 分钟（默认 5，`0` 表示不自动卸载）后先卸会话，再释放本程序加载的原生库。托管运行时或 Sherpa 仍占用的 DLL 会留到退出。服务模式仍会预热，并且不按空闲卸载。
 - **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的模型，同时列出已映射的 ONNX 运行库。每行「从内存卸载」会释放该项，并做完整 GC、压缩大对象堆。已经映射进本进程的运行库要重启后才从内存里消失。正在使用的项不能卸。ONNX GPU 这一行还会释放本进程加载的 CUDA 库，包括 Sherpa GPU 发音人多占的引用；只有这些库仍映射着时才留在列表里。状态栏改为汇总，例如「已加载ONNX GPU、1个模型 共1.73GB」。点击状态栏打开内存占用。

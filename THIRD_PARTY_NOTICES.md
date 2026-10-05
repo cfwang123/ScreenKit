@@ -31,6 +31,7 @@ Always verify the license of the **exact package version** you ship.
 | **FFmpeg shared libraries** (`ffmpeg64/`) | Screen-record encode / remux | GPL or LGPL depending on the build (e.g. BtbN gpl-shared). Do not redistribute without matching FFmpeg license compliance |
 | **CUDA / cuDNN redistributables** | NVIDIA GPU inference | NVIDIA EULA; often not redistributable freely — prefer system install or user-provided `onnxgpu64` |
 | **DirectML / ORT native DLLs** | iGPU / CUDA EP | Follow Microsoft / ORT redistributable terms |
+| **ZXing.dll**, **SharpCompress.dll**, **SharpSevenZip.dll**, **7za.dll**, **e_sqlite3.dll** | Barcode, `tar.bz2` extract, 7z extract, dictionary | Not in the release archive. **Help → Install features** downloads them. `7za.dll` stays LGPL-2.1-or-later; its license is written beside the program as `License.7za.txt` |
 
 ## Reference / research code
 

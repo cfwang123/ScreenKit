@@ -177,7 +177,7 @@ http_port = 1224
 | `tts_models` | int | 扫描到的 Sherpa TTS 模型数量 |
 | `face_ready` | bool | `facemodels` 是否已有检测+识别模型 |
 | `face_models` | int | 扫描到的人脸 ONNX 数量 |
-| `barcode` | bool | 条码/二维码接口可用（ZXingCpp，无需额外模型） |
+| `barcode` | bool | 条码/二维码接口已内置（无需额外模型）。实际识别还需要 `ZXing.dll`，发布包不含它 |
 | `itn` | bool | WeText ITN 是否可用 |
 | `itn_error` | string | ITN 不可用时的原因 |
 | `llm_translate` | bool | 是否已配置可用的翻译 LLM |
@@ -830,7 +830,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ## 12. 条码 / 二维码
 
-只扫条码，**不跑 OCR**。与结果区 **条码** Tab 同一套 ZXingCpp 流程（QR、Aztec、Data Matrix、PDF417、EAN-8/13、UPC-A/E、Code 39/93/128、Codabar、ITF，外加轻量 OpenCV QR 补充）。别名：`POST /api/barcode`、`POST /api/barcodes`（同一处理）。OCR 顺带扫码仍用 `POST /api/ocr` 的 `options.ocr.barcode`。
+只扫条码，**不跑 OCR**。与结果区 **条码** Tab 同一套 ZXingCpp 流程（QR、Aztec、Data Matrix、PDF417、EAN-8/13、UPC-A/E、Code 39/93/128、Codabar、ITF，外加轻量 OpenCV QR 补充）。`ZXing.dll` 不在发布包里，用 **帮助 → 安装功能** 下载。没有这个文件时返回代码 950。别名：`POST /api/barcode`、`POST /api/barcodes`（同一处理）。OCR 顺带扫码仍用 `POST /api/ocr` 的 `options.ocr.barcode`。
 
 ### 12.1 POST `/api/qr`
 
