@@ -736,6 +736,7 @@
 								          ToolTip="热键语音输入用（OnlineRecognizer 流式包，如 zipformer 流式）"/>
 								<Button x:Name="basrreload" Grid.Row="1" Grid.Column="4" Content="刷新模型"
 								        Style="{StaticResource ToolBtn}" Height="32" Margin="0,0,0,8"
+								        HorizontalAlignment="Left"
 								        ToolTip="重新扫描 asrmodels"/>
 
 								<TextBlock x:Name="lbasroffline" Grid.Row="2" Grid.Column="0" Text="离线模型" FontWeight="SemiBold"
@@ -828,10 +829,11 @@
 												<RowDefinition Height="Auto"/>
 												<RowDefinition Height="*"/>
 											</Grid.RowDefinitions>
-											<DockPanel Grid.Row="0" Margin="0,0,0,8">
-												<TextBlock x:Name="lbasrresult" Text="识别结果" FontWeight="SemiBold" VerticalAlignment="Center"/>
+											<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
+												<TextBlock x:Name="lbasrresult" Text="识别结果" FontWeight="SemiBold"
+												           VerticalAlignment="Center" Margin="0,0,8,0"/>
 												<Button x:Name="basrcopy" Content="复制" Style="{StaticResource ToolBtnSm}"
-												        DockPanel.Dock="Right" Margin="0" Padding="10,4"/>
+												        Margin="0" Padding="10,4" HorizontalAlignment="Left"/>
 											</DockPanel>
 											<TextBox x:Name="easrtext" Grid.Row="1"
 											         TextWrapping="Wrap" AcceptsReturn="True"

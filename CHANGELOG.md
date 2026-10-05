@@ -30,11 +30,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Fixed
+
+- Speech recognition: **Refresh models** and **Copy** size to their labels.
+
 #### Added
 
 - Web file manager (**File sync → Web manager**, desktop `/` and phone `/m`) has **Text**. The dialog shows the current text on the PC File sync page. Clear empties it on the PC. Send to PC writes the edited text back into that box.
 
 ### 中文
+
+#### 修复
+
+- 语音识别里的 **刷新模型** 和 **复制** 按文字宽度显示。
 
 #### 新增
 
