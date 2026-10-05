@@ -13,6 +13,7 @@ sealed class DictHit {
 	public long Id;
 	public string Dict = "";
 	public string Headword = "";
+	public string Kanji = "";
 	public string Reading = "";
 	public string Pos = "";
 	public string Preview = "";
@@ -361,10 +362,42 @@ static class DictDb {
 		foreach (var h in hits) {
 			if (!map.TryGetValue(h.Id, out var e)) continue;
 			h.Headword = e.Word.Length > 0 ? e.Word : e.Headword;
+			h.Kanji = h.Dict == "ja" ? e.Kanji : "";
 			h.Reading = e.Pron;
 			h.Pos = e.Pos;
 			h.Preview = listpreview(e);
 		}
+	}
+
+	/// <summary>日语列表标题：主表记加别表记，逗号分隔。丢掉 out-dated / obsolete 的写法，其它括注去掉只留表记。</summary>
+	internal static string JaForms(string word, string kanji) {
+		var parts = new List<string>();
+		pushform(parts, word);
+		if (!string.IsNullOrEmpty(kanji)) {
+			foreach (var raw in kanji.Split(',', '，'))
+				pushform(parts, raw);
+		}
+		return string.Join(", ", parts);
+	}
+
+	static void pushform(List<string> parts, string raw) {
+		var s = (raw ?? "").Trim();
+		if (s.Length == 0 || obsoleteform(s)) return;
+		var i = s.IndexOf('\'');
+		if (i >= 0) s = s.Substring(0, i).Trim();
+		if (s.Length == 0) return;
+		foreach (var p in parts)
+			if (p == s) return;
+		parts.Add(s);
+	}
+
+	static bool obsoleteform(string s) {
+		var i = s.IndexOf('\'');
+		if (i < 0) return false;
+		var note = s.Substring(i);
+		return note.IndexOf("out-dated", StringComparison.OrdinalIgnoreCase) >= 0
+			|| note.IndexOf("outdated", StringComparison.OrdinalIgnoreCase) >= 0
+			|| note.IndexOf("obsolete", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
 	static string listpreview(DictEntry e) {

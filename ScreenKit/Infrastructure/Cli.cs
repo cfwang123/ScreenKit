@@ -3137,6 +3137,11 @@ static class Cli {
 	}
 
 	static int testdict(string one) {
+		var forms = DictDb.JaForms("其奴", "そいつ, そやつ, すやつ'out-dated or obsolete kana usage'");
+		if (forms != "其奴, そいつ, そやつ") {
+			Out("ja forms " + forms);
+			return 6;
+		}
 		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict.db");
 		if (!DictDb.Init(path)) {
 			if (DictDb.Error == "missing")
@@ -3157,7 +3162,8 @@ static class Cli {
 			Out("q=" + q + " n=" + hits.Count);
 			var shown = 0;
 			foreach (var h in hits) {
-				Out("  " + h.Dict + " " + h.Headword + " | " + h.Preview);
+				var label = h.Dict == "ja" ? DictDb.JaForms(h.Headword, h.Kanji) : h.Headword;
+				Out("  " + h.Dict + " " + label + " | " + h.Preview);
 				if (++shown >= 5) break;
 			}
 			if (hits.Count == 0) {

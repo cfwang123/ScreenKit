@@ -290,8 +290,9 @@ public partial class DictWindow : UserControl {
 		foreach (var h in hits) {
 			if (h.Id == 0) continue;
 			var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
+			var shown = listword(h.Dict, word, h.Kanji);
 			var lang = langlabel(h.Dict);
-			var title = lang.Length > 0 ? "[" + lang + "] " + word : word;
+			var title = lang.Length > 0 ? "[" + lang + "] " + shown : shown;
 			var preview = h.Preview ?? "";
 			if (h.Via.Length > 0) {
 				var via = Loc.T("dict.via", h.Via);
@@ -360,7 +361,8 @@ public partial class DictWindow : UserControl {
 		var doc = newdoc();
 		var head = para(2);
 		addrun(head, curword, DRole.Title);
-		if (e.Kanji.Length > 0 && e.Kanji != curword) addrun(head, "  " + e.Kanji, DRole.Body);
+		var alt = e.Dict == "ja" ? jaalt(curword, e.Kanji) : e.Kanji;
+		if (alt.Length > 0 && alt != curword) addrun(head, "  " + alt, DRole.Body);
 		doc.Blocks.Add(head);
 		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
 		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1));
@@ -588,11 +590,12 @@ public partial class DictWindow : UserControl {
 			foreach (var h in hits) {
 				if (h.Id == 0) continue;
 				var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
+				var shown = listword(h.Dict, word, h.Kanji);
 				var lang = langlabel(h.Dict);
 				rows.Add(new DictSelRow {
 					Id = h.Id,
 					Word = word,
-					Title = lang.Length > 0 ? "[" + lang + "] " + word : word,
+					Title = lang.Length > 0 ? "[" + lang + "] " + shown : shown,
 					Gloss = h.Preview ?? "",
 				});
 				if (rows.Count >= 8) break;
@@ -677,6 +680,22 @@ public partial class DictWindow : UserControl {
 				: ex.Message;
 		}
 		finally { speaking = false; }
+	}
+
+	/// <summary>日语列表把别表记接在主表记后面。发音和再搜索仍用主表记。</summary>
+	static string listword(string dict, string word, string kanji) {
+		if (dict != "ja") return word ?? "";
+		var shown = DictDb.JaForms(word, kanji);
+		return shown.Length > 0 ? shown : (word ?? "");
+	}
+
+	static string jaalt(string word, string kanji) {
+		var all = DictDb.JaForms(word, kanji);
+		if (string.IsNullOrEmpty(word) || all.Length <= word.Length) return "";
+		if (!all.StartsWith(word, StringComparison.Ordinal)) return all;
+		var rest = all.Substring(word.Length);
+		if (rest.StartsWith(", ")) rest = rest.Substring(2);
+		return rest;
 	}
 
 	/// <summary>日语、韩语词头只读到第一个逗号之前。英文和中文整段照读。</summary>

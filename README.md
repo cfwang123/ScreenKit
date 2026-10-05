@@ -84,7 +84,7 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 - The hotkey is off until you set it. It shows the main window and this tab, and turns the tab on if it was hidden. Press it again while the tab is showing to hide the main window.
 - It searches the clipboard only when the text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence, a blank clipboard, or anything else only opens the dictionary.
 - Language buttons: All, Chinese, Japanese, Korean, English.
-- Each hit is two lines (language and headword, then the gloss) with a speak button. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Each example can be spoken.
+- Each hit is two lines (language and headword, then the gloss) with a speak button. A Japanese headword lists each writing, for example 其奴, そいつ, そやつ. Writings marked out-dated or obsolete are left out. The entry uses smaller type and colors pronunciation, part of speech, sense numbers, language labels, and examples. Each example can be spoken.
 - Select text in the entry to open a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Speak reads the whole selection. The popup closes when you leave that window.
 - Search, a matching headword, or a word link opens another dictionary window. The page you were reading stays.
 - **Settings → Dictionary** sets, for each language, an engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed. Japanese and Korean headwords are spoken only up to the first comma.
