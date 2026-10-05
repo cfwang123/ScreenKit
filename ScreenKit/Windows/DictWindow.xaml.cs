@@ -267,9 +267,16 @@ public partial class DictWindow : UserControl {
 		}
 		var g = ++gen;
 		lbstatus.Text = Loc.T("dict.searching");
+		var took = new int[1];
 		Task.Run(() => {
-			try { return DictDb.Search(q, dict, 80); }
+			var t0 = Environment.TickCount;
+			try {
+				var found = DictDb.Search(q, dict, 80);
+				took[0] = unchecked(Environment.TickCount - t0);
+				return found;
+			}
 			catch (Exception ex) {
+				took[0] = unchecked(Environment.TickCount - t0);
 				return new List<DictHit> { new DictHit { Preview = ex.Message, Headword = "" } };
 			}
 		}).ContinueWith(t => {
@@ -280,12 +287,12 @@ public partial class DictWindow : UserControl {
 					lbstatus.Text = hits[0].Preview;
 					return;
 				}
-				showhits(hits);
+				showhits(hits, took[0]);
 			}));
 		});
 	}
 
-	void showhits(List<DictHit> hits) {
+	void showhits(List<DictHit> hits, int ms) {
 		var rows = new List<DictRow>(hits.Count);
 		foreach (var h in hits) {
 			if (h.Id == 0) continue;
@@ -319,7 +326,8 @@ public partial class DictWindow : UserControl {
 		lhits.ItemsSource = rows;
 		if (rows.Count > 0) lhits.SelectedIndex = pick;
 		filling = false;
-		lbstatus.Text = Loc.T("dict.count", rows.Count);
+		if (ms < 0) ms = 0;
+		lbstatus.Text = Loc.T("dict.count", rows.Count, ms);
 		if (rows.Count > 0) loaddetail(rows[pick]);
 		else cleardetail();
 	}
