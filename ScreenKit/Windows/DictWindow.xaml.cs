@@ -298,8 +298,8 @@ public partial class DictWindow : UserControl {
 			if (h.Id == 0) continue;
 			var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
 			var shown = listword(h.Dict, word, h.Kanji);
-			var lang = langlabel(h.Dict);
-			var title = lang.Length > 0 ? "[" + lang + "] " + shown : shown;
+			var code = listcode(h.Dict);
+			var title = code.Length > 0 ? "[" + code + "] " + shown : shown;
 			var preview = h.Preview ?? "";
 			if (h.Via.Length > 0) {
 				var via = Loc.T("dict.via", h.Via);
@@ -598,11 +598,11 @@ public partial class DictWindow : UserControl {
 				if (h.Id == 0) continue;
 				var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
 				var shown = listword(h.Dict, word, h.Kanji);
-				var lang = langlabel(h.Dict);
+				var code = listcode(h.Dict);
 				rows.Add(new DictSelRow {
 					Id = h.Id,
 					Word = word,
-					Title = lang.Length > 0 ? "[" + lang + "] " + shown : shown,
+					Title = code.Length > 0 ? "[" + code + "] " + shown : shown,
 					Gloss = h.Preview ?? "",
 				});
 				if (rows.Count >= 8) break;
@@ -710,6 +710,11 @@ public partial class DictWindow : UserControl {
 	static string speaklang(string dict) {
 		if (dict == "zh" || dict == "ja" || dict == "ko" || dict == "en") return dict;
 		return "en";
+	}
+
+	static string listcode(string dict) {
+		if (dict == "zh" || dict == "ja" || dict == "ko" || dict == "en") return dict;
+		return "";
 	}
 
 	static string langlabel(string dict) {

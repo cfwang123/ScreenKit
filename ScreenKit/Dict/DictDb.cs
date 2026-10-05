@@ -416,8 +416,9 @@ static class DictDb {
 
 	static string sensegloss(DictSense s) {
 		var zh = join2(s.Zh, s.ZhDef);
-		if (zh.Length > 0) return zh;
 		var en = join2(s.En, s.EnDef);
+		if (Loc.IsEn && en.Length > 0) return en;
+		if (zh.Length > 0) return zh;
 		if (en.Length > 0) return en;
 		if (s.Ko.Length > 0) return s.Ko;
 		return join2(s.Ja, s.JaDef);
