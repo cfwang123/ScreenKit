@@ -94,9 +94,8 @@ ScreenKit looks up headwords in a read-only SQLite file, `dict.db`, placed next 
 `dict.db` holds four dictionaries in one file. ScreenKit does not build the file.
 
 - **Chinese.** Characters, words, and idioms from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). License: MIT. The upstream project notes that the origin of some material is unclear.
-- **Japanese.** Vocabulary senses from the [JMdict/EDICT Dictionary Project](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG), the same dictionary family used by Takoboto. The file is not supplied by Takoboto. License: [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project's update terms. Kanji-dictionary data, Tatoeba example sentences, and radical files are not in this database.
+- **Japanese.** Vocabulary senses from the [JMdict/EDICT Dictionary Project](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG). License: [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project's update terms.
 - **Korean.** A derivative of the National Institute of Korean Language dictionary. License: CC BY-SA 2.0 KR.
-- **English.** Sample wording matches the *Oxford Dictionary of English*. Who produced the current file, and whether it may be redistributed, has not been verified. It is not [ECDICT](https://github.com/skywind3000/ECDICT). Until the rights are clear, or the English data is replaced, use it only for personal research and do not include it in a public release.
 
 ## Requirements
 
