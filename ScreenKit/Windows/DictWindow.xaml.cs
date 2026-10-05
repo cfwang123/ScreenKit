@@ -361,8 +361,7 @@ public partial class DictWindow : UserControl {
 		var doc = newdoc();
 		var head = para(2);
 		addrun(head, curword, DRole.Title);
-		var alt = e.Dict == "ja" ? jaalt(curword, e.Kanji) : e.Kanji;
-		if (alt.Length > 0 && alt != curword) addrun(head, "  " + alt, DRole.Body);
+		if (e.Kanji.Length > 0 && e.Kanji != curword) addrun(head, "  " + e.Kanji, DRole.Body);
 		doc.Blocks.Add(head);
 		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
 		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1));
@@ -687,15 +686,6 @@ public partial class DictWindow : UserControl {
 		if (dict != "ja") return word ?? "";
 		var shown = DictDb.JaForms(word, kanji);
 		return shown.Length > 0 ? shown : (word ?? "");
-	}
-
-	static string jaalt(string word, string kanji) {
-		var all = DictDb.JaForms(word, kanji);
-		if (string.IsNullOrEmpty(word) || all.Length <= word.Length) return "";
-		if (!all.StartsWith(word, StringComparison.Ordinal)) return all;
-		var rest = all.Substring(word.Length);
-		if (rest.StartsWith(", ")) rest = rest.Substring(2);
-		return rest;
 	}
 
 	/// <summary>日语、韩语词头只读到第一个逗号之前。英文和中文整段照读。</summary>
