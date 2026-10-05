@@ -126,57 +126,6 @@ sealed class SapiTts : IDisposable {
 		}
 	}
 
-	/// <summary>
-	/// 合成到 MP3。先 SAPI 写临时 WAV，再 MediaFoundation / ffmpeg 转 MP3。
-	/// </summary>
-	/// <returns>最终输出路径（.mp3 或失败时的 .wav）。</returns>
-	public string ExportMp3(string text, string outMp3Path, int kbps = 192) {
-		if (string.IsNullOrWhiteSpace(outMp3Path))
-			throw new ArgumentException("输出路径无效");
-
-		kbps = Compat.Clamp(kbps, 32, 320);
-		var dir = Path.GetDirectoryName(outMp3Path);
-		if (!string.IsNullOrEmpty(dir))
-			Directory.CreateDirectory(dir);
-
-		var wavPath = TmpStore.NewPath("tts", ".wav");
-		ExportWav(text, wavPath);
-
-		// 1) MediaFoundation → MP3
-		try {
-			wavToMp3Mf(wavPath, outMp3Path, kbps * 1000);
-			if (File.Exists(outMp3Path) && new FileInfo(outMp3Path).Length > 100) {
-				try { File.Delete(wavPath); } catch { }
-				return outMp3Path;
-			}
-		}
-		catch (Exception ex) {
-			CaptureLog.Ex("SapiTts MF mp3", ex);
-		}
-
-		// 2) ffmpeg
-		try {
-			if (wavToMp3Ffmpeg(wavPath, outMp3Path, kbps)) {
-				try { File.Delete(wavPath); } catch { }
-				return outMp3Path;
-			}
-		}
-		catch (Exception ex) {
-			CaptureLog.Ex("SapiTts ffmpeg mp3", ex);
-		}
-
-		// 失败：落到同名 wav
-		var fallback = Path.ChangeExtension(outMp3Path, ".wav");
-		try {
-			if (File.Exists(fallback)) File.Delete(fallback);
-			File.Move(wavPath, fallback);
-			return fallback;
-		}
-		catch {
-			return wavPath;
-		}
-	}
-
 	/// <summary>将已有 WAV 转为 MP3（供 Sherpa 导出复用）。失败返回 wav 旁 .wav。</summary>
 	public static string ConvertWavToMp3(string wavPath, string mp3Path, int kbps = 192) {
 		kbps = Compat.Clamp(kbps, 32, 320);

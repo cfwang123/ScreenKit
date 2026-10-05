@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ScreenKit;
 
@@ -239,5 +240,29 @@ static class TextTools {
 		for (var i = 0; i < bytes.Length; i++)
 			bytes[i] = Convert.ToByte(n.Substring(i * 2, 2), 16);
 		return bytes;
+	}
+
+	public static string JsonField(JsonElement el, params string[] names) {
+		foreach (var n in names) {
+			if (!el.TryGetProperty(n, out var v)) continue;
+			if (v.ValueKind == JsonValueKind.String) return (v.GetString() ?? "").Trim();
+			if (v.ValueKind is JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False)
+				return v.ToString().Trim();
+		}
+		return "";
+	}
+
+	public static string ExtractJson(string text) {
+		text = (text ?? "").Trim();
+		if (text.Length == 0) return "";
+		var fence = Regex.Match(text, @"```(?:json)?\s*([\s\S]*?)```", RegexOptions.IgnoreCase);
+		if (fence.Success) text = fence.Groups[1].Value.Trim();
+		var i = text.IndexOf('[');
+		var j = text.LastIndexOf(']');
+		if (i >= 0 && j > i) return text.Substring(i, j - i + 1);
+		i = text.IndexOf('{');
+		j = text.LastIndexOf('}');
+		if (i >= 0 && j > i) return text.Substring(i, j - i + 1);
+		return text;
 	}
 }

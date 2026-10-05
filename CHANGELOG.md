@@ -34,6 +34,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Speech recognition: **Refresh models** and **Copy** size to their labels.
 
+#### Changed
+
+- Removed unused code. ONNX session setup, the Sherpa device check, arrow drawing, and JSON field parsing each live in one place.
+
 #### Added
 
 - Web file manager (**File sync → Web manager**, desktop `/` and phone `/m`) has **Text**. The dialog shows the current text on the PC File sync page. Clear empties it on the PC. Send to PC writes the edited text back into that box.
@@ -43,6 +47,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 语音识别里的 **刷新模型** 和 **复制** 按文字宽度显示。
+
+#### 变更
+
+- 删掉没有调用的代码。ONNX 会话创建、Sherpa 设备检查、箭头绘制、JSON 字段解析各只保留一处。
 
 #### 新增
 

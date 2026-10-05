@@ -246,14 +246,6 @@ static class CastHost {
 		w.Activate();
 	}
 
-	public static void ShowView() {
-		if (view == null || !view.IsVisible) {
-			ensureview();
-			view.ShowCast();
-		}
-		else view.Activate();
-	}
-
 	public static string ViaTag(string via) {
 		if (string.IsNullOrEmpty(via)) return Loc.T("cast.via.net");
 		if (via.IndexOf("adb", StringComparison.OrdinalIgnoreCase) >= 0) return Loc.T("cast.via.adb");

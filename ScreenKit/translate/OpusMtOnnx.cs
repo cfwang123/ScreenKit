@@ -383,8 +383,8 @@ sealed class OpusMtOnnx : IDisposable {
 					throw new InvalidOperationException("DirectML 不可用");
 				CudaBootstrap.EnsureOrtForDevice(OcrDevice.IntelGpu);
 			}
-			e = makesession(encPath, ep);
-			d = makesession(decPath, ep);
+			e = CudaBootstrap.MakeSession(encPath, ep);
+			d = CudaBootstrap.MakeSession(decPath, ep);
 			return (e, d, label);
 		}
 		catch {
@@ -405,38 +405,7 @@ sealed class OpusMtOnnx : IDisposable {
 		}
 		if (!CudaBootstrap.IsOrtReady)
 			throw new InvalidOperationException("ONNX Runtime 未就绪（翻译）。");
-		return (makesession(encPath, "cpu"), makesession(decPath, "cpu"), "cpu");
-	}
-
-	static InferenceSession makesession(string modelPath, string ep) {
-		var so = new SessionOptions();
-		so.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
-		so.EnableMemoryPattern = true;
-		so.EnableCpuMemArena = true;
-		var threads = Math.Max(1, Environment.ProcessorCount);
-		so.IntraOpNumThreads = threads;
-		so.InterOpNumThreads = 1;
-		if (ep == "cuda") {
-			try { so.AppendExecutionProvider_CUDA(0); }
-			catch (Exception ex) {
-				so.Dispose();
-				throw new InvalidOperationException($"Append CUDA EP 失败: {ex.Message}", ex);
-			}
-		}
-		else if (ep == "dml") {
-			try { so.AppendExecutionProvider_DML(0); }
-			catch (Exception ex) {
-				so.Dispose();
-				throw new InvalidOperationException($"Append DirectML EP 失败: {ex.Message}", ex);
-			}
-		}
-		try {
-			return new InferenceSession(modelPath, so);
-		}
-		catch {
-			try { so.Dispose(); } catch { }
-			throw;
-		}
+		return (CudaBootstrap.MakeSession(encPath, "cpu"), CudaBootstrap.MakeSession(decPath, "cpu"), "cpu");
 	}
 
 	void DisposeSessions() {

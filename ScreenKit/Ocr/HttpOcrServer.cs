@@ -133,9 +133,6 @@ sealed partial class HttpOcrServer : IDisposable {
 		try { l.Close(); } catch { }
 	}
 
-	/// <summary>参数变更时与主窗口共用 runner，统一 Invalidate。</summary>
-	public void InvalidateEngine() => runner?.Invalidate();
-
 	async Task acceptloop() {
 		while (running) {
 			HttpListener l;

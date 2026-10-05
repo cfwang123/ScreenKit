@@ -50,15 +50,4 @@ static class Compat {
 			}
 		}
 	}
-
-	public static string[] SplitTrim(string s, params char[] seps) {
-		if (string.IsNullOrEmpty(s)) return Array.Empty<string>();
-		var parts = s.Split(seps);
-		var list = new List<string>(parts.Length);
-		foreach (var p in parts) {
-			var t = p?.Trim();
-			if (!string.IsNullOrEmpty(t)) list.Add(t);
-		}
-		return list.ToArray();
-	}
 }

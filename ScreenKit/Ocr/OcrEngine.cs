@@ -925,9 +925,9 @@ sealed class OcrEngine : IDisposable {
 				CudaBootstrap.EnsureOrtForDevice(OcrDevice.IntelGpu);
 			}
 
-			gd = makesession(detPath, ep);
-			gc = makesession(clsPath, ep);
-			gr = makesession(recPath, ep);
+			gd = CudaBootstrap.MakeSession(detPath, ep);
+			gc = CudaBootstrap.MakeSession(clsPath, ep);
+			gr = CudaBootstrap.MakeSession(recPath, ep);
 			return (gd, gc, gr, deviceLabel);
 		}
 		catch (Exception ex) {
@@ -966,46 +966,7 @@ sealed class OcrEngine : IDisposable {
 		if (!CudaBootstrap.IsOrtReady)
 			throw new InvalidOperationException(
 				"ONNX Runtime 未就绪：缺少 onnxcpu64/onnxgpu64/onnxdml64 中的 onnxruntime.dll。");
-		return (makesession(detPath, "cpu"), makesession(clsPath, "cpu"), makesession(recPath, "cpu"), "cpu");
-	}
-
-	/// <param name="ep">cpu | cuda | dml</param>
-	static InferenceSession makesession(string modelPath, string ep) {
-		var so = new SessionOptions();
-		// 速度优先：完整图优化 + CPU arena
-		so.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
-		so.EnableMemoryPattern = true;
-		so.EnableCpuMemArena = true;
-		// det/cls/rec 串行用 session，Intra 用满核；Inter 保持 1 避免多余并行调度
-		var threads = Math.Max(1, Environment.ProcessorCount);
-		so.IntraOpNumThreads = threads;
-		so.InterOpNumThreads = 1;
-		if (ep == "cuda") {
-			try {
-				so.AppendExecutionProvider_CUDA(0);
-			}
-			catch (Exception ex) {
-				so.Dispose();
-				throw new InvalidOperationException($"Append CUDA EP 失败: {ex.Message}", ex);
-			}
-		}
-		else if (ep == "dml") {
-			try {
-				// Intel 核显 / AMD / 部分 NVIDIA 均可走 DirectML（需 DML 版 ORT）
-				so.AppendExecutionProvider_DML(0);
-			}
-			catch (Exception ex) {
-				so.Dispose();
-				throw new InvalidOperationException($"Append DirectML EP 失败: {ex.Message}", ex);
-			}
-		}
-		try {
-			return new InferenceSession(modelPath, so);
-		}
-		catch {
-			try { so.Dispose(); } catch { }
-			throw;
-		}
+		return (CudaBootstrap.MakeSession(detPath, "cpu"), CudaBootstrap.MakeSession(clsPath, "cpu"), CudaBootstrap.MakeSession(recPath, "cpu"), "cpu");
 	}
 
 	static string[] loadkeys(string path) {

@@ -42,12 +42,12 @@ unsafe sealed class CastVideoEncoder : IDisposable {
 			ffmpeg.av_opt_set(enc->priv_data, "tune", "zerolatency", 0);
 			ffmpeg.av_opt_set(enc->priv_data, "crf", crf.ToString(), 0);
 		}
-		ffmpeg.avcodec_open2(enc, codec, null).Check("avcodec_open2 x264");
+		ffmpeg.avcodec_open2(enc, codec, null).ThrowIfError("avcodec_open2 x264");
 		frame = ffmpeg.av_frame_alloc();
 		frame->format = (int)AVPixelFormat.AV_PIX_FMT_YUV420P;
 		frame->width = outW;
 		frame->height = outH;
-		ffmpeg.av_frame_get_buffer(frame, 32).Check("frame_get_buffer");
+		ffmpeg.av_frame_get_buffer(frame, 32).ThrowIfError("frame_get_buffer");
 		pkt = ffmpeg.av_packet_alloc();
 		sws = ffmpeg.sws_getContext(this.srcW, this.srcH, AVPixelFormat.AV_PIX_FMT_BGRA,
 			outW, outH, AVPixelFormat.AV_PIX_FMT_YUV420P, ffmpeg.SWS_BILINEAR, null, null, null);
@@ -56,7 +56,7 @@ unsafe sealed class CastVideoEncoder : IDisposable {
 
 	public byte[] EncodeBgra(byte[] bgra, int stride) {
 		if (disposed || bgra == null) return null;
-		ffmpeg.av_frame_make_writable(frame).Check("frame_writable");
+		ffmpeg.av_frame_make_writable(frame).ThrowIfError("frame_writable");
 		fixed (byte* pSrc = bgra) {
 			var srcSlice = new byte_ptrArray8();
 			srcSlice[0] = pSrc;
@@ -65,7 +65,7 @@ unsafe sealed class CastVideoEncoder : IDisposable {
 			ffmpeg.sws_scale(sws, srcSlice, srcStride, 0, srcH, frame->data, frame->linesize);
 		}
 		frame->pts = pts++;
-		ffmpeg.avcodec_send_frame(enc, frame).Check("send_frame");
+		ffmpeg.avcodec_send_frame(enc, frame).ThrowIfError("send_frame");
 		var r = ffmpeg.avcodec_receive_packet(enc, pkt);
 		if (r < 0) return null;
 		var nal = new byte[pkt->size];

@@ -605,13 +605,6 @@ static class ImageUtil {
 		}
 	}
 
-	/// <summary>
-	/// 将图片写入 screenshots/ 时间戳文件，并以「复制文件」形式放入剪贴板。
-	/// （原 tmp/clip_copy 复用路径已弃用，统一走历史目录。）
-	/// </summary>
-	public static string Toclipboardasfile(BitmapSource src) =>
-		SaveScreenshotAndCopyAsFile(src, "shot");
-
 	static void copyfiletoclipboard(string path) {
 		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
 			throw new FileNotFoundException("截图文件不存在", path);

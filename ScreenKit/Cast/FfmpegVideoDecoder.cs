@@ -24,7 +24,7 @@ unsafe sealed class CastVideoDecoder : IDisposable {
 		dec = ffmpeg.avcodec_alloc_context3(codec);
 		if (dec == null) throw new InvalidOperationException("avcodec_alloc_context3 失败");
 		dec->flags |= ffmpeg.AV_CODEC_FLAG_LOW_DELAY;
-		ffmpeg.avcodec_open2(dec, codec, null).Check("avcodec_open2 h264");
+		ffmpeg.avcodec_open2(dec, codec, null).ThrowIfError("avcodec_open2 h264");
 		frame = ffmpeg.av_frame_alloc();
 		pkt = ffmpeg.av_packet_alloc();
 		if (frame == null || pkt == null) throw new InvalidOperationException("frame/packet alloc 失败");

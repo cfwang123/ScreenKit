@@ -195,12 +195,8 @@ sealed class TtsSpeakerInfo {
 			var l = TtsLang.Label(Lang);
 			if (!string.IsNullOrEmpty(g)) tags.Add(g);
 			if (!string.IsNullOrEmpty(l)) tags.Add(l);
-			if (tags.Count > 0) {
-				// 有中文名时不重复塞英文 key，避免过长
-				if (!string.IsNullOrEmpty(ChineseName) && !string.Equals(ChineseName, Name, StringComparison.Ordinal))
-					return $"{baseName}（{string.Join("·", tags)}）";
+			if (tags.Count > 0)
 				return $"{baseName}（{string.Join("·", tags)}）";
-			}
 			if (!string.IsNullOrEmpty(ChineseName) && ChineseName != Name)
 				return $"{ChineseName}（{Name}）";
 			return baseName;
@@ -208,9 +204,6 @@ sealed class TtsSpeakerInfo {
 	}
 
 	public override string ToString() => DisplayName;
-
-	public bool MatchesFilter(string wantLang, string wantGender) =>
-		TtsLang.Match(Lang, wantLang) && TtsGender.Match(Gender, wantGender);
 
 	public static readonly Dictionary<string, string> ZhLlNames = new() {
 		["suyingxue"] = "素影雪",

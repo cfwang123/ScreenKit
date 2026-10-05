@@ -65,11 +65,6 @@ static class LlmAgentPaths {
 		}
 	}
 
-	public static string RelativeOf(string full) {
-		try { return relative(Path.GetFullPath(full)); }
-		catch { return full ?? ""; }
-	}
-
 	static string relative(string full) {
 		var root = Path.GetFullPath(Root);
 		full = Path.GetFullPath(full ?? "");

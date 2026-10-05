@@ -8,8 +8,6 @@ namespace ScreenKit;
 
 /// <summary>二维码 / 条码生成：ZXingCpp 写码，图下方一行原文。</summary>
 static class QrMake {
-	static bool encReady;
-
 	public static readonly (string Id, string Title)[] Formats = {
 		("qr", "QR Code"),
 		("datamatrix", "Data Matrix"),
@@ -42,7 +40,6 @@ static class QrMake {
 		if (string.IsNullOrEmpty(text)) throw new ArgumentException("empty");
 		if (scale < 1) scale = 1;
 		if (scale > 32) scale = 32;
-		ensureenc();
 		var fmt = parsefmt(format);
 		var enc = (encoding ?? "utf8").Trim().ToLowerInvariant();
 		var hex = enc is "hex" or "bin" or "binary";
@@ -55,7 +52,7 @@ static class QrMake {
 		else if (linear)
 			barcode = creator.From(text);
 		else {
-			var bytes = gbk ? Encoding.GetEncoding(936).GetBytes(text) : Encoding.UTF8.GetBytes(text);
+			var bytes = gbk ? TextTools.Gbk.GetBytes(text) : Encoding.UTF8.GetBytes(text);
 			barcode = creator.From(bytes);
 		}
 		using (barcode) {
@@ -71,12 +68,6 @@ static class QrMake {
 			var bmp = tobitmap(img);
 			return caption ? withcaption(bmp, text) : bmp;
 		}
-	}
-
-	static void ensureenc() {
-		if (encReady) return;
-		Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-		encReady = true;
 	}
 
 	static bool isgbk(string encoding) {

@@ -428,7 +428,7 @@ partial class AnnotateWindow : Window {
 		}
 	}
 
-	static UIElement makearrow(Point from, Point to, Brush brush, double thick) {
+	internal static UIElement makearrow(Point from, Point to, Brush brush, double thick) {
 		var dx = to.X - from.X;
 		var dy = to.Y - from.Y;
 		var len = Math.Sqrt(dx * dx + dy * dy);

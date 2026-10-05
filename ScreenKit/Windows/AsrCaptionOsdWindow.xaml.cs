@@ -135,27 +135,6 @@ public partial class AsrCaptionOsdWindow : Window {
 		scrolltoend(false);
 	}
 
-	/// <summary>追加一句已确认字幕（新行，向上滚）。</summary>
-	public void CommitLine(string text) {
-		text = (text ?? "").Trim();
-		if (text.Length == 0) {
-			partial = "";
-			rebuildlines();
-			return;
-		}
-		lines.Add(text);
-		trimlines();
-		partial = "";
-		rebuildlines();
-		scrolltoend(true);
-	}
-
-	public void SetPartial(string text) {
-		partial = text ?? "";
-		rebuildlines();
-		scrolltoend(false);
-	}
-
 	public void Clear() {
 		lines.Clear();
 		partial = "";

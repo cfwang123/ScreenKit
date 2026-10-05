@@ -65,7 +65,7 @@ static class PasswordVariant {
 
 	public static List<PasswordVariantRow> Parse(string text, string seed = "") {
 		var list = new List<PasswordVariantRow>();
-		var json = extractjson(text ?? "");
+		var json = TextTools.ExtractJson(text ?? "");
 		if (json.Length == 0) return list;
 		JsonDocument doc;
 		try { doc = JsonDocument.Parse(json); }
@@ -86,8 +86,8 @@ static class PasswordVariant {
 			if (seedTrim.Length > 0) seen.Add(seedTrim);
 			foreach (var el in root.EnumerateArray()) {
 				if (el.ValueKind != JsonValueKind.Object) continue;
-				var pw = str(el, "pw", "password", "variant", "text");
-				var note = str(el, "note", "reason", "how", "method");
+				var pw = TextTools.JsonField(el, "pw", "password", "variant", "text");
+				var note = TextTools.JsonField(el, "note", "reason", "how", "method");
 				pw = normpw(pw);
 				if (pw.Length == 0) continue;
 				if (!seen.Add(pw)) continue;
@@ -107,29 +107,5 @@ static class PasswordVariant {
 		}
 		if (s.Length > 128) s = s.Substring(0, 128);
 		return s;
-	}
-
-	static string str(JsonElement el, params string[] names) {
-		foreach (var n in names) {
-			if (!el.TryGetProperty(n, out var v)) continue;
-			if (v.ValueKind == JsonValueKind.String) return (v.GetString() ?? "").Trim();
-			if (v.ValueKind is JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False)
-				return v.ToString().Trim();
-		}
-		return "";
-	}
-
-	static string extractjson(string text) {
-		text = (text ?? "").Trim();
-		if (text.Length == 0) return "";
-		var fence = Regex.Match(text, @"```(?:json)?\s*([\s\S]*?)```", RegexOptions.IgnoreCase);
-		if (fence.Success) text = fence.Groups[1].Value.Trim();
-		var i = text.IndexOf('[');
-		var j = text.LastIndexOf(']');
-		if (i >= 0 && j > i) return text.Substring(i, j - i + 1);
-		i = text.IndexOf('{');
-		j = text.LastIndexOf('}');
-		if (i >= 0 && j > i) return text.Substring(i, j - i + 1);
-		return text;
 	}
 }

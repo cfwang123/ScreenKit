@@ -115,27 +115,6 @@ sealed class TtsEngine : IDisposable {
 		}
 	}
 
-	/// <summary>
-	/// 探测 onnxdml64 文件（OCR DirectML 可用）。
-	/// 注意：NuGet <c>org.k2fsa.sherpa.onnx</c> 未编译 DirectML，Sherpa TTS/ASR 无法用核显。
-	/// </summary>
-	public static bool ProbeDml(out string reason) {
-		reason = "";
-		try {
-			try { CudaBootstrap.Init(); } catch { }
-			if (!CudaBootstrap.IsDmlReady) {
-				reason = "DirectML 不可用（缺少 onnxdml64）";
-				return false;
-			}
-			reason = "OK(文件)";
-			return true;
-		}
-		catch (Exception ex) {
-			reason = ex.Message;
-			return false;
-		}
-	}
-
 	/// <summary>Sherpa 是否可用 DirectML（官方 Windows NuGet 目前为否）。</summary>
 	public static bool ProbeSherpaDml(out string reason) {
 		reason = "NuGet sherpa-onnx 未启用 DirectML（选核显会静默落 CPU；仅 CUDA/CPU 有效）";
@@ -284,7 +263,7 @@ sealed class TtsEngine : IDisposable {
 
 		foreach (var prov in tryList) {
 			try {
-				prepareort(prov);
+				CudaBootstrap.PrepareSherpa(prov);
 				tts = buildTts(ref mcfg, prov);
 				if (tts != null && tts.SampleRate > 0) {
 					Provider = "cuda";
@@ -313,19 +292,6 @@ sealed class TtsEngine : IDisposable {
 		tts = buildTts(ref mcfg, "cpu");
 		Provider = "cpu";
 		SampleRate = tts.SampleRate;
-	}
-
-	/// <summary>加载对应 ORT 原生库。</summary>
-	static void prepareort(string provider) {
-		if (provider == "cuda") {
-			CudaBootstrap.EnsureGpuLibsLoaded();
-			if (!CudaBootstrap.IsGpuReady)
-				throw new InvalidOperationException(
-					CudaBootstrap.GpuStatus ?? "CUDA 运行库不可用");
-		}
-		else if (provider == "directml")
-			throw new InvalidOperationException(
-				"Sherpa 当前构建不支持 DirectML，请改用 CUDA 或 CPU");
 	}
 
 	OfflineTts buildTts(ref OfflineTtsModelConfig mcfg, string provider) {

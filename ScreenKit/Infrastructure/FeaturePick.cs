@@ -164,30 +164,11 @@ static class FeaturePick {
 		}
 	}
 
-	public static void ApplyIds(IEnumerable<FeaturePickNode> roots, IEnumerable<string> ids) {
-		var set = new HashSet<string>(ids ?? [], StringComparer.Ordinal);
-		foreach (var n in Leaves(roots))
-			n.SetCheck(set.Contains(n.Id), fromUi: true);
-	}
-
 	/// <summary>首次启动：可选功能全部不勾。系统自带项仍锁住。已装内容不记为卸载。</summary>
 	public static void ApplyNone(IEnumerable<FeaturePickNode> roots) {
 		foreach (var n in Leaves(roots)) {
 			n.KeepInstalled = true;
 			n.SetCheck(false, fromUi: true);
-		}
-	}
-
-	public static void ApplyKinds(IEnumerable<FeaturePickNode> roots, FeatureKind[] kinds) {
-		var set = kinds == null || kinds.Length == 0
-			? new HashSet<FeatureKind>()
-			: new HashSet<FeatureKind>(kinds);
-		foreach (var n in Leaves(roots)) {
-			if (n.Kinds == null || n.Kinds.Length == 0) {
-				n.SetCheck(false, fromUi: true);
-				continue;
-			}
-			n.SetCheck(set.Contains(n.Kinds[n.Kinds.Length - 1]), fromUi: true);
 		}
 	}
 
@@ -235,25 +216,13 @@ static class FeaturePick {
 	/// <summary>相对当前磁盘：将安装的组件 / 将卸载的组件。</summary>
 	public static void DiffSelection(IEnumerable<FeaturePickNode> roots,
 		out int addN, out long addSz, out int delN, out long delSz, bool keepInstalled = false) {
-		var sel = new HashSet<FeatureKind>();
-		CollectKinds(roots, sel);
-		addN = 0;
+		CollectDelta(roots, out var add, out var del, keepInstalled);
+		addN = add.Count;
+		delN = del.Count;
 		addSz = 0;
-		delN = 0;
 		delSz = 0;
-		foreach (FeatureKind k in Enum.GetValues(typeof(FeatureKind))) {
-			var st = FeatureInstaller.Probe(k);
-			var on = sel.Contains(k);
-			if (builtin(k)) continue;
-			if (on && st != FeatureInstallState.Installed) {
-				addN++;
-				addSz += FeatureInstaller.ExpectedSize(k);
-			}
-			else if (!keepInstalled && !on && st != FeatureInstallState.Missing) {
-				delN++;
-				delSz += FeatureInstaller.ExpectedSize(k);
-			}
-		}
+		foreach (var k in add) addSz += FeatureInstaller.ExpectedSize(k);
+		foreach (var k in del) delSz += FeatureInstaller.ExpectedSize(k);
 	}
 
 	public static void SelectMissing(IEnumerable<FeaturePickNode> roots) {
@@ -282,37 +251,6 @@ static class FeaturePick {
 			if (n.IsChecked != true || n.Kinds == null) continue;
 			foreach (var k in n.Kinds)
 				set.Add(k);
-		}
-	}
-
-	public static void MeasureSelection(IEnumerable<FeaturePickNode> roots, out long total, out long need) {
-		var set = new HashSet<FeatureKind>();
-		CollectKinds(roots, set);
-		MeasureKinds(set, out total, out need);
-	}
-
-	public static void MeasureItems(IEnumerable<FeatureItem> items, out long total, out long need) {
-		total = 0;
-		need = 0;
-		if (items == null) return;
-		foreach (var it in items) {
-			if (it == null || !it.Selected) continue;
-			var sz = FeatureInstaller.ExpectedSize(it.Kind);
-			total += sz;
-			if (it.State != FeatureInstallState.Installed)
-				need += sz;
-		}
-	}
-
-	public static void MeasureKinds(IEnumerable<FeatureKind> kinds, out long total, out long need) {
-		total = 0;
-		need = 0;
-		if (kinds == null) return;
-		foreach (var k in kinds) {
-			var sz = FeatureInstaller.ExpectedSize(k);
-			total += sz;
-			if (FeatureInstaller.Probe(k) != FeatureInstallState.Installed)
-				need += sz;
 		}
 	}
 

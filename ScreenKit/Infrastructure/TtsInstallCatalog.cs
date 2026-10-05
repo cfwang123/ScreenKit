@@ -467,8 +467,6 @@ static class TtsInstallCatalog {
 	}
 
 	/// <summary>从归档名推断语言代码。</summary>
-	public static string InferLang(string id) => inferlang(id);
-
 	static string inferlang(string id) {
 		if (string.IsNullOrEmpty(id)) return "";
 		var n = id.ToLowerInvariant().Replace('.', '-');

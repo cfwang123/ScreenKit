@@ -1216,4 +1216,46 @@ static class CudaBootstrap {
 		}
 		return null;
 	}
+
+	/// <summary>Sherpa 建会话前：CUDA 预加载。该构建没有 DirectML。</summary>
+	public static void PrepareSherpa(string provider) {
+		if (provider == "cuda") {
+			EnsureGpuLibsLoaded();
+			if (!IsGpuReady)
+				throw new InvalidOperationException(GpuStatus ?? "CUDA 运行库不可用");
+		}
+		else if (provider == "directml")
+			throw new InvalidOperationException("Sherpa 当前构建不支持 DirectML，请改用 CUDA 或 CPU");
+	}
+
+	public static InferenceSession MakeSession(string modelPath, string ep) {
+		var so = new SessionOptions();
+		so.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
+		so.EnableMemoryPattern = true;
+		so.EnableCpuMemArena = true;
+		var threads = Math.Max(1, Environment.ProcessorCount);
+		so.IntraOpNumThreads = threads;
+		so.InterOpNumThreads = 1;
+		if (ep == "cuda") {
+			try { so.AppendExecutionProvider_CUDA(0); }
+			catch (Exception ex) {
+				so.Dispose();
+				throw new InvalidOperationException($"Append CUDA EP 失败: {ex.Message}", ex);
+			}
+		}
+		else if (ep == "dml") {
+			try { so.AppendExecutionProvider_DML(0); }
+			catch (Exception ex) {
+				so.Dispose();
+				throw new InvalidOperationException($"Append DirectML EP 失败: {ex.Message}", ex);
+			}
+		}
+		try {
+			return new InferenceSession(modelPath, so);
+		}
+		catch {
+			try { so.Dispose(); } catch { }
+			throw;
+		}
+	}
 }

@@ -261,13 +261,6 @@ static class NativeRuntime {
 		sherpaOk = HasSherpa();
 	}
 
-	/// <summary>兼容旧调用：同时装 Skia + PDFium。</summary>
-	public static async Task InstallSkiaPdf(
-		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
-		await InstallSkia(log, progress, ct).ConfigureAwait(false);
-		await InstallPdfium(log, progress, ct).ConfigureAwait(false);
-	}
-
 	// ───────── 卸载 ─────────
 
 	public static void UninstallOpenCv(IProgress<string> log = null) {

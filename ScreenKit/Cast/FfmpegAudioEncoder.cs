@@ -28,20 +28,20 @@ unsafe sealed class CastAudioEncoder : IDisposable {
 		enc->sample_fmt = AVSampleFormat.AV_SAMPLE_FMT_FLTP;
 		enc->bit_rate = 128000;
 		enc->time_base = new AVRational { num = 1, den = 48000 };
-		ffmpeg.avcodec_open2(enc, codec, null).Check("avcodec_open2 aac");
+		ffmpeg.avcodec_open2(enc, codec, null).ThrowIfError("avcodec_open2 aac");
 		if (enc->frame_size <= 0) enc->frame_size = 1024;
 		frame = ffmpeg.av_frame_alloc();
 		frame->nb_samples = enc->frame_size;
 		frame->format = (int)enc->sample_fmt;
 		frame->channel_layout = enc->channel_layout;
 		frame->sample_rate = enc->sample_rate;
-		ffmpeg.av_frame_get_buffer(frame, 0).Check("aac frame buf");
+		ffmpeg.av_frame_get_buffer(frame, 0).ThrowIfError("aac frame buf");
 		pkt = ffmpeg.av_packet_alloc();
 		swr = ffmpeg.swr_alloc_set_opts(null,
 			(long)enc->channel_layout, enc->sample_fmt, enc->sample_rate,
 			inCh <= 1 ? ffmpeg.AV_CH_LAYOUT_MONO : ffmpeg.AV_CH_LAYOUT_STEREO,
 			AVSampleFormat.AV_SAMPLE_FMT_S16, inRate, 0, null);
-		ffmpeg.swr_init(swr).Check("swr aac");
+		ffmpeg.swr_init(swr).ThrowIfError("swr aac");
 		leftover = new byte[enc->frame_size * inCh * 2 * 4];
 	}
 
@@ -60,7 +60,7 @@ unsafe sealed class CastAudioEncoder : IDisposable {
 		Buffer.BlockCopy(leftover, 0, chunk, 0, need);
 		leftoverN -= need;
 		if (leftoverN > 0) Buffer.BlockCopy(leftover, need, leftover, 0, leftoverN);
-		ffmpeg.av_frame_make_writable(frame).Check("aac writable");
+		ffmpeg.av_frame_make_writable(frame).ThrowIfError("aac writable");
 		fixed (byte* sp = chunk) {
 			byte* sptr = sp;
 			ffmpeg.swr_convert(swr, frame->extended_data, enc->frame_size, &sptr, enc->frame_size);

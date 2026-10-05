@@ -148,7 +148,7 @@ sealed class AsrEngine : IDisposable {
 
 		foreach (var prov in tryList) {
 			try {
-				prepareort(prov);
+				CudaBootstrap.PrepareSherpa(prov);
 				mcfg.Provider = prov;
 				recognizer = new OfflineRecognizer(new OfflineRecognizerConfig {
 					FeatConfig = new FeatureConfig { SampleRate = FeatSampleRate, FeatureDim = 80 },
@@ -181,18 +181,6 @@ sealed class AsrEngine : IDisposable {
 			DecodingMethod = "greedy_search",
 		});
 		Provider = "cpu";
-	}
-
-	static void prepareort(string provider) {
-		if (provider == "cuda") {
-			CudaBootstrap.EnsureGpuLibsLoaded();
-			if (!CudaBootstrap.IsGpuReady)
-				throw new InvalidOperationException(
-					CudaBootstrap.GpuStatus ?? "CUDA 运行库不可用");
-		}
-		else if (provider == "directml")
-			throw new InvalidOperationException(
-				"Sherpa 当前构建不支持 DirectML，请改用 CUDA 或 CPU");
 	}
 
 	/// <summary>识别 float 波形（-1~1），采样率需与模型一致或由调用方重采样。</summary>

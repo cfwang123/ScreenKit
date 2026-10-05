@@ -83,12 +83,6 @@ static class ScreenDpi {
 		return 1.0;
 	}
 
-	/// <summary>物理像素尺寸 → WPF DIP（按进程系统缩放）。</summary>
-	public static double PxToDip(double physicalPx) {
-		var s = SystemScale();
-		return s > 0 ? physicalPx / s : physicalPx;
-	}
-
 	/// <summary>窗口当前 DPI 缩放（GetDpiForWindow；失败回退系统缩放）。</summary>
 	public static double WindowScale(IntPtr hwnd) {
 		if (hwnd != IntPtr.Zero) {
@@ -194,114 +188,6 @@ static class ScreenDpi {
 		scaleY = pxH / dipH;
 		if (scaleX < 0.25) scaleX = 1;
 		if (scaleY < 0.25) scaleY = 1;
-	}
-
-	/// <summary>
-	/// 将屏幕 DIP 坐标转为物理像素（绝对，含虚拟屏负坐标）。
-	/// 用「相对虚拟屏原点的 DIP × 虚拟屏物理/DIP 比例」；不用 LogicalToPhysical（PerMonitorV2 下无效）。
-	/// </summary>
-	public static void DipToPhysical(double dipX, double dipY, IntPtr hwndHint, out int physX, out int physY) {
-		_ = hwndHint;
-		var (vLeft, vTop, _, _) = VirtualScreenDip();
-		var (vsL, vsT, _, _) = VirtualScreenPixels();
-		VirtualScreenScale(out var scaleX, out var scaleY);
-
-		// 相对虚拟屏左上角的 DIP → 位图像素 → 绝对物理
-		var relX = dipX - vLeft;
-		var relY = dipY - vTop;
-		physX = vsL + (int)Math.Round(relX * scaleX);
-		physY = vsT + (int)Math.Round(relY * scaleY);
-
-		// 混合 DPI：用落点显示器的有效 DPI 再精修（相对该屏物理原点）
-		try {
-			var pt = new POINT { X = physX, Y = physY };
-			var mon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-			if (mon == IntPtr.Zero) return;
-			if (GetDpiForMonitor(mon, MDT_EFFECTIVE_DPI, out var dx, out var dy) != 0 || dx == 0 || dy == 0)
-				return;
-
-			// 找到该屏物理 bounds
-			System.Drawing.Rectangle bounds = default;
-			var found = false;
-			foreach (var s in System.Windows.Forms.Screen.AllScreens) {
-				var c = s.Bounds;
-				if (physX >= c.Left && physX < c.Right && physY >= c.Top && physY < c.Bottom) {
-					bounds = c;
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				foreach (var s in System.Windows.Forms.Screen.AllScreens) {
-					if (s.Bounds.Contains(physX, physY) || s.Bounds.Contains(physX - 1, physY - 1)) {
-						bounds = s.Bounds;
-						found = true;
-						break;
-					}
-				}
-			}
-			if (!found) return;
-
-			// 该屏在「均匀缩放」下对应的 DIP 矩形（近似；跨屏仍可能有 1px 误差）
-			var monDipX = vLeft + (bounds.Left - vsL) / scaleX;
-			var monDipY = vTop + (bounds.Top - vsT) / scaleY;
-			var relMonDipX = dipX - monDipX;
-			var relMonDipY = dipY - monDipY;
-			var monScaleX = dx / 96.0;
-			var monScaleY = dy / 96.0;
-			physX = bounds.Left + (int)Math.Round(relMonDipX * monScaleX);
-			physY = bounds.Top + (int)Math.Round(relMonDipY * monScaleY);
-		}
-		catch { }
-	}
-
-	/// <summary>
-	/// 选区（overlay 画布坐标：相对虚拟屏左上角的 DIP）→ 整屏位图上的像素矩形。
-	/// </summary>
-	public static Int32Rect DipSelectionToBitmapRect(
-		double selX, double selY, double selW, double selH,
-		int deskW, int deskH, IntPtr hwndOverlay) {
-		_ = hwndOverlay;
-		var (vLeft, vTop, _, _) = VirtualScreenDip();
-
-		// 四角 DIP（屏幕绝对）→ 物理，取包围盒
-		var corners = new[] {
-			(vLeft + selX, vTop + selY),
-			(vLeft + selX + selW, vTop + selY),
-			(vLeft + selX, vTop + selY + selH),
-			(vLeft + selX + selW, vTop + selY + selH),
-		};
-		int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
-		foreach (var (dx, dy) in corners) {
-			DipToPhysical(dx, dy, IntPtr.Zero, out var px, out var py);
-			if (px < minX) minX = px;
-			if (py < minY) minY = py;
-			if (px > maxX) maxX = px;
-			if (py > maxY) maxY = py;
-		}
-
-		var (vsL, vsT, _, _) = VirtualScreenPixels();
-		return ClampToDesk(minX - vsL, minY - vsT, Math.Max(1, maxX - minX), Math.Max(1, maxY - minY), deskW, deskH);
-	}
-
-	/// <summary>
-	/// 用整屏物理/DIP 均匀比例，把 overlay 选区 DIP 直接映射到位图像素（单 DPI 最稳）。
-	/// </summary>
-	public static Int32Rect DipSelectionByUniformScale(
-		double selX, double selY, double selW, double selH,
-		int deskW, int deskH) {
-		VirtualScreenScale(out var scaleX, out var scaleY);
-		// 若调用方已有 desk 尺寸，优先用 desk / VirtualScreen DIP（与底图像素一致）
-		var (_, _, dipW, dipH) = VirtualScreenDip();
-		if (deskW > 0 && deskH > 0) {
-			scaleX = deskW / dipW;
-			scaleY = deskH / dipH;
-		}
-		var rx = (int)Math.Floor(selX * scaleX);
-		var ry = (int)Math.Floor(selY * scaleY);
-		var rw = Math.Max(1, (int)Math.Ceiling((selX + selW) * scaleX) - rx);
-		var rh = Math.Max(1, (int)Math.Ceiling((selY + selH) * scaleY) - ry);
-		return ClampToDesk(rx, ry, rw, rh, deskW, deskH);
 	}
 
 	public static Int32Rect ClampToDesk(int rx, int ry, int rw, int rh, int deskW, int deskH) {

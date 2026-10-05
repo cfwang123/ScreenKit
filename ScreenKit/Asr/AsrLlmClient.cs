@@ -40,8 +40,6 @@ static class AsrLlmClient {
 
 	public static bool IsConfigured(OcrOptions o) => IsEndpointReady(o?.SelectedLlm());
 
-	public static bool IsTranslateReady(OcrOptions o) => IsEndpointReady(o?.SelectedTranslateLlm());
-
 	public static bool IsChatReady(OcrOptions o) => IsEndpointReady(o?.SelectedChatLlm());
 
 	/// <summary>已配置则请求润色；失败或未配置返回原文。context 为本轮已输出上文。</summary>

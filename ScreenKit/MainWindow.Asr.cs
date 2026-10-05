@@ -835,11 +835,6 @@ public partial class MainWindow {
 
 	static bool hasasrmediadrop(IDataObject data) => pickasrmediapaths(data).Count > 0;
 
-	static string pickasrmediapath(IDataObject data) {
-		var list = pickasrmediapaths(data);
-		return list.Count > 0 ? list[0] : null;
-	}
-
 	static List<string> pickasrmediapaths(IDataObject data) {
 		var r = new List<string>();
 		if (data == null || !data.GetDataPresent(DataFormats.FileDrop)) return r;

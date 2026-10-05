@@ -149,11 +149,6 @@ sealed class AsrVoiceInput : IDisposable {
 	/// <summary>CaptureOnly 模式下成句全文（不注入）。</summary>
 	public event Action<string> UtteranceReady;
 
-	public void Toggle() {
-		if (IsActive) Stop();
-		else Start();
-	}
-
 	public void Start() {
 		if (disposed) throw new ObjectDisposedException(nameof(AsrVoiceInput));
 		if (IsActive) return;

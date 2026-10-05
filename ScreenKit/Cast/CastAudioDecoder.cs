@@ -18,7 +18,7 @@ unsafe sealed class CastAudioDecoder : IDisposable {
 		var codec = ffmpeg.avcodec_find_decoder(AVCodecID.AV_CODEC_ID_AAC);
 		if (codec == null) throw new InvalidOperationException("无 AAC 解码器");
 		dec = ffmpeg.avcodec_alloc_context3(codec);
-		ffmpeg.avcodec_open2(dec, codec, null).Check("avcodec_open2 aac");
+		ffmpeg.avcodec_open2(dec, codec, null).ThrowIfError("avcodec_open2 aac");
 		frame = ffmpeg.av_frame_alloc();
 		pkt = ffmpeg.av_packet_alloc();
 	}
@@ -84,7 +84,7 @@ unsafe sealed class CastAudioDecoder : IDisposable {
 			(long)inLayout, (AVSampleFormat)frame->format, frame->sample_rate > 0 ? frame->sample_rate : SampleRate,
 			0, null);
 		if (swr == null) throw new InvalidOperationException("swr_alloc 失败");
-		ffmpeg.swr_init(swr).Check("swr_init");
+		ffmpeg.swr_init(swr).ThrowIfError("swr_init");
 	}
 
 	public void Dispose() {

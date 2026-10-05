@@ -185,33 +185,4 @@ static class FeaturePrompt {
 			MessageBox.Show(ex.Message, Loc.T("inst.open.fail"), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
-
-	static string kindlabel(FeatureKind k) => k switch {
-		FeatureKind.NativeOpenCv => "OpenCV 运行库",
-		FeatureKind.NativeOpenCvVideo => "OpenCV 视频库 (opencv_videoio_ffmpeg)",
-		FeatureKind.NativeZxing => "条码库 (ZXing.dll)",
-		FeatureKind.SharpCompress => "SharpCompress.dll",
-		FeatureKind.SharpSevenZip => "SharpSevenZip.dll",
-		FeatureKind.Native7za => "7za.dll",
-		FeatureKind.NativeSqlite => "SQLite (e_sqlite3.dll)",
-		FeatureKind.NativeSkia => "Skia 渲染库",
-		FeatureKind.NativePdfium => "PDFium (pdfium.dll)",
-		FeatureKind.NativeSherpa => "Sherpa (sherpa-onnx-c-api.dll)",
-		FeatureKind.Ffmpeg => "FFmpeg (ffmpeg64)",
-		FeatureKind.MediaFoundation => "Media Foundation H.264",
-		FeatureKind.Mjpeg => "MJPEG AVI",
-		FeatureKind.OcrRapidCh => "OCR 模型 rapid-ch",
-		FeatureKind.OcrUmi => "OCR 模型 umi",
-		FeatureKind.OcrRapidI18n => "OCR 模型 rapid-i18n",
-		FeatureKind.AsrSenseVoice => "ASR SenseVoice",
-		FeatureKind.AsrStreamZipformer => "ASR 流式 Zipformer",
-		FeatureKind.AsrWhisperTiny => "ASR Whisper tiny",
-		FeatureKind.AsrWhisperBase => "ASR Whisper base",
-		FeatureKind.CudaGpu => "NVIDIA CUDA (onnxgpu64)",
-		FeatureKind.DirectMl => "核显 DirectML (onnxdml64)",
-		FeatureKind.OrtCpu => "ONNX Runtime CPU (onnxcpu64)",
-		FeatureKind.FaceInsight => "人脸 InsightFace buffalo_l",
-		FeatureKind.DictDb => "词典 dict.db",
-		_ => k.ToString(),
-	};
 }

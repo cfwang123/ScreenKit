@@ -56,8 +56,6 @@ sealed class CastDisc : IDisposable {
 			sendto(bytes, b, p);
 	}
 
-	public void Beacon(int tcpPort) => Scan();
-
 	void sendto(byte[] bytes, IPAddress ip, int port) {
 		try { u.Send(bytes, bytes.Length, new IPEndPoint(ip, port)); }
 		catch { }

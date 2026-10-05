@@ -473,15 +473,6 @@ sealed class TrayIcon : IDisposable {
 		catch { }
 	}
 
-	public void balloon(string title, string text, int ms = 2000) {
-		try {
-			ni.BalloonTipTitle = title ?? AppNames.Current;
-			ni.BalloonTipText = text ?? "";
-			ni.ShowBalloonTip(ms);
-		}
-		catch { }
-	}
-
 	static Icon loadicon() {
 		foreach (var path in iconpaths()) {
 			try {

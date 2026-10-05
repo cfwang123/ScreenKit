@@ -35,7 +35,6 @@ sealed class CastUsbHost : IDisposable {
 	public string Status => status;
 	int lastaoa;
 
-	bool aoaReq;
 	const string AOA_BRIDGE_MX = "Local\\ScreenKit_CastAoaBridge";
 
 	public static bool AoaBridgeActive() {
@@ -61,13 +60,8 @@ sealed class CastUsbHost : IDisposable {
 		return false;
 	}
 
-	public void Start() => Start(true);
-
-	public void StartAccessoryOnly() => Start(false);
-
-	void Start(bool requestAoa) {
+	public void Start() {
 		if (th != null) return;
-		aoaReq = requestAoa;
 		stop = false;
 		th = new Thread(loop) { IsBackground = true, Name = "cast-usb" };
 		th.Start();
@@ -84,7 +78,6 @@ sealed class CastUsbHost : IDisposable {
 	void tick() {
 		try {
 			if (tryopenreg()) return;
-			if (!aoaReq) return;
 			var now = Environment.TickCount;
 			if (lastaoa == 0 || now - lastaoa > 3000) {
 				lastaoa = now;
@@ -468,14 +461,6 @@ sealed class CastUsbHost : IDisposable {
 		catch (WaitHandleCannotBeOpenedException) { }
 		catch { }
 		return false;
-	}
-
-	public static void WaitForHelper(int ms = 4000) {
-		var t0 = Environment.TickCount;
-		while (unchecked(Environment.TickCount - t0) < ms) {
-			if (HelperBusy()) return;
-			Thread.Sleep(40);
-		}
 	}
 
 	static void killstale(Action<string> log) {

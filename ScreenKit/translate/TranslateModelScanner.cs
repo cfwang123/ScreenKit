@@ -106,15 +106,6 @@ static class TranslateModelScanner {
 		return true;
 	}
 
-	static bool isreadypt(string dir) {
-		if (!File.Exists(Path.Combine(dir, "pytorch_model.bin"))) return false;
-		if (!File.Exists(Path.Combine(dir, "source.spm"))) return false;
-		if (!File.Exists(Path.Combine(dir, "target.spm"))) return false;
-		if (!hasany(dir, "config.json", "config.txt")) return false;
-		if (!hasany(dir, "vocab.json", "vocab.txt")) return false;
-		return true;
-	}
-
 	static bool hasany(string dir, params string[] names) {
 		foreach (var n in names)
 			if (File.Exists(Path.Combine(dir, n))) return true;

@@ -271,12 +271,6 @@ public partial class CaptureOverlay : Window {
 			return best;
 		}
 
-		/// <summary>刷新所有屏的标注选区 UI（宿主画布 + guest 遮罩）。</summary>
-		public void RefreshAnnotateUi(bool clearStrokes) {
-			foreach (var w in Windows)
-				w.refreshannotateui(clearStrokes);
-		}
-
 		public bool BeginDrag(CaptureOverlay who, int vx, int vy) {
 			if (Finishing) return false;
 			if (DragOwner != null && DragOwner != who) return false;
@@ -3357,7 +3351,7 @@ public partial class CaptureOverlay : Window {
 		}
 		if (dh.draft is WpfLine ln && dh.tool == Tool.Arrow) {
 			dh.pdraw.Children.Remove(ln);
-			var arrow = makearrow(dh.start, p, dh.strokebrush(), dh.curthick());
+			var arrow = AnnotateWindow.makearrow(dh.start, p, dh.strokebrush(), dh.curthick());
 			if (arrow != null) {
 				dh.pdraw.Children.Add(arrow);
 				dh.strokes.Add(arrow);
@@ -3598,37 +3592,6 @@ public partial class CaptureOverlay : Window {
 			host.BorderThickness = new Thickness(0);
 			host.Padding = new Thickness(0);
 		}
-	}
-
-	static UIElement makearrow(Point from, Point to, Brush brush, double thick) {
-		var dx = to.X - from.X;
-		var dy = to.Y - from.Y;
-		var len = Math.Sqrt(dx * dx + dy * dy);
-		if (len < 2) return null;
-		var ux = dx / len;
-		var uy = dy / len;
-		var head = Math.Max(10, thick * 4);
-		var bx = to.X - ux * head;
-		var by = to.Y - uy * head;
-		var px = -uy;
-		var py = ux;
-		var hw = head * 0.45;
-		var geo = new PathGeometry();
-		var fig = new PathFigure { StartPoint = from, IsClosed = false };
-		fig.Segments.Add(new LineSegment(to, true));
-		geo.Figures.Add(fig);
-		var fig2 = new PathFigure { StartPoint = to, IsClosed = true };
-		fig2.Segments.Add(new LineSegment(new Point(bx + px * hw, by + py * hw), true));
-		fig2.Segments.Add(new LineSegment(new Point(bx - px * hw, by - py * hw), true));
-		geo.Figures.Add(fig2);
-		return new WpfPath {
-			Data = geo,
-			Stroke = brush,
-			StrokeThickness = thick,
-			Fill = brush,
-			StrokeLineJoin = PenLineJoin.Round,
-			StrokeStartLineCap = PenLineCap.Round,
-		};
 	}
 
 	void undo() {

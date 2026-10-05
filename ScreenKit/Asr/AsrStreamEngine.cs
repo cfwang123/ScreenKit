@@ -126,7 +126,7 @@ sealed class AsrStreamEngine : IDisposable {
 
 		foreach (var prov in tryList) {
 			try {
-				prepareort(prov);
+				CudaBootstrap.PrepareSherpa(prov);
 				mcfg.Provider = prov;
 				recognizer = new OnlineRecognizer(buildConfig(mcfg));
 				Provider = "cuda";
@@ -165,18 +165,6 @@ sealed class AsrStreamEngine : IDisposable {
 		Rule3MinUtteranceLength = 20f,
 		HotwordsScore = 1.5f,
 	};
-
-	static void prepareort(string provider) {
-		if (provider == "cuda") {
-			CudaBootstrap.EnsureGpuLibsLoaded();
-			if (!CudaBootstrap.IsGpuReady)
-				throw new InvalidOperationException(
-					CudaBootstrap.GpuStatus ?? "CUDA 运行库不可用");
-		}
-		else if (provider == "directml")
-			throw new InvalidOperationException(
-				"Sherpa 当前构建不支持 DirectML，请改用 CUDA 或 CPU");
-	}
 
 	public OnlineStream CreateStream() {
 		lock (gate) {

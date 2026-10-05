@@ -61,7 +61,7 @@ static class WordLex {
 
 	public static List<WordLexRow> Parse(string text) {
 		var list = new List<WordLexRow>();
-		var json = extractjson(text ?? "");
+		var json = TextTools.ExtractJson(text ?? "");
 		if (json.Length == 0) return list;
 		JsonDocument doc;
 		try { doc = JsonDocument.Parse(json); }
@@ -80,9 +80,9 @@ static class WordLex {
 			var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 			foreach (var el in root.EnumerateArray()) {
 				if (el.ValueKind != JsonValueKind.Object) continue;
-				var code = normcode(str(el, "lang", "code", "l"));
-				var native = str(el, "native", "text", "word", "script");
-				var latin = str(el, "latin", "romaji", "pinyin", "roman", "ascii");
+				var code = normcode(TextTools.JsonField(el, "lang", "code", "l"));
+				var native = TextTools.JsonField(el, "native", "text", "word", "script");
+				var latin = TextTools.JsonField(el, "latin", "romaji", "pinyin", "roman", "ascii");
 				if (native.Length == 0 && latin.Length == 0) continue;
 				if (code.Length == 0) code = "x";
 				if (!seen.Add(code)) continue;
@@ -119,29 +119,5 @@ static class WordLex {
 				return i;
 		}
 		return 1000;
-	}
-
-	static string str(JsonElement el, params string[] names) {
-		foreach (var n in names) {
-			if (!el.TryGetProperty(n, out var v)) continue;
-			if (v.ValueKind == JsonValueKind.String) return (v.GetString() ?? "").Trim();
-			if (v.ValueKind is JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False)
-				return v.ToString().Trim();
-		}
-		return "";
-	}
-
-	static string extractjson(string text) {
-		text = (text ?? "").Trim();
-		if (text.Length == 0) return "";
-		var fence = Regex.Match(text, @"```(?:json)?\s*([\s\S]*?)```", RegexOptions.IgnoreCase);
-		if (fence.Success) text = fence.Groups[1].Value.Trim();
-		var i = text.IndexOf('[');
-		var j = text.LastIndexOf(']');
-		if (i >= 0 && j > i) return text.Substring(i, j - i + 1);
-		i = text.IndexOf('{');
-		j = text.LastIndexOf('}');
-		if (i >= 0 && j > i) return text.Substring(i, j - i + 1);
-		return text;
 	}
 }
