@@ -34,27 +34,6 @@
 						<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）"
 						          Margin="0,0,0,16" IsChecked="True"/>
 
-						<TextBlock x:Name="lbsetmod" Text="启用模块" FontWeight="SemiBold" Margin="0,0,0,6"/>
-						<TextBlock x:Name="lbsetmodhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,0,0,8"
-						           Text="关闭后隐藏对应页，并停用热键和托盘入口。下方「主界面 Tab」只隐藏入口。"/>
-						<WrapPanel Margin="0,0,0,16">
-							<CheckBox x:Name="emodocr" Content="截图识别" Width="140" Margin="0,0,0,6" IsChecked="True"
-							          AutomationProperties.AutomationId="set.mod.ocr"/>
-							<CheckBox x:Name="emodtts" Content="语音合成" Width="140" Margin="0,0,0,6" IsChecked="True"
-							          AutomationProperties.AutomationId="set.mod.tts"/>
-							<CheckBox x:Name="emodasr" Content="语音识别" Width="140" Margin="0,0,0,6" IsChecked="True"
-							          AutomationProperties.AutomationId="set.mod.asr"/>
-							<CheckBox x:Name="emodtranslate" Content="翻译" Width="140" Margin="0,0,0,6" IsChecked="True"
-							          AutomationProperties.AutomationId="set.mod.translate"/>
-							<CheckBox x:Name="emodchat" Content="LLM对话" Width="140" Margin="0,0,0,6" IsChecked="True"
-							          AutomationProperties.AutomationId="set.mod.chat"/>
-							<CheckBox x:Name="emodface" Content="人脸识别" Width="140" Margin="0,0,0,6" IsChecked="True"
-							          AutomationProperties.AutomationId="set.mod.face"/>
-							<CheckBox x:Name="emoddict" Content="词典" Width="140" Margin="0,0,0,6" IsChecked="True"
-							          AutomationProperties.AutomationId="set.mod.dict"/>
-						</WrapPanel>
-
 						<TextBlock x:Name="lbsettabsvisible" Text="主界面 Tab" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsettabsvisiblehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"

@@ -179,15 +179,6 @@ public partial class SettingsWindow : Window {
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
 			emintray.Content = Loc.T("set.tray");
-			lbsetmod.Text = Loc.T("set.mod");
-			lbsetmodhint.Text = Loc.T("set.mod.hint");
-			emodocr.Content = Loc.T("tab.ocr");
-			emodtts.Content = Loc.T("tab.tts");
-			emodasr.Content = Loc.T("tab.asr");
-			emodtranslate.Content = Loc.T("tab.translate");
-			emodchat.Content = Loc.T("tab.chat");
-			emodface.Content = Loc.T("tab.face");
-			emoddict.Content = Loc.T("tab.dict");
 			lbsettabsvisible.Text = Loc.T("set.tabs.visible");
 			lbsettabsvisiblehint.Text = Loc.T("set.tabs.visible.hint");
 			etabocrvisible.Content = Loc.T("tab.ocr");
@@ -474,13 +465,6 @@ public partial class SettingsWindow : Window {
 		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
-		emodocr.IsChecked = o.ModOcr;
-		emodtts.IsChecked = o.ModTts;
-		emodasr.IsChecked = o.ModAsr;
-		emodtranslate.IsChecked = o.ModTranslate;
-		emodchat.IsChecked = o.ModChat;
-		emodface.IsChecked = o.ModFace;
-		emoddict.IsChecked = o.ModDict;
 		etabocrvisible.IsChecked = o.TabOcrVisible;
 		etabttsvisible.IsChecked = o.TabTtsVisible;
 		etabasrvisible.IsChecked = o.TabAsrVisible;
@@ -665,13 +649,6 @@ public partial class SettingsWindow : Window {
 			out var trBatch, tabsettr)) return false;
 		Result.TranslateLlmBatch = trBatch;
 		Result.MinimizeToTray = emintray.IsChecked == true;
-		Result.ModOcr = emodocr.IsChecked == true;
-		Result.ModTts = emodtts.IsChecked == true;
-		Result.ModAsr = emodasr.IsChecked == true;
-		Result.ModTranslate = emodtranslate.IsChecked == true;
-		Result.ModChat = emodchat.IsChecked == true;
-		Result.ModFace = emodface.IsChecked == true;
-		Result.ModDict = emoddict.IsChecked == true;
 		Result.TabOcrVisible = etabocrvisible.IsChecked == true;
 		Result.TabTtsVisible = etabttsvisible.IsChecked == true;
 		Result.TabAsrVisible = etabasrvisible.IsChecked == true;

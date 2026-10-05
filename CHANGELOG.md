@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Removed unused code. ONNX session setup, the Sherpa device check, arrow drawing, and JSON field parsing each live in one place.
 - **Diagnostics** is under **Help**. Ready checks show a green **正常**. Checks that are not ready show red text.
+- **Settings → General** no longer shows the module switches. `mod_*` in `config.toml` is unchanged.
 
 #### Added
 
@@ -53,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 删掉没有调用的代码。ONNX 会话创建、Sherpa 设备检查、箭头绘制、JSON 字段解析各只保留一处。
 - **诊断** 改到 **帮助** 下面。已就绪的检查显示绿色 **正常**，未就绪的显示红字。
+- **参数设置 → 常规** 不再显示启用模块。`config.toml` 里的 `mod_*` 不变。
 
 #### 新增
 
