@@ -402,14 +402,25 @@ static class DictDb {
 
 	static string listpreview(DictEntry e) {
 		if (e.Senses.Count > 0) {
-			var s = e.Senses[0];
-			var zh = join2(s.Zh, s.ZhDef);
-			if (zh.Length > 0) return trunc(zh, 80);
-			var en = join2(s.En, s.EnDef);
-			if (en.Length > 0) return trunc(en, 80);
-			if (s.Ko.Length > 0) return trunc(s.Ko, 80);
+			var sb = new StringBuilder();
+			foreach (var s in e.Senses) {
+				var g = sensegloss(s);
+				if (g.Length == 0) continue;
+				if (sb.Length > 0) sb.Append("; ");
+				sb.Append(g);
+			}
+			if (sb.Length > 0) return sb.ToString();
 		}
 		return trunc(e.Extra, 80);
+	}
+
+	static string sensegloss(DictSense s) {
+		var zh = join2(s.Zh, s.ZhDef);
+		if (zh.Length > 0) return zh;
+		var en = join2(s.En, s.EnDef);
+		if (en.Length > 0) return en;
+		if (s.Ko.Length > 0) return s.Ko;
+		return join2(s.Ja, s.JaDef);
 	}
 
 	static string trunc(string s, int n) {

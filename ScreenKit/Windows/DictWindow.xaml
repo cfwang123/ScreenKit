@@ -61,11 +61,16 @@
 								<ColumnDefinition Width="*"/>
 								<ColumnDefinition Width="Auto"/>
 							</Grid.ColumnDefinitions>
-							<StackPanel Margin="0,1" VerticalAlignment="Center">
-								<TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis"/>
-								<TextBlock Text="{Binding Preview}" FontSize="13" Opacity="0.62"
-								           TextTrimming="CharacterEllipsis"/>
-							</StackPanel>
+							<Grid Margin="0,1" VerticalAlignment="Center">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
+								</Grid.RowDefinitions>
+								<TextBlock Text="{Binding Title}" FontSize="13"
+								           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+								<TextBlock Grid.Row="1" Text="{Binding Preview}" FontSize="13" Opacity="0.62"
+								           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+							</Grid>
 							<Button Grid.Column="1" Content="🔊" FontSize="13" Width="28" Height="28"
 							        Margin="4,0,0,0" Padding="0" VerticalAlignment="Center"
 							        Background="Transparent" BorderThickness="0" Foreground="#2878BE"
@@ -125,7 +130,7 @@
 									<TextBlock Text="{Binding Title}" FontSize="13" TextTrimming="CharacterEllipsis"
 									           Margin="0,0,8,0"/>
 									<TextBlock Grid.Column="1" Text="{Binding Gloss}" FontSize="13" Opacity="0.72"
-									           TextTrimming="CharacterEllipsis"/>
+									           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
 								</Grid>
 							</DataTemplate>
 						</ListBox.ItemTemplate>
