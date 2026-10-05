@@ -49,6 +49,16 @@ public enum FeatureKind {
 	Mjpeg,
 	/// <summary>词典 dict.db。从固定 Release dict-db 的 dict.7z 解出，不进应用更新包。</summary>
 	DictDb,
+	/// <summary>ZXing.dll（条码 / 二维码，约 3MB）。</summary>
+	NativeZxing,
+	/// <summary>SharpCompress.dll（解压 tar.bz2 等，约 2.5MB）。</summary>
+	SharpCompress,
+	/// <summary>SharpSevenZip.dll（配合 7za 解压 7z，约 1.8MB）。</summary>
+	SharpSevenZip,
+	/// <summary>7za.dll（解压 7z，约 0.4MB）。</summary>
+	Native7za,
+	/// <summary>e_sqlite3.dll（词典 SQLite，约 1.7MB）。</summary>
+	NativeSqlite,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -205,6 +215,11 @@ static class FeatureInstaller {
 		var list = new List<FeatureItem> {
 			make(FeatureKind.NativeOpenCv, "native"),
 			make(FeatureKind.NativeOpenCvVideo, "native"),
+			make(FeatureKind.NativeZxing, "native"),
+			make(FeatureKind.SharpCompress, "native"),
+			make(FeatureKind.SharpSevenZip, "native"),
+			make(FeatureKind.Native7za, "native"),
+			make(FeatureKind.NativeSqlite, "native"),
 			make(FeatureKind.NativeSkia, "native"),
 			make(FeatureKind.NativePdfium, "native"),
 			make(FeatureKind.NativeSherpa, "native"),
@@ -259,6 +274,11 @@ static class FeatureInstaller {
 	public static long ExpectedSize(FeatureKind kind) => kind switch {
 		FeatureKind.NativeOpenCv => NativeRuntime.OpenCvSizeHint,
 		FeatureKind.NativeOpenCvVideo => NativeRuntime.OpenCvVideoSizeHint,
+		FeatureKind.NativeZxing => NativeRuntime.ZxingSizeHint,
+		FeatureKind.SharpCompress => NativeRuntime.SharpCompressSizeHint,
+		FeatureKind.SharpSevenZip => NativeRuntime.SharpSevenZipSizeHint,
+		FeatureKind.Native7za => NativeRuntime.SevenZipSizeHint,
+		FeatureKind.NativeSqlite => NativeRuntime.SqliteSizeHint,
 		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint,
 		FeatureKind.NativePdfium => NativeRuntime.PdfiumSizeHint,
 		FeatureKind.NativeSherpa => NativeRuntime.SherpaSizeHint,
@@ -322,6 +342,16 @@ static class FeatureInstaller {
 				return filesize(Path.Combine(BaseDir, "OpenCvSharpExtern.dll"));
 			case FeatureKind.NativeOpenCvVideo:
 				return filesize(Path.Combine(BaseDir, "opencv_videoio_ffmpeg4110_64.dll"));
+			case FeatureKind.NativeZxing:
+				return filesize(Path.Combine(BaseDir, "ZXing.dll"));
+			case FeatureKind.SharpCompress:
+				return filesize(Path.Combine(BaseDir, "SharpCompress.dll"));
+			case FeatureKind.SharpSevenZip:
+				return filesize(Path.Combine(BaseDir, "SharpSevenZip.dll"));
+			case FeatureKind.Native7za:
+				return filesize(Path.Combine(BaseDir, "7za.dll"));
+			case FeatureKind.NativeSqlite:
+				return filesize(Path.Combine(BaseDir, "e_sqlite3.dll"));
 			case FeatureKind.NativeSkia:
 				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"));
 			case FeatureKind.NativePdfium:
@@ -385,6 +415,16 @@ static class FeatureInstaller {
 			return NativeRuntime.HasOpenCv() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeOpenCvVideo:
 			return NativeRuntime.HasOpenCvVideo() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.NativeZxing:
+			return NativeRuntime.HasZxing() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.SharpCompress:
+			return NativeRuntime.HasSharpCompress() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.SharpSevenZip:
+			return NativeRuntime.HasSharpSevenZip() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.Native7za:
+			return NativeRuntime.Has7za() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.NativeSqlite:
+			return NativeRuntime.HasSqlite() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSkia:
 			return NativeRuntime.HasSkia() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativePdfium:
@@ -538,6 +578,21 @@ static class FeatureInstaller {
 		case FeatureKind.NativeOpenCvVideo:
 			await NativeRuntime.InstallOpenCvVideo(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.NativeZxing:
+			await NativeRuntime.InstallZxing(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.SharpCompress:
+			await NativeRuntime.InstallSharpCompress(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.SharpSevenZip:
+			await NativeRuntime.InstallSharpSevenZip(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.Native7za:
+			await NativeRuntime.Install7za(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.NativeSqlite:
+			await NativeRuntime.InstallSqlite(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.NativeSkia:
 			await NativeRuntime.InstallSkia(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -612,6 +667,21 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.NativeOpenCvVideo:
 			NativeRuntime.UninstallOpenCvVideo(log);
+			break;
+		case FeatureKind.NativeZxing:
+			NativeRuntime.UninstallZxing(log);
+			break;
+		case FeatureKind.SharpCompress:
+			NativeRuntime.UninstallSharpCompress(log);
+			break;
+		case FeatureKind.SharpSevenZip:
+			NativeRuntime.UninstallSharpSevenZip(log);
+			break;
+		case FeatureKind.Native7za:
+			NativeRuntime.Uninstall7za(log);
+			break;
+		case FeatureKind.NativeSqlite:
+			NativeRuntime.UninstallSqlite(log);
 			break;
 		case FeatureKind.NativeSkia:
 			NativeRuntime.UninstallSkia(log);
@@ -1051,6 +1121,7 @@ arabic_dict.txt
 		log?.Report("解压 " + archiveName + " …");
 		var len = File.Exists(zipPath) ? new FileInfo(zipPath).Length : expectedBytes;
 		reportprog(progress, 0.92, len, len, archiveName, "解压中…");
+		await EnsureExtractAsync(zipPath, log, progress, ct).ConfigureAwait(false);
 		extractarchive(zipPath, AsrModelsDir, log);
 		reportprog(progress, 1, len, len, archiveName, "解压完成");
 		if (!probebyhint(nameHint))
@@ -1210,6 +1281,7 @@ arabic_dict.txt
 		log?.Report("解压 dict.7z …");
 		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : DICT7Z_BYTES;
 		reportprog(progress, 0.92, zlen, zlen, "dict.7z", "解压中…");
+		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
 		extract7z(arc, unpack, log);
 		string found = null;
 		try {
@@ -1782,11 +1854,32 @@ arabic_dict.txt
 		long expectedTotal = 0) =>
 		downloadfirst(urls, dest, log, progress, ct, expectedTotal: expectedTotal);
 
+	/// <summary>解压前补上下载缺失的 SharpCompress / SharpSevenZip / 7za。zip 不需要。</summary>
+	public static async Task EnsureExtractAsync(
+		string archive, IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		var ext = Path.GetExtension(archive ?? "").ToLowerInvariant();
+		if (ext == ".7z") {
+			if (!NativeRuntime.HasSharpSevenZip())
+				await NativeRuntime.InstallSharpSevenZip(log, progress, ct).ConfigureAwait(false);
+			if (!NativeRuntime.Has7za())
+				await NativeRuntime.Install7za(log, progress, ct).ConfigureAwait(false);
+			return;
+		}
+		if (ext == ".zip") return;
+		if (!NativeRuntime.HasSharpCompress())
+			await NativeRuntime.InstallSharpCompress(log, progress, ct).ConfigureAwait(false);
+	}
+
 	/// <summary>用 7za.dll 解压 .7z。只支持 7z，不走系统 7z.exe。</summary>
 	static void extract7z(string archive, string destDir, IProgress<string> log) {
+		if (!NativeRuntime.Has7za() || !NativeRuntime.HasSharpSevenZip())
+			throw new InvalidOperationException(
+				"解压 7z 需要 7za.dll 和 SharpSevenZip.dll。请在「安装功能」里安装。");
+		extract7zcore(archive, destDir, log);
+	}
+
+	static void extract7zcore(string archive, string destDir, IProgress<string> log) {
 		var lib = Path.Combine(BaseDir, "7za.dll");
-		if (!File.Exists(lib))
-			throw new InvalidOperationException("缺少 7za.dll");
 		SharpSevenZipBase.SetLibraryPath(lib);
 		Directory.CreateDirectory(destDir);
 		log?.Report("7za 解压 " + Path.GetFileName(archive));
@@ -1814,6 +1907,13 @@ arabic_dict.txt
 			extract7z(archive, extractDir, log);
 			return;
 		}
+		if (!NativeRuntime.HasSharpCompress())
+			throw new InvalidOperationException(
+				"解压此压缩包需要 SharpCompress.dll。请在「安装功能」里安装。");
+		extractreader(archive, extractDir);
+	}
+
+	static void extractreader(string archive, string extractDir) {
 		using (var reader = ReaderFactory.OpenReader(archive)) {
 			reader.WriteAllToDirectory(extractDir, new ExtractionOptions {
 				ExtractFullPath = true,

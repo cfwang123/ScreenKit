@@ -9,6 +9,7 @@ namespace ScreenKit;
 public partial class QrMakeWindow : Window {
 	BitmapSource last;
 	string lastText = "";
+	bool zxingasked;
 	int seq;
 	CancellationTokenSource cts;
 
@@ -77,6 +78,16 @@ public partial class QrMakeWindow : Window {
 			lbempty.Visibility = Visibility.Visible;
 			lbstat.Text = "";
 			return;
+		}
+		if (!NativeRuntime.HasZxing()) {
+			if (!zxingasked) {
+				zxingasked = true;
+				if (FeaturePrompt.EnsureZxing(this)) zxingasked = false;
+			}
+			if (!NativeRuntime.HasZxing()) {
+				lbstat.Text = Loc.T("qr.nozxing");
+				return;
+			}
 		}
 		try {
 			await Task.Delay(120, token).ConfigureAwait(true);

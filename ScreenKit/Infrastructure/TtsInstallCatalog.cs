@@ -258,6 +258,7 @@ static class TtsInstallCatalog {
 			Overall = 0.92, BytesDone = len, BytesTotal = len,
 			FileName = item.ArchiveName, Note = "解压中…",
 		});
+		await FeatureInstaller.EnsureExtractAsync(archivePath, log, progress, ct).ConfigureAwait(false);
 		FeatureInstaller.ExtractArchive(archivePath, TtsModelsDir, log);
 
 		// Matcha 需要 vocoder：若根目录无 vocos，尝试从包内或已知 URL
@@ -351,6 +352,7 @@ static class TtsInstallCatalog {
 			log?.Report("下载 Piper 依赖 espeak-ng-data …");
 			await FeatureInstaller.DownloadUrlAsync(urls, archive, log, progress, ct, 8L * 1024 * 1024)
 				.ConfigureAwait(false);
+			await FeatureInstaller.EnsureExtractAsync(archive, log, progress, ct).ConfigureAwait(false);
 			FeatureInstaller.ExtractArchive(archive, TtsModelsDir, log);
 		}
 		catch (Exception ex) {

@@ -3139,7 +3139,12 @@ static class Cli {
 	static int testdict(string one) {
 		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict.db");
 		if (!DictDb.Init(path)) {
-			Out(DictDb.Error == "missing" ? "dict.db not found beside exe" : ("dict open fail: " + DictDb.Error));
+			if (DictDb.Error == "missing")
+				Out("dict.db not found beside exe");
+			else if (DictDb.Error == "sqlite")
+				Out("e_sqlite3.dll is not installed. Install SQLite from Help → Install features.");
+			else
+				Out("dict open fail: " + DictDb.Error);
 			return 2;
 		}
 		long len;

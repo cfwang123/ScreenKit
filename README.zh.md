@@ -166,7 +166,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 1. 首次启动可出现安装向导（默认不勾选。系统 H.264 保持勾选，不用下载）。
 2. 之后：**帮助 → 安装功能**
-   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典一项下载固定地址上的 `dict.7z`（不是应用更新包），用 `7za.dll` 解出 `dict.db`。
+   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典一项下载固定地址上的 `dict.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 和 `SharpSevenZip.dll` 会先下载。打开库需要 `e_sqlite3.dll`。
    - **onnx语音模型**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。日文是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`），在语言里选日文。这一包同时包含 Supertonic 3 的其它语言。
    - **Windows语音**：列出 `Language.TextToSpeech` 功能包，以及 Windows 报告的发音人。本进程是管理员时才能安装或卸载；否则只显示 DISM 命令，可复制。装好后需重启本程序，语音合成页才会列出新发音人。
 3. 使用某功能时若缺依赖，会提示打开安装窗（例如：没有任何 ORT 时做 OCR → 提示安装 `onnxcpu64`）。
@@ -178,6 +178,10 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **onnxdml64** | 核显 DirectML EP（可选） | ~18 MB |
 | **OpenCV** | 截图 / 图像管线（`OpenCvSharpExtern.dll`） | ~61 MB |
 | **OpenCV 视频** | `opencv_videoio_ffmpeg4110_64.dll`。识别和录屏不用。**帮助 → 安装功能 → OpenCV 视频** | ~28 MB |
+| **ZXing** | `ZXing.dll`。条码识别和二维码图。用到时才提示安装 | ~3 MB |
+| **SharpCompress** | `SharpCompress.dll`。解压语音和识别的 `tar.bz2` | ~2.5 MB |
+| **SharpSevenZip / 7za** | 解压词典 `dict.7z` | ~1.8 MB + ~0.4 MB |
+| **SQLite** | `e_sqlite3.dll`。打开 `dict.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 与 GIF | ~72 MB |
 
 界面或系统区域为中文时，下载优先国内镜像（ModelScope / HF 镜像 / GitHub 代理）。
@@ -460,7 +464,7 @@ dotnet build -c Release
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
 - **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`opencv_videoio_ffmpeg4110_64.dll`、`ffmpeg64`、`dict.db`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。`7za.dll` 和 Windows SQLite 库 `e_sqlite3.dll` 会打进包。
+- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`opencv_videoio_ffmpeg4110_64.dll`、`ffmpeg64`、`dict.db`、`ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 
 本机开发且已有模型时，请继续用 **`bin\Release\net48\`**。

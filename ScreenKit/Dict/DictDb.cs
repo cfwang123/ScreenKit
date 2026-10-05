@@ -126,6 +126,10 @@ static class DictDb {
 			dberr = "missing";
 			return false;
 		}
+		if (!NativeRuntime.HasSqlite()) {
+			dberr = "sqlite";
+			return false;
+		}
 		try {
 			ensurebatteries();
 			var csb = new SqliteConnectionStringBuilder {
@@ -157,7 +161,7 @@ static class DictDb {
 			return true;
 		}
 		catch (Exception ex) {
-			dberr = ex.Message;
+			dberr = sqlitefail(ex) ? "sqlite" : ex.Message;
 			return false;
 		}
 	}
@@ -180,6 +184,15 @@ static class DictDb {
 		try { conn?.Dispose(); } catch { }
 		conn = null;
 		lastuse = 0;
+	}
+
+	static bool sqlitefail(Exception ex) {
+		for (var e = ex; e != null; e = e.InnerException) {
+			if (e is DllNotFoundException) return true;
+			var msg = e.Message ?? "";
+			if (msg.IndexOf("e_sqlite3", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		}
+		return false;
 	}
 
 	static void ensurebatteries() {

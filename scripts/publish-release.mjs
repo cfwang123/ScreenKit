@@ -76,7 +76,9 @@ function main() {
 		`"-x!${slimName}\\log" "-x!${slimName}\\log\\*" ` +
 		`"-x!${slimName}\\config.toml" "-x!${slimName}\\cli_last.log" "-x!${slimName}\\*.log" ` +
 		`"-x!${slimName}\\dict.db" "-x!${slimName}\\dict.db-wal" "-x!${slimName}\\dict.db-shm" ` +
-		`"-x!${slimName}\\opencv_videoio_ffmpeg*.dll"`;
+		`"-x!${slimName}\\opencv_videoio_ffmpeg*.dll" ` +
+		`"-x!${slimName}\\ZXing.dll" "-x!${slimName}\\SharpCompress.dll" "-x!${slimName}\\SharpSevenZip.dll" ` +
+		`"-x!${slimName}\\7za.dll" "-x!${slimName}\\e_sqlite3.dll"`;
 	console.log(`> ${cmd}`);
 	execSync(cmd, { cwd: slimParent, stdio: 'inherit', shell: true });
 

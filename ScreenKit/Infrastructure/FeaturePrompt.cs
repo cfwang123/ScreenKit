@@ -74,6 +74,14 @@ static class FeaturePrompt {
 		EnsureKinds(owner, Loc.T("feat.prompt.sherpa.title"), Loc.T("feat.prompt.sherpa.detail"),
 			FeatureKind.NativeSherpa);
 
+	public static bool EnsureZxing(Window owner = null) =>
+		EnsureKinds(owner, Loc.T("feat.prompt.zxing.title"), Loc.T("feat.prompt.zxing.detail"),
+			FeatureKind.NativeZxing);
+
+	public static bool EnsureSqlite(Window owner = null) =>
+		EnsureKinds(owner, Loc.T("feat.prompt.sqlite.title"), Loc.T("feat.prompt.sqlite.detail"),
+			FeatureKind.NativeSqlite);
+
 	/// <summary>OCR 模型包：任一可用即可；全无则提示装 rapid-ch。</summary>
 	public static bool EnsureOcrModels(Window owner = null) {
 		try {
@@ -181,6 +189,11 @@ static class FeaturePrompt {
 	static string kindlabel(FeatureKind k) => k switch {
 		FeatureKind.NativeOpenCv => "OpenCV 运行库",
 		FeatureKind.NativeOpenCvVideo => "OpenCV 视频库 (opencv_videoio_ffmpeg)",
+		FeatureKind.NativeZxing => "条码库 (ZXing.dll)",
+		FeatureKind.SharpCompress => "SharpCompress.dll",
+		FeatureKind.SharpSevenZip => "SharpSevenZip.dll",
+		FeatureKind.Native7za => "7za.dll",
+		FeatureKind.NativeSqlite => "SQLite (e_sqlite3.dll)",
 		FeatureKind.NativeSkia => "Skia 渲染库",
 		FeatureKind.NativePdfium => "PDFium (pdfium.dll)",
 		FeatureKind.NativeSherpa => "Sherpa (sherpa-onnx-c-api.dll)",

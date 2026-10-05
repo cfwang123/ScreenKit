@@ -34,6 +34,11 @@ static class QrMake {
 	}
 
 	public static BitmapSource Encode(string text, string format, string encoding, int scale, bool caption) {
+		NativeRuntime.EnsureZxing();
+		return encode(text, format, encoding, scale, caption);
+	}
+
+	static BitmapSource encode(string text, string format, string encoding, int scale, bool caption) {
 		if (string.IsNullOrEmpty(text)) throw new ArgumentException("empty");
 		if (scale < 1) scale = 1;
 		if (scale > 32) scale = 32;

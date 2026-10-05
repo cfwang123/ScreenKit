@@ -28,6 +28,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+### English
+
+#### Changed
+
+- `ZXing.dll`, `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll`, and `e_sqlite3.dll` are no longer in the release archive. **Help → Install features** can download each one. Barcode scan and QR images ask for ZXing. Opening the dictionary asks for SQLite. Extracting a 7z (the dictionary pack) downloads 7za and SharpSevenZip if they are missing. Extracting `tar.bz2` speech or ASR packs downloads SharpCompress if it is missing.
+
+### 中文
+
+#### 变更
+
+- `ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll` 不再打进发布包。**帮助 → 安装功能**可以分别下载。识别条码、生成二维码时若没有 ZXing，会提示安装。打开词典时若没有 SQLite，会提示安装。解压 7z（词典包）时若没有 7za 或 SharpSevenZip，会先下载。解压语音或识别模型的 `tar.bz2` 时若没有 SharpCompress，会先下载。
+
 ## v1.0.14 (2026-10-04 ~ 10-05)
 
 ### English

@@ -74,6 +74,7 @@ static class QrScan {
 	}
 
 	static QrResult runmat(Mat bgr, int t0) {
+		NativeRuntime.EnsureZxing();
 		var hits = decodepipeline(bgr);
 		// 极少数 QR 难图：OpenCV 补一枪（轻量）
 		if (hits.Count == 0)

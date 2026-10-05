@@ -24,6 +24,21 @@ static class NativeRuntime {
 
 	const string OpenCvExtern = "OpenCvSharpExtern.dll";
 	const string OpenCvVideo = "opencv_videoio_ffmpeg4110_64.dll";
+	const string ZxingDll = "ZXing.dll";
+	const string SharpCompressDll = "SharpCompress.dll";
+	const string SharpSevenZipDll = "SharpSevenZip.dll";
+	const string SevenZipDll = "7za.dll";
+	const string SqliteDll = "e_sqlite3.dll";
+	const string ZxingPkg = "ZXingCpp";
+	const string ZxingVer = "0.5.3";
+	const string CompressPkg = "SharpCompress";
+	const string CompressVer = "0.50.4";
+	const string SevenPkg = "SharpSevenZip";
+	const string SevenVer = "2.0.128";
+	const string SevenLibPkg = "7z.Libs";
+	const string SevenLibVer = "26.3.0";
+	const string SqlitePkg = "SQLitePCLRaw.lib.e_sqlite3";
+	const string SqliteVer = "2.1.10";
 	const string LibSkia = "libSkiaSharp.dll";
 	const string Pdfium = "pdfium.dll";
 	const string SherpaCApi = "sherpa-onnx-c-api.dll";
@@ -54,6 +69,12 @@ static class NativeRuntime {
 		File.Exists(Path.Combine(BaseDir, OpenCvVideo))
 		|| File.Exists(Path.Combine(BaseDir, "dll", "x64", OpenCvVideo));
 
+	public static bool HasZxing() => File.Exists(Path.Combine(BaseDir, ZxingDll));
+	public static bool HasSharpCompress() => File.Exists(Path.Combine(BaseDir, SharpCompressDll));
+	public static bool HasSharpSevenZip() => File.Exists(Path.Combine(BaseDir, SharpSevenZipDll));
+	public static bool Has7za() => File.Exists(Path.Combine(BaseDir, SevenZipDll));
+	public static bool HasSqlite() => File.Exists(Path.Combine(BaseDir, SqliteDll));
+
 	public static bool HasSkia() =>
 		File.Exists(Path.Combine(BaseDir, LibSkia))
 		|| File.Exists(Path.Combine(BaseDir, "x64", LibSkia));
@@ -71,6 +92,11 @@ static class NativeRuntime {
 
 	public static long OpenCvSizeHint => 61L * 1024 * 1024;
 	public static long OpenCvVideoSizeHint => 28L * 1024 * 1024;
+	public static long ZxingSizeHint => 3149312L;
+	public static long SharpCompressSizeHint => 2477056L;
+	public static long SharpSevenZipSizeHint => 1865728L;
+	public static long SevenZipSizeHint => 416256L;
+	public static long SqliteSizeHint => 1759232L;
 	public static long SkiaSizeHint => 11L * 1024 * 1024;
 	public static long PdfiumSizeHint => 6L * 1024 * 1024;
 	public static long SherpaSizeHint => 5L * 1024 * 1024;
@@ -146,6 +172,58 @@ static class NativeRuntime {
 		copybeside(OpenCvVideo, Path.Combine("dll", "x64"));
 	}
 
+	public static async Task InstallZxing(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await extractfromnupkg(
+			ZxingPkg, ZxingVer,
+			new[] { ("runtimes/win-x64/native/" + ZxingDll, ZxingDll) },
+			log, progress, ct, ZxingSizeHint).ConfigureAwait(false);
+		copybeside(ZxingDll, Path.Combine("runtimes", "win-x64", "native"));
+	}
+
+	public static async Task InstallSharpCompress(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await extractfromnupkg(
+			CompressPkg, CompressVer,
+			new[] { ("lib/net48/" + SharpCompressDll, SharpCompressDll) },
+			log, progress, ct, SharpCompressSizeHint).ConfigureAwait(false);
+	}
+
+	public static async Task InstallSharpSevenZip(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await extractfromnupkg(
+			SevenPkg, SevenVer,
+			new[] { ("lib/net48/" + SharpSevenZipDll, SharpSevenZipDll) },
+			log, progress, ct, SharpSevenZipSizeHint).ConfigureAwait(false);
+	}
+
+	public static async Task Install7za(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await extractfromnupkg(
+			SevenLibPkg, SevenLibVer,
+			new[] {
+				("bin/x64/" + SevenZipDll, SevenZipDll),
+				("bin/License.7za-7zxa.txt", "License.7za.txt"),
+			},
+			log, progress, ct, SevenZipSizeHint).ConfigureAwait(false);
+	}
+
+	public static async Task InstallSqlite(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await extractfromnupkg(
+			SqlitePkg, SqliteVer,
+			new[] { ("runtimes/win-x64/native/" + SqliteDll, SqliteDll) },
+			log, progress, ct, SqliteSizeHint).ConfigureAwait(false);
+	}
+
+	/// <summary>条码 / 二维码需要 ZXing.dll。缺失时弹窗。</summary>
+	public static void EnsureZxing() {
+		if (HasZxing()) return;
+		if (!FeaturePrompt.EnsureZxing())
+			throw new InvalidOperationException(
+				"未安装条码库（ZXing.dll）。请打开「安装功能」安装「条码 · ZXing」后再试。");
+	}
+
 	public static async Task InstallSkia(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		await extractfromnupkg(
@@ -204,6 +282,22 @@ static class NativeRuntime {
 			Path.Combine("dll", "x64", OpenCvVideo),
 			Path.Combine("runtimes", "win-x64", "native", OpenCvVideo));
 	}
+
+	public static void UninstallZxing(IProgress<string> log = null) {
+		deletefiles(log, ZxingDll, Path.Combine("runtimes", "win-x64", "native", ZxingDll));
+	}
+
+	public static void UninstallSharpCompress(IProgress<string> log = null) =>
+		deletefiles(log, SharpCompressDll);
+
+	public static void UninstallSharpSevenZip(IProgress<string> log = null) =>
+		deletefiles(log, SharpSevenZipDll);
+
+	public static void Uninstall7za(IProgress<string> log = null) =>
+		deletefiles(log, SevenZipDll);
+
+	public static void UninstallSqlite(IProgress<string> log = null) =>
+		deletefiles(log, SqliteDll);
 
 	public static void UninstallSkia(IProgress<string> log = null) {
 		deletefiles(log, LibSkia,
@@ -353,6 +447,11 @@ static class NativeRuntime {
 		sb.AppendLine("=== 原生运行库（按需） ===");
 		sb.AppendLine($"OpenCvSharpExtern: {(HasOpenCv() ? "OK" : "缺失")}  ({OpenCvExtern})");
 		sb.AppendLine($"opencv_videoio_ffmpeg: {(HasOpenCvVideo() ? "OK" : "缺失")}  ({OpenCvVideo})");
+		sb.AppendLine($"ZXing: {(HasZxing() ? "OK" : "缺失")}  ({ZxingDll})");
+		sb.AppendLine($"SharpCompress: {(HasSharpCompress() ? "OK" : "缺失")}  ({SharpCompressDll})");
+		sb.AppendLine($"SharpSevenZip: {(HasSharpSevenZip() ? "OK" : "缺失")}  ({SharpSevenZipDll})");
+		sb.AppendLine($"7za: {(Has7za() ? "OK" : "缺失")}  ({SevenZipDll})");
+		sb.AppendLine($"e_sqlite3: {(HasSqlite() ? "OK" : "缺失")}  ({SqliteDll})");
 		sb.AppendLine($"libSkiaSharp: {(HasSkia() ? "OK" : "缺失")}  ({LibSkia})");
 		sb.AppendLine($"pdfium: {(HasPdfium() ? "OK" : "缺失")}  ({Pdfium})");
 		sb.AppendLine($"sherpa-onnx-c-api: {(HasSherpa() ? "OK" : "缺失")}  ({SherpaCApi})");

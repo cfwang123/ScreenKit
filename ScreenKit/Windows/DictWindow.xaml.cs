@@ -46,6 +46,7 @@ public partial class DictWindow : UserControl {
 	DispatcherTimer tick;
 	int lastedit;
 	bool pending;
+	bool sqliteasked;
 	int gen;
 	int dgen;
 	int sgen;
@@ -230,6 +231,20 @@ public partial class DictWindow : UserControl {
 		}
 		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict.db");
 		if (!DictDb.Init(path)) {
+			if (DictDb.Error == "sqlite") {
+				lbstatus.Text = Loc.T("dict.nosqlite");
+				if (!sqliteasked) {
+					sqliteasked = true;
+					if (FeaturePrompt.EnsureSqlite(Window.GetWindow(this))) {
+						sqliteasked = false;
+						if (DictDb.Init(path)) {
+							lbstatus.Text = Loc.T("dict.ready");
+							return;
+						}
+					}
+				}
+				return;
+			}
 			lbstatus.Text = DictDb.Error == "missing" ? Loc.T("dict.missing") : DictDb.Error;
 			return;
 		}

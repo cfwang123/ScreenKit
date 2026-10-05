@@ -167,7 +167,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 1. First launch may open the wizard (nothing selected). System H.264 stays checked and needs no download.
 2. Later: **Help → Install features**
-   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary downloads `dict.7z` from a fixed URL (not the app update package) and extracts `dict.db` with `7za.dll`.
+   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary downloads `dict.7z` from a fixed URL (not the app update package). Extracting it downloads `7za.dll` and `SharpSevenZip.dll` when they are not already installed. Opening the database needs `e_sqlite3.dll`.
    - **ONNX speech models**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported. Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). Choose Japanese in the language list. That pack also speaks the other Supertonic 3 languages.
    - **Windows speech**: lists `Language.TextToSpeech` packs and the voices Windows reports for each language. Install or remove runs only when ScreenKit is an administrator; otherwise the DISM command is shown and can be copied. Restart ScreenKit before the speech page lists a newly installed voice.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
@@ -179,6 +179,10 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 | **onnxdml64** | DirectML EP for iGPU (optional) | ~18 MB |
 | **OpenCV** | Capture / image pipeline (`OpenCvSharpExtern.dll`) | ~61 MB |
 | **OpenCV video** | `opencv_videoio_ffmpeg4110_64.dll`. Not used by OCR or recording. **Help → Install features → OpenCV video** | ~28 MB |
+| **ZXing** | `ZXing.dll`. Barcode scan and QR images. Asked for when you use them | ~3 MB |
+| **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
+| **SharpSevenZip / 7za** | Extract the dictionary `dict.7z` | ~1.8 MB + ~0.4 MB |
+| **SQLite** | `e_sqlite3.dll`. Opens `dict.db` | ~1.7 MB |
 | **ffmpeg64** | Screen record encode/mux | ~72 MB |
 
 Download prefers CN mirrors when UI or system locale is Chinese.
@@ -470,7 +474,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `opencv_videoio_ffmpeg4110_64.dll`, `ffmpeg64`, or `dict.db`. Install the dictionary from **Help → Install features**, or place `dict.db` beside the executable yourself. See [Dictionary](#dictionary) for where that data comes from. `7za.dll` and the Windows SQLite library `e_sqlite3.dll` are included.
+- Does **not** include: the Android APK, OCR/ASR/TTS/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `opencv_videoio_ffmpeg4110_64.dll`, `ffmpeg64`, `dict.db`, `ZXing.dll`, `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll`, or `e_sqlite3.dll`. Install the dictionary from **Help → Install features**, or place `dict.db` beside the executable yourself. See [Dictionary](#dictionary) for where that data comes from. Barcode, archive extract, and the dictionary each ask to install the missing library when you use them.
 - End users install those via **Install features**. Local Opus-MT ONNX is placed under `translatemodels/` by hand if needed.
 
 For local development with models already present, run **`bin\Release\net48\`**.

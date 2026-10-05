@@ -3539,6 +3539,11 @@ public partial class MainWindow : Window {
 			qrDoneForImg = true;
 			return;
 		}
+		if (!FeaturePrompt.EnsureZxing(this)) {
+			setstatus(Loc.T("qr.nozxing"));
+			qrDoneForImg = true;
+			return;
+		}
 		var wall0 = wallStartTick ?? Environment.TickCount;
 
 		try { ocrCts?.Cancel(); } catch { }
