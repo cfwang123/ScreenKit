@@ -137,7 +137,27 @@ public sealed partial class SendFileServer {
 			handlewebzip(ctx, ishead(method));
 			return;
 		}
+		if (path is "/api/web/text") {
+			handlewebtext(ctx, method);
+			return;
+		}
 		writejson(ctx, 404, err(404, "未知路径"));
+	}
+
+	void handlewebtext(SfCtx ctx, string method) {
+		if (isget(method)) {
+			writejson(ctx, 200, ok(new JsonObject { ["text"] = Text.Draft ?? "" }));
+			return;
+		}
+		if (!ispost(method)) {
+			writejson(ctx, 405, err(805, "text 仅支持 GET/POST"));
+			return;
+		}
+		var body = readjson(ctx.Request);
+		var text = str(body, "text");
+		if (text.Length > MAXTEXT) text = text.Substring(0, MAXTEXT);
+		Text.SetDraft(text, notify: true);
+		writejson(ctx, 200, ok(new JsonObject { ["text"] = text }));
 	}
 
 	void handlewebapkupdate(SfCtx ctx) {

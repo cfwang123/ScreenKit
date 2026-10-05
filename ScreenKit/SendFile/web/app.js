@@ -63,6 +63,10 @@ window.sfweb = (function(){
 		on("bout", "click", logout);
 		on("bup", "click", function(){ el("efile").click(); });
 		on("bmkdir", "click", mkdir);
+		on("btext", "click", opentext);
+		on("btextclear", "click", cleartext);
+		on("btextpush", "click", pushtext);
+		on("btextclose", "click", closetext);
 		on("bref", "click", load);
 		on("bzip", "click", zipcur);
 		on("bdel", "click", delsel);
@@ -96,6 +100,12 @@ window.sfweb = (function(){
 			if (e.dataTransfer && e.dataTransfer.files)
 				uploadfiles(e.dataTransfer.files);
 		});
+		if (!t.mobile) {
+			var dlg = el("textdlg");
+			if (dlg) dlg.addEventListener("click", function(e){
+				if (e.target === dlg) closetext();
+			});
+		}
 		if (t.mobile) bindmobile();
 	}
 
@@ -136,6 +146,14 @@ window.sfweb = (function(){
 		settxt("bref", zh ? "刷新" : "Refresh");
 		settxt("bout", zh ? "退出" : "Sign out");
 		settxt("bdel", zh ? "删除所选" : "Delete selected");
+		settxt("btext", zh ? (t.mobile ? "文本" : "文本传输") : "Text");
+		settxt("texttitle", zh ? "文本传输" : "Text");
+		settxt("texthint", zh
+			? "电脑文件同步页里的当前文本。可修改后推送回去。"
+			: "Current text on the PC File sync page. Edit it, then send it back.");
+		settxt("btextclear", zh ? "清空" : "Clear");
+		settxt("btextclose", zh ? "关闭" : "Close");
+		settxt("btextpush", zh ? "推送到PC" : "Send to PC");
 		settxt("hname", zh ? "名称" : "Name");
 		settxt("hsize", zh ? "大小" : "Size");
 		settxt("htime", zh ? "修改时间" : "Modified");
@@ -1119,6 +1137,81 @@ window.sfweb = (function(){
 			if (!p) { step(); return; }
 			api("POST", "/api/web/delete?path=" + enc(p), {}, function(){ step(); });
 		}
+	}
+
+	function opentext() {
+		var box = el("etext");
+		if (box) box.value = "";
+		showerr("texterr", "");
+		var stat = el("textstat");
+		if (stat) stat.textContent = zh ? "正在读取…" : "Loading…";
+		if (t.mobile) {
+			closemoverlays();
+			showmdialog("textdlg");
+		}
+		else {
+			var dlg = el("textdlg");
+			if (dlg) dlg.hidden = false;
+		}
+		api("GET", "/api/web/text", null, function(ok, data){
+			if (!textopen()) return;
+			if (!ok) {
+				if (stat) stat.textContent = "";
+				showerr("texterr", zh ? "读取电脑文本失败" : "Could not load the PC text");
+				return;
+			}
+			if (box) box.value = (data && data.text) || "";
+			if (stat) stat.textContent = "";
+			if (box) box.focus();
+		});
+	}
+
+	function textopen() {
+		var dlg = el("textdlg");
+		if (!dlg) return false;
+		if (t.mobile) return dlg.classList.contains("show");
+		return !dlg.hidden;
+	}
+
+	function closetext() {
+		showerr("texterr", "");
+		if (t.mobile) closemoverlays();
+		else {
+			var dlg = el("textdlg");
+			if (dlg) dlg.hidden = true;
+		}
+	}
+
+	function cleartext() {
+		var box = el("etext");
+		if (box) box.value = "";
+		sendtext("");
+	}
+
+	function pushtext() {
+		var box = el("etext");
+		sendtext(box ? (box.value || "") : "");
+	}
+
+	function sendtext(text) {
+		showerr("texterr", "");
+		var stat = el("textstat");
+		if (stat) stat.textContent = zh ? "正在推送…" : "Sending…";
+		api("POST", "/api/web/text", {text: text}, function(ok, data){
+			if (!textopen()) return;
+			if (!ok) {
+				if (stat) stat.textContent = "";
+				var msg = data && typeof data.data === "string" ? data.data : "";
+				showerr("texterr", msg || (zh ? "推送失败" : "Send failed"));
+				return;
+			}
+			var saved = (data && data.text) || "";
+			var box = el("etext");
+			if (box && box.value !== saved) box.value = saved;
+			if (stat) stat.textContent = saved
+				? (zh ? "已写入电脑" : "Saved on the PC")
+				: (zh ? "已清空电脑上的文本" : "Cleared on the PC");
+		});
 	}
 
 	function mtoast(s) {

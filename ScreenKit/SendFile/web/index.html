@@ -31,6 +31,7 @@
 			<button id="bup" type="button">上传</button>
 			<button id="bmkdir" type="button">新建文件夹</button>
 			<button id="bref" type="button">刷新</button>
+			<button id="btext" type="button">文本传输</button>
 			<button id="bzip" type="button">打包下载</button>
 			<button id="bdel" type="button" class="danger" hidden>删除所选</button>
 			<button id="bout" type="button" class="ghost">退出</button>
@@ -58,6 +59,20 @@
 	</div>
 </div>
 <input id="efile" type="file" multiple hidden/>
+<div id="textdlg" class="modal" hidden>
+	<div class="modalcard" role="dialog" aria-modal="true" aria-labelledby="texttitle">
+		<h3 id="texttitle">文本传输</h3>
+		<p id="texthint" class="muted">电脑文件同步页里的当前文本。可修改后推送回去。</p>
+		<textarea id="etext"></textarea>
+		<p id="texterr" class="err" hidden></p>
+		<p id="textstat" class="muted"></p>
+		<div class="modalacts">
+			<button id="btextclear" type="button">清空</button>
+			<button id="btextclose" type="button" class="ghost">关闭</button>
+			<button id="btextpush" type="button" class="primary">推送到PC</button>
+		</div>
+	</div>
+</div>
 <script src="/web/app.js?__SK_WEB_VER__"></script>
 <script>window.sfweb.init({mobile:false});</script>
 </body>

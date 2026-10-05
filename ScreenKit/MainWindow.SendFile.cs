@@ -80,6 +80,7 @@ public partial class MainWindow {
 		bsfsend.Click += (_, _) => sfsend();
 		if (bsfcopytext != null) bsfcopytext.Click += (_, _) => sfcopytext();
 		if (bsfcleartext != null) bsfcleartext.Click += (_, _) => { if (esfsend != null) esfsend.Clear(); };
+		esfsend.TextChanged += (_, _) => sfpublishdraft();
 		esfsend.PreviewKeyDown += (_, e) => {
 			if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None) {
 				sfsend();
@@ -197,6 +198,25 @@ public partial class MainWindow {
 		return $"{t}  {dir}  {j.Name}  {st}  {SfJobRow.SizeText(j.Size)}";
 	}
 
+	void sfpublishdraft() {
+		if (sendFile == null || esfsend == null) return;
+		sendFile.Text.SetDraft(esfsend.Text ?? "", false);
+	}
+
+	void sfapplywebtext(string text) {
+		text ??= "";
+		if (esfsend != null && string.Equals(esfsend.Text, text, StringComparison.Ordinal)) return;
+		sfaddrow(text);
+		var tip = text.Length == 0
+			? Loc.T("sendfile.text.webclear")
+			: Loc.T("sendfile.text.webin");
+		try {
+			UiToast.Show(this, tip);
+			setstatus(tip);
+		}
+		catch { }
+	}
+
 	void sftextin(string text) {
 		sfaddrow(text);
 		if (string.IsNullOrEmpty(text)) return;
@@ -218,6 +238,11 @@ public partial class MainWindow {
 	void hookstext() {
 		if (sfInboxHooked || sendFile == null) return;
 		sfInboxHooked = true;
+		sfpublishdraft();
+		sendFile.Text.DraftSet += text => {
+			try { Dispatcher.BeginInvoke(new Action(() => sfapplywebtext(text))); }
+			catch { }
+		};
 		sendFile.Text.InboxArrived += msg => {
 			if (msg == null) return;
 			try {

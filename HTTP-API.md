@@ -846,6 +846,8 @@ Discovery: UDP broadcast `SCREENKIT_DISCOVER` to port 17531; the PC replies with
 | POST | `/api/web/mkdir` | body `{path}` (login) |
 | POST | `/api/web/rename` | body `{from,to}` (login) |
 | DELETE | `/api/web/delete?path=` | Delete (login) |
+| GET | `/api/web/text` | Current text on the PC File sync page `{text}` (login) |
+| POST | `/api/web/text` | body `{text}` writes that box; an empty string clears it (login, max 65536) |
 | POST | `/api/sendfile/pair` | body `{id,name}`; first time shows a confirm dialog on the PC |
 | GET | `/api/sendfile/info` | name / pcId |
 | GET | `/api/sendfile/list?path=&deep=` | `deep=1` recursive |

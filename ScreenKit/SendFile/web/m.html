@@ -79,6 +79,9 @@
 	<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
 		<path d="m5 12 4 4L19 6"/>
 	</symbol>
+	<symbol id="i-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M5 6h14M5 12h14M5 18h9"/>
+	</symbol>
 </svg>
 
 <div id="login" class="login">
@@ -132,6 +135,9 @@
 		</button>
 		<button id="bmkdir" type="button">
 			<svg class="ico"><use href="#i-folderplus"/></svg><span class="lbl">新建</span>
+		</button>
+		<button id="btext" type="button">
+			<svg class="ico"><use href="#i-text"/></svg><span class="lbl">文本</span>
 		</button>
 	</nav>
 </div>
@@ -192,6 +198,19 @@
 	<div class="dialog-actions">
 		<button id="mdcancel" type="button"><span class="lbl" id="lmdcancel">取消</span></button>
 		<button id="mdok" class="primary" type="button"><span class="lbl" id="lmdok">确定</span></button>
+	</div>
+</section>
+
+<section id="textdlg" class="dialog textwide" role="dialog" aria-modal="true" aria-labelledby="texttitle">
+	<h3 id="texttitle">文本传输</h3>
+	<p id="texthint" class="muted">电脑文件同步页里的当前文本。可修改后推送回去。</p>
+	<textarea id="etext"></textarea>
+	<p id="texterr" class="err" hidden></p>
+	<p id="textstat" class="muted"></p>
+	<div class="dialog-actions">
+		<button id="btextclear" type="button"><span class="lbl">清空</span></button>
+		<button id="btextclose" type="button"><span class="lbl">关闭</span></button>
+		<button id="btextpush" class="primary" type="button"><span class="lbl">推送到PC</span></button>
 	</div>
 </section>
 

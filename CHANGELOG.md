@@ -28,6 +28,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+### English
+
+#### Added
+
+- Web file manager (**File sync → Web manager**, desktop `/` and phone `/m`) has **Text**. The dialog shows the current text on the PC File sync page. Clear empties it on the PC. Send to PC writes the edited text back into that box.
+
+### 中文
+
+#### 新增
+
+- 网页文件管理（**文件同步 → 网页管理**，电脑 `/`、手机 `/m`）增加 **文本传输**。对话框显示电脑文件同步页里的当前文本。清空会清掉电脑上的文本。推送到 PC 把改过的内容写回那个输入框。
+
 ## v1.0.14 (2026-10-04 ~ 10-05)
 
 ### English

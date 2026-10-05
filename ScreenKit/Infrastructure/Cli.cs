@@ -3791,12 +3791,16 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			};
 			using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(12) };
 			var page = Task.Run(() => http.GetStringAsync(baseUrl + "/?pc=1")).GetAwaiter().GetResult();
-			if (page == null || page.IndexOf("sfweb", StringComparison.Ordinal) < 0) {
+			if (page == null || page.IndexOf("sfweb", StringComparison.Ordinal) < 0
+				|| page.IndexOf("id=\"btext\"", StringComparison.Ordinal) < 0
+				|| page.IndexOf("id=\"textdlg\"", StringComparison.Ordinal) < 0) {
 				Err("sendfile-web: / 未返回页面");
 				return 1;
 			}
 			var mpage = Task.Run(() => http.GetStringAsync(baseUrl + "/m")).GetAwaiter().GetResult();
-			if (mpage == null || mpage.IndexOf("sfweb", StringComparison.Ordinal) < 0) {
+			if (mpage == null || mpage.IndexOf("sfweb", StringComparison.Ordinal) < 0
+				|| mpage.IndexOf("id=\"btext\"", StringComparison.Ordinal) < 0
+				|| mpage.IndexOf("id=\"textdlg\"", StringComparison.Ordinal) < 0) {
 				Err("sendfile-web: /m 未返回页面");
 				return 1;
 			}
@@ -3809,6 +3813,11 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			var listNaked = getbody(http, baseUrl + "/api/web/list");
 			if (listNaked == null || listNaked.IndexOf("\"code\":401", StringComparison.Ordinal) < 0) {
 				Err("sendfile-web: 未登录 list 应 401: " + listNaked);
+				return 1;
+			}
+			var textNaked = getbody(http, baseUrl + "/api/web/text");
+			if (textNaked == null || textNaked.IndexOf("\"code\":401", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: 未登录 text 应 401: " + textNaked);
 				return 1;
 			}
 			var bad = postjson(http, baseUrl + "/api/web/login", "{\"password\":\"nope\"}");
@@ -3824,6 +3833,23 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			var listed = Task.Run(() => http.GetStringAsync(baseUrl + "/api/web/list")).GetAwaiter().GetResult();
 			if (listed == null || listed.IndexOf("\"code\":100", StringComparison.Ordinal) < 0) {
 				Err("sendfile-web: 登录后 list 失败: " + listed);
+				return 1;
+			}
+			var pushed = postjson(http, baseUrl + "/api/web/text", "{\"text\":\"hello-web-text\"}");
+			if (pushed == null || pushed.IndexOf("hello-web-text", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: 推送文本失败: " + pushed);
+				return 1;
+			}
+			var gotText = getbody(http, baseUrl + "/api/web/text");
+			if (gotText == null || gotText.IndexOf("hello-web-text", StringComparison.Ordinal) < 0
+				|| sv.Text.Draft != "hello-web-text") {
+				Err("sendfile-web: 读取文本不符: " + gotText);
+				return 1;
+			}
+			var cleared = postjson(http, baseUrl + "/api/web/text", "{\"text\":\"\"}");
+			if (cleared == null || cleared.IndexOf("\"text\":\"\"", StringComparison.Ordinal) < 0
+				|| sv.Text.Draft != "") {
+				Err("sendfile-web: 清空文本失败: " + cleared);
 				return 1;
 			}
 			using (var up = new HttpRequestMessage(HttpMethod.Post, baseUrl + "/api/web/upload?path=web.txt")) {

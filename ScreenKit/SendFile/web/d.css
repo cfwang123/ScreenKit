@@ -52,5 +52,13 @@ tr.rowpick:hover{background:#f9fafb}
 #ctxmenu button{display:block;width:100%;text-align:left;padding:8px 14px;border:0;background:transparent;font:inherit;font-size:13px;cursor:pointer;color:#111827}
 #ctxmenu button:hover{background:#f3f4f6}
 #ctxmenu button.danger{color:#dc2626}
+.modal{position:fixed;inset:0;z-index:40;background:#00000066;display:flex;align-items:center;justify-content:center;padding:24px}
+.modalcard{width:min(560px,100%);background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px;box-shadow:0 16px 40px #00000024}
+.modalcard h3{margin:0 0 6px;font-size:18px}
+.modalcard p{margin:0 0 10px}
+.modalcard textarea{width:100%;min-height:220px;resize:vertical;padding:10px;border:1px solid #d1d5db;border-radius:8px;font:inherit}
+.modalacts{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.modalacts .primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.modalacts .primary:hover{background:#1d4ed8}
 .empty{padding:24px 20px}
 #err,#empty{padding-left:20px}

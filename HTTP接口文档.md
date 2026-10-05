@@ -941,6 +941,8 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 | POST | `/api/web/mkdir` | body `{path}`（需登录） |
 | POST | `/api/web/rename` | body `{from,to}`（需登录） |
 | DELETE | `/api/web/delete?path=` | 删除（需登录） |
+| GET | `/api/web/text` | 电脑文件同步页当前文本 `{text}`（需登录） |
+| POST | `/api/web/text` | body `{text}`，写入该文本框；空字符串为清空（需登录，最长 65536） |
 | POST | `/api/sendfile/pair` | body `{id,name}`；首次在电脑弹窗确认 |
 | GET | `/api/sendfile/info` | 显示名 / pcId |
 | GET | `/api/sendfile/list?path=&deep=` | `deep=1` 递归 |

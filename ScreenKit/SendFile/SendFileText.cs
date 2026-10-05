@@ -12,9 +12,24 @@ public sealed class SendFileText {
 	readonly List<SendFileMsg> inbox = new();
 	readonly Dictionary<string, List<SendFileMsg>> outbox = new(StringComparer.OrdinalIgnoreCase);
 	long nextId = 1;
+	string draft = "";
 	const int MAXKEEP = 200;
 
 	public event Action<SendFileMsg> InboxArrived;
+	/// <summary>网页写入当前文本。参数是新全文。</summary>
+	public event Action<string> DraftSet;
+
+	public string Draft {
+		get { lock (gate) return draft; }
+	}
+
+	/// <summary>记下文件同步页当前文本。notify 为真时通知界面替换输入框。</summary>
+	public void SetDraft(string text, bool notify) {
+		text ??= "";
+		lock (gate) draft = text;
+		if (!notify) return;
+		try { DraftSet?.Invoke(text); } catch { }
+	}
 
 	public SendFileMsg PushInbox(string text) {
 		var msg = make(text);
