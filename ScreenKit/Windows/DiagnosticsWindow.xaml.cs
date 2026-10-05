@@ -12,6 +12,7 @@ namespace ScreenKit;
 partial class DiagnosticsWindow : Window {
 	static readonly SolidColorBrush OkBrush = freeze(0x1B, 0x7A, 0x32);
 	static readonly SolidColorBrush BadBrush = freeze(0xC6, 0x28, 0x28);
+	static readonly SolidColorBrush OffBrush = freeze(0x5F, 0x6B, 0x7A);
 	static readonly Regex StatRe = new(@"(?<=:\s|=\s?)(True|False|OK)|缺失|不可用|失败", RegexOptions.Compiled);
 
 	readonly Func<string> extraReport;
@@ -95,6 +96,7 @@ partial class DiagnosticsWindow : Window {
 			add(raw.Substring(i, m.Index - i), null);
 			var tok = m.Value;
 			if (tok is "True" or "OK") add("正常", OkBrush);
+			else if (tok == "False" && optionaloff(raw, m.Index)) add("未启用", OffBrush);
 			else if (tok is "False" or "缺失") add("不正常", BadBrush);
 			else add(tok, BadBrush);
 			i = m.Index + m.Length;
@@ -115,6 +117,24 @@ partial class DiagnosticsWindow : Window {
 			}
 			para.Inlines.Add(run);
 		}
+	}
+
+	/// <summary>关掉或还没装上的可选项，不是故障。</summary>
+	static bool optionaloff(string raw, int at) {
+		var start = raw.LastIndexOf('\n', Math.Max(0, at - 1));
+		start = start < 0 ? 0 : start + 1;
+		var line = raw.Substring(start, at - start);
+		if (line.Contains("ServiceMode")) return true;
+		if (line.Contains("IsOrtReady")) return true;
+		if (line.Contains("IsGpuReady")) return true;
+		if (line.Contains("IsDmlReady")) return true;
+		if (line.Contains("Runner.HasEngine")) return true;
+		if (line.IndexOf("onnxgpu64", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (line.IndexOf("onnxdml64", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (line.IndexOf("face ready", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (line.IndexOf("facemodels", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (line.Contains("FaceModels")) return true;
+		return false;
 	}
 
 	static SolidColorBrush freeze(byte r, byte g, byte b) {
