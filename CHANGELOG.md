@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.14 (2026-10-04 ~ 10-05)](#v1014-2026-10-04--10-05)
 - [v1.0.13 (2026-09-27 ~ 10-03)](#v1013-2026-09-27--10-03)
 - [v1.0.12 (2026-09-26)](#v1012-2026-09-26)
 - [v1.0.11 (2026-09-26)](#v1011-2026-09-26)
@@ -27,89 +28,53 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+## v1.0.14 (2026-10-04 ~ 10-05)
+
 ### English
 
 #### Added
 
-- **Help → Install features** can download and install the dictionary. It fetches `dict.7z` from the fixed GitHub release `dict-db` and extracts `dict.db` with the bundled `7za.dll`. That file is not part of the app update package.
+- Dictionary on the main window (**Options → Dictionary**, `tab_dict_visible`, on by default). Read-only lookup in `dict.db` next to the program for Chinese, English, Japanese, and Korean. The file is not in the release archive. **Help → Install features** downloads `dict.7z` from the fixed GitHub release `dict-db` and extracts `dict.db` with the bundled `7za.dll`.
 - **Help → Install features → Windows speech** lists `Language.TextToSpeech` packs and the voices Windows reports. Install or remove runs only when this process is an administrator; otherwise the DISM command is shown and can be copied. The speech page lists a new voice after ScreenKit restarts.
-- Dictionary window (**Options → Dictionary**, `hotkey_dict`). Read-only lookup in `dict.db` beside the program for Chinese, English, Japanese, and Korean. **Speak** uses the dictionary speech settings. The database is not in the release archive.
-- Dictionary filter includes Chinese headwords (`dict=zh`). **Speak** uses a Chinese voice for those headwords. List text is read from the entry JSON.
-- `onnx_unload_min` (default 5) unloads idle ONNX sessions for OCR, translation, face, speech recognition, and speech synthesis. `0` keeps them loaded. Service mode does not auto-unload.
+- **Settings → General** can turn OCR, TTS, ASR, chat, translate, face, and dictionary on or off (`mod_*`, default on). Off hides that page and stops its hotkey and tray entry. **Settings → API** can turn each HTTP path off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). A disabled path returns code 810 and is left out of `GET /api`. Main-tab checkboxes still only hide the page.
 
 #### Changed
 
-- **Settings → General** can turn OCR, TTS, ASR, chat, translate, face, and dictionary on or off (`mod_*`, default on). Off hides that page and stops its hotkey and tray entry. **Settings → API** can turn each HTTP path off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). A disabled path returns code 810 and is left out of `GET /api`. Main-tab checkboxes still only hide the page.
-- Dictionary language filters are buttons in a row: All, Chinese, Japanese, Korean, English. Selecting text and choosing Speak reads the whole selection.
-- The dictionary toolbar no longer has **Read Chinese**. **Speak** still reads the headword.
-- Speech with no saved engine uses Windows speech when a voice is installed, otherwise Edge online. A saved engine is kept. Dictionary Auto does the same per language: that language's Windows speech, otherwise Edge. SAPI and ONNX stay explicit choices.
-- README adds a Dictionary section: how the tab works, and where `dict.db` comes from.
-- Japanese and Korean headwords are spoken only up to the first comma. The full headword stays on screen. English and Chinese are unchanged.
-- Dictionary selection popup sits outside the selected text. It closes when its window is no longer the active window.
-- Dictionary: a matching headword in the selection popup, and a word link in the entry, open a new dictionary window for that word. The page you were reading stays.
-- Dictionary: selecting text and choosing Search opens a new window with the same dictionary page and looks up that text. The main-window tab is unchanged.
-- **Options → Memory**: Unload on the ONNX GPU row releases the CUDA libraries this process loaded, including the extra references a Sherpa GPU voice keeps. The row stays only when those libraries are still mapped. The result shows working set and private bytes. Switching that voice to CPU first is not required.
-- **Help → Install features** renames the Voices tab to **ONNX speech models**.
-- Dictionary list is two lines (language and headword, then gloss) with a per-row speak button. Entry text is smaller and colors pronunciation, part of speech, sense numbers, language labels, and examples. Selecting text opens a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Each example has a speak button.
-- Dictionary is a main-window tab (`tab_dict_visible`, on by default). Its hotkey shows the main window and selects that tab, enabling it when it was hidden. Pressing it again while that tab is showing hides the main window. The hotkey is off by default (`hotkey_dict` empty).
-- Dictionary speech (**Settings → Dictionary**): each of Chinese, English, Japanese, and Korean has an engine (`auto`, `sapi`, or `edge`), a local SAPI voice, and an Edge voice. Defaults: Auto, Xiaoxiao, Aria, Nanami, SunHi. Auto uses local SAPI, then Edge online. Edge shows only the Edge voice; local SAPI shows only the local voice; Auto shows both. This does not change the Speech tab. A saved `hotkey_dict` is kept.
-- The dictionary SQLite connection closes after 5 minutes without a lookup and opens again on the next search.
-- Dictionary speech for Chinese, English, Japanese, and Korean can use ONNX, SAPI, Windows speech, or Edge voices from this program's TTS, plus a rate from 0.5 to 2. Auto tries Windows speech, then SAPI, then Edge. Spoken audio is cached in `tmp/voice` and kept for 1 day.
-- The dictionary hotkey shows the main window and reads the clipboard text. It searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence or a blank clipboard opens the dictionary and does not search. It does not send Ctrl+C.
-- **Help → Install features → Voices**: Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). The language list includes 日文, and the Speech page can load that model. Synthesis passes `lang` (the language filter, otherwise the script of the text). The language filter is read on the UI thread before synthesis starts.
-- Speech language filter lists named languages first (Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, Spanish), then the remaining codes alphabetically. French, German, and Spanish use their names.
-- SAPI and Windows speech language lists show only languages that have an installed voice. Sherpa model languages are not mixed into those two lists.
-- **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded OCR, translation, face, speech-recognition, and speech model by its weight-file size. Unload frees that one model and asks Windows to return idle pages. A model that is in use stays loaded.
-- The main-window status bar summarizes what is loaded, for example `ONNX GPU loaded, 1 models, 1.73GB total`. The total is the runtime package plus model files. Click the bar to open Memory.
-- README: removed the Download section. The English README no longer contains Chinese text.
-- **Options → Memory** lists the loaded ONNX runtime with the loaded models. Each row has **Unload from memory**, which frees that row, runs a blocking full GC, and compacts the large-object heap. A runtime still mapped in this process stays until restart. A row in use cannot be unloaded.
-- ONNX CPU/GPU runtimes are not loaded at startup. The first OCR, translation, face, speech, or dictionary ONNX use loads the matching runtime. After `onnx_unload_min` idle minutes the sessions unload, then this process drops the native libraries it loaded. A DLL still held by the managed runtime or Sherpa stays mapped until exit. Service mode still warms up and does not unload.
+- Dictionary language filters are buttons in a row: All, Chinese, Japanese, Korean, English. The list is two lines (language and headword, then the gloss) with a speak button on each row. Entry text is smaller and colors pronunciation, part of speech, sense numbers, language labels, and examples. Each example has a speak button.
+- Selecting text in an entry opens a popup outside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Speak reads the whole selection. The popup closes when its window is no longer the active window. Search, a matching headword, or a word link opens another dictionary window and looks up that text. The page you were reading stays.
+- The dictionary hotkey (`hotkey_dict`, empty by default) shows the main window and selects that tab, enabling it when it was hidden. Pressing it again while that tab is showing hides the main window. It reads the clipboard and searches only when that text is one word: 1–4 Chinese characters, 1–20 English letters, Japanese with kana up to 12 characters, or 1–8 Hangul syllables. A sentence or a blank clipboard opens the dictionary and does not search.
+- Dictionary speech (**Settings → Dictionary**): each of Chinese, English, Japanese, and Korean has an engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, otherwise Edge online. Japanese and Korean headwords are spoken only up to the first comma. Spoken audio is cached in `tmp/voice` and kept for 1 day. The SQLite connection closes after 5 minutes without a lookup. This does not change the Speech tab.
+- Speech with no saved engine uses Windows speech when a voice is installed, otherwise Edge online. A saved engine is kept. The language list shows named languages first (Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, Spanish), then the remaining codes. SAPI and Windows speech list only languages that have an installed voice.
+- **Help → Install features** renames Voices to **ONNX speech models**. Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). The Speech page can load that model and passes `lang` from the language filter, or from the script of the text.
+- ONNX CPU/GPU runtimes are not loaded at startup. The first OCR, translation, face, speech, or dictionary ONNX use loads the matching runtime. After `onnx_unload_min` idle minutes (default 5; `0` keeps them loaded) the sessions unload, then this process drops the native libraries it loaded. A DLL still held by the managed runtime or Sherpa stays mapped until exit. Service mode still warms up and does not unload.
+- **Options → Memory** shows the process working set, private bytes, and managed heap, and lists each loaded model by its weight-file size together with the mapped ONNX runtime. **Unload from memory** frees that row, runs a full GC, and compacts the large-object heap. A runtime still mapped in this process stays until restart. A row in use cannot be unloaded. Unload on the ONNX GPU row also releases the CUDA libraries this process loaded, including the extra references a Sherpa GPU voice keeps. The row stays only when those libraries are still mapped. The status bar summarizes what is loaded, for example `ONNX GPU loaded, 1 models, 1.73GB total`. Click the bar to open Memory.
 
 #### Fixed
 
-- Supertonic uses a fixed noise seed. A random seed made the same word sound different on every speak (the last カ in アンニョンハシムニカ could come out as another syllable). Repeating the same text, voice, and rate now produces the same audio.
+- Supertonic uses a fixed noise seed. The same text, voice, and rate now produce the same audio.
 
 ### 中文
 
 #### 新增
 
-- **帮助 → 安装功能**可下载并安装词典。从固定的 GitHub Release `dict-db` 取 `dict.7z`，用随程序的 `7za.dll` 解出 `dict.db`。这个文件不进应用更新包。
+- 主窗口增加词典页（**选项 → 词典**，`tab_dict_visible`，默认显示）。只读查询程序旁的 `dict.db`，支持汉语、英语、日语、韩语。词典库不进发布包。**帮助 → 安装功能**从固定的 GitHub Release `dict-db` 下载 `dict.7z`，用随程序的 `7za.dll` 解出 `dict.db`。
 - **帮助 → 安装功能 → Windows语音**列出 `Language.TextToSpeech` 功能包和 Windows 报告的发音人。本进程是管理员时才能安装或卸载，否则只显示 DISM 命令并可复制。重启本程序后，语音合成页才会列出新发音人。
-- 词典窗口（**选项 → 词典**，配置键 `hotkey_dict`）。只读查询程序旁的 `dict.db`，支持中文、英语、日语、韩语。**发音**走词典发音设置。词典库不进发布包。
-- 词典筛选增加汉语（`dict=zh`）。汉语词头发音走中文语音。列表释义从词条 JSON 读取。
-- `onnx_unload_min`（默认 5 分钟）在空闲后卸载 OCR、翻译、人脸、语音识别和合成的 ONNX 会话。`0` 表示不自动卸载。服务模式不会自动卸载。
+- **参数设置 → 常规**可启用或停用截图识别、语音合成、语音识别、LLM对话、翻译、人脸、词典（`mod_*`，默认开）。关闭后隐藏对应页，并停用热键和托盘入口。**参数设置 → 接口**可分别关闭 OCR、TTS、ASR、翻译、对话、人脸的 HTTP 路径（`http_ocr` 等）。关闭时返回 810，`GET /api` 也不再列出。主界面 Tab 显示开关仍只隐藏入口。
 
 #### 变更
 
-- **参数设置 → 常规**可启用或停用截图识别、语音合成、语音识别、LLM对话、翻译、人脸、词典（`mod_*`，默认开）。关闭后隐藏对应页，并停用热键和托盘入口。**参数设置 → 接口**可分别关闭 OCR、TTS、ASR、翻译、对话、人脸的 HTTP 路径（`http_ocr` 等）。关闭时返回 810，`GET /api` 也不再列出。主界面 Tab 显示开关仍只隐藏入口。
-- 词典语言改为并列按钮：全部、汉语、日语、韩语、英语。选中文字后点发音，读完整选区。
-- 词典工具栏去掉「读中文」。**发音**仍读词头。
-- 语音合成未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。已经保存的引擎保持不变。词典「自动」按语言同样处理：该语言有 Windows 语音就用，没有再用 Edge。SAPI 和 ONNX 仍需点选。
-- README 增加「词典」一节，说明页内用法和 `dict.db` 的数据来源。
-- 日语、韩语词头发音只读到第一个逗号之前。词头原文仍完整显示。英语和汉语不变。
-- 词典划词浮窗避开选中的文字。所在窗口不再是当前窗口时，浮窗关掉。
-- 词典：划词浮窗里点匹配词条，或详情里点词语链接，都再开一个词典窗口查询该词。正在看的这一页不变。
-- 词典：选中文字后点「搜索」，用主窗口词典页同一套界面再开一个窗口，并查询这段文字。主窗口里的词典页不变。
-- **选项 → 内存占用**：ONNX GPU 这一行的「从内存卸载」会释放本进程加载的 CUDA 库，包括 Sherpa GPU 发音人多占的引用。只有这些库仍映射着时才留在列表里。结果同时显示工作集和专用内存。不必先把发音人改成 CPU。
-- **帮助 → 安装功能**里原来的「发音人」页改名为 **onnx语音模型**。
-- 词典列表改为两行（语言与词头、释义），每行可发音。详情字号缩小，读音、词性、义项编号、语种标签、例句分色。选中文字后，浮窗出现在选区旁边，含匹配词条以及发音、搜索、翻译、复制。每条例句末尾有发音按钮。
-- 词典改为主窗口的一页（`tab_dict_visible`，默认显示）。热键打开主窗口并切到该页；已在该页时再按隐藏主窗口。页被隐藏时会先启用。热键默认不注册（`hotkey_dict` 留空）。
-- 词典发音（**参数设置 → 词典**）：汉、英、日、韩各自有引擎（`auto` / `sapi` / `edge`）、本地 SAPI 发音人和 Edge 发音人。默认自动，Edge 为晓晓、Aria、Nanami、SunHi。自动先用本地 SAPI，没有再走 Edge 在线。选 Edge 只显示 Edge 发音人，选本地 SAPI 只显示本地发音人，自动两项都显示。不改语音合成页。已经保存的 `hotkey_dict` 会保留。
-- 词典 SQLite 连接在连续 5 分钟没有查询后关闭，下次查询再打开。
-- 词典汉、英、日、韩发音可选本程序的 ONNX、SAPI、Windows 语音或 Edge 发音人，并可选语速（0.5～2）。自动先用 Windows 语音，没有再用 SAPI，再没有用 Edge。发音缓存在 `tmp/voice`，保留 1 天。
-- 词典热键弹出主窗口并读取剪贴板文字。内容像一个单词才搜索：汉字 1–4 个，英文 1–20 个字母，带假名的日语最多 12 字，韩语 1–8 个音节。句子或空白只打开词典、不搜索。不再向前台发 Ctrl+C。
-- **帮助 → 安装功能 → 发音人**出现日文。日语模型是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`）。语音合成可以加载它，并按界面语言或文本文字选择 `lang`。语言筛选在界面线程读好后再合成，避免点发音时跨线程访问控件。
-- 语音合成的语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。法语、德语、西班牙语显示译名。
-- SAPI 和 Windows 语音的语言下拉只显示有发音人的语言，不再混入 Sherpa 模型的语言。
-- **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的识别、翻译、人脸、语音识别和语音合成模型。选中一项可卸载并请系统收回空闲内存。正在使用的模型不会卸。
-- 主窗口状态栏改为汇总，例如「已加载ONNX GPU、1个模型 共1.73GB」。合计是运行库和模型文件的大小。点击状态栏打开内存占用。
-- README：去掉下载一节。英文 README 不再出现中文。
-- **选项 → 内存占用**把已载入的 ONNX 运行库和模型列在一起。每行有「从内存卸载」，释放该项并做阻塞式完整 GC、压缩大对象堆。已经映射进本进程的运行库要重启后才从内存里消失。正在使用的项不能卸。
-- ONNX 的 CPU/GPU 运行库不再在启动时加载。第一次识别、翻译、人脸、语音或词典里的 ONNX 才会加载。空闲达到 `onnx_unload_min` 分钟后先卸会话，再释放本程序加载的原生库。托管运行时或 Sherpa 仍占用的 DLL 会留到退出。服务模式仍会预热，并且不按空闲卸载。
+- 词典语言改为并列按钮：全部、汉语、日语、韩语、英语。列表为两行（语言与词头、释义），每行可发音。详情字号缩小，读音、词性、义项编号、语种标签、例句分色。每条例句有发音按钮。
+- 在详情里选中文字后，浮窗出现在选区之外，含匹配词条以及发音、搜索、翻译、复制。发音读完整选区。所在窗口不再是当前窗口时浮窗关掉。点搜索、匹配词条或详情里的词语链接，都再开一个词典窗口查询该词。正在看的这一页不变。
+- 词典热键（`hotkey_dict`，默认不注册）打开主窗口并切到该页；页被隐藏时会先启用。已在该页时再按则隐藏主窗口。热键读取剪贴板，内容像一个单词才搜索：汉字 1–4 个，英文 1–20 个字母，带假名的日语最多 12 字，韩语 1–8 个音节。句子或空白只打开词典、不搜索。
+- 词典发音（**参数设置 → 词典**）：汉、英、日、韩各自可选引擎（自动 / ONNX / SAPI / Windows 语音 / Edge）、发音人和语速（0.5～2）。自动先用该语言的 Windows 语音，没有再用 Edge 在线。日语、韩语词头发音只读到第一个逗号之前。发音缓存在 `tmp/voice`，保留 1 天。连续 5 分钟没有查询后 SQLite 连接关闭，下次查询再打开。不改语音合成页。
+- 语音合成未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。已经保存的引擎保持不变。语言下拉先列出有名称的语言（中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语），其余语言代码按字母排在后面。SAPI 和 Windows 语音只列出有发音人的语言。
+- **帮助 → 安装功能**里原来的「发音人」页改名为 **onnx语音模型**。日语模型是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`）。语音合成可以加载它，并按界面语言或文字选择 `lang`。
+- ONNX 的 CPU/GPU 运行库不再在启动时加载。第一次识别、翻译、人脸、语音或词典里的 ONNX 才会加载。空闲达到 `onnx_unload_min` 分钟（默认 5，`0` 表示不自动卸载）后先卸会话，再释放本程序加载的原生库。托管运行时或 Sherpa 仍占用的 DLL 会留到退出。服务模式仍会预热，并且不按空闲卸载。
+- **选项 → 内存占用**显示进程工作集、专用内存和托管堆，并按权重文件大小列出已加载的模型，同时列出已映射的 ONNX 运行库。每行「从内存卸载」会释放该项，并做完整 GC、压缩大对象堆。已经映射进本进程的运行库要重启后才从内存里消失。正在使用的项不能卸。ONNX GPU 这一行还会释放本进程加载的 CUDA 库，包括 Sherpa GPU 发音人多占的引用；只有这些库仍映射着时才留在列表里。状态栏改为汇总，例如「已加载ONNX GPU、1个模型 共1.73GB」。点击状态栏打开内存占用。
 
 #### 修复
 
-- Supertonic 使用固定噪声种子。种子随机时，同一个字每次读音都不同（「アンニョンハシムニカ」末尾的「カ」会变成别的音节）。同一段文字、同一个发音人、同一语速现在得到同一段声音。
+- Supertonic 使用固定噪声种子。同一段文字、同一个发音人、同一语速现在得到同一段声音。
 
 ## v1.0.13 (2026-09-27 ~ 10-03)
 
