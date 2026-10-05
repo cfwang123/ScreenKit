@@ -40,6 +40,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Diagnostics** is under **Help**. Ready checks show a green **正常**. Checks that are not ready show red text.
 - **Settings → General** no longer shows the module switches. `mod_*` in `config.toml` is unchanged.
 - Diagnostics shows an optional item that is off as **未启用**: service mode, CUDA / DirectML not installed, ONNX not loaded yet, face models absent, OCR engine not loaded. A missing file or a failed check still shows red **不正常**.
+- Removed the unused OpenCV video library `opencv_videoio_ffmpeg4110_64.dll`. It is no longer in **Help → Install features** or Diagnostics. A build deletes any copy under the output folder. Recording still uses `ffmpeg64`.
 
 #### Added
 
@@ -57,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **诊断** 改到 **帮助** 下面。已就绪的检查显示绿色 **正常**，未就绪的显示红字。
 - **参数设置 → 常规** 不再显示启用模块。`config.toml` 里的 `mod_*` 不变。
 - 诊断里没开的可选项显示 **未启用**：服务模式、未安装的 CUDA / DirectML、尚未加载的 ONNX、没有人脸模型、识别引擎未加载。缺文件或失败仍显示红字 **不正常**。
+- 去掉用不到的 OpenCV 视频库 `opencv_videoio_ffmpeg4110_64.dll`。**帮助 → 安装功能** 和诊断里都不再出现。编译时会删掉输出目录里的这份文件。录屏仍用 `ffmpeg64`。
 
 #### 新增
 

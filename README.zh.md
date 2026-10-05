@@ -176,8 +176,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **onnxcpu64** | CPU 推理用 ONNX Runtime（无 GPU/核显 ORT 时 OCR 需要） | ~16 MB |
 | **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN（可选） | 较大 |
 | **onnxdml64** | 核显 DirectML EP（可选） | ~18 MB |
-| **OpenCV** | 截图 / 图像管线（`OpenCvSharpExtern.dll`） | ~61 MB |
-| **OpenCV 视频** | `opencv_videoio_ffmpeg4110_64.dll`。识别和录屏不用。**帮助 → 安装功能 → OpenCV 视频** | ~28 MB |
+| **OpenCV** | 截图 / 图像管线（`OpenCvSharpExtern.dll`）。不含 OpenCV 视频库 | ~61 MB |
 | **ZXing** | `ZXing.dll`。条码识别和二维码图。用到时才提示安装 | ~3 MB |
 | **SharpCompress** | `SharpCompress.dll`。解压语音和识别的 `tar.bz2` | ~2.5 MB |
 | **SharpSevenZip / 7za** | 解压词典 `dict.7z` | ~1.8 MB + ~0.4 MB |
@@ -464,7 +463,7 @@ dotnet build -c Release
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
 - **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`opencv_videoio_ffmpeg4110_64.dll`、`ffmpeg64`、`dict.db`、`ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
+- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict.db`、`ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 
 本机开发且已有模型时，请继续用 **`bin\Release\net48\`**。

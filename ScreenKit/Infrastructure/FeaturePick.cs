@@ -136,8 +136,6 @@ static class FeaturePick {
 			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.SharpSevenZip, FeatureKind.DictDb),
 		leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium),
-		leaf("ocvvideo", "feat.pick.ocvvideo", "feat.pick.ocvvideo.detail",
-			FeatureKind.NativeOpenCvVideo),
 		leaf("zxing", "feat.pick.zxing", "feat.pick.zxing.detail", FeatureKind.NativeZxing),
 		leaf("sharpcompress", "feat.pick.sharpcompress", "feat.pick.sharpcompress.detail",
 			FeatureKind.SharpCompress),
