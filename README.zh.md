@@ -219,34 +219,10 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 ```text
 ScreenKit --image <路径> [选项]
 ScreenKit --snap [--out <目录>]
-ScreenKit --test-overlay-layout   # 截屏遮罩各屏 HWND/DPI
-ScreenKit --test-overlay-span-adj # 跨屏选区副屏手柄
-ScreenKit --test-clipboard-path
-ScreenKit --test-apk-qr
-ScreenKit --test-img-convert
-ScreenKit --test-qr-make
-ScreenKit --test-rename
-ScreenKit --test-hash
-ScreenKit --test-texttool
-ScreenKit --test-pwgen
-ScreenKit --test-nettool
-ScreenKit --test-wintop           # 枚举窗口，并对探测窗设置/取消固定在前面
-ScreenKit --test-dict-search      # 只读查询程序旁的 dict.db
-ScreenKit --test-dict-sel         # 用 Ctrl+C 复制选中的词再读回来
-ScreenKit --test-dict-word        # 剪贴板文字是否像一个词典单词
-ScreenKit --test-dict-tts         # 词典发音缓存保留 1 天，以及语速换算
-ScreenKit --test-sendfile          # sendfile 沙箱 + 网页登录 / 公开下载
-ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi
-ScreenKit --test-tts-sherpa <模型名>
 ScreenKit --list-edge-tts
-ScreenKit --test-edge-tts ko-KR-SunHiNeural
-ScreenKit --test-http-tts
-ScreenKit --test-llm-chat
-ScreenKit --test-llm-agent
-ScreenKit --test-http-chat
 ScreenKit --probe-cuda
 ScreenKit --help
 ```

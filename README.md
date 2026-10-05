@@ -219,34 +219,10 @@ Full field reference: **[HTTP-API.md](HTTP-API.md)** · **[Chinese HTTP API](HTT
 ```text
 ScreenKit --image <path> [options]
 ScreenKit --snap [--out <dir>]
-ScreenKit --test-overlay-layout   # screenshot overlay HWND/DPI per monitor
-ScreenKit --test-overlay-span-adj # cross-monitor region handles on guest screens
-ScreenKit --test-clipboard-path   # path copy after delayed image; 4K timing
-ScreenKit --test-apk-qr            # encode/decode LAN APK QR; HTTP GET /apk
-ScreenKit --test-img-convert       # png→jpg rotate 90 + box 100×100 + shorter side 40
-ScreenKit --test-qr-make
-ScreenKit --test-rename
-ScreenKit --test-hash
-ScreenKit --test-texttool
-ScreenKit --test-pwgen
-ScreenKit --test-nettool
-ScreenKit --test-wintop           # list windows; pin/unpin a probe HWND
-ScreenKit --test-dict-search      # read-only lookup in dict.db beside the exe
-ScreenKit --test-dict-sel         # copy a selected word with Ctrl+C and read it back
-ScreenKit --test-dict-word        # clipboard text is one dictionary word?
-ScreenKit --test-dict-tts         # dictionary voice cache kept 1 day; rate math
-ScreenKit --test-sendfile          # sendfile sandbox + web login / public download
-ScreenKit --test-face-overlay
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
-ScreenKit --test-tts-sherpa <model> # `-d auto|gpu|cpu`
 ScreenKit --list-edge-tts
-ScreenKit --test-edge-tts ko-KR-SunHiNeural
-ScreenKit --test-http-tts
-ScreenKit --test-llm-chat
-ScreenKit --test-llm-agent
-ScreenKit --test-http-chat
 ScreenKit --probe-cuda
 ScreenKit --help
 ```
