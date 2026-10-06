@@ -3391,6 +3391,10 @@ static class Cli {
 			new[] { "안녕하세요", "en", "ko" },
 			new[] { "", "ja", "ja" },
 			new[] { "123", "ko", "ko" },
+			new[] { "はか", "zh", "zh" },
+			new[] { "食べる", "ko", "zh" },
+			new[] { "テレビ", "en", "en" },
+			new[] { "hello はか", "zh", "en" },
 		};
 		foreach (var row in langs) {
 			var got = DictWindow.TextLang(row[0], row[1]);

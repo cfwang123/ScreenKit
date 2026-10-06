@@ -729,8 +729,9 @@ public partial class DictWindow : UserControl {
 		return "en";
 	}
 
-	/// <summary>划词发音的语言。已标语言的文字按标注。其余按文字：假名算日语，谚文算韩语，没有假名的汉字算中文，拉丁字母算英语。日语词条的释义只有中文和英文。</summary>
+	/// <summary>划词发音的语言。已标语言的文字按标注。其余按文字：谚文算韩语，没有假名的汉字算中文，拉丁字母算英语。只有日语词条才把假名判成日语。汉、英、韩词条不判日语。</summary>
 	string langofselection(string text) {
+		var allowJa = speaklang(curlang) == "ja";
 		var score = new int[4];
 		var untagged = new StringBuilder();
 		var any = false;
@@ -744,7 +745,7 @@ public partial class DictWindow : UserControl {
 					if (bit.Length > 0) {
 						any = true;
 						var i = langindex(run.Tag as string);
-						if (i >= 0) score[i] += bit.Length;
+						if (i >= 0 && (allowJa || i != 2)) score[i] += bit.Length;
 						else untagged.Append(bit);
 					}
 				}
@@ -753,7 +754,7 @@ public partial class DictWindow : UserControl {
 				p = next;
 			}
 		}
-		addscript(score, any ? untagged.ToString() : text);
+		addscript(score, any ? untagged.ToString() : text, allowJa);
 		return bestlang(score, curlang);
 	}
 
@@ -767,14 +768,14 @@ public partial class DictWindow : UserControl {
 		return new TextRange(s, e).Text ?? "";
 	}
 
-	/// <summary>没有标注时，按文字判断 zh / en / ja / ko。判断不出就用 fallback。</summary>
+	/// <summary>没有标注时按文字判断。fallback 不是日语时不返回 ja。判断不出就用 fallback。</summary>
 	internal static string TextLang(string text, string fallback) {
 		var score = new int[4];
-		addscript(score, text);
+		addscript(score, text, speaklang(fallback) == "ja");
 		return bestlang(score, fallback);
 	}
 
-	static void addscript(int[] score, string text) {
+	static void addscript(int[] score, string text, bool allowJa) {
 		if (string.IsNullOrEmpty(text)) return;
 		var han = 0;
 		var kana = 0;
@@ -786,7 +787,7 @@ public partial class DictWindow : UserControl {
 			else if (ishan(c)) han++;
 			else if (islatin(c)) lat++;
 		}
-		if (kana > 0) score[2] += kana + han;
+		if (kana > 0 && allowJa) score[2] += kana + han;
 		else score[0] += han;
 		score[3] += hang;
 		score[1] += lat;

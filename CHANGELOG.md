@@ -37,7 +37,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Japanese dictionary hits list every writing in the title, for example 其奴, そいつ, そやつ. Out-dated or obsolete writings are omitted from the list and still shown in the entry. The row speaker reads a kana form without kanji (hiragana or katakana). 破瓜 is spoken as はか. A headword that is already kana is read as written.
-- Speaking a selection in a dictionary entry uses that selection's language voice. Japanese glosses are only Chinese and English, so a Chinese gloss uses the Chinese voice and an English gloss uses the English voice. Kana in the headword, reading, or example keeps the Japanese voice.
+- Speaking a selection in a dictionary entry uses that selection's language voice. Japanese glosses are only Chinese and English, so a Chinese gloss uses the Chinese voice and an English gloss uses the English voice. Kana in the headword, reading, or example keeps the Japanese voice. Chinese, English, and Korean entries choose only among those three voices.
 - A dictionary search shows the hit count and the elapsed time in milliseconds on the status line.
 - Dictionary list rows show every sense on the second line, separated by `; `. Text past one line is trimmed. The language tag is `zh`, `ja`, `ko`, or `en`. An English interface prefers the English gloss on that line.
 - Removed unused code. ONNX session setup, the Sherpa device check, arrow drawing, and JSON field parsing each live in one place.
@@ -60,7 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 日语词条在列表标题里显示各表记，例如「其奴, そいつ, そやつ」。过时或废用的表记不出现在列表里，详情里仍显示。词头发音改读没有汉字的假名（平假名或片假名）：「破瓜」读「はか」。词头本身已是假名则照读。
-- 详情里划词发音按选区语言选用发音人。日语词条的释义只有中文和英文，汉字释义用中文发音人，英文释义用英文发音人。词头、读音和例句里的假名仍用日语发音人。
+- 详情里划词发音按选区语言选用发音人。日语词条的释义只有中文和英文，汉字释义用中文发音人，英文释义用英文发音人。词头、读音和例句里的假名仍用日语发音人。汉语、英语、韩语词条只在中文、英文、韩语里判断。
 - 词典查完后，状态栏显示条目数和用时（毫秒）。
 - 词典列表第二行显示全部义项，用「; 」分隔，超出一行省略。语言标记改为 zh、ja、ko、en。界面为英文时，这一行优先显示英文释义。
 - 删掉没有调用的代码。ONNX 会话创建、Sherpa 设备检查、箭头绘制、JSON 字段解析各只保留一处。
