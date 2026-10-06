@@ -66,7 +66,7 @@ public partial class DictWindow : UserControl {
 	bool dragsel;
 	Window hostwin;
 
-	/// <summary>选区「翻译」：主窗打开翻译小窗并填入原文。</summary>
+	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
 	public Action<string> OnTranslate;
 	/// <summary>当前选项。发音读这里的词典引擎和发音人。</summary>
 	public Func<OcrOptions> Options;

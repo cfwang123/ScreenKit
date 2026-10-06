@@ -12,6 +12,7 @@ public partial class TranslatePopupWindow : Window {
 	bool uiLoading;
 	bool busy;
 	bool forceClose;
+	int showgen;
 	CancellationTokenSource cts;
 
 	internal TranslatePopupWindow(Func<OcrOptions> getOpt, TranslateEngine trEngine) {
@@ -59,15 +60,29 @@ public partial class TranslatePopupWindow : Window {
 		try { esrc.Focus(); } catch { }
 	}
 
-	/// <summary>词典选区：打开小窗并填入原文。</summary>
+	/// <summary>词典选区：打开小窗、填入原文并立即翻译。</summary>
 	public void ShowText(string text) {
 		ShowFromHotkey();
 		esrc.Text = text ?? "";
+		edst.Text = "";
 		try {
 			esrc.Focus();
 			esrc.SelectAll();
 		}
 		catch { }
+		var gen = ++showgen;
+		_ = showandgo(gen);
+	}
+
+	async Task showandgo(int gen) {
+		if (busy) {
+			try { cts?.Cancel(); } catch { }
+			var t0 = Environment.TickCount;
+			while (busy && gen == showgen && Environment.TickCount - t0 < 3000)
+				await Task.Delay(20).ConfigureAwait(true);
+		}
+		if (gen != showgen) return;
+		await go();
 	}
 
 	public void Reload() {

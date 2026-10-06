@@ -63,7 +63,7 @@ static class Cli {
 				or "--test-ort-lazy"
 				or "--test-ort-release"
 				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
-				or "--test-dict-host"
+				or "--test-dict-host" or "--test-dict-tr"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -281,6 +281,8 @@ static class Cli {
 					return testdictword();
 				case "--test-dict-host":
 					return testdicthost();
+				case "--test-dict-tr":
+					return testdicttr();
 				case "--test-dict-tts":
 					return DictTts.TestCache();
 				case "--test-cast":
@@ -3315,6 +3317,37 @@ static class Cli {
 		}
 	}
 
+	static int testdicttr() {
+		Out("=== 划词翻译立即开始 --test-dict-tr ===");
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		TranslatePopupWindow win = null;
+		try {
+			win = new TranslatePopupWindow(() => new OcrOptions(), null);
+			win.ShowText("hello");
+		}
+		catch (Exception ex) {
+			Out("show " + ex);
+			return 1;
+		}
+		var hint = Loc.T("tr.popup.hint");
+		var start = Environment.TickCount;
+		var status = "";
+		while (Environment.TickCount - start < 2500) {
+			var frame = new DispatcherFrame();
+			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
+			Dispatcher.PushFrame(frame);
+			status = win.lbstatus.Text ?? "";
+			if (status.Length > 0 && status != hint) break;
+		}
+		var src = win.esrc.Text ?? "";
+		Out("src=[" + src + "] status=[" + status + "]");
+		try { win.ForceClose(); } catch { }
+		if (src != "hello") return 2;
+		if (status.Length == 0 || status == hint) return 3;
+		return 0;
+	}
+
 	static int testdictword() {
 		string[][] rows = {
 			new[] { "字", "字" },
@@ -3557,6 +3590,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；划词词条再开窗口；浮窗不挡选区，失活即关
+      --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
