@@ -2,7 +2,7 @@
 
 Windows desktop tool (`ScreenKit.exe`): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
 
-**Current version: 1.0.14** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**Current version: 1.0.15** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
@@ -70,8 +70,9 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **Window manager** | **Tools → Window manager**: list visible top-level windows, pick one by clicking, or enter an HWND. A green frame follows the window under the cursor while picking, and stays on the selected window. Pin in front or unpin (`HWND_TOPMOST`). |
 | **Screencast** | Main window **Screencast** tab: cast this PC to another. Saved PCs stay in the left list; click one to fill the IP, or type an address / **Scan LAN**. **Max size** defaults to 1000×1000 (shrink to fit, never enlarge). **Start cast** first picks a region the same way as a screenshot (click a window or drag). Sending waits until Start is pressed again, so audio and its source (speakers, microphone, or both) can be changed. The red frame and toolbar can start, pause, or stop; pause keeps the connection and stops picture and audio until resume. The frame is not part of the picture. **Tools → Screencast** (same under the tray) still receives a phone or another PC, and can cast the whole desktop (quality 540p/720p/1080p). Audio plays continuously; the picture waits only as long as the sound is behind. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Rotating the phone keeps the viewer’s size, position, and maximized state; the picture fits or fills inside that window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens “Waiting for Android USB accessory” and tells a phone already connected for file sync to enter accessory mode. Both sides show connected / waiting / not connected. It turns off after 2 minutes with no connection. Or **USB cast (adb)** with USB debugging. The phone app has a separate **Screencast** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
-| **Modules** | `mod_*` in `config.toml` (default on) turns OCR, TTS, ASR, chat, translate, face, and dictionary on or off. Off hides that page and stops its hotkey and tray entry. Settings → API turns each HTTP path on or off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). Off returns code 810. |
+| **Modules** | `mod_*` in `config.toml` (default on) turns OCR, TTS, ASR, chat, translate, face, and dictionary on or off. Settings → General does not list these switches. Off hides that page and stops its hotkey and tray entry. Settings → API turns each HTTP path on or off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). Off returns code 810. |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / LLM log / Translate / Face / HTTP / File sync / Screencast / Dictionary (`tab_*_visible`). Hiding a tab does not stop its hotkey. |
+| **Diagnostics** | **Help → Diagnostics**. A ready check is green. An optional item that is off (service mode, CUDA / DirectML not installed, ONNX not loaded, no face models, OCR engine not loaded) shows as not enabled. A missing file or a failed check is red. |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test. |
 
