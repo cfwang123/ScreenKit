@@ -3381,6 +3381,23 @@ static class Cli {
 			Out("fail ja in=[" + row[0] + "] got=[" + got + "] want=[" + row[3] + "]");
 			bad++;
 		}
+		string[][] langs = {
+			new[] { "女孩十六岁，青春期", "ja", "zh" },
+			new[] { "to eat", "ja", "en" },
+			new[] { "age 16 (of a girl), pubescence", "ja", "en" },
+			new[] { "はか", "ja", "ja" },
+			new[] { "食べる", "ja", "ja" },
+			new[] { "破瓜", "ja", "zh" },
+			new[] { "안녕하세요", "en", "ko" },
+			new[] { "", "ja", "ja" },
+			new[] { "123", "ko", "ko" },
+		};
+		foreach (var row in langs) {
+			var got = DictWindow.TextLang(row[0], row[1]);
+			if (got == row[2]) continue;
+			Out("fail lang in=[" + row[0] + "] got=[" + got + "] want=[" + row[2] + "]");
+			bad++;
+		}
 		if (bad != 0) return 1;
 		Out("dict word ok n=" + rows.Length);
 		return 0;

@@ -56,6 +56,7 @@ public partial class DictWindow : UserControl {
 	bool suppress;
 	long wantid;
 	string seltext = "";
+	string sellang = "";
 	string curword = "";
 	string curspeak = "";
 	string curlang = "";
@@ -94,7 +95,7 @@ public partial class DictWindow : UserControl {
 		};
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
 		bspeak.Click += (_, _) => _ = speak(curspeak, speaklang(curlang));
-		bselspeak.Click += (_, _) => _ = speak(seltext, speaklang(curlang));
+		bselspeak.Click += (_, _) => _ = speak(seltext, sellang);
 		bselsearch.Click += (_, _) => {
 			var q = seltext;
 			psel.IsOpen = false;
@@ -374,14 +375,15 @@ public partial class DictWindow : UserControl {
 		curword = e.Word.Length > 0 ? e.Word : e.Headword;
 		curspeak = curlang == "ja" ? DictDb.JaSpeak(curword, e.Kanji, e.Pron) : SpeakHead(curword, curlang);
 		var doc = newdoc();
+		var entrylang = speaklang(curlang);
 		var head = para(2);
-		addrun(head, curword, DRole.Title);
-		if (e.Kanji.Length > 0 && e.Kanji != curword) addrun(head, "  " + e.Kanji, DRole.Body);
+		addrun(head, curword, DRole.Title, entrylang);
+		if (e.Kanji.Length > 0 && e.Kanji != curword) addrun(head, "  " + e.Kanji, DRole.Body, entrylang);
 		doc.Blocks.Add(head);
 		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
-		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1));
+		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1, entrylang));
 		var zharticle = e.Dict == "zh" && e.Extra.Length > 0;
-		if (e.Pos.Length > 0) doc.Blocks.Add(one(e.Pos, DRole.Pos, 1));
+		if (e.Pos.Length > 0) doc.Blocks.Add(one(e.Pos, DRole.Pos, 1, TextLang(e.Pos, entrylang)));
 		if (!zharticle) {
 			var tags = new List<string>();
 			foreach (var u in e.Usage) {
@@ -391,17 +393,23 @@ public partial class DictWindow : UserControl {
 			if (tags.Count > 0) {
 				var p = para(1);
 				addrun(p, Loc.T("dict.lab.tags"), DRole.Label);
-				addrun(p, string.Join(" · ", tags), DRole.Body);
+				addrun(p, string.Join(" · ", tags), DRole.Body, TextLang(string.Join(" · ", tags), entrylang));
 				doc.Blocks.Add(p);
 			}
 			if (e.Etymology.Length > 0) {
 				doc.Blocks.Add(one(Loc.T("dict.lab.etym"), DRole.Label, 0));
-				foreach (var line in splitlines(e.Etymology)) doc.Blocks.Add(one(line, DRole.Body, 0));
+				foreach (var line in splitlines(e.Etymology))
+					doc.Blocks.Add(one(line, DRole.Body, 0, TextLang(line, entrylang)));
 			}
 			foreach (var c in e.Conjugations) {
 				var p = para(0);
 				addrun(p, Loc.T("dict.lab.conj"), DRole.Label);
-				addrun(p, c, DRole.Body);
+				var firstpart = true;
+				foreach (var part in c.Split('　')) {
+					if (!firstpart) addrun(p, "　", DRole.Body);
+					firstpart = false;
+					addrun(p, part, DRole.Body, TextLang(part, entrylang));
+				}
 				doc.Blocks.Add(p);
 			}
 			if (e.See.Count > 0) {
@@ -412,7 +420,7 @@ public partial class DictWindow : UserControl {
 					if (s == null || s.Length == 0) continue;
 					if (!first) addrun(p, " · ", DRole.Body);
 					first = false;
-					addlink(p, s, s);
+					addlink(p, s, s, entrylang);
 				}
 				doc.Blocks.Add(p);
 			}
@@ -423,11 +431,11 @@ public partial class DictWindow : UserControl {
 				if (anySense) doc.Blocks.Add(para(4));
 				anySense = true;
 				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
-					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1));
+					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1, TextLang(s.Pos, entrylang)));
 					lastpos = s.Pos;
 				}
 				var numbered = false;
-				void gloss(string tag, string lemma, string def) {
+				void gloss(string tag, string lemma, string def, string lang) {
 					if (lemma.Length == 0 && def.Length == 0) return;
 					var p = para(0);
 					if (!numbered) {
@@ -435,42 +443,42 @@ public partial class DictWindow : UserControl {
 						numbered = true;
 						n++;
 					}
-					if (tag.Length > 0) addrun(p, tag + " ", DRole.Label);
-					addrun(p, join2(lemma, def), DRole.Body);
+					if (tag.Length > 0) addrun(p, tag + " ", DRole.Label, lang);
+					addrun(p, join2(lemma, def), DRole.Body, lang);
 					doc.Blocks.Add(p);
 				}
-				if (s.Ko.Length > 0) gloss("", s.Ko, "");
-				gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef);
-				gloss(Loc.T("dict.lab.en"), s.En, s.EnDef);
-				gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef);
+				if (s.Ko.Length > 0) gloss("", s.Ko, "", "ko");
+				gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef, "zh");
+				gloss(Loc.T("dict.lab.en"), s.En, s.EnDef, "en");
+				gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
 				var linkphrase = e.Dict != "ko";
 				foreach (var ph in s.Phrases) {
 					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
 					var p = para(0);
 					addrun(p, Loc.T("dict.lab.phrase") + " ", DRole.Label);
-					if (linkphrase && ph.Text.Length > 0) addlink(p, ph.Text, firsttoken(ph.Text));
-					else addrun(p, ph.Text, DRole.Body);
+					if (linkphrase && ph.Text.Length > 0) addlink(p, ph.Text, firsttoken(ph.Text), entrylang);
+					else addrun(p, ph.Text, DRole.Body, entrylang);
 					doc.Blocks.Add(p);
 					if (ph.Zh.Length > 0) {
 						var z = para(0);
-						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label);
-						addrun(z, ph.Zh, DRole.Body);
+						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label, "zh");
+						addrun(z, ph.Zh, DRole.Body, "zh");
 						doc.Blocks.Add(z);
 					}
 				}
 				if (s.Sentences.Count > 0) doc.Blocks.Add(one(Loc.T("dict.lab.example"), DRole.ExLabel, 0));
-				var exlang = speaklang(e.Dict);
+				var exlang = entrylang;
 				foreach (var ex in s.Sentences) {
 					if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
 					var ep = para(0);
-					addrun(ep, "· " + ex.Text, DRole.Example);
+					addrun(ep, "· " + ex.Text, DRole.Example, exlang);
 					var say = examplesrc(ex.Text);
 					if (say.Length > 0) addspeak(ep, say, exlang);
 					doc.Blocks.Add(ep);
 					if (ex.Zh.Length > 0) {
 						var z = para(0);
-						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label);
-						addrun(z, ex.Zh, DRole.Body);
+						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label, "zh");
+						addrun(z, ex.Zh, DRole.Body, "zh");
 						doc.Blocks.Add(z);
 					}
 				}
@@ -489,7 +497,8 @@ public partial class DictWindow : UserControl {
 		}
 		if (e.Extra.Length > 0 && (zharticle || e.Dict != "zh")) {
 			if (doc.Blocks.Count > 0) doc.Blocks.Add(para(6));
-			foreach (var line in splitlines(e.Extra)) doc.Blocks.Add(one(line, DRole.Body, 0));
+			foreach (var line in splitlines(e.Extra))
+				doc.Blocks.Add(one(line, DRole.Body, 0, zharticle ? "zh" : TextLang(line, entrylang)));
 		}
 		edetail.Document = doc;
 		edetail.ScrollToHome();
@@ -500,6 +509,7 @@ public partial class DictWindow : UserControl {
 		text = oneline(text);
 		if (text.Length == 0) return;
 		seltext = text;
+		sellang = langofselection(text);
 		var q = text.Length > 80 ? text.Substring(0, 80) : text;
 		placepop();
 		psel.IsOpen = true;
@@ -719,6 +729,106 @@ public partial class DictWindow : UserControl {
 		return "en";
 	}
 
+	/// <summary>划词发音的语言。已标语言的文字按标注。其余按文字：假名算日语，谚文算韩语，没有假名的汉字算中文，拉丁字母算英语。日语词条的释义只有中文和英文。</summary>
+	string langofselection(string text) {
+		var score = new int[4];
+		var untagged = new StringBuilder();
+		var any = false;
+		var sel = edetail.Selection;
+		if (sel != null && !sel.IsEmpty && sel.Start != null && sel.End != null) {
+			var seen = new HashSet<Run>();
+			var p = sel.Start;
+			while (p != null && p.CompareTo(sel.End) < 0) {
+				if (p.Parent is Run run && seen.Add(run)) {
+					var bit = overlaptext(run, sel);
+					if (bit.Length > 0) {
+						any = true;
+						var i = langindex(run.Tag as string);
+						if (i >= 0) score[i] += bit.Length;
+						else untagged.Append(bit);
+					}
+				}
+				var next = p.GetNextContextPosition(LogicalDirection.Forward);
+				if (next == null || next.CompareTo(p) <= 0) break;
+				p = next;
+			}
+		}
+		addscript(score, any ? untagged.ToString() : text);
+		return bestlang(score, curlang);
+	}
+
+	static string overlaptext(Run run, TextSelection sel) {
+		var rs = run.ContentStart;
+		var re = run.ContentEnd;
+		if (rs == null || re == null) return "";
+		var s = sel.Start.CompareTo(rs) > 0 ? sel.Start : rs;
+		var e = sel.End.CompareTo(re) < 0 ? sel.End : re;
+		if (s.CompareTo(e) >= 0) return "";
+		return new TextRange(s, e).Text ?? "";
+	}
+
+	/// <summary>没有标注时，按文字判断 zh / en / ja / ko。判断不出就用 fallback。</summary>
+	internal static string TextLang(string text, string fallback) {
+		var score = new int[4];
+		addscript(score, text);
+		return bestlang(score, fallback);
+	}
+
+	static void addscript(int[] score, string text) {
+		if (string.IsNullOrEmpty(text)) return;
+		var han = 0;
+		var kana = 0;
+		var hang = 0;
+		var lat = 0;
+		foreach (var c in text) {
+			if (iskana(c)) kana++;
+			else if (c >= '\uAC00' && c <= '\uD7A3') hang++;
+			else if (ishan(c)) han++;
+			else if (islatin(c)) lat++;
+		}
+		if (kana > 0) score[2] += kana + han;
+		else score[0] += han;
+		score[3] += hang;
+		score[1] += lat;
+	}
+
+	static string bestlang(int[] score, string fallback) {
+		var langs = new[] { "zh", "en", "ja", "ko" };
+		var best = -1;
+		var n = 0;
+		for (var i = 0; i < 4; i++) {
+			if (score[i] <= n) continue;
+			n = score[i];
+			best = i;
+		}
+		if (best < 0) return speaklang(fallback);
+		return langs[best];
+	}
+
+	static int langindex(string lang) {
+		if (lang == "zh") return 0;
+		if (lang == "en") return 1;
+		if (lang == "ja") return 2;
+		if (lang == "ko") return 3;
+		return -1;
+	}
+
+	static bool iskana(char c) {
+		if (c >= '\u3040' && c <= '\u30FF') return true;
+		return c >= '\uFF66' && c <= '\uFF9D';
+	}
+
+	static bool ishan(char c) {
+		if (c >= '\u4E00' && c <= '\u9FFF') return true;
+		return c >= '\u3400' && c <= '\u4DBF';
+	}
+
+	static bool islatin(char c) {
+		if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z') return true;
+		if (c >= '\uFF21' && c <= '\uFF3A') return true;
+		return c >= '\uFF41' && c <= '\uFF5A';
+	}
+
 	static string listcode(string dict) {
 		if (dict == "zh" || dict == "ja" || dict == "ko" || dict == "en") return dict;
 		return "";
@@ -744,18 +854,20 @@ public partial class DictWindow : UserControl {
 		return new Paragraph { Margin = new Thickness(0, 0, 0, bottom), LineHeight = 18 };
 	}
 
-	static Paragraph one(string text, DRole role, double bottom) {
+	static Paragraph one(string text, DRole role, double bottom, string lang = null) {
 		var p = para(bottom);
-		addrun(p, text, role);
+		addrun(p, text, role, lang);
 		return p;
 	}
 
-	static void addrun(Paragraph p, string text, DRole role) {
+	static void addrun(Paragraph p, string text, DRole role, string lang = null) {
 		if (text == null || text.Length == 0 || p == null) return;
 		var run = new Run(text);
 		var b = brush(role);
 		if (b != null) run.Foreground = b;
 		if (role == DRole.Title) run.FontWeight = FontWeights.SemiBold;
+		var i = langindex(lang);
+		if (i >= 0) run.Tag = lang;
 		p.Inlines.Add(run);
 	}
 
@@ -777,9 +889,12 @@ public partial class DictWindow : UserControl {
 		p.Inlines.Add(link);
 	}
 
-	void addlink(Paragraph p, string label, string query) {
+	void addlink(Paragraph p, string label, string query, string lang) {
 		if (label == null || label.Length == 0 || p == null) return;
-		var link = new Hyperlink(new Run(label)) {
+		var run = new Run(label);
+		var i = langindex(lang);
+		if (i >= 0) run.Tag = lang;
+		var link = new Hyperlink(run) {
 			Foreground = CLabel,
 			TextDecorations = null,
 		};
