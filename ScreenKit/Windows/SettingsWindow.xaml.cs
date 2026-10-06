@@ -185,6 +185,7 @@ public partial class SettingsWindow : Window {
 			etabttsvisible.Content = Loc.T("tab.tts");
 			etabasrvisible.Content = Loc.T("tab.asr");
 			etabchatvisible.Content = Loc.T("tab.chat");
+			etabllmlogvisible.Content = Loc.T("tab.llmlog");
 			etabtranslatevisible.Content = Loc.T("tab.translate");
 			etabfacevisible.Content = Loc.T("tab.face");
 			etabhttpvisible.Content = Loc.T("tab.http");
@@ -469,6 +470,7 @@ public partial class SettingsWindow : Window {
 		etabttsvisible.IsChecked = o.TabTtsVisible;
 		etabasrvisible.IsChecked = o.TabAsrVisible;
 		etabchatvisible.IsChecked = o.TabChatVisible;
+		etabllmlogvisible.IsChecked = o.TabLlmLogVisible;
 		etabtranslatevisible.IsChecked = o.TabTranslateVisible;
 		etabfacevisible.IsChecked = o.TabFaceVisible;
 		etabhttpvisible.IsChecked = o.TabHttpVisible;
@@ -653,6 +655,7 @@ public partial class SettingsWindow : Window {
 		Result.TabTtsVisible = etabttsvisible.IsChecked == true;
 		Result.TabAsrVisible = etabasrvisible.IsChecked == true;
 		Result.TabChatVisible = etabchatvisible.IsChecked == true;
+		Result.TabLlmLogVisible = etabllmlogvisible.IsChecked == true;
 		Result.TabTranslateVisible = etabtranslatevisible.IsChecked == true;
 		Result.TabFaceVisible = etabfacevisible.IsChecked == true;
 		Result.TabHttpVisible = etabhttpvisible.IsChecked == true;

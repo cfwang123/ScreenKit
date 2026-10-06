@@ -120,6 +120,7 @@ public partial class MainWindow : Window {
 		inittts();
 		initasr();
 		initchat();
+		initllmlog();
 		inittranslate();
 		initface();
 		applylang();
@@ -234,6 +235,7 @@ public partial class MainWindow : Window {
 			(tabtts, opt.TabTtsVisible && opt.ModTts),
 			(tabasr, opt.TabAsrVisible && opt.ModAsr),
 			(tabchat, opt.TabChatVisible && opt.ModChat),
+			(tabllmlog, opt.TabLlmLogVisible),
 			(tabtr, opt.TabTranslateVisible && opt.ModTranslate),
 			(tabface, opt.TabFaceVisible && opt.ModFace),
 			(tabhttp, opt.TabHttpVisible),
@@ -1435,6 +1437,7 @@ public partial class MainWindow : Window {
 			tabtts.Header = Loc.T("tab.tts");
 			tabasr.Header = Loc.T("tab.asr");
 			try { applychatlang(); } catch { }
+			try { applyllmloglang(); } catch { }
 			tabtr.Header = Loc.T("tab.translate");
 			tabdict.Header = Loc.T("tab.dict");
 			try { applyhttplang(); } catch { }

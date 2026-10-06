@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- **LLM log** tab lists the latest 1,000 LLM calls (model, HTTP status, input / output / total tokens, response time). Select a row to read the request and the response. Stored in `log/llm-calls.jsonl` next to the program. The address query string is omitted. Settings → General can hide it (`tab_llmlog_visible`).
 - Web file manager (**File sync → Web manager**, desktop `/` and phone `/m`) has **Text**. The dialog shows the current text on the PC File sync page. Clear empties it on the PC. Send to PC writes the edited text back into that box.
 
 ### 中文
@@ -74,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- **LLM日志** 页列出最近 1000 次 LLM 请求（模型、HTTP 状态、输入 / 输出 / 合计 token、响应时间）。选中一行查看请求和响应。记录在程序旁 `log/llm-calls.jsonl`。地址里的查询串不写入。参数设置 → 常规可隐藏（`tab_llmlog_visible`）。
 - 网页文件管理（**文件同步 → 网页管理**，电脑 `/`、手机 `/m`）增加 **文本传输**。对话框显示电脑文件同步页里的当前文本。清空会清掉电脑上的文本。推送到 PC 把改过的内容写回那个输入框。
 
 ## v1.0.14 (2026-10-04 ~ 10-05)

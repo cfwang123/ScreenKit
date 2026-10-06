@@ -195,6 +195,8 @@ static class AppConfig {
 				o.TabAsrVisible = parsebool(tav, true);
 			if (map.TryGetValue("tab_chat_visible", out var tcv))
 				o.TabChatVisible = parsebool(tcv, true);
+			if (map.TryGetValue("tab_llmlog_visible", out var tllv))
+				o.TabLlmLogVisible = parsebool(tllv, true);
 			if (map.TryGetValue("tab_translate_visible", out var trv))
 				o.TabTranslateVisible = parsebool(trv, true);
 			if (map.TryGetValue("tab_face_visible", out var tfv))
@@ -610,6 +612,7 @@ static class AppConfig {
 		sb.AppendLine($"tab_tts_visible = {(o.TabTtsVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_asr_visible = {(o.TabAsrVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_chat_visible = {(o.TabChatVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_llmlog_visible = {(o.TabLlmLogVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_translate_visible = {(o.TabTranslateVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_face_visible = {(o.TabFaceVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_http_visible = {(o.TabHttpVisible ? "true" : "false")}");

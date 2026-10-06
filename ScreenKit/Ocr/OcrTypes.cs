@@ -253,6 +253,7 @@ public sealed class OcrOptions {
 	public bool TabTtsVisible = true;
 	public bool TabAsrVisible = true;
 	public bool TabChatVisible = true;
+	public bool TabLlmLogVisible = true;
 	public bool TabTranslateVisible = true;
 	public bool TabFaceVisible = true;
 	public bool TabHttpVisible = true;
@@ -513,6 +514,7 @@ public sealed class OcrOptions {
 		TabTtsVisible = TabTtsVisible,
 		TabAsrVisible = TabAsrVisible,
 		TabChatVisible = TabChatVisible,
+		TabLlmLogVisible = TabLlmLogVisible,
 		TabTranslateVisible = TabTranslateVisible,
 		TabFaceVisible = TabFaceVisible,
 		TabHttpVisible = TabHttpVisible,

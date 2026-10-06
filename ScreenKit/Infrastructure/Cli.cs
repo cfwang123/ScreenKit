@@ -68,6 +68,7 @@ static class Cli {
 				or "--test-llm-continue"
 				or "--test-llm-chat"
 				or "--test-llm-agent"
+				or "--test-llm-log"
 				or "--test-http-tts"
 				or "--test-http-chat"
 				or "--test-face-overlay"
@@ -237,6 +238,8 @@ static class Cli {
 					return testfaceoverlay();
 				case "--test-llm-continue":
 					return runtestllmcontinue();
+				case "--test-llm-log":
+					return testllmlog();
 				case "--test-llm-chat":
 					return runtestllmchat();
 				case "--test-llm-agent":
@@ -2125,6 +2128,80 @@ static class Cli {
 		return s.Substring(0, max) + "…";
 	}
 
+	/// <summary>最近 1000 条 LLM 请求：用量、地址去查询串、落盘顺序（不去网）。</summary>
+	static int testllmlog() {
+		var dir = Path.Combine(Path.GetTempPath(), "sk-llmlog-" + Guid.NewGuid().ToString("N"));
+		var file = Path.Combine(dir, "llm-calls.jsonl");
+		try {
+			LlmCalls.UseFile(file);
+			LlmCalls.Add("https://api.example/v1/chat/completions?key=secret",
+				"{\"model\":\"demo\"}", 200, 12,
+				"{\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":5,\"total_tokens\":8}}", null);
+			var one = LlmCalls.Latest();
+			if (one.Length != 1) {
+				Out($"fail count {one.Length}");
+				return 2;
+			}
+			if (one[0].Model != "demo" || one[0].Ms != 12 || one[0].Code != 200) {
+				Out($"fail row model={one[0].Model} ms={one[0].Ms} code={one[0].Code}");
+				return 3;
+			}
+			if (one[0].Prompt != 3 || one[0].Completion != 5 || one[0].Total != 8) {
+				Out($"fail usage {one[0].Prompt}/{one[0].Completion}/{one[0].Total}");
+				return 4;
+			}
+			if (one[0].Url.IndexOf('?') >= 0 || one[0].Url.IndexOf("key=", StringComparison.Ordinal) >= 0) {
+				Out($"fail url {one[0].Url}");
+				return 5;
+			}
+			LlmCalls.Add("https://api.example/v1/chat", "{\"model\":\"alt\"}", 200, 1,
+				"{\"usage\":{\"input_tokens\":1,\"output_tokens\":2}}", null);
+			var alt = LlmCalls.Latest()[0];
+			if (alt.Prompt != 1 || alt.Completion != 2 || alt.Total != 3) {
+				Out($"fail alt usage {alt.Prompt}/{alt.Completion}/{alt.Total}");
+				return 6;
+			}
+			LlmCalls.Add("https://api.example/v1/chat", "{\"model\":\"err\"}", 0, 4, "",
+				new InvalidOperationException("down"));
+			var err = LlmCalls.Latest()[0];
+			if (err.Error != "down" || err.Prompt != -1) {
+				Out($"fail err {err.Error} prompt={err.Prompt}");
+				return 7;
+			}
+			LlmCalls.UseFile(file);
+			for (var i = 0; i < 1005; i++)
+				LlmCalls.Add("https://api.example/v1/chat", $"{{\"model\":\"m{i}\"}}", 200, i, "{}", null);
+			var all = LlmCalls.Latest();
+			if (all.Length != LlmCalls.CAP) {
+				Out($"fail cap {all.Length}");
+				return 8;
+			}
+			if (all[0].Model != "m1004" || all[LlmCalls.CAP - 1].Model != "m5") {
+				Out($"fail order newest={all[0].Model} oldest={all[LlmCalls.CAP - 1].Model}");
+				return 9;
+			}
+			var lines = File.ReadAllLines(file);
+			if (lines.Length != LlmCalls.CAP) {
+				Out($"fail file {lines.Length}");
+				return 10;
+			}
+			var first = JsonSerializer.Deserialize<LlmCall>(lines[0]);
+			var last = JsonSerializer.Deserialize<LlmCall>(lines[lines.Length - 1]);
+			if (first == null || last == null || first.Model != "m5" || last.Model != "m1004") {
+				Out($"fail disk {(first == null ? "" : first.Model)}..{(last == null ? "" : last.Model)}");
+				return 11;
+			}
+			Out($"llm log ok n={all.Length}");
+			return 0;
+		}
+		finally {
+			try {
+				if (Directory.Exists(dir)) Directory.Delete(dir, true);
+			}
+			catch { }
+		}
+	}
+
 	/// <summary>LLM 对话历史裁剪与续写数组形状（不去网）。</summary>
 	static int runtestllmchat() {
 		Out("=== LLM 对话 --test-llm-chat ===");
@@ -3527,6 +3604,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
+  ScreenKit --test-llm-log
   ScreenKit --test-http-tts
   ScreenKit --test-http-chat
   ScreenKit --test-face-overlay
@@ -3597,6 +3675,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
       --test-llm-continue  截断 finish_reason 与续写拼接（不去网）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
+      --test-llm-log  最近 1000 条 LLM 请求：用量、地址去查询串、落盘顺序（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
       --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
@@ -3664,6 +3743,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-llm-continue
   ScreenKit --test-llm-chat
   ScreenKit --test-llm-agent
+  ScreenKit --test-llm-log
   ScreenKit --test-http-tts
   ScreenKit --test-http-chat
   ScreenKit --test-face-overlay

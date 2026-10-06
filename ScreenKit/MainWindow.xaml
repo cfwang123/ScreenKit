@@ -1108,6 +1108,80 @@
 					</Grid>
 				</TabItem>
 
+				<!-- Tab：LLM 请求日志（最近 1000 条） -->
+				<TabItem x:Name="tabllmlog" Header="LLM日志"
+				         AutomationProperties.AutomationId="tab.llmlog">
+					<Grid Margin="12">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"/>
+							<RowDefinition Height="2*"/>
+							<RowDefinition Height="Auto"/>
+							<RowDefinition Height="*"/>
+						</Grid.RowDefinitions>
+
+						<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
+							<TextBlock x:Name="lbllmlog" Text="LLM日志" FontSize="18" FontWeight="SemiBold"
+							           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
+							           Margin="0,0,16,0"/>
+							<TextBlock x:Name="lbllmloghint" Text="最近 1000 条" FontSize="12"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+						</DockPanel>
+
+						<ListView x:Name="llmloglist" Grid.Row="1"
+						          BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+						          AutomationProperties.AutomationId="llmlog.list">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="collmlogtime" Header="时间" Width="148"
+									                DisplayMemberBinding="{Binding Time}"/>
+									<GridViewColumn x:Name="collmlogmodel" Header="模型" Width="180"
+									                DisplayMemberBinding="{Binding Model}"/>
+									<GridViewColumn x:Name="collmlogstatus" Header="状态" Width="64"
+									                DisplayMemberBinding="{Binding Status}"/>
+									<GridViewColumn x:Name="collmlogin" Header="输入" Width="72"
+									                DisplayMemberBinding="{Binding In}"/>
+									<GridViewColumn x:Name="collmlogout" Header="输出" Width="72"
+									                DisplayMemberBinding="{Binding Out}"/>
+									<GridViewColumn x:Name="collmlogtotal" Header="合计" Width="72"
+									                DisplayMemberBinding="{Binding Total}"/>
+									<GridViewColumn x:Name="collmlogms" Header="毫秒" Width="72"
+									                DisplayMemberBinding="{Binding Ms}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+
+						<DockPanel Grid.Row="2" Margin="0,8,0,6" LastChildFill="True">
+							<TextBlock x:Name="lbllmlogreq" DockPanel.Dock="Left" Text="请求" Width="80"
+							           FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+							<TextBlock x:Name="lbllmlogresp" DockPanel.Dock="Right" Text="响应" Width="80"
+							           FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"
+							           HorizontalAlignment="Left"/>
+							<TextBlock x:Name="lbllmlogurl" Text="" FontSize="12"
+							           Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis"/>
+						</DockPanel>
+
+						<Grid Grid.Row="3">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="8"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<TextBox x:Name="ellmlogreq" Grid.Column="0" IsReadOnly="True"
+							         TextWrapping="Wrap" AcceptsReturn="True"
+							         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							         FontFamily="Consolas" FontSize="12" Padding="8"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         AutomationProperties.AutomationId="llmlog.req"/>
+							<TextBox x:Name="ellmlogresp" Grid.Column="2" IsReadOnly="True"
+							         TextWrapping="Wrap" AcceptsReturn="True"
+							         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							         FontFamily="Consolas" FontSize="12" Padding="8"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         AutomationProperties.AutomationId="llmlog.resp"/>
+						</Grid>
+					</Grid>
+				</TabItem>
+
 				<!-- Tab：翻译（Opus-MT 中英） -->
 				<TabItem x:Name="tabtr" Header="翻译">
 					<Grid Margin="12">

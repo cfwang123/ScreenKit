@@ -43,6 +43,7 @@
 							<CheckBox x:Name="etabttsvisible" Content="语音合成" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabasrvisible" Content="语音识别" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabchatvisible" Content="LLM对话" Width="140" Margin="0,0,0,6"/>
+							<CheckBox x:Name="etabllmlogvisible" Content="LLM日志" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabtranslatevisible" Content="翻译" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabfacevisible" Content="人脸识别" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabhttpvisible" Content="HTTP接口" Width="140" Margin="0,0,0,6"/>

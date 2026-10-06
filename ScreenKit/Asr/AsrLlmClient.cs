@@ -445,26 +445,40 @@ static class AsrLlmClient {
 
 	static (int code, string body, int ms) postjson(string url, string key, string json, int timeoutMs, CancellationToken ct) {
 		var t0 = Environment.TickCount;
-		using var handler = HttpProxy.CreateHandler();
-		using var http = new HttpClient(handler) {
-			Timeout = TimeSpan.FromMilliseconds(timeoutMs > 0 ? timeoutMs : TimeoutMs),
-		};
-		using var req = new HttpRequestMessage(HttpMethod.Post, url);
-		req.Content = new StringContent(json, Encoding.UTF8, "application/json");
-		req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-		req.Headers.TryAddWithoutValidation("User-Agent", "ScreenKit/1.0");
-		if (key.Length > 0)
-			req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-		// OpenCode Go（mimo-v2.5 等）：缺 x-opencode-session 会 MissingSessionID
-		if (IsOpenCodeUrl(url)) {
-			req.Headers.TryAddWithoutValidation("x-opencode-session", OpenCodeSessionId);
-			req.Headers.TryAddWithoutValidation("x-opencode-client", "ScreenKit");
-			LlmLog.Info("opencode session header on");
+		var code = 0;
+		var body = "";
+		var ms = 0;
+		Exception fail = null;
+		try {
+			using var handler = HttpProxy.CreateHandler();
+			using var http = new HttpClient(handler) {
+				Timeout = TimeSpan.FromMilliseconds(timeoutMs > 0 ? timeoutMs : TimeoutMs),
+			};
+			using var req = new HttpRequestMessage(HttpMethod.Post, url);
+			req.Content = new StringContent(json, Encoding.UTF8, "application/json");
+			req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+			req.Headers.TryAddWithoutValidation("User-Agent", "ScreenKit/1.0");
+			if (key.Length > 0)
+				req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+			// OpenCode Go（mimo-v2.5 等）：缺 x-opencode-session 会 MissingSessionID
+			if (IsOpenCodeUrl(url)) {
+				req.Headers.TryAddWithoutValidation("x-opencode-session", OpenCodeSessionId);
+				req.Headers.TryAddWithoutValidation("x-opencode-client", "ScreenKit");
+				LlmLog.Info("opencode session header on");
+			}
+			using var resp = http.SendAsync(req, ct).GetAwaiter().GetResult();
+			body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
+			code = (int)resp.StatusCode;
 		}
-		using var resp = http.SendAsync(req, ct).GetAwaiter().GetResult();
-		var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
-		var ms = unchecked(Environment.TickCount - t0);
-		return ((int)resp.StatusCode, body, ms);
+		catch (Exception ex) {
+			fail = ex;
+			throw;
+		}
+		finally {
+			ms = unchecked(Environment.TickCount - t0);
+			try { LlmCalls.Add(url, json, code, ms, body, fail); } catch { }
+		}
+		return (code, body, ms);
 	}
 
 	static string clipend(string s, int max) {
