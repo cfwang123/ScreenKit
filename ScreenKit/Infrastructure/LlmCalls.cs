@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace ScreenKit;
@@ -8,6 +9,10 @@ namespace ScreenKit;
 static class LlmCalls {
 	public const int CAP = 1000;
 	const int BODYCAP = 200_000;
+	static readonly JsonSerializerOptions PrettyOpt = new() {
+		WriteIndented = true,
+		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+	};
 
 	static readonly object gate = new();
 	static readonly List<LlmCall> rows = new();
@@ -52,6 +57,18 @@ static class LlmCalls {
 			var a = new LlmCall[n];
 			for (var i = 0; i < n; i++) a[i] = rows[n - 1 - i];
 			return a;
+		}
+	}
+
+	/// <summary>详情里把 JSON 的 \uXXXX 显示成汉字。</summary>
+	internal static string Pretty(string s) {
+		if (string.IsNullOrWhiteSpace(s)) return "";
+		try {
+			using var doc = JsonDocument.Parse(s);
+			return JsonSerializer.Serialize(doc.RootElement, PrettyOpt);
+		}
+		catch {
+			return s;
 		}
 	}
 

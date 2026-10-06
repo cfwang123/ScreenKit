@@ -2191,6 +2191,11 @@ static class Cli {
 				Out($"fail disk {(first == null ? "" : first.Model)}..{(last == null ? "" : last.Model)}");
 				return 11;
 			}
+			var shown = LlmCalls.Pretty("{\"content\":\"\\u8BF7\\u5C06\"}");
+			if (shown.IndexOf("请将", StringComparison.Ordinal) < 0 || shown.IndexOf("\\u8BF7", StringComparison.Ordinal) >= 0) {
+				Out($"fail pretty {shown}");
+				return 12;
+			}
 			Out($"llm log ok n={all.Length}");
 			return 0;
 		}

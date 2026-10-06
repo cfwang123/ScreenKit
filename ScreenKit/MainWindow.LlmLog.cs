@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Windows.Controls;
 
 namespace ScreenKit;
@@ -37,8 +36,8 @@ public partial class MainWindow {
 			return;
 		}
 		lbllmlogurl.Text = row.Url;
-		ellmlogreq.Text = prettyjson(row.Request);
-		var resp = prettyjson(row.Response);
+		ellmlogreq.Text = LlmCalls.Pretty(row.Request);
+		var resp = LlmCalls.Pretty(row.Response);
 		if (row.Error.Length > 0)
 			resp = resp.Length > 0 ? $"{row.Error}\n\n{resp}" : row.Error;
 		ellmlogresp.Text = resp;
@@ -57,17 +56,6 @@ public partial class MainWindow {
 		collmlogout.Header = Loc.T("llmlog.out");
 		collmlogtotal.Header = Loc.T("llmlog.total");
 		collmlogms.Header = Loc.T("llmlog.ms");
-	}
-
-	static string prettyjson(string s) {
-		if (string.IsNullOrWhiteSpace(s)) return "";
-		try {
-			using var doc = JsonDocument.Parse(s);
-			return JsonSerializer.Serialize(doc.RootElement, new JsonSerializerOptions { WriteIndented = true });
-		}
-		catch {
-			return s;
-		}
 	}
 }
 

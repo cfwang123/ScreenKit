@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- The LLM log request and response show Chinese characters. JSON `\uXXXX` escapes are decoded when the row is opened.
 - Speech recognition: **Refresh models** and **Copy** size to their labels.
 
 #### Changed
@@ -57,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
+- LLM 日志的请求和响应按汉字显示 JSON 里的 `\uXXXX`。
 - 语音识别里的 **刷新模型** 和 **复制** 按文字宽度显示。
 
 #### 变更

@@ -47,7 +47,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 |------|-------------|
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. With no saved engine, Windows speech is used when a voice is installed, otherwise Edge online. The Speech language list shows named languages first, then the remaining codes. SAPI and Windows speech list only languages that have a voice. Supertonic uses a fixed noise seed, so the same text sounds the same each time. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
-| **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. The address query string is not stored. |
+| **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
 | **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). `dict.db` is not in the release archive. **Help → Install features** can download it. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
