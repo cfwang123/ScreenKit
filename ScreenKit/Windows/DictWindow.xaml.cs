@@ -17,6 +17,7 @@ public sealed class DictRow {
 	public long Id { get; set; }
 	public string Dict { get; set; } = "";
 	public string Word { get; set; } = "";
+	public string Speak { get; set; } = "";
 	public string Title { get; set; } = "";
 	public string Preview { get; set; } = "";
 	public override string ToString() => Title ?? "";
@@ -56,6 +57,7 @@ public partial class DictWindow : UserControl {
 	long wantid;
 	string seltext = "";
 	string curword = "";
+	string curspeak = "";
 	string curlang = "";
 	string filter = "";
 	ToggleButton[] filts;
@@ -91,7 +93,7 @@ public partial class DictWindow : UserControl {
 			if (lhits.SelectedItem is DictRow row) loaddetail(row);
 		};
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
-		bspeak.Click += (_, _) => _ = speak(SpeakHead(curword, curlang), speaklang(curlang));
+		bspeak.Click += (_, _) => _ = speak(curspeak, speaklang(curlang));
 		bselspeak.Click += (_, _) => _ = speak(seltext, speaklang(curlang));
 		bselsearch.Click += (_, _) => {
 			var q = seltext;
@@ -309,6 +311,7 @@ public partial class DictWindow : UserControl {
 				Id = h.Id,
 				Dict = h.Dict ?? "",
 				Word = word,
+				Speak = h.Dict == "ja" ? DictDb.JaSpeak(word, h.Kanji, h.Reading) : SpeakHead(word, h.Dict),
 				Title = title,
 				Preview = preview,
 			});
@@ -336,7 +339,9 @@ public partial class DictWindow : UserControl {
 		if (e.OriginalSource is not Button b) return;
 		if (b.DataContext is not DictRow row) return;
 		e.Handled = true;
-		_ = speak(SpeakHead(row.Word, row.Dict), speaklang(row.Dict));
+		var say = row.Speak;
+		if (string.IsNullOrEmpty(say)) say = SpeakHead(row.Word, row.Dict);
+		_ = speak(say, speaklang(row.Dict));
 	}
 
 	void loaddetail(DictRow row) {
@@ -357,6 +362,7 @@ public partial class DictWindow : UserControl {
 	void cleardetail() {
 		psel.IsOpen = false;
 		curword = "";
+		curspeak = "";
 		curlang = "";
 		edetail.Document = newdoc();
 	}
@@ -366,6 +372,7 @@ public partial class DictWindow : UserControl {
 		psel.IsOpen = false;
 		curlang = e.Dict ?? "";
 		curword = e.Word.Length > 0 ? e.Word : e.Headword;
+		curspeak = curlang == "ja" ? DictDb.JaSpeak(curword, e.Kanji, e.Pron) : SpeakHead(curword, curlang);
 		var doc = newdoc();
 		var head = para(2);
 		addrun(head, curword, DRole.Title);
@@ -689,7 +696,7 @@ public partial class DictWindow : UserControl {
 		finally { speaking = false; }
 	}
 
-	/// <summary>日语列表把别表记接在主表记后面。发音和再搜索仍用主表记。</summary>
+	/// <summary>日语列表把别表记接在主表记后面。再搜索仍用主表记。发音见 JaSpeak。</summary>
 	static string listword(string dict, string word, string kanji) {
 		if (dict != "ja") return word ?? "";
 		var shown = DictDb.JaForms(word, kanji);

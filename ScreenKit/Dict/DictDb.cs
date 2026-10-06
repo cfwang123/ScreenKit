@@ -369,6 +369,62 @@ static class DictDb {
 		}
 	}
 
+	/// <summary>日语词头发音。主表记已是假名就读主表记，否则读第一条没有汉字的平假名或片假名。</summary>
+	internal static string JaSpeak(string word, string forms, string pron) {
+		var w = (word ?? "").Trim();
+		if (kanaonly(w)) return w;
+		var kana = firstkana(pron);
+		if (kana.Length == 0) kana = firstkana(forms);
+		if (kana.Length > 0) return kana;
+		return w;
+	}
+
+	static string firstkana(string forms) {
+		if (string.IsNullOrEmpty(forms)) return "";
+		foreach (var raw in forms.Split(',', '，')) {
+			var s = cleanform(raw);
+			if (!kanaonly(s)) continue;
+			return s;
+		}
+		return "";
+	}
+
+	static string cleanform(string raw) {
+		var s = (raw ?? "").Trim();
+		if (s.Length == 0 || obsoleteform(s)) return "";
+		var i = s.IndexOf('\'');
+		if (i >= 0) s = s.Substring(0, i).Trim();
+		return s;
+	}
+
+	static bool kanaonly(string s) {
+		if (string.IsNullOrEmpty(s) || haskanji(s)) return false;
+		return haskana(s);
+	}
+
+	static bool haskana(string s) {
+		foreach (var c in s) {
+			if (c >= '\u3040' && c <= '\u309F') return true;
+			if (c >= '\u30A0' && c <= '\u30FF') return true;
+			if (c >= '\uFF66' && c <= '\uFF9D') return true;
+		}
+		return false;
+	}
+
+	static bool haskanji(string s) {
+		for (var i = 0; i < s.Length; i++) {
+			var c = s[i];
+			if (c >= '\u4E00' && c <= '\u9FFF') return true;
+			if (c >= '\u3400' && c <= '\u4DBF') return true;
+			if (c >= '\uF900' && c <= '\uFAFF') return true;
+			if (!char.IsHighSurrogate(c) || i + 1 >= s.Length || !char.IsLowSurrogate(s[i + 1])) continue;
+			var cp = char.ConvertToUtf32(s, i);
+			if (cp >= 0x20000 && cp <= 0x3FFFF) return true;
+			i++;
+		}
+		return false;
+	}
+
 	/// <summary>日语列表标题：主表记加别表记，逗号分隔。丢掉 out-dated / obsolete 的写法，其它括注去掉只留表记。</summary>
 	internal static string JaForms(string word, string kanji) {
 		var parts = new List<string>();

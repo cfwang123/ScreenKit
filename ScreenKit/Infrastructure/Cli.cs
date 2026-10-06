@@ -3366,6 +3366,21 @@ static class Cli {
 			Out("fail head in=[" + row[0] + "] got=[" + got + "] want=[" + row[2] + "]");
 			bad++;
 		}
+		string[][] kana = {
+			new[] { "破瓜", "はか", "", "はか" },
+			new[] { "食べる", "喰べる, たべる", "", "たべる" },
+			new[] { "テレビ", "", "", "テレビ" },
+			new[] { "其奴", "そいつ, そやつ, すやつ'out-dated or obsolete kana usage'", "", "そいつ" },
+			new[] { "々", "のま, ノマ", "", "のま" },
+			new[] { "日本", "にほん, にっぽん", "", "にほん" },
+			new[] { "こんにちは", "今日は", "", "こんにちは" },
+		};
+		foreach (var row in kana) {
+			var got = DictDb.JaSpeak(row[0], row[1], row[2]);
+			if (got == row[3]) continue;
+			Out("fail ja in=[" + row[0] + "] got=[" + got + "] want=[" + row[3] + "]");
+			bad++;
+		}
 		if (bad != 0) return 1;
 		Out("dict word ok n=" + rows.Length);
 		return 0;
