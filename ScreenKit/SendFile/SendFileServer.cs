@@ -85,13 +85,9 @@ public sealed partial class SendFileServer : IDisposable {
 				headers[key] = req.Headers[key];
 			}
 		}
-		var query = new SfQuery();
-		if (req.QueryString != null) {
-			foreach (var key in req.QueryString.AllKeys) {
-				if (key == null) continue;
-				query.Set(key, req.QueryString[key]);
-			}
-		}
+		// QueryString 按系统 ANSI（中文 Windows 为 GB2312）解码。手机和网页发的是 UTF-8，
+		// 中文会变成 ?，随后 GetFullPath 报「路径中具有非法字符」。这里按原始查询串用 UTF-8 解。
+		var query = parsequery(req.Url?.Query);
 		return new SfCtx {
 			Request = new SfReq {
 				HttpMethod = req.HttpMethod,

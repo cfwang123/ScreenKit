@@ -3,6 +3,7 @@ using System.Windows.Threading;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -4043,6 +4044,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				Err("sendfile-web: keep 登录失败: " + keepLogin);
 				return 1;
 			}
+			if (testsfquery(sv) != 0) return 1;
 			Out("sendfile-web ok");
 			return 0;
 		}
@@ -4055,6 +4057,86 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			SendFilePaths.SetRootForTest(null);
 			try { Directory.Delete(dir, true); } catch { }
 		}
+	}
+
+	/// <summary>走 HttpListener（与正式 HTTP 口相同），查询串里的中文必须按 UTF-8 解开。</summary>
+	static int testsfquery(SendFileServer sv) {
+		var names = new[] {
+			".to_phone/XPlayer v2.9.0.0 高级版.apk",
+			".to_phone/[Android] XPlayer播放器v2.9.0.0 高级版 [Hybase.com]黑域基地.apk",
+		};
+		var payload = Encoding.UTF8.GetBytes("apk-ok");
+		foreach (var name in names) {
+			using var ms = new MemoryStream(payload);
+			SendFileOps.SaveStream(name, ms);
+		}
+		var port = 27535;
+		var listener = new HttpListener();
+		listener.Prefixes.Add("http://127.0.0.1:" + port + "/");
+		try { listener.Start(); }
+		catch (Exception ex) {
+			Err("sendfile-query: listener " + ex.Message);
+			return 1;
+		}
+		try {
+			foreach (var name in names) {
+				var q = Uri.EscapeDataString(name).Replace("%20", "+");
+				var raw = sfqueryget(listener, sv, port, "/d?path=" + q);
+				if (raw == null) return 1;
+				var text = Encoding.UTF8.GetString(raw);
+				var sep = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+				var body = sep >= 0 ? text.Substring(sep + 4) : text;
+				if (body.IndexOf("apk-ok", StringComparison.Ordinal) < 0) {
+					Err("sendfile-query: " + name + " => " + body);
+					return 1;
+				}
+			}
+			Out("sendfile-query utf8 ok");
+			return 0;
+		}
+		finally {
+			try { listener.Stop(); } catch { }
+			try { listener.Close(); } catch { }
+		}
+	}
+
+	static byte[] sfqueryget(HttpListener listener, SendFileServer sv, int port, string pathAndQuery) {
+		Exception ex = null;
+		byte[] got = null;
+		var task = Task.Run(() => {
+			try {
+				using var tcp = new TcpClient("127.0.0.1", port);
+				var req = "GET " + pathAndQuery + " HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n";
+				var buf = Encoding.ASCII.GetBytes(req);
+				tcp.GetStream().Write(buf, 0, buf.Length);
+				using var ms = new MemoryStream();
+				tcp.GetStream().CopyTo(ms);
+				got = ms.ToArray();
+			}
+			catch (Exception e) { ex = e; }
+		});
+		var ar = listener.BeginGetContext(null, null);
+		if (!ar.AsyncWaitHandle.WaitOne(8000)) {
+			Err("sendfile-query: 无请求 " + pathAndQuery);
+			try { task.Wait(1000); } catch { }
+			return null;
+		}
+		var ctx = listener.EndGetContext(ar);
+		if (!sv.TryHandle(ctx)) {
+			Err("sendfile-query: TryHandle false " + pathAndQuery);
+			try { ctx.Response.Abort(); } catch { }
+			try { task.Wait(2000); } catch { }
+			return null;
+		}
+		if (!task.Wait(8000)) {
+			Err("sendfile-query: 读响应超时 " + pathAndQuery);
+			return null;
+		}
+		if (got == null) {
+			Err("sendfile-query: " + (ex != null ? ex.Message : "empty") + " " + pathAndQuery);
+			return null;
+		}
+		return got;
 	}
 
 	static string getbody(HttpClient http, string url) {
