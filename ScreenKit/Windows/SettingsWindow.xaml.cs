@@ -591,7 +591,7 @@ public partial class SettingsWindow : Window {
 			var tag = WinOcr.SelectedTag(Result);
 			ewinlang.SelectedItem = langs.FirstOrDefault(x =>
 				string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
-			lbmodelhint.Text = langs.Count == 0 ? Loc.T("ocr.win.empty") : Loc.T("ocr.win.hint");
+			showpackhint();
 			return;
 		}
 		if (pack == null) {
@@ -601,17 +601,37 @@ public partial class SettingsWindow : Window {
 		}
 		evariant.ItemsSource = pack.Variants;
 		evariant.SelectedIndex = pack.Variants.Count > 0 ? 0 : -1;
-		updatehint();
+		showpackhint();
 	}
 
-	void updatehint() {
+	void updatehint() => showpackhint();
+
+	void showpackhint() {
 		var pack = epack.SelectedItem as ModelPack;
-		var v = evariant.SelectedItem as ModelVariant;
-		if (pack == null || v == null) {
+		if (pack == null) {
 			lbmodelhint.Text = "";
 			return;
 		}
-		lbmodelhint.Text = $"det={v.DetFile}  ·  rec={v.RecFile}  ·  keys={v.KeysFile}";
+		var trait = packhint(pack.Id);
+		if (!WinOcr.IsId(pack.Id)) {
+			lbmodelhint.Text = trait;
+			return;
+		}
+		var langs = ewinlang.ItemsSource as System.Collections.ICollection;
+		lbmodelhint.Text = langs == null || langs.Count == 0
+			? Loc.T("ocr.win.empty") + "\n" + trait
+			: trait;
+	}
+
+	static string packhint(string id) {
+		string key;
+		if (WinOcr.IsId(id)) key = "ocr.win.hint";
+		else if (string.Equals(id, "umi", StringComparison.OrdinalIgnoreCase)) key = "ocr.pack.umi";
+		else if (string.Equals(id, "rapid-ch", StringComparison.OrdinalIgnoreCase)) key = "ocr.pack.rapidch";
+		else if (string.Equals(id, "rapid-i18n", StringComparison.OrdinalIgnoreCase)) key = "ocr.pack.rapidi18n";
+		else if (string.Equals(id, "rapid", StringComparison.OrdinalIgnoreCase)) key = "ocr.pack.rapid";
+		else key = "ocr.pack.onnx";
+		return Loc.T(key);
 	}
 
 	bool saveui() {
