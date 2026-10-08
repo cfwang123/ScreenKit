@@ -837,7 +837,7 @@ Discovery: UDP broadcast `SCREENKIT_DISCOVER` to port 17531; the PC replies with
 | GET | `/f/<rel>` | Public download (no login; path must stay inside sendfile/) |
 | GET | `/d?p=` | Public download (query) |
 | GET | `/apk` | APK bytes from this PC (no pairing; File sync **Install on phone** QR) |
-| POST | `/api/web/login` | body `{password, keep?}` → cookie `sk_web` + `{token}`. `keep=true` stores a 30-day cookie |
+| POST | `/api/web/login` | body `{password, keep?}` → cookie `sk_web` + `{token}`. `keep=true` stores a 30-day cookie (Max-Age and Expires) on disk and still works after the program restarts |
 | GET/POST | `/api/web/zip?path=` · `?paths=a\|b` | Zip download (login required; file or folder) |
 | POST | `/api/web/logout` | Clear session |
 | GET | `/api/web/me` | Whether signed in |

@@ -58,39 +58,73 @@ public sealed class SendFileWeb {
 		return token;
 	}
 
-	public void Logout(string token) {
-		if (string.IsNullOrEmpty(token)) return;
+	bool match(SfReq req, out string token, out bool keep) {
+		token = "";
+		keep = false;
+		var list = tokensof(req);
+		if (list.Count == 0) return false;
+		var now = unixnow();
 		lock (gate) {
-			var had = sessions.Remove(token);
+			foreach (var one in list) {
+				if (!sessions.TryGetValue(one, out var s) || s == null) continue;
+				if (s.exp > 0 && now >= s.exp) {
+					sessions.Remove(one);
+					if (s.keep) savekeep();
+					continue;
+				}
+				s.last = Environment.TickCount;
+				token = one;
+				keep = s.keep;
+				return true;
+			}
+			return false;
+		}
+	}
+
+	static List<string> tokensof(SfReq req) {
+		var list = new List<string>();
+		if (req == null) return list;
+		addtok(list, req.Headers["X-Web-Token"]);
+		var auth = req.Headers["Authorization"] ?? "";
+		if (auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+			addtok(list, auth.Substring(7));
+		addtok(list, cookieof(req.Headers["Cookie"] ?? "", COOKIE));
+		return list;
+	}
+
+	static void addtok(List<string> list, string raw) {
+		var t = (raw ?? "").Trim();
+		if (t.Length == 0) return;
+		for (var i = 0; i < list.Count; i++) {
+			if (string.Equals(list[i], t, StringComparison.Ordinal)) return;
+		}
+		list.Add(t);
+	}
+
+	internal bool Authed(SfReq req) => match(req, out _, out _);
+
+	internal bool Match(SfReq req, out string token, out bool keep) => match(req, out token, out keep);
+
+	internal void Logout(SfReq req) {
+		if (req == null) return;
+		lock (gate) {
+			var had = false;
+			foreach (var token in tokensof(req)) {
+				if (sessions.Remove(token)) had = true;
+			}
 			if (had) savekeep();
 		}
 	}
 
-	internal bool Authed(SfReq req) {
-		var token = tokenof(req);
-		if (string.IsNullOrEmpty(token)) return false;
-		var now = unixnow();
-		lock (gate) {
-			if (!sessions.TryGetValue(token, out var s) || s == null) return false;
-			if (s.exp > 0 && now >= s.exp) {
-				sessions.Remove(token);
-				if (s.keep) savekeep();
-				return false;
-			}
-			s.last = Environment.TickCount;
-			return true;
-		}
-	}
-
-	internal static string TokenOf(SfReq req) => tokenof(req);
-
 	public static string SetCookie(string token, bool keep) {
 		var basec = $"{COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax";
-		return keep ? $"{basec}; Max-Age={KEEP_SEC}" : basec;
+		if (!keep) return basec;
+		var exp = DateTimeOffset.UtcNow.AddSeconds(KEEP_SEC).ToString("R", CultureInfo.InvariantCulture);
+		return $"{basec}; Max-Age={KEEP_SEC}; Expires={exp}";
 	}
 
 	public static string ClearCookie() =>
-		$"{COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0";
+		$"{COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
 	public static bool IsMobileUa(string ua) {
 		if (string.IsNullOrEmpty(ua)) return false;
@@ -99,18 +133,6 @@ public sealed class SendFileWeb {
 			|| ua.IndexOf("iPhone", StringComparison.OrdinalIgnoreCase) >= 0
 			|| ua.IndexOf("iPad", StringComparison.OrdinalIgnoreCase) >= 0
 			|| ua.IndexOf("iPod", StringComparison.OrdinalIgnoreCase) >= 0;
-	}
-
-	static string tokenof(SfReq req) {
-		if (req == null) return "";
-		var h = req.Headers["X-Web-Token"] ?? "";
-		if (h.Length > 0) return h.Trim();
-		var auth = req.Headers["Authorization"] ?? "";
-		if (auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
-			var t = auth.Substring(7).Trim();
-			if (t.Length > 0) return t;
-		}
-		return cookieof(req.Headers["Cookie"] ?? "", COOKIE);
 	}
 
 	static string cookieof(string hdr, string name) {
@@ -172,7 +194,7 @@ public sealed class SendFileWeb {
 				if (File.Exists(f)) File.Delete(f);
 				return;
 			}
-			File.WriteAllText(f, sb.ToString(), Encoding.UTF8);
+			File.WriteAllText(f, sb.ToString(), new UTF8Encoding(false));
 		}
 		catch { }
 	}

@@ -74,10 +74,12 @@ public sealed partial class SendFileServer {
 		}
 		if (path is "/api/web/me") {
 			if (!isget(method)) { writejson(ctx, 405, err(805, "me 仅支持 GET")); return; }
-			if (!Web.Authed(ctx.Request)) {
+			if (!Web.Match(ctx.Request, out var token, out var keep)) {
 				writejson(ctx, 401, err(401, "未登录"));
 				return;
 			}
+			if (keep && token.Length > 0)
+				ctx.Response.Headers["Set-Cookie"] = SendFileWeb.SetCookie(token, true);
 			var o = getOpts() ?? new OcrOptions();
 			writejson(ctx, 200, ok(new JsonObject {
 				["ok"] = true,
@@ -275,7 +277,7 @@ public sealed partial class SendFileServer {
 	}
 
 	void handleweblogout(SfCtx ctx) {
-		Web.Logout(SendFileWeb.TokenOf(ctx.Request));
+		Web.Logout(ctx.Request);
 		ctx.Response.Headers["Set-Cookie"] = SendFileWeb.ClearCookie();
 		writejson(ctx, 200, ok(new JsonObject { ["ok"] = true }));
 	}

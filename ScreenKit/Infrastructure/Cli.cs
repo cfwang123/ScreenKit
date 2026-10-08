@@ -4063,6 +4063,39 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				Err("sendfile-web: keep 登录失败: " + keepLogin);
 				return 1;
 			}
+			var cookie = SendFileWeb.SetCookie("abc", true);
+			if (cookie.IndexOf("Max-Age=", StringComparison.Ordinal) < 0
+				|| cookie.IndexOf("Expires=", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: keep Cookie 缺少过期时间");
+				return 1;
+			}
+			if (!File.Exists(Path.Combine(dir, ".web_sess"))) {
+				Err("sendfile-web: keep 未落盘");
+				return 1;
+			}
+			try { sv.Dispose(); } catch { }
+			sv = null;
+			sv = new SendFileServer(() => o, () => { });
+			sv.Auth.AutoAccept = true;
+			sv.Start();
+			if (!sv.IsRunning) {
+				Err("sendfile-web: 重启后未监听");
+				return 1;
+			}
+			var meKeep = getbody(http, baseUrl + "/api/web/me");
+			if (meKeep == null || meKeep.IndexOf("\"code\":100", StringComparison.Ordinal) < 0) {
+				Err("sendfile-web: 重启后保持登录失败: " + meKeep);
+				return 1;
+			}
+			using (var stale = new HttpRequestMessage(HttpMethod.Get, baseUrl + "/api/web/me")) {
+				stale.Headers.TryAddWithoutValidation("X-Web-Token", "0123456789abcdef0123456789abcdef");
+				var staleResp = Task.Run(() => http.SendAsync(stale)).GetAwaiter().GetResult();
+				var staleBody = Task.Run(() => staleResp.Content.ReadAsStringAsync()).GetAwaiter().GetResult();
+				if (staleBody == null || staleBody.IndexOf("\"code\":100", StringComparison.Ordinal) < 0) {
+					Err("sendfile-web: 过期 token 挡住了保持登录: " + staleBody);
+					return 1;
+				}
+			}
 			if (testsfquery(sv) != 0) return 1;
 			Out("sendfile-web ok");
 			return 0;

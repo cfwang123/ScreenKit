@@ -8,6 +8,8 @@ window.sfweb = (function(){
 	var zh = true;
 	var busy = false;
 	var token = "";
+	var meretry = 0;
+	var mewait = 0;
 	var msel = [];
 	var longPressTimer = 0;
 	var mdialogDone = null;
@@ -107,6 +109,11 @@ window.sfweb = (function(){
 			});
 		}
 		if (t.mobile) bindmobile();
+		document.addEventListener("visibilitychange", function(){
+			if (document.visibilityState !== "visible") return;
+			var login = el("login");
+			if (login && !login.hidden) me();
+		});
 	}
 
 	function bindmobile() {
@@ -190,13 +197,40 @@ window.sfweb = (function(){
 	}
 
 	function me() {
+		if (mewait) { clearTimeout(mewait); mewait = 0; }
 		api("GET", "/api/web/me", null, function(ok, data){
-			if (!ok) { show(false); return; }
-			show(true);
-			var bn = el("bname");
-			if (bn) bn.textContent = (data && data.name) || "";
-			load();
+			if (ok) {
+				meretry = 0;
+				hide("lerr");
+				show(true);
+				var bn = el("bname");
+				if (bn) bn.textContent = (data && data.name) || "";
+				load();
+				return;
+			}
+			if (is401(data)) {
+				meretry = 0;
+				if (preferkeep()) { me(); return; }
+				hide("lerr");
+				show(false);
+				return;
+			}
+			meretry++;
+			if (!(el("main") && !el("main").hidden)) {
+				show(false);
+				showerr("lerr", zh ? "正在连接电脑…" : "Connecting…");
+			}
+			mewait = setTimeout(me, meretry < 15 ? 2000 : 5000);
 		});
+	}
+
+	function preferkeep() {
+		var keep = "";
+		try { keep = localStorage.getItem("sk_web") || ""; } catch (e) {}
+		if (!keep || keep === token) return false;
+		token = keep;
+		try { sessionStorage.setItem("sk_web", keep); } catch (e2) {}
+		return true;
 	}
 
 	function login() {
@@ -706,9 +740,9 @@ window.sfweb = (function(){
 
 	function loadtoken() {
 		if (token) return token;
-		try { token = sessionStorage.getItem("sk_web") || ""; } catch (e) {}
-		if (token) return token;
 		try { token = localStorage.getItem("sk_web") || ""; } catch (e) {}
+		if (token) return token;
+		try { token = sessionStorage.getItem("sk_web") || ""; } catch (e2) {}
 		return token;
 	}
 

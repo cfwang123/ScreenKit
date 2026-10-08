@@ -39,6 +39,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- Web manager **Stay signed in** still works after this program restarts. The browser keeps the 30-day cookie and saved token, retries while the PC is starting, and an old tab token no longer hides that saved login.
 - Dictionary selection popup: hovering a hit keeps dark text on a light blue row. The row no longer turns the text white on a faint highlight.
 - Double-clicking a word in a dictionary entry opens the selection popup. Dragging a selection and right-click still open it.
 - Sending a file whose name contains Chinese (for example `XPlayer v2.9.0.0 高级版.apk`) to the phone no longer fails with “路径中具有非法字符”. The shared HTTP port decodes the download query as UTF-8.
@@ -53,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
+- 网页管理勾选 **保持登录** 后，重启本程序仍然保持。浏览器留下 30 天 Cookie 和已保存的登录，电脑正在启动时会重试；旧页面里的 token 不再挡住这次登录。
 - 词典划词浮窗：鼠标悬停词条时字保持深色，底为浅蓝。不再把字改成白色叠在很浅的高亮上。
 - 在词典词条里双击单词会弹出划词浮窗。拖选和右键仍会弹出。
 - 文件名含中文（如 `XPlayer v2.9.0.0 高级版.apk`）发到手机时，不再报「路径中具有非法字符」。共用 HTTP 口按 UTF-8 解码下载地址里的查询串。
