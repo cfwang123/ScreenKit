@@ -40,18 +40,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Settings → LLM drops the hint about the display name defaulting to the model id, and the warning not to commit API keys.
 - HTTP proxy follows the Windows system proxy whenever that proxy is enabled (`ProxyEnable`). The address in Settings is used only when the system proxy is off and Enable is checked. Local, private, `.cn`, and China-mirror hosts still go direct.
 - HTTP `POST /api/ocr` can select **Windows OCR** with `ocr.engine=winocr` or `ocr.language=winocr`, without changing the main window. `ocr.language` is then a BCP-47 tag or a language name (`zh-Hans-CN`, `en-US`, `英语`). `ocr.maxSideLen` still caps the long side. `ocr.engine=onnx` switches back to an ONNX pack when the main window is Windows OCR. `GET /api/ocr/get_options` lists `ocr.engine`.
 - Settings → Recognition shows what the selected engine does. Windows OCR: no download, one installed language, upright boxes, no rotation, confidence, or GPU; the side-length cap still applies. Umi uses larger server models (Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Russian). Rapid mobile Chinese is Simplified Chinese only. Rapid all-languages adds Latin and Arabic. ONNX packs keep detection, rotation, recognition, device choice, thresholds, and a confidence score.
-- Screenshot OCR can use **Windows OCR** (`model_pack = winocr`). It does not load an ONNX model. One language combo appears only for this engine. The side-length cap (`det_limit`, toolbar **边长**) applies to this engine too: the long side is shrunk to that cap and boxes are mapped back. Spaces between CJK characters are removed. The choice is saved as `win_ocr_langs`.
+- Screenshot OCR can use **Windows OCR** (`model_pack = winocr`). It does not load an ONNX model. It is faster, and the result cannot stay stable. The choice is saved as `win_ocr_langs`.
 - Web manager **Send to PC** copies the text to the clipboard and shows a toast `Copied text: …`. Clearing the text still only clears the File sync box.
 - With HTTP enabled in Settings, a LAN address already holding the port no longer makes the HTTP tab say the API is disabled. This PC still listens on `127.0.0.1` and the tab shows that address.
-- UI languages are toml files in `lang/` next to the program, one file per language. Startup reads every file. The language menu and Settings list them as Chinese, English, Japanese, Korean, then the rest by code. `ja.toml` (日本語) and `ko.toml` (한국어) ship with the program.
+- UI languages are toml files in `lang/` next to the program, one file per language. Startup reads every file. The language menu and Settings list Chinese, English, Japanese, Korean, and other languages (German, Spanish, French, Portuguese, Russian).
 - The bottom status bar says `未加载模型` / `No model loaded` when no model is loaded.
 - The bottom status bar keeps the HTTP listener next to the memory summary: `HTTP 0.0.0.0:1224` or `HTTP 127.0.0.1:1224` while the API listener is up, `HTTP LAN:1224` when only the per-NIC file-transfer sockets are up, `HTTP not started` (with the error) when it should be listening but is not, and `HTTP off` when the API, file transfer, and cast are all disabled.
-- **Translate popup** and **Dictionary** move from Options to the top of **Tools**. **Memory** moves next to Diagnostics under **Help**. Options keeps Settings and Language.
-- **Tools → Screencast** is removed from the main menu. The receive window stays on the tray under **Tools → Screencast**. The main-window Screencast tab is unchanged.
 - Korean dictionary phrases have the same speak button as examples. It reads the Korean phrase. The Chinese gloss on the next line is not spoken.
 - **Help → Install features → Windows speech**: when ScreenKit is not an administrator, install or remove uses `start` to open one administrator window for the selected packs. Allow it in User Account Control. Exit 0 and 3010 still count as success. The DISM command can still be copied.
 - **Help → Install features → Windows speech**: installed packs and voices are read only when this tab is opened, or when Refresh is clicked. When ScreenKit is not an administrator, that read uses `start` the same way as install or remove: one administrator window. Denying User Account Control leaves pack status blank and still shows voices this process can see.
@@ -68,18 +65,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 参数设置 → LLM接口 去掉「显示名称默认等于模型 id」和「Key 勿写入公开仓库」这两句提示。
 - HTTP 代理在 Windows 系统代理开着时总是用系统代理（`ProxyEnable`）。系统代理关掉、并且勾选启用时，才用参数里的地址。本机、内网、`.cn` 和国内镜像仍然直连。
 - HTTP `POST /api/ocr` 可用 `ocr.engine=winocr` 或 `ocr.language=winocr` 指定 **Windows 系统 OCR**，不必改主窗。这时 `ocr.language` 是 BCP-47 或语言名（`zh-Hans-CN`、`en-US`、`英语`）。`ocr.maxSideLen` 仍限制长边。主窗已是系统 OCR 时，`ocr.engine=onnx` 改回 ONNX 模型包。`GET /api/ocr/get_options` 会列出 `ocr.engine`。
 - 参数设置的识别页会写明当前引擎的特点。Windows OCR：不用下载，一次一种已装语言，框是正矩形，没有方向分类、置信度和 GPU，边长上限仍然有效。Umi 用更大的 server 模型（简中、英、繁、日、韩、俄）。Rapid mobile 简中只做简体中文。Rapid 全语种另有拉丁字母和阿拉伯文。ONNX 包都有检测、方向分类、识别、设备、阈值和置信度。
-- 截图识别可选用 **Windows 系统 OCR**（`model_pack = winocr`）。不加载 ONNX 模型。语言下拉只在这个引擎下出现，单选。边长上限（`det_limit`，顶栏「边长」）同样生效：长边超过上限才缩小，框再映回原图。汉字之间的空格会去掉。选择记在 `win_ocr_langs`。
+- 截图识别可选用 **Windows 系统 OCR**（`model_pack = winocr`）。不加载 ONNX 模型。速度更快，效果不可能稳定。选择记在 `win_ocr_langs`。
 - 网页管理 **推送到PC** 会把文本复制到剪切板，并弹出 toast「已复制文本：…」。清空仍只清掉文件同步页里的文本。
 - 参数里已启用 HTTP 时，局域网地址占着端口不再把 HTTP 页显示成「未启用」。本机仍听 `127.0.0.1`，页上显示这个地址。
-- 界面语言改为程序目录 `lang/` 下的 toml，每种语言一个文件。启动时读入全部文件。语言菜单和参数设置按中文、英文、日文、韩文、其余代码排序。随程序附带 `ja.toml`（日本語）和 `ko.toml`（한국어）。
+- 界面语言改为程序目录 `lang/` 下的 toml，每种语言一个文件。启动时读入全部文件。语言菜单和参数设置按中文、英文、日文、韩文，以及其它语言（德文、西班牙文、法文、葡萄牙文、俄文）排序。
 - 底部状态栏在没有模型时显示「未加载模型」。
 - 底部状态栏在内存汇总旁一直显示 HTTP 服务：接口监听中为 `HTTP 0.0.0.0:1224` 或 `HTTP 127.0.0.1:1224`，只有传文件的网卡监听时为「HTTP 局域网:1224」，该听却没听上为「HTTP 未启动」并带上失败原因，接口、传文件和投屏都关着为「HTTP 未启用」。
-- **翻译小窗**、**词典**从选项移到 **工具**顶部。**内存占用**移到 **帮助**，紧挨诊断。选项只留参数设置和界面语言。
-- 主菜单去掉 **工具 → 投屏**。接收窗口仍从托盘 **工具 → 投屏** 打开。主界面投屏页不变。
 - 韩语词条里的词组和例句一样，原文后面有发音按钮，读韩语原文。下一行的中文释义不读。
 - **帮助 → 安装功能 → Windows语音**：本进程不是管理员时，安装或卸载用 `start` 弹出一个管理员窗口，执行勾选的语音包。在用户账户控制里允许即可。退出码 0 和 3010 仍算成功。DISM 命令仍可复制。
 - **帮助 → 安装功能 → Windows语音**：进入本页或点刷新时才读取已装语音包和发音人。本进程不是管理员时，这次读取和安装、卸载一样用 `start` 弹出一个管理员窗口。用户账户控制里拒绝后，不标语音包状态，仍显示本进程能看到的发音人。
