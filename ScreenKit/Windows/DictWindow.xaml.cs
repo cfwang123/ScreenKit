@@ -125,6 +125,9 @@ public partial class DictWindow : UserControl {
 			if (!dragsel) return;
 			Dispatcher.BeginInvoke(new Action(openselpop), DispatcherPriority.Background);
 		};
+		// 双击由文本框自己选中单词，鼠标几乎不动，不会记成拖选。
+		edetail.MouseDoubleClick += (_, _) =>
+			Dispatcher.BeginInvoke(new Action(openselpop), DispatcherPriority.Background);
 		edetail.PreviewMouseRightButtonUp += (_, e) => {
 			e.Handled = true;
 			openselpop();

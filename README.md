@@ -84,7 +84,7 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 
 - Language buttons: All, Chinese, Japanese, Korean, English.
 - Each hit shows the language, the headword, and the gloss, and can be spoken. The entry shows pronunciation, part of speech, senses, and examples. Each example can be spoken.
-- Selecting text in an entry opens a popup of matching headwords. Hover and selection keep dark text on a light blue row.
+- Double-click, drag, or right-click text in an entry to open a popup of matching headwords. Hover and selection keep dark text on a light blue row.
 - **Settings → Dictionary** sets, for each language, an TTS engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed.
 
 ### Data sources

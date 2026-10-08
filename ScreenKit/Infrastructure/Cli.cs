@@ -3328,6 +3328,25 @@ static class Cli {
 			Err("FAIL: 划词浮窗挡住选中文字");
 			return 4;
 		}
+		win.host.psel.IsOpen = false;
+		var dev = System.Windows.Input.Mouse.PrimaryDevice;
+		if (dev == null) {
+			try { win.Close(); } catch { }
+			Err("FAIL: 没有鼠标设备，无法模拟双击选词");
+			return 6;
+		}
+		var dbl = new System.Windows.Input.MouseButtonEventArgs(dev, Environment.TickCount, System.Windows.Input.MouseButton.Left) {
+			RoutedEvent = System.Windows.Controls.Control.MouseDoubleClickEvent,
+		};
+		win.host.edetail.RaiseEvent(dbl);
+		for (var i = 0; i < 6; i++) pump();
+		var dblOpen = win.host.psel.IsOpen;
+		Out($"dblclick open={dblOpen}");
+		if (!dblOpen) {
+			try { win.Close(); } catch { }
+			Err("FAIL: 双击选词没有弹出划词浮窗");
+			return 6;
+		}
 		var probe = new Window {
 			Width = 240,
 			Height = 140,
@@ -3673,7 +3692,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
-      --test-dict-host  选词搜索打开独立词典窗口并查出 hello；划词词条再开窗口；浮窗不挡选区，失活即关
+      --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
