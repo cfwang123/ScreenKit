@@ -1190,8 +1190,6 @@ public partial class MainWindow : Window {
 		evariant.Visibility = hide;
 		lbdevice.Visibility = hide;
 		edevice.Visibility = hide;
-		lbdetlen.Visibility = hide;
-		edetlen.Visibility = hide;
 		if (!win) return;
 		lbwinlang.Text = Loc.T("ocr.win.lang");
 		ewinlang.ToolTip = Loc.T("ocr.win.lang.tip");
@@ -1242,7 +1240,7 @@ public partial class MainWindow : Window {
 		try { AppConfig.Save(opt); } catch { }
 		if (!reload) return;
 		if (WinOcr.Is(opt)) {
-			var wlabel = "Windows OCR · " + WinOcr.Summary(opt);
+			var wlabel = $"Windows OCR · {WinOcr.Summary(opt)} · 边长{opt.DetLimitSideLen}";
 			if (opt.ServiceMode)
 				tryservicewarmup($"已切换 · {wlabel}");
 			else {
@@ -3568,13 +3566,13 @@ public partial class MainWindow : Window {
 			? "Windows OCR"
 			: (string.IsNullOrWhiteSpace(opt.ModelVariant) ? (opt.ModelPackId ?? "模型") : opt.ModelVariant);
 		ocrMetaText = winocr
-			? $"识别中 · Windows OCR · {WinOcr.Summary(opt)}"
+			? $"识别中 · Windows OCR · {WinOcr.Summary(opt)} · 边长{opt.DetLimitSideLen}"
 			: $"识别中 · {pack} · {dev} · 边长{opt.DetLimitSideLen}";
 		syncresultmetafromtab();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		lbocrruntitle.Text = Loc.T("ocr.running");
 		lbocrrunhint.Text = winocr
-			? $"Windows OCR · {WinOcr.Summary(opt)}"
+			? $"Windows OCR · {WinOcr.Summary(opt)} · 边长 {opt.DetLimitSideLen}"
 			: $"{pack} · {dev} · 边长 {opt.DetLimitSideLen}\n检测 → 方向 → 识别";
 		eresult.Text = "";
 		last = null;

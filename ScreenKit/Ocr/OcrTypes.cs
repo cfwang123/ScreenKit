@@ -71,7 +71,7 @@ public sealed class OcrOptions {
 	/// <summary>解析后的模型包路径（程序目录 ocrmodels/&lt;packId&gt;，由 ModelPackId 推导，非用户配置项）。</summary>
 	public string ModelsDir;
 	public OcrDevice Device = OcrDevice.Cpu;
-	/// <summary>检测边长上限（Umi Rapid 默认 1024）。</summary>
+	/// <summary>检测边长上限（默认 1024）。ONNX 与 Windows OCR 都按长边缩小，不放大。</summary>
 	public int DetLimitSideLen = 1024;
 	/// <summary>检测前白边 padding（Umi Rapid 默认 50）。</summary>
 	public int DetPadding = 50;

@@ -33,7 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Screenshot OCR can use **Windows OCR** (`model_pack = winocr`). It does not load an ONNX model. One language combo appears only for this engine. Spaces between CJK characters are removed. The choice is saved as `win_ocr_langs`.
+- Screenshot OCR can use **Windows OCR** (`model_pack = winocr`). It does not load an ONNX model. One language combo appears only for this engine. The side-length cap (`det_limit`, toolbar **边长**) applies to this engine too: the long side is shrunk to that cap and boxes are mapped back. Spaces between CJK characters are removed. The choice is saved as `win_ocr_langs`.
 - Web manager **Send to PC** copies the text to the clipboard and shows a toast `Copied text: …`. Clearing the text still only clears the File sync box.
 - With HTTP enabled in Settings, a LAN address already holding the port no longer makes the HTTP tab say the API is disabled. This PC still listens on `127.0.0.1` and the tab shows that address.
 - UI languages are toml files in `lang/` next to the program, one file per language. Startup reads every file. The language menu and Settings list them as Chinese, English, Japanese, Korean, then the rest by code. `ja.toml` (日本語) and `ko.toml` (한국어) ship with the program.
@@ -57,7 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 截图识别可选用 **Windows 系统 OCR**（`model_pack = winocr`）。不加载 ONNX 模型。语言下拉只在这个引擎下出现，单选。汉字之间的空格会去掉。选择记在 `win_ocr_langs`。
+- 截图识别可选用 **Windows 系统 OCR**（`model_pack = winocr`）。不加载 ONNX 模型。语言下拉只在这个引擎下出现，单选。边长上限（`det_limit`，顶栏「边长」）同样生效：长边超过上限才缩小，框再映回原图。汉字之间的空格会去掉。选择记在 `win_ocr_langs`。
 - 网页管理 **推送到PC** 会把文本复制到剪切板，并弹出 toast「已复制文本：…」。清空仍只清掉文件同步页里的文本。
 - 参数里已启用 HTTP 时，局域网地址占着端口不再把 HTTP 页显示成「未启用」。本机仍听 `127.0.0.1`，页上显示这个地址。
 - 界面语言改为程序目录 `lang/` 下的 toml，每种语言一个文件。启动时读入全部文件。语言菜单和参数设置按中文、英文、日文、韩文、其余代码排序。随程序附带 `ja.toml`（日本語）和 `ko.toml`（한국어）。

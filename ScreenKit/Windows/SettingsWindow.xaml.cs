@@ -584,6 +584,7 @@ public partial class SettingsWindow : Window {
 		lbsetvariant.Visibility = hide;
 		evariant.Visibility = hide;
 		psetonnx.Visibility = hide;
+		psetth.Visibility = hide;
 		if (win) {
 			var langs = WinOcr.Languages();
 			ewinlang.ItemsSource = langs;

@@ -118,9 +118,13 @@ static class WinOcr {
 		Mat scaled = null;
 		var work = bgr;
 		try {
+			// 与 ONNX 相同：长边超过边长上限才缩小，框再映回原图。不放大。
+			var limit = opt == null || opt.DetLimitSideLen <= 0 ? 1024 : opt.DetLimitSideLen;
+			if (limit < 320) limit = 320;
+			if (limit > MAXSIDE) limit = MAXSIDE;
 			var maxs = Math.Max(bgr.Width, bgr.Height);
-			if (maxs > MAXSIDE) {
-				scale = MAXSIDE / (double)maxs;
+			if (maxs > limit) {
+				scale = limit / (double)maxs;
 				scaled = new Mat();
 				Cv2.Resize(bgr, scaled, new OpenCvSharp.Size(
 					Math.Max(1, (int)Math.Round(bgr.Width * scale)),

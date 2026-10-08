@@ -1100,6 +1100,7 @@ static class Cli {
 				opt.WinOcrLangs = saved.WinOcrLangs ?? "";
 			}
 			catch { }
+			if (detLimit.HasValue) opt.DetLimitSideLen = detLimit.Value;
 			return opt;
 		}
 		if (detLimit.HasValue) opt.DetLimitSideLen = detLimit.Value;

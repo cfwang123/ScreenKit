@@ -119,6 +119,7 @@
 						<TextBlock x:Name="lbsetdevicehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,14" TextWrapping="Wrap"
 						           Text="核显走 DirectML；与 NVIDIA CUDA 不能同进程切换，换设备若失败请重启程序"/>
+						</StackPanel>
 
 						<TextBlock x:Name="lbsetdetlen" Text="检测边长上限" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsetdetlenhint" FontSize="11" Foreground="{StaticResource TextMuted}"
@@ -131,6 +132,7 @@
 							        IsSnapToTickEnabled="True" Value="1024"/>
 						</DockPanel>
 
+						<StackPanel x:Name="psetth">
 						<TextBlock x:Name="lbsetdetth" Text="检测阈值" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<DockPanel Margin="0,0,0,14">
 							<TextBlock x:Name="lbdetth" DockPanel.Dock="Right" Width="48" Text="0.30"
