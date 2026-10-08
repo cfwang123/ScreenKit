@@ -48,8 +48,8 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. With no saved engine, Windows speech is used when a voice is installed, otherwise Edge online. The Speech language list shows named languages first, then the remaining codes. SAPI and Windows speech list only languages that have a voice. Supertonic uses a fixed noise seed, so the same text sounds the same each time. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
-| **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; popup `Ctrl+Alt+T`. |
-| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). `dict.db` is not in the release archive. **Help → Install features** can download it. |
+| **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). |
+| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict.db` is not in the release archive. **Help → Install features** can download it. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -72,7 +72,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
 | **Modules** | `mod_*` in `config.toml` (default on) turns OCR, TTS, ASR, chat, translate, face, and dictionary on or off. Settings → General does not list these switches. Off hides that page and stops its hotkey and tray entry. Settings → API turns each HTTP path on or off (`http_ocr`, `http_tts`, `http_asr`, `http_translate`, `http_chat`, `http_face`). Off returns code 810. |
 | **Main tabs** | Settings → General can hide OCR / TTS / ASR / Chat / LLM log / Translate / Face / HTTP / File sync / Screencast / Dictionary (`tab_*_visible`). Hiding a tab does not stop its hotkey. |
-| **Diagnostics** | **Help → Diagnostics**. A ready check is green. An optional item that is off (service mode, CUDA / DirectML not installed, ONNX not loaded, no face models, OCR engine not loaded) shows as not enabled. A missing file or a failed check is red. |
+| **Diagnostics** | **Help → Diagnostics**. A ready check is green. An optional item that is off (service mode, CUDA / DirectML not installed, ONNX not loaded, no face models, OCR engine not loaded) shows as not enabled. A missing file or a failed check is red. **Help → Memory** shows process memory and unloads loaded models; the status bar opens the same window. |
 | **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
 | **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test. |
 

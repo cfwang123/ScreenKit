@@ -1297,6 +1297,8 @@ public partial class MainWindow : Window {
 		};
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
+		mntrpopup.Click += (_, _) => showtranslatepopup();
+		mndict.Click += (_, _) => showdicttab();
 		mnimgconv.Click += (_, _) => openimgconv();
 		mnqrmake.Click += (_, _) => openqrmake();
 		mnrename.Click += (_, _) => openrename();
@@ -1308,11 +1310,10 @@ public partial class MainWindow : Window {
 		mncast.Click += (_, _) => opencast();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
-		mntrpopup.Click += (_, _) => showtranslatepopup();
-		mndict.Click += (_, _) => showdicttab();
-		mnmem.Click += (_, _) => openmem();
+		// 帮助菜单
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
+		mnmem.Click += (_, _) => openmem();
 		filllangmenu();
 		mnupdate.Click += (_, _) => openupdate();
 		mnabout.Click += (_, _) => openabout();
@@ -1419,6 +1420,10 @@ public partial class MainWindow : Window {
 			mncancelocr.Header = Loc.T("menu.cancelocr");
 			mncancelocr.ToolTip = Loc.T("menu.cancelocr.tip");
 
+			mntrpopup.Header = Loc.T("menu.translate.popup");
+			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
+			mndict.Header = Loc.T("menu.dict");
+			mndict.ToolTip = Loc.T("menu.dict.tip");
 			mnimgconv.Header = Loc.T("menu.imgconv");
 			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
 			mnqrmake.Header = Loc.T("menu.qrmake");
@@ -1439,16 +1444,12 @@ public partial class MainWindow : Window {
 			mncast.ToolTip = Loc.T("menu.cast.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
-			mntrpopup.Header = Loc.T("menu.translate.popup");
-			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
-			mndict.Header = Loc.T("menu.dict");
-			mndict.ToolTip = Loc.T("menu.dict.tip");
-			mnmem.Header = Loc.T("menu.mem");
-			mnmem.ToolTip = Loc.T("menu.mem.tip");
 			mninstall.Header = Loc.T("menu.install");
 			mninstall.ToolTip = Loc.T("menu.install.tip");
 			mndiag.Header = Loc.T("menu.diag");
 			mndiag.ToolTip = Loc.T("menu.diag.tip");
+			mnmem.Header = Loc.T("menu.mem");
+			mnmem.ToolTip = Loc.T("menu.mem.tip");
 			mnupdate.Header = Loc.T("menu.update");
 			mnupdate.ToolTip = Loc.T("menu.update.tip");
 			mnabout.Header = Loc.T("menu.about");

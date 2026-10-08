@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace ScreenKit;
 
-/// <summary>选项 → 内存占用。进程工作集，以及已加载模型的权重文件大小。</summary>
+/// <summary>帮助 → 内存占用。进程工作集，以及已加载模型的权重文件大小。</summary>
 public partial class MemWindow : Window {
 	readonly Func<MemSnap> read;
 	readonly Func<string, string> unload;

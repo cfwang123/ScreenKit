@@ -119,6 +119,13 @@
 			</MenuItem>
 			<MenuItem x:Name="mntools" Header="工具(_T)"
 			          AutomationProperties.AutomationId="menu.tools">
+				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
+				          AutomationProperties.AutomationId="menu.translate.popup"
+				          ToolTip="浮窗翻译；热键再按一次隐藏"/>
+				<MenuItem x:Name="mndict" Header="词典(_K)"
+				          AutomationProperties.AutomationId="menu.dict"
+				          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
+				<Separator/>
 				<MenuItem x:Name="mnimgconv" Header="图片格式转换(_C)…"
 				          AutomationProperties.AutomationId="menu.imgconv"
 				          ToolTip="批量转换图片格式，可缩放、旋转、镜像"/>
@@ -152,15 +159,6 @@
 				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
 				          AutomationProperties.AutomationId="menu.settings"
 				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
-				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
-				          AutomationProperties.AutomationId="menu.translate.popup"
-				          ToolTip="浮窗翻译；热键再按一次隐藏"/>
-				<MenuItem x:Name="mndict" Header="词典(_K)"
-				          AutomationProperties.AutomationId="menu.dict"
-				          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
-				<MenuItem x:Name="mnmem" Header="内存占用(_M)…"
-				          AutomationProperties.AutomationId="menu.mem"
-				          ToolTip="查看进程内存，卸载已加载的模型"/>
 				<Separator/>
 				<MenuItem x:Name="mnlang" Header="界面语言(_L)"/>
 			</MenuItem>
@@ -175,6 +173,9 @@
 				<MenuItem x:Name="mndiag" Header="诊断(_D)…"
 				          AutomationProperties.AutomationId="menu.diag"
 				          ToolTip="CUDA / DirectML / 路径 / 显示器 DPI"/>
+				<MenuItem x:Name="mnmem" Header="内存占用(_M)…"
+				          AutomationProperties.AutomationId="menu.mem"
+				          ToolTip="查看进程内存，卸载已加载的模型"/>
 				<MenuItem x:Name="mnabout" Header="关于(_A)…"
 				          AutomationProperties.AutomationId="menu.about"
 				          ToolTip="版本与许可证"/>
