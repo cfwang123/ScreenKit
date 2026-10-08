@@ -150,9 +150,6 @@
 				<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
 				          AutomationProperties.AutomationId="menu.wintop"
 				          ToolTip="选择窗口，设置或取消固定在前面"/>
-				<MenuItem x:Name="mncast" Header="投屏(_S)…"
-				          AutomationProperties.AutomationId="menu.cast"
-				          ToolTip="局域网 / USB 投屏"/>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

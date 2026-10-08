@@ -1307,7 +1307,6 @@ public partial class MainWindow : Window {
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
 		mnwintop.Click += (_, _) => openwintop();
-		mncast.Click += (_, _) => opencast();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		// 帮助菜单
@@ -1440,8 +1439,6 @@ public partial class MainWindow : Window {
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
 			mnwintop.Header = Loc.T("menu.wintop");
 			mnwintop.ToolTip = Loc.T("menu.wintop.tip");
-			mncast.Header = Loc.T("menu.cast");
-			mncast.ToolTip = Loc.T("menu.cast.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mninstall.Header = Loc.T("menu.install");
