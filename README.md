@@ -2,7 +2,7 @@
 
 Windows desktop tool (`ScreenKit.exe`): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
 
-**Current version: 1.0.15** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**Current version: 1.0.16** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
