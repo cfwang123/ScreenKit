@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -32,6 +33,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	readonly OcrRunner runner;
 	readonly object listenLock = new();
 	HttpListener listener;
+	TcpListener loopProxy;
 	bool disposed;
 	volatile bool running;
 	HttpApiServices svc;
@@ -77,13 +79,22 @@ sealed partial class HttpOcrServer : IDisposable {
 			try {
 				l.Start();
 			}
-			catch {
+			catch (Exception first) {
 				try { l.Abort(); } catch { }
 				l = new HttpListener();
 				addprefix(l, $"http://127.0.0.1:{port}/");
 				try { addprefix(l, $"http://127.0.0.1:{port}/api/"); } catch { }
-				l.Start();
-				host = "127.0.0.1";
+				try {
+					l.Start();
+					host = "127.0.0.1";
+				}
+				catch (Exception second) {
+					try { l.Abort(); } catch { }
+					l = startloopproxy(port);
+					host = "127.0.0.1";
+					if (l == null)
+						throw new IOException(second.Message ?? first.Message);
+				}
 			}
 			foreach (var p in l.Prefixes) {
 				if (p.StartsWith("http://+:", StringComparison.OrdinalIgnoreCase)
@@ -121,9 +132,15 @@ sealed partial class HttpOcrServer : IDisposable {
 	public void Stop() {
 		running = false;
 		HttpListener l;
+		TcpListener tcp;
 		lock (listenLock) {
 			l = listener;
 			listener = null;
+			tcp = loopProxy;
+			loopProxy = null;
+		}
+		if (tcp != null) {
+			try { tcp.Stop(); } catch { }
 		}
 		if (l == null) return;
 		// Abort 比 Stop 更快打断 GetContextAsync，避免退出时挂起
@@ -131,6 +148,179 @@ sealed partial class HttpOcrServer : IDisposable {
 			try { l.Stop(); } catch { }
 		}
 		try { l.Close(); } catch { }
+	}
+
+	/// <summary>
+	/// http.sys 在同端口已被独占套接字占用时，连 127.0.0.1 也起不来。
+	/// 本机套接字仍可绑 127.0.0.1，再转到一个空闲端口上的 HttpListener。
+	/// </summary>
+	HttpListener startloopproxy(int port) {
+		var innerPort = freetcpport();
+		var inner = new HttpListener();
+		addprefix(inner, $"http://127.0.0.1:{innerPort}/");
+		try { addprefix(inner, $"http://127.0.0.1:{innerPort}/api/"); } catch { }
+		inner.Start();
+		var tcp = new TcpListener(IPAddress.Loopback, port);
+		try {
+			tcp.Start();
+		}
+		catch {
+			try { inner.Abort(); } catch { }
+			try { tcp.Stop(); } catch { }
+			return null;
+		}
+		loopProxy = tcp;
+		running = true;
+		_ = Task.Run(() => proxyaccept(tcp, innerPort));
+		try { Logged?.Invoke($"HTTP :{port} 局域网地址被占用，仅本机 127.0.0.1 可用"); } catch { }
+		return inner;
+	}
+
+	static int freetcpport() {
+		var probe = new TcpListener(IPAddress.Loopback, 0);
+		probe.Start();
+		var p = ((IPEndPoint)probe.LocalEndpoint).Port;
+		probe.Stop();
+		return p;
+	}
+
+	void proxyaccept(TcpListener tcp, int innerPort) {
+		while (running) {
+			TcpClient client;
+			try { client = tcp.AcceptTcpClient(); }
+			catch (ObjectDisposedException) { break; }
+			catch (SocketException) {
+				if (!running) break;
+				continue;
+			}
+			catch {
+				if (!running) break;
+				continue;
+			}
+			var port = innerPort;
+			_ = Task.Run(() => proxysession(client, port));
+		}
+	}
+
+	void proxysession(TcpClient client, int innerPort) {
+		TcpClient inner = null;
+		try {
+			inner = new TcpClient();
+			inner.Connect(IPAddress.Loopback, innerPort);
+			var from = client.GetStream();
+			var to = inner.GetStream();
+			var up = Task.Run(() => clienttoserver(from, to, innerPort));
+			var down = Task.Run(() => copyall(to, from));
+			Task.WaitAny(up, down);
+		}
+		catch { }
+		finally {
+			try { client.Close(); } catch { }
+			try { inner?.Close(); } catch { }
+		}
+	}
+
+	static void clienttoserver(Stream from, Stream to, int innerPort) {
+		var acc = new List<byte>(2048);
+		var tmp = new byte[2048];
+		while (true) {
+			var end = -1;
+			while (end < 0 && acc.Count < 65536) {
+				end = hdrend(acc);
+				if (end >= 0) break;
+				var n = from.Read(tmp, 0, tmp.Length);
+				if (n <= 0) return;
+				for (var i = 0; i < n; i++) acc.Add(tmp[i]);
+			}
+			if (end < 0) return;
+			var hdr = Encoding.ASCII.GetString(acc.ToArray(), 0, end);
+			var rewritten = Encoding.ASCII.GetBytes(rewritehost(hdr, innerPort));
+			to.Write(rewritten, 0, rewritten.Length);
+			var extra = acc.Count - end;
+			var upgrade = isupgrade(hdr);
+			var need = upgrade ? -1L : bodylen(hdr);
+			if (upgrade) {
+				if (extra > 0) to.Write(acc.ToArray(), end, extra);
+				to.Flush();
+				copyall(from, to);
+				return;
+			}
+			var left = need;
+			if (extra > 0) {
+				var take = extra > left ? (int)left : extra;
+				if (take > 0) to.Write(acc.ToArray(), end, take);
+				left -= take;
+				var keep = extra - take;
+				if (keep > 0) {
+					var rest = new byte[keep];
+					Buffer.BlockCopy(acc.ToArray(), end + take, rest, 0, keep);
+					acc.Clear();
+					acc.AddRange(rest);
+				}
+				else acc.Clear();
+			}
+			else acc.Clear();
+			while (left > 0) {
+				var want = left > tmp.Length ? tmp.Length : (int)left;
+				var n = from.Read(tmp, 0, want);
+				if (n <= 0) return;
+				to.Write(tmp, 0, n);
+				left -= n;
+			}
+			to.Flush();
+		}
+	}
+
+	static string rewritehost(string hdr, int innerPort) {
+		var lines = hdr.Split(new[] { "\r\n" }, StringSplitOptions.None);
+		for (var i = 0; i < lines.Length; i++) {
+			if (lines[i].StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) {
+				lines[i] = $"Host: 127.0.0.1:{innerPort}";
+				break;
+			}
+		}
+		return string.Join("\r\n", lines);
+	}
+
+	static bool isupgrade(string hdr) {
+		return hdr.IndexOf("Upgrade:", StringComparison.OrdinalIgnoreCase) >= 0;
+	}
+
+	static long bodylen(string hdr) {
+		var key = "Content-Length:";
+		var i = hdr.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+		if (i < 0) return 0;
+		var start = i + key.Length;
+		var end = hdr.IndexOf('\r', start);
+		if (end < 0) end = hdr.Length;
+		var s = hdr.Substring(start, end - start).Trim();
+		if (!long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 0)
+			return 0;
+		return n;
+	}
+
+	static int hdrend(List<byte> b) {
+		var n = b.Count;
+		for (var i = 0; i + 1 < n; i++) {
+			if (i + 3 < n && b[i] == 13 && b[i + 1] == 10 && b[i + 2] == 13 && b[i + 3] == 10)
+				return i + 4;
+			if (b[i] == 10 && b[i + 1] == 10)
+				return i + 2;
+		}
+		return -1;
+	}
+
+	static void copyall(Stream from, Stream to) {
+		var buf = new byte[8192];
+		try {
+			while (true) {
+				var n = from.Read(buf, 0, buf.Length);
+				if (n <= 0) break;
+				to.Write(buf, 0, n);
+				to.Flush();
+			}
+		}
+		catch { }
 	}
 
 	async Task acceptloop() {

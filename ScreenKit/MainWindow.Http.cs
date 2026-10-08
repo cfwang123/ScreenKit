@@ -130,10 +130,22 @@ public partial class MainWindow {
 
 	void synchttpstatus() {
 		if (lbhttpstatus == null) return;
-		if (opt.HttpEnabled && httpServer != null && httpServer.IsRunning)
-			lbhttpstatus.Text = $"http://{opt.HttpShowHost()}:{opt.HttpPort}";
-		else
-			lbhttpstatus.Text = Loc.T("http.tab.off");
+		lbhttpstatus.Text = httpstatustext();
+	}
+
+	string httpstatustext() {
+		if (opt.HttpEnabled && httpServer != null && httpServer.IsRunning) {
+			var host = httpServer.LanAll ? "0.0.0.0" : "127.0.0.1";
+			var text = $"http://{host}:{SendFileServer.FileHttpPort(opt)}";
+			if (opt.HttpLan && !httpServer.LanAll)
+				text += Loc.T("http.tab.localonly");
+			return text;
+		}
+		if (!opt.HttpEnabled) return Loc.T("http.tab.off");
+		var err = (httpListenErr ?? "").Replace("\r", " ").Replace('\n', ' ').Trim();
+		if (err.Length > 80) err = err.Substring(0, 80) + "…";
+		if (err.Length > 0) return Loc.T("http.tab.down", err);
+		return Loc.T("http.tab.downplain");
 	}
 
 	void applyhttplang() {
@@ -159,7 +171,7 @@ public partial class MainWindow {
 	async Task httpSendAsync() {
 		if (httpSending) return;
 		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
-			ehttpresp.Text = Loc.T("http.tab.off");
+			ehttpresp.Text = httpstatustext();
 			return;
 		}
 		var method = (ehttpmethod.SelectedItem as ComboBoxItem)?.Content as string ?? "GET";
