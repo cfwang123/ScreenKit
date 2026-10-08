@@ -624,7 +624,7 @@ static class AppConfig {
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");
 		sb.AppendLine($"update_last_check = {(o.LastUpdateCheckUnix < 0 ? 0 : o.LastUpdateCheckUnix)}");
-		sb.AppendLine($"# HTTP 代理：访问 GitHub 等非中国网站时使用；国内镜像直连");
+		sb.AppendLine($"# HTTP 代理：系统代理开着时总是用系统代理；否则勾选后用下面的地址。国内镜像直连");
 		sb.AppendLine($"http_proxy = {(o.HttpProxyEnabled ? "true" : "false")}");
 		var proxyAddr = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr.Trim();
 		sb.AppendLine($"http_proxy_addr = \"{esc(proxyAddr)}\"");

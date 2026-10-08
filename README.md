@@ -183,7 +183,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 Download prefers CN mirrors when UI or system locale is Chinese.
 
-**Edge online** TTS: 300+ Microsoft natural voices (including Korean), no model or API key. Requires Internet; listing and synthesis go to Microsoft Edge Read Aloud (unofficial; not paid Azure Speech). The configured HTTP proxy is honored.
+**Edge online** TTS: 300+ Microsoft natural voices (including Korean), no model or API key. Requires Internet; listing and synthesis go to Microsoft Edge Read Aloud (unofficial; not paid Azure Speech). The configured HTTP proxy is honored. If the Windows system proxy is enabled, that proxy is always used instead of the address in Settings.
 
 Optional env vars for local full libraries (do not commit secrets/paths):
 

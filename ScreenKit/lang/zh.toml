@@ -954,7 +954,7 @@ set.update.hint = "0=不自动检查。仅在启动时判断：超过该天数�
 set.proxy = "HTTP 代理"
 set.proxy.enable = "启用"
 set.proxy.addr = "地址"
-set.proxy.hint = "访问 GitHub、Hugging Face 等非中国网站时使用（如 127.0.0.1:7897）。国内镜像直连。"
+set.proxy.hint = "Windows 已启用系统代理时，总是用系统代理。否则勾选启用后使用下面的地址（如 127.0.0.1:7897）。国内镜像和 .cn 直连。"
 set.log = "系统日志"
 set.log.enable = "写入诊断日志（默认关闭）"
 set.log.hint = "开启后写入 log/capture.log 与录屏 log/record_*.log，便于排查；日常使用请保持关闭"

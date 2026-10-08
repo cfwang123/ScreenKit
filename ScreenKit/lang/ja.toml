@@ -954,7 +954,7 @@ set.update.hint = "0 = オフ。起動時のみ：前回の確認からこの日
 set.proxy = "HTTP プロキシ"
 set.proxy.enable = "有効"
 set.proxy.addr = "アドレス"
-set.proxy.hint = "GitHub、Hugging Face など中国以外のサイトに使います（例: 127.0.0.1:7897）。中国のミラーは直接つなぎます。"
+set.proxy.hint = "Windows のシステムプロキシが有効なら、常にそれを使います。無効のときは「有効」にした後、下のアドレスを使います（例: 127.0.0.1:7897）。中国のミラーと .cn は直接つなぎます。"
 set.log = "診断"
 set.log.enable = "診断ログを書く（既定はオフ）"
 set.log.hint = "log/capture.log と録画ログ log/record_*.log を書きます。日常はオフのままにしてください"

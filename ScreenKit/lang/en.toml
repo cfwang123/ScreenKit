@@ -954,7 +954,7 @@ set.update.hint = "0 = off. On startup only: if this many days have passed since
 set.proxy = "HTTP proxy"
 set.proxy.enable = "Enable"
 set.proxy.addr = "Address"
-set.proxy.hint = "Used for GitHub, Hugging Face, and other non-China sites (e.g. 127.0.0.1:7897). China mirrors go direct."
+set.proxy.hint = "When the Windows system proxy is on, that proxy is always used. Otherwise the address below is used after Enable (for example 127.0.0.1:7897). China mirrors and .cn hosts go direct."
 set.log = "Diagnostics"
 set.log.enable = "Write diagnostic logs (off by default)"
 set.log.hint = "Writes log/capture.log and record log/record_*.log; leave off for daily use"

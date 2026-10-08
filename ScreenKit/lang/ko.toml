@@ -954,7 +954,7 @@ set.update.hint = "0 = 끔. 시작할 때만, 마지막 확인 후 이 일수가
 set.proxy = "HTTP 프록시"
 set.proxy.enable = "사용"
 set.proxy.addr = "주소"
-set.proxy.hint = "GitHub, Hugging Face 등 중국 밖 사이트에 씁니다(예: 127.0.0.1:7897). 중국 미러는 직접 연결합니다."
+set.proxy.hint = "Windows 시스템 프록시가 켜져 있으면 항상 그것을 씁니다. 꺼져 있을 때만 사용을 켠 뒤 아래 주소를 씁니다(예: 127.0.0.1:7897). 중국 미러와 .cn 은 직접 연결합니다."
 set.log = "진단"
 set.log.enable = "진단 로그 기록(기본 끔)"
 set.log.hint = "log/capture.log와 녹화 log/record_*.log를 기록합니다. 일상 사용에는 끄세요"

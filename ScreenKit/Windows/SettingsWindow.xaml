@@ -74,7 +74,7 @@
 						         AutomationProperties.AutomationId="set.proxy.addr"/>
 						<TextBlock x:Name="lbsetproxyhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,16"
-						           Text="访问 GitHub、Hugging Face 等非中国网站时使用。国内镜像直连。"/>
+						           Text="Windows 已启用系统代理时，总是用系统代理。否则勾选启用后使用下面的地址。国内镜像和 .cn 直连。"/>
 
 						<TextBlock x:Name="lbsetlog" Text="系统日志" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<CheckBox x:Name="ecapturelog" Content="写入诊断日志（默认关闭）"
