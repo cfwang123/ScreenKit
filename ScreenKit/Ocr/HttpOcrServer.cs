@@ -34,6 +34,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	readonly object listenLock = new();
 	HttpListener listener;
 	TcpListener loopProxy;
+	int urlaclport;
 	bool disposed;
 	volatile bool running;
 	HttpApiServices svc;
@@ -68,12 +69,12 @@ sealed partial class HttpOcrServer : IDisposable {
 			addprefix(l, $"http://{host}:{port}/");
 			try { addprefix(l, $"http://{host}:{port}/api/"); } catch { }
 			if (lan && host != "+") {
-				tryurlacl(port);
+				ensureurlacl(port);
 				try { addprefix(l, $"http://+:{port}/"); } catch { }
 				try { addprefix(l, $"http://127.0.0.1:{port}/"); } catch { }
 			}
 			if (host == "+") {
-				tryurlacl(port);
+				ensureurlacl(port);
 				try { addprefix(l, $"http://127.0.0.1:{port}/"); } catch { }
 			}
 			try {
@@ -111,6 +112,12 @@ sealed partial class HttpOcrServer : IDisposable {
 	static void addprefix(HttpListener l, string prefix) {
 		if (l.Prefixes.Contains(prefix)) return;
 		l.Prefixes.Add(prefix);
+	}
+
+	void ensureurlacl(int port) {
+		if (urlaclport == port) return;
+		urlaclport = port;
+		tryurlacl(port);
 	}
 
 	static void tryurlacl(int port) {

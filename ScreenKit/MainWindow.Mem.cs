@@ -3,6 +3,9 @@ namespace ScreenKit;
 public partial class MainWindow {
 	System.Windows.Threading.DispatcherTimer stbarTimer;
 	string httpListenErr = "";
+	bool httpRetry;
+	int httpRetryAt;
+	const int HTTPRETRYMS = 10000;
 	static string ortFlavorCached = "";
 	static long ortBytesCached;
 	static int ortBytesAt;
@@ -21,7 +24,10 @@ public partial class MainWindow {
 		stbarTimer = new System.Windows.Threading.DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(2),
 		};
-		stbarTimer.Tick += (_, _) => refreshstbar();
+		stbarTimer.Tick += (_, _) => {
+			mayberetryhttp();
+			refreshstbar();
+		};
 		stbarTimer.Start();
 	}
 

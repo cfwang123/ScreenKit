@@ -428,33 +428,57 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void starthttp() {
+	void starthttp(bool quiet = false) {
 		if (httpServer == null) return;
 		if (!opt.HttpEnabled && !opt.SendFileEnabled && !opt.CastRecvEnabled) {
 			try { httpServer.Stop(); } catch { }
 			httpListenErr = "";
+			httpRetry = false;
 			synchttpstatus();
 			kickstbar();
 			return;
 		}
+		var retry = quiet;
 		try {
 			httpServer.Start(opt.HttpLan ? "+" : "127.0.0.1", SendFileServer.FileHttpPort(opt));
 			httpListenErr = "";
-			if (opt.HttpEnabled)
+			httpRetry = false;
+			if (opt.HttpEnabled || retry)
 				setstatus(Loc.T("st.http_ok", opt.HttpShowHost(), opt.HttpPort));
+			if (retry && opt.SendFileEnabled && sendFile != null && !sendFile.IsRunning)
+				startsendfile();
 		}
 		catch (Exception ex) {
-			httpListenErr = ex.Message ?? "";
-			setstatus(Loc.T("st.http_fail", ex.Message));
+			var msg = ex.Message ?? "";
+			var changed = !string.Equals(httpListenErr, msg, StringComparison.Ordinal);
+			httpListenErr = msg;
+			httpRetry = true;
+			httpRetryAt = Environment.TickCount;
+			if (!quiet || changed)
+				setstatus(Loc.T("st.http_fail", ex.Message));
 		}
 		synchttpstatus();
 		kickstbar();
+	}
+
+	/// <summary>启动失败后每 10 秒再听一次。状态栏定时器调用。</summary>
+	void mayberetryhttp() {
+		if (!httpRetry) return;
+		if (Environment.TickCount - httpRetryAt < HTTPRETRYMS) return;
+		if (httpServer == null || httpServer.IsRunning
+			|| (!opt.HttpEnabled && !opt.SendFileEnabled && !opt.CastRecvEnabled)) {
+			httpRetry = false;
+			return;
+		}
+		starthttp(quiet: true);
 	}
 
 	void restarthttp() {
 		try { httpServer?.Stop(); } catch { }
 		if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled) starthttp();
 		else {
+			httpRetry = false;
+			httpListenErr = "";
 			synchttpstatus();
 			kickstbar();
 		}

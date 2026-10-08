@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary selection popup: hovering a hit keeps dark text on a light blue row. The row no longer turns the text white on a faint highlight.
 - Double-clicking a word in a dictionary entry opens the selection popup. Dragging a selection and right-click still open it.
 - Sending a file whose name contains Chinese (for example `XPlayer v2.9.0.0 高级版.apk`) to the phone no longer fails with “路径中具有非法字符”. The shared HTTP port decodes the download query as UTF-8.
+- When the HTTP service fails to start, ScreenKit retries every 10 seconds until it listens, or until the API, file transfer, and cast are all turned off. The status bar keeps the error until a retry succeeds.
 
 ### 中文
 
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典划词浮窗：鼠标悬停词条时字保持深色，底为浅蓝。不再把字改成白色叠在很浅的高亮上。
 - 在词典词条里双击单词会弹出划词浮窗。拖选和右键仍会弹出。
 - 文件名含中文（如 `XPlayer v2.9.0.0 高级版.apk`）发到手机时，不再报「路径中具有非法字符」。共用 HTTP 口按 UTF-8 解码下载地址里的查询串。
+- HTTP 服务启动失败后，每 10 秒再试一次，直到听上，或接口、传文件、投屏都关掉。状态栏在成功前仍显示失败原因。
 
 ## v1.0.15 (2026-10-05 ~ 10-06)
 
