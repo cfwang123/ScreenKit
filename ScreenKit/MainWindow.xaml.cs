@@ -432,24 +432,32 @@ public partial class MainWindow : Window {
 		if (httpServer == null) return;
 		if (!opt.HttpEnabled && !opt.SendFileEnabled && !opt.CastRecvEnabled) {
 			try { httpServer.Stop(); } catch { }
+			httpListenErr = "";
 			synchttpstatus();
+			kickstbar();
 			return;
 		}
 		try {
 			httpServer.Start(opt.HttpLan ? "+" : "127.0.0.1", SendFileServer.FileHttpPort(opt));
+			httpListenErr = "";
 			if (opt.HttpEnabled)
 				setstatus(Loc.T("st.http_ok", opt.HttpShowHost(), opt.HttpPort));
 		}
 		catch (Exception ex) {
+			httpListenErr = ex.Message ?? "";
 			setstatus(Loc.T("st.http_fail", ex.Message));
 		}
 		synchttpstatus();
+		kickstbar();
 	}
 
 	void restarthttp() {
 		try { httpServer?.Stop(); } catch { }
 		if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled) starthttp();
-		else synchttpstatus();
+		else {
+			synchttpstatus();
+			kickstbar();
+		}
 	}
 
 	void initsendfile() {
@@ -492,6 +500,7 @@ public partial class MainWindow : Window {
 			var port = sendFile.ListenPort > 0 ? sendFile.ListenPort : SendFileServer.FileHttpPort(opt);
 			setstatus(Loc.T("st.sendfile_ok", port));
 			syncsfstatus();
+			kickstbar();
 		}
 		catch (System.Net.Sockets.SocketException ex) when (
 			ex.SocketErrorCode == System.Net.Sockets.SocketError.AddressAlreadyInUse) {

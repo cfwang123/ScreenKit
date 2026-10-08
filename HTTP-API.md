@@ -35,7 +35,7 @@ Each `http_*` module defaults to on. Turning one off leaves that path out of `GE
 | CORS | `*` allowed for local web debugging |
 | OPTIONS | Preflight supported (204) |
 
-When healthy, the status bar may show something like: `HTTP API · http://127.0.0.1:1224/api/ocr`.
+The bottom status bar keeps the listener beside the memory summary, for example `HTTP 0.0.0.0:1224` or `HTTP 127.0.0.1:1224`. Per-NIC file-transfer sockets without the API listener show `HTTP LAN:1224`. If the API, file transfer, and cast are all off it shows `HTTP off`. If one of them is on but nothing is listening it shows `HTTP not started` and the error.
 
 ---
 

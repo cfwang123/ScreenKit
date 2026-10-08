@@ -28,6 +28,10 @@ public sealed partial class SendFileServer : IDisposable {
 	public string LastDeviceId = "";
 	public string LastError = "";
 	public int ListenPort;
+
+	public int TcpListenCount {
+		get { lock (listenLock) return (tcp != null ? 1 : 0) + extras.Count; }
+	}
 	string lastSeenId = "";
 	int lastSeenTick;
 	public event Action<string> Logged;

@@ -2,6 +2,7 @@ namespace ScreenKit;
 
 public partial class MainWindow {
 	System.Windows.Threading.DispatcherTimer stbarTimer;
+	string httpListenErr = "";
 	static string ortFlavorCached = "";
 	static long ortBytesCached;
 	static int ortBytesAt;
@@ -31,6 +32,14 @@ public partial class MainWindow {
 	}
 
 	string statusbartext() {
+		var mem = statusbarmem();
+		var http = statusbarhttp();
+		if (http.Length == 0) return mem;
+		if (mem.Length == 0) return http;
+		return mem + " · " + http;
+	}
+
+	string statusbarmem() {
 		var snap = MemSnapNow();
 		var raw = CudaBootstrap.LoadedOrtFlavor();
 		if ((raw == "cuda" || raw == "dml") && !CudaBootstrap.HeavyMapped()) raw = "";
@@ -46,6 +55,26 @@ public partial class MainWindow {
 		if (flavor.Length == 0) return Loc.T("stbar.models", models, size);
 		if (models == 0) return Loc.T("stbar.ortonly", flavor, size);
 		return Loc.T("stbar.sum", flavor, models, size);
+	}
+
+	string statusbarhttp() {
+		var port = SendFileServer.FileHttpPort(opt);
+		if (httpServer != null && httpServer.IsRunning) {
+			var host = httpServer.LanAll ? "0.0.0.0" : "127.0.0.1";
+			return Loc.T("stbar.http", host, port);
+		}
+		if (sendFile != null && sendFile.IsRunning && sendFile.TcpListenCount > 0) {
+			var p = sendFile.ListenPort > 0 ? sendFile.ListenPort : port;
+			return Loc.T("stbar.http.lan", p);
+		}
+		if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled) {
+			var err = httpListenErr ?? "";
+			err = err.Replace("\r", " ").Replace('\n', ' ').Trim();
+			if (err.Length > 80) err = err.Substring(0, 80) + "…";
+			if (err.Length > 0) return Loc.T("stbar.http.fail", err);
+			return Loc.T("stbar.http.down");
+		}
+		return Loc.T("stbar.http.off");
 	}
 
 	static string flavorname(string flavor) => flavor switch {
