@@ -158,7 +158,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 ### UI language
 
-**Options → Language** → Chinese / English, or Settings → General (`ui_lang = "zh"` / `"en"`). Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, the translate popup, and the dictionary window.
+**Options → Language**, or Settings → General. Each language is a toml file in `lang/` next to the program (`zh.toml`, `en.toml`, and any you add). Startup reads them all and lists Chinese, English, Japanese, Korean, then the rest by code. `ui_lang` in `config.toml` is that file name. A missing phrase falls back to Chinese. Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, the translate popup, and the dictionary window.
 
 ## Install features
 

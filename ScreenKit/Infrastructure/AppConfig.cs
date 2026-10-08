@@ -169,10 +169,8 @@ static class AppConfig {
 				o.PwEachClass = parsebool(pwea, true);
 			if (map.TryGetValue("pwgen_llm", out var pwllm))
 				o.PwLexLlm = (pwllm ?? "").Trim().Trim('"');
-			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul)) {
-				var L = ul.Trim().Trim('"').ToLowerInvariant();
-				o.UiLang = L is "en" or "en-us" or "english" ? "en" : "zh";
-			}
+			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul))
+				o.UiLang = Loc.Normalize(ul.Trim().Trim('"'));
 			if (map.TryGetValue("mod_ocr", out var moc))
 				o.ModOcr = parsebool(moc, true);
 			if (map.TryGetValue("mod_tts", out var mtts))
@@ -596,9 +594,8 @@ static class AppConfig {
 		sb.AppendLine($"pwgen_noamb = {(o.PwNoAmbiguous ? "true" : "false")}");
 		sb.AppendLine($"pwgen_each = {(o.PwEachClass ? "true" : "false")}");
 		sb.AppendLine($"pwgen_llm = \"{esc((o.PwLexLlm ?? "").Trim())}\"");
-		sb.AppendLine($"# 界面语言 zh | en");
-		var uiLang = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
-		sb.AppendLine($"ui_lang = \"{uiLang}\"");
+		sb.AppendLine("# 界面语言：程序目录 lang/ 下的 toml 文件名，如 zh、en");
+		sb.AppendLine($"ui_lang = \"{esc(Loc.Normalize(o.UiLang))}\"");
 		sb.AppendLine($"# 功能模块。false 隐藏对应页并停用热键；默认 true");
 		sb.AppendLine($"mod_ocr = {(o.ModOcr ? "true" : "false")}");
 		sb.AppendLine($"mod_tts = {(o.ModTts ? "true" : "false")}");

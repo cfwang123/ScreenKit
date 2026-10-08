@@ -56,6 +56,7 @@ static class Cli {
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
 				or "--test-sendfile"
+				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
@@ -251,6 +252,8 @@ static class Cli {
 					return runtesthttpchat();
 				case "--test-sendfile":
 					return testsendfile();
+				case "--test-lang":
+					return testlang();
 				case "--test-apk-qr":
 					return testapkqr();
 				case "--test-img-convert":
@@ -3677,6 +3680,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除；网页登录与公开下载
+      --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、其它排序
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
@@ -3885,6 +3889,73 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		}
 		Out("apk-qr ok");
 		return 0;
+	}
+
+	static int testlang() {
+		Loc.SetRootForTest(null);
+		Loc.Reload();
+		var live = Loc.Languages;
+		if (live.Count < 2 || live[0].Code != "zh" || live[1].Code != "en") {
+			Err("lang: 程序目录应先列出 zh、en，实际 " + string.Join(",", live.Select(x => x.Code)));
+			return 1;
+		}
+		if (live[0].Name != "中文" || live[1].Name != "English") {
+			Err("lang: 显示名不符 " + live[0].Name + " / " + live[1].Name);
+			return 1;
+		}
+		Loc.Lang = "zh";
+		if (Loc.T("app.title") != "屏幕截图工具") {
+			Err("lang: 中文 app.title 不符");
+			return 1;
+		}
+		var body = Loc.T("feat.prompt.tts.body");
+		if (body.IndexOf('\n') < 0) {
+			Err("lang: 多行文案未还原换行");
+			return 1;
+		}
+		Loc.Lang = "en";
+		if (Loc.T("app.title") != "ScreenKit" || !Loc.IsEn) {
+			Err("lang: 英文 app.title 不符");
+			return 1;
+		}
+		Loc.Lang = "zh";
+		var dir = Path.Combine(Path.GetTempPath(), "sk_lang_" + Guid.NewGuid().ToString("N"));
+		try {
+			Directory.CreateDirectory(dir);
+			File.WriteAllText(Path.Combine(dir, "fr.toml"), "name = \"Français\"\n[text]\napp.title = \"Bonjour\"\n", new UTF8Encoding(false));
+			File.WriteAllText(Path.Combine(dir, "ko.toml"), "name = \"한국어\"\n[text]\napp.title = \"안녕\"\n", new UTF8Encoding(false));
+			File.WriteAllText(Path.Combine(dir, "ja.toml"), "name = \"日本語\"\n[text]\nonly.ja = \"こんにちは\"\n", new UTF8Encoding(false));
+			File.WriteAllText(Path.Combine(dir, "zh.toml"), "name = \"中文\"\n[text]\napp.title = \"中\"\n", new UTF8Encoding(false));
+			File.WriteAllText(Path.Combine(dir, "en.toml"), "name = \"English\"\n[text]\napp.title = \"En\"\n", new UTF8Encoding(false));
+			File.WriteAllText(Path.Combine(dir, "de.toml"), "name = \"Deutsch\"\n[text]\napp.title = \"De\"\n", new UTF8Encoding(false));
+			Loc.SetRootForTest(dir);
+			Loc.Reload();
+			var codes = string.Join(",", Loc.Languages.Select(x => x.Code));
+			if (codes != "zh,en,ja,ko,de,fr") {
+				Err("lang: 排序不符 " + codes);
+				return 1;
+			}
+			Loc.Lang = "ja";
+			if (Loc.T("only.ja") != "こんにちは" || Loc.T("app.title") != "中") {
+				Err("lang: 日文缺键未回退中文");
+				return 1;
+			}
+			if (Loc.Normalize("english") != "en" || Loc.Normalize("korean") != "ko") {
+				Err("lang: 别名未映射");
+				return 1;
+			}
+			Out("lang ok " + codes);
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("lang: " + ex.Message);
+			return 1;
+		}
+		finally {
+			Loc.SetRootForTest(null);
+			Loc.Reload();
+			try { Directory.Delete(dir, true); } catch { }
+		}
 	}
 
 	static int testsendfile() {

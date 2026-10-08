@@ -162,10 +162,7 @@
 				          AutomationProperties.AutomationId="menu.mem"
 				          ToolTip="查看进程内存，卸载已加载的模型"/>
 				<Separator/>
-				<MenuItem x:Name="mnlang" Header="界面语言(_L)">
-					<MenuItem x:Name="mnlangzh" Header="中文" IsCheckable="True" IsChecked="True"/>
-					<MenuItem x:Name="mnlangen" Header="English" IsCheckable="True"/>
-				</MenuItem>
+				<MenuItem x:Name="mnlang" Header="界面语言(_L)"/>
 			</MenuItem>
 			<MenuItem x:Name="mnhelp" Header="帮助(_H)"
 			          AutomationProperties.AutomationId="menu.help">

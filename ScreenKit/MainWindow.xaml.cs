@@ -1313,8 +1313,7 @@ public partial class MainWindow : Window {
 		mnmem.Click += (_, _) => openmem();
 		mninstall.Click += (_, _) => openinstallfeatures();
 		mndiag.Click += (_, _) => opendiag();
-		mnlangzh.Click += (_, _) => setlang("zh");
-		mnlangen.Click += (_, _) => setlang("en");
+		filllangmenu();
 		mnupdate.Click += (_, _) => openupdate();
 		mnabout.Click += (_, _) => openabout();
 		mngithub.Click += (_, _) => opengithub();
@@ -1332,14 +1331,32 @@ public partial class MainWindow : Window {
 	}
 
 	void setlang(string code) {
-		var L = string.Equals(code, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
-		if (string.Equals(opt.UiLang, L, StringComparison.OrdinalIgnoreCase) && Loc.Lang == L)
+		var L = Loc.Normalize(code);
+		if (string.Equals(opt.UiLang, L, StringComparison.OrdinalIgnoreCase)
+			&& string.Equals(Loc.Lang, L, StringComparison.OrdinalIgnoreCase)) {
+			filllangmenu();
 			return;
+		}
 		opt.UiLang = L;
 		Loc.Lang = L;
 		try { AppConfig.Save(opt); } catch { }
 		applylang();
-		setstatus(Loc.T("st.lang", L == "en" ? "English" : "中文"));
+		setstatus(Loc.T("st.lang", Loc.NameOf(L)));
+	}
+
+	void filllangmenu() {
+		mnlang.Items.Clear();
+		foreach (var one in Loc.Languages) {
+			var code = one.Code;
+			var item = new System.Windows.Controls.MenuItem {
+				Header = one.Name,
+				IsCheckable = true,
+				IsChecked = string.Equals(code, Loc.Lang, StringComparison.OrdinalIgnoreCase),
+				Tag = code,
+			};
+			item.Click += (_, _) => setlang(code);
+			mnlang.Items.Add(item);
+		}
 	}
 
 	void applylang() {
@@ -1357,10 +1374,7 @@ public partial class MainWindow : Window {
 			mnopts.Header = Loc.T("menu.options");
 			mnhelp.Header = Loc.T("menu.help");
 			mnlang.Header = Loc.T("menu.lang");
-			mnlangzh.Header = Loc.T("menu.lang.zh");
-			mnlangen.Header = Loc.T("menu.lang.en");
-			mnlangzh.IsChecked = Loc.IsZh;
-			mnlangen.IsChecked = Loc.IsEn;
+			filllangmenu();
 
 			mnpaste.Header = Loc.T("menu.paste");
 			mnpaste.ToolTip = Loc.T("menu.paste.tip");

@@ -386,17 +386,22 @@ public partial class SettingsWindow : Window {
 		catch { }
 	}
 
-	void loadui(OcrOptions o) {
-		// 界面语言
-		foreach (ComboBoxItem it in euilang.Items) {
-			var tag = (it.Tag as string) ?? "";
-			var want = string.Equals(o.UiLang, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
-			if (string.Equals(tag, want, StringComparison.OrdinalIgnoreCase)) {
-				euilang.SelectedItem = it;
-				break;
-			}
+	void filluilang(string selected) {
+		var want = Loc.Normalize(selected);
+		euilang.Items.Clear();
+		ComboBoxItem pick = null;
+		foreach (var one in Loc.Languages) {
+			var it = new ComboBoxItem { Content = one.Name, Tag = one.Code };
+			euilang.Items.Add(it);
+			if (string.Equals(one.Code, want, StringComparison.OrdinalIgnoreCase))
+				pick = it;
 		}
-		if (euilang.SelectedItem == null) euilang.SelectedIndex = 0;
+		if (pick != null) euilang.SelectedItem = pick;
+		else if (euilang.Items.Count > 0) euilang.SelectedIndex = 0;
+	}
+
+	void loadui(OcrOptions o) {
+		filluilang(o.UiLang);
 
 		if (packs.Count == 0) {
 			lbmodelhint.Text = Loc.IsEn
@@ -600,8 +605,8 @@ public partial class SettingsWindow : Window {
 		Result.ModelVariant = variant.Title;
 		Result.ModelsDir = pack.Dir;
 
-		var langTag = (euilang.SelectedItem as ComboBoxItem)?.Tag as string ?? "zh";
-		Result.UiLang = string.Equals(langTag, "en", StringComparison.OrdinalIgnoreCase) ? "en" : "zh";
+		var langTag = (euilang.SelectedItem as ComboBoxItem)?.Tag as string ?? Loc.Zh;
+		Result.UiLang = Loc.Normalize(langTag);
 
 		var tag = (edevice.SelectedItem as ComboBoxItem)?.Tag as string ?? "Cpu";
 		Result.Device = tag switch {

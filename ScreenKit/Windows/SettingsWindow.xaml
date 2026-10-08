@@ -23,10 +23,7 @@
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>
 						<TextBlock x:Name="lbsetlang" Text="界面语言" FontWeight="SemiBold" Margin="0,0,0,6"/>
-						<ComboBox x:Name="euilang" Height="32" Margin="0,0,0,6">
-							<ComboBoxItem Content="中文" Tag="zh"/>
-							<ComboBoxItem Content="English" Tag="en"/>
-						</ComboBox>
+						<ComboBox x:Name="euilang" Height="32" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsetlanghint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,16"
 						           Text="切换后立即生效，并写入 config.toml"/>

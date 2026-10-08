@@ -50,6 +50,7 @@
     <None Include="Cast\winusb-aoa.inf" CopyToOutputDirectory="PreserveNewest" Link="winusb-aoa.inf" />
     <None Include="dll\x64\7za.dll" CopyToOutputDirectory="PreserveNewest" Link="7za.dll" />
     <None Include="dll\x64\License.7za.txt" CopyToOutputDirectory="PreserveNewest" Link="License.7za.txt" />
+    <None Include="lang\*.toml" CopyToOutputDirectory="PreserveNewest" Link="lang\%(Filename)%(Extension)" />
     <None Include="SendFile\web\**\*" CopyToOutputDirectory="PreserveNewest" Link="web\%(Filename)%(Extension)" />
     <EmbeddedResource Include="SendFile\web\index.html" LogicalName="web.index.html" />
     <EmbeddedResource Include="SendFile\web\m.html" LogicalName="web.m.html" />
@@ -244,6 +245,7 @@
       <_SlimWet Include="$(OutputPath)wetext\**\*.*" Condition="Exists('$(OutputPath)wetext')" />
       <_SlimAssets Include="$(OutputPath)Assets\**\*.*" Condition="Exists('$(OutputPath)Assets')" />
       <_SlimWeb Include="$(OutputPath)web\**\*.*" Condition="Exists('$(OutputPath)web')" />
+      <_SlimLang Include="$(OutputPath)lang\*.toml" Condition="Exists('$(OutputPath)lang')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_SlimWet)"
@@ -258,6 +260,9 @@
     <MakeDir Directories="$(_SlimOut)\web" Condition="'@(_SlimWeb)' != ''" />
     <Copy SourceFiles="@(_SlimWeb)" DestinationFolder="$(_SlimOut)\web" SkipUnchangedFiles="true"
           Condition="'@(_SlimWeb)' != ''" />
+    <MakeDir Directories="$(_SlimOut)\lang" Condition="'@(_SlimLang)' != ''" />
+    <Copy SourceFiles="@(_SlimLang)" DestinationFolder="$(_SlimOut)\lang" SkipUnchangedFiles="true"
+          Condition="'@(_SlimLang)' != ''" />
     <!-- 若上次发布残留按需库/junk，删掉以免误带进压缩包 -->
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
