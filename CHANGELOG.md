@@ -33,12 +33,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- Dictionary selection popup: hovering a hit keeps dark text on a light blue row. The row no longer turns the text white on a faint highlight.
 - Sending a file whose name contains Chinese (for example `XPlayer v2.9.0.0 高级版.apk`) to the phone no longer fails with “路径中具有非法字符”. The shared HTTP port decodes the download query as UTF-8.
 
 ### 中文
 
 #### 修复
 
+- 词典划词浮窗：鼠标悬停词条时字保持深色，底为浅蓝。不再把字改成白色叠在很浅的高亮上。
 - 文件名含中文（如 `XPlayer v2.9.0.0 高级版.apk`）发到手机时，不再报「路径中具有非法字符」。共用 HTTP 口按 UTF-8 解码下载地址里的查询串。
 
 ## v1.0.15 (2026-10-05 ~ 10-06)

@@ -82,13 +82,10 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 
 ### Using it
 
-- **Options → Dictionary** opens the tab. It is shown by default.
-- The hotkey is off until you set it. It shows the main window and this tab, and turns the tab on if it was hidden. Press it again while the tab is showing to hide the main window. A single word on the clipboard is searched. Other clipboard text only opens the dictionary.
 - Language buttons: All, Chinese, Japanese, Korean, English.
 - Each hit shows the language, the headword, and the gloss, and can be spoken. The entry shows pronunciation, part of speech, senses, and examples. Each example can be spoken.
-- Select text in the entry to open a popup beside the selection, with matching headwords plus Speak, Search, Translate, and Copy. Translate opens the translate window and starts the translation. Speak uses the voice for the selection's language. The popup closes when you leave the window.
-- Search, a matching headword, or a word link opens another dictionary window. The page you were reading stays.
-- **Settings → Dictionary** sets, for each language, an engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed.
+- Selecting text in an entry opens a popup of matching headwords. Hover and selection keep dark text on a light blue row.
+- **Settings → Dictionary** sets, for each language, an TTS engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed.
 
 ### Data sources
 
