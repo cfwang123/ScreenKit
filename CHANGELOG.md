@@ -31,6 +31,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- Web manager **Send to PC** copies the text to the clipboard and shows a toast `Copied text: …`. Clearing the text still only clears the File sync box.
+
 #### Fixed
 
 - Dictionary selection popup: hovering a hit keeps dark text on a light blue row. The row no longer turns the text white on a faint highlight.
@@ -38,6 +42,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Sending a file whose name contains Chinese (for example `XPlayer v2.9.0.0 高级版.apk`) to the phone no longer fails with “路径中具有非法字符”. The shared HTTP port decodes the download query as UTF-8.
 
 ### 中文
+
+#### 变更
+
+- 网页管理 **推送到PC** 会把文本复制到剪切板，并弹出 toast「已复制文本：…」。清空仍只清掉文件同步页里的文本。
 
 #### 修复
 

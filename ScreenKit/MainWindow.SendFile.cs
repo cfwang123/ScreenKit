@@ -205,16 +205,29 @@ public partial class MainWindow {
 
 	void sfapplywebtext(string text) {
 		text ??= "";
-		if (esfsend != null && string.Equals(esfsend.Text, text, StringComparison.Ordinal)) return;
-		sfaddrow(text);
-		var tip = text.Length == 0
-			? Loc.T("sendfile.text.webclear")
-			: Loc.T("sendfile.text.webin");
+		var same = esfsend != null && string.Equals(esfsend.Text, text, StringComparison.Ordinal);
+		if (!same) sfaddrow(text);
+		if (text.Length == 0) {
+			if (same) return;
+			var clearTip = Loc.T("sendfile.text.webclear");
+			try {
+				UiToast.Show(this, clearTip);
+				setstatus(clearTip);
+			}
+			catch { }
+			return;
+		}
 		try {
+			Clipboard.SetText(text);
+			var preview = text.Replace("\r\n", " ").Replace('\n', ' ').Trim();
+			if (preview.Length > 72) preview = preview.Substring(0, 72) + "…";
+			var tip = Loc.T("sendfile.text.webin", preview);
 			UiToast.Show(this, tip);
 			setstatus(tip);
 		}
-		catch { }
+		catch (Exception ex) {
+			try { setstatus(Loc.T("sf.recv.text.clip.fail", ex.Message)); } catch { }
+		}
 	}
 
 	void sftextin(string text) {
