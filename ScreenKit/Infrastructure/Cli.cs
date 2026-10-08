@@ -3266,6 +3266,41 @@ static class Cli {
 			}
 			Out("  detail " + entry.Word + " zh=" + (entry.ZhSpeak().Length > 0 ? "yes" : "no"));
 		}
+		var phraseEntry = kophrases();
+		if (phraseEntry == null) {
+			Out("ko phrase miss");
+			return 7;
+		}
+		var page = new DictWindow();
+		typeof(DictWindow).GetMethod("filldetail", BindingFlags.Instance | BindingFlags.NonPublic)
+			.Invoke(page, new object[] { phraseEntry });
+		var phrases = 0;
+		var spoken = 0;
+		var zhSpoken = 0;
+		var examples = 0;
+		var exSpoken = 0;
+		var lab = Loc.T("dict.lab.phrase") + " ";
+		var zh = Loc.T("dict.lab.zh") + " ";
+		foreach (var b in page.edetail.Document.Blocks) {
+			if (b is not System.Windows.Documents.Paragraph p) continue;
+			var text = new System.Windows.Documents.TextRange(p.ContentStart, p.ContentEnd).Text ?? "";
+			var spk = hasspeak(p);
+			if (text.StartsWith(lab, StringComparison.Ordinal)) {
+				phrases++;
+				if (spk) spoken++;
+			}
+			else if (text.StartsWith("· ", StringComparison.Ordinal)) {
+				examples++;
+				if (spk) exSpoken++;
+			}
+			else if (text.StartsWith(zh, StringComparison.Ordinal) && spk)
+				zhSpoken++;
+		}
+		Out($"ko {phraseEntry.Word} phrases={phrases} speak={spoken} examples={examples} exSpeak={exSpoken} zhSpeak={zhSpoken}");
+		if (phrases == 0 || spoken != phrases || zhSpoken != 0 || (examples > 0 && exSpoken != examples)) {
+			Out("phrase speak mismatch");
+			return 7;
+		}
 		long len2;
 		using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
 			len2 = fs.Length;
@@ -3275,6 +3310,27 @@ static class Cli {
 		}
 		Out("dict ok readonly bytes=" + len);
 		return 0;
+
+		static DictEntry kophrases() {
+			var hits = DictDb.Search("one", "ko", 80);
+			foreach (var h in hits) {
+				var e = DictDb.Get(h.Id);
+				if (e == null) continue;
+				foreach (var s in e.Senses) {
+					if (s.Phrases.Count > 0) return e;
+				}
+			}
+			return null;
+		}
+
+		static bool hasspeak(System.Windows.Documents.Paragraph p) {
+			foreach (var inline in p.Inlines) {
+				if (inline is not System.Windows.Documents.Hyperlink link) continue;
+				var t = new System.Windows.Documents.TextRange(link.ContentStart, link.ContentEnd).Text ?? "";
+				if (t.IndexOf('\uE767') >= 0) return true;
+			}
+			return false;
+		}
 	}
 
 	static int testdicthost() {
@@ -3693,7 +3749,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-mem  进程内存读取，以及模型文件大小统计
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
-      --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）
+      --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）；韩语词组行有发音按钮
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关

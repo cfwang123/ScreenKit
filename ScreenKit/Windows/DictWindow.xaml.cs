@@ -461,6 +461,11 @@ public partial class DictWindow : UserControl {
 					addrun(p, Loc.T("dict.lab.phrase") + " ", DRole.Label);
 					if (linkphrase && ph.Text.Length > 0) addlink(p, ph.Text, firsttoken(ph.Text), entrylang);
 					else addrun(p, ph.Text, DRole.Body, entrylang);
+					// 韩语词组读原文，和例句同一颗发音按钮。中文释义在下一行，不读。
+					if (!linkphrase) {
+						var say = examplesrc(ph.Text);
+						if (say.Length > 0) addspeak(p, say, entrylang);
+					}
 					doc.Blocks.Add(p);
 					if (ph.Zh.Length > 0) {
 						var z = para(0);

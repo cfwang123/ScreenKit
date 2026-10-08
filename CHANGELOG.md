@@ -40,6 +40,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The bottom status bar keeps the HTTP listener next to the memory summary: `HTTP 0.0.0.0:1224` or `HTTP 127.0.0.1:1224` while the API listener is up, `HTTP LAN:1224` when only the per-NIC file-transfer sockets are up, `HTTP not started` (with the error) when it should be listening but is not, and `HTTP off` when the API, file transfer, and cast are all disabled.
 - **Translate popup** and **Dictionary** move from Options to the top of **Tools**. **Memory** moves next to Diagnostics under **Help**. Options keeps Settings and Language.
 - **Tools → Screencast** is removed from the main menu. The receive window stays on the tray under **Tools → Screencast**. The main-window Screencast tab is unchanged.
+- Korean dictionary phrases have the same speak button as examples. It reads the Korean phrase. The Chinese gloss on the next line is not spoken.
 
 #### Fixed
 
@@ -59,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 底部状态栏在内存汇总旁一直显示 HTTP 服务：接口监听中为 `HTTP 0.0.0.0:1224` 或 `HTTP 127.0.0.1:1224`，只有传文件的网卡监听时为「HTTP 局域网:1224」，该听却没听上为「HTTP 未启动」并带上失败原因，接口、传文件和投屏都关着为「HTTP 未启用」。
 - **翻译小窗**、**词典**从选项移到 **工具**顶部。**内存占用**移到 **帮助**，紧挨诊断。选项只留参数设置和界面语言。
 - 主菜单去掉 **工具 → 投屏**。接收窗口仍从托盘 **工具 → 投屏** 打开。主界面投屏页不变。
+- 韩语词条里的词组和例句一样，原文后面有发音按钮，读韩语原文。下一行的中文释义不读。
 
 #### 修复
 
