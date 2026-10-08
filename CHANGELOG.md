@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Settings → LLM drops the hint about the display name defaulting to the model id, and the warning not to commit API keys.
 - HTTP proxy follows the Windows system proxy whenever that proxy is enabled (`ProxyEnable`). The address in Settings is used only when the system proxy is off and Enable is checked. Local, private, `.cn`, and China-mirror hosts still go direct.
 - HTTP `POST /api/ocr` can select **Windows OCR** with `ocr.engine=winocr` or `ocr.language=winocr`, without changing the main window. `ocr.language` is then a BCP-47 tag or a language name (`zh-Hans-CN`, `en-US`, `英语`). `ocr.maxSideLen` still caps the long side. `ocr.engine=onnx` switches back to an ONNX pack when the main window is Windows OCR. `GET /api/ocr/get_options` lists `ocr.engine`.
 - Settings → Recognition shows what the selected engine does. Windows OCR: no download, one installed language, upright boxes, no rotation, confidence, or GPU; the side-length cap still applies. Umi uses larger server models (Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Russian). Rapid mobile Chinese is Simplified Chinese only. Rapid all-languages adds Latin and Arabic. ONNX packs keep detection, rotation, recognition, device choice, thresholds, and a confidence score.
@@ -60,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 参数设置 → LLM接口 去掉「显示名称默认等于模型 id」和「Key 勿写入公开仓库」这两句提示。
 - HTTP 代理在 Windows 系统代理开着时总是用系统代理（`ProxyEnable`）。系统代理关掉、并且勾选启用时，才用参数里的地址。本机、内网、`.cn` 和国内镜像仍然直连。
 - HTTP `POST /api/ocr` 可用 `ocr.engine=winocr` 或 `ocr.language=winocr` 指定 **Windows 系统 OCR**，不必改主窗。这时 `ocr.language` 是 BCP-47 或语言名（`zh-Hans-CN`、`en-US`、`英语`）。`ocr.maxSideLen` 仍限制长边。主窗已是系统 OCR 时，`ocr.engine=onnx` 改回 ONNX 模型包。`GET /api/ocr/get_options` 会列出 `ocr.engine`。
 - 参数设置的识别页会写明当前引擎的特点。Windows OCR：不用下载，一次一种已装语言，框是正矩形，没有方向分类、置信度和 GPU，边长上限仍然有效。Umi 用更大的 server 模型（简中、英、繁、日、韩、俄）。Rapid mobile 简中只做简体中文。Rapid 全语种另有拉丁字母和阿拉伯文。ONNX 包都有检测、方向分类、识别、设备、阈值和置信度。

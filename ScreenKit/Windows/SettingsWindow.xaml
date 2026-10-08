@@ -482,7 +482,7 @@
 					<StackPanel Grid.Row="0" Margin="0,0,0,10">
 						<TextBlock x:Name="lbsetllmhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap"
-						           Text="可配置多个 OpenAI 兼容接口。显示名称默认等于模型 id；改模型 id 时若名称仍等于旧 id 或为空则同步。Key 勿写入公开仓库。润色与翻译推荐小模型（如 Qwen3.5-4B），思考选「关闭」。"/>
+						           Text="可配置多个 OpenAI 兼容接口。润色与翻译推荐小模型（如 Qwen3.5-4B），思考选「关闭」。"/>
 						<CheckBox x:Name="ellmlog" Margin="0,10,0,0"
 						          Content="写入 LLM 日志（log/llm.log）"
 						          AutomationProperties.AutomationId="set.llm.log"/>
