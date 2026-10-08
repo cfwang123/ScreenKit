@@ -212,26 +212,11 @@
 								          DisplayMemberPath="DisplayName" ToolTip="模型包"/>
 								<TextBlock x:Name="lbwinlang" Text="语言" FontSize="12" Foreground="{StaticResource TextMuted}"
 								           VerticalAlignment="Center" Margin="0,0,4,0" Visibility="Collapsed"/>
-								<ToggleButton x:Name="bwinlang" Width="168" Height="30" Margin="0,0,8,0"
-								              Visibility="Collapsed"
-								              AutomationProperties.AutomationId="ocr.winlang"
-								              HorizontalContentAlignment="Left" Padding="8,0"
-								              VerticalContentAlignment="Center" FontSize="12">
-									<TextBlock x:Name="lbwinlangsum" TextTrimming="CharacterEllipsis" MaxWidth="148"/>
-								</ToggleButton>
-								<Popup x:Name="popwinlang" PlacementTarget="{Binding ElementName=bwinlang}"
-								       Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
-								       PopupAnimation="Fade"
-								       IsOpen="{Binding IsChecked, ElementName=bwinlang, Mode=TwoWay}">
-									<Border Background="{StaticResource BgPanel}"
-									        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-									        CornerRadius="6" Padding="8" Margin="0,4,0,0"
-									        MinWidth="180" MaxHeight="280">
-										<ScrollViewer VerticalScrollBarVisibility="Auto">
-											<StackPanel x:Name="pwinlanglist"/>
-										</ScrollViewer>
-									</Border>
-								</Popup>
+								<ComboBox x:Name="ewinlang" Width="168" Height="30" Margin="0,0,8,0"
+								          Visibility="Collapsed"
+								          AutomationProperties.AutomationId="ocr.winlang"
+								          VerticalContentAlignment="Center" FontSize="12"
+								          DisplayMemberPath="Name"/>
 								<TextBlock x:Name="lbvariant" Text="语言" FontSize="12" Foreground="{StaticResource TextMuted}"
 								           VerticalAlignment="Center" Margin="0,0,4,0"/>
 								<ComboBox x:Name="evariant" Width="128" Height="30" Margin="0,0,8,0"

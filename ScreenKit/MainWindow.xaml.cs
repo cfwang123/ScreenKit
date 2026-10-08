@@ -60,6 +60,7 @@ public partial class MainWindow : Window {
 
 	List<ModelPack> packs = new();
 	bool modelUiLoading;
+	bool winLangLoading;
 	TrayIcon tray;
 	GlobalHotkey hotkey;       // 主窗呼出/隐藏
 	GlobalHotkey hotkeySnap;   // 截图标注
@@ -1074,6 +1075,12 @@ public partial class MainWindow : Window {
 			opt.Device = OcrDevice.Cpu;
 		// 检测边长
 		selectdetlen(opt.DetLimitSideLen);
+		ewinlang.SelectionChanged += (_, _) => {
+			if (winLangLoading || modelUiLoading) return;
+			if (ewinlang.SelectedItem is not WinOcrLang one) return;
+			opt.WinOcrLangs = one.Tag;
+			try { AppConfig.Save(opt); } catch { }
+		};
 		modelUiLoading = false;
 		applyengineui();
 		if (!string.IsNullOrWhiteSpace(CudaBootstrap.GpuStatus))
@@ -1178,7 +1185,7 @@ public partial class MainWindow : Window {
 		var show = win ? Visibility.Visible : Visibility.Collapsed;
 		var hide = win ? Visibility.Collapsed : Visibility.Visible;
 		lbwinlang.Visibility = show;
-		bwinlang.Visibility = show;
+		ewinlang.Visibility = show;
 		lbvariant.Visibility = hide;
 		evariant.Visibility = hide;
 		lbdevice.Visibility = hide;
@@ -1187,16 +1194,24 @@ public partial class MainWindow : Window {
 		edetlen.Visibility = hide;
 		if (!win) return;
 		lbwinlang.Text = Loc.T("ocr.win.lang");
-		bwinlang.ToolTip = Loc.T("ocr.win.lang.tip");
-		WinOcrUi.Fill(pwinlanglist, opt, () => {
-			var prev = opt.WinOcrLangs;
-			if (string.IsNullOrWhiteSpace(prev))
-				prev = string.Join(",", WinOcr.SelectedTags(opt));
-			opt.WinOcrLangs = WinOcrUi.Read(pwinlanglist, prev);
-			lbwinlangsum.Text = WinOcr.Summary(opt);
-			try { AppConfig.Save(opt); } catch { }
-		});
-		lbwinlangsum.Text = WinOcr.Summary(opt);
+		ewinlang.ToolTip = Loc.T("ocr.win.lang.tip");
+		fillwinlang();
+	}
+
+	void fillwinlang() {
+		winLangLoading = true;
+		try {
+			var langs = WinOcr.Languages();
+			ewinlang.ItemsSource = langs;
+			var tag = WinOcr.SelectedTag(opt);
+			var hit = langs.FirstOrDefault(x =>
+				string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
+			ewinlang.SelectedItem = hit;
+			if (hit != null) opt.WinOcrLangs = hit.Tag;
+		}
+		finally {
+			winLangLoading = false;
+		}
 	}
 
 	void applymodelchoice(bool reload) {
@@ -1533,7 +1548,7 @@ public partial class MainWindow : Window {
 			// 顶栏
 			lbpack.Text = Loc.T("label.pack");
 			lbwinlang.Text = Loc.T("ocr.win.lang");
-			bwinlang.ToolTip = Loc.T("ocr.win.lang.tip");
+			ewinlang.ToolTip = Loc.T("ocr.win.lang.tip");
 			lbvariant.Text = Loc.T("label.variant");
 			lbdevice.Text = Loc.T("label.device");
 			lbdetlen.Text = Loc.T("label.detlen");

@@ -517,7 +517,7 @@ static class AppConfig {
 		sb.AppendLine("[ocr]");
 		sb.AppendLine($"model_pack = \"{esc(o.ModelPackId ?? "umi")}\"");
 		sb.AppendLine($"model_variant = \"{esc(o.ModelVariant ?? "")}\"");
-		sb.AppendLine("# Windows 系统 OCR 语言，逗号分隔的 BCP-47（仅 model_pack=winocr）");
+		sb.AppendLine("# Windows 系统 OCR 语言，一个 BCP-47（仅 model_pack=winocr）");
 		sb.AppendLine($"win_ocr_langs = \"{esc(o.WinOcrLangs ?? "")}\"");
 		sb.AppendLine($"device = \"{o.Device}\"");
 		sb.AppendLine($"det_limit = {o.DetLimitSideLen}");

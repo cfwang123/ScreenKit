@@ -207,7 +207,8 @@ public partial class SettingsWindow : Window {
 			lbsetloghint.Text = Loc.T("set.log.hint");
 			lbsetpack.Text = Loc.T("set.pack");
 			lbsetvariant.Text = Loc.T("set.variant");
-			lbsetwinlang.Text = Loc.T("ocr.win.langs");
+			lbsetwinlang.Text = Loc.T("ocr.win.lang");
+			ewinlang.ToolTip = Loc.T("ocr.win.lang.tip");
 			lbsetdevice.Text = Loc.T("set.device");
 			itdevgpu.Content = Loc.T("set.device.gpu");
 			itdevigpu.Content = Loc.T("set.device.igpu");
@@ -584,13 +585,12 @@ public partial class SettingsWindow : Window {
 		evariant.Visibility = hide;
 		psetonnx.Visibility = hide;
 		if (win) {
-			WinOcrUi.Fill(psetwinlist, Result, () => {
-				var prev = Result.WinOcrLangs;
-				if (string.IsNullOrWhiteSpace(prev))
-					prev = string.Join(",", WinOcr.SelectedTags(Result));
-				Result.WinOcrLangs = WinOcrUi.Read(psetwinlist, prev);
-			});
-			lbmodelhint.Text = Loc.T("ocr.win.hint");
+			var langs = WinOcr.Languages();
+			ewinlang.ItemsSource = langs;
+			var tag = WinOcr.SelectedTag(Result);
+			ewinlang.SelectedItem = langs.FirstOrDefault(x =>
+				string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
+			lbmodelhint.Text = langs.Count == 0 ? Loc.T("ocr.win.empty") : Loc.T("ocr.win.hint");
 			return;
 		}
 		if (pack == null) {
@@ -623,11 +623,8 @@ public partial class SettingsWindow : Window {
 			return false;
 		}
 		if (WinOcr.IsId(pack.Id)) {
-			var prevLangs = Result.WinOcrLangs;
-			if (string.IsNullOrWhiteSpace(prevLangs))
-				prevLangs = string.Join(",", WinOcr.SelectedTags(Result));
-			var langs = WinOcrUi.Read(psetwinlist, prevLangs);
-			if (string.IsNullOrEmpty(langs)) {
+			var one = ewinlang.SelectedItem as WinOcrLang;
+			if (one == null || string.IsNullOrWhiteSpace(one.Tag)) {
 				tabset.SelectedItem = tabsetocr;
 				MessageBox.Show(this, Loc.T("ocr.win.need"), Loc.T("settings"),
 					MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -635,7 +632,7 @@ public partial class SettingsWindow : Window {
 			}
 			Result.ModelPackId = WinOcr.PackId;
 			Result.ModelsDir = "";
-			Result.WinOcrLangs = langs;
+			Result.WinOcrLangs = one.Tag;
 		}
 		else if (variant == null) {
 			tabset.SelectedItem = tabsetocr;

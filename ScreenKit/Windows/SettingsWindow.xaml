@@ -100,13 +100,10 @@
 						<ComboBox x:Name="evariant" Height="32" Margin="0,0,0,6"
 						          DisplayMemberPath="DisplayName"/>
 						<StackPanel x:Name="psetwin" Visibility="Collapsed" Margin="0,8,0,0">
-							<TextBlock x:Name="lbsetwinlang" Text="语言（可多选）" FontWeight="SemiBold" Margin="0,0,0,6"/>
-							<Border BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-							        CornerRadius="6" Padding="8" MaxHeight="220">
-								<ScrollViewer VerticalScrollBarVisibility="Auto">
-									<StackPanel x:Name="psetwinlist"/>
-								</ScrollViewer>
-							</Border>
+							<TextBlock x:Name="lbsetwinlang" Text="语言" FontWeight="SemiBold" Margin="0,0,0,6"/>
+							<ComboBox x:Name="ewinlang" Height="32"
+							          AutomationProperties.AutomationId="set.winlang"
+							          DisplayMemberPath="Name"/>
 						</StackPanel>
 						<TextBlock x:Name="lbmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,14"

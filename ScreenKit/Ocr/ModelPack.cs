@@ -58,6 +58,8 @@ sealed class ModelPack {
 		}
 	}
 
+	public override string ToString() => DisplayName;
+
 	public ModelVariant FindVariant(string title) {
 		if (Variants.Count == 0) return null;
 		if (!string.IsNullOrWhiteSpace(title)) {

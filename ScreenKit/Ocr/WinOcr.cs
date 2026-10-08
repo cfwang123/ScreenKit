@@ -1,7 +1,6 @@
 using System.Text;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
-using System.Windows.Automation;
 using System.Windows.Threading;
 using OpenCvSharp;
 using Windows.Graphics.Imaging;
@@ -16,8 +15,7 @@ sealed class WinOcrLang {
 }
 
 /// <summary>
-/// Windows 系统 OCR（WinRT）。一种语言一个引擎；多选时按顺序各跑一次。
-/// 重叠区域保留先选语言的文字，后面的语言只补不重叠的行。不加载 ONNX 模型。
+/// Windows 系统 OCR（WinRT）。一次只认一种语言，不加载 ONNX 模型。
 /// </summary>
 static class WinOcr {
 	public const string PackId = "winocr";
@@ -56,34 +54,25 @@ static class WinOcr {
 		return list;
 	}
 
-	/// <summary>配置里勾选且本机仍可用的语言。空配置时默认简体中文和英语（有则选）。</summary>
-	public static List<string> SelectedTags(OcrOptions opt) {
+	/// <summary>当前语言。配置为空或已不可用时，优先简体中文，其次英语，再退回第一种。</summary>
+	public static string SelectedTag(OcrOptions opt) {
 		var avail = Languages();
-		var picked = new List<string>();
+		if (avail.Count == 0) return "";
 		var raw = opt?.WinOcrLangs ?? "";
-		foreach (var part in raw.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries)) {
-			var tag = part.Trim();
-			var hit = avail.FirstOrDefault(x =>
-				string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
-			if (hit == null) continue;
-			if (picked.Any(p => string.Equals(p, hit.Tag, StringComparison.OrdinalIgnoreCase))) continue;
-			picked.Add(hit.Tag);
-		}
-		if (picked.Count > 0) return picked;
-		return defaulttags(avail);
+		var first = raw.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
+			.Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0);
+		var hit = avail.FirstOrDefault(x =>
+			string.Equals(x.Tag, first, StringComparison.OrdinalIgnoreCase));
+		if (hit != null) return hit.Tag;
+		return defaulttag(avail);
 	}
 
 	public static string Summary(OcrOptions opt) {
-		var tags = SelectedTags(opt);
-		if (tags.Count == 0) return Loc.T("ocr.win.empty");
-		var avail = Languages();
-		var names = new List<string>();
-		foreach (var tag in tags) {
-			var hit = avail.FirstOrDefault(x =>
-				string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
-			names.Add(string.IsNullOrWhiteSpace(hit?.Name) ? tag : hit.Name);
-		}
-		return string.Join(", ", names);
+		var tag = SelectedTag(opt);
+		if (string.IsNullOrEmpty(tag)) return Loc.T("ocr.win.empty");
+		var hit = Languages().FirstOrDefault(x =>
+			string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
+		return string.IsNullOrWhiteSpace(hit?.Name) ? tag : hit.Name;
 	}
 
 	public static OcrResult Recognize(OcrOptions opt, Mat bgr) {
@@ -97,34 +86,32 @@ static class WinOcr {
 		return wait(task);
 	}
 
-	static List<string> defaulttags(List<WinOcrLang> avail) {
-		var picked = new List<string>();
-		void take(params string[] tags) {
+	static string defaulttag(List<WinOcrLang> avail) {
+		string take(params string[] tags) {
 			foreach (var tag in tags) {
 				if (string.IsNullOrWhiteSpace(tag)) continue;
 				var hit = avail.FirstOrDefault(x =>
 					string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
-				if (hit == null) continue;
-				if (picked.Any(p => string.Equals(p, hit.Tag, StringComparison.OrdinalIgnoreCase))) return;
-				picked.Add(hit.Tag);
-				return;
+				if (hit != null) return hit.Tag;
 			}
+			return "";
 		}
-		take("zh-Hans", "zh-CN", "zh-Hans-CN");
-		take("en-US", "en-GB", "en");
-		if (picked.Count > 0) return picked;
+		var zh = take("zh-Hans", "zh-CN", "zh-Hans-CN");
+		if (zh.Length > 0) return zh;
+		var en = take("en-US", "en-GB", "en");
+		if (en.Length > 0) return en;
 		try {
 			var eng = WinMedia.OcrEngine.TryCreateFromUserProfileLanguages();
-			take(eng?.RecognizerLanguage?.LanguageTag);
+			var profile = take(eng?.RecognizerLanguage?.LanguageTag);
+			if (profile.Length > 0) return profile;
 		}
 		catch { }
-		if (picked.Count == 0 && avail.Count > 0) picked.Add(avail[0].Tag);
-		return picked;
+		return avail.Count > 0 ? avail[0].Tag : "";
 	}
 
 	static OcrResult recognize(OcrOptions opt, Mat bgr) {
-		var tags = SelectedTags(opt);
-		if (tags.Count == 0)
+		var tag = SelectedTag(opt);
+		if (string.IsNullOrEmpty(tag))
 			throw new InvalidOperationException(Loc.T("ocr.win.empty"));
 		var t0 = Environment.TickCount;
 		double scale = 1;
@@ -141,52 +128,38 @@ static class WinOcr {
 				work = scaled;
 			}
 			using var bmp = tobitmap(work);
+			var lang = new Windows.Globalization.Language(tag);
+			var engine = WinMedia.OcrEngine.TryCreateFromLanguage(lang);
+			if (engine == null)
+				throw new InvalidOperationException(Loc.T("ocr.win.empty"));
+			WinMedia.OcrResult raw;
+			try { raw = wait(engine.RecognizeAsync(bmp).AsTask()); }
+			catch (Exception ex) {
+				CaptureLog.Ex("WinOcr " + tag, ex);
+				throw new InvalidOperationException("Windows OCR 失败: " + ex.Message, ex);
+			}
 			var lines = new List<OcrLine>();
-			var used = new List<string>();
-			foreach (var tag in tags) {
-				Windows.Globalization.Language lang;
-				try { lang = new Windows.Globalization.Language(tag); }
-				catch { continue; }
-				var engine = WinMedia.OcrEngine.TryCreateFromLanguage(lang);
-				if (engine == null) continue;
-				WinMedia.OcrResult raw;
-				try { raw = wait(engine.RecognizeAsync(bmp).AsTask()); }
-				catch (Exception ex) {
-					CaptureLog.Ex("WinOcr " + tag, ex);
-					continue;
-				}
-				if (raw?.Lines == null) continue;
-				used.Add(tag);
-				var inv = (float)(1.0 / scale);
+			var inv = (float)(1.0 / scale);
+			if (raw?.Lines != null) {
 				foreach (var line in raw.Lines) {
 					var text = normtext(line.Text);
 					if (text.Length == 0) continue;
 					var box = linebox(line, inv);
 					if (box == null) continue;
-					merge(lines, new OcrLine { Text = text, Score = 1f, Box = box });
+					lines.Add(new OcrLine { Text = text, Score = 1f, Box = box });
 				}
 			}
-			if (used.Count == 0)
-				throw new InvalidOperationException(Loc.T("ocr.win.empty"));
 			sortlines(lines);
 			return new OcrResult {
 				Lines = lines,
 				DeviceUsed = "Windows",
-				ModelLabel = "Windows OCR · " + string.Join(", ", used),
+				ModelLabel = "Windows OCR · " + tag,
 				InferMs = Math.Max(0, Environment.TickCount - t0),
 			};
 		}
 		finally {
 			scaled?.Dispose();
 		}
-	}
-
-	/// <summary>已有行优先。后来的语言只补上不重叠的行。</summary>
-	static void merge(List<OcrLine> lines, OcrLine neu) {
-		foreach (var old in lines) {
-			if (overlap(old.Box, neu.Box)) return;
-		}
-		lines.Add(neu);
 	}
 
 	/// <summary>汉字、假名、谚文之间不留空格；英文单词之间的空格保留。</summary>
@@ -217,30 +190,6 @@ static class WinOcr {
 		|| c >= 0xF900 && c <= 0xFAFF
 		|| c >= 0x3040 && c <= 0x30FF
 		|| c >= 0xAC00 && c <= 0xD7AF;
-
-	static bool overlap(Point2f[] a, Point2f[] b) {
-		if (a == null || b == null || a.Length == 0 || b.Length == 0) return false;
-		var ra = bounds(a);
-		var rb = bounds(b);
-		var iw = Math.Min(ra.r, rb.r) - Math.Max(ra.l, rb.l);
-		var ih = Math.Min(ra.b, rb.b) - Math.Max(ra.t, rb.t);
-		if (iw <= 1 || ih <= 1) return false;
-		var inter = iw * ih;
-		var aa = Math.Max(1f, (ra.r - ra.l) * (ra.b - ra.t));
-		var ba = Math.Max(1f, (rb.r - rb.l) * (rb.b - rb.t));
-		return inter / Math.Min(aa, ba) >= 0.5f;
-	}
-
-	static (float l, float t, float r, float b) bounds(Point2f[] box) {
-		float l = float.MaxValue, t = float.MaxValue, r = float.MinValue, b = float.MinValue;
-		foreach (var p in box) {
-			if (p.X < l) l = p.X;
-			if (p.Y < t) t = p.Y;
-			if (p.X > r) r = p.X;
-			if (p.Y > b) b = p.Y;
-		}
-		return (l, t, r, b);
-	}
 
 	static Point2f[] linebox(WinMedia.OcrLine line, float inv) {
 		if (line?.Words == null || line.Words.Count == 0) return null;
@@ -302,72 +251,5 @@ static class WinOcr {
 		});
 		Dispatcher.PushFrame(frame);
 		return task.GetAwaiter().GetResult();
-	}
-}
-
-/// <summary>Windows OCR 语言多选（主窗顶栏与参数设置共用）。</summary>
-static class WinOcrUi {
-	public static void Fill(Panel host, OcrOptions opt, Action onchanged) {
-		if (host == null) return;
-		host.Children.Clear();
-		var langs = WinOcr.Languages();
-		if (langs.Count == 0) {
-			host.Children.Add(new TextBlock {
-				Text = Loc.T("ocr.win.empty"),
-				TextWrapping = TextWrapping.Wrap,
-				Margin = new Thickness(4),
-				MaxWidth = 260,
-			});
-			return;
-		}
-		var sel = new HashSet<string>(WinOcr.SelectedTags(opt), StringComparer.OrdinalIgnoreCase);
-		var guard = false;
-		foreach (var lang in langs) {
-			var cb = new CheckBox {
-				Content = lang.Name,
-				Tag = lang.Tag,
-				IsChecked = sel.Contains(lang.Tag),
-				Margin = new Thickness(2, 3, 8, 3),
-			};
-			AutomationProperties.SetAutomationId(cb, "ocr.winlang." + lang.Tag);
-			cb.Checked += (_, _) => changed();
-			cb.Unchecked += (_, _) => changed();
-			host.Children.Add(cb);
-
-			void changed() {
-				if (guard) return;
-				if (string.IsNullOrEmpty(Read(host, ""))) {
-					guard = true;
-					cb.IsChecked = true;
-					guard = false;
-					return;
-				}
-				try { onchanged?.Invoke(); } catch { }
-			}
-		}
-	}
-
-	/// <summary>勾选结果。已保存的顺序不变，新勾上的语言接在后面。</summary>
-	public static string Read(Panel host, string previous) {
-		if (host == null) return "";
-		var on = new List<string>();
-		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-		foreach (var child in host.Children) {
-			if (child is CheckBox cb && cb.IsChecked == true && cb.Tag is string tag && tag.Length > 0
-				&& set.Add(tag))
-				on.Add(tag);
-		}
-		var ordered = new List<string>();
-		foreach (var part in (previous ?? "").Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries)) {
-			var tag = part.Trim();
-			var hit = on.FirstOrDefault(x => string.Equals(x, tag, StringComparison.OrdinalIgnoreCase));
-			if (hit == null) continue;
-			ordered.Add(hit);
-			set.Remove(hit);
-		}
-		foreach (var tag in on) {
-			if (set.Contains(tag)) ordered.Add(tag);
-		}
-		return string.Join(",", ordered);
 	}
 }
