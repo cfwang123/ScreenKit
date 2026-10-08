@@ -208,7 +208,7 @@
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbwinhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
-					           Text="系统语音包 Language.TextToSpeech。本进程是管理员时直接安装或卸载；否则用 start 弹出管理员窗口执行。装好后需重启本程序，语音合成页才会看到新发音人。"/>
+					           Text="系统语音包 Language.TextToSpeech。进入本页时才读取已安装的语音包和发音人。本进程是管理员时直接读取、安装或卸载；否则用 start 弹出管理员窗口。装好后需重启本程序，语音合成页才会看到新发音人。"/>
 					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
 						<CheckBox x:Name="cwinonly" DockPanel.Dock="Left" Content="仅已安装"
 						          VerticalAlignment="Center" Margin="0,0,12,0" IsChecked="False"

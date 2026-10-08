@@ -42,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Tools → Screencast** is removed from the main menu. The receive window stays on the tray under **Tools → Screencast**. The main-window Screencast tab is unchanged.
 - Korean dictionary phrases have the same speak button as examples. It reads the Korean phrase. The Chinese gloss on the next line is not spoken.
 - **Help → Install features → Windows speech**: when ScreenKit is not an administrator, install or remove uses `start` to open one administrator window for the selected packs. Allow it in User Account Control. Exit 0 and 3010 still count as success. The DISM command can still be copied.
+- **Help → Install features → Windows speech**: installed packs and voices are read only when this tab is opened, or when Refresh is clicked. When ScreenKit is not an administrator, that read uses `start` the same way as install or remove: one administrator window. Denying User Account Control leaves pack status blank and still shows voices this process can see.
 
 #### Fixed
 
@@ -63,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 主菜单去掉 **工具 → 投屏**。接收窗口仍从托盘 **工具 → 投屏** 打开。主界面投屏页不变。
 - 韩语词条里的词组和例句一样，原文后面有发音按钮，读韩语原文。下一行的中文释义不读。
 - **帮助 → 安装功能 → Windows语音**：本进程不是管理员时，安装或卸载用 `start` 弹出一个管理员窗口，执行勾选的语音包。在用户账户控制里允许即可。退出码 0 和 3010 仍算成功。DISM 命令仍可复制。
+- **帮助 → 安装功能 → Windows语音**：进入本页或点刷新时才读取已装语音包和发音人。本进程不是管理员时，这次读取和安装、卸载一样用 `start` 弹出一个管理员窗口。用户账户控制里拒绝后，不标语音包状态，仍显示本进程能看到的发音人。
 
 #### 修复
 

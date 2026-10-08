@@ -3060,8 +3060,17 @@ static class Cli {
 			Err("FAIL: 编码后的脚本对不上");
 			return 1;
 		}
+		var query = WinTtsPack.BuildQueryScript("C:\\tmp\\a.log");
+		if (query.IndexOf("Get-WindowsCapability", StringComparison.Ordinal) < 0
+			|| query.IndexOf("Language.TextToSpeech", StringComparison.Ordinal) < 0
+			|| query.IndexOf("AllVoices", StringComparison.Ordinal) < 0
+			|| query.IndexOf("VOICE|", StringComparison.Ordinal) < 0) {
+			Err("FAIL: 查询脚本缺少语音包或发音人");
+			Out(query);
+			return 1;
+		}
 		Out("admin=" + WinTtsPack.IsAdmin());
-		Out("=== OK：start /wait 再 RunAs，不弹 UAC ===");
+		Out("=== OK：start /wait 再 RunAs，查询脚本不弹 UAC ===");
 		return 0;
 	}
 
@@ -3800,7 +3809,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
-      --test-win-tts  非管理员时 start /wait 再 RunAs 安装或卸载 Windows 语音（不弹 UAC）
+      --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话

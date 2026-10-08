@@ -115,6 +115,7 @@ partial class InstallFeaturesWindow : Window {
 			applytabbuttons();
 			if (tabmain.SelectedItem == tabtts && !ttsLoaded && !busy)
 				await loadtts(force: false);
+			// 已装发音人只在进入本页时读，不在打开安装窗口时读。
 			if (tabmain.SelectedItem == tabwin && !winLoaded && !busy)
 				await loadwin(false);
 		};

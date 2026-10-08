@@ -15,6 +15,26 @@ sealed class WinElevateResult {
 	public readonly List<WinElevateCode> Codes = new();
 }
 
+sealed class WinVoiceLine {
+	public string Culture = "";
+	public string Name = "";
+}
+
+sealed class WinQueryResult {
+	public bool UacDenied;
+	public string Error = "";
+	public string VoiceError = "";
+	public readonly Dictionary<string, string> States = new(StringComparer.OrdinalIgnoreCase);
+	public readonly List<WinVoiceLine> Voices = new();
+}
+
+sealed class WinScriptResult {
+	public bool UacDenied;
+	public string Error = "";
+	public string Log = "";
+	public int ExitCode;
+}
+
 /// <summary>Windows 语音功能包 Language.TextToSpeech。查询与 DISM 安装/卸载。</summary>
 static class WinTtsPack {
 	public const string PREFIX = "Language.TextToSpeech~~~";
@@ -91,53 +111,25 @@ static class WinTtsPack {
 			result.Error = "none";
 			return result;
 		}
-		var dir = TmpStore.Root;
-		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-		var ps1 = Path.Combine(dir, "wintts_" + stamp + ".ps1");
-		var logfile = Path.Combine(dir, "wintts_" + stamp + ".log");
-		var codefile = Path.Combine(dir, "wintts_" + stamp + ".code");
-		try {
-			var script = BuildElevateScript(add, cultures, logfile);
-			File.WriteAllText(ps1, script, new UTF8Encoding(true));
-			var outer = OuterScript(ps1, codefile);
-			var args = LaunchArgs(outer);
-			log?.Report("start \"ScreenKit\" /min /wait powershell.exe -Verb RunAs");
-			var psi = new ProcessStartInfo {
-				FileName = "cmd.exe",
-				Arguments = args,
-				UseShellExecute = false,
-				CreateNoWindow = true,
-			};
-			using var p = new Process { StartInfo = psi };
-			if (!p.Start()) throw new InvalidOperationException("start failed");
-			var pos = 0;
-			using (ct.Register(() => { try { if (!p.HasExited) p.Kill(); } catch { } })) {
-				while (!p.HasExited) {
-					pos = drain(logfile, pos, log);
-					if (ct.IsCancellationRequested) break;
-					if (p.WaitForExit(400)) break;
-				}
-			}
-			if (ct.IsCancellationRequested) throw new OperationCanceledException(ct);
-			if (!p.HasExited) p.WaitForExit();
-			drain(logfile, pos, log);
-			var mark = readall(codefile).Trim();
-			if (mark == "UAC" || p.ExitCode == 1223) {
-				result.UacDenied = true;
-				return result;
-			}
-			if (mark.StartsWith("ERR ", StringComparison.Ordinal))
-				result.Error = mark.Substring(4).Trim();
-			fillcodes(logfile, result);
-			if (result.Codes.Count == 0 && result.Error.Length == 0 && p.ExitCode != 0)
-				result.Error = "exit " + p.ExitCode;
-			return result;
-		}
-		finally {
-			try { if (File.Exists(ps1)) File.Delete(ps1); } catch { }
-			try { if (File.Exists(codefile)) File.Delete(codefile); } catch { }
-			try { if (File.Exists(logfile)) File.Delete(logfile); } catch { }
-		}
+		var ran = runscript(path => BuildElevateScript(add, cultures, path), log, ct);
+		result.UacDenied = ran.UacDenied;
+		result.Error = ran.Error;
+		fillcodes(ran.Log, result);
+		if (!ran.UacDenied && result.Codes.Count == 0 && result.Error.Length == 0 && ran.ExitCode != 0)
+			result.Error = "exit " + ran.ExitCode;
+		return result;
+	}
+
+	/// <summary>非管理员查看已装语音包和发音人。同一次 start / RunAs。</summary>
+	public static WinQueryResult QueryElevated(CancellationToken ct, IProgress<string> log) {
+		var result = new WinQueryResult();
+		var ran = runscript(BuildQueryScript, log, ct);
+		result.UacDenied = ran.UacDenied;
+		if (ran.UacDenied) return result;
+		parsequery(ran.Log, result);
+		if (result.States.Count == 0 && result.Error.Length == 0)
+			result.Error = ran.Error.Length > 0 ? ran.Error : (ran.ExitCode != 0 ? "exit " + ran.ExitCode : "empty");
+		return result;
 	}
 
 	internal static string BuildElevateScript(bool add, IList<string> cultures, string logPath) {
@@ -168,6 +160,37 @@ static class WinTtsPack {
 		return sb.ToString();
 	}
 
+	internal static string BuildQueryScript(string logPath) {
+		var sb = new StringBuilder();
+		sb.AppendLine("$ErrorActionPreference = 'Stop'");
+		sb.AppendLine("try { $Host.UI.RawUI.WindowTitle = 'ScreenKit Windows TTS' } catch {}");
+		sb.AppendLine("$log = " + psq(logPath));
+		sb.AppendLine("$utf8 = New-Object System.Text.UTF8Encoding $false");
+		sb.AppendLine("function Log([string]$line) { [IO.File]::AppendAllText($log, $line + \"`r`n\", $utf8) }");
+		sb.AppendLine("try {");
+		sb.AppendLine("  Get-WindowsCapability -Online -Name 'Language.TextToSpeech*' | ForEach-Object {");
+		sb.AppendLine("    Log ($_.Name + '|' + [string]$_.State)");
+		sb.AppendLine("  }");
+		sb.AppendLine("} catch {");
+		sb.AppendLine("  Log ('ERR ' + $_.Exception.Message)");
+		sb.AppendLine("  exit 1");
+		sb.AppendLine("}");
+		sb.AppendLine("$ErrorActionPreference = 'Continue'");
+		sb.AppendLine("try {");
+		sb.AppendLine("  $null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType=WindowsRuntime]");
+		sb.AppendLine("  foreach ($v in [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices) {");
+		sb.AppendLine("    $name = [string]$v.DisplayName");
+		sb.AppendLine("    $lang = [string]$v.Language");
+		sb.AppendLine("    if ([string]::IsNullOrWhiteSpace($name)) { continue }");
+		sb.AppendLine("    Log ('VOICE|' + $lang + '|' + $name)");
+		sb.AppendLine("  }");
+		sb.AppendLine("} catch {");
+		sb.AppendLine("  Log ('VOICEERR ' + $_.Exception.Message)");
+		sb.AppendLine("}");
+		sb.AppendLine("exit 0");
+		return sb.ToString();
+	}
+
 	internal static string OuterScript(string ps1, string codeFile) {
 		return
 			"$ErrorActionPreference = 'Stop'\r\n" +
@@ -193,6 +216,51 @@ static class WinTtsPack {
 		return "/c start \"ScreenKit\" /min /wait powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand " + enc;
 	}
 
+	static WinScriptResult runscript(Func<string, string> build, IProgress<string> log, CancellationToken ct) {
+		var ran = new WinScriptResult();
+		var dir = TmpStore.Root;
+		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+		var ps1 = Path.Combine(dir, "wintts_" + stamp + ".ps1");
+		var logfile = Path.Combine(dir, "wintts_" + stamp + ".log");
+		var codefile = Path.Combine(dir, "wintts_" + stamp + ".code");
+		try {
+			File.WriteAllText(ps1, build(logfile), new UTF8Encoding(true));
+			var outer = OuterScript(ps1, codefile);
+			var args = LaunchArgs(outer);
+			log?.Report("start \"ScreenKit\" /min /wait powershell.exe -Verb RunAs");
+			var psi = new ProcessStartInfo {
+				FileName = "cmd.exe",
+				Arguments = args,
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			};
+			using var p = new Process { StartInfo = psi };
+			if (!p.Start()) throw new InvalidOperationException("start failed");
+			var pos = 0;
+			using (ct.Register(() => { try { if (!p.HasExited) p.Kill(); } catch { } })) {
+				while (!p.HasExited) {
+					pos = drain(logfile, pos, log);
+					if (ct.IsCancellationRequested) break;
+					if (p.WaitForExit(400)) break;
+				}
+			}
+			if (ct.IsCancellationRequested) throw new OperationCanceledException(ct);
+			if (!p.HasExited) p.WaitForExit();
+			drain(logfile, pos, log);
+			ran.ExitCode = p.ExitCode;
+			ran.Log = readall(logfile);
+			var mark = readall(codefile).Trim();
+			if (mark == "UAC" || p.ExitCode == 1223) ran.UacDenied = true;
+			else if (mark.StartsWith("ERR ", StringComparison.Ordinal)) ran.Error = mark.Substring(4).Trim();
+			return ran;
+		}
+		finally {
+			try { if (File.Exists(ps1)) File.Delete(ps1); } catch { }
+			try { if (File.Exists(codefile)) File.Delete(codefile); } catch { }
+			try { if (File.Exists(logfile)) File.Delete(logfile); } catch { }
+		}
+	}
+
 	static string psq(string s) => "'" + (s ?? "").Replace("'", "''") + "'";
 
 	static int drain(string path, int pos, IProgress<string> log) {
@@ -207,8 +275,8 @@ static class WinTtsPack {
 		return text.Length;
 	}
 
-	static void fillcodes(string path, WinElevateResult result) {
-		var text = readall(path);
+	static void fillcodes(string text, WinElevateResult result) {
+		if (string.IsNullOrEmpty(text)) return;
 		foreach (var raw in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
 			var line = raw.Trim();
 			if (!line.StartsWith("EXIT ", StringComparison.Ordinal)) continue;
@@ -218,6 +286,36 @@ static class WinTtsPack {
 			var culture = rest.Substring(0, sp).Trim();
 			if (!int.TryParse(rest.Substring(sp + 1).Trim(), out var code)) continue;
 			result.Codes.Add(new WinElevateCode { Culture = culture, Code = code });
+		}
+	}
+
+	static void parsequery(string text, WinQueryResult result) {
+		if (string.IsNullOrEmpty(text)) return;
+		foreach (var raw in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+			var line = raw.Trim();
+			if (line.StartsWith("ERR ", StringComparison.Ordinal)) {
+				result.Error = line.Substring(4).Trim();
+				continue;
+			}
+			if (line.StartsWith("VOICEERR ", StringComparison.Ordinal)) {
+				result.VoiceError = line.Substring(9).Trim();
+				continue;
+			}
+			if (line.StartsWith("VOICE|", StringComparison.Ordinal)) {
+				var rest = line.Substring(6);
+				var sp = rest.IndexOf('|');
+				if (sp <= 0) continue;
+				var culture = rest.Substring(0, sp).Trim();
+				var name = rest.Substring(sp + 1).Trim();
+				if (culture.Length == 0 || name.Length == 0) continue;
+				result.Voices.Add(new WinVoiceLine { Culture = culture, Name = name });
+				continue;
+			}
+			var i = line.IndexOf('|');
+			if (i <= 0) continue;
+			var key = cultureof(line.Substring(0, i).Trim());
+			if (string.IsNullOrEmpty(key)) continue;
+			result.States[key] = line.Substring(i + 1).Trim();
 		}
 	}
 

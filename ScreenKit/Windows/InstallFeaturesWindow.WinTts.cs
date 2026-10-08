@@ -27,10 +27,10 @@ partial class InstallFeaturesWindow {
 		applytabbuttons();
 		setstatus(Loc.T("inst.win.query"));
 		appendlog(Loc.T("inst.win.query"));
-		// 先画出目录，查询在后台跑。发音人枚举不占 UI 线程。
+		// 先画出语言目录。已装状态和发音人只在进入本页后读取。
 		refill();
-		startvoices(gen);
 		string qerr = null;
+		var uac = false;
 		try {
 			var token = local.Token;
 			if (dismrunning()) {
@@ -40,7 +40,39 @@ partial class InstallFeaturesWindow {
 					await Task.Delay(2000, token).ConfigureAwait(true);
 				}
 			}
-			winStates = await Task.Run(() => WinTtsPack.QueryStates(token)).ConfigureAwait(true);
+			if (WinTtsPack.IsAdmin()) {
+				startvoices(gen);
+				winStates = await Task.Run(() => WinTtsPack.QueryStates(token)).ConfigureAwait(true);
+			}
+			else {
+				appendlog(Loc.T("inst.win.query.elevate"));
+				setstatus(Loc.T("inst.win.query.elevate"));
+				var q = await Task.Run(() => WinTtsPack.QueryElevated(token, null)).ConfigureAwait(true);
+				if (q.UacDenied) {
+					uac = true;
+					appendlog(Loc.T("inst.win.uac"));
+					setstatus(Loc.T("inst.win.uac"));
+					startvoices(gen);
+				}
+				else {
+					winStates = q.States.Count > 0 ? q.States : null;
+					if (q.Voices.Count > 0) {
+						var list = new List<SapiVoiceItem>();
+						foreach (var v in q.Voices) {
+							list.Add(new SapiVoiceItem {
+								Culture = v.Culture,
+								DisplayName = v.Name,
+								Name = v.Name,
+								Source = "winrt",
+							});
+						}
+						winVoices = list;
+					}
+					else startvoices(gen);
+					if (q.VoiceError.Length > 0) appendlog(q.VoiceError);
+					if (winStates == null) qerr = q.Error.Length > 0 ? q.Error : "empty";
+				}
+			}
 		}
 		catch (OperationCanceledException) {
 			appendlog(Loc.T("inst.log.cancel"));
@@ -60,6 +92,7 @@ partial class InstallFeaturesWindow {
 		}
 		refill();
 		winLoaded = true;
+		if (uac) return;
 		if (!string.IsNullOrEmpty(qerr)) {
 			appendlog(Loc.T("inst.win.queryfail", qerr));
 			setstatus(Loc.T("inst.win.queryfail", qerr));
