@@ -201,7 +201,8 @@ curl -s "http://127.0.0.1:1224/api/status"
 |----|------|------|
 | `ocr.angle` | 纠正文本方向（方向分类 cls） | `true` |
 | `ocr.maxSideLen` | 检测边长上限 | `1024` |
-| `ocr.language` | 识别语言/模型变体标题 | `""`（用主窗当前模型） |
+| `ocr.engine` | 引擎：空=跟主窗，`winocr`=Windows 系统 OCR，`onnx`=ONNX 模型 | `""` |
+| `ocr.language` | ONNX 变体标题，或系统 OCR 的语言 | `""`（用主窗当前模型/语言） |
 | `ocr.device` | 设备：`cpu` / `gpu` / `intel` | `cpu` |
 | `ocr.barcode` | 同时识别条码/二维码 | `false`（仅条码请用 `POST /api/qr`） |
 | `tbpu.parser` | 排版方案（兼容保留） | `multi_line` |
@@ -222,7 +223,8 @@ curl -s "http://127.0.0.1:1224/api/status"
   "options": {
     "ocr.angle": true,
     "ocr.maxSideLen": 1600,
-    "ocr.language": "简体中文",
+    "ocr.engine": "winocr",
+    "ocr.language": "zh-Hans-CN",
     "ocr.device": "gpu",
     "data.format": "dict"
   }
@@ -241,7 +243,8 @@ curl -s "http://127.0.0.1:1224/api/status"
 | `data.format` | string | `dict`：带坐标的行列表；`text`：纯文本（行间 `\n`） |
 | `ocr.angle` | bool/string | 是否方向分类 |
 | `ocr.maxSideLen` | int | 检测边长，约 320～4096 |
-| `ocr.language` | string | 匹配模型包变体标题（模糊包含） |
+| `ocr.engine` | string | 空=跟主窗。`winocr` / `windows` / `Windows 系统 OCR` 用系统 OCR，不加载 ONNX。`onnx` 在主窗是系统 OCR 时改回第一个 ONNX 包 |
+| `ocr.language` | string | ONNX：匹配变体标题（模糊包含）。系统 OCR：BCP-47 或语言名（`zh-Hans-CN`、`en-US`、`简体中文`、`英语`、`韩语`）。本字段设为 `winocr` 也表示用系统 OCR。没有这种已安装语言时失败 |
 | `ocr.device` | string | `cpu` / `gpu`（cuda） / `intel`（dml） |
 | `ocr.detThresh` | number | 检测阈值（扩展） |
 | `ocr.detBoxThresh` | number | 框置信阈值（扩展） |
@@ -899,7 +902,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 | 行为 | 说明 |
 |------|------|
-| OCR 模型 | 请求未指定 `ocr.language` 时使用主窗当前模型包/变体。主窗选 **Windows 系统 OCR**（`winocr`）时，接口走本机 Windows OCR，语言用主窗单选（`win_ocr_langs`），不加载 ONNX。边长仍用 `ocr.maxSideLen`，缺省跟主窗 `det_limit` |
+| OCR 模型 | 未指定 `ocr.engine` 和 `ocr.language` 时跟主窗。`ocr.engine=winocr`（或 `ocr.language=winocr`）走 Windows 系统 OCR，语言用 `ocr.language`，缺省为主窗 `win_ocr_langs`，不加载 ONNX。主窗已是系统 OCR 时，`ocr.engine=onnx` 或一个 ONNX 变体标题改回模型包。边长仍用 `ocr.maxSideLen`，缺省跟主窗 `det_limit` |
 | 设备 | 可用 `ocr.device` 覆盖；否则用主窗设备配置 |
 | 服务模式 | `service_mode = true` 时启动预热，引擎常驻，适合频繁 API 调用；不按空闲卸载 |
 | 空闲卸载 | `onnx_unload_min`（默认 5）分钟内未使用则卸载 OCR、翻译、人脸、语音识别和合成。`0` 表示不自动卸载。服务模式开启时忽略 |

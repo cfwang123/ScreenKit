@@ -1129,29 +1129,118 @@ sealed partial class HttpOcrServer : IDisposable {
 		if (map.TryGetValue("ocr.detBoxThresh", out var dbt) && dbt != null)
 			o.DetBoxThresh = Compat.Clamp(asfloat(dbt, o.DetBoxThresh), 0.05f, 0.95f);
 
-		// ocr.language：尽量匹配变体标题
-		if (map.TryGetValue("ocr.language", out var lang) && lang != null) {
-			var title = lang.GetValueKind() == JsonValueKind.String
-				? lang.GetValue<string>()
-				: lang.ToString();
-			if (!string.IsNullOrWhiteSpace(title)) {
-				var packs = ModelCatalog.Scan();
-				foreach (var p in packs) {
-					var hit = p.Variants.FirstOrDefault(v =>
-						string.Equals(v.Title, title, StringComparison.OrdinalIgnoreCase)
-						|| Compat.Contains(v.Title, title, StringComparison.OrdinalIgnoreCase)
-						|| Compat.Contains(title, v.Title, StringComparison.OrdinalIgnoreCase));
-					if (hit != null) {
-						o.ModelPackId = p.Id;
-						o.ModelVariant = hit.Title;
-						o.ModelsDir = p.Dir;
-						break;
-					}
+		// ocr.engine：winocr 走系统 OCR；onnx 在主窗是系统 OCR 时改回模型包。空则跟主窗。
+		var engine = getstr(map, "ocr.engine", "");
+		var title = getstr(map, "ocr.language", "");
+		var forceWin = iswinengine(engine) || iswinengine(title);
+		if (forceWin) usewinocr(o);
+		else if (isonnxengine(engine) && WinOcr.Is(o)) useonnxdefault(o);
+
+		// ocr.language：系统 OCR 认 BCP-47 或语言名；否则匹配 ONNX 变体标题
+		if (!string.IsNullOrWhiteSpace(title) && !iswinengine(title)) {
+			if (WinOcr.Is(o)) {
+				if (!trywinlang(o, title)) {
+					if (forceWin)
+						throw new InvalidOperationException("没有这种 Windows OCR 语言: " + title);
+					matchonnxlang(o, title);
 				}
 			}
+			else matchonnxlang(o, title);
 		}
 
 		return o;
+	}
+
+	static bool iswinengine(string s) {
+		if (string.IsNullOrWhiteSpace(s)) return false;
+		s = s.Trim();
+		return s.Equals("winocr", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("windows", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("windows ocr", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("windowsocr", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("Windows 系统 OCR", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("系统OCR", StringComparison.OrdinalIgnoreCase);
+	}
+
+	static bool isonnxengine(string s) {
+		if (string.IsNullOrWhiteSpace(s)) return false;
+		s = s.Trim();
+		return s.Equals("onnx", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("ppocr", StringComparison.OrdinalIgnoreCase);
+	}
+
+	static void usewinocr(OcrOptions o) {
+		o.ModelPackId = WinOcr.PackId;
+		o.ModelsDir = "";
+		o.ModelVariant = "";
+	}
+
+	static void useonnxdefault(OcrOptions o) {
+		var p = ModelCatalog.Scan().FirstOrDefault();
+		if (p == null) throw new InvalidOperationException("没有 ONNX 模型包");
+		o.ModelPackId = p.Id;
+		o.ModelsDir = p.Dir;
+		var v = p.FindVariant("");
+		if (v != null) o.ModelVariant = v.Title;
+	}
+
+	static void matchonnxlang(OcrOptions o, string title) {
+		var packs = ModelCatalog.Scan();
+		foreach (var p in packs) {
+			var hit = p.Variants.FirstOrDefault(v =>
+				string.Equals(v.Title, title, StringComparison.OrdinalIgnoreCase)
+				|| Compat.Contains(v.Title, title, StringComparison.OrdinalIgnoreCase)
+				|| Compat.Contains(title, v.Title, StringComparison.OrdinalIgnoreCase));
+			if (hit == null) continue;
+			o.ModelPackId = p.Id;
+			o.ModelVariant = hit.Title;
+			o.ModelsDir = p.Dir;
+			return;
+		}
+	}
+
+	/// <summary>把请求里的语言写成一个已安装的 Windows OCR 标签。对不上返回 false。</summary>
+	static bool trywinlang(OcrOptions o, string title) {
+		var langs = WinOcr.Languages();
+		if (langs.Count == 0) return false;
+		WinOcrLang hit = null;
+		foreach (var tag in wintags(title)) {
+			hit = langs.FirstOrDefault(x =>
+				string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
+			if (hit != null) break;
+		}
+		if (hit == null)
+			hit = langs.FirstOrDefault(x =>
+				string.Equals(x.Tag, title, StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(x.Name, title, StringComparison.OrdinalIgnoreCase));
+		if (hit == null && title.Trim().Length >= 3)
+			hit = langs.FirstOrDefault(x =>
+				(x.Name != null && x.Name.IndexOf(title.Trim(), StringComparison.OrdinalIgnoreCase) >= 0)
+				|| (x.Tag != null && x.Tag.IndexOf(title.Trim(), StringComparison.OrdinalIgnoreCase) >= 0));
+		if (hit == null) return false;
+		o.WinOcrLangs = hit.Tag;
+		return true;
+	}
+
+	static string[] wintags(string title) {
+		var t = (title ?? "").Trim();
+		if (eqany(t, "简体中文", "简中", "中文", "zh", "zh-cn", "zh-hans", "chinese"))
+			return new[] { "zh-Hans-CN", "zh-Hans", "zh-CN" };
+		if (eqany(t, "英语", "英文", "en", "english"))
+			return new[] { "en-US", "en-GB", "en" };
+		if (eqany(t, "韩语", "韩文", "ko", "korean"))
+			return new[] { "ko", "ko-KR" };
+		if (eqany(t, "日语", "日文", "ja", "japanese"))
+			return new[] { "ja", "ja-JP" };
+		if (eqany(t, "繁体中文", "繁中", "zh-tw", "zh-hant"))
+			return new[] { "zh-Hant-TW", "zh-Hant", "zh-TW" };
+		return Array.Empty<string>();
+	}
+
+	static bool eqany(string s, params string[] opts) {
+		foreach (var one in opts)
+			if (string.Equals(s, one, StringComparison.OrdinalIgnoreCase)) return true;
+		return false;
 	}
 
 	static Dictionary<string, JsonNode> mergedefaults(JsonObject optNode) {
@@ -1195,9 +1284,19 @@ sealed partial class HttpOcrServer : IDisposable {
 				["default"] = 1024,
 				["type"] = "int",
 			},
+			["ocr.engine"] = new JsonObject {
+				["title"] = "识别引擎",
+				["toolTip"] = "空=跟主窗。winocr=Windows 系统 OCR，不加载 ONNX。onnx=主窗是系统 OCR 时改回模型包。",
+				["default"] = "",
+				["optionsList"] = new JsonArray {
+					new JsonArray { "", "跟主窗" },
+					new JsonArray { "winocr", "Windows 系统 OCR" },
+					new JsonArray { "onnx", "ONNX 模型" },
+				},
+			},
 			["ocr.language"] = new JsonObject {
 				["title"] = "识别语言/模型",
-				["toolTip"] = "对应模型变体标题，如「简体中文」",
+				["toolTip"] = "ONNX：变体标题，如「简体中文」。系统 OCR：BCP-47 或语言名，如 zh-Hans-CN、en-US、英语。设为 winocr 即选用系统 OCR。",
 				["default"] = "",
 				["type"] = "string",
 			},

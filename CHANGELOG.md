@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- HTTP `POST /api/ocr` can select **Windows OCR** with `ocr.engine=winocr` or `ocr.language=winocr`, without changing the main window. `ocr.language` is then a BCP-47 tag or a language name (`zh-Hans-CN`, `en-US`, `英语`). `ocr.maxSideLen` still caps the long side. `ocr.engine=onnx` switches back to an ONNX pack when the main window is Windows OCR. `GET /api/ocr/get_options` lists `ocr.engine`.
 - Settings → Recognition shows what the selected engine does. Windows OCR: no download, one installed language, upright boxes, no rotation, confidence, or GPU; the side-length cap still applies. Umi uses larger server models (Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Russian). Rapid mobile Chinese is Simplified Chinese only. Rapid all-languages adds Latin and Arabic. ONNX packs keep detection, rotation, recognition, device choice, thresholds, and a confidence score.
 - Screenshot OCR can use **Windows OCR** (`model_pack = winocr`). It does not load an ONNX model. One language combo appears only for this engine. The side-length cap (`det_limit`, toolbar **边长**) applies to this engine too: the long side is shrunk to that cap and boxes are mapped back. Spaces between CJK characters are removed. The choice is saved as `win_ocr_langs`.
 - Web manager **Send to PC** copies the text to the clipboard and shows a toast `Copied text: …`. Clearing the text still only clears the File sync box.
@@ -58,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- HTTP `POST /api/ocr` 可用 `ocr.engine=winocr` 或 `ocr.language=winocr` 指定 **Windows 系统 OCR**，不必改主窗。这时 `ocr.language` 是 BCP-47 或语言名（`zh-Hans-CN`、`en-US`、`英语`）。`ocr.maxSideLen` 仍限制长边。主窗已是系统 OCR 时，`ocr.engine=onnx` 改回 ONNX 模型包。`GET /api/ocr/get_options` 会列出 `ocr.engine`。
 - 参数设置的识别页会写明当前引擎的特点。Windows OCR：不用下载，一次一种已装语言，框是正矩形，没有方向分类、置信度和 GPU，边长上限仍然有效。Umi 用更大的 server 模型（简中、英、繁、日、韩、俄）。Rapid mobile 简中只做简体中文。Rapid 全语种另有拉丁字母和阿拉伯文。ONNX 包都有检测、方向分类、识别、设备、阈值和置信度。
 - 截图识别可选用 **Windows 系统 OCR**（`model_pack = winocr`）。不加载 ONNX 模型。语言下拉只在这个引擎下出现，单选。边长上限（`det_limit`，顶栏「边长」）同样生效：长边超过上限才缩小，框再映回原图。汉字之间的空格会去掉。选择记在 `win_ocr_langs`。
 - 网页管理 **推送到PC** 会把文本复制到剪切板，并弹出 toast「已复制文本：…」。清空仍只清掉文件同步页里的文本。

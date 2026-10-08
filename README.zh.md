@@ -201,7 +201,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 - `GET  /api` · `/api/status`
 - `GET/POST /api/cast/stop` — 立刻关闭投屏画面窗
 - WebSocket `/cast` — 投屏媒体（与 HTTP API 同端口）
-- `POST /api/ocr` — `box` 为原图像素
+- `POST /api/ocr` — `box` 为原图像素。`ocr.engine=winocr` 让这一次走 Windows 系统 OCR
 - `POST /api/qr` — 仅条码/二维码（`/api/barcode`）
 - `GET  /api/ocr/get_options`
 - `GET  /api/asr/models` · `POST /api/asr`

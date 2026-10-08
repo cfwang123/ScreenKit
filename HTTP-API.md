@@ -200,7 +200,8 @@ Returns option descriptors: each entry has `title` / `toolTip` / `default` / opt
 |-----|---------|---------|
 | `ocr.angle` | Text orientation (cls) | `true` |
 | `ocr.maxSideLen` | Detection side limit | `1024` |
-| `ocr.language` | Language / model variant title | `""` (use main window model) |
+| `ocr.engine` | Engine: empty = main window, `winocr` = Windows OCR, `onnx` = ONNX pack | `""` |
+| `ocr.language` | ONNX variant title, or a Windows OCR language | `""` (main window model / language) |
 | `ocr.device` | Device: `cpu` / `gpu` / `intel` | `cpu` |
 | `ocr.barcode` | Also scan barcodes / QR codes | `false` (barcode-only: `POST /api/qr`) |
 | `tbpu.parser` | Layout mode (kept for compatibility) | `multi_line` |
@@ -221,7 +222,8 @@ Recognize text in an image. Supported input modes:
   "options": {
     "ocr.angle": true,
     "ocr.maxSideLen": 1600,
-    "ocr.language": "简体中文",
+    "ocr.engine": "winocr",
+    "ocr.language": "zh-Hans-CN",
     "ocr.device": "gpu",
     "data.format": "dict"
   }
@@ -240,7 +242,8 @@ Recognize text in an image. Supported input modes:
 | `data.format` | string | `dict`: line list with boxes; `text`: plain text (`\n` between lines) |
 | `ocr.angle` | bool/string | Orientation classification on/off |
 | `ocr.maxSideLen` | int | Detection side length, roughly 320–4096 |
-| `ocr.language` | string | Match model pack variant title (fuzzy contains) |
+| `ocr.engine` | string | Empty follows the main window. `winocr` / `windows` / `Windows 系统 OCR` uses Windows OCR and does not load ONNX. `onnx` switches back to the first ONNX pack when the main window is Windows OCR |
+| `ocr.language` | string | ONNX: match a variant title (fuzzy contains). Windows OCR: BCP-47 or a language name (`zh-Hans-CN`, `en-US`, `简体中文`, `英语`, `韩语`). Setting this field to `winocr` also selects Windows OCR. An unknown installed language fails |
 | `ocr.device` | string | `cpu` / `gpu` (CUDA) / `intel` (DirectML) |
 | `ocr.detThresh` | number | Detection threshold (extension) |
 | `ocr.detBoxThresh` | number | Box score threshold (extension) |
@@ -804,7 +807,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 | Behavior | Description |
 |----------|-------------|
-| OCR model | If `ocr.language` is omitted, uses the main window’s current pack/variant |
+| OCR model | With `ocr.engine` and `ocr.language` omitted, follows the main window. `ocr.engine=winocr` (or `ocr.language=winocr`) uses Windows OCR. Its language is `ocr.language`, or the main window `win_ocr_langs` when omitted, and no ONNX model is loaded. When the main window is already Windows OCR, `ocr.engine=onnx` or an ONNX variant title switches back to a model pack. `ocr.maxSideLen` still applies and defaults to the main window `det_limit` |
 | Device | May override with `ocr.device`; otherwise uses main-window device |
 | Service mode | `service_mode = true` preloads engines for frequent API calls and does not unload them on idle |
 | Idle unload | `onnx_unload_min` (default 5) unloads OCR, translation, face, speech recognition, and speech synthesis after that many idle minutes. `0` disables it. Ignored while service mode is on |

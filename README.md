@@ -201,7 +201,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 - `GET  /api` · `/api/status`
 - `GET/POST /api/cast/stop` — close screencast viewer now
 - WebSocket `/cast` — screencast media (same HTTP port)
-- `POST /api/ocr` — `box` is original-image pixels
+- `POST /api/ocr` — `box` is original-image pixels. `ocr.engine=winocr` uses Windows OCR on this request
 - `POST /api/qr` — barcode / QR only (`/api/barcode`)
 - `GET  /api/ocr/get_options`
 - `GET  /api/asr/models` · `POST /api/asr`
