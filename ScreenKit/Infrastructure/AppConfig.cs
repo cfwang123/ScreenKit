@@ -27,6 +27,8 @@ static class AppConfig {
 				o.ModelPackId = mp.Trim();
 			if (map.TryGetValue("model_variant", out var mv))
 				o.ModelVariant = mv?.Trim() ?? "";
+			if (map.TryGetValue("win_ocr_langs", out var wol))
+				o.WinOcrLangs = (wol ?? "").Trim();
 			if (map.TryGetValue("device", out var dev))
 				o.Device = parsedevice(dev);
 			if (map.TryGetValue("det_limit", out var dl) && int.TryParse(dl, out var detLen))
@@ -515,6 +517,8 @@ static class AppConfig {
 		sb.AppendLine("[ocr]");
 		sb.AppendLine($"model_pack = \"{esc(o.ModelPackId ?? "umi")}\"");
 		sb.AppendLine($"model_variant = \"{esc(o.ModelVariant ?? "")}\"");
+		sb.AppendLine("# Windows 系统 OCR 语言，逗号分隔的 BCP-47（仅 model_pack=winocr）");
+		sb.AppendLine($"win_ocr_langs = \"{esc(o.WinOcrLangs ?? "")}\"");
 		sb.AppendLine($"device = \"{o.Device}\"");
 		sb.AppendLine($"det_limit = {o.DetLimitSideLen}");
 		sb.AppendLine($"det_thresh = {o.DetThresh.ToString(CultureInfo.InvariantCulture)}");

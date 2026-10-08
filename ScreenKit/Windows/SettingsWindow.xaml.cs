@@ -22,6 +22,7 @@ public partial class SettingsWindow : Window {
 		InitializeComponent();
 		Result = clone(current);
 		packs = ModelCatalog.Scan();
+		packs.Insert(0, WinOcr.Pack());
 
 		epack.ItemsSource = packs;
 		epack.SelectionChanged += (_, _) => onpackchanged();
@@ -206,6 +207,7 @@ public partial class SettingsWindow : Window {
 			lbsetloghint.Text = Loc.T("set.log.hint");
 			lbsetpack.Text = Loc.T("set.pack");
 			lbsetvariant.Text = Loc.T("set.variant");
+			lbsetwinlang.Text = Loc.T("ocr.win.langs");
 			lbsetdevice.Text = Loc.T("set.device");
 			itdevgpu.Content = Loc.T("set.device.gpu");
 			itdevigpu.Content = Loc.T("set.device.igpu");
@@ -411,11 +413,13 @@ public partial class SettingsWindow : Window {
 		else {
 			var pack = packs.FirstOrDefault(p =>
 					string.Equals(p.Id, o.ModelPackId, StringComparison.OrdinalIgnoreCase))
+				?? packs.FirstOrDefault(p => !WinOcr.IsId(p.Id))
 				?? packs[0];
 			epack.SelectedItem = pack;
 			// onpackchanged 会填变体；再选中目标变体
 			var want = o.ModelVariant;
-			if (!string.IsNullOrWhiteSpace(want) && evariant.ItemsSource is IEnumerable<ModelVariant> vs) {
+			if (!WinOcr.IsId(pack.Id) && !string.IsNullOrWhiteSpace(want)
+				&& evariant.ItemsSource is IEnumerable<ModelVariant> vs) {
 				var hit = vs.FirstOrDefault(v =>
 					string.Equals(v.Title, want, StringComparison.OrdinalIgnoreCase));
 				if (hit != null) evariant.SelectedItem = hit;
@@ -572,8 +576,26 @@ public partial class SettingsWindow : Window {
 
 	void onpackchanged() {
 		var pack = epack.SelectedItem as ModelPack;
+		var win = WinOcr.IsId(pack?.Id);
+		var show = win ? Visibility.Visible : Visibility.Collapsed;
+		var hide = win ? Visibility.Collapsed : Visibility.Visible;
+		psetwin.Visibility = show;
+		lbsetvariant.Visibility = hide;
+		evariant.Visibility = hide;
+		psetonnx.Visibility = hide;
+		if (win) {
+			WinOcrUi.Fill(psetwinlist, Result, () => {
+				var prev = Result.WinOcrLangs;
+				if (string.IsNullOrWhiteSpace(prev))
+					prev = string.Join(",", WinOcr.SelectedTags(Result));
+				Result.WinOcrLangs = WinOcrUi.Read(psetwinlist, prev);
+			});
+			lbmodelhint.Text = Loc.T("ocr.win.hint");
+			return;
+		}
 		if (pack == null) {
 			evariant.ItemsSource = null;
+			lbmodelhint.Text = "";
 			return;
 		}
 		evariant.ItemsSource = pack.Variants;
@@ -594,16 +616,38 @@ public partial class SettingsWindow : Window {
 	bool saveui() {
 		var pack = epack.SelectedItem as ModelPack;
 		var variant = evariant.SelectedItem as ModelVariant;
-		if (pack == null || variant == null) {
+		if (pack == null) {
 			tabset.SelectedItem = tabsetocr;
 			MessageBox.Show(this, Loc.T("set.need.pack"), Loc.T("settings"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
-
-		Result.ModelPackId = pack.Id;
-		Result.ModelVariant = variant.Title;
-		Result.ModelsDir = pack.Dir;
+		if (WinOcr.IsId(pack.Id)) {
+			var prevLangs = Result.WinOcrLangs;
+			if (string.IsNullOrWhiteSpace(prevLangs))
+				prevLangs = string.Join(",", WinOcr.SelectedTags(Result));
+			var langs = WinOcrUi.Read(psetwinlist, prevLangs);
+			if (string.IsNullOrEmpty(langs)) {
+				tabset.SelectedItem = tabsetocr;
+				MessageBox.Show(this, Loc.T("ocr.win.need"), Loc.T("settings"),
+					MessageBoxButton.OK, MessageBoxImage.Warning);
+				return false;
+			}
+			Result.ModelPackId = WinOcr.PackId;
+			Result.ModelsDir = "";
+			Result.WinOcrLangs = langs;
+		}
+		else if (variant == null) {
+			tabset.SelectedItem = tabsetocr;
+			MessageBox.Show(this, Loc.T("set.need.pack"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		else {
+			Result.ModelPackId = pack.Id;
+			Result.ModelVariant = variant.Title;
+			Result.ModelsDir = pack.Dir;
+		}
 
 		var langTag = (euilang.SelectedItem as ComboBoxItem)?.Tag as string ?? Loc.Zh;
 		Result.UiLang = Loc.Normalize(langTag);

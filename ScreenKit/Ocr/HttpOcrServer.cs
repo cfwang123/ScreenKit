@@ -1078,6 +1078,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		var o = new OcrOptions {
 			ModelPackId = baseOpt.ModelPackId,
 			ModelVariant = baseOpt.ModelVariant,
+			WinOcrLangs = baseOpt.WinOcrLangs ?? "",
 			ModelsDir = baseOpt.ModelsDir,
 			Device = baseOpt.Device,
 			DetLimitSideLen = baseOpt.DetLimitSideLen,

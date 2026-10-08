@@ -48,6 +48,10 @@ sealed class OcrRunner : IDisposable {
 	public OcrResult Run(OcrOptions opt, Mat bgr) {
 		Compat.ThrowIfDisposed(disposed, this);
 		NativeRuntime.EnsureOpenCv();
+		if (WinOcr.Is(opt)) {
+			dropengine();
+			return WinOcr.Recognize(opt, bgr);
+		}
 		lock (gate) {
 			var loadMs = ensure(opt);
 			var r = eng.Run(bgr);
@@ -59,6 +63,15 @@ sealed class OcrRunner : IDisposable {
 	public OcrResult Run(OcrOptions opt, string imagePath) {
 		Compat.ThrowIfDisposed(disposed, this);
 		NativeRuntime.EnsureOpenCv();
+		if (WinOcr.Is(opt)) {
+			dropengine();
+			if (!File.Exists(imagePath))
+				throw new FileNotFoundException("图像不存在", imagePath);
+			using var mat = Cv2.ImRead(imagePath, ImreadModes.Color);
+			if (mat.Empty())
+				throw new InvalidOperationException($"无法读取图像: {imagePath}");
+			return WinOcr.Recognize(opt, mat);
+		}
 		lock (gate) {
 			var loadMs = ensure(opt);
 			var r = eng.Run(imagePath);
@@ -74,6 +87,10 @@ sealed class OcrRunner : IDisposable {
 	public int Warmup(OcrOptions opt) {
 		NativeRuntime.EnsureOpenCv();
 		Compat.ThrowIfDisposed(disposed, this);
+		if (WinOcr.Is(opt)) {
+			dropengine();
+			return 0;
+		}
 		lock (gate) return ensure(opt);
 	}
 
@@ -107,6 +124,18 @@ sealed class OcrRunner : IDisposable {
 			engKey = "";
 		}
 		// ORT Dispose 可能很慢，勿阻塞 UI/HTTP 线程
+		if (old != null)
+			_ = Task.Run(() => { try { old.Dispose(); } catch { } });
+	}
+
+	void dropengine() {
+		OcrEngine old;
+		lock (gate) {
+			old = eng;
+			eng = null;
+			engKey = "";
+			lastuse = Environment.TickCount;
+		}
 		if (old != null)
 			_ = Task.Run(() => { try { old.Dispose(); } catch { } });
 	}

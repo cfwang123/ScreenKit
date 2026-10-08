@@ -899,7 +899,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 | 行为 | 说明 |
 |------|------|
-| OCR 模型 | 请求未指定 `ocr.language` 时使用主窗当前模型包/变体 |
+| OCR 模型 | 请求未指定 `ocr.language` 时使用主窗当前模型包/变体。主窗选 **Windows 系统 OCR**（`winocr`）时，接口走本机 Windows OCR，语言用主窗多选（`win_ocr_langs`），不加载 ONNX |
 | 设备 | 可用 `ocr.device` 覆盖；否则用主窗设备配置 |
 | 服务模式 | `service_mode = true` 时启动预热，引擎常驻，适合频繁 API 调用；不按空闲卸载 |
 | 空闲卸载 | `onnx_unload_min`（默认 5）分钟内未使用则卸载 OCR、翻译、人脸、语音识别和合成。`0` 表示不自动卸载。服务模式开启时忽略 |

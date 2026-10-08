@@ -599,13 +599,28 @@ static class Cli {
 		Out($"设备: {device}");
 		Out($"det: limit={opt.DetLimitSideLen} pad={opt.DetPadding} thresh={opt.DetThresh} box={opt.DetBoxThresh} dilate={opt.DetUseDilation}");
 
-		var tLoad0 = Environment.TickCount;
-		using var engine = new OcrEngine(opt);
-		var loadMs = Environment.TickCount - tLoad0;
-		Out($"会话就绪: model={engine.ModelLabel}, device={engine.DeviceUsed}, load={loadMs}ms");
-
-		var result = engine.Run(image);
-		result.LoadMs = loadMs;
+		OcrResult result;
+		if (WinOcr.Is(opt)) {
+			Out($"Windows OCR 语言: {opt.WinOcrLangs}");
+			var t0 = Environment.TickCount;
+			NativeRuntime.EnsureOpenCv();
+			using var mat = OpenCvSharp.Cv2.ImRead(image, OpenCvSharp.ImreadModes.Color);
+			if (mat.Empty()) {
+				Err($"无法读取图像: {image}");
+				return 1;
+			}
+			result = WinOcr.Recognize(opt, mat);
+			result.LoadMs = 0;
+			Out($"会话就绪: model={result.ModelLabel}, device={result.DeviceUsed}, load={Environment.TickCount - t0}ms");
+		}
+		else {
+			var tLoad0 = Environment.TickCount;
+			using var engine = new OcrEngine(opt);
+			var loadMs = Environment.TickCount - tLoad0;
+			Out($"会话就绪: model={engine.ModelLabel}, device={engine.DeviceUsed}, load={loadMs}ms");
+			result = engine.Run(image);
+			result.LoadMs = loadMs;
+		}
 
 		Out($"识别完成: lines={result.Lines.Count}, infer={result.InferMs}ms, device={result.DeviceUsed}");
 		Out("---");
@@ -632,16 +647,27 @@ static class Cli {
 		}
 		catch { }
 		var packs = ModelCatalog.Scan();
-		if (packs.Count == 0) {
-			Err("未发现模型包");
-			return 1;
-		}
 		Out("=== 可用模型包 ===");
+		if (packs.Count == 0)
+			Out("(无 ONNX 模型包)");
 		foreach (var p in packs) {
 			Out($"[{p.Id}] {p.DisplayName}");
 			Out($"  目录: {p.Dir}");
 			foreach (var v in p.Variants)
 				Out($"  - {v.DisplayName}  (det={v.DetFile}, rec={v.RecFile})");
+		}
+		var win = WinOcr.Pack();
+		Out($"[{win.Id}] {win.DisplayName}");
+		var langs = WinOcr.Languages();
+		if (langs.Count == 0)
+			Out("  (本机无 Windows OCR 语言)");
+		else {
+			foreach (var lang in langs)
+				Out($"  - {lang.Tag}  {lang.Name}");
+		}
+		if (packs.Count == 0 && langs.Count == 0) {
+			Err("未发现模型包");
+			return 1;
 		}
 		return 0;
 	}
@@ -1065,6 +1091,17 @@ static class Cli {
 			ModelPackId = string.IsNullOrWhiteSpace(packId) ? "umi" : packId,
 			ModelVariant = variant ?? "",
 		};
+		if (WinOcr.Is(opt)) {
+			opt.ModelPackId = WinOcr.PackId;
+			opt.ModelsDir = "";
+			try {
+				var saved = new OcrOptions();
+				AppConfig.LoadInto(saved);
+				opt.WinOcrLangs = saved.WinOcrLangs ?? "";
+			}
+			catch { }
+			return opt;
+		}
 		if (detLimit.HasValue) opt.DetLimitSideLen = detLimit.Value;
 		if (detPad.HasValue) opt.DetPadding = detPad.Value;
 		if (boxThresh.HasValue) opt.DetBoxThresh = boxThresh.Value;
@@ -3779,7 +3816,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 参数:
   -i, --image     待识别图片路径
   -d, --device    auto(默认) | gpu | cpu | igpu
-  -p, --pack      模型包 Id（umi / rapid-ch，默认 umi）
+  -p, --pack      模型包 Id（umi / rapid-ch / winocr，默认 umi）
   -v, --variant   语言/变体标题（configs.txt 中的名称）
   -m, --models    直接指定模型目录（覆盖 --pack）
       --no-cls    跳过方向分类
@@ -3799,7 +3836,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-record-cursor  画点击高亮圈并叠加当前光标，写出 PNG
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除；网页登录与公开下载
-      --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、其它排序
+      --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、西、法、葡、俄、德、其它排序
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
@@ -4062,7 +4099,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			Loc.SetRootForTest(dir);
 			Loc.Reload();
 			var codes = string.Join(",", Loc.Languages.Select(x => x.Code));
-			if (codes != "zh,en,ja,ko,de,fr") {
+			if (codes != "zh,en,ja,ko,fr,de") {
 				Err("lang: 排序不符 " + codes);
 				return 1;
 			}

@@ -99,10 +99,20 @@
 						<TextBlock x:Name="lbsetvariant" Text="语言 / 模型变体" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<ComboBox x:Name="evariant" Height="32" Margin="0,0,0,6"
 						          DisplayMemberPath="DisplayName"/>
+						<StackPanel x:Name="psetwin" Visibility="Collapsed" Margin="0,8,0,0">
+							<TextBlock x:Name="lbsetwinlang" Text="语言（可多选）" FontWeight="SemiBold" Margin="0,0,0,6"/>
+							<Border BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+							        CornerRadius="6" Padding="8" MaxHeight="220">
+								<ScrollViewer VerticalScrollBarVisibility="Auto">
+									<StackPanel x:Name="psetwinlist"/>
+								</ScrollViewer>
+							</Border>
+						</StackPanel>
 						<TextBlock x:Name="lbmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,14"
 						           Text=""/>
 
+						<StackPanel x:Name="psetonnx">
 						<TextBlock x:Name="lbsetdevice" Text="推理设备" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<ComboBox x:Name="edevice" Height="32" Margin="0,0,0,6">
 							<ComboBoxItem x:Name="itdevgpu" Content="GPU (NVIDIA CUDA)" Tag="Gpu"/>
@@ -141,6 +151,7 @@
 						</DockPanel>
 
 						<CheckBox x:Name="eusecls" Content="启用方向分类 (cls)" Margin="0,0,0,16" IsChecked="True"/>
+						</StackPanel>
 
 						<TextBlock x:Name="lbsetpdf" Text="PDF 识别" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<CheckBox x:Name="epdftext" Content="导出时叠加不可见文字层（可检索/可复制）"

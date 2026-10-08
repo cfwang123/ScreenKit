@@ -1037,11 +1037,13 @@ public partial class MainWindow : Window {
 
 	void initmodelbar() {
 		packs = ModelCatalog.Scan();
+		packs.Insert(0, WinOcr.Pack());
 		modelUiLoading = true;
 		epack.ItemsSource = packs;
-		// 选中当前包
+		// 选中当前包；对不上时仍优先 ONNX 包
 		var pack = packs.FirstOrDefault(p =>
 				string.Equals(p.Id, opt.ModelPackId, StringComparison.OrdinalIgnoreCase))
+			?? packs.FirstOrDefault(p => !WinOcr.IsId(p.Id))
 			?? packs.FirstOrDefault();
 		if (pack != null) {
 			epack.SelectedItem = pack;
@@ -1073,6 +1075,7 @@ public partial class MainWindow : Window {
 		// 检测边长
 		selectdetlen(opt.DetLimitSideLen);
 		modelUiLoading = false;
+		applyengineui();
 		if (!string.IsNullOrWhiteSpace(CudaBootstrap.GpuStatus))
 			setstatus(CudaBootstrap.GpuStatus);
 
@@ -1170,15 +1173,42 @@ public partial class MainWindow : Window {
 		evariant.SelectedIndex = 0;
 	}
 
+	void applyengineui() {
+		var win = WinOcr.IsId((epack.SelectedItem as ModelPack)?.Id);
+		var show = win ? Visibility.Visible : Visibility.Collapsed;
+		var hide = win ? Visibility.Collapsed : Visibility.Visible;
+		lbwinlang.Visibility = show;
+		bwinlang.Visibility = show;
+		lbvariant.Visibility = hide;
+		evariant.Visibility = hide;
+		lbdevice.Visibility = hide;
+		edevice.Visibility = hide;
+		lbdetlen.Visibility = hide;
+		edetlen.Visibility = hide;
+		if (!win) return;
+		lbwinlang.Text = Loc.T("ocr.win.lang");
+		bwinlang.ToolTip = Loc.T("ocr.win.lang.tip");
+		WinOcrUi.Fill(pwinlanglist, opt, () => {
+			var prev = opt.WinOcrLangs;
+			if (string.IsNullOrWhiteSpace(prev))
+				prev = string.Join(",", WinOcr.SelectedTags(opt));
+			opt.WinOcrLangs = WinOcrUi.Read(pwinlanglist, prev);
+			lbwinlangsum.Text = WinOcr.Summary(opt);
+			try { AppConfig.Save(opt); } catch { }
+		});
+		lbwinlangsum.Text = WinOcr.Summary(opt);
+	}
+
 	void applymodelchoice(bool reload) {
 		var pack = epack.SelectedItem as ModelPack;
 		var variant = evariant.SelectedItem as ModelVariant;
 		if (pack != null) {
 			opt.ModelPackId = pack.Id;
-			opt.ModelsDir = pack.Dir;
+			opt.ModelsDir = WinOcr.IsId(pack.Id) ? "" : pack.Dir;
 		}
-		if (variant != null)
+		if (!WinOcr.Is(opt) && variant != null)
 			opt.ModelVariant = variant.Title;
+		applyengineui();
 
 		var tag = (edevice.SelectedItem as ComboBoxItem)?.Tag as string ?? "Cpu";
 		// 选了不可用后端 → CPU
@@ -1196,6 +1226,16 @@ public partial class MainWindow : Window {
 
 		try { AppConfig.Save(opt); } catch { }
 		if (!reload) return;
+		if (WinOcr.Is(opt)) {
+			var wlabel = "Windows OCR · " + WinOcr.Summary(opt);
+			if (opt.ServiceMode)
+				tryservicewarmup($"已切换 · {wlabel}");
+			else {
+				try { runner.Invalidate(); } catch { }
+				setstatus($"已切换 · {wlabel}，下次识别时使用");
+			}
+			return;
+		}
 		var dev = opt.Device.ToString();
 		var label = variant != null ? $"{pack?.DisplayName} · {variant.Title}" : (pack?.DisplayName ?? "");
 		if (opt.ServiceMode) {
@@ -1211,7 +1251,7 @@ public partial class MainWindow : Window {
 	/// <summary>服务模式：后台预热/热切换引擎，始终保持加载状态。</summary>
 	void tryservicewarmup(string reasonPrefix) {
 		if (!opt.ServiceMode) return;
-		if (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir))
+		if (!WinOcr.Is(opt) && (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir)))
 			applydefaultmodel();
 		var snap = snapshotopt();
 		var prefix = string.IsNullOrWhiteSpace(reasonPrefix) ? "服务模式" : reasonPrefix;
@@ -1255,6 +1295,7 @@ public partial class MainWindow : Window {
 				}
 			}
 			selectdetlen(opt.DetLimitSideLen);
+			applyengineui();
 		}
 		finally {
 			modelUiLoading = false;
@@ -1491,6 +1532,8 @@ public partial class MainWindow : Window {
 
 			// 顶栏
 			lbpack.Text = Loc.T("label.pack");
+			lbwinlang.Text = Loc.T("ocr.win.lang");
+			bwinlang.ToolTip = Loc.T("ocr.win.lang.tip");
 			lbvariant.Text = Loc.T("label.variant");
 			lbdevice.Text = Loc.T("label.device");
 			lbdetlen.Text = Loc.T("label.detlen");
@@ -3203,13 +3246,16 @@ public partial class MainWindow : Window {
 				setstatus("未安装 PDF 渲染库，已取消");
 				return;
 			}
-			if (!FeaturePrompt.EnsureOpenCv(this) || !FeaturePrompt.EnsureOcrModels(this)
-				|| !FeaturePrompt.EnsureOcrOrt(this)) {
+			if (!FeaturePrompt.EnsureOpenCv(this)) {
+				setstatus("未安装 OCR 依赖，PDF 识别不可用");
+				return;
+			}
+			if (!WinOcr.Is(opt) && (!FeaturePrompt.EnsureOcrModels(this) || !FeaturePrompt.EnsureOcrOrt(this))) {
 				setstatus("未安装 OCR 依赖，PDF 识别不可用");
 				return;
 			}
 			applymodelchoice(reload: false);
-			if (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir))
+			if (!WinOcr.Is(opt) && (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir)))
 				applydefaultmodel();
 			var win = new PdfOcrWindow(() => snapshotopt(), runner, pdfPath);
 			attachdialogowner(win, fromTray);
@@ -3470,12 +3516,13 @@ public partial class MainWindow : Window {
 			ocrDoneForImg = true;
 			return;
 		}
-		if (!FeaturePrompt.EnsureOcrModels(this)) {
+		var winocr = WinOcr.Is(opt);
+		if (!winocr && !FeaturePrompt.EnsureOcrModels(this)) {
 			setstatus("未安装 OCR 模型，已取消识别");
 			ocrDoneForImg = true;
 			return;
 		}
-		if (!FeaturePrompt.EnsureOcrOrt(this)) {
+		if (!winocr && !FeaturePrompt.EnsureOcrOrt(this)) {
 			setstatus("未安装 ONNX Runtime，已取消识别");
 			ocrDoneForImg = true;
 			return;
@@ -3502,12 +3549,18 @@ public partial class MainWindow : Window {
 			OcrDevice.IntelGpu => "核显",
 			_ => "CPU",
 		};
-		var pack = string.IsNullOrWhiteSpace(opt.ModelVariant) ? (opt.ModelPackId ?? "模型") : opt.ModelVariant;
-		ocrMetaText = $"识别中 · {pack} · {dev} · 边长{opt.DetLimitSideLen}";
+		var pack = winocr
+			? "Windows OCR"
+			: (string.IsNullOrWhiteSpace(opt.ModelVariant) ? (opt.ModelPackId ?? "模型") : opt.ModelVariant);
+		ocrMetaText = winocr
+			? $"识别中 · Windows OCR · {WinOcr.Summary(opt)}"
+			: $"识别中 · {pack} · {dev} · 边长{opt.DetLimitSideLen}";
 		syncresultmetafromtab();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		lbocrruntitle.Text = Loc.T("ocr.running");
-		lbocrrunhint.Text = $"{pack} · {dev} · 边长 {opt.DetLimitSideLen}\n检测 → 方向 → 识别";
+		lbocrrunhint.Text = winocr
+			? $"Windows OCR · {WinOcr.Summary(opt)}"
+			: $"{pack} · {dev} · 边长 {opt.DetLimitSideLen}\n检测 → 方向 → 识别";
 		eresult.Text = "";
 		last = null;
 		clearselection();
@@ -3516,13 +3569,13 @@ public partial class MainWindow : Window {
 		OcrResult result = null;
 		Exception error = null;
 		var cancelled = false;
-		if (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir))
+		if (!winocr && (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir)))
 			applydefaultmodel();
 		var snap = snapshotopt();
 		try {
 			await Task.Run(() => {
 				ct.ThrowIfCancellationRequested();
-				var had = runner.HasEngine;
+				var had = runner.HasEngine || WinOcr.Is(snap);
 				using var mat = ImageUtil.Tobgr(bmp);
 				ct.ThrowIfCancellationRequested();
 				// ORT 推理为同步阻塞，取消在返回后生效并丢弃结果
@@ -4260,6 +4313,7 @@ public partial class MainWindow : Window {
 	}
 
 	void applydefaultmodel() {
+		if (WinOcr.Is(opt)) return;
 		var pack = ModelCatalog.Find(opt.ModelPackId);
 		if (pack == null) {
 			opt.ModelsDir = System.IO.Path.Combine(

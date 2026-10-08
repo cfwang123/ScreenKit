@@ -66,6 +66,8 @@ public sealed class OcrOptions {
 	public string ModelPackId = "umi";
 	/// <summary>变体标题（configs.txt 第一行，如「简体中文 (det-v4)」）。</summary>
 	public string ModelVariant = "";
+	/// <summary>Windows 系统 OCR 语言，逗号分隔的 BCP-47。仅 <c>model_pack=winocr</c> 时使用。</summary>
+	public string WinOcrLangs = "";
 	/// <summary>解析后的模型包路径（程序目录 ocrmodels/&lt;packId&gt;，由 ModelPackId 推导，非用户配置项）。</summary>
 	public string ModelsDir;
 	public OcrDevice Device = OcrDevice.Cpu;
@@ -411,6 +413,7 @@ public sealed class OcrOptions {
 	public OcrOptions Clone() => new() {
 		ModelPackId = ModelPackId,
 		ModelVariant = ModelVariant,
+		WinOcrLangs = WinOcrLangs ?? "",
 		ModelsDir = ModelsDir,
 		Device = Device,
 		DetLimitSideLen = DetLimitSideLen,
