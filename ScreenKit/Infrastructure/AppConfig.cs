@@ -594,7 +594,7 @@ static class AppConfig {
 		sb.AppendLine($"pwgen_noamb = {(o.PwNoAmbiguous ? "true" : "false")}");
 		sb.AppendLine($"pwgen_each = {(o.PwEachClass ? "true" : "false")}");
 		sb.AppendLine($"pwgen_llm = \"{esc((o.PwLexLlm ?? "").Trim())}\"");
-		sb.AppendLine("# 界面语言：程序目录 lang/ 下的 toml 文件名，如 zh、en");
+		sb.AppendLine("# 界面语言：程序目录 lang/ 下的 toml 文件名，如 zh、en、ja、ko");
 		sb.AppendLine($"ui_lang = \"{esc(Loc.Normalize(o.UiLang))}\"");
 		sb.AppendLine($"# 功能模块。false 隐藏对应页并停用热键；默认 true");
 		sb.AppendLine($"mod_ocr = {(o.ModOcr ? "true" : "false")}");

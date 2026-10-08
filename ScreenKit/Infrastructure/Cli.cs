@@ -3895,12 +3895,12 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		Loc.SetRootForTest(null);
 		Loc.Reload();
 		var live = Loc.Languages;
-		if (live.Count < 2 || live[0].Code != "zh" || live[1].Code != "en") {
-			Err("lang: 程序目录应先列出 zh、en，实际 " + string.Join(",", live.Select(x => x.Code)));
+		if (live.Count < 4 || live[0].Code != "zh" || live[1].Code != "en" || live[2].Code != "ja" || live[3].Code != "ko") {
+			Err("lang: 程序目录应先列出 zh、en、ja、ko，实际 " + string.Join(",", live.Select(x => x.Code)));
 			return 1;
 		}
-		if (live[0].Name != "中文" || live[1].Name != "English") {
-			Err("lang: 显示名不符 " + live[0].Name + " / " + live[1].Name);
+		if (live[0].Name != "中文" || live[1].Name != "English" || live[2].Name != "日本語" || live[3].Name != "한국어") {
+			Err("lang: 显示名不符 " + live[0].Name + " / " + live[1].Name + " / " + live[2].Name + " / " + live[3].Name);
 			return 1;
 		}
 		Loc.Lang = "zh";
@@ -3916,6 +3916,16 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		Loc.Lang = "en";
 		if (Loc.T("app.title") != "ScreenKit" || !Loc.IsEn) {
 			Err("lang: 英文 app.title 不符");
+			return 1;
+		}
+		Loc.Lang = "ja";
+		if (Loc.T("app.title") != "ScreenKit" || Loc.T("feat.prompt.tts.body").IndexOf('\n') < 0 || Loc.T("stbar.none") != "モデル未読み込み") {
+			Err("lang: 日文文案不符");
+			return 1;
+		}
+		Loc.Lang = "ko";
+		if (Loc.T("app.title") != "ScreenKit" || Loc.T("stbar.none") != "불러온 모델 없음" || Loc.T("menu.file") != "파일(_F)") {
+			Err("lang: 韩文文案不符");
 			return 1;
 		}
 		Loc.Lang = "zh";
