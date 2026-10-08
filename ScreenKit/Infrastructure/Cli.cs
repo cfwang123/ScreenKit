@@ -61,6 +61,7 @@ static class Cli {
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-wintop"
+				or "--test-win-tts"
 				or "--test-mem"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
@@ -272,6 +273,8 @@ static class Cli {
 					return testnettool();
 				case "--test-wintop":
 					return testwintop();
+				case "--test-win-tts":
+					return testwintts();
 				case "--test-mem":
 					return testmem();
 				case "--test-ort-lazy":
@@ -3012,6 +3015,56 @@ static class Cli {
 		return code;
 	}
 
+	static int testwintts() {
+		Out("=== Windows 语音提权 --test-win-tts ===");
+		var add = WinTtsPack.BuildElevateScript(true, new[] { "ja-JP" }, "C:\\tmp\\a.log");
+		var remove = WinTtsPack.BuildElevateScript(false, new[] { "ko-KR" }, "C:\\tmp\\a.log");
+		if (add.IndexOf("/Add-Capability", StringComparison.Ordinal) < 0
+			|| add.IndexOf("Language.TextToSpeech~~~ja-JP~0.0.1.0", StringComparison.Ordinal) < 0
+			|| add.IndexOf("BEGIN ja-JP", StringComparison.Ordinal) < 0) {
+			Err("FAIL: 安装脚本缺少 ja-JP");
+			Out(add);
+			return 1;
+		}
+		if (remove.IndexOf("/Remove-Capability", StringComparison.Ordinal) < 0
+			|| remove.IndexOf("Language.TextToSpeech~~~ko-KR~0.0.1.0", StringComparison.Ordinal) < 0
+			|| remove.IndexOf("/Add-Capability", StringComparison.Ordinal) >= 0) {
+			Err("FAIL: 卸载脚本不是 Remove");
+			Out(remove);
+			return 1;
+		}
+		var outer = WinTtsPack.OuterScript("C:\\tmp\\wintts.ps1", "C:\\tmp\\wintts.code");
+		if (outer.IndexOf("Start-Process", StringComparison.Ordinal) < 0
+			|| outer.IndexOf("-Verb RunAs", StringComparison.Ordinal) < 0
+			|| outer.IndexOf("-File", StringComparison.Ordinal) < 0) {
+			Err("FAIL: 外层脚本没有 RunAs");
+			Out(outer);
+			return 1;
+		}
+		var launch = WinTtsPack.LaunchArgs(outer);
+		const string head = "/c start \"ScreenKit\" /min /wait powershell.exe ";
+		if (!launch.StartsWith(head, StringComparison.Ordinal)
+			|| launch.IndexOf("-EncodedCommand ", StringComparison.Ordinal) < 0) {
+			Err("FAIL: 启动参数不是 start /wait");
+			Out(launch);
+			return 1;
+		}
+		var enc = launch.Substring(launch.IndexOf("-EncodedCommand ", StringComparison.Ordinal) + "-EncodedCommand ".Length);
+		string decoded;
+		try { decoded = Encoding.Unicode.GetString(Convert.FromBase64String(enc.Trim())); }
+		catch (Exception ex) {
+			Err("FAIL: EncodedCommand " + ex.Message);
+			return 1;
+		}
+		if (decoded != outer) {
+			Err("FAIL: 编码后的脚本对不上");
+			return 1;
+		}
+		Out("admin=" + WinTtsPack.IsAdmin());
+		Out("=== OK：start /wait 再 RunAs，不弹 UAC ===");
+		return 0;
+	}
+
 	static int testwintop() {
 		Out("=== 窗口管理 --test-wintop ===");
 		var bad = 0;
@@ -3678,6 +3731,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-wintop
+  ScreenKit --test-win-tts
   ScreenKit --test-mem
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
@@ -3746,6 +3800,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
+      --test-win-tts  非管理员时 start /wait 再 RunAs 安装或卸载 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
@@ -3818,6 +3873,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-wintop
+  ScreenKit --test-win-tts
   ScreenKit --test-mem
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel

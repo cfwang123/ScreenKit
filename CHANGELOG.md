@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Translate popup** and **Dictionary** move from Options to the top of **Tools**. **Memory** moves next to Diagnostics under **Help**. Options keeps Settings and Language.
 - **Tools → Screencast** is removed from the main menu. The receive window stays on the tray under **Tools → Screencast**. The main-window Screencast tab is unchanged.
 - Korean dictionary phrases have the same speak button as examples. It reads the Korean phrase. The Chinese gloss on the next line is not spoken.
+- **Help → Install features → Windows speech**: when ScreenKit is not an administrator, install or remove uses `start` to open one administrator window for the selected packs. Allow it in User Account Control. Exit 0 and 3010 still count as success. The DISM command can still be copied.
 
 #### Fixed
 
@@ -61,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **翻译小窗**、**词典**从选项移到 **工具**顶部。**内存占用**移到 **帮助**，紧挨诊断。选项只留参数设置和界面语言。
 - 主菜单去掉 **工具 → 投屏**。接收窗口仍从托盘 **工具 → 投屏** 打开。主界面投屏页不变。
 - 韩语词条里的词组和例句一样，原文后面有发音按钮，读韩语原文。下一行的中文释义不读。
+- **帮助 → 安装功能 → Windows语音**：本进程不是管理员时，安装或卸载用 `start` 弹出一个管理员窗口，执行勾选的语音包。在用户账户控制里允许即可。退出码 0 和 3010 仍算成功。DISM 命令仍可复制。
 
 #### 修复
 

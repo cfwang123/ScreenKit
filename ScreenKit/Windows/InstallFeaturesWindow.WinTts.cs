@@ -252,21 +252,15 @@ partial class InstallFeaturesWindow {
 				MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
-		if (!WinTtsPack.IsAdmin()) {
-			appendlog(Loc.T("inst.win.noadmin"));
-			foreach (var r in rows)
-				appendlog(install ? r.AddCmd : r.RemoveCmd);
-			setstatus(Loc.T("inst.win.noadmin"));
-			return;
-		}
 		var names = string.Join("\n· ", rows.Select(r => r.Title));
 		var ask = Loc.T(install ? "inst.win.confirm.add" : "inst.win.confirm.del", names);
 		if (MessageBox.Show(this, ask, Title,
 				MessageBoxButton.YesNo, install ? MessageBoxImage.Question : MessageBoxImage.Warning)
 			!= MessageBoxResult.Yes)
 			return;
+		var admin = WinTtsPack.IsAdmin();
 		cts = new CancellationTokenSource();
-		var log = new Progress<string>(appendlog);
+		var log = new Progress<string>(line => onwinlog(line, rows));
 		setbusy(true);
 		setprogress(0);
 		setbytes("");
@@ -274,34 +268,88 @@ partial class InstallFeaturesWindow {
 		var fail = 0;
 		var token = cts.Token;
 		try {
-			for (var i = 0; i < rows.Count; i++) {
-				token.ThrowIfCancellationRequested();
-				var r = rows[i];
-				setstatus(Loc.T("inst.win.step", i + 1, rows.Count, r.Title));
-				appendlog(install ? r.AddCmd : r.RemoveCmd);
-				try {
-					var code = await Task.Run(() => WinTtsPack.RunDism(install, r.Culture, log, token))
-						.ConfigureAwait(true);
-					if (code == 0 || code == 3010) {
-						ok++;
-						appendlog(Loc.T("inst.log.ok", r.Title) + " exit " + code);
+			if (admin) {
+				for (var i = 0; i < rows.Count; i++) {
+					token.ThrowIfCancellationRequested();
+					var r = rows[i];
+					setstatus(Loc.T("inst.win.step", i + 1, rows.Count, r.Title));
+					appendlog(install ? r.AddCmd : r.RemoveCmd);
+					try {
+						var code = await Task.Run(() => WinTtsPack.RunDism(install, r.Culture, log, token))
+							.ConfigureAwait(true);
+						if (code == 0 || code == 3010) {
+							ok++;
+							appendlog(Loc.T("inst.log.ok", r.Title) + " exit " + code);
+						}
+						else {
+							fail++;
+							appendlog(Loc.T("inst.log.err", "exit " + code));
+						}
 					}
-					else {
+					catch (OperationCanceledException) {
+						appendlog(Loc.T("inst.log.cancel"));
+						setstatus(Loc.T("inst.log.cancel"));
+						break;
+					}
+					catch (Exception ex) {
 						fail++;
-						appendlog(Loc.T("inst.log.err", "exit " + code));
+						appendlog(Loc.T("inst.log.err", ex.Message));
+						CaptureLog.Ex("win tts dism", ex);
 					}
+					setprogress((i + 1) / (double)rows.Count);
+				}
+			}
+			else {
+				appendlog(Loc.T("inst.win.elevate"));
+				setstatus(Loc.T("inst.win.elevate"));
+				foreach (var r in rows)
+					appendlog(install ? r.AddCmd : r.RemoveCmd);
+				WinElevateResult result;
+				try {
+					var cultures = rows.Select(r => r.Culture).ToList();
+					result = await Task.Run(() => WinTtsPack.RunElevated(install, cultures, log, token))
+						.ConfigureAwait(true);
 				}
 				catch (OperationCanceledException) {
 					appendlog(Loc.T("inst.log.cancel"));
+					appendlog(Loc.T("inst.win.elevate.cancel"));
 					setstatus(Loc.T("inst.log.cancel"));
-					break;
+					result = null;
 				}
 				catch (Exception ex) {
-					fail++;
-					appendlog(Loc.T("inst.log.err", ex.Message));
-					CaptureLog.Ex("win tts dism", ex);
+					fail = rows.Count;
+					appendlog(Loc.T("inst.win.elevate.fail", ex.Message));
+					CaptureLog.Ex("win tts elevate", ex);
+					result = null;
 				}
-				setprogress((i + 1) / (double)rows.Count);
+				if (result != null && result.UacDenied) {
+					appendlog(Loc.T("inst.win.uac"));
+					setstatus(Loc.T("inst.win.uac"));
+				}
+				else if (result != null) {
+					if (result.Error.Length > 0)
+						appendlog(Loc.T("inst.win.elevate.fail", result.Error));
+					foreach (var one in result.Codes) {
+						var title = one.Culture;
+						foreach (var r in rows) {
+							if (!string.Equals(r.Culture, one.Culture, StringComparison.OrdinalIgnoreCase)) continue;
+							title = r.Title;
+							break;
+						}
+						if (one.Code == 0 || one.Code == 3010) {
+							ok++;
+							appendlog(Loc.T("inst.log.ok", title) + " exit " + one.Code);
+						}
+						else {
+							fail++;
+							appendlog(Loc.T("inst.log.err", title + " exit " + one.Code));
+						}
+					}
+					if (result.Codes.Count == 0 && result.Error.Length > 0)
+						fail = rows.Count;
+					if (ok + fail > 0)
+						setprogress(1);
+				}
 			}
 		}
 		finally {
@@ -309,6 +357,7 @@ partial class InstallFeaturesWindow {
 			try { cts?.Dispose(); } catch { }
 			cts = null;
 		}
+		if (ok == 0 && fail == 0) return;
 		var summary = Loc.T("inst.win.done", ok, fail);
 		setstatus(summary);
 		appendlog(summary);
@@ -321,6 +370,24 @@ partial class InstallFeaturesWindow {
 		else if (fail > 0) {
 			MessageBox.Show(this, summary, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
+	}
+
+	void onwinlog(string line, List<WinTtsRow> rows) {
+		if (line != null && line.StartsWith("BEGIN ", StringComparison.Ordinal)) {
+			var culture = line.Substring(6).Trim();
+			var title = culture;
+			var index = 0;
+			for (var i = 0; i < rows.Count; i++) {
+				if (!string.Equals(rows[i].Culture, culture, StringComparison.OrdinalIgnoreCase)) continue;
+				title = rows[i].Title;
+				index = i;
+				break;
+			}
+			setstatus(Loc.T("inst.win.step", index + 1, rows.Count, title));
+			return;
+		}
+		if (line != null && line.StartsWith("EXIT ", StringComparison.Ordinal)) return;
+		appendlog(line);
 	}
 
 	enum WinPackState { Unknown, Missing, Installed }
