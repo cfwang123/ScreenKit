@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Web manager **Send to PC** copies the text to the clipboard and shows a toast `Copied text: …`. Clearing the text still only clears the File sync box.
 - With HTTP enabled in Settings, a LAN address already holding the port no longer makes the HTTP tab say the API is disabled. This PC still listens on `127.0.0.1` and the tab shows that address.
+- The bottom status bar says `未加载模型` / `No model loaded` when no model is loaded.
 - The bottom status bar keeps the HTTP listener next to the memory summary: `HTTP 0.0.0.0:1224` or `HTTP 127.0.0.1:1224` while the API listener is up, `HTTP LAN:1224` when only the per-NIC file-transfer sockets are up, `HTTP not started` (with the error) when it should be listening but is not, and `HTTP off` when the API, file transfer, and cast are all disabled.
 
 #### Fixed
@@ -50,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 网页管理 **推送到PC** 会把文本复制到剪切板，并弹出 toast「已复制文本：…」。清空仍只清掉文件同步页里的文本。
 - 参数里已启用 HTTP 时，局域网地址占着端口不再把 HTTP 页显示成「未启用」。本机仍听 `127.0.0.1`，页上显示这个地址。
+- 底部状态栏在没有模型时显示「未加载模型」。
 - 底部状态栏在内存汇总旁一直显示 HTTP 服务：接口监听中为 `HTTP 0.0.0.0:1224` 或 `HTTP 127.0.0.1:1224`，只有传文件的网卡监听时为「HTTP 局域网:1224」，该听却没听上为「HTTP 未启动」并带上失败原因，接口、传文件和投屏都关着为「HTTP 未启用」。
 
 #### 修复

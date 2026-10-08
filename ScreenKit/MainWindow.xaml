@@ -2134,7 +2134,7 @@
 				</TabItem>
 		</TabControl>
 
-		<Button x:Name="bstbar" Grid.Row="2" Content="ONNX 未加载"
+		<Button x:Name="bstbar" Grid.Row="2" Content="未加载模型"
 		        HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
 		        Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
 		        BorderThickness="0,1,0,0" Foreground="{StaticResource TextMuted}"
