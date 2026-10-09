@@ -4,6 +4,8 @@ window.sktools = (function(){
 	var asrItems = [];
 	var asrRec = null;
 	var curcat = "all";
+	var curtool = "home";
+	var favs = [];
 	var util = "";
 	var LENU = [["mm", "毫米"], ["cm", "厘米"], ["m", "米"], ["km", "千米"], ["in", "英寸"], ["ft", "英尺"], ["yd", "码"], ["mi", "英里"]];
 	var LENS = { mm: 1, cm: 10, m: 1000, km: 1000000, "in": 25.4, ft: 304.8, yd: 914.4, mi: 1609344 };
@@ -48,12 +50,19 @@ window.sktools = (function(){
 		$("tool-q").oninput = paintcats;
 		$("box-go").onclick = utilrun;
 		$("box-copy").onclick = function(){ copytext($("box-out").value, "box-msg"); };
+		loadfav();
+		paintstars();
 	}
 
 	function onclick(ev){
 		var el = ev.target;
 		while (el && el !== document.body) {
 			if (el.id === "tx-ops") return;
+			var fav = el.getAttribute && el.getAttribute("data-fav");
+			if (fav) {
+				togglefav(fav);
+				return;
+			}
 			var tool = el.getAttribute && el.getAttribute("data-tool");
 			if (tool) {
 				show(tool);
@@ -76,6 +85,7 @@ window.sktools = (function(){
 	}
 
 	function show(name){
+		curtool = name;
 		if (name.indexOf("u-") === 0) {
 			openutil(name);
 			name = "box";
@@ -85,6 +95,16 @@ window.sktools = (function(){
 		for (i = 0; i < panels.length; i++)
 			panels[i].className = panels[i].id === name ? "panel on" : "panel";
 		$("back").hidden = name === "home";
+		var favbtn = $("tool-fav");
+		if (curtool === "home") {
+			favbtn.hidden = true;
+			favbtn.removeAttribute("data-fav");
+		}
+		else {
+			favbtn.hidden = false;
+			favbtn.setAttribute("data-fav", curtool);
+		}
+		paintstars();
 		if (name === "home") paintcats();
 		if (name === "ocr") loadoocr();
 		if (name === "tts") loadtts();
@@ -105,15 +125,89 @@ window.sktools = (function(){
 		var cards = document.querySelectorAll("#cards button");
 		var n = 0;
 		for (i = 0; i < cards.length; i++) {
+			var id = cards[i].getAttribute("data-tool") || "";
 			var name = (cards[i].getAttribute("data-name") || "").toLowerCase();
 			var cat = cards[i].getAttribute("data-cat") || "";
+			var starred = isfav(id);
 			var hit = !q || name.indexOf(q) >= 0;
-			var incat = curcat === "all" || cat === curcat;
+			var incat = curcat === "all" || cat === curcat || (curcat === "fav" && starred);
 			var vis = q ? hit : incat;
 			cards[i].hidden = !vis;
+			cards[i].style.order = curcat === "fav" && !q && starred ? String(favindex(id)) : "";
 			if (vis) n++;
 		}
+		$("tool-none").textContent = curcat === "fav" && !q ? "还没有收藏。点卡片右侧的星可以加进来。" : "没有匹配的工具";
 		$("tool-none").hidden = n !== 0;
+	}
+
+	function loadfav(){
+		favs = [];
+		var raw = "";
+		try { raw = localStorage.getItem("sk-tool-fav") || ""; }
+		catch (e) { return; }
+		var list;
+		try { list = JSON.parse(raw || "[]"); }
+		catch (e) { return; }
+		if (!list || typeof list.length !== "number") return;
+		var i, seen = {};
+		for (i = 0; i < list.length; i++) {
+			var id = String(list[i] || "");
+			if (!id || seen[id] || !cardof(id)) continue;
+			seen[id] = 1;
+			favs.push(id);
+		}
+	}
+
+	function cardof(id){
+		var cards = document.querySelectorAll("#cards button");
+		var i;
+		for (i = 0; i < cards.length; i++)
+			if (cards[i].getAttribute("data-tool") === id) return cards[i];
+		return null;
+	}
+
+	function favindex(id){
+		var i;
+		for (i = 0; i < favs.length; i++) if (favs[i] === id) return i;
+		return -1;
+	}
+
+	function isfav(id){
+		return favindex(id) >= 0;
+	}
+
+	function togglefav(id){
+		if (!id || id === "home" || !cardof(id)) return;
+		var next = [];
+		var had = false;
+		var i;
+		for (i = 0; i < favs.length; i++) {
+			if (favs[i] === id) had = true;
+			else next.push(favs[i]);
+		}
+		if (!had) next.push(id);
+		favs = next;
+		try { localStorage.setItem("sk-tool-fav", JSON.stringify(favs)); }
+		catch (e) {}
+		paintstars();
+		if (curtool === "home") paintcats();
+	}
+
+	function paintstars(){
+		var nodes = document.querySelectorAll("#cards .star");
+		var i;
+		for (i = 0; i < nodes.length; i++) {
+			var on = isfav(nodes[i].getAttribute("data-fav"));
+			nodes[i].className = on ? "star on fa-solid fa-star" : "star fa-solid fa-star";
+			nodes[i].title = on ? "取消收藏" : "收藏";
+		}
+		var btn = $("tool-fav");
+		if (!btn) return;
+		var picked = btn.getAttribute("data-fav") || "";
+		var lit = picked && isfav(picked);
+		btn.className = lit ? "back on" : "back";
+		var label = btn.querySelector("span");
+		if (label) label.textContent = lit ? "已收藏" : "收藏";
 	}
 
 	function $(id){

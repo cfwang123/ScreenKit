@@ -102,6 +102,13 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 	display: grid; place-items: center;
 	font-style: normal; font-size: 14px; color: #444;
 }
+.cards i.star {
+	width: 16px; height: 16px; margin-left: auto;
+	font-size: 13px; color: #c4beb6;
+}
+.cards i.star.on { color: #f97316; }
+#tool-fav { margin-left: 8px; color: #888; }
+#tool-fav.on, #tool-fav.on i { color: #f97316; }
 .cards span {
 	font-size: 14px; font-weight: 500;
 	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The local tools page can star a tool. Favorites are the top category on the left and stay in this browser. A tool can also be starred from its own page.
 - The local tools page adds twenty tools that run in the browser: timestamp, date difference, radix, length, storage, RMB capitals, calculator, BMI, px/rem, random numbers, passwords, UUID, HTML encode, JSON minify, MD5, SHA-256, regular expressions, line diff, variable names, and an ASCII table.
 - The local tools page lists the current tools with a category column on the left and four to six cards on a row. The search box filters those cards by name.
 - The local tools page and the desktop file manager use Font Awesome icons on actions, file names, and the context menu. Labels stay next to the icons. The phone file page keeps its own icons.
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- 本机工具页可以给工具加星收藏。收藏在左侧分类最上面，记在这个浏览器里。进入工具后也可以收藏。
 - 本机工具页增加 20 个在浏览器里完成的小工具：时间戳、日期差、进制、长度、存储、人民币大写、计算器、BMI、Px/Rem、随机数、随机密码、UUID、HTML 编码、JSON 压缩、MD5、SHA-256、正则、文本比对、变量名、ASCII 表。
 - 本机工具页左边按分类选择，右边一行 4 到 6 个工具卡片。搜索框按名称过滤这些卡片。左侧增加「计算」。
 - 本机工具页和电脑版文件管理的操作、文件名和右键菜单都带 Font Awesome 图标，文字仍留在图标旁边。手机版文件页仍用原来的图标。
