@@ -71,6 +71,7 @@ main {
 .panel { display: none; }
 .panel.on { display: block; }
 .back {
+	display: inline-flex; align-items: center; gap: 6px;
 	border: 0; background: transparent; color: #f97316;
 	padding: 0 0 10px; font-size: 14px;
 }
@@ -119,9 +120,11 @@ select, input[type="date"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans
 .row { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
 .row label { width: 220px; }
 .row button, .ops button, .ghost {
+	display: inline-flex; align-items: center; gap: 6px;
 	border: 1px solid var(--line); background: var(--card); color: var(--ink);
 	border-radius: 999px; padding: 8px 14px;
 }
+.row button i, .ops button i, .back i { width: 1em; text-align: center; }
 .row button.primary, .ops button.primary, button.primary {
 	background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
 }

@@ -41,6 +41,8 @@ window.sktools = (function(){
 			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) conv("trad");
 		});
 		$("tool-q").oninput = paintcats;
+		$("box-go").onclick = utilrun;
+		$("box-copy").onclick = function(){ copytext($("box-out").value, "box-msg"); };
 	}
 
 	function onclick(ev){
@@ -69,6 +71,10 @@ window.sktools = (function(){
 	}
 
 	function show(name){
+		if (name.indexOf("u-") === 0) {
+			openutil(name);
+			name = "box";
+		}
 		var panels = document.querySelectorAll(".panel");
 		var i;
 		for (i = 0; i < panels.length; i++)
@@ -488,6 +494,14 @@ window.sktools = (function(){
 		readfile(file, function(b64){ postasr(b64, file.name); }, "asr-msg");
 	}
 
+	function setasr(on){
+		var b = $("asr-rec");
+		var i = b.querySelector("i");
+		var s = b.querySelector("span");
+		if (i) i.className = on ? "fa-solid fa-stop" : "fa-solid fa-microphone";
+		if (s) s.textContent = on ? "停止并识别" : "录音";
+	}
+
 	function asrrec(){
 		if (asrRec) {
 			asrRec.stop();
@@ -507,7 +521,7 @@ window.sktools = (function(){
 				return;
 			}
 			asrRec = rec;
-			$("asr-rec").textContent = "停止并识别";
+			setasr(true);
 			msg("asr-msg", "正在录音");
 			rec.ondataavailable = function(ev){
 				if (ev.data && ev.data.size) chunks.push(ev.data);
@@ -515,7 +529,7 @@ window.sktools = (function(){
 			rec.onstop = function(){
 				stream.getTracks().forEach(function(tr){ tr.stop(); });
 				asrRec = null;
-				$("asr-rec").textContent = "录音";
+				setasr(false);
 				var blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
 				readfile(blob, function(b64){ postasr(b64, "rec.webm"); }, "asr-msg");
 			};

@@ -20,6 +20,7 @@
 		<nav id="cats">
 			<button type="button" data-cat="all" data-title="常用工具" class="on"><i class="fa-solid fa-grip"></i>常用工具</button>
 			<button type="button" data-cat="text" data-title="文字"><i class="fa-solid fa-font"></i>文字</button>
+			<button type="button" data-cat="calc" data-title="计算"><i class="fa-solid fa-calculator"></i>计算</button>
 			<button type="button" data-cat="speech" data-title="语音"><i class="fa-solid fa-volume-high"></i>语音</button>
 			<button type="button" data-cat="time" data-title="历法"><i class="fa-solid fa-calendar-days"></i>历法</button>
 			<button type="button" data-cat="image" data-title="图像"><i class="fa-solid fa-image"></i>图像</button>
@@ -27,7 +28,7 @@
 		<a class="files" href="/files"><i class="fa-solid fa-folder"></i>文件传输</a>
 	</aside>
 	<main>
-		<button type="button" id="back" class="back" data-tool="home" hidden>返回</button>
+		<button type="button" id="back" class="back" data-tool="home" hidden><i class="fa-solid fa-arrow-left"></i>返回</button>
 		<section id="home" class="panel on">
 			<div class="head">
 				<h1 id="cat-title">常用工具</h1>
@@ -60,8 +61,81 @@
 				<button type="button" data-tool="qr" data-cat="image" data-name="二维码 条码" title="生成 PNG，或从图片里读出来">
 					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
 				</button>
+				<button type="button" data-tool="u-ts" data-cat="time" data-name="时间戳 unix" title="秒或毫秒与本地时间互转">
+					<i class="fa-solid fa-clock"></i><span>时间戳</span>
+				</button>
+				<button type="button" data-tool="u-datediff" data-cat="time" data-name="日期差 天数" title="两个日期相差几天">
+					<i class="fa-solid fa-calendar-days"></i><span>日期差</span>
+				</button>
+				<button type="button" data-tool="u-radix" data-cat="calc" data-name="进制 二进制 十六进制" title="2 到 36 进制互转">
+					<i class="fa-solid fa-hashtag"></i><span>进制转换</span>
+				</button>
+				<button type="button" data-tool="u-len" data-cat="calc" data-name="长度 米 英尺" title="毫米到英里">
+					<i class="fa-solid fa-ruler"></i><span>长度换算</span>
+				</button>
+				<button type="button" data-tool="u-byte" data-cat="calc" data-name="存储 KB MB" title="按 1024 换算">
+					<i class="fa-solid fa-database"></i><span>存储换算</span>
+				</button>
+				<button type="button" data-tool="u-rmb" data-cat="calc" data-name="人民币 大写" title="数字转中文大写金额">
+					<i class="fa-solid fa-yen-sign"></i><span>人民币大写</span>
+				</button>
+				<button type="button" data-tool="u-calc" data-cat="calc" data-name="计算器" title="加减乘除、括号和乘方">
+					<i class="fa-solid fa-calculator"></i><span>计算器</span>
+				</button>
+				<button type="button" data-tool="u-bmi" data-cat="calc" data-name="bmi 体质" title="身高体重算 BMI">
+					<i class="fa-solid fa-weight-scale"></i><span>BMI</span>
+				</button>
+				<button type="button" data-tool="u-px" data-cat="calc" data-name="px rem" title="像素和 rem 互转">
+					<i class="fa-solid fa-text-height"></i><span>Px / Rem</span>
+				</button>
+				<button type="button" data-tool="u-rand" data-cat="calc" data-name="随机数" title="指定范围的随机数">
+					<i class="fa-solid fa-dice"></i><span>随机数</span>
+				</button>
+				<button type="button" data-tool="u-pw" data-cat="calc" data-name="随机密码" title="本地生成，不离开这台电脑">
+					<i class="fa-solid fa-key"></i><span>随机密码</span>
+				</button>
+				<button type="button" data-tool="u-uuid" data-cat="calc" data-name="uuid" title="随机 UUID">
+					<i class="fa-solid fa-fingerprint"></i><span>UUID</span>
+				</button>
+				<button type="button" data-tool="u-html" data-cat="text" data-name="html 编码" title="HTML 实体编码和解码">
+					<i class="fa-solid fa-code"></i><span>HTML 编码</span>
+				</button>
+				<button type="button" data-tool="u-jsonmin" data-cat="text" data-name="json 压缩" title="去掉 JSON 里的空白">
+					<i class="fa-solid fa-file-lines"></i><span>JSON 压缩</span>
+				</button>
+				<button type="button" data-tool="u-md5" data-cat="text" data-name="md5" title="对文字算 MD5">
+					<i class="fa-solid fa-lock"></i><span>MD5</span>
+				</button>
+				<button type="button" data-tool="u-sha" data-cat="text" data-name="sha256 sha-256" title="浏览器自带的 SHA-256">
+					<i class="fa-solid fa-lock"></i><span>SHA-256</span>
+				</button>
+				<button type="button" data-tool="u-re" data-cat="text" data-name="正则 表达式" title="在文字里查找匹配">
+					<i class="fa-solid fa-asterisk"></i><span>正则测试</span>
+				</button>
+				<button type="button" data-tool="u-diff" data-cat="text" data-name="文本比对 diff" title="按行比较两段文字">
+					<i class="fa-solid fa-code-compare"></i><span>文本比对</span>
+				</button>
+				<button type="button" data-tool="u-name" data-cat="text" data-name="变量名 camel snake" title="驼峰、下划线、短横线">
+					<i class="fa-solid fa-signature"></i><span>变量名</span>
+				</button>
+				<button type="button" data-tool="u-ascii" data-cat="text" data-name="ascii 码表" title="0 到 127">
+					<i class="fa-solid fa-table"></i><span>ASCII 表</span>
+				</button>
 			</div>
 			<p id="tool-none" class="none" hidden>没有匹配的工具</p>
+		</section>
+
+		<section id="box" class="panel">
+			<h1 id="box-title">工具</h1>
+			<div id="box-body"></div>
+			<div class="row">
+				<button type="button" id="box-go" class="primary">计算</button>
+				<button type="button" id="box-copy" class="ghost">复制结果</button>
+				<span id="box-msg" class="msg"></span>
+			</div>
+			<label>结果
+				<textarea id="box-out" rows="10" readonly></textarea>
+			</label>
 		</section>
 
 		<section id="zh" class="panel">
@@ -76,9 +150,9 @@
 				</label>
 			</div>
 			<div class="row">
-				<button type="button" id="zh-trad" class="primary">转为繁体</button>
-				<button type="button" id="zh-simp">转为简体</button>
-				<button type="button" id="zh-copy" class="ghost">复制结果</button>
+				<button type="button" id="zh-trad" class="primary"><i class="fa-solid fa-arrow-right"></i>转为繁体</button>
+				<button type="button" id="zh-simp"><i class="fa-solid fa-arrow-left"></i>转为简体</button>
+				<button type="button" id="zh-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
 				<span id="zh-msg" class="msg"></span>
 			</div>
 		</section>
@@ -107,7 +181,7 @@
 						<option value="julian">儒略历</option>
 					</select>
 				</label>
-				<button type="button" id="cal-go" class="primary">换算</button>
+				<button type="button" id="cal-go" class="primary"><i class="fa-solid fa-calendar-check"></i>换算</button>
 				<span id="cal-msg" class="msg"></span>
 			</div>
 			<dl id="cal-out" class="facts"></dl>
@@ -121,8 +195,8 @@
 			</label>
 			<div class="row">
 				<label class="check"><input id="yo-mono" type="checkbox"/> 逐字</label>
-				<button type="button" id="yo-go" class="primary">注音</button>
-				<button type="button" id="yo-copy" class="ghost">复制读音</button>
+				<button type="button" id="yo-go" class="primary"><i class="fa-solid fa-language"></i>注音</button>
+				<button type="button" id="yo-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制读音</button>
 				<span id="yo-msg" class="msg"></span>
 			</div>
 			<div class="stack">
@@ -142,25 +216,25 @@
 				<textarea id="tx-in" rows="8" placeholder="要处理的文字"></textarea>
 			</label>
 			<div class="ops" id="tx-ops">
-				<button type="button" data-op="b64enc">Base64 编码</button>
-				<button type="button" data-op="b64dec">Base64 解码</button>
-				<button type="button" data-op="urlenc">URL 编码</button>
-				<button type="button" data-op="urldec">URL 解码</button>
-				<button type="button" data-op="utf8hex">UTF-8 十六进制</button>
-				<button type="button" data-op="utf8unhex">还原 UTF-8</button>
-				<button type="button" data-op="gbkhex">GBK 十六进制</button>
-				<button type="button" data-op="gbkunhex">还原 GBK</button>
-				<button type="button" data-op="uesc">Unicode 转义</button>
-				<button type="button" data-op="uunesc">还原 Unicode</button>
-				<button type="button" data-op="upper">大写</button>
-				<button type="button" data-op="lower">小写</button>
-				<button type="button" data-op="collapse">合并空白</button>
-				<button type="button" data-op="dropempty">去掉空行</button>
-				<button type="button" data-op="json">JSON 美化</button>
-				<button type="button" data-op="stats">统计</button>
+				<button type="button" data-op="b64enc"><i class="fa-solid fa-lock"></i>Base64 编码</button>
+				<button type="button" data-op="b64dec"><i class="fa-solid fa-lock-open"></i>Base64 解码</button>
+				<button type="button" data-op="urlenc"><i class="fa-solid fa-link"></i>URL 编码</button>
+				<button type="button" data-op="urldec"><i class="fa-solid fa-link-slash"></i>URL 解码</button>
+				<button type="button" data-op="utf8hex"><i class="fa-solid fa-hashtag"></i>UTF-8 十六进制</button>
+				<button type="button" data-op="utf8unhex"><i class="fa-solid fa-rotate-left"></i>还原 UTF-8</button>
+				<button type="button" data-op="gbkhex"><i class="fa-solid fa-hashtag"></i>GBK 十六进制</button>
+				<button type="button" data-op="gbkunhex"><i class="fa-solid fa-rotate-left"></i>还原 GBK</button>
+				<button type="button" data-op="uesc"><i class="fa-solid fa-code"></i>Unicode 转义</button>
+				<button type="button" data-op="uunesc"><i class="fa-solid fa-rotate-left"></i>还原 Unicode</button>
+				<button type="button" data-op="upper"><i class="fa-solid fa-arrow-up-a-z"></i>大写</button>
+				<button type="button" data-op="lower"><i class="fa-solid fa-arrow-down-a-z"></i>小写</button>
+				<button type="button" data-op="collapse"><i class="fa-solid fa-compress"></i>合并空白</button>
+				<button type="button" data-op="dropempty"><i class="fa-solid fa-eraser"></i>去掉空行</button>
+				<button type="button" data-op="json"><i class="fa-solid fa-code"></i>JSON 美化</button>
+				<button type="button" data-op="stats"><i class="fa-solid fa-chart-column"></i>统计</button>
 			</div>
 			<div class="row">
-				<button type="button" id="tx-copy" class="ghost">复制结果</button>
+				<button type="button" id="tx-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
 				<span id="tx-msg" class="msg"></span>
 			</div>
 			<label>结果
@@ -190,8 +264,8 @@
 				<label>图片
 					<input id="ocr-file" type="file" accept="image/*"/>
 				</label>
-				<button type="button" id="ocr-go" class="primary">识别</button>
-				<button type="button" id="ocr-copy" class="ghost">复制结果</button>
+				<button type="button" id="ocr-go" class="primary"><i class="fa-solid fa-eye"></i>识别</button>
+				<button type="button" id="ocr-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
 				<span id="ocr-msg" class="msg"></span>
 			</div>
 			<label>结果
@@ -220,7 +294,7 @@
 				<textarea id="tts-in" rows="6" placeholder="要朗读的文字"></textarea>
 			</label>
 			<div class="row">
-				<button type="button" id="tts-go" class="primary">朗读</button>
+				<button type="button" id="tts-go" class="primary"><i class="fa-solid fa-volume-high"></i>朗读</button>
 				<span id="tts-msg" class="msg"></span>
 			</div>
 			<audio id="tts-audio" controls hidden></audio>
@@ -254,9 +328,9 @@
 				<label>音频文件
 					<input id="asr-file" type="file" accept="audio/*,video/webm"/>
 				</label>
-				<button type="button" id="asr-filego" class="primary">识别文件</button>
-				<button type="button" id="asr-rec">录音</button>
-				<button type="button" id="asr-copy" class="ghost">复制结果</button>
+				<button type="button" id="asr-filego" class="primary"><i class="fa-solid fa-file-audio"></i>识别文件</button>
+				<button type="button" id="asr-rec"><i class="fa-solid fa-microphone"></i><span>录音</span></button>
+				<button type="button" id="asr-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
 				<span id="asr-msg" class="msg"></span>
 			</div>
 			<label>结果
@@ -291,7 +365,7 @@
 				<textarea id="qr-in" rows="4" placeholder="要写进码里的文字"></textarea>
 			</label>
 			<div class="row">
-				<button type="button" id="qr-make" class="primary">生成</button>
+				<button type="button" id="qr-make" class="primary"><i class="fa-solid fa-qrcode"></i>生成</button>
 				<span id="qr-msg" class="msg"></span>
 			</div>
 			<div class="qrbox">
@@ -301,7 +375,7 @@
 				<label>识别图片
 					<input id="qr-file" type="file" accept="image/*"/>
 				</label>
-				<button type="button" id="qr-scan" class="primary">识别</button>
+				<button type="button" id="qr-scan" class="primary"><i class="fa-solid fa-eye"></i>识别</button>
 				<span id="qr-smsg" class="msg"></span>
 			</div>
 			<label>识别结果

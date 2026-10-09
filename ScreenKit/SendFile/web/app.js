@@ -353,11 +353,10 @@ window.sfweb = (function(){
 		var ca = document.createElement("td");
 		ca.className = "acts";
 		if (it.dir) {
-			ca.textContent = "—";
-			ca.classList.add("muted");
+			ca.appendChild(link(zh ? "打包" : "Zip", zipurl([it.path]), false, "fa-file-zipper"));
 			tr.addEventListener("dblclick", function(){ enter(it.path); });
 		}
-		else ca.appendChild(link(zh ? "下载" : "Download", dlurl(it.path), true));
+		else ca.appendChild(link(zh ? "下载" : "Download", dlurl(it.path), true, "fa-download"));
 		if (!t.mobile) {
 			tr.classList.add("rowpick");
 			tr.addEventListener("click", function(e){
@@ -407,8 +406,32 @@ window.sfweb = (function(){
 	function namea(it) {
 		var n = document.createElement("span");
 		n.className = it.dir ? "dir nm" : "nm";
-		n.textContent = it.name || it.path || "";
+		if (!t.mobile) n.appendChild(fa(filefa(it)));
+		n.appendChild(document.createTextNode(it.name || it.path || ""));
 		return n;
+	}
+
+	function filefa(it) {
+		if (it.dir) return "fa-folder";
+		var name = (it.name || "").toLowerCase();
+		var dot = name.lastIndexOf(".");
+		var ext = dot >= 0 ? name.substring(dot + 1) : "";
+		if (ext === "png" || ext === "jpg" || ext === "jpeg" || ext === "gif" || ext === "webp" || ext === "bmp")
+			return "fa-image";
+		if (ext === "mp3" || ext === "wav" || ext === "flac" || ext === "m4a" || ext === "ogg")
+			return "fa-file-audio";
+		if (ext === "mp4" || ext === "mkv" || ext === "webm" || ext === "mov" || ext === "avi")
+			return "fa-file-video";
+		if (ext === "zip" || ext === "7z" || ext === "rar" || ext === "tar" || ext === "gz")
+			return "fa-file-zipper";
+		return "fa-file";
+	}
+
+	function fa(name) {
+		var i = document.createElement("i");
+		i.className = "fa-solid " + name;
+		i.setAttribute("aria-hidden", "true");
+		return i;
 	}
 
 	function enter(p) {
@@ -869,7 +892,7 @@ window.sfweb = (function(){
 		var a = document.createElement("a");
 		a.href = href;
 		if (blank) a.target = "_blank";
-		if (icon) a.appendChild(svguse(icon));
+		if (icon) a.appendChild(icon.indexOf("fa-") === 0 ? fa(icon) : svguse(icon));
 		var sp = document.createElement("span");
 		sp.className = "lbl";
 		sp.textContent = label;
@@ -911,11 +934,14 @@ window.sfweb = (function(){
 		return ctxmenu;
 	}
 
-	function ctxitem(label, fn, danger) {
+	function ctxitem(label, fn, danger, icon) {
 		var b = document.createElement("button");
 		b.type = "button";
-		b.textContent = label;
 		if (danger) b.className = "danger";
+		if (icon) b.appendChild(fa(icon));
+		var sp = document.createElement("span");
+		sp.textContent = label;
+		b.appendChild(sp);
 		b.addEventListener("click", function(e){
 			e.stopPropagation();
 			hidectx();
@@ -929,18 +955,18 @@ window.sfweb = (function(){
 		var m = ensurectx();
 		m.innerHTML = "";
 		if (it.dir) {
-			m.appendChild(ctxitem(zh ? "进入" : "Open", function(){ enter(it.path); }));
-			m.appendChild(ctxitem(zh ? "打包" : "Zip", function(){ zipone(it.path); }));
+			m.appendChild(ctxitem(zh ? "进入" : "Open", function(){ enter(it.path); }, false, "fa-folder-open"));
+			m.appendChild(ctxitem(zh ? "打包" : "Zip", function(){ zipone(it.path); }, false, "fa-file-zipper"));
 		}
 		else {
 			m.appendChild(ctxitem(zh ? "下载" : "Download", function(){
 				window.open(dlurl(it.path), "_blank");
-			}));
-			m.appendChild(ctxitem(zh ? "复制链接" : "Copy link", function(){ copylink(it.path); }));
-			m.appendChild(ctxitem(zh ? "打包" : "Zip", function(){ zipone(it.path); }));
+			}, false, "fa-download"));
+			m.appendChild(ctxitem(zh ? "复制链接" : "Copy link", function(){ copylink(it.path); }, false, "fa-link"));
+			m.appendChild(ctxitem(zh ? "打包" : "Zip", function(){ zipone(it.path); }, false, "fa-file-zipper"));
 		}
-		m.appendChild(ctxitem(zh ? "改名" : "Rename", function(){ rename(it); }));
-		m.appendChild(ctxitem(zh ? "删除" : "Delete", function(){ delone(it.path); }, true));
+		m.appendChild(ctxitem(zh ? "改名" : "Rename", function(){ rename(it); }, false, "fa-pen"));
+		m.appendChild(ctxitem(zh ? "删除" : "Delete", function(){ delone(it.path); }, true, "fa-trash"));
 		m.hidden = false;
 		m.style.left = e.clientX + "px";
 		m.style.top = e.clientY + "px";

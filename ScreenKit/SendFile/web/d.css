@@ -9,7 +9,9 @@ a:hover{text-decoration:underline}
 .ghost{background:transparent;border:1px solid #d1d5db;color:#374151}
 .danger{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
 button{height:32px;padding:0 12px;border:1px solid #d1d5db;border-radius:8px;
-	background:#fff;cursor:pointer;font:inherit}
+	background:#fff;cursor:pointer;font:inherit;
+	display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button .fa-solid{width:1em;text-align:center}
 button:hover{background:#f3f4f6}
 button.danger:hover{background:#fee2e2}
 input[type=password],input[type=text]{height:36px;padding:0 10px;border:1px solid #d1d5db;
@@ -28,10 +30,11 @@ input[type=password],input[type=text]{height:36px;padding:0 10px;border:1px soli
 .langline button.on,.login .langline button.on{background:#2563eb;border-color:#2563eb;color:#fff}
 .tools .langline{margin:0}
 .switch{margin-top:12px;text-align:right}
+.switch a{display:inline-flex;align-items:center;gap:6px}
 #main{min-height:100%;display:flex;flex-direction:column}
 header{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 20px 10px}
 .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}
-.brand strong{font-size:18px}
+.brand strong{font-size:18px;display:inline-flex;align-items:center;gap:8px}
 .crumbs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;min-height:24px}
 .crumbs a,.crumbs span{padding:2px 6px;border-radius:6px}
 .crumbs a:hover{background:#eff6ff;text-decoration:none}
@@ -44,12 +47,16 @@ tr:hover td{background:#f8fafc}
 .c0{width:36px}
 .name a{color:#111827;font-weight:500}
 .name a.dir{color:#1d4ed8}
+.nm{display:inline-flex;align-items:center;gap:8px}
+.nm .fa-solid{color:#6b7280;width:1em}
+.nm.dir .fa-solid{color:#1d4ed8}
 tr.rowpick{cursor:pointer}
 tr.rowpick:hover{background:#f9fafb}
 .acts{display:flex;gap:8px;white-space:nowrap}
-.acts a,.acts button{height:26px;padding:0 8px;font-size:12px}
+.acts a,.acts button{height:26px;padding:0 8px;font-size:12px;
+	display:inline-flex;align-items:center;gap:4px;text-decoration:none}
 #ctxmenu{position:fixed;z-index:9999;min-width:148px;padding:4px 0;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.12)}
-#ctxmenu button{display:block;width:100%;text-align:left;padding:8px 14px;border:0;background:transparent;font:inherit;font-size:13px;cursor:pointer;color:#111827}
+#ctxmenu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:8px 14px;border:0;background:transparent;font:inherit;font-size:13px;cursor:pointer;color:#111827;height:auto;justify-content:flex-start}
 #ctxmenu button:hover{background:#f3f4f6}
 #ctxmenu button.danger{color:#dc2626}
 .modal{position:fixed;inset:0;z-index:40;background:#00000066;display:flex;align-items:center;justify-content:center;padding:24px}
