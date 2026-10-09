@@ -40,7 +40,7 @@
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbpickhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
-					           Text="已装功能默认勾选。绿色将安装、红色将卸载。点确认开始安装或删除。ONNX 语音模型请到「onnx语音模型」页。Windows 语音请到「Windows语音」页。"/>
+					           Text="已装功能默认勾选。绿色将安装、红色将卸载。点确认开始安装或删除。ONNX 语音模型、Windows 语音合成和 Windows 语音识别请到对应页。"/>
 					<Border Grid.Row="1" Background="{StaticResource BgPanel}"
 					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
 					        CornerRadius="8" Padding="4">
@@ -197,7 +197,7 @@
 			</TabItem>
 
 			<!-- Tab：Windows 语音功能包 -->
-			<TabItem x:Name="tabwin" Header="Windows语音"
+			<TabItem x:Name="tabwin" Header="Windows语音合成"
 			         AutomationProperties.AutomationId="inst.tab.win">
 				<Grid Margin="8">
 					<Grid.RowDefinitions>
