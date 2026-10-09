@@ -35,9 +35,15 @@ sealed class WinScriptResult {
 	public int ExitCode;
 }
 
+enum WinSpeechPackKind {
+	Tts,
+	Asr,
+}
+
 /// <summary>Windows 语音功能包 Language.TextToSpeech。查询与 DISM 安装/卸载。</summary>
 static class WinTtsPack {
 	public const string PREFIX = "Language.TextToSpeech~~~";
+	public const string ASR_PREFIX = "Language.Speech~~~";
 	public const string SUFFIX = "~0.0.1.0";
 
 	/// <summary>本机曾扫到的 TextToSpeech 区域。查询结果里多出来的区域也会进列表。</summary>
@@ -53,13 +59,22 @@ static class WinTtsPack {
 		"vi-VN", "zh-CN", "zh-HK", "zh-TW",
 	};
 
-	public static string Capability(string culture) => $"{PREFIX}{culture}{SUFFIX}";
+	/// <summary>Windows 10/11 支持离线系统语音识别的区域。</summary>
+	public static readonly string[] AsrCultures = {
+		"de-DE",
+		"en-AU", "en-CA", "en-GB", "en-IN", "en-US",
+		"es-ES", "es-MX", "fr-FR", "ja-JP",
+		"zh-CN", "zh-TW",
+	};
 
-	public static string AddCmd(string culture) =>
-		$"DISM /Online /Add-Capability /CapabilityName:{Capability(culture)}";
+	public static string Capability(string culture, WinSpeechPackKind kind = WinSpeechPackKind.Tts) =>
+		$"{prefixof(kind)}{culture}{SUFFIX}";
 
-	public static string RemoveCmd(string culture) =>
-		$"DISM /Online /Remove-Capability /CapabilityName:{Capability(culture)}";
+	public static string AddCmd(string culture, WinSpeechPackKind kind = WinSpeechPackKind.Tts) =>
+		$"DISM /Online /Add-Capability /CapabilityName:{Capability(culture, kind)}";
+
+	public static string RemoveCmd(string culture, WinSpeechPackKind kind = WinSpeechPackKind.Tts) =>
+		$"DISM /Online /Remove-Capability /CapabilityName:{Capability(culture, kind)}";
 
 	public static bool IsAdmin() {
 		try {
@@ -71,13 +86,15 @@ static class WinTtsPack {
 	}
 
 	/// <summary>区域 → InstallState 名（Installed / NotPresent / …）。失败抛错。</summary>
-	public static Dictionary<string, string> QueryStates(CancellationToken ct) {
+	public static Dictionary<string, string> QueryStates(
+		CancellationToken ct, WinSpeechPackKind kind = WinSpeechPackKind.Tts) {
+		var pattern = kind == WinSpeechPackKind.Asr ? "Language.Speech*" : "Language.TextToSpeech*";
 		var script =
 			"$ProgressPreference = 'SilentlyContinue'\r\n" +
 			"$ErrorActionPreference = 'Stop'\r\n" +
 			"[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false\r\n" +
 			"$OutputEncoding = [Console]::OutputEncoding\r\n" +
-			"Get-WindowsCapability -Online -Name 'Language.TextToSpeech*' | ForEach-Object { $_.Name + '|' + [string]$_.State }\r\n";
+			$"Get-WindowsCapability -Online -Name '{pattern}' | ForEach-Object {{ $_.Name + '|' + [string]$_.State }}\r\n";
 		var enc = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
 		var text = runout("powershell.exe",
 			"-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand " + enc, ct);
@@ -86,7 +103,7 @@ static class WinTtsPack {
 			var line = raw.Trim();
 			var i = line.IndexOf('|');
 			if (i <= 0) continue;
-			var culture = cultureof(line.Substring(0, i).Trim());
+			var culture = cultureof(line.Substring(0, i).Trim(), kind);
 			if (string.IsNullOrEmpty(culture)) continue;
 			map[culture] = line.Substring(i + 1).Trim();
 		}
@@ -96,22 +113,24 @@ static class WinTtsPack {
 	}
 
 	/// <summary>执行 DISM。调用方把 0 与 3010 当作成功。取消时抛 OperationCanceledException。</summary>
-	public static int RunDism(bool add, string culture, IProgress<string> log, CancellationToken ct) {
+	public static int RunDism(bool add, string culture, IProgress<string> log, CancellationToken ct,
+		WinSpeechPackKind kind = WinSpeechPackKind.Tts) {
 		var verb = add ? "/Online /Add-Capability" : "/Online /Remove-Capability";
-		var args = $"{verb} /CapabilityName:{Capability(culture)} /NoRestart /English";
+		var args = $"{verb} /CapabilityName:{Capability(culture, kind)} /NoRestart /English";
 		log?.Report("DISM " + args);
 		var (code, _) = exec(Path.Combine(Environment.SystemDirectory, "dism.exe"), args, ct, log);
 		return code;
 	}
 
 	/// <summary>非管理员：cmd start /wait 拉起 powershell，再 Start-Process -Verb RunAs 跑 DISM。0 与 3010 为成功。</summary>
-	public static WinElevateResult RunElevated(bool add, IList<string> cultures, IProgress<string> log, CancellationToken ct) {
+	public static WinElevateResult RunElevated(bool add, IList<string> cultures, IProgress<string> log,
+		CancellationToken ct, WinSpeechPackKind kind = WinSpeechPackKind.Tts) {
 		var result = new WinElevateResult();
 		if (cultures == null || cultures.Count == 0) {
 			result.Error = "none";
 			return result;
 		}
-		var ran = runscript(path => BuildElevateScript(add, cultures, path), log, ct);
+		var ran = runscript(path => BuildElevateScript(add, cultures, path, kind), log, ct);
 		result.UacDenied = ran.UacDenied;
 		result.Error = ran.Error;
 		fillcodes(ran.Log, result);
@@ -121,29 +140,32 @@ static class WinTtsPack {
 	}
 
 	/// <summary>非管理员查看已装语音包和发音人。同一次 start / RunAs。</summary>
-	public static WinQueryResult QueryElevated(CancellationToken ct, IProgress<string> log) {
+	public static WinQueryResult QueryElevated(CancellationToken ct, IProgress<string> log,
+		WinSpeechPackKind kind = WinSpeechPackKind.Tts) {
 		var result = new WinQueryResult();
-		var ran = runscript(BuildQueryScript, log, ct);
+		var ran = runscript(path => BuildQueryScript(path, kind), log, ct);
 		result.UacDenied = ran.UacDenied;
 		if (ran.UacDenied) return result;
-		parsequery(ran.Log, result);
+		parsequery(ran.Log, result, kind);
 		if (result.States.Count == 0 && result.Error.Length == 0)
 			result.Error = ran.Error.Length > 0 ? ran.Error : (ran.ExitCode != 0 ? "exit " + ran.ExitCode : "empty");
 		return result;
 	}
 
-	internal static string BuildElevateScript(bool add, IList<string> cultures, string logPath) {
+	internal static string BuildElevateScript(bool add, IList<string> cultures, string logPath,
+		WinSpeechPackKind kind = WinSpeechPackKind.Tts) {
 		var verb = add ? "/Add-Capability" : "/Remove-Capability";
 		var sb = new StringBuilder();
 		sb.AppendLine("$ErrorActionPreference = 'Continue'");
-		sb.AppendLine("try { $Host.UI.RawUI.WindowTitle = 'ScreenKit Windows TTS' } catch {}");
+		sb.AppendLine("try { $Host.UI.RawUI.WindowTitle = "
+			+ psq(kind == WinSpeechPackKind.Asr ? "ScreenKit Windows ASR" : "ScreenKit Windows TTS") + " } catch {}");
 		sb.AppendLine("$log = " + psq(logPath));
 		sb.AppendLine("$dism = Join-Path $env:SystemRoot 'System32\\dism.exe'");
 		sb.AppendLine("$utf8 = New-Object System.Text.UTF8Encoding $false");
 		sb.AppendLine("function Log([string]$line) { [IO.File]::AppendAllText($log, $line + \"`r`n\", $utf8) }");
 		sb.AppendLine("$fail = 0");
 		foreach (var culture in cultures) {
-			var cap = Capability(culture);
+			var cap = Capability(culture, kind);
 			sb.AppendLine("Log " + psq("BEGIN " + culture));
 			sb.AppendLine("Write-Host " + psq("DISM /Online " + verb + " /CapabilityName:" + cap));
 			sb.AppendLine("try {");
@@ -160,33 +182,37 @@ static class WinTtsPack {
 		return sb.ToString();
 	}
 
-	internal static string BuildQueryScript(string logPath) {
+	internal static string BuildQueryScript(string logPath, WinSpeechPackKind kind = WinSpeechPackKind.Tts) {
+		var pattern = kind == WinSpeechPackKind.Asr ? "Language.Speech*" : "Language.TextToSpeech*";
 		var sb = new StringBuilder();
 		sb.AppendLine("$ErrorActionPreference = 'Stop'");
-		sb.AppendLine("try { $Host.UI.RawUI.WindowTitle = 'ScreenKit Windows TTS' } catch {}");
+		sb.AppendLine("try { $Host.UI.RawUI.WindowTitle = "
+			+ psq(kind == WinSpeechPackKind.Asr ? "ScreenKit Windows ASR" : "ScreenKit Windows TTS") + " } catch {}");
 		sb.AppendLine("$log = " + psq(logPath));
 		sb.AppendLine("$utf8 = New-Object System.Text.UTF8Encoding $false");
 		sb.AppendLine("function Log([string]$line) { [IO.File]::AppendAllText($log, $line + \"`r`n\", $utf8) }");
 		sb.AppendLine("try {");
-		sb.AppendLine("  Get-WindowsCapability -Online -Name 'Language.TextToSpeech*' | ForEach-Object {");
+		sb.AppendLine("  Get-WindowsCapability -Online -Name " + psq(pattern) + " | ForEach-Object {");
 		sb.AppendLine("    Log ($_.Name + '|' + [string]$_.State)");
 		sb.AppendLine("  }");
 		sb.AppendLine("} catch {");
 		sb.AppendLine("  Log ('ERR ' + $_.Exception.Message)");
 		sb.AppendLine("  exit 1");
 		sb.AppendLine("}");
-		sb.AppendLine("$ErrorActionPreference = 'Continue'");
-		sb.AppendLine("try {");
-		sb.AppendLine("  $null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType=WindowsRuntime]");
-		sb.AppendLine("  foreach ($v in [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices) {");
-		sb.AppendLine("    $name = [string]$v.DisplayName");
-		sb.AppendLine("    $lang = [string]$v.Language");
-		sb.AppendLine("    if ([string]::IsNullOrWhiteSpace($name)) { continue }");
-		sb.AppendLine("    Log ('VOICE|' + $lang + '|' + $name)");
-		sb.AppendLine("  }");
-		sb.AppendLine("} catch {");
-		sb.AppendLine("  Log ('VOICEERR ' + $_.Exception.Message)");
-		sb.AppendLine("}");
+		if (kind == WinSpeechPackKind.Tts) {
+			sb.AppendLine("$ErrorActionPreference = 'Continue'");
+			sb.AppendLine("try {");
+			sb.AppendLine("  $null = [Windows.Media.SpeechSynthesis.SpeechSynthesizer, Windows.Media.SpeechSynthesis, ContentType=WindowsRuntime]");
+			sb.AppendLine("  foreach ($v in [Windows.Media.SpeechSynthesis.SpeechSynthesizer]::AllVoices) {");
+			sb.AppendLine("    $name = [string]$v.DisplayName");
+			sb.AppendLine("    $lang = [string]$v.Language");
+			sb.AppendLine("    if ([string]::IsNullOrWhiteSpace($name)) { continue }");
+			sb.AppendLine("    Log ('VOICE|' + $lang + '|' + $name)");
+			sb.AppendLine("  }");
+			sb.AppendLine("} catch {");
+			sb.AppendLine("  Log ('VOICEERR ' + $_.Exception.Message)");
+			sb.AppendLine("}");
+		}
 		sb.AppendLine("exit 0");
 		return sb.ToString();
 	}
@@ -289,7 +315,7 @@ static class WinTtsPack {
 		}
 	}
 
-	static void parsequery(string text, WinQueryResult result) {
+	static void parsequery(string text, WinQueryResult result, WinSpeechPackKind kind) {
 		if (string.IsNullOrEmpty(text)) return;
 		foreach (var raw in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
 			var line = raw.Trim();
@@ -313,7 +339,7 @@ static class WinTtsPack {
 			}
 			var i = line.IndexOf('|');
 			if (i <= 0) continue;
-			var key = cultureof(line.Substring(0, i).Trim());
+			var key = cultureof(line.Substring(0, i).Trim(), kind);
 			if (string.IsNullOrEmpty(key)) continue;
 			result.States[key] = line.Substring(i + 1).Trim();
 		}
@@ -329,13 +355,17 @@ static class WinTtsPack {
 		catch { return ""; }
 	}
 
-	static string cultureof(string name) {
-		if (!name.StartsWith(PREFIX, StringComparison.OrdinalIgnoreCase)) return "";
-		var rest = name.Substring(PREFIX.Length);
+	static string cultureof(string name, WinSpeechPackKind kind) {
+		var prefix = prefixof(kind);
+		if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return "";
+		var rest = name.Substring(prefix.Length);
 		var j = rest.IndexOf('~');
 		if (j <= 0) return "";
 		return rest.Substring(0, j);
 	}
+
+	static string prefixof(WinSpeechPackKind kind) =>
+		kind == WinSpeechPackKind.Asr ? ASR_PREFIX : PREFIX;
 
 	static string runout(string file, string args, CancellationToken ct) {
 		var (code, text) = exec(file, args, ct, null);

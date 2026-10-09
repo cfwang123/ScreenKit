@@ -3120,8 +3120,20 @@ static class Cli {
 			Out(query);
 			return 1;
 		}
+		var asrAdd = WinTtsPack.BuildElevateScript(
+			true, new[] { "en-US" }, "C:\\tmp\\a.log", WinSpeechPackKind.Asr);
+		var asrQuery = WinTtsPack.BuildQueryScript("C:\\tmp\\a.log", WinSpeechPackKind.Asr);
+		if (asrAdd.IndexOf("Language.Speech~~~en-US~0.0.1.0", StringComparison.Ordinal) < 0
+			|| asrAdd.IndexOf("ScreenKit Windows ASR", StringComparison.Ordinal) < 0
+			|| asrQuery.IndexOf("Language.Speech*", StringComparison.Ordinal) < 0
+			|| asrQuery.IndexOf("AllVoices", StringComparison.Ordinal) >= 0) {
+			Err("FAIL: Windows ASR 安装或查询脚本不正确");
+			Out(asrAdd);
+			Out(asrQuery);
+			return 1;
+		}
 		Out("admin=" + WinTtsPack.IsAdmin());
-		Out("=== OK：start /wait 再 RunAs，查询脚本不弹 UAC ===");
+		Out("=== OK：TTS/ASR 用 start /wait 再 RunAs，查询脚本不弹 UAC ===");
 		return 0;
 	}
 

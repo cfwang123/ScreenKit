@@ -9,8 +9,8 @@ using System.Windows.Media;
 namespace ScreenKit;
 
 /// <summary>
-/// 安装功能：功能选择（确认即安装/卸载）、onnx 语音模型、Windows 语音。
-/// onnx 语音模型与 Windows 语音不在功能选择树里处理。
+/// 安装功能：功能选择（确认即安装/卸载）、onnx 语音模型、Windows 语音与 Windows 语音识别。
+/// 各类语音模型与系统语言功能包不在功能选择树里处理。
 /// </summary>
 partial class InstallFeaturesWindow : Window {
 	// 状态徽章色（未安装用强对比，避免与「已安装」混淆）
@@ -70,10 +70,12 @@ partial class InstallFeaturesWindow : Window {
 		etree.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(onpickclick), true);
 		binstall.Click += async (_, _) => {
 			if (tabmain.SelectedItem == tabwin) await runwin(true);
+			else if (tabmain.SelectedItem == tabwinasr) await runwinasr(true);
 			else await runinstall();
 		};
 		bdelete.Click += async (_, _) => {
 			if (tabmain.SelectedItem == tabwin) await runwin(false);
+			else if (tabmain.SelectedItem == tabwinasr) await runwinasr(false);
 			else await rundelete();
 		};
 		bcancel.Click += (_, _) => {
@@ -111,6 +113,14 @@ partial class InstallFeaturesWindow : Window {
 		cwinheader.Unchecked += (_, _) => {
 			if (!winUiLoading) setwincheck(false);
 		};
+		bwinasrrefresh.Click += async (_, _) => await loadwinasr(true);
+		bwinasrcopy.Click += (_, _) => copywinasrcmd();
+		cwinasronly.Checked += (_, _) => applywinasrfilter();
+		cwinasronly.Unchecked += (_, _) => applywinasrfilter();
+		cwinasrheader.Checked += (_, _) => setwinasrcheck(true);
+		cwinasrheader.Unchecked += (_, _) => {
+			if (!winasrUiLoading) setwinasrcheck(false);
+		};
 		tabmain.SelectionChanged += async (_, _) => {
 			applytabbuttons();
 			if (tabmain.SelectedItem == tabtts && !ttsLoaded && !busy)
@@ -118,9 +128,12 @@ partial class InstallFeaturesWindow : Window {
 			// 已装发音人只在进入本页时读，不在打开安装窗口时读。
 			if (tabmain.SelectedItem == tabwin && !winLoaded && !busy)
 				await loadwin(false);
+			if (tabmain.SelectedItem == tabwinasr && !winasrLoaded && !busy)
+				await loadwinasr(false);
 		};
 		lvtss.ItemsSource = ttsRows;
 		lvwin.ItemsSource = winRows;
+		lvwinasr.ItemsSource = winasrRows;
 		Loaded += async (_, _) => {
 			rebuildpick();
 			loadfeat();
@@ -146,6 +159,7 @@ partial class InstallFeaturesWindow : Window {
 		tabpick.Header = Loc.T("inst.tab.pick");
 		tabtts.Header = Loc.T("inst.tab.tts");
 		tabwin.Header = Loc.T("inst.tab.win");
+		tabwinasr.Header = Loc.T("inst.tab.winasr");
 		lbpickhint.Text = Loc.T(firstRun ? "inst.pick.hint.first" : "inst.pick.hint");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
@@ -164,6 +178,12 @@ partial class InstallFeaturesWindow : Window {
 		bwincopy.Content = Loc.T("inst.win.copy");
 		cwinheader.ToolTip = Loc.T("inst.tts.selectall");
 		lbwinadmin.Text = WinTtsPack.IsAdmin() ? Loc.T("inst.win.admin") : Loc.T("inst.win.user");
+		lbwinasrhint.Text = Loc.T("inst.winasr.hint");
+		cwinasronly.Content = Loc.T("inst.win.only");
+		bwinasrrefresh.Content = Loc.T("inst.win.refresh");
+		bwinasrcopy.Content = Loc.T("inst.win.copy");
+		cwinasrheader.ToolTip = Loc.T("inst.tts.selectall");
+		lbwinasradmin.Text = WinTtsPack.IsAdmin() ? Loc.T("inst.win.admin") : Loc.T("inst.win.user");
 		bmissing.Content = Loc.T("inst.sel.missing");
 		bmissing.ToolTip = Loc.T("inst.sel.missing.tip");
 		bnone.Content = Loc.T("inst.sel.none");
@@ -186,18 +206,26 @@ partial class InstallFeaturesWindow : Window {
 			gvwin.Columns[3].Header = Loc.T("inst.win.col.state");
 			gvwin.Columns[4].Header = Loc.T("inst.win.col.pack");
 		}
+		if (lvwinasr.View is GridView gvasr && gvasr.Columns.Count >= 5) {
+			gvasr.Columns[1].Header = Loc.T("inst.win.col.lang");
+			gvasr.Columns[2].Header = Loc.T("inst.winasr.col.recognizer");
+			gvasr.Columns[3].Header = Loc.T("inst.win.col.state");
+			gvasr.Columns[4].Header = Loc.T("inst.win.col.pack");
+		}
 		if (string.IsNullOrWhiteSpace(lbstatus.Text) || lbstatus.Text == "就绪" || lbstatus.Text == Loc.T("ready"))
 			lbstatus.Text = Loc.T("ready");
 	}
 
 	void applytabbuttons() {
-		var onPack = tabmain.SelectedItem == tabtts || tabmain.SelectedItem == tabwin;
-		var ready = !busy && !winQuerying;
+		var onPack = tabmain.SelectedItem == tabtts
+			|| tabmain.SelectedItem == tabwin
+			|| tabmain.SelectedItem == tabwinasr;
+		var ready = !busy && !winQuerying && !winasrQuerying;
 		binstall.IsEnabled = ready && onPack;
 		bdelete.IsEnabled = ready && onPack;
 		bconfirm.IsEnabled = !busy;
 		breset.IsEnabled = !busy;
-		bcancel.IsEnabled = busy || winQuerying;
+		bcancel.IsEnabled = busy || winQuerying || winasrQuerying;
 		binstall.IsDefault = ready && onPack;
 		bconfirm.IsDefault = !onPack && ready;
 	}
@@ -445,6 +473,12 @@ partial class InstallFeaturesWindow : Window {
 			winUiLoading = false;
 			refreshwincmd();
 		}
+		else if (tabmain.SelectedItem == tabwinasr) {
+			winasrUiLoading = true;
+			foreach (var r in winasrRows) r.Selected = !r.PackInstalled;
+			winasrUiLoading = false;
+			refreshwinasrcmd();
+		}
 		else {
 			FeaturePick.SelectMissing(pickRoots);
 			updatepicksum();
@@ -460,6 +494,10 @@ partial class InstallFeaturesWindow : Window {
 		else if (tabmain.SelectedItem == tabwin) {
 			setwincheck(on);
 			cwinheader.IsChecked = on;
+		}
+		else if (tabmain.SelectedItem == tabwinasr) {
+			setwinasrcheck(on);
+			cwinasrheader.IsChecked = on;
 		}
 		else {
 			FeaturePick.SelectAll(pickRoots, on);

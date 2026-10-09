@@ -275,6 +275,86 @@
 					         AutomationProperties.AutomationId="inst.win.cmd"/>
 				</Grid>
 			</TabItem>
+
+			<!-- Tab：Windows 语音识别功能包 -->
+			<TabItem x:Name="tabwinasr" Header="Windows语音识别"
+			         AutomationProperties.AutomationId="inst.tab.winasr">
+				<Grid Margin="8">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbwinasrhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+					           FontSize="12" Foreground="{StaticResource TextMuted}"
+					           Text="系统语音识别包 Language.Speech。进入本页时读取功能包和 System.Speech 识别器。安装时 Windows 会自动补齐同语言的 Basic 与 TextToSpeech 依赖。装好后需重启本程序。"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<CheckBox x:Name="cwinasronly" DockPanel.Dock="Left" Content="仅已安装"
+						          VerticalAlignment="Center" Margin="0,0,12,0" IsChecked="False"
+						          AutomationProperties.AutomationId="inst.winasr.only"/>
+						<Button x:Name="bwinasrrefresh" DockPanel.Dock="Left" Content="刷新"
+						        Style="{StaticResource ToolBtn}" Width="72" Margin="0,0,8,0"
+						        AutomationProperties.AutomationId="inst.winasr.refresh"/>
+						<Button x:Name="bwinasrcopy" DockPanel.Dock="Left" Content="复制命令"
+						        Style="{StaticResource ToolBtn}" Width="88" Margin="0,0,12,0"
+						        AutomationProperties.AutomationId="inst.winasr.copy"/>
+						<TextBlock x:Name="lbwinasradmin" VerticalAlignment="Center" TextWrapping="Wrap"
+						           FontSize="12" Foreground="{StaticResource TextMuted}" Text=""/>
+					</DockPanel>
+					<Border Grid.Row="2" Background="{StaticResource BgPanel}"
+					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+					        CornerRadius="8">
+						<ListView x:Name="lvwinasr" BorderThickness="0"
+						          Background="Transparent"
+						          VirtualizingPanel.IsVirtualizing="False"
+						          ScrollViewer.HorizontalScrollBarVisibility="Auto"
+						          AutomationProperties.AutomationId="inst.winasr.list">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn Width="36">
+										<GridViewColumn.Header>
+											<CheckBox x:Name="cwinasrheader" ToolTip="全选当前列表"/>
+										</GridViewColumn.Header>
+										<GridViewColumn.CellTemplate>
+											<DataTemplate>
+												<CheckBox IsChecked="{Binding Selected, Mode=TwoWay}"
+												          VerticalAlignment="Center"/>
+											</DataTemplate>
+										</GridViewColumn.CellTemplate>
+									</GridViewColumn>
+									<GridViewColumn Header="语言" Width="200"
+									                DisplayMemberBinding="{Binding Title}"/>
+									<GridViewColumn Header="识别器" Width="220"
+									                DisplayMemberBinding="{Binding Recognizers}"/>
+									<GridViewColumn Header="状态" Width="88">
+										<GridViewColumn.CellTemplate>
+											<DataTemplate>
+												<Border CornerRadius="4" Padding="8,2"
+												        HorizontalAlignment="Left"
+												        Background="{Binding StateBg}">
+													<TextBlock Text="{Binding StateText}"
+													           FontSize="11" FontWeight="SemiBold"
+													           Foreground="{Binding StateFg}"/>
+												</Border>
+											</DataTemplate>
+										</GridViewColumn.CellTemplate>
+									</GridViewColumn>
+									<GridViewColumn Header="功能包" Width="280"
+									                DisplayMemberBinding="{Binding Capability}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+					</Border>
+					<TextBox x:Name="ewinasrcmd" Grid.Row="3" Margin="0,8,0,0"
+					         Height="72" IsReadOnly="True" TextWrapping="Wrap"
+					         VerticalScrollBarVisibility="Auto"
+					         FontSize="11" FontFamily="Consolas, Microsoft YaHei UI" Padding="8"
+					         BorderBrush="{StaticResource BorderSoft}"
+					         Background="{StaticResource BgPanel}"
+					         AutomationProperties.AutomationId="inst.winasr.cmd"/>
+				</Grid>
+			</TabItem>
 		</TabControl>
 
 		<DockPanel Grid.Row="2" Margin="0,0,0,6">
