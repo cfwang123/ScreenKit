@@ -36,60 +36,92 @@ Each version has matching **English** and **中文** sections. A feature title i
 ### English
 
 - **Web tools**
-  - `GET /` is the tools page, with categories, search, favorites, and about sixty in-browser tools.
-  - OCR, speech, and QR are on that page.
-  - The desktop file manager moved to `/files`.
+  - `GET /` is the tools page: categories on the left, four to six cards on a row, and search. The desktop file manager moved to `/files`. The phone page stays `/m`.
+  - Favorites are the top category and stay in this browser. A tool can also be starred from its own page.
+  - Cards are ordered by common use. Tools that exist in the desktop app come first.
+  - The page and the desktop file manager use Font Awesome icons. The phone file page keeps its own icons.
+  - About sixty in-browser tools cover timestamps, units, color, hashes, text, and calculators.
+  - OCR, speech synthesis, speech recognition, and QR or barcodes use the same engines as the main window.
+  - `POST /api/qrmake` and `POST /api/qrscan` stay available when other HTTP modules are off.
+  - Generate draws the code under the button. Style and script URLs carry the startup version and still cache for one hour. HTML pages are not cached.
+  - Tray **Web home** and **Tools → Web home** open the page and do not show the main window. If HTTP is not running, a toast says why.
 - **Text and maps**
-  - Simplified/Traditional, calendars, and Japanese yomi have a window, HTTP, and CLI.
+  - Simplified/Traditional, calendars, and Japanese yomi have a window, HTTP, and CLI, and stay available when other HTTP modules are off.
+  - The Simplified/Traditional window keeps simplified text on top and traditional text below.
   - Calendars and Japanese yomi run on an STA thread.
-  - Toast has HTTP and CLI.
-  - Network tools can show this PC's location and open a map.
+  - Toast has HTTP and CLI and does not take focus.
+  - Network tools can show this PC's location. **Map** opens Amap. Inside China the pin uses GCJ-02. The OpenStreetMap link keeps WGS84.
 - **Speech and setup**
-  - Windows speech recognition works without a Sherpa model.
-  - Install features can add Windows OCR, speech, and recognition together.
-  - The same window can install the small Opus-MT packs.
-  - A new install uses those Windows features.
-  - Windows OCR no longer needs OpenCV.
+  - Windows speech recognition works without a Sherpa model, for files, recordings, hotkey dictation, live captions, subtitles, CLI, and HTTP. It does not stream partial text.
+  - A low-confidence Windows result is no longer dropped. The best rejected candidate is kept.
+  - The offline-model help icon says Windows recognition is weak for Chinese and suggests a Sherpa model such as SenseVoice.
+  - Install features lists OCR, speech, and recognition in one language tree and uses one administrator prompt.
+  - Installed Windows packs are checked once after startup. Refresh still checks every pack.
+  - The same window can install the small Opus-MT packs and removes only those packs on uninstall.
+  - A new install uses Windows OCR, Windows speech, and Windows speech recognition. A saved choice is kept. CLI `-p` defaults to `winocr`. Speech still uses Edge online when Windows has no voice.
+  - Windows OCR no longer needs OpenCV. ONNX OCR, barcodes, and long screenshots still do.
   - Startup no longer opens Install features.
+  - The Speak button stays enabled during playback. Clicking it again restarts from the beginning.
 - **HTTP and tray**
   - HTTP, the tools page, the file manager, and cast share one TCP listener.
-  - Opening the LAN address no longer needs an administrator.
+  - Opening the LAN address no longer needs an administrator or an HTTP.sys URL reservation.
   - HTTP query text is read as UTF-8.
-  - Tray click follows the main-window hotkey.
-  - The status bar opens Memory or the web home.
-  - Install features can follow the system proxy.
-  - FFmpeg comes from the fixed `dict-db` package.
+  - `GET /api/tts/engines` lists engines without scanning models. `GET /api/tts/models` caches the last full list. `refresh=1` scans again.
+  - The HTTP tab **Send** button sits on the method and path row.
+  - The status bar opens Memory from the model text and the web home from the HTTP text.
+  - Tray click follows the main-window hotkey, judged on mouse-down from the window that was in front. A second click during the show animation hides the window.
+  - The main-window hotkey and the dictionary hotkey show or hide by the foreground window. The dictionary hotkey opens the dictionary only when it shows the window, and searches only a one-word clipboard.
+  - Install features can follow the system proxy, use a typed address, or use no proxy. With a proxy, GitHub and Hugging Face come first. Without one, China mirrors come first. A failed address is still followed by the others. `.cn` hosts stay direct.
+  - In a Chinese locale, a mirror that fails, times out after 30 seconds, or returns an HTML page is skipped, and the original GitHub or Hugging Face URL is still tried. Update checks and the TTS package list use the same order.
+  - FFmpeg 4.4 shared comes from the fixed `dict-db` package. The old BtbN zip URLs are gone.
+  - The update window lists the notes for each version after the one that is installed.
 - **Dictionary**
-  - Entries keep their phrasal verbs.
+  - Entries keep every sense, example, and idiom. English `run` keeps its phrasal verbs, including `come running`.
 
 ### 中文
 
 - **本机工具页**
-  - `GET /` 是工具页，有分类、搜索、收藏，以及约 60 个浏览器内小工具。
-  - 同一页可以做文字识别、语音和二维码。
-  - 电脑版文件管理改到 `/files`。
+  - `GET /` 是工具页：左边分类，右边一行 4 到 6 个，可搜索。电脑版文件管理改到 `/files`。手机版仍是 `/m`。
+  - 收藏在左侧最上面，记在这个浏览器里。进入工具后也可以收藏。
+  - 卡片按常用程度排列。桌面程序里已有的功能排在前面。
+  - 工具页和电脑版文件管理改用 Font Awesome 图标。手机版文件页仍用原来的图标。
+  - 约 60 个浏览器内小工具，包括时间戳、单位、颜色、哈希、文本和计算器。
+  - 文字识别、语音合成、语音识别、二维码和条码的引擎选法与主窗口相同。
+  - `POST /api/qrmake` 和 `POST /api/qrscan` 在其它 HTTP 模块关掉时仍可用。
+  - 生成按钮在下方画出码。样式和脚本地址带本次启动版本，同一次运行仍缓存 1 小时。HTML 页面不缓存。
+  - 托盘 **web主页** 和 **工具 → web主页** 打开页面，不唤起主窗口。HTTP 没在跑时，底部提示原因。
 - **文字与定位**
-  - 简繁转换、历法、日文注音有窗口、HTTP 和命令行。
+  - 简繁转换、历法、日文注音有窗口、HTTP 和命令行，其它 HTTP 模块关掉时仍可用。
+  - 简繁窗口上面是简体，下面是繁体。
   - 历法和日文注音改在 STA 线程上运行。
-  - Toast 增加 HTTP 和命令行。
-  - 网络工具可显示本机位置并打开地图。
+  - Toast 增加 HTTP 和命令行，浮层不抢焦点。
+  - 网络工具可显示本机位置。**查看地图**打开高德。国内标点用 GCJ-02。OpenStreetMap 链接保持 WGS84。
 - **语音与安装**
-  - 可不装 Sherpa，直接用 Windows 语音识别。
-  - 安装功能可一起安装 Windows OCR、语音和识别。
-  - 同一窗口可安装小型 Opus-MT 翻译包。
-  - 新安装默认这三项 Windows 功能。
-  - Windows OCR 不再需要 OpenCV。
+  - 可不装 Sherpa，直接用 Windows 语音识别，用于文件、录音、热键听写、实时字幕、批量字幕、命令行和 HTTP。没有半句流式结果。
+  - Windows 识别不再因置信度低而返回空文字，会留下被拒结果里的最佳候选。
+  - 离线模型旁的帮助图标说明 Windows 中文识别较差，建议 SenseVoice 等 Sherpa 模型。
+  - 安装功能把 OCR、语音和识别放在同一棵语言树里，只弹出一次管理员确认。
+  - 启动后只检查一次已安装的 Windows 功能包。刷新仍检查全部。
+  - 同一窗口可安装小型 Opus-MT 翻译包，卸载只删除这两个包。
+  - 新安装默认 Windows OCR、Windows 语音和 Windows 语音识别。已经保存的选择保持不变。命令行 `-p` 默认 `winocr`。没有 Windows 发音人时仍用 Edge 在线。
+  - Windows OCR 不再需要 OpenCV。ONNX 识别、条码和长截图仍需要。
   - 启动时不再打开安装功能。
+  - 朗读过程中「朗读」按钮保持可点。再点一次会停止并从头重读。
 - **HTTP 与托盘**
   - HTTP、工具页、文件管理和投屏共用一个 TCP 监听。
-  - 开局域网不再需要管理员。
+  - 开局域网不再需要管理员，也不需要 HTTP.sys 的 URL 预留。
   - HTTP 查询文字按 UTF-8 读取。
-  - 单击托盘与主窗口热键相同。
-  - 状态栏可打开内存占用或 web 主页。
-  - 安装功能可跟随系统代理。
-  - FFmpeg 改从固定的 `dict-db` 包下载。
+  - `GET /api/tts/engines` 只列引擎，不扫描模型。`GET /api/tts/models` 记住上次的全量结果。`refresh=1` 重新扫描。
+  - HTTP 接口页的**发送**改到方法和路径那一行。
+  - 点状态栏的模型文字打开内存占用，点 HTTP 文字打开 web 主页。
+  - 单击托盘与主窗口热键相同，在按下时按点击前的前台窗口判断。显示动画还没播完时再点一次会隐藏。
+  - 主窗口热键和词典热键按前台窗口决定显示或隐藏。词典热键只在唤出时打开词典，剪贴板像一个单词才搜索。
+  - 安装功能可跟随系统代理、手填地址，或不用代理。用了代理时先下 GitHub / Hugging Face；不用时先下国内镜像。前面的地址失败后仍会试后面的。`.cn` 仍然直连。
+  - 中文环境下，镜像失败、30 秒没有响应，或返回网页时会跳过，并仍然尝试原来的 GitHub / Hugging Face 地址。检查更新和发音人列表用同一顺序。
+  - FFmpeg 4.4 shared 改从固定的 `dict-db` 包下载。原先 BtbN 的 zip 地址已失效。
+  - 检查更新的窗口会列出当前版本之后每个版本的说明。
 - **词典**
-  - 词条保留词组。
+  - 词条保留全部义项、例句和惯用语。英语 `run` 的词组还在，包括 `come running`。
 
 ## v1.0.16 (2026-10-08 ~ 10-09)
 
