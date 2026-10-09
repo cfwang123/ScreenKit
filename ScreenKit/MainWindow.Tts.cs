@@ -18,8 +18,11 @@ public partial class MainWindow {
 	List<SapiVoiceItem> edgeVoicesCache = new();
 	bool ttsUiLoading;
 	CancellationTokenSource ttsSpeakCts;
+	Task ttsSpeakTask;
+	int ttsSpeakRequest;
 	bool ttsSession;
 	bool ttsPaused;
+	bool ttsExporting;
 	int ttsSkipDelta;
 	int ttsSegIndex;
 	List<TtsSegment> ttsSegs;
@@ -161,7 +164,7 @@ public partial class MainWindow {
 			if (!ttsUiLoading) savettsprefs();
 		};
 
-		bttsspeak.Click += (_, _) => _ = ttsspeakasync();
+		bttsspeak.Click += (_, _) => _ = startttsspeakasync();
 		bttspause.Click += (_, _) => ttstogglepause();
 		bttsprev.Click += (_, _) => ttsjump(-1);
 		bttsnext.Click += (_, _) => ttsjump(+1);
@@ -453,7 +456,7 @@ public partial class MainWindow {
 			bttsprev.IsEnabled = ttsSession;
 			bttsnext.IsEnabled = ttsSession;
 			bttspause.Content = ttsPaused ? Loc.T("tts.resume") : Loc.T("tts.pause");
-			bttsspeak.IsEnabled = !ttsSession || ttsPaused;
+			bttsspeak.IsEnabled = !ttsExporting;
 			bttsspeak.Content = ttsSession && ttsPaused ? Loc.T("tts.resume") : Loc.T("tts.speak");
 		}
 		catch { }
@@ -859,6 +862,7 @@ public partial class MainWindow {
 	}
 
 	void ttsstop() {
+		ttsSpeakRequest++;
 		ttsSkipDelta = 0;
 		ttsPaused = false;
 		try { ttsSpeakCts?.Cancel(); } catch { }
@@ -870,6 +874,27 @@ public partial class MainWindow {
 		try { ettstext.IsReadOnly = false; } catch { }
 		lbttsstatus.Text = "已停止";
 		updatettsctrlui();
+	}
+
+	async Task startttsspeakasync() {
+		if (ttsSession && ttsPaused) {
+			ttstogglepause();
+			return;
+		}
+		var request = ++ttsSpeakRequest;
+		var running = ttsSpeakTask;
+		if (running != null && !running.IsCompleted) {
+			try { ttsSpeakCts?.Cancel(); } catch { }
+			try { ttsPlayer?.Stop(); } catch { }
+			try { await running.ConfigureAwait(true); } catch { }
+		}
+		if (request != ttsSpeakRequest) return;
+		var next = ttsspeakasync();
+		ttsSpeakTask = next;
+		try { await next.ConfigureAwait(true); }
+		finally {
+			if (ReferenceEquals(ttsSpeakTask, next)) ttsSpeakTask = null;
+		}
 	}
 
 	/// <summary>
@@ -1338,6 +1363,7 @@ public partial class MainWindow {
 		var t0 = Environment.TickCount;
 		TtsExportProgressWindow progDlg = null;
 		try {
+			ttsExporting = true;
 			if (ttsSession) ttsstop();
 			lbttsstatus.Text = $"分段合成导出 MP3（{segs.Count} 段 · {kbps} kbps）…";
 			bttsexport.IsEnabled = false;
@@ -1528,6 +1554,7 @@ public partial class MainWindow {
 		}
 		finally {
 			try { progDlg?.ForceClose(); } catch { }
+			ttsExporting = false;
 			bttsexport.IsEnabled = true;
 			bttsspeak.IsEnabled = true;
 			updatettsctrlui();

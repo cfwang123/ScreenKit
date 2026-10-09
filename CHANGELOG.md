@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The TTS Speak button remains enabled during playback. Clicking it again immediately stops the current playback and restarts from the beginning.
 - **Help → Install features → Windows OCR/Speech** combines OCR, speech synthesis, and speech recognition in one language tree. Languages are sorted Chinese, English, Japanese, Korean, then others; installed or currently available languages open by default. Each language has tri-state OCR/TTS/ASR children, and mixed queries or changes use one administrator/UAC flow.
 - **Help → Install features** can install the minimal Chinese→English and English→Chinese Opus-MT ONNX packs from the fixed `dict-db` release. The installer selects CPU ONNX Runtime and 7z extraction dependencies, detects partial installs, and removes only these two packaged models when uninstalling.
 - The ASR offline-model picker has a help icon. Its tooltip warns that Windows system speech recognition performs poorly for Chinese and recommends a Sherpa model such as SenseVoice.
@@ -41,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- TTS 朗读过程中不再禁用“朗读”按钮；再次点击会立即停止当前播放并从头重新朗读。
 - **帮助 → 安装功能 → Windows OCR/语音** 将 OCR、语音合成、语音识别合并为一个语言树。语言按中文、英文、日文、韩文、其它排序；已安装或当前可用的语言默认展开。每种语言下固定显示三态复选的 OCR/TTS/ASR 子项，混合查询或变更只走一次管理员/UAC 流程。
 - **帮助 → 安装功能** 可从固定的 `dict-db` Release 安装最小化的中译英、英译中 Opus-MT ONNX 模型包。安装时会自动勾选 CPU ONNX Runtime 和 7z 解压依赖，可识别残缺安装；卸载只删除这两个随包模型。
 - ASR 离线模型下拉框旁增加帮助图标；悬停提示 Windows 系统语音的中文识别效果较差，中文建议优先使用 SenseVoice 等 Sherpa 模型。
