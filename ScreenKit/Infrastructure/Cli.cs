@@ -60,6 +60,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
+				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop"
 				or "--test-win-tts"
 				or "--test-mem"
@@ -272,6 +273,12 @@ static class Cli {
 					return testpwgen();
 				case "--test-nettool":
 					return testnettool();
+				case "--test-zhconv":
+					return testzhconv();
+				case "--test-wincal":
+					return testwincal();
+				case "--test-jpyomi":
+					return testjpyomi();
 				case "--test-wintop":
 					return testwintop();
 				case "--test-win-tts":
@@ -3036,6 +3043,90 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testzhconv() {
+		Out("=== 简繁转换 --test-zhconv ===");
+		var bad = 0;
+		try {
+			var trad = ZhConvert.ToTraditional("国发");
+			var simp = ZhConvert.ToSimplified(trad);
+			Out("trad=" + trad);
+			Out("simp=" + simp);
+			if (trad != "國發") {
+				Err("FAIL: 国发 未转为 國發");
+				bad++;
+			}
+			if (simp.IndexOf('国') < 0) {
+				Err("FAIL: 繁体未转回 国");
+				bad++;
+			}
+			var soft = ZhConvert.ToTraditional("软件");
+			Out("软件=" + soft);
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：简繁转换 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testwincal() {
+		Out("=== 历法 --test-wincal ===");
+		var bad = 0;
+		try {
+			var cny = WinCal.Query(new DateTime(2024, 2, 10), Windows.Globalization.CalendarIdentifiers.ChineseLunar, "zh-CN");
+			Out($"cny era={cny.Era} year={cny.Year} month={cny.Month} day={cny.Day} ganzhi={cny.Ganzhi} leap={cny.LeapMonth}");
+			if (cny.Ganzhi != "甲辰") {
+				Err("FAIL: 2024-02-10 干支不是甲辰");
+				bad++;
+			}
+			if (cny.Month.IndexOf('正') < 0 || cny.Day != "初一" || cny.LeapMonth) {
+				Err("FAIL: 2024-02-10 不是正月初一");
+				bad++;
+			}
+			var leap = WinCal.Query(new DateTime(2023, 3, 22), Windows.Globalization.CalendarIdentifiers.ChineseLunar, "zh-CN");
+			Out($"leap month={leap.Month} day={leap.Day} leap={leap.LeapMonth} months={leap.MonthCount}");
+			if (!leap.LeapMonth || leap.Month != "闰二月" || leap.Day != "初一") {
+				Err("FAIL: 2023-03-22 不是闰二月初一");
+				bad++;
+			}
+			var greg = WinCal.Query(new DateTime(2024, 2, 10), Windows.Globalization.CalendarIdentifiers.Gregorian, "zh-CN");
+			Out($"greg year={greg.YearNum} month={greg.MonthNum} day={greg.DayNum}");
+			if (greg.YearNum != 2024 || greg.MonthNum != 2 || greg.DayNum != 10) {
+				Err("FAIL: 公历日期不对");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：历法 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testjpyomi() {
+		Out("=== 日文注音 --test-jpyomi ===");
+		var bad = 0;
+		try {
+			var res = JpYomi.Convert("東京は晴れです", false);
+			Out("ruby=" + res.Ruby);
+			Out("yomi=" + res.Yomi);
+			var all = (res.Ruby ?? "") + (res.Yomi ?? "");
+			if (all.IndexOf("とうきょう", StringComparison.Ordinal) < 0
+				&& all.IndexOf("トウキョウ", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 東京 没有读音");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		Out(bad == 0 ? "=== OK：日文注音 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static int testmem() {
 		Out("=== 内存占用 --test-mem ===");
 		var code = MemUsage.SelfTest();
@@ -3907,6 +3998,9 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-zhconv
+  ScreenKit --test-wincal
+  ScreenKit --test-jpyomi
   ScreenKit --test-wintop
   ScreenKit --test-win-tts
   ScreenKit --test-mem
@@ -3976,6 +4070,9 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析与 ping 127.0.0.1
+      --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
+      --test-wincal  农历甲辰正月与 2023 闰二月
+      --test-jpyomi  東京 的系统读音
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
@@ -4049,6 +4146,9 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-zhconv
+  ScreenKit --test-wincal
+  ScreenKit --test-jpyomi
   ScreenKit --test-wintop
   ScreenKit --test-win-tts
   ScreenKit --test-mem

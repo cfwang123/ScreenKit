@@ -34,6 +34,9 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miTextTool;
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miNetTool;
+	Forms.ToolStripMenuItem miZhConv;
+	Forms.ToolStripMenuItem miWinCal;
+	Forms.ToolStripMenuItem miJpYomi;
 	Forms.ToolStripMenuItem miWinTop;
 	Forms.ToolStripMenuItem miCast;
 	Forms.ToolStripMenuItem miUsbAcc;
@@ -146,6 +149,9 @@ sealed class TrayIcon : IDisposable {
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
+		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
+		miWinCal = item("tray.wincal", () => WinCalRequested?.Invoke());
+		miJpYomi = item("tray.jpyomi", () => JpYomiRequested?.Invoke());
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
@@ -157,6 +163,9 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miTextTool);
 		miTools.DropDownItems.Add(miPwGen);
 		miTools.DropDownItems.Add(miNetTool);
+		miTools.DropDownItems.Add(miZhConv);
+		miTools.DropDownItems.Add(miWinCal);
+		miTools.DropDownItems.Add(miJpYomi);
 		miTools.DropDownItems.Add(miWinTop);
 		miTools.DropDownItems.Add(miCast);
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
@@ -353,6 +362,9 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miTextTool, null);
 		setshortcut(miPwGen, null);
 		setshortcut(miNetTool, null);
+		setshortcut(miZhConv, null);
+		setshortcut(miWinCal, null);
+		setshortcut(miJpYomi, null);
 		setshortcut(miWinTop, null);
 		setshortcut(miCast, null);
 		setshortcut(miUsbAcc, null);
@@ -395,6 +407,9 @@ sealed class TrayIcon : IDisposable {
 			settext(miTextTool, "tray.texttool");
 			settext(miPwGen, "tray.pwgen");
 			settext(miNetTool, "tray.nettool");
+			settext(miZhConv, "tray.zhconv");
+			settext(miWinCal, "tray.wincal");
+			settext(miJpYomi, "tray.jpyomi");
 			settext(miWinTop, "tray.wintop");
 			settext(miCast, "tray.cast");
 			SetUsbAccStatus(usbStat);
@@ -429,6 +444,9 @@ sealed class TrayIcon : IDisposable {
 	public event Action TextToolRequested;
 	public event Action PwGenRequested;
 	public event Action NetToolRequested;
+	public event Action ZhConvRequested;
+	public event Action WinCalRequested;
+	public event Action JpYomiRequested;
 	public event Action WinTopRequested;
 	public event Action CastRequested;
 	public event Action UsbAccessoryRequested;

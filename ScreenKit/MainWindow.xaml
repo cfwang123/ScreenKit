@@ -147,6 +147,15 @@
 				<MenuItem x:Name="mnnettool" Header="网络工具(_N)…"
 				          AutomationProperties.AutomationId="menu.nettool"
 				          ToolTip="Ping、域名解析、WHOIS"/>
+				<MenuItem x:Name="mnzhconv" Header="简繁转换(_S)…"
+				          AutomationProperties.AutomationId="menu.zhconv"
+				          ToolTip="系统简体/繁体映射，繁体接近台湾用字"/>
+				<MenuItem x:Name="mnwincal" Header="历法(_L)…"
+				          AutomationProperties.AutomationId="menu.wincal"
+				          ToolTip="公历换农历、干支、闰月和其它历法"/>
+				<MenuItem x:Name="mnjpyomi" Header="日文注音(_J)…"
+				          AutomationProperties.AutomationId="menu.jpyomi"
+				          ToolTip="日文句子转读音。没有同等的汉语拼音接口"/>
 				<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
 				          AutomationProperties.AutomationId="menu.wintop"
 				          ToolTip="选择窗口，设置或取消固定在前面"/>
