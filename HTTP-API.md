@@ -227,7 +227,7 @@ ScreenKit --toast "Copied" --ms 1900
 
 ## 5.2 GET/POST `/api/zhconv`
 
-`LCMapStringEx` simplified/traditional conversion. Traditional uses `zh-TW`. The default direction is traditional.
+`LCMapStringEx` simplified/traditional conversion. Traditional uses `zh-TW`. The default direction is traditional. GET query strings are percent-encoded and decoded as UTF-8.
 
 **GET:** `/api/zhconv?text=软件&to=trad`
 

@@ -670,8 +670,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			if (jo["ms"] != null) ms = asint(jo["ms"], 1900);
 		}
 		else {
-			text = ctx.Request.QueryString["text"] ?? ctx.Request.QueryString["message"];
-			var raw = ctx.Request.QueryString["ms"];
+			text = query(ctx.Request, "text") ?? query(ctx.Request, "message");
+			var raw = query(ctx.Request, "ms");
 			if (!string.IsNullOrWhiteSpace(raw) && int.TryParse(raw, out var n)) ms = n;
 		}
 		if (string.IsNullOrWhiteSpace(text)) {
@@ -764,7 +764,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		var mono = false;
 		if (jo != null && jo["mono"] != null) mono = asbool(jo["mono"], false);
 		else {
-			var raw = ctx.Request.QueryString["mono"];
+			var raw = query(ctx.Request, "mono");
 			if (!string.IsNullOrWhiteSpace(raw)) mono = parseboolstr(raw, false);
 		}
 		JpYomiResult res;
@@ -806,7 +806,55 @@ sealed partial class HttpOcrServer : IDisposable {
 			catch { }
 			return n.ToString();
 		}
-		return ctx.Request.QueryString[key];
+		return query(ctx.Request, key);
+	}
+
+	/// <summary>查询串按 UTF-8 解码。HttpListener 的 QueryString 在中文系统上会把 UTF-8 当系统 ANSI。</summary>
+	static string query(HttpListenerRequest req, string key) {
+		var raw = req.RawUrl ?? "";
+		var i = raw.IndexOf('?');
+		if (i < 0 || i + 1 >= raw.Length) return null;
+		var qs = raw.Substring(i + 1);
+		var hash = qs.IndexOf('#');
+		if (hash >= 0) qs = qs.Substring(0, hash);
+		string found = null;
+		foreach (var part in qs.Split('&')) {
+			if (part.Length == 0) continue;
+			var eq = part.IndexOf('=');
+			var k = urldecode(eq >= 0 ? part.Substring(0, eq) : part);
+			if (!string.Equals(k, key, StringComparison.OrdinalIgnoreCase)) continue;
+			found = urldecode(eq >= 0 ? part.Substring(eq + 1) : "");
+		}
+		return found;
+	}
+
+	static string urldecode(string s) {
+		if (string.IsNullOrEmpty(s)) return "";
+		var sb = new StringBuilder(s.Length);
+		var bytes = new List<byte>();
+		void flush() {
+			if (bytes.Count == 0) return;
+			sb.Append(Encoding.UTF8.GetString(bytes.ToArray()));
+			bytes.Clear();
+		}
+		for (var i = 0; i < s.Length; i++) {
+			var c = s[i];
+			if (c == '+') {
+				flush();
+				sb.Append(' ');
+				continue;
+			}
+			if (c == '%' && i + 2 < s.Length &&
+				byte.TryParse(s.Substring(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)) {
+				bytes.Add(b);
+				i += 2;
+				continue;
+			}
+			flush();
+			sb.Append(c);
+		}
+		flush();
+		return sb.ToString();
 	}
 
 	void handlecaststop(HttpListenerContext ctx) {

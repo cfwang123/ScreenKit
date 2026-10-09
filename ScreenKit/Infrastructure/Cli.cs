@@ -3098,6 +3098,11 @@ static class Cli {
 			}
 			var soft = ZhConvert.ToTraditional("软件");
 			Out("软件=" + soft);
+			if (soft != "軟件") {
+				Err("FAIL: 软件 未转为 軟件");
+				bad++;
+			}
+			bad += testzhconvhttp();
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);
@@ -3105,6 +3110,44 @@ static class Cli {
 		}
 		Out(bad == 0 ? "=== OK：简繁转换 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	static int testzhconvhttp() {
+		HttpOcrServer srv = null;
+		try {
+			srv = new HttpOcrServer(() => new OcrOptions(), new OcrRunner());
+			var port = 0;
+			for (var p = 18770; p <= 18774; p++) {
+				try {
+					srv.Start("127.0.0.1", p);
+					port = p;
+					break;
+				}
+				catch (Exception ex) {
+					Out($"bind {p} fail: {ex.Message}");
+				}
+			}
+			if (port == 0) {
+				Err("FAIL: 无法绑定简繁 HTTP");
+				return 1;
+			}
+			var url = $"http://127.0.0.1:{port}/api/zhconv?text={Uri.EscapeDataString("软件")}&to=trad";
+			var json = Task.Run(() => new HttpClient().GetStringAsync(url).GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("http " + json);
+			if (json.IndexOf("軟件", StringComparison.Ordinal) < 0) {
+				Err("FAIL: HTTP 查询串未按 UTF-8 解码");
+				return 1;
+			}
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL: HTTP 简繁 " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { srv?.Stop(); } catch { }
+			try { srv?.Dispose(); } catch { }
+		}
 	}
 
 	static int testwincal() {

@@ -203,7 +203,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 
 - `GET  /api` · `/api/status`
 - `GET/POST /api/toast` — bottom toast (`text`, optional `ms`). CLI: `ScreenKit --toast "text" [--ms 1900]`. Both are in the HTTP tab template list.
-- `GET/POST /api/zhconv` — simplified/traditional (`text`, `to=trad|simp`). CLI: `ScreenKit --zhconv "text" [--trad|--simp]`
+- `GET/POST /api/zhconv` — simplified/traditional (`text`, `to=trad|simp`). GET query strings are UTF-8. CLI: `ScreenKit --zhconv "text" [--trad|--simp]`
 - `GET/POST /api/calendar` — calendars (`date`, `cal=lunar` and others). CLI: `ScreenKit --calendar 2024-02-10 --cal lunar`
 - `GET/POST /api/jpyomi` — Japanese reading (`text`, optional `mono`). CLI: `ScreenKit --jpyomi "text" [--mono]`
 - `GET/POST /api/cast/stop` — close screencast viewer now

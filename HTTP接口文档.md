@@ -232,7 +232,7 @@ ScreenKit --toast "已复制" --ms 1900
 
 ## 5.2 GET/POST `/api/zhconv`
 
-用系统 `LCMapStringEx` 做简体/繁体。繁体按 `zh-TW`。默认转为繁体。
+用系统 `LCMapStringEx` 做简体/繁体。繁体按 `zh-TW`。默认转为繁体。GET 查询串按 UTF-8 百分号编码；服务端按 UTF-8 解码。
 
 **GET**
 
