@@ -60,6 +60,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
+				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop"
 				or "--test-win-tts"
@@ -274,6 +275,8 @@ static class Cli {
 					return testpwgen();
 				case "--test-nettool":
 					return testnettool();
+				case "--test-update-notes":
+					return testupdatenotes();
 				case "--test-zhconv":
 					return testzhconv();
 				case "--test-wincal":
@@ -3151,6 +3154,20 @@ static class Cli {
 				Err("FAIL: /api/text 未返回 Base64");
 				return 1;
 			}
+			using (var css = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/sk/tools.css")).GetAwaiter().GetResult()) {
+				var cc = css.Headers.CacheControl;
+				if (cc == null || cc.MaxAge != TimeSpan.FromHours(1)) {
+					Err("FAIL: 工具页样式缓存不是 1 小时");
+					return 1;
+				}
+			}
+			using (var page = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/")).GetAwaiter().GetResult()) {
+				var cc = page.Headers.CacheControl;
+				if (cc == null || !cc.NoStore) {
+					Err("FAIL: 工具页不应缓存");
+					return 1;
+				}
+			}
 			return 0;
 		}
 		catch (Exception ex) {
@@ -4237,6 +4254,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-update-notes
   ScreenKit --test-zhconv
   ScreenKit --test-wincal
   ScreenKit --test-jpyomi
@@ -4309,6 +4327,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
+      --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
       --test-wincal  农历甲辰正月与 2023 闰二月
       --test-jpyomi  東京 的系统读音
@@ -4385,6 +4404,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
+  ScreenKit --test-update-notes
   ScreenKit --test-zhconv
   ScreenKit --test-wincal
   ScreenKit --test-jpyomi
@@ -4517,6 +4537,182 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		}
 		Out("apk-qr ok");
 		return 0;
+	}
+
+	static int testupdatenotes() {
+		var old = Loc.Lang;
+		try {
+			AppUpdater.SplitNotes("plain line\nsecond", out var en, out var zh);
+			if (en != zh || en.IndexOf("second", StringComparison.Ordinal) < 0) {
+				Err("update-notes: 无语言标题时应两边相同");
+				return 1;
+			}
+			AppUpdater.SplitNotes("### English\n\n- Hello\n\n#### Changed\n\n- x\n\n### 中文\n\n- 你好\n", out en, out zh);
+			if (en.IndexOf("Hello", StringComparison.Ordinal) < 0 || en.IndexOf("Changed", StringComparison.Ordinal) < 0
+				|| en.IndexOf("你好", StringComparison.Ordinal) >= 0) {
+				Err("update-notes: 英文段不符");
+				return 1;
+			}
+			if (zh.IndexOf("你好", StringComparison.Ordinal) < 0 || zh.IndexOf("Hello", StringComparison.Ordinal) >= 0) {
+				Err("update-notes: 中文段不符");
+				return 1;
+			}
+			if (AppUpdater.CompareVersion("1.0.2", "1.0.10") >= 0) {
+				Err("update-notes: 1.0.2 应旧于 1.0.10");
+				return 1;
+			}
+			var json = """
+[
+  {"tag_name":"v1.0.5","draft":false,"prerelease":false,"published_at":"2026-09-01T00:00:00Z","body":"### 中文\n\n- 仅中文\n"},
+  {"tag_name":"v1.0.3","draft":false,"prerelease":false,"published_at":"2026-08-30T00:00:00Z","body":"### English\n\n- Fixed the **tray**.\n\n#### Changed\n\n- One more.\n\nSee [notes](https://example.com/rel).\n\n```\ncode line\n```\n\n### 中文\n\n- 修复托盘。\n"},
+  {"tag_name":"v1.0.2","published_at":"2026-08-26T00:00:00Z","body":"### English\n\n- older en\n\n### 中文\n\n- 旧版中文\n"},
+  {"tag_name":"v1.0.1","published_at":"2026-08-07T00:00:00Z","body":"### English\n\n- current\n\n### 中文\n\n- 当前\n"},
+  {"tag_name":"v9.9.9","draft":true,"body":"### English\n\n- draft\n"},
+  {"tag_name":"v1.0.4","prerelease":true,"body":"### English\n\n- pre\n"}
+]
+""";
+			var list = AppUpdater.ParseReleaseList(json, "1.0.1");
+			if (list.Count != 3 || list[0].Version != "1.0.2" || list[1].Version != "1.0.3" || list[2].Version != "1.0.5") {
+				Err("update-notes: 列表 " + string.Join(",", list.Select(n => n.Version)));
+				return 1;
+			}
+			if (list[1].English.IndexOf("One more", StringComparison.Ordinal) < 0
+				|| list[1].Chinese.IndexOf("修复托盘", StringComparison.Ordinal) < 0
+				|| list[1].English.IndexOf("修复托盘", StringComparison.Ordinal) >= 0) {
+				Err("update-notes: 1.0.3 正文拆分不符");
+				return 1;
+			}
+			if (list[0].Published != "2026-08-26") {
+				Err("update-notes: 日期 " + list[0].Published);
+				return 1;
+			}
+			Loc.Lang = "zh";
+			var info = new UpdateInfo {
+				Version = "1.0.5",
+				CurrentVersion = "1.0.1",
+				AssetName = "screenkit_1.0.5.7z",
+				SizeBytes = 2048,
+				HasUpdate = true,
+			};
+			var w = new UpdateNotesWindow(info, list);
+			w.Show();
+			try {
+				if (w.elist.Items.Count != 3 || w.elist.SelectedIndex != 2) {
+					Err("update-notes: 窗口列表选中不符");
+					return 1;
+				}
+				if (w.lbhead.Text.IndexOf("1.0.1", StringComparison.Ordinal) < 0
+					|| w.lbhead.Text.IndexOf("1.0.5", StringComparison.Ordinal) < 0) {
+					Err("update-notes: 标题 " + w.lbhead.Text);
+					return 1;
+				}
+				if (w.lbfile.Text.IndexOf("screenkit_1.0.5.7z", StringComparison.Ordinal) < 0) {
+					Err("update-notes: 文件名 " + w.lbfile.Text);
+					return 1;
+				}
+				var text = notestext(w);
+				if (text.IndexOf("仅中文", StringComparison.Ordinal) < 0) {
+					Err("update-notes: 最新中文 " + text);
+					return 1;
+				}
+				w.elist.SelectedIndex = 1;
+				text = notestext(w);
+				if (text.IndexOf("修复托盘", StringComparison.Ordinal) < 0 || text.IndexOf("Fixed", StringComparison.Ordinal) >= 0) {
+					Err("update-notes: 选中中文 " + text);
+					return 1;
+				}
+				w.ben.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+				text = notestext(w);
+				if (text.IndexOf("Fixed the tray", StringComparison.Ordinal) < 0
+					|| text.IndexOf("One more", StringComparison.Ordinal) < 0
+					|| text.IndexOf("code line", StringComparison.Ordinal) < 0
+					|| text.IndexOf("修复托盘", StringComparison.Ordinal) >= 0) {
+					Err("update-notes: 英文渲染 " + text);
+					return 1;
+				}
+				if (!noteshaslink(w.docview.Document) || !noteshasbold(w.docview.Document)) {
+					Err("update-notes: 链接或加粗未渲染");
+					return 1;
+				}
+				w.elist.SelectedIndex = 0;
+				text = notestext(w);
+				if (text.IndexOf("older en", StringComparison.Ordinal) < 0) {
+					Err("update-notes: 旧版英文 " + text);
+					return 1;
+				}
+				w.bzh.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+				text = notestext(w);
+				if (text.IndexOf("旧版中文", StringComparison.Ordinal) < 0) {
+					Err("update-notes: 切回中文 " + text);
+					return 1;
+				}
+				w.elist.SelectedIndex = 2;
+				w.ben.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+				text = notestext(w);
+				if (text.IndexOf("这个版本没有这段说明", StringComparison.Ordinal) < 0) {
+					Err("update-notes: 缺英文 " + text);
+					return 1;
+				}
+				if (!w.bgo.IsEnabled || !w.bignore.IsEnabled) {
+					Err("update-notes: 按钮不可用");
+					return 1;
+				}
+			}
+			finally {
+				try { w.Close(); } catch { }
+			}
+			Out("update-notes ok");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("update-notes: " + ex);
+			return 1;
+		}
+		finally {
+			try { Loc.Lang = old; } catch { }
+		}
+
+		static string notestext(UpdateNotesWindow w) {
+			var d = w.docview.Document;
+			if (d == null) return "";
+			return new System.Windows.Documents.TextRange(d.ContentStart, d.ContentEnd).Text ?? "";
+		}
+
+		static bool noteshaslink(System.Windows.Documents.FlowDocument d) {
+			if (d == null) return false;
+			foreach (var b in d.Blocks)
+				if (notewalk(b, false)) return true;
+			return false;
+		}
+
+		static bool noteshasbold(System.Windows.Documents.FlowDocument d) {
+			if (d == null) return false;
+			foreach (var b in d.Blocks)
+				if (notewalk(b, true)) return true;
+			return false;
+		}
+
+		static bool notewalk(System.Windows.Documents.Block b, bool bold) {
+			if (b is System.Windows.Documents.Paragraph p) {
+				foreach (var inline in p.Inlines) {
+					if (!bold && inline is System.Windows.Documents.Hyperlink) return true;
+					if (bold && inline is System.Windows.Documents.Run run
+						&& run.FontWeight == FontWeights.SemiBold
+						&& (run.Text ?? "").IndexOf("tray", StringComparison.Ordinal) >= 0)
+						return true;
+				}
+			}
+			if (b is System.Windows.Documents.List list) {
+				foreach (var item in list.ListItems)
+					foreach (var bb in item.Blocks)
+						if (notewalk(bb, bold)) return true;
+			}
+			if (b is System.Windows.Documents.Section sec) {
+				foreach (var bb in sec.Blocks)
+					if (notewalk(bb, bold)) return true;
+			}
+			return false;
+		}
 	}
 
 	static int testlang() {
@@ -4680,6 +4876,20 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				CookieContainer = cookies,
 			};
 			using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(12) };
+			using (var pageRes = Task.Run(() => http.GetAsync(baseUrl + "/files?pc=1")).GetAwaiter().GetResult()) {
+				var cc = pageRes.Headers.CacheControl;
+				if (cc == null || !cc.NoStore) {
+					Err("sendfile-web: /files 页面不应缓存");
+					return 1;
+				}
+			}
+			using (var cssRes = Task.Run(() => http.GetAsync(baseUrl + "/web/d.css")).GetAwaiter().GetResult()) {
+				var cc = cssRes.Headers.CacheControl;
+				if (cc == null || cc.MaxAge != TimeSpan.FromHours(1)) {
+					Err("sendfile-web: /web/d.css 缓存不是 1 小时");
+					return 1;
+				}
+			}
 			var page = Task.Run(() => http.GetStringAsync(baseUrl + "/files?pc=1")).GetAwaiter().GetResult();
 			if (page == null || page.IndexOf("sfweb", StringComparison.Ordinal) < 0
 				|| page.IndexOf("id=\"btext\"", StringComparison.Ordinal) < 0

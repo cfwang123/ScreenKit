@@ -1,0 +1,112 @@
+<Window x:Class="ScreenKit.UpdateNotesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="发现新版本"
+        Height="580" Width="920"
+        MinHeight="420" MinWidth="680"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        ShowInTaskbar="False"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="update.notes.window">
+	<Grid Margin="18">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<StackPanel Grid.Row="0">
+			<TextBlock x:Name="lbhead" FontSize="16" FontWeight="SemiBold"
+			           Foreground="{StaticResource TextPrimary}" TextWrapping="Wrap"/>
+			<TextBlock x:Name="lbfile" Margin="0,6,0,0" FontSize="12"
+			           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>
+		</StackPanel>
+
+		<Grid Grid.Row="1" Margin="0,14,0,0">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="176"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+
+			<DockPanel>
+				<TextBlock x:Name="lbvers" DockPanel.Dock="Top" FontWeight="SemiBold"
+				           Foreground="{StaticResource TextPrimary}" Margin="2,0,0,6"/>
+				<Border Background="{StaticResource BgPanel}" CornerRadius="10"
+				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+					<ListBox x:Name="elist" BorderThickness="0" Background="Transparent"
+					         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+					         AutomationProperties.AutomationId="update.notes.list">
+						<ListBox.ItemContainerStyle>
+							<Style TargetType="ListBoxItem">
+								<Setter Property="Padding" Value="8,6"/>
+								<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+								<Setter Property="Background" Value="Transparent"/>
+								<Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+								<Setter Property="Template">
+									<Setter.Value>
+										<ControlTemplate TargetType="ListBoxItem">
+											<Border x:Name="bd" Background="{TemplateBinding Background}"
+											        Padding="{TemplateBinding Padding}" CornerRadius="6">
+												<ContentPresenter/>
+											</Border>
+											<ControlTemplate.Triggers>
+												<Trigger Property="IsMouseOver" Value="True">
+													<Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoft}"/>
+												</Trigger>
+												<Trigger Property="IsSelected" Value="True">
+													<Setter TargetName="bd" Property="Background" Value="#BFDBFE"/>
+												</Trigger>
+											</ControlTemplate.Triggers>
+										</ControlTemplate>
+									</Setter.Value>
+								</Setter>
+							</Style>
+						</ListBox.ItemContainerStyle>
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<StackPanel>
+									<TextBlock Text="{Binding Version}" FontSize="13" FontWeight="SemiBold"/>
+									<TextBlock Text="{Binding Published}" FontSize="11" Margin="0,2,0,0"
+									           Foreground="{StaticResource TextMuted}"/>
+								</StackPanel>
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</Border>
+			</DockPanel>
+
+			<DockPanel Grid.Column="1" Margin="12,0,0,0">
+				<DockPanel DockPanel.Dock="Top" Margin="2,0,2,6" LastChildFill="False">
+					<TextBlock x:Name="lbnotes" DockPanel.Dock="Left" FontWeight="SemiBold"
+					           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
+					<StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+						<ToggleButton x:Name="bzh" Content="中文" Style="{StaticResource ToolToggleSm}"
+						              AutomationProperties.AutomationId="update.notes.zh"/>
+						<ToggleButton x:Name="ben" Content="English" Style="{StaticResource ToolToggleSm}"
+						              Margin="0" AutomationProperties.AutomationId="update.notes.en"/>
+					</StackPanel>
+				</DockPanel>
+				<Border Background="{StaticResource BgPanel}" CornerRadius="10"
+				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+					<FlowDocumentScrollViewer x:Name="docview" Background="Transparent"
+					                           BorderThickness="0" IsToolBarVisible="False"
+					                           VerticalScrollBarVisibility="Auto"
+					                           HorizontalScrollBarVisibility="Disabled"/>
+				</Border>
+			</DockPanel>
+		</Grid>
+
+		<DockPanel Grid.Row="2" Margin="0,14,0,0">
+			<Button x:Name="bgo" DockPanel.Dock="Right" Content="更新" Width="108"
+			        Style="{StaticResource PrimaryBtn}" Margin="8,0,0,0" IsDefault="True"
+			        AutomationProperties.AutomationId="update.notes.go"/>
+			<Button x:Name="bignore" DockPanel.Dock="Right" Content="忽略" Width="108"
+			        Style="{StaticResource ToolBtn}" IsCancel="True"
+			        AutomationProperties.AutomationId="update.notes.ignore"/>
+			<TextBlock x:Name="lbrestart" VerticalAlignment="Center" TextWrapping="Wrap"
+			           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,12,0"/>
+		</DockPanel>
+	</Grid>
+</Window>

@@ -3312,12 +3312,32 @@ public partial class MainWindow : Window {
 		try { AppConfig.Save(opt); } catch { }
 	}
 
+	static async Task<List<ReleaseNote>> loadupdatenotes(UpdateInfo info, CancellationToken ct) {
+		List<ReleaseNote> notes;
+		try {
+			notes = await AppUpdater.ListNewerNotesAsync(info?.CurrentVersion, ct).ConfigureAwait(true);
+		}
+		catch (OperationCanceledException) { throw; }
+		catch (Exception ex) {
+			CaptureLog.Ex("update notes", ex);
+			notes = new List<ReleaseNote>();
+		}
+		notes ??= new List<ReleaseNote>();
+		var ver = info?.Version;
+		if (!string.IsNullOrWhiteSpace(ver)
+			&& !notes.Any(n => string.Equals(n.Version, ver, StringComparison.OrdinalIgnoreCase)))
+			notes.Add(AppUpdater.FromUpdate(info));
+		notes.Sort((a, b) => AppUpdater.CompareVersion(a?.Version, b?.Version));
+		return notes;
+	}
+
 	async void openupdate() => await runupdateasync(silent: false);
 
 	async Task runupdateasync(bool silent) {
 		UpdateProgressWindow prog = null;
 		try {
 			UpdateInfo info;
+			CancellationToken notesTok = CancellationToken.None;
 			if (silent) {
 				info = await AppUpdater.CheckLatestAsync().ConfigureAwait(true);
 				markupdatecheck();
@@ -3340,21 +3360,18 @@ public partial class MainWindow : Window {
 						MessageBoxImage.Information);
 					return;
 				}
+				prog.Report("check", 0, Loc.T("update.notes.loading"));
+				notesTok = prog.Token;
+			}
+
+			var notes = await loadupdatenotes(info, notesTok).ConfigureAwait(true);
+			if (prog != null && prog.WasCancelled) return;
+			if (prog != null) {
 				prog.ForceClose();
 				prog = null;
 			}
-
-			var sizeText = info.SizeBytes > 0
-				? FeatureInstaller.FormatBytes(info.SizeBytes)
-				: "—";
-			var ask = Loc.T("update.found",
-				info.CurrentVersion,
-				info.Version,
-				info.AssetName ?? Path.GetFileName(info.DownloadUrl),
-				sizeText);
-			var r = MessageBox.Show(this, ask, Loc.T("update.title"),
-				MessageBoxButton.YesNo, MessageBoxImage.Question);
-			if (r != MessageBoxResult.Yes) return;
+			var dlg = new UpdateNotesWindow(info, notes) { Owner = this };
+			if (dlg.ShowDialog() != true) return;
 
 			prog = new UpdateProgressWindow { Owner = this };
 			prog.Show();

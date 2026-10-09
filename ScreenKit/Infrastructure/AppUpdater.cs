@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 namespace ScreenKit;
 
 /// <summary>GitHub Releases 检查到的最新版本信息。</summary>
-sealed class UpdateInfo {
+public sealed class UpdateInfo {
 	public string Version { get; set; }
 	public string TagName { get; set; }
 	public string DownloadUrl { get; set; }
@@ -20,6 +20,16 @@ sealed class UpdateInfo {
 	public string Body { get; set; }
 	public bool HasUpdate { get; set; }
 	public string CurrentVersion { get; set; }
+}
+
+/// <summary>一条 Release 的中英文更新说明。</summary>
+public sealed class ReleaseNote {
+	public string Version { get; set; }
+	public string TagName { get; set; }
+	public string Published { get; set; }
+	public string Body { get; set; }
+	public string English { get; set; }
+	public string Chinese { get; set; }
 }
 
 /// <summary>GitHub Releases 上最新 Android APK。</summary>
@@ -41,6 +51,7 @@ sealed class ApkInfo {
 static class AppUpdater {
 	const string REPO_API = "https://api.github.com/repos/cfwang123/ScreenKit/releases/latest";
 	const string REPO_API_LIST = "https://api.github.com/repos/cfwang123/ScreenKit/releases?per_page=30";
+	const string REPO_API_PAGE = "https://api.github.com/repos/cfwang123/ScreenKit/releases?per_page=100&page=";
 	const string REPO_PAGE = "https://github.com/cfwang123/ScreenKit/releases";
 	const string UPDATER_EXE = "ScreenKit_updater.exe";
 
@@ -197,6 +208,81 @@ static class AppUpdater {
 
 	/// <summary>规范化版本号（去 v 前缀、取 x.y.z）。</summary>
 	public static string NormalizeVersion(string s) => normalizever(s);
+
+	/// <summary>版本比较。a 比 b 旧时为负。</summary>
+	public static int CompareVersion(string a, string b) {
+		var ha = tryparsever(a, out var va);
+		var hb = tryparsever(b, out var vb);
+		if (ha && hb) return va.CompareTo(vb);
+		if (ha) return 1;
+		if (hb) return -1;
+		return string.Compare(NormalizeVersion(a) ?? a, NormalizeVersion(b) ?? b, StringComparison.OrdinalIgnoreCase);
+	}
+
+	/// <summary>把 Release 正文拆成英文和中文。没有语言标题时两边都是全文。</summary>
+	public static void SplitNotes(string body, out string english, out string chinese) {
+		english = "";
+		chinese = "";
+		if (string.IsNullOrWhiteSpace(body)) return;
+		var text = body.Replace("\r\n", "\n").Replace('\r', '\n');
+		var lines = text.Split('\n');
+		var pre = new StringBuilder();
+		var en = new StringBuilder();
+		var zh = new StringBuilder();
+		var mode = 0;
+		foreach (var line in lines) {
+			var kind = langmarker(line);
+			if (kind == 1) { mode = 1; continue; }
+			if (kind == 2) { mode = 2; continue; }
+			var dest = mode == 1 ? en : mode == 2 ? zh : pre;
+			dest.AppendLine(line);
+		}
+		var p = pre.ToString().Trim();
+		var e = en.ToString().Trim();
+		var z = zh.ToString().Trim();
+		if (e.Length == 0 && z.Length == 0) {
+			english = chinese = p.Length > 0 ? p : text.Trim();
+			return;
+		}
+		if (p.Length > 0) {
+			if (e.Length > 0) e = p + "\n\n" + e;
+			if (z.Length > 0) z = p + "\n\n" + z;
+		}
+		english = e;
+		chinese = z;
+	}
+
+	/// <summary>用最新版本信息做一条说明（列表接口失败时）。</summary>
+	public static ReleaseNote FromUpdate(UpdateInfo info) {
+		var body = info?.Body ?? "";
+		SplitNotes(body, out var en, out var zh);
+		return new ReleaseNote {
+			Version = info?.Version ?? "",
+			TagName = info?.TagName ?? "",
+			Body = body,
+			English = en,
+			Chinese = zh,
+		};
+	}
+
+	/// <summary>解析一页 Release JSON，只保留比 current 新的正式版。</summary>
+	public static List<ReleaseNote> ParseReleaseList(string json, string currentVersion) {
+		return sortnotes(parsenotes(json, currentVersion, out _, out _));
+	}
+
+	/// <summary>当前版本之后、到最新版的每条 Release 说明。按版本从旧到新。</summary>
+	public static async Task<List<ReleaseNote>> ListNewerNotesAsync(string currentVersion, CancellationToken ct = default) {
+		var cur = NormalizeVersion(currentVersion) ?? (currentVersion ?? "").Trim();
+		var all = new List<ReleaseNote>();
+		for (int page = 1; page <= 4; page++) {
+			ct.ThrowIfCancellationRequested();
+			var json = await fetchjson(REPO_API_PAGE + page, ct).ConfigureAwait(false);
+			var batch = parsenotes(json, cur, out var count, out var hitOlder);
+			all.AddRange(batch);
+			if (count == 0 || count < 100 || hitOlder) break;
+		}
+		return sortnotes(all);
+	}
 
 	/// <summary>查询最新 Android APK；无 APK 时仍返回发布页链接。</summary>
 	public static async Task<ApkInfo> CheckLatestApkAsync(CancellationToken ct = default) {
@@ -459,6 +545,92 @@ static class AppUpdater {
 		if (!tryparsever(remote, out var r)) return !string.Equals(remote, local, StringComparison.OrdinalIgnoreCase);
 		if (!tryparsever(local, out var l)) return true;
 		return r > l;
+	}
+
+	static int langmarker(string line) {
+		if (string.IsNullOrWhiteSpace(line)) return 0;
+		var s = line.Trim();
+		var heading = false;
+		int i = 0;
+		while (i < s.Length && s[i] == '#') i++;
+		if (i > 0) {
+			if (i > 6 || i >= s.Length || s[i] != ' ') return 0;
+			s = s[(i + 1)..].Trim();
+			heading = true;
+		}
+		if (s.Length > 4 && s.StartsWith("**", StringComparison.Ordinal) && s.EndsWith("**", StringComparison.Ordinal)) {
+			s = s.Substring(2, s.Length - 4).Trim();
+			heading = true;
+		}
+		else if (s.Length > 4 && s.StartsWith("__", StringComparison.Ordinal) && s.EndsWith("__", StringComparison.Ordinal)) {
+			s = s.Substring(2, s.Length - 4).Trim();
+			heading = true;
+		}
+		if (!heading) return 0;
+		s = s.TrimEnd(':', '：').Trim();
+		if (islang(s, "english") || islang(s, "en") || islang(s, "英文")) return 1;
+		if (islang(s, "中文") || islang(s, "简体中文") || islang(s, "chinese") || islang(s, "zh")) return 2;
+		return 0;
+	}
+
+	static bool islang(string s, string token) =>
+		string.Equals(s, token, StringComparison.OrdinalIgnoreCase);
+
+	static List<ReleaseNote> parsenotes(string json, string currentVersion, out int count, out bool hitOlder) {
+		count = 0;
+		hitOlder = false;
+		var list = new List<ReleaseNote>();
+		if (string.IsNullOrWhiteSpace(json)) return list;
+		using var doc = JsonDocument.Parse(json);
+		var root = doc.RootElement;
+		if (root.ValueKind != JsonValueKind.Array) return list;
+		count = root.GetArrayLength();
+		var cur = normalizever(currentVersion) ?? currentVersion;
+		foreach (var el in root.EnumerateArray()) {
+			if (el.ValueKind != JsonValueKind.Object) continue;
+			if (jsontrue(el, "draft") || jsontrue(el, "prerelease")) continue;
+			var tag = el.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
+			var name = el.TryGetProperty("name", out var n) ? n.GetString() : null;
+			var ver = normalizever(tag);
+			if (string.IsNullOrEmpty(ver) && !string.IsNullOrEmpty(name))
+				ver = normalizever(name);
+			if (string.IsNullOrEmpty(ver))
+				ver = tag.Trim().TrimStart('v', 'V');
+			if (string.IsNullOrEmpty(ver)) continue;
+			if (!isnewer(ver, cur)) {
+				hitOlder = true;
+				continue;
+			}
+			var body = el.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
+			var pub = el.TryGetProperty("published_at", out var p) ? p.GetString() : null;
+			if (!string.IsNullOrEmpty(pub) && pub.Length >= 10) pub = pub.Substring(0, 10);
+			SplitNotes(body, out var en, out var zh);
+			list.Add(new ReleaseNote {
+				Version = ver,
+				TagName = tag,
+				Published = pub ?? "",
+				Body = body,
+				English = en,
+				Chinese = zh,
+			});
+		}
+		return list;
+	}
+
+	static bool jsontrue(JsonElement el, string name) =>
+		el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+
+	static List<ReleaseNote> sortnotes(List<ReleaseNote> src) {
+		var map = new Dictionary<string, ReleaseNote>(StringComparer.OrdinalIgnoreCase);
+		if (src != null) {
+			foreach (var n in src) {
+				if (n == null || string.IsNullOrWhiteSpace(n.Version)) continue;
+				if (!map.ContainsKey(n.Version)) map[n.Version] = n;
+			}
+		}
+		var list = map.Values.ToList();
+		list.Sort((a, b) => CompareVersion(a.Version, b.Version));
+		return list;
 	}
 
 	static bool tryparsever(string s, out Version v) {
