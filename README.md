@@ -199,7 +199,7 @@ When enabled, the OCR API listens on `http_port` (default `1224`). `http_lan = t
 LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairing required): [HTTP-API.md](HTTP-API.md) · [android/README.md](android/README.md).
 
 - `GET  /api` · `/api/status`
-- `GET/POST /api/toast` — bottom toast (`text`, optional `ms`). CLI: `ScreenKit --toast "text" [--ms 1900]`
+- `GET/POST /api/toast` — bottom toast (`text`, optional `ms`). CLI: `ScreenKit --toast "text" [--ms 1900]`. Both are in the HTTP tab template list.
 - `GET/POST /api/cast/stop` — close screencast viewer now
 - WebSocket `/cast` — screencast media (same HTTP port)
 - `POST /api/ocr` — `box` is original-image pixels. `ocr.engine=winocr` uses Windows OCR on this request

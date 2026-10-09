@@ -36,6 +36,11 @@ public partial class MainWindow {
 		httpUiLoading = true;
 		ehttptpl.Items.Clear();
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/status", Method = "GET", Path = "/api/status", Body = "" });
+		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/toast", Method = "GET", Path = "/api/toast?text=你好&ms=1900", Body = "" });
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/toast", Method = "POST", Path = "/api/toast",
+			Body = "{\n  \"text\": \"你好\",\n  \"ms\": 1900\n}",
+		});
 		ehttptpl.Items.Add(new HttpTpl { Title = "POST /api/cast/stop", Method = "POST", Path = "/api/cast/stop", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api", Method = "GET", Path = "/api", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/ocr/get_options", Method = "GET", Path = "/api/ocr/get_options", Body = "" });

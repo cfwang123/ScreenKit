@@ -32,7 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-- **Toast**: `GET/POST /api/toast` (`text` or `message`, optional `ms` from 800 to 8000) and `ScreenKit --toast "text" [--ms 1900]`. The bar sits at the bottom of the primary monitor and does not take focus. This path stays available when other HTTP modules are off.
+- **Toast**: `GET/POST /api/toast` (`text` or `message`, optional `ms` from 800 to 8000) and `ScreenKit --toast "text" [--ms 1900]`. The bar sits at the bottom of the primary monitor and does not take focus. This path stays available when other HTTP modules are off. The HTTP tab template list includes both methods.
 - Startup no longer opens **Help → Install features**. Windows OCR works without that window. Optional packs are still installed from the Help menu, or when a feature asks for a missing dependency.
 - A new install uses **Windows OCR**, **Windows speech**, and **Windows speech recognition** when nothing is saved. A saved pack, voice engine, or ASR model is kept. CLI `-p` defaults to `winocr`. Speech still uses Edge online when Windows has no voice.
 - **Windows OCR** no longer asks for OpenCV. Screenshot OCR, PDF OCR, CLI, and `POST /api/ocr` decode and scale the image with Windows imaging. ONNX OCR, barcodes, and long screenshots still require OpenCV.
@@ -47,7 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
-- **Toast**：`GET/POST /api/toast`（`text` 或 `message`，可选 `ms`，800～8000）和 `ScreenKit --toast "文字" [--ms 1900]`。浮层在主显示器底部，不抢焦点。其它 HTTP 模块关掉时这个接口仍可用。
+- **Toast**：`GET/POST /api/toast`（`text` 或 `message`，可选 `ms`，800～8000）和 `ScreenKit --toast "文字" [--ms 1900]`。浮层在主显示器底部，不抢焦点。其它 HTTP 模块关掉时这个接口仍可用。HTTP 接口页的模板下拉里有这两项。
 - 启动时不再弹出 **帮助 → 安装功能**。Windows 系统 OCR 不用这个窗口就能识别。可选组件仍从帮助菜单安装，或在使用某功能时因缺少依赖而提示安装。
 - 没有保存过选择时，默认使用 **Windows 系统 OCR**、**Windows 语音**和 **Windows 语音识别**。已经保存的模型包、语音引擎或识别模型保持不变。命令行 `-p` 默认改为 `winocr`。本机没有 Windows 发音人时，语音合成仍用 Edge 在线。
 - **Windows 系统 OCR** 不再检查 OpenCV。截图识别、PDF 识别、命令行和 `POST /api/ocr` 用 Windows 图像接口解码和缩小。ONNX 识别、条码和长截图仍需要 OpenCV。
