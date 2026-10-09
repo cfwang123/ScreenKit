@@ -40,6 +40,10 @@ sealed class DictSense {
 	public string JaDef = "";
 	public List<DictText> Phrases = new();
 	public List<DictText> Sentences = new();
+	/// <summary>从属义项，详情里不单独编号。</summary>
+	public bool Sub;
+	/// <summary>惯用语词头。非空时详情在本义项前另起一行「词组」。</summary>
+	public string Idiom = "";
 }
 
 sealed class DictEntry {
@@ -85,9 +89,6 @@ sealed class DictEntry {
 #region
 static class DictDb {
 	const int FETCHCAP = 4000;
-	const int MAXSENSES = 16;
-	const int MAXPHRASES = 8;
-	const int MAXSENTENCES = 6;
 
 	const int IDLE_MS = 5 * 60 * 1000;
 
@@ -587,16 +588,13 @@ static class DictDb {
 			}
 		}
 		if (n["n"] is JsonArray na) {
-			foreach (var sn in na) {
-				if (e.Senses.Count >= MAXSENSES) break;
-				addsense(e, sn, "");
-			}
+			foreach (var sn in na) addsense(e, sn, "");
 		}
 		if (n["g"] is JsonArray ga) {
-			foreach (var g in ga) {
-				if (e.Senses.Count >= MAXSENSES) break;
-				addgroup(e, g);
-			}
+			foreach (var g in ga) addgroup(e, g);
+		}
+		if (n["i"] is JsonArray ia) {
+			foreach (var id in ia) addidiom(e, id);
 		}
 	}
 
@@ -624,22 +622,13 @@ static class DictDb {
 			}
 		}
 		if (n["senses"] is JsonArray sa) {
-			foreach (var sn in sa) {
-				if (e.Senses.Count >= MAXSENSES) break;
-				addsense(e, sn, e.Pos);
-			}
+			foreach (var sn in sa) addsense(e, sn, e.Pos);
 		}
 		if (n["posGroups"] is JsonArray pg) {
-			foreach (var g in pg) {
-				if (e.Senses.Count >= MAXSENSES) break;
-				addposgroup(e, g);
-			}
+			foreach (var g in pg) addposgroup(e, g);
 		}
 		if (n["idioms"] is JsonArray ia) {
-			foreach (var id in ia) {
-				if (e.Senses.Count >= MAXSENSES) break;
-				addidiom(e, id);
-			}
+			foreach (var id in ia) addidiom(e, id);
 		}
 	}
 
@@ -648,36 +637,55 @@ static class DictDb {
 		var pos = str(o["pos"]);
 		if (e.Pos.Length == 0 && pos.Length > 0) e.Pos = pos;
 		if (o["blocks"] is not JsonArray blocks) return;
-		foreach (var b in blocks) {
-			if (e.Senses.Count >= MAXSENSES) break;
-			addlongblock(e, b, pos);
-		}
+		var idiom = "";
+		foreach (var b in blocks) addblock(e, b, pos, ref idiom);
 	}
 
+	// 长 JSON：{phrase, blocks}。短 JSON：`i` 里的 [词组, [义项块…]]。
 	static void addidiom(DictEntry e, JsonNode n) {
-		if (n is not JsonObject o) return;
-		var phrase = str(o["phrase"]);
-		if (o["blocks"] is JsonArray blocks) {
-			var first = true;
-			foreach (var b in blocks) {
-				if (e.Senses.Count >= MAXSENSES) break;
-				addlongblock(e, b, phrase);
-				if (first && phrase.Length > 0 && e.Senses.Count > 0 && e.Senses[e.Senses.Count - 1].Zh.Length == 0) {
-					e.Senses[e.Senses.Count - 1].Zh = phrase;
-					first = false;
-				}
-			}
+		string phrase = "";
+		JsonArray blocks = null;
+		if (n is JsonObject o) {
+			phrase = str(o["phrase"]);
+			blocks = o["blocks"] as JsonArray;
+		}
+		else if (n is JsonArray a && a.Count > 0) {
+			phrase = str(a[0]);
+			if (a.Count > 1) blocks = a[1] as JsonArray;
+		}
+		if (blocks == null) blocks = new JsonArray();
+		var idiom = phrase ?? "";
+		var before = e.Senses.Count;
+		foreach (var b in blocks) addblock(e, b, "", ref idiom);
+		if (e.Senses.Count == before && idiom.Length > 0) {
+			e.Senses.Add(new DictSense { Sub = true, Idiom = idiom });
+			return;
+		}
+		for (var i = before; i < e.Senses.Count; i++) e.Senses[i].Sub = true;
+	}
+
+	static void addblock(DictEntry e, JsonNode b, string pos, ref string idiom) {
+		if (b is JsonObject o && (o.ContainsKey("main") || o.ContainsKey("subs"))) {
+			addlongblock(e, o, pos, ref idiom);
+			return;
+		}
+		if (issenseshape(b)) {
+			addsense(e, b, pos, false, ref idiom);
+			return;
+		}
+		if (b is not JsonArray inner) return;
+		var sub = false;
+		foreach (var x in inner) {
+			addsense(e, x, pos, sub, ref idiom);
+			sub = true;
 		}
 	}
 
-	static void addlongblock(DictEntry e, JsonNode n, string pos) {
+	static void addlongblock(DictEntry e, JsonNode n, string pos, ref string idiom) {
 		if (n is not JsonObject o) return;
-		if (o["main"] != null) addsense(e, o["main"], pos);
+		if (o["main"] != null) addsense(e, o["main"], pos, false, ref idiom);
 		if (o["subs"] is JsonArray subs) {
-			foreach (var s in subs) {
-				if (e.Senses.Count >= MAXSENSES) break;
-				addsense(e, s, pos);
-			}
+			foreach (var s in subs) addsense(e, s, pos, true, ref idiom);
 		}
 	}
 
@@ -689,22 +697,25 @@ static class DictDb {
 		else if (a.Count >= 2 && a[1] is JsonArray a1) blocks = a1;
 		if (blocks == null) return;
 		var pos = str(a[0]);
-		foreach (var b in blocks) {
-			if (e.Senses.Count >= MAXSENSES) break;
-			if (issenseshape(b)) addsense(e, b, pos);
-			else if (b is JsonArray inner) {
-				foreach (var x in inner) {
-					if (e.Senses.Count >= MAXSENSES) break;
-					addsense(e, x, pos);
-				}
-			}
-		}
+		var idiom = "";
+		foreach (var b in blocks) addblock(e, b, pos, ref idiom);
 	}
 
 	static void addsense(DictEntry e, JsonNode n, string pos) {
-		if (n == null || e.Senses.Count >= MAXSENSES) return;
+		var idiom = "";
+		addsense(e, n, pos, false, ref idiom);
+	}
+
+	static void addsense(DictEntry e, JsonNode n, string pos, bool sub, ref string idiom) {
+		if (n == null) return;
 		var s = cmpsense(n);
 		if (s.Pos.Length == 0) s.Pos = pos ?? "";
+		s.Sub = sub;
+		if (!string.IsNullOrEmpty(idiom)) {
+			s.Idiom = idiom;
+			s.Sub = true;
+			idiom = "";
+		}
 		e.Senses.Add(s);
 	}
 
@@ -729,8 +740,8 @@ static class DictDb {
 		if (n is not JsonArray a) return s;
 		spliteq(str(a.Count > 0 ? a[0] : null), out s.Zh, out s.ZhDef);
 		spliteq(str(a.Count > 1 ? a[1] : null), out s.En, out s.EnDef);
-		fillbilingual(a.Count > 2 ? a[2] : null, s.Phrases, MAXPHRASES);
-		fillbilingual(a.Count > 3 ? a[3] : null, s.Sentences, MAXSENTENCES);
+		fillbilingual(a.Count > 2 ? a[2] : null, s.Phrases);
+		fillbilingual(a.Count > 3 ? a[3] : null, s.Sentences);
 		s.Ko = str(a.Count > 4 ? a[4] : null);
 		spliteq(str(a.Count > 5 ? a[5] : null), out s.Ja, out s.JaDef);
 		return s;
@@ -741,8 +752,8 @@ static class DictDb {
 		spliteq(eqtext(sn["zh"]), out s.Zh, out s.ZhDef);
 		spliteq(eqtext(sn["en"]), out s.En, out s.EnDef);
 		spliteq(eqtext(sn["ja"]), out s.Ja, out s.JaDef);
-		fillbilingual(sn["phrases"], s.Phrases, MAXPHRASES);
-		fillbilingual(sn["sentences"], s.Sentences, MAXSENTENCES);
+		fillbilingual(sn["phrases"], s.Phrases);
+		fillbilingual(sn["sentences"], s.Sentences);
 	}
 
 	static string eqtext(JsonNode n) {
@@ -751,7 +762,7 @@ static class DictDb {
 		return join2(str(n["lemma"]), str(n["definition"]));
 	}
 
-	static void fillbilingual(JsonNode n, List<DictText> list, int cap) {
+	static void fillbilingual(JsonNode n, List<DictText> list) {
 		if (n is JsonValue) {
 			var t = str(n);
 			if (t.Length > 0) list.Add(new DictText { Text = t });
@@ -759,7 +770,6 @@ static class DictDb {
 		}
 		if (n is not JsonArray a) return;
 		foreach (var x in a) {
-			if (list.Count >= cap) break;
 			var it = bilingual(x);
 			if (it.Text.Length > 0) list.Add(it);
 		}

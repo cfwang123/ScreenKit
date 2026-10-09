@@ -430,18 +430,28 @@ public partial class DictWindow : UserControl {
 			var n = 1;
 			string lastpos = null;
 			var anySense = false;
+			var linkphrase = e.Dict != "ko";
 			foreach (var s in e.Senses) {
-				if (anySense) doc.Blocks.Add(para(4));
+				if (s.Idiom.Length > 0) {
+					if (anySense) doc.Blocks.Add(para(4));
+					var ip = para(0);
+					addrun(ip, Loc.T("dict.lab.phrase") + " ", DRole.Label);
+					if (linkphrase) addlink(ip, s.Idiom, firsttoken(s.Idiom), entrylang);
+					else addrun(ip, s.Idiom, DRole.Body, entrylang);
+					doc.Blocks.Add(ip);
+				}
+				else if (anySense && !s.Sub) doc.Blocks.Add(para(4));
 				anySense = true;
 				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
 					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1, TextLang(s.Pos, entrylang)));
 					lastpos = s.Pos;
+					n = 1;
 				}
 				var numbered = false;
 				void gloss(string tag, string lemma, string def, string lang) {
 					if (lemma.Length == 0 && def.Length == 0) return;
 					var p = para(0);
-					if (!numbered) {
+					if (!numbered && !s.Sub) {
 						addrun(p, n + ". ", DRole.Number);
 						numbered = true;
 						n++;
@@ -454,7 +464,6 @@ public partial class DictWindow : UserControl {
 				gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef, "zh");
 				gloss(Loc.T("dict.lab.en"), s.En, s.EnDef, "en");
 				gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
-				var linkphrase = e.Dict != "ko";
 				foreach (var ph in s.Phrases) {
 					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
 					var p = para(0);
@@ -490,14 +499,14 @@ public partial class DictWindow : UserControl {
 						doc.Blocks.Add(z);
 					}
 				}
-				if (!numbered && s.Phrases.Count == 0 && s.Sentences.Count == 0) {
+				if (!s.Sub && !numbered && s.Phrases.Count == 0 && s.Sentences.Count == 0) {
 					var p = para(0);
 					addrun(p, n + ". ", DRole.Number);
 					n++;
 					addrun(p, Loc.T("dict.empty.sense"), DRole.Pron);
 					doc.Blocks.Add(p);
 				}
-				else if (!numbered) {
+				else if (!s.Sub && !numbered) {
 					doc.Blocks.Add(one(n + ".", DRole.Number, 0));
 					n++;
 				}

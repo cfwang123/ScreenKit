@@ -3794,6 +3794,31 @@ static class Cli {
 			Out("phrase speak mismatch");
 			return 7;
 		}
+		DictEntry run = null;
+		foreach (var h in DictDb.Search("run", "en", 8)) {
+			if (h.Dict == "en" && h.Headword == "run") { run = DictDb.Get(h.Id); break; }
+		}
+		if (run == null) {
+			Out("run miss");
+			return 8;
+		}
+		var idioms = 0;
+		var subs = 0;
+		var sents = 0;
+		var maxsent = 0;
+		var come = false;
+		foreach (var s in run.Senses) {
+			if (s.Idiom.Length > 0) idioms++;
+			if (s.Idiom == "come running") come = true;
+			if (s.Sub) subs++;
+			sents += s.Sentences.Count;
+			if (s.Sentences.Count > maxsent) maxsent = s.Sentences.Count;
+		}
+		Out($"run senses={run.Senses.Count} idioms={idioms} subs={subs} sents={sents} maxsent={maxsent}");
+		if (!come || idioms < 60 || run.Senses.Count < 170 || subs < 100 || sents < 100 || maxsent < 7) {
+			Out("run truncated");
+			return 8;
+		}
 		long len2;
 		using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
 			len2 = fs.Length;
