@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### English
 
 - **Tools → Network tools** adds **Location**. It uses Windows geolocation (Wi-Fi or GPS) and does not need a host. The first call asks for permission. Output includes coordinates, accuracy, source, and civic address when the system provides one.
+- The HTTP tab shows a short description and the parameters of the template you select.
 - **Simplified/Traditional**, **Calendars**, and **Japanese yomi** have `GET/POST /api/zhconv`, `/api/calendar`, and `/api/jpyomi`, plus `ScreenKit --zhconv`, `--calendar`, and `--jpyomi`. These paths stay available when other HTTP modules are off, and they are in the HTTP tab template list.
 - **Simplified/Traditional** window: simplified text on top, traditional below. **Convert to simplified** reads the lower box; **Convert to traditional** reads the upper box.
 - **Tools**: Simplified/Traditional (`LCMapStringEx`, Taiwan `zh-TW` forms), Calendars (`Windows.Globalization.Calendar`: lunar, sexagenary year, leap month), and Japanese yomi (`JapanesePhoneticAnalyzer`). Windows has no matching Chinese pinyin API.
@@ -52,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### 中文
 
 - **工具 → 网络工具**增加**系统定位**。使用 Windows 定位（Wi-Fi 或 GPS），不用填写主机。第一次调用时系统询问是否允许。结果包含经纬度、精度、来源，以及系统能提供的地点。
+- HTTP 接口页选中模板后，显示这个接口的功能介绍和参数说明。
 - **简繁转换**、**历法**、**日文注音**增加 `GET/POST /api/zhconv`、`/api/calendar`、`/api/jpyomi`，以及 `ScreenKit --zhconv`、`--calendar`、`--jpyomi`。其它 HTTP 模块关掉时这三个接口仍可用，并出现在 HTTP 接口页的模板下拉里。
 - **简繁转换**窗口：上面是简体，下面是繁体。**转换为简体**读下面，**转换为繁体**读上面。
 - **工具**：简繁转换（`LCMapStringEx`，繁体按台湾 `zh-TW`）、历法（`Windows.Globalization.Calendar`：农历、干支、闰月）、日文注音（`JapanesePhoneticAnalyzer`）。Windows 没有同等的汉语拼音接口。
