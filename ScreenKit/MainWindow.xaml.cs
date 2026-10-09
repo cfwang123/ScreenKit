@@ -102,10 +102,12 @@ public partial class MainWindow : Window {
 	bool trayMenuMainVisible;
 	/// <summary>点击前主窗是否前台（忽略托盘/任务栏抢走的焦点）。跨线程读取。</summary>
 	volatile bool lastfgours;
+	/// <summary>托盘已唤出主窗（含显示动画未完成），再点一次应隐藏。</summary>
+	volatile bool trayshown;
+	/// <summary>托盘唤出后还在等主窗真正成为前台；此前其它窗口的前台事件忽略。</summary>
+	volatile bool trayawaitfg;
 	/// <summary>前台变成任务栏/托盘时的 TickCount，用来忽略点托盘瞬间对本窗的激活。</summary>
 	volatile int lasttrayfg;
-	/// <summary>托盘按下切换防重入。</summary>
-	int lasttraytog;
 	WinEventDelegate fgproc;
 	IntPtr fghook;
 
@@ -596,8 +598,8 @@ public partial class MainWindow : Window {
 			}));
 			tray.SetSnapCopyOptions(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
 			tray.ToggleRequested += () => {
-				// 只看点击前是否前台；点托盘会激活本进程，不能用此时的 IsActive
-				var wasfg = lastfgours;
+				// 只看点击前是否前台或是否刚唤出（动画中 lastfgours 会被清掉）
+				var wasfg = lastfgours || trayshown;
 				void go() => togglemainwindow(fromTray: true, traysteal: wasfg);
 				if (Dispatcher.CheckAccess()) go();
 				else Dispatcher.InvokeAsync(go, System.Windows.Threading.DispatcherPriority.Send);
@@ -963,10 +965,6 @@ public partial class MainWindow : Window {
 	/// <summary>全局热键与托盘左键：前台是主窗则隐藏，否则显示并置顶。</summary>
 	void togglemainwindow(bool fromTray, bool traysteal = false) {
 		try {
-			if (fromTray) {
-				if (unchecked(Environment.TickCount - lasttraytog) < 200) return;
-				lasttraytog = Environment.TickCount;
-			}
 			var hide = fromTray ? traysteal : mainwindowforeground();
 			try {
 				if (!IsVisible || WindowState == WindowState.Minimized)
@@ -977,11 +975,17 @@ public partial class MainWindow : Window {
 				if (tray != null) tray.hidewindow();
 				else Hide();
 				lastfgours = false;
+				trayshown = false;
+				trayawaitfg = false;
 				return;
 			}
 			if (tray != null) tray.showwindow();
 			else showmainontop();
 			lastfgours = true;
+			if (fromTray) {
+				trayshown = true;
+				trayawaitfg = true;
+			}
 		}
 		catch (Exception ex) {
 			setstatus($"热键切换窗口失败: {ex.Message}");
@@ -993,6 +997,7 @@ public partial class MainWindow : Window {
 			if (istrayhwnd(GetForegroundWindow())) return;
 			if (unchecked(Environment.TickCount - lasttrayfg) < 250) return;
 			lastfgours = true;
+			trayawaitfg = false;
 		};
 		Deactivated += (_, _) => {
 			var fg = GetForegroundWindow();
@@ -1000,7 +1005,9 @@ public partial class MainWindow : Window {
 				lasttrayfg = Environment.TickCount;
 				return;
 			}
+			if (trayawaitfg) return;
 			lastfgours = false;
+			trayshown = false;
 		};
 		SourceInitialized += (_, _) => {
 			lastfgours = hwndours(GetForegroundWindow());
@@ -1028,9 +1035,15 @@ public partial class MainWindow : Window {
 			lasttrayfg = Environment.TickCount;
 			return;
 		}
-		if (hwndours(hwnd) && unchecked(Environment.TickCount - lasttrayfg) < 250)
+		if (hwndours(hwnd)) {
+			lastfgours = true;
+			trayawaitfg = false;
 			return;
-		lastfgours = hwndours(hwnd);
+		}
+		if (trayawaitfg) return;
+		if (unchecked(Environment.TickCount - lasttrayfg) < 250) return;
+		lastfgours = false;
+		trayshown = false;
 	}
 
 	/// <summary>前台是主窗口（含其内部子窗口，如词典页）。最小化或别的窗口在前时为 false。</summary>
