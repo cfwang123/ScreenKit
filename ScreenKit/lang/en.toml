@@ -1617,6 +1617,7 @@ inst.winlang.hint = "Manage Windows OCR, speech synthesis, and speech recognitio
 inst.winlang.col.item = "Language/feature"
 inst.winlang.col.detail = "Available engines/voices"
 inst.winlang.query = "Querying Windows OCR/speech packs…"
+inst.winlang.recheck = "Rechecking the packs just installed or removed…"
 inst.winlang.ready = "Windows OCR/speech: {0} languages · {1} packs installed · {2} currently available"
 inst.winlang.ocr = "OCR"
 inst.winlang.tts = "Speech synthesis"

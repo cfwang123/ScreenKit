@@ -1617,6 +1617,7 @@ inst.winlang.hint = "按语言管理 Windows OCR、语音合成和语音识别�
 inst.winlang.col.item = "语言/功能"
 inst.winlang.col.detail = "可用引擎/发音人"
 inst.winlang.query = "正在查询 Windows OCR/语音功能包…"
+inst.winlang.recheck = "正在复查刚安装或卸载的功能…"
 inst.winlang.ready = "Windows OCR/语音 {0} 种语言 · 功能包已装 {1} · 当前可用 {2}"
 inst.winlang.ocr = "OCR"
 inst.winlang.tts = "语音合成"

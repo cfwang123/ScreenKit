@@ -1617,6 +1617,7 @@ inst.winlang.hint = "Windows OCR、音声合成、音声認識の機能パック
 inst.winlang.col.item = "言語/機能"
 inst.winlang.col.detail = "使用可能なエンジン/音声"
 inst.winlang.query = "Windows OCR/音声パックを照会中…"
+inst.winlang.recheck = "インストールまたは削除した機能を再確認しています…"
 inst.winlang.ready = "Windows OCR/音声：{0} 言語 · パック {1} · 現在使用可能 {2}"
 inst.winlang.ocr = "OCR"
 inst.winlang.tts = "音声合成"

@@ -1617,6 +1617,7 @@ inst.winlang.hint = "Windows OCR, 음성 합성, 음성 인식 기능 팩을 언
 inst.winlang.col.item = "언어/기능"
 inst.winlang.col.detail = "사용 가능한 엔진/음성"
 inst.winlang.query = "Windows OCR/음성 팩 조회 중…"
+inst.winlang.recheck = "방금 설치하거나 제거한 기능을 다시 확인하는 중…"
 inst.winlang.ready = "Windows OCR/음성: {0}개 언어 · 설치된 팩 {1} · 현재 사용 가능 {2}"
 inst.winlang.ocr = "OCR"
 inst.winlang.tts = "음성 합성"

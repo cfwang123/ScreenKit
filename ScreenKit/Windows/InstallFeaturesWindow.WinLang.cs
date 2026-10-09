@@ -14,6 +14,15 @@ partial class InstallFeaturesWindow {
 	bool winlangUiLoading;
 	bool winlangQuerying;
 
+	/// <summary>本进程内已查过的 Windows OCR/语音功能包。重开窗口沿用，不重新提权。</summary>
+	static class WinLangCache {
+		public static bool Ready;
+		public static bool Denied;
+		public static bool Complete;
+		public static Dictionary<WinSpeechPackKind, Dictionary<string, string>> States;
+		public static List<SapiVoiceItem> Voices = new();
+	}
+
 	enum WinPackState { Unknown, Missing, Installed }
 
 	static bool dismrunning() {
@@ -32,13 +41,23 @@ partial class InstallFeaturesWindow {
 
 	static WinPackState rowstate(Dictionary<string, string> states, string culture) {
 		if (states == null) return WinPackState.Unknown;
-		if (!states.TryGetValue(culture, out var raw)) return WinPackState.Missing;
+		if (!states.TryGetValue(culture, out var raw))
+			return WinLangCache.Complete ? WinPackState.Missing : WinPackState.Unknown;
 		if (string.Equals(raw, "Installed", StringComparison.OrdinalIgnoreCase)) return WinPackState.Installed;
 		return WinPackState.Missing;
 	}
 
 	async Task loadwinlang(bool force) {
 		if (busy || winlangQuerying) return;
+		if (!force && WinLangCache.Ready) {
+			winlangStates = WinLangCache.States;
+			winlangVoices = WinLangCache.Voices ?? new List<SapiVoiceItem>();
+			refillwinlang();
+			winlangLoaded = true;
+			if (WinLangCache.Denied) setstatus(Loc.T("inst.win.uac"));
+			else showwinlangready();
+			return;
+		}
 		if (winlangLoaded && !force) return;
 		var local = new CancellationTokenSource();
 		cts = local;
@@ -84,6 +103,12 @@ partial class InstallFeaturesWindow {
 		catch (OperationCanceledException) {
 			appendlog(Loc.T("inst.log.cancel"));
 			setstatus(Loc.T("inst.log.cancel"));
+			if (WinLangCache.Ready) {
+				winlangStates = WinLangCache.States;
+				winlangVoices = WinLangCache.Voices ?? new List<SapiVoiceItem>();
+				refillwinlang();
+				winlangLoaded = true;
+			}
 			return;
 		}
 		catch (Exception ex) {
@@ -99,18 +124,26 @@ partial class InstallFeaturesWindow {
 		}
 		refillwinlang();
 		winlangLoaded = true;
+		WinLangCache.Ready = true;
+		WinLangCache.Denied = uac;
+		WinLangCache.Complete = winlangStates != null;
+		WinLangCache.States = winlangStates;
+		WinLangCache.Voices = winlangVoices ?? new List<SapiVoiceItem>();
 		if (uac) return;
 		if (!string.IsNullOrEmpty(qerr)) {
 			appendlog(Loc.T("inst.win.queryfail", qerr));
 			setstatus(Loc.T("inst.win.queryfail", qerr));
 		}
-		else {
-			var leaves = winlangleaves().ToList();
-			var ninst = leaves.Count(r => r.PackInstalled);
-			var navail = leaves.Count(r => r.HasRuntime);
-			setstatus(Loc.T("inst.winlang.ready", winlangRoots.Count, ninst, navail));
-			appendlog(Loc.T("inst.winlang.ready", winlangRoots.Count, ninst, navail));
-		}
+		else showwinlangready(true);
+	}
+
+	void showwinlangready(bool log = false) {
+		var leaves = winlangleaves().ToList();
+		var ninst = leaves.Count(r => r.PackInstalled);
+		var navail = leaves.Count(r => r.HasRuntime);
+		var text = Loc.T("inst.winlang.ready", winlangRoots.Count, ninst, navail);
+		setstatus(text);
+		if (log) appendlog(text);
 	}
 
 	static Task<List<SapiVoiceItem>> scanwinvoices() {
@@ -377,6 +410,9 @@ partial class InstallFeaturesWindow {
 		setbytes("");
 		var ok = 0;
 		var fail = 0;
+		var changed = new List<WinPackRequest>();
+		Dictionary<WinSpeechPackKind, Dictionary<string, string>> patch = null;
+		var rechecked = false;
 		var token = cts.Token;
 		try {
 			if (WinTtsPack.IsAdmin()) {
@@ -387,6 +423,7 @@ partial class InstallFeaturesWindow {
 					try {
 						var code = await Task.Run(() => WinTtsPack.RunDism(
 							install, row.Culture, log, token, row.Kind)).ConfigureAwait(true);
+						changed.Add(new WinPackRequest { Kind = row.Kind, Culture = row.Culture });
 						if (code == 0 || code == 3010) ok++;
 						else fail++;
 						appendlog(code == 0 || code == 3010
@@ -403,6 +440,13 @@ partial class InstallFeaturesWindow {
 						CaptureLog.Ex("win language dism", ex);
 					}
 					setprogress((i + 1) / (double)rows.Count);
+				}
+				if (changed.Count > 0) {
+					try { patch = await querychanged(changed, token).ConfigureAwait(true); }
+					catch (OperationCanceledException) {
+						appendlog(Loc.T("inst.log.cancel"));
+					}
+					rechecked = true;
 				}
 			}
 			else {
@@ -446,6 +490,10 @@ partial class InstallFeaturesWindow {
 					}
 					if (result.Codes.Count == 0 && result.Error.Length > 0) fail = rows.Count;
 					if (ok + fail > 0) setprogress(1);
+					foreach (var one in result.Codes)
+						changed.Add(new WinPackRequest { Kind = one.Kind, Culture = one.Culture });
+					patch = result.States;
+					rechecked = true;
 				}
 			}
 		}
@@ -455,17 +503,76 @@ partial class InstallFeaturesWindow {
 			cts = null;
 		}
 		if (ok == 0 && fail == 0) return;
+		if (changed.Count > 0)
+			await finishwinrecheck(changed, patch, rechecked).ConfigureAwait(true);
 		var summary = Loc.T("inst.win.done", ok, fail);
 		setstatus(summary);
 		appendlog(summary);
 		if (ok > 0) {
 			NeedRestart = true;
-			winlangLoaded = false;
 			MessageBox.Show(this, summary + "\n\n" + Loc.T("inst.winlang.restart"), Title,
 				MessageBoxButton.OK, fail > 0 ? MessageBoxImage.Warning : MessageBoxImage.Information);
 		}
 		else if (fail > 0) {
 			MessageBox.Show(this, summary, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
+	async Task<Dictionary<WinSpeechPackKind, Dictionary<string, string>>> querychanged(
+		List<WinPackRequest> changed, CancellationToken token) {
+		setstatus(Loc.T("inst.winlang.recheck"));
+		appendlog(Loc.T("inst.winlang.recheck"));
+		try {
+			if (WinTtsPack.IsAdmin())
+				return await Task.Run(() => WinTtsPack.QueryNamedStates(changed, token)).ConfigureAwait(true);
+			var q = await Task.Run(() => WinTtsPack.QueryNamedElevated(changed, token, null)).ConfigureAwait(true);
+			if (q.UacDenied) {
+				appendlog(Loc.T("inst.win.uac"));
+				return null;
+			}
+			if (q.Error.Length > 0 && q.States.Count == 0)
+				appendlog(Loc.T("inst.win.queryfail", q.Error));
+			return q.States;
+		}
+		catch (OperationCanceledException) {
+			throw;
+		}
+		catch (Exception ex) {
+			appendlog(Loc.T("inst.win.queryfail", ex.Message));
+			CaptureLog.Ex("win language recheck", ex);
+			return null;
+		}
+	}
+
+	async Task finishwinrecheck(List<WinPackRequest> changed,
+		Dictionary<WinSpeechPackKind, Dictionary<string, string>> patch, bool rechecked) {
+		var known = patch == null ? 0 : patch.Sum(x => x.Value.Count);
+		if (known == 0 && !rechecked) {
+			try { patch = await querychanged(changed, CancellationToken.None).ConfigureAwait(true); }
+			catch (OperationCanceledException) { return; }
+		}
+		mergewinpatch(patch);
+		try { winlangVoices = await scanwinvoices().ConfigureAwait(true); }
+		catch (Exception ex) { CaptureLog.Ex("win language voices", ex); }
+		WinLangCache.Voices = winlangVoices ?? new List<SapiVoiceItem>();
+		WinLangCache.Ready = true;
+		WinLangCache.Denied = false;
+		winlangStates = WinLangCache.States;
+		winlangLoaded = true;
+		refillwinlang();
+	}
+
+	static void mergewinpatch(Dictionary<WinSpeechPackKind, Dictionary<string, string>> patch) {
+		if (patch == null) return;
+		if (WinLangCache.States == null)
+			WinLangCache.States = new Dictionary<WinSpeechPackKind, Dictionary<string, string>>();
+		foreach (var kv in patch) {
+			if (kv.Value == null || kv.Value.Count == 0) continue;
+			if (!WinLangCache.States.TryGetValue(kv.Key, out var map)) {
+				map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+				WinLangCache.States[kv.Key] = map;
+			}
+			foreach (var one in kv.Value) map[one.Key] = one.Value;
 		}
 	}
 
@@ -488,6 +595,7 @@ partial class InstallFeaturesWindow {
 	};
 
 	void onwinlanglog(string line, List<WinLangNode> rows) {
+		if (line != null && line.StartsWith("STATE ", StringComparison.Ordinal)) return;
 		if (line != null && line.StartsWith("BEGIN ", StringComparison.Ordinal)) {
 			var key = line.Substring(6).Trim();
 			var row = rows.FirstOrDefault(x => nodekey(x.Kind, x.Culture)

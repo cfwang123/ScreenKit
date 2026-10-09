@@ -3163,9 +3163,30 @@ static class Cli {
 			|| mixed.IndexOf("Language.Speech~~~en-US~0.0.1.0", StringComparison.Ordinal) < 0
 			|| mixed.IndexOf("BEGIN Ocr|ja-JP", StringComparison.Ordinal) < 0
 			|| mixed.IndexOf("BEGIN Tts|ko-KR", StringComparison.Ordinal) < 0
-			|| mixed.IndexOf("BEGIN Asr|en-US", StringComparison.Ordinal) < 0) {
-			Err("FAIL: 混合安装脚本没有在一次提权中包含 OCR/TTS/ASR");
+			|| mixed.IndexOf("BEGIN Asr|en-US", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("Get-WindowsCapability -Online -Name 'Language.OCR~~~ja-JP~0.0.1.0'", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("Get-WindowsCapability -Online -Name 'Language.TextToSpeech~~~ko-KR~0.0.1.0'", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("Get-WindowsCapability -Online -Name 'Language.Speech~~~en-US~0.0.1.0'", StringComparison.Ordinal) < 0) {
+			Err("FAIL: 混合安装脚本没有在一次提权中包含 OCR/TTS/ASR，或没有复查这些功能");
 			Out(mixed);
+			return 1;
+		}
+		var named = WinTtsPack.BuildNamedQueryBody(new[] {
+			new WinPackRequest { Kind = WinSpeechPackKind.Ocr, Culture = "ja-JP" },
+		});
+		if (named.IndexOf("Get-WindowsCapability -Online -Name 'Language.OCR~~~ja-JP~0.0.1.0'", StringComparison.Ordinal) < 0
+			|| named.IndexOf("Language.OCR*", StringComparison.Ordinal) >= 0
+			|| named.IndexOf("Language.Speech*", StringComparison.Ordinal) >= 0
+			|| named.IndexOf("Language.TextToSpeech*", StringComparison.Ordinal) >= 0) {
+			Err("FAIL: 单项复查脚本不是精确功能名");
+			Out(named);
+			return 1;
+		}
+		var parsed = WinTtsPack.ParseAllQuery("STATE Language.OCR~~~ja-JP~0.0.1.0|Installed\r\nEXIT Ocr|ja-JP 0\r\n");
+		if (!parsed.States.TryGetValue(WinSpeechPackKind.Ocr, out var ocrStates)
+			|| !ocrStates.TryGetValue("ja-JP", out var ocrState)
+			|| !string.Equals(ocrState, "Installed", StringComparison.OrdinalIgnoreCase)) {
+			Err("FAIL: 复查结果没有解析到 ja-JP OCR");
 			return 1;
 		}
 		if (InstallFeaturesWindow.WinLanguageRank("zh-CN") != 0

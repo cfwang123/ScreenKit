@@ -14,6 +14,7 @@ sealed class WinElevateResult {
 	public bool UacDenied;
 	public string Error = "";
 	public readonly List<WinElevateCode> Codes = new();
+	public readonly Dictionary<WinSpeechPackKind, Dictionary<string, string>> States = new();
 }
 
 sealed class WinVoiceLine {
@@ -173,8 +174,35 @@ static class WinTtsPack {
 		result.UacDenied = ran.UacDenied;
 		result.Error = ran.Error;
 		fillcodes(ran.Log, result);
+		copystates(ran.Log, result.States);
 		if (!ran.UacDenied && result.Codes.Count == 0 && result.Error.Length == 0 && ran.ExitCode != 0)
 			result.Error = "exit " + ran.ExitCode;
+		return result;
+	}
+
+	/// <summary>只查询列出的功能包。调用方已是管理员。</summary>
+	public static Dictionary<WinSpeechPackKind, Dictionary<string, string>> QueryNamedStates(
+		IList<WinPackRequest> requests, CancellationToken ct) {
+		var result = new WinAllQueryResult();
+		if (requests == null || requests.Count == 0) return result.States;
+		var text = runpowershell(BuildNamedQueryBody(requests), ct);
+		parseallquery(text, result);
+		if (result.States.Count == 0 && result.Error.Length > 0)
+			throw new InvalidOperationException(result.Error);
+		return result.States;
+	}
+
+	/// <summary>非管理员只复查列出的功能包。同一次 start / RunAs。</summary>
+	public static WinAllQueryResult QueryNamedElevated(
+		IList<WinPackRequest> requests, CancellationToken ct, IProgress<string> log) {
+		var result = new WinAllQueryResult();
+		if (requests == null || requests.Count == 0) return result;
+		var ran = runscript(path => BuildNamedQueryScript(requests, path), log, ct);
+		result.UacDenied = ran.UacDenied;
+		if (ran.UacDenied) return result;
+		parseallquery(ran.Log, result);
+		if (result.States.Count == 0 && result.Error.Length == 0)
+			result.Error = ran.Error.Length > 0 ? ran.Error : (ran.ExitCode != 0 ? "exit " + ran.ExitCode : "empty");
 		return result;
 	}
 
@@ -265,9 +293,61 @@ static class WinTtsPack {
 			sb.AppendLine("Write-Host (" + psq("EXIT " + key + " ") + " + $code)");
 			sb.AppendLine("if ($code -ne 0 -and $code -ne 3010) { $fail++ }");
 		}
+		appendcapabilityquery(sb, requests, "Log");
 		sb.AppendLine("if ($fail -gt 0) { exit 1 }");
 		sb.AppendLine("exit 0");
 		return sb.ToString();
+	}
+
+	internal static string BuildNamedQueryBody(IList<WinPackRequest> requests) {
+		var sb = new StringBuilder();
+		sb.AppendLine("$ProgressPreference = 'SilentlyContinue'");
+		sb.AppendLine("$ErrorActionPreference = 'Continue'");
+		sb.AppendLine("[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false");
+		sb.AppendLine("$OutputEncoding = [Console]::OutputEncoding");
+		appendcapabilityquery(sb, requests, null);
+		sb.AppendLine("exit 0");
+		return sb.ToString();
+	}
+
+	internal static string BuildNamedQueryScript(IList<WinPackRequest> requests, string logPath) {
+		var sb = new StringBuilder();
+		sb.AppendLine("$ErrorActionPreference = 'Continue'");
+		sb.AppendLine("try { $Host.UI.RawUI.WindowTitle = 'ScreenKit Windows OCR/Speech' } catch {}");
+		sb.AppendLine("$log = " + psq(logPath));
+		sb.AppendLine("$utf8 = New-Object System.Text.UTF8Encoding $false");
+		sb.AppendLine("function Log([string]$line) { [IO.File]::AppendAllText($log, $line + \"`r`n\", $utf8) }");
+		appendcapabilityquery(sb, requests, "Log");
+		sb.AppendLine("exit 0");
+		return sb.ToString();
+	}
+
+	internal static WinAllQueryResult ParseAllQuery(string text) {
+		var result = new WinAllQueryResult();
+		parseallquery(text, result);
+		return result;
+	}
+
+	static void appendcapabilityquery(StringBuilder sb, IList<WinPackRequest> requests, string logFunction) {
+		if (requests == null) return;
+		foreach (var request in requests) {
+			if (request == null || string.IsNullOrWhiteSpace(request.Culture)) continue;
+			var name = Capability(request.Culture, request.Kind);
+			sb.AppendLine("try {");
+			sb.AppendLine("  Get-WindowsCapability -Online -Name " + psq(name) + " | ForEach-Object {");
+			emitscript(sb, "'STATE ' + $_.Name + '|' + [string]$_.State", logFunction, "    ");
+			sb.AppendLine("  }");
+			sb.AppendLine("} catch {");
+			emitscript(sb, "'ERR ' + $_.Exception.Message", logFunction, "  ");
+			sb.AppendLine("}");
+		}
+	}
+
+	static void copystates(string text, Dictionary<WinSpeechPackKind, Dictionary<string, string>> into) {
+		if (into == null) return;
+		var parsed = new WinAllQueryResult();
+		parseallquery(text, parsed);
+		foreach (var kv in parsed.States) into[kv.Key] = kv.Value;
 	}
 
 	internal static string BuildQueryScript(string logPath, WinSpeechPackKind kind = WinSpeechPackKind.Tts) {
@@ -510,6 +590,8 @@ static class WinTtsPack {
 					result.Voices.Add(new WinVoiceLine { Culture = culture, Name = name });
 				continue;
 			}
+			if (line.StartsWith("STATE ", StringComparison.Ordinal))
+				line = line.Substring(6).Trim();
 			var i = line.IndexOf('|');
 			if (i <= 0) continue;
 			var capability = line.Substring(0, i).Trim();
