@@ -12,14 +12,8 @@ public partial class MainWindow {
 	static bool ortBytesOk;
 
 	void initstbar() {
-		// 系统 ToolTip 会吃掉第一次点击。按下即打开内存窗口。
-		bstbar.ToolTip = null;
-		ToolTipService.SetIsEnabled(bstbar, false);
-		bstbar.Click += (_, _) => openmem();
-		bstbar.PreviewMouseLeftButtonDown += (_, e) => {
-			openmem();
-			e.Handled = true;
-		};
+		bindstclick(bstbar, openmem);
+		bindstclick(bsthttp, () => openhttptools(fromTray: true));
 		refreshstbar();
 		stbarTimer = new System.Windows.Threading.DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(2),
@@ -31,18 +25,28 @@ public partial class MainWindow {
 		stbarTimer.Start();
 	}
 
-	void refreshstbar() {
-		if (bstbar == null) return;
-		try { bstbar.Content = statusbartext(); }
-		catch { }
+	static void bindstclick(System.Windows.UIElement el, System.Action act) {
+		if (el == null) return;
+		el.PreviewMouseLeftButtonDown += (_, e) => {
+			act();
+			e.Handled = true;
+		};
 	}
 
-	string statusbartext() {
-		var mem = statusbarmem();
-		var http = statusbarhttp();
-		if (http.Length == 0) return mem;
-		if (mem.Length == 0) return http;
-		return mem + " · " + http;
+	void refreshstbar() {
+		if (bstbar == null) return;
+		try {
+			bstbar.Text = statusbarmem();
+			var http = statusbarhttp();
+			if (bsthttp != null) {
+				bsthttp.Text = http;
+				var on = http.Length > 0;
+				bsthttp.Visibility = on ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+				if (lstbarsep != null)
+					lstbarsep.Visibility = on ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+			}
+		}
+		catch { }
 	}
 
 	string statusbarmem() {

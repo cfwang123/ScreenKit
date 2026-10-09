@@ -2165,26 +2165,20 @@
 				</TabItem>
 		</TabControl>
 
-		<Button x:Name="bstbar" Grid.Row="2" Content="未加载模型"
-		        HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
-		        Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
-		        BorderThickness="0,1,0,0" Foreground="{StaticResource TextMuted}"
-		        FontSize="12" Padding="10,5" Cursor="Hand"
-		        AutomationProperties.AutomationId="status.bar">
-			<Button.Template>
-				<ControlTemplate TargetType="Button">
-					<Border Background="{TemplateBinding Background}"
-					        BorderBrush="{TemplateBinding BorderBrush}"
-					        BorderThickness="{TemplateBinding BorderThickness}"
-					        Padding="{TemplateBinding Padding}">
-						<TextBlock Text="{TemplateBinding Content}" TextTrimming="CharacterEllipsis"
-						           HorizontalAlignment="Left" VerticalAlignment="Center"
-						           Foreground="{TemplateBinding Foreground}"
-						           FontSize="{TemplateBinding FontSize}"/>
-					</Border>
-				</ControlTemplate>
-			</Button.Template>
-		</Button>
+		<Border Grid.Row="2" Background="{StaticResource BgPanel}"
+		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0"
+		        Padding="10,5">
+			<StackPanel Orientation="Horizontal">
+				<TextBlock x:Name="bstbar" Text="未加载模型" FontSize="12" Cursor="Hand"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+				           AutomationProperties.AutomationId="status.bar"/>
+				<TextBlock x:Name="lstbarsep" Text=" · " FontSize="12"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+				<TextBlock x:Name="bsthttp" Text="HTTP" FontSize="12" Cursor="Hand"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+				           AutomationProperties.AutomationId="status.http"/>
+			</StackPanel>
+		</Border>
 	</Grid>
 </Window>
 

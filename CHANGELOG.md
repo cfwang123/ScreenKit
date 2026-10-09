@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The bottom status bar splits the model summary and the HTTP listener. Click the model text to open Memory. Click `HTTP LAN:port` (or `HTTP host:port`) to open the web home in the browser. The empty space to the right does nothing.
 - Tray left-click uses the same rule as the main-window hotkey: if the main window is already in the foreground it hides; if it is hidden, minimized, or behind another window it shows and brings it to the front. The click is handled on mouse-down and uses the foreground window from before the click. A second click while the show animation is still playing hides the window.
 - The tools page **Generate** button draws the QR or barcode under the button. Its style and script URLs carry the same process startup version as the file manager. Restarting ScreenKit changes that version, so the browser drops the previous files. During one run they still cache for 1 hour. The primary button stays the accent color.
 - The local tools page adds **OCR**, **speech synthesis**, and **speech recognition**. Each picks an engine and a model the same way as the main window: Windows OCR or an ONNX pack, a TTS engine and voice, and an offline or Windows speech recognizer. `GET /api/ocr/models` lists the OCR packs. `POST /api/ocr` accepts `options.ocr.pack`.
@@ -62,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- 底部状态栏把模型摘要和 HTTP 监听拆开。点模型文字打开内存占用。点「HTTP 局域网:端口」（或 `HTTP 主机:端口`）用浏览器打开 web 主页。右边空白没有点击效果。
 - 单击托盘图标与主窗口热键相同：主窗口已在前台则隐藏；已隐藏、最小化或被其它窗口挡住则显示并置于最前。在按下时按点击前的前台窗口判断。显示动画还没播完时再点一次会隐藏。
 - `GET /api/tts/engines` 只列出 Sherpa、SAPI、Windows、Edge，不扫描模型。`GET /api/tts/models` 会记住上次的全量结果。`engine` 只返回一个引擎。`refresh=1` 重新扫描。
 - 工具页的**生成**会在按钮下方画出二维码或条码。样式和脚本地址带上和网页文件管理相同的本次启动版本。重启程序后版本会变，浏览器不再用上一轮的文件。同一次运行里仍缓存 1 小时。主按钮保持强调色。
