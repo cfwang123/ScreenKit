@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The local tools page adds twenty more in-browser tools: temperature, weight, area, volume, pressure, power, time units, color, random colors, JSON escape, find and replace, User-Agent, crontab, weekdays, mortgage, compound interest, MAC addresses, HTML minify, CSS minify, and CSS gradients.
 - The local tools page can star a tool. Favorites are the top category on the left and stay in this browser. A tool can also be starred from its own page.
 - The local tools page adds twenty tools that run in the browser: timestamp, date difference, radix, length, storage, RMB capitals, calculator, BMI, px/rem, random numbers, passwords, UUID, HTML encode, JSON minify, MD5, SHA-256, regular expressions, line diff, variable names, and an ASCII table.
 - The local tools page lists the current tools with a category column on the left and four to six cards on a row. The search box filters those cards by name.
@@ -70,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- 本机工具页再增加 20 个在浏览器里完成的小工具：温度、重量、面积、体积、压力、功率、时间单位、颜色、随机颜色、JSON 转义、查找替换、User-Agent、Crontab、工作日、房贷、复利、MAC 地址、HTML 压缩、CSS 压缩、CSS 渐变。
 - 本机工具页可以给工具加星收藏。收藏在左侧分类最上面，记在这个浏览器里。进入工具后也可以收藏。
 - 本机工具页增加 20 个在浏览器里完成的小工具：时间戳、日期差、进制、长度、存储、人民币大写、计算器、BMI、Px/Rem、随机数、随机密码、UUID、HTML 编码、JSON 压缩、MD5、SHA-256、正则、文本比对、变量名、ASCII 表。
 - 本机工具页左边按分类选择，右边一行 4 到 6 个工具卡片。搜索框按名称过滤这些卡片。左侧增加「计算」。

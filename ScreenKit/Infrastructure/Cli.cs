@@ -3177,6 +3177,7 @@ static class Cli {
 				|| home.IndexOf("id=\"tool-q\"", StringComparison.Ordinal) < 0
 				|| home.IndexOf("data-cat=\"all\"", StringComparison.Ordinal) < 0
 				|| home.IndexOf("时间戳", StringComparison.Ordinal) < 0
+				|| home.IndexOf("温度换算", StringComparison.Ordinal) < 0
 				|| home.IndexOf("id=\"box\"", StringComparison.Ordinal) < 0
 				|| home.IndexOf("data-cat=\"fav\"", StringComparison.Ordinal) < 0
 				|| home.IndexOf("id=\"tool-fav\"", StringComparison.Ordinal) < 0) {
