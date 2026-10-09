@@ -515,7 +515,7 @@ static class AppConfig {
 		sb.AppendLine("# ScreenKit config — 可手工编辑，保存后部分项下次识别/重注册热键生效");
 		sb.AppendLine();
 		sb.AppendLine("[ocr]");
-		sb.AppendLine($"model_pack = \"{esc(o.ModelPackId ?? "umi")}\"");
+		sb.AppendLine($"model_pack = \"{esc(o.ModelPackId ?? "winocr")}\"");
 		sb.AppendLine($"model_variant = \"{esc(o.ModelVariant ?? "")}\"");
 		sb.AppendLine("# Windows 系统 OCR 语言，一个 BCP-47（仅 model_pack=winocr）");
 		sb.AppendLine($"win_ocr_langs = \"{esc(o.WinOcrLangs ?? "")}\"");

@@ -949,7 +949,7 @@ static class Cli {
 		AsrModelInfo model = null;
 		if (!string.IsNullOrWhiteSpace(modelHint))
 			model = models.FirstOrDefault(m => Compat.Contains(m.DisplayName, modelHint, StringComparison.OrdinalIgnoreCase));
-		model ??= models[0];
+		model ??= WindowsAsr.PickOffline(models, "");
 
 		Out($"模型: [{(model.IsWindows ? "Windows" : model.Type.ToString())}] {model.DisplayName}");
 		Out($"音频: {audioPath}");
@@ -1095,7 +1095,7 @@ static class Cli {
 		var opt = new OcrOptions {
 			Device = dev,
 			UseCls = !noCls,
-			ModelPackId = string.IsNullOrWhiteSpace(packId) ? "umi" : packId,
+			ModelPackId = string.IsNullOrWhiteSpace(packId) ? "winocr" : packId,
 			ModelVariant = variant ?? "",
 		};
 		if (WinOcr.Is(opt)) {
@@ -3901,7 +3901,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 参数:
   -i, --image     待识别图片路径
   -d, --device    auto(默认) | gpu | cpu | igpu
-  -p, --pack      模型包 Id（umi / rapid-ch / winocr，默认 umi）
+  -p, --pack      模型包 Id（winocr / umi / rapid-ch，默认 winocr）
   -v, --variant   语言/变体标题（configs.txt 中的名称）
   -m, --models    直接指定模型目录（覆盖 --pack）
       --no-cls    跳过方向分类

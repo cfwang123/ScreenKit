@@ -193,13 +193,8 @@ sealed partial class HttpOcrServer {
 					!m.IsStreaming && string.Equals(m.DisplayName, wantModel, StringComparison.OrdinalIgnoreCase))
 				?? models.FirstOrDefault(m =>
 					!m.IsStreaming && Compat.Contains(m.DisplayName, wantModel, StringComparison.OrdinalIgnoreCase));
-		if (model == null) {
-			var opt = getOpts?.Invoke();
-			if (!string.IsNullOrEmpty(opt?.AsrModel))
-				model = models.FirstOrDefault(m =>
-					!m.IsStreaming && string.Equals(m.DisplayName, opt.AsrModel, StringComparison.OrdinalIgnoreCase));
-		}
-		model ??= models.FirstOrDefault(m => !m.IsStreaming);
+		if (model == null)
+			model = WindowsAsr.PickOffline(models, getOpts?.Invoke()?.AsrModel);
 		if (model == null)
 			throw new InvalidOperationException("无可用离线 ASR 模型");
 		if (!model.IsWindows && svc?.AsrEngine == null)

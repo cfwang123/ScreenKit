@@ -28,6 +28,19 @@ static class WindowsAsr {
 		return list;
 	}
 
+	/// <summary>未保存离线模型时优先 Windows 系统识别器，否则用列表第一项。</summary>
+	public static AsrModelInfo PickOffline(IList<AsrModelInfo> models, string savedName) {
+		var offline = models?.Where(m => m != null && !m.IsStreaming).ToList()
+			?? new List<AsrModelInfo>();
+		if (!string.IsNullOrWhiteSpace(savedName)) {
+			var hit = offline.FirstOrDefault(m =>
+				string.Equals(m.DisplayName, savedName, StringComparison.OrdinalIgnoreCase));
+			if (hit != null) return hit;
+		}
+		return offline.FirstOrDefault(m => m.IsWindows)
+			?? (offline.Count > 0 ? offline[0] : null);
+	}
+
 	public static string Recognize(AsrModelInfo model, float[] samples, int sampleRate) =>
 		RecognizeDetailed(model, samples, sampleRate).Text;
 

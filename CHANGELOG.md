@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- A new install uses **Windows OCR**, **Windows speech**, and **Windows speech recognition** when nothing is saved. A saved pack, voice engine, or ASR model is kept. CLI `-p` defaults to `winocr`. Speech still uses Edge online when Windows has no voice.
 - **Windows OCR** no longer asks for OpenCV. Screenshot OCR, PDF OCR, CLI, and `POST /api/ocr` decode and scale the image with Windows imaging. ONNX OCR, barcodes, and long screenshots still require OpenCV.
 - **Help → Install features → Windows OCR/Speech** checks installed packs once after ScreenKit starts. Opening the window again uses that result. Refresh still checks every pack. Installing or removing rechecks only those packs.
 - The TTS Speak button remains enabled during playback. Clicking it again immediately stops the current playback and restarts from the beginning.
@@ -44,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- 没有保存过选择时，默认使用 **Windows 系统 OCR**、**Windows 语音**和 **Windows 语音识别**。已经保存的模型包、语音引擎或识别模型保持不变。命令行 `-p` 默认改为 `winocr`。本机没有 Windows 发音人时，语音合成仍用 Edge 在线。
 - **Windows 系统 OCR** 不再检查 OpenCV。截图识别、PDF 识别、命令行和 `POST /api/ocr` 用 Windows 图像接口解码和缩小。ONNX 识别、条码和长截图仍需要 OpenCV。
 - **帮助 → 安装功能 → Windows OCR/语音** 在程序启动后只检查一次已安装的功能包。再次打开窗口沿用上次结果。点刷新仍会检查全部。安装或卸载后只复查刚改过的功能。
 - TTS 朗读过程中不再禁用“朗读”按钮；再次点击会立即停止当前播放并从头重新朗读。

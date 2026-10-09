@@ -273,17 +273,7 @@ public partial class MainWindow : Window {
 			// 刷新模型列表（与菜单「安装功能」一致）
 			if (win.NeedRefresh || win.NeedRestart) {
 				try {
-					modelUiLoading = true;
-					packs = ModelCatalog.Scan();
-					epack.ItemsSource = packs;
-					var pack = packs.FirstOrDefault(p =>
-							string.Equals(p.Id, opt.ModelPackId, StringComparison.OrdinalIgnoreCase))
-						?? packs.FirstOrDefault();
-					if (pack != null) {
-						epack.SelectedItem = pack;
-						fillvariants(pack, opt.ModelVariant);
-					}
-					modelUiLoading = false;
+					reloadocrpacks();
 				}
 				catch (Exception ex) {
 					modelUiLoading = false;
@@ -1071,19 +1061,7 @@ public partial class MainWindow : Window {
 	// ───────── 顶栏：模型 / 语言 / 设备 ─────────
 
 	void initmodelbar() {
-		packs = ModelCatalog.Scan();
-		packs.Insert(0, WinOcr.Pack());
-		modelUiLoading = true;
-		epack.ItemsSource = packs;
-		// 选中当前包；对不上时仍优先 ONNX 包
-		var pack = packs.FirstOrDefault(p =>
-				string.Equals(p.Id, opt.ModelPackId, StringComparison.OrdinalIgnoreCase))
-			?? packs.FirstOrDefault(p => !WinOcr.IsId(p.Id))
-			?? packs.FirstOrDefault();
-		if (pack != null) {
-			epack.SelectedItem = pack;
-			fillvariants(pack, opt.ModelVariant);
-		}
+		reloadocrpacks();
 		// 设备（无 GPU 时禁用 GPU 项）
 		refreshdeviceui();
 		foreach (ComboBoxItem it in edevice.Items) {
@@ -3901,19 +3879,27 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>安装窗关闭后刷新模型列表（供菜单与使用前提示共用）。</summary>
+	void reloadocrpacks() {
+		packs = ModelCatalog.Scan();
+		packs.Insert(0, WinOcr.Pack());
+		modelUiLoading = true;
+		epack.ItemsSource = packs;
+		// 已保存的包优先；没有或已不在时用 Windows 系统 OCR
+		var pack = packs.FirstOrDefault(p =>
+				string.Equals(p.Id, opt.ModelPackId, StringComparison.OrdinalIgnoreCase))
+			?? packs.FirstOrDefault(p => WinOcr.IsId(p.Id))
+			?? packs.FirstOrDefault();
+		if (pack != null) {
+			epack.SelectedItem = pack;
+			fillvariants(pack, opt.ModelVariant);
+		}
+		modelUiLoading = false;
+		applyengineui();
+	}
+
 	internal void AfterFeatureInstall(bool needRestart) {
 		try {
-			modelUiLoading = true;
-			packs = ModelCatalog.Scan();
-			epack.ItemsSource = packs;
-			var pack = packs.FirstOrDefault(p =>
-					string.Equals(p.Id, opt.ModelPackId, StringComparison.OrdinalIgnoreCase))
-				?? packs.FirstOrDefault();
-			if (pack != null) {
-				epack.SelectedItem = pack;
-				fillvariants(pack, opt.ModelVariant);
-			}
-			modelUiLoading = false;
+			reloadocrpacks();
 		}
 		catch (Exception ex) {
 			modelUiLoading = false;

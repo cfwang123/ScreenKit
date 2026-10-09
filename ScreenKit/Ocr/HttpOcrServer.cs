@@ -694,13 +694,8 @@ sealed partial class HttpOcrServer : IDisposable {
 				!m.IsStreaming && string.Equals(m.DisplayName, modelName, StringComparison.OrdinalIgnoreCase))
 				?? models.FirstOrDefault(m =>
 					!m.IsStreaming && Compat.Contains(m.DisplayName, modelName, StringComparison.OrdinalIgnoreCase));
-		if (model == null) {
-			var opt = getOpts?.Invoke();
-			if (!string.IsNullOrEmpty(opt?.AsrModel))
-				model = models.FirstOrDefault(m =>
-					!m.IsStreaming && string.Equals(m.DisplayName, opt.AsrModel, StringComparison.OrdinalIgnoreCase));
-		}
-		model ??= models.FirstOrDefault(m => !m.IsStreaming);
+		if (model == null)
+			model = WindowsAsr.PickOffline(models, getOpts?.Invoke()?.AsrModel);
 		if (model == null) {
 			writejson(ctx, 200, err(912, "无可用离线 ASR 模型（流式模型请用热键听写）"));
 			return;

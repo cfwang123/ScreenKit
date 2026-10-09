@@ -414,7 +414,7 @@ public partial class SettingsWindow : Window {
 		else {
 			var pack = packs.FirstOrDefault(p =>
 					string.Equals(p.Id, o.ModelPackId, StringComparison.OrdinalIgnoreCase))
-				?? packs.FirstOrDefault(p => !WinOcr.IsId(p.Id))
+				?? packs.FirstOrDefault(p => WinOcr.IsId(p.Id))
 				?? packs[0];
 			epack.SelectedItem = pack;
 			// onpackchanged 会填变体；再选中目标变体

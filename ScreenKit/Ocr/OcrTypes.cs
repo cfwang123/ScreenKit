@@ -62,8 +62,8 @@ public sealed class DictTtsLang {
 }
 
 public sealed class OcrOptions {
-	/// <summary>模型包 Id（ocrmodels 子目录名，如 umi / rapid-ch）。</summary>
-	public string ModelPackId = "umi";
+	/// <summary>模型包 Id。默认 Windows 系统 OCR（<c>winocr</c>）；ONNX 包为 ocrmodels 子目录名。</summary>
+	public string ModelPackId = "winocr";
 	/// <summary>变体标题（configs.txt 第一行，如「简体中文 (det-v4)」）。</summary>
 	public string ModelVariant = "";
 	/// <summary>Windows 系统 OCR 语言（一个 BCP-47，如 zh-Hans-CN）。仅 <c>model_pack=winocr</c> 时使用。</summary>

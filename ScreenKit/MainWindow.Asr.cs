@@ -882,14 +882,8 @@ public partial class MainWindow {
 				return;
 			}
 
-			// 字幕/文件识别：离线模型
-			AsrModelInfo pickOff = null;
-			if (!string.IsNullOrEmpty(opt.AsrModel))
-				pickOff = offline.FirstOrDefault(m =>
-					string.Equals(m.DisplayName, opt.AsrModel, StringComparison.OrdinalIgnoreCase));
-			// 兼容：旧配置 asr_model 若是流式名则忽略，改选第一个离线
-			pickOff ??= offline.Count > 0 ? offline[0] : null;
-			easrmodel.SelectedItem = pickOff;
+			// 未保存时优先 Windows 系统识别器；已保存的名称对不上也回退到它
+			easrmodel.SelectedItem = WindowsAsr.PickOffline(offline, opt.AsrModel);
 
 			// 流式语音输入
 			AsrModelInfo pickSt = null;
