@@ -9,7 +9,7 @@ using System.Windows.Media;
 namespace ScreenKit;
 
 /// <summary>
-/// 安装功能：功能选择（确认即安装/卸载）、onnx 语音模型、Windows 语音与 Windows 语音识别。
+/// 安装功能：功能选择（确认即安装/卸载）、onnx 语音模型、Windows 语音、语音识别与 OCR。
 /// 各类语音模型与系统语言功能包不在功能选择树里处理。
 /// </summary>
 partial class InstallFeaturesWindow : Window {
@@ -69,13 +69,11 @@ partial class InstallFeaturesWindow : Window {
 			new MouseButtonEventHandler(onpickcheckdown), true);
 		etree.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(onpickclick), true);
 		binstall.Click += async (_, _) => {
-			if (tabmain.SelectedItem == tabwin) await runwin(true);
-			else if (tabmain.SelectedItem == tabwinasr) await runwinasr(true);
+			if (tabmain.SelectedItem == tabwinlang) await runwinlang(true);
 			else await runinstall();
 		};
 		bdelete.Click += async (_, _) => {
-			if (tabmain.SelectedItem == tabwin) await runwin(false);
-			else if (tabmain.SelectedItem == tabwinasr) await runwinasr(false);
+			if (tabmain.SelectedItem == tabwinlang) await runwinlang(false);
 			else await rundelete();
 		};
 		bcancel.Click += (_, _) => {
@@ -105,35 +103,22 @@ partial class InstallFeaturesWindow : Window {
 			// 仅在用户点表头时清空；避免筛选重建误触
 			if (!ttsUiLoading) setttscheckall(false);
 		};
-		bwinrefresh.Click += async (_, _) => await loadwin(true);
-		bwincopy.Click += (_, _) => copywincmd();
-		cwinonly.Checked += (_, _) => applywinfilter();
-		cwinonly.Unchecked += (_, _) => applywinfilter();
-		cwinheader.Checked += (_, _) => setwincheck(true);
-		cwinheader.Unchecked += (_, _) => {
-			if (!winUiLoading) setwincheck(false);
-		};
-		bwinasrrefresh.Click += async (_, _) => await loadwinasr(true);
-		bwinasrcopy.Click += (_, _) => copywinasrcmd();
-		cwinasronly.Checked += (_, _) => applywinasrfilter();
-		cwinasronly.Unchecked += (_, _) => applywinasrfilter();
-		cwinasrheader.Checked += (_, _) => setwinasrcheck(true);
-		cwinasrheader.Unchecked += (_, _) => {
-			if (!winasrUiLoading) setwinasrcheck(false);
+		bwinlangrefresh.Click += async (_, _) => await loadwinlang(true);
+		bwinlangcopy.Click += (_, _) => copywinlangcmd();
+		cwinlangonly.Checked += (_, _) => applywinlangfilter();
+		cwinlangonly.Unchecked += (_, _) => applywinlangfilter();
+		cwinlangheader.Checked += (_, _) => setwinlangcheck(true);
+		cwinlangheader.Unchecked += (_, _) => {
+			if (!winlangUiLoading) setwinlangcheck(false);
 		};
 		tabmain.SelectionChanged += async (_, _) => {
 			applytabbuttons();
 			if (tabmain.SelectedItem == tabtts && !ttsLoaded && !busy)
 				await loadtts(force: false);
-			// 已装发音人只在进入本页时读，不在打开安装窗口时读。
-			if (tabmain.SelectedItem == tabwin && !winLoaded && !busy)
-				await loadwin(false);
-			if (tabmain.SelectedItem == tabwinasr && !winasrLoaded && !busy)
-				await loadwinasr(false);
+			if (tabmain.SelectedItem == tabwinlang && !winlangLoaded && !busy)
+				await loadwinlang(false);
 		};
 		lvtss.ItemsSource = ttsRows;
-		lvwin.ItemsSource = winRows;
-		lvwinasr.ItemsSource = winasrRows;
 		Loaded += async (_, _) => {
 			rebuildpick();
 			loadfeat();
@@ -158,8 +143,7 @@ partial class InstallFeaturesWindow : Window {
 		lbtitle.Text = Title;
 		tabpick.Header = Loc.T("inst.tab.pick");
 		tabtts.Header = Loc.T("inst.tab.tts");
-		tabwin.Header = Loc.T("inst.tab.win");
-		tabwinasr.Header = Loc.T("inst.tab.winasr");
+		tabwinlang.Header = Loc.T("inst.tab.winlang");
 		lbpickhint.Text = Loc.T(firstRun ? "inst.pick.hint.first" : "inst.pick.hint");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
@@ -172,18 +156,16 @@ partial class InstallFeaturesWindow : Window {
 		cttssupported.ToolTip = Loc.T("inst.tts.onlysupported.tip");
 		bttsrefresh.Content = Loc.T("inst.tts.refresh");
 		cttsheader.ToolTip = Loc.T("inst.tts.selectall");
-		lbwinhint.Text = Loc.T("inst.win.hint");
-		cwinonly.Content = Loc.T("inst.win.only");
-		bwinrefresh.Content = Loc.T("inst.win.refresh");
-		bwincopy.Content = Loc.T("inst.win.copy");
-		cwinheader.ToolTip = Loc.T("inst.tts.selectall");
-		lbwinadmin.Text = WinTtsPack.IsAdmin() ? Loc.T("inst.win.admin") : Loc.T("inst.win.user");
-		lbwinasrhint.Text = Loc.T("inst.winasr.hint");
-		cwinasronly.Content = Loc.T("inst.win.only");
-		bwinasrrefresh.Content = Loc.T("inst.win.refresh");
-		bwinasrcopy.Content = Loc.T("inst.win.copy");
-		cwinasrheader.ToolTip = Loc.T("inst.tts.selectall");
-		lbwinasradmin.Text = WinTtsPack.IsAdmin() ? Loc.T("inst.win.admin") : Loc.T("inst.win.user");
+		lbwinlanghint.Text = Loc.T("inst.winlang.hint");
+		cwinlangonly.Content = Loc.T("inst.win.only");
+		bwinlangrefresh.Content = Loc.T("inst.win.refresh");
+		bwinlangcopy.Content = Loc.T("inst.win.copy");
+		cwinlangheader.ToolTip = Loc.T("inst.tts.selectall");
+		lbwinlangadmin.Text = WinTtsPack.IsAdmin() ? Loc.T("inst.win.admin") : Loc.T("inst.win.user");
+		lbwinlangcolitem.Text = Loc.T("inst.winlang.col.item");
+		lbwinlangcoldetail.Text = Loc.T("inst.winlang.col.detail");
+		lbwinlangcolstate.Text = Loc.T("inst.win.col.state");
+		lbwinlangcolpack.Text = Loc.T("inst.win.col.pack");
 		bmissing.Content = Loc.T("inst.sel.missing");
 		bmissing.ToolTip = Loc.T("inst.sel.missing.tip");
 		bnone.Content = Loc.T("inst.sel.none");
@@ -200,32 +182,19 @@ partial class InstallFeaturesWindow : Window {
 			gv.Columns[4].Header = Loc.T("inst.col.size");
 			gv.Columns[5].Header = Loc.T("inst.col.state");
 		}
-		if (lvwin.View is GridView gvwin && gvwin.Columns.Count >= 5) {
-			gvwin.Columns[1].Header = Loc.T("inst.win.col.lang");
-			gvwin.Columns[2].Header = Loc.T("inst.win.col.voice");
-			gvwin.Columns[3].Header = Loc.T("inst.win.col.state");
-			gvwin.Columns[4].Header = Loc.T("inst.win.col.pack");
-		}
-		if (lvwinasr.View is GridView gvasr && gvasr.Columns.Count >= 5) {
-			gvasr.Columns[1].Header = Loc.T("inst.win.col.lang");
-			gvasr.Columns[2].Header = Loc.T("inst.winasr.col.recognizer");
-			gvasr.Columns[3].Header = Loc.T("inst.win.col.state");
-			gvasr.Columns[4].Header = Loc.T("inst.win.col.pack");
-		}
 		if (string.IsNullOrWhiteSpace(lbstatus.Text) || lbstatus.Text == "就绪" || lbstatus.Text == Loc.T("ready"))
 			lbstatus.Text = Loc.T("ready");
 	}
 
 	void applytabbuttons() {
 		var onPack = tabmain.SelectedItem == tabtts
-			|| tabmain.SelectedItem == tabwin
-			|| tabmain.SelectedItem == tabwinasr;
-		var ready = !busy && !winQuerying && !winasrQuerying;
+			|| tabmain.SelectedItem == tabwinlang;
+		var ready = !busy && !winlangQuerying;
 		binstall.IsEnabled = ready && onPack;
 		bdelete.IsEnabled = ready && onPack;
 		bconfirm.IsEnabled = !busy;
 		breset.IsEnabled = !busy;
-		bcancel.IsEnabled = busy || winQuerying || winasrQuerying;
+		bcancel.IsEnabled = busy || winlangQuerying;
 		binstall.IsDefault = ready && onPack;
 		bconfirm.IsDefault = !onPack && ready;
 	}
@@ -467,17 +436,13 @@ partial class InstallFeaturesWindow : Window {
 				r.Notify();
 			}
 		}
-		else if (tabmain.SelectedItem == tabwin) {
-			winUiLoading = true;
-			foreach (var r in winRows) r.Selected = r.State != WinPackState.Installed;
-			winUiLoading = false;
-			refreshwincmd();
-		}
-		else if (tabmain.SelectedItem == tabwinasr) {
-			winasrUiLoading = true;
-			foreach (var r in winasrRows) r.Selected = !r.PackInstalled;
-			winasrUiLoading = false;
-			refreshwinasrcmd();
+		else if (tabmain.SelectedItem == tabwinlang) {
+			winlangUiLoading = true;
+			foreach (var row in winlangleaves())
+				row.SetCheck(row.CanSelect && !row.PackInstalled, false);
+			foreach (var root in winlangRoots) root.RefreshCheck();
+			winlangUiLoading = false;
+			refreshwinlangcmd();
 		}
 		else {
 			FeaturePick.SelectMissing(pickRoots);
@@ -491,13 +456,9 @@ partial class InstallFeaturesWindow : Window {
 			setttscheckall(on);
 			cttsheader.IsChecked = on;
 		}
-		else if (tabmain.SelectedItem == tabwin) {
-			setwincheck(on);
-			cwinheader.IsChecked = on;
-		}
-		else if (tabmain.SelectedItem == tabwinasr) {
-			setwinasrcheck(on);
-			cwinasrheader.IsChecked = on;
+		else if (tabmain.SelectedItem == tabwinlang) {
+			setwinlangcheck(on);
+			cwinlangheader.IsChecked = on;
 		}
 		else {
 			FeaturePick.SelectAll(pickRoots, on);
@@ -536,10 +497,10 @@ partial class InstallFeaturesWindow : Window {
 		cttssupported.IsEnabled = !on;
 		etree.IsEnabled = !on;
 		lvtss.IsEnabled = !on;
-		lvwin.IsEnabled = !on;
-		bwinrefresh.IsEnabled = !on;
-		cwinonly.IsEnabled = !on;
-		cwinheader.IsEnabled = !on;
+		etreewinlang.IsEnabled = !on;
+		bwinlangrefresh.IsEnabled = !on;
+		cwinlangonly.IsEnabled = !on;
+		cwinlangheader.IsEnabled = !on;
 		applytabbuttons();
 	}
 

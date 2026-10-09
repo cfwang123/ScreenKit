@@ -3132,8 +3132,52 @@ static class Cli {
 			Out(asrQuery);
 			return 1;
 		}
+		var ocrAdd = WinTtsPack.BuildElevateScript(
+			true, new[] { "ja-JP" }, "C:\\tmp\\a.log", WinSpeechPackKind.Ocr);
+		var ocrQuery = WinTtsPack.BuildQueryScript("C:\\tmp\\a.log", WinSpeechPackKind.Ocr);
+		if (ocrAdd.IndexOf("Language.OCR~~~ja-JP~0.0.1.0", StringComparison.Ordinal) < 0
+			|| ocrAdd.IndexOf("ScreenKit Windows OCR", StringComparison.Ordinal) < 0
+			|| ocrQuery.IndexOf("Language.OCR*", StringComparison.Ordinal) < 0
+			|| ocrQuery.IndexOf("AllVoices", StringComparison.Ordinal) >= 0) {
+			Err("FAIL: Windows OCR 安装或查询脚本不正确");
+			Out(ocrAdd);
+			Out(ocrQuery);
+			return 1;
+		}
+		var allQuery = WinTtsPack.BuildAllQueryScript("C:\\tmp\\a.log");
+		if (allQuery.IndexOf("Language.OCR*", StringComparison.Ordinal) < 0
+			|| allQuery.IndexOf("Language.TextToSpeech*", StringComparison.Ordinal) < 0
+			|| allQuery.IndexOf("Language.Speech*", StringComparison.Ordinal) < 0
+			|| allQuery.IndexOf("AllVoices", StringComparison.Ordinal) < 0) {
+			Err("FAIL: 合并查询脚本没有同时查询 OCR/TTS/ASR");
+			Out(allQuery);
+			return 1;
+		}
+		var mixed = WinTtsPack.BuildElevateScript(true, new[] {
+			new WinPackRequest { Kind = WinSpeechPackKind.Ocr, Culture = "ja-JP" },
+			new WinPackRequest { Kind = WinSpeechPackKind.Tts, Culture = "ko-KR" },
+			new WinPackRequest { Kind = WinSpeechPackKind.Asr, Culture = "en-US" },
+		}, "C:\\tmp\\a.log");
+		if (mixed.IndexOf("Language.OCR~~~ja-JP~0.0.1.0", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("Language.TextToSpeech~~~ko-KR~0.0.1.0", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("Language.Speech~~~en-US~0.0.1.0", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("BEGIN Ocr|ja-JP", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("BEGIN Tts|ko-KR", StringComparison.Ordinal) < 0
+			|| mixed.IndexOf("BEGIN Asr|en-US", StringComparison.Ordinal) < 0) {
+			Err("FAIL: 混合安装脚本没有在一次提权中包含 OCR/TTS/ASR");
+			Out(mixed);
+			return 1;
+		}
+		if (InstallFeaturesWindow.WinLanguageRank("zh-CN") != 0
+			|| InstallFeaturesWindow.WinLanguageRank("en-US") != 1
+			|| InstallFeaturesWindow.WinLanguageRank("ja-JP") != 2
+			|| InstallFeaturesWindow.WinLanguageRank("ko-KR") != 3
+			|| InstallFeaturesWindow.WinLanguageRank("fr-FR") != 4) {
+			Err("FAIL: Windows 语言排序不是中、英、日、韩、其它");
+			return 1;
+		}
 		Out("admin=" + WinTtsPack.IsAdmin());
-		Out("=== OK：TTS/ASR 用 start /wait 再 RunAs，查询脚本不弹 UAC ===");
+		Out("=== OK：TTS/ASR/OCR 合并查询与混合操作只需一次 RunAs ===");
 		return 0;
 	}
 

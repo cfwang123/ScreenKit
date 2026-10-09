@@ -32,7 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-- **Help → Install features → Windows speech recognition** lists `Language.Speech` capabilities and visible `System.Speech` recognizers, and can install or remove selected recognition packs through the same administrator/UAC flow as Windows speech synthesis. Windows installs matching Basic and TextToSpeech dependencies automatically; ScreenKit must be restarted after changes.
+- **Help → Install features → Windows OCR/Speech** combines OCR, speech synthesis, and speech recognition in one language tree. Languages are sorted Chinese, English, Japanese, Korean, then others; installed or currently available languages open by default. Each language has tri-state OCR/TTS/ASR children, and mixed queries or changes use one administrator/UAC flow.
 - **Help → Install features** can install the minimal Chinese→English and English→Chinese Opus-MT ONNX packs from the fixed `dict-db` release. The installer selects CPU ONNX Runtime and 7z extraction dependencies, detects partial installs, and removes only these two packaged models when uninstalling.
 - The ASR offline-model picker has a help icon. Its tooltip warns that Windows system speech recognition performs poorly for Chinese and recommends a Sherpa model such as SenseVoice.
 - Windows ASR no longer silently returns empty text when System.Speech rejects low-confidence dictation. It lowers the system rejection threshold and falls back to the best rejected candidate.
@@ -41,7 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
-- **帮助 → 安装功能 → Windows语音识别** 会列出 `Language.Speech` 功能包和当前可见的 `System.Speech` 识别器，可沿用 Windows 语音合成页的管理员/UAC 流程安装或卸载所选识别包。Windows 会自动安装同语言的 Basic 与 TextToSpeech 依赖；变更后需重启 ScreenKit。
+- **帮助 → 安装功能 → Windows OCR/语音** 将 OCR、语音合成、语音识别合并为一个语言树。语言按中文、英文、日文、韩文、其它排序；已安装或当前可用的语言默认展开。每种语言下固定显示三态复选的 OCR/TTS/ASR 子项，混合查询或变更只走一次管理员/UAC 流程。
 - **帮助 → 安装功能** 可从固定的 `dict-db` Release 安装最小化的中译英、英译中 Opus-MT ONNX 模型包。安装时会自动勾选 CPU ONNX Runtime 和 7z 解压依赖，可识别残缺安装；卸载只删除这两个随包模型。
 - ASR 离线模型下拉框旁增加帮助图标；悬停提示 Windows 系统语音的中文识别效果较差，中文建议优先使用 SenseVoice 等 Sherpa 模型。
 - Windows ASR 不再因 System.Speech 拒绝低置信度听写而静默返回空文字：现在降低系统拒绝阈值，必要时采用被拒结果中的最佳候选。
