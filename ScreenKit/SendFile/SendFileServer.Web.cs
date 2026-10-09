@@ -369,11 +369,11 @@ public sealed partial class SendFileServer {
 		res.ContentType = contentType;
 		res.ContentLength64 = bytes.Length;
 		if (html) {
-			res.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
 			res.Headers["Pragma"] = "no-cache";
 		}
 		else
-			res.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		try {
 			if (!head)
@@ -397,6 +397,9 @@ public sealed partial class SendFileServer {
 /// <summary>网页静态文件：优先读 exe 旁 web/，否则用嵌入资源。</summary>
 static class SendFileWebPages {
 	public const string VerPlaceholder = "__SK_WEB_VER__";
+	/// <summary>样式、脚本和图片的浏览器缓存：1 小时。HTML 页面不缓存。</summary>
+	public const string CACHE_CONTROL = "public, max-age=3600";
+	public const string NO_CACHE = "no-store, no-cache, must-revalidate";
 	static long bootStamp;
 	static bool bootReady;
 

@@ -731,7 +731,12 @@ sealed partial class HttpOcrServer : IDisposable {
 		res.StatusCode = 200;
 		res.ContentType = mime;
 		res.ContentLength64 = bytes.Length;
-		res.Headers["Cache-Control"] = "no-cache";
+		if (name == "tools.html") {
+			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
+			res.Headers["Pragma"] = "no-cache";
+		}
+		else
+			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		try {
 			if (!head)
