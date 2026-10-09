@@ -93,8 +93,12 @@
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>
 						<TextBlock x:Name="lbsetpack" Text="模型包" FontWeight="SemiBold" Margin="0,0,0,6"/>
-						<ComboBox x:Name="epack" Height="32" Margin="0,0,0,10"
+						<ComboBox x:Name="epack" Height="32" Margin="0,0,0,6"
 						          DisplayMemberPath="DisplayName"/>
+						<TextBlock x:Name="lbmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           AutomationProperties.AutomationId="set.ocr.hint"
+						           TextWrapping="Wrap" Margin="0,0,0,14"
+						           Text=""/>
 
 						<TextBlock x:Name="lbsetvariant" Text="语言 / 模型变体" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<ComboBox x:Name="evariant" Height="32" Margin="0,0,0,6"
@@ -105,11 +109,6 @@
 							          AutomationProperties.AutomationId="set.winlang"
 							          DisplayMemberPath="Name"/>
 						</StackPanel>
-						<TextBlock x:Name="lbmodelhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           AutomationProperties.AutomationId="set.ocr.hint"
-						           TextWrapping="Wrap" Margin="0,0,0,14"
-						           Text=""/>
-
 						<StackPanel x:Name="psetonnx">
 						<TextBlock x:Name="lbsetdevice" Text="推理设备" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<ComboBox x:Name="edevice" Height="32" Margin="0,0,0,6">
