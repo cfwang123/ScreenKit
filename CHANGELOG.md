@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### English
 
 - The local tools page lists the current tools with a category column on the left and four to six cards on a row. The search box filters those cards by name.
+- The local tools page (`GET /`) uses Font Awesome 6 Free solid icons. The stylesheet is `/sk/fa.css` and the only font file is `/sk/fa-solid-900.woff2`.
 - **Help → Install features** has an HTTP proxy choice: follow the Windows system proxy, type an address, or use no proxy. The same choice is in Settings. With a proxy, downloads try GitHub and Hugging Face first; without one, China mirrors come first. A failed address is still followed by the others. China mirrors and `.cn` hosts stay direct.
 - **Help → Install features** downloads FFmpeg 4.4 shared as `ffmpeg.7z` from the fixed `dict-db` release (~33 MB). The old BtbN autobuild zip URLs are gone.
 - In a Chinese locale, a GitHub or Hugging Face mirror that fails, times out (30 seconds with no response), or returns an HTML page is skipped, and the original GitHub or Hugging Face URL is still tried. Update checks and the TTS package list use the same order.
@@ -68,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### 中文
 
 - 本机工具页左边按分类选择，右边一行 4 到 6 个工具卡片。搜索框按名称过滤这些卡片。没有新增工具。
+- 本机工具页（`GET /`）图标改用 Font Awesome 6 Free 的实心图标。样式是 `/sk/fa.css`，字体只留 `/sk/fa-solid-900.woff2`。
 - **帮助 → 安装功能**可以设置 HTTP 代理：跟随系统、手动填写地址，或不用代理。参数设置里是同一项。用了代理时先下 GitHub / Hugging Face；不用代理时先下国内镜像。前面的地址失败后仍会试后面的。国内镜像和 `.cn` 仍然直连。
 - **帮助 → 安装功能**从固定的 `dict-db` Release 下载 FFmpeg 4.4 shared 的 `ffmpeg.7z`（约 33 MB）。原先 BtbN 的旧 autobuild zip 已失效。
 - 中文环境下，GitHub / Hugging Face 镜像失败、30 秒没有响应，或返回网页时，会换下一个地址，并仍然尝试原来的 GitHub / Hugging Face 官方地址。检查更新和发音人列表用同一顺序。

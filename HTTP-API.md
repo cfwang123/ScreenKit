@@ -98,7 +98,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/` | Local tools page (HTML). Assets `/sk/tools.css` and `/sk/tools.js` |
+| GET | `/` | Local tools page (HTML). Assets `/sk/tools.css`, `/sk/tools.js`, `/sk/fa.css`, `/sk/fa-solid-900.woff2` |
 | GET | `/api` | API name and endpoint list |
 | GET | `/api/status` · `/api/health` | Service and capability status |
 | GET/POST | `/api/toast` | Bottom-of-screen toast (not tied to a module switch) |
@@ -131,7 +131,7 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
 
 ## 4. GET `/` and GET `/api`
 
-`GET /` and `HEAD /` return the local tools page: simplified/traditional, calendars, Japanese yomi, text, QR codes, and barcodes. The page loads `/sk/tools.css` and `/sk/tools.js`, and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
+`GET /` and `HEAD /` return the local tools page: simplified/traditional, calendars, Japanese yomi, text, QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
 
 `GET /api` returns the service name and endpoint list.
 

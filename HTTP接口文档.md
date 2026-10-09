@@ -99,7 +99,7 @@ http_port = 1224
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/` | 本机工具页（HTML）。资源 `/sk/tools.css`、`/sk/tools.js` |
+| GET | `/` | 本机工具页（HTML）。资源 `/sk/tools.css`、`/sk/tools.js`、`/sk/fa.css`、`/sk/fa-solid-900.woff2` |
 | GET | `/api` | API 说明与端点列表 |
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
 | GET/POST | `/api/toast` | 屏幕底部 Toast（不随模块开关关闭） |
@@ -132,7 +132,7 @@ http_port = 1224
 
 ## 4. GET `/` 与 GET `/api`
 
-`GET /` 和 `HEAD /` 返回本机工具页：简繁、历法、日文注音、文本、二维码和条码。页面加载 `/sk/tools.css` 和 `/sk/tools.js`，并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
+`GET /` 和 `HEAD /` 返回本机工具页：简繁、历法、日文注音、文本、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
 
 `GET /api` 返回服务名称与端点列表。
 

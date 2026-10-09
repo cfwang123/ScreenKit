@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=1280"/>
 <title>ScreenKit 工具</title>
+<link rel="stylesheet" href="/sk/fa.css?__SK_WEB_VER__"/>
 <link rel="stylesheet" href="/sk/tools.css?__SK_WEB_VER__"/>
 </head>
 <body>
@@ -17,13 +18,13 @@
 			</div>
 		</div>
 		<nav id="cats">
-			<button type="button" data-cat="all" data-title="常用工具" class="on"><i>☰</i>常用工具</button>
-			<button type="button" data-cat="text" data-title="文字"><i>文</i>文字</button>
-			<button type="button" data-cat="speech" data-title="语音"><i>声</i>语音</button>
-			<button type="button" data-cat="time" data-title="历法"><i>历</i>历法</button>
-			<button type="button" data-cat="image" data-title="图像"><i>码</i>图像</button>
+			<button type="button" data-cat="all" data-title="常用工具" class="on"><i class="fa-solid fa-grip"></i>常用工具</button>
+			<button type="button" data-cat="text" data-title="文字"><i class="fa-solid fa-font"></i>文字</button>
+			<button type="button" data-cat="speech" data-title="语音"><i class="fa-solid fa-volume-high"></i>语音</button>
+			<button type="button" data-cat="time" data-title="历法"><i class="fa-solid fa-calendar-days"></i>历法</button>
+			<button type="button" data-cat="image" data-title="图像"><i class="fa-solid fa-image"></i>图像</button>
 		</nav>
-		<a class="files" href="/files">文件传输</a>
+		<a class="files" href="/files"><i class="fa-solid fa-folder"></i>文件传输</a>
 	</aside>
 	<main>
 		<button type="button" id="back" class="back" data-tool="home" hidden>返回</button>
@@ -36,28 +37,28 @@
 			</div>
 			<div class="cards" id="cards">
 				<button type="button" data-tool="zh" data-cat="text" data-name="简繁转换 繁体 简体" title="系统转换表，繁体接近台湾用字">
-					<i>繁</i><span>简繁转换</span>
+					<i class="fa-solid fa-language"></i><span>简繁转换</span>
 				</button>
 				<button type="button" data-tool="text" data-cat="text" data-name="文本 base64 url json 十六进制" title="Base64、URL、十六进制、JSON">
-					<i>T</i><span>文本</span>
+					<i class="fa-solid fa-file-lines"></i><span>文本</span>
 				</button>
 				<button type="button" data-tool="yomi" data-cat="text" data-name="日文注音 读音 假名" title="句子转读音，可按词或逐字">
-					<i>あ</i><span>日文注音</span>
+					<i class="fa-solid fa-comment"></i><span>日文注音</span>
 				</button>
 				<button type="button" data-tool="ocr" data-cat="text" data-name="文字识别 ocr" title="Windows 系统 OCR 或 ONNX 模型包">
-					<i>识</i><span>文字识别</span>
+					<i class="fa-solid fa-eye"></i><span>文字识别</span>
 				</button>
 				<button type="button" data-tool="tts" data-cat="speech" data-name="语音合成 朗读" title="Windows、SAPI、Edge 或离线模型">
-					<i>读</i><span>语音合成</span>
+					<i class="fa-solid fa-volume-high"></i><span>语音合成</span>
 				</button>
 				<button type="button" data-tool="asr" data-cat="speech" data-name="语音识别 录音" title="系统识别器或离线模型，可录音或选文件">
-					<i>听</i><span>语音识别</span>
+					<i class="fa-solid fa-microphone"></i><span>语音识别</span>
 				</button>
 				<button type="button" data-tool="cal" data-cat="time" data-name="历法 农历 干支" title="公历换农历、干支、日本、希伯来等">
-					<i>历</i><span>历法</span>
+					<i class="fa-solid fa-calendar-days"></i><span>历法</span>
 				</button>
 				<button type="button" data-tool="qr" data-cat="image" data-name="二维码 条码" title="生成 PNG，或从图片里读出来">
-					<i>码</i><span>二维码 / 条码</span>
+					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
 				</button>
 			</div>
 			<p id="tool-none" class="none" hidden>没有匹配的工具</p>

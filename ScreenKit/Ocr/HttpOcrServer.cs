@@ -17,7 +17,7 @@ namespace ScreenKit;
 /// <list type="bullet">
 /// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
-/// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js</item>
+/// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
 /// <item>GET/POST /api/calendar 历法</item>
 /// <item>GET/POST /api/jpyomi 日文注音</item>
@@ -376,7 +376,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				handlecast(ctx);
 				return;
 			}
-			if (path is "/" or "/sk/tools.css" or "/sk/tools.js") {
+			if (path is "/" or "/sk/tools.css" or "/sk/tools.js" or "/sk/fa.css" or "/sk/fa-solid-900.woff2") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "工具页仅支持 GET"));
 					return;
@@ -756,6 +756,14 @@ sealed partial class HttpOcrServer : IDisposable {
 		else if (path == "/sk/tools.js") {
 			name = "tools.js";
 			mime = "application/javascript; charset=utf-8";
+		}
+		else if (path == "/sk/fa.css") {
+			name = "fa.css";
+			mime = "text/css; charset=utf-8";
+		}
+		else if (path == "/sk/fa-solid-900.woff2") {
+			name = "fa-solid-900.woff2";
+			mime = "font/woff2";
 		}
 		else {
 			name = "tools.html";
@@ -2165,7 +2173,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	static JsonArray apilist(OcrOptions o) {
 		var a = new JsonArray {
 			"GET  /  本机工具页",
-			"GET  /sk/tools.css · /sk/tools.js",
+			"GET  /sk/tools.css · /sk/tools.js · /sk/fa.css · /sk/fa-solid-900.woff2",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
 			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",
 			"POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart",

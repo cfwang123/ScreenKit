@@ -3226,6 +3226,16 @@ static class Cli {
 					return 1;
 				}
 			}
+			if (home.IndexOf("/sk/fa.css?", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 工具页没有 Font Awesome");
+				return 1;
+			}
+			using (var font = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/sk/fa-solid-900.woff2")).GetAwaiter().GetResult()) {
+				if (!font.IsSuccessStatusCode || font.Content.Headers.ContentLength.GetValueOrDefault() < 1000) {
+					Err("FAIL: Font Awesome 字体");
+					return 1;
+				}
+			}
 			using (var page = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/")).GetAwaiter().GetResult()) {
 				var cc = page.Headers.CacheControl;
 				if (cc == null || !cc.NoStore) {
