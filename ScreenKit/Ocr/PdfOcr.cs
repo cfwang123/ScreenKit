@@ -112,6 +112,12 @@ static class PdfOcr {
 		if (page == null) throw new ArgumentNullException(nameof(page));
 		if (!File.Exists(imagePath))
 			throw new FileNotFoundException("页面图像不存在", imagePath);
+		if (WinOcr.Is(opt)) {
+			var win = runner.Run(opt, imagePath) ?? new OcrResult();
+			page.Lines = (win.Lines ?? new List<OcrLine>()).Select(PdfLineEdit.FromOcr).ToList();
+			page.Recognized = true;
+			return;
+		}
 		using var mat = Cv2.ImRead(imagePath, ImreadModes.Color);
 		if (mat == null || mat.Empty())
 			throw new InvalidOperationException("无法读取页面图像");

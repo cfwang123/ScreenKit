@@ -3293,7 +3293,7 @@ public partial class MainWindow : Window {
 				setstatus("未安装 PDF 渲染库，已取消");
 				return;
 			}
-			if (!FeaturePrompt.EnsureOpenCv(this)) {
+			if (!WinOcr.Is(opt) && !FeaturePrompt.EnsureOpenCv(this)) {
 				setstatus("未安装 OCR 依赖，PDF 识别不可用");
 				return;
 			}
@@ -3557,13 +3557,13 @@ public partial class MainWindow : Window {
 	/// <param name="setImg">true=先 setimage（新图会重置两 Tab 识别状态）；false=图已上屏仅跑 OCR。</param>
 	async Task runocrasync(BitmapSource bmp, int? wallStartTick = null, bool focusResult = true, bool setImg = true) {
 		if (bmp == null) return;
-		// 依赖：OpenCV + OCR 模型 + ORT（未装 GPU/核显时需 onnxcpu64）
-		if (!FeaturePrompt.EnsureOpenCv(this)) {
+		// ONNX：OpenCV + OCR 模型 + ORT。Windows OCR 不检查这些。
+		var winocr = WinOcr.Is(opt);
+		if (!winocr && !FeaturePrompt.EnsureOpenCv(this)) {
 			setstatus("未安装 OpenCV，已取消识别");
 			ocrDoneForImg = true;
 			return;
 		}
-		var winocr = WinOcr.Is(opt);
 		if (!winocr && !FeaturePrompt.EnsureOcrModels(this)) {
 			setstatus("未安装 OCR 模型，已取消识别");
 			ocrDoneForImg = true;
@@ -3623,10 +3623,15 @@ public partial class MainWindow : Window {
 			await Task.Run(() => {
 				ct.ThrowIfCancellationRequested();
 				var had = runner.HasEngine || WinOcr.Is(snap);
-				using var mat = ImageUtil.Tobgr(bmp);
-				ct.ThrowIfCancellationRequested();
-				// ORT 推理为同步阻塞，取消在返回后生效并丢弃结果
-				result = runner.Run(snap, mat);
+				if (WinOcr.Is(snap)) {
+					result = runner.Run(snap, bmp);
+				}
+				else {
+					using var mat = ImageUtil.Tobgr(bmp);
+					ct.ThrowIfCancellationRequested();
+					// ORT 推理为同步阻塞，取消在返回后生效并丢弃结果
+					result = runner.Run(snap, mat);
+				}
 				ct.ThrowIfCancellationRequested();
 				if (!had && result != null && !ct.IsCancellationRequested) {
 					Dispatcher.Invoke(() => {

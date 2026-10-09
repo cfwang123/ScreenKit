@@ -47,11 +47,11 @@ sealed class OcrRunner : IDisposable {
 
 	public OcrResult Run(OcrOptions opt, Mat bgr) {
 		Compat.ThrowIfDisposed(disposed, this);
-		NativeRuntime.EnsureOpenCv();
 		if (WinOcr.Is(opt)) {
 			dropengine();
 			return WinOcr.Recognize(opt, bgr);
 		}
+		NativeRuntime.EnsureOpenCv();
 		lock (gate) {
 			var loadMs = ensure(opt);
 			var r = eng.Run(bgr);
@@ -60,18 +60,39 @@ sealed class OcrRunner : IDisposable {
 		}
 	}
 
-	public OcrResult Run(OcrOptions opt, string imagePath) {
+	public OcrResult Run(OcrOptions opt, System.Windows.Media.Imaging.BitmapSource src) {
 		Compat.ThrowIfDisposed(disposed, this);
-		NativeRuntime.EnsureOpenCv();
+		if (!WinOcr.Is(opt))
+			throw new InvalidOperationException("仅 Windows OCR 直接识别画面");
+		dropengine();
+		return WinOcr.Recognize(opt, src);
+	}
+
+	public OcrResult RunBytes(OcrOptions opt, byte[] imageBytes) {
+		Compat.ThrowIfDisposed(disposed, this);
 		if (WinOcr.Is(opt)) {
 			dropengine();
-			if (!File.Exists(imagePath))
-				throw new FileNotFoundException("图像不存在", imagePath);
-			using var mat = Cv2.ImRead(imagePath, ImreadModes.Color);
-			if (mat.Empty())
-				throw new InvalidOperationException($"无法读取图像: {imagePath}");
-			return WinOcr.Recognize(opt, mat);
+			return WinOcr.RecognizeBytes(opt, imageBytes);
 		}
+		NativeRuntime.EnsureOpenCv();
+		using var mat = Cv2.ImDecode(imageBytes, ImreadModes.Color);
+		if (mat == null || mat.Empty())
+			throw new InvalidOperationException("无法解码图片（支持 png/jpg/bmp/webp 等）");
+		lock (gate) {
+			var loadMs = ensure(opt);
+			var r = eng.Run(mat);
+			if (r != null) r.LoadMs = loadMs;
+			return r;
+		}
+	}
+
+	public OcrResult Run(OcrOptions opt, string imagePath) {
+		Compat.ThrowIfDisposed(disposed, this);
+		if (WinOcr.Is(opt)) {
+			dropengine();
+			return WinOcr.RecognizeFile(opt, imagePath);
+		}
+		NativeRuntime.EnsureOpenCv();
 		lock (gate) {
 			var loadMs = ensure(opt);
 			var r = eng.Run(imagePath);
@@ -85,12 +106,12 @@ sealed class OcrRunner : IDisposable {
 	/// </summary>
 	/// <returns>本次新建引擎耗时 ms；已缓存仅为同步 runtime 参数则为 0。</returns>
 	public int Warmup(OcrOptions opt) {
-		NativeRuntime.EnsureOpenCv();
 		Compat.ThrowIfDisposed(disposed, this);
 		if (WinOcr.Is(opt)) {
 			dropengine();
 			return 0;
 		}
+		NativeRuntime.EnsureOpenCv();
 		lock (gate) return ensure(opt);
 	}
 

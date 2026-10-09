@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- **Windows OCR** no longer asks for OpenCV. Screenshot OCR, PDF OCR, CLI, and `POST /api/ocr` decode and scale the image with Windows imaging. ONNX OCR, barcodes, and long screenshots still require OpenCV.
 - **Help → Install features → Windows OCR/Speech** checks installed packs once after ScreenKit starts. Opening the window again uses that result. Refresh still checks every pack. Installing or removing rechecks only those packs.
 - The TTS Speak button remains enabled during playback. Clicking it again immediately stops the current playback and restarts from the beginning.
 - **Help → Install features → Windows OCR/Speech** combines OCR, speech synthesis, and speech recognition in one language tree. Languages are sorted Chinese, English, Japanese, Korean, then others; installed or currently available languages open by default. Each language has tri-state OCR/TTS/ASR children, and mixed queries or changes use one administrator/UAC flow.
@@ -43,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- **Windows 系统 OCR** 不再检查 OpenCV。截图识别、PDF 识别、命令行和 `POST /api/ocr` 用 Windows 图像接口解码和缩小。ONNX 识别、条码和长截图仍需要 OpenCV。
 - **帮助 → 安装功能 → Windows OCR/语音** 在程序启动后只检查一次已安装的功能包。再次打开窗口沿用上次结果。点刷新仍会检查全部。安装或卸载后只复查刚改过的功能。
 - TTS 朗读过程中不再禁用“朗读”按钮；再次点击会立即停止当前播放并从头重新朗读。
 - **帮助 → 安装功能 → Windows OCR/语音** 将 OCR、语音合成、语音识别合并为一个语言树。语言按中文、英文、日文、韩文、其它排序；已安装或当前可用的语言默认展开。每种语言下固定显示三态复选的 OCR/TTS/ASR 子项，混合查询或变更只走一次管理员/UAC 流程。

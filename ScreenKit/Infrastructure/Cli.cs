@@ -603,13 +603,7 @@ static class Cli {
 		if (WinOcr.Is(opt)) {
 			Out($"Windows OCR 语言: {opt.WinOcrLangs}");
 			var t0 = Environment.TickCount;
-			NativeRuntime.EnsureOpenCv();
-			using var mat = OpenCvSharp.Cv2.ImRead(image, OpenCvSharp.ImreadModes.Color);
-			if (mat.Empty()) {
-				Err($"无法读取图像: {image}");
-				return 1;
-			}
-			result = WinOcr.Recognize(opt, mat);
+			result = WinOcr.RecognizeFile(opt, image);
 			result.LoadMs = 0;
 			Out($"会话就绪: model={result.ModelLabel}, device={result.DeviceUsed}, load={Environment.TickCount - t0}ms");
 		}

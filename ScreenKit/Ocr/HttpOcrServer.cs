@@ -9,7 +9,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using NAudio.Wave;
-using OpenCvSharp;
 
 namespace ScreenKit;
 
@@ -1075,12 +1074,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		return arr;
 	}
 
-	OcrResult runocr(byte[] imageBytes, OcrOptions o) {
-		using var mat = Cv2.ImDecode(imageBytes, ImreadModes.Color);
-		if (mat == null || mat.Empty())
-			throw new InvalidOperationException("无法解码图片（支持 png/jpg/bmp/webp 等）");
-		return runner.Run(o, mat);
-	}
+	OcrResult runocr(byte[] imageBytes, OcrOptions o) => runner.RunBytes(o, imageBytes);
 
 	OcrOptions buildocroptions(Dictionary<string, JsonNode> map) {
 		var baseOpt = getOpts() ?? new OcrOptions();
