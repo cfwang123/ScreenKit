@@ -3176,6 +3176,7 @@ static class Cli {
 				Err("FAIL: 公历日期不对");
 				bad++;
 			}
+			bad += testwincalmta();
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);
@@ -3183,6 +3184,29 @@ static class Cli {
 		}
 		Out(bad == 0 ? "=== OK：历法 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	static int testwincalmta() {
+		Exception err = null;
+		string month = "";
+		var t = new Thread(() => {
+			try {
+				var info = WinCal.Query(new DateTime(2024, 2, 10), Windows.Globalization.CalendarIdentifiers.ChineseLunar, "zh-CN");
+				month = info.Month ?? "";
+				if (info.Ganzhi != "甲辰") err = new InvalidOperationException("MTA 干支不是甲辰");
+			}
+			catch (Exception ex) { err = ex; }
+		});
+		t.IsBackground = true;
+		t.SetApartmentState(ApartmentState.MTA);
+		t.Start();
+		t.Join();
+		Out("mta month=" + month);
+		if (err != null) {
+			Err("FAIL: MTA 历法 " + err.Message);
+			return 1;
+		}
+		return 0;
 	}
 
 	static int testjpyomi() {
@@ -3196,6 +3220,24 @@ static class Cli {
 			if (all.IndexOf("とうきょう", StringComparison.Ordinal) < 0
 				&& all.IndexOf("トウキョウ", StringComparison.Ordinal) < 0) {
 				Err("FAIL: 東京 没有读音");
+				bad++;
+			}
+			Exception mtaErr = null;
+			string mtaYomi = "";
+			var t = new Thread(() => {
+				try {
+					var mta = JpYomi.Convert("東京は晴れです", false);
+					mtaYomi = mta.Yomi ?? "";
+				}
+				catch (Exception ex) { mtaErr = ex; }
+			});
+			t.IsBackground = true;
+			t.SetApartmentState(ApartmentState.MTA);
+			t.Start();
+			t.Join();
+			Out("mta yomi=" + mtaYomi);
+			if (mtaErr != null || mtaYomi.IndexOf("とうきょう", StringComparison.Ordinal) < 0) {
+				Err("FAIL: MTA 日文注音 " + (mtaErr != null ? mtaErr.Message : mtaYomi));
 				bad++;
 			}
 		}

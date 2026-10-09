@@ -13,6 +13,27 @@ sealed class JpYomiResult {
 /// <summary>JapanesePhoneticAnalyzer。没有同等的汉语拼音接口。</summary>
 static class JpYomi {
 	public static JpYomiResult Convert(string text, bool mono) {
+		if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
+			return convert(text, mono);
+		return sta(() => convert(text, mono));
+	}
+
+	static T sta<T>(Func<T> fn) {
+		T result = default;
+		Exception err = null;
+		var t = new Thread(() => {
+			try { result = fn(); }
+			catch (Exception ex) { err = ex; }
+		});
+		t.IsBackground = true;
+		t.SetApartmentState(ApartmentState.STA);
+		t.Start();
+		t.Join();
+		if (err != null) throw err;
+		return result;
+	}
+
+	static JpYomiResult convert(string text, bool mono) {
 		var res = new JpYomiResult { Ruby = "", Yomi = "" };
 		if (string.IsNullOrEmpty(text)) return res;
 		var words = JapanesePhoneticAnalyzer.GetWords(text, mono);

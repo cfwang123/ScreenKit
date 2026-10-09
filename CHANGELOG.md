@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### English
 
 - **Tools → Network tools** adds **Location**. It uses Windows geolocation (Wi-Fi or GPS) and does not need a host. The first call asks for permission. Output includes coordinates, accuracy, source, and civic address when the system provides one. **Map** opens Amap in the browser (GCJ-02 inside China so the pin matches the roads). OpenStreetMap and Amap addresses in the result are clickable links; the OpenStreetMap link keeps the original WGS84 coordinates.
+- `GET/POST /api/calendar` and `/api/jpyomi` run Windows calendar and Japanese yomi on an STA thread. The HTTP worker is MTA, and those WinRT classes cannot be activated there.
 - GET query strings are decoded as UTF-8. On a Chinese Windows system, `HttpListener` was reading them as the ANSI code page, so `/api/zhconv?text=软件` came back garbled.
 - **Simplified/Traditional**, **Calendars**, and **Japanese yomi** have `GET/POST /api/zhconv`, `/api/calendar`, and `/api/jpyomi`, plus `ScreenKit --zhconv`, `--calendar`, and `--jpyomi`. These paths stay available when other HTTP modules are off, and they are in the HTTP tab template list.
 - **Simplified/Traditional** window: simplified text on top, traditional below. **Convert to simplified** reads the lower box; **Convert to traditional** reads the upper box.
@@ -53,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### 中文
 
 - **工具 → 网络工具**增加**系统定位**。使用 Windows 定位（Wi-Fi 或 GPS），不用填写主机。第一次调用时系统询问是否允许。结果包含经纬度、精度、来源，以及系统能提供的地点。**查看地图**用浏览器打开高德（国内坐标换成 GCJ-02，标点才落在路上）。结果里的 OpenStreetMap 和高德地址是可点击的链接，OpenStreetMap 保持原始 WGS84。
+- `GET/POST /api/calendar` 和 `/api/jpyomi` 在 STA 线程上调用 Windows 历法和日文注音。HTTP 工作线程是 MTA，这两个 WinRT 类不能在那里激活。
 - HTTP 的查询串按 UTF-8 解码。中文 Windows 上 `HttpListener` 会把它当成系统 ANSI，`/api/zhconv?text=软件` 的结果因此是乱码。
 - **简繁转换**、**历法**、**日文注音**增加 `GET/POST /api/zhconv`、`/api/calendar`、`/api/jpyomi`，以及 `ScreenKit --zhconv`、`--calendar`、`--jpyomi`。其它 HTTP 模块关掉时这三个接口仍可用，并出现在 HTTP 接口页的模板下拉里。
 - **简繁转换**窗口：上面是简体，下面是繁体。**转换为简体**读下面，**转换为繁体**读上面。
