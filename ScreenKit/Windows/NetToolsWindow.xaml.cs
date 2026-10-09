@@ -6,6 +6,9 @@ namespace ScreenKit;
 public partial class NetToolsWindow : Window {
 	CancellationTokenSource cts;
 	bool busy;
+	bool hasmap;
+	double maplat;
+	double maplon;
 
 	public NetToolsWindow() {
 		InitializeComponent();
@@ -24,10 +27,11 @@ public partial class NetToolsWindow : Window {
 		bproxy.Click += (_, _) => _ = run("proxy");
 		bhttp.Click += (_, _) => _ = run("http");
 		bgeo.Click += (_, _) => _ = run("geo");
+		bmap.Click += (_, _) => openmap();
 		bstop.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
 		};
-		bclear.Click += (_, _) => { eout.Text = ""; lbstat.Text = ""; };
+		bclear.Click += (_, _) => { eout.Text = ""; lbstat.Text = ""; clearmap(); };
 		bcopy.Click += (_, _) => {
 			var s = eout.Text ?? "";
 			if (s.Length == 0) return;
@@ -61,6 +65,8 @@ public partial class NetToolsWindow : Window {
 		ToolBtnUi.Set(bproxy, ToolBtnUi.Font, Loc.T("nettool.proxy"));
 		ToolBtnUi.Set(bhttp, ToolBtnUi.Play, Loc.T("nettool.http"));
 		ToolBtnUi.Set(bgeo, ToolBtnUi.Pin, Loc.T("nettool.geo"));
+		ToolBtnUi.Set(bmap, ToolBtnUi.Browse, Loc.T("nettool.map"));
+		bmap.ToolTip = Loc.T("nettool.map.tip");
 		ToolBtnUi.Set(bstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
 		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
@@ -77,6 +83,7 @@ public partial class NetToolsWindow : Window {
 		bproxy.IsEnabled = !on;
 		bhttp.IsEnabled = !on;
 		bgeo.IsEnabled = !on;
+		bmap.IsEnabled = !on && hasmap;
 		bstop.IsEnabled = on;
 		ehost.IsEnabled = !on;
 		ecount.IsEnabled = !on;
@@ -136,8 +143,10 @@ public partial class NetToolsWindow : Window {
 					.ConfigureAwait(true);
 			}
 			else if (kind == "geo") {
-				await NetTools.Geolocate(s => Dispatcher.Invoke(() => append(s)), token)
+				clearmap();
+				var fix = await NetTools.Geolocate(s => Dispatcher.Invoke(() => append(s)), token)
 					.ConfigureAwait(true);
+				if (fix.Ok) setmap(fix.Lat, fix.Lon);
 			}
 			else {
 				var s = await NetTools.Whois(host, token).ConfigureAwait(true);
@@ -157,6 +166,32 @@ public partial class NetToolsWindow : Window {
 			try { cts.Dispose(); } catch { }
 			cts = null;
 			setbusy(false);
+		}
+	}
+
+	void setmap(double lat, double lon) {
+		hasmap = true;
+		maplat = lat;
+		maplon = lon;
+		bmap.IsEnabled = !busy;
+	}
+
+	void clearmap() {
+		hasmap = false;
+		bmap.IsEnabled = false;
+	}
+
+	void openmap() {
+		if (!hasmap) return;
+		var url = NetTools.MapAmap(maplat, maplon);
+		try {
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = url,
+				UseShellExecute = true,
+			});
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 }

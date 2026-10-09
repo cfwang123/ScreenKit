@@ -53,6 +53,8 @@
 			        AutomationProperties.AutomationId="nettool.http"/>
 			<Button x:Name="bgeo" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.geo"/>
+			<Button x:Name="bmap" Style="{StaticResource ToolBtn}" Margin="0,0,6,6" IsEnabled="False"
+			        AutomationProperties.AutomationId="nettool.map"/>
 			<Button x:Name="bstop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.stop"/>
 		</WrapPanel>

@@ -190,7 +190,7 @@ static class NetTools {
 	}
 
 	/// <summary>Windows.Devices.Geolocation。系统选 Wi-Fi 或 GPS。第一次调用会询问是否允许。</summary>
-	public static async Task Geolocate(Action<string> line, CancellationToken ct) {
+	public static async Task<(bool Ok, double Lat, double Lon)> Geolocate(Action<string> line, CancellationToken ct) {
 		line?.Invoke("系统定位（Wi-Fi / GPS）");
 		GeolocationAccessStatus access;
 		try {
@@ -198,12 +198,12 @@ static class NetTools {
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException) {
 			line?.Invoke("权限: " + (ex.InnerException?.Message ?? ex.Message));
-			return;
+			return (false, 0, 0);
 		}
 		line?.Invoke("权限: " + accesszh(access));
 		if (access != GeolocationAccessStatus.Allowed) {
 			line?.Invoke("请在 Windows 设置 → 隐私和安全性 → 位置 中打开定位服务，并允许桌面应用访问位置。");
-			return;
+			return (false, 0, 0);
 		}
 		var geo = new Geolocator { DesiredAccuracy = PositionAccuracy.Default };
 		Geoposition pos;
@@ -213,12 +213,14 @@ static class NetTools {
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException) {
 			line?.Invoke("定位失败: " + (ex.InnerException?.Message ?? ex.Message));
-			return;
+			return (false, 0, 0);
 		}
 		var c = pos.Coordinate;
 		var p = c.Point.Position;
-		line?.Invoke("纬度: " + p.Latitude.ToString("0.######", CultureInfo.InvariantCulture));
-		line?.Invoke("经度: " + p.Longitude.ToString("0.######", CultureInfo.InvariantCulture));
+		var lat = p.Latitude;
+		var lon = p.Longitude;
+		line?.Invoke("纬度: " + lat.ToString("0.######", CultureInfo.InvariantCulture));
+		line?.Invoke("经度: " + lon.ToString("0.######", CultureInfo.InvariantCulture));
 		line?.Invoke("精度: " + c.Accuracy.ToString("0", CultureInfo.InvariantCulture) + " m");
 		line?.Invoke("来源: " + sourcezh(c.PositionSource));
 		if (!double.IsNaN(p.Altitude))
@@ -231,6 +233,56 @@ static class NetTools {
 				line?.Invoke("地点: " + where);
 		}
 		line?.Invoke("时间: " + c.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
+		line?.Invoke("OpenStreetMap: " + MapOsm(lat, lon));
+		line?.Invoke("高德地图: " + MapAmap(lat, lon));
+		return (true, lat, lon);
+	}
+
+	/// <summary>WGS84 坐标的 OpenStreetMap 链接。</summary>
+	public static string MapOsm(double lat, double lon) {
+		var la = lat.ToString("0.######", CultureInfo.InvariantCulture);
+		var lo = lon.ToString("0.######", CultureInfo.InvariantCulture);
+		return "https://www.openstreetmap.org/?mlat=" + la + "&mlon=" + lo + "#map=16/" + la + "/" + lo;
+	}
+
+	/// <summary>高德标注。国内把 WGS84 换成 GCJ-02，标点才落在路上；境外仍用原坐标。</summary>
+	public static string MapAmap(double lat, double lon) {
+		var g = wgs84togcj(lat, lon);
+		var lo = g.Lon.ToString("0.######", CultureInfo.InvariantCulture);
+		var la = g.Lat.ToString("0.######", CultureInfo.InvariantCulture);
+		return "https://uri.amap.com/marker?position=" + lo + "," + la + "&name=ScreenKit";
+	}
+
+	static (double Lat, double Lon) wgs84togcj(double lat, double lon) {
+		if (lon < 72.004 || lon > 137.8347 || lat < 0.8293 || lat > 55.8271)
+			return (lat, lon);
+		const double a = 6378245.0;
+		const double ee = 0.00669342162296594323;
+		var dlat = gcjlat(lon - 105.0, lat - 35.0);
+		var dlon = gcjlon(lon - 105.0, lat - 35.0);
+		var rad = lat / 180.0 * Math.PI;
+		var magic = Math.Sin(rad);
+		magic = 1 - ee * magic * magic;
+		var sq = Math.Sqrt(magic);
+		dlat = dlat * 180.0 / ((a * (1 - ee)) / (magic * sq) * Math.PI);
+		dlon = dlon * 180.0 / (a / sq * Math.Cos(rad) * Math.PI);
+		return (lat + dlat, lon + dlon);
+	}
+
+	static double gcjlat(double x, double y) {
+		var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.Sqrt(Math.Abs(x));
+		ret += (20.0 * Math.Sin(6.0 * x * Math.PI) + 20.0 * Math.Sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
+		ret += (20.0 * Math.Sin(y * Math.PI) + 40.0 * Math.Sin(y / 3.0 * Math.PI)) * 2.0 / 3.0;
+		ret += (160.0 * Math.Sin(y / 12.0 * Math.PI) + 320.0 * Math.Sin(y * Math.PI / 30.0)) * 2.0 / 3.0;
+		return ret;
+	}
+
+	static double gcjlon(double x, double y) {
+		var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.Sqrt(Math.Abs(x));
+		ret += (20.0 * Math.Sin(6.0 * x * Math.PI) + 20.0 * Math.Sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
+		ret += (20.0 * Math.Sin(x * Math.PI) + 40.0 * Math.Sin(x / 3.0 * Math.PI)) * 2.0 / 3.0;
+		ret += (150.0 * Math.Sin(x / 12.0 * Math.PI) + 300.0 * Math.Sin(x / 30.0 * Math.PI)) * 2.0 / 3.0;
+		return ret;
 	}
 
 	static string accesszh(GeolocationAccessStatus s) {

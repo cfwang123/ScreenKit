@@ -3041,6 +3041,27 @@ static class Cli {
 				Err("FAIL: ping 127.0.0.1");
 				bad++;
 			}
+			var osm = NetTools.MapOsm(39.9087, 116.3975);
+			var amap = NetTools.MapAmap(39.9087, 116.3975);
+			var london = NetTools.MapAmap(51.5074, -0.1278);
+			Out(osm);
+			Out(amap);
+			if (osm.IndexOf("openstreetmap.org", StringComparison.Ordinal) < 0
+				|| osm.IndexOf("39.9087", StringComparison.Ordinal) < 0
+				|| osm.IndexOf("116.3975", StringComparison.Ordinal) < 0) {
+				Err("FAIL: OpenStreetMap 链接");
+				bad++;
+			}
+			if (amap.IndexOf("uri.amap.com", StringComparison.Ordinal) < 0
+				|| amap.IndexOf("116.3975", StringComparison.Ordinal) >= 0) {
+				Err("FAIL: 高德国内坐标应偏离 WGS84");
+				bad++;
+			}
+			if (london.IndexOf("51.5074", StringComparison.Ordinal) < 0
+				|| london.IndexOf("-0.1278", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 境外高德应保持 WGS84");
+				bad++;
+			}
 			var geo = new List<string>();
 			using (var geoCts = new CancellationTokenSource(25000)) {
 				Task.Run(() => NetTools.Geolocate(s => geo.Add(s), geoCts.Token)).GetAwaiter().GetResult();

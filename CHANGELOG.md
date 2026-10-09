@@ -32,7 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-- **Tools → Network tools** adds **Location**. It uses Windows geolocation (Wi-Fi or GPS) and does not need a host. The first call asks for permission. Output includes coordinates, accuracy, source, and civic address when the system provides one.
+- **Tools → Network tools** adds **Location**. It uses Windows geolocation (Wi-Fi or GPS) and does not need a host. The first call asks for permission. Output includes coordinates, accuracy, source, and civic address when the system provides one. **Map** opens Amap in the browser (GCJ-02 inside China so the pin matches the roads) and the result also lists an OpenStreetMap link that keeps the original WGS84 coordinates.
 - The HTTP tab shows a short description and the parameters of the template you select.
 - **Simplified/Traditional**, **Calendars**, and **Japanese yomi** have `GET/POST /api/zhconv`, `/api/calendar`, and `/api/jpyomi`, plus `ScreenKit --zhconv`, `--calendar`, and `--jpyomi`. These paths stay available when other HTTP modules are off, and they are in the HTTP tab template list.
 - **Simplified/Traditional** window: simplified text on top, traditional below. **Convert to simplified** reads the lower box; **Convert to traditional** reads the upper box.
@@ -52,7 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
-- **工具 → 网络工具**增加**系统定位**。使用 Windows 定位（Wi-Fi 或 GPS），不用填写主机。第一次调用时系统询问是否允许。结果包含经纬度、精度、来源，以及系统能提供的地点。
+- **工具 → 网络工具**增加**系统定位**。使用 Windows 定位（Wi-Fi 或 GPS），不用填写主机。第一次调用时系统询问是否允许。结果包含经纬度、精度、来源，以及系统能提供的地点。**查看地图**用浏览器打开高德（国内坐标换成 GCJ-02，标点才落在路上），结果里同时给出保持原始 WGS84 的 OpenStreetMap 链接。
 - HTTP 接口页选中模板后，显示这个接口的功能介绍和参数说明。
 - **简繁转换**、**历法**、**日文注音**增加 `GET/POST /api/zhconv`、`/api/calendar`、`/api/jpyomi`，以及 `ScreenKit --zhconv`、`--calendar`、`--jpyomi`。其它 HTTP 模块关掉时这三个接口仍可用，并出现在 HTTP 接口页的模板下拉里。
 - **简繁转换**窗口：上面是简体，下面是繁体。**转换为简体**读下面，**转换为繁体**读上面。
