@@ -3,6 +3,7 @@ window.sktools = (function(){
 	var ttsItems = [];
 	var asrItems = [];
 	var asrRec = null;
+	var curcat = "all";
 	var t = {
 		show: show,
 	};
@@ -39,6 +40,7 @@ window.sktools = (function(){
 		$("zh-in").addEventListener("keydown", function(ev){
 			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) conv("trad");
 		});
+		$("tool-q").oninput = paintcats;
 	}
 
 	function onclick(ev){
@@ -48,6 +50,13 @@ window.sktools = (function(){
 			var tool = el.getAttribute && el.getAttribute("data-tool");
 			if (tool) {
 				show(tool);
+				return;
+			}
+			var cat = el.getAttribute && el.getAttribute("data-cat");
+			if (cat) {
+				curcat = cat;
+				$("tool-q").value = "";
+				show("home");
 				return;
 			}
 			var op = el.getAttribute && el.getAttribute("data-op");
@@ -64,12 +73,36 @@ window.sktools = (function(){
 		var i;
 		for (i = 0; i < panels.length; i++)
 			panels[i].className = panels[i].id === name ? "panel on" : "panel";
-		var nav = document.querySelectorAll("#nav button");
-		for (i = 0; i < nav.length; i++)
-			nav[i].className = nav[i].getAttribute("data-tool") === name ? "on" : "";
+		$("back").hidden = name === "home";
+		if (name === "home") paintcats();
 		if (name === "ocr") loadoocr();
 		if (name === "tts") loadtts();
 		if (name === "asr") loadasr();
+	}
+
+	function paintcats(){
+		var q = ($("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
+		var cats = document.querySelectorAll("#cats button");
+		var i, title = "常用工具";
+		for (i = 0; i < cats.length; i++) {
+			var on = !q && cats[i].getAttribute("data-cat") === curcat;
+			cats[i].className = on ? "on" : "";
+			if (on) title = cats[i].getAttribute("data-title") || title;
+		}
+		if (q) title = "搜索";
+		$("cat-title").textContent = title;
+		var cards = document.querySelectorAll("#cards button");
+		var n = 0;
+		for (i = 0; i < cards.length; i++) {
+			var name = (cards[i].getAttribute("data-name") || "").toLowerCase();
+			var cat = cards[i].getAttribute("data-cat") || "";
+			var hit = !q || name.indexOf(q) >= 0;
+			var incat = curcat === "all" || cat === curcat;
+			var vis = q ? hit : incat;
+			cards[i].hidden = !vis;
+			if (vis) n++;
+		}
+		$("tool-none").hidden = n !== 0;
 	}
 
 	function $(id){

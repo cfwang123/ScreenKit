@@ -16,58 +16,51 @@
 				<small>本机工具</small>
 			</div>
 		</div>
-		<nav id="nav">
-			<button type="button" data-tool="home" class="on">概览</button>
-			<button type="button" data-tool="zh">简繁转换</button>
-			<button type="button" data-tool="cal">历法</button>
-			<button type="button" data-tool="yomi">日文注音</button>
-			<button type="button" data-tool="text">文本</button>
-			<button type="button" data-tool="ocr">文字识别</button>
-			<button type="button" data-tool="tts">语音合成</button>
-			<button type="button" data-tool="asr">语音识别</button>
-			<button type="button" data-tool="qr">二维码 / 条码</button>
+		<nav id="cats">
+			<button type="button" data-cat="all" data-title="常用工具" class="on"><i>☰</i>常用工具</button>
+			<button type="button" data-cat="text" data-title="文字"><i>文</i>文字</button>
+			<button type="button" data-cat="speech" data-title="语音"><i>声</i>语音</button>
+			<button type="button" data-cat="time" data-title="历法"><i>历</i>历法</button>
+			<button type="button" data-cat="image" data-title="图像"><i>码</i>图像</button>
 		</nav>
 		<a class="files" href="/files">文件传输</a>
 	</aside>
 	<main>
+		<button type="button" id="back" class="back" data-tool="home" hidden>返回</button>
 		<section id="home" class="panel on">
-			<p class="kicker">本机 · 不离开这台电脑</p>
-			<h1>小工具</h1>
-			<p class="lead">简繁、历法、日文读音、文本、文字识别、语音合成和识别，以及二维码和条码，都在这个端口上完成。结果只回到这个页面。</p>
-			<div class="cards">
-				<button type="button" data-tool="zh">
-					<span>简繁转换</span>
-					<small>系统转换表，繁体接近台湾用字</small>
+			<div class="head">
+				<h1 id="cat-title">常用工具</h1>
+				<label class="find">
+					<input id="tool-q" type="search" placeholder="搜索工具" autocomplete="off"/>
+				</label>
+			</div>
+			<div class="cards" id="cards">
+				<button type="button" data-tool="zh" data-cat="text" data-name="简繁转换 繁体 简体" title="系统转换表，繁体接近台湾用字">
+					<i>繁</i><span>简繁转换</span>
 				</button>
-				<button type="button" data-tool="cal">
-					<span>历法</span>
-					<small>公历换农历、干支、日本、希伯来等</small>
+				<button type="button" data-tool="text" data-cat="text" data-name="文本 base64 url json 十六进制" title="Base64、URL、十六进制、JSON">
+					<i>T</i><span>文本</span>
 				</button>
-				<button type="button" data-tool="yomi">
-					<span>日文注音</span>
-					<small>句子转读音，可按词或逐字</small>
+				<button type="button" data-tool="yomi" data-cat="text" data-name="日文注音 读音 假名" title="句子转读音，可按词或逐字">
+					<i>あ</i><span>日文注音</span>
 				</button>
-				<button type="button" data-tool="text">
-					<span>文本</span>
-					<small>Base64、URL、十六进制、JSON</small>
+				<button type="button" data-tool="ocr" data-cat="text" data-name="文字识别 ocr" title="Windows 系统 OCR 或 ONNX 模型包">
+					<i>识</i><span>文字识别</span>
 				</button>
-				<button type="button" data-tool="ocr">
-					<span>文字识别</span>
-					<small>Windows 系统 OCR 或 ONNX 模型包</small>
+				<button type="button" data-tool="tts" data-cat="speech" data-name="语音合成 朗读" title="Windows、SAPI、Edge 或离线模型">
+					<i>读</i><span>语音合成</span>
 				</button>
-				<button type="button" data-tool="tts">
-					<span>语音合成</span>
-					<small>Windows、SAPI、Edge 或离线模型</small>
+				<button type="button" data-tool="asr" data-cat="speech" data-name="语音识别 录音" title="系统识别器或离线模型，可录音或选文件">
+					<i>听</i><span>语音识别</span>
 				</button>
-				<button type="button" data-tool="asr">
-					<span>语音识别</span>
-					<small>系统识别器或离线模型，可录音或选文件</small>
+				<button type="button" data-tool="cal" data-cat="time" data-name="历法 农历 干支" title="公历换农历、干支、日本、希伯来等">
+					<i>历</i><span>历法</span>
 				</button>
-				<button type="button" data-tool="qr">
-					<span>二维码 / 条码</span>
-					<small>生成 PNG，或从图片里读出来</small>
+				<button type="button" data-tool="qr" data-cat="image" data-name="二维码 条码" title="生成 PNG，或从图片里读出来">
+					<i>码</i><span>二维码 / 条码</span>
 				</button>
 			</div>
+			<p id="tool-none" class="none" hidden>没有匹配的工具</p>
 		</section>
 
 		<section id="zh" class="panel">

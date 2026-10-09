@@ -14,58 +14,96 @@
 html, body { margin: 0; height: 100%; }
 body {
 	min-width: 1080px;
-	background: var(--paper);
+	background: #f3f1ec;
 	color: var(--ink);
 	font: 15px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
-.shell { display: flex; min-height: 100%; }
+.shell { display: flex; min-height: 100%; gap: 16px; padding: 16px; align-items: flex-start; }
 aside {
-	width: 232px;
+	width: 196px;
 	flex: none;
-	background: var(--side);
-	color: var(--side-ink);
+	position: sticky;
+	top: 16px;
+	background: #fff;
+	color: #2b2926;
 	display: flex;
 	flex-direction: column;
-	padding: 22px 14px 18px;
+	padding: 16px 12px 12px;
+	border-radius: 12px;
+	box-shadow: 0 1px 2px rgba(36, 31, 27, .06);
 }
-.brand { display: flex; gap: 12px; align-items: center; padding: 0 8px 18px; }
-.brand strong { display: block; font-size: 16px; letter-spacing: 0.01em; }
-.brand small { color: #c8bfb4; }
+.brand { display: flex; gap: 10px; align-items: center; padding: 0 6px 14px; }
+.brand strong { display: block; font-size: 15px; }
+.brand small { color: var(--muted); }
 .mark {
-	width: 36px; height: 36px; border-radius: 10px;
-	background: var(--accent); color: var(--accent-ink);
+	width: 32px; height: 32px; border-radius: 8px;
+	background: #f97316; color: #fff;
 	display: grid; place-items: center; font-weight: 700;
 }
 nav { display: flex; flex-direction: column; gap: 4px; }
-nav button, .cards button, .ops button, .row button, .ghost {
+nav button, .cards button, .ops button, .row button, .ghost, .back {
 	font: inherit; cursor: pointer;
 }
 nav button {
-	text-align: left; color: #efe8e0; background: transparent;
-	border: 0; border-radius: 10px; padding: 10px 12px;
+	display: flex; align-items: center; gap: 8px;
+	text-align: left; color: #333; background: transparent;
+	border: 0; border-radius: 8px; padding: 9px 10px;
 }
-nav button.on, nav button:hover { background: rgba(255,255,255,.08); }
-nav button.on { color: #fff; }
+nav button i {
+	width: 18px; flex: none; font-style: normal; text-align: center; color: #888;
+}
+nav button:hover { background: #f3f4f6; }
+nav button.on { background: #f97316; color: #fff; }
+nav button.on i { color: #fff; }
 .files {
-	margin-top: auto; color: #d9cfc4; text-decoration: none;
-	padding: 10px 12px; border-radius: 10px;
+	margin-top: 12px; color: #666; text-decoration: none;
+	padding: 9px 10px; border-radius: 8px;
 }
-.files:hover { background: rgba(255,255,255,.08); color: #fff; }
-main { flex: 1; padding: 36px 48px 48px; max-width: 980px; }
+.files:hover { background: #f3f4f6; color: #222; }
+main {
+	flex: 1; min-width: 0;
+	background: #fff; border-radius: 12px;
+	padding: 18px 20px 28px;
+	box-shadow: 0 1px 2px rgba(36, 31, 27, .06);
+}
 .panel { display: none; }
 .panel.on { display: block; }
-.kicker { margin: 0; color: var(--accent); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
-h1 { margin: 6px 0 8px; font-size: 32px; font-weight: 650; letter-spacing: -0.03em; }
-.lead { margin: 0 0 22px; color: var(--muted); max-width: 40em; }
-.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.cards button {
-	text-align: left; background: var(--card); border: 1px solid var(--line);
-	border-radius: 16px; padding: 18px 18px 16px;
-	box-shadow: 0 10px 28px rgba(36, 31, 27, .04);
+.back {
+	border: 0; background: transparent; color: #f97316;
+	padding: 0 0 10px; font-size: 14px;
 }
-.cards button:hover { border-color: #d7c8ba; }
-.cards span { display: block; font-size: 18px; font-weight: 650; }
-.cards small { display: block; margin-top: 6px; color: var(--muted); }
+.head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
+.head h1 { margin: 0; font-size: 20px; }
+.kicker { margin: 0; color: var(--accent); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
+.find { margin-left: auto; width: 220px; }
+.find input {
+	display: block; width: 100%; height: 36px; margin: 0;
+	border: 1px solid var(--line); background: #fff; color: var(--ink);
+	border-radius: 8px; padding: 0 12px;
+	font: 14px/36px "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+	gap: 12px;
+}
+.cards button {
+	display: flex; align-items: center; gap: 8px;
+	height: 52px; padding: 0 12px;
+	text-align: left; background: #eef1f4; border: 0; border-radius: 8px;
+}
+.cards button:hover { background: #e4e8ed; }
+.cards i {
+	width: 28px; height: 28px; flex: none;
+	display: grid; place-items: center;
+	font-style: normal; font-size: 14px; color: #444;
+}
+.cards span {
+	font-size: 14px; font-weight: 500;
+	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.none { margin: 18px 0 0; color: var(--muted); }
 label { display: block; color: var(--muted); font-size: 12px; }
 textarea, input[type="date"], select {
 	display: block; width: 100%; margin-top: 6px;

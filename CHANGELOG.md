@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The local tools page lists the current tools with a category column on the left and four to six cards on a row. The search box filters those cards by name.
 - **Help → Install features** downloads FFmpeg 4.4 shared as `ffmpeg.7z` from the fixed `dict-db` release (~33 MB). GitHub downloads try `ghps.cc` first in a Chinese locale. The old BtbN autobuild zip URLs are gone.
 - In a Chinese locale, a GitHub or Hugging Face mirror that fails, times out (30 seconds with no response), or returns an HTML page is skipped, and the original GitHub or Hugging Face URL is still tried. Update checks and the TTS package list use the same order.
 - The bottom status bar splits the model summary and the HTTP listener. Click the model text to open Memory. Click `HTTP LAN:port` (or `HTTP host:port`) to open the web home in the browser. The empty space to the right does nothing.
@@ -65,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- 本机工具页左边按分类选择，右边一行 4 到 6 个工具卡片。搜索框按名称过滤这些卡片。没有新增工具。
 - **帮助 → 安装功能**从固定的 `dict-db` Release 下载 FFmpeg 4.4 shared 的 `ffmpeg.7z`（约 33 MB）。中文环境访问 GitHub 时优先走 `ghps.cc`。原先 BtbN 的旧 autobuild zip 已失效。
 - 中文环境下，GitHub / Hugging Face 镜像失败、30 秒没有响应，或返回网页时，会换下一个地址，并仍然尝试原来的 GitHub / Hugging Face 官方地址。检查更新和发音人列表用同一顺序。
 - 底部状态栏把模型摘要和 HTTP 监听拆开。点模型文字打开内存占用。点「HTTP 局域网:端口」（或 `HTTP 主机:端口`）用浏览器打开 web 主页。右边空白没有点击效果。

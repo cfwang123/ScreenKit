@@ -3173,7 +3173,9 @@ static class Cli {
 				|| home.IndexOf("二维码", StringComparison.Ordinal) < 0
 				|| home.IndexOf("文字识别", StringComparison.Ordinal) < 0
 				|| home.IndexOf("语音合成", StringComparison.Ordinal) < 0
-				|| home.IndexOf("语音识别", StringComparison.Ordinal) < 0) {
+				|| home.IndexOf("语音识别", StringComparison.Ordinal) < 0
+				|| home.IndexOf("id=\"tool-q\"", StringComparison.Ordinal) < 0
+				|| home.IndexOf("data-cat=\"all\"", StringComparison.Ordinal) < 0) {
 				Err("FAIL: GET / 不是工具页");
 				return 1;
 			}
