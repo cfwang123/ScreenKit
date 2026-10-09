@@ -45,7 +45,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 | Area | Description |
 |------|-------------|
-| **ASR / TTS** | ASR supports Sherpa offline/streaming models and installed **Windows system recognizers** (`System.Speech`, offline utterance recognition) for files, recordings, hotkey dictation, live captions, subtitle batches, CLI, and HTTP. TTS supports Sherpa / SAPI / WinRT offline voices and Edge online natural voices. With no saved TTS engine, Windows speech is used when a voice is installed, otherwise Edge online. |
+| **ASR / TTS** | ASR supports Sherpa offline/streaming models and installed **Windows system recognizers** (`System.Speech`, offline utterance recognition) for files, recordings, hotkey dictation, live captions, subtitle batches, CLI, and HTTP. Windows ASR lowers the system rejection threshold and uses its best rejected candidate when necessary, so quiet or untrained speech does not silently return empty. TTS supports Sherpa / SAPI / WinRT offline voices and Edge online natural voices. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). |

@@ -48,6 +48,11 @@ static class WindowsAsr {
 		var durs = new List<float>();
 		var totalSec = samples.Length / (double)sampleRate;
 		var latin = usespaces(model.Culture);
+		RecognitionResult rejected = null;
+		eng.SpeechRecognitionRejected += (_, e) => {
+			if (e.Result != null && (rejected == null || e.Result.Confidence > rejected.Confidence))
+				rejected = e.Result;
+		};
 
 		while (true) {
 			ct.ThrowIfCancellationRequested();
@@ -55,8 +60,15 @@ static class WindowsAsr {
 			try { r = eng.Recognize(); }
 			catch (InvalidOperationException) when (wav.Position >= wav.Length) { break; }
 			if (r == null) break;
-			var text = (r.Text ?? "").Trim();
-			if (text.Length == 0) continue;
+			addresult(r);
+		}
+		ct.ThrowIfCancellationRequested();
+		if (texts.Count == 0 && rejected != null)
+			addresult(rejected);
+		return result(texts, tokens, stamps, durs, latin);
+		void addresult(RecognitionResult r) {
+			var text = (r?.Text ?? "").Trim();
+			if (text.Length == 0) return;
 			var token = latin && texts.Count > 0 ? " " + text : text;
 			texts.Add(text);
 			tokens.Add(token);
@@ -73,8 +85,6 @@ static class WindowsAsr {
 			var partial = result(texts, tokens, stamps, durs, latin);
 			try { onProgress?.Invoke(partial, Math.Min(totalSec, pos + dur), totalSec); } catch { }
 		}
-		ct.ThrowIfCancellationRequested();
-		return result(texts, tokens, stamps, durs, latin);
 	}
 
 	static SpeechRecognitionEngine create(AsrModelInfo model) {
@@ -87,6 +97,7 @@ static class WindowsAsr {
 			eng.BabbleTimeout = TimeSpan.Zero;
 			eng.EndSilenceTimeout = TimeSpan.FromMilliseconds(500);
 			eng.EndSilenceTimeoutAmbiguous = TimeSpan.FromMilliseconds(900);
+			try { eng.UpdateRecognizerSetting("CFGConfidenceRejectionThreshold", 0); } catch { }
 			eng.LoadGrammar(new DictationGrammar());
 			return eng;
 		}
