@@ -363,21 +363,20 @@ static class TtsInstallCatalog {
 	// ───────── 索引拉取 ─────────
 
 	static async Task<List<TtsInstallItem>> fetchfromgithub(IProgress<string> log, CancellationToken ct) {
-		log?.Report("GET " + ReleaseApi);
-		// API 优先直连 GitHub（代理常对 api.github.com 返回 403）；失败再试代理
-		var apis = new[] {
-			ReleaseApi,
-			"https://ghfast.top/" + ReleaseApi,
-			"https://mirror.ghproxy.com/" + ReleaseApi,
-		};
+		// 与安装功能相同：中文环境先镜像，失败再试 api.github.com
+		var apis = FeatureInstaller.ExpandUrls(ReleaseApi);
+		log?.Report("GET " + (apis.Length > 0 ? apis[0] : ReleaseApi));
 
 		Exception last = null;
 		foreach (var api in apis) {
 			ct.ThrowIfCancellationRequested();
 			try {
+				using var attempt = CancellationTokenSource.CreateLinkedTokenSource(ct);
+				attempt.CancelAfter(TimeSpan.FromSeconds(30));
 				using var req = new HttpRequestMessage(HttpMethod.Get, api);
 				req.Headers.TryAddWithoutValidation("User-Agent", "ScreenKit-TtsInstall/1.0");
-				using var resp = await Http.SendAsync(req, ct).ConfigureAwait(false);
+				req.Headers.TryAddWithoutValidation("Accept", "application/vnd.github+json");
+				using var resp = await Http.SendAsync(req, attempt.Token).ConfigureAwait(false);
 				resp.EnsureSuccessStatusCode();
 				var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 				var list = parseassets(json);
@@ -385,6 +384,11 @@ static class TtsInstallCatalog {
 					log?.Report($"获取到 {list.Count} 个 TTS 包");
 					return list;
 				}
+			}
+			catch (OperationCanceledException) {
+				if (ct.IsCancellationRequested) throw;
+				last = new TimeoutException("超时");
+				log?.Report("API 失败: " + api + " — 超时");
 			}
 			catch (Exception ex) {
 				last = ex;

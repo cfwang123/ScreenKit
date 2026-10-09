@@ -188,7 +188,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **SQLite** | `e_sqlite3.dll`。打开 `dict.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 与 GIF | 7z 约 33 MB / 解压约 117 MB |
 
-界面或系统区域为中文时，下载优先国内镜像（ModelScope / HF 镜像 / GitHub 代理）。
+界面或系统区域为中文时，下载优先国内镜像（ModelScope / HF 镜像 / GitHub 代理）。镜像失败、超时或返回网页时，再试 GitHub / Hugging Face 官方地址。
 
 **Edge 在线**引擎无需安装模型或填写 API Key，可使用 300 多个 Microsoft 自然语音（含韩语）。必须联网，发音人目录和合成文本会发送到 Microsoft Edge「朗读」服务；不是收费的 Azure Speech API，可用性可能变化。程序沿用「HTTP 代理」设置。Windows 系统代理开着时总是用系统代理，不再用参数里的地址。
 

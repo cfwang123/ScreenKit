@@ -134,6 +134,8 @@ static class FeatureInstaller {
 	];
 
 	static readonly HttpClient Http = createhttp();
+	/// <summary>单个地址等到响应头、以及两次读到数据之间的上限。超时换下一个地址（含 GitHub 官方）。</summary>
+	const int URL_STALL_SEC = 30;
 
 	[DllImport("kernel32.dll", EntryPoint = "CreateFileW", CharSet = CharSet.Unicode, SetLastError = true)]
 	static extern SafeFileHandle createfile(
@@ -1885,6 +1887,7 @@ arabic_dict.txt
 				}
 			}
 			catch (Exception ex) {
+				if (ct.IsCancellationRequested) throw;
 				last = ex;
 				log?.Report("失败: " + ex.Message);
 				try { if (File.Exists(dest)) File.Delete(dest); } catch { }
@@ -1906,8 +1909,11 @@ arabic_dict.txt
 		long mapPackageDone, long mapPackageTotal) {
 		var partial = dest + ".partial";
 		var lastReport = 0L;
-		using (var resp = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false)) {
+		using (var resp = await getheaders(url, ct).ConfigureAwait(false)) {
 			resp.EnsureSuccessStatusCode();
+			var media = resp.Content.Headers.ContentType?.MediaType ?? "";
+			if (media.IndexOf("html", StringComparison.OrdinalIgnoreCase) >= 0)
+				throw new InvalidOperationException("返回网页");
 			var contentLen = resp.Content.Headers.ContentLength ?? -1;
 			var fileTotal = contentLen > 0 ? contentLen : expectedTotal;
 			using (var src = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false))
@@ -1915,7 +1921,7 @@ arabic_dict.txt
 				var buf = new byte[81920];
 				long read = 0;
 				int n;
-				while ((n = await src.ReadAsync(buf, 0, buf.Length, ct).ConfigureAwait(false)) > 0) {
+				while ((n = await readslice(src, buf, ct).ConfigureAwait(false)) > 0) {
 					await fs.WriteAsync(buf, 0, n, ct).ConfigureAwait(false);
 					read += n;
 					// 节流：每 256KB 或末尾再刷 UI
@@ -1945,6 +1951,32 @@ arabic_dict.txt
 		}
 		if (File.Exists(dest)) File.Delete(dest);
 		File.Move(partial, dest);
+	}
+
+	/// <summary>等到响应头。镜像挂死时在 <see cref="URL_STALL_SEC"/> 秒内失败，好换 GitHub 官方。</summary>
+	static async Task<HttpResponseMessage> getheaders(string url, CancellationToken ct) {
+		using var head = CancellationTokenSource.CreateLinkedTokenSource(ct);
+		head.CancelAfter(TimeSpan.FromSeconds(URL_STALL_SEC));
+		try {
+			return await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, head.Token).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException) {
+			if (ct.IsCancellationRequested) throw;
+			throw new TimeoutException("连接超时");
+		}
+	}
+
+	/// <summary>读一块。中间停住超过 <see cref="URL_STALL_SEC"/> 秒视为这个地址失败。</summary>
+	static async Task<int> readslice(Stream src, byte[] buf, CancellationToken ct) {
+		using var slice = CancellationTokenSource.CreateLinkedTokenSource(ct);
+		slice.CancelAfter(TimeSpan.FromSeconds(URL_STALL_SEC));
+		try {
+			return await src.ReadAsync(buf, 0, buf.Length, slice.Token).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException) {
+			if (ct.IsCancellationRequested) throw;
+			throw new TimeoutException("下载中断");
+		}
 	}
 
 	// ───────── 公开下载 / 解压（发音人等复用） ─────────

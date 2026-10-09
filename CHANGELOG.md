@@ -33,6 +33,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### English
 
 - **Help → Install features** downloads FFmpeg 4.4 shared as `ffmpeg.7z` from the fixed `dict-db` release (~33 MB). GitHub downloads try `ghps.cc` first in a Chinese locale. The old BtbN autobuild zip URLs are gone.
+- In a Chinese locale, a GitHub or Hugging Face mirror that fails, times out (30 seconds with no response), or returns an HTML page is skipped, and the original GitHub or Hugging Face URL is still tried. Update checks and the TTS package list use the same order.
 - The bottom status bar splits the model summary and the HTTP listener. Click the model text to open Memory. Click `HTTP LAN:port` (or `HTTP host:port`) to open the web home in the browser. The empty space to the right does nothing.
 - Tray left-click uses the same rule as the main-window hotkey: if the main window is already in the foreground it hides; if it is hidden, minimized, or behind another window it shows and brings it to the front. The click is handled on mouse-down and uses the foreground window from before the click. A second click while the show animation is still playing hides the window.
 - The tools page **Generate** button draws the QR or barcode under the button. Its style and script URLs carry the same process startup version as the file manager. Restarting ScreenKit changes that version, so the browser drops the previous files. During one run they still cache for 1 hour. The primary button stays the accent color.
@@ -65,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ### 中文
 
 - **帮助 → 安装功能**从固定的 `dict-db` Release 下载 FFmpeg 4.4 shared 的 `ffmpeg.7z`（约 33 MB）。中文环境访问 GitHub 时优先走 `ghps.cc`。原先 BtbN 的旧 autobuild zip 已失效。
+- 中文环境下，GitHub / Hugging Face 镜像失败、30 秒没有响应，或返回网页时，会换下一个地址，并仍然尝试原来的 GitHub / Hugging Face 官方地址。检查更新和发音人列表用同一顺序。
 - 底部状态栏把模型摘要和 HTTP 监听拆开。点模型文字打开内存占用。点「HTTP 局域网:端口」（或 `HTTP 主机:端口`）用浏览器打开 web 主页。右边空白没有点击效果。
 - 单击托盘图标与主窗口热键相同：主窗口已在前台则隐藏；已隐藏、最小化或被其它窗口挡住则显示并置于最前。在按下时按点击前的前台窗口判断。显示动画还没播完时再点一次会隐藏。
 - `GET /api/tts/engines` 只列出 Sherpa、SAPI、Windows、Edge，不扫描模型。`GET /api/tts/models` 会记住上次的全量结果。`engine` 只返回一个引擎。`refresh=1` 重新扫描。

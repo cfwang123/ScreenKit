@@ -374,12 +374,8 @@ static class AppUpdater {
 	}
 
 	static async Task<string> fetchjson(string apiUrl, CancellationToken ct) {
-		// API JSON 优先直连 GitHub（走配置代理）；ghproxy 镜像对 api.github.com 经常挂死
-		var urls = new List<string>();
-		if (!string.IsNullOrWhiteSpace(apiUrl)) urls.Add(apiUrl.Trim());
-		foreach (var u in FeatureInstaller.ExpandUrls(apiUrl)) {
-			if (!string.IsNullOrWhiteSpace(u) && !urls.Contains(u)) urls.Add(u);
-		}
+		// 中文环境先国内镜像，每个地址限时；镜像失败再试 GitHub 官方（ExpandUrls 已排在后面）
+		var urls = FeatureInstaller.ExpandUrls(apiUrl);
 		Exception last = null;
 		foreach (var url in urls) {
 			ct.ThrowIfCancellationRequested();
@@ -393,6 +389,7 @@ static class AppUpdater {
 				if (!string.IsNullOrWhiteSpace(json)) return json;
 			}
 			catch (Exception ex) {
+				if (ct.IsCancellationRequested) throw;
 				last = ex;
 			}
 		}
