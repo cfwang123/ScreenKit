@@ -252,11 +252,11 @@ partial class InstallFeaturesWindow {
 			return;
 		}
 		var sb = new StringBuilder();
-		foreach (var r in sel) {
-			if (sb.Length > 0) sb.AppendLine();
+		foreach (var r in sel)
 			sb.AppendLine(r.AddCmd);
+		sb.AppendLine();
+		foreach (var r in sel)
 			sb.AppendLine(r.RemoveCmd);
-		}
 		ewincmd.Text = sb.ToString().TrimEnd();
 	}
 
