@@ -64,7 +64,8 @@ sealed class TrayIcon : IDisposable {
 			Text = Loc.T("tray.tip"),
 			Icon = loadicon(),
 		};
-		ni.MouseClick += (_, e) => {
+		// 按下即切换：等 MouseClick（松开）时主窗早已失活，慢点会误判成置前
+		ni.MouseDown += (_, e) => {
 			if (e.Button == Forms.MouseButtons.Left)
 				togglewindow();
 		};

@@ -100,10 +100,12 @@ public partial class MainWindow : Window {
 	int ocrGen;
 	/// <summary>托盘菜单打开瞬间主窗是否可见（菜单关闭会误激活主窗，不能用点击后状态）。</summary>
 	bool trayMenuMainVisible;
-	/// <summary>主窗当前是否前台；点托盘时 Deactivated 可能尚未处理。</summary>
-	bool lastfgours;
+	/// <summary>主窗当前是否前台；点托盘时 Deactivated 可能尚未处理。跨线程读取。</summary>
+	volatile bool lastfgours;
 	/// <summary>主窗失活时的 TickCount。</summary>
-	int lastdeact;
+	volatile int lastdeact;
+	/// <summary>托盘按下切换防重入。</summary>
+	int lasttraytog;
 
 	public MainWindow() {
 		InitializeComponent();
@@ -591,7 +593,13 @@ public partial class MainWindow : Window {
 				applysnapcopyopts(asImg, asFile, asPath, fromTray: true);
 			}));
 			tray.SetSnapCopyOptions(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
-			tray.ToggleRequested += () => Dispatcher.BeginInvoke(new Action(() => togglemainwindow(fromTray: true)));
+			tray.ToggleRequested += () => {
+				// 在托盘线程立刻记下「刚才是否前台」，避免等 UI 队列时 Deactivated 清掉标志
+				var steal = lastfgours || unchecked(Environment.TickCount - lastdeact) < 1000;
+				void go() => togglemainwindow(fromTray: true, traysteal: steal);
+				if (Dispatcher.CheckAccess()) go();
+				else Dispatcher.InvokeAsync(go, System.Windows.Threading.DispatcherPriority.Send);
+			};
 			tray.ApplyHotkeys();
 		}
 		catch (Exception ex) {
@@ -950,9 +958,13 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>全局热键与托盘左键：前台是主窗则隐藏，否则显示并置顶。</summary>
-	void togglemainwindow(bool fromTray) {
+	void togglemainwindow(bool fromTray, bool traysteal = false) {
 		try {
-			if (mainwindowforeground(fromTray)) {
+			if (fromTray) {
+				if (unchecked(Environment.TickCount - lasttraytog) < 200) return;
+				lasttraytog = Environment.TickCount;
+			}
+			if (mainwindowforeground(fromTray, traysteal)) {
 				if (tray != null) tray.hidewindow();
 				else Hide();
 				return;
@@ -974,7 +986,7 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>前台是主窗口（含其内部子窗口，如词典页）。最小化或别的窗口在前时为 false。点托盘会先失活，fromTray 时把刚失活仍算前台。</summary>
-	bool mainwindowforeground(bool fromTray = false) {
+	bool mainwindowforeground(bool fromTray = false, bool traysteal = false) {
 		try {
 			if (!IsVisible || WindowState == WindowState.Minimized) return false;
 			if (IsActive) return true;
@@ -986,7 +998,7 @@ public partial class MainWindow : Window {
 		if (fg == IntPtr.Zero) return false;
 		if (fg == hwnd) return true;
 		if (GetAncestor(fg, GA_ROOT) == hwnd) return true;
-		if (fromTray && (lastfgours || unchecked(Environment.TickCount - lastdeact) < 500))
+		if (fromTray && (traysteal || lastfgours || unchecked(Environment.TickCount - lastdeact) < 1000))
 			return true;
 		return false;
 	}
