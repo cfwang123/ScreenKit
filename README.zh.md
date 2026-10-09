@@ -104,7 +104,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 - 终端用户：[.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 - 编译：Visual Studio / MSBuild（可编 `net48` WPF）
 - 可选：NVIDIA 显卡 + 与 `onnxgpu64` 匹配的 CUDA；支持 DirectML 的 GPU（`onnxdml64`）
-- 可选（x264 / x265 / AV1 与 GIF）：exe 旁 `ffmpeg64/` 放置 FFmpeg **4.4 shared**。系统 H.264 不用下载。
+- 可选（x264 / x265 / AV1 与 GIF）：exe 旁 `ffmpeg64/` 放置 FFmpeg **4.4 shared**，或 **帮助 → 安装功能**（`dict-db` 的 `ffmpeg.7z`，约 33 MB）。系统 H.264 不用下载。
 
 ## 使用说明
 
@@ -171,7 +171,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 1. 启动时不弹出安装窗口。Windows 系统 OCR 可以直接用。
 2. **帮助 → 安装功能**
-   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典一项下载固定地址上的 `dict.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 和 `SharpSevenZip.dll` 会先下载。打开库需要 `e_sqlite3.dll`。
+   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典、中英 ONNX 翻译和 FFmpeg 4.4 shared 分别下载固定 `dict-db` 上的 `dict.7z` / `translatemodels.7z` / `ffmpeg.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 和 `SharpSevenZip.dll` 会先下载。打开词典库需要 `e_sqlite3.dll`。
    - **onnx语音模型**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。日文是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`），在语言里选日文。这一包同时包含 Supertonic 3 的其它语言。
    - **Windows语音**：进入本页时才读取已安装的 `Language.TextToSpeech` 功能包和发音人。本进程是管理员时直接读取、安装或卸载。不是管理员时，查看、安装或卸载都用 `start` 弹出管理员窗口（一次用户账户控制）。命令仍可复制。装好后需重启本程序，语音合成页才会列出新发音人。
 3. 使用某功能时若缺依赖，会提示打开安装窗（例如：没有任何 ORT 时做 OCR → 提示安装 `onnxcpu64`）。
@@ -186,7 +186,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **SharpCompress** | `SharpCompress.dll`。解压语音和识别的 `tar.bz2` | ~2.5 MB |
 | **SharpSevenZip / 7za** | 解压词典 `dict.7z` | ~1.8 MB + ~0.4 MB |
 | **SQLite** | `e_sqlite3.dll`。打开 `dict.db` | ~1.7 MB |
-| **ffmpeg64** | x264 / x265 / AV1 与 GIF | ~72 MB |
+| **ffmpeg64** | x264 / x265 / AV1 与 GIF | 7z 约 33 MB / 解压约 117 MB |
 
 界面或系统区域为中文时，下载优先国内镜像（ModelScope / HF 镜像 / GitHub 代理）。
 

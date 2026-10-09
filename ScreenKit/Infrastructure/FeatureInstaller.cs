@@ -127,13 +127,10 @@ static class FeatureInstaller {
 	const long DICT7Z_BYTES = 261009277L;
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
 	const long TRANSLATE7Z_BYTES = 1028366964L;
+	const string FFMPEG7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ffmpeg.7z";
+	const long FFMPEG7Z_BYTES = 34126488L;
 	static readonly string[] FaceBuffaloLFiles = [
 		"det_10g.onnx", "w600k_r50.onnx", "genderage.onnx", "2d106det.onnx", "1k3d68.onnx",
-	];
-
-	static readonly string[] FfmpegUrls = [
-		"https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2022-12-31-12-37/ffmpeg-n4.4.3-6-g8cdb37d416-win64-gpl-shared.zip",
-		"https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2023-04-30-12-40/ffmpeg-n4.4.4-1-g9541743d0e-win64-gpl-shared.zip",
 	];
 
 	static readonly HttpClient Http = createhttp();
@@ -296,7 +293,7 @@ static class FeatureInstaller {
 		FeatureKind.CudaGpu => 1200L * 1024 * 1024,
 		FeatureKind.DirectMl => 18L * 1024 * 1024,
 		FeatureKind.OrtCpu => 16L * 1024 * 1024,
-		FeatureKind.Ffmpeg => 72L * 1024 * 1024,
+		FeatureKind.Ffmpeg => FFMPEG7Z_BYTES,
 		FeatureKind.FaceInsight => 326L * 1024 * 1024,
 		FeatureKind.DictDb => DICT7Z_BYTES,
 		FeatureKind.TranslateOnnx => TRANSLATE7Z_BYTES,
@@ -1702,26 +1699,33 @@ arabic_dict.txt
 		}
 
 		Directory.CreateDirectory(CacheDir);
-		var zipPath = Path.Combine(CacheDir, "ffmpeg-4.4-win64-gpl-shared.zip");
-		var urls = ExpandUrls(FfmpegUrls);
-		await downloadfirst(urls, zipPath, log, progress, ct,
-			expectedTotal: ExpectedSize(FeatureKind.Ffmpeg), overallWeight: 0.9).ConfigureAwait(false);
-
-		var extract = Path.Combine(CacheDir, "ffmpeg-extract");
-		if (Directory.Exists(extract)) {
-			try { Directory.Delete(extract, true); } catch { }
+		var arc = Path.Combine(CacheDir, "ffmpeg.7z");
+		if (File.Exists(arc)) {
+			long have = 0;
+			try { have = new FileInfo(arc).Length; } catch { }
+			if (have != FFMPEG7Z_BYTES) {
+				try { File.Delete(arc); } catch { }
+			}
 		}
-		Directory.CreateDirectory(extract);
-		log?.Report("解压 FFmpeg zip…");
-		var zlen = File.Exists(zipPath) ? new FileInfo(zipPath).Length : 0;
-		reportprog(progress, 0.92, zlen, zlen, Path.GetFileName(zipPath), "解压中…");
-		ZipFile.ExtractToDirectory(zipPath, extract);
-		var av = Directory.GetFiles(extract, "avcodec-*.dll", SearchOption.AllDirectories).FirstOrDefault();
+		await downloadfirst(ExpandUrls(FFMPEG7Z_URL), arc, log, progress, ct,
+			expectedTotal: FFMPEG7Z_BYTES, overallWeight: 0.9).ConfigureAwait(false);
+		var unpack = Path.Combine(CacheDir, "ffmpeg-unpack");
+		if (Directory.Exists(unpack)) {
+			try { Directory.Delete(unpack, true); } catch { }
+		}
+		Directory.CreateDirectory(unpack);
+		log?.Report("解压 ffmpeg.7z …");
+		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : FFMPEG7Z_BYTES;
+		reportprog(progress, 0.92, zlen, zlen, "ffmpeg.7z", "解压中…");
+		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
+		extract7z(arc, unpack, log);
+		var av = Directory.GetFiles(unpack, "avcodec-*.dll", SearchOption.AllDirectories).FirstOrDefault();
 		if (av == null)
-			throw new InvalidOperationException("zip 中未找到 avcodec-*.dll");
+			throw new InvalidOperationException("ffmpeg.7z 里没有 avcodec-*.dll");
 		var binDir = Path.GetDirectoryName(av);
 		foreach (var f in Directory.GetFiles(binDir))
 			File.Copy(f, Path.Combine(FfmpegDir, Path.GetFileName(f)), true);
+		try { Directory.Delete(unpack, true); } catch { }
 		reportprog(progress, 1, zlen, zlen, Path.GetFileName(av), "完成");
 		log?.Report("ffmpeg64 完成 ← " + Path.GetFileName(av));
 	}
@@ -1762,6 +1766,7 @@ arabic_dict.txt
 			if (primary.IndexOf("github.com", StringComparison.OrdinalIgnoreCase) >= 0
 				|| primary.IndexOf("raw.githubusercontent.com", StringComparison.OrdinalIgnoreCase) >= 0) {
 				var proxies = new[] {
+					"https://ghps.cc/" + primary,
 					"https://ghfast.top/" + primary,
 					"https://mirror.ghproxy.com/" + primary,
 					"https://ghproxy.net/" + primary,

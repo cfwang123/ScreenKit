@@ -104,7 +104,7 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 - [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 - Build: Visual Studio / MSBuild with a `net48` WPF targeting pack
 - Optional: NVIDIA GPU + CUDA matching `onnxgpu64`; DirectML GPU for `onnxdml64`
-- Optional (x264 / x265 / AV1 and GIF): FFmpeg **4.4 shared** under `ffmpeg64/` next to the exe. Media Foundation H.264 needs no download.
+- Optional (x264 / x265 / AV1 and GIF): FFmpeg **4.4 shared** under `ffmpeg64/` next to the exe, or **Help → Install features** (`ffmpeg.7z` from `dict-db`, ~33 MB). Media Foundation H.264 needs no download.
 
 ## Using ScreenKit
 
@@ -171,7 +171,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 1. Startup does not open the installer. Windows OCR is available immediately.
 2. **Help → Install features**
-   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary and Chinese↔English ONNX translation download `dict.7z` / `translatemodels.7z` from the fixed `dict-db` release (not the app update package). Translation includes the two minimal Opus-MT runtime packs (~981 MB download, ~1.08 GiB extracted) and automatically selects CPU ONNX Runtime. Extracting either archive downloads `7za.dll` and `SharpSevenZip.dll` when they are not already installed. Opening the database needs `e_sqlite3.dll`.
+   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary, Chinese↔English ONNX translation, and FFmpeg 4.4 shared download `dict.7z` / `translatemodels.7z` / `ffmpeg.7z` from the fixed `dict-db` release (not the app update package). Translation includes the two minimal Opus-MT runtime packs (~981 MB download, ~1.08 GiB extracted) and automatically selects CPU ONNX Runtime. Extracting either archive downloads `7za.dll` and `SharpSevenZip.dll` when they are not already installed. Opening the database needs `e_sqlite3.dll`.
    - **ONNX speech models**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported. Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). Choose Japanese in the language list. That pack also speaks the other Supertonic 3 languages.
    - **Windows OCR/Speech**: one language tree manages `Language.OCR`, `Language.TextToSpeech`, and `Language.Speech`. Languages are sorted Chinese, English, Japanese, Korean, then others. A language with an installed pack or currently available engine opens by default; other languages remain collapsed but can be opened for installation. Each language has fixed OCR, speech synthesis, and speech recognition children, with a tri-state language checkbox. The page shows WinRT OCR languages, voices, and `System.Speech` recognizers. The installed-pack check runs once after ScreenKit starts. Opening this window again uses that result. Refresh checks every pack again. Installing or removing rechecks only those packs, in the same administrator window when one is already required. Querying or changing a mixed selection uses one administrator window/UAC prompt. The copyable command box groups all install commands before all remove commands. Restart ScreenKit after changes. Windows OCR is especially fast; Windows recognition performs poorly for Chinese, so SenseVoice is recommended for Chinese ASR.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
@@ -186,7 +186,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 | **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
 | **SharpSevenZip / 7za** | Extract dictionary and translation model `.7z` packages | ~1.8 MB + ~0.4 MB |
 | **SQLite** | `e_sqlite3.dll`. Opens `dict.db` | ~1.7 MB |
-| **ffmpeg64** | Screen record encode/mux | ~72 MB |
+| **ffmpeg64** | Screen record encode/mux | ~33 MB 7z / ~117 MB unpacked |
 
 Download prefers CN mirrors when UI or system locale is Chinese.
 

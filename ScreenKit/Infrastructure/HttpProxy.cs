@@ -118,7 +118,8 @@ sealed class HttpProxy : IWebProxy {
 			|| host == "ghproxy.net" || host.EndsWith(".ghproxy.net")
 			|| host == "ghproxy.com" || host.EndsWith(".ghproxy.com")
 			|| host == "ghproxy.org" || host.EndsWith(".ghproxy.org")
-			|| host == "mirror.ghproxy.com";
+			|| host == "mirror.ghproxy.com"
+			|| host == "ghps.cc" || host.EndsWith(".ghps.cc");
 	}
 
 	static bool isprivate(IPAddress ip) {
