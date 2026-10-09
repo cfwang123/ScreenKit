@@ -1598,6 +1598,7 @@
 										<RowDefinition Height="Auto"/>
 										<RowDefinition Height="Auto"/>
 										<RowDefinition Height="Auto"/>
+										<RowDefinition Height="Auto"/>
 										<RowDefinition Height="*" MinHeight="70"/>
 										<RowDefinition Height="Auto"/>
 										<RowDefinition Height="Auto"/>
@@ -1609,7 +1610,16 @@
 									           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 									<ComboBox x:Name="ehttptpl" Grid.Row="2" Height="32" Margin="0,0,0,8"
 									          DisplayMemberPath="Title"/>
-									<Grid Grid.Row="3" Margin="0,0,0,8">
+									<DockPanel Grid.Row="3" Margin="0,0,0,8">
+										<TextBlock x:Name="lbhttphelp" DockPanel.Dock="Top" Text="说明" FontSize="11"
+										           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+										<TextBox x:Name="ehttphelp" IsReadOnly="True" Height="96"
+										         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+										         FontSize="12" Padding="8"
+										         BorderBrush="{StaticResource BorderSoft}"
+										         AutomationProperties.AutomationId="http.help"/>
+									</DockPanel>
+									<Grid Grid.Row="4" Margin="0,0,0,8">
 										<Grid.ColumnDefinitions>
 											<ColumnDefinition Width="88"/>
 											<ColumnDefinition Width="8"/>
@@ -1623,20 +1633,20 @@
 										         VerticalContentAlignment="Center" Text="/api/status"
 										         FontFamily="Consolas"/>
 									</Grid>
-									<TextBlock x:Name="lbhttpbody" Grid.Row="4" Text="请求体" FontSize="11"
+									<TextBlock x:Name="lbhttpbody" Grid.Row="5" Text="请求体" FontSize="11"
 									           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-									<TextBox x:Name="ehttpbody" Grid.Row="5"
+									<TextBox x:Name="ehttpbody" Grid.Row="6"
 									         FontFamily="Consolas" FontSize="12"
 									         VerticalScrollBarVisibility="Auto"
 									         TextWrapping="Wrap" AcceptsReturn="True"
 									         BorderBrush="{StaticResource BorderSoft}"/>
-									<DockPanel Grid.Row="6" Margin="0,8,0,0">
+									<DockPanel Grid.Row="7" Margin="0,8,0,0">
 										<Button x:Name="bhttpsend" DockPanel.Dock="Right" Content="发送"
 										        Style="{StaticResource ToolBtn}" Height="32" Padding="16,4"/>
 									</DockPanel>
-									<TextBlock x:Name="lbhttpresp" Grid.Row="7" Text="响应" FontSize="11"
+									<TextBlock x:Name="lbhttpresp" Grid.Row="8" Text="响应" FontSize="11"
 									           Foreground="{StaticResource TextMuted}" Margin="0,8,0,4"/>
-									<TextBox x:Name="ehttpresp" Grid.Row="8" IsReadOnly="True"
+									<TextBox x:Name="ehttpresp" Grid.Row="9" IsReadOnly="True"
 									         FontFamily="Consolas" FontSize="12"
 									         VerticalScrollBarVisibility="Auto"
 									         TextWrapping="Wrap" AcceptsReturn="True"

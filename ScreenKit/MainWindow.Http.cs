@@ -8,6 +8,7 @@ sealed class HttpTpl {
 	public string Method { get; set; }
 	public string Path { get; set; }
 	public string Body { get; set; }
+	public string Doc { get; set; }
 }
 
 public partial class MainWindow {
@@ -35,82 +36,40 @@ public partial class MainWindow {
 	void fillhttptpl() {
 		httpUiLoading = true;
 		ehttptpl.Items.Clear();
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/status", Method = "GET", Path = "/api/status", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/toast", Method = "GET", Path = "/api/toast?text=你好&ms=1900", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/toast", Method = "POST", Path = "/api/toast",
-			Body = "{\n  \"text\": \"你好\",\n  \"ms\": 1900\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/zhconv", Method = "GET", Path = "/api/zhconv?text=软件&to=trad", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/zhconv", Method = "POST", Path = "/api/zhconv",
-			Body = "{\n  \"text\": \"软件\",\n  \"to\": \"trad\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/calendar", Method = "GET", Path = "/api/calendar?date=2024-02-10&cal=lunar", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/calendar", Method = "POST", Path = "/api/calendar",
-			Body = "{\n  \"date\": \"2024-02-10\",\n  \"cal\": \"lunar\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/jpyomi", Method = "GET", Path = "/api/jpyomi?text=東京は晴れです", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/jpyomi", Method = "POST", Path = "/api/jpyomi",
-			Body = "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl { Title = "POST /api/cast/stop", Method = "POST", Path = "/api/cast/stop", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api", Method = "GET", Path = "/api", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/ocr/get_options", Method = "GET", Path = "/api/ocr/get_options", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/ocr", Method = "POST", Path = "/api/ocr",
-			Body = "{\n  \"base64\": \"\",\n  \"options\": {}\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/qr", Method = "POST", Path = "/api/qr",
-			Body = "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/asr/models", Method = "GET", Path = "/api/asr/models", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/asr", Method = "POST", Path = "/api/asr",
-			Body = "{\n  \"path\": \"\",\n  \"lang\": \"auto\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/tts/models", Method = "GET", Path = "/api/tts/models", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/tts", Method = "POST", Path = "/api/tts",
-			Body = "{\n  \"text\": \"你好\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/tts (SAPI)", Method = "POST", Path = "/api/tts",
-			Body = "{\n  \"text\": \"你好\",\n  \"engine\": \"sapi\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/tts (Windows)", Method = "POST", Path = "/api/tts",
-			Body = "{\n  \"text\": \"你好\",\n  \"engine\": \"winrt\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/tts (Edge Online)", Method = "POST", Path = "/api/tts",
-			Body = "{\n  \"text\": \"안녕하세요\",\n  \"engine\": \"edge\",\n  \"voice\": \"edge:ko-KR-SunHiNeural\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/itn", Method = "POST", Path = "/api/itn",
-			Body = "{\n  \"text\": \"二零二四年一月一日\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/translate", Method = "POST", Path = "/api/translate",
-			Body = "{\n  \"items\": [\"你好\"],\n  \"src\": \"zh\",\n  \"dst\": \"en\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/chat", Method = "POST", Path = "/api/chat",
-			Body = "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/chat + tts", Method = "POST", Path = "/api/chat",
-			Body = "{\n  \"text\": \"用一句话介绍你自己\",\n  \"tts\": true,\n  \"engine\": \"sapi\"\n}",
-		});
-		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/face/models", Method = "GET", Path = "/api/face/models", Body = "" });
-		ehttptpl.Items.Add(new HttpTpl {
-			Title = "POST /api/face", Method = "POST", Path = "/api/face",
-			Body = "{\n  \"base64\": \"\"\n}",
-		});
+		addhttp("GET /api/status", "GET", "/api/status", "", "http.doc.status");
+		addhttp("GET /api/toast", "GET", "/api/toast?text=你好&ms=1900", "", "http.doc.toast");
+		addhttp("POST /api/toast", "POST", "/api/toast", "{\n  \"text\": \"你好\",\n  \"ms\": 1900\n}", "http.doc.toast");
+		addhttp("GET /api/zhconv", "GET", "/api/zhconv?text=软件&to=trad", "", "http.doc.zhconv");
+		addhttp("POST /api/zhconv", "POST", "/api/zhconv", "{\n  \"text\": \"软件\",\n  \"to\": \"trad\"\n}", "http.doc.zhconv");
+		addhttp("GET /api/calendar", "GET", "/api/calendar?date=2024-02-10&cal=lunar", "", "http.doc.calendar");
+		addhttp("POST /api/calendar", "POST", "/api/calendar", "{\n  \"date\": \"2024-02-10\",\n  \"cal\": \"lunar\"\n}", "http.doc.calendar");
+		addhttp("GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");
+		addhttp("POST /api/jpyomi", "POST", "/api/jpyomi", "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}", "http.doc.jpyomi");
+		addhttp("POST /api/cast/stop", "POST", "/api/cast/stop", "", "http.doc.caststop");
+		addhttp("GET /api", "GET", "/api", "", "http.doc.api");
+		addhttp("GET /api/ocr/get_options", "GET", "/api/ocr/get_options", "", "http.doc.ocropt");
+		addhttp("POST /api/ocr", "POST", "/api/ocr", "{\n  \"base64\": \"\",\n  \"options\": {}\n}", "http.doc.ocr");
+		addhttp("POST /api/qr", "POST", "/api/qr", "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}", "http.doc.qr");
+		addhttp("GET /api/asr/models", "GET", "/api/asr/models", "", "http.doc.asrmodels");
+		addhttp("POST /api/asr", "POST", "/api/asr", "{\n  \"path\": \"\",\n  \"lang\": \"auto\"\n}", "http.doc.asr");
+		addhttp("GET /api/tts/models", "GET", "/api/tts/models", "", "http.doc.ttsmodels");
+		addhttp("POST /api/tts", "POST", "/api/tts", "{\n  \"text\": \"你好\"\n}", "http.doc.tts");
+		addhttp("POST /api/tts (SAPI)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"sapi\"\n}", "http.doc.tts.sapi");
+		addhttp("POST /api/tts (Windows)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"winrt\"\n}", "http.doc.tts.win");
+		addhttp("POST /api/tts (Edge Online)", "POST", "/api/tts", "{\n  \"text\": \"안녕하세요\",\n  \"engine\": \"edge\",\n  \"voice\": \"edge:ko-KR-SunHiNeural\"\n}", "http.doc.tts.edge");
+		addhttp("POST /api/itn", "POST", "/api/itn", "{\n  \"text\": \"二零二四年一月一日\"\n}", "http.doc.itn");
+		addhttp("POST /api/translate", "POST", "/api/translate", "{\n  \"items\": [\"你好\"],\n  \"src\": \"zh\",\n  \"dst\": \"en\"\n}", "http.doc.translate");
+		addhttp("POST /api/chat", "POST", "/api/chat", "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}", "http.doc.chat");
+		addhttp("POST /api/chat + tts", "POST", "/api/chat", "{\n  \"text\": \"用一句话介绍你自己\",\n  \"tts\": true,\n  \"engine\": \"sapi\"\n}", "http.doc.chat.tts");
+		addhttp("GET /api/face/models", "GET", "/api/face/models", "", "http.doc.facemodels");
+		addhttp("POST /api/face", "POST", "/api/face", "{\n  \"base64\": \"\"\n}", "http.doc.face");
 		httpUiLoading = false;
+	}
+
+	void addhttp(string title, string method, string path, string body, string doc) {
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = title, Method = method, Path = path, Body = body, Doc = doc,
+		});
 	}
 
 	void applyhttptpl(HttpTpl t) {
@@ -119,6 +78,7 @@ public partial class MainWindow {
 		pickhttpmethod(t.Method);
 		ehttppath.Text = t.Path ?? "/api/status";
 		ehttpbody.Text = t.Body ?? "";
+		ehttphelp.Text = string.IsNullOrEmpty(t.Doc) ? "" : Loc.T(t.Doc);
 		httpUiLoading = false;
 	}
 
@@ -176,6 +136,9 @@ public partial class MainWindow {
 			bhttpclear.Content = Loc.T("http.tab.clear");
 			lbhttpreq.Text = Loc.T("http.tab.req");
 			lbhttptpl.Text = Loc.T("http.tab.tpl");
+			lbhttphelp.Text = Loc.T("http.tab.help");
+			if (ehttptpl.SelectedItem is HttpTpl t && !string.IsNullOrEmpty(t.Doc))
+				ehttphelp.Text = Loc.T(t.Doc);
 			lbhttpbody.Text = Loc.T("http.tab.body");
 			lbhttpresp.Text = Loc.T("http.tab.resp");
 			bhttpsend.Content = Loc.T("http.tab.send");
