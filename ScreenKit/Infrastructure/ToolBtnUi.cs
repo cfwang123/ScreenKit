@@ -24,6 +24,7 @@ static class ToolBtnUi {
 	public const string Swap = "\uE8AB";
 	public const string Up = "\uE74A";
 	public const string Down = "\uE74B";
+	public const string Pin = "\uE707";
 
 	public static void Set(Button b, string glyph, string text) {
 		if (b == null) return;

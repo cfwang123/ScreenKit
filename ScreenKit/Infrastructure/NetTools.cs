@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Windows.Devices.Geolocation;
 
 namespace ScreenKit;
 
@@ -186,6 +187,65 @@ static class NetTools {
 			return;
 		}
 		line?.Invoke("推测位置：" + guessplace(ok.Select(r => (r.Place, r.Ms)).ToList()));
+	}
+
+	/// <summary>Windows.Devices.Geolocation。系统选 Wi-Fi 或 GPS。第一次调用会询问是否允许。</summary>
+	public static async Task Geolocate(Action<string> line, CancellationToken ct) {
+		line?.Invoke("系统定位（Wi-Fi / GPS）");
+		GeolocationAccessStatus access;
+		try {
+			access = await Geolocator.RequestAccessAsync().AsTask(ct).ConfigureAwait(false);
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) {
+			line?.Invoke("权限: " + (ex.InnerException?.Message ?? ex.Message));
+			return;
+		}
+		line?.Invoke("权限: " + accesszh(access));
+		if (access != GeolocationAccessStatus.Allowed) {
+			line?.Invoke("请在 Windows 设置 → 隐私和安全性 → 位置 中打开定位服务，并允许桌面应用访问位置。");
+			return;
+		}
+		var geo = new Geolocator { DesiredAccuracy = PositionAccuracy.Default };
+		Geoposition pos;
+		try {
+			pos = await geo.GetGeopositionAsync(TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(15))
+				.AsTask(ct).ConfigureAwait(false);
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) {
+			line?.Invoke("定位失败: " + (ex.InnerException?.Message ?? ex.Message));
+			return;
+		}
+		var c = pos.Coordinate;
+		var p = c.Point.Position;
+		line?.Invoke("纬度: " + p.Latitude.ToString("0.######", CultureInfo.InvariantCulture));
+		line?.Invoke("经度: " + p.Longitude.ToString("0.######", CultureInfo.InvariantCulture));
+		line?.Invoke("精度: " + c.Accuracy.ToString("0", CultureInfo.InvariantCulture) + " m");
+		line?.Invoke("来源: " + sourcezh(c.PositionSource));
+		if (!double.IsNaN(p.Altitude))
+			line?.Invoke("海拔: " + p.Altitude.ToString("0.#", CultureInfo.InvariantCulture) + " m");
+		var civic = pos.CivicAddress;
+		if (civic != null) {
+			var where = string.Join(" ", new[] { civic.Country, civic.State, civic.City, civic.PostalCode }
+				.Where(s => !string.IsNullOrWhiteSpace(s)));
+			if (where.Length > 0)
+				line?.Invoke("地点: " + where);
+		}
+		line?.Invoke("时间: " + c.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"));
+	}
+
+	static string accesszh(GeolocationAccessStatus s) {
+		if (s == GeolocationAccessStatus.Allowed) return "已允许";
+		if (s == GeolocationAccessStatus.Denied) return "已拒绝";
+		return "未指定";
+	}
+
+	static string sourcezh(PositionSource s) {
+		if (s == PositionSource.Satellite) return "GPS";
+		if (s == PositionSource.WiFi) return "Wi-Fi";
+		if (s == PositionSource.Cellular) return "基站";
+		if (s == PositionSource.IPAddress) return "IP";
+		if (s == PositionSource.Default) return "默认";
+		return "未知";
 	}
 
 	static readonly (string Name, string Url, string Place)[] HttpSpeedNodes = {
