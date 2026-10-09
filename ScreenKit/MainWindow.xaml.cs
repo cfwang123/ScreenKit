@@ -100,12 +100,14 @@ public partial class MainWindow : Window {
 	int ocrGen;
 	/// <summary>托盘菜单打开瞬间主窗是否可见（菜单关闭会误激活主窗，不能用点击后状态）。</summary>
 	bool trayMenuMainVisible;
-	/// <summary>主窗当前是否前台；点托盘时 Deactivated 可能尚未处理。跨线程读取。</summary>
+	/// <summary>点击前主窗是否前台（忽略托盘/任务栏抢走的焦点）。跨线程读取。</summary>
 	volatile bool lastfgours;
-	/// <summary>主窗失活时的 TickCount。</summary>
-	volatile int lastdeact;
+	/// <summary>前台变成任务栏/托盘时的 TickCount，用来忽略点托盘瞬间对本窗的激活。</summary>
+	volatile int lasttrayfg;
 	/// <summary>托盘按下切换防重入。</summary>
 	int lasttraytog;
+	WinEventDelegate fgproc;
+	IntPtr fghook;
 
 	public MainWindow() {
 		InitializeComponent();
@@ -594,9 +596,9 @@ public partial class MainWindow : Window {
 			}));
 			tray.SetSnapCopyOptions(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
 			tray.ToggleRequested += () => {
-				// 在托盘线程立刻记下「刚才是否前台」，避免等 UI 队列时 Deactivated 清掉标志
-				var steal = lastfgours || unchecked(Environment.TickCount - lastdeact) < 1000;
-				void go() => togglemainwindow(fromTray: true, traysteal: steal);
+				// 只看点击前是否前台；点托盘会激活本进程，不能用此时的 IsActive
+				var wasfg = lastfgours;
+				void go() => togglemainwindow(fromTray: true, traysteal: wasfg);
 				if (Dispatcher.CheckAccess()) go();
 				else Dispatcher.InvokeAsync(go, System.Windows.Threading.DispatcherPriority.Send);
 			};
@@ -953,6 +955,7 @@ public partial class MainWindow : Window {
 		try { trPopup?.ForceClose(); } catch { }
 		try { dicthost?.Shutdown(); } catch { }
 		try { tray?.Dispose(); } catch { }
+		unhookfg();
 		// 不在此 Dispose runner/ORT
 		try { Environment.Exit(0); } catch { }
 	}
@@ -964,13 +967,21 @@ public partial class MainWindow : Window {
 				if (unchecked(Environment.TickCount - lasttraytog) < 200) return;
 				lasttraytog = Environment.TickCount;
 			}
-			if (mainwindowforeground(fromTray, traysteal)) {
+			var hide = fromTray ? traysteal : mainwindowforeground();
+			try {
+				if (!IsVisible || WindowState == WindowState.Minimized)
+					hide = false;
+			}
+			catch { hide = false; }
+			if (hide) {
 				if (tray != null) tray.hidewindow();
 				else Hide();
+				lastfgours = false;
 				return;
 			}
 			if (tray != null) tray.showwindow();
 			else showmainontop();
+			lastfgours = true;
 		}
 		catch (Exception ex) {
 			setstatus($"热键切换窗口失败: {ex.Message}");
@@ -978,29 +989,76 @@ public partial class MainWindow : Window {
 	}
 
 	void trackmainfg() {
-		Activated += (_, _) => { lastfgours = true; };
-		Deactivated += (_, _) => {
-			lastfgours = false;
-			lastdeact = Environment.TickCount;
+		Activated += (_, _) => {
+			if (istrayhwnd(GetForegroundWindow())) return;
+			if (unchecked(Environment.TickCount - lasttrayfg) < 250) return;
+			lastfgours = true;
 		};
+		Deactivated += (_, _) => {
+			var fg = GetForegroundWindow();
+			if (istrayhwnd(fg)) {
+				lasttrayfg = Environment.TickCount;
+				return;
+			}
+			lastfgours = false;
+		};
+		SourceInitialized += (_, _) => {
+			lastfgours = hwndours(GetForegroundWindow());
+			hookfg();
+		};
+		Closed += (_, _) => unhookfg();
 	}
 
-	/// <summary>前台是主窗口（含其内部子窗口，如词典页）。最小化或别的窗口在前时为 false。点托盘会先失活，fromTray 时把刚失活仍算前台。</summary>
-	bool mainwindowforeground(bool fromTray = false, bool traysteal = false) {
+	void hookfg() {
+		if (fghook != IntPtr.Zero) return;
+		fgproc = onsysfg;
+		fghook = SetWinEventHook(EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
+			IntPtr.Zero, fgproc, 0, 0, WINEVENT_OUTOFCONTEXT);
+	}
+
+	void unhookfg() {
+		if (fghook == IntPtr.Zero) return;
+		try { UnhookWinEvent(fghook); } catch { }
+		fghook = IntPtr.Zero;
+	}
+
+	void onsysfg(IntPtr _, uint __, IntPtr hwnd, int idObject, int ___, uint ____, uint _____) {
+		if (hwnd == IntPtr.Zero || idObject != 0) return;
+		if (istrayhwnd(hwnd)) {
+			lasttrayfg = Environment.TickCount;
+			return;
+		}
+		if (hwndours(hwnd) && unchecked(Environment.TickCount - lasttrayfg) < 250)
+			return;
+		lastfgours = hwndours(hwnd);
+	}
+
+	/// <summary>前台是主窗口（含其内部子窗口，如词典页）。最小化或别的窗口在前时为 false。</summary>
+	bool mainwindowforeground() {
 		try {
 			if (!IsVisible || WindowState == WindowState.Minimized) return false;
 			if (IsActive) return true;
 		}
 		catch { return false; }
+		return hwndours(GetForegroundWindow());
+	}
+
+	bool hwndours(IntPtr fg) {
+		if (fg == IntPtr.Zero) return false;
 		var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
 		if (hwnd == IntPtr.Zero) return false;
-		var fg = GetForegroundWindow();
-		if (fg == IntPtr.Zero) return false;
 		if (fg == hwnd) return true;
-		if (GetAncestor(fg, GA_ROOT) == hwnd) return true;
-		if (fromTray && (traysteal || lastfgours || unchecked(Environment.TickCount - lastdeact) < 1000))
-			return true;
-		return false;
+		return GetAncestor(fg, GA_ROOT) == hwnd;
+	}
+
+	static bool istrayhwnd(IntPtr hwnd) {
+		if (hwnd == IntPtr.Zero) return false;
+		var buf = new StringBuilder(256);
+		if (GetClassName(hwnd, buf, buf.Capacity) <= 0) return false;
+		var cls = buf.ToString();
+		return cls == "Shell_TrayWnd" || cls == "Shell_SecondaryTrayWnd" ||
+			cls == "NotifyIconOverflowWindow" || cls == "TrayNotifyWnd" ||
+			cls == "TopLevelWindowForOverflowXamlIsland";
 	}
 
 	void showmainontop() {
@@ -1017,12 +1075,25 @@ public partial class MainWindow : Window {
 	}
 
 	const uint GA_ROOT = 2;
+	const uint EVENT_SYSTEM_FOREGROUND = 3;
+	const uint WINEVENT_OUTOFCONTEXT = 0;
+
+	delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
 	[System.Runtime.InteropServices.DllImport("user32.dll")]
 	static extern IntPtr GetForegroundWindow();
 
 	[System.Runtime.InteropServices.DllImport("user32.dll")]
 	static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
+
+	[System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+	static extern int GetClassName(IntPtr hwnd, StringBuilder lpClassName, int nMaxCount);
+
+	[System.Runtime.InteropServices.DllImport("user32.dll")]
+	static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+
+	[System.Runtime.InteropServices.DllImport("user32.dll")]
+	static extern bool UnhookWinEvent(IntPtr hWinEventHook);
 
 	/// <summary>托盘菜单：显示窗口并从剪贴板识别。</summary>
 	async Task hotkeyclipboardasync() {
