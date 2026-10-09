@@ -32,7 +32,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The main-window hotkey and the dictionary hotkey look at the foreground window. If it is not the main window, the main window is shown and brought to the front. If it is the main window, the main window is hidden. The dictionary hotkey still selects the dictionary tab and searches a one-word clipboard only when it shows the window. Tray left-click still toggles by visibility.
+
 ### 中文
+
+- 主窗口热键和词典热键看当前前台窗口。不是主窗口时唤出主窗口并置于最前；已经是主窗口时隐藏主窗口。词典热键只在唤出时切到词典页，剪贴板像一个单词才搜索。托盘左键单击仍按窗口是否可见来切换。
 
 ## v1.0.16 (2026-10-08 ~ 10-09)
 

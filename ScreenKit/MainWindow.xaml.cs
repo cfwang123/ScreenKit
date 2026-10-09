@@ -757,7 +757,7 @@ public partial class MainWindow : Window {
 	void inithotkey() {
 		try {
 			hotkey = new GlobalHotkey(this, 0x7001);
-			// 主热键：切换主窗显示/隐藏
+			// 主热键：前台不是主窗则唤出并置顶，已是主窗则隐藏
 			hotkey.Fired += () => Dispatcher.BeginInvoke(new Action(hotkeytogglewindow));
 			hotkeySnap = new GlobalHotkey(this, 0x7002);
 			// 热键：结束后不唤起主窗；录屏中同样可用（会短暂挂起录屏 HUD）
@@ -990,26 +990,56 @@ public partial class MainWindow : Window {
 		try { Environment.Exit(0); } catch { }
 	}
 
-	/// <summary>全局热键：切换主窗呼出 / 隐藏（与托盘单击一致）。</summary>
+	/// <summary>全局热键：前台不是主窗则唤出并置顶，已是主窗则隐藏。托盘单击仍按可见性切换。</summary>
 	void hotkeytogglewindow() {
 		try {
-			if (tray != null) {
-				tray.togglewindow();
+			if (mainwindowforeground()) {
+				if (tray != null) tray.hidewindow();
+				else Hide();
 				return;
 			}
-			if (IsVisible && WindowState != WindowState.Minimized)
-				Hide();
-			else {
-				Show();
-				if (WindowState == WindowState.Minimized)
-					WindowState = WindowState.Normal;
-				Activate();
-			}
+			if (tray != null) tray.showwindow();
+			else showmainontop();
 		}
 		catch (Exception ex) {
 			setstatus($"热键切换窗口失败: {ex.Message}");
 		}
 	}
+
+	/// <summary>前台是主窗口（含其内部子窗口，如词典页）。最小化或别的窗口在前时为 false。</summary>
+	bool mainwindowforeground() {
+		try {
+			if (IsVisible && WindowState != WindowState.Minimized && IsActive) return true;
+		}
+		catch { }
+		var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+		if (hwnd == IntPtr.Zero) return false;
+		var fg = GetForegroundWindow();
+		if (fg == IntPtr.Zero) return false;
+		if (fg == hwnd) return true;
+		return GetAncestor(fg, GA_ROOT) == hwnd;
+	}
+
+	void showmainontop() {
+		if (!IsVisible) Show();
+		if (WindowState == WindowState.Minimized)
+			WindowState = WindowState.Normal;
+		try { Activate(); } catch { }
+		try {
+			Topmost = true;
+			Topmost = false;
+			Focus();
+		}
+		catch { }
+	}
+
+	const uint GA_ROOT = 2;
+
+	[System.Runtime.InteropServices.DllImport("user32.dll")]
+	static extern IntPtr GetForegroundWindow();
+
+	[System.Runtime.InteropServices.DllImport("user32.dll")]
+	static extern IntPtr GetAncestor(IntPtr hwnd, uint gaFlags);
 
 	/// <summary>托盘菜单：显示窗口并从剪贴板识别。</summary>
 	async Task hotkeyclipboardasync() {

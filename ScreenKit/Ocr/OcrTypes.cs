@@ -87,7 +87,7 @@ public sealed class OcrOptions {
 	/// <summary>识别批大小（Rapid 默认 6）；1=逐条，结果与批处理在 pad 语义下一致。</summary>
 	public int RecBatchNum = 6;
 	public bool UseCls = true;
-	/// <summary>全局热键，如 Ctrl+Alt+O：切换主窗显示/隐藏。空字符串 = 禁用。</summary>
+	/// <summary>全局热键，如 Ctrl+Alt+O：前台不是主窗则唤出并置顶，已是主窗则隐藏。空字符串 = 禁用。</summary>
 	public string Hotkey = "Ctrl+Alt+O";
 	/// <summary>截图标注热键，默认 Ctrl+Alt+Q。空字符串 = 禁用。</summary>
 	public string HotkeySnap = "Ctrl+Alt+Q";
@@ -103,7 +103,7 @@ public sealed class OcrOptions {
 	public string HotkeyTranslate = "Ctrl+Alt+T";
 	/// <summary>切换截图复制方式（图片 → 文件 → 路径）。默认 Ctrl+Alt+P。空 = 禁用。</summary>
 	public string HotkeySnapCopy = "Ctrl+Alt+P";
-	/// <summary>词典页热键：打开主窗口并切到词典页；已在该页时隐藏。默认空 = 不注册。</summary>
+	/// <summary>词典页热键：前台不是主窗则唤出、置顶并切到词典；已是主窗则隐藏。默认空 = 不注册。</summary>
 	public string HotkeyDict = "";
 	/// <summary>词典发音，按语言。与语音合成页的引擎、发音人无关。</summary>
 	public DictTtsLang DictTtsZh = DictTtsLang.Make("zh-CN-XiaoxiaoNeural");

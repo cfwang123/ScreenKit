@@ -199,9 +199,7 @@ public partial class MainWindow {
 
 	void toggledicttab() {
 		if (!opt.ModDict) return;
-		var ondict = IsVisible && WindowState != WindowState.Minimized
-			&& ReferenceEquals(maintabs.SelectedItem, tabdict);
-		if (ondict) {
+		if (mainwindowforeground()) {
 			if (tray != null) tray.hidewindow();
 			else try { Hide(); } catch { }
 			return;

@@ -543,7 +543,7 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_translate = \"{esc((o.HotkeyTranslate ?? "").Trim())}\"");
 		sb.AppendLine($"# 切换截图复制方式（图片 / 文件 / 路径循环；默认 Ctrl+Alt+P）");
 		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
-		sb.AppendLine($"# 词典页（打开主窗口并切换；剪贴板像单词才搜索；已在该页时隐藏；默认空=不注册）");
+		sb.AppendLine($"# 词典页（前台不是主窗则唤出、置顶并切换；剪贴板像单词才搜索；已是主窗则隐藏；默认空=不注册）");
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
 		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
 		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");

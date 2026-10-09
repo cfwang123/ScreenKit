@@ -146,7 +146,7 @@ Android details: [android/README.md](android/README.md).
 
 | Hotkey | Action |
 |--------|--------|
-| `Ctrl+Alt+O` | Toggle main window |
+| `Ctrl+Alt+O` | Show the main window on top when another window is active; hide it when the main window is active |
 | `Ctrl+Alt+Q` | Screenshot annotate |
 | `Ctrl+Alt+W` | Screenshot and OCR |
 | `Ctrl+Alt+V` | Voice input (press again to stop) |
@@ -154,7 +154,7 @@ Android details: [android/README.md](android/README.md).
 | `Ctrl+Alt+T` | Translate popup |
 | `Ctrl+Alt+P` | Cycle on-capture copy (image → file → path) |
 
-Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey is empty by default. Tray: left-click toggles the window; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray. Switching the copy mode from the menu, tray, or `Ctrl+Alt+P` recopies the last screenshot and shows a toast at the bottom center of the screen. After a region is selected, the annotate bar shows the copy mode as a combo (for example “Copy as image p”). Choosing an item finishes the shot with that mode and remembers it. `P` on the bar cycles image / file / path and does not finish.
+Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey is empty by default: if another window is active it shows the main window on top and selects the dictionary (and searches only when the clipboard is one word); if the main window is already active it hides the window. Tray left-click still toggles by visibility; context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray. Switching the copy mode from the menu, tray, or `Ctrl+Alt+P` recopies the last screenshot and shows a toast at the bottom center of the screen. After a region is selected, the annotate bar shows the copy mode as a combo (for example “Copy as image p”). Choosing an item finishes the shot with that mode and remembers it. `P` on the bar cycles image / file / path and does not finish.
 
 ### UI language
 
