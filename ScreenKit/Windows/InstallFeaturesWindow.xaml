@@ -24,6 +24,24 @@
 			<TextBlock x:Name="lbmirror" TextWrapping="Wrap" Margin="0,4,0,0"
 			           FontSize="12" Foreground="{StaticResource Accent}"
 			           Text=""/>
+			<DockPanel Margin="0,8,0,0">
+				<TextBox x:Name="eproxyaddr" DockPanel.Dock="Right" Width="168" Height="28"
+				         Padding="8,2" VerticalContentAlignment="Center"
+				         BorderBrush="{StaticResource BorderSoft}"
+				         AutomationProperties.AutomationId="inst.proxy.addr"/>
+				<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+					<TextBlock x:Name="lbproxy" Text="代理" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<RadioButton x:Name="rproxysys" Content="跟随系统" GroupName="instproxy"
+					             Margin="0,0,14,0" VerticalAlignment="Center"
+					             AutomationProperties.AutomationId="inst.proxy.system"/>
+					<RadioButton x:Name="rproxyman" Content="手动" GroupName="instproxy"
+					             Margin="0,0,14,0" VerticalAlignment="Center"
+					             AutomationProperties.AutomationId="inst.proxy.manual"/>
+					<RadioButton x:Name="rproxyoff" Content="不用" GroupName="instproxy"
+					             VerticalAlignment="Center"
+					             AutomationProperties.AutomationId="inst.proxy.off"/>
+				</StackPanel>
+			</DockPanel>
 		</StackPanel>
 
 		<TabControl x:Name="tabmain" Grid.Row="1" Margin="0,0,0,8"

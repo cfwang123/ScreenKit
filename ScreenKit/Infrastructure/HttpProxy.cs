@@ -5,7 +5,7 @@ using Microsoft.Win32;
 namespace ScreenKit;
 
 /// <summary>
-/// 出站 HTTP 代理。Windows 系统代理开着时总是用它；否则用参数里的地址。
+/// 出站 HTTP 代理。system 跟随系统；manual 只用手动地址；off 不用代理。
 /// 回环 / 内网 / .cn / 国内镜像直连。
 /// </summary>
 sealed class HttpProxy : IWebProxy {
@@ -13,6 +13,8 @@ sealed class HttpProxy : IWebProxy {
 
 	public static bool Enabled;
 	public static string Addr = "127.0.0.1:7897";
+	/// <summary>system / manual / off。</summary>
+	public static string Mode = "system";
 
 	HttpProxy() {
 		Credentials = CredentialCache.DefaultCredentials;
@@ -20,13 +22,31 @@ sealed class HttpProxy : IWebProxy {
 
 	public ICredentials Credentials { get; set; }
 
+	public static string NormalizeMode(string mode) {
+		mode = (mode ?? "").Trim().Trim('"').ToLowerInvariant();
+		if (mode is "manual" or "on" or "addr") return "manual";
+		if (mode is "off" or "none" or "direct") return "off";
+		return "system";
+	}
+
+	/// <summary>当前会走代理（手动，或跟随系统且系统代理开着）。安装顺序据此决定先 GitHub 还是先国内镜像。</summary>
+	public static bool ProxyOn() {
+		if (Mode == "off") return false;
+		if (Mode == "manual") return true;
+		return systemuri() != null;
+	}
+
 	public static void ApplyFrom(OcrOptions o) {
 		if (o == null) {
 			Enabled = false;
+			Mode = "off";
 			return;
 		}
-		Enabled = o.HttpProxyEnabled;
 		Addr = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr.Trim();
+		Mode = string.IsNullOrWhiteSpace(o.HttpProxyMode)
+			? (o.HttpProxyEnabled ? "manual" : "system")
+			: NormalizeMode(o.HttpProxyMode);
+		Enabled = Mode == "manual";
 	}
 
 	public static HttpClientHandler CreateHandler() =>
@@ -55,8 +75,12 @@ sealed class HttpProxy : IWebProxy {
 		return !iscnmirror(host);
 	}
 
-	/// <summary>系统代理优先。没有系统代理时才用手动地址，且要勾选启用。</summary>
-	static Uri active() => systemuri() ?? (Enabled ? parse() : null);
+	/// <summary>off 直连；manual 只用地址；system 只用 Windows 系统代理。</summary>
+	static Uri active() {
+		if (Mode == "off") return null;
+		if (Mode == "manual") return parse();
+		return systemuri();
+	}
 
 	static Uri systemuri() {
 		string server = null;

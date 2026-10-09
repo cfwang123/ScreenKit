@@ -402,7 +402,7 @@ static class NativeRuntime {
 	static string[] nugeturls(string packageId, string version) {
 		var id = packageId.ToLowerInvariant();
 		var file = $"{id}.{version}.nupkg";
-		// 国内 Azure CDN 优先
+		// 未用代理时国内 CDN 在前；用了代理时 nuget.org 在前
 		var cn = $"https://nuget.cdn.azure.cn/v3-flatcontainer/{id}/{version}/{file}";
 		var global = $"https://api.nuget.org/v3-flatcontainer/{id}/{version}/{file}";
 		return FeatureInstaller.PreferCnMirrors()

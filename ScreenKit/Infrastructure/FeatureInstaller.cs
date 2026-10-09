@@ -112,7 +112,7 @@ sealed class FeatureItem {
 
 /// <summary>
 /// 应用内安装：OCR/ASR 模型、CUDA GPU、核显 DirectML、FFmpeg。
-/// 中文系统（界面或系统区域）优先国内镜像（ModelScope / HF 镜像 / ghproxy）。
+/// 未用代理时优先国内镜像；代理开着时优先 GitHub / Hugging Face，失败再试镜像。
 /// </summary>
 static class FeatureInstaller {
 	const string OrtGpuVer = "1.27.1";
@@ -174,22 +174,8 @@ static class FeatureInstaller {
 		|| File.Exists(Path.Combine(OnnxGpuDir, "onnxruntime.dll"))
 		|| File.Exists(Path.Combine(OnnxDmlDir, "onnxruntime.dll"));
 
-	/// <summary>界面中文，或系统 UI/区域为中文时，优先国内镜像。</summary>
-	public static bool PreferCnMirrors() {
-		if (Loc.IsZh) return true;
-		try {
-			var ui = CultureInfo.CurrentUICulture;
-			if (ui != null && ui.TwoLetterISOLanguageName.Equals("zh", StringComparison.OrdinalIgnoreCase))
-				return true;
-			var reg = RegionInfo.CurrentRegion;
-			if (reg != null && (reg.TwoLetterISORegionName == "CN" || reg.TwoLetterISORegionName == "HK"
-				|| reg.TwoLetterISORegionName == "TW" || reg.TwoLetterISORegionName == "MO"
-				|| reg.TwoLetterISORegionName == "SG"))
-				return true;
-		}
-		catch { }
-		return false;
-	}
+	/// <summary>没在用代理时优先国内镜像。代理开着（手动或系统代理生效）时优先 GitHub / Hugging Face。</summary>
+	public static bool PreferCnMirrors() => !HttpProxy.ProxyOn();
 
 	public static string MirrorHint() => PreferCnMirrors()
 		? Loc.T("inst.mirror.cn")
@@ -1734,7 +1720,7 @@ arabic_dict.txt
 
 	// ───────── 下载 / 镜像 ─────────
 
-	/// <summary>根据是否国内环境展开 URL 列表（优先顺序）。</summary>
+	/// <summary>展开 URL。未用代理时国内镜像在前；用了代理时 GitHub / Hugging Face 官方在前。失败都继续试后面的地址。</summary>
 	public static string[] ExpandUrls(params string[] primaries) {
 		var ordered = new List<string>();
 		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

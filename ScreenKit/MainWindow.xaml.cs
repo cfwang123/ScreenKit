@@ -3533,6 +3533,14 @@ public partial class MainWindow : Window {
 		}
 	}
 
+	public void SetHttpProxy(string mode, string addr) {
+		opt.HttpProxyMode = HttpProxy.NormalizeMode(mode);
+		opt.HttpProxyAddr = string.IsNullOrWhiteSpace(addr) ? "127.0.0.1:7897" : addr.Trim();
+		opt.HttpProxyEnabled = opt.HttpProxyMode == "manual";
+		HttpProxy.ApplyFrom(opt);
+		try { AppConfig.Save(opt); } catch { }
+	}
+
 	void opensettings(bool fromTray = false) {
 		// 打开前把顶栏当前选择写回 opt
 		applymodelchoice(reload: false);

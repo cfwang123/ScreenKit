@@ -34,6 +34,7 @@ partial class InstallFeaturesWindow : Window {
 	bool ttsUiLoading;
 	CancellationTokenSource cts;
 	bool busy;
+	bool proxyui;
 
 	static SolidColorBrush freeze(Color c) {
 		var b = new SolidColorBrush(c);
@@ -119,6 +120,16 @@ partial class InstallFeaturesWindow : Window {
 				await loadwinlang(false);
 		};
 		lvtss.ItemsSource = ttsRows;
+		loadproxy();
+		rproxysys.Checked += (_, _) => onproxy();
+		rproxyman.Checked += (_, _) => onproxy();
+		rproxyoff.Checked += (_, _) => onproxy();
+		eproxyaddr.LostFocus += (_, _) => saveproxy();
+		eproxyaddr.KeyDown += (_, e) => {
+			if (e.Key != Key.Enter) return;
+			saveproxy();
+			e.Handled = true;
+		};
 		Loaded += async (_, _) => {
 			rebuildpick();
 			loadfeat();
@@ -175,6 +186,11 @@ partial class InstallFeaturesWindow : Window {
 		bdelete.ToolTip = Loc.T("inst.delete.tip");
 		binstall.Content = Loc.T("inst.install");
 		bclose.Content = Loc.T("close");
+		lbproxy.Text = Loc.T("set.proxy");
+		rproxysys.Content = Loc.T("set.proxy.system");
+		rproxyman.Content = Loc.T("set.proxy.manual");
+		rproxyoff.Content = Loc.T("set.proxy.off");
+		eproxyaddr.ToolTip = Loc.T("set.proxy.hint");
 		if (lvtss.View is GridView gv && gv.Columns.Count >= 6) {
 			gv.Columns[1].Header = Loc.T("inst.col.model");
 			gv.Columns[2].Header = Loc.T("inst.col.lang");
@@ -313,12 +329,52 @@ partial class InstallFeaturesWindow : Window {
 		featItems.AddRange(FeatureInstaller.BuildCatalog(
 			firstRunDefaults: firstRun,
 			preferSelect: firstRun ? null : preferSelect));
-		if (firstRun)
-			lbmirror.Text = Loc.T("inst.mirror.firstrun") + FeatureInstaller.MirrorHint();
-		else if (preferSelect != null && preferSelect.Length > 0)
-			lbmirror.Text = Loc.T("inst.mirror.prefer") + FeatureInstaller.MirrorHint();
-		else
-			lbmirror.Text = Loc.T("inst.mirror.default") + FeatureInstaller.MirrorHint();
+		refreshmirror();
+	}
+
+	void refreshmirror() {
+		var prefix = firstRun ? Loc.T("inst.mirror.firstrun")
+			: preferSelect != null && preferSelect.Length > 0 ? Loc.T("inst.mirror.prefer")
+			: Loc.T("inst.mirror.default");
+		lbmirror.Text = prefix + FeatureInstaller.MirrorHint();
+	}
+
+	void loadproxy() {
+		proxyui = true;
+		var mode = HttpProxy.NormalizeMode(HttpProxy.Mode);
+		rproxysys.IsChecked = mode == "system";
+		rproxyman.IsChecked = mode == "manual";
+		rproxyoff.IsChecked = mode == "off";
+		eproxyaddr.Text = string.IsNullOrWhiteSpace(HttpProxy.Addr) ? "127.0.0.1:7897" : HttpProxy.Addr;
+		syncproxybox();
+		proxyui = false;
+	}
+
+	void onproxy() {
+		if (proxyui) return;
+		syncproxybox();
+		saveproxy();
+		refreshmirror();
+	}
+
+	void syncproxybox() {
+		var man = rproxyman.IsChecked == true;
+		eproxyaddr.IsEnabled = man;
+		eproxyaddr.Opacity = man ? 1 : 0.55;
+	}
+
+	void saveproxy() {
+		var mode = rproxyman.IsChecked == true ? "manual"
+			: rproxyoff.IsChecked == true ? "off" : "system";
+		var addr = (eproxyaddr.Text ?? "").Trim();
+		if (addr.Length == 0) addr = "127.0.0.1:7897";
+		var mw = Application.Current?.Windows.OfType<MainWindow>().FirstOrDefault();
+		if (mw != null) mw.SetHttpProxy(mode, addr);
+		else {
+			HttpProxy.Mode = mode;
+			HttpProxy.Addr = addr;
+			HttpProxy.Enabled = mode == "manual";
+		}
 	}
 
 	// ───────── 发音人 Tab ─────────

@@ -266,10 +266,12 @@ public sealed class OcrOptions {
 	public int UpdateCheckDays = 7;
 	/// <summary>上次成功查询 GitHub Releases 的 UTC unix 秒；0 = 从未检查。</summary>
 	public long LastUpdateCheckUnix;
-	/// <summary>访问 GitHub 等非中国站点时使用 HTTP 代理。</summary>
+	/// <summary>访问 GitHub 等非中国站点时使用 HTTP 代理。true 仅表示手动地址。</summary>
 	public bool HttpProxyEnabled;
 	/// <summary>代理地址，如 127.0.0.1:7897。</summary>
 	public string HttpProxyAddr = "127.0.0.1:7897";
+	/// <summary>system 跟随系统；manual 手动地址；off 不用代理。</summary>
+	public string HttpProxyMode = "system";
 	/// <summary>OCR 页叠字翻译目标语言：空=不翻译；zh / en / ja / ko。</summary>
 	public string OcrTranslateLang = "";
 	/// <summary>是否已弹出过首次「安装功能」向导（false = 下次启动仍提示）。</summary>
@@ -528,6 +530,7 @@ public sealed class OcrOptions {
 		LastUpdateCheckUnix = LastUpdateCheckUnix,
 		HttpProxyEnabled = HttpProxyEnabled,
 		HttpProxyAddr = HttpProxyAddr ?? "127.0.0.1:7897",
+		HttpProxyMode = string.IsNullOrWhiteSpace(HttpProxyMode) ? "system" : HttpProxyMode,
 		OcrTranslateLang = OcrTranslateLang ?? "",
 		InstallPromptDone = InstallPromptDone,
 		Record = (Record ?? new RecordOptions()).Clone(),

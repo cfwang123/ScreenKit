@@ -217,6 +217,10 @@ static class AppConfig {
 				o.HttpProxyEnabled = parsebool(hpx, false);
 			if (map.TryGetValue("http_proxy_addr", out var hpa) && !string.IsNullOrWhiteSpace(hpa))
 				o.HttpProxyAddr = hpa.Trim().Trim('"');
+			if (map.TryGetValue("http_proxy_mode", out var hpm) && !string.IsNullOrWhiteSpace(hpm))
+				o.HttpProxyMode = HttpProxy.NormalizeMode(hpm);
+			else
+				o.HttpProxyMode = o.HttpProxyEnabled ? "manual" : "system";
 			if (map.TryGetValue("ocr_translate_lang", out var otl)) {
 				var t = (otl ?? "").Trim().Trim('"').ToLowerInvariant();
 				if (t is "off" or "none" or "no" or "-" or "不翻译") t = "";
@@ -624,8 +628,11 @@ static class AppConfig {
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");
 		sb.AppendLine($"update_last_check = {(o.LastUpdateCheckUnix < 0 ? 0 : o.LastUpdateCheckUnix)}");
-		sb.AppendLine($"# HTTP 代理：系统代理开着时总是用系统代理；否则勾选后用下面的地址。国内镜像直连");
-		sb.AppendLine($"http_proxy = {(o.HttpProxyEnabled ? "true" : "false")}");
+		var proxyMode = HttpProxy.NormalizeMode(string.IsNullOrWhiteSpace(o.HttpProxyMode)
+			? (o.HttpProxyEnabled ? "manual" : "system") : o.HttpProxyMode);
+		sb.AppendLine($"# HTTP 代理：system 跟随系统，manual 用下面的地址，off 不用代理。国内镜像和 .cn 直连");
+		sb.AppendLine($"http_proxy_mode = \"{proxyMode}\"");
+		sb.AppendLine($"http_proxy = {(proxyMode == "manual" ? "true" : "false")}");
 		var proxyAddr = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr.Trim();
 		sb.AppendLine($"http_proxy_addr = \"{esc(proxyAddr)}\"");
 		sb.AppendLine($"# OCR 页叠字/结果翻译目标语言：空=不翻译；LLM 语言代码（zh/en/ja/ko/fr/de/…）");

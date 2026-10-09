@@ -198,7 +198,9 @@ public partial class SettingsWindow : Window {
 			lbsetupdatehint.Text = Loc.T("set.update.hint");
 			eupdatedays.ToolTip = Loc.T("set.update.hint");
 			lbsetproxy.Text = Loc.T("set.proxy");
-			eproxyen.Content = Loc.T("set.proxy.enable");
+			rsetproxysys.Content = Loc.T("set.proxy.system");
+			rsetproxyman.Content = Loc.T("set.proxy.manual");
+			rsetproxyoff.Content = Loc.T("set.proxy.off");
 			lbsetproxyaddr.Text = Loc.T("set.proxy.addr");
 			lbsetproxyhint.Text = Loc.T("set.proxy.hint");
 			eproxyaddr.ToolTip = Loc.T("set.proxy.hint");
@@ -488,13 +490,19 @@ public partial class SettingsWindow : Window {
 		etabcastvisible.IsChecked = o.TabCastVisible;
 		etabdictvisible.IsChecked = o.TabDictVisible;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
-		eproxyen.IsChecked = o.HttpProxyEnabled;
+		var proxyMode = HttpProxy.NormalizeMode(string.IsNullOrWhiteSpace(o.HttpProxyMode)
+			? (o.HttpProxyEnabled ? "manual" : "system") : o.HttpProxyMode);
+		rsetproxysys.IsChecked = proxyMode == "system";
+		rsetproxyman.IsChecked = proxyMode == "manual";
+		rsetproxyoff.IsChecked = proxyMode == "off";
 		eproxyaddr.Text = string.IsNullOrWhiteSpace(o.HttpProxyAddr) ? "127.0.0.1:7897" : o.HttpProxyAddr;
 		syncproxyui();
-		eproxyen.Checked -= onproxyen;
-		eproxyen.Unchecked -= onproxyen;
-		eproxyen.Checked += onproxyen;
-		eproxyen.Unchecked += onproxyen;
+		rsetproxysys.Checked -= onproxyen;
+		rsetproxyman.Checked -= onproxyen;
+		rsetproxyoff.Checked -= onproxyen;
+		rsetproxysys.Checked += onproxyen;
+		rsetproxyman.Checked += onproxyen;
+		rsetproxyoff.Checked += onproxyen;
 		// 三选一：路径 > 文件 > 图片
 		var asPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
 		var asFile = !asPath && o.SnapCopyAsFile && !o.SnapCopyAsImage;
@@ -731,7 +739,9 @@ public partial class SettingsWindow : Window {
 		Result.TabDictVisible = etabdictvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
-		Result.HttpProxyEnabled = eproxyen.IsChecked == true;
+		Result.HttpProxyMode = rsetproxyman.IsChecked == true ? "manual"
+			: rsetproxyoff.IsChecked == true ? "off" : "system";
+		Result.HttpProxyEnabled = Result.HttpProxyMode == "manual";
 		var proxyAddr = (eproxyaddr.Text ?? "").Trim();
 		Result.HttpProxyAddr = string.IsNullOrWhiteSpace(proxyAddr) ? "127.0.0.1:7897" : proxyAddr;
 		// 截图历史保留：Tag 天数，0=不限
@@ -1023,7 +1033,7 @@ public partial class SettingsWindow : Window {
 	void onproxyen(object sender, RoutedEventArgs e) => syncproxyui();
 
 	void syncproxyui() {
-		var on = eproxyen.IsChecked == true;
+		var on = rsetproxyman.IsChecked == true;
 		eproxyaddr.IsEnabled = on;
 		lbsetproxyaddr.Opacity = on ? 1 : 0.45;
 		eproxyaddr.Opacity = on ? 1 : 0.55;

@@ -64,8 +64,17 @@
 						           Text="0=不自动检查。仅在启动时判断：超过该天数未检查则查询 GitHub Releases。菜单「检查更新」随时可用。"/>
 
 						<TextBlock x:Name="lbsetproxy" Text="HTTP 代理" FontWeight="SemiBold" Margin="0,0,0,6"/>
-						<CheckBox x:Name="eproxyen" Content="启用" Margin="0,0,0,6"
-						          AutomationProperties.AutomationId="set.proxy.enable"/>
+						<StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+							<RadioButton x:Name="rsetproxysys" Content="跟随系统" GroupName="setproxy"
+							             Margin="0,0,16,0" VerticalAlignment="Center"
+							             AutomationProperties.AutomationId="set.proxy.system"/>
+							<RadioButton x:Name="rsetproxyman" Content="手动" GroupName="setproxy"
+							             Margin="0,0,16,0" VerticalAlignment="Center"
+							             AutomationProperties.AutomationId="set.proxy.manual"/>
+							<RadioButton x:Name="rsetproxyoff" Content="不用" GroupName="setproxy"
+							             VerticalAlignment="Center"
+							             AutomationProperties.AutomationId="set.proxy.off"/>
+						</StackPanel>
 						<TextBlock x:Name="lbsetproxyaddr" Text="地址" FontSize="12" Margin="0,0,0,4"
 						           Foreground="{StaticResource TextMuted}"/>
 						<TextBox x:Name="eproxyaddr" Height="32" Padding="8,4" Margin="0,0,0,4"
