@@ -1,20 +1,18 @@
 using System.Windows;
+using System.Windows.Controls;
 
 namespace ScreenKit;
 
-/// <summary>工具 → 简繁转换。</summary>
+/// <summary>工具 → 简繁转换。上简体，下繁体。</summary>
 public partial class ZhConvertWindow : Window {
+	TextBox last;
+
 	public ZhConvertWindow() {
 		InitializeComponent();
+		last = etrad;
 		applylang();
-		btrad.Click += (_, _) => run(ZhConvert.ToTraditional);
-		bsimp.Click += (_, _) => run(ZhConvert.ToSimplified);
-		bswap.Click += (_, _) => {
-			var a = ein.Text;
-			ein.Text = eout.Text;
-			eout.Text = a;
-			updatestat();
-		};
+		bsimp.Click += (_, _) => tosimp();
+		btrad.Click += (_, _) => totrad();
 		bcopy.Click += (_, _) => copyout();
 		bclose.Click += (_, _) => Close();
 		WindowEsc.Attach(this);
@@ -23,36 +21,49 @@ public partial class ZhConvertWindow : Window {
 	void applylang() {
 		Title = Loc.T("zhconv.title");
 		lbhint.Text = Loc.T("zhconv.hint");
-		lbin.Text = Loc.T("zhconv.in");
-		lbout.Text = Loc.T("zhconv.out");
-		btrad.Content = Loc.T("zhconv.totrad");
+		lbsimp.Text = Loc.T("zhconv.simp");
+		lbtrad.Text = Loc.T("zhconv.trad");
 		bsimp.Content = Loc.T("zhconv.tosimp");
-		bswap.Content = Loc.T("zhconv.swap");
+		btrad.Content = Loc.T("zhconv.totrad");
 		bcopy.Content = Loc.T("texttool.copy");
 		bclose.Content = Loc.T("imgconv.close");
 	}
 
-	void run(Func<string, string> fn) {
+	void tosimp() {
 		try {
-			var src = ein.Text ?? "";
-			var dst = fn(src);
-			eout.Text = dst;
-			lbstat.Text = dst == src && src.Length > 0
-				? Loc.T("zhconv.same") + " · " + Loc.T("zhconv.stat", src.Length, dst.Length)
-				: Loc.T("zhconv.stat", src.Length, dst.Length);
+			var src = etrad.Text ?? "";
+			var dst = ZhConvert.ToSimplified(src);
+			esimp.Text = dst;
+			last = esimp;
+			stat(dst, src);
 		}
 		catch (Exception ex) {
-			eout.Text = "";
 			lbstat.Text = Loc.T("texttool.fail", ex.Message);
 		}
 	}
 
-	void updatestat() {
-		lbstat.Text = Loc.T("zhconv.stat", (ein.Text ?? "").Length, (eout.Text ?? "").Length);
+	void totrad() {
+		try {
+			var src = esimp.Text ?? "";
+			var dst = ZhConvert.ToTraditional(src);
+			etrad.Text = dst;
+			last = etrad;
+			stat(src, dst);
+		}
+		catch (Exception ex) {
+			lbstat.Text = Loc.T("texttool.fail", ex.Message);
+		}
+	}
+
+	void stat(string simp, string trad) {
+		var line = Loc.T("zhconv.stat", simp.Length, trad.Length);
+		if (simp == trad && simp.Length > 0)
+			line = Loc.T("zhconv.same") + " · " + line;
+		lbstat.Text = line;
 	}
 
 	void copyout() {
-		try { Clipboard.SetText(eout.Text ?? ""); }
+		try { Clipboard.SetText(last?.Text ?? ""); }
 		catch (Exception ex) {
 			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
 		}

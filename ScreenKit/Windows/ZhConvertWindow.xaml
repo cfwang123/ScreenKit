@@ -21,23 +21,22 @@
 		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
 		           Margin="0,0,0,10"/>
 		<DockPanel Grid.Row="1">
-			<TextBlock x:Name="lbin" DockPanel.Dock="Top" Text="输入" FontWeight="SemiBold" Margin="0,0,0,6"/>
-			<TextBox x:Name="ein" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+			<TextBlock x:Name="lbsimp" DockPanel.Dock="Top" Text="简体" FontWeight="SemiBold" Margin="0,0,0,6"/>
+			<TextBox x:Name="esimp" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
 			         Padding="8" BorderBrush="{StaticResource BorderSoft}"
-			         AutomationProperties.AutomationId="zhconv.in"/>
+			         AutomationProperties.AutomationId="zhconv.simp"/>
 		</DockPanel>
 		<WrapPanel Grid.Row="2" Margin="0,10,0,10">
-			<Button x:Name="btrad" Content="转为繁体" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
-			        AutomationProperties.AutomationId="zhconv.trad"/>
-			<Button x:Name="bsimp" Content="转为简体" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
-			        AutomationProperties.AutomationId="zhconv.simp"/>
-			<Button x:Name="bswap" Content="上下对调" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"/>
+			<Button x:Name="bsimp" Content="转换为简体" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="zhconv.tosimp"/>
+			<Button x:Name="btrad" Content="转换为繁体" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="zhconv.totrad"/>
 		</WrapPanel>
 		<DockPanel Grid.Row="3">
-			<TextBlock x:Name="lbout" DockPanel.Dock="Top" Text="输出" FontWeight="SemiBold" Margin="0,0,0,6"/>
-			<TextBox x:Name="eout" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+			<TextBlock x:Name="lbtrad" DockPanel.Dock="Top" Text="繁体" FontWeight="SemiBold" Margin="0,0,0,6"/>
+			<TextBox x:Name="etrad" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
 			         Padding="8" BorderBrush="{StaticResource BorderSoft}"
-			         AutomationProperties.AutomationId="zhconv.out"/>
+			         AutomationProperties.AutomationId="zhconv.trad"/>
 		</DockPanel>
 		<TextBlock x:Name="lbstat" Grid.Row="4" Margin="0,8,0,8" Foreground="{StaticResource TextMuted}"/>
 		<StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right">

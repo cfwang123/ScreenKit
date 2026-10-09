@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- **Simplified/Traditional** window: simplified text on top, traditional below. **Convert to simplified** reads the lower box; **Convert to traditional** reads the upper box.
 - **Tools**: Simplified/Traditional (`LCMapStringEx`, Taiwan `zh-TW` forms), Calendars (`Windows.Globalization.Calendar`: lunar, sexagenary year, leap month), and Japanese yomi (`JapanesePhoneticAnalyzer`). Windows has no matching Chinese pinyin API.
 - **Toast**: `GET/POST /api/toast` (`text` or `message`, optional `ms` from 800 to 8000) and `ScreenKit --toast "text" [--ms 1900]`. The bar sits at the bottom of the primary monitor and does not take focus. This path stays available when other HTTP modules are off. The HTTP tab template list includes both methods.
 - Startup no longer opens **Help → Install features**. Windows OCR works without that window. Optional packs are still installed from the Help menu, or when a feature asks for a missing dependency.
@@ -48,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- **简繁转换**窗口：上面是简体，下面是繁体。**转换为简体**读下面，**转换为繁体**读上面。
 - **工具**：简繁转换（`LCMapStringEx`，繁体按台湾 `zh-TW`）、历法（`Windows.Globalization.Calendar`：农历、干支、闰月）、日文注音（`JapanesePhoneticAnalyzer`）。Windows 没有同等的汉语拼音接口。
 - **Toast**：`GET/POST /api/toast`（`text` 或 `message`，可选 `ms`，800～8000）和 `ScreenKit --toast "文字" [--ms 1900]`。浮层在主显示器底部，不抢焦点。其它 HTTP 模块关掉时这个接口仍可用。HTTP 接口页的模板下拉里有这两项。
 - 启动时不再弹出 **帮助 → 安装功能**。Windows 系统 OCR 不用这个窗口就能识别。可选组件仍从帮助菜单安装，或在使用某功能时因缺少依赖而提示安装。
