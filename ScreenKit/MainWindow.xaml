@@ -1558,6 +1558,9 @@
 							<RowDefinition Height="*"/>
 						</Grid.RowDefinitions>
 						<DockPanel Grid.Row="0" Margin="0,0,0,10" LastChildFill="False">
+							<Button x:Name="bhttptools" DockPanel.Dock="Right" Content="工具页"
+							        AutomationProperties.AutomationId="http.tools"
+							        Style="{StaticResource ToolBtn}" Height="28" Padding="10,2" Margin="12,0,0,0"/>
 							<TextBlock x:Name="lbhttpbrand" Text="HTTP 接口" FontSize="18" FontWeight="SemiBold"
 							           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"
 							           Margin="0,0,16,0"/>
@@ -1601,7 +1604,6 @@
 										<RowDefinition Height="Auto"/>
 										<RowDefinition Height="*" MinHeight="70"/>
 										<RowDefinition Height="Auto"/>
-										<RowDefinition Height="Auto"/>
 										<RowDefinition Height="*" MinHeight="90"/>
 									</Grid.RowDefinitions>
 									<TextBlock x:Name="lbhttpreq" Grid.Row="0" Text="手动请求"
@@ -1624,6 +1626,8 @@
 											<ColumnDefinition Width="88"/>
 											<ColumnDefinition Width="8"/>
 											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="8"/>
+											<ColumnDefinition Width="Auto"/>
 										</Grid.ColumnDefinitions>
 										<ComboBox x:Name="ehttpmethod" Grid.Column="0" Height="32">
 											<ComboBoxItem Content="GET" IsSelected="True"/>
@@ -1632,6 +1636,8 @@
 										<TextBox x:Name="ehttppath" Grid.Column="2" Height="32" Padding="8,4"
 										         VerticalContentAlignment="Center" Text="/api/status"
 										         FontFamily="Consolas"/>
+										<Button x:Name="bhttpsend" Grid.Column="4" Content="发送"
+										        Style="{StaticResource ToolBtn}" Height="32" MinWidth="72" Padding="16,4"/>
 									</Grid>
 									<TextBlock x:Name="lbhttpbody" Grid.Row="5" Text="请求体" FontSize="11"
 									           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
@@ -1640,13 +1646,9 @@
 									         VerticalScrollBarVisibility="Auto"
 									         TextWrapping="Wrap" AcceptsReturn="True"
 									         BorderBrush="{StaticResource BorderSoft}"/>
-									<DockPanel Grid.Row="7" Margin="0,8,0,0">
-										<Button x:Name="bhttpsend" DockPanel.Dock="Right" Content="发送"
-										        Style="{StaticResource ToolBtn}" Height="32" Padding="16,4"/>
-									</DockPanel>
-									<TextBlock x:Name="lbhttpresp" Grid.Row="8" Text="响应" FontSize="11"
+									<TextBlock x:Name="lbhttpresp" Grid.Row="7" Text="响应" FontSize="11"
 									           Foreground="{StaticResource TextMuted}" Margin="0,8,0,4"/>
-									<TextBox x:Name="ehttpresp" Grid.Row="9" IsReadOnly="True"
+									<TextBox x:Name="ehttpresp" Grid.Row="8" IsReadOnly="True"
 									         FontFamily="Consolas" FontSize="12"
 									         VerticalScrollBarVisibility="Auto"
 									         TextWrapping="Wrap" AcceptsReturn="True"
