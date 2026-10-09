@@ -1,17 +1,25 @@
+using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Documents;
+using System.Windows.Navigation;
 
 namespace ScreenKit;
 
 /// <summary>工具 → 网络工具：Ping / DNS / WHOIS。</summary>
 public partial class NetToolsWindow : Window {
+	static readonly Regex UrlRe = new(@"https?://\S+",
+		RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
 	CancellationTokenSource cts;
 	bool busy;
 	bool hasmap;
 	double maplat;
 	double maplon;
+	Brush linkbrush;
 
 	public NetToolsWindow() {
 		InitializeComponent();
+		linkbrush = TryFindResource("Accent") as Brush ?? Brushes.DodgerBlue;
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
@@ -31,9 +39,9 @@ public partial class NetToolsWindow : Window {
 		bstop.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
 		};
-		bclear.Click += (_, _) => { eout.Text = ""; lbstat.Text = ""; clearmap(); };
+		bclear.Click += (_, _) => { clearout(); lbstat.Text = ""; clearmap(); };
 		bcopy.Click += (_, _) => {
-			var s = eout.Text ?? "";
+			var s = outtext();
 			if (s.Length == 0) return;
 			try { Clipboard.SetText(s); lbstat.Text = Loc.T("nettool.copied"); }
 			catch (Exception ex) {
@@ -89,15 +97,64 @@ public partial class NetToolsWindow : Window {
 		ecount.IsEnabled = !on;
 	}
 
+	void clearout() => eout.Document.Blocks.Clear();
+
+	string outtext() {
+		var range = new TextRange(eout.Document.ContentStart, eout.Document.ContentEnd);
+		return range.Text ?? "";
+	}
+
 	void append(string line) {
 		if (string.IsNullOrEmpty(line)) return;
-		if (eout.Text.Length > 0 && !eout.Text.EndsWith("\n") && !eout.Text.EndsWith("\r"))
-			eout.AppendText("\r\n");
-		eout.AppendText(line.Replace("\n", "\r\n"));
-		if (!line.EndsWith("\n"))
-			eout.AppendText("\r\n");
-		eout.CaretIndex = eout.Text.Length;
+		var text = line.Replace("\r\n", "\n").Replace('\r', '\n');
+		if (text.EndsWith("\n")) text = text.Substring(0, text.Length - 1);
+		foreach (var row in text.Split('\n'))
+			addrow(row);
 		eout.ScrollToEnd();
+	}
+
+	void addrow(string row) {
+		var p = new Paragraph { Margin = new Thickness(0) };
+		var i = 0;
+		foreach (Match m in UrlRe.Matches(row ?? "")) {
+			if (m.Index > i)
+				p.Inlines.Add(new Run(row.Substring(i, m.Index - i)));
+			addlink(p, m.Value);
+			i = m.Index + m.Length;
+		}
+		if (row != null && i < row.Length)
+			p.Inlines.Add(new Run(row.Substring(i)));
+		if (p.Inlines.Count == 0)
+			p.Inlines.Add(new Run(""));
+		eout.Document.Blocks.Add(p);
+	}
+
+	void addlink(Paragraph p, string url) {
+		if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) {
+			p.Inlines.Add(new Run(url));
+			return;
+		}
+		var link = new Hyperlink(new Run(url)) {
+			NavigateUri = uri,
+			Foreground = linkbrush,
+			TextDecorations = TextDecorations.Underline,
+			Cursor = Cursors.Hand,
+		};
+		link.RequestNavigate += onlink;
+		p.Inlines.Add(link);
+	}
+
+	void onlink(object sender, RequestNavigateEventArgs e) {
+		try {
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = e.Uri.AbsoluteUri,
+				UseShellExecute = true,
+			});
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+		e.Handled = true;
 	}
 
 	async Task run(string kind) {
@@ -116,7 +173,7 @@ public partial class NetToolsWindow : Window {
 		var token = cts.Token;
 		setbusy(true);
 		lbstat.Text = Loc.T("nettool.busy");
-		eout.Text = "";
+		clearout();
 		try {
 			if (kind == "ping") {
 				await NetTools.Ping(host, count, 3000, s => Dispatcher.Invoke(() => append(s)), token)

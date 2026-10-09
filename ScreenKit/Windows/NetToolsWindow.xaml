@@ -58,11 +58,13 @@
 			<Button x:Name="bstop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.stop"/>
 		</WrapPanel>
-		<TextBox x:Name="eout" Grid.Row="2" AcceptsReturn="True" TextWrapping="Wrap"
-		         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-		         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
-		         Padding="8" BorderBrush="{StaticResource BorderSoft}"
-		         AutomationProperties.AutomationId="nettool.out"/>
+		<RichTextBox x:Name="eout" Grid.Row="2" IsReadOnly="True" IsDocumentEnabled="True"
+		             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+		             FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
+		             Padding="8" BorderBrush="{StaticResource BorderSoft}"
+		             AutomationProperties.AutomationId="nettool.out">
+			<FlowDocument PagePadding="0" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"/>
+		</RichTextBox>
 		<TextBlock x:Name="lbstat" Grid.Row="3" Margin="0,8,0,8" Foreground="{StaticResource TextMuted}"/>
 		<DockPanel Grid.Row="4">
 			<Button x:Name="bclear" Style="{StaticResource ToolBtn}"/>
