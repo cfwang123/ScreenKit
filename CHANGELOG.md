@@ -32,10 +32,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- ASR can use installed Windows system recognizers (`System.Speech`) without a Sherpa model. Each installed language appears in the offline-model list and works for files, recordings, hotkey dictation, silence-delimited live captions, subtitle batches, `--asr`, and HTTP `/api/asr`. Windows ASR runs on the CPU and does not provide Sherpa-style partial streaming results.
 - The main-window hotkey and the dictionary hotkey look at the foreground window. If it is not the main window, the main window is shown and brought to the front. If it is the main window, the main window is hidden. The dictionary hotkey still selects the dictionary tab and searches a one-word clipboard only when it shows the window. Tray left-click still toggles by visibility.
 
 ### 中文
 
+- ASR 可直接使用系统已安装的 Windows 语音识别器（`System.Speech`），不需要 Sherpa 模型。每种已安装语言会列在离线模型中，可用于文件、录音、热键听写、按静音切句的实时字幕、批量字幕、`--asr` 和 HTTP `/api/asr`。Windows ASR 只走 CPU，不提供 Sherpa 流式模型那种半句实时结果。
 - 主窗口热键和词典热键看当前前台窗口。不是主窗口时唤出主窗口并置于最前；已经是主窗口时隐藏主窗口。词典热键只在唤出时切到词典页，剪贴板像一个单词才搜索。托盘左键单击仍按窗口是否可见来切换。
 
 ## v1.0.16 (2026-10-08 ~ 10-09)

@@ -163,8 +163,6 @@ sealed partial class HttpOcrServer {
 
 	string chatasr(JsonObject jo, out string modelName) {
 		modelName = "";
-		if (svc?.AsrEngine == null)
-			throw new InvalidOperationException("ASR 引擎不可用，无法识别语音消息");
 
 		byte[] audioBytes = null;
 		string pathHint = null;
@@ -204,6 +202,8 @@ sealed partial class HttpOcrServer {
 		model ??= models.FirstOrDefault(m => !m.IsStreaming);
 		if (model == null)
 			throw new InvalidOperationException("无可用离线 ASR 模型");
+		if (!model.IsWindows && svc?.AsrEngine == null)
+			throw new InvalidOperationException("ASR 引擎不可用，无法识别语音消息");
 
 		modelName = model.DisplayName ?? "";
 		string tmpPath = null;
@@ -219,11 +219,15 @@ sealed partial class HttpOcrServer {
 
 			string text;
 			lock (svc.AsrGate ?? new object()) {
-				var eng = svc.AsrEngine;
-				eng.Mode = compute;
-				eng.LoadModel(model, string.IsNullOrWhiteSpace(lang) ? "auto" : lang, useItn);
 				var (samples, sr) = AsrAudio.LoadMedia(pathHint);
-				text = eng.Recognize(samples, sr) ?? "";
+				if (model.IsWindows)
+					text = WindowsAsr.Recognize(model, samples, sr) ?? "";
+				else {
+					var eng = svc.AsrEngine;
+					eng.Mode = compute;
+					eng.LoadModel(model, string.IsNullOrWhiteSpace(lang) ? "auto" : lang, useItn);
+					text = eng.Recognize(samples, sr) ?? "";
+				}
 			}
 			if (post)
 				text = AsrTextNorm.Postprocess(text ?? "");

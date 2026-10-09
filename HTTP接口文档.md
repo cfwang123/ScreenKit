@@ -392,7 +392,7 @@ print(urllib.request.urlopen(req).read().decode("utf-8"))
 
 ## 7. ASR（语音识别）
 
-依赖主程序已加载 ASR 能力（`asrmodels` 目录下有离线模型）。流式/听写模型仅供热键语音输入，**HTTP 只使用离线模型**。
+可使用 `asrmodels` 下的离线模型，或系统已安装的 Windows 语音识别器（`System.Speech`）。Sherpa 流式模型仅供实时路径使用，**HTTP 使用离线识别**。
 
 ### 7.1 GET `/api/asr/models`
 
@@ -404,14 +404,15 @@ print(urllib.request.urlopen(req).read().decode("utf-8"))
       "name": "sensevoice-small",
       "type": "SenseVoice",
       "streaming": false,
-      "sample_rate": 16000
+      "sample_rate": 16000,
+      "culture": ""
     }
   ],
   "count": 1
 }
 ```
 
-`type` 为英文关键字：`SenseVoice` / `Paraformer` / `Transducer` / `Whisper` / `ZipformerCtc`。是否流式看 `streaming`。
+系统识别器的 `type` 为 `Windows`，其它为 `SenseVoice` / `Paraformer` / `Transducer` / `Whisper` / `ZipformerCtc`。Windows 项还会返回 BCP-47 `culture`。是否流式看 `streaming`。
 
 ### 7.2 POST `/api/asr`
 
@@ -422,11 +423,11 @@ print(urllib.request.urlopen(req).read().decode("utf-8"))
 | `base64` | 二选一 | 音频 base64（wav/mp3/flac/webm 等，由服务端解码） |
 | `path` | 二选一 | **服务端本机**音频绝对路径（仅本机调试） |
 | `filename` | 否 | 辅助猜扩展名，如 `a.wav` |
-| `model` / `asr_model` | 否 | 模型显示名；默认用配置/第一个离线模型 |
+| `model` / `asr_model` | 否 | 模型显示名，可选 Sherpa 模型或 Windows 识别器；默认用配置/第一个离线项 |
 | `lang` | 否 | 默认 `auto`（SenseVoice：zh/en/ja/ko/yue 等） |
 | `itn` | 否 | 模型 ITN，默认 true |
 | `postprocess` | 否 | 是否再跑规则后处理，默认 true；`false` 关闭 |
-| `device` / `compute` | 否 | `auto` / `gpu` / `cpu` / `igpu` |
+| `device` / `compute` | 否 | `auto` / `gpu` / `cpu` / `igpu`；Windows ASR 忽略此项 |
 
 **成功响应：**
 

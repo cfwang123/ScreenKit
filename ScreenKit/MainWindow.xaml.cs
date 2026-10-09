@@ -416,7 +416,11 @@ public partial class MainWindow : Window {
 				AsrGate = asrEngineGate,
 				TtsEngine = sherpaTts,
 				TtsGate = new object(),
-				ScanAsr = () => AsrModelScanner.Scan(),
+				ScanAsr = () => {
+					var list = AsrModelScanner.Scan();
+					list.AddRange(WindowsAsr.Scan());
+					return list;
+				},
 				ScanTts = () => TtsModelScanner.Scan(),
 			});
 			if (httpServer != null)

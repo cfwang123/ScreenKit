@@ -636,9 +636,10 @@ sealed partial class HttpOcrServer : IDisposable {
 		foreach (var m in list) {
 			arr.Add(new JsonObject {
 				["name"] = m.DisplayName ?? "",
-				["type"] = m.Type.ToString(),
+				["type"] = m.IsWindows ? "Windows" : m.Type.ToString(),
 				["streaming"] = m.IsStreaming,
 				["sample_rate"] = m.SampleRate,
+				["culture"] = m.Culture ?? "",
 			});
 		}
 		writejson(ctx, 200, new JsonObject {
@@ -649,10 +650,6 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handleasr(HttpListenerContext ctx) {
-		if (svc?.AsrEngine == null) {
-			writejson(ctx, 200, err(911, "ASR 引擎不可用"));
-			return;
-		}
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
@@ -709,6 +706,10 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(912, "无可用离线 ASR 模型（流式模型请用热键听写）"));
 			return;
 		}
+		if (!model.IsWindows && svc?.AsrEngine == null) {
+			writejson(ctx, 200, err(911, "ASR 引擎不可用"));
+			return;
+		}
 
 		var compute = parsecompute(computeStr);
 		string tmpPath = null;
@@ -730,17 +731,26 @@ sealed partial class HttpOcrServer : IDisposable {
 			int loadMs, recMs;
 			double audioSec;
 			lock (svc.AsrGate ?? new object()) {
-				var eng = svc.AsrEngine;
-				eng.Mode = compute;
-				var tLoad = Environment.TickCount;
-				eng.LoadModel(model, string.IsNullOrWhiteSpace(lang) ? "auto" : lang, useItn);
-				loadMs = Math.Max(0, Environment.TickCount - tLoad);
-				provider = eng.Provider;
 				var (samples, sr) = AsrAudio.LoadMedia(pathHint);
 				audioSec = samples.Length / (double)Math.Max(1, sr);
-				var tRec = Environment.TickCount;
-				text = eng.Recognize(samples, sr) ?? "";
-				recMs = Math.Max(0, Environment.TickCount - tRec);
+				if (model.IsWindows) {
+					loadMs = 0;
+					provider = "Windows";
+					var tRec = Environment.TickCount;
+					text = WindowsAsr.Recognize(model, samples, sr) ?? "";
+					recMs = Math.Max(0, Environment.TickCount - tRec);
+				}
+				else {
+					var eng = svc.AsrEngine;
+					eng.Mode = compute;
+					var tLoad = Environment.TickCount;
+					eng.LoadModel(model, string.IsNullOrWhiteSpace(lang) ? "auto" : lang, useItn);
+					loadMs = Math.Max(0, Environment.TickCount - tLoad);
+					provider = eng.Provider;
+					var tRec = Environment.TickCount;
+					text = eng.Recognize(samples, sr) ?? "";
+					recMs = Math.Max(0, Environment.TickCount - tRec);
+				}
 			}
 			if (post)
 				text = AsrTextNorm.Postprocess(text ?? "");

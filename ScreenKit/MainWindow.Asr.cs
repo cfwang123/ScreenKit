@@ -120,6 +120,7 @@ public partial class MainWindow {
 		easrmodel.SelectionChanged += (_, _) => {
 			if (asrUiLoading) return;
 			try { asrEngine?.UnloadSafe(); } catch { }
+			updateasrengineui();
 			saveasrprefs();
 		};
 		easrmodelstream.SelectionChanged += (_, _) => {
@@ -352,7 +353,8 @@ public partial class MainWindow {
 		AsrModelInfo offlineModel = null;
 		var hasStream = tryresolvestreammodel(out streamModel);
 		var hasOffline = tryresolveofflinemodel(out offlineModel);
-		if (!FeaturePrompt.EnsureSherpa(this)) {
+		var useWindows = offlineModel?.IsWindows == true;
+		if (!useWindows && !FeaturePrompt.EnsureSherpa(this)) {
 			notifyvoice("未安装 Sherpa 运行库", err: true);
 			return;
 		}
@@ -361,18 +363,19 @@ public partial class MainWindow {
 				try { scanasrmodels(); fillasrmodels(); } catch { }
 				hasStream = tryresolvestreammodel(out streamModel);
 				hasOffline = tryresolveofflinemodel(out offlineModel);
+				useWindows = offlineModel?.IsWindows == true;
 			}
 			if (!hasStream && !hasOffline) {
 				notifyvoice("无可用 ASR 模型，请安装到 asrmodels", err: true);
 				return;
 			}
 		}
-		var wantStream = asrvoicewantstream();
+		var wantStream = !useWindows && asrvoicewantstream();
 		if (!wantStream && !hasOffline) {
 			notifyvoice("离线听写需要离线模型（SenseVoice 等），请安装或改选流式", err: true);
 			return;
 		}
-		if ((!wantStream || !hasStream) && asrEngine == null) {
+		if (!useWindows && (!wantStream || !hasStream) && asrEngine == null) {
 			notifyvoice("ASR 引擎不可用", err: true);
 			return;
 		}
@@ -438,6 +441,9 @@ public partial class MainWindow {
 						}
 					}
 				}
+			}
+			else if (offlineCopy?.IsWindows == true) {
+				// System.Speech 按次创建识别器，无模型需要预加载。
 			}
 			else if (offlineCopy != null && asrEngine != null) {
 				try {
@@ -624,7 +630,6 @@ public partial class MainWindow {
 	}
 
 	string asrvoicerecognize(float[] samples, int sr) {
-		if (asrEngine == null) return "";
 		var model = _voiceOfflineModel;
 		if (model == null || model.IsStreaming) {
 			// 后台线程勿碰 UI 控件
@@ -634,6 +639,9 @@ public partial class MainWindow {
 		}
 		var lang = string.IsNullOrWhiteSpace(opt.AsrLang) ? "auto" : opt.AsrLang;
 		var useItn = opt.AsrItn;
+		if (model.IsWindows)
+			return WindowsAsr.Recognize(model, samples, sr) ?? "";
+		if (asrEngine == null) return "";
 		var compute = (opt.AsrCompute ?? "Auto").Trim().ToLowerInvariant() switch {
 			"gpu" or "cuda" => TtsComputeMode.Gpu,
 			"cpu" => TtsComputeMode.Cpu,
@@ -839,10 +847,13 @@ public partial class MainWindow {
 	void scanasrmodels() {
 		try {
 			asrModels = AsrModelScanner.Scan();
+			var nSherpa = asrModels.Count;
+			var windows = WindowsAsr.Scan();
+			asrModels.AddRange(windows);
 			var root = AsrModelScanner.ResolveRoot();
-			lbasrhint.Text = asrModels.Count > 0
-				? $"模型：{root} · {asrModels.Count} 个"
-				: $"未找到模型 → {AsrModelScanner.ModelsRoot()}";
+			lbasrhint.Text = nSherpa > 0 || windows.Count > 0
+				? $"Sherpa：{root} · {nSherpa} 个 · Windows ASR {windows.Count} 个"
+				: $"未找到 Sherpa 模型或 Windows ASR → {AsrModelScanner.ModelsRoot()}";
 		}
 		catch (Exception ex) {
 			asrModels = new List<AsrModelInfo>();
@@ -867,7 +878,7 @@ public partial class MainWindow {
 			if (asrModels.Count == 0) {
 				easrmodel.SelectedItem = null;
 				easrmodelstream.SelectedItem = null;
-				lbasrstatus.Text = "无 ASR 模型 · 见 TODO.md";
+				lbasrstatus.Text = "无 Sherpa 模型或 Windows 系统识别器";
 				return;
 			}
 
@@ -895,10 +906,24 @@ public partial class MainWindow {
 			pickSt ??= stream.Count > 0 ? stream[0] : null;
 			easrmodelstream.SelectedItem = pickSt;
 
-			lbasrstatus.Text = $"就绪 · 离线 {offline.Count} · 流式 {stream.Count}";
+			var nWindows = offline.Count(x => x.IsWindows);
+			lbasrstatus.Text = $"就绪 · 离线 {offline.Count - nWindows} · Windows {nWindows} · 流式 {stream.Count}";
+			updateasrengineui();
 		}
 		finally {
 			asrUiLoading = false;
+		}
+	}
+
+	void updateasrengineui() {
+		var windows = easrmodel?.SelectedItem is AsrModelInfo m && m.IsWindows;
+		easrcompute.IsEnabled = !windows;
+		easrlang.IsEnabled = !windows;
+		casritn.IsEnabled = !windows;
+		if (windows) {
+			easrliveoffline.IsChecked = true;
+			easrlivestream.IsChecked = false;
+			opt.AsrLiveMode = "offline";
 		}
 	}
 
@@ -1076,12 +1101,13 @@ public partial class MainWindow {
 			lbasrstatus.Text = "字幕批量进行中，无法启动实时字幕";
 			return;
 		}
-		if (!FeaturePrompt.EnsureSherpa(this)) {
+		var useWindows = easrmodel.SelectedItem is AsrModelInfo selected && selected.IsWindows;
+		if (!useWindows && !FeaturePrompt.EnsureSherpa(this)) {
 			lbasrstatus.Text = "未安装 Sherpa 运行库";
 			return;
 		}
 
-		var wantStream = asrlivewantstream();
+		var wantStream = !useWindows && asrlivewantstream();
 		if (wantStream)
 			startasrlivestream();
 		else
@@ -1203,10 +1229,6 @@ public partial class MainWindow {
 	}
 
 	void startasrliveoffline() {
-		if (asrEngine == null) {
-			lbasrstatus.Text = "离线 ASR 引擎不可用";
-			return;
-		}
 		if (!tryresolveofflinemodel(out var offlineModel) || offlineModel == null) {
 			if (FeaturePrompt.EnsureAsrModels(this)) {
 				try { scanasrmodels(); fillasrmodels(); } catch { }
@@ -1219,6 +1241,10 @@ public partial class MainWindow {
 					"系统实时字幕", MessageBoxButton.OK, MessageBoxImage.Information);
 				return;
 			}
+		}
+		if (!offlineModel.IsWindows && asrEngine == null) {
+			lbasrstatus.Text = "离线 ASR 引擎不可用";
+			return;
 		}
 
 		var src = asrcursource();
@@ -1235,9 +1261,11 @@ public partial class MainWindow {
 		saveasrprefs();
 
 		Task.Run(() => {
-			lock (asrEngineGate) {
-				asrEngine.Mode = compute;
-				asrEngine.LoadModel(modelCopy, lang, useItn);
+			if (!modelCopy.IsWindows) {
+				lock (asrEngineGate) {
+					asrEngine.Mode = compute;
+					asrEngine.LoadModel(modelCopy, lang, useItn);
+				}
 			}
 		}).ContinueWith(t => {
 			Dispatcher.BeginInvoke(new Action(() => {
@@ -1247,12 +1275,14 @@ public partial class MainWindow {
 						lbasrstatus.Text = "实时字幕启动失败: " + msg;
 						return;
 					}
-					if (asrEngine == null || !asrEngine.IsLoaded) {
+					if (!modelCopy.IsWindows && (asrEngine == null || !asrEngine.IsLoaded)) {
 						lbasrstatus.Text = "离线模型未加载";
 						return;
 					}
 
-					var sr = asrEngine.FeatSampleRate > 0 ? asrEngine.FeatSampleRate : 16000;
+					var sr = modelCopy.IsWindows
+						? 16000
+						: (asrEngine.FeatSampleRate > 0 ? asrEngine.FeatSampleRate : 16000);
 					asrLiveCap?.Dispose();
 					asrLiveCap = new AsrLiveCapture(src, sr);
 					var q = new System.Collections.Concurrent.ConcurrentQueue<float[]>();
@@ -1275,9 +1305,9 @@ public partial class MainWindow {
 					var ct = asrLiveCts.Token;
 					var sampleRate = sr;
 
-					asrLiveTask = Task.Run(() => runasrliveoffline(q, sampleRate, ct), ct);
+					asrLiveTask = Task.Run(() => runasrliveoffline(modelCopy, q, sampleRate, ct), ct);
 					asrLiveOn = true;
-					var deviceLabel = asrproviderlabel(asrEngine?.Provider);
+					var deviceLabel = modelCopy.IsWindows ? "Windows" : asrproviderlabel(asrEngine?.Provider);
 					showasrcaptionosd();
 					basrlive.Content = "停止字幕";
 					basrlive.IsEnabled = true;
@@ -1316,6 +1346,7 @@ public partial class MainWindow {
 	}
 
 	void runasrliveoffline(
+		AsrModelInfo model,
 		System.Collections.Concurrent.ConcurrentQueue<float[]> q,
 		int sampleRate,
 		CancellationToken ct) {
@@ -1345,10 +1376,10 @@ public partial class MainWindow {
 					sil += samples.Length;
 				}
 				if ((spoke && sil >= silNeed && utt.Count >= minUtt) || utt.Count >= maxUtt)
-					asrliveofflineflush(utt, sampleRate, ref spoke, ref sil);
+					asrliveofflineflush(model, utt, sampleRate, ref spoke, ref sil);
 			}
 			if (utt.Count >= minUtt)
-				asrliveofflineflush(utt, sampleRate, ref spoke, ref sil);
+				asrliveofflineflush(model, utt, sampleRate, ref spoke, ref sil);
 			pushasrliveui(force: true);
 		}
 		catch (OperationCanceledException) { }
@@ -1363,7 +1394,7 @@ public partial class MainWindow {
 		}
 	}
 
-	void asrliveofflineflush(List<float> utt, int sampleRate, ref bool spoke, ref int sil) {
+	void asrliveofflineflush(AsrModelInfo model, List<float> utt, int sampleRate, ref bool spoke, ref int sil) {
 		if (utt == null || utt.Count == 0) {
 			spoke = false;
 			sil = 0;
@@ -1377,7 +1408,9 @@ public partial class MainWindow {
 			lock (asrLiveTextGate) asrLivePartial = "识别中…";
 			pushasrliveui(force: true);
 			string raw = null;
-			if (asrEngine != null) {
+			if (model?.IsWindows == true)
+				raw = WindowsAsr.Recognize(model, wave, sampleRate);
+			else if (asrEngine != null) {
 				lock (asrEngineGate)
 					raw = asrEngine.Recognize(wave, sampleRate);
 			}
@@ -1715,14 +1748,6 @@ public partial class MainWindow {
 			lbasrstatus.Text = "语音输入进行中，请先结束听写";
 			return;
 		}
-		if (!FeaturePrompt.EnsureSherpa(this)) {
-			lbasrstatus.Text = "未安装 Sherpa 运行库";
-			return;
-		}
-		if (asrEngine == null) {
-			lbasrstatus.Text = "ASR 引擎不可用";
-			return;
-		}
 		var model = easrmodel.SelectedItem as AsrModelInfo;
 		if (model == null) {
 			if (FeaturePrompt.EnsureAsrModels(this)) {
@@ -1736,6 +1761,14 @@ public partial class MainWindow {
 		}
 		if (model.IsStreaming) {
 			lbasrstatus.Text = "离线模型列表异常（选到了流式包），请刷新后重选";
+			return;
+		}
+		if (!model.IsWindows && !FeaturePrompt.EnsureSherpa(this)) {
+			lbasrstatus.Text = "未安装 Sherpa 运行库";
+			return;
+		}
+		if (!model.IsWindows && asrEngine == null) {
+			lbasrstatus.Text = "ASR 引擎不可用";
 			return;
 		}
 		if (asrPendingSamples == null || asrPendingSamples.Length == 0) {
@@ -1766,15 +1799,24 @@ public partial class MainWindow {
 			var recMs = 0;
 			await Task.Run(() => {
 				var tLoad = Environment.TickCount;
-				lock (asrEngineGate) {
-					asrEngine.Mode = compute;
-					asrEngine.LoadModel(modelCopy, lang, useItn);
-					loadMs = Math.Max(0, Environment.TickCount - tLoad);
-					provider = asrEngine.Provider;
-					fallback = asrEngine.GpuFallbackReason;
+				if (modelCopy.IsWindows) {
+					loadMs = 0;
+					provider = "Windows";
 					var tRec = Environment.TickCount;
-					text = asrEngine.Recognize(samples, sr);
+					text = WindowsAsr.Recognize(modelCopy, samples, sr);
 					recMs = Math.Max(0, Environment.TickCount - tRec);
+				}
+				else {
+					lock (asrEngineGate) {
+						asrEngine.Mode = compute;
+						asrEngine.LoadModel(modelCopy, lang, useItn);
+						loadMs = Math.Max(0, Environment.TickCount - tLoad);
+						provider = asrEngine.Provider;
+						fallback = asrEngine.GpuFallbackReason;
+						var tRec = Environment.TickCount;
+						text = asrEngine.Recognize(samples, sr);
+						recMs = Math.Max(0, Environment.TickCount - tRec);
+					}
 				}
 				// wetext ITN + 逐位数字
 				if (!string.IsNullOrEmpty(text))
@@ -1888,10 +1930,6 @@ public partial class MainWindow {
 			lbasrstatus.Text = "语音输入进行中，请先结束听写";
 			return;
 		}
-		if (asrEngine == null) {
-			lbasrstatus.Text = "ASR 引擎不可用";
-			return;
-		}
 		var model = easrmodel.SelectedItem as AsrModelInfo;
 		if (model == null) {
 			if (FeaturePrompt.EnsureAsrModels(this)) {
@@ -1905,6 +1943,14 @@ public partial class MainWindow {
 		}
 		if (model.IsStreaming) {
 			lbasrstatus.Text = "离线模型列表异常（选到了流式包），请刷新后重选";
+			return;
+		}
+		if (!model.IsWindows && !FeaturePrompt.EnsureSherpa(this)) {
+			lbasrstatus.Text = "未安装 Sherpa 运行库";
+			return;
+		}
+		if (!model.IsWindows && asrEngine == null) {
+			lbasrstatus.Text = "ASR 引擎不可用";
 			return;
 		}
 		if (asrtQueue.Count == 0) {
@@ -1963,10 +2009,14 @@ public partial class MainWindow {
 			string provider = "cpu";
 			await Task.Run(() => {
 				ct.ThrowIfCancellationRequested();
-				lock (asrEngineGate) {
-					asrEngine.Mode = compute;
-					asrEngine.LoadModel(modelCopy, lang, useItn);
-					provider = asrEngine.Provider;
+				if (modelCopy.IsWindows)
+					provider = "Windows";
+				else {
+					lock (asrEngineGate) {
+						asrEngine.Mode = compute;
+						asrEngine.LoadModel(modelCopy, lang, useItn);
+						provider = asrEngine.Provider;
+					}
 				}
 			}, ct).ConfigureAwait(true);
 
@@ -2035,8 +2085,12 @@ public partial class MainWindow {
 						}
 
 						AsrResult result;
-						lock (asrEngineGate)
-							result = asrEngine.RecognizeLong(samples, sr, 25f, report, ct);
+						if (modelCopy.IsWindows)
+							result = WindowsAsr.RecognizeDetailed(modelCopy, samples, sr, report, ct);
+						else {
+							lock (asrEngineGate)
+								result = asrEngine.RecognizeLong(samples, sr, 25f, report, ct);
+						}
 						ct.ThrowIfCancellationRequested();
 						var cues = AsrSrt.FromResult(result, audioSec);
 						AsrSrt.Save(outPath, cues);

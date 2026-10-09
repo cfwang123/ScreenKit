@@ -391,7 +391,7 @@ print(urllib.request.urlopen(req).read().decode("utf-8"))
 
 ## 7. ASR (speech recognition)
 
-Requires offline models under `asrmodels`. Streaming / dictation models are for the hotkey voice-input path only; **HTTP uses offline models only**.
+Uses either an offline model under `asrmodels` or an installed Windows system recognizer (`System.Speech`). Sherpa streaming models are for live paths only; **HTTP uses offline recognition**.
 
 ### 7.1 GET `/api/asr/models`
 
@@ -403,14 +403,15 @@ Requires offline models under `asrmodels`. Streaming / dictation models are for 
       "name": "sensevoice-small",
       "type": "SenseVoice",
       "streaming": false,
-      "sample_rate": 16000
+      "sample_rate": 16000,
+      "culture": ""
     }
   ],
   "count": 1
 }
 ```
 
-`type` is an English keyword: `SenseVoice` / `Paraformer` / `Transducer` / `Whisper` / `ZipformerCtc`. Use `streaming` for live vs offline.
+`type` is `Windows` for a system recognizer, otherwise `SenseVoice` / `Paraformer` / `Transducer` / `Whisper` / `ZipformerCtc`. Windows entries include a BCP-47 `culture`. Use `streaming` for live vs offline.
 
 ### 7.2 POST `/api/asr`
 
@@ -421,11 +422,11 @@ Requires offline models under `asrmodels`. Streaming / dictation models are for 
 | `base64` | One of two | Audio base64 (wav/mp3/flac/webm, …; decoded server-side) |
 | `path` | One of two | **Server-local** absolute audio path (local debugging only) |
 | `filename` | No | Hint for extension, e.g. `a.wav` |
-| `model` / `asr_model` | No | Model display name; default = config / first offline model |
+| `model` / `asr_model` | No | Model display name; accepts a Sherpa model or Windows recognizer; default = config / first offline entry |
 | `lang` | No | Default `auto` (SenseVoice: zh/en/ja/ko/yue, …) |
 | `itn` | No | Model ITN, default true |
 | `postprocess` | No | Rule post-process after recognition, default true; `false` to skip |
-| `device` / `compute` | No | `auto` / `gpu` / `cpu` / `igpu` |
+| `device` / `compute` | No | `auto` / `gpu` / `cpu` / `igpu`; ignored by Windows ASR |
 
 **Success response:**
 

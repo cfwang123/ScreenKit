@@ -45,7 +45,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 | Area | Description |
 |------|-------------|
-| **ASR / TTS** | Live captions: offline or streaming. Sherpa / SAPI / WinRT offline TTS and Edge online natural voices. With no saved engine, Windows speech is used when a voice is installed, otherwise Edge online. The Speech language list shows named languages first, then the remaining codes. SAPI and Windows speech list only languages that have a voice. Supertonic uses a fixed noise seed, so the same text sounds the same each time. |
+| **ASR / TTS** | ASR supports Sherpa offline/streaming models and installed **Windows system recognizers** (`System.Speech`, offline utterance recognition) for files, recordings, hotkey dictation, live captions, subtitle batches, CLI, and HTTP. TTS supports Sherpa / SAPI / WinRT offline voices and Edge online natural voices. With no saved TTS engine, Windows speech is used when a voice is installed, otherwise Edge online. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). |
@@ -204,7 +204,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 - `POST /api/ocr` — `box` is original-image pixels. `ocr.engine=winocr` uses Windows OCR on this request
 - `POST /api/qr` — barcode / QR only (`/api/barcode`)
 - `GET  /api/ocr/get_options`
-- `GET  /api/asr/models` · `POST /api/asr`
+- `GET  /api/asr/models` · `POST /api/asr` — Sherpa or an installed Windows system recognizer selected by `model`
 - `GET  /api/tts/models` · `POST /api/tts` — Sherpa, SAPI, Windows (`engine=winrt`), Edge (`engine=edge`)
 - `POST /api/itn`
 - `POST /api/translate` — LLM batch (`items[]`)
@@ -220,6 +220,7 @@ ScreenKit --snap [--out <dir>]
 ScreenKit --list-models
 ScreenKit --list-face
 ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
+ScreenKit --list-asr               # Sherpa models + Windows system recognizers
 ScreenKit --list-edge-tts
 ScreenKit --probe-cuda
 ScreenKit --help

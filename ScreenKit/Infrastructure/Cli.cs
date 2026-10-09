@@ -796,13 +796,18 @@ static class Cli {
 		Out($"ModelsRoot={AsrModelScanner.ModelsRoot()}");
 		Out($"Exists={Directory.Exists(AsrModelScanner.ModelsRoot())}");
 		var list = AsrModelScanner.Scan();
+		list.AddRange(WindowsAsr.Scan());
 		Out($"Count={list.Count}");
 		if (list.Count == 0) {
-			Err("未发现 ASR 模型（请放到程序目录 asrmodels）");
+			Err("未发现 Sherpa 模型或 Windows 系统语音识别器");
 			return 1;
 		}
-		foreach (var m in list)
-			Out($"  [{m.Type}] {m.DisplayName} sr={m.SampleRate} dir={m.ModelDir}");
+		foreach (var m in list) {
+			if (m.IsWindows)
+				Out($"  [Windows] {m.DisplayName} culture={m.Culture} id={m.SystemRecognizerId}");
+			else
+				Out($"  [{m.Type}] {m.DisplayName} sr={m.SampleRate} dir={m.ModelDir}");
+		}
 		return 0;
 	}
 
@@ -942,6 +947,7 @@ static class Cli {
 		}
 
 		var models = AsrModelScanner.Scan();
+		models.AddRange(WindowsAsr.Scan());
 		if (models.Count == 0) {
 			Err("未发现 ASR 模型（用 --list-asr 查看）");
 			return 1;
@@ -951,7 +957,7 @@ static class Cli {
 			model = models.FirstOrDefault(m => Compat.Contains(m.DisplayName, modelHint, StringComparison.OrdinalIgnoreCase));
 		model ??= models[0];
 
-		Out($"模型: [{model.Type}] {model.DisplayName}");
+		Out($"模型: [{(model.IsWindows ? "Windows" : model.Type.ToString())}] {model.DisplayName}");
 		Out($"音频: {audioPath}");
 		Out($"语言: {lang} · ITN: {!noItn} · 设备: {device}");
 
@@ -966,17 +972,24 @@ static class Cli {
 		var audioSec = samples.Length / (double)Math.Max(1, sr);
 		Out($"音频: {sr}Hz · {audioSec:0.00}s · {samples.Length} samples");
 
-		using var engine = new AsrEngine();
-		engine.Mode = compute;
 		var t0 = Environment.TickCount;
-		var tLoad = Environment.TickCount;
-		engine.LoadModel(model, lang, !noItn);
-		var loadMs = Environment.TickCount - tLoad;
-		Out($"模型加载: {loadMs}ms · provider={engine.Provider}"
-			+ (engine.GpuFallbackReason != null ? $" · 回退: {engine.GpuFallbackReason}" : ""));
-
+		string text;
 		var tRec = Environment.TickCount;
-		var text = engine.Recognize(samples, sr);
+		if (model.IsWindows) {
+			Out($"系统识别器: {model.Culture} · provider=Windows");
+			text = WindowsAsr.Recognize(model, samples, sr);
+		}
+		else {
+			using var engine = new AsrEngine();
+			engine.Mode = compute;
+			var tLoad = Environment.TickCount;
+			engine.LoadModel(model, lang, !noItn);
+			var loadMs = Environment.TickCount - tLoad;
+			Out($"模型加载: {loadMs}ms · provider={engine.Provider}"
+				+ (engine.GpuFallbackReason != null ? $" · 回退: {engine.GpuFallbackReason}" : ""));
+			tRec = Environment.TickCount;
+			text = engine.Recognize(samples, sr);
+		}
 		var recMs = Environment.TickCount - tRec;
 		var totalMs = Environment.TickCount - t0;
 		Out($"识别耗时: {recMs}ms · 合计: {totalMs}ms");
