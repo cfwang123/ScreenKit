@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The local tools page adds twenty tools that run in the browser: timestamp, date difference, radix, length, storage, RMB capitals, calculator, BMI, px/rem, random numbers, passwords, UUID, HTML encode, JSON minify, MD5, SHA-256, regular expressions, line diff, variable names, and an ASCII table.
 - The local tools page lists the current tools with a category column on the left and four to six cards on a row. The search box filters those cards by name.
 - The local tools page and the desktop file manager use Font Awesome icons on actions, file names, and the context menu. Labels stay next to the icons. The phone file page keeps its own icons.
 - **Help → Install features** has an HTTP proxy choice: follow the Windows system proxy, type an address, or use no proxy. The same choice is in Settings. With a proxy, downloads try GitHub and Hugging Face first; without one, China mirrors come first. A failed address is still followed by the others. China mirrors and `.cn` hosts stay direct.
@@ -68,7 +69,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
-- 本机工具页左边按分类选择，右边一行 4 到 6 个工具卡片。搜索框按名称过滤这些卡片。没有新增工具。
+- 本机工具页增加 20 个在浏览器里完成的小工具：时间戳、日期差、进制、长度、存储、人民币大写、计算器、BMI、Px/Rem、随机数、随机密码、UUID、HTML 编码、JSON 压缩、MD5、SHA-256、正则、文本比对、变量名、ASCII 表。
+- 本机工具页左边按分类选择，右边一行 4 到 6 个工具卡片。搜索框按名称过滤这些卡片。左侧增加「计算」。
 - 本机工具页和电脑版文件管理的操作、文件名和右键菜单都带 Font Awesome 图标，文字仍留在图标旁边。手机版文件页仍用原来的图标。
 - **帮助 → 安装功能**可以设置 HTTP 代理：跟随系统、手动填写地址，或不用代理。参数设置里是同一项。用了代理时先下 GitHub / Hugging Face；不用代理时先下国内镜像。前面的地址失败后仍会试后面的。国内镜像和 `.cn` 仍然直连。
 - **帮助 → 安装功能**从固定的 `dict-db` Release 下载 FFmpeg 4.4 shared 的 `ffmpeg.7z`（约 33 MB）。原先 BtbN 的旧 autobuild zip 已失效。

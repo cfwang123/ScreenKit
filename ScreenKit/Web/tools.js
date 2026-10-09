@@ -4,6 +4,11 @@ window.sktools = (function(){
 	var asrItems = [];
 	var asrRec = null;
 	var curcat = "all";
+	var util = "";
+	var LENU = [["mm", "毫米"], ["cm", "厘米"], ["m", "米"], ["km", "千米"], ["in", "英寸"], ["ft", "英尺"], ["yd", "码"], ["mi", "英里"]];
+	var LENS = { mm: 1, cm: 10, m: 1000, km: 1000000, "in": 25.4, ft: 304.8, yd: 914.4, mi: 1609344 };
+	var BYTEU = [["B", "B"], ["KB", "KB"], ["MB", "MB"], ["GB", "GB"], ["TB", "TB"]];
+	var BYTES = { B: 1, KB: 1024, MB: 1048576, GB: 1073741824, TB: 1099511627776 };
 	var t = {
 		show: show,
 	};
@@ -568,6 +573,815 @@ window.sktools = (function(){
 			msg(mid, "复制失败", true);
 		}
 		document.body.removeChild(ta);
+	}
+
+	function openutil(name){
+		var meta = utilmeta(name);
+		util = name;
+		$("box-title").textContent = meta[0];
+		$("box-go").textContent = meta[1];
+		$("box-body").innerHTML = utilbody(name);
+		$("box-out").value = "";
+		msg("box-msg", "");
+		if (name === "u-ts") $("box-in").value = String(Math.floor(Date.now() / 1000));
+		if (name === "u-datediff") {
+			var day = new Date();
+			$("box-b").value = ymd(day);
+			day.setDate(day.getDate() - 7);
+			$("box-a").value = ymd(day);
+		}
+		if (name === "u-ascii") {
+			try { $("box-out").value = asciitable(); }
+			catch (ex) { msg("box-msg", ex && ex.message ? ex.message : "失败", true); }
+		}
+	}
+
+	function utilrun(){
+		msg("box-msg", "");
+		if (util === "u-sha") {
+			var text = val("box-in");
+			if (text.length > 200000) {
+				msg("box-msg", "文字太长", true);
+				return;
+			}
+			if (!window.crypto || !crypto.subtle || typeof crypto.subtle.digest !== "function") {
+				msg("box-msg", "浏览器没有 SHA-256", true);
+				return;
+			}
+			msg("box-msg", "计算中");
+			crypto.subtle.digest("SHA-256", utf8bytes(text)).then(function(buf){
+				$("box-out").value = hexbytes(new Uint8Array(buf));
+				msg("box-msg", "完成");
+			}, function(){
+				msg("box-msg", "SHA-256 失败", true);
+			});
+			return;
+		}
+		try {
+			$("box-out").value = dispatch();
+			msg("box-msg", "完成");
+		}
+		catch (ex) {
+			$("box-out").value = "";
+			msg("box-msg", ex && ex.message ? ex.message : "失败", true);
+		}
+	}
+
+	function utilmeta(name){
+		var map = {
+			"u-ts": ["时间戳", "转换"],
+			"u-datediff": ["日期差", "计算"],
+			"u-radix": ["进制转换", "转换"],
+			"u-len": ["长度换算", "换算"],
+			"u-byte": ["存储换算", "换算"],
+			"u-rmb": ["人民币大写", "转换"],
+			"u-calc": ["计算器", "计算"],
+			"u-bmi": ["BMI", "计算"],
+			"u-px": ["Px / Rem", "换算"],
+			"u-rand": ["随机数", "生成"],
+			"u-pw": ["随机密码", "生成"],
+			"u-uuid": ["UUID", "生成"],
+			"u-html": ["HTML 编码", "转换"],
+			"u-jsonmin": ["JSON 压缩", "压缩"],
+			"u-md5": ["MD5", "计算"],
+			"u-sha": ["SHA-256", "计算"],
+			"u-re": ["正则测试", "测试"],
+			"u-diff": ["文本比对", "比对"],
+			"u-name": ["变量名", "转换"],
+			"u-ascii": ["ASCII 表", "显示"],
+		};
+		return map[name] || ["工具", "计算"];
+	}
+
+	function utilbody(name){
+		if (name === "u-ts")
+			return lab("时间戳或日期", ta("box-in", 4, "留空为现在。秒、毫秒，或 2026-10-09 12:00:00"));
+		if (name === "u-datediff")
+			return row2(lab("开始", '<input id="box-a" type="date">'), lab("结束", '<input id="box-b" type="date">'));
+		if (name === "u-radix")
+			return lab("整数", textin("box-in", "", "例如 FF")) + row2(lab("从", numin("box-from", "16")), lab("到", numin("box-to", "10")));
+		if (name === "u-len")
+			return row2(lab("数值", textin("box-in", "1")), lab("单位", '<select id="box-unit">' + opts(LENU, "m") + "</select>"));
+		if (name === "u-byte")
+			return row2(lab("数值", textin("box-in", "1")), lab("单位", '<select id="box-unit">' + opts(BYTEU, "MB") + "</select>"));
+		if (name === "u-rmb")
+			return lab("金额", textin("box-in", "", "例如 10010.50"));
+		if (name === "u-calc")
+			return lab("算式", ta("box-in", 4, "支持 + - * / % ^ 和括号，% 是取余"));
+		if (name === "u-bmi")
+			return row2(lab("身高（厘米）", textin("box-h", "")), lab("体重（千克）", textin("box-w", "")));
+		if (name === "u-px")
+			return row2(lab("数值", textin("box-in", "16")), lab("根字号", textin("box-root", "16")))
+				+ lab("方向", '<select id="box-mode"><option value="px">px 转 rem</option><option value="rem">rem 转 px</option></select>');
+		if (name === "u-rand")
+			return row2(lab("最小", textin("box-min", "1")), lab("最大", textin("box-max", "100")))
+				+ row2(lab("个数", numin("box-n", "5")), lab("类型", '<select id="box-kind"><option value="int">整数</option><option value="float">小数</option></select>'));
+		if (name === "u-pw")
+			return lab("长度", numin("box-len", "16"))
+				+ check("box-low", "小写", true) + check("box-up", "大写", true)
+				+ check("box-dig", "数字", true) + check("box-sym", "符号", true)
+				+ check("box-amb", "去掉易混字符（0、O、o、1、l、I）", false);
+		if (name === "u-uuid")
+			return lab("个数", numin("box-n", "1"));
+		if (name === "u-html")
+			return lab("文字", ta("box-in", 8, ""))
+				+ lab("方向", '<select id="box-mode"><option value="enc">编码</option><option value="dec">解码</option></select>');
+		if (name === "u-jsonmin")
+			return lab("JSON", ta("box-in", 10, ""));
+		if (name === "u-md5" || name === "u-sha")
+			return lab("文字", ta("box-in", 8, ""));
+		if (name === "u-re")
+			return row2(lab("表达式", textin("box-pat", "", "例如 \\d+")), lab("标志", textin("box-flags", "g", "g i m")))
+				+ lab("文本", ta("box-in", 8, ""));
+		if (name === "u-diff")
+			return '<div class="split">' + lab("原文", ta("box-a", 10, "")) + lab("新文", ta("box-b", 10, "")) + "</div>";
+		if (name === "u-name")
+			return lab("名称", textin("box-in", "", "foo_bar 或 fooBar"));
+		if (name === "u-ascii")
+			return '<p class="kicker">0 到 127</p>';
+		return "";
+	}
+
+	function dispatch(){
+		if (util === "u-ts") return tsconv(val("box-in"));
+		if (util === "u-datediff") return dateconv(val("box-a"), val("box-b"));
+		if (util === "u-radix") return radixconv(val("box-in"), val("box-from"), val("box-to"));
+		if (util === "u-len") return unitconv(val("box-in"), val("box-unit"), LENU, LENS);
+		if (util === "u-byte") return unitconv(val("box-in"), val("box-unit"), BYTEU, BYTES);
+		if (util === "u-rmb") return rmbupper(val("box-in"));
+		if (util === "u-calc") return calcexpr(val("box-in"));
+		if (util === "u-bmi") return bmicalc(val("box-h"), val("box-w"));
+		if (util === "u-px") return pxconv(val("box-in"), val("box-root"), val("box-mode"));
+		if (util === "u-rand") return randtext(val("box-min"), val("box-max"), val("box-n"), val("box-kind") === "float");
+		if (util === "u-pw") return pwtext();
+		if (util === "u-uuid") return uuidtext(val("box-n"));
+		if (util === "u-html") return val("box-mode") === "dec" ? htmldec(val("box-in")) : htmlenc(val("box-in"));
+		if (util === "u-jsonmin") return jsonmin(val("box-in"));
+		if (util === "u-md5") return md5hex(val("box-in"));
+		if (util === "u-re") return retest(val("box-pat"), val("box-flags"), val("box-in"));
+		if (util === "u-diff") return linediff(val("box-a"), val("box-b"));
+		if (util === "u-name") return nameconv(val("box-in"));
+		if (util === "u-ascii") return asciitable();
+		throw new Error("没有这个工具");
+	}
+
+	function lab(title, inner){
+		return "<label>" + title + inner + "</label>";
+	}
+
+	function row2(a, b){
+		return '<div class="row">' + a + b + "</div>";
+	}
+
+	function ta(id, rows, ph){
+		return '<textarea id="' + id + '" rows="' + rows + '" placeholder="' + ph + '"></textarea>';
+	}
+
+	function textin(id, value, ph){
+		return '<input id="' + id + '" type="text" value="' + value + '" placeholder="' + (ph || "") + '">';
+	}
+
+	function numin(id, value){
+		return '<input id="' + id + '" type="number" value="' + value + '">';
+	}
+
+	function check(id, title, on){
+		return '<label class="check"><input id="' + id + '" type="checkbox"' + (on ? " checked" : "") + "> " + title + "</label>";
+	}
+
+	function opts(list, sel){
+		var html = "";
+		var i;
+		for (i = 0; i < list.length; i++) {
+			html += '<option value="' + list[i][0] + '"' + (list[i][0] === sel ? " selected" : "") + ">" + list[i][1] + "</option>";
+		}
+		return html;
+	}
+
+	function val(id){
+		var el = $(id);
+		return el && el.value != null ? String(el.value) : "";
+	}
+
+	function onbox(id){
+		var el = $(id);
+		return !!(el && el.checked);
+	}
+
+	function ymd(d){
+		return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+	}
+
+	function pad2(n){
+		return (n < 10 ? "0" : "") + n;
+	}
+
+	function fmtdt(d){
+		return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate())
+			+ " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()) + ":" + pad2(d.getSeconds());
+	}
+
+	function trimnum(n){
+		if (n === 0) return "0";
+		if (!isFinite(n)) throw new Error("结果无效");
+		var neg = n < 0;
+		var a = Math.abs(n);
+		var s;
+		if (a >= 1e15 || a < 1e-8) s = a.toExponential(6);
+		else {
+			s = a.toFixed(10);
+			s = s.replace(/\.?0+$/, "");
+		}
+		return (neg ? "-" : "") + s;
+	}
+
+	function utf8bytes(s){
+		s = String(s);
+		if (s.length > 200000) throw new Error("文字太长");
+		if (typeof TextEncoder === "function") return new TextEncoder().encode(s);
+		var bin = unescape(encodeURIComponent(s));
+		var a = new Uint8Array(bin.length);
+		var i;
+		for (i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i) & 255;
+		return a;
+	}
+
+	function hexbytes(arr){
+		var s = "";
+		var i;
+		for (i = 0; i < arr.length; i++) {
+			var v = arr[i];
+			s += (v < 16 ? "0" : "") + v.toString(16);
+		}
+		return s;
+	}
+
+	function randint(n){
+		if (!(n >= 1)) throw new Error("范围无效");
+		if (n > 0x100000000) throw new Error("范围太大");
+		if (!window.crypto || typeof crypto.getRandomValues !== "function") throw new Error("浏览器不能生成随机数");
+		var buf = new Uint32Array(1);
+		var limit = Math.floor(0x100000000 / n) * n;
+		var x;
+		do {
+			crypto.getRandomValues(buf);
+			x = buf[0];
+		} while (x >= limit);
+		return x % n;
+	}
+
+	function tsconv(raw){
+		raw = String(raw || "").trim();
+		var d;
+		if (!raw) d = new Date();
+		else if (/^-?\d+(\.\d+)?$/.test(raw)) {
+			var n = Number(raw);
+			if (!isFinite(n)) throw new Error("无法解析");
+			var ms = Math.abs(n) > 1e12 ? n : n * 1000;
+			d = new Date(ms);
+		}
+		else d = parsedate(raw);
+		if (isNaN(d.getTime())) throw new Error("无法解析");
+		return "本地 " + fmtdt(d) + "\n秒 " + Math.floor(d.getTime() / 1000) + "\n毫秒 " + d.getTime();
+	}
+
+	function parsedate(s){
+		var m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(String(s).trim());
+		if (!m) throw new Error("日期格式用 YYYY-MM-DD HH:mm:ss");
+		var d = new Date(+m[1], +m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0));
+		if (d.getFullYear() !== +m[1] || d.getMonth() !== +m[2] - 1 || d.getDate() !== +m[3]) throw new Error("日期无效");
+		return d;
+	}
+
+	function dateconv(a, b){
+		if (!a || !b) throw new Error("请选择两个日期");
+		var da = new Date(a + "T00:00:00");
+		var db = new Date(b + "T00:00:00");
+		if (isNaN(da.getTime()) || isNaN(db.getTime())) throw new Error("日期无效");
+		var days = Math.round((db.getTime() - da.getTime()) / 86400000);
+		return "从 " + a + " 到 " + b + " 相差 " + days + " 天";
+	}
+
+	function unitconv(text, unit, table, scale){
+		var raw = String(text).trim();
+		var n = Number(raw);
+		if (raw === "" || !isFinite(n)) throw new Error("请输入数字");
+		var base = scale[unit];
+		if (!base) throw new Error("请选择单位");
+		var v = n * base;
+		var lines = [];
+		var i;
+		for (i = 0; i < table.length; i++) lines.push(table[i][1] + "  " + trimnum(v / scale[table[i][0]]));
+		return lines.join("\n");
+	}
+
+	function radixconv(text, from, to){
+		var a = parseInt(from, 10);
+		var b = parseInt(to, 10);
+		if (!(a >= 2 && a <= 36) || !(b >= 2 && b <= 36)) throw new Error("进制要在 2 到 36");
+		var t = String(text).trim();
+		if (!t) throw new Error("请输入整数");
+		if (t.length > 40) throw new Error("太长");
+		var neg = false;
+		if (t.charAt(0) === "-") {
+			neg = true;
+			t = t.slice(1);
+		}
+		if (!t) throw new Error("请输入整数");
+		var alpha = "0123456789abcdefghijklmnopqrstuvwxyz";
+		var n = 0;
+		var i;
+		for (i = 0; i < t.length; i++) {
+			var d = alpha.indexOf(t.charAt(i).toLowerCase());
+			if (d < 0 || d >= a) throw new Error("有数字超出进制");
+			n = n * a + d;
+			if (n > 9007199254740991) throw new Error("超出安全整数");
+		}
+		return (neg ? "-" : "") + n.toString(b).toUpperCase();
+	}
+
+	function rmbupper(text){
+		var s = String(text).trim();
+		if (!/^\d+(\.\d+)?$/.test(s)) throw new Error("请输入非负金额");
+		var parts = s.split(".");
+		if (parts[0].length > 12) throw new Error("金额太大");
+		var yuan = parseInt(parts[0], 10);
+		var frac = (parts[1] || "") + "000";
+		var fen = parseInt(frac.slice(0, 2), 10);
+		if (parseInt(frac.charAt(2), 10) >= 5) fen++;
+		var all = yuan * 100 + fen;
+		if (!isFinite(all) || all < 0 || Math.floor(all / 100) > 999999999999) throw new Error("金额太大");
+		if (all === 0) return "零元整";
+		var digit = "零壹贰叁肆伍陆柒捌玖";
+		var small = ["", "拾", "佰", "仟"];
+		var big = ["", "万", "亿"];
+		var y = Math.floor(all / 100);
+		var jiao = Math.floor(all / 10) % 10;
+		var f = all % 10;
+		var chunks = [];
+		while (y > 0) {
+			chunks.push(y % 10000);
+			y = Math.floor(y / 10000);
+		}
+		var body = "";
+		var gap = false;
+		var gi;
+		for (gi = chunks.length - 1; gi >= 0; gi--) {
+			var sec = chunks[gi];
+			if (!sec) {
+				gap = true;
+				continue;
+			}
+			var piece = "";
+			var zero = false;
+			var left = sec;
+			var i;
+			for (i = 0; i < 4; i++) {
+				var d = left % 10;
+				if (d === 0) {
+					if (piece) zero = true;
+				}
+				else {
+					piece = digit.charAt(d) + small[i] + (zero ? "零" : "") + piece;
+					zero = false;
+				}
+				left = Math.floor(left / 10);
+			}
+			if (body && (gap || sec < 1000)) body += "零";
+			body += piece + big[gi];
+			gap = false;
+		}
+		var tail;
+		if (jiao === 0 && f === 0) tail = "整";
+		else {
+			tail = "";
+			if (jiao) tail += digit.charAt(jiao) + "角";
+			else if (f && yuan) tail += "零";
+			if (f) tail += digit.charAt(f) + "分";
+		}
+		if (!body) return tail;
+		return body + "元" + tail;
+	}
+
+	function calcexpr(src){
+		var s = String(src == null ? "" : src).replace(/\s+/g, "");
+		if (!s) throw new Error("请输入算式");
+		if (s.length > 200) throw new Error("算式太长");
+		var i = 0;
+		var v = expr();
+		if (i !== s.length) throw new Error("算式里有无法识别的部分");
+		return trimnum(v);
+		function expr(){
+			var left = term();
+			while (peek() === "+" || peek() === "-") {
+				var op = peek();
+				i++;
+				var right = term();
+				left = op === "+" ? left + right : left - right;
+			}
+			return left;
+		}
+		function term(){
+			var left = pow();
+			while (peek() === "*" || peek() === "/" || peek() === "%") {
+				var op = peek();
+				i++;
+				var right = pow();
+				if (op === "*") left = left * right;
+				else if (right === 0) throw new Error("除数不能为 0");
+				else left = op === "/" ? left / right : left % right;
+			}
+			return left;
+		}
+		function pow(){
+			var left = unary();
+			if (peek() === "^") {
+				i++;
+				var right = pow();
+				var v = Math.pow(left, right);
+				if (!isFinite(v)) throw new Error("乘方结果无效");
+				return v;
+			}
+			return left;
+		}
+		function unary(){
+			if (peek() === "-") {
+				i++;
+				return -unary();
+			}
+			if (peek() === "+") {
+				i++;
+				return unary();
+			}
+			return primary();
+		}
+		function primary(){
+			if (peek() === "(") {
+				i++;
+				var v = expr();
+				if (peek() !== ")") throw new Error("括号没有配对");
+				i++;
+				return v;
+			}
+			return number();
+		}
+		function number(){
+			var start = i;
+			while (i < s.length && s.charAt(i) >= "0" && s.charAt(i) <= "9") i++;
+			if (peek() === "." && i + 1 < s.length && s.charAt(i + 1) >= "0" && s.charAt(i + 1) <= "9") {
+				i++;
+				while (i < s.length && s.charAt(i) >= "0" && s.charAt(i) <= "9") i++;
+			}
+			if (start === i) throw new Error("这里需要数字");
+			return Number(s.slice(start, i));
+		}
+		function peek(){
+			return s.charAt(i);
+		}
+	}
+
+	function bmicalc(cm, kg){
+		var h = Number(String(cm).trim());
+		var w = Number(String(kg).trim());
+		if (!(h > 0) || !(w > 0)) throw new Error("请输入身高和体重");
+		if (h > 300 || w > 500) throw new Error("数值超出常见范围");
+		var bmi = w / ((h / 100) * (h / 100));
+		var band = "肥胖";
+		if (bmi < 18.5) band = "偏瘦";
+		else if (bmi < 24) band = "正常";
+		else if (bmi < 28) band = "超重";
+		return "BMI " + trimnum(bmi) + "\n" + band;
+	}
+
+	function pxconv(px, root, mode){
+		var a = Number(String(px).trim());
+		var r = Number(String(root).trim());
+		if (!(r > 0)) throw new Error("根字号要大于 0");
+		if (!isFinite(a)) throw new Error("请输入数字");
+		if (mode === "rem") return trimnum(a * r) + " px";
+		return trimnum(a / r) + " rem";
+	}
+
+	function randtext(min, max, count, asFloat){
+		var a = Number(String(min).trim());
+		var b = Number(String(max).trim());
+		var c = parseInt(count, 10);
+		if (!isFinite(a) || !isFinite(b)) throw new Error("请输入范围");
+		if (a > b) throw new Error("最小值不能大于最大值");
+		if (!(c >= 1 && c <= 100)) throw new Error("个数要在 1 到 100");
+		var lines = [];
+		var i;
+		if (asFloat) {
+			for (i = 0; i < c; i++) lines.push(trimnum(a + (b - a) * (randint(0x1000000) / 0x1000000)));
+			return lines.join("\n");
+		}
+		if (Math.floor(a) !== a || Math.floor(b) !== b) throw new Error("整数范围请填整数");
+		if (Math.abs(a) > 9007199254740991 || Math.abs(b) > 9007199254740991) throw new Error("超出安全整数");
+		var span = b - a + 1;
+		for (i = 0; i < c; i++) lines.push(String(a + randint(span)));
+		return lines.join("\n");
+	}
+
+	function pwtext(){
+		var len = parseInt(val("box-len"), 10);
+		if (!(len >= 4 && len <= 64)) throw new Error("长度要在 4 到 64");
+		var drop = onbox("box-amb");
+		function clean(s){
+			return drop ? s.replace(/[0Oo1lI]/g, "") : s;
+		}
+		var groups = [];
+		if (onbox("box-low")) groups.push(clean("abcdefghijklmnopqrstuvwxyz"));
+		if (onbox("box-up")) groups.push(clean("ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
+		if (onbox("box-dig")) groups.push(clean("0123456789"));
+		if (onbox("box-sym")) groups.push("!@#$%^&*-_=+?");
+		var pool = "";
+		var g;
+		for (g = 0; g < groups.length; g++) {
+			if (!groups[g]) throw new Error("去掉易混字符后某一类是空的");
+			pool += groups[g];
+		}
+		if (!pool) throw new Error("请至少选一类字符");
+		var chars = [];
+		for (g = 0; g < groups.length && chars.length < len; g++) chars.push(groups[g].charAt(randint(groups[g].length)));
+		while (chars.length < len) chars.push(pool.charAt(randint(pool.length)));
+		for (var i = chars.length - 1; i > 0; i--) {
+			var j = randint(i + 1);
+			var tmp = chars[i];
+			chars[i] = chars[j];
+			chars[j] = tmp;
+		}
+		return chars.join("");
+	}
+
+	function uuidtext(count){
+		var c = parseInt(count, 10);
+		if (!(c >= 1 && c <= 20)) throw new Error("个数要在 1 到 20");
+		var lines = [];
+		var n;
+		for (n = 0; n < c; n++) lines.push(uuid1());
+		return lines.join("\n");
+	}
+
+	function uuid1(){
+		var b = new Uint8Array(16);
+		if (!window.crypto || typeof crypto.getRandomValues !== "function") throw new Error("浏览器不能生成随机数");
+		crypto.getRandomValues(b);
+		b[6] = (b[6] & 15) | 64;
+		b[8] = (b[8] & 63) | 128;
+		var h = hexbytes(b);
+		return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
+	}
+
+	function htmlenc(text){
+		text = String(text);
+		if (text.length > 200000) throw new Error("文字太长");
+		return text.replace(/[&<>"']/g, function(ch){
+			if (ch === "&") return "&amp;";
+			if (ch === "<") return "&lt;";
+			if (ch === ">") return "&gt;";
+			if (ch === '"') return "&quot;";
+			return "&#39;";
+		});
+	}
+
+	function htmldec(text){
+		text = String(text);
+		if (text.length > 200000) throw new Error("文字太长");
+		var named = {
+			amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0",
+			copy: "\u00a9", reg: "\u00ae", trade: "\u2122", mdash: "\u2014",
+			ndash: "\u2013", hellip: "\u2026", middot: "\u00b7", times: "\u00d7", divide: "\u00f7",
+		};
+		return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi, function(all, body){
+			if (body.charAt(0) !== "#") {
+				var v = named[body.toLowerCase()];
+				return v == null ? all : v;
+			}
+			var hex = body.charAt(1) === "x" || body.charAt(1) === "X";
+			var n = parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10);
+			if (!isFinite(n) || n < 0 || n > 0x10FFFF) return all;
+			return String.fromCodePoint(n);
+		});
+	}
+
+	function jsonmin(text){
+		text = String(text);
+		if (text.length > 200000) throw new Error("文字太长");
+		try { return JSON.stringify(JSON.parse(text)); }
+		catch (ex) { throw new Error("不是合法的 JSON"); }
+	}
+
+	function md5hex(text){
+		var bytes = utf8bytes(text);
+		var n = bytes.length;
+		var bitLen = n * 8;
+		var withPad = n + 1;
+		while (withPad % 64 !== 56) withPad++;
+		var buf = new Uint8Array(withPad + 8);
+		buf.set(bytes);
+		buf[n] = 0x80;
+		var lo = bitLen >>> 0;
+		var hi = Math.floor(bitLen / 0x100000000);
+		buf[withPad] = lo & 255;
+		buf[withPad + 1] = (lo >>> 8) & 255;
+		buf[withPad + 2] = (lo >>> 16) & 255;
+		buf[withPad + 3] = (lo >>> 24) & 255;
+		buf[withPad + 4] = hi & 255;
+		buf[withPad + 5] = (hi >>> 8) & 255;
+		buf[withPad + 6] = (hi >>> 16) & 255;
+		buf[withPad + 7] = (hi >>> 24) & 255;
+		var k = [
+			0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+			0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+			0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+			0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+			0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+			0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+			0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+			0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391,
+		];
+		var shift = [
+			7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
+			5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+			4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
+			6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21,
+		];
+		var a0 = 0x67452301;
+		var b0 = 0xefcdab89;
+		var c0 = 0x98badcfe;
+		var d0 = 0x10325476;
+		var off;
+		for (off = 0; off < buf.length; off += 64) {
+			var m = new Uint32Array(16);
+			var j;
+			for (j = 0; j < 16; j++) {
+				var p = off + j * 4;
+				m[j] = (buf[p] | (buf[p + 1] << 8) | (buf[p + 2] << 16) | (buf[p + 3] << 24)) >>> 0;
+			}
+			var a = a0;
+			var b = b0;
+			var c = c0;
+			var d = d0;
+			var t;
+			for (t = 0; t < 64; t++) {
+				var f;
+				var g;
+				if (t < 16) {
+					f = (b & c) | (~b & d);
+					g = t;
+				}
+				else if (t < 32) {
+					f = (d & b) | (~d & c);
+					g = (5 * t + 1) % 16;
+				}
+				else if (t < 48) {
+					f = b ^ c ^ d;
+					g = (3 * t + 5) % 16;
+				}
+				else {
+					f = c ^ (b | ~d);
+					g = (7 * t) % 16;
+				}
+				f = (f + a + k[t] + m[g]) >>> 0;
+				var rot = ((f << shift[t]) | (f >>> (32 - shift[t]))) >>> 0;
+				a = d;
+				d = c;
+				c = b;
+				b = (b + rot) >>> 0;
+			}
+			a0 = (a0 + a) >>> 0;
+			b0 = (b0 + b) >>> 0;
+			c0 = (c0 + c) >>> 0;
+			d0 = (d0 + d) >>> 0;
+		}
+		return lehex(a0) + lehex(b0) + lehex(c0) + lehex(d0);
+	}
+
+	function lehex(n){
+		var s = "";
+		var i;
+		for (i = 0; i < 4; i++) {
+			var b = (n >>> (i * 8)) & 255;
+			s += (b < 16 ? "0" : "") + b.toString(16);
+		}
+		return s;
+	}
+
+	function retest(pat, flags, text){
+		pat = String(pat);
+		flags = String(flags || "");
+		text = String(text);
+		if (!pat) throw new Error("请输入表达式");
+		if (pat.length > 200) throw new Error("表达式太长");
+		if (text.length > 20000) throw new Error("文本太长");
+		if (!/^[gim]*$/.test(flags)) throw new Error("标志只支持 g、i、m");
+		var seen = {};
+		var i;
+		for (i = 0; i < flags.length; i++) {
+			if (seen[flags.charAt(i)]) throw new Error("标志重复了");
+			seen[flags.charAt(i)] = 1;
+		}
+		var re;
+		try { re = new RegExp(pat, flags); }
+		catch (ex) { throw new Error("表达式无效"); }
+		function one(m){
+			var line = "[" + m.index + "] " + m[0];
+			var g;
+			for (g = 1; g < m.length; g++) line += "\n  " + g + ": " + (m[g] == null ? "" : m[g]);
+			return line;
+		}
+		if (flags.indexOf("g") < 0) {
+			var hit = re.exec(text);
+			return hit ? one(hit) : "无匹配";
+		}
+		var lines = [];
+		var guard = 0;
+		var m2;
+		while ((m2 = re.exec(text)) && lines.length < 100) {
+			lines.push(one(m2));
+			if (m2[0].length === 0) re.lastIndex++;
+			guard++;
+			if (guard > 10000) break;
+		}
+		if (!lines.length) return "无匹配";
+		if (lines.length >= 100) lines.push("…只显示前 100 处");
+		return lines.join("\n");
+	}
+
+	function linediff(a, b){
+		var left = String(a).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+		var right = String(b).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+		if (left.length > 400 || right.length > 400) throw new Error("每边最多 400 行");
+		var n = left.length;
+		var m = right.length;
+		var dp = new Array(n + 1);
+		var i;
+		var j;
+		for (i = 0; i <= n; i++) dp[i] = new Uint16Array(m + 1);
+		for (i = 1; i <= n; i++) {
+			for (j = 1; j <= m; j++) {
+				if (left[i - 1] === right[j - 1]) dp[i][j] = dp[i - 1][j - 1] + 1;
+				else dp[i][j] = dp[i - 1][j] >= dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1];
+			}
+		}
+		var out = [];
+		i = n;
+		j = m;
+		while (i > 0 || j > 0) {
+			if (i > 0 && j > 0 && left[i - 1] === right[j - 1]) {
+				out.push("  " + left[i - 1]);
+				i--;
+				j--;
+			}
+			else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+				out.push("+ " + right[j - 1]);
+				j--;
+			}
+			else {
+				out.push("- " + left[i - 1]);
+				i--;
+			}
+		}
+		out.reverse();
+		return out.join("\n");
+	}
+
+	function nameconv(text){
+		var raw = String(text).trim();
+		if (!raw) throw new Error("请输入名称");
+		if (raw.length > 200) throw new Error("太长");
+		var bits = raw.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/[^A-Za-z0-9]+/g, " ").split(/\s+/);
+		var w = [];
+		var i;
+		for (i = 0; i < bits.length; i++) if (bits[i]) w.push(bits[i].toLowerCase());
+		if (!w.length) throw new Error("没有可用的字母或数字");
+		function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+		var camel = w[0];
+		var pascal = "";
+		for (i = 0; i < w.length; i++) {
+			if (i > 0) camel += cap(w[i]);
+			pascal += cap(w[i]);
+		}
+		return "小驼峰  " + camel
+			+ "\n大驼峰  " + pascal
+			+ "\n下划线  " + w.join("_")
+			+ "\n大写下划线  " + w.join("_").toUpperCase()
+			+ "\n短横线  " + w.join("-");
+	}
+
+	function asciitable(){
+		var names = ["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US"];
+		var lines = ["DEC HEX 字符"];
+		var i;
+		for (i = 0; i < 128; i++) {
+			var hex = i.toString(16).toUpperCase();
+			if (hex.length < 2) hex = "0" + hex;
+			var dec = String(i);
+			while (dec.length < 3) dec = " " + dec;
+			var ch = i < 32 ? names[i] : (i === 127 ? "DEL" : String.fromCharCode(i));
+			lines.push(dec + "  " + hex + "  " + ch);
+		}
+		return lines.join("\n");
 	}
 
 	function esc(s){
