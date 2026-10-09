@@ -3249,6 +3249,18 @@ static class Cli {
 					return 1;
 				}
 			}
+			try { srv.Stop(); } catch { }
+			try { srv.Start("+", 18775); }
+			catch (Exception ex) {
+				Err("FAIL: 局域网套接字监听失败: " + ex.Message);
+				return 1;
+			}
+			var lan = Task.Run(() => new HttpClient().GetStringAsync("http://127.0.0.1:18775/api/status").GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			if (lan == null || lan.IndexOf("http_enabled", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 局域网套接字没有应答");
+				return 1;
+			}
+			Out("lan socket ok");
 			return 0;
 		}
 		catch (Exception ex) {
@@ -3714,6 +3726,7 @@ static class Cli {
 				return 1;
 			}
 			Out("本机 hello 开窗路径 ok");
+			if (testsockcast() != 0) return 1;
 			Out("=== OK：投屏接收 ===");
 			return 0;
 		}
@@ -3725,6 +3738,49 @@ static class Cli {
 			try { cws?.Abort(); } catch { }
 			try { http?.Abort(); } catch { }
 			try { srv.Dispose(); } catch { }
+		}
+	}
+
+	static int testsockcast() {
+		var port = 18766;
+		var http = new SockHttpServer();
+		try {
+			http.Start("+", port, ctx => {
+				if (!ctx.TryUpgrade()) {
+					ctx.Response.StatusCode = 400;
+					return;
+				}
+				using var st = new CastRawWsStream(ctx.Net, ctx.Prefetch);
+				var buf = new byte[64];
+				var n = st.Read(buf, 0, buf.Length);
+				if (n > 0) st.Write(buf, 0, n);
+			});
+			using var cws = new ClientWebSocket();
+			var uri = new Uri("ws://127.0.0.1:" + port + "/cast");
+			if (!cws.ConnectAsync(uri, CancellationToken.None).Wait(4000)
+				|| cws.State != WebSocketState.Open) {
+				Err("FAIL: 套接字 WebSocket 连不上");
+				return 1;
+			}
+			var ping = Encoding.ASCII.GetBytes("ping");
+			cws.SendAsync(new ArraySegment<byte>(ping), WebSocketMessageType.Binary, true,
+				CancellationToken.None).Wait(2000);
+			var rbuf = new byte[64];
+			var rec = cws.ReceiveAsync(new ArraySegment<byte>(rbuf), CancellationToken.None);
+			if (!rec.Wait(4000) || rec.Result.Count != 4
+				|| Encoding.ASCII.GetString(rbuf, 0, 4) != "ping") {
+				Err("FAIL: 套接字 WebSocket 回包");
+				return 1;
+			}
+			Out("套接字 /cast 升级 ok");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL: 套接字 WebSocket " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { http.Stop(); } catch { }
 		}
 	}
 
@@ -5136,7 +5192,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		}
 	}
 
-	/// <summary>走 HttpListener（与正式 HTTP 口相同），查询串里的中文必须按 UTF-8 解开。</summary>
+	/// <summary>走正式套接字 HTTP，查询串里的中文必须按 UTF-8 解开。</summary>
 	static int testsfquery(SendFileServer sv) {
 		var names = new[] {
 			".to_phone/XPlayer v2.9.0.0 高级版.apk",
@@ -5148,9 +5204,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			SendFileOps.SaveStream(name, ms);
 		}
 		var port = 27535;
-		var listener = new HttpListener();
-		listener.Prefixes.Add("http://127.0.0.1:" + port + "/");
-		try { listener.Start(); }
+		var listener = new SockHttpServer();
+		try { listener.Start("127.0.0.1", port, ctx => { sv.TryHandle(ctx); }); }
 		catch (Exception ex) {
 			Err("sendfile-query: listener " + ex.Message);
 			return 1;
@@ -5158,7 +5213,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		try {
 			foreach (var name in names) {
 				var q = Uri.EscapeDataString(name).Replace("%20", "+");
-				var raw = sfqueryget(listener, sv, port, "/d?path=" + q);
+				var raw = sfqueryget(port, "/d?path=" + q);
 				if (raw == null) return 1;
 				var text = Encoding.UTF8.GetString(raw);
 				var sep = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
@@ -5173,47 +5228,23 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		}
 		finally {
 			try { listener.Stop(); } catch { }
-			try { listener.Close(); } catch { }
 		}
 	}
 
-	static byte[] sfqueryget(HttpListener listener, SendFileServer sv, int port, string pathAndQuery) {
-		Exception ex = null;
-		byte[] got = null;
-		var task = Task.Run(() => {
-			try {
-				using var tcp = new TcpClient("127.0.0.1", port);
-				var req = "GET " + pathAndQuery + " HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n";
-				var buf = Encoding.ASCII.GetBytes(req);
-				tcp.GetStream().Write(buf, 0, buf.Length);
-				using var ms = new MemoryStream();
-				tcp.GetStream().CopyTo(ms);
-				got = ms.ToArray();
-			}
-			catch (Exception e) { ex = e; }
-		});
-		var ar = listener.BeginGetContext(null, null);
-		if (!ar.AsyncWaitHandle.WaitOne(8000)) {
-			Err("sendfile-query: 无请求 " + pathAndQuery);
-			try { task.Wait(1000); } catch { }
+	static byte[] sfqueryget(int port, string pathAndQuery) {
+		try {
+			using var tcp = new TcpClient("127.0.0.1", port);
+			var req = "GET " + pathAndQuery + " HTTP/1.1\r\nHost: 127.0.0.1:" + port + "\r\nConnection: close\r\n\r\n";
+			var buf = Encoding.ASCII.GetBytes(req);
+			tcp.GetStream().Write(buf, 0, buf.Length);
+			using var ms = new MemoryStream();
+			tcp.GetStream().CopyTo(ms);
+			return ms.ToArray();
+		}
+		catch (Exception ex) {
+			Err("sendfile-query: " + ex.Message + " " + pathAndQuery);
 			return null;
 		}
-		var ctx = listener.EndGetContext(ar);
-		if (!sv.TryHandle(ctx)) {
-			Err("sendfile-query: TryHandle false " + pathAndQuery);
-			try { ctx.Response.Abort(); } catch { }
-			try { task.Wait(2000); } catch { }
-			return null;
-		}
-		if (!task.Wait(8000)) {
-			Err("sendfile-query: 读响应超时 " + pathAndQuery);
-			return null;
-		}
-		if (got == null) {
-			Err("sendfile-query: " + (ex != null ? ex.Message : "empty") + " " + pathAndQuery);
-			return null;
-		}
-		return got;
 	}
 
 	static string getbody(HttpClient http, string url) {

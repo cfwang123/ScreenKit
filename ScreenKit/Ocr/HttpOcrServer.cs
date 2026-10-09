@@ -1,9 +1,5 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Net.WebSockets;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -38,9 +34,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	readonly Func<OcrOptions> getOpts;
 	readonly OcrRunner runner;
 	readonly object listenLock = new();
-	HttpListener listener;
-	TcpListener loopProxy;
-	int urlaclport;
+	SockHttpServer sock;
 	bool disposed;
 	volatile bool running;
 	HttpApiServices svc;
@@ -68,294 +62,28 @@ sealed partial class HttpOcrServer : IDisposable {
 		host = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host.Trim();
 		if (host is "0.0.0.0" or "*" or "+") host = "+";
 		port = Compat.Clamp(port, 1, 65535);
+		var all = lan || host == "+";
 		lock (listenLock) {
 			Stop();
-			LanAll = false;
-			var l = new HttpListener();
-			addprefix(l, $"http://{host}:{port}/");
-			try { addprefix(l, $"http://{host}:{port}/api/"); } catch { }
-			if (lan && host != "+") {
-				ensureurlacl(port);
-				try { addprefix(l, $"http://+:{port}/"); } catch { }
-				try { addprefix(l, $"http://127.0.0.1:{port}/"); } catch { }
-			}
-			if (host == "+") {
-				ensureurlacl(port);
-				try { addprefix(l, $"http://127.0.0.1:{port}/"); } catch { }
-			}
-			try {
-				l.Start();
-			}
-			catch (Exception first) {
-				try { l.Abort(); } catch { }
-				l = new HttpListener();
-				addprefix(l, $"http://127.0.0.1:{port}/");
-				try { addprefix(l, $"http://127.0.0.1:{port}/api/"); } catch { }
-				try {
-					l.Start();
-					host = "127.0.0.1";
-				}
-				catch (Exception second) {
-					try { l.Abort(); } catch { }
-					l = startloopproxy(port);
-					host = "127.0.0.1";
-					if (l == null)
-						throw new IOException(second.Message ?? first.Message);
-				}
-			}
-			foreach (var p in l.Prefixes) {
-				if (p.StartsWith("http://+:", StringComparison.OrdinalIgnoreCase)
-					|| p.StartsWith("http://*:", StringComparison.OrdinalIgnoreCase))
-					LanAll = true;
-			}
-			if (host == "+") LanAll = true;
-			listener = l;
+			var s = new SockHttpServer();
+			s.Start(all ? "+" : "127.0.0.1", port, handle);
+			sock = s;
+			LanAll = all;
 			running = true;
-			_ = Task.Run(acceptloop);
 		}
-	}
-
-	static void addprefix(HttpListener l, string prefix) {
-		if (l.Prefixes.Contains(prefix)) return;
-		l.Prefixes.Add(prefix);
-	}
-
-	void ensureurlacl(int port) {
-		if (urlaclport == port) return;
-		urlaclport = port;
-		tryurlacl(port);
-	}
-
-	static void tryurlacl(int port) {
-		try {
-			var psi = new ProcessStartInfo {
-				FileName = "netsh",
-				Arguments = $"http add urlacl url=http://+:{port}/ user=Everyone",
-				UseShellExecute = false,
-				CreateNoWindow = true,
-				RedirectStandardOutput = true,
-				RedirectStandardError = true,
-			};
-			using var p = Process.Start(psi);
-			p?.WaitForExit(4000);
-		}
-		catch { }
 	}
 
 	public void Stop() {
 		running = false;
-		HttpListener l;
-		TcpListener tcp;
+		SockHttpServer s;
 		lock (listenLock) {
-			l = listener;
-			listener = null;
-			tcp = loopProxy;
-			loopProxy = null;
+			s = sock;
+			sock = null;
 		}
-		if (tcp != null) {
-			try { tcp.Stop(); } catch { }
-		}
-		if (l == null) return;
-		// Abort 比 Stop 更快打断 GetContextAsync，避免退出时挂起
-		try { l.Abort(); } catch {
-			try { l.Stop(); } catch { }
-		}
-		try { l.Close(); } catch { }
+		try { s?.Stop(); } catch { }
 	}
 
-	/// <summary>
-	/// http.sys 在同端口已被独占套接字占用时，连 127.0.0.1 也起不来。
-	/// 本机套接字仍可绑 127.0.0.1，再转到一个空闲端口上的 HttpListener。
-	/// </summary>
-	HttpListener startloopproxy(int port) {
-		var innerPort = freetcpport();
-		var inner = new HttpListener();
-		addprefix(inner, $"http://127.0.0.1:{innerPort}/");
-		try { addprefix(inner, $"http://127.0.0.1:{innerPort}/api/"); } catch { }
-		inner.Start();
-		var tcp = new TcpListener(IPAddress.Loopback, port);
-		try {
-			tcp.Start();
-		}
-		catch {
-			try { inner.Abort(); } catch { }
-			try { tcp.Stop(); } catch { }
-			return null;
-		}
-		loopProxy = tcp;
-		running = true;
-		_ = Task.Run(() => proxyaccept(tcp, innerPort));
-		try { Logged?.Invoke($"HTTP :{port} 局域网地址被占用，仅本机 127.0.0.1 可用"); } catch { }
-		return inner;
-	}
-
-	static int freetcpport() {
-		var probe = new TcpListener(IPAddress.Loopback, 0);
-		probe.Start();
-		var p = ((IPEndPoint)probe.LocalEndpoint).Port;
-		probe.Stop();
-		return p;
-	}
-
-	void proxyaccept(TcpListener tcp, int innerPort) {
-		while (running) {
-			TcpClient client;
-			try { client = tcp.AcceptTcpClient(); }
-			catch (ObjectDisposedException) { break; }
-			catch (SocketException) {
-				if (!running) break;
-				continue;
-			}
-			catch {
-				if (!running) break;
-				continue;
-			}
-			var port = innerPort;
-			_ = Task.Run(() => proxysession(client, port));
-		}
-	}
-
-	void proxysession(TcpClient client, int innerPort) {
-		TcpClient inner = null;
-		try {
-			inner = new TcpClient();
-			inner.Connect(IPAddress.Loopback, innerPort);
-			var from = client.GetStream();
-			var to = inner.GetStream();
-			var up = Task.Run(() => clienttoserver(from, to, innerPort));
-			var down = Task.Run(() => copyall(to, from));
-			Task.WaitAny(up, down);
-		}
-		catch { }
-		finally {
-			try { client.Close(); } catch { }
-			try { inner?.Close(); } catch { }
-		}
-	}
-
-	static void clienttoserver(Stream from, Stream to, int innerPort) {
-		var acc = new List<byte>(2048);
-		var tmp = new byte[2048];
-		while (true) {
-			var end = -1;
-			while (end < 0 && acc.Count < 65536) {
-				end = hdrend(acc);
-				if (end >= 0) break;
-				var n = from.Read(tmp, 0, tmp.Length);
-				if (n <= 0) return;
-				for (var i = 0; i < n; i++) acc.Add(tmp[i]);
-			}
-			if (end < 0) return;
-			var hdr = Encoding.ASCII.GetString(acc.ToArray(), 0, end);
-			var rewritten = Encoding.ASCII.GetBytes(rewritehost(hdr, innerPort));
-			to.Write(rewritten, 0, rewritten.Length);
-			var extra = acc.Count - end;
-			var upgrade = isupgrade(hdr);
-			var need = upgrade ? -1L : bodylen(hdr);
-			if (upgrade) {
-				if (extra > 0) to.Write(acc.ToArray(), end, extra);
-				to.Flush();
-				copyall(from, to);
-				return;
-			}
-			var left = need;
-			if (extra > 0) {
-				var take = extra > left ? (int)left : extra;
-				if (take > 0) to.Write(acc.ToArray(), end, take);
-				left -= take;
-				var keep = extra - take;
-				if (keep > 0) {
-					var rest = new byte[keep];
-					Buffer.BlockCopy(acc.ToArray(), end + take, rest, 0, keep);
-					acc.Clear();
-					acc.AddRange(rest);
-				}
-				else acc.Clear();
-			}
-			else acc.Clear();
-			while (left > 0) {
-				var want = left > tmp.Length ? tmp.Length : (int)left;
-				var n = from.Read(tmp, 0, want);
-				if (n <= 0) return;
-				to.Write(tmp, 0, n);
-				left -= n;
-			}
-			to.Flush();
-		}
-	}
-
-	static string rewritehost(string hdr, int innerPort) {
-		var lines = hdr.Split(new[] { "\r\n" }, StringSplitOptions.None);
-		for (var i = 0; i < lines.Length; i++) {
-			if (lines[i].StartsWith("Host:", StringComparison.OrdinalIgnoreCase)) {
-				lines[i] = $"Host: 127.0.0.1:{innerPort}";
-				break;
-			}
-		}
-		return string.Join("\r\n", lines);
-	}
-
-	static bool isupgrade(string hdr) {
-		return hdr.IndexOf("Upgrade:", StringComparison.OrdinalIgnoreCase) >= 0;
-	}
-
-	static long bodylen(string hdr) {
-		var key = "Content-Length:";
-		var i = hdr.IndexOf(key, StringComparison.OrdinalIgnoreCase);
-		if (i < 0) return 0;
-		var start = i + key.Length;
-		var end = hdr.IndexOf('\r', start);
-		if (end < 0) end = hdr.Length;
-		var s = hdr.Substring(start, end - start).Trim();
-		if (!long.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) || n < 0)
-			return 0;
-		return n;
-	}
-
-	static int hdrend(List<byte> b) {
-		var n = b.Count;
-		for (var i = 0; i + 1 < n; i++) {
-			if (i + 3 < n && b[i] == 13 && b[i + 1] == 10 && b[i + 2] == 13 && b[i + 3] == 10)
-				return i + 4;
-			if (b[i] == 10 && b[i + 1] == 10)
-				return i + 2;
-		}
-		return -1;
-	}
-
-	static void copyall(Stream from, Stream to) {
-		var buf = new byte[8192];
-		try {
-			while (true) {
-				var n = from.Read(buf, 0, buf.Length);
-				if (n <= 0) break;
-				to.Write(buf, 0, n);
-				to.Flush();
-			}
-		}
-		catch { }
-	}
-
-	async Task acceptloop() {
-		while (running) {
-			HttpListener l;
-			lock (listenLock) l = listener;
-			if (l == null || !l.IsListening) break;
-			HttpListenerContext ctx;
-			try {
-				ctx = await l.GetContextAsync().ConfigureAwait(false);
-			}
-			catch (ObjectDisposedException) { break; }
-			catch (HttpListenerException) { break; }
-			catch {
-				if (!running) break;
-				continue;
-			}
-			_ = Task.Run(() => handle(ctx));
-		}
-	}
-
-	void handle(HttpListenerContext ctx) {
+	void handle(SockCtx ctx) {
 		var t0 = Environment.TickCount;
 		var method = "";
 		var pathRaw = "";
@@ -624,7 +352,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 404, err(404, $"未知接口: {path}"));
 		}
 		catch (Exception ex) {
-			try { writejson(ctx, 500, err(900, $"内部错误: {ex.Message}")); } catch { }
+			if (!ctx.RawTaken && !ctx.Upgraded)
+				try { writejson(ctx, 500, err(900, $"内部错误: {ex.Message}")); } catch { }
 		}
 		finally {
 			if (!string.Equals(method, "OPTIONS", StringComparison.OrdinalIgnoreCase)) {
@@ -641,16 +370,16 @@ sealed partial class HttpOcrServer : IDisposable {
 		try { Logged?.Invoke(line); } catch { }
 	}
 
-	static bool isget(HttpListenerRequest req) =>
+	static bool isget(SockReq req) =>
 		string.Equals(req.HttpMethod, "GET", StringComparison.OrdinalIgnoreCase)
 		|| string.Equals(req.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
 
-	static bool ispost(HttpListenerRequest req) =>
+	static bool ispost(SockReq req) =>
 		string.Equals(req.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase);
 
 	// ───────── status / ASR / TTS / ITN ─────────
 
-	void handlestatus(HttpListenerContext ctx) {
+	void handlestatus(SockCtx ctx) {
 		var o = getOpts?.Invoke() ?? new OcrOptions();
 		var asrN = 0;
 		var ttsN = 0;
@@ -690,7 +419,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	void handlecast(HttpListenerContext ctx) {
+	void handlecast(SockCtx ctx) {
 		var req = ctx.Request;
 		var up = req.Headers["Upgrade"] ?? "";
 		var wsreq = req.IsWebSocketRequest
@@ -704,17 +433,21 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 		try {
-			var wsctx = ctx.AcceptWebSocketAsync(null).GetAwaiter().GetResult();
-			using var st = new CastWsStream(wsctx.WebSocket);
+			if (!ctx.TryUpgrade()) {
+				writejson(ctx, 400, err(400, "缺少 Sec-WebSocket-Key"));
+				return;
+			}
+			using var st = new CastRawWsStream(ctx.Net, ctx.Prefetch);
 			CastHost.Recv.AttachStream(st, "http");
 		}
 		catch (Exception ex) {
 			Logged?.Invoke($"cast ws: {ex.Message}");
-			try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
+			if (!ctx.Upgraded)
+				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
 		}
 	}
 
-	void handletoast(HttpListenerContext ctx) {
+	void handletoast(SockCtx ctx) {
 		string text = null;
 		var ms = 1900;
 		if (ispost(ctx.Request)) {
@@ -746,7 +479,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	void handletoolspage(HttpListenerContext ctx, string path) {
+	void handletoolspage(SockCtx ctx, string path) {
 		string name;
 		string mime;
 		if (path == "/sk/tools.css") {
@@ -802,7 +535,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 	}
 
-	void handletext(HttpListenerContext ctx) {
+	void handletext(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message") ?? "";
 		var op = (field(ctx, jo, "op") ?? "").Trim().ToLowerInvariant();
@@ -849,7 +582,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	void handleqrmake(HttpListenerContext ctx) {
+	void handleqrmake(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
 		if (string.IsNullOrEmpty(text)) {
@@ -881,7 +614,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		return $"字符 {s.Chars}\n不计空白 {s.CharsNoWs}\n行 {s.Lines}\nUTF-8 {s.Utf8Bytes}\nGBK {s.GbkBytes}";
 	}
 
-	void handlezhconv(HttpListenerContext ctx) {
+	void handlezhconv(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
 		if (string.IsNullOrEmpty(text)) {
@@ -908,7 +641,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	void handlecalendar(HttpListenerContext ctx) {
+	void handlecalendar(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var rawDate = field(ctx, jo, "date");
 		if (!WinCal.TryDate(rawDate, out var date)) {
@@ -947,7 +680,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	void handlejpyomi(HttpListenerContext ctx) {
+	void handlejpyomi(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
 		if (string.IsNullOrWhiteSpace(text)) {
@@ -976,7 +709,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	bool readbody(HttpListenerContext ctx, out JsonObject jo) {
+	bool readbody(SockCtx ctx, out JsonObject jo) {
 		jo = null;
 		if (!ispost(ctx.Request)) return true;
 		try {
@@ -989,7 +722,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 	}
 
-	static string field(HttpListenerContext ctx, JsonObject jo, string key) {
+	static string field(SockCtx ctx, JsonObject jo, string key) {
 		if (jo != null) {
 			var n = jo[key];
 			if (n == null) return null;
@@ -1002,8 +735,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		return query(ctx.Request, key);
 	}
 
-	/// <summary>查询串按 UTF-8 解码。HttpListener 的 QueryString 在中文系统上会把 UTF-8 当系统 ANSI。</summary>
-	static string query(HttpListenerRequest req, string key) {
+	/// <summary>查询串按请求行里的原始 UTF-8 百分号解码。</summary>
+	static string query(SockReq req, string key) {
 		var raw = req.RawUrl ?? "";
 		var i = raw.IndexOf('?');
 		if (i < 0 || i + 1 >= raw.Length) return null;
@@ -1050,7 +783,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		return sb.ToString();
 	}
 
-	void handlecaststop(HttpListenerContext ctx) {
+	void handlecaststop(SockCtx ctx) {
 		try { CastHost.CloseCast(); } catch { }
 		writejson(ctx, 200, new JsonObject {
 			["code"] = 100,
@@ -1058,7 +791,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	void handleasrmodels(HttpListenerContext ctx) {
+	void handleasrmodels(SockCtx ctx) {
 		List<AsrModelInfo> list = null;
 		try { list = svc?.ScanAsr?.Invoke(); } catch (Exception ex) {
 			writejson(ctx, 200, err(910, "扫描 ASR 失败: " + ex.Message));
@@ -1082,7 +815,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	void handleasr(HttpListenerContext ctx) {
+	void handleasr(SockCtx ctx) {
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
@@ -1209,7 +942,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 	}
 
-	void handleitn(HttpListenerContext ctx) {
+	void handleitn(SockCtx ctx) {
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
@@ -1232,7 +965,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		});
 	}
 
-	static JsonObject readjsonbody(HttpListenerRequest req) {
+	static JsonObject readjsonbody(SockReq req) {
 		string body;
 		using (var sr = new StreamReader(req.InputStream, req.ContentEncoding ?? Encoding.UTF8))
 			body = sr.ReadToEnd();
@@ -1300,7 +1033,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		protected override void Dispose(bool disposing) { /* 不关 inner */ }
 	}
 
-	static void writecors(HttpListenerContext ctx, int status) {
+	static void writecors(SockCtx ctx, int status) {
 		var res = ctx.Response;
 		res.StatusCode = status;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
@@ -1310,7 +1043,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		try { res.Close(); } catch { }
 	}
 
-	void handleocr(HttpListenerContext ctx) {
+	void handleocr(SockCtx ctx) {
 		var req = ctx.Request;
 		byte[] imageBytes = null;
 		JsonObject optNode = null;
@@ -1612,7 +1345,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		o.ModelVariant = "";
 	}
 
-	void handleocrmodels(HttpListenerContext ctx) {
+	void handleocrmodels(SockCtx ctx) {
 		List<WinOcrLang> langs;
 		try { langs = runsta(() => WinOcr.Languages()); }
 		catch { langs = new List<WinOcrLang>(); }
@@ -1867,7 +1600,7 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	// ───────── multipart ─────────
 
-	static (byte[] image, JsonObject options) readmultipart(HttpListenerRequest req) {
+	static (byte[] image, JsonObject options) readmultipart(SockReq req) {
 		var ctype = req.ContentType ?? "";
 		var boundary = extractboundary(ctype);
 		if (string.IsNullOrEmpty(boundary))
@@ -2164,7 +1897,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		["data"] = msg ?? "",
 	};
 
-	static bool apiok(HttpListenerContext ctx, bool on) {
+	static bool apiok(SockCtx ctx, bool on) {
 		if (on) return true;
 		writejson(ctx, 200, err(810, "该接口未启用（参数设置 → 接口）"));
 		return false;
@@ -2211,7 +1944,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		return a;
 	}
 
-	static void writejson(HttpListenerContext ctx, int httpStatus, JsonNode body) {
+	static void writejson(SockCtx ctx, int httpStatus, JsonNode body) {
 		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));
 		var res = ctx.Response;
 		res.StatusCode = httpStatus;

@@ -21,7 +21,7 @@ sealed partial class HttpOcrServer {
 	readonly object ttsModelsGate = new();
 	JsonArray cachedTtsModels;
 
-	void handlettsengines(HttpListenerContext ctx) {
+	void handlettsengines(SockCtx ctx) {
 		var arr = new JsonArray {
 			ttsengine("sherpa", "Sherpa"),
 			ttsengine("sapi", "SAPI"),
@@ -40,7 +40,7 @@ sealed partial class HttpOcrServer {
 		["name"] = name,
 	};
 
-	void handlettsmodels(HttpListenerContext ctx) {
+	void handlettsmodels(SockCtx ctx) {
 		var engineRaw = query(ctx.Request, "engine");
 		string engine = null;
 		if (!string.IsNullOrWhiteSpace(engineRaw)) {
@@ -104,7 +104,7 @@ sealed partial class HttpOcrServer {
 		_ => "sherpa",
 	};
 
-	void handletts(HttpListenerContext ctx) {
+	void handletts(SockCtx ctx) {
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {

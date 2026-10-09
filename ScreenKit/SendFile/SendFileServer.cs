@@ -71,16 +71,17 @@ public sealed partial class SendFileServer : IDisposable {
 			|| path.StartsWith("/api/sendfile");
 	}
 
-	public bool TryHandle(HttpListenerContext http) {
+	public bool TryHandle(SockCtx http) {
 		if (http == null || !running) return false;
 		var pathRaw = (http.Request.Url?.AbsolutePath ?? "/").TrimEnd('/');
 		if (pathRaw.Length == 0) pathRaw = "/";
 		if (!IsOurPath(pathRaw)) return false;
-		handle(fromhttp(http));
+		http.RawTaken = true;
+		handle(fromsock(http));
 		return true;
 	}
 
-	static SfCtx fromhttp(HttpListenerContext http) {
+	static SfCtx fromsock(SockCtx http) {
 		var req = http.Request;
 		var headers = new SfHeaders();
 		if (req.Headers != null) {
@@ -89,8 +90,7 @@ public sealed partial class SendFileServer : IDisposable {
 				headers[key] = req.Headers[key];
 			}
 		}
-		// QueryString 按系统 ANSI（中文 Windows 为 GB2312）解码。手机和网页发的是 UTF-8，
-		// 中文会变成 ?，随后 GetFullPath 报「路径中具有非法字符」。这里按原始查询串用 UTF-8 解。
+		// 查询串按原始百分号用 UTF-8 解开。中文 Windows 上按 ANSI 解会变成 ?。
 		var query = parsequery(req.Url?.Query);
 		return new SfCtx {
 			Request = new SfReq {
@@ -103,7 +103,7 @@ public sealed partial class SendFileServer : IDisposable {
 				RemoteEndPoint = req.RemoteEndPoint,
 				ContentLength = req.ContentLength64 < 0 ? 0 : req.ContentLength64,
 			},
-			Response = new SfRes(http.Response),
+			Response = new SfRes(http.Net),
 		};
 	}
 
@@ -1207,7 +1207,6 @@ sealed class SfHeaders {
 
 sealed class SfRes {
 	readonly SfOut output;
-	internal readonly HttpListenerResponse Http;
 	public int StatusCode = 200;
 	public string ContentType;
 	public Encoding ContentEncoding;
@@ -1216,13 +1215,7 @@ sealed class SfRes {
 	public Stream OutputStream => output;
 
 	public SfRes(Stream ns) {
-		Http = null;
-		output = new SfOut(ns, this, null);
-	}
-
-	public SfRes(HttpListenerResponse http) {
-		Http = http;
-		output = new SfOut(null, this, http);
+		output = new SfOut(ns, this);
 	}
 
 	public void Close() {
@@ -1232,14 +1225,12 @@ sealed class SfRes {
 
 sealed class SfOut : Stream {
 	readonly Stream inner;
-	readonly HttpListenerResponse http;
 	readonly SfRes res;
 	bool sent;
 
-	public SfOut(Stream inner, SfRes res, HttpListenerResponse http) {
+	public SfOut(Stream inner, SfRes res) {
 		this.inner = inner;
 		this.res = res;
-		this.http = http;
 	}
 
 	public override bool CanRead => false;
@@ -1252,10 +1243,8 @@ sealed class SfOut : Stream {
 	}
 
 	public override void Flush() {
-		try { dest()?.Flush(); } catch { }
+		try { inner?.Flush(); } catch { }
 	}
-
-	Stream dest() => http != null ? http.OutputStream : inner;
 
 	public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 	public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
@@ -1263,38 +1252,17 @@ sealed class SfOut : Stream {
 
 	public override void Write(byte[] buffer, int offset, int count) {
 		sendhdr();
-		var d = dest();
-		if (count > 0 && d != null) d.Write(buffer, offset, count);
+		if (count > 0 && inner != null) inner.Write(buffer, offset, count);
 	}
 
 	public void Finish() {
 		sendhdr();
-		try { dest()?.Flush(); } catch { }
-		if (http != null) {
-			try { http.OutputStream.Close(); } catch { }
-			try { http.Close(); } catch { }
-		}
+		try { inner?.Flush(); } catch { }
 	}
 
 	void sendhdr() {
 		if (sent) return;
 		sent = true;
-		if (http != null) {
-			http.StatusCode = res.StatusCode;
-			if (!string.IsNullOrEmpty(res.ContentType))
-				http.ContentType = res.ContentType;
-			if (res.ContentLength64 >= 0)
-				http.ContentLength64 = res.ContentLength64;
-			foreach (var kv in res.Headers.All) {
-				if (kv.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase)) continue;
-				if (kv.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) continue;
-				try { http.AppendHeader(kv.Key, kv.Value); }
-				catch {
-					try { http.Headers[kv.Key] = kv.Value; } catch { }
-				}
-			}
-			return;
-		}
 		var sb = new StringBuilder();
 		sb.Append("HTTP/1.1 ").Append(res.StatusCode).Append(' ').Append(reason(res.StatusCode)).Append("\r\n");
 		if (!string.IsNullOrEmpty(res.ContentType))

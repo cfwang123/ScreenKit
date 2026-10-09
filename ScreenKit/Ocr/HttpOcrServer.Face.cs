@@ -13,7 +13,7 @@ sealed partial class HttpOcrServer {
 	string httpFaceKey = "";
 	string httpAttrKey = "";
 
-	void handlefacemodels(HttpListenerContext ctx) {
+	void handlefacemodels(SockCtx ctx) {
 		List<string> onnx;
 		try { onnx = FaceModels.ListOnnx(); }
 		catch (Exception ex) {
@@ -35,7 +35,7 @@ sealed partial class HttpOcrServer {
 		});
 	}
 
-	void handleface(HttpListenerContext ctx) {
+	void handleface(SockCtx ctx) {
 		byte[] imgA;
 		byte[] imgB;
 		JsonObject jo;
@@ -323,7 +323,7 @@ sealed partial class HttpOcrServer {
 		return o;
 	}
 
-	(byte[] a, byte[] b, JsonObject jo) readfaceimages(HttpListenerRequest req) {
+	(byte[] a, byte[] b, JsonObject jo) readfaceimages(SockReq req) {
 		var ctype = req.ContentType ?? "";
 		if (ctype.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
 			return readfaceparts(req);
@@ -336,7 +336,7 @@ sealed partial class HttpOcrServer {
 		return (a, b, jo);
 	}
 
-	(byte[] a, byte[] b, JsonObject jo) readfaceparts(HttpListenerRequest req) {
+	(byte[] a, byte[] b, JsonObject jo) readfaceparts(SockReq req) {
 		var boundary = extractboundary(req.ContentType ?? "");
 		if (string.IsNullOrEmpty(boundary))
 			throw new InvalidOperationException("multipart 缺少 boundary");

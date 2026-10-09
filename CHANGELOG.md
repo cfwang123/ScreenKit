@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The HTTP API, web tools, file manager, and `/cast` WebSocket share one TCP socket listener. Listening on the LAN no longer uses HTTP.sys and does not need an administrator or a URL reservation.
 - The local tools page adds twenty more in-browser tools: XML, HTML tables, random strings, placeholder images, date and month offsets, JSON diff, a color picker, a stopwatch, a countdown, a scientific calculator, batch rename, JavaScript comment stripping, SQL keyword breaks, an approximate token count, HTML to JavaScript, image Base64, a CSS button, fake names, and a palette.
 - The local tools page adds twenty more in-browser tools: temperature, weight, area, volume, pressure, power, time units, color, random colors, JSON escape, find and replace, User-Agent, crontab, weekdays, mortgage, compound interest, MAC addresses, HTML minify, CSS minify, and CSS gradients.
 - The local tools page can star a tool. Favorites are the top category on the left and stay in this browser. A tool can also be starred from its own page.
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- HTTP 接口、本机工具页、网页文件管理和 `/cast` 投屏共用一个 TCP 套接字监听。局域网不再走 HTTP.sys，启动不需要管理员，也不需要 URL 预留。
 - 本机工具页再增加 20 个在浏览器里完成的小工具：XML、HTML 表格、随机字符串、占位图、日期加减、月份加减、JSON 差异、取色、秒表、倒计时、科学计算、批量改名、JS 去注释、SQL 关键字换行、Token 粗算、HTML 转 JS、图片 Base64、CSS 按钮、测试数据、调色板。
 - 本机工具页再增加 20 个在浏览器里完成的小工具：温度、重量、面积、体积、压力、功率、时间单位、颜色、随机颜色、JSON 转义、查找替换、User-Agent、Crontab、工作日、房贷、复利、MAC 地址、HTML 压缩、CSS 压缩、CSS 渐变。
 - 本机工具页可以给工具加星收藏。收藏在左侧分类最上面，记在这个浏览器里。进入工具后也可以收藏。

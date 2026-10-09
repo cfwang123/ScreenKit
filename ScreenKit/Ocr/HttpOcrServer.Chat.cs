@@ -9,7 +9,7 @@ namespace ScreenKit;
 /// 文本或语音入；文本出；可选 TTS（wav_base64）。
 /// </summary>
 sealed partial class HttpOcrServer {
-	void handlechat(HttpListenerContext ctx) {
+	void handlechat(SockCtx ctx) {
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {

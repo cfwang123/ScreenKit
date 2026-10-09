@@ -6,7 +6,7 @@ namespace ScreenKit;
 
 /// <summary>HTTP 翻译：POST /api/translate · /api/translate/batch。</summary>
 sealed partial class HttpOcrServer {
-	void handletranslate(HttpListenerContext ctx) {
+	void handletranslate(SockCtx ctx) {
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {

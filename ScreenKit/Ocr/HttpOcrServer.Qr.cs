@@ -5,7 +5,7 @@ namespace ScreenKit;
 
 /// <summary>HTTP 条码：POST /api/qr · /api/barcode · /api/barcodes。</summary>
 sealed partial class HttpOcrServer {
-	void handleqr(HttpListenerContext ctx) {
+	void handleqr(SockCtx ctx) {
 		byte[] imageBytes;
 		JsonObject jo;
 		try {
@@ -60,7 +60,7 @@ sealed partial class HttpOcrServer {
 		});
 	}
 
-	(byte[] image, JsonObject jo) readqrimage(HttpListenerRequest req) {
+	(byte[] image, JsonObject jo) readqrimage(SockReq req) {
 		var ctype = req.ContentType ?? "";
 		if (ctype.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
 			var (img, opt) = readmultipart(req);
