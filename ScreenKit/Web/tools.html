@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=1280"/>
+<title>ScreenKit 工具</title>
+<link rel="stylesheet" href="/sk/tools.css"/>
+</head>
+<body>
+<div class="shell">
+	<aside>
+		<div class="brand">
+			<span class="mark">S</span>
+			<div>
+				<strong>ScreenKit</strong>
+				<small>本机工具</small>
+			</div>
+		</div>
+		<nav id="nav">
+			<button type="button" data-tool="home" class="on">概览</button>
+			<button type="button" data-tool="zh">简繁转换</button>
+			<button type="button" data-tool="cal">历法</button>
+			<button type="button" data-tool="yomi">日文注音</button>
+			<button type="button" data-tool="text">文本</button>
+		</nav>
+		<a class="files" href="/files">文件传输</a>
+	</aside>
+	<main>
+		<section id="home" class="panel on">
+			<p class="kicker">本机 · 不离开这台电脑</p>
+			<h1>小工具</h1>
+			<p class="lead">简繁、历法、日文读音和文本处理都在这个端口上完成。结果只回到这个页面。</p>
+			<div class="cards">
+				<button type="button" data-tool="zh">
+					<span>简繁转换</span>
+					<small>系统转换表，繁体接近台湾用字</small>
+				</button>
+				<button type="button" data-tool="cal">
+					<span>历法</span>
+					<small>公历换农历、干支、日本、希伯来等</small>
+				</button>
+				<button type="button" data-tool="yomi">
+					<span>日文注音</span>
+					<small>句子转读音，可按词或逐字</small>
+				</button>
+				<button type="button" data-tool="text">
+					<span>文本</span>
+					<small>Base64、URL、十六进制、JSON</small>
+				</button>
+			</div>
+		</section>
+
+		<section id="zh" class="panel">
+			<p class="kicker">LCMapStringEx</p>
+			<h1>简繁转换</h1>
+			<div class="split">
+				<label>原文
+					<textarea id="zh-in" rows="12" placeholder="输入简体或繁体"></textarea>
+				</label>
+				<label>结果
+					<textarea id="zh-out" rows="12" readonly></textarea>
+				</label>
+			</div>
+			<div class="row">
+				<button type="button" id="zh-trad" class="primary">转为繁体</button>
+				<button type="button" id="zh-simp">转为简体</button>
+				<button type="button" id="zh-copy" class="ghost">复制结果</button>
+				<span id="zh-msg" class="msg"></span>
+			</div>
+		</section>
+
+		<section id="cal" class="panel">
+			<p class="kicker">Windows.Globalization.Calendar</p>
+			<h1>历法</h1>
+			<div class="row">
+				<label>公历
+					<input id="cal-date" type="date"/>
+				</label>
+				<label>历法
+					<select id="cal-id">
+						<option value="lunar">农历</option>
+						<option value="gregorian">公历</option>
+						<option value="jp">日本</option>
+						<option value="jplunar">日本旧历</option>
+						<option value="tw">民国</option>
+						<option value="ko">韩国</option>
+						<option value="vilunar">越南农历</option>
+						<option value="he">希伯来</option>
+						<option value="hijri">伊斯兰</option>
+						<option value="umalqura">乌姆库拉</option>
+						<option value="fa">波斯</option>
+						<option value="th">佛历</option>
+						<option value="julian">儒略历</option>
+					</select>
+				</label>
+				<button type="button" id="cal-go" class="primary">换算</button>
+				<span id="cal-msg" class="msg"></span>
+			</div>
+			<dl id="cal-out" class="facts"></dl>
+		</section>
+
+		<section id="yomi" class="panel">
+			<p class="kicker">JapanesePhoneticAnalyzer</p>
+			<h1>日文注音</h1>
+			<label>原文
+				<textarea id="yo-in" rows="6" placeholder="東京は晴れです"></textarea>
+			</label>
+			<div class="row">
+				<label class="check"><input id="yo-mono" type="checkbox"/> 逐字</label>
+				<button type="button" id="yo-go" class="primary">注音</button>
+				<button type="button" id="yo-copy" class="ghost">复制读音</button>
+				<span id="yo-msg" class="msg"></span>
+			</div>
+			<div class="stack">
+				<label>词组
+					<textarea id="yo-ruby" rows="4" readonly></textarea>
+				</label>
+				<label>读音
+					<textarea id="yo-yomi" rows="4" readonly></textarea>
+				</label>
+			</div>
+		</section>
+
+		<section id="text" class="panel">
+			<p class="kicker">文本</p>
+			<h1>编解码</h1>
+			<label>原文
+				<textarea id="tx-in" rows="8" placeholder="要处理的文字"></textarea>
+			</label>
+			<div class="ops" id="tx-ops">
+				<button type="button" data-op="b64enc">Base64 编码</button>
+				<button type="button" data-op="b64dec">Base64 解码</button>
+				<button type="button" data-op="urlenc">URL 编码</button>
+				<button type="button" data-op="urldec">URL 解码</button>
+				<button type="button" data-op="utf8hex">UTF-8 十六进制</button>
+				<button type="button" data-op="utf8unhex">还原 UTF-8</button>
+				<button type="button" data-op="gbkhex">GBK 十六进制</button>
+				<button type="button" data-op="gbkunhex">还原 GBK</button>
+				<button type="button" data-op="uesc">Unicode 转义</button>
+				<button type="button" data-op="uunesc">还原 Unicode</button>
+				<button type="button" data-op="upper">大写</button>
+				<button type="button" data-op="lower">小写</button>
+				<button type="button" data-op="collapse">合并空白</button>
+				<button type="button" data-op="dropempty">去掉空行</button>
+				<button type="button" data-op="json">JSON 美化</button>
+				<button type="button" data-op="stats">统计</button>
+			</div>
+			<div class="row">
+				<button type="button" id="tx-copy" class="ghost">复制结果</button>
+				<span id="tx-msg" class="msg"></span>
+			</div>
+			<label>结果
+				<textarea id="tx-out" rows="8" readonly></textarea>
+			</label>
+		</section>
+	</main>
+</div>
+<script src="/sk/tools.js"></script>
+</body>
+</html>

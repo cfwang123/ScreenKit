@@ -58,7 +58,7 @@ public partial class WebFileWindow : Window {
 		var port = server.ListenPort > 0 ? server.ListenPort : SendFileServer.FileHttpPort(opt);
 		eurl.Items.Clear();
 		foreach (var ip in ips) {
-			eurl.Items.Add($"http://{ip}:{port}/");
+			eurl.Items.Add($"http://{ip}:{port}/files");
 			eurl.Items.Add($"http://{ip}:{port}/m");
 		}
 		eurl.IsEnabled = eurl.Items.Count > 0;

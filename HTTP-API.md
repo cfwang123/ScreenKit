@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, and `/api/cast/stop` stay available. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -98,12 +98,14 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/` · `/api` | API name and endpoint list |
+| GET | `/` | Local tools page (HTML). Assets `/sk/tools.css` and `/sk/tools.js` |
+| GET | `/api` | API name and endpoint list |
 | GET | `/api/status` · `/api/health` | Service and capability status |
 | GET/POST | `/api/toast` | Bottom-of-screen toast (not tied to a module switch) |
 | GET/POST | `/api/zhconv` | Simplified/traditional (not tied to a module switch) |
 | GET/POST | `/api/calendar` | Gregorian to another calendar (not tied to a module switch) |
 | GET/POST | `/api/jpyomi` | Japanese reading (not tied to a module switch) |
+| GET/POST | `/api/text` | Text encode/decode (not tied to a module switch) |
 | GET | `/api/ocr/get_options` | OCR option descriptors |
 | POST | `/api/ocr` | Image OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR) |
@@ -123,9 +125,11 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
 
 ---
 
-## 4. GET `/` · `/api`
+## 4. GET `/` and GET `/api`
 
-Returns service name and endpoint list.
+`GET /` and `HEAD /` return the local tools page: simplified/traditional, calendars, Japanese yomi, and text. The page loads `/sk/tools.css` and `/sk/tools.js`, and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, and `/api/text`. The desktop file manager is `/files`.
+
+`GET /api` returns the service name and endpoint list.
 
 **Response example:**
 
@@ -299,6 +303,23 @@ ScreenKit --calendar 2024-02-10 --cal lunar
 ScreenKit --jpyomi "東京は晴れです"
 ScreenKit --jpyomi "東京" --mono
 ```
+
+---
+
+## 5.5 GET/POST `/api/text`
+
+Text helpers. Not tied to a module switch. `text` may be empty. Unknown `op` returns 802. Bad Base64, hex, or JSON returns 500.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | string | Source. `message` is an alias |
+| `op` | string | `b64enc` `b64dec` `urlenc` `urldec` `utf8hex` `utf8unhex` `gbkhex` `gbkunhex` `uesc` `uunesc` `upper` `lower` `collapse` `dropempty` `json` `stats` |
+
+```json
+{ "text": "hi", "op": "b64enc" }
+```
+
+**Response `data`:** `text` is the result (`aGk=` for the example). `op` echoes the operation. `stats` puts a short multiline count in `text`.
 
 ---
 
@@ -941,13 +962,14 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 Shares the HTTP API port (default **1224**). Enable under **Settings → API → PC file transfer**. Phones and browsers on the LAN also need **Allow LAN access** (`http_lan = true`). UDP discovery **17531**. Files are restricted to `sendfile/` next to the exe.
 
-`GET /apk` needs **no pairing** (phone scans the QR before the app is installed). `GET /` and `GET /m` are the web file manager (desktop / phone). `GET /f/<rel>` downloads **without login**. Web upload/list/delete need a login (cookie `sk_web` or `X-Web-Token`). Other phone routes after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
+`GET /apk` needs **no pairing** (phone scans the QR before the app is installed). `GET /files` and `GET /m` are the web file manager (desktop / phone). `GET /` is the tools page, not the file manager. `GET /f/<rel>` downloads **without login**. Web upload/list/delete need a login (cookie `sk_web` or `X-Web-Token`). Other phone routes after pairing: `X-Device-Id` + `Authorization: Bearer <token>`.
 
 Discovery: UDP broadcast `SCREENKIT_DISCOVER` to port 17531; the PC replies with JSON `{v,name,httpPort,pcId}`.
 
 | Method | Path | Notes |
 |--------|------|--------|
-| GET | `/` | Desktop web page (mobile UA redirects to `/m`; `?pc=1` forces desktop) |
+| GET | `/files` | Desktop web page (mobile UA redirects to `/m`; `?pc=1` forces desktop) |
+| GET | `/index.html` | Redirects to `/files` |
 | GET | `/m` | Phone web page |
 | GET | `/web/app.js` · `/web/d.css` · `/web/m.css` | Page assets |
 | GET | `/f/<rel>` | Public download (no login; path must stay inside sendfile/) |

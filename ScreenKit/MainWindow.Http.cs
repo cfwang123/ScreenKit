@@ -27,6 +27,7 @@ public partial class MainWindow {
 			httplog.Clear();
 			ehttplog.Clear();
 		};
+		bhttptools.Click += (_, _) => openhttptools();
 		bhttpsend.Click += (_, _) => _ = httpSendAsync();
 		synchttpstatus();
 		if (ehttptpl.Items.Count > 0)
@@ -45,6 +46,7 @@ public partial class MainWindow {
 		addhttp("POST /api/calendar", "POST", "/api/calendar", "{\n  \"date\": \"2024-02-10\",\n  \"cal\": \"lunar\"\n}", "http.doc.calendar");
 		addhttp("GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");
 		addhttp("POST /api/jpyomi", "POST", "/api/jpyomi", "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}", "http.doc.jpyomi");
+		addhttp("POST /api/text", "POST", "/api/text", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}", "http.doc.text");
 		addhttp("POST /api/cast/stop", "POST", "/api/cast/stop", "", "http.doc.caststop");
 		addhttp("GET /api", "GET", "/api", "", "http.doc.api");
 		addhttp("GET /api/ocr/get_options", "GET", "/api/ocr/get_options", "", "http.doc.ocropt");
@@ -134,6 +136,7 @@ public partial class MainWindow {
 			lbhttpbrand.Text = Loc.T("http.tab.brand");
 			lbhttplog.Text = Loc.T("http.tab.log");
 			bhttpclear.Content = Loc.T("http.tab.clear");
+			bhttptools.Content = Loc.T("http.tab.tools");
 			lbhttpreq.Text = Loc.T("http.tab.req");
 			lbhttptpl.Text = Loc.T("http.tab.tpl");
 			lbhttphelp.Text = Loc.T("http.tab.help");
@@ -149,6 +152,22 @@ public partial class MainWindow {
 
 	string httpbaseurl() {
 		return $"http://127.0.0.1:{opt.HttpPort}";
+	}
+
+	void openhttptools() {
+		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
+			ehttpresp.Text = httpstatustext();
+			return;
+		}
+		try {
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = httpbaseurl() + "/",
+				UseShellExecute = true,
+			});
+		}
+		catch (Exception ex) {
+			ehttpresp.Text = ex.Message;
+		}
 	}
 
 	async Task httpSendAsync() {

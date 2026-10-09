@@ -20,7 +20,7 @@ public sealed partial class SendFileServer {
 			handlewebapi(ctx, method, path);
 			return true;
 		}
-		if (path is "/" or "/m" or "/index.html" or "/m.html"
+		if (path is "/files" or "/m" or "/index.html" or "/m.html"
 			|| path.StartsWith("/web/")) {
 			if (!isget(method) && !ishead(method)) {
 				writejson(ctx, 405, err(805, "页面仅支持 GET/HEAD"));
@@ -303,7 +303,12 @@ public sealed partial class SendFileServer {
 	}
 
 	void handlewebpage(SfCtx ctx, string path, bool head) {
-		if (path is "/" or "/index.html") {
+		if (path == "/index.html") {
+			var q = ctx.Request.Url?.Query ?? "";
+			writeredir(ctx, "/files" + q);
+			return;
+		}
+		if (path == "/files") {
 			var ua = ctx.Request.Headers["User-Agent"] ?? "";
 			var forcePc = truthy(ctx.Request.QueryString["pc"]);
 			if (!forcePc && SendFileWeb.IsMobileUa(ua)) {
@@ -383,7 +388,7 @@ public sealed partial class SendFileServer {
 	static void writeredir(SfCtx ctx, string loc) {
 		var res = ctx.Response;
 		res.StatusCode = 302;
-		res.Headers["Location"] = loc ?? "/";
+		res.Headers["Location"] = loc ?? "/files";
 		res.ContentLength64 = 0;
 		try { res.Close(); } catch { }
 	}

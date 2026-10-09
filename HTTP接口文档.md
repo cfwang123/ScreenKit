@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi` 和 `/api/cast/stop` 仍可用。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -99,12 +99,14 @@ http_port = 1224
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/` · `/api` | API 说明与端点列表 |
+| GET | `/` | 本机工具页（HTML）。资源 `/sk/tools.css`、`/sk/tools.js` |
+| GET | `/api` | API 说明与端点列表 |
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
 | GET/POST | `/api/toast` | 屏幕底部 Toast（不随模块开关关闭） |
 | GET/POST | `/api/zhconv` | 简繁转换（不随模块开关关闭） |
 | GET/POST | `/api/calendar` | 公历换历法（不随模块开关关闭） |
 | GET/POST | `/api/jpyomi` | 日文注音（不随模块开关关闭） |
+| GET/POST | `/api/text` | 文本编解码（不随模块开关关闭） |
 | GET | `/api/ocr/get_options` | OCR 可选项描述 |
 | POST | `/api/ocr` | 图片 OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR） |
@@ -124,9 +126,11 @@ http_port = 1224
 
 ---
 
-## 4. GET `/` · `/api`
+## 4. GET `/` 与 GET `/api`
 
-返回服务名称与端点列表。
+`GET /` 和 `HEAD /` 返回本机工具页：简繁、历法、日文注音、文本。页面加载 `/sk/tools.css` 和 `/sk/tools.js`，并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`。电脑版文件管理在 `/files`。
+
+`GET /api` 返回服务名称与端点列表。
 
 **响应示例：**
 
@@ -316,6 +320,23 @@ ScreenKit --calendar 2024-02-10 --cal lunar
 ScreenKit --jpyomi "東京は晴れです"
 ScreenKit --jpyomi "東京" --mono
 ```
+
+---
+
+## 5.5 GET/POST `/api/text`
+
+文本编解码。不随模块开关关闭。`text` 可以为空。未知 `op` 返回 802。Base64、十六进制或 JSON 不合法返回 500。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `text` | string | 原文。也可用 `message` |
+| `op` | string | `b64enc` `b64dec` `urlenc` `urldec` `utf8hex` `utf8unhex` `gbkhex` `gbkunhex` `uesc` `uunesc` `upper` `lower` `collapse` `dropempty` `json` `stats` |
+
+```json
+{ "text": "hi", "op": "b64enc" }
+```
+
+**响应 `data`：** `text` 是结果（上例为 `aGk=`）。`op` 回显操作。`stats` 把简短的多行统计放进 `text`。
 
 ---
 
@@ -1052,13 +1073,14 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 与 HTTP API **共用同一端口**（默认 **1224**）。在 **参数设置 → 接口 → PC 文件传输** 启用。手机和网页从局域网访问时，须同时勾选 **允许局域网访问**（`http_lan = true`）。UDP 发现 **17531**。文件仅限程序旁 `sendfile/`。
 
-`GET /apk` **无需配对**（给未装 App 的手机扫码下载）。`GET /`、`GET /m` 为网页文件管理（电脑 / 手机各一套）。`GET /f/<相对路径>` **无需登录**即可下载。网页上传/列出/删除等需登录（Cookie `sk_web` 或 `X-Web-Token`）。其它手机接口配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
+`GET /apk` **无需配对**（给未装 App 的手机扫码下载）。`GET /files`、`GET /m` 为网页文件管理（电脑 / 手机各一套）。`GET /` 是工具页，不是文件管理。`GET /f/<相对路径>` **无需登录**即可下载。网页上传/列出/删除等需登录（Cookie `sk_web` 或 `X-Web-Token`）。其它手机接口配对后请求头：`X-Device-Id` + `Authorization: Bearer <token>`。
 
 发现：向 UDP 17531 广播 `SCREENKIT_DISCOVER`，电脑应答 JSON `{v,name,httpPort,pcId}`。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/` | 电脑版网页（手机 UA 会跳到 `/m`；`?pc=1` 强制电脑版） |
+| GET | `/files` | 电脑版网页（手机 UA 会跳到 `/m`；`?pc=1` 强制电脑版） |
+| GET | `/index.html` | 转到 `/files` |
 | GET | `/m` | 手机版网页 |
 | GET | `/web/app.js` · `/web/d.css` · `/web/m.css` | 页面资源 |
 | GET | `/f/<相对路径>` | 公开下载（无需登录；路径须正好落在 sendfile/） |

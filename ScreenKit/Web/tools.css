@@ -1,0 +1,98 @@
+:root {
+	--ink: #1c1915;
+	--muted: #6b645c;
+	--line: #e4ddd4;
+	--paper: #f6f3ee;
+	--card: #fffcf8;
+	--side: #241f1b;
+	--side-ink: #f4efe8;
+	--accent: #b4532a;
+	--accent-ink: #fffaf6;
+	--danger: #9f2d2d;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+	min-width: 1080px;
+	background: var(--paper);
+	color: var(--ink);
+	font: 15px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.shell { display: flex; min-height: 100%; }
+aside {
+	width: 232px;
+	flex: none;
+	background: var(--side);
+	color: var(--side-ink);
+	display: flex;
+	flex-direction: column;
+	padding: 22px 14px 18px;
+}
+.brand { display: flex; gap: 12px; align-items: center; padding: 0 8px 18px; }
+.brand strong { display: block; font-size: 16px; letter-spacing: 0.01em; }
+.brand small { color: #c8bfb4; }
+.mark {
+	width: 36px; height: 36px; border-radius: 10px;
+	background: var(--accent); color: var(--accent-ink);
+	display: grid; place-items: center; font-weight: 700;
+}
+nav { display: flex; flex-direction: column; gap: 4px; }
+nav button, .cards button, .ops button, .row button, .ghost {
+	font: inherit; cursor: pointer;
+}
+nav button {
+	text-align: left; color: #efe8e0; background: transparent;
+	border: 0; border-radius: 10px; padding: 10px 12px;
+}
+nav button.on, nav button:hover { background: rgba(255,255,255,.08); }
+nav button.on { color: #fff; }
+.files {
+	margin-top: auto; color: #d9cfc4; text-decoration: none;
+	padding: 10px 12px; border-radius: 10px;
+}
+.files:hover { background: rgba(255,255,255,.08); color: #fff; }
+main { flex: 1; padding: 36px 48px 48px; max-width: 980px; }
+.panel { display: none; }
+.panel.on { display: block; }
+.kicker { margin: 0; color: var(--accent); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
+h1 { margin: 6px 0 8px; font-size: 32px; font-weight: 650; letter-spacing: -0.03em; }
+.lead { margin: 0 0 22px; color: var(--muted); max-width: 40em; }
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cards button {
+	text-align: left; background: var(--card); border: 1px solid var(--line);
+	border-radius: 16px; padding: 18px 18px 16px;
+	box-shadow: 0 10px 28px rgba(36, 31, 27, .04);
+}
+.cards button:hover { border-color: #d7c8ba; }
+.cards span { display: block; font-size: 18px; font-weight: 650; }
+.cards small { display: block; margin-top: 6px; color: var(--muted); }
+label { display: block; color: var(--muted); font-size: 12px; }
+textarea, input[type="date"], select {
+	display: block; width: 100%; margin-top: 6px;
+	border: 1px solid var(--line); background: var(--card); color: var(--ink);
+	border-radius: 12px; padding: 10px 12px; font: 14px/1.5 Consolas, "Microsoft YaHei UI", monospace;
+}
+textarea { resize: vertical; }
+select, input[type="date"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; height: 40px; }
+.split, .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.stack { margin-top: 12px; }
+.row { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+.row label { width: 220px; }
+.row button, .ops button, .ghost {
+	border: 1px solid var(--line); background: var(--card); color: var(--ink);
+	border-radius: 999px; padding: 8px 14px;
+}
+.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.ghost { background: transparent; }
+.ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.check { width: auto; display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; }
+.check input { margin: 0; }
+.msg { color: var(--muted); min-height: 1.2em; }
+.msg.bad { color: var(--danger); }
+.facts {
+	display: grid; grid-template-columns: 120px 1fr; gap: 8px 16px;
+	background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+	padding: 18px 20px; margin: 8px 0 0;
+}
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }

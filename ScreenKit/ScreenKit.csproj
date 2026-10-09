@@ -52,6 +52,12 @@
     <None Include="dll\x64\License.7za.txt" CopyToOutputDirectory="PreserveNewest" Link="License.7za.txt" />
     <None Include="lang\*.toml" CopyToOutputDirectory="PreserveNewest" Link="lang\%(Filename)%(Extension)" />
     <None Include="SendFile\web\**\*" CopyToOutputDirectory="PreserveNewest" Link="web\%(Filename)%(Extension)" />
+    <None Include="Web\tools.html" CopyToOutputDirectory="PreserveNewest" Link="web\tools.html" />
+    <None Include="Web\tools.css" CopyToOutputDirectory="PreserveNewest" Link="web\tools.css" />
+    <None Include="Web\tools.js" CopyToOutputDirectory="PreserveNewest" Link="web\tools.js" />
+    <EmbeddedResource Include="Web\tools.html" LogicalName="web.tools.html" />
+    <EmbeddedResource Include="Web\tools.css" LogicalName="web.tools.css" />
+    <EmbeddedResource Include="Web\tools.js" LogicalName="web.tools.js" />
     <EmbeddedResource Include="SendFile\web\index.html" LogicalName="web.index.html" />
     <EmbeddedResource Include="SendFile\web\m.html" LogicalName="web.m.html" />
     <EmbeddedResource Include="SendFile\web\app.js" LogicalName="web.app.js" />

@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- `GET /` is the local tools page (simplified/traditional, calendars, Japanese yomi, text). Styles and script are `/sk/tools.css` and `/sk/tools.js`. The HTTP tab has **Tools** to open it. `GET/POST /api/text` covers Base64, URL, hex, Unicode escape, case, whitespace, JSON pretty-print, and counts. The desktop file manager moved from `/` to `/files`. The phone page stays `/m`. `/index.html` redirects to `/files`.
 - **Tools → Network tools** adds **Location**. It uses Windows geolocation (Wi-Fi or GPS) and does not need a host. The first call asks for permission. Output includes coordinates, accuracy, source, and civic address when the system provides one. **Map** opens Amap in the browser (GCJ-02 inside China so the pin matches the roads). OpenStreetMap and Amap addresses in the result are clickable links; the OpenStreetMap link keeps the original WGS84 coordinates.
 - The HTTP tab **Send** button sits on the method and path row, to the right of the path.
 - `GET/POST /api/calendar` and `/api/jpyomi` run Windows calendar and Japanese yomi on an STA thread. The HTTP worker is MTA, and those WinRT classes cannot be activated there.
@@ -54,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- `GET /` 是本机工具页（简繁、历法、日文注音、文本）。样式和脚本是 `/sk/tools.css`、`/sk/tools.js`。HTTP 接口页有 **工具页** 按钮打开它。`GET/POST /api/text` 做 Base64、URL、十六进制、Unicode 转义、大小写、空白、JSON 美化和统计。电脑版网页文件管理从 `/` 改到 `/files`。手机版仍是 `/m`。`/index.html` 转到 `/files`。
 - **工具 → 网络工具**增加**系统定位**。使用 Windows 定位（Wi-Fi 或 GPS），不用填写主机。第一次调用时系统询问是否允许。结果包含经纬度、精度、来源，以及系统能提供的地点。**查看地图**用浏览器打开高德（国内坐标换成 GCJ-02，标点才落在路上）。结果里的 OpenStreetMap 和高德地址是可点击的链接，OpenStreetMap 保持原始 WGS84。
 - HTTP 接口页的**发送**按钮改到方法和路径那一行的右侧。
 - `GET/POST /api/calendar` 和 `/api/jpyomi` 在 STA 线程上调用 Windows 历法和日文注音。HTTP 工作线程是 MTA，这两个 WinRT 类不能在那里激活。

@@ -3138,6 +3138,19 @@ static class Cli {
 				Err("FAIL: HTTP 查询串未按 UTF-8 解码");
 				return 1;
 			}
+			var home = Task.Run(() => new HttpClient().GetStringAsync($"http://127.0.0.1:{port}/").GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			if (home == null || home.IndexOf("简繁转换", StringComparison.Ordinal) < 0) {
+				Err("FAIL: GET / 不是工具页");
+				return 1;
+			}
+			var textUrl = $"http://127.0.0.1:{port}/api/text";
+			var textBody = new StringContent("{\"text\":\"hi\",\"op\":\"b64enc\"}", Encoding.UTF8, "application/json");
+			var textJson = Task.Run(() => new HttpClient().PostAsync(textUrl, textBody).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("text " + textJson);
+			if (textJson == null || textJson.IndexOf("aGk=", StringComparison.Ordinal) < 0) {
+				Err("FAIL: /api/text 未返回 Base64");
+				return 1;
+			}
 			return 0;
 		}
 		catch (Exception ex) {
@@ -4667,11 +4680,11 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				CookieContainer = cookies,
 			};
 			using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(12) };
-			var page = Task.Run(() => http.GetStringAsync(baseUrl + "/?pc=1")).GetAwaiter().GetResult();
+			var page = Task.Run(() => http.GetStringAsync(baseUrl + "/files?pc=1")).GetAwaiter().GetResult();
 			if (page == null || page.IndexOf("sfweb", StringComparison.Ordinal) < 0
 				|| page.IndexOf("id=\"btext\"", StringComparison.Ordinal) < 0
 				|| page.IndexOf("id=\"textdlg\"", StringComparison.Ordinal) < 0) {
-				Err("sendfile-web: / 未返回页面");
+				Err("sendfile-web: /files 未返回页面");
 				return 1;
 			}
 			var mpage = Task.Run(() => http.GetStringAsync(baseUrl + "/m")).GetAwaiter().GetResult();

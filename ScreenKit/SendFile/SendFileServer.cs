@@ -64,7 +64,7 @@ public sealed partial class SendFileServer : IDisposable {
 
 	public static bool IsOurPath(string path) {
 		path = (path ?? "").ToLowerInvariant();
-		return path is "/" or "/m" or "/apk" or "/d" or "/f" or "/index.html" or "/m.html"
+		return path is "/files" or "/m" or "/apk" or "/d" or "/f" or "/index.html" or "/m.html"
 			|| path.StartsWith("/f/")
 			|| path.StartsWith("/web/")
 			|| path.StartsWith("/api/web")

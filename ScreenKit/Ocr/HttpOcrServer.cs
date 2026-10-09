@@ -17,9 +17,11 @@ namespace ScreenKit;
 /// <list type="bullet">
 /// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
+/// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
 /// <item>GET/POST /api/calendar 历法</item>
 /// <item>GET/POST /api/jpyomi 日文注音</item>
+/// <item>GET/POST /api/text 文本编解码</item>
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
@@ -373,6 +375,14 @@ sealed partial class HttpOcrServer : IDisposable {
 				handlecast(ctx);
 				return;
 			}
+			if (path is "/" or "/sk/tools.css" or "/sk/tools.js") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "工具页仅支持 GET"));
+					return;
+				}
+				handletoolspage(ctx, path);
+				return;
+			}
 			if (sendFile != null && sendFile.IsRunning && SendFileServer.IsOurPath(path)
 				&& sendFile.TryHandle(ctx))
 				return;
@@ -449,6 +459,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlejpyomi(ctx);
+				return;
+			}
+
+			if (path is "/api/text" or "/api/text/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "text 仅支持 GET 或 POST"));
+					return;
+				}
+				handletext(ctx);
 				return;
 			}
 
@@ -551,7 +570,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
-			if (path is "/" or "/api" or "/api/") {
+			if (path is "/api" or "/api/") {
 				writejson(ctx, 200, new JsonObject {
 					["code"] = 100,
 					["data"] = new JsonObject {
@@ -686,6 +705,94 @@ sealed partial class HttpOcrServer : IDisposable {
 				["ms"] = ms < 800 ? 800 : (ms > 8000 ? 8000 : ms),
 			},
 		});
+	}
+
+	void handletoolspage(HttpListenerContext ctx, string path) {
+		string name;
+		string mime;
+		if (path == "/sk/tools.css") {
+			name = "tools.css";
+			mime = "text/css; charset=utf-8";
+		}
+		else if (path == "/sk/tools.js") {
+			name = "tools.js";
+			mime = "application/javascript; charset=utf-8";
+		}
+		else {
+			name = "tools.html";
+			mime = "text/html; charset=utf-8";
+		}
+		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
+			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
+			return;
+		}
+		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
+		var res = ctx.Response;
+		res.StatusCode = 200;
+		res.ContentType = mime;
+		res.ContentLength64 = bytes.Length;
+		res.Headers["Cache-Control"] = "no-cache";
+		res.Headers["Access-Control-Allow-Origin"] = "*";
+		try {
+			if (!head)
+				res.OutputStream.Write(bytes, 0, bytes.Length);
+		}
+		finally {
+			try { res.OutputStream.Close(); } catch { }
+			try { res.Close(); } catch { }
+		}
+	}
+
+	void handletext(HttpListenerContext ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message") ?? "";
+		var op = (field(ctx, jo, "op") ?? "").Trim().ToLowerInvariant();
+		if (op.Length == 0) {
+			writejson(ctx, 200, err(802, "请提供 op"));
+			return;
+		}
+		string outText;
+		try {
+			outText = op switch {
+				"b64enc" => TextTools.Base64Enc(text),
+				"b64dec" => TextTools.Base64Dec(text),
+				"urlenc" => TextTools.UrlEnc(text),
+				"urldec" => TextTools.UrlDec(text),
+				"utf8hex" => TextTools.Utf8Hex(text),
+				"utf8unhex" => TextTools.FromUtf8Hex(text),
+				"gbkhex" => TextTools.GbkHex(text),
+				"gbkunhex" => TextTools.FromGbkHex(text),
+				"uesc" => TextTools.UnicodeEsc(text),
+				"uunesc" => TextTools.UnicodeUnesc(text),
+				"upper" => text.ToUpperInvariant(),
+				"lower" => text.ToLowerInvariant(),
+				"collapse" => TextTools.CollapseWs(text),
+				"dropempty" => TextTools.DropEmptyLines(text),
+				"json" => TextTools.JsonPretty(text),
+				"stats" => textstatstext(text),
+				_ => null,
+			};
+		}
+		catch (Exception ex) {
+			writejson(ctx, 200, err(500, ex.Message));
+			return;
+		}
+		if (outText == null) {
+			writejson(ctx, 200, err(802, "未知 op"));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["text"] = outText,
+				["op"] = op,
+			},
+		});
+	}
+
+	static string textstatstext(string text) {
+		var s = TextTools.Stats(text);
+		return $"字符 {s.Chars}\n不计空白 {s.CharsNoWs}\n行 {s.Lines}\nUTF-8 {s.Utf8Bytes}\nGBK {s.GbkBytes}";
 	}
 
 	void handlezhconv(HttpListenerContext ctx) {
@@ -1890,6 +1997,9 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	static JsonArray apilist(OcrOptions o) {
 		var a = new JsonArray {
+			"GET  /  本机工具页",
+			"GET  /sk/tools.css · /sk/tools.js",
+			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
 			"GET  /api/status",
 			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
 			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
