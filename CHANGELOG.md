@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- Startup no longer opens **Help → Install features**. Windows OCR works without that window. Optional packs are still installed from the Help menu, or when a feature asks for a missing dependency.
 - A new install uses **Windows OCR**, **Windows speech**, and **Windows speech recognition** when nothing is saved. A saved pack, voice engine, or ASR model is kept. CLI `-p` defaults to `winocr`. Speech still uses Edge online when Windows has no voice.
 - **Windows OCR** no longer asks for OpenCV. Screenshot OCR, PDF OCR, CLI, and `POST /api/ocr` decode and scale the image with Windows imaging. ONNX OCR, barcodes, and long screenshots still require OpenCV.
 - **Help → Install features → Windows OCR/Speech** checks installed packs once after ScreenKit starts. Opening the window again uses that result. Refresh still checks every pack. Installing or removing rechecks only those packs.
@@ -45,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- 启动时不再弹出 **帮助 → 安装功能**。Windows 系统 OCR 不用这个窗口就能识别。可选组件仍从帮助菜单安装，或在使用某功能时因缺少依赖而提示安装。
 - 没有保存过选择时，默认使用 **Windows 系统 OCR**、**Windows 语音**和 **Windows 语音识别**。已经保存的模型包、语音引擎或识别模型保持不变。命令行 `-p` 默认改为 `winocr`。本机没有 Windows 发音人时，语音合成仍用 Edge 在线。
 - **Windows 系统 OCR** 不再检查 OpenCV。截图识别、PDF 识别、命令行和 `POST /api/ocr` 用 Windows 图像接口解码和缩小。ONNX 识别、条码和长截图仍需要 OpenCV。
 - **帮助 → 安装功能 → Windows OCR/语音** 在程序启动后只检查一次已安装的功能包。再次打开窗口沿用上次结果。点刷新仍会检查全部。安装或卸载后只复查刚改过的功能。

@@ -144,11 +144,8 @@ public partial class MainWindow : Window {
 		// 调整大小/移动后延迟写入（真正退出时也会再存）
 		LocationChanged += (_, _) => scheduleboundsave();
 		SizeChanged += (_, _) => scheduleboundsave();
-		// 首次启动：空闲时弹出安装向导；否则按间隔自动检查更新
-		if (!opt.InstallPromptDone)
-			Loaded += onfirstinstallprompt;
-		else
-			Loaded += onautoupdate;
+		// 系统 OCR 可直接用，启动不再弹出安装向导。按间隔检查更新。
+		Loaded += onautoupdate;
 	}
 
 	void initonnxidle() {
@@ -253,51 +250,6 @@ public partial class MainWindow : Window {
 	void selectmaintab(TabItem tab) {
 		if (tab == null || tab.Visibility != Visibility.Visible) return;
 		maintabs.SelectedItem = tab;
-	}
-
-	void onfirstinstallprompt(object sender, RoutedEventArgs e) {
-		Loaded -= onfirstinstallprompt;
-		// 等主窗完全显示后再弹
-		Dispatcher.BeginInvoke(new Action(() => {
-			try { showfirstinstall(); }
-			catch (Exception ex) { CaptureLog.Ex("first install prompt", ex); }
-		}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-	}
-
-	void showfirstinstall() {
-		if (opt.InstallPromptDone) return;
-		try {
-			var win = new InstallFeaturesWindow(firstRun: true);
-			attachdialogowner(win);
-			win.ShowDialog();
-			// 刷新模型列表（与菜单「安装功能」一致）
-			if (win.NeedRefresh || win.NeedRestart) {
-				try {
-					reloadocrpacks();
-				}
-				catch (Exception ex) {
-					modelUiLoading = false;
-					CaptureLog.Ex("first install refresh ocr", ex);
-				}
-				try { scanasrmodels(); } catch (Exception ex) { CaptureLog.Ex("first install refresh asr", ex); }
-				try { scanttssmodels(); } catch (Exception ex) { CaptureLog.Ex("first install refresh tts", ex); }
-				try { scantrmodels(); } catch (Exception ex) { CaptureLog.Ex("first install refresh tr", ex); }
-				try { scanfacemodels(); } catch (Exception ex) { CaptureLog.Ex("first install refresh face", ex); }
-				try { refreshdeviceui(); } catch { }
-				if (win.NeedRestart)
-					setstatus("推荐组件已安装 · 请重启程序以加载 GPU/核显运行库");
-				else if (win.NeedRefresh)
-					setstatus("推荐组件安装完成 · 模型列表已刷新");
-			}
-		}
-		catch (Exception ex) {
-			CaptureLog.Ex("showfirstinstall", ex);
-		}
-		finally {
-			// 无论是否安装，标记已提示，避免每次启动都弹
-			opt.InstallPromptDone = true;
-			try { AppConfig.Save(opt); } catch { }
-		}
 	}
 
 	System.Windows.Threading.DispatcherTimer boundsSaveTimer;
