@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The Windows OCR description now explicitly notes that the built-in engine is especially fast.
 - Settings → Recognition now places the selected OCR engine description directly below the model picker, before language or model-variant controls.
 - The Windows speech synthesis and recognition command boxes group all DISM install commands first and all remove commands second, instead of alternating install/remove for each language.
 - The Install features tab formerly named **Windows speech** is now **Windows speech synthesis**, distinguishing it from Windows speech recognition.
@@ -44,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- Windows OCR 说明现在明确提示该系统自带引擎速度特别快。
 - 参数设置 → 识别将当前 OCR 引擎说明移到模型选择框正下方，位于语言或模型变体控件之前。
 - Windows 语音合成、语音识别页的 DISM 命令框改为先集中列出全部安装命令，再集中列出全部卸载命令，不再按语言交错显示。
 - “安装功能”中原“Windows语音”页改名为“Windows语音合成”，与“Windows语音识别”明确区分。
