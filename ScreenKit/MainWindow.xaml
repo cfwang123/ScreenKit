@@ -744,10 +744,15 @@
 
 								<TextBlock x:Name="lbasroffline" Grid.Row="2" Grid.Column="0" Text="离线模型" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
-								<ComboBox x:Name="easrmodel" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="4"
-								          Height="32" VerticalContentAlignment="Center" Margin="0,0,0,8"
+								<ComboBox x:Name="easrmodel" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
+								          Height="32" VerticalContentAlignment="Center" Margin="0,0,8,8"
 								          DisplayMemberPath="ListName"
 								          ToolTip="文件、批量字幕和听写：SenseVoice、Whisper 或 Windows 系统识别器"/>
+								<TextBlock x:Name="lbasrmodelhelp" Grid.Row="2" Grid.Column="4" Text="ⓘ"
+								           FontSize="18" Foreground="{StaticResource Accent}" Cursor="Help"
+								           VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,0,0,8"
+								           ToolTipService.ShowDuration="30000"
+								           ToolTip="Windows 系统语音的中文识别效果较差；中文建议优先使用 SenseVoice 等 Sherpa 模型。"/>
 
 								<TextBlock x:Name="lbasropt" Grid.Row="3" Grid.Column="0" Text="选项" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,0"/>

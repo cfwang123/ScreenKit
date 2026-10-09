@@ -2220,6 +2220,7 @@ public partial class MainWindow {
 		basrreload.ToolTip = Loc.T("asr.reload.tip");
 		lbasroffline.Text = Loc.T("asr.offline");
 		easrmodel.ToolTip = Loc.T("asr.offline.tip");
+		lbasrmodelhelp.ToolTip = Loc.T("asr.model.help");
 		lbasrlivemode.Text = Loc.T("asr.live.mode");
 		easrliveoffline.Content = Loc.T("asr.live.mode.offline");
 		easrliveoffline.ToolTip = Loc.T("asr.live.mode.offline.tip");
