@@ -115,13 +115,14 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 }
 .none { margin: 18px 0 0; color: var(--muted); }
 label { display: block; color: var(--muted); font-size: 12px; }
-textarea, input[type="date"], input[type="text"], input[type="number"], select {
+textarea, input[type="date"], input[type="text"], input[type="number"], input[type="color"], input[type="file"], select {
 	display: block; width: 100%; margin-top: 6px;
 	border: 1px solid var(--line); background: var(--card); color: var(--ink);
 	border-radius: 12px; padding: 10px 12px; font: 14px/1.5 Consolas, "Microsoft YaHei UI", monospace;
 }
 textarea { resize: vertical; }
-select, input[type="date"], input[type="text"], input[type="number"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; height: 40px; }
+select, input[type="date"], input[type="text"], input[type="number"], input[type="color"], input[type="file"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; height: 40px; }
+#box-img { display: block; max-width: 100%; margin-top: 12px; background: #fff; }
 .split, .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .stack { margin-top: 12px; }
 .row { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }

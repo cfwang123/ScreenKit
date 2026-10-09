@@ -7,6 +7,10 @@ window.sktools = (function(){
 	var curtool = "home";
 	var favs = [];
 	var util = "";
+	var tick = null;
+	var watchOn = false;
+	var watch0 = 0;
+	var watchAcc = 0;
 	var LENU = [["mm", "毫米"], ["cm", "厘米"], ["m", "米"], ["km", "千米"], ["in", "英寸"], ["ft", "英尺"], ["yd", "码"], ["mi", "英里"]];
 	var LENS = { mm: 1, cm: 10, m: 1000, km: 1000000, "in": 25.4, ft: 304.8, yd: 914.4, mi: 1609344 };
 	var BYTEU = [["B", "B"], ["KB", "KB"], ["MB", "MB"], ["GB", "GB"], ["TB", "TB"]];
@@ -98,6 +102,7 @@ window.sktools = (function(){
 	}
 
 	function show(name){
+		stoptick();
 		curtool = name;
 		if (name.indexOf("u-") === 0) {
 			openutil(name);
@@ -683,6 +688,7 @@ window.sktools = (function(){
 	}
 
 	function openutil(name){
+		stoptick();
 		var meta = utilmeta(name);
 		util = name;
 		$("box-title").textContent = meta[0];
@@ -700,6 +706,13 @@ window.sktools = (function(){
 		if (name === "u-ascii") {
 			try { $("box-out").value = asciitable(); }
 			catch (ex) { msg("box-msg", ex && ex.message ? ex.message : "失败", true); }
+		}
+		if (name === "u-watch") {
+			$("box-start").onclick = watchtoggle;
+			$("box-out").value = watchreset();
+		}
+		if (name === "u-dadd" || name === "u-madd") {
+			$("box-a").value = ymd(new Date());
 		}
 	}
 
@@ -722,6 +735,20 @@ window.sktools = (function(){
 			}, function(){
 				msg("box-msg", "SHA-256 失败", true);
 			});
+			return;
+		}
+		if (util === "u-b64img") {
+			imgb64();
+			return;
+		}
+		if (util === "u-down") {
+			try {
+				countdowngo();
+				msg("box-msg", "计时中");
+			}
+			catch (ex) {
+				msg("box-msg", ex && ex.message ? ex.message : "失败", true);
+			}
 			return;
 		}
 		try {
@@ -776,6 +803,26 @@ window.sktools = (function(){
 			"u-hmin": ["HTML 压缩", "压缩"],
 			"u-cmin": ["CSS 压缩", "压缩"],
 			"u-grad": ["CSS 渐变", "生成"],
+			"u-xml": ["XML", "格式化"],
+			"u-table": ["HTML 表格", "生成"],
+			"u-rstr": ["随机字符串", "生成"],
+			"u-ph": ["占位图", "生成"],
+			"u-dadd": ["日期加减", "计算"],
+			"u-madd": ["月份加减", "计算"],
+			"u-jdiff": ["JSON 差异", "比对"],
+			"u-pick": ["取色", "转换"],
+			"u-watch": ["秒表", "复位"],
+			"u-down": ["倒计时", "开始"],
+			"u-sci": ["科学计算", "计算"],
+			"u-rename": ["批量改名", "生成"],
+			"u-jsmin": ["JS 压缩", "压缩"],
+			"u-sql": ["SQL", "格式化"],
+			"u-tok": ["Token 估算", "计算"],
+			"u-hjs": ["HTML 转 JS", "转换"],
+			"u-b64img": ["图片 Base64", "转换"],
+			"u-btn": ["CSS 按钮", "生成"],
+			"u-fake": ["测试数据", "生成"],
+			"u-pal": ["调色板", "生成"],
 		};
 		return map[name] || ["工具", "计算"];
 	}
@@ -873,6 +920,56 @@ window.sktools = (function(){
 		if (name === "u-grad")
 			return row2(lab("起始色", textin("box-a", "#f97316")), lab("结束色", textin("box-b", "#111827")))
 				+ lab("角度", numin("box-n", "90"));
+		if (name === "u-xml")
+			return lab("XML", ta("box-in", 10, ""))
+				+ lab("方向", '<select id="box-mode"><option value="pretty">格式化</option><option value="min">压缩</option></select>');
+		if (name === "u-table")
+			return lab("表格文字", ta("box-in", 8, "第一行是表头。用逗号或制表符分列"));
+		if (name === "u-rstr")
+			return row2(lab("长度", numin("box-len", "16")), lab("个数", numin("box-n", "5")))
+				+ lab("字符集", textin("box-set", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"));
+		if (name === "u-ph")
+			return row2(lab("宽", numin("box-w", "320")), lab("高", numin("box-h", "180")))
+				+ row2(lab("底色", textin("box-bg", "#eef1f4")), lab("字色", textin("box-fg", "#333333")))
+				+ lab("文字", textin("box-in", "", "留空则写宽高"))
+				+ '<img id="box-img" alt="" hidden>';
+		if (name === "u-dadd")
+			return row2(lab("日期", '<input id="box-a" type="date">'), lab("加减天数", textin("box-n", "7")));
+		if (name === "u-madd")
+			return row2(lab("日期", '<input id="box-a" type="date">'), lab("加减月数", textin("box-n", "1")));
+		if (name === "u-jdiff")
+			return '<div class="split">' + lab("JSON 甲", ta("box-a", 10, "")) + lab("JSON 乙", ta("box-b", 10, "")) + "</div>";
+		if (name === "u-pick")
+			return lab("颜色", '<input id="box-color" type="color" value="#3366cc">');
+		if (name === "u-watch")
+			return '<div class="row"><button type="button" id="box-start">开始</button></div>';
+		if (name === "u-down")
+			return lab("秒数", numin("box-n", "60"));
+		if (name === "u-sci")
+			return lab("算式", ta("box-in", 4, "支持三角函数（角度）、sqrt、log、ln、abs 和 pi"));
+		if (name === "u-rename")
+			return lab("原文件名", ta("box-in", 8, "一行一个"))
+				+ row2(lab("前缀", textin("box-pre", "")), lab("后缀", textin("box-suf", "-")))
+				+ lab("起始序号", numin("box-n", "1"));
+		if (name === "u-jsmin")
+			return lab("JavaScript", ta("box-in", 10, "去掉注释和行尾空白，不改名"));
+		if (name === "u-sql")
+			return lab("SQL", ta("box-in", 8, ""))
+				+ lab("方向", '<select id="box-mode"><option value="pretty">格式化</option><option value="min">压成一行</option></select>');
+		if (name === "u-tok")
+			return lab("文字", ta("box-in", 8, "汉字、英文单词和符号粗算，不是模型分词"));
+		if (name === "u-hjs")
+			return lab("HTML", ta("box-in", 8, ""));
+		if (name === "u-b64img")
+			return lab("图片", '<input id="box-file" type="file" accept="image/*">');
+		if (name === "u-btn")
+			return lab("文字", textin("box-in", "按钮"))
+				+ row2(lab("底色", textin("box-bg", "#f97316")), lab("字色", textin("box-fg", "#ffffff")))
+				+ lab("圆角", numin("box-n", "8"));
+		if (name === "u-fake")
+			return lab("行数", numin("box-n", "5"));
+		if (name === "u-pal")
+			return lab("基准色", textin("box-in", "#f97316", "#RRGGBB"));
 		return "";
 	}
 
@@ -916,6 +1013,24 @@ window.sktools = (function(){
 		if (util === "u-hmin") return htmlmin(val("box-in"));
 		if (util === "u-cmin") return cssmin(val("box-in"));
 		if (util === "u-grad") return gradcss(val("box-a"), val("box-b"), val("box-n"));
+		if (util === "u-xml") return xmlfmt(val("box-in"), val("box-mode"));
+		if (util === "u-table") return htmltable(val("box-in"));
+		if (util === "u-rstr") return randstr(val("box-len"), val("box-n"), val("box-set"));
+		if (util === "u-ph") return placeholder(val("box-w"), val("box-h"), val("box-in"), val("box-bg"), val("box-fg"));
+		if (util === "u-dadd") return dateadd(val("box-a"), val("box-n"));
+		if (util === "u-madd") return monthadd(val("box-a"), val("box-n"));
+		if (util === "u-jdiff") return jsondiff(val("box-a"), val("box-b"));
+		if (util === "u-pick") return colorconv("hex", val("box-color"));
+		if (util === "u-watch") return watchreset();
+		if (util === "u-sci") return sciexpr(val("box-in"));
+		if (util === "u-rename") return renamebatch(val("box-in"), val("box-pre"), val("box-suf"), val("box-n"));
+		if (util === "u-jsmin") return jsmin(val("box-in"));
+		if (util === "u-sql") return sqlfmt(val("box-in"), val("box-mode"));
+		if (util === "u-tok") return tokencount(val("box-in"));
+		if (util === "u-hjs") return html2js(val("box-in"));
+		if (util === "u-btn") return cssbtn(val("box-in"), val("box-bg"), val("box-fg"), val("box-n"));
+		if (util === "u-fake") return fakedata(val("box-n"));
+		if (util === "u-pal") return palette(val("box-in"));
 		throw new Error("没有这个工具");
 	}
 
@@ -2026,6 +2141,470 @@ window.sktools = (function(){
 		var h1 = "#" + hex2(c1[0]) + hex2(c1[1]) + hex2(c1[2]);
 		var h2 = "#" + hex2(c2[0]) + hex2(c2[1]) + hex2(c2[2]);
 		return "background: linear-gradient(" + trimnum(n) + "deg, " + h1 + ", " + h2 + ");";
+	}
+
+	function stoptick(){
+		if (watchOn) watchAcc += Date.now() - watch0;
+		watchOn = false;
+		if (tick) {
+			clearInterval(tick);
+			tick = null;
+		}
+	}
+
+	function fmtwatch(ms){
+		if (ms < 0) ms = 0;
+		var cs = Math.floor(ms / 10);
+		var cent = cs % 100;
+		var sec = Math.floor(cs / 100);
+		return pad2(Math.floor(sec / 60)) + ":" + pad2(sec % 60) + "." + pad2(cent);
+	}
+
+	function fmthms(sec){
+		var s = sec < 0 ? 0 : sec;
+		return pad2(Math.floor(s / 3600)) + ":" + pad2(Math.floor(s / 60) % 60) + ":" + pad2(s % 60);
+	}
+
+	function watchtoggle(){
+		var btn = $("box-start");
+		if (watchOn) {
+			stoptick();
+			if (btn) btn.textContent = "开始";
+			$("box-out").value = fmtwatch(watchAcc);
+			return;
+		}
+		watch0 = Date.now();
+		watchOn = true;
+		if (btn) btn.textContent = "停止";
+		tick = setInterval(function(){
+			$("box-out").value = fmtwatch(watchAcc + Date.now() - watch0);
+		}, 50);
+	}
+
+	function watchreset(){
+		stoptick();
+		watchAcc = 0;
+		var btn = $("box-start");
+		if (btn) btn.textContent = "开始";
+		return "00:00.00";
+	}
+
+	function countdowngo(){
+		stoptick();
+		var sec = parseInt(val("box-n"), 10);
+		if (!(sec >= 1 && sec <= 86400)) throw new Error("秒数要在 1 到 86400");
+		var end = Date.now() + sec * 1000;
+		$("box-out").value = fmthms(sec);
+		tick = setInterval(function(){
+			var left = Math.ceil((end - Date.now()) / 1000);
+			if (left <= 0) {
+				if (tick) { clearInterval(tick); tick = null; }
+				$("box-out").value = "00:00:00\n时间到";
+				msg("box-msg", "时间到");
+				return;
+			}
+			$("box-out").value = fmthms(left);
+		}, 200);
+	}
+
+	function imgb64(){
+		var input = $("box-file");
+		var file = input && input.files && input.files[0];
+		if (!file) {
+			msg("box-msg", "请选择图片", true);
+			return;
+		}
+		if (file.size > 8 * 1024 * 1024) {
+			msg("box-msg", "图片要小于 8 MB", true);
+			return;
+		}
+		var reader = new FileReader();
+		reader.onload = function(){
+			$("box-out").value = String(reader.result || "");
+			msg("box-msg", "完成");
+		};
+		reader.onerror = function(){ msg("box-msg", "读取失败", true); };
+		msg("box-msg", "读取中");
+		reader.readAsDataURL(file);
+	}
+
+	function xmlfmt(text, mode){
+		var s = String(text).trim();
+		if (!s) throw new Error("请输入 XML");
+		if (s.length > 200000) throw new Error("文字太长");
+		if (typeof DOMParser === "function") {
+			var doc = new DOMParser().parseFromString(s, "application/xml");
+			if (doc.getElementsByTagName("parsererror").length) throw new Error("不是合法的 XML");
+		}
+		s = s.replace(/>\s+</g, "><");
+		if (mode === "min") return s;
+		var lines = s.replace(/(>)(<)/g, "$1\n$2").split("\n");
+		var pad = 0;
+		var out = [];
+		var i;
+		for (i = 0; i < lines.length; i++) {
+			var line = lines[i];
+			if (/^<\/[^>]+>/.test(line)) pad = Math.max(pad - 1, 0);
+			var indent = "";
+			var k;
+			for (k = 0; k < pad; k++) indent += "  ";
+			out.push(indent + line);
+			if (/^<[^!?/][^>]*>$/.test(line) && !/\/>$/.test(line)) pad++;
+		}
+		return out.join("\n");
+	}
+
+	function htmltable(text){
+		var raw = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+		if (raw.length > 200000) throw new Error("文字太长");
+		var rows = raw.split("\n");
+		var body = [];
+		var i;
+		for (i = 0; i < rows.length; i++) if (rows[i]) body.push(rows[i]);
+		if (!body.length) throw new Error("请输入表格文字");
+		if (body.length > 500) throw new Error("最多 500 行");
+		var sep = body[0].indexOf("\t") >= 0 ? "\t" : ",";
+		var html = "<table>\n";
+		for (i = 0; i < body.length; i++) {
+			var cells = body[i].split(sep);
+			var tag = i === 0 ? "th" : "td";
+			var j;
+			html += "<tr>";
+			for (j = 0; j < cells.length; j++) html += "<" + tag + ">" + htmlenc(cells[j]) + "</" + tag + ">";
+			html += "</tr>\n";
+		}
+		return html + "</table>";
+	}
+
+	function randstr(len, count, set){
+		var n = parseInt(len, 10);
+		var c = parseInt(count, 10);
+		var chars = String(set || "");
+		if (!(n >= 1 && n <= 128)) throw new Error("长度要在 1 到 128");
+		if (!(c >= 1 && c <= 50)) throw new Error("个数要在 1 到 50");
+		if (!chars) throw new Error("请填写字符集");
+		if (chars.length > 200) throw new Error("字符集太长");
+		var lines = [];
+		var i;
+		var j;
+		for (i = 0; i < c; i++) {
+			var s = "";
+			for (j = 0; j < n; j++) s += chars.charAt(randint(chars.length));
+			lines.push(s);
+		}
+		return lines.join("\n");
+	}
+
+	function placesize(w, h){
+		var width = parseInt(w, 10);
+		var height = parseInt(h, 10);
+		if (!(width >= 1 && width <= 2000) || !(height >= 1 && height <= 2000)) throw new Error("宽高要在 1 到 2000");
+		return [width, height];
+	}
+
+	function placeholder(w, h, label, bg, fg){
+		var wh = placesize(w, h);
+		var back = colorrgb("hex", bg);
+		var ink = colorrgb("hex", fg);
+		if (typeof document === "undefined" || !document.createElement) throw new Error("浏览器不能画图");
+		var canvas = document.createElement("canvas");
+		canvas.width = wh[0];
+		canvas.height = wh[1];
+		var g = canvas.getContext("2d");
+		if (!g) throw new Error("浏览器不能画图");
+		g.fillStyle = "#" + hex2(back[0]) + hex2(back[1]) + hex2(back[2]);
+		g.fillRect(0, 0, wh[0], wh[1]);
+		g.fillStyle = "#" + hex2(ink[0]) + hex2(ink[1]) + hex2(ink[2]);
+		g.font = Math.max(12, Math.round(Math.min(wh[0], wh[1]) / 8)) + "px sans-serif";
+		g.textAlign = "center";
+		g.textBaseline = "middle";
+		g.fillText(String(label || "").trim() || (wh[0] + "×" + wh[1]), wh[0] / 2, wh[1] / 2);
+		var url = canvas.toDataURL("image/png");
+		var img = $("box-img");
+		if (img) {
+			img.src = url;
+			img.hidden = false;
+		}
+		return url;
+	}
+
+	function dateadd(date, days){
+		if (!date) throw new Error("请选择日期");
+		var n = parseInt(days, 10);
+		if (!isFinite(n) || Math.abs(n) > 36600) throw new Error("天数超出范围");
+		var d = new Date(date + "T00:00:00");
+		if (isNaN(d.getTime())) throw new Error("日期无效");
+		d.setDate(d.getDate() + n);
+		return ymd(d) + "  周" + "日一二三四五六".charAt(d.getDay());
+	}
+
+	function monthadd(date, months){
+		if (!date) throw new Error("请选择日期");
+		var n = parseInt(months, 10);
+		if (!isFinite(n) || Math.abs(n) > 1200) throw new Error("月数超出范围");
+		var d = new Date(date + "T00:00:00");
+		if (isNaN(d.getTime())) throw new Error("日期无效");
+		var day = d.getDate();
+		d.setDate(1);
+		d.setMonth(d.getMonth() + n);
+		var last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+		d.setDate(day < last ? day : last);
+		return ymd(d) + "  周" + "日一二三四五六".charAt(d.getDay());
+	}
+
+	function jsondiff(a, b){
+		var left = String(a);
+		var right = String(b);
+		if (left.length > 200000 || right.length > 200000) throw new Error("文字太长");
+		var ja;
+		var jb;
+		try { ja = JSON.stringify(JSON.parse(left), null, 2); }
+		catch (ex) { throw new Error("甲不是合法的 JSON"); }
+		try { jb = JSON.stringify(JSON.parse(right), null, 2); }
+		catch (ex) { throw new Error("乙不是合法的 JSON"); }
+		return linediff(ja, jb);
+	}
+
+	function sciexpr(src){
+		var s = String(src == null ? "" : src).replace(/\s+/g, "");
+		if (!s) throw new Error("请输入算式");
+		if (s.length > 200) throw new Error("算式太长");
+		var i = 0;
+		var v = expr();
+		if (i !== s.length) throw new Error("算式里有无法识别的部分");
+		return trimnum(v);
+		function expr(){
+			var left = term();
+			while (peek() === "+" || peek() === "-") {
+				var op = peek();
+				i++;
+				var right = term();
+				left = op === "+" ? left + right : left - right;
+			}
+			return left;
+		}
+		function term(){
+			var left = pow();
+			while (peek() === "*" || peek() === "/" || peek() === "%") {
+				var op = peek();
+				i++;
+				var right = pow();
+				if (op === "*") left = left * right;
+				else if (right === 0) throw new Error("除数不能为 0");
+				else left = op === "/" ? left / right : left % right;
+			}
+			return left;
+		}
+		function pow(){
+			var left = unary();
+			if (peek() === "^") {
+				i++;
+				var right = pow();
+				var v = Math.pow(left, right);
+				if (!isFinite(v)) throw new Error("乘方结果无效");
+				return v;
+			}
+			return left;
+		}
+		function unary(){
+			if (peek() === "-" || peek() === "+") {
+				var op = peek();
+				i++;
+				return op === "-" ? -unary() : unary();
+			}
+			return primary();
+		}
+		function primary(){
+			if (peek() === "(") {
+				i++;
+				var v = expr();
+				if (peek() !== ")") throw new Error("括号没有配对");
+				i++;
+				return v;
+			}
+			if (isletter(peek())) return named();
+			return number();
+		}
+		function named(){
+			var start = i;
+			while (isletter(peek())) i++;
+			var name = s.slice(start, i).toLowerCase();
+			if (peek() === "(") {
+				i++;
+				var arg = expr();
+				if (peek() !== ")") throw new Error("括号没有配对");
+				i++;
+				return applyfn(name, arg);
+			}
+			if (name === "pi") return Math.PI;
+			if (name === "e") return Math.E;
+			throw new Error("没有这个名字");
+		}
+		function number(){
+			var start = i;
+			while (i < s.length && s.charAt(i) >= "0" && s.charAt(i) <= "9") i++;
+			if (peek() === "." && i + 1 < s.length && s.charAt(i + 1) >= "0" && s.charAt(i + 1) <= "9") {
+				i++;
+				while (i < s.length && s.charAt(i) >= "0" && s.charAt(i) <= "9") i++;
+			}
+			if (start === i) throw new Error("这里需要数字");
+			return Number(s.slice(start, i));
+		}
+		function peek(){ return s.charAt(i); }
+		function isletter(c){ return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"); }
+	}
+
+	function applyfn(name, v){
+		var rad = v * Math.PI / 180;
+		var out;
+		if (name === "sin") out = Math.sin(rad);
+		else if (name === "cos") out = Math.cos(rad);
+		else if (name === "tan") out = Math.tan(rad);
+		else if (name === "asin") out = Math.asin(v) * 180 / Math.PI;
+		else if (name === "acos") out = Math.acos(v) * 180 / Math.PI;
+		else if (name === "atan") out = Math.atan(v) * 180 / Math.PI;
+		else if (name === "ln") out = Math.log(v);
+		else if (name === "log") out = Math.log(v) / Math.LN10;
+		else if (name === "sqrt") out = Math.sqrt(v);
+		else if (name === "abs") out = Math.abs(v);
+		else if (name === "floor") out = Math.floor(v);
+		else if (name === "ceil") out = Math.ceil(v);
+		else throw new Error("没有这个函数");
+		if (!isFinite(out)) throw new Error("函数结果无效");
+		return out;
+	}
+
+	function renamebatch(text, prefix, suffix, start){
+		var rows = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+		var names = [];
+		var i;
+		for (i = 0; i < rows.length; i++) if (rows[i]) names.push(rows[i]);
+		if (!names.length) throw new Error("请输入文件名");
+		if (names.length > 1000) throw new Error("最多 1000 行");
+		var n = parseInt(start, 10);
+		if (!isFinite(n)) n = 1;
+		var width = String(Math.abs(n + names.length - 1)).length;
+		var out = [];
+		for (i = 0; i < names.length; i++) {
+			var num = String(n + i);
+			var bare = num.replace("-", "");
+			while (bare.length < width) {
+				bare = "0" + bare;
+				num = (num.charAt(0) === "-" ? "-" : "") + bare;
+				bare = num.replace("-", "");
+			}
+			out.push(String(prefix || "") + num + String(suffix || "") + names[i]);
+		}
+		return out.join("\n");
+	}
+
+	function jsmin(text){
+		var s = String(text);
+		if (s.length > 200000) throw new Error("文字太长");
+		var out = "";
+		var i = 0;
+		var q = "";
+		while (i < s.length) {
+			var c = s.charAt(i);
+			var n = s.charAt(i + 1);
+			if (q) {
+				out += c;
+				if (c === "\\" && i + 1 < s.length) { out += n; i += 2; continue; }
+				if (c === q) q = "";
+				i++;
+				continue;
+			}
+			if (c === '"' || c === "'" || c === "`") { q = c; out += c; i++; continue; }
+			if (c === "/" && n === "/") {
+				i += 2;
+				while (i < s.length && s.charAt(i) !== "\n") i++;
+				continue;
+			}
+			if (c === "/" && n === "*") {
+				var end = s.indexOf("*/", i + 2);
+				if (end < 0) throw new Error("注释没有结束");
+				i = end + 2;
+				continue;
+			}
+			out += c;
+			i++;
+		}
+		return out.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+	}
+
+	function sqlfmt(text, mode){
+		var s = String(text).trim();
+		if (!s) throw new Error("请输入 SQL");
+		if (s.length > 200000) throw new Error("文字太长");
+		s = s.replace(/--[^\n]*/g, " ").replace(/\s+/g, " ").trim();
+		if (mode === "min") return s;
+		var keys = ["order by", "group by", "inner join", "left join", "right join", "insert into", "delete from", "select", "from", "where", "having", "limit", "values", "update", "set", "and", "or"];
+		var i;
+		for (i = 0; i < keys.length; i++) {
+			var k = keys[i];
+			var re = new RegExp("\\b" + k.replace(" ", "\\s+") + "\\b", "ig");
+			s = s.replace(re, "\n" + k.toUpperCase());
+		}
+		return s.replace(/^\n+/, "").replace(/\n{2,}/g, "\n").trim();
+	}
+
+	function tokencount(text){
+		var s = String(text);
+		if (s.length > 200000) throw new Error("文字太长");
+		var n = 0;
+		var re = /[\u3400-\u9fff]|[A-Za-z]+|\d+|[^\s]/g;
+		while (re.exec(s)) n++;
+		return "约 " + n + " 个 token\n字符  " + s.length + "\n这是按汉字、英文单词和符号粗算的，不是某个模型的分词器。";
+	}
+
+	function html2js(text){
+		var s = String(text);
+		if (s.length > 200000) throw new Error("文字太长");
+		return "var html = " + JSON.stringify(s) + ";";
+	}
+
+	function cssbtn(label, bg, fg, radius){
+		var back = colorrgb("hex", bg);
+		var ink = colorrgb("hex", fg);
+		var r = parseInt(radius, 10);
+		if (!(r >= 0 && r <= 999)) throw new Error("圆角要在 0 到 999");
+		var text = String(label || "按钮");
+		return ".btn {\n  background: #" + hex2(back[0]) + hex2(back[1]) + hex2(back[2])
+			+ ";\n  color: #" + hex2(ink[0]) + hex2(ink[1]) + hex2(ink[2])
+			+ ";\n  border: 0;\n  border-radius: " + r + "px;\n  padding: 8px 14px;\n}\n/* " + text + " */";
+	}
+
+	function fakedata(count){
+		var n = parseInt(count, 10);
+		if (!(n >= 1 && n <= 50)) throw new Error("行数要在 1 到 50");
+		var sur = ["赵", "钱", "孙", "李", "周", "吴", "郑", "王"];
+		var giv = ["伟", "芳", "娜", "敏", "静", "磊", "洋", "艳"];
+		var lines = ["姓名,邮箱,手机"];
+		var i;
+		for (i = 0; i < n; i++) {
+			var name = sur[randint(sur.length)] + giv[randint(giv.length)];
+			var phone = "1" + String(3 + randint(6));
+			var k;
+			for (k = 0; k < 9; k++) phone += String(randint(10));
+			lines.push(name + ",user" + (i + 1) + "@example.com," + phone);
+		}
+		return lines.join("\n");
+	}
+
+	function palette(hex){
+		var rgb = colorrgb("hex", hex);
+		var hsl = rgb2hsl(rgb[0], rgb[1], rgb[2]);
+		function one(delta){
+			var h = (hsl[0] + delta) % 360;
+			if (h < 0) h += 360;
+			return hslhex(h, hsl[1], hsl[2]);
+		}
+		return "基准  " + one(0) + "\n互补  " + one(180) + "\n邻近  " + one(-30) + "\n邻近  " + one(30) + "\n三角  " + one(120) + "\n三角  " + one(240);
+	}
+
+	function hslhex(h, s, l){
+		var rgb = hsl2rgb(h, s, l);
+		return "#" + hex2(rgb[0]) + hex2(rgb[1]) + hex2(rgb[2]);
 	}
 
 	function esc(s){
