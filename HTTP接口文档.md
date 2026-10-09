@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast` 和 `/api/cast/stop` 仍可用。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi` 和 `/api/cast/stop` 仍可用。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -102,6 +102,9 @@ http_port = 1224
 | GET | `/` · `/api` | API 说明与端点列表 |
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
 | GET/POST | `/api/toast` | 屏幕底部 Toast（不随模块开关关闭） |
+| GET/POST | `/api/zhconv` | 简繁转换（不随模块开关关闭） |
+| GET/POST | `/api/calendar` | 公历换历法（不随模块开关关闭） |
+| GET/POST | `/api/jpyomi` | 日文注音（不随模块开关关闭） |
 | GET | `/api/ocr/get_options` | OCR 可选项描述 |
 | POST | `/api/ocr` | 图片 OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR） |
@@ -223,6 +226,95 @@ curl -s -X POST "http://127.0.0.1:1224/api/toast" -H "Content-Type: application/
 ```bash
 ScreenKit --toast "已复制" --ms 1900
 ```
+```
+
+---
+
+## 5.2 GET/POST `/api/zhconv`
+
+用系统 `LCMapStringEx` 做简体/繁体。繁体按 `zh-TW`。默认转为繁体。
+
+**GET**
+
+```
+/api/zhconv?text=软件&to=trad
+```
+
+**POST** `application/json`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `text` | string | 原文。也可用 `message` |
+| `to` | string | `trad`（默认）或 `simp` |
+
+```json
+{ "text": "软件", "to": "trad" }
+```
+
+**响应 `data`：** `text`、`to`。`text` 为空返回 802。
+
+```bash
+ScreenKit --zhconv "软件"
+ScreenKit --zhconv "國發" --simp
+```
+
+---
+
+## 5.3 GET/POST `/api/calendar`
+
+用 `Windows.Globalization.Calendar` 把公历换成指定历法。农历返回干支、正月/闰月和初几。日期按本地中午换算。缺省日期是今天，缺省历法是农历。
+
+**GET**
+
+```
+/api/calendar?date=2024-02-10&cal=lunar
+```
+
+**POST** `application/json`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `date` | string | `yyyy-MM-dd`。省略为今天 |
+| `cal` | string | `lunar`（默认）、`gregorian`、`jp`、`jplunar`、`tw`、`ko`、`vilunar`、`he`、`hijri`、`umalqura`、`fa`、`th`、`julian` |
+
+```json
+{ "date": "2024-02-10", "cal": "lunar" }
+```
+
+**响应 `data`：** `cal`、`gregorian`、`ganzhi`、`era`、`era_num`、`year`、`year_num`、`month`、`month_num`、`month_count`、`day`、`day_num`、`week`、`leap`。日期或历法无法识别时返回 802。
+
+```bash
+ScreenKit --calendar 2024-02-10 --cal lunar
+```
+
+---
+
+## 5.4 GET/POST `/api/jpyomi`
+
+用系统 `JapanesePhoneticAnalyzer` 给日文句子注音。需要本机日语语言支持。Windows 没有同等的汉语拼音接口。
+
+**GET**
+
+```
+/api/jpyomi?text=東京は晴れです
+```
+
+**POST** `application/json`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `text` | string | 日文。也可用 `message` |
+| `mono` | bool | `true` 为逐字注音，默认按词组 |
+
+```json
+{ "text": "東京は晴れです", "mono": false }
+```
+
+**响应 `data`：** `ruby`（原文夹读音）、`yomi`（读音）、`mono`。`text` 为空返回 802。
+
+```bash
+ScreenKit --jpyomi "東京は晴れです"
+ScreenKit --jpyomi "東京" --mono
 ```
 
 ---

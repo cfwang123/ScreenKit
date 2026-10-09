@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, and `/api/cast/stop` stay available. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, and `/api/cast/stop` stay available. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -101,6 +101,9 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET | `/` · `/api` | API name and endpoint list |
 | GET | `/api/status` · `/api/health` | Service and capability status |
 | GET/POST | `/api/toast` | Bottom-of-screen toast (not tied to a module switch) |
+| GET/POST | `/api/zhconv` | Simplified/traditional (not tied to a module switch) |
+| GET/POST | `/api/calendar` | Gregorian to another calendar (not tied to a module switch) |
+| GET/POST | `/api/jpyomi` | Japanese reading (not tied to a module switch) |
 | GET | `/api/ocr/get_options` | OCR option descriptors |
 | POST | `/api/ocr` | Image OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR) |
@@ -218,6 +221,83 @@ The CLI shows the same toast without HTTP:
 ```bash
 ScreenKit --toast "Copied" --ms 1900
 ```
+```
+
+---
+
+## 5.2 GET/POST `/api/zhconv`
+
+`LCMapStringEx` simplified/traditional conversion. Traditional uses `zh-TW`. The default direction is traditional.
+
+**GET:** `/api/zhconv?text=软件&to=trad`
+
+**POST** `application/json`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | string | Source. `message` is an alias |
+| `to` | string | `trad` (default) or `simp` |
+
+```json
+{ "text": "软件", "to": "trad" }
+```
+
+**Response `data`:** `text`, `to`. An empty `text` returns 802.
+
+```bash
+ScreenKit --zhconv "软件"
+ScreenKit --zhconv "國發" --simp
+```
+
+---
+
+## 5.3 GET/POST `/api/calendar`
+
+`Windows.Globalization.Calendar`. Chinese lunar includes the sexagenary year and leap month. The date is converted at local noon. Omitted date is today; omitted calendar is lunar.
+
+**GET:** `/api/calendar?date=2024-02-10&cal=lunar`
+
+**POST** `application/json`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `date` | string | `yyyy-MM-dd`. Omitted means today |
+| `cal` | string | `lunar` (default), `gregorian`, `jp`, `jplunar`, `tw`, `ko`, `vilunar`, `he`, `hijri`, `umalqura`, `fa`, `th`, `julian` |
+
+```json
+{ "date": "2024-02-10", "cal": "lunar" }
+```
+
+**Response `data`:** `cal`, `gregorian`, `ganzhi`, `era`, `era_num`, `year`, `year_num`, `month`, `month_num`, `month_count`, `day`, `day_num`, `week`, `leap`. A bad date or calendar returns 802.
+
+```bash
+ScreenKit --calendar 2024-02-10 --cal lunar
+```
+
+---
+
+## 5.4 GET/POST `/api/jpyomi`
+
+`JapanesePhoneticAnalyzer`. The Japanese language feature must be installed. Windows has no equivalent Chinese pinyin API.
+
+**GET:** `/api/jpyomi?text=東京は晴れです`
+
+**POST** `application/json`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | string | Japanese. `message` is an alias |
+| `mono` | bool | `true` reads character by character. Default is by word |
+
+```json
+{ "text": "東京は晴れです", "mono": false }
+```
+
+**Response `data`:** `ruby`, `yomi`, `mono`. An empty `text` returns 802.
+
+```bash
+ScreenKit --jpyomi "東京は晴れです"
+ScreenKit --jpyomi "東京" --mono
 ```
 
 ---

@@ -167,4 +167,54 @@ static class WinCal {
 		if (string.IsNullOrEmpty(month)) return false;
 		return month.IndexOf('闰') >= 0 || month.IndexOf('閏') >= 0;
 	}
+
+	public static bool TryDate(string text, out DateTime date) {
+		date = DateTime.Today;
+		if (string.IsNullOrWhiteSpace(text)) return true;
+		return DateTime.TryParseExact(text.Trim(),
+			new[] { "yyyy-MM-dd", "yyyy/MM/dd", "yyyyMMdd" },
+			System.Globalization.CultureInfo.InvariantCulture,
+			System.Globalization.DateTimeStyles.None, out date);
+	}
+
+	public static string FindId(string name) {
+		var s = (name ?? "").Trim();
+		if (s.Length == 0) return CalendarIdentifiers.ChineseLunar;
+		foreach (var one in Systems()) {
+			if (string.Equals(one.Id, s, StringComparison.OrdinalIgnoreCase)) return one.Id;
+		}
+		switch (s.ToLowerInvariant()) {
+			case "lunar": case "chinese": case "zh": return CalendarIdentifiers.ChineseLunar;
+			case "greg": case "gregorian": case "ad": return CalendarIdentifiers.Gregorian;
+			case "jp": case "japanese": return CalendarIdentifiers.Japanese;
+			case "jplunar": case "japanese-lunar": return CalendarIdentifiers.JapaneseLunar;
+			case "tw": case "taiwan": case "minguo": return CalendarIdentifiers.Taiwan;
+			case "ko": case "korean": return CalendarIdentifiers.Korean;
+			case "vilunar": case "vietnamese": return CalendarIdentifiers.VietnameseLunar;
+			case "he": case "hebrew": return CalendarIdentifiers.Hebrew;
+			case "hijri": case "islamic": return CalendarIdentifiers.Hijri;
+			case "umalqura": return CalendarIdentifiers.UmAlQura;
+			case "fa": case "persian": return CalendarIdentifiers.Persian;
+			case "th": case "thai": return CalendarIdentifiers.Thai;
+			case "julian": return CalendarIdentifiers.Julian;
+			default: return null;
+		}
+	}
+
+	public static string Alias(string id) {
+		if (id == CalendarIdentifiers.ChineseLunar) return "lunar";
+		if (id == CalendarIdentifiers.Gregorian) return "gregorian";
+		if (id == CalendarIdentifiers.Japanese) return "jp";
+		if (id == CalendarIdentifiers.JapaneseLunar) return "jplunar";
+		if (id == CalendarIdentifiers.Taiwan) return "tw";
+		if (id == CalendarIdentifiers.Korean) return "ko";
+		if (id == CalendarIdentifiers.VietnameseLunar) return "vilunar";
+		if (id == CalendarIdentifiers.Hebrew) return "he";
+		if (id == CalendarIdentifiers.Hijri) return "hijri";
+		if (id == CalendarIdentifiers.UmAlQura) return "umalqura";
+		if (id == CalendarIdentifiers.Persian) return "fa";
+		if (id == CalendarIdentifiers.Thai) return "th";
+		if (id == CalendarIdentifiers.Julian) return "julian";
+		return id ?? "";
+	}
 }

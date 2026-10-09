@@ -66,7 +66,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **校验哈希** | **工具 → 校验哈希**：MD5 / SHA-1 / SHA-256；可粘贴期望值比对。 |
 | **文本小工具** | **工具 → 文本小工具**：Base64、URL、UTF-8/GBK 十六进制、Unicode 转义、大小写、空白、字数、JSON 智能美化（短数组/对象同一行）。 |
 | **密码生成器** | **工具 → 密码生成器**：加密随机；可选长度、字符集、排除易混 `0OIl1`、每类至少一个。记住上次设置。**单词译音** Tab：可选 LLM，译成中日韩英等，以及文言文、古希腊语、拉丁语、梵语、古希伯来语，并给出拼音 / romaji / 罗马字。**变体** Tab：输入一句密码，LLM 多把意思译成其它语言再用拼音 / 罗马字拼写（英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。 |
-| **网络工具** | **工具 → 网络工具**：Ping、域名解析、WHOIS、路由跟踪、Ping 定位、代理定位、HTTP 测速定位。 |
+| **网络工具** | **工具 → 网络工具**：Ping、域名解析、WHOIS、路由跟踪、Ping 定位、代理定位、HTTP 测速定位、系统定位（Windows 定位，走 Wi-Fi 或 GPS；第一次使用时系统询问是否允许）。 |
 | **简繁转换** | **工具 → 简繁转换**：上面简体、下面繁体，两个按钮互相转换。系统 `LCMapStringEx`，繁体按 `zh-TW`，用字接近台湾，不是香港字表，也不做词级替换。 |
 | **历法** | **工具 → 历法**：`Windows.Globalization.Calendar`。公历换农历（干支、闰月）以及日本、民国、希伯来、伊斯兰、波斯等历法。 |
 | **日文注音** | **工具 → 日文注音**：`JapanesePhoneticAnalyzer` 把日文句子转成读音（词组或逐字）。需要本机日语语言支持。Windows 没有同等的汉语拼音接口。 |
@@ -203,6 +203,9 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 - `GET  /api` · `/api/status`
 - `GET/POST /api/toast` — 底部 Toast（`text`，可选 `ms`）。命令行：`ScreenKit --toast "文字" [--ms 1900]`。HTTP 接口页的模板下拉里也有这两项。
+- `GET/POST /api/zhconv` — 简繁（`text`，`to=trad|simp`）。命令行：`ScreenKit --zhconv "文字" [--trad|--simp]`
+- `GET/POST /api/calendar` — 历法（`date`，`cal=lunar` 等）。命令行：`ScreenKit --calendar 2024-02-10 --cal lunar`
+- `GET/POST /api/jpyomi` — 日文注音（`text`，可选 `mono`）。命令行：`ScreenKit --jpyomi "日文" [--mono]`
 - `GET/POST /api/cast/stop` — 立刻关闭投屏画面窗
 - WebSocket `/cast` — 投屏媒体（与 HTTP API 同端口）
 - `POST /api/ocr` — `box` 为原图像素。`ocr.engine=winocr` 让这一次走 Windows 系统 OCR

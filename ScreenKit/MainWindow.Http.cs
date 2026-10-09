@@ -41,6 +41,21 @@ public partial class MainWindow {
 			Title = "POST /api/toast", Method = "POST", Path = "/api/toast",
 			Body = "{\n  \"text\": \"你好\",\n  \"ms\": 1900\n}",
 		});
+		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/zhconv", Method = "GET", Path = "/api/zhconv?text=软件&to=trad", Body = "" });
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/zhconv", Method = "POST", Path = "/api/zhconv",
+			Body = "{\n  \"text\": \"软件\",\n  \"to\": \"trad\"\n}",
+		});
+		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/calendar", Method = "GET", Path = "/api/calendar?date=2024-02-10&cal=lunar", Body = "" });
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/calendar", Method = "POST", Path = "/api/calendar",
+			Body = "{\n  \"date\": \"2024-02-10\",\n  \"cal\": \"lunar\"\n}",
+		});
+		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/jpyomi", Method = "GET", Path = "/api/jpyomi?text=東京は晴れです", Body = "" });
+		ehttptpl.Items.Add(new HttpTpl {
+			Title = "POST /api/jpyomi", Method = "POST", Path = "/api/jpyomi",
+			Body = "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}",
+		});
 		ehttptpl.Items.Add(new HttpTpl { Title = "POST /api/cast/stop", Method = "POST", Path = "/api/cast/stop", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api", Method = "GET", Path = "/api", Body = "" });
 		ehttptpl.Items.Add(new HttpTpl { Title = "GET /api/ocr/get_options", Method = "GET", Path = "/api/ocr/get_options", Body = "" });

@@ -78,6 +78,7 @@ static class Cli {
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--toast"
+				or "--zhconv" or "--calendar" or "--jpyomi"
 				or "--asr" or "--list-asr"
 				or "--translate" or "--translate-file" or "--list-translate"
 				or "--list-install" or "--list-tts-install"
@@ -367,6 +368,12 @@ static class Cli {
 						return 0;
 					case "--toast":
 						return runtoast(args, i);
+					case "--zhconv":
+						return runzhconv(args, i);
+					case "--calendar":
+						return runcalendar(args, i);
+					case "--jpyomi":
+						return runjpyomi(args, i);
 					default:
 						if (a.StartsWith("-")) {
 							Err($"未知参数: {a}");
@@ -3034,6 +3041,15 @@ static class Cli {
 				Err("FAIL: ping 127.0.0.1");
 				bad++;
 			}
+			var geo = new List<string>();
+			using (var geoCts = new CancellationTokenSource(25000)) {
+				Task.Run(() => NetTools.Geolocate(s => geo.Add(s), geoCts.Token)).GetAwaiter().GetResult();
+			}
+			Out(string.Join("\n", geo));
+			if (!geo.Any(s => s.StartsWith("权限:", StringComparison.Ordinal))) {
+				Err("FAIL: 系统定位无权限行");
+				bad++;
+			}
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);
@@ -3973,12 +3989,116 @@ static class Cli {
 		return 0;
 	}
 
+	static int runzhconv(string[] args, int at) {
+		string text = null;
+		var trad = true;
+		for (var j = at + 1; j < args.Length; j++) {
+			var a = args[j] ?? "";
+			if (a is "--trad" or "--traditional") { trad = true; continue; }
+			if (a is "--simp" or "--simplified") { trad = false; continue; }
+			if (a.StartsWith("-")) {
+				Err("未知参数 " + a);
+				return 2;
+			}
+			text = text == null ? a : text + " " + a;
+		}
+		if (string.IsNullOrEmpty(text)) {
+			Err("用法: ScreenKit --zhconv <文字> [--trad|--simp]");
+			return 2;
+		}
+		try {
+			Out(trad ? ZhConvert.ToTraditional(text) : ZhConvert.ToSimplified(text));
+			return 0;
+		}
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+	}
+
+	static int runcalendar(string[] args, int at) {
+		string dateText = null;
+		string cal = null;
+		for (var j = at + 1; j < args.Length; j++) {
+			var a = args[j] ?? "";
+			if (a is "--cal" or "--calendar-id") {
+				if (j + 1 >= args.Length) {
+					Err("缺少历法名");
+					return 2;
+				}
+				cal = args[++j];
+				continue;
+			}
+			if (a.StartsWith("-")) {
+				Err("未知参数 " + a);
+				return 2;
+			}
+			dateText = a;
+		}
+		if (!WinCal.TryDate(dateText, out var date)) {
+			Err("日期应为 yyyy-MM-dd");
+			return 2;
+		}
+		var id = WinCal.FindId(cal);
+		if (id == null) {
+			Err("未知历法");
+			return 2;
+		}
+		try {
+			var info = WinCal.Query(date, id, "zh-CN");
+			Out("cal=" + WinCal.Alias(id));
+			Out("gregorian=" + info.Gregorian);
+			if (!string.IsNullOrEmpty(info.Ganzhi)) Out("ganzhi=" + info.Ganzhi);
+			Out("year=" + (string.IsNullOrEmpty(info.Year) ? info.YearNum.ToString() : info.Year));
+			Out("month=" + info.Month);
+			Out("day=" + info.Day);
+			Out("week=" + info.Week);
+			Out("leap=" + (info.LeapMonth ? "true" : "false"));
+			return 0;
+		}
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+	}
+
+	static int runjpyomi(string[] args, int at) {
+		string text = null;
+		var mono = false;
+		for (var j = at + 1; j < args.Length; j++) {
+			var a = args[j] ?? "";
+			if (a is "--mono") { mono = true; continue; }
+			if (a.StartsWith("-")) {
+				Err("未知参数 " + a);
+				return 2;
+			}
+			text = text == null ? a : text + " " + a;
+		}
+		if (string.IsNullOrWhiteSpace(text)) {
+			Err("用法: ScreenKit --jpyomi <日文> [--mono]");
+			return 2;
+		}
+		try {
+			var res = JpYomi.Convert(text, mono);
+			Out(res.Ruby ?? "");
+			Out(res.Yomi ?? "");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 
 用法:
   ScreenKit --toast <文字> [--ms 1900]
+  ScreenKit --zhconv <文字> [--trad|--simp]
+  ScreenKit --calendar [yyyy-MM-dd] [--cal lunar]
+  ScreenKit --jpyomi <日文> [--mono]
   ScreenKit --image <路径> [选项]
   ScreenKit --snap [--out <目录>]
   ScreenKit --record-snap [--region L,T,W,H] [--wait-ms 800] [--out <目录>]
@@ -4069,7 +4189,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-hash  计算并比对 SHA-256
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
-      --test-nettool  localhost 解析与 ping 127.0.0.1
+      --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
       --test-wincal  农历甲辰正月与 2023 闰二月
       --test-jpyomi  東京 的系统读音

@@ -12,6 +12,15 @@ static class ZhConvert {
 
 	public static string ToSimplified(string text) => map(text, "zh-CN", LCMAP_SIMPLIFIED_CHINESE);
 
+	/// <summary>1 繁体，0 简体，-1 无法识别。空串当作繁体。</summary>
+	public static int Direction(string to) {
+		var s = (to ?? "").Trim().ToLowerInvariant();
+		if (s.Length == 0) return 1;
+		if (s is "trad" or "traditional" or "tw" or "zh-tw" or "繁体" or "繁體") return 1;
+		if (s is "simp" or "simplified" or "cn" or "zh-cn" or "简体" or "簡體") return 0;
+		return -1;
+	}
+
 	static string map(string text, string locale, uint flags) {
 		if (string.IsNullOrEmpty(text)) return "";
 		int n = LCMapStringEx(locale, flags, text, text.Length, null, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);

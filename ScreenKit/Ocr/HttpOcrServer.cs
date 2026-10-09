@@ -17,6 +17,9 @@ namespace ScreenKit;
 /// <list type="bullet">
 /// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
+/// <item>GET/POST /api/zhconv 简繁转换</item>
+/// <item>GET/POST /api/calendar 历法</item>
+/// <item>GET/POST /api/jpyomi 日文注音</item>
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
@@ -422,6 +425,33 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/zhconv" or "/api/zhconv/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "zhconv 仅支持 GET 或 POST"));
+					return;
+				}
+				handlezhconv(ctx);
+				return;
+			}
+
+			if (path is "/api/calendar" or "/api/calendar/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "calendar 仅支持 GET 或 POST"));
+					return;
+				}
+				handlecalendar(ctx);
+				return;
+			}
+
+			if (path is "/api/jpyomi" or "/api/jpyomi/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "jpyomi 仅支持 GET 或 POST"));
+					return;
+				}
+				handlejpyomi(ctx);
+				return;
+			}
+
 			if (path is "/api/cast/stop") {
 				if (!isget(req) && !ispost(req)) {
 					writejson(ctx, 405, err(805, "cast/stop 仅支持 GET 或 POST"));
@@ -656,6 +686,127 @@ sealed partial class HttpOcrServer : IDisposable {
 				["ms"] = ms < 800 ? 800 : (ms > 8000 ? 8000 : ms),
 			},
 		});
+	}
+
+	void handlezhconv(HttpListenerContext ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
+		if (string.IsNullOrEmpty(text)) {
+			writejson(ctx, 200, err(802, "请提供 text"));
+			return;
+		}
+		var dir = ZhConvert.Direction(field(ctx, jo, "to"));
+		if (dir < 0) {
+			writejson(ctx, 200, err(802, "to 应为 trad 或 simp"));
+			return;
+		}
+		string outText;
+		try { outText = dir == 1 ? ZhConvert.ToTraditional(text) : ZhConvert.ToSimplified(text); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(500, ex.Message));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["text"] = outText,
+				["to"] = dir == 1 ? "trad" : "simp",
+			},
+		});
+	}
+
+	void handlecalendar(HttpListenerContext ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var rawDate = field(ctx, jo, "date");
+		if (!WinCal.TryDate(rawDate, out var date)) {
+			writejson(ctx, 200, err(802, "日期应为 yyyy-MM-dd"));
+			return;
+		}
+		var id = WinCal.FindId(field(ctx, jo, "cal"));
+		if (id == null) {
+			writejson(ctx, 200, err(802, "未知历法"));
+			return;
+		}
+		WinCalInfo info;
+		try { info = WinCal.Query(date, id, "zh-CN"); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(500, ex.Message));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["cal"] = WinCal.Alias(id),
+				["gregorian"] = info.Gregorian ?? "",
+				["ganzhi"] = info.Ganzhi ?? "",
+				["era"] = info.Era ?? "",
+				["era_num"] = info.EraNum,
+				["year"] = string.IsNullOrEmpty(info.Year) ? info.YearNum.ToString() : info.Year,
+				["year_num"] = info.YearNum,
+				["month"] = info.Month ?? "",
+				["month_num"] = info.MonthNum,
+				["month_count"] = info.MonthCount,
+				["day"] = info.Day ?? "",
+				["day_num"] = info.DayNum,
+				["week"] = info.Week ?? "",
+				["leap"] = info.LeapMonth,
+			},
+		});
+	}
+
+	void handlejpyomi(HttpListenerContext ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
+		if (string.IsNullOrWhiteSpace(text)) {
+			writejson(ctx, 200, err(802, "请提供 text"));
+			return;
+		}
+		var mono = false;
+		if (jo != null && jo["mono"] != null) mono = asbool(jo["mono"], false);
+		else {
+			var raw = ctx.Request.QueryString["mono"];
+			if (!string.IsNullOrWhiteSpace(raw)) mono = parseboolstr(raw, false);
+		}
+		JpYomiResult res;
+		try { res = JpYomi.Convert(text, mono); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(500, ex.Message));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["ruby"] = res.Ruby ?? "",
+				["yomi"] = res.Yomi ?? "",
+				["mono"] = mono,
+			},
+		});
+	}
+
+	bool readbody(HttpListenerContext ctx, out JsonObject jo) {
+		jo = null;
+		if (!ispost(ctx.Request)) return true;
+		try {
+			jo = readjsonbody(ctx.Request);
+			return true;
+		}
+		catch (Exception ex) {
+			writejson(ctx, 200, err(801, ex.Message));
+			return false;
+		}
+	}
+
+	static string field(HttpListenerContext ctx, JsonObject jo, string key) {
+		if (jo != null) {
+			var n = jo[key];
+			if (n == null) return null;
+			try {
+				if (n.GetValueKind() == JsonValueKind.String) return n.GetValue<string>();
+			}
+			catch { }
+			return n.ToString();
+		}
+		return ctx.Request.QueryString[key];
 	}
 
 	void handlecaststop(HttpListenerContext ctx) {
@@ -1693,6 +1844,9 @@ sealed partial class HttpOcrServer : IDisposable {
 		var a = new JsonArray {
 			"GET  /api/status",
 			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
+			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
+			"GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}",
+			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
 		};
 		if (o.HttpOcr) {
