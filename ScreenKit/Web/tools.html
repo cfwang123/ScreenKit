@@ -39,18 +39,6 @@
 				</label>
 			</div>
 			<div class="cards" id="cards">
-				<button type="button" data-tool="zh" data-cat="text" data-name="简繁转换 繁体 简体" title="系统转换表，繁体接近台湾用字">
-					<i class="fa-solid fa-language"></i><span>简繁转换</span>
-					<i class="star fa-solid fa-star" data-fav="zh" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="text" data-cat="text" data-name="文本 base64 url json 十六进制" title="Base64、URL、十六进制、JSON">
-					<i class="fa-solid fa-file-lines"></i><span>文本</span>
-					<i class="star fa-solid fa-star" data-fav="text" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="yomi" data-cat="text" data-name="日文注音 读音 假名" title="句子转读音，可按词或逐字">
-					<i class="fa-solid fa-comment"></i><span>日文注音</span>
-					<i class="star fa-solid fa-star" data-fav="yomi" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="ocr" data-cat="text" data-name="文字识别 ocr" title="Windows 系统 OCR 或 ONNX 模型包">
 					<i class="fa-solid fa-eye"></i><span>文字识别</span>
 					<i class="star fa-solid fa-star" data-fav="ocr" title="收藏"></i>
@@ -63,69 +51,17 @@
 					<i class="fa-solid fa-microphone"></i><span>语音识别</span>
 					<i class="star fa-solid fa-star" data-fav="asr" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="cal" data-cat="time" data-name="历法 农历 干支" title="公历换农历、干支、日本、希伯来等">
-					<i class="fa-solid fa-calendar-days"></i><span>历法</span>
-					<i class="star fa-solid fa-star" data-fav="cal" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="qr" data-cat="image" data-name="二维码 条码" title="生成 PNG，或从图片里读出来">
 					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
 					<i class="star fa-solid fa-star" data-fav="qr" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-ts" data-cat="time" data-name="时间戳 unix" title="秒或毫秒与本地时间互转">
-					<i class="fa-solid fa-clock"></i><span>时间戳</span>
-					<i class="star fa-solid fa-star" data-fav="u-ts" title="收藏"></i>
+				<button type="button" data-tool="text" data-cat="text" data-name="文本 base64 url json 十六进制" title="Base64、URL、十六进制、JSON">
+					<i class="fa-solid fa-file-lines"></i><span>文本</span>
+					<i class="star fa-solid fa-star" data-fav="text" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-datediff" data-cat="time" data-name="日期差 天数" title="两个日期相差几天">
-					<i class="fa-solid fa-calendar-days"></i><span>日期差</span>
-					<i class="star fa-solid fa-star" data-fav="u-datediff" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-radix" data-cat="calc" data-name="进制 二进制 十六进制" title="2 到 36 进制互转">
-					<i class="fa-solid fa-hashtag"></i><span>进制转换</span>
-					<i class="star fa-solid fa-star" data-fav="u-radix" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-len" data-cat="calc" data-name="长度 米 英尺" title="毫米到英里">
-					<i class="fa-solid fa-ruler"></i><span>长度换算</span>
-					<i class="star fa-solid fa-star" data-fav="u-len" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-byte" data-cat="calc" data-name="存储 KB MB" title="按 1024 换算">
-					<i class="fa-solid fa-database"></i><span>存储换算</span>
-					<i class="star fa-solid fa-star" data-fav="u-byte" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-rmb" data-cat="calc" data-name="人民币 大写" title="数字转中文大写金额">
-					<i class="fa-solid fa-yen-sign"></i><span>人民币大写</span>
-					<i class="star fa-solid fa-star" data-fav="u-rmb" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-calc" data-cat="calc" data-name="计算器" title="加减乘除、括号和乘方">
-					<i class="fa-solid fa-calculator"></i><span>计算器</span>
-					<i class="star fa-solid fa-star" data-fav="u-calc" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-bmi" data-cat="calc" data-name="bmi 体质" title="身高体重算 BMI">
-					<i class="fa-solid fa-weight-scale"></i><span>BMI</span>
-					<i class="star fa-solid fa-star" data-fav="u-bmi" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-px" data-cat="calc" data-name="px rem" title="像素和 rem 互转">
-					<i class="fa-solid fa-text-height"></i><span>Px / Rem</span>
-					<i class="star fa-solid fa-star" data-fav="u-px" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-rand" data-cat="calc" data-name="随机数" title="指定范围的随机数">
-					<i class="fa-solid fa-dice"></i><span>随机数</span>
-					<i class="star fa-solid fa-star" data-fav="u-rand" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-pw" data-cat="calc" data-name="随机密码" title="本地生成，不离开这台电脑">
-					<i class="fa-solid fa-key"></i><span>随机密码</span>
-					<i class="star fa-solid fa-star" data-fav="u-pw" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-uuid" data-cat="calc" data-name="uuid" title="随机 UUID">
-					<i class="fa-solid fa-fingerprint"></i><span>UUID</span>
-					<i class="star fa-solid fa-star" data-fav="u-uuid" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-html" data-cat="text" data-name="html 编码" title="HTML 实体编码和解码">
-					<i class="fa-solid fa-code"></i><span>HTML 编码</span>
-					<i class="star fa-solid fa-star" data-fav="u-html" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-jsonmin" data-cat="text" data-name="json 压缩" title="去掉 JSON 里的空白">
-					<i class="fa-solid fa-file-lines"></i><span>JSON 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-jsonmin" title="收藏"></i>
+				<button type="button" data-tool="zh" data-cat="text" data-name="简繁转换 繁体 简体" title="系统转换表，繁体接近台湾用字">
+					<i class="fa-solid fa-language"></i><span>简繁转换</span>
+					<i class="star fa-solid fa-star" data-fav="zh" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-md5" data-cat="text" data-name="md5" title="对文字算 MD5">
 					<i class="fa-solid fa-lock"></i><span>MD5</span>
@@ -135,26 +71,209 @@
 					<i class="fa-solid fa-lock"></i><span>SHA-256</span>
 					<i class="star fa-solid fa-star" data-fav="u-sha" title="收藏"></i>
 				</button>
+				<button type="button" data-tool="u-pw" data-cat="calc" data-name="随机密码" title="本地生成，不离开这台电脑">
+					<i class="fa-solid fa-key"></i><span>随机密码</span>
+					<i class="star fa-solid fa-star" data-fav="u-pw" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-rename" data-cat="text" data-name="批量改名 文件名" title="给一行一个的文件名加序号">
+					<i class="fa-solid fa-i-cursor"></i><span>批量改名</span>
+					<i class="star fa-solid fa-star" data-fav="u-rename" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="cal" data-cat="time" data-name="历法 农历 干支" title="公历换农历、干支、日本、希伯来等">
+					<i class="fa-solid fa-calendar-days"></i><span>历法</span>
+					<i class="star fa-solid fa-star" data-fav="cal" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="yomi" data-cat="text" data-name="日文注音 读音 假名" title="句子转读音，可按词或逐字">
+					<i class="fa-solid fa-comment"></i><span>日文注音</span>
+					<i class="star fa-solid fa-star" data-fav="yomi" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-ts" data-cat="time" data-name="时间戳 unix" title="秒或毫秒与本地时间互转">
+					<i class="fa-solid fa-clock"></i><span>时间戳</span>
+					<i class="star fa-solid fa-star" data-fav="u-ts" title="收藏"></i>
+				</button>
 				<button type="button" data-tool="u-re" data-cat="text" data-name="正则 表达式" title="在文字里查找匹配">
 					<i class="fa-solid fa-asterisk"></i><span>正则测试</span>
 					<i class="star fa-solid fa-star" data-fav="u-re" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-xml" data-cat="text" data-name="xml 格式化" title="格式化或压成一行">
+					<i class="fa-solid fa-code"></i><span>XML</span>
+					<i class="star fa-solid fa-star" data-fav="u-xml" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-jsonmin" data-cat="text" data-name="json 压缩" title="去掉 JSON 里的空白">
+					<i class="fa-solid fa-file-lines"></i><span>JSON 压缩</span>
+					<i class="star fa-solid fa-star" data-fav="u-jsonmin" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-jesc" data-cat="text" data-name="json 转义" title="JSON 字符串转义和还原">
+					<i class="fa-solid fa-code"></i><span>JSON 转义</span>
+					<i class="star fa-solid fa-star" data-fav="u-jesc" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-html" data-cat="text" data-name="html 编码" title="HTML 实体编码和解码">
+					<i class="fa-solid fa-code"></i><span>HTML 编码</span>
+					<i class="star fa-solid fa-star" data-fav="u-html" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-calc" data-cat="calc" data-name="计算器" title="加减乘除、括号和乘方">
+					<i class="fa-solid fa-calculator"></i><span>计算器</span>
+					<i class="star fa-solid fa-star" data-fav="u-calc" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-radix" data-cat="calc" data-name="进制 二进制 十六进制" title="2 到 36 进制互转">
+					<i class="fa-solid fa-hashtag"></i><span>进制转换</span>
+					<i class="star fa-solid fa-star" data-fav="u-radix" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-uuid" data-cat="calc" data-name="uuid" title="随机 UUID">
+					<i class="fa-solid fa-fingerprint"></i><span>UUID</span>
+					<i class="star fa-solid fa-star" data-fav="u-uuid" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-diff" data-cat="text" data-name="文本比对 diff" title="按行比较两段文字">
 					<i class="fa-solid fa-code-compare"></i><span>文本比对</span>
 					<i class="star fa-solid fa-star" data-fav="u-diff" title="收藏"></i>
 				</button>
+				<button type="button" data-tool="u-color" data-cat="image" data-name="颜色 hex rgb hsl hsv cmyk" title="HEX、RGB、HSL、HSV、CMYK">
+					<i class="fa-solid fa-palette"></i><span>颜色转换</span>
+					<i class="star fa-solid fa-star" data-fav="u-color" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-b64img" data-cat="image" data-name="图片 base64" title="图片转成 Data URL">
+					<i class="fa-solid fa-file-image"></i><span>图片 Base64</span>
+					<i class="star fa-solid fa-star" data-fav="u-b64img" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-hmin" data-cat="text" data-name="html 压缩" title="去掉注释和标签间空白">
+					<i class="fa-solid fa-file-code"></i><span>HTML 压缩</span>
+					<i class="star fa-solid fa-star" data-fav="u-hmin" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-cmin" data-cat="text" data-name="css 压缩" title="去掉注释和多余空白">
+					<i class="fa-solid fa-brush"></i><span>CSS 压缩</span>
+					<i class="star fa-solid fa-star" data-fav="u-cmin" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-jsmin" data-cat="text" data-name="js 压缩 javascript" title="去掉注释和行尾空白">
+					<i class="fa-solid fa-file-code"></i><span>JS 压缩</span>
+					<i class="star fa-solid fa-star" data-fav="u-jsmin" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-sql" data-cat="text" data-name="sql 格式化" title="关键字换行，或压成一行">
+					<i class="fa-solid fa-database"></i><span>SQL</span>
+					<i class="star fa-solid fa-star" data-fav="u-sql" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-repl" data-cat="text" data-name="查找替换" title="普通文本或正则">
+					<i class="fa-solid fa-right-left"></i><span>查找替换</span>
+					<i class="star fa-solid fa-star" data-fav="u-repl" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-datediff" data-cat="time" data-name="日期差 天数" title="两个日期相差几天">
+					<i class="fa-solid fa-calendar-days"></i><span>日期差</span>
+					<i class="star fa-solid fa-star" data-fav="u-datediff" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-dadd" data-cat="time" data-name="日期加减 天数" title="从某天加上或减去几天">
+					<i class="fa-solid fa-calendar-plus"></i><span>日期加减</span>
+					<i class="star fa-solid fa-star" data-fav="u-dadd" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-byte" data-cat="calc" data-name="存储 KB MB" title="按 1024 换算">
+					<i class="fa-solid fa-database"></i><span>存储换算</span>
+					<i class="star fa-solid fa-star" data-fav="u-byte" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-len" data-cat="calc" data-name="长度 米 英尺" title="毫米到英里">
+					<i class="fa-solid fa-ruler"></i><span>长度换算</span>
+					<i class="star fa-solid fa-star" data-fav="u-len" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-temp" data-cat="calc" data-name="温度 摄氏 华氏" title="摄氏、华氏、开尔文">
+					<i class="fa-solid fa-temperature-half"></i><span>温度换算</span>
+					<i class="star fa-solid fa-star" data-fav="u-temp" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-rmb" data-cat="calc" data-name="人民币 大写" title="数字转中文大写金额">
+					<i class="fa-solid fa-yen-sign"></i><span>人民币大写</span>
+					<i class="star fa-solid fa-star" data-fav="u-rmb" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-rand" data-cat="calc" data-name="随机数" title="指定范围的随机数">
+					<i class="fa-solid fa-dice"></i><span>随机数</span>
+					<i class="star fa-solid fa-star" data-fav="u-rand" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-rstr" data-cat="text" data-name="随机字符串" title="按字符集生成">
+					<i class="fa-solid fa-font"></i><span>随机字符串</span>
+					<i class="star fa-solid fa-star" data-fav="u-rstr" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-sci" data-cat="calc" data-name="科学计算 三角函数" title="三角函数、对数和平方根">
+					<i class="fa-solid fa-square-root-variable"></i><span>科学计算</span>
+					<i class="star fa-solid fa-star" data-fav="u-sci" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-pick" data-cat="image" data-name="取色 颜色选择" title="选一个颜色，给出各种写法">
+					<i class="fa-solid fa-eye-dropper"></i><span>取色</span>
+					<i class="star fa-solid fa-star" data-fav="u-pick" title="收藏"></i>
+				</button>
 				<button type="button" data-tool="u-name" data-cat="text" data-name="变量名 camel snake" title="驼峰、下划线、短横线">
 					<i class="fa-solid fa-signature"></i><span>变量名</span>
 					<i class="star fa-solid fa-star" data-fav="u-name" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-cron" data-cat="text" data-name="crontab cron" title="把五段表达式说成人话">
+					<i class="fa-solid fa-clock"></i><span>Crontab</span>
+					<i class="star fa-solid fa-star" data-fav="u-cron" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-px" data-cat="calc" data-name="px rem" title="像素和 rem 互转">
+					<i class="fa-solid fa-text-height"></i><span>Px / Rem</span>
+					<i class="star fa-solid fa-star" data-fav="u-px" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-bmi" data-cat="calc" data-name="bmi 体质" title="身高体重算 BMI">
+					<i class="fa-solid fa-weight-scale"></i><span>BMI</span>
+					<i class="star fa-solid fa-star" data-fav="u-bmi" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-loan" data-cat="calc" data-name="房贷 等额" title="等额本息或等额本金">
+					<i class="fa-solid fa-house"></i><span>房贷</span>
+					<i class="star fa-solid fa-star" data-fav="u-loan" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-jdiff" data-cat="text" data-name="json 差异" title="格式化后按行比较">
+					<i class="fa-solid fa-code-compare"></i><span>JSON 差异</span>
+					<i class="star fa-solid fa-star" data-fav="u-jdiff" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-table" data-cat="text" data-name="html 表格" title="把逗号或制表符变成表格">
+					<i class="fa-solid fa-table"></i><span>HTML 表格</span>
+					<i class="star fa-solid fa-star" data-fav="u-table" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-ua" data-cat="text" data-name="user-agent ua" title="看系统和浏览器">
+					<i class="fa-solid fa-user"></i><span>User-Agent</span>
+					<i class="star fa-solid fa-star" data-fav="u-ua" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-ascii" data-cat="text" data-name="ascii 码表" title="0 到 127">
 					<i class="fa-solid fa-table"></i><span>ASCII 表</span>
 					<i class="star fa-solid fa-star" data-fav="u-ascii" title="收藏"></i>
 				</button>
-
-				<button type="button" data-tool="u-temp" data-cat="calc" data-name="温度 摄氏 华氏" title="摄氏、华氏、开尔文">
-					<i class="fa-solid fa-temperature-half"></i><span>温度换算</span>
-					<i class="star fa-solid fa-star" data-fav="u-temp" title="收藏"></i>
+				<button type="button" data-tool="u-tok" data-cat="text" data-name="token 估算" title="粗算 token，不是模型分词">
+					<i class="fa-solid fa-hashtag"></i><span>Token 估算</span>
+					<i class="star fa-solid fa-star" data-fav="u-tok" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-hjs" data-cat="text" data-name="html 转 js" title="变成 JavaScript 字符串">
+					<i class="fa-solid fa-quote-left"></i><span>HTML 转 JS</span>
+					<i class="star fa-solid fa-star" data-fav="u-hjs" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-watch" data-cat="time" data-name="秒表" title="开始、停止、复位">
+					<i class="fa-solid fa-stopwatch"></i><span>秒表</span>
+					<i class="star fa-solid fa-star" data-fav="u-watch" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-down" data-cat="time" data-name="倒计时" title="按秒倒计时">
+					<i class="fa-solid fa-hourglass-end"></i><span>倒计时</span>
+					<i class="star fa-solid fa-star" data-fav="u-down" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-work" data-cat="time" data-name="工作日" title="跳过周六和周日">
+					<i class="fa-solid fa-briefcase"></i><span>工作日</span>
+					<i class="star fa-solid fa-star" data-fav="u-work" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-madd" data-cat="time" data-name="月份加减" title="从某天加上或减去几个月">
+					<i class="fa-solid fa-calendar-week"></i><span>月份加减</span>
+					<i class="star fa-solid fa-star" data-fav="u-madd" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-pal" data-cat="image" data-name="调色板 配色" title="互补、邻近和三角色">
+					<i class="fa-solid fa-swatchbook"></i><span>调色板</span>
+					<i class="star fa-solid fa-star" data-fav="u-pal" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-grad" data-cat="image" data-name="css 渐变" title="线性渐变代码">
+					<i class="fa-solid fa-fill"></i><span>CSS 渐变</span>
+					<i class="star fa-solid fa-star" data-fav="u-grad" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-btn" data-cat="image" data-name="css 按钮" title="生成按钮样式">
+					<i class="fa-solid fa-square"></i><span>CSS 按钮</span>
+					<i class="star fa-solid fa-star" data-fav="u-btn" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-ph" data-cat="image" data-name="占位图" title="生成一张纯色图">
+					<i class="fa-solid fa-image"></i><span>占位图</span>
+					<i class="star fa-solid fa-star" data-fav="u-ph" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-rcolor" data-cat="image" data-name="随机颜色" title="随机 HEX 和 RGB">
+					<i class="fa-solid fa-fill-drip"></i><span>随机颜色</span>
+					<i class="star fa-solid fa-star" data-fav="u-rcolor" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-mass" data-cat="calc" data-name="重量 千克 斤" title="毫克到磅">
 					<i class="fa-solid fa-weight-hanging"></i><span>重量换算</span>
@@ -168,49 +287,9 @@
 					<i class="fa-solid fa-cube"></i><span>体积换算</span>
 					<i class="star fa-solid fa-star" data-fav="u-vol" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-press" data-cat="calc" data-name="压力 帕 psi" title="帕、巴、大气压">
-					<i class="fa-solid fa-gauge-high"></i><span>压力换算</span>
-					<i class="star fa-solid fa-star" data-fav="u-press" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-power" data-cat="calc" data-name="功率 瓦 马力" title="瓦、千瓦、马力">
-					<i class="fa-solid fa-bolt"></i><span>功率换算</span>
-					<i class="star fa-solid fa-star" data-fav="u-power" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="u-tunit" data-cat="time" data-name="时间单位 小时 秒" title="毫秒到周">
 					<i class="fa-solid fa-hourglass"></i><span>时间单位</span>
 					<i class="star fa-solid fa-star" data-fav="u-tunit" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-color" data-cat="image" data-name="颜色 hex rgb hsl hsv cmyk" title="HEX、RGB、HSL、HSV、CMYK">
-					<i class="fa-solid fa-palette"></i><span>颜色转换</span>
-					<i class="star fa-solid fa-star" data-fav="u-color" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-rcolor" data-cat="image" data-name="随机颜色" title="随机 HEX 和 RGB">
-					<i class="fa-solid fa-fill-drip"></i><span>随机颜色</span>
-					<i class="star fa-solid fa-star" data-fav="u-rcolor" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-jesc" data-cat="text" data-name="json 转义" title="JSON 字符串转义和还原">
-					<i class="fa-solid fa-code"></i><span>JSON 转义</span>
-					<i class="star fa-solid fa-star" data-fav="u-jesc" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-repl" data-cat="text" data-name="查找替换" title="普通文本或正则">
-					<i class="fa-solid fa-right-left"></i><span>查找替换</span>
-					<i class="star fa-solid fa-star" data-fav="u-repl" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-ua" data-cat="text" data-name="user-agent ua" title="看系统和浏览器">
-					<i class="fa-solid fa-user"></i><span>User-Agent</span>
-					<i class="star fa-solid fa-star" data-fav="u-ua" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-cron" data-cat="text" data-name="crontab cron" title="把五段表达式说成人话">
-					<i class="fa-solid fa-clock"></i><span>Crontab</span>
-					<i class="star fa-solid fa-star" data-fav="u-cron" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-work" data-cat="time" data-name="工作日" title="跳过周六和周日">
-					<i class="fa-solid fa-briefcase"></i><span>工作日</span>
-					<i class="star fa-solid fa-star" data-fav="u-work" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-loan" data-cat="calc" data-name="房贷 等额" title="等额本息或等额本金">
-					<i class="fa-solid fa-house"></i><span>房贷</span>
-					<i class="star fa-solid fa-star" data-fav="u-loan" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-comp" data-cat="calc" data-name="复利" title="按年利率复利">
 					<i class="fa-solid fa-percent"></i><span>复利</span>
@@ -220,98 +299,17 @@
 					<i class="fa-solid fa-network-wired"></i><span>MAC 地址</span>
 					<i class="star fa-solid fa-star" data-fav="u-mac" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-hmin" data-cat="text" data-name="html 压缩" title="去掉注释和标签间空白">
-					<i class="fa-solid fa-file-code"></i><span>HTML 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-hmin" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-cmin" data-cat="text" data-name="css 压缩" title="去掉注释和多余空白">
-					<i class="fa-solid fa-brush"></i><span>CSS 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-cmin" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-grad" data-cat="image" data-name="css 渐变" title="线性渐变代码">
-					<i class="fa-solid fa-fill"></i><span>CSS 渐变</span>
-					<i class="star fa-solid fa-star" data-fav="u-grad" title="收藏"></i>
-				</button>
-
-				<button type="button" data-tool="u-xml" data-cat="text" data-name="xml 格式化" title="格式化或压成一行">
-					<i class="fa-solid fa-code"></i><span>XML</span>
-					<i class="star fa-solid fa-star" data-fav="u-xml" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-table" data-cat="text" data-name="html 表格" title="把逗号或制表符变成表格">
-					<i class="fa-solid fa-table"></i><span>HTML 表格</span>
-					<i class="star fa-solid fa-star" data-fav="u-table" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-rstr" data-cat="text" data-name="随机字符串" title="按字符集生成">
-					<i class="fa-solid fa-font"></i><span>随机字符串</span>
-					<i class="star fa-solid fa-star" data-fav="u-rstr" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-ph" data-cat="image" data-name="占位图" title="生成一张纯色图">
-					<i class="fa-solid fa-image"></i><span>占位图</span>
-					<i class="star fa-solid fa-star" data-fav="u-ph" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-dadd" data-cat="time" data-name="日期加减 天数" title="从某天加上或减去几天">
-					<i class="fa-solid fa-calendar-plus"></i><span>日期加减</span>
-					<i class="star fa-solid fa-star" data-fav="u-dadd" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-madd" data-cat="time" data-name="月份加减" title="从某天加上或减去几个月">
-					<i class="fa-solid fa-calendar-week"></i><span>月份加减</span>
-					<i class="star fa-solid fa-star" data-fav="u-madd" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-jdiff" data-cat="text" data-name="json 差异" title="格式化后按行比较">
-					<i class="fa-solid fa-code-compare"></i><span>JSON 差异</span>
-					<i class="star fa-solid fa-star" data-fav="u-jdiff" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-pick" data-cat="image" data-name="取色 颜色选择" title="选一个颜色，给出各种写法">
-					<i class="fa-solid fa-eye-dropper"></i><span>取色</span>
-					<i class="star fa-solid fa-star" data-fav="u-pick" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-watch" data-cat="time" data-name="秒表" title="开始、停止、复位">
-					<i class="fa-solid fa-stopwatch"></i><span>秒表</span>
-					<i class="star fa-solid fa-star" data-fav="u-watch" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-down" data-cat="time" data-name="倒计时" title="按秒倒计时">
-					<i class="fa-solid fa-hourglass-end"></i><span>倒计时</span>
-					<i class="star fa-solid fa-star" data-fav="u-down" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-sci" data-cat="calc" data-name="科学计算 三角函数" title="三角函数、对数和平方根">
-					<i class="fa-solid fa-square-root-variable"></i><span>科学计算</span>
-					<i class="star fa-solid fa-star" data-fav="u-sci" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-rename" data-cat="text" data-name="批量改名 文件名" title="给一行一个的文件名加序号">
-					<i class="fa-solid fa-i-cursor"></i><span>批量改名</span>
-					<i class="star fa-solid fa-star" data-fav="u-rename" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-jsmin" data-cat="text" data-name="js 压缩 javascript" title="去掉注释和行尾空白">
-					<i class="fa-solid fa-file-code"></i><span>JS 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-jsmin" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-sql" data-cat="text" data-name="sql 格式化" title="关键字换行，或压成一行">
-					<i class="fa-solid fa-database"></i><span>SQL</span>
-					<i class="star fa-solid fa-star" data-fav="u-sql" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-tok" data-cat="text" data-name="token 估算" title="粗算 token，不是模型分词">
-					<i class="fa-solid fa-hashtag"></i><span>Token 估算</span>
-					<i class="star fa-solid fa-star" data-fav="u-tok" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-hjs" data-cat="text" data-name="html 转 js" title="变成 JavaScript 字符串">
-					<i class="fa-solid fa-quote-left"></i><span>HTML 转 JS</span>
-					<i class="star fa-solid fa-star" data-fav="u-hjs" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-b64img" data-cat="image" data-name="图片 base64" title="图片转成 Data URL">
-					<i class="fa-solid fa-file-image"></i><span>图片 Base64</span>
-					<i class="star fa-solid fa-star" data-fav="u-b64img" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-btn" data-cat="image" data-name="css 按钮" title="生成按钮样式">
-					<i class="fa-solid fa-square"></i><span>CSS 按钮</span>
-					<i class="star fa-solid fa-star" data-fav="u-btn" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="u-fake" data-cat="text" data-name="测试数据 假数据" title="姓名、邮箱和手机号">
 					<i class="fa-solid fa-user-group"></i><span>测试数据</span>
 					<i class="star fa-solid fa-star" data-fav="u-fake" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-pal" data-cat="image" data-name="调色板 配色" title="互补、邻近和三角色">
-					<i class="fa-solid fa-swatchbook"></i><span>调色板</span>
-					<i class="star fa-solid fa-star" data-fav="u-pal" title="收藏"></i>
+				<button type="button" data-tool="u-press" data-cat="calc" data-name="压力 帕 psi" title="帕、巴、大气压">
+					<i class="fa-solid fa-gauge-high"></i><span>压力换算</span>
+					<i class="star fa-solid fa-star" data-fav="u-press" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-power" data-cat="calc" data-name="功率 瓦 马力" title="瓦、千瓦、马力">
+					<i class="fa-solid fa-bolt"></i><span>功率换算</span>
+					<i class="star fa-solid fa-star" data-fav="u-power" title="收藏"></i>
 				</button>
 			</div>
 			<p id="tool-none" class="none" hidden>没有匹配的工具</p>
