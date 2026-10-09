@@ -56,7 +56,9 @@ public partial class MainWindow {
 		addhttp("POST /api/qr", "POST", "/api/qr", "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}", "http.doc.qr");
 		addhttp("GET /api/asr/models", "GET", "/api/asr/models", "", "http.doc.asrmodels");
 		addhttp("POST /api/asr", "POST", "/api/asr", "{\n  \"path\": \"\",\n  \"lang\": \"auto\"\n}", "http.doc.asr");
+		addhttp("GET /api/tts/engines", "GET", "/api/tts/engines", "", "http.doc.ttsengines");
 		addhttp("GET /api/tts/models", "GET", "/api/tts/models", "", "http.doc.ttsmodels");
+		addhttp("GET /api/tts/models?engine", "GET", "/api/tts/models?engine=sapi", "", "http.doc.ttsmodels");
 		addhttp("POST /api/tts", "POST", "/api/tts", "{\n  \"text\": \"你好\"\n}", "http.doc.tts");
 		addhttp("POST /api/tts (SAPI)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"sapi\"\n}", "http.doc.tts.sapi");
 		addhttp("POST /api/tts (Windows)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"winrt\"\n}", "http.doc.tts.win");

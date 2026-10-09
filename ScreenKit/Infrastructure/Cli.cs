@@ -2037,6 +2037,33 @@ static class Cli {
 			Out($"hasSapi={hasSapi} hasWinrt={hasWin} hasEdge={hasEdge}");
 			if (!hasSapi && !hasWin) fail("models 无 SAPI / Windows 条目");
 			if (!hasEdge) fail("models 无 Edge Online 条目");
+			var again = Task.Run(() =>
+				http.GetStringAsync(baseUrl + "/api/tts/models").GetAwaiter().GetResult())
+				.GetAwaiter().GetResult();
+			using (var againDoc = JsonDocument.Parse(again)) {
+				if (!againDoc.RootElement.TryGetProperty("cached", out var cachedEl) || !cachedEl.GetBoolean())
+					fail("第二次 /api/tts/models 未用缓存");
+			}
+			var engines = Task.Run(() =>
+				http.GetStringAsync(baseUrl + "/api/tts/engines").GetAwaiter().GetResult())
+				.GetAwaiter().GetResult();
+			using (var engDoc = JsonDocument.Parse(engines)) {
+				if (engDoc.RootElement.GetProperty("code").GetInt32() != 100)
+					fail("engines code != 100");
+				var n = engDoc.RootElement.GetProperty("data").GetArrayLength();
+				if (n != 4) fail("engines 不是 4 个");
+			}
+			var one = Task.Run(() =>
+				http.GetStringAsync(baseUrl + "/api/tts/models?engine=edge").GetAwaiter().GetResult())
+				.GetAwaiter().GetResult();
+			using (var oneDoc = JsonDocument.Parse(one)) {
+				if (!oneDoc.RootElement.TryGetProperty("cached", out var oneCached) || !oneCached.GetBoolean())
+					fail("engine=edge 未走全量缓存");
+				foreach (var m in oneDoc.RootElement.GetProperty("data").EnumerateArray()) {
+					var eng = m.GetProperty("engine").GetString() ?? "";
+					if (eng != "edge") fail("engine=edge 混入了 " + eng);
+				}
+			}
 
 			if (hasSapi) testhttpttspost(http, baseUrl, "sapi", fail);
 			if (hasWin) testhttpttspost(http, baseUrl, "winrt", fail);
@@ -3181,6 +3208,13 @@ static class Cli {
 			Out("qrscan " + scanJson);
 			if (scanJson == null || scanJson.IndexOf("hello", StringComparison.Ordinal) < 0) {
 				Err("FAIL: /api/qrscan 未读出 hello");
+				return 1;
+			}
+			var stamp = SendFileWebPages.BootStamp;
+			if (string.IsNullOrEmpty(stamp)
+				|| home.IndexOf("/sk/tools.js?" + stamp, StringComparison.Ordinal) < 0
+				|| home.IndexOf("/sk/tools.css?" + stamp, StringComparison.Ordinal) < 0) {
+				Err("FAIL: 工具页样式或脚本没有本次启动版本");
 				return 1;
 			}
 			using (var css = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/sk/tools.css")).GetAwaiter().GetResult()) {

@@ -114,7 +114,8 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR) |
 | GET | `/api/asr/models` | List ASR models |
 | POST | `/api/asr` | Speech recognition |
-| GET | `/api/tts/models` | List TTS models |
+| GET | `/api/tts/engines` | List TTS engines only |
+| GET | `/api/tts/models` | List TTS models. `engine` filters one engine; a full list is cached |
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
 | POST | `/api/translate` · `/api/translate/batch` | LLM batch translate (needs `[[llm]]`) |
@@ -629,7 +630,20 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), **Windows** (`engine=winrt`, WinRT / OneCore neural voices), and **Edge online** (`engine=edge`, no model/API key, Internet required). Omitting `engine` keeps the Sherpa path when a Sherpa model exists; otherwise it uses Windows speech when a voice is installed, or Edge online when none is.
 
-### 8.1 GET `/api/tts/models`
+### 8.1 GET `/api/tts/engines` · GET `/api/tts/models`
+
+`GET /api/tts/engines` returns the four engines and does not scan models or voices.
+
+| engine | name |
+|--------|------|
+| `sherpa` | Sherpa |
+| `sapi` | SAPI |
+| `winrt` | Windows |
+| `edge` | Edge Online |
+
+`GET /api/tts/models` lists models and voices. With no parameters it scans everything and keeps that result. The next full query returns the cache, and `cached` is `true`. `refresh=1` (or `true`) scans again. A full rescan replaces the cache.
+
+`engine` returns one engine: `sherpa`, `sapi`, `winrt` (`windows` is accepted), or `edge`. If a full list is already cached, the filter uses that cache. An unknown `engine` returns 802.
 
 ```json
 {
@@ -668,7 +682,8 @@ Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Syst
       ]
     }
   ],
-  "count": 4
+  "count": 4,
+  "cached": false
 }
 ```
 

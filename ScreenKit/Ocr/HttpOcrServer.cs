@@ -26,7 +26,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/models · /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
-/// <item>GET  /api/tts/models · POST /api/tts</item>
+/// <item>GET  /api/tts/engines · /api/tts/models · POST /api/tts</item>
 /// <item>POST /api/itn</item>
 /// <item>POST /api/translate · /api/translate/batch</item>
 /// <item>POST /api/chat  LLM 对话（文本/语音入，可选 TTS）</item>
@@ -529,6 +529,16 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/tts/engines") {
+				if (!apiok(ctx, optNow.HttpTts)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "tts/engines 仅支持 GET"));
+					return;
+				}
+				handlettsengines(ctx);
+				return;
+			}
+
 			if (path is "/api/tts/models") {
 				if (!apiok(ctx, optNow.HttpTts)) return;
 				if (!isget(req)) {
@@ -755,12 +765,19 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
 			return;
 		}
+		var html = name == "tools.html";
+		if (html) {
+			var text = Encoding.UTF8.GetString(bytes);
+			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
+			bytes = Encoding.UTF8.GetBytes(text);
+		}
 		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
 		var res = ctx.Response;
 		res.StatusCode = 200;
 		res.ContentType = mime;
 		res.ContentLength64 = bytes.Length;
-		if (name == "tools.html") {
+		// HTML 不缓存，里面的样式和脚本地址带本次启动版本。重启后版本变了，旧缓存失效。
+		if (html) {
 			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
 			res.Headers["Pragma"] = "no-cache";
 		}
@@ -2171,7 +2188,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			a.Add("POST /api/itn   JSON{text}  WeText+规则后处理");
 		}
 		if (o.HttpTts) {
-			a.Add("GET  /api/tts/models");
+			a.Add("GET  /api/tts/engines");
+			a.Add("GET  /api/tts/models  ?engine=&refresh=");
 			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}");
 		}
 		if (o.HttpTranslate)

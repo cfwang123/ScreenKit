@@ -18,10 +18,42 @@ sealed partial class HttpOcrServer {
 	List<SapiVoiceItem> cachedWinRtVoices;
 	List<SapiVoiceItem> cachedEdgeVoices;
 	int lastVoiceScan;
+	readonly object ttsModelsGate = new();
+	JsonArray cachedTtsModels;
+
+	void handlettsengines(HttpListenerContext ctx) {
+		var arr = new JsonArray {
+			ttsengine("sherpa", "Sherpa"),
+			ttsengine("sapi", "SAPI"),
+			ttsengine("winrt", "Windows"),
+			ttsengine("edge", "Edge Online"),
+		};
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = arr,
+			["count"] = arr.Count,
+		});
+	}
+
+	static JsonObject ttsengine(string id, string name) => new() {
+		["engine"] = id,
+		["name"] = name,
+	};
 
 	void handlettsmodels(HttpListenerContext ctx) {
+		var engineRaw = query(ctx.Request, "engine");
+		string engine = null;
+		if (!string.IsNullOrWhiteSpace(engineRaw)) {
+			if (!tryparseengine(engineRaw, out var kind) || kind == null) {
+				writejson(ctx, 200, err(802, "未知 engine（sherpa / sapi / winrt / edge）"));
+				return;
+			}
+			engine = engineid(kind.Value);
+		}
+		var refresh = parseboolstr(query(ctx.Request, "refresh"), false);
 		JsonArray arr;
-		try { arr = buildttsmodels(); }
+		var fromCache = false;
+		try { arr = ttsmodels(engine, refresh, out fromCache); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(920, "扫描 TTS 失败: " + ex.Message));
 			return;
@@ -30,8 +62,47 @@ sealed partial class HttpOcrServer {
 			["code"] = 100,
 			["data"] = arr,
 			["count"] = arr.Count,
+			["cached"] = fromCache,
 		});
 	}
+
+	JsonArray ttsmodels(string engine, bool refresh, out bool fromCache) {
+		lock (ttsModelsGate) {
+			if (!refresh && cachedTtsModels != null) {
+				fromCache = true;
+				return engine == null ? clonejson(cachedTtsModels) : filterengine(cachedTtsModels, engine);
+			}
+		}
+		var built = buildttsmodels(engine);
+		fromCache = false;
+		if (engine != null) return built;
+		lock (ttsModelsGate) {
+			cachedTtsModels = clonejson(built);
+		}
+		return built;
+	}
+
+	static JsonArray clonejson(JsonArray arr) {
+		return JsonNode.Parse(arr.ToJsonString()) as JsonArray ?? new JsonArray();
+	}
+
+	static JsonArray filterengine(JsonArray src, string engine) {
+		var arr = new JsonArray();
+		foreach (var n in src) {
+			if (n is not JsonObject o) continue;
+			var id = o["engine"]?.GetValue<string>() ?? "";
+			if (!string.Equals(id, engine, StringComparison.OrdinalIgnoreCase)) continue;
+			arr.Add(JsonNode.Parse(o.ToJsonString()));
+		}
+		return arr;
+	}
+
+	static string engineid(TtsEngineKind kind) => kind switch {
+		TtsEngineKind.Sapi => "sapi",
+		TtsEngineKind.WinRt => "winrt",
+		TtsEngineKind.Edge => "edge",
+		_ => "sherpa",
+	};
 
 	void handletts(HttpListenerContext ctx) {
 		JsonObject jo;
@@ -133,36 +204,42 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	JsonArray buildttsmodels() {
+	JsonArray buildttsmodels(string only) {
 		var arr = new JsonArray();
-		List<TtsModelInfo> list = null;
-		try { list = svc?.ScanTts?.Invoke(); } catch { }
-		list ??= new List<TtsModelInfo>();
-		foreach (var m in list) {
-			var speakers = new JsonArray();
-			if (m.Speakers != null) {
-				foreach (var s in m.Speakers.Take(64)) {
-					speakers.Add(new JsonObject {
-						["id"] = s.Id,
-						["name"] = s.Name ?? "",
-						["lang"] = s.Lang ?? "",
-						["gender"] = s.Gender ?? "",
-					});
+		var all = string.IsNullOrEmpty(only);
+		if (all || only == "sherpa") {
+			List<TtsModelInfo> list = null;
+			try { list = svc?.ScanTts?.Invoke(); } catch { }
+			list ??= new List<TtsModelInfo>();
+			foreach (var m in list) {
+				var speakers = new JsonArray();
+				if (m.Speakers != null) {
+					foreach (var s in m.Speakers.Take(64)) {
+						speakers.Add(new JsonObject {
+							["id"] = s.Id,
+							["name"] = s.Name ?? "",
+							["lang"] = s.Lang ?? "",
+							["gender"] = s.Gender ?? "",
+						});
+					}
 				}
+				arr.Add(new JsonObject {
+					["name"] = m.DisplayName ?? "",
+					["engine"] = "sherpa",
+					["type"] = m.Type.ToString(),
+					["speakers"] = speakers,
+				});
 			}
-			arr.Add(new JsonObject {
-				["name"] = m.DisplayName ?? "",
-				["engine"] = "sherpa",
-				["type"] = m.Type.ToString(),
-				["speakers"] = speakers,
-			});
 		}
-
-		refreshvoices();
-		addsysmodel(arr, "SAPI", "sapi", "Sapi", cachedSapiVoices);
-		addsysmodel(arr, "Windows", "winrt", "WinRt", cachedWinRtVoices);
-		cachedEdgeVoices ??= listedgevoices();
-		addsysmodel(arr, "Edge Online", "edge", "Edge", cachedEdgeVoices);
+		if (all || only == "sapi" || only == "winrt") refreshvoices();
+		if (all || only == "sapi")
+			addsysmodel(arr, "SAPI", "sapi", "Sapi", cachedSapiVoices);
+		if (all || only == "winrt")
+			addsysmodel(arr, "Windows", "winrt", "WinRt", cachedWinRtVoices);
+		if (all || only == "edge") {
+			cachedEdgeVoices ??= listedgevoices();
+			addsysmodel(arr, "Edge Online", "edge", "Edge", cachedEdgeVoices);
+		}
 		return arr;
 	}
 

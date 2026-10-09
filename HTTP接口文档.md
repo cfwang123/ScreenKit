@@ -115,7 +115,8 @@ http_port = 1224
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR） |
 | GET | `/api/asr/models` | 列出 ASR 模型 |
 | POST | `/api/asr` | 语音识别 |
-| GET | `/api/tts/models` | 列出 TTS 模型 |
+| GET | `/api/tts/engines` | 只列出 TTS 引擎 |
+| GET | `/api/tts/models` | 列出 TTS 模型。`engine` 按引擎过滤；全量结果会缓存 |
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
 | POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译（需已配置 `[[llm]]`） |
@@ -646,7 +647,20 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 四种引擎：**Sherpa**（`ttsmodels` 下 ONNX 包）、**SAPI**（经典 `System.Speech`，含经 `x86host.exe` 的 32 位音）、**Windows**（`engine=winrt`，WinRT / OneCore 神经语音）、**Edge 在线**（`engine=edge`，无需模型/API Key但必须联网）。省略 `engine` 时：有 Sherpa 模型则走 Sherpa；否则有 Windows 语音就用它，没有再用 Edge 在线。
 
-### 8.1 GET `/api/tts/models`
+### 8.1 GET `/api/tts/engines` · GET `/api/tts/models`
+
+`GET /api/tts/engines` 只返回四个引擎，不扫描模型和发音人。
+
+| engine | name |
+|--------|------|
+| `sherpa` | Sherpa |
+| `sapi` | SAPI |
+| `winrt` | Windows |
+| `edge` | Edge Online |
+
+`GET /api/tts/models` 列出模型和发音人。不带参数时扫描全部，并记住这次结果。之后同样的全量查询直接返回缓存，响应里 `cached` 为 `true`。`refresh=1`（或 `true`）忽略缓存并重新扫描；全量重新扫描会换掉缓存。
+
+`engine` 只返回这一引擎：`sherpa`、`sapi`、`winrt`（也可写 `windows`）、`edge`。已有全量缓存时从缓存里筛，不再扫描。未知 `engine` 返回 802。
 
 ```json
 {
@@ -685,7 +699,8 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
       ]
     }
   ],
-  "count": 4
+  "count": 4,
+  "cached": false
 }
 ```
 
