@@ -142,13 +142,8 @@ static class FeaturePrompt {
 			if (list != null && list.Any(m => m.IsReady)) return true;
 		}
 		catch { }
-		var own = owner ?? Application.Current?.MainWindow;
-		var msg = Loc.T("feat.prompt.tr.body");
-		if (own != null)
-			MessageBox.Show(own, msg, Loc.T("inst.need"), MessageBoxButton.OK, MessageBoxImage.Information);
-		else
-			MessageBox.Show(msg, Loc.T("inst.need"), MessageBoxButton.OK, MessageBoxImage.Information);
-		return false;
+		return EnsureKinds(owner, Loc.T("feat.prompt.tr.title"), Loc.T("feat.prompt.tr.detail"),
+			FeatureKind.TranslateOnnx);
 	}
 
 	/// <summary>人脸：无检测+识别 ONNX 时提示安装 buffalo_l。</summary>

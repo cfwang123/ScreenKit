@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- **Help → Install features** can install the minimal Chinese→English and English→Chinese Opus-MT ONNX packs from the fixed `dict-db` release. The installer selects CPU ONNX Runtime and 7z extraction dependencies, detects partial installs, and removes only these two packaged models when uninstalling.
 - The ASR offline-model picker has a help icon. Its tooltip warns that Windows system speech recognition performs poorly for Chinese and recommends a Sherpa model such as SenseVoice.
 - Windows ASR no longer silently returns empty text when System.Speech rejects low-confidence dictation. It lowers the system rejection threshold and falls back to the best rejected candidate.
 - ASR can use installed Windows system recognizers (`System.Speech`) without a Sherpa model. Each installed language appears in the offline-model list and works for files, recordings, hotkey dictation, silence-delimited live captions, subtitle batches, `--asr`, and HTTP `/api/asr`. Windows ASR runs on the CPU and does not provide Sherpa-style partial streaming results.
@@ -39,6 +40,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- **帮助 → 安装功能** 可从固定的 `dict-db` Release 安装最小化的中译英、英译中 Opus-MT ONNX 模型包。安装时会自动勾选 CPU ONNX Runtime 和 7z 解压依赖，可识别残缺安装；卸载只删除这两个随包模型。
 - ASR 离线模型下拉框旁增加帮助图标；悬停提示 Windows 系统语音的中文识别效果较差，中文建议优先使用 SenseVoice 等 Sherpa 模型。
 - Windows ASR 不再因 System.Speech 拒绝低置信度听写而静默返回空文字：现在降低系统拒绝阈值，必要时采用被拒结果中的最佳候选。
 - ASR 可直接使用系统已安装的 Windows 语音识别器（`System.Speech`），不需要 Sherpa 模型。每种已安装语言会列在离线模型中，可用于文件、录音、热键听写、按静音切句的实时字幕、批量字幕、`--asr` 和 HTTP `/api/asr`。Windows ASR 只走 CPU，不提供 Sherpa 流式模型那种半句实时结果。

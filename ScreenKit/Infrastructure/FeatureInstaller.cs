@@ -47,6 +47,8 @@ public enum FeatureKind {
 	Mjpeg,
 	/// <summary>词典 dict.db。从固定 Release dict-db 的 dict.7z 解出，不进应用更新包。</summary>
 	DictDb,
+	/// <summary>中英双向 Opus-MT ONNX 翻译模型。从固定 Release dict-db 下载。</summary>
+	TranslateOnnx,
 	/// <summary>ZXing.dll（条码 / 二维码，约 3MB）。</summary>
 	NativeZxing,
 	/// <summary>SharpCompress.dll（解压 tar.bz2 等，约 2.5MB）。</summary>
@@ -123,6 +125,8 @@ static class FeatureInstaller {
 	/// <summary>固定标签 dict-db，不跟随最新 Release，避免被当成应用更新包。</summary>
 	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict.7z";
 	const long DICT7Z_BYTES = 261009277L;
+	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
+	const long TRANSLATE7Z_BYTES = 1028366964L;
 	static readonly string[] FaceBuffaloLFiles = [
 		"det_10g.onnx", "w600k_r50.onnx", "genderage.onnx", "2d106det.onnx", "1k3d68.onnx",
 	];
@@ -163,6 +167,7 @@ static class FeatureInstaller {
 	public static string OnnxCpuDir => Path.Combine(BaseDir, "onnxcpu64");
 	public static string FfmpegDir => Path.Combine(BaseDir, "ffmpeg64");
 	public static string FaceModelsDir => Path.Combine(BaseDir, "facemodels");
+	public static string TranslateModelsDir => Path.Combine(BaseDir, "translatemodels");
 
 	/// <summary>任一可用 ORT 原生库（CPU / CUDA / DML 包），足够跑 CPU EP 推理。</summary>
 	public static bool HasAnyOrtNative() =>
@@ -229,6 +234,7 @@ static class FeatureInstaller {
 			make(FeatureKind.AsrWhisperTiny, "asr"),
 			make(FeatureKind.AsrWhisperBase, "asr"),
 			make(FeatureKind.AsrSileroVad, "asr"),
+			make(FeatureKind.TranslateOnnx, "translate"),
 			make(FeatureKind.FaceInsight, "face"),
 			make(FeatureKind.DictDb, "dict"),
 			make(FeatureKind.CudaGpu, "accel", true),
@@ -293,6 +299,7 @@ static class FeatureInstaller {
 		FeatureKind.Ffmpeg => 72L * 1024 * 1024,
 		FeatureKind.FaceInsight => 326L * 1024 * 1024,
 		FeatureKind.DictDb => DICT7Z_BYTES,
+		FeatureKind.TranslateOnnx => TRANSLATE7Z_BYTES,
 		_ => 0,
 	};
 
@@ -369,6 +376,9 @@ static class FeatureInstaller {
 			case FeatureKind.Ffmpeg: return dirsize(FfmpegDir);
 			case FeatureKind.FaceInsight: return dirsize(FaceModelsDir);
 			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict.db"));
+			case FeatureKind.TranslateOnnx:
+				return dirsize(Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"))
+					+ dirsize(Path.Combine(TranslateModelsDir, "opus-mt-en-zh-onnx"));
 			default: return 0;
 			}
 		}
@@ -465,6 +475,8 @@ static class FeatureInstaller {
 			return probeface();
 		case FeatureKind.DictDb:
 			return probedict();
+		case FeatureKind.TranslateOnnx:
+			return probetranslate();
 		default:
 			return FeatureInstallState.Missing;
 		}
@@ -643,6 +655,9 @@ static class FeatureInstaller {
 		case FeatureKind.DictDb:
 			await installdict(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.TranslateOnnx:
+			await installtranslate(log, progress, ct).ConfigureAwait(false);
+			break;
 		default:
 			throw new InvalidOperationException("未知功能: " + kind);
 		}
@@ -723,6 +738,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.DictDb:
 			uninstalldict(log);
+			break;
+		case FeatureKind.TranslateOnnx:
+			uninstalltranslate(log);
 			break;
 		default:
 			throw new InvalidOperationException("未知功能: " + kind);
@@ -1292,6 +1310,99 @@ arabic_dict.txt
 		deletefile(dest, log);
 		deletefile(dest + "-wal", log);
 		deletefile(dest + "-shm", log);
+	}
+
+	// ───────── 中英双向 ONNX 翻译模型 ─────────
+
+	static FeatureInstallState probetranslate() {
+		var zhEn = Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx");
+		var enZh = Path.Combine(TranslateModelsDir, "opus-mt-en-zh-onnx");
+		if (translatemodelready(zhEn) && translatemodelready(enZh))
+			return FeatureInstallState.Installed;
+		return hasdircontent(zhEn) || hasdircontent(enZh)
+			? FeatureInstallState.Partial
+			: FeatureInstallState.Missing;
+	}
+
+	static bool translatemodelready(string dir) {
+		if (!File.Exists(Path.Combine(dir, "encoder_model.onnx"))
+			|| !File.Exists(Path.Combine(dir, "decoder_model.onnx"))
+			|| !File.Exists(Path.Combine(dir, "source.spm"))
+			|| !File.Exists(Path.Combine(dir, "target.spm")))
+			return false;
+		return File.Exists(Path.Combine(dir, "vocab.json"))
+			|| File.Exists(Path.Combine(dir, "vocab.txt"));
+	}
+
+	static bool hasdircontent(string dir) {
+		try { return Directory.Exists(dir) && Directory.EnumerateFileSystemEntries(dir).Any(); }
+		catch { return false; }
+	}
+
+	static async Task installtranslate(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		if (probetranslate() == FeatureInstallState.Installed) {
+			log?.Report("中英双向 ONNX 翻译模型已存在，跳过");
+			reportprog(progress, 1, note: "已存在");
+			return;
+		}
+		Directory.CreateDirectory(CacheDir);
+		var arc = Path.Combine(CacheDir, "translatemodels.7z");
+		if (File.Exists(arc)) {
+			long have = 0;
+			try { have = new FileInfo(arc).Length; } catch { }
+			if (have != TRANSLATE7Z_BYTES) {
+				try { File.Delete(arc); } catch { }
+			}
+		}
+		await downloadfirst(ExpandUrls(TRANSLATE7Z_URL), arc, log, progress, ct,
+			expectedTotal: TRANSLATE7Z_BYTES, overallWeight: 0.9).ConfigureAwait(false);
+		var unpack = Path.Combine(CacheDir, "translate-unpack");
+		if (Directory.Exists(unpack)) {
+			try { Directory.Delete(unpack, true); } catch { }
+		}
+		Directory.CreateDirectory(unpack);
+		log?.Report("解压 translatemodels.7z …");
+		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : TRANSLATE7Z_BYTES;
+		reportprog(progress, 0.92, zlen, zlen, "translatemodels.7z", "解压中…");
+		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
+		extract7z(arc, unpack, log);
+		var sourceRoot = Path.Combine(unpack, "translatemodels");
+		var zhEn = Path.Combine(sourceRoot, "opus-mt-zh-en-onnx");
+		var enZh = Path.Combine(sourceRoot, "opus-mt-en-zh-onnx");
+		if (!translatepackagecomplete(zhEn) || !translatepackagecomplete(enZh))
+			throw new InvalidOperationException("translatemodels.7z 中的中英双向模型不完整");
+		Directory.CreateDirectory(TranslateModelsDir);
+		movetranslatemodel(zhEn, Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"));
+		movetranslatemodel(enZh, Path.Combine(TranslateModelsDir, "opus-mt-en-zh-onnx"));
+		if (probetranslate() != FeatureInstallState.Installed)
+			throw new InvalidOperationException("中英双向 ONNX 翻译模型安装后仍不完整");
+		try { Directory.Delete(unpack, true); } catch { }
+		try { File.Delete(arc); } catch { }
+		reportprog(progress, 1, zlen, zlen, "translatemodels", "完成");
+		log?.Report("中英双向 ONNX 翻译模型完成");
+	}
+
+	static bool translatepackagecomplete(string dir) {
+		if (!translatemodelready(dir)) return false;
+		return File.Exists(Path.Combine(dir, "vocab.json"))
+			&& File.Exists(Path.Combine(dir, "onnx_gen_config.json"));
+	}
+
+	static void movetranslatemodel(string source, string dest) {
+		if (Directory.Exists(dest)) Directory.Delete(dest, true);
+		try {
+			Directory.Move(source, dest);
+		}
+		catch (IOException) {
+			copytree(source, dest);
+			Directory.Delete(source, true);
+		}
+	}
+
+	static void uninstalltranslate(IProgress<string> log) {
+		deletedir(Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"), log);
+		deletedir(Path.Combine(TranslateModelsDir, "opus-mt-en-zh-onnx"), log);
 	}
 
 	/// <summary>符号链接先卸掉再写，避免解压写穿到链接目标。</summary>

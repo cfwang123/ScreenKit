@@ -131,6 +131,8 @@ static class FeaturePick {
 				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrWhisperBase),
 			leaf("asr.vad", "feat.pick.asr.vad", "feat.AsrSileroVad.detail",
 				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrSileroVad)),
+		leaf("translate", "feat.pick.translate", "feat.pick.translate.detail",
+			FeatureKind.OrtCpu, FeatureKind.Native7za, FeatureKind.SharpSevenZip, FeatureKind.TranslateOnnx),
 		leaf("face", "feat.pick.face", "feat.pick.face.detail", FeatureKind.FaceInsight),
 		leaf("dict", "feat.pick.dict", "feat.pick.dict.detail",
 			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.SharpSevenZip, FeatureKind.DictDb),
