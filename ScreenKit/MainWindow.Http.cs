@@ -154,9 +154,9 @@ public partial class MainWindow {
 		return $"http://127.0.0.1:{opt.HttpPort}";
 	}
 
-	void openhttptools() {
+	void openhttptools(bool fromTray = false) {
 		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
-			ehttpresp.Text = httpstatustext();
+			httptoolfail(httpstatustext(), fromTray);
 			return;
 		}
 		try {
@@ -166,8 +166,13 @@ public partial class MainWindow {
 			});
 		}
 		catch (Exception ex) {
-			ehttpresp.Text = ex.Message;
+			httptoolfail(ex.Message, fromTray);
 		}
+	}
+
+	void httptoolfail(string msg, bool fromTray) {
+		try { ehttpresp.Text = msg ?? ""; } catch { }
+		if (fromTray) UiToast.Show(null, msg ?? "");
 	}
 
 	async Task httpSendAsync() {

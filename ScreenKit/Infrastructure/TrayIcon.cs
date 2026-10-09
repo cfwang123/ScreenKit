@@ -27,6 +27,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miGifRecord;
 	Forms.ToolStripMenuItem miGifRecordOpt;
 	Forms.ToolStripMenuItem miTools;
+	Forms.ToolStripMenuItem miWebHome;
 	Forms.ToolStripMenuItem miImgConv;
 	Forms.ToolStripMenuItem miQrMake;
 	Forms.ToolStripMenuItem miRename;
@@ -155,7 +156,9 @@ sealed class TrayIcon : IDisposable {
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
+		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
+		miTools.DropDownItems.Add(miWebHome);
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miQrMake);
 		miTools.DropDownItems.Add(miRename);
@@ -355,6 +358,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miGifRecord, null);
 		setshortcut(miGifRecordOpt, null);
 		setshortcut(miTools, null);
+		setshortcut(miWebHome, null);
 		setshortcut(miImgConv, null);
 		setshortcut(miQrMake, null);
 		setshortcut(miRename, null);
@@ -400,6 +404,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miGifRecord, "tray.gifrecord");
 			settext(miGifRecordOpt, "tray.gifrecordopt");
 			settext(miTools, "tray.tools");
+			settext(miWebHome, "tray.webhome");
 			settext(miImgConv, "tray.imgconv");
 			settext(miQrMake, "tray.qrmake");
 			settext(miRename, "tray.rename");
@@ -437,6 +442,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action RecordOptionsRequested;
 	public event Action GifRecordRequested;
 	public event Action GifRecordOptionsRequested;
+	public event Action WebHomeRequested;
 	public event Action ImgConvRequested;
 	public event Action QrMakeRequested;
 	public event Action RenameRequested;
