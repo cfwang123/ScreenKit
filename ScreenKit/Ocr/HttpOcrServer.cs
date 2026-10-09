@@ -16,6 +16,7 @@ namespace ScreenKit;
 /// HTTP API（Umi 兼容 OCR + 本项目扩展）。
 /// <list type="bullet">
 /// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
+/// <item>GET/POST /api/toast 底部 Toast</item>
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
@@ -412,6 +413,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/toast" or "/api/toast/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "toast 仅支持 GET 或 POST"));
+					return;
+				}
+				handletoast(ctx);
+				return;
+			}
+
 			if (path is "/api/cast/stop") {
 				if (!isget(req) && !ispost(req)) {
 					writejson(ctx, 405, err(805, "cast/stop 仅支持 GET 或 POST"));
@@ -614,6 +624,38 @@ sealed partial class HttpOcrServer : IDisposable {
 			Logged?.Invoke($"cast ws: {ex.Message}");
 			try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
 		}
+	}
+
+	void handletoast(HttpListenerContext ctx) {
+		string text = null;
+		var ms = 1900;
+		if (ispost(ctx.Request)) {
+			JsonObject jo;
+			try { jo = readjsonbody(ctx.Request); }
+			catch (Exception ex) {
+				writejson(ctx, 200, err(801, ex.Message));
+				return;
+			}
+			text = jo["text"]?.GetValue<string>() ?? jo["message"]?.GetValue<string>();
+			if (jo["ms"] != null) ms = asint(jo["ms"], 1900);
+		}
+		else {
+			text = ctx.Request.QueryString["text"] ?? ctx.Request.QueryString["message"];
+			var raw = ctx.Request.QueryString["ms"];
+			if (!string.IsNullOrWhiteSpace(raw) && int.TryParse(raw, out var n)) ms = n;
+		}
+		if (string.IsNullOrWhiteSpace(text)) {
+			writejson(ctx, 200, err(802, "请提供 text"));
+			return;
+		}
+		UiToast.Show(null, text.Trim(), ms);
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["text"] = text.Trim(),
+				["ms"] = ms < 800 ? 800 : (ms > 8000 ? 8000 : ms),
+			},
+		});
 	}
 
 	void handlecaststop(HttpListenerContext ctx) {
@@ -1650,6 +1692,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	static JsonArray apilist(OcrOptions o) {
 		var a = new JsonArray {
 			"GET  /api/status",
+			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
 		};
 		if (o.HttpOcr) {

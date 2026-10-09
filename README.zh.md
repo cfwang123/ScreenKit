@@ -199,6 +199,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 **PC 文件传输** 与此 HTTP 端口共用（`1224`）并另有 UDP `17531`（需配对）：[HTTP接口文档.md](HTTP接口文档.md) · [android/README.md](android/README.md)。
 
 - `GET  /api` · `/api/status`
+- `GET/POST /api/toast` — 底部 Toast（`text`，可选 `ms`）。命令行：`ScreenKit --toast "文字" [--ms 1900]`
 - `GET/POST /api/cast/stop` — 立刻关闭投屏画面窗
 - WebSocket `/cast` — 投屏媒体（与 HTTP API 同端口）
 - `POST /api/ocr` — `box` 为原图像素。`ocr.engine=winocr` 让这一次走 Windows 系统 OCR

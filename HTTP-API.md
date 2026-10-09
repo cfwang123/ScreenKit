@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status` and `/api/cast/stop` stay available. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, and `/api/cast/stop` stay available. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -100,6 +100,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 |--------|------|-------------|
 | GET | `/` · `/api` | API name and endpoint list |
 | GET | `/api/status` · `/api/health` | Service and capability status |
+| GET/POST | `/api/toast` | Bottom-of-screen toast (not tied to a module switch) |
 | GET | `/api/ocr/get_options` | OCR option descriptors |
 | POST | `/api/ocr` | Image OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR) |
@@ -186,6 +187,37 @@ Health check and capability probe.
 
 ```bash
 curl -s "http://127.0.0.1:1224/api/status"
+
+---
+
+## 5.1 GET/POST `/api/toast`
+
+Shows a toast at the bottom of the primary monitor work area. It does not take focus. Duration is clamped to 800–8000 ms.
+
+**GET:** `/api/toast?text=Copied&ms=1900`
+
+**POST** `application/json`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | string | Message. `message` is an alias |
+| `ms` | number | Visible milliseconds, default 1900 |
+
+```json
+{ "text": "Copied", "ms": 1900 }
+```
+
+**Response `data`:** `text` and `ms` (clamped to 800–8000). An empty `text` returns code 802.
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/toast" -H "Content-Type: application/json" -d "{\"text\":\"Copied\",\"ms\":1900}"
+```
+
+The CLI shows the same toast without HTTP:
+
+```bash
+ScreenKit --toast "Copied" --ms 1900
+```
 ```
 
 ---

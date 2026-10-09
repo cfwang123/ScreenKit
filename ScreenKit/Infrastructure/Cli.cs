@@ -76,6 +76,7 @@ static class Cli {
 				or "--test-http-chat"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
+				or "--toast"
 				or "--asr" or "--list-asr"
 				or "--translate" or "--translate-file" or "--list-translate"
 				or "--list-install" or "--list-tts-install"
@@ -357,6 +358,8 @@ static class Cli {
 					case "--help": case "-h": case "/?":
 						printhelp();
 						return 0;
+					case "--toast":
+						return runtoast(args, i);
 					default:
 						if (a.StartsWith("-")) {
 							Err($"未知参数: {a}");
@@ -3837,11 +3840,54 @@ static class Cli {
 		return 0;
 	}
 
+	static int runtoast(string[] args, int at) {
+		string text = null;
+		var ms = 1900;
+		for (var j = at + 1; j < args.Length; j++) {
+			var a = args[j] ?? "";
+			if (a is "--ms" or "--duration") {
+				if (j + 1 >= args.Length || !int.TryParse(args[++j], out ms)) {
+					Err("缺少显示毫秒数");
+					return 2;
+				}
+				continue;
+			}
+			if (a.StartsWith("-")) {
+				Err("未知参数 " + a);
+				return 2;
+			}
+			text = text == null ? a : text + " " + a;
+		}
+		if (string.IsNullOrWhiteSpace(text)) {
+			Err("用法: ScreenKit --toast <文字> [--ms 1900]");
+			return 2;
+		}
+		if (ms < 800) ms = 800;
+		if (ms > 8000) ms = 8000;
+		var disp = System.Windows.Application.Current?.Dispatcher;
+		if (disp == null) {
+			Err("无法显示 Toast");
+			return 1;
+		}
+		disp.Invoke(() => UiToast.Show(null, text, ms));
+		var frame = new DispatcherFrame();
+		var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ms + 150) };
+		timer.Tick += (_, _) => {
+			timer.Stop();
+			frame.Continue = false;
+		};
+		timer.Start();
+		Dispatcher.PushFrame(frame);
+		Out("toast " + ms + "ms");
+		return 0;
+	}
+
 	static void printhelp() {
 		Out("""
 ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 
 用法:
+  ScreenKit --toast <文字> [--ms 1900]
   ScreenKit --image <路径> [选项]
   ScreenKit --snap [--out <目录>]
   ScreenKit --record-snap [--region L,T,W,H] [--wait-ms 800] [--out <目录>]

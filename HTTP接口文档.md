@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status` 和 `/api/cast/stop` 仍可用。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast` 和 `/api/cast/stop` 仍可用。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -101,6 +101,7 @@ http_port = 1224
 |------|------|------|
 | GET | `/` · `/api` | API 说明与端点列表 |
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
+| GET/POST | `/api/toast` | 屏幕底部 Toast（不随模块开关关闭） |
 | GET | `/api/ocr/get_options` | OCR 可选项描述 |
 | POST | `/api/ocr` | 图片 OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR） |
@@ -187,6 +188,41 @@ http_port = 1224
 
 ```bash
 curl -s "http://127.0.0.1:1224/api/status"
+
+---
+
+## 5.1 GET/POST `/api/toast`
+
+在主显示器工作区底部显示一条 Toast。不抢焦点，显示期间可继续操作。时长限制在 800～8000 毫秒。
+
+**GET**
+
+```
+/api/toast?text=已复制&ms=1900
+```
+
+**POST** `application/json`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `text` | string | 要显示的文字。也可用 `message` |
+| `ms` | number | 显示毫秒，默认 1900 |
+
+```json
+{ "text": "已复制", "ms": 1900 }
+```
+
+**响应 `data`：** `text`、`ms`（已按 800～8000 收束）。`text` 为空时返回 802。
+
+```bash
+curl -s -X POST "http://127.0.0.1:1224/api/toast" -H "Content-Type: application/json" -d "{\"text\":\"已复制\",\"ms\":1900}"
+```
+
+命令行不经过 HTTP，直接弹出同一条 Toast：
+
+```bash
+ScreenKit --toast "已复制" --ms 1900
+```
 ```
 
 ---
