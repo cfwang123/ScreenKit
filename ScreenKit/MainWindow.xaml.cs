@@ -100,6 +100,10 @@ public partial class MainWindow : Window {
 	int ocrGen;
 	/// <summary>托盘菜单打开瞬间主窗是否可见（菜单关闭会误激活主窗，不能用点击后状态）。</summary>
 	bool trayMenuMainVisible;
+	/// <summary>主窗当前是否前台；点托盘时 Deactivated 可能尚未处理。</summary>
+	bool lastfgours;
+	/// <summary>主窗失活时的 TickCount。</summary>
+	int lastdeact;
 
 	public MainWindow() {
 		InitializeComponent();
@@ -130,6 +134,7 @@ public partial class MainWindow : Window {
 		applylang();
 		initkeys();
 		inittray();
+		trackmainfg();
 		inithotkey();
 		inithttpserver();
 		initsendfile();
@@ -586,6 +591,7 @@ public partial class MainWindow : Window {
 				applysnapcopyopts(asImg, asFile, asPath, fromTray: true);
 			}));
 			tray.SetSnapCopyOptions(opt.SnapCopyAsImage, opt.SnapCopyAsFile, opt.SnapCopyAsPath);
+			tray.ToggleRequested += () => Dispatcher.BeginInvoke(new Action(() => togglemainwindow(fromTray: true)));
 			tray.ApplyHotkeys();
 		}
 		catch (Exception ex) {
@@ -710,8 +716,8 @@ public partial class MainWindow : Window {
 	void inithotkey() {
 		try {
 			hotkey = new GlobalHotkey(this, 0x7001);
-			// 主热键：前台不是主窗则唤出并置顶，已是主窗则隐藏
-			hotkey.Fired += () => Dispatcher.BeginInvoke(new Action(hotkeytogglewindow));
+			// 主热键 / 托盘左键：前台不是主窗则唤出并置顶，已是主窗则隐藏
+			hotkey.Fired += () => Dispatcher.BeginInvoke(new Action(() => togglemainwindow(fromTray: false)));
 			hotkeySnap = new GlobalHotkey(this, 0x7002);
 			// 热键：结束后不唤起主窗；录屏中同样可用（会短暂挂起录屏 HUD）
 			hotkeySnap.Fired += () => Dispatcher.BeginInvoke(new Action(() =>
@@ -943,10 +949,10 @@ public partial class MainWindow : Window {
 		try { Environment.Exit(0); } catch { }
 	}
 
-	/// <summary>全局热键：前台不是主窗则唤出并置顶，已是主窗则隐藏。托盘单击仍按可见性切换。</summary>
-	void hotkeytogglewindow() {
+	/// <summary>全局热键与托盘左键：前台是主窗则隐藏，否则显示并置顶。</summary>
+	void togglemainwindow(bool fromTray) {
 		try {
-			if (mainwindowforeground()) {
+			if (mainwindowforeground(fromTray)) {
 				if (tray != null) tray.hidewindow();
 				else Hide();
 				return;
@@ -959,18 +965,30 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	/// <summary>前台是主窗口（含其内部子窗口，如词典页）。最小化或别的窗口在前时为 false。</summary>
-	bool mainwindowforeground() {
+	void trackmainfg() {
+		Activated += (_, _) => { lastfgours = true; };
+		Deactivated += (_, _) => {
+			lastfgours = false;
+			lastdeact = Environment.TickCount;
+		};
+	}
+
+	/// <summary>前台是主窗口（含其内部子窗口，如词典页）。最小化或别的窗口在前时为 false。点托盘会先失活，fromTray 时把刚失活仍算前台。</summary>
+	bool mainwindowforeground(bool fromTray = false) {
 		try {
-			if (IsVisible && WindowState != WindowState.Minimized && IsActive) return true;
+			if (!IsVisible || WindowState == WindowState.Minimized) return false;
+			if (IsActive) return true;
 		}
-		catch { }
+		catch { return false; }
 		var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
 		if (hwnd == IntPtr.Zero) return false;
 		var fg = GetForegroundWindow();
 		if (fg == IntPtr.Zero) return false;
 		if (fg == hwnd) return true;
-		return GetAncestor(fg, GA_ROOT) == hwnd;
+		if (GetAncestor(fg, GA_ROOT) == hwnd) return true;
+		if (fromTray && (lastfgours || unchecked(Environment.TickCount - lastdeact) < 500))
+			return true;
+		return false;
 	}
 
 	void showmainontop() {

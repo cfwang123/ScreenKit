@@ -32,6 +32,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- Tray left-click uses the same rule as the main-window hotkey: if the main window is already in the foreground it hides; if it is hidden, minimized, or behind another window it shows and brings it to the front.
 - The tools page **Generate** button draws the QR or barcode under the button. Its style and script URLs carry the same process startup version as the file manager. Restarting ScreenKit changes that version, so the browser drops the previous files. During one run they still cache for 1 hour. The primary button stays the accent color.
 - The local tools page adds **OCR**, **speech synthesis**, and **speech recognition**. Each picks an engine and a model the same way as the main window: Windows OCR or an ONNX pack, a TTS engine and voice, and an offline or Windows speech recognizer. `GET /api/ocr/models` lists the OCR packs. `POST /api/ocr` accepts `options.ocr.pack`.
 - The local tools page can make a QR code or barcode (`POST /api/qrmake`) and read one from an image (`POST /api/qrscan`). Both stay available when other HTTP modules are off.
@@ -57,10 +58,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The ASR offline-model picker has a help icon. Its tooltip warns that Windows system speech recognition performs poorly for Chinese and recommends a Sherpa model such as SenseVoice.
 - Windows ASR no longer silently returns empty text when System.Speech rejects low-confidence dictation. It lowers the system rejection threshold and falls back to the best rejected candidate.
 - ASR can use installed Windows system recognizers (`System.Speech`) without a Sherpa model. Each installed language appears in the offline-model list and works for files, recordings, hotkey dictation, silence-delimited live captions, subtitle batches, `--asr`, and HTTP `/api/asr`. Windows ASR runs on the CPU and does not provide Sherpa-style partial streaming results.
-- The main-window hotkey and the dictionary hotkey look at the foreground window. If it is not the main window, the main window is shown and brought to the front. If it is the main window, the main window is hidden. The dictionary hotkey still selects the dictionary tab and searches a one-word clipboard only when it shows the window. Tray left-click still toggles by visibility.
+- The main-window hotkey and the dictionary hotkey look at the foreground window. If it is not the main window, the main window is shown and brought to the front. If it is the main window, the main window is hidden. The dictionary hotkey still selects the dictionary tab and searches a one-word clipboard only when it shows the window.
 
 ### 中文
 
+- 单击托盘图标与主窗口热键相同：主窗口已在前台则隐藏；已隐藏、最小化或被其它窗口挡住则显示并置于最前。
 - `GET /api/tts/engines` 只列出 Sherpa、SAPI、Windows、Edge，不扫描模型。`GET /api/tts/models` 会记住上次的全量结果。`engine` 只返回一个引擎。`refresh=1` 重新扫描。
 - 工具页的**生成**会在按钮下方画出二维码或条码。样式和脚本地址带上和网页文件管理相同的本次启动版本。重启程序后版本会变，浏览器不再用上一轮的文件。同一次运行里仍缓存 1 小时。主按钮保持强调色。
 - 本机工具页增加**文字识别**、**语音合成**和**语音识别**。引擎和模型的选法与主窗口相同：Windows OCR 或 ONNX 模型包、语音引擎和发音人、离线或 Windows 语音识别。`GET /api/ocr/models` 列出这些识别包。`POST /api/ocr` 接受 `options.ocr.pack`。
@@ -86,7 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - ASR 离线模型下拉框旁增加帮助图标；悬停提示 Windows 系统语音的中文识别效果较差，中文建议优先使用 SenseVoice 等 Sherpa 模型。
 - Windows ASR 不再因 System.Speech 拒绝低置信度听写而静默返回空文字：现在降低系统拒绝阈值，必要时采用被拒结果中的最佳候选。
 - ASR 可直接使用系统已安装的 Windows 语音识别器（`System.Speech`），不需要 Sherpa 模型。每种已安装语言会列在离线模型中，可用于文件、录音、热键听写、按静音切句的实时字幕、批量字幕、`--asr` 和 HTTP `/api/asr`。Windows ASR 只走 CPU，不提供 Sherpa 流式模型那种半句实时结果。
-- 主窗口热键和词典热键看当前前台窗口。不是主窗口时唤出主窗口并置于最前；已经是主窗口时隐藏主窗口。词典热键只在唤出时切到词典页，剪贴板像一个单词才搜索。托盘左键单击仍按窗口是否可见来切换。
+- 主窗口热键和词典热键看当前前台窗口。不是主窗口时唤出主窗口并置于最前；已经是主窗口时隐藏主窗口。词典热键只在唤出时切到词典页，剪贴板像一个单词才搜索。
 
 ## v1.0.16 (2026-10-08 ~ 10-09)
 

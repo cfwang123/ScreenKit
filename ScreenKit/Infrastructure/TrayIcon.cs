@@ -6,7 +6,7 @@ using Forms = System.Windows.Forms;
 namespace ScreenKit;
 
 /// <summary>
-/// 通知栏图标：单击切换显示/隐藏，右键菜单。
+/// 通知栏图标：左键与主窗热键相同（前台则隐藏，否则显示并置顶），右键菜单。
 /// </summary>
 sealed class TrayIcon : IDisposable {
 	readonly Forms.NotifyIcon ni;
@@ -469,6 +469,8 @@ sealed class TrayIcon : IDisposable {
 	public event Action<bool, bool, bool> SnapCopyOptionsChanged;
 	/// <summary>右键菜单即将打开（用于记录主窗可见性，避免菜单关闭后误判）。</summary>
 	public event Action MenuOpening;
+	/// <summary>左键单击：由主窗按前台状态决定显示、隐藏或置顶。</summary>
+	public event Action ToggleRequested;
 
 	public void showwindow() {
 		try {
@@ -488,6 +490,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	public void togglewindow() {
+		if (ToggleRequested != null) {
+			try { ToggleRequested(); } catch { }
+			return;
+		}
 		try {
 			if (win.IsVisible && win.WindowState != WindowState.Minimized)
 				hidewindow();
