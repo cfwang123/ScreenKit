@@ -96,3 +96,19 @@ select, input[type="date"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans
 }
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; }
+.qrbox {
+	min-height: 160px; margin: 8px 0 16px; padding: 16px;
+	background: #fff; border: 1px solid var(--line); border-radius: 16px;
+	display: grid; place-items: center;
+}
+.qrbox img { max-width: 100%; height: auto; image-rendering: pixelated; }
+audio { width: 100%; margin-top: 8px; }
+input[type="number"] {
+	display: block; width: 100%; margin-top: 6px; height: 40px;
+	border: 1px solid var(--line); background: var(--card); color: var(--ink);
+	border-radius: 12px; padding: 8px 12px;
+	font: 14px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+input[type="file"] {
+	display: block; width: 100%; margin-top: 6px; font: 14px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}

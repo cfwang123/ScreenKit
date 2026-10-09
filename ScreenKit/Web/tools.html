@@ -22,6 +22,10 @@
 			<button type="button" data-tool="cal">历法</button>
 			<button type="button" data-tool="yomi">日文注音</button>
 			<button type="button" data-tool="text">文本</button>
+			<button type="button" data-tool="ocr">文字识别</button>
+			<button type="button" data-tool="tts">语音合成</button>
+			<button type="button" data-tool="asr">语音识别</button>
+			<button type="button" data-tool="qr">二维码 / 条码</button>
 		</nav>
 		<a class="files" href="/files">文件传输</a>
 	</aside>
@@ -29,7 +33,7 @@
 		<section id="home" class="panel on">
 			<p class="kicker">本机 · 不离开这台电脑</p>
 			<h1>小工具</h1>
-			<p class="lead">简繁、历法、日文读音和文本处理都在这个端口上完成。结果只回到这个页面。</p>
+			<p class="lead">简繁、历法、日文读音、文本、文字识别、语音合成和识别，以及二维码和条码，都在这个端口上完成。结果只回到这个页面。</p>
 			<div class="cards">
 				<button type="button" data-tool="zh">
 					<span>简繁转换</span>
@@ -46,6 +50,22 @@
 				<button type="button" data-tool="text">
 					<span>文本</span>
 					<small>Base64、URL、十六进制、JSON</small>
+				</button>
+				<button type="button" data-tool="ocr">
+					<span>文字识别</span>
+					<small>Windows 系统 OCR 或 ONNX 模型包</small>
+				</button>
+				<button type="button" data-tool="tts">
+					<span>语音合成</span>
+					<small>Windows、SAPI、Edge 或离线模型</small>
+				</button>
+				<button type="button" data-tool="asr">
+					<span>语音识别</span>
+					<small>系统识别器或离线模型，可录音或选文件</small>
+				</button>
+				<button type="button" data-tool="qr">
+					<span>二维码 / 条码</span>
+					<small>生成 PNG，或从图片里读出来</small>
 				</button>
 			</div>
 		</section>
@@ -151,6 +171,147 @@
 			</div>
 			<label>结果
 				<textarea id="tx-out" rows="8" readonly></textarea>
+			</label>
+		</section>
+
+		<section id="ocr" class="panel">
+			<p class="kicker">OCR</p>
+			<h1>文字识别</h1>
+			<div class="row">
+				<label>引擎
+					<select id="ocr-pack"></select>
+				</label>
+				<label id="ocr-model-lab">语言 / 模型
+					<select id="ocr-model"></select>
+				</label>
+				<label id="ocr-dev-lab">设备
+					<select id="ocr-dev">
+						<option value="cpu">CPU</option>
+						<option value="gpu">GPU (CUDA)</option>
+						<option value="intel">核显 (DirectML)</option>
+					</select>
+				</label>
+			</div>
+			<div class="row">
+				<label>图片
+					<input id="ocr-file" type="file" accept="image/*"/>
+				</label>
+				<button type="button" id="ocr-go" class="primary">识别</button>
+				<button type="button" id="ocr-copy" class="ghost">复制结果</button>
+				<span id="ocr-msg" class="msg"></span>
+			</div>
+			<label>结果
+				<textarea id="ocr-out" rows="8" readonly></textarea>
+			</label>
+		</section>
+
+		<section id="tts" class="panel">
+			<p class="kicker">TTS</p>
+			<h1>语音合成</h1>
+			<div class="row">
+				<label>引擎
+					<select id="tts-eng"></select>
+				</label>
+				<label>模型
+					<select id="tts-model"></select>
+				</label>
+				<label>发音人
+					<select id="tts-voice"></select>
+				</label>
+				<label>语速
+					<input id="tts-speed" type="number" min="0.5" max="2" step="0.1" value="1"/>
+				</label>
+			</div>
+			<label>原文
+				<textarea id="tts-in" rows="6" placeholder="要朗读的文字"></textarea>
+			</label>
+			<div class="row">
+				<button type="button" id="tts-go" class="primary">朗读</button>
+				<span id="tts-msg" class="msg"></span>
+			</div>
+			<audio id="tts-audio" controls hidden></audio>
+		</section>
+
+		<section id="asr" class="panel">
+			<p class="kicker">ASR</p>
+			<h1>语音识别</h1>
+			<div class="row">
+				<label>引擎
+					<select id="asr-eng">
+						<option value="offline">离线模型</option>
+						<option value="windows">Windows 语音识别</option>
+					</select>
+				</label>
+				<label>模型
+					<select id="asr-model"></select>
+				</label>
+				<label>语言
+					<select id="asr-lang">
+						<option value="auto">自动</option>
+						<option value="zh">中文</option>
+						<option value="en">英文</option>
+						<option value="ja">日文</option>
+						<option value="ko">韩文</option>
+						<option value="yue">粤语</option>
+					</select>
+				</label>
+			</div>
+			<div class="row">
+				<label>音频文件
+					<input id="asr-file" type="file" accept="audio/*,video/webm"/>
+				</label>
+				<button type="button" id="asr-filego" class="primary">识别文件</button>
+				<button type="button" id="asr-rec">录音</button>
+				<button type="button" id="asr-copy" class="ghost">复制结果</button>
+				<span id="asr-msg" class="msg"></span>
+			</div>
+			<label>结果
+				<textarea id="asr-out" rows="8" readonly></textarea>
+			</label>
+		</section>
+
+		<section id="qr" class="panel">
+			<p class="kicker">ZXing</p>
+			<h1>二维码 / 条码</h1>
+			<div class="row">
+				<label>类型
+					<select id="qr-fmt">
+						<option value="qr">QR Code</option>
+						<option value="datamatrix">Data Matrix</option>
+						<option value="code128">Code 128</option>
+						<option value="code39">Code 39</option>
+						<option value="ean13">EAN-13</option>
+						<option value="ean8">EAN-8</option>
+						<option value="upca">UPC-A</option>
+					</select>
+				</label>
+				<label>编码
+					<select id="qr-enc">
+						<option value="utf8">UTF-8</option>
+						<option value="gbk">GBK</option>
+						<option value="hex">Hex</option>
+					</select>
+				</label>
+			</div>
+			<label>内容
+				<textarea id="qr-in" rows="4" placeholder="要写进码里的文字"></textarea>
+			</label>
+			<div class="row">
+				<button type="button" id="qr-make" class="primary">生成</button>
+				<span id="qr-msg" class="msg"></span>
+			</div>
+			<div class="qrbox">
+				<img id="qr-img" alt="" hidden/>
+			</div>
+			<div class="row">
+				<label>识别图片
+					<input id="qr-file" type="file" accept="image/*"/>
+				</label>
+				<button type="button" id="qr-scan" class="primary">识别</button>
+				<span id="qr-smsg" class="msg"></span>
+			</div>
+			<label>识别结果
+				<textarea id="qr-out" rows="6" readonly></textarea>
 			</label>
 		</section>
 	</main>

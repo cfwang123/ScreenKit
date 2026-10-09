@@ -22,8 +22,9 @@ namespace ScreenKit;
 /// <item>GET/POST /api/calendar 历法</item>
 /// <item>GET/POST /api/jpyomi 日文注音</item>
 /// <item>GET/POST /api/text 文本编解码</item>
+/// <item>POST /api/qrmake 生成二维码/条码 · POST /api/qrscan 识别</item>
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
-/// <item>GET  /api/ocr/get_options · POST /api/ocr</item>
+/// <item>GET  /api/ocr/models · /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
 /// <item>GET  /api/tts/models · POST /api/tts</item>
 /// <item>POST /api/itn</item>
@@ -387,6 +388,16 @@ sealed partial class HttpOcrServer : IDisposable {
 				&& sendFile.TryHandle(ctx))
 				return;
 
+			if (path is "/api/ocr/models" or "/api/ocr/models/") {
+				if (!apiok(ctx, optNow.HttpOcr)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "ocr/models 仅支持 GET"));
+					return;
+				}
+				handleocrmodels(ctx);
+				return;
+			}
+
 			if (path is "/api/ocr/get_options" or "/api/ocr/get_options/") {
 				if (!apiok(ctx, optNow.HttpOcr)) return;
 				if (!isget(req)) {
@@ -468,6 +479,24 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handletext(ctx);
+				return;
+			}
+
+			if (path is "/api/qrmake" or "/api/qrmake/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "qrmake 仅支持 GET 或 POST"));
+					return;
+				}
+				handleqrmake(ctx);
+				return;
+			}
+
+			if (path is "/api/qrscan" or "/api/qrscan/") {
+				if (!ispost(req)) {
+					writejson(ctx, 405, err(805, "qrscan 仅支持 POST"));
+					return;
+				}
+				handleqr(ctx);
 				return;
 			}
 
@@ -791,6 +820,33 @@ sealed partial class HttpOcrServer : IDisposable {
 			["data"] = new JsonObject {
 				["text"] = outText,
 				["op"] = op,
+			},
+		});
+	}
+
+	void handleqrmake(HttpListenerContext ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
+		if (string.IsNullOrEmpty(text)) {
+			writejson(ctx, 200, err(802, "请提供 text"));
+			return;
+		}
+		var format = field(ctx, jo, "format");
+		if (string.IsNullOrWhiteSpace(format)) format = "qr";
+		var encoding = field(ctx, jo, "encoding");
+		if (string.IsNullOrWhiteSpace(encoding)) encoding = "utf8";
+		byte[] png;
+		try { png = runsta(() => QrMake.Png(text, format, encoding)); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(500, ex.Message));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["png"] = Convert.ToBase64String(png),
+				["format"] = format,
+				["encoding"] = encoding,
 			},
 		});
 	}
@@ -1482,10 +1538,13 @@ sealed partial class HttpOcrServer : IDisposable {
 			o.DetBoxThresh = Compat.Clamp(asfloat(dbt, o.DetBoxThresh), 0.05f, 0.95f);
 
 		// ocr.engine：winocr 走系统 OCR；onnx 在主窗是系统 OCR 时改回模型包。空则跟主窗。
+		// ocr.pack：模型包 Id（winocr 或 ocrmodels 目录名），优先于「跟主窗」。
 		var engine = getstr(map, "ocr.engine", "");
 		var title = getstr(map, "ocr.language", "");
-		var forceWin = iswinengine(engine) || iswinengine(title);
+		var packId = getstr(map, "ocr.pack", "");
+		var forceWin = iswinengine(engine) || iswinengine(title) || iswinengine(packId);
 		if (forceWin) usewinocr(o);
+		else if (!string.IsNullOrWhiteSpace(packId)) applypack(o, packId);
 		else if (isonnxengine(engine) && WinOcr.Is(o)) useonnxdefault(o);
 
 		// ocr.language：系统 OCR 认 BCP-47 或语言名；否则匹配 ONNX 变体标题
@@ -1497,6 +1556,7 @@ sealed partial class HttpOcrServer : IDisposable {
 					matchonnxlang(o, title);
 				}
 			}
+			else if (!string.IsNullOrWhiteSpace(packId)) matchpacklang(o, title);
 			else matchonnxlang(o, title);
 		}
 
@@ -1525,6 +1585,91 @@ sealed partial class HttpOcrServer : IDisposable {
 		o.ModelPackId = WinOcr.PackId;
 		o.ModelsDir = "";
 		o.ModelVariant = "";
+	}
+
+	void handleocrmodels(HttpListenerContext ctx) {
+		List<WinOcrLang> langs;
+		try { langs = runsta(() => WinOcr.Languages()); }
+		catch { langs = new List<WinOcrLang>(); }
+		var packs = new JsonArray();
+		var winModels = new JsonArray();
+		foreach (var lang in langs) {
+			winModels.Add(new JsonObject {
+				["id"] = lang.Tag ?? "",
+				["name"] = string.IsNullOrWhiteSpace(lang.Name) ? (lang.Tag ?? "") : lang.Name,
+			});
+		}
+		packs.Add(new JsonObject {
+			["id"] = WinOcr.PackId,
+			["engine"] = "winocr",
+			["name"] = "Windows 系统 OCR",
+			["models"] = winModels,
+		});
+		List<ModelPack> onnx;
+		try { onnx = ModelCatalog.Scan(); }
+		catch { onnx = new List<ModelPack>(); }
+		foreach (var p in onnx) {
+			var models = new JsonArray();
+			if (p.Variants != null) {
+				foreach (var v in p.Variants) {
+					var name = v.DisplayName;
+					if (string.IsNullOrWhiteSpace(name)) name = v.Title ?? "";
+					models.Add(new JsonObject {
+						["id"] = v.Title ?? "",
+						["name"] = name,
+					});
+				}
+			}
+			packs.Add(new JsonObject {
+				["id"] = p.Id ?? "",
+				["engine"] = "onnx",
+				["name"] = p.DisplayName,
+				["models"] = models,
+			});
+		}
+		var cur = getOpts?.Invoke() ?? new OcrOptions();
+		var dev = cur.Device == OcrDevice.Gpu ? "gpu"
+			: cur.Device == OcrDevice.IntelGpu ? "intel" : "cpu";
+		var langCur = WinOcr.Is(cur) ? (cur.WinOcrLangs ?? "") : (cur.ModelVariant ?? "");
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["packs"] = packs,
+				["current"] = new JsonObject {
+					["pack"] = cur.ModelPackId ?? "",
+					["language"] = langCur,
+					["device"] = dev,
+				},
+			},
+		});
+	}
+
+	static void applypack(OcrOptions o, string id) {
+		ModelPack found = null;
+		foreach (var p in ModelCatalog.Scan()) {
+			if (!string.Equals(p.Id, id, StringComparison.OrdinalIgnoreCase)) continue;
+			found = p;
+			break;
+		}
+		if (found == null) throw new InvalidOperationException("没有这种模型包: " + id);
+		o.ModelPackId = found.Id;
+		o.ModelsDir = found.Dir ?? "";
+		var v = found.FindVariant(o.ModelVariant);
+		if (v != null) o.ModelVariant = v.Title;
+	}
+
+	static void matchpacklang(OcrOptions o, string title) {
+		foreach (var p in ModelCatalog.Scan()) {
+			if (!string.Equals(p.Id, o.ModelPackId, StringComparison.OrdinalIgnoreCase)) continue;
+			var hit = p.Variants?.FirstOrDefault(v =>
+				string.Equals(v.Title, title, StringComparison.OrdinalIgnoreCase)
+				|| Compat.Contains(v.Title, title, StringComparison.OrdinalIgnoreCase)
+				|| Compat.Contains(title, v.Title, StringComparison.OrdinalIgnoreCase));
+			if (hit == null) throw new InvalidOperationException("没有这种模型: " + title);
+			o.ModelVariant = hit.Title;
+			return;
+		}
+		throw new InvalidOperationException("没有这种模型包: " + o.ModelPackId);
 	}
 
 	static void useonnxdefault(OcrOptions o) {
@@ -2005,6 +2150,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /  本机工具页",
 			"GET  /sk/tools.css · /sk/tools.js",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
+			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",
+			"POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart",
 			"GET  /api/status",
 			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
 			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
@@ -2013,6 +2160,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
 		};
 		if (o.HttpOcr) {
+			a.Add("GET  /api/ocr/models");
 			a.Add("GET  /api/ocr/get_options");
 			a.Add("POST /api/ocr   JSON{base64,options} 或 multipart");
 			a.Add("POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码");

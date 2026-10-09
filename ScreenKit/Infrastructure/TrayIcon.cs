@@ -158,7 +158,6 @@ sealed class TrayIcon : IDisposable {
 		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
-		miTools.DropDownItems.Add(miWebHome);
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miQrMake);
 		miTools.DropDownItems.Add(miRename);
@@ -205,6 +204,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miUsbAcc);
+		menu.Items.Add(miWebHome);
 		menu.Items.Add(miTools);
 		menu.Items.Add(miSettings);
 		menu.Items.Add(new Forms.ToolStripSeparator());

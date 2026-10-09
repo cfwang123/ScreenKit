@@ -47,6 +47,8 @@ public partial class MainWindow {
 		addhttp("GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");
 		addhttp("POST /api/jpyomi", "POST", "/api/jpyomi", "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}", "http.doc.jpyomi");
 		addhttp("POST /api/text", "POST", "/api/text", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}", "http.doc.text");
+		addhttp("POST /api/qrmake", "POST", "/api/qrmake", "{\n  \"text\": \"hello\",\n  \"format\": \"qr\",\n  \"encoding\": \"utf8\"\n}", "http.doc.qrmake");
+		addhttp("POST /api/qrscan", "POST", "/api/qrscan", "{\n  \"base64\": \"\"\n}", "http.doc.qrscan");
 		addhttp("POST /api/cast/stop", "POST", "/api/cast/stop", "", "http.doc.caststop");
 		addhttp("GET /api", "GET", "/api", "", "http.doc.api");
 		addhttp("GET /api/ocr/get_options", "GET", "/api/ocr/get_options", "", "http.doc.ocropt");

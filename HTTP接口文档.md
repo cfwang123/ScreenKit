@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -107,6 +107,9 @@ http_port = 1224
 | GET/POST | `/api/calendar` | 公历换历法（不随模块开关关闭） |
 | GET/POST | `/api/jpyomi` | 日文注音（不随模块开关关闭） |
 | GET/POST | `/api/text` | 文本编解码（不随模块开关关闭） |
+| GET/POST | `/api/qrmake` | 生成二维码/条码（不随模块开关关闭） |
+| POST | `/api/qrscan` | 识别二维码/条码（不随模块开关关闭） |
+| GET | `/api/ocr/models` | 识别引擎和模型（与主窗口相同） |
 | GET | `/api/ocr/get_options` | OCR 可选项描述 |
 | POST | `/api/ocr` | 图片 OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR） |
@@ -128,7 +131,7 @@ http_port = 1224
 
 ## 4. GET `/` 与 GET `/api`
 
-`GET /` 和 `HEAD /` 返回本机工具页：简繁、历法、日文注音、文本。页面加载 `/sk/tools.css` 和 `/sk/tools.js`，并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`。电脑版文件管理在 `/files`。
+`GET /` 和 `HEAD /` 返回本机工具页：简繁、历法、日文注音、文本、二维码和条码。页面加载 `/sk/tools.css` 和 `/sk/tools.js`，并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
 
 `GET /api` 返回服务名称与端点列表。
 
@@ -340,7 +343,37 @@ ScreenKit --jpyomi "東京" --mono
 
 ---
 
+## 5.6 GET/POST `/api/qrmake` · POST `/api/qrscan`
+
+生成或识别二维码和条码。不随模块开关关闭。生成走 ZXing 写码，识别不跑 OCR。
+
+**生成** `GET/POST /api/qrmake`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `text` | string | 内容。也可用 `message` |
+| `format` | string | `qr`（默认）、`datamatrix`、`code128`、`code39`、`ean13`、`ean8`、`upca` |
+| `encoding` | string | `utf8`（默认）、`gbk`、`hex`。一维码按字符写入 |
+
+```json
+{ "text": "hello", "format": "qr", "encoding": "utf8" }
+```
+
+**响应 `data`：** `png` 是 PNG 的 Base64，另有 `format`、`encoding`。空内容返回 802。
+
+**识别** `POST /api/qrscan`
+
+图片用 `base64`、`path` 或 multipart，和 `POST /api/qr` 相同。`format` 为 `dict`（默认，带坐标）或 `text`。没有码时 `code` 为 101。
+
+---
+
 ## 6. OCR
+
+### 6.0 GET `/api/ocr/models`
+
+列出和主窗口一样的识别引擎。`packs[]` 第一项是 Windows 系统 OCR（`id=winocr`，`models` 为已安装语言的 `id` BCP-47 和显示名），后面是 `ocrmodels` 里的 ONNX 包（`models[].id` 是变体标题）。`current` 是主窗口当前的 `pack`、`language`、`device`（`cpu` / `gpu` / `intel`）。
+
+`POST /api/ocr` 的 `options` 可加 `ocr.pack`（包 Id）。指定后只在该包里匹配 `ocr.language`。
 
 ### 6.1 GET `/api/ocr/get_options`
 

@@ -36,6 +36,15 @@ static class QrMake {
 		return encode(text, format, encoding, scale, caption);
 	}
 
+	public static byte[] Png(string text, string format, string encoding) {
+		var bmp = Encode(text, format, encoding, 8, false);
+		var enc = new PngBitmapEncoder();
+		enc.Frames.Add(BitmapFrame.Create(bmp));
+		using var ms = new MemoryStream();
+		enc.Save(ms);
+		return ms.ToArray();
+	}
+
 	static BitmapSource encode(string text, string format, string encoding, int scale, bool caption) {
 		if (string.IsNullOrEmpty(text)) throw new ArgumentException("empty");
 		if (scale < 1) scale = 1;

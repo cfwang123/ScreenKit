@@ -3142,8 +3142,19 @@ static class Cli {
 				return 1;
 			}
 			var home = Task.Run(() => new HttpClient().GetStringAsync($"http://127.0.0.1:{port}/").GetAwaiter().GetResult()).GetAwaiter().GetResult();
-			if (home == null || home.IndexOf("简繁转换", StringComparison.Ordinal) < 0) {
+			if (home == null || home.IndexOf("简繁转换", StringComparison.Ordinal) < 0
+				|| home.IndexOf("二维码", StringComparison.Ordinal) < 0
+				|| home.IndexOf("文字识别", StringComparison.Ordinal) < 0
+				|| home.IndexOf("语音合成", StringComparison.Ordinal) < 0
+				|| home.IndexOf("语音识别", StringComparison.Ordinal) < 0) {
 				Err("FAIL: GET / 不是工具页");
+				return 1;
+			}
+			var modelsUrl = $"http://127.0.0.1:{port}/api/ocr/models";
+			var models = Task.Run(() => new HttpClient().GetStringAsync(modelsUrl).GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("ocr-models " + (models == null ? "" : models.Substring(0, Math.Min(180, models.Length))));
+			if (models == null || models.IndexOf("winocr", StringComparison.Ordinal) < 0) {
+				Err("FAIL: /api/ocr/models 未列出 Windows OCR");
 				return 1;
 			}
 			var textUrl = $"http://127.0.0.1:{port}/api/text";
@@ -3152,6 +3163,24 @@ static class Cli {
 			Out("text " + textJson);
 			if (textJson == null || textJson.IndexOf("aGk=", StringComparison.Ordinal) < 0) {
 				Err("FAIL: /api/text 未返回 Base64");
+				return 1;
+			}
+			var qrUrl = $"http://127.0.0.1:{port}/api/qrmake";
+			var qrBody = new StringContent("{\"text\":\"hello\",\"format\":\"qr\",\"encoding\":\"utf8\"}", Encoding.UTF8, "application/json");
+			var qrJson = Task.Run(() => new HttpClient().PostAsync(qrUrl, qrBody).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			var pngAt = qrJson == null ? -1 : qrJson.IndexOf("iVBORw0KGgo", StringComparison.Ordinal);
+			if (pngAt < 0) {
+				Err("FAIL: /api/qrmake 未返回 PNG");
+				return 1;
+			}
+			var pngEnd = qrJson.IndexOf('"', pngAt);
+			var png = qrJson.Substring(pngAt, pngEnd - pngAt);
+			var scanUrl = $"http://127.0.0.1:{port}/api/qrscan";
+			var scanBody = new StringContent($"{{\"base64\":\"{png}\",\"format\":\"text\"}}", Encoding.UTF8, "application/json");
+			var scanJson = Task.Run(() => new HttpClient().PostAsync(scanUrl, scanBody).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("qrscan " + scanJson);
+			if (scanJson == null || scanJson.IndexOf("hello", StringComparison.Ordinal) < 0) {
+				Err("FAIL: /api/qrscan 未读出 hello");
 				return 1;
 			}
 			using (var css = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/sk/tools.css")).GetAwaiter().GetResult()) {

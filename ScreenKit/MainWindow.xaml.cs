@@ -1346,6 +1346,7 @@ public partial class MainWindow : Window {
 		};
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
+		mnwebhome.Click += (_, _) => openhttptools();
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mndict.Click += (_, _) => showdicttab();
 		mnimgconv.Click += (_, _) => openimgconv();
@@ -1471,6 +1472,8 @@ public partial class MainWindow : Window {
 			mncancelocr.Header = Loc.T("menu.cancelocr");
 			mncancelocr.ToolTip = Loc.T("menu.cancelocr.tip");
 
+			mnwebhome.Header = Loc.T("menu.webhome");
+			mnwebhome.ToolTip = Loc.T("menu.webhome.tip");
 			mntrpopup.Header = Loc.T("menu.translate.popup");
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mndict.Header = Loc.T("menu.dict");

@@ -32,6 +32,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The local tools page adds **OCR**, **speech synthesis**, and **speech recognition**. Each picks an engine and a model the same way as the main window: Windows OCR or an ONNX pack, a TTS engine and voice, and an offline or Windows speech recognizer. `GET /api/ocr/models` lists the OCR packs. `POST /api/ocr` accepts `options.ocr.pack`.
+- The local tools page can make a QR code or barcode (`POST /api/qrmake`) and read one from an image (`POST /api/qrscan`). Both stay available when other HTTP modules are off.
 - Tray **Tools → Web home** opens `http://127.0.0.1:port/` in the browser and leaves the main window hidden. If the HTTP API is not running, a toast shows why.
 - Styles, scripts, and images use `Cache-Control: public, max-age=3600` (1 hour). HTML pages (`/`, `/files`, `/m`) are not cached.
 - `GET /` is the local tools page (simplified/traditional, calendars, Japanese yomi, text). Styles and script are `/sk/tools.css` and `/sk/tools.js`. The HTTP tab has **Tools** to open it. `GET/POST /api/text` covers Base64, URL, hex, Unicode escape, case, whitespace, JSON pretty-print, and counts. The desktop file manager moved from `/` to `/files`. The phone page stays `/m`. `/index.html` redirects to `/files`.
@@ -57,6 +59,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- 本机工具页增加**文字识别**、**语音合成**和**语音识别**。引擎和模型的选法与主窗口相同：Windows OCR 或 ONNX 模型包、语音引擎和发音人、离线或 Windows 语音识别。`GET /api/ocr/models` 列出这些识别包。`POST /api/ocr` 接受 `options.ocr.pack`。
+- 本机工具页可以生成二维码或条码（`POST /api/qrmake`），也可以从图片识别（`POST /api/qrscan`）。其它 HTTP 模块关掉时这两个接口仍可用。
 - 托盘 **工具 → web主页** 用浏览器打开 `http://127.0.0.1:端口/`，不唤起主窗口。HTTP 接口没在跑时，底部提示原因。
 - 样式、脚本和图片缓存 1 小时（`Cache-Control: public, max-age=3600`）。HTML 页面（`/`、`/files`、`/m`）不缓存。
 - `GET /` 是本机工具页（简繁、历法、日文注音、文本）。样式和脚本是 `/sk/tools.css`、`/sk/tools.js`。HTTP 接口页有 **工具页** 按钮打开它。`GET/POST /api/text` 做 Base64、URL、十六进制、Unicode 转义、大小写、空白、JSON 美化和统计。电脑版网页文件管理从 `/` 改到 `/files`。手机版仍是 `/m`。`/index.html` 转到 `/files`。

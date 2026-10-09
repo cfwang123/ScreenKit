@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -106,6 +106,9 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET/POST | `/api/calendar` | Gregorian to another calendar (not tied to a module switch) |
 | GET/POST | `/api/jpyomi` | Japanese reading (not tied to a module switch) |
 | GET/POST | `/api/text` | Text encode/decode (not tied to a module switch) |
+| GET/POST | `/api/qrmake` | Make a QR code or barcode (not tied to a module switch) |
+| POST | `/api/qrscan` | Read a QR code or barcode (not tied to a module switch) |
+| GET | `/api/ocr/models` | OCR engines and models (same as the main window) |
 | GET | `/api/ocr/get_options` | OCR option descriptors |
 | POST | `/api/ocr` | Image OCR |
 | POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR) |
@@ -127,7 +130,7 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
 
 ## 4. GET `/` and GET `/api`
 
-`GET /` and `HEAD /` return the local tools page: simplified/traditional, calendars, Japanese yomi, and text. The page loads `/sk/tools.css` and `/sk/tools.js`, and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, and `/api/text`. The desktop file manager is `/files`.
+`GET /` and `HEAD /` return the local tools page: simplified/traditional, calendars, Japanese yomi, text, QR codes, and barcodes. The page loads `/sk/tools.css` and `/sk/tools.js`, and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
 
 `GET /api` returns the service name and endpoint list.
 
@@ -323,7 +326,37 @@ Text helpers. Not tied to a module switch. `text` may be empty. Unknown `op` ret
 
 ---
 
+## 5.6 GET/POST `/api/qrmake` · POST `/api/qrscan`
+
+Make or read a QR code or barcode. Not tied to a module switch. Making uses ZXing. Reading does not run OCR.
+
+**Make** `GET/POST /api/qrmake`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | string | Payload. `message` is an alias |
+| `format` | string | `qr` (default), `datamatrix`, `code128`, `code39`, `ean13`, `ean8`, `upca` |
+| `encoding` | string | `utf8` (default), `gbk`, `hex`. Linear codes use the characters as written |
+
+```json
+{ "text": "hello", "format": "qr", "encoding": "utf8" }
+```
+
+**Response `data`:** `png` is the PNG as Base64, plus `format` and `encoding`. Empty text returns 802.
+
+**Read** `POST /api/qrscan`
+
+Send the image as `base64`, `path`, or multipart, the same as `POST /api/qr`. `format` is `dict` (default, with boxes) or `text`. No code returns `code` 101.
+
+---
+
 ## 6. OCR
+
+### 6.0 GET `/api/ocr/models`
+
+Lists the same engines as the main window. The first `packs[]` item is Windows OCR (`id=winocr`; `models` are installed languages, `id` is the BCP-47 tag). Later items are ONNX packs under `ocrmodels` (`models[].id` is the variant title). `current` is the main window's `pack`, `language`, and `device` (`cpu` / `gpu` / `intel`).
+
+`POST /api/ocr` `options` accepts `ocr.pack` (pack id). When set, `ocr.language` is matched only inside that pack.
 
 ### 6.1 GET `/api/ocr/get_options`
 

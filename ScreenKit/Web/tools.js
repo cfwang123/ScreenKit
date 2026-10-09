@@ -1,4 +1,8 @@
 window.sktools = (function(){
+	var ocrPacks = [];
+	var ttsItems = [];
+	var asrItems = [];
+	var asrRec = null;
 	var t = {
 		show: show,
 	};
@@ -20,6 +24,18 @@ window.sktools = (function(){
 		$("yo-go").onclick = yomi;
 		$("yo-copy").onclick = function(){ copytext($("yo-yomi").value, "yo-msg"); };
 		$("tx-copy").onclick = function(){ copytext($("tx-out").value, "tx-msg"); };
+		$("qr-make").onclick = qrmake;
+		$("qr-scan").onclick = qrscan;
+		$("ocr-pack").onchange = fillocrmodels;
+		$("ocr-go").onclick = ocrgo;
+		$("ocr-copy").onclick = function(){ copytext($("ocr-out").value, "ocr-msg"); };
+		$("tts-eng").onchange = fillttsmodels;
+		$("tts-model").onchange = fillttsvoices;
+		$("tts-go").onclick = ttsgo;
+		$("asr-eng").onchange = fillasrmodels;
+		$("asr-filego").onclick = asrfile;
+		$("asr-rec").onclick = asrrec;
+		$("asr-copy").onclick = function(){ copytext($("asr-out").value, "asr-msg"); };
 		$("zh-in").addEventListener("keydown", function(ev){
 			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) conv("trad");
 		});
@@ -51,6 +67,9 @@ window.sktools = (function(){
 		var nav = document.querySelectorAll("#nav button");
 		for (i = 0; i < nav.length; i++)
 			nav[i].className = nav[i].getAttribute("data-tool") === name ? "on" : "";
+		if (name === "ocr") loadoocr();
+		if (name === "tts") loadtts();
+		if (name === "asr") loadasr();
 	}
 
 	function $(id){
@@ -131,6 +150,339 @@ window.sktools = (function(){
 		post("/api/text", { text: $("tx-in").value, op: op }, function(data){
 			$("tx-out").value = data.text || "";
 		}, "tx-msg");
+	}
+
+	function qrmake(){
+		post("/api/qrmake", {
+			text: $("qr-in").value,
+			format: $("qr-fmt").value,
+			encoding: $("qr-enc").value,
+		}, function(data){
+			var img = $("qr-img");
+			img.src = "data:image/png;base64," + (data.png || "");
+			img.hidden = !data.png;
+		}, "qr-msg");
+	}
+
+	function qrscan(){
+		var file = $("qr-file").files && $("qr-file").files[0];
+		if (!file) {
+			msg("qr-smsg", "请选择图片", true);
+			return;
+		}
+		var reader = new FileReader();
+		reader.onload = function(){
+			var raw = String(reader.result || "");
+			var comma = raw.indexOf(",");
+			var b64 = comma >= 0 ? raw.substring(comma + 1) : raw;
+			post("/api/qrscan", { base64: b64, format: "dict" }, function(data){
+				var lines = [];
+				var i;
+				if (typeof data === "string") {
+					$("qr-out").value = data;
+					return;
+				}
+				var arr = data;
+				if (!arr || typeof arr.length !== "number") arr = [];
+				for (i = 0; i < arr.length; i++) {
+					var item = arr[i] || {};
+					lines.push((item.type || "") + "  " + (item.text || ""));
+				}
+				$("qr-out").value = lines.join("\n");
+				if (!lines.length) msg("qr-smsg", "未检测到条码或二维码", true);
+			}, "qr-smsg");
+		};
+		reader.onerror = function(){ msg("qr-smsg", "读图失败", true); };
+		reader.readAsDataURL(file);
+	}
+
+	function get(url, done, mid){
+		msg(mid, "");
+		var xhr = new XMLHttpRequest();
+		xhr.open("GET", url, true);
+		xhr.onload = function(){
+			var jo;
+			try { jo = JSON.parse(xhr.responseText); }
+			catch (e) {
+				msg(mid, "响应不是 JSON", true);
+				return;
+			}
+			if (!jo || jo.code !== 100) {
+				var err = jo && jo.data;
+				msg(mid, typeof err === "string" && err ? err : "失败", true);
+				return;
+			}
+			done(jo.data);
+		};
+		xhr.onerror = function(){ msg(mid, "网络错误", true); };
+		xhr.send();
+	}
+
+	function fillsel(sel, rows, pick){
+		sel.innerHTML = "";
+		var i;
+		for (i = 0; i < rows.length; i++) {
+			var op = document.createElement("option");
+			op.value = rows[i].value;
+			op.textContent = rows[i].label;
+			sel.appendChild(op);
+		}
+		if (pick) sel.value = pick;
+		if (sel.selectedIndex < 0 && sel.options.length) sel.selectedIndex = 0;
+	}
+
+	function readfile(file, done, mid){
+		var reader = new FileReader();
+		reader.onload = function(){
+			var raw = String(reader.result || "");
+			var comma = raw.indexOf(",");
+			done(comma >= 0 ? raw.substring(comma + 1) : raw);
+		};
+		reader.onerror = function(){ msg(mid, "读取文件失败", true); };
+		reader.readAsDataURL(file);
+	}
+
+	function loadoocr(){
+		if (ocrPacks.length) return;
+		get("/api/ocr/models", function(data){
+			ocrPacks = (data && data.packs) || [];
+			var rows = [];
+			var i;
+			for (i = 0; i < ocrPacks.length; i++)
+				rows.push({ value: ocrPacks[i].id, label: ocrPacks[i].name || ocrPacks[i].id });
+			var cur = (data && data.current) || {};
+			fillsel($("ocr-pack"), rows, cur.pack || "");
+			if (cur.device) $("ocr-dev").value = cur.device;
+			fillocrmodels(cur.language || "");
+		}, "ocr-msg");
+	}
+
+	function ocrpack(){
+		var id = $("ocr-pack").value;
+		var i;
+		for (i = 0; i < ocrPacks.length; i++)
+			if (ocrPacks[i].id === id) return ocrPacks[i];
+		return null;
+	}
+
+	function fillocrmodels(prefer){
+		var pack = ocrpack();
+		var models = (pack && pack.models) || [];
+		var rows = [];
+		var i;
+		for (i = 0; i < models.length; i++)
+			rows.push({ value: models[i].id, label: models[i].name || models[i].id });
+		var pick = typeof prefer === "string" ? prefer : "";
+		fillsel($("ocr-model"), rows, pick);
+		var win = !pack || pack.engine === "winocr";
+		$("ocr-dev-lab").style.display = win ? "none" : "";
+		$("ocr-model-lab").firstChild.nodeValue = win ? "语言" : "模型";
+	}
+
+	function ocrgo(){
+		var file = $("ocr-file").files && $("ocr-file").files[0];
+		if (!file) {
+			msg("ocr-msg", "请选择图片", true);
+			return;
+		}
+		var pack = ocrpack();
+		if (!pack) {
+			msg("ocr-msg", "没有可用的识别引擎", true);
+			return;
+		}
+		readfile(file, function(b64){
+			post("/api/ocr", {
+				base64: b64,
+				options: {
+					"ocr.engine": pack.engine,
+					"ocr.pack": pack.id,
+					"ocr.language": $("ocr-model").value,
+					"ocr.device": $("ocr-dev").value,
+					"data.format": "text",
+				},
+			}, function(data){
+				$("ocr-out").value = typeof data === "string" ? data : "";
+			}, "ocr-msg");
+		}, "ocr-msg");
+	}
+
+	function ttslabel(engine){
+		if (engine === "sherpa") return "离线模型";
+		if (engine === "sapi") return "SAPI";
+		if (engine === "winrt") return "Windows 语音";
+		if (engine === "edge") return "Edge 在线";
+		return engine || "";
+	}
+
+	function loadtts(){
+		if (ttsItems.length) return;
+		get("/api/tts/models", function(data){
+			ttsItems = data && data.length != null ? data : [];
+			var seen = {};
+			var rows = [];
+			var i;
+			for (i = 0; i < ttsItems.length; i++) {
+				var eng = ttsItems[i].engine || "";
+				if (seen[eng]) continue;
+				seen[eng] = true;
+				rows.push({ value: eng, label: ttslabel(eng) });
+			}
+			fillsel($("tts-eng"), rows, "");
+			fillttsmodels();
+		}, "tts-msg");
+	}
+
+	function fillttsmodels(){
+		var eng = $("tts-eng").value;
+		var rows = [];
+		var i;
+		for (i = 0; i < ttsItems.length; i++) {
+			if ((ttsItems[i].engine || "") !== eng) continue;
+			rows.push({ value: String(i), label: ttsItems[i].name || eng });
+		}
+		fillsel($("tts-model"), rows, "");
+		fillttsvoices();
+	}
+
+	function ttsitem(){
+		var n = parseInt($("tts-model").value, 10);
+		if (isNaN(n) || n < 0 || n >= ttsItems.length) return null;
+		return ttsItems[n];
+	}
+
+	function fillttsvoices(){
+		var item = ttsitem();
+		var speakers = (item && item.speakers) || [];
+		var rows = [];
+		var i;
+		for (i = 0; i < speakers.length; i++) {
+			var sp = speakers[i] || {};
+			var label = sp.name || sp.key || String(i);
+			if (sp.lang) label += " · " + sp.lang;
+			rows.push({ value: String(i), label: label });
+		}
+		fillsel($("tts-voice"), rows, "");
+	}
+
+	function ttsgo(){
+		var item = ttsitem();
+		if (!item) {
+			msg("tts-msg", "没有可用的语音", true);
+			return;
+		}
+		var speakers = item.speakers || [];
+		var vi = parseInt($("tts-voice").value, 10);
+		var sp = speakers[vi] || {};
+		var speed = parseFloat($("tts-speed").value);
+		if (isNaN(speed)) speed = 1;
+		post("/api/tts", {
+			text: $("tts-in").value,
+			engine: item.engine,
+			model: item.name,
+			voice: sp.key || sp.name || "",
+			speaker_id: sp.id != null ? sp.id : vi,
+			speed: speed,
+		}, function(data){
+			var audio = $("tts-audio");
+			if (!data || !data.wav_base64) {
+				msg("tts-msg", "没有音频", true);
+				return;
+			}
+			audio.src = "data:audio/wav;base64," + data.wav_base64;
+			audio.hidden = false;
+			audio.play();
+		}, "tts-msg");
+	}
+
+	function loadasr(){
+		if (asrItems.length) return;
+		get("/api/asr/models", function(data){
+			asrItems = data && data.length != null ? data : [];
+			var hasOff = false;
+			var hasWin = false;
+			var i;
+			for (i = 0; i < asrItems.length; i++) {
+				if (asrItems[i].streaming) continue;
+				if (asrItems[i].type === "Windows") hasWin = true;
+				else hasOff = true;
+			}
+			var rows = [];
+			if (hasOff) rows.push({ value: "offline", label: "离线模型" });
+			if (hasWin) rows.push({ value: "windows", label: "Windows 语音识别" });
+			fillsel($("asr-eng"), rows, "");
+			fillasrmodels();
+		}, "asr-msg");
+	}
+
+	function fillasrmodels(){
+		var win = $("asr-eng").value === "windows";
+		var rows = [];
+		var i;
+		for (i = 0; i < asrItems.length; i++) {
+			var it = asrItems[i];
+			if (!it || it.streaming) continue;
+			var isWin = it.type === "Windows";
+			if (isWin !== win) continue;
+			rows.push({ value: it.name || "", label: it.name || "" });
+		}
+		fillsel($("asr-model"), rows, "");
+	}
+
+	function postasr(b64, filename){
+		post("/api/asr", {
+			base64: b64,
+			filename: filename || "",
+			model: $("asr-model").value,
+			lang: $("asr-lang").value,
+		}, function(data){
+			$("asr-out").value = (data && data.text) || "";
+		}, "asr-msg");
+	}
+
+	function asrfile(){
+		var file = $("asr-file").files && $("asr-file").files[0];
+		if (!file) {
+			msg("asr-msg", "请选择音频", true);
+			return;
+		}
+		readfile(file, function(b64){ postasr(b64, file.name); }, "asr-msg");
+	}
+
+	function asrrec(){
+		if (asrRec) {
+			asrRec.stop();
+			return;
+		}
+		if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+			msg("asr-msg", "浏览器不能录音", true);
+			return;
+		}
+		navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+			var chunks = [];
+			var rec;
+			try { rec = new MediaRecorder(stream); }
+			catch (e) {
+				stream.getTracks().forEach(function(tr){ tr.stop(); });
+				msg("asr-msg", "无法开始录音", true);
+				return;
+			}
+			asrRec = rec;
+			$("asr-rec").textContent = "停止并识别";
+			msg("asr-msg", "正在录音");
+			rec.ondataavailable = function(ev){
+				if (ev.data && ev.data.size) chunks.push(ev.data);
+			};
+			rec.onstop = function(){
+				stream.getTracks().forEach(function(tr){ tr.stop(); });
+				asrRec = null;
+				$("asr-rec").textContent = "录音";
+				var blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+				readfile(blob, function(b64){ postasr(b64, "rec.webm"); }, "asr-msg");
+			};
+			rec.start();
+		}, function(){
+			msg("asr-msg", "无法使用麦克风", true);
+		});
 	}
 
 	function copytext(text, mid){
