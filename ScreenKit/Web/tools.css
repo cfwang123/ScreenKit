@@ -82,7 +82,9 @@ select, input[type="date"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans
 	border: 1px solid var(--line); background: var(--card); color: var(--ink);
 	border-radius: 999px; padding: 8px 14px;
 }
-.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.row button.primary, .ops button.primary, button.primary {
+	background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+}
 .ghost { background: transparent; }
 .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .check { width: auto; display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; }

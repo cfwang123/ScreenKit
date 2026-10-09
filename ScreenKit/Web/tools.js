@@ -159,8 +159,15 @@ window.sktools = (function(){
 			encoding: $("qr-enc").value,
 		}, function(data){
 			var img = $("qr-img");
-			img.src = "data:image/png;base64," + (data.png || "");
-			img.hidden = !data.png;
+			if (!data || !data.png) {
+				img.removeAttribute("src");
+				img.hidden = true;
+				msg("qr-msg", "没有图片", true);
+				return;
+			}
+			img.src = "data:image/png;base64," + data.png;
+			img.hidden = false;
+			msg("qr-msg", "已生成");
 		}, "qr-msg");
 	}
 

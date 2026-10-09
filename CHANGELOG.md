@@ -32,10 +32,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+- The tools page **Generate** button draws the QR or barcode under the button. Its style and script URLs carry the same process startup version as the file manager. Restarting ScreenKit changes that version, so the browser drops the previous files. During one run they still cache for 1 hour. The primary button stays the accent color.
 - The local tools page adds **OCR**, **speech synthesis**, and **speech recognition**. Each picks an engine and a model the same way as the main window: Windows OCR or an ONNX pack, a TTS engine and voice, and an offline or Windows speech recognizer. `GET /api/ocr/models` lists the OCR packs. `POST /api/ocr` accepts `options.ocr.pack`.
 - The local tools page can make a QR code or barcode (`POST /api/qrmake`) and read one from an image (`POST /api/qrscan`). Both stay available when other HTTP modules are off.
-- Tray **Tools → Web home** opens `http://127.0.0.1:port/` in the browser and leaves the main window hidden. If the HTTP API is not running, a toast shows why.
-- Styles, scripts, and images use `Cache-Control: public, max-age=3600` (1 hour). HTML pages (`/`, `/files`, `/m`) are not cached.
+- `GET  /api/tts/engines` lists Sherpa, SAPI, Windows, and Edge without scanning models. `GET /api/tts/models` caches the last full list. `engine` returns one engine. `refresh=1` scans again.
+- Tray **Web home** and **Tools → Web home** open `http://127.0.0.1:port/` in the browser. The tray item does not show the main window. If the HTTP API is not running, a toast shows why.
+- Styles, scripts, and images use `Cache-Control: public, max-age=3600` (1 hour). HTML pages (`/`, `/files`, `/m`) are not cached. Those pages put the process startup version on style and script URLs, so restarting ScreenKit invalidates the cached files.
 - `GET /` is the local tools page (simplified/traditional, calendars, Japanese yomi, text). Styles and script are `/sk/tools.css` and `/sk/tools.js`. The HTTP tab has **Tools** to open it. `GET/POST /api/text` covers Base64, URL, hex, Unicode escape, case, whitespace, JSON pretty-print, and counts. The desktop file manager moved from `/` to `/files`. The phone page stays `/m`. `/index.html` redirects to `/files`.
 - **Tools → Network tools** adds **Location**. It uses Windows geolocation (Wi-Fi or GPS) and does not need a host. The first call asks for permission. Output includes coordinates, accuracy, source, and civic address when the system provides one. **Map** opens Amap in the browser (GCJ-02 inside China so the pin matches the roads). OpenStreetMap and Amap addresses in the result are clickable links; the OpenStreetMap link keeps the original WGS84 coordinates.
 - The HTTP tab **Send** button sits on the method and path row, to the right of the path.
@@ -59,10 +61,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+- `GET /api/tts/engines` 只列出 Sherpa、SAPI、Windows、Edge，不扫描模型。`GET /api/tts/models` 会记住上次的全量结果。`engine` 只返回一个引擎。`refresh=1` 重新扫描。
+- 工具页的**生成**会在按钮下方画出二维码或条码。样式和脚本地址带上和网页文件管理相同的本次启动版本。重启程序后版本会变，浏览器不再用上一轮的文件。同一次运行里仍缓存 1 小时。主按钮保持强调色。
 - 本机工具页增加**文字识别**、**语音合成**和**语音识别**。引擎和模型的选法与主窗口相同：Windows OCR 或 ONNX 模型包、语音引擎和发音人、离线或 Windows 语音识别。`GET /api/ocr/models` 列出这些识别包。`POST /api/ocr` 接受 `options.ocr.pack`。
 - 本机工具页可以生成二维码或条码（`POST /api/qrmake`），也可以从图片识别（`POST /api/qrscan`）。其它 HTTP 模块关掉时这两个接口仍可用。
-- 托盘 **工具 → web主页** 用浏览器打开 `http://127.0.0.1:端口/`，不唤起主窗口。HTTP 接口没在跑时，底部提示原因。
-- 样式、脚本和图片缓存 1 小时（`Cache-Control: public, max-age=3600`）。HTML 页面（`/`、`/files`、`/m`）不缓存。
+- 托盘 **web主页** 和 **工具 → web主页** 用浏览器打开 `http://127.0.0.1:端口/`。托盘这一项不唤起主窗口。HTTP 接口没在跑时，底部提示原因。
+- 样式、脚本和图片缓存 1 小时（`Cache-Control: public, max-age=3600`）。HTML 页面（`/`、`/files`、`/m`）不缓存。这些页面把本次启动版本写进样式和脚本地址，重启程序后旧缓存失效。
 - `GET /` 是本机工具页（简繁、历法、日文注音、文本）。样式和脚本是 `/sk/tools.css`、`/sk/tools.js`。HTTP 接口页有 **工具页** 按钮打开它。`GET/POST /api/text` 做 Base64、URL、十六进制、Unicode 转义、大小写、空白、JSON 美化和统计。电脑版网页文件管理从 `/` 改到 `/files`。手机版仍是 `/m`。`/index.html` 转到 `/files`。
 - **工具 → 网络工具**增加**系统定位**。使用 Windows 定位（Wi-Fi 或 GPS），不用填写主机。第一次调用时系统询问是否允许。结果包含经纬度、精度、来源，以及系统能提供的地点。**查看地图**用浏览器打开高德（国内坐标换成 GCJ-02，标点才落在路上）。结果里的 OpenStreetMap 和高德地址是可点击的链接，OpenStreetMap 保持原始 WGS84。
 - HTTP 接口页的**发送**按钮改到方法和路径那一行的右侧。
