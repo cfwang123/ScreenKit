@@ -24,6 +24,7 @@ body {
 aside {
 	width: 196px;
 	flex: none;
+	align-self: stretch;
 	position: sticky;
 	top: 16px;
 	background: #fff;
@@ -58,12 +59,18 @@ nav button:hover { background: #f3f4f6; }
 nav button.on { background: #f97316; color: #fff; }
 nav button.on i { color: #fff; }
 .files {
-	margin-top: 12px; color: #666; text-decoration: none;
+	margin-top: auto; color: #666; text-decoration: none;
 	display: flex; align-items: center; gap: 8px;
 	padding: 9px 10px; border-radius: 8px;
 }
 .files i { width: 18px; flex: none; text-align: center; color: #888; }
 .files:hover { background: #f3f4f6; color: #222; }
+.lang { display: block; margin-top: 8px; }
+.lang select {
+	width: 100%; font: inherit; color: inherit;
+	padding: 8px; border-radius: 8px;
+	border: 1px solid var(--line); background: #fff;
+}
 main {
 	flex: 1; min-width: 0; align-self: stretch;
 	display: flex; flex-direction: column;

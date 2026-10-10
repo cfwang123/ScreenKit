@@ -6,7 +6,7 @@
 			return SK.lab("常用", '<select id="box-preset">' + reopts() + "</select>")
 				+ '<div class="row grow">' + SK.lab("表达式", SK.textin("box-pat", "", "例如 \\d+")) + SK.lab("标志", SK.textin("box-flags", "g", "g i m")) + "</div>"
 				+ SK.lab("方式", '<select id="box-re-mode"><option value="find">查找匹配</option><option value="lines">批量测试</option></select>')
-				+ '<p class="hint" id="re-hint">在文本里查找匹配。</p>'
+				+ '<p class="hint" id="re-hint" data-k="web.re.find">在文本里查找匹配。</p>'
 				+ SK.lab("文本", SK.ta("box-in", 8, ""));
 		},
 		run: function(){
@@ -69,8 +69,21 @@
 		var lines = SK.val("box-re-mode") === "lines";
 		var hint = SK.$("re-hint");
 		var box = SK.$("box-in");
-		if (hint) hint.textContent = lines ? "一行一条。整行匹配算通过。" : "在文本里查找匹配。";
-		if (box) box.placeholder = lines ? "一行一条" : "";
+		var hk = lines ? "web.re.lines" : "web.re.find";
+		if (hint) {
+			hint.setAttribute("data-k", hk);
+			hint.textContent = (SK.t && SK.t(hk)) || (lines ? "一行一条。整行匹配算通过。" : "在文本里查找匹配。");
+		}
+		if (box) {
+			if (lines) {
+				box.setAttribute("data-kph", "web.re.lineph");
+				box.placeholder = (SK.t && SK.t("web.re.lineph")) || "一行一条";
+			}
+			else {
+				box.removeAttribute("data-kph");
+				box.placeholder = "";
+			}
+		}
 	}
 
 	function showreout(batch){

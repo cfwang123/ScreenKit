@@ -16,6 +16,18 @@ SK.watchAcc = 0;
 	var curcat = "all";
 	var favs = [];
 	var util = "";
+	var langAt = 0;
+	var webmap = null;
+	var GO = {
+		"生成": "web.go.gen",
+		"计算": "web.go.calc",
+		"转换": "web.go.convert",
+		"显示": "web.go.show",
+		"开始": "web.go.start",
+		"测试": "web.go.test",
+		"复位": "web.go.reset",
+		"换算": "web.go.unit"
+	};
 	function boot(){
 		var today = new Date();
 		var month = today.getMonth() + 1;
@@ -46,6 +58,7 @@ SK.watchAcc = 0;
 		$("tool-q").oninput = paintcats;
 		$("box-go").onclick = utilrun;
 		$("box-copy").onclick = function(){ copytext($("box-out").value, "box-msg"); };
+		filllang();
 		loadfav();
 		buildgroups();
 		paintfav();
@@ -65,6 +78,7 @@ SK.watchAcc = 0;
 			start = "u-fake";
 		}
 		if (start && start !== "home" && cardof(start)) show(start, true);
+		applylang();
 	}
 
 	function onclick(ev){
@@ -167,13 +181,124 @@ SK.watchAcc = 0;
 
 	function settitle(){
 		if (!SK.curtool || SK.curtool === "home") {
-			document.title = "web工具集";
+			document.title = t("web.title") || "web工具集";
 			return;
 		}
 		var card = cardof(SK.curtool);
 		var span = card ? card.querySelector("span") : null;
 		var toolName = span ? span.textContent : "";
-		document.title = toolName || "web工具集";
+		document.title = toolName || t("web.title") || "web工具集";
+	}
+
+	function langs(){
+		if (window.L && L._lang && L._lang.length) return L._lang;
+		return ["zh", "en", "ja", "ko", "es", "fr", "pt", "ru", "de"];
+	}
+
+	function t(key){
+		var row = window.L && L[key];
+		if (!row || !row.length) return "";
+		var s = row[langAt];
+		if (s) return s;
+		return row[0] || "";
+	}
+
+	function webkey(text){
+		if (!text || !window.L) return "";
+		if (GO[text]) return GO[text];
+		if (!webmap) {
+			webmap = {};
+			var codes = langs();
+			var zi = 0;
+			var i;
+			for (i = 0; i < codes.length; i++) if (codes[i] === "zh") zi = i;
+			for (var k in L) {
+				if (!Object.prototype.hasOwnProperty.call(L, k)) continue;
+				if (k.length < 4 || k.substring(0, 4) !== "web.") continue;
+				var row = L[k];
+				if (!row || !row[zi] || webmap[row[zi]]) continue;
+				webmap[row[zi]] = k;
+			}
+		}
+		return webmap[text] || "";
+	}
+
+	function khtml(text){
+		var key = webkey(text);
+		if (!key) return text;
+		return '<span data-k="' + key + '">' + esc(t(key)) + "</span>";
+	}
+
+	function filllang(){
+		var sel = $("lang");
+		if (!sel) return;
+		var codes = langs();
+		var names = (window.L && L._name) || [];
+		while (sel.firstChild) sel.removeChild(sel.firstChild);
+		var i;
+		for (i = 0; i < codes.length; i++) {
+			var op = document.createElement("option");
+			op.value = codes[i];
+			op.textContent = names[i] || codes[i];
+			sel.appendChild(op);
+		}
+		var saved = "";
+		try { saved = localStorage.getItem("sk_tools_lang") || ""; } catch (e) {}
+		var use = saved;
+		if (!use) {
+			var navl = (navigator.language || "zh").toLowerCase();
+			use = codes[0] || "zh";
+			for (i = 0; i < codes.length; i++) {
+				if (navl.indexOf(codes[i]) === 0) { use = codes[i]; break; }
+			}
+		}
+		langAt = 0;
+		for (i = 0; i < codes.length; i++) if (codes[i] === use) langAt = i;
+		sel.value = codes[langAt] || codes[0] || "";
+		sel.onchange = onlang;
+	}
+
+	function onlang(){
+		var code = $("lang").value;
+		var codes = langs();
+		var i;
+		langAt = 0;
+		for (i = 0; i < codes.length; i++) if (codes[i] === code) langAt = i;
+		try { localStorage.setItem("sk_tools_lang", codes[langAt] || "zh"); } catch (e) {}
+		applylang();
+	}
+
+	function applylang(){
+		var nodes = document.querySelectorAll("[data-k]");
+		var i, s;
+		for (i = 0; i < nodes.length; i++) {
+			s = t(nodes[i].getAttribute("data-k"));
+			if (s) nodes[i].textContent = s;
+		}
+		nodes = document.querySelectorAll("[data-kph]");
+		for (i = 0; i < nodes.length; i++) {
+			s = t(nodes[i].getAttribute("data-kph"));
+			if (s) nodes[i].placeholder = s;
+		}
+		nodes = document.querySelectorAll("[data-kt]");
+		for (i = 0; i < nodes.length; i++) {
+			s = t(nodes[i].getAttribute("data-kt"));
+			if (s) nodes[i].setAttribute("data-title", s);
+		}
+		nodes = document.querySelectorAll("[data-ktip]");
+		for (i = 0; i < nodes.length; i++) {
+			s = t(nodes[i].getAttribute("data-ktip"));
+			if (s) nodes[i].title = s;
+		}
+		var code = langs()[langAt] || "zh";
+		document.documentElement.lang = code === "zh" ? "zh-CN" : code;
+		if (SK.curtool && SK.curtool !== "home") {
+			var panel = SK.curtool.indexOf("u-") === 0 ? "box" : SK.curtool;
+			marktool(SK.curtool, panel);
+		}
+		settitle();
+		paintstars();
+		if (!SK.curtool || SK.curtool === "home") paintcats();
 	}
 
 	function marktool(id, panelId){
@@ -211,7 +336,12 @@ SK.watchAcc = 0;
 			var h = document.createElement("h2");
 			var icon = nav[i].querySelector("i");
 			if (icon) h.appendChild(icon.cloneNode(true));
-			h.appendChild(document.createTextNode(nav[i].getAttribute("data-title") || ""));
+			var catKey = "web.cat." + cat;
+			var catLabel = t(catKey) || nav[i].getAttribute("data-title") || "";
+			var catSpan = document.createElement("span");
+			catSpan.setAttribute("data-k", catKey);
+			catSpan.textContent = catLabel;
+			h.appendChild(catSpan);
 			var grid = document.createElement("div");
 			grid.className = "cards";
 			sec.appendChild(h);
@@ -221,7 +351,8 @@ SK.watchAcc = 0;
 				empty.className = "none";
 				empty.id = "fav-none";
 				empty.hidden = true;
-				empty.textContent = "还没有收藏。点卡片右侧的星可以加进来。";
+				empty.setAttribute("data-k", "web.fav.none");
+				empty.textContent = t("web.fav.none") || "还没有收藏。点卡片右侧的星可以加进来。";
 				sec.appendChild(empty);
 			}
 			map[cat] = grid;
@@ -300,7 +431,7 @@ SK.watchAcc = 0;
 			}
 			else secs[i].hidden = visn === 0;
 		}
-		$("tool-none").textContent = "没有匹配的工具";
+		$("tool-none").textContent = t("web.find.none") || "没有匹配的工具";
 		$("tool-none").hidden = n !== 0;
 		paintnav();
 	}
@@ -389,7 +520,9 @@ SK.watchAcc = 0;
 		for (i = 0; i < nodes.length; i++) {
 			var on = isfav(nodes[i].getAttribute("data-fav"));
 			nodes[i].className = on ? "star on fa-solid fa-star" : "star fa-solid fa-star";
-			nodes[i].title = on ? "取消收藏" : "收藏";
+			var tipKey = on ? "web.fav.tip.off" : "web.fav.tip";
+			nodes[i].setAttribute("data-ktip", tipKey);
+			nodes[i].title = t(tipKey) || (on ? "取消收藏" : "收藏");
 		}
 		var btn = $("tool-fav");
 		if (!btn) return;
@@ -397,7 +530,11 @@ SK.watchAcc = 0;
 		var lit = picked && isfav(picked);
 		btn.className = lit ? "back on" : "back";
 		var label = btn.querySelector("span");
-		if (label) label.textContent = lit ? "已收藏" : "收藏";
+		if (label) {
+			var favKey = lit ? "web.fav.on" : "web.fav";
+			label.setAttribute("data-k", favKey);
+			label.textContent = t(favKey) || (lit ? "已收藏" : "收藏");
+		}
 	}
 
 	function $(id){
@@ -406,7 +543,16 @@ SK.watchAcc = 0;
 
 	function msg(id, text, bad){
 		var el = $(id);
-		el.textContent = text || "";
+		if (!el) return;
+		var key = webkey(text);
+		if (key) {
+			el.setAttribute("data-k", key);
+			el.textContent = t(key);
+		}
+		else {
+			el.removeAttribute("data-k");
+			el.textContent = text || "";
+		}
 		el.className = bad ? "msg bad" : "msg";
 	}
 
@@ -518,7 +664,7 @@ SK.watchAcc = 0;
 	}
 
 	function lab(title, inner){
-		return "<label>" + title + inner + "</label>";
+		return "<label>" + khtml(title) + inner + "</label>";
 	}
 
 	function row2(a, b){
@@ -526,11 +672,17 @@ SK.watchAcc = 0;
 	}
 
 	function ta(id, rows, ph){
-		return '<textarea id="' + id + '" rows="' + rows + '" placeholder="' + ph + '"></textarea>';
+		var key = webkey(ph || "");
+		var shown = key ? t(key) : ph;
+		var attr = key ? ' data-kph="' + key + '"' : "";
+		return '<textarea id="' + id + '" rows="' + rows + '" placeholder="' + shown + '"' + attr + "></textarea>";
 	}
 
 	function textin(id, value, ph){
-		return '<input id="' + id + '" type="text" value="' + value + '" placeholder="' + (ph || "") + '">';
+		var key = webkey(ph || "");
+		var shown = key ? t(key) : (ph || "");
+		var attr = key ? ' data-kph="' + key + '"' : "";
+		return '<input id="' + id + '" type="text" value="' + value + '" placeholder="' + shown + '"' + attr + ">";
 	}
 
 	function numin(id, value){
@@ -538,7 +690,7 @@ SK.watchAcc = 0;
 	}
 
 	function check(id, title, on){
-		return '<label class="check"><input id="' + id + '" type="checkbox"' + (on ? " checked" : "") + "> " + title + "</label>";
+		return '<label class="check"><input id="' + id + '" type="checkbox"' + (on ? " checked" : "") + "> " + khtml(title) + "</label>";
 	}
 
 	function radio(name, id, title, on){
@@ -807,7 +959,15 @@ SK.watchAcc = 0;
 		if (!spec) return;
 		util = name;
 		$("box-title").textContent = spec.title;
-		$("box-go").textContent = spec.go;
+		var gokey = webkey(spec.go);
+		if (gokey) {
+			$("box-go").setAttribute("data-k", gokey);
+			$("box-go").textContent = t(gokey);
+		}
+		else {
+			$("box-go").removeAttribute("data-k");
+			$("box-go").textContent = spec.go;
+		}
 		$("box-body").innerHTML = spec.body();
 		$("box-out").value = "";
 		$("box-go").parentElement.style.display = "";
@@ -919,4 +1079,5 @@ SK.watchAcc = 0;
 	SK.esc = esc;
 	SK.openutil = openutil;
 	SK.utilrun = utilrun;
+	SK.t = t;
 })();

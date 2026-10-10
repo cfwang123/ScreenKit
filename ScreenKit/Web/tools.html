@@ -14,188 +14,189 @@
 			<span class="mark">S</span>
 			<div>
 				<strong>ScreenKit</strong>
-				<small>本机工具</small>
+				<small data-k="web.brand">本机工具</small>
 			</div>
 		</div>
 		<nav id="cats">
-			<button type="button" data-cat="fav" data-title="收藏"><i class="fa-solid fa-star"></i>收藏</button>
-			<button type="button" data-cat="all" data-title="全部" class="on"><i class="fa-solid fa-border-all"></i>全部</button>
-			<button type="button" data-cat="text" data-title="文字"><i class="fa-solid fa-font"></i>文字</button>
-			<button type="button" data-cat="calc" data-title="计算"><i class="fa-solid fa-calculator"></i>计算</button>
-			<button type="button" data-cat="speech" data-title="语音"><i class="fa-solid fa-volume-high"></i>语音</button>
-			<button type="button" data-cat="time" data-title="历法"><i class="fa-solid fa-calendar-days"></i>历法</button>
-			<button type="button" data-cat="image" data-title="图像"><i class="fa-solid fa-image"></i>图像</button>
+			<button type="button" data-cat="fav" data-title="收藏" data-kt="web.cat.fav"><i class="fa-solid fa-star"></i><span data-k="web.cat.fav">收藏</span></button>
+			<button type="button" data-cat="all" data-title="全部" data-kt="web.cat.all" class="on"><i class="fa-solid fa-border-all"></i><span data-k="web.cat.all">全部</span></button>
+			<button type="button" data-cat="text" data-title="文字" data-kt="web.cat.text"><i class="fa-solid fa-font"></i><span data-k="web.cat.text">文字</span></button>
+			<button type="button" data-cat="calc" data-title="计算" data-kt="web.cat.calc"><i class="fa-solid fa-calculator"></i><span data-k="web.cat.calc">计算</span></button>
+			<button type="button" data-cat="speech" data-title="语音" data-kt="web.cat.speech"><i class="fa-solid fa-volume-high"></i><span data-k="web.cat.speech">语音</span></button>
+			<button type="button" data-cat="time" data-title="历法" data-kt="web.cat.time"><i class="fa-solid fa-calendar-days"></i><span data-k="web.cat.time">历法</span></button>
+			<button type="button" data-cat="image" data-title="图像" data-kt="web.cat.image"><i class="fa-solid fa-image"></i><span data-k="web.cat.image">图像</span></button>
 		</nav>
-		<a class="files" href="/files" target="_blank" rel="noopener"><i class="fa-solid fa-folder"></i>文件传输</a>
+		<a class="files" href="/files" target="_blank" rel="noopener"><i class="fa-solid fa-folder"></i><span data-k="web.files">文件传输</span></a>
+		<label class="lang"><select id="lang"></select></label>
 	</aside>
 	<main>
-		<button type="button" id="back" class="back" data-tool="home" hidden><i class="fa-solid fa-arrow-left"></i>返回</button>
+		<button type="button" id="back" class="back" data-tool="home" hidden><i class="fa-solid fa-arrow-left"></i><span data-k="web.back">返回</span></button>
 		<button type="button" id="tool-fav" class="back" hidden><i class="fa-solid fa-star"></i><span>收藏</span></button>
 		<section id="home" class="panel on">
 			<div class="head">
 				<label class="find">
-					<input id="tool-q" type="search" placeholder="搜索工具" autocomplete="off"/>
+					<input id="tool-q" type="search" data-kph="web.find" placeholder="搜索工具" autocomplete="off"/>
 				</label>
 			</div>
 			<div class="cards" id="cards">
 				<button type="button" data-tool="ocr" data-cat="image" data-name="文字识别 ocr" title="Windows 系统 OCR 或 ONNX 模型包">
-					<i class="fa-solid fa-eye"></i><span>文字识别</span>
+					<i class="fa-solid fa-eye"></i><span data-k="web.tool.ocr">文字识别</span>
 					<i class="star fa-solid fa-star" data-fav="ocr" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="tts" data-cat="speech" data-name="语音合成 朗读" title="Windows、SAPI、Edge 或离线模型">
-					<i class="fa-solid fa-volume-high"></i><span>语音合成</span>
+					<i class="fa-solid fa-volume-high"></i><span data-k="web.tool.tts">语音合成</span>
 					<i class="star fa-solid fa-star" data-fav="tts" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="asr" data-cat="speech" data-name="语音识别 录音" title="系统识别器或离线模型，可录音或选文件">
-					<i class="fa-solid fa-microphone"></i><span>语音识别</span>
+					<i class="fa-solid fa-microphone"></i><span data-k="web.tool.asr">语音识别</span>
 					<i class="star fa-solid fa-star" data-fav="asr" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="qr" data-cat="image" data-name="二维码 条码 生成" title="生成 PNG，图下显示原文">
-					<i class="fa-solid fa-qrcode"></i><span>二维码生成</span>
+					<i class="fa-solid fa-qrcode"></i><span data-k="web.tool.qr">二维码生成</span>
 					<i class="star fa-solid fa-star" data-fav="qr" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="qrs" data-cat="image" data-name="二维码 条码 识别" title="从图片读出内容，可粘贴">
-					<i class="fa-solid fa-barcode"></i><span>二维码识别</span>
+					<i class="fa-solid fa-barcode"></i><span data-k="web.tool.qrs">二维码识别</span>
 					<i class="star fa-solid fa-star" data-fav="qrs" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json xml sql 十六进制 md5 sha256 html css js 转义 简繁转换 繁体 简体 日文注音 读音 假名 变量名 camel snake crontab cron token user-agent ua 解析" title="Base64、URL、十六进制、JSON、XML、SQL、哈希、HTML、CSS、JS、简繁、日文注音、变量名、Crontab、Token、User-Agent">
-					<i class="fa-solid fa-file-lines"></i><span>文本转换</span>
+					<i class="fa-solid fa-file-lines"></i><span data-k="web.tool.text">文本转换</span>
 					<i class="star fa-solid fa-star" data-fav="text" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-pw" data-cat="text" data-name="随机密码 批量" title="本地生成，一次可出多条">
-					<i class="fa-solid fa-key"></i><span>随机密码</span>
+					<i class="fa-solid fa-key"></i><span data-k="web.tool.pw">随机密码</span>
 					<i class="star fa-solid fa-star" data-fav="u-pw" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="cal" data-cat="time" data-name="历法 农历 干支" title="公历换农历、干支、日本、希伯来等">
-					<i class="fa-solid fa-calendar-days"></i><span>历法</span>
+					<i class="fa-solid fa-calendar-days"></i><span data-k="web.tool.cal">历法</span>
 					<i class="star fa-solid fa-star" data-fav="cal" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-ts" data-cat="time" data-name="时间戳 unix" title="秒或毫秒与本地时间互转">
-					<i class="fa-solid fa-clock"></i><span>时间戳</span>
+					<i class="fa-solid fa-clock"></i><span data-k="web.tool.ts">时间戳</span>
 					<i class="star fa-solid fa-star" data-fav="u-ts" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-re" data-cat="text" data-name="正则 表达式" title="在文字里查找匹配">
-					<i class="fa-solid fa-asterisk"></i><span>正则测试</span>
+					<i class="fa-solid fa-asterisk"></i><span data-k="web.tool.re">正则测试</span>
 					<i class="star fa-solid fa-star" data-fav="u-re" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-calc" data-cat="calc" data-name="计算器" title="加减乘除、括号和乘方">
-					<i class="fa-solid fa-calculator"></i><span>计算器</span>
+					<i class="fa-solid fa-calculator"></i><span data-k="web.tool.calc">计算器</span>
 					<i class="star fa-solid fa-star" data-fav="u-calc" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-radix" data-cat="calc" data-name="进制 二进制 十六进制" title="转换到默认全部，一次列出 2、8、10、16 进制">
-					<i class="fa-solid fa-hashtag"></i><span>进制转换</span>
+					<i class="fa-solid fa-hashtag"></i><span data-k="web.tool.radix">进制转换</span>
 					<i class="star fa-solid fa-star" data-fav="u-radix" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-unit" data-cat="calc" data-name="单位换算 长度 重量 货币 温度换算 面积 体积 存储 时间 压力 功率 px rem 米 英尺 摄氏 全部" title="数值可直接写 1米；新单位默认「全部」，一次列出该类型的全部单位。外币查中国银行中间价，失败时用 2026-10-10 的牌价并缓存 10 分钟">
-					<i class="fa-solid fa-ruler"></i><span>单位换算</span>
+					<i class="fa-solid fa-ruler"></i><span data-k="web.tool.unit">单位换算</span>
 					<i class="star fa-solid fa-star" data-fav="u-unit" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-color" data-cat="image" data-name="颜色 hex rgb hsl hsv cmyk" title="HEX、RGB、HSL、HSV、CMYK">
-					<i class="fa-solid fa-palette"></i><span>颜色转换</span>
+					<i class="fa-solid fa-palette"></i><span data-k="web.tool.color">颜色转换</span>
 					<i class="star fa-solid fa-star" data-fav="u-color" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-b64img" data-cat="image" data-name="图片 base64" title="图片转成 Data URL">
-					<i class="fa-solid fa-file-image"></i><span>图片 Base64</span>
+					<i class="fa-solid fa-file-image"></i><span data-k="web.tool.b64">图片 Base64</span>
 					<i class="star fa-solid fa-star" data-fav="u-b64img" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-ico" data-cat="image" data-name="图片 ico 图标" title="把图片做成 ICO，默认 32">
-					<i class="fa-solid fa-icons"></i><span>图片转 ICO</span>
+					<i class="fa-solid fa-icons"></i><span data-k="web.tool.ico">图片转 ICO</span>
 					<i class="star fa-solid fa-star" data-fav="u-ico" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-datecalc" data-cat="time" data-name="日期计算 日期差 日期加减 月份加减 天数 秒 分 小时 月 年" title="两个日期相差多少（单位可选，默认「全部」），或某个日期加减秒、分、小时、天、月、年（数量可为负）">
-					<i class="fa-solid fa-calendar-days"></i><span>日期计算</span>
+					<i class="fa-solid fa-calendar-days"></i><span data-k="web.tool.date">日期计算</span>
 					<i class="star fa-solid fa-star" data-fav="u-datecalc" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-rmb" data-cat="calc" data-name="人民币 大写" title="数字转中文大写金额">
-					<i class="fa-solid fa-yen-sign"></i><span>人民币大写</span>
+					<i class="fa-solid fa-yen-sign"></i><span data-k="web.tool.rmb">人民币大写</span>
 					<i class="star fa-solid fa-star" data-fav="u-rmb" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-rand" data-cat="calc" data-name="随机数" title="指定范围的随机数">
-					<i class="fa-solid fa-dice"></i><span>随机数</span>
+					<i class="fa-solid fa-dice"></i><span data-k="web.tool.rand">随机数</span>
 					<i class="star fa-solid fa-star" data-fav="u-rand" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-sci" data-cat="calc" data-name="科学计算 三角函数" title="三角函数、对数和平方根">
-					<i class="fa-solid fa-square-root-variable"></i><span>科学计算</span>
+					<i class="fa-solid fa-square-root-variable"></i><span data-k="web.tool.sci">科学计算</span>
 					<i class="star fa-solid fa-star" data-fav="u-sci" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-pick" data-cat="image" data-name="取色 颜色选择" title="选一个颜色，给出各种写法">
-					<i class="fa-solid fa-eye-dropper"></i><span>取色</span>
+					<i class="fa-solid fa-eye-dropper"></i><span data-k="web.tool.pick">取色</span>
 					<i class="star fa-solid fa-star" data-fav="u-pick" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-bmi" data-cat="calc" data-name="bmi 体质" title="身高体重算 BMI">
-					<i class="fa-solid fa-weight-scale"></i><span>BMI</span>
+					<i class="fa-solid fa-weight-scale"></i><span data-k="web.tool.bmi">BMI</span>
 					<i class="star fa-solid fa-star" data-fav="u-bmi" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-loan" data-cat="calc" data-name="房贷 等额" title="等额本息或等额本金">
-					<i class="fa-solid fa-house"></i><span>房贷</span>
+					<i class="fa-solid fa-house"></i><span data-k="web.tool.loan">房贷</span>
 					<i class="star fa-solid fa-star" data-fav="u-loan" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-table" data-cat="text" data-name="html 表格" title="把逗号或制表符变成表格">
-					<i class="fa-solid fa-table"></i><span>HTML 表格</span>
+					<i class="fa-solid fa-table"></i><span data-k="web.tool.table">HTML 表格</span>
 					<i class="star fa-solid fa-star" data-fav="u-table" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-ascii" data-cat="text" data-name="unicode 码表 符号 ascii" title="按分组查看字符">
-					<i class="fa-solid fa-table"></i><span>Unicode码表</span>
+					<i class="fa-solid fa-table"></i><span data-k="web.tool.ascii">Unicode码表</span>
 					<i class="star fa-solid fa-star" data-fav="u-ascii" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-gbk" data-cat="text" data-name="gbk 码表 国标" title="按首字节查看 GBK">
-					<i class="fa-solid fa-font"></i><span>GBK码表</span>
+					<i class="fa-solid fa-font"></i><span data-k="web.tool.gbk">GBK码表</span>
 					<i class="star fa-solid fa-star" data-fav="u-gbk" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-watch" data-cat="time" data-name="秒表" title="开始、停止、复位">
-					<i class="fa-solid fa-stopwatch"></i><span>秒表</span>
+					<i class="fa-solid fa-stopwatch"></i><span data-k="web.tool.watch">秒表</span>
 					<i class="star fa-solid fa-star" data-fav="u-watch" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-down" data-cat="time" data-name="倒计时" title="按秒倒计时">
-					<i class="fa-solid fa-hourglass-end"></i><span>倒计时</span>
+					<i class="fa-solid fa-hourglass-end"></i><span data-k="web.tool.down">倒计时</span>
 					<i class="star fa-solid fa-star" data-fav="u-down" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-work" data-cat="time" data-name="工作日" title="跳过周六和周日">
-					<i class="fa-solid fa-briefcase"></i><span>工作日</span>
+					<i class="fa-solid fa-briefcase"></i><span data-k="web.tool.work">工作日</span>
 					<i class="star fa-solid fa-star" data-fav="u-work" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-pal" data-cat="image" data-name="调色板 配色" title="互补、邻近和三角色">
-					<i class="fa-solid fa-swatchbook"></i><span>调色板</span>
+					<i class="fa-solid fa-swatchbook"></i><span data-k="web.tool.pal">调色板</span>
 					<i class="star fa-solid fa-star" data-fav="u-pal" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-grad" data-cat="image" data-name="css 渐变" title="线性渐变代码">
-					<i class="fa-solid fa-fill"></i><span>CSS 渐变</span>
+					<i class="fa-solid fa-fill"></i><span data-k="web.tool.grad">CSS 渐变</span>
 					<i class="star fa-solid fa-star" data-fav="u-grad" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-btn" data-cat="image" data-name="css 按钮" title="生成按钮样式">
-					<i class="fa-solid fa-square"></i><span>CSS 按钮</span>
+					<i class="fa-solid fa-square"></i><span data-k="web.tool.btn">CSS 按钮</span>
 					<i class="star fa-solid fa-star" data-fav="u-btn" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-ph" data-cat="image" data-name="占位图" title="生成一张纯色图">
-					<i class="fa-solid fa-image"></i><span>占位图</span>
+					<i class="fa-solid fa-image"></i><span data-k="web.tool.ph">占位图</span>
 					<i class="star fa-solid fa-star" data-fav="u-ph" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-rcolor" data-cat="image" data-name="随机颜色" title="随机 HEX 和 RGB">
-					<i class="fa-solid fa-fill-drip"></i><span>随机颜色</span>
+					<i class="fa-solid fa-fill-drip"></i><span data-k="web.tool.rcolor">随机颜色</span>
 					<i class="star fa-solid fa-star" data-fav="u-rcolor" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-comp" data-cat="calc" data-name="复利" title="按年利率复利">
-					<i class="fa-solid fa-percent"></i><span>复利</span>
+					<i class="fa-solid fa-percent"></i><span data-k="web.tool.comp">复利</span>
 					<i class="star fa-solid fa-star" data-fav="u-comp" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-fake" data-cat="text" data-name="生成测试数据 测试数据 假数据 中文姓名 中文网名 英文网名 邮箱 手机 地址 公司 用户名 身份证 mac 地址 uuid" title="按类型生成，一行一条">
-					<i class="fa-solid fa-user-group"></i><span>生成测试数据</span>
+					<i class="fa-solid fa-user-group"></i><span data-k="web.tool.fake">生成测试数据</span>
 					<i class="star fa-solid fa-star" data-fav="u-fake" title="收藏"></i>
 				</button>
 
 			</div>
-			<p id="tool-none" class="none" hidden>没有匹配的工具</p>
+			<p id="tool-none" class="none" hidden data-k="web.find.none">没有匹配的工具</p>
 		</section>
 
 		<section id="box" class="panel">
 			<h1 id="box-title">工具</h1>
 			<div id="box-body"></div>
 			<div class="row">
-				<button type="button" id="box-go" class="primary">计算</button>
-				<button type="button" id="box-copy" class="ghost">复制结果</button>
+				<button type="button" id="box-go" class="primary" data-k="web.go.calc">计算</button>
+				<button type="button" id="box-copy" class="ghost" data-k="web.copy.out">复制结果</button>
 				<span id="box-msg" class="msg"></span>
 			</div>
-			<label>结果
+			<label><span data-k="web.result">结果</span>
 				<textarea id="box-out" rows="10" readonly></textarea>
 				<div id="re-list" hidden></div>
 			</label>
@@ -205,10 +206,10 @@
 			<p class="kicker">Windows.Globalization.Calendar</p>
 			<h1>历法</h1>
 			<div class="row">
-				<label>公历
+				<label><span data-k="web.f.greg">公历</span>
 					<input id="cal-date" type="date"/>
 				</label>
-				<label>历法
+				<label><span data-k="web.cat.time">历法</span>
 					<select id="cal-id">
 						<option value="lunar">农历</option>
 						<option value="gregorian">公历</option>
@@ -225,7 +226,7 @@
 						<option value="julian">儒略历</option>
 					</select>
 				</label>
-				<button type="button" id="cal-go" class="primary"><i class="fa-solid fa-calendar-check"></i>换算</button>
+				<button type="button" id="cal-go" class="primary"><i class="fa-solid fa-calendar-check"></i><span data-k="web.go.unit">换算</span></button>
 				<span id="cal-msg" class="msg"></span>
 			</div>
 			<dl id="cal-out" class="facts"></dl>
@@ -236,13 +237,13 @@
 			<h1>文本转换</h1>
 			<div class="split txpair">
 				<div>
-					<div class="txhead"><span>原文</span></div>
-					<textarea id="tx-in" rows="14" placeholder="要处理的文字"></textarea>
+					<div class="txhead"><span data-k="web.src">原文</span></div>
+					<textarea id="tx-in" rows="14" data-kph="web.ph.src" placeholder="要处理的文字"></textarea>
 				</div>
 				<div>
 					<div class="txhead">
-						<span>结果</span>
-						<button type="button" id="tx-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制</button>
+						<span data-k="web.result">结果</span>
+						<button type="button" id="tx-copy" class="ghost"><i class="fa-solid fa-copy"></i><span data-k="web.copy">复制</span></button>
 						<span id="tx-msg" class="msg"></span>
 					</div>
 					<textarea id="tx-out" rows="14" readonly></textarea>
@@ -268,8 +269,8 @@
 					<button type="button" data-op="uunesc"><i class="fa-solid fa-rotate-left"></i>还原</button>
 				</div></div>
 				<div class="opgrp"><span>大小写</span><div>
-					<button type="button" data-op="upper"><i class="fa-solid fa-arrow-up-a-z"></i>大写</button>
-					<button type="button" data-op="lower"><i class="fa-solid fa-arrow-down-a-z"></i>小写</button>
+					<button type="button" data-op="upper"><i class="fa-solid fa-arrow-up-a-z"></i><span data-k="web.pw.up">大写</span></button>
+					<button type="button" data-op="lower"><i class="fa-solid fa-arrow-down-a-z"></i><span data-k="web.pw.low">小写</span></button>
 				</div></div>
 				<div class="opgrp"><span>简繁转换</span><div>
 					<button type="button" data-op="trad"><i class="fa-solid fa-language"></i>转为繁体</button>
@@ -323,13 +324,13 @@
 			<p class="kicker">OCR</p>
 			<h1>文字识别</h1>
 			<div class="row">
-				<label>引擎
+				<label><span data-k="web.f.eng">引擎</span>
 					<select id="ocr-pack"></select>
 				</label>
-				<label id="ocr-model-lab">语言 / 模型
+				<label id="ocr-model-lab"><span data-k="web.f.packlang">语言 / 模型</span>
 					<select id="ocr-model"></select>
 				</label>
-				<label id="ocr-dev-lab">设备
+				<label id="ocr-dev-lab"><span data-k="web.f.dev">设备</span>
 					<select id="ocr-dev">
 						<option value="cpu">CPU</option>
 						<option value="gpu">GPU (CUDA)</option>
@@ -338,17 +339,17 @@
 				</label>
 			</div>
 			<div class="row">
-				<label>图片
+				<label><span data-k="web.f.img">图片</span>
 					<input id="ocr-file" type="file" accept="image/*"/>
 				</label>
-				<button type="button" id="ocr-go" class="primary"><i class="fa-solid fa-eye"></i>识别</button>
-				<button type="button" id="ocr-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
+				<button type="button" id="ocr-go" class="primary"><i class="fa-solid fa-eye"></i><span data-k="web.f.scan">识别</span></button>
+				<button type="button" id="ocr-copy" class="ghost"><i class="fa-solid fa-copy"></i><span data-k="web.copy.out">复制结果</span></button>
 				<span id="ocr-msg" class="msg"></span>
 			</div>
-			<p class="hint">在此页按 Ctrl+V 可粘贴剪贴板里的图片。</p>
+			<p class="hint" data-k="web.f.paste">在此页按 Ctrl+V 可粘贴剪贴板里的图片。</p>
 			<img id="ocr-img" alt="预览" hidden/>
 			<p id="ocr-meta" class="ocr-meta" hidden></p>
-			<label>结果
+			<label><span data-k="web.result">结果</span>
 				<textarea id="ocr-out" rows="8" readonly></textarea>
 			</label>
 		</section>
@@ -357,35 +358,35 @@
 			<p class="kicker">TTS</p>
 			<h1>语音合成</h1>
 			<div class="row">
-				<label>引擎
+				<label><span data-k="web.f.eng">引擎</span>
 					<select id="tts-eng"></select>
 				</label>
-				<label>语言
+				<label><span data-k="web.f.lang">语言</span>
 					<select id="tts-lang"></select>
 				</label>
-				<label>性别
+				<label><span data-k="web.f.gender">性别</span>
 					<select id="tts-gender">
 						<option value="">全部性别</option>
 						<option value="female">女声</option>
 						<option value="male">男声</option>
 					</select>
 				</label>
-				<label>模型
+				<label><span data-k="web.f.model">模型</span>
 					<select id="tts-model"></select>
 				</label>
-				<label>发音人
+				<label><span data-k="web.f.voice">发音人</span>
 					<select id="tts-voice"></select>
 				</label>
-				<label>语速
+				<label><span data-k="web.f.speed">语速</span>
 					<input id="tts-speed" type="number" min="0.5" max="2" step="0.1" value="1"/>
 				</label>
 			</div>
-			<label>原文
-				<textarea id="tts-in" rows="6" placeholder="要朗读的文字"></textarea>
+			<label><span data-k="web.src">原文</span>
+				<textarea id="tts-in" rows="6" data-kph="web.ph.speak" placeholder="要朗读的文字"></textarea>
 			</label>
 			<div class="row">
-				<button type="button" id="tts-go" class="primary"><i class="fa-solid fa-volume-high"></i>朗读</button>
-				<button type="button" id="tts-wav"><i class="fa-solid fa-file-audio"></i>生成 WAV</button>
+				<button type="button" id="tts-go" class="primary"><i class="fa-solid fa-volume-high"></i><span data-k="web.f.speak">朗读</span></button>
+				<button type="button" id="tts-wav"><i class="fa-solid fa-file-audio"></i><span data-k="web.f.wav">生成 WAV</span></button>
 				<span id="tts-msg" class="msg"></span>
 			</div>
 			<audio id="tts-audio" controls hidden></audio>
@@ -395,16 +396,16 @@
 			<p class="kicker">ASR</p>
 			<h1>语音识别</h1>
 			<div class="row">
-				<label>引擎
+				<label><span data-k="web.f.eng">引擎</span>
 					<select id="asr-eng">
 						<option value="offline">离线模型</option>
 						<option value="windows">Windows 语音识别</option>
 					</select>
 				</label>
-				<label>模型
+				<label><span data-k="web.f.model">模型</span>
 					<select id="asr-model"></select>
 				</label>
-				<label>语言
+				<label><span data-k="web.f.lang">语言</span>
 					<select id="asr-lang">
 						<option value="auto">自动</option>
 						<option value="zh">中文</option>
@@ -416,15 +417,15 @@
 				</label>
 			</div>
 			<div class="row">
-				<label>音频文件
+				<label><span data-k="web.f.audio">音频文件</span>
 					<input id="asr-file" type="file" accept="audio/*,video/webm"/>
 				</label>
-				<button type="button" id="asr-filego" class="primary"><i class="fa-solid fa-file-audio"></i>识别文件</button>
-				<button type="button" id="asr-rec"><i class="fa-solid fa-microphone"></i><span>录音</span></button>
-				<button type="button" id="asr-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
+				<button type="button" id="asr-filego" class="primary"><i class="fa-solid fa-file-audio"></i><span data-k="web.f.scanfile">识别文件</span></button>
+				<button type="button" id="asr-rec"><i class="fa-solid fa-microphone"></i><span data-k="web.f.rec">录音</span></button>
+				<button type="button" id="asr-copy" class="ghost"><i class="fa-solid fa-copy"></i><span data-k="web.copy.out">复制结果</span></button>
 				<span id="asr-msg" class="msg"></span>
 			</div>
-			<label>结果
+			<label><span data-k="web.result">结果</span>
 				<textarea id="asr-out" rows="8" readonly></textarea>
 			</label>
 		</section>
@@ -433,7 +434,7 @@
 			<p class="kicker">ZXing</p>
 			<h1>二维码生成</h1>
 			<div class="row">
-				<label>类型
+				<label><span data-k="web.f.kind">类型</span>
 					<select id="qr-fmt">
 						<option value="qr">QR Code</option>
 						<option value="datamatrix">Data Matrix</option>
@@ -444,7 +445,7 @@
 						<option value="upca">UPC-A</option>
 					</select>
 				</label>
-				<label>编码
+				<label><span data-k="web.f.enc">编码</span>
 					<select id="qr-enc">
 						<option value="utf8">UTF-8</option>
 						<option value="gbk">GBK</option>
@@ -452,11 +453,11 @@
 					</select>
 				</label>
 			</div>
-			<label>内容
-				<textarea id="qr-in" rows="4" placeholder="要写进码里的文字"></textarea>
+			<label><span data-k="web.f.content">内容</span>
+				<textarea id="qr-in" rows="4" data-kph="web.ph.qr" placeholder="要写进码里的文字"></textarea>
 			</label>
 			<div class="row">
-				<button type="button" id="qr-make" class="primary"><i class="fa-solid fa-qrcode"></i>生成</button>
+				<button type="button" id="qr-make" class="primary"><i class="fa-solid fa-qrcode"></i><span data-k="web.go.gen">生成</span></button>
 				<label class="check"><input id="qr-capon" type="checkbox" checked/>带文字</label>
 				<span id="qr-msg" class="msg"></span>
 			</div>
@@ -470,20 +471,21 @@
 			<p class="kicker">ZXing</p>
 			<h1>二维码识别</h1>
 			<div class="row">
-				<label>图片
+				<label><span data-k="web.f.img">图片</span>
 					<input id="qrs-file" type="file" accept="image/*"/>
 				</label>
-				<button type="button" id="qr-scan" class="primary"><i class="fa-solid fa-barcode"></i>识别</button>
+				<button type="button" id="qr-scan" class="primary"><i class="fa-solid fa-barcode"></i><span data-k="web.f.scan">识别</span></button>
 				<span id="qrs-msg" class="msg"></span>
 			</div>
-			<p class="hint">在此页按 Ctrl+V 可粘贴剪贴板里的图片。</p>
+			<p class="hint" data-k="web.f.paste">在此页按 Ctrl+V 可粘贴剪贴板里的图片。</p>
 			<img id="qrs-img" alt="预览" hidden/>
-			<label>结果
+			<label><span data-k="web.result">结果</span>
 				<textarea id="qrs-out" rows="6" readonly></textarea>
 			</label>
 		</section>
 	</main>
 </div>
+<script src="/sk/L.js?__SK_WEB_VER__"></script>
 <script src="/sk/tools.js?__SK_WEB_VER__"></script>
 </body>
 </html>

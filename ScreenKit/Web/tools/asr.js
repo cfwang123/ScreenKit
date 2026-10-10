@@ -60,7 +60,10 @@
 		var i = b.querySelector("i");
 		var s = b.querySelector("span");
 		if (i) i.className = on ? "fa-solid fa-stop" : "fa-solid fa-microphone";
-		if (s) s.textContent = on ? "停止并识别" : "录音";
+		if (s) {
+			s.setAttribute("data-k", on ? "web.f.rec.stop" : "web.f.rec");
+			s.textContent = (SK.t && SK.t(s.getAttribute("data-k"))) || (on ? "停止并识别" : "录音");
+		}
 	}
 
 	function asrrec(){

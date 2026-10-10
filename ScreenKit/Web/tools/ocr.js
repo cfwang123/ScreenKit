@@ -52,7 +52,11 @@
 		SK.fillsel(SK.$("ocr-model"), rows, pick);
 		var win = !pack || pack.engine === "winocr";
 		SK.$("ocr-dev-lab").style.display = win ? "none" : "";
-		SK.$("ocr-model-lab").firstChild.nodeValue = win ? "语言" : "模型";
+		var lab = SK.$("ocr-model-lab").querySelector("[data-k]");
+		if (lab) {
+			lab.setAttribute("data-k", win ? "web.f.lang" : "web.f.model");
+			lab.textContent = (SK.t && SK.t(lab.getAttribute("data-k"))) || (win ? "语言" : "模型");
+		}
 	}
 
 	function onocrfile(){

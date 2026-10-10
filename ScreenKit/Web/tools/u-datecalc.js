@@ -78,13 +78,20 @@
 		var add = SK.val("dc-mode") === "add";
 		SK.$("dc-nwrap").hidden = !add;
 		SK.$("dc-bwrap").hidden = add;
-		setlabel("dc-a", add ? "日期" : "开始日期");
+		setlabel("dc-a", add ? "web.f.date" : "web.f.start", add ? "日期" : "开始日期");
 	}
 
-	function setlabel(id, text){
+	function setlabel(id, key, text){
 		var el = SK.$(id);
 		var lab = el && el.parentNode;
-		if (lab && lab.firstChild && lab.firstChild.nodeType === 3) lab.firstChild.nodeValue = text;
+		if (!lab) return;
+		var span = lab.querySelector("[data-k]");
+		if (span) {
+			span.setAttribute("data-k", key);
+			span.textContent = (SK.t && SK.t(key)) || text;
+			return;
+		}
+		if (lab.firstChild && lab.firstChild.nodeType === 3) lab.firstChild.nodeValue = text;
 	}
 
 	function live(){

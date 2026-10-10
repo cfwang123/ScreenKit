@@ -3569,9 +3569,20 @@ static class Cli {
 			var stamp = SendFileWebPages.BootStamp;
 			if (string.IsNullOrEmpty(stamp)
 				|| home.IndexOf("/sk/tools.js?" + stamp, StringComparison.Ordinal) < 0
-				|| home.IndexOf("/sk/tools.css?" + stamp, StringComparison.Ordinal) < 0) {
+				|| home.IndexOf("/sk/tools.css?" + stamp, StringComparison.Ordinal) < 0
+				|| home.IndexOf("/sk/L.js?" + stamp, StringComparison.Ordinal) < 0) {
 				Err("FAIL: 工具页样式或脚本没有本次启动版本");
 				return 1;
+			}
+			using (var langjs = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/sk/L.js")).GetAwaiter().GetResult()) {
+				var ccLang = langjs.Headers.CacheControl;
+				var langBody = Task.Run(() => langjs.Content.ReadAsStringAsync()).GetAwaiter().GetResult();
+				if (ccLang == null || ccLang.MaxAge != TimeSpan.FromHours(1)
+					|| langBody == null || !langBody.StartsWith("L=", StringComparison.Ordinal)
+					|| langBody.IndexOf("\"_lang\"", StringComparison.Ordinal) < 0) {
+					Err("FAIL: 语言包不是 1 小时缓存的 L=");
+					return 1;
+				}
 			}
 			using (var css = Task.Run(() => new HttpClient().GetAsync($"http://127.0.0.1:{port}/sk/tools.css")).GetAwaiter().GetResult()) {
 				var cc = css.Headers.CacheControl;

@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page language menu loads `/sk/L.js`. ScreenKit builds that script when it is requested. The script is one assignment, `L={...}`. Each value is an array of the installed UI languages, in the same order as the desktop language list, Chinese first. The browser may cache the script for 1 hour. Restarting ScreenKit changes the script address, so the next page load fetches it again. Choosing a language updates the open page at once and does not reload it.
 - `ScreenKit --test-mem-load` starts one process per feature (baseline, OCR, translation, offline ASR, streaming ASR, TTS, dictionary, face) and prints commit size, private working set, and working set after that feature loads. The default device is CPU. ASR and TTS load the smallest installed model. `winocr` runs Windows OCR on a tiny image and does not load an ONNX pack.
 - **Help → Memory** lists the open dictionary database and can unload it, which closes the database and drops the in-memory index. **Force GC** runs a full collection without unloading a row. The summary line also shows commit size. Private working set is the physical memory held by this process alone.
 
@@ -61,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页侧栏的语言菜单加载 `/sk/L.js`。程序在请求时生成这个脚本，内容是一次赋值 `L={...}`。每个值是已安装界面语言组成的数组，顺序与桌面语言列表相同，中文在前。浏览器可缓存 1 小时。重新启动后脚本地址会变，下次打开页面会重新取。切换语言立即改当前页上的文字，不刷新页面。
 - `ScreenKit --test-mem-load` 为每个功能单独冷启动（基线、识别、翻译、离线语音识别、流式语音识别、语音合成、词典、人脸），打印加载后的提交大小、专用工作集和工作集。默认 CPU。语音识别和语音合成加载已安装模型里最小的一份。`winocr` 用一张小图走 Windows 自带识别，不加载 ONNX 模型包。
 - **帮助 → 内存占用**列出已打开的词典数据库，并可卸载：关掉库并丢掉内存里的索引。**强制回收**只做完整回收，不卸载某一行。摘要行同时显示提交大小。专用工作集是本进程此刻独占的物理内存。
 
