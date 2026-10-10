@@ -22,7 +22,7 @@
 			SK.fakepick = "";
 			return SK.row2(
 				SK.lab("类型", '<select id="box-kind">' + SK.opts(KINDS, kind) + "</select>"),
-				SK.lab("行数", SK.numin("box-n", "5")));
+				SK.lab("行数", SK.numin("box-n", "10")));
 		},
 		open: function(){
 			if (!SK.fakerun) return;
