@@ -10,13 +10,22 @@ public partial class App : System.Windows.Application {
 	// 单实例：同名 Mutex + 激活事件（二次启动时唤起已有窗口）
 	const string MUTEX_NAME = "Local\\ScreenKit_SingleInstance";
 	const string ACTIVATE_EVENT = "Local\\ScreenKit_Activate";
+	const string EXIT_EVENT = "Local\\ScreenKit_RequestExit";
 	Mutex singleMutex;
 	EventWaitHandle activateEvent;
+	EventWaitHandle exitEvent;
 	volatile bool exitRequested;
 
 	protected override void OnStartup(StartupEventArgs e) {
 		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 		var args = e.Args ?? Array.Empty<string>();
+
+		// 编译脚本请求退出：关掉 HTTP 后结束，不走 taskkill
+		if (args.Any(a => a == "--request-exit")) {
+			signalrequestexit();
+			Environment.Exit(0);
+			return;
+		}
 
 		// USB AOA：独立进程请求配件并桥接 TCP，主进程绝不碰 LibUsb
 		if (args.Any(a => a == "--cast-aoa")) {
@@ -112,6 +121,8 @@ public partial class App : System.Windows.Application {
 		try { activateEvent?.Set(); } catch { }
 		try { activateEvent?.Dispose(); } catch { }
 		activateEvent = null;
+		try { exitEvent?.Dispose(); } catch { }
+		exitEvent = null;
 		try {
 			if (singleMutex != null) {
 				try { singleMutex.ReleaseMutex(); } catch { }
@@ -148,10 +159,13 @@ public partial class App : System.Windows.Application {
 	bool trysingleinstance() {
 		try {
 			activateEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ACTIVATE_EVENT);
+			exitEvent = new EventWaitHandle(false, EventResetMode.AutoReset, EXIT_EVENT);
 			singleMutex = new Mutex(true, MUTEX_NAME, out var created);
 			if (!created) {
 				try { activateEvent.Dispose(); } catch { }
 				activateEvent = null;
+				try { exitEvent.Dispose(); } catch { }
+				exitEvent = null;
 				try { singleMutex.Dispose(); } catch { }
 				singleMutex = null;
 				return false;
@@ -172,21 +186,41 @@ public partial class App : System.Windows.Application {
 		catch { }
 	}
 
+	static void signalrequestexit() {
+		try {
+			using var ev = EventWaitHandle.OpenExisting(EXIT_EVENT);
+			ev.Set();
+		}
+		catch { }
+	}
+
 	void waitactivate() {
 		while (!exitRequested) {
-			try {
-				if (activateEvent == null) break;
-				if (!activateEvent.WaitOne(500)) continue;
-				if (exitRequested) break;
-				try {
-					Dispatcher.BeginInvoke(new Action(activatemain));
-				}
-				catch { }
-			}
+			WaitHandle activate = activateEvent;
+			WaitHandle exit = exitEvent;
+			if (activate == null) break;
+			var handles = exit == null ? new[] { activate } : new[] { activate, exit };
+			int i;
+			try { i = WaitHandle.WaitAny(handles, 500); }
 			catch {
 				if (exitRequested) break;
+				continue;
 			}
+			if (i == WaitHandle.WaitTimeout || exitRequested) continue;
+			try {
+				if (i == 1) Dispatcher.BeginInvoke(new Action(requestexit));
+				else Dispatcher.BeginInvoke(new Action(activatemain));
+			}
+			catch { }
+			if (i == 1) break;
 		}
+	}
+
+	void requestexit() {
+		try {
+			if (MainWindow is MainWindow w) w.RequestExit();
+		}
+		catch { }
 	}
 
 	void activatemain() {

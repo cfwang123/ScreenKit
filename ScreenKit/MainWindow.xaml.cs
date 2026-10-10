@@ -589,10 +589,7 @@ public partial class MainWindow : Window {
 			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
-			tray.ForceExitRequested += () => {
-				forceExit = true;
-				try { Close(); } catch { }
-			};
+			tray.ForceExitRequested += () => RequestExit();
 			tray.SnapCopyOptionsChanged += (asImg, asFile, asPath) => Dispatcher.BeginInvoke(new Action(() => {
 				applysnapcopyopts(asImg, asFile, asPath, fromTray: true);
 			}));
@@ -904,6 +901,11 @@ public partial class MainWindow : Window {
 		if (WindowState == WindowState.Minimized) {
 			try { Hide(); } catch { }
 		}
+	}
+
+	public void RequestExit() {
+		forceExit = true;
+		try { Close(); } catch { }
 	}
 
 	void onclosing(object sender, System.ComponentModel.CancelEventArgs e) {
@@ -1425,10 +1427,7 @@ public partial class MainWindow : Window {
 		mnpaste.Click += async (_, _) => await pasteasync();
 		mnsaveclip.Click += (_, _) => saveimage();
 		mnpdf.Click += (_, _) => openpdfworkbench();
-		mnexit.Click += (_, _) => {
-			forceExit = true;
-			try { Close(); } catch { }
-		};
+		mnexit.Click += (_, _) => RequestExit();
 		// 截图菜单
 		mncapture.Click += async (_, _) => await captureasync(hideMain: false);
 		mnsnap.Click += async (_, _) => await snapannotateasync(restoreUi: false);
