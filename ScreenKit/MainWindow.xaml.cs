@@ -615,6 +615,8 @@ public partial class MainWindow : Window {
 			opt.ScreenshotJpgQuality <= 0 ? 92 : opt.ScreenshotJpgQuality, 1, 100);
 		ImageUtil.CurrentScreenshotShortEnabled = opt.ScreenshotShortEnabled;
 		ImageUtil.CurrentScreenshotShortPx = Math.Max(16, opt.ScreenshotShortPx);
+		try { ImageUtil.CurrentScreenshotDir = ImageUtil.NormScreenshotDir(opt.ScreenshotDir); }
+		catch { ImageUtil.CurrentScreenshotDir = ""; }
 		ImageUtil.CurrentSnapCopyAsImage = opt.SnapCopyAsImage;
 		ImageUtil.CurrentSnapCopyAsFile = opt.SnapCopyAsFile;
 		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;

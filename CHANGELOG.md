@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- Settings → Capture can set the screenshot folder (`screenshot_dir`). Empty uses `screenshots/` next to the program. An outside folder such as `D:/s/` keeps copied paths short. History, cleanup, and copy-as-file use that folder.
 - `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
 - The tools-page OCR result shows the same summary as the desktop: infer time, end-to-end time, confidence, engine, image size, line count, and the detection side limit.
@@ -59,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- **参数设置 → 截图** 可设置截图保存位置（`screenshot_dir`）。留空用程序目录下 `screenshots/`。可填外部目录，例如 `D:/s/`，复制出来的路径更短。历史、清理和复制为文件都用这个目录。
 - `GET /api` 列出仍开启的接口，含方法、介绍和参数说明，文字与 HTTP 接口页相同。`lang` 选择语言，省略时用程序当前界面语言。原有 `endpoints` 简表仍在。
 - 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
 - 工具页的文字识别结果会显示和桌面一样的统计：推理耗时、端到端耗时、置信度、引擎、图片宽高、行数、检测边长。

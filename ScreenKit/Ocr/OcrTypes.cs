@@ -196,6 +196,11 @@ public sealed class OcrOptions {
 	public bool ScreenshotShortEnabled = false;
 	/// <summary>截图较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
 	public int ScreenshotShortPx = 1080;
+	/// <summary>
+	/// 截图保存目录。空 = 程序目录下 screenshots/。
+	/// 可填外部目录（如 D:/s/），复制出的路径更短。
+	/// </summary>
+	public string ScreenshotDir = "";
 	/// <summary>图片格式转换：目标格式 jpg / png / bmp（默认 jpg）。</summary>
 	public string ImgConvFormat = "jpg";
 	/// <summary>图片格式转换 JPG 质量 1–100（默认 60）。</summary>
@@ -480,6 +485,7 @@ public sealed class OcrOptions {
 		ScreenshotJpgQuality = ScreenshotJpgQuality,
 		ScreenshotShortEnabled = ScreenshotShortEnabled,
 		ScreenshotShortPx = ScreenshotShortPx,
+		ScreenshotDir = ScreenshotDir ?? "",
 		ImgConvFormat = ImgConvFormat ?? "jpg",
 		ImgConvJpgQuality = ImgConvJpgQuality,
 		ImgConvShortEnabled = ImgConvShortEnabled,

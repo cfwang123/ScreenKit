@@ -58,7 +58,7 @@ static class Cli {
 				or "--test-sendfile"
 				or "--test-lang"
 				or "--test-apk-qr"
-				or "--test-img-convert" or "--test-qr-make" or "--test-rename"
+				or "--test-img-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
@@ -263,6 +263,8 @@ static class Cli {
 					return testapkqr();
 				case "--test-img-convert":
 					return testimgconvert();
+				case "--test-screenshot-dir":
+					return testscreenshotdir();
 				case "--test-qr-make":
 					return testqrmake();
 				case "--test-rename":
@@ -2561,6 +2563,48 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testscreenshotdir() {
+		Out("=== 截图保存目录 --test-screenshot-dir ===");
+		var bad = 0;
+		var def = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
+		void check(string name, string raw, string expect) {
+			string got;
+			try { got = ImageUtil.ResolveScreenshotDir(raw); }
+			catch (Exception ex) {
+				Err($"FAIL {name}: {ex.Message}");
+				bad++;
+				return;
+			}
+			if (!string.Equals(got, expect, StringComparison.OrdinalIgnoreCase)) {
+				Err($"FAIL {name}: got={got} expect={expect}");
+				bad++;
+			}
+			else Out($"OK {name} {got}");
+		}
+		check("empty", "", def);
+		check("name", "screenshots", def);
+		check("slash", "screenshots/", def);
+		check("dot", ".\\screenshots", def);
+		check("abs", "D:/s/", @"D:\s");
+		check("abs2", @"D:\s\", @"D:\s");
+		check("root", "D:/", @"D:\");
+		var rel = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "shotbox"));
+		check("rel", "shotbox", rel);
+		try {
+			ImageUtil.NormScreenshotDir("D:/bad|name");
+			Err("FAIL invalid: 应拒绝非法路径");
+			bad++;
+		}
+		catch { Out("OK invalid"); }
+		if (ImageUtil.NormScreenshotDir("  D:/s/ ") != @"D:\s") {
+			Err("FAIL norm: " + ImageUtil.NormScreenshotDir("  D:/s/ "));
+			bad++;
+		}
+		else Out(@"OK norm D:\s");
+		Out(bad == 0 ? "=== OK：截图保存目录 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static int testimgconvert() {
 		Out("=== 图片格式转换 --test-img-convert ===");
 		var bad = 0;
@@ -4410,6 +4454,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
+  ScreenKit --test-screenshot-dir
   ScreenKit --test-qr-make
   ScreenKit --test-rename
   ScreenKit --test-hash
@@ -4483,6 +4528,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、西、法、葡、俄、德、其它排序
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
+      --test-screenshot-dir  截图保存目录：空为 screenshots/，D:/s/ 解析为 D:\s
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256
@@ -4560,6 +4606,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
+  ScreenKit --test-screenshot-dir
   ScreenKit --test-qr-make
   ScreenKit --test-rename
   ScreenKit --test-hash

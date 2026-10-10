@@ -289,10 +289,47 @@ static class ImageUtil {
 		return bmp;
 	}
 
-	/// <summary>程序目录下 screenshots/：截图历史。</summary>
+	/// <summary>截图保存目录（主窗配置同步）。空 = 程序目录下 screenshots/。</summary>
+	public static string CurrentScreenshotDir = "";
+
+	/// <summary>
+	/// 规范化保存目录。空、screenshots、screenshots/ 都视为默认，返回空字符串。
+	/// 其它路径去掉末尾分隔符（盘符根目录除外），斜杠改为当前系统分隔符。
+	/// </summary>
+	public static string NormScreenshotDir(string raw) {
+		var s = (raw ?? "").Trim().Trim('"');
+		if (s.Length == 0) return "";
+		s = s.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+		var root = Path.GetPathRoot(s);
+		if (string.IsNullOrEmpty(root) || !string.Equals(s, root, StringComparison.OrdinalIgnoreCase))
+			s = s.TrimEnd(Path.DirectorySeparatorChar);
+		if (s.Length == 0) return "";
+		if (s.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+			throw new ArgumentException("截图保存目录含非法字符");
+		var cmp = s;
+		if (cmp.StartsWith("." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+			cmp = cmp.Substring(2);
+		if (string.Equals(cmp, "screenshots", StringComparison.OrdinalIgnoreCase))
+			return "";
+		return s;
+	}
+
+	/// <summary>解析为完整目录。默认是程序目录下 screenshots/。</summary>
+	public static string ResolveScreenshotDir(string raw) {
+		var norm = NormScreenshotDir(raw);
+		if (norm.Length == 0)
+			return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
+		if (!Path.IsPathRooted(norm))
+			return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, norm));
+		return Path.GetFullPath(norm);
+	}
+
+	/// <summary>当前配置的截图目录（默认程序目录下 screenshots/）。</summary>
 	public static string ScreenshotsDir {
 		get {
-			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
+			string dir;
+			try { dir = ResolveScreenshotDir(CurrentScreenshotDir); }
+			catch { dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots"); }
 			try { Directory.CreateDirectory(dir); } catch { }
 			return dir;
 		}

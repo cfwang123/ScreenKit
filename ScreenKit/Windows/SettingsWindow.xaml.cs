@@ -48,6 +48,7 @@ public partial class SettingsWindow : Window {
 		bchatllmpromptreset.Click += (_, _) =>
 			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
 		bsfunpair.Click += (_, _) => unpairselected();
+		bsnapdir.Click += (_, _) => browsesnapdir();
 
 		bcancel.Click += (_, _) => { Applied = false; Close(); };
 		bok.Click += (_, _) => {
@@ -367,6 +368,10 @@ public partial class SettingsWindow : Window {
 			bhksnapcopyclear.ToolTip = Loc.T("set.hotkey.clear.tip");
 			bhksnapcopycap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			lbsetsnap.Text = Loc.T("set.snap");
+			lbsetsnapdir.Text = Loc.T("set.snap.dir");
+			esnapdir.ToolTip = Loc.T("set.snap.dir.tip");
+			lbsetsnapdirhint.Text = Loc.T("set.snap.dir.tip");
+			bsnapdir.Content = Loc.T("set.snap.dir.browse");
 			lbsetsnaphint.Text = Loc.T("set.snap.hint");
 			lbsetsnapfmt.Text = Loc.T("set.snap.fmt");
 			lbsnapjpgq.Text = Loc.T("set.snap.jpgq");
@@ -546,6 +551,8 @@ public partial class SettingsWindow : Window {
 		esnapjpgq.Text = jq.ToString();
 		esnapshorten.IsChecked = o.ScreenshotShortEnabled;
 		esnapshort.Text = (o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx).ToString();
+		try { esnapdir.Text = ImageUtil.NormScreenshotDir(o.ScreenshotDir); }
+		catch { esnapdir.Text = ""; }
 		syncsnapfmtenabled();
 		esnapfmt.SelectionChanged += (_, _) => syncsnapfmtenabled();
 		ehttpen.IsChecked = o.HttpEnabled;
@@ -762,6 +769,7 @@ public partial class SettingsWindow : Window {
 		Result.ScreenshotShortEnabled = esnapshorten.IsChecked == true;
 		if (!tryint(esnapshort, Loc.T("set.snap.short.name"), 16, 16384, out var sshort, tabsetsnap)) return false;
 		Result.ScreenshotShortPx = sshort;
+		if (!applysnapdir()) return false;
 		// 三选一
 		var asPath = esnapcopypath.IsChecked == true;
 		var asFile = !asPath && esnapcopyfile.IsChecked == true;
@@ -1232,6 +1240,64 @@ public partial class SettingsWindow : Window {
 		easrvoicesplitsec.IsEnabled = on;
 		lbsetasrvoicesplitsec.Opacity = on ? 1 : 0.45;
 		easrvoicesplitsec.Opacity = on ? 1 : 0.55;
+	}
+
+	void browsesnapdir() {
+		using var dlg = new System.Windows.Forms.FolderBrowserDialog {
+			Description = Loc.T("set.snap.dir.tip"),
+			ShowNewFolderButton = true,
+		};
+		try {
+			var cur = ImageUtil.ResolveScreenshotDir(esnapdir.Text);
+			if (System.IO.Directory.Exists(cur)) dlg.SelectedPath = cur;
+		}
+		catch { }
+		if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+		var picked = dlg.SelectedPath ?? "";
+		try {
+			var def = ImageUtil.ResolveScreenshotDir("");
+			if (string.Equals(System.IO.Path.GetFullPath(picked), def, StringComparison.OrdinalIgnoreCase)) {
+				esnapdir.Text = "";
+				return;
+			}
+		}
+		catch { }
+		esnapdir.Text = picked;
+	}
+
+	/// <summary>保存位置：空为 screenshots/；其它目录须能创建。</summary>
+	bool applysnapdir() {
+		string norm;
+		try { norm = ImageUtil.NormScreenshotDir(esnapdir.Text); }
+		catch {
+			tabset.SelectedItem = tabsetsnap;
+			MessageBox.Show(this, Loc.T("set.snap.dir.bad"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		if (norm.Length == 0) {
+			Result.ScreenshotDir = "";
+			return true;
+		}
+		string full;
+		try { full = ImageUtil.ResolveScreenshotDir(norm); }
+		catch { full = null; }
+		if (string.IsNullOrEmpty(full)) {
+			tabset.SelectedItem = tabsetsnap;
+			MessageBox.Show(this, Loc.T("set.snap.dir.bad"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		try { System.IO.Directory.CreateDirectory(full); }
+		catch {
+			tabset.SelectedItem = tabsetsnap;
+			MessageBox.Show(this, Loc.T("set.snap.dir.bad"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		try { Result.ScreenshotDir = ImageUtil.NormScreenshotDir(full); }
+		catch { Result.ScreenshotDir = norm; }
+		return true;
 	}
 
 	/// <summary>JPG 质量输入：仅 jpg 格式可编辑。</summary>
