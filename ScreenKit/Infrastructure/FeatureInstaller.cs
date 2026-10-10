@@ -45,7 +45,7 @@ public enum FeatureKind {
 	MediaFoundation,
 	/// <summary>系统 MJPEG AVI，无需下载。</summary>
 	Mjpeg,
-	/// <summary>词典 dict2.db。从固定 Release dict-db 的 dict.7z 解出，不进应用更新包。</summary>
+	/// <summary>词典 dict2.db。从固定 Release dict-db 的 dict2.7z 解出，不进应用更新包。</summary>
 	DictDb,
 	/// <summary>中英双向 Opus-MT ONNX 翻译模型。从固定 Release dict-db 下载。</summary>
 	TranslateOnnx,
@@ -123,8 +123,8 @@ static class FeatureInstaller {
 	const string FaceBuffaloLZip = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip";
 	const string FaceBuffaloLHf = "https://huggingface.co/deepinsight/insightface/resolve/main/models/buffalo_l.zip";
 	/// <summary>固定标签 dict-db，不跟随最新 Release，避免被当成应用更新包。</summary>
-	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict.7z";
-	const long DICT7Z_BYTES = 261009277L;
+	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict2.7z";
+	const long DICT7Z_BYTES = 142807076L;
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
 	const long TRANSLATE7Z_BYTES = 1028366964L;
 	const string FFMPEG7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ffmpeg.7z";
@@ -1229,9 +1229,33 @@ arabic_dict.txt
 			deletefile(Path.Combine(FaceModelsDir, extra), log);
 	}
 
-	// ───────── 词典 dict.7z ─────────
+	// ───────── 词典 dict2.7z ─────────
 
 	static string dictdbpath() => Path.Combine(BaseDir, "dict2.db");
+
+	static string olddictdbpath() => Path.Combine(BaseDir, "dict.db");
+
+	/// <summary>新库已接手。卸掉程序旁的旧 dict.db（符号链接只删链接）。</summary>
+	static void removeolddict(IProgress<string> log) {
+		var old = olddictdbpath();
+		unlinkifreparse(old);
+		if (File.Exists(old)) deletefile(old, log);
+		foreach (var ext in new[] { "-wal", "-shm", "-journal" }) {
+			var side = old + ext;
+			unlinkifreparse(side);
+			if (!File.Exists(side)) continue;
+			deletefile(side, log);
+		}
+		var stale = Path.Combine(CacheDir, "dict.7z");
+		if (!File.Exists(stale)) return;
+		try {
+			File.Delete(stale);
+			log?.Report("已删除旧缓存 dict.7z");
+		}
+		catch (Exception ex) {
+			log?.Report("删除旧缓存失败 dict.7z: " + ex.Message);
+		}
+	}
 
 	static FeatureInstallState probedict() {
 		var path = dictdbpath();
@@ -1247,12 +1271,13 @@ arabic_dict.txt
 	static async Task installdict(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (probedict() == FeatureInstallState.Installed) {
+			removeolddict(log);
 			log?.Report("dict2.db 已存在，跳过");
 			reportprog(progress, 1, note: "已存在");
 			return;
 		}
 		Directory.CreateDirectory(CacheDir);
-		var arc = Path.Combine(CacheDir, "dict.7z");
+		var arc = Path.Combine(CacheDir, "dict2.7z");
 		if (File.Exists(arc)) {
 			long have = 0;
 			try { have = new FileInfo(arc).Length; } catch { }
@@ -1267,9 +1292,9 @@ arabic_dict.txt
 			try { Directory.Delete(unpack, true); } catch { }
 		}
 		Directory.CreateDirectory(unpack);
-		log?.Report("解压 dict.7z …");
+		log?.Report("解压 dict2.7z …");
 		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : DICT7Z_BYTES;
-		reportprog(progress, 0.92, zlen, zlen, "dict.7z", "解压中…");
+		reportprog(progress, 0.92, zlen, zlen, "dict2.7z", "解压中…");
 		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
 		extract7z(arc, unpack, log);
 		string found = null;
@@ -1278,13 +1303,14 @@ arabic_dict.txt
 		}
 		catch { }
 		if (string.IsNullOrEmpty(found))
-			throw new InvalidOperationException("dict.7z 里没有 dict2.db");
+			throw new InvalidOperationException("dict2.7z 里没有 dict2.db");
 		var dest = dictdbpath();
 		unlinkifreparse(dest);
 		if (File.Exists(dest)) File.Delete(dest);
 		try { if (File.Exists(dest + "-wal")) File.Delete(dest + "-wal"); } catch { }
 		try { if (File.Exists(dest + "-shm")) File.Delete(dest + "-shm"); } catch { }
 		File.Move(found, dest);
+		removeolddict(log);
 		reportprog(progress, 1, zlen, zlen, "dict2.db", "完成");
 		log?.Report("词典 dict2.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}
@@ -1295,6 +1321,7 @@ arabic_dict.txt
 		deletefile(dest, log);
 		deletefile(dest + "-wal", log);
 		deletefile(dest + "-shm", log);
+		removeolddict(log);
 	}
 
 	// ───────── 中英双向 ONNX 翻译模型 ─────────

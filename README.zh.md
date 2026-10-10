@@ -49,7 +49,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **LLM对话** | 微信式气泡、清空、麦克风、朗读/自动朗读，可选网页与 `tmp/llm/` 工具。 |
 | **LLM日志** | 主界面列出最近 1000 次 LLM 请求：模型、状态、输入 / 输出 / 合计 token、响应时间。选中一行查看请求和响应，JSON 里的中文按汉字显示。地址里的查询串不保存。 |
 | **翻译** | 本地 Opus-MT ONNX 或已配置的 **LLM**；来回翻译最多 20 次，结果重复时提前停止；**工具 → 翻译小窗**（`Ctrl+Alt+T`）。 |
-| **词典** | 主窗口里查汉语、英语、日语、韩语。详见 [词典](#词典)。菜单 **工具 → 词典**。`dict2.db` 不在发布包里，可在 **帮助 → 安装功能** 下载（词典压缩包里要有这个文件）。 |
+| **词典** | 主窗口里查汉语、英语、日语、韩语。详见 [词典](#词典)。菜单 **工具 → 词典**。`dict2.db` 不在发布包里。**帮助 → 安装功能**从固定的 `dict-db` 下载 `dict2.7z`，并删掉程序旁的旧 `dict.db`。 |
 | **人脸识别** | InsightFace ONNX 检测/比对，可选关键点与性别年龄。模型在 `facemodels/`。 |
 | **SAPI x86 助手** | 旁路 `x86host.exe`，调用仅 32 位可见的经典发音人。 |
 
@@ -92,7 +92,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 ### 数据来源
 
-`dict2.db` 把四种词典放在同一个文件里。每个词只存一份，检索用文件里的压缩索引。ScreenKit 不生成这个文件。发布用的词典压缩包里需要有 `dict2.db`。
+`dict2.db` 把四种词典放在同一个文件里。每个词只存一份，检索用文件里的压缩索引。ScreenKit 不生成这个文件。**帮助 → 安装功能**下载 `dict2.7z`，并删掉程序旁的旧 `dict.db`。
 
 - **汉语。** 汉字、词语、成语来自 [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary)（拼音辞典）。许可为 MIT。上游说明里注明部分材料来源不明。
 - **日语。** 词汇释义来自 [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)（EDRDG）。许可为 [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html)。再分发须保留 EDRDG 署名，并遵守其更新条款。
@@ -171,7 +171,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 1. 启动时不弹出安装窗口。Windows 系统 OCR 可以直接用。
 2. **帮助 → 安装功能**
-   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典、中英 ONNX 翻译和 FFmpeg 4.4 shared 分别下载固定 `dict-db` 上的 `dict.7z` / `translatemodels.7z` / `ffmpeg.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 和 `SharpSevenZip.dll` 会先下载。打开词典库需要 `e_sqlite3.dll`。
+   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典、中英 ONNX 翻译和 FFmpeg 4.4 shared 分别下载固定 `dict-db` 上的 `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 和 `SharpSevenZip.dll` 会先下载。打开词典库需要 `e_sqlite3.dll`。
    - **onnx语音模型**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。日文是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`），在语言里选日文。这一包同时包含 Supertonic 3 的其它语言。
    - **Windows语音**：进入本页时才读取已安装的 `Language.TextToSpeech` 功能包和发音人。本进程是管理员时直接读取、安装或卸载。不是管理员时，查看、安装或卸载都用 `start` 弹出管理员窗口（一次用户账户控制）。命令仍可复制。装好后需重启本程序，语音合成页才会列出新发音人。
 3. 使用某功能时若缺依赖，会提示打开安装窗（例如：没有任何 ORT 时做 OCR → 提示安装 `onnxcpu64`）。
@@ -184,7 +184,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **OpenCV** | 截图 / 图像管线（`OpenCvSharpExtern.dll`）。不含 OpenCV 视频库 | ~61 MB |
 | **ZXing** | `ZXing.dll`。条码识别和二维码图。用到时才提示安装 | ~3 MB |
 | **SharpCompress** | `SharpCompress.dll`。解压语音和识别的 `tar.bz2` | ~2.5 MB |
-| **SharpSevenZip / 7za** | 解压词典 `dict.7z` | ~1.8 MB + ~0.4 MB |
+| **SharpSevenZip / 7za** | 解压词典 `dict2.7z` | ~1.8 MB + ~0.4 MB |
 | **SQLite** | `e_sqlite3.dll`。打开 `dict2.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 与 GIF | 7z 约 33 MB / 解压约 117 MB |
 
