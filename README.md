@@ -169,6 +169,49 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 ## Install features
 
+The slim package (`bin\Release\ScreenKit\`) does not include models or the large runtimes. The tables below say which features work as shipped. Sizes are the installer’s expected sizes, the same numbers as **Help → Install features**. A shared runtime is downloaded once.
+
+### Ready to use
+
+No extra download. Windows OCR, Windows speech recognition, Windows speech synthesis, and Japanese reading still need the matching Windows language support. Those language packs are not files from this program.
+
+| Feature | Notes |
+|---------|--------|
+| Screenshot, annotate, clipboard, text overlay, window management, network tools, hotkeys | No extra files |
+| Screenshot save folder | Ready |
+| Windows OCR | Ready when this PC already has Simplified Chinese, Traditional Chinese (Hong Kong), English, Japanese, and Korean. No ONNX model and no OpenCV |
+| Windows speech recognition | English and Simplified Chinese |
+| SAPI speech | Includes 32-bit voices reached through `x86host.exe`. That exe is in the package |
+| Windows speech and Edge online voices | Installed Windows voices work immediately. Otherwise Edge online voices need a network and no model download |
+| Text tools, checksums, password generator, batch rename | No extra files |
+| Calendars, Japanese reading | Japanese reading needs Japanese language support on this PC |
+| Simplified/traditional | Uses the system API. On the tools page the buttons sit inside Text convert. There is no All Tools category. A check that still looks for that category is not a missing file, and the conversion itself works |
+| Image convert, image to ICO | Does not use OpenCV |
+| System H.264 recording | Windows Media Foundation. No FFmpeg. Present in the install folder |
+| Tools page, UI languages, wetext | `lang/` and `wetext/` are in the package. Text ITN uses wetext |
+| LLM chat, LLM log, LLM translation | No extra files. Configure an endpoint in Settings before calling it |
+| File transfer and screencast (PC side) | No extra files. The Android package is not in this folder |
+
+### Install first
+
+| Feature | Components | Typical size |
+|---------|------------|----------------|
+| Barcode / QR | `ZXing.dll` | 3 MB |
+| ONNX OCR | A model, plus `onnxcpu64` and `OpenCvSharpExtern.dll` | rapid-ch 18 MB; Umi 78 MB; rapid-i18n 42 MB. CPU runtime 16 MB. OpenCV 61 MB |
+| Face | InsightFace `buffalo_l` (`facemodels/`) | 326 MB |
+| Local Chinese↔English translation | `translatemodels.7z` (both Opus-MT directions). Also selects CPU ONNX Runtime | 981 MB download, about 1.08 GB extracted. Runtime is another 16 MB |
+| Offline speech recognition | A model, plus the Sherpa native library. `.tar.bz2` packs also need SharpCompress | SenseVoice 230 MB; streaming Zipformer 75 MB; Whisper tiny 78 MB; Whisper base 148 MB; Silero VAD 2 MB. Sherpa 5 MB. SharpCompress 2.4 MB |
+| Offline speech synthesis | A model under `ttsmodels/`, plus the Sherpa native library | Each voice pack shows its own size on the install page. Sherpa 5 MB |
+| Dictionary | `dict2.7z` extracts `dict2.db` next to the program and removes an old `dict.db`. Opening it needs `e_sqlite3.dll`. Extracting needs `7za.dll` and `SharpSevenZip.dll` | Dictionary archive 136 MB. SQLite 1.7 MB. 7za 406.5 KB. SharpSevenZip 1.8 MB |
+| PDF to images | `pdfium.dll`, `libSkiaSharp.dll` | 6 MB + 11 MB |
+| x264 / x265 / AV1 / GIF recording | `ffmpeg64/` (`ffmpeg.7z`) | 32.5 MB download, about 117 MB unpacked |
+| Archive extract | `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll` | 2.4 MB + 1.8 MB + 406.5 KB |
+| Long screenshot and other OpenCV image features | `OpenCvSharpExtern.dll`. The OpenCV video library is not included | 61 MB |
+| Android package | Not in the slim folder. **Install on phone** on the file-sync page downloads it | Whatever that APK release is |
+| NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
+| iGPU DirectML | `onnxdml64` | 18 MB |
+| ONNX Runtime CPU | `onnxcpu64` | 16 MB |
+
 1. Startup does not open the installer. Windows OCR is available immediately.
 2. **Help → Install features**
    - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary, Chinese↔English ONNX translation, and FFmpeg 4.4 shared download `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z` from the fixed `dict-db` release (not the app update package). Translation includes the two minimal Opus-MT runtime packs (~981 MB download, ~1.08 GiB extracted) and automatically selects CPU ONNX Runtime. Extracting either archive downloads `7za.dll` and `SharpSevenZip.dll` when they are not already installed. Opening the database needs `e_sqlite3.dll`.

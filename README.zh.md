@@ -169,6 +169,49 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 ## 安装功能
 
+精简包（`bin\Release\ScreenKit\`）不带模型和大型运行库。下面按功能说明能不能直接用。体积是安装器里的预期大小，和 **帮助 → 安装功能** 列表一致。同一个运行库只下载一次。
+
+### 可以直接用
+
+不需要再下载组件。Windows 系统 OCR、Windows 语音识别、Windows 语音合成和日文注音，还要操作系统里已经有对应语言；那些语言包不是本程序的文件。
+
+| 功能 | 说明 |
+|------|------|
+| 截图、标注、剪贴板、文字叠加、窗口管理、网络工具、热键 | 不另装 |
+| 截图保存目录 | 直接可用 |
+| Windows 系统 OCR | 本机已有简体中文、繁体香港、英语、日语、韩语时可直接识别。不加载 ONNX，也不要 OpenCV |
+| Windows 语音识别 | 英语、简体中文可直接用 |
+| SAPI 朗读 | 包括 `x86host.exe` 带出的 32 位语音。`x86host.exe` 已在包内 |
+| Windows 语音合成、Edge 在线语音 | 本机已装的 Windows 发音人可直接用。没有时用 Edge 在线语音：需联网，不下载模型 |
+| 文本小工具、校验哈希、密码生成、批量重命名 | 不另装 |
+| 历法、日文注音 | 日文注音需要本机日语语言支持 |
+| 简繁转换 | 用系统接口，不另装。工具页上的按钮在「文本转换」里。页面没有「全部」分类；自测若还去找这一项，失败不是缺文件，转换本身可用 |
+| 图片格式转换、图片转 ICO | 不依赖 OpenCV |
+| 系统 H.264 录屏 | Windows Media Foundation，不用 FFmpeg。安装目录里已具备 |
+| 工具页、界面语言、wetext | `lang/` 与 `wetext/` 在包内。文本逆正则用 wetext |
+| LLM 对话、LLM 日志、LLM 翻译 | 不另装文件。调用前在参数里配置接口 |
+| 文件传输、投屏（电脑端） | 不另装。手机安装包不在这个目录里 |
+
+### 要先安装
+
+| 功能 | 组件 | 约体积 |
+|------|------|--------|
+| 条码 / 二维码 | `ZXing.dll` | 3 MB |
+| ONNX 文字识别 | 模型，加上 `onnxcpu64` 与 `OpenCvSharpExtern.dll` | rapid-ch 18 MB；Umi 78 MB；全语种 rapid-i18n 42 MB。CPU 运行库 16 MB。OpenCV 61 MB |
+| 人脸 | InsightFace `buffalo_l`（`facemodels/`） | 326 MB |
+| 本地中英翻译 | `translatemodels.7z`（Opus-MT 双向）。会带上 CPU ONNX Runtime | 下载 981 MB，解压约 1.08 GB。运行库另计 16 MB |
+| 离线语音识别 | 模型，加上 Sherpa 原生库。`.tar.bz2` 还要 SharpCompress | SenseVoice 230 MB；流式 Zipformer 75 MB；Whisper tiny 78 MB；Whisper base 148 MB；Silero VAD 2 MB。Sherpa 5 MB。SharpCompress 2.4 MB |
+| 离线语音合成 | `ttsmodels/` 里的模型，加上 Sherpa 原生库 | 各语音包的大小在安装页按包显示。Sherpa 5 MB |
+| 词典 | `dict2.7z` 解出程序旁的 `dict2.db`，并删掉旧的 `dict.db`。打开库要 `e_sqlite3.dll`。解压要 `7za.dll` 和 `SharpSevenZip.dll` | 词典包 136 MB。SQLite 1.7 MB。7za 406.5 KB。SharpSevenZip 1.8 MB |
+| PDF 转图 | `pdfium.dll`、`libSkiaSharp.dll` | 6 MB + 11 MB |
+| x264 / x265 / AV1 / GIF 录屏 | `ffmpeg64/`（`ffmpeg.7z`） | 下载 32.5 MB，解压约 117 MB |
+| 解压 | `SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll` | 2.4 MB + 1.8 MB + 406.5 KB |
+| 长截图，以及其它要 OpenCV 的图像功能 | `OpenCvSharpExtern.dll`。不含 OpenCV 视频库 | 61 MB |
+| 安卓安装包 | 不在精简包目录。文件同步页 **安装到手机** 再下载 | 随该版本的 APK |
+| NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
+| 核显 DirectML | `onnxdml64` | 18 MB |
+| ONNX Runtime CPU | `onnxcpu64` | 16 MB |
+
 1. 启动时不弹出安装窗口。Windows 系统 OCR 可以直接用。
 2. **帮助 → 安装功能**
    - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典、中英 ONNX 翻译和 FFmpeg 4.4 shared 分别下载固定 `dict-db` 上的 `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 和 `SharpSevenZip.dll` 会先下载。打开词典库需要 `e_sqlite3.dll`。

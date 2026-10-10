@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
 - Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file.
 - Dictionary lookup reads `dict2.db` next to the program. Each word is stored once. Prefix, suffix, and infix search use the packed index. The old `lookup_key` search is gone. The file is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed release `dict-db`, extracts `dict2.db`, and deletes an old `dict.db` beside the program (a symlink is removed, and the link target is left in place). Release builds leave a local `dict2.db` in place. The slim package still omits it.
 - The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list.
@@ -106,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- README 的「安装功能」列出精简包里哪些功能可以直接用，哪些要先安装，并写上各组件在安装器里的大约体积。
 - 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。
 - 词典改为读取程序旁的 `dict2.db`。每个词只存一份，前缀、后缀、中缀走压缩索引。原来的 `lookup_key` 检索已去掉。这个文件不进发布包。**帮助 → 安装功能**从固定 Release `dict-db` 下载 `dict2.7z`，解出 `dict2.db`，并删除程序旁的旧 `dict.db`（符号链接只删链接，不删目标文件）。Release 编译不会动本机已有的 `dict2.db`。精简包仍不带这个文件。
 - 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。
