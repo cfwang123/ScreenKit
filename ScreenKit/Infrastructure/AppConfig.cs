@@ -177,6 +177,10 @@ static class AppConfig {
 				o.PwNoAmbiguous = parsebool(pwna, false);
 			if (map.TryGetValue("pwgen_each", out var pwea))
 				o.PwEachClass = parsebool(pwea, true);
+			if (map.TryGetValue("pwgen_custom", out var pwcu))
+				o.PwCustom = parsebool(pwcu, false);
+			if (map.TryGetValue("pwgen_charset", out var pwcs))
+				o.PwCharset = pwcs ?? "";
 			if (map.TryGetValue("pwgen_llm", out var pwllm))
 				o.PwLexLlm = (pwllm ?? "").Trim().Trim('"');
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul))
@@ -617,6 +621,8 @@ static class AppConfig {
 		sb.AppendLine($"pwgen_symbol = {(o.PwSymbol ? "true" : "false")}");
 		sb.AppendLine($"pwgen_noamb = {(o.PwNoAmbiguous ? "true" : "false")}");
 		sb.AppendLine($"pwgen_each = {(o.PwEachClass ? "true" : "false")}");
+		sb.AppendLine($"pwgen_custom = {(o.PwCustom ? "true" : "false")}");
+		sb.AppendLine($"pwgen_charset = \"{esc(o.PwCharset ?? "")}\"");
 		sb.AppendLine($"pwgen_llm = \"{esc((o.PwLexLlm ?? "").Trim())}\"");
 		sb.AppendLine("# 界面语言：程序目录 lang/ 下的 toml 文件名，如 zh、en、ja、ko");
 		sb.AppendLine($"ui_lang = \"{esc(Loc.Normalize(o.UiLang))}\"");

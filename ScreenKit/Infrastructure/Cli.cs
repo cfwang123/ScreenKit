@@ -3125,6 +3125,30 @@ static class Cli {
 				bad++;
 			}
 			catch (InvalidOperationException) { Out("empty charset OK"); }
+			var custom = PasswordGen.Generate(new PasswordOpts {
+				Length = 12, Count = 4, Custom = true, Charset = "abba",
+			});
+			if (custom.Length != 4) {
+				Err("FAIL: custom count");
+				bad++;
+			}
+			foreach (var p in custom) {
+				if (p.Length != 12 || p.Any(ch => ch != 'a' && ch != 'b')) {
+					Err("FAIL: custom " + p);
+					bad++;
+				}
+			}
+			if (bad == 0) Out("custom charset OK " + custom[0]);
+			if (PasswordGen.Pool(new PasswordOpts { Custom = true, Charset = "aba" }) != "ab") {
+				Err("FAIL: custom pool dedupe");
+				bad++;
+			}
+			try {
+				PasswordGen.One(new PasswordOpts { Custom = true, Charset = "" });
+				Err("FAIL: empty custom charset should throw");
+				bad++;
+			}
+			catch (InvalidOperationException) { Out("empty custom OK"); }
 			var parsed = WordLex.Parse(
 				"```json\n[{\"lang\":\"zh\",\"native\":\"密码\",\"latin\":\"mi ma\"}," +
 				"{\"lang\":\"ja\",\"native\":\"パスワード\",\"latin\":\"pasuwaado\"}," +

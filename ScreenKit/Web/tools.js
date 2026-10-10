@@ -1135,6 +1135,10 @@ window.sktools = (function(){
 			catch (ex) { msg("box-msg", ex && ex.message ? ex.message : "失败", true); }
 		}
 		if (name === "u-re") $("box-preset").onchange = repick;
+		if (name === "u-pw") {
+			$("box-set").onchange = pwsetmode;
+			pwsetmode();
+		}
 		if (name === "u-watch") {
 			$("box-start").onclick = watchtoggle;
 			$("box-out").value = watchreset();
@@ -1288,7 +1292,9 @@ window.sktools = (function(){
 				+ check("box-low", "小写", true) + check("box-up", "大写", true)
 				+ check("box-dig", "数字", true) + check("box-sym", "符号", true)
 				+ check("box-amb", "去掉易混字符（0、O、o、1、l、I）", false)
-				+ check("box-each", "每类至少一个", true);
+				+ check("box-each", "每类至少一个", true)
+				+ check("box-set", "指定字符集", false)
+				+ lab("字符集", textin("box-set-chars", "", "手动输入，重复的只算一次"));
 		if (name === "u-uuid")
 			return lab("个数", numin("box-n", "1"));
 		if (name === "u-html")
@@ -1841,6 +1847,33 @@ window.sktools = (function(){
 		return lines.join("\n");
 	}
 
+	function pwsetmode(){
+		var on = onbox("box-set");
+		var ids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb", "box-each"];
+		var i;
+		for (i = 0; i < ids.length; i++) {
+			var el = $(ids[i]);
+			if (el) el.disabled = on;
+		}
+		var box = $("box-set-chars");
+		if (box) box.disabled = !on;
+	}
+
+	function pwcharset(s){
+		var seen = {};
+		var out = "";
+		var i;
+		s = String(s || "").replace(/[\r\n]/g, "");
+		for (i = 0; i < s.length && out.length < 256; i++) {
+			var ch = s.charAt(i);
+			if (ch.charCodeAt(0) < 32) continue;
+			if (seen[ch]) continue;
+			seen[ch] = 1;
+			out += ch;
+		}
+		return out;
+	}
+
 	function pwtext(){
 		var len = parseInt(val("box-len"), 10);
 		var count = parseInt(val("box-n"), 10);
@@ -1850,6 +1883,14 @@ window.sktools = (function(){
 		if (!isFinite(count)) count = 5;
 		if (count < 1) count = 1;
 		if (count > 50) count = 50;
+		if (onbox("box-set")) {
+			var set = pwcharset(val("box-set-chars"));
+			if (!set) throw new Error("请填写字符集");
+			var made = [];
+			var k;
+			for (k = 0; k < count; k++) made.push(pwone(len, [set], set, false));
+			return made.join("\n");
+		}
 		var drop = onbox("box-amb");
 		var each = onbox("box-each");
 		function clean(s){

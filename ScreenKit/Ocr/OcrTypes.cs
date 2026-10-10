@@ -234,6 +234,9 @@ public sealed class OcrOptions {
 	public bool PwSymbol = true;
 	public bool PwNoAmbiguous;
 	public bool PwEachClass = true;
+	/// <summary>true 时随机密码只用 <see cref="PwCharset"/>。</summary>
+	public bool PwCustom;
+	public string PwCharset = "";
 	/// <summary>单词译音所用 LLM 显示名；空则回退翻译/对话/润色所选。</summary>
 	public string PwLexLlm = "";
 	/// <summary>截图完成时复制为图片（与 AsFile / AsPath 三选一）。</summary>
@@ -509,6 +512,8 @@ public sealed class OcrOptions {
 		PwSymbol = PwSymbol,
 		PwNoAmbiguous = PwNoAmbiguous,
 		PwEachClass = PwEachClass,
+		PwCustom = PwCustom,
+		PwCharset = PwCharset ?? "",
 		PwLexLlm = PwLexLlm ?? "",
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,

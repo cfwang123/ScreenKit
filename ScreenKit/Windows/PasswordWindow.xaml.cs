@@ -43,6 +43,9 @@ public partial class PasswordWindow : Window {
 		csymbol.IsChecked = opt.PwSymbol;
 		cnoamb.IsChecked = opt.PwNoAmbiguous;
 		ceach.IsChecked = opt.PwEachClass;
+		ccustom.IsChecked = opt.PwCustom;
+		echarset.Text = opt.PwCharset ?? "";
+		applycustom();
 	}
 
 	void saveui() {
@@ -55,6 +58,8 @@ public partial class PasswordWindow : Window {
 		opt.PwSymbol = o.Symbol;
 		opt.PwNoAmbiguous = o.NoAmbiguous;
 		opt.PwEachClass = o.EachClass;
+		opt.PwCustom = o.Custom;
+		opt.PwCharset = o.Charset ?? "";
 		var ep = currentlexllm();
 		opt.PwLexLlm = ep != null ? ep.DisplayName : "";
 		try { AppConfig.Save(opt); } catch { }
@@ -74,6 +79,9 @@ public partial class PasswordWindow : Window {
 		csymbol.Unchecked += (_, _) => updatestat();
 		cnoamb.Checked += (_, _) => updatestat();
 		cnoamb.Unchecked += (_, _) => updatestat();
+		ccustom.Checked += (_, _) => applycustom();
+		ccustom.Unchecked += (_, _) => applycustom();
+		echarset.TextChanged += (_, _) => updatestat();
 		elen.TextChanged += (_, _) => updatestat();
 		elexllm.SelectionChanged += (_, _) => onllmchange(elexllm, evarllm);
 		evarllm.SelectionChanged += (_, _) => onllmchange(evarllm, elexllm);
@@ -111,6 +119,8 @@ public partial class PasswordWindow : Window {
 		csymbol.Content = Loc.T("pwgen.symbol");
 		cnoamb.Content = Loc.T("pwgen.noamb");
 		ceach.Content = Loc.T("pwgen.each");
+		ccustom.Content = Loc.T("pwgen.custom");
+		echarset.ToolTip = Loc.T("pwgen.charset.tip");
 		lbout.Text = Loc.T("pwgen.out");
 		lblexhint.Text = Loc.T("pwgen.lex.hint");
 		lblexllm.Text = Loc.T("pwgen.lex.llm");
@@ -151,7 +161,21 @@ public partial class PasswordWindow : Window {
 			Symbol = csymbol.IsChecked == true,
 			NoAmbiguous = cnoamb.IsChecked == true,
 			EachClass = ceach.IsChecked == true,
+			Custom = ccustom.IsChecked == true,
+			Charset = echarset.Text ?? "",
 		};
+	}
+
+	void applycustom() {
+		var on = ccustom.IsChecked == true;
+		echarset.IsEnabled = on;
+		clower.IsEnabled = !on;
+		cupper.IsEnabled = !on;
+		cdigit.IsEnabled = !on;
+		csymbol.IsEnabled = !on;
+		cnoamb.IsEnabled = !on;
+		ceach.IsEnabled = !on;
+		updatestat();
 	}
 
 	void gen() {

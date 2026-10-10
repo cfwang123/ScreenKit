@@ -12,6 +12,9 @@ sealed class PasswordOpts {
 	public bool Symbol = true;
 	public bool NoAmbiguous;
 	public bool EachClass = true;
+	/// <summary>为 true 时只用 <see cref="Charset"/>，不再用上面的分类。</summary>
+	public bool Custom;
+	public string Charset = "";
 }
 
 /// <summary>密码生成：RNGCryptoServiceProvider，可选字符集。</summary>
@@ -24,6 +27,7 @@ static class PasswordGen {
 
 	public static string Pool(PasswordOpts o) {
 		o ??= new PasswordOpts();
+		if (o.Custom) return uniquepool(o.Charset);
 		var sb = new StringBuilder(80);
 		if (o.Lower) sb.Append(LowerAll);
 		if (o.Upper) sb.Append(UpperAll);
@@ -50,6 +54,7 @@ static class PasswordGen {
 	public static string One(PasswordOpts o) {
 		o ??= new PasswordOpts();
 		var len = Compat.Clamp(o.Length <= 0 ? 16 : o.Length, 4, 128);
+		if (o.Custom) return frompool(uniquepool(o.Charset), len);
 		var groups = new List<string>();
 		if (o.Lower) groups.Add(filter(LowerAll, o.NoAmbiguous));
 		if (o.Upper) groups.Add(filter(UpperAll, o.NoAmbiguous));
@@ -81,6 +86,31 @@ static class PasswordGen {
 		var pool = Pool(o);
 		if (pool.Length < 2 || length < 1) return 0;
 		return length * Math.Log(pool.Length, 2);
+	}
+
+	/// <summary>去掉换行和控制符，重复字符只留第一次，最多 256 个。</summary>
+	static string uniquepool(string raw) {
+		if (string.IsNullOrEmpty(raw)) return "";
+		var seen = new HashSet<char>();
+		var t = new StringBuilder();
+		foreach (var ch in raw) {
+			if (ch == '\r' || ch == '\n') continue;
+			if (char.IsControl(ch)) continue;
+			if (!seen.Add(ch)) continue;
+			t.Append(ch);
+			if (t.Length >= 256) break;
+		}
+		return t.ToString();
+	}
+
+	static string frompool(string pool, int len) {
+		if (string.IsNullOrEmpty(pool))
+			throw new InvalidOperationException("no charset");
+		var chars = new char[len];
+		using var rng = RandomNumberGenerator.Create();
+		for (var i = 0; i < len; i++)
+			chars[i] = pool[nextint(rng, pool.Length)];
+		return new string(chars);
 	}
 
 	static string filter(string s, bool noAmb) {

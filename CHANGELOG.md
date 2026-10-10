@@ -44,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page can turn a picture into an ICO. Paste or choose an image, preview it, pick one size (32 by default), then download. The square icon is also shown at that pixel size, with a border so the size is visible. The picture fits inside the square, and the empty area stays transparent.
 - The tools-page speech screen can filter voices by language and gender. **生成 WAV** downloads the same synthesis as **朗读**.
 - The tools-page random password tool generates 1 to 50 passwords at once. Length is 4 to 128. Each selected character set can be required at least once. The symbol set matches the desktop generator.
+- Password generator, on the desktop and the tools page, can use a character set you type. Duplicates count once. The usual letter, digit, and symbol choices stay available when that option is off.
 
 #### Fixed
 
@@ -71,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页的文字识别结果会显示和桌面一样的统计：推理耗时、端到端耗时、置信度、引擎、图片宽高、行数、检测边长。
 - 工具页可以把图片做成 ICO。可粘贴或选择图片，先预览，再选一个尺寸（默认 32）后下载。方图按该像素大小显示，并有边框，方便看出大小。画面等比放进方框，空白透明。
 - 工具页的随机密码可以一次生成 1 到 50 条。长度 4 到 128。可选每类至少一个。符号集与桌面密码生成器相同。
+- 桌面和工具页的密码生成可以改用手动输入的字符集。重复字符只算一次。不勾选时仍用原来的大小写、数字和符号。
 - 工具页的语音合成可以按语言和性别筛选发音人。**生成 WAV** 下载和朗读相同的合成结果。
 
 #### 修复
