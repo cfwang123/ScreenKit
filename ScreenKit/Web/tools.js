@@ -1135,11 +1135,11 @@ window.sktools = (function(){
 				+ '<p class="hint">在此页按 Ctrl+V 可粘贴剪贴板里的图片。</p>'
 				+ '<img id="ico-img" alt="预览" hidden>'
 				+ '<div class="ops">'
-				+ check("ico-16", "16", true) + check("ico-32", "32", true)
-				+ check("ico-48", "48", true) + check("ico-64", "64", true)
-				+ check("ico-128", "128", true) + check("ico-256", "256", true)
+				+ radio("ico-size", "ico-16", "16", false) + radio("ico-size", "ico-32", "32", true)
+				+ radio("ico-size", "ico-48", "48", false) + radio("ico-size", "ico-64", "64", false)
+				+ radio("ico-size", "ico-128", "128", false) + radio("ico-size", "ico-256", "256", false)
 				+ "</div>"
-				+ '<p class="hint">生成多尺寸 ICO。画面等比放进方框，空白透明。</p>';
+				+ '<p class="hint">只生成所选的一种尺寸。画面等比放进方框，空白透明。</p>';
 		if (name === "u-btn")
 			return lab("文字", textin("box-in", "按钮"))
 				+ row2(lab("底色", textin("box-bg", "#f97316")), lab("字色", textin("box-fg", "#ffffff")))
@@ -1234,6 +1234,10 @@ window.sktools = (function(){
 
 	function check(id, title, on){
 		return '<label class="check"><input id="' + id + '" type="checkbox"' + (on ? " checked" : "") + "> " + title + "</label>";
+	}
+
+	function radio(name, id, title, on){
+		return '<label class="check"><input id="' + id + '" name="' + name + '" type="radio" value="' + title + '"' + (on ? " checked" : "") + "> " + title + "</label>";
 	}
 
 	function opts(list, sel){
@@ -2410,17 +2414,11 @@ window.sktools = (function(){
 			msg("box-msg", "请选择或粘贴图片", true);
 			return;
 		}
-		var all = [16, 32, 48, 64, 128, 256];
-		var sizes = [];
-		var i;
-		for (i = 0; i < all.length; i++) {
-			var box = $("ico-" + all[i]);
-			if (box && box.checked) sizes.push(all[i]);
-		}
-		if (!sizes.length) {
-			msg("box-msg", "请至少选一个尺寸", true);
-			return;
-		}
+		var picked = document.querySelector('input[name="ico-size"]:checked');
+		var size = picked ? parseInt(picked.value, 10) : 32;
+		if (size !== 16 && size !== 32 && size !== 48 && size !== 64 && size !== 128 && size !== 256)
+			size = 32;
+		var sizes = [size];
 		var img = new Image();
 		img.onload = function(){
 			var jobs = [];
