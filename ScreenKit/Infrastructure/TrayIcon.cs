@@ -31,6 +31,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miTools;
 	Forms.ToolStripMenuItem miWeb;
 	Forms.ToolStripMenuItem miWebHome;
+	Forms.ToolStripMenuItem miWebFiles;
 	Forms.ToolStripMenuItem miImgConv;
 	Forms.ToolStripMenuItem miQrMake;
 	Forms.ToolStripMenuItem miRename;
@@ -161,8 +162,10 @@ sealed class TrayIcon : IDisposable {
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
+		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
 		miWeb = new Forms.ToolStripMenuItem(Loc.T("tray.webtools"));
 		miWeb.DropDownItems.Add(miWebHome);
+		miWeb.DropDownItems.Add(miWebFiles);
 		miWeb.DropDownItems.Add(new Forms.ToolStripSeparator());
 		miWeb.DropDownOpening += (_, _) => fillwebtools();
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
@@ -414,6 +417,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miTools, "tray.tools");
 			settext(miWeb, "tray.webtools");
 			settext(miWebHome, "tray.webhome");
+			settext(miWebFiles, "tray.webfiles");
 			settext(miImgConv, "tray.imgconv");
 			settext(miQrMake, "tray.qrmake");
 			settext(miRename, "tray.rename");
@@ -452,10 +456,11 @@ sealed class TrayIcon : IDisposable {
 	public event Action GifRecordRequested;
 	public event Action GifRecordOptionsRequested;
 	public event Action WebHomeRequested;
+	public event Action WebFilesRequested;
 	public event Action<string> WebToolRequested;
 
 	void fillwebtools() {
-		while (miWeb.DropDownItems.Count > 2) {
+		while (miWeb.DropDownItems.Count > 0 && miWeb.DropDownItems[miWeb.DropDownItems.Count - 1] is not Forms.ToolStripSeparator) {
 			var last = miWeb.DropDownItems.Count - 1;
 			var it = miWeb.DropDownItems[last];
 			miWeb.DropDownItems.RemoveAt(last);

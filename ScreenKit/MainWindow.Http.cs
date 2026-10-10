@@ -131,16 +131,25 @@ public partial class MainWindow {
 	}
 
 	void openhttptools(bool fromTray = false, string tool = null) {
+		var path = "/";
+		if (!string.IsNullOrWhiteSpace(tool) && tool != "home")
+			path += "#" + Uri.EscapeDataString(tool.Trim());
+		openhttppage(fromTray, path);
+	}
+
+	void openhttpfiles(bool fromTray) {
+		openhttppage(fromTray, "/files");
+	}
+
+	void openhttppage(bool fromTray, string path) {
 		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
 			httptoolfail(httpstatustext(), fromTray);
 			return;
 		}
-		var url = httpbaseurl() + "/";
-		if (!string.IsNullOrWhiteSpace(tool) && tool != "home")
-			url += "#" + Uri.EscapeDataString(tool.Trim());
+		if (string.IsNullOrEmpty(path) || path[0] != '/') path = "/" + (path ?? "");
 		try {
 			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
-				FileName = url,
+				FileName = httpbaseurl() + path,
 				UseShellExecute = true,
 			});
 		}
