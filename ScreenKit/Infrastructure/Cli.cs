@@ -2601,6 +2601,14 @@ static class Cli {
 			bad++;
 		}
 		else Out(@"OK norm D:\s");
+		if (ImageUtil.DisplayScreenshotDir("") != "screenshots/"
+			|| ImageUtil.DisplayScreenshotDir("screenshots/") != "screenshots/"
+			|| ImageUtil.DisplayScreenshotDir(@"D:\s") != "D:/s/"
+			|| ImageUtil.DisplayScreenshotDir("D:/s/") != "D:/s/") {
+			Err("FAIL display dir");
+			bad++;
+		}
+		else Out("OK display dir");
 		if (ImageUtil.NormScreenshotName("0001") != "####"
 			|| ImageUtil.NormScreenshotName("") != ImageUtil.ScreenshotNameDefault
 			|| ImageUtil.NormScreenshotName("time") != ImageUtil.ScreenshotNameDefault

@@ -49,6 +49,8 @@ public partial class SettingsWindow : Window {
 			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
 		bsfunpair.Click += (_, _) => unpairselected();
 		bsnapdir.Click += (_, _) => browsesnapdir();
+		esnapdir.Items.Add(ImageUtil.ScreenshotDirDefaultText);
+		esnapdir.Items.Add(ImageUtil.ScreenshotDirShortText);
 		esnapname.Items.Add(ImageUtil.ScreenshotNameDefault);
 		esnapname.Items.Add("shot_yyyyMMdd_HHmmss_rrr");
 		esnapname.Items.Add("####");
@@ -558,8 +560,7 @@ public partial class SettingsWindow : Window {
 		esnapjpgq.Text = jq.ToString();
 		esnapshorten.IsChecked = o.ScreenshotShortEnabled;
 		esnapshort.Text = (o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx).ToString();
-		try { esnapdir.Text = ImageUtil.NormScreenshotDir(o.ScreenshotDir); }
-		catch { esnapdir.Text = ""; }
+		esnapdir.Text = ImageUtil.DisplayScreenshotDir(o.ScreenshotDir);
 		try { esnapname.Text = ImageUtil.NormScreenshotName(o.ScreenshotName); }
 		catch { esnapname.Text = ImageUtil.ScreenshotNameDefault; }
 		syncsnapfmtenabled();
@@ -1271,14 +1272,15 @@ public partial class SettingsWindow : Window {
 		if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
 		var picked = dlg.SelectedPath ?? "";
 		try {
+			var full = System.IO.Path.GetFullPath(picked);
 			var def = ImageUtil.ResolveScreenshotDir("");
-			if (string.Equals(System.IO.Path.GetFullPath(picked), def, StringComparison.OrdinalIgnoreCase)) {
-				esnapdir.Text = "";
+			if (string.Equals(full, def, StringComparison.OrdinalIgnoreCase)) {
+				esnapdir.Text = ImageUtil.ScreenshotDirDefaultText;
 				return;
 			}
+			esnapdir.Text = ImageUtil.DisplayScreenshotDir(full);
 		}
-		catch { }
-		esnapdir.Text = picked;
+		catch { esnapdir.Text = picked; }
 	}
 
 	/// <summary>保存位置：空为 screenshots/；其它目录须能创建。</summary>

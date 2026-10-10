@@ -292,6 +292,28 @@ static class ImageUtil {
 	/// <summary>截图保存目录（主窗配置同步）。空 = 程序目录下 screenshots/。</summary>
 	public static string CurrentScreenshotDir = "";
 
+	/// <summary>设置里显示的默认保存位置。</summary>
+	public const string ScreenshotDirDefaultText = "screenshots/";
+
+	/// <summary>设置里可选的短路径。</summary>
+	public const string ScreenshotDirShortText = "D:/s/";
+
+	/// <summary>设置框里显示的保存位置。默认写成 screenshots/，D:\s 写成 D:/s/。</summary>
+	public static string DisplayScreenshotDir(string raw) {
+		string norm;
+		try { norm = NormScreenshotDir(raw); }
+		catch { return ScreenshotDirDefaultText; }
+		if (norm.Length == 0) return ScreenshotDirDefaultText;
+		try {
+			var full = ResolveScreenshotDir(norm);
+			var shortFull = ResolveScreenshotDir(ScreenshotDirShortText);
+			if (string.Equals(full, shortFull, StringComparison.OrdinalIgnoreCase))
+				return ScreenshotDirShortText;
+		}
+		catch { }
+		return norm;
+	}
+
 	/// <summary>截图文件名格式（主窗配置同步）。</summary>
 	public static string CurrentScreenshotName = ScreenshotNameDefault;
 

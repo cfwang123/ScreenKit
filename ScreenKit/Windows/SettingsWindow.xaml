@@ -624,16 +624,16 @@
 							</Grid.ColumnDefinitions>
 							<TextBlock x:Name="lbsetsnapdir" Grid.Column="0" Text="保存位置" FontWeight="SemiBold"
 							           VerticalAlignment="Center" Margin="0,0,8,0"/>
-							<TextBox x:Name="esnapdir" Grid.Column="1" Height="30" Padding="6,4"
-							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-							         AutomationProperties.AutomationId="set.screenshot.dir"/>
+							<ComboBox x:Name="esnapdir" Grid.Column="1" Height="32" IsEditable="True"
+							          VerticalContentAlignment="Center" Text="screenshots/"
+							          AutomationProperties.AutomationId="set.screenshot.dir"/>
 							<Button x:Name="bsnapdir" Grid.Column="3" Content="浏览"
 							        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
 							        AutomationProperties.AutomationId="set.screenshot.dir.browse"/>
 						</Grid>
 						<TextBlock x:Name="lbsetsnapdirhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"
-						           Text="留空则用程序目录下 screenshots/。也可填外部目录，例如 D:/s/，复制路径更短。"/>
+						           Text="默认 screenshots/（程序目录下）。也可选 D:/s/，或填写、浏览其它目录。短目录让复制出来的路径更短。"/>
 						<Grid Margin="0,0,0,4">
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="Auto" MinWidth="72"/>
