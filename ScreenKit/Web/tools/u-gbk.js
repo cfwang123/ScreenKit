@@ -9,7 +9,7 @@
 		go: "显示",
 		body: function(){
 			return '<div class="uquery"><input id="gbk-q" type="text" placeholder="字、B0A1 或 U+4E00"><span id="gbk-msg" class="msg"></span></div>'
-				+ '<p class="hint">点一下选中并复制。左边是首字节，每页 16 列。空位没有字符。</p>'
+				+ '<p class="hint">点一下选中并复制。左边每个首字节写出字数和起止码。每页 16 列。空位没有字符。</p>'
 				+ '<div class="unitab"><div class="ugroups" id="gbk-groups"></div><div class="ugrid g16" id="gbk-grid"></div>'
 				+ '<aside class="uprev"><div class="uprev-ch" id="gbk-ch"></div><dl class="uprev-meta" id="gbk-meta"></dl></aside></div>';
 		},
@@ -31,10 +31,11 @@
 			SK.msg("gbk-msg", "这个浏览器不能解码 GBK", true);
 			return;
 		}
-		var html = [];
+		var html = ['<div class="usum">共 ' + gbktotal(pages) + ' 个</div>'];
 		var i;
 		for (i = 0; i < pages.length; i++)
-			html.push('<button type="button" data-i="' + i + '" title="' + gbkesc(pages[i].name) + '">' + gbkesc(pages[i].name) + '</button>');
+			html.push('<button type="button" data-i="' + i + '" title="' + gbkesc(gbkrange(pages[i])) + '"><b>'
+				+ gbkesc(pages[i].name) + '</b><small>' + gbkesc(gbkrange(pages[i])) + '</small></button>');
 		SK.$("gbk-groups").innerHTML = html.join("");
 		SK.$("gbk-groups").onclick = function(ev){
 			var el = ev.target;
@@ -168,21 +169,31 @@
 		gbkPages = [];
 		var ascii = [];
 		var b;
+		var afirst = null;
+		var alast = null;
 		for (b = 0; b < 128; b++) {
 			var acell = { lead: b, trail: -1, cp: b, hex: gbkhex(b, 2) };
 			ascii.push(acell);
+			if (!afirst) afirst = acell;
+			alast = acell;
 			gbkOf[b] = { i: 0, j: b };
 		}
-		gbkPages.push({ name: "ASCII", cells: ascii });
+		gbkPages.push({ name: "ASCII", cells: ascii, n: ascii.length, from: afirst, to: alast });
 		var lead;
 		for (lead = 0x81; lead <= 0xFE; lead++) {
 			var cells = [];
 			var trail;
 			var any = -1;
+			var n = 0;
+			var from = null;
+			var to = null;
 			for (trail = 0x40; trail <= 0xFF; trail++) {
 				var cp = trail === 0x7F || trail === 0xFF ? -1 : gbkdec(dec, lead, trail);
 				var cell = { lead: lead, trail: trail, cp: cp, hex: gbkhex(lead, 2) + gbkhex(trail, 2) };
 				if (cp >= 0) {
+					n++;
+					if (!from) from = cell;
+					to = cell;
 					if (any < 0) any = cp;
 					if (gbkOf[cp] == null) gbkOf[cp] = { i: gbkPages.length, j: cells.length };
 				}
@@ -190,7 +201,7 @@
 			}
 			if (any < 0) continue;
 			gbkLead[lead] = gbkPages.length;
-			gbkPages.push({ name: gbkhex(lead, 2) + " " + String.fromCodePoint(any), cells: cells });
+			gbkPages.push({ name: gbkhex(lead, 2) + " " + String.fromCodePoint(any), cells: cells, n: n, from: from, to: to });
 		}
 		return gbkPages;
 	}
@@ -276,6 +287,17 @@
 	function gbktitle(cell){
 		if (cell.cp < 0) return gbkbytes(cell) + " 空位";
 		return gbkbytes(cell) + " U+" + gbkhex(cell.cp, 4);
+	}
+
+	function gbktotal(pages){
+		var n = 0;
+		var i;
+		for (i = 0; i < pages.length; i++) n += pages[i].n;
+		return n;
+	}
+
+	function gbkrange(page){
+		return page.n + " · " + gbkbytes(page.from) + "–" + gbkbytes(page.to);
 	}
 
 	function gbkbytes(cell){

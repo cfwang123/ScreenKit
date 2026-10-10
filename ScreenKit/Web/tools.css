@@ -296,18 +296,32 @@ input[type="file"] {
 .uquery { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .uquery input { flex: 1; height: 32px; margin-top: 0; }
 .uquery .msg { min-height: 0; white-space: nowrap; }
-.unitab { display: grid; grid-template-columns: 168px minmax(0, 1fr) 240px; gap: 12px; align-items: start; }
+.unitab { display: grid; grid-template-columns: 208px minmax(0, 1fr) 240px; gap: 12px; align-items: start; }
 .ugroups, .ugrid { max-height: calc(100vh - 210px); overflow: auto; }
 .ugroups {
 	border: 1px solid var(--line); border-radius: 10px; padding: 4px; background: var(--card);
+}
+.usum {
+	position: sticky; top: 0; z-index: 1;
+	margin: -4px -4px 4px; padding: 6px 8px;
+	border-bottom: 1px solid var(--line); background: var(--card);
+	color: var(--ink); font: 600 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .ugroups button {
 	display: block; width: 100%; text-align: left; cursor: pointer;
 	border: 0; background: transparent; color: var(--ink); border-radius: 6px;
 	padding: 3px 8px; font: 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.ugroups button b {
+	display: block; font-weight: 600;
 	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.ugroups button small {
+	display: block; font-weight: 400; font-size: 11px; line-height: 1.3; color: var(--muted);
+	white-space: nowrap;
+}
 .ugroups button.on { background: #f97316; color: #fff; }
+.ugroups button.on small { color: #fff; }
 .ugrid {
 	display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
 	gap: 2px; align-content: start;

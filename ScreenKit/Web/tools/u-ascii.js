@@ -12,7 +12,7 @@
 		go: "显示",
 		body: function(){
 			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><span id="u-msg" class="msg"></span></div>'
-				+ '<p class="hint">点一下选中并复制。最右边是大字、码位，以及 GBK 等编码。</p>'
+				+ '<p class="hint">点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位，以及 GBK 等编码。</p>'
 				+ '<div class="unitab"><div class="ugroups" id="u-groups"></div><div class="ugrid" id="u-grid"></div>'
 				+ '<aside class="uprev"><div class="uprev-ch" id="u-ch"></div><dl class="uprev-meta" id="u-meta"></dl></aside></div>';
 		},
@@ -28,10 +28,11 @@
 	});
 	function unibuild(){
 		var slices = unislices();
-		var html = [];
+		var html = ['<div class="usum">共 ' + unitotal(slices) + ' 个</div>'];
 		var i;
 		for (i = 0; i < slices.length; i++)
-			html.push('<button type="button" data-i="' + i + '" title="' + slices[i][0] + '">' + slices[i][0] + '</button>');
+			html.push('<button type="button" data-i="' + i + '" title="' + unihtml(unirange(slices[i])) + '"><b>'
+				+ unihtml(slices[i][0]) + '</b><small>' + unihtml(unirange(slices[i])) + '</small></button>');
 		SK.$("u-groups").innerHTML = html.join("");
 		SK.$("u-groups").onclick = function(ev){
 			var el = ev.target;
@@ -386,6 +387,33 @@
 			|| (cp >= 0xFE20 && cp <= 0xFE2F);
 	}
 
+	function unislice(name, a, b){
+		var n = 0;
+		var first = -1;
+		var last = -1;
+		var cp;
+		for (cp = a; cp <= b; cp++) {
+			if (unicn(cp)) continue;
+			n++;
+			if (first < 0) first = cp;
+			last = cp;
+		}
+		return [name, a, b, n, first, last];
+	}
+
+	function unitotal(slices){
+		var n = 0;
+		var i;
+		for (i = 0; i < slices.length; i++) n += slices[i][3];
+		return n;
+	}
+
+	function unirange(s){
+		var a = s[4] < 0 ? s[1] : s[4];
+		var b = s[5] < 0 ? s[2] : s[5];
+		return s[3] + " · U+" + unihex(a) + "–U+" + unihex(b);
+	}
+
 	function unislices(){
 		if (uniSlices) return uniSlices;
 		var src = [
@@ -571,13 +599,13 @@
 			a = src[i][1];
 			b = src[i][2];
 			if (b - a < 1024) {
-				out.push([name, a, b]);
+				out.push(unislice(name, a, b));
 				continue;
 			}
 			for (p = a; p <= b; p += 1024) {
 				n = p + 1023;
 				if (n > b) n = b;
-				out.push([name + " " + unihex(p), p, n]);
+				out.push(unislice(name + " " + unihex(p), p, n));
 			}
 		}
 		uniSlices = out;
