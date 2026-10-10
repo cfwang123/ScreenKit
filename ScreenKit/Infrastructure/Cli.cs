@@ -3570,7 +3570,9 @@ static class Cli {
 			if (string.IsNullOrEmpty(stamp)
 				|| home.IndexOf("/sk/tools.js?" + stamp, StringComparison.Ordinal) < 0
 				|| home.IndexOf("/sk/tools.css?" + stamp, StringComparison.Ordinal) < 0
-				|| home.IndexOf("/sk/L.js?" + stamp, StringComparison.Ordinal) < 0) {
+				|| home.IndexOf("/sk/L.js?" + stamp, StringComparison.Ordinal) < 0
+				|| home.IndexOf("__SK_UI_LANG__", StringComparison.Ordinal) >= 0
+				|| home.IndexOf("window.SKL=\"" + (Loc.Lang ?? "zh") + "\"", StringComparison.Ordinal) < 0) {
 				Err("FAIL: 工具页样式或脚本没有本次启动版本");
 				return 1;
 			}

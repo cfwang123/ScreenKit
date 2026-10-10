@@ -481,6 +481,13 @@ sealed class TrayIcon : IDisposable {
 		}
 	}
 
+	static string webname(string key, string fallback) {
+		var name = (fallback ?? "").Trim();
+		if (string.IsNullOrEmpty(key) || !key.StartsWith("web.", StringComparison.Ordinal)) return name;
+		var tr = Loc.T(key);
+		return string.IsNullOrEmpty(tr) || tr == key ? name : tr;
+	}
+
 	public static List<(string Title, List<(string Id, string Name)> Tools)> WebCatalog() {
 		var cats = new List<(string Id, string Title)>();
 		var tools = new List<(string Id, string Cat, string Name)>();
@@ -488,12 +495,12 @@ sealed class TrayIcon : IDisposable {
 		if (!SendFileWebPages.TryLoad("tools.html", out var bytes) || bytes == null || bytes.Length == 0)
 			return list;
 		var html = Encoding.UTF8.GetString(bytes);
-		foreach (Match m in Regex.Matches(html, "data-cat=\"([^\"]+)\"\\s+data-title=\"([^\"]+)\"")) {
+		foreach (Match m in Regex.Matches(html, "data-cat=\"([^\"]+)\"\\s+data-title=\"([^\"]+)\"(?:\\s+data-kt=\"([^\"]+)\")?")) {
 			if (m.Groups[1].Value == "fav") continue;
-			cats.Add((m.Groups[1].Value, m.Groups[2].Value));
+			cats.Add((m.Groups[1].Value, webname(m.Groups[3].Value, m.Groups[2].Value)));
 		}
-		foreach (Match m in Regex.Matches(html, "data-tool=\"([^\"]+)\"\\s+data-cat=\"([^\"]+)\"[\\s\\S]*?<span>([^<]*)</span>"))
-			tools.Add((m.Groups[1].Value, m.Groups[2].Value, m.Groups[3].Value.Trim()));
+		foreach (Match m in Regex.Matches(html, "data-tool=\"([^\"]+)\"\\s+data-cat=\"([^\"]+)\"[\\s\\S]*?<span\\s+data-k=\"([^\"]+)\"[^>]*>([^<]*)</span>"))
+			tools.Add((m.Groups[1].Value, m.Groups[2].Value, webname(m.Groups[3].Value, m.Groups[4].Value)));
 		foreach (var cat in cats) {
 			var rows = new List<(string Id, string Name)>();
 			foreach (var tool in tools) {

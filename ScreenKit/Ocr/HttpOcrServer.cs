@@ -540,6 +540,15 @@ sealed partial class HttpOcrServer : IDisposable {
 		catch { }
 	}
 
+	static string uilang() {
+		var raw = Loc.Lang ?? "";
+		var sb = new StringBuilder(raw.Length);
+		foreach (var c in raw) {
+			if (c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-') sb.Append(c);
+		}
+		return sb.Length == 0 ? "zh" : sb.ToString();
+	}
+
 	void handletoolspage(SockCtx ctx, string path) {
 		string name;
 		string mime;
@@ -571,6 +580,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		if (html) {
 			var text = Encoding.UTF8.GetString(bytes);
 			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
+			text = text.Replace("__SK_UI_LANG__", uilang());
 			bytes = Encoding.UTF8.GetBytes(text);
 		}
 		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
