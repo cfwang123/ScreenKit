@@ -12,6 +12,7 @@ public partial class MainWindow {
 	static bool ortBytesOk;
 
 	void initstbar() {
+		bindstclick(lbuse, openmem);
 		bindstclick(bstbar, openmem);
 		bindstclick(bsthttp, () => openhttptools(fromTray: true));
 		refreshstbar();
