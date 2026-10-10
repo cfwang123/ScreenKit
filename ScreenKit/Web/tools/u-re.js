@@ -16,7 +16,8 @@
 			SK.$("box-preset").onchange = repick;
 			SK.$("box-re-mode").onchange = retip;
 			retip();
-		}
+		},
+		live: false
 	});
 	function repatterns(){
 		return [

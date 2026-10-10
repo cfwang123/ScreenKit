@@ -5,7 +5,7 @@
 	var uniInk = {};
 	var uniSeen = {};
 	SK.regutil("u-ascii", {
-		title: "Unicode 表",
+		title: "Unicode码表",
 		go: "显示",
 		body: function(){
 			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><span id="u-msg" class="msg"></span></div>'
@@ -20,6 +20,7 @@
 			unibuild();
 		},
 		hideGo: true,
+		live: false,
 		hideOut: true
 	});
 	function unibuild(){

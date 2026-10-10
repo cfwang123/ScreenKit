@@ -811,6 +811,23 @@ SK.watchAcc = 0;
 		if (spec.hideCopy) $("box-copy").style.display = "none";
 		if (spec.hideOut) $("box-out").parentElement.style.display = "none";
 		if (spec.open) spec.open();
+		if (spec.live !== false && textcard(name)) bindboxlive();
+	}
+
+	function textcard(name){
+		var card = cardof(name);
+		return !!(card && card.getAttribute("data-cat") === "text");
+	}
+
+	function bindboxlive(){
+		var body = $("box-body");
+		if (!body) return;
+		body.oninput = function(){ utilrun(); };
+		body.onchange = function(ev){
+			var t = ev.target;
+			if (!t) return;
+			if (t.tagName === "SELECT" || t.type === "checkbox" || t.type === "radio") utilrun();
+		};
 	}
 
 	function utilrun(){

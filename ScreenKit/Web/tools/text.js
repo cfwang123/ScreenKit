@@ -1,7 +1,14 @@
 (function(){
+	var lastop = "";
+	var textseq = 0;
+	var textwait = 0;
+
 	function textop(op){
+		lastop = op;
+		var seq = ++textseq;
 		if (op === "yomi" || op === "yomimono") {
 			SK.post("/api/jpyomi", { text: SK.$("tx-in").value, mono: op === "yomimono" }, function(data){
+				if (seq !== textseq) return;
 				var ruby = data.ruby || "";
 				var yomi = data.yomi || "";
 				SK.$("tx-out").value = ruby && yomi && ruby !== yomi ? ruby + "\n" + yomi : (yomi || ruby);
@@ -10,6 +17,7 @@
 		}
 		if (op === "trad" || op === "simp") {
 			SK.post("/api/zhconv", { text: SK.$("tx-in").value, to: op }, function(data){
+				if (seq !== textseq) return;
 				SK.$("tx-out").value = data.text || "";
 			}, "tx-msg");
 			return;
@@ -19,15 +27,25 @@
 			|| op === "jesc" || op === "juesc" || op === "xml" || op === "xmlmin"
 			|| op === "sql" || op === "sqlmin" || op === "hjs"
 			|| op === "name" || op === "cron" || op === "tok" || op === "ua") {
-			textlocal(op);
+			textlocal(op, seq);
 			return;
 		}
 		SK.post("/api/text", { text: SK.$("tx-in").value, op: op }, function(data){
+			if (seq !== textseq) return;
 			SK.$("tx-out").value = data.text || "";
 		}, "tx-msg");
 	}
 
-	function textlocal(op){
+	function textlive(){
+		if (!lastop || lastop === "yomi" || lastop === "yomimono") return;
+		if (textwait) clearTimeout(textwait);
+		textwait = setTimeout(function(){
+			textwait = 0;
+			textop(lastop);
+		}, 200);
+	}
+
+	function textlocal(op, seq){
 		var text = SK.$("tx-in").value;
 		if (op === "sha") {
 			if (text.length > 200000) {
@@ -40,9 +58,11 @@
 			}
 			SK.msg("tx-msg", "计算中");
 			crypto.subtle.digest("SHA-256", SK.utf8bytes(text)).then(function(buf){
+				if (seq !== textseq) return;
 				SK.$("tx-out").value = SK.hexbytes(new Uint8Array(buf));
 				SK.msg("tx-msg", "完成");
 			}, function(){
+				if (seq !== textseq) return;
 				SK.msg("tx-msg", "SHA-256 失败", true);
 			});
 			return;
@@ -484,6 +504,7 @@
 	}
 
 	SK.textop = textop;
+	if (SK.$("tx-in")) SK.$("tx-in").oninput = textlive;
 	SK.textlocal = textlocal;
 	SK.htmldec = htmldec;
 	SK.jsonmin = jsonmin;

@@ -291,6 +291,7 @@ input[type="file"] {
 	display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
 	gap: 2px; align-content: start;
 }
+.ugrid.g16 { grid-template-columns: repeat(16, 32px); justify-content: start; }
 .ugrid button {
 	height: 32px; padding: 0; cursor: pointer; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink);
