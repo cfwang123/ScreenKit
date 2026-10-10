@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools-page timestamp tool has a date-time picker. Choosing a time fills the text and converts. Converting a timestamp moves the picker to that local time.
 - The Unicode code chart preview lists GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. A code point those encodings cannot store shows 无. Latin-1 is shown for U+0000 through U+00FF. UTF-32 is listed with the other Unicode forms.
 - Tools-page unit conversion (单位换算) takes a unit right in the number box, such as `1米`, `3斤`, or `5kg`: the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind, such as `1米`, `1000毫米`, `100厘米`, `0.001千米`, `39.3700787402英寸`. Every conversion echoes what you entered on the first line; picking one unit puts that single answer on the next line, as in `1米` then `3.280839895英尺`.
 - The tools-page image-to-ICO screen can scale the picture with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
@@ -68,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page **File transfer** link opens `/files` in a new window. The tools page stays open.
 - The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
 - Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, or ID number. Each line is one value.
+- The separate MAC address and UUID cards are gone. Both are kinds on **生成测试数据** (formerly 测试数据), still one value per line. An old favorite or `#u-mac` / `#u-uuid` opens that tool with the matching kind selected.
 - Text-category tools update the result when the text or an option changes. Japanese yomi and the regex tester stay on their buttons, because those can take more than a second.
 - Tools-page unit conversion updates the result as soon as the number or a choice changes.
 - Tools-page text compare, JSON diff, and find-and-replace are removed. Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. Pick a kind, enter a number, then choose the original unit and the new unit. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. An old favorite of one of those unit tools opens 单位换算.
@@ -102,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页的时间戳增加日期时间选择。选好时间会写入文本并转换。转换时间戳时，选择控件会跳到对应的本地时间。
 - Unicode码表选中字符后，预览列出 GBK、GB18030、Big5、Shift_JIS、EUC-KR。这些编码放不下的码位显示「无」。U+0000 到 U+00FF 另外显示 Latin-1。UTF-32 和原来的 Unicode 编码排在一起。
 - 工具页「单位换算」的数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它：一次按该类型的单位逐行列出，如 `1米`、`1000毫米`、`100厘米`、`0.001千米`、`39.3700787402英寸`。每次换算的第 1 行都回显原值；选具体单位时，第 2 行就是那一行结果，例如 `1米` 下面是 `3.280839895英尺`。
 - 工具页的图片转 ICO 可以选缩放：fit、拉伸、裁剪。默认 fit，等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满并切掉多余部分。预览和下载的图标用同一种。
@@ -135,6 +138,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页左下角的 **文件传输** 在新窗口打开 `/files`，工具页保持不动。
 - 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇。csv 是表。html 和 md 是表格，列为单词、详情，详情列占满剩余宽度。
 - 「测试数据」先选类型：中文姓名、中文网名、英文网名、邮箱、手机、地址、公司、用户名、身份证。一行一条，不再把多项写在同一行。
+- 单独的「MAC 地址」和「UUID」已去掉，并入「生成测试数据」（原「测试数据」），仍是一行一条。原来收藏了这两项，或打开 `#u-mac`、`#u-uuid`，会打开这个工具并选中对应类型。
 - 文字分类的工具在修改文字或选项时直接出结果。日文注音和正则仍要点按钮，这两项可能超过 1 秒。
 - 工具页「单位换算」在修改数值或选项时立即出结果。
 - 工具页去掉文本比对、JSON 差异和查找替换。长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」：先选类型，再填数值、原单位和新单位。外币用中国银行 2026-10-10 中间价，结果里会注明。原来收藏了其中一项换算时，会打开「单位换算」。

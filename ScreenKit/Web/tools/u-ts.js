@@ -3,16 +3,32 @@
 		title: "时间戳",
 		go: "转换",
 		body: function(){
-			return SK.lab("时间戳或日期", SK.ta("box-in", 4, "留空为现在。秒、毫秒，或 2026-10-09 12:00:00"));
+			return SK.lab("日期时间", '<input id="ts-pick" type="datetime-local" step="1">')
+				+ SK.lab("时间戳或日期", SK.ta("box-in", 4, "留空为现在。秒、毫秒，或 2026-10-09 12:00:00"));
 		},
 		run: function(){
-			return tsconv(SK.val("box-in"));
+			var d = tsdate(SK.val("box-in"));
+			settspick(d);
+			return "本地 " + SK.fmtdt(d) + "\n秒 " + Math.floor(d.getTime() / 1000) + "\n毫秒 " + d.getTime();
 		},
 		open: function(){
-			SK.$("box-in").value = String(Math.floor(Date.now() / 1000));
+			var now = new Date();
+			SK.$("box-in").value = String(Math.floor(now.getTime() / 1000));
+			settspick(now);
+			SK.$("ts-pick").onchange = function(){
+				var v = SK.$("ts-pick").value;
+				if (!v) return;
+				SK.$("box-in").value = v.replace("T", " ");
+				SK.utilrun();
+			};
 		}
 	});
 	function tsconv(raw){
+		var d = tsdate(raw);
+		return "本地 " + SK.fmtdt(d) + "\n秒 " + Math.floor(d.getTime() / 1000) + "\n毫秒 " + d.getTime();
+	}
+
+	function tsdate(raw){
 		raw = String(raw || "").trim();
 		var d;
 		if (!raw) d = new Date();
@@ -24,7 +40,13 @@
 		}
 		else d = parsedate(raw);
 		if (isNaN(d.getTime())) throw new Error("无法解析");
-		return "本地 " + SK.fmtdt(d) + "\n秒 " + Math.floor(d.getTime() / 1000) + "\n毫秒 " + d.getTime();
+		return d;
+	}
+
+	function settspick(d){
+		var el = SK.$("ts-pick");
+		if (!el) return;
+		el.value = SK.fmtdt(d).replace(" ", "T");
 	}
 
 	function parsedate(s){
