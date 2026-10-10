@@ -87,6 +87,15 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 	border-radius: 8px; padding: 0 12px;
 	font: 14px/36px "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
+.groups { display: flex; flex-direction: column; gap: 28px; }
+.catsec { scroll-margin-top: 12px; }
+.catsec h2 {
+	display: flex; align-items: center; gap: 8px;
+	margin: 0 0 12px; padding-bottom: 8px;
+	border-bottom: 1px solid var(--line);
+	font-size: 16px; font-weight: 650;
+}
+.catsec h2 i { width: 18px; text-align: center; color: #f97316; }
 .cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
@@ -125,7 +134,7 @@ textarea { resize: vertical; }
 select, input[type="date"], input[type="text"], input[type="number"], input[type="color"], input[type="file"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; height: 40px; }
 #box-img { display: block; max-width: 100%; margin-top: 12px; background: #fff; }
 .hint { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
-#ocr-img:not([hidden]) {
+#ocr-img:not([hidden]), #ico-img:not([hidden]) {
 	display: block; max-width: 100%; max-height: 420px; margin: 0 0 12px;
 	object-fit: contain; background: #f3f1ec;
 	border: 1px solid var(--line); border-radius: 12px;

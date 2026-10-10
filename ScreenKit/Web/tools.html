@@ -18,8 +18,7 @@
 			</div>
 		</div>
 		<nav id="cats">
-			<button type="button" data-cat="fav" data-title="收藏"><i class="fa-solid fa-star"></i>收藏</button>
-			<button type="button" data-cat="all" data-title="常用工具" class="on"><i class="fa-solid fa-grip"></i>常用工具</button>
+			<button type="button" data-cat="fav" data-title="收藏" class="on"><i class="fa-solid fa-star"></i>收藏</button>
 			<button type="button" data-cat="text" data-title="文字"><i class="fa-solid fa-font"></i>文字</button>
 			<button type="button" data-cat="calc" data-title="计算"><i class="fa-solid fa-calculator"></i>计算</button>
 			<button type="button" data-cat="speech" data-title="语音"><i class="fa-solid fa-volume-high"></i>语音</button>
@@ -33,7 +32,6 @@
 		<button type="button" id="tool-fav" class="back" hidden><i class="fa-solid fa-star"></i><span>收藏</span></button>
 		<section id="home" class="panel on">
 			<div class="head">
-				<h1 id="cat-title">常用工具</h1>
 				<label class="find">
 					<input id="tool-q" type="search" placeholder="搜索工具" autocomplete="off"/>
 				</label>
@@ -134,6 +132,10 @@
 				<button type="button" data-tool="u-b64img" data-cat="image" data-name="图片 base64" title="图片转成 Data URL">
 					<i class="fa-solid fa-file-image"></i><span>图片 Base64</span>
 					<i class="star fa-solid fa-star" data-fav="u-b64img" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="u-ico" data-cat="image" data-name="图片 ico 图标" title="把图片做成多尺寸 ICO">
+					<i class="fa-solid fa-icons"></i><span>图片转 ICO</span>
+					<i class="star fa-solid fa-star" data-fav="u-ico" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-hmin" data-cat="text" data-name="html 压缩" title="去掉注释和标签间空白">
 					<i class="fa-solid fa-file-code"></i><span>HTML 压缩</span>

@@ -2,10 +2,13 @@ window.sktools = (function(){
 	var ocrPacks = [];
 	var ocrPic = null;
 	var ocrPicUrl = "";
+	var icoPic = null;
+	var icoUrl = "";
 	var ttsItems = [];
 	var asrItems = [];
 	var asrRec = null;
-	var curcat = "all";
+	var curcat = "fav";
+	var spyLock = 0;
 	var curtool = "home";
 	var favs = [];
 	var util = "";
@@ -72,7 +75,10 @@ window.sktools = (function(){
 		$("box-go").onclick = utilrun;
 		$("box-copy").onclick = function(){ copytext($("box-out").value, "box-msg"); };
 		loadfav();
+		buildgroups();
+		paintfav();
 		paintstars();
+		window.addEventListener("scroll", spyon);
 	}
 
 	function onclick(ev){
@@ -90,10 +96,8 @@ window.sktools = (function(){
 				return;
 			}
 			var cat = el.getAttribute && el.getAttribute("data-cat");
-			if (cat) {
-				curcat = cat;
-				$("tool-q").value = "";
-				show("home");
+			if (cat && el.tagName === "BUTTON" && !el.getAttribute("data-tool")) {
+				jumpcat(cat);
 				return;
 			}
 			var op = el.getAttribute && el.getAttribute("data-op");
@@ -133,33 +137,132 @@ window.sktools = (function(){
 		if (name === "asr") loadasr();
 	}
 
+	function buildgroups(){
+		var host = $("cards");
+		var btns = host.querySelectorAll("button");
+		var nav = document.querySelectorAll("#cats button");
+		var pending = [];
+		var map = {};
+		var i;
+		for (i = 0; i < btns.length; i++) pending.push(btns[i]);
+		for (i = 0; i < nav.length; i++) {
+			var cat = nav[i].getAttribute("data-cat");
+			var sec = document.createElement("section");
+			sec.className = "catsec";
+			sec.id = "sec-" + cat;
+			sec.setAttribute("data-cat", cat);
+			var h = document.createElement("h2");
+			var icon = nav[i].querySelector("i");
+			if (icon) h.appendChild(icon.cloneNode(true));
+			h.appendChild(document.createTextNode(nav[i].getAttribute("data-title") || ""));
+			var grid = document.createElement("div");
+			grid.className = "cards";
+			sec.appendChild(h);
+			sec.appendChild(grid);
+			if (cat === "fav") {
+				var empty = document.createElement("p");
+				empty.className = "none";
+				empty.id = "fav-none";
+				empty.hidden = true;
+				empty.textContent = "还没有收藏。点卡片右侧的星可以加进来。";
+				sec.appendChild(empty);
+			}
+			map[cat] = grid;
+			host.appendChild(sec);
+		}
+		for (i = 0; i < pending.length; i++) {
+			var into = map[pending[i].getAttribute("data-cat") || ""];
+			if (into) into.appendChild(pending[i]);
+		}
+		host.className = "groups";
+		host.id = "groups";
+	}
+
+	function paintfav(){
+		var grid = document.querySelector("#sec-fav .cards");
+		if (!grid) return;
+		while (grid.firstChild) grid.removeChild(grid.firstChild);
+		var i;
+		for (i = 0; i < favs.length; i++) {
+			var src = cardof(favs[i]);
+			if (!src) continue;
+			var copy = src.cloneNode(true);
+			copy.setAttribute("data-clone", "1");
+			copy.hidden = false;
+			grid.appendChild(copy);
+		}
+		var empty = $("fav-none");
+		if (empty) empty.hidden = favs.length !== 0;
+	}
+
+	function paintnav(){
+		var cats = document.querySelectorAll("#cats button");
+		var i;
+		for (i = 0; i < cats.length; i++)
+			cats[i].className = cats[i].getAttribute("data-cat") === curcat ? "on" : "";
+	}
+
+	function jumpcat(cat){
+		curcat = cat;
+		spyLock = Date.now() + 800;
+		if (curtool !== "home") show("home");
+		else paintnav();
+		var sec = $("sec-" + cat);
+		if (!sec) return;
+		var y = sec.getBoundingClientRect().top + window.pageYOffset - 12;
+		if (y < 0) y = 0;
+		window.scrollTo(0, y);
+	}
+
+	function spyon(){
+		if (curtool !== "home") return;
+		if (Date.now() < spyLock) return;
+		var secs = document.querySelectorAll(".catsec");
+		var pick = "";
+		var i;
+		for (i = 0; i < secs.length; i++) {
+			if (secs[i].hidden) continue;
+			var top = secs[i].getBoundingClientRect().top;
+			if (top - 80 <= 0) pick = secs[i].getAttribute("data-cat");
+			else if (!pick) {
+				pick = secs[i].getAttribute("data-cat");
+				break;
+			}
+		}
+		if (!pick || pick === curcat) return;
+		curcat = pick;
+		paintnav();
+	}
+
 	function paintcats(){
 		var q = ($("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
-		var cats = document.querySelectorAll("#cats button");
-		var i, title = "常用工具";
-		for (i = 0; i < cats.length; i++) {
-			var on = !q && cats[i].getAttribute("data-cat") === curcat;
-			cats[i].className = on ? "on" : "";
-			if (on) title = cats[i].getAttribute("data-title") || title;
-		}
-		if (q) title = "搜索";
-		$("cat-title").textContent = title;
-		var cards = document.querySelectorAll("#cards button");
+		var cards = document.querySelectorAll(".cards button");
 		var n = 0;
+		var i;
 		for (i = 0; i < cards.length; i++) {
-			var id = cards[i].getAttribute("data-tool") || "";
 			var name = (cards[i].getAttribute("data-name") || "").toLowerCase();
-			var cat = cards[i].getAttribute("data-cat") || "";
-			var starred = isfav(id);
-			var hit = !q || name.indexOf(q) >= 0;
-			var incat = curcat === "all" || cat === curcat || (curcat === "fav" && starred);
-			var vis = q ? hit : incat;
+			var vis = !q || name.indexOf(q) >= 0;
 			cards[i].hidden = !vis;
-			cards[i].style.order = curcat === "fav" && !q && starred ? String(favindex(id)) : "";
 			if (vis) n++;
 		}
-		$("tool-none").textContent = curcat === "fav" && !q ? "还没有收藏。点卡片右侧的星可以加进来。" : "没有匹配的工具";
+		var secs = document.querySelectorAll(".catsec");
+		for (i = 0; i < secs.length; i++) {
+			var grid = secs[i].querySelector(".cards");
+			var buttons = grid ? grid.querySelectorAll("button") : [];
+			var visn = 0;
+			var j;
+			for (j = 0; j < buttons.length; j++) if (!buttons[j].hidden) visn++;
+			var cat = secs[i].getAttribute("data-cat");
+			if (cat === "fav" && !q) {
+				secs[i].hidden = false;
+				var empty = $("fav-none");
+				if (empty) empty.hidden = visn !== 0;
+			}
+			else secs[i].hidden = visn === 0;
+		}
+		$("tool-none").textContent = "没有匹配的工具";
 		$("tool-none").hidden = n !== 0;
+		paintnav();
 	}
 
 	function loadfav(){
@@ -181,10 +284,12 @@ window.sktools = (function(){
 	}
 
 	function cardof(id){
-		var cards = document.querySelectorAll("#cards button");
+		var cards = document.querySelectorAll(".cards button");
 		var i;
-		for (i = 0; i < cards.length; i++)
+		for (i = 0; i < cards.length; i++) {
+			if (cards[i].getAttribute("data-clone")) continue;
 			if (cards[i].getAttribute("data-tool") === id) return cards[i];
+		}
 		return null;
 	}
 
@@ -211,12 +316,13 @@ window.sktools = (function(){
 		favs = next;
 		try { localStorage.setItem("sk-tool-fav", JSON.stringify(favs)); }
 		catch (e) {}
+		paintfav();
 		paintstars();
 		if (curtool === "home") paintcats();
 	}
 
 	function paintstars(){
-		var nodes = document.querySelectorAll("#cards .star");
+		var nodes = document.querySelectorAll(".cards .star");
 		var i;
 		for (i = 0; i < nodes.length; i++) {
 			var on = isfav(nodes[i].getAttribute("data-fav"));
@@ -452,7 +558,7 @@ window.sktools = (function(){
 	}
 
 	function onocrpaste(ev){
-		if (curtool !== "ocr") return;
+		if (curtool !== "ocr" && curtool !== "u-ico") return;
 		var cd = ev.clipboardData;
 		if (!cd) return;
 		var file = null;
@@ -470,7 +576,8 @@ window.sktools = (function(){
 			file = cd.files[0];
 		if (!file) return;
 		ev.preventDefault();
-		setocrpic(file);
+		if (curtool === "u-ico") seticopic(file);
+		else setocrpic(file);
 	}
 
 	function setocrpic(file){
@@ -736,7 +843,22 @@ window.sktools = (function(){
 		$("box-go").textContent = meta[1];
 		$("box-body").innerHTML = utilbody(name);
 		$("box-out").value = "";
+		$("box-copy").style.display = "";
+		$("box-out").parentElement.style.display = "";
 		msg("box-msg", "");
+		if (name === "u-ico") {
+			$("box-copy").style.display = "none";
+			$("box-out").parentElement.style.display = "none";
+			$("box-file").onchange = function(){
+				var file = $("box-file").files && $("box-file").files[0];
+				if (file) seticopic(file);
+			};
+			if (icoUrl) {
+				var prev = $("ico-img");
+				prev.src = icoUrl;
+				prev.hidden = false;
+			}
+		}
 		if (name === "u-ts") $("box-in").value = String(Math.floor(Date.now() / 1000));
 		if (name === "u-datediff" || name === "u-work") {
 			var day = new Date();
@@ -780,6 +902,10 @@ window.sktools = (function(){
 		}
 		if (util === "u-b64img") {
 			imgb64();
+			return;
+		}
+		if (util === "u-ico") {
+			icogo();
 			return;
 		}
 		if (util === "u-down") {
@@ -861,6 +987,7 @@ window.sktools = (function(){
 			"u-tok": ["Token 估算", "计算"],
 			"u-hjs": ["HTML 转 JS", "转换"],
 			"u-b64img": ["图片 Base64", "转换"],
+			"u-ico": ["图片转 ICO", "生成"],
 			"u-btn": ["CSS 按钮", "生成"],
 			"u-fake": ["测试数据", "生成"],
 			"u-pal": ["调色板", "生成"],
@@ -1003,6 +1130,16 @@ window.sktools = (function(){
 			return lab("HTML", ta("box-in", 8, ""));
 		if (name === "u-b64img")
 			return lab("图片", '<input id="box-file" type="file" accept="image/*">');
+		if (name === "u-ico")
+			return lab("图片", '<input id="box-file" type="file" accept="image/*">')
+				+ '<p class="hint">在此页按 Ctrl+V 可粘贴剪贴板里的图片。</p>'
+				+ '<img id="ico-img" alt="预览" hidden>'
+				+ '<div class="ops">'
+				+ check("ico-16", "16", true) + check("ico-32", "32", true)
+				+ check("ico-48", "48", true) + check("ico-64", "64", true)
+				+ check("ico-128", "128", true) + check("ico-256", "256", true)
+				+ "</div>"
+				+ '<p class="hint">生成多尺寸 ICO。画面等比放进方框，空白透明。</p>';
 		if (name === "u-btn")
 			return lab("文字", textin("box-in", "按钮"))
 				+ row2(lab("底色", textin("box-bg", "#f97316")), lab("字色", textin("box-fg", "#ffffff")))
@@ -2246,6 +2383,119 @@ window.sktools = (function(){
 			}
 			$("box-out").value = fmthms(left);
 		}, 200);
+	}
+
+	function seticopic(file){
+		if (!file || String(file.type || "").indexOf("image/") !== 0) {
+			msg("box-msg", "请放入图片", true);
+			return;
+		}
+		if (file.size > 20 * 1024 * 1024) {
+			msg("box-msg", "图片要小于 20 MB", true);
+			return;
+		}
+		icoPic = file;
+		if (icoUrl) URL.revokeObjectURL(icoUrl);
+		icoUrl = URL.createObjectURL(file);
+		var img = $("ico-img");
+		if (img) {
+			img.src = icoUrl;
+			img.hidden = false;
+		}
+		msg("box-msg", "已放入图片");
+	}
+
+	function icogo(){
+		if (!icoPic) {
+			msg("box-msg", "请选择或粘贴图片", true);
+			return;
+		}
+		var all = [16, 32, 48, 64, 128, 256];
+		var sizes = [];
+		var i;
+		for (i = 0; i < all.length; i++) {
+			var box = $("ico-" + all[i]);
+			if (box && box.checked) sizes.push(all[i]);
+		}
+		if (!sizes.length) {
+			msg("box-msg", "请至少选一个尺寸", true);
+			return;
+		}
+		var img = new Image();
+		img.onload = function(){
+			var jobs = [];
+			var n;
+			for (n = 0; n < sizes.length; n++) jobs.push(iconpng(img, sizes[n]));
+			Promise.all(jobs).then(function(parts){
+				var blob = icoblob(sizes, parts);
+				var a = document.createElement("a");
+				var url = URL.createObjectURL(blob);
+				a.href = url;
+				a.download = iconame(icoPic.name);
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+				msg("box-msg", "已下载 " + a.download + "（" + blob.size + " 字节）");
+			}, function(){
+				msg("box-msg", "生成失败", true);
+			});
+		};
+		img.onerror = function(){ msg("box-msg", "无法读取图片", true); };
+		msg("box-msg", "生成中");
+		img.src = icoUrl;
+	}
+
+	function iconame(name){
+		var base = String(name || "icon").replace(/\.[^.]+$/, "");
+		if (!base) base = "icon";
+		return base + ".ico";
+	}
+
+	function iconpng(img, size){
+		var canvas = document.createElement("canvas");
+		canvas.width = size;
+		canvas.height = size;
+		var g = canvas.getContext("2d");
+		if (!g) return Promise.reject();
+		var scale = Math.min(size / img.width, size / img.height);
+		var w = Math.max(1, Math.round(img.width * scale));
+		var h = Math.max(1, Math.round(img.height * scale));
+		g.clearRect(0, 0, size, size);
+		g.imageSmoothingEnabled = true;
+		try { g.imageSmoothingQuality = "high"; } catch (e) {}
+		g.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
+		return new Promise(function(ok, bad){
+			canvas.toBlob(function(blob){
+				if (!blob) { bad(); return; }
+				blob.arrayBuffer().then(ok, bad);
+			}, "image/png");
+		});
+	}
+
+	function icoblob(sizes, parts){
+		var count = sizes.length;
+		var off = 6 + count * 16;
+		var total = off;
+		var i;
+		for (i = 0; i < parts.length; i++) total += parts[i].byteLength;
+		var buf = new Uint8Array(total);
+		var view = new DataView(buf.buffer);
+		view.setUint16(2, 1, true);
+		view.setUint16(4, count, true);
+		for (i = 0; i < count; i++) {
+			var at = 6 + i * 16;
+			var side = sizes[i] >= 256 ? 0 : sizes[i];
+			buf[at] = side;
+			buf[at + 1] = side;
+			view.setUint16(at + 4, 1, true);
+			view.setUint16(at + 6, 32, true);
+			view.setUint32(at + 8, parts[i].byteLength, true);
+			view.setUint32(at + 12, off, true);
+			buf.set(new Uint8Array(parts[i]), off);
+			off += parts[i].byteLength;
+		}
+		return new Blob([buf], { type: "image/vnd.microsoft.icon" });
 	}
 
 	function imgb64(){
