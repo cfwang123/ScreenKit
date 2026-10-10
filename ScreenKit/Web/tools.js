@@ -15,6 +15,7 @@ window.sktools = (function(){
 	var curtool = "home";
 	var favs = [];
 	var util = "";
+	var reNote = "";
 	var uniSlices = null;
 	var tick = null;
 	var watchOn = false;
@@ -1261,6 +1262,7 @@ window.sktools = (function(){
 		$("box-go").parentElement.style.display = "";
 		$("box-copy").style.display = "";
 		$("box-out").parentElement.style.display = "";
+		showreout(false);
 		msg("box-msg", "");
 		if (name === "u-ico") {
 			$("box-copy").style.display = "none";
@@ -1293,7 +1295,11 @@ window.sktools = (function(){
 			$("box-out").parentElement.style.display = "none";
 			unibuild();
 		}
-		if (name === "u-re") $("box-preset").onchange = repick;
+		if (name === "u-re") {
+			$("box-preset").onchange = repick;
+			$("box-re-mode").onchange = retip;
+			retip();
+		}
 		if (name === "u-pw") {
 			var pwids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb"];
 			var pi;
@@ -1349,12 +1355,14 @@ window.sktools = (function(){
 			}
 			return;
 		}
+		reNote = "";
 		try {
 			$("box-out").value = dispatch();
-			msg("box-msg", "完成");
+			msg("box-msg", reNote || "完成");
 		}
 		catch (ex) {
 			$("box-out").value = "";
+			showreout(false);
 			msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}
@@ -1468,6 +1476,8 @@ window.sktools = (function(){
 		if (name === "u-re")
 			return lab("常用", '<select id="box-preset">' + reopts() + "</select>")
 				+ '<div class="row grow">' + lab("表达式", textin("box-pat", "", "例如 \\d+")) + lab("标志", textin("box-flags", "g", "g i m")) + "</div>"
+				+ lab("方式", '<select id="box-re-mode"><option value="find">查找匹配</option><option value="lines">批量测试</option></select>')
+				+ '<p class="hint" id="re-hint">在文本里查找匹配。</p>'
 				+ lab("文本", ta("box-in", 8, ""));
 		if (name === "u-diff")
 			return '<div class="split">' + lab("原文", ta("box-a", 10, "")) + lab("新文", ta("box-b", 10, "")) + "</div>";
@@ -2320,13 +2330,28 @@ window.sktools = (function(){
 		if (sample && box) box.value = list[i][3] || "";
 	}
 
-	function retest(pat, flags, text){
+	function retip(){
+		var lines = val("box-re-mode") === "lines";
+		var hint = $("re-hint");
+		var box = $("box-in");
+		if (hint) hint.textContent = lines ? "一行一条。整行匹配算通过。" : "在文本里查找匹配。";
+		if (box) box.placeholder = lines ? "一行一条" : "";
+	}
+
+	function showreout(batch){
+		var list = $("re-list");
+		var out = $("box-out");
+		if (!list || !out) return;
+		list.hidden = !batch;
+		out.hidden = !!batch;
+		if (!batch) list.innerHTML = "";
+	}
+
+	function recompile(pat, flags){
 		pat = String(pat);
 		flags = String(flags || "");
-		text = String(text);
 		if (!pat) throw new Error("请输入表达式");
 		if (pat.length > 200) throw new Error("表达式太长");
-		if (text.length > 20000) throw new Error("文本太长");
 		if (!/^[gim]*$/.test(flags)) throw new Error("标志只支持 g、i、m");
 		var seen = {};
 		var i;
@@ -2334,9 +2359,44 @@ window.sktools = (function(){
 			if (seen[flags.charAt(i)]) throw new Error("标志重复了");
 			seen[flags.charAt(i)] = 1;
 		}
-		var re;
-		try { re = new RegExp(pat, flags); }
+		try { return new RegExp(pat, flags); }
 		catch (ex) { throw new Error("表达式无效"); }
+	}
+
+	function relines(pat, flags, text){
+		flags = String(flags || "");
+		var re = recompile(pat, flags);
+		text = String(text);
+		if (text.length > 20000) throw new Error("文本太长");
+		var rows = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+		if (rows.length && rows[rows.length - 1] === "") rows.pop();
+		if (!rows.length) throw new Error("请输入文本");
+		if (rows.length > 500) throw new Error("最多 500 行");
+		var full = new RegExp("^(?:" + re.source + ")$", flags.replace(/g/g, ""));
+		var html = "";
+		var plain = [];
+		var pass = 0;
+		var i;
+		for (i = 0; i < rows.length; i++) {
+			var ok = full.test(rows[i]);
+			if (ok) pass++;
+			var mark = ok ? "通过" : "未通过";
+			html += '<div>' + esc(rows[i]) + ' <span class="' + (ok ? "ok" : "bad") + '">[' + mark + "]</span></div>";
+			plain.push(rows[i] + " [" + mark + "]");
+		}
+		$("re-list").innerHTML = html;
+		showreout(true);
+		reNote = "通过 " + pass + "，未通过 " + (rows.length - pass);
+		return plain.join("\n");
+	}
+
+	function retest(pat, flags, text){
+		flags = String(flags || "");
+		if (val("box-re-mode") === "lines") return relines(pat, flags, text);
+		showreout(false);
+		var re = recompile(pat, flags);
+		text = String(text);
+		if (text.length > 20000) throw new Error("文本太长");
 		function one(m){
 			var line = "[" + m.index + "] " + m[0];
 			var g;

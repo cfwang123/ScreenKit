@@ -40,6 +40,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
 - The tools-page regex tester can insert a common pattern: email, mobile number, ID card, URL, IPv4, date, time, integer, decimal, Chinese, color, postal code, QQ, license plate, or a blank line. An empty text box receives a one-line sample.
+- The tools-page regex tester can batch-test one line at a time. Each line is shown as `text [通过]` or `text [未通过]`. Pass is green and fail is red. A line passes only when the whole line matches.
 - The tools-page OCR result shows the same summary as the desktop: infer time, end-to-end time, confidence, engine, image size, line count, and the detection side limit.
 - The tools page can turn a picture into an ICO. Paste or choose an image, preview it, pick one size (32 by default), then download. The square icon is also shown at that pixel size, with a border so the size is visible. The picture fits inside the square, and the empty area stays transparent.
 - The tools-page speech screen can filter voices by language and gender. **生成 WAV** downloads the same synthesis as **朗读**.
@@ -58,7 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tray **Web tools** menu lists every tools-page tool under its category. The first item is **Web tools home**, which opens the list.
 - Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on.
 - The Unicode chart has a preview column. The selected character is shown large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms. Clicking a cell still copies it.
-- The tools-page ASCII chart is now a Unicode chart. Groups are on the left. The chosen group is a 32-column grid of every character in that group. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split, and the slice start is shown on the group. Surrogates, private-use areas, and CJK Extension B onward are not listed.
+- The tools-page ASCII chart is now a Unicode chart. Groups are on the left. The chosen group is a grid of every character in that group, with each cell wide enough to show the whole glyph. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split, and the slice start is shown on the group. Surrogates, private-use areas, and CJK Extension B onward are not listed.
 - The tools-page color picker stays on the page. The color chip is a small square, and the saturation square, hue bar, and RGB fields sit under it.
 - The tools-page QR preview shows one line of the source text under the code, the same as the desktop window. A long line is cut with an ellipsis.
 - The tools-page OCR screen starts recognition as soon as a picture is chosen or pasted. The Recognize button still runs it again.
@@ -80,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `GET /api` 列出仍开启的接口，含方法、介绍和参数说明，文字与 HTTP 接口页相同。`lang` 选择语言，省略时用程序当前界面语言。原有 `endpoints` 简表仍在。
 - 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
 - 工具页的正则测试可以选择常用表达式：邮箱、手机号、身份证、网址、IPv4、日期、时间、整数、小数、中文、颜色、邮编、QQ 号、车牌、空白行。文本为空时放入一行示例。
+- 工具页的正则测试可以批量测试，一行一条。每行显示为 `文本 [通过]` 或 `文本 [未通过]`，通过为绿色，未通过为红色。整行匹配才算通过。
 - 工具页的文字识别结果会显示和桌面一样的统计：推理耗时、端到端耗时、置信度、引擎、图片宽高、行数、检测边长。
 - 工具页可以把图片做成 ICO。可粘贴或选择图片，先预览，再选一个尺寸（默认 32）后下载。方图按该像素大小显示，并有边框，方便看出大小。画面等比放进方框，空白透明。
 - 工具页的随机密码可以一次生成 1 到 50 条。长度 4 到 128。可选每类至少一个。符号集与桌面密码生成器相同。
@@ -98,7 +100,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 托盘 **web工具** 按分类列出工具页的全部工具。第一项是 **web工具主页**，打开工具列表。
 - 桌面和工具页的密码生成，改小写、大写、数字、符号或去掉易混字符时，字符集会改成对应的那一组。只有勾着「指定字符集」时才保留手输的内容。
 - Unicode 表增加预览栏。选中的字符用大字显示，并给出码位、十进制、分组、平面、类型，以及 UTF-8、UTF-16、HTML、JavaScript、URL。点一下仍然复制。
-- 工具页的 ASCII 表改为 Unicode 表。左边是分组，右边用 32 列显示该组的全部字符。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开，组名带上这段的起点。代理项、私用区和汉字扩展 B 及以后未列入。
+- 工具页的 ASCII 表改为 Unicode 表。左边是分组，右边按宽度排成多列，格子够放下整个字。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开，组名带上这段的起点。代理项、私用区和汉字扩展 B 及以后未列入。
 - 工具页取色的选色器一直留在页面上。颜色块是小方块，下面是饱和度方块、色相条和 RGB。
 - 工具页生成的二维码下面显示一行原文，与桌面窗口相同。过长时末尾省略。
 - 工具页的文字识别在选择或粘贴图片后立即开始识别。识别按钮仍可再跑一次。

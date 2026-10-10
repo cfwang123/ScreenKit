@@ -234,6 +234,15 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 .check input { margin: 0; }
 .msg { color: var(--muted); min-height: 1.2em; }
 .msg.bad { color: var(--danger); }
+#re-list {
+	margin-top: 6px; max-height: 360px; overflow: auto;
+	border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+	padding: 8px 12px;
+	font: 14px/1.7 Consolas, "Microsoft YaHei UI", monospace;
+	white-space: pre-wrap; word-break: break-all;
+}
+#re-list .ok { color: #1b7f3a; font-weight: 600; }
+#re-list .bad { color: #c62828; font-weight: 600; }
 .facts {
 	display: grid; grid-template-columns: 120px 1fr; gap: 8px 16px;
 	background: var(--card); border: 1px solid var(--line); border-radius: 16px;
@@ -279,15 +288,15 @@ input[type="file"] {
 }
 .ugroups button.on { background: #f97316; color: #fff; }
 .ugrid {
-	display: grid; grid-template-columns: repeat(32, minmax(0, 1fr));
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
 	gap: 2px; align-content: start;
 }
 .ugrid button {
-	height: 26px; padding: 0; cursor: pointer; overflow: hidden;
+	height: 32px; padding: 0; cursor: pointer; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink);
-	font: 14px/26px "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei UI", sans-serif;
+	font: 18px/32px "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei UI", sans-serif;
 }
-.ugrid button.ctrl { font: 9px/26px "Segoe UI", "Microsoft YaHei UI", sans-serif; letter-spacing: -0.04em; }
+.ugrid button.ctrl { font: 10px/32px "Segoe UI", "Microsoft YaHei UI", sans-serif; letter-spacing: -0.03em; }
 .ugrid button.on { border-color: var(--accent); background: #fff1e8; }
 .uprev {
 	border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px;
