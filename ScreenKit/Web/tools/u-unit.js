@@ -62,8 +62,13 @@
 				+ '<div class="row" id="box-root-row" hidden>' + SK.lab("根字号", SK.textin("box-root", "16")) + "</div>";
 		},
 		open: function(){
+			var ids = ["box-kind", "box-from", "box-to"];
+			var i;
 			fillunits();
-			SK.$("box-kind").onchange = fillunits;
+			for (i = 0; i < ids.length; i++) SK.$(ids[i]).onchange = onpick;
+			SK.$("box-in").oninput = live;
+			SK.$("box-root").oninput = live;
+			live();
 		},
 		run: function(){
 			return convert();
@@ -78,6 +83,23 @@
 		var i;
 		for (i = 0; i < KINDS.length; i++) if (KINDS[i].id === id) return KINDS[i];
 		return null;
+	}
+
+	function onpick(){
+		if (this.id === "box-kind") fillunits();
+		live();
+	}
+
+	function live(){
+		SK.msg("box-msg", "");
+		try {
+			SK.$("box-out").value = convert();
+			SK.msg("box-msg", "完成");
+		}
+		catch (ex) {
+			SK.$("box-out").value = "";
+			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
+		}
 	}
 
 	function fillunits(){
