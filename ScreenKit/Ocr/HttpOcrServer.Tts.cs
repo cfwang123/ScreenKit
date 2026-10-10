@@ -67,10 +67,17 @@ sealed partial class HttpOcrServer {
 	}
 
 	JsonArray ttsmodels(string engine, bool refresh, out bool fromCache) {
-		lock (ttsModelsGate) {
-			if (!refresh && cachedTtsModels != null) {
+		if (!refresh) {
+			var cat = svc?.TtsCatalog?.Invoke();
+			if (cat != null) {
 				fromCache = true;
-				return engine == null ? clonejson(cachedTtsModels) : filterengine(cachedTtsModels, engine);
+				return buildfromcatalog(cat, engine);
+			}
+			lock (ttsModelsGate) {
+				if (cachedTtsModels != null) {
+					fromCache = true;
+					return engine == null ? clonejson(cachedTtsModels) : filterengine(cachedTtsModels, engine);
+				}
 			}
 		}
 		var built = buildttsmodels(engine);
@@ -210,27 +217,7 @@ sealed partial class HttpOcrServer {
 		if (all || only == "sherpa") {
 			List<TtsModelInfo> list = null;
 			try { list = svc?.ScanTts?.Invoke(); } catch { }
-			list ??= new List<TtsModelInfo>();
-			foreach (var m in list) {
-				var speakers = new JsonArray();
-				if (m.Speakers != null) {
-					foreach (var s in m.Speakers.Take(64)) {
-						speakers.Add(new JsonObject {
-							["id"] = s.Id,
-							["name"] = s.Name ?? "",
-							["label"] = s.DisplayName ?? "",
-							["lang"] = s.Lang ?? "",
-							["gender"] = s.Gender ?? "",
-						});
-					}
-				}
-				arr.Add(new JsonObject {
-					["name"] = m.DisplayName ?? "",
-					["engine"] = "sherpa",
-					["type"] = m.Type.ToString(),
-					["speakers"] = speakers,
-				});
-			}
+			addsherpa(arr, list);
 		}
 		if (all || only == "sapi" || only == "winrt") refreshvoices();
 		if (all || only == "sapi")
@@ -242,6 +229,44 @@ sealed partial class HttpOcrServer {
 			addsysmodel(arr, "Edge Online", "edge", "Edge", cachedEdgeVoices);
 		}
 		return arr;
+	}
+
+	JsonArray buildfromcatalog(TtsUiCatalog cat, string only) {
+		var arr = new JsonArray();
+		var all = string.IsNullOrEmpty(only);
+		if (all || only == "sherpa")
+			addsherpa(arr, cat?.Sherpa);
+		if (all || only == "sapi")
+			addsysmodel(arr, "SAPI", "sapi", "Sapi", cat?.Sapi);
+		if (all || only == "winrt")
+			addsysmodel(arr, "Windows", "winrt", "WinRt", cat?.WinRt);
+		if (all || only == "edge")
+			addsysmodel(arr, "Edge Online", "edge", "Edge", cat?.Edge);
+		return arr;
+	}
+
+	static void addsherpa(JsonArray arr, List<TtsModelInfo> list) {
+		if (list == null) return;
+		foreach (var m in list) {
+			var speakers = new JsonArray();
+			if (m.Speakers != null) {
+				foreach (var s in m.Speakers) {
+					speakers.Add(new JsonObject {
+						["id"] = s.Id,
+						["name"] = s.Name ?? "",
+						["label"] = s.DisplayName ?? "",
+						["lang"] = s.Lang ?? "",
+						["gender"] = s.Gender ?? "",
+					});
+				}
+			}
+			arr.Add(new JsonObject {
+				["name"] = m.DisplayName ?? "",
+				["engine"] = "sherpa",
+				["type"] = m.Type.ToString(),
+				["speakers"] = speakers,
+			});
+		}
 	}
 
 	static void addsysmodel(JsonArray arr, string name, string engine, string type,

@@ -708,21 +708,37 @@ window.sktools = (function(){
 		return engine || "";
 	}
 
+	var ttsEdgeWait = 0;
+
 	function loadtts(){
 		if (ttsItems.length) return;
+		fetchtts();
+	}
+
+	function fetchtts(){
 		get("/api/tts/models", function(data){
-			ttsItems = data && data.length != null ? data : [];
+			var items = data && data.length != null ? data : [];
+			var hasEdge = false;
+			var i;
+			for (i = 0; i < items.length; i++) {
+				if ((items[i].engine || "") === "edge") { hasEdge = true; break; }
+			}
+			if (ttsItems.length && items.length <= ttsItems.length) return;
+			ttsItems = items;
 			var seen = {};
 			var rows = [];
-			var i;
 			for (i = 0; i < ttsItems.length; i++) {
 				var eng = ttsItems[i].engine || "";
 				if (seen[eng]) continue;
 				seen[eng] = true;
 				rows.push({ value: eng, label: ttslabel(eng) });
 			}
-			fillsel($("tts-eng"), rows, "");
+			fillsel($("tts-eng"), rows, $("tts-eng").value);
 			fillttsmodels();
+			if (!hasEdge && ttsEdgeWait < 2) {
+				ttsEdgeWait++;
+				setTimeout(fetchtts, ttsEdgeWait === 1 ? 2000 : 4000);
+			}
 		}, "tts-msg");
 	}
 

@@ -16,6 +16,8 @@ public partial class MainWindow {
 	/// <summary>x86 Web 枚举到的 SAPI 发音人缓存（按需刷新）。</summary>
 	List<SapiVoiceItem> sapiX86VoicesCache = new();
 	List<SapiVoiceItem> edgeVoicesCache = new();
+	readonly object ttsShareGate = new();
+	TtsUiCatalog ttsShare;
 	bool ttsUiLoading;
 	CancellationTokenSource ttsSpeakCts;
 	Task ttsSpeakTask;
@@ -185,6 +187,8 @@ public partial class MainWindow {
 		applyttsengineui();
 		restorettsmodelandvoice();
 		updatettsctrlui();
+		if (edgeVoicesCache.Count == 0)
+			_ = loadedgevoicesasync();
 	}
 
 	void restorettsprefs() {
@@ -486,6 +490,70 @@ public partial class MainWindow {
 			ttsModels = new List<TtsModelInfo>();
 			lbttshint.Text = "扫描模型失败: " + ex.Message;
 		}
+		publishttscatalog();
+	}
+
+	/// <summary>把语音合成页已经加载的模型和发音人交给 HTTP，网页打开时不再重扫。</summary>
+	void publishttscatalog() {
+		var models = ttsModels;
+		var x86 = sapiX86VoicesCache;
+		var edgeLocal = edgeVoicesCache;
+		List<SapiVoiceItem> edge;
+		if (edgeLocal != null && edgeLocal.Count > 0)
+			edge = edgeLocal.ToList();
+		else {
+			var cached = EdgeOnlineTts.Voices;
+			edge = cached != null && cached.Count > 0
+				? cached.ToList()
+				: new List<SapiVoiceItem>();
+		}
+		var cat = new TtsUiCatalog {
+			Sherpa = models != null ? models.ToList() : new List<TtsModelInfo>(),
+			Sapi = snapshotsapivoices(x86),
+			WinRt = winRtTts != null ? winRtTts.Voices.ToList() : new List<SapiVoiceItem>(),
+			Edge = edge,
+		};
+		lock (ttsShareGate) ttsShare = cat;
+	}
+
+	TtsUiCatalog readttscatalog() {
+		lock (ttsShareGate) return ttsShare;
+	}
+
+	List<SapiVoiceItem> snapshotsapivoices(List<SapiVoiceItem> x86) {
+		var list = new List<SapiVoiceItem>();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		if (sapiTts != null) {
+			foreach (var v in sapiTts.Voices) {
+				var name = v.Name ?? "";
+				if (name.Length == 0 || !seen.Add(name)) continue;
+				var culture = v.Culture?.Name ?? "";
+				var lang = SapiVoiceItem.LangOf(culture);
+				var g = v.Gender switch {
+					System.Speech.Synthesis.VoiceGender.Female => TtsGender.Female,
+					System.Speech.Synthesis.VoiceGender.Male => TtsGender.Male,
+					_ => "",
+				};
+				var gLabel = TtsGender.Label(g);
+				var tail = string.IsNullOrEmpty(culture) ? "" : " · " + culture;
+				if (!string.IsNullOrEmpty(gLabel)) tail += " · " + gLabel;
+				list.Add(new SapiVoiceItem {
+					DisplayName = name + tail,
+					Key = "sapi:" + name,
+					Name = name,
+					Culture = culture,
+					Lang = lang,
+					Gender = g,
+					Source = "sapi",
+				});
+			}
+		}
+		foreach (var v in x86 ?? Enumerable.Empty<SapiVoiceItem>()) {
+			if (string.IsNullOrEmpty(v.Name) || seen.Contains(v.Name)) continue;
+			seen.Add(v.Name);
+			list.Add(v);
+		}
+		return list;
 	}
 
 	string currentttslang() {
@@ -633,6 +701,7 @@ public partial class MainWindow {
 		try {
 			var voices = await edgeTts.LoadVoicesAsync(CancellationToken.None, force).ConfigureAwait(true);
 			edgeVoicesCache = voices.ToList();
+			publishttscatalog();
 		}
 		catch (Exception ex) {
 			error = ex.Message;
@@ -688,6 +757,7 @@ public partial class MainWindow {
 		try {
 			x86 = await Task.Run(() => SapiX86Client.ListVoices().ToList()).ConfigureAwait(true);
 			sapiX86VoicesCache = x86 ?? new List<SapiVoiceItem>();
+			publishttscatalog();
 		}
 		catch (Exception ex) {
 			err = ex.Message;

@@ -641,7 +641,7 @@ Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Syst
 | `winrt` | Windows |
 | `edge` | Edge Online |
 
-`GET /api/tts/models` lists models and voices. With no parameters it scans everything and keeps that result. The next full query returns the cache, and `cached` is `true`. `refresh=1` (or `true`) scans again. A full rescan replaces the cache.
+`GET /api/tts/models` lists models and voices. When the desktop app is open, the list is the one the speech tab already loaded, including every speaker, and the call returns at once with `cached` true. Otherwise, with no parameters, it scans everything and keeps that result. The next full query returns the cache. `refresh=1` (or `true`) scans again. A full rescan replaces the cache.
 
 `engine` returns one engine: `sherpa`, `sapi`, `winrt` (`windows` is accepted), or `edge`. If a full list is already cached, the filter uses that cache. An unknown `engine` returns 802.
 

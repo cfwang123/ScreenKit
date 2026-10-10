@@ -658,7 +658,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 | `winrt` | Windows |
 | `edge` | Edge Online |
 
-`GET /api/tts/models` 列出模型和发音人。不带参数时扫描全部，并记住这次结果。之后同样的全量查询直接返回缓存，响应里 `cached` 为 `true`。`refresh=1`（或 `true`）忽略缓存并重新扫描；全量重新扫描会换掉缓存。
+`GET /api/tts/models` 列出模型和发音人。桌面程序打开时，列表就是语音合成页已经加载的模型和全部发音人，调用立即返回，`cached` 为 `true`。没有这份列表时，不带参数会扫描全部并记住这次结果。之后同样的全量查询直接返回缓存。`refresh=1`（或 `true`）忽略缓存并重新扫描；全量重新扫描会换掉缓存。
 
 `engine` 只返回这一引擎：`sherpa`、`sapi`、`winrt`（也可写 `windows`）、`edge`。已有全量缓存时从缓存里筛，不再扫描。未知 `engine` 返回 802。
 

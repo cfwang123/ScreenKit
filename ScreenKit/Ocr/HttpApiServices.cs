@@ -19,4 +19,15 @@ sealed class HttpApiServices {
 
 	public Func<List<AsrModelInfo>> ScanAsr { get; set; }
 	public Func<List<TtsModelInfo>> ScanTts { get; set; }
+
+	/// <summary>桌面语音合成页已经加载的模型和发音人。HTTP 线程只读，不在请求里再扫描。</summary>
+	public Func<TtsUiCatalog> TtsCatalog { get; set; }
+}
+
+/// <summary>语音合成页当前的模型与发音人。发布后里面的列表不再改写。</summary>
+sealed class TtsUiCatalog {
+	public List<TtsModelInfo> Sherpa { get; set; }
+	public List<SapiVoiceItem> Sapi { get; set; }
+	public List<SapiVoiceItem> WinRt { get; set; }
+	public List<SapiVoiceItem> Edge { get; set; }
 }
