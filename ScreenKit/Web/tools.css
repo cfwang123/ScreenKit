@@ -311,7 +311,7 @@ input[type="file"] {
 }
 .usum {
 	position: sticky; top: 0; z-index: 2;
-	margin: 0 -4px 4px; padding: 6px 12px;
+	margin: 0 -4px 0; padding: 6px 12px 8px;
 	border-bottom: 1px solid var(--line); background: var(--card);
 	box-shadow: 0 -2px 0 var(--card);
 	color: var(--ink); font: 600 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
