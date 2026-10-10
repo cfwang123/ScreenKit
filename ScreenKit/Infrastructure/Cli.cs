@@ -3613,7 +3613,7 @@ static class Cli {
 		var use = ProcUse.SelfTest();
 		var dict = DictDb.MemSelfTest();
 		var p = MemUsage.Read();
-		Out($"ws={p.WorkingSet} priv={p.PrivateBytes} gc={p.GcBytes} self={code} dict={dict}");
+		Out($"ws={p.WorkingSet} pws={p.PrivateWs} priv={p.PrivateBytes} gc={p.GcBytes} self={code} dict={dict}");
 		Out($"commit={ProcUse.LastCommit} cpu={ProcUse.LastCpu:0.0} gpu={ProcUse.LastGpu:0.0} use={use}");
 		if (code != 0) Err("FAIL self=" + code);
 		if (use != 0) Err("FAIL use=" + use);

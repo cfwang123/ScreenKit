@@ -126,6 +126,7 @@ static class MemUsage {
 		}
 		var p = Read();
 		if (p.WorkingSet <= 0 || p.PrivateBytes <= 0) return 3;
+		if (p.PrivateWs <= 0 || p.PrivateWs > p.WorkingSet + (8L << 20)) return 5;
 		var g2 = GC.CollectionCount(2);
 		Trim();
 		if (GC.CollectionCount(2) <= g2) return 4;
