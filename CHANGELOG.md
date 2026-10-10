@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page splits QR / barcode into **二维码生成** and **二维码识别**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate still prints one line of the source text under the image.
 - The cast toolbar shows the current audio source. **Options** stays available while casting. It can turn audio on or off and pick speakers, the microphone, or both. The change applies to the live cast.
 - The recording toolbar shows the current audio source. **Options** stays available while recording and can change that source or turn audio off. The rest of the recording settings stay editable only before Start. GIF recording still has no audio.
 
@@ -60,7 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - The tools page **File transfer** link opens `/files` in a new window. The tools page stays open.
-- The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv, html, and md are the other choices.
+- The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
 - Tools-page unit conversion updates the result as soon as the number or a choice changes.
 - Tools-page text compare, JSON diff, and find-and-replace are removed. Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. Pick a kind, enter a number, then choose the original unit and the new unit. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. An old favorite of one of those unit tools opens 单位换算.
 - **Settings → Dictionary** has a result count. The dictionary lists that many hits. The range is 1–4000, and the default is 1000.
@@ -94,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页的「二维码 / 条码」分成 **二维码生成** 和 **二维码识别**。识别可 Ctrl+V 粘贴图片或选择文件，先显示预览再读码。生成仍在图下显示一行原文。
 - 投屏控制条显示当前声音来源。投屏中仍可点**选项**，开关声音或改成扬声器、麦克风、两者，马上作用到正在发送的投屏。
 - 录屏控制条显示当前声音来源。录制中仍可点**选项**，改声音来源或关闭声音。其它录制参数仍只在开始前修改。GIF 录屏仍然没有声音。
 
@@ -119,7 +121,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 工具页左下角的 **文件传输** 在新窗口打开 `/files`，工具页保持不动。
-- 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇，也可以选 csv、html、md。
+- 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇。csv 是表。html 和 md 是表格，列为单词、详情，详情列占满剩余宽度。
 - 工具页「单位换算」在修改数值或选项时立即出结果。
 - 工具页去掉文本比对、JSON 差异和查找替换。长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」：先选类型，再填数值、原单位和新单位。外币用中国银行 2026-10-10 中间价，结果里会注明。原来收藏了其中一项换算时，会打开「单位换算」。
 - **参数设置 → 词典** 增加结果条数。词典按这个数列出结果。范围 1～4000，默认 1000。

@@ -366,6 +366,15 @@ public partial class DictWindow : UserControl {
 
 	int exportgen;
 	bool exporting;
+	const string EXPORT_TABLE_CSS =
+		"<style>\r\n" +
+		"table,thead,tbody{display:block;width:100%}\r\n" +
+		"tr{display:flex;width:100%;border-bottom:1px solid #ccc}\r\n" +
+		"th,td{padding:6px 10px;text-align:left;vertical-align:top}\r\n" +
+		".w{flex:0 0 auto;border-right:1px solid #ccc}\r\n" +
+		".d{flex:1;white-space:pre-wrap;min-width:0}\r\n" +
+		"thead .w,thead .d{font-weight:bold;background:#f3f3f3}\r\n" +
+		"</style>\r\n";
 
 	void exporthits() {
 		if (exporting) return;
@@ -397,14 +406,25 @@ public partial class DictWindow : UserControl {
 	void writeexport(string path, string kind, string q, string dict, int gen) {
 		try {
 			var ids = DictDb.SearchIds(q, dict);
+			var table = kind == "html" || kind == "md";
 			var enc = new UTF8Encoding(kind == "csv");
 			using (var w = new StreamWriter(path, false, enc)) {
 				if (kind == "html") {
 					w.Write("<!DOCTYPE html>\r\n<html>\r\n<head><meta charset=\"utf-8\"><title>");
 					w.Write(htmlesc(q.Trim()));
-					w.Write("</title></head>\r\n<body>\r\n");
+					w.Write("</title>\r\n");
+					w.Write(EXPORT_TABLE_CSS);
+					w.Write("</head>\r\n<body>\r\n");
 				}
+				else if (kind == "md") w.Write(EXPORT_TABLE_CSS);
 				else if (kind == "csv") w.Write("dict,headword,detail\r\n");
+				if (table) {
+					w.Write("<table>\r\n<thead><tr><th class=\"w\">");
+					w.Write(htmlesc(Loc.T("dict.export.col.word")));
+					w.Write("</th><th class=\"d\">");
+					w.Write(htmlesc(Loc.T("dict.export.col.detail")));
+					w.Write("</th></tr></thead>\r\n<tbody>\r\n");
+				}
 				var n = 0;
 				foreach (var id in ids) {
 					if (gen != exportgen) return;
@@ -424,15 +444,12 @@ public partial class DictWindow : UserControl {
 						w.Write(csvcell(text));
 						w.Write("\r\n");
 					}
-					else if (kind == "html") {
-						if (n > 0) w.Write("<hr>\r\n");
-						w.Write("<pre>");
-						w.Write(htmlesc(text));
-						w.Write("</pre>\r\n");
-					}
 					else {
-						if (n > 0) w.Write("\r\n\r\n---\r\n\r\n");
-						w.Write(text);
+						w.Write("<tr><td class=\"w\">");
+						w.Write(htmlesc(word));
+						w.Write("</td><td class=\"d\">");
+						w.Write(htmlesc(text));
+						w.Write("</td></tr>\r\n");
 					}
 					n++;
 					if (n % 20 == 0 || n == ids.Count) {
@@ -444,6 +461,7 @@ public partial class DictWindow : UserControl {
 						}));
 					}
 				}
+				if (table) w.Write("</tbody></table>\r\n");
 				if (kind == "html") w.Write("</body>\r\n</html>\r\n");
 				var count = n;
 				Dispatcher.BeginInvoke(new Action(() => {
