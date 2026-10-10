@@ -13,6 +13,7 @@ TODO.md
 .vscode/Build/
 *.user
 *.suo
+*_wpftmp.csproj
 *.userosscache
 *.sln.docstates
 [Dd]ebug/
