@@ -297,7 +297,7 @@ input[type="file"] {
 .uquery input { flex: 1; height: 32px; margin-top: 0; }
 .uquery .msg { min-height: 0; white-space: nowrap; }
 .unitab { display: grid; grid-template-columns: 168px minmax(0, 1fr) 240px; gap: 12px; align-items: start; }
-.ugroups, .ugrid, .uprev { max-height: calc(100vh - 210px); overflow: auto; }
+.ugroups, .ugrid { max-height: calc(100vh - 210px); overflow: auto; }
 .ugroups {
 	border: 1px solid var(--line); border-radius: 10px; padding: 4px; background: var(--card);
 }
