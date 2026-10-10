@@ -40,11 +40,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
-- The tools page left categories and the search box now hide cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
+- The tools page search box hides cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
 
 #### Changed
 
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
+- The tools page lists every category on the left and that category's tools under a heading on the right. Scrolling the list highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
 
 ### 中文
@@ -56,11 +57,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
-- 工具页左侧分类和搜索会藏起不匹配的卡片。样式里的 `display` 盖过了 `hidden`，所以列表看起来一直不变。返回和工具内的收藏按钮在首页同样不再露出来。
+- 工具页搜索会藏起不匹配的卡片。样式里的 `display` 盖过了 `hidden`，所以列表看起来一直不变。返回和工具内的收藏按钮在首页同样不再露出来。
 
 #### 变更
 
 - 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
+- 工具页左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
 - `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。8 秒内没退完时，仍由 `slx` 结束进程再编译。全局 `slx` 脚本不改。监听端口仍是设定的那个。
 
 ## v1.0.17 (2026-10-09 ~ 10-10)
