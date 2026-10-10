@@ -680,8 +680,8 @@ window.sktools = (function(){
 		for (i = 0; i < speakers.length; i++) {
 			var sp = speakers[i] || {};
 			if (!ttsspeakerok(item, sp, want)) continue;
-			var label = sp.name || sp.key || String(i);
-			if (sp.lang) label += " · " + sp.lang;
+			var label = sp.label || sp.name || sp.key || String(i);
+			if (!sp.label && sp.lang) label += " · " + sp.lang;
 			rows.push({ value: String(i), label: label });
 			if (prev && ((prev.key && prev.key === sp.key) || (!prev.key && prev.name && prev.name === sp.name)))
 				pick = String(i);
@@ -735,7 +735,7 @@ window.sktools = (function(){
 		var blob = new Blob([bytes], { type: "audio/wav" });
 		var a = document.createElement("a");
 		var url = URL.createObjectURL(blob);
-		var name = (sp && (sp.name || sp.key)) || (item && item.name) || "tts";
+		var name = (sp && (sp.label || sp.name || sp.key)) || (item && item.name) || "tts";
 		name = String(name).replace(/[\\/:*?"<>|]+/g, " ").replace(/^\s+|\s+$/g, "");
 		if (!name) name = "tts";
 		if (name.length > 40) name = name.substring(0, 40).replace(/\s+$/g, "");
@@ -1016,11 +1016,16 @@ window.sktools = (function(){
 				var file = $("box-file").files && $("box-file").files[0];
 				if (file) seticopic(file);
 			};
+			var sizes = document.querySelectorAll('input[name="ico-size"]');
+			var s;
+			for (s = 0; s < sizes.length; s++) sizes[s].onchange = drawicoprev;
 			if (icoUrl) {
 				var prev = $("ico-img");
+				prev.onload = drawicoprev;
 				prev.src = icoUrl;
 				prev.hidden = false;
 			}
+			drawicoprev();
 		}
 		if (name === "u-ts") $("box-in").value = String(Math.floor(Date.now() / 1000));
 		if (name === "u-datediff" || name === "u-work") {
@@ -1182,10 +1187,11 @@ window.sktools = (function(){
 			return row2(lab("最小", textin("box-min", "1")), lab("最大", textin("box-max", "100")))
 				+ row2(lab("个数", numin("box-n", "5")), lab("类型", '<select id="box-kind"><option value="int">整数</option><option value="float">小数</option></select>'));
 		if (name === "u-pw")
-			return lab("长度", numin("box-len", "16"))
+			return row2(lab("长度", numin("box-len", "16")), lab("条数", numin("box-n", "5")))
 				+ check("box-low", "小写", true) + check("box-up", "大写", true)
 				+ check("box-dig", "数字", true) + check("box-sym", "符号", true)
-				+ check("box-amb", "去掉易混字符（0、O、o、1、l、I）", false);
+				+ check("box-amb", "去掉易混字符（0、O、o、1、l、I）", false)
+				+ check("box-each", "每类至少一个", true);
 		if (name === "u-uuid")
 			return lab("个数", numin("box-n", "1"));
 		if (name === "u-html")
@@ -1302,7 +1308,8 @@ window.sktools = (function(){
 				+ radio("ico-size", "ico-48", "48", false) + radio("ico-size", "ico-64", "64", false)
 				+ radio("ico-size", "ico-128", "128", false) + radio("ico-size", "ico-256", "256", false)
 				+ "</div>"
-				+ '<p class="hint">只生成所选的一种尺寸。画面等比放进方框，空白透明。</p>';
+				+ '<div class="ico-out"><canvas id="ico-prev" width="32" height="32"></canvas><span id="ico-prev-size">32×32</span></div>'
+				+ '<p class="hint">只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。画面等比放进方框，空白透明。</p>';
 		if (name === "u-btn")
 			return lab("文字", textin("box-in", "按钮"))
 				+ row2(lab("底色", textin("box-bg", "#f97316")), lab("字色", textin("box-fg", "#ffffff")))
@@ -1738,8 +1745,15 @@ window.sktools = (function(){
 
 	function pwtext(){
 		var len = parseInt(val("box-len"), 10);
-		if (!(len >= 4 && len <= 64)) throw new Error("长度要在 4 到 64");
+		var count = parseInt(val("box-n"), 10);
+		if (!isFinite(len)) len = 16;
+		if (len < 4) len = 4;
+		if (len > 128) len = 128;
+		if (!isFinite(count)) count = 5;
+		if (count < 1) count = 1;
+		if (count > 50) count = 50;
 		var drop = onbox("box-amb");
+		var each = onbox("box-each");
 		function clean(s){
 			return drop ? s.replace(/[0Oo1lI]/g, "") : s;
 		}
@@ -1747,16 +1761,30 @@ window.sktools = (function(){
 		if (onbox("box-low")) groups.push(clean("abcdefghijklmnopqrstuvwxyz"));
 		if (onbox("box-up")) groups.push(clean("ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
 		if (onbox("box-dig")) groups.push(clean("0123456789"));
-		if (onbox("box-sym")) groups.push("!@#$%^&*-_=+?");
+		if (onbox("box-sym")) groups.push("!@#$%^&*-_=+?~");
+		var kept = [];
 		var pool = "";
 		var g;
 		for (g = 0; g < groups.length; g++) {
 			if (!groups[g]) throw new Error("去掉易混字符后某一类是空的");
+			kept.push(groups[g]);
 			pool += groups[g];
 		}
 		if (!pool) throw new Error("请至少选一类字符");
+		if (each && len < kept.length) len = kept.length;
+		var lines = [];
+		var n;
+		for (n = 0; n < count; n++) lines.push(pwone(len, kept, pool, each));
+		return lines.join("\n");
+	}
+
+	function pwone(len, groups, pool, each){
 		var chars = [];
-		for (g = 0; g < groups.length && chars.length < len; g++) chars.push(groups[g].charAt(randint(groups[g].length)));
+		var g;
+		if (each) {
+			for (g = 0; g < groups.length; g++)
+				chars.push(groups[g].charAt(randint(groups[g].length)));
+		}
 		while (chars.length < len) chars.push(pool.charAt(randint(pool.length)));
 		for (var i = chars.length - 1; i > 0; i--) {
 			var j = randint(i + 1);
@@ -2566,10 +2594,47 @@ window.sktools = (function(){
 		icoUrl = URL.createObjectURL(file);
 		var img = $("ico-img");
 		if (img) {
+			img.onload = drawicoprev;
 			img.src = icoUrl;
 			img.hidden = false;
 		}
 		msg("box-msg", "已放入图片");
+	}
+
+	function icosize(){
+		var picked = document.querySelector('input[name="ico-size"]:checked');
+		var size = picked ? parseInt(picked.value, 10) : 32;
+		if (size !== 16 && size !== 32 && size !== 48 && size !== 64 && size !== 128 && size !== 256)
+			size = 32;
+		return size;
+	}
+
+	function drawicoprev(){
+		var canvas = $("ico-prev");
+		if (!canvas) return;
+		var size = icosize();
+		var label = $("ico-prev-size");
+		if (label) label.textContent = size + "×" + size;
+		canvas.width = size;
+		canvas.height = size;
+		var g = canvas.getContext("2d");
+		if (!g) return;
+		g.clearRect(0, 0, size, size);
+		var src = $("ico-img");
+		if (!src || src.hidden || !src.naturalWidth) return;
+		fiticon(g, src, size);
+	}
+
+	function fiticon(g, img, size){
+		var iw = img.naturalWidth || img.width;
+		var ih = img.naturalHeight || img.height;
+		if (!iw || !ih) return;
+		var scale = Math.min(size / iw, size / ih);
+		var w = Math.max(1, Math.round(iw * scale));
+		var h = Math.max(1, Math.round(ih * scale));
+		g.imageSmoothingEnabled = true;
+		try { g.imageSmoothingQuality = "high"; } catch (e) {}
+		g.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
 	}
 
 	function icogo(){
@@ -2577,10 +2642,7 @@ window.sktools = (function(){
 			msg("box-msg", "请选择或粘贴图片", true);
 			return;
 		}
-		var picked = document.querySelector('input[name="ico-size"]:checked');
-		var size = picked ? parseInt(picked.value, 10) : 32;
-		if (size !== 16 && size !== 32 && size !== 48 && size !== 64 && size !== 128 && size !== 256)
-			size = 32;
+		var size = icosize();
 		var sizes = [size];
 		var img = new Image();
 		img.onload = function(){
@@ -2619,13 +2681,8 @@ window.sktools = (function(){
 		canvas.height = size;
 		var g = canvas.getContext("2d");
 		if (!g) return Promise.reject();
-		var scale = Math.min(size / img.width, size / img.height);
-		var w = Math.max(1, Math.round(img.width * scale));
-		var h = Math.max(1, Math.round(img.height * scale));
 		g.clearRect(0, 0, size, size);
-		g.imageSmoothingEnabled = true;
-		try { g.imageSmoothingQuality = "high"; } catch (e) {}
-		g.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
+		fiticon(g, img, size);
 		return new Promise(function(ok, bad){
 			canvas.toBlob(function(blob){
 				if (!blob) { bad(); return; }

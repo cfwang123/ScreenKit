@@ -671,7 +671,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
       "engine": "sherpa",
       "type": "Vits",
       "speakers": [
-        { "id": 0, "name": "speaker0", "lang": "zh", "gender": "" }
+        { "id": 0, "name": "speaker0", "label": "speaker0", "lang": "zh", "gender": "" }
       ]
     },
     {
@@ -679,7 +679,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
       "engine": "sapi",
       "type": "Sapi",
       "speakers": [
-        { "id": 0, "name": "Microsoft Huihui Desktop", "lang": "zh", "gender": "female", "key": "sapi:Microsoft Huihui Desktop" }
+        { "id": 0, "name": "Microsoft Huihui Desktop", "label": "Microsoft Huihui Desktop · zh-CN · 女", "lang": "zh", "gender": "female", "key": "sapi:Microsoft Huihui Desktop" }
       ]
     },
     {
@@ -687,7 +687,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
       "engine": "winrt",
       "type": "WinRt",
       "speakers": [
-        { "id": 0, "name": "{voice-id}", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
+        { "id": 0, "name": "{voice-id}", "label": "Microsoft Hanhan · zh-TW · 女", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
       ]
     },
     {
@@ -695,7 +695,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
       "engine": "edge",
       "type": "Edge",
       "speakers": [
-        { "id": 0, "name": "ko-KR-SunHiNeural", "lang": "ko", "gender": "female", "key": "edge:ko-KR-SunHiNeural" }
+        { "id": 0, "name": "ko-KR-SunHiNeural", "label": "SunHi · ko-KR · 女", "lang": "ko", "gender": "female", "key": "edge:ko-KR-SunHiNeural" }
       ]
     }
   ],
@@ -704,7 +704,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 }
 ```
 
-Sherpa 每个模型最多列出 64 个 speaker。SAPI / Windows 列出全部已装发音人，Edge 在线目录从 Microsoft 获取。仅 x86 可见的 SAPI 音 `key` 前缀为 `sapi-x86:`。
+`label` 是和桌面下拉相同的可读名称。`name` 仍是合成用的原始名；Windows 语音的 `name` 是语音 Id。Sherpa 每个模型最多列出 64 个 speaker。SAPI / Windows 列出全部已装发音人，Edge 在线目录从 Microsoft 获取。仅 x86 可见的 SAPI 音 `key` 前缀为 `sapi-x86:`。
 
 ### 8.2 POST `/api/tts`
 

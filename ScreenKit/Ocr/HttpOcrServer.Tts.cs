@@ -218,6 +218,7 @@ sealed partial class HttpOcrServer {
 						speakers.Add(new JsonObject {
 							["id"] = s.Id,
 							["name"] = s.Name ?? "",
+							["label"] = s.DisplayName ?? "",
 							["lang"] = s.Lang ?? "",
 							["gender"] = s.Gender ?? "",
 						});
@@ -252,6 +253,7 @@ sealed partial class HttpOcrServer {
 			speakers.Add(new JsonObject {
 				["id"] = i,
 				["name"] = v.Name ?? "",
+				["label"] = string.IsNullOrEmpty(v.DisplayName) ? (v.Name ?? "") : v.DisplayName,
 				["lang"] = v.Lang ?? "",
 				["gender"] = v.Gender ?? "",
 				["key"] = v.Key ?? "",
@@ -504,8 +506,11 @@ sealed partial class HttpOcrServer {
 				var culture = v.Culture?.Name ?? "";
 				var lang = SapiVoiceItem.LangOf(culture);
 				var g = sapigender(v.Gender);
+				var gLabel = TtsGender.Label(g);
+				var tail = string.IsNullOrEmpty(culture) ? "" : " · " + culture;
+				if (!string.IsNullOrEmpty(gLabel)) tail += " · " + gLabel;
 				list.Add(new SapiVoiceItem {
-					DisplayName = v.Name ?? "",
+					DisplayName = (v.Name ?? "") + tail,
 					Key = "sapi:" + (v.Name ?? ""),
 					Name = v.Name ?? "",
 					Culture = culture,

@@ -36,17 +36,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
-- The tools page can turn a picture into an ICO. Paste or choose an image, preview it, pick one size (32 by default), then download. The picture fits inside the square, and the empty area stays transparent.
+- The tools page can turn a picture into an ICO. Paste or choose an image, preview it, pick one size (32 by default), then download. The square icon is also shown at that pixel size, with a border so the size is visible. The picture fits inside the square, and the empty area stays transparent.
 - The tools-page speech screen can filter voices by language and gender. **生成 WAV** downloads the same synthesis as **朗读**.
+- The tools-page random password tool generates 1 to 50 passwords at once. Length is 4 to 128. Each selected character set can be required at least once. The symbol set matches the desktop generator.
 
 #### Fixed
 
+- Tools-page speech voices use the same readable names as the desktop list. Windows voices no longer show the registry id.
 - The tools page search box hides cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
 
 #### Changed
 
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
 - The tools page lists every category on the left and that category's tools under a heading on the right. Scrolling the list highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
+- The tools-page random password card is under Text, directly after the Text tool.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
 
 ### 中文
@@ -54,17 +57,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
-- 工具页可以把图片做成 ICO。可粘贴或选择图片，先预览，再选一个尺寸（默认 32）后下载。画面等比放进方框，空白透明。
+- 工具页可以把图片做成 ICO。可粘贴或选择图片，先预览，再选一个尺寸（默认 32）后下载。方图按该像素大小显示，并有边框，方便看出大小。画面等比放进方框，空白透明。
+- 工具页的随机密码可以一次生成 1 到 50 条。长度 4 到 128。可选每类至少一个。符号集与桌面密码生成器相同。
 - 工具页的语音合成可以按语言和性别筛选发音人。**生成 WAV** 下载和朗读相同的合成结果。
 
 #### 修复
 
+- 工具页语音合成的发音人使用和桌面列表相同的可读名称。Windows 语音不再显示注册表 Id。
 - 工具页搜索会藏起不匹配的卡片。样式里的 `display` 盖过了 `hidden`，所以列表看起来一直不变。返回和工具内的收藏按钮在首页同样不再露出来。
 
 #### 变更
 
 - 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
 - 工具页左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
+- 工具页的随机密码改到「文字」分类，排在「文本」下面。
 - `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。8 秒内没退完时，仍由 `slx` 结束进程再编译。全局 `slx` 脚本不改。监听端口仍是设定的那个。
 
 ## v1.0.17 (2026-10-09 ~ 10-10)

@@ -654,7 +654,7 @@ Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Syst
       "engine": "sherpa",
       "type": "Vits",
       "speakers": [
-        { "id": 0, "name": "speaker0", "lang": "zh", "gender": "" }
+        { "id": 0, "name": "speaker0", "label": "speaker0", "lang": "zh", "gender": "" }
       ]
     },
     {
@@ -662,7 +662,7 @@ Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Syst
       "engine": "sapi",
       "type": "Sapi",
       "speakers": [
-        { "id": 0, "name": "Microsoft Huihui Desktop", "lang": "zh", "gender": "female", "key": "sapi:Microsoft Huihui Desktop" }
+        { "id": 0, "name": "Microsoft Huihui Desktop", "label": "Microsoft Huihui Desktop · zh-CN · 女", "lang": "zh", "gender": "female", "key": "sapi:Microsoft Huihui Desktop" }
       ]
     },
     {
@@ -670,7 +670,7 @@ Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Syst
       "engine": "winrt",
       "type": "WinRt",
       "speakers": [
-        { "id": 0, "name": "{voice-id}", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
+        { "id": 0, "name": "{voice-id}", "label": "Microsoft Hanhan · zh-TW · 女", "lang": "zh", "gender": "female", "key": "winrt:{voice-id}" }
       ]
     },
     {
@@ -678,7 +678,7 @@ Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Syst
       "engine": "edge",
       "type": "Edge",
       "speakers": [
-        { "id": 0, "name": "ko-KR-SunHiNeural", "lang": "ko", "gender": "female", "key": "edge:ko-KR-SunHiNeural" }
+        { "id": 0, "name": "ko-KR-SunHiNeural", "label": "SunHi · ko-KR · 女", "lang": "ko", "gender": "female", "key": "edge:ko-KR-SunHiNeural" }
       ]
     }
   ],
@@ -687,7 +687,7 @@ Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `Syst
 }
 ```
 
-Sherpa lists at most 64 speakers per model. SAPI / Windows list all installed voices; the Edge online catalog is fetched from Microsoft. x86-only SAPI voices have `key` prefix `sapi-x86:`.
+`label` is the same readable name as the desktop list. `name` stays the raw id used for synthesis; for Windows voices that id is the voice id. Sherpa lists at most 64 speakers per model. SAPI / Windows list all installed voices; the Edge online catalog is fetched from Microsoft. x86-only SAPI voices have `key` prefix `sapi-x86:`.
 
 ### 8.2 POST `/api/tts`
 
