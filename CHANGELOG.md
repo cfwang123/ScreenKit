@@ -59,6 +59,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv, html, and md are the other choices.
+- Tools-page unit conversion updates the result as soon as the number or a choice changes.
 - Tools-page text compare, JSON diff, and find-and-replace are removed. Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. Pick a kind, enter a number, then choose the original unit and the new unit. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. An old favorite of one of those unit tools opens 单位换算.
 - **Settings → Dictionary** has a result count. The dictionary lists that many hits. The range is 1–4000, and the default is 1000.
 - The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
@@ -115,6 +117,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇，也可以选 csv、html、md。
+- 工具页「单位换算」在修改数值或选项时立即出结果。
 - 工具页去掉文本比对、JSON 差异和查找替换。长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」：先选类型，再填数值、原单位和新单位。外币用中国银行 2026-10-10 中间价，结果里会注明。原来收藏了其中一项换算时，会打开「单位换算」。
 - **参数设置 → 词典** 增加结果条数。词典按这个数列出结果。范围 1～4000，默认 1000。
 - README 的「安装功能」列出精简包里哪些功能可以直接用，哪些要先安装，并写上各组件在安装器里的大约体积。

@@ -95,6 +95,7 @@ public partial class DictWindow : UserControl {
 		};
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
 		bspeak.Click += (_, _) => _ = speak(curspeak, speaklang(curlang));
+		bexport.Click += (_, _) => exporthits();
 		bselspeak.Click += (_, _) => _ = speak(seltext, sellang);
 		bselsearch.Click += (_, _) => {
 			var q = seltext;
@@ -211,6 +212,8 @@ public partial class DictWindow : UserControl {
 	void applylang() {
 		bspeak.Content = Loc.T("dict.speak");
 		bspeak.ToolTip = Loc.T("dict.speak.tip");
+		bexport.Content = Loc.T("dict.export");
+		bexport.ToolTip = Loc.T("dict.export.tip");
 		bselspeak.Content = Loc.T("dict.speak");
 		bselsearch.Content = Loc.T("dict.sel.search");
 		bseltr.Content = Loc.T("dict.sel.translate");
@@ -359,6 +362,228 @@ public partial class DictWindow : UserControl {
 		var say = row.Speak;
 		if (string.IsNullOrEmpty(say)) say = SpeakHead(row.Word, row.Dict);
 		_ = speak(say, speaklang(row.Dict));
+	}
+
+	int exportgen;
+	bool exporting;
+
+	void exporthits() {
+		if (exporting) return;
+		ensuredb();
+		if (!DictDb.Ready) return;
+		var q = esearch.Text ?? "";
+		if (string.IsNullOrWhiteSpace(q)) {
+			lbstatus.Text = Loc.T("dict.export.empty");
+			return;
+		}
+		var dict = filter ?? "";
+		var dlg = new Microsoft.Win32.SaveFileDialog {
+			Filter = "txt (*.txt)|*.txt|csv (*.csv)|*.csv|html (*.html)|*.html|markdown (*.md)|*.md",
+			FileName = exportname(q),
+			AddExtension = true,
+			DefaultExt = ".txt",
+			OverwritePrompt = true,
+		};
+		if (dlg.ShowDialog() != true) return;
+		var path = dlg.FileName;
+		var kind = exportkind(path);
+		exporting = true;
+		bexport.IsEnabled = false;
+		var gen = ++exportgen;
+		lbstatus.Text = Loc.T("dict.export.search");
+		Task.Run(() => writeexport(path, kind, q, dict, gen));
+	}
+
+	void writeexport(string path, string kind, string q, string dict, int gen) {
+		try {
+			var ids = DictDb.SearchIds(q, dict);
+			var enc = new UTF8Encoding(kind == "csv");
+			using (var w = new StreamWriter(path, false, enc)) {
+				if (kind == "html") {
+					w.Write("<!DOCTYPE html>\r\n<html>\r\n<head><meta charset=\"utf-8\"><title>");
+					w.Write(htmlesc(q.Trim()));
+					w.Write("</title></head>\r\n<body>\r\n");
+				}
+				else if (kind == "csv") w.Write("dict,headword,detail\r\n");
+				var n = 0;
+				foreach (var id in ids) {
+					if (gen != exportgen) return;
+					var e = DictDb.Get(id);
+					if (e == null) continue;
+					var text = detailplain(e);
+					var word = e.Word.Length > 0 ? e.Word : e.Headword;
+					if (kind == "txt") {
+						if (n > 0) w.Write("\r\n\r\n");
+						w.Write(text);
+					}
+					else if (kind == "csv") {
+						w.Write(csvcell(e.Dict));
+						w.Write(',');
+						w.Write(csvcell(word));
+						w.Write(',');
+						w.Write(csvcell(text));
+						w.Write("\r\n");
+					}
+					else if (kind == "html") {
+						if (n > 0) w.Write("<hr>\r\n");
+						w.Write("<pre>");
+						w.Write(htmlesc(text));
+						w.Write("</pre>\r\n");
+					}
+					else {
+						if (n > 0) w.Write("\r\n\r\n---\r\n\r\n");
+						w.Write(text);
+					}
+					n++;
+					if (n % 20 == 0 || n == ids.Count) {
+						var done = n;
+						var total = ids.Count;
+						Dispatcher.BeginInvoke(new Action(() => {
+							if (gen != exportgen) return;
+							lbstatus.Text = Loc.T("dict.export.busy", done, total);
+						}));
+					}
+				}
+				if (kind == "html") w.Write("</body>\r\n</html>\r\n");
+				var count = n;
+				Dispatcher.BeginInvoke(new Action(() => {
+					if (gen != exportgen) return;
+					lbstatus.Text = Loc.T("dict.export.done", count);
+				}));
+			}
+		}
+		catch (Exception ex) {
+			var msg = ex.Message;
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (gen != exportgen) return;
+				lbstatus.Text = Loc.T("dict.export.fail", msg);
+			}));
+		}
+		finally {
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (gen != exportgen) return;
+				exporting = false;
+				bexport.IsEnabled = true;
+			}));
+		}
+	}
+
+	static string exportkind(string path) {
+		var ext = Path.GetExtension(path ?? "").ToLowerInvariant();
+		if (ext == ".csv") return "csv";
+		if (ext == ".html" || ext == ".htm") return "html";
+		if (ext == ".md" || ext == ".markdown") return "md";
+		return "txt";
+	}
+
+	static string exportname(string q) {
+		var sb = new StringBuilder();
+		foreach (var c in (q ?? "").Trim()) {
+			if (c < ' ' || "\\/:*?\"<>|".IndexOf(c) >= 0) continue;
+			sb.Append(c);
+			if (sb.Length >= 40) break;
+		}
+		return sb.Length == 0 ? "dict" : sb.ToString();
+	}
+
+	static string csvcell(string s) {
+		s = s ?? "";
+		if (s.IndexOf('"') < 0 && s.IndexOf(',') < 0 && s.IndexOf('\r') < 0 && s.IndexOf('\n') < 0) return s;
+		return "\"" + s.Replace("\"", "\"\"") + "\"";
+	}
+
+	static string htmlesc(string s) {
+		if (string.IsNullOrEmpty(s)) return "";
+		return s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+	}
+
+	static string detailplain(DictEntry e) {
+		if (e == null) return "";
+		var lines = new List<string>();
+		var word = e.Word.Length > 0 ? e.Word : e.Headword;
+		var head = word;
+		if (e.Kanji.Length > 0 && e.Kanji != word) head += "  " + e.Kanji;
+		lines.Add(head);
+		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
+		if (reading.Length > 0) lines.Add(bracket(reading));
+		var zharticle = e.Dict == "zh" && e.Extra.Length > 0;
+		if (e.Pos.Length > 0) lines.Add(e.Pos);
+		if (!zharticle) {
+			var tags = new List<string>();
+			foreach (var u in e.Usage) {
+				if (u == null || u.Length == 0 || u == e.Pos) continue;
+				tags.Add(u);
+			}
+			if (tags.Count > 0) lines.Add(Loc.T("dict.lab.tags") + string.Join(" · ", tags));
+			if (e.Etymology.Length > 0) {
+				lines.Add(Loc.T("dict.lab.etym"));
+				foreach (var line in splitlines(e.Etymology)) lines.Add(line);
+			}
+			foreach (var c in e.Conjugations) lines.Add(Loc.T("dict.lab.conj") + c);
+			if (e.See.Count > 0) {
+				var see = new StringBuilder(Loc.T("dict.lab.see") + " ");
+				var first = true;
+				foreach (var s in e.See) {
+					if (s == null || s.Length == 0) continue;
+					if (!first) see.Append(" · ");
+					first = false;
+					see.Append(s);
+				}
+				lines.Add(see.ToString());
+			}
+			var n = 1;
+			string lastpos = null;
+			var anySense = false;
+			foreach (var s in e.Senses) {
+				if (s.Idiom.Length > 0) {
+					if (anySense) lines.Add("");
+					lines.Add(Loc.T("dict.lab.phrase") + " " + s.Idiom);
+				}
+				else if (anySense && !s.Sub) lines.Add("");
+				anySense = true;
+				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
+					lines.Add("▶ " + s.Pos);
+					lastpos = s.Pos;
+					n = 1;
+				}
+				var numbered = false;
+				void gloss(string tag, string lemma, string def) {
+					if (lemma.Length == 0 && def.Length == 0) return;
+					var p = "";
+					if (!numbered && !s.Sub) {
+						p = n + ". ";
+						numbered = true;
+						n++;
+					}
+					if (tag.Length > 0) p += tag + " ";
+					p += join2(lemma, def);
+					lines.Add(p);
+				}
+				if (s.Ko.Length > 0) gloss("", s.Ko, "");
+				gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef);
+				gloss(Loc.T("dict.lab.en"), s.En, s.EnDef);
+				gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef);
+				foreach (var ph in s.Phrases) {
+					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
+					lines.Add(Loc.T("dict.lab.phrase") + " " + ph.Text);
+					if (ph.Zh.Length > 0) lines.Add(Loc.T("dict.lab.zh") + " " + ph.Zh);
+				}
+				if (s.Sentences.Count > 0) lines.Add(Loc.T("dict.lab.example"));
+				foreach (var ex in s.Sentences) {
+					if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
+					lines.Add("· " + ex.Text);
+					if (ex.Zh.Length > 0) lines.Add(Loc.T("dict.lab.zh") + " " + ex.Zh);
+				}
+				if (!s.Sub && !numbered && s.Phrases.Count == 0 && s.Sentences.Count == 0)
+					lines.Add(n++ + ". " + Loc.T("dict.empty.sense"));
+				else if (!s.Sub && !numbered) lines.Add(n++ + ".");
+			}
+		}
+		if (e.Extra.Length > 0 && (zharticle || e.Dict != "zh")) {
+			if (lines.Count > 0) lines.Add("");
+			foreach (var line in splitlines(e.Extra)) lines.Add(line);
+		}
+		return string.Join("\r\n", lines);
 	}
 
 	void loaddetail(DictRow row) {

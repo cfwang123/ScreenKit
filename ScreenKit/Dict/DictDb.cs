@@ -231,26 +231,9 @@ static class DictDb {
 
 	/// <summary>dict 为空查全部，否则 zh / en / ja / ko。limit 为界面条数上限。</summary>
 	public static List<DictHit> Search(string rawq, string dict, int limit) {
-		var empty = new List<DictHit>();
-		if (string.IsNullOrWhiteSpace(rawq)) return empty;
 		if (limit < 1) limit = 1;
 		if (limit > SEARCH_MAX) limit = SEARCH_MAX;
-		var q = normalize(rawq);
-		if (q.Length == 0) return empty;
-		var d = normdict(dict);
-		var hits = new List<DictHit>();
-		lock (dblock) {
-			if (!readyunlocked()) return empty;
-			prefixkeys(q, d, hits);
-			var prefixN = uniquecount(hits);
-			var wantContains = shouldruncontains(q, prefixN, limit);
-			// 活用形通常不在索引里，先剥语尾，避免对整表做 %활용% 
-			var deferContains = wantContains && KoStem.HasHangul(q) && prefixN < 4;
-			if (wantContains && !deferContains) containskeys(q, d, hits);
-			if (wantstem(q, d, uniquecount(hits))) stemkeys(q, d, hits, limit);
-			if (deferContains && uniquecount(hits) < 4) containskeys(q, d, hits);
-		}
-		sort(hits);
+		var hits = match(rawq, dict, limit, FETCHCAP);
 		var outlist = new List<DictHit>();
 		var seen = new HashSet<long>();
 		foreach (var h in hits) {
@@ -262,6 +245,38 @@ static class DictDb {
 			if (readyunlocked()) fillmeta(outlist);
 		}
 		return outlist;
+	}
+
+	/// <summary>同一条查询的全部词条 id，不受界面条数和内部 4000 条上限约束。顺序与 Search 相同。</summary>
+	public static List<long> SearchIds(string rawq, string dict) {
+		var hits = match(rawq, dict, int.MaxValue, int.MaxValue);
+		var ids = new List<long>();
+		var seen = new HashSet<long>();
+		foreach (var h in hits) {
+			if (h.Id == 0 || !seen.Add(h.Id)) continue;
+			ids.Add(h.Id);
+		}
+		return ids;
+	}
+
+	static List<DictHit> match(string rawq, string dict, int limit, int cap) {
+		var hits = new List<DictHit>();
+		if (string.IsNullOrWhiteSpace(rawq)) return hits;
+		var q = normalize(rawq);
+		if (q.Length == 0) return hits;
+		var d = normdict(dict);
+		lock (dblock) {
+			if (!readyunlocked()) return hits;
+			prefixkeys(q, d, hits, cap);
+			var prefixN = uniquecount(hits);
+			var wantContains = shouldruncontains(q, prefixN, limit);
+			var deferContains = wantContains && KoStem.HasHangul(q) && prefixN < 4;
+			if (wantContains && !deferContains) containskeys(q, d, hits, cap);
+			if (wantstem(q, d, uniquecount(hits))) stemkeys(q, d, hits, limit);
+			if (deferContains && uniquecount(hits) < 4) containskeys(q, d, hits, cap);
+		}
+		sort(hits);
+		return hits;
 	}
 
 	public static DictEntry Get(long id) {
@@ -288,22 +303,22 @@ static class DictDb {
 		return e;
 	}
 
-	static void prefixkeys(string q, string dict, List<DictHit> hits) {
+	static void prefixkeys(string q, string dict, List<DictHit> hits, int cap) {
 		if (keys == null || q.Length == 0) return;
 		var lo = lowerkey(q);
 		var up = prefixhi(q);
 		var hi = up == null ? keys.Length : lowerkey(up);
 		var code = dictcode(dict);
 		if (code < 0) {
-			for (var i = lo; i < hi && hits.Count < FETCHCAP; i++)
-				addposts(i, -1, hits, q, "", -1, FETCHCAP, false);
+			for (var i = lo; i < hi && hits.Count < cap; i++)
+				addposts(i, -1, hits, q, "", -1, cap, false);
 			return;
 		}
 		var sc = scope[code];
 		var a = lowerint(sc, lo);
 		var b = lowerint(sc, hi);
-		for (var i = a; i < b && hits.Count < FETCHCAP; i++)
-			addposts(sc[i], code, hits, q, "", -1, FETCHCAP, false);
+		for (var i = a; i < b && hits.Count < cap; i++)
+			addposts(sc[i], code, hits, q, "", -1, cap, false);
 	}
 
 	static void exactkeys(string q, string dict, List<DictHit> hits, string via, int viarank) {
@@ -321,19 +336,19 @@ static class DictDb {
 		for (var k = 0; k < n; k++) hits.Add(tmp[k]);
 	}
 
-	static void containskeys(string q, string dict, List<DictHit> hits) {
+	static void containskeys(string q, string dict, List<DictHit> hits, int cap) {
 		if (keys == null || q.Length == 0) return;
 		var code = dictcode(dict);
 		if (countchars(q) >= 3) {
-			suffixkeys(q, code, hits);
-			infixkeys(q, code, hits);
+			suffixkeys(q, code, hits, cap);
+			infixkeys(q, code, hits, cap);
 			return;
 		}
-		for (var i = 0; i < keys.Length && hits.Count < FETCHCAP; i++) {
+		for (var i = 0; i < keys.Length && hits.Count < cap; i++) {
 			var key = keys[i];
 			if (key.IndexOf(q, StringComparison.Ordinal) < 0) continue;
 			if (key.StartsWith(q, StringComparison.Ordinal)) continue;
-			addposts(i, code, hits, q, "", -1, FETCHCAP, false);
+			addposts(i, code, hits, q, "", -1, cap, false);
 		}
 	}
 
@@ -347,7 +362,7 @@ static class DictDb {
 			var extra = new List<DictHit>();
 			exactkeys(cand, d, extra, q, vi);
 			if (extra.Count == 0 && countchars(cand) >= 2)
-				prefixkeys(cand, d, extra);
+				prefixkeys(cand, d, extra, FETCHCAP);
 			foreach (var h in extra) {
 				if (!seen.Add(h.Id)) continue;
 				if (h.Via.Length == 0) h.Via = q;
@@ -355,7 +370,8 @@ static class DictDb {
 				hits.Add(h);
 			}
 			vi++;
-			if (vi >= 8 || hits.Count >= limit * 2) break;
+			if (vi >= 8) break;
+			if (limit > 0 && limit <= int.MaxValue / 2 && hits.Count >= limit * 2) break;
 		}
 	}
 
@@ -604,20 +620,20 @@ static class DictDb {
 		return lo;
 	}
 
-	static void suffixkeys(string q, int code, List<DictHit> hits) {
+	static void suffixkeys(string q, int code, List<DictHit> hits, int cap) {
 		var rq = reversecps(q);
 		var up = prefixhi(rq);
 		var lo = lowerrev(rq);
 		var hi = up == null ? rev.Length : lowerrev(up);
-		for (var i = lo; i < hi && hits.Count < FETCHCAP; i++) {
+		for (var i = lo; i < hi && hits.Count < cap; i++) {
 			var lex = rev[i];
 			if (lex < 0 || lex >= keys.Length) continue;
 			if (keys[lex].StartsWith(q, StringComparison.Ordinal)) continue;
-			addposts(lex, code, hits, q, "", -1, FETCHCAP, false);
+			addposts(lex, code, hits, q, "", -1, cap, false);
 		}
 	}
 
-	static void infixkeys(string q, int code, List<DictHit> hits) {
+	static void infixkeys(string q, int code, List<DictHit> hits, int cap) {
 		if (grams == null || q.Length < 3) return;
 		HashSet<int> ids = null;
 		var seen = new HashSet<string>();
@@ -634,13 +650,13 @@ static class DictDb {
 		var list = new List<int>(ids);
 		list.Sort();
 		foreach (var lex in list) {
-			if (hits.Count >= FETCHCAP) break;
+			if (hits.Count >= cap) break;
 			if (lex < 0 || lex >= keys.Length) continue;
 			var key = keys[lex];
 			if (key.IndexOf(q, StringComparison.Ordinal) < 0) continue;
 			if (key.StartsWith(q, StringComparison.Ordinal)) continue;
 			if (key.EndsWith(q, StringComparison.Ordinal)) continue;
-			addposts(lex, code, hits, q, "", -1, FETCHCAP, true);
+			addposts(lex, code, hits, q, "", -1, cap, true);
 		}
 	}
 

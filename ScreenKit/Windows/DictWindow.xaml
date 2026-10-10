@@ -15,6 +15,9 @@
 			<Button x:Name="bspeak" DockPanel.Dock="Right" Content="发音" Height="28" MinWidth="52"
 			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 			        AutomationProperties.AutomationId="dict.speak"/>
+			<Button x:Name="bexport" DockPanel.Dock="Right" Content="导出" Height="28" MinWidth="52"
+			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
+			        AutomationProperties.AutomationId="dict.export"/>
 			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"
 			            AutomationProperties.AutomationId="dict.filter">
 				<ToggleButton x:Name="bfiltall" Content="全部" Height="28" Padding="8,0" FontSize="12"
