@@ -8,17 +8,26 @@
 		["addr", "地址"],
 		["corp", "公司"],
 		["user", "用户名"],
-		["id", "身份证"]
+		["id", "身份证"],
+		["mac", "MAC 地址"],
+		["uuid", "UUID"]
 	];
 	var SUR = "赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张";
 	var GIV = "伟芳娜敏静磊洋艳勇杰涛明超秀英丽强军平刚桂英";
 	SK.regutil("u-fake", {
-		title: "测试数据",
+		title: "生成测试数据",
 		go: "生成",
 		body: function(){
+			var kind = SK.fakepick || "name";
+			SK.fakepick = "";
 			return SK.row2(
-				SK.lab("类型", '<select id="box-kind">' + SK.opts(KINDS, "name") + "</select>"),
+				SK.lab("类型", '<select id="box-kind">' + SK.opts(KINDS, kind) + "</select>"),
 				SK.lab("行数", SK.numin("box-n", "5")));
+		},
+		open: function(){
+			if (!SK.fakerun) return;
+			SK.fakerun = 0;
+			SK.utilrun();
 		},
 		run: function(){
 			return fakedata(SK.val("box-n"), SK.val("box-kind"));
@@ -42,8 +51,31 @@
 		if (kind === "id") return idno();
 		if (kind === "cnnick") return cnnick();
 		if (kind === "ennick") return ennick();
+		if (kind === "mac") return mac();
+		if (kind === "uuid") return uuid();
 		if (kind === "name") return cname();
 		throw new Error("请选择类型");
+	}
+
+	function mac(){
+		if (!window.crypto || typeof crypto.getRandomValues !== "function") throw new Error("浏览器不能生成随机数");
+		var b = new Uint8Array(6);
+		crypto.getRandomValues(b);
+		b[0] = (b[0] & 252) | 2;
+		var parts = [];
+		var j;
+		for (j = 0; j < 6; j++) parts.push(SK.hex2(b[j]).toUpperCase());
+		return parts.join(":");
+	}
+
+	function uuid(){
+		if (!window.crypto || typeof crypto.getRandomValues !== "function") throw new Error("浏览器不能生成随机数");
+		var b = new Uint8Array(16);
+		crypto.getRandomValues(b);
+		b[6] = (b[6] & 15) | 64;
+		b[8] = (b[8] & 63) | 128;
+		var h = SK.hexbytes(b);
+		return h.slice(0, 8) + "-" + h.slice(8, 12) + "-" + h.slice(12, 16) + "-" + h.slice(16, 20) + "-" + h.slice(20);
 	}
 
 	function cnnick(){

@@ -13,6 +13,16 @@ sealed class TextStats {
 	public int GbkBytes;
 }
 
+/// <summary>一个码位在各代码页里的字节。空字符串表示该编码放不下。</summary>
+sealed class CodePageRow {
+	public string Gbk;
+	public string Gb18030;
+	public string Big5;
+	public string ShiftJis;
+	public string EucKr;
+	public string Latin1;
+}
+
 /// <summary>文本编解码 / 空白 / 统计。</summary>
 static class TextTools {
 	static bool encReady;
@@ -70,6 +80,25 @@ static class TextTools {
 
 	public static string GbkHex(string text) =>
 		tohex(Gbk.GetBytes(text ?? ""));
+
+	/// <summary>
+	/// 一个 Unicode 码位转到 GBK、GB18030、Big5、Shift_JIS、EUC-KR、Latin-1。
+	/// 放不下时对应字段为空。码位非法时返回 null。
+	/// </summary>
+	public static CodePageRow CodePages(int cp) {
+		if (cp < 0 || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return null;
+		string text;
+		try { text = char.ConvertFromUtf32(cp); }
+		catch (ArgumentOutOfRangeException) { return null; }
+		return new CodePageRow {
+			Gbk = pagehex(936, text),
+			Gb18030 = pagehex(54936, text),
+			Big5 = pagehex(950, text),
+			ShiftJis = pagehex(932, text),
+			EucKr = pagehex(51949, text),
+			Latin1 = cp <= 0xFF ? pagehex(28591, text) : "",
+		};
+	}
 
 	public static string FromUtf8Hex(string hex) =>
 		Encoding.UTF8.GetString(fromhex(hex));
@@ -220,6 +249,20 @@ static class TextTools {
 		var nl = text.Contains("\r\n") ? "\r\n" : "\n";
 		var parts = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
 		return string.Join(nl, parts.Where(l => l.Trim().Length > 0));
+	}
+
+	static string pagehex(int page, string text) {
+		ensureenc();
+		Encoding enc;
+		try { enc = (Encoding)Encoding.GetEncoding(page).Clone(); }
+		catch { return ""; }
+		enc.EncoderFallback = EncoderFallback.ExceptionFallback;
+		byte[] bytes;
+		try { bytes = enc.GetBytes(text); }
+		catch (EncoderFallbackException) { return ""; }
+		// Windows CP936 把欧元放在 0x80。码表和 Python gbk 都没有这一字节。
+		if (page == 936 && bytes.Length == 1 && bytes[0] == 0x80) return "";
+		return tohex(bytes);
 	}
 
 	static string tohex(byte[] bytes) {

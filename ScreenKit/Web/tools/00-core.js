@@ -59,6 +59,12 @@ SK.watchAcc = 0;
 		if (start === "u-byte" || start === "u-len" || start === "u-temp" || start === "u-px"
 			|| start === "u-mass" || start === "u-area" || start === "u-vol" || start === "u-tunit"
 			|| start === "u-press" || start === "u-power") start = "u-unit";
+		if (start === "u-datediff" || start === "u-dadd" || start === "u-madd") start = "u-datecalc";
+		if (start === "u-mac" || start === "u-uuid") {
+			SK.fakepick = start === "u-mac" ? "mac" : "uuid";
+			SK.fakerun = 1;
+			start = "u-fake";
+		}
 		if (start && start !== "home" && cardof(start)) show(start, true);
 	}
 
@@ -115,6 +121,12 @@ SK.watchAcc = 0;
 		if (id === "u-byte" || id === "u-len" || id === "u-temp" || id === "u-px"
 			|| id === "u-mass" || id === "u-area" || id === "u-vol" || id === "u-tunit"
 			|| id === "u-press" || id === "u-power") id = "u-unit";
+		if (id === "u-datediff" || id === "u-dadd" || id === "u-madd") id = "u-datecalc";
+		if (id === "u-mac" || id === "u-uuid") {
+			SK.fakepick = id === "u-mac" ? "mac" : "uuid";
+			SK.fakerun = 1;
+			id = "u-fake";
+		}
 		if (!id || id === "home") {
 			if (SK.curtool !== "home") show("home", true);
 			return;
@@ -331,6 +343,8 @@ SK.watchAcc = 0;
 			if (id === "u-byte" || id === "u-len" || id === "u-temp" || id === "u-px"
 				|| id === "u-mass" || id === "u-area" || id === "u-vol" || id === "u-tunit"
 				|| id === "u-press" || id === "u-power") id = "u-unit";
+			if (id === "u-datediff" || id === "u-dadd" || id === "u-madd") id = "u-datecalc";
+			if (id === "u-mac" || id === "u-uuid") id = "u-fake";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;
 			favs.push(id);

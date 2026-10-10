@@ -69,6 +69,7 @@ static class HttpApiCatalog {
 		add(list, "GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");
 		add(list, "POST /api/jpyomi", "POST", "/api/jpyomi", "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}", "http.doc.jpyomi");
 		add(list, "POST /api/text", "POST", "/api/text", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}", "http.doc.text", accept: "GET/POST");
+		add(list, "GET /api/enc", "GET", "/api/enc?cp=21834", "", "http.doc.enc", accept: "GET/POST");
 		add(list, "POST /api/qrmake", "POST", "/api/qrmake", "{\n  \"text\": \"hello\",\n  \"format\": \"qr\",\n  \"encoding\": \"utf8\"\n}", "http.doc.qrmake", accept: "GET/POST");
 		add(list, "POST /api/qrscan", "POST", "/api/qrscan", "{\n  \"base64\": \"\"\n}", "http.doc.qrscan");
 		add(list, "POST /api/cast/stop", "POST", "/api/cast/stop", "", "http.doc.caststop", accept: "GET/POST");

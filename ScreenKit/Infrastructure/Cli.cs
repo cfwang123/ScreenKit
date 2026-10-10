@@ -3064,6 +3064,23 @@ static class Cli {
 				Err("FAIL: url");
 				bad++;
 			}
+			bad += checkcp(0x41, "41", "41", "41", "41", "41", "41");
+			bad += checkcp(0x4E00, "d2 bb", "d2 bb", "a4 40", "88 ea", "ec e9", "");
+			bad += checkcp(0x554A, "b0 a1", "b0 a1", "b0 da", "", "", "");
+			bad += checkcp(0x570B, "87 f8", "87 f8", "b0 ea", "9a a0", "cf d0", "");
+			bad += checkcp(0x3042, "a4 a2", "a4 a2", "", "82 a0", "aa a2", "");
+			bad += checkcp(0xE9, "a8 a6", "a8 a6", "", "", "", "e9");
+			bad += checkcp(0x20AC, "", "a2 e3", "a3 e1", "", "a2 e6", "");
+			bad += checkcp(0xE5E5, "a3 a0", "a3 a0", null, null, null, null);
+			bad += checkcp(0xE7C7, "a8 bc", "a8 bc", null, null, null, null);
+			bad += checkcp(0x1F600, "", "94 39 fc 36", "", "", "", "");
+			bad += checkcp(0xAC00, "", "82 37 cf 35", "", "", "b0 a1", "");
+			bad += checkcp(0xA5, "", "81 30 84 36", "", "", "", "a5");
+			bad += checkcp(0x100, "", "81 30 8b 38", "", "", "", "");
+			if (TextTools.CodePages(0xD800) != null) {
+				Err("FAIL: surrogate");
+				bad++;
+			}
 			var st = TextTools.Stats("a\nb");
 			if (st.Lines != 2 || st.Chars != 3) {
 				Err($"FAIL: stats lines={st.Lines} chars={st.Chars}");
@@ -3083,6 +3100,29 @@ static class Cli {
 		}
 		Out(bad == 0 ? "=== OK：文本小工具 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	static int checkcp(int cp, string gbk, string gb, string big5, string sjis, string kr, string latin1) {
+		var row = TextTools.CodePages(cp);
+		if (row == null) {
+			Err($"FAIL: cp U+{cp:X}");
+			return 1;
+		}
+		var bad = 0;
+		bad += cpsame("gbk", cp, row.Gbk, gbk);
+		bad += cpsame("gb18030", cp, row.Gb18030, gb);
+		bad += cpsame("big5", cp, row.Big5, big5);
+		bad += cpsame("shift_jis", cp, row.ShiftJis, sjis);
+		bad += cpsame("euc_kr", cp, row.EucKr, kr);
+		bad += cpsame("latin1", cp, row.Latin1, latin1);
+		return bad;
+	}
+
+	static int cpsame(string name, int cp, string got, string want) {
+		if (want == null) return 0;
+		if (string.Equals(got ?? "", want ?? "", StringComparison.OrdinalIgnoreCase)) return 0;
+		Err($"FAIL: U+{cp:X} {name} got '{got}' want '{want}'");
+		return 1;
 	}
 
 	static int testpwgen() {
@@ -3521,10 +3561,13 @@ static class Cli {
 	static int testmem() {
 		Out("=== 内存占用 --test-mem ===");
 		var code = MemUsage.SelfTest();
+		var use = ProcUse.SelfTest();
 		var p = MemUsage.Read();
 		Out($"ws={p.WorkingSet} priv={p.PrivateBytes} gc={p.GcBytes} self={code}");
+		Out($"commit={ProcUse.LastCommit} cpu={ProcUse.LastCpu:0.0} gpu={ProcUse.LastGpu:0.0} use={use}");
 		if (code != 0) Err("FAIL self=" + code);
-		return code;
+		if (use != 0) Err("FAIL use=" + use);
+		return code != 0 ? code : use;
 	}
 
 	static int testortlazy() {

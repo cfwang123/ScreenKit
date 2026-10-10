@@ -35,8 +35,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- The tools-page timestamp tool has a date-time picker. Choosing a time fills the text and converts. Converting a timestamp moves the picker to that local time.
-- The Unicode code chart preview lists GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. A code point those encodings cannot store shows 无. Latin-1 is shown for U+0000 through U+00FF. UTF-32 is listed with the other Unicode forms.
+- The left of the main-window status bar shows this program's commit size, CPU, and GPU. It updates every 2 seconds while the window is visible.
+- The tools-page timestamp tool has a date-time picker. Choosing a time fills the text and converts. Typing a timestamp or a date converts immediately. Converting moves the picker to that local time.
+- The Unicode code chart preview lists UTF-32, GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. Those code-page bytes come from `GET/POST /api/enc`. A code point an encoding cannot store shows 无. Latin-1 is shown for U+0000 through U+00FF.
 - Tools-page unit conversion (单位换算) takes a unit right in the number box, such as `1米`, `3斤`, or `5kg`: the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind, such as `1米`, `1000毫米`, `100厘米`, `0.001千米`, `39.3700787402英寸`. Every conversion echoes what you entered on the first line; picking one unit puts that single answer on the next line, as in `1米` then `3.280839895英尺`.
 - The tools-page image-to-ICO screen can scale the picture with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
 - The tools page adds **GBK码表**, next to **Unicode码表**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank. The Unicode chart card is named Unicode码表.
@@ -104,8 +105,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 工具页的时间戳增加日期时间选择。选好时间会写入文本并转换。转换时间戳时，选择控件会跳到对应的本地时间。
-- Unicode码表选中字符后，预览列出 GBK、GB18030、Big5、Shift_JIS、EUC-KR。这些编码放不下的码位显示「无」。U+0000 到 U+00FF 另外显示 Latin-1。UTF-32 和原来的 Unicode 编码排在一起。
+- 主窗口状态栏左边显示本程序的提交大小、CPU 和 GPU。窗口可见时每 2 秒更新。
+- 工具页的时间戳增加日期时间选择。选好时间会写入文本并转换。输入时间戳或日期时马上转换。转换时，选择控件会跳到对应的本地时间。
+- Unicode码表选中字符后，预览列出 UTF-32、GBK、GB18030、Big5、Shift_JIS、EUC-KR。这些代码页的字节由 `GET/POST /api/enc` 计算。放不下的码位显示「无」。U+0000 到 U+00FF 另外显示 Latin-1。
 - 工具页「单位换算」的数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它：一次按该类型的单位逐行列出，如 `1米`、`1000毫米`、`100厘米`、`0.001千米`、`39.3700787402英寸`。每次换算的第 1 行都回显原值；选具体单位时，第 2 行就是那一行结果，例如 `1米` 下面是 `3.280839895英尺`。
 - 工具页的图片转 ICO 可以选缩放：fit、拉伸、裁剪。默认 fit，等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满并切掉多余部分。预览和下载的图标用同一种。
 - 工具页增加 **GBK码表**，放在 **Unicode码表** 旁边。左边按首字节分页，每页 16 列。点一下复制字符。右边显示 GBK 字节、有区位时的区位码、Unicode 码位和 UTF-8。空位留空。原来的 Unicode 表改名为 Unicode码表。

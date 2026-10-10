@@ -18,6 +18,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/calendar 历法</item>
 /// <item>GET/POST /api/jpyomi 日文注音</item>
 /// <item>GET/POST /api/text 文本编解码</item>
+/// <item>GET/POST /api/enc 单码位代码页（GBK、GB18030、Big5、Shift_JIS、EUC-KR、Latin-1）</item>
 /// <item>POST /api/qrmake 生成二维码/条码 · POST /api/qrscan 识别</item>
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/models · /api/ocr/get_options · POST /api/ocr</item>
@@ -207,6 +208,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handletext(ctx);
+				return;
+			}
+
+			if (path is "/api/enc" or "/api/enc/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "enc 仅支持 GET 或 POST"));
+					return;
+				}
+				handleenc(ctx);
 				return;
 			}
 
@@ -598,6 +608,74 @@ sealed partial class HttpOcrServer : IDisposable {
 				["op"] = op,
 			},
 		});
+	}
+
+	void handleenc(SockCtx ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		if (!readcp(ctx, jo, out var cp)) return;
+		var row = TextTools.CodePages(cp);
+		if (row == null) {
+			writejson(ctx, 200, err(802, "cp 超出范围"));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["cp"] = cp,
+				["gbk"] = row.Gbk,
+				["gb18030"] = row.Gb18030,
+				["big5"] = row.Big5,
+				["shift_jis"] = row.ShiftJis,
+				["euc_kr"] = row.EucKr,
+				["latin1"] = row.Latin1,
+			},
+		});
+	}
+
+	static bool readcp(SockCtx ctx, JsonObject jo, out int cp) {
+		cp = -1;
+		var raw = (field(ctx, jo, "cp") ?? "").Trim();
+		if (raw.Length > 0) {
+			if (!parsecp(raw, out cp)) {
+				writejson(ctx, 200, err(802, "cp 应为十进制、0x 或 U+"));
+				return false;
+			}
+			return true;
+		}
+		var text = field(ctx, jo, "text") ?? field(ctx, jo, "ch") ?? "";
+		if (text.Length == 0) {
+			writejson(ctx, 200, err(802, "请提供 cp"));
+			return false;
+		}
+		if (!onecp(text, out cp)) {
+			writejson(ctx, 200, err(802, "只能转换一个字符"));
+			return false;
+		}
+		return true;
+	}
+
+	static bool parsecp(string raw, out int cp) {
+		cp = -1;
+		var hex = false;
+		if (raw.StartsWith("U+", StringComparison.OrdinalIgnoreCase)) {
+			raw = raw.Substring(2);
+			hex = true;
+		}
+		else if (raw.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
+			raw = raw.Substring(2);
+			hex = true;
+		}
+		if (raw.Length == 0) return false;
+		return int.TryParse(raw, hex ? NumberStyles.HexNumber : NumberStyles.Integer, CultureInfo.InvariantCulture, out cp);
+	}
+
+	static bool onecp(string text, out int cp) {
+		cp = -1;
+		if (string.IsNullOrEmpty(text)) return false;
+		try { cp = char.ConvertToUtf32(text, 0); }
+		catch (ArgumentException) { return false; }
+		var n = cp > 0xFFFF ? 2 : 1;
+		return text.Length == n;
 	}
 
 	void handleqrmake(SockCtx ctx) {
@@ -1951,6 +2029,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /  本机工具页",
 			"GET  /sk/tools.css · /sk/tools.js · /sk/fa.css · /sk/fa-solid-900.woff2",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
+			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
 			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",
 			"POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart",
 			"GET  /api/status",
