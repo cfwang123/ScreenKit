@@ -372,3 +372,42 @@ input[type="file"] {
 	margin: 0; font: 12px/1.45 Consolas, "Microsoft YaHei UI", monospace;
 	word-break: break-all;
 }
+#box.panel.on:has(.ctab) { overflow: hidden; }
+#box.panel.on:has(.ctab) #box-body {
+	flex: 1 1 auto; min-height: 0;
+	display: flex; flex-direction: column;
+}
+.ctab {
+	display: grid; grid-template-columns: 148px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+	gap: 12px; flex: 1 1 auto; min-height: 0;
+}
+.ctab .uquery { grid-column: 1 / -1; margin: 0; }
+.cgroups {
+	min-height: 0; overflow: auto;
+	border: 1px solid var(--line); border-radius: 10px; padding: 4px; background: var(--card);
+}
+.cgroups button {
+	display: flex; align-items: center; justify-content: space-between; width: 100%;
+	text-align: left; cursor: pointer;
+	border: 0; background: transparent; color: var(--ink); border-radius: 6px;
+	padding: 6px 8px; font: 13px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.cgroups button small { color: var(--muted); font-size: 12px; }
+.cgroups button.on { background: #f97316; color: #fff; }
+.cgroups button.on small { color: #fff; }
+.cgrid {
+	min-height: 0; overflow: auto; align-content: start;
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px;
+}
+.cgrid button {
+	display: flex; flex-direction: column; align-items: stretch; height: auto;
+	padding: 0; cursor: pointer; overflow: hidden; text-align: left;
+	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
+}
+.cgrid i { display: block; height: 42px; }
+.cgrid b { padding: 6px 8px 0; font-size: 13px; font-weight: 600; }
+.cgrid small {
+	padding: 0 8px 6px; color: var(--muted);
+	font: 12px/1.4 Consolas, "Microsoft YaHei UI", monospace;
+}
+.cnone { margin: 8px; color: var(--muted); }

@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page adds Common colors under Image. Colors are grouped by hue. A click copies the hex value.
 - The tools page opens in the desktop UI language. A choice in the page language menu lasts until the page is opened again. The desktop Web tools menu lists each tool in that same language.
 - The tools page language menu loads `/sk/L.js`. ScreenKit builds that script when it is requested. The script is one assignment, `L={...}`. Each value is an array of the installed UI languages, in the same order as the desktop language list, Chinese first. The browser may cache the script for 1 hour. Restarting ScreenKit changes the script address, so the next page load fetches it again. Choosing a language updates the open page at once and does not reload it.
 - `ScreenKit --test-mem-load` starts one process per feature (baseline, OCR, translation, offline ASR, streaming ASR, TTS, dictionary, face) and prints commit size, private working set, and working set after that feature loads. The default device is CPU. ASR and TTS load the smallest installed model. `winocr` runs Windows OCR on a tiny image and does not load an ONNX pack.
@@ -64,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页在图像分类增加常用颜色表。按红、橙、黄、绿、青、蓝、紫等分组。点一下复制十六进制。
 - 工具页打开时使用桌面程序的界面语言。在页面里改语言只保持到下次打开。桌面「web工具」菜单按同一语言列出每个工具。
 - 工具页侧栏的语言菜单加载 `/sk/L.js`。程序在请求时生成这个脚本，内容是一次赋值 `L={...}`。每个值是已安装界面语言组成的数组，顺序与桌面语言列表相同，中文在前。浏览器可缓存 1 小时。重新启动后脚本地址会变，下次打开页面会重新取。切换语言立即改当前页上的文字，不刷新页面。
 - `ScreenKit --test-mem-load` 为每个功能单独冷启动（基线、识别、翻译、离线语音识别、流式语音识别、语音合成、词典、人脸），打印加载后的提交大小、专用工作集和工作集。默认 CPU。语音识别和语音合成加载已安装模型里最小的一份。`winocr` 用一张小图走 Windows 自带识别，不加载 ONNX 模型包。
