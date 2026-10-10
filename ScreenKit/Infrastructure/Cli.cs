@@ -3943,10 +3943,10 @@ static class Cli {
 			Out("ja forms " + forms);
 			return 6;
 		}
-		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict.db");
+		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict2.db");
 		if (!DictDb.Init(path)) {
 			if (DictDb.Error == "missing")
-				Out("dict.db not found beside exe");
+				Out("dict2.db not found beside exe");
 			else if (DictDb.Error == "sqlite")
 				Out("e_sqlite3.dll is not installed. Install SQLite from Help → Install features.");
 			else
@@ -4043,7 +4043,7 @@ static class Cli {
 		using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
 			len2 = fs.Length;
 		if (len2 != len || File.GetLastWriteTimeUtc(path).Ticks != ticks) {
-			Out("dict.db changed");
+			Out("dict2.db changed");
 			return 5;
 		}
 		Out("dict ok readonly bytes=" + len);
@@ -4646,7 +4646,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-mem  进程内存读取，以及模型文件大小统计
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
-      --test-dict-search  只读查询 exe 旁 dict.db（默认 学生 与 hello）；韩语词组行有发音按钮
+      --test-dict-search  只读查询 exe 旁 dict2.db（默认 学生 与 hello）；韩语词组行有发音按钮
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关

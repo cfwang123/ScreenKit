@@ -49,7 +49,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). |
-| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict.db` is not in the release archive. **Help → Install features** can download it. |
+| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict2.db` is not in the release archive. **Help → Install features** can download it when the dictionary archive contains that file. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -92,7 +92,7 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 
 ### Data sources
 
-`dict.db` holds four dictionaries in one file. ScreenKit does not build the file.
+`dict2.db` holds four dictionaries in one file. Each word is stored once, and search uses the packed index in that file. ScreenKit does not build the file. The published dictionary archive has to contain `dict2.db`.
 
 - **Chinese.** Characters, words, and idioms from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). License: MIT. The upstream project notes that the origin of some material is unclear.
 - **Japanese.** Vocabulary senses from the [JMdict/EDICT Dictionary Project](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG). License: [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project's update terms.
@@ -185,7 +185,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 | **ZXing** | `ZXing.dll`. Barcode scan and QR images. Asked for when you use them | ~3 MB |
 | **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
 | **SharpSevenZip / 7za** | Extract dictionary and translation model `.7z` packages | ~1.8 MB + ~0.4 MB |
-| **SQLite** | `e_sqlite3.dll`. Opens `dict.db` | ~1.7 MB |
+| **SQLite** | `e_sqlite3.dll`. Opens `dict2.db` | ~1.7 MB |
 | **ffmpeg64** | Screen record encode/mux | ~33 MB 7z / ~117 MB unpacked |
 
 Download prefers CN mirrors when UI or system locale is Chinese.
@@ -297,7 +297,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE.
-- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict.db`, `ZXing.dll`, `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll`, or `e_sqlite3.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, archive extract, and the dictionary each ask to install the missing library when you use them.
+- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict2.db`, `ZXing.dll`, `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll`, or `e_sqlite3.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, archive extract, and the dictionary each ask to install the missing library when you use them.
 - End users install those via **Install features**. Custom Opus-MT ONNX packs can still be placed under `translatemodels/` manually.
 
 For local development with models already present, run **`bin\Release\net48\`**.

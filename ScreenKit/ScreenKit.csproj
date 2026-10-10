@@ -119,7 +119,7 @@
     <!-- DXGI 抓屏：3.x 仅 net8，改用 2.4.2 netstandard2.0 -->
     <PackageReference Include="Vortice.Direct3D11" Version="2.4.2" />
     <PackageReference Include="Vortice.DXGI" Version="2.4.2" />
-    <!-- 词典只读 dict.db。8.0 支持 net48；勿用 10.0 -->
+    <!-- 词典只读 dict2.db。8.0 支持 net48；勿用 10.0 -->
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.10" />
   </ItemGroup>
@@ -285,7 +285,7 @@
     <Delete Files="@(_SlimJunk)" TreatErrorsAsWarnings="true" Condition="'@(_SlimJunk)' != ''" />
     <Delete Files="$(OutputPath)WpfOCR.exe;$(OutputPath)WpfOCR.exe.config" TreatErrorsAsWarnings="true" />
     <!-- 词典库只放开发输出旁，不进精简包 -->
-    <Delete Files="$(_SlimOut)\dict.db;$(_SlimOut)\dict.db-wal;$(_SlimOut)\dict.db-shm" TreatErrorsAsWarnings="true" />
+    <Delete Files="$(_SlimOut)\dict.db;$(_SlimOut)\dict.db-wal;$(_SlimOut)\dict.db-shm;$(_SlimOut)\dict2.db;$(_SlimOut)\dict2.db-wal;$(_SlimOut)\dict2.db-shm" TreatErrorsAsWarnings="true" />
     <RemoveDir Directories="$(_SlimOutLegacy)" ContinueOnError="true" />
     <Message Importance="high" Text="Slim release package: $(_SlimOut)" />
   </Target>

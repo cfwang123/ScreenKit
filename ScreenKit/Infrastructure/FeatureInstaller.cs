@@ -45,7 +45,7 @@ public enum FeatureKind {
 	MediaFoundation,
 	/// <summary>系统 MJPEG AVI，无需下载。</summary>
 	Mjpeg,
-	/// <summary>词典 dict.db。从固定 Release dict-db 的 dict.7z 解出，不进应用更新包。</summary>
+	/// <summary>词典 dict2.db。从固定 Release dict-db 的 dict.7z 解出，不进应用更新包。</summary>
 	DictDb,
 	/// <summary>中英双向 Opus-MT ONNX 翻译模型。从固定 Release dict-db 下载。</summary>
 	TranslateOnnx,
@@ -360,7 +360,7 @@ static class FeatureInstaller {
 			case FeatureKind.OrtCpu: return dirsize(OnnxCpuDir);
 			case FeatureKind.Ffmpeg: return dirsize(FfmpegDir);
 			case FeatureKind.FaceInsight: return dirsize(FaceModelsDir);
-			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict.db"));
+			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict2.db"));
 			case FeatureKind.TranslateOnnx:
 				return dirsize(Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"))
 					+ dirsize(Path.Combine(TranslateModelsDir, "opus-mt-en-zh-onnx"));
@@ -1231,7 +1231,7 @@ arabic_dict.txt
 
 	// ───────── 词典 dict.7z ─────────
 
-	static string dictdbpath() => Path.Combine(BaseDir, "dict.db");
+	static string dictdbpath() => Path.Combine(BaseDir, "dict2.db");
 
 	static FeatureInstallState probedict() {
 		var path = dictdbpath();
@@ -1247,7 +1247,7 @@ arabic_dict.txt
 	static async Task installdict(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (probedict() == FeatureInstallState.Installed) {
-			log?.Report("dict.db 已存在，跳过");
+			log?.Report("dict2.db 已存在，跳过");
 			reportprog(progress, 1, note: "已存在");
 			return;
 		}
@@ -1274,19 +1274,19 @@ arabic_dict.txt
 		extract7z(arc, unpack, log);
 		string found = null;
 		try {
-			found = Directory.GetFiles(unpack, "dict.db", SearchOption.AllDirectories).FirstOrDefault();
+			found = Directory.GetFiles(unpack, "dict2.db", SearchOption.AllDirectories).FirstOrDefault();
 		}
 		catch { }
 		if (string.IsNullOrEmpty(found))
-			throw new InvalidOperationException("dict.7z 里没有 dict.db");
+			throw new InvalidOperationException("dict.7z 里没有 dict2.db");
 		var dest = dictdbpath();
 		unlinkifreparse(dest);
 		if (File.Exists(dest)) File.Delete(dest);
 		try { if (File.Exists(dest + "-wal")) File.Delete(dest + "-wal"); } catch { }
 		try { if (File.Exists(dest + "-shm")) File.Delete(dest + "-shm"); } catch { }
 		File.Move(found, dest);
-		reportprog(progress, 1, zlen, zlen, "dict.db", "完成");
-		log?.Report("词典 dict.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
+		reportprog(progress, 1, zlen, zlen, "dict2.db", "完成");
+		log?.Report("词典 dict2.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}
 
 	static void uninstalldict(IProgress<string> log) {

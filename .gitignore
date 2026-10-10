@@ -29,6 +29,10 @@ dict.db
 dict.db-wal
 dict.db-shm
 dict.db-journal
+dict2.db
+dict2.db-wal
+dict2.db-shm
+dict2.db-journal
 
 # ── Local config / secrets (may contain host prefs) ──────
 **/config.toml

@@ -33,7 +33,7 @@ sealed class DictSelRow {
 
 enum DRole { Body, Title, Pron, Pos, Number, Label, ExLabel, Example }
 
-/// <summary>英日韩词典：只读 exe 旁的 dict.db。主窗口词典页和独立词典窗口共用这一页。</summary>
+/// <summary>英日韩词典：只读 exe 旁的 dict2.db。主窗口词典页和独立词典窗口共用这一页。</summary>
 public partial class DictWindow : UserControl {
 	static readonly Brush CPron = freeze(110, 110, 110);
 	static readonly Brush CPos = freeze(136, 48, 168);
@@ -235,7 +235,7 @@ public partial class DictWindow : UserControl {
 				lbstatus.Text = Loc.T("dict.ready");
 			return;
 		}
-		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict.db");
+		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict2.db");
 		if (!DictDb.Init(path)) {
 			if (DictDb.Error == "sqlite") {
 				lbstatus.Text = Loc.T("dict.nosqlite");

@@ -49,7 +49,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **LLM对话** | 微信式气泡、清空、麦克风、朗读/自动朗读，可选网页与 `tmp/llm/` 工具。 |
 | **LLM日志** | 主界面列出最近 1000 次 LLM 请求：模型、状态、输入 / 输出 / 合计 token、响应时间。选中一行查看请求和响应，JSON 里的中文按汉字显示。地址里的查询串不保存。 |
 | **翻译** | 本地 Opus-MT ONNX 或已配置的 **LLM**；来回翻译最多 20 次，结果重复时提前停止；**工具 → 翻译小窗**（`Ctrl+Alt+T`）。 |
-| **词典** | 主窗口里查汉语、英语、日语、韩语。详见 [词典](#词典)。菜单 **工具 → 词典**。`dict.db` 不在发布包里，可在 **帮助 → 安装功能** 下载。 |
+| **词典** | 主窗口里查汉语、英语、日语、韩语。详见 [词典](#词典)。菜单 **工具 → 词典**。`dict2.db` 不在发布包里，可在 **帮助 → 安装功能** 下载（词典压缩包里要有这个文件）。 |
 | **人脸识别** | InsightFace ONNX 检测/比对，可选关键点与性别年龄。模型在 `facemodels/`。 |
 | **SAPI x86 助手** | 旁路 `x86host.exe`，调用仅 32 位可见的经典发音人。 |
 
@@ -92,7 +92,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 ### 数据来源
 
-`dict.db` 把四种词典放在同一个文件里。ScreenKit 不生成这个文件。
+`dict2.db` 把四种词典放在同一个文件里。每个词只存一份，检索用文件里的压缩索引。ScreenKit 不生成这个文件。发布用的词典压缩包里需要有 `dict2.db`。
 
 - **汉语。** 汉字、词语、成语来自 [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary)（拼音辞典）。许可为 MIT。上游说明里注明部分材料来源不明。
 - **日语。** 词汇释义来自 [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)（EDRDG）。许可为 [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html)。再分发须保留 EDRDG 署名，并遵守其更新条款。
@@ -185,7 +185,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 | **ZXing** | `ZXing.dll`。条码识别和二维码图。用到时才提示安装 | ~3 MB |
 | **SharpCompress** | `SharpCompress.dll`。解压语音和识别的 `tar.bz2` | ~2.5 MB |
 | **SharpSevenZip / 7za** | 解压词典 `dict.7z` | ~1.8 MB + ~0.4 MB |
-| **SQLite** | `e_sqlite3.dll`。打开 `dict.db` | ~1.7 MB |
+| **SQLite** | `e_sqlite3.dll`。打开 `dict2.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 与 GIF | 7z 约 33 MB / 解压约 117 MB |
 
 安装窗口和参数设置里的 HTTP 代理有三项：跟随系统、手动地址、不用。用了代理时先下 GitHub / Hugging Face，失败再试国内镜像；不用代理时顺序相反。国内镜像和 `.cn` 仍然直连。
@@ -296,7 +296,7 @@ dotnet build -c Release
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
 - **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证。
-- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict.db`、`ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
+- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict2.db`、`ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 
 本机开发且已有模型时，请继续用 **`bin\Release\net48\`**。
