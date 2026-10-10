@@ -21,6 +21,12 @@
 				SK.$("box-in").value = v.replace("T", " ");
 				SK.utilrun();
 			};
+			SK.$("box-in").oninput = function(){
+				try { tsdate(SK.val("box-in")); }
+				catch (e) { return; }
+				SK.utilrun();
+			};
+			SK.utilrun();
 		}
 	});
 	function tsconv(raw){
