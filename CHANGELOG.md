@@ -35,7 +35,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Tools-page unit conversion (单位换算) takes a unit right in the number box, such as `1米`, `3斤`, or `5kg`: the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind, such as `1米`, `1000毫米`, `100厘米`, `0.001千米`, `39.3700787402英寸`. Picking one unit still gives the single answer.
+- The Unicode code chart preview lists GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. A code point those encodings cannot store shows 无. Latin-1 is shown for U+0000 through U+00FF. UTF-32 is listed with the other Unicode forms.
+- Tools-page unit conversion (单位换算) takes a unit right in the number box, such as `1米`, `3斤`, or `5kg`: the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind, such as `1米`, `1000毫米`, `100厘米`, `0.001千米`, `39.3700787402英寸`. Every conversion echoes what you entered on the first line; picking one unit puts that single answer on the next line, as in `1米` then `3.280839895英尺`.
 - The tools-page image-to-ICO screen can scale the picture with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
 - The tools page adds **GBK码表**, next to **Unicode码表**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank. The Unicode chart card is named Unicode码表.
 - The tools page splits QR / barcode into **二维码生成** and **二维码识别**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate still prints one line of the source text under the image.
@@ -56,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- Image-to-ICO fit and stretch stay sharper when a large picture is reduced to the icon. The preview and the downloaded file average the source pixels. Crop is unchanged.
 - Hovering a category in the main-window **Tools → Web tools** menu no longer closes the menu. Opening a category was rebuilding the list.
 - The tools-page speech screen lists the models and voices the speech tab already loaded, as soon as it opens. It no longer waits on another model scan or on the Edge voice download. Every speaker is included, including models with more than 64.
 - Tools-page speech voices use the same readable names as the desktop list. Windows voices no longer show the registry id.
@@ -100,7 +102,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 工具页「单位换算」的数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它：一次按该类型的单位逐行列出，如 `1米`、`1000毫米`、`100厘米`、`0.001千米`、`39.3700787402英寸`。选具体单位时仍是原来的一行结果。
+- Unicode码表选中字符后，预览列出 GBK、GB18030、Big5、Shift_JIS、EUC-KR。这些编码放不下的码位显示「无」。U+0000 到 U+00FF 另外显示 Latin-1。UTF-32 和原来的 Unicode 编码排在一起。
+- 工具页「单位换算」的数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它：一次按该类型的单位逐行列出，如 `1米`、`1000毫米`、`100厘米`、`0.001千米`、`39.3700787402英寸`。每次换算的第 1 行都回显原值；选具体单位时，第 2 行就是那一行结果，例如 `1米` 下面是 `3.280839895英尺`。
 - 工具页的图片转 ICO 可以选缩放：fit、拉伸、裁剪。默认 fit，等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满并切掉多余部分。预览和下载的图标用同一种。
 - 工具页增加 **GBK码表**，放在 **Unicode码表** 旁边。左边按首字节分页，每页 16 列。点一下复制字符。右边显示 GBK 字节、有区位时的区位码、Unicode 码位和 UTF-8。空位留空。原来的 Unicode 表改名为 Unicode码表。
 - 工具页的「二维码 / 条码」分成 **二维码生成** 和 **二维码识别**。识别可 Ctrl+V 粘贴图片或选择文件，先显示预览再读码。生成仍在图下显示一行原文。
@@ -121,6 +124,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
+- 图片转 ICO 的 fit 和拉伸把大图缩成图标时不再发糊。预览和下载的文件按源图像素平均缩小。裁剪不变。
 - 主窗口 **工具 → web工具** 里，鼠标停在某个分类上时菜单不再自己关掉。之前打开分类会把整份列表重建一遍。
 - 工具页的语音合成一打开就列出语音合成页已经加载的模型和发音人，不再另外扫描模型，也不再等待 Edge 发音人下载。发音人全部列出，包括超过 64 个的模型。
 - 工具页语音合成的发音人使用和桌面列表相同的可读名称。Windows 语音不再显示注册表 Id。
