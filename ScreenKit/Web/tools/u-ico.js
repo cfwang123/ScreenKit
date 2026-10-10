@@ -11,8 +11,13 @@
 				+ SK.radio("ico-size", "ico-48", "48", false) + SK.radio("ico-size", "ico-64", "64", false)
 				+ SK.radio("ico-size", "ico-128", "128", false) + SK.radio("ico-size", "ico-256", "256", false)
 				+ "</div>"
+				+ '<div class="ops">'
+				+ '<label class="check"><input id="ico-mode-fit" name="ico-mode" type="radio" value="fit" checked> fit</label>'
+				+ '<label class="check"><input id="ico-mode-stretch" name="ico-mode" type="radio" value="stretch"> 拉伸</label>'
+				+ '<label class="check"><input id="ico-mode-crop" name="ico-mode" type="radio" value="crop"> 裁剪</label>'
+				+ "</div>"
 				+ '<div class="ico-out"><canvas id="ico-prev" width="32" height="32"></canvas><span id="ico-prev-size">32×32</span></div>'
-				+ '<p class="hint">只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。画面等比放进方框，空白透明。</p>';
+				+ '<p class="hint">只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。fit 等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满，多出的部分切掉。</p>';
 		},
 		run: function(){
 			icogo();
@@ -25,6 +30,8 @@
 			var sizes = document.querySelectorAll('input[name="ico-size"]');
 			var s;
 			for (s = 0; s < sizes.length; s++) sizes[s].onchange = drawicoprev;
+			var modes = document.querySelectorAll('input[name="ico-mode"]');
+			for (s = 0; s < modes.length; s++) modes[s].onchange = drawicoprev;
 			if (SK.icoUrl) {
 				var prev = SK.$("ico-img");
 				prev.onload = drawicoprev;
@@ -58,18 +65,30 @@
 		g.clearRect(0, 0, size, size);
 		var src = SK.$("ico-img");
 		if (!src || src.hidden || !src.naturalWidth) return;
-		fiticon(g, src, size);
+		fiticon(g, src, size, icomode());
 	}
 
-	function fiticon(g, img, size){
+	function icomode(){
+		var picked = document.querySelector('input[name="ico-mode"]:checked');
+		var mode = picked ? picked.value : "fit";
+		if (mode !== "stretch" && mode !== "crop") mode = "fit";
+		return mode;
+	}
+
+	function fiticon(g, img, size, mode){
 		var iw = img.naturalWidth || img.width;
 		var ih = img.naturalHeight || img.height;
 		if (!iw || !ih) return;
-		var scale = Math.min(size / iw, size / ih);
-		var w = Math.max(1, Math.round(iw * scale));
-		var h = Math.max(1, Math.round(ih * scale));
+		if (mode !== "stretch" && mode !== "crop") mode = "fit";
 		g.imageSmoothingEnabled = true;
 		try { g.imageSmoothingQuality = "high"; } catch (e) {}
+		if (mode === "stretch") {
+			g.drawImage(img, 0, 0, size, size);
+			return;
+		}
+		var scale = mode === "crop" ? Math.max(size / iw, size / ih) : Math.min(size / iw, size / ih);
+		var w = Math.max(1, Math.round(iw * scale));
+		var h = Math.max(1, Math.round(ih * scale));
 		g.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
 	}
 
@@ -118,7 +137,7 @@
 		var g = canvas.getContext("2d");
 		if (!g) return Promise.reject();
 		g.clearRect(0, 0, size, size);
-		fiticon(g, img, size);
+		fiticon(g, img, size, icomode());
 		return new Promise(function(ok, bad){
 			canvas.toBlob(function(blob){
 				if (!blob) { bad(); return; }

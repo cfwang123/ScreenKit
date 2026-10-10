@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools-page image-to-ICO screen can scale the picture with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
 - The tools page adds **GBK码表**, next to **Unicode码表**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank. The Unicode chart card is named Unicode码表.
 - The tools page splits QR / barcode into **二维码生成** and **二维码识别**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate still prints one line of the source text under the image.
 - The cast toolbar shows the current audio source. **Options** stays available while casting. It can turn audio on or off and pick speakers, the microphone, or both. The change applies to the live cast.
@@ -63,12 +64,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The tools page **File transfer** link opens `/files` in a new window. The tools page stays open.
 - The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
+- Test data picks one kind: Chinese name, email, phone, address, company, username, or ID number. Each line is one value.
 - Text-category tools update the result when the text or an option changes. Japanese yomi and the regex tester stay on their buttons, because those can take more than a second.
 - Tools-page unit conversion updates the result as soon as the number or a choice changes.
 - Tools-page text compare, JSON diff, and find-and-replace are removed. Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. Pick a kind, enter a number, then choose the original unit and the new unit. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. An old favorite of one of those unit tools opens 单位换算.
 - **Settings → Dictionary** has a result count. The dictionary lists that many hits. The range is 1–4000, and the default is 1000.
 - The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
-- Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file.
+- Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file. The joined `ScreenKit/Web/tools.js` is not committed.
 - Dictionary lookup reads `dict2.db` next to the program. Each word is stored once. Prefix, suffix, and infix search use the packed index. The old `lookup_key` search is gone. The file is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed release `dict-db`, extracts `dict2.db`, and deletes an old `dict.db` beside the program (a symlink is removed, and the link target is left in place). Release builds leave a local `dict2.db` in place. The slim package still omits it.
 - The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list.
 - The tray **Web tools** menu lists every tools-page tool under its category. The first item is **Web tools home**, which opens the list.
@@ -97,6 +99,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页的图片转 ICO 可以选缩放：fit、拉伸、裁剪。默认 fit，等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满并切掉多余部分。预览和下载的图标用同一种。
 - 工具页增加 **GBK码表**，放在 **Unicode码表** 旁边。左边按首字节分页，每页 16 列。点一下复制字符。右边显示 GBK 字节、有区位时的区位码、Unicode 码位和 UTF-8。空位留空。原来的 Unicode 表改名为 Unicode码表。
 - 工具页的「二维码 / 条码」分成 **二维码生成** 和 **二维码识别**。识别可 Ctrl+V 粘贴图片或选择文件，先显示预览再读码。生成仍在图下显示一行原文。
 - 投屏控制条显示当前声音来源。投屏中仍可点**选项**，开关声音或改成扬声器、麦克风、两者，马上作用到正在发送的投屏。
@@ -125,12 +128,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 工具页左下角的 **文件传输** 在新窗口打开 `/files`，工具页保持不动。
 - 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇。csv 是表。html 和 md 是表格，列为单词、详情，详情列占满剩余宽度。
+- 「测试数据」先选类型：中文姓名、邮箱、手机、地址、公司、用户名、身份证。一行一条，不再把多项写在同一行。
 - 文字分类的工具在修改文字或选项时直接出结果。日文注音和正则仍要点按钮，这两项可能超过 1 秒。
 - 工具页「单位换算」在修改数值或选项时立即出结果。
 - 工具页去掉文本比对、JSON 差异和查找替换。长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」：先选类型，再填数值、原单位和新单位。外币用中国银行 2026-10-10 中间价，结果里会注明。原来收藏了其中一项换算时，会打开「单位换算」。
 - **参数设置 → 词典** 增加结果条数。词典按这个数列出结果。范围 1～4000，默认 1000。
 - README 的「安装功能」列出精简包里哪些功能可以直接用，哪些要先安装，并写上各组件在安装器里的大约体积。
-- 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。
+- 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。合成后的 `ScreenKit/Web/tools.js` 不提交。
 - 词典改为读取程序旁的 `dict2.db`。每个词只存一份，前缀、后缀、中缀走压缩索引。原来的 `lookup_key` 检索已去掉。这个文件不进发布包。**帮助 → 安装功能**从固定 Release `dict-db` 下载 `dict2.7z`，解出 `dict2.db`，并删除程序旁的旧 `dict.db`（符号链接只删链接，不删目标文件）。Release 编译不会动本机已有的 `dict2.db`。精简包仍不带这个文件。
 - 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。
 - 托盘 **web工具** 按分类列出工具页的全部工具。第一项是 **web工具主页**，打开工具列表。

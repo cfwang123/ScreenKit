@@ -3068,34 +3068,450 @@ SK.watchAcc = 0;
 	SK.countdowngo = countdowngo;
 })();
 (function(){
+	var KINDS = [
+		["name", "中文姓名"],
+		["mail", "邮箱"],
+		["phone", "手机"],
+		["addr", "地址"],
+		["corp", "公司"],
+		["user", "用户名"],
+		["id", "身份证"]
+	];
+	var SUR = "赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张";
+	var GIV = "伟芳娜敏静磊洋艳勇杰涛明超秀英丽强军平刚桂英";
 	SK.regutil("u-fake", {
 		title: "测试数据",
 		go: "生成",
 		body: function(){
-			return SK.lab("行数", SK.numin("box-n", "5"));
+			return SK.row2(
+				SK.lab("类型", '<select id="box-kind">' + SK.opts(KINDS, "name") + "</select>"),
+				SK.lab("行数", SK.numin("box-n", "5")));
 		},
 		run: function(){
-			return fakedata(SK.val("box-n"));
+			return fakedata(SK.val("box-n"), SK.val("box-kind"));
 		}
 	});
-	function fakedata(count){
+	function fakedata(count, kind){
 		var n = parseInt(count, 10);
 		if (!(n >= 1 && n <= 50)) throw new Error("行数要在 1 到 50");
-		var sur = ["赵", "钱", "孙", "李", "周", "吴", "郑", "王"];
-		var giv = ["伟", "芳", "娜", "敏", "静", "磊", "洋", "艳"];
-		var lines = ["姓名,邮箱,手机"];
+		var lines = [];
 		var i;
-		for (i = 0; i < n; i++) {
-			var name = sur[SK.randint(sur.length)] + giv[SK.randint(giv.length)];
-			var phone = "1" + String(3 + SK.randint(6));
-			var k;
-			for (k = 0; k < 9; k++) phone += String(SK.randint(10));
-			lines.push(name + ",user" + (i + 1) + "@example.com," + phone);
-		}
+		for (i = 0; i < n; i++) lines.push(one(kind));
 		return lines.join("\n");
 	}
 
+	function one(kind){
+		if (kind === "mail") return mailbox();
+		if (kind === "phone") return phone();
+		if (kind === "addr") return address();
+		if (kind === "corp") return company();
+		if (kind === "user") return username();
+		if (kind === "id") return idno();
+		if (kind === "name") return cname();
+		throw new Error("请选择类型");
+	}
+
+	function cname(){
+		var name = ch(SUR) + ch(GIV);
+		if (SK.randint(2) === 1) name += ch(GIV);
+		return name;
+	}
+
+	function mailbox(){
+		var alpha = "abcdefghijklmnopqrstuvwxyz";
+		var s = "";
+		var n = 5 + SK.randint(4);
+		var i;
+		for (i = 0; i < n; i++) s += alpha.charAt(SK.randint(alpha.length));
+		return s + SK.randint(1000) + "@example.com";
+	}
+
+	function phone(){
+		var s = "1" + String(3 + SK.randint(7));
+		var i;
+		for (i = 0; i < 9; i++) s += String(SK.randint(10));
+		return s;
+	}
+
+	function address(){
+		var city = ["北京", "上海", "广州", "深圳", "杭州", "成都", "武汉", "南京"];
+		var road = ["中山路", "人民路", "建设路", "解放路", "和平路", "文一路"];
+		return city[SK.randint(city.length)] + road[SK.randint(road.length)] + (1 + SK.randint(300)) + "号";
+	}
+
+	function company(){
+		var brand = ["星海", "青云", "明远", "宏达", "新联", "博文"];
+		var tail = ["科技", "网络", "贸易", "信息", "电子"];
+		return brand[SK.randint(brand.length)] + tail[SK.randint(tail.length)] + "有限公司";
+	}
+
+	function username(){
+		var alpha = "abcdefghijklmnopqrstuvwxyz";
+		var s = "";
+		var n = 4 + SK.randint(5);
+		var i;
+		for (i = 0; i < n; i++) s += alpha.charAt(SK.randint(26));
+		return s + SK.randint(100);
+	}
+
+	function idno(){
+		var year = 1975 + SK.randint(30);
+		var month = 1 + SK.randint(12);
+		var day = 1 + SK.randint(28);
+		var body = "110101" + year + twodigit(month) + twodigit(day) + threedigit(SK.randint(999));
+		var w = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+		var map = "10X98765432";
+		var sum = 0;
+		var i;
+		for (i = 0; i < 17; i++) sum += (body.charCodeAt(i) - 48) * w[i];
+		return body + map.charAt(sum % 11);
+	}
+
+	function ch(s){
+		return s.charAt(SK.randint(s.length));
+	}
+
+	function twodigit(n){
+		return (n < 10 ? "0" : "") + n;
+	}
+
+	function threedigit(n){
+		return (n < 10 ? "00" : n < 100 ? "0" : "") + n;
+	}
+
 	SK.fakedata = fakedata;
+})();
+(function(){
+	var gbkPages = null;
+	var gbkOf = null;
+	var gbkLead = null;
+	var gbkBits = null;
+	var GBK_BITS = "/////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9/AAAAAAAAAAAAAAAA/v////////////9/AAAAAAAAAAAAAAAA/gf+///////nf/4fAAAAAAAAAAAAAAAA/v////////////9/AAAAAAAAAAAAAAAA/v///////////w8AAAAAAAAAAAAAAAAA/v///////////38AAAAAAAAAAAAAAAAA/v//Af7//wH/zzcAAAAAAAAAAAAAAAAA/v///wMA/v///wMA/////////3///z8A/v//b+H/////AwAA////Fv///3//AUAA8P///////////wAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////8D/////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3////////////////////9//////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA/////////3//////AQAAAAAAAAAAAAAA//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+	SK.regutil("u-gbk", {
+		title: "GBK码表",
+		go: "显示",
+		body: function(){
+			return '<div class="uquery"><input id="gbk-q" type="text" placeholder="字、B0A1 或 U+4E00"><span id="gbk-msg" class="msg"></span></div>'
+				+ '<p class="hint">点一下选中并复制。左边是首字节，每页 16 列。空位没有字符。</p>'
+				+ '<div class="unitab"><div class="ugroups" id="gbk-groups"></div><div class="ugrid g16" id="gbk-grid"></div>'
+				+ '<aside class="uprev"><div class="uprev-ch" id="gbk-ch"></div><dl class="uprev-meta" id="gbk-meta"></dl></aside></div>';
+		},
+		run: function(){
+			throw new Error("没有这个工具");
+		},
+		open: function(){
+			gbkbuild();
+		},
+		hideGo: true,
+		hideOut: true
+	});
+
+	function gbkbuild(){
+		var pages = gbkpages();
+		if (!pages) {
+			SK.$("gbk-groups").innerHTML = "";
+			SK.$("gbk-grid").innerHTML = "";
+			SK.msg("gbk-msg", "这个浏览器不能解码 GBK", true);
+			return;
+		}
+		var html = [];
+		var i;
+		for (i = 0; i < pages.length; i++)
+			html.push('<button type="button" data-i="' + i + '" title="' + gbkesc(pages[i].name) + '">' + gbkesc(pages[i].name) + '</button>');
+		SK.$("gbk-groups").innerHTML = html.join("");
+		SK.$("gbk-groups").onclick = function(ev){
+			var el = ev.target;
+			while (el && el.id !== "gbk-groups") {
+				if (el.getAttribute && el.getAttribute("data-i") != null) {
+					gbkshow(parseInt(el.getAttribute("data-i"), 10), -1);
+					return;
+				}
+				el = el.parentNode;
+			}
+		};
+		SK.$("gbk-grid").onclick = function(ev){
+			var el = ev.target;
+			while (el && el.id !== "gbk-grid") {
+				if (el.getAttribute && el.getAttribute("data-j") != null) {
+					gbkpick(parseInt(el.getAttribute("data-j"), 10), true);
+					return;
+				}
+				el = el.parentNode;
+			}
+		};
+		SK.$("gbk-q").oninput = gbkquery;
+		gbkshow(0, -1);
+	}
+
+	function gbkquery(){
+		var hit = gbkparse(SK.$("gbk-q").value);
+		if (!hit) {
+			SK.msg("gbk-msg", "");
+			return;
+		}
+		if (hit.miss) {
+			SK.msg("gbk-msg", hit.miss, true);
+			return;
+		}
+		SK.msg("gbk-msg", gbkbytes(hit.cell));
+		gbkshow(hit.i, hit.j);
+	}
+
+	function gbkshow(index, focus){
+		var page = gbkpages()[index];
+		var groups = document.querySelectorAll("#gbk-groups button");
+		var i;
+		for (i = 0; i < groups.length; i++)
+			groups[i].className = i === index ? "on" : "";
+		if (groups[index]) groups[index].scrollIntoView({ block: "nearest" });
+		var pick = focus >= 0 ? focus : gbkfirst(page);
+		var html = [];
+		for (i = 0; i < page.cells.length; i++) {
+			var cell = page.cells[i];
+			var glyph = gbkglyph(cell);
+			var cls = glyph.ctrl ? "ctrl" : (glyph.empty ? "gap" : "");
+			html.push('<button type="button" data-j="' + i + '" title="' + gbkesc(gbktitle(cell)) + '"'
+				+ (cls ? ' class="' + cls + '"' : '') + (i === pick ? ' id="gbk-on"' : '') + '>'
+				+ glyph.t + '</button>');
+		}
+		SK.$("gbk-grid").innerHTML = html.join("");
+		var on = SK.$("gbk-on");
+		if (on) {
+			on.className = (on.className ? on.className + " " : "") + "on";
+			on.removeAttribute("id");
+			if (focus >= 0) on.scrollIntoView({ block: "center" });
+		}
+		gbkcur = index;
+		gbkpreview(page.cells[pick]);
+	}
+
+	var gbkcur = 0;
+
+	function gbkpick(j, copy){
+		var cell = gbkpages()[gbkcur].cells[j];
+		gbkmark(j);
+		gbkpreview(cell);
+		if (cell.cp < 0) {
+			SK.msg("gbk-msg", "空位", true);
+			return;
+		}
+		SK.msg("gbk-msg", gbkbytes(cell));
+		if (copy) SK.copytext(String.fromCodePoint(cell.cp), "gbk-msg");
+	}
+
+	function gbkmark(j){
+		var buttons = document.querySelectorAll("#gbk-grid button");
+		var i, cls;
+		for (i = 0; i < buttons.length; i++) {
+			cls = buttons[i].className.replace(/\bon\b/g, "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
+			if (parseInt(buttons[i].getAttribute("data-j"), 10) === j)
+				cls = cls ? cls + " on" : "on";
+			buttons[i].className = cls;
+		}
+	}
+
+	function gbkpreview(cell){
+		var glyph = gbkglyph(cell);
+		var box = SK.$("gbk-ch");
+		if (glyph.empty) {
+			box.textContent = "";
+			box.className = "uprev-ch gap";
+		}
+		else if (glyph.ctrl) {
+			box.textContent = glyph.t;
+			box.className = "uprev-ch ctrl";
+		}
+		else {
+			box.textContent = String.fromCodePoint(cell.cp);
+			box.className = "uprev-ch";
+		}
+		var rows = [
+			["GBK", gbkbytes(cell)],
+			["Unicode", cell.cp < 0 ? "" : "U+" + gbkhex(cell.cp, 4)],
+			["十进制", cell.cp < 0 ? "" : String(cell.cp)],
+			["UTF-8", cell.cp < 0 ? "" : gbkutf8(cell.cp)]
+		];
+		var qw = gbkquwei(cell);
+		if (qw) rows.splice(1, 0, ["区位", qw]);
+		if (cell.cp < 0) rows.push(["说明", "这个位置没有字符。"]);
+		var html = [];
+		var i;
+		for (i = 0; i < rows.length; i++)
+			html.push("<dt>" + rows[i][0] + "</dt><dd>" + gbkesc(rows[i][1]) + "</dd>");
+		SK.$("gbk-meta").innerHTML = html.join("");
+	}
+
+	function gbkpages(){
+		if (gbkPages) return gbkPages;
+		var dec;
+		try { dec = new TextDecoder("gbk"); }
+		catch (e) { return null; }
+		gbkOf = {};
+		gbkLead = {};
+		gbkPages = [];
+		var ascii = [];
+		var b;
+		for (b = 0; b < 128; b++) {
+			var acell = { lead: b, trail: -1, cp: b, hex: gbkhex(b, 2) };
+			ascii.push(acell);
+			gbkOf[b] = { i: 0, j: b };
+		}
+		gbkPages.push({ name: "ASCII", cells: ascii });
+		var lead;
+		for (lead = 0x81; lead <= 0xFE; lead++) {
+			var cells = [];
+			var trail;
+			var any = -1;
+			for (trail = 0x40; trail <= 0xFF; trail++) {
+				var cp = trail === 0x7F || trail === 0xFF ? -1 : gbkdec(dec, lead, trail);
+				var cell = { lead: lead, trail: trail, cp: cp, hex: gbkhex(lead, 2) + gbkhex(trail, 2) };
+				if (cp >= 0) {
+					if (any < 0) any = cp;
+					if (gbkOf[cp] == null) gbkOf[cp] = { i: gbkPages.length, j: cells.length };
+				}
+				cells.push(cell);
+			}
+			if (any < 0) continue;
+			gbkLead[lead] = gbkPages.length;
+			gbkPages.push({ name: gbkhex(lead, 2) + " " + String.fromCodePoint(any), cells: cells });
+		}
+		return gbkPages;
+	}
+
+	function gbkdec(dec, lead, trail){
+		var index = (lead - 0x81) * 192 + (trail - 0x40);
+		if (!gbkok(index)) return -1;
+		var s = dec.decode(new Uint8Array([lead, trail]));
+		if (!s) return -1;
+		var cp = s.codePointAt(0);
+		if (cp === 0xFFFD) return -1;
+		if (s.length !== (cp > 0xFFFF ? 2 : 1)) return -1;
+		return cp;
+	}
+
+	function gbkparse(raw){
+		raw = String(raw).replace(/^\s+|\s+$/g, "");
+		if (!raw) return null;
+		var pages = gbkpages();
+		if (!pages) return { miss: "这个浏览器不能解码 GBK" };
+		var uni = /^(?:[uU]\+)([0-9a-fA-F]{1,6})$/.exec(raw);
+		if (uni) return gbkbycp(parseInt(uni[1], 16));
+		if (/^[0-9]{1,7}$/.test(raw)) return gbkbycp(parseInt(raw, 10));
+		var hex = raw.replace(/^0x/i, "").replace(/\s+/g, "");
+		if (/^[0-9a-fA-F]{2}$/.test(hex)) {
+			var hit2 = gbkbybyte(parseInt(hex, 16), -1);
+			if (hit2) return hit2;
+			return { miss: "没有这个编码" };
+		}
+		if (/^[0-9a-fA-F]{4}$/.test(hex)) {
+			var n4 = parseInt(hex, 16);
+			var lead4 = n4 >> 8;
+			var trail4 = n4 & 0xFF;
+			if (lead4 >= 0x81 && lead4 <= 0xFE) {
+				var hit4 = gbkbybyte(lead4, trail4);
+				if (hit4) return hit4;
+				return { miss: "没有这个编码" };
+			}
+			return gbkbycp(n4);
+		}
+		var cp = raw.codePointAt(0);
+		if (raw.length === (cp > 0xFFFF ? 2 : 1)) return gbkbycp(cp);
+		return { miss: "没有这个编码" };
+	}
+
+	function gbkbycp(cp){
+		if (cp < 0 || cp > 0x10FFFF) return { miss: "没有这个编码" };
+		var at = gbkOf[cp];
+		if (!at) return { miss: "这个字不在 GBK 里" };
+		return { i: at.i, j: at.j, cell: gbkpages()[at.i].cells[at.j] };
+	}
+
+	function gbkbybyte(lead, trail){
+		if (trail < 0) {
+			if (lead < 0 || lead > 0x7F) return null;
+			var cell = gbkpages()[0].cells[lead];
+			return { i: 0, j: lead, cell: cell };
+		}
+		var pi = gbkLead[lead];
+		if (pi == null || trail < 0x40 || trail > 0xFF) return null;
+		var j = trail - 0x40;
+		return { i: pi, j: j, cell: gbkpages()[pi].cells[j] };
+	}
+
+	function gbkfirst(page){
+		var i;
+		for (i = 0; i < page.cells.length; i++) if (page.cells[i].cp >= 0) return i;
+		return 0;
+	}
+
+	function gbkglyph(cell){
+		var names = ["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US"];
+		if (cell.cp < 0) return { t: "", empty: true };
+		if (cell.cp < 32) return { t: names[cell.cp], ctrl: true };
+		if (cell.cp === 0x7F) return { t: "DEL", ctrl: true };
+		var ch = String.fromCodePoint(cell.cp);
+		if (ch === "&") ch = "&amp;";
+		else if (ch === "<") ch = "&lt;";
+		else if (ch === ">") ch = "&gt;";
+		return { t: ch };
+	}
+
+	function gbktitle(cell){
+		if (cell.cp < 0) return gbkbytes(cell) + " 空位";
+		return gbkbytes(cell) + " U+" + gbkhex(cell.cp, 4);
+	}
+
+	function gbkbytes(cell){
+		if (cell.trail < 0) return gbkhex(cell.lead, 2);
+		return gbkhex(cell.lead, 2) + " " + gbkhex(cell.trail, 2);
+	}
+
+	function gbkquwei(cell){
+		if (cell.trail < 0) return "";
+		if (cell.lead < 0xA1 || cell.lead > 0xF7) return "";
+		if (cell.trail < 0xA1 || cell.trail > 0xFE) return "";
+		var qu = cell.lead - 0xA0;
+		var wei = cell.trail - 0xA0;
+		return (qu < 10 ? "0" : "") + qu + "-" + (wei < 10 ? "0" : "") + wei;
+	}
+
+	function gbkutf8(cp){
+		var bytes;
+		if (cp < 0x80) bytes = [cp];
+		else if (cp < 0x800) bytes = [0xC0 | (cp >> 6), 0x80 | (cp & 0x3F)];
+		else if (cp < 0x10000) bytes = [0xE0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3F), 0x80 | (cp & 0x3F)];
+		else bytes = [0xF0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3F), 0x80 | ((cp >> 6) & 0x3F), 0x80 | (cp & 0x3F)];
+		var i, out = [];
+		for (i = 0; i < bytes.length; i++) out.push(gbkhex(bytes[i], 2));
+		return out.join(" ");
+	}
+
+	function gbkok(index){
+		var bits = gbkbits();
+		if (!bits) return false;
+		return ((bits[index >> 3] >> (index & 7)) & 1) === 1;
+	}
+
+	function gbkbits(){
+		if (gbkBits) return gbkBits;
+		if (!GBK_BITS) return null;
+		var bin = atob(GBK_BITS);
+		var out = new Uint8Array(bin.length);
+		var i;
+		for (i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+		gbkBits = out;
+		return out;
+	}
+
+	function gbkhex(n, width){
+		var s = n.toString(16).toUpperCase();
+		while (s.length < width) s = "0" + s;
+		return s;
+	}
+
+	function gbkesc(s){
+		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+	}
 })();
 (function(){
 	SK.regutil("u-grad", {
@@ -3134,8 +3550,13 @@ SK.watchAcc = 0;
 				+ SK.radio("ico-size", "ico-48", "48", false) + SK.radio("ico-size", "ico-64", "64", false)
 				+ SK.radio("ico-size", "ico-128", "128", false) + SK.radio("ico-size", "ico-256", "256", false)
 				+ "</div>"
+				+ '<div class="ops">'
+				+ '<label class="check"><input id="ico-mode-fit" name="ico-mode" type="radio" value="fit" checked> fit</label>'
+				+ '<label class="check"><input id="ico-mode-stretch" name="ico-mode" type="radio" value="stretch"> 拉伸</label>'
+				+ '<label class="check"><input id="ico-mode-crop" name="ico-mode" type="radio" value="crop"> 裁剪</label>'
+				+ "</div>"
 				+ '<div class="ico-out"><canvas id="ico-prev" width="32" height="32"></canvas><span id="ico-prev-size">32×32</span></div>'
-				+ '<p class="hint">只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。画面等比放进方框，空白透明。</p>';
+				+ '<p class="hint">只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。fit 等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满，多出的部分切掉。</p>';
 		},
 		run: function(){
 			icogo();
@@ -3148,6 +3569,8 @@ SK.watchAcc = 0;
 			var sizes = document.querySelectorAll('input[name="ico-size"]');
 			var s;
 			for (s = 0; s < sizes.length; s++) sizes[s].onchange = drawicoprev;
+			var modes = document.querySelectorAll('input[name="ico-mode"]');
+			for (s = 0; s < modes.length; s++) modes[s].onchange = drawicoprev;
 			if (SK.icoUrl) {
 				var prev = SK.$("ico-img");
 				prev.onload = drawicoprev;
@@ -3181,18 +3604,30 @@ SK.watchAcc = 0;
 		g.clearRect(0, 0, size, size);
 		var src = SK.$("ico-img");
 		if (!src || src.hidden || !src.naturalWidth) return;
-		fiticon(g, src, size);
+		fiticon(g, src, size, icomode());
 	}
 
-	function fiticon(g, img, size){
+	function icomode(){
+		var picked = document.querySelector('input[name="ico-mode"]:checked');
+		var mode = picked ? picked.value : "fit";
+		if (mode !== "stretch" && mode !== "crop") mode = "fit";
+		return mode;
+	}
+
+	function fiticon(g, img, size, mode){
 		var iw = img.naturalWidth || img.width;
 		var ih = img.naturalHeight || img.height;
 		if (!iw || !ih) return;
-		var scale = Math.min(size / iw, size / ih);
-		var w = Math.max(1, Math.round(iw * scale));
-		var h = Math.max(1, Math.round(ih * scale));
+		if (mode !== "stretch" && mode !== "crop") mode = "fit";
 		g.imageSmoothingEnabled = true;
 		try { g.imageSmoothingQuality = "high"; } catch (e) {}
+		if (mode === "stretch") {
+			g.drawImage(img, 0, 0, size, size);
+			return;
+		}
+		var scale = mode === "crop" ? Math.max(size / iw, size / ih) : Math.min(size / iw, size / ih);
+		var w = Math.max(1, Math.round(iw * scale));
+		var h = Math.max(1, Math.round(ih * scale));
 		g.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
 	}
 
@@ -3241,7 +3676,7 @@ SK.watchAcc = 0;
 		var g = canvas.getContext("2d");
 		if (!g) return Promise.reject();
 		g.clearRect(0, 0, size, size);
-		fiticon(g, img, size);
+		fiticon(g, img, size, icomode());
 		return new Promise(function(ok, bad){
 			canvas.toBlob(function(blob){
 				if (!blob) { bad(); return; }
@@ -4277,6 +4712,7 @@ SK.watchAcc = 0;
 	SK.parsedate = parsedate;
 })();
 (function(){
+	var ALL = "all";
 	var KINDS = [
 		kind("len", "长度", "m", "ft", [
 			["mm", "毫米"], ["cm", "厘米"], ["m", "米"], ["km", "千米"],
@@ -4324,6 +4760,24 @@ SK.watchAcc = 0;
 			SGD: 5.246, CHF: 8.0821, THB: 0.1994, TWD: 0.2099
 		})
 	];
+	var ALIAS = {
+		len: { mm: ["公厘"], cm: ["公分"], m: ["公尺", "meter", "metre"], km: ["公里"], "in": ["吋"], ft: ["呎"] },
+		area: { m2: ["平米", "平方米"], km2: ["平方公里"], mu: ["亩"], ha: ["公顷"], ft2: ["平方呎"] },
+		vol: { L: ["公升"], mL: ["cc"], m3: ["方"], gal: ["加仑", "美加仑"] },
+		mass: { kg: ["公斤"], jin: ["斤"], liang: ["两"], t: ["公吨"], lb: ["英磅"] },
+		temp: { C: ["度", "摄氏", "℃", "°c"], F: ["华氏", "℉", "°f"], K: ["开", "开氏", "绝对温度"] },
+		time: { ms: ["毫秒"], s: ["秒钟"], min: ["分钟"], h: ["时", "钟头"], d: ["日", "天"], week: ["星期", "礼拜"] },
+		byte: { B: ["b"], KB: ["千字节", "kb"], MB: ["兆", "兆字节", "mb"], GB: ["吉字节", "gb"], TB: ["太字节", "tb"] },
+		press: { Pa: ["帕斯卡", "pa"], kPa: ["kpa"], MPa: ["mpa"], bar: ["巴"], atm: ["大气压"], psi: ["磅力每平方英寸"] },
+		power: { W: ["瓦特"], kW: ["kw"], MW: ["mw"], hp: ["马力"] },
+		px: { px: ["像素"], rem: ["倍"] },
+		money: {
+			CNY: ["元", "块", "人民币", "rmb", "¥"], jiao: ["毛", "角"], fen: ["分"],
+			USD: ["美金", "$", "usd"], HKD: ["港元", "hkd"], MOP: ["葡币"], EUR: ["eur"],
+			GBP: ["gbp"], JPY: ["日币", "jpy"], KRW: ["krw"], AUD: ["澳币"],
+			CAD: ["加币"], SGD: ["新元"], CHF: ["瑞郎"], TWD: ["台币"]
+		}
+	};
 	SK.regutil("u-unit", {
 		title: "单位换算",
 		go: "换算",
@@ -4333,16 +4787,17 @@ SK.watchAcc = 0;
 			for (i = 0; i < KINDS.length; i++) names.push([KINDS[i].id, KINDS[i].name]);
 			return SK.row2(
 				SK.lab("类型", '<select id="box-kind">' + SK.opts(names, "len") + "</select>"),
-				SK.lab("数值", SK.textin("box-in", "1")))
+				SK.lab("数值", SK.textin("box-in", "1米", "例如 1米、3斤、5kg")))
 				+ SK.row2(
 					SK.lab("原单位", '<select id="box-from"></select>'),
 					SK.lab("新单位", '<select id="box-to"></select>'))
-				+ '<div class="row" id="box-root-row" hidden>' + SK.lab("根字号", SK.textin("box-root", "16")) + "</div>";
+				+ '<div class="row" id="box-root-row" hidden>' + SK.lab("根字号", SK.textin("box-root", "16")) + "</div>"
+				+ '<p class="hint">数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。</p>';
 		},
 		open: function(){
 			var ids = ["box-kind", "box-from", "box-to"];
 			var i;
-			fillunits();
+			fillunits(false);
 			for (i = 0; i < ids.length; i++) SK.$(ids[i]).onchange = onpick;
 			SK.$("box-in").oninput = live;
 			SK.$("box-root").oninput = live;
@@ -4364,8 +4819,17 @@ SK.watchAcc = 0;
 	}
 
 	function onpick(){
-		if (this.id === "box-kind") fillunits();
+		if (this.id === "box-kind") {
+			fillunits(false);
+			striptext();
+		}
+		else if (this.id === "box-from") striptext();
 		live();
+	}
+
+	function striptext(){
+		var picked = detect(SK.val("box-in"));
+		if (picked) SK.$("box-in").value = SK.trimnum(picked.num);
 	}
 
 	function live(){
@@ -4380,34 +4844,84 @@ SK.watchAcc = 0;
 		}
 	}
 
-	function fillunits(){
+	function allunits(units){
+		return [[ALL, "全部"]].concat(units);
+	}
+
+	function fillunits(keep){
 		var spec = findkind(SK.val("box-kind")) || KINDS[0];
-		SK.$("box-from").innerHTML = SK.opts(spec.units, spec.from);
-		SK.$("box-to").innerHTML = SK.opts(spec.units, spec.to);
+		var from = keep ? SK.val("box-from") : spec.from;
+		var to = keep ? SK.val("box-to") : ALL;
+		SK.$("box-from").innerHTML = SK.opts(spec.units, from);
+		SK.$("box-to").innerHTML = SK.opts(allunits(spec.units), to);
 		SK.$("box-root-row").hidden = spec.id !== "px";
 	}
 
 	function convert(){
-		var spec = findkind(SK.val("box-kind"));
-		if (!spec) throw new Error("请选择类型");
-		var raw = String(SK.val("box-in")).trim();
-		var n = Number(raw);
-		if (raw === "" || !isFinite(n)) throw new Error("请输入数字");
-		var from = SK.val("box-from");
-		var to = SK.val("box-to");
-		var out;
-		var note = "";
-		if (spec.id === "temp") out = tempto(n, from, to);
-		else if (spec.id === "px") {
-			var root = Number(String(SK.val("box-root")).trim());
-			if (!(root > 0)) throw new Error("根字号要大于 0");
-			out = pxto(n, from, to, root);
-			if (from === "rem" || to === "rem") note = "按根字号 " + SK.trimnum(root) + "。";
+		var raw = String(SK.val("box-in")).trim().replace(/,/g, "");
+		var picked = detect(raw);
+		var spec;
+		var from;
+		var n;
+		if (picked) {
+			spec = findkind(picked.kind);
+			if (SK.val("box-kind") !== spec.id) {
+				SK.$("box-kind").value = spec.id;
+				fillunits(false);
+			}
+			SK.$("box-from").value = picked.unit;
+			from = picked.unit;
+			n = picked.num;
 		}
-		else out = scaleto(n, from, to, spec.scale);
-		if (spec.id === "money" && !cashonly(from, to)) note = "外币按中国银行 2026-10-10 中间价，不是实时牌价。";
-		var line = SK.trimnum(out) + " " + unitname(spec.units, to);
-		return note ? line + "\n" + note : line;
+		else {
+			spec = findkind(SK.val("box-kind"));
+			if (!spec) throw new Error("请选择类型");
+			n = Number(raw);
+			if (raw === "" || !isFinite(n)) throw new Error("请输入数字");
+			from = SK.val("box-from");
+		}
+		return render(spec, n, from, SK.val("box-to"));
+	}
+
+	function render(spec, n, from, to){
+		var note;
+		if (to === ALL) {
+			var lines = [line(spec, n, from, from)];
+			var i;
+			for (i = 0; i < spec.units.length; i++) {
+				if (spec.units[i][0] === from) continue;
+				lines.push(line(spec, n, from, spec.units[i][0]));
+			}
+			note = noteof(spec, from, ALL);
+			return note ? lines.join("\n") + "\n" + note : lines.join("\n");
+		}
+		note = noteof(spec, from, to);
+		var text = SK.trimnum(one(spec, n, from, to)) + " " + unitname(spec.units, to);
+		return note ? text + "\n" + note : text;
+	}
+
+	function line(spec, n, from, to){
+		return SK.trimnum(one(spec, n, from, to)) + unitname(spec.units, to);
+	}
+
+	function one(spec, n, from, to){
+		if (spec.id === "temp") return tempto(n, from, to);
+		if (spec.id === "px") return pxto(n, from, to, rootsize());
+		return scaleto(n, from, to, spec.scale);
+	}
+
+	function rootsize(){
+		var root = Number(String(SK.val("box-root")).trim());
+		if (!(root > 0)) throw new Error("根字号要大于 0");
+		return root;
+	}
+
+	function noteof(spec, from, to){
+		if (spec.id === "px" && (from === "rem" || to === ALL || to === "rem"))
+			return "按根字号 " + SK.trimnum(rootsize()) + "。";
+		if (spec.id === "money" && !cashonly(from, to))
+			return "外币按中国银行 2026-10-10 中间价，不是实时牌价。";
+		return "";
 	}
 
 	function scaleto(n, from, to, scale){
@@ -4446,6 +4960,47 @@ SK.watchAcc = 0;
 
 	function iscash(id){
 		return id === "CNY" || id === "jiao" || id === "fen";
+	}
+
+	/** 数值里带了单位（如 1米、3斤）时，认出类型、单位和数值。 */
+	function detect(text){
+		var s = String(text == null ? "" : text).replace(/[\s,]/g, "");
+		var m = /^([+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)(.*)$/i.exec(s);
+		if (!m) return null;
+		var n = Number(m[1]);
+		if (!isFinite(n)) return null;
+		var tail = m[2].toLowerCase();
+		if (!tail) return null;
+		var hit = matchunit(tail);
+		if (!hit) return null;
+		return { kind: hit.kind, unit: hit.unit, num: n };
+	}
+
+	/** 先按当前类型找，再按声明顺序找。名称不分大小写、不吃空格。 */
+	function matchunit(tail){
+		var cur = SK.val("box-kind");
+		var order = [];
+		var i;
+		if (cur) order.push(cur);
+		for (i = 0; i < KINDS.length; i++) if (KINDS[i].id !== cur) order.push(KINDS[i].id);
+		for (i = 0; i < order.length; i++) {
+			var spec = findkind(order[i]);
+			if (!spec) continue;
+			var j;
+			for (j = 0; j < spec.units.length; j++)
+				if (namematch(spec, spec.units[j][0], tail)) return { kind: spec.id, unit: spec.units[j][0] };
+		}
+		return null;
+	}
+
+	function namematch(spec, uid, tail){
+		var cands = [uid, unitname(spec.units, uid)];
+		var extra = (ALIAS[spec.id] || {})[uid];
+		if (extra) cands = cands.concat(extra);
+		var i;
+		for (i = 0; i < cands.length; i++)
+			if (String(cands[i]).toLowerCase().replace(/\s+/g, "") === tail) return true;
+		return false;
 	}
 
 	function unitname(units, id){

@@ -72,6 +72,9 @@ third_party/
 **/__pycache__/
 *.pyc
 
+# 工具页合成脚本。源文件在 ScreenKit/Web/tools/，程序启动时拼成这一份。
+ScreenKit/Web/tools.js
+
 # ── Temp & scratch ───────────────────────────────────────
 tmp/
 **/tmp/
