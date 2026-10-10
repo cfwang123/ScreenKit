@@ -3171,12 +3171,13 @@ static class Cli {
 				Err("FAIL: 查询失败应回退默认 " + fail.Text);
 				bad++;
 			}
-			if (calls != 2) {
-				Err("FAIL: 失败不应缓存 calls=" + calls);
+			if (calls != 1) {
+				Err("FAIL: 失败应缓存 10 分钟 calls=" + calls);
 				bad++;
 			}
-			if (fail2.Live || fail2.Text.IndexOf("7.5323人民币元", StringComparison.Ordinal) < 0) {
-				Err("FAIL: 第二次失败 " + fail2.Text);
+			if (fail2.Live || fail2.Text.IndexOf("7.5323人民币元", StringComparison.Ordinal) < 0
+				|| fail2.Text.IndexOf("查询失败", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 第二次仍用默认 " + fail2.Text);
 				bad++;
 			}
 			var cash = FxRate.Quote(1m, "CNY", "CNY");
@@ -3185,7 +3186,7 @@ static class Cli {
 				Err("FAIL: 人民币对人民币 " + cash.Text);
 				bad++;
 			}
-			if (calls != 2) {
+			if (calls != 1) {
 				Err("FAIL: 人民币对人民币不应访问牌价 calls=" + calls);
 				bad++;
 			}
@@ -4847,7 +4848,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256
       --test-texttool  Base64 / URL / GBK 十六进制往返
-      --test-fx  货币换算：查询失败回退默认、失败不缓存、成功缓存 10 分钟
+      --test-fx  货币换算：查询失败回退默认并缓存 10 分钟，成功也缓存 10 分钟
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown

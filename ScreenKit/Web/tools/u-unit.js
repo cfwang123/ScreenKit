@@ -77,7 +77,7 @@
 					SK.lab("原单位", '<select id="box-from"></select>'),
 					SK.lab("新单位", '<select id="box-to"></select>'))
 				+ '<div class="row" id="box-root-row" hidden>' + SK.lab("根字号", SK.textin("box-root", "16")) + "</div>"
-				+ '<p class="hint">数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。外币向中国银行查询中间价，缓存 10 分钟。查询失败时用 2026-10-10 的牌价。</p>';
+				+ '<p class="hint">数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。外币向中国银行查询中间价，成功或失败都缓存 10 分钟。查询失败时用 2026-10-10 的牌价。</p>';
 		},
 		open: function(){
 			var ids = ["box-kind", "box-from", "box-to"];

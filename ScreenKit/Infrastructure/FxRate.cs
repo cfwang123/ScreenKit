@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ScreenKit;
 
-/// <summary>货币换算。向中国银行网页取中间价（中行折算价），缓存 10 分钟。查询失败用内置牌价。</summary>
+/// <summary>货币换算。向中国银行网页取中间价（中行折算价）。成功或失败都缓存 10 分钟。查询失败用内置牌价。</summary>
 static class FxRate {
 	public const string PAGE = "https://www.boc.cn/sourcedb/whpj/index.html";
 	public const int CACHE_MS = 10 * 60 * 1000;
@@ -34,6 +34,7 @@ static class FxRate {
 	static readonly object gate = new();
 	static Dictionary<string, decimal> cached;
 	static string cachedAsof = "";
+	static bool cachedLive;
 	static int cachedAt;
 	static Func<string> loader = download;
 
@@ -47,7 +48,7 @@ static class FxRate {
 		var got = table();
 		var note = got.Live
 			? $"中国银行 {got.Asof} 中间价，缓存 10 分钟。"
-			: "汇率查询失败，已用中国银行 2026-10-10 中间价。";
+			: "汇率查询失败，已用中国银行 2026-10-10 中间价，缓存 10 分钟。";
 		return (format(amount, src, dst, got.Rates, note), got.Live);
 	}
 
@@ -56,6 +57,7 @@ static class FxRate {
 		lock (gate) {
 			cached = null;
 			cachedAsof = "";
+			cachedLive = false;
 			loader = load ?? download;
 		}
 	}
@@ -69,17 +71,22 @@ static class FxRate {
 	static (Dictionary<string, decimal> Rates, string Asof, bool Live) table() {
 		lock (gate) {
 			if (cached != null && fresh())
-				return (cached, cachedAsof, true);
+				return (cached, cachedAsof, cachedLive);
 			try {
 				var html = loader();
 				var parsed = parse(html);
 				cached = parsed.Rates;
 				cachedAsof = parsed.Asof;
+				cachedLive = true;
 				cachedAt = Environment.TickCount;
 				return (cached, cachedAsof, true);
 			}
 			catch {
-				return (defrates(), DEFAULT_ASOF, false);
+				cached = defrates();
+				cachedAsof = DEFAULT_ASOF;
+				cachedLive = false;
+				cachedAt = Environment.TickCount;
+				return (cached, cachedAsof, false);
 			}
 		}
 	}
