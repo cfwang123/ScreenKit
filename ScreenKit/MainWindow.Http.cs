@@ -122,7 +122,8 @@ public partial class MainWindow {
 	string httpstatustext() {
 		if (opt.HttpEnabled && httpServer != null && httpServer.IsRunning) {
 			var host = httpServer.LanAll ? "0.0.0.0" : "127.0.0.1";
-			var text = $"http://{host}:{SendFileServer.FileHttpPort(opt)}";
+			var port = httpServer.Port > 0 ? httpServer.Port : SendFileServer.FileHttpPort(opt);
+			var text = $"http://{host}:{port}";
 			if (opt.HttpLan && !httpServer.LanAll)
 				text += Loc.T("http.tab.localonly");
 			return text;
@@ -155,7 +156,8 @@ public partial class MainWindow {
 	}
 
 	string httpbaseurl() {
-		return $"http://127.0.0.1:{opt.HttpPort}";
+		var port = httpServer != null && httpServer.Port > 0 ? httpServer.Port : opt.HttpPort;
+		return $"http://127.0.0.1:{port}";
 	}
 
 	void openhttptools(bool fromTray = false) {

@@ -238,10 +238,11 @@ public sealed partial class SendFileServer : IDisposable {
 				log($"HTTP 端口 {wantHttp} 占用，改用 {used}");
 		}
 		else {
-			ListenPort = wantHttp;
-			used = wantHttp;
+			var live = HttpOcrServer.BoundPort;
+			ListenPort = live > 0 ? live : wantHttp;
+			used = ListenPort;
 			if (bindLan) {
-				var n = bindlan(wantHttp);
+				var n = bindlan(ListenPort);
 				if (n <= 0)
 					log($"LAN HTTP :{wantHttp} 未绑到网卡（本机仍走 HTTP API）");
 			}
@@ -327,22 +328,11 @@ public sealed partial class SendFileServer : IDisposable {
 	}
 
 	static TcpListener bindtcp(int port) {
-		TcpListener l6 = null;
 		try {
-			l6 = new TcpListener(IPAddress.IPv6Any, port);
-			l6.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-			l6.Server.ExclusiveAddressUse = true;
-			l6.Start();
-			return l6;
+			return TcpListen.Open(IPAddress.IPv6Any, port, true);
 		}
-		catch {
-			try { l6?.Stop(); } catch { }
-			try { l6?.Server.Close(); } catch { }
-		}
-		var l = new TcpListener(IPAddress.Any, port);
-		l.Server.ExclusiveAddressUse = true;
-		l.Start();
-		return l;
+		catch (SocketException) { }
+		return TcpListen.Open(IPAddress.Any, port, false);
 	}
 
 	static UdpClient bindudp(int port) {
@@ -363,9 +353,7 @@ public sealed partial class SendFileServer : IDisposable {
 		var n = 0;
 		foreach (var ip in lanips()) {
 			try {
-				var l = new TcpListener(ip, port);
-				l.Server.ExclusiveAddressUse = true;
-				l.Start();
+				var l = TcpListen.Open(ip, port, false);
 				lock (listenLock) extras.Add(l);
 				_ = Task.Run(() => acceptloop(l));
 				n++;

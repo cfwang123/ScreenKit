@@ -401,11 +401,15 @@ public partial class MainWindow : Window {
 		}
 		var retry = quiet;
 		try {
-			httpServer.Start(opt.HttpLan ? "+" : "127.0.0.1", SendFileServer.FileHttpPort(opt));
+			var want = SendFileServer.FileHttpPort(opt);
+			httpServer.Start(opt.HttpLan ? "+" : "127.0.0.1", want);
 			httpListenErr = "";
 			httpRetry = false;
-			if (opt.HttpEnabled || retry)
-				setstatus(Loc.T("st.http_ok", opt.HttpShowHost(), opt.HttpPort));
+			var got = httpServer.Port > 0 ? httpServer.Port : want;
+			if (got != want)
+				setstatus(Loc.T("st.http_shift", want, got));
+			else if (opt.HttpEnabled || retry)
+				setstatus(Loc.T("st.http_ok", opt.HttpShowHost(), got));
 			if (retry && opt.SendFileEnabled && sendFile != null && !sendFile.IsRunning)
 				startsendfile();
 		}
