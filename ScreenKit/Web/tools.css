@@ -15,11 +15,12 @@
 html, body { margin: 0; height: 100%; }
 body {
 	min-width: 1080px;
+	overflow: hidden;
 	background: #f3f1ec;
 	color: var(--ink);
 	font: 15px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
-.shell { display: flex; min-height: 100%; gap: 16px; padding: 16px; align-items: flex-start; }
+.shell { display: flex; height: 100%; gap: 16px; padding: 16px; align-items: flex-start; }
 aside {
 	width: 196px;
 	flex: none;
@@ -64,13 +65,18 @@ nav button.on i { color: #fff; }
 .files i { width: 18px; flex: none; text-align: center; color: #888; }
 .files:hover { background: #f3f4f6; color: #222; }
 main {
-	flex: 1; min-width: 0;
+	flex: 1; min-width: 0; align-self: stretch;
+	display: flex; flex-direction: column;
+	min-height: 0; height: 100%; overflow: hidden;
 	background: #fff; border-radius: 12px;
 	padding: 18px 20px 28px;
 	box-shadow: 0 1px 2px rgba(36, 31, 27, .06);
 }
 .panel { display: none; }
-.panel.on { display: block; }
+.panel.on {
+	display: flex; flex-direction: column;
+	flex: 1; min-height: 0; overflow: auto;
+}
 .back {
 	display: inline-flex; align-items: center; gap: 6px;
 	border: 0; background: transparent; color: #f97316;
@@ -207,7 +213,22 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 }
 .ghost { background: transparent; }
 .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.txpair { align-items: start; }
+.txpair { align-items: stretch; min-height: 0; }
+#text.panel.on { overflow: hidden; }
+#text .txpair { flex: 1 1 auto; }
+#text .txpair > div { display: flex; flex-direction: column; min-height: 0; }
+#text .txpair textarea { flex: 1 1 auto; min-height: 120px; height: auto; }
+#tx-ops { flex: 0 1 auto; min-height: 0; overflow: auto; }
+#box.panel.on > label,
+#ocr.panel.on > label,
+#asr.panel.on > label,
+#qrs.panel.on > label {
+	flex: 1 1 auto; min-height: 0;
+	display: flex; flex-direction: column;
+}
+#box-out, #ocr-out, #asr-out, #qrs-out, #re-list {
+	flex: 1 1 auto; min-height: 120px; height: auto;
+}
 .txhead {
 	display: flex; align-items: center; gap: 8px;
 	height: 28px; color: var(--muted); font-size: 12px;
@@ -235,7 +256,7 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 .msg { color: var(--muted); min-height: 1.2em; }
 .msg.bad { color: var(--danger); }
 #re-list {
-	margin-top: 6px; max-height: 360px; overflow: auto;
+	margin-top: 6px; overflow: auto;
 	border: 1px solid var(--line); border-radius: 12px; background: var(--card);
 	padding: 8px 12px;
 	font: 14px/1.7 Consolas, "Microsoft YaHei UI", monospace;
