@@ -513,6 +513,43 @@ window.sktools = (function(){
 		cap.textContent = line;
 		cap.title = line;
 		cap.hidden = !line;
+		if (!line) cap.style.marginTop = "";
+	}
+
+	function qrgap(){
+		var img = $("qr-img");
+		var cap = $("qr-cap");
+		if (!img || !cap || cap.hidden || !img.naturalWidth) return;
+		var w = img.naturalWidth;
+		var h = img.naturalHeight;
+		var canvas = document.createElement("canvas");
+		canvas.width = w;
+		canvas.height = h;
+		var ctx = canvas.getContext("2d");
+		var bottom = 0;
+		try {
+			ctx.drawImage(img, 0, 0);
+			var data = ctx.getImageData(0, 0, w, h).data;
+			var y;
+			var x;
+			for (y = h - 1; y >= 0; y--) {
+				var white = true;
+				for (x = 0; x < w; x++) {
+					var i = (y * w + x) * 4;
+					if (data[i] < 250 || data[i + 1] < 250 || data[i + 2] < 250) {
+						white = false;
+						break;
+					}
+				}
+				if (!white) break;
+				bottom++;
+			}
+		}
+		catch (e) { bottom = 0; }
+		var shown = img.clientWidth > 0 ? bottom * (img.clientWidth / w) : bottom;
+		var half = parseFloat(window.getComputedStyle(cap).fontSize) / 2;
+		if (isNaN(half)) half = 8;
+		cap.style.marginTop = (half - shown) + "px";
 	}
 
 	function qrmake(){
@@ -530,6 +567,7 @@ window.sktools = (function(){
 				msg("qr-msg", "没有图片", true);
 				return;
 			}
+			img.onload = function(){ requestAnimationFrame(qrgap); };
 			img.src = "data:image/png;base64," + data.png;
 			img.hidden = false;
 			setqrcap(text);
