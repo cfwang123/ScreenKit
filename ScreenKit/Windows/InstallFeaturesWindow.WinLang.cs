@@ -195,6 +195,7 @@ partial class InstallFeaturesWindow {
 		addcultures(cultures, recognizers.Keys);
 		addcultures(cultures, ocr.Keys);
 		cultures.Sort(compareculture);
+		cultures = cultures.OrderBy(c => langready(c, ocr, voices, recognizers) ? 0 : 1).ToList();
 		winlangUiLoading = true;
 		foreach (var root in winlangRoots) unwatchwinlang(root);
 		winlangRoots.Clear();
@@ -284,6 +285,16 @@ partial class InstallFeaturesWindow {
 		if (value.Equals("ja", StringComparison.OrdinalIgnoreCase)) return "ja-JP";
 		if (value.Equals("ko", StringComparison.OrdinalIgnoreCase)) return "ko-KR";
 		return value;
+	}
+
+	bool langready(string culture, Dictionary<string, string> ocr, Dictionary<string, string> voices, Dictionary<string, string> recognizers) {
+		if (rowstate(statemap(WinSpeechPackKind.Ocr), culture) == WinPackState.Installed) return true;
+		if (rowstate(statemap(WinSpeechPackKind.Tts), culture) == WinPackState.Installed) return true;
+		if (rowstate(statemap(WinSpeechPackKind.Asr), culture) == WinPackState.Installed) return true;
+		if (detailof(ocr, culture).Length > 0) return true;
+		if (detailof(voices, culture).Length > 0) return true;
+		if (detailof(recognizers, culture).Length > 0) return true;
+		return false;
 	}
 
 	static int compareculture(string a, string b) {
