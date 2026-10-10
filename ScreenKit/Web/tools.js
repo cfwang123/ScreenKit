@@ -15,6 +15,7 @@ window.sktools = (function(){
 	var curtool = "home";
 	var favs = [];
 	var util = "";
+	var uniSlices = null;
 	var tick = null;
 	var watchOn = false;
 	var watch0 = 0;
@@ -1215,6 +1216,7 @@ window.sktools = (function(){
 		$("box-go").textContent = meta[1];
 		$("box-body").innerHTML = utilbody(name);
 		$("box-out").value = "";
+		$("box-go").parentElement.style.display = "";
 		$("box-copy").style.display = "";
 		$("box-out").parentElement.style.display = "";
 		msg("box-msg", "");
@@ -1245,11 +1247,15 @@ window.sktools = (function(){
 			$("box-a").value = ymd(day);
 		}
 		if (name === "u-ascii") {
-			try { $("box-out").value = asciitable(); }
-			catch (ex) { msg("box-msg", ex && ex.message ? ex.message : "失败", true); }
+			$("box-go").parentElement.style.display = "none";
+			$("box-out").parentElement.style.display = "none";
+			unibuild();
 		}
 		if (name === "u-re") $("box-preset").onchange = repick;
 		if (name === "u-pw") {
+			var pwids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb"];
+			var pi;
+			for (pi = 0; pi < pwids.length; pi++) $(pwids[pi]).onchange = fillpwset;
 			$("box-set").onchange = pwsetmode;
 			pwsetmode();
 		}
@@ -1332,7 +1338,7 @@ window.sktools = (function(){
 			"u-re": ["正则测试", "测试"],
 			"u-diff": ["文本比对", "比对"],
 			"u-name": ["变量名", "转换"],
-			"u-ascii": ["ASCII 表", "显示"],
+			"u-ascii": ["Unicode 表", "显示"],
 			"u-temp": ["温度换算", "换算"],
 			"u-mass": ["重量换算", "换算"],
 			"u-area": ["面积换算", "换算"],
@@ -1427,7 +1433,9 @@ window.sktools = (function(){
 		if (name === "u-name")
 			return lab("名称", textin("box-in", "", "foo_bar 或 fooBar"));
 		if (name === "u-ascii")
-			return '<p class="kicker">0 到 127</p>';
+			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><span id="u-msg" class="msg"></span></div>'
+				+ '<p class="hint">点一下复制。左边是分组，右边列出该组全部字符。</p>'
+				+ '<div class="unitab"><div class="ugroups" id="u-groups"></div><div class="ugrid" id="u-grid"></div></div>';
 		if (name === "u-temp")
 			return row2(lab("数值", textin("box-in", "0")), lab("单位", '<select id="box-unit">' + opts(TEMPU, "C") + "</select>"));
 		if (name === "u-mass")
@@ -1568,7 +1576,6 @@ window.sktools = (function(){
 		if (util === "u-re") return retest(val("box-pat"), val("box-flags"), val("box-in"));
 		if (util === "u-diff") return linediff(val("box-a"), val("box-b"));
 		if (util === "u-name") return nameconv(val("box-in"));
-		if (util === "u-ascii") return asciitable();
 		if (util === "u-temp") return tempconv(val("box-in"), val("box-unit"));
 		if (util === "u-mass") return unitconv(val("box-in"), val("box-unit"), MASSU, MASSS);
 		if (util === "u-area") return unitconv(val("box-in"), val("box-unit"), AREAU, AREAS);
@@ -1981,6 +1988,31 @@ window.sktools = (function(){
 		}
 		var box = $("box-set-chars");
 		if (box) box.disabled = !on;
+		if (!on) fillpwset();
+	}
+
+	function pwgroups(){
+		var drop = onbox("box-amb");
+		function clean(s){
+			return drop ? s.replace(/[0Oo1lI]/g, "") : s;
+		}
+		var groups = [];
+		if (onbox("box-low")) groups.push(clean("abcdefghijklmnopqrstuvwxyz"));
+		if (onbox("box-up")) groups.push(clean("ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
+		if (onbox("box-dig")) groups.push(clean("0123456789"));
+		if (onbox("box-sym")) groups.push("!@#$%^&*-_=+?~");
+		return groups;
+	}
+
+	function fillpwset(){
+		if (onbox("box-set")) return;
+		var box = $("box-set-chars");
+		if (!box) return;
+		var groups = pwgroups();
+		var s = "";
+		var i;
+		for (i = 0; i < groups.length; i++) s += groups[i];
+		box.value = s;
 	}
 
 	function pwcharset(s){
@@ -2015,16 +2047,8 @@ window.sktools = (function(){
 			for (k = 0; k < count; k++) made.push(pwone(len, [set], set, false));
 			return made.join("\n");
 		}
-		var drop = onbox("box-amb");
 		var each = onbox("box-each");
-		function clean(s){
-			return drop ? s.replace(/[0Oo1lI]/g, "") : s;
-		}
-		var groups = [];
-		if (onbox("box-low")) groups.push(clean("abcdefghijklmnopqrstuvwxyz"));
-		if (onbox("box-up")) groups.push(clean("ABCDEFGHIJKLMNOPQRSTUVWXYZ"));
-		if (onbox("box-dig")) groups.push(clean("0123456789"));
-		if (onbox("box-sym")) groups.push("!@#$%^&*-_=+?~");
+		var groups = pwgroups();
 		var kept = [];
 		var pool = "";
 		var g;
@@ -2360,19 +2384,339 @@ window.sktools = (function(){
 			+ "\n短横线  " + w.join("-");
 	}
 
-	function asciitable(){
-		var names = ["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US"];
-		var lines = ["DEC HEX 字符"];
+	function unibuild(){
+		var slices = unislices();
+		var html = [];
 		var i;
-		for (i = 0; i < 128; i++) {
-			var hex = i.toString(16).toUpperCase();
-			if (hex.length < 2) hex = "0" + hex;
-			var dec = String(i);
-			while (dec.length < 3) dec = " " + dec;
-			var ch = i < 32 ? names[i] : (i === 127 ? "DEL" : String.fromCharCode(i));
-			lines.push(dec + "  " + hex + "  " + ch);
+		for (i = 0; i < slices.length; i++)
+			html.push('<button type="button" data-i="' + i + '" title="' + slices[i][0] + '">' + slices[i][0] + '</button>');
+		$("u-groups").innerHTML = html.join("");
+		$("u-groups").onclick = function(ev){
+			var el = ev.target;
+			while (el && el.id !== "u-groups") {
+				if (el.getAttribute && el.getAttribute("data-i") != null) {
+					unishow(parseInt(el.getAttribute("data-i"), 10), -1);
+					return;
+				}
+				el = el.parentNode;
+			}
+		};
+		$("u-grid").onclick = function(ev){
+			var el = ev.target;
+			while (el && el.id !== "u-grid") {
+				if (el.getAttribute && el.getAttribute("data-cp") != null) {
+					var cp = parseInt(el.getAttribute("data-cp"), 10);
+					copytext(String.fromCodePoint(cp), "u-msg");
+					return;
+				}
+				el = el.parentNode;
+			}
+		};
+		$("u-q").oninput = uniquery;
+		unishow(0, -1);
+	}
+
+	function uniquery(){
+		var cp = uniparse($("u-q").value);
+		if (cp === -1) {
+			msg("u-msg", "");
+			return;
 		}
-		return lines.join("\n");
+		if (cp < 0) {
+			msg("u-msg", "没有这个码位", true);
+			return;
+		}
+		var i = unifind(cp);
+		if (i < 0) {
+			msg("u-msg", "没有这个码位", true);
+			return;
+		}
+		msg("u-msg", "U+" + unihex(cp));
+		unishow(i, cp);
+	}
+
+	function unishow(index, focus){
+		var slices = unislices();
+		var g = slices[index];
+		var groups = document.querySelectorAll("#u-groups button");
+		var i;
+		for (i = 0; i < groups.length; i++)
+			groups[i].className = i === index ? "on" : "";
+		if (groups[index]) groups[index].scrollIntoView({ block: "nearest" });
+		var html = [];
+		var cp;
+		for (cp = g[1]; cp <= g[2]; cp++) {
+			var glyph = uniglyph(cp);
+			html.push('<button type="button" data-cp="' + cp + '" title="U+' + unihex(cp) + '"'
+				+ (glyph.ctrl ? ' class="ctrl"' : '') + (focus === cp ? ' id="u-on"' : '') + '>'
+				+ glyph.t + '</button>');
+		}
+		$("u-grid").innerHTML = html.join("");
+		var on = $("u-on");
+		if (on) {
+			on.className = (on.className ? on.className + " " : "") + "on";
+			on.removeAttribute("id");
+			on.scrollIntoView({ block: "center" });
+		}
+	}
+
+	function uniparse(raw){
+		raw = String(raw).replace(/^\s+|\s+$/g, "");
+		if (!raw) return -1;
+		var m = /^(?:[uU]\+|0x)([0-9a-fA-F]{1,6})$/.exec(raw);
+		if (m) return parseInt(m[1], 16);
+		if (/^[0-9]{1,7}$/.test(raw)) {
+			var n = parseInt(raw, 10);
+			if (n <= 0x10FFFF) return n;
+			return -2;
+		}
+		if (/^[0-9a-fA-F]{2,6}$/.test(raw) && /[a-fA-F]/.test(raw)) return parseInt(raw, 16);
+		if (raw.length > 8) return -1;
+		var cp = raw.codePointAt(0);
+		if (raw.length === (cp > 0xFFFF ? 2 : 1)) return cp;
+		return -1;
+	}
+
+	function unifind(cp){
+		var slices = unislices();
+		var i;
+		for (i = 0; i < slices.length; i++) {
+			if (cp >= slices[i][1] && cp <= slices[i][2]) return i;
+		}
+		return -1;
+	}
+
+	function unihex(cp){
+		var s = cp.toString(16).toUpperCase();
+		while (s.length < 4) s = "0" + s;
+		return s;
+	}
+
+	function uniglyph(cp){
+		var names = ["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI", "DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US"];
+		if (cp < 32) return { t: names[cp], ctrl: true };
+		if (cp === 0x7F) return { t: "DEL", ctrl: true };
+		if (cp >= 0x80 && cp <= 0x9F) return { t: unihex(cp), ctrl: true };
+		if ((cp & 0xFFFF) === 0xFFFE || (cp & 0xFFFF) === 0xFFFF) return { t: unihex(cp), ctrl: true };
+		if (cp === 0xAD || (cp >= 0x200B && cp <= 0x200F) || cp === 0x2028 || cp === 0x2029 || cp === 0x2060 || cp === 0xFEFF)
+			return { t: unihex(cp), ctrl: true };
+		var ch = String.fromCodePoint(cp);
+		if (unicomb(cp)) ch = "\u25CC" + ch;
+		if (ch === "&") ch = "&amp;";
+		else if (ch === "<") ch = "&lt;";
+		else if (ch === ">") ch = "&gt;";
+		return { t: ch, ctrl: false };
+	}
+
+	function unicomb(cp){
+		return (cp >= 0x0300 && cp <= 0x036F)
+			|| (cp >= 0x0483 && cp <= 0x0489)
+			|| (cp >= 0x0591 && cp <= 0x05BD)
+			|| cp === 0x05BF || (cp >= 0x05C1 && cp <= 0x05C2) || cp === 0x05C4 || cp === 0x05C5 || cp === 0x05C7
+			|| (cp >= 0x0610 && cp <= 0x061A) || (cp >= 0x064B && cp <= 0x065F) || cp === 0x0670
+			|| (cp >= 0x06D6 && cp <= 0x06ED)
+			|| (cp >= 0x1AB0 && cp <= 0x1AFF)
+			|| (cp >= 0x1DC0 && cp <= 0x1DFF)
+			|| (cp >= 0x20D0 && cp <= 0x20FF)
+			|| (cp >= 0xFE20 && cp <= 0xFE2F);
+	}
+
+	function unislices(){
+		if (uniSlices) return uniSlices;
+		var src = [
+			["基本拉丁", 0x0000, 0x007F],
+			["拉丁补充", 0x0080, 0x00FF],
+			["拉丁扩展 A", 0x0100, 0x017F],
+			["拉丁扩展 B", 0x0180, 0x024F],
+			["国际音标", 0x0250, 0x02AF],
+			["修饰字母", 0x02B0, 0x02FF],
+			["组合附加", 0x0300, 0x036F],
+			["希腊文", 0x0370, 0x03FF],
+			["西里尔文", 0x0400, 0x04FF],
+			["西里尔补充", 0x0500, 0x052F],
+			["亚美尼亚文", 0x0530, 0x058F],
+			["希伯来文", 0x0590, 0x05FF],
+			["阿拉伯文", 0x0600, 0x06FF],
+			["叙利亚文", 0x0700, 0x074F],
+			["阿拉伯补充", 0x0750, 0x077F],
+			["它拿文", 0x0780, 0x07BF],
+			["西非书面文", 0x07C0, 0x07FF],
+			["撒马利亚文", 0x0800, 0x083F],
+			["曼达文", 0x0840, 0x085F],
+			["叙利亚补充", 0x0860, 0x086F],
+			["阿拉伯扩展 B", 0x0870, 0x089F],
+			["阿拉伯扩展 A", 0x08A0, 0x08FF],
+			["天城文", 0x0900, 0x097F],
+			["孟加拉文", 0x0980, 0x09FF],
+			["果鲁穆奇文", 0x0A00, 0x0A7F],
+			["古吉拉特文", 0x0A80, 0x0AFF],
+			["奥里亚文", 0x0B00, 0x0B7F],
+			["泰米尔文", 0x0B80, 0x0BFF],
+			["泰卢固文", 0x0C00, 0x0C7F],
+			["卡纳达文", 0x0C80, 0x0CFF],
+			["马拉雅拉姆文", 0x0D00, 0x0D7F],
+			["僧伽罗文", 0x0D80, 0x0DFF],
+			["泰文", 0x0E00, 0x0E7F],
+			["老挝文", 0x0E80, 0x0EFF],
+			["藏文", 0x0F00, 0x0FFF],
+			["缅甸文", 0x1000, 0x109F],
+			["格鲁吉亚文", 0x10A0, 0x10FF],
+			["谚文字母", 0x1100, 0x11FF],
+			["埃塞俄比亚文", 0x1200, 0x137F],
+			["埃塞俄比亚补充", 0x1380, 0x139F],
+			["切罗基文", 0x13A0, 0x13FF],
+			["加拿大音节", 0x1400, 0x167F],
+			["欧甘文", 0x1680, 0x169F],
+			["卢恩文", 0x16A0, 0x16FF],
+			["他加禄文", 0x1700, 0x171F],
+			["哈努诺文", 0x1720, 0x173F],
+			["布希德文", 0x1740, 0x175F],
+			["塔格班瓦文", 0x1760, 0x177F],
+			["高棉文", 0x1780, 0x17FF],
+			["蒙古文", 0x1800, 0x18AF],
+			["加拿大音节扩展", 0x18B0, 0x18FF],
+			["林布文", 0x1900, 0x194F],
+			["德宏傣文", 0x1950, 0x197F],
+			["新傣仂文", 0x1980, 0x19DF],
+			["高棉符号", 0x19E0, 0x19FF],
+			["布吉文", 0x1A00, 0x1A1F],
+			["老傣文", 0x1A20, 0x1AAF],
+			["组合附加扩展", 0x1AB0, 0x1AFF],
+			["巴厘文", 0x1B00, 0x1B7F],
+			["巽他文", 0x1B80, 0x1BBF],
+			["巴塔克文", 0x1BC0, 0x1BFF],
+			["雷布查文", 0x1C00, 0x1C4F],
+			["桑塔利文", 0x1C50, 0x1C7F],
+			["西里尔扩展 C", 0x1C80, 0x1C8F],
+			["格鲁吉亚扩展", 0x1C90, 0x1CBF],
+			["巽他补充", 0x1CC0, 0x1CCF],
+			["吠陀扩展", 0x1CD0, 0x1CFF],
+			["音标扩展", 0x1D00, 0x1D7F],
+			["音标扩展补充", 0x1D80, 0x1DBF],
+			["组合附加补充", 0x1DC0, 0x1DFF],
+			["拉丁扩展附加", 0x1E00, 0x1EFF],
+			["希腊文扩展", 0x1F00, 0x1FFF],
+			["常用标点", 0x2000, 0x206F],
+			["上下标", 0x2070, 0x209F],
+			["货币符号", 0x20A0, 0x20CF],
+			["符号用附加", 0x20D0, 0x20FF],
+			["字母式符号", 0x2100, 0x214F],
+			["数字形式", 0x2150, 0x218F],
+			["箭头", 0x2190, 0x21FF],
+			["数学运算符", 0x2200, 0x22FF],
+			["杂项技术符号", 0x2300, 0x23FF],
+			["控制图片", 0x2400, 0x243F],
+			["光学识别", 0x2440, 0x245F],
+			["带圈字母数字", 0x2460, 0x24FF],
+			["制表符", 0x2500, 0x257F],
+			["方块元素", 0x2580, 0x259F],
+			["几何形状", 0x25A0, 0x25FF],
+			["杂项符号", 0x2600, 0x26FF],
+			["装饰符号", 0x2700, 0x27BF],
+			["数学符号 A", 0x27C0, 0x27EF],
+			["箭头补充 A", 0x27F0, 0x27FF],
+			["盲文", 0x2800, 0x28FF],
+			["箭头补充 B", 0x2900, 0x297F],
+			["数学符号 B", 0x2980, 0x29FF],
+			["数学运算符补充", 0x2A00, 0x2AFF],
+			["符号和箭头", 0x2B00, 0x2BFF],
+			["格拉哥里文", 0x2C00, 0x2C5F],
+			["拉丁扩展 C", 0x2C60, 0x2C7F],
+			["科普特文", 0x2C80, 0x2CFF],
+			["格鲁吉亚补充", 0x2D00, 0x2D2F],
+			["提非纳文", 0x2D30, 0x2D7F],
+			["埃塞俄比亚扩展", 0x2D80, 0x2DDF],
+			["西里尔扩展 A", 0x2DE0, 0x2DFF],
+			["标点补充", 0x2E00, 0x2E7F],
+			["汉字部首补充", 0x2E80, 0x2EFF],
+			["康熙部首", 0x2F00, 0x2FDF],
+			["表意描述符", 0x2FF0, 0x2FFF],
+			["中日韩符号", 0x3000, 0x303F],
+			["平假名", 0x3040, 0x309F],
+			["片假名", 0x30A0, 0x30FF],
+			["注音", 0x3100, 0x312F],
+			["谚文兼容字母", 0x3130, 0x318F],
+			["汉文", 0x3190, 0x319F],
+			["注音扩展", 0x31A0, 0x31BF],
+			["汉字笔画", 0x31C0, 0x31EF],
+			["片假名扩展", 0x31F0, 0x31FF],
+			["带圈中日韩", 0x3200, 0x32FF],
+			["中日韩兼容", 0x3300, 0x33FF],
+			["汉字扩展 A", 0x3400, 0x4DBF],
+			["易经卦象", 0x4DC0, 0x4DFF],
+			["汉字", 0x4E00, 0x9FFF],
+			["彝文音节", 0xA000, 0xA48F],
+			["彝文部首", 0xA490, 0xA4CF],
+			["傈僳文", 0xA4D0, 0xA4FF],
+			["瓦伊文", 0xA500, 0xA63F],
+			["西里尔扩展 B", 0xA640, 0xA69F],
+			["巴姆穆文", 0xA6A0, 0xA6FF],
+			["声调修饰", 0xA700, 0xA71F],
+			["拉丁扩展 D", 0xA720, 0xA7FF],
+			["锡尔赫特文", 0xA800, 0xA82F],
+			["印度数字", 0xA830, 0xA83F],
+			["八思巴文", 0xA840, 0xA87F],
+			["索拉什特拉文", 0xA880, 0xA8DF],
+			["天城文扩展", 0xA8E0, 0xA8FF],
+			["克耶文", 0xA900, 0xA92F],
+			["勒姜文", 0xA930, 0xA95F],
+			["谚文字母扩展 A", 0xA960, 0xA97F],
+			["爪哇文", 0xA980, 0xA9DF],
+			["缅甸扩展 B", 0xA9E0, 0xA9FF],
+			["占文", 0xAA00, 0xAA5F],
+			["缅甸扩展 A", 0xAA60, 0xAA7F],
+			["越南傣文", 0xAA80, 0xAADF],
+			["曼尼普尔扩展", 0xAAE0, 0xAAFF],
+			["埃塞俄比亚扩展 A", 0xAB00, 0xAB2F],
+			["拉丁扩展 E", 0xAB30, 0xAB6F],
+			["切罗基补充", 0xAB70, 0xABBF],
+			["曼尼普尔文", 0xABC0, 0xABFF],
+			["谚文音节", 0xAC00, 0xD7A3],
+			["谚文字母扩展 B", 0xD7B0, 0xD7FF],
+			["兼容汉字", 0xF900, 0xFAFF],
+			["字母表现形式", 0xFB00, 0xFB4F],
+			["阿拉伯表现 A", 0xFB50, 0xFDFF],
+			["变体选择符", 0xFE00, 0xFE0F],
+			["竖排标点", 0xFE10, 0xFE1F],
+			["组合半角符", 0xFE20, 0xFE2F],
+			["中日韩兼容形式", 0xFE30, 0xFE4F],
+			["小写变体", 0xFE50, 0xFE6F],
+			["阿拉伯表现 B", 0xFE70, 0xFEFF],
+			["半角和全角", 0xFF00, 0xFFEF],
+			["特殊", 0xFFF0, 0xFFFF],
+			["麻将", 0x1F000, 0x1F02F],
+			["扑克", 0x1F0A0, 0x1F0FF],
+			["带圈字母补充", 0x1F100, 0x1F1FF],
+			["带圈汉字补充", 0x1F200, 0x1F2FF],
+			["杂项象形", 0x1F300, 0x1F5FF],
+			["表情", 0x1F600, 0x1F64F],
+			["装饰符号补充", 0x1F650, 0x1F67F],
+			["交通和地图", 0x1F680, 0x1F6FF],
+			["炼金符号", 0x1F700, 0x1F77F],
+			["几何形状扩展", 0x1F780, 0x1F7FF],
+			["箭头补充 C", 0x1F800, 0x1F8FF],
+			["补充象形", 0x1F900, 0x1F9FF],
+			["象棋符号", 0x1FA00, 0x1FA6F],
+			["符号扩展 A", 0x1FA70, 0x1FAFF]
+		];
+		var out = [];
+		var i, a, b, p, n, name;
+		for (i = 0; i < src.length; i++) {
+			name = src[i][0];
+			a = src[i][1];
+			b = src[i][2];
+			if (b - a < 1024) {
+				out.push([name, a, b]);
+				continue;
+			}
+			for (p = a; p <= b; p += 1024) {
+				n = p + 1023;
+				if (n > b) n = b;
+				out.push([name + " " + unihex(p), p, n]);
+			}
+		}
+		uniSlices = out;
+		return out;
 	}
 
 	function tempconv(text, unit){

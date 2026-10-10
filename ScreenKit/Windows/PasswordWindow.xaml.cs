@@ -69,16 +69,16 @@ public partial class PasswordWindow : Window {
 		bgen.Click += (_, _) => gen();
 		bcopy.Click += (_, _) => copy();
 		bclose.Click += (_, _) => Close();
-		clower.Checked += (_, _) => updatestat();
-		clower.Unchecked += (_, _) => updatestat();
-		cupper.Checked += (_, _) => updatestat();
-		cupper.Unchecked += (_, _) => updatestat();
-		cdigit.Checked += (_, _) => updatestat();
-		cdigit.Unchecked += (_, _) => updatestat();
-		csymbol.Checked += (_, _) => updatestat();
-		csymbol.Unchecked += (_, _) => updatestat();
-		cnoamb.Checked += (_, _) => updatestat();
-		cnoamb.Unchecked += (_, _) => updatestat();
+		clower.Checked += (_, _) => onclass();
+		clower.Unchecked += (_, _) => onclass();
+		cupper.Checked += (_, _) => onclass();
+		cupper.Unchecked += (_, _) => onclass();
+		cdigit.Checked += (_, _) => onclass();
+		cdigit.Unchecked += (_, _) => onclass();
+		csymbol.Checked += (_, _) => onclass();
+		csymbol.Unchecked += (_, _) => onclass();
+		cnoamb.Checked += (_, _) => onclass();
+		cnoamb.Unchecked += (_, _) => onclass();
 		ccustom.Checked += (_, _) => applycustom();
 		ccustom.Unchecked += (_, _) => applycustom();
 		echarset.TextChanged += (_, _) => updatestat();
@@ -166,6 +166,20 @@ public partial class PasswordWindow : Window {
 		};
 	}
 
+	void onclass() {
+		fillcharset();
+	}
+
+	void fillcharset() {
+		if (ccustom.IsChecked == true) return;
+		var o = opts();
+		o.Custom = false;
+		var pool = PasswordGen.Pool(o);
+		if (!string.Equals(echarset.Text, pool, StringComparison.Ordinal))
+			echarset.Text = pool;
+		updatestat();
+	}
+
 	void applycustom() {
 		var on = ccustom.IsChecked == true;
 		echarset.IsEnabled = on;
@@ -175,7 +189,8 @@ public partial class PasswordWindow : Window {
 		csymbol.IsEnabled = !on;
 		cnoamb.IsEnabled = !on;
 		ceach.IsEnabled = !on;
-		updatestat();
+		if (!on) fillcharset();
+		else updatestat();
 	}
 
 	void gen() {

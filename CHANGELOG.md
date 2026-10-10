@@ -54,6 +54,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on.
+- The tools-page ASCII chart is now a Unicode chart. Groups are on the left. The chosen group is a 32-column grid of every character in that group. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split, and the slice start is shown on the group. Surrogates, private-use areas, and CJK Extension B onward are not listed.
 - The tools-page color picker stays on the page. The color chip is a small square, and the saturation square, hue bar, and RGB fields sit under it.
 - The tools-page QR preview shows one line of the source text under the code, the same as the desktop window. A long line is cut with an ellipsis.
 - The tools-page OCR screen starts recognition as soon as a picture is chosen or pasted. The Recognize button still runs it again.
@@ -87,6 +89,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 桌面和工具页的密码生成，改小写、大写、数字、符号或去掉易混字符时，字符集会改成对应的那一组。只有勾着「指定字符集」时才保留手输的内容。
+- 工具页的 ASCII 表改为 Unicode 表。左边是分组，右边用 32 列显示该组的全部字符。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开，组名带上这段的起点。代理项、私用区和汉字扩展 B 及以后未列入。
 - 工具页取色的选色器一直留在页面上。颜色块是小方块，下面是饱和度方块、色相条和 RGB。
 - 工具页生成的二维码下面显示一行原文，与桌面窗口相同。过长时末尾省略。
 - 工具页的文字识别在选择或粘贴图片后立即开始识别。识别按钮仍可再跑一次。
