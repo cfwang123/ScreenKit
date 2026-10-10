@@ -65,6 +65,7 @@ static class Cli {
 				or "--test-wintop"
 				or "--test-win-tts"
 				or "--test-mem"
+				or "--test-scroll-stitch"
 				or "--test-mem-load"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
@@ -292,6 +293,8 @@ static class Cli {
 					return testwintts();
 				case "--test-mem":
 					return testmem();
+				case "--test-scroll-stitch":
+					return testscrollstitch();
 				case "--test-mem-load":
 					string memFeat = null;
 					string memDev = null;
@@ -3605,6 +3608,15 @@ static class Cli {
 		}
 		Out(bad == 0 ? "=== OK：日文注音 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	static int testscrollstitch() {
+		Out("=== 长截图拼接 --test-scroll-stitch ===");
+		var code = ScrollCapture.SelfTest();
+		Out("stitch=" + code);
+		if (code != 0) Err("FAIL stitch=" + code);
+		else Out("=== OK：Bitmap 重叠拼接 ===");
+		return code;
 	}
 
 	static int testmem() {

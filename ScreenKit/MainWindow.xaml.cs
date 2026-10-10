@@ -2880,10 +2880,6 @@ public partial class MainWindow : Window {
 	/// <summary>长截图：点选窗口 → 自动滚动拼接 → 按截图复制方式写入剪贴板。不识别、不上屏。</summary>
 	async Task longshotasync() {
 		if (capturing) return;
-		if (!FeaturePrompt.EnsureOpenCv(this)) {
-			setstatus("未安装 OpenCV，已取消长截图");
-			return;
-		}
 		try {
 			capturing = true;
 			setstatus(Loc.T("st.longshot"));
@@ -4000,8 +3996,11 @@ public partial class MainWindow : Window {
 	void opentexttool(bool fromTray = false) =>
 		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool", fromTray);
 
-	void openpwgen(bool fromTray = false) =>
+	void openpwgen(bool fromTray = false) {
+		var again = pwGenWin != null;
 		opentoolwin(ref pwGenWin, () => new PasswordWindow(opt), "menu.pwgen", fromTray);
+		if (again) pwGenWin?.Generate();
+	}
 
 	void opennettool(bool fromTray = false) =>
 		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.nettool", fromTray);

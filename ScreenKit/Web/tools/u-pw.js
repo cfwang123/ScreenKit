@@ -20,6 +20,7 @@
 			for (pi = 0; pi < pwids.length; pi++) SK.$(pwids[pi]).onchange = fillpwset;
 			SK.$("box-set").onchange = pwsetmode;
 			pwsetmode();
+			if (SK.utilrun) SK.utilrun();
 		}
 	});
 	function pwsetmode(){

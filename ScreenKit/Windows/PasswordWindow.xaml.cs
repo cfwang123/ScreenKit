@@ -193,6 +193,8 @@ public partial class PasswordWindow : Window {
 		else updatestat();
 	}
 
+	public void Generate() => gen();
+
 	void gen() {
 		try {
 			var o = opts();

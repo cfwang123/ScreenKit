@@ -97,7 +97,7 @@ static class NativeRuntime {
 
 	// ───────── 确保（缺失则弹窗提示安装，不静默下载） ─────────
 
-	/// <summary>OCR / 长截图等需要 OpenCvSharpExtern。缺失时弹窗提示安装。</summary>
+	/// <summary>ONNX 识别等需要 OpenCvSharpExtern。缺失时弹窗提示安装。长截图不用。</summary>
 	public static void EnsureOpenCv(IProgress<string> log = null, IProgress<InstallProgress> progress = null) {
 		if (opencvOk && HasOpenCv()) return;
 		if (HasOpenCv()) {

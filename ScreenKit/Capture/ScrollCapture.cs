@@ -6,7 +6,6 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using OpenCvSharp;
 using Rect = System.Windows.Rect;
 using Brushes = System.Windows.Media.Brushes;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
@@ -330,12 +329,11 @@ static class ScrollCapture {
 		return list;
 	}
 
-	/// <summary>对窗口滚动拼接长图。失败抛异常。</summary>
+	/// <summary>对窗口滚动拼接长图。失败抛异常。用 Bitmap 找重叠，不加载 OpenCV。</summary>
 	public static async Task<BitmapSource> CaptureLongAsync(
 		IntPtr hwnd,
 		Action<string> status,
 		CancellationToken ct) {
-		NativeRuntime.EnsureOpenCv();
 		if (hwnd == IntPtr.Zero) throw new ArgumentException("无效窗口句柄");
 		if (!GetWindowRect(hwnd, out _))
 			throw new InvalidOperationException("无法获取窗口矩形");
@@ -347,8 +345,8 @@ static class ScrollCapture {
 		catch { }
 		await Task.Delay(220, ct);
 
-		var strips = new List<Mat>();
-		Mat lastFull = null;
+		var strips = new List<Bgra>();
+		Bgra lastFull = null;
 		// 自适应滚轮刻度数（初始按视口估算，匹配差时减小）
 		var scrollNotches = 0;
 		var stagnant = 0;
@@ -363,16 +361,15 @@ static class ScrollCapture {
 					scrollNotches = estimatenotches(viewH);
 
 				var frame = CaptureWindow(hwnd, wr);
-				if (frame == null || frame.Empty()) break;
+				if (frame == null || frame.H < 8 || frame.W < 8) break;
 
 				if (lastFull == null) {
-					strips.Add(frame.Clone());
+					strips.Add(frame);
 					lastFull = frame;
 				}
 				else {
 					// 几乎没动：到底或未聚焦
 					if (framesimilar(lastFull, frame, 0.992)) {
-						frame.Dispose();
 						stagnant++;
 						if (stagnant >= 2) {
 							status?.Invoke("长截图 · 已到内容底部");
@@ -386,17 +383,13 @@ static class ScrollCapture {
 					stagnant = 0;
 
 					if (!tryuniqueband(lastFull, frame, out var band, out var matchScore)
-						|| band == null || band.Rows < 8) {
-						band?.Dispose();
-						frame.Dispose();
+						|| band == null || band.H < 8) {
 						status?.Invoke("长截图 · 已到内容底部");
 						break;
 					}
 
 					// 新增过少且匹配很好 → 可能到底
-					if (band.Rows < Math.Max(16, viewH / 25) && matchScore >= 0.85) {
-						band.Dispose();
-						frame.Dispose();
+					if (band.H < Math.Max(16, viewH / 25) && matchScore >= 0.85) {
 						status?.Invoke("长截图 · 已到内容底部");
 						break;
 					}
@@ -404,17 +397,16 @@ static class ScrollCapture {
 					// 匹配偏弱：可能滚过了，下一步减小滚动量
 					if (matchScore < 0.55)
 						scrollNotches = Math.Max(2, scrollNotches - 1);
-					else if (matchScore > 0.85 && band.Rows > viewH * 0.55)
+					else if (matchScore > 0.85 && band.H > viewH * 0.55)
 						// 重叠少、新增多：可略增（上限仍保守）
 						scrollNotches = Math.Min(estimatenotches(viewH) + 1, scrollNotches + 1);
 
 					strips.Add(band);
-					lastFull.Dispose();
 					lastFull = frame;
 				}
 
 				var totalH = 0;
-				foreach (var s in strips) totalH += s.Rows;
+				foreach (var s in strips) totalH += s.H;
 				if (totalH >= MaxHeightPx) {
 					status?.Invoke("长截图 · 已达高度上限");
 					break;
@@ -428,15 +420,29 @@ static class ScrollCapture {
 				throw new InvalidOperationException("未能捕获窗口内容");
 
 			status?.Invoke($"长截图 · 合并 {strips.Count} 段…");
-			using var merged = mergevertical(strips);
-			return MatToBitmapSource(merged);
+			return tosource(mergevertical(strips));
 		}
 		finally {
-			lastFull?.Dispose();
-			foreach (var s in strips) {
-				try { s.Dispose(); } catch { }
-			}
+			lastFull = null;
+			strips.Clear();
 		}
+	}
+
+	/// <summary>两张合成图的重叠行能否切对。0 为通过。</summary>
+	public static int SelfTest() {
+		var prev = pattern(48, 80, 0);
+		var next = pattern(48, 80, 11);
+		if (!framesimilar(prev, prev, 0.992)) return 1;
+		if (framesimilar(prev, next, 0.992)) return 2;
+		if (!tryuniqueband(prev, next, out var band, out var score)) return 3;
+		if (band.H != 11) return 4;
+		if (score < 0.5) return 5;
+		if (band.P[0] != 7 || band.P[1] != 7 || band.P[2] != 7) return 6;
+		var merged = mergevertical(new List<Bgra> { prev, band });
+		if (merged.H != prev.H + band.H) return 7;
+		if (merged.W != prev.W) return 8;
+		if (merged.P[(prev.H * merged.W) * 4] != 7) return 9;
+		return 0;
 	}
 
 	static int estimatenotches(int viewH) {
@@ -448,66 +454,119 @@ static class ScrollCapture {
 
 	/// <summary>
 	/// 在 next 中匹配 prev 底边条带，切出无重叠的下半部分。
-	/// matchScore：模板匹配峰值，&lt;0.5 表示可能跳页。
+	/// matchScore：归一化相关峰值，&lt;0.5 表示可能跳页。
 	/// </summary>
-	static bool tryuniqueband(Mat prev, Mat next, out Mat band, out double matchScore) {
+	static bool tryuniqueband(Bgra prev, Bgra next, out Bgra band, out double matchScore) {
 		band = null;
 		matchScore = 0;
-		if (prev == null || next == null || prev.Empty() || next.Empty()) return false;
-		var w = Math.Min(prev.Cols, next.Cols);
+		if (prev == null || next == null || prev.H < 8 || next.H < 8) return false;
+		var w = Math.Min(prev.W, next.W);
 		if (w < 8) return false;
 
-		using var p = prev.Cols == w ? prev.Clone() : prev[new OpenCvSharp.Rect(0, 0, w, prev.Rows)].Clone();
-		using var n = next.Cols == w ? next.Clone() : next[new OpenCvSharp.Rect(0, 0, w, next.Rows)].Clone();
+		var bandH = Compat.Clamp(prev.H / 8, 32, 120);
+		if (bandH >= prev.H) bandH = Math.Max(12, prev.H / 4);
+		if (next.H < bandH + 8) return false;
 
-		// 用 prev 底部较窄条带匹配（更稳）
-		var bandH = Compat.Clamp(p.Rows / 8, 32, 120);
-		if (bandH >= p.Rows) bandH = Math.Max(12, p.Rows / 4);
-		if (n.Rows < bandH + 8) return false;
-
-		using var template = p[new OpenCvSharp.Rect(0, p.Rows - bandH, w, bandH)].Clone();
-		using var match = new Mat();
-		Cv2.MatchTemplate(n, template, match, TemplateMatchModes.CCoeffNormed);
-		Cv2.MinMaxLoc(match, out _, out var maxVal, out _, out var maxLoc);
-		matchScore = maxVal;
-
+		matchScore = matchbottom(prev, next, w, bandH, out var matchY);
 		int cutY;
-		if (maxVal >= 0.50) {
-			cutY = maxLoc.Y + bandH;
-		}
-		else {
+		if (matchScore >= 0.50)
+			cutY = matchY + bandH;
+		else
 			// 匹配失败：保守多保留重叠（宁多重叠也不跳页）
-			// 假定只滚了约 35% 视口
-			cutY = (int)(n.Rows * 0.55);
-		}
+			cutY = (int)(next.H * 0.55);
 		if (cutY < 0) cutY = 0;
-		if (cutY >= n.Rows - 4) {
-			// 整页几乎重叠 → 到底
-			return false;
-		}
+		if (cutY >= next.H - 4) return false;
 
-		var uh = n.Rows - cutY;
+		var uh = next.H - cutY;
 		if (uh < 4) return false;
-		band = n[new OpenCvSharp.Rect(0, cutY, w, uh)].Clone();
+		band = crop(next, cutY, uh, w);
 		return true;
 	}
 
-	/// <summary>两帧是否几乎相同（到底或未滚动）。</summary>
-	static bool framesimilar(Mat a, Mat b, double thresh) {
-		try {
-			if (a == null || b == null || a.Empty() || b.Empty()) return false;
-			if (a.Rows != b.Rows || a.Cols != b.Cols) return false;
-			using var diff = new Mat();
-			Cv2.Absdiff(a, b, diff);
-			using var gray = new Mat();
-			if (diff.Channels() == 3)
-				Cv2.CvtColor(diff, gray, ColorConversionCodes.BGR2GRAY);
+	/// <summary>上一帧底部条带在下一帧中的起始行。返回值约 -1..1。</summary>
+	static double matchbottom(Bgra prev, Bgra next, int w, int bandH, out int matchY) {
+		matchY = 0;
+		var step = Math.Max(1, w / 64);
+		var cols = new List<int>();
+		for (int x = 0; x < w; x += step) cols.Add(x);
+		var nc = cols.Count;
+		var pg = sample(prev, cols);
+		var ng = sample(next, cols);
+		var nlen = bandH * nc;
+		var t0 = (prev.H - bandH) * nc;
+		double tsum = 0;
+		for (int i = 0; i < nlen; i++) tsum += pg[t0 + i];
+		var tmean = tsum / nlen;
+		double tvar = 0;
+		for (int i = 0; i < nlen; i++) {
+			var d = pg[t0 + i] - tmean;
+			tvar += d * d;
+		}
+		var best = -2.0;
+		var bestY = 0;
+		var maxY = next.H - bandH;
+		for (int y = 0; y <= maxY; y++) {
+			var o = y * nc;
+			double psum = 0;
+			for (int i = 0; i < nlen; i++) psum += ng[o + i];
+			var pmean = psum / nlen;
+			double pvar = 0, num = 0;
+			for (int i = 0; i < nlen; i++) {
+				var pd = ng[o + i] - pmean;
+				var td = pg[t0 + i] - tmean;
+				pvar += pd * pd;
+				num += pd * td;
+			}
+			var den = Math.Sqrt(pvar * tvar);
+			double score;
+			if (den < 1e-6)
+				score = tvar < 1e-6 ? 1 : 0;
 			else
-				diff.CopyTo(gray);
-			// 平均差异很小
-			var mean = Cv2.Mean(gray);
-			// mean.Val0 约 0~255；相似时接近 0
-			var sim = 1.0 - Math.Min(1.0, mean.Val0 / 40.0);
+				score = num / den;
+			if (score > best) {
+				best = score;
+				bestY = y;
+			}
+		}
+		matchY = bestY;
+		return best;
+	}
+
+	static byte[] sample(Bgra img, List<int> cols) {
+		var nc = cols.Count;
+		var g = new byte[img.H * nc];
+		for (int y = 0; y < img.H; y++) {
+			var row = y * img.W * 4;
+			var dst = y * nc;
+			for (int c = 0; c < nc; c++) {
+				var i = row + cols[c] * 4;
+				g[dst + c] = (byte)((img.P[i] + img.P[i + 1] + img.P[i + 2]) / 3);
+			}
+		}
+		return g;
+	}
+
+	/// <summary>两帧是否几乎相同（到底或未滚动）。</summary>
+	static bool framesimilar(Bgra a, Bgra b, double thresh) {
+		try {
+			if (a == null || b == null || a.H < 1 || b.H < 1) return false;
+			if (a.W != b.W || a.H != b.H) return false;
+			long sum = 0;
+			long n = 0;
+			var step = 4;
+			for (int y = 0; y < a.H; y += step) {
+				var row = y * a.W * 4;
+				for (int x = 0; x < a.W; x += step) {
+					var i = row + x * 4;
+					sum += Math.Abs(a.P[i] - b.P[i]);
+					sum += Math.Abs(a.P[i + 1] - b.P[i + 1]);
+					sum += Math.Abs(a.P[i + 2] - b.P[i + 2]);
+					n += 3;
+				}
+			}
+			if (n == 0) return false;
+			var mean = sum / (double)n;
+			var sim = 1.0 - Math.Min(1.0, mean / 40.0);
 			return sim >= thresh;
 		}
 		catch {
@@ -515,18 +574,51 @@ static class ScrollCapture {
 		}
 	}
 
-	static Mat mergevertical(List<Mat> strips) {
-		if (strips.Count == 1) return strips[0].Clone();
-		var w = strips.Min(s => s.Cols);
-		var h = strips.Sum(s => s.Rows);
-		var dst = new Mat(h, w, strips[0].Type());
+	static Bgra mergevertical(List<Bgra> strips) {
+		var w = strips[0].W;
+		for (int i = 1; i < strips.Count; i++)
+			if (strips[i].W < w) w = strips[i].W;
+		if (strips.Count == 1 && strips[0].W == w) return strips[0];
+		var h = 0;
+		foreach (var s in strips) h += s.H;
+		var p = new byte[w * h * 4];
 		var y = 0;
 		foreach (var s in strips) {
-			using var slice = s.Cols == w ? s : s[new OpenCvSharp.Rect(0, 0, w, s.Rows)];
-			slice.CopyTo(dst[new OpenCvSharp.Rect(0, y, w, s.Rows)]);
-			y += s.Rows;
+			for (int row = 0; row < s.H; row++)
+				Buffer.BlockCopy(s.P, row * s.W * 4, p, (y + row) * w * 4, w * 4);
+			y += s.H;
 		}
-		return dst;
+		return new Bgra { W = w, H = h, P = p };
+	}
+
+	static Bgra crop(Bgra src, int y, int h, int w) {
+		var p = new byte[w * h * 4];
+		for (int row = 0; row < h; row++)
+			Buffer.BlockCopy(src.P, (y + row) * src.W * 4, p, row * w * 4, w * 4);
+		return new Bgra { W = w, H = h, P = p };
+	}
+
+	/// <summary>第 y 行的内容来自原图 y+shift；超出的行填 7。</summary>
+	static Bgra pattern(int w, int h, int shift) {
+		var p = new byte[w * h * 4];
+		for (int y = 0; y < h; y++) {
+			var srcY = y + shift;
+			for (int x = 0; x < w; x++) {
+				var i = (y * w + x) * 4;
+				if (srcY >= h) {
+					p[i] = 7;
+					p[i + 1] = 7;
+					p[i + 2] = 7;
+				}
+				else {
+					p[i] = (byte)(srcY * 3);
+					p[i + 1] = (byte)(x * 4);
+					p[i + 2] = (byte)(200 - srcY);
+				}
+				p[i + 3] = 255;
+			}
+		}
+		return new Bgra { W = w, H = h, P = p };
 	}
 
 	/// <summary>
@@ -559,7 +651,7 @@ static class ScrollCapture {
 		}
 	}
 
-	static Mat CaptureWindow(IntPtr hwnd, NativeRect wr) {
+	static Bgra CaptureWindow(IntPtr hwnd, NativeRect wr) {
 		var w = Math.Max(1, wr.Right - wr.Left);
 		var h = Math.Max(1, wr.Bottom - wr.Top);
 		// 优先 PrintWindow（含部分分层窗）
@@ -567,7 +659,7 @@ static class ScrollCapture {
 		if (gdi != null) {
 			try {
 				using var tmp = gdi;
-				return BitmapToMat(tmp);
+				return frombitmap(tmp);
 			}
 			catch { }
 		}
@@ -578,7 +670,7 @@ static class ScrollCapture {
 				g.CopyFromScreen(wr.Left, wr.Top, 0, 0, new System.Drawing.Size(w, h),
 					System.Drawing.CopyPixelOperation.SourceCopy);
 			}
-			return BitmapToMat(bmp);
+			return frombitmap(bmp);
 		}
 		catch {
 			return null;
@@ -613,36 +705,40 @@ static class ScrollCapture {
 		return bmp;
 	}
 
-	static Mat BitmapToMat(System.Drawing.Bitmap bmp) {
+	static Bgra frombitmap(System.Drawing.Bitmap bmp) {
 		var w = bmp.Width;
 		var h = bmp.Height;
 		var rect = new System.Drawing.Rectangle(0, 0, w, h);
 		var data = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly,
 			System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 		try {
-			using var bgra = Mat.FromPixelData(h, w, MatType.CV_8UC4, data.Scan0, data.Stride);
-			using var owned = bgra.Clone(); // 脱离 Scan0 生命周期
-			var bgr = new Mat();
-			Cv2.CvtColor(owned, bgr, ColorConversionCodes.BGRA2BGR);
-			return bgr;
+			var stride = data.Stride;
+			var rowBytes = w * 4;
+			var pix = new byte[rowBytes * h];
+			for (int y = 0; y < h; y++) {
+				var src = IntPtr.Add(data.Scan0, y * stride);
+				System.Runtime.InteropServices.Marshal.Copy(src, pix, y * rowBytes, rowBytes);
+			}
+			return new Bgra { W = w, H = h, P = pix };
 		}
 		finally {
 			bmp.UnlockBits(data);
 		}
 	}
 
-	static BitmapSource MatToBitmapSource(Mat bgr) {
-		using var bgra = new Mat();
-		Cv2.CvtColor(bgr, bgra, ColorConversionCodes.BGR2BGRA);
-		var w = bgra.Cols;
-		var h = bgra.Rows;
-		var stride = w * 4;
-		var bytes = new byte[stride * h];
-		System.Runtime.InteropServices.Marshal.Copy(bgra.Data, bytes, 0, bytes.Length);
-		// 强制 alpha
+	static BitmapSource tosource(Bgra b) {
+		var stride = b.W * 4;
+		var bytes = new byte[stride * b.H];
+		Buffer.BlockCopy(b.P, 0, bytes, 0, bytes.Length);
 		for (int i = 3; i < bytes.Length; i += 4) bytes[i] = 255;
-		var bmp = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, bytes, stride);
+		var bmp = BitmapSource.Create(b.W, b.H, 96, 96, PixelFormats.Bgra32, null, bytes, stride);
 		bmp.Freeze();
 		return bmp;
+	}
+
+	sealed class Bgra {
+		public int W;
+		public int H;
+		public byte[] P;
 	}
 }
