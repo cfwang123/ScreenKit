@@ -502,9 +502,23 @@ window.sktools = (function(){
 		}
 	}
 
+	function qrcaptext(text){
+		return String(text || "").replace(/\r|\n/g, " ").trim();
+	}
+
+	function setqrcap(text){
+		var cap = $("qr-cap");
+		if (!cap) return;
+		var line = qrcaptext(text);
+		cap.textContent = line;
+		cap.title = line;
+		cap.hidden = !line;
+	}
+
 	function qrmake(){
+		var text = $("qr-in").value;
 		post("/api/qrmake", {
-			text: $("qr-in").value,
+			text: text,
 			format: $("qr-fmt").value,
 			encoding: $("qr-enc").value,
 		}, function(data){
@@ -512,11 +526,13 @@ window.sktools = (function(){
 			if (!data || !data.png) {
 				img.removeAttribute("src");
 				img.hidden = true;
+				setqrcap("");
 				msg("qr-msg", "没有图片", true);
 				return;
 			}
 			img.src = "data:image/png;base64," + data.png;
 			img.hidden = false;
+			setqrcap(text);
 			msg("qr-msg", "已生成");
 		}, "qr-msg");
 	}

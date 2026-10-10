@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The tools-page QR preview shows one line of the source text under the code, the same as the desktop window. A long line is cut with an ellipsis.
 - The tools-page OCR screen starts recognition as soon as a picture is chosen or pasted. The Recognize button still runs it again.
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
 - The tools page lists every category on the left and that category's tools under a heading on the right. Scrolling the list highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 工具页生成的二维码下面显示一行原文，与桌面窗口相同。过长时末尾省略。
 - 工具页的文字识别在选择或粘贴图片后立即开始识别。识别按钮仍可再跑一次。
 - 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
 - 工具页左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
