@@ -1118,6 +1118,7 @@ window.sktools = (function(){
 			try { $("box-out").value = asciitable(); }
 			catch (ex) { msg("box-msg", ex && ex.message ? ex.message : "失败", true); }
 		}
+		if (name === "u-re") $("box-preset").onchange = repick;
 		if (name === "u-watch") {
 			$("box-start").onclick = watchtoggle;
 			$("box-out").value = watchreset();
@@ -1282,7 +1283,8 @@ window.sktools = (function(){
 		if (name === "u-md5" || name === "u-sha")
 			return lab("文字", ta("box-in", 8, ""));
 		if (name === "u-re")
-			return row2(lab("表达式", textin("box-pat", "", "例如 \\d+")), lab("标志", textin("box-flags", "g", "g i m")))
+			return lab("常用", '<select id="box-preset">' + reopts() + "</select>")
+				+ row2(lab("表达式", textin("box-pat", "", "例如 \\d+")), lab("标志", textin("box-flags", "g", "g i m")))
 				+ lab("文本", ta("box-in", 8, ""));
 		if (name === "u-diff")
 			return '<div class="split">' + lab("原文", ta("box-a", 10, "")) + lab("新文", ta("box-b", 10, "")) + "</div>";
@@ -2027,6 +2029,52 @@ window.sktools = (function(){
 			s += (b < 16 ? "0" : "") + b.toString(16);
 		}
 		return s;
+	}
+
+	function repatterns(){
+		return [
+			["邮箱", "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}", "gi", "name@example.com"],
+			["手机号", "1[3-9]\\d{9}", "g", "13800138000"],
+			["身份证", "[1-9]\\d{5}(?:19|20)\\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]", "gi", "110101199001011234"],
+			["网址", "https?:\\/\\/[^\\s<>\"]+", "gi", "https://example.com/a"],
+			["IPv4", "(?:(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)\\.){3}(?:25[0-5]|2[0-4]\\d|[01]?\\d\\d?)", "g", "192.168.0.1"],
+			["日期", "\\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\\d|3[01])", "g", "2026-10-10"],
+			["时间", "(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d)?", "g", "09:30:00"],
+			["整数", "-?\\d+", "g", "-12"],
+			["小数", "-?\\d+\\.\\d+", "g", "3.14"],
+			["中文", "[\\u4e00-\\u9fff]+", "g", "汉字"],
+			["颜色", "#[0-9A-Fa-f]{3}(?:[0-9A-Fa-f]{3})?", "g", "#3366cc"],
+			["邮编", "[1-9]\\d{5}", "g", "100000"],
+			["QQ 号", "[1-9]\\d{4,10}", "g", "10001"],
+			["车牌", "[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领][A-Z][A-HJ-NP-Z0-9]{4,5}[A-HJ-NP-Z0-9挂学警港澳]", "g", "京A12345"],
+			["空白行", "^[ \\t]*$", "gm", "a\n\nb"],
+		];
+	}
+
+	function reopts(){
+		var list = repatterns();
+		var html = '<option value="">请选择</option>';
+		var i;
+		for (i = 0; i < list.length; i++)
+			html += '<option value="' + i + '">' + esc(list[i][0]) + "</option>";
+		return html;
+	}
+
+	function repick(){
+		var sel = $("box-preset");
+		var list = repatterns();
+		var i = sel ? parseInt(sel.value, 10) : -1;
+		if (!(i >= 0) || !list[i]) return;
+		var box = $("box-in");
+		var cur = box ? box.value : "";
+		var sample = !cur;
+		var k;
+		if (!sample) {
+			for (k = 0; k < list.length; k++) if (cur === list[k][3]) sample = true;
+		}
+		$("box-pat").value = list[i][1];
+		$("box-flags").value = list[i][2];
+		if (sample && box) box.value = list[i][3] || "";
 	}
 
 	function retest(pat, flags, text){

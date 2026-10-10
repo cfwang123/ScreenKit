@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Settings → Capture can set the screenshot folder (`screenshot_dir`). Empty uses `screenshots/` next to the program. An outside folder such as `D:/s/` keeps copied paths short. History, cleanup, and copy-as-file use that folder.
 - `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
+- The tools-page regex tester can insert a common pattern: email, mobile number, ID card, URL, IPv4, date, time, integer, decimal, Chinese, color, postal code, QQ, license plate, or a blank line. An empty text box receives a one-line sample.
 - The tools-page OCR result shows the same summary as the desktop: infer time, end-to-end time, confidence, engine, image size, line count, and the detection side limit.
 - The tools page can turn a picture into an ICO. Paste or choose an image, preview it, pick one size (32 by default), then download. The square icon is also shown at that pixel size, with a border so the size is visible. The picture fits inside the square, and the empty area stays transparent.
 - The tools-page speech screen can filter voices by language and gender. **生成 WAV** downloads the same synthesis as **朗读**.
@@ -63,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **参数设置 → 截图** 可设置截图保存位置（`screenshot_dir`）。留空用程序目录下 `screenshots/`。可填外部目录，例如 `D:/s/`，复制出来的路径更短。历史、清理和复制为文件都用这个目录。
 - `GET /api` 列出仍开启的接口，含方法、介绍和参数说明，文字与 HTTP 接口页相同。`lang` 选择语言，省略时用程序当前界面语言。原有 `endpoints` 简表仍在。
 - 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
+- 工具页的正则测试可以选择常用表达式：邮箱、手机号、身份证、网址、IPv4、日期、时间、整数、小数、中文、颜色、邮编、QQ 号、车牌、空白行。文本为空时放入一行示例。
 - 工具页的文字识别结果会显示和桌面一样的统计：推理耗时、端到端耗时、置信度、引擎、图片宽高、行数、检测边长。
 - 工具页可以把图片做成 ICO。可粘贴或选择图片，先预览，再选一个尺寸（默认 32）后下载。方图按该像素大小显示，并有边框，方便看出大小。画面等比放进方框，空白透明。
 - 工具页的随机密码可以一次生成 1 到 50 条。长度 4 到 128。可选每类至少一个。符号集与桌面密码生成器相同。
