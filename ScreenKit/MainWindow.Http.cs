@@ -141,6 +141,21 @@ public partial class MainWindow {
 		openhttppage(fromTray, "/files");
 	}
 
+	void fillwebmenu() {
+		while (mnweb.Items.Count > 0 && mnweb.Items[mnweb.Items.Count - 1] is not Separator)
+			mnweb.Items.RemoveAt(mnweb.Items.Count - 1);
+		foreach (var cat in TrayIcon.WebCatalog()) {
+			var sub = new MenuItem { Header = cat.Title };
+			foreach (var tool in cat.Tools) {
+				var id = tool.Id;
+				var item = new MenuItem { Header = tool.Name };
+				item.Click += (_, _) => openhttptools(tool: id);
+				sub.Items.Add(item);
+			}
+			if (sub.Items.Count > 0) mnweb.Items.Add(sub);
+		}
+	}
+
 	void openhttppage(bool fromTray, string path) {
 		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
 			httptoolfail(httpstatustext(), fromTray);

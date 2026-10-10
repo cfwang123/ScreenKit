@@ -466,7 +466,7 @@ sealed class TrayIcon : IDisposable {
 			miWeb.DropDownItems.RemoveAt(last);
 			it.Dispose();
 		}
-		foreach (var cat in readwebtools()) {
+		foreach (var cat in WebCatalog()) {
 			var sub = new Forms.ToolStripMenuItem(cat.Title);
 			foreach (var tool in cat.Tools) {
 				var id = tool.Id;
@@ -481,7 +481,7 @@ sealed class TrayIcon : IDisposable {
 		}
 	}
 
-	static List<(string Title, List<(string Id, string Name)> Tools)> readwebtools() {
+	public static List<(string Title, List<(string Id, string Name)> Tools)> WebCatalog() {
 		var cats = new List<(string Id, string Title)>();
 		var tools = new List<(string Id, string Cat, string Name)>();
 		var list = new List<(string Title, List<(string Id, string Name)> Tools)>();

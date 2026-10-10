@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The next tray item is **File transfer**. It opens the desktop file manager at `/files`.
 - The main-window **Tools** menu **Web tools** lists the same entries as the tray: **Web tools home**, **File transfer**, then each category.
 - Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on.
+- Unicode chart cells the installed fonts cannot draw are no longer an empty box. A compatibility ideograph shows its unified equivalent, and the preview names that code point. HanaMin or BabelStone Han still have the separate glyph. An unassigned code point is marked empty, because no font contains it.
 - The Unicode chart has a preview column. The selected character is shown large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms. Clicking a cell still copies it.
 - The tools-page ASCII chart is now a Unicode chart. Groups are on the left. The chosen group is a grid of every character in that group, with each cell wide enough to show the whole glyph. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split, and the slice start is shown on the group. Surrogates, private-use areas, and CJK Extension B onward are not listed.
 - The tools-page color picker stays on the page. The color chip is a small square, and the saturation square, hue bar, and RGB fields sit under it.
@@ -105,6 +106,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 下一项是 **文件传输**，打开电脑版文件管理 `/files`。
 - 主窗口 **工具** 菜单里的 **web工具** 与托盘相同：第一项 **web工具主页**，下一项 **文件传输**，再按分类列出工具。
 - 桌面和工具页的密码生成，改小写、大写、数字、符号或去掉易混字符时，字符集会改成对应的那一组。只有勾着「指定字符集」时才保留手输的内容。
+- Unicode 表里，本机字体画不出的字符不再只显示空方块。兼容汉字改显示等价汉字，预览写明对应码位；独立字形仍要花园明朝（HanaMin）或 BabelStone Han。没有分配的码位标成空位，任何字体都没有这个字。
 - Unicode 表增加预览栏。选中的字符用大字显示，并给出码位、十进制、分组、平面、类型，以及 UTF-8、UTF-16、HTML、JavaScript、URL。点一下仍然复制。
 - 工具页的 ASCII 表改为 Unicode 表。左边是分组，右边按宽度排成多列，格子够放下整个字。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开，组名带上这段的起点。代理项、私用区和汉字扩展 B 及以后未列入。
 - 工具页取色的选色器一直留在页面上。颜色块是小方块，下面是饱和度方块、色相条和 RGB。
