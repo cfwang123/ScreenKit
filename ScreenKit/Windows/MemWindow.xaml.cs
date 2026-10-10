@@ -68,9 +68,12 @@ public partial class MemWindow : Window {
 		try { snap = read(); }
 		catch { return; }
 		if (snap == null) return;
-		lbproc.Text = Loc.T("mem.ws", FeatureInstaller.FormatBytes(snap.WorkingSet))
-			+ "    " + Loc.T("mem.priv", FeatureInstaller.FormatBytes(snap.PrivateBytes))
-			+ "    " + Loc.T("mem.gc", FeatureInstaller.FormatBytes(snap.GcBytes));
+		var line = Loc.T("mem.ws", FeatureInstaller.FormatBytes(snap.WorkingSet));
+		if (snap.PrivateWs >= 0)
+			line += "    " + Loc.T("mem.priv", FeatureInstaller.FormatBytes(snap.PrivateWs));
+		line += "    " + Loc.T("mem.commit", FeatureInstaller.FormatBytes(snap.PrivateBytes));
+		line += "    " + Loc.T("mem.gc", FeatureInstaller.FormatBytes(snap.GcBytes));
+		lbproc.Text = line;
 		var items = snap.Items ?? new List<MemHold>();
 		long sum = 0;
 		var action = Loc.T("mem.unload.row");

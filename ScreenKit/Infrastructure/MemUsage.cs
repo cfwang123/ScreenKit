@@ -19,22 +19,54 @@ sealed class MemHold {
 sealed class MemSnap {
 	public long WorkingSet;
 	public long PrivateBytes;
+	/// <summary>此刻独占的物理内存。读不到时为 -1。</summary>
+	public long PrivateWs = -1;
 	public long GcBytes;
 	public List<MemHold> Items = new();
 }
 
 static class MemUsage {
+	const int ProcessVmCounters = 3;
+
 	[DllImport("psapi.dll")]
 	static extern bool EmptyWorkingSet(IntPtr hProcess);
+
+	[DllImport("ntdll.dll")]
+	static extern int NtQueryInformationProcess(IntPtr process, int pic, ref VmCounters info, int size, out int ret);
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct VmCounters {
+		public UIntPtr PeakVirtualSize;
+		public UIntPtr VirtualSize;
+		public uint PageFaultCount;
+		public UIntPtr PeakWorkingSetSize;
+		public UIntPtr WorkingSetSize;
+		public UIntPtr QuotaPeakPagedPoolUsage;
+		public UIntPtr QuotaPagedPoolUsage;
+		public UIntPtr QuotaPeakNonPagedPoolUsage;
+		public UIntPtr QuotaNonPagedPoolUsage;
+		public UIntPtr PagefileUsage;
+		public UIntPtr PeakPagefileUsage;
+		public UIntPtr PrivateUsage;
+		public UIntPtr PrivateWorkingSetSize;
+		public ulong SharedCommitUsage;
+	}
 
 	public static MemSnap Read() {
 		using var p = Process.GetCurrentProcess();
 		p.Refresh();
-		return new MemSnap {
+		var snap = new MemSnap {
 			WorkingSet = p.WorkingSet64,
 			PrivateBytes = p.PrivateMemorySize64,
 			GcBytes = GC.GetTotalMemory(false),
 		};
+		try {
+			var info = new VmCounters();
+			if (NtQueryInformationProcess(p.Handle, ProcessVmCounters, ref info, Marshal.SizeOf(typeof(VmCounters)), out _) == 0)
+				snap.PrivateWs = (long)info.PrivateWorkingSetSize;
+		}
+		catch { }
+		return snap;
 	}
 
 	/// <summary>模型目录里的 onnx / bin / fst。不含其它文件。</summary>
