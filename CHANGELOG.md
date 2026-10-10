@@ -35,6 +35,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The cast toolbar shows the current audio source. **Options** stays available while casting. It can turn audio on or off and pick speakers, the microphone, or both. The change applies to the live cast.
+- The recording toolbar shows the current audio source. **Options** stays available while recording and can change that source or turn audio off. The rest of the recording settings stay editable only before Start. GIF recording still has no audio.
+
 - Settings → Capture sets the screenshot folder (`screenshot_dir`). The box shows `screenshots/` by default (next to the program) and also offers `D:/s/`. Another folder can be typed or browsed. History, cleanup, and copy-as-file use that folder.
 - Settings → Capture file name (`screenshot_name`) is a pattern you can type or pick. The default is `shot_yyyyMMdd_HHmmss_fff`. Repeated `r` is random digits, as in `shot_yyyyMMdd_HHmmss_rrr`. Repeated `#` is a counter: `####` writes `0001.png`, and `yyyyMMdd_###` takes the next number among files with that same date prefix.
 - `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
@@ -56,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- **Settings → Dictionary** has a result count. The dictionary lists that many hits. The range is 1–4000, and the default is 1000.
 - The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
 - Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file.
 - Dictionary lookup reads `dict2.db` next to the program. Each word is stored once. Prefix, suffix, and infix search use the packed index. The old `lookup_key` search is gone. The file is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed release `dict-db`, extracts `dict2.db`, and deletes an old `dict.db` beside the program (a symlink is removed, and the link target is left in place). Release builds leave a local `dict2.db` in place. The slim package still omits it.
@@ -86,6 +90,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 投屏控制条显示当前声音来源。投屏中仍可点**选项**，开关声音或改成扬声器、麦克风、两者，马上作用到正在发送的投屏。
+- 录屏控制条显示当前声音来源。录制中仍可点**选项**，改声音来源或关闭声音。其它录制参数仍只在开始前修改。GIF 录屏仍然没有声音。
+
 - **参数设置 → 截图** 的保存位置（`screenshot_dir`）默认填 `screenshots/`（程序目录下），下拉可选 `D:/s/`，也可以填写或浏览其它目录。历史、清理和复制为文件都用这个目录。
 - **参数设置 → 截图** 的文件名（`screenshot_name`）可输入，也可下拉。默认 `shot_yyyyMMdd_HHmmss_fff`。连续 `r` 是随机数字，如 `shot_yyyyMMdd_HHmmss_rrr`。连续 `#` 是序号：`####` 写成 `0001.png`；`yyyyMMdd_###` 只在相同日期前缀的文件里取下一个序号。
 - `GET /api` 列出仍开启的接口，含方法、介绍和参数说明，文字与 HTTP 接口页相同。`lang` 选择语言，省略时用程序当前界面语言。原有 `endpoints` 简表仍在。
@@ -107,6 +114,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- **参数设置 → 词典** 增加结果条数。词典按这个数列出结果。范围 1～4000，默认 1000。
 - README 的「安装功能」列出精简包里哪些功能可以直接用，哪些要先安装，并写上各组件在安装器里的大约体积。
 - 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。
 - 词典改为读取程序旁的 `dict2.db`。每个词只存一份，前缀、后缀、中缀走压缩索引。原来的 `lookup_key` 检索已去掉。这个文件不进发布包。**帮助 → 安装功能**从固定 Release `dict-db` 下载 `dict2.7z`，解出 `dict2.db`，并删除程序旁的旧 `dict.db`（符号链接只删链接，不删目标文件）。Release 编译不会动本机已有的 `dict2.db`。精简包仍不带这个文件。

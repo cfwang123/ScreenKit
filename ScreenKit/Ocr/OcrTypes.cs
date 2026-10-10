@@ -107,6 +107,8 @@ public sealed class OcrOptions {
 	public string HotkeySnapCopy = "Ctrl+Alt+P";
 	/// <summary>词典页热键：前台不是主窗则唤出、置顶并切到词典；已是主窗则隐藏。默认空 = 不注册。</summary>
 	public string HotkeyDict = "";
+	/// <summary>词典一次列出的条数。1～4000，默认 1000。</summary>
+	public int DictLimit = 1000;
 	/// <summary>词典发音，按语言。与语音合成页的引擎、发音人无关。</summary>
 	public DictTtsLang DictTtsZh = DictTtsLang.Make("zh-CN-XiaoxiaoNeural");
 	public DictTtsLang DictTtsEn = DictTtsLang.Make("en-US-AriaNeural");
@@ -450,6 +452,7 @@ public sealed class OcrOptions {
 		HotkeyTranslate = HotkeyTranslate,
 		HotkeySnapCopy = HotkeySnapCopy,
 		HotkeyDict = HotkeyDict,
+		DictLimit = DictLimit,
 		DictTtsZh = (DictTtsZh ?? DictTtsLang.Make("zh-CN-XiaoxiaoNeural")).Clone(),
 		DictTtsEn = (DictTtsEn ?? DictTtsLang.Make("en-US-AriaNeural")).Clone(),
 		DictTtsJa = (DictTtsJa ?? DictTtsLang.Make("ja-JP-NanamiNeural")).Clone(),

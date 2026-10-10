@@ -246,6 +246,8 @@ public partial class SettingsWindow : Window {
 			lbhkhinttr.Text = Loc.T("set.hotkey.translate");
 			lbhkhintsnapcopy.Text = Loc.T("set.hotkey.snapcopy");
 			lbhkhintDict.Text = Loc.T("set.hotkey.dict");
+			lbdictlimit.Text = Loc.T("set.dict.limit");
+			lbdictlimithint.Text = Loc.T("set.dict.limit.hint");
 			lbdicttts.Text = Loc.T("set.dict.tts");
 			lbdictttshint.Text = Loc.T("set.dict.tts.hint");
 			lbdictzh.Text = Loc.T("dict.filter.zh");
@@ -467,6 +469,7 @@ public partial class SettingsWindow : Window {
 		ehotkeytr.Text = o.HotkeyTranslate ?? "";
 		ehotkeysnapcopy.Text = o.HotkeySnapCopy ?? "";
 		ehotkeydict.Text = o.HotkeyDict ?? "";
+		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
 		loaddicttts(o);
 		var voiceOffline = string.Equals((o.AsrVoiceMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
 			|| string.Equals((o.AsrVoiceMode ?? "").Trim(), "离线", StringComparison.OrdinalIgnoreCase);
@@ -715,6 +718,8 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeytr, Loc.T("set.hotkey.translate"), out Result.HotkeyTranslate, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeysnapcopy, Loc.T("set.hotkey.snapcopy"), out Result.HotkeySnapCopy, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydict, Loc.T("set.hotkey.dict"), out Result.HotkeyDict, tabsethk)) return false;
+		if (!tryint(edictlimit, Loc.T("set.dict.limit"), 1, DictDb.SEARCH_MAX, out var dictLimit, tabsetdict)) return false;
+		Result.DictLimit = dictLimit;
 		savedicttts();
 		Result.AsrVoiceMode = easrvoiceoffline.IsChecked == true ? "offline" : "stream";
 		Result.AsrVoicePolish = easrvoicepolish.IsChecked == true;

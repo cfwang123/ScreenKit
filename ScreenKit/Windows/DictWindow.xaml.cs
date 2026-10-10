@@ -223,6 +223,18 @@ public partial class DictWindow : UserControl {
 		bfilten.Content = Loc.T("dict.filter.en");
 	}
 
+	int searchlimit() {
+		var n = 1000;
+		try {
+			var o = Options != null ? Options() : null;
+			if (o != null && o.DictLimit > 0) n = o.DictLimit;
+		}
+		catch { }
+		if (n < 1) n = 1;
+		if (n > DictDb.SEARCH_MAX) n = DictDb.SEARCH_MAX;
+		return n;
+	}
+
 	void queuesearch() {
 		lastedit = Environment.TickCount;
 		pending = true;
@@ -274,10 +286,11 @@ public partial class DictWindow : UserControl {
 		var g = ++gen;
 		lbstatus.Text = Loc.T("dict.searching");
 		var took = new int[1];
+		var limit = searchlimit();
 		Task.Run(() => {
 			var t0 = Environment.TickCount;
 			try {
-				var found = DictDb.Search(q, dict, 80);
+				var found = DictDb.Search(q, dict, limit);
 				took[0] = unchecked(Environment.TickCount - t0);
 				return found;
 			}

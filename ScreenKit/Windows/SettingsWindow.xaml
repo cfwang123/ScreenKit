@@ -302,6 +302,14 @@
 			         AutomationProperties.AutomationId="set.tab.dict">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>
+						<DockPanel Margin="0,0,0,4">
+							<TextBlock x:Name="lbdictlimit" Text="结果条数" Width="108" VerticalAlignment="Center"/>
+							<TextBox x:Name="edictlimit" Height="30" Width="88" HorizontalAlignment="Left"
+							         AutomationProperties.AutomationId="set.dict.limit"/>
+						</DockPanel>
+						<TextBlock x:Name="lbdictlimithint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,10"
+						           Text="一次列出多少条。1～4000，默认 1000。"/>
 						<TextBlock x:Name="lbdicttts" Text="词典发音" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbdictttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"

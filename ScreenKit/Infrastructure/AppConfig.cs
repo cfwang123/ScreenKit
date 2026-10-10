@@ -58,6 +58,8 @@ static class AppConfig {
 				o.HotkeySnapCopy = (hksc ?? "").Trim();
 			if (map.TryGetValue("hotkey_dict", out var hkdict))
 				o.HotkeyDict = (hkdict ?? "").Trim();
+			if (map.TryGetValue("dict_limit", out var dlim) && int.TryParse(dlim, out var dlimN))
+				o.DictLimit = Compat.Clamp(dlimN, 1, DictDb.SEARCH_MAX);
 			readdicttts(map, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 			readdicttts(map, "en", o.DictTtsEn, "en-US-AriaNeural");
 			readdicttts(map, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
@@ -561,6 +563,8 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
 		sb.AppendLine($"# 词典页（前台不是主窗则唤出、置顶并切换；剪贴板像单词才搜索；已是主窗则隐藏；默认空=不注册）");
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
+		sb.AppendLine("# 词典一次列出的条数。1～4000，默认 1000");
+		sb.AppendLine($"dict_limit = {Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX)}");
 		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
 		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 		writedicttts(sb, "en", o.DictTtsEn, "en-US-AriaNeural");
