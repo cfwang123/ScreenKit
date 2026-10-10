@@ -1280,22 +1280,61 @@ SK.watchAcc = 0;
 		}, "qr-msg");
 	}
 
+	var qrsPic = null;
+	var qrsUrl = "";
+
+	function onqrsfile(){
+		var file = SK.$("qrs-file").files && SK.$("qrs-file").files[0];
+		if (file) setqrspic(file);
+	}
+
+	function onqrpaste(ev){
+		if (SK.curtool !== "qrs") return;
+		var cd = ev.clipboardData;
+		if (!cd) return;
+		var file = null;
+		var i;
+		if (cd.items) {
+			for (i = 0; i < cd.items.length; i++) {
+				var item = cd.items[i];
+				if (item.kind === "file" && item.type.indexOf("image/") === 0) {
+					file = item.getAsFile();
+					break;
+				}
+			}
+		}
+		if (!file && cd.files && cd.files.length && cd.files[0].type.indexOf("image/") === 0)
+			file = cd.files[0];
+		if (!file) return;
+		ev.preventDefault();
+		setqrspic(file);
+	}
+
+	function setqrspic(file){
+		qrsPic = file;
+		if (qrsUrl) URL.revokeObjectURL(qrsUrl);
+		qrsUrl = URL.createObjectURL(file);
+		var img = SK.$("qrs-img");
+		img.src = qrsUrl;
+		img.hidden = false;
+		SK.$("qrs-out").value = "";
+		qrscan();
+	}
+
 	function qrscan(){
-		var file = SK.$("qr-file").files && SK.$("qr-file").files[0];
+		var file = qrsPic || (SK.$("qrs-file").files && SK.$("qrs-file").files[0]);
 		if (!file) {
-			SK.msg("qr-smsg", "请选择图片", true);
+			SK.msg("qrs-msg", "请选择或粘贴图片", true);
 			return;
 		}
-		var reader = new FileReader();
-		reader.onload = function(){
-			var raw = String(reader.result || "");
-			var comma = raw.indexOf(",");
-			var b64 = comma >= 0 ? raw.substring(comma + 1) : raw;
+		SK.msg("qrs-msg", "识别中…");
+		SK.readfile(file, function(b64){
 			SK.post("/api/qrscan", { base64: b64, format: "dict" }, function(data){
 				var lines = [];
 				var i;
 				if (typeof data === "string") {
-					SK.$("qr-out").value = data;
+					SK.$("qrs-out").value = data;
+					SK.msg("qrs-msg", "");
 					return;
 				}
 				var arr = data;
@@ -1304,13 +1343,15 @@ SK.watchAcc = 0;
 					var item = arr[i] || {};
 					lines.push((item.type || "") + "  " + (item.text || ""));
 				}
-				SK.$("qr-out").value = lines.join("\n");
-				if (!lines.length) SK.msg("qr-smsg", "未检测到条码或二维码", true);
-			}, "qr-smsg");
-		};
-		reader.onerror = function(){ SK.msg("qr-smsg", "读图失败", true); };
-		reader.readAsDataURL(file);
+				SK.$("qrs-out").value = lines.join("\n");
+				if (!lines.length) SK.msg("qrs-msg", "未检测到条码或二维码", true);
+				else SK.msg("qrs-msg", "");
+			}, "qrs-msg");
+		}, "qrs-msg");
 	}
+
+	SK.$("qrs-file").onchange = onqrsfile;
+	document.addEventListener("paste", onqrpaste);
 
 	SK.qrcaptext = qrcaptext;
 	SK.setqrcap = setqrcap;
