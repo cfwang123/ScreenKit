@@ -179,12 +179,12 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 |---------|--------|
 | Screenshot, annotate, clipboard, text overlay, window management, network tools, hotkeys | No extra files |
 | Screenshot save folder | Ready |
-| Windows OCR | Ready when this PC already has Simplified Chinese, Traditional Chinese (Hong Kong), English, Japanese, and Korean. No ONNX model and no OpenCV |
-| Windows speech recognition | English and Simplified Chinese |
+| Windows OCR | Uses whichever OCR language packs are installed in Windows. No ONNX model and no OpenCV. Missing languages are added under **Help → Install features → Windows OCR/Speech** |
+| Windows speech recognition | Uses whichever speech-recognition language packs are installed in Windows. Missing languages are added on the same page |
 | SAPI speech | Includes 32-bit voices reached through `x86host.exe`. That exe is in the package |
-| Windows speech and Edge online voices | Installed Windows voices work immediately. Otherwise Edge online voices need a network and no model download |
+| Windows speech and Edge online voices | Voices already installed in Windows work immediately. With none, Edge online voices need a network and no model download |
 | Text tools, checksums, password generator, batch rename | No extra files |
-| Calendars, Japanese reading | Japanese reading needs Japanese language support on this PC |
+| Calendars, Japanese reading | Japanese reading needs Japanese language support installed in Windows |
 | Simplified/traditional | Uses the system API. On the tools page the buttons sit inside Text convert. There is no All Tools category. A check that still looks for that category is not a missing file, and the conversion itself works |
 | Image convert, image to ICO | Does not use OpenCV |
 | System H.264 recording | Windows Media Foundation. No FFmpeg. Present in the install folder |
