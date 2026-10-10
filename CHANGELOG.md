@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The tools-page OCR screen starts recognition as soon as a picture is chosen or pasted. The Recognize button still runs it again.
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
 - The tools page lists every category on the left and that category's tools under a heading on the right. Scrolling the list highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
 - The tools-page random password card is under Text, directly after Text convert.
@@ -84,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 工具页的文字识别在选择或粘贴图片后立即开始识别。识别按钮仍可再跑一次。
 - 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
 - 工具页左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
 - 工具页的随机密码改到「文字」分类，排在「文本转换」下面。

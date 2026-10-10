@@ -161,6 +161,10 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 .stack { margin-top: 12px; }
 .row { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
 .row label { width: 220px; }
+.row.grow { flex-wrap: nowrap; }
+.row.grow > label:first-child { flex: 1; width: auto; min-width: 0; }
+.row.grow > label:first-child input { min-width: 0; }
+.row.grow > label:last-child { flex: none; width: 140px; }
 .row button, .ops button, .ghost {
 	display: inline-flex; align-items: center; gap: 6px;
 	border: 1px solid var(--line); background: var(--card); color: var(--ink);

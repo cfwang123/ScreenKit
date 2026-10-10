@@ -2,6 +2,9 @@ window.sktools = (function(){
 	var ocrPacks = [];
 	var ocrPic = null;
 	var ocrPicUrl = "";
+	var ocrLoading = false;
+	var ocrAfter = [];
+	var ocrGen = 0;
 	var icoPic = null;
 	var icoUrl = "";
 	var ttsItems = [];
@@ -256,6 +259,13 @@ window.sktools = (function(){
 				break;
 			}
 		}
+		return pick;
+	}
+
+	function spyon(){
+		if (curtool !== "home") return;
+		if (Date.now() < spyLock) return;
+		var pick = pickcat();
 		if (!pick || pick === curcat) return;
 		curcat = pick;
 		paintnav();
@@ -543,7 +553,7 @@ window.sktools = (function(){
 		reader.readAsDataURL(file);
 	}
 
-	function get(url, done, mid){
+	function get(url, done, mid, fail){
 		msg(mid, "");
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", url, true);
@@ -552,16 +562,21 @@ window.sktools = (function(){
 			try { jo = JSON.parse(xhr.responseText); }
 			catch (e) {
 				msg(mid, "响应不是 JSON", true);
+				if (fail) fail();
 				return;
 			}
 			if (!jo || jo.code !== 100) {
 				var err = jo && jo.data;
 				msg(mid, typeof err === "string" && err ? err : "失败", true);
+				if (fail) fail();
 				return;
 			}
 			done(jo.data);
 		};
-		xhr.onerror = function(){ msg(mid, "网络错误", true); };
+		xhr.onerror = function(){
+			msg(mid, "网络错误", true);
+			if (fail) fail();
+		};
 		xhr.send();
 	}
 
@@ -589,9 +604,16 @@ window.sktools = (function(){
 		reader.readAsDataURL(file);
 	}
 
-	function loadoocr(){
-		if (ocrPacks.length) return;
+	function loadoocr(after){
+		if (ocrPacks.length) {
+			if (after) after();
+			return;
+		}
+		if (after) ocrAfter.push(after);
+		if (ocrLoading) return;
+		ocrLoading = true;
 		get("/api/ocr/models", function(data){
+			ocrLoading = false;
 			ocrPacks = (data && data.packs) || [];
 			var rows = [];
 			var i;
@@ -601,7 +623,13 @@ window.sktools = (function(){
 			fillsel($("ocr-pack"), rows, cur.pack || "");
 			if (cur.device) $("ocr-dev").value = cur.device;
 			fillocrmodels(cur.language || "");
-		}, "ocr-msg");
+			var wait = ocrAfter;
+			ocrAfter = [];
+			for (i = 0; i < wait.length; i++) wait[i]();
+		}, "ocr-msg", function(){
+			ocrLoading = false;
+			ocrAfter = [];
+		});
 	}
 
 	function ocrpack(){
@@ -661,8 +689,9 @@ window.sktools = (function(){
 		var img = $("ocr-img");
 		img.src = ocrPicUrl;
 		img.hidden = false;
+		$("ocr-out").value = "";
 		clearocrmeta();
-		msg("ocr-msg", "已放入图片");
+		loadoocr(ocrgo);
 	}
 
 	function clearocrmeta(){
@@ -698,8 +727,11 @@ window.sktools = (function(){
 			return;
 		}
 		clearocrmeta();
+		var gen = ++ocrGen;
 		var wall0 = Date.now();
+		msg("ocr-msg", "识别中…");
 		readfile(file, function(b64){
+			if (gen !== ocrGen) return;
 			post("/api/ocr", {
 				base64: b64,
 				options: {
@@ -710,6 +742,8 @@ window.sktools = (function(){
 					"data.format": "text",
 				},
 			}, function(jo){
+				if (gen !== ocrGen) return;
+				msg("ocr-msg", "");
 				var data = jo ? jo.data : "";
 				$("ocr-out").value = typeof data === "string" ? data : "";
 				var meta = $("ocr-meta");
@@ -721,6 +755,7 @@ window.sktools = (function(){
 				if (jo && jo.code === 101)
 					msg("ocr-msg", typeof data === "string" && data ? data : "未检测到文字", true);
 			}, "ocr-msg", true);
+			if (gen === ocrGen) msg("ocr-msg", "识别中…");
 		}, "ocr-msg");
 	}
 
@@ -1330,7 +1365,7 @@ window.sktools = (function(){
 			return lab("文字", ta("box-in", 8, ""));
 		if (name === "u-re")
 			return lab("常用", '<select id="box-preset">' + reopts() + "</select>")
-				+ row2(lab("表达式", textin("box-pat", "", "例如 \\d+")), lab("标志", textin("box-flags", "g", "g i m")))
+				+ '<div class="row grow">' + lab("表达式", textin("box-pat", "", "例如 \\d+")) + lab("标志", textin("box-flags", "g", "g i m")) + "</div>"
 				+ lab("文本", ta("box-in", 8, ""));
 		if (name === "u-diff")
 			return '<div class="split">' + lab("原文", ta("box-a", 10, "")) + lab("新文", ta("box-b", 10, "")) + "</div>";
