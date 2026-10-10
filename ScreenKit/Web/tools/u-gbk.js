@@ -329,4 +329,10 @@
 	function gbkesc(s){
 		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 	}
+
+	SK.gbkof = function(cp){
+		if (!gbkpages() || gbkOf[cp] == null) return "";
+		var at = gbkOf[cp];
+		return gbkbytes(gbkPages[at.i].cells[at.j]);
+	};
 })();

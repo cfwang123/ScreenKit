@@ -183,7 +183,7 @@
 			return note ? lines.join("\n") + "\n" + note : lines.join("\n");
 		}
 		note = noteof(spec, from, to);
-		var text = SK.trimnum(one(spec, n, from, to)) + " " + unitname(spec.units, to);
+		var text = line(spec, n, from, from) + "\n" + line(spec, n, from, to);
 		return note ? text + "\n" + note : text;
 	}
 

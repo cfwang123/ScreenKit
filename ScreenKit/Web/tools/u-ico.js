@@ -80,16 +80,116 @@
 		var ih = img.naturalHeight || img.height;
 		if (!iw || !ih) return;
 		if (mode !== "stretch" && mode !== "crop") mode = "fit";
-		g.imageSmoothingEnabled = true;
-		try { g.imageSmoothingQuality = "high"; } catch (e) {}
-		if (mode === "stretch") {
-			g.drawImage(img, 0, 0, size, size);
+		if (mode === "crop") {
+			g.imageSmoothingEnabled = true;
+			try { g.imageSmoothingQuality = "high"; } catch (e) {}
+			var cscale = Math.max(size / iw, size / ih);
+			var cw = Math.max(1, Math.round(iw * cscale));
+			var ch = Math.max(1, Math.round(ih * cscale));
+			g.drawImage(img, Math.floor((size - cw) / 2), Math.floor((size - ch) / 2), cw, ch);
 			return;
 		}
-		var scale = mode === "crop" ? Math.max(size / iw, size / ih) : Math.min(size / iw, size / ih);
-		var w = Math.max(1, Math.round(iw * scale));
-		var h = Math.max(1, Math.round(ih * scale));
-		g.drawImage(img, Math.floor((size - w) / 2), Math.floor((size - h) / 2), w, h);
+		var dw = size;
+		var dh = size;
+		var dx = 0;
+		var dy = 0;
+		if (mode !== "stretch") {
+			var scale = Math.min(size / iw, size / ih);
+			dw = Math.max(1, Math.round(iw * scale));
+			dh = Math.max(1, Math.round(ih * scale));
+			dx = Math.floor((size - dw) / 2);
+			dy = Math.floor((size - dh) / 2);
+		}
+		drawsharp(g, img, 0, 0, iw, ih, dx, dy, dw, dh);
+	}
+
+	// 一次 drawImage 把大图缩进 16～32 会发糊。缩小改为按面积平均，预览和 ico 同一条路径。
+	function drawsharp(g, img, sx, sy, sw, sh, dx, dy, dw, dh){
+		if (dw >= sw && dh >= sh) {
+			g.imageSmoothingEnabled = true;
+			try { g.imageSmoothingQuality = "high"; } catch (e) {}
+			g.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+			return;
+		}
+		var scaled = boxicon(img, sx, sy, sw, sh, dw, dh);
+		if (!scaled) {
+			g.imageSmoothingEnabled = true;
+			try { g.imageSmoothingQuality = "low"; } catch (e2) {}
+			g.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+			return;
+		}
+		g.drawImage(scaled, dx, dy);
+	}
+
+	function boxicon(img, sx, sy, sw, sh, dw, dh){
+		var c, cg, src, out, dst, o, og, y, x, y0f, y1f, x0f, x1f, j0, j1, i0, i1, j, i;
+		var top, bot, left, right, wy, wx, wgt, si, pa, accA, accR, accG, accB, cov, di;
+		try {
+			c = document.createElement("canvas");
+			c.width = sw;
+			c.height = sh;
+			cg = c.getContext("2d", { willReadFrequently: true });
+			if (!cg) return null;
+			cg.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+			src = cg.getImageData(0, 0, sw, sh).data;
+			out = cg.createImageData(dw, dh);
+			dst = out.data;
+			for (y = 0; y < dh; y++) {
+				y0f = y * sh / dh;
+				y1f = (y + 1) * sh / dh;
+				j0 = Math.floor(y0f);
+				j1 = Math.ceil(y1f);
+				if (j1 > sh) j1 = sh;
+				for (x = 0; x < dw; x++) {
+					x0f = x * sw / dw;
+					x1f = (x + 1) * sw / dw;
+					i0 = Math.floor(x0f);
+					i1 = Math.ceil(x1f);
+					if (i1 > sw) i1 = sw;
+					accA = 0;
+					accR = 0;
+					accG = 0;
+					accB = 0;
+					cov = 0;
+					for (j = j0; j < j1; j++) {
+						top = j < y0f ? y0f : j;
+						bot = j + 1 > y1f ? y1f : j + 1;
+						wy = bot - top;
+						if (wy <= 0) continue;
+						for (i = i0; i < i1; i++) {
+							left = i < x0f ? x0f : i;
+							right = i + 1 > x1f ? x1f : i + 1;
+							wx = right - left;
+							if (wx <= 0) continue;
+							wgt = wx * wy;
+							si = (j * sw + i) * 4;
+							pa = src[si + 3];
+							accR += src[si] * pa * wgt;
+							accG += src[si + 1] * pa * wgt;
+							accB += src[si + 2] * pa * wgt;
+							accA += pa * wgt;
+							cov += wgt;
+						}
+					}
+					di = (y * dw + x) * 4;
+					if (accA > 0 && cov > 0) {
+						dst[di] = Math.round(accR / accA);
+						dst[di + 1] = Math.round(accG / accA);
+						dst[di + 2] = Math.round(accB / accA);
+						dst[di + 3] = Math.round(accA / cov);
+					}
+				}
+			}
+			o = document.createElement("canvas");
+			o.width = dw;
+			o.height = dh;
+			og = o.getContext("2d");
+			if (!og) return null;
+			og.putImageData(out, 0, 0);
+			return o;
+		} catch (err) {
+			return null;
+		}
 	}
 
 	function icogo(){
