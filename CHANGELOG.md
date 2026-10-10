@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
+- The tools page can turn a picture into a multi-size ICO. Paste or choose an image, preview it, then download. The picture fits inside each square, and the empty area stays transparent.
 
 #### Fixed
 
@@ -51,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
+- 工具页可以把图片做成多尺寸 ICO。可粘贴或选择图片，先预览再下载。画面等比放进方框，空白透明。
 
 #### 修复
 
