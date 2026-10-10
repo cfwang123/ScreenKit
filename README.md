@@ -89,7 +89,7 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 - Each hit shows the language, the headword, and the gloss, and can be spoken. The entry shows pronunciation, part of speech, senses, phrases, and examples. Each example can be spoken. A Korean phrase has the same speak button after the Korean text and reads that text.
 - **Export** writes every hit for the current search, not only the rows on screen. Each entry is the same plain text as the detail. txt joins them into one text. csv is a sheet. html and md are a table: Word, then Detail (the detail column fills the remaining width).
 - Double-click, drag, or right-click text in an entry to open a popup of matching headwords. Hover and selection keep dark text on a light blue row.
-- **Settings → Dictionary** sets how many hits to list (1–4000, default 1000) and, for each language, an TTS engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed.
+- **Settings → Dictionary** sets how many hits to list (1–4000, default 1000), how many minutes to keep the database open after the last lookup (default 1; 0 keeps it open), and, for each language, an TTS engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed.
 
 ### Data sources
 

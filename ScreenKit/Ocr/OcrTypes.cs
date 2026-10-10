@@ -109,6 +109,8 @@ public sealed class OcrOptions {
 	public string HotkeyDict = "";
 	/// <summary>词典一次列出的条数。1～4000，默认 1000。</summary>
 	public int DictLimit = 1000;
+	/// <summary>词典数据库空闲多少分钟后关闭。默认 1。0 表示不自动关闭。</summary>
+	public int DictDbHoldMin = 1;
 	/// <summary>词典发音，按语言。与语音合成页的引擎、发音人无关。</summary>
 	public DictTtsLang DictTtsZh = DictTtsLang.Make("zh-CN-XiaoxiaoNeural");
 	public DictTtsLang DictTtsEn = DictTtsLang.Make("en-US-AriaNeural");
@@ -453,6 +455,7 @@ public sealed class OcrOptions {
 		HotkeySnapCopy = HotkeySnapCopy,
 		HotkeyDict = HotkeyDict,
 		DictLimit = DictLimit,
+		DictDbHoldMin = DictDbHoldMin,
 		DictTtsZh = (DictTtsZh ?? DictTtsLang.Make("zh-CN-XiaoxiaoNeural")).Clone(),
 		DictTtsEn = (DictTtsEn ?? DictTtsLang.Make("en-US-AriaNeural")).Clone(),
 		DictTtsJa = (DictTtsJa ?? DictTtsLang.Make("ja-JP-NanamiNeural")).Clone(),

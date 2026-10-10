@@ -308,8 +308,16 @@
 							         AutomationProperties.AutomationId="set.dict.limit"/>
 						</DockPanel>
 						<TextBlock x:Name="lbdictlimithint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,0,0,10"
+						           TextWrapping="Wrap" Margin="0,0,0,8"
 						           Text="一次列出多少条。1～4000，默认 1000。"/>
+						<DockPanel Margin="0,0,0,4">
+							<TextBlock x:Name="lbdicthold" Text="数据库保持时间" Width="132" VerticalAlignment="Center"/>
+							<TextBox x:Name="edicthold" Height="30" Width="88" HorizontalAlignment="Left"
+							         AutomationProperties.AutomationId="set.dict.dbhold"/>
+						</DockPanel>
+						<TextBlock x:Name="lbdictholdhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,10"
+						           Text="连续这么多分钟没有查询，就关闭数据库。下次查询再打开。默认 1。0 表示不关闭。"/>
 						<TextBlock x:Name="lbdicttts" Text="词典发音" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbdictttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"

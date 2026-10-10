@@ -116,6 +116,7 @@ public partial class MainWindow : Window {
 		trysetwindowicon();
 		// 先读配置再装模型栏
 		AppConfig.LoadInto(opt);
+		DictDb.HoldMinutes = () => opt.DictDbHoldMin;
 		HttpProxy.ApplyFrom(opt);
 		Loc.SetFromConfig(opt.UiLang);
 		applymaintabvisibility();

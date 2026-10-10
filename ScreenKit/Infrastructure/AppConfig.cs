@@ -60,6 +60,8 @@ static class AppConfig {
 				o.HotkeyDict = (hkdict ?? "").Trim();
 			if (map.TryGetValue("dict_limit", out var dlim) && int.TryParse(dlim, out var dlimN))
 				o.DictLimit = Compat.Clamp(dlimN, 1, DictDb.SEARCH_MAX);
+			if (map.TryGetValue("dict_db_hold", out var dhold) && int.TryParse(dhold, out var dholdN))
+				o.DictDbHoldMin = OnnxIdle.ClampMin(dholdN);
 			readdicttts(map, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 			readdicttts(map, "en", o.DictTtsEn, "en-US-AriaNeural");
 			readdicttts(map, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
@@ -565,6 +567,8 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
 		sb.AppendLine("# 词典一次列出的条数。1～4000，默认 1000");
 		sb.AppendLine($"dict_limit = {Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX)}");
+		sb.AppendLine("# 词典数据库空闲多少分钟后关闭。默认 1。0 = 不自动关闭");
+		sb.AppendLine($"dict_db_hold = {OnnxIdle.ClampMin(o.DictDbHoldMin)}");
 		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
 		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 		writedicttts(sb, "en", o.DictTtsEn, "en-US-AriaNeural");

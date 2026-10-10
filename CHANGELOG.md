@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- **Settings → Dictionary** has a database hold time in minutes. The dictionary database closes after that many minutes without a lookup, and the next lookup opens it again. The default is 1. 0 keeps it open.
 - Tools-page date difference, date add/subtract, and month add/subtract are one tool, **日期计算**. It has two modes: **日期差** shows how far apart two dates are, and **日期加减** moves one date. Both take a unit: second, minute, hour, day, month, or year. A difference in months or years follows the calendar and keeps the leftover days, as in `3 个月 5 天（共 95 天）`. Month and year offsets clamp to the last day, so 1 月 31 日 plus one month is 2 月 28 日. An offset in seconds, minutes, or hours also shows the resulting time. An offset of a fractional day shows the time too. A favorite of the three old tools opens 日期计算.
 - The left of the main-window status bar shows this program's commit size, CPU, and GPU. It updates every 2 seconds while the window is visible.
 - The tools-page timestamp tool has a date-time picker. Choosing a time fills the text and converts. Typing a timestamp or a date converts immediately. Converting moves the picker to that local time.
@@ -107,6 +108,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- **参数设置 → 词典** 增加数据库保持时间，单位是分钟。连续这么久没有查询就关闭词典数据库，下次查询再打开。默认 1。0 表示不关闭。
 - 工具页的「日期差」「日期加减」「月份加减」合成 **日期计算**。两种模式：**日期差** 看两个日期相差多少，**日期加减** 把一个日期往前或往后挪。两种都能选单位：秒、分、小时、天、月、年。按月和按年的差走日历、余数照留，如 `3 个月 5 天（共 95 天）`。月数和年数按月末夹住，1 月 31 日加 1 个月是 2 月 28 日。按秒、分、小时加减会把结果的时间一起显示；天数带小数时同样显示时间。原来收藏了这三个工具之一时，会打开「日期计算」。
 - 主窗口状态栏左边显示本程序的提交大小、CPU 和 GPU。窗口可见时每 2 秒更新。
 - 工具页的时间戳增加日期时间选择。选好时间会写入文本并转换。输入时间戳或日期时马上转换。转换时，选择控件会跳到对应的本地时间。

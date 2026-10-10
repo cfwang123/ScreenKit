@@ -92,9 +92,10 @@ static class DictDb {
 	/// <summary>界面一次最多列出的条数。</summary>
 	public const int SEARCH_MAX = 4000;
 
-	const int IDLE_MS = 5 * 60 * 1000;
-
 	static readonly string[] DICTNAME = { "en", "ja", "ko", "zh" };
+
+	/// <summary>空闲分钟数。未设置时用 1。0 表示不关闭。</summary>
+	public static Func<int> HoldMinutes;
 
 	static SqliteConnection conn;
 	static readonly object dblock = new();
@@ -198,7 +199,7 @@ static class DictDb {
 		var closed = false;
 		try {
 			lock (dblock) {
-				if (conn == null || !OnnxIdle.Due(lastuse, IDLE_MS)) return;
+				if (conn == null || !OnnxIdle.Due(lastuse, holdms())) return;
 				closeunlocked();
 				closed = true;
 			}
@@ -206,6 +207,15 @@ static class DictDb {
 		catch { return; }
 		if (!closed) return;
 		try { CaptureLog.Info("dict db idle close"); } catch { }
+	}
+
+	static int holdms() {
+		var min = 1;
+		try {
+			if (HoldMinutes != null) min = HoldMinutes();
+		}
+		catch { min = 1; }
+		return OnnxIdle.LimitMs(min);
 	}
 
 	static void closeunlocked() {
