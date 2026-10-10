@@ -134,10 +134,36 @@ window.sktools = (function(){
 			favbtn.setAttribute("data-fav", curtool);
 		}
 		paintstars();
-		if (name === "home") paintcats();
+		if (name === "home") {
+			var back = pickcat();
+			if (back) curcat = back;
+			paintcats();
+		}
+		else marktool(curtool, name);
 		if (name === "ocr") loadoocr();
 		if (name === "tts") loadtts();
 		if (name === "asr") loadasr();
+	}
+
+	function marktool(id, panelId){
+		var card = cardof(id);
+		if (!card) return;
+		var cat = card.getAttribute("data-cat") || "";
+		if (cat) {
+			curcat = cat;
+			paintnav();
+		}
+		var catName = cattitle(cat);
+		var span = card.querySelector("span");
+		var toolName = span ? span.textContent : "";
+		var h1 = document.querySelector("#" + panelId + " h1");
+		if (h1 && catName && toolName) h1.textContent = catName + " - " + toolName;
+	}
+
+	function cattitle(cat){
+		var btn = document.querySelector('#cats button[data-cat="' + cat + '"]');
+		if (!btn) return "";
+		return btn.getAttribute("data-title") || "";
 	}
 
 	function buildgroups(){
@@ -217,9 +243,7 @@ window.sktools = (function(){
 		window.scrollTo(0, y);
 	}
 
-	function spyon(){
-		if (curtool !== "home") return;
-		if (Date.now() < spyLock) return;
+	function pickcat(){
 		var secs = document.querySelectorAll(".catsec");
 		var pick = "";
 		var i;
