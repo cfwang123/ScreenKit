@@ -53,8 +53,6 @@ window.sktools = (function(){
 			+ "-" + (day < 10 ? "0" : "") + day;
 		document.addEventListener("click", onclick);
 		$("cal-go").onclick = cal;
-		$("yo-go").onclick = yomi;
-		$("yo-copy").onclick = function(){ copytext($("yo-yomi").value, "yo-msg"); };
 		$("tx-copy").onclick = function(){ copytext($("tx-out").value, "tx-msg"); };
 		$("qr-make").onclick = qrmake;
 		$("qr-scan").onclick = qrscan;
@@ -83,7 +81,7 @@ window.sktools = (function(){
 		window.addEventListener("scroll", spyon);
 		window.addEventListener("popstate", applyhash);
 		var start = toolhash();
-		if (start === "zh") start = "text";
+		if (start === "zh" || start === "yomi") start = "text";
 		if (start && start !== "home" && cardof(start)) show(start, true);
 	}
 
@@ -135,7 +133,7 @@ window.sktools = (function(){
 
 	function applyhash(){
 		var id = toolhash();
-		if (id === "zh") id = "text";
+		if (id === "zh" || id === "yomi") id = "text";
 		if (!id || id === "home") {
 			if (curtool !== "home") show("home", true);
 			return;
@@ -347,7 +345,7 @@ window.sktools = (function(){
 			if (id === "u-md5" || id === "u-sha" || id === "u-jsonmin" || id === "u-html"
 				|| id === "u-hmin" || id === "u-cmin" || id === "u-jsmin"
 				|| id === "u-xml" || id === "u-jesc" || id === "u-sql" || id === "u-hjs"
-				|| id === "zh") id = "text";
+				|| id === "zh" || id === "yomi") id = "text";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;
 			favs.push(id);
@@ -469,17 +467,15 @@ window.sktools = (function(){
 		}, "cal-msg");
 	}
 
-	function yomi(){
-		post("/api/jpyomi", {
-			text: $("yo-in").value,
-			mono: $("yo-mono").checked,
-		}, function(data){
-			$("yo-ruby").value = data.ruby || "";
-			$("yo-yomi").value = data.yomi || "";
-		}, "yo-msg");
-	}
-
 	function textop(op){
+		if (op === "yomi" || op === "yomimono") {
+			post("/api/jpyomi", { text: $("tx-in").value, mono: op === "yomimono" }, function(data){
+				var ruby = data.ruby || "";
+				var yomi = data.yomi || "";
+				$("tx-out").value = ruby && yomi && ruby !== yomi ? ruby + "\n" + yomi : (yomi || ruby);
+			}, "tx-msg");
+			return;
+		}
 		if (op === "trad" || op === "simp") {
 			post("/api/zhconv", { text: $("tx-in").value, to: op }, function(data){
 				$("tx-out").value = data.text || "";

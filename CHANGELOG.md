@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list.
 - The tray **Web tools** menu lists every tools-page tool under its category. The first item is **Web tools home**, which opens the list.
 - The next tray item is **File transfer**. It opens the desktop file manager at `/files`.
+- The main-window **Tools** menu **Web tools** lists the same entries as the tray: **Web tools home**, **File transfer**, then each category.
 - Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on.
 - The Unicode chart has a preview column. The selected character is shown large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms. Clicking a cell still copies it.
 - The tools-page ASCII chart is now a Unicode chart. Groups are on the left. The chosen group is a grid of every character in that group, with each cell wide enough to show the whole glyph. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split, and the slice start is shown on the group. Surrogates, private-use areas, and CJK Extension B onward are not listed.
@@ -71,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - XML format and minify, JSON escape and unescape, SQL format and minify, and HTML-to-JS are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
 - The tools-page random-string card is removed. Password generator already covers that.
 - Simplified/traditional is two buttons on Text convert. The separate card is gone. An old favorite opens Text convert. The tools-page batch-rename card is removed. Desktop batch rename stays.
+- Japanese yomi is two buttons on Text convert, one by word and one by character. The separate card is gone. An old favorite opens Text convert. The desktop window stays.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
 - Release builds no longer delete or recreate `dict.db` next to the program. A local link or copy stays as it is. The slim package still leaves that file out.
 
@@ -101,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。
 - 托盘 **web工具** 按分类列出工具页的全部工具。第一项是 **web工具主页**，打开工具列表。
 - 下一项是 **文件传输**，打开电脑版文件管理 `/files`。
+- 主窗口 **工具** 菜单里的 **web工具** 与托盘相同：第一项 **web工具主页**，下一项 **文件传输**，再按分类列出工具。
 - 桌面和工具页的密码生成，改小写、大写、数字、符号或去掉易混字符时，字符集会改成对应的那一组。只有勾着「指定字符集」时才保留手输的内容。
 - Unicode 表增加预览栏。选中的字符用大字显示，并给出码位、十进制、分组、平面、类型，以及 UTF-8、UTF-16、HTML、JavaScript、URL。点一下仍然复制。
 - 工具页的 ASCII 表改为 Unicode 表。左边是分组，右边按宽度排成多列，格子够放下整个字。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开，组名带上这段的起点。代理项、私用区和汉字扩展 B 及以后未列入。
@@ -114,6 +117,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - XML 格式化和压缩、JSON 转义和还原、SQL 格式化和压缩，以及 HTML 转 JS，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
 - 工具页去掉「随机字符串」。随机密码已经能按字符集生成。
 - 简繁转换改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了它时会打开「文本转换」。工具页去掉「批量改名」。桌面的批量改名仍在。
+- 日文注音改成「文本转换」里的两个按钮：非逐字、逐字。原来的单独卡片去掉。收藏了它时会打开「文本转换」。桌面的日文注音仍在。
 - `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。8 秒内没退完时，仍由 `slx` 结束进程再编译。全局 `slx` 脚本不改。监听端口仍是设定的那个。
 - Release 编译不再删除或重建程序旁的 `dict.db`。本机已有的链接或文件会留着。精简包仍不带这个文件。
 

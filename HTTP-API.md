@@ -131,7 +131,7 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
 
 ## 4. GET `/` and GET `/api`
 
-`GET /` and `HEAD /` return the local tools page: calendars, Japanese yomi, text (including simplified/traditional), QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
+`GET /` and `HEAD /` return the local tools page: calendars, text (including simplified/traditional and Japanese yomi), QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
 
 `GET /api` returns the service name, the short `endpoints` list, and `apis`. Each `apis` item has `method` (`GET`, `POST`, or `GET/POST`), `path`, `summary`, and `params` (name and description). That text is the same as the HTTP tab templates. `?lang=zh|en|ja|ko` selects the language. Omitting it uses the app's current UI language and does not change the UI. A module that is off is omitted. `langs` lists the choices.
 
