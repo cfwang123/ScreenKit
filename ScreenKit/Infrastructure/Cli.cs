@@ -2601,6 +2601,39 @@ static class Cli {
 			bad++;
 		}
 		else Out(@"OK norm D:\s");
+		if (ImageUtil.NormScreenshotName("0001") != "num" || ImageUtil.NormScreenshotName("") != "time") {
+			Err("FAIL name style");
+			bad++;
+		}
+		else Out("OK name style");
+		var ndir = Path.Combine(Path.GetTempPath(), "sk_shotname_" + Guid.NewGuid().ToString("N")[..8]);
+		try {
+			Directory.CreateDirectory(ndir);
+			var first = ImageUtil.MakeScreenshotPath(ndir, "shot", ".png", "num");
+			if (!string.Equals(Path.GetFileName(first), "0001.png", StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL num empty: " + first);
+				bad++;
+			}
+			else Out("OK num empty " + Path.GetFileName(first));
+			File.WriteAllText(Path.Combine(ndir, "0001.png"), "x");
+			File.WriteAllText(Path.Combine(ndir, "0003.jpg"), "x");
+			File.WriteAllText(Path.Combine(ndir, "shot_1.png"), "x");
+			var next = ImageUtil.MakeScreenshotPath(ndir, "ocr", ".png", "num");
+			if (!string.Equals(Path.GetFileName(next), "0004.png", StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL num next: " + next);
+				bad++;
+			}
+			else Out("OK num next " + Path.GetFileName(next));
+			var timed = Path.GetFileName(ImageUtil.MakeScreenshotPath(ndir, "ocr", ".png", "time"));
+			if (timed == null || !timed.StartsWith("ocr_", StringComparison.Ordinal) || timed.Length < 20) {
+				Err("FAIL time name: " + timed);
+				bad++;
+			}
+			else Out("OK time " + timed);
+		}
+		finally {
+			try { Directory.Delete(ndir, true); } catch { }
+		}
 		Out(bad == 0 ? "=== OK：截图保存目录 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}

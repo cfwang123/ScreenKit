@@ -634,6 +634,23 @@
 						<TextBlock x:Name="lbsetsnapdirhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"
 						           Text="留空则用程序目录下 screenshots/。也可填外部目录，例如 D:/s/，复制路径更短。"/>
+						<Grid Margin="0,0,0,4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto" MinWidth="72"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock x:Name="lbsetsnapname" Grid.Column="0" Text="文件名" FontWeight="SemiBold"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<ComboBox x:Name="esnapname" Grid.Column="1" Height="32"
+							          VerticalContentAlignment="Center"
+							          AutomationProperties.AutomationId="set.screenshot.name">
+								<ComboBoxItem Content="时间戳 shot_20261010_111508_123" Tag="time" IsSelected="True"/>
+								<ComboBoxItem Content="序号 0001" Tag="num"/>
+							</ComboBox>
+						</Grid>
+						<TextBlock x:Name="lbsetsnapnamehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,10" TextWrapping="Wrap"
+						           Text="序号按目录里已有的纯数字文件名往后排，例如 0001.png。时间戳带前缀。"/>
 						<TextBlock x:Name="lbsetsnaphint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="screenshots/ 目录保留时间；启动时后台清理过期文件，截图时不清理。默认 3 天，可选不限。"/>

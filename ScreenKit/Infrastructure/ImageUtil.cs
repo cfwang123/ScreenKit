@@ -292,6 +292,60 @@ static class ImageUtil {
 	/// <summary>截图保存目录（主窗配置同步）。空 = 程序目录下 screenshots/。</summary>
 	public static string CurrentScreenshotDir = "";
 
+	/// <summary>截图文件名样式（主窗配置同步）：time 或 num。</summary>
+	public static string CurrentScreenshotName = "time";
+
+	/// <summary>文件名样式。num / 0001 为四位序号，其它都是时间戳。</summary>
+	public static string NormScreenshotName(string raw) {
+		var s = (raw ?? "").Trim().Trim('"').ToLowerInvariant();
+		if (s is "num" or "0001" or "seq" or "n" or "number") return "num";
+		return "time";
+	}
+
+	/// <summary>按样式生成尚不存在的截图路径。num 取目录内纯数字文件名的下一个，至少四位。</summary>
+	public static string MakeScreenshotPath(string dir, string prefix, string ext, string nameStyle = null) {
+		if (string.IsNullOrEmpty(ext)) ext = ".png";
+		if (ext[0] != '.') ext = "." + ext;
+		if (NormScreenshotName(nameStyle ?? CurrentScreenshotName) == "num")
+			return nextnumpath(dir, ext);
+		var pfx = string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim();
+		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+		var baseName = pfx + "_" + stamp;
+		var path = Path.Combine(dir, baseName + ext);
+		for (var i = 1; File.Exists(path) && i < 100; i++)
+			path = Path.Combine(dir, baseName + "_" + i + ext);
+		return path;
+	}
+
+	static string nextnumpath(string dir, string ext) {
+		var max = 0;
+		try {
+			if (Directory.Exists(dir)) {
+				foreach (var f in Directory.EnumerateFiles(dir)) {
+					var name = Path.GetFileNameWithoutExtension(f);
+					if (string.IsNullOrEmpty(name) || name.Length > 9) continue;
+					var digits = true;
+					for (var i = 0; i < name.Length; i++) {
+						var c = name[i];
+						if (c < '0' || c > '9') { digits = false; break; }
+					}
+					if (!digits) continue;
+					if (int.TryParse(name, out var n) && n > max) max = n;
+				}
+			}
+		}
+		catch { }
+		var n2 = max >= int.MaxValue - 1 ? 1 : max + 1;
+		for (var i = 0; i < 1000; i++) {
+			var num = n2 + i;
+			if (num <= 0) continue;
+			var text = num < 10000 ? num.ToString("0000") : num.ToString();
+			var path = Path.Combine(dir, text + ext);
+			if (!File.Exists(path)) return path;
+		}
+		return Path.Combine(dir, DateTime.Now.ToString("yyyyMMdd_HHmmss_fff") + ext);
+	}
+
 	/// <summary>
 	/// 规范化保存目录。空、screenshots、screenshots/ 都视为默认，返回空字符串。
 	/// 其它路径去掉末尾分隔符（盘符根目录除外），斜杠改为当前系统分隔符。
@@ -383,13 +437,7 @@ static class ImageUtil {
 		var toSave = prepareforcapture(src);
 		var prepMs = Environment.TickCount - t0;
 		var dir = ScreenshotsDir;
-		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-		var baseName = $"{(string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim())}_{stamp}";
-		var ext = screenshotext();
-		var path = Path.Combine(dir, baseName + ext);
-		// 极罕见同毫秒：追加序号
-		for (var i = 1; File.Exists(path) && i < 100; i++)
-			path = Path.Combine(dir, $"{baseName}_{i}{ext}");
+		var path = MakeScreenshotPath(dir, prefix, screenshotext());
 		t0 = Environment.TickCount;
 		Savefile(toSave, path, CurrentScreenshotJpgQuality);
 		var encMs = Environment.TickCount - t0;
@@ -433,12 +481,7 @@ static class ImageUtil {
 		}
 		var prepMs = Environment.TickCount - t0;
 		var dir = ScreenshotsDir;
-		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-		var baseName = $"{(string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim())}_{stamp}";
-		var ext = screenshotext();
-		var path = Path.Combine(dir, baseName + ext);
-		for (var i = 1; File.Exists(path) && i < 100; i++)
-			path = Path.Combine(dir, $"{baseName}_{i}{ext}");
+		var path = MakeScreenshotPath(dir, prefix, screenshotext());
 		var quality = CurrentScreenshotJpgQuality;
 		t0 = Environment.TickCount;
 		await Task.Run(() => Savefile(toSave, path, quality)).ConfigureAwait(true);
