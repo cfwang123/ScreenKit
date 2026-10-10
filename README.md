@@ -37,7 +37,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **Long screenshot** | Pick a scrollable window → auto-scroll stitch (no OCR). |
 | **Screen recording** | Window or region → HUD → MP4 + optional system/mic audio; optional mouse cursor and click highlight. Codecs: x264 / x265 / AV1 (FFmpeg), Windows Media Foundation H.264 (MP4, no download). |
 | **GIF recording** | Same region flow → 24 fps capture → preview (FPS, scale, palette) → silent GIF. |
-| **Clipboard** | Paste image and OCR; Edit menu copy image / file / path; menu/tray sets on-capture copy mode. |
+| **Clipboard** | Paste image and OCR; Capture menu copy image / file / path; menu/tray sets on-capture copy mode. |
 | **Overlay text** | Click-release selects one OCR block; empty click clears; drag-select stays in range. Ctrl+C copies. |
 | **PDF workbench** | Open PDF → page OCR → edit lines → export searchable PDF. |
 

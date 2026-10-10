@@ -1548,7 +1548,6 @@ public partial class MainWindow : Window {
 			// 菜单
 			mnfile.Header = Loc.T("menu.file");
 			mncap.Header = Loc.T("menu.capture");
-			mnedit.Header = Loc.T("menu.edit");
 			mntools.Header = Loc.T("menu.tools");
 			mnopts.Header = Loc.T("menu.options");
 			mnhelp.Header = Loc.T("menu.help");
