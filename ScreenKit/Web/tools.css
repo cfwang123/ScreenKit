@@ -139,6 +139,19 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 	object-fit: contain; background: #f3f1ec;
 	border: 1px solid var(--line); border-radius: 12px;
 }
+.ico-out { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+#ico-prev {
+	box-sizing: content-box; display: block; flex: none;
+	border: 1px solid #6b645c; background: #fff;
+	background-image:
+		linear-gradient(45deg, #e7e2da 25%, transparent 25%),
+		linear-gradient(-45deg, #e7e2da 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, #e7e2da 75%),
+		linear-gradient(-45deg, transparent 75%, #e7e2da 75%);
+	background-size: 8px 8px;
+	background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+#ico-prev-size { color: var(--muted); font-size: 13px; }
 .split, .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .stack { margin-top: 12px; }
 .row { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }

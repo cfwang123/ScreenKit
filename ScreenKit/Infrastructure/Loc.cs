@@ -153,7 +153,12 @@ static class Loc {
 		if (isprefix(code, "en")) return 1;
 		if (isprefix(code, "ja")) return 2;
 		if (isprefix(code, "ko")) return 3;
-		return 4;
+		if (isprefix(code, "es")) return 4;
+		if (isprefix(code, "fr")) return 5;
+		if (isprefix(code, "pt")) return 6;
+		if (isprefix(code, "ru")) return 7;
+		if (isprefix(code, "de")) return 8;
+		return 9;
 	}
 
 	static bool isprefix(string code, string prefix) {
@@ -178,11 +183,21 @@ static class Loc {
 		else if (v is "chinese" or "zh-cn" or "zh-hans" or "zh-sg") v = Zh;
 		else if (v is "japanese" or "jp") v = "ja";
 		else if (v is "korean" or "kr") v = "ko";
+		else if (v is "spanish" or "espanol" or "español") v = "es";
+		else if (v is "french" or "francais" or "français") v = "fr";
+		else if (v is "portuguese" or "portugues" or "português") v = "pt";
+		else if (v is "russian") v = "ru";
+		else if (v is "german" or "deutsch") v = "de";
 		if (has(v)) return v;
 		if (v.StartsWith("zh", StringComparison.Ordinal) && has(Zh)) return Zh;
 		if (v.StartsWith("en", StringComparison.Ordinal) && has(En)) return En;
 		if (v.StartsWith("ja", StringComparison.Ordinal) && has("ja")) return "ja";
 		if (v.StartsWith("ko", StringComparison.Ordinal) && has("ko")) return "ko";
+		if (v.StartsWith("es", StringComparison.Ordinal) && has("es")) return "es";
+		if (v.StartsWith("fr", StringComparison.Ordinal) && has("fr")) return "fr";
+		if (v.StartsWith("pt", StringComparison.Ordinal) && has("pt")) return "pt";
+		if (v.StartsWith("ru", StringComparison.Ordinal) && has("ru")) return "ru";
+		if (v.StartsWith("de", StringComparison.Ordinal) && has("de")) return "de";
 		if (has(Zh)) return Zh;
 		if (langs.Count > 0) return langs[0].Code;
 		return Zh;
