@@ -37,7 +37,7 @@
 				</label>
 			</div>
 			<div class="cards" id="cards">
-				<button type="button" data-tool="ocr" data-cat="text" data-name="文字识别 ocr" title="Windows 系统 OCR 或 ONNX 模型包">
+				<button type="button" data-tool="ocr" data-cat="image" data-name="文字识别 ocr" title="Windows 系统 OCR 或 ONNX 模型包">
 					<i class="fa-solid fa-eye"></i><span>文字识别</span>
 					<i class="star fa-solid fa-star" data-fav="ocr" title="收藏"></i>
 				</button>
@@ -53,7 +53,7 @@
 					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
 					<i class="star fa-solid fa-star" data-fav="qr" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json xml sql 十六进制 md5 sha256 html css js 转义 简繁转换 繁体 简体 日文注音 读音 假名" title="Base64、URL、十六进制、JSON、XML、SQL、哈希、HTML、CSS、JS、简繁、日文注音">
+				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json xml sql 十六进制 md5 sha256 html css js 转义 简繁转换 繁体 简体 日文注音 读音 假名 变量名 camel snake crontab cron token user-agent ua 解析" title="Base64、URL、十六进制、JSON、XML、SQL、哈希、HTML、CSS、JS、简繁、日文注音、变量名、Crontab、Token、User-Agent">
 					<i class="fa-solid fa-file-lines"></i><span>文本转换</span>
 					<i class="star fa-solid fa-star" data-fav="text" title="收藏"></i>
 				</button>
@@ -141,14 +141,6 @@
 					<i class="fa-solid fa-eye-dropper"></i><span>取色</span>
 					<i class="star fa-solid fa-star" data-fav="u-pick" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-name" data-cat="text" data-name="变量名 camel snake" title="驼峰、下划线、短横线">
-					<i class="fa-solid fa-signature"></i><span>变量名</span>
-					<i class="star fa-solid fa-star" data-fav="u-name" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-cron" data-cat="text" data-name="crontab cron" title="把五段表达式说成人话">
-					<i class="fa-solid fa-clock"></i><span>Crontab</span>
-					<i class="star fa-solid fa-star" data-fav="u-cron" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="u-px" data-cat="calc" data-name="px rem" title="像素和 rem 互转">
 					<i class="fa-solid fa-text-height"></i><span>Px / Rem</span>
 					<i class="star fa-solid fa-star" data-fav="u-px" title="收藏"></i>
@@ -169,17 +161,9 @@
 					<i class="fa-solid fa-table"></i><span>HTML 表格</span>
 					<i class="star fa-solid fa-star" data-fav="u-table" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-ua" data-cat="text" data-name="user-agent ua" title="看系统和浏览器">
-					<i class="fa-solid fa-user"></i><span>User-Agent</span>
-					<i class="star fa-solid fa-star" data-fav="u-ua" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="u-ascii" data-cat="text" data-name="unicode 码表 符号 ascii" title="按分组查看字符">
 					<i class="fa-solid fa-table"></i><span>Unicode 表</span>
 					<i class="star fa-solid fa-star" data-fav="u-ascii" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-tok" data-cat="text" data-name="token 估算" title="粗算 token，不是模型分词">
-					<i class="fa-solid fa-hashtag"></i><span>Token 估算</span>
-					<i class="star fa-solid fa-star" data-fav="u-tok" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-watch" data-cat="time" data-name="秒表" title="开始、停止、复位">
 					<i class="fa-solid fa-stopwatch"></i><span>秒表</span>
@@ -348,6 +332,18 @@
 				<div class="opgrp"><span>日文注音</span><div>
 					<button type="button" data-op="yomi"><i class="fa-solid fa-comment"></i>非逐字</button>
 					<button type="button" data-op="yomimono"><i class="fa-solid fa-comment"></i>逐字</button>
+				</div></div>
+				<div class="opgrp"><span>变量名</span><div>
+					<button type="button" data-op="name"><i class="fa-solid fa-signature"></i>转换</button>
+				</div></div>
+				<div class="opgrp"><span>Crontab</span><div>
+					<button type="button" data-op="cron"><i class="fa-solid fa-clock"></i>解析</button>
+				</div></div>
+				<div class="opgrp"><span>Token</span><div>
+					<button type="button" data-op="tok"><i class="fa-solid fa-hashtag"></i>估算</button>
+				</div></div>
+				<div class="opgrp"><span>User-Agent解析</span><div>
+					<button type="button" data-op="ua"><i class="fa-solid fa-user"></i>解析</button>
 				</div></div>
 				<div class="opgrp"><span>空白</span><div>
 					<button type="button" data-op="collapse"><i class="fa-solid fa-compress"></i>合并空白</button>
