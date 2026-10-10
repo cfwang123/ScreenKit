@@ -11,6 +11,7 @@
 	--danger: #9f2d2d;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
 	min-width: 1080px;
