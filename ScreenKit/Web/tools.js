@@ -351,7 +351,7 @@ window.sktools = (function(){
 		el.className = bad ? "msg bad" : "msg";
 	}
 
-	function post(url, body, done, mid){
+	function post(url, body, done, mid, raw){
 		msg(mid, "");
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", url, true);
@@ -364,11 +364,13 @@ window.sktools = (function(){
 				return;
 			}
 			if (!jo || jo.code !== 100) {
-				var err = jo && jo.data;
-				msg(mid, typeof err === "string" && err ? err : "失败", true);
-				return;
+				if (!(raw && jo && jo.code === 101)) {
+					var err = jo && jo.data;
+					msg(mid, typeof err === "string" && err ? err : "失败", true);
+					return;
+				}
 			}
-			done(jo.data || {});
+			done(raw ? jo : (jo.data || {}));
 		};
 		xhr.onerror = function(){ msg(mid, "网络错误", true); };
 		xhr.send(JSON.stringify(body));
@@ -590,7 +592,29 @@ window.sktools = (function(){
 		var img = $("ocr-img");
 		img.src = ocrPicUrl;
 		img.hidden = false;
+		clearocrmeta();
 		msg("ocr-msg", "已放入图片");
+	}
+
+	function clearocrmeta(){
+		var meta = $("ocr-meta");
+		if (!meta) return;
+		meta.textContent = "";
+		meta.hidden = true;
+	}
+
+	function ocrmeta(stat, wallMs){
+		if (!stat) return "";
+		var inferS = (Math.max(0, Number(stat.infer) || 0) / 1000).toFixed(2);
+		var wallS = (Math.max(0, wallMs) / 1000).toFixed(2);
+		var loadPart = stat.load > 0 ? " · 加载 " + (stat.load / 1000).toFixed(2) + "s" : "";
+		var conf = (Number(stat.score) || 0).toFixed(2);
+		var device = stat.device || "";
+		var model = stat.model ? " | " + stat.model : "";
+		var res = stat.width > 0 && stat.height > 0 ? " | " + stat.width + "×" + stat.height : "";
+		return "推理 " + inferS + "s · 端到端 " + wallS + "s" + loadPart
+			+ " | 置信度 " + conf + " | " + device + model + res
+			+ " | " + (stat.lines || 0) + " 行 | 边长" + (stat.limit || 0);
 	}
 
 	function ocrgo(){
@@ -604,6 +628,8 @@ window.sktools = (function(){
 			msg("ocr-msg", "没有可用的识别引擎", true);
 			return;
 		}
+		clearocrmeta();
+		var wall0 = Date.now();
 		readfile(file, function(b64){
 			post("/api/ocr", {
 				base64: b64,
@@ -614,9 +640,18 @@ window.sktools = (function(){
 					"ocr.device": $("ocr-dev").value,
 					"data.format": "text",
 				},
-			}, function(data){
+			}, function(jo){
+				var data = jo ? jo.data : "";
 				$("ocr-out").value = typeof data === "string" ? data : "";
-			}, "ocr-msg");
+				var meta = $("ocr-meta");
+				var text = ocrmeta(jo && jo.stat, Date.now() - wall0);
+				if (meta) {
+					meta.textContent = text;
+					meta.hidden = !text;
+				}
+				if (jo && jo.code === 101)
+					msg("ocr-msg", typeof data === "string" && data ? data : "未检测到文字", true);
+			}, "ocr-msg", true);
 		}, "ocr-msg");
 	}
 

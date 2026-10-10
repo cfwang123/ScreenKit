@@ -21,6 +21,8 @@ public sealed class OcrResult {
 	public string ModelLabel;
 	public int LoadMs;
 	public int InferMs;
+	public int Width;
+	public int Height;
 }
 
 public readonly struct Point2f {

@@ -146,6 +146,8 @@ sealed class OcrEngine : IDisposable {
 			DeviceUsed = deviceUsed,
 			ModelLabel = modelLabel,
 			InferMs = Environment.TickCount - t0,
+			Width = bgr.Width,
+			Height = bgr.Height,
 		};
 	}
 

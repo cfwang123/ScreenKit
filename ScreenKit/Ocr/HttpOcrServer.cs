@@ -1161,6 +1161,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			};
 			if (wantBarcode)
 				empty["barcodes"] = new JsonArray();
+			putstat(empty, result, ocrOpt);
 			writejson(ctx, 200, empty);
 			return;
 		}
@@ -1183,6 +1184,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			};
 			if (barcodeArr != null)
 				jo["barcodes"] = barcodeArr;
+			putstat(jo, result, ocrOpt);
 			writejson(ctx, 200, jo);
 			return;
 		}
@@ -1214,7 +1216,30 @@ sealed partial class HttpOcrServer : IDisposable {
 		};
 		if (barcodeArr != null)
 			resp["barcodes"] = barcodeArr;
+		putstat(resp, result, ocrOpt);
 		writejson(ctx, 200, resp);
+	}
+
+	static void putstat(JsonObject jo, OcrResult result, OcrOptions opt) {
+		if (jo == null || result == null) return;
+		var lines = result.Lines;
+		var n = lines == null ? 0 : lines.Count;
+		double sum = 0;
+		if (n > 0) {
+			foreach (var ln in lines) sum += ln == null ? 0 : ln.Score;
+		}
+		var score = n > 0 ? sum / n : 0;
+		jo["stat"] = new JsonObject {
+			["infer"] = Math.Max(0, result.InferMs),
+			["load"] = Math.Max(0, result.LoadMs),
+			["score"] = Math.Round(score, 4),
+			["device"] = result.DeviceUsed ?? "",
+			["model"] = result.ModelLabel ?? "",
+			["width"] = result.Width,
+			["height"] = result.Height,
+			["lines"] = n,
+			["limit"] = opt == null ? 0 : opt.DetLimitSideLen,
+		};
 	}
 
 	static JsonArray buildbarcodearray(QrResult codes) {

@@ -87,7 +87,8 @@ static class WinOcr {
 			throw new FileNotFoundException("图像不存在", path);
 		return offsta(() => {
 			using var fs = File.OpenRead(path);
-			return recognizebmp(opt, decode(fs, limitof(opt), out var scale), scale);
+			var bmp = decode(fs, limitof(opt), out var w, out var h, out var scale);
+			return withsize(recognizebmp(opt, bmp, scale), w, h);
 		});
 	}
 
@@ -96,7 +97,8 @@ static class WinOcr {
 			throw new InvalidOperationException("图像为空");
 		return offsta(() => {
 			using var ms = new MemoryStream(image, false);
-			return recognizebmp(opt, decode(ms, limitof(opt), out var scale), scale);
+			var bmp = decode(ms, limitof(opt), out var w, out var h, out var scale);
+			return withsize(recognizebmp(opt, bmp, scale), w, h);
 		});
 	}
 
@@ -161,7 +163,14 @@ static class WinOcr {
 		}
 		var bmp = SoftwareBitmap.CreateCopyFromBuffer(
 			work.AsBuffer(), BitmapPixelFormat.Bgra8, dw, dh, BitmapAlphaMode.Ignore);
-		return recognizebmp(opt, bmp, scale);
+		return withsize(recognizebmp(opt, bmp, scale), width, height);
+	}
+
+	static OcrResult withsize(OcrResult r, int width, int height) {
+		if (r == null) return null;
+		r.Width = width;
+		r.Height = height;
+		return r;
 	}
 
 	static OcrResult recognizebmp(OcrOptions opt, SoftwareBitmap bmp, double scale) {
@@ -206,12 +215,14 @@ static class WinOcr {
 		}
 	}
 
-	static SoftwareBitmap decode(Stream stream, int limit, out double scale) {
+	static SoftwareBitmap decode(Stream stream, int limit, out int width, out int height, out double scale) {
 		using var ras = stream.AsRandomAccessStream();
 		var decoder = wait(Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(ras).AsTask());
 		var sw = (int)decoder.PixelWidth;
 		var sh = (int)decoder.PixelHeight;
 		if (sw < 1 || sh < 1) throw new InvalidOperationException("图像为空");
+		width = sw;
+		height = sh;
 		scale = 1;
 		var transform = new BitmapTransform {
 			InterpolationMode = BitmapInterpolationMode.Linear,
