@@ -380,30 +380,52 @@
 				<textarea id="tx-in" rows="8" placeholder="要处理的文字"></textarea>
 			</label>
 			<div class="ops" id="tx-ops">
-				<button type="button" data-op="b64enc"><i class="fa-solid fa-lock"></i>Base64 编码</button>
-				<button type="button" data-op="b64dec"><i class="fa-solid fa-lock-open"></i>Base64 解码</button>
-				<button type="button" data-op="urlenc"><i class="fa-solid fa-link"></i>URL 编码</button>
-				<button type="button" data-op="urldec"><i class="fa-solid fa-link-slash"></i>URL 解码</button>
-				<button type="button" data-op="utf8hex"><i class="fa-solid fa-hashtag"></i>UTF-8 十六进制</button>
-				<button type="button" data-op="utf8unhex"><i class="fa-solid fa-rotate-left"></i>还原 UTF-8</button>
-				<button type="button" data-op="gbkhex"><i class="fa-solid fa-hashtag"></i>GBK 十六进制</button>
-				<button type="button" data-op="gbkunhex"><i class="fa-solid fa-rotate-left"></i>还原 GBK</button>
-				<button type="button" data-op="uesc"><i class="fa-solid fa-code"></i>Unicode 转义</button>
-				<button type="button" data-op="uunesc"><i class="fa-solid fa-rotate-left"></i>还原 Unicode</button>
-				<button type="button" data-op="upper"><i class="fa-solid fa-arrow-up-a-z"></i>大写</button>
-				<button type="button" data-op="lower"><i class="fa-solid fa-arrow-down-a-z"></i>小写</button>
-				<button type="button" data-op="collapse"><i class="fa-solid fa-compress"></i>合并空白</button>
-				<button type="button" data-op="dropempty"><i class="fa-solid fa-eraser"></i>去掉空行</button>
-				<button type="button" data-op="json"><i class="fa-solid fa-code"></i>JSON 美化</button>
-				<button type="button" data-op="jsonmin"><i class="fa-solid fa-compress"></i>JSON 压缩</button>
-				<button type="button" data-op="htmlenc"><i class="fa-solid fa-code"></i>HTML 编码</button>
-				<button type="button" data-op="htmldec"><i class="fa-solid fa-rotate-left"></i>HTML 解码</button>
-				<button type="button" data-op="hmin"><i class="fa-solid fa-file-code"></i>HTML 压缩</button>
-				<button type="button" data-op="cmin"><i class="fa-solid fa-brush"></i>CSS 压缩</button>
-				<button type="button" data-op="jsmin"><i class="fa-solid fa-file-code"></i>JS 压缩</button>
-				<button type="button" data-op="md5"><i class="fa-solid fa-lock"></i>MD5</button>
-				<button type="button" data-op="sha"><i class="fa-solid fa-lock"></i>SHA-256</button>
-				<button type="button" data-op="stats"><i class="fa-solid fa-chart-column"></i>统计</button>
+				<div class="opgrp"><span>Base64</span><div>
+					<button type="button" data-op="b64enc"><i class="fa-solid fa-lock"></i>编码</button>
+					<button type="button" data-op="b64dec"><i class="fa-solid fa-lock-open"></i>解码</button>
+				</div></div>
+				<div class="opgrp"><span>URL</span><div>
+					<button type="button" data-op="urlenc"><i class="fa-solid fa-link"></i>编码</button>
+					<button type="button" data-op="urldec"><i class="fa-solid fa-link-slash"></i>解码</button>
+				</div></div>
+				<div class="opgrp"><span>十六进制</span><div>
+					<button type="button" data-op="utf8hex"><i class="fa-solid fa-hashtag"></i>UTF-8</button>
+					<button type="button" data-op="utf8unhex"><i class="fa-solid fa-rotate-left"></i>还原 UTF-8</button>
+					<button type="button" data-op="gbkhex"><i class="fa-solid fa-hashtag"></i>GBK</button>
+					<button type="button" data-op="gbkunhex"><i class="fa-solid fa-rotate-left"></i>还原 GBK</button>
+				</div></div>
+				<div class="opgrp"><span>Unicode</span><div>
+					<button type="button" data-op="uesc"><i class="fa-solid fa-code"></i>转义</button>
+					<button type="button" data-op="uunesc"><i class="fa-solid fa-rotate-left"></i>还原</button>
+				</div></div>
+				<div class="opgrp"><span>大小写</span><div>
+					<button type="button" data-op="upper"><i class="fa-solid fa-arrow-up-a-z"></i>大写</button>
+					<button type="button" data-op="lower"><i class="fa-solid fa-arrow-down-a-z"></i>小写</button>
+				</div></div>
+				<div class="opgrp"><span>空白</span><div>
+					<button type="button" data-op="collapse"><i class="fa-solid fa-compress"></i>合并空白</button>
+					<button type="button" data-op="dropempty"><i class="fa-solid fa-eraser"></i>去掉空行</button>
+				</div></div>
+				<div class="opgrp"><span>JSON</span><div>
+					<button type="button" data-op="json"><i class="fa-solid fa-code"></i>美化</button>
+					<button type="button" data-op="jsonmin"><i class="fa-solid fa-compress"></i>压缩</button>
+				</div></div>
+				<div class="opgrp"><span>HTML</span><div>
+					<button type="button" data-op="htmlenc"><i class="fa-solid fa-code"></i>编码</button>
+					<button type="button" data-op="htmldec"><i class="fa-solid fa-rotate-left"></i>解码</button>
+					<button type="button" data-op="hmin"><i class="fa-solid fa-file-code"></i>压缩</button>
+				</div></div>
+				<div class="opgrp"><span>代码</span><div>
+					<button type="button" data-op="cmin"><i class="fa-solid fa-brush"></i>CSS 压缩</button>
+					<button type="button" data-op="jsmin"><i class="fa-solid fa-file-code"></i>JS 压缩</button>
+				</div></div>
+				<div class="opgrp"><span>哈希</span><div>
+					<button type="button" data-op="md5"><i class="fa-solid fa-lock"></i>MD5</button>
+					<button type="button" data-op="sha"><i class="fa-solid fa-lock"></i>SHA-256</button>
+				</div></div>
+				<div class="opgrp"><span>统计</span><div>
+					<button type="button" data-op="stats"><i class="fa-solid fa-chart-column"></i>统计</button>
+				</div></div>
 			</div>
 			<div class="row">
 				<button type="button" id="tx-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>

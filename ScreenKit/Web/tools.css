@@ -172,6 +172,10 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 }
 .ghost { background: transparent; }
 .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#tx-ops { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
+#tx-ops .opgrp > span { display: block; color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+#tx-ops .opgrp > div { display: flex; flex-wrap: wrap; gap: 8px; }
+#tx-ops button { width: 160px; justify-content: center; }
 .check { width: auto; display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; }
 .check input { margin: 0; }
 .msg { color: var(--muted); min-height: 1.2em; }
