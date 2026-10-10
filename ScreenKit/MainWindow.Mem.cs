@@ -23,6 +23,16 @@ public partial class MainWindow {
 			refreshstbar();
 		};
 		stbarTimer.Start();
+		IsVisibleChanged += (_, _) => {
+			if (windowshown()) refreshuse();
+		};
+		StateChanged += (_, _) => {
+			if (windowshown()) refreshuse();
+		};
+	}
+
+	bool windowshown() {
+		return IsVisible && Visibility == Visibility.Visible && WindowState != WindowState.Minimized;
 	}
 
 	static void bindstclick(System.Windows.UIElement el, System.Action act) {
@@ -36,6 +46,7 @@ public partial class MainWindow {
 	void refreshstbar() {
 		if (bstbar == null) return;
 		try {
+			if (windowshown()) refreshuse();
 			bstbar.Text = statusbarmem();
 			var http = statusbarhttp();
 			if (bsthttp != null) {
@@ -47,6 +58,27 @@ public partial class MainWindow {
 			}
 		}
 		catch { }
+	}
+
+	void refreshuse() {
+		if (lbuse == null) return;
+		try {
+			lbuse.Text = statusbaruse();
+			lbuse.ToolTip = Loc.T("stbar.use.tip");
+		}
+		catch { }
+	}
+
+	string statusbaruse() {
+		ProcUse.Sample(out var commit, out var cpu, out var gpu);
+		return Loc.T("stbar.use", stbarsiz(commit), pcttext(cpu), pcttext(gpu));
+	}
+
+	static string pcttext(double value) {
+		if (value < 0) return "—";
+		if (value > 100) value = 100;
+		if (value >= 10 || value < 0.05) return Math.Round(value).ToString("0") + "%";
+		return value.ToString("0.0") + "%";
 	}
 
 	string statusbarmem() {
