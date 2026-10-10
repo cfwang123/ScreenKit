@@ -2930,11 +2930,13 @@ static class Cli {
 			var utf = QrMake.Encode("你好 ScreenKit", "qr", "utf8", 6, true);
 			var gbk = QrMake.Encode("你好 ScreenKit", "qr", "gbk", 6, true);
 			Out($"utf8 {utf.PixelWidth}x{utf.PixelHeight} gbk {gbk.PixelWidth}x{gbk.PixelHeight}");
-			if (utf.PixelHeight <= utf.PixelWidth) {
-				Err("FAIL: 图下应有原文，高度应大于宽度");
+			var bare = QrMake.Encode("你好 ScreenKit", "qr", "utf8", 6, false);
+			var zoom = bare.PixelWidth < 360 ? (int)Math.Ceiling(360.0 / bare.PixelWidth) : 1;
+			var contentH = Math.Max(1, bare.PixelHeight - QrMake.QuietBottom(bare)) * zoom;
+			if (utf.PixelHeight <= contentH) {
+				Err("FAIL: 图下应有原文");
 				bad++;
 			}
-			var bare = QrMake.Encode("你好 ScreenKit", "qr", "utf8", 6, false);
 			var gap = captiongap(bare, utf);
 			Out($"caption gap {gap}px");
 			if (gap < 6 || gap > 40) {

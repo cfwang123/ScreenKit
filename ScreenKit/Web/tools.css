@@ -252,6 +252,7 @@ select, input[type="date"], input[type="datetime-local"], input[type="text"], in
 	font-size: 12px; border-radius: 6px; gap: 4px;
 }
 .check { width: auto; display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; }
+.row label.check { width: auto; margin: 0; }
 .check input { margin: 0; }
 .msg { color: var(--muted); min-height: 1.2em; }
 .msg.bad { color: var(--danger); }
