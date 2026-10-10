@@ -4622,7 +4622,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wintop
   ScreenKit --test-win-tts
   ScreenKit --test-mem
-  ScreenKit --test-mem-load [base|ocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
+  ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
@@ -4697,7 +4697,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
-      --test-mem-load  每个功能单独进程冷启动后的提交、专用工作集、工作集。默认 cpu。语音和识别取最小的一份模型
+      --test-mem-load  每个功能单独进程冷启动后的提交、专用工作集、工作集。默认 cpu。语音和识别取最小的一份模型。winocr 只走 Windows 自带识别
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
       --test-dict-search  只读查询 exe 旁 dict2.db（默认 学生 与 hello）；韩语词组行有发音按钮
@@ -4776,7 +4776,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wintop
   ScreenKit --test-win-tts
   ScreenKit --test-mem
-  ScreenKit --test-mem-load [base|ocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
+  ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word

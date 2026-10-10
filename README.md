@@ -277,7 +277,7 @@ ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
 ScreenKit --list-asr               # Sherpa models + Windows system recognizers
 ScreenKit --list-edge-tts
 ScreenKit --probe-cuda
-ScreenKit --test-mem-load [base|ocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
+ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
 ScreenKit --help
 ```
 
