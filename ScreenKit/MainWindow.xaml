@@ -51,7 +51,7 @@
 				          ToolTip="麦克风听写注入焦点窗口；再按一次结束"/>
 				<MenuItem x:Name="mnlongshot" Header="长截图(_L)…"
 				          AutomationProperties.AutomationId="menu.longshot"
-				          ToolTip="点选窗口后自动滚动拼接长图（仅截图，不 OCR）"/>
+				          ToolTip="点选窗口后自动滚动拼接，并按截图复制方式写入剪贴板（不识别）"/>
 				<MenuItem x:Name="mnsnapshots" Header="截图历史(_H)"
 				          AutomationProperties.AutomationId="menu.snapshots"
 				          AutomationProperties.Name="截图历史"

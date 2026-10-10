@@ -2877,7 +2877,7 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	/// <summary>长截图：点选窗口 → 自动滚动拼接 → 上屏（不做 OCR）。</summary>
+	/// <summary>长截图：点选窗口 → 自动滚动拼接 → 按截图复制方式写入剪贴板。不识别、不上屏。</summary>
 	async Task longshotasync() {
 		if (capturing) return;
 		if (!FeaturePrompt.EnsureOpenCv(this)) {
@@ -2886,16 +2886,14 @@ public partial class MainWindow : Window {
 		}
 		try {
 			capturing = true;
-			setstatus("长截图 · 请单击目标窗口…");
-			// 不隐藏主窗；选窗遮罩置顶即可
+			setstatus(Loc.T("st.longshot"));
 			await Task.Delay(40);
 
 			var pick = ScrollCapture.PickWindow();
 			if (pick == null || pick.Hwnd == IntPtr.Zero) {
-				setstatus("已取消长截图");
+				setstatus(Loc.T("st.longshot_cancel"));
 				return;
 			}
-			bringtofront();
 
 			var title = string.IsNullOrWhiteSpace(pick.Title) ? "窗口" : pick.Title;
 			if (title.Length > 40) title = title[..40] + "…";
@@ -2918,18 +2916,19 @@ public partial class MainWindow : Window {
 				return;
 			}
 
-			// 仅上屏，不跑识别（进入 OCR/条码 Tab 时再各识别 1 次）
-			clearselection();
-			setimage(bmp);
-			ocrMetaText = "长截图 · 未识别（切换到 OCR 页签可识别）";
-			qrMetaText = Loc.T("result.qr.meta");
-			syncresultmetafromtab();
-			lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
-			drawoverlay();
-			setstatus($"长截图完成 {bmp.PixelWidth}×{bmp.PixelHeight}");
+			try {
+				var saved = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, "shot");
+				CaptureLog.Info("longshot saved " + saved);
+			}
+			catch (Exception ex) {
+				setstatus("长截图失败: " + ex.Message);
+				MessageBox.Show(this, ex.Message, "长截图", MessageBoxButton.OK, MessageBoxImage.Warning);
+				return;
+			}
+			setstatus(Loc.T("st.longshot_copied", bmp.PixelWidth, bmp.PixelHeight));
+			try { UiToast.Show(this, snapcopymodetext()); } catch { }
 		}
 		catch (Exception ex) {
-			bringtofront();
 			setstatus("长截图失败: " + ex.Message);
 			MessageBox.Show(this, ex.Message, "长截图", MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
