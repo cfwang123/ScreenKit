@@ -100,7 +100,7 @@ http_port = 1224
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/` | 本机工具页（HTML）。资源 `/sk/tools.css`、`/sk/tools.js`、`/sk/fa.css`、`/sk/fa-solid-900.woff2` |
-| GET | `/api` | API 说明与端点列表 |
+| GET | `/api` | 仍开启的接口：方法、介绍、参数。`?lang=` 选语言，省略为当前界面语言 |
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
 | GET/POST | `/api/toast` | 屏幕底部 Toast（不随模块开关关闭） |
 | GET/POST | `/api/zhconv` | 简繁转换（不随模块开关关闭） |
@@ -134,7 +134,7 @@ http_port = 1224
 
 `GET /` 和 `HEAD /` 返回本机工具页：简繁、历法、日文注音、文本、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
 
-`GET /api` 返回服务名称与端点列表。
+`GET /api` 返回服务名称、简表 `endpoints`，以及 `apis`。`apis` 每一项有 `method`（GET、POST 或 GET/POST）、`path`、`summary`（介绍）、`params`（参数名和说明）。这些文字与主窗口 HTTP 接口页的模板说明相同。`?lang=zh|en|ja|ko` 选择说明语言；省略时用程序当前界面语言，不改界面语言。关掉的模块不会出现。`langs` 是可选语言。
 
 **响应示例：**
 
@@ -143,19 +143,19 @@ http_port = 1224
   "code": 100,
   "data": {
     "name": "ScreenKit HTTP API",
-    "endpoints": [
-      "GET  /api/status",
-      "GET  /api/ocr/get_options",
-      "POST /api/ocr   JSON{base64,options} 或 multipart",
-      "POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码",
-      "GET  /api/asr/models",
-      "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
-      "GET  /api/tts/models",
-      "POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}",
-      "POST /api/itn   JSON{text}  WeText+规则后处理",
-      "POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译",
-      "GET  /api/face/models",
-      "POST /api/face  JSON{base64|base64_b|path} 或 multipart"
+    "lang": "zh",
+    "langs": [{ "code": "zh", "name": "中文" }],
+    "endpoints": ["GET  /api/status"],
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/status",
+        "example": "/api/status",
+        "summary": "查看服务是否在听，以及 OCR、语音、翻译、对话、人脸等模块是否开启。\n仅 GET。无参数。\n响应含 http_enabled、http_ocr、ocr_engine、asr_models、llm_chat 等。",
+        "params": [],
+        "doc": "查看服务是否在听，以及 OCR、语音、翻译、对话、人脸等模块是否开启。\n仅 GET。无参数。\n响应含 http_enabled、http_ocr、ocr_engine、asr_models、llm_chat 等。",
+        "aliases": ["/api/health"]
+      }
     ]
   }
 }

@@ -205,7 +205,7 @@ When enabled, the OCR API listens on `http_port` (default `1224`). `http_lan = t
 
 LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairing required): [HTTP-API.md](HTTP-API.md) · [android/README.md](android/README.md).
 
-- `GET  /api` · `/api/status`
+- `GET  /api?lang=` · `/api/status` — `/api` lists each enabled route with its method and the HTTP tab's parameter text. `lang` defaults to the app language.
 - `GET/POST /api/toast` — bottom toast (`text`, optional `ms`). CLI: `ScreenKit --toast "text" [--ms 1900]`. Both are in the HTTP tab template list.
 - `GET/POST /api/zhconv` — simplified/traditional (`text`, `to=trad|simp`). GET query strings are UTF-8. CLI: `ScreenKit --zhconv "text" [--trad|--simp]`
 - `GET/POST /api/calendar` — calendars (`date`, `cal=lunar` and others). CLI: `ScreenKit --calendar 2024-02-10 --cal lunar`

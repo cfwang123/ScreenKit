@@ -338,12 +338,16 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api" or "/api/") {
+				var lang = HttpApiCatalog.LangOf(queryone(req.Url, "lang"));
 				writejson(ctx, 200, new JsonObject {
 					["code"] = 100,
 					["data"] = new JsonObject {
 						["name"] = AppNames.Current + " HTTP API",
 						["umi_compatible"] = true,
+						["lang"] = lang,
+						["langs"] = HttpApiCatalog.Langs(),
 						["endpoints"] = apilist(optNow),
+						["apis"] = HttpApiCatalog.Apis(optNow, lang),
 					},
 				});
 				return;
@@ -368,6 +372,20 @@ sealed partial class HttpOcrServer : IDisposable {
 	void emitlog(string method, string path, int status, int ms) {
 		var line = $"{DateTime.Now:HH:mm:ss}  {method}  {path}  {status}  {ms}ms";
 		try { Logged?.Invoke(line); } catch { }
+	}
+
+	static string queryone(Uri url, string key) {
+		var q = url?.Query;
+		if (string.IsNullOrEmpty(q) || q.Length < 2 || string.IsNullOrEmpty(key)) return "";
+		foreach (var part in q.Substring(1).Split('&')) {
+			var i = part.IndexOf('=');
+			var k = i < 0 ? part : part.Substring(0, i);
+			if (!string.Equals(Uri.UnescapeDataString(k.Replace('+', ' ')), key, StringComparison.OrdinalIgnoreCase))
+				continue;
+			var v = i < 0 ? "" : part.Substring(i + 1);
+			return Uri.UnescapeDataString(v.Replace('+', ' '));
+		}
+		return "";
 	}
 
 	static bool isget(SockReq req) =>

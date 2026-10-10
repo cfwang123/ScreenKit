@@ -99,7 +99,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/` | Local tools page (HTML). Assets `/sk/tools.css`, `/sk/tools.js`, `/sk/fa.css`, `/sk/fa-solid-900.woff2` |
-| GET | `/api` | API name and endpoint list |
+| GET | `/api` | Enabled routes: method, summary, parameters. `?lang=` picks the language; omitted uses the current UI language |
 | GET | `/api/status` · `/api/health` | Service and capability status |
 | GET/POST | `/api/toast` | Bottom-of-screen toast (not tied to a module switch) |
 | GET/POST | `/api/zhconv` | Simplified/traditional (not tied to a module switch) |
@@ -133,7 +133,7 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
 
 `GET /` and `HEAD /` return the local tools page: simplified/traditional, calendars, Japanese yomi, text, QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
 
-`GET /api` returns the service name and endpoint list.
+`GET /api` returns the service name, the short `endpoints` list, and `apis`. Each `apis` item has `method` (`GET`, `POST`, or `GET/POST`), `path`, `summary`, and `params` (name and description). That text is the same as the HTTP tab templates. `?lang=zh|en|ja|ko` selects the language. Omitting it uses the app's current UI language and does not change the UI. A module that is off is omitted. `langs` lists the choices.
 
 **Response example:**
 
@@ -142,19 +142,19 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
   "code": 100,
   "data": {
     "name": "ScreenKit HTTP API",
-    "endpoints": [
-      "GET  /api/status",
-      "GET  /api/ocr/get_options",
-      "POST /api/ocr   JSON{base64,options} or multipart",
-      "POST /api/qr    JSON{base64|path} or multipart barcode/QR",
-      "GET  /api/asr/models",
-      "POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}",
-      "GET  /api/tts/models",
-      "POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}",
-      "POST /api/itn   JSON{text}  WeText+rules",
-      "POST /api/translate  JSON{items[],src?,dst?}  LLM batch translate",
-      "GET  /api/face/models",
-      "POST /api/face  JSON{base64|base64_b|path} or multipart"
+    "lang": "en",
+    "langs": [{ "code": "en", "name": "English" }],
+    "endpoints": ["GET  /api/status"],
+    "apis": [
+      {
+        "method": "GET",
+        "path": "/api/status",
+        "example": "/api/status",
+        "summary": "Whether the server is listening, and whether OCR, speech, translate, chat, and face are on.\nGET only. No parameters.\nThe response includes http_enabled, http_ocr, ocr_engine, asr_models, llm_chat, and similar fields.",
+        "params": [],
+        "doc": "Whether the server is listening, and whether OCR, speech, translate, chat, and face are on.\nGET only. No parameters.\nThe response includes http_enabled, http_ocr, ocr_engine, asr_models, llm_chat, and similar fields.",
+        "aliases": ["/api/health"]
+      }
     ]
   }
 }

@@ -37,38 +37,10 @@ public partial class MainWindow {
 	void fillhttptpl() {
 		httpUiLoading = true;
 		ehttptpl.Items.Clear();
-		addhttp("GET /api/status", "GET", "/api/status", "", "http.doc.status");
-		addhttp("GET /api/toast", "GET", "/api/toast?text=你好&ms=1900", "", "http.doc.toast");
-		addhttp("POST /api/toast", "POST", "/api/toast", "{\n  \"text\": \"你好\",\n  \"ms\": 1900\n}", "http.doc.toast");
-		addhttp("GET /api/zhconv", "GET", "/api/zhconv?text=软件&to=trad", "", "http.doc.zhconv");
-		addhttp("POST /api/zhconv", "POST", "/api/zhconv", "{\n  \"text\": \"软件\",\n  \"to\": \"trad\"\n}", "http.doc.zhconv");
-		addhttp("GET /api/calendar", "GET", "/api/calendar?date=2024-02-10&cal=lunar", "", "http.doc.calendar");
-		addhttp("POST /api/calendar", "POST", "/api/calendar", "{\n  \"date\": \"2024-02-10\",\n  \"cal\": \"lunar\"\n}", "http.doc.calendar");
-		addhttp("GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");
-		addhttp("POST /api/jpyomi", "POST", "/api/jpyomi", "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}", "http.doc.jpyomi");
-		addhttp("POST /api/text", "POST", "/api/text", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}", "http.doc.text");
-		addhttp("POST /api/qrmake", "POST", "/api/qrmake", "{\n  \"text\": \"hello\",\n  \"format\": \"qr\",\n  \"encoding\": \"utf8\"\n}", "http.doc.qrmake");
-		addhttp("POST /api/qrscan", "POST", "/api/qrscan", "{\n  \"base64\": \"\"\n}", "http.doc.qrscan");
-		addhttp("POST /api/cast/stop", "POST", "/api/cast/stop", "", "http.doc.caststop");
-		addhttp("GET /api", "GET", "/api", "", "http.doc.api");
-		addhttp("GET /api/ocr/get_options", "GET", "/api/ocr/get_options", "", "http.doc.ocropt");
-		addhttp("POST /api/ocr", "POST", "/api/ocr", "{\n  \"base64\": \"\",\n  \"options\": {}\n}", "http.doc.ocr");
-		addhttp("POST /api/qr", "POST", "/api/qr", "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}", "http.doc.qr");
-		addhttp("GET /api/asr/models", "GET", "/api/asr/models", "", "http.doc.asrmodels");
-		addhttp("POST /api/asr", "POST", "/api/asr", "{\n  \"path\": \"\",\n  \"lang\": \"auto\"\n}", "http.doc.asr");
-		addhttp("GET /api/tts/engines", "GET", "/api/tts/engines", "", "http.doc.ttsengines");
-		addhttp("GET /api/tts/models", "GET", "/api/tts/models", "", "http.doc.ttsmodels");
-		addhttp("GET /api/tts/models?engine", "GET", "/api/tts/models?engine=sapi", "", "http.doc.ttsmodels");
-		addhttp("POST /api/tts", "POST", "/api/tts", "{\n  \"text\": \"你好\"\n}", "http.doc.tts");
-		addhttp("POST /api/tts (SAPI)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"sapi\"\n}", "http.doc.tts.sapi");
-		addhttp("POST /api/tts (Windows)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"winrt\"\n}", "http.doc.tts.win");
-		addhttp("POST /api/tts (Edge Online)", "POST", "/api/tts", "{\n  \"text\": \"안녕하세요\",\n  \"engine\": \"edge\",\n  \"voice\": \"edge:ko-KR-SunHiNeural\"\n}", "http.doc.tts.edge");
-		addhttp("POST /api/itn", "POST", "/api/itn", "{\n  \"text\": \"二零二四年一月一日\"\n}", "http.doc.itn");
-		addhttp("POST /api/translate", "POST", "/api/translate", "{\n  \"items\": [\"你好\"],\n  \"src\": \"zh\",\n  \"dst\": \"en\"\n}", "http.doc.translate");
-		addhttp("POST /api/chat", "POST", "/api/chat", "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}", "http.doc.chat");
-		addhttp("POST /api/chat + tts", "POST", "/api/chat", "{\n  \"text\": \"用一句话介绍你自己\",\n  \"tts\": true,\n  \"engine\": \"sapi\"\n}", "http.doc.chat.tts");
-		addhttp("GET /api/face/models", "GET", "/api/face/models", "", "http.doc.facemodels");
-		addhttp("POST /api/face", "POST", "/api/face", "{\n  \"base64\": \"\"\n}", "http.doc.face");
+		foreach (var it in HttpApiCatalog.Items) {
+			if (!it.Tab) continue;
+			addhttp(it.Title, it.Method, it.Path, it.Body, it.Doc);
+		}
 		httpUiLoading = false;
 	}
 

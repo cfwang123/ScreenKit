@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
 - The tools-page OCR result shows the same summary as the desktop: infer time, end-to-end time, confidence, engine, image size, line count, and the detection side limit.
 - The tools page can turn a picture into an ICO. Paste or choose an image, preview it, pick one size (32 by default), then download. The square icon is also shown at that pixel size, with a border so the size is visible. The picture fits inside the square, and the empty area stays transparent.
@@ -50,13 +51,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
 - The tools page lists every category on the left and that category's tools under a heading on the right. Scrolling the list highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
-- The tools-page random password card is under Text, directly after the Text tool.
+- The tools-page random password card is under Text, directly after Text convert.
+- MD5, SHA-256, JSON minify, HTML encode and decode, and HTML, CSS, and JS minify are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
 
 ### 中文
 
 #### 新增
 
+- `GET /api` 列出仍开启的接口，含方法、介绍和参数说明，文字与 HTTP 接口页相同。`lang` 选择语言，省略时用程序当前界面语言。原有 `endpoints` 简表仍在。
 - 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
 - 工具页的文字识别结果会显示和桌面一样的统计：推理耗时、端到端耗时、置信度、引擎、图片宽高、行数、检测边长。
 - 工具页可以把图片做成 ICO。可粘贴或选择图片，先预览，再选一个尺寸（默认 32）后下载。方图按该像素大小显示，并有边框，方便看出大小。画面等比放进方框，空白透明。
@@ -72,7 +75,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
 - 工具页左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
-- 工具页的随机密码改到「文字」分类，排在「文本」下面。
+- 工具页的随机密码改到「文字」分类，排在「文本转换」下面。
+- MD5、SHA-256、JSON 压缩、HTML 编码和解码，以及 HTML、CSS、JS 压缩，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
 - `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。8 秒内没退完时，仍由 `slx` 结束进程再编译。全局 `slx` 脚本不改。监听端口仍是设定的那个。
 
 ## v1.0.17 (2026-10-09 ~ 10-10)

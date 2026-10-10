@@ -71,10 +71,17 @@ static class Loc {
 	}
 
 	public static string T(string key) {
+		ensure();
+		return TFor(lang, key);
+	}
+
+	/// <summary>按指定语言取文案，不改当前界面语言。空代码用当前语言。缺键回退中文。</summary>
+	public static string TFor(string code, string key) {
 		if (string.IsNullOrEmpty(key)) return "";
 		ensure();
-		if (tryget(lang, key, out var hit)) return hit;
-		if (!string.Equals(lang, Zh, StringComparison.OrdinalIgnoreCase) && tryget(Zh, key, out hit))
+		var c = string.IsNullOrWhiteSpace(code) ? lang : norm(code);
+		if (tryget(c, key, out var hit)) return hit;
+		if (!string.Equals(c, Zh, StringComparison.OrdinalIgnoreCase) && tryget(Zh, key, out hit))
 			return hit;
 		return key;
 	}

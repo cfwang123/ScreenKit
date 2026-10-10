@@ -205,7 +205,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 
 **PC 文件传输** 与此 HTTP 端口共用（`1224`）并另有 UDP `17531`（需配对）：[HTTP接口文档.md](HTTP接口文档.md) · [android/README.md](android/README.md)。
 
-- `GET  /api` · `/api/status`
+- `GET  /api?lang=` · `/api/status` — `/api` 列出仍开启的接口，含方法和 HTTP 页里的参数说明。`lang` 省略时用程序当前语言。
 - `GET/POST /api/toast` — 底部 Toast（`text`，可选 `ms`）。命令行：`ScreenKit --toast "文字" [--ms 1900]`。HTTP 接口页的模板下拉里也有这两项。
 - `GET/POST /api/zhconv` — 简繁（`text`，`to=trad|simp`）。GET 查询串按 UTF-8 解码。命令行：`ScreenKit --zhconv "文字" [--trad|--simp]`
 - `GET/POST /api/calendar` — 历法（`date`，`cal=lunar` 等）。命令行：`ScreenKit --calendar 2024-02-10 --cal lunar`
