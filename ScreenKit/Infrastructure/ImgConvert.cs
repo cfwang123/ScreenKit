@@ -348,19 +348,37 @@ static class ImgConvert {
 		fmt = NormFmt(fmt);
 		quality = Compat.Clamp(quality <= 0 ? 60 : quality, 1, 100);
 		rotate = normrot(rotate);
-		Exception gdiEx = null;
 		try {
 			return encodegdi(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
 		}
 		catch (OperationCanceledException) { throw; }
-		catch (Exception ex) { gdiEx = ex; }
+		catch { }
 		try {
 			return encodewpf(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
 		}
 		catch (OperationCanceledException) { throw; }
-		catch (Exception wpfEx) {
-			throw new InvalidOperationException(wpfEx.Message ?? gdiEx?.Message ?? src, wpfEx);
+		catch { }
+		// 已安装 OpenCV 时再读 WebP 等 GDI / WPF 打不开的格式。不弹安装窗。
+		if (NativeRuntime.HasOpenCv()) {
+			try {
+				return encodeopencv(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+			}
+			catch (OperationCanceledException) { throw; }
+			catch { }
+			throw new InvalidOperationException(Loc.T("imgconv.noread.cv"));
 		}
+		throw new InvalidOperationException(Loc.T("imgconv.noread"));
+	}
+
+	static Encoded encodeopencv(string src, string fmt, int quality,
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
+		bool shortSide) {
+		using var mat = Cv2.ImRead(src, ImreadModes.Color);
+		if (mat == null || mat.Empty())
+			throw new InvalidOperationException(Loc.T("imgconv.noread.cv"));
+		var bmp = ImageUtil.Frombgr(mat);
+		if (bmp == null) throw new InvalidOperationException(Loc.T("imgconv.noread.cv"));
+		return encodebmp(bmp, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
 	}
 
 	static Encoded encodegdi(string src, string fmt, int quality,
@@ -428,6 +446,12 @@ static class ImgConvert {
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
 		bool shortSide) {
 		var bmp = loadwpf(src);
+		return encodebmp(bmp, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+	}
+
+	static Encoded encodebmp(BitmapSource bmp, string fmt, int quality,
+		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
+		bool shortSide) {
 		var srcW = bmp.PixelWidth;
 		var srcH = bmp.PixelHeight;
 		ct.ThrowIfCancellationRequested();
@@ -471,12 +495,7 @@ static class ImgConvert {
 			return ImageUtil.Withdpi(bi);
 		}
 		catch (Exception first) {
-			if (!NativeRuntime.HasOpenCv()) throw;
-			NativeRuntime.EnsureOpenCv();
-			using var mat = Cv2.ImRead(path, ImreadModes.Color);
-			if (mat == null || mat.Empty())
-				throw new InvalidOperationException($"无法读取图片: {path}", first);
-			return ImageUtil.Frombgr(mat);
+			throw new InvalidOperationException(first.Message, first);
 		}
 	}
 
