@@ -55,6 +55,7 @@
     <None Include="Web\tools.html" CopyToOutputDirectory="PreserveNewest" Link="web\tools.html" />
     <None Include="Web\tools.css" CopyToOutputDirectory="PreserveNewest" Link="web\tools.css" />
     <None Include="Web\tools.js" CopyToOutputDirectory="PreserveNewest" Link="web\tools.js" />
+    <None Include="Web\tools\*.js" CopyToOutputDirectory="PreserveNewest" Link="web\tools\%(Filename)%(Extension)" />
     <None Include="Web\fa.css" CopyToOutputDirectory="PreserveNewest" Link="web\fa.css" />
     <None Include="Web\fa-solid-900.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\fa-solid-900.woff2" />
     <EmbeddedResource Include="Web\tools.html" LogicalName="web.tools.html" />
