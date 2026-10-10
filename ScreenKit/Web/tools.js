@@ -17,6 +17,10 @@ window.sktools = (function(){
 	var util = "";
 	var reNote = "";
 	var uniSlices = null;
+	var uniCan = null;
+	var uniNot = null;
+	var uniInk = {};
+	var uniSeen = {};
 	var tick = null;
 	var watchOn = false;
 	var watch0 = 0;
@@ -2535,8 +2539,9 @@ window.sktools = (function(){
 		var cp;
 		for (cp = g[1]; cp <= g[2]; cp++) {
 			var glyph = uniglyph(cp);
+			var cls = glyph.ctrl ? "ctrl" : (glyph.empty ? "gap" : (glyph.alt ? "alt" : ""));
 			html.push('<button type="button" data-cp="' + cp + '" title="U+' + unihex(cp) + '"'
-				+ (glyph.ctrl ? ' class="ctrl"' : '') + (cp === pick ? ' id="u-on"' : '') + '>'
+				+ (cls ? ' class="' + cls + '"' : '') + (cp === pick ? ' id="u-on"' : '') + '>'
 				+ glyph.t + '</button>');
 		}
 		$("u-grid").innerHTML = html.join("");
@@ -2563,13 +2568,18 @@ window.sktools = (function(){
 	function unipreview(cp){
 		var glyph = uniglyph(cp);
 		var box = $("u-ch");
-		if (glyph.ctrl) {
+		if (glyph.empty) {
+			box.textContent = "";
+			box.className = "uprev-ch gap";
+		}
+		else if (glyph.ctrl) {
 			box.textContent = glyph.t;
 			box.className = "uprev-ch ctrl";
 		}
 		else {
-			var ch = String.fromCodePoint(cp);
-			if (unicomb(cp)) ch = "\u25CC" + ch;
+			var show = glyph.alt || cp;
+			var ch = String.fromCodePoint(show);
+			if (unicomb(show)) ch = "\u25CC" + ch;
 			box.textContent = ch;
 			box.className = "uprev-ch";
 		}
@@ -2585,6 +2595,13 @@ window.sktools = (function(){
 			["JavaScript", unijs(cp)],
 			["URL", uniurl(cp)]
 		];
+		if (glyph.empty)
+			rows.push(["说明", "这个码位没有分配字符，没有字体可以显示。"]);
+		if (glyph.alt)
+			rows.push(
+				["等价", "U+" + unihex(glyph.alt) + " " + String.fromCodePoint(glyph.alt)],
+				["字形", "本机字体没有单独字形，格内是等价汉字。复制的仍是原码位。花园明朝（HanaMin）或 BabelStone Han 有独立字形。"]
+			);
 		var html = [];
 		var i;
 		for (i = 0; i < rows.length; i++)
@@ -2693,13 +2710,64 @@ window.sktools = (function(){
 		if (cp >= 0x80 && cp <= 0x9F) return { t: unihex(cp), ctrl: true };
 		if ((cp & 0xFFFF) === 0xFFFE || (cp & 0xFFFF) === 0xFFFF) return { t: unihex(cp), ctrl: true };
 		if (cp === 0xAD || (cp >= 0x200B && cp <= 0x200F) || cp === 0x2028 || cp === 0x2029 || cp === 0x2060 || cp === 0xFEFF)
-			return { t: unihex(cp), ctrl: true };
-		var ch = String.fromCodePoint(cp);
-		if (unicomb(cp)) ch = "\u25CC" + ch;
+			return { t: unihex(cp), ctrl: true, empty: false, alt: 0 };
+		var gap = unigap(cp);
+		if (gap.empty) return { t: "", ctrl: false, empty: true, alt: 0 };
+		var show = gap.alt || cp;
+		var ch = String.fromCodePoint(show);
+		if (unicomb(show)) ch = "\u25CC" + ch;
 		if (ch === "&") ch = "&amp;";
 		else if (ch === "<") ch = "&lt;";
 		else if (ch === ">") ch = "&gt;";
-		return { t: ch, ctrl: false };
+		return { t: ch, ctrl: false, empty: false, alt: gap.alt };
+	}
+
+	function unigap(cp){
+		if (uniSeen[cp]) return uniSeen[cp];
+		var ch = String.fromCodePoint(cp);
+		var nfkc = ch.normalize ? ch.normalize("NFKC") : ch;
+		var eq = nfkc.codePointAt(0);
+		var one = nfkc.length === (eq > 0xFFFF ? 2 : 1);
+		var alt = 0;
+		var miss = unimiss(cp);
+		if (miss && one && eq !== cp && !unimiss(eq)) alt = eq;
+		var rec = { empty: miss && !alt, alt: alt };
+		uniSeen[cp] = rec;
+		return rec;
+	}
+
+	function unimiss(cp){
+		if (uniInk[cp] != null) return uniInk[cp];
+		if (uniNot == null) {
+			var a = uniink(0xFDD0);
+			var b = uniink(0xFDD1);
+			uniNot = a === b ? a : -1;
+		}
+		var miss = uniNot >= 0 && uniink(cp) === uniNot;
+		uniInk[cp] = miss;
+		return miss;
+	}
+
+	function uniink(cp){
+		var c = uniCan;
+		if (!c) {
+			c = document.createElement("canvas");
+			c.width = 24;
+			c.height = 24;
+			uniCan = c;
+		}
+		var g = c.getContext("2d", { willReadFrequently: true });
+		g.clearRect(0, 0, 24, 24);
+		g.font = "16px \"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Microsoft YaHei\",\"Meiryo\",\"Yu Gothic\",\"Microsoft JhengHei\",\"MingLiU\",\"Noto Sans SC\",\"Noto Sans JP\",\"Noto Sans KR\",sans-serif";
+		g.fillStyle = "#000";
+		g.textAlign = "center";
+		g.textBaseline = "middle";
+		g.fillText(String.fromCodePoint(cp), 12, 12);
+		var d = g.getImageData(0, 0, 24, 24).data;
+		var n = 0;
+		var i;
+		for (i = 3; i < d.length; i += 4) n += d[i];
+		return n;
 	}
 
 	function unicomb(cp){

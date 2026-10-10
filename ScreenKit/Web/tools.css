@@ -294,9 +294,13 @@ input[type="file"] {
 .ugrid button {
 	height: 32px; padding: 0; cursor: pointer; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink);
-	font: 18px/32px "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei UI", sans-serif;
+	font: 18px/32px "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei", "Meiryo", "Yu Gothic", "Microsoft JhengHei", "MingLiU", "Noto Sans SC", "Noto Sans JP", "Noto Sans KR", sans-serif;
 }
 .ugrid button.ctrl { font: 10px/32px "Segoe UI", "Microsoft YaHei UI", sans-serif; letter-spacing: -0.03em; }
+.ugrid button.gap {
+	background: repeating-linear-gradient(135deg, #f6f3ee, #f6f3ee 4px, #e7e2da 4px, #e7e2da 5px);
+}
+.ugrid button.alt { background: #fbf6f0; }
 .ugrid button.on { border-color: var(--accent); background: #fff1e8; }
 .uprev {
 	border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px;
@@ -305,8 +309,9 @@ input[type="file"] {
 	height: 128px; margin: 0 0 12px;
 	display: grid; place-items: center;
 	border: 1px solid var(--line); border-radius: 8px; background: #fff;
-	font: 80px/1 "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei UI", sans-serif;
+	font: 80px/1 "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei", "Meiryo", "Yu Gothic", "Microsoft JhengHei", "MingLiU", "Noto Sans SC", "Noto Sans JP", "Noto Sans KR", sans-serif;
 }
+.uprev-ch.gap { background: #f3f1ec; }
 .uprev-ch.ctrl { font: 28px/1.2 "Segoe UI", "Microsoft YaHei UI", sans-serif; }
 .uprev-meta { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 6px 8px; margin: 0; }
 .uprev-meta dt { margin: 0; color: var(--muted); font-size: 12px; }
