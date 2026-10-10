@@ -1,12 +1,12 @@
 (function(){
 	var WEEK = "日一二三四五六";
 	var UNITS = [
-		["s", "秒", 1],
-		["min", "分", 60],
-		["h", "小时", 3600],
-		["d", "天", 86400],
-		["m", "月", 0],
-		["y", "年", 0]
+		["s", "秒", 1, "秒"],
+		["min", "分", 60, "分"],
+		["h", "小时", 3600, "小时"],
+		["d", "天", 86400, "天"],
+		["m", "月", 0, "个月"],
+		["y", "年", 0, "年"]
 	];
 	SK.regutil("u-datecalc", {
 		title: "日期计算",
@@ -50,8 +50,9 @@
 
 	function findunit(id){
 		var i;
-		for (i = 0; i < UNITS.length; i++) if (UNITS[i][0] === id) return { id: UNITS[i][0], name: UNITS[i][1], sec: UNITS[i][2] };
-		return UNITS[3];
+		for (i = 0; i < UNITS.length; i++)
+			if (UNITS[i][0] === id) return { id: UNITS[i][0], name: UNITS[i][1], sec: UNITS[i][2], word: UNITS[i][3] };
+		return { id: UNITS[3][0], name: UNITS[3][1], sec: UNITS[3][2], word: UNITS[3][3] };
 	}
 
 	function onpick(){
@@ -111,7 +112,7 @@
 		var lo = back ? b : a;
 		var hi = back ? a : b;
 		var days = daycount(lo, hi);
-		var head = "从 " + SK.ymd(lo) + " 到 " + SK.ymd(hi) + " 相差 " + (back ? "-" : "");
+		var head = "从 " + SK.ymd(a) + " 到 " + SK.ymd(b) + " 相差 " + (back ? "-" : "");
 		if (unit.sec) {
 			var text = head + SK.trimnum(days * 86400 / unit.sec) + " " + unit.name;
 			if (unit.id !== "d" && days) text += "（共 " + days + " 天）";
@@ -160,7 +161,7 @@
 		var year = d.getFullYear();
 		if (isNaN(d.getTime()) || year < 1 || year > 9999) throw new Error("结果超出范围");
 		var showtime = unit.sec < 86400 || n !== Math.floor(n);
-		return SK.ymd(base) + (back ? " 之前 " : " 之后 ") + SK.trimnum(Math.abs(n)) + " " + unit.name
+		return SK.ymd(base) + (n < 0 ? " 之前 " : " 之后 ") + SK.trimnum(Math.abs(n)) + " " + unit.word
 			+ "\n" + SK.ymd(d) + (showtime && unit.sec ? " " + clock(d) : "")
 			+ "  周" + WEEK.charAt(d.getDay());
 	}
