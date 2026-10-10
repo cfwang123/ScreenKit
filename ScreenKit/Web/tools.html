@@ -53,7 +53,7 @@
 					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
 					<i class="star fa-solid fa-star" data-fav="qr" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json 十六进制 md5 sha256 html css js" title="Base64、URL、十六进制、JSON、哈希、HTML、CSS、JS">
+				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json xml sql 十六进制 md5 sha256 html css js 转义" title="Base64、URL、十六进制、JSON、XML、SQL、哈希、HTML、CSS、JS">
 					<i class="fa-solid fa-file-lines"></i><span>文本转换</span>
 					<i class="star fa-solid fa-star" data-fav="text" title="收藏"></i>
 				</button>
@@ -85,14 +85,6 @@
 					<i class="fa-solid fa-asterisk"></i><span>正则测试</span>
 					<i class="star fa-solid fa-star" data-fav="u-re" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-xml" data-cat="text" data-name="xml 格式化" title="格式化或压成一行">
-					<i class="fa-solid fa-code"></i><span>XML</span>
-					<i class="star fa-solid fa-star" data-fav="u-xml" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-jesc" data-cat="text" data-name="json 转义" title="JSON 字符串转义和还原">
-					<i class="fa-solid fa-code"></i><span>JSON 转义</span>
-					<i class="star fa-solid fa-star" data-fav="u-jesc" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="u-calc" data-cat="calc" data-name="计算器" title="加减乘除、括号和乘方">
 					<i class="fa-solid fa-calculator"></i><span>计算器</span>
 					<i class="star fa-solid fa-star" data-fav="u-calc" title="收藏"></i>
@@ -120,10 +112,6 @@
 				<button type="button" data-tool="u-ico" data-cat="image" data-name="图片 ico 图标" title="把图片做成 ICO，默认 32">
 					<i class="fa-solid fa-icons"></i><span>图片转 ICO</span>
 					<i class="star fa-solid fa-star" data-fav="u-ico" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-sql" data-cat="text" data-name="sql 格式化" title="关键字换行，或压成一行">
-					<i class="fa-solid fa-database"></i><span>SQL</span>
-					<i class="star fa-solid fa-star" data-fav="u-sql" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-repl" data-cat="text" data-name="查找替换" title="普通文本或正则">
 					<i class="fa-solid fa-right-left"></i><span>查找替换</span>
@@ -208,10 +196,6 @@
 				<button type="button" data-tool="u-tok" data-cat="text" data-name="token 估算" title="粗算 token，不是模型分词">
 					<i class="fa-solid fa-hashtag"></i><span>Token 估算</span>
 					<i class="star fa-solid fa-star" data-fav="u-tok" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-hjs" data-cat="text" data-name="html 转 js" title="变成 JavaScript 字符串">
-					<i class="fa-solid fa-quote-left"></i><span>HTML 转 JS</span>
-					<i class="star fa-solid fa-star" data-fav="u-hjs" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-watch" data-cat="time" data-name="秒表" title="开始、停止、复位">
 					<i class="fa-solid fa-stopwatch"></i><span>秒表</span>
@@ -420,11 +404,22 @@
 				<div class="opgrp"><span>JSON</span><div>
 					<button type="button" data-op="json"><i class="fa-solid fa-code"></i>美化</button>
 					<button type="button" data-op="jsonmin"><i class="fa-solid fa-compress"></i>压缩</button>
+					<button type="button" data-op="jesc"><i class="fa-solid fa-code"></i>转义</button>
+					<button type="button" data-op="juesc"><i class="fa-solid fa-rotate-left"></i>还原</button>
+				</div></div>
+				<div class="opgrp"><span>XML</span><div>
+					<button type="button" data-op="xml"><i class="fa-solid fa-code"></i>格式化</button>
+					<button type="button" data-op="xmlmin"><i class="fa-solid fa-compress"></i>压缩</button>
+				</div></div>
+				<div class="opgrp"><span>SQL</span><div>
+					<button type="button" data-op="sql"><i class="fa-solid fa-database"></i>格式化</button>
+					<button type="button" data-op="sqlmin"><i class="fa-solid fa-compress"></i>压缩</button>
 				</div></div>
 				<div class="opgrp"><span>HTML</span><div>
 					<button type="button" data-op="htmlenc"><i class="fa-solid fa-code"></i>编码</button>
 					<button type="button" data-op="htmldec"><i class="fa-solid fa-rotate-left"></i>解码</button>
 					<button type="button" data-op="hmin"><i class="fa-solid fa-file-code"></i>压缩</button>
+					<button type="button" data-op="hjs"><i class="fa-solid fa-quote-left"></i>转 JS</button>
 				</div></div>
 				<div class="opgrp"><span>代码</span><div>
 					<button type="button" data-op="cmin"><i class="fa-solid fa-brush"></i>CSS 压缩</button>

@@ -316,7 +316,8 @@ window.sktools = (function(){
 		for (i = 0; i < list.length; i++) {
 			var id = String(list[i] || "");
 			if (id === "u-md5" || id === "u-sha" || id === "u-jsonmin" || id === "u-html"
-				|| id === "u-hmin" || id === "u-cmin" || id === "u-jsmin") id = "text";
+				|| id === "u-hmin" || id === "u-cmin" || id === "u-jsmin"
+				|| id === "u-xml" || id === "u-jesc" || id === "u-sql" || id === "u-hjs") id = "text";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;
 			favs.push(id);
@@ -456,7 +457,9 @@ window.sktools = (function(){
 
 	function textop(op){
 		if (op === "md5" || op === "sha" || op === "jsonmin" || op === "htmlenc" || op === "htmldec"
-			|| op === "hmin" || op === "cmin" || op === "jsmin") {
+			|| op === "hmin" || op === "cmin" || op === "jsmin"
+			|| op === "jesc" || op === "juesc" || op === "xml" || op === "xmlmin"
+			|| op === "sql" || op === "sqlmin" || op === "hjs") {
 			textlocal(op);
 			return;
 		}
@@ -489,6 +492,13 @@ window.sktools = (function(){
 			var out = "";
 			if (op === "md5") out = md5hex(text);
 			else if (op === "jsonmin") out = jsonmin(text);
+			else if (op === "jesc") out = jsonesc(text, "enc");
+			else if (op === "juesc") out = jsonesc(text, "dec");
+			else if (op === "xml") out = xmlfmt(text, "pretty");
+			else if (op === "xmlmin") out = xmlfmt(text, "min");
+			else if (op === "sql") out = sqlfmt(text, "pretty");
+			else if (op === "sqlmin") out = sqlfmt(text, "min");
+			else if (op === "hjs") out = html2js(text);
 			else if (op === "htmlenc") out = htmlenc(text);
 			else if (op === "htmldec") out = htmldec(text);
 			else if (op === "hmin") out = htmlmin(text);
