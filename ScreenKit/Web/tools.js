@@ -52,9 +52,6 @@ window.sktools = (function(){
 			+ "-" + (month < 10 ? "0" : "") + month
 			+ "-" + (day < 10 ? "0" : "") + day;
 		document.addEventListener("click", onclick);
-		$("zh-trad").onclick = function(){ conv("trad"); };
-		$("zh-simp").onclick = function(){ conv("simp"); };
-		$("zh-copy").onclick = function(){ copytext($("zh-out").value, "zh-msg"); };
 		$("cal-go").onclick = cal;
 		$("yo-go").onclick = yomi;
 		$("yo-copy").onclick = function(){ copytext($("yo-yomi").value, "yo-msg"); };
@@ -76,9 +73,6 @@ window.sktools = (function(){
 		$("asr-filego").onclick = asrfile;
 		$("asr-rec").onclick = asrrec;
 		$("asr-copy").onclick = function(){ copytext($("asr-out").value, "asr-msg"); };
-		$("zh-in").addEventListener("keydown", function(ev){
-			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) conv("trad");
-		});
 		$("tool-q").oninput = paintcats;
 		$("box-go").onclick = utilrun;
 		$("box-copy").onclick = function(){ copytext($("box-out").value, "box-msg"); };
@@ -89,6 +83,7 @@ window.sktools = (function(){
 		window.addEventListener("scroll", spyon);
 		window.addEventListener("popstate", applyhash);
 		var start = toolhash();
+		if (start === "zh") start = "text";
 		if (start && start !== "home" && cardof(start)) show(start, true);
 	}
 
@@ -140,6 +135,7 @@ window.sktools = (function(){
 
 	function applyhash(){
 		var id = toolhash();
+		if (id === "zh") id = "text";
 		if (!id || id === "home") {
 			if (curtool !== "home") show("home", true);
 			return;
@@ -350,7 +346,8 @@ window.sktools = (function(){
 			var id = String(list[i] || "");
 			if (id === "u-md5" || id === "u-sha" || id === "u-jsonmin" || id === "u-html"
 				|| id === "u-hmin" || id === "u-cmin" || id === "u-jsmin"
-				|| id === "u-xml" || id === "u-jesc" || id === "u-sql" || id === "u-hjs") id = "text";
+				|| id === "u-xml" || id === "u-jesc" || id === "u-sql" || id === "u-hjs"
+				|| id === "zh") id = "text";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;
 			favs.push(id);
@@ -447,12 +444,6 @@ window.sktools = (function(){
 		xhr.send(JSON.stringify(body));
 	}
 
-	function conv(to){
-		post("/api/zhconv", { text: $("zh-in").value, to: to }, function(data){
-			$("zh-out").value = data.text || "";
-		}, "zh-msg");
-	}
-
 	function cal(){
 		post("/api/calendar", {
 			date: $("cal-date").value,
@@ -489,6 +480,12 @@ window.sktools = (function(){
 	}
 
 	function textop(op){
+		if (op === "trad" || op === "simp") {
+			post("/api/zhconv", { text: $("tx-in").value, to: op }, function(data){
+				$("tx-out").value = data.text || "";
+			}, "tx-msg");
+			return;
+		}
 		if (op === "md5" || op === "sha" || op === "jsonmin" || op === "htmlenc" || op === "htmldec"
 			|| op === "hmin" || op === "cmin" || op === "jsmin"
 			|| op === "jesc" || op === "juesc" || op === "xml" || op === "xmlmin"
@@ -1419,7 +1416,6 @@ window.sktools = (function(){
 			"u-watch": ["秒表", "复位"],
 			"u-down": ["倒计时", "开始"],
 			"u-sci": ["科学计算", "计算"],
-			"u-rename": ["批量改名", "生成"],
 			"u-jsmin": ["JS 压缩", "压缩"],
 			"u-sql": ["SQL", "格式化"],
 			"u-tok": ["Token 估算", "计算"],
@@ -1569,10 +1565,6 @@ window.sktools = (function(){
 			return lab("秒数", numin("box-n", "60"));
 		if (name === "u-sci")
 			return lab("算式", ta("box-in", 4, "支持三角函数（角度）、sqrt、log、ln、abs 和 pi"));
-		if (name === "u-rename")
-			return lab("原文件名", ta("box-in", 8, "一行一个"))
-				+ row2(lab("前缀", textin("box-pre", "")), lab("后缀", textin("box-suf", "-")))
-				+ lab("起始序号", numin("box-n", "1"));
 		if (name === "u-jsmin")
 			return lab("JavaScript", ta("box-in", 10, "去掉注释和行尾空白，不改名"));
 		if (name === "u-sql")
@@ -1654,7 +1646,6 @@ window.sktools = (function(){
 		if (util === "u-pick") return colorconv("hex", val("box-color"));
 		if (util === "u-watch") return watchreset();
 		if (util === "u-sci") return sciexpr(val("box-in"));
-		if (util === "u-rename") return renamebatch(val("box-in"), val("box-pre"), val("box-suf"), val("box-n"));
 		if (util === "u-jsmin") return jsmin(val("box-in"));
 		if (util === "u-sql") return sqlfmt(val("box-in"), val("box-mode"));
 		if (util === "u-tok") return tokencount(val("box-in"));
@@ -3901,30 +3892,6 @@ window.sktools = (function(){
 		else throw new Error("没有这个函数");
 		if (!isFinite(out)) throw new Error("函数结果无效");
 		return out;
-	}
-
-	function renamebatch(text, prefix, suffix, start){
-		var rows = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
-		var names = [];
-		var i;
-		for (i = 0; i < rows.length; i++) if (rows[i]) names.push(rows[i]);
-		if (!names.length) throw new Error("请输入文件名");
-		if (names.length > 1000) throw new Error("最多 1000 行");
-		var n = parseInt(start, 10);
-		if (!isFinite(n)) n = 1;
-		var width = String(Math.abs(n + names.length - 1)).length;
-		var out = [];
-		for (i = 0; i < names.length; i++) {
-			var num = String(n + i);
-			var bare = num.replace("-", "");
-			while (bare.length < width) {
-				bare = "0" + bare;
-				num = (num.charAt(0) === "-" ? "-" : "") + bare;
-				bare = num.replace("-", "");
-			}
-			out.push(String(prefix || "") + num + String(suffix || "") + names[i]);
-		}
-		return out.join("\n");
 	}
 
 	function jsmin(text){

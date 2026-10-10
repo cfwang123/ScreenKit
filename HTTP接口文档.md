@@ -132,7 +132,7 @@ http_port = 1224
 
 ## 4. GET `/` 与 GET `/api`
 
-`GET /` 和 `HEAD /` 返回本机工具页：简繁、历法、日文注音、文本、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
+`GET /` 和 `HEAD /` 返回本机工具页：历法、日文注音、文本（含简繁）、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
 
 `GET /api` 返回服务名称、简表 `endpoints`，以及 `apis`。`apis` 每一项有 `method`（GET、POST 或 GET/POST）、`path`、`summary`（介绍）、`params`（参数名和说明）。这些文字与主窗口 HTTP 接口页的模板说明相同。`?lang=zh|en|ja|ko` 选择说明语言；省略时用程序当前界面语言，不改界面语言。关掉的模块不会出现。`langs` 是可选语言。
 

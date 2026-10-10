@@ -53,21 +53,13 @@
 					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
 					<i class="star fa-solid fa-star" data-fav="qr" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json xml sql 十六进制 md5 sha256 html css js 转义" title="Base64、URL、十六进制、JSON、XML、SQL、哈希、HTML、CSS、JS">
+				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json xml sql 十六进制 md5 sha256 html css js 转义 简繁转换 繁体 简体" title="Base64、URL、十六进制、JSON、XML、SQL、哈希、HTML、CSS、JS、简繁">
 					<i class="fa-solid fa-file-lines"></i><span>文本转换</span>
 					<i class="star fa-solid fa-star" data-fav="text" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-pw" data-cat="text" data-name="随机密码 批量" title="本地生成，一次可出多条">
 					<i class="fa-solid fa-key"></i><span>随机密码</span>
 					<i class="star fa-solid fa-star" data-fav="u-pw" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="zh" data-cat="text" data-name="简繁转换 繁体 简体" title="系统转换表，繁体接近台湾用字">
-					<i class="fa-solid fa-language"></i><span>简繁转换</span>
-					<i class="star fa-solid fa-star" data-fav="zh" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-rename" data-cat="text" data-name="批量改名 文件名" title="给一行一个的文件名加序号">
-					<i class="fa-solid fa-i-cursor"></i><span>批量改名</span>
-					<i class="star fa-solid fa-star" data-fav="u-rename" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="cal" data-cat="time" data-name="历法 农历 干支" title="公历换农历、干支、日本、希伯来等">
 					<i class="fa-solid fa-calendar-days"></i><span>历法</span>
@@ -283,25 +275,6 @@
 			</label>
 		</section>
 
-		<section id="zh" class="panel">
-			<p class="kicker">LCMapStringEx</p>
-			<h1>简繁转换</h1>
-			<div class="split">
-				<label>原文
-					<textarea id="zh-in" rows="12" placeholder="输入简体或繁体"></textarea>
-				</label>
-				<label>结果
-					<textarea id="zh-out" rows="12" readonly></textarea>
-				</label>
-			</div>
-			<div class="row">
-				<button type="button" id="zh-trad" class="primary"><i class="fa-solid fa-arrow-right"></i>转为繁体</button>
-				<button type="button" id="zh-simp"><i class="fa-solid fa-arrow-left"></i>转为简体</button>
-				<button type="button" id="zh-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
-				<span id="zh-msg" class="msg"></span>
-			</div>
-		</section>
-
 		<section id="cal" class="panel">
 			<p class="kicker">Windows.Globalization.Calendar</p>
 			<h1>历法</h1>
@@ -393,6 +366,10 @@
 				<div class="opgrp"><span>大小写</span><div>
 					<button type="button" data-op="upper"><i class="fa-solid fa-arrow-up-a-z"></i>大写</button>
 					<button type="button" data-op="lower"><i class="fa-solid fa-arrow-down-a-z"></i>小写</button>
+				</div></div>
+				<div class="opgrp"><span>简繁转换</span><div>
+					<button type="button" data-op="trad"><i class="fa-solid fa-language"></i>转为繁体</button>
+					<button type="button" data-op="simp"><i class="fa-solid fa-language"></i>转为简体</button>
 				</div></div>
 				<div class="opgrp"><span>空白</span><div>
 					<button type="button" data-op="collapse"><i class="fa-solid fa-compress"></i>合并空白</button>

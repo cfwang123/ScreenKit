@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD5, SHA-256, JSON minify, HTML encode and decode, and HTML, CSS, and JS minify are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
 - XML format and minify, JSON escape and unescape, SQL format and minify, and HTML-to-JS are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
 - The tools-page random-string card is removed. Password generator already covers that.
+- Simplified/traditional is two buttons on Text convert. The separate card is gone. An old favorite opens Text convert. The tools-page batch-rename card is removed. Desktop batch rename stays.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
 - Release builds no longer delete or recreate `dict.db` next to the program. A local link or copy stays as it is. The slim package still leaves that file out.
 
@@ -112,6 +113,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD5、SHA-256、JSON 压缩、HTML 编码和解码，以及 HTML、CSS、JS 压缩，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
 - XML 格式化和压缩、JSON 转义和还原、SQL 格式化和压缩，以及 HTML 转 JS，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
 - 工具页去掉「随机字符串」。随机密码已经能按字符集生成。
+- 简繁转换改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了它时会打开「文本转换」。工具页去掉「批量改名」。桌面的批量改名仍在。
 - `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。8 秒内没退完时，仍由 `slx` 结束进程再编译。全局 `slx` 脚本不改。监听端口仍是设定的那个。
 - Release 编译不再删除或重建程序旁的 `dict.db`。本机已有的链接或文件会留着。精简包仍不带这个文件。
 
