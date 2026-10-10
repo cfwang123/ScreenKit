@@ -464,6 +464,8 @@ public partial class MainWindow {
 			castfill = false;
 			savecastopt();
 			syncastbtns();
+			if (castlive)
+				try { CastHost.Send?.SetAudio(audio, castsrcmode()); } catch { }
 		};
 		hud.StopRequested += () => Dispatcher.BeginInvoke(new Action(stopcast));
 		hud.StartRequested += () => Dispatcher.BeginInvoke(new Action(begincast));

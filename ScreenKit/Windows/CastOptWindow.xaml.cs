@@ -24,4 +24,9 @@ public partial class CastOptWindow : Window {
 		if (esrc.SelectedIndex < 0) esrc.SelectedIndex = 0;
 		bok.Click += (_, _) => { DialogResult = true; Close(); };
 	}
+
+	public void SetTexts(string audioText, string srcText) {
+		if (!string.IsNullOrEmpty(audioText)) caudio.Content = audioText;
+		if (!string.IsNullOrEmpty(srcText)) lbsrc.Text = srcText;
+	}
 }

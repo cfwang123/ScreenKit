@@ -56,6 +56,9 @@ SK.watchAcc = 0;
 		var start = toolhash();
 		if (start === "zh" || start === "yomi" || start === "u-name" || start === "u-cron"
 			|| start === "u-ua" || start === "u-tok") start = "text";
+		if (start === "u-byte" || start === "u-len" || start === "u-temp" || start === "u-px"
+			|| start === "u-mass" || start === "u-area" || start === "u-vol" || start === "u-tunit"
+			|| start === "u-press" || start === "u-power") start = "u-unit";
 		if (start && start !== "home" && cardof(start)) show(start, true);
 	}
 
@@ -109,6 +112,9 @@ SK.watchAcc = 0;
 		var id = toolhash();
 		if (id === "zh" || id === "yomi" || id === "u-name" || id === "u-cron"
 			|| id === "u-ua" || id === "u-tok") id = "text";
+		if (id === "u-byte" || id === "u-len" || id === "u-temp" || id === "u-px"
+			|| id === "u-mass" || id === "u-area" || id === "u-vol" || id === "u-tunit"
+			|| id === "u-press" || id === "u-power") id = "u-unit";
 		if (!id || id === "home") {
 			if (SK.curtool !== "home") show("home", true);
 			return;
@@ -322,6 +328,9 @@ SK.watchAcc = 0;
 				|| id === "u-xml" || id === "u-jesc" || id === "u-sql" || id === "u-hjs"
 				|| id === "zh" || id === "yomi" || id === "u-name" || id === "u-cron"
 				|| id === "u-ua" || id === "u-tok") id = "text";
+			if (id === "u-byte" || id === "u-len" || id === "u-temp" || id === "u-px"
+				|| id === "u-mass" || id === "u-area" || id === "u-vol" || id === "u-tunit"
+				|| id === "u-press" || id === "u-power") id = "u-unit";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;
 			favs.push(id);

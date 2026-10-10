@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using NAudio.CoreAudioApi;
@@ -601,6 +602,63 @@ sealed class AudioCapture : IDisposable {
 		if (disposed) return;
 		disposed = true;
 		try { Stop(); } catch { }
+	}
+
+	public static int WavMs(string path) {
+		try {
+			if (string.IsNullOrEmpty(path) || !File.Exists(path)) return 0;
+			if (new FileInfo(path).Length < 44) return 0;
+			using var r = new WaveFileReader(path);
+			var ms = (int)r.TotalTime.TotalMilliseconds;
+			return ms < 0 ? 0 : ms;
+		}
+		catch { return 0; }
+	}
+
+	public static void WriteSilence(string path, int ms, int hz, bool mono) {
+		if (string.IsNullOrEmpty(path) || ms < 20) return;
+		if (hz < 8000) hz = 22050;
+		var ch = mono ? 1 : 2;
+		var fmt = new WaveFormat(hz, 16, ch);
+		var bytes = (int)(fmt.AverageBytesPerSecond * (long)ms / 1000);
+		var align = Math.Max(1, fmt.BlockAlign);
+		bytes -= bytes % align;
+		if (bytes <= 0) return;
+		using var w = new WaveFileWriter(path, fmt);
+		var buf = new byte[8192];
+		while (bytes > 0) {
+			var n = Math.Min(buf.Length - (buf.Length % align), bytes);
+			if (n <= 0) break;
+			w.Write(buf, 0, n);
+			bytes -= n;
+		}
+	}
+
+	public static void ConcatTo(IList<string> parts, string dst, int hz, bool mono) {
+		if (parts == null || parts.Count == 0 || string.IsNullOrEmpty(dst)) return;
+		if (hz < 8000) hz = 22050;
+		var readers = new List<AudioFileReader>();
+		try {
+			var seq = new List<ISampleProvider>();
+			foreach (var p in parts) {
+				if (string.IsNullOrEmpty(p) || !File.Exists(p) || new FileInfo(p).Length < 100) continue;
+				var r = new AudioFileReader(p);
+				readers.Add(r);
+				ISampleProvider s = r;
+				if (s.WaveFormat.SampleRate != hz)
+					s = new WdlResamplingSampleProvider(s, hz);
+				s = mono
+					? (s.WaveFormat.Channels == 1 ? s : new StereoToMonoSampleProvider(s) { LeftVolume = 0.5f, RightVolume = 0.5f })
+					: s.ToStereo();
+				seq.Add(s);
+			}
+			if (seq.Count == 0) return;
+			WaveFileWriter.CreateWaveFile16(dst, new ConcatenatingSampleProvider(seq));
+		}
+		finally {
+			foreach (var r in readers)
+				try { r.Dispose(); } catch { }
+		}
 	}
 }
 

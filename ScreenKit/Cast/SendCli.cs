@@ -20,6 +20,7 @@ sealed class CastSendCli : IDisposable {
 	readonly object encs = new();
 	readonly object grablk = new();
 	readonly object nslock = new();
+	readonly object audlk = new();
 	public Action<string> Log;
 	public bool Running => !stop && st != null;
 	public bool Paused => paused;
@@ -92,7 +93,10 @@ sealed class CastSendCli : IDisposable {
 
 	public void SetPaused(bool on) {
 		paused = on;
-		if (on) { try { acap?.Clear(); } catch { } }
+		if (!on) return;
+		lock (audlk) {
+			try { acap?.Clear(); } catch { }
+		}
 	}
 
 	public void ApplyQ(CastQuality nq) {
@@ -142,27 +146,52 @@ sealed class CastSendCli : IDisposable {
 		return ok;
 	}
 
+	public void SetAudio(bool audio, RecordAudioMode src) {
+		if (st == null || stop) return;
+		lock (audlk) {
+			wantAudio = audio;
+			if (src != RecordAudioMode.Off) audmode = src;
+			openaudio();
+		}
+	}
+
+	void openaudio() {
+		closeaudio();
+		if (!wantAudio) return;
+		try {
+			acap = new CastAudioCap(audmode);
+			if (acap.FellBack) Log?.Invoke("麦克风不可用，仅发送扬声器");
+			aenc = new CastAudioEncoder(acap.SampleRate, acap.Channels);
+		}
+		catch (Exception ex) {
+			closeaudio();
+			wantAudio = false;
+			Log?.Invoke($"声音采集失败，仅画面: {ex.Message}");
+		}
+	}
+
+	void closeaudio() {
+		try { aenc?.Dispose(); } catch { }
+		aenc = null;
+		try { acap?.Dispose(); } catch { }
+		acap = null;
+	}
+
 	void loop() {
 		byte[] bgra = null;
 		var next = Environment.TickCount;
-		byte[] apcm = wantAudio ? new byte[48000] : null;
+		var apcm = new byte[48000];
 		try {
-			if (wantAudio) {
-				try {
-					acap = new CastAudioCap(audmode);
-					if (acap.FellBack) Log?.Invoke("麦克风不可用，仅发送扬声器");
-					aenc = new CastAudioEncoder(acap.SampleRate, acap.Channels);
-				}
-				catch (Exception ex) {
-					Log?.Invoke($"声音采集失败，仅画面: {ex.Message}");
-					wantAudio = false;
-				}
+			lock (audlk) {
+				if (wantAudio && acap == null) openaudio();
 			}
 			while (!stop) {
 				if (paused) {
 					Thread.Sleep(30);
 					next = Environment.TickCount;
-					try { acap?.Clear(); } catch { }
+					lock (audlk) {
+						try { acap?.Clear(); } catch { }
+					}
 					continue;
 				}
 				var now = Environment.TickCount;
@@ -182,15 +211,16 @@ sealed class CastSendCli : IDisposable {
 					var pkt = CastProto.Pack(CastProto.T_VIDEO, nal);
 					lock (nslock) st.Write(pkt, 0, pkt.Length);
 				}
-				if (wantAudio && acap != null) {
-					var n = acap.Take(apcm);
-					if (n > 0) {
-						var adts = aenc.EncodeS16(apcm, n);
-						if (adts != null) {
-							var pkt = CastProto.Pack(CastProto.T_AUDIO, adts);
-							lock (nslock) st.Write(pkt, 0, pkt.Length);
-						}
+				byte[] adts = null;
+				lock (audlk) {
+					if (wantAudio && acap != null && aenc != null) {
+						var n = acap.Take(apcm);
+						if (n > 0) adts = aenc.EncodeS16(apcm, n);
 					}
+				}
+				if (adts != null) {
+					var pkt = CastProto.Pack(CastProto.T_AUDIO, adts);
+					lock (nslock) st.Write(pkt, 0, pkt.Length);
 				}
 			}
 		}
@@ -208,8 +238,7 @@ sealed class CastSendCli : IDisposable {
 		st = null;
 		ws = null;
 		venc?.Dispose(); venc = null;
-		aenc?.Dispose(); aenc = null;
-		acap?.Dispose(); acap = null;
+		lock (audlk) closeaudio();
 		grab?.Dispose(); grab = null;
 	}
 

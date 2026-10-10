@@ -77,6 +77,7 @@ public partial class CastHud : Window {
 		Loaded += (_, _) => {
 			proot.Width = Math.Max(1, ActualWidth);
 			proot.Height = Math.Max(1, ActualHeight);
+			fillaudio();
 			layout(false);
 			timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
 			timer.Tick += (_, _) => tick();
@@ -94,6 +95,7 @@ public partial class CastHud : Window {
 		bcollapse.Click += (_, _) => setcollapsed(true);
 		bexpand.Click += (_, _) => setcollapsed(false);
 		setui();
+		fillaudio();
 		initdrag();
 		WindowEsc.Attach(this, requeststop);
 	}
@@ -138,7 +140,7 @@ public partial class CastHud : Window {
 	}
 
 	void onoptions() {
-		if (started || closing) return;
+		if (closing) return;
 		var audio = true;
 		var src = "Speakers";
 		try {
@@ -154,12 +156,42 @@ public partial class CastHud : Window {
 		finally { Topmost = wasTop; }
 		if (!ok) return;
 		try { WriteOptions?.Invoke(dlg.Audio, dlg.Src); } catch { }
+		fillaudio();
+		layout(false);
+	}
+
+	void fillaudio() {
+		var on = true;
+		var src = "Speakers";
+		try {
+			if (ReadOptions != null) (on, src) = ReadOptions();
+		}
+		catch { }
+		lbaudio.Text = audtext(on, src);
+		lbaudio.ToolTip = on ? Loc.T(srckey(src)) : Loc.T("cast.hud.aud.off");
+	}
+
+	static string audtext(bool on, string src) {
+		if (!on) return Loc.T("cast.hud.aud.off");
+		return Loc.T(audkey(src));
+	}
+
+	static string audkey(string src) {
+		if (string.Equals(src, "Mic", StringComparison.OrdinalIgnoreCase)) return "cast.hud.aud.mic";
+		if (string.Equals(src, "MicAndSpeakers", StringComparison.OrdinalIgnoreCase)) return "cast.hud.aud.both";
+		return "cast.hud.aud.spk";
+	}
+
+	static string srckey(string src) {
+		if (string.Equals(src, "Mic", StringComparison.OrdinalIgnoreCase)) return "cast.tab.src.mic";
+		if (string.Equals(src, "MicAndSpeakers", StringComparison.OrdinalIgnoreCase)) return "cast.tab.src.both";
+		return "cast.tab.src.spk";
 	}
 
 	void setui() {
 		var before = started ? Visibility.Collapsed : Visibility.Visible;
 		var after = started ? Visibility.Visible : Visibility.Collapsed;
-		bopt.Visibility = boptM.Visibility = before;
+		bopt.Visibility = boptM.Visibility = Visibility.Visible;
 		bstart.Visibility = bstartM.Visibility = before;
 		bpause.Visibility = bpauseM.Visibility = after;
 		var showPause = paused ? Visibility.Collapsed : Visibility.Visible;

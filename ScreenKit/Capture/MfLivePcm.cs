@@ -20,6 +20,12 @@ sealed class MfLivePcm {
 	}
 
 	public void Bind(WaveFormat loopFmt, WaveFormat micFmt) {
+		Use(loopFmt, micFmt);
+	}
+
+	public void Use(WaveFormat loopFmt, WaveFormat micFmt) {
+		loop.clear();
+		mic.clear();
 		if (loopFmt != null) loop.bind(loopFmt, outRate, outCh);
 		if (micFmt != null) mic.bind(micFmt, outRate, outCh);
 	}
@@ -99,6 +105,15 @@ sealed class MfLivePcm {
 		public bool On { get; private set; }
 		public bool Flushing { get; set; }
 		public int OutFrames => ready.Count / Math.Max(1, dstCh);
+
+		public void clear() {
+			On = false;
+			Flushing = false;
+			samples.Clear();
+			ready.Clear();
+			carry = null;
+			pos = 0;
+		}
 
 		public void bind(WaveFormat format, int rate, int channelsOut) {
 			fmt = format ?? throw new ArgumentNullException(nameof(format));

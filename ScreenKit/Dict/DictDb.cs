@@ -89,6 +89,8 @@ sealed class DictEntry {
 #region
 static class DictDb {
 	const int FETCHCAP = 4000;
+	/// <summary>界面一次最多列出的条数。</summary>
+	public const int SEARCH_MAX = 4000;
 
 	const int IDLE_MS = 5 * 60 * 1000;
 
@@ -232,7 +234,7 @@ static class DictDb {
 		var empty = new List<DictHit>();
 		if (string.IsNullOrWhiteSpace(rawq)) return empty;
 		if (limit < 1) limit = 1;
-		if (limit > 300) limit = 300;
+		if (limit > SEARCH_MAX) limit = SEARCH_MAX;
 		var q = normalize(rawq);
 		if (q.Length == 0) return empty;
 		var d = normdict(dict);

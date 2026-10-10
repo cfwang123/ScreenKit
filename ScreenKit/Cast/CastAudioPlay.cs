@@ -7,8 +7,13 @@ sealed class CastAudioPlay : IDisposable {
 	readonly BufferedWaveProvider buf;
 	bool disposed;
 
+	public int Rate { get; }
+	public int Channels { get; }
+
 	public CastAudioPlay(int sampleRate = 48000, int ch = 2) {
-		buf = new BufferedWaveProvider(new WaveFormat(sampleRate, 16, ch)) {
+		Rate = sampleRate > 0 ? sampleRate : 48000;
+		Channels = ch <= 1 ? 1 : 2;
+		buf = new BufferedWaveProvider(new WaveFormat(Rate, 16, Channels)) {
 			DiscardOnBufferOverflow = true,
 			BufferDuration = TimeSpan.FromMilliseconds(200)
 		};

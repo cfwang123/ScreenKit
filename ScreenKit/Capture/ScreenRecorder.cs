@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Media;
@@ -16,7 +17,14 @@ sealed class ScreenRecorder : IDisposable {
 	readonly RecordCursorOverlay cursorOv;
 	readonly int fps;
 	readonly int outW, outH;
-	readonly RecordAudioMode audioMode;
+	RecordAudioMode audioMode;
+	readonly List<string> audparts = new();
+	readonly object audiolk = new();
+	string audiopath;
+	RecordAudioMode audioWant;
+	int audioReq;
+	int audioSeen;
+	int audseq;
 	readonly string videoTmp;
 	readonly string wavTmp;
 	readonly object gate = new();
@@ -47,6 +55,17 @@ sealed class ScreenRecorder : IDisposable {
 	}
 
 	/// <summary>更新抓屏区域（可移动/缩放）。编码尺寸在 Start 后固定，缩放后写入。</summary>
+	/// <summary>录制中更换声音来源。系统 H.264 若开始时没开音轨，则不能中途打开。</summary>
+	public bool SetAudio(RecordAudioMode mode) {
+		if (recOpt.IsMf && mode != RecordAudioMode.Off && (mfSink == null || !mfSink.HasAudioStream))
+			return false;
+		lock (audiolk) {
+			audioWant = mode;
+			audioReq++;
+		}
+		return true;
+	}
+
 	public void SetRegion(System.Drawing.Rectangle r) {
 		if (r.Width % 2 != 0) r.Width--;
 		if (r.Height % 2 != 0) r.Height--;
@@ -82,6 +101,7 @@ sealed class ScreenRecorder : IDisposable {
 		TmpStore.CleanupExpired();
 		videoTmp = TmpStore.NewPath("rec", recOpt.FileExt);
 		wavTmp = Path.ChangeExtension(videoTmp, ".wav");
+		audiopath = wavTmp;
 		finalPath = videoTmp;
 	}
 
@@ -238,7 +258,8 @@ sealed class ScreenRecorder : IDisposable {
 		stopped = true;
 		RecordLog.Step("stop_begin", $"frames={frames} elapsed={Elapsed} " + RecordLog.FileInfo(videoTmp));
 		report("正在停止采集…");
-		var cap = audio;
+		AudioCapture cap;
+		lock (audiolk) cap = audio;
 		// 系统 H.264：先把尾部静音放进队列，录制线程收尾时写入同一个 MP4，再 Finalize。
 		if (recOpt.IsMf && cap != null) {
 			report("正在收尾音频…");
@@ -285,7 +306,7 @@ sealed class ScreenRecorder : IDisposable {
 		if (sinkEx != null)
 			throw new InvalidOperationException("视频收尾失败: " + sinkEx.Message, sinkEx);
 
-		if (audioMode == RecordAudioMode.Off || cap == null) {
+		if ((audioMode == RecordAudioMode.Off || cap == null) && audparts.Count == 0) {
 			finalizeDone = true;
 			finalizeTask = Task.CompletedTask;
 			report("完成");
@@ -299,18 +320,29 @@ sealed class ScreenRecorder : IDisposable {
 		report("正在收尾音频…");
 		finalizeTask = Task.Run(() => {
 			try {
-				try {
-					cap.Stop();
-					RecordLog.Step("audio_stop",
-						$"bytesLoop={cap.BytesLoop} bytesMic={cap.BytesMic} firstDataMs={cap.FirstDataMs} " +
-						RecordLog.FileInfo(wavTmp));
+				var join = audparts.Count > 0;
+				if (cap != null) {
+					try {
+						if (join) cap.SkipNormalize = false;
+						cap.Stop();
+						RecordLog.Step("audio_stop",
+							$"bytesLoop={cap.BytesLoop} bytesMic={cap.BytesMic} firstDataMs={cap.FirstDataMs} " +
+							RecordLog.FileInfo(audiopath ?? wavTmp));
+					}
+					catch (Exception ex) {
+						RecordLog.Ex("audio.Stop", ex);
+						AudioError = ex.Message;
+					}
+					finally {
+						try { cap.Dispose(); } catch { }
+					}
+					if (join && !string.IsNullOrEmpty(audiopath) && File.Exists(audiopath)
+						&& new FileInfo(audiopath).Length > 100)
+						audparts.Add(audiopath);
 				}
-				catch (Exception ex) {
-					RecordLog.Ex("audio.Stop", ex);
-					AudioError = ex.Message;
-				}
-				finally {
-					try { cap.Dispose(); } catch { }
+				if (join) {
+					fillgap();
+					joinparts();
 				}
 
 				var wavOk = File.Exists(wavTmp) && new FileInfo(wavTmp).Length > 100;
@@ -401,6 +433,15 @@ sealed class ScreenRecorder : IDisposable {
 		if (!string.Equals(finalPath, videoTmp, StringComparison.OrdinalIgnoreCase))
 			tryDelete(videoTmp);
 		tryDelete(wavTmp);
+		tryDelete(wavTmp + ".cat.wav");
+		try {
+			var dir = Path.GetDirectoryName(wavTmp);
+			var stem = Path.GetFileNameWithoutExtension(wavTmp);
+			if (!string.IsNullOrEmpty(dir) && !string.IsNullOrEmpty(stem))
+				foreach (var f in Directory.GetFiles(dir, stem + "_a*.wav"))
+					tryDelete(f);
+		}
+		catch { }
 		var mergedGuess = Path.Combine(
 			Path.GetDirectoryName(videoTmp) ?? TmpStore.Root,
 			Path.GetFileNameWithoutExtension(videoTmp) + "_av" + (recOpt?.FileExt ?? ".mp4"));
@@ -504,6 +545,107 @@ sealed class ScreenRecorder : IDisposable {
 		}
 	}
 
+	void pollaudio() {
+		if (stopped) return;
+		RecordAudioMode want;
+		int req;
+		lock (audiolk) {
+			want = audioWant;
+			req = audioReq;
+		}
+		if (req == audioSeen) return;
+		audioSeen = req;
+		applyaudio(want);
+	}
+
+	void applyaudio(RecordAudioMode mode) {
+		if (stopped) return;
+		lock (audiolk) {
+			if (stopped || mode == audioMode) return;
+			if (recOpt.IsMf && mode != RecordAudioMode.Off && (mfSink == null || !mfSink.HasAudioStream)) {
+				RecordLog.Step("audio_switch", "mf no stream");
+				return;
+			}
+			var old = audio;
+			audio = null;
+			if (old != null) {
+				try {
+					if (!recOpt.IsMf) old.SkipNormalize = false;
+					old.Stop();
+				}
+				catch (Exception ex) { RecordLog.Ex("audio.switch.stop", ex); }
+				try { old.Dispose(); } catch { }
+				if (!recOpt.IsMf && !string.IsNullOrEmpty(audiopath) && File.Exists(audiopath)
+					&& new FileInfo(audiopath).Length > 100)
+					audparts.Add(audiopath);
+			}
+			audioMode = mode;
+			if (mode == RecordAudioMode.Off) {
+				if (live != null) live.Use(null, null);
+				RecordLog.Step("audio_switch", "off");
+				return;
+			}
+			if (!recOpt.IsMf) fillgap();
+			if (audparts.Count > 0) audiopath = nextaudpath();
+			try {
+				audio = new AudioCapture(audiopath, mode, recOpt.AudioHz, recOpt.AudioMono);
+				if (recOpt.IsMf)
+					audio.QueuePcm = true;
+				else
+					audio.SkipNormalize = audparts.Count == 0
+						&& mode is RecordAudioMode.Speakers or RecordAudioMode.Mic;
+				audio.Start();
+				if (paused) audio.Pause();
+				if (live != null) live.Use(audio.LoopFormat, audio.MicFormat);
+				RecordLog.Step("audio_switch", mode.ToString());
+			}
+			catch (Exception ex) {
+				RecordLog.Ex("audio.switch.start", ex);
+				try { audio?.Dispose(); } catch { }
+				audio = null;
+				audioMode = RecordAudioMode.Off;
+			}
+		}
+	}
+
+	void fillgap() {
+		var have = 0;
+		foreach (var p in audparts) have += AudioCapture.WavMs(p);
+		var gap = (int)Elapsed.TotalMilliseconds - have;
+		if (gap < 400) return;
+		var sil = nextaudpath();
+		AudioCapture.WriteSilence(sil, gap, recOpt.AudioHz, recOpt.AudioMono);
+		if (File.Exists(sil) && new FileInfo(sil).Length > 44) audparts.Add(sil);
+	}
+
+	void joinparts() {
+		if (audparts.Count == 0) return;
+		if (audparts.Count == 1 && string.Equals(audparts[0], wavTmp, StringComparison.OrdinalIgnoreCase))
+			return;
+		var dst = wavTmp + ".cat.wav";
+		try { if (File.Exists(dst)) File.Delete(dst); } catch { }
+		AudioCapture.ConcatTo(audparts, dst, recOpt.AudioHz, recOpt.AudioMono);
+		if (!File.Exists(dst) || new FileInfo(dst).Length < 100) {
+			RecordLog.Step("audio_join", "fail");
+			return;
+		}
+		try { if (File.Exists(wavTmp)) File.Delete(wavTmp); } catch { }
+		File.Move(dst, wavTmp);
+		foreach (var p in audparts) {
+			if (string.Equals(p, wavTmp, StringComparison.OrdinalIgnoreCase)) continue;
+			tryDelete(p);
+		}
+		RecordLog.Step("audio_join", $"{audparts.Count} " + RecordLog.FileInfo(wavTmp));
+	}
+
+	string nextaudpath() {
+		audseq++;
+		var dir = Path.GetDirectoryName(wavTmp);
+		if (string.IsNullOrEmpty(dir)) dir = TmpStore.Root;
+		var stem = Path.GetFileNameWithoutExtension(wavTmp);
+		return Path.Combine(dir, stem + "_a" + audseq + ".wav");
+	}
+
 	void loop() {
 		// 用 double 累加间隔，避免 (int)(1000/fps) 截断导致每帧少 0.3~0.7ms、长录屏音画漂移
 		var interval = 1000.0 / Math.Max(1, fps);
@@ -512,6 +654,7 @@ sealed class ScreenRecorder : IDisposable {
 		var frameEx = 0;
 		long lastPts = -1;
 		while (!stop) {
+			pollaudio();
 			drainmf(false);
 			if (paused) {
 				Thread.Sleep(40);

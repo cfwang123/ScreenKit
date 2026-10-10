@@ -530,6 +530,14 @@ sealed class CastRecvSrv : IDisposable {
 			if (adec == null) adec = new CastAudioDecoder();
 			var pcm = adec.DecodeAdts(data);
 			if (pcm == null) return;
+			if (aplay != null && (aplay.Rate != adec.SampleRate || aplay.Channels != adec.Channels)) {
+				try { aplay.Dispose(); } catch { }
+				aplay = null;
+				try { adec.Dispose(); } catch { }
+				adec = new CastAudioDecoder();
+				pcm = adec.DecodeAdts(data);
+				if (pcm == null) return;
+			}
 			audion++;
 			if (aplay == null) aplay = new CastAudioPlay(adec.SampleRate, adec.Channels);
 			var dur = (long)pcm.Length * 1000000L / (adec.SampleRate * adec.Channels * 2);

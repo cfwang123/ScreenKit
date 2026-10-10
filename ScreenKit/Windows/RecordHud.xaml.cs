@@ -225,6 +225,12 @@ public partial class RecordHud : Window {
 			lbsummary.Text = $"{sum} · out {ow}×{oh}";
 		else
 			lbsummary.Text = sum;
+		if (gifMode) lbaudio.Visibility = Visibility.Collapsed;
+		else {
+			lbaudio.Visibility = Visibility.Visible;
+			lbaudio.Text = audtext(recOpt.AudioEnabled, recOpt.AudioSource);
+			lbaudio.ToolTip = recOpt.AudioEnabled ? audtip(recOpt.AudioSource) : audtext(false, null);
+		}
 		var tip = $"选区 {rw}×{rh}\n{sum}\n拖动红线外侧可移动 · 拖边缘/角点缩放";
 		ToolTip = tip;
 		bbar.ToolTip = tip + "\n拖动控制条可移动位置";
@@ -782,7 +788,7 @@ public partial class RecordHud : Window {
 
 	/// <summary>未开始只显示开始；录制中/暂停只显示暂停（图标切换继续）。</summary>
 	void setplaypauseui(bool started, bool paused) {
-		var optVis = started ? Visibility.Collapsed : Visibility.Visible;
+		var optVis = started && gifMode ? Visibility.Collapsed : Visibility.Visible;
 		bopt.Visibility = optVis;
 		boptM.Visibility = optVis;
 		if (started) {
@@ -831,8 +837,53 @@ public partial class RecordHud : Window {
 		boptM.IsEnabled = bopt.IsEnabled;
 	}
 
+	static string audtext(bool on, string src) {
+		if (!on) return Loc.T("cast.hud.aud.off");
+		if (string.Equals(src, "Mic", StringComparison.OrdinalIgnoreCase)) return Loc.T("cast.hud.aud.mic");
+		if (string.Equals(src, "MicAndSpeakers", StringComparison.OrdinalIgnoreCase)) return Loc.T("cast.hud.aud.both");
+		return Loc.T("cast.hud.aud.spk");
+	}
+
+	static string audtip(string src) {
+		if (string.Equals(src, "Mic", StringComparison.OrdinalIgnoreCase)) return Loc.T("cast.tab.src.mic");
+		if (string.Equals(src, "MicAndSpeakers", StringComparison.OrdinalIgnoreCase)) return Loc.T("cast.tab.src.both");
+		return Loc.T("cast.tab.src.spk");
+	}
+
+	void onaudio() {
+		var dlg = new CastOptWindow(recOpt.AudioEnabled, recOpt.AudioSource);
+		dlg.Title = "录屏声音";
+		dlg.SetTexts("录制声音", "声音来源");
+		try { dlg.Owner = Application.Current?.MainWindow; } catch { }
+		if (dlg.ShowDialog() != true) return;
+		var prevOn = recOpt.AudioEnabled;
+		var prevSrc = recOpt.AudioSource;
+		recOpt.AudioEnabled = dlg.Audio;
+		recOpt.AudioSource = dlg.Src;
+		if (rec != null && !rec.SetAudio(recOpt.AudioMode)) {
+			recOpt.AudioEnabled = prevOn;
+			recOpt.AudioSource = prevSrc;
+			MessageBox.Show(this, "这次录制开始时没有声音轨，不能中途打开。", "录屏声音",
+				MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
+		try {
+			var cfg = new OcrOptions();
+			AppConfig.LoadInto(cfg);
+			cfg.Record = recOpt.Clone();
+			AppConfig.Save(cfg);
+		}
+		catch { }
+		fillsummary();
+		layoutchrome();
+	}
+
 	void onoptions() {
-		if (started || stopping) return;
+		if (stopping) return;
+		if (started) {
+			if (!gifMode) onaudio();
+			return;
+		}
 		try {
 			var cfg = new OcrOptions();
 			AppConfig.LoadInto(cfg);
