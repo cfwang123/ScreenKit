@@ -1198,6 +1198,7 @@ window.sktools = (function(){
 			}
 			drawicoprev();
 		}
+		if (name === "u-pick") bindpick();
 		if (name === "u-ts") $("box-in").value = String(Math.floor(Date.now() / 1000));
 		if (name === "u-datediff" || name === "u-work") {
 			var day = new Date();
@@ -1456,7 +1457,17 @@ window.sktools = (function(){
 		if (name === "u-jdiff")
 			return '<div class="split">' + lab("JSON 甲", ta("box-a", 10, "")) + lab("JSON 乙", ta("box-b", 10, "")) + "</div>";
 		if (name === "u-pick")
-			return lab("颜色", '<input id="box-color" type="color" value="#3366cc">');
+			return '<div class="cpick">'
+				+ '<div class="cpick-top"><span>颜色</span><i id="cpick-swatch"></i></div>'
+				+ '<div class="cpick-sv" id="cpick-sv"><i id="cpick-svdot"></i></div>'
+				+ '<div class="cpick-hue" id="cpick-hue"><i id="cpick-huedot"></i></div>'
+				+ '<div class="cpick-rgb">'
+				+ '<label>R<input id="cpick-r" inputmode="numeric"></label>'
+				+ '<label>G<input id="cpick-g" inputmode="numeric"></label>'
+				+ '<label>B<input id="cpick-b" inputmode="numeric"></label>'
+				+ "</div>"
+				+ '<input id="box-color" type="hidden" value="#3366cc">'
+				+ "</div>";
 		if (name === "u-watch")
 			return '<div class="row"><button type="button" id="box-start">开始</button></div>';
 		if (name === "u-down")
@@ -2337,6 +2348,85 @@ window.sktools = (function(){
 		else throw new Error("请选择单位");
 		if (c < -273.15 - 1e-9) throw new Error("低于绝对零度");
 		return "摄氏度  " + trimnum(c) + "\n华氏度  " + trimnum(c * 9 / 5 + 32) + "\n开尔文  " + trimnum(c + 273.15);
+	}
+
+	function bindpick(){
+		var hue = 220;
+		var sat = 0.75;
+		var val = 0.8;
+		var sv = $("cpick-sv");
+		var huebar = $("cpick-hue");
+		var drag = "";
+		function clamp01(n){
+			if (n < 0) return 0;
+			if (n > 1) return 1;
+			return n;
+		}
+		function paint(){
+			var rgb = hsv2rgb(hue, sat * 100, val * 100);
+			var hex = "#" + hex2(rgb[0]) + hex2(rgb[1]) + hex2(rgb[2]);
+			$("box-color").value = hex;
+			$("cpick-swatch").style.background = hex;
+			sv.style.backgroundColor = "hsl(" + hue + ",100%,50%)";
+			$("cpick-svdot").style.left = (sat * 100) + "%";
+			$("cpick-svdot").style.top = ((1 - val) * 100) + "%";
+			$("cpick-huedot").style.left = (hue / 360 * 100) + "%";
+			$("cpick-r").value = String(rgb[0]);
+			$("cpick-g").value = String(rgb[1]);
+			$("cpick-b").value = String(rgb[2]);
+		}
+		function fromsv(ev){
+			var r = sv.getBoundingClientRect();
+			sat = clamp01((ev.clientX - r.left) / r.width);
+			val = 1 - clamp01((ev.clientY - r.top) / r.height);
+			paint();
+		}
+		function fromhue(ev){
+			var r = huebar.getBoundingClientRect();
+			hue = clamp01((ev.clientX - r.left) / r.width) * 360;
+			if (hue >= 360) hue = 0;
+			paint();
+		}
+		function down(which, ev){
+			drag = which;
+			ev.currentTarget.setPointerCapture(ev.pointerId);
+			if (which === "sv") fromsv(ev);
+			else fromhue(ev);
+		}
+		sv.onpointerdown = function(ev){ down("sv", ev); };
+		sv.onpointermove = function(ev){ if (drag === "sv") fromsv(ev); };
+		sv.onpointerup = function(){ drag = ""; };
+		huebar.onpointerdown = function(ev){ down("hue", ev); };
+		huebar.onpointermove = function(ev){ if (drag === "hue") fromhue(ev); };
+		huebar.onpointerup = function(){ drag = ""; };
+		function fromrgb(){
+			var r = Number($("cpick-r").value);
+			var g = Number($("cpick-g").value);
+			var b = Number($("cpick-b").value);
+			if (!isFinite(r) || !isFinite(g) || !isFinite(b)) return;
+			if (r < 0) r = 0;
+			if (g < 0) g = 0;
+			if (b < 0) b = 0;
+			if (r > 255) r = 255;
+			if (g > 255) g = 255;
+			if (b > 255) b = 255;
+			r = Math.round(r);
+			g = Math.round(g);
+			b = Math.round(b);
+			var hsv = rgb2hsv(r, g, b);
+			hue = hsv[0];
+			sat = hsv[1] / 100;
+			val = hsv[2] / 100;
+			paint();
+		}
+		$("cpick-r").oninput = fromrgb;
+		$("cpick-g").oninput = fromrgb;
+		$("cpick-b").oninput = fromrgb;
+		var start = rgb2hsv(51, 102, 204);
+		hue = start[0];
+		sat = start[1] / 100;
+		val = start[2] / 100;
+		paint();
 	}
 
 	function colorconv(mode, text){

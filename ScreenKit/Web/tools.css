@@ -165,6 +165,37 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 .row.grow > label:first-child { flex: 1; width: auto; min-width: 0; }
 .row.grow > label:first-child input { min-width: 0; }
 .row.grow > label:last-child { flex: none; width: 140px; }
+.cpick { width: 220px; }
+.cpick-top { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.cpick-swatch, #cpick-swatch {
+	display: block; width: 36px; height: 36px; margin: 0; padding: 0;
+	border: 1px solid var(--line); border-radius: 8px; background: #3366cc;
+}
+.cpick-sv {
+	position: relative; width: 220px; height: 148px; margin-top: 8px;
+	border-radius: 8px; cursor: crosshair; touch-action: none;
+	background-image:
+		linear-gradient(to top, #000, transparent),
+		linear-gradient(to right, #fff, transparent);
+	background-color: #36c;
+}
+.cpick-hue {
+	position: relative; height: 14px; margin-top: 10px; border-radius: 7px;
+	cursor: pointer; touch-action: none;
+	background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+}
+.cpick-sv i, .cpick-hue i {
+	position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+	border: 2px solid #fff; border-radius: 50%;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, .55);
+	pointer-events: none;
+}
+.cpick-hue i { top: 7px; }
+.cpick-rgb { display: flex; gap: 8px; margin-top: 10px; }
+.cpick-rgb label { width: auto; text-align: center; }
+.cpick-rgb input {
+	width: 64px; height: 32px; margin-top: 4px; padding: 4px 6px; text-align: center;
+}
 .row button, .ops button, .ghost {
 	display: inline-flex; align-items: center; gap: 6px;
 	border: 1px solid var(--line); background: var(--card); color: var(--ink);
