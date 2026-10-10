@@ -280,6 +280,8 @@ window.sktools = (function(){
 		var i, seen = {};
 		for (i = 0; i < list.length; i++) {
 			var id = String(list[i] || "");
+			if (id === "u-md5" || id === "u-sha" || id === "u-jsonmin" || id === "u-html"
+				|| id === "u-hmin" || id === "u-cmin" || id === "u-jsmin") id = "text";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;
 			favs.push(id);
@@ -418,9 +420,52 @@ window.sktools = (function(){
 	}
 
 	function textop(op){
+		if (op === "md5" || op === "sha" || op === "jsonmin" || op === "htmlenc" || op === "htmldec"
+			|| op === "hmin" || op === "cmin" || op === "jsmin") {
+			textlocal(op);
+			return;
+		}
 		post("/api/text", { text: $("tx-in").value, op: op }, function(data){
 			$("tx-out").value = data.text || "";
 		}, "tx-msg");
+	}
+
+	function textlocal(op){
+		var text = $("tx-in").value;
+		if (op === "sha") {
+			if (text.length > 200000) {
+				msg("tx-msg", "文字太长", true);
+				return;
+			}
+			if (!window.crypto || !crypto.subtle || typeof crypto.subtle.digest !== "function") {
+				msg("tx-msg", "浏览器没有 SHA-256", true);
+				return;
+			}
+			msg("tx-msg", "计算中");
+			crypto.subtle.digest("SHA-256", utf8bytes(text)).then(function(buf){
+				$("tx-out").value = hexbytes(new Uint8Array(buf));
+				msg("tx-msg", "完成");
+			}, function(){
+				msg("tx-msg", "SHA-256 失败", true);
+			});
+			return;
+		}
+		try {
+			var out = "";
+			if (op === "md5") out = md5hex(text);
+			else if (op === "jsonmin") out = jsonmin(text);
+			else if (op === "htmlenc") out = htmlenc(text);
+			else if (op === "htmldec") out = htmldec(text);
+			else if (op === "hmin") out = htmlmin(text);
+			else if (op === "cmin") out = cssmin(text);
+			else if (op === "jsmin") out = jsmin(text);
+			$("tx-out").value = out;
+			msg("tx-msg", "完成");
+		}
+		catch (ex) {
+			$("tx-out").value = "";
+			msg("tx-msg", ex && ex.message ? ex.message : "失败", true);
+		}
 	}
 
 	function qrmake(){

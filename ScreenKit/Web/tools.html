@@ -53,8 +53,8 @@
 					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
 					<i class="star fa-solid fa-star" data-fav="qr" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="text" data-cat="text" data-name="文本 base64 url json 十六进制" title="Base64、URL、十六进制、JSON">
-					<i class="fa-solid fa-file-lines"></i><span>文本</span>
+				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json 十六进制 md5 sha256 html css js" title="Base64、URL、十六进制、JSON、哈希、HTML、CSS、JS">
+					<i class="fa-solid fa-file-lines"></i><span>文本转换</span>
 					<i class="star fa-solid fa-star" data-fav="text" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-pw" data-cat="text" data-name="随机密码 批量" title="本地生成，一次可出多条">
@@ -64,14 +64,6 @@
 				<button type="button" data-tool="zh" data-cat="text" data-name="简繁转换 繁体 简体" title="系统转换表，繁体接近台湾用字">
 					<i class="fa-solid fa-language"></i><span>简繁转换</span>
 					<i class="star fa-solid fa-star" data-fav="zh" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-md5" data-cat="text" data-name="md5" title="对文字算 MD5">
-					<i class="fa-solid fa-lock"></i><span>MD5</span>
-					<i class="star fa-solid fa-star" data-fav="u-md5" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-sha" data-cat="text" data-name="sha256 sha-256" title="浏览器自带的 SHA-256">
-					<i class="fa-solid fa-lock"></i><span>SHA-256</span>
-					<i class="star fa-solid fa-star" data-fav="u-sha" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-rename" data-cat="text" data-name="批量改名 文件名" title="给一行一个的文件名加序号">
 					<i class="fa-solid fa-i-cursor"></i><span>批量改名</span>
@@ -97,17 +89,9 @@
 					<i class="fa-solid fa-code"></i><span>XML</span>
 					<i class="star fa-solid fa-star" data-fav="u-xml" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-jsonmin" data-cat="text" data-name="json 压缩" title="去掉 JSON 里的空白">
-					<i class="fa-solid fa-file-lines"></i><span>JSON 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-jsonmin" title="收藏"></i>
-				</button>
 				<button type="button" data-tool="u-jesc" data-cat="text" data-name="json 转义" title="JSON 字符串转义和还原">
 					<i class="fa-solid fa-code"></i><span>JSON 转义</span>
 					<i class="star fa-solid fa-star" data-fav="u-jesc" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-html" data-cat="text" data-name="html 编码" title="HTML 实体编码和解码">
-					<i class="fa-solid fa-code"></i><span>HTML 编码</span>
-					<i class="star fa-solid fa-star" data-fav="u-html" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-calc" data-cat="calc" data-name="计算器" title="加减乘除、括号和乘方">
 					<i class="fa-solid fa-calculator"></i><span>计算器</span>
@@ -136,18 +120,6 @@
 				<button type="button" data-tool="u-ico" data-cat="image" data-name="图片 ico 图标" title="把图片做成 ICO，默认 32">
 					<i class="fa-solid fa-icons"></i><span>图片转 ICO</span>
 					<i class="star fa-solid fa-star" data-fav="u-ico" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-hmin" data-cat="text" data-name="html 压缩" title="去掉注释和标签间空白">
-					<i class="fa-solid fa-file-code"></i><span>HTML 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-hmin" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-cmin" data-cat="text" data-name="css 压缩" title="去掉注释和多余空白">
-					<i class="fa-solid fa-brush"></i><span>CSS 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-cmin" title="收藏"></i>
-				</button>
-				<button type="button" data-tool="u-jsmin" data-cat="text" data-name="js 压缩 javascript" title="去掉注释和行尾空白">
-					<i class="fa-solid fa-file-code"></i><span>JS 压缩</span>
-					<i class="star fa-solid fa-star" data-fav="u-jsmin" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="u-sql" data-cat="text" data-name="sql 格式化" title="关键字换行，或压成一行">
 					<i class="fa-solid fa-database"></i><span>SQL</span>
@@ -403,7 +375,7 @@
 
 		<section id="text" class="panel">
 			<p class="kicker">文本</p>
-			<h1>编解码</h1>
+			<h1>文本转换</h1>
 			<label>原文
 				<textarea id="tx-in" rows="8" placeholder="要处理的文字"></textarea>
 			</label>
@@ -423,6 +395,14 @@
 				<button type="button" data-op="collapse"><i class="fa-solid fa-compress"></i>合并空白</button>
 				<button type="button" data-op="dropempty"><i class="fa-solid fa-eraser"></i>去掉空行</button>
 				<button type="button" data-op="json"><i class="fa-solid fa-code"></i>JSON 美化</button>
+				<button type="button" data-op="jsonmin"><i class="fa-solid fa-compress"></i>JSON 压缩</button>
+				<button type="button" data-op="htmlenc"><i class="fa-solid fa-code"></i>HTML 编码</button>
+				<button type="button" data-op="htmldec"><i class="fa-solid fa-rotate-left"></i>HTML 解码</button>
+				<button type="button" data-op="hmin"><i class="fa-solid fa-file-code"></i>HTML 压缩</button>
+				<button type="button" data-op="cmin"><i class="fa-solid fa-brush"></i>CSS 压缩</button>
+				<button type="button" data-op="jsmin"><i class="fa-solid fa-file-code"></i>JS 压缩</button>
+				<button type="button" data-op="md5"><i class="fa-solid fa-lock"></i>MD5</button>
+				<button type="button" data-op="sha"><i class="fa-solid fa-lock"></i>SHA-256</button>
 				<button type="button" data-op="stats"><i class="fa-solid fa-chart-column"></i>统计</button>
 			</div>
 			<div class="row">
