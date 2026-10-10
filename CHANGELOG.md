@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- Tools-page unit conversion (单位换算) takes a unit right in the number box, such as `1米`, `3斤`, or `5kg`: the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind, such as `1米`, `1000毫米`, `100厘米`, `0.001千米`, `39.3700787402英寸`. Picking one unit still gives the single answer.
 - The tools-page image-to-ICO screen can scale the picture with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
 - The tools page adds **GBK码表**, next to **Unicode码表**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank. The Unicode chart card is named Unicode码表.
 - The tools page splits QR / barcode into **二维码生成** and **二维码识别**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate still prints one line of the source text under the image.
@@ -64,7 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The tools page **File transfer** link opens `/files` in a new window. The tools page stays open.
 - The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
-- Test data picks one kind: Chinese name, email, phone, address, company, username, or ID number. Each line is one value.
+- Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, or ID number. Each line is one value.
 - Text-category tools update the result when the text or an option changes. Japanese yomi and the regex tester stay on their buttons, because those can take more than a second.
 - Tools-page unit conversion updates the result as soon as the number or a choice changes.
 - Tools-page text compare, JSON diff, and find-and-replace are removed. Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. Pick a kind, enter a number, then choose the original unit and the new unit. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. An old favorite of one of those unit tools opens 单位换算.
@@ -99,6 +100,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页「单位换算」的数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它：一次按该类型的单位逐行列出，如 `1米`、`1000毫米`、`100厘米`、`0.001千米`、`39.3700787402英寸`。选具体单位时仍是原来的一行结果。
 - 工具页的图片转 ICO 可以选缩放：fit、拉伸、裁剪。默认 fit，等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满并切掉多余部分。预览和下载的图标用同一种。
 - 工具页增加 **GBK码表**，放在 **Unicode码表** 旁边。左边按首字节分页，每页 16 列。点一下复制字符。右边显示 GBK 字节、有区位时的区位码、Unicode 码位和 UTF-8。空位留空。原来的 Unicode 表改名为 Unicode码表。
 - 工具页的「二维码 / 条码」分成 **二维码生成** 和 **二维码识别**。识别可 Ctrl+V 粘贴图片或选择文件，先显示预览再读码。生成仍在图下显示一行原文。
@@ -128,7 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 工具页左下角的 **文件传输** 在新窗口打开 `/files`，工具页保持不动。
 - 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇。csv 是表。html 和 md 是表格，列为单词、详情，详情列占满剩余宽度。
-- 「测试数据」先选类型：中文姓名、邮箱、手机、地址、公司、用户名、身份证。一行一条，不再把多项写在同一行。
+- 「测试数据」先选类型：中文姓名、中文网名、英文网名、邮箱、手机、地址、公司、用户名、身份证。一行一条，不再把多项写在同一行。
 - 文字分类的工具在修改文字或选项时直接出结果。日文注音和正则仍要点按钮，这两项可能超过 1 秒。
 - 工具页「单位换算」在修改数值或选项时立即出结果。
 - 工具页去掉文本比对、JSON 差异和查找替换。长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」：先选类型，再填数值、原单位和新单位。外币用中国银行 2026-10-10 中间价，结果里会注明。原来收藏了其中一项换算时，会打开「单位换算」。

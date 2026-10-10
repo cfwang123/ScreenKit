@@ -1,6 +1,8 @@
 (function(){
 	var KINDS = [
 		["name", "中文姓名"],
+		["cnnick", "中文网名"],
+		["ennick", "英文网名"],
 		["mail", "邮箱"],
 		["phone", "手机"],
 		["addr", "地址"],
@@ -38,8 +40,31 @@
 		if (kind === "corp") return company();
 		if (kind === "user") return username();
 		if (kind === "id") return idno();
+		if (kind === "cnnick") return cnnick();
+		if (kind === "ennick") return ennick();
 		if (kind === "name") return cname();
 		throw new Error("请选择类型");
+	}
+
+	function cnnick(){
+		var a = ["清风", "晚风", "星河", "月光", "南风", "北岛", "青柠", "半夏", "初雪", "听雨", "浅夏", "暖阳", "远山", "白露", "微凉", "山月"];
+		var b = ["不语", "如歌", "未央", "少年", "旅客", "行者", "小筑", "笔记", "无声", "向晚"];
+		var s = a[SK.randint(a.length)];
+		if (SK.randint(3) === 0) s += b[SK.randint(b.length)];
+		return s;
+	}
+
+	function ennick(){
+		var a = ["silver", "night", "blue", "quiet", "wild", "lucky", "misty", "golden", "little", "swift"];
+		var b = ["fox", "river", "moon", "owl", "pine", "cloud", "star", "wolf", "breeze", "maple"];
+		var s = cap(a[SK.randint(a.length)]) + cap(b[SK.randint(b.length)]);
+		if (SK.randint(2) === 0) s = s.toLowerCase();
+		if (SK.randint(3) === 0) s += SK.randint(100);
+		return s;
+	}
+
+	function cap(s){
+		return s.charAt(0).toUpperCase() + s.substring(1);
 	}
 
 	function cname(){
