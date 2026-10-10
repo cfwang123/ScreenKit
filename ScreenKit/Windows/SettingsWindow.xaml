@@ -740,8 +740,8 @@
 				</ScrollViewer>
 			</TabItem>
 
-			<!-- 接口：HTTP API -->
-			<TabItem x:Name="tabsethttp" Header="接口"
+			<!-- web/接口：HTTP API -->
+			<TabItem x:Name="tabsethttp" Header="web/接口"
 			         AutomationProperties.AutomationId="set.tab.http">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>

@@ -2020,7 +2020,7 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	static bool apiok(SockCtx ctx, bool on) {
 		if (on) return true;
-		writejson(ctx, 200, err(810, "该接口未启用（参数设置 → 接口）"));
+		writejson(ctx, 200, err(810, "该接口未启用（参数设置 → web/接口）"));
 		return false;
 	}
 
