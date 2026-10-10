@@ -252,6 +252,64 @@ static class Loc {
 		return true;
 	}
 
+	/// <summary>工具页语言包。请求时生成，内容只有一次赋值 L={键:[各语言]}。</summary>
+	public static string WebScript() {
+		ensure();
+		var codes = new List<string>();
+		var names = new List<string>();
+		foreach (var one in langs) {
+			codes.Add(one.Code);
+			names.Add(one.Name ?? "");
+		}
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+		foreach (var map in maps.Values) {
+			foreach (var key in map.Keys) seen.Add(key);
+		}
+		var keys = new List<string>(seen);
+		keys.Sort(StringComparer.Ordinal);
+		var sb = new StringBuilder();
+		var first = true;
+		sb.Append("L={");
+		appendjs(sb, "_lang", codes, ref first);
+		appendjs(sb, "_name", names, ref first);
+		foreach (var key in keys) {
+			var col = new List<string>(codes.Count);
+			foreach (var code in codes) col.Add(TFor(code, key));
+			appendjs(sb, key, col, ref first);
+		}
+		sb.Append("};");
+		return sb.ToString();
+	}
+
+	static void appendjs(StringBuilder sb, string key, List<string> col, ref bool first) {
+		if (!first) sb.Append(',');
+		first = false;
+		jsstr(sb, key);
+		sb.Append(":[");
+		for (var i = 0; i < col.Count; i++) {
+			if (i > 0) sb.Append(',');
+			jsstr(sb, col[i] ?? "");
+		}
+		sb.Append(']');
+	}
+
+	static void jsstr(StringBuilder sb, string s) {
+		sb.Append('"');
+		for (var i = 0; i < s.Length; i++) {
+			var c = s[i];
+			if (c == '\\' || c == '"') {
+				sb.Append('\\');
+				sb.Append(c);
+			}
+			else if (c == '\n') sb.Append("\\n");
+			else if (c == '\r') sb.Append("\\r");
+			else if (c == '\t') sb.Append("\\t");
+			else if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4"));
+			else sb.Append(c);
+		}
+		sb.Append('"');
+	}
+
 	static string unquote(string val) {
 		if (val.Length < 2 || val[0] != '"' || val[val.Length - 1] != '"') return val;
 		var inner = val.Substring(1, val.Length - 2);

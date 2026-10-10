@@ -13,7 +13,7 @@ namespace ScreenKit;
 /// <list type="bullet">
 /// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
-/// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
+/// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
 /// <item>GET/POST /api/calendar 历法</item>
 /// <item>GET/POST /api/jpyomi 日文注音</item>
@@ -104,6 +104,14 @@ sealed partial class HttpOcrServer : IDisposable {
 			var optNow = getOpts?.Invoke() ?? new OcrOptions();
 			if (path is "/cast") {
 				handlecast(ctx);
+				return;
+			}
+			if (path is "/sk/l.js") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "语言包仅支持 GET"));
+					return;
+				}
+				handlelangjs(ctx);
 				return;
 			}
 			if (path is "/" or "/sk/tools.css" or "/sk/tools.js" or "/sk/fa.css" or "/sk/fa-solid-900.woff2") {
@@ -515,6 +523,21 @@ sealed partial class HttpOcrServer : IDisposable {
 				["ms"] = ms < 800 ? 800 : (ms > 8000 ? 8000 : ms),
 			},
 		});
+	}
+
+	void handlelangjs(SockCtx ctx) {
+		var bytes = Encoding.UTF8.GetBytes(Loc.WebScript());
+		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
+		var res = ctx.Response;
+		res.StatusCode = 200;
+		res.ContentType = "application/javascript; charset=utf-8";
+		res.ContentLength64 = bytes.Length;
+		res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
+		res.Headers["Access-Control-Allow-Origin"] = "*";
+		try {
+			if (!head) res.OutputStream.Write(bytes, 0, bytes.Length);
+		}
+		catch { }
 	}
 
 	void handletoolspage(SockCtx ctx, string path) {
@@ -2037,7 +2060,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	static JsonArray apilist(OcrOptions o) {
 		var a = new JsonArray {
 			"GET  /  本机工具页",
-			"GET  /sk/tools.css · /sk/tools.js · /sk/fa.css · /sk/fa-solid-900.woff2",
+			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
 			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",
 			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
