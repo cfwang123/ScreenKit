@@ -25,7 +25,7 @@
 			<button type="button" data-cat="time" data-title="历法"><i class="fa-solid fa-calendar-days"></i>历法</button>
 			<button type="button" data-cat="image" data-title="图像"><i class="fa-solid fa-image"></i>图像</button>
 		</nav>
-		<a class="files" href="/files"><i class="fa-solid fa-folder"></i>文件传输</a>
+		<a class="files" href="/files" target="_blank" rel="noopener"><i class="fa-solid fa-folder"></i>文件传输</a>
 	</aside>
 	<main>
 		<button type="button" id="back" class="back" data-tool="home" hidden><i class="fa-solid fa-arrow-left"></i>返回</button>
@@ -49,9 +49,13 @@
 					<i class="fa-solid fa-microphone"></i><span>语音识别</span>
 					<i class="star fa-solid fa-star" data-fav="asr" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="qr" data-cat="image" data-name="二维码 条码" title="生成 PNG，或从图片里读出来">
-					<i class="fa-solid fa-qrcode"></i><span>二维码 / 条码</span>
+				<button type="button" data-tool="qr" data-cat="image" data-name="二维码 条码 生成" title="生成 PNG，图下显示原文">
+					<i class="fa-solid fa-qrcode"></i><span>二维码生成</span>
 					<i class="star fa-solid fa-star" data-fav="qr" title="收藏"></i>
+				</button>
+				<button type="button" data-tool="qrs" data-cat="image" data-name="二维码 条码 识别" title="从图片读出内容，可粘贴">
+					<i class="fa-solid fa-barcode"></i><span>二维码识别</span>
+					<i class="star fa-solid fa-star" data-fav="qrs" title="收藏"></i>
 				</button>
 				<button type="button" data-tool="text" data-cat="text" data-name="文本转换 base64 url json xml sql 十六进制 md5 sha256 html css js 转义 简繁转换 繁体 简体 日文注音 读音 假名 变量名 camel snake crontab cron token user-agent ua 解析" title="Base64、URL、十六进制、JSON、XML、SQL、哈希、HTML、CSS、JS、简繁、日文注音、变量名、Crontab、Token、User-Agent">
 					<i class="fa-solid fa-file-lines"></i><span>文本转换</span>
@@ -446,7 +450,7 @@
 
 		<section id="qr" class="panel">
 			<p class="kicker">ZXing</p>
-			<h1>二维码 / 条码</h1>
+			<h1>二维码生成</h1>
 			<div class="row">
 				<label>类型
 					<select id="qr-fmt">
@@ -478,15 +482,22 @@
 				<img id="qr-img" alt="" hidden/>
 				<p id="qr-cap" class="qrcap" hidden></p>
 			</div>
+		</section>
+
+		<section id="qrs" class="panel">
+			<p class="kicker">ZXing</p>
+			<h1>二维码识别</h1>
 			<div class="row">
-				<label>识别图片
-					<input id="qr-file" type="file" accept="image/*"/>
+				<label>图片
+					<input id="qrs-file" type="file" accept="image/*"/>
 				</label>
-				<button type="button" id="qr-scan" class="primary"><i class="fa-solid fa-eye"></i>识别</button>
-				<span id="qr-smsg" class="msg"></span>
+				<button type="button" id="qr-scan" class="primary"><i class="fa-solid fa-barcode"></i>识别</button>
+				<span id="qrs-msg" class="msg"></span>
 			</div>
-			<label>识别结果
-				<textarea id="qr-out" rows="6" readonly></textarea>
+			<p class="hint">在此页按 Ctrl+V 可粘贴剪贴板里的图片。</p>
+			<img id="qrs-img" alt="预览" hidden/>
+			<label>结果
+				<textarea id="qrs-out" rows="6" readonly></textarea>
 			</label>
 		</section>
 	</main>
