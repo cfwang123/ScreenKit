@@ -31,6 +31,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+### English
+
+#### Changed
+
+- Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
+
+### 中文
+
+#### 变更
+
+- 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
+
 ## v1.0.17 (2026-10-09 ~ 10-10)
 
 ### English

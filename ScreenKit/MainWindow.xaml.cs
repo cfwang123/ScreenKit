@@ -3916,7 +3916,16 @@ public partial class MainWindow : Window {
 	void openwintop(bool fromTray = false) =>
 		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop", fromTray);
 
-	void opencast() => CastHost.ShowSet();
+	void opencast() {
+		if (opt != null && !opt.TabCastVisible) {
+			opt.TabCastVisible = true;
+			applymaintabvisibility();
+			try { AppConfig.Save(opt); } catch { }
+		}
+		if (tray != null) tray.showwindow();
+		else showmainontop();
+		selectmaintab(tabcast);
+	}
 
 	void initcast() {
 		try {
