@@ -127,6 +127,29 @@ static class DictDb {
 		lock (dblock) closeunlocked();
 	}
 
+	/// <summary>关掉连接并丢掉内存里的索引。下次查询再打开。</summary>
+	public static void Release() {
+		lock (dblock) {
+			closeunlocked();
+			clearindex();
+		}
+	}
+
+	/// <summary>连接还在，或索引还在内存里。大小是库文件。</summary>
+	public static bool TryMem(out string name, out long bytes) {
+		lock (dblock) {
+			name = string.IsNullOrEmpty(dbpath) ? "dict2.db" : Path.GetFileName(dbpath);
+			bytes = loadedlen;
+			return conn != null || keys != null;
+		}
+	}
+
+	public static int MemSelfTest() {
+		Release();
+		if (TryMem(out _, out _)) return 1;
+		return 0;
+	}
+
 	/// <summary>已打开则记下使用时间。空闲关掉之后按上次路径再打开。</summary>
 	static bool readyunlocked() {
 		if (conn != null) {

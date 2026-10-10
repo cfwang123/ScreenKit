@@ -102,12 +102,43 @@ static class QrMake {
 		};
 	}
 
+	/// <summary>底部连续近白的行数。静区算在里面，墨迹行不算。</summary>
+	internal static int QuietBottom(BitmapSource bmp) {
+		if (bmp == null) return 0;
+		var w = bmp.PixelWidth;
+		var h = bmp.PixelHeight;
+		if (w <= 0 || h <= 0) return 0;
+		BitmapSource src = bmp;
+		if (bmp.Format != PixelFormats.Bgra32)
+			src = new FormatConvertedBitmap(bmp, PixelFormats.Bgra32, null, 0);
+		var stride = w * 4;
+		var buf = new byte[stride * h];
+		src.CopyPixels(buf, stride, 0);
+		var rows = 0;
+		for (var y = h - 1; y >= 0; y--) {
+			var white = true;
+			var row = y * stride;
+			for (var x = 0; x < w; x++) {
+				var i = row + x * 4;
+				if (buf[i] < 250 || buf[i + 1] < 250 || buf[i + 2] < 250) {
+					white = false;
+					break;
+				}
+			}
+			if (!white) break;
+			rows++;
+		}
+		return rows;
+	}
+
 	static BitmapSource withcaption(BitmapSource bmp, string text) {
 		var srcW = Math.Max(1, bmp.PixelWidth);
 		var srcH = Math.Max(1, bmp.PixelHeight);
+		var quiet = QuietBottom(bmp);
+		var contentH = Math.Max(1, srcH - quiet);
 		var zoom = srcW < 360 ? (int)Math.Ceiling(360.0 / srcW) : 1;
 		var w = srcW * zoom;
-		var h = srcH * zoom;
+		var drawH = contentH * zoom;
 		var line = (text ?? "").Replace("\r", " ").Replace("\n", " ");
 		if (line.Length > 120) line = line.Substring(0, 119) + "…";
 		var dpi = 96.0;
@@ -123,23 +154,80 @@ static class QrMake {
 		ft.MaxLineCount = 1;
 		ft.Trimming = TextTrimming.CharacterEllipsis;
 		ft.TextAlignment = TextAlignment.Center;
-		var gap = 4.0;
+		// 裁掉底部静区后，墨迹到文字墨迹的间隔是半行字高。行框顶部的空白不算间隔。
+		var half = ft.Height / 2.0;
 		var bot = 8.0;
-		var capH = Math.Ceiling(ft.Height) + gap + bot;
-		var totalH = (int)Math.Ceiling(h + capH);
+		var textY = drawH + half - textpad(ft, w, dpi);
+		var totalH = (int)Math.Ceiling(Math.Max(drawH, textY + ft.Height) + bot);
+		BitmapSource src = bmp;
+		if (contentH < srcH) {
+			var crop = new CroppedBitmap(bmp, new Int32Rect(0, 0, srcW, contentH));
+			if (crop.CanFreeze) crop.Freeze();
+			src = crop;
+		}
 		var dv = new DrawingVisual();
 		RenderOptions.SetBitmapScalingMode(dv, BitmapScalingMode.NearestNeighbor);
 		TextOptions.SetTextFormattingMode(dv, TextFormattingMode.Display);
 		TextOptions.SetTextRenderingMode(dv, TextRenderingMode.ClearType);
 		using (var dc = dv.RenderOpen()) {
 			dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, w, totalH));
-			dc.DrawImage(bmp, new Rect(0, 0, w, h));
-			dc.DrawText(ft, new Point(0, h + gap));
+			dc.DrawImage(src, new Rect(0, 0, w, drawH));
+			dc.DrawText(ft, new Point(0, textY));
 		}
 		var rtb = new RenderTargetBitmap(w, totalH, dpi, dpi, PixelFormats.Pbgra32);
 		rtb.Render(dv);
 		rtb.Freeze();
 		return rtb;
+	}
+
+	/// <summary>图下文字的上边距：半行字高再减去行框顶部空白，使墨迹间隔为半行。</summary>
+	internal static double CaptionGap(string text, double em, double width) {
+		if (em < 1) em = 16;
+		if (width < 1) width = 1;
+		var line = string.IsNullOrEmpty(text) ? "字" : text;
+		var ft = new FormattedText(
+			line,
+			CultureInfo.CurrentCulture,
+			FlowDirection.LeftToRight,
+			new Typeface("Microsoft YaHei UI"),
+			em,
+			Brushes.Black, 96);
+		ft.MaxTextWidth = width;
+		ft.MaxLineCount = 1;
+		ft.Trimming = TextTrimming.CharacterEllipsis;
+		ft.TextAlignment = TextAlignment.Center;
+		return ft.Height / 2.0 - textpad(ft, Math.Max(1, (int)Math.Ceiling(width)), 96);
+	}
+
+	static int textpad(FormattedText ft, int w, double dpi) {
+		var th = Math.Max(1, (int)Math.Ceiling(ft.Height));
+		var dv = new DrawingVisual();
+		TextOptions.SetTextFormattingMode(dv, TextFormattingMode.Display);
+		TextOptions.SetTextRenderingMode(dv, TextRenderingMode.ClearType);
+		using (var dc = dv.RenderOpen()) {
+			dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, w, th));
+			dc.DrawText(ft, new Point(0, 0));
+		}
+		var rtb = new RenderTargetBitmap(w, th, dpi, dpi, PixelFormats.Pbgra32);
+		rtb.Render(dv);
+		var stride = w * 4;
+		var buf = new byte[stride * th];
+		rtb.CopyPixels(buf, stride, 0);
+		var pad = 0;
+		for (var y = 0; y < th; y++) {
+			var white = true;
+			var row = y * stride;
+			for (var x = 0; x < w; x++) {
+				var i = row + x * 4;
+				if (buf[i] < 250 || buf[i + 1] < 250 || buf[i + 2] < 250) {
+					white = false;
+					break;
+				}
+			}
+			if (!white) break;
+			pad++;
+		}
+		return pad;
 	}
 
 	static BitmapSource tobitmap(ZXingCpp.Image img) {

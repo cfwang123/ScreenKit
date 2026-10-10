@@ -9,8 +9,20 @@
 		var line = qrcaptext(text);
 		cap.textContent = line;
 		cap.title = line;
-		cap.hidden = !line;
-		if (!line) cap.style.marginTop = "";
+		cap.hidden = !line || !qrcapon();
+		if (cap.hidden) cap.style.marginTop = "";
+	}
+
+	function qrcapon(){
+		var box = SK.$("qr-capon");
+		return !box || box.checked;
+	}
+
+	function onqrcap(){
+		var img = SK.$("qr-img");
+		if (!img || img.hidden) return;
+		setqrcap(SK.$("qr-in").value);
+		if (!SK.$("qr-cap").hidden) requestAnimationFrame(qrgap);
 	}
 
 	function qrgap(){
@@ -143,6 +155,7 @@
 	}
 
 	SK.$("qrs-file").onchange = onqrsfile;
+	SK.$("qr-capon").onchange = onqrcap;
 	document.addEventListener("paste", onqrpaste);
 
 	SK.qrcaptext = qrcaptext;

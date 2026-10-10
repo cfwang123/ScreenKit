@@ -31,6 +31,9 @@ public partial class QrMakeWindow : Window {
 		rutf8.Checked += (_, _) => queue();
 		rgbk.Checked += (_, _) => queue();
 		rhex.Checked += (_, _) => queue();
+		ccap.Checked += (_, _) => applycap();
+		ccap.Unchecked += (_, _) => applycap();
+		lbcaption.SizeChanged += (_, _) => fitgap();
 		bcopy.Click += (_, _) => copy();
 		bsave.Click += (_, _) => save();
 		bclose.Click += (_, _) => Close();
@@ -45,6 +48,7 @@ public partial class QrMakeWindow : Window {
 		rhex.Content = Loc.T("qrmake.hex");
 		rhex.ToolTip = Loc.T("qrmake.hex.tip");
 		lbtext.Text = Loc.T("qrmake.text");
+		ccap.Content = Loc.T("qrmake.cap");
 		lbempty.Text = Loc.T("qrmake.empty");
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("qrmake.copy"));
 		ToolBtnUi.Set(bsave, ToolBtnUi.Save, Loc.T("qrmake.save"));
@@ -72,8 +76,7 @@ public partial class QrMakeWindow : Window {
 		if (text.Trim().Length == 0) {
 			last = null;
 			lastText = "";
-			iprev.Source = null;
-			lbcaption.Text = "";
+			applycap();
 			pprev.Visibility = Visibility.Collapsed;
 			lbempty.Visibility = Visibility.Visible;
 			lbstat.Text = "";
@@ -96,8 +99,7 @@ public partial class QrMakeWindow : Window {
 			if (n != seq) return;
 			last = bmp;
 			lastText = text.Replace("\r", " ").Replace("\n", " ");
-			iprev.Source = bmp;
-			lbcaption.Text = lastText;
+			applycap();
 			pprev.Visibility = Visibility.Visible;
 			lbempty.Visibility = Visibility.Collapsed;
 			lbstat.Text = $"{bmp.PixelWidth} × {bmp.PixelHeight}  ·  {fmt}  ·  {enc}";
@@ -106,17 +108,58 @@ public partial class QrMakeWindow : Window {
 		catch (Exception ex) {
 			if (n != seq) return;
 			last = null;
-			iprev.Source = null;
-			lbcaption.Text = "";
+			lastText = "";
+			applycap();
 			pprev.Visibility = Visibility.Collapsed;
 			lbempty.Visibility = Visibility.Visible;
 			lbstat.Text = Loc.T("qrmake.fail", ex.Message);
 		}
 	}
 
+	void applycap() {
+		if (last == null) {
+			iprev.Source = null;
+			lbcaption.Text = "";
+			lbcaption.Visibility = Visibility.Collapsed;
+			lbcaption.Margin = new Thickness(0);
+			return;
+		}
+		var on = ccap.IsChecked == true && lastText.Length > 0;
+		if (!on) {
+			iprev.Source = last;
+			lbcaption.Text = "";
+			lbcaption.Visibility = Visibility.Collapsed;
+			lbcaption.Margin = new Thickness(0);
+			return;
+		}
+		iprev.Source = cropbottom(last);
+		lbcaption.Text = lastText;
+		lbcaption.Visibility = Visibility.Visible;
+		fitgap();
+	}
+
+	static BitmapSource cropbottom(BitmapSource bmp) {
+		var quiet = QrMake.QuietBottom(bmp);
+		var h = bmp.PixelHeight - quiet;
+		if (quiet <= 0 || h <= 0) return bmp;
+		var crop = new CroppedBitmap(bmp, new Int32Rect(0, 0, bmp.PixelWidth, h));
+		if (crop.CanFreeze) crop.Freeze();
+		return crop;
+	}
+
+	void fitgap() {
+		if (lbcaption.Visibility != Visibility.Visible) return;
+		var width = lbcaption.ActualWidth;
+		if (width < 1) width = pprev.ActualWidth > 1 ? pprev.ActualWidth : 320;
+		var top = QrMake.CaptionGap(lbcaption.Text, lbcaption.FontSize, width);
+		if (Math.Abs(lbcaption.Margin.Top - top) < 0.25) return;
+		lbcaption.Margin = new Thickness(0, top, 0, 0);
+	}
+
 	BitmapSource exportimg() {
 		if (last == null) return null;
-		return QrMake.Encode(etext.Text ?? "", fmtid(), encid(), 8, true);
+		var cap = ccap.IsChecked == true;
+		return QrMake.Encode(etext.Text ?? "", fmtid(), encid(), 8, cap);
 	}
 
 	void copy() {

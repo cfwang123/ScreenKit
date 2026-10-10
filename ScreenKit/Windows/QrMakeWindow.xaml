@@ -40,7 +40,12 @@
 				             AutomationProperties.AutomationId="qrmake.hex"/>
 			</StackPanel>
 		</Grid>
-		<TextBlock x:Name="lbtext" Grid.Row="1" Text="内容" FontWeight="SemiBold" Margin="0,0,0,6"/>
+		<DockPanel Grid.Row="1" Margin="0,0,0,6" LastChildFill="True">
+			<CheckBox x:Name="ccap" DockPanel.Dock="Right" Content="带文字" IsChecked="True"
+			          VerticalAlignment="Center"
+			          AutomationProperties.AutomationId="qrmake.cap"/>
+			<TextBlock x:Name="lbtext" Text="内容" FontWeight="SemiBold" VerticalAlignment="Center"/>
+		</DockPanel>
 		<TextBox x:Name="etext" Grid.Row="2" AcceptsReturn="True" TextWrapping="Wrap"
 		         VerticalScrollBarVisibility="Auto" Padding="8"
 		         BorderBrush="{StaticResource BorderSoft}"
@@ -55,7 +60,7 @@
 					<TextBlock x:Name="lbcaption" DockPanel.Dock="Bottom"
 					           TextAlignment="Center" FontSize="16"
 					           FontFamily="Microsoft YaHei UI"
-					           Margin="0,8,0,0" TextTrimming="CharacterEllipsis"
+					           Margin="0" TextTrimming="CharacterEllipsis"
 					           TextWrapping="NoWrap"
 					           SnapsToDevicePixels="True"
 					           TextOptions.TextFormattingMode="Display"

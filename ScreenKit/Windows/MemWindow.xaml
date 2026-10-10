@@ -53,6 +53,8 @@
 			        Width="88" Margin="0,0,8,0" AutomationProperties.AutomationId="mem.unload"/>
 			<Button x:Name="brefresh" DockPanel.Dock="Right" Content="刷新" Style="{StaticResource ToolBtn}"
 			        Width="88" Margin="0,0,8,0" AutomationProperties.AutomationId="mem.refresh"/>
+			<Button x:Name="bforce" DockPanel.Dock="Right" Content="强制回收" Style="{StaticResource ToolBtn}"
+			        Width="108" Margin="0,0,8,0" AutomationProperties.AutomationId="mem.force"/>
 		</DockPanel>
 	</Grid>
 </Window>

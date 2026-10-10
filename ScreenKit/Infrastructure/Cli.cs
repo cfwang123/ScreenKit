@@ -2934,6 +2934,13 @@ static class Cli {
 				Err("FAIL: 图下应有原文，高度应大于宽度");
 				bad++;
 			}
+			var bare = QrMake.Encode("你好 ScreenKit", "qr", "utf8", 6, false);
+			var gap = captiongap(bare, utf);
+			Out($"caption gap {gap}px");
+			if (gap < 6 || gap > 40) {
+				Err($"FAIL: 图与文字间隔应约为半行，实测 {gap}");
+				bad++;
+			}
 			var nocap = QrMake.Encode("hello", "qr", "utf8", 6, false);
 			if (nocap.PixelHeight >= utf.PixelHeight) {
 				Err("FAIL: 无标题图不应更高");
@@ -2960,6 +2967,37 @@ static class Cli {
 		}
 		Out(bad == 0 ? "=== OK：二维码生成 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+
+		static int captiongap(BitmapSource bare, BitmapSource cap) {
+			if (bare == null || cap == null) return -1;
+			var quiet = QrMake.QuietBottom(bare);
+			var zoom = bare.PixelWidth < 360 ? (int)Math.Ceiling(360.0 / bare.PixelWidth) : 1;
+			var drawH = Math.Max(1, bare.PixelHeight - quiet) * zoom;
+			BitmapSource src = cap;
+			if (cap.Format != PixelFormats.Bgra32)
+				src = new FormatConvertedBitmap(cap, PixelFormats.Bgra32, null, 0);
+			var w = src.PixelWidth;
+			var h = src.PixelHeight;
+			if (drawH >= h) return -1;
+			var stride = w * 4;
+			var buf = new byte[stride * h];
+			src.CopyPixels(buf, stride, 0);
+			var gap = 0;
+			for (var y = drawH; y < h; y++) {
+				var white = true;
+				var row = y * stride;
+				for (var x = 0; x < w; x++) {
+					var i = row + x * 4;
+					if (buf[i] < 250 || buf[i + 1] < 250 || buf[i + 2] < 250) {
+						white = false;
+						break;
+					}
+				}
+				if (!white) break;
+				gap++;
+			}
+			return gap;
+		}
 	}
 
 	static int testrename() {
@@ -3571,12 +3609,16 @@ static class Cli {
 		Out("=== 内存占用 --test-mem ===");
 		var code = MemUsage.SelfTest();
 		var use = ProcUse.SelfTest();
+		var dict = DictDb.MemSelfTest();
 		var p = MemUsage.Read();
-		Out($"ws={p.WorkingSet} priv={p.PrivateBytes} gc={p.GcBytes} self={code}");
+		Out($"ws={p.WorkingSet} priv={p.PrivateBytes} gc={p.GcBytes} self={code} dict={dict}");
 		Out($"commit={ProcUse.LastCommit} cpu={ProcUse.LastCpu:0.0} gpu={ProcUse.LastGpu:0.0} use={use}");
 		if (code != 0) Err("FAIL self=" + code);
 		if (use != 0) Err("FAIL use=" + use);
-		return code != 0 ? code : use;
+		if (dict != 0) Err("FAIL dict=" + dict);
+		if (code != 0) return code;
+		if (use != 0) return use;
+		return dict;
 	}
 
 	static int testortlazy() {

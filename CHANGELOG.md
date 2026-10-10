@@ -37,9 +37,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - `ScreenKit --test-mem-load` starts one process per feature (baseline, OCR, translation, offline ASR, streaming ASR, TTS, dictionary, face) and prints commit size, private working set, and working set after that feature loads. The default device is CPU. ASR and TTS load the smallest installed model. `winocr` runs Windows OCR on a tiny image and does not load an ONNX pack.
+- **Help → Memory** lists the open dictionary database and can unload it, which closes the database and drops the in-memory index. **Force GC** runs a full collection without unloading a row.
 
 #### Changed
 
+- The password generator, on the desktop and the tools page, starts with lowercase letters and digits, length 6, and 10 passwords. Uppercase, symbols, skip ambiguous, one of each class, and a typed character set start off. The desktop still keeps the last settings after you change them.
+- QR / barcode generation, in the window and on the web tools page, can show or hide the line of text under the code. It is on by default. In the window, and in a copied or saved image, the gap from the code to that line is half a line of text.
 - The tools page adds All under Favorites. All is selected by default and lists favorites plus every category. Choosing a category lists only that category.
 - The Unicode and GBK code charts list the total number of characters. Each group lists its count, its first code, and its last code. Unassigned Unicode code points and empty GBK slots are not counted. The group list fills the tool card. The card itself does not scroll. The total stays on top of the list and covers the groups that scroll under it.
 - Settings → General feature switches hide the page, disable the feature (hotkeys, tray, and its HTTP routes), and release loaded models. LLM log only hides its page. The HTTP page only hides that entry. File sync and Screencast also stop those services.
@@ -54,9 +57,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - `ScreenKit --test-mem-load` 为每个功能单独冷启动（基线、识别、翻译、离线语音识别、流式语音识别、语音合成、词典、人脸），打印加载后的提交大小、专用工作集和工作集。默认 CPU。语音识别和语音合成加载已安装模型里最小的一份。`winocr` 用一张小图走 Windows 自带识别，不加载 ONNX 模型包。
+- **帮助 → 内存占用**列出已打开的词典数据库，并可卸载：关掉库并丢掉内存里的索引。**强制回收**只做完整回收，不卸载某一行。
 
 #### 变更
 
+- 桌面和工具页的密码生成默认只用小写字母和数字，长度 6，一次 10 条。大写、符号、去掉易混字符、每类至少一个、指定字符集默认都不开。桌面改过之后仍记住上次设置。
+- 二维码 / 条码生成（窗口和 web 工具）可以开关图下的一行原文，默认开。窗口里，以及复制或保存的图片上，码和这行字的间隔是半行字高。
 - 工具页在收藏下增加「全部」，默认选中。全部列出收藏和每个分类。选中某个分类时只列出该分类。
 - Unicode 码表和 GBK 码表列出总字数。每个分组列出字数、起始码和结束码。未分配的 Unicode 码位和 GBK 空位不计入。分组列表铺满工具卡片，卡片本身不再滚动。总字数这一行吸在列表顶上，滚上去的分组不会露在它上面。
 - 参数设置 → 常规的功能开关关闭后隐藏页面，停用该功能（热键、托盘和对应 HTTP），并释放已加载的模型。LLM 日志只隐藏页面。HTTP 接口页只隐藏入口。文件同步和投屏同时停用对应服务。

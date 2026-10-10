@@ -26,6 +26,7 @@ public partial class MemWindow : Window {
 		brefresh.Click += (_, _) => fill(true);
 		bclose.Click += (_, _) => Close();
 		bunload.Click += (_, _) => unloadsel();
+		bforce.Click += (_, _) => forcegc();
 		lv.MouseDoubleClick += (_, _) => {
 			if (lv.SelectedItem != null) unloadsel();
 		};
@@ -51,6 +52,7 @@ public partial class MemWindow : Window {
 		coldev.Header = Loc.T("mem.col.device");
 		colbytes.Header = Loc.T("mem.col.bytes");
 		bunload.Content = Loc.T("mem.unload");
+		bforce.Content = Loc.T("mem.force");
 		brefresh.Content = Loc.T("mem.refresh");
 		bclose.Content = Loc.T("mem.close");
 	}
@@ -135,6 +137,8 @@ public partial class MemWindow : Window {
 		if (row == null || string.IsNullOrEmpty(row.Id)) return;
 		unloading = true;
 		bunload.IsEnabled = false;
+		bforce.IsEnabled = false;
+		brefresh.IsEnabled = false;
 		lbsum.Text = Loc.T("mem.working");
 		markmsg();
 		var id = row.Id;
@@ -150,6 +154,8 @@ public partial class MemWindow : Window {
 		Task.Run(() => unload(id)).ContinueWith(t => {
 			Dispatcher.BeginInvoke(new Action(() => {
 				unloading = false;
+				bforce.IsEnabled = true;
+				brefresh.IsEnabled = true;
 				string msg;
 				if (t.IsFaulted)
 					msg = t.Exception?.GetBaseException().Message ?? "";
@@ -169,6 +175,55 @@ public partial class MemWindow : Window {
 						FeatureInstaller.FormatBytes(beforePriv), FeatureInstaller.FormatBytes(afterPriv));
 					if (t.Result == "resident")
 						msg = msg + Loc.T("mem.ort.resident");
+				}
+				fill(true);
+				bunload.IsEnabled = lv.SelectedItem is MemHold;
+				lbsum.Text = msg;
+				markmsg();
+			}));
+		});
+	}
+
+	void forcegc() {
+		if (unloading) {
+			lbsum.Text = Loc.T("mem.force.working");
+			markmsg();
+			return;
+		}
+		unloading = true;
+		bunload.IsEnabled = false;
+		bforce.IsEnabled = false;
+		brefresh.IsEnabled = false;
+		lbsum.Text = Loc.T("mem.force.working");
+		markmsg();
+		var beforeWs = 0L;
+		var beforePriv = 0L;
+		try {
+			var snap = MemUsage.Read();
+			beforeWs = snap.WorkingSet;
+			beforePriv = snap.PrivateBytes;
+		}
+		catch { }
+		Task.Run(() => MemUsage.Trim()).ContinueWith(t => {
+			Dispatcher.BeginInvoke(new Action(() => {
+				unloading = false;
+				bforce.IsEnabled = true;
+				brefresh.IsEnabled = true;
+				string msg;
+				if (t.IsFaulted)
+					msg = t.Exception?.GetBaseException().Message ?? "";
+				else {
+					var afterWs = 0L;
+					var afterPriv = 0L;
+					try {
+						var snap = MemUsage.Read();
+						afterWs = snap.WorkingSet;
+						afterPriv = snap.PrivateBytes;
+					}
+					catch { }
+					msg = Loc.T("mem.force.done",
+						FeatureInstaller.FormatBytes(beforeWs), FeatureInstaller.FormatBytes(afterWs),
+						FeatureInstaller.FormatBytes(beforePriv), FeatureInstaller.FormatBytes(afterPriv));
 				}
 				fill(true);
 				bunload.IsEnabled = lv.SelectedItem is MemHold;

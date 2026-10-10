@@ -89,6 +89,7 @@ public partial class MainWindow {
 		var models = 0;
 		long sum = 0;
 		foreach (var it in snap.Items) {
+			if (it.Id == "dictdb") continue;
 			sum += it.Bytes;
 			if (it.Id != "ort") models++;
 		}
@@ -180,6 +181,11 @@ public partial class MainWindow {
 		try {
 			if (DictTts.TryOnnxMem(out var name, out var dev, out var bytes))
 				items.Add(hold("dicttts", "dict", name, dev, bytes));
+		}
+		catch { }
+		try {
+			if (DictDb.TryMem(out var name, out var bytes))
+				items.Add(hold("dictdb", "dictdb", name, "db", bytes));
 		}
 		catch { }
 		try {
@@ -277,6 +283,8 @@ public partial class MainWindow {
 			try { sherpaTts?.UnloadSafe(); } catch { }
 		else if (id == "dicttts")
 			DictTts.UnloadOnnx();
+		else if (id == "dictdb")
+			DictDb.Release();
 		else if (id == "face") {
 			if (facePipe != null && !facePipe.TryRelease()) return "busy";
 			facePipe = null;
