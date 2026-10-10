@@ -68,7 +68,7 @@ public partial class MainWindow {
 	}
 
 	string statusbarhttp() {
-		var port = httpServer != null && httpServer.Port > 0 ? httpServer.Port : SendFileServer.FileHttpPort(opt);
+		var port = SendFileServer.FileHttpPort(opt);
 		if (httpServer != null && httpServer.IsRunning) {
 			var host = httpServer.LanAll ? "0.0.0.0" : "127.0.0.1";
 			return Loc.T("stbar.http", host, port);

@@ -40,7 +40,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - The tools page left categories and the search box now hide cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
-- HTTP no longer binds the port exclusively. A forced kill during a rebuild could leave that listen on a dead process, and the next start failed with a socket-permission error. If the chosen port is still held, HTTP listens on the next free port and the status bar shows that port. The saved port is unchanged.
 
 #### Changed
 
@@ -55,7 +54,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 工具页左侧分类和搜索会藏起不匹配的卡片。样式里的 `display` 盖过了 `hidden`，所以列表看起来一直不变。返回和工具内的收藏按钮在首页同样不再露出来。
-- HTTP 不再独占绑定端口。编译时强制结束进程会把监听留在已退出的进程上，下次启动就报套接字权限错误。设定端口仍被占时，改听后面的空端口，状态栏显示实际端口，不改已保存的端口。
 
 #### 变更
 

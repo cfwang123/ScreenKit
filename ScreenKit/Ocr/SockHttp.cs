@@ -2,38 +2,10 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading;
 
 namespace ScreenKit;
-
-/// <summary>TCP 监听。不用独占绑定：taskkill 后独占套接字会留在已退出的进程上，再绑就是 10013。</summary>
-static class TcpListen {
-	const uint HANDLE_FLAG_INHERIT = 1;
-
-	[DllImport("kernel32.dll", SetLastError = true)]
-	static extern bool SetHandleInformation(IntPtr hObject, uint dwMask, uint dwFlags);
-
-	public static TcpListener Open(IPAddress addr, int port, bool dual) {
-		var l = new TcpListener(addr, port);
-		try {
-			l.Server.ExclusiveAddressUse = false;
-			l.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-			if (dual)
-				l.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
-			try { SetHandleInformation(l.Server.Handle, HANDLE_FLAG_INHERIT, 0); } catch { }
-			l.Start();
-			return l;
-		}
-		catch {
-			try { l.Stop(); } catch { }
-			try { l.Server.Close(); } catch { }
-			throw;
-		}
-	}
-}
 
 /// <summary>
 /// 自管 HTTP/1.1。监听用普通 TCP 套接字，不经过 HTTP.sys，局域网不需要管理员和 URL ACL。
@@ -42,101 +14,56 @@ sealed class SockHttpServer {
 	readonly object gate = new();
 	TcpListener tcp;
 	volatile bool running;
-	volatile ManualResetEvent probe;
 	Action<SockCtx> onrequest;
-	public int Port { get; private set; }
 
 	public void Start(string host, int port, Action<SockCtx> onRequest) {
 		if (onRequest == null) throw new ArgumentNullException(nameof(onRequest));
 		lock (gate) {
-			stopcore();
+			Stop();
 			onrequest = onRequest;
-			Exception last = null;
-			for (var i = 0; i < 16; i++) {
-				var p = port + i;
-				if (p > 65535) break;
-				var tries = i == 0 ? 4 : 1;
-				for (var n = 0; n < tries; n++) {
-					try {
-						if (take(host, p)) return;
-						last = new IOException($"端口 {p} 已绑定但连接进了残留监听");
-						break;
-					}
-					catch (Exception ex) when (busy(ex)) {
-						last = ex;
-					}
-					if (n + 1 < tries) Thread.Sleep(80);
-				}
-			}
-			Port = 0;
-			throw last ?? new IOException($"端口 {port} 无法监听");
+			tcp = bind(host, port);
+			running = true;
+			var l = tcp;
+			_ = Task.Run(() => acceptloop(l));
 		}
 	}
 
 	public void Stop() {
-		lock (gate) stopcore();
-	}
-
-	bool take(string host, int port) {
-		var l = bind(host, port);
-		var ev = new ManualResetEvent(false);
-		tcp = l;
-		Port = port;
-		probe = ev;
-		running = true;
-		_ = Task.Run(() => acceptloop(l));
-		var own = false;
-		try {
-			using var c = new TcpClient();
-			var ar = c.BeginConnect(IPAddress.Loopback, port, null, null);
-			if (!ar.AsyncWaitHandle.WaitOne(500)) {
-				releaseprobe(ev);
-				stopcore();
-				return false;
-			}
-			c.EndConnect(ar);
-			own = ev.WaitOne(500);
+		TcpListener l;
+		lock (gate) {
+			running = false;
+			l = tcp;
+			tcp = null;
 		}
-		catch { own = false; }
-		releaseprobe(ev);
-		if (own) return true;
-		stopcore();
-		return false;
-	}
-
-	void releaseprobe(ManualResetEvent ev) {
-		if (probe == ev) probe = null;
-		try { ev?.Dispose(); } catch { }
-	}
-
-	void stopcore() {
-		running = false;
-		probe = null;
-		Port = 0;
-		var l = tcp;
-		tcp = null;
 		if (l == null) return;
 		try { l.Stop(); } catch { }
 		try { l.Server.Close(); } catch { }
 	}
 
-	static bool busy(Exception ex) {
-		for (var e = ex; e != null; e = e.InnerException) {
-			if (e is SocketException se && (se.SocketErrorCode == SocketError.AddressAlreadyInUse
-				|| se.SocketErrorCode == SocketError.AccessDenied))
-				return true;
-		}
-		return false;
-	}
-
 	static TcpListener bind(string host, int port) {
 		var lan = host == "+" || host == "*" || host == "0.0.0.0";
-		if (!lan) return TcpListen.Open(IPAddress.Loopback, port, false);
-		try {
-			return TcpListen.Open(IPAddress.IPv6Any, port, true);
+		if (!lan) {
+			var local = new TcpListener(IPAddress.Loopback, port);
+			local.Server.ExclusiveAddressUse = true;
+			local.Start();
+			return local;
 		}
-		catch (SocketException) { }
-		return TcpListen.Open(IPAddress.Any, port, false);
+		TcpListener v6 = null;
+		try {
+			v6 = new TcpListener(IPAddress.IPv6Any, port);
+			v6.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+			v6.Server.ExclusiveAddressUse = true;
+			v6.Start();
+			return v6;
+		}
+		catch {
+			try { v6?.Stop(); } catch { }
+			try { v6?.Server.Close(); } catch { }
+		}
+		var v4 = new TcpListener(IPAddress.Any, port);
+		v4.Server.ExclusiveAddressUse = true;
+		v4.Start();
+		return v4;
 	}
 
 	void acceptloop(TcpListener l) {
@@ -152,7 +79,6 @@ sealed class SockHttpServer {
 				if (!running) break;
 				continue;
 			}
-			try { probe?.Set(); } catch { }
 			_ = Task.Run(() => serve(c));
 		}
 	}

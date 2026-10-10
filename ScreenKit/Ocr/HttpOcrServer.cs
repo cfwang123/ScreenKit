@@ -40,8 +40,6 @@ sealed partial class HttpOcrServer : IDisposable {
 	HttpApiServices svc;
 	SendFileServer sendFile;
 	public bool LanAll;
-	public int Port { get; private set; }
-	public static int BoundPort { get; private set; }
 	public event Action<string> Logged;
 	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -70,8 +68,6 @@ sealed partial class HttpOcrServer : IDisposable {
 			var s = new SockHttpServer();
 			s.Start(all ? "+" : "127.0.0.1", port, handle);
 			sock = s;
-			Port = s.Port > 0 ? s.Port : port;
-			BoundPort = Port;
 			LanAll = all;
 			running = true;
 		}
@@ -83,8 +79,6 @@ sealed partial class HttpOcrServer : IDisposable {
 		lock (listenLock) {
 			s = sock;
 			sock = null;
-			if (Port > 0 && BoundPort == Port) BoundPort = 0;
-			Port = 0;
 		}
 		try { s?.Stop(); } catch { }
 	}
