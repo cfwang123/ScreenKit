@@ -332,11 +332,4 @@
     <Warning Text="未生成 x86host.exe。请: dotnet build x86host/x86host.csproj -c Release" Condition="!Exists('$(_X86HostOut)')" />
   </Target>
 
-  <!-- 开始菜单显示名：中文 Windows「屏幕截图工具」，其它语言 ScreenKit。编号与 ShellName.STRING_ID 一致。 -->
-  <Target Name="StampShellDisplayName" AfterTargets="BuildAndCopyX86Host" Condition="'$(Configuration)' == 'Release'">
-    <Exec Command="python -X utf8 &quot;$(MSBuildProjectDirectory)\..\scripts\stamp-shell-name.py&quot; &quot;$(TargetPath)&quot;" />
-    <Exec Command="python -X utf8 &quot;$(MSBuildProjectDirectory)\..\scripts\stamp-shell-name.py&quot; &quot;$(MSBuildProjectDirectory)\bin\Release\ScreenKit\ScreenKit.exe&quot;"
-          Condition="Exists('$(MSBuildProjectDirectory)\bin\Release\ScreenKit\ScreenKit.exe')" />
-  </Target>
-
 </Project>

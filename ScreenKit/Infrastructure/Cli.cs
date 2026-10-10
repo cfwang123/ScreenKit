@@ -57,7 +57,6 @@ static class Cli {
 				or "--test-clipboard-path"
 				or "--test-sendfile"
 				or "--test-lang"
-				or "--test-shell-name"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
@@ -261,8 +260,6 @@ static class Cli {
 					return testsendfile();
 				case "--test-lang":
 					return testlang();
-				case "--test-shell-name":
-					return ShellName.Test();
 				case "--test-apk-qr":
 					return testapkqr();
 				case "--test-img-convert":
@@ -4684,7 +4681,6 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除；网页登录与公开下载
       --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、西、法、葡、俄、德、其它排序
-      --test-shell-name  开始菜单显示名：中文 Windows 为「屏幕截图工具」
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
       --test-screenshot-dir  截图保存目录：空为 screenshots/，D:/s/ 解析为 D:\s
