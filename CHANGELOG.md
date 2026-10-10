@@ -54,7 +54,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list.
+- The tray **Web tools** menu lists every tools-page tool under its category. The first item is **Web tools home**, which opens the list.
 - Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on.
+- The Unicode chart has a preview column. The selected character is shown large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms. Clicking a cell still copies it.
 - The tools-page ASCII chart is now a Unicode chart. Groups are on the left. The chosen group is a 32-column grid of every character in that group. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split, and the slice start is shown on the group. Surrogates, private-use areas, and CJK Extension B onward are not listed.
 - The tools-page color picker stays on the page. The color chip is a small square, and the saturation square, hue bar, and RGB fields sit under it.
 - The tools-page QR preview shows one line of the source text under the code, the same as the desktop window. A long line is cut with an ellipsis.
@@ -64,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools-page random password card is under Text, directly after Text convert.
 - MD5, SHA-256, JSON minify, HTML encode and decode, and HTML, CSS, and JS minify are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
 - XML format and minify, JSON escape and unescape, SQL format and minify, and HTML-to-JS are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
+- The tools-page random-string card is removed. Password generator already covers that.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
 - Release builds no longer delete or recreate `dict.db` next to the program. A local link or copy stays as it is. The slim package still leaves that file out.
 
@@ -90,7 +94,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。
+- 托盘 **web工具** 按分类列出工具页的全部工具。第一项是 **web工具主页**，打开工具列表。
 - 桌面和工具页的密码生成，改小写、大写、数字、符号或去掉易混字符时，字符集会改成对应的那一组。只有勾着「指定字符集」时才保留手输的内容。
+- Unicode 表增加预览栏。选中的字符用大字显示，并给出码位、十进制、分组、平面、类型，以及 UTF-8、UTF-16、HTML、JavaScript、URL。点一下仍然复制。
 - 工具页的 ASCII 表改为 Unicode 表。左边是分组，右边用 32 列显示该组的全部字符。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开，组名带上这段的起点。代理项、私用区和汉字扩展 B 及以后未列入。
 - 工具页取色的选色器一直留在页面上。颜色块是小方块，下面是饱和度方块、色相条和 RGB。
 - 工具页生成的二维码下面显示一行原文，与桌面窗口相同。过长时末尾省略。
@@ -100,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页的随机密码改到「文字」分类，排在「文本转换」下面。
 - MD5、SHA-256、JSON 压缩、HTML 编码和解码，以及 HTML、CSS、JS 压缩，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
 - XML 格式化和压缩、JSON 转义和还原、SQL 格式化和压缩，以及 HTML 转 JS，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
+- 工具页去掉「随机字符串」。随机密码已经能按字符集生成。
 - `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。8 秒内没退完时，仍由 `slx` 结束进程再编译。全局 `slx` 脚本不改。监听端口仍是设定的那个。
 - Release 编译不再删除或重建程序旁的 `dict.db`。本机已有的链接或文件会留着。精简包仍不带这个文件。
 

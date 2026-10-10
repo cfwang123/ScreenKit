@@ -266,8 +266,8 @@ input[type="file"] {
 .uquery { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .uquery input { flex: 1; height: 32px; margin-top: 0; }
 .uquery .msg { min-height: 0; white-space: nowrap; }
-.unitab { display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 12px; align-items: start; }
-.ugroups, .ugrid { max-height: calc(100vh - 210px); overflow: auto; }
+.unitab { display: grid; grid-template-columns: 168px minmax(0, 1fr) 240px; gap: 12px; align-items: start; }
+.ugroups, .ugrid, .uprev { max-height: calc(100vh - 210px); overflow: auto; }
 .ugroups {
 	border: 1px solid var(--line); border-radius: 10px; padding: 4px; background: var(--card);
 }
@@ -289,3 +289,19 @@ input[type="file"] {
 }
 .ugrid button.ctrl { font: 9px/26px "Segoe UI", "Microsoft YaHei UI", sans-serif; letter-spacing: -0.04em; }
 .ugrid button.on { border-color: var(--accent); background: #fff1e8; }
+.uprev {
+	border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px;
+}
+.uprev-ch {
+	height: 128px; margin: 0 0 12px;
+	display: grid; place-items: center;
+	border: 1px solid var(--line); border-radius: 8px; background: #fff;
+	font: 80px/1 "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei UI", sans-serif;
+}
+.uprev-ch.ctrl { font: 28px/1.2 "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+.uprev-meta { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 6px 8px; margin: 0; }
+.uprev-meta dt { margin: 0; color: var(--muted); font-size: 12px; }
+.uprev-meta dd {
+	margin: 0; font: 12px/1.45 Consolas, "Microsoft YaHei UI", monospace;
+	word-break: break-all;
+}

@@ -86,6 +86,9 @@ window.sktools = (function(){
 		paintfav();
 		paintstars();
 		window.addEventListener("scroll", spyon);
+		window.addEventListener("popstate", applyhash);
+		var start = toolhash();
+		if (start && start !== "home" && cardof(start)) show(start, true);
 	}
 
 	function onclick(ev){
@@ -116,7 +119,35 @@ window.sktools = (function(){
 		}
 	}
 
-	function show(name){
+	function toolhash(){
+		var h = location.hash || "";
+		if (h.charAt(0) === "#") h = h.substring(1);
+		try { h = decodeURIComponent(h); }
+		catch (e) { return ""; }
+		return h;
+	}
+
+	function pushhash(name){
+		var next = !name || name === "home" ? "" : "#" + name;
+		var now = location.hash || "";
+		if (now === next) return;
+		try {
+			history.pushState({ tool: name || "home" }, "", location.pathname + location.search + next);
+		}
+		catch (e) {}
+	}
+
+	function applyhash(){
+		var id = toolhash();
+		if (!id || id === "home") {
+			if (curtool !== "home") show("home", true);
+			return;
+		}
+		if (!cardof(id) || curtool === id) return;
+		show(id, true);
+	}
+
+	function show(name, fromHist){
 		stoptick();
 		curtool = name;
 		if (name.indexOf("u-") === 0) {
@@ -147,6 +178,7 @@ window.sktools = (function(){
 		if (name === "ocr") loadoocr();
 		if (name === "tts") loadtts();
 		if (name === "asr") loadasr();
+		if (!fromHist) pushhash(curtool);
 	}
 
 	function marktool(id, panelId){
@@ -1371,7 +1403,6 @@ window.sktools = (function(){
 			"u-grad": ["CSS 渐变", "生成"],
 			"u-xml": ["XML", "格式化"],
 			"u-table": ["HTML 表格", "生成"],
-			"u-rstr": ["随机字符串", "生成"],
 			"u-ph": ["占位图", "生成"],
 			"u-dadd": ["日期加减", "计算"],
 			"u-madd": ["月份加减", "计算"],
@@ -1444,8 +1475,9 @@ window.sktools = (function(){
 			return lab("名称", textin("box-in", "", "foo_bar 或 fooBar"));
 		if (name === "u-ascii")
 			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><span id="u-msg" class="msg"></span></div>'
-				+ '<p class="hint">点一下复制。左边是分组，右边列出该组全部字符。</p>'
-				+ '<div class="unitab"><div class="ugroups" id="u-groups"></div><div class="ugrid" id="u-grid"></div></div>';
+				+ '<p class="hint">点一下选中并复制。最右边是大字和这个字符的编码。</p>'
+				+ '<div class="unitab"><div class="ugroups" id="u-groups"></div><div class="ugrid" id="u-grid"></div>'
+				+ '<aside class="uprev"><div class="uprev-ch" id="u-ch"></div><dl class="uprev-meta" id="u-meta"></dl></aside></div>';
 		if (name === "u-temp")
 			return row2(lab("数值", textin("box-in", "0")), lab("单位", '<select id="box-unit">' + opts(TEMPU, "C") + "</select>"));
 		if (name === "u-mass")
@@ -1498,9 +1530,6 @@ window.sktools = (function(){
 				+ lab("方向", '<select id="box-mode"><option value="pretty">格式化</option><option value="min">压缩</option></select>');
 		if (name === "u-table")
 			return lab("表格文字", ta("box-in", 8, "第一行是表头。用逗号或制表符分列"));
-		if (name === "u-rstr")
-			return row2(lab("长度", numin("box-len", "16")), lab("个数", numin("box-n", "5")))
-				+ lab("字符集", textin("box-set", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"));
 		if (name === "u-ph")
 			return row2(lab("宽", numin("box-w", "320")), lab("高", numin("box-h", "180")))
 				+ row2(lab("底色", textin("box-bg", "#eef1f4")), lab("字色", textin("box-fg", "#333333")))
@@ -1608,7 +1637,6 @@ window.sktools = (function(){
 		if (util === "u-grad") return gradcss(val("box-a"), val("box-b"), val("box-n"));
 		if (util === "u-xml") return xmlfmt(val("box-in"), val("box-mode"));
 		if (util === "u-table") return htmltable(val("box-in"));
-		if (util === "u-rstr") return randstr(val("box-len"), val("box-n"), val("box-set"));
 		if (util === "u-ph") return placeholder(val("box-w"), val("box-h"), val("box-in"), val("box-bg"), val("box-fg"));
 		if (util === "u-dadd") return dateadd(val("box-a"), val("box-n"));
 		if (util === "u-madd") return monthadd(val("box-a"), val("box-n"));
@@ -2416,6 +2444,8 @@ window.sktools = (function(){
 			while (el && el.id !== "u-grid") {
 				if (el.getAttribute && el.getAttribute("data-cp") != null) {
 					var cp = parseInt(el.getAttribute("data-cp"), 10);
+					unimark(cp);
+					unipreview(cp);
 					copytext(String.fromCodePoint(cp), "u-msg");
 					return;
 				}
@@ -2453,12 +2483,13 @@ window.sktools = (function(){
 		for (i = 0; i < groups.length; i++)
 			groups[i].className = i === index ? "on" : "";
 		if (groups[index]) groups[index].scrollIntoView({ block: "nearest" });
+		var pick = focus >= g[1] && focus <= g[2] ? focus : g[1];
 		var html = [];
 		var cp;
 		for (cp = g[1]; cp <= g[2]; cp++) {
 			var glyph = uniglyph(cp);
 			html.push('<button type="button" data-cp="' + cp + '" title="U+' + unihex(cp) + '"'
-				+ (glyph.ctrl ? ' class="ctrl"' : '') + (focus === cp ? ' id="u-on"' : '') + '>'
+				+ (glyph.ctrl ? ' class="ctrl"' : '') + (cp === pick ? ' id="u-on"' : '') + '>'
 				+ glyph.t + '</button>');
 		}
 		$("u-grid").innerHTML = html.join("");
@@ -2466,8 +2497,114 @@ window.sktools = (function(){
 		if (on) {
 			on.className = (on.className ? on.className + " " : "") + "on";
 			on.removeAttribute("id");
-			on.scrollIntoView({ block: "center" });
+			if (focus >= g[1] && focus <= g[2]) on.scrollIntoView({ block: "center" });
 		}
+		unipreview(pick);
+	}
+
+	function unimark(cp){
+		var buttons = document.querySelectorAll("#u-grid button");
+		var i, cls;
+		for (i = 0; i < buttons.length; i++) {
+			cls = buttons[i].className.replace(/\bon\b/g, "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
+			if (parseInt(buttons[i].getAttribute("data-cp"), 10) === cp)
+				cls = cls ? cls + " on" : "on";
+			buttons[i].className = cls;
+		}
+	}
+
+	function unipreview(cp){
+		var glyph = uniglyph(cp);
+		var box = $("u-ch");
+		if (glyph.ctrl) {
+			box.textContent = glyph.t;
+			box.className = "uprev-ch ctrl";
+		}
+		else {
+			var ch = String.fromCodePoint(cp);
+			if (unicomb(cp)) ch = "\u25CC" + ch;
+			box.textContent = ch;
+			box.className = "uprev-ch";
+		}
+		var rows = [
+			["码位", "U+" + unihex(cp)],
+			["十进制", String(cp)],
+			["分组", uniblock(cp)],
+			["平面", uniplane(cp)],
+			["类型", unikind(cp)],
+			["UTF-8", uniutf8(cp)],
+			["UTF-16", uniutf16(cp)],
+			["HTML", "&#" + cp + ";  &#x" + unihex(cp) + ";"],
+			["JavaScript", unijs(cp)],
+			["URL", uniurl(cp)]
+		];
+		var html = [];
+		var i;
+		for (i = 0; i < rows.length; i++)
+			html.push("<dt>" + rows[i][0] + "</dt><dd>" + unihtml(rows[i][1]) + "</dd>");
+		$("u-meta").innerHTML = html.join("");
+	}
+
+	function unihtml(s){
+		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+	}
+
+	function uniblock(cp){
+		var i = unifind(cp);
+		if (i < 0) return "未收录";
+		return unislices()[i][0];
+	}
+
+	function uniplane(cp){
+		if (cp <= 0xFFFF) return "基本多文种平面";
+		if (cp <= 0x1FFFF) return "第一辅助平面";
+		if (cp <= 0x2FFFF) return "第二辅助平面";
+		return "其他平面";
+	}
+
+	function unikind(cp){
+		if (cp < 32 || cp === 0x7F || (cp >= 0x80 && cp <= 0x9F)) return "控制字符";
+		if ((cp & 0xFFFF) === 0xFFFE || (cp & 0xFFFF) === 0xFFFF) return "非字符";
+		if (unicomb(cp)) return "组合字符";
+		if (cp === 0x20 || cp === 0xA0 || cp === 0xAD
+			|| (cp >= 0x2000 && cp <= 0x200A) || cp === 0x2028 || cp === 0x2029
+			|| cp === 0x202F || cp === 0x205F || cp === 0x3000 || cp === 0xFEFF) return "空白";
+		return "图形字符";
+	}
+
+	function uniutf8(cp){
+		var bytes;
+		if (cp < 0x80) bytes = [cp];
+		else if (cp < 0x800) bytes = [0xC0 | (cp >> 6), 0x80 | (cp & 0x3F)];
+		else if (cp < 0x10000) bytes = [0xE0 | (cp >> 12), 0x80 | ((cp >> 6) & 0x3F), 0x80 | (cp & 0x3F)];
+		else bytes = [0xF0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3F), 0x80 | ((cp >> 6) & 0x3F), 0x80 | (cp & 0x3F)];
+		var i, out = [];
+		for (i = 0; i < bytes.length; i++) {
+			var h = bytes[i].toString(16).toUpperCase();
+			if (h.length < 2) h = "0" + h;
+			out.push(h);
+		}
+		return out.join(" ");
+	}
+
+	function uniutf16(cp){
+		if (cp <= 0xFFFF) return unihex(cp);
+		var u = cp - 0x10000;
+		return unihex(0xD800 + (u >> 10)) + " " + unihex(0xDC00 + (u & 0x3FF));
+	}
+
+	function unijs(cp){
+		var hex = unihex(cp).toLowerCase();
+		if (cp <= 0xFFFF) return "\\u" + hex;
+		var pair = uniutf16(cp).toLowerCase().split(" ");
+		return "\\u{" + hex + "}   \\u" + pair[0] + "\\u" + pair[1];
+	}
+
+	function uniurl(cp){
+		var bytes = uniutf8(cp).split(" ");
+		var i, out = "";
+		for (i = 0; i < bytes.length; i++) out += "%" + bytes[i];
+		return out;
 	}
 
 	function uniparse(raw){
@@ -3525,25 +3662,6 @@ window.sktools = (function(){
 			html += "</tr>\n";
 		}
 		return html + "</table>";
-	}
-
-	function randstr(len, count, set){
-		var n = parseInt(len, 10);
-		var c = parseInt(count, 10);
-		var chars = String(set || "");
-		if (!(n >= 1 && n <= 128)) throw new Error("长度要在 1 到 128");
-		if (!(c >= 1 && c <= 50)) throw new Error("个数要在 1 到 50");
-		if (!chars) throw new Error("请填写字符集");
-		if (chars.length > 200) throw new Error("字符集太长");
-		var lines = [];
-		var i;
-		var j;
-		for (i = 0; i < c; i++) {
-			var s = "";
-			for (j = 0; j < n; j++) s += chars.charAt(randint(chars.length));
-			lines.push(s);
-		}
-		return lines.join("\n");
 	}
 
 	function placesize(w, h){
