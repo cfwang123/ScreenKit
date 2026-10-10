@@ -371,7 +371,14 @@ static class FeatureInstaller {
 	}
 
 	static long filesize(string path) {
-		try { return File.Exists(path) ? new FileInfo(path).Length : 0; }
+		try {
+			if (!File.Exists(path)) return 0;
+			var info = new FileInfo(path);
+			// 符号链接的 Length 是链接本身，Windows 上为 0。打开后才是目标大小。
+			if ((info.Attributes & FileAttributes.ReparsePoint) == 0) return info.Length;
+			using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+				return fs.Length;
+		}
 		catch { return 0; }
 	}
 
@@ -1261,7 +1268,7 @@ arabic_dict.txt
 		var path = dictdbpath();
 		try {
 			if (!File.Exists(path)) return FeatureInstallState.Missing;
-			var n = new FileInfo(path).Length;
+			var n = filesize(path);
 			if (n >= 100L * 1024 * 1024) return FeatureInstallState.Installed;
 			return n > 0 ? FeatureInstallState.Partial : FeatureInstallState.Missing;
 		}

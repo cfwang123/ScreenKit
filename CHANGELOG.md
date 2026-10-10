@@ -40,8 +40,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- A Start menu shortcut that points at ScreenKit.exe shows the localized screenshot-tool name when Windows is in Chinese, and ScreenKit in other languages. The program writes that name the next time it starts.
+- The tools page adds All under Favorites. All is selected by default and lists favorites plus every category. Choosing a category lists only that category.
 - The Unicode and GBK code charts list the total number of characters. Each group lists its count, its first code, and its last code. Unassigned Unicode code points and empty GBK slots are not counted. The group list fills the tool card. The card itself does not scroll. The total stays on top of the list and covers the groups that scroll under it.
+
+#### Fixed
+
+- **Help → Install features** treats a `dict2.db` symbolic link beside the program as installed when the target is at least 100 MB. Windows reports the link itself as 0 bytes.
 
 ### 中文
 
@@ -51,8 +55,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 开始菜单里指向 ScreenKit.exe 的快捷方式，在中文 Windows 下显示「屏幕截图工具」，其它语言显示 ScreenKit。程序下次启动时写入这个显示名。
+- 工具页在收藏下增加「全部」，默认选中。全部列出收藏和每个分类。选中某个分类时只列出该分类。
 - Unicode 码表和 GBK 码表列出总字数。每个分组列出字数、起始码和结束码。未分配的 Unicode 码位和 GBK 空位不计入。分组列表铺满工具卡片，卡片本身不再滚动。总字数这一行吸在列表顶上，滚上去的分组不会露在它上面。
+
+#### 修复
+
+- **帮助 → 安装功能**把程序旁的 `dict2.db` 符号链接按目标文件判断。目标至少 100 MB 时词典显示已安装。Windows 把链接本身报成 0 字节。
 
 ## v1.0.18 (2026-10-10)
 
