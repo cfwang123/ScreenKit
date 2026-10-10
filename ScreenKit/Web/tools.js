@@ -85,7 +85,8 @@ window.sktools = (function(){
 		window.addEventListener("scroll", spyon);
 		window.addEventListener("popstate", applyhash);
 		var start = toolhash();
-		if (start === "zh" || start === "yomi") start = "text";
+		if (start === "zh" || start === "yomi" || start === "u-name" || start === "u-cron"
+			|| start === "u-ua" || start === "u-tok") start = "text";
 		if (start && start !== "home" && cardof(start)) show(start, true);
 	}
 
@@ -137,7 +138,8 @@ window.sktools = (function(){
 
 	function applyhash(){
 		var id = toolhash();
-		if (id === "zh" || id === "yomi") id = "text";
+		if (id === "zh" || id === "yomi" || id === "u-name" || id === "u-cron"
+			|| id === "u-ua" || id === "u-tok") id = "text";
 		if (!id || id === "home") {
 			if (curtool !== "home") show("home", true);
 			return;
@@ -349,7 +351,8 @@ window.sktools = (function(){
 			if (id === "u-md5" || id === "u-sha" || id === "u-jsonmin" || id === "u-html"
 				|| id === "u-hmin" || id === "u-cmin" || id === "u-jsmin"
 				|| id === "u-xml" || id === "u-jesc" || id === "u-sql" || id === "u-hjs"
-				|| id === "zh" || id === "yomi") id = "text";
+				|| id === "zh" || id === "yomi" || id === "u-name" || id === "u-cron"
+				|| id === "u-ua" || id === "u-tok") id = "text";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;
 			favs.push(id);
@@ -489,7 +492,8 @@ window.sktools = (function(){
 		if (op === "md5" || op === "sha" || op === "jsonmin" || op === "htmlenc" || op === "htmldec"
 			|| op === "hmin" || op === "cmin" || op === "jsmin"
 			|| op === "jesc" || op === "juesc" || op === "xml" || op === "xmlmin"
-			|| op === "sql" || op === "sqlmin" || op === "hjs") {
+			|| op === "sql" || op === "sqlmin" || op === "hjs"
+			|| op === "name" || op === "cron" || op === "tok" || op === "ua") {
 			textlocal(op);
 			return;
 		}
@@ -529,6 +533,10 @@ window.sktools = (function(){
 			else if (op === "sql") out = sqlfmt(text, "pretty");
 			else if (op === "sqlmin") out = sqlfmt(text, "min");
 			else if (op === "hjs") out = html2js(text);
+			else if (op === "name") out = nameconv(text);
+			else if (op === "cron") out = crondesc(text);
+			else if (op === "tok") out = tokencount(text);
+			else if (op === "ua") out = uaparse(text);
 			else if (op === "htmlenc") out = htmlenc(text);
 			else if (op === "htmldec") out = htmldec(text);
 			else if (op === "hmin") out = htmlmin(text);
@@ -1384,7 +1392,6 @@ window.sktools = (function(){
 			"u-sha": ["SHA-256", "计算"],
 			"u-re": ["正则测试", "测试"],
 			"u-diff": ["文本比对", "比对"],
-			"u-name": ["变量名", "转换"],
 			"u-ascii": ["Unicode 表", "显示"],
 			"u-temp": ["温度换算", "换算"],
 			"u-mass": ["重量换算", "换算"],
@@ -1397,8 +1404,6 @@ window.sktools = (function(){
 			"u-rcolor": ["随机颜色", "生成"],
 			"u-jesc": ["JSON 转义", "转换"],
 			"u-repl": ["查找替换", "替换"],
-			"u-ua": ["User-Agent", "解析"],
-			"u-cron": ["Crontab", "说明"],
 			"u-work": ["工作日", "计算"],
 			"u-loan": ["房贷", "计算"],
 			"u-comp": ["复利", "计算"],
@@ -1418,7 +1423,6 @@ window.sktools = (function(){
 			"u-sci": ["科学计算", "计算"],
 			"u-jsmin": ["JS 压缩", "压缩"],
 			"u-sql": ["SQL", "格式化"],
-			"u-tok": ["Token 估算", "计算"],
 			"u-hjs": ["HTML 转 JS", "转换"],
 			"u-b64img": ["图片 Base64", "转换"],
 			"u-ico": ["图片转 ICO", "生成"],
@@ -1477,8 +1481,6 @@ window.sktools = (function(){
 				+ lab("文本", ta("box-in", 8, ""));
 		if (name === "u-diff")
 			return '<div class="split">' + lab("原文", ta("box-a", 10, "")) + lab("新文", ta("box-b", 10, "")) + "</div>";
-		if (name === "u-name")
-			return lab("名称", textin("box-in", "", "foo_bar 或 fooBar"));
 		if (name === "u-ascii")
 			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><span id="u-msg" class="msg"></span></div>'
 				+ '<p class="hint">点一下选中并复制。最右边是大字和这个字符的编码。</p>'
@@ -1510,10 +1512,6 @@ window.sktools = (function(){
 			return lab("文本", ta("box-in", 8, ""))
 				+ row2(lab("查找", textin("box-find", "")), lab("替换为", textin("box-rep", "")))
 				+ check("box-re", "按正则", false);
-		if (name === "u-ua")
-			return lab("User-Agent", ta("box-in", 6, ""));
-		if (name === "u-cron")
-			return lab("表达式", textin("box-in", "0 9 * * 1-5", "分 时 日 月 周"));
 		if (name === "u-work")
 			return row2(lab("开始", '<input id="box-a" type="date">'), lab("结束", '<input id="box-b" type="date">'));
 		if (name === "u-loan")
@@ -1570,8 +1568,6 @@ window.sktools = (function(){
 		if (name === "u-sql")
 			return lab("SQL", ta("box-in", 8, ""))
 				+ lab("方向", '<select id="box-mode"><option value="pretty">格式化</option><option value="min">压成一行</option></select>');
-		if (name === "u-tok")
-			return lab("文字", ta("box-in", 8, "汉字、英文单词和符号粗算，不是模型分词"));
 		if (name === "u-hjs")
 			return lab("HTML", ta("box-in", 8, ""));
 		if (name === "u-b64img")
@@ -1616,7 +1612,6 @@ window.sktools = (function(){
 		if (util === "u-md5") return md5hex(val("box-in"));
 		if (util === "u-re") return retest(val("box-pat"), val("box-flags"), val("box-in"));
 		if (util === "u-diff") return linediff(val("box-a"), val("box-b"));
-		if (util === "u-name") return nameconv(val("box-in"));
 		if (util === "u-temp") return tempconv(val("box-in"), val("box-unit"));
 		if (util === "u-mass") return unitconv(val("box-in"), val("box-unit"), MASSU, MASSS);
 		if (util === "u-area") return unitconv(val("box-in"), val("box-unit"), AREAU, AREAS);
@@ -1628,8 +1623,6 @@ window.sktools = (function(){
 		if (util === "u-rcolor") return rcolor(val("box-n"));
 		if (util === "u-jesc") return jsonesc(val("box-in"), val("box-mode"));
 		if (util === "u-repl") return repltext(val("box-in"), val("box-find"), val("box-rep"), onbox("box-re"));
-		if (util === "u-ua") return uaparse(val("box-in"));
-		if (util === "u-cron") return crondesc(val("box-in"));
 		if (util === "u-work") return workdays(val("box-a"), val("box-b"));
 		if (util === "u-loan") return loanpay(val("box-p"), val("box-rate"), val("box-n"), val("box-mode"));
 		if (util === "u-comp") return compound(val("box-p"), val("box-rate"), val("box-years"), val("box-n"));
@@ -1648,7 +1641,6 @@ window.sktools = (function(){
 		if (util === "u-sci") return sciexpr(val("box-in"));
 		if (util === "u-jsmin") return jsmin(val("box-in"));
 		if (util === "u-sql") return sqlfmt(val("box-in"), val("box-mode"));
-		if (util === "u-tok") return tokencount(val("box-in"));
 		if (util === "u-hjs") return html2js(val("box-in"));
 		if (util === "u-btn") return cssbtn(val("box-in"), val("box-bg"), val("box-fg"), val("box-n"));
 		if (util === "u-fake") return fakedata(val("box-n"));
@@ -2595,8 +2587,12 @@ window.sktools = (function(){
 			["JavaScript", unijs(cp)],
 			["URL", uniurl(cp)]
 		];
-		if (glyph.empty)
-			rows.push(["说明", "这个码位没有分配字符，没有字体可以显示。"]);
+		if (glyph.empty) {
+			if (unicn(cp))
+				rows.push(["说明", "这个码位没有分配字符，没有字体可以显示。"]);
+			else
+				rows.push(["说明", "本机字体没有这个字。花园明朝（HanaMin）或 BabelStone Han 里可能有。"]);
+		}
 		if (glyph.alt)
 			rows.push(
 				["等价", "U+" + unihex(glyph.alt) + " " + String.fromCodePoint(glyph.alt)],
@@ -2607,6 +2603,10 @@ window.sktools = (function(){
 		for (i = 0; i < rows.length; i++)
 			html.push("<dt>" + rows[i][0] + "</dt><dd>" + unihtml(rows[i][1]) + "</dd>");
 		$("u-meta").innerHTML = html.join("");
+	}
+
+	function unicn(cp){
+		return /^\p{Cn}$/u.test(String.fromCodePoint(cp));
 	}
 
 	function unihtml(s){
