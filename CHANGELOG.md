@@ -42,7 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Tools-page radix conversion uses a Convert to dropdown. It starts on All. All prints the original number on the first line, then bases 2, 8, 10, and 16, one result per line.
-- **Long screenshot** no longer shows the picture for OCR. After stitching it copies with the same mode as a normal screenshot (image, file, or path) and does not recognize.
+- **Long screenshot** no longer shows the picture for OCR. After stitching it copies with the same mode as a normal screenshot (image, file, or path) and does not recognize. Overlap is matched on a Bitmap, so this feature does not need OpenCV.
 - The password generator, on the desktop and the tools page, starts with lowercase letters and digits, length 6, and 10 passwords. Uppercase, symbols, skip ambiguous, one of each class, and a typed character set start off. The desktop still keeps the last settings after you change them. Opening the window or the tools-page card generates one batch immediately. Opening the desktop window again generates another batch.
 - QR / barcode generation, in the window and on the web tools page, can show or hide the line of text under the code. It is on by default. In the window, and in a copied or saved image, the gap from the code to that line is half a line of text.
 - The tools page adds All under Favorites. All is selected by default and lists favorites plus every category. Choosing a category lists only that category.
@@ -64,7 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 工具页的进制转换把「转换到」改成下拉，默认「全部」。全部的第一行是原来的进制数，后面 2、8、10、16 进制各一行。
-- **长截图**不再把图片放到主界面供识别。拼接完成后按普通截图的复制方式写入剪贴板（图片、文件或路径），不识别。
+- **长截图**不再把图片放到主界面供识别。拼接完成后按普通截图的复制方式写入剪贴板（图片、文件或路径），不识别。重叠行在 Bitmap 上比对，不再需要 OpenCV。
 - 桌面和工具页的密码生成默认只用小写字母和数字，长度 6，一次 10 条。大写、符号、去掉易混字符、每类至少一个、指定字符集默认都不开。桌面改过之后仍记住上次设置。打开窗口或工具页卡片后马上生成一次。桌面窗口还开着时再从菜单进入，会再生成一次。
 - 二维码 / 条码生成（窗口和 web 工具）可以开关图下的一行原文，默认开。窗口里，以及复制或保存的图片上，码和这行字的间隔是半行字高。
 - 工具页在收藏下增加「全部」，默认选中。全部列出收藏和每个分类。选中某个分类时只列出该分类。

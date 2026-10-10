@@ -611,9 +611,9 @@ static class ScrollCapture {
 					p[i + 2] = 7;
 				}
 				else {
-					p[i] = (byte)(srcY * 3);
-					p[i + 1] = (byte)(x * 4);
-					p[i + 2] = (byte)(200 - srcY);
+					p[i] = (byte)((srcY * 37 + 11) ^ (x * 13 + srcY));
+					p[i + 1] = (byte)(srcY * 19 + x * 5);
+					p[i + 2] = (byte)(srcY * srcY + x * 7);
 				}
 				p[i + 3] = 255;
 			}

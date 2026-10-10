@@ -32,9 +32,9 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 | Area | Description |
 |------|-------------|
-| **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. The model list includes especially fast **Windows OCR** (the default when none is saved; no model download and no OpenCV; one language, shown only for that engine; the side-length cap applies to both) and ONNX packs. ONNX OCR, barcodes, and long screenshots still ask for OpenCV. Settings → Recognition describes the selected engine directly below the model picker. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. The image bar is a compact WPF toolbar; items that do not fit move to the overflow menu. **History** lists the save folder as thumbnails (default `screenshots/` next to the program; Settings → Capture lists `screenshots/` and `D:/s/` so copied paths stay short), previews with pan and zoom, and annotates under that preview. With marks, Done, OCR, or Open saves a new screenshot and copies it. With no marks they use the original file and do not write a new one. Done, OCR, and Open then close the history window and show the picture on the main window; OCR also recognizes it. Copy and Ctrl+C put the current picture on the clipboard and leave the window open. |
+| **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. The model list includes especially fast **Windows OCR** (the default when none is saved; no model download and no OpenCV; one language, shown only for that engine; the side-length cap applies to both) and ONNX packs. ONNX OCR and barcodes still ask for OpenCV. Long screenshot stitches with Bitmap and does not need OpenCV. Settings → Recognition describes the selected engine directly below the model picker. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. The image bar is a compact WPF toolbar; items that do not fit move to the overflow menu. **History** lists the save folder as thumbnails (default `screenshots/` next to the program; Settings → Capture lists `screenshots/` and `D:/s/` so copied paths stay short), previews with pan and zoom, and annotates under that preview. With marks, Done, OCR, or Open saves a new screenshot and copies it. With no marks they use the original file and do not write a new one. Done, OCR, and Open then close the history window and show the picture on the main window; OCR also recognizes it. Copy and Ctrl+C put the current picture on the clipboard and leave the window open. |
 | **Annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text; dropdown next to confirm for copy-as image / file / path. |
-| **Long screenshot** | Pick a scrollable window → auto-scroll stitch, then copy with the screenshot copy mode (image / file / path). No OCR, and the picture is not shown on the main window. |
+| **Long screenshot** | Pick a scrollable window → auto-scroll, match the overlap on a Bitmap, then copy with the screenshot copy mode (image / file / path). No OCR, the picture is not shown on the main window, and OpenCV is not required. |
 | **Screen recording** | Window or region → HUD → MP4 + optional system/mic audio; optional mouse cursor and click highlight. Codecs: x264 / x265 / AV1 (FFmpeg), Windows Media Foundation H.264 (MP4, no download). |
 | **GIF recording** | Same region flow → 24 fps capture → preview (FPS, scale, palette) → silent GIF. |
 | **Clipboard** | Paste image and OCR; Capture menu copy image / file / path; menu/tray sets on-capture copy mode. |
@@ -177,7 +177,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 
 | Feature | Notes |
 |---------|--------|
-| Screenshot, annotate, clipboard, text overlay, window management, network tools, hotkeys | No extra files |
+| Screenshot, annotate, long screenshot, clipboard, text overlay, window management, network tools, hotkeys | No extra files. Long screenshot stitches with Bitmap |
 | Screenshot save folder | Ready |
 | Windows OCR | Uses whichever OCR language packs are installed in Windows. No ONNX model and no OpenCV. Missing languages are added under **Help → Install features → Windows OCR/Speech** |
 | Windows speech recognition | Uses whichever speech-recognition language packs are installed in Windows. Missing languages are added on the same page |
@@ -206,7 +206,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | PDF to images | `pdfium.dll`, `libSkiaSharp.dll` | 6 MB + 11 MB |
 | x264 / x265 / AV1 / GIF recording | `ffmpeg64/` (`ffmpeg.7z`) | 32.5 MB download, about 117 MB unpacked |
 | Archive extract | `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll` | 2.4 MB + 1.8 MB + 406.5 KB |
-| Long screenshot and other OpenCV image features | `OpenCvSharpExtern.dll`. The OpenCV video library is not included | 61 MB |
+| ONNX OCR, face, and other image features | `OpenCvSharpExtern.dll`. The OpenCV video library is not included. Long screenshot does not need it | 61 MB |
 | Android package | Not in the slim folder. **Install on phone** on the file-sync page downloads it | Whatever that APK release is |
 | NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
 | iGPU DirectML | `onnxdml64` | 18 MB |
@@ -224,7 +224,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | **onnxcpu64** | CPU ONNX Runtime (required for OCR if no GPU/iGPU ORT) | ~16 MB |
 | **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN (optional) | large |
 | **onnxdml64** | DirectML EP for iGPU (optional) | ~18 MB |
-| **OpenCV** | Capture / image pipeline (`OpenCvSharpExtern.dll`). The OpenCV video library is not included | ~61 MB |
+| **OpenCV** | ONNX OCR, face, and similar (`OpenCvSharpExtern.dll`). The OpenCV video library is not included. Long screenshot does not need it | ~61 MB |
 | **ZXing** | `ZXing.dll`. Barcode scan and QR images. Asked for when you use them | ~3 MB |
 | **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
 | **SharpSevenZip / 7za** | Extract dictionary and translation model `.7z` packages | ~1.8 MB + ~0.4 MB |
