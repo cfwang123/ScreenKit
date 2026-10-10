@@ -1095,14 +1095,44 @@ static class ImageUtil {
 	}
 
 	/// <summary>
-	/// 在 BGR 图上用系统 CJK 字体写字（微软雅黑）。OpenCV Hershey 不含汉字，会画成 ?。
+	/// 在 Bitmap 上用系统 CJK 字体写字（微软雅黑）。目标须是 Graphics 能画的格式。
+	/// 返回实际用到的字体名。
+	/// </summary>
+	public static string Putcjk(System.Drawing.Bitmap dst, string text, float x, float y) {
+		if (dst == null || string.IsNullOrEmpty(text)) return "";
+		if (!makelabel(text, dst.Width, dst.Height, x, y, out var label, out var tx, out var ty, out var name))
+			return name;
+		using (label)
+		using (var g = System.Drawing.Graphics.FromImage(dst)) {
+			g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
+			g.DrawImage(label, tx, ty);
+		}
+		return name;
+	}
+
+	/// <summary>
+	/// 在 BGR 图上用系统 CJK 字体写字（微软雅黑）。人脸框仍走 Mat。
 	/// 返回实际用到的字体名。
 	/// </summary>
 	public static string Putcjk(OpenCvSharp.Mat bgr, string text, float x, float y) {
 		if (bgr == null || bgr.Empty() || string.IsNullOrEmpty(text)) return "";
-		int imgW = bgr.Cols;
+		if (!makelabel(text, bgr.Cols, bgr.Rows, x, y, out var label, out var tx, out var ty, out var name))
+			return name;
+		using (label)
+			blitlabel(bgr, label, tx, ty);
+		return name;
+	}
+
+	static bool makelabel(string text, int imgW, int imgH, float x, float y,
+		out System.Drawing.Bitmap label, out int tx, out int ty, out string fontName) {
+		label = null;
+		tx = 0;
+		ty = 0;
+		fontName = "";
+		if (imgW <= 0 || imgH <= 0 || string.IsNullOrEmpty(text)) return false;
 		float em = Math.Max(14f, imgW / 42f);
 		using var font = cjkfont(em);
+		fontName = font.Name ?? "";
 		System.Drawing.SizeF sz;
 		using (var probe = new System.Drawing.Bitmap(8, 8))
 		using (var pg = System.Drawing.Graphics.FromImage(probe)) {
@@ -1111,21 +1141,28 @@ static class ImageUtil {
 		}
 		int tw = Math.Max(1, (int)Math.Ceiling(sz.Width) + 8);
 		int th = Math.Max(1, (int)Math.Ceiling(sz.Height) + 4);
-		int tx = Math.Max(0, Math.Min((int)x, bgr.Cols - 1));
-		int ty = (int)y - th - 2;
-		if (ty < 0) ty = Math.Min(bgr.Rows - 1, (int)y + 2);
+		tx = Math.Max(0, Math.Min((int)x, imgW - 1));
+		ty = (int)y - th - 2;
+		if (ty < 0) ty = Math.Min(imgH - 1, (int)y + 2);
 		if (ty < 0) ty = 0;
-		if (tx + tw > bgr.Cols) tw = bgr.Cols - tx;
-		if (ty + th > bgr.Rows) th = bgr.Rows - ty;
-		if (tw <= 0 || th <= 0) return font.Name;
+		if (tx + tw > imgW) tw = imgW - tx;
+		if (ty + th > imgH) th = imgH - ty;
+		if (tw <= 0 || th <= 0) return false;
 
-		using var bmp = new System.Drawing.Bitmap(tw, th, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		var bmp = new System.Drawing.Bitmap(tw, th, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 		using (var g = System.Drawing.Graphics.FromImage(bmp)) {
 			g.Clear(System.Drawing.Color.FromArgb(180, 0, 0, 0));
 			g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
 			using var fg = new System.Drawing.SolidBrush(System.Drawing.Color.FromArgb(255, 255, 220, 80));
 			g.DrawString(text, font, fg, 2f, 1f);
 		}
+		label = bmp;
+		return true;
+	}
+
+	static void blitlabel(OpenCvSharp.Mat bgr, System.Drawing.Bitmap bmp, int tx, int ty) {
+		int tw = bmp.Width;
+		int th = bmp.Height;
 		var rect = new System.Drawing.Rectangle(0, 0, tw, th);
 		var data = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly,
 			System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -1157,7 +1194,6 @@ static class ImageUtil {
 			}
 		}
 		finally { bmp.UnlockBits(data); }
-		return font.Name;
 	}
 
 	static System.Drawing.Font cjkfont(float emPx) {
