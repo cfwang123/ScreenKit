@@ -119,7 +119,7 @@
 			</MenuItem>
 			<MenuItem x:Name="mntools" Header="工具(_T)"
 			          AutomationProperties.AutomationId="menu.tools">
-				<MenuItem x:Name="mnwebhome" Header="web主页(_B)"
+				<MenuItem x:Name="mnwebhome" Header="web工具页(_B)"
 				          AutomationProperties.AutomationId="menu.webhome"
 				          ToolTip="在浏览器打开本机工具页"/>
 				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
