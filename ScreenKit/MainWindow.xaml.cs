@@ -256,10 +256,36 @@ public partial class MainWindow : Window {
 			(tabcast, opt.TabCastVisible),
 			(tabdict, opt.TabDictVisible && opt.ModDict),
 		};
-		foreach (var (tab, visible) in tabs)
-			tab.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-		if (maintabs.SelectedItem is TabItem selected && selected.Visibility == Visibility.Visible) return;
-		maintabs.SelectedItem = tabs.FirstOrDefault(x => x.Item2).Item1;
+		TabItem keep = null;
+		if (maintabs.SelectedItem is TabItem selected) {
+			foreach (var (tab, on) in tabs) {
+				if (ReferenceEquals(tab, selected) && on) {
+					keep = selected;
+					break;
+				}
+			}
+		}
+		if (keep == null) {
+			foreach (var (tab, on) in tabs) {
+				if (!on) continue;
+				keep = tab;
+				break;
+			}
+		}
+		// 全部关闭时 SelectedItem 不能为 null：TabControl 会把选中项拉回第一页，Collapsed 的截图识别仍显示。
+		if (keep == null) {
+			maintabs.Visibility = Visibility.Collapsed;
+			foreach (var (tab, _) in tabs)
+				tab.Visibility = Visibility.Collapsed;
+			return;
+		}
+		maintabs.Visibility = Visibility.Visible;
+		if (!ReferenceEquals(maintabs.SelectedItem, keep))
+			maintabs.SelectedItem = keep;
+		foreach (var (tab, on) in tabs)
+			tab.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+		if (!ReferenceEquals(maintabs.SelectedItem, keep))
+			maintabs.SelectedItem = keep;
 	}
 
 	void selectmaintab(TabItem tab) {

@@ -13,8 +13,7 @@ SK.watchAcc = 0;
 	SK.regutil = function(name, spec){
 		SK.utils[name] = spec;
 	};
-	var curcat = "fav";
-	var spyLock = 0;
+	var curcat = "all";
 	var favs = [];
 	var util = "";
 	function boot(){
@@ -51,7 +50,7 @@ SK.watchAcc = 0;
 		buildgroups();
 		paintfav();
 		paintstars();
-		window.addEventListener("scroll", spyon);
+		paintcats();
 		window.addEventListener("popstate", applyhash);
 		var start = toolhash();
 		if (start === "zh" || start === "yomi" || start === "u-name" || start === "u-cron"
@@ -157,11 +156,7 @@ SK.watchAcc = 0;
 			favbtn.setAttribute("data-fav", SK.curtool);
 		}
 		paintstars();
-		if (name === "home") {
-			var back = pickcat();
-			if (back) curcat = back;
-			paintcats();
-		}
+		if (name === "home") paintcats();
 		else marktool(SK.curtool, name);
 		if (name === "ocr") SK.loadoocr();
 		if (name === "tts") SK.loadtts();
@@ -173,10 +168,6 @@ SK.watchAcc = 0;
 		var card = cardof(id);
 		if (!card) return;
 		var cat = card.getAttribute("data-cat") || "";
-		if (cat) {
-			curcat = cat;
-			paintnav();
-		}
 		var catName = cattitle(cat);
 		var span = card.querySelector("span");
 		var toolName = span ? span.textContent : "";
@@ -200,6 +191,7 @@ SK.watchAcc = 0;
 		for (i = 0; i < btns.length; i++) pending.push(btns[i]);
 		for (i = 0; i < nav.length; i++) {
 			var cat = nav[i].getAttribute("data-cat");
+			if (cat === "all") continue;
 			var sec = document.createElement("section");
 			sec.className = "catsec";
 			sec.id = "sec-" + cat;
@@ -257,60 +249,38 @@ SK.watchAcc = 0;
 
 	function jumpcat(cat){
 		curcat = cat;
-		spyLock = Date.now() + 800;
 		if (SK.curtool !== "home") show("home");
-		else paintnav();
-		var sec = $("sec-" + cat);
-		if (!sec) return;
-		var y = sec.getBoundingClientRect().top + window.pageYOffset - 12;
-		if (y < 0) y = 0;
-		window.scrollTo(0, y);
-	}
-
-	function pickcat(){
-		var secs = document.querySelectorAll(".catsec");
-		var pick = "";
-		var i;
-		for (i = 0; i < secs.length; i++) {
-			if (secs[i].hidden) continue;
-			var top = secs[i].getBoundingClientRect().top;
-			if (top - 80 <= 0) pick = secs[i].getAttribute("data-cat");
-			else if (!pick) {
-				pick = secs[i].getAttribute("data-cat");
-				break;
-			}
-		}
-		return pick;
-	}
-
-	function spyon(){
-		if (SK.curtool !== "home") return;
-		if (Date.now() < spyLock) return;
-		var pick = pickcat();
-		if (!pick || pick === curcat) return;
-		curcat = pick;
-		paintnav();
+		else paintcats();
+		var home = $("home");
+		if (home) home.scrollTop = 0;
 	}
 
 	function paintcats(){
 		var q = ($("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
-		var cards = document.querySelectorAll(".cards button");
+		var cards = document.querySelectorAll(".catsec .cards button");
 		var n = 0;
 		var i;
 		for (i = 0; i < cards.length; i++) {
+			var sec = cards[i].parentNode ? cards[i].parentNode.parentNode : null;
+			var cat = sec ? (sec.getAttribute("data-cat") || "") : "";
+			var incat = curcat === "all" || cat === curcat;
 			var name = (cards[i].getAttribute("data-name") || "").toLowerCase();
-			var vis = !q || name.indexOf(q) >= 0;
+			var vis = incat && (!q || name.indexOf(q) >= 0);
 			cards[i].hidden = !vis;
 			if (vis) n++;
 		}
 		var secs = document.querySelectorAll(".catsec");
 		for (i = 0; i < secs.length; i++) {
+			var cat = secs[i].getAttribute("data-cat");
+			if (curcat !== "all" && cat !== curcat) {
+				secs[i].hidden = true;
+				continue;
+			}
 			var grid = secs[i].querySelector(".cards");
 			var buttons = grid ? grid.querySelectorAll("button") : [];
 			var visn = 0;
 			var j;
 			for (j = 0; j < buttons.length; j++) if (!buttons[j].hidden) visn++;
-			var cat = secs[i].getAttribute("data-cat");
 			if (cat === "fav" && !q) {
 				secs[i].hidden = false;
 				var empty = $("fav-none");
@@ -888,8 +858,6 @@ SK.watchAcc = 0;
 	SK.paintfav = paintfav;
 	SK.paintnav = paintnav;
 	SK.jumpcat = jumpcat;
-	SK.pickcat = pickcat;
-	SK.spyon = spyon;
 	SK.paintcats = paintcats;
 	SK.loadfav = loadfav;
 	SK.cardof = cardof;
