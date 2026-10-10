@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.18 (2026-10-10)](#v1018-2026-10-10)
 - [v1.0.17 (2026-10-09 ~ 10-10)](#v1017-2026-10-09--10-10)
 - [v1.0.16 (2026-10-08 ~ 10-09)](#v1016-2026-10-08--10-09)
 - [v1.0.15 (2026-10-05 ~ 10-06)](#v1015-2026-10-05--10-06)
@@ -33,149 +34,102 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+### 中文
+
+## v1.0.18 (2026-10-10)
+
+### English
+
 #### Added
 
-- **Settings → Dictionary** has a database hold time in minutes. The dictionary database closes after that many minutes without a lookup, and the next lookup opens it again. The default is 1. 0 keeps it open.
-- Tools-page date difference, date add/subtract, and month add/subtract are one tool, **日期计算**. It has two modes: **日期差** shows how far apart two dates are, and **日期加减** moves one date. Both take a unit: second, minute, hour, day, month, or year. A difference in months or years follows the calendar and keeps the leftover days, as in `3 个月 5 天（共 95 天）`. Month and year offsets clamp to the last day, so 1 月 31 日 plus one month is 2 月 28 日. An offset in seconds, minutes, or hours also shows the resulting time. An offset of a fractional day shows the time too. A favorite of the three old tools opens 日期计算.
+- **Settings → Dictionary** has a database hold time in minutes. The dictionary database closes after that many minutes without a lookup, and the next lookup opens it again. The default is 1. 0 keeps it open. The same page sets how many hits to list (1–4000, default 1000). **Export** writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
+- Tools-page date difference, date add/subtract, and month add/subtract are one tool, **日期计算**. **日期差** shows how far apart two dates are and starts on **全部**, which prints one line per unit: seconds, minutes, hours, days, and months, plus a year line once the gap passes a year. A unit of month or year follows the calendar and keeps the leftover days, as in `3 个月 5 天（共 95 天）`. **日期加减** moves one date and answers on a single line, as in `2026-10-10 增加：7 天 → 2026-10-17  周六`. The count may be negative, and may be fractional from seconds through days. Month and year clamp to the last day, so 1 月 31 日 plus one month is 2 月 28 日. An offset in seconds, minutes, or hours, or a fractional day, also shows the resulting time. A favorite of the three old tools opens 日期计算.
 - The left of the main-window status bar shows this program's commit size, CPU, and GPU. It updates every 2 seconds while the window is visible.
 - The tools-page timestamp tool has a date-time picker. Choosing a time fills the text and converts. Typing a timestamp or a date converts immediately. Converting moves the picker to that local time.
 - The Unicode code chart preview lists UTF-32, GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. Those code-page bytes come from `GET/POST /api/enc`. A code point an encoding cannot store shows 无. Latin-1 is shown for U+0000 through U+00FF.
-- Tools-page unit conversion (单位换算) takes a unit right in the number box, such as `1米`, `3斤`, or `5kg`: the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind, such as `1米`, `1000毫米`, `100厘米`, `0.001千米`, `39.3700787402英寸`. Every conversion echoes what you entered on the first line; picking one unit puts that single answer on the next line, as in `1米` then `3.280839895英尺`.
-- The tools-page image-to-ICO screen can scale the picture with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
-- The tools page adds **GBK码表**, next to **Unicode码表**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank. The Unicode chart card is named Unicode码表.
-- The tools page splits QR / barcode into **二维码生成** and **二维码识别**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate still prints one line of the source text under the image.
-- The cast toolbar shows the current audio source. **Options** stays available while casting. It can turn audio on or off and pick speakers, the microphone, or both. The change applies to the live cast.
-- The recording toolbar shows the current audio source. **Options** stays available while recording and can change that source or turn audio off. The rest of the recording settings stay editable only before Start. GIF recording still has no audio.
-
-- Settings → Capture sets the screenshot folder (`screenshot_dir`). The box shows `screenshots/` by default (next to the program) and also offers `D:/s/`. Another folder can be typed or browsed. History, cleanup, and copy-as-file use that folder.
-- Settings → Capture file name (`screenshot_name`) is a pattern you can type or pick. The default is `shot_yyyyMMdd_HHmmss_fff`. Repeated `r` is random digits, as in `shot_yyyyMMdd_HHmmss_rrr`. Repeated `#` is a counter: `####` writes `0001.png`, and `yyyyMMdd_###` takes the next number among files with that same date prefix.
+- **GBK码表** sits next to **Unicode码表**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank.
+- The tools page can turn a picture into an ICO. Paste or choose an image, preview it at the chosen pixel size with a border, pick one size (32 by default), then download. Scale with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
+- The tools page splits QR / barcode into **二维码生成** and **二维码识别**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate prints one line of the source text under the image. A long line is cut with an ellipsis.
+- The cast toolbar shows the current audio source. **Options** stays available while casting. It can turn audio on or off and pick speakers, the microphone, or both. The change applies to the live cast. The recording toolbar shows the current audio source and can change it, or turn audio off, while recording. The rest of the recording settings stay editable only before Start. GIF recording still has no audio.
+- Settings → Capture sets the screenshot folder (`screenshot_dir`). The box shows `screenshots/` by default (next to the program) and also offers `D:/s/`. Another folder can be typed or browsed. History, cleanup, and copy-as-file use that folder. The file name (`screenshot_name`) is a pattern you can type or pick. The default is `shot_yyyyMMdd_HHmmss_fff`. Repeated `r` is random digits, as in `shot_yyyyMMdd_HHmmss_rrr`. Repeated `#` is a counter: `####` writes `0001.png`, and `yyyyMMdd_###` takes the next number among files with that same date prefix.
 - `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
-- The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
-- The tools-page regex tester can insert a common pattern: email, mobile number, ID card, URL, IPv4, date, time, integer, decimal, Chinese, color, postal code, QQ, license plate, or a blank line. An empty text box receives a one-line sample.
-- The tools-page regex tester can batch-test one line at a time. Each line is shown as `text [通过]` or `text [未通过]`. Pass is green and fail is red. A line passes only when the whole line matches.
-- The tools-page OCR result shows the same summary as the desktop: infer time, end-to-end time, confidence, engine, image size, line count, and the detection side limit.
-- The tools page can turn a picture into an ICO. Paste or choose an image, preview it, pick one size (32 by default), then download. The square icon is also shown at that pixel size, with a border so the size is visible. The picture fits inside the square, and the empty area stays transparent.
+- The tools-page OCR screen accepts a pasted picture (Ctrl+V), shows a preview, and starts as soon as a picture is chosen or pasted. The result shows the same summary as the desktop: infer time, end-to-end time, confidence, engine, image size, line count, and the detection side limit. The Recognize button still runs it again.
+- The tools-page regex tester can insert a common pattern: email, mobile number, ID card, URL, IPv4, date, time, integer, decimal, Chinese, color, postal code, QQ, license plate, or a blank line. An empty text box receives a one-line sample. It can also batch-test one line at a time. Each line is shown as `text [通过]` or `text [未通过]`. Pass is green and fail is red. A line passes only when the whole line matches.
 - The tools-page speech screen can filter voices by language and gender. **生成 WAV** downloads the same synthesis as **朗读**.
-- The tools-page random password tool generates 1 to 50 passwords at once. Length is 4 to 128. Each selected character set can be required at least once. The symbol set matches the desktop generator.
-- Password generator, on the desktop and the tools page, can use a character set you type. Duplicates count once. The usual letter, digit, and symbol choices stay available when that option is off.
+- The tools-page random password tool generates 1 to 50 passwords at once. Length is 4 to 128. Each selected character set can be required at least once. The symbol set matches the desktop generator. Password generator, on the desktop and the tools page, can use a character set you type. Duplicates count once. The usual letter, digit, and symbol choices stay available when that option is off.
 
 #### Fixed
 
 - Image-to-ICO fit and stretch stay sharper when a large picture is reduced to the icon. The preview and the downloaded file average the source pixels. Crop is unchanged.
 - Hovering a category in the main-window **Tools → Web tools** menu no longer closes the menu. Opening a category was rebuilding the list.
-- The tools-page speech screen lists the models and voices the speech tab already loaded, as soon as it opens. It no longer waits on another model scan or on the Edge voice download. Every speaker is included, including models with more than 64.
-- Tools-page speech voices use the same readable names as the desktop list. Windows voices no longer show the registry id.
+- The tools-page speech screen lists the models and voices the speech tab already loaded, as soon as it opens. It no longer waits on another model scan or on the Edge voice download. Every speaker is included, including models with more than 64. Names match the desktop list. Windows voices no longer show the registry id.
 - The tools page search box hides cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
 
 #### Changed
 
 - Opening the tools page drops favorites that no longer match a tool. A favorite of a merged tool is kept as that tool. The list is saved in this browser.
 - The tools page **File transfer** link opens `/files` in a new window. The tools page stays open.
-- The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
-- Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, or ID number. Each line is one value.
-- The separate MAC address and UUID cards are gone. Both are kinds on **生成测试数据** (formerly 测试数据), still one value per line. An old favorite or `#u-mac` / `#u-uuid` opens that tool with the matching kind selected.
-- Text-category tools update the result when the text or an option changes. Japanese yomi and the regex tester stay on their buttons, because those can take more than a second.
-- Tools-page unit conversion updates the result as soon as the number or a choice changes.
-- Tools-page text compare, JSON diff, and find-and-replace are removed. Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. Pick a kind, enter a number, then choose the original unit and the new unit. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. An old favorite of one of those unit tools opens 单位换算.
-- **Settings → Dictionary** has a result count. The dictionary lists that many hits. The range is 1–4000, and the default is 1000.
+- Dictionary lookup reads `dict2.db` next to the program. Each word is stored once. Prefix, suffix, and infix search use the packed index. The old `lookup_key` search is gone. The file is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed release `dict-db`, extracts `dict2.db`, and deletes an old `dict.db` beside the program (a symlink is removed, and the link target is left in place). Release builds leave a local `dict2.db` in place and no longer delete or recreate `dict.db`. The slim package still omits both.
+- Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, ID number, MAC address, or UUID. Each line is one value. The separate MAC address and UUID cards are gone. The card is named **生成测试数据**. An old favorite or `#u-mac` / `#u-uuid` opens that tool with the matching kind selected.
+- Text-category tools update the result when the text or an option changes. Japanese yomi and the regex tester stay on their buttons. Unit conversion does the same.
+- Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. The number box accepts a unit, such as `1米`, `3斤`, or `5kg`, and the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind. The first line echoes what you entered. Picking one unit puts that single answer on the next line. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. Text compare, JSON diff, and find-and-replace are removed. An old favorite of one of those tools opens 单位换算.
 - The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
-- Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file. The joined `ScreenKit/Web/tools.js` is not committed. The slim package ships that joined `web/tools.js` only, and does not include `web/tools` or the separate tool scripts.
-- Dictionary lookup reads `dict2.db` next to the program. Each word is stored once. Prefix, suffix, and infix search use the packed index. The old `lookup_key` search is gone. The file is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed release `dict-db`, extracts `dict2.db`, and deletes an old `dict.db` beside the program (a symlink is removed, and the link target is left in place). Release builds leave a local `dict2.db` in place. The slim package still omits it.
-- The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list.
-- The tray **Web tools** menu lists every tools-page tool under its category. The first item is **Web tools home**, which opens the list.
-- The next tray item is **File transfer**. It opens the desktop file manager at `/files`.
-- The main-window **Tools** menu **Web tools** lists the same entries as the tray: **Web tools home**, **File transfer**, then each category.
-- Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on.
-- Unicode chart cells the installed fonts cannot draw are no longer an empty box. A compatibility ideograph shows its unified equivalent, and the preview names that code point. HanaMin or BabelStone Han still have the separate glyph. An unassigned code point is marked empty, because no font contains it. An assigned character with no local glyph and no drawable equivalent says a CJK font such as HanaMin may have it.
-- The Unicode chart has a preview column. The selected character is shown large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms. Clicking a cell still copies it.
-- The tools-page ASCII chart is now a Unicode chart. Groups are on the left. The chosen group is a grid of every character in that group, with each cell wide enough to show the whole glyph. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split, and the slice start is shown on the group. Surrogates, private-use areas, and CJK Extension B onward are not listed.
+- Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file. The joined `ScreenKit/Web/tools.js` is not committed. The slim package ships that joined `web/tools.js` only.
+- The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list. Categories stay on the left and that category's tools sit under a heading on the right. Scrolling highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
+- The tray **Web tools** menu and the main-window **Tools → Web tools** menu list every tool under its category. The first item is **Web tools home**. The next is **File transfer**, which opens `/files`.
+- Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on. The random-password card is under Text, directly after Text convert. The random-string card is removed.
+- The tools-page ASCII chart is now **Unicode码表**. Groups are on the left. The chosen group is a grid of every character in that group, with each cell wide enough to show the whole glyph. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split. Surrogates, private-use areas, and CJK Extension B onward are not listed. Cells the installed fonts cannot draw show a unified equivalent when the character is a compatibility ideograph, and the preview names that code point. An unassigned code point is marked empty. An assigned character with no local glyph and no drawable equivalent says a CJK font such as HanaMin may have it. The preview column shows the character large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms.
 - The tools-page color picker stays on the page. The color chip is a small square, and the saturation square, hue bar, and RGB fields sit under it.
-- The tools-page QR preview shows one line of the source text under the code, the same as the desktop window. A long line is cut with an ellipsis.
-- The tools-page OCR screen starts recognition as soon as a picture is chosen or pasted. The Recognize button still runs it again.
+- OCR on the tools page is under Image. These former cards are buttons on Text convert, and an old favorite of one of them opens Text convert: simplified/traditional, Japanese yomi (by word and by character), variable names, crontab, token estimate, User-Agent解析, MD5, SHA-256, JSON minify, JSON escape and unescape, HTML encode and decode, HTML / CSS / JS minify, XML format and minify, SQL format and minify, and HTML-to-JS. The tools-page batch-rename card is removed. Desktop batch rename, the desktop Japanese yomi window, and the desktop simplified/traditional window stay.
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
-- The tools page lists every category on the left and that category's tools under a heading on the right. Scrolling the list highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
-- The tools-page random password card is under Text, directly after Text convert.
-- MD5, SHA-256, JSON minify, HTML encode and decode, and HTML, CSS, and JS minify are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
-- XML format and minify, JSON escape and unescape, SQL format and minify, and HTML-to-JS are buttons on Text convert. Those separate cards are gone. An old favorite of one of them opens Text convert.
-- The tools-page random-string card is removed. Password generator already covers that.
-- Simplified/traditional is two buttons on Text convert. The separate card is gone. An old favorite opens Text convert. The tools-page batch-rename card is removed. Desktop batch rename stays.
-- Japanese yomi is two buttons on Text convert, one by word and one by character. The separate card is gone. An old favorite opens Text convert. The desktop window stays.
-- OCR on the tools page is under Image. Variable names, crontab, token estimate, and User-Agent parse are buttons on Text convert. Those separate cards are gone. An old favorite opens Text convert. The User-Agent button is named User-Agent解析.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
-- Release builds no longer delete or recreate `dict.db` next to the program. A local link or copy stays as it is. The slim package still leaves that file out.
 
 ### 中文
 
 #### 新增
 
-- **参数设置 → 词典** 增加数据库保持时间，单位是分钟。连续这么久没有查询就关闭词典数据库，下次查询再打开。默认 1。0 表示不关闭。
-- 工具页的「日期差」「日期加减」「月份加减」合成 **日期计算**。两种模式：**日期差** 看两个日期相差多少，**日期加减** 把一个日期往前或往后挪。两种都能选单位：秒、分、小时、天、月、年。按月和按年的差走日历、余数照留，如 `3 个月 5 天（共 95 天）`。月数和年数按月末夹住，1 月 31 日加 1 个月是 2 月 28 日。按秒、分、小时加减会把结果的时间一起显示；天数带小数时同样显示时间。原来收藏了这三个工具之一时，会打开「日期计算」。
+- **参数设置 → 词典** 增加数据库保持时间，单位是分钟。连续这么久没有查询就关闭词典数据库，下次查询再打开。默认 1。0 表示不关闭。同一页可设结果条数，范围 1～4000，默认 1000。**导出**写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇。csv 是表。html 和 md 是表格，列为单词、详情，详情列占满剩余宽度。
+- 工具页的「日期差」「日期加减」「月份加减」合成 **日期计算**。**日期差** 看两个日期相差多少，单位默认就是第一项 **全部**：秒、分、小时、天、月逐行列出，超过一年再补一行年。按月和按年的差走日历、余数照留，如 `3 个月 5 天（共 95 天）`。**日期加减** 把一个日期往前或往后挪，结果占一行，如 `2026-10-10 增加：7 天 → 2026-10-17  周六`。数量可以是负数（往前），秒到天还可以带小数。月数和年数按月末夹住，1 月 31 日加 1 个月是 2 月 28 日。按秒、分、小时加减，或天数带小数时，结果会连时间一起显示。原来收藏了这三个工具之一时，会打开「日期计算」。
 - 主窗口状态栏左边显示本程序的提交大小、CPU 和 GPU。窗口可见时每 2 秒更新。
 - 工具页的时间戳增加日期时间选择。选好时间会写入文本并转换。输入时间戳或日期时马上转换。转换时，选择控件会跳到对应的本地时间。
 - Unicode码表选中字符后，预览列出 UTF-32、GBK、GB18030、Big5、Shift_JIS、EUC-KR。这些代码页的字节由 `GET/POST /api/enc` 计算。放不下的码位显示「无」。U+0000 到 U+00FF 另外显示 Latin-1。
-- 工具页「单位换算」的数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它：一次按该类型的单位逐行列出，如 `1米`、`1000毫米`、`100厘米`、`0.001千米`、`39.3700787402英寸`。每次换算的第 1 行都回显原值；选具体单位时，第 2 行就是那一行结果，例如 `1米` 下面是 `3.280839895英尺`。
-- 工具页的图片转 ICO 可以选缩放：fit、拉伸、裁剪。默认 fit，等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满并切掉多余部分。预览和下载的图标用同一种。
-- 工具页增加 **GBK码表**，放在 **Unicode码表** 旁边。左边按首字节分页，每页 16 列。点一下复制字符。右边显示 GBK 字节、有区位时的区位码、Unicode 码位和 UTF-8。空位留空。原来的 Unicode 表改名为 Unicode码表。
-- 工具页的「二维码 / 条码」分成 **二维码生成** 和 **二维码识别**。识别可 Ctrl+V 粘贴图片或选择文件，先显示预览再读码。生成仍在图下显示一行原文。
-- 投屏控制条显示当前声音来源。投屏中仍可点**选项**，开关声音或改成扬声器、麦克风、两者，马上作用到正在发送的投屏。
-- 录屏控制条显示当前声音来源。录制中仍可点**选项**，改声音来源或关闭声音。其它录制参数仍只在开始前修改。GIF 录屏仍然没有声音。
-
-- **参数设置 → 截图** 的保存位置（`screenshot_dir`）默认填 `screenshots/`（程序目录下），下拉可选 `D:/s/`，也可以填写或浏览其它目录。历史、清理和复制为文件都用这个目录。
-- **参数设置 → 截图** 的文件名（`screenshot_name`）可输入，也可下拉。默认 `shot_yyyyMMdd_HHmmss_fff`。连续 `r` 是随机数字，如 `shot_yyyyMMdd_HHmmss_rrr`。连续 `#` 是序号：`####` 写成 `0001.png`；`yyyyMMdd_###` 只在相同日期前缀的文件里取下一个序号。
+- 工具页增加 **GBK码表**，放在 **Unicode码表** 旁边。左边按首字节分页，每页 16 列。点一下复制字符。右边显示 GBK 字节、有区位时的区位码、Unicode 码位和 UTF-8。空位留空。
+- 工具页可以把图片做成 ICO。可粘贴或选择图片，按所选像素大小带边框预览，尺寸默认 32，然后下载。缩放可选 fit、拉伸、裁剪。默认 fit，等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满并切掉多余部分。预览和下载的图标用同一种。
+- 工具页的「二维码 / 条码」分成 **二维码生成** 和 **二维码识别**。识别可 Ctrl+V 粘贴图片或选择文件，先显示预览再读码。生成在图下显示一行原文，过长时末尾省略。
+- 投屏控制条显示当前声音来源。投屏中仍可点**选项**，开关声音或改成扬声器、麦克风、两者，马上作用到正在发送的投屏。录屏控制条同样显示当前声音来源，录制中可改来源或关闭声音。其它录制参数仍只在开始前修改。GIF 录屏仍然没有声音。
+- **参数设置 → 截图** 的保存位置（`screenshot_dir`）默认填 `screenshots/`（程序目录下），下拉可选 `D:/s/`，也可以填写或浏览其它目录。历史、清理和复制为文件都用这个目录。文件名（`screenshot_name`）可输入，也可下拉。默认 `shot_yyyyMMdd_HHmmss_fff`。连续 `r` 是随机数字，如 `shot_yyyyMMdd_HHmmss_rrr`。连续 `#` 是序号：`####` 写成 `0001.png`；`yyyyMMdd_###` 只在相同日期前缀的文件里取下一个序号。
 - `GET /api` 列出仍开启的接口，含方法、介绍和参数说明，文字与 HTTP 接口页相同。`lang` 选择语言，省略时用程序当前界面语言。原有 `endpoints` 简表仍在。
-- 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
-- 工具页的正则测试可以选择常用表达式：邮箱、手机号、身份证、网址、IPv4、日期、时间、整数、小数、中文、颜色、邮编、QQ 号、车牌、空白行。文本为空时放入一行示例。
-- 工具页的正则测试可以批量测试，一行一条。每行显示为 `文本 [通过]` 或 `文本 [未通过]`，通过为绿色，未通过为红色。整行匹配才算通过。
-- 工具页的文字识别结果会显示和桌面一样的统计：推理耗时、端到端耗时、置信度、引擎、图片宽高、行数、检测边长。
-- 工具页可以把图片做成 ICO。可粘贴或选择图片，先预览，再选一个尺寸（默认 32）后下载。方图按该像素大小显示，并有边框，方便看出大小。画面等比放进方框，空白透明。
-- 工具页的随机密码可以一次生成 1 到 50 条。长度 4 到 128。可选每类至少一个。符号集与桌面密码生成器相同。
-- 桌面和工具页的密码生成可以改用手动输入的字符集。重复字符只算一次。不勾选时仍用原来的大小写、数字和符号。
+- 工具页的文字识别可以 Ctrl+V 粘贴图片并显示预览。选择或粘贴后立即开始识别。结果会显示和桌面一样的统计：推理耗时、端到端耗时、置信度、引擎、图片宽高、行数、检测边长。识别按钮仍可再跑一次。
+- 工具页的正则测试可以选择常用表达式：邮箱、手机号、身份证、网址、IPv4、日期、时间、整数、小数、中文、颜色、邮编、QQ 号、车牌、空白行。文本为空时放入一行示例。也可以批量测试，一行一条。每行显示为 `文本 [通过]` 或 `文本 [未通过]`，通过为绿色，未通过为红色。整行匹配才算通过。
 - 工具页的语音合成可以按语言和性别筛选发音人。**生成 WAV** 下载和朗读相同的合成结果。
+- 工具页的随机密码可以一次生成 1 到 50 条。长度 4 到 128。可选每类至少一个。符号集与桌面密码生成器相同。桌面和工具页都可以改用手动输入的字符集。重复字符只算一次。不勾选时仍用原来的大小写、数字和符号。
 
 #### 修复
 
 - 图片转 ICO 的 fit 和拉伸把大图缩成图标时不再发糊。预览和下载的文件按源图像素平均缩小。裁剪不变。
 - 主窗口 **工具 → web工具** 里，鼠标停在某个分类上时菜单不再自己关掉。之前打开分类会把整份列表重建一遍。
-- 工具页的语音合成一打开就列出语音合成页已经加载的模型和发音人，不再另外扫描模型，也不再等待 Edge 发音人下载。发音人全部列出，包括超过 64 个的模型。
-- 工具页语音合成的发音人使用和桌面列表相同的可读名称。Windows 语音不再显示注册表 Id。
+- 工具页的语音合成一打开就列出语音合成页已经加载的模型和发音人，不再另外扫描模型，也不再等待 Edge 发音人下载。发音人全部列出，包括超过 64 个的模型。名称与桌面列表相同。Windows 语音不再显示注册表 Id。
 - 工具页搜索会藏起不匹配的卡片。样式里的 `display` 盖过了 `hidden`，所以列表看起来一直不变。返回和工具内的收藏按钮在首页同样不再露出来。
 
 #### 变更
 
 - 打开工具页时，收藏里已经没有的工具会去掉。合并进别的工具的收藏会改成那个工具。改过的列表写回这个浏览器。
 - 工具页左下角的 **文件传输** 在新窗口打开 `/files`，工具页保持不动。
-- 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇。csv 是表。html 和 md 是表格，列为单词、详情，详情列占满剩余宽度。
-- 「测试数据」先选类型：中文姓名、中文网名、英文网名、邮箱、手机、地址、公司、用户名、身份证。一行一条，不再把多项写在同一行。
-- 单独的「MAC 地址」和「UUID」已去掉，并入「生成测试数据」（原「测试数据」），仍是一行一条。原来收藏了这两项，或打开 `#u-mac`、`#u-uuid`，会打开这个工具并选中对应类型。
-- 文字分类的工具在修改文字或选项时直接出结果。日文注音和正则仍要点按钮，这两项可能超过 1 秒。
-- 工具页「单位换算」在修改数值或选项时立即出结果。
-- 工具页去掉文本比对、JSON 差异和查找替换。长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」：先选类型，再填数值、原单位和新单位。外币用中国银行 2026-10-10 中间价，结果里会注明。原来收藏了其中一项换算时，会打开「单位换算」。
-- **参数设置 → 词典** 增加结果条数。词典按这个数列出结果。范围 1～4000，默认 1000。
+- 词典改为读取程序旁的 `dict2.db`。每个词只存一份，前缀、后缀、中缀走压缩索引。原来的 `lookup_key` 检索已去掉。这个文件不进发布包。**帮助 → 安装功能**从固定 Release `dict-db` 下载 `dict2.7z`，解出 `dict2.db`，并删除程序旁的旧 `dict.db`（符号链接只删链接，不删目标文件）。Release 编译不会动本机已有的 `dict2.db`，也不再删除或重建 `dict.db`。精简包仍不带这两个文件。
+- 「生成测试数据」先选一种：中文姓名、中文网名、英文网名、邮箱、手机、地址、公司、用户名、身份证、MAC 地址、UUID。一行一条。单独的「MAC 地址」和「UUID」已去掉。原来收藏了这两项，或打开 `#u-mac`、`#u-uuid`，会打开这个工具并选中对应类型。
+- 文字分类的工具在修改文字或选项时直接出结果。日文注音和正则仍要点按钮。单位换算同样是一改就出结果。
+- 长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」。数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它，一次列出该类型的全部单位。第 1 行回显原值；选具体单位时，下一行就是那一行结果。外币用中国银行 2026-10-10 中间价，结果里会注明。文本比对、JSON 差异和查找替换已去掉。原来收藏了其中一项时，会打开「单位换算」。
 - README 的「安装功能」列出精简包里哪些功能可以直接用，哪些要先安装，并写上各组件在安装器里的大约体积。
-- 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。合成后的 `ScreenKit/Web/tools.js` 不提交。精简发布包只带这一份 `web/tools.js`，不带 `web/tools`，也不带各工具单独的 js。
-- 词典改为读取程序旁的 `dict2.db`。每个词只存一份，前缀、后缀、中缀走压缩索引。原来的 `lookup_key` 检索已去掉。这个文件不进发布包。**帮助 → 安装功能**从固定 Release `dict-db` 下载 `dict2.7z`，解出 `dict2.db`，并删除程序旁的旧 `dict.db`（符号链接只删链接，不删目标文件）。Release 编译不会动本机已有的 `dict2.db`。精简包仍不带这个文件。
-- 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。
-- 托盘 **web工具** 按分类列出工具页的全部工具。第一项是 **web工具主页**，打开工具列表。
-- 下一项是 **文件传输**，打开电脑版文件管理 `/files`。
-- 主窗口 **工具** 菜单里的 **web工具** 与托盘相同：第一项 **web工具主页**，下一项 **文件传输**，再按分类列出工具。
-- 桌面和工具页的密码生成，改小写、大写、数字、符号或去掉易混字符时，字符集会改成对应的那一组。只有勾着「指定字符集」时才保留手输的内容。
-- Unicode 表里，本机字体画不出的字符不再只显示空方块。兼容汉字改显示等价汉字，预览写明对应码位；独立字形仍要花园明朝（HanaMin）或 BabelStone Han。没有分配的码位标成空位，任何字体都没有这个字。已分配但本机画不出、又没有等价字的，预览会写明可能要另装上述字体。
-- Unicode 表增加预览栏。选中的字符用大字显示，并给出码位、十进制、分组、平面、类型，以及 UTF-8、UTF-16、HTML、JavaScript、URL。点一下仍然复制。
-- 工具页的 ASCII 表改为 Unicode 表。左边是分组，右边按宽度排成多列，格子够放下整个字。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开，组名带上这段的起点。代理项、私用区和汉字扩展 B 及以后未列入。
+- 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。合成后的 `ScreenKit/Web/tools.js` 不提交。精简发布包只带这一份 `web/tools.js`。
+- 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
+- 托盘 **web工具** 和主窗口 **工具 → web工具** 按分类列出全部工具。第一项是 **web工具主页**，下一项是 **文件传输**，打开 `/files`。
+- 桌面和工具页的密码生成，改小写、大写、数字、符号或去掉易混字符时，字符集会改成对应的那一组。只有勾着「指定字符集」时才保留手输的内容。随机密码改到「文字」分类，排在「文本转换」下面。工具页去掉「随机字符串」。
+- 工具页的 ASCII 表改为 **Unicode码表**。左边是分组，右边按宽度排成多列，格子够放下整个字。可输入字符、U+ 十六进制或十进制查找，点一下复制。超过 1024 个码位的区按段切开。代理项、私用区和汉字扩展 B 及以后未列入。本机字体画不出的兼容汉字改显示等价汉字，预览写明对应码位。没有分配的码位标成空位。已分配但本机画不出、又没有等价字的，预览会写明可能要另装花园明朝（HanaMin）等字体。预览栏用大字显示选中字符，并给出码位、十进制、分组、平面、类型，以及 UTF-8、UTF-16、HTML、JavaScript、URL。
 - 工具页取色的选色器一直留在页面上。颜色块是小方块，下面是饱和度方块、色相条和 RGB。
-- 工具页生成的二维码下面显示一行原文，与桌面窗口相同。过长时末尾省略。
-- 工具页的文字识别在选择或粘贴图片后立即开始识别。识别按钮仍可再跑一次。
+- 工具页的文字识别改到「图像」。下面这些原来的单独卡片改成「文本转换」里的按钮，收藏了其中一项时会打开「文本转换」：简繁转换、日文注音（非逐字、逐字）、变量名、Crontab、Token 估算、User-Agent解析、MD5、SHA-256、JSON 压缩、JSON 转义和还原、HTML 编码和解码、HTML / CSS / JS 压缩、XML 格式化和压缩、SQL 格式化和压缩、HTML 转 JS。工具页去掉「批量改名」。桌面的批量改名、日文注音和简繁转换仍在。
 - 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
-- 工具页左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
-- 工具页的随机密码改到「文字」分类，排在「文本转换」下面。
-- MD5、SHA-256、JSON 压缩、HTML 编码和解码，以及 HTML、CSS、JS 压缩，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
-- XML 格式化和压缩、JSON 转义和还原、SQL 格式化和压缩，以及 HTML 转 JS，改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
-- 工具页去掉「随机字符串」。随机密码已经能按字符集生成。
-- 简繁转换改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了它时会打开「文本转换」。工具页去掉「批量改名」。桌面的批量改名仍在。
-- 日文注音改成「文本转换」里的两个按钮：非逐字、逐字。原来的单独卡片去掉。收藏了它时会打开「文本转换」。桌面的日文注音仍在。
-- 工具页的文字识别改到「图像」。变量名、Crontab、Token 估算和 User-Agent解析改成「文本转换」里的按钮。原来的单独卡片去掉。收藏了其中一项时，会打开「文本转换」。
 - `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。8 秒内没退完时，仍由 `slx` 结束进程再编译。全局 `slx` 脚本不改。监听端口仍是设定的那个。
-- Release 编译不再删除或重建程序旁的 `dict.db`。本机已有的链接或文件会留着。精简包仍不带这个文件。
+
 
 ## v1.0.17 (2026-10-09 ~ 10-10)
 
