@@ -577,6 +577,7 @@ public partial class MainWindow : Window {
 			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
 			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => opengifrecordoptions(fromTray: true)));
 			tray.WebHomeRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true)));
+			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true, tool: id)));
 			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv(fromTray: true)));
 			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake(fromTray: true)));
 			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename(fromTray: true)));

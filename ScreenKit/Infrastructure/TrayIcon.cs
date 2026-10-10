@@ -1,5 +1,7 @@
 using System.Drawing;
 using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using Forms = System.Windows.Forms;
 
@@ -27,6 +29,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miGifRecord;
 	Forms.ToolStripMenuItem miGifRecordOpt;
 	Forms.ToolStripMenuItem miTools;
+	Forms.ToolStripMenuItem miWeb;
 	Forms.ToolStripMenuItem miWebHome;
 	Forms.ToolStripMenuItem miImgConv;
 	Forms.ToolStripMenuItem miQrMake;
@@ -158,6 +161,10 @@ sealed class TrayIcon : IDisposable {
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
+		miWeb = new Forms.ToolStripMenuItem(Loc.T("tray.webtools"));
+		miWeb.DropDownItems.Add(miWebHome);
+		miWeb.DropDownItems.Add(new Forms.ToolStripSeparator());
+		miWeb.DropDownOpening += (_, _) => fillwebtools();
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miQrMake);
@@ -205,7 +212,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miUsbAcc);
-		menu.Items.Add(miWebHome);
+		menu.Items.Add(miWeb);
 		menu.Items.Add(miTools);
 		menu.Items.Add(miSettings);
 		menu.Items.Add(new Forms.ToolStripSeparator());
@@ -405,6 +412,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miGifRecord, "tray.gifrecord");
 			settext(miGifRecordOpt, "tray.gifrecordopt");
 			settext(miTools, "tray.tools");
+			settext(miWeb, "tray.webtools");
 			settext(miWebHome, "tray.webhome");
 			settext(miImgConv, "tray.imgconv");
 			settext(miQrMake, "tray.qrmake");
@@ -444,6 +452,53 @@ sealed class TrayIcon : IDisposable {
 	public event Action GifRecordRequested;
 	public event Action GifRecordOptionsRequested;
 	public event Action WebHomeRequested;
+	public event Action<string> WebToolRequested;
+
+	void fillwebtools() {
+		while (miWeb.DropDownItems.Count > 2) {
+			var last = miWeb.DropDownItems.Count - 1;
+			var it = miWeb.DropDownItems[last];
+			miWeb.DropDownItems.RemoveAt(last);
+			it.Dispose();
+		}
+		foreach (var cat in readwebtools()) {
+			var sub = new Forms.ToolStripMenuItem(cat.Title);
+			foreach (var tool in cat.Tools) {
+				var id = tool.Id;
+				sub.DropDownItems.Add(new Forms.ToolStripMenuItem(tool.Name, null, (_, _) => {
+					try { WebToolRequested?.Invoke(id); } catch { }
+				}));
+			}
+			if (sub.DropDownItems.Count > 0)
+				miWeb.DropDownItems.Add(sub);
+			else
+				sub.Dispose();
+		}
+	}
+
+	static List<(string Title, List<(string Id, string Name)> Tools)> readwebtools() {
+		var cats = new List<(string Id, string Title)>();
+		var tools = new List<(string Id, string Cat, string Name)>();
+		var list = new List<(string Title, List<(string Id, string Name)> Tools)>();
+		if (!SendFileWebPages.TryLoad("tools.html", out var bytes) || bytes == null || bytes.Length == 0)
+			return list;
+		var html = Encoding.UTF8.GetString(bytes);
+		foreach (Match m in Regex.Matches(html, "data-cat=\"([^\"]+)\"\\s+data-title=\"([^\"]+)\"")) {
+			if (m.Groups[1].Value == "fav") continue;
+			cats.Add((m.Groups[1].Value, m.Groups[2].Value));
+		}
+		foreach (Match m in Regex.Matches(html, "data-tool=\"([^\"]+)\"\\s+data-cat=\"([^\"]+)\"[\\s\\S]*?<span>([^<]*)</span>"))
+			tools.Add((m.Groups[1].Value, m.Groups[2].Value, m.Groups[3].Value.Trim()));
+		foreach (var cat in cats) {
+			var rows = new List<(string Id, string Name)>();
+			foreach (var tool in tools) {
+				if (tool.Cat == cat.Id && tool.Name.Length > 0)
+					rows.Add((tool.Id, tool.Name));
+			}
+			if (rows.Count > 0) list.Add((cat.Title, rows));
+		}
+		return list;
+	}
 	public event Action ImgConvRequested;
 	public event Action QrMakeRequested;
 	public event Action RenameRequested;

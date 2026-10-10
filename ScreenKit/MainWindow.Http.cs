@@ -130,14 +130,17 @@ public partial class MainWindow {
 		return $"http://127.0.0.1:{opt.HttpPort}";
 	}
 
-	void openhttptools(bool fromTray = false) {
+	void openhttptools(bool fromTray = false, string tool = null) {
 		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
 			httptoolfail(httpstatustext(), fromTray);
 			return;
 		}
+		var url = httpbaseurl() + "/";
+		if (!string.IsNullOrWhiteSpace(tool) && tool != "home")
+			url += "#" + Uri.EscapeDataString(tool.Trim());
 		try {
 			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
-				FileName = httpbaseurl() + "/",
+				FileName = url,
 				UseShellExecute = true,
 			});
 		}
