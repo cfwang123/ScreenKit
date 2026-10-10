@@ -860,15 +860,14 @@ static class Cli {
 		return 0;
 	}
 
-	/// <summary>用人脸叠加同一套 CJK 字体写「女 22岁」，对照 Hershey（会变成 ??）。</summary>
+	/// <summary>用 GDI+ 在 Bitmap 上写「女 22岁」。不加载 OpenCV。</summary>
 	static int testfaceoverlay() {
 		Out("=== 人脸叠加中文 --test-face-overlay ===");
-		NativeRuntime.EnsureOpenCv();
 		const string label = "女 22岁";
-		var bg = new OpenCvSharp.Scalar(30, 30, 30);
-		using var cjk = new OpenCvSharp.Mat(80, 400, OpenCvSharp.MatType.CV_8UC3, bg);
-		using var hershey = new OpenCvSharp.Mat(80, 400, OpenCvSharp.MatType.CV_8UC3, bg);
-		var fontName = ImageUtil.Putcjk(cjk, label, 16, 56) ?? "";
+		using var bmp = new System.Drawing.Bitmap(400, 80, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		using (var g = System.Drawing.Graphics.FromImage(bmp))
+			g.Clear(System.Drawing.Color.FromArgb(255, 30, 30, 30));
+		var fontName = ImageUtil.Putcjk(bmp, label, 16, 56) ?? "";
 		Out("font=" + fontName);
 		bool cjkFont = fontName.IndexOf("YaHei", StringComparison.OrdinalIgnoreCase) >= 0
 			|| fontName.Contains("雅黑") || fontName.Contains("黑体")
@@ -877,40 +876,40 @@ static class Cli {
 			Err("未找到中文字体（微软雅黑/黑体），实际=" + fontName);
 			return 1;
 		}
-		OpenCvSharp.Cv2.PutText(hershey, label, new OpenCvSharp.Point(16, 56),
-			OpenCvSharp.HersheyFonts.HersheySimplex, 1.2, new OpenCvSharp.Scalar(80, 220, 255), 2);
-		int cjkInk = countbgrink(cjk, 30);
-		int hersheyInk = countbgrink(hershey, 30);
-		Out($"cjkInk={cjkInk} hersheyInk={hersheyInk}");
+		int ink = countargbink(bmp, 30);
+		Out($"ink={ink}");
 		var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 		Directory.CreateDirectory(dir);
-		var cjkPath = Path.Combine(dir, "face_overlay_cjk.png");
-		var hersheyPath = Path.Combine(dir, "face_overlay_hershey.png");
-		OpenCvSharp.Cv2.ImWrite(cjkPath, cjk);
-		OpenCvSharp.Cv2.ImWrite(hersheyPath, hershey);
-		Out("saved " + cjkPath);
-		Out("saved " + hersheyPath);
-		if (cjkInk < 200) {
-			Err("CJK 叠加像素过少，中文可能未画出");
-			return 1;
-		}
-		if (cjkInk <= hersheyInk) {
-			Err("CJK 叠加不比 Hershey 更密，可能仍在用西文字体");
+		var path = Path.Combine(dir, "face_overlay_cjk.png");
+		bmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+		Out("saved " + path);
+		if (ink < 200) {
+			Err("中文像素过少，可能未画出");
 			return 1;
 		}
 		Out("=== OK：人脸叠加中文 ===");
 		return 0;
 	}
 
-	static int countbgrink(OpenCvSharp.Mat bgr, int bg) {
+	static int countargbink(System.Drawing.Bitmap bmp, int bg) {
 		int n = 0;
-		for (int y = 0; y < bgr.Rows; y++) {
-			for (int x = 0; x < bgr.Cols; x++) {
-				var p = bgr.At<OpenCvSharp.Vec3b>(y, x);
-				if (Math.Abs(p.Item0 - bg) > 8 || Math.Abs(p.Item1 - bg) > 8 || Math.Abs(p.Item2 - bg) > 8)
-					n++;
+		var rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);
+		var data = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly,
+			System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		try {
+			int stride = data.Stride;
+			var buf = new byte[stride * bmp.Height];
+			System.Runtime.InteropServices.Marshal.Copy(data.Scan0, buf, 0, buf.Length);
+			for (int y = 0; y < bmp.Height; y++) {
+				int row = y * stride;
+				for (int x = 0; x < bmp.Width; x++) {
+					int i = row + x * 4;
+					if (Math.Abs(buf[i] - bg) > 8 || Math.Abs(buf[i + 1] - bg) > 8 || Math.Abs(buf[i + 2] - bg) > 8)
+						n++;
+				}
 			}
 		}
+		finally { bmp.UnlockBits(data); }
 		return n;
 	}
 
@@ -3180,16 +3179,22 @@ static class Cli {
 				Err("FAIL: 第二次失败 " + fail2.Text);
 				bad++;
 			}
-			var cash = FxRate.Quote(10m, "fen", "CNY");
-			if (!cash.Live || cash.Text.IndexOf("0.1人民币元", StringComparison.Ordinal) < 0
+			var cash = FxRate.Quote(1m, "CNY", "CNY");
+			if (!cash.Live || cash.Text.IndexOf("1人民币元", StringComparison.Ordinal) < 0
 				|| cash.Text.IndexOf("查询失败", StringComparison.Ordinal) >= 0) {
-				Err("FAIL: 元角分 " + cash.Text);
+				Err("FAIL: 人民币对人民币 " + cash.Text);
 				bad++;
 			}
 			if (calls != 2) {
-				Err("FAIL: 元角分不应访问牌价 calls=" + calls);
+				Err("FAIL: 人民币对人民币不应访问牌价 calls=" + calls);
 				bad++;
 			}
+			try {
+				FxRate.Quote(1m, "jiao", "CNY");
+				Err("FAIL: 不应再有角");
+				bad++;
+			}
+			catch (ArgumentException) { }
 			try {
 				FxRate.Parse("<table><tr><td>美元</td><td></td><td></td><td></td><td></td><td>673.3</td></tr></table>", out _);
 				Err("FAIL: 牌价不全应失败");
@@ -4870,7 +4875,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
       --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
-      --test-face-overlay  用人脸叠加字体写「女 22岁」，对照 Hershey 的 ??
+      --test-face-overlay  用 GDI+ 在 Bitmap 上写「女 22岁」，不加载 OpenCV
       --test-tts-sherpa  用 CPU 加载指定 Sherpa 模型并完成一次合成
       --test-edge-tts  联网调用 Edge 自然语音并校验返回音频
       --tts-text   TTS 测试文本（默认韩语测试句）

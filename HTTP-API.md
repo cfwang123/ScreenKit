@@ -330,12 +330,12 @@ Text helpers. Not tied to a module switch. `text` may be empty. Unknown `op` ret
 
 ## 5.5.1 GET/POST `/api/fx`
 
-Currency conversion. Not tied to a module switch. Foreign units use the Bank of China middle rate (中行折算价 per 100, divided by 100). A successful page is cached for 10 minutes. A timeout, an empty page, or a missing currency uses the built-in 2026-10-10 table and is not cached. Yuan, jiao, and fen are fixed and do not request the site. An unknown unit or a non-number returns 802.
+Currency conversion. Not tied to a module switch. Foreign units use the Bank of China middle rate (中行折算价 per 100, divided by 100). A successful page is cached for 10 minutes. A timeout, an empty page, or a missing currency uses the built-in 2026-10-10 table and is not cached. There is no jiao or fen. An unknown unit or a non-number returns 802.
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `amount` | number or string | Amount. `n` is an alias |
-| `from` | string | Source unit. Default `CNY`. `USD`, `jiao`, `fen`, and the other listed units |
+| `from` | string | Source unit. Default `CNY`. `USD` and the other listed units |
 | `to` | string | Target unit, or `all` (default) to list every unit |
 
 ```json

@@ -11,7 +11,7 @@ static class FxRate {
 	const string DEFAULT_ASOF = "2026-10-10";
 
 	static readonly (string Id, string Name)[] UNITS = {
-		("CNY", "人民币元"), ("jiao", "角"), ("fen", "分"),
+		("CNY", "人民币元"),
 		("USD", "美元"), ("HKD", "港币"), ("MOP", "澳门元"), ("EUR", "欧元"), ("GBP", "英镑"),
 		("JPY", "日元"), ("KRW", "韩元"), ("AUD", "澳元"), ("CAD", "加元"),
 		("SGD", "新加坡元"), ("CHF", "瑞士法郎"), ("THB", "泰铢"), ("TWD", "新台币"),
@@ -19,7 +19,7 @@ static class FxRate {
 
 	/// <summary>1 单位折合人民币。外币是中国银行 2026-10-10 中行折算价除以 100。</summary>
 	static readonly (string Id, decimal Cny)[] DEFAULTS = {
-		("CNY", 1m), ("jiao", 0.1m), ("fen", 0.01m),
+		("CNY", 1m),
 		("USD", 6.733m), ("HKD", 0.858m), ("MOP", 0.8326m), ("EUR", 7.5323m), ("GBP", 8.8872m),
 		("JPY", 0.042571m), ("KRW", 0.004996m), ("AUD", 4.6746m), ("CAD", 4.7204m),
 		("SGD", 5.246m), ("CHF", 8.0821m), ("THB", 0.1994m), ("TWD", 0.2099m),
@@ -205,8 +205,7 @@ static class FxRate {
 		return iscash(to);
 	}
 
-	static bool iscash(string id) =>
-		id == "CNY" || id == "jiao" || id == "fen";
+	static bool iscash(string id) => id == "CNY";
 
 	static string trimnum(decimal n) {
 		if (n == 0) return "0";
