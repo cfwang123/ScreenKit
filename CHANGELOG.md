@@ -43,19 +43,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - **Settings → Dictionary** has a database hold time in minutes. The dictionary database closes after that many minutes without a lookup, and the next lookup opens it again. The default is 1. 0 keeps it open. The same page sets how many hits to list (1–4000, default 1000). **Export** writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
-- Tools-page date difference, date add/subtract, and month add/subtract are one tool, **日期计算**. **日期差** shows how far apart two dates are and starts on **全部**, which prints one line per unit: seconds, minutes, hours, days, and months, plus a year line once the gap passes a year. A unit of month or year follows the calendar and keeps the leftover days, as in `3 个月 5 天（共 95 天）`. **日期加减** moves one date and answers on a single line, as in `2026-10-10 增加：7 天 → 2026-10-17  周六`. The count may be negative, and may be fractional from seconds through days. Month and year clamp to the last day, so 1 月 31 日 plus one month is 2 月 28 日. An offset in seconds, minutes, or hours, or a fractional day, also shows the resulting time. A favorite of the three old tools opens 日期计算.
+- Tools-page date difference, date add/subtract, and month add/subtract are one tool, **Date arithmetic**. **Difference** shows how far apart two dates are and starts on **All**, which prints one line per unit: seconds, minutes, hours, days, and months, plus a year line once the gap passes a year. A unit of month or year follows the calendar and keeps the leftover days, as in `3 months 5 days (95 days in all)`. **Add or subtract** moves one date and answers on a single line, as in `2026-10-10 add: 7 days → 2026-10-17  Sat`. The count may be negative, and may be fractional from seconds through days. Month and year clamp to the last day, so January 31 plus one month is February 28. An offset in seconds, minutes, or hours, or a fractional day, also shows the resulting time. A favorite of the three old tools opens Date arithmetic.
 - The left of the main-window status bar shows this program's commit size, CPU, and GPU. It updates every 2 seconds while the window is visible.
 - The tools-page timestamp tool has a date-time picker. Choosing a time fills the text and converts. Typing a timestamp or a date converts immediately. Converting moves the picker to that local time.
-- The Unicode code chart preview lists UTF-32, GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. Those code-page bytes come from `GET/POST /api/enc`. A code point an encoding cannot store shows 无. Latin-1 is shown for U+0000 through U+00FF.
-- **GBK码表** sits next to **Unicode码表**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank.
+- The Unicode code chart preview lists UTF-32, GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. Those code-page bytes come from `GET/POST /api/enc`. A code point an encoding cannot store shows none. Latin-1 is shown for U+0000 through U+00FF.
+- **GBK chart** sits next to **Unicode chart**. Lead bytes are pages on the left. Each page is a 16-column grid. A click copies the character. The preview shows the GBK bytes, the GB2312 section when there is one, the Unicode code point, and UTF-8. Empty slots stay blank.
 - The tools page can turn a picture into an ICO. Paste or choose an image, preview it at the chosen pixel size with a border, pick one size (32 by default), then download. Scale with fit, stretch, or crop. Fit is the default: the picture stays in proportion and the empty area stays transparent. Stretch fills the square. Crop fills the square from the center and cuts off the rest. The preview and the downloaded icon use the same mode.
-- The tools page splits QR / barcode into **二维码生成** and **二维码识别**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate prints one line of the source text under the image. A long line is cut with an ellipsis.
+- The tools page splits QR / barcode into **QR generate** and **QR recognize**. Recognize accepts a pasted picture (Ctrl+V) or a chosen file, shows a preview, and reads the code. Generate prints one line of the source text under the image. A long line is cut with an ellipsis.
 - The cast toolbar shows the current audio source. **Options** stays available while casting. It can turn audio on or off and pick speakers, the microphone, or both. The change applies to the live cast. The recording toolbar shows the current audio source and can change it, or turn audio off, while recording. The rest of the recording settings stay editable only before Start. GIF recording still has no audio.
 - Settings → Capture sets the screenshot folder (`screenshot_dir`). The box shows `screenshots/` by default (next to the program) and also offers `D:/s/`. Another folder can be typed or browsed. History, cleanup, and copy-as-file use that folder. The file name (`screenshot_name`) is a pattern you can type or pick. The default is `shot_yyyyMMdd_HHmmss_fff`. Repeated `r` is random digits, as in `shot_yyyyMMdd_HHmmss_rrr`. Repeated `#` is a counter: `####` writes `0001.png`, and `yyyyMMdd_###` takes the next number among files with that same date prefix.
 - `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V), shows a preview, and starts as soon as a picture is chosen or pasted. The result shows the same summary as the desktop: infer time, end-to-end time, confidence, engine, image size, line count, and the detection side limit. The Recognize button still runs it again.
-- The tools-page regex tester can insert a common pattern: email, mobile number, ID card, URL, IPv4, date, time, integer, decimal, Chinese, color, postal code, QQ, license plate, or a blank line. An empty text box receives a one-line sample. It can also batch-test one line at a time. Each line is shown as `text [通过]` or `text [未通过]`. Pass is green and fail is red. A line passes only when the whole line matches.
-- The tools-page speech screen can filter voices by language and gender. **生成 WAV** downloads the same synthesis as **朗读**.
+- The tools-page regex tester can insert a common pattern: email, mobile number, ID card, URL, IPv4, date, time, integer, decimal, Chinese, color, postal code, QQ, license plate, or a blank line. An empty text box receives a one-line sample. It can also batch-test one line at a time. Each line is shown as `text [pass]` or `text [fail]`. Pass is green and fail is red. A line passes only when the whole line matches.
+- The tools-page speech screen can filter voices by language and gender. **Save WAV** downloads the same synthesis as **Speak**.
 - The tools-page random password tool generates 1 to 50 passwords at once. Length is 4 to 128. Each selected character set can be required at least once. The symbol set matches the desktop generator. Password generator, on the desktop and the tools page, can use a character set you type. Duplicates count once. The usual letter, digit, and symbol choices stay available when that option is off.
 
 #### Fixed
@@ -70,17 +70,17 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Opening the tools page drops favorites that no longer match a tool. A favorite of a merged tool is kept as that tool. The list is saved in this browser.
 - The tools page **File transfer** link opens `/files` in a new window. The tools page stays open.
 - Dictionary lookup reads `dict2.db` next to the program. Each word is stored once. Prefix, suffix, and infix search use the packed index. The old `lookup_key` search is gone. The file is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed release `dict-db`, extracts `dict2.db`, and deletes an old `dict.db` beside the program (a symlink is removed, and the link target is left in place). Release builds leave a local `dict2.db` in place and no longer delete or recreate `dict.db`. The slim package still omits both.
-- Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, ID number, MAC address, or UUID. Each line is one value. The separate MAC address and UUID cards are gone. The card is named **生成测试数据**. An old favorite or `#u-mac` / `#u-uuid` opens that tool with the matching kind selected.
+- Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, ID number, MAC address, or UUID. Each line is one value. The separate MAC address and UUID cards are gone. The card is named **Generate test data**. An old favorite or `#u-mac` / `#u-uuid` opens that tool with the matching kind selected.
 - Text-category tools update the result when the text or an option changes. Japanese yomi and the regex tester stay on their buttons. Unit conversion does the same.
-- Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. The number box accepts a unit, such as `1米`, `3斤`, or `5kg`, and the kind and the original unit follow that text. The new-unit list gains **全部** and starts on it, so one conversion lists every unit of that kind. The first line echoes what you entered. Picking one unit puts that single answer on the next line. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. Text compare, JSON diff, and find-and-replace are removed. An old favorite of one of those tools opens 单位换算.
+- Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, Unit conversion. The number box accepts a unit, such as `1 m`, `3 jin`, or `5 kg`, and the kind and the original unit follow that text. The new-unit list gains **All** and starts on it, so one conversion lists every unit of that kind. The first line echoes what you entered. Picking one unit puts that single answer on the next line. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. Text compare, JSON diff, and find-and-replace are removed. An old favorite of one of those tools opens Unit conversion.
 - The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
 - Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file. The joined `ScreenKit/Web/tools.js` is not committed. The slim package ships that joined `web/tools.js` only.
 - The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list. Categories stay on the left and that category's tools sit under a heading on the right. Scrolling highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
 - The tray **Web tools** menu and the main-window **Tools → Web tools** menu list every tool under its category. The first item is **Web tools home**. The next is **File transfer**, which opens `/files`.
 - Password generator, on the desktop and the tools page, rewrites the character set when a class changes (lower, upper, digits, symbols, or skip ambiguous). A set you type is kept only while that option is on. The random-password card is under Text, directly after Text convert. The random-string card is removed.
-- The tools-page ASCII chart is now **Unicode码表**. Groups are on the left. The chosen group is a grid of every character in that group, with each cell wide enough to show the whole glyph. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split. Surrogates, private-use areas, and CJK Extension B onward are not listed. Cells the installed fonts cannot draw show a unified equivalent when the character is a compatibility ideograph, and the preview names that code point. An unassigned code point is marked empty. An assigned character with no local glyph and no drawable equivalent says a CJK font such as HanaMin may have it. The preview column shows the character large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms.
+- The tools-page ASCII chart is now **Unicode chart**. Groups are on the left. The chosen group is a grid of every character in that group, with each cell wide enough to show the whole glyph. A query takes a character, U+hex, or a decimal code. Clicking a cell copies it. Blocks larger than 1024 code points are split. Surrogates, private-use areas, and CJK Extension B onward are not listed. Cells the installed fonts cannot draw show a unified equivalent when the character is a compatibility ideograph, and the preview names that code point. An unassigned code point is marked empty. An assigned character with no local glyph and no drawable equivalent says a CJK font such as HanaMin may have it. The preview column shows the character large, with its code point, decimal value, block, plane, kind, and UTF-8, UTF-16, HTML, JavaScript, and URL forms.
 - The tools-page color picker stays on the page. The color chip is a small square, and the saturation square, hue bar, and RGB fields sit under it.
-- OCR on the tools page is under Image. These former cards are buttons on Text convert, and an old favorite of one of them opens Text convert: simplified/traditional, Japanese yomi (by word and by character), variable names, crontab, token estimate, User-Agent解析, MD5, SHA-256, JSON minify, JSON escape and unescape, HTML encode and decode, HTML / CSS / JS minify, XML format and minify, SQL format and minify, and HTML-to-JS. The tools-page batch-rename card is removed. Desktop batch rename, the desktop Japanese yomi window, and the desktop simplified/traditional window stay.
+- OCR on the tools page is under Image. These former cards are buttons on Text convert, and an old favorite of one of them opens Text convert: simplified/traditional, Japanese yomi (by word and by character), variable names, crontab, token estimate, User-Agent parse, MD5, SHA-256, JSON minify, JSON escape and unescape, HTML encode and decode, HTML / CSS / JS minify, XML format and minify, SQL format and minify, and HTML-to-JS. The tools-page batch-rename card is removed. Desktop batch rename, the desktop Japanese yomi window, and the desktop simplified/traditional window stay.
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
 - `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. If that exit does not finish within 8 seconds, `slx` still kills the process and compiles. The global `slx` script is unchanged. The listen port stays the configured port.
 
@@ -204,13 +204,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - HTTP proxy follows the Windows system proxy whenever that proxy is enabled (`ProxyEnable`). The address in Settings is used only when the system proxy is off and Enable is checked. Local, private, `.cn`, and China-mirror hosts still go direct.
-- HTTP `POST /api/ocr` can select **Windows OCR** with `ocr.engine=winocr` or `ocr.language=winocr`, without changing the main window. `ocr.language` is then a BCP-47 tag or a language name (`zh-Hans-CN`, `en-US`, `英语`). `ocr.maxSideLen` still caps the long side. `ocr.engine=onnx` switches back to an ONNX pack when the main window is Windows OCR. `GET /api/ocr/get_options` lists `ocr.engine`.
+- HTTP `POST /api/ocr` can select **Windows OCR** with `ocr.engine=winocr` or `ocr.language=winocr`, without changing the main window. `ocr.language` is then a BCP-47 tag or a language name (`zh-Hans-CN`, `en-US`, `English`). `ocr.maxSideLen` still caps the long side. `ocr.engine=onnx` switches back to an ONNX pack when the main window is Windows OCR. `GET /api/ocr/get_options` lists `ocr.engine`.
 - Settings → Recognition shows what the selected engine does. Windows OCR: no download, one installed language, upright boxes, no rotation, confidence, or GPU; the side-length cap still applies. Umi uses larger server models (Simplified Chinese, English, Traditional Chinese, Japanese, Korean, Russian). Rapid mobile Chinese is Simplified Chinese only. Rapid all-languages adds Latin and Arabic. ONNX packs keep detection, rotation, recognition, device choice, thresholds, and a confidence score.
 - Screenshot OCR can use **Windows OCR** (`model_pack = winocr`). It does not load an ONNX model. It is faster, and the result cannot stay stable. The choice is saved as `win_ocr_langs`.
 - Web manager **Send to PC** copies the text to the clipboard and shows a toast `Copied text: …`. Clearing the text still only clears the File sync box.
 - With HTTP enabled in Settings, a LAN address already holding the port no longer makes the HTTP tab say the API is disabled. This PC still listens on `127.0.0.1` and the tab shows that address.
 - UI languages are toml files in `lang/` next to the program, one file per language. Startup reads every file. The language menu and Settings list Chinese, English, Japanese, Korean, and other languages (German, Spanish, French, Portuguese, Russian).
-- The bottom status bar says `未加载模型` / `No model loaded` when no model is loaded.
+- The bottom status bar says `No model loaded` when no model is loaded.
 - The bottom status bar keeps the HTTP listener next to the memory summary: `HTTP 0.0.0.0:1224` or `HTTP 127.0.0.1:1224` while the API listener is up, `HTTP LAN:1224` when only the per-NIC file-transfer sockets are up, `HTTP not started` (with the error) when it should be listening but is not, and `HTTP off` when the API, file transfer, and cast are all disabled.
 - Korean dictionary phrases have the same speak button as examples. It reads the Korean phrase. The Chinese gloss on the next line is not spoken.
 - **Help → Install features → Windows speech**: when ScreenKit is not an administrator, install or remove uses `start` to open one administrator window for the selected packs. Allow it in User Account Control. Exit 0 and 3010 still count as success. The DISM command can still be copied.
@@ -222,7 +222,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web manager **Stay signed in** still works after this program restarts. The browser keeps the 30-day cookie and saved token, retries while the PC is starting, and an old tab token no longer hides that saved login.
 - Dictionary selection popup: hovering a hit keeps dark text on a light blue row. The row no longer turns the text white on a faint highlight.
 - Double-clicking a word in a dictionary entry opens the selection popup. Dragging a selection and right-click still open it.
-- Sending a file whose name contains Chinese (for example `XPlayer v2.9.0.0 高级版.apk`) to the phone no longer fails with “路径中具有非法字符”. The shared HTTP port decodes the download query as UTF-8.
+- Sending a file whose name contains Chinese characters to the phone no longer fails with an illegal-characters-in-path error. The shared HTTP port decodes the download query as UTF-8.
 - When the HTTP service fails to start, ScreenKit retries every 10 seconds until it listens, or until the API, file transfer, and cast are all turned off. The status bar keeps the error until a retry succeeds.
 
 ### 中文
@@ -262,15 +262,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Japanese dictionary hits list every writing in the title, for example 其奴, そいつ, そやつ. Out-dated or obsolete writings are omitted from the list and still shown in the entry. The row speaker reads a kana form without kanji (hiragana or katakana). 破瓜 is spoken as はか. A headword that is already kana is read as written.
+- Japanese dictionary hits list every writing in the title, for example the kanji, hiragana, and katakana forms of one word. Out-dated or obsolete writings are omitted from the list and still shown in the entry. The row speaker reads a kana form without kanji (hiragana or katakana). A kanji headword is spoken as its kana reading. A headword that is already kana is read as written.
 - Dictionary selection **Translate** opens the translate window, fills the source, and starts the translation.
 - Speaking a selection in a dictionary entry uses that selection's language voice. Japanese glosses are only Chinese and English, so a Chinese gloss uses the Chinese voice and an English gloss uses the English voice. Kana in the headword, reading, or example keeps the Japanese voice. Chinese, English, and Korean entries choose only among those three voices.
 - A dictionary search shows the hit count and the elapsed time in milliseconds on the status line.
 - Dictionary list rows show every sense on the second line, separated by `; `. Text past one line is trimmed. The language tag is `zh`, `ja`, `ko`, or `en`. An English interface prefers the English gloss on that line.
 - Removed unused code. ONNX session setup, the Sherpa device check, arrow drawing, and JSON field parsing each live in one place.
-- **Diagnostics** is under **Help**. Ready checks show a green **正常**. Checks that are not ready show red text.
+- **Diagnostics** is under **Help**. Ready checks show a green **OK**. Checks that are not ready show red text.
 - **Settings → General** no longer shows the module switches. `mod_*` in `config.toml` is unchanged.
-- Diagnostics shows an optional item that is off as **未启用**: service mode, CUDA / DirectML not installed, ONNX not loaded yet, face models absent, OCR engine not loaded. A missing file or a failed check still shows red **不正常**.
+- Diagnostics shows an optional item that is off as **Off**: service mode, CUDA / DirectML not installed, ONNX not loaded yet, face models absent, OCR engine not loaded. A missing file or a failed check still shows red **Failed**.
 - Removed the unused OpenCV video library `opencv_videoio_ffmpeg4110_64.dll`. It is no longer in **Help → Install features** or Diagnostics. A build deletes any copy under the output folder. Recording still uses `ffmpeg64`.
 - Removed unreferenced helpers and properties (ASR model lookup, capture overlay, scroll constants, and unread recording / speech / dictionary fields). `IFontResolver` methods stay.
 
@@ -392,7 +392,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Media Foundation recordings write AAC while capturing. The rate is 44.1 kHz or 48 kHz from the start, because system AAC rejects other rates such as 22.05 kHz (`0xC00D36B4`). Saving no longer builds a second file to mix the sound in.
-- Android cast screen shows **投屏中** again after leaving to the main screen and opening cast. The service was still casting; the new screen had reset to “ready”.
+- Android cast screen shows **Casting** again after leaving to the main screen and opening cast. The service was still casting; the new screen had reset to “ready”.
 - Android debug and release builds now sign with the same keystore (`android/app/debug.keystore`). Installing one over the other keeps the app’s private data.
 - Phone screencast no longer fails with “WebSocket handshake failed”. A LAN address was answered by the file-transfer socket, which rejected `/cast` as unpaired. That socket now completes the WebSocket upgrade and passes the session to the viewer.
 - Screencast viewer opens centered on the primary monitor’s work area. A new session no longer follows the cursor onto another monitor and hangs half off its edge. Size, position, and maximized state still stay put when the phone rotates.
@@ -575,7 +575,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- LAN **PC file transfer** (HTTP `:17532`, UDP discovery `:17531`): first-connect pairing, `sendfile/` sandbox, main-window **File sync** tab. Companion Android app in `android/` (`com.whj.screenkit` / 「PC文件传输」). Other apps can share multiple files; in-app **Upload** is multi-select.
+- LAN **PC file transfer** (HTTP `:17532`, UDP discovery `:17531`): first-connect pairing, `sendfile/` sandbox, main-window **File sync** tab. Companion Android app in `android/` (`com.whj.screenkit`). Other apps can share multiple files; in-app **Upload** is multi-select.
 - File sync **Install on phone**: LAN URL (`GET /apk` on the file-transfer port, no pairing) and QR code (`--test-apk-qr`). With several NICs, pick which address the QR uses (default: internet-reachable physical NIC). A Release build copies the newest Android **release** APK into `apk/` next to the exe (only when newer; debug APKs are ignored).
 - **Tools** menu **Image convert**: batch convert to JPG (default quality 60) / PNG / BMP; optional max width/height (same shrink-to-fit as screenshots); output to `output/` next to each source or a chosen folder. Drag files/folders/images into the list; **Icons** view shows a small thumbnail per file (toggle **List**). Select one item to rotate 90/180/270° or flip. Convert-all shows progress. The window is larger (~1.7×) with a live preview after applying quality, max size, rotate, and flip. Settings persist in `config.toml` (`imgconv_*`). CLI: `--test-img-convert`.
 
@@ -758,13 +758,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- LLM thinking intensity adds **medium** and the dropdown shows raw API values `none / low / medium / high / max` (config unchanged; `none` still maps to `off`; `medium` / `mid` / `中` no longer fall back to `low`).
+- LLM thinking intensity adds **medium** and the dropdown shows raw API values `none / low / medium / high / max` (config unchanged; `none` still maps to `off`; `medium` / `mid` no longer fall back to `low`).
 - HTTP JSON responses write UTF-8 Chinese directly (no `\uXXXX` escapes).
-- `GET /api/asr/models` `type` is an English keyword (`SenseVoice` / `Transducer` / …), not a UI label such as `流式 Transducer`.
+- `GET /api/asr/models` `type` is an English keyword (`SenseVoice` / `Transducer` / …), not a localized UI label such as streaming Transducer.
 
 #### Fixed
 
-- English UI: OCR **Pack** / **Lang** combos used Chinese labels (`Rapid 全语种`, `Umi-OCR（多语言）`, `简体中文`, …). Display names now come from `ocr-display.json` (`name` / `nameEn`) and optional per-pack `pack.json`.
+- English UI: OCR **Pack** / **Lang** combos used Chinese labels (Rapid all languages, Umi-OCR multilingual, Simplified Chinese, and so on). Display names now come from `ocr-display.json` (`name` / `nameEn`) and optional per-pack `pack.json`.
 - HTTP `POST /api/translate` always returned 940 (LLM not configured): the options snapshot used by the HTTP server omitted `[[llm]]` / `translate_llm`.
 - HTTP JSON 500 (`TypeInfoResolver`): STJ 8 requires a type-info resolver on `JsonSerializerOptions` before first use. The UTF-8 CJK encoder options omitted it, so `GET /api/face/models` (and other `/api/*` JSON) returned code 900.
 - OCR detection boxes are mapped back to original-image pixels after long-side limit / align-32 (HTTP `box` is also original-image coords).
@@ -805,7 +805,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Chinese window / tray title is **屏幕截图工具** (English remains ScreenKit).
+- The Chinese window and tray title is the localized screenshot-tool name. English remains ScreenKit.
 
 #### Fixed
 
@@ -835,7 +835,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP `GET /api/face/models` and `POST /api/face` (extract one image or compare two). Install Features can download InsightFace **buffalo_l** into `facemodels/`.
 - Settings **LLM** tab: multiple OpenAI-compatible endpoints as TOML `[[llm]]` (`name` / `url` / `key` / `model` / `think`). Speech tab picks one by display name (`asr_llm`); polish prompt stays on Speech. Display name defaults to model id. Old `asr_llm_url` / `asr_llm_token` / `asr_llm_model` keys are ignored (re-enter in the new UI). **Copy** duplicates the selected endpoint.
 - Per-endpoint **thinking intensity** (`think`: `off` / `low` / `high` / `max`, default `low`). `off` sends `thinking.type=disabled`; `low`/`high`/`max` send `thinking.type=enabled` plus `reasoning_effort` (GLM-5.3 cannot disable thinking). If `off` is rejected, retry with `low`; other HTTP 400s drop think fields.
-- Translate tab can use a configured **LLM** instead of local Opus-MT (`translate_llm`). The LLM prompt (`translate_llm_prompt`, `{src}`/`{dst}`) is edited in **Settings → Translate**. LLM also supports 来回翻译 without a reverse ONNX pair.
+- Translate tab can use a configured **LLM** instead of local Opus-MT (`translate_llm`). The LLM prompt (`translate_llm_prompt`, `{src}`/`{dst}`) is edited in **Settings → Translate**. LLM also supports round-trip translation without a reverse ONNX pair.
 
 #### Changed
 
@@ -969,11 +969,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Screenshot save options** (Settings / `config.toml`): format `png|jpg`, JPG quality 1–100, optional max width/height (fit, no upscale). Affects `screenshots/` and copy-as-file; OCR still uses full resolution.
 - **Record HUD** (MP4 + GIF): draggable control bar with left grip; collapse mini bar; **Options** button before Start; icon buttons; move/resize region before and during recording (aspect lock after Start when enabled in record options).
 - **Check for Updates** (Tools menu): GitHub Releases check/download, self-update via tmp copy + CLI apply.
-- Install Features: clearer status badges for 未安装 / 部分 / 已安装.
+- Install Features: clearer status badges for not installed / partial / installed.
 
 #### Changed
 
-- Main window title shows version (e.g. `ScreenKit — 截图识别 v1.0.1`).
+- Main window title shows version (e.g. `ScreenKit v1.0.1`).
 - Record HUD: start vs pause shown as a single icon control; smoother bar dragging (lightweight move path).
 
 #### Fixed
@@ -1005,7 +1005,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- **In-app Install Features** window (功能组件 + 发音人 tabs):
+- **In-app Install Features** window (feature components and voices tabs):
   - OCR packs (`rapid-ch`, `rapid-i18n`, …), ASR models, FFmpeg, CUDA GPU, DirectML iGPU.
   - On-demand natives: OpenCV, Skia, PDFium, Sherpa `c-api`, **ONNX Runtime CPU (`onnxcpu64`)**.
   - TTS voice catalog with language filter; download progress shows **batch total size and downloaded bytes**.
@@ -1073,7 +1073,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- **UI language** switch: 中文 / English via **Tools → Language** or Settings; persisted as `ui_lang` in `config.toml`.
+- **UI language** switch: Chinese / English via **Tools → Language** or Settings; persisted as `ui_lang` in `config.toml`.
 - **Screen recording**: pick window or drag a region → red HUD → save MP4 (FFmpeg shared preferred).
 - **Long screenshot**: pick a scrollable window → auto-scroll stitch → show image (no OCR).
 - Top menu bar and compact toolbar; OCR progress UI; global hotkeys; WeChat-style annotate tools.
