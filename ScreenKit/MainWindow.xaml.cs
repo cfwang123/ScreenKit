@@ -378,6 +378,7 @@ public partial class MainWindow : Window {
 					return list;
 				},
 				ScanTts = () => TtsModelScanner.Scan(),
+				TtsCatalog = () => readttscatalog(),
 			});
 			if (httpServer != null)
 				httpServer.Logged += onhttplog;
@@ -617,7 +618,8 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentScreenshotShortPx = Math.Max(16, opt.ScreenshotShortPx);
 		try { ImageUtil.CurrentScreenshotDir = ImageUtil.NormScreenshotDir(opt.ScreenshotDir); }
 		catch { ImageUtil.CurrentScreenshotDir = ""; }
-		ImageUtil.CurrentScreenshotName = ImageUtil.NormScreenshotName(opt.ScreenshotName);
+		try { ImageUtil.CurrentScreenshotName = ImageUtil.NormScreenshotName(opt.ScreenshotName); }
+		catch { ImageUtil.CurrentScreenshotName = ImageUtil.ScreenshotNameDefault; }
 		ImageUtil.CurrentSnapCopyAsImage = opt.SnapCopyAsImage;
 		ImageUtil.CurrentSnapCopyAsFile = opt.SnapCopyAsFile;
 		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;

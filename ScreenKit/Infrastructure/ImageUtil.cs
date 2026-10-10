@@ -292,58 +292,197 @@ static class ImageUtil {
 	/// <summary>截图保存目录（主窗配置同步）。空 = 程序目录下 screenshots/。</summary>
 	public static string CurrentScreenshotDir = "";
 
-	/// <summary>截图文件名样式（主窗配置同步）：time 或 num。</summary>
-	public static string CurrentScreenshotName = "time";
+	/// <summary>截图文件名格式（主窗配置同步）。</summary>
+	public static string CurrentScreenshotName = ScreenshotNameDefault;
 
-	/// <summary>文件名样式。num / 0001 为四位序号，其它都是时间戳。</summary>
-	public static string NormScreenshotName(string raw) {
-		var s = (raw ?? "").Trim().Trim('"').ToLowerInvariant();
-		if (s is "num" or "0001" or "seq" or "n" or "number") return "num";
-		return "time";
+	/// <summary>默认文件名：shot_ 加时间到毫秒。</summary>
+	public const string ScreenshotNameDefault = "shot_yyyyMMdd_HHmmss_fff";
+
+	const int TOKLIT = 0;
+	const int TOKDATE = 1;
+	const int TOKRAND = 2;
+	const int TOKSEQ = 3;
+
+	struct Shotnametok {
+		public int kind;
+		public string text;
 	}
 
-	/// <summary>按样式生成尚不存在的截图路径。num 取目录内纯数字文件名的下一个，至少四位。</summary>
+	/// <summary>
+	/// 文件名格式。空或 time 用默认时间戳；num / 0001 用 ####。
+	/// 含不能出现在文件名里的字符时抛出。
+	/// </summary>
+	public static string NormScreenshotName(string raw) {
+		var s = (raw ?? "").Trim().Trim('"');
+		if (s.Length == 0 || s.Equals("time", StringComparison.OrdinalIgnoreCase))
+			return ScreenshotNameDefault;
+		if (s.Equals("num", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("0001", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("seq", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("n", StringComparison.OrdinalIgnoreCase)
+			|| s.Equals("number", StringComparison.OrdinalIgnoreCase))
+			return "####";
+		if (s.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+			throw new ArgumentException("截图文件名含非法字符");
+		return s;
+	}
+
+	/// <summary>
+	/// 按格式生成尚不存在的截图路径。
+	/// 连续两位及以上的 y M d H h m s f 按时间替换；连续 r 为随机数字；连续 # 为序号。
+	/// 序号只统计前缀（# 之前，时间已替换）相同的文件，取下一个。
+	/// prefix 保留给旧调用，文件名以格式为准。
+	/// </summary>
 	public static string MakeScreenshotPath(string dir, string prefix, string ext, string nameStyle = null) {
+		_ = prefix;
 		if (string.IsNullOrEmpty(ext)) ext = ".png";
 		if (ext[0] != '.') ext = "." + ext;
-		if (NormScreenshotName(nameStyle ?? CurrentScreenshotName) == "num")
-			return nextnumpath(dir, ext);
-		var pfx = string.IsNullOrWhiteSpace(prefix) ? "shot" : prefix.Trim();
-		var stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-		var baseName = pfx + "_" + stamp;
-		var path = Path.Combine(dir, baseName + ext);
-		for (var i = 1; File.Exists(path) && i < 100; i++)
-			path = Path.Combine(dir, baseName + "_" + i + ext);
-		return path;
+		var pattern = ScreenshotNameDefault;
+		try { pattern = NormScreenshotName(nameStyle ?? CurrentScreenshotName); }
+		catch { pattern = ScreenshotNameDefault; }
+		var tokens = tokenizename(pattern);
+		var hasSeq = false;
+		var hasRand = false;
+		foreach (var tok in tokens) {
+			if (tok.kind == TOKSEQ) hasSeq = true;
+			else if (tok.kind == TOKRAND) hasRand = true;
+		}
+		var now = DateTime.Now;
+		var rng = new Random(unchecked(Environment.TickCount * 31 + pattern.Length));
+		for (var attempt = 0; attempt < 100; attempt++) {
+			var seq = hasSeq ? nextseq(dir, tokens, now) : 0;
+			var stem = rendername(tokens, now, seq, rng);
+			if (stem.Length == 0)
+				stem = now.ToString("yyyyMMdd_HHmmss_fff", System.Globalization.CultureInfo.InvariantCulture);
+			var path = Path.Combine(dir ?? "", stem + ext);
+			if (!File.Exists(path)) return path;
+			if (!hasSeq && !hasRand) {
+				path = Path.Combine(dir ?? "", stem + "_" + (attempt + 2) + ext);
+				if (!File.Exists(path)) return path;
+			}
+		}
+		var fallback = now.ToString("yyyyMMdd_HHmmss_fff", System.Globalization.CultureInfo.InvariantCulture);
+		return Path.Combine(dir ?? "", fallback + ext);
 	}
 
-	static string nextnumpath(string dir, string ext) {
+	static bool isdatech(char c) =>
+		c == 'y' || c == 'M' || c == 'd' || c == 'H' || c == 'h' || c == 'm' || c == 's' || c == 'f';
+
+	static List<Shotnametok> tokenizename(string pattern) {
+		var list = new List<Shotnametok>();
+		var i = 0;
+		while (i < pattern.Length) {
+			var c = pattern[i];
+			var dateRun = isdatech(c) && i + 1 < pattern.Length && pattern[i + 1] == c;
+			if (c == '#' || c == 'r' || dateRun) {
+				var j = i + 1;
+				while (j < pattern.Length && pattern[j] == c) j++;
+				var kind = c == '#' ? TOKSEQ : c == 'r' ? TOKRAND : TOKDATE;
+				list.Add(new Shotnametok { kind = kind, text = pattern.Substring(i, j - i) });
+				i = j;
+			}
+			else {
+				var j = i + 1;
+				while (j < pattern.Length) {
+					var d = pattern[j];
+					var dr = isdatech(d) && j + 1 < pattern.Length && pattern[j + 1] == d;
+					if (d == '#' || d == 'r' || dr) break;
+					j++;
+				}
+				list.Add(new Shotnametok { kind = TOKLIT, text = pattern.Substring(i, j - i) });
+				i = j;
+			}
+		}
+		return list;
+	}
+
+	static string rendername(List<Shotnametok> tokens, DateTime now, int seq, Random rng) {
+		var sb = new StringBuilder();
+		var inv = System.Globalization.CultureInfo.InvariantCulture;
+		foreach (var tok in tokens) {
+			if (tok.kind == TOKLIT) sb.Append(tok.text);
+			else if (tok.kind == TOKDATE) sb.Append(now.ToString(tok.text, inv));
+			else if (tok.kind == TOKRAND) sb.Append(randdigits(rng, tok.text.Length));
+			else if (tok.kind == TOKSEQ) sb.Append(formatseq(seq, tok.text.Length));
+		}
+		return sb.ToString();
+	}
+
+	static string randdigits(Random rng, int width) {
+		if (width <= 0) return "";
+		if (width > 9) {
+			var sb = new StringBuilder(width);
+			for (var i = 0; i < width; i++) sb.Append((char)('0' + rng.Next(10)));
+			return sb.ToString();
+		}
+		var cap = 1;
+		for (var i = 0; i < width; i++) cap *= 10;
+		return rng.Next(cap).ToString(new string('0', width));
+	}
+
+	static string formatseq(int seq, int width) {
+		if (seq < 0) seq = 0;
+		if (width <= 0) width = 1;
+		if (width > 9) width = 9;
+		var cap = 1;
+		for (var i = 0; i < width; i++) cap *= 10;
+		if (seq < cap) return seq.ToString(new string('0', width));
+		return seq.ToString();
+	}
+
+	/// <summary>同一前缀下已有序号的下一个。前缀是 # 之前的部分（时间已按当前时刻展开）。</summary>
+	static int nextseq(string dir, List<Shotnametok> tokens, DateTime now) {
 		var max = 0;
 		try {
-			if (Directory.Exists(dir)) {
+			if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir)) {
 				foreach (var f in Directory.EnumerateFiles(dir)) {
-					var name = Path.GetFileNameWithoutExtension(f);
-					if (string.IsNullOrEmpty(name) || name.Length > 9) continue;
-					var digits = true;
-					for (var i = 0; i < name.Length; i++) {
-						var c = name[i];
-						if (c < '0' || c > '9') { digits = false; break; }
-					}
-					if (!digits) continue;
-					if (int.TryParse(name, out var n) && n > max) max = n;
+					var stem = Path.GetFileNameWithoutExtension(f);
+					if (tryreadseq(stem, tokens, now, out var n) && n > max) max = n;
 				}
 			}
 		}
 		catch { }
-		var n2 = max >= int.MaxValue - 1 ? 1 : max + 1;
-		for (var i = 0; i < 1000; i++) {
-			var num = n2 + i;
-			if (num <= 0) continue;
-			var text = num < 10000 ? num.ToString("0000") : num.ToString();
-			var path = Path.Combine(dir, text + ext);
-			if (!File.Exists(path)) return path;
+		return max >= int.MaxValue - 1 ? 1 : max + 1;
+	}
+
+	static bool tryreadseq(string stem, List<Shotnametok> tokens, DateTime now, out int n) {
+		n = 0;
+		if (string.IsNullOrEmpty(stem)) return false;
+		var inv = System.Globalization.CultureInfo.InvariantCulture;
+		var pos = 0;
+		var got = false;
+		var val = 0;
+		foreach (var tok in tokens) {
+			if (pos > stem.Length) return false;
+			if (tok.kind == TOKLIT || tok.kind == TOKDATE) {
+				var bit = tok.kind == TOKDATE ? now.ToString(tok.text, inv) : tok.text;
+				if (pos + bit.Length > stem.Length) return false;
+				if (!string.Equals(stem.Substring(pos, bit.Length), bit, StringComparison.OrdinalIgnoreCase))
+					return false;
+				pos += bit.Length;
+			}
+			else if (tok.kind == TOKRAND) {
+				var w = tok.text.Length;
+				if (pos + w > stem.Length) return false;
+				for (var i = 0; i < w; i++) {
+					var c = stem[pos + i];
+					if (c < '0' || c > '9') return false;
+				}
+				pos += w;
+			}
+			else if (tok.kind == TOKSEQ) {
+				if (pos >= stem.Length || stem[pos] < '0' || stem[pos] > '9') return false;
+				var end = pos + 1;
+				while (end < stem.Length && stem[end] >= '0' && stem[end] <= '9') end++;
+				if (!int.TryParse(stem.Substring(pos, end - pos), out var cur)) return false;
+				if (!got) { val = cur; got = true; }
+				else if (cur != val) return false;
+				pos = end;
+			}
 		}
-		return Path.Combine(dir, DateTime.Now.ToString("yyyyMMdd_HHmmss_fff") + ext);
+		if (!got || pos != stem.Length) return false;
+		n = val;
+		return true;
 	}
 
 	/// <summary>

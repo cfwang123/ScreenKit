@@ -2601,11 +2601,20 @@ static class Cli {
 			bad++;
 		}
 		else Out(@"OK norm D:\s");
-		if (ImageUtil.NormScreenshotName("0001") != "num" || ImageUtil.NormScreenshotName("") != "time") {
+		if (ImageUtil.NormScreenshotName("0001") != "####"
+			|| ImageUtil.NormScreenshotName("") != ImageUtil.ScreenshotNameDefault
+			|| ImageUtil.NormScreenshotName("time") != ImageUtil.ScreenshotNameDefault
+			|| ImageUtil.NormScreenshotName(" yyyyMMdd_### ") != "yyyyMMdd_###") {
 			Err("FAIL name style");
 			bad++;
 		}
 		else Out("OK name style");
+		try {
+			ImageUtil.NormScreenshotName("a:b");
+			Err("FAIL name invalid");
+			bad++;
+		}
+		catch { Out("OK name invalid"); }
 		var ndir = Path.Combine(Path.GetTempPath(), "sk_shotname_" + Guid.NewGuid().ToString("N")[..8]);
 		try {
 			Directory.CreateDirectory(ndir);
@@ -2618,18 +2627,46 @@ static class Cli {
 			File.WriteAllText(Path.Combine(ndir, "0001.png"), "x");
 			File.WriteAllText(Path.Combine(ndir, "0003.jpg"), "x");
 			File.WriteAllText(Path.Combine(ndir, "shot_1.png"), "x");
-			var next = ImageUtil.MakeScreenshotPath(ndir, "ocr", ".png", "num");
+			var next = ImageUtil.MakeScreenshotPath(ndir, "ocr", ".png", "####");
 			if (!string.Equals(Path.GetFileName(next), "0004.png", StringComparison.OrdinalIgnoreCase)) {
 				Err("FAIL num next: " + next);
 				bad++;
 			}
 			else Out("OK num next " + Path.GetFileName(next));
+			var day = DateTime.Now.ToString("yyyyMMdd");
+			File.WriteAllText(Path.Combine(ndir, day + "_001.png"), "x");
+			File.WriteAllText(Path.Combine(ndir, day + "_007.jpg"), "x");
+			File.WriteAllText(Path.Combine(ndir, day + "_009_x.png"), "x");
+			File.WriteAllText(Path.Combine(ndir, "other_" + day + "_050.png"), "x");
+			var dayNext = ImageUtil.MakeScreenshotPath(ndir, "shot", ".png", "yyyyMMdd_###");
+			var dayExpect = day + "_008.png";
+			if (!string.Equals(Path.GetFileName(dayNext), dayExpect, StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL day seq: " + dayNext);
+				bad++;
+			}
+			else Out("OK day seq " + Path.GetFileName(dayNext));
 			var timed = Path.GetFileName(ImageUtil.MakeScreenshotPath(ndir, "ocr", ".png", "time"));
-			if (timed == null || !timed.StartsWith("ocr_", StringComparison.Ordinal) || timed.Length < 20) {
+			if (timed == null || !timed.StartsWith("shot_" + day + "_", StringComparison.Ordinal)) {
 				Err("FAIL time name: " + timed);
 				bad++;
 			}
 			else Out("OK time " + timed);
+			var rand = Path.GetFileNameWithoutExtension(ImageUtil.MakeScreenshotPath(ndir, "shot", ".png", "shot_yyyyMMdd_HHmmss_rrr"));
+			if (rand == null || !rand.StartsWith("shot_" + day + "_", StringComparison.Ordinal) || rand.Length != 24) {
+				Err("FAIL rand name: " + rand);
+				bad++;
+			}
+			else {
+				var tail = rand.Substring(rand.Length - 3);
+				var digits = true;
+				foreach (var ch in tail)
+					if (ch < '0' || ch > '9') digits = false;
+				if (!digits || rand[rand.Length - 4] != '_') {
+					Err("FAIL rand tail: " + rand);
+					bad++;
+				}
+				else Out("OK rand " + rand);
+			}
 		}
 		finally {
 			try { Directory.Delete(ndir, true); } catch { }

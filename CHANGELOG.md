@@ -36,7 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Settings → Capture can set the screenshot folder (`screenshot_dir`). Empty uses `screenshots/` next to the program. An outside folder such as `D:/s/` keeps copied paths short. History, cleanup, and copy-as-file use that folder.
-- Settings → Capture can set the screenshot file name (`screenshot_name`). The default stays `shot_yyyyMMdd_HHmmss_fff`. **Number** writes `0001.png` and continues after the highest all-digit name in that folder.
+- Settings → Capture file name (`screenshot_name`) is a pattern you can type or pick. The default is `shot_yyyyMMdd_HHmmss_fff`. Repeated `r` is random digits, as in `shot_yyyyMMdd_HHmmss_rrr`. Repeated `#` is a counter: `####` writes `0001.png`, and `yyyyMMdd_###` takes the next number among files with that same date prefix.
 - `GET /api` lists each enabled route with its method, a short introduction, and parameter text taken from the HTTP tab. `lang` selects that language and defaults to the app's current UI language. The short `endpoints` list remains.
 - The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
 - The tools-page regex tester can insert a common pattern: email, mobile number, ID card, URL, IPv4, date, time, integer, decimal, Chinese, color, postal code, QQ, license plate, or a blank line. An empty text box receives a one-line sample.
@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- The tools-page speech screen lists the models and voices the speech tab already loaded, as soon as it opens. It no longer waits on another model scan or on the Edge voice download. Every speaker is included, including models with more than 64.
 - Tools-page speech voices use the same readable names as the desktop list. Windows voices no longer show the registry id.
 - The tools page search box hides cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
 
@@ -63,7 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - **参数设置 → 截图** 可设置截图保存位置（`screenshot_dir`）。留空用程序目录下 `screenshots/`。可填外部目录，例如 `D:/s/`，复制出来的路径更短。历史、清理和复制为文件都用这个目录。
-- **参数设置 → 截图** 可设置截图文件名（`screenshot_name`）。默认仍是 `shot_yyyyMMdd_HHmmss_fff`。选 **序号** 则写成 `0001.png`，按该目录里已有的纯数字文件名往后排。
+- **参数设置 → 截图** 的文件名（`screenshot_name`）可输入，也可下拉。默认 `shot_yyyyMMdd_HHmmss_fff`。连续 `r` 是随机数字，如 `shot_yyyyMMdd_HHmmss_rrr`。连续 `#` 是序号：`####` 写成 `0001.png`；`yyyyMMdd_###` 只在相同日期前缀的文件里取下一个序号。
 - `GET /api` 列出仍开启的接口，含方法、介绍和参数说明，文字与 HTTP 接口页相同。`lang` 选择语言，省略时用程序当前界面语言。原有 `endpoints` 简表仍在。
 - 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
 - 工具页的正则测试可以选择常用表达式：邮箱、手机号、身份证、网址、IPv4、日期、时间、整数、小数、中文、颜色、邮编、QQ 号、车牌、空白行。文本为空时放入一行示例。
@@ -74,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
+- 工具页的语音合成一打开就列出语音合成页已经加载的模型和发音人，不再另外扫描模型，也不再等待 Edge 发音人下载。发音人全部列出，包括超过 64 个的模型。
 - 工具页语音合成的发音人使用和桌面列表相同的可读名称。Windows 语音不再显示注册表 Id。
 - 工具页搜索会藏起不匹配的卡片。样式里的 `display` 盖过了 `hidden`，所以列表看起来一直不变。返回和工具内的收藏按钮在首页同样不再露出来。
 

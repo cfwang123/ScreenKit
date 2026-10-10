@@ -49,6 +49,10 @@ public partial class SettingsWindow : Window {
 			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
 		bsfunpair.Click += (_, _) => unpairselected();
 		bsnapdir.Click += (_, _) => browsesnapdir();
+		esnapname.Items.Add(ImageUtil.ScreenshotNameDefault);
+		esnapname.Items.Add("shot_yyyyMMdd_HHmmss_rrr");
+		esnapname.Items.Add("####");
+		esnapname.Items.Add("yyyyMMdd_###");
 
 		bcancel.Click += (_, _) => { Applied = false; Close(); };
 		bok.Click += (_, _) => {
@@ -375,10 +379,6 @@ public partial class SettingsWindow : Window {
 			lbsetsnapname.Text = Loc.T("set.snap.name");
 			esnapname.ToolTip = Loc.T("set.snap.name.tip");
 			lbsetsnapnamehint.Text = Loc.T("set.snap.name.tip");
-			foreach (ComboBoxItem it in esnapname.Items) {
-				var tag = ((it.Tag as string) ?? "").ToLowerInvariant();
-				it.Content = tag == "num" ? Loc.T("set.snap.name.num") : Loc.T("set.snap.name.time");
-			}
 			lbsetsnaphint.Text = Loc.T("set.snap.hint");
 			lbsetsnapfmt.Text = Loc.T("set.snap.fmt");
 			lbsnapjpgq.Text = Loc.T("set.snap.jpgq");
@@ -560,12 +560,8 @@ public partial class SettingsWindow : Window {
 		esnapshort.Text = (o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx).ToString();
 		try { esnapdir.Text = ImageUtil.NormScreenshotDir(o.ScreenshotDir); }
 		catch { esnapdir.Text = ""; }
-		var wantName = ImageUtil.NormScreenshotName(o.ScreenshotName);
-		foreach (ComboBoxItem it in esnapname.Items) {
-			var tag = ((it.Tag as string) ?? "").ToLowerInvariant();
-			if (tag == wantName) { esnapname.SelectedItem = it; break; }
-		}
-		if (esnapname.SelectedItem == null) esnapname.SelectedIndex = 0;
+		try { esnapname.Text = ImageUtil.NormScreenshotName(o.ScreenshotName); }
+		catch { esnapname.Text = ImageUtil.ScreenshotNameDefault; }
 		syncsnapfmtenabled();
 		esnapfmt.SelectionChanged += (_, _) => syncsnapfmtenabled();
 		ehttpen.IsChecked = o.HttpEnabled;
@@ -783,8 +779,13 @@ public partial class SettingsWindow : Window {
 		if (!tryint(esnapshort, Loc.T("set.snap.short.name"), 16, 16384, out var sshort, tabsetsnap)) return false;
 		Result.ScreenshotShortPx = sshort;
 		if (!applysnapdir()) return false;
-		var nameTag = (esnapname.SelectedItem as ComboBoxItem)?.Tag as string ?? "time";
-		Result.ScreenshotName = ImageUtil.NormScreenshotName(nameTag);
+		try { Result.ScreenshotName = ImageUtil.NormScreenshotName(esnapname.Text); }
+		catch {
+			tabset.SelectedItem = tabsetsnap;
+			MessageBox.Show(this, Loc.T("set.snap.name.bad"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
 		// 三选一
 		var asPath = esnapcopypath.IsChecked == true;
 		var asFile = !asPath && esnapcopyfile.IsChecked == true;

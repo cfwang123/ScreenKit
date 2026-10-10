@@ -124,8 +124,10 @@ static class AppConfig {
 				try { o.ScreenshotDir = ImageUtil.NormScreenshotDir(sdir); }
 				catch { o.ScreenshotDir = ""; }
 			}
-			if (map.TryGetValue("screenshot_name", out var sname))
-				o.ScreenshotName = ImageUtil.NormScreenshotName(sname);
+			if (map.TryGetValue("screenshot_name", out var sname)) {
+				try { o.ScreenshotName = ImageUtil.NormScreenshotName(sname); }
+				catch { o.ScreenshotName = ImageUtil.ScreenshotNameDefault; }
+			}
 			if (map.TryGetValue("imgconv_format", out var icfmt) && !string.IsNullOrWhiteSpace(icfmt))
 				o.ImgConvFormat = ImgConvert.NormFmt(icfmt.Trim().Trim('"'));
 			if (map.TryGetValue("imgconv_jpg_quality", out var icq) && int.TryParse(icq, out var icQ))
@@ -569,8 +571,10 @@ static class AppConfig {
 		var shotDir = "";
 		try { shotDir = ImageUtil.NormScreenshotDir(o.ScreenshotDir); } catch { shotDir = ""; }
 		sb.AppendLine($"screenshot_dir = \"{esc(shotDir)}\"");
-		sb.AppendLine($"# 截图文件名 time=前缀_时间戳 | num=0001 递增");
-		sb.AppendLine($"screenshot_name = \"{ImageUtil.NormScreenshotName(o.ScreenshotName)}\"");
+		sb.AppendLine($"# 截图文件名。yyyy MM dd HH mm ss fff 为时间；rrr 为随机数字；#### 为序号（相同前缀取下一个）");
+		var shotName = ImageUtil.ScreenshotNameDefault;
+		try { shotName = ImageUtil.NormScreenshotName(o.ScreenshotName); } catch { }
+		sb.AppendLine($"screenshot_name = \"{esc(shotName)}\"");
 		sb.AppendLine($"# 截图历史保留天数（默认 3；0=不限；仅启动时后台清理当前保存目录）");
 		sb.AppendLine($"screenshot_keep_days = {Compat.Clamp(o.ScreenshotKeepDays < 0 ? 0 : o.ScreenshotKeepDays, 0, 3650)}");
 		sb.AppendLine($"# 截图完成时剪贴板：复制为图片 / 复制为文件 / 复制为路径（三选一）");

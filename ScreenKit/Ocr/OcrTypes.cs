@@ -201,8 +201,8 @@ public sealed class OcrOptions {
 	/// 可填外部目录（如 D:/s/），复制出的路径更短。
 	/// </summary>
 	public string ScreenshotDir = "";
-	/// <summary>截图文件名：time = 前缀_时间戳；num = 0001 递增。</summary>
-	public string ScreenshotName = "time";
+	/// <summary>截图文件名格式。默认 shot_yyyyMMdd_HHmmss_fff。#### 为序号，rrr 为随机数字。</summary>
+	public string ScreenshotName = ImageUtil.ScreenshotNameDefault;
 	/// <summary>图片格式转换：目标格式 jpg / png / bmp（默认 jpg）。</summary>
 	public string ImgConvFormat = "jpg";
 	/// <summary>图片格式转换 JPG 质量 1–100（默认 60）。</summary>
@@ -488,7 +488,8 @@ public sealed class OcrOptions {
 		ScreenshotShortEnabled = ScreenshotShortEnabled,
 		ScreenshotShortPx = ScreenshotShortPx,
 		ScreenshotDir = ScreenshotDir ?? "",
-		ScreenshotName = ScreenshotName ?? "time",
+		ScreenshotName = string.IsNullOrWhiteSpace(ScreenshotName)
+			? ImageUtil.ScreenshotNameDefault : ScreenshotName,
 		ImgConvFormat = ImgConvFormat ?? "jpg",
 		ImgConvJpgQuality = ImgConvJpgQuality,
 		ImgConvShortEnabled = ImgConvShortEnabled,
