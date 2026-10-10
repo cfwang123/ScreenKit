@@ -1466,7 +1466,11 @@ public partial class MainWindow : Window {
 		};
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
-		mnweb.SubmenuOpened += (_, _) => fillwebmenu();
+		mntools.SubmenuOpened += (_, e) => {
+			if (!ReferenceEquals(e.OriginalSource, mntools)) return;
+			fillwebmenu();
+		};
+		fillwebmenu();
 		mnwebhome.Click += (_, _) => openhttptools();
 		mnwebfiles.Click += (_, _) => openhttpfiles(false);
 		mntrpopup.Click += (_, _) => showtranslatepopup();

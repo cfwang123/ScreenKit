@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- Hovering a category in the main-window **Tools → Web tools** menu no longer closes the menu. Opening a category was rebuilding the list.
 - The tools-page speech screen lists the models and voices the speech tab already loaded, as soon as it opens. It no longer waits on another model scan or on the Edge voice download. Every speaker is included, including models with more than 64.
 - Tools-page speech voices use the same readable names as the desktop list. Windows voices no longer show the registry id.
 - The tools page search box hides cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
@@ -95,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
+- 主窗口 **工具 → web工具** 里，鼠标停在某个分类上时菜单不再自己关掉。之前打开分类会把整份列表重建一遍。
 - 工具页的语音合成一打开就列出语音合成页已经加载的模型和发音人，不再另外扫描模型，也不再等待 Edge 发音人下载。发音人全部列出，包括超过 64 个的模型。
 - 工具页语音合成的发音人使用和桌面列表相同的可读名称。Windows 语音不再显示注册表 Id。
 - 工具页搜索会藏起不匹配的卡片。样式里的 `display` 盖过了 `hidden`，所以列表看起来一直不变。返回和工具内的收藏按钮在首页同样不再露出来。
