@@ -128,6 +128,9 @@ static class MemLoadTest {
 				case "ocr":
 					hold = loadocr(dev, out model, out note);
 					break;
+				case "winocr":
+					loadwinocr(out model, out note);
+					break;
 				case "tr":
 					hold = loadtr(dev, out model, out note);
 					break;
@@ -166,6 +169,21 @@ static class MemLoadTest {
 			try { DictDb.Close(); } catch { }
 		}
 		return note.StartsWith("fail", StringComparison.Ordinal) ? 1 : 0;
+	}
+
+	static void loadwinocr(out string model, out string note) {
+		note = "";
+		var opt = new OcrOptions { ModelPackId = WinOcr.PackId };
+		try {
+			var saved = new OcrOptions();
+			AppConfig.LoadInto(saved);
+			if (!string.IsNullOrEmpty(saved.WinOcrLangs)) opt.WinOcrLangs = saved.WinOcrLangs;
+		}
+		catch { }
+		var png = Convert.FromBase64String(
+			"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+		var r = WinOcr.RecognizeBytes(opt, png);
+		model = "winocr/" + (string.IsNullOrEmpty(r?.ModelLabel) ? "Windows" : r.ModelLabel);
 	}
 
 	static IDisposable loadocr(string dev, out string model, out string note) {

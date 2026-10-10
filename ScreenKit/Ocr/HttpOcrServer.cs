@@ -118,7 +118,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 
 			if (path is "/api/ocr/models" or "/api/ocr/models/") {
-				if (!apiok(ctx, optNow.HttpOcr)) return;
+				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "ocr/models 仅支持 GET"));
 					return;
@@ -128,7 +128,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/ocr/get_options" or "/api/ocr/get_options/") {
-				if (!apiok(ctx, optNow.HttpOcr)) return;
+				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "get_options 仅支持 GET"));
 					return;
@@ -138,7 +138,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/ocr" or "/api/ocr/") {
-				if (!apiok(ctx, optNow.HttpOcr)) return;
+				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "ocr 仅支持 POST"));
 					return;
@@ -148,7 +148,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/qr" or "/api/barcode" or "/api/barcodes") {
-				if (!apiok(ctx, optNow.HttpOcr)) return;
+				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "qr 仅支持 POST"));
 					return;
@@ -248,7 +248,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/asr/models") {
-				if (!apiok(ctx, optNow.HttpAsr)) return;
+				if (!apiok(ctx, optNow.HttpAsr && optNow.ModAsr)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "asr/models 仅支持 GET"));
 					return;
@@ -258,7 +258,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/asr") {
-				if (!apiok(ctx, optNow.HttpAsr)) return;
+				if (!apiok(ctx, optNow.HttpAsr && optNow.ModAsr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "asr 仅支持 POST"));
 					return;
@@ -268,7 +268,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/tts/engines") {
-				if (!apiok(ctx, optNow.HttpTts)) return;
+				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "tts/engines 仅支持 GET"));
 					return;
@@ -278,7 +278,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/tts/models") {
-				if (!apiok(ctx, optNow.HttpTts)) return;
+				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "tts/models 仅支持 GET"));
 					return;
@@ -288,7 +288,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/tts") {
-				if (!apiok(ctx, optNow.HttpTts)) return;
+				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "tts 仅支持 POST"));
 					return;
@@ -298,7 +298,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/itn") {
-				if (!apiok(ctx, optNow.HttpAsr)) return;
+				if (!apiok(ctx, optNow.HttpAsr && optNow.ModAsr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "itn 仅支持 POST"));
 					return;
@@ -308,7 +308,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/translate" or "/api/translate/batch") {
-				if (!apiok(ctx, optNow.HttpTranslate)) return;
+				if (!apiok(ctx, optNow.HttpTranslate && optNow.ModTranslate)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "translate 仅支持 POST"));
 					return;
@@ -318,7 +318,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/chat") {
-				if (!apiok(ctx, optNow.HttpChat)) return;
+				if (!apiok(ctx, optNow.HttpChat && optNow.ModChat)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "chat 仅支持 POST"));
 					return;
@@ -328,7 +328,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/face/models") {
-				if (!apiok(ctx, optNow.HttpFace)) return;
+				if (!apiok(ctx, optNow.HttpFace && optNow.ModFace)) return;
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "face/models 仅支持 GET"));
 					return;
@@ -338,7 +338,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 
 			if (path is "/api/face" or "/api/face/compare" or "/api/face/extract") {
-				if (!apiok(ctx, optNow.HttpFace)) return;
+				if (!apiok(ctx, optNow.HttpFace && optNow.ModFace)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "face 仅支持 POST"));
 					return;
@@ -2020,7 +2020,7 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	static bool apiok(SockCtx ctx, bool on) {
 		if (on) return true;
-		writejson(ctx, 200, err(810, "该接口未启用（参数设置 → web/接口）"));
+		writejson(ctx, 200, err(810, "该接口未启用（参数设置 → 常规 → 功能开关，或 web/接口）"));
 		return false;
 	}
 
@@ -2039,27 +2039,27 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
 		};
-		if (o.HttpOcr) {
+		if (o.HttpOcr && o.ModOcr) {
 			a.Add("GET  /api/ocr/models");
 			a.Add("GET  /api/ocr/get_options");
 			a.Add("POST /api/ocr   JSON{base64,options} 或 multipart");
 			a.Add("POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码");
 		}
-		if (o.HttpAsr) {
+		if (o.HttpAsr && o.ModAsr) {
 			a.Add("GET  /api/asr/models");
 			a.Add("POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}");
 			a.Add("POST /api/itn   JSON{text}  WeText+规则后处理");
 		}
-		if (o.HttpTts) {
+		if (o.HttpTts && o.ModTts) {
 			a.Add("GET  /api/tts/engines");
 			a.Add("GET  /api/tts/models  ?engine=&refresh=");
 			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}");
 		}
-		if (o.HttpTranslate)
+		if (o.HttpTranslate && o.ModTranslate)
 			a.Add("POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译");
-		if (o.HttpChat)
+		if (o.HttpChat && o.ModChat)
 			a.Add("POST /api/chat  JSON{text|base64|path, messages?, tts?, agent?, llm?}  LLM对话");
-		if (o.HttpFace) {
+		if (o.HttpFace && o.ModFace) {
 			a.Add("GET  /api/face/models");
 			a.Add("POST /api/face  JSON{base64|base64_b|path} 或 multipart 人脸检测/比对");
 		}

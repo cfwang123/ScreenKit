@@ -42,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The tools page adds All under Favorites. All is selected by default and lists favorites plus every category. Choosing a category lists only that category.
 - The Unicode and GBK code charts list the total number of characters. Each group lists its count, its first code, and its last code. Unassigned Unicode code points and empty GBK slots are not counted. The group list fills the tool card. The card itself does not scroll. The total stays on top of the list and covers the groups that scroll under it.
+- Settings → General feature switches hide the page, disable the feature (hotkeys, tray, and its HTTP routes), and release loaded models. LLM log only hides its page. The HTTP page only hides that entry. File sync and Screencast also stop those services.
 
 #### Fixed
 
@@ -57,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 工具页在收藏下增加「全部」，默认选中。全部列出收藏和每个分类。选中某个分类时只列出该分类。
 - Unicode 码表和 GBK 码表列出总字数。每个分组列出字数、起始码和结束码。未分配的 Unicode 码位和 GBK 空位不计入。分组列表铺满工具卡片，卡片本身不再滚动。总字数这一行吸在列表顶上，滚上去的分组不会露在它上面。
+- 参数设置 → 常规的功能开关关闭后隐藏页面，停用该功能（热键、托盘和对应 HTTP），并释放已加载的模型。LLM 日志只隐藏页面。HTTP 接口页只隐藏入口。文件同步和投屏同时停用对应服务。
 
 #### 修复
 

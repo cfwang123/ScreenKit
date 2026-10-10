@@ -216,12 +216,7 @@ public partial class MainWindow {
 	}
 
 	void opendicttab(string query = null) {
-		if (!opt.ModDict) return;
-		if (!opt.TabDictVisible) {
-			opt.TabDictVisible = true;
-			applymaintabvisibility();
-			try { AppConfig.Save(opt); } catch { }
-		}
+		if (!opt.ModDict || !opt.TabDictVisible) return;
 		if (tray != null) tray.showwindow();
 		else {
 			if (!IsVisible) Show();

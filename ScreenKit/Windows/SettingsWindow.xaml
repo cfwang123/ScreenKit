@@ -31,10 +31,10 @@
 						<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）"
 						          Margin="0,0,0,16" IsChecked="True"/>
 
-						<TextBlock x:Name="lbsettabsvisible" Text="主界面 Tab" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsettabsvisible" Text="功能开关" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsettabsvisiblehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
-						           Text="选择主界面中显示的功能页；隐藏仅影响入口，不停用热键或后台功能。"/>
+						           Text="关闭后隐藏该页，停用功能（热键、托盘和对应 HTTP），并释放已加载的模型。LLM 日志只隐藏页面。HTTP 接口页只隐藏入口，服务仍由 web/接口 控制。文件同步和投屏关闭后同时停用服务。"/>
 						<WrapPanel Margin="0,0,0,16">
 							<CheckBox x:Name="etabocrvisible" Content="截图识别" Width="140" Margin="0,0,0,6"/>
 							<CheckBox x:Name="etabttsvisible" Content="语音合成" Width="140" Margin="0,0,0,6"/>

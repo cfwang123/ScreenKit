@@ -302,6 +302,7 @@ static class AppConfig {
 			o.SendFileDevices = parsesendfiledevices(text);
 			if (map.TryGetValue("cast_recv_enabled", out var cre))
 				o.CastRecvEnabled = parsebool(cre, true);
+			o.ApplyFeatureOff();
 			if (hasLanKey)
 				o.HttpLan = parsebool(hl, true);
 			else if (sawHost)
@@ -634,7 +635,7 @@ static class AppConfig {
 		sb.AppendLine($"pwgen_llm = \"{esc((o.PwLexLlm ?? "").Trim())}\"");
 		sb.AppendLine("# 界面语言：程序目录 lang/ 下的 toml 文件名，如 zh、en、ja、ko");
 		sb.AppendLine($"ui_lang = \"{esc(Loc.Normalize(o.UiLang))}\"");
-		sb.AppendLine($"# 功能模块。false 隐藏对应页并停用热键；默认 true");
+		sb.AppendLine($"# 功能开关。false 隐藏页面并停用热键、托盘和对应 HTTP；默认 true");
 		sb.AppendLine($"mod_ocr = {(o.ModOcr ? "true" : "false")}");
 		sb.AppendLine($"mod_tts = {(o.ModTts ? "true" : "false")}");
 		sb.AppendLine($"mod_asr = {(o.ModAsr ? "true" : "false")}");
@@ -642,7 +643,7 @@ static class AppConfig {
 		sb.AppendLine($"mod_chat = {(o.ModChat ? "true" : "false")}");
 		sb.AppendLine($"mod_face = {(o.ModFace ? "true" : "false")}");
 		sb.AppendLine($"mod_dict = {(o.ModDict ? "true" : "false")}");
-		sb.AppendLine($"# 主界面 Tab 显示开关（仅隐藏入口，不停用对应功能；默认全部 true）");
+		sb.AppendLine($"# 功能开关页面。与上面的 mod_* 一起写入。LLM 日志和 HTTP 页只有这个开关");
 		sb.AppendLine($"tab_ocr_visible = {(o.TabOcrVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_tts_visible = {(o.TabTtsVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_asr_visible = {(o.TabAsrVisible ? "true" : "false")}");

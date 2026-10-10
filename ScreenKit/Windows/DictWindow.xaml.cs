@@ -245,6 +245,11 @@ public partial class DictWindow : UserControl {
 	}
 
 	void ensuredb() {
+		var o = Options != null ? Options() : null;
+		if (o != null && !o.ModDict) {
+			try { DictDb.Close(); } catch { }
+			return;
+		}
 		if (DictDb.Ready) {
 			if (string.IsNullOrWhiteSpace(lbstatus.Text))
 				lbstatus.Text = Loc.T("dict.ready");

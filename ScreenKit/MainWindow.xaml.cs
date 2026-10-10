@@ -1356,9 +1356,14 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	/// <summary>服务模式：后台预热/热切换引擎，始终保持加载状态。</summary>
+	/// <summary>服务模式：后台预热/热切换引擎，始终保持加载状态。识别关闭时不加载。</summary>
 	void tryservicewarmup(string reasonPrefix) {
 		if (!opt.ServiceMode) return;
+		if (!opt.ModOcr) {
+			var off = string.IsNullOrWhiteSpace(reasonPrefix) ? "服务模式" : reasonPrefix;
+			setstatus($"{off} · 识别已关闭");
+			return;
+		}
 		if (!WinOcr.Is(opt) && (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir)))
 			applydefaultmodel();
 		var snap = snapshotopt();
@@ -1752,6 +1757,63 @@ public partial class MainWindow : Window {
 			if (asrLiveOn) try { stopasrlive(false); } catch { }
 			if (asrVoice != null && asrVoice.IsActive) try { asrVoice.Stop(); } catch { }
 		}
+	}
+
+	/// <summary>功能从开到关时释放已加载的模型，并停掉正在进行的投屏发送。</summary>
+	void releaseofffeatures(OcrOptions old) {
+		if (old == null) return;
+		var any = false;
+		if (old.ModOcr && !opt.ModOcr) {
+			try { runner.UnloadNow(); } catch { }
+			any = true;
+		}
+		if (old.ModTts && !opt.ModTts) {
+			try { sherpaTts?.UnloadSafe(); } catch { }
+			try { DictTts.UnloadOnnx(); } catch { }
+			any = true;
+		}
+		if (old.ModAsr && !opt.ModAsr) {
+			try { asrEngine?.UnloadSafe(); } catch { }
+			try { asrStreamEngine?.UnloadSafe(); } catch { }
+			any = true;
+		}
+		if (old.ModTranslate && !opt.ModTranslate) {
+			try { trEngine?.UnloadAll(); } catch { }
+			any = true;
+		}
+		if (old.ModFace && !opt.ModFace) {
+			try {
+				if (facePipe != null && facePipe.TryRelease()) facePipe = null;
+			}
+			catch { facePipe = null; }
+			try {
+				if (faceLmk != null && faceLmk.TryRelease()) {
+					faceLmk = null;
+					faceLmkName = "";
+				}
+			}
+			catch { faceLmk = null; faceLmkName = ""; }
+			try {
+				if (faceAttr != null && faceAttr.TryRelease()) {
+					faceAttr = null;
+					faceAttrName = "";
+				}
+			}
+			catch { faceAttr = null; faceAttrName = ""; }
+			try { httpServer?.UnloadFaceMem("httpface"); } catch { }
+			try { httpServer?.UnloadFaceMem("httpattr"); } catch { }
+			any = true;
+		}
+		if (old.ModDict && !opt.ModDict) {
+			try { DictDb.Close(); } catch { }
+			try { DictTts.UnloadOnnx(); } catch { }
+			any = true;
+		}
+		if (old.TabCastVisible && !opt.TabCastVisible)
+			try { stopcast(); } catch { }
+		if (!any) return;
+		try { MemUsage.Trim(); } catch { }
+		kickstbar();
 	}
 
 	void applycomputebox(ComboBox box) {
@@ -3567,6 +3629,7 @@ public partial class MainWindow : Window {
 		HttpProxy.ApplyFrom(opt);
 		applymaintabvisibility();
 		applymodui();
+		releaseofffeatures(old);
 		syncsnapcopyopts();
 		try { refreshtrllm(); } catch { }
 		try { fillchatllm(); } catch { }
@@ -3931,11 +3994,7 @@ public partial class MainWindow : Window {
 		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop", fromTray);
 
 	void opencast() {
-		if (opt != null && !opt.TabCastVisible) {
-			opt.TabCastVisible = true;
-			applymaintabvisibility();
-			try { AppConfig.Save(opt); } catch { }
-		}
+		if (opt == null || !opt.TabCastVisible) return;
 		if (tray != null) tray.showwindow();
 		else showmainontop();
 		selectmaintab(tabcast);

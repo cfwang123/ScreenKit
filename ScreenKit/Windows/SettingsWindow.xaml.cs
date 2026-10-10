@@ -498,17 +498,17 @@ public partial class SettingsWindow : Window {
 		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
-		etabocrvisible.IsChecked = o.TabOcrVisible;
-		etabttsvisible.IsChecked = o.TabTtsVisible;
-		etabasrvisible.IsChecked = o.TabAsrVisible;
-		etabchatvisible.IsChecked = o.TabChatVisible;
+		etabocrvisible.IsChecked = o.TabOcrVisible && o.ModOcr;
+		etabttsvisible.IsChecked = o.TabTtsVisible && o.ModTts;
+		etabasrvisible.IsChecked = o.TabAsrVisible && o.ModAsr;
+		etabchatvisible.IsChecked = o.TabChatVisible && o.ModChat;
 		etabllmlogvisible.IsChecked = o.TabLlmLogVisible;
-		etabtranslatevisible.IsChecked = o.TabTranslateVisible;
-		etabfacevisible.IsChecked = o.TabFaceVisible;
+		etabtranslatevisible.IsChecked = o.TabTranslateVisible && o.ModTranslate;
+		etabfacevisible.IsChecked = o.TabFaceVisible && o.ModFace;
 		etabhttpvisible.IsChecked = o.TabHttpVisible;
 		etabsfvisible.IsChecked = o.TabSendFileVisible;
 		etabcastvisible.IsChecked = o.TabCastVisible;
-		etabdictvisible.IsChecked = o.TabDictVisible;
+		etabdictvisible.IsChecked = o.TabDictVisible && o.ModDict;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		var proxyMode = HttpProxy.NormalizeMode(string.IsNullOrWhiteSpace(o.HttpProxyMode)
 			? (o.HttpProxyEnabled ? "manual" : "system") : o.HttpProxyMode);
@@ -753,17 +753,17 @@ public partial class SettingsWindow : Window {
 			out var trBatch, tabsettr)) return false;
 		Result.TranslateLlmBatch = trBatch;
 		Result.MinimizeToTray = emintray.IsChecked == true;
-		Result.TabOcrVisible = etabocrvisible.IsChecked == true;
-		Result.TabTtsVisible = etabttsvisible.IsChecked == true;
-		Result.TabAsrVisible = etabasrvisible.IsChecked == true;
-		Result.TabChatVisible = etabchatvisible.IsChecked == true;
+		Result.TabOcrVisible = Result.ModOcr = etabocrvisible.IsChecked == true;
+		Result.TabTtsVisible = Result.ModTts = etabttsvisible.IsChecked == true;
+		Result.TabAsrVisible = Result.ModAsr = etabasrvisible.IsChecked == true;
+		Result.TabChatVisible = Result.ModChat = etabchatvisible.IsChecked == true;
 		Result.TabLlmLogVisible = etabllmlogvisible.IsChecked == true;
-		Result.TabTranslateVisible = etabtranslatevisible.IsChecked == true;
-		Result.TabFaceVisible = etabfacevisible.IsChecked == true;
+		Result.TabTranslateVisible = Result.ModTranslate = etabtranslatevisible.IsChecked == true;
+		Result.TabFaceVisible = Result.ModFace = etabfacevisible.IsChecked == true;
 		Result.TabHttpVisible = etabhttpvisible.IsChecked == true;
 		Result.TabSendFileVisible = etabsfvisible.IsChecked == true;
 		Result.TabCastVisible = etabcastvisible.IsChecked == true;
-		Result.TabDictVisible = etabdictvisible.IsChecked == true;
+		Result.TabDictVisible = Result.ModDict = etabdictvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
 		Result.HttpProxyMode = rsetproxyman.IsChecked == true ? "manual"
@@ -824,6 +824,8 @@ public partial class SettingsWindow : Window {
 		Result.OnnxUnloadMin = idleMin;
 		Result.SendFileEnabled = esfen.IsChecked == true;
 		Result.CastRecvEnabled = ecasten.IsChecked == true;
+		if (!Result.TabSendFileVisible) Result.SendFileEnabled = false;
+		if (!Result.TabCastVisible) Result.CastRecvEnabled = false;
 		Result.SendFileName = (esfname.Text ?? "").Trim();
 		Result.SendFileWebPass = (esfwebpass.Text ?? "").Trim();
 		var photoTag = ((esfphotofmt.SelectedItem as ComboBoxItem)?.Tag as string) ?? "jpg";

@@ -251,7 +251,7 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsPath = false;
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
-	/// <summary>功能模块是否启用。关闭后隐藏对应页，并停用热键与托盘入口。</summary>
+	/// <summary>功能模块是否启用。与对应 Tab 开关一起由「功能开关」写入。关闭后隐藏页面，停用热键、托盘和 HTTP，并释放已加载模型。</summary>
 	public bool ModOcr = true;
 	public bool ModTts = true;
 	public bool ModAsr = true;
@@ -266,7 +266,7 @@ public sealed class OcrOptions {
 	public bool HttpTranslate = true;
 	public bool HttpChat = true;
 	public bool HttpFace = true;
-	/// <summary>主界面各 Tab 是否显示；仅影响入口，不停用对应功能。</summary>
+	/// <summary>功能开关：页面是否显示。识别、语音、翻译、对话、人脸、词典与 mod_* 同时关闭。文件同步和投屏同时停服务。</summary>
 	public bool TabOcrVisible = true;
 	public bool TabTtsVisible = true;
 	public bool TabAsrVisible = true;
@@ -278,6 +278,20 @@ public sealed class OcrOptions {
 	public bool TabSendFileVisible = true;
 	public bool TabCastVisible = true;
 	public bool TabDictVisible = true;
+
+	/// <summary>隐藏的功能页同时关掉模块。文件同步和投屏同时停服务。</summary>
+	public void ApplyFeatureOff() {
+		if (!TabOcrVisible) ModOcr = false;
+		if (!TabTtsVisible) ModTts = false;
+		if (!TabAsrVisible) ModAsr = false;
+		if (!TabChatVisible) ModChat = false;
+		if (!TabTranslateVisible) ModTranslate = false;
+		if (!TabFaceVisible) ModFace = false;
+		if (!TabDictVisible) ModDict = false;
+		if (!TabSendFileVisible) SendFileEnabled = false;
+		if (!TabCastVisible) CastRecvEnabled = false;
+	}
+
 	/// <summary>启动时自动检查更新的间隔（天）。默认 7；0 = 不自动检查。菜单「检查更新」不受限。</summary>
 	public int UpdateCheckDays = 7;
 	/// <summary>上次成功查询 GitHub Releases 的 UTC unix 秒；0 = 从未检查。</summary>
