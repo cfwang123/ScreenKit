@@ -33,6 +33,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- The tools-page OCR screen accepts a pasted picture (Ctrl+V) and shows a preview. Choosing a file shows the same preview.
+
 #### Fixed
 
 - The tools page left categories and the search box now hide cards that do not match. A stylesheet `display` rule had been covering the `hidden` attribute, so the list never changed. Back and the in-tool favorite button stay off the home list for the same reason.
@@ -42,6 +46,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
 
 ### 中文
+
+#### 新增
+
+- 工具页的文字识别可以 Ctrl+V 粘贴图片，并显示预览。选择文件时同样预览。
 
 #### 修复
 

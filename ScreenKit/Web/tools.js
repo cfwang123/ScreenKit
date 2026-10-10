@@ -1,5 +1,7 @@
 window.sktools = (function(){
 	var ocrPacks = [];
+	var ocrPic = null;
+	var ocrPicUrl = "";
 	var ttsItems = [];
 	var asrItems = [];
 	var asrRec = null;
@@ -52,7 +54,9 @@ window.sktools = (function(){
 		$("qr-make").onclick = qrmake;
 		$("qr-scan").onclick = qrscan;
 		$("ocr-pack").onchange = fillocrmodels;
+		$("ocr-file").onchange = onocrfile;
 		$("ocr-go").onclick = ocrgo;
+		document.addEventListener("paste", onocrpaste);
 		$("ocr-copy").onclick = function(){ copytext($("ocr-out").value, "ocr-msg"); };
 		$("tts-eng").onchange = fillttsmodels;
 		$("tts-model").onchange = fillttsvoices;
@@ -442,10 +446,47 @@ window.sktools = (function(){
 		$("ocr-model-lab").firstChild.nodeValue = win ? "语言" : "模型";
 	}
 
-	function ocrgo(){
+	function onocrfile(){
 		var file = $("ocr-file").files && $("ocr-file").files[0];
+		if (file) setocrpic(file);
+	}
+
+	function onocrpaste(ev){
+		if (curtool !== "ocr") return;
+		var cd = ev.clipboardData;
+		if (!cd) return;
+		var file = null;
+		var i;
+		if (cd.items) {
+			for (i = 0; i < cd.items.length; i++) {
+				var item = cd.items[i];
+				if (item.kind === "file" && item.type.indexOf("image/") === 0) {
+					file = item.getAsFile();
+					break;
+				}
+			}
+		}
+		if (!file && cd.files && cd.files.length && cd.files[0].type.indexOf("image/") === 0)
+			file = cd.files[0];
+		if (!file) return;
+		ev.preventDefault();
+		setocrpic(file);
+	}
+
+	function setocrpic(file){
+		ocrPic = file;
+		if (ocrPicUrl) URL.revokeObjectURL(ocrPicUrl);
+		ocrPicUrl = URL.createObjectURL(file);
+		var img = $("ocr-img");
+		img.src = ocrPicUrl;
+		img.hidden = false;
+		msg("ocr-msg", "已放入图片");
+	}
+
+	function ocrgo(){
+		var file = ocrPic || ($("ocr-file").files && $("ocr-file").files[0]);
 		if (!file) {
-			msg("ocr-msg", "请选择图片", true);
+			msg("ocr-msg", "请选择或粘贴图片", true);
 			return;
 		}
 		var pack = ocrpack();
