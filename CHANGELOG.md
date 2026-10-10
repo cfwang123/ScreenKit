@@ -44,7 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Tray → Tools → Screencast opens the main window on the Screencast tab. If that tab was hidden, it is shown again.
-- `slx` / `slr` ask a running program to exit before building. ScreenKit closes its HTTP listener and then exits. The build no longer force-kills the process. The listen port stays the configured port.
+- `scripts\build.cmd` asks the running ScreenKit to close its HTTP listener and exit, then calls `slx`. The global `slx` script is unchanged. The listen port stays the configured port.
 
 ### 中文
 
@@ -59,7 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 托盘 → 工具 → 投屏打开主窗口并切到投屏页。该页被隐藏时会重新显示。
-- `slx` / `slr` 编译前请求正在运行的程序自己退出。ScreenKit 会先关掉 HTTP 再退出，不再强制结束进程。监听端口仍是设定的那个。
+- `scripts\build.cmd` 先请求正在运行的 ScreenKit 关掉 HTTP 并退出，再调用 `slx`。全局 `slx` 脚本不改。监听端口仍是设定的那个。
 
 ## v1.0.17 (2026-10-09 ~ 10-10)
 
