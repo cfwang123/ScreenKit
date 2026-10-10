@@ -161,7 +161,19 @@ SK.watchAcc = 0;
 		if (name === "ocr") SK.loadoocr();
 		if (name === "tts") SK.loadtts();
 		if (name === "asr") SK.loadasr();
+		settitle();
 		if (!fromHist) pushhash(SK.curtool);
+	}
+
+	function settitle(){
+		if (!SK.curtool || SK.curtool === "home") {
+			document.title = "web工具集";
+			return;
+		}
+		var card = cardof(SK.curtool);
+		var span = card ? card.querySelector("span") : null;
+		var toolName = span ? span.textContent : "";
+		document.title = toolName || "web工具集";
 	}
 
 	function marktool(id, panelId){

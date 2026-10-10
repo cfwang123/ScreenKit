@@ -49,7 +49,7 @@ sealed class OcrRunner : IDisposable {
 		Compat.ThrowIfDisposed(disposed, this);
 		if (WinOcr.Is(opt)) {
 			dropengine();
-			return WinOcr.Recognize(opt, bgr);
+			return WinOcr.RecognizeBgra(opt, matbgra(bgr), bgr.Width, bgr.Height);
 		}
 		NativeRuntime.EnsureOpenCv();
 		lock (gate) {
@@ -58,6 +58,27 @@ sealed class OcrRunner : IDisposable {
 			if (r != null) r.LoadMs = loadMs;
 			return r;
 		}
+	}
+
+	static byte[] matbgra(Mat bgr) {
+		if (bgr == null || bgr.Empty()) throw new InvalidOperationException("图像为空");
+		int w = bgr.Width, h = bgr.Height, ch = bgr.Channels();
+		if (w < 1 || h < 1 || ch < 1) throw new InvalidOperationException("图像为空");
+		int step = (int)bgr.Step();
+		var bgra = new byte[w * h * 4];
+		var row = new byte[Math.Max(step, w * ch)];
+		for (int y = 0; y < h; y++) {
+			System.Runtime.InteropServices.Marshal.Copy(bgr.Ptr(y), row, 0, Math.Min(step, row.Length));
+			for (int x = 0; x < w; x++) {
+				int s = x * ch;
+				int d = (y * w + x) * 4;
+				bgra[d] = row[s];
+				bgra[d + 1] = ch > 1 ? row[s + 1] : row[s];
+				bgra[d + 2] = ch > 2 ? row[s + 2] : row[s];
+				bgra[d + 3] = 255;
+			}
+		}
+		return bgra;
 	}
 
 	public OcrResult Run(OcrOptions opt, System.Windows.Media.Imaging.BitmapSource src) {

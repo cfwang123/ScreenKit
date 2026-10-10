@@ -1,10 +1,8 @@
 using System.Text;
-using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using OpenCvSharp;
 using Windows.Graphics.Imaging;
 using WinMedia = Windows.Media.Ocr;
 
@@ -79,8 +77,12 @@ static class WinOcr {
 
 	public static OcrResult Recognize(OcrOptions opt, BitmapSource src) {
 		if (src == null) throw new InvalidOperationException("图像为空");
-		return offsta(() => recognizebgra(opt, copybgra(src), src.PixelWidth, src.PixelHeight));
+		return RecognizeBgra(opt, copybgra(src), src.PixelWidth, src.PixelHeight);
 	}
+
+	/// <summary>BGRA32 紧排像素。不使用 OpenCV。</summary>
+	public static OcrResult RecognizeBgra(OcrOptions opt, byte[] bgra, int width, int height) =>
+		offsta(() => recognizebgra(opt, bgra, width, height));
 
 	public static OcrResult RecognizeFile(OcrOptions opt, string path) {
 		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
@@ -100,13 +102,6 @@ static class WinOcr {
 			var bmp = decode(ms, limitof(opt), out var w, out var h, out var scale);
 			return withsize(recognizebmp(opt, bmp, scale), w, h);
 		});
-	}
-
-	public static OcrResult Recognize(OcrOptions opt, Mat bgr) {
-		if (bgr == null || bgr.Empty())
-			throw new InvalidOperationException("图像为空");
-		var pixels = bgrtobgra(bgr);
-		return offsta(() => recognizebgra(opt, pixels, bgr.Width, bgr.Height));
 	}
 
 	static OcrResult offsta(Func<OcrResult> run) {
@@ -253,26 +248,6 @@ static class WinOcr {
 		var pixels = new byte[stride * h];
 		bgra.CopyPixels(pixels, stride, 0);
 		return pixels;
-	}
-
-	static byte[] bgrtobgra(Mat bgr) {
-		int w = bgr.Width, h = bgr.Height, ch = bgr.Channels();
-		if (w < 1 || h < 1 || ch < 1) throw new InvalidOperationException("图像为空");
-		int step = (int)bgr.Step();
-		var bgra = new byte[w * h * 4];
-		var row = new byte[Math.Max(step, w * ch)];
-		for (int y = 0; y < h; y++) {
-			Marshal.Copy(bgr.Ptr(y), row, 0, Math.Min(step, row.Length));
-			for (int x = 0; x < w; x++) {
-				int s = x * ch;
-				int d = (y * w + x) * 4;
-				bgra[d] = row[s];
-				bgra[d + 1] = ch > 1 ? row[s + 1] : row[s];
-				bgra[d + 2] = ch > 2 ? row[s + 2] : row[s];
-				bgra[d + 3] = 255;
-			}
-		}
-		return bgra;
 	}
 
 	static byte[] resizebgra(byte[] src, int sw, int sh, int sstride, int dw, int dh) {

@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -106,6 +106,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET/POST | `/api/calendar` | Gregorian to another calendar (not tied to a module switch) |
 | GET/POST | `/api/jpyomi` | Japanese reading (not tied to a module switch) |
 | GET/POST | `/api/text` | Text encode/decode (not tied to a module switch) |
+| GET/POST | `/api/fx` | Currency conversion (not tied to a module switch) |
 | GET/POST | `/api/qrmake` | Make a QR code or barcode (not tied to a module switch) |
 | POST | `/api/qrscan` | Read a QR code or barcode (not tied to a module switch) |
 | GET | `/api/ocr/models` | OCR engines and models (same as the main window) |
@@ -131,7 +132,7 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
 
 ## 4. GET `/` and GET `/api`
 
-`GET /` and `HEAD /` return the local tools page: calendars, text (including simplified/traditional and Japanese yomi), QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
+`GET /` and `HEAD /` return the local tools page: calendars, text (including simplified/traditional and Japanese yomi), QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
 
 `GET /api` returns the service name, the short `endpoints` list, and `apis`. Each `apis` item has `method` (`GET`, `POST`, or `GET/POST`), `path`, `summary`, and `params` (name and description). That text is the same as the HTTP tab templates. `?lang=zh|en|ja|ko` selects the language. Omitting it uses the app's current UI language and does not change the UI. A module that is off is omitted. `langs` lists the choices.
 
@@ -324,6 +325,24 @@ Text helpers. Not tied to a module switch. `text` may be empty. Unknown `op` ret
 ```
 
 **Response `data`:** `text` is the result (`aGk=` for the example). `op` echoes the operation. `stats` puts a short multiline count in `text`.
+
+---
+
+## 5.5.1 GET/POST `/api/fx`
+
+Currency conversion. Not tied to a module switch. Foreign units use the Bank of China middle rate (中行折算价 per 100, divided by 100). A successful page is cached for 10 minutes. A timeout, an empty page, or a missing currency uses the built-in 2026-10-10 table and is not cached. Yuan, jiao, and fen are fixed and do not request the site. An unknown unit or a non-number returns 802.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `amount` | number or string | Amount. `n` is an alias |
+| `from` | string | Source unit. Default `CNY`. `USD`, `jiao`, `fen`, and the other listed units |
+| `to` | string | Target unit, or `all` (default) to list every unit |
+
+```json
+{ "amount": 1, "from": "USD", "to": "CNY" }
+```
+
+**Response `data`:** `text` is the multiline result, including the rate note. `live` is false when the default table was used.
 
 ---
 

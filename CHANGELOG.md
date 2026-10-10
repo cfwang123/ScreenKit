@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Unit conversion does foreign currency in the program. It reads the Bank of China middle rate, keeps a successful result for 10 minutes, and uses the built-in 2026-10-10 table when the query fails. A failed query is not cached. Yuan, jiao, and fen stay fixed and do not ask the site. `GET/POST /api/fx` stays available when other HTTP modules are off.
 - Tools-page radix conversion uses a Convert to dropdown. It starts on All. All prints the original number on the first line, then bases 2, 8, 10, and 16, one result per line.
 - **Long screenshot** no longer shows the picture for OCR. After stitching it copies with the same mode as a normal screenshot (image, file, or path) and does not recognize. Overlap is matched on a Bitmap, so this feature does not need OpenCV.
 - The password generator, on the desktop and the tools page, starts with lowercase letters and digits, length 6, and 10 passwords. Uppercase, symbols, skip ambiguous, one of each class, and a typed character set start off. The desktop still keeps the last settings after you change them. Opening the window or the tools-page card generates one batch immediately. Opening the desktop window again generates another batch.
@@ -63,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 单位换算的外币在程序里计算。向中国银行查中间价，成功结果缓存 10 分钟。查询失败时用内置的 2026-10-10 牌价，失败结果不缓存。元、角、分是固定比例，不访问网站。`GET/POST /api/fx` 在其它 HTTP 模块关闭时仍可用。
 - 工具页的进制转换把「转换到」改成下拉，默认「全部」。全部的第一行是原来的进制数，后面 2、8、10、16 进制各一行。
 - **长截图**不再把图片放到主界面供识别。拼接完成后按普通截图的复制方式写入剪贴板（图片、文件或路径），不识别。重叠行在 Bitmap 上比对，不再需要 OpenCV。
 - 桌面和工具页的密码生成默认只用小写字母和数字，长度 6，一次 10 条。大写、符号、去掉易混字符、每类至少一个、指定字符集默认都不开。桌面改过之后仍记住上次设置。打开窗口或工具页卡片后马上生成一次。桌面窗口还开着时再从菜单进入，会再生成一次。

@@ -40,12 +40,7 @@
 			["USD", "美元"], ["HKD", "港币"], ["MOP", "澳门元"], ["EUR", "欧元"], ["GBP", "英镑"],
 			["JPY", "日元"], ["KRW", "韩元"], ["AUD", "澳元"], ["CAD", "加元"],
 			["SGD", "新加坡元"], ["CHF", "瑞士法郎"], ["THB", "泰铢"], ["TWD", "新台币"]
-		], {
-			CNY: 1, jiao: 0.1, fen: 0.01,
-			USD: 6.733, HKD: 0.858, MOP: 0.8326, EUR: 7.5323, GBP: 8.8872,
-			JPY: 0.042571, KRW: 0.004996, AUD: 4.6746, CAD: 4.7204,
-			SGD: 5.246, CHF: 8.0821, THB: 0.1994, TWD: 0.2099
-		})
+		], null)
 	];
 	var ALIAS = {
 		len: { mm: ["公厘"], cm: ["公分"], m: ["公尺", "meter", "metre"], km: ["公里"], "in": ["吋"], ft: ["呎"] },
@@ -65,9 +60,12 @@
 			CAD: ["加币"], SGD: ["新元"], CHF: ["瑞郎"], TWD: ["台币"]
 		}
 	};
+	var fxseq = 0;
+	var fxtimer = 0;
 	SK.regutil("u-unit", {
 		title: "单位换算",
 		go: "换算",
+		own: true,
 		body: function(){
 			var names = [];
 			var i;
@@ -79,7 +77,7 @@
 					SK.lab("原单位", '<select id="box-from"></select>'),
 					SK.lab("新单位", '<select id="box-to"></select>'))
 				+ '<div class="row" id="box-root-row" hidden>' + SK.lab("根字号", SK.textin("box-root", "16")) + "</div>"
-				+ '<p class="hint">数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。</p>';
+				+ '<p class="hint">数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。外币向中国银行查询中间价，缓存 10 分钟。查询失败时用 2026-10-10 的牌价。</p>';
 		},
 		open: function(){
 			var ids = ["box-kind", "box-from", "box-to"];
@@ -91,7 +89,7 @@
 			live();
 		},
 		run: function(){
-			return convert();
+			live();
 		}
 	});
 
@@ -120,15 +118,39 @@
 	}
 
 	function live(){
-		SK.msg("box-msg", "");
-		try {
-			SK.$("box-out").value = convert();
-			SK.msg("box-msg", "完成");
+		fxseq++;
+		if (fxtimer) {
+			clearTimeout(fxtimer);
+			fxtimer = 0;
 		}
+		var mine = fxseq;
+		var job;
+		try { job = readin(); }
 		catch (ex) {
 			SK.$("box-out").value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
+			return;
 		}
+		if (job.spec.id !== "money") {
+			SK.$("box-out").value = render(job.spec, job.n, job.from, job.to);
+			SK.msg("box-msg", "完成");
+			return;
+		}
+		SK.msg("box-msg", "");
+		fxtimer = setTimeout(function(){
+			fxtimer = 0;
+			if (mine !== fxseq || SK.curtool !== "u-unit") return;
+			SK.$("box-out").value = "";
+			SK.post("/api/fx", {
+				amount: job.amount,
+				from: job.from,
+				to: job.to === ALL ? "all" : job.to
+			}, function(data){
+				if (mine !== fxseq || SK.curtool !== "u-unit") return;
+				SK.$("box-out").value = data && data.text ? data.text : "";
+				SK.msg("box-msg", "完成");
+			}, "box-msg");
+		}, 200);
 	}
 
 	function allunits(units){
@@ -144,12 +166,13 @@
 		SK.$("box-root-row").hidden = spec.id !== "px";
 	}
 
-	function convert(){
+	function readin(){
 		var raw = String(SK.val("box-in")).trim().replace(/,/g, "");
 		var picked = detect(raw);
 		var spec;
 		var from;
 		var n;
+		var amount;
 		if (picked) {
 			spec = findkind(picked.kind);
 			if (SK.val("box-kind") !== spec.id) {
@@ -159,6 +182,7 @@
 			SK.$("box-from").value = picked.unit;
 			from = picked.unit;
 			n = picked.num;
+			amount = String(picked.num);
 		}
 		else {
 			spec = findkind(SK.val("box-kind"));
@@ -166,8 +190,9 @@
 			n = Number(raw);
 			if (raw === "" || !isFinite(n)) throw new Error("请输入数字");
 			from = SK.val("box-from");
+			amount = raw;
 		}
-		return render(spec, n, from, SK.val("box-to"));
+		return { spec: spec, n: n, from: from, to: SK.val("box-to"), amount: amount };
 	}
 
 	function render(spec, n, from, to){
@@ -206,8 +231,6 @@
 	function noteof(spec, from, to){
 		if (spec.id === "px" && (from === "rem" || to === ALL || to === "rem"))
 			return "按根字号 " + SK.trimnum(rootsize()) + "。";
-		if (spec.id === "money" && !cashonly(from, to))
-			return "外币按中国银行 2026-10-10 中间价，不是实时牌价。";
 		return "";
 	}
 
@@ -239,14 +262,6 @@
 		if (to === "px") return px;
 		if (to === "rem") return px / root;
 		throw new Error("请选择单位");
-	}
-
-	function cashonly(from, to){
-		return iscash(from) && iscash(to);
-	}
-
-	function iscash(id){
-		return id === "CNY" || id === "jiao" || id === "fen";
 	}
 
 	/** 数值里带了单位（如 1米、3斤）时，认出类型、单位和数值。 */

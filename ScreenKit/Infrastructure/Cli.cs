@@ -59,7 +59,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-nettool"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop"
@@ -275,6 +275,8 @@ static class Cli {
 					return testhash();
 				case "--test-texttool":
 					return testtexttool();
+				case "--test-fx":
+					return testfx();
 				case "--test-pwgen":
 					return testpwgen();
 				case "--test-nettool":
@@ -3154,6 +3156,101 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testfx() {
+		Out("=== 货币换算 --test-fx ===");
+		var bad = 0;
+		try {
+			var calls = 0;
+			FxRate.Reset(() => {
+				calls++;
+				throw new InvalidOperationException("down");
+			});
+			var fail = FxRate.Quote(1m, "USD", "CNY");
+			var fail2 = FxRate.Quote(1m, "EUR", "CNY");
+			if (fail.Live || fail.Text.IndexOf("6.733人民币元", StringComparison.Ordinal) < 0
+				|| fail.Text.IndexOf("查询失败", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 查询失败应回退默认 " + fail.Text);
+				bad++;
+			}
+			if (calls != 2) {
+				Err("FAIL: 失败不应缓存 calls=" + calls);
+				bad++;
+			}
+			if (fail2.Live || fail2.Text.IndexOf("7.5323人民币元", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 第二次失败 " + fail2.Text);
+				bad++;
+			}
+			var cash = FxRate.Quote(10m, "fen", "CNY");
+			if (!cash.Live || cash.Text.IndexOf("0.1人民币元", StringComparison.Ordinal) < 0
+				|| cash.Text.IndexOf("查询失败", StringComparison.Ordinal) >= 0) {
+				Err("FAIL: 元角分 " + cash.Text);
+				bad++;
+			}
+			if (calls != 2) {
+				Err("FAIL: 元角分不应访问牌价 calls=" + calls);
+				bad++;
+			}
+			try {
+				FxRate.Parse("<table><tr><td>美元</td><td></td><td></td><td></td><td></td><td>673.3</td></tr></table>", out _);
+				Err("FAIL: 牌价不全应失败");
+				bad++;
+			}
+			catch (InvalidOperationException) { }
+			var mode = 0;
+			FxRate.Reset(() => {
+				if (mode != 0) throw new InvalidOperationException("down");
+				return fxpage();
+			});
+			var live = FxRate.Quote(1m, "USD", "CNY");
+			mode = 1;
+			var again = FxRate.Quote(2m, "USD", "JPY");
+			if (!live.Live || live.Text.IndexOf("缓存 10 分钟", StringComparison.Ordinal) < 0
+				|| live.Text.IndexOf("6.733人民币元", StringComparison.Ordinal) < 0
+				|| live.Text.IndexOf("查询失败", StringComparison.Ordinal) >= 0) {
+				Err("FAIL: 实时牌价 " + live.Text);
+				bad++;
+			}
+			if (!again.Live || again.Text.IndexOf("查询失败", StringComparison.Ordinal) >= 0
+				|| again.Text.IndexOf("缓存 10 分钟", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 缓存期内不应再查 " + again.Text);
+				bad++;
+			}
+			FxRate.Reset(null);
+			var real = FxRate.Quote(1m, "HKD", "CNY");
+			Out(real.Live ? "中行页面：已取到" : "中行页面：查询失败，已回退默认");
+			Out(real.Text);
+			if (real.Text.IndexOf("人民币元", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 实际查询没有结果");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		finally {
+			FxRate.Reset(null);
+		}
+		Out(bad == 0 ? "=== OK：货币换算 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static string fxpage() {
+		var rows = new[] {
+			("美元", "673.3"), ("港币", "85.8"), ("澳门元", "83.26"), ("欧元", "753.23"), ("英镑", "888.72"),
+			("日元", "4.2571"), ("韩国元", "0.4996"), ("澳大利亚元", "467.46"), ("加拿大元", "472.04"),
+			("新加坡元", "524.6"), ("瑞士法郎", "808.21"), ("泰国铢", "19.94"), ("新台币", "20.99"),
+		};
+		var sb = new StringBuilder();
+		sb.Append("<table>");
+		foreach (var row in rows)
+			sb.Append("<tr><td>").Append(row.Item1)
+				.Append("</td><td></td><td></td><td></td><td></td><td>")
+				.Append(row.Item2).Append("</td><td>2026-10-11</td><td>10:00:00</td></tr>");
+		sb.Append("</table>");
+		return sb.ToString();
+	}
+
 	static int checkcp(int cp, string gbk, string gb, string big5, string sjis, string kr, string latin1) {
 		var row = TextTools.CodePages(cp);
 		if (row == null) {
@@ -4669,6 +4766,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-rename
   ScreenKit --test-hash
   ScreenKit --test-texttool
+  ScreenKit --test-fx
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-update-notes
@@ -4744,6 +4842,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256
       --test-texttool  Base64 / URL / GBK 十六进制往返
+      --test-fx  货币换算：查询失败回退默认、失败不缓存、成功缓存 10 分钟
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
@@ -4823,6 +4922,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-rename
   ScreenKit --test-hash
   ScreenKit --test-texttool
+  ScreenKit --test-fx
   ScreenKit --test-pwgen
   ScreenKit --test-nettool
   ScreenKit --test-update-notes

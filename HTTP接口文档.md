@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -107,6 +107,7 @@ http_port = 1224
 | GET/POST | `/api/calendar` | 公历换历法（不随模块开关关闭） |
 | GET/POST | `/api/jpyomi` | 日文注音（不随模块开关关闭） |
 | GET/POST | `/api/text` | 文本编解码（不随模块开关关闭） |
+| GET/POST | `/api/fx` | 货币换算（不随模块开关关闭） |
 | GET/POST | `/api/qrmake` | 生成二维码/条码（不随模块开关关闭） |
 | POST | `/api/qrscan` | 识别二维码/条码（不随模块开关关闭） |
 | GET | `/api/ocr/models` | 识别引擎和模型（与主窗口相同） |
@@ -132,7 +133,7 @@ http_port = 1224
 
 ## 4. GET `/` 与 GET `/api`
 
-`GET /` 和 `HEAD /` 返回本机工具页：历法、文本（含简繁和日文注音）、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
+`GET /` 和 `HEAD /` 返回本机工具页：历法、文本（含简繁和日文注音）、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
 
 `GET /api` 返回服务名称、简表 `endpoints`，以及 `apis`。`apis` 每一项有 `method`（GET、POST 或 GET/POST）、`path`、`summary`（介绍）、`params`（参数名和说明）。这些文字与主窗口 HTTP 接口页的模板说明相同。`?lang=zh|en|ja|ko` 选择说明语言；省略时用程序当前界面语言，不改界面语言。关掉的模块不会出现。`langs` 是可选语言。
 
@@ -341,6 +342,24 @@ ScreenKit --jpyomi "東京" --mono
 ```
 
 **响应 `data`：** `text` 是结果（上例为 `aGk=`）。`op` 回显操作。`stats` 把简短的多行统计放进 `text`。
+
+---
+
+## 5.5.1 GET/POST `/api/fx`
+
+货币换算。不随模块开关关闭。外币用中国银行中间价（中行折算价为每 100 外币，再除以 100）。成功取到的页面缓存 10 分钟。超时、空页面或缺币种时用内置的 2026-10-10 牌价，并且不缓存这次失败。元、角、分是固定比例，不访问网站。未知单位或不是数字返回 802。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `amount` | number 或 string | 数值。也可用 `n` |
+| `from` | string | 原单位。默认 `CNY`。可用 `USD`、`jiao`、`fen` 以及列出的其它单位 |
+| `to` | string | 新单位。`all`（默认）列出全部 |
+
+```json
+{ "amount": 1, "from": "USD", "to": "CNY" }
+```
+
+**响应 `data`：** `text` 是多行结果，末行是牌价说明。用了默认牌价时 `live` 为 false。
 
 ---
 
