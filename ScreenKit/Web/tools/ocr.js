@@ -18,12 +18,20 @@
 			ocrPacks = (data && data.packs) || [];
 			var rows = [];
 			var i;
-			for (i = 0; i < ocrPacks.length; i++)
-				rows.push({ value: ocrPacks[i].id, label: ocrPacks[i].name || ocrPacks[i].id });
+			var pickPack = "";
+			for (i = 0; i < ocrPacks.length; i++) {
+				var one = ocrPacks[i];
+				rows.push({ value: one.id, label: one.name || one.id });
+				if (one.id === "winocr" && one.models && one.models.length) pickPack = "winocr";
+			}
 			var cur = (data && data.current) || {};
-			SK.fillsel(SK.$("ocr-pack"), rows, cur.pack || "");
+			if (!pickPack) pickPack = cur.pack || "";
+			SK.fillsel(SK.$("ocr-pack"), rows, pickPack);
 			if (cur.device) SK.$("ocr-dev").value = cur.device;
-			fillocrmodels(cur.language || "");
+			var langPrefer = "";
+			if (pickPack && pickPack === (cur.pack || "")) langPrefer = cur.language || "";
+			else if (pickPack === "winocr") langPrefer = ocrwinlang(ocrpack());
+			fillocrmodels(langPrefer);
 			var wait = ocrAfter;
 			ocrAfter = [];
 			for (i = 0; i < wait.length; i++) wait[i]();
@@ -31,6 +39,18 @@
 			ocrLoading = false;
 			ocrAfter = [];
 		});
+	}
+
+	function ocrwinlang(pack){
+		var models = (pack && pack.models) || [];
+		var tags = ["zh-Hans", "zh-CN", "zh-Hans-CN", "en-US", "en-GB", "en"];
+		var i, j;
+		for (i = 0; i < tags.length; i++) {
+			for (j = 0; j < models.length; j++)
+				if (String(models[j].id || "").toLowerCase() === tags[i].toLowerCase())
+					return models[j].id;
+		}
+		return models.length ? (models[0].id || "") : "";
 	}
 
 	function ocrpack(){

@@ -36,12 +36,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page opens in the desktop UI language. A choice in the page language menu lasts until the page is opened again. The desktop Web tools menu lists each tool in that same language.
 - The tools page language menu loads `/sk/L.js`. ScreenKit builds that script when it is requested. The script is one assignment, `L={...}`. Each value is an array of the installed UI languages, in the same order as the desktop language list, Chinese first. The browser may cache the script for 1 hour. Restarting ScreenKit changes the script address, so the next page load fetches it again. Choosing a language updates the open page at once and does not reload it.
 - `ScreenKit --test-mem-load` starts one process per feature (baseline, OCR, translation, offline ASR, streaming ASR, TTS, dictionary, face) and prints commit size, private working set, and working set after that feature loads. The default device is CPU. ASR and TTS load the smallest installed model. `winocr` runs Windows OCR on a tiny image and does not load an ONNX pack.
 - **Help → Memory** lists the open dictionary database and can unload it, which closes the database and drops the in-memory index. **Force GC** runs a full collection without unloading a row. The summary line also shows commit size. Private working set is the physical memory held by this process alone.
 
 #### Changed
 
+- The tools page opens speech synthesis on Windows speech, and OCR on Windows OCR, when that engine has a voice or an installed language. A later choice on the same page stays. Speech falls back to the first listed engine when Windows has no voice. OCR falls back to the main window's pack when Windows OCR has no language.
 - Unit conversion does foreign currency in the program. It reads the Bank of China middle rate and keeps either a success or a failure for 10 minutes. A failed query uses the built-in 2026-10-10 table and is not tried again until that cache ends. The list has no jiao or fen. `GET/POST /api/fx` stays available when other HTTP modules are off.
 - Tools-page radix conversion uses a Convert to dropdown. It starts on All. All prints the original number on the first line, then bases 2, 8, 10, and 16, one result per line.
 - **Long screenshot** no longer shows the picture for OCR. After stitching it copies with the same mode as a normal screenshot (image, file, or path) and does not recognize. Overlap is matched on a Bitmap, so this feature does not need OpenCV.
@@ -62,12 +64,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页打开时使用桌面程序的界面语言。在页面里改语言只保持到下次打开。桌面「web工具」菜单按同一语言列出每个工具。
 - 工具页侧栏的语言菜单加载 `/sk/L.js`。程序在请求时生成这个脚本，内容是一次赋值 `L={...}`。每个值是已安装界面语言组成的数组，顺序与桌面语言列表相同，中文在前。浏览器可缓存 1 小时。重新启动后脚本地址会变，下次打开页面会重新取。切换语言立即改当前页上的文字，不刷新页面。
 - `ScreenKit --test-mem-load` 为每个功能单独冷启动（基线、识别、翻译、离线语音识别、流式语音识别、语音合成、词典、人脸），打印加载后的提交大小、专用工作集和工作集。默认 CPU。语音识别和语音合成加载已安装模型里最小的一份。`winocr` 用一张小图走 Windows 自带识别，不加载 ONNX 模型包。
 - **帮助 → 内存占用**列出已打开的词典数据库，并可卸载：关掉库并丢掉内存里的索引。**强制回收**只做完整回收，不卸载某一行。摘要行同时显示提交大小。专用工作集是本进程此刻独占的物理内存。
 
 #### 变更
 
+- 工具页打开语音合成时默认 Windows 语音，打开文字识别时默认 Windows 系统 OCR（这一引擎已有发音人或已安装语言时）。同一次打开里改过的选项会保留。没有 Windows 发音人时语音合成用列表里的第一项。Windows OCR 没有已安装语言时，文字识别改跟主窗口的模型包。
 - 单位换算的外币在程序里计算。向中国银行查中间价，成功或失败都缓存 10 分钟。查询失败时用内置的 2026-10-10 牌价，这 10 分钟内不再查。货币单位没有角和分。`GET/POST /api/fx` 在其它 HTTP 模块关闭时仍可用。
 - 工具页的进制转换把「转换到」改成下拉，默认「全部」。全部的第一行是原来的进制数，后面 2、8、10、16 进制各一行。
 - **长截图**不再把图片放到主界面供识别。拼接完成后按普通截图的复制方式写入剪贴板（图片、文件或路径），不识别。重叠行在 Bitmap 上比对，不再需要 OpenCV。

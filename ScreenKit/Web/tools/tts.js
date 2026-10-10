@@ -33,7 +33,9 @@
 				seen[eng] = true;
 				rows.push({ value: eng, label: ttslabel(eng) });
 			}
-			SK.fillsel(SK.$("tts-eng"), rows, SK.$("tts-eng").value);
+			var curEng = SK.$("tts-eng").value;
+			if (!curEng) curEng = "winrt";
+			SK.fillsel(SK.$("tts-eng"), rows, curEng);
 			fillttsmodels();
 			if (!hasEdge && ttsEdgeWait < 2) {
 				ttsEdgeWait++;
