@@ -55,6 +55,7 @@
     <None Include="Web\tools.html" CopyToOutputDirectory="PreserveNewest" Link="web\tools.html" />
     <None Include="Web\tools.css" CopyToOutputDirectory="PreserveNewest" Link="web\tools.css" />
     <None Include="Web\tools.js" CopyToOutputDirectory="PreserveNewest" Link="web\tools.js" Condition="Exists('Web\tools.js')" />
+    <!-- 开发输出保留各工具脚本，启动时再合成。精简包在 PackageSlimRelease 里去掉。 -->
     <None Include="Web\tools\*.js" CopyToOutputDirectory="PreserveNewest" Link="web\tools\%(Filename)%(Extension)" />
     <None Include="Web\fa.css" CopyToOutputDirectory="PreserveNewest" Link="web\fa.css" />
     <None Include="Web\fa-solid-900.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\fa-solid-900.woff2" />
@@ -256,6 +257,8 @@
       <_SlimWet Include="$(OutputPath)wetext\**\*.*" Condition="Exists('$(OutputPath)wetext')" />
       <_SlimAssets Include="$(OutputPath)Assets\**\*.*" Condition="Exists('$(OutputPath)Assets')" />
       <_SlimWeb Include="$(OutputPath)web\**\*.*" Condition="Exists('$(OutputPath)web')" />
+      <!-- 发布包只要合成后的 web\tools.js，不要 web\tools 里的各工具脚本 -->
+      <_SlimWeb Remove="$(OutputPath)web\tools\**\*.*" />
       <_SlimLang Include="$(OutputPath)lang\*.toml" Condition="Exists('$(OutputPath)lang')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
@@ -271,6 +274,22 @@
     <MakeDir Directories="$(_SlimOut)\web" Condition="'@(_SlimWeb)' != ''" />
     <Copy SourceFiles="@(_SlimWeb)" DestinationFolder="$(_SlimOut)\web" SkipUnchangedFiles="true"
           Condition="'@(_SlimWeb)' != ''" />
+    <!-- 旧包曾把 web\tools\*.js 摊平进 web\，这里清掉，并删掉 web\tools -->
+    <ItemGroup>
+      <_SlimToolJs Include="$(_SlimOut)\web\u-*.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\00-core.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\asr.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\cal.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\ocr.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\qr.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\text.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\tts.js" />
+      <_SlimToolJs Include="$(_SlimOut)\web\zz-start.js" />
+    </ItemGroup>
+    <Delete Files="@(_SlimToolJs)" TreatErrorsAsWarnings="true" Condition="'@(_SlimToolJs)' != ''" />
+    <RemoveDir Directories="$(_SlimOut)\web\tools" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Web\tools.js" DestinationFolder="$(_SlimOut)\web" SkipUnchangedFiles="true"
+          Condition="Exists('$(MSBuildProjectDirectory)\Web\tools.js')" />
     <MakeDir Directories="$(_SlimOut)\lang" Condition="'@(_SlimLang)' != ''" />
     <Copy SourceFiles="@(_SlimLang)" DestinationFolder="$(_SlimOut)\lang" SkipUnchangedFiles="true"
           Condition="'@(_SlimLang)' != ''" />
@@ -289,6 +308,11 @@
     <Delete Files="$(_SlimOut)\dict.db;$(_SlimOut)\dict.db-wal;$(_SlimOut)\dict.db-shm;$(_SlimOut)\dict2.db;$(_SlimOut)\dict2.db-wal;$(_SlimOut)\dict2.db-shm" TreatErrorsAsWarnings="true" />
     <RemoveDir Directories="$(_SlimOutLegacy)" ContinueOnError="true" />
     <Message Importance="high" Text="Slim release package: $(_SlimOut)" />
+  </Target>
+
+  <!-- 发布前把各工具脚本合成 tools.js，精简包只带这一份 -->
+  <Target Name="JoinToolsJs" BeforeTargets="PrepareResources">
+    <Exec Command="python -X utf8 &quot;$(MSBuildProjectDirectory)\..\scripts\join-tools-js.py&quot; &quot;$(MSBuildProjectDirectory)\Web\tools&quot; &quot;$(MSBuildProjectDirectory)\Web\tools.js&quot;" />
   </Target>
 
   <!-- 编并拷贝独立 x86host.exe（仅 SAPI Web）到输出与精简包 -->

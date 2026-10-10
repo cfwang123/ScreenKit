@@ -754,8 +754,8 @@ partial class InstallFeaturesWindow {
 			}
 			else if (HasRuntime) {
 				StateText = Loc.T("inst.winlang.available");
-				StateBg = PartBg;
-				StateFg = PartFg;
+				StateBg = OkBg;
+				StateFg = OkFg;
 			}
 			else if (State == WinLangPackState.Missing) {
 				StateText = Loc.T("inst.win.missing");

@@ -349,6 +349,19 @@ SK.watchAcc = 0;
 			seen[id] = 1;
 			favs.push(id);
 		}
+		if (favchanged(list)) savefav();
+	}
+
+	function favchanged(list){
+		if (list.length !== favs.length) return true;
+		var i;
+		for (i = 0; i < list.length; i++) if (String(list[i] || "") !== favs[i]) return true;
+		return false;
+	}
+
+	function savefav(){
+		try { localStorage.setItem("sk-tool-fav", JSON.stringify(favs)); }
+		catch (e) {}
 	}
 
 	function cardof(id){
@@ -382,8 +395,7 @@ SK.watchAcc = 0;
 		}
 		if (!had) next.push(id);
 		favs = next;
-		try { localStorage.setItem("sk-tool-fav", JSON.stringify(favs)); }
-		catch (e) {}
+		savefav();
 		paintfav();
 		paintstars();
 		if (SK.curtool === "home") paintcats();

@@ -266,7 +266,67 @@
 								<Style TargetType="TreeViewItem">
 									<Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
 									<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-									<Setter Property="Padding" Value="0,2"/>
+									<Setter Property="Padding" Value="0,1"/>
+									<Setter Property="Background" Value="Transparent"/>
+									<Setter Property="Template">
+										<Setter.Value>
+											<ControlTemplate TargetType="TreeViewItem">
+												<Grid>
+													<Grid.ColumnDefinitions>
+														<ColumnDefinition Width="18"/>
+														<ColumnDefinition Width="*"/>
+													</Grid.ColumnDefinitions>
+													<Grid.RowDefinitions>
+														<RowDefinition Height="Auto"/>
+														<RowDefinition Height="*"/>
+													</Grid.RowDefinitions>
+													<ToggleButton x:Name="Expander" Grid.Column="0" Width="16" Height="16"
+													              Focusable="False" ClickMode="Press"
+													              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}">
+														<ToggleButton.Template>
+															<ControlTemplate TargetType="ToggleButton">
+																<Border Background="Transparent">
+																	<Path x:Name="Arrow" Data="M 3 2 L 9 7 L 3 12 Z" Fill="#6B645C"
+																	      HorizontalAlignment="Center" VerticalAlignment="Center"
+																	      Stretch="None"/>
+																</Border>
+																<ControlTemplate.Triggers>
+																	<Trigger Property="IsChecked" Value="True">
+																		<Setter TargetName="Arrow" Property="Data" Value="M 1 4 L 11 4 L 6 10 Z"/>
+																	</Trigger>
+																</ControlTemplate.Triggers>
+															</ControlTemplate>
+														</ToggleButton.Template>
+													</ToggleButton>
+													<Border x:Name="Bd" Grid.Column="1" Background="{TemplateBinding Background}"
+													        Padding="{TemplateBinding Padding}" CornerRadius="4"
+													        SnapsToDevicePixels="True">
+														<ContentPresenter ContentSource="Header"
+														                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+													</Border>
+													<ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Grid.Column="1"/>
+												</Grid>
+												<ControlTemplate.Triggers>
+													<Trigger Property="IsExpanded" Value="False">
+														<Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+													</Trigger>
+													<Trigger Property="HasItems" Value="False">
+														<Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+													</Trigger>
+													<Trigger Property="IsSelected" Value="True">
+														<Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/>
+													</Trigger>
+													<MultiTrigger>
+														<MultiTrigger.Conditions>
+															<Condition Property="IsSelected" Value="True"/>
+															<Condition Property="IsSelectionActive" Value="False"/>
+														</MultiTrigger.Conditions>
+														<Setter TargetName="Bd" Property="Background" Value="#E8EEF6"/>
+													</MultiTrigger>
+												</ControlTemplate.Triggers>
+											</ControlTemplate>
+										</Setter.Value>
+									</Setter>
 								</Style>
 							</TreeView.ItemContainerStyle>
 							<TreeView.ItemTemplate>
@@ -284,15 +344,36 @@
 										<TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center"
 										           TextTrimming="CharacterEllipsis"/>
 										<TextBlock Grid.Column="2" Text="{Binding Detail}" VerticalAlignment="Center"
-										           Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis"/>
+										           TextTrimming="CharacterEllipsis">
+											<TextBlock.Style>
+												<Style TargetType="TextBlock">
+													<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+															<Setter Property="Foreground" Value="#1C1915"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</TextBlock.Style>
+										</TextBlock>
 										<Border Grid.Column="3" CornerRadius="4" Padding="8,2"
 										        HorizontalAlignment="Left" Background="{Binding StateBg}">
 											<TextBlock Text="{Binding StateText}" FontSize="11" FontWeight="SemiBold"
 											           Foreground="{Binding StateFg}"/>
 										</Border>
 										<TextBlock Grid.Column="4" Text="{Binding Capability}" VerticalAlignment="Center"
-										           FontSize="11" Foreground="{StaticResource TextMuted}"
-										           TextTrimming="CharacterEllipsis"/>
+										           FontSize="11" TextTrimming="CharacterEllipsis">
+											<TextBlock.Style>
+												<Style TargetType="TextBlock">
+													<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+													<Style.Triggers>
+														<DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+															<Setter Property="Foreground" Value="#1C1915"/>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</TextBlock.Style>
+										</TextBlock>
 									</Grid>
 								</HierarchicalDataTemplate>
 							</TreeView.ItemTemplate>

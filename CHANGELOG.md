@@ -35,6 +35,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- Tools-page date difference, date add/subtract, and month add/subtract are one tool, **日期计算**. It has two modes: **日期差** shows how far apart two dates are, and **日期加减** moves one date. Both take a unit: second, minute, hour, day, month, or year. A difference in months or years follows the calendar and keeps the leftover days, as in `3 个月 5 天（共 95 天）`. Month and year offsets clamp to the last day, so 1 月 31 日 plus one month is 2 月 28 日. An offset in seconds, minutes, or hours also shows the resulting time. An offset of a fractional day shows the time too. A favorite of the three old tools opens 日期计算.
 - The left of the main-window status bar shows this program's commit size, CPU, and GPU. It updates every 2 seconds while the window is visible.
 - The tools-page timestamp tool has a date-time picker. Choosing a time fills the text and converts. Typing a timestamp or a date converts immediately. Converting moves the picker to that local time.
 - The Unicode code chart preview lists UTF-32, GBK, GB18030, Big5, Shift_JIS, and EUC-KR for the selected character. Those code-page bytes come from `GET/POST /api/enc`. A code point an encoding cannot store shows 无. Latin-1 is shown for U+0000 through U+00FF.
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Opening the tools page drops favorites that no longer match a tool. A favorite of a merged tool is kept as that tool. The list is saved in this browser.
 - The tools page **File transfer** link opens `/files` in a new window. The tools page stays open.
 - The dictionary **Export** button writes every hit for the current search, not only the rows on screen. Each entry is the plain text of its detail. txt joins them into one text. csv is a sheet. html and md are a table with columns Word and Detail. The detail column fills the remaining width.
 - Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, or ID number. Each line is one value.
@@ -76,7 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools-page text compare, JSON diff, and find-and-replace are removed. Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, 单位换算. Pick a kind, enter a number, then choose the original unit and the new unit. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. An old favorite of one of those unit tools opens 单位换算.
 - **Settings → Dictionary** has a result count. The dictionary lists that many hits. The range is 1–4000, and the default is 1000.
 - The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
-- Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file. The joined `ScreenKit/Web/tools.js` is not committed.
+- Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file. The joined `ScreenKit/Web/tools.js` is not committed. The slim package ships that joined `web/tools.js` only, and does not include `web/tools` or the separate tool scripts.
 - Dictionary lookup reads `dict2.db` next to the program. Each word is stored once. Prefix, suffix, and infix search use the packed index. The old `lookup_key` search is gone. The file is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed release `dict-db`, extracts `dict2.db`, and deletes an old `dict.db` beside the program (a symlink is removed, and the link target is left in place). Release builds leave a local `dict2.db` in place. The slim package still omits it.
 - The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list.
 - The tray **Web tools** menu lists every tools-page tool under its category. The first item is **Web tools home**, which opens the list.
@@ -105,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页的「日期差」「日期加减」「月份加减」合成 **日期计算**。两种模式：**日期差** 看两个日期相差多少，**日期加减** 把一个日期往前或往后挪。两种都能选单位：秒、分、小时、天、月、年。按月和按年的差走日历、余数照留，如 `3 个月 5 天（共 95 天）`。月数和年数按月末夹住，1 月 31 日加 1 个月是 2 月 28 日。按秒、分、小时加减会把结果的时间一起显示；天数带小数时同样显示时间。原来收藏了这三个工具之一时，会打开「日期计算」。
 - 主窗口状态栏左边显示本程序的提交大小、CPU 和 GPU。窗口可见时每 2 秒更新。
 - 工具页的时间戳增加日期时间选择。选好时间会写入文本并转换。输入时间戳或日期时马上转换。转换时，选择控件会跳到对应的本地时间。
 - Unicode码表选中字符后，预览列出 UTF-32、GBK、GB18030、Big5、Shift_JIS、EUC-KR。这些代码页的字节由 `GET/POST /api/enc` 计算。放不下的码位显示「无」。U+0000 到 U+00FF 另外显示 Latin-1。
@@ -137,6 +140,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 打开工具页时，收藏里已经没有的工具会去掉。合并进别的工具的收藏会改成那个工具。改过的列表写回这个浏览器。
 - 工具页左下角的 **文件传输** 在新窗口打开 `/files`，工具页保持不动。
 - 词典增加 **导出**。写出这次搜索的全部词条，不受界面条数限制。每条是详情的纯文本。txt 接成一篇。csv 是表。html 和 md 是表格，列为单词、详情，详情列占满剩余宽度。
 - 「测试数据」先选类型：中文姓名、中文网名、英文网名、邮箱、手机、地址、公司、用户名、身份证。一行一条，不再把多项写在同一行。
@@ -146,7 +150,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页去掉文本比对、JSON 差异和查找替换。长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」：先选类型，再填数值、原单位和新单位。外币用中国银行 2026-10-10 中间价，结果里会注明。原来收藏了其中一项换算时，会打开「单位换算」。
 - **参数设置 → 词典** 增加结果条数。词典按这个数列出结果。范围 1～4000，默认 1000。
 - README 的「安装功能」列出精简包里哪些功能可以直接用，哪些要先安装，并写上各组件在安装器里的大约体积。
-- 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。合成后的 `ScreenKit/Web/tools.js` 不提交。
+- 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。合成后的 `ScreenKit/Web/tools.js` 不提交。精简发布包只带这一份 `web/tools.js`，不带 `web/tools`，也不带各工具单独的 js。
 - 词典改为读取程序旁的 `dict2.db`。每个词只存一份，前缀、后缀、中缀走压缩索引。原来的 `lookup_key` 检索已去掉。这个文件不进发布包。**帮助 → 安装功能**从固定 Release `dict-db` 下载 `dict2.7z`，解出 `dict2.db`，并删除程序旁的旧 `dict.db`（符号链接只删链接，不删目标文件）。Release 编译不会动本机已有的 `dict2.db`。精简包仍不带这个文件。
 - 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。
 - 托盘 **web工具** 按分类列出工具页的全部工具。第一项是 **web工具主页**，打开工具列表。
