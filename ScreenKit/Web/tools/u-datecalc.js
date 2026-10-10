@@ -1,4 +1,5 @@
 (function(){
+	var ALL = "all";
 	var WEEK = "日一二三四五六";
 	var UNITS = [
 		["s", "秒", 1, "秒"],
@@ -16,20 +17,17 @@
 				SK.lab("模式", '<select id="dc-mode">' + SK.opts([["diff", "日期差"], ["add", "日期加减"]], "diff") + "</select>"),
 				SK.lab("开始日期", '<input id="dc-a" type="date">'))
 				+ SK.row2(
-					SK.lab("单位", '<select id="dc-unit">' + SK.opts(unitrows(), "d") + "</select>"),
-					'<span id="dc-bwrap">' + SK.lab("结束日期", '<input id="dc-b" type="date">') + "</span>")
-				+ '<div class="row" id="dc-add-row">'
-					+ SK.lab("方向", '<select id="dc-dir">' + SK.opts([["after", "之后"], ["before", "之前"]], "after") + "</select>")
-					+ SK.lab("数量", SK.textin("dc-n", "7", "例如 7、1.5"))
-				+ "</div>";
+					SK.lab("单位", '<select id="dc-unit"></select>'),
+					'<span id="dc-bwrap">' + SK.lab("结束日期", '<input id="dc-b" type="date">') + "</span>"
+					+ '<span id="dc-nwrap">' + SK.lab("数量", SK.textin("dc-n", "7", "可为负，例如 7、-3、1.5")) + "</span>");
 		},
 		open: function(){
 			var today = new Date();
 			SK.$("dc-a").value = SK.ymd(today);
 			SK.$("dc-b").value = SK.ymd(today);
+			fillunits(false);
 			SK.$("dc-mode").onchange = onpick;
 			SK.$("dc-unit").onchange = onpick;
-			SK.$("dc-dir").onchange = onpick;
 			SK.$("dc-a").oninput = live;
 			SK.$("dc-b").oninput = live;
 			SK.$("dc-n").oninput = live;
@@ -56,14 +54,29 @@
 	}
 
 	function onpick(){
-		applymode();
+		if (this.id === "dc-mode") {
+			fillunits(true);
+			applymode();
+		}
 		live();
 	}
 
-	/** 加减模式藏起结束日期，差值模式藏起方向和数量。 */
+	/** 日期差才有「全部」；日期加减的单位只能是具体单位。换模式时尽量留下原来选的单位。 */
+	function fillunits(keep){
+		var add = SK.val("dc-mode") === "add";
+		var cur = keep ? SK.val("dc-unit") : "";
+		var rows = add ? unitrows() : [[ALL, "全部"]].concat(unitrows());
+		var pick = "";
+		var i;
+		for (i = 0; i < rows.length; i++) if (rows[i][0] === cur) pick = cur;
+		if (!pick) pick = add ? "d" : ALL;
+		SK.$("dc-unit").innerHTML = SK.opts(rows, pick);
+	}
+
+	/** 加减藏起结束日期，差值藏起数量。 */
 	function applymode(){
 		var add = SK.val("dc-mode") === "add";
-		SK.$("dc-add-row").hidden = !add;
+		SK.$("dc-nwrap").hidden = !add;
 		SK.$("dc-bwrap").hidden = add;
 		setlabel("dc-a", add ? "日期" : "开始日期");
 	}
@@ -89,11 +102,12 @@
 	function calc(){
 		var a = parselocal(SK.val("dc-a"));
 		if (!a) throw new Error("请选择日期");
-		var unit = findunit(SK.val("dc-unit"));
-		if (SK.val("dc-mode") === "add") return addtext(a, unit);
+		var id = SK.val("dc-unit");
+		if (SK.val("dc-mode") === "add") return addtext(a, findunit(id));
 		var b = parselocal(SK.val("dc-b"));
 		if (!b) throw new Error("请选择日期");
-		return difftext(a, b, unit);
+		if (id === ALL) return alltext(a, b);
+		return difftext(a, b, findunit(id));
 	}
 
 	function parselocal(text){
@@ -107,6 +121,27 @@
 		return Math.round((hi.getTime() - lo.getTime()) / 86400000);
 	}
 
+	/** 「全部」：每个单位一行，月和年重复时省掉年。 */
+	function alltext(a, b){
+		var back = b.getTime() < a.getTime();
+		var lo = back ? b : a;
+		var hi = back ? a : b;
+		var sign = back ? "-" : "";
+		var days = daycount(lo, hi);
+		var p = calcdiff(lo, hi);
+		var lines = ["从 " + SK.ymd(a) + " 到 " + SK.ymd(b) + " 相差"];
+		var i;
+		for (i = 0; i < UNITS.length; i++) {
+			var unit = findunit(UNITS[i][0]);
+			var text;
+			if (unit.sec) text = SK.trimnum(days * 86400 / unit.sec) + " " + unit.name;
+			else text = (unit.id === "m" ? monthparts : yearparts)(p);
+			if (text === lines[lines.length - 1]) continue;
+			lines.push(sign + text);
+		}
+		return lines.join("\n");
+	}
+
 	function difftext(a, b, unit){
 		var back = b.getTime() < a.getTime();
 		var lo = back ? b : a;
@@ -118,17 +153,25 @@
 			if (unit.id !== "d" && days) text += "（共 " + days + " 天）";
 			return text;
 		}
-		var p = calcdiff(lo, hi);
+		var parts = (unit.id === "y" ? yearparts : monthparts)(calcdiff(lo, hi));
+		var line = head + parts;
+		if (days && (parts.indexOf("个月") >= 0 || parts.indexOf("年") >= 0)) line += "（共 " + days + " 天）";
+		return line;
+	}
+
+	function monthparts(p){
 		var parts = [];
-		if (unit.id === "y") {
-			if (p.y) parts.push(p.y + " 年");
-			if (p.m) parts.push(p.m + " 个月");
-		}
-		else if (p.months) parts.push(p.months + " 个月");
+		if (p.months) parts.push(p.months + " 个月");
 		if (p.d) parts.push(p.d + " 天");
-		if (!parts.length) parts.push("0 天");
-		var line = head + parts.join(" ");
-		return days ? line + "（共 " + days + " 天）" : line;
+		return parts.length ? parts.join(" ") : "0 天";
+	}
+
+	function yearparts(p){
+		var parts = [];
+		if (p.y) parts.push(p.y + " 年");
+		if (p.m) parts.push(p.m + " 个月");
+		if (p.d) parts.push(p.d + " 天");
+		return parts.length ? parts.join(" ") : "0 天";
 	}
 
 	/** 整月数和余天。月从原日期整体推进，不逐月累积，免得 1 月 31 日被夹到 2 月 28 日后就一直按 28 日算。 */
@@ -140,12 +183,11 @@
 		return { y: Math.floor(months / 12), m: months % 12, months: months, d: daycount(t, hi) };
 	}
 
+	/** 一行：日期 增加：数量 单位 → 结果。数量为负就是往前。 */
 	function addtext(base, unit){
 		var raw = String(SK.val("dc-n")).trim().replace(/,/g, "");
 		var n = Number(raw);
 		if (raw === "" || !isFinite(n)) throw new Error("请输入数量");
-		var back = SK.val("dc-dir") === "before";
-		if (back) n = -n;
 		var d;
 		if (unit.id === "m" || unit.id === "y") {
 			var max = unit.id === "m" ? 1200 : 100;
@@ -161,8 +203,8 @@
 		var year = d.getFullYear();
 		if (isNaN(d.getTime()) || year < 1 || year > 9999) throw new Error("结果超出范围");
 		var showtime = unit.sec < 86400 || n !== Math.floor(n);
-		return SK.ymd(base) + (n < 0 ? " 之前 " : " 之后 ") + SK.trimnum(Math.abs(n)) + " " + unit.word
-			+ "\n" + SK.ymd(d) + (showtime && unit.sec ? " " + clock(d) : "")
+		return SK.ymd(base) + " 增加：" + SK.trimnum(n) + " " + unit.word
+			+ " → " + SK.ymd(d) + (showtime && unit.sec ? " " + clock(d) : "")
 			+ "  周" + WEEK.charAt(d.getDay());
 	}
 
