@@ -55,15 +55,18 @@
 					<TextBlock x:Name="lbcaption" DockPanel.Dock="Bottom"
 					           TextAlignment="Center" FontSize="16"
 					           FontFamily="Microsoft YaHei UI"
-					           Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
+					           Margin="0,8,0,0" TextTrimming="CharacterEllipsis"
 					           TextWrapping="NoWrap"
 					           SnapsToDevicePixels="True"
 					           TextOptions.TextFormattingMode="Display"
 					           AutomationProperties.AutomationId="qrmake.caption"/>
-					<Image x:Name="iprev" Stretch="Uniform" Margin="0"
-					       RenderOptions.BitmapScalingMode="NearestNeighbor"
-					       SnapsToDevicePixels="True"
-					       AutomationProperties.AutomationId="qrmake.preview"/>
+					<Grid>
+						<Image x:Name="iprev" Stretch="Uniform" Margin="0"
+						       VerticalAlignment="Bottom" HorizontalAlignment="Center"
+						       RenderOptions.BitmapScalingMode="NearestNeighbor"
+						       SnapsToDevicePixels="True"
+						       AutomationProperties.AutomationId="qrmake.preview"/>
+					</Grid>
 				</DockPanel>
 			</Grid>
 		</Border>
