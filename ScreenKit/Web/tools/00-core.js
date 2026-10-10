@@ -242,18 +242,11 @@ SK.watchAcc = 0;
 			op.textContent = names[i] || codes[i];
 			sel.appendChild(op);
 		}
-		var saved = "";
-		try { saved = localStorage.getItem("sk_tools_lang") || ""; } catch (e) {}
-		var use = saved;
-		if (!use) {
-			var navl = (navigator.language || "zh").toLowerCase();
-			use = codes[0] || "zh";
-			for (i = 0; i < codes.length; i++) {
-				if (navl.indexOf(codes[i]) === 0) { use = codes[i]; break; }
-			}
-		}
+		var use = String(window.SKL || "").toLowerCase();
 		langAt = 0;
-		for (i = 0; i < codes.length; i++) if (codes[i] === use) langAt = i;
+		for (i = 0; i < codes.length; i++) {
+			if (use === codes[i]) { langAt = i; break; }
+		}
 		sel.value = codes[langAt] || codes[0] || "";
 		sel.onchange = onlang;
 	}
@@ -264,7 +257,6 @@ SK.watchAcc = 0;
 		var i;
 		langAt = 0;
 		for (i = 0; i < codes.length; i++) if (codes[i] === code) langAt = i;
-		try { localStorage.setItem("sk_tools_lang", codes[langAt] || "zh"); } catch (e) {}
 		applylang();
 	}
 
