@@ -2051,6 +2051,13 @@ static class Cli {
 			}
 			Out($"hasSapi={hasSapi} hasWinrt={hasWin} hasEdge={hasEdge}");
 			if (!hasSapi && !hasWin) fail("models 无 SAPI / Windows 条目");
+			if (SapiX86Client.ExeAvailable) {
+				foreach (var v in SapiX86Client.ListVoices()) {
+					if (string.IsNullOrEmpty(v.Name)) continue;
+					if (modelsJson.IndexOf(v.Name, StringComparison.OrdinalIgnoreCase) < 0)
+						fail("models 缺少 x86 发音人 " + v.Name);
+				}
+			}
 			if (!hasEdge) fail("models 无 Edge Online 条目");
 			var again = Task.Run(() =>
 				http.GetStringAsync(baseUrl + "/api/tts/models").GetAwaiter().GetResult())

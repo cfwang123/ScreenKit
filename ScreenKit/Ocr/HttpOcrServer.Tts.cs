@@ -548,10 +548,15 @@ sealed partial class HttpOcrServer {
 		catch (Exception ex) {
 			CaptureLog.Ex("http tts sapi enum", ex);
 		}
-		if (SapiX86Client.ExeAvailable && SapiX86Client.IsRunning()) {
+		if (SapiX86Client.ExeAvailable) {
 			try {
-				foreach (var v in SapiX86Client.ListVoices())
+				var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+				foreach (var one in list)
+					if (!string.IsNullOrEmpty(one.Name)) seen.Add(one.Name);
+				foreach (var v in SapiX86Client.ListVoices()) {
+					if (string.IsNullOrEmpty(v.Name) || !seen.Add(v.Name)) continue;
 					list.Add(v);
+				}
 			}
 			catch (Exception ex) {
 				CaptureLog.Ex("http tts sapi-x86 enum", ex);

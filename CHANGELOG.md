@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Fixed
 
+- The tools page SAPI voice list starts `x86host` and includes 32-bit-only voices such as VW Lily. It used to list them only when that helper was already running.
 - **Help → Install features** treats a `dict2.db` symbolic link beside the program as installed when the target is at least 100 MB. Windows reports the link itself as 0 bytes.
 
 ### 中文
@@ -78,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 修复
 
+- 工具页的 SAPI 发音人会启动 `x86host`，并列出只在 32 位里有的语音，例如 VW Lily。以前只有这个助手已经在跑时才会出现。
 - **帮助 → 安装功能**把程序旁的 `dict2.db` 符号链接按目标文件判断。目标至少 100 MB 时词典显示已安装。Windows 把链接本身报成 0 字节。
 
 ## v1.0.18 (2026-10-10)
