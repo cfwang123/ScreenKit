@@ -172,15 +172,15 @@ static class AppConfig {
 			if (map.TryGetValue("pwgen_lower", out var pwlo))
 				o.PwLower = parsebool(pwlo, true);
 			if (map.TryGetValue("pwgen_upper", out var pwup))
-				o.PwUpper = parsebool(pwup, true);
+				o.PwUpper = parsebool(pwup, false);
 			if (map.TryGetValue("pwgen_digit", out var pwdi))
 				o.PwDigit = parsebool(pwdi, true);
 			if (map.TryGetValue("pwgen_symbol", out var pwsy))
-				o.PwSymbol = parsebool(pwsy, true);
+				o.PwSymbol = parsebool(pwsy, false);
 			if (map.TryGetValue("pwgen_noamb", out var pwna))
 				o.PwNoAmbiguous = parsebool(pwna, false);
 			if (map.TryGetValue("pwgen_each", out var pwea))
-				o.PwEachClass = parsebool(pwea, true);
+				o.PwEachClass = parsebool(pwea, false);
 			if (map.TryGetValue("pwgen_custom", out var pwcu))
 				o.PwCustom = parsebool(pwcu, false);
 			if (map.TryGetValue("pwgen_charset", out var pwcs))
@@ -622,8 +622,8 @@ static class AppConfig {
 		sb.AppendLine($"imgconv_keep_orig = {(o.ImgConvKeepOrigEnabled ? "true" : "false")}");
 		sb.AppendLine($"imgconv_keep_orig_pct = {Compat.Clamp(o.ImgConvKeepOrigPct <= 0 ? 80 : o.ImgConvKeepOrigPct, 1, 100)}");
 		sb.AppendLine($"# 密码生成器上次设置");
-		sb.AppendLine($"pwgen_len = {Compat.Clamp(o.PwLen <= 0 ? 16 : o.PwLen, 4, 128)}");
-		sb.AppendLine($"pwgen_count = {Compat.Clamp(o.PwCount <= 0 ? 5 : o.PwCount, 1, 50)}");
+		sb.AppendLine($"pwgen_len = {Compat.Clamp(o.PwLen <= 0 ? 6 : o.PwLen, 4, 128)}");
+		sb.AppendLine($"pwgen_count = {Compat.Clamp(o.PwCount <= 0 ? 10 : o.PwCount, 1, 50)}");
 		sb.AppendLine($"pwgen_lower = {(o.PwLower ? "true" : "false")}");
 		sb.AppendLine($"pwgen_upper = {(o.PwUpper ? "true" : "false")}");
 		sb.AppendLine($"pwgen_digit = {(o.PwDigit ? "true" : "false")}");

@@ -4,14 +4,14 @@ using System.Text;
 namespace ScreenKit;
 
 sealed class PasswordOpts {
-	public int Length = 16;
-	public int Count = 5;
+	public int Length = 6;
+	public int Count = 10;
 	public bool Lower = true;
-	public bool Upper = true;
+	public bool Upper;
 	public bool Digit = true;
-	public bool Symbol = true;
+	public bool Symbol;
 	public bool NoAmbiguous;
-	public bool EachClass = true;
+	public bool EachClass;
 	/// <summary>为 true 时只用 <see cref="Charset"/>，不再用上面的分类。</summary>
 	public bool Custom;
 	public string Charset = "";

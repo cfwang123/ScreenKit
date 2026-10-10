@@ -3,11 +3,11 @@
 		title: "随机密码",
 		go: "生成",
 		body: function(){
-			return SK.row2(SK.lab("长度", SK.numin("box-len", "16")), SK.lab("条数", SK.numin("box-n", "5")))
-				+ SK.check("box-low", "小写", true) + SK.check("box-up", "大写", true)
-				+ SK.check("box-dig", "数字", true) + SK.check("box-sym", "符号", true)
+			return SK.row2(SK.lab("长度", SK.numin("box-len", "6")), SK.lab("条数", SK.numin("box-n", "10")))
+				+ SK.check("box-low", "小写", true) + SK.check("box-up", "大写", false)
+				+ SK.check("box-dig", "数字", true) + SK.check("box-sym", "符号", false)
 				+ SK.check("box-amb", "去掉易混字符（0、O、o、1、l、I）", false)
-				+ SK.check("box-each", "每类至少一个", true)
+				+ SK.check("box-each", "每类至少一个", false)
 				+ SK.check("box-set", "指定字符集", false)
 				+ SK.lab("字符集", SK.textin("box-set-chars", "", "手动输入，重复的只算一次"));
 		},
@@ -77,10 +77,10 @@
 	function pwtext(){
 		var len = parseInt(SK.val("box-len"), 10);
 		var count = parseInt(SK.val("box-n"), 10);
-		if (!isFinite(len)) len = 16;
+		if (!isFinite(len)) len = 6;
 		if (len < 4) len = 4;
 		if (len > 128) len = 128;
-		if (!isFinite(count)) count = 5;
+		if (!isFinite(count)) count = 10;
 		if (count < 1) count = 1;
 		if (count > 50) count = 50;
 		if (SK.onbox("box-set")) {

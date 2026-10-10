@@ -35,8 +35,8 @@ public partial class PasswordWindow : Window {
 	}
 
 	void loadui() {
-		elen.Text = Compat.Clamp(opt.PwLen <= 0 ? 16 : opt.PwLen, 4, 128).ToString();
-		ecount.Text = Compat.Clamp(opt.PwCount <= 0 ? 5 : opt.PwCount, 1, 50).ToString();
+		elen.Text = Compat.Clamp(opt.PwLen <= 0 ? 6 : opt.PwLen, 4, 128).ToString();
+		ecount.Text = Compat.Clamp(opt.PwCount <= 0 ? 10 : opt.PwCount, 1, 50).ToString();
 		clower.IsChecked = opt.PwLower;
 		cupper.IsChecked = opt.PwUpper;
 		cdigit.IsChecked = opt.PwDigit;

@@ -230,14 +230,14 @@ public sealed class OcrOptions {
 	/// <summary>用原图的体积阈值，百分数，默认 80（100KB 原图则 ≥80KB 用原图）。</summary>
 	public int ImgConvKeepOrigPct = 80;
 	/// <summary>密码生成器上次设置。</summary>
-	public int PwLen = 16;
-	public int PwCount = 5;
+	public int PwLen = 6;
+	public int PwCount = 10;
 	public bool PwLower = true;
-	public bool PwUpper = true;
+	public bool PwUpper;
 	public bool PwDigit = true;
-	public bool PwSymbol = true;
+	public bool PwSymbol;
 	public bool PwNoAmbiguous;
-	public bool PwEachClass = true;
+	public bool PwEachClass;
 	/// <summary>true 时随机密码只用 <see cref="PwCharset"/>。</summary>
 	public bool PwCustom;
 	public string PwCharset = "";
