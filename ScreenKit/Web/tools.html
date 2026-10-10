@@ -376,9 +376,20 @@
 		<section id="text" class="panel">
 			<p class="kicker">文本</p>
 			<h1>文本转换</h1>
-			<label>原文
-				<textarea id="tx-in" rows="8" placeholder="要处理的文字"></textarea>
-			</label>
+			<div class="split txpair">
+				<div>
+					<div class="txhead"><span>原文</span></div>
+					<textarea id="tx-in" rows="14" placeholder="要处理的文字"></textarea>
+				</div>
+				<div>
+					<div class="txhead">
+						<span>结果</span>
+						<button type="button" id="tx-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制</button>
+						<span id="tx-msg" class="msg"></span>
+					</div>
+					<textarea id="tx-out" rows="14" readonly></textarea>
+				</div>
+			</div>
 			<div class="ops" id="tx-ops">
 				<div class="opgrp"><span>Base64</span><div>
 					<button type="button" data-op="b64enc"><i class="fa-solid fa-lock"></i>编码</button>
@@ -427,13 +438,6 @@
 					<button type="button" data-op="stats"><i class="fa-solid fa-chart-column"></i>统计</button>
 				</div></div>
 			</div>
-			<div class="row">
-				<button type="button" id="tx-copy" class="ghost"><i class="fa-solid fa-copy"></i>复制结果</button>
-				<span id="tx-msg" class="msg"></span>
-			</div>
-			<label>结果
-				<textarea id="tx-out" rows="8" readonly></textarea>
-			</label>
 		</section>
 
 		<section id="ocr" class="panel">

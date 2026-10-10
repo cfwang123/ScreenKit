@@ -172,10 +172,29 @@ select, input[type="date"], input[type="text"], input[type="number"], input[type
 }
 .ghost { background: transparent; }
 .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-#tx-ops { flex-direction: column; flex-wrap: nowrap; gap: 12px; }
-#tx-ops .opgrp > span { display: block; color: var(--muted); font-size: 12px; margin: 0 0 6px; }
-#tx-ops .opgrp > div { display: flex; flex-wrap: wrap; gap: 8px; }
-#tx-ops button { width: 160px; justify-content: center; }
+.txpair { align-items: start; }
+.txhead {
+	display: flex; align-items: center; gap: 8px;
+	height: 28px; color: var(--muted); font-size: 12px;
+}
+.txpair textarea { margin-top: 0; min-height: 280px; }
+.txhead .ghost { height: 24px; padding: 0 8px; font-size: 12px; border-radius: 6px; }
+.txhead .msg { min-height: 0; }
+#tx-ops {
+	flex-direction: column; flex-wrap: nowrap; gap: 4px;
+	margin-top: 10px; padding: 8px 10px;
+	border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+}
+#tx-ops .opgrp { display: flex; align-items: center; gap: 8px; }
+#tx-ops .opgrp > span {
+	display: block; width: 64px; flex: none; margin: 0;
+	color: var(--muted); font-size: 12px;
+}
+#tx-ops .opgrp > div { display: flex; flex-wrap: wrap; gap: 6px; }
+#tx-ops button {
+	width: auto; height: 26px; padding: 0 8px;
+	font-size: 12px; border-radius: 6px; gap: 4px;
+}
 .check { width: auto; display: flex; align-items: center; gap: 6px; color: var(--ink); font-size: 14px; }
 .check input { margin: 0; }
 .msg { color: var(--muted); min-height: 1.2em; }
