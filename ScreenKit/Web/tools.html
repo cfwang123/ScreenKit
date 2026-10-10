@@ -474,6 +474,16 @@
 				<label>引擎
 					<select id="tts-eng"></select>
 				</label>
+				<label>语言
+					<select id="tts-lang"></select>
+				</label>
+				<label>性别
+					<select id="tts-gender">
+						<option value="">全部性别</option>
+						<option value="female">女声</option>
+						<option value="male">男声</option>
+					</select>
+				</label>
 				<label>模型
 					<select id="tts-model"></select>
 				</label>
@@ -489,6 +499,7 @@
 			</label>
 			<div class="row">
 				<button type="button" id="tts-go" class="primary"><i class="fa-solid fa-volume-high"></i>朗读</button>
+				<button type="button" id="tts-wav"><i class="fa-solid fa-file-audio"></i>生成 WAV</button>
 				<span id="tts-msg" class="msg"></span>
 			</div>
 			<audio id="tts-audio" controls hidden></audio>

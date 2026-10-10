@@ -62,8 +62,11 @@ window.sktools = (function(){
 		document.addEventListener("paste", onocrpaste);
 		$("ocr-copy").onclick = function(){ copytext($("ocr-out").value, "ocr-msg"); };
 		$("tts-eng").onchange = fillttsmodels;
+		$("tts-lang").onchange = fillttsmodels;
+		$("tts-gender").onchange = fillttsmodels;
 		$("tts-model").onchange = fillttsvoices;
-		$("tts-go").onclick = ttsgo;
+		$("tts-go").onclick = function(){ ttsgo(false); };
+		$("tts-wav").onclick = function(){ ttsgo(true); };
 		$("asr-eng").onchange = fillasrmodels;
 		$("asr-filego").onclick = asrfile;
 		$("asr-rec").onclick = asrrec;
@@ -644,14 +647,18 @@ window.sktools = (function(){
 	}
 
 	function fillttsmodels(){
+		fillttslang();
 		var eng = $("tts-eng").value;
+		var want = ttswant();
+		var prev = $("tts-model").value;
 		var rows = [];
 		var i;
 		for (i = 0; i < ttsItems.length; i++) {
 			if ((ttsItems[i].engine || "") !== eng) continue;
+			if (!ttsmodelok(ttsItems[i], want)) continue;
 			rows.push({ value: String(i), label: ttsItems[i].name || eng });
 		}
-		fillsel($("tts-model"), rows, "");
+		fillsel($("tts-model"), rows, prev);
 		fillttsvoices();
 	}
 
@@ -664,21 +671,32 @@ window.sktools = (function(){
 	function fillttsvoices(){
 		var item = ttsitem();
 		var speakers = (item && item.speakers) || [];
+		var want = ttswant();
+		var prevIdx = parseInt($("tts-voice").value, 10);
+		var prev = speakers[prevIdx] || null;
 		var rows = [];
+		var pick = "";
 		var i;
 		for (i = 0; i < speakers.length; i++) {
 			var sp = speakers[i] || {};
+			if (!ttsspeakerok(item, sp, want)) continue;
 			var label = sp.name || sp.key || String(i);
 			if (sp.lang) label += " · " + sp.lang;
 			rows.push({ value: String(i), label: label });
+			if (prev && ((prev.key && prev.key === sp.key) || (!prev.key && prev.name && prev.name === sp.name)))
+				pick = String(i);
 		}
-		fillsel($("tts-voice"), rows, "");
+		fillsel($("tts-voice"), rows, pick);
 	}
 
-	function ttsgo(){
+	function ttsgo(save){
 		var item = ttsitem();
 		if (!item) {
 			msg("tts-msg", "没有可用的语音", true);
+			return;
+		}
+		if (!$("tts-voice").options.length) {
+			msg("tts-msg", "没有符合筛选的发音人", true);
 			return;
 		}
 		var speakers = item.speakers || [];
@@ -694,15 +712,160 @@ window.sktools = (function(){
 			speaker_id: sp.id != null ? sp.id : vi,
 			speed: speed,
 		}, function(data){
-			var audio = $("tts-audio");
 			if (!data || !data.wav_base64) {
 				msg("tts-msg", "没有音频", true);
 				return;
 			}
+			if (save) {
+				ttssavewav(data.wav_base64, sp, item);
+				return;
+			}
+			var audio = $("tts-audio");
 			audio.src = "data:audio/wav;base64," + data.wav_base64;
 			audio.hidden = false;
 			audio.play();
 		}, "tts-msg");
+	}
+
+	function ttssavewav(b64, sp, item){
+		var bin = atob(b64);
+		var bytes = new Uint8Array(bin.length);
+		var i;
+		for (i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 255;
+		var blob = new Blob([bytes], { type: "audio/wav" });
+		var a = document.createElement("a");
+		var url = URL.createObjectURL(blob);
+		var name = (sp && (sp.name || sp.key)) || (item && item.name) || "tts";
+		name = String(name).replace(/[\\/:*?"<>|]+/g, " ").replace(/^\s+|\s+$/g, "");
+		if (!name) name = "tts";
+		if (name.length > 40) name = name.substring(0, 40).replace(/\s+$/g, "");
+		a.href = url;
+		a.download = name + ".wav";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+		msg("tts-msg", "已下载 " + a.download);
+	}
+
+	function ttswant(){
+		return {
+			lang: ($("tts-lang") && $("tts-lang").value) || "",
+			gender: ($("tts-gender") && $("tts-gender").value) || "",
+		};
+	}
+
+	function fillttslang(){
+		var eng = $("tts-eng").value;
+		var prev = $("tts-lang").value;
+		var seen = {};
+		var named = [
+			["zh", "中文 (zh)"], ["en", "英文 (en)"], ["ja", "日文 (ja)"], ["ko", "韩文 (ko)"],
+			["vi", "越南语 (vi)"], ["yue", "粤语 (yue)"], ["fr", "法语 (fr)"], ["de", "德语 (de)"], ["es", "西班牙语 (es)"],
+		];
+		var i, j;
+		for (i = 0; i < ttsItems.length; i++) {
+			if ((ttsItems[i].engine || "") !== eng) continue;
+			ttslangadd(seen, ttsItems[i].lang);
+			var sps = ttsItems[i].speakers || [];
+			for (j = 0; j < sps.length; j++) ttslangadd(seen, sps[j].lang);
+		}
+		var rows = [{ value: "", label: "全部语言" }];
+		var used = {};
+		for (i = 0; i < named.length; i++) {
+			if (!seen[named[i][0]]) continue;
+			rows.push({ value: named[i][0], label: named[i][1] });
+			used[named[i][0]] = 1;
+		}
+		var rest = [];
+		for (var k in seen) if (!used[k]) rest.push(k);
+		rest.sort();
+		for (i = 0; i < rest.length; i++) rows.push({ value: rest[i], label: rest[i] });
+		fillsel($("tts-lang"), rows, seen[ttsnormlang(prev)] ? ttsnormlang(prev) : "");
+	}
+
+	function ttslangadd(seen, raw){
+		var parts = String(raw || "").split(/[,/|+]/);
+		var i;
+		for (i = 0; i < parts.length; i++) {
+			var n = ttsnormlang(parts[i]);
+			if (n) seen[n] = 1;
+		}
+	}
+
+	function ttsnormlang(s){
+		s = String(s || "").replace(/^\s+|\s+$/g, "").toLowerCase().replace(/_/g, "-");
+		if (!s) return "";
+		var dash = s.indexOf("-");
+		var p = dash > 0 ? s.substring(0, dash) : s;
+		if (p === "zh" || p === "cmn" || p === "chinese" || p === "cn") return "zh";
+		if (p === "en" || p === "english") return "en";
+		if (p === "vi" || p === "vie" || p === "vietnamese") return "vi";
+		if (p === "ja" || p === "jpn" || p === "japanese") return "ja";
+		if (p === "ko" || p === "kor" || p === "korean") return "ko";
+		if (p === "yue" || p === "cantonese") return "yue";
+		return p.length <= 3 ? p : s;
+	}
+
+	function ttslangmatch(have, want){
+		want = ttsnormlang(want);
+		if (!want) return true;
+		if (!ttsnormlang(have)) return false;
+		var parts = String(have || "").split(/[,/|+]/);
+		var i;
+		for (i = 0; i < parts.length; i++)
+			if (ttsnormlang(parts[i]) === want) return true;
+		return false;
+	}
+
+	function ttsnormgender(s){
+		s = String(s || "").replace(/^\s+|\s+$/g, "").toLowerCase();
+		if (s === "m" || s === "male" || s === "man" || s === "男" || s === "男声") return "male";
+		if (s === "f" || s === "female" || s === "woman" || s === "女" || s === "女声") return "female";
+		return s;
+	}
+
+	function ttsgendermatch(have, want){
+		want = ttsnormgender(want);
+		if (!want) return true;
+		have = ttsnormgender(have);
+		return !!have && have === want;
+	}
+
+	function ttsmodelok(item, want){
+		if (!item) return false;
+		var speakers = item.speakers || [];
+		var i;
+		var langOk = !want.lang || ttslangmatch(item.lang, want.lang);
+		if (!langOk) {
+			for (i = 0; i < speakers.length; i++) {
+				if (ttslangmatch((speakers[i] || {}).lang, want.lang)) { langOk = true; break; }
+			}
+		}
+		if (!langOk) return false;
+		if (!want.gender) return true;
+		if (ttsgendermatch(item.gender, want.gender)) return true;
+		var any = false;
+		var allEmpty = !ttsnormgender(item.gender);
+		for (i = 0; i < speakers.length; i++) {
+			var g = ttsnormgender((speakers[i] || {}).gender);
+			if (ttsgendermatch(g, want.gender)) any = true;
+			if (g) allEmpty = false;
+		}
+		return any || allEmpty;
+	}
+
+	function ttsspeakerok(item, sp, want){
+		if (!sp) return false;
+		if (want.lang && !ttslangmatch(sp.lang, want.lang) && !ttslangmatch(item && item.lang, want.lang))
+			return false;
+		if (want.gender) {
+			var sg = ttsnormgender(sp.gender);
+			var mg = ttsnormgender(item && item.gender);
+			if (sg && !ttsgendermatch(sg, want.gender)) return false;
+			if (!sg && mg && !ttsgendermatch(mg, want.gender)) return false;
+		}
+		return true;
 	}
 
 	function loadasr(){
