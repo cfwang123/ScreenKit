@@ -12,12 +12,12 @@
 				+ SK.radio("ico-size", "ico-128", "128", false) + SK.radio("ico-size", "ico-256", "256", false)
 				+ "</div>"
 				+ '<div class="ops">'
-				+ '<label class="check"><input id="ico-mode-fit" name="ico-mode" type="radio" value="fit" checked> fit</label>'
+				+ '<label class="check"><input id="ico-mode-fit" name="ico-mode" type="radio" value="fit" checked> 适应</label>'
 				+ '<label class="check"><input id="ico-mode-stretch" name="ico-mode" type="radio" value="stretch"> 拉伸</label>'
 				+ '<label class="check"><input id="ico-mode-crop" name="ico-mode" type="radio" value="crop"> 裁剪</label>'
 				+ "</div>"
 				+ '<div class="ico-out"><canvas id="ico-prev" width="32" height="32"></canvas><span id="ico-prev-size">32×32</span></div>'
-				+ '<p class="hint">只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。fit 等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满，多出的部分切掉。</p>';
+				+ '<p class="hint">只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。适应等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满，多出的部分切掉。</p>';
 		},
 		run: function(){
 			icogo();
