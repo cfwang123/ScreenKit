@@ -1,6 +1,6 @@
 # ScreenKit
 
-Windows desktop tool (`ScreenKit.exe`): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
+Windows desktop tool (`ScreenKit.exe`): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion. A Start menu shortcut shows 屏幕截图工具 when Windows is in Chinese, and ScreenKit in other languages.
 
 **Current version: 1.0.18** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
@@ -278,6 +278,7 @@ ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
 ScreenKit --list-asr               # Sherpa models + Windows system recognizers
 ScreenKit --list-edge-tts
 ScreenKit --probe-cuda
+ScreenKit --test-mem-load [base|ocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
 ScreenKit --help
 ```
 

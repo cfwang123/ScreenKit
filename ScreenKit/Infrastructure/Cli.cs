@@ -57,6 +57,7 @@ static class Cli {
 				or "--test-clipboard-path"
 				or "--test-sendfile"
 				or "--test-lang"
+				or "--test-shell-name"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-pwgen" or "--test-nettool"
@@ -65,6 +66,7 @@ static class Cli {
 				or "--test-wintop"
 				or "--test-win-tts"
 				or "--test-mem"
+				or "--test-mem-load"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
 				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
@@ -259,6 +261,8 @@ static class Cli {
 					return testsendfile();
 				case "--test-lang":
 					return testlang();
+				case "--test-shell-name":
+					return ShellName.Test();
 				case "--test-apk-qr":
 					return testapkqr();
 				case "--test-img-convert":
@@ -291,6 +295,14 @@ static class Cli {
 					return testwintts();
 				case "--test-mem":
 					return testmem();
+				case "--test-mem-load":
+					string memFeat = null;
+					string memDev = null;
+					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
+						memFeat = Next();
+					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
+						memDev = Next();
+					return MemLoadTest.Run(memFeat, memDev);
 				case "--test-ort-lazy":
 					return testortlazy();
 				case "--test-ort-release":
@@ -4613,6 +4625,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wintop
   ScreenKit --test-win-tts
   ScreenKit --test-mem
+  ScreenKit --test-mem-load [base|ocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
@@ -4671,6 +4684,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-clipboard-path  先放位图再复制为路径；含 4K 延迟图后改路径计时
       --test-sendfile  sendfile 路径沙箱与列出/上传/删除；网页登录与公开下载
       --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、西、法、葡、俄、德、其它排序
+      --test-shell-name  开始菜单显示名：中文 Windows 为「屏幕截图工具」
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
       --test-screenshot-dir  截图保存目录：空为 screenshots/，D:/s/ 解析为 D:\s
@@ -4687,6 +4701,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
+      --test-mem-load  每个功能单独进程冷启动后的提交、专用工作集、工作集。默认 cpu。语音和识别取最小的一份模型
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
       --test-dict-search  只读查询 exe 旁 dict2.db（默认 学生 与 hello）；韩语词组行有发音按钮
@@ -4765,6 +4780,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wintop
   ScreenKit --test-win-tts
   ScreenKit --test-mem
+  ScreenKit --test-mem-load [base|ocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word

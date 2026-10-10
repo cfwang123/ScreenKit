@@ -91,6 +91,9 @@ public partial class App : System.Windows.Application {
 			sesslog("单实例锁仍被占，继续启动");
 		}
 
+		try { ShellName.Apply(); }
+		catch { }
+
 		initcuda();
 
 		base.OnStartup(e);

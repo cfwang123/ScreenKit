@@ -34,14 +34,24 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- `ScreenKit --test-mem-load` starts one process per feature (baseline, OCR, translation, offline ASR, streaming ASR, TTS, dictionary, face) and prints commit size, private working set, and working set after that feature loads. The default device is CPU. ASR and TTS load the smallest installed model.
+
 #### Changed
 
+- A Start menu shortcut that points at ScreenKit.exe shows the localized screenshot-tool name when Windows is in Chinese, and ScreenKit in other languages. The program writes that name the next time it starts.
 - The Unicode and GBK code charts list the total number of characters. Each group lists its count, its first code, and its last code. Unassigned Unicode code points and empty GBK slots are not counted. The group list fills the tool card. The card itself does not scroll.
 
 ### 中文
 
+#### 新增
+
+- `ScreenKit --test-mem-load` 为每个功能单独冷启动（基线、识别、翻译、离线语音识别、流式语音识别、语音合成、词典、人脸），打印加载后的提交大小、专用工作集和工作集。默认 CPU。语音识别和语音合成加载已安装模型里最小的一份。
+
 #### 变更
 
+- 开始菜单里指向 ScreenKit.exe 的快捷方式，在中文 Windows 下显示「屏幕截图工具」，其它语言显示 ScreenKit。程序下次启动时写入这个显示名。
 - Unicode 码表和 GBK 码表列出总字数。每个分组列出字数、起始码和结束码。未分配的 Unicode 码位和 GBK 空位不计入。分组列表铺满工具卡片，卡片本身不再滚动。
 
 ## v1.0.18 (2026-10-10)

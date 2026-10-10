@@ -307,12 +307,13 @@ input[type="file"] {
 }
 .ugroups, .ugrid, .uprev { min-height: 0; overflow: auto; }
 .ugroups {
-	border: 1px solid var(--line); border-radius: 10px; padding: 4px; background: var(--card);
+	border: 1px solid var(--line); border-radius: 10px; padding: 0 4px 4px; background: var(--card);
 }
 .usum {
-	position: sticky; top: 0; z-index: 1;
-	margin: -4px -4px 4px; padding: 6px 8px;
+	position: sticky; top: 0; z-index: 2;
+	margin: 0 -4px 4px; padding: 6px 12px;
 	border-bottom: 1px solid var(--line); background: var(--card);
+	box-shadow: 0 -2px 0 var(--card);
 	color: var(--ink); font: 600 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .ugroups button {

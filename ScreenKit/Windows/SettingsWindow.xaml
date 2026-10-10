@@ -745,7 +745,7 @@
 			         AutomationProperties.AutomationId="set.tab.http">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>
-						<TextBlock x:Name="lbsethttp" Text="HTTP 识图 API（Umi 兼容）"
+						<TextBlock x:Name="lbsethttp" Text="HTTP 服务"
 						           FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsethttphint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,8" TextWrapping="Wrap"
