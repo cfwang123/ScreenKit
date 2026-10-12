@@ -376,13 +376,13 @@ input[type="file"] {
 	gap: 2px; align-content: start;
 }
 .ugrid.g16 { grid-template-columns: repeat(16, 32px); justify-content: start; }
-/* ASCII 码表：16 列，行首可带行列表头 */
-.ugrid.a16 { grid-template-columns: repeat(16, 29px); justify-content: start; }
+/* ASCII 码表：带行列表头的 16 列码表；不属于当前分类的格子只占位、不显示 */
 .ugrid.a16h { grid-template-columns: 36px repeat(16, 29px); justify-content: start; }
 .ugrid .ahead {
 	display: grid; place-items: center; height: 32px;
 	color: var(--muted); font: 11px/1 Consolas, "Microsoft YaHei UI", monospace;
 }
+.ugrid button.off { visibility: hidden; }
 .ugrid button {
 	height: 32px; padding: 0; cursor: pointer; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink);

@@ -124,23 +124,33 @@
 		var g = GROUPS[index];
 		var buttons = document.querySelectorAll("#a-groups button");
 		var grid = SK.$("a-grid");
-		var head = isfull(g);
+		var has = {};
 		var pick = focus >= 0 && g.codes.indexOf(focus) >= 0 ? focus : g.codes[0];
 		var html = [];
-		var i;
-		var cp;
+		var i, c, row, base, cp, empty;
 		for (i = 0; i < buttons.length; i++) buttons[i].className = i === index ? "on" : "";
 		if (buttons[index]) buttons[index].scrollIntoView({ block: "nearest" });
 		cur = index;
-		grid.className = "ugrid " + (head ? "a16h" : "a16");
-		if (head) {
-			html.push('<span class="ahead"></span>');
-			for (i = 0; i < 16; i++) html.push('<span class="ahead">' + i.toString(16).toUpperCase() + "</span>");
-		}
-		for (i = 0; i < g.codes.length; i++) {
-			cp = g.codes[i];
-			if (head && i % 16 === 0) html.push('<span class="ahead">' + asc2(cp, 16) + "</span>");
-			html.push(ascell(cp, cp === pick));
+		for (i = 0; i < g.codes.length; i++) has[g.codes[i]] = true;
+		// 每个分类都画成同一张带行列表头的 16 列码表：不属于本组的格子留空位，整行没成员的不画
+		grid.className = "ugrid a16h";
+		html.push('<span class="ahead"></span>');
+		for (c = 0; c < 16; c++) html.push('<span class="ahead">' + c.toString(16).toUpperCase() + "</span>");
+		for (row = 0; row < 8; row++) {
+			base = row * 16;
+			empty = true;
+			for (c = 0; c < 16; c++) {
+				if (has[base + c]) {
+					empty = false;
+					break;
+				}
+			}
+			if (empty) continue;
+			html.push('<span class="ahead">' + asc2(base, 16) + "</span>");
+			for (c = 0; c < 16; c++) {
+				cp = base + c;
+				html.push(ascell(cp, cp === pick, !has[cp]));
+			}
 		}
 		grid.innerHTML = html.join("");
 		var on = grid.querySelector("button.on");
@@ -148,17 +158,11 @@
 		ascpreview(pick);
 	}
 
-	// 整行对齐的组才画行列表头（只有「全部」是 0x00 起的连续整行）
-	function isfull(g){
-		var runs = ascruns(g.codes);
-		return runs.length === 1 && g.codes.length % 16 === 0 && g.codes[0] % 16 === 0;
-	}
-
 	function isctrl(cp){
 		return cp < 32 || cp === 127;
 	}
 
-	function ascell(cp, on){
+	function ascell(cp, on, off){
 		var cls = [];
 		var text;
 		if (isctrl(cp)) {
@@ -173,6 +177,7 @@
 		else {
 			text = String.fromCharCode(cp);
 		}
+		if (off) cls.push("off");
 		if (on) cls.push("on");
 		return '<button type="button" data-cp="' + cp + '" title="' + esc(asc2(cp, 16) + " " + cp + " " + ascname(cp)) + '"'
 			+ (cls.length ? ' class="' + cls.join(" ") + '"' : "") + ">" + esc(text) + "</button>";

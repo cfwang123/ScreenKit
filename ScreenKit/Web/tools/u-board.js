@@ -1,5 +1,4 @@
 (function(){
-	var W = 1200, H = 720;
 	var HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 	var items = [];
 	var undo = [];
@@ -11,6 +10,9 @@
 	var draft = null;
 	var edit = null;
 	var canvas = null;
+	var base = null;
+	var dirty = false;
+	var watch = null;
 	var hooked = false;
 	var busy = false;
 	var FB = {
@@ -32,7 +34,6 @@
 
 	function body(){
 		return '<div class="board">'
-			+ '<p class="hint" data-k="web.board.hint">' + SK.esc(SK.t("web.board.hint") || "矩形、椭圆、箭头、画笔、文字。Ctrl+V 粘贴图片，拖动改位置，角点改大小。") + "</p>"
 			+ '<div class="board-bar">'
 			+ tbtn("select", "web.board.select", "选择", true)
 			+ tbtn("rect", "web.board.rect", "矩形", false)
@@ -48,11 +49,10 @@
 			+ abtn("copy", "web.board.copy", "复制图片")
 			+ abtn("save", "web.board.save", "保存")
 			+ "</div>"
-			+ '<div class="board-stage select"><canvas id="board-cv" width="1200" height="720"></canvas>'
+			+ '<div class="board-stage select"><canvas id="board-cv"></canvas>'
 			+ '<input id="board-txt" class="board-text" type="text" hidden spellcheck="false">'
-			+ "</div>"
 			+ '<p class="board-msg" id="board-msg"></p>'
-			+ "</div>";
+			+ "</div></div>";
 	}
 
 	function tbtn(name, key, fb, on){
@@ -93,7 +93,13 @@
 			txt.onblur = function(){ committext(true); };
 		}
 		settool(tool);
-		paint(true);
+		fit();
+		requestAnimationFrame(fit);
+		if (watch) watch.disconnect();
+		if (window.ResizeObserver && canvas.parentElement) {
+			watch = new ResizeObserver(function(){ fit(); });
+			watch.observe(canvas.parentElement);
+		}
 	}
 
 	function hook(){
@@ -209,18 +215,19 @@
 	}
 
 	function placeimg(im){
+		var bw = canvas.width, bh = canvas.height;
 		var w = im.naturalWidth || im.width;
 		var h = im.naturalHeight || im.height;
-		if (!w || !h) return;
-		var s = Math.min(1, (W * 0.6) / w, (H * 0.6) / h);
+		if (!w || !h || bw < 2 || bh < 2) return;
+		var s = Math.min(1, (bw * 0.6) / w, (bh * 0.6) / h);
 		w = Math.max(8, Math.round(w * s));
 		h = Math.max(8, Math.round(h * s));
 		var n = 0, i, x, y;
 		for (i = 0; i < items.length; i++) if (items[i].t === "img") n++;
-		x = Math.round((W - w) / 2) + (n % 6) * 16;
-		y = Math.round((H - h) / 2) + (n % 6) * 16;
-		if (x + w > W - 8) x = Math.max(8, W - w - 8);
-		if (y + h > H - 8) y = Math.max(8, H - h - 8);
+		x = Math.round((bw - w) / 2) + (n % 6) * 16;
+		y = Math.round((bh - h) / 2) + (n % 6) * 16;
+		if (x + w > bw - 8) x = Math.max(8, bw - w - 8);
+		if (y + h > bh - 8) y = Math.max(8, bh - h - 8);
 		pushundo();
 		items.push({ t: "img", img: im, x: x, y: y, w: w, h: h });
 		sel = items.length - 1;
@@ -235,11 +242,13 @@
 
 	function clearall(){
 		if (edit) committext(true);
-		if (!items.length) return;
+		if (!items.length && !dirty) return;
 		pushundo();
 		items = [];
 		sel = -1;
 		draft = null;
+		dirty = false;
+		whitebase();
 		paint(true);
 	}
 
@@ -249,7 +258,10 @@
 		if (!snap) return;
 		items = snap.items;
 		sel = snap.sel;
+		dirty = snap.dirty;
 		if (sel >= items.length) sel = items.length - 1;
+		if (snap.pixels && base && snap.pixels.width === base.width && snap.pixels.height === base.height)
+			base.getContext("2d").putImageData(snap.pixels, 0, 0);
 		draft = null;
 		drag = null;
 		paint(true);
@@ -379,9 +391,12 @@
 			if (d.w < 3) d.w = 3;
 			if (d.h < 3) d.h = 3;
 		}
+		if (!base) fit();
+		if (!base) { paint(true); return; }
 		pushundo();
-		items.push(d);
-		sel = items.length - 1;
+		drawitem(base.getContext("2d"), d);
+		dirty = true;
+		sel = -1;
 		paint(true);
 	}
 
@@ -443,37 +458,19 @@
 	}
 
 	function applymove(it, st, dx, dy){
-		if (it.t === "arrow") {
-			it.x1 = st.x1 + dx; it.y1 = st.y1 + dy;
-			it.x2 = st.x2 + dx; it.y2 = st.y2 + dy;
-		}
-		else {
-			it.x = st.x + dx;
-			it.y = st.y + dy;
-		}
+		it.x = st.x + dx;
+		it.y = st.y + dy;
 	}
 
 	function applyresize(it, st, box, handle, dx, dy, shift){
 		var ar = (shift && it.t === "img" && box.h) ? box.w / box.h : 0;
-		var min = (it.t === "arrow" || it.t === "pen") ? 1 : 8;
-		var nb = resizebox(box, handle, dx, dy, ar, min);
-		if (it.t === "rect" || it.t === "ellipse" || it.t === "img") {
+		var nb = resizebox(box, handle, dx, dy, ar, 8);
+		if (it.t === "img") {
 			it.x = nb.x; it.y = nb.y; it.w = nb.w; it.h = nb.h;
 		}
 		else if (it.t === "text") {
 			it.x = nb.x; it.y = nb.y;
 			it.size = Math.max(8, st.size * nb.h / Math.max(8, box.h));
-		}
-		else if (it.t === "arrow") {
-			var a = mappt(box, nb, st.x1, st.y1);
-			var b = mappt(box, nb, st.x2, st.y2);
-			it.x1 = a.x; it.y1 = a.y; it.x2 = b.x; it.y2 = b.y;
-		}
-		else if (it.t === "pen") {
-			var abs = [], i;
-			for (i = 0; i < st.pts.length; i++)
-				abs.push(mappt(box, nb, st.x + st.pts[i].x, st.y + st.pts[i].y));
-			setpen(it, abs);
 		}
 	}
 
@@ -510,29 +507,12 @@
 		return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
 	}
 
-	function mappt(box, nb, x, y){
-		var sx = box.w < 1 ? 1 : nb.w / box.w;
-		var sy = box.h < 1 ? 1 : nb.h / box.h;
-		return { x: nb.x + (x - box.x) * sx, y: nb.y + (y - box.y) * sy };
-	}
-
-	function setpen(it, abs){
-		var minx = abs[0].x, miny = abs[0].y, i;
-		for (i = 1; i < abs.length; i++) {
-			if (abs[i].x < minx) minx = abs[i].x;
-			if (abs[i].y < miny) miny = abs[i].y;
-		}
-		it.x = minx;
-		it.y = miny;
-		it.pts = [];
-		for (i = 0; i < abs.length; i++) it.pts.push({ x: abs[i].x - minx, y: abs[i].y - miny });
-	}
-
 	function pushundo(){
-		var a = [], i;
+		var a = [], i, pixels = null;
 		for (i = 0; i < items.length; i++) a.push(cloneitem(items[i]));
-		undo.push({ items: a, sel: sel });
-		if (undo.length > 50) undo.shift();
+		if (base) pixels = base.getContext("2d").getImageData(0, 0, base.width, base.height);
+		undo.push({ items: a, sel: sel, pixels: pixels, dirty: dirty });
+		if (undo.length > 20) undo.shift();
 	}
 
 	function cloneitem(it){
@@ -545,13 +525,61 @@
 		return o;
 	}
 
+	function fit(){
+		if (!canvas || !canvas.parentElement) return;
+		var stage = canvas.parentElement;
+		var w = stage.clientWidth, h = stage.clientHeight;
+		if (w < 2 || h < 2) return;
+		if (base && base.width === w && base.height === h && canvas.width === w && canvas.height === h) return;
+		var prev = base;
+		base = document.createElement("canvas");
+		base.width = w;
+		base.height = h;
+		var bctx = base.getContext("2d");
+		bctx.fillStyle = "#ffffff";
+		bctx.fillRect(0, 0, w, h);
+		if (prev && prev.width && prev.height) {
+			bctx.drawImage(prev, 0, 0, w, h);
+			if (prev.width !== w || prev.height !== h) {
+				scaleitems(w / prev.width, h / prev.height);
+				undo = [];
+			}
+		}
+		canvas.width = w;
+		canvas.height = h;
+		paint(true);
+	}
+
+	function whitebase(){
+		if (!base) return;
+		var bctx = base.getContext("2d");
+		bctx.fillStyle = "#ffffff";
+		bctx.fillRect(0, 0, base.width, base.height);
+	}
+
+	function scaleitems(sx, sy){
+		var i, it;
+		for (i = 0; i < items.length; i++) {
+			it = items[i];
+			it.x *= sx;
+			it.y *= sy;
+			if (it.w) it.w *= sx;
+			if (it.h) it.h *= sy;
+			if (it.t === "text") it.size = Math.max(8, it.size * sy);
+		}
+		if (edit) { edit.x *= sx; edit.y *= sy; }
+	}
+
 	function paint(showSel){
 		if (!canvas) return;
 		var ctx = canvas.getContext("2d");
 		var i;
-		ctx.clearRect(0, 0, W, H);
-		ctx.fillStyle = "#ffffff";
-		ctx.fillRect(0, 0, W, H);
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+		if (base) ctx.drawImage(base, 0, 0);
+		else {
+			ctx.fillStyle = "#ffffff";
+			ctx.fillRect(0, 0, canvas.width, canvas.height);
+		}
 		for (i = 0; i < items.length; i++) {
 			if (edit && edit.i === i) continue;
 			drawitem(ctx, items[i]);
@@ -658,23 +686,6 @@
 	}
 
 	function boxof(it){
-		if (it.t === "arrow") {
-			var x = Math.min(it.x1, it.x2), y = Math.min(it.y1, it.y2);
-			return { x: x, y: y, w: Math.max(1, Math.abs(it.x2 - it.x1)), h: Math.max(1, Math.abs(it.y2 - it.y1)) };
-		}
-		if (it.t === "pen") {
-			var minx = 1e9, miny = 1e9, maxx = -1e9, maxy = -1e9, i, x, y;
-			for (i = 0; i < it.pts.length; i++) {
-				x = it.x + it.pts[i].x;
-				y = it.y + it.pts[i].y;
-				if (x < minx) minx = x;
-				if (y < miny) miny = y;
-				if (x > maxx) maxx = x;
-				if (y > maxy) maxy = y;
-			}
-			if (minx > maxx) return { x: it.x, y: it.y, w: 1, h: 1 };
-			return { x: minx, y: miny, w: Math.max(1, maxx - minx), h: Math.max(1, maxy - miny) };
-		}
 		if (it.t === "text") return measure(it);
 		return { x: it.x, y: it.y, w: it.w, h: it.h };
 	}
@@ -719,43 +730,20 @@
 	}
 
 	function inside(it, p){
-		var pad, b, i, pts;
-		if (it.t === "arrow")
-			return distseg(p.x, p.y, it.x1, it.y1, it.x2, it.y2) <= Math.max(8, (it.lw || 2) + 4);
-		if (it.t === "pen") {
-			pts = it.pts || [];
-			for (i = 1; i < pts.length; i++) {
-				if (distseg(p.x, p.y, it.x + pts[i - 1].x, it.y + pts[i - 1].y, it.x + pts[i].x, it.y + pts[i].y) <= Math.max(8, (it.lw || 2) + 4))
-					return true;
-			}
-			return false;
-		}
-		b = boxof(it);
-		pad = 4;
+		var b = boxof(it), pad = 4;
 		return p.x >= b.x - pad && p.y >= b.y - pad && p.x <= b.x + b.w + pad && p.y <= b.y + b.h + pad;
-	}
-
-	function distseg(px, py, x1, y1, x2, y2){
-		var dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
-		var t = l2 < 1 ? 0 : ((px - x1) * dx + (py - y1) * dy) / l2;
-		var x, y;
-		if (t < 0) t = 0;
-		if (t > 1) t = 1;
-		x = x1 + t * dx;
-		y = y1 + t * dy;
-		return Math.hypot(px - x, py - y);
 	}
 
 	function px(n){
 		var r = canvas.getBoundingClientRect();
-		var w = r.width || canvas.width || W;
+		var w = r.width || canvas.width || 1;
 		return n * canvas.width / w;
 	}
 
 	function xy(ev){
 		var r = canvas.getBoundingClientRect();
-		var w = r.width || canvas.width || W;
-		var h = r.height || canvas.height || H;
+		var w = r.width || canvas.width || 1;
+		var h = r.height || canvas.height || 1;
 		return {
 			x: (ev.clientX - r.left) * canvas.width / w,
 			y: (ev.clientY - r.top) * canvas.height / h
