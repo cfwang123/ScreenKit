@@ -410,7 +410,7 @@ input[type="file"] {
 	display: flex; flex-direction: column;
 }
 .ctab {
-	display: grid; grid-template-columns: 148px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+	display: grid; grid-template-columns: 176px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
 	gap: 12px; flex: 1 1 auto; min-height: 0;
 }
 .ctab .uquery { grid-column: 1 / -1; margin: 0; }
@@ -418,15 +418,27 @@ input[type="file"] {
 	min-height: 0; overflow: auto;
 	border: 1px solid var(--line); border-radius: 10px; padding: 4px; background: var(--card);
 }
-.cgroups button {
-	display: flex; align-items: center; justify-content: space-between; width: 100%;
-	text-align: left; cursor: pointer;
+/* 树：一级是命名规范（web / C#），二级是分组；点三角展开收起，点文字选中 */
+.cgroups .tnode {
+	display: flex; align-items: center; width: 100%; text-align: left; cursor: pointer;
 	border: 0; background: transparent; color: var(--ink); border-radius: 6px;
-	padding: 6px 8px; font: 13px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	padding: 5px 6px; font: 13px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
-.cgroups button small { color: var(--muted); font-size: 12px; }
-.cgroups button.on { background: #f97316; color: #fff; }
-.cgroups button.on small { color: #fff; }
+.cgroups .tnode b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.cgroups .tnode small { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.cgroups .tnode.on { background: #f97316; color: #fff; }
+.cgroups .tnode.on small { color: #fff; }
+.cgroups .tnode.lv1 { padding-left: 10px; font-size: 12.5px; }
+.cgroups .tnode.lv1 b { font-weight: 400; }
+.cgroups .tw {
+	flex: none; width: 12px; height: 12px; margin-right: 4px;
+	background: currentColor; opacity: .5;
+	clip-path: polygon(28% 8%, 92% 50%, 28% 92%);
+	transition: transform .12s;
+}
+.cgroups .tw.open { transform: rotate(90deg); }
+.cgroups .tw.leaf { visibility: hidden; }
+.cgroups .tnode.on .tw { opacity: .9; }
 /* 行高按内容算，容器不够就出滚动条；否则 auto 行会被等分，色卡被压扁 */
 .cgrid {
 	min-height: 0; overflow: auto; align-content: start;
@@ -444,6 +456,9 @@ input[type="file"] {
 	grid-row: 1 / span 2; display: block; width: 24px; height: 24px; border-radius: 6px;
 	box-shadow: inset 0 0 0 1px rgba(36, 31, 27, .12);
 }
+/* 透明色（C# 的 Transparent）画成棋盘格 */
+.cgrid i.chk { background: repeating-conic-gradient(#d9d5ce 0 25%, #fff 0 50%) 0 0 / 12px 12px; }
+.cgrid small .note { margin-left: 5px; color: #b45309; }
 .cgrid b, .cgrid small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cgrid b { font-size: 13px; font-weight: 600; }
 .cgrid b .en { margin-left: 5px; color: var(--muted); font-size: 11px; font-weight: 400; }

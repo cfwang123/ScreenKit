@@ -88,7 +88,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - The web tools color picker updates the result while you drag or edit RGB. The Convert button is gone.
-- The Tools menu and the tray no longer open HTML UI design. The card on the web tools page remains.
 - **Tools → Auto key** reaches WezTerm. With a Chinese keyboard layout, simulated keys and clicks were counted but never arrived. They are now delivered as window messages.
 - HTTP API failures return 200. The error stays in the JSON `code` and `data`, including an unknown path, a wrong method, and an internal error. OPTIONS stays 204. A successful WebSocket upgrade stays 101.
 - Settings → Screenshot keeps `#` in the file name. The editable list was dropping that character as it was typed, and reading the config treated a `#` inside quotes as a comment.
@@ -152,7 +151,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 工具页取色在拖动或修改 RGB 时直接更新结果，去掉了转换按钮。
-- 工具菜单和托盘不再打开 HTML 界面设计。工具页里的卡片还在。
 - **工具 → 自动按键**可以作用到 WezTerm。中文键盘布局下，模拟的按键和点击会计数，但到不了终端。现在改成窗口消息送进去。
 - HTTP 接口失败也返回 200。错误在 JSON 的 `code` 和 `data` 里，包括未知路径、方法不对和内部错误。OPTIONS 仍是 204。WebSocket 升级成功仍是 101。
 - 参数设置 → 截图的文件名可以保留 `#`。可编辑下拉在输入时会丢掉这个字符，读配置时又把引号里的 `#` 当成注释。

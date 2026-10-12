@@ -3683,27 +3683,7 @@ static class Cli {
 	}
 
 	static int testhtmlui() {
-		Out("=== HTML 界面设计 --test-htmlui ===");
-		if (HtmlUiSamples.All.Length < 6) {
-			Err("FAIL count");
-			return 1;
-		}
-		foreach (var one in HtmlUiSamples.All) {
-			if (string.IsNullOrEmpty(one.Id) || one.Html.IndexOf("htmlui-" + one.Id, StringComparison.Ordinal) < 0) {
-				Err("FAIL sample " + one.Id);
-				return 1;
-			}
-		}
-		var wrapped = HtmlUiSamples.Wrap("<p>hi</p>");
-		if (wrapped.IndexOf("IE=edge", StringComparison.Ordinal) < 0 || wrapped.IndexOf("<p>hi</p>", StringComparison.Ordinal) < 0) {
-			Err("FAIL wrap");
-			return 1;
-		}
-		var full = "<!DOCTYPE html><html><body>x</body></html>";
-		if (HtmlUiSamples.Wrap(full) != full) {
-			Err("FAIL full");
-			return 1;
-		}
+		Out("=== HTML 工具 --test-htmlui ===");
 		var jsPath = Path.Combine(NativeRuntime.BaseDir, "web", "tools", "u-html.js");
 		var pagePath = Path.Combine(NativeRuntime.BaseDir, "web", "tools.html");
 		if (!File.Exists(jsPath) || !File.Exists(pagePath)) {
@@ -3712,17 +3692,27 @@ static class Cli {
 		}
 		var js = File.ReadAllText(jsPath);
 		var page = File.ReadAllText(pagePath);
-		if (page.IndexOf("data-tool=\"u-html\"", StringComparison.Ordinal) < 0) {
+		if (page.IndexOf("data-tool=\"u-html\"", StringComparison.Ordinal) < 0
+			|| page.IndexOf("HTML工具", StringComparison.Ordinal) < 0) {
 			Err("FAIL page");
 			return 1;
 		}
-		foreach (var one in HtmlUiSamples.All) {
-			if (js.IndexOf("htmlui-" + one.Id, StringComparison.Ordinal) < 0) {
-				Err("FAIL js " + one.Id);
+		string[] ids = {
+			"buttons", "card", "media", "inputs", "choice", "form",
+			"table", "nav", "alert", "tags", "list", "progress", "empty", "dialog", "pager", "steps",
+		};
+		foreach (var id in ids) {
+			if (js.IndexOf("<!-- htmlui-" + id + " -->", StringComparison.Ordinal) < 0) {
+				Err("FAIL js " + id);
 				return 1;
 			}
 		}
-		Out("templates " + HtmlUiSamples.All.Length);
+		if (js.IndexOf("IE=edge", StringComparison.Ordinal) < 0
+			|| js.IndexOf("<!DOCTYPE html>", StringComparison.Ordinal) < 0) {
+			Err("FAIL wrap");
+			return 1;
+		}
+		Out("templates " + ids.Length);
 		Out("OK");
 		return 0;
 	}
@@ -5509,7 +5499,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-fake  安装 Bogus 后生成各类测试数据；原来没有则测完删掉
       --pinyin    中文转拼音（需已安装 NPinyin）。--init 输出首字母
       --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，测 pinyin.user.toml 盖住系统词表，并测本机 /api/pinyin；原来没有则测完删掉
-      --test-htmlui  检查 HTML 界面设计的六个模板，以及工具页卡片
+      --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
