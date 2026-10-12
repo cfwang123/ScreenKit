@@ -82,6 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - With every feature switch off, the main window no longer keeps the OCR tab on screen.
 - Common colors shows the web English name beside each Chinese name, and every color is now a compact row: a small swatch on the left, two lines on the right. The search box also matches the English name (peacock, darkgoldenrod) and ignores spaces in it.
 - Common colors now covers all 148 CSS named colors. The curated 83 grew to 155 rows (139 named colors plus 16 Chinese-specific colors) with a new White / Paper group for the near-white tones, and spellings that differ between US and UK share one row (Gray / Grey, Cyan / Aqua, Fuchsia / Magenta).
+- Tools → Fast copy Explorer menu now has the full cascade: fast cut, copy, delete, copy as symbolic link, copy as hard link, total size, copy paths, and settings. A symbolic link points at the selected file or folder. A hard link must stay on the same volume; a folder becomes a directory tree of file hard links. Size shows the file count, folder count, and bytes, and does not follow reparse points. Settings opens the fast-copy window with those paths. An already registered menu is rewritten when the program starts. Paste also handles the new link clips.
 
 #### Fixed
 
@@ -141,6 +142,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 功能开关全部关闭时，主窗口不再留下截图识别页。
 - 常用颜色表在中文名旁边显示 web 英文名，色卡改成紧凑一行：左边小色块，右边两行文字（中文名 + 英文名 / 十六进制）。搜索框也能按英文名查（peacock、darkgoldenrod），英文里的空格可以省。
 - 常用颜色表补全到全部 148 个 CSS 命名色：原来的 83 条扩到 155 条（139 个命名色 + 16 个中文专名色），近白色单开「白/纸色」组；英美拼写同值的合并成一条显示双拼（Gray / Grey、Cyan / Aqua、Fuchsia / Magenta）。
+- 工具 → 快速复制的资源管理器菜单补齐为：快速剪切、快速复制、快速删除、复制为符号链接、复制为硬链接、统计大小、复制路径、参数设置。符号链接指向选中的文件或文件夹。硬链接必须在同一分区，文件夹会按目录为每个文件建硬链接。统计大小给出文件数、文件夹数和字节，不进入重解析点。参数设置打开快速复制窗口并带上这些路径。已经注册过的菜单在程序启动时会重写。粘贴也能处理这两种链接。
 
 #### 修复
 

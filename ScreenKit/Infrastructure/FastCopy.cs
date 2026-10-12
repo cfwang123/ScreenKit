@@ -1249,7 +1249,9 @@ public static class FastCopy {
 			File.WriteAllText(Path.Combine(htree, "n", "z.txt"), "Z2");
 			if (File.ReadAllText(z) != "Z2") return bad(say, "hardtree write");
 			var sized = measure(new[] { src });
-			if (sized.Files != 2 || sized.Dirs != 2 || sized.Bytes != 8) return bad(say, $"size {sized.Files}/{sized.Dirs}/{sized.Bytes}");
+			long expect = new FileInfo(Path.Combine(src, "a.txt")).Length + new FileInfo(Path.Combine(src, "sub", "b.txt")).Length;
+			if (sized.Files != 2 || sized.Dirs != 2 || sized.Bytes != expect)
+				return bad(say, $"size {sized.Files}/{sized.Dirs}/{sized.Bytes}");
 			var sj = new Job { Dest = Path.Combine(root, "sdir"), Link = "symlink", Conflict = "overwrite" };
 			sj.Sources.Add(hf);
 			sj.Sources.Add(htree);
