@@ -15,7 +15,7 @@ static unsafe class FfmpegGifEncode {
 	/// 输出低于源帧率时按时间轴抽帧，保持时长。
 	/// </summary>
 	public static void FromVideo(string videoPath, string gifPath, int outW, int outH, int outFps, int colors,
-		int srcFps = GifOptions.CaptureFps) {
+		int srcFps = GifOptions.CaptureFps, double startSec = 0, double endSec = 0, CancellationToken ct = default) {
 		if (string.IsNullOrWhiteSpace(videoPath) || !File.Exists(videoPath))
 			throw new FileNotFoundException("视频不存在", videoPath);
 		if (!FfmpegLoader.TryInit(out var err))
@@ -32,21 +32,76 @@ static unsafe class FfmpegGifEncode {
 		try { if (File.Exists(gifPath)) File.Delete(gifPath); } catch { }
 
 		// 先抽样建调色板，再第二遍编码（避免整段帧进内存）
-		var samples = sampleBgra(videoPath, outW, outH, maxFrames: 48);
+		var samples = sampleBgra(videoPath, outW, outH, 48, startSec, endSec, ct);
 		if (samples.Count == 0)
 			throw new InvalidOperationException("视频无有效帧");
 		var palette = buildpalette(samples, colors);
 		foreach (var s in samples) s.Dispose();
 		samples.Clear();
 
-		encodewithpalette(videoPath, gifPath, outW, outH, outFps, srcFps, palette, colors);
+		encodewithpalette(videoPath, gifPath, outW, outH, outFps, srcFps, palette, colors, startSec, endSec, ct);
+		if (ct.IsCancellationRequested) {
+			try { if (File.Exists(gifPath)) File.Delete(gifPath); } catch { }
+			ct.ThrowIfCancellationRequested();
+		}
 		if (!File.Exists(gifPath) || new FileInfo(gifPath).Length < 32)
 			throw new InvalidOperationException("GIF 未写出或过小");
 		RecordLog.Step("gif_encode",
 			$"ok colors={colors} out={outW}x{outH}@{outFps} (src={srcFps}) size={new FileInfo(gifPath).Length}");
 	}
 
-	static List<BgraFrame> sampleBgra(string videoPath, int outW, int outH, int maxFrames) {
+	/// <summary>读宽高、时长和平均帧率。失败时 err 说明原因。</summary>
+	public static bool TryProbe(string path, out int w, out int h, out double duration, out double fps, out string err) {
+		w = 0;
+		h = 0;
+		duration = 0;
+		fps = 0;
+		err = "";
+		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) {
+			err = "视频不存在";
+			return false;
+		}
+		if (!FfmpegLoader.TryInit(out err)) return false;
+		AVFormatContext* ifmt = null;
+		try {
+			if (ffmpeg.avformat_open_input(&ifmt, path, null, null) < 0) {
+				err = "打不开视频";
+				return false;
+			}
+			ffmpeg.avformat_find_stream_info(ifmt, null);
+			if (ifmt->duration > 0) duration = ifmt->duration / (double)ffmpeg.AV_TIME_BASE;
+			for (uint i = 0; i < ifmt->nb_streams; i++) {
+				var st = ifmt->streams[i];
+				if (st->codecpar->codec_type != AVMediaType.AVMEDIA_TYPE_VIDEO) continue;
+				w = st->codecpar->width;
+				h = st->codecpar->height;
+				if (st->avg_frame_rate.den > 0 && st->avg_frame_rate.num > 0)
+					fps = st->avg_frame_rate.num / (double)st->avg_frame_rate.den;
+				if (duration <= 0 && st->duration > 0 && st->time_base.den != 0)
+					duration = st->duration * (st->time_base.num / (double)st->time_base.den);
+				break;
+			}
+			if (w < 2 || h < 2) {
+				err = "无视频流";
+				return false;
+			}
+			if (fps < 1 || fps > 120) fps = 24;
+			return true;
+		}
+		catch (Exception ex) {
+			err = ex.Message;
+			return false;
+		}
+		finally {
+			if (ifmt != null) {
+				var f = ifmt;
+				ffmpeg.avformat_close_input(&f);
+			}
+		}
+	}
+
+	static List<BgraFrame> sampleBgra(string videoPath, int outW, int outH, int maxFrames,
+		double startSec, double endSec, CancellationToken ct) {
 		var list = new List<BgraFrame>();
 		foreachframe(videoPath, outW, outH, (bgra, stride, pts) => {
 			if (list.Count >= maxFrames) return false;
@@ -56,12 +111,12 @@ static unsafe class FfmpegGifEncode {
 			Buffer.BlockCopy(bgra, 0, copy, 0, copy.Length);
 			list.Add(new BgraFrame { Data = copy, Stride = stride, W = outW, H = outH });
 			return true;
-		});
+		}, startSec, endSec, ct);
 		return list;
 	}
 
 	static void encodewithpalette(string videoPath, string gifPath, int outW, int outH, int outFps, int srcFps,
-		uint[] palette, int colors) {
+		uint[] palette, int colors, double startSec, double endSec, CancellationToken ct) {
 		AVFormatContext* ofmt = null;
 		AVCodecContext* enc = null;
 		AVStream* ostream = null;
@@ -136,7 +191,7 @@ static unsafe class FfmpegGifEncode {
 					ffmpeg.av_packet_unref(opkt);
 				}
 				return true;
-			});
+			}, startSec, endSec, ct);
 
 			ffmpeg.avcodec_send_frame(enc, null);
 			while (true) {
@@ -165,7 +220,8 @@ static unsafe class FfmpegGifEncode {
 
 	delegate bool FrameHandler(byte[] bgra, int stride, long pts);
 
-	static void foreachframe(string videoPath, int outW, int outH, FrameHandler onFrame) {
+	static void foreachframe(string videoPath, int outW, int outH, FrameHandler onFrame,
+		double startSec = 0, double endSec = 0, CancellationToken ct = default) {
 		AVFormatContext* ifmt = null;
 		AVCodecContext* dec = null;
 		AVFrame* frame = null;
@@ -190,6 +246,13 @@ static unsafe class FfmpegGifEncode {
 			dec = ffmpeg.avcodec_alloc_context3(decoder);
 			ffmpeg.avcodec_parameters_to_context(dec, ist->codecpar).ThrowIfError("params_to_ctx");
 			ffmpeg.avcodec_open2(dec, decoder, null).ThrowIfError("open_decoder");
+			if (startSec > 0.05) {
+				var tb = ist->time_base;
+				var secPer = tb.den == 0 ? 0 : tb.num / (double)tb.den;
+				var ts = secPer > 0 ? (long)(startSec / secPer) : 0;
+				if (ffmpeg.av_seek_frame(ifmt, vIdx, ts, ffmpeg.AVSEEK_FLAG_BACKWARD) >= 0)
+					ffmpeg.avcodec_flush_buffers(dec);
+			}
 
 			var srcW = dec->width;
 			var srcH = dec->height;
@@ -221,6 +284,20 @@ static unsafe class FfmpegGifEncode {
 					var bytes = new byte[Math.Abs(stride) * outH];
 					fixed (byte* dst = bytes) {
 						Buffer.MemoryCopy(rgb->data[0], dst, bytes.Length, bytes.Length);
+					}
+					var sec = pts * (1.0 / 24);
+					if (frame->pts != ffmpeg.AV_NOPTS_VALUE) {
+						var tb = ist->time_base;
+						if (tb.den != 0) sec = frame->pts * (tb.num / (double)tb.den);
+					}
+					if (ct.IsCancellationRequested || (endSec > startSec && sec >= endSec - 0.001)) {
+						cont = false;
+						ffmpeg.av_frame_unref(frame);
+						return;
+					}
+					if (startSec > 0 && sec + 0.02 < startSec) {
+						ffmpeg.av_frame_unref(frame);
+						continue;
 					}
 					cont = onFrame(bytes, Math.Abs(stride), pts++);
 					ffmpeg.av_frame_unref(frame);

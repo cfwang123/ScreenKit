@@ -141,6 +141,9 @@
 				<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
 				          AutomationProperties.AutomationId="menu.vidconv"
 				          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>
+				<MenuItem x:Name="mnvidgif" Header="视频转 GIF(_G)…"
+				          AutomationProperties.AutomationId="menu.vidgif"
+				          ToolTip="预览视频，选取起止时间，按帧率和调色板生成 GIF"/>
 				<MenuItem x:Name="mnqrmake" Header="二维码 / 条码生成(_Q)…"
 				          AutomationProperties.AutomationId="menu.qrmake"
 				          ToolTip="生成二维码或条码，图下显示原文"/>
@@ -162,6 +165,9 @@
 				<MenuItem x:Name="mnzhconv" Header="简繁转换(_S)…"
 				          AutomationProperties.AutomationId="menu.zhconv"
 				          ToolTip="系统简体/繁体映射，繁体接近台湾用字"/>
+				<MenuItem x:Name="mnpinyin" Header="中文转拼音(_Y)…"
+				          AutomationProperties.AutomationId="menu.pinyin"
+				          ToolTip="把汉字转成拼音或拼音首字母"/>
 				<MenuItem x:Name="mnwincal" Header="历法(_L)…"
 				          AutomationProperties.AutomationId="menu.wincal"
 				          ToolTip="公历换农历、干支、闰月和其它历法"/>

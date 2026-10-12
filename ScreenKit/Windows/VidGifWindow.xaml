@@ -1,0 +1,119 @@
+<Window x:Class="ScreenKit.VidGifWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="视频转 GIF"
+        Width="880" Height="720"
+        MinWidth="720" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="vidgif.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="280"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<DockPanel Grid.Row="0" Margin="0,0,0,8">
+			<Button x:Name="bopen" DockPanel.Dock="Left" Style="{StaticResource ToolBtn}"
+			        Height="32" Padding="10,0" Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="vidgif.open"/>
+			<TextBlock x:Name="lbfile" Text="拖入一个视频" VerticalAlignment="Center"
+			           Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis"/>
+		</DockPanel>
+
+		<Border Grid.Row="1" Background="#111" CornerRadius="6" ClipToBounds="True">
+			<Grid>
+				<MediaElement x:Name="eplay" LoadedBehavior="Manual" UnloadedBehavior="Manual"
+				              ScrubbingEnabled="True" Stretch="Uniform"/>
+				<TextBlock x:Name="lbdrop" Text="拖入视频或打开文件" HorizontalAlignment="Center"
+				           VerticalAlignment="Center" Foreground="#AAA" IsHitTestVisible="False"/>
+			</Grid>
+		</Border>
+
+		<Grid Grid.Row="2" Margin="0,8,0,8">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<Button x:Name="bplay" Grid.Column="0" Style="{StaticResource ToolBtn}"
+			        Height="32" Padding="10,0" Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="vidgif.play"/>
+			<Slider x:Name="eslider" Grid.Column="1" VerticalAlignment="Center" Minimum="0" Maximum="1"
+			        AutomationProperties.AutomationId="vidgif.slider"/>
+			<TextBlock x:Name="lbpos" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center"
+			           Foreground="{StaticResource TextMuted}" Text="0:00 / 0:00"/>
+		</Grid>
+
+		<Grid Grid.Row="3" Margin="0,0,0,8">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="88"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="16"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="88"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbstart" Grid.Column="0" Text="起点" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<TextBox x:Name="estart" Grid.Column="1" Height="30" Padding="6,4" Text="0"
+			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="vidgif.start"/>
+			<Button x:Name="bstart" Grid.Column="2" Style="{StaticResource ToolBtn}"
+			        Height="30" Padding="8,0" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="vidgif.setstart"/>
+			<TextBlock x:Name="lbend" Grid.Column="4" Text="终点" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<TextBox x:Name="eend" Grid.Column="5" Height="30" Padding="6,4" Text="5"
+			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="vidgif.end"/>
+			<Button x:Name="bend" Grid.Column="6" Style="{StaticResource ToolBtn}"
+			        Height="30" Padding="8,0" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="vidgif.setend"/>
+		</Grid>
+
+		<WrapPanel Grid.Row="4" Margin="0,0,0,8">
+			<TextBlock x:Name="lbfps" Text="帧率" VerticalAlignment="Center" Margin="0,0,8,8"/>
+			<TextBox x:Name="efps" Width="64" Height="30" Padding="6,4" Text="8" Margin="0,0,16,8"
+			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="vidgif.fps"/>
+			<TextBlock x:Name="lbcolors" Text="调色板" VerticalAlignment="Center" Margin="0,0,8,8"/>
+			<ComboBox x:Name="ecolors" Width="90" Height="32" Margin="0,0,16,8"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="vidgif.colors">
+				<ComboBoxItem Content="32" Tag="32"/>
+				<ComboBoxItem Content="64" Tag="64"/>
+				<ComboBoxItem Content="128" Tag="128" IsSelected="True"/>
+				<ComboBoxItem Content="256" Tag="256"/>
+			</ComboBox>
+			<CheckBox x:Name="eshorten" Content="限制较短边" VerticalAlignment="Center" Margin="0,0,8,8"
+			          IsChecked="True" AutomationProperties.AutomationId="vidgif.short"/>
+			<TextBlock x:Name="lbshort" Text="较短边" VerticalAlignment="Center" Margin="0,0,8,8"
+			           Foreground="{StaticResource TextMuted}"/>
+			<TextBox x:Name="eshort" Width="72" Height="30" Padding="6,4" Text="480" Margin="0,0,0,8"
+			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="vidgif.shortpx"/>
+		</WrapPanel>
+
+		<DockPanel Grid.Row="5">
+			<Button x:Name="bclose" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
+			        Height="34" Padding="12,0" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="vidgif.close"/>
+			<Button x:Name="bcancel" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
+			        Height="34" Padding="12,0" Visibility="Collapsed"
+			        AutomationProperties.AutomationId="vidgif.cancel"/>
+			<Button x:Name="bgo" DockPanel.Dock="Right" Style="{StaticResource PrimaryBtn}"
+			        Height="34" Padding="14,0"
+			        AutomationProperties.AutomationId="vidgif.go"/>
+			<TextBlock x:Name="lbmsg" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+			           TextTrimming="CharacterEllipsis"/>
+		</DockPanel>
+	</Grid>
+</Window>

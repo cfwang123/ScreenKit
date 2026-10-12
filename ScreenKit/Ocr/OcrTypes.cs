@@ -251,6 +251,14 @@ public sealed class OcrOptions {
 	public string VidConvOutMode = "beside";
 	/// <summary>视频转换自定义输出目录。</summary>
 	public string VidConvOutDir = "";
+	/// <summary>视频转 GIF 输出帧率，默认 8。</summary>
+	public int VidGifFps = 8;
+	/// <summary>调色板颜色数 32/64/128/256，默认 128。</summary>
+	public int VidGifColors = 128;
+	/// <summary>GIF 是否限制较短边。</summary>
+	public bool VidGifShortEnabled = true;
+	/// <summary>GIF 较短边，默认 480。</summary>
+	public int VidGifShortPx = 480;
 	/// <summary>密码生成器上次设置。</summary>
 	public int PwLen = 6;
 	public int PwCount = 10;
@@ -557,6 +565,10 @@ public sealed class OcrOptions {
 		VidConvAudioMono = VidConvAudioMono,
 		VidConvOutMode = VidConvOutMode ?? "beside",
 		VidConvOutDir = VidConvOutDir ?? "",
+		VidGifFps = VidGifFps,
+		VidGifColors = VidGifColors,
+		VidGifShortEnabled = VidGifShortEnabled,
+		VidGifShortPx = VidGifShortPx,
 		PwLen = PwLen,
 		PwCount = PwCount,
 		PwLower = PwLower,

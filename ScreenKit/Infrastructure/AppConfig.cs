@@ -187,6 +187,14 @@ static class AppConfig {
 				o.VidConvOutMode = VidConvert.NormOutMode(vcom.Trim().Trim('"'));
 			if (map.TryGetValue("vidconv_out_dir", out var vcod))
 				o.VidConvOutDir = (vcod ?? "").Trim().Trim('"');
+			if (map.TryGetValue("vidgif_fps", out var vgf) && int.TryParse(vgf, out var vgFps))
+				o.VidGifFps = VidGif.NormFps(vgFps);
+			if (map.TryGetValue("vidgif_colors", out var vgc) && int.TryParse(vgc, out var vgColors))
+				o.VidGifColors = VidGif.NormColors(vgColors);
+			if (map.TryGetValue("vidgif_short", out var vgs))
+				o.VidGifShortEnabled = parsebool(vgs, true);
+			if (map.TryGetValue("vidgif_short_px", out var vgsp) && int.TryParse(vgsp, out var vgShort))
+				o.VidGifShortPx = Compat.Clamp(vgShort, 16, 7680);
 			if (map.TryGetValue("pwgen_len", out var pwl) && int.TryParse(pwl, out var pwLen))
 				o.PwLen = Compat.Clamp(pwLen, 4, 128);
 			if (map.TryGetValue("pwgen_count", out var pwc) && int.TryParse(pwc, out var pwCnt))
@@ -656,6 +664,11 @@ static class AppConfig {
 		sb.AppendLine($"vidconv_audio_mono = {(o.VidConvAudioMono ? "true" : "false")}");
 		sb.AppendLine($"vidconv_out_mode = \"{VidConvert.NormOutMode(o.VidConvOutMode)}\"");
 		sb.AppendLine($"vidconv_out_dir = \"{esc((o.VidConvOutDir ?? "").Trim())}\"");
+		sb.AppendLine($"# 视频转 GIF：帧率、调色板 32|64|128|256、较短边");
+		sb.AppendLine($"vidgif_fps = {VidGif.NormFps(o.VidGifFps)}");
+		sb.AppendLine($"vidgif_colors = {VidGif.NormColors(o.VidGifColors)}");
+		sb.AppendLine($"vidgif_short = {(o.VidGifShortEnabled ? "true" : "false")}");
+		sb.AppendLine($"vidgif_short_px = {Compat.Clamp(o.VidGifShortPx < 16 ? 480 : o.VidGifShortPx, 16, 7680)}");
 		sb.AppendLine($"# 密码生成器上次设置");
 		sb.AppendLine($"pwgen_len = {Compat.Clamp(o.PwLen <= 0 ? 6 : o.PwLen, 4, 128)}");
 		sb.AppendLine($"pwgen_count = {Compat.Clamp(o.PwCount <= 0 ? 10 : o.PwCount, 1, 50)}");

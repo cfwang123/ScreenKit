@@ -34,6 +34,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miWebFiles;
 	Forms.ToolStripMenuItem miImgConv;
 	Forms.ToolStripMenuItem miVidConv;
+	Forms.ToolStripMenuItem miVidGif;
 	Forms.ToolStripMenuItem miQrMake;
 	Forms.ToolStripMenuItem miRename;
 	Forms.ToolStripMenuItem miHash;
@@ -41,6 +42,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miNetTool;
 	Forms.ToolStripMenuItem miZhConv;
+	Forms.ToolStripMenuItem miPinyin;
 	Forms.ToolStripMenuItem miWinCal;
 	Forms.ToolStripMenuItem miJpYomi;
 	Forms.ToolStripMenuItem miWinTop;
@@ -151,6 +153,7 @@ sealed class TrayIcon : IDisposable {
 		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
 		miImgConv = item("tray.imgconv", () => ImgConvRequested?.Invoke());
 		miVidConv = item("tray.vidconv", () => VidConvRequested?.Invoke());
+		miVidGif = item("tray.vidgif", () => VidGifRequested?.Invoke());
 		miQrMake = item("tray.qrmake", () => QrMakeRequested?.Invoke());
 		miRename = item("tray.rename", () => RenameRequested?.Invoke());
 		miHash = item("tray.hash", () => HashRequested?.Invoke());
@@ -158,6 +161,7 @@ sealed class TrayIcon : IDisposable {
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
+		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
 		miWinCal = item("tray.wincal", () => WinCalRequested?.Invoke());
 		miJpYomi = item("tray.jpyomi", () => JpYomiRequested?.Invoke());
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
@@ -173,6 +177,7 @@ sealed class TrayIcon : IDisposable {
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miVidConv);
+		miTools.DropDownItems.Add(miVidGif);
 		miTools.DropDownItems.Add(miQrMake);
 		miTools.DropDownItems.Add(miRename);
 		miTools.DropDownItems.Add(miHash);
@@ -180,6 +185,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miPwGen);
 		miTools.DropDownItems.Add(miNetTool);
 		miTools.DropDownItems.Add(miZhConv);
+		miTools.DropDownItems.Add(miPinyin);
 		miTools.DropDownItems.Add(miWinCal);
 		miTools.DropDownItems.Add(miJpYomi);
 		miTools.DropDownItems.Add(miWinTop);
@@ -375,6 +381,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miWebHome, null);
 		setshortcut(miImgConv, null);
 		setshortcut(miVidConv, null);
+		setshortcut(miVidGif, null);
 		setshortcut(miQrMake, null);
 		setshortcut(miRename, null);
 		setshortcut(miHash, null);
@@ -382,6 +389,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miPwGen, null);
 		setshortcut(miNetTool, null);
 		setshortcut(miZhConv, null);
+		setshortcut(miPinyin, null);
 		setshortcut(miWinCal, null);
 		setshortcut(miJpYomi, null);
 		setshortcut(miWinTop, null);
@@ -424,6 +432,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miWebFiles, "tray.webfiles");
 			settext(miImgConv, "tray.imgconv");
 			settext(miVidConv, "tray.vidconv");
+			settext(miVidGif, "tray.vidgif");
 			settext(miQrMake, "tray.qrmake");
 			settext(miRename, "tray.rename");
 			settext(miHash, "tray.hash");
@@ -431,6 +440,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miPwGen, "tray.pwgen");
 			settext(miNetTool, "tray.nettool");
 			settext(miZhConv, "tray.zhconv");
+			settext(miPinyin, "tray.pinyin");
 			settext(miWinCal, "tray.wincal");
 			settext(miJpYomi, "tray.jpyomi");
 			settext(miWinTop, "tray.wintop");
@@ -518,6 +528,7 @@ sealed class TrayIcon : IDisposable {
 	}
 	public event Action ImgConvRequested;
 	public event Action VidConvRequested;
+	public event Action VidGifRequested;
 	public event Action QrMakeRequested;
 	public event Action RenameRequested;
 	public event Action HashRequested;
@@ -525,6 +536,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action PwGenRequested;
 	public event Action NetToolRequested;
 	public event Action ZhConvRequested;
+	public event Action PinyinRequested;
 	public event Action WinCalRequested;
 	public event Action JpYomiRequested;
 	public event Action WinTopRequested;

@@ -16,6 +16,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/toast 底部 Toast</item>
 /// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
+/// <item>GET/POST /api/pinyin 中文转拼音（NPinyin 已安装时）</item>
 /// <item>GET/POST /api/calendar 历法</item>
 /// <item>GET/POST /api/jpyomi 日文注音</item>
 /// <item>GET/POST /api/text 文本编解码</item>
@@ -199,6 +200,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlezhconv(ctx);
+				return;
+			}
+
+			if (path is "/api/pinyin" or "/api/pinyin/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "pinyin 仅支持 GET 或 POST"));
+					return;
+				}
+				handlepinyin(ctx);
 				return;
 			}
 
@@ -846,6 +856,42 @@ sealed partial class HttpOcrServer : IDisposable {
 				["locale"] = locale ?? "",
 				["kind"] = kind,
 				["text"] = text,
+			},
+		});
+	}
+
+	void handlepinyin(SockCtx ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
+		var mode = (field(ctx, jo, "mode") ?? "").Trim().ToLowerInvariant();
+		var initials = mode is "init" or "initial" or "first";
+		if (string.IsNullOrEmpty(text)) {
+			writejson(ctx, 200, new JsonObject {
+				["code"] = 100,
+				["data"] = new JsonObject { ["installed"] = PinyinConvert.Installed },
+			});
+			return;
+		}
+		if (mode.Length > 0 && !initials && mode != "py" && mode != "pinyin") {
+			writejson(ctx, 200, err(802, "mode 应为 py 或 init"));
+			return;
+		}
+		if (!PinyinConvert.Installed) {
+			writejson(ctx, 200, err(803, "NPinyin 未安装"));
+			return;
+		}
+		string outText;
+		try { outText = PinyinConvert.Convert(text, initials); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(500, ex.Message));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["installed"] = true,
+				["text"] = outText,
+				["mode"] = initials ? "init" : "py",
 			},
 		});
 	}
@@ -2177,6 +2223,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /api/status",
 			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
 			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
+			"GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；GET/POST text&mode=py|init",
 			"GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}",
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",

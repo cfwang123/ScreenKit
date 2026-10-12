@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -104,6 +104,7 @@ http_port = 1224
 | GET | `/api/status` · `/api/health` | 服务与能力状态 |
 | GET/POST | `/api/toast` | 屏幕底部 Toast（不随模块开关关闭） |
 | GET/POST | `/api/zhconv` | 简繁转换（不随模块开关关闭） |
+| GET/POST | `/api/pinyin` | 中文转拼音（不随模块开关关闭；需要 NPinyin.dll） |
 | GET/POST | `/api/calendar` | 公历换历法（不随模块开关关闭） |
 | GET/POST | `/api/jpyomi` | 日文注音（不随模块开关关闭） |
 | GET/POST | `/api/text` | 文本编解码（不随模块开关关闭） |
@@ -133,7 +134,7 @@ http_port = 1224
 
 ## 4. GET `/` 与 GET `/api`
 
-`GET /` 和 `HEAD /` 返回本机工具页：历法、文本（含简繁和日文注音）、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
+`GET /` 和 `HEAD /` 返回本机工具页：历法、文本（含简繁和日文注音）、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js` 和 `/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`），并调用 `/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
 
 `GET /api` 返回服务名称、简表 `endpoints`，以及 `apis`。`apis` 每一项有 `method`（GET、POST 或 GET/POST）、`path`、`summary`（介绍）、`params`（参数名和说明）。这些文字与主窗口 HTTP 接口页的模板说明相同。`?lang=zh|en|ja|ko` 选择说明语言；省略时用程序当前界面语言，不改界面语言。关掉的模块不会出现。`langs` 是可选语言。
 
@@ -265,6 +266,35 @@ ScreenKit --toast "已复制" --ms 1900
 ```bash
 ScreenKit --zhconv "软件"
 ScreenKit --zhconv "國發" --simp
+```
+
+---
+
+## 5.2.1 GET/POST `/api/pinyin`
+
+用可选的 `NPinyin.dll`（约 75 KB）把汉字转成拼音或首字母。在 **帮助 → 安装功能 → 工具集** 安装，不进精简包。不带声调。多音字用词库里的一种读法（「重庆」是 `zhong qing`）。英文字母和数字会逐个分开。
+
+**GET**
+
+```
+/api/pinyin?text=中国人民银行&mode=py
+```
+
+**POST** `application/json`
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `text` | string | 原文。也可用 `message`。空或不传时只返回 `data.installed`（code 100），没有 `data.text` |
+| `mode` | string | `py` 或 `pinyin`（默认）是空格分开的拼音。`init`、`initial`、`first` 是每个字一个大写首字母 |
+
+```json
+{ "text": "中国人民银行", "mode": "py" }
+```
+
+**响应 `data`：** `installed`、`text`、`mode`（`py` 或 `init`）。「中国人民银行」是 `zhong guo ren min yin xing` 或 `ZGRMYX`。`mode` 不对返回 802。超过 20000 字返回 500。有原文但没装库返回 803。
+
+```bash
+ScreenKit --test-pinyin
 ```
 
 ---

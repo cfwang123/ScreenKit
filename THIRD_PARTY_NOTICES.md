@@ -33,6 +33,7 @@ Always verify the license of the **exact package version** you ship.
 | **DirectML / ORT native DLLs** | iGPU / CUDA EP | Follow Microsoft / ORT redistributable terms |
 | **ZXing.dll**, **SharpCompress.dll**, **SharpSevenZip.dll**, **7za.dll**, **e_sqlite3.dll** | Barcode, `tar.bz2` extract, 7z extract, dictionary | Not in the release archive. **Help → Install features** downloads them. `7za.dll` stays LGPL-2.1-or-later; its license is written beside the program as `License.7za.txt` |
 | [Bogus](https://github.com/bchavez/Bogus) `Bogus.dll` 35.6.5 | Test data on the tools page | MIT. Not in the release archive. **Help → Install features** downloads it |
+| [NPinyin](https://www.nuget.org/packages/NPinyin) `NPinyin.dll` 0.2.6321.26573 | Chinese to pinyin and initials | AWangSoft Inc. © 2011. The nupkg ships no license file. Not in the release archive. **Help → Install features** downloads it |
 
 ## Reference / research code
 

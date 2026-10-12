@@ -58,8 +58,8 @@ static class Cli {
 				or "--test-sendfile"
 				or "--test-lang"
 				or "--test-apk-qr"
-				or "--test-img-convert" or "--test-vid-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-nettool"
+				or "--test-img-convert" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-nettool"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop"
@@ -270,6 +270,8 @@ static class Cli {
 					return testimgconvert();
 				case "--test-vid-convert":
 					return testvidconvert();
+				case "--test-vid-gif":
+					return testvidgif();
 				case "--test-screenshot-dir":
 					return testscreenshotdir();
 				case "--test-qr-make":
@@ -286,6 +288,8 @@ static class Cli {
 					return testpwgen();
 				case "--test-fake":
 					return testfake();
+				case "--test-pinyin":
+					return testpinyin();
 				case "--test-nettool":
 					return testnettool();
 				case "--test-update-notes":
@@ -2710,6 +2714,34 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testvidgif() {
+		Out("=== 视频转 GIF --test-vid-gif ===");
+		var bad = 0;
+		if (VidGif.NormColors(100) != 128 || VidGif.NormColors(40) != 32 || VidGif.NormFps(0) != 8) {
+			Err("FAIL 调色板或帧率");
+			bad++;
+		}
+		else Out("调色板与帧率");
+		if (VidGif.TryRange(120, 0, 90, out _, out _, out var why) || why != "long") {
+			Err("FAIL 超长 " + why);
+			bad++;
+		}
+		else Out("超长拒绝");
+		if (!VidGif.TryRange(20, 1.5, 6, out var s, out var e, out _) || Math.Abs(s - 1.5) > 0.001 || Math.Abs(e - 6) > 0.001) {
+			Err($"FAIL 区间 {s}-{e}");
+			bad++;
+		}
+		else Out("区间 1.5-6");
+		VidConvert.Fit(320, 240, 480, out var ow, out var oh);
+		if (ow != 320 || oh != 240) {
+			Err($"FAIL 短边不放大 {ow}x{oh}");
+			bad++;
+		}
+		else Out("短边不放大");
+		Out(bad == 0 ? "=== OK：视频转 GIF ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static int testvidconvert() {
 		Out("=== 视频批量转换 --test-vid-convert ===");
 		var bad = 0;
@@ -3466,6 +3498,65 @@ static class Cli {
 				Err("FAIL: 卸载后文件还在");
 				return 1;
 			}
+			Out("已卸载（本次测试下载的）");
+		}
+		Out("OK");
+		return 0;
+	}
+
+	static int testpinyin() {
+		Out("=== 中文转拼音 --test-pinyin ===");
+		var had = NativeRuntime.HasNPinyin();
+		Out(had ? "已安装" : "未安装，开始下载");
+		if (!had) {
+			var log = new Progress<string>(s => Out("  " + s));
+			try {
+				NativeRuntime.InstallNPinyin(log, null, CancellationToken.None).GetAwaiter().GetResult();
+			}
+			catch (Exception ex) {
+				Err("FAIL install: " + ex.Message);
+				return 1;
+			}
+		}
+		if (!NativeRuntime.HasNPinyin()) {
+			Err("FAIL: NPinyin.dll 仍不存在");
+			return 1;
+		}
+		string py;
+		string ini;
+		try {
+			py = PinyinConvert.Convert("中国人民银行", false);
+			ini = PinyinConvert.Convert("中国人民银行", true);
+		}
+		catch (Exception ex) {
+			Err("FAIL convert: " + ex.Message);
+			return 1;
+		}
+		if (py != "zhong guo ren min yin xing") {
+			Err("FAIL py: " + py);
+			return 1;
+		}
+		if (ini != "ZGRMYX") {
+			Err("FAIL init: " + ini);
+			return 1;
+		}
+		if (PinyinConvert.Convert("", false) != "") {
+			Err("FAIL empty");
+			return 1;
+		}
+		Out(py + " / " + ini);
+		if (!had) {
+			NativeRuntime.UninstallNPinyin();
+			if (NativeRuntime.HasNPinyin()) {
+				Err("FAIL: 卸载后文件还在");
+				return 1;
+			}
+			try {
+				PinyinConvert.Convert("中", false);
+				Err("FAIL: 未安装仍转换");
+				return 1;
+			}
+			catch (InvalidOperationException) { }
 			Out("已卸载（本次测试下载的）");
 		}
 		Out("OK");
@@ -4996,6 +5087,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
   ScreenKit --test-vid-convert
+  ScreenKit --test-vid-gif
   ScreenKit --test-screenshot-dir
   ScreenKit --test-qr-make
   ScreenKit --test-rename
@@ -5004,6 +5096,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-fx
   ScreenKit --test-pwgen
   ScreenKit --test-fake
+  ScreenKit --test-pinyin
   ScreenKit --test-nettool
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv
@@ -5075,6 +5168,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
       --test-vid-convert  视频较短边取偶数、输出路径和编码参数；有 ffmpeg.exe 时转一段 320×240
+      --test-vid-gif      视频转 GIF 的调色板档、起止时间和较短边
       --test-screenshot-dir  截图保存目录：空为 screenshots/，D:/s/ 解析为 D:\s
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
       --test-rename  Everything 风格 %1 / ### 批量改名
@@ -5083,6 +5177,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-fx  货币换算：查询失败回退默认并缓存 10 分钟，成功也缓存 10 分钟
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-fake  安装 Bogus 后生成各类测试数据；原来没有则测完删掉
+      --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母；原来没有则测完删掉
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
@@ -5158,6 +5253,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
   ScreenKit --test-vid-convert
+  ScreenKit --test-vid-gif
   ScreenKit --test-screenshot-dir
   ScreenKit --test-qr-make
   ScreenKit --test-rename
@@ -5166,6 +5262,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-fx
   ScreenKit --test-pwgen
   ScreenKit --test-fake
+  ScreenKit --test-pinyin
   ScreenKit --test-nettool
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv

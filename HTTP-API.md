@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -103,6 +103,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | GET | `/api/status` · `/api/health` | Service and capability status |
 | GET/POST | `/api/toast` | Bottom-of-screen toast (not tied to a module switch) |
 | GET/POST | `/api/zhconv` | Simplified/traditional (not tied to a module switch) |
+| GET/POST | `/api/pinyin` | Chinese to pinyin (not tied to a module switch; needs NPinyin.dll) |
 | GET/POST | `/api/calendar` | Gregorian to another calendar (not tied to a module switch) |
 | GET/POST | `/api/jpyomi` | Japanese reading (not tied to a module switch) |
 | GET/POST | `/api/text` | Text encode/decode (not tied to a module switch) |
@@ -132,7 +133,7 @@ Paths are case-insensitive; a trailing `/` is optional. A module turned off unde
 
 ## 4. GET `/` and GET `/api`
 
-`GET /` and `HEAD /` return the local tools page: calendars, text (including simplified/traditional and Japanese yomi), QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
+`GET /` and `HEAD /` return the local tools page: calendars, text (including simplified/traditional and Japanese yomi), QR codes, and barcodes. The page loads `/sk/tools.css`, `/sk/tools.js`, and `/sk/fa.css` (Font Awesome, font `/sk/fa-solid-900.woff2`), and calls `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, and `/api/qrscan`. The desktop file manager is `/files`.
 
 `GET /api` returns the service name, the short `endpoints` list, and `apis`. Each `apis` item has `method` (`GET`, `POST`, or `GET/POST`), `path`, `summary`, and `params` (name and description). That text is the same as the HTTP tab templates. `?lang=zh|en|ja|ko` selects the language. Omitting it uses the app's current UI language and does not change the UI. A module that is off is omitted. `langs` lists the choices.
 
@@ -256,6 +257,31 @@ ScreenKit --toast "Copied" --ms 1900
 ```bash
 ScreenKit --zhconv "软件"
 ScreenKit --zhconv "國發" --simp
+```
+
+---
+
+## 5.2.1 GET/POST `/api/pinyin`
+
+Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **Help → Install features → Tools**. It is not in the slim package. There are no tone marks. A character with several readings uses the one in that library (`重庆` is `zhong qing`). Letters and digits are spaced one by one.
+
+**GET:** `/api/pinyin?text=中国人民银行&mode=py`
+
+**POST** `application/json`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | string | Source. `message` is an alias. Empty or omitted returns only `data.installed` (code 100) and does not return `data.text` |
+| `mode` | string | `py` or `pinyin` (default) for spaced pinyin. `init`, `initial`, or `first` for one capital initial per character |
+
+```json
+{ "text": "中国人民银行", "mode": "py" }
+```
+
+**Response `data`:** `installed`, `text`, and `mode` (`py` or `init`). `中国人民银行` is `zhong guo ren min yin xing` or `ZGRMYX`. A bad `mode` returns 802. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
+
+```bash
+ScreenKit --test-pinyin
 ```
 
 ---

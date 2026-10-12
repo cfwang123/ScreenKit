@@ -150,6 +150,7 @@ SK.watchAcc = 0;
 
 	function show(name, fromHist){
 		stoptick();
+		var prev = SK.curtool;
 		SK.curtool = name;
 		if (name.indexOf("u-") === 0) {
 			openutil(name);
@@ -175,6 +176,8 @@ SK.watchAcc = 0;
 		if (name === "ocr") SK.loadoocr();
 		if (name === "tts") SK.loadtts();
 		if (name === "asr") SK.loadasr();
+		if (prev === "chat" && SK.curtool !== "chat" && SK.chatclose) SK.chatclose();
+		if (SK.curtool === "chat" && SK.chatopen) SK.chatopen();
 		settitle();
 		if (!fromHist) pushhash(SK.curtool);
 	}
@@ -289,6 +292,7 @@ SK.watchAcc = 0;
 			marktool(SK.curtool, panel);
 		}
 		settitle();
+		if (SK.fillttslang && $("tts-lang")) SK.fillttslang();
 		paintstars();
 		if (!SK.curtool || SK.curtool === "home") paintcats();
 	}

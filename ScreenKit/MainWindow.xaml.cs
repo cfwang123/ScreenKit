@@ -77,6 +77,7 @@ public partial class MainWindow : Window {
 	SendFileServer sendFile;
 	ImgConvertWindow imgConvWin;
 	VidConvertWindow vidConvWin;
+	VidGifWindow vidGifWin;
 	QrMakeWindow qrMakeWin;
 	BatchRenameWindow renameWin;
 	HashWindow hashWin;
@@ -85,6 +86,7 @@ public partial class MainWindow : Window {
 	PasswordWindow pwGenWin;
 	NetToolsWindow netToolWin;
 	ZhConvertWindow zhConvWin;
+	PinyinWindow pinyinWin;
 	WinCalWindow winCalWin;
 	JpYomiWindow jpYomiWin;
 	WinTopWindow winTopWin;
@@ -609,6 +611,7 @@ public partial class MainWindow : Window {
 			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true, tool: id)));
 			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv(fromTray: true)));
 			tray.VidConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidconv(fromTray: true)));
+			tray.VidGifRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidgif(fromTray: true)));
 			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake(fromTray: true)));
 			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename(fromTray: true)));
 			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash(fromTray: true)));
@@ -616,6 +619,7 @@ public partial class MainWindow : Window {
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
 			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv(fromTray: true)));
+			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin(fromTray: true)));
 			tray.WinCalRequested += () => Dispatcher.BeginInvoke(new Action(() => openwincal(fromTray: true)));
 			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi(fromTray: true)));
 			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
@@ -1519,6 +1523,7 @@ public partial class MainWindow : Window {
 		mndict.Click += (_, _) => showdicttab();
 		mnimgconv.Click += (_, _) => openimgconv();
 		mnvidconv.Click += (_, _) => openvidconv();
+		mnvidgif.Click += (_, _) => openvidgif();
 		mnqrmake.Click += (_, _) => openqrmake();
 		mnrename.Click += (_, _) => openrename();
 		mnhash.Click += (_, _) => openhash();
@@ -1526,6 +1531,7 @@ public partial class MainWindow : Window {
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
 		mnzhconv.Click += (_, _) => openzhconv();
+		mnpinyin.Click += (_, _) => openpinyin();
 		mnwincal.Click += (_, _) => openwincal();
 		mnjpyomi.Click += (_, _) => openjpyomi();
 		mnwintop.Click += (_, _) => openwintop();
@@ -1652,6 +1658,8 @@ public partial class MainWindow : Window {
 			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
 			mnvidconv.Header = Loc.T("menu.vidconv");
 			mnvidconv.ToolTip = Loc.T("menu.vidconv.tip");
+			mnvidgif.Header = Loc.T("menu.vidgif");
+			mnvidgif.ToolTip = Loc.T("menu.vidgif.tip");
 			mnqrmake.Header = Loc.T("menu.qrmake");
 			mnqrmake.ToolTip = Loc.T("menu.qrmake.tip");
 			mnrename.Header = Loc.T("menu.rename");
@@ -1666,6 +1674,8 @@ public partial class MainWindow : Window {
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
 			mnzhconv.Header = Loc.T("menu.zhconv");
 			mnzhconv.ToolTip = Loc.T("menu.zhconv.tip");
+			mnpinyin.Header = Loc.T("menu.pinyin");
+			mnpinyin.ToolTip = Loc.T("menu.pinyin.tip");
 			mnwincal.Header = Loc.T("menu.wincal");
 			mnwincal.ToolTip = Loc.T("menu.wincal.tip");
 			mnjpyomi.Header = Loc.T("menu.jpyomi");
@@ -4186,6 +4196,9 @@ public partial class MainWindow : Window {
 	void openzhconv(bool fromTray = false) =>
 		opentoolwin(ref zhConvWin, () => new ZhConvertWindow(), "menu.zhconv", fromTray);
 
+	void openpinyin(bool fromTray = false) =>
+		opentoolwin(ref pinyinWin, () => new PinyinWindow(), "menu.pinyin", fromTray);
+
 	void openwincal(bool fromTray = false) =>
 		opentoolwin(ref winCalWin, () => new WinCalWindow(), "menu.wincal", fromTray);
 
@@ -4288,6 +4301,28 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			MessageBox.Show(this, ex.Message, Loc.T("menu.vidconv"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
+	void openvidgif(bool fromTray = false) {
+		try {
+			if (vidGifWin != null) {
+				if (vidGifWin.WindowState == WindowState.Minimized)
+					vidGifWin.WindowState = WindowState.Normal;
+				vidGifWin.Activate();
+				return;
+			}
+			vidGifWin = new VidGifWindow(opt);
+			attachdialogowner(vidGifWin, fromTray);
+			vidGifWin.Closed += (_, _) => {
+				vidGifWin = null;
+				try { AppConfig.Save(opt); } catch { }
+			};
+			vidGifWin.Show();
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Loc.T("menu.vidgif"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
