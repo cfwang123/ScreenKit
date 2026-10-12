@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The tools page board has a lasso. Releasing it lifts the ink inside the loop into a picture you can drag. A larger page rebuilds the canvas at the new size and does not scale the picture. A smaller page leaves the canvas as it is.
 - The tools page board fills its card and does not scroll. The title and the hint are hidden. A rectangle, ellipse, arrow, or pen stroke is painted onto the picture. Only a pasted picture or text can be moved or resized.
 - **Tools → Auto key** listens for its hotkey only while that window is open. Closing the window unregisters the hotkey and stops a run that is still sending.
 - Starting no longer puts the SendFile listen line on the status bar.
@@ -103,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Image convert places palette colors to minimize the total squared error. A palette color does not have to be a color from the picture.
 - Random color on the tools page defaults to 10 colors and generates once when the card opens.
 - The placeholder image redraws as soon as width, height, colors, or caption change. Ctrl+C or Copy result puts the PNG on the clipboard.
+- Image convert preview zooms with the wheel toward the cursor, pans by dragging, and fits again on a double-click.
 
 #### Fixed
 
@@ -159,6 +161,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 工具页画板增加圈选。松开后把圈里的笔迹抠成一张图，可以拖动。页面变大时按新尺寸重建画布，内容不缩放。页面变小时画布保持原样。
 - 工具页画板铺满卡片，不显示标题和说明，页面不滚动。矩形、椭圆、箭头和画笔直接画进图里。只有粘贴的图片和文字可以拖动、改大小。
 - **工具 → 自动按键**只在该窗口打开时监听快捷键。关掉窗口就注销快捷键，正在发送的也会停。
 - 启动时状态栏不再显示 SendFile 的监听端口。
@@ -193,6 +196,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 图片格式转换的调色板按总平方色差最小来分配颜色，调色板里的颜色不必取自原图。
 - 工具页随机颜色默认 10 个，打开后立即生成一次。
 - 占位图在改宽高、颜色或文字后马上出预览。Ctrl+C 或「复制结果」把 PNG 放进剪贴板。
+- 图片格式转换的预览可以用滚轮对着光标缩放、拖动平移，双击重新适应窗口。
 
 #### 修复
 

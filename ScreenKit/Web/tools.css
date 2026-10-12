@@ -151,6 +151,7 @@ textarea, input[type="date"], input[type="datetime-local"], input[type="text"], 
 }
 textarea { resize: vertical; }
 select, input[type="date"], input[type="datetime-local"], input[type="text"], input[type="number"], input[type="color"], input[type="file"] { font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif; height: 40px; }
+input[type="color"] { padding: 3px; cursor: pointer; }
 #box-img {
 	display: block; max-width: 100%; max-height: 420px; margin-top: 12px;
 	object-fit: contain; background: #fff;
@@ -638,7 +639,11 @@ input[type="file"] {
 	position: relative; height: 148px; margin: 4px 0 12px;
 	user-select: none; touch-action: none;
 }
-.bitkeys .whites { display: flex; height: 148px; }
+.bitkeys .whites { display: flex; flex-wrap: wrap; height: 148px; }
+/* 宽度够：21 个白键一行；不够：一行一个八度、三行 */
+.bitkeys.onerow .whites { flex-wrap: nowrap; }
+.bitkeys.onerow button.w { flex: 1 1 0; height: 148px; }
+.bitkeys.rows3 button.w { flex: 0 0 calc(100% / 7 - 3px); height: calc(100% / 3); }
 .bitkeys button {
 	font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 	padding: 0 0 8px; display: flex; align-items: flex-end; justify-content: center;
@@ -708,7 +713,7 @@ input[type="file"] {
 	border: 1px solid #8b98a8; border-radius: 8px; background: #fff;
 }
 .board-stage canvas {
-	position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+	position: absolute; left: 0; top: 0;
 	display: block; background: #fff; touch-action: none; cursor: crosshair;
 }
 .board-stage.select canvas { cursor: default; }

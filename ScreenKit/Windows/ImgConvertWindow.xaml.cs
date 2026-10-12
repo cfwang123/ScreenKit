@@ -18,6 +18,13 @@ public partial class ImgConvertWindow : Window {
 	CancellationTokenSource cts;
 	CancellationTokenSource prevCts;
 	readonly SemaphoreSlim thumbGate = new(4);
+	const double ZMIN = 0.05;
+	const double ZMAX = 16;
+	bool needfit = true;
+	bool panning;
+	Point panstart;
+	double pan0x, pan0y;
+	int prevW, prevH;
 
 	public ImgConvertWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
@@ -70,6 +77,11 @@ public partial class ImgConvertWindow : Window {
 		PreviewDragOver += ondragover;
 		DragOver += ondragover;
 		Drop += ondrop;
+		pprev.MouseWheel += onprevwheel;
+		pprev.MouseLeftButtonDown += onprevdown;
+		pprev.MouseMove += onprevmove;
+		pprev.MouseLeftButtonUp += onprevup;
+		pprev.SizeChanged += (_, _) => fitprev();
 		Closing += onclosing;
 	}
 
@@ -101,6 +113,7 @@ public partial class ImgConvertWindow : Window {
 		System.Windows.Automation.AutomationProperties.SetName(bviewlist, Loc.T("imgconv.view.list"));
 		System.Windows.Automation.AutomationProperties.SetName(bviewthumb, Loc.T("imgconv.view.thumb"));
 		lbdrop.Text = Loc.T("imgconv.drop");
+		pprev.ToolTip = Loc.T("imgconv.preview.tip");
 		colname.Header = Loc.T("imgconv.col.name");
 		colxf.Header = Loc.T("imgconv.col.xf");
 		colst.Header = Loc.T("imgconv.col.status");
@@ -302,7 +315,7 @@ public partial class ImgConvertWindow : Window {
 	void clearpreview() {
 		prevSeq++;
 		try { prevCts?.Cancel(); } catch { }
-		iprev.Source = null;
+		resetview();
 		lbprevinfo.Text = "";
 		lbprevempty.Text = Loc.T("imgconv.preview.empty");
 		lbprevempty.Visibility = Visibility.Visible;
@@ -349,6 +362,7 @@ public partial class ImgConvertWindow : Window {
 			if (seq != prevSeq) return;
 			iprev.Source = bmp;
 			lbprevempty.Visibility = Visibility.Collapsed;
+			applyprev(bmp);
 			var kind = fmt switch {
 				"png" => Loc.T("imgconv.fmt.png"),
 				"png8" => Loc.T("imgconv.fmt.png8") + " " + colors,
@@ -378,11 +392,132 @@ public partial class ImgConvertWindow : Window {
 		catch (OperationCanceledException) { }
 		catch (Exception ex) {
 			if (seq != prevSeq) return;
-			iprev.Source = null;
+			resetview();
 			lbprevinfo.Text = "";
 			lbprevempty.Text = Loc.T("imgconv.preview.fail", ex.Message);
 			lbprevempty.Visibility = Visibility.Visible;
 		}
+	}
+
+	void resetview() {
+		iprev.Source = null;
+		iprev.Width = 0;
+		iprev.Height = 0;
+		prevW = 0;
+		prevH = 0;
+		needfit = true;
+		panning = false;
+		tfscale.ScaleX = 1;
+		tfscale.ScaleY = 1;
+		tfpan.X = 0;
+		tfpan.Y = 0;
+		lbzoom.Text = "";
+		pprev.Cursor = Cursors.Arrow;
+	}
+
+	void applyprev(BitmapSource bmp) {
+		iprev.Width = bmp.PixelWidth;
+		iprev.Height = bmp.PixelHeight;
+		var same = bmp.PixelWidth == prevW && bmp.PixelHeight == prevH && !needfit;
+		prevW = bmp.PixelWidth;
+		prevH = bmp.PixelHeight;
+		if (!same) {
+			needfit = true;
+			fitprev();
+			Dispatcher.BeginInvoke(new Action(fitprev), System.Windows.Threading.DispatcherPriority.Loaded);
+		}
+		updatezoom();
+		pprev.Cursor = Cursors.Hand;
+	}
+
+	void fitprev() {
+		if (!needfit) return;
+		if (iprev.Source is not BitmapSource bmp || bmp.PixelWidth < 1) return;
+		pprev.UpdateLayout();
+		if (!FitPrev(pprev.ActualWidth, pprev.ActualHeight, bmp.PixelWidth, bmp.PixelHeight,
+			out var s, out var x, out var y)) return;
+		tfscale.ScaleX = s;
+		tfscale.ScaleY = s;
+		tfpan.X = x;
+		tfpan.Y = y;
+		updatezoom();
+	}
+
+	void updatezoom() {
+		lbzoom.Text = iprev.Source == null ? "" : $"{tfscale.ScaleX * 100:0}%";
+	}
+
+	/// <summary>把图片等比放进视口并居中。视口还没布局好时返回 false。</summary>
+	public static bool FitPrev(double vw, double vh, double iw, double ih,
+		out double scale, out double panX, out double panY) {
+		scale = 1;
+		panX = 0;
+		panY = 0;
+		if (vw < 16 || vh < 16 || iw < 1 || ih < 1) return false;
+		var s = Compat.Clamp(Math.Min(vw / iw, vh / ih), ZMIN, ZMAX);
+		scale = s;
+		panX = (vw - iw * s) / 2;
+		panY = (vh - ih * s) / 2;
+		return true;
+	}
+
+	/// <summary>以视口坐标 (vx,vy) 为中心缩放，该点下的图片位置保持不动。</summary>
+	public static void ZoomPrev(double scale, double panX, double panY, double vx, double vy, double factor,
+		out double nscale, out double npx, out double npy) {
+		var old = scale <= 0 ? 1 : scale;
+		var nz = Compat.Clamp(old * factor, ZMIN, ZMAX);
+		nscale = nz;
+		npx = vx - (vx - panX) * (nz / old);
+		npy = vy - (vy - panY) * (nz / old);
+	}
+
+	void onprevwheel(object sender, MouseWheelEventArgs e) {
+		if (iprev.Source == null) return;
+		var pos = e.GetPosition(pprev);
+		var factor = e.Delta > 0 ? 1.12 : 1 / 1.12;
+		ZoomPrev(tfscale.ScaleX, tfpan.X, tfpan.Y, pos.X, pos.Y, factor, out var nz, out var nx, out var ny);
+		tfscale.ScaleX = nz;
+		tfscale.ScaleY = nz;
+		tfpan.X = nx;
+		tfpan.Y = ny;
+		needfit = false;
+		updatezoom();
+		e.Handled = true;
+	}
+
+	void onprevdown(object sender, MouseButtonEventArgs e) {
+		if (iprev.Source == null || e.ChangedButton != MouseButton.Left) return;
+		if (e.ClickCount >= 2) {
+			panning = false;
+			try { if (pprev.IsMouseCaptured) pprev.ReleaseMouseCapture(); } catch { }
+			needfit = true;
+			fitprev();
+			pprev.Cursor = Cursors.Hand;
+			e.Handled = true;
+			return;
+		}
+		panning = true;
+		panstart = e.GetPosition(pprev);
+		pan0x = tfpan.X;
+		pan0y = tfpan.Y;
+		needfit = false;
+		pprev.Cursor = Cursors.SizeAll;
+		pprev.CaptureMouse();
+		e.Handled = true;
+	}
+
+	void onprevmove(object sender, MouseEventArgs e) {
+		if (!panning) return;
+		var p = e.GetPosition(pprev);
+		tfpan.X = pan0x + (p.X - panstart.X);
+		tfpan.Y = pan0y + (p.Y - panstart.Y);
+	}
+
+	void onprevup(object sender, MouseButtonEventArgs e) {
+		if (!panning || e.ChangedButton != MouseButton.Left) return;
+		panning = false;
+		try { if (pprev.IsMouseCaptured) pprev.ReleaseMouseCapture(); } catch { }
+		pprev.Cursor = iprev.Source == null ? Cursors.Arrow : Cursors.Hand;
 	}
 
 	void ondragover(object sender, DragEventArgs e) {

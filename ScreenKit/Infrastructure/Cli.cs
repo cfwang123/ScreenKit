@@ -3305,6 +3305,18 @@ static class Cli {
 				bad++;
 			}
 			else Out("Encode preview size OK 50x100");
+			if (!ImgConvertWindow.FitPrev(400, 200, 200, 100, out var fs, out var fx, out var fy)
+				|| Math.Abs(fs - 2) > 0.001 || Math.Abs(fx) > 0.001 || Math.Abs(fy) > 0.001) {
+				Err($"FAIL: preview fit {fs} {fx},{fy}");
+				bad++;
+			}
+			else Out("preview fit OK");
+			ImgConvertWindow.ZoomPrev(2, 0, 0, 100, 50, 2, out var zs, out var zx, out var zy);
+			if (Math.Abs(zs - 4) > 0.001 || Math.Abs(zx + 100) > 0.01 || Math.Abs(zy + 50) > 0.01) {
+				Err($"FAIL: preview zoom {zs} {zx},{zy}");
+				bad++;
+			}
+			else Out("preview zoom OK");
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);

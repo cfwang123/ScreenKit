@@ -40,6 +40,7 @@
 			+ tbtn("ellipse", "web.board.ellipse", "椭圆", false)
 			+ tbtn("arrow", "web.board.arrow", "箭头", false)
 			+ tbtn("pen", "web.board.pen", "画笔", false)
+			+ tbtn("lasso", "web.board.lasso", "圈选", false)
 			+ tbtn("text", "web.board.text", "文字", false)
 			+ '<span class="sep"></span>'
 			+ '<input type="color" id="board-color" value="' + color + '" data-ktip="web.board.color" title="' + tip("web.board.color", "颜色") + '">'
@@ -78,6 +79,7 @@
 			ellipse: '<ellipse cx="8" cy="8" rx="5.6" ry="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>',
 			arrow: '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M2.8 13.2L13.2 2.8M8.2 2.8h5v5"/>',
 			pen: '<path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" d="M2.6 12.2l2.8-2.8 6.2-6.2 2.2 2.2-6.2 6.2-2.8 2.8-2.2-2.2zm6.6-7.6l2.2 2.2"/>',
+			lasso: '<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2.2 1.4" d="M8.1 2.5a4.3 3.6 0 1 0 .5 6.9"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8.4 9.2l2.3 3.3"/>',
 			text: '<path fill="currentColor" d="M2.2 2.2h11.6v2.2H9.2v9.2H6.8V4.4H2.2V2.2z"/>',
 			paste: '<path fill="currentColor" d="M5 1.6h6v2.2h2.2v10.6H2.8V3.8H5V1.6zm1.2 1.2v2h3.6V2.8H6.2zM4.4 6.2h7.2v6.6H4.4V6.2z"/>',
 			undo: '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3 7.2h6.6a3.2 3.2 0 1 1 0 6.4H6.2M3 7.2l2.6-2.6M3 7.2l2.6 2.6"/>',
@@ -355,7 +357,8 @@
 			else begintext(-1, p.x, p.y);
 			return;
 		}
-		if (tool === "pen") draft = { t: "pen", x: p.x, y: p.y, pts: [{ x: 0, y: 0 }], c: color, lw: width };
+		if (tool === "lasso") draft = { t: "lasso", pts: [{ x: p.x, y: p.y }] };
+		else if (tool === "pen") draft = { t: "pen", x: p.x, y: p.y, pts: [{ x: 0, y: 0 }], c: color, lw: width };
 		else if (tool === "arrow") draft = { t: "arrow", x1: p.x, y1: p.y, x2: p.x, y2: p.y, c: color, lw: width };
 		else draft = { t: tool, x: p.x, y: p.y, w: 0, h: 0, c: color, lw: width };
 		paint(true);
@@ -376,7 +379,11 @@
 			return;
 		}
 		if (!draft) return;
-		if (draft.t === "pen") draft.pts.push({ x: p.x - draft.x, y: p.y - draft.y });
+		if (draft.t === "lasso") {
+			var last = draft.pts[draft.pts.length - 1];
+			if (Math.hypot(p.x - last.x, p.y - last.y) >= 2) draft.pts.push({ x: p.x, y: p.y });
+		}
+		else if (draft.t === "pen") draft.pts.push({ x: p.x - draft.x, y: p.y - draft.y });
 		else if (draft.t === "arrow") { draft.x2 = p.x; draft.y2 = p.y; }
 		else { draft.w = p.x - draft.x; draft.h = p.y - draft.y; }
 		paint(true);
@@ -401,6 +408,7 @@
 		var d = draft;
 		draft = null;
 		if (!d) return;
+		if (d.t === "lasso") { liftlasso(d); return; }
 		if (d.t === "pen") {
 			if (!d.pts || d.pts.length < 2) { paint(true); return; }
 		}
@@ -421,6 +429,99 @@
 		dirty = true;
 		sel = -1;
 		paint(true);
+	}
+
+	function liftlasso(d){
+		var pts = d.pts;
+		if (!pts || pts.length < 3) { paint(true); return; }
+		if (!base) fit();
+		if (!base) { paint(true); return; }
+		var i, len = 0;
+		for (i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+		if (len < 12) { paint(true); return; }
+		var minx = pts[0].x, miny = pts[0].y, maxx = minx, maxy = miny;
+		for (i = 1; i < pts.length; i++) {
+			if (pts[i].x < minx) minx = pts[i].x;
+			if (pts[i].y < miny) miny = pts[i].y;
+			if (pts[i].x > maxx) maxx = pts[i].x;
+			if (pts[i].y > maxy) maxy = pts[i].y;
+		}
+		var take = [], it, box;
+		for (i = 0; i < items.length; i++) {
+			it = items[i];
+			box = boxof(it);
+			if (inpoly(box.x + box.w / 2, box.y + box.h / 2, pts)) {
+				take.push(it);
+				if (box.x < minx) minx = box.x;
+				if (box.y < miny) miny = box.y;
+				if (box.x + box.w > maxx) maxx = box.x + box.w;
+				if (box.y + box.h > maxy) maxy = box.y + box.h;
+			}
+		}
+		minx = Math.max(0, Math.floor(minx));
+		miny = Math.max(0, Math.floor(miny));
+		maxx = Math.min(base.width, Math.ceil(maxx));
+		maxy = Math.min(base.height, Math.ceil(maxy));
+		var bw = maxx - minx, bh = maxy - miny;
+		if (bw < 2 || bh < 2) { paint(true); return; }
+		var mask = document.createElement("canvas");
+		mask.width = bw;
+		mask.height = bh;
+		var mctx = mask.getContext("2d");
+		mctx.beginPath();
+		mctx.moveTo(pts[0].x - minx, pts[0].y - miny);
+		for (i = 1; i < pts.length; i++) mctx.lineTo(pts[i].x - minx, pts[i].y - miny);
+		mctx.closePath();
+		mctx.fill();
+		var md = mctx.getImageData(0, 0, bw, bh).data;
+		var bctx = base.getContext("2d");
+		var src = bctx.getImageData(minx, miny, bw, bh);
+		var cut = document.createElement("canvas");
+		cut.width = bw;
+		cut.height = bh;
+		var cctx = cut.getContext("2d");
+		var out = cctx.createImageData(bw, bh);
+		var sd = src.data, od = out.data, n = bw * bh, p, o, r, g, b, a, any = take.length > 0;
+		for (p = 0; p < n; p++) {
+			if (md[p * 4 + 3] < 128) continue;
+			o = p * 4;
+			r = sd[o]; g = sd[o + 1]; b = sd[o + 2]; a = sd[o + 3];
+			if (a < 8 || (r >= 250 && g >= 250 && b >= 250)) continue;
+			od[o] = r; od[o + 1] = g; od[o + 2] = b; od[o + 3] = a;
+			sd[o] = 255; sd[o + 1] = 255; sd[o + 2] = 255; sd[o + 3] = 255;
+			any = true;
+		}
+		if (!any) { paint(true); return; }
+		pushundo();
+		bctx.putImageData(src, minx, miny);
+		cctx.putImageData(out, 0, 0);
+		cctx.save();
+		cctx.translate(-minx, -miny);
+		for (i = 0; i < take.length; i++) drawitem(cctx, take[i]);
+		cctx.restore();
+		var kept = [], seen;
+		for (i = 0; i < items.length; i++) {
+			seen = false;
+			for (p = 0; p < take.length; p++) if (take[p] === items[i]) seen = true;
+			if (!seen) kept.push(items[i]);
+		}
+		items = kept;
+		items.push({ t: "img", img: cut, x: minx, y: miny, w: bw, h: bh });
+		sel = items.length - 1;
+		dirty = true;
+		settool("select");
+		paint(true);
+	}
+
+	function inpoly(x, y, pts){
+		var inside = false, i, j = pts.length - 1, xi, yi, xj, yj;
+		for (i = 0; i < pts.length; i++) {
+			xi = pts[i].x; yi = pts[i].y;
+			xj = pts[j].x; yj = pts[j].y;
+			if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-9) + xi)) inside = !inside;
+			j = i;
+		}
+		return inside;
 	}
 
 	function begintext(i, x, y){
@@ -551,23 +652,24 @@
 	function fit(){
 		if (!canvas || !canvas.parentElement) return;
 		var stage = canvas.parentElement;
-		var w = stage.clientWidth, h = stage.clientHeight;
-		if (w < 2 || h < 2) return;
+		var sw = stage.clientWidth, sh = stage.clientHeight;
+		if (sw < 2 || sh < 2) return;
+		var w = sw, h = sh;
+		if (base) {
+			if (base.width > w) w = base.width;
+			if (base.height > h) h = base.height;
+		}
 		if (base && base.width === w && base.height === h && canvas.width === w && canvas.height === h) return;
 		var prev = base;
+		var grew = !!(prev && (w !== prev.width || h !== prev.height));
 		base = document.createElement("canvas");
 		base.width = w;
 		base.height = h;
 		var bctx = base.getContext("2d");
 		bctx.fillStyle = "#ffffff";
 		bctx.fillRect(0, 0, w, h);
-		if (prev && prev.width && prev.height) {
-			bctx.drawImage(prev, 0, 0, w, h);
-			if (prev.width !== w || prev.height !== h) {
-				scaleitems(w / prev.width, h / prev.height);
-				undo = [];
-			}
-		}
+		if (prev && prev.width && prev.height) bctx.drawImage(prev, 0, 0);
+		if (grew) undo = [];
 		canvas.width = w;
 		canvas.height = h;
 		paint(true);
@@ -578,19 +680,6 @@
 		var bctx = base.getContext("2d");
 		bctx.fillStyle = "#ffffff";
 		bctx.fillRect(0, 0, base.width, base.height);
-	}
-
-	function scaleitems(sx, sy){
-		var i, it;
-		for (i = 0; i < items.length; i++) {
-			it = items[i];
-			it.x *= sx;
-			it.y *= sy;
-			if (it.w) it.w *= sx;
-			if (it.h) it.h *= sy;
-			if (it.t === "text") it.size = Math.max(8, it.size * sy);
-		}
-		if (edit) { edit.x *= sx; edit.y *= sy; }
 	}
 
 	function paint(showSel){
@@ -607,7 +696,10 @@
 			if (edit && edit.i === i) continue;
 			drawitem(ctx, items[i]);
 		}
-		if (draft) drawitem(ctx, draft);
+		if (draft) {
+			if (draft.t === "lasso") drawlasso(ctx, draft);
+			else drawitem(ctx, draft);
+		}
 		if (showSel && !draft) drawsel(ctx);
 	}
 
@@ -680,8 +772,29 @@
 	}
 
 	function drawimg(ctx, it){
-		if (!it.img || it.img.complete === false || !it.img.naturalWidth) return;
-		ctx.drawImage(it.img, it.x, it.y, it.w, it.h);
+		var src = it.img;
+		if (!src) return;
+		if (src.getContext) {
+			if (!src.width) return;
+		}
+		else if (src.complete === false || !src.naturalWidth) return;
+		ctx.drawImage(src, it.x, it.y, it.w, it.h);
+	}
+
+	function drawlasso(ctx, it){
+		if (!it.pts || it.pts.length < 2) return;
+		ctx.save();
+		ctx.strokeStyle = "#3b82f6";
+		ctx.lineWidth = 1.5;
+		ctx.setLineDash([6, 4]);
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		ctx.beginPath();
+		ctx.moveTo(it.pts[0].x, it.pts[0].y);
+		var i;
+		for (i = 1; i < it.pts.length; i++) ctx.lineTo(it.pts[i].x, it.pts[i].y);
+		ctx.stroke();
+		ctx.restore();
 	}
 
 	function drawsel(ctx){

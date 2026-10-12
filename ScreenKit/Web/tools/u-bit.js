@@ -6,6 +6,8 @@
 	var loop = null;
 	var demot = [];
 	var bound = false;
+	var shift = 0;		// 按住 Ctrl / Shift 时的八度偏移（+12 / -12）
+	var pressed = {};	// 键码 -> 正在响的音，松开时按这个停
 	var INST = [
 		{ id: "sq", name: "方波", wave: "square", a: 0.008, d: 0.09, s: 0.55, r: 0.08 },
 		{ id: "p25", name: "窄脉冲", wave: "pulse", duty: 0.25, a: 0.008, d: 0.07, s: 0.45, r: 0.07 },
@@ -94,23 +96,26 @@
 			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。</p>'
 			+ '<p class="kicker">音效</p>'
 			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
-			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排。警报、火警、蜂鸣、电话再点一次就停。</p>'
+			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Ctrl 升 8 度、Shift 降 8 度（琴键跟着换一组）。警报、火警、蜂鸣、电话再点一次就停。</p>'
 			+ "</div>";
 	}
 
+	// 三个八度（36 个半音）：上面两个八度是 A–V 那一排的键位，整组跟着 Ctrl/Shift 移调
 	function keys(){
 		var whites = "";
 		var blacks = "";
 		var wi = -1;
+		var lo = 48 + shift;
 		var i, midi, name, lab;
-		for (i = 0; i < 24; i++) {
-			midi = 60 + i;
-			name = NAMES[i % 12];
-			lab = LABEL[midi] || "";
+		for (i = 0; i < 36; i++) {
+			midi = lo + i;
+			name = NAMES[midi % 12];
+			lab = LABEL[midi - shift] || "";
 			if (name.indexOf("#") < 0) {
 				wi++;
 				whites += '<button type="button" class="w" data-midi="' + midi + '">'
-					+ name + "<small>" + lab + "</small></button>";
+					+ (name === "C" ? name + (Math.floor(midi / 12) - 1) : name)
+					+ "<small>" + lab + "</small></button>";
 			}
 			else {
 				blacks += '<button type="button" class="b" data-midi="' + midi + '" data-after="' + wi + '">'
@@ -141,8 +146,8 @@
 		paintgrid();
 		document.getElementById("bit-vol").oninput = applyvol;
 		bind();
-		placeblack();
-		requestAnimationFrame(placeblack);
+		layoutkeys();
+		requestAnimationFrame(layoutkeys);
 	}
 
 	function bind(){
@@ -151,7 +156,7 @@
 		window.addEventListener("keydown", ondown);
 		window.addEventListener("keyup", onup);
 		window.addEventListener("blur", releaseall);
-		window.addEventListener("resize", placeblack);
+		window.addEventListener("resize", layoutkeys);
 	}
 
 	function unbind(){
@@ -160,7 +165,7 @@
 		window.removeEventListener("keydown", ondown);
 		window.removeEventListener("keyup", onup);
 		window.removeEventListener("blur", releaseall);
-		window.removeEventListener("resize", placeblack);
+		window.removeEventListener("resize", layoutkeys);
 	}
 
 	function leave(){
@@ -171,13 +176,45 @@
 	function placeblack(){
 		var whites = document.querySelectorAll("#bit-keys .w");
 		var blacks = document.querySelectorAll("#bit-keys .b");
-		var i, w;
+		var i, w, bw;
 		if (!whites.length) return;
 		for (i = 0; i < blacks.length; i++) {
 			w = whites[Number(blacks[i].getAttribute("data-after"))];
 			if (!w || w.offsetWidth < 2) continue;
-			blacks[i].style.left = (w.offsetLeft + w.offsetWidth - 14) + "px";
+			bw = Math.max(16, Math.round(w.offsetWidth * 0.6));
+			blacks[i].style.width = bw + "px";
+			blacks[i].style.height = Math.round(w.offsetHeight * 0.62) + "px";
+			blacks[i].style.left = (w.offsetLeft + w.offsetWidth - bw / 2) + "px";
+			blacks[i].style.top = w.offsetTop + "px";
 		}
+	}
+
+	// 白键能到 40px 宽就一行放下 21 个，不然一行一个八度分三行（21×40 + 20 = 860）
+	function layoutkeys(){
+		var root = document.getElementById("bit-keys");
+		if (!root) return;
+		root.className = "bitkeys " + (root.clientWidth >= 21 * 40 + 20 ? "onerow" : "rows3");
+		placeblack();
+	}
+
+	// 换一组八度：重画琴键，再把还在响的音点亮
+	function toshift(next){
+		if (next === shift) return;
+		shift = next;
+		paintkeys();
+	}
+
+	function paintkeys(){
+		var root = document.getElementById("bit-keys");
+		var k;
+		if (!root) return;
+		root.innerHTML = keys();
+		placeblack();
+		for (k in held) paintkey(Number(k), true);
+	}
+
+	function syncmods(ev){
+		toshift((ev.ctrlKey ? 12 : 0) - (ev.shiftKey ? 12 : 0));
 	}
 
 	function inst(){
@@ -638,17 +675,32 @@
 
 	function ondown(ev){
 		if (SK.curtool !== "u-bit" || ev.repeat || typing(ev.target)) return;
-		var midi = CODE[ev.code];
-		if (!midi) return;
+		var base = CODE[ev.code];
+		var midi;
+		if (ev.key === "Control" || ev.key === "Shift") {
+			syncmods(ev);
+			return;
+		}
+		if (!base) return;
 		ev.preventDefault();
+		syncmods(ev);
+		midi = base + shift;
 		if (writenote(midi)) return;
+		pressed[ev.code] = midi;
 		noteon(midi);
 	}
 
 	function onup(ev){
-		var midi = CODE[ev.code];
-		if (!midi) return;
-		noteoff(midi);
+		var base = CODE[ev.code];
+		var midi;
+		if (ev.key === "Control" || ev.key === "Shift") {
+			syncmods(ev);
+			return;
+		}
+		if (!base) return;
+		midi = pressed[ev.code];
+		delete pressed[ev.code];
+		if (midi) noteoff(midi);
 	}
 
 	function onpointerdown(ev){

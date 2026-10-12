@@ -5,7 +5,7 @@
 		noGo: true,
 		body: function(){
 			return SK.lab("类型", '<select id="box-type"><option value="linear">线性</option><option value="radial">径向</option><option value="conic">锥形</option></select>')
-				+ SK.row2(SK.lab("起始色", SK.textin("box-a", "#f97316")), SK.lab("结束色", SK.textin("box-b", "#111827")))
+				+ SK.row2(SK.lab("起始色", colorin("box-a", "#f97316")), SK.lab("结束色", colorin("box-b", "#111827")))
 				+ SK.lab("角度", SK.numin("box-n", "90"))
 				+ '<div id="grad-view" class="grad-view"></div>';
 		},
@@ -19,6 +19,10 @@
 			return gradcss(SK.val("box-type"), SK.val("box-a"), SK.val("box-b"), SK.val("box-n"));
 		}
 	});
+	function colorin(id, value){
+		return '<input id="' + id + '" type="color" value="' + value + '">';
+	}
+
 	function gradlive(){
 		var n = SK.$("box-n");
 		if (n) n.disabled = SK.val("box-type") === "radial";

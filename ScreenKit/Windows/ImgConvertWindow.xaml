@@ -298,11 +298,24 @@
 				           Margin="0,8,0,0" TextWrapping="Wrap"
 				           AutomationProperties.AutomationId="imgconv.preview.info"/>
 				<Border Background="{StaticResource BgImage}" CornerRadius="8"
-				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+				        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+				        ClipToBounds="True">
 					<Grid>
-						<Image x:Name="iprev" Stretch="Uniform" Margin="8"
-						       RenderOptions.BitmapScalingMode="HighQuality"
-						       AutomationProperties.AutomationId="imgconv.preview"/>
+						<Grid x:Name="pprev" Background="Transparent" ClipToBounds="True" Focusable="True"
+						      AutomationProperties.AutomationId="imgconv.preview">
+							<Canvas x:Name="pstage" HorizontalAlignment="Left" VerticalAlignment="Top"
+							        IsHitTestVisible="False">
+								<Canvas.RenderTransform>
+									<TransformGroup>
+										<ScaleTransform x:Name="tfscale" ScaleX="1" ScaleY="1"/>
+										<TranslateTransform x:Name="tfpan" X="0" Y="0"/>
+									</TransformGroup>
+								</Canvas.RenderTransform>
+								<Image x:Name="iprev" Stretch="Fill" IsHitTestVisible="False"
+								       SnapsToDevicePixels="True"
+								       RenderOptions.BitmapScalingMode="HighQuality"/>
+							</Canvas>
+						</Grid>
 						<TextBlock x:Name="lbprevempty" Text="选中图片后预览转换效果"
 						           FontSize="15" FontWeight="SemiBold"
 						           Foreground="#A0AEC0"
@@ -310,6 +323,10 @@
 						           TextWrapping="Wrap" TextAlignment="Center" Margin="16"
 						           IsHitTestVisible="False"
 						           AutomationProperties.AutomationId="imgconv.preview.empty"/>
+						<TextBlock x:Name="lbzoom" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+						           Margin="8" FontSize="12" Foreground="{StaticResource TextMuted}"
+						           IsHitTestVisible="False"
+						           AutomationProperties.AutomationId="imgconv.preview.zoom"/>
 					</Grid>
 				</Border>
 			</DockPanel>
