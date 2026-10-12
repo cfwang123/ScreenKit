@@ -1109,7 +1109,9 @@ public sealed partial class SendFileServer : IDisposable {
 	static void writejson(SfCtx ctx, int httpStatus, JsonNode body) {
 		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));
 		var res = ctx.Response;
-		res.StatusCode = httpStatus;
+		// 失败也返回 200。错误在 JSON 的 code / data。
+		_ = httpStatus;
+		res.StatusCode = 200;
 		res.ContentType = "application/json; charset=utf-8";
 		res.ContentEncoding = Encoding.UTF8;
 		res.ContentLength64 = bytes.Length;

@@ -2283,7 +2283,9 @@ sealed partial class HttpOcrServer : IDisposable {
 	static void writejson(SockCtx ctx, int httpStatus, JsonNode body) {
 		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));
 		var res = ctx.Response;
-		res.StatusCode = httpStatus;
+		// 失败也返回 200。错误在 JSON 的 code / data。httpStatus 只标明调用处原来的含义。
+		_ = httpStatus;
+		res.StatusCode = 200;
 		res.ContentType = "application/json; charset=utf-8";
 		res.ContentEncoding = Encoding.UTF8;
 		res.ContentLength64 = bytes.Length;

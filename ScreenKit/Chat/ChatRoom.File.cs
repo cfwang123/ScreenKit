@@ -200,7 +200,9 @@ static partial class ChatRoom {
 	static void writehttp(SockCtx ctx, int status, string json) {
 		var bytes = Encoding.UTF8.GetBytes(json);
 		var res = ctx.Response;
-		res.StatusCode = status;
+		// 失败也返回 200。错误在 JSON 里。
+		_ = status;
+		res.StatusCode = 200;
 		res.ContentType = "application/json; charset=utf-8";
 		res.ContentLength64 = bytes.Length;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
@@ -209,10 +211,7 @@ static partial class ChatRoom {
 	}
 
 	static void writemiss(SockCtx ctx) {
-		var res = ctx.Response;
-		res.StatusCode = 404;
-		res.ContentLength64 = 0;
-		try { res.OutputStream.Close(); } catch { }
+		writehttp(ctx, 200, new JsonObject { ["code"] = 404, ["err"] = "file" }.ToJsonString(jsonopt));
 	}
 
 	static byte[] readlimited(Stream src, long clen, out string err) {

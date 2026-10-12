@@ -41,7 +41,7 @@ The bottom status bar keeps the listener beside the memory summary, for example 
 
 ## 2. Response conventions
 
-Most endpoints return **HTTP 200** always; success or failure is indicated by the JSON `code` field. Unknown routes may return 404/405; uncaught exceptions may return 500.
+Failures also return **HTTP 200**. Success or failure is only the JSON `code` and `data`. An unknown path, a wrong method, and an uncaught exception are still 200, with the error code in the JSON (404, 805, 900). OPTIONS preflight stays 204. A successful WebSocket upgrade stays 101.
 
 ### 2.1 Success (with payload)
 
@@ -82,7 +82,7 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | 802 | Missing required field (e.g. base64, text) |
 | 803 | Invalid field type/length |
 | 804 | Failed to interpret options |
-| 805 | Method not allowed (app-level; HTTP may also be 405) |
+| 805 | Method not allowed (HTTP status stays 200) |
 | 806 | base64 decode failed |
 | 810 | That API module is turned off (Settings → API) |
 | 900 | Internal error |
