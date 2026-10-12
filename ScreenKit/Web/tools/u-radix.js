@@ -8,18 +8,35 @@
 			var list = [["all", "全部"]];
 			var i;
 			for (i = 0; i < BASES.length; i++) list.push([String(BASES[i]), BASES[i] + "进制"]);
+			var custom = SK.t("web.radix.custom") || "自定义";
 			return SK.lab("整数", SK.textin("box-in", "", "例如 FF"))
-				+ SK.row2(SK.lab("从", SK.numin("box-from", "16")), SK.lab("转换到", '<select id="box-to">' + SK.opts(list, "all") + "</select>"));
+				+ '<div class="row">'
+				+ SK.lab("从", SK.numin("box-from", "16"))
+				+ SK.lab("转换到", '<select id="box-to">' + SK.opts(list, "all") + '<option value="custom" data-k="web.radix.custom">' + esc(custom) + "</option></select>")
+				+ '<span id="box-base-lab" hidden>' + SK.lab("目标进制", '<input id="box-base" type="number" min="2" max="36" value="3">') + "</span>"
+				+ "</div>";
 		},
 		open: function(){
 			SK.$("box-in").oninput = rerun;
 			SK.$("box-from").oninput = rerun;
-			SK.$("box-to").onchange = rerun;
+			SK.$("box-base").oninput = rerun;
+			SK.$("box-to").onchange = function(){
+				showbase();
+				rerun();
+			};
+			showbase();
 		},
 		run: function(){
-			return radixconv(SK.val("box-in"), SK.val("box-from"), SK.val("box-to"));
+			var to = SK.val("box-to");
+			if (to === "custom") to = SK.val("box-base");
+			return radixconv(SK.val("box-in"), SK.val("box-from"), to);
 		}
 	});
+
+	function showbase(){
+		var lab = SK.$("box-base-lab");
+		if (lab) lab.hidden = SK.val("box-to") !== "custom";
+	}
 
 	function rerun(){
 		if (!String(SK.val("box-in")).trim()) {
@@ -38,7 +55,7 @@
 		var i;
 		if (to !== "all") {
 			var b = parseInt(to, 10);
-			if (!(b >= 2 && b <= 36)) throw new Error("请选择进制");
+			if (!(b >= 2 && b <= 36)) throw new Error("进制要在 2 到 36");
 			bases = [b];
 		}
 		var lines = [a + "进制 " + parsed.show];
@@ -71,6 +88,10 @@
 
 	function writeint(n, neg, base){
 		return (neg ? "-" : "") + n.toString(base).toUpperCase();
+	}
+
+	function esc(s){
+		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 	}
 
 	SK.radixconv = radixconv;

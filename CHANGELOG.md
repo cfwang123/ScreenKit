@@ -131,6 +131,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation rows can be selected by dragging. Each row has Copy and Speak instead of copying on click.
 - The Morse chart text box starts as HELLO.
 - Holding Ctrl while opening a web tool opens that tool in a new browser tab.
+- Radix conversion adds Custom. Choosing it shows a target base on the right, from 2 to 36.
 
 #### Fixed
 
@@ -256,6 +257,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记每一行可以拖选文字，旁边有复制和发音，不再一点就复制。
 - 摩斯码表的文字框打开时是 HELLO。
 - 按住 Ctrl 再点 web 工具，用新的浏览器标签页打开。
+- 进制转换的「转换到」增加「自定义」。选中后右边出现目标进制，范围 2 到 36。
 
 #### 修复
 
