@@ -45,16 +45,24 @@
 		opening = 1;
 		leaving = 0;
 		setmsg("");
-		ws = new WebSocket(url);
-		ws.onopen = function(){
+		var sock = new WebSocket(url);
+		ws = sock;
+		sock.onopen = function(){
+			if (ws !== sock) return;
 			opening = 0;
-			ws.send(JSON.stringify({ op: "join", nick: nick, gender: gender }));
+			sock.send(JSON.stringify({ op: "join", nick: nick, gender: gender }));
 		};
-		ws.onmessage = function(ev){ onmsg(ev.data); };
-		ws.onerror = function(){ opening = 0; };
-		ws.onclose = function(){
+		sock.onmessage = function(ev){
+			if (ws !== sock) return;
+			onmsg(ev.data);
+		};
+		sock.onerror = function(){
+			if (ws === sock) opening = 0;
+		};
+		sock.onclose = function(){
+			if (ws !== sock && !leaving) return;
 			opening = 0;
-			ws = null;
+			if (ws === sock) ws = null;
 			me = 0;
 			if (leaving) { leaving = 0; return; }
 			if (SK.curtool === "chat") {
