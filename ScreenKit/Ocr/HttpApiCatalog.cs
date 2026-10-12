@@ -95,6 +95,7 @@ static class HttpApiCatalog {
 		add(list, "GET /api/tts/devices", "GET", "/api/tts/devices", "", "http.doc.ttsdevices", "tts");
 		add(list, "POST /api/tts/speak", "POST", "/api/tts/speak", "{\n  \"text\": \"你好\",\n  \"play\": \"queue\",\n  \"devices\": []\n}", "http.doc.ttsspeak", "tts");
 		add(list, "POST /api/itn", "POST", "/api/itn", "{\n  \"text\": \"二零二四年一月一日\"\n}", "http.doc.itn", "asr");
+		add(list, "GET /api/translate/langs", "GET", "/api/translate/langs", "", "http.doc.translate.langs", "translate");
 		add(list, "POST /api/translate", "POST", "/api/translate", "{\n  \"items\": [\"你好\"],\n  \"src\": \"zh\",\n  \"dst\": \"en\"\n}", "http.doc.translate", "translate", aliases: "/api/translate/batch");
 		add(list, "POST /api/chat", "POST", "/api/chat", "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}", "http.doc.chat", "chat");
 		add(list, "POST /api/chat + tts", "POST", "/api/chat", "{\n  \"text\": \"用一句话介绍你自己\",\n  \"tts\": true,\n  \"engine\": \"sapi\"\n}", "http.doc.chat.tts", "chat");

@@ -123,7 +123,8 @@ http_port = 1224
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
 | POST | `/api/tts/speak` | 合成后在本机播放。`play=queue` 排队，`play=now` 立即打断 |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
-| POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译（需已配置 `[[llm]]`） |
+| GET | `/api/translate/langs` | 列出源语言和各自的目标语言 |
+| POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译；没有就绪的 LLM 时用本地模型 |
 | POST | `/api/chat` | LLM 对话（文本或语音入；可选 TTS 返回 `wav_base64`） |
 | GET/POST | `/api/cast/stop` | 立即关闭投屏画面窗并断开当前接收 |
 | WebSocket | `/cast` | 投屏媒体（与 HTTP 同端口；二进制帧为 SCST） |
@@ -909,7 +910,9 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8"))["data"]["ah
 
 ## 10. POST `/api/translate` · `/api/translate/batch`
 
-LLM 批量翻译（按 `translate_llm_batch` 分组，默认 8 条一组，缺号再逐条补）。**不限制一次请求的条数**。需在参数设置配置 `[[llm]]`，并指定 `translate_llm`（或请求里传 `llm`）。别名 `/api/translate/batch` 同一处理。条数很多时耗时按组累加（每组最长约 90 秒）。
+LLM 批量翻译（按 `translate_llm_batch` 分组，默认 8 条一组，缺号再逐条补）。**不限制一次请求的条数**。翻译 LLM 已就绪时用 `[[llm]]` / `translate_llm`（或请求里的 `llm`）。没有就绪的 LLM 时，同一请求改用已安装的本地 Opus-MT 模型，按 `src`→`dst`。别名 `/api/translate/batch` 同一处理。条数很多时耗时按组累加（每组最长约 90 秒）。
+
+`GET /api/translate/langs` 返回 `data.llm`、`data.src`（语言代码，`auto` 在前）和 `data.dst`（每个源语言对应可选目标）。`auto` 是中英互译。
 
 **请求：**
 

@@ -15,6 +15,9 @@ sealed class HttpApiServices {
 
 	/// <summary>共享 Sherpa TTS（可 null）。SAPI / WinRT 由 HTTP 服务自行实例化。</summary>
 	public TtsEngine TtsEngine { get; set; }
+
+	/// <summary>共享翻译引擎（可 null）。空则 HTTP 自己建一个，只用于本地模型。</summary>
+	public TranslateEngine TranslateEngine { get; set; }
 	public object TtsGate { get; set; } = new();
 
 	public Func<List<AsrModelInfo>> ScanAsr { get; set; }

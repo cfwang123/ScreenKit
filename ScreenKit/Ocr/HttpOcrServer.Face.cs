@@ -250,7 +250,7 @@ sealed partial class HttpOcrServer {
 	}
 
 	public bool IdleUnloadOnnx(int limitMs) {
-		var dropped = false;
+		var dropped = idlehttptr(limitMs);
 		lock (httpFaceLock) {
 			if (httpFace != null && httpFace.IdleUnload(limitMs)) {
 				httpFace = null;

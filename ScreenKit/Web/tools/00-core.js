@@ -37,6 +37,19 @@ SK.watchAcc = 0;
 			+ "-" + (day < 10 ? "0" : "") + day;
 		document.addEventListener("click", onclick);
 		$("cal-go").onclick = SK.cal;
+		$("tr-go").onclick = function(){ if (SK.trgo) SK.trgo(); };
+		$("tr-swap").onclick = function(){ if (SK.trswap) SK.trswap(); };
+		$("tr-copy").onclick = function(){ copytext($("tr-out").value, "tr-msg"); };
+		$("tr-paste").onclick = function(){ if (SK.trpaste) SK.trpaste(); };
+		$("tr-speak-src").onclick = function(){ if (SK.trspeak) SK.trspeak("src"); };
+		$("tr-speak-dst").onclick = function(){ if (SK.trspeak) SK.trspeak("dst"); };
+		$("tr-src").onchange = function(){ if (SK.trdst) SK.trdst(true); };
+		$("tr-in").onkeydown = function(ev){
+			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
+				ev.preventDefault();
+				if (SK.trgo) SK.trgo();
+			}
+		};
 		$("tx-copy").onclick = function(){ copytext($("tx-out").value, "tx-msg"); };
 		$("qr-make").onclick = SK.qrmake;
 		$("qr-scan").onclick = SK.qrscan;
@@ -81,7 +94,8 @@ SK.watchAcc = 0;
 			}
 			var tool = el.getAttribute && el.getAttribute("data-tool");
 			if (tool) {
-				show(tool);
+				if (tool !== "home" && ev.ctrlKey) opentab(tool);
+				else show(tool);
 				return;
 			}
 			var cat = el.getAttribute && el.getAttribute("data-cat");
@@ -96,6 +110,10 @@ SK.watchAcc = 0;
 			}
 			el = el.parentNode;
 		}
+	}
+
+	function opentab(name){
+		window.open(location.pathname + location.search + "#" + name, "_blank");
 	}
 
 	function toolhash(){
@@ -154,6 +172,7 @@ SK.watchAcc = 0;
 		else marktool(SK.curtool, name);
 		if (name === "ocr") SK.loadoocr();
 		if (name === "tts") SK.loadtts();
+		if (name === "tr" && SK.loadtr) SK.loadtr();
 		if (name === "asr") SK.loadasr();
 		if (prev === "chat" && SK.curtool !== "chat" && SK.chatclose) SK.chatclose();
 		if (SK.curtool === "chat" && SK.chatopen) SK.chatopen();
@@ -272,6 +291,7 @@ SK.watchAcc = 0;
 		}
 		settitle();
 		if (SK.fillttslang && $("tts-lang")) SK.fillttslang();
+		if (SK.filltrlang) SK.filltrlang();
 		paintstars();
 		if (!SK.curtool || SK.curtool === "home") paintcats();
 	}
@@ -494,12 +514,9 @@ SK.watchAcc = 0;
 		var picked = btn.getAttribute("data-fav") || "";
 		var lit = picked && isfav(picked);
 		btn.className = lit ? "back on" : "back";
-		var label = btn.querySelector("span");
-		if (label) {
-			var favKey = lit ? "web.fav.on" : "web.fav";
-			label.setAttribute("data-k", favKey);
-			label.textContent = t(favKey) || (lit ? "已收藏" : "收藏");
-		}
+		var favKey = lit ? "web.fav.on" : "web.fav";
+		btn.setAttribute("data-ktip", favKey);
+		btn.title = t(favKey) || (lit ? "已收藏" : "收藏");
 	}
 
 	function $(id){

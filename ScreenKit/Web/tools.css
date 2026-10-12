@@ -275,7 +275,10 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .ghost { background: transparent; }
 .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .txpair { align-items: stretch; min-height: 0; }
-#text.panel.on { overflow: hidden; }
+#text.panel.on, #tr.panel.on { overflow: hidden; }
+#tr .txpair { flex: 1 1 auto; }
+#tr .txpair > div { display: flex; flex-direction: column; min-height: 0; }
+#tr .txpair textarea { flex: 1 1 auto; min-height: 120px; height: auto; }
 #text .txpair { flex: 1 1 auto; }
 #text .txpair > div { display: flex; flex-direction: column; min-height: 0; }
 #text .txpair textarea { flex: 1 1 auto; min-height: 120px; height: auto; }

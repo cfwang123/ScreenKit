@@ -29,7 +29,7 @@ namespace ScreenKit;
 /// <item>GET  /api/asr/models · POST /api/asr</item>
 /// <item>GET  /api/tts/engines · /api/tts/models · /api/tts/devices · POST /api/tts · POST /api/tts/speak</item>
 /// <item>POST /api/itn</item>
-/// <item>POST /api/translate · /api/translate/batch</item>
+/// <item>GET /api/translate/langs · POST /api/translate · /api/translate/batch</item>
 /// <item>POST /api/chat  LLM 对话（文本/语音入，可选 TTS）</item>
 /// <item>POST /api/qr · /api/barcode</item>
 /// <item>GET  /api/face/models · POST /api/face</item>
@@ -370,6 +370,16 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handleitn(ctx);
+				return;
+			}
+
+			if (path is "/api/translate/langs") {
+				if (!apiok(ctx, optNow.HttpTranslate && optNow.ModTranslate)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "translate/langs 仅支持 GET"));
+					return;
+				}
+				handletranslatelangs(ctx);
 				return;
 			}
 
@@ -2269,8 +2279,10 @@ sealed partial class HttpOcrServer : IDisposable {
 			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}");
 			a.Add("POST /api/tts/speak  JSON{text, devices?, play=queue|now, engine?, voice?}");
 		}
-		if (o.HttpTranslate && o.ModTranslate)
-			a.Add("POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译");
+		if (o.HttpTranslate && o.ModTranslate) {
+			a.Add("GET  /api/translate/langs");
+			a.Add("POST /api/translate  JSON{items[],src?,dst?}  LLM；未配置时用本地模型");
+		}
 		if (o.HttpChat && o.ModChat)
 			a.Add("POST /api/chat  JSON{text|base64|path, messages?, tts?, agent?, llm?}  LLM对话");
 		if (o.HttpFace && o.ModFace) {
@@ -2307,6 +2319,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		disposed = true;
 		Stop();
 		disposeface();
+		disposehttptr();
 		disposettsvoices();
 		try { TtsSpeak.Shutdown(); } catch { }
 		// runner 由 MainWindow 持有并释放，此处不 Dispose

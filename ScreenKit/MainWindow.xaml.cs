@@ -415,6 +415,7 @@ public partial class MainWindow : Window {
 				AsrEngine = asrEngine,
 				AsrGate = asrEngineGate,
 				TtsEngine = sherpaTts,
+				TranslateEngine = trEngine,
 				TtsGate = new object(),
 				ScanAsr = () => {
 					var list = AsrModelScanner.Scan();

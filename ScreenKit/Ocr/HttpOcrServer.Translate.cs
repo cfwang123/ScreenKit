@@ -4,8 +4,36 @@ using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
-/// <summary>HTTP 翻译：POST /api/translate · /api/translate/batch。</summary>
+/// <summary>HTTP 翻译：GET /api/translate/langs · POST /api/translate · /api/translate/batch。</summary>
 sealed partial class HttpOcrServer {
+	TranslateEngine httpTr;
+
+	void handletranslatelangs(SockCtx ctx) {
+		var o = getOpts?.Invoke() ?? new OcrOptions();
+		var llm = AsrLlmClient.IsEndpointReady(o.SelectedTranslateLlm());
+		List<TranslateModelInfo> models;
+		try { models = TranslateModelScanner.Scan(); }
+		catch { models = new List<TranslateModelInfo>(); }
+		var srcs = translatesrcs(models, llm);
+		var srcArr = new JsonArray();
+		var dst = new JsonObject();
+		foreach (var s in srcs) {
+			srcArr.Add(s);
+			var arr = new JsonArray();
+			foreach (var t in translatedsts(models, llm, s)) arr.Add(t);
+			dst[s] = arr;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["llm"] = llm,
+				["src"] = srcArr,
+				["dst"] = dst,
+			},
+			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+		});
+	}
+
 	void handletranslate(SockCtx ctx) {
 		JsonObject jo;
 		try { jo = readjsonbody(ctx.Request); }
@@ -16,10 +44,6 @@ sealed partial class HttpOcrServer {
 		var o = getOpts?.Invoke() ?? new OcrOptions();
 		var wantLlm = str(jo, "llm") ?? str(jo, "model");
 		var ep = resolveep(o, wantLlm);
-		if (!AsrLlmClient.IsEndpointReady(ep)) {
-			writejson(ctx, 200, err(940, "未配置翻译 LLM（参数设置 → LLM接口，并指定 translate_llm 或 llm）"));
-			return;
-		}
 
 		var items = readitems(jo);
 		if (items == null || items.Count == 0) {
@@ -42,6 +66,10 @@ sealed partial class HttpOcrServer {
 			LangDetect.DetectZhEnPair(probe, out var asrc, out var adst);
 			if (src.Length == 0 || src == TrLang.Auto) src = asrc;
 			if (dst.Length == 0 || dst == TrLang.Auto) dst = adst;
+		}
+		if (!AsrLlmClient.IsEndpointReady(ep)) {
+			translateonnx(ctx, o, items, src, dst);
+			return;
 		}
 
 		var chunk = 0;
@@ -126,6 +154,122 @@ sealed partial class HttpOcrServer {
 			return list;
 		}
 		return list;
+	}
+
+	void translateonnx(SockCtx ctx, OcrOptions o, List<string> items, string src, string dst) {
+		List<TranslateModelInfo> models;
+		try { models = TranslateModelScanner.Scan(); }
+		catch { models = new List<TranslateModelInfo>(); }
+		var key = LangDetect.DirKey(src, dst);
+		var model = models.FirstOrDefault(m => m.IsReady
+			&& string.Equals(m.DirKey, key, StringComparison.OrdinalIgnoreCase));
+		if (model == null) {
+			writejson(ctx, 200, err(940, "未配置翻译 LLM，也没有 " + TrLang.Label(src) + "→" + TrLang.Label(dst) + " 的本地模型"));
+			return;
+		}
+		var eng = svc?.TranslateEngine;
+		if (eng == null) {
+			if (httpTr == null) httpTr = new TranslateEngine();
+			eng = httpTr;
+		}
+		var prefer = TranslateEngine.PreferFromMode(trcomputemode(o));
+		var t0 = Environment.TickCount;
+		List<string> outs;
+		try {
+			outs = new List<string>();
+			if (!eng.EnsureLoaded(key, model.ModelDir, prefer))
+				throw new InvalidOperationException(eng.LastError ?? "加载模型失败");
+			foreach (var item in items)
+				outs.Add(eng.Translate(key, item ?? "") ?? "");
+		}
+		catch (Exception ex) {
+			writejson(ctx, 200, err(942, "翻译失败: " + ex.Message));
+			return;
+		}
+		var ms = Math.Max(0, Environment.TickCount - t0);
+		var arr = new JsonArray();
+		var miss = 0;
+		for (var i = 0; i < items.Count; i++) {
+			var srcText = items[i] ?? "";
+			var outText = i < outs.Count ? (outs[i] ?? "") : "";
+			if (srcText.Trim().Length > 0 && outText.Trim().Length == 0) miss++;
+			arr.Add(new JsonObject {
+				["i"] = i + 1,
+				["text"] = srcText,
+				["out"] = outText,
+			});
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["src"] = src,
+				["dst"] = dst,
+				["model"] = model.DisplayName ?? key,
+				["llm"] = "",
+				["engine"] = "onnx",
+				["chunk"] = 1,
+				["count"] = items.Count,
+				["miss"] = miss,
+				["items"] = arr,
+			},
+			["time"] = ms,
+			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+		});
+	}
+
+	static List<string> translatesrcs(List<TranslateModelInfo> models, bool llm) {
+		var srcs = new List<string> { TrLang.Auto };
+		var more = models.Where(m => m.IsReady)
+			.Select(m => m.SourceLang)
+			.Where(s => !string.IsNullOrEmpty(s))
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToList();
+		if (llm) {
+			foreach (var s in TrLang.LlmCodes)
+				if (!more.Any(x => string.Equals(x, s, StringComparison.OrdinalIgnoreCase)))
+					more.Add(s);
+		}
+		more.Sort(TrLang.CompareLlm);
+		srcs.AddRange(more);
+		return srcs;
+	}
+
+	static List<string> translatedsts(List<TranslateModelInfo> models, bool llm, string src) {
+		src = TrLang.Normalize(src);
+		if (src == TrLang.Auto || src.Length == 0) return new List<string> { TrLang.Auto };
+		var tgts = models.Where(m => m.IsReady
+				&& string.Equals(m.SourceLang, src, StringComparison.OrdinalIgnoreCase))
+			.Select(m => m.TargetLang)
+			.Where(t => !string.IsNullOrEmpty(t))
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToList();
+		if (llm) {
+			foreach (var t in TrLang.LlmCodes) {
+				if (string.Equals(t, src, StringComparison.OrdinalIgnoreCase)) continue;
+				if (!tgts.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
+					tgts.Add(t);
+			}
+		}
+		tgts.Sort(TrLang.CompareLlm);
+		return tgts;
+	}
+
+	static TtsComputeMode trcomputemode(OcrOptions o) =>
+		(o?.TranslateCompute ?? "Auto").Trim().ToLowerInvariant() switch {
+			"gpu" or "cuda" => TtsComputeMode.Gpu,
+			"cpu" => TtsComputeMode.Cpu,
+			"igpu" or "dml" or "directml" => TtsComputeMode.Igpu,
+			_ => TtsComputeMode.Auto,
+		};
+
+	bool idlehttptr(int limitMs) {
+		if (httpTr == null) return false;
+		return httpTr.IdleUnload(limitMs);
+	}
+
+	void disposehttptr() {
+		try { httpTr?.Dispose(); } catch { }
+		httpTr = null;
 	}
 
 	static string str(JsonObject jo, string key) {

@@ -72,6 +72,10 @@
 					<i class="fa-solid fa-language"></i><span data-k="web.tool.pinyin">中文转拼音</span>
 					<i class="star fa-solid fa-star" data-fav="u-py" title="收藏"></i>
 				</button>
+				<button type="button" data-tool="tr" data-cat="text" data-name="翻译 中英 交换 发音 朗读" title="输入原文，译到所选语言。两边都可以发音，也可以交换">
+					<i class="fa-solid fa-right-left"></i><span data-k="web.tool.tr">翻译</span>
+					<i class="star fa-solid fa-star" data-fav="tr" title="收藏"></i>
+				</button>
 				<button type="button" data-tool="u-pw" data-cat="text" data-name="随机密码 批量" title="本地生成，一次可出多条">
 					<i class="fa-solid fa-key"></i><span data-k="web.tool.pw">随机密码</span>
 					<i class="star fa-solid fa-star" data-fav="u-pw" title="收藏"></i>
@@ -254,6 +258,40 @@
 					</div>
 				</div>
 			</div>
+		</section>
+
+		<section id="tr" class="panel">
+			<h1>翻译</h1>
+			<div class="row">
+				<label><span data-k="tr.src">源语言</span>
+					<select id="tr-src" data-ktip="tr.src.tip" title="先选源语言；「自动」仅支持中英互译（按汉字占比判定）"></select>
+				</label>
+				<button type="button" id="tr-swap" class="ghost" data-ktip="tr.swap.tip" title="交换源/目标语言；若有译文则与原文对调"><i class="fa-solid fa-right-left"></i><span data-k="tr.swap">交换语言</span></button>
+				<label><span data-k="tr.dst">目标语言</span>
+					<select id="tr-dst" data-ktip="tr.dst.tip" title="根据已安装模型与源语言列出可选目标；自动=中英互译"></select>
+				</label>
+				<button type="button" id="tr-go" class="primary" data-ktip="tr.go.tip" title="按所选方向翻译原文"><i class="fa-solid fa-language"></i><span data-k="tr.go">翻译</span></button>
+				<span id="tr-msg" class="msg"></span>
+			</div>
+			<div class="split txpair">
+				<div>
+					<div class="txhead">
+						<span data-k="tr.src.text">原文</span>
+						<button type="button" id="tr-speak-src" class="ghost" data-ktip="dict.speak" title="发音"><i class="fa-solid fa-volume-high"></i><span data-k="dict.speak">发音</span></button>
+						<button type="button" id="tr-paste" class="ghost" data-ktip="tr.paste.tip" title="从剪贴板粘贴到原文"><i class="fa-solid fa-paste"></i><span data-k="tr.paste">粘贴</span></button>
+					</div>
+					<textarea id="tr-in" rows="14" data-kph="web.ph.src" placeholder="要处理的文字"></textarea>
+				</div>
+				<div>
+					<div class="txhead">
+						<span data-k="tr.dst.text">译文</span>
+						<button type="button" id="tr-speak-dst" class="ghost" data-ktip="dict.speak" title="发音"><i class="fa-solid fa-volume-high"></i><span data-k="dict.speak">发音</span></button>
+						<button type="button" id="tr-copy" class="ghost"><i class="fa-solid fa-copy"></i><span data-k="tr.copy">复制</span></button>
+					</div>
+					<textarea id="tr-out" rows="14" readonly></textarea>
+				</div>
+			</div>
+			<p class="hint" data-k="web.tr.hint">Ctrl+Enter 翻译</p>
 		</section>
 
 		<section id="box" class="panel">

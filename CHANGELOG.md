@@ -129,6 +129,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Function graph: hold Ctrl to zoom the x-axis only, or Shift to zoom the y-axis only.
 - Number notation rows can be selected by dragging. Each row has Copy and Speak instead of copying on click.
 - The Morse chart text box starts as HELLO.
+- Holding Ctrl while opening a web tool opens that tool in a new browser tab.
 
 #### Fixed
 
@@ -252,6 +253,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 函数图像按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。
 - 数字表记每一行可以拖选文字，旁边有复制和发音，不再一点就复制。
 - 摩斯码表的文字框打开时是 HELLO。
+- 按住 Ctrl 再点 web 工具，用新的浏览器标签页打开。
 
 #### 修复
 

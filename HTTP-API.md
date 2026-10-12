@@ -122,7 +122,8 @@ Failures also return **HTTP 200**. Success or failure is only the JSON `code` an
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
 | POST | `/api/tts/speak` | Synthesize and play here. `play=queue` waits; `play=now` interrupts |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
-| POST | `/api/translate` · `/api/translate/batch` | LLM batch translate (needs `[[llm]]`) |
+| GET | `/api/translate/langs` | Source languages and the targets for each |
+| POST | `/api/translate` · `/api/translate/batch` | LLM batch translate, or a local model when no LLM is ready |
 | POST | `/api/chat` | LLM chat (text or audio in; optional TTS `wav_base64`) |
 | GET/POST | `/api/cast/stop` | Close the screencast viewer and drop the current receive session |
 | WebSocket | `/cast` | Screencast media (same HTTP port; SCST frames as binary messages) |
@@ -873,7 +874,9 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 ## 10. POST `/api/translate` · `/api/translate/batch`
 
-LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Requires `[[llm]]` in settings and `translate_llm` (or pass `llm` in the request). `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
+LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Uses `[[llm]]` / `translate_llm` (or request `llm`) when that endpoint is ready. When it is not, the same request uses an installed local Opus-MT model for `src`→`dst`. `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
+
+`GET /api/translate/langs` returns `data.llm`, `data.src` (language codes, `auto` first), and `data.dst` (each source code maps to its target codes). `auto` means Chinese–English.
 
 **Request:**
 
