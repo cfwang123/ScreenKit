@@ -22,6 +22,8 @@ static class WinOcr {
 	const int MAXSIDE = 4096;
 	/// <summary>缩小后短边低于这个值就不再按检测边长缩小，避免扁图上的小字被丢掉。</summary>
 	const int THIN = 80;
+	/// <summary>短边低于这个值就放大。大约 40 像素高的浅色小字，Windows OCR 只会剩最后一个词。</summary>
+	const int MINSHORT = 72;
 
 	public static bool IsId(string id) =>
 		string.Equals(id, PackId, StringComparison.OrdinalIgnoreCase);
@@ -146,6 +148,21 @@ static class WinOcr {
 		return limit;
 	}
 
+	/// <summary>先按长边上限缩小，短边仍然太小再放大。返回相对原图的比例。</summary>
+	static double fitscale(int width, int height, int limit) {
+		var maxs = Math.Max(width, height);
+		var cap = scalecap(width, height, limit);
+		double scale = 1;
+		if (maxs > cap) scale = cap / (double)maxs;
+		var mins = Math.Min(width, height) * scale;
+		if (mins >= MINSHORT || mins < 1) return scale;
+		var up = MINSHORT / mins;
+		var longAfter = maxs * scale * up;
+		if (longAfter > MAXSIDE) up = MAXSIDE / (maxs * scale);
+		if (up > 1.02) scale *= up;
+		return scale;
+	}
+
 	static int limitof(OcrOptions opt) {
 		var limit = opt == null || opt.DetLimitSideLen <= 0 ? 1024 : opt.DetLimitSideLen;
 		if (limit < 320) limit = 320;
@@ -157,14 +174,11 @@ static class WinOcr {
 		if (bgra == null || width < 1 || height < 1)
 			throw new InvalidOperationException("图像为空");
 		var limit = limitof(opt);
-		double scale = 1;
+		var scale = fitscale(width, height, limit);
 		var work = bgra;
 		var dw = width;
 		var dh = height;
-		var maxs = Math.Max(width, height);
-		var cap = scalecap(width, height, limit);
-		if (maxs > cap) {
-			scale = cap / (double)maxs;
+		if (Math.Abs(scale - 1) > 0.001) {
 			dw = Math.Max(1, (int)Math.Round(width * scale));
 			dh = Math.Max(1, (int)Math.Round(height * scale));
 			work = resizebgra(bgra, width, height, width * 4, dw, dh);
@@ -232,14 +246,11 @@ static class WinOcr {
 		if (sw < 1 || sh < 1) throw new InvalidOperationException("图像为空");
 		width = sw;
 		height = sh;
-		scale = 1;
+		scale = fitscale(sw, sh, limit);
 		var transform = new BitmapTransform {
 			InterpolationMode = BitmapInterpolationMode.Linear,
 		};
-		var maxs = Math.Max(sw, sh);
-		var cap = scalecap(sw, sh, limit);
-		if (maxs > cap) {
-			scale = cap / (double)maxs;
+		if (Math.Abs(scale - 1) > 0.001) {
 			transform.ScaledWidth = (uint)Math.Max(1, (int)Math.Round(sw * scale));
 			transform.ScaledHeight = (uint)Math.Max(1, (int)Math.Round(sh * scale));
 		}

@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Windows OCR joins fragments on the same baseline into one line.
 - Windows OCR no longer shrinks a short strip just because its long side exceeds the detection limit.
+- Windows OCR enlarges an image whose short side is under 72 pixels so small gray text is not reduced to the last word.
 
 ### 中文
 
@@ -54,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Windows OCR 把同一行上的碎片拼回一整行。
 - Windows OCR 遇到扁图时不再按检测边长缩小，避免小字被丢掉。
+- Windows OCR 会把短边不足 72 像素的图先放大，避免浅色小字只剩最后一个词。
 
 ## v1.0.19 (2026-10-10 ~ 12)
 
