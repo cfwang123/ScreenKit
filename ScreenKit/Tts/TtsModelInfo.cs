@@ -69,8 +69,16 @@ static class TtsLang {
 		var known = knownlabel(lang);
 		if (known.Length > 0) return known + " (" + lang + ")";
 		var os = culturename(lang);
+		if (os.Length == 0) os = extraname(lang);
 		if (os.Length > 0) return os + " (" + lang + ")";
 		return lang;
+	}
+
+	/// <summary>Windows 文化库标成未知、但 Edge 会用到的语言。</summary>
+	static string extraname(string code) {
+		if (code == "su") return Loc.IsZh ? "巽他语" : "Sundanese";
+		if (code == "wuu") return Loc.IsZh ? "吴语" : "Wu Chinese";
+		return "";
 	}
 
 	static string knownlabel(string lang) => lang switch {

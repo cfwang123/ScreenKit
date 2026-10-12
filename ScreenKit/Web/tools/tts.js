@@ -186,6 +186,7 @@
 		var zhname = {
 			zh: "中文", en: "英文", ja: "日文", ko: "韩文",
 			vi: "越南语", yue: "粤语", fr: "法语", de: "德语", es: "西班牙语",
+			su: "巽他语", wuu: "吴语",
 		};
 		var page = document.documentElement.lang || "zh-CN";
 		var zh = page === "zh" || page.indexOf("zh") === 0;
