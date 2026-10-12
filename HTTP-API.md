@@ -265,7 +265,7 @@ ScreenKit --zhconv "國發" --simp
 
 ## 5.2.1 GET/POST `/api/pinyin`
 
-Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **Help → Install features → Tools**. It is not in the slim package. There are no tone marks. Common polyphonic words use their usual reading (`重庆` is `chong qing`, `银行` is `yin hang`). The letter ü is written as u. Letters and digits are spaced one by one.
+Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **Help → Install features → Tools**. It is not in the slim package. There are no tone marks. Common polyphonic words are listed in `pinyin.toml` beside the program (`重庆` is `chong qing`, `银行` is `yin hang`). The same word in `pinyin.user.toml` overrides it. An empty reading drops that system word. Updates replace `pinyin.toml` and leave `pinyin.user.toml`. The letter ü is written as u. Letters and digits are spaced one by one.
 
 **GET:** `/api/pinyin?text=中国人民银行&mode=py`
 

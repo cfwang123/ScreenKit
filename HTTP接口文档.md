@@ -274,7 +274,7 @@ ScreenKit --zhconv "國發" --simp
 
 ## 5.2.1 GET/POST `/api/pinyin`
 
-用可选的 `NPinyin.dll`（约 75 KB）把汉字转成拼音或首字母。在 **帮助 → 安装功能 → 工具集** 安装，不进精简包。不带声调。常见多音词按常用读法修正（「重庆」是 `chong qing`，「银行」是 `yin hang`）。ü 写成 u。英文字母和数字会逐个分开。
+用可选的 `NPinyin.dll`（约 75 KB）把汉字转成拼音或首字母。在 **帮助 → 安装功能 → 工具集** 安装，不进精简包。不带声调。常见多音词在程序旁的 `pinyin.toml`（「重庆」是 `chong qing`，「银行」是 `yin hang`）。`pinyin.user.toml` 里的同名词条盖住它。读音留空就去掉系统里的这一条。升级会换掉 `pinyin.toml`，不会动 `pinyin.user.toml`。ü 写成 u。英文字母和数字会逐个分开。
 
 **GET**
 

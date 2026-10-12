@@ -3631,6 +3631,7 @@ static class Cli {
 			Err("FAIL empty");
 			return 1;
 		}
+		if (testpinyinuser() != 0) return 1;
 		if (testpinyinhttp() != 0) return 1;
 		Out(py + " / " + ini);
 		if (!had) {
@@ -3649,6 +3650,53 @@ static class Cli {
 		}
 		Out("OK");
 		return 0;
+	}
+
+	static int testpinyinuser() {
+		var path = Path.Combine(NativeRuntime.BaseDir, "pinyin.user.toml");
+		string bak = null;
+		var had = File.Exists(path);
+		var code = 0;
+		try {
+			if (had) bak = File.ReadAllText(path);
+			var enc = new UTF8Encoding(false);
+			File.WriteAllText(path, "重庆 = \"aaa bbb\"\n银行 =\n", enc);
+			if (PinyinConvert.Convert("重庆", false) != "aaa bbb" || PinyinConvert.Convert("重庆", true) != "AB") {
+				Err("FAIL user override: " + PinyinConvert.Convert("重庆", false));
+				code = 1;
+			}
+			else if (PinyinConvert.Convert("银行", false) == "yin hang") {
+				Err("FAIL user clear: " + PinyinConvert.Convert("银行", false));
+				code = 1;
+			}
+			else if (PinyinConvert.Convert("长大", false) != "zhang da") {
+				Err("FAIL user keep: " + PinyinConvert.Convert("长大", false));
+				code = 1;
+			}
+			else {
+				File.WriteAllText(path, "# 只有注释\n", enc);
+				if (PinyinConvert.Convert("重庆", false) != "chong qing" || PinyinConvert.Convert("银行", false) != "yin hang") {
+					Err("FAIL user off: " + PinyinConvert.Convert("重庆", false) + " / " + PinyinConvert.Convert("银行", false));
+					code = 1;
+				}
+				else Out("user toml ok");
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL user toml: " + ex.Message);
+			code = 1;
+		}
+		finally {
+			try {
+				if (bak != null) File.WriteAllText(path, bak, new UTF8Encoding(false));
+				else if (File.Exists(path)) File.Delete(path);
+			}
+			catch (Exception ex) {
+				Err("FAIL restore pinyin.user.toml: " + ex.Message);
+				code = 1;
+			}
+		}
+		return code;
 	}
 
 	static int testpinyinhttp() {
@@ -5368,7 +5416,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-fake  安装 Bogus 后生成各类测试数据；原来没有则测完删掉
       --pinyin    中文转拼音（需已安装 NPinyin）。--init 输出首字母
-      --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，并测本机 /api/pinyin；原来没有则测完删掉
+      --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，测 pinyin.user.toml 盖住系统词表，并测本机 /api/pinyin；原来没有则测完删掉
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）

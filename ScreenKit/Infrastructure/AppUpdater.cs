@@ -800,7 +800,8 @@ static class AppUpdater {
 				|| relstartswith(rel, "translatemodels") || relstartswith(rel, "facemodels"))
 				continue;
 			// 保留用户配置
-			if (rel.Equals("config.toml", StringComparison.OrdinalIgnoreCase))
+			if (rel.Equals("config.toml", StringComparison.OrdinalIgnoreCase)
+				|| rel.Equals("pinyin.user.toml", StringComparison.OrdinalIgnoreCase))
 				continue;
 
 			var dest = Path.Combine(dstDir, rel);

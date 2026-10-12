@@ -70,7 +70,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **密码生成器** | **工具 → 密码生成器**：加密随机。打开窗口后马上生成一次；窗口还在时再从菜单进入会再生成一次。第一次打开默认小写字母和数字、长度 6、一次 10 条。大写、符号、排除易混 `0OIl1`、每类至少一个、手动字符集默认都不开。改类型时字符集会改成对应的那一组。记住上次设置。工具页里它在「文字」分类、「文本转换」下面。打开这张卡片后马上生成一次。可一次生成 1 到 50 条（长度 4 到 128）。单独的「随机字符串」卡片已去掉。**单词译音** Tab：可选 LLM，译成中日韩英等，以及文言文、古希腊语、拉丁语、梵语、古希伯来语，并给出拼音 / romaji / 罗马字。**变体** Tab：输入一句密码，LLM 多把意思译成其它语言再用拼音 / 罗马字拼写（英文同义最多一条；不加符号、不加数字、不做 o→0、不调换词序）。 |
 | **网络工具** | **工具 → 网络工具**：Ping、域名解析、WHOIS、路由跟踪、Ping 定位、代理定位、HTTP 测速定位、系统定位（Windows 定位，走 Wi-Fi 或 GPS；第一次使用时系统询问是否允许）。**查看地图**用浏览器打开高德（国内为 GCJ-02），结果里另有 OpenStreetMap 链接（WGS84）。 |
 | **简繁转换** | **工具 → 简繁转换**：上面简体、下面繁体，两个按钮互相转换。工具页上这两个按钮在「文本转换」里。系统 `LCMapStringEx`，繁体按 `zh-TW`，用字接近台湾，不是香港字表，也不做词级替换。 |
-| **中文转拼音** | **工具 → 中文转拼音**：把汉字转成不带声调的拼音，或每个字一个大写首字母。常见多音词按常用读法修正，例如「重庆」是 chong qing、「银行」是 yin hang。ü 写成 u。工具页在「文字」分类，改原文或方式后直接出结果。需要 `NPinyin.dll`（**帮助 → 安装功能 → 工具集**，约 75 KB，不进精简包）。 |
+| **中文转拼音** | **工具 → 中文转拼音**：把汉字转成不带声调的拼音，或每个字一个大写首字母。常见多音词在程序旁的 `pinyin.toml`，例如「重庆」是 chong qing、「银行」是 yin hang。`pinyin.user.toml` 里的同名词条盖住它。读音留空就去掉系统里的这一条，改用 NPinyin 自己的读音。升级会换掉 `pinyin.toml`，不会动 `pinyin.user.toml`。ü 写成 u。工具页在「文字」分类，改原文或方式后直接出结果。需要 `NPinyin.dll`（**帮助 → 安装功能 → 工具集**，约 75 KB，不进精简包）。 |
 | **历法** | **工具 → 历法**：`Windows.Globalization.Calendar`。公历换农历（干支、闰月）以及日本、民国、希伯来、伊斯兰、波斯等历法。 |
 | **日文注音** | **工具 → 日文注音**：`JapanesePhoneticAnalyzer` 把日文句子转成读音（词组或逐字）。工具页上非逐字和逐字是「文本转换」里的两个按钮。需要本机日语语言支持。Windows 没有同等的汉语拼音接口。 |
 | **自动按键** | **工具 → 自动按键**：向前台窗口连续发送按键或鼠标点击。默认快捷键 F6 开始和停止，可在窗口里修改；窗口里的按钮同样可以。间隔 20～60000 毫秒，默认 200。点击落在光标处；光标不在该窗口上时点客户区中心，再把光标移回。前台是本程序时不发送。 |
@@ -289,7 +289,7 @@ scripts\langtext.cmd -h
 - `GET  /api?lang=` · `/api/status` — `/api` 列出仍开启的接口，含方法和 HTTP 页里的参数说明。`lang` 省略时用程序当前语言。
 - `GET/POST /api/toast` — 底部 Toast（`text`，可选 `ms`）。命令行：`ScreenKit --toast "文字" [--ms 1900]`。HTTP 接口页的模板下拉里也有这两项。
 - `GET/POST /api/zhconv` — 简繁（`text`，`to=trad|simp`）。GET 查询串按 UTF-8 解码。命令行：`ScreenKit --zhconv "文字" [--trad|--simp]`
-- `GET/POST /api/pinyin` — 中文转拼音（`text`，`mode=py|init`）。不带 text 时 `data.installed` 表示是否已装 `NPinyin.dll`。有原文但没装库返回 803。不带声调。命令行：`ScreenKit --pinyin "重庆" [--init]`
+- `GET/POST /api/pinyin` — 中文转拼音（`text`，`mode=py|init`）。不带 text 时 `data.installed` 表示是否已装 `NPinyin.dll`。有原文但没装库返回 803。不带声调。读音来自 `pinyin.toml`，`pinyin.user.toml` 的同名词条盖住它。命令行：`ScreenKit --pinyin "重庆" [--init]`
 - `GET/POST /api/calendar` — 历法（`date`，`cal=lunar` 等）。命令行：`ScreenKit --calendar 2024-02-10 --cal lunar`
 - `GET/POST /api/jpyomi` — 日文注音（`text`，可选 `mono`）。命令行：`ScreenKit --jpyomi "日文" [--mono]`
 - `GET/POST /api/cast/stop` — 立刻关闭投屏画面窗
@@ -363,6 +363,8 @@ OCR/
 ScreenKit/bin/Release/net48/
 ├── ScreenKit.exe
 ├── config.toml
+├── pinyin.toml
+├── pinyin.user.toml
 ├── ocrmodels/  asrmodels/  ttsmodels/  translatemodels/  facemodels/
 ├── onnxcpu64/  onnxgpu64/  onnxdml64/
 └── ffmpeg64/
@@ -378,7 +380,7 @@ dotnet build -c Release
 
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
-- **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证、`web/`。工具页只有合成后的 `tools.js`，没有 `web/tools` 里的各工具脚本。
+- **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证、`web/`、`pinyin.toml`、`pinyin.user.toml`。工具页只有合成后的 `tools.js`，没有 `web/tools` 里的各工具脚本。
 - **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict2.db`、`ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll`、`Bogus.dll`、`NPinyin.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 

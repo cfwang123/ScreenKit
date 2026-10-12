@@ -51,6 +51,8 @@
     <None Include="dll\x64\7za.dll" CopyToOutputDirectory="PreserveNewest" Link="7za.dll" />
     <None Include="dll\x64\License.7za.txt" CopyToOutputDirectory="PreserveNewest" Link="License.7za.txt" />
     <None Include="lang\*.toml" CopyToOutputDirectory="PreserveNewest" Link="lang\%(Filename)%(Extension)" />
+    <None Include="pinyin.toml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="pinyin.user.toml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="SendFile\web\**\*" CopyToOutputDirectory="PreserveNewest" Link="web\%(Filename)%(Extension)" />
     <None Include="Web\tools.html" CopyToOutputDirectory="PreserveNewest" Link="web\tools.html" />
     <None Include="Web\tools.css" CopyToOutputDirectory="PreserveNewest" Link="web\tools.css" />
@@ -295,6 +297,7 @@
     <MakeDir Directories="$(_SlimOut)\lang" Condition="'@(_SlimLang)' != ''" />
     <Copy SourceFiles="@(_SlimLang)" DestinationFolder="$(_SlimOut)\lang" SkipUnchangedFiles="true"
           Condition="'@(_SlimLang)' != ''" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\pinyin.toml;$(MSBuildProjectDirectory)\pinyin.user.toml" DestinationFolder="$(_SlimOut)" />
     <!-- 若上次发布残留按需库/junk，删掉以免误带进压缩包 -->
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
