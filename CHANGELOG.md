@@ -84,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Common colors now covers all 148 CSS named colors. The curated 83 grew to 155 rows (139 named colors plus 16 Chinese-specific colors) with a new White / Paper group for the near-white tones, and spellings that differ between US and UK share one row (Gray / Grey, Cyan / Aqua, Fuchsia / Magenta).
 - Tools → Fast copy Explorer menu now has the full cascade: fast cut, copy, delete, copy as symbolic link, copy as hard link, total size, copy paths, and settings. A symbolic link points at the selected file or folder. A hard link must stay on the same volume; a folder becomes a directory tree of file hard links. Size shows the file count, folder count, and bytes, and does not follow reparse points. Settings opens the fast-copy window with those paths. An already registered menu is rewritten when the program starts. Paste also handles the new link clips.
 - The HTML layout tool is now only the tools-page card HTML tool, under Image. The desktop window, Tools menu item, and tray item are gone. Templates also include a table, a nav bar, alerts, tags, a list, progress, an empty state, a dialog, pages, and steps.
+- Common colors is now Color table and opens as a tree with two branches. Web colors holds the 148 CSS named colors in 11 hue groups; C# colors holds the 174 names of .NET (System.Drawing.KnownColor), 141 named colors plus 33 system colors whose values follow the Windows theme. The branches never mix, the All entry is gone, and Transparent is drawn as a checkerboard with an A=0 note.
 
 #### Fixed
 
@@ -147,6 +148,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 常用颜色表补全到全部 148 个 CSS 命名色：原来的 83 条扩到 155 条（139 个命名色 + 16 个中文专名色），近白色单开「白/纸色」组；英美拼写同值的合并成一条显示双拼（Gray / Grey、Cyan / Aqua、Fuchsia / Magenta）。
 - 工具 → 快速复制的资源管理器菜单补齐为：快速剪切、快速复制、快速删除、复制为符号链接、复制为硬链接、统计大小、复制路径、参数设置。符号链接指向选中的文件或文件夹。硬链接必须在同一分区，文件夹会按目录为每个文件建硬链接。统计大小给出文件数、文件夹数和字节，不进入重解析点。参数设置打开快速复制窗口并带上这些路径。已经注册过的菜单在程序启动时会重写。粘贴也能处理这两种链接。
 - HTML 界面设计改为工具页「图像」里的 HTML工具。桌面窗口、工具菜单和托盘项已去掉。模板增加表格、导航、提示、标签、列表、进度、空状态、对话框、分页和步骤。
+- 「常用颜色表」改名「颜色表」，改成树形两支：web 颜色是 148 个 CSS 命名色（11 个色相分组），C# 颜色是 .NET 的 174 个名字（System.Drawing.KnownColor），141 个命名色 + 33 个系统色（色值随 Windows 主题）。两支互不混，不再有「全部」；Transparent 画成棋盘格并标注 A=0。
 
 #### 修复
 

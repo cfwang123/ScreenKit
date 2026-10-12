@@ -323,14 +323,15 @@
 	function ongroup(ev){
 		var el = ev.target;
 		while (el && el !== this) {
+			// 点三角只展开/收起，点文字才是选中
+			if (el.className && typeof el.className === "string" && el.className.indexOf("tw") === 0
+				&& el.className.indexOf("leaf") < 0) {
+				var id = el.parentNode.getAttribute("data-set");
+				expanded[id] = !expanded[id];
+				paintgroups();
+				return;
+			}
 			if (el.getAttribute && el.getAttribute("data-set")) {
-				// 点三角只展开/收起，点文字才是选中
-				if (el.className && el.className.indexOf("tw") === 0) {
-					var id = el.parentNode.getAttribute("data-set");
-					expanded[id] = !expanded[id];
-					paintgroups();
-					return;
-				}
 				cur = { set: el.getAttribute("data-set"), g: el.getAttribute("data-g") };
 				paintgroups();
 				paint();

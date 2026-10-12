@@ -2,6 +2,7 @@
 	SK.regutil("u-work", {
 		title: "工作日",
 		go: "计算",
+		noGo: true,
 		body: function(){
 			return SK.row2(SK.lab("开始", '<input id="box-a" type="date">'), SK.lab("结束", '<input id="box-b" type="date">'));
 		},
@@ -10,9 +11,16 @@
 		},
 		open: function(){
 			var day = new Date();
-			SK.$("box-b").value = SK.ymd(day);
+			var a = SK.$("box-a");
+			var b = SK.$("box-b");
+			b.value = SK.ymd(day);
 			day.setDate(day.getDate() - 7);
-			SK.$("box-a").value = SK.ymd(day);
+			a.value = SK.ymd(day);
+			a.oninput = SK.utilrun;
+			b.oninput = SK.utilrun;
+			a.onchange = SK.utilrun;
+			b.onchange = SK.utilrun;
+			SK.utilrun();
 		}
 	});
 	function workdays(a, b){
