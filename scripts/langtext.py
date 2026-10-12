@@ -482,6 +482,16 @@ EXAMPLES = """示例:
 """
 
 
+def common_flags() -> argparse.ArgumentParser:
+    """公共选项。写在子命令前后都可以（子命令里用 SUPPRESS，避免覆盖主解析器的默认值）。"""
+    c = argparse.ArgumentParser(add_help=False)
+    c.add_argument("--root", default=argparse.SUPPRESS, help="语言目录，默认 ScreenKit/lang")
+    c.add_argument("--dry-run", action="store_true", default=argparse.SUPPRESS, help="只预览，不写文件")
+    c.add_argument("--sync", action="store_true", default=argparse.SUPPRESS,
+                   help="同时覆盖 ScreenKit/bin 下已有的 lang 副本")
+    return c
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="langtext.py",
@@ -492,9 +502,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--root", default=str(LANGDIR), help="语言目录，默认 ScreenKit/lang")
     p.add_argument("--dry-run", action="store_true", help="只预览，不写文件")
     p.add_argument("--sync", action="store_true", help="同时覆盖 ScreenKit/bin 下已有的 lang 副本")
+    common = common_flags()
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("set", help="新增或修改一条文案")
+    s = sub.add_parser("set", help="新增或修改一条文案", parents=[common])
     s.add_argument("key", help="文案键，如 app.demo.title")
     s.add_argument("text", nargs="?", default=None, help="文本；含换行写 \\n")
     s.add_argument("-l", "--lang", action="append", default=[],
@@ -506,27 +517,27 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--add-only", action="store_true", help="只在键不存在时写入")
     s.set_defaults(func=cmd_set)
 
-    g = sub.add_parser("get", help="查看某个键在各语言下的值")
+    g = sub.add_parser("get", help="查看某个键在各语言下的值", parents=[common])
     g.add_argument("key")
     g.add_argument("-l", "--lang", action="append", default=[], help="目标语言，默认全部")
     g.set_defaults(func=cmd_get)
 
-    m = sub.add_parser("missing", help="列出各语言相对基础语言缺失或为空的键")
+    m = sub.add_parser("missing", help="列出各语言相对基础语言缺失或为空的键", parents=[common])
     m.add_argument("-l", "--lang", action="append", default=[], help="目标语言，默认全部")
     m.add_argument("--base", default="zh", help="基础语言，默认 zh")
     m.add_argument("--limit", type=int, default=20, help="每种语言最多列几条，0 表示全部")
     m.set_defaults(func=cmd_missing)
 
-    f = sub.add_parser("fill", help="用某个语言的文案补齐其它语言")
+    f = sub.add_parser("fill", help="用某个语言的文案补齐其它语言", parents=[common])
     f.add_argument("--from", dest="src", default="zh", help="源语言，默认 zh")
     f.add_argument("-l", "--lang", action="append", default=[], help="目标语言，默认除源语言外全部")
     f.add_argument("--overwrite", action="store_true", help="已存在的键也覆盖")
     f.set_defaults(func=cmd_fill)
 
-    c = sub.add_parser("check", help="检查各语言键集合的差异")
+    c = sub.add_parser("check", help="检查各语言键集合的差异", parents=[common])
     c.set_defaults(func=cmd_check)
 
-    l = sub.add_parser("langs", help="列出语言文件")
+    l = sub.add_parser("langs", help="列出语言文件", parents=[common])
     l.set_defaults(func=cmd_langs)
     return p
 
