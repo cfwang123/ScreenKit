@@ -36,6 +36,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- Text convert on the tools page has Swap next to Copy. It exchanges the source and the result, and drops a conversion that has not come back yet.
+- Right-click the screenshot area to copy it as an image, file, or path, open it with the default app, show it in Explorer, annotate it again in screenshot history, recognize text or a barcode, or clear the picture and its results.
 - The tools page adds Common colors under Image. Colors are grouped by hue. A click copies the hex value.
 - The tools page opens in the desktop UI language. A choice in the page language menu lasts until the page is opened again. The desktop Web tools menu lists each tool in that same language.
 - The tools page language menu loads `/sk/L.js`. ScreenKit builds that script when it is requested. The script is one assignment, `L={...}`. Each value is an array of the installed UI languages, in the same order as the desktop language list, Chinese first. The browser may cache the script for 1 hour. Restarting ScreenKit changes the script address, so the next page load fetches it again. Choosing a language updates the open page at once and does not reload it.
@@ -65,6 +67,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页「文本转换」在复制旁边增加「交换」。点一下把原文和结果对调，还没回来的转换会被丢掉。
+- 截图区右键可以复制为图片、文件或路径，用系统打开，在资源管理器中查看，重新标注（打开截图历史），做文字识别或条码识别，以及清空当前图片和识别结果。
 - 工具页在图像分类增加常用颜色表。按红、橙、黄、绿、青、蓝、紫等分组。点一下复制十六进制。
 - 工具页打开时使用桌面程序的界面语言。在页面里改语言只保持到下次打开。桌面「web工具」菜单按同一语言列出每个工具。
 - 工具页侧栏的语言菜单加载 `/sk/L.js`。程序在请求时生成这个脚本，内容是一次赋值 `L={...}`。每个值是已安装界面语言组成的数组，顺序与桌面语言列表相同，中文在前。浏览器可缓存 1 小时。重新启动后脚本地址会变，下次打开页面会重新取。切换语言立即改当前页上的文字，不刷新页面。

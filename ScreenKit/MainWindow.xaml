@@ -388,6 +388,32 @@
 									      ClipToBounds="True"
 									      AllowDrop="True"
 									      Cursor="Hand">
+										<Grid.ContextMenu>
+											<ContextMenu x:Name="mnimg">
+												<MenuItem x:Name="mnimgcopy" Header="复制为图片"
+												          AutomationProperties.AutomationId="img.menu.copy"/>
+												<MenuItem x:Name="mnimgfile" Header="复制为文件"
+												          AutomationProperties.AutomationId="img.menu.file"/>
+												<MenuItem x:Name="mnimgpath" Header="复制为路径"
+												          AutomationProperties.AutomationId="img.menu.path"/>
+												<Separator/>
+												<MenuItem x:Name="mnimgopen" Header="系统打开"
+												          AutomationProperties.AutomationId="img.menu.open"/>
+												<MenuItem x:Name="mnimgexp" Header="在 Explorer 中查看"
+												          AutomationProperties.AutomationId="img.menu.explorer"/>
+												<Separator/>
+												<MenuItem x:Name="mnimgreannot" Header="重新标注"
+												          AutomationProperties.AutomationId="img.menu.reannot"/>
+												<Separator/>
+												<MenuItem x:Name="mnimgocr" Header="文字识别"
+												          AutomationProperties.AutomationId="img.menu.ocr"/>
+												<MenuItem x:Name="mnimgqr" Header="条码识别"
+												          AutomationProperties.AutomationId="img.menu.qr"/>
+												<Separator/>
+												<MenuItem x:Name="mnimgclear" Header="清空"
+												          AutomationProperties.AutomationId="img.menu.clear"/>
+											</ContextMenu>
+										</Grid.ContextMenu>
 										<Canvas x:Name="pstage" RenderTransformOrigin="0,0"
 										        HorizontalAlignment="Left" VerticalAlignment="Top">
 											<Canvas.RenderTransform>

@@ -503,8 +503,24 @@
 		return "var html = " + JSON.stringify(s) + ";";
 	}
 
+	function txswap(){
+		if (textwait) {
+			clearTimeout(textwait);
+			textwait = 0;
+		}
+		textseq++;
+		var src = SK.$("tx-in");
+		var out = SK.$("tx-out");
+		if (!src || !out) return;
+		var text = src.value;
+		src.value = out.value;
+		out.value = text;
+		SK.msg("tx-msg", "");
+	}
+
 	SK.textop = textop;
 	if (SK.$("tx-in")) SK.$("tx-in").oninput = textlive;
+	if (SK.$("tx-swap")) SK.$("tx-swap").onclick = txswap;
 	SK.textlocal = textlocal;
 	SK.htmldec = htmldec;
 	SK.jsonmin = jsonmin;

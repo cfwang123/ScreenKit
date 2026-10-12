@@ -1452,6 +1452,15 @@ public partial class MainWindow : Window {
 		bpaste.Click += async (_, _) => await pasteasync();
 		bcopyimg.Click += (_, _) => copyimage();
 		bsaveclip.Click += (_, _) => saveimage();
+		mnimgcopy.Click += (_, _) => copyimage();
+		mnimgfile.Click += (_, _) => copyfile();
+		mnimgpath.Click += (_, _) => copypath();
+		mnimgopen.Click += (_, _) => openshotapp();
+		mnimgexp.Click += (_, _) => openshotexplorer();
+		mnimgreannot.Click += (_, _) => reannotateshot();
+		mnimgocr.Click += async (_, _) => await recogfrommenu(false);
+		mnimgqr.Click += async (_, _) => await recogfrommenu(true);
+		mnimgclear.Click += (_, _) => clearshot();
 		btoggletext.Checked += (_, _) => {
 			if (mntoggletext.IsChecked != true) mntoggletext.IsChecked = true;
 			drawoverlay();
@@ -1711,6 +1720,21 @@ public partial class MainWindow : Window {
 			bsnap.ToolTip = Loc.T("tb.snap.tip");
 			tbhistory.Text = Loc.T("tb.history");
 			bhistory.ToolTip = Loc.T("tb.history.tip");
+			mnimgcopy.Header = Loc.T("img.menu.copy");
+			mnimgfile.Header = Loc.T("img.menu.file");
+			mnimgpath.Header = Loc.T("img.menu.path");
+			mnimgopen.Header = Loc.T("img.menu.open");
+			mnimgopen.ToolTip = Loc.T("img.menu.open.tip");
+			mnimgexp.Header = Loc.T("img.menu.explorer");
+			mnimgexp.ToolTip = Loc.T("img.menu.explorer.tip");
+			mnimgreannot.Header = Loc.T("img.menu.reannot");
+			mnimgreannot.ToolTip = Loc.T("img.menu.reannot.tip");
+			mnimgocr.Header = Loc.T("img.menu.ocr");
+			mnimgocr.ToolTip = Loc.T("img.menu.ocr.tip");
+			mnimgqr.Header = Loc.T("img.menu.qr");
+			mnimgqr.ToolTip = Loc.T("img.menu.qr.tip");
+			mnimgclear.Header = Loc.T("img.menu.clear");
+			mnimgclear.ToolTip = Loc.T("img.menu.clear.tip");
 			try { histwin?.ApplyLang(); } catch { }
 			tbpaste.Text = Loc.T("tb.paste");
 			bpaste.ToolTip = Loc.T("tb.paste.tip");
@@ -1878,6 +1902,14 @@ public partial class MainWindow : Window {
 	void initviewport() {
 		// 视口可聚焦：图→文同步时临时 Focus 结果区后可交还
 		pviewport.Focusable = true;
+		// 图和叠字在子元素上，右键不会冒泡到父级 ContextMenu，这里统一弹出
+		pviewport.PreviewMouseRightButtonUp += (_, e) => {
+			syncimgmenu();
+			mnimg.PlacementTarget = pviewport;
+			mnimg.IsOpen = true;
+			e.Handled = true;
+		};
+		mnimg.Opened += (_, _) => syncimgmenu();
 
 		// 文本区：拖选实时同步；单击松开选整块须等 TextBox 自己落完 caret（见 finishtextsel）
 		eresult.SelectionChanged += (_, _) => {
@@ -2672,9 +2704,10 @@ public partial class MainWindow : Window {
 				return;
 			}
 			// 写入 screenshots/ 并按配置复制到剪贴板（编码在后台，不堵 UI）
+			string savedPath = null;
 			try {
-				var path = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, "ocr");
-				CaptureLog.Info("captureasync saved " + path);
+				savedPath = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, "ocr");
+				CaptureLog.Info("captureasync saved " + savedPath);
 			}
 			catch (Exception ex) { CaptureLog.Ex("captureasync SaveScreenshot", ex); }
 			// 成功：切到截图识别页；showMainAfter 时弹出主窗，否则藏回托盘
@@ -2685,7 +2718,7 @@ public partial class MainWindow : Window {
 				// 遮罩关闭瞬间系统常把主窗拉前台，后台识别时立刻藏回
 				keepmainhidden();
 			try {
-				setimage(bmp);
+				setimage(bmp, savedPath);
 				CaptureLog.Info($"captureasync setimage ok cur={CaptureLog.Bmp(curimg)} lb={lbimgsize?.Text}");
 			}
 			catch (Exception ex) {
@@ -3037,7 +3070,7 @@ public partial class MainWindow : Window {
 			}
 		}
 		try {
-			setimage(resultImg);
+			setimage(resultImg, saved);
 			CaptureLog.Info($"{label} setimage ok {CaptureLog.Bmp(curimg)}");
 		}
 		catch (Exception ex) { CaptureLog.Ex(label + " setimage", ex); }
@@ -3081,14 +3114,17 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void openhistory() {
+	void openhistory(string selectPath = null) {
 		try {
 			if (histwin != null) {
 				if (histwin.WindowState == WindowState.Minimized)
 					histwin.WindowState = WindowState.Normal;
 				histwin.Show();
 				histwin.Activate();
-				histwin.OnReopen();
+				if (!string.IsNullOrEmpty(selectPath))
+					histwin.Reload(selectPath);
+				else
+					histwin.OnReopen();
 				return;
 			}
 		}
@@ -3108,6 +3144,8 @@ public partial class MainWindow : Window {
 		histwin.Closed += (_, _) => histwin = null;
 		attachdialogowner(histwin);
 		histwin.Show();
+		if (!string.IsNullOrEmpty(selectPath))
+			histwin.Reload(selectPath);
 	}
 
 	async Task<string> histcommit(BitmapSource bmp, string reusePath, int act) {
@@ -3327,6 +3365,141 @@ public partial class MainWindow : Window {
 			Focus();
 		}
 		catch { }
+	}
+
+	void syncimgmenu() {
+		var on = curimg != null;
+		mnimgcopy.IsEnabled = on;
+		mnimgfile.IsEnabled = on;
+		mnimgpath.IsEnabled = on;
+		mnimgopen.IsEnabled = on;
+		mnimgexp.IsEnabled = on;
+		mnimgreannot.IsEnabled = on;
+		mnimgocr.IsEnabled = on;
+		mnimgqr.IsEnabled = on;
+		mnimgclear.IsEnabled = on;
+	}
+
+	/// <summary>当前图的文件。历史里没有时先落入 screenshots/，不改剪贴板。</summary>
+	string shotfilepath(bool forHistory) {
+		var has = !string.IsNullOrWhiteSpace(curimgsrcpath) && File.Exists(curimgsrcpath);
+		if (has && (!forHistory || inscreenshotfile(curimgsrcpath)))
+			return curimgsrcpath;
+		var path = ImageUtil.SaveScreenshot(curimg, "shot");
+		if (!has) curimgsrcpath = path;
+		return path;
+	}
+
+	static bool inscreenshotfile(string path) {
+		try {
+			var dir = Path.GetFullPath(ImageUtil.ScreenshotsDir)
+				.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			var parent = Path.GetDirectoryName(Path.GetFullPath(path)) ?? "";
+			parent = parent.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			return string.Equals(parent, dir, StringComparison.OrdinalIgnoreCase);
+		}
+		catch { return false; }
+	}
+
+	void openshotapp() {
+		if (curimg == null) return;
+		try {
+			var path = shotfilepath(false);
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = path,
+				UseShellExecute = true,
+			});
+			setstatus(Loc.T("img.opened", Path.GetFileName(path)));
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("img.open.fail", ex.Message));
+			showwarnmsg(ex.Message, Loc.T("img.menu.open"));
+		}
+	}
+
+	void openshotexplorer() {
+		if (curimg == null) return;
+		try {
+			var path = shotfilepath(false);
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = "explorer.exe",
+				Arguments = "/select,\"" + path + "\"",
+				UseShellExecute = true,
+			});
+			setstatus(Loc.T("img.explorer", Path.GetFileName(path)));
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("img.explorer.fail", ex.Message));
+			showwarnmsg(ex.Message, Loc.T("img.menu.explorer"));
+		}
+	}
+
+	void reannotateshot() {
+		if (curimg == null) return;
+		try {
+			var path = shotfilepath(true);
+			openhistory(path);
+			setstatus(Loc.T("img.reannot", Path.GetFileName(path)));
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("hist.fail", ex.Message));
+			showwarnmsg(ex.Message, Loc.T("img.menu.reannot"));
+		}
+	}
+
+	async Task recogfrommenu(bool qr) {
+		if (curimg == null) return;
+		if (qr) qrDoneForImg = false;
+		else ocrDoneForImg = false;
+		var tab = qr ? tabresultqr : tabresultocr;
+		if (!ReferenceEquals(tabresult.SelectedItem, tab))
+			tabresult.SelectedItem = tab;
+		else if (qr)
+			await runqrasync(curimg, setImg: false);
+		else
+			await runocrasync(curimg, setImg: false);
+	}
+
+	void clearshot() {
+		if (curimg == null && imgview.Source == null) return;
+		try { ocrCts?.Cancel(); } catch { }
+		System.Threading.Interlocked.Increment(ref ocrGen);
+		busy = false;
+		busyKind = null;
+		setbusyui(false);
+		cancelocrtranslate();
+		clearselection();
+		curimg = null;
+		curimgsrcpath = null;
+		ocrDoneForImg = false;
+		qrDoneForImg = false;
+		last = null;
+		lastQr = null;
+		try {
+			eresult.Text = "";
+			eqrresult.Text = "";
+		}
+		catch { }
+		ocrMetaText = Loc.T("result.meta");
+		ocrMetaBase = ocrMetaText;
+		qrMetaText = Loc.T("result.qr.meta");
+		syncresultmetafromtab();
+		imgview.Source = null;
+		imgview.Width = 0;
+		imgview.Height = 0;
+		pstage.Width = 0;
+		pstage.Height = 0;
+		poverlay.Children.Clear();
+		tfscale.ScaleX = 1;
+		tfscale.ScaleY = 1;
+		tfpan.X = 0;
+		tfpan.Y = 0;
+		lbimgsize.Text = "— × —";
+		lbzoom.Text = "100%";
+		try { lbtime.Text = "—"; } catch { }
+		lbhint.Text = Loc.T("hint.empty");
+		lbhint.Visibility = Visibility.Visible;
+		setstatus(Loc.T("img.cleared"));
 	}
 
 	void copyimage() {

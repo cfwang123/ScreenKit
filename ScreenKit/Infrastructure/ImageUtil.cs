@@ -768,6 +768,17 @@ static class ImageUtil {
 	static BitmapSource prepareforcapture(BitmapSource src) =>
 		FitScreenshotShort(Withdpi(src));
 
+	/// <summary>只保存到 screenshots/，不写剪贴板。供系统打开、资源管理器定位和重新标注。</summary>
+	public static string SaveScreenshot(BitmapSource src, string prefix = "shot") {
+		if (src == null) throw new ArgumentNullException(nameof(src));
+		var toSave = prepareforcapture(src);
+		var path = MakeScreenshotPath(ScreenshotsDir, prefix, screenshotext());
+		Savefile(toSave, path, CurrentScreenshotJpgQuality);
+		LastScreenshotPath = path;
+		CaptureLog.Info($"SaveScreenshot bmp={CaptureLog.Bmp(toSave)} path={path}");
+		return path;
+	}
+
 	/// <summary>
 	/// 保存到 screenshots/，并以「复制文件」放入剪贴板（兼容旧调用）。
 	/// </summary>
