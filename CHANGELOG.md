@@ -120,6 +120,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation adds an SI row, one prefix for each power of one thousand, from quecto and yocto through kilo, mega, and quetta.
 - Number notation adds Korean native and Sino-Korean, Japanese, and German, French, Spanish, Portuguese, and Russian readings.
 - Number notation names a positive integer as an English polygon, from triangle and hectogon through myriakismyriagon.
+- Polygon names continue past 100 million sides by stacking myriads, so one billion is decakismyriakismyriagon (gigagon).
 
 #### Fixed
 
@@ -233,6 +234,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记增加 SI 词头，按千进位，从 quecto、yocto 到 kilo、mega、quetta。
 - 数字表记增加韩文固有、韩文汉字、日语，以及德语、法语、西班牙语、葡萄牙语和俄语读法。
 - 数字表记为正整数增加英文多边形名，从 triangle、hectogon 到 myriakismyriagon。
+- 英文多边形名超过 1 亿边后按 myriad 继续叠乘，十亿边是 decakismyriakismyriagon（gigagon）。
 
 #### 修复
 

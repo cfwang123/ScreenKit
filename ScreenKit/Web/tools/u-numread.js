@@ -64,7 +64,7 @@
 		hideOut: true,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英文多边形名，如 pentagon、hectogon、chiliagon、myriagon，到 1 亿边。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英文多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -844,30 +844,37 @@
 		return sign(p) + left + (right ? "." + right : "") + "%";
 	}
 
-	// 英文多边形名：1–9999 用 hecta 体系，万以上用「若干次 myriad」。超过 1 亿显示超出。
+	// 英文多边形名。四位一组：第 1 组 myriad，再上一组 myriakis myriad，可一直叠到整数上限。
 	function polyof(p){
 		if (p.neg || p.fp || p.ip === "0") return "—";
-		if (p.ip.length > 9) return "超出";
-		var n = parseInt(p.ip, 10);
-		if (n > 100000000) return "超出";
-		return polyName(n);
+		return polyName(p.ip);
 	}
 
-	function polyName(n){
-		if (n === 3) return "triangle";
-		if (n === 4) return "quadrilateral";
-		var name;
-		if (n === 100000000) name = "myriakismyriagon";
-		else if (n < 10000) name = stemUnderMyriad(n) + "gon";
-		else {
-			var high = Math.floor(n / 10000);
-			var low = n % 10000;
-			var pref = high === 1 ? "myria" : polyAdverb(high) + "myria";
-			name = low ? pref + "kai" + stemUnderMyriad(low) + "gon" : pref + "gon";
+	function polyName(ip){
+		if (ip === "3") return "triangle";
+		if (ip === "4") return "quadrilateral";
+		var groups = splitend(ip, 4);
+		var parts = [];
+		var i;
+		for (i = groups.length - 1; i >= 0; i--) {
+			var k = parseInt(groups[i], 10);
+			if (!k) continue;
+			parts.push(i ? groupPrefix(k, i) : stemUnderMyriad(k));
 		}
-		var alias = megaAlias(n);
+		var name = parts.join("kai") + "gon";
+		var alias = megaAlias(ip);
 		if (alias) name += " (" + alias + ")";
 		return name;
+	}
+
+	function groupPrefix(k, order){
+		var unit = "myria";
+		var i;
+		for (i = 1; i < order; i++) unit = "myriakis" + unit;
+		if (k === 1) return unit;
+		if (k === 2) return "dis" + unit;
+		if (k === 3) return "tris" + unit;
+		return polyAdverb(k) + unit;
 	}
 
 	function stemUnderMyriad(n){
@@ -944,16 +951,33 @@
 		return p + "a" + tail;
 	}
 
-	function megaAlias(n){
-		if (n % 1000000) return "";
-		var k = n / 1000000;
-		if (k === 1) return "megagon";
-		if (k === 10) return "decamegagon";
-		if (k === 20) return "icosamegagon";
-		if (k === 100) return "hectamegagon";
-		if (k >= 2 && k <= 9) return polyUnit(k) + "megagon";
-		if (k >= 30 && k <= 90 && k % 10 === 0) return stemUnder100(k) + "megagon";
+	function megaAlias(ip){
+		if (ip.length > 6 && ip.slice(-6) === "000000") {
+			var head = ip.slice(0, -6);
+			if (head === "1") return "megagon";
+			if (head === "10") return "decamegagon";
+			if (head === "20") return "icosamegagon";
+			if (head === "100") return "hectamegagon";
+			if (head.length === 1) {
+				var d = head.charCodeAt(0) - 48;
+				if (d >= 2 && d <= 9) return polyUnit(d) + "megagon";
+			}
+			if (head.length === 2 && head.charAt(1) === "0") {
+				var t = head.charCodeAt(0) - 48;
+				if (t >= 3 && t <= 9) return stemUnder100(t * 10) + "megagon";
+			}
+		}
+		if (ip === "1" + polyZeros(9)) return "gigagon";
+		if (ip === "1" + polyZeros(12)) return "teragon";
+		if (ip === "1" + polyZeros(15)) return "petagon";
 		return "";
+	}
+
+	function polyZeros(n){
+		var s = "";
+		var i;
+		for (i = 0; i < n; i++) s += "0";
+		return s;
 	}
 
 	function romanof(p){
