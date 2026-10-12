@@ -288,7 +288,7 @@ public partial class MainWindow {
 			}
 			foreach (var lg in set) {
 				if (TtsLang.HasName(lg)) continue;
-				ettslang.Items.Add(new ComboBoxItem { Content = lg, Tag = lg });
+				ettslang.Items.Add(new ComboBoxItem { Content = TtsLang.DisplayName(lg), Tag = lg });
 			}
 			selectcombobytag(ettslang, prev);
 		}

@@ -5,8 +5,10 @@
  * 用法（在仓库根目录）:
  *   node scripts/publish-release.mjs
  *   node scripts/publish-release.mjs --skip-build
+ *   node scripts/publish-release.mjs --clean-only
  *
- * 需要已安装 7-Zip（7z 在 PATH，或默认安装路径）。
+ * 打包前删掉精简目录里运行时留下的截图、日志、配置和接收文件。
+ * 需要已安装 7-Zip（7z 在 PATH，或默认安装路径）。--clean-only 只清理、不打包。
  */
 import { execSync, spawnSync } from 'child_process';
 import fs from 'fs';
@@ -18,6 +20,15 @@ const csproj = path.join(root, 'ScreenKit', 'ScreenKit.csproj');
 const slimDir = path.join(root, 'ScreenKit', 'bin', 'Release', 'ScreenKit');
 const releaseDir = path.join(root, 'release');
 const skipBuild = process.argv.includes('--skip-build');
+const cleanOnly = process.argv.includes('--clean-only');
+
+// 运行精简包时落在目录里、不应打进发布包的内容
+const junkDirs = ['log', 'screenshots', 'sendfile', 'tmp', 'apk'];
+const junkFiles = [
+	'config.toml',
+	'dict.db', 'dict.db-wal', 'dict.db-shm',
+	'dict2.db', 'dict2.db-wal', 'dict2.db-shm',
+];
 
 function readVersion() {
 	const xml = fs.readFileSync(csproj, 'utf8');
@@ -29,6 +40,49 @@ function readVersion() {
 function run(cmd, opts = {}) {
 	console.log(`> ${cmd}`);
 	execSync(cmd, { cwd: root, stdio: 'inherit', shell: true, ...opts });
+}
+
+function removePath(p) {
+	fs.rmSync(p, { recursive: true, force: true });
+	console.log(`已删除 ${path.relative(root, p)}`);
+}
+
+/** 删掉精简发布目录里的截图、日志和其它本机运行残留。 */
+function cleanSlimDir(dir) {
+	for (const name of junkDirs) {
+		const p = path.join(dir, name);
+		if (!fs.existsSync(p)) continue;
+		try {
+			removePath(p);
+		} catch (e) {
+			console.warn(`未能删除 ${path.relative(root, p)}: ${e.message || e}`);
+		}
+	}
+	for (const name of junkFiles) {
+		const p = path.join(dir, name);
+		if (!fs.existsSync(p)) continue;
+		try {
+			removePath(p);
+		} catch (e) {
+			console.warn(`未能删除 ${path.relative(root, p)}: ${e.message || e}`);
+		}
+	}
+	let names;
+	try {
+		names = fs.readdirSync(dir, { withFileTypes: true });
+	} catch (e) {
+		console.warn(`未能列出 ${path.relative(root, dir)}: ${e.message || e}`);
+		return;
+	}
+	for (const ent of names) {
+		if (!ent.isFile() || !ent.name.toLowerCase().endsWith('.log')) continue;
+		const p = path.join(dir, ent.name);
+		try {
+			removePath(p);
+		} catch (e) {
+			console.warn(`未能删除 ${path.relative(root, p)}: ${e.message || e}`);
+		}
+	}
 }
 
 function find7z() {
@@ -49,7 +103,7 @@ function main() {
 	const version = readVersion();
 	const archive = path.join(releaseDir, `screenkit_${version}.7z`);
 
-	if (!skipBuild) {
+	if (!skipBuild && !cleanOnly) {
 		// ScreenKit 构建后会自动编并拷贝独立 x86host.exe
 		run('dotnet build ScreenKit/ScreenKit.csproj -c Release');
 	}
@@ -65,6 +119,12 @@ function main() {
 		console.warn('未找到 x86host.exe（可选；部分 SAPI 语音需 32 位）');
 	}
 
+	cleanSlimDir(slimDir);
+	if (cleanOnly) {
+		console.log(`已清理: ${path.relative(root, slimDir)}`);
+		return;
+	}
+
 	fs.mkdirSync(releaseDir, { recursive: true });
 	if (fs.existsSync(archive)) fs.unlinkSync(archive);
 
@@ -74,6 +134,10 @@ function main() {
 	// 排除本机配置与日志（可能含 API key / 路径）
 	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}" ` +
 		`"-x!${slimName}\\log" "-x!${slimName}\\log\\*" ` +
+		`"-x!${slimName}\\screenshots" "-x!${slimName}\\screenshots\\*" ` +
+		`"-x!${slimName}\\sendfile" "-x!${slimName}\\sendfile\\*" ` +
+		`"-x!${slimName}\\tmp" "-x!${slimName}\\tmp\\*" ` +
+		`"-x!${slimName}\\apk" "-x!${slimName}\\apk\\*" ` +
 		`"-x!${slimName}\\config.toml" "-x!${slimName}\\cli_last.log" "-x!${slimName}\\*.log" ` +
 		`"-x!${slimName}\\dict.db" "-x!${slimName}\\dict.db-wal" "-x!${slimName}\\dict.db-shm" ` +
 		`"-x!${slimName}\\dict2.db" "-x!${slimName}\\dict2.db-wal" "-x!${slimName}\\dict2.db-shm" ` +

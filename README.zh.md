@@ -45,7 +45,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 
 | 模块 | 说明 |
 |------|------|
-| **ASR / TTS** | 实时字幕可选离线或流式。未保存离线模型时用 Windows 系统识别器。Sherpa / SAPI / WinRT 离线合成及 Edge 在线自然语音。未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。语音合成的语言下拉先列出有名称的语言，其余按代码排列。SAPI 和 Windows 语音只列出有发音人的语言。Supertonic 使用固定噪声种子，同一段文字每次读音相同。 |
+| **ASR / TTS** | 实时字幕可选离线或流式。未保存离线模型时用 Windows 系统识别器。Sherpa / SAPI / WinRT 离线合成及 Edge 在线自然语音。未保存引擎时，有 Windows 语音就用它，否则用 Edge 在线。语音合成的语言下拉每一项都显示名称，例如南非荷兰语 (af)。中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语仍排在前面，其余按代码排列。SAPI 和 Windows 语音只列出有发音人的语言。Supertonic 使用固定噪声种子，同一段文字每次读音相同。 |
 | **LLM对话** | 微信式气泡、清空、麦克风、朗读/自动朗读，可选网页与 `tmp/llm/` 工具。 |
 | **LLM日志** | 主界面列出最近 1000 次 LLM 请求：模型、状态、输入 / 输出 / 合计 token、响应时间。选中一行查看请求和响应，JSON 里的中文按汉字显示。地址里的查询串不保存。 |
 | **翻译** | 本地 Opus-MT ONNX 或已配置的 **LLM**；来回翻译最多 20 次，结果重复时提前停止；**工具 → 翻译小窗**（`Ctrl+Alt+T`）。 |
@@ -350,7 +350,7 @@ dotnet build -c Release
 node scripts/publish-release.mjs
 ```
 
-Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 打进 `release/screenkit_<版本>.7z`（需本机 7-Zip 且 `7z` 在 PATH）。`release/` 目录不提交 git。
+Release 编译后，将 `ScreenKit/bin/Release/ScreenKit/` 打进 `release/screenkit_<版本>.7z`（需本机 7-Zip 且 `7z` 在 PATH）。打包前会删掉该目录里运行时留下的 `screenshots/`、`log/`、`sendfile/`、`tmp/`、`config.toml` 和 `*.log`。Release 编译刷新这个目录时同样会删掉这些文件。`release/` 目录不提交 git。
 
 发布文档规范：
 

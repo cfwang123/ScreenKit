@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- Edge and the other speech engines show a language name for every code in the filter, such as Afrikaans (af). Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, and Spanish stay at the top.
 - Text convert on the tools page has Swap next to Copy. It exchanges the source and the result, and drops a conversion that has not come back yet.
 - Right-click the screenshot area to paste (a picture, a copied image file, or an image path), open screenshot history, copy as an image, file, or path, open with the default app, show in Explorer, annotate again, recognize text or a barcode, or clear the picture and its results.
 - The tools page adds Common colors under Image. Colors are grouped by hue. A click copies the hex value.
@@ -46,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Packing the slim release deletes runtime files from `bin/Release/ScreenKit/` before the archive is built: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. A Release build removes the same files when it refreshes that folder.
 - The screenshot toolbar no longer has History, Paste, or Copy image. Paste and screenshot history are on the picture's right-click menu. Paste also accepts text that is an image path.
 - The tools page opens speech synthesis on Windows speech, and OCR on Windows OCR, when that engine has a voice or an installed language. A later choice on the same page stays. Speech falls back to the first listed engine when Windows has no voice. OCR falls back to the main window's pack when Windows OCR has no language.
 - Unit conversion does foreign currency in the program. It reads the Bank of China middle rate and keeps either a success or a failure for 10 minutes. A failed query uses the built-in 2026-10-10 table and is not tried again until that cache ends. The list has no jiao or fen. `GET/POST /api/fx` stays available when other HTTP modules are off.
@@ -68,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- Edge 以及其它语音引擎的语言筛选都会显示名称，例如南非荷兰语 (af)。中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语仍排在前面。
 - 工具页「文本转换」在复制旁边增加「交换」。点一下把原文和结果对调，还没回来的转换会被丢掉。
 - 截图区右键可以粘贴（图片、复制的图片文件或图片路径）、打开截图历史、复制为图片、文件或路径，用系统打开，在资源管理器中查看，重新标注，做文字识别或条码识别，以及清空当前图片和识别结果。
 - 工具页在图像分类增加常用颜色表。按红、橙、黄、绿、青、蓝、紫等分组。点一下复制十六进制。
@@ -78,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 打精简发布包前，先删掉 `bin/Release/ScreenKit/` 里运行时留下的 `screenshots/`、`log/`、`sendfile/`、`tmp/`、`config.toml` 和 `*.log`。Release 编译刷新这个目录时同样删掉这些文件。
 - 截图工具栏去掉截图历史、粘贴和复制图。粘贴和截图历史改到图片右键菜单。粘贴也接受一段图片路径。
 - 工具页打开语音合成时默认 Windows 语音，打开文字识别时默认 Windows 系统 OCR（这一引擎已有发音人或已安装语言时）。同一次打开里改过的选项会保留。没有 Windows 发音人时语音合成用列表里的第一项。Windows OCR 没有已安装语言时，文字识别改跟主窗口的模型包。
 - 单位换算的外币在程序里计算。向中国银行查中间价，成功或失败都缓存 10 分钟。查询失败时用内置的 2026-10-10 牌价，这 10 分钟内不再查。货币单位没有角和分。`GET/POST /api/fx` 在其它 HTTP 模块关闭时仍可用。

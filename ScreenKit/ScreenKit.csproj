@@ -306,6 +306,16 @@
     <Delete Files="$(OutputPath)WpfOCR.exe;$(OutputPath)WpfOCR.exe.config" TreatErrorsAsWarnings="true" />
     <!-- 词典库只放开发输出旁，不进精简包 -->
     <Delete Files="$(_SlimOut)\dict.db;$(_SlimOut)\dict.db-wal;$(_SlimOut)\dict.db-shm;$(_SlimOut)\dict2.db;$(_SlimOut)\dict2.db-wal;$(_SlimOut)\dict2.db-shm" TreatErrorsAsWarnings="true" />
+    <!-- 运行精简包留下的截图、日志、本机配置和接收文件 -->
+    <RemoveDir Directories="$(_SlimOut)\log" ContinueOnError="true" />
+    <RemoveDir Directories="$(_SlimOut)\screenshots" ContinueOnError="true" />
+    <RemoveDir Directories="$(_SlimOut)\sendfile" ContinueOnError="true" />
+    <RemoveDir Directories="$(_SlimOut)\tmp" ContinueOnError="true" />
+    <ItemGroup>
+      <_SlimRuntime Include="$(_SlimOut)\*.log" />
+      <_SlimRuntime Include="$(_SlimOut)\config.toml" />
+    </ItemGroup>
+    <Delete Files="@(_SlimRuntime)" TreatErrorsAsWarnings="true" Condition="'@(_SlimRuntime)' != ''" />
     <RemoveDir Directories="$(_SlimOutLegacy)" ContinueOnError="true" />
     <Message Importance="high" Text="Slim release package: $(_SlimOut)" />
   </Target>

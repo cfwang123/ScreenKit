@@ -45,7 +45,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 
 | Area | Description |
 |------|-------------|
-| **ASR / TTS** | ASR supports Sherpa offline/streaming models and installed **Windows system recognizers** (`System.Speech`, offline utterance recognition; the default offline model when none is saved) for files, recordings, hotkey dictation, live captions, subtitle batches, CLI, and HTTP. The help icon next to the offline-model picker notes that Windows ASR performs poorly for Chinese and recommends SenseVoice. TTS supports Sherpa / SAPI / WinRT offline voices and Edge online natural voices. Speak remains available during playback; clicking it again stops the current playback and restarts from the beginning. |
+| **ASR / TTS** | ASR supports Sherpa offline/streaming models and installed **Windows system recognizers** (`System.Speech`, offline utterance recognition; the default offline model when none is saved) for files, recordings, hotkey dictation, live captions, subtitle batches, CLI, and HTTP. The help icon next to the offline-model picker notes that Windows ASR performs poorly for Chinese and recommends SenseVoice. TTS supports Sherpa / SAPI / WinRT offline voices and Edge online natural voices. The language list shows a name for every language, such as Afrikaans (af). Speak remains available during playback; clicking it again stops the current playback and restarts from the beginning. |
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
 | **Translation** | Local Opus-MT ONNX or a configured **LLM**; 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). |
@@ -352,7 +352,7 @@ For local development with models already present, run **`bin\Release\net48\`**.
 node scripts/publish-release.mjs
 ```
 
-Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/screenkit_<version>.7z` (needs [7-Zip](https://www.7-zip.org/) on PATH). `release/` is gitignored.
+Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/screenkit_<version>.7z` (needs [7-Zip](https://www.7-zip.org/) on PATH). Before packing, it deletes runtime files in that folder: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. A Release build removes the same files when it refreshes the folder. `release/` is gitignored.
 
 Release documentation:
 

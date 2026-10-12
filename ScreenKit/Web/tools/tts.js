@@ -172,14 +172,39 @@
 		var used = {};
 		for (i = 0; i < named.length; i++) {
 			if (!seen[named[i][0]]) continue;
-			rows.push({ value: named[i][0], label: named[i][1] });
+			rows.push({ value: named[i][0], label: ttslanglabel(named[i][0]) });
 			used[named[i][0]] = 1;
 		}
 		var rest = [];
 		for (var k in seen) if (!used[k]) rest.push(k);
 		rest.sort();
-		for (i = 0; i < rest.length; i++) rows.push({ value: rest[i], label: rest[i] });
+		for (i = 0; i < rest.length; i++) rows.push({ value: rest[i], label: ttslanglabel(rest[i]) });
 		SK.fillsel(SK.$("tts-lang"), rows, seen[ttsnormlang(prev)] ? ttsnormlang(prev) : "");
+	}
+
+	function ttslanglabel(code){
+		var zhname = {
+			zh: "中文", en: "英文", ja: "日文", ko: "韩文",
+			vi: "越南语", yue: "粤语", fr: "法语", de: "德语", es: "西班牙语",
+		};
+		var page = document.documentElement.lang || "zh-CN";
+		var zh = page === "zh" || page.indexOf("zh") === 0;
+		if (zh && zhname[code]) return zhname[code] + " (" + code + ")";
+		var name = "";
+		try {
+			var dn = new Intl.DisplayNames([page], { type: "language" });
+			name = dn.of(code) || "";
+		}
+		catch (ex) {}
+		if (!name) name = zhname[code] || "";
+		name = String(name).replace(/^\s+|\s+$/g, "");
+		var low = name.toLowerCase();
+		if (!name || low === code || name.indexOf("未知") === 0 || low.indexOf("unknown") === 0)
+			return zhname[code] ? zhname[code] + " (" + code + ")" : code;
+		var cut = name.indexOf("(");
+		if (cut < 0) cut = name.indexOf("（");
+		if (cut > 0) name = name.substring(0, cut).replace(/\s+$/g, "");
+		return name + " (" + code + ")";
 	}
 
 	function ttslangadd(seen, raw){
@@ -276,6 +301,7 @@
 	SK.ttssavewav = ttssavewav;
 	SK.ttswant = ttswant;
 	SK.fillttslang = fillttslang;
+	SK.ttslanglabel = ttslanglabel;
 	SK.ttslangadd = ttslangadd;
 	SK.ttsnormlang = ttsnormlang;
 	SK.ttslangmatch = ttslangmatch;

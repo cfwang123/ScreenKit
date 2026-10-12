@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace ScreenKit;
 
 enum TtsModelType { Vits, Matcha, Supertonic }
@@ -60,22 +62,45 @@ static class TtsLang {
 		return false;
 	}
 
-	/// <summary>筛选下拉显示名。</summary>
+	/// <summary>筛选下拉显示名。已翻译的语言用界面文案，其余用系统语言名。</summary>
 	public static string DisplayName(string lang) {
 		lang = Normalize(lang);
 		if (string.IsNullOrEmpty(lang)) return Loc.T("lang.all");
-		return lang switch {
-			Zh => $"{Loc.T("lang.zh")} (zh)",
-			En => $"{Loc.T("lang.en")} (en)",
-			Vi => $"{Loc.T("lang.vi")} (vi)",
-			Ja => $"{Loc.T("lang.ja")} (ja)",
-			Ko => $"{Loc.T("lang.ko")} (ko)",
-			Yue => $"{Loc.T("lang.yue")} (yue)",
-			"fr" => $"{Loc.T("lang.fr")} (fr)",
-			"de" => $"{Loc.T("lang.de")} (de)",
-			"es" => $"{Loc.T("lang.es")} (es)",
-			_ => lang,
-		};
+		var known = knownlabel(lang);
+		if (known.Length > 0) return known + " (" + lang + ")";
+		var os = culturename(lang);
+		if (os.Length > 0) return os + " (" + lang + ")";
+		return lang;
+	}
+
+	static string knownlabel(string lang) => lang switch {
+		Zh => Loc.T("lang.zh"),
+		En => Loc.T("lang.en"),
+		Vi => Loc.T("lang.vi"),
+		Ja => Loc.T("lang.ja"),
+		Ko => Loc.T("lang.ko"),
+		Yue => Loc.T("lang.yue"),
+		"fr" => Loc.T("lang.fr"),
+		"de" => Loc.T("lang.de"),
+		"es" => Loc.T("lang.es"),
+		_ => "",
+	};
+
+	/// <summary>两位码的系统语言名。中文界面用当前系统显示名，其它界面用英文名。</summary>
+	static string culturename(string code) {
+		CultureInfo culture;
+		try { culture = CultureInfo.GetCultureInfo(code); }
+		catch (CultureNotFoundException) { return ""; }
+		var name = Loc.IsZh ? culture.DisplayName : culture.EnglishName;
+		if (string.IsNullOrWhiteSpace(name)) return "";
+		name = name.Trim();
+		if (name.StartsWith("未知", StringComparison.Ordinal)) return "";
+		if (name.StartsWith("Unknown", StringComparison.OrdinalIgnoreCase)) return "";
+		var cut = name.IndexOfAny(new[] { '(', '（' });
+		if (cut > 0) name = name.Substring(0, cut).Trim();
+		if (name.Length == 0) return "";
+		if (string.Equals(name, code, StringComparison.OrdinalIgnoreCase)) return "";
+		return name;
 	}
 
 	/// <summary>是否匹配筛选（want 空=全部）。</summary>
