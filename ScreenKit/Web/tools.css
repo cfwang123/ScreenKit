@@ -351,6 +351,13 @@ input[type="file"] {
 	gap: 2px; align-content: start;
 }
 .ugrid.g16 { grid-template-columns: repeat(16, 32px); justify-content: start; }
+/* ASCII 码表：16 列，行首可带行列表头 */
+.ugrid.a16 { grid-template-columns: repeat(16, 29px); justify-content: start; }
+.ugrid.a16h { grid-template-columns: 36px repeat(16, 29px); justify-content: start; }
+.ugrid .ahead {
+	display: grid; place-items: center; height: 32px;
+	color: var(--muted); font: 11px/1 Consolas, "Microsoft YaHei UI", monospace;
+}
 .ugrid button {
 	height: 32px; padding: 0; cursor: pointer; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink);
@@ -457,6 +464,33 @@ input[type="file"] {
 .cgrid .cgh .n {
 	margin-left: 6px; color: var(--muted);
 	font: 400 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.morse {
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 8px; align-content: start;
+}
+.morse .mgh {
+	grid-column: 1 / -1; margin: 4px 0 0; padding: 2px 2px 3px;
+	border-bottom: 1px solid var(--line);
+	color: var(--ink); font: 600 13px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.morse .mgh .n {
+	margin-left: 6px; color: var(--muted);
+	font: 400 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.morse button {
+	display: grid; grid-template-columns: 42px minmax(0, 1fr); grid-template-rows: auto auto;
+	align-items: center; column-gap: 8px; height: auto; padding: 6px 8px;
+	text-align: left; cursor: pointer;
+	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
+}
+.morse button b { grid-row: 1 / span 2; font: 600 20px/1 Consolas, "Segoe UI", sans-serif; }
+.morse .mvis { display: inline-flex; align-items: center; gap: 4px; height: 16px; }
+.morse .mvis i { display: block; background: currentColor; }
+.morse .mvis i.d { width: 6px; height: 6px; border-radius: 50%; }
+.morse .mvis i.s { width: 18px; height: 4px; border-radius: 2px; }
+.morse button small {
+	color: var(--muted); font: 12px/1.3 Consolas, "Microsoft YaHei UI", monospace;
 }
 /* 左边小色块，右边两行：中文名 + 英文名 / 十六进制 */
 .cgrid button {

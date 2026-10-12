@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `scripts\langtext.cmd` adds or changes one UI phrase in `ScreenKit/lang/*.toml` from a single command. `-l zh` writes one language, `-l all` writes every language, and `--each zh=… --each en=…` gives each language its own text. A new key goes to the end of `[text]` or after `--after KEY`. Line endings, the missing BOM, and untouched lines are kept. `--if-missing` only fills empty keys, `--dry-run` previews, and `--sync` also copies into the `lang/` folders already present under `ScreenKit/bin`. `get`, `missing`, `fill`, `check`, and `langs` round out the tool. `del KEY…` removes one or more keys (`rm` / `remove` / `delete` are the same command, and `set KEY --delete` works too); deleting in only some languages prints which ones still keep the key.
 - `scripts\changelog.cmd` adds one bilingual entry to `CHANGELOG.md` under `## unreleased` (`added` / `changed` / `fixed` / `removed` / `docs` / `security`, or the Chinese category names). It takes a lock file and re-reads the file right before writing, so two writers cannot clobber each other; adding the same entry again is a no-op. `--file` points it at another changelog for testing.
 - **Tools → HTTP request debugger** saves requests in groups. GET and POST parameters are one `key=value` line each (`#` starts a comment). A POST body is either those parameters or JSON. Sending uses the program HTTP proxy; loopback and private addresses stay direct. The list is `httpdbg.json` beside the program.
+- Tools page, Text: Morse chart. Letters, digits, punctuation, and procedure signals. A click copies the dots and dashes.
 
 #### Changed
 
@@ -134,6 +135,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `scripts\langtext.cmd` 一条命令新增或修改 `ScreenKit/lang/*.toml` 里的一条界面文案。`-l zh` 只写一个语言，`-l all` 写进全部语言，`--each zh=… --each en=…` 逐语言给不同文本。新键追加到 `[text]` 末尾，或用 `--after <键>` 插到其后。保留每个文件原有的换行风格、无 BOM，未涉及的行不动。`--if-missing` 只补空，`--dry-run` 只预览，`--sync` 顺带覆盖 `ScreenKit/bin` 下已有的 `lang/` 副本。另有 `get`、`missing`、`fill`、`check`、`langs`。`del 键…` 删除一条或多条键（`rm` / `remove` / `delete` 是同一个命令，写成 `set 键 --delete` 也一样）；只删部分语言时会提示哪些语言还留着这个键。
 - `scripts\changelog.cmd` 往 `CHANGELOG.md` 的 `## unreleased` 追加一条中英文条目（`added` / `changed` / `fixed` / `removed` / `docs` / `security`，也可写中文类别名）。写盘前先抢锁文件、再读一次比对，别人插队就整段重来，两个写入方不会互相覆盖；同一条重复添加直接跳过。`--file` 可指向别的 changelog，便于测试。
 - **工具 → HTTP 请求调试**：保存请求，并按分组管理。GET / POST 参数一行一个，写成 `key=value`（`#` 开头是注释）。POST 正文可以是这些参数，也可以是 JSON。发送走程序的 HTTP 代理，本机和内网直连。列表写在程序旁的 `httpdbg.json`。
+- 工具页「文字」增加摩斯码表。字母、数字、标点和信号。点一下复制点划。
 
 #### 变更
 
