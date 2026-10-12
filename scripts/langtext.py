@@ -534,6 +534,8 @@ EXAMPLES = """示例:
   langtext.cmd set app.demo.title "Demo title" -l all
   langtext.cmd set app.demo.title -l all --each zh=演示标题 --each en=Demo title
   langtext.cmd set app.demo.title "文本" -l all --each en=English   # en 用 --each，其余用"文本"
+  langtext.cmd del app.demo.title -l all                           # 删掉这个键（也可 rm / remove / delete）
+  langtext.cmd set app.demo.title --delete -l all                  # 同上，写成 set 的选项
   langtext.cmd get app.demo.title -l zh,en
   langtext.cmd missing --base zh
   langtext.cmd fill --from zh -l all
