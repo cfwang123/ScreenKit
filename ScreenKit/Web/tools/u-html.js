@@ -19,7 +19,7 @@
 		{ id: "steps", key: "htmlui.tpl.steps", html: steps() }
 	];
 	SK.regutil("u-html", {
-		title: "HTML工具",
+		title: "HTML界面设计",
 		go: "显示",
 		own: true,
 		hideGo: true,

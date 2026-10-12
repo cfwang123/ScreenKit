@@ -608,6 +608,17 @@ static class ImageUtil {
 	/// <summary>截图完成时是否以路径文本放入剪贴板（与 AsImage / AsFile 三选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsPath = false;
 
+	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。</summary>
+	public static string CurrentSnapAnnTool = "rect";
+
+	/// <summary>规范标注工具名。无法识别时用矩形。</summary>
+	public static string NormSnapAnnTool(string raw) {
+		var s = (raw ?? "").Trim().Trim('"').ToLowerInvariant();
+		if (s == "none" || s == "rect" || s == "ellipse" || s == "line" || s == "arrow" || s == "text")
+			return s;
+		return "rect";
+	}
+
 	/// <summary>最近一次写入 screenshots/ 的截图完整路径（切换复制方式时复用）。</summary>
 	public static string LastScreenshotPath { get; private set; }
 

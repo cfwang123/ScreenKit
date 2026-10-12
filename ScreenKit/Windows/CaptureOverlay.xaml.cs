@@ -46,6 +46,9 @@ public partial class CaptureOverlay : Window {
 	/// </summary>
 	public static event Action<bool, bool, bool> SnapCopyModeChosen;
 
+	/// <summary>截图标注换工具时通知主窗写入配置。参数为 none / rect / ellipse / line / arrow / text。</summary>
+	public static event Action<string> SnapAnnToolChosen;
+
 
 
 	[StructLayout(LayoutKind.Sequential)]
@@ -2399,11 +2402,11 @@ public partial class CaptureOverlay : Window {
 			ensurehandles();
 			placehandles();
 			phandles.Visibility = Visibility.Visible;
-			// 默认画矩形；移动/缩放只在边缘热区与 8 点手柄
-			settool(Tool.Rect);
+			// 沿用上次工具（含无工具）；移动/缩放只在边缘热区与 8 点手柄
+			settool(rememberedtool());
 			lbcap.Text = session != null && session.Windows.Count > 1
 				? "可跨屏画框 · 框外拖动 · 角/边缩放 · 双击/回车完成"
-				: "默认矩形 · 框外 10px 拖动 · 角/边缩放 · 双击/回车完成";
+				: "框外 10px 拖动 · 角/边缩放 · 双击/回车完成";
 		}
 		// 刷新副屏遮罩
 		if (session != null && session.InAnnotate && !boardMode) {
@@ -3131,6 +3134,40 @@ public partial class CaptureOverlay : Window {
 		tarrow.IsChecked = t == Tool.Arrow;
 		ttext.IsChecked = t == Tool.Text;
 		pdraw.Cursor = Cursors.Cross;
+		if (!boardMode) remembertool(t);
+	}
+
+	/// <summary>配置里的上次标注工具。无法识别时用矩形。</summary>
+	Tool rememberedtool() {
+		return ImageUtil.CurrentSnapAnnTool switch {
+			"none" => Tool.None,
+			"ellipse" => Tool.Ellipse,
+			"line" => Tool.Line,
+			"arrow" => Tool.Arrow,
+			"text" => Tool.Text,
+			_ => Tool.Rect,
+		};
+	}
+
+	static string toolname(Tool t) {
+		return t switch {
+			Tool.None => "none",
+			Tool.Ellipse => "ellipse",
+			Tool.Line => "line",
+			Tool.Arrow => "arrow",
+			Tool.Text => "text",
+			_ => "rect",
+		};
+	}
+
+	/// <summary>截图标注换工具就记住。画板不写，避免盖掉截图的选择。</summary>
+	void remembertool(Tool t) {
+		var name = toolname(t);
+		if (string.Equals(ImageUtil.CurrentSnapAnnTool, name, StringComparison.Ordinal))
+			return;
+		ImageUtil.CurrentSnapAnnTool = name;
+		try { SnapAnnToolChosen?.Invoke(name); }
+		catch (Exception ex) { CaptureLog.Ex("SnapAnnToolChosen", ex); }
 	}
 
 	Color curcolor() {

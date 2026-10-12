@@ -137,6 +137,7 @@ public partial class MainWindow : Window {
 		// 标注条下拉选复制方式：写入默认配置，不重复制上次截图
 		CaptureOverlay.SnapCopyModeChosen += (asImg, asFile, asPath) =>
 			applysnapcopyopts(asImg, asFile, asPath, recopy: false);
+		CaptureOverlay.SnapAnnToolChosen += rememberanntool;
 		restorewindowbounds();
 		// 启动时后台清理过期截图历史，不阻塞 UI
 		ImageUtil.CleanupScreenshotsBackground(opt.ScreenshotKeepDays);
@@ -673,6 +674,15 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentSnapCopyAsImage = opt.SnapCopyAsImage;
 		ImageUtil.CurrentSnapCopyAsFile = opt.SnapCopyAsFile;
 		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;
+		opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(opt.SnapAnnTool);
+		ImageUtil.CurrentSnapAnnTool = opt.SnapAnnTool;
+	}
+
+	/// <summary>记住截图标注工具（含无工具）。屏幕画板不写这里。</summary>
+	void rememberanntool(string name) {
+		opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(name);
+		ImageUtil.CurrentSnapAnnTool = opt.SnapAnnTool;
+		try { AppConfig.Save(opt); } catch { }
 	}
 
 	/// <summary>

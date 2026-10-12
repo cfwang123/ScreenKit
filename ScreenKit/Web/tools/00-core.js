@@ -939,6 +939,7 @@ SK.watchAcc = 0;
 		$("box-copy").style.display = "";
 		$("box-out").parentElement.style.display = "";
 		if (SK.showreout) SK.showreout(false);
+		if (SK.showrcolor) SK.showrcolor(false);
 		msg("box-msg", "");
 		if (spec.hideGo) $("box-go").parentElement.style.display = "none";
 		if (spec.noGo) $("box-go").style.display = "none";
@@ -980,6 +981,7 @@ SK.watchAcc = 0;
 		catch (ex) {
 			$("box-out").value = "";
 			if (SK.showreout) SK.showreout(false);
+			if (SK.showrcolor) SK.showrcolor(false);
 			msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}

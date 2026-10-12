@@ -91,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tool addresses and favorites accept only a current card id. An unknown id is ignored. config.toml reads only keys the program still writes; retired keys and old spellings are ignored, and a missing key keeps the field default.
 - The 8-bit arranger stores an instrument on each of the four channels. Playback uses that instrument, and the choice is kept in the browser with the loop.
 - The 8-bit arranger has six one-bar example loops: march, jump, underwater, dungeon, battle, and stage clear. Each sets the tempo and the four instruments.
+- Random color on the tools page shows each generated color as a swatch in an HTML list, with HEX and RGB beside it.
 
 #### Fixed
 
@@ -167,6 +168,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页工具的地址和收藏只认当前卡片。没有这张卡片就忽略。config.toml 只读程序仍在写出的键。已停用的键和旧写法忽略，缺键用字段默认值。
 - 8bit 编排的四个通道各自记住乐器。播放用这一路所选的乐器，选择和循环一起记在浏览器里。
 - 8bit 编排增加六段一小节示例：进行曲、跳跃、水下、地牢、战斗、通关。每段会带上速度和四路乐器。
+- 工具页随机颜色把每个生成的颜色显示成 HTML 列表里的色块，旁边是 HEX 和 RGB。
 
 #### 修复
 

@@ -293,6 +293,8 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsFile = false;
 	/// <summary>截图完成时复制文件完整路径文本（与 AsImage / AsFile 三选一）。</summary>
 	public bool SnapCopyAsPath = false;
+	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。默认矩形。</summary>
+	public string SnapAnnTool = "rect";
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
 	/// <summary>功能模块是否启用。与对应 Tab 开关一起由「功能开关」写入。关闭后隐藏页面，停用热键、托盘和 HTTP，并释放已加载模型。</summary>
@@ -604,6 +606,7 @@ public sealed class OcrOptions {
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,
+		SnapAnnTool = string.IsNullOrWhiteSpace(SnapAnnTool) ? "rect" : SnapAnnTool,
 		UiLang = UiLang ?? "zh",
 		ModOcr = ModOcr,
 		ModTts = ModTts,
