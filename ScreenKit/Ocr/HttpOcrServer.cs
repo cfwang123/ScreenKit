@@ -19,6 +19,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/calendar 历法</item>
 /// <item>GET/POST /api/jpyomi 日文注音</item>
 /// <item>GET/POST /api/text 文本编解码</item>
+/// <item>GET/POST /api/fake 测试数据（Bogus 已安装时生成）</item>
 /// <item>GET/POST /api/fx 货币换算（中国银行中间价，缓存 10 分钟）</item>
 /// <item>GET/POST /api/enc 单码位代码页（GBK、GB18030、Big5、Shift_JIS、EUC-KR、Latin-1）</item>
 /// <item>POST /api/qrmake 生成二维码/条码 · POST /api/qrscan 识别</item>
@@ -112,6 +113,8 @@ sealed partial class HttpOcrServer : IDisposable {
 				handlechatws(ctx);
 				return;
 			}
+			if (path.StartsWith("/chat/", StringComparison.Ordinal) && ChatRoom.TryFile(ctx))
+				return;
 			if (path is "/sk/l.js") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "语言包仅支持 GET"));
@@ -223,6 +226,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handletext(ctx);
+				return;
+			}
+
+			if (path is "/api/fake" or "/api/fake/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "fake 仅支持 GET 或 POST"));
+					return;
+				}
+				handlefake(ctx);
 				return;
 			}
 
@@ -780,6 +792,42 @@ sealed partial class HttpOcrServer : IDisposable {
 	static string textstatstext(string text) {
 		var s = TextTools.Stats(text);
 		return $"字符 {s.Chars}\n不计空白 {s.CharsNoWs}\n行 {s.Lines}\nUTF-8 {s.Utf8Bytes}\nGBK {s.GbkBytes}";
+	}
+
+	void handlefake(SockCtx ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var kind = field(ctx, jo, "kind");
+		if (string.IsNullOrEmpty(kind)) {
+			writejson(ctx, 200, new JsonObject {
+				["code"] = 100,
+				["data"] = new JsonObject { ["installed"] = BogusGen.Installed },
+			});
+			return;
+		}
+		if (!BogusGen.Installed) {
+			writejson(ctx, 200, err(803, "Bogus 未安装"));
+			return;
+		}
+		var n = 10;
+		if (jo != null && jo["n"] != null) n = asint(jo["n"], 10);
+		else {
+			var raw = query(ctx.Request, "n");
+			if (!string.IsNullOrWhiteSpace(raw)) n = asint(JsonValue.Create(raw), 10);
+		}
+		string text;
+		try { text = BogusGen.Lines(kind, n); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(802, ex.Message));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["installed"] = true,
+				["kind"] = kind,
+				["text"] = text,
+			},
+		});
 	}
 
 	void handlezhconv(SockCtx ctx) {
@@ -2101,6 +2149,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /  本机工具页",
 			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
+			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装；GET/POST kind&n 在已安装时生成",
 			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",
 			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
 			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",
@@ -2112,6 +2161,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
 			"WebSocket /chat  工具页聊天室",
+			"POST /chat/file  聊天室上传。multipart 字段 file，kind=image|file。图片和文件写入程序目录 tmp/chat-*，启动时删除",
+			"GET  /chat/file/{id}  下载聊天室里的图片或文件",
 		};
 		if (o.HttpOcr && o.ModOcr) {
 			a.Add("GET  /api/ocr/models");

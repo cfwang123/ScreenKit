@@ -38,6 +38,9 @@ static class NativeRuntime {
 	const string SevenLibVer = "26.3.0";
 	const string SqlitePkg = "SQLitePCLRaw.lib.e_sqlite3";
 	const string SqliteVer = "2.1.10";
+	const string BogusDll = "Bogus.dll";
+	const string BogusPkg = "Bogus";
+	const string BogusVer = "35.6.5";
 	const string LibSkia = "libSkiaSharp.dll";
 	const string Pdfium = "pdfium.dll";
 	const string SherpaCApi = "sherpa-onnx-c-api.dll";
@@ -69,6 +72,7 @@ static class NativeRuntime {
 	public static bool HasSharpSevenZip() => File.Exists(Path.Combine(BaseDir, SharpSevenZipDll));
 	public static bool Has7za() => File.Exists(Path.Combine(BaseDir, SevenZipDll));
 	public static bool HasSqlite() => File.Exists(Path.Combine(BaseDir, SqliteDll));
+	public static bool HasBogus() => File.Exists(Path.Combine(BaseDir, BogusDll));
 
 	public static bool HasSkia() =>
 		File.Exists(Path.Combine(BaseDir, LibSkia))
@@ -91,6 +95,7 @@ static class NativeRuntime {
 	public static long SharpSevenZipSizeHint => 1865728L;
 	public static long SevenZipSizeHint => 416256L;
 	public static long SqliteSizeHint => 1759232L;
+	public static long BogusSizeHint => 2429952L;
 	public static long SkiaSizeHint => 11L * 1024 * 1024;
 	public static long PdfiumSizeHint => 6L * 1024 * 1024;
 	public static long SherpaSizeHint => 5L * 1024 * 1024;
@@ -198,6 +203,14 @@ static class NativeRuntime {
 			log, progress, ct, SqliteSizeHint).ConfigureAwait(false);
 	}
 
+	public static async Task InstallBogus(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await extractfromnupkg(
+			BogusPkg, BogusVer,
+			new[] { ("lib/netstandard2.0/" + BogusDll, BogusDll) },
+			log, progress, ct, BogusSizeHint).ConfigureAwait(false);
+	}
+
 	/// <summary>条码 / 二维码需要 ZXing.dll。缺失时弹窗。</summary>
 	public static void EnsureZxing() {
 		if (HasZxing()) return;
@@ -267,6 +280,9 @@ static class NativeRuntime {
 
 	public static void UninstallSqlite(IProgress<string> log = null) =>
 		deletefiles(log, SqliteDll);
+
+	public static void UninstallBogus(IProgress<string> log = null) =>
+		deletefiles(log, BogusDll);
 
 	public static void UninstallSkia(IProgress<string> log = null) {
 		deletefiles(log, LibSkia,
@@ -420,6 +436,7 @@ static class NativeRuntime {
 		sb.AppendLine($"SharpSevenZip: {(HasSharpSevenZip() ? "OK" : "缺失")}  ({SharpSevenZipDll})");
 		sb.AppendLine($"7za: {(Has7za() ? "OK" : "缺失")}  ({SevenZipDll})");
 		sb.AppendLine($"e_sqlite3: {(HasSqlite() ? "OK" : "缺失")}  ({SqliteDll})");
+		sb.AppendLine($"Bogus: {(HasBogus() ? "OK" : "缺失")}  ({BogusDll})");
 		sb.AppendLine($"libSkiaSharp: {(HasSkia() ? "OK" : "缺失")}  ({LibSkia})");
 		sb.AppendLine($"pdfium: {(HasPdfium() ? "OK" : "缺失")}  ({Pdfium})");
 		sb.AppendLine($"sherpa-onnx-c-api: {(HasSherpa() ? "OK" : "缺失")}  ({SherpaCApi})");

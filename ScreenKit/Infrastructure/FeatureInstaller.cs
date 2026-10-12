@@ -59,6 +59,8 @@ public enum FeatureKind {
 	Native7za,
 	/// <summary>e_sqlite3.dll（词典 SQLite，约 1.7MB）。</summary>
 	NativeSqlite,
+	/// <summary>Bogus.dll（测试数据，约 2.3MB）。</summary>
+	Bogus,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -207,6 +209,7 @@ static class FeatureInstaller {
 			make(FeatureKind.SharpSevenZip, "native"),
 			make(FeatureKind.Native7za, "native"),
 			make(FeatureKind.NativeSqlite, "native"),
+			make(FeatureKind.Bogus, "native"),
 			make(FeatureKind.NativeSkia, "native"),
 			make(FeatureKind.NativePdfium, "native"),
 			make(FeatureKind.NativeSherpa, "native"),
@@ -266,6 +269,7 @@ static class FeatureInstaller {
 		FeatureKind.SharpSevenZip => NativeRuntime.SharpSevenZipSizeHint,
 		FeatureKind.Native7za => NativeRuntime.SevenZipSizeHint,
 		FeatureKind.NativeSqlite => NativeRuntime.SqliteSizeHint,
+		FeatureKind.Bogus => NativeRuntime.BogusSizeHint,
 		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint,
 		FeatureKind.NativePdfium => NativeRuntime.PdfiumSizeHint,
 		FeatureKind.NativeSherpa => NativeRuntime.SherpaSizeHint,
@@ -338,6 +342,8 @@ static class FeatureInstaller {
 				return filesize(Path.Combine(BaseDir, "7za.dll"));
 			case FeatureKind.NativeSqlite:
 				return filesize(Path.Combine(BaseDir, "e_sqlite3.dll"));
+			case FeatureKind.Bogus:
+				return filesize(Path.Combine(BaseDir, "Bogus.dll"));
 			case FeatureKind.NativeSkia:
 				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"));
 			case FeatureKind.NativePdfium:
@@ -419,6 +425,8 @@ static class FeatureInstaller {
 			return NativeRuntime.Has7za() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSqlite:
 			return NativeRuntime.HasSqlite() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.Bogus:
+			return NativeRuntime.HasBogus() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSkia:
 			return NativeRuntime.HasSkia() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativePdfium:
@@ -586,6 +594,9 @@ static class FeatureInstaller {
 		case FeatureKind.NativeSqlite:
 			await NativeRuntime.InstallSqlite(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.Bogus:
+			await NativeRuntime.InstallBogus(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.NativeSkia:
 			await NativeRuntime.InstallSkia(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -675,6 +686,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.NativeSqlite:
 			NativeRuntime.UninstallSqlite(log);
+			break;
+		case FeatureKind.Bogus:
+			NativeRuntime.UninstallBogus(log);
 			break;
 		case FeatureKind.NativeSkia:
 			NativeRuntime.UninstallSkia(log);

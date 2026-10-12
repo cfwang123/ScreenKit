@@ -180,11 +180,11 @@
 					<i class="fa-solid fa-percent"></i><span data-k="web.tool.comp">复利</span>
 					<i class="star fa-solid fa-star" data-fav="u-comp" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="chat" data-cat="talk" data-name="聊天室 昵称 性别" title="进入前填写昵称和性别，同一台电脑上的人互相发文字">
+				<button type="button" data-tool="chat" data-cat="talk" data-name="聊天室 昵称 性别 图片 文件" title="进入前填写昵称和性别，可以发文字、图片和文件">
 					<i class="fa-solid fa-comments"></i><span data-k="web.tool.chat">聊天室</span>
 					<i class="star fa-solid fa-star" data-fav="chat" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-fake" data-cat="text" data-name="生成测试数据 测试数据 假数据 中文姓名 中文网名 英文网名 邮箱 手机 地址 公司 用户名 身份证 mac 地址 uuid" title="按类型生成，一行一条">
+				<button type="button" data-tool="u-fake" data-cat="text" data-name="生成测试数据 测试数据 假数据 中文姓名 中文网名 英文网名 邮箱 手机 地址 公司 用户名 身份证 mac 地址 uuid bogus" title="按类型生成，一行一条。未安装 Bogus 时用内置数据">
 					<i class="fa-solid fa-user-group"></i><span data-k="web.tool.fake">生成测试数据</span>
 					<i class="star fa-solid fa-star" data-fav="u-fake" title="收藏"></i>
 				</button>
@@ -219,7 +219,11 @@
 				<div class="row" id="chat-sendrow">
 					<input id="chat-text" maxlength="500" data-kph="web.chat.ph" placeholder="说点什么"/>
 					<button type="button" id="chat-send" class="primary" data-k="web.chat.send">发送</button>
+					<button type="button" id="chat-imgbtn" class="ghost" data-k="web.chat.image">图片</button>
+					<button type="button" id="chat-filebtn" class="ghost" data-k="web.chat.file">文件</button>
 					<button type="button" id="chat-leave" class="ghost" data-k="web.chat.leave">离开</button>
+					<input id="chat-img" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden/>
+					<input id="chat-file" type="file" hidden/>
 				</div>
 			</div>
 		</section>

@@ -145,6 +145,7 @@ static class FeaturePick {
 			FeatureKind.SharpSevenZip),
 		leaf("7za", "feat.pick.7za", "feat.pick.7za.detail", FeatureKind.Native7za),
 		leaf("sqlite", "feat.pick.sqlite", "feat.pick.sqlite.detail", FeatureKind.NativeSqlite),
+		leaf("bogus", "feat.pick.bogus", "feat.pick.bogus.detail", FeatureKind.Bogus),
 		group("rec", "feat.pick.rec", "feat.pick.rec.detail",
 			builtin("rec.mf", "feat.pick.rec.mf", "feat.pick.rec.mf.detail", FeatureKind.MediaFoundation),
 			leaf("rec.ffmpeg", "feat.pick.rec.ffmpeg", "feat.pick.rec.ffmpeg.detail",

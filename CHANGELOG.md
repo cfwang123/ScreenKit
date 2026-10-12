@@ -36,6 +36,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- **Help → Install features** can install Bogus (`Bogus.dll`, about 2.3 MB, not in the slim package). The tools page **Generate test data** says whether it is installed. Without it, the page keeps the built-in generator. With it, Bogus generates the lines and adds English names, job titles, cities, URLs, IP addresses, colors, dates, sentences, and products. `GET/POST /api/fake` reports the install state and, once installed, generates a kind.
+- The tools-page chat room can send an image or a file, up to 8 MB. The bytes are stored as `tmp/chat-` plus an id beside the program. Starting ScreenKit deletes those files and leaves the other `tmp` folders alone. Pictures show in the room. Other files are download links.
 - The web tools page has a **Chat room** under Talk. A nickname and a gender (private, male, or female) are required before entering. The last nickname and gender are kept in the browser. People on the same ScreenKit talk over WebSocket `/chat`. Text is kept only in memory and is dropped when the program exits. A nickname already in the room is rejected.
 - Edge and the other speech engines show a language name for every code in the filter, such as Afrikaans (af). Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, and Spanish stay at the top.
 - Text convert on the tools page has Swap next to Copy. It exchanges the source and the result, and drops a conversion that has not come back yet.
@@ -74,6 +76,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- **帮助 → 安装功能**可以安装 Bogus（`Bogus.dll`，约 2.3 MB，不进精简包）。工具页「生成测试数据」会提示是否已安装。未安装时仍用内置生成。安装后由 Bogus 生成，并多出英文姓名、职位、城市、网址、IP、颜色、日期、句子、商品。`GET/POST /api/fake` 返回是否已安装，已安装时按类型生成。
+- 工具页聊天室可以发图片和文件，单个不超过 8 MB。内容写到程序目录 `tmp/chat-` 加编号。启动时删掉这些文件，其它 `tmp` 子目录不动。图片直接显示，其它文件是下载链接。
 - web 工具增加 **聊天室**，在「交流」分类。进入前填写昵称和性别（保密、男、女）。浏览器记住上次的昵称和性别。同一台 ScreenKit 上的人通过 WebSocket `/chat` 发文字。内容只留在内存里，程序退出后没有了。已经有人用的昵称不能再进。
 - Edge 以及其它语音引擎的语言筛选都会显示名称，例如南非荷兰语 (af)。中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语仍排在前面。
 - 工具页「文本转换」在复制旁边增加「交换」。点一下把原文和结果对调，还没回来的转换会被丢掉。

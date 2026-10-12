@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -9,8 +11,8 @@ using System.Threading;
 
 namespace ScreenKit;
 
-/// <summary>工具页聊天室。WebSocket /chat，文字帧是 JSON。记录只在本进程内存里。</summary>
-static class ChatRoom {
+/// <summary>工具页聊天室。WebSocket /chat，文字帧是 JSON。文字只在本进程内存里。图片和文件在程序目录 tmp/chat-*</summary>
+static partial class ChatRoom {
 	const int S_OPEN = 1;
 	const int S_DEAD = 0;
 	const int MAXPEERS = 32;
@@ -21,6 +23,8 @@ static class ChatRoom {
 	const int IDLEMS = 70000;
 	const int PINGMS = 20000;
 	const int SAYMS = 200;
+	static readonly byte[] PNG1 = Convert.FromBase64String(
+		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
 
 	static readonly JsonSerializerOptions jsonopt = new(JsonSerializerOptions.Default) {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -249,6 +253,7 @@ static class ChatRoom {
 		var op = jo["op"]?.ToString() ?? "";
 		if (op == "join") onjoin(c, jo);
 		else if (op == "say") onsay(c, jo);
+		else if (op == "file") onfile(c, jo);
 		else if (op == "ping") enqueue(c, "{\"op\":\"pong\"}");
 	}
 
@@ -404,6 +409,7 @@ static class ChatRoom {
 		try {
 			server = new SockHttpServer();
 			server.Start("127.0.0.1", port, ctx => {
+				if (TryFile(ctx)) return;
 				var path = (ctx.Request.Url?.AbsolutePath ?? "/").TrimEnd('/');
 				if (path.Length == 0) path = "/";
 				if (!string.Equals(path, "/chat", StringComparison.OrdinalIgnoreCase)) {
@@ -451,6 +457,7 @@ static class ChatRoom {
 				err("chat: 重复昵称没有拒绝");
 				return 1;
 			}
+			if (!testfile(port, a, b, holdb, err)) return 1;
 			log("chat: 两人互发通过");
 			return 0;
 		}
@@ -463,8 +470,113 @@ static class ChatRoom {
 			try { b?.Abort(); } catch { }
 			try { c?.Abort(); } catch { }
 			CloseAll();
+			PurgeUploads();
 			try { server?.Stop(); } catch { }
 		}
+	}
+
+	static bool testfile(int port, ClientWebSocket a, ClientWebSocket b, Hold holdb, Action<string> err) {
+		var id = postfile(port, PNG1, "a.png", "image/png", "image", out var ecode);
+		if (id == null) {
+			err("chat: 图片上传失败 " + ecode);
+			return false;
+		}
+		Thread.Sleep(300); // 发言至少隔 200ms
+		send(a, "{\"op\":\"file\",\"file\":\"" + id + "\"}");
+		if (!waitfile(b, holdb, id, 4000)) {
+			err("chat: 乙没有收到图片");
+			return false;
+		}
+		if (!getfile(port, id, PNG1)) {
+			err("chat: 图片下载不一致");
+			return false;
+		}
+		var bad = postfile(port, Encoding.UTF8.GetBytes("hi"), "a.txt", "text/plain", "image", out ecode);
+		if (bad != null || ecode != "img") {
+			err("chat: 非图片没有拒绝");
+			return false;
+		}
+		var text = Encoding.UTF8.GetBytes("hi");
+		var fid = postfile(port, text, "n.txt", "text/plain", "file", out ecode);
+		if (fid == null) {
+			err("chat: 文件上传失败 " + ecode);
+			return false;
+		}
+		Thread.Sleep(300);
+		send(a, "{\"op\":\"file\",\"file\":\"" + fid + "\"}");
+		if (!waitfile(b, holdb, fid, 4000)) {
+			err("chat: 乙没有收到文件");
+			return false;
+		}
+		if (!getfile(port, fid, text)) {
+			err("chat: 文件下载不一致");
+			return false;
+		}
+		PurgeUploads();
+		if (getfile(port, id, PNG1)) {
+			err("chat: 清理后文件还在");
+			return false;
+		}
+		return true;
+	}
+
+	static string postfile(int port, byte[] data, string name, string mime, string kind, out string ecode) {
+		ecode = "";
+		using var http = new HttpClient();
+		using var form = new MultipartFormDataContent();
+		var part = new ByteArrayContent(data);
+		part.Headers.ContentType = new MediaTypeHeaderValue(mime);
+		form.Add(part, "file", name);
+		form.Add(new StringContent(kind), "kind");
+		var task = http.PostAsync("http://127.0.0.1:" + port + "/chat/file", form);
+		if (!task.Wait(5000)) {
+			ecode = "timeout";
+			return null;
+		}
+		var body = task.Result.Content.ReadAsStringAsync().Result;
+		JsonObject jo;
+		try { jo = JsonNode.Parse(body) as JsonObject; }
+		catch {
+			ecode = "bad";
+			return null;
+		}
+		if (jo == null) {
+			ecode = "bad";
+			return null;
+		}
+		if ((jo["code"]?.ToString() ?? "") != "100") {
+			ecode = jo["err"]?.ToString() ?? "";
+			return null;
+		}
+		return jo["id"]?.ToString();
+	}
+
+	static bool getfile(int port, string id, byte[] expect) {
+		using var http = new HttpClient();
+		var task = http.GetAsync("http://127.0.0.1:" + port + "/chat/file/" + id);
+		if (!task.Wait(5000)) return false;
+		var resp = task.Result;
+		if (!resp.IsSuccessStatusCode) return false;
+		var got = resp.Content.ReadAsByteArrayAsync().Result;
+		if (got == null || got.Length != expect.Length) return false;
+		for (var i = 0; i < got.Length; i++)
+			if (got[i] != expect[i]) return false;
+		return true;
+	}
+
+	static bool waitfile(ClientWebSocket ws, Hold hold, string id, int ms) {
+		var t0 = Environment.TickCount;
+		while (Environment.TickCount - t0 < ms) {
+			var s = nextmsg(ws, hold, 200);
+			if (string.IsNullOrEmpty(s)) continue;
+			JsonObject jo;
+			try { jo = JsonNode.Parse(s) as JsonObject; }
+			catch { continue; }
+			if (jo == null) continue;
+			if ((jo["op"]?.ToString() ?? "") != "file") continue;
+			if ((jo["file"]?.ToString() ?? "") == id) return true;
+		}
+		return false;
 	}
 
 	static ClientWebSocket open(int port, Action<string> err) {

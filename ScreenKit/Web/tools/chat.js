@@ -21,6 +21,8 @@
 		SK.$("chat-join").onclick = join;
 		SK.$("chat-send").onclick = send;
 		SK.$("chat-leave").onclick = leave;
+		SK.$("chat-imgbtn").onclick = function(){ pick("image"); };
+		SK.$("chat-filebtn").onclick = function(){ pick("file"); };
 		SK.$("chat-nick").onkeydown = function(ev){
 			if (ev.key === "Enter") join();
 		};
@@ -97,6 +99,51 @@
 		setmsg("");
 	}
 
+	function pick(kind){
+		if (!ws || ws.readyState !== 1 || opening) return;
+		var input = SK.$(kind === "image" ? "chat-img" : "chat-file");
+		if (!input) return;
+		input.value = "";
+		input.onchange = function(){
+			var f = input.files && input.files[0];
+			if (f) upload(f, kind);
+		};
+		input.click();
+	}
+
+	function upload(file, kind){
+		if (!ws || ws.readyState !== 1) return;
+		if (!file || !file.size) {
+			setmsg(label("web.chat.err.empty", "文件是空的"), true);
+			return;
+		}
+		if (file.size > 8 * 1024 * 1024) {
+			setmsg(label("web.chat.err.big", "太大了（最多 8 MB）"), true);
+			return;
+		}
+		var fd = new FormData();
+		fd.append("file", file, file.name || "file");
+		fd.append("kind", kind === "image" ? "image" : "file");
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "/chat/file");
+		xhr.onload = function(){
+			var m;
+			try { m = JSON.parse(xhr.responseText); }
+			catch (e) { setmsg(label("web.chat.err.bad", "消息无法识别"), true); return; }
+			if (!m || m.code !== 100 || !m.id) {
+				setmsg(errmsg(m && m.err), true);
+				return;
+			}
+			if (!ws || ws.readyState !== 1) return;
+			ws.send(JSON.stringify({ op: "file", file: m.id }));
+			setmsg("");
+		};
+		xhr.onerror = function(){
+			setmsg(label("web.chat.err.closed", "连接已断开"), true);
+		};
+		xhr.send(fd);
+	}
+
 	function onmsg(raw){
 		var m;
 		try { m = JSON.parse(raw); }
@@ -112,10 +159,14 @@
 		if (m.op === "hist") {
 			var items = m.items || [];
 			var i;
-			for (i = 0; i < items.length; i++) addsay(items[i]);
+			for (i = 0; i < items.length; i++) {
+				if (items[i] && items[i].op === "file") addfile(items[i]);
+				else addsay(items[i]);
+			}
 			return;
 		}
 		if (m.op === "say") { addsay(m); return; }
+		if (m.op === "file") { addfile(m); return; }
 		if (m.op === "sys") { addsys(m); return; }
 		if (m.op === "peers") { paintpeers(m.list || []); return; }
 		if (m.op === "err") setmsg(errmsg(m.code), true);
@@ -132,6 +183,44 @@
 		row.appendChild(who);
 		row.appendChild(body);
 		pushlog(row);
+	}
+
+	function addfile(m){
+		var row = document.createElement("div");
+		row.className = "chatline" + (m.id === me ? " mine" : "");
+		var who = document.createElement("span");
+		who.className = "who g-" + (m.gender || "x");
+		who.textContent = (m.nick || "") + gendertag(m.gender);
+		row.appendChild(who);
+		var id = m.file || "";
+		if (!/^[a-f0-9]{32}$/.test(id)) {
+			pushlog(row);
+			return;
+		}
+		var url = "/chat/file/" + id;
+		if (m.kind === "image") {
+			var img = document.createElement("img");
+			img.className = "chatpic";
+			img.alt = m.name || "";
+			img.src = url;
+			row.appendChild(img);
+		}
+		else {
+			var a = document.createElement("a");
+			a.className = "chatfile";
+			a.href = url;
+			a.download = m.name || "file";
+			a.textContent = (m.name || "file") + " (" + sizestr(m.size) + ")";
+			row.appendChild(a);
+		}
+		pushlog(row);
+	}
+
+	function sizestr(n){
+		n = n || 0;
+		if (n < 1024) return n + " B";
+		if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+		return (n / 1024 / 1024).toFixed(1) + " MB";
 	}
 
 	function addsys(m){
@@ -175,6 +264,10 @@
 		if (code === "full") return label("web.chat.err.full", "人满了");
 		if (code === "fast") return label("web.chat.err.fast", "说得太快");
 		if (code === "text") return label("web.chat.err.text", "最多 500 个字");
+		if (code === "big") return label("web.chat.err.big", "太大了（最多 8 MB）");
+		if (code === "empty") return label("web.chat.err.empty", "文件是空的");
+		if (code === "img") return label("web.chat.err.img", "这不是图片");
+		if (code === "file") return label("web.chat.err.file", "文件已经不在了");
 		if (code === "join") return label("web.chat.err.nick", "请先进入");
 		return label("web.chat.err.bad", "消息无法识别");
 	}

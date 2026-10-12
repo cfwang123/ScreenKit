@@ -59,7 +59,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-nettool"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-nettool"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop"
@@ -282,6 +282,8 @@ static class Cli {
 					return testfx();
 				case "--test-pwgen":
 					return testpwgen();
+				case "--test-fake":
+					return testfake();
 				case "--test-nettool":
 					return testnettool();
 				case "--test-update-notes":
@@ -3290,6 +3292,56 @@ static class Cli {
 		return 1;
 	}
 
+	static int testfake() {
+		Out("=== Bogus 测试数据 --test-fake ===");
+		var had = NativeRuntime.HasBogus();
+		Out(had ? "已安装" : "未安装，开始下载");
+		if (!had) {
+			var log = new Progress<string>(s => Out("  " + s));
+			try {
+				NativeRuntime.InstallBogus(log, null, CancellationToken.None).GetAwaiter().GetResult();
+			}
+			catch (Exception ex) {
+				Err("FAIL install: " + ex.Message);
+				return 1;
+			}
+		}
+		if (!NativeRuntime.HasBogus()) {
+			Err("FAIL: Bogus.dll 仍不存在");
+			return 1;
+		}
+		foreach (var kind in BogusGen.Kinds) {
+			string text;
+			try { text = BogusGen.Lines(kind, 2); }
+			catch (Exception ex) {
+				Err("FAIL " + kind + ": " + ex.Message);
+				return 1;
+			}
+			var lines = text.Replace("\r", "").Split('\n');
+			if (lines.Length != 2 || string.IsNullOrWhiteSpace(lines[0]) || string.IsNullOrWhiteSpace(lines[1])) {
+				Err("FAIL " + kind + " empty");
+				return 1;
+			}
+			Out(kind + ": " + lines[0]);
+		}
+		try {
+			BogusGen.Lines("nope", 1);
+			Err("FAIL: bad kind accepted");
+			return 1;
+		}
+		catch (ArgumentException) { }
+		if (!had) {
+			NativeRuntime.UninstallBogus();
+			if (NativeRuntime.HasBogus()) {
+				Err("FAIL: 卸载后文件还在");
+				return 1;
+			}
+			Out("已卸载（本次测试下载的）");
+		}
+		Out("OK");
+		return 0;
+	}
+
 	static int testpwgen() {
 		Out("=== 密码生成器 --test-pwgen ===");
 		var bad = 0;
@@ -4797,6 +4849,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-fx
   ScreenKit --test-pwgen
+  ScreenKit --test-fake
   ScreenKit --test-nettool
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv
@@ -4874,6 +4927,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-fx  货币换算：查询失败回退默认并缓存 10 分钟，成功也缓存 10 分钟
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
+      --test-fake  安装 Bogus 后生成各类测试数据；原来没有则测完删掉
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
@@ -4955,6 +5009,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-texttool
   ScreenKit --test-fx
   ScreenKit --test-pwgen
+  ScreenKit --test-fake
   ScreenKit --test-nettool
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv

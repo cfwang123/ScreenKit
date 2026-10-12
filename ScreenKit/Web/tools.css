@@ -433,3 +433,6 @@ input[type="file"] {
 .peer { padding: 2px 0; }
 #chat-sendrow { margin-top: 10px; flex-wrap: nowrap; }
 #chat-text { flex: 1; min-width: 0; }
+#chat-sendrow .ghost { flex: none; }
+.chatpic { display: block; max-width: 100%; max-height: 220px; margin-top: 4px; border-radius: 6px; }
+.chatfile { display: inline-block; margin-top: 4px; }

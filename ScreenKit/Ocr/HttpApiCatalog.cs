@@ -69,6 +69,8 @@ static class HttpApiCatalog {
 		add(list, "GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");
 		add(list, "POST /api/jpyomi", "POST", "/api/jpyomi", "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}", "http.doc.jpyomi");
 		add(list, "POST /api/text", "POST", "/api/text", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}", "http.doc.text", accept: "GET/POST");
+		add(list, "GET /api/fake", "GET", "/api/fake", "", "http.doc.fake", accept: "GET/POST");
+		add(list, "POST /api/fake", "POST", "/api/fake", "{\n  \"kind\": \"name\",\n  \"n\": 2\n}", "http.doc.fake");
 		add(list, "POST /api/fx", "POST", "/api/fx", "{\n  \"amount\": 1,\n  \"from\": \"USD\",\n  \"to\": \"CNY\"\n}", "http.doc.fx", accept: "GET/POST");
 		add(list, "GET /api/enc", "GET", "/api/enc?cp=21834", "", "http.doc.enc", accept: "GET/POST");
 		add(list, "POST /api/qrmake", "POST", "/api/qrmake", "{\n  \"text\": \"hello\",\n  \"format\": \"qr\",\n  \"encoding\": \"utf8\"\n}", "http.doc.qrmake", accept: "GET/POST");
