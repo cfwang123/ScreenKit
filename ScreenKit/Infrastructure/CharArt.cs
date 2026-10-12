@@ -22,6 +22,8 @@ static class CharArt {
 	public const int MODE_QUARTER = 4;
 	public const int MODE_EIGHTH = 8;
 	const double CELL_ASPECT = 2;
+	// 与 imgview Paint.split 相同：四象限最远一对的通道平方和小于此值才当成一色。
+	const int SPLIT_DIST = 40;
 	const string RAMP = " .:-=+*#%@";
 	// 四象限位：1 左上、2 右上、4 左下、8 右下。前景是置位的那一侧。
 	const string QUAD =
@@ -243,35 +245,20 @@ static class CharArt {
 			}
 		}
 		if (n == 0) return cell;
-		var colc = new int[8];
-		for (var col = 0; col < 8; col++) colc[col] = mix(s[col], s[8 + col]);
-		var full = avg(colc, 0, 8);
 		int fg, bg;
-		long errHalf, errEighth, errQuarter;
-		char chHalf, chEighth, chQuarter;
-		int fgH, bgH, fgE, bgE, fgQ, bgQ;
-		half(s, out chHalf, out fgH, out bgH, out errHalf);
-		eighth(s, out chEighth, out fgE, out bgE, out errEighth);
-		quarter(s, out chQuarter, out fgQ, out bgQ, out errQuarter);
-		var use = mode;
-		if (use == MODE_AUTO) {
-			use = MODE_FULL;
-			var best = err(s, 0, 16, full);
-			if (errHalf < best) { best = errHalf; use = MODE_HALF; }
-			if (errQuarter * 4 < best) { best = errQuarter * 4; use = MODE_QUARTER; }
-			if (errEighth < best) use = MODE_EIGHTH;
-		}
-		if (use == MODE_HALF) { cell.Ch = chHalf; fg = fgH; bg = bgH; }
-		else if (use == MODE_QUARTER) { cell.Ch = chQuarter; fg = fgQ; bg = bgQ; }
-		else if (use == MODE_EIGHTH) { cell.Ch = chEighth; fg = fgE; bg = bgE; }
-		else { cell.Ch = '\u2588'; fg = full; bg = full; }
-		if (fg < 0) return cell;
-		if (bg < 0) bg = fg;
-		if (fg != bg && near(fg, bg)) {
+		var use = mode == MODE_AUTO ? MODE_QUARTER : mode;
+		if (use == MODE_HALF) half(s, out cell.Ch, out fg, out bg);
+		else if (use == MODE_EIGHTH) eighth(s, out cell.Ch, out fg, out bg);
+		else if (use == MODE_QUARTER) quarter(s, out cell.Ch, out fg, out bg);
+		else {
+			var colc = new int[8];
+			for (var col = 0; col < 8; col++) colc[col] = mix(s[col], s[8 + col]);
 			cell.Ch = '\u2588';
-			fg = mix(fg, bg);
+			fg = avg(colc, 0, 8);
 			bg = fg;
 		}
+		if (fg < 0) return cell;
+		if (bg < 0) bg = fg;
 		cell.Fg = fg;
 		cell.Bg = bg;
 		return cell;
@@ -419,10 +406,36 @@ static class CharArt {
 			bad($"charart soft half U+{(int)softHalf.Ch:X4}");
 			return 1;
 		}
+		var flat = solid(4, 2, 180, 90, 30);
+		var flatCell = Pick(flat, 4, 2, 0, 4, 0, 2, MODE_AUTO);
+		if (flatCell.Ch != ' ' || flatCell.Fg != 0xB45A1E || flatCell.Bg != 0xB45A1E) {
+			bad($"charart flat U+{(int)flatCell.Ch:X4} {flatCell.Fg:X6}");
+			return 1;
+		}
+		var close = solid(4, 2, 100, 100, 100);
+		fill(close, 4, 2, 2, 4, 100, 105, 100);
+		var closeCell = Pick(close, 4, 2, 0, 4, 0, 2, MODE_AUTO);
+		if (closeCell.Ch != ' ') {
+			bad($"charart under 40 U+{(int)closeCell.Ch:X4}");
+			return 1;
+		}
+		var grad = solid(2, 2, 200, 100, 70);
+		grad[0] = 40; grad[1] = 100; grad[2] = 200; grad[3] = 255;
+		var gcell = Pick(grad, 2, 2, 0, 2, 0, 2, MODE_AUTO);
+		if (gcell.Ch != '\u2598') {
+			bad($"charart gradient U+{(int)gcell.Ch:X4}");
+			return 1;
+		}
+		var fullCell = Pick(grad, 2, 2, 0, 2, 0, 2, MODE_FULL);
+		if (fullCell.Ch != '\u2588') {
+			bad($"charart full U+{(int)fullCell.Ch:X4}");
+			return 1;
+		}
 		ok("charart OK");
 		ok("charart eighth 1/8 3/8 1/2 7/8 OK");
 		ok("charart half quarter ascii fit zoom OK");
 		ok("charart soft split keeps half and eighth");
+		ok("charart auto quadrant split");
 		return 0;
 	}
 
@@ -620,7 +633,7 @@ static class CharArt {
 		if (oy > h - cellH) oy = h - cellH;
 	}
 
-	static void half(int[] s, out char ch, out int fg, out int bg, out long errv) {
+	static void half(int[] s, out char ch, out int fg, out int bg) {
 		var top = new int[8];
 		var bot = new int[8];
 		for (var i = 0; i < 8; i++) {
@@ -629,25 +642,24 @@ static class CharArt {
 		}
 		fg = avg(top, 0, 8);
 		bg = avg(bot, 0, 8);
-		errv = err(top, 0, 8, fg) + err(bot, 0, 8, bg);
 		ch = '\u2580';
 		if (fg < 0 && bg >= 0) { ch = '\u2584'; fg = bg; bg = 0; }
 	}
 
-	static void eighth(int[] s, out char ch, out int fg, out int bg, out long errv) {
+	static void eighth(int[] s, out char ch, out int fg, out int bg) {
 		var col = new int[8];
 		for (var i = 0; i < 8; i++) col[i] = mix(s[i], s[8 + i]);
 		fg = avg(col, 0, 8);
 		bg = fg;
-		errv = sideerr(s, 0, 8, fg);
+		var bestE = sideerr(s, 0, 8, fg);
 		var bestK = 8;
 		for (var k = 1; k <= 7; k++) {
 			var left = avg(col, 0, k);
 			var right = avg(col, k, 8);
 			if (left < 0 || right < 0) continue;
 			var e = sideerr(s, 0, k, left) + sideerr(s, k, 8, right);
-			if (e < errv) {
-				errv = e;
+			if (e < bestE) {
+				bestE = e;
 				bestK = k;
 				fg = left;
 				bg = right;
@@ -666,49 +678,51 @@ static class CharArt {
 		return e;
 	}
 
-	static void quarter(int[] s, out char ch, out int fg, out int bg, out long errv) {
+	static void quarter(int[] s, out char ch, out int fg, out int bg) {
 		var q = new int[4];
 		q[0] = avg4(s, 0, 0);
 		q[1] = avg4(s, 0, 4);
 		q[2] = avg4(s, 1, 0);
 		q[3] = avg4(s, 1, 4);
-		fg = q[0] >= 0 ? q[0] : avg(q, 0, 4);
-		bg = fg;
-		errv = 0;
-		for (var i = 0; i < 4; i++) if (q[i] >= 0) errv += dist(q[i], fg);
-		var bestMask = 15;
-		var bestErr = errv;
-		var bestFg = fg;
-		var bestBg = bg;
-		for (var a = 0; a < 4; a++) {
-			if (q[a] < 0) continue;
-			for (var b = 0; b < 4; b++) {
-				if (q[b] < 0) continue;
-				var mask = 0;
-				long e = 0;
-				var used = 0;
-				for (var i = 0; i < 4; i++) {
-					if (q[i] < 0) continue;
-					used++;
-					var da = dist(q[i], q[a]);
-					var db = dist(q[i], q[b]);
-					if (da <= db) { mask |= 1 << i; e += da; }
-					else e += db;
-				}
-				if (used == 0) continue;
-				if (e < bestErr) {
-					bestErr = e;
-					bestMask = mask;
-					bestFg = q[a];
-					bestBg = q[b];
-				}
+		var bi = 0;
+		var bj = 1;
+		long best = -1;
+		for (var i = 0; i < 4; i++) {
+			if (q[i] < 0) continue;
+			for (var j = i + 1; j < 4; j++) {
+				if (q[j] < 0) continue;
+				var d = dist(q[i], q[j]);
+				if (d > best) { best = d; bi = i; bj = j; }
 			}
 		}
-		errv = bestErr;
-		fg = bestFg;
-		bg = bestBg;
-		if (bestMask == 0) { ch = ' '; var t = fg; fg = bg; bg = t; }
-		else ch = QUAD[bestMask];
+		if (best < SPLIT_DIST) {
+			fg = avg(q, 0, 4);
+			bg = fg;
+			ch = ' ';
+			return;
+		}
+		var mask = 0;
+		long nr = 0, ng = 0, nb = 0, mr = 0, mg = 0, mb = 0;
+		var n = 0;
+		var m = 0;
+		for (var i = 0; i < 4; i++) {
+			if (q[i] < 0) continue;
+			if (dist(q[i], q[bi]) <= dist(q[i], q[bj])) {
+				mask |= 1 << i;
+				nr += red(q[i]); ng += green(q[i]); nb += blue(q[i]); n++;
+			} else {
+				mr += red(q[i]); mg += green(q[i]); mb += blue(q[i]); m++;
+			}
+		}
+		if (n == 0 || m == 0) {
+			fg = avg(q, 0, 4);
+			bg = fg;
+			ch = ' ';
+			return;
+		}
+		fg = (int)((nr / n) << 16) | (int)((ng / n) << 8) | (int)(nb / n);
+		bg = (int)((mr / m) << 16) | (int)((mg / m) << 8) | (int)(mb / m);
+		ch = mask == 0 || mask == 15 ? ' ' : QUAD[mask];
 	}
 
 	static int avg4(int[] s, int row, int col0) {
@@ -743,13 +757,6 @@ static class CharArt {
 		return ((int)(r / n) << 16) | ((int)(g / n) << 8) | (int)(bl / n);
 	}
 
-	static long err(int[] c, int a, int b, int color) {
-		if (color < 0) return 0;
-		long e = 0;
-		for (var i = a; i < b; i++) if (c[i] >= 0) e += dist(c[i], color);
-		return e;
-	}
-
 	static int mix(int a, int b) {
 		if (a < 0) return b;
 		if (b < 0) return a;
@@ -759,10 +766,6 @@ static class CharArt {
 	static int red(int c) => (c >> 16) & 255;
 	static int green(int c) => (c >> 8) & 255;
 	static int blue(int c) => c & 255;
-
-	static bool near(int a, int b) {
-		return Math.Abs(red(a) - red(b)) <= 2 && Math.Abs(green(a) - green(b)) <= 2 && Math.Abs(blue(a) - blue(b)) <= 2;
-	}
 
 	static void fitbuffer(IntPtr hout, int cols, int rows) {
 		if (cols < 4) cols = 4;

@@ -4731,9 +4731,32 @@ static class Cli {
 				return 1;
 			}
 		}
+		if (!checkdev("prn", SysDev.ScanPrinters, false)) return 1;
+		if (!checkdev("aud", SysDev.ScanAudio, true)) return 1;
 		if (testusb() != 0) return 1;
 		Out("=== OK：系统信息 ===");
 		return 0;
+	}
+
+	static bool checkdev(string tag, Func<List<UsbDev>> scan, bool needOne) {
+		List<UsbDev> list;
+		try { list = scan(); }
+		catch (Exception ex) {
+			Err(tag + " " + ex.Message);
+			return false;
+		}
+		Out(tag + "=" + list.Count);
+		if (needOne && list.Count == 0) {
+			Err(tag + " 没有枚举到设备");
+			return false;
+		}
+		foreach (var d in list) {
+			if (string.IsNullOrEmpty(d.Name) || d.Props == null || d.Props.Count == 0) {
+				Err(tag + " 缺少名称或参数");
+				return false;
+			}
+		}
+		return true;
 	}
 
 	static int testhttpdbg() {
@@ -5761,7 +5784,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
-      --test-sysinfo  只读检查处理器、内存容量、串口和 USB 设备
+      --test-sysinfo  只读检查处理器、内存容量、串口、打印机、声音设备和 USB 设备
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）

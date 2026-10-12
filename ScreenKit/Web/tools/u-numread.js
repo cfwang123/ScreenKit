@@ -28,7 +28,7 @@
 		hideOut: true,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。SI 每千进一位，如 kilo、mega、zepto、yocto。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -114,6 +114,14 @@
 			["中数", scaleread(p, "mid")],
 			["大数", scaleread(p, "big")],
 			["英文读法", enread(p)],
+			["韩文固有", koNative(p)],
+			["韩文汉字", koSino(p)],
+			["日语", jaRead(p)],
+			["德语", deRead(p)],
+			["法语", frRead(p)],
+			["西班牙语", esRead(p)],
+			["葡萄牙语", ptRead(p)],
+			["俄语", ruRead(p)],
 			["SI", siread(p)],
 			["千分位", sign(p) + group3(p.ip) + (p.fp ? "." + p.fp : "")],
 			["科学计数", sciform(p)],

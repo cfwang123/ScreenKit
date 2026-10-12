@@ -71,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools, USB devices: list USB devices that are connected now. Select one to see its name, VID/PID, class, status, hardware IDs, driver, location, parent, and other parameters. The window only reads the system record and does not open the device.
 - Tools, Character art: a picture becomes plain ASCII, or a console picture in full color using a full block, upper and lower halves, quadrants, and left blocks from 1/8 to 7/8. The wheel zooms, dragging pans, and resizing the console redraws.
 - Tools, System info: one window with System, USB devices, and Serial ports. System lists the processor, graphics, memory, disks, volumes, and network. USB devices is now a tab in that window. Serial ports lists COM ports. It only reads the system record and does not open a device or a port.
+- System info adds Printers and Sound / mic. Printers are local and connected. Sound / mic lists playback and recording devices, including the default role. Both are read-only and load in the background.
 
 #### Changed
 
@@ -133,6 +134,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Color character art keeps half blocks, quadrants, and 1/8 to 7/8 blocks when the two colors differ. Nearly identical colors still use a full block.
 - Character art accepts a picture dropped on the text area, including a file, a file name, a virtual JPEG, or a bitmap.
 - System info opens at once. The system, USB, and serial tabs read in the background and show Reading until each list arrives.
+- Color character art defaults to quadrant blocks. A cell splits when its quadrants differ, and a flat cell is a space with the background color instead of a full block. Key 1 still draws full blocks.
 
 #### Removed
 
@@ -179,6 +181,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具 → USB 设备：列出当前已连接的 USB 设备。点一项查看名称、VID/PID、类、状态、硬件 ID、驱动、位置和父设备等参数。只读系统记录，不打开设备。
 - 新增工具「字符画」。选图或拖入后生成纯 ASCII；全色在命令行窗口用整块、上下半块、四象限和从左加宽的 1/8～7/8 块显示，可平移、缩放，并随窗口大小重画。
 - 工具 → 系统信息：一个窗口，分系统、USB 设备、串口三页。系统页列出处理器、显卡、内存、硬盘、分区和网络。原来的 USB 设备窗口改为其中一页。串口页列出 COM 口。只读系统记录，不打开设备，也不打开串口。
+- 系统信息增加打印机和声音/麦克风。打印机含本机和已连接的。声音/麦克风列出播放和录制设备，并标出默认用途。都是只读，在后台读取。
 
 #### 变更
 
@@ -241,6 +244,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 全色字符画在两种颜色有差别时保留半块、四象限和 1/8～7/8 块。几乎相同的颜色仍用整块。
 - 字符画可以把图片拖到文字区域。文件、文件名、虚拟 JPEG 和位图都可以。
 - 系统信息窗口马上打开。系统、USB 和串口在后台读取，读完前状态显示正在读取。
+- 全色字符画默认改用四象限。象限之间有色差就拆开，接近一色的格子用空格铺背景色，不再铺整块。按 1 仍是整块。
 
 #### 移除
 

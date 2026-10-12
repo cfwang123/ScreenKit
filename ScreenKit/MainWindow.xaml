@@ -167,7 +167,7 @@
 				          ToolTip="Ping、域名解析、WHOIS"/>
 				<MenuItem x:Name="mnsys" Header="系统信息(_U)…"
 				          AutomationProperties.AutomationId="menu.sysinfo"
-				          ToolTip="处理器、显卡、内存、硬盘、网络、USB 设备和串口"/>
+				          ToolTip="处理器、显卡、内存、硬盘、网络、USB、串口、打印机和声音设备"/>
 				<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
 				          AutomationProperties.AutomationId="menu.httpdbg"
 				          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>

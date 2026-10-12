@@ -2,14 +2,18 @@ using System.Text;
 
 namespace ScreenKit;
 
-/// <summary>工具 → 系统信息：系统、USB 设备和串口。</summary>
+/// <summary>工具 → 系统信息：系统、USB、串口、打印机和声音设备。</summary>
 public partial class SysInfoWindow : Window {
 	List<UsbPair> sysrows = new();
 	List<UsbDev> usball = new();
 	List<UsbDev> comall = new();
+	List<UsbDev> prnall = new();
+	List<UsbDev> audall = new();
 	int sysgen;
 	int usbgen;
 	int comgen;
+	int prngen;
+	int audgen;
 	bool dead;
 
 	public SysInfoWindow() {
@@ -21,9 +25,13 @@ public partial class SysInfoWindow : Window {
 		lbsysstat.Text = Loc.T("sys.loading");
 		lbusbstat.Text = Loc.T("sys.loading");
 		lbcomstat.Text = Loc.T("sys.loading");
+		lbprnstat.Text = Loc.T("sys.loading");
+		lbaudstat.Text = Loc.T("sys.loading");
 		reloadsys();
 		reloadusb();
 		reloadcom();
+		reloadprn();
+		reloadaud();
 	}
 
 	void initev() {
@@ -33,11 +41,19 @@ public partial class SysInfoWindow : Window {
 		busbcopy.Click += (_, _) => copydev(lvusb, lbusbstat);
 		bcomrefresh.Click += (_, _) => reloadcom();
 		bcomcopy.Click += (_, _) => copydev(lvcom, lbcomstat);
+		bprnrefresh.Click += (_, _) => reloadprn();
+		bprncopy.Click += (_, _) => copydev(lvprn, lbprnstat);
+		baudrefresh.Click += (_, _) => reloadaud();
+		baudcopy.Click += (_, _) => copydev(lvaud, lbaudstat);
 		bclose.Click += (_, _) => Close();
 		eusbfilter.TextChanged += (_, _) => showusb(keep(lvusb));
 		ecomfilter.TextChanged += (_, _) => showcom(keep(lvcom));
+		eprnfilter.TextChanged += (_, _) => showprn(keep(lvprn));
+		eaudfilter.TextChanged += (_, _) => showaud(keep(lvaud));
 		lvusb.SelectionChanged += (_, _) => showprops(lvusb, lvusbprop);
 		lvcom.SelectionChanged += (_, _) => showprops(lvcom, lvcomprop);
+		lvprn.SelectionChanged += (_, _) => showprops(lvprn, lvprnprop);
+		lvaud.SelectionChanged += (_, _) => showprops(lvaud, lvaudprop);
 	}
 
 	void applylang() {
@@ -45,6 +61,8 @@ public partial class SysInfoWindow : Window {
 		tabsystem.Header = Loc.T("sys.tab.sys");
 		tabusb.Header = Loc.T("sys.tab.usb");
 		tabcom.Header = Loc.T("sys.tab.com");
+		tabprn.Header = Loc.T("sys.tab.prn");
+		tabaud.Header = Loc.T("sys.tab.aud");
 		lbsyshint.Text = Loc.T("sys.hint");
 		colsysname.Header = Loc.T("usb.col.prop");
 		colsysval.Header = Loc.T("usb.col.value");
@@ -72,6 +90,28 @@ public partial class SysInfoWindow : Window {
 		colcomval.Header = Loc.T("usb.col.value");
 		ToolBtnUi.Set(bcomrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(bcomcopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
+		lbprnhint.Text = Loc.T("prn.hint");
+		lbprnfilter.Text = Loc.T("usb.filter");
+		eprnfilter.ToolTip = Loc.T("usb.filter.tip");
+		colprnname.Header = Loc.T("usb.col.name");
+		colprnport.Header = Loc.T("prn.p.port");
+		colprndrv.Header = Loc.T("prn.p.driver");
+		colprnstatus.Header = Loc.T("usb.col.status");
+		colprnprop.Header = Loc.T("usb.col.prop");
+		colprnval.Header = Loc.T("usb.col.value");
+		ToolBtnUi.Set(bprnrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
+		ToolBtnUi.Set(bprncopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
+		lbaudhint.Text = Loc.T("aud.hint");
+		lbaudfilter.Text = Loc.T("usb.filter");
+		eaudfilter.ToolTip = Loc.T("usb.filter.tip");
+		colaudname.Header = Loc.T("usb.col.name");
+		colaudkind.Header = Loc.T("aud.p.kind");
+		colauddef.Header = Loc.T("aud.p.roles");
+		colaudstatus.Header = Loc.T("usb.col.status");
+		colaudprop.Header = Loc.T("usb.col.prop");
+		colaudval.Header = Loc.T("usb.col.value");
+		ToolBtnUi.Set(baudrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
+		ToolBtnUi.Set(baudcopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
@@ -141,6 +181,52 @@ public partial class SysInfoWindow : Window {
 		});
 	}
 
+	void reloadprn() {
+		var id = keep(lvprn);
+		var gen = ++prngen;
+		lbprnstat.Text = Loc.T("sys.loading");
+		Task.Run(() => {
+			List<UsbDev> rows = null;
+			string err = null;
+			try { rows = SysDev.ScanPrinters(); }
+			catch (Exception ex) { err = ex.Message; }
+			apply(gen, () => prngen, () => {
+				if (err != null) {
+					prnall = new List<UsbDev>();
+					lvprn.ItemsSource = prnall;
+					lvprnprop.ItemsSource = null;
+					lbprnstat.Text = Loc.T("usb.fail", err);
+					return;
+				}
+				prnall = rows;
+				showprn(id);
+			});
+		});
+	}
+
+	void reloadaud() {
+		var id = keep(lvaud);
+		var gen = ++audgen;
+		lbaudstat.Text = Loc.T("sys.loading");
+		Task.Run(() => {
+			List<UsbDev> rows = null;
+			string err = null;
+			try { rows = SysDev.ScanAudio(); }
+			catch (Exception ex) { err = ex.Message; }
+			apply(gen, () => audgen, () => {
+				if (err != null) {
+					audall = new List<UsbDev>();
+					lvaud.ItemsSource = audall;
+					lvaudprop.ItemsSource = null;
+					lbaudstat.Text = Loc.T("usb.fail", err);
+					return;
+				}
+				audall = rows;
+				showaud(id);
+			});
+		});
+	}
+
 	void apply(int gen, Func<int> current, Action fill) {
 		Dispatcher.BeginInvoke(new Action(() => {
 			if (dead || gen != current()) return;
@@ -153,6 +239,12 @@ public partial class SysInfoWindow : Window {
 
 	void showcom(string keepId) =>
 		showdev(comall, ecomfilter.Text, lvcom, lvcomprop, lbcomstat, keepId, "com.none", "com.count");
+
+	void showprn(string keepId) =>
+		showdev(prnall, eprnfilter.Text, lvprn, lvprnprop, lbprnstat, keepId, "prn.none", "prn.count");
+
+	void showaud(string keepId) =>
+		showdev(audall, eaudfilter.Text, lvaud, lvaudprop, lbaudstat, keepId, "aud.none", "aud.count");
 
 	static void showdev(List<UsbDev> all, string query, ListView list, ListView props, TextBlock stat, string keepId, string noneKey, string countKey) {
 		var q = (query ?? "").Trim().ToLowerInvariant();

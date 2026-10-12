@@ -316,7 +316,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #rcolor-list button:first-of-type { font-weight: 600; }
 #rcolor-list button:hover { background: #fff1e8; }
 .num-list {
-	display: grid; grid-template-columns: 88px minmax(0, 1fr);
+	display: grid; grid-template-columns: 108px minmax(0, 1fr);
 	margin-top: 8px; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 12px; background: var(--card);
 }
@@ -805,6 +805,7 @@ input[type="file"] {
 	flex: 1 1 180px; width: auto; height: 36px; margin: 0; padding: 6px 10px;
 }
 .plot .hint { flex: 1 1 100%; margin: 0; }
+.plot .hint.bad { color: #b91c1c; }
 .plot-stage {
 	position: relative; flex: 1 1 auto; min-height: 280px; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 12px; background: #fafaf9;
