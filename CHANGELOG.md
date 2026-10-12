@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `scripts\changelog.cmd` adds one bilingual entry to `CHANGELOG.md` under `## unreleased` (`added` / `changed` / `fixed` / `removed` / `docs` / `security`, or the Chinese category names). It takes a lock file and re-reads the file right before writing, so two writers cannot clobber each other; adding the same entry again is a no-op. `--file` points it at another changelog for testing.
 - **Tools → HTTP request debugger** saves requests in groups. GET and POST parameters are one `key=value` line each (`#` starts a comment). A POST body is either those parameters or JSON. Sending uses the program HTTP proxy; loopback and private addresses stay direct. The list is `httpdbg.json` beside the program.
 - Tools page, Text: Morse chart. Letters, digits, punctuation, and procedure signals. A click copies the dots and dashes.
+- New tool: ASCII code chart (Text). It covers 0x00-0x7F in six groups and draws the classic 16-column grid with column and row headers; control characters show their usual abbreviations (NUL, HT, DEL ...). Click a cell to select and copy it (controls copy their escape), and the preview lists decimal, hex, octal, binary, the Unicode name and the category plus the C, JavaScript, HTML, URL and UTF-8 forms.
 
 #### Changed
 
@@ -105,6 +106,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Removed
 
 - The tools page no longer has a Color conversion card under Image. Pick color already shows HEX, RGB, HSL, HSV, and CMYK.
+- The tools page no longer has a Palette card under Image.
 
 ### 中文
 
@@ -136,6 +138,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `scripts\changelog.cmd` 往 `CHANGELOG.md` 的 `## unreleased` 追加一条中英文条目（`added` / `changed` / `fixed` / `removed` / `docs` / `security`，也可写中文类别名）。写盘前先抢锁文件、再读一次比对，别人插队就整段重来，两个写入方不会互相覆盖；同一条重复添加直接跳过。`--file` 可指向别的 changelog，便于测试。
 - **工具 → HTTP 请求调试**：保存请求，并按分组管理。GET / POST 参数一行一个，写成 `key=value`（`#` 开头是注释）。POST 正文可以是这些参数，也可以是 JSON。发送走程序的 HTTP 代理，本机和内网直连。列表写在程序旁的 `httpdbg.json`。
 - 工具页「文字」增加摩斯码表。字母、数字、标点和信号。点一下复制点划。
+- 新增工具：ASCII码表（文字）。0x00–0x7F 分六组，画成经典 16 列并带行列码表头；控制字符显示 NUL、HT、DEL 等惯用缩写。点格子选中并复制（控制字符复制它的转义写法），右边预览列出十进制、十六进制、八进制、二进制、Unicode 名称、类别，以及 C、JavaScript、HTML、URL、UTF-8 写法。
 
 #### 变更
 
@@ -179,6 +182,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 移除
 
 - 工具页「图像」不再单列「颜色转换」。取色已经给出 HEX、RGB、HSL、HSV 和 CMYK。
+- 工具页「图像」不再有「调色板」。
 
 ## v1.0.18 (2026-10-10)
 

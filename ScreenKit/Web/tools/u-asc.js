@@ -300,6 +300,10 @@
 		return -1;
 	}
 
+	function ascshort(cp){
+		return cp === 127 ? "DEL" : NAMES[cp];
+	}
+
 	function ascquery(){
 		var cp = ascparse(SK.$("a-q").value);
 		if (cp === -2) {
@@ -311,13 +315,13 @@
 			return;
 		}
 		var i;
-		for (i = 0; i < GROUPS.length; i++) {
-			if (GROUPS[i].codes.indexOf(cp) >= 0) {
-				SK.msg("a-msg", asc2(cp, 16) + " · " + cp + " · " + (isctrl(cp) ? NAMES[cp] : String.fromCharCode(cp)));
-				ascshow(i, cp);
-				return;
-			}
+		for (i = 1; i < GROUPS.length; i++) {
+			// 先找具体分组，「全部」兜底
+			if (GROUPS[i].codes.indexOf(cp) >= 0) break;
 		}
+		if (i >= GROUPS.length) i = 0;
+		SK.msg("a-msg", asc2(cp, 16) + " · " + cp + " · " + (isctrl(cp) ? ascshort(cp) : String.fromCharCode(cp)));
+		ascshow(i, cp);
 	}
 
 	function esc(s){
