@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools, Character art: a picture becomes plain ASCII, or a console picture in full color using a full block, upper and lower halves, quadrants, and left blocks from 1/8 to 7/8. The wheel zooms, dragging pans, and resizing the console redraws.
 - Tools, System info: one window with System, USB devices, and Serial ports. System lists the processor, graphics, memory, disks, volumes, and network. USB devices is now a tab in that window. Serial ports lists COM ports. It only reads the system record and does not open a device or a port.
 - System info adds Printers and Sound / mic. Printers are local and connected. Sound / mic lists playback and recording devices, including the default role. Both are read-only and load in the background.
+- The tools page adds Translate under Text. It follows the translate popup: pick languages, swap them, and speak either side. Ctrl+Enter translates. A ready translate LLM is used; otherwise an installed local model is used.
 
 #### Changed
 
@@ -127,6 +128,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web tools page has a top bar with the logo, back, favorite, and language. Opening a tool hides the left category list.
 - Function graph: hold Ctrl to zoom the x-axis only, or Shift to zoom the y-axis only.
 - Number notation rows can be selected by dragging. Each row has Copy and Speak instead of copying on click.
+- The Morse chart text box starts as HELLO.
 
 #### Fixed
 
@@ -193,6 +195,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增工具「字符画」。选图或拖入后生成纯 ASCII；全色在命令行窗口用整块、上下半块、四象限和从左加宽的 1/8～7/8 块显示，可平移、缩放，并随窗口大小重画。
 - 工具 → 系统信息：一个窗口，分系统、USB 设备、串口三页。系统页列出处理器、显卡、内存、硬盘、分区和网络。原来的 USB 设备窗口改为其中一页。串口页列出 COM 口。只读系统记录，不打开设备，也不打开串口。
 - 系统信息增加打印机和声音/麦克风。打印机含本机和已连接的。声音/麦克风列出播放和录制设备，并标出默认用途。都是只读，在后台读取。
+- 工具页「文字」增加翻译。做法和翻译小窗一样：选语言、交换，两边都可以发音。Ctrl+Enter 翻译。翻译 LLM 就绪时用 LLM，否则用已安装的本地模型。
 
 #### 变更
 
@@ -248,6 +251,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具页上方增加标题栏，放 logo、返回、收藏和语言。进入工具后隐藏左侧分类栏。
 - 函数图像按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。
 - 数字表记每一行可以拖选文字，旁边有复制和发音，不再一点就复制。
+- 摩斯码表的文字框打开时是 HELLO。
 
 #### 修复
 

@@ -62,7 +62,7 @@
 			+ '<span id="morse-msg" class="msg"></span></div>'
 			+ '<p class="hint">国际摩斯码。点下面的码复制并用 8bit 合成器试听（约 784Hz），也可以输入一段文字整段播放。'
 			+ '短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。</p>'
-			+ '<div class="mtry"><input id="morse-t" type="text" maxlength="64" placeholder="输入一段文字，如 SOS HELLO 2026">'
+			+ '<div class="mtry"><input id="morse-t" type="text" maxlength="64" value="HELLO" placeholder="输入一段文字，如 SOS HELLO 2026">'
 			+ '<button type="button" id="morse-play" class="primary">播放</button>'
 			+ '<button type="button" id="morse-stop">停止</button>'
 			+ '<span id="morse-tmsg" class="msg"></span></div>'
