@@ -43,6 +43,7 @@ public partial class VidConvertWindow : Window {
 		routother.Checked += (_, _) => syncoutui();
 		routrep.Checked += (_, _) => syncoutui();
 		routrecycle.Checked += (_, _) => syncoutui();
+		efmt.SelectionChanged += (_, _) => synccodec();
 		eaudio.Checked += (_, _) => syncaudio();
 		eaudio.Unchecked += (_, _) => syncaudio();
 		lv.PreviewDragOver += ondragover;
@@ -55,6 +56,7 @@ public partial class VidConvertWindow : Window {
 	void applylang() {
 		Title = Loc.T("vidconv.title");
 		lbfmt.Text = Loc.T("vidconv.fmt");
+		lbcodec.Text = Loc.T("vidconv.codec");
 		lbcrf.Text = Loc.T("vidconv.crf");
 		ecrf.ToolTip = Loc.T("vidconv.crf.tip");
 		eshorten.Content = Loc.T("vidconv.short");
@@ -92,9 +94,16 @@ public partial class VidConvertWindow : Window {
 				break;
 			}
 		}
-		ecrf.Text = VidConvert.NormCrf(fmt, opt.VidConvCrf < 0 ? 23 : opt.VidConvCrf).ToString();
+		var codec = VidConvert.NormCodec(opt.VidConvCodec);
+		foreach (var item in ecodec.Items) {
+			if (item is ComboBoxItem cc && (cc.Tag as string) == codec) {
+				ecodec.SelectedItem = cc;
+				break;
+			}
+		}
+		ecrf.Text = VidConvert.NormCrf(fmt, opt.VidConvCrf < 0 ? 40 : opt.VidConvCrf).ToString();
 		eshorten.IsChecked = opt.VidConvShortEnabled;
-		eshort.Text = (opt.VidConvShortPx < 16 ? 1080 : opt.VidConvShortPx).ToString();
+		eshort.Text = (opt.VidConvShortPx < 16 ? 480 : opt.VidConvShortPx).ToString();
 		eaudio.IsChecked = opt.VidConvAudio;
 		earate.Text = VidConvert.NormKbps(opt.VidConvAudioKbps).ToString();
 		var hz = VidConvert.NormHz(opt.VidConvAudioHz);
@@ -112,6 +121,7 @@ public partial class VidConvertWindow : Window {
 		routrecycle.IsChecked = mode == VidConvert.OUTRECYCLE;
 		eoutdir.Text = opt.VidConvOutDir ?? "";
 		syncaudio();
+		synccodec();
 	}
 
 	bool saveopt(bool needDir) {
@@ -123,7 +133,7 @@ public partial class VidConvertWindow : Window {
 		}
 		crf = VidConvert.NormCrf(fmt, crf);
 		var shortEn = eshorten.IsChecked == true;
-		var sp = opt.VidConvShortPx < 16 ? 1080 : opt.VidConvShortPx;
+		var sp = opt.VidConvShortPx < 16 ? 480 : opt.VidConvShortPx;
 		if (shortEn) {
 			if (!int.TryParse((eshort.Text ?? "").Trim(), out sp) || sp < 16 || sp > 7680) {
 				MessageBox.Show(this, Loc.T("vidconv.short.bad"), Title, MessageBoxButton.OK, MessageBoxImage.Information);
@@ -131,11 +141,12 @@ public partial class VidConvertWindow : Window {
 			}
 		}
 		opt.VidConvFormat = fmt;
+		opt.VidConvCodec = VidConvert.NormCodec((ecodec.SelectedItem as ComboBoxItem)?.Tag as string);
 		opt.VidConvCrf = crf;
 		opt.VidConvShortEnabled = shortEn;
 		opt.VidConvShortPx = sp;
 		var audioOn = eaudio.IsChecked == true;
-		var kbps = opt.VidConvAudioKbps <= 0 ? 128 : opt.VidConvAudioKbps;
+		var kbps = opt.VidConvAudioKbps <= 0 ? 64 : opt.VidConvAudioKbps;
 		var hzPick = opt.VidConvAudioHz;
 		if (audioOn) {
 			if (!int.TryParse((earate.Text ?? "").Trim(), out kbps) || kbps < 8 || kbps > 512) {
@@ -189,6 +200,11 @@ public partial class VidConvertWindow : Window {
 
 	void syncaudio() {
 		paudio.IsEnabled = !busy && eaudio.IsChecked == true;
+	}
+
+	void synccodec() {
+		var webm = ((efmt.SelectedItem as ComboBoxItem)?.Tag as string) == "webm";
+		ecodec.IsEnabled = !busy && !webm;
 	}
 
 	void refreshcount() {
@@ -271,6 +287,7 @@ public partial class VidConvertWindow : Window {
 		bclear.IsEnabled = !on;
 		efmt.IsEnabled = !on;
 		ecrf.IsEnabled = !on;
+		synccodec();
 		eshorten.IsEnabled = !on;
 		eshort.IsEnabled = !on;
 		eaudio.IsEnabled = !on;
@@ -308,6 +325,7 @@ public partial class VidConvertWindow : Window {
 		var ok = 0;
 		var fail = 0;
 		var fmt = opt.VidConvFormat;
+		var codec = opt.VidConvCodec;
 		var crf = opt.VidConvCrf;
 		var shortEn = opt.VidConvShortEnabled;
 		var shortPx = opt.VidConvShortPx;
@@ -334,7 +352,7 @@ public partial class VidConvertWindow : Window {
 					continue;
 				}
 				try {
-					await Task.Run(() => VidConvert.ConvertOne(row.FilePath, dst, fmt, crf,
+					await Task.Run(() => VidConvert.ConvertOne(row.FilePath, dst, fmt, codec, crf,
 						shortEn, shortPx, audio, kbps, hz, mono, mode, token), token).ConfigureAwait(true);
 					row.Status = Loc.T("vidconv.st.ok");
 					ok++;

@@ -37,19 +37,26 @@ static class VidConvert {
 	public static int CrfMax(string fmt) => NormFmt(fmt) == "webm" ? 63 : 51;
 
 	public static int NormCrf(string fmt, int crf) {
-		if (crf < 0) crf = 23;
+		if (crf < 0) crf = 40;
 		return Compat.Clamp(crf, 0, CrfMax(fmt));
 	}
 
+	/// <summary>x264 或 x265。WebM 编码时仍用 VP9。</summary>
+	public static string NormCodec(string codec) {
+		var c = (codec ?? "").Trim().ToLowerInvariant();
+		if (c is "x264" or "h264" or "libx264") return "x264";
+		return "x265";
+	}
+
 	public static int NormKbps(int kbps) {
-		if (kbps <= 0) kbps = 128;
+		if (kbps <= 0) kbps = 64;
 		return Compat.Clamp(kbps, 8, 512);
 	}
 
 	public static int NormHz(int hz) {
 		foreach (var n in RecordOptions.AudioHzChoices)
 			if (n == hz) return n;
-		return 44100;
+		return 22050;
 	}
 
 	public static string NormOutMode(string mode) {
@@ -168,9 +175,10 @@ static class VidConvert {
 		return null;
 	}
 
-	public static List<string> Args(string src, string dst, string fmt, int crf,
+	public static List<string> Args(string src, string dst, string fmt, string codec, int crf,
 		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, bool hasAudio, int w, int h) {
 		fmt = NormFmt(fmt);
+		codec = fmt == "webm" ? "vp9" : NormCodec(codec);
 		crf = NormCrf(fmt, crf);
 		var args = new List<string> {
 			"-y", "-hide_banner", "-loglevel", "error",
@@ -189,7 +197,7 @@ static class VidConvert {
 			var vf = "scale=w='trunc(iw*min(1\\," + n + "/min(iw\\,ih))/2)*2':h='trunc(ih*min(1\\," + n + "/min(iw\\,ih))/2)*2'";
 			args.AddRange(new[] { "-vf", vf });
 		}
-		if (fmt == "webm") {
+		if (codec == "vp9") {
 			args.AddRange(new[] {
 				"-c:v", "libvpx-vp9", "-crf", crf.ToString(CultureInfo.InvariantCulture), "-b:v", "0",
 				"-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-pix_fmt", "yuv420p",
@@ -197,10 +205,12 @@ static class VidConvert {
 			if (keepA) addaudio(args, "libopus", kbps, hz, mono);
 		}
 		else {
+			var venc = codec == "x264" ? "libx264" : "libx265";
 			args.AddRange(new[] {
-				"-c:v", "libx264", "-crf", crf.ToString(CultureInfo.InvariantCulture),
+				"-c:v", venc, "-crf", crf.ToString(CultureInfo.InvariantCulture),
 				"-preset", "medium", "-pix_fmt", "yuv420p",
 			});
+			if (codec == "x265" && fmt == "mp4") args.AddRange(new[] { "-tag:v", "hvc1" });
 			if (keepA) addaudio(args, "aac", kbps, hz, mono);
 			if (fmt == "mp4") args.AddRange(new[] { "-movflags", "+faststart" });
 		}
@@ -236,7 +246,7 @@ static class VidConvert {
 		return w >= 2 && h >= 2;
 	}
 
-	public static void ConvertOne(string src, string dst, string fmt, int crf,
+	public static void ConvertOne(string src, string dst, string fmt, string codec, int crf,
 		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, string mode, CancellationToken ct) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
@@ -258,7 +268,7 @@ static class VidConvert {
 			dir = Path.GetDirectoryName(src);
 		Directory.CreateDirectory(dir);
 		var tmp = maketmp(dst);
-		var args = Args(src, tmp, fmt, crf, shortEn, shortPx, audio, kbps, hz, mono, hasAudio, w, h);
+		var args = Args(src, tmp, fmt, codec, crf, shortEn, shortPx, audio, kbps, hz, mono, hasAudio, w, h);
 		var code = run(exe, args, ct, 0, out var err);
 		ct.ThrowIfCancellationRequested();
 		if (code != 0 || !File.Exists(tmp) || new FileInfo(tmp).Length == 0) {

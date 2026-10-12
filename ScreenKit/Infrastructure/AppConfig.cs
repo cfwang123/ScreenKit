@@ -167,10 +167,12 @@ static class AppConfig {
 				o.ImgConvKeepOrigPct = Compat.Clamp(ickPct, 1, 100);
 			if (map.TryGetValue("vidconv_format", out var vcfmt) && !string.IsNullOrWhiteSpace(vcfmt))
 				o.VidConvFormat = VidConvert.NormFmt(vcfmt.Trim().Trim('"'));
+			if (map.TryGetValue("vidconv_codec", out var vccodec) && !string.IsNullOrWhiteSpace(vccodec))
+				o.VidConvCodec = VidConvert.NormCodec(vccodec.Trim().Trim('"'));
 			if (map.TryGetValue("vidconv_crf", out var vcc) && int.TryParse(vcc, out var vcCrf))
 				o.VidConvCrf = VidConvert.NormCrf(o.VidConvFormat, vcCrf);
 			if (map.TryGetValue("vidconv_short", out var vcss))
-				o.VidConvShortEnabled = parsebool(vcss, false);
+				o.VidConvShortEnabled = parsebool(vcss, true);
 			if (map.TryGetValue("vidconv_short_px", out var vcsp) && int.TryParse(vcsp, out var vcShort))
 				o.VidConvShortPx = Compat.Clamp(vcShort, 16, 7680);
 			if (map.TryGetValue("vidconv_audio", out var vca))
@@ -644,9 +646,10 @@ static class AppConfig {
 		var vcFmt = VidConvert.NormFmt(o.VidConvFormat);
 		sb.AppendLine($"# 视频批量转换：mp4 | mkv | webm；输出 beside | other | replace | recycle");
 		sb.AppendLine($"vidconv_format = \"{vcFmt}\"");
-		sb.AppendLine($"vidconv_crf = {VidConvert.NormCrf(vcFmt, o.VidConvCrf < 0 ? 23 : o.VidConvCrf)}");
+		sb.AppendLine($"vidconv_codec = \"{VidConvert.NormCodec(o.VidConvCodec)}\"");
+		sb.AppendLine($"vidconv_crf = {VidConvert.NormCrf(vcFmt, o.VidConvCrf < 0 ? 40 : o.VidConvCrf)}");
 		sb.AppendLine($"vidconv_short = {(o.VidConvShortEnabled ? "true" : "false")}");
-		sb.AppendLine($"vidconv_short_px = {Compat.Clamp(o.VidConvShortPx < 16 ? 1080 : o.VidConvShortPx, 16, 7680)}");
+		sb.AppendLine($"vidconv_short_px = {Compat.Clamp(o.VidConvShortPx < 16 ? 480 : o.VidConvShortPx, 16, 7680)}");
 		sb.AppendLine($"vidconv_audio = {(o.VidConvAudio ? "true" : "false")}");
 		sb.AppendLine($"vidconv_audio_kbps = {VidConvert.NormKbps(o.VidConvAudioKbps)}");
 		sb.AppendLine($"vidconv_audio_hz = {VidConvert.NormHz(o.VidConvAudioHz)}");

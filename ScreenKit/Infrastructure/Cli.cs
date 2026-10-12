@@ -2743,14 +2743,22 @@ static class Cli {
 				bad++;
 			}
 			else Out("路径 " + dst);
-			var webm = VidConvert.Args(src, dst, "webm", 30, true, 80, true, 96, 48000, true, true, 320, 240);
-			if (!webm.Contains("libvpx-vp9") || !webm.Contains("scale=106:80") || !webm.Contains("libopus")
+			var webm = VidConvert.Args(src, dst, "webm", "x265", 30, true, 80, true, 96, 48000, true, true, 320, 240);
+			if (!webm.Contains("libvpx-vp9") || webm.Contains("libx265") || !webm.Contains("scale=106:80") || !webm.Contains("libopus")
 				|| !haspair(webm, "-b:a", "96k") || !haspair(webm, "-ar", "48000") || !haspair(webm, "-ac", "1")) {
 				Err("FAIL webm 参数 " + string.Join(" ", webm));
 				bad++;
 			}
 			else Out("webm 参数");
-			var mute = VidConvert.Args(src, dst, "mp4", 23, false, 1080, false, 128, 44100, false, true, 320, 240);
+			var hevc = VidConvert.Args(src, dst, "mp4", "x265", 40, true, 480, true, 64, 22050, true, true, 320, 240);
+			if (!haspair(hevc, "-c:v", "libx265") || !haspair(hevc, "-crf", "40") || !haspair(hevc, "-tag:v", "hvc1")
+				|| !haspair(hevc, "-b:a", "64k") || !haspair(hevc, "-ar", "22050") || !haspair(hevc, "-ac", "1")
+				|| hevc.Contains("libx264")) {
+				Err("FAIL x265 参数 " + string.Join(" ", hevc));
+				bad++;
+			}
+			else Out("x265 参数");
+			var mute = VidConvert.Args(src, dst, "mp4", "x264", 23, false, 1080, false, 128, 44100, false, true, 320, 240);
 			if (!mute.Contains("-an") || mute.Contains("aac") || mute.Contains("-ar") || mute.Contains("-ac")) {
 				Err("FAIL 静音参数 " + string.Join(" ", mute));
 				bad++;
@@ -2778,7 +2786,7 @@ static class Cli {
 					}
 					else {
 						var outp = Path.Combine(dir, "out.mp4");
-						VidConvert.ConvertOne(raw, outp, "mp4", 28, true, 80, true, 64, 22050, true, VidConvert.OUTOTHER, CancellationToken.None);
+						VidConvert.ConvertOne(raw, outp, "mp4", "x265", 40, true, 80, true, 64, 22050, true, VidConvert.OUTOTHER, CancellationToken.None);
 						if (!File.Exists(outp)) {
 							Err("FAIL 未写出 " + outp);
 							bad++;

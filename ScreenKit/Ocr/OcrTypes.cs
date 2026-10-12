@@ -231,20 +231,22 @@ public sealed class OcrOptions {
 	public int ImgConvKeepOrigPct = 80;
 	/// <summary>视频批量转换：mp4 / mkv / webm。</summary>
 	public string VidConvFormat = "mp4";
-	/// <summary>视频 CRF。H.264 为 0–51，WebM 为 0–63，默认 23。</summary>
-	public int VidConvCrf = 23;
+	/// <summary>视频编码：x264 / x265。WebM 仍用 VP9。</summary>
+	public string VidConvCodec = "x265";
+	/// <summary>视频 CRF。x264 / x265 为 0–51，WebM 为 0–63，默认 40。</summary>
+	public int VidConvCrf = 40;
 	/// <summary>视频是否限制较短边（超过则等比缩小，不放大）。</summary>
-	public bool VidConvShortEnabled;
-	/// <summary>视频较短边上限（像素）。</summary>
-	public int VidConvShortPx = 1080;
+	public bool VidConvShortEnabled = true;
+	/// <summary>视频较短边上限（像素），默认 480。</summary>
+	public int VidConvShortPx = 480;
 	/// <summary>转换时保留声音。</summary>
 	public bool VidConvAudio = true;
-	/// <summary>音频码率 kbps，8–512，默认 128。</summary>
-	public int VidConvAudioKbps = 128;
-	/// <summary>音频采样率 Hz。</summary>
-	public int VidConvAudioHz = 44100;
-	/// <summary>压成单声道。未勾选时保留源声道数。</summary>
-	public bool VidConvAudioMono;
+	/// <summary>音频码率 kbps，8–512，默认 64。</summary>
+	public int VidConvAudioKbps = 64;
+	/// <summary>音频采样率 Hz，默认 22050。</summary>
+	public int VidConvAudioHz = 22050;
+	/// <summary>压成单声道。未勾选时保留源声道数。默认单声道。</summary>
+	public bool VidConvAudioMono = true;
 	/// <summary>beside / other / replace / recycle。</summary>
 	public string VidConvOutMode = "beside";
 	/// <summary>视频转换自定义输出目录。</summary>
@@ -545,6 +547,7 @@ public sealed class OcrOptions {
 		ImgConvKeepOrigEnabled = ImgConvKeepOrigEnabled,
 		ImgConvKeepOrigPct = ImgConvKeepOrigPct,
 		VidConvFormat = VidConvFormat ?? "mp4",
+		VidConvCodec = VidConvCodec ?? "x265",
 		VidConvCrf = VidConvCrf,
 		VidConvShortEnabled = VidConvShortEnabled,
 		VidConvShortPx = VidConvShortPx,

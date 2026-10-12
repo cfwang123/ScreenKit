@@ -12,20 +12,11 @@
 		["mac", "MAC 地址", "web.fake.mac"],
 		["uuid", "UUID", "web.fake.uuid"]
 	];
-	var EXTRA = [
-		["enname", "英文姓名", "web.fake.enname"],
-		["job", "职位", "web.fake.job"],
-		["city", "城市", "web.fake.city"],
-		["url", "网址", "web.fake.url"],
-		["ip", "IP 地址", "web.fake.ip"],
-		["color", "颜色", "web.fake.color"],
-		["date", "日期", "web.fake.date"],
-		["sentence", "句子", "web.fake.sentence"],
-		["product", "商品", "web.fake.product"]
-	];
 	var SUR = "赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张";
 	var GIV = "伟芳娜敏静磊洋艳勇杰涛明超秀英丽强军平刚桂英";
 	var bogus = false;
+	var langs = [];
+	var kindkeys = {};
 	var spec = {
 		title: "生成测试数据",
 		go: "生成",
@@ -33,9 +24,11 @@
 		body: function(){
 			var kind = SK.fakepick || "name";
 			SK.fakepick = "";
-			return SK.row2(
-				SK.lab("类型", '<select id="box-kind">' + kindhtml(BASE, kind) + "</select>"),
-				SK.lab("行数", SK.numin("box-n", "10")))
+			return '<div class="row">'
+				+ '<label id="box-lang-lab" style="display:none"><span data-k="web.f.lang">' + (SK.t("web.f.lang") || "语言") + '</span><select id="box-lang"></select></label>'
+				+ '<label><span id="box-kind-cap" data-k="web.f.kind">' + (SK.t("web.f.kind") || "类型") + '</span><select id="box-kind">' + kindhtml(BASE, kind) + "</select></label>"
+				+ SK.lab("行数", SK.numin("box-n", "10"))
+				+ "</div>"
 				+ '<p id="box-bogus" class="hint" data-k="web.fake.off">' + hint("web.fake.off") + "</p>";
 		},
 		open: function(){
@@ -59,7 +52,12 @@
 			if (!bogus) return fakedata(n, kind);
 			var count = parseInt(n, 10);
 			if (!(count >= 1 && count <= 50)) throw new Error("行数要在 1 到 50");
-			SK.post("/api/fake", { kind: kind, n: count }, function(data){
+			var locale = SK.val("box-lang");
+			if (!locale) throw new Error("请选择语言");
+			if (!kind) throw new Error("请选择分类");
+			SK.fakelang = locale;
+			SK.fakekind = kind;
+			SK.post("/api/fake", { locale: locale, kind: kind, n: count }, function(data){
 				SK.$("box-out").value = data.text || "";
 				SK.msg("box-msg", "完成");
 			}, "box-msg");
@@ -75,9 +73,25 @@
 		SK.get("/api/fake", function(data){
 			bogus = !!(data && data.installed);
 			spec.own = bogus;
-			var sel = SK.$("box-kind");
-			var cur = sel ? sel.value : "name";
-			if (sel) sel.innerHTML = kindhtml(bogus ? BASE.concat(EXTRA) : BASE, cur);
+			langs = bogus && data.langs ? data.langs : [];
+			kindkeys = {};
+			var ks = data && data.kinds ? data.kinds : [];
+			var i;
+			for (i = 0; i < ks.length; i++) kindkeys[ks[i].id] = ks[i].key;
+			var langlab = SK.$("box-lang-lab");
+			if (langlab) langlab.style.display = bogus ? "" : "none";
+			var cap = SK.$("box-kind-cap");
+			if (cap) {
+				var capkey = bogus ? "web.fake.cat" : "web.f.kind";
+				cap.setAttribute("data-k", capkey);
+				cap.textContent = SK.t(capkey) || (bogus ? "分类" : "类型");
+			}
+			if (bogus) filllangs();
+			else {
+				var sel = SK.$("box-kind");
+				var cur = sel ? sel.value : "name";
+				if (sel) sel.innerHTML = kindhtml(BASE, cur);
+			}
 			var el = SK.$("box-bogus");
 			if (el) {
 				var key = bogus ? "web.fake.on" : "web.fake.off";
@@ -90,6 +104,49 @@
 			spec.own = false;
 			if (done) done();
 		});
+	}
+
+	function filllangs(){
+		var sel = SK.$("box-lang");
+		if (!sel) return;
+		var cur = SK.fakelang || sel.value || "zh_CN";
+		var html = "";
+		var i;
+		var found = false;
+		for (i = 0; i < langs.length; i++) if (langs[i].id === cur) found = true;
+		if (!found && langs.length) cur = langs[0].id;
+		for (i = 0; i < langs.length; i++) {
+			html += '<option value="' + langs[i].id + '"' + (langs[i].id === cur ? " selected" : "") + ">"
+				+ SK.htmlenc(langs[i].name || langs[i].id) + "</option>";
+		}
+		sel.innerHTML = html;
+		sel.onchange = function(){
+			SK.fakelang = sel.value;
+			fillkinds();
+		};
+		fillkinds();
+	}
+
+	function fillkinds(){
+		var sel = SK.$("box-kind");
+		var langsel = SK.$("box-lang");
+		if (!sel || !langsel) return;
+		var id = langsel.value;
+		var kinds = [];
+		var i;
+		for (i = 0; i < langs.length; i++) if (langs[i].id === id) kinds = langs[i].kinds || [];
+		var cur = SK.fakekind || sel.value;
+		var found = false;
+		for (i = 0; i < kinds.length; i++) if (kinds[i] === cur) found = true;
+		if (!found && kinds.length) cur = kinds[0];
+		var html = "";
+		for (i = 0; i < kinds.length; i++) {
+			var key = kindkeys[kinds[i]] || "";
+			var label = (key && SK.t(key)) || kinds[i];
+			html += '<option value="' + kinds[i] + '"' + (key ? ' data-k="' + key + '"' : "")
+				+ (kinds[i] === cur ? " selected" : "") + ">" + label + "</option>";
+		}
+		sel.innerHTML = html;
 	}
 
 	function hint(key){

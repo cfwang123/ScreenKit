@@ -23,7 +23,10 @@
 		<Grid Grid.Row="0" Margin="0,0,0,10">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto" MinWidth="72"/>
-				<ColumnDefinition Width="180"/>
+				<ColumnDefinition Width="120"/>
+				<ColumnDefinition Width="16"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="110"/>
 				<ColumnDefinition Width="16"/>
 				<ColumnDefinition Width="Auto"/>
 				<ColumnDefinition Width="72"/>
@@ -38,26 +41,34 @@
 				<ComboBoxItem Content="MKV" Tag="mkv"/>
 				<ComboBoxItem Content="WebM" Tag="webm"/>
 			</ComboBox>
-			<TextBlock x:Name="lbcrf" Grid.Column="3" Text="CRF"
+			<TextBlock x:Name="lbcodec" Grid.Column="3" Text="编码" FontWeight="SemiBold"
+			           VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<ComboBox x:Name="ecodec" Grid.Column="4" Height="32"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="vidconv.codec">
+				<ComboBoxItem Content="x265" Tag="x265" IsSelected="True"/>
+				<ComboBoxItem Content="x264" Tag="x264"/>
+			</ComboBox>
+			<TextBlock x:Name="lbcrf" Grid.Column="6" Text="CRF"
 			           FontSize="12" Foreground="{StaticResource TextMuted}"
 			           VerticalAlignment="Center" Margin="0,0,8,0"/>
-			<TextBox x:Name="ecrf" Grid.Column="4" Height="30" Padding="6,4" Text="23"
+			<TextBox x:Name="ecrf" Grid.Column="7" Height="30" Padding="6,4" Text="40"
 			         BorderBrush="{StaticResource BorderSoft}"
 			         VerticalContentAlignment="Center"
-			         ToolTip="越小越清晰、体积越大。H.264 为 0–51，WebM 为 0–63"
+			         ToolTip="越小越清晰、体积越大。x264 / x265 为 0–51，WebM 为 0–63"
 			         AutomationProperties.AutomationId="vidconv.crf"/>
 		</Grid>
 
 		<StackPanel Grid.Row="1" Margin="0,0,0,10">
 			<CheckBox x:Name="eshorten" Content="限制较短边（超过则等比缩小，不放大）"
-			          Margin="0,0,0,8" IsChecked="False"
+			          Margin="0,0,0,8" IsChecked="True"
 			          AutomationProperties.AutomationId="vidconv.short"/>
 			<StackPanel Orientation="Horizontal"
 			            IsEnabled="{Binding ElementName=eshorten, Path=IsChecked}">
 				<TextBlock x:Name="lbshort" Text="较短边" FontSize="12"
 				           Foreground="{StaticResource TextMuted}"
 				           VerticalAlignment="Center" Margin="0,0,8,0"/>
-				<TextBox x:Name="eshort" Width="88" Height="30" Padding="6,4" Text="1080"
+				<TextBox x:Name="eshort" Width="88" Height="30" Padding="6,4" Text="480"
 				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 				         AutomationProperties.AutomationId="vidconv.shortpx"/>
 			</StackPanel>
@@ -67,7 +78,7 @@
 				<TextBlock x:Name="lbarate" Text="码率" FontSize="12"
 				           Foreground="{StaticResource TextMuted}"
 				           VerticalAlignment="Center" Margin="0,0,8,0"/>
-				<TextBox x:Name="earate" Width="72" Height="30" Padding="6,4" Text="128"
+				<TextBox x:Name="earate" Width="72" Height="30" Padding="6,4" Text="64"
 				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 				         AutomationProperties.AutomationId="vidconv.arate"/>
 				<TextBlock x:Name="lbarateu" Text="kbps" FontSize="12"
@@ -82,7 +93,7 @@
 				<TextBlock x:Name="lbahzu" Text="Hz" FontSize="12"
 				           Foreground="{StaticResource TextMuted}"
 				           VerticalAlignment="Center" Margin="6,0,16,0"/>
-				<CheckBox x:Name="eamono" Content="单声道" VerticalAlignment="Center"
+				<CheckBox x:Name="eamono" Content="单声道" VerticalAlignment="Center" IsChecked="True"
 				          AutomationProperties.AutomationId="vidconv.amono"/>
 			</StackPanel>
 		</StackPanel>
