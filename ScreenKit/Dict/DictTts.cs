@@ -121,9 +121,11 @@ static class DictTts {
 	}
 
 	/// <summary>合成并写入 tmp/voice，命中未过期文件则直接返回路径。失败抛「novoice」。</summary>
-	public static async Task<string> EnsureWav(DictTtsLang pref, string lang, string text) {
+	public static async Task<string> EnsureWav(DictTtsLang pref, string lang, string text, int maxChars = 400) {
 		text = (text ?? "").Trim();
-		if (text.Length > 400) text = text.Substring(0, 400);
+		if (maxChars < 1) maxChars = 400;
+		if (maxChars > 4000) maxChars = 4000;
+		if (text.Length > maxChars) text = text.Substring(0, maxChars);
 		if (text.Length == 0) throw new InvalidOperationException("novoice");
 		pref = pref ?? DictTtsLang.Make(DefaultEdge(lang));
 		purgeonce();

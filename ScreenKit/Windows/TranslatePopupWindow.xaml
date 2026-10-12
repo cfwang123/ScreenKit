@@ -35,8 +35,18 @@
 		</DockPanel>
 
 		<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
-			<TextBlock x:Name="lbsrc" DockPanel.Dock="Top" Text="原文" FontSize="11"
-			           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+			<Grid DockPanel.Dock="Top" Margin="0,0,0,4">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock x:Name="lbsrc" Text="原文" FontSize="11"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+				<Button x:Name="bspeaksrc" Grid.Column="1" Content="发音" Style="{StaticResource GhostBtn}"
+				        Height="22" Padding="8,0" FontSize="11"
+				        ToolTip="朗读这边的文字"
+				        AutomationProperties.AutomationId="tr.popup.speak.src"/>
+			</Grid>
 			<Border Background="{StaticResource BgPanel}" CornerRadius="8"
 			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
 				<TextBox x:Name="esrc" AcceptsReturn="True" TextWrapping="Wrap"
@@ -47,8 +57,18 @@
 		</DockPanel>
 
 		<DockPanel Grid.Row="2" Margin="0,0,0,8" LastChildFill="True">
-			<TextBlock x:Name="lbout" DockPanel.Dock="Top" Text="译文" FontSize="11"
-			           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+			<Grid DockPanel.Dock="Top" Margin="0,0,0,4">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock x:Name="lbout" Text="译文" FontSize="11"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+				<Button x:Name="bspeakdst" Grid.Column="1" Content="发音" Style="{StaticResource GhostBtn}"
+				        Height="22" Padding="8,0" FontSize="11"
+				        ToolTip="朗读这边的文字"
+				        AutomationProperties.AutomationId="tr.popup.speak.dst"/>
+			</Grid>
 			<Border Background="{StaticResource BgPanel}" CornerRadius="8"
 			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
 				<TextBox x:Name="edst" AcceptsReturn="True" TextWrapping="Wrap"

@@ -73,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools, System info: one window with System, USB devices, and Serial ports. System lists the processor, graphics, memory, disks, volumes, and network. USB devices is now a tab in that window. Serial ports lists COM ports. It only reads the system record and does not open a device or a port.
 - System info adds Printers and Sound / mic. Printers are local and connected. Sound / mic lists playback and recording devices, including the default role. Both are read-only and load in the background.
 - The tools page adds Translate under Text. It follows the translate popup: pick languages, swap them, and speak either side. Ctrl+Enter translates. A ready translate LLM is used; otherwise an installed local model is used.
+- The translate popup has Speak on the source and on the translation. It uses the dictionary voice for that language.
 
 #### Changed
 
@@ -197,6 +198,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具 → 系统信息：一个窗口，分系统、USB 设备、串口三页。系统页列出处理器、显卡、内存、硬盘、分区和网络。原来的 USB 设备窗口改为其中一页。串口页列出 COM 口。只读系统记录，不打开设备，也不打开串口。
 - 系统信息增加打印机和声音/麦克风。打印机含本机和已连接的。声音/麦克风列出播放和录制设备，并标出默认用途。都是只读，在后台读取。
 - 工具页「文字」增加翻译。做法和翻译小窗一样：选语言、交换，两边都可以发音。Ctrl+Enter 翻译。翻译 LLM 就绪时用 LLM，否则用已安装的本地模型。
+- 翻译小窗的原文和译文各有发音，用词典里该语言的引擎和发音人。
 
 #### 变更
 

@@ -13,6 +13,8 @@ public partial class TranslatePopupWindow : Window {
 	bool busy;
 	bool forceClose;
 	int showgen;
+	int speakgen;
+	TtsPlayer player;
 	CancellationTokenSource cts;
 
 	internal TranslatePopupWindow(Func<OcrOptions> getOpt, TranslateEngine trEngine) {
@@ -26,13 +28,17 @@ public partial class TranslatePopupWindow : Window {
 			Hide();
 		};
 		IsVisibleChanged += (_, _) => {
-			if (!IsVisible)
-				try { cts?.Cancel(); } catch { }
+			if (IsVisible) return;
+			try { cts?.Cancel(); } catch { }
+			speakgen++;
+			try { player?.Stop(); } catch { }
 		};
 		bpaste.Click += (_, _) => pasteclip();
 		bcopy.Click += (_, _) => copyout();
 		bgo.Click += (_, _) => _ = go();
 		bswap.Click += (_, _) => swaplang();
+		bspeaksrc.Click += (_, _) => _ = speakside(true);
+		bspeakdst.Click += (_, _) => _ = speakside(false);
 		esrclng.SelectionChanged += (_, _) => {
 			if (uiLoading) return;
 			filldst(preserve: true);
@@ -49,6 +55,10 @@ public partial class TranslatePopupWindow : Window {
 
 	public void ForceClose() {
 		forceClose = true;
+		speakgen++;
+		try { player?.Stop(); } catch { }
+		try { player?.Dispose(); } catch { }
+		player = null;
 		try { Close(); } catch { }
 	}
 
@@ -111,6 +121,10 @@ public partial class TranslatePopupWindow : Window {
 		bgo.Content = Loc.T("tr.go");
 		bgo.ToolTip = Loc.T("tr.go.tip");
 		bswap.ToolTip = Loc.T("tr.swap.tip");
+		bspeaksrc.Content = Loc.T("dict.speak");
+		bspeakdst.Content = Loc.T("dict.speak");
+		bspeaksrc.ToolTip = Loc.T("tr.popup.speak.tip");
+		bspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
 		esrclng.ToolTip = Loc.T("tr.src.tip");
 		edstlng.ToolTip = Loc.T("tr.dst.tip");
 		if (string.IsNullOrWhiteSpace(lbstatus.Text)
@@ -240,6 +254,41 @@ public partial class TranslatePopupWindow : Window {
 			esrc.Text = edst.Text;
 			edst.Text = t;
 		}
+	}
+
+	async Task speakside(bool src) {
+		var box = src ? esrc : edst;
+		var text = box?.Text ?? "";
+		if (string.IsNullOrWhiteSpace(text)) {
+			lbstatus.Text = src ? Loc.T("tr.popup.need_src") : Loc.T("tr.dst.empty");
+			return;
+		}
+		var code = src ? selected(esrclng) : selected(edstlng);
+		if (code == TrLang.Auto || string.IsNullOrEmpty(code))
+			code = LangDetect.DetectCode(text);
+		code = speakcode(code);
+		var gen = ++speakgen;
+		try {
+			player ??= new TtsPlayer();
+			var pref = DictTts.For(getopt(), code);
+			lbstatus.Text = Loc.T("dict.speaking", TrLang.Label(code));
+			var path = await DictTts.EnsureWav(pref, code, text, 1200).ConfigureAwait(true);
+			if (gen != speakgen || !IsVisible) return;
+			player.PlayFile(path);
+		}
+		catch (Exception ex) {
+			if (gen != speakgen) return;
+			CaptureLog.Ex("tr.popup.speak", ex);
+			lbstatus.Text = ex.Message == "novoice"
+				? Loc.T("dict.novoice", TrLang.Label(code))
+				: Loc.T("tr.popup.fail", ex.Message);
+		}
+	}
+
+	static string speakcode(string code) {
+		code = TrLang.Normalize(code);
+		if (code == "cht" || code == "yue") return TrLang.Zh;
+		return code;
 	}
 
 	void pasteclip() {
