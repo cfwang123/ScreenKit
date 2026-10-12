@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ScreenKit;
 
@@ -31,8 +32,23 @@ static class AutoKey {
 	const ushort VK_LWIN = 0x5B;
 	const uint GA_ROOT = 2;
 	const uint WM_KEYDOWN = 0x0100;
+	const uint WM_KEYUP = 0x0101;
+	const uint WM_SYSKEYDOWN = 0x0104;
+	const uint WM_SYSKEYUP = 0x0105;
 	const uint WM_LBUTTONDOWN = 0x0201;
+	const uint WM_LBUTTONUP = 0x0202;
+	const uint WM_RBUTTONDOWN = 0x0204;
+	const uint WM_RBUTTONUP = 0x0205;
+	const uint WM_MBUTTONDOWN = 0x0207;
+	const uint WM_MBUTTONUP = 0x0208;
 	const uint PM_REMOVE = 0x0001;
+	const uint SMTO_ABORTIFHUNG = 0x0002;
+	const int MK_LBUTTON = 0x0001;
+	const int MK_RBUTTON = 0x0002;
+	const int MK_MBUTTON = 0x0010;
+	const ushort VK_LSHIFT = 0xA0;
+	const ushort VK_LCONTROL = 0xA2;
+	const ushort VK_LMENU = 0xA4;
 	const int SW_SHOW = 5;
 
 	[StructLayout(LayoutKind.Sequential)]
@@ -78,6 +94,19 @@ static class AutoKey {
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
+	struct GUITHREADINFO {
+		public int cbSize;
+		public int flags;
+		public IntPtr hwndActive;
+		public IntPtr hwndFocus;
+		public IntPtr hwndCapture;
+		public IntPtr hwndMenuOwner;
+		public IntPtr hwndMoveSize;
+		public IntPtr hwndCaret;
+		public RECT rcCaret;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
 	struct MSG {
 		public IntPtr hwnd;
 		public uint message;
@@ -116,6 +145,28 @@ static class AutoKey {
 
 	[DllImport("user32.dll")]
 	static extern bool SetForegroundWindow(IntPtr hwnd);
+
+	[DllImport("user32.dll")]
+	static extern bool ScreenToClient(IntPtr hwnd, ref POINT pt);
+
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	static extern int GetClassName(IntPtr hwnd, StringBuilder name, int count);
+
+	[DllImport("user32.dll")]
+	static extern bool GetKeyboardState(byte[] state);
+
+	[DllImport("user32.dll")]
+	static extern bool SetKeyboardState(byte[] state);
+
+	[DllImport("user32.dll")]
+	static extern uint MapVirtualKey(uint code, uint mapType);
+
+	[DllImport("user32.dll")]
+	static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam,
+		uint flags, uint timeout, out IntPtr result);
+
+	[DllImport("user32.dll")]
+	static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
 
 	[DllImport("kernel32.dll")]
 	static extern uint GetCurrentThreadId();
@@ -232,8 +283,123 @@ static class AutoKey {
 		var fg = GetForegroundWindow();
 		if (fg == IntPtr.Zero) return 0;
 		if (skipSelf && isself(fg)) return 0;
-		var ok = act.Mouse ? click(fg, act.Button) : tap(act);
+		// 中文键盘布局下 WezTerm 会丢掉 SendInput。改把按键和点击直接送到它的窗口过程。
+		var ok = iswezterm(fg)
+			? (act.Mouse ? clickwez(fg, act.Button) : tapwez(fg, act))
+			: (act.Mouse ? click(fg, act.Button) : tap(act));
 		return ok ? 1 : -1;
+	}
+
+	static bool iswezterm(IntPtr hwnd) {
+		var name = new StringBuilder(64);
+		if (GetClassName(hwnd, name, name.Capacity) <= 0) return false;
+		return name.ToString() == "org.wezfurlong.wezterm";
+	}
+
+	static IntPtr targethwnd(IntPtr fg) {
+		var info = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
+		var tid = GetWindowThreadProcessId(fg, out _);
+		if (!GetGUIThreadInfo(tid, ref info) || info.hwndFocus == IntPtr.Zero) return fg;
+		if (info.hwndFocus == fg) return fg;
+		return GetAncestor(info.hwndFocus, GA_ROOT) == fg ? info.hwndFocus : fg;
+	}
+
+	static bool tapwez(IntPtr fg, ActionSpec act) {
+		var hwnd = targethwnd(fg);
+		var down = new List<ushort>(5);
+		if (act.Ctrl) down.Add(VK_CONTROL);
+		if (act.Alt) down.Add(VK_MENU);
+		if (act.Shift) down.Add(VK_SHIFT);
+		if (act.Win) down.Add(VK_LWIN);
+		down.Add(act.Vk);
+		var tid = GetWindowThreadProcessId(hwnd, out _);
+		var me = GetCurrentThreadId();
+		var attached = tid != 0 && tid != me && AttachThreadInput(me, tid, true);
+		var state = new byte[256];
+		var saved = new byte[256];
+		var have = GetKeyboardState(state);
+		if (have) Buffer.BlockCopy(state, 0, saved, 0, 256);
+		try {
+			if (have) {
+				markdown(state, act, down);
+				SetKeyboardState(state);
+			}
+			foreach (var vk in down)
+				if (!postkey(hwnd, vk, false, act.Alt)) return false;
+			for (var i = down.Count - 1; i >= 0; i--) {
+				if (have) {
+					state[down[i]] = (byte)(state[down[i]] & 0x7F);
+					clearpair(state, down[i]);
+					SetKeyboardState(state);
+				}
+				if (!postkey(hwnd, down[i], true, act.Alt)) return false;
+			}
+			return true;
+		}
+		finally {
+			if (have) SetKeyboardState(saved);
+			if (attached) AttachThreadInput(me, tid, false);
+		}
+	}
+
+	static void markdown(byte[] state, ActionSpec act, List<ushort> down) {
+		foreach (var vk in down) state[vk] |= 0x80;
+		if (act.Shift) state[VK_LSHIFT] |= 0x80;
+		if (act.Ctrl) state[VK_LCONTROL] |= 0x80;
+		if (act.Alt) state[VK_LMENU] |= 0x80;
+	}
+
+	static void clearpair(byte[] state, ushort vk) {
+		if (vk == VK_SHIFT) state[VK_LSHIFT] &= 0x7F;
+		else if (vk == VK_CONTROL) state[VK_LCONTROL] &= 0x7F;
+		else if (vk == VK_MENU) state[VK_LMENU] &= 0x7F;
+	}
+
+	static bool postkey(IntPtr hwnd, ushort vk, bool up, bool alt) {
+		var msg = alt ? (up ? WM_SYSKEYUP : WM_SYSKEYDOWN) : (up ? WM_KEYUP : WM_KEYDOWN);
+		var ok = SendMessageTimeout(hwnd, msg, (IntPtr)vk, keylparam(vk, up),
+			SMTO_ABORTIFHUNG, 80, out _);
+		return ok != IntPtr.Zero;
+	}
+
+	static IntPtr keylparam(ushort vk, bool up) {
+		var scan = MapVirtualKey(vk, 4);
+		var lp = 1u | ((scan & 0xFFu) << 16);
+		if ((scan & 0xFF00u) != 0) lp |= 1u << 24;
+		if (up) lp |= (1u << 30) | (1u << 31);
+		return (IntPtr)lp;
+	}
+
+	static bool clickwez(IntPtr fg, int button) {
+		var hwnd = targethwnd(fg);
+		if (!clickpoint(hwnd, out var x, out var y)) return false;
+		uint down, up;
+		int mk;
+		if (button == 1) { down = WM_RBUTTONDOWN; up = WM_RBUTTONUP; mk = MK_RBUTTON; }
+		else if (button == 2) { down = WM_MBUTTONDOWN; up = WM_MBUTTONUP; mk = MK_MBUTTON; }
+		else { down = WM_LBUTTONDOWN; up = WM_LBUTTONUP; mk = MK_LBUTTON; }
+		var lp = (IntPtr)((y << 16) | (x & 0xFFFF));
+		if (SendMessageTimeout(hwnd, down, (IntPtr)mk, lp, SMTO_ABORTIFHUNG, 80, out _) == IntPtr.Zero)
+			return false;
+		return SendMessageTimeout(hwnd, up, IntPtr.Zero, lp, SMTO_ABORTIFHUNG, 80, out _) != IntPtr.Zero;
+	}
+
+	static bool clickpoint(IntPtr hwnd, out int x, out int y) {
+		x = 0;
+		y = 0;
+		if (GetCursorPos(out var pt)) {
+			var hit = WindowFromPoint(pt);
+			var on = hit == hwnd || (hit != IntPtr.Zero && GetAncestor(hit, GA_ROOT) == GetAncestor(hwnd, GA_ROOT));
+			if (on && ScreenToClient(hwnd, ref pt)) {
+				x = pt.X;
+				y = pt.Y;
+				return true;
+			}
+		}
+		if (!GetClientRect(hwnd, out var rc)) return false;
+		x = (rc.right - rc.left) / 2;
+		y = (rc.bottom - rc.top) / 2;
+		return true;
 	}
 
 	static bool isself(IntPtr hwnd) {
