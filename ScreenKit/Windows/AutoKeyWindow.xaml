@@ -1,0 +1,98 @@
+<Window x:Class="ScreenKit.AutoKeyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="自动按键"
+        Width="560" Height="420"
+        MinWidth="480" MinHeight="360"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="autokey.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
+		           FontSize="12" Margin="0,0,0,12"/>
+		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+			<TextBlock x:Name="lbmode" Text="动作" VerticalAlignment="Center" Margin="0,0,10,0"/>
+			<RadioButton x:Name="rkey" Content="按键" GroupName="autokeyact" Margin="0,0,14,0"
+			             VerticalAlignment="Center" IsChecked="True"
+			             AutomationProperties.AutomationId="autokey.mode.key"/>
+			<RadioButton x:Name="rleft" Content="鼠标左键" GroupName="autokeyact" Margin="0,0,14,0"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="autokey.mode.left"/>
+			<RadioButton x:Name="rright" Content="鼠标右键" GroupName="autokeyact" Margin="0,0,14,0"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="autokey.mode.right"/>
+			<RadioButton x:Name="rmiddle" Content="鼠标中键" GroupName="autokeyact"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="autokey.mode.middle"/>
+		</StackPanel>
+		<Grid Grid.Row="2" Margin="0,0,0,10">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="72"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbkey" Text="按键" VerticalAlignment="Center"/>
+			<TextBox x:Name="ekey" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
+			         BorderBrush="{StaticResource BorderSoft}"
+			         VerticalContentAlignment="Center" Text="Space"
+			         AutomationProperties.AutomationId="autokey.key"/>
+			<Button x:Name="bkeycap" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+			        Content="捕获" AutomationProperties.AutomationId="autokey.key.cap"/>
+			<Button x:Name="bkeyclear" Grid.Column="3" Style="{StaticResource ToolBtn}"
+			        Content="清空" AutomationProperties.AutomationId="autokey.key.clear"/>
+		</Grid>
+		<Grid Grid.Row="3" Margin="0,0,0,10">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="72"/>
+				<ColumnDefinition Width="100"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbinterval" Text="间隔" VerticalAlignment="Center"/>
+			<TextBox x:Name="einterval" Grid.Column="1" Height="32" Padding="8,4"
+			         BorderBrush="{StaticResource BorderSoft}"
+			         VerticalContentAlignment="Center" Text="200"
+			         AutomationProperties.AutomationId="autokey.interval"/>
+			<TextBlock x:Name="lbms" Grid.Column="2" Text="毫秒" VerticalAlignment="Center" Margin="8,0,0,0"
+			           Foreground="{StaticResource TextMuted}"/>
+		</Grid>
+		<Grid Grid.Row="4" Margin="0,0,0,10">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="72"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbhotkey" Text="开始/停止" VerticalAlignment="Center"/>
+			<TextBox x:Name="ehotkey" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
+			         BorderBrush="{StaticResource BorderSoft}"
+			         VerticalContentAlignment="Center" Text="Ctrl+Alt+F8"
+			         AutomationProperties.AutomationId="autokey.hotkey"/>
+			<Button x:Name="bhotcap" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+			        Content="捕获" AutomationProperties.AutomationId="autokey.hotkey.cap"/>
+			<Button x:Name="bhotclear" Grid.Column="3" Style="{StaticResource ToolBtn}"
+			        Content="清空" AutomationProperties.AutomationId="autokey.hotkey.clear"/>
+		</Grid>
+		<DockPanel Grid.Row="6">
+			<Button x:Name="bclose" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
+			        Content="关闭" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="autokey.close"/>
+			<Button x:Name="bstart" Style="{StaticResource ToolBtn}" Content="开始" Margin="0,0,12,0"
+			        AutomationProperties.AutomationId="autokey.start"/>
+			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+			           Text="已停止" AutomationProperties.AutomationId="autokey.stat"/>
+		</DockPanel>
+	</Grid>
+</Window>

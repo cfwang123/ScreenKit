@@ -62,7 +62,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-nettool"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop"
+				or "--test-wintop" or "--test-autokey"
 				or "--test-win-tts"
 				or "--test-mem"
 				or "--test-scroll-stitch"
@@ -302,6 +302,8 @@ static class Cli {
 					return testjpyomi();
 				case "--test-wintop":
 					return testwintop();
+				case "--test-autokey":
+					return testautokey();
 				case "--test-win-tts":
 					return testwintts();
 				case "--test-mem":
@@ -2115,6 +2117,65 @@ static class Cli {
 					fail("未知 engine 应为 925 got=" + unknown);
 				else Out("unknown engine 925 OK");
 			}
+
+			var devJson = Task.Run(() =>
+				http.GetStringAsync(baseUrl + "/api/tts/devices").GetAwaiter().GetResult())
+				.GetAwaiter().GetResult();
+			using (var devDoc = JsonDocument.Parse(devJson)) {
+				if (devDoc.RootElement.GetProperty("code").GetInt32() != 100)
+					fail("devices code != 100 " + devJson);
+				else {
+					var dataDev = devDoc.RootElement.GetProperty("data");
+					var nDev = dataDev.GetArrayLength();
+					Out("devices " + nDev);
+					var badPlay = httppost(http, baseUrl + "/api/tts/speak", "{\"text\":\"hi\",\"play\":\"nope\"}");
+					using (var bp = JsonDocument.Parse(badPlay)) {
+						if (bp.RootElement.GetProperty("code").GetInt32() != 802)
+							fail("play 非法应为 802 got=" + badPlay);
+						else Out("bad play 802 OK");
+					}
+					var badDev = httppost(http, baseUrl + "/api/tts/speak",
+						"{\"text\":\"hi\",\"play\":\"queue\",\"devices\":[\"__no_such_device__\"]}");
+					using (var bd = JsonDocument.Parse(badDev)) {
+						if (bd.RootElement.GetProperty("code").GetInt32() != 802)
+							fail("未知设备应为 802 got=" + badDev);
+						else Out("bad device 802 OK");
+					}
+					if (nDev == 0 || !hasSapi)
+						Out("SKIP speak（无设备或无 SAPI）");
+					else {
+						var ids = new List<string>();
+						foreach (var one in dataDev.EnumerateArray()) {
+							ids.Add(one.GetProperty("id").GetString() ?? "");
+							if (ids.Count >= 2) break;
+						}
+						var devArr = string.Join(",", ids.ConvertAll(JsonSerializer.Serialize));
+						var qBody = "{\"text\":\"嗯\",\"engine\":\"sapi\",\"play\":\"queue\",\"devices\":[" + devArr + "]}";
+						var spoke = httppost(http, baseUrl + "/api/tts/speak", qBody);
+						using var sp = JsonDocument.Parse(spoke);
+						if (sp.RootElement.GetProperty("code").GetInt32() != 100)
+							fail("speak queue " + spoke);
+						else {
+							var sd = sp.RootElement.GetProperty("data");
+							if (sd.GetProperty("play").GetString() != "queue")
+								fail("speak play 不是 queue");
+							if (sd.GetProperty("devices").GetArrayLength() != ids.Count)
+								fail("speak 设备数 " + sd.GetProperty("devices").GetArrayLength());
+							else Out("speak queue ahead=" + sd.GetProperty("ahead") + " devs=" + ids.Count);
+						}
+						var nowBody = "{\"text\":\"嗯\",\"engine\":\"sapi\",\"play\":\"now\",\"devices\":[" + devArr + "]}";
+						var cut = httppost(http, baseUrl + "/api/tts/speak", nowBody);
+						using var cutDoc = JsonDocument.Parse(cut);
+						if (cutDoc.RootElement.GetProperty("code").GetInt32() != 100)
+							fail("speak now " + cut);
+						else if (cutDoc.RootElement.GetProperty("data").GetProperty("play").GetString() != "now")
+							fail("speak play 不是 now");
+						else if (cutDoc.RootElement.GetProperty("data").GetProperty("ahead").GetInt32() != 0)
+							fail("speak now ahead 不是 0");
+						else Out("speak now OK");
+					}
+				}
+			}
 		}
 		catch (Exception ex) {
 			fail(ex.ToString());
@@ -2146,9 +2207,13 @@ static class Cli {
 	}
 
 	static string httpttspost(HttpClient http, string baseUrl, string json) {
+		return httppost(http, baseUrl + "/api/tts", json);
+	}
+
+	static string httppost(HttpClient http, string url, string json) {
 		return Task.Run(() => {
 			using var content = new StringContent(json, Encoding.UTF8, "application/json");
-			using var resp = http.PostAsync(baseUrl + "/api/tts", content).GetAwaiter().GetResult();
+			using var resp = http.PostAsync(url, content).GetAwaiter().GetResult();
 			return resp.Content.ReadAsStringAsync().GetAwaiter().GetResult() ?? "";
 		}).GetAwaiter().GetResult();
 	}
@@ -4211,6 +4276,14 @@ static class Cli {
 		return 0;
 	}
 
+	static int testautokey() {
+		Out("=== 自动按键 --test-autokey ===");
+		var bad = AutoKey.SelfTest(Out, Err);
+		if (bad > 0) return 1;
+		Out("=== OK ===");
+		return 0;
+	}
+
 	static int testwintop() {
 		Out("=== 窗口管理 --test-wintop ===");
 		var bad = 0;
@@ -5103,6 +5176,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wincal
   ScreenKit --test-jpyomi
   ScreenKit --test-wintop
+  ScreenKit --test-autokey
   ScreenKit --test-win-tts
   ScreenKit --test-mem
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
@@ -5184,6 +5258,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-wincal  农历甲辰正月与 2023 闰二月
       --test-jpyomi  東京 的系统读音
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
+      --test-autokey  解析按键与间隔，并向探测窗发送一次 F13 和一次左键点击
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
       --test-mem-load  每个功能单独进程冷启动后的提交、专用工作集、工作集。默认 cpu。语音和识别取最小的一份模型。winocr 只走 Windows 自带识别
@@ -5269,6 +5344,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-wincal
   ScreenKit --test-jpyomi
   ScreenKit --test-wintop
+  ScreenKit --test-autokey
   ScreenKit --test-win-tts
   ScreenKit --test-mem
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]

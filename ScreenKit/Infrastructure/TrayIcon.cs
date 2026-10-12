@@ -46,6 +46,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miWinCal;
 	Forms.ToolStripMenuItem miJpYomi;
 	Forms.ToolStripMenuItem miWinTop;
+	Forms.ToolStripMenuItem miAutoKey;
 	Forms.ToolStripMenuItem miCast;
 	Forms.ToolStripMenuItem miUsbAcc;
 	Forms.ToolStripMenuItem miSettings;
@@ -165,6 +166,7 @@ sealed class TrayIcon : IDisposable {
 		miWinCal = item("tray.wincal", () => WinCalRequested?.Invoke());
 		miJpYomi = item("tray.jpyomi", () => JpYomiRequested?.Invoke());
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
+		miAutoKey = item("tray.autokey", () => AutoKeyRequested?.Invoke());
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
@@ -189,6 +191,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miWinCal);
 		miTools.DropDownItems.Add(miJpYomi);
 		miTools.DropDownItems.Add(miWinTop);
+		miTools.DropDownItems.Add(miAutoKey);
 		miTools.DropDownItems.Add(miCast);
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
@@ -393,6 +396,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miWinCal, null);
 		setshortcut(miJpYomi, null);
 		setshortcut(miWinTop, null);
+		setshortcut(miAutoKey, null);
 		setshortcut(miCast, null);
 		setshortcut(miUsbAcc, null);
 		setshortcut(miSettings, null);
@@ -444,6 +448,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miWinCal, "tray.wincal");
 			settext(miJpYomi, "tray.jpyomi");
 			settext(miWinTop, "tray.wintop");
+			settext(miAutoKey, "tray.autokey");
 			settext(miCast, "tray.cast");
 			SetUsbAccStatus(usbStat);
 			settext(miSettings, "tray.settings");
@@ -540,6 +545,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action WinCalRequested;
 	public event Action JpYomiRequested;
 	public event Action WinTopRequested;
+	public event Action AutoKeyRequested;
 	public event Action CastRequested;
 	public event Action UsbAccessoryRequested;
 

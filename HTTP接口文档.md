@@ -119,7 +119,9 @@ http_port = 1224
 | POST | `/api/asr` | 语音识别 |
 | GET | `/api/tts/engines` | 只列出 TTS 引擎 |
 | GET | `/api/tts/models` | 列出 TTS 模型。`engine` 按引擎过滤；全量结果会缓存 |
+| GET | `/api/tts/devices` | 列出播放设备 |
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
+| POST | `/api/tts/speak` | 合成后在本机播放。`play=queue` 排队，`play=now` 立即打断 |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
 | POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译（需已配置 `[[llm]]`） |
 | POST | `/api/chat` | LLM 对话（文本或语音入；可选 TTS 返回 `wav_base64`） |
@@ -804,7 +806,70 @@ data = json.loads(urllib.request.urlopen(req).read().decode("utf-8"))
 open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 ```
 
-命令行：`ScreenKit --test-http-tts` 在本机环回拉起服务，校验 SAPI / Windows / Edge 的 WAV。
+命令行：`ScreenKit --test-http-tts` 在本机环回拉起服务，校验 SAPI / Windows / Edge 的 WAV，并检查播放设备与直接发音。
+
+### 8.3 GET `/api/tts/devices` · POST `/api/tts/speak`
+
+`GET /api/tts/devices` 列出当前可用的播放设备。
+
+```json
+{
+  "code": 100,
+  "data": [
+    { "id": "{0.0.0.00000000}.{device-id}", "name": "扬声器 (Realtek)", "index": 0, "default": true }
+  ],
+  "count": 1
+}
+```
+
+`POST /api/tts/speak` 用与 `/api/tts` 相同的合成参数生成语音，然后在本机播放。响应里没有 WAV。合成结束后就返回，不等待播完。
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `text` | 是 | 同 `/api/tts` |
+| `engine` / `model` / `voice` / `speaker_id` / `speed` / `volume` / `device` | 否 | 同 `/api/tts`。`device` 仍是 Sherpa 的计算设备（`auto` / `gpu` / `cpu` / `igpu`），不是喇叭 |
+| `devices` / `outputs` | 否 | 播放设备，一个或多个。每项可以是上面的 `id`、`name`、`index`，或名称里唯一的一段。字符串里用逗号分隔也行。省略则用默认设备 |
+| `play` / `mode` | 否 | `queue`（默认，排在当前和已排队的后面）或 `now`（停掉正在播的，这条马上播；后面已经排上的仍接着播）。也可写 `排队`、`立即` |
+
+**成功响应：**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "play": "queue",
+    "ahead": 0,
+    "devices": [
+      { "id": "{0.0.0.00000000}.{device-id}", "name": "扬声器 (Realtek)", "index": 0, "default": true }
+    ],
+    "sample_rate": 22050,
+    "samples": 12000,
+    "engine": "sapi",
+    "model": "SAPI",
+    "voice": "sapi:Microsoft Huihui Desktop",
+    "speaker_id": 0,
+    "provider": "SAPI"
+  },
+  "time": 180
+}
+```
+
+`ahead` 是这条前面还有几条。`0` 表示马上开始（队列是空的，或这条是 `now`）。找不到设备、设备名称对上多台、或 `play` 不是 `queue`/`now` 时返回 802。
+
+```python
+import json, urllib.request
+
+base = "http://127.0.0.1:1224"
+devs = json.loads(urllib.request.urlopen(base + "/api/tts/devices").read().decode("utf-8"))
+ids = [d["id"] for d in devs["data"][:2]]
+req = urllib.request.Request(
+    base + "/api/tts/speak",
+    data=json.dumps({"text": "你好", "engine": "sapi", "play": "queue", "devices": ids}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+print(json.loads(urllib.request.urlopen(req).read().decode("utf-8"))["data"]["ahead"])
+```
 
 ---
 

@@ -278,9 +278,13 @@ def resolve_codes(specs, files: dict[str, Path], default: list[str]) -> list[str
     return sort_codes(codes)
 
 
-def sync_copies(code: str, src: Path) -> list[str]:
-    """把改好的文件覆盖到 ScreenKit/bin 下已有的同名 lang 副本。"""
-    base = ROOT / "ScreenKit" / "bin"
+def sync_copies(lang_root: Path, code: str, src: Path) -> list[str]:
+    """把改好的文件覆盖到 <语言目录的上一级>/bin 下已有的同名 lang 副本。
+
+    正常用法 root = ScreenKit/lang，于是覆盖 ScreenKit/bin 里各输出目录的副本，
+    不用重新编译就能让正在跑的 exe 读到新文案。
+    """
+    base = lang_root.parent / "bin"
     done: list[str] = []
     if not base.is_dir():
         return done
@@ -288,7 +292,7 @@ def sync_copies(code: str, src: Path) -> list[str]:
         if not d.is_dir() or " - 副本" in str(d):
             continue
         dest = d / f"{code}.toml"
-        if dest.is_file():
+        if dest.is_file() and dest.resolve() != src.resolve():
             shutil.copy2(src, dest)
             done.append(str(dest))
     return done
@@ -349,7 +353,7 @@ def cmd_set(args, files: dict[str, Path]) -> int:
         if text == "":
             print(f"       注意：{code} 的空值会被当成缺失，运行时回退中文")
         if lang.save(dry=args.dry_run) and args.sync:
-            for p in sync_copies(code, lang.path):
+            for p in sync_copies(Path(args.root), code, lang.path):
                 print(f"[同步] {p}")
     if args.dry_run:
         print(f"（--dry-run：预览了 {len(touched)} 个文件，未写入）")
@@ -425,7 +429,7 @@ def cmd_fill(args, files: dict[str, Path]) -> int:
         if add or upd:
             print(f"[补齐] {code}.toml  新增 {add} 条" + (f"，覆盖 {upd} 条" if upd else ""))
             if lang.save(dry=args.dry_run) and args.sync:
-                for p in sync_copies(code, lang.path):
+                for p in sync_copies(Path(args.root), code, lang.path):
                     print(f"[同步] {p}")
         else:
             print(f"[已全] {code}.toml  没有缺的键")

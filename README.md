@@ -73,6 +73,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **Calendars** | **Tools → Calendars**: `Windows.Globalization.Calendar`. Gregorian to Chinese lunar (sexagenary year, leap month), plus Japanese, Taiwan, Hebrew, Hijri, Persian, and others. |
 | **Japanese yomi** | **Tools → Japanese yomi**: `JapanesePhoneticAnalyzer` turns a Japanese sentence into readings (by word or by character). On the tools page those two buttons are on Text convert. The Japanese language feature must be installed. Windows has no equivalent Chinese pinyin API. |
 | **Chinese to pinyin** | **Tools → Chinese to pinyin**: pinyin without tone marks, or one capital initial per character. A character with several readings uses the one in the NPinyin dictionary (`重庆` is `zhong qing`). Letters and digits are spaced one by one. On the tools page the card is under Text and updates as you type. Needs `NPinyin.dll` (**Help → Install features → Tools**, about 75 KB, not in the slim package). |
+| **Auto key** | **Tools → Auto key**: repeat a key or a mouse click to the foreground window. Default hotkey Ctrl+Alt+F8 starts and stops; the window button does the same. Interval 20–60000 ms, default 200. A click hits the cursor, or the center of that window when the cursor is elsewhere, then the cursor moves back. Nothing is sent while ScreenKit is in front. |
 | **Window manager** | **Tools → Window manager**: list visible top-level windows, pick one by clicking, or enter an HWND. A green frame follows the window under the cursor while picking, and stays on the selected window. Pin in front or unpin (`HWND_TOPMOST`). |
 | **Screencast** | Main window **Screencast** tab: cast this PC to another. Saved PCs stay in the left list; click one to fill the IP, or type an address / **Scan LAN**. **Max size** defaults to 1000×1000 (shrink to fit, never enlarge). **Start cast** first picks a region the same way as a screenshot (click a window or drag). Sending waits until Start is pressed again, so audio and its source (speakers, microphone, or both) can be changed. The toolbar shows the current audio source. **Options** stays available while casting and applies the mute or source at once. The red frame and toolbar can start, pause, or stop; pause keeps the connection and stops picture and audio until resume. The frame is not part of the picture. **tray → Tools → Screencast** opens the main window on the Screencast tab. Audio plays continuously; the picture waits only as long as the sound is behind. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Rotating the phone keeps the viewer’s size, position, and maximized state; the picture fits or fills inside that window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens “Waiting for Android USB accessory” and tells a phone already connected for file sync to enter accessory mode. Both sides show connected / waiting / not connected. It turns off after 2 minutes with no connection. Or **USB cast (adb)** with USB debugging. The phone app has a separate **Screencast** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
@@ -174,6 +175,24 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 **Options → Language**, or Settings → General. Each language is a toml file in `lang/` next to the program (Chinese, English, Japanese, Korean, and other languages: German, Spanish, French, Portuguese, Russian; you can add more). Startup reads them all and lists Chinese, English, Japanese, Korean, then the other languages. `ui_lang` in `config.toml` is that file name. A missing phrase falls back to Chinese. Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, the translate popup, and the dictionary window.
 
+Adding or changing a phrase is one command, for one language or for every file at once:
+
+```
+rem Chinese only
+scripts\langtext.cmd set app.demo.title "演示标题" -l zh
+rem the same text into every language
+scripts\langtext.cmd set app.demo.title "Demo title" -l all
+rem a different text per language
+scripts\langtext.cmd set app.demo.title -l all --each zh=演示标题 --each en=Demo title
+rem read, audit, bulk fill
+scripts\langtext.cmd get app.demo.title -l zh,en
+scripts\langtext.cmd missing --base zh
+scripts\langtext.cmd fill --from zh -l all
+scripts\langtext.cmd -h
+```
+
+A new key goes to the end of `[text]`, or after `--after KEY`. Each file keeps its own line endings (CRLF or LF) and stays BOM-free. A line break inside the text is written `\n`. Only keys under `[text]` are touched; `name` is left alone. `--dry-run` prints what would change. `--sync` also copies the changed files into the `lang/` folders that already exist under `ScreenKit\bin`, so a running build sees them without a rebuild.
+
 ### Updates
 
 **Help → Check for updates** also runs at startup after the interval in Settings. When a newer release exists, a window lists every version after the current build up to the latest. Select a row to read that version’s notes. **Chinese / English** switches the notes. **Update** downloads and installs the latest package. **Ignore** closes the window.
@@ -188,7 +207,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 
 | Feature | Notes |
 |---------|--------|
-| Screenshot, annotate, long screenshot, clipboard, text overlay, window management, network tools, hotkeys | No extra files. Long screenshot stitches with Bitmap |
+| Screenshot, annotate, long screenshot, clipboard, text overlay, window management, auto key, network tools, hotkeys | No extra files. Long screenshot stitches with Bitmap |
 | Screenshot save folder | Ready |
 | Windows OCR | Uses whichever OCR language packs are installed in Windows. No ONNX model and no OpenCV. Missing languages are added under **Help → Install features → Windows OCR/Speech** |
 | Windows speech recognition | Uses whichever speech-recognition language packs are installed in Windows. Missing languages are added on the same page |
@@ -278,7 +297,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 - `POST /api/qr` — barcode / QR only (`/api/barcode`)
 - `GET  /api/ocr/get_options`
 - `GET  /api/asr/models` · `POST /api/asr` — Sherpa or an installed Windows system recognizer selected by `model`
-- `GET  /api/tts/engines` · `GET /api/tts/models?engine=` · `POST /api/tts` — Sherpa, SAPI, Windows (`engine=winrt`), Edge (`engine=edge`). When the desktop app is open, this is the speech tab's current list and returns at once. Otherwise the full list is cached; `refresh=1` scans again.
+- `GET  /api/tts/engines` · `GET /api/tts/models?engine=` · `POST /api/tts` — Sherpa, SAPI, Windows (`engine=winrt`), Edge (`engine=edge`). When the desktop app is open, this is the speech tab's current list and returns at once. Otherwise the full list is cached; `refresh=1` scans again. `GET /api/tts/devices` lists playback devices. `POST /api/tts/speak` plays with the same synthesis fields. `play=queue` waits, `play=now` interrupts, and `devices` can name more than one output.
 - `POST /api/itn`
 - `POST /api/translate` — LLM batch (`items[]`)
 - `GET  /api/face/models` · `POST /api/face`

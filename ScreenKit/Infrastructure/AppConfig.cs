@@ -58,6 +58,14 @@ static class AppConfig {
 				o.HotkeySnapCopy = (hksc ?? "").Trim();
 			if (map.TryGetValue("hotkey_dict", out var hkdict))
 				o.HotkeyDict = (hkdict ?? "").Trim();
+			if (map.TryGetValue("autokey_hotkey", out var akhk))
+				o.AutoKeyHotkey = (akhk ?? "").Trim();
+			if (map.TryGetValue("autokey_mode", out var akmode))
+				o.AutoKeyMode = (akmode ?? "").Trim();
+			if (map.TryGetValue("autokey_key", out var akkey))
+				o.AutoKeyKey = (akkey ?? "").Trim();
+			if (map.TryGetValue("autokey_interval", out var akms) && int.TryParse(akms, out var akmsN))
+				o.AutoKeyIntervalMs = AutoKey.ClampInterval(akmsN);
 			if (map.TryGetValue("dict_limit", out var dlim) && int.TryParse(dlim, out var dlimN))
 				o.DictLimit = Compat.Clamp(dlimN, 1, DictDb.SEARCH_MAX);
 			if (map.TryGetValue("dict_db_hold", out var dhold) && int.TryParse(dhold, out var dholdN))
@@ -596,6 +604,12 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
 		sb.AppendLine($"# 词典页（前台不是主窗则唤出、置顶并切换；剪贴板像单词才搜索；已是主窗则隐藏；默认空=不注册）");
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
+		sb.AppendLine("# 自动按键：开始/停止热键。留空 = 只用窗口按钮。默认 Ctrl+Alt+F8");
+		sb.AppendLine($"autokey_hotkey = \"{esc((o.AutoKeyHotkey ?? "").Trim())}\"");
+		sb.AppendLine("# key / left / right / middle");
+		sb.AppendLine($"autokey_mode = \"{esc((o.AutoKeyMode ?? "key").Trim())}\"");
+		sb.AppendLine($"autokey_key = \"{esc((o.AutoKeyKey ?? "Space").Trim())}\"");
+		sb.AppendLine($"autokey_interval = {AutoKey.ClampInterval(o.AutoKeyIntervalMs <= 0 ? AutoKey.INTERVAL_DEFAULT : o.AutoKeyIntervalMs)}");
 		sb.AppendLine("# 词典一次列出的条数。1～4000，默认 1000");
 		sb.AppendLine($"dict_limit = {Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX)}");
 		sb.AppendLine("# 词典数据库空闲多少分钟后关闭。默认 1。0 = 不自动关闭");

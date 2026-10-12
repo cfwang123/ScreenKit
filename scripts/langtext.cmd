@@ -1,7 +1,14 @@
 @echo off
-rem ScreenKit 界面文案小工具：新增或修改一条文案。
-rem 用法: scripts\langtext.cmd set app.demo.title "演示标题" -l zh|all|zh,en
-rem       scripts\langtext.cmd -h   查看全部命令
+rem ScreenKit UI text helper: add or update one string in ScreenKit/lang/*.toml.
+rem Usage: scripts\langtext.cmd set app.demo.title "Demo title" -l all
+rem        scripts\langtext.cmd -h        (help is printed in Chinese)
+rem NOTE: keep this file ASCII-only. cmd parses .cmd with the local ANSI code page,
+rem       so UTF-8 Chinese comments here would break the script.
+setlocal
+set "OLDCP="
+for /f "tokens=2 delims=:" %%a in ('chcp') do set "OLDCP=%%a"
 chcp 65001 >nul
 python -X utf8 "%~dp0langtext.py" %*
-exit /b %errorlevel%
+set "RC=%errorlevel%"
+if defined OLDCP chcp%OLDCP% >nul
+exit /b %RC%

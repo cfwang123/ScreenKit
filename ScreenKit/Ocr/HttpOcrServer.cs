@@ -27,7 +27,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/models · /api/ocr/get_options · POST /api/ocr</item>
 /// <item>GET  /api/asr/models · POST /api/asr</item>
-/// <item>GET  /api/tts/engines · /api/tts/models · POST /api/tts</item>
+/// <item>GET  /api/tts/engines · /api/tts/models · /api/tts/devices · POST /api/tts · POST /api/tts/speak</item>
 /// <item>POST /api/itn</item>
 /// <item>POST /api/translate · /api/translate/batch</item>
 /// <item>POST /api/chat  LLM 对话（文本/语音入，可选 TTS）</item>
@@ -330,6 +330,26 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlettsmodels(ctx);
+				return;
+			}
+
+			if (path is "/api/tts/devices") {
+				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "tts/devices 仅支持 GET"));
+					return;
+				}
+				handlettsdevices(ctx);
+				return;
+			}
+
+			if (path is "/api/tts/speak") {
+				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
+				if (!ispost(req)) {
+					writejson(ctx, 405, err(805, "tts/speak 仅支持 POST"));
+					return;
+				}
+				handlettsspeak(ctx);
 				return;
 			}
 
@@ -2245,7 +2265,9 @@ sealed partial class HttpOcrServer : IDisposable {
 		if (o.HttpTts && o.ModTts) {
 			a.Add("GET  /api/tts/engines");
 			a.Add("GET  /api/tts/models  ?engine=&refresh=");
+			a.Add("GET  /api/tts/devices");
 			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}");
+			a.Add("POST /api/tts/speak  JSON{text, devices?, play=queue|now, engine?, voice?}");
 		}
 		if (o.HttpTranslate && o.ModTranslate)
 			a.Add("POST /api/translate  JSON{items[],src?,dst?}  LLM 批量翻译");
@@ -2284,6 +2306,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		Stop();
 		disposeface();
 		disposettsvoices();
+		try { TtsSpeak.Shutdown(); } catch { }
 		// runner 由 MainWindow 持有并释放，此处不 Dispose
 	}
 }

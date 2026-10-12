@@ -177,6 +177,9 @@
 				<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
 				          AutomationProperties.AutomationId="menu.wintop"
 				          ToolTip="选择窗口，设置或取消固定在前面"/>
+				<MenuItem x:Name="mnautokey" Header="自动按键(_K)…"
+				          AutomationProperties.AutomationId="menu.autokey"
+				          ToolTip="按快捷键开始或停止，连续向前台窗口发送按键或鼠标点击"/>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

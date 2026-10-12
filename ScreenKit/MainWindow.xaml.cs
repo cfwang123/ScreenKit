@@ -71,6 +71,7 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyTr;     // 翻译小窗
 	GlobalHotkey hotkeySnapCopy; // 切换截图复制方式
 	GlobalHotkey hotkeyDict;  // 词典
+	GlobalHotkey hotkeyAuto; // 自动按键开始/停止
 	TranslatePopupWindow trPopup;
 
 	HttpOcrServer httpServer;
@@ -90,6 +91,12 @@ public partial class MainWindow : Window {
 	WinCalWindow winCalWin;
 	JpYomiWindow jpYomiWin;
 	WinTopWindow winTopWin;
+	AutoKeyWindow autoKeyWin;
+	System.Windows.Threading.DispatcherTimer autokeyTimer;
+	bool autokeyOn;
+	long autokeySent;
+	bool autokeySkipped;
+	int autokeyUiAt;
 	MemWindow memWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
@@ -623,6 +630,7 @@ public partial class MainWindow : Window {
 			tray.WinCalRequested += () => Dispatcher.BeginInvoke(new Action(() => openwincal(fromTray: true)));
 			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi(fromTray: true)));
 			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
+			tray.AutoKeyRequested += () => Dispatcher.BeginInvoke(new Action(() => openautokey(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -847,6 +855,17 @@ public partial class MainWindow : Window {
 					try { setstatus(Loc.T("st.dict_hk_fail", ex.Message)); } catch { }
 				}
 			}));
+			hotkeyAuto = new GlobalHotkey(this, 0x700A);
+			hotkeyAuto.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try {
+					CaptureLog.Info("hotkeyAuto Fired");
+					autokeytoggle();
+				}
+				catch (Exception ex) {
+					CaptureLog.Ex("hotkeyAuto Fired", ex);
+					try { setstatus(ex.Message); } catch { }
+				}
+			}));
 			// 句柄就绪后再注册
 			SourceInitialized += (_, _) => registerhotkey();
 			Loaded += (_, _) => {
@@ -859,7 +878,8 @@ public partial class MainWindow : Window {
 					|| (hotkeyLive != null && !string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption) && !hotkeyLive.IsRegistered)
 					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered)
 					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered)
-					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered);
+					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered)
+					|| (hotkeyAuto != null && !string.IsNullOrWhiteSpace(opt.AutoKeyHotkey) && !hotkeyAuto.IsRegistered);
 				if (need)
 					registerhotkey();
 			};
@@ -907,6 +927,13 @@ public partial class MainWindow : Window {
 		if (hotkeyDict != null) {
 			hotkeyDict.Attach();
 			if (!hotkeyDict.Register(opt.ModDict ? opt.HotkeyDict : "")) errs.Add(hotkeyDict.LastError);
+		}
+		if (hotkeyAuto != null) {
+			hotkeyAuto.Attach();
+			if (!hotkeyAuto.Register(opt.AutoKeyHotkey ?? "")) {
+				if (!string.IsNullOrWhiteSpace(opt.AutoKeyHotkey))
+					errs.Add(hotkeyAuto.LastError);
+			}
 		}
 		if (errs.Count > 0) {
 			var msg = string.Join(" · ", errs);
@@ -996,6 +1023,8 @@ public partial class MainWindow : Window {
 		try { hotkeyLive?.Dispose(); } catch { }
 		try { hotkeyTr?.Dispose(); } catch { }
 		try { hotkeyDict?.Dispose(); } catch { }
+		try { autokeyOn = false; autokeyTimer?.Stop(); } catch { }
+		try { hotkeyAuto?.Dispose(); } catch { }
 		try { trPopup?.ForceClose(); } catch { }
 		try { dicthost?.Shutdown(); } catch { }
 		try { tray?.Dispose(); } catch { }
@@ -1535,6 +1564,7 @@ public partial class MainWindow : Window {
 		mnwincal.Click += (_, _) => openwincal();
 		mnjpyomi.Click += (_, _) => openjpyomi();
 		mnwintop.Click += (_, _) => openwintop();
+		mnautokey.Click += (_, _) => openautokey();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		// 帮助菜单
@@ -1682,6 +1712,8 @@ public partial class MainWindow : Window {
 			mnjpyomi.ToolTip = Loc.T("menu.jpyomi.tip");
 			mnwintop.Header = Loc.T("menu.wintop");
 			mnwintop.ToolTip = Loc.T("menu.wintop.tip");
+			mnautokey.Header = Loc.T("menu.autokey");
+			mnautokey.ToolTip = Loc.T("menu.autokey.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mninstall.Header = Loc.T("menu.install");
@@ -1895,12 +1927,14 @@ public partial class MainWindow : Window {
 			var tr = fmttrayhk(opt.HotkeyTranslate);
 			var copy = fmttrayhk(opt.HotkeySnapCopy);
 			var dict = fmttrayhk(opt.HotkeyDict);
+			var autokey = fmttrayhk(opt.AutoKeyHotkey);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
 			mntrpopup.InputGestureText = tr;
 			mndict.InputGestureText = dict;
+			if (mnautokey != null) mnautokey.InputGestureText = autokey;
 			if (mnsnapcopyimg != null) mnsnapcopyimg.InputGestureText = copy;
 			if (mnsnapcopyfile != null) mnsnapcopyfile.InputGestureText = copy;
 			if (mnsnapcopypath != null) mnsnapcopypath.InputGestureText = copy;
@@ -3860,6 +3894,7 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.AutoKeyHotkey, opt.AutoKeyHotkey, StringComparison.OrdinalIgnoreCase)
 			|| old.ModOcr != opt.ModOcr || old.ModAsr != opt.ModAsr
 			|| old.ModTranslate != opt.ModTranslate || old.ModDict != opt.ModDict)
 			registerhotkey();
@@ -4208,6 +4243,68 @@ public partial class MainWindow : Window {
 	void openwintop(bool fromTray = false) =>
 		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop", fromTray);
 
+	void openautokey(bool fromTray = false) =>
+		opentoolwin(ref autoKeyWin, () => new AutoKeyWindow(opt, autokeytoggle, registerhotkey), "menu.autokey", fromTray);
+
+	void autokeytoggle() {
+		if (autokeyOn) autokeystop();
+		else autokeystart();
+	}
+
+	void autokeystart() {
+		if (opt == null) return;
+		if (!AutoKey.TryMake(opt.AutoKeyMode, opt.AutoKeyKey, out _)) {
+			setstatus(Loc.T("autokey.badkey"));
+			try { autoKeyWin?.ShowRun(false, autokeySent, false); } catch { }
+			return;
+		}
+		autokeyOn = true;
+		autokeySent = 0;
+		autokeySkipped = false;
+		autokeyUiAt = Environment.TickCount;
+		if (autokeyTimer == null) {
+			autokeyTimer = new System.Windows.Threading.DispatcherTimer();
+			autokeyTimer.Tick += (_, _) => autokeytick();
+		}
+		autokeyTimer.Interval = TimeSpan.FromMilliseconds(AutoKey.ClampInterval(
+			opt.AutoKeyIntervalMs <= 0 ? AutoKey.INTERVAL_DEFAULT : opt.AutoKeyIntervalMs));
+		autokeyTimer.Start();
+		autokeytick();
+		setstatus(Loc.T("autokey.run", autokeySent));
+		try { autoKeyWin?.ShowRun(true, autokeySent, autokeySkipped); } catch { }
+	}
+
+	void autokeystop() {
+		autokeyOn = false;
+		try { autokeyTimer?.Stop(); } catch { }
+		setstatus(Loc.T("autokey.idle"));
+		try { autoKeyWin?.ShowRun(false, autokeySent, false); } catch { }
+	}
+
+	void autokeytick() {
+		if (!autokeyOn || opt == null) return;
+		var ms = AutoKey.ClampInterval(opt.AutoKeyIntervalMs <= 0
+			? AutoKey.INTERVAL_DEFAULT : opt.AutoKeyIntervalMs);
+		if (autokeyTimer != null && Math.Abs(autokeyTimer.Interval.TotalMilliseconds - ms) > 1)
+			autokeyTimer.Interval = TimeSpan.FromMilliseconds(ms);
+		if (!AutoKey.TryMake(opt.AutoKeyMode, opt.AutoKeyKey, out var act)) {
+			autokeystop();
+			setstatus(Loc.T("autokey.badkey"));
+			return;
+		}
+		var n = AutoKey.Send(act);
+		if (n > 0) {
+			autokeySent++;
+			autokeySkipped = false;
+		}
+		else if (n == 0)
+			autokeySkipped = true;
+		var now = Environment.TickCount;
+		if (unchecked(now - autokeyUiAt) < 200) return;
+		autokeyUiAt = now;
+		try { autoKeyWin?.ShowRun(true, autokeySent, autokeySkipped); } catch { }
+	}
+
 	void opencast() {
 		if (opt == null || !opt.TabCastVisible) return;
 		if (tray != null) tray.showwindow();
@@ -4251,6 +4348,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(winCalWin, w)) winCalWin = null;
 				else if (ReferenceEquals(jpYomiWin, w)) jpYomiWin = null;
 				else if (ReferenceEquals(winTopWin, w)) winTopWin = null;
+				else if (ReferenceEquals(autoKeyWin, w)) autoKeyWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
 			w.Show();
@@ -4396,6 +4494,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
 		sb.AppendLine($"Hotkey snap copy: {opt.HotkeySnapCopy}");
 		sb.AppendLine($"Hotkey dictionary: {opt.HotkeyDict}");
+		sb.AppendLine($"Hotkey auto key: {opt.AutoKeyHotkey} mode={opt.AutoKeyMode} key={opt.AutoKeyKey} ms={opt.AutoKeyIntervalMs}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off")}");
 		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{SendFileServer.FileHttpPort(opt)}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");

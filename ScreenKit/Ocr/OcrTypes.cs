@@ -107,6 +107,14 @@ public sealed class OcrOptions {
 	public string HotkeySnapCopy = "Ctrl+Alt+P";
 	/// <summary>词典页热键：前台不是主窗则唤出、置顶并切到词典；已是主窗则隐藏。默认空 = 不注册。</summary>
 	public string HotkeyDict = "";
+	/// <summary>自动按键开始/停止。默认 Ctrl+Alt+F8。空 = 只能用窗口里的按钮。</summary>
+	public string AutoKeyHotkey = "Ctrl+Alt+F8";
+	/// <summary>key / left / right / middle。</summary>
+	public string AutoKeyMode = "key";
+	/// <summary>mode=key 时连续发送的按键，如 Space、Ctrl+V。</summary>
+	public string AutoKeyKey = "Space";
+	/// <summary>发送间隔，毫秒。20～60000，默认 200。</summary>
+	public int AutoKeyIntervalMs = 200;
 	/// <summary>词典一次列出的条数。1～4000，默认 1000。</summary>
 	public int DictLimit = 1000;
 	/// <summary>词典数据库空闲多少分钟后关闭。默认 1。0 表示不自动关闭。</summary>
@@ -498,6 +506,10 @@ public sealed class OcrOptions {
 		HotkeyTranslate = HotkeyTranslate,
 		HotkeySnapCopy = HotkeySnapCopy,
 		HotkeyDict = HotkeyDict,
+		AutoKeyHotkey = AutoKeyHotkey ?? "",
+		AutoKeyMode = string.IsNullOrWhiteSpace(AutoKeyMode) ? "key" : AutoKeyMode,
+		AutoKeyKey = string.IsNullOrWhiteSpace(AutoKeyKey) ? "Space" : AutoKeyKey,
+		AutoKeyIntervalMs = AutoKeyIntervalMs,
 		DictLimit = DictLimit,
 		DictDbHoldMin = DictDbHoldMin,
 		DictTtsZh = (DictTtsZh ?? DictTtsLang.Make("zh-CN-XiaoxiaoNeural")).Clone(),

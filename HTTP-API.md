@@ -118,7 +118,9 @@ Most endpoints return **HTTP 200** always; success or failure is indicated by th
 | POST | `/api/asr` | Speech recognition |
 | GET | `/api/tts/engines` | List TTS engines only |
 | GET | `/api/tts/models` | List TTS models. `engine` filters one engine; a full list is cached |
+| GET | `/api/tts/devices` | List playback devices |
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
+| POST | `/api/tts/speak` | Synthesize and play here. `play=queue` waits; `play=now` interrupts |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
 | POST | `/api/translate` · `/api/translate/batch` | LLM batch translate (needs `[[llm]]`) |
 | POST | `/api/chat` | LLM chat (text or audio in; optional TTS `wav_base64`) |
@@ -783,7 +785,55 @@ data = json.loads(urllib.request.urlopen(req).read().decode("utf-8"))
 open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 ```
 
-CLI: `ScreenKit --test-http-tts` starts a loopback server and checks SAPI / Windows / Edge WAV output.
+CLI: `ScreenKit --test-http-tts` starts a loopback server, checks SAPI / Windows / Edge WAV output, and checks playback devices plus direct play.
+
+### 8.3 GET `/api/tts/devices` · POST `/api/tts/speak`
+
+`GET /api/tts/devices` lists active playback devices.
+
+```json
+{
+  "code": 100,
+  "data": [
+    { "id": "{0.0.0.00000000}.{device-id}", "name": "Speakers (Realtek)", "index": 0, "default": true }
+  ],
+  "count": 1
+}
+```
+
+`POST /api/tts/speak` uses the same synthesis fields as `/api/tts`, then plays the audio on this PC. The response has no WAV. It returns when the clip is queued, not when playback ends.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `text` | Yes | Same as `/api/tts` |
+| `engine` / `model` / `voice` / `speaker_id` / `speed` / `volume` / `device` | No | Same as `/api/tts`. `device` is still the Sherpa compute device (`auto` / `gpu` / `cpu` / `igpu`), not a speaker |
+| `devices` / `outputs` | No | One or more playback devices. Each item is an `id`, `name`, or `index` from the list above, or a unique fragment of the name. A single string may separate several with commas. Omit to use the default device |
+| `play` / `mode` | No | `queue` (default: after the current clip and anything already waiting) or `now` (stop the clip that is playing and start this one; clips already waiting stay behind it) |
+
+**Success response:**
+
+```json
+{
+  "code": 100,
+  "data": {
+    "play": "queue",
+    "ahead": 0,
+    "devices": [
+      { "id": "{0.0.0.00000000}.{device-id}", "name": "Speakers (Realtek)", "index": 0, "default": true }
+    ],
+    "sample_rate": 22050,
+    "samples": 12000,
+    "engine": "sapi",
+    "model": "SAPI",
+    "voice": "sapi:Microsoft Huihui Desktop",
+    "speaker_id": 0,
+    "provider": "SAPI"
+  },
+  "time": 180
+}
+```
+
+`ahead` is how many clips are in front of this one. `0` means it starts now (the queue was empty, or this call is `now`). An unknown device, a name that matches more than one device, or a `play` value other than `queue` / `now` returns 802.
 
 ---
 

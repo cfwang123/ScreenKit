@@ -92,6 +92,8 @@ static class HttpApiCatalog {
 		add(list, "POST /api/tts (SAPI)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"sapi\"\n}", "http.doc.tts.sapi", "tts");
 		add(list, "POST /api/tts (Windows)", "POST", "/api/tts", "{\n  \"text\": \"你好\",\n  \"engine\": \"winrt\"\n}", "http.doc.tts.win", "tts");
 		add(list, "POST /api/tts (Edge Online)", "POST", "/api/tts", "{\n  \"text\": \"안녕하세요\",\n  \"engine\": \"edge\",\n  \"voice\": \"edge:ko-KR-SunHiNeural\"\n}", "http.doc.tts.edge", "tts");
+		add(list, "GET /api/tts/devices", "GET", "/api/tts/devices", "", "http.doc.ttsdevices", "tts");
+		add(list, "POST /api/tts/speak", "POST", "/api/tts/speak", "{\n  \"text\": \"你好\",\n  \"play\": \"queue\",\n  \"devices\": []\n}", "http.doc.ttsspeak", "tts");
 		add(list, "POST /api/itn", "POST", "/api/itn", "{\n  \"text\": \"二零二四年一月一日\"\n}", "http.doc.itn", "asr");
 		add(list, "POST /api/translate", "POST", "/api/translate", "{\n  \"items\": [\"你好\"],\n  \"src\": \"zh\",\n  \"dst\": \"en\"\n}", "http.doc.translate", "translate", aliases: "/api/translate/batch");
 		add(list, "POST /api/chat", "POST", "/api/chat", "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}", "http.doc.chat", "chat");
