@@ -430,18 +430,25 @@ input[type="file"] {
 /* 行高按内容算，容器不够就出滚动条；否则 auto 行会被等分，色卡被压扁 */
 .cgrid {
 	min-height: 0; overflow: auto; align-content: start;
-	display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
 	grid-auto-rows: max-content; gap: 8px;
 }
+/* 左边小色块，右边两行：中文名 + 英文名 / 十六进制 */
 .cgrid button {
-	display: flex; flex-direction: column; align-items: stretch; height: auto;
-	padding: 0; cursor: pointer; overflow: hidden; text-align: left;
+	display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto;
+	align-items: center; column-gap: 8px; row-gap: 2px; height: auto;
+	padding: 7px 8px; cursor: pointer; overflow: hidden; text-align: left;
 	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
 }
-.cgrid i { display: block; flex: none; height: 42px; }
-.cgrid b { padding: 6px 8px 0; font-size: 13px; font-weight: 600; }
+.cgrid i {
+	grid-row: 1 / span 2; display: block; width: 26px; height: 26px; border-radius: 6px;
+	box-shadow: inset 0 0 0 1px rgba(36, 31, 27, .12);
+}
+.cgrid b, .cgrid small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cgrid b { font-size: 13px; font-weight: 600; }
+.cgrid b .en { margin-left: 6px; color: var(--muted); font-size: 12px; font-weight: 400; }
 .cgrid small {
-	padding: 0 8px 6px; color: var(--muted);
+	color: var(--muted);
 	font: 12px/1.4 Consolas, "Microsoft YaHei UI", monospace;
 }
 .cnone { margin: 8px; color: var(--muted); }
