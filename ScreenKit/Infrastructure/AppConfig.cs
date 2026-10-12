@@ -29,8 +29,8 @@ static class AppConfig {
 				o.ModelVariant = mv?.Trim() ?? "";
 			if (map.TryGetValue("win_ocr_langs", out var wol))
 				o.WinOcrLangs = (wol ?? "").Trim();
-			if (map.TryGetValue("device", out var dev))
-				o.Device = parsedevice(dev);
+			if (map.TryGetValue("device", out var dev) && tryparsedevice(dev, out var device))
+				o.Device = device;
 			if (map.TryGetValue("det_limit", out var dl) && int.TryParse(dl, out var detLen))
 				o.DetLimitSideLen = Compat.Clamp(detLen, 320, 4096);
 			if (map.TryGetValue("det_thresh", out var dt) && float.TryParse(dt, NumberStyles.Float, CultureInfo.InvariantCulture, out var detTh))
@@ -95,7 +95,7 @@ static class AppConfig {
 				o.SnapCopyAsFile = parsebool(scaf, false);
 			if (map.TryGetValue("snap_copy_as_path", out var scap))
 				o.SnapCopyAsPath = parsebool(scap, false);
-			// 三选一：路径 > 文件 > 图片（path 为 true 时优先，兼容仅写 path 未关 image 的配置）
+			// 三选一：路径 > 文件 > 图片
 			if (o.SnapCopyAsPath) {
 				o.SnapCopyAsImage = false;
 				o.SnapCopyAsFile = false;
@@ -120,18 +120,8 @@ static class AppConfig {
 				o.ScreenshotJpgQuality = Compat.Clamp(jpgQ, 1, 100);
 			if (map.TryGetValue("screenshot_short", out var ssh))
 				o.ScreenshotShortEnabled = parsebool(ssh, false);
-			else if (map.TryGetValue("screenshot_max_size", out var sms))
-				o.ScreenshotShortEnabled = parsebool(sms, false);
 			if (map.TryGetValue("screenshot_short_px", out var ssp) && int.TryParse(ssp, out var sShort))
 				o.ScreenshotShortPx = Compat.Clamp(sShort, 16, 16384);
-			else if (map.TryGetValue("screenshot_max_w", out var smw) && int.TryParse(smw, out var oldW)) {
-				var px = oldW;
-				if (map.TryGetValue("screenshot_max_h", out var smh) && int.TryParse(smh, out var oldH))
-					px = Math.Min(oldW, oldH);
-				o.ScreenshotShortPx = Compat.Clamp(px, 16, 16384);
-			}
-			else if (map.TryGetValue("screenshot_max_h", out var smhOnly) && int.TryParse(smhOnly, out var onlyH))
-				o.ScreenshotShortPx = Compat.Clamp(onlyH, 16, 16384);
 			if (map.TryGetValue("screenshot_dir", out var sdir)) {
 				try { o.ScreenshotDir = ImageUtil.NormScreenshotDir(sdir); }
 				catch { o.ScreenshotDir = ""; }
@@ -146,22 +136,10 @@ static class AppConfig {
 				o.ImgConvJpgQuality = Compat.Clamp(icQ, 1, 100);
 			if (map.TryGetValue("imgconv_short", out var icss))
 				o.ImgConvShortEnabled = parsebool(icss, false);
-			else if (map.TryGetValue("imgconv_max_size", out var icms))
-				o.ImgConvShortEnabled = parsebool(icms, false);
 			if (map.TryGetValue("imgconv_short_px", out var icsp) && int.TryParse(icsp, out var icShort))
 				o.ImgConvShortPx = Compat.Clamp(icShort, 16, 16384);
-			else if (map.TryGetValue("imgconv_max_w", out var icmw) && int.TryParse(icmw, out var oldW)) {
-				var px = oldW;
-				if (map.TryGetValue("imgconv_max_h", out var icmh) && int.TryParse(icmh, out var oldH))
-					px = Math.Min(oldW, oldH);
-				o.ImgConvShortPx = Compat.Clamp(px, 16, 16384);
-			}
-			else if (map.TryGetValue("imgconv_max_h", out var icmhOnly) && int.TryParse(icmhOnly, out var onlyH))
-				o.ImgConvShortPx = Compat.Clamp(onlyH, 16, 16384);
 			if (map.TryGetValue("imgconv_out_mode", out var icom) && !string.IsNullOrWhiteSpace(icom))
 				o.ImgConvOutMode = ImgConvert.NormOutMode(icom.Trim().Trim('"'));
-			else if (map.TryGetValue("imgconv_out_beside", out var icob))
-				o.ImgConvOutMode = parsebool(icob, true) ? ImgConvert.OUTBESIDE : ImgConvert.OUTOTHER;
 			o.ImgConvOutBeside = ImgConvert.NormOutMode(o.ImgConvOutMode) == ImgConvert.OUTBESIDE;
 			if (map.TryGetValue("imgconv_out_dir", out var icod))
 				o.ImgConvOutDir = (icod ?? "").Trim().Trim('"');
@@ -279,19 +257,12 @@ static class AppConfig {
 				o.HttpProxyAddr = hpa.Trim().Trim('"');
 			if (map.TryGetValue("http_proxy_mode", out var hpm) && !string.IsNullOrWhiteSpace(hpm))
 				o.HttpProxyMode = HttpProxy.NormalizeMode(hpm);
-			else
-				o.HttpProxyMode = o.HttpProxyEnabled ? "manual" : "system";
 			if (map.TryGetValue("ocr_translate_lang", out var otl)) {
-				var t = (otl ?? "").Trim().Trim('"').ToLowerInvariant();
-				if (t is "off" or "none" or "no" or "-" or "不翻译") t = "";
-				else t = TrLang.Normalize(t);
+				var t = TrLang.Normalize((otl ?? "").Trim().Trim('"'));
 				o.OcrTranslateLang = TrLang.IsLlm(t) ? t : "";
 			}
-			// 安装向导：键存在则读；旧配置无此键视为已提示（不打扰升级用户）
 			if (map.TryGetValue("install_prompt_done", out var ipd))
-				o.InstallPromptDone = parsebool(ipd, true);
-			else
-				o.InstallPromptDone = true;
+				o.InstallPromptDone = parsebool(ipd, false);
 			if (map.TryGetValue("win_w", out var ww) && double.TryParse(ww, NumberStyles.Float, CultureInfo.InvariantCulture, out var winW))
 				o.WinW = winW;
 			if (map.TryGetValue("win_h", out var wh) && double.TryParse(wh, NumberStyles.Float, CultureInfo.InvariantCulture, out var winH))
@@ -316,15 +287,12 @@ static class AppConfig {
 				o.HttpChat = parsebool(hch, true);
 			if (map.TryGetValue("http_face", out var hfa))
 				o.HttpFace = parsebool(hfa, true);
-			var hasLanKey = map.TryGetValue("http_lan", out var hl);
-			var sawHost = map.TryGetValue("http_host", out var hh);
-			var oldHost = sawHost ? (hh ?? "").Trim().Trim('"') : "";
+			if (map.TryGetValue("http_lan", out var hl))
+				o.HttpLan = parsebool(hl, true);
 			if (map.TryGetValue("http_port", out var hp) && int.TryParse(hp, out var port))
 				o.HttpPort = Compat.Clamp(port, 1, 65535);
 			if (map.TryGetValue("sendfile_enabled", out var sfe))
 				o.SendFileEnabled = parsebool(sfe, true);
-			if (map.TryGetValue("sendfile_port", out var sfp) && int.TryParse(sfp, out var sfPort))
-				o.SendFilePort = Compat.Clamp(sfPort, 1, 65535);
 			if (map.TryGetValue("sendfile_udp_port", out var sfup) && int.TryParse(sfup, out var sfUdp))
 				o.SendFileUdpPort = Compat.Clamp(sfUdp, 1, 65535);
 			if (map.TryGetValue("sendfile_name", out var sfn))
@@ -347,10 +315,6 @@ static class AppConfig {
 			if (map.TryGetValue("cast_recv_enabled", out var cre))
 				o.CastRecvEnabled = parsebool(cre, true);
 			o.ApplyFeatureOff();
-			if (hasLanKey)
-				o.HttpLan = parsebool(hl, true);
-			else if (sawHost)
-				o.HttpLan = httphostislan(oldHost) || o.SendFileEnabled || o.CastRecvEnabled;
 			if (map.TryGetValue("cast_usb_accessory", out var cua))
 				o.CastUsbAccessory = parsebool(cua, false);
 			if (map.TryGetValue("cast_quality", out var cq) && !string.IsNullOrWhiteSpace(cq))
@@ -664,7 +628,6 @@ static class AppConfig {
 		sb.AppendLine($"imgconv_short = {(o.ImgConvShortEnabled ? "true" : "false")}");
 		sb.AppendLine($"imgconv_short_px = {Compat.Clamp(o.ImgConvShortPx < 16 ? 1080 : o.ImgConvShortPx, 16, 16384)}");
 		sb.AppendLine($"imgconv_out_mode = \"{icOut}\"");
-		sb.AppendLine($"imgconv_out_beside = {(icOut == ImgConvert.OUTBESIDE ? "true" : "false")}");
 		sb.AppendLine($"imgconv_out_dir = \"{esc((o.ImgConvOutDir ?? "").Trim())}\"");
 		sb.AppendLine($"imgconv_thumb_view = {(o.ImgConvThumbView ? "true" : "false")}");
 		sb.AppendLine($"sf_browse_thumb_view = {(o.SfBrowseThumbView ? "true" : "false")}");
@@ -771,8 +734,7 @@ static class AppConfig {
 		sb.AppendLine("[sendfile]");
 		sb.AppendLine("# 局域网文件传输（手机 App com.whj.screenkit）；需首次配对");
 		sb.AppendLine($"sendfile_enabled = {(o.SendFileEnabled ? "true" : "false")}");
-		sb.AppendLine($"# 文件传输 HTTP 与 http_port 共用，不再单独占口");
-		sb.AppendLine($"sendfile_port = {(o.HttpPort <= 0 ? 1224 : o.HttpPort)}");
+		sb.AppendLine($"# 文件传输 HTTP 与 http_port 共用");
 		sb.AppendLine($"sendfile_udp_port = {(o.SendFileUdpPort <= 0 ? 17531 : o.SendFileUdpPort)}");
 		sb.AppendLine($"sendfile_name = \"{esc(o.SendFileName ?? "")}\"");
 		sb.AppendLine($"sendfile_pc_id = \"{esc(o.SendFilePcId ?? "")}\"");
@@ -969,29 +931,22 @@ static class AppConfig {
 
 	static string esc(string s) => (s ?? "").Replace("\\", "\\\\").Replace("\"", "\\\"");
 
-	static OcrDevice parsedevice(string s) {
-		s = (s ?? "").Trim();
-		if (s.Equals("Gpu", StringComparison.OrdinalIgnoreCase)
-			|| s.Equals("GPU", StringComparison.OrdinalIgnoreCase)
-			|| s.Equals("cuda", StringComparison.OrdinalIgnoreCase)
-			|| s.Equals("nvidia", StringComparison.OrdinalIgnoreCase))
-			return OcrDevice.Gpu;
-		if (s.Equals("IntelGpu", StringComparison.OrdinalIgnoreCase)
-			|| s.Equals("Intel", StringComparison.OrdinalIgnoreCase)
-			|| s.Equals("Dml", StringComparison.OrdinalIgnoreCase)
-			|| s.Equals("DirectML", StringComparison.OrdinalIgnoreCase)
-			|| s.Equals("核显", StringComparison.OrdinalIgnoreCase))
-			return OcrDevice.IntelGpu;
-		// Auto 已废弃，旧配置按 CPU
-		return OcrDevice.Cpu;
-	}
-
-	static bool httphostislan(string host) {
-		if (string.IsNullOrWhiteSpace(host)) return false;
-		host = host.Trim().Trim('"');
-		if (host.Length >= 2 && host[0] == '[' && host[host.Length - 1] == ']')
-			host = host.Substring(1, host.Length - 2);
-		return host is not ("127.0.0.1" or "localhost" or "::1" or "0:0:0:0:0:0:0:1");
+	static bool tryparsedevice(string s, out OcrDevice dev) {
+		s = (s ?? "").Trim().Trim('"');
+		if (s.Equals("Gpu", StringComparison.OrdinalIgnoreCase)) {
+			dev = OcrDevice.Gpu;
+			return true;
+		}
+		if (s.Equals("IntelGpu", StringComparison.OrdinalIgnoreCase)) {
+			dev = OcrDevice.IntelGpu;
+			return true;
+		}
+		if (s.Equals("Cpu", StringComparison.OrdinalIgnoreCase)) {
+			dev = OcrDevice.Cpu;
+			return true;
+		}
+		dev = OcrDevice.Cpu;
+		return false;
 	}
 
 	static bool parsebool(string s, bool def) {

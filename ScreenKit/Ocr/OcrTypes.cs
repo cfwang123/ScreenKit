@@ -223,7 +223,7 @@ public sealed class OcrOptions {
 	public bool ImgConvShortEnabled = false;
 	/// <summary>较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
 	public int ImgConvShortPx = 1080;
-	/// <summary>true = 写到源文件目录下 output/；false = ImgConvOutDir。兼容旧配置。</summary>
+	/// <summary>由 ImgConvOutMode 是否为 beside 得出。</summary>
 	public bool ImgConvOutBeside = true;
 	/// <summary>beside / other / replace / recycle。</summary>
 	public string ImgConvOutMode = "beside";

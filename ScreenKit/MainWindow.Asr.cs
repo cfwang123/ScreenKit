@@ -718,8 +718,7 @@ public partial class MainWindow {
 			model = sel;
 			return true;
 		}
-		// 配置名 → 流式列表；兼容旧版 asr_model 曾存流式名
-		var want = !string.IsNullOrEmpty(opt.AsrModelStream) ? opt.AsrModelStream : opt.AsrModel;
+		var want = opt.AsrModelStream;
 		if (!string.IsNullOrEmpty(want)) {
 			var byName = asrModels.FirstOrDefault(x => x.IsStreaming
 				&& string.Equals(x.DisplayName, want, StringComparison.OrdinalIgnoreCase));
@@ -888,12 +887,6 @@ public partial class MainWindow {
 			// 流式语音输入
 			AsrModelInfo pickSt = null;
 			var wantSt = !string.IsNullOrEmpty(opt.AsrModelStream) ? opt.AsrModelStream : null;
-			// 兼容旧配置：asr_model 曾是流式名
-			if (wantSt == null && !string.IsNullOrEmpty(opt.AsrModel)) {
-				var legacy = stream.FirstOrDefault(m =>
-					string.Equals(m.DisplayName, opt.AsrModel, StringComparison.OrdinalIgnoreCase));
-				if (legacy != null) wantSt = opt.AsrModel;
-			}
 			if (!string.IsNullOrEmpty(wantSt))
 				pickSt = stream.FirstOrDefault(m =>
 					string.Equals(m.DisplayName, wantSt, StringComparison.OrdinalIgnoreCase));
