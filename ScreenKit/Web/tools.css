@@ -44,7 +44,7 @@ body {
 	box-shadow: none;
 }
 .shell { display: flex; flex: 1; min-height: 0; margin: 0; gap: 0; align-items: stretch; }
-html.in-tool aside { display: none; }
+html.in-tool aside, html.in-tool .brand { display: none; }
 aside {
 	width: 196px;
 	flex: none;
@@ -123,10 +123,11 @@ main {
 }
 .back {
 	display: inline-flex; align-items: center; justify-content: center;
-	flex: none; width: 32px; height: 32px;
+	flex: none; gap: 6px; height: 32px;
 	border: 0; background: transparent; color: #f97316;
-	padding: 0; border-radius: 8px; font-size: 15px;
+	padding: 0 10px; border-radius: 8px; font-size: 14px;
 }
+#tool-fav { width: 32px; padding: 0; }
 .back:hover { background: #f3f4f6; }
 .head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
