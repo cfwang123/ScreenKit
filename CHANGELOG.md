@@ -144,6 +144,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System info opens at once. The system, USB, and serial tabs read in the background and show Reading until each list arrives.
 - Color character art defaults to quadrant blocks. A cell splits when its quadrants differ, and a flat cell is a space with the background color instead of a full block. Key 1 still draws full blocks.
 - Morse chart playback now moves the highlight with each character. The timers were waiting on the audio clock, so only the first character lit up.
+- Function graph fills the remaining height of the tool page.
 
 #### Removed
 
@@ -263,6 +264,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统信息窗口马上打开。系统、USB 和串口在后台读取，读完前状态显示正在读取。
 - 全色字符画默认改用四象限。象限之间有色差就拆开，接近一色的格子用空格铺背景色，不再铺整块。按 1 仍是整块。
 - 摩斯码表整段播放时，高亮跟着当前字符走。原先把音频时钟当成等待时间，所以只有第一个字会亮。
+- 函数图像的画布占满工具页剩余高度。
 
 #### 移除
 
