@@ -108,6 +108,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Image convert preview zooms with the wheel toward the cursor, pans by dragging, and fits again on a double-click.
 - CSS gradient on the tools page takes 2 to 8 colors from the browser color picker. They are spaced evenly in the order shown.
 - The chat room can send a message to yourself, and your name is listed with the other people. The nickname field matches the gender list and the join button.
+- Date math takes a date and time. The unit sits after the amount when adding or subtracting.
 
 #### Fixed
 
@@ -203,6 +204,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 图片格式转换的预览可以用滚轮对着光标缩放、拖动平移，双击重新适应窗口。
 - 工具页 CSS 渐变可以用浏览器选色器选 2 到 8 种颜色，按列出的顺序均匀过渡。
 - 聊天室可以给自己发消息，在线名单里也有自己。昵称框与性别、进入按钮样式一致。
+- 日期计算改为输入日期时间。日期加减时，单位放在数量后面。
 
 #### 修复
 

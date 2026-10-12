@@ -6,7 +6,7 @@
 	var loop = null;
 	var demot = [];
 	var bound = false;
-	var shift = 0;		// 按住 Ctrl / Shift 时的八度偏移（+12 / -12）
+	var shift = 0;		// 按住 Shift / Alt 时的八度偏移（+12 / -12）
 	var pressed = {};	// 键码 -> 正在响的音，松开时按这个停
 	var INST = [
 		{ id: "sq", name: "方波", wave: "square", a: 0.008, d: 0.09, s: 0.55, r: 0.08 },
@@ -96,11 +96,11 @@
 			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。</p>'
 			+ '<p class="kicker">音效</p>'
 			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
-			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Ctrl 升 8 度、Shift 降 8 度（琴键跟着换一组）。警报、火警、蜂鸣、电话再点一次就停。</p>'
+			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组）。警报、火警、蜂鸣、电话再点一次就停。</p>'
 			+ "</div>";
 	}
 
-	// 三个八度（36 个半音）：上面两个八度是 A–V 那一排的键位，整组跟着 Ctrl/Shift 移调
+	// 三个八度（36 个半音）：上面两个八度是 A–V 那一排的键位，整组跟着 Shift/Alt 移调
 	function keys(){
 		var whites = "";
 		var blacks = "";
@@ -214,7 +214,7 @@
 	}
 
 	function syncmods(ev){
-		toshift((ev.ctrlKey ? 12 : 0) - (ev.shiftKey ? 12 : 0));
+		toshift((ev.shiftKey ? 12 : 0) - (ev.altKey ? 12 : 0));
 	}
 
 	function inst(){
@@ -693,7 +693,7 @@
 	function onup(ev){
 		var base = CODE[ev.code];
 		var midi;
-		if (ev.key === "Control" || ev.key === "Shift") {
+		if (ev.key === "Shift" || ev.key === "Alt") {
 			syncmods(ev);
 			return;
 		}
