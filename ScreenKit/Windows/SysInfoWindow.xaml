@@ -34,19 +34,47 @@
 						<Button x:Name="bsyscopy" Style="{StaticResource ToolBtn}"
 						        AutomationProperties.AutomationId="sys.copy"/>
 					</StackPanel>
-					<ListView x:Name="lvsys" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
-					          SelectionMode="Single"
-					          FontFamily="Consolas, Microsoft YaHei UI"
-					          AutomationProperties.AutomationId="sys.list">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colsysname" Width="220"
-								                DisplayMemberBinding="{Binding Name}"/>
-								<GridViewColumn x:Name="colsysval" Width="520"
-								                DisplayMemberBinding="{Binding Value}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
+					<ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto"
+					              HorizontalScrollBarVisibility="Disabled"
+					              AutomationProperties.AutomationId="sys.list">
+						<ItemsControl x:Name="icsys">
+							<ItemsControl.ItemTemplate>
+								<DataTemplate>
+									<Border Margin="0,0,0,10" Padding="14,12" CornerRadius="8"
+									        Background="{StaticResource BgPanel}"
+									        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+										<StackPanel>
+											<TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14"
+											           Foreground="{StaticResource TextPrimary}" Margin="0,0,0,8"/>
+											<ItemsControl ItemsSource="{Binding Items}">
+												<ItemsControl.ItemsPanel>
+													<ItemsPanelTemplate>
+														<WrapPanel/>
+													</ItemsPanelTemplate>
+												</ItemsControl.ItemsPanel>
+												<ItemsControl.ItemTemplate>
+													<DataTemplate>
+														<Grid Width="300" Margin="0,0,16,8">
+															<Grid.ColumnDefinitions>
+																<ColumnDefinition Width="108"/>
+																<ColumnDefinition Width="*"/>
+															</Grid.ColumnDefinitions>
+															<TextBlock Text="{Binding Name}" FontSize="12"
+															           Foreground="{StaticResource TextMuted}"
+															           VerticalAlignment="Top" TextWrapping="Wrap"/>
+															<TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="13"
+															           Foreground="{StaticResource TextPrimary}"
+															           VerticalAlignment="Top" TextWrapping="Wrap"/>
+														</Grid>
+													</DataTemplate>
+												</ItemsControl.ItemTemplate>
+											</ItemsControl>
+										</StackPanel>
+									</Border>
+								</DataTemplate>
+							</ItemsControl.ItemTemplate>
+						</ItemsControl>
+					</ScrollViewer>
 					<TextBlock x:Name="lbsysstat" Grid.Row="3" Margin="0,8,0,0"
 					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
 				</Grid>

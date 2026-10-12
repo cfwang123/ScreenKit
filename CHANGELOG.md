@@ -39,6 +39,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Settings can write screenshot paths with forward slashes (snap_path_slash).
 
+#### Changed
+
+- The System tab of System info groups the computer, processor, graphics, memory, disks, volumes, and network into blocks.
+
 #### Fixed
 
 - Windows OCR joins fragments on the same baseline into one line.
@@ -50,6 +54,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 参数设置可让复制截图路径时把反斜杠写成正斜杠（snap_path_slash）。
+
+#### 变更
+
+- 系统信息的系统页按计算机、处理器、显卡、内存、硬盘、分区和网络分块显示。
 
 #### 修复
 

@@ -2,6 +2,11 @@ using System.Text;
 
 namespace ScreenKit;
 
+sealed class SysBlock {
+	public string Title { get; set; }
+	public List<UsbPair> Items { get; set; }
+}
+
 /// <summary>工具 → 系统信息：系统、USB、串口、打印机和声音设备。</summary>
 public partial class SysInfoWindow : Window {
 	List<UsbPair> sysrows = new();
@@ -64,8 +69,6 @@ public partial class SysInfoWindow : Window {
 		tabprn.Header = Loc.T("sys.tab.prn");
 		tabaud.Header = Loc.T("sys.tab.aud");
 		lbsyshint.Text = Loc.T("sys.hint");
-		colsysname.Header = Loc.T("usb.col.prop");
-		colsysval.Header = Loc.T("usb.col.value");
 		ToolBtnUi.Set(bsysrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(bsyscopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
 		lbusbhint.Text = Loc.T("usb.hint");
@@ -128,7 +131,7 @@ public partial class SysInfoWindow : Window {
 			}
 			apply(gen, () => sysgen, () => {
 				sysrows = rows;
-				lvsys.ItemsSource = sysrows;
+				icsys.ItemsSource = sysblocks(rows);
 				lbsysstat.Text = err != null ? Loc.T("usb.fail", err)
 					: sysrows.Count == 0 ? Loc.T("sys.none") : Loc.T("sys.count", sysrows.Count);
 			});
@@ -279,6 +282,23 @@ public partial class SysInfoWindow : Window {
 		var dev = list.SelectedItem as UsbDev;
 		if (dev == null || dev.Props == null || dev.Props.Count == 0) return;
 		copypairs(dev.Props, stat);
+	}
+
+	static List<SysBlock> sysblocks(List<UsbPair> rows) {
+		var blocks = new List<SysBlock>();
+		SysBlock cur = null;
+		foreach (var p in rows) {
+			var name = p.Name ?? "";
+			var cut = name.IndexOf(" · ", StringComparison.Ordinal);
+			var title = cut < 0 ? name : name.Substring(0, cut);
+			var prop = cut < 0 ? name : name.Substring(cut + 3);
+			if (cur == null || !string.Equals(cur.Title, title, StringComparison.Ordinal)) {
+				cur = new SysBlock { Title = title, Items = new List<UsbPair>() };
+				blocks.Add(cur);
+			}
+			cur.Items.Add(new UsbPair { Name = prop, Value = p.Value });
+		}
+		return blocks;
 	}
 
 	static void copypairs(List<UsbPair> rows, TextBlock stat) {
