@@ -285,7 +285,7 @@ select, input[type="date"], input[type="datetime-local"], input[type="text"], in
 }
 #rcolor-list[hidden] { display: none !important; }
 #rcolor-list li {
-	display: flex; align-items: center; gap: 12px;
+	display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px;
 	margin: 0; padding: 8px 14px;
 	border-bottom: 1px solid var(--line);
 }
@@ -294,13 +294,13 @@ select, input[type="date"], input[type="datetime-local"], input[type="text"], in
 	flex: none; width: 42px; height: 24px; border-radius: 6px;
 	box-shadow: inset 0 0 0 1px rgba(36, 31, 27, .15);
 }
-#rcolor-list b {
-	font: 600 14px/1.4 Consolas, "Microsoft YaHei UI", monospace;
-}
-#rcolor-list span {
-	color: var(--muted);
+#rcolor-list button {
+	border: 0; background: transparent; color: var(--ink); cursor: pointer;
+	padding: 2px 6px; border-radius: 6px;
 	font: 13px/1.4 Consolas, "Microsoft YaHei UI", monospace;
 }
+#rcolor-list button:first-of-type { font-weight: 600; }
+#rcolor-list button:hover { background: #fff1e8; }
 .facts {
 	display: grid; grid-template-columns: 120px 1fr; gap: 8px 16px;
 	background: var(--card); border: 1px solid var(--line); border-radius: 16px;

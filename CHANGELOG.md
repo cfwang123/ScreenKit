@@ -98,6 +98,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Random color on the tools page shows each generated color as a swatch in an HTML list, with HEX and RGB beside it.
 - Screenshot annotate restores the last tool after the next region select, including no tool. The choice stays in memory and is written when ScreenKit exits.
 - Tools page: clicking a Morse code now plays it through the 8-bit synthesizer (about 784 Hz, one unit per dot and three per dash at 90 ms, one unit between symbols), using the instrument and volume chosen in the 8-bit tool.
+- Random colors list HEX, RGB, HSL, HSV, CMYK, and YUV. Click one value to copy it. Pick color also writes YUV (BT.601 full range, 0-255).
 
 #### Fixed
 
@@ -182,6 +183,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页随机颜色把每个生成的颜色显示成 HTML 列表里的色块，旁边是 HEX 和 RGB。
 - 截图标注在下次框选后沿用上次的工具，也可以不选工具。选择留在内存里，退出程序时才写入配置。
 - 工具页：摩斯码表点一下会用 8bit 合成器把这条码播出来（约 784Hz，一个单位 90 毫秒，点 1 单位、划 3 单位，符号之间空 1 单位），音色和音量用 8bit 工具里选的。
+- 工具页随机颜色列出 HEX、RGB、HSL、HSV、CMYK 和 YUV，点一个色值就复制它。取色也写出 YUV（BT.601 全范围，0–255）。
 
 #### 修复
 

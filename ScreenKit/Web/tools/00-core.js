@@ -772,12 +772,15 @@ SK.watchAcc = 0;
 		var hsl = rgb2hsl(rgb[0], rgb[1], rgb[2]);
 		var hsv = rgb2hsv(rgb[0], rgb[1], rgb[2]);
 		var cmyk = rgb2cmyk(rgb[0], rgb[1], rgb[2]);
+		var yuv = rgb2yuv(rgb[0], rgb[1], rgb[2]);
 		return "HEX  #" + hex2(rgb[0]) + hex2(rgb[1]) + hex2(rgb[2])
 			+ "\nRGB  " + rgb[0] + ", " + rgb[1] + ", " + rgb[2]
 			+ "\nHSL  " + hsl[0] + ", " + hsl[1] + "%, " + hsl[2] + "%"
 			+ "\nHSV  " + hsv[0] + ", " + hsv[1] + "%, " + hsv[2] + "%"
 			+ "\nCMYK  " + cmyk[0] + "%, " + cmyk[1] + "%, " + cmyk[2] + "%, " + cmyk[3] + "%"
-			+ "\nCMYK 用的是简单公式，不是印刷配置文件。";
+			+ "\nYUV  " + yuv[0] + ", " + yuv[1] + ", " + yuv[2]
+			+ "\nCMYK 用的是简单公式，不是印刷配置文件。"
+			+ "\nYUV 是 BT.601 全范围，分量 0–255。";
 	}
 
 	function colorrgb(mode, text){
@@ -846,6 +849,20 @@ SK.watchAcc = 0;
 		}
 		var s = max === 0 ? 0 : d / max;
 		return [Math.round(h), Math.round(s * 100), Math.round(max * 100)];
+	}
+
+	function rgb2yuv(r, g, b){
+		var y = 0.299 * r + 0.587 * g + 0.114 * b;
+		var u = -0.168736 * r - 0.331264 * g + 0.5 * b + 128;
+		var v = 0.5 * r - 0.418688 * g - 0.081312 * b + 128;
+		return [yuv8(y), yuv8(u), yuv8(v)];
+	}
+
+	function yuv8(n){
+		n = Math.round(n);
+		if (n < 0) return 0;
+		if (n > 255) return 255;
+		return n;
 	}
 
 	function rgb2cmyk(r, g, b){
@@ -1039,6 +1056,7 @@ SK.watchAcc = 0;
 	SK.hex2 = hex2;
 	SK.rgb2hsl = rgb2hsl;
 	SK.rgb2hsv = rgb2hsv;
+	SK.rgb2yuv = rgb2yuv;
 	SK.rgb2cmyk = rgb2cmyk;
 	SK.hsl2rgb = hsl2rgb;
 	SK.cmyk2rgb = cmyk2rgb;
