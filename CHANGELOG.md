@@ -36,7 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- **Tools → Batch video convert** converts added videos to MP4, MKV, or WebM with FFmpeg. Set CRF, an optional shorter-side cap (shrink only, even width and height), Defaults are x265, CRF 40, and a 480 shorter-side cap. Audio defaults to 64 kbps, 22050 Hz, and mono. MP4 and MKV can also use x264; WebM stays VP9. Audio can still be turned off. Output goes to `output/` beside each source, a chosen folder, or replaces the source (permanent delete or Recycle Bin).
+- **Tools → Batch video convert** converts added videos to MP4, MKV, or WebM with FFmpeg. Defaults are x265, CRF 40, and a 480 shorter-side cap. Audio defaults to 64 kbps, 22050 Hz, and mono. MP4 and MKV can also use x264; WebM stays VP9. Audio can be turned off. Output goes to `output/` beside each source, a chosen folder, or replaces the source (permanent delete or Recycle Bin).
 - The tools-page chat room sends a heartbeat every 5 seconds and disconnects when that heartbeat fails. You can address a message to one person. Private messages are delivered only to the two of you. **Direct** uploads a file through the server to the selected person, and the download starts only after they click Accept.
 - **Help → Install features** can install Bogus (`Bogus.dll`, about 2.3 MB, not in the slim package). The tools page **Generate test data** says whether it is installed. Without it, the page keeps the built-in generator. With it, pick a Bogus language first, then a category that language actually has data for. Dates, IP addresses, MAC addresses, and UUIDs stay available for every language. `GET /api/fake` returns the languages and categories. `POST` takes `locale`, `kind`, and `n`.
 - The tools-page chat room can send an image or a file, up to 8 MB. The bytes are stored as `tmp/chat-` plus an id beside the program. Starting ScreenKit deletes those files and leaves the other `tmp` folders alone. Pictures show in the room. Other files are download links.
@@ -78,7 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- **工具 → 视频批量转换**：添加视频后用 FFmpeg 转到 MP4、MKV 或 WebM。可设 CRF、可选较短边（超过才等比缩小，宽高取偶数）默认 x265、CRF 40、较短边 480。声音默认 64 kbps、22050 Hz、单声道。MP4 / MKV 也可选 x264，WebM 仍用 VP9。声音仍可关掉。输出到每个源文件旁的 `output/`、指定目录，或替换源文件（永久删除 / 回收站）。
+- **工具 → 视频批量转换**：添加视频后用 FFmpeg 转到 MP4、MKV 或 WebM。默认 x265、CRF 40、较短边 480。声音默认 64 kbps、22050 Hz、单声道。MP4 / MKV 也可选 x264，WebM 仍用 VP9。声音可以关掉。输出到每个源文件旁的 `output/`、指定目录，或替换源文件（永久删除 / 回收站）。
 - 工具页聊天室每 5 秒心跳一次，失败就断开。发送时可以指定一个人。私密消息只有双方能看到。直传把文件经服务器交给选中的人，对方点接收后才开始下载。
 - **帮助 → 安装功能**可以安装 Bogus（`Bogus.dll`，约 2.3 MB，不进精简包）。工具页「生成测试数据」会提示是否已安装。未安装时仍用内置生成。安装后先选 Bogus 的语言，再选该语言自己有数据的分类。日期、IP、MAC、UUID 每种语言都有。`GET /api/fake` 返回语言和分类。`POST` 传 `locale`、`kind`、`n`。
 - 工具页聊天室可以发图片和文件，单个不超过 8 MB。内容写到程序目录 `tmp/chat-` 加编号。启动时删掉这些文件，其它 `tmp` 子目录不动。图片直接显示，其它文件是下载链接。
