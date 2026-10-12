@@ -59,7 +59,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-htmlui" or "--test-nettool" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-httpdbg"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy"
@@ -297,6 +297,8 @@ static class Cli {
 					return testhtmlui();
 				case "--test-nettool":
 					return testnettool();
+				case "--test-usb":
+					return testusb();
 				case "--test-httpdbg":
 					return testhttpdbg();
 				case "--test-update-notes":
@@ -4639,6 +4641,33 @@ static class Cli {
 		return 0;
 	}
 
+	static int testusb() {
+		Out("=== USB 设备 --test-usb ===");
+		List<UsbDev> list;
+		try { list = UsbList.Scan(); }
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+		Out("count=" + list.Count);
+		if (list.Count == 0) {
+			Err("没有枚举到 USB 设备");
+			return 1;
+		}
+		var n = Math.Min(3, list.Count);
+		for (var i = 0; i < n; i++) {
+			var d = list[i];
+			Out($"{d.Name} | {d.VidPid} | {d.ClassName} | {d.Status}");
+			Out(d.InstanceId ?? "");
+			if (string.IsNullOrEmpty(d.InstanceId) || d.Props == null || d.Props.Count == 0) {
+				Err("设备缺少实例或参数");
+				return 1;
+			}
+		}
+		Out("=== OK：USB 设备 ===");
+		return 0;
+	}
+
 	static int testhttpdbg() {
 		Out("=== HTTP 请求调试 --test-httpdbg ===");
 		var bad = HttpDebug.SelfTest(Out, Err);
@@ -5571,6 +5600,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pinyin
   ScreenKit --test-htmlui
   ScreenKit --test-nettool
+  ScreenKit --test-usb
   ScreenKit --test-httpdbg
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv
@@ -5659,6 +5689,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，测 pinyin.user.toml 盖住系统词表，并测本机 /api/pinyin；原来没有则测完删掉
       --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
+      --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
@@ -5752,6 +5783,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pinyin
   ScreenKit --test-htmlui
   ScreenKit --test-nettool
+  ScreenKit --test-usb
   ScreenKit --test-httpdbg
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv

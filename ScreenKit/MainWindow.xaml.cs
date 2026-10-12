@@ -86,6 +86,7 @@ public partial class MainWindow : Window {
 	TextToolWindow textToolWin;
 	PasswordWindow pwGenWin;
 	NetToolsWindow netToolWin;
+	UsbDevWindow usbWin;
 	HttpDebugWindow httpDbgWin;
 	ZhConvertWindow zhConvWin;
 	PinyinWindow pinyinWin;
@@ -630,6 +631,7 @@ public partial class MainWindow : Window {
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
+			tray.UsbRequested += () => Dispatcher.BeginInvoke(new Action(() => openusb(fromTray: true)));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg(fromTray: true)));
 			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv(fromTray: true)));
 			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin(fromTray: true)));
@@ -1570,6 +1572,7 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
+		mnusb.Click += (_, _) => openusb();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
 		mnpinyin.Click += (_, _) => openpinyin();
@@ -1716,6 +1719,8 @@ public partial class MainWindow : Window {
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnnettool.Header = Loc.T("menu.nettool");
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
+			mnusb.Header = Loc.T("menu.usb");
+			mnusb.ToolTip = Loc.T("menu.usb.tip");
 			mnhttpdbg.Header = Loc.T("menu.httpdbg");
 			mnhttpdbg.ToolTip = Loc.T("menu.httpdbg.tip");
 			mnzhconv.Header = Loc.T("menu.zhconv");
@@ -4246,6 +4251,9 @@ public partial class MainWindow : Window {
 	void opennettool(bool fromTray = false) =>
 		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.nettool", fromTray);
 
+	void openusb(bool fromTray = false) =>
+		opentoolwin(ref usbWin, () => new UsbDevWindow(), "menu.usb", fromTray);
+
 	void openhttpdbg(bool fromTray = false) =>
 		opentoolwin(ref httpDbgWin, () => new HttpDebugWindow(), "menu.httpdbg", fromTray);
 
@@ -4395,6 +4403,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
+				else if (ReferenceEquals(usbWin, w)) usbWin = null;
 				else if (ReferenceEquals(httpDbgWin, w)) httpDbgWin = null;
 				else if (ReferenceEquals(zhConvWin, w)) zhConvWin = null;
 				else if (ReferenceEquals(winCalWin, w)) winCalWin = null;

@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools, Image convert: palette PNG with a choice of 2, 4, 8, 16, 32, 64, 128, or 256 colors. The file extension stays .png.
 - Tools page: the Morse chart can play a whole typed text, not just one code. Letters are separated by three units and words by seven, the strip below shows the dots and dashes of what you type, and the current letter is highlighted while it plays. Playback stops at 20 seconds and says how much was left out.
 - Tools page: the 8-bit synthesizer keyboard now shows three octaves. It draws one row when the width allows and one octave per row (three rows) when it does not; holding Ctrl plays an octave up and holding Shift an octave down, the keys move with it, and a note that was started keeps sounding until its own key is released.
+- Tools, USB devices: list USB devices that are connected now. Select one to see its name, VID/PID, class, status, hardware IDs, driver, location, parent, and other parameters. The window only reads the system record and does not open the device.
 
 #### Changed
 
@@ -165,6 +166,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具 → 图片格式转换可输出 PNG 调色板，颜色数可选 2、4、8、16、32、64、128、256，扩展名仍是 .png。
 - 工具页：摩斯码表可以整段播放输入的文字，不只是单条码。字母之间空 3 点、词之间空 7 点，输入框下面显示转换出的点划，播放时逐字高亮。最长播 20 秒，超了会截断并说明只播了前几个字符。
 - 工具页：8bit合成器的琴键显示 3 个八度，宽度够就一行放下、不够就一行一个八度分三行；按住 Ctrl 升 8 度、Shift 降 8 度（琴键跟着换一组；先松开修饰键不会把已经按下的音弄丢，松开那个音自己的键才停）。
+- 工具 → USB 设备：列出当前已连接的 USB 设备。点一项查看名称、VID/PID、类、状态、硬件 ID、驱动、位置和父设备等参数。只读系统记录，不打开设备。
 
 #### 变更
 
