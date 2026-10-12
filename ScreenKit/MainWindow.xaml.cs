@@ -678,11 +678,9 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentSnapAnnTool = opt.SnapAnnTool;
 	}
 
-	/// <summary>记住截图标注工具（含无工具）。屏幕画板不写这里。</summary>
+	/// <summary>记住截图标注工具（含无工具）。只改内存，退出时再写入配置。屏幕画板不走这里。</summary>
 	void rememberanntool(string name) {
-		opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(name);
-		ImageUtil.CurrentSnapAnnTool = opt.SnapAnnTool;
-		try { AppConfig.Save(opt); } catch { }
+		ImageUtil.CurrentSnapAnnTool = ImageUtil.NormSnapAnnTool(name);
 	}
 
 	/// <summary>
@@ -1016,6 +1014,7 @@ public partial class MainWindow : Window {
 		try { disposeAsr(); } catch { }
 		try { trEngine?.Dispose(); } catch { }
 		try {
+			opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(ImageUtil.CurrentSnapAnnTool);
 			savewindowbounds();
 			savettsprefs();
 			saveasrprefs();

@@ -645,3 +645,40 @@ input[type="file"] {
 .bitcell.on { background: #fff1e8; color: #9a3412; border-color: #fdba74; }
 .bitcell.sel { outline: 2px solid #f97316; outline-offset: -2px; }
 .bitcell.now { box-shadow: inset 0 -3px 0 #111; }
+#box.panel.on:has(.board) { overflow: hidden; }
+#box.panel.on:has(.board) #box-body {
+	flex: 1 1 auto; min-height: 0;
+	display: flex; flex-direction: column;
+}
+.board { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.board .hint { margin: 0; }
+.board-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.board-bar button {
+	height: 28px; padding: 0 10px; cursor: pointer;
+	border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
+	font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.board-bar button.on { border-color: #f97316; background: #fff1e8; color: #c2410c; }
+.board-bar input[type="color"] {
+	width: 36px; height: 28px; margin: 0; padding: 2px; border-radius: 8px;
+}
+.board-bar select {
+	width: auto; height: 28px; margin: 0; padding: 0 8px; border-radius: 999px;
+}
+.board-stage {
+	position: relative; flex: 1 1 auto; min-height: 240px; overflow: auto;
+	padding: 8px; border-radius: 10px; background: #e7e2da;
+}
+.board-stage canvas {
+	width: 100%; height: auto; display: block; background: #fff;
+	border-radius: 8px; touch-action: none; cursor: crosshair;
+}
+.board-stage.select canvas { cursor: default; }
+.board-stage input.board-text {
+	position: absolute; z-index: 2; display: block; width: auto; height: auto;
+	margin: 0; padding: 0 2px; min-width: 48px;
+	border: 1px dashed #f97316; border-radius: 0; background: rgba(255, 255, 255, .9);
+	font-family: "Microsoft YaHei UI", sans-serif; line-height: 1.3;
+}
+.board-stage input.board-text[hidden] { display: none; }
+.board-msg { margin: 0; min-height: 1.2em; color: var(--muted); font-size: 12px; }

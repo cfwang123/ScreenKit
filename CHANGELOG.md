@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page Image category has a board. It draws a rectangle, an ellipse, an arrow, a pen stroke, or text. Ctrl+V pastes a picture. Drag moves it, and the corners change its size.
 - The tools page merges Stopwatch and Countdown into Timer. It can count up, count down from a number of seconds, or count down to a date and time you pick.
 - **Tools → HTML layout** edits HTML on the left and previews it on the right as you type. Templates replace the current text: buttons, a card, a media card, inputs, choices, and a form. The tools page has the same card under Image. That preview is a sandboxed frame.
 - **Tools → Fast copy** copies or moves files and folders. The same volume prefers a rename. Same-name files can be overwritten, skipped, or renamed. **Register menu** adds a current-user Explorer cascade (fast cut, copy, delete to the Recycle Bin, and copy paths). After a cut or copy, folder background gets fast paste and cancel. Shift copies paths relative to their common folder, and Shift+paste keeps the clip. No administrator. On Windows 11 the items are under Show more options. Selecting more than about 100 items can hide this static menu.
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The 8-bit arranger stores an instrument on each of the four channels. Playback uses that instrument, and the choice is kept in the browser with the loop.
 - The 8-bit arranger has six one-bar example loops: march, jump, underwater, dungeon, battle, and stage clear. Each sets the tempo and the four instruments.
 - Random color on the tools page shows each generated color as a swatch in an HTML list, with HEX and RGB beside it.
+- Screenshot annotate restores the last tool after the next region select, including no tool. The choice stays in memory and is written when ScreenKit exits.
 
 #### Fixed
 
@@ -113,6 +115,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页「图像」增加画板。可以画矩形、椭圆、箭头、画笔和文字。Ctrl+V 粘贴图片后，拖动改位置，角点改大小。
 - 工具页把秒表和倒计时合成「计时」。可以正向计时、按秒倒计时，或选一个截止日期时间看剩余时间。
 - **工具 → HTML 界面设计**：左边写 HTML，右边随输入显示效果。模板会换掉当前内容，有按钮、卡片、图文卡片、输入框、选项和表单。工具页「图像」里有同样的卡片。网页上的预览放在隔离的框架里。
 - **工具 → 快速复制**：复制或剪切文件和文件夹。同一分区优先改名。同名可以覆盖、跳过或重命名。**注册菜单**给当前用户加上资源管理器级联菜单（快速剪切、快速复制、快速删除到回收站、复制路径）。剪切或复制之后，文件夹空白处出现快速粘贴和取消。按着 Shift 复制相对路径，Shift 粘贴会留下剪贴内容。不用管理员。Windows 11 在「显示更多选项」里。一次选中大约超过 100 项时，这项静态菜单可能不出现。
@@ -169,6 +172,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 8bit 编排的四个通道各自记住乐器。播放用这一路所选的乐器，选择和循环一起记在浏览器里。
 - 8bit 编排增加六段一小节示例：进行曲、跳跃、水下、地牢、战斗、通关。每段会带上速度和四路乐器。
 - 工具页随机颜色把每个生成的颜色显示成 HTML 列表里的色块，旁边是 HEX 和 RGB。
+- 截图标注在下次框选后沿用上次的工具，也可以不选工具。选择留在内存里，退出程序时才写入配置。
 
 #### 修复
 

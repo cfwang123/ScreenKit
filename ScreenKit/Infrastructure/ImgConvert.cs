@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -26,14 +27,36 @@ static class ImgConvert {
 	const ushort FOF_ALLOWUNDO = 0x0040;
 	const ushort FOF_NOERRORUI = 0x0400;
 
+	public static readonly int[] PngColorChoices = { 2, 4, 8, 16, 32, 64, 128, 256 };
+
 	public static string NormFmt(string fmt) {
 		var f = (fmt ?? "jpg").Trim().ToLowerInvariant();
+		if (f is "png8" or "pngpal" or "palette") return "png8";
 		if (f is "png") return "png";
 		if (f is "bmp") return "bmp";
 		return "jpg";
 	}
 
-	public static string ExtOf(string fmt) => "." + NormFmt(fmt);
+	/// <summary>调色板颜色数对齐到 2/4/8/16/32/64/128/256。无效值取最接近的一档，默认 256。</summary>
+	public static int NormPngColors(int n) {
+		if (n <= 0) return 256;
+		var best = 256;
+		var dist = int.MaxValue;
+		foreach (var c in PngColorChoices) {
+			var d = Math.Abs(c - n);
+			if (d < dist || (d == dist && c > best)) {
+				dist = d;
+				best = c;
+			}
+		}
+		return best;
+	}
+
+	public static string ExtOf(string fmt) {
+		fmt = NormFmt(fmt);
+		if (fmt == "png8") return ".png";
+		return "." + fmt;
+	}
 
 	public static List<string> CollectImages(IEnumerable<string> paths) {
 		var r = new List<string>();
@@ -93,7 +116,7 @@ static class ImgConvert {
 	public static string MakeOutPath(string src, string fmt, string mode, string customDir, ISet<string> reserved) {
 		fmt = NormFmt(fmt);
 		mode = NormOutMode(mode);
-		var ext = "." + fmt;
+		var ext = ExtOf(fmt);
 		var name = Path.GetFileNameWithoutExtension(src);
 		if (string.IsNullOrWhiteSpace(name)) name = "image";
 		string dir;
@@ -138,8 +161,8 @@ static class ImgConvert {
 	/// <param name="shortSide">true：maxW 是较短边上限，只等比缩小。false：宽高是框，只缩小进框内（网页拍照）。</param>
 	public static bool ConvertOne(string src, string dst, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool keepOrigEn, int keepOrigPct, string outMode = null, bool shortSide = false) {
-		var enc = encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+		bool keepOrigEn, int keepOrigPct, string outMode = null, bool shortSide = false, int pngColors = 256) {
+		var enc = encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide, pngColors);
 		var dir = Path.GetDirectoryName(dst);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 		var origLen = 0L;
@@ -253,8 +276,8 @@ static class ImgConvert {
 	/// <param name="shortSide">true：maxW 是较短边上限，只等比缩小、不放大。false：宽高框内缩小。</param>
 	public static byte[] Encode(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool shortSide = false) {
-		return encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide).Bytes;
+		bool shortSide = false, int pngColors = 256) {
+		return encodex(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide, pngColors).Bytes;
 	}
 
 	/// <summary>
@@ -341,27 +364,28 @@ static class ImgConvert {
 
 	static Encoded encodex(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool shortSide) {
+		bool shortSide, int pngColors) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
 		ct.ThrowIfCancellationRequested();
 		fmt = NormFmt(fmt);
 		quality = Compat.Clamp(quality <= 0 ? 60 : quality, 1, 100);
+		pngColors = NormPngColors(pngColors);
 		rotate = normrot(rotate);
 		try {
-			return encodegdi(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+			return encodegdi(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide, pngColors);
 		}
 		catch (OperationCanceledException) { throw; }
 		catch { }
 		try {
-			return encodewpf(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+			return encodewpf(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide, pngColors);
 		}
 		catch (OperationCanceledException) { throw; }
 		catch { }
 		// 已安装 OpenCV 时再读 WebP 等 GDI / WPF 打不开的格式。不弹安装窗。
 		if (NativeRuntime.HasOpenCv()) {
 			try {
-				return encodeopencv(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+				return encodeopencv(src, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide, pngColors);
 			}
 			catch (OperationCanceledException) { throw; }
 			catch { }
@@ -372,18 +396,18 @@ static class ImgConvert {
 
 	static Encoded encodeopencv(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool shortSide) {
+		bool shortSide, int pngColors) {
 		using var mat = Cv2.ImRead(src, ImreadModes.Color);
 		if (mat == null || mat.Empty())
 			throw new InvalidOperationException(Loc.T("imgconv.noread.cv"));
 		var bmp = ImageUtil.Frombgr(mat);
 		if (bmp == null) throw new InvalidOperationException(Loc.T("imgconv.noread.cv"));
-		return encodebmp(bmp, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+		return encodebmp(bmp, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide, pngColors);
 	}
 
 	static Encoded encodegdi(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool shortSide) {
+		bool shortSide, int pngColors) {
 		using var loaded = new GdiBmp(src);
 		var srcW = loaded.Width;
 		var srcH = loaded.Height;
@@ -405,7 +429,7 @@ static class ImgConvert {
 			}
 			ct.ThrowIfCancellationRequested();
 			using var ms = new MemoryStream();
-			savegdi(toSave, ms, fmt, quality);
+			savegdi(toSave, ms, fmt, quality, pngColors);
 			return new Encoded {
 				Bytes = ms.ToArray(),
 				SrcW = srcW,
@@ -444,14 +468,14 @@ static class ImgConvert {
 
 	static Encoded encodewpf(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool shortSide) {
+		bool shortSide, int pngColors) {
 		var bmp = loadwpf(src);
-		return encodebmp(bmp, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide);
+		return encodebmp(bmp, fmt, quality, maxEn, maxW, maxH, rotate, mirror, ct, shortSide, pngColors);
 	}
 
 	static Encoded encodebmp(BitmapSource bmp, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
-		bool shortSide) {
+		bool shortSide, int pngColors) {
 		var srcW = bmp.PixelWidth;
 		var srcH = bmp.PixelHeight;
 		ct.ThrowIfCancellationRequested();
@@ -466,6 +490,16 @@ static class ImgConvert {
 			bmp = wb;
 		}
 		ct.ThrowIfCancellationRequested();
+		if (fmt == "png8") {
+			var raw = bgra32(bmp);
+			return new Encoded {
+				Bytes = png8bytes(bmp.PixelWidth, bmp.PixelHeight, raw, pngColors),
+				SrcW = srcW,
+				SrcH = srcH,
+				OutW = bmp.PixelWidth,
+				OutH = bmp.PixelHeight,
+			};
+		}
 		BitmapEncoder enc = fmt switch {
 			"jpg" => new JpegBitmapEncoder { QualityLevel = quality },
 			"bmp" => new BmpBitmapEncoder(),
@@ -512,7 +546,13 @@ static class ImgConvert {
 		return wb;
 	}
 
-	static void savegdi(GdiImg img, Stream dst, string fmt, int quality) {
+	static void savegdi(GdiImg img, Stream dst, string fmt, int quality, int pngColors) {
+		if (fmt == "png8") {
+			var flat = flattenbgra(img);
+			var bytes = png8bytes(flat.W, flat.H, flat.Bgra, pngColors);
+			dst.Write(bytes, 0, bytes.Length);
+			return;
+		}
 		if (fmt == "jpg") {
 			using var flat = as24(img);
 			var to = (GdiImg)flat ?? img;
@@ -541,6 +581,351 @@ static class ImgConvert {
 		g.Clear(System.Drawing.Color.White);
 		g.DrawImage(img, 0, 0, img.Width, img.Height);
 		return b;
+	}
+
+	sealed class FlatBgra {
+		public int W, H;
+		public byte[] Bgra;
+	}
+
+	sealed class PalCube {
+		public int R0, R1, G0, G1, B0, B1, Pop;
+		public long Sr, Sg, Sb;
+	}
+
+	static readonly uint[] Crc32Tab = makecrc32();
+
+	static uint[] makecrc32() {
+		var t = new uint[256];
+		for (uint n = 0; n < 256; n++) {
+			var c = n;
+			for (var k = 0; k < 8; k++)
+				c = (c & 1) != 0 ? 0xEDB88320u ^ (c >> 1) : c >> 1;
+			t[n] = c;
+		}
+		return t;
+	}
+
+	/// <summary>画到白底，得到自上而下的 BGRA。</summary>
+	static FlatBgra flattenbgra(GdiImg img) {
+		var w = img.Width;
+		var h = img.Height;
+		using var b = new GdiBmp(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		using (var g = GdiGfx.FromImage(b)) {
+			g.Clear(System.Drawing.Color.White);
+			g.DrawImage(img, 0, 0, w, h);
+		}
+		var rect = new System.Drawing.Rectangle(0, 0, w, h);
+		var bd = b.LockBits(rect, ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		try {
+			var bgra = new byte[w * h * 4];
+			var stride = bd.Stride;
+			var rowStride = Math.Abs(stride);
+			var origin = stride >= 0 ? bd.Scan0 : IntPtr.Add(bd.Scan0, (h - 1) * stride);
+			var row = new byte[rowStride];
+			for (var y = 0; y < h; y++) {
+				Marshal.Copy(IntPtr.Add(origin, y * rowStride), row, 0, rowStride);
+				Buffer.BlockCopy(row, 0, bgra, y * w * 4, w * 4);
+			}
+			return new FlatBgra { W = w, H = h, Bgra = bgra };
+		}
+		finally {
+			b.UnlockBits(bd);
+		}
+	}
+
+	static byte[] bgra32(BitmapSource bmp) {
+		BitmapSource src = bmp;
+		if (bmp.Format != PixelFormats.Bgra32) {
+			var conv = new FormatConvertedBitmap(bmp, PixelFormats.Bgra32, null, 0);
+			if (conv.CanFreeze) conv.Freeze();
+			src = conv;
+		}
+		var w = src.PixelWidth;
+		var h = src.PixelHeight;
+		var stride = w * 4;
+		var buf = new byte[stride * h];
+		src.CopyPixels(buf, stride, 0);
+		return buf;
+	}
+
+	/// <summary>5 位直方图中位切，写成 8 位调色板 PNG。半透明先铺到白底。</summary>
+	static byte[] png8bytes(int w, int h, byte[] bgra, int colors) {
+		colors = NormPngColors(colors);
+		var cnt = new int[32768];
+		var sr = new long[32768];
+		var sg = new long[32768];
+		var sb = new long[32768];
+		var n = w * h;
+		for (var i = 0; i < n; i++) {
+			var o = i * 4;
+			blendwhite(bgra, o, out var r, out var g, out var b);
+			var bin = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+			cnt[bin]++;
+			sr[bin] += r;
+			sg[bin] += g;
+			sb[bin] += b;
+		}
+		var pal = mediancut(cnt, sr, sg, sb, colors);
+		var map = nearestmap(pal);
+		var idx = new byte[n];
+		for (var i = 0; i < n; i++) {
+			var o = i * 4;
+			blendwhite(bgra, o, out var r, out var g, out var b);
+			idx[i] = map[((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)];
+		}
+		return writeindexedpng(w, h, idx, pal);
+	}
+
+	static void blendwhite(byte[] bgra, int o, out int r, out int g, out int b) {
+		b = bgra[o];
+		g = bgra[o + 1];
+		r = bgra[o + 2];
+		var a = bgra[o + 3];
+		if (a == 255) return;
+		r = (r * a + 255 * (255 - a) + 127) / 255;
+		g = (g * a + 255 * (255 - a) + 127) / 255;
+		b = (b * a + 255 * (255 - a) + 127) / 255;
+	}
+
+	static byte[] mediancut(int[] cnt, long[] sr, long[] sg, long[] sb, int colors) {
+		var r0 = 31;
+		var r1 = 0;
+		var g0 = 31;
+		var g1 = 0;
+		var b0 = 31;
+		var b1 = 0;
+		var any = false;
+		for (var i = 0; i < 32768; i++) {
+			if (cnt[i] == 0) continue;
+			any = true;
+			var r = i >> 10;
+			var g = (i >> 5) & 31;
+			var b = i & 31;
+			if (r < r0) r0 = r;
+			if (r > r1) r1 = r;
+			if (g < g0) g0 = g;
+			if (g > g1) g1 = g;
+			if (b < b0) b0 = b;
+			if (b > b1) b1 = b;
+		}
+		if (!any) return new byte[] { 255, 255, 255 };
+		var root = new PalCube { R0 = r0, R1 = r1, G0 = g0, G1 = g1, B0 = b0, B1 = b1 };
+		fillcube(root, cnt, sr, sg, sb);
+		var cubes = new List<PalCube> { root };
+		var dead = new List<bool> { false };
+		while (cubes.Count < colors) {
+			var pick = -1;
+			var best = 1;
+			for (var i = 0; i < cubes.Count; i++) {
+				if (dead[i]) continue;
+				if (cubes[i].Pop > best) {
+					best = cubes[i].Pop;
+					pick = i;
+				}
+			}
+			if (pick < 0) break;
+			if (!splitcube(cubes[pick], cnt, sr, sg, sb, out var left, out var right)) {
+				dead[pick] = true;
+				continue;
+			}
+			cubes[pick] = left;
+			dead[pick] = false;
+			cubes.Add(right);
+			dead.Add(false);
+		}
+		var pal = new byte[cubes.Count * 3];
+		for (var i = 0; i < cubes.Count; i++) {
+			var c = cubes[i];
+			var pop = Math.Max(1, c.Pop);
+			pal[i * 3] = (byte)(c.Sr / pop);
+			pal[i * 3 + 1] = (byte)(c.Sg / pop);
+			pal[i * 3 + 2] = (byte)(c.Sb / pop);
+		}
+		return pal;
+	}
+
+	static void fillcube(PalCube c, int[] cnt, long[] sr, long[] sg, long[] sb) {
+		c.Pop = 0;
+		c.Sr = 0;
+		c.Sg = 0;
+		c.Sb = 0;
+		for (var r = c.R0; r <= c.R1; r++) {
+			for (var g = c.G0; g <= c.G1; g++) {
+				for (var b = c.B0; b <= c.B1; b++) {
+					var i = (r << 10) | (g << 5) | b;
+					var n = cnt[i];
+					if (n == 0) continue;
+					c.Pop += n;
+					c.Sr += sr[i];
+					c.Sg += sg[i];
+					c.Sb += sb[i];
+				}
+			}
+		}
+	}
+
+	static bool splitcube(PalCube c, int[] cnt, long[] sr, long[] sg, long[] sb, out PalCube left, out PalCube right) {
+		left = null;
+		right = null;
+		var order = new[] { 0, 1, 2 };
+		var range = new[] { c.R1 - c.R0, c.G1 - c.G0, c.B1 - c.B0 };
+		for (var a = 0; a < 3; a++) {
+			for (var b = a + 1; b < 3; b++) {
+				if (range[order[b]] <= range[order[a]]) continue;
+				var t = order[a];
+				order[a] = order[b];
+				order[b] = t;
+			}
+		}
+		foreach (var axis in order) {
+			if (range[axis] <= 0) continue;
+			if (trysplit(c, axis, cnt, sr, sg, sb, out left, out right)) return true;
+		}
+		return false;
+	}
+
+	static bool trysplit(PalCube c, int axis, int[] cnt, long[] sr, long[] sg, long[] sb, out PalCube left, out PalCube right) {
+		left = null;
+		right = null;
+		int lo, hi;
+		if (axis == 0) { lo = c.R0; hi = c.R1; }
+		else if (axis == 1) { lo = c.G0; hi = c.G1; }
+		else { lo = c.B0; hi = c.B1; }
+		var hist = new int[hi - lo + 1];
+		for (var r = c.R0; r <= c.R1; r++) {
+			for (var g = c.G0; g <= c.G1; g++) {
+				for (var b = c.B0; b <= c.B1; b++) {
+					var n = cnt[(r << 10) | (g << 5) | b];
+					if (n == 0) continue;
+					var v = axis == 0 ? r : axis == 1 ? g : b;
+					hist[v - lo] += n;
+				}
+			}
+		}
+		var half = c.Pop / 2;
+		if (half < 1) return false;
+		long acc = 0;
+		var cut = lo;
+		for (var i = 0; i < hist.Length - 1; i++) {
+			acc += hist[i];
+			cut = lo + i;
+			if (acc >= half) break;
+		}
+		left = copycube(c);
+		right = copycube(c);
+		if (axis == 0) { left.R1 = cut; right.R0 = cut + 1; }
+		else if (axis == 1) { left.G1 = cut; right.G0 = cut + 1; }
+		else { left.B1 = cut; right.B0 = cut + 1; }
+		fillcube(left, cnt, sr, sg, sb);
+		fillcube(right, cnt, sr, sg, sb);
+		if (left.Pop == 0 || right.Pop == 0) {
+			left = null;
+			right = null;
+			return false;
+		}
+		return true;
+	}
+
+	static PalCube copycube(PalCube c) => new PalCube {
+		R0 = c.R0, R1 = c.R1, G0 = c.G0, G1 = c.G1, B0 = c.B0, B1 = c.B1,
+	};
+
+	static byte[] nearestmap(byte[] pal) {
+		var n = pal.Length / 3;
+		var map = new byte[32768];
+		if (n <= 1) return map;
+		for (var i = 0; i < 32768; i++) {
+			var r = Math.Min(255, ((i >> 10) << 3) + 4);
+			var g = Math.Min(255, (((i >> 5) & 31) << 3) + 4);
+			var b = Math.Min(255, ((i & 31) << 3) + 4);
+			var best = 0;
+			var bestd = int.MaxValue;
+			for (var p = 0; p < n; p++) {
+				var dr = r - pal[p * 3];
+				var dg = g - pal[p * 3 + 1];
+				var db = b - pal[p * 3 + 2];
+				var d = dr * dr + dg * dg + db * db;
+				if (d >= bestd) continue;
+				bestd = d;
+				best = p;
+			}
+			map[i] = (byte)best;
+		}
+		return map;
+	}
+
+	static byte[] writeindexedpng(int w, int h, byte[] idx, byte[] pal) {
+		var raw = new byte[(w + 1) * h];
+		for (var y = 0; y < h; y++) {
+			var dst = y * (w + 1);
+			raw[dst] = 0;
+			Buffer.BlockCopy(idx, y * w, raw, dst + 1, w);
+		}
+		using var ms = new MemoryStream(raw.Length / 2 + 64);
+		ms.Write(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, 0, 8);
+		var ihdr = new byte[13];
+		putu32(ihdr, 0, w);
+		putu32(ihdr, 4, h);
+		ihdr[8] = 8;
+		ihdr[9] = 3;
+		pngchunk(ms, "IHDR", ihdr);
+		pngchunk(ms, "PLTE", pal);
+		pngchunk(ms, "IDAT", zlibof(raw));
+		pngchunk(ms, "IEND", Array.Empty<byte>());
+		return ms.ToArray();
+	}
+
+	static byte[] zlibof(byte[] raw) {
+		using var z = new MemoryStream();
+		z.WriteByte(0x78);
+		z.WriteByte(0x9C);
+		using (var ds = new DeflateStream(z, CompressionLevel.Optimal, true))
+			ds.Write(raw, 0, raw.Length);
+		var ad = adler32(raw);
+		z.WriteByte((byte)(ad >> 24));
+		z.WriteByte((byte)(ad >> 16));
+		z.WriteByte((byte)(ad >> 8));
+		z.WriteByte((byte)ad);
+		return z.ToArray();
+	}
+
+	static uint adler32(byte[] data) {
+		uint a = 1;
+		uint b = 0;
+		for (var i = 0; i < data.Length; i++) {
+			a = (a + data[i]) % 65521;
+			b = (b + a) % 65521;
+		}
+		return (b << 16) | a;
+	}
+
+	static void pngchunk(Stream s, string type, byte[] data) {
+		var body = new byte[4 + data.Length];
+		for (var i = 0; i < 4; i++) body[i] = (byte)type[i];
+		if (data.Length > 0) Buffer.BlockCopy(data, 0, body, 4, data.Length);
+		var len = new byte[4];
+		putu32(len, 0, data.Length);
+		s.Write(len, 0, 4);
+		s.Write(body, 0, body.Length);
+		var crc = crc32(body);
+		var cb = new byte[4];
+		putu32(cb, 0, (int)crc);
+		s.Write(cb, 0, 4);
+	}
+
+	static uint crc32(byte[] buf) {
+		uint c = 0xFFFFFFFFu;
+		for (var i = 0; i < buf.Length; i++)
+			c = Crc32Tab[(c ^ buf[i]) & 0xFF] ^ (c >> 8);
+		return c ^ 0xFFFFFFFFu;
+	}
+
+	static void putu32(byte[] buf, int off, int v) {
+		buf[off] = (byte)(v >> 24);
+		buf[off + 1] = (byte)(v >> 16);
+		buf[off + 2] = (byte)(v >> 8);
+		buf[off + 3] = (byte)v;
 	}
 
 	static ImageCodecInfo jpegcodec() {

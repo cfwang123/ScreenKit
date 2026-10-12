@@ -3160,7 +3160,7 @@ public partial class CaptureOverlay : Window {
 		};
 	}
 
-	/// <summary>截图标注换工具就记住。画板不写，避免盖掉截图的选择。</summary>
+	/// <summary>截图标注换工具就记在内存里。画板不写，避免盖掉截图的选择。配置等到程序退出再落盘。</summary>
 	void remembertool(Tool t) {
 		var name = toolname(t);
 		if (string.Equals(ImageUtil.CurrentSnapAnnTool, name, StringComparison.Ordinal))
