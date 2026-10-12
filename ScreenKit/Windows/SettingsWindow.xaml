@@ -665,8 +665,12 @@
 							          AutomationProperties.AutomationId="set.screenshot.name"/>
 						</Grid>
 						<TextBlock x:Name="lbsetsnapnamehint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           Margin="0,0,0,10" TextWrapping="Wrap"
+						           Margin="0,0,0,6" TextWrapping="Wrap"
 						           Text="可输入或下拉。yyyy、MM、dd、HH、mm、ss、fff 为时间。连续 r 为随机数字。连续 # 为序号，只在前缀相同的文件里取下一个。"/>
+						<CheckBox x:Name="esnappathslash" Margin="0,0,0,10"
+						          Content="复制截图路径时把 \ 写成 /"
+						          ToolTip="截图完成复制为路径，以及复制截图文件的路径，写成正斜杠。打开的其它文件不改。"
+						          AutomationProperties.AutomationId="set.snap.path.slash"/>
 						<TextBlock x:Name="lbsetsnaphint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="screenshots/ 目录保留时间；启动时后台清理过期文件，截图时不清理。默认 3 天，可选不限。"/>
@@ -738,10 +742,6 @@
 						             Content="复制为文件路径（文本路径，可贴到终端/对话框）"
 						             Margin="0,0,0,4"
 						             AutomationProperties.AutomationId="set.snap.copy.path"/>
-						<CheckBox x:Name="esnappathslash" Margin="0,4,0,4"
-						          Content="复制截图路径时把 \ 写成 /"
-						          ToolTip="截图完成复制为路径，以及复制截图文件的路径，写成正斜杠。打开的其它文件不改。"
-						          AutomationProperties.AutomationId="set.snap.path.slash"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>
