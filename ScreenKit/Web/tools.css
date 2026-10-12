@@ -349,25 +349,31 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #rcolor-list button:first-of-type { font-weight: 600; }
 #rcolor-list button:hover { background: #fff1e8; }
 .num-list {
-	display: grid; grid-template-columns: 108px minmax(0, 1fr);
+	display: grid; grid-template-columns: 108px minmax(0, 1fr) auto;
 	margin-top: 8px; overflow: hidden;
 	border: 1px solid var(--line); border-radius: 12px; background: var(--card);
 }
 .num-list:empty { display: none; }
-.num-list span {
-	padding: 8px 10px; color: var(--muted); font-size: 12px;
-	border-bottom: 1px solid var(--line);
+.num-list span, .num-list .num-v, .num-list .num-ops {
+	padding: 8px 10px; border-bottom: 1px solid var(--line);
 }
-.num-list button {
-	width: auto; height: auto; min-height: 0; margin: 0;
-	padding: 8px 10px; border: 0; border-radius: 0; border-bottom: 1px solid var(--line);
-	background: transparent; color: var(--ink); text-align: left; cursor: pointer;
+.num-list span { color: var(--muted); font-size: 12px; }
+.num-list .num-v {
+	min-width: 0; color: var(--ink); cursor: text; user-select: text;
 	font: 14px/1.5 Consolas, "Microsoft YaHei UI", monospace;
 	word-break: break-all;
 }
-.num-list button:hover { background: #fff1e8; }
-.num-list span:nth-last-child(2),
-.num-list button:last-child { border-bottom: 0; }
+.num-list .num-ops {
+	display: flex; align-items: center; gap: 6px; padding: 4px 8px;
+}
+.num-list .num-ops button {
+	width: auto; height: 28px; min-height: 0; margin: 0;
+	padding: 0 10px; border: 1px solid var(--line); border-radius: 8px;
+	background: #fff; color: var(--ink); cursor: pointer;
+	font: 12px/26px "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.num-list .num-ops button:hover { background: #fff1e8; }
+.num-list > :nth-last-child(-n+3) { border-bottom: 0; }
 .grad-lab { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .grad-stops { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .grad-stop { display: flex; align-items: center; gap: 8px; }

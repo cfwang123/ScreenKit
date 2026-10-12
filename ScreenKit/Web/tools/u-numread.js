@@ -56,6 +56,32 @@
 	var RU_SC = [null, ["тысяча", "тысячи", "тысяч", true], ["миллион", "миллиона", "миллионов", false], ["миллиард", "миллиарда", "миллиардов", false], ["биллион", "биллиона", "биллионов", false], ["биллиард", "биллиарда", "биллиардов", false], ["триллион", "триллиона", "триллионов", false]];
 	var RU_DEN1 = ["", "десятая", "сотая", "тысячная", "десятитысячная", "стотысячная", "миллионная", "десятимиллионная", "стомиллионная", "миллиардная"];
 	var RU_DEN = ["", "десятых", "сотых", "тысячных", "десятитысячных", "стотысячных", "миллионных", "десятимиллионных", "стомиллионных", "миллиардных"];
+	var SPEAK = {
+		"数字": "zh-CN",
+		"中文读法": "zh-CN",
+		"中文大写": "zh-CN",
+		"小数": "zh-CN",
+		"中数": "zh-CN",
+		"大数": "zh-CN",
+		"英文读法": "en-US",
+		"英语多边形": "en-US",
+		"韩文固有": "ko-KR",
+		"韩文汉字": "ko-KR",
+		"日语": "ja-JP",
+		"德语": "de-DE",
+		"法语": "fr-FR",
+		"西班牙语": "es-ES",
+		"葡萄牙语": "pt-BR",
+		"俄语": "ru-RU",
+		"SI": "en-US",
+		"千分位": "zh-CN",
+		"科学计数": "en-US",
+		"百分数": "zh-CN",
+		"罗马数字": "en-US",
+		"二进制": "zh-CN",
+		"八进制": "zh-CN",
+		"十六进制": "zh-CN"
+	};
 
 	SK.regutil("u-numread", {
 		title: "数字表记转换",
@@ -97,7 +123,22 @@
 		var list = SK.$("num-list");
 		while (btn && btn !== list && btn.tagName !== "BUTTON") btn = btn.parentNode;
 		if (!btn || btn === list) return;
-		SK.copytext(btn.getAttribute("data-v") || "", "box-msg");
+		var text = btn.getAttribute("data-v") || "";
+		if (!text) return;
+		if (btn.getAttribute("data-act") === "speak") speak(text, btn.getAttribute("data-lang") || "");
+		else SK.copytext(text, "box-msg");
+	}
+
+	function speak(text, lang){
+		var syn = window.speechSynthesis;
+		if (!syn || typeof SpeechSynthesisUtterance !== "function") {
+			SK.msg("box-msg", "无法发音", true);
+			return;
+		}
+		syn.cancel();
+		var u = new SpeechSynthesisUtterance(text);
+		if (lang) u.lang = lang;
+		syn.speak(u);
 	}
 
 	function numread(text){
@@ -1028,10 +1069,19 @@
 			return;
 		}
 		var html = "";
+		var copyName = esc(SK.t("web.copy") || "复制");
+		var speakName = esc(SK.t("dict.speak") || "发音");
 		var i;
 		for (i = 0; i < rows.length; i++) {
-			var v = esc(rows[i][1]);
-			html += "<span>" + esc(rows[i][0]) + "</span><button type=\"button\" data-v=\"" + v + "\">" + v + "</button>";
+			var raw = rows[i][1] || "";
+			var v = esc(raw);
+			var lang = SPEAK[rows[i][0]] || "";
+			html += "<span>" + esc(rows[i][0]) + "</span><div class=\"num-v\">" + v + "</div><div class=\"num-ops\">";
+			if (raw) {
+				html += "<button type=\"button\" data-act=\"copy\" data-v=\"" + v + "\" data-k=\"web.copy\">" + copyName + "</button>";
+				html += "<button type=\"button\" data-act=\"speak\" data-lang=\"" + lang + "\" data-v=\"" + v + "\" data-k=\"dict.speak\">" + speakName + "</button>";
+			}
+			html += "</div>";
 		}
 		list.innerHTML = html;
 	}
