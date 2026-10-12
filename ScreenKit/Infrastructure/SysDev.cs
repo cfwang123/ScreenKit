@@ -85,10 +85,11 @@ static class SysDev {
 				try { name = d.FriendlyName ?? ""; } catch { }
 				try { dev = d.DeviceFriendlyName ?? ""; } catch { }
 				try { state = d.State; } catch { }
+				if (state == DeviceState.NotPresent) continue;
 				name = name.Trim();
 				dev = dev.Trim();
 				if (name.Length == 0) name = dev;
-				if (name.Length == 0 && id.Length == 0) continue;
+				if (name.Length == 0) name = Loc.T("aud.noname");
 				var st = audstate(state);
 				var role = "";
 				if (id.Length > 0 && roles.TryGetValue(id, out var hit)) role = hit;
