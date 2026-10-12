@@ -9,16 +9,14 @@
 </head>
 <body>
 <header class="topbar">
+	<button type="button" id="back" class="back" data-tool="home" data-ktip="web.back" title="返回" hidden><i class="fa-solid fa-arrow-left"></i></button>
 	<div class="brand">
 		<span class="mark">S</span>
-		<div>
-			<strong>ScreenKit</strong>
-			<small data-k="web.brand">本机工具</small>
-		</div>
+		<strong>ScreenKit</strong>
+		<small data-k="web.brand">本机工具</small>
 	</div>
-	<button type="button" id="back" class="back" data-tool="home" hidden><i class="fa-solid fa-arrow-left"></i><span data-k="web.back">返回</span></button>
-	<button type="button" id="tool-fav" class="back" hidden><i class="fa-solid fa-star"></i><span data-k="web.fav">收藏</span></button>
 	<label class="lang"><span data-k="web.f.lang">语言</span><select id="lang"></select></label>
+	<button type="button" id="tool-fav" class="back" data-ktip="web.fav" title="收藏" hidden><i class="fa-solid fa-star"></i></button>
 </header>
 <div class="shell">
 	<aside>
