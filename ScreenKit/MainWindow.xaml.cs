@@ -1448,10 +1448,9 @@ public partial class MainWindow : Window {
 		// 主窗内点截图：不隐藏主窗（冻结画面会带上主窗；需要无主窗时用热键）
 		bcapture.Click += async (_, _) => await captureasync(hideMain: false);
 		bsnap.Click += async (_, _) => await snapannotateasync(restoreUi: false);
-		bhistory.Click += (_, _) => openhistory();
-		bpaste.Click += async (_, _) => await pasteasync();
-		bcopyimg.Click += (_, _) => copyimage();
 		bsaveclip.Click += (_, _) => saveimage();
+		mnimgpaste.Click += async (_, _) => await pasteasync();
+		mnimghist.Click += (_, _) => openhistory();
 		mnimgcopy.Click += (_, _) => copyimage();
 		mnimgfile.Click += (_, _) => copyfile();
 		mnimgpath.Click += (_, _) => copypath();
@@ -1718,8 +1717,10 @@ public partial class MainWindow : Window {
 			bcapture.ToolTip = Loc.T("tb.ocr.tip");
 			tbsnap.Text = Loc.T("tb.snap");
 			bsnap.ToolTip = Loc.T("tb.snap.tip");
-			tbhistory.Text = Loc.T("tb.history");
-			bhistory.ToolTip = Loc.T("tb.history.tip");
+			mnimgpaste.Header = Loc.T("img.menu.paste");
+			mnimgpaste.ToolTip = Loc.T("img.menu.paste.tip");
+			mnimghist.Header = Loc.T("img.menu.hist");
+			mnimghist.ToolTip = Loc.T("img.menu.hist.tip");
 			mnimgcopy.Header = Loc.T("img.menu.copy");
 			mnimgfile.Header = Loc.T("img.menu.file");
 			mnimgpath.Header = Loc.T("img.menu.path");
@@ -1736,10 +1737,6 @@ public partial class MainWindow : Window {
 			mnimgclear.Header = Loc.T("img.menu.clear");
 			mnimgclear.ToolTip = Loc.T("img.menu.clear.tip");
 			try { histwin?.ApplyLang(); } catch { }
-			tbpaste.Text = Loc.T("tb.paste");
-			bpaste.ToolTip = Loc.T("tb.paste.tip");
-			tbcopyimg.Text = Loc.T("tb.copyimg");
-			bcopyimg.ToolTip = Loc.T("tb.copyimg.tip");
 			tbsave.Text = Loc.T("tb.save");
 			bsaveclip.ToolTip = Loc.T("tb.save.tip");
 			tbtext.Text = Loc.T("tb.text");
@@ -3369,6 +3366,8 @@ public partial class MainWindow : Window {
 
 	void syncimgmenu() {
 		var on = curimg != null;
+		mnimgpaste.IsEnabled = !busy;
+		mnimghist.IsEnabled = true;
 		mnimgcopy.IsEnabled = on;
 		mnimgfile.IsEnabled = on;
 		mnimgpath.IsEnabled = on;
@@ -3587,13 +3586,13 @@ public partial class MainWindow : Window {
 		// 端到端：读剪贴板 → 按当前结果 Tab 识别（不强制切 OCR）
 		var wall0 = Environment.TickCount;
 		try {
-			// 支持：位图 / 资源管理器复制的 png 等文件路径
-			var bmp = ImageUtil.Fromclipboard();
+			// 位图、复制的图片文件，或文本形式的图片路径
+			var bmp = ImageUtil.Fromclipboard(out var path);
 			if (bmp == null) {
-				setstatus("剪贴板中没有图片（可复制图片内容，或复制 png/jpg 文件后粘贴）");
+				setstatus(Loc.T("img.paste.empty"));
 				return;
 			}
-			setimage(bmp);
+			setimage(bmp, string.IsNullOrEmpty(path) ? null : path);
 			await ensureactivetabasync(wall0);
 		}
 		catch (Exception ex) {
@@ -4671,9 +4670,8 @@ public partial class MainWindow : Window {
 		// 图区按钮
 		bcapture.IsEnabled = !on;
 		bsnap.IsEnabled = !on;
-		bpaste.IsEnabled = !on;
-		bcopyimg.IsEnabled = !on;
 		bsaveclip.IsEnabled = !on;
+		mnimgpaste.IsEnabled = !on;
 		// 菜单
 		mncapture.IsEnabled = !on;
 		mnsnap.IsEnabled = !on;

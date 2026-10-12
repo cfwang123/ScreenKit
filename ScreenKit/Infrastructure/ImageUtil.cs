@@ -104,13 +104,44 @@ static class ImageUtil {
 			if (img != null && img.PixelWidth > 0 && img.PixelHeight > 0) return true;
 		}
 		catch { }
-		return false;
+		return clipimagepath() != null;
+	}
+
+	/// <summary>剪贴板全文是图片路径（可带引号、file: 链接，或多行且每行都是图片）时返回第一张。</summary>
+	static string clipimagepath() {
+		string text = null;
+		try {
+			if (!Clipboard.ContainsText()) return null;
+			text = Clipboard.GetText();
+		}
+		catch { return null; }
+		if (string.IsNullOrWhiteSpace(text)) return null;
+		string found = null;
+		var any = false;
+		foreach (var raw in text.Replace("\r", "").Split('\n')) {
+			var s = raw.Trim();
+			if (s.Length == 0) continue;
+			any = true;
+			if (s.Length >= 2 && s[0] == '"' && s[s.Length - 1] == '"')
+				s = s.Substring(1, s.Length - 2).Trim();
+			if (s.StartsWith("file:", StringComparison.OrdinalIgnoreCase)) {
+				try { s = new Uri(s).LocalPath; }
+				catch { return null; }
+			}
+			if (!File.Exists(s) || !isimagepath(s)) return null;
+			if (found == null) found = Path.GetFullPath(s);
+		}
+		return any ? found : null;
 	}
 
 	/// <summary>
-	/// 从剪贴板取图：位图 / 资源管理器复制的图片文件路径（FileDrop）。
+	/// 从剪贴板取图：位图 / 资源管理器复制的图片文件 / 文本形式的图片路径。
 	/// </summary>
-	public static BitmapSource Fromclipboard() {
+	public static BitmapSource Fromclipboard() => Fromclipboard(out _);
+
+	/// <summary>同上。<paramref name="srcPath"/> 在来源是文件时为该路径，位图则为 null。</summary>
+	public static BitmapSource Fromclipboard(out string srcPath) {
+		srcPath = null;
 		// 1) 资源管理器「复制文件」→ FileDrop（png/jpg 等路径，不是位图）
 		try {
 			if (Clipboard.ContainsFileDropList()) {
@@ -119,7 +150,8 @@ static class ImageUtil {
 					foreach (string f in files) {
 						if (string.IsNullOrWhiteSpace(f) || !File.Exists(f)) continue;
 						if (!isimagepath(f)) continue;
-						return Fromfile(Path.GetFullPath(f));
+						srcPath = Path.GetFullPath(f);
+						return Fromfile(srcPath);
 					}
 				}
 			}
@@ -137,7 +169,12 @@ static class ImageUtil {
 		if (img == null) {
 			try { img = Clipboard.GetImage(); } catch { }
 		}
-		if (img == null) return null;
+		if (img == null) {
+			var p = clipimagepath();
+			if (p == null) return null;
+			srcPath = p;
+			return Fromfile(p);
+		}
 
 		// 剪贴板常见 Pbgra32，且 Alpha 全 0 → 显示全透明（黑底上“看不见图”），OCR 仍可读 RGB
 		// 统一拷成不透明 Bgra32 @ 96 DPI

@@ -329,28 +329,6 @@
 														<TextBlock x:Name="tbsnap" Text="截图标注" VerticalAlignment="Center"/>
 													</StackPanel>
 												</Button>
-												<Button x:Name="bhistory"
-												        AutomationProperties.AutomationId="btn.history"
-												        AutomationProperties.Name="截图历史"
-												        ToolTip="浏览 screenshots 里的截图，预览、标注后另存">
-													<StackPanel Orientation="Horizontal">
-														<TextBlock Text="&#xE81C;" Style="{StaticResource tbico}"/>
-														<TextBlock x:Name="tbhistory" Text="截图历史" VerticalAlignment="Center"/>
-													</StackPanel>
-												</Button>
-												<Separator/>
-												<Button x:Name="bpaste" ToolTip="粘贴图片 (Ctrl+V)">
-													<StackPanel Orientation="Horizontal">
-														<TextBlock Text="&#xE77F;" Style="{StaticResource tbico}"/>
-														<TextBlock x:Name="tbpaste" Text="粘贴" VerticalAlignment="Center"/>
-													</StackPanel>
-												</Button>
-												<Button x:Name="bcopyimg" ToolTip="复制当前图片为位图到剪贴板">
-													<StackPanel Orientation="Horizontal">
-														<TextBlock Text="&#xE8C8;" Style="{StaticResource tbico}"/>
-														<TextBlock x:Name="tbcopyimg" Text="复制图" VerticalAlignment="Center"/>
-													</StackPanel>
-												</Button>
 												<Button x:Name="bsaveclip" ToolTip="将当前图片保存到文件">
 													<StackPanel Orientation="Horizontal">
 														<TextBlock Text="&#xE74E;" Style="{StaticResource tbico}"/>
@@ -390,6 +368,11 @@
 									      Cursor="Hand">
 										<Grid.ContextMenu>
 											<ContextMenu x:Name="mnimg">
+												<MenuItem x:Name="mnimgpaste" Header="粘贴" InputGestureText="Ctrl+V"
+												          AutomationProperties.AutomationId="img.menu.paste"/>
+												<MenuItem x:Name="mnimghist" Header="截图历史"
+												          AutomationProperties.AutomationId="img.menu.hist"/>
+												<Separator/>
 												<MenuItem x:Name="mnimgcopy" Header="复制为图片"
 												          AutomationProperties.AutomationId="img.menu.copy"/>
 												<MenuItem x:Name="mnimgfile" Header="复制为文件"
