@@ -431,5 +431,5 @@ input[type="file"] {
 .g-m { color: #2a6fdb; }
 .g-f { color: #c43b6e; }
 .peer { padding: 2px 0; }
-#chat-sendrow { margin-top: 10px; }
+#chat-sendrow { margin-top: 10px; flex-wrap: nowrap; }
 #chat-text { flex: 1; min-width: 0; }
