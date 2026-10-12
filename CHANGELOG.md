@@ -122,6 +122,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation names a positive integer as an English polygon, from triangle and hectogon through myriakismyriagon.
 - Polygon names continue past 100 million sides by stacking myriads, so one billion is decakismyriakismyriagon (gigagon).
 - Number notation leaves a cell blank when that reading or notation does not apply.
+- Number notation also leaves the Korean native reading and the base-2, base-8, and base-16 cells blank when they do not apply.
 
 #### Fixed
 
@@ -237,6 +238,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记为正整数增加英文多边形名，从 triangle、hectogon 到 myriakismyriagon。
 - 英文多边形名超过 1 亿边后按 myriad 继续叠乘，十亿边是 decakismyriakismyriagon（gigagon）。
 - 数字表记在某一读法或表记不适用时，该格留空。
+- 数字表记在韩文固有和二、八、十六进制不适用时也留空。
 
 #### 修复
 

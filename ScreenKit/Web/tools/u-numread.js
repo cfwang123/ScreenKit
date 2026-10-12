@@ -363,7 +363,7 @@
 	}
 
 	function koNative(p){
-		if (p.ip.length > 2) return "固有数词只到九十九";
+		if (p.ip.length > 2) return "";
 		var n = parseInt(p.ip, 10);
 		var body = n ? KO_N10[Math.floor(n / 10)] + KO_N1[n % 10] : "영";
 		if (p.fp) body += " 점 " + spellDigits(p.fp, KO_ND);
@@ -996,7 +996,7 @@
 	}
 
 	function baseof(p, radix){
-		if (p.fp) return "仅整数";
+		if (p.fp) return "";
 		if (typeof BigInt !== "function") return "";
 		return sign(p) + BigInt(p.ip).toString(radix).toUpperCase();
 	}
