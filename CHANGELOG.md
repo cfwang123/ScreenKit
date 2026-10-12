@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The tools page no longer has the HTML table card.
 - Packing the slim release deletes runtime files from `bin/Release/ScreenKit/` before the archive is built: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. A Release build removes the same files when it refreshes that folder.
 - The screenshot toolbar no longer has History, Paste, Copy image, or Save. Paste, screenshot history, and Save image are on the picture's right-click menu. Paste also accepts text that is an image path. The File menu still has Save image.
 - The tools page opens speech synthesis on Windows speech, and OCR on Windows OCR, when that engine has a voice or an installed language. A later choice on the same page stays. Speech falls back to the first listed engine when Windows has no voice. OCR falls back to the main window's pack when Windows OCR has no language.
@@ -81,6 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 工具页去掉 HTML 表格。
 - 打精简发布包前，先删掉 `bin/Release/ScreenKit/` 里运行时留下的 `screenshots/`、`log/`、`sendfile/`、`tmp/`、`config.toml` 和 `*.log`。Release 编译刷新这个目录时同样删掉这些文件。
 - 截图工具栏去掉截图历史、粘贴、复制图和保存。粘贴、截图历史和保存图片改到图片右键菜单。粘贴也接受一段图片路径。文件菜单仍有保存图片。
 - 工具页打开语音合成时默认 Windows 语音，打开文字识别时默认 Windows 系统 OCR（这一引擎已有发音人或已安装语言时）。同一次打开里改过的选项会保留。没有 Windows 发音人时语音合成用列表里的第一项。Windows OCR 没有已安装语言时，文字识别改跟主窗口的模型包。
