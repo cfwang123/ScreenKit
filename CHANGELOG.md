@@ -109,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - CSS gradient on the tools page takes 2 to 8 colors from the browser color picker. They are spaced evenly in the order shown.
 - The chat room can send a message to yourself, and your name is listed with the other people. The nickname field matches the gender list and the join button.
 - Date math takes a date and time. The unit sits after the amount when adding or subtracting.
+- Tools page: the 8-bit synthesizer's octave keys are now Shift (one octave up) and Alt (one octave down) while held, instead of Ctrl and Shift.
 
 #### Fixed
 
@@ -205,6 +206,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页 CSS 渐变可以用浏览器选色器选 2 到 8 种颜色，按列出的顺序均匀过渡。
 - 聊天室可以给自己发消息，在线名单里也有自己。昵称框与性别、进入按钮样式一致。
 - 日期计算改为输入日期时间。日期加减时，单位放在数量后面。
+- 工具页：8bit合成器升降 8 度的键从 Ctrl/Shift 改成按住 Shift 升、Alt 降。
 
 #### 修复
 

@@ -677,7 +677,7 @@
 		if (SK.curtool !== "u-bit" || ev.repeat || typing(ev.target)) return;
 		var base = CODE[ev.code];
 		var midi;
-		if (ev.key === "Control" || ev.key === "Shift") {
+		if (ev.key === "Shift" || ev.key === "Alt") {
 			syncmods(ev);
 			return;
 		}
