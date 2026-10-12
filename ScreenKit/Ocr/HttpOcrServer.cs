@@ -794,14 +794,32 @@ sealed partial class HttpOcrServer : IDisposable {
 		return $"字符 {s.Chars}\n不计空白 {s.CharsNoWs}\n行 {s.Lines}\nUTF-8 {s.Utf8Bytes}\nGBK {s.GbkBytes}";
 	}
 
+	static void fakecatalog(JsonObject data) {
+		var kinds = new JsonArray();
+		foreach (var k in BogusGen.KindMeta()) {
+			kinds.Add(new JsonObject { ["id"] = k.Id, ["key"] = k.Key });
+		}
+		var langs = new JsonArray();
+		foreach (var lang in BogusGen.Languages()) {
+			var ks = new JsonArray();
+			foreach (var id in lang.Kinds) ks.Add(id);
+			langs.Add(new JsonObject {
+				["id"] = lang.Id,
+				["name"] = lang.Name,
+				["kinds"] = ks,
+			});
+		}
+		data["kinds"] = kinds;
+		data["langs"] = langs;
+	}
+
 	void handlefake(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var kind = field(ctx, jo, "kind");
 		if (string.IsNullOrEmpty(kind)) {
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject { ["installed"] = BogusGen.Installed },
-			});
+			var data = new JsonObject { ["installed"] = BogusGen.Installed };
+			if (BogusGen.Installed) fakecatalog(data);
+			writejson(ctx, 200, new JsonObject { ["code"] = 100, ["data"] = data });
 			return;
 		}
 		if (!BogusGen.Installed) {
@@ -814,8 +832,9 @@ sealed partial class HttpOcrServer : IDisposable {
 			var raw = query(ctx.Request, "n");
 			if (!string.IsNullOrWhiteSpace(raw)) n = asint(JsonValue.Create(raw), 10);
 		}
+		var locale = field(ctx, jo, "locale");
 		string text;
-		try { text = BogusGen.Lines(kind, n); }
+		try { text = BogusGen.Lines(locale, kind, n); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(802, ex.Message));
 			return;
@@ -824,6 +843,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			["code"] = 100,
 			["data"] = new JsonObject {
 				["installed"] = true,
+				["locale"] = locale ?? "",
 				["kind"] = kind,
 				["text"] = text,
 			},
@@ -2149,7 +2169,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /  本机工具页",
 			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
-			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装；GET/POST kind&n 在已安装时生成",
+			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成",
 			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",
 			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
 			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",

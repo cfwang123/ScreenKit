@@ -175,6 +175,12 @@ static class AppConfig {
 				o.VidConvShortPx = Compat.Clamp(vcShort, 16, 7680);
 			if (map.TryGetValue("vidconv_audio", out var vca))
 				o.VidConvAudio = parsebool(vca, true);
+			if (map.TryGetValue("vidconv_audio_kbps", out var vck) && int.TryParse(vck, out var vcKbps))
+				o.VidConvAudioKbps = VidConvert.NormKbps(vcKbps);
+			if (map.TryGetValue("vidconv_audio_hz", out var vch) && int.TryParse(vch, out var vcHz))
+				o.VidConvAudioHz = VidConvert.NormHz(vcHz);
+			if (map.TryGetValue("vidconv_audio_mono", out var vcm))
+				o.VidConvAudioMono = parsebool(vcm, false);
 			if (map.TryGetValue("vidconv_out_mode", out var vcom) && !string.IsNullOrWhiteSpace(vcom))
 				o.VidConvOutMode = VidConvert.NormOutMode(vcom.Trim().Trim('"'));
 			if (map.TryGetValue("vidconv_out_dir", out var vcod))
@@ -642,6 +648,9 @@ static class AppConfig {
 		sb.AppendLine($"vidconv_short = {(o.VidConvShortEnabled ? "true" : "false")}");
 		sb.AppendLine($"vidconv_short_px = {Compat.Clamp(o.VidConvShortPx < 16 ? 1080 : o.VidConvShortPx, 16, 7680)}");
 		sb.AppendLine($"vidconv_audio = {(o.VidConvAudio ? "true" : "false")}");
+		sb.AppendLine($"vidconv_audio_kbps = {VidConvert.NormKbps(o.VidConvAudioKbps)}");
+		sb.AppendLine($"vidconv_audio_hz = {VidConvert.NormHz(o.VidConvAudioHz)}");
+		sb.AppendLine($"vidconv_audio_mono = {(o.VidConvAudioMono ? "true" : "false")}");
 		sb.AppendLine($"vidconv_out_mode = \"{VidConvert.NormOutMode(o.VidConvOutMode)}\"");
 		sb.AppendLine($"vidconv_out_dir = \"{esc((o.VidConvOutDir ?? "").Trim())}\"");
 		sb.AppendLine($"# 密码生成器上次设置");

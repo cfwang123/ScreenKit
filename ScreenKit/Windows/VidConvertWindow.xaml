@@ -63,6 +63,28 @@
 			</StackPanel>
 			<CheckBox x:Name="eaudio" Content="保留声音" Margin="0,8,0,0" IsChecked="True"
 			          AutomationProperties.AutomationId="vidconv.audio"/>
+			<StackPanel x:Name="paudio" Orientation="Horizontal" Margin="22,8,0,0">
+				<TextBlock x:Name="lbarate" Text="码率" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<TextBox x:Name="earate" Width="72" Height="30" Padding="6,4" Text="128"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         AutomationProperties.AutomationId="vidconv.arate"/>
+				<TextBlock x:Name="lbarateu" Text="kbps" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="6,0,16,0"/>
+				<TextBlock x:Name="lbahz" Text="采样率" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<ComboBox x:Name="eahz" Width="110" Height="32"
+				          VerticalContentAlignment="Center"
+				          AutomationProperties.AutomationId="vidconv.ahz"/>
+				<TextBlock x:Name="lbahzu" Text="Hz" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="6,0,16,0"/>
+				<CheckBox x:Name="eamono" Content="单声道" VerticalAlignment="Center"
+				          AutomationProperties.AutomationId="vidconv.amono"/>
+			</StackPanel>
 		</StackPanel>
 
 		<StackPanel Grid.Row="2" Margin="0,0,0,10">

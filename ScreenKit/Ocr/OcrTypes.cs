@@ -239,6 +239,12 @@ public sealed class OcrOptions {
 	public int VidConvShortPx = 1080;
 	/// <summary>转换时保留声音。</summary>
 	public bool VidConvAudio = true;
+	/// <summary>音频码率 kbps，8–512，默认 128。</summary>
+	public int VidConvAudioKbps = 128;
+	/// <summary>音频采样率 Hz。</summary>
+	public int VidConvAudioHz = 44100;
+	/// <summary>压成单声道。未勾选时保留源声道数。</summary>
+	public bool VidConvAudioMono;
 	/// <summary>beside / other / replace / recycle。</summary>
 	public string VidConvOutMode = "beside";
 	/// <summary>视频转换自定义输出目录。</summary>
@@ -543,6 +549,9 @@ public sealed class OcrOptions {
 		VidConvShortEnabled = VidConvShortEnabled,
 		VidConvShortPx = VidConvShortPx,
 		VidConvAudio = VidConvAudio,
+		VidConvAudioKbps = VidConvAudioKbps,
+		VidConvAudioHz = VidConvAudioHz,
+		VidConvAudioMono = VidConvAudioMono,
 		VidConvOutMode = VidConvOutMode ?? "beside",
 		VidConvOutDir = VidConvOutDir ?? "",
 		PwLen = PwLen,

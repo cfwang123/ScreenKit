@@ -2713,6 +2713,11 @@ static class Cli {
 	static int testvidconvert() {
 		Out("=== 视频批量转换 --test-vid-convert ===");
 		var bad = 0;
+		bool haspair(List<string> a, string k, string v) {
+			for (var i = 0; i + 1 < a.Count; i++)
+				if (a[i] == k && a[i + 1] == v) return true;
+			return false;
+		}
 		VidConvert.Fit(320, 240, 80, out var ow, out var oh);
 		if (ow != 106 || oh != 80) {
 			Err($"FAIL fit {ow}x{oh} 期望 106x80");
@@ -2738,14 +2743,15 @@ static class Cli {
 				bad++;
 			}
 			else Out("路径 " + dst);
-			var webm = VidConvert.Args(src, dst, "webm", 30, true, 80, true, true, 320, 240);
-			if (!webm.Contains("libvpx-vp9") || !webm.Contains("scale=106:80") || !webm.Contains("libopus")) {
+			var webm = VidConvert.Args(src, dst, "webm", 30, true, 80, true, 96, 48000, true, true, 320, 240);
+			if (!webm.Contains("libvpx-vp9") || !webm.Contains("scale=106:80") || !webm.Contains("libopus")
+				|| !haspair(webm, "-b:a", "96k") || !haspair(webm, "-ar", "48000") || !haspair(webm, "-ac", "1")) {
 				Err("FAIL webm 参数 " + string.Join(" ", webm));
 				bad++;
 			}
 			else Out("webm 参数");
-			var mute = VidConvert.Args(src, dst, "mp4", 23, false, 1080, false, true, 320, 240);
-			if (!mute.Contains("-an") || mute.Contains("aac")) {
+			var mute = VidConvert.Args(src, dst, "mp4", 23, false, 1080, false, 128, 44100, false, true, 320, 240);
+			if (!mute.Contains("-an") || mute.Contains("aac") || mute.Contains("-ar") || mute.Contains("-ac")) {
 				Err("FAIL 静音参数 " + string.Join(" ", mute));
 				bad++;
 			}
@@ -2772,7 +2778,7 @@ static class Cli {
 					}
 					else {
 						var outp = Path.Combine(dir, "out.mp4");
-						VidConvert.ConvertOne(raw, outp, "mp4", 28, true, 80, true, VidConvert.OUTOTHER, CancellationToken.None);
+						VidConvert.ConvertOne(raw, outp, "mp4", 28, true, 80, true, 64, 22050, true, VidConvert.OUTOTHER, CancellationToken.None);
 						if (!File.Exists(outp)) {
 							Err("FAIL 未写出 " + outp);
 							bad++;
@@ -3399,23 +3405,50 @@ static class Cli {
 			Err("FAIL: Bogus.dll 仍不存在");
 			return 1;
 		}
-		foreach (var kind in BogusGen.Kinds) {
+		var langs = BogusGen.Languages();
+		if (langs.Length < 40) {
+			Err("FAIL: 语言只有 " + langs.Length);
+			return 1;
+		}
+		FakeLang zh = null;
+		FakeLang en = null;
+		foreach (var lang in langs) {
+			if (lang.Id == "zh_CN") zh = lang;
+			if (lang.Id == "en") en = lang;
+		}
+		if (zh == null || en == null) {
+			Err("FAIL: 缺少 zh_CN 或 en");
+			return 1;
+		}
+		if (zh.Kinds.Length >= en.Kinds.Length) {
+			Err("FAIL: zh_CN 分类应少于 en（" + zh.Kinds.Length + " / " + en.Kinds.Length + "）");
+			return 1;
+		}
+		Out("语言 " + langs.Length + "，zh_CN " + zh.Kinds.Length + " 类，en " + en.Kinds.Length + " 类");
+		if (!fakeone(zh) || !fakeone(en)) return 1;
+		foreach (var lang in langs) {
+			if (lang.Id is "zh_CN" or "en") continue;
+			var kind = lang.Kinds[0];
 			string text;
-			try { text = BogusGen.Lines(kind, 2); }
+			try { text = BogusGen.Lines(lang.Id, kind, 1); }
 			catch (Exception ex) {
-				Err("FAIL " + kind + ": " + ex.Message);
+				Err("FAIL " + lang.Id + " " + kind + ": " + ex.Message);
 				return 1;
 			}
-			var lines = text.Replace("\r", "").Split('\n');
-			if (lines.Length != 2 || string.IsNullOrWhiteSpace(lines[0]) || string.IsNullOrWhiteSpace(lines[1])) {
-				Err("FAIL " + kind + " empty");
+			if (string.IsNullOrWhiteSpace(text)) {
+				Err("FAIL " + lang.Id + " " + kind + " empty");
 				return 1;
 			}
-			Out(kind + ": " + lines[0]);
 		}
 		try {
-			BogusGen.Lines("nope", 1);
+			BogusGen.Lines("en", "nope", 1);
 			Err("FAIL: bad kind accepted");
+			return 1;
+		}
+		catch (ArgumentException) { }
+		try {
+			BogusGen.Lines("no-such", "name", 1);
+			Err("FAIL: bad locale accepted");
 			return 1;
 		}
 		catch (ArgumentException) { }
@@ -3429,6 +3462,29 @@ static class Cli {
 		}
 		Out("OK");
 		return 0;
+	}
+
+	static bool fakeone(FakeLang lang) {
+		var shown = 0;
+		foreach (var kind in lang.Kinds) {
+			string text;
+			try { text = BogusGen.Lines(lang.Id, kind, 2); }
+			catch (Exception ex) {
+				Err("FAIL " + lang.Id + " " + kind + ": " + ex.Message);
+				return false;
+			}
+			var lines = text.Replace("\r", "").Split('\n');
+			if (lines.Length != 2 || string.IsNullOrWhiteSpace(lines[0]) || string.IsNullOrWhiteSpace(lines[1])) {
+				Err("FAIL " + lang.Id + " " + kind + " empty");
+				return false;
+			}
+			if (shown < 8) {
+				Out(lang.Id + " " + kind + ": " + lines[0]);
+				shown++;
+			}
+		}
+		Out(lang.Id + " 共 " + lang.Kinds.Length + " 类");
+		return true;
 	}
 
 	static int testpwgen() {

@@ -21,6 +21,7 @@ public partial class VidConvertWindow : Window {
 		opt = o ?? new OcrOptions();
 		InitializeComponent();
 		lv.ItemsSource = rows;
+		fillhz();
 		applylang();
 		loadui();
 		initev();
@@ -42,6 +43,8 @@ public partial class VidConvertWindow : Window {
 		routother.Checked += (_, _) => syncoutui();
 		routrep.Checked += (_, _) => syncoutui();
 		routrecycle.Checked += (_, _) => syncoutui();
+		eaudio.Checked += (_, _) => syncaudio();
+		eaudio.Unchecked += (_, _) => syncaudio();
 		lv.PreviewDragOver += ondragover;
 		lv.Drop += ondrop;
 		PreviewDragOver += ondragover;
@@ -57,6 +60,11 @@ public partial class VidConvertWindow : Window {
 		eshorten.Content = Loc.T("vidconv.short");
 		lbshort.Text = Loc.T("vidconv.shortpx");
 		eaudio.Content = Loc.T("vidconv.audio");
+		lbarate.Text = Loc.T("vidconv.arate");
+		lbarateu.Text = Loc.T("vidconv.kbps");
+		lbahz.Text = Loc.T("vidconv.ahz");
+		lbahzu.Text = Loc.T("vidconv.hz");
+		eamono.Content = Loc.T("vidconv.amono");
 		lbout.Text = Loc.T("vidconv.out");
 		routsrc.Content = Loc.T("vidconv.outsrc");
 		routother.Content = Loc.T("vidconv.outother");
@@ -88,12 +96,22 @@ public partial class VidConvertWindow : Window {
 		eshorten.IsChecked = opt.VidConvShortEnabled;
 		eshort.Text = (opt.VidConvShortPx < 16 ? 1080 : opt.VidConvShortPx).ToString();
 		eaudio.IsChecked = opt.VidConvAudio;
+		earate.Text = VidConvert.NormKbps(opt.VidConvAudioKbps).ToString();
+		var hz = VidConvert.NormHz(opt.VidConvAudioHz);
+		foreach (var item in eahz.Items) {
+			if (item is ComboBoxItem hi && hi.Tag is int t && t == hz) {
+				eahz.SelectedItem = hi;
+				break;
+			}
+		}
+		eamono.IsChecked = opt.VidConvAudioMono;
 		var mode = VidConvert.NormOutMode(opt.VidConvOutMode);
 		routsrc.IsChecked = mode == VidConvert.OUTBESIDE;
 		routother.IsChecked = mode == VidConvert.OUTOTHER;
 		routrep.IsChecked = mode == VidConvert.OUTREPLACE;
 		routrecycle.IsChecked = mode == VidConvert.OUTRECYCLE;
 		eoutdir.Text = opt.VidConvOutDir ?? "";
+		syncaudio();
 	}
 
 	bool saveopt(bool needDir) {
@@ -116,7 +134,30 @@ public partial class VidConvertWindow : Window {
 		opt.VidConvCrf = crf;
 		opt.VidConvShortEnabled = shortEn;
 		opt.VidConvShortPx = sp;
-		opt.VidConvAudio = eaudio.IsChecked == true;
+		var audioOn = eaudio.IsChecked == true;
+		var kbps = opt.VidConvAudioKbps <= 0 ? 128 : opt.VidConvAudioKbps;
+		var hzPick = opt.VidConvAudioHz;
+		if (audioOn) {
+			if (!int.TryParse((earate.Text ?? "").Trim(), out kbps) || kbps < 8 || kbps > 512) {
+				MessageBox.Show(this, Loc.T("vidconv.arate.bad"), Title, MessageBoxButton.OK, MessageBoxImage.Information);
+				return false;
+			}
+			hzPick = (eahz.SelectedItem as ComboBoxItem)?.Tag is int picked ? picked : 0;
+			if (VidConvert.NormHz(hzPick) != hzPick) {
+				MessageBox.Show(this, Loc.T("vidconv.ahz.bad"), Title, MessageBoxButton.OK, MessageBoxImage.Information);
+				return false;
+			}
+		}
+		else {
+			if (int.TryParse((earate.Text ?? "").Trim(), out var typed) && typed >= 8 && typed <= 512)
+				kbps = typed;
+			if ((eahz.SelectedItem as ComboBoxItem)?.Tag is int typedHz && VidConvert.NormHz(typedHz) == typedHz)
+				hzPick = typedHz;
+		}
+		opt.VidConvAudio = audioOn;
+		opt.VidConvAudioKbps = VidConvert.NormKbps(kbps);
+		opt.VidConvAudioHz = VidConvert.NormHz(hzPick);
+		opt.VidConvAudioMono = eamono.IsChecked == true;
 		opt.VidConvOutMode = pickout();
 		opt.VidConvOutDir = (eoutdir.Text ?? "").Trim();
 		if (needDir && opt.VidConvOutMode == VidConvert.OUTOTHER && opt.VidConvOutDir.Length == 0) {
@@ -138,6 +179,16 @@ public partial class VidConvertWindow : Window {
 		var other = routother.IsChecked == true;
 		eoutdir.IsEnabled = other;
 		bbrowse.IsEnabled = other && !busy;
+	}
+
+	void fillhz() {
+		eahz.Items.Clear();
+		foreach (var n in RecordOptions.AudioHzChoices)
+			eahz.Items.Add(new ComboBoxItem { Content = n.ToString(), Tag = n });
+	}
+
+	void syncaudio() {
+		paudio.IsEnabled = !busy && eaudio.IsChecked == true;
 	}
 
 	void refreshcount() {
@@ -223,6 +274,7 @@ public partial class VidConvertWindow : Window {
 		eshorten.IsEnabled = !on;
 		eshort.IsEnabled = !on;
 		eaudio.IsEnabled = !on;
+		syncaudio();
 		routsrc.IsEnabled = !on;
 		routother.IsEnabled = !on;
 		routrep.IsEnabled = !on;
@@ -260,6 +312,9 @@ public partial class VidConvertWindow : Window {
 		var shortEn = opt.VidConvShortEnabled;
 		var shortPx = opt.VidConvShortPx;
 		var audio = opt.VidConvAudio;
+		var kbps = opt.VidConvAudioKbps;
+		var hz = opt.VidConvAudioHz;
+		var mono = opt.VidConvAudioMono;
 		var mode = opt.VidConvOutMode;
 		var outDir = opt.VidConvOutDir;
 		var reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -280,7 +335,7 @@ public partial class VidConvertWindow : Window {
 				}
 				try {
 					await Task.Run(() => VidConvert.ConvertOne(row.FilePath, dst, fmt, crf,
-						shortEn, shortPx, audio, mode, token), token).ConfigureAwait(true);
+						shortEn, shortPx, audio, kbps, hz, mono, mode, token), token).ConfigureAwait(true);
 					row.Status = Loc.T("vidconv.st.ok");
 					ok++;
 				}

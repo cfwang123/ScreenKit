@@ -41,6 +41,17 @@ static class VidConvert {
 		return Compat.Clamp(crf, 0, CrfMax(fmt));
 	}
 
+	public static int NormKbps(int kbps) {
+		if (kbps <= 0) kbps = 128;
+		return Compat.Clamp(kbps, 8, 512);
+	}
+
+	public static int NormHz(int hz) {
+		foreach (var n in RecordOptions.AudioHzChoices)
+			if (n == hz) return n;
+		return 44100;
+	}
+
 	public static string NormOutMode(string mode) {
 		var m = (mode ?? "").Trim().ToLowerInvariant();
 		if (m is "other" or "replace" or "recycle") return m;
@@ -158,7 +169,7 @@ static class VidConvert {
 	}
 
 	public static List<string> Args(string src, string dst, string fmt, int crf,
-		bool shortEn, int shortPx, bool audio, bool hasAudio, int w, int h) {
+		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, bool hasAudio, int w, int h) {
 		fmt = NormFmt(fmt);
 		crf = NormCrf(fmt, crf);
 		var args = new List<string> {
@@ -183,19 +194,30 @@ static class VidConvert {
 				"-c:v", "libvpx-vp9", "-crf", crf.ToString(CultureInfo.InvariantCulture), "-b:v", "0",
 				"-deadline", "good", "-cpu-used", "2", "-row-mt", "1", "-pix_fmt", "yuv420p",
 			});
-			if (keepA) args.AddRange(new[] { "-c:a", "libopus", "-b:a", "96k" });
+			if (keepA) addaudio(args, "libopus", kbps, hz, mono);
 		}
 		else {
 			args.AddRange(new[] {
 				"-c:v", "libx264", "-crf", crf.ToString(CultureInfo.InvariantCulture),
 				"-preset", "medium", "-pix_fmt", "yuv420p",
 			});
-			if (keepA) args.AddRange(new[] { "-c:a", "aac", "-b:a", "128k" });
+			if (keepA) addaudio(args, "aac", kbps, hz, mono);
 			if (fmt == "mp4") args.AddRange(new[] { "-movflags", "+faststart" });
 		}
 		if (!keepA) args.Add("-an");
 		args.Add(dst);
 		return args;
+	}
+
+	static void addaudio(List<string> args, string codec, int kbps, int hz, bool mono) {
+		kbps = NormKbps(kbps);
+		hz = NormHz(hz);
+		args.AddRange(new[] {
+			"-c:a", codec,
+			"-b:a", kbps.ToString(CultureInfo.InvariantCulture) + "k",
+			"-ar", hz.ToString(CultureInfo.InvariantCulture),
+		});
+		if (mono) args.AddRange(new[] { "-ac", "1" });
 	}
 
 	public static bool Probe(string exe, string path, out int w, out int h, out bool audio) {
@@ -215,7 +237,7 @@ static class VidConvert {
 	}
 
 	public static void ConvertOne(string src, string dst, string fmt, int crf,
-		bool shortEn, int shortPx, bool audio, string mode, CancellationToken ct) {
+		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, string mode, CancellationToken ct) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
 		ct.ThrowIfCancellationRequested();
@@ -236,7 +258,7 @@ static class VidConvert {
 			dir = Path.GetDirectoryName(src);
 		Directory.CreateDirectory(dir);
 		var tmp = maketmp(dst);
-		var args = Args(src, tmp, fmt, crf, shortEn, shortPx, audio, hasAudio, w, h);
+		var args = Args(src, tmp, fmt, crf, shortEn, shortPx, audio, kbps, hz, mono, hasAudio, w, h);
 		var code = run(exe, args, ct, 0, out var err);
 		ct.ThrowIfCancellationRequested();
 		if (code != 0 || !File.Exists(tmp) || new FileInfo(tmp).Length == 0) {
