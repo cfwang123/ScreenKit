@@ -33,6 +33,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miWebHome;
 	Forms.ToolStripMenuItem miWebFiles;
 	Forms.ToolStripMenuItem miImgConv;
+	Forms.ToolStripMenuItem miVidConv;
 	Forms.ToolStripMenuItem miQrMake;
 	Forms.ToolStripMenuItem miRename;
 	Forms.ToolStripMenuItem miHash;
@@ -149,6 +150,7 @@ sealed class TrayIcon : IDisposable {
 		miGifRecord = item("tray.gifrecord", () => GifRecordRequested?.Invoke());
 		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
 		miImgConv = item("tray.imgconv", () => ImgConvRequested?.Invoke());
+		miVidConv = item("tray.vidconv", () => VidConvRequested?.Invoke());
 		miQrMake = item("tray.qrmake", () => QrMakeRequested?.Invoke());
 		miRename = item("tray.rename", () => RenameRequested?.Invoke());
 		miHash = item("tray.hash", () => HashRequested?.Invoke());
@@ -170,6 +172,7 @@ sealed class TrayIcon : IDisposable {
 		miWeb.DropDownOpening += (_, _) => fillwebtools();
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
+		miTools.DropDownItems.Add(miVidConv);
 		miTools.DropDownItems.Add(miQrMake);
 		miTools.DropDownItems.Add(miRename);
 		miTools.DropDownItems.Add(miHash);
@@ -371,6 +374,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miTools, null);
 		setshortcut(miWebHome, null);
 		setshortcut(miImgConv, null);
+		setshortcut(miVidConv, null);
 		setshortcut(miQrMake, null);
 		setshortcut(miRename, null);
 		setshortcut(miHash, null);
@@ -419,6 +423,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miWebHome, "tray.webhome");
 			settext(miWebFiles, "tray.webfiles");
 			settext(miImgConv, "tray.imgconv");
+			settext(miVidConv, "tray.vidconv");
 			settext(miQrMake, "tray.qrmake");
 			settext(miRename, "tray.rename");
 			settext(miHash, "tray.hash");
@@ -512,6 +517,7 @@ sealed class TrayIcon : IDisposable {
 		return list;
 	}
 	public event Action ImgConvRequested;
+	public event Action VidConvRequested;
 	public event Action QrMakeRequested;
 	public event Action RenameRequested;
 	public event Action HashRequested;

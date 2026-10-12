@@ -138,6 +138,9 @@
 				<MenuItem x:Name="mnimgconv" Header="图片格式转换(_C)…"
 				          AutomationProperties.AutomationId="menu.imgconv"
 				          ToolTip="批量转换图片格式，可缩放、旋转、镜像"/>
+				<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
+				          AutomationProperties.AutomationId="menu.vidconv"
+				          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>
 				<MenuItem x:Name="mnqrmake" Header="二维码 / 条码生成(_Q)…"
 				          AutomationProperties.AutomationId="menu.qrmake"
 				          ToolTip="生成二维码或条码，图下显示原文"/>

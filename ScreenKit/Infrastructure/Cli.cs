@@ -58,7 +58,7 @@ static class Cli {
 				or "--test-sendfile"
 				or "--test-lang"
 				or "--test-apk-qr"
-				or "--test-img-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
+				or "--test-img-convert" or "--test-vid-convert" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-nettool"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
@@ -268,6 +268,8 @@ static class Cli {
 					return testapkqr();
 				case "--test-img-convert":
 					return testimgconvert();
+				case "--test-vid-convert":
+					return testvidconvert();
 				case "--test-screenshot-dir":
 					return testscreenshotdir();
 				case "--test-qr-make":
@@ -2708,6 +2710,93 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testvidconvert() {
+		Out("=== 视频批量转换 --test-vid-convert ===");
+		var bad = 0;
+		VidConvert.Fit(320, 240, 80, out var ow, out var oh);
+		if (ow != 106 || oh != 80) {
+			Err($"FAIL fit {ow}x{oh} 期望 106x80");
+			bad++;
+		}
+		else Out("fit 320x240 -> 106x80");
+		VidConvert.Fit(320, 240, 400, out ow, out oh);
+		if (ow != 320 || oh != 240) {
+			Err($"FAIL 不应放大 {ow}x{oh}");
+			bad++;
+		}
+		else Out("不放大");
+		var dir = Path.Combine(Path.GetTempPath(), "sk_vidconv_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+		Directory.CreateDirectory(dir);
+		try {
+			var src = Path.Combine(dir, "a.avi");
+			File.WriteAllBytes(src, new byte[] { 1 });
+			var reserved = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			var dst = VidConvert.MakeOutPath(src, "mp4", VidConvert.OUTBESIDE, null, reserved);
+			var expect = Path.Combine(dir, "output", "a.mp4");
+			if (!string.Equals(dst, expect, StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL 路径 " + dst);
+				bad++;
+			}
+			else Out("路径 " + dst);
+			var webm = VidConvert.Args(src, dst, "webm", 30, true, 80, true, true, 320, 240);
+			if (!webm.Contains("libvpx-vp9") || !webm.Contains("scale=106:80") || !webm.Contains("libopus")) {
+				Err("FAIL webm 参数 " + string.Join(" ", webm));
+				bad++;
+			}
+			else Out("webm 参数");
+			var mute = VidConvert.Args(src, dst, "mp4", 23, false, 1080, false, true, 320, 240);
+			if (!mute.Contains("-an") || mute.Contains("aac")) {
+				Err("FAIL 静音参数 " + string.Join(" ", mute));
+				bad++;
+			}
+			else Out("静音参数");
+			var exe = VidConvert.FindExe();
+			if (string.IsNullOrEmpty(exe))
+				Out("SKIP 编码：没有 ffmpeg.exe");
+			else {
+				var raw = Path.Combine(dir, "src.mp4");
+				var psi = new System.Diagnostics.ProcessStartInfo {
+					FileName = exe,
+					Arguments = "-y -hide_banner -loglevel error -f lavfi -i testsrc=size=320x240:rate=8:duration=1 -f lavfi -i sine=frequency=440:sample_rate=44100:duration=1 -shortest -c:v libx264 -pix_fmt yuv420p -c:a aac \"" + raw + "\"",
+					UseShellExecute = false,
+					CreateNoWindow = true,
+					RedirectStandardError = true,
+					RedirectStandardOutput = true,
+				};
+				using (var p = System.Diagnostics.Process.Start(psi)) {
+					var err = p.StandardError.ReadToEnd();
+					p.WaitForExit(20000);
+					if (!p.HasExited || p.ExitCode != 0 || !File.Exists(raw)) {
+						Err("FAIL 生成测试视频 " + err);
+						bad++;
+					}
+					else {
+						var outp = Path.Combine(dir, "out.mp4");
+						VidConvert.ConvertOne(raw, outp, "mp4", 28, true, 80, true, VidConvert.OUTOTHER, CancellationToken.None);
+						if (!File.Exists(outp)) {
+							Err("FAIL 未写出 " + outp);
+							bad++;
+						}
+						else if (!VidConvert.Probe(exe, outp, out var pw, out var ph, out var pa) || pw != 106 || ph != 80) {
+							Err($"FAIL 输出尺寸 {pw}x{ph} audio={pa}");
+							bad++;
+						}
+						else Out($"编码 {pw}x{ph} audio={pa}");
+					}
+				}
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			bad++;
+		}
+		finally {
+			try { Directory.Delete(dir, true); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：视频批量转换 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static int testimgconvert() {
 		Out("=== 图片格式转换 --test-img-convert ===");
 		var bad = 0;
@@ -4842,6 +4931,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor [--out <目录>]
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
+  ScreenKit --test-vid-convert
   ScreenKit --test-screenshot-dir
   ScreenKit --test-qr-make
   ScreenKit --test-rename
@@ -4920,6 +5010,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、西、法、葡、俄、德、其它排序
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
+      --test-vid-convert  视频较短边取偶数、输出路径和编码参数；有 ffmpeg.exe 时转一段 320×240
       --test-screenshot-dir  截图保存目录：空为 screenshots/，D:/s/ 解析为 D:\s
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
       --test-rename  Everything 风格 %1 / ### 批量改名
@@ -5002,6 +5093,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-record-cursor -o log\record_cursor
   ScreenKit --test-clipboard-path
   ScreenKit --test-img-convert
+  ScreenKit --test-vid-convert
   ScreenKit --test-screenshot-dir
   ScreenKit --test-qr-make
   ScreenKit --test-rename

@@ -229,6 +229,20 @@ public sealed class OcrOptions {
 	public bool ImgConvKeepOrigEnabled = true;
 	/// <summary>用原图的体积阈值，百分数，默认 80（100KB 原图则 ≥80KB 用原图）。</summary>
 	public int ImgConvKeepOrigPct = 80;
+	/// <summary>视频批量转换：mp4 / mkv / webm。</summary>
+	public string VidConvFormat = "mp4";
+	/// <summary>视频 CRF。H.264 为 0–51，WebM 为 0–63，默认 23。</summary>
+	public int VidConvCrf = 23;
+	/// <summary>视频是否限制较短边（超过则等比缩小，不放大）。</summary>
+	public bool VidConvShortEnabled;
+	/// <summary>视频较短边上限（像素）。</summary>
+	public int VidConvShortPx = 1080;
+	/// <summary>转换时保留声音。</summary>
+	public bool VidConvAudio = true;
+	/// <summary>beside / other / replace / recycle。</summary>
+	public string VidConvOutMode = "beside";
+	/// <summary>视频转换自定义输出目录。</summary>
+	public string VidConvOutDir = "";
 	/// <summary>密码生成器上次设置。</summary>
 	public int PwLen = 6;
 	public int PwCount = 10;
@@ -524,6 +538,13 @@ public sealed class OcrOptions {
 		SfBrowseThumbView = SfBrowseThumbView,
 		ImgConvKeepOrigEnabled = ImgConvKeepOrigEnabled,
 		ImgConvKeepOrigPct = ImgConvKeepOrigPct,
+		VidConvFormat = VidConvFormat ?? "mp4",
+		VidConvCrf = VidConvCrf,
+		VidConvShortEnabled = VidConvShortEnabled,
+		VidConvShortPx = VidConvShortPx,
+		VidConvAudio = VidConvAudio,
+		VidConvOutMode = VidConvOutMode ?? "beside",
+		VidConvOutDir = VidConvOutDir ?? "",
 		PwLen = PwLen,
 		PwCount = PwCount,
 		PwLower = PwLower,

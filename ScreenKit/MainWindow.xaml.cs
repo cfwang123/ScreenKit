@@ -76,6 +76,7 @@ public partial class MainWindow : Window {
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
 	ImgConvertWindow imgConvWin;
+	VidConvertWindow vidConvWin;
 	QrMakeWindow qrMakeWin;
 	BatchRenameWindow renameWin;
 	HashWindow hashWin;
@@ -607,6 +608,7 @@ public partial class MainWindow : Window {
 			tray.WebFilesRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpfiles(fromTray: true)));
 			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true, tool: id)));
 			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv(fromTray: true)));
+			tray.VidConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidconv(fromTray: true)));
 			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake(fromTray: true)));
 			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename(fromTray: true)));
 			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash(fromTray: true)));
@@ -1516,6 +1518,7 @@ public partial class MainWindow : Window {
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mndict.Click += (_, _) => showdicttab();
 		mnimgconv.Click += (_, _) => openimgconv();
+		mnvidconv.Click += (_, _) => openvidconv();
 		mnqrmake.Click += (_, _) => openqrmake();
 		mnrename.Click += (_, _) => openrename();
 		mnhash.Click += (_, _) => openhash();
@@ -1647,6 +1650,8 @@ public partial class MainWindow : Window {
 			mndict.ToolTip = Loc.T("menu.dict.tip");
 			mnimgconv.Header = Loc.T("menu.imgconv");
 			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
+			mnvidconv.Header = Loc.T("menu.vidconv");
+			mnvidconv.ToolTip = Loc.T("menu.vidconv.tip");
 			mnqrmake.Header = Loc.T("menu.qrmake");
 			mnqrmake.ToolTip = Loc.T("menu.qrmake.tip");
 			mnrename.Header = Loc.T("menu.rename");
@@ -4261,6 +4266,28 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			MessageBox.Show(this, ex.Message, Loc.T("menu.imgconv"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
+	void openvidconv(bool fromTray = false) {
+		try {
+			if (vidConvWin != null) {
+				if (vidConvWin.WindowState == WindowState.Minimized)
+					vidConvWin.WindowState = WindowState.Normal;
+				vidConvWin.Activate();
+				return;
+			}
+			vidConvWin = new VidConvertWindow(opt);
+			attachdialogowner(vidConvWin, fromTray);
+			vidConvWin.Closed += (_, _) => {
+				vidConvWin = null;
+				try { AppConfig.Save(opt); } catch { }
+			};
+			vidConvWin.Show();
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Loc.T("menu.vidconv"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}

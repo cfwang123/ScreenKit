@@ -165,6 +165,20 @@ static class AppConfig {
 				o.ImgConvKeepOrigEnabled = parsebool(icko, true);
 			if (map.TryGetValue("imgconv_keep_orig_pct", out var ickp) && int.TryParse(ickp, out var ickPct))
 				o.ImgConvKeepOrigPct = Compat.Clamp(ickPct, 1, 100);
+			if (map.TryGetValue("vidconv_format", out var vcfmt) && !string.IsNullOrWhiteSpace(vcfmt))
+				o.VidConvFormat = VidConvert.NormFmt(vcfmt.Trim().Trim('"'));
+			if (map.TryGetValue("vidconv_crf", out var vcc) && int.TryParse(vcc, out var vcCrf))
+				o.VidConvCrf = VidConvert.NormCrf(o.VidConvFormat, vcCrf);
+			if (map.TryGetValue("vidconv_short", out var vcss))
+				o.VidConvShortEnabled = parsebool(vcss, false);
+			if (map.TryGetValue("vidconv_short_px", out var vcsp) && int.TryParse(vcsp, out var vcShort))
+				o.VidConvShortPx = Compat.Clamp(vcShort, 16, 7680);
+			if (map.TryGetValue("vidconv_audio", out var vca))
+				o.VidConvAudio = parsebool(vca, true);
+			if (map.TryGetValue("vidconv_out_mode", out var vcom) && !string.IsNullOrWhiteSpace(vcom))
+				o.VidConvOutMode = VidConvert.NormOutMode(vcom.Trim().Trim('"'));
+			if (map.TryGetValue("vidconv_out_dir", out var vcod))
+				o.VidConvOutDir = (vcod ?? "").Trim().Trim('"');
 			if (map.TryGetValue("pwgen_len", out var pwl) && int.TryParse(pwl, out var pwLen))
 				o.PwLen = Compat.Clamp(pwLen, 4, 128);
 			if (map.TryGetValue("pwgen_count", out var pwc) && int.TryParse(pwc, out var pwCnt))
@@ -621,6 +635,15 @@ static class AppConfig {
 		sb.AppendLine($"# 压缩后体积仍 ≥ 原图该比例则复制原文件（旋转/缩放除外）");
 		sb.AppendLine($"imgconv_keep_orig = {(o.ImgConvKeepOrigEnabled ? "true" : "false")}");
 		sb.AppendLine($"imgconv_keep_orig_pct = {Compat.Clamp(o.ImgConvKeepOrigPct <= 0 ? 80 : o.ImgConvKeepOrigPct, 1, 100)}");
+		var vcFmt = VidConvert.NormFmt(o.VidConvFormat);
+		sb.AppendLine($"# 视频批量转换：mp4 | mkv | webm；输出 beside | other | replace | recycle");
+		sb.AppendLine($"vidconv_format = \"{vcFmt}\"");
+		sb.AppendLine($"vidconv_crf = {VidConvert.NormCrf(vcFmt, o.VidConvCrf < 0 ? 23 : o.VidConvCrf)}");
+		sb.AppendLine($"vidconv_short = {(o.VidConvShortEnabled ? "true" : "false")}");
+		sb.AppendLine($"vidconv_short_px = {Compat.Clamp(o.VidConvShortPx < 16 ? 1080 : o.VidConvShortPx, 16, 7680)}");
+		sb.AppendLine($"vidconv_audio = {(o.VidConvAudio ? "true" : "false")}");
+		sb.AppendLine($"vidconv_out_mode = \"{VidConvert.NormOutMode(o.VidConvOutMode)}\"");
+		sb.AppendLine($"vidconv_out_dir = \"{esc((o.VidConvOutDir ?? "").Trim())}\"");
 		sb.AppendLine($"# 密码生成器上次设置");
 		sb.AppendLine($"pwgen_len = {Compat.Clamp(o.PwLen <= 0 ? 6 : o.PwLen, 4, 128)}");
 		sb.AppendLine($"pwgen_count = {Compat.Clamp(o.PwCount <= 0 ? 10 : o.PwCount, 1, 50)}");
