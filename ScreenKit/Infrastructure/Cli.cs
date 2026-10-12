@@ -4659,8 +4659,21 @@ static class Cli {
 			var d = list[i];
 			Out($"{d.Name} | {d.VidPid} | {d.ClassName} | {d.Status}");
 			Out(d.InstanceId ?? "");
-			if (string.IsNullOrEmpty(d.InstanceId) || d.Props == null || d.Props.Count == 0) {
+			Out("props=" + (d.Props == null ? 0 : d.Props.Count));
+			if (string.IsNullOrEmpty(d.InstanceId) || d.Props == null || d.Props.Count < 8) {
 				Err("设备缺少实例或参数");
+				return 1;
+			}
+		}
+		var names = string.Join(" | ", list[0].Props.Select(p => p.Name));
+		Out(names);
+		if (names.IndexOf("VID", StringComparison.Ordinal) < 0 && list[0].VidPid.Length == 0) {
+			var anyVid = false;
+			foreach (var d in list) {
+				if (d.VidPid.Length > 0) { anyVid = true; break; }
+			}
+			if (!anyVid) {
+				Err("没有任何设备带 VID:PID");
 				return 1;
 			}
 		}

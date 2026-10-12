@@ -130,9 +130,13 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 	font-style: normal; font-size: 14px; color: #444;
 }
 .cards i.star {
-	/* 星标周围这一块都算收藏点击区：30×30，右边吃到卡片内边距 */
+	/* 星标周围这一块都算收藏点击区：30×30 的方框贴到卡片右边，再用 ::after 补到整张卡片高 */
+	position: relative;
 	width: 30px; height: 30px; margin-left: auto; margin-right: -6px;
 	font-size: 13px; color: #c4beb6; border-radius: 6px;
+}
+.cards i.star::after {
+	content: ""; position: absolute; top: -4px; right: -2px; bottom: -4px; left: -6px;
 }
 .cards i.star:hover { background: #d9dfe5; color: #8a827a; }
 .cards i.star.on { color: #f97316; }
