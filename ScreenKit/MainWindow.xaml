@@ -192,9 +192,9 @@
 				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
 				          AutomationProperties.AutomationId="menu.settings"
 				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
-				<Separator/>
-				<MenuItem x:Name="mnlang" Header="界面语言(_L)"/>
 			</MenuItem>
+			<MenuItem x:Name="mnlang" Header="界面语言(_L)"
+			          AutomationProperties.AutomationId="menu.lang"/>
 			<MenuItem x:Name="mnhelp" Header="帮助(_H)"
 			          AutomationProperties.AutomationId="menu.help">
 				<MenuItem x:Name="mninstall" Header="安装功能(_I)…"

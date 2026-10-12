@@ -26,6 +26,11 @@
 		]}
 	];
 
+	// 试听用：约 784Hz 的报务音，一个点 90 毫秒（划 3 点）
+	var MIDI = 79;
+	var UNIT = 90;
+	var timer = 0;
+
 	SK.regutil("u-morse", {
 		title: "摩斯码表",
 		go: "显示",
@@ -42,7 +47,8 @@
 	function body(){
 		return '<div class="uquery"><input id="morse-q" type="text" placeholder="字母、标点，或 .- / ·−">'
 			+ '<span id="morse-msg" class="msg"></span></div>'
-			+ '<p class="hint">国际摩斯码。点一下复制点划（短点 . ，长划 - ）。划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。</p>'
+			+ '<p class="hint">国际摩斯码。点一下复制点划，并用 8bit 合成器的当前音色试听（约 784Hz）。'
+			+ '短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。</p>'
 			+ '<div class="morse" id="morse-list"></div>';
 	}
 
@@ -60,10 +66,52 @@
 		while (el && el.id !== "morse-list") {
 			if (el.getAttribute && el.getAttribute("data-code")) {
 				SK.copytext(el.getAttribute("data-code"), "morse-msg");
+				play(el);
 				return;
 			}
 			el = el.parentNode;
 		}
+	}
+
+	// 按国际时值把这条码排出去：点 1 单位、划 3 单位，符号之间空 1 单位
+	function play(btn){
+		var code = btn.getAttribute("data-code");
+		var unit = UNIT / 1000;
+		var t = 0;
+		var end = -1;
+		var i;
+		var ch;
+		var dur;
+		if (!SK.bitblip) return;
+		stop();
+		for (i = 0; i < code.length; i++) {
+			ch = code.charAt(i);
+			if (ch === ".") dur = unit;
+			else if (ch === "-") dur = unit * 3;
+			else {
+				t += unit * 3;
+				continue;
+			}
+			end = SK.bitblip(MIDI, dur, t);
+			if (end < 0) return;
+			t = end + unit;
+		}
+		if (end < 0) return;
+		btn.classList.add("on");
+		timer = setTimeout(function(){
+			timer = 0;
+			stop();
+		}, (t - unit) * 1000 + 80);
+	}
+
+	function stop(){
+		var on;
+		var i;
+		if (timer) clearTimeout(timer);
+		timer = 0;
+		if (SK.bitblipstop) SK.bitblipstop();
+		on = document.querySelectorAll("#morse-list button.on");
+		for (i = 0; i < on.length; i++) on[i].classList.remove("on");
 	}
 
 	function paint(){

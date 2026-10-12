@@ -2,6 +2,7 @@
 	var ac, master, waves, nbuf;
 	var held = {};
 	var sources = [];
+	var blips = [];
 	var loop = null;
 	var demot = [];
 	var bound = false;
@@ -1131,4 +1132,47 @@
 		if (!btn) return;
 		noteoff(Number(btn.getAttribute("data-midi")));
 	}
+
+	// 给别的工具用（摩斯码表）：按当前乐器和音量播一段音。
+	// midi 音高，dur 秒数，at 是 AudioContext 时间轴上的起点（留空即现在）；返回结束时间，发不了声返回 -1
+	SK.bitblip = function(midi, dur, at){
+		var c = ensure();
+		var spec;
+		var t0;
+		var f;
+		var g;
+		var o;
+		var rel;
+		if (!c || !(dur > 0)) return -1;
+		spec = inst();
+		// 噪声鼓当音色时用方波代替，否则听不出点划
+		if (spec.wave === "noise") spec = { wave: "square", a: spec.a, d: spec.d, s: spec.s, r: spec.r };
+		t0 = Math.max(c.currentTime + 0.01, Number(at) || 0);
+		f = freq(midi);
+		if (spec.oct) f *= Math.pow(2, spec.oct);
+		rel = Math.min(0.025, dur / 3);
+		g = envgain(c, spec, t0, 0.22);
+		g.gain.setTargetAtTime(0.0001, t0 + dur - rel, rel / 3);
+		g.connect(master);
+		o = makeosc(c, spec, f);
+		o.connect(g);
+		o.start(t0);
+		o.stop(t0 + dur + 0.03);
+		o.onended = function(){
+			var i = blips.indexOf(o);
+			if (i >= 0) blips.splice(i, 1);
+		};
+		blips.push(o);
+		return t0 + dur;
+	};
+
+	// 停掉 bitblip 排出去还没响完的音
+	SK.bitblipstop = function(){
+		var list = blips;
+		var i;
+		blips = [];
+		for (i = 0; i < list.length; i++) {
+			try { list[i].stop(); } catch (e) {}
+		}
+	};
 })();

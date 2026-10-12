@@ -177,7 +177,7 @@ Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey
 
 ### UI language
 
-**Options → Language**, or Settings → General. Each language is a toml file in `lang/` next to the program (Chinese, English, Japanese, Korean, and other languages: German, Spanish, French, Portuguese, Russian; you can add more). Startup reads them all and lists Chinese, English, Japanese, Korean, then the other languages. `ui_lang` in `config.toml` is that file name. A missing phrase falls back to Chinese. Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, the translate popup, and the dictionary window.
+**Language** on the menu bar, or Settings → General. Each language is a toml file in `lang/` next to the program (Chinese, English, Japanese, Korean, and other languages: German, Spanish, French, Portuguese, Russian; you can add more). Startup reads them all and lists Chinese, English, Japanese, Korean, then the other languages. `ui_lang` in `config.toml` is that file name. A missing phrase falls back to Chinese. Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, the translate popup, and the dictionary window.
 
 Adding or changing a phrase is one command, for one language or for every file at once:
 

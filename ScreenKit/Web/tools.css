@@ -517,6 +517,8 @@ input[type="file"] {
 .morse button small {
 	color: var(--muted); font: 12px/1.3 Consolas, "Microsoft YaHei UI", monospace;
 }
+/* 正在试听的那条 */
+.morse button.on { border-color: var(--accent); background: #fff1e8; }
 /* 左边小色块，右边两行：中文名 + 英文名 / 十六进制 */
 .cgrid button {
 	display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto;
