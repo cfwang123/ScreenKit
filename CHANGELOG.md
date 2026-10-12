@@ -97,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page SAPI voice list starts `x86host` and includes 32-bit-only voices such as VW Lily. It used to list them only when that helper was already running.
 - **Help → Install features** treats a `dict2.db` symbolic link beside the program as installed when the target is at least 100 MB. Windows reports the link itself as 0 bytes.
 - The Common colors grid keeps its swatch size and scrolls. A short or narrow window used to squeeze every card until the color band collapsed to nothing, and the clipped rows could not be reached.
+- The tools page QR caption stays readable. A short window used to squeeze that line until only a sliver of the letters showed.
 
 ### 中文
 
@@ -163,6 +164,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页的 SAPI 发音人会启动 `x86host`，并列出只在 32 位里有的语音，例如 VW Lily。以前只有这个助手已经在跑时才会出现。
 - **帮助 → 安装功能**把程序旁的 `dict2.db` 符号链接按目标文件判断。目标至少 100 MB 时词典显示已安装。Windows 把链接本身报成 0 字节。
 - 常用颜色表不再被压扁：色卡保持大小，内容区自己滚动。以前窗口矮或窄时每张色卡会被等分压缩，色条被挤成一条线，超出的行也滚不到。
+- 工具页二维码图下的原文保持完整。窗口较矮时，这行字以前会被挤到只剩一条缝。
 
 ## v1.0.18 (2026-10-10)
 

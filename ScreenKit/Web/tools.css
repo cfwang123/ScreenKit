@@ -284,14 +284,17 @@ select, input[type="date"], input[type="datetime-local"], input[type="text"], in
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; }
 .qrbox {
-	min-height: 160px; margin: 8px 0 16px; padding: 16px;
+	flex: none; min-height: 160px; margin: 8px 0 16px; padding: 16px;
 	background: #fff; border: 1px solid var(--line); border-radius: 16px;
 	display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .qrbox img { max-width: 100%; height: auto; image-rendering: pixelated; }
+/* 预览区在工具页里会被压高度。overflow 不是 visible 时最小高度按 0 算，
+   图不能缩，这行字就被挤成一条线。flex:none 保住行高，再叠到静区上面。 */
 .qrcap {
-	margin: 0.5em 0 0; max-width: 100%;
-	font: 16px/1 "Microsoft YaHei UI", "Segoe UI", sans-serif;
+	flex: none; position: relative; z-index: 1;
+	margin: 0.5em 0 0; max-width: 100%; min-height: 1.4em;
+	font: 16px/1.4 "Microsoft YaHei UI", "Segoe UI", sans-serif;
 	color: #111; text-align: center;
 	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
