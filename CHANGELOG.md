@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- **Tools → Fast copy** copies or moves files and folders. The same volume prefers a rename. Same-name files can be overwritten, skipped, or renamed. **Register menu** adds a current-user Explorer cascade (fast cut, copy, delete to the Recycle Bin, and copy paths). After a cut or copy, folder background gets fast paste and cancel. Shift copies paths relative to their common folder, and Shift+paste keeps the clip. No administrator. On Windows 11 the items are under Show more options. Selecting more than about 100 items can hide this static menu.
 - The tools page has an **8-bit synthesizer** under Speech. Pick a voice (square, narrow pulse, thin pulse, triangle, saw, organ, bell, bass, flute, or noise drum), play the keyboard or the computer keys, and try the built-in effects: explosion, alarm, fire alarm, buzzer, phone, laser, jump, coin, power-up, hit, shot, pickup, fail, and heartbeat. Looping alarms stop when clicked again, or with Stop. Sound is generated in the browser.
 - `GET /api/tts/devices` lists playback devices. `POST /api/tts/speak` synthesizes speech and plays it on one or more of those devices. `play=queue` waits its turn. `play=now` interrupts the current clip. The call returns when playback is queued, without WAV bytes.
 - **Tools → Auto key** repeats a key or a mouse click to the foreground window. A hotkey (default F6, editable in the tool) starts and stops it. The button in the window does the same. The interval is 20–60000 ms (default 200). A click lands at the cursor, or at the center of that window when the cursor is elsewhere, and the cursor then moves back. Nothing is sent while ScreenKit is in front.
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- **工具 → 快速复制**：复制或剪切文件和文件夹。同一分区优先改名。同名可以覆盖、跳过或重命名。**注册菜单**给当前用户加上资源管理器级联菜单（快速剪切、快速复制、快速删除到回收站、复制路径）。剪切或复制之后，文件夹空白处出现快速粘贴和取消。按着 Shift 复制相对路径，Shift 粘贴会留下剪贴内容。不用管理员。Windows 11 在「显示更多选项」里。一次选中大约超过 100 项时，这项静态菜单可能不出现。
 - 工具页「语音」增加 **8bit合成器**。可选方波、窄脉冲、细脉冲、三角波、锯齿、风琴、铃、贝斯、笛子、噪声鼓，用琴键或电脑键盘演奏。音效有爆炸、警报、火警、蜂鸣、电话、激光、跳跃、金币、升级、受伤、射击、拾取、失败、心跳。循环的警报再点一次停止，或点「停止」。声音在浏览器里生成。
 - `GET /api/tts/devices` 列出播放设备。`POST /api/tts/speak` 按与 `/api/tts` 相同的参数合成，并在一个或多个设备上直接播放。`play=queue` 排队，`play=now` 打断当前并立即播放。接口在排上队后就返回，不带回 WAV。
 - **工具 → 自动按键**：向前台窗口连续发送按键或鼠标点击。快捷键（默认 F6，可在该窗口里改）开始和停止，窗口里的按钮同样可以。间隔 20～60000 毫秒（默认 200）。点击落在光标处；光标不在该窗口上时点客户区中心，再把光标移回。前台是本程序时不发送。

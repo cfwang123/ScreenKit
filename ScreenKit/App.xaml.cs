@@ -54,6 +54,19 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		// 资源管理器菜单：不占单实例锁。粘贴才开进度窗。
+		if (FastCopy.IsShell(args)) {
+			if (FastCopy.NeedsWindow(args)) {
+				ShutdownMode = ShutdownMode.OnExplicitShutdown;
+				base.OnStartup(e);
+				var code = FastCopy.RunShell(args);
+				Shutdown(code);
+				return;
+			}
+			Environment.Exit(FastCopy.RunShell(args));
+			return;
+		}
+
 		// 命令行模式：不启动 GUI、不占单实例锁
 		if (Cli.IsCli(args)) {
 			initcuda();

@@ -62,7 +62,9 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-nettool"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-autokey"
+				or "--test-wintop" or "--test-autokey" or "--test-fastcopy"
+				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
+				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
 				or "--test-win-tts"
 				or "--test-mem"
 				or "--test-scroll-stitch"
@@ -304,6 +306,17 @@ static class Cli {
 					return testwintop();
 				case "--test-autokey":
 					return testautokey();
+				case "--test-fastcopy":
+					return testfastcopy();
+				case "--fc-copy":
+				case "--fc-cut":
+				case "--fc-delete":
+				case "--fc-paths":
+				case "--fc-paste":
+				case "--fc-clear":
+				case "--fc-register":
+				case "--fc-unregister":
+					return FastCopy.RunShell(args);
 				case "--test-win-tts":
 					return testwintts();
 				case "--test-mem":
@@ -4416,6 +4429,11 @@ static class Cli {
 		return 0;
 	}
 
+	static int testfastcopy() {
+		Out("=== 快速复制 --test-fastcopy ===");
+		return FastCopy.SelfTest(Out);
+	}
+
 	static int testwintop() {
 		Out("=== 窗口管理 --test-wintop ===");
 		var bad = 0;
@@ -5341,6 +5359,9 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-jpyomi
   ScreenKit --test-wintop
   ScreenKit --test-autokey
+  ScreenKit --test-fastcopy
+  ScreenKit --fc-register
+  ScreenKit --fc-unregister
   ScreenKit --test-win-tts
   ScreenKit --test-mem
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
@@ -5424,6 +5445,9 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-jpyomi  東京 的系统读音
       --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
       --test-autokey  解析按键与间隔，并向探测窗发送一次 F13 和一次左键点击
+      --test-fastcopy  复制、跳过、重命名、同分区剪切，以及多选合并
+      --fc-register / --fc-unregister  注册或去掉当前用户的资源管理器「快速复制」菜单
+      --fc-copy / --fc-cut / --fc-delete / --fc-paths / --fc-paste / --fc-clear  资源管理器菜单调用
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
       --test-mem-load  每个功能单独进程冷启动后的提交、专用工作集、工作集。默认 cpu。语音和识别取最小的一份模型。winocr 只走 Windows 自带识别
@@ -5512,6 +5536,9 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-jpyomi
   ScreenKit --test-wintop
   ScreenKit --test-autokey
+  ScreenKit --test-fastcopy
+  ScreenKit --fc-register
+  ScreenKit --fc-unregister
   ScreenKit --test-win-tts
   ScreenKit --test-mem
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]

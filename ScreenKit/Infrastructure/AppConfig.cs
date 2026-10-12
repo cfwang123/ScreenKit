@@ -203,6 +203,12 @@ static class AppConfig {
 				o.VidGifShortEnabled = parsebool(vgs, true);
 			if (map.TryGetValue("vidgif_short_px", out var vgsp) && int.TryParse(vgsp, out var vgShort))
 				o.VidGifShortPx = Compat.Clamp(vgShort, 16, 7680);
+			if (map.TryGetValue("fc_workers", out var fcw) && int.TryParse(fcw, out var fcWorkers))
+				o.FastCopyWorkers = FastCopy.NormWorkers(fcWorkers);
+			if (map.TryGetValue("fc_conflict", out var fcc) && !string.IsNullOrWhiteSpace(fcc))
+				o.FastCopyConflict = FastCopy.NormConflict(fcc.Trim().Trim('"'));
+			if (map.TryGetValue("fc_mode", out var fcm) && !string.IsNullOrWhiteSpace(fcm))
+				o.FastCopyMode = FastCopy.NormMode(fcm.Trim().Trim('"'));
 			if (map.TryGetValue("pwgen_len", out var pwl) && int.TryParse(pwl, out var pwLen))
 				o.PwLen = Compat.Clamp(pwLen, 4, 128);
 			if (map.TryGetValue("pwgen_count", out var pwc) && int.TryParse(pwc, out var pwCnt))
@@ -683,6 +689,10 @@ static class AppConfig {
 		sb.AppendLine($"vidgif_colors = {VidGif.NormColors(o.VidGifColors)}");
 		sb.AppendLine($"vidgif_short = {(o.VidGifShortEnabled ? "true" : "false")}");
 		sb.AppendLine($"vidgif_short_px = {Compat.Clamp(o.VidGifShortPx < 16 ? 480 : o.VidGifShortPx, 16, 7680)}");
+		sb.AppendLine($"# 快速复制：同名 overwrite | skip | rename；方式 copy | move");
+		sb.AppendLine($"fc_workers = {FastCopy.NormWorkers(o.FastCopyWorkers)}");
+		sb.AppendLine($"fc_conflict = \"{FastCopy.NormConflict(o.FastCopyConflict)}\"");
+		sb.AppendLine($"fc_mode = \"{FastCopy.NormMode(o.FastCopyMode)}\"");
 		sb.AppendLine($"# 密码生成器上次设置");
 		sb.AppendLine($"pwgen_len = {Compat.Clamp(o.PwLen <= 0 ? 6 : o.PwLen, 4, 128)}");
 		sb.AppendLine($"pwgen_count = {Compat.Clamp(o.PwCount <= 0 ? 10 : o.PwCount, 1, 50)}");

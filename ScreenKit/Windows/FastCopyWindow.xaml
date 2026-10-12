@@ -1,0 +1,77 @@
+<Window x:Class="ScreenKit.FastCopyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="快速复制"
+        Width="760" Height="560"
+        MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="fastcopy.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
+		           FontSize="12" Margin="0,0,0,10"/>
+		<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+			<Button x:Name="badd" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="添加文件"
+			        AutomationProperties.AutomationId="fastcopy.add"/>
+			<Button x:Name="badddir" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="添加文件夹"
+			        AutomationProperties.AutomationId="fastcopy.adddir"/>
+			<Button x:Name="bremove" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="移除"/>
+			<Button x:Name="bclear" Style="{StaticResource ToolBtn}" Content="清空"/>
+		</StackPanel>
+		<ListBox x:Name="lsrc" Grid.Row="2" Margin="0,0,0,10"
+		         BorderBrush="{StaticResource BorderSoft}"
+		         AutomationProperties.AutomationId="fastcopy.src"/>
+		<Grid Grid.Row="3" Margin="0,0,0,10">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="52"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbdest" Text="目标" VerticalAlignment="Center"/>
+			<TextBox x:Name="edest" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
+			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="fastcopy.dest"/>
+			<Button x:Name="bbrowse" Grid.Column="2" Style="{StaticResource ToolBtn}" Content="浏览"
+			        AutomationProperties.AutomationId="fastcopy.browse"/>
+		</Grid>
+		<StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,10">
+			<TextBlock x:Name="lbmode" Text="方式" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<RadioButton x:Name="rcopy" Content="复制" GroupName="fcmode" Margin="0,0,12,0"
+			             VerticalAlignment="Center" IsChecked="True"
+			             AutomationProperties.AutomationId="fastcopy.mode.copy"/>
+			<RadioButton x:Name="rmove" Content="剪切" GroupName="fcmode" Margin="0,0,16,0"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="fastcopy.mode.move"/>
+			<TextBlock x:Name="lbconflict" Text="同名" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<ComboBox x:Name="econflict" Width="110" Height="32" Margin="0,0,16,0"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="fastcopy.conflict"/>
+			<TextBlock x:Name="lbworkers" Text="线程" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<TextBox x:Name="eworkers" Width="56" Height="32" Padding="8,4"
+			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+			         Text="8" AutomationProperties.AutomationId="fastcopy.workers"/>
+		</StackPanel>
+		<StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,8">
+			<Button x:Name="bstart" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="开始"
+			        AutomationProperties.AutomationId="fastcopy.start"/>
+			<Button x:Name="bcancel" Style="{StaticResource ToolBtn}" Margin="0,0,16,0" Content="取消"
+			        IsEnabled="False" AutomationProperties.AutomationId="fastcopy.cancel"/>
+			<Button x:Name="breg" Style="{StaticResource ToolBtn}" Content="注册菜单"
+			        AutomationProperties.AutomationId="fastcopy.register"/>
+		</StackPanel>
+		<TextBlock x:Name="lbstat" Grid.Row="6" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
+		           FontSize="12" AutomationProperties.AutomationId="fastcopy.stat"/>
+	</Grid>
+</Window>

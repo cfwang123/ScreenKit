@@ -92,6 +92,7 @@ public partial class MainWindow : Window {
 	JpYomiWindow jpYomiWin;
 	WinTopWindow winTopWin;
 	AutoKeyWindow autoKeyWin;
+	FastCopyWindow fastCopyWin;
 	System.Windows.Threading.DispatcherTimer autokeyTimer;
 	bool autokeyOn;
 	long autokeySent;
@@ -631,6 +632,7 @@ public partial class MainWindow : Window {
 			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi(fromTray: true)));
 			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
 			tray.AutoKeyRequested += () => Dispatcher.BeginInvoke(new Action(() => openautokey(fromTray: true)));
+			tray.FastCopyRequested += () => Dispatcher.BeginInvoke(new Action(() => openfastcopy(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -1565,6 +1567,7 @@ public partial class MainWindow : Window {
 		mnjpyomi.Click += (_, _) => openjpyomi();
 		mnwintop.Click += (_, _) => openwintop();
 		mnautokey.Click += (_, _) => openautokey();
+		mnfastcopy.Click += (_, _) => openfastcopy();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		// 帮助菜单
@@ -1714,6 +1717,8 @@ public partial class MainWindow : Window {
 			mnwintop.ToolTip = Loc.T("menu.wintop.tip");
 			mnautokey.Header = Loc.T("menu.autokey");
 			mnautokey.ToolTip = Loc.T("menu.autokey.tip");
+			mnfastcopy.Header = Loc.T("menu.fastcopy");
+			mnfastcopy.ToolTip = Loc.T("menu.fastcopy.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mninstall.Header = Loc.T("menu.install");
@@ -4246,6 +4251,9 @@ public partial class MainWindow : Window {
 	void openautokey(bool fromTray = false) =>
 		opentoolwin(ref autoKeyWin, () => new AutoKeyWindow(opt, autokeytoggle, registerhotkey), "menu.autokey", fromTray);
 
+	void openfastcopy(bool fromTray = false) =>
+		opentoolwin(ref fastCopyWin, () => new FastCopyWindow(opt), "menu.fastcopy", fromTray);
+
 	void autokeytoggle() {
 		if (autokeyOn) autokeystop();
 		else autokeystart();
@@ -4349,6 +4357,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(jpYomiWin, w)) jpYomiWin = null;
 				else if (ReferenceEquals(winTopWin, w)) winTopWin = null;
 				else if (ReferenceEquals(autoKeyWin, w)) autoKeyWin = null;
+				else if (ReferenceEquals(fastCopyWin, w)) fastCopyWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
 			w.Show();

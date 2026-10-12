@@ -47,6 +47,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miJpYomi;
 	Forms.ToolStripMenuItem miWinTop;
 	Forms.ToolStripMenuItem miAutoKey;
+	Forms.ToolStripMenuItem miFastCopy;
 	Forms.ToolStripMenuItem miCast;
 	Forms.ToolStripMenuItem miUsbAcc;
 	Forms.ToolStripMenuItem miSettings;
@@ -167,6 +168,7 @@ sealed class TrayIcon : IDisposable {
 		miJpYomi = item("tray.jpyomi", () => JpYomiRequested?.Invoke());
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
 		miAutoKey = item("tray.autokey", () => AutoKeyRequested?.Invoke());
+		miFastCopy = item("tray.fastcopy", () => FastCopyRequested?.Invoke());
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
@@ -192,6 +194,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miJpYomi);
 		miTools.DropDownItems.Add(miWinTop);
 		miTools.DropDownItems.Add(miAutoKey);
+		miTools.DropDownItems.Add(miFastCopy);
 		miTools.DropDownItems.Add(miCast);
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
@@ -397,6 +400,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miJpYomi, null);
 		setshortcut(miWinTop, null);
 		setshortcut(miAutoKey, null);
+		setshortcut(miFastCopy, null);
 		setshortcut(miCast, null);
 		setshortcut(miUsbAcc, null);
 		setshortcut(miSettings, null);
@@ -449,6 +453,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miJpYomi, "tray.jpyomi");
 			settext(miWinTop, "tray.wintop");
 			settext(miAutoKey, "tray.autokey");
+			settext(miFastCopy, "tray.fastcopy");
 			settext(miCast, "tray.cast");
 			SetUsbAccStatus(usbStat);
 			settext(miSettings, "tray.settings");
@@ -546,6 +551,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action JpYomiRequested;
 	public event Action WinTopRequested;
 	public event Action AutoKeyRequested;
+	public event Action FastCopyRequested;
 	public event Action CastRequested;
 	public event Action UsbAccessoryRequested;
 

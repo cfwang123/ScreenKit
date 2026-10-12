@@ -180,6 +180,9 @@
 				<MenuItem x:Name="mnautokey" Header="自动按键(_K)…"
 				          AutomationProperties.AutomationId="menu.autokey"
 				          ToolTip="按快捷键开始或停止，连续向前台窗口发送按键或鼠标点击"/>
+				<MenuItem x:Name="mnfastcopy" Header="快速复制(_A)…"
+				          AutomationProperties.AutomationId="menu.fastcopy"
+				          ToolTip="复制或剪切文件，并可注册资源管理器右键菜单"/>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

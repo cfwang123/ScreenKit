@@ -267,6 +267,12 @@ public sealed class OcrOptions {
 	public bool VidGifShortEnabled = true;
 	/// <summary>GIF 较短边，默认 480。</summary>
 	public int VidGifShortPx = 480;
+	/// <summary>快速复制线程数，1–32，默认 8。</summary>
+	public int FastCopyWorkers = 8;
+	/// <summary>同名文件：overwrite / skip / rename。</summary>
+	public string FastCopyConflict = "overwrite";
+	/// <summary>copy 或 move。</summary>
+	public string FastCopyMode = "copy";
 	/// <summary>密码生成器上次设置。</summary>
 	public int PwLen = 6;
 	public int PwCount = 10;
@@ -581,6 +587,9 @@ public sealed class OcrOptions {
 		VidGifColors = VidGifColors,
 		VidGifShortEnabled = VidGifShortEnabled,
 		VidGifShortPx = VidGifShortPx,
+		FastCopyWorkers = FastCopyWorkers,
+		FastCopyConflict = FastCopyConflict ?? "overwrite",
+		FastCopyMode = FastCopyMode ?? "copy",
 		PwLen = PwLen,
 		PwCount = PwCount,
 		PwLower = PwLower,
