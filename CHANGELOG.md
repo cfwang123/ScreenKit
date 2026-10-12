@@ -105,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Random color on the tools page defaults to 10 colors and generates once when the card opens.
 - The placeholder image redraws as soon as width, height, colors, or caption change. Ctrl+C or Copy result puts the PNG on the clipboard.
 - Image convert preview zooms with the wheel toward the cursor, pans by dragging, and fits again on a double-click.
+- CSS gradient on the tools page takes 2 to 8 colors from the browser color picker. They are spaced evenly in the order shown.
 
 #### Fixed
 
@@ -197,6 +198,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页随机颜色默认 10 个，打开后立即生成一次。
 - 占位图在改宽高、颜色或文字后马上出预览。Ctrl+C 或「复制结果」把 PNG 放进剪贴板。
 - 图片格式转换的预览可以用滚轮对着光标缩放、拖动平移，双击重新适应窗口。
+- 工具页 CSS 渐变可以用浏览器选色器选 2 到 8 种颜色，按列出的顺序均匀过渡。
 
 #### 修复
 
