@@ -64,7 +64,7 @@
 		hideOut: true,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英文多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -163,7 +163,7 @@
 			["科学计数", sciform(p)],
 			["百分数", percent(p)],
 			["罗马数字", romanof(p)],
-			["多边形", polyof(p)],
+			["英语多边形", polyof(p)],
 			["二进制", baseof(p, 2)],
 			["八进制", baseof(p, 8)],
 			["十六进制", baseof(p, 16)]
@@ -844,7 +844,7 @@
 		return sign(p) + left + (right ? "." + right : "") + "%";
 	}
 
-	// 英文多边形名。四位一组：第 1 组 myriad，再上一组 myriakis myriad，可一直叠到整数上限。
+	// 英语多边形。四位一组：第 1 组 myriad，再上一组 myriakis myriad，可一直叠到整数上限。
 	function polyof(p){
 		if (p.neg || p.fp || p.ip === "0") return "—";
 		return polyName(p.ip);
