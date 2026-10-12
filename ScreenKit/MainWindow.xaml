@@ -171,9 +171,6 @@
 				<MenuItem x:Name="mnpinyin" Header="中文转拼音(_Y)…"
 				          AutomationProperties.AutomationId="menu.pinyin"
 				          ToolTip="把汉字转成拼音或拼音首字母"/>
-				<MenuItem x:Name="mnhtmlui" Header="HTML 界面设计(_D)…"
-				          AutomationProperties.AutomationId="menu.htmlui"
-				          ToolTip="左边写 HTML，右边即时看效果"/>
 				<MenuItem x:Name="mnwincal" Header="历法(_L)…"
 				          AutomationProperties.AutomationId="menu.wincal"
 				          ToolTip="公历换农历、干支、闰月和其它历法"/>

@@ -83,9 +83,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Common colors shows the web English name beside each Chinese name, and every color is now a compact row: a small swatch on the left, two lines on the right. The search box also matches the English name (peacock, darkgoldenrod) and ignores spaces in it.
 - Common colors now covers all 148 CSS named colors. The curated 83 grew to 155 rows (139 named colors plus 16 Chinese-specific colors) with a new White / Paper group for the near-white tones, and spellings that differ between US and UK share one row (Gray / Grey, Cyan / Aqua, Fuchsia / Magenta).
 - Tools → Fast copy Explorer menu now has the full cascade: fast cut, copy, delete, copy as symbolic link, copy as hard link, total size, copy paths, and settings. A symbolic link points at the selected file or folder. A hard link must stay on the same volume; a folder becomes a directory tree of file hard links. Size shows the file count, folder count, and bytes, and does not follow reparse points. Settings opens the fast-copy window with those paths. An already registered menu is rewritten when the program starts. Paste also handles the new link clips.
+- The HTML layout tool is now only the tools-page card HTML tool, under Image. The desktop window, Tools menu item, and tray item are gone. Templates also include a table, a nav bar, alerts, tags, a list, progress, an empty state, a dialog, pages, and steps.
 
 #### Fixed
 
+- The web tools color picker updates the result while you drag or edit RGB. The Convert button is gone.
+- The Tools menu and the tray no longer open HTML UI design. The card on the web tools page remains.
 - **Tools → Auto key** reaches WezTerm. With a Chinese keyboard layout, simulated keys and clicks were counted but never arrived. They are now delivered as window messages.
 - HTTP API failures return 200. The error stays in the JSON `code` and `data`, including an unknown path, a wrong method, and an internal error. OPTIONS stays 204. A successful WebSocket upgrade stays 101.
 - Settings → Screenshot keeps `#` in the file name. The editable list was dropping that character as it was typed, and reading the config treated a `#` inside quotes as a comment.
@@ -144,9 +147,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 常用颜色表在中文名旁边显示 web 英文名，色卡改成紧凑一行：左边小色块，右边两行文字（中文名 + 英文名 / 十六进制）。搜索框也能按英文名查（peacock、darkgoldenrod），英文里的空格可以省。
 - 常用颜色表补全到全部 148 个 CSS 命名色：原来的 83 条扩到 155 条（139 个命名色 + 16 个中文专名色），近白色单开「白/纸色」组；英美拼写同值的合并成一条显示双拼（Gray / Grey、Cyan / Aqua、Fuchsia / Magenta）。
 - 工具 → 快速复制的资源管理器菜单补齐为：快速剪切、快速复制、快速删除、复制为符号链接、复制为硬链接、统计大小、复制路径、参数设置。符号链接指向选中的文件或文件夹。硬链接必须在同一分区，文件夹会按目录为每个文件建硬链接。统计大小给出文件数、文件夹数和字节，不进入重解析点。参数设置打开快速复制窗口并带上这些路径。已经注册过的菜单在程序启动时会重写。粘贴也能处理这两种链接。
+- HTML 界面设计改为工具页「图像」里的 HTML工具。桌面窗口、工具菜单和托盘项已去掉。模板增加表格、导航、提示、标签、列表、进度、空状态、对话框、分页和步骤。
 
 #### 修复
 
+- 工具页取色在拖动或修改 RGB 时直接更新结果，去掉了转换按钮。
+- 工具菜单和托盘不再打开 HTML 界面设计。工具页里的卡片还在。
 - **工具 → 自动按键**可以作用到 WezTerm。中文键盘布局下，模拟的按键和点击会计数，但到不了终端。现在改成窗口消息送进去。
 - HTTP 接口失败也返回 200。错误在 JSON 的 `code` 和 `data` 里，包括未知路径、方法不对和内部错误。OPTIONS 仍是 204。WebSocket 升级成功仍是 101。
 - 参数设置 → 截图的文件名可以保留 `#`。可编辑下拉在输入时会丢掉这个字符，读配置时又把引号里的 `#` 当成注释。

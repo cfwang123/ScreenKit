@@ -2,6 +2,7 @@
 	SK.regutil("u-pick", {
 		title: "取色",
 		go: "转换",
+		noGo: true,
 		body: function(){
 			return '<div class="cpick">'
 				+ '<div class="cpick-top"><span>颜色</span><i id="cpick-swatch"></i></div>'
@@ -46,6 +47,7 @@
 			SK.$("cpick-r").value = String(rgb[0]);
 			SK.$("cpick-g").value = String(rgb[1]);
 			SK.$("cpick-b").value = String(rgb[2]);
+			SK.utilrun();
 		}
 		function fromsv(ev){
 			var r = sv.getBoundingClientRect();
