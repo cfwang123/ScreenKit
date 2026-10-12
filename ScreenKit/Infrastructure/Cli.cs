@@ -2145,11 +2145,11 @@ static class Cli {
 						Out("SKIP speak（无设备或无 SAPI）");
 					else {
 						var ids = new List<string>();
-						foreach (var one in dataDev.EnumerateArray()) {
-							ids.Add(one.GetProperty("id").GetString() ?? "");
+						foreach (var devEl in dataDev.EnumerateArray()) {
+							ids.Add(devEl.GetProperty("id").GetString() ?? "");
 							if (ids.Count >= 2) break;
 						}
-						var devArr = string.Join(",", ids.ConvertAll(JsonSerializer.Serialize));
+						var devArr = string.Join(",", ids.Select(s => JsonSerializer.Serialize(s)));
 						var qBody = "{\"text\":\"嗯\",\"engine\":\"sapi\",\"play\":\"queue\",\"devices\":[" + devArr + "]}";
 						var spoke = httppost(http, baseUrl + "/api/tts/speak", qBody);
 						using var sp = JsonDocument.Parse(spoke);
@@ -5277,7 +5277,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-llm-chat  对话历史裁剪与续写数组形状（不去网）
       --test-llm-log  最近 1000 条 LLM 请求：用量、地址去查询串、落盘顺序（不去网）
       --test-llm-agent  Agent 沙箱路径、tool_call 解析、读写/脚本（不去网）
-      --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV
+      --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV，并试播放设备与直接发音
       --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
       --test-chat  两个 WebSocket 进 /chat，互发一条文字，重复昵称会被拒绝
       --test-face-overlay  用 GDI+ 在 Bitmap 上写「女 22岁」，不加载 OpenCV
