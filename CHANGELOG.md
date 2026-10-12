@@ -99,6 +99,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Screenshot annotate restores the last tool after the next region select, including no tool. The choice stays in memory and is written when ScreenKit exits.
 - Tools page: clicking a Morse code now plays it through the 8-bit synthesizer (about 784 Hz, one unit per dot and three per dash at 90 ms, one unit between symbols), using the instrument and volume chosen in the 8-bit tool.
 - Random colors list HEX, RGB, HSL, HSV, CMYK, and YUV. Click one value to copy it. Pick color also writes YUV (BT.601 full range, 0-255).
+- CSS gradient on the tools page supports linear, radial, and conic gradients. Linear and conic take an angle. The preview and the background code update as you change the settings.
 
 #### Fixed
 
@@ -116,6 +117,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The tools page no longer has a Color conversion card under Image. Pick color already shows HEX, RGB, HSL, HSV, and CMYK.
 - The tools page no longer has a Palette card under Image.
+- The tools page no longer has the CSS button card.
 
 ### 中文
 
@@ -184,6 +186,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 截图标注在下次框选后沿用上次的工具，也可以不选工具。选择留在内存里，退出程序时才写入配置。
 - 工具页：摩斯码表点一下会用 8bit 合成器把这条码播出来（约 784Hz，一个单位 90 毫秒，点 1 单位、划 3 单位，符号之间空 1 单位），音色和音量用 8bit 工具里选的。
 - 工具页随机颜色列出 HEX、RGB、HSL、HSV、CMYK 和 YUV，点一个色值就复制它。取色也写出 YUV（BT.601 全范围，0–255）。
+- 工具页 CSS 渐变支持线性、径向和锥形。线性和锥形可设角度。预览和 background 代码随设置立即更新。
 
 #### 修复
 
@@ -201,6 +204,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 工具页「图像」不再单列「颜色转换」。取色已经给出 HEX、RGB、HSL、HSV 和 CMYK。
 - 工具页「图像」不再有「调色板」。
+- 工具页去掉 CSS 按钮。
 
 ## v1.0.18 (2026-10-10)
 

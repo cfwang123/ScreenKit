@@ -301,6 +301,10 @@ select, input[type="date"], input[type="datetime-local"], input[type="text"], in
 }
 #rcolor-list button:first-of-type { font-weight: 600; }
 #rcolor-list button:hover { background: #fff1e8; }
+.grad-view {
+	height: 140px; margin-top: 8px;
+	border: 1px solid var(--line); border-radius: 12px;
+}
 .facts {
 	display: grid; grid-template-columns: 120px 1fr; gap: 8px 16px;
 	background: var(--card); border: 1px solid var(--line); border-radius: 16px;
@@ -376,8 +380,9 @@ input[type="file"] {
 	gap: 2px; align-content: start;
 }
 .ugrid.g16 { grid-template-columns: repeat(16, 32px); justify-content: start; }
-/* ASCII 码表：带行列表头的 16 列码表；不属于当前分类的格子只占位、不显示 */
-.ugrid.a16h { grid-template-columns: 36px repeat(16, 29px); justify-content: start; }
+/* ASCII 码表：带行列表头的 16 列码表；不属于当前分类的格子只占位、不显示。
+   36 + 16×27 + 16×2 = 500px，最窄窗口（1261）下网格区有 505px，放得下、不用横向滚。 */
+.ugrid.a16h { grid-template-columns: 36px repeat(16, 27px); justify-content: start; }
 .ugrid .ahead {
 	display: grid; place-items: center; height: 32px;
 	color: var(--muted); font: 11px/1 Consolas, "Microsoft YaHei UI", monospace;
