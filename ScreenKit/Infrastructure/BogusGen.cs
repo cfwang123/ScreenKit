@@ -86,7 +86,7 @@ static class BogusGen {
 		new() { Id = "catch", Key = "web.fake.catch", Need = "company.adjective+company.descriptor+company.noun", Set = "Company", Method = "CatchPhrase" },
 		new() { Id = "bs", Key = "web.fake.bs", Need = "company.bs_adjective+company.bs_verb+company.bs_noun", Set = "Company", Method = "Bs" },
 		new() { Id = "mail", Key = "web.fake.mail", Need = "internet.free_email", Need2 = FULL, Set = "Internet", Method = "Email" },
-		new() { Id = "user", Key = "web.fake.user", Need = FULL, Set = "Internet", Method = "UserName" },
+		new() { Id = "user", Key = "web.fake.user", Need = FULL, Set = "Internet", Method = "UserName", Mode = "user" },
 		new() { Id = "domain", Key = "web.fake.domain", Need = "internet.domain_suffix", Need2 = FIRST, Set = "Internet", Method = "DomainName" },
 		new() { Id = "domainsuf", Key = "web.fake.domainsuf", Need = "internet.domain_suffix", Set = "Internet", Method = "DomainSuffix" },
 		new() { Id = "url", Key = "web.fake.url", Need = "internet.domain_suffix", Need2 = FIRST, Set = "Internet", Method = "Url" },
@@ -338,6 +338,7 @@ static class BogusGen {
 		var faker = fakerof(locale);
 		switch (it.Mode) {
 		case "zhname": return zhname(faker, locale);
+		case "user": return username(faker, locale);
 		case "date": return date(faker);
 		case "uuid": return uuid(faker);
 		case "id": return idno(faker);
@@ -353,6 +354,34 @@ static class BogusGen {
 		if (locale.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
 			return callstr(name, "LastName") + callstr(name, "FirstName");
 		return callstr(name, "FullName");
+	}
+
+	/// <summary>
+	/// Bogus 的 UserName 会把非拉丁字母抹掉，中文姓名只剩分隔符和数字。
+	/// 这种结果改成姓+名，有时再加数字。
+	/// </summary>
+	static string username(object faker, string locale) {
+		var raw = callstr(prop(faker, "Internet"), "UserName");
+		if (hasletter(raw)) return raw;
+		var name = prop(faker, "Name");
+		var last = callstr(name, "LastName");
+		var first = callstr(name, "FirstName");
+		var familyfirst = locale.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+			|| locale.StartsWith("ja", StringComparison.OrdinalIgnoreCase)
+			|| locale.StartsWith("ko", StringComparison.OrdinalIgnoreCase);
+		var full = (familyfirst ? last + first : first + last).Replace(" ", "");
+		if (!hasletter(full)) return raw.Length > 0 ? raw : full;
+		var pick = num(faker, 0, 2);
+		if (pick == 0) return full + num(faker, 0, 99).ToString(CultureInfo.InvariantCulture);
+		if (pick == 1) return full;
+		return full + "_" + num(faker, 0, 99).ToString(CultureInfo.InvariantCulture);
+	}
+
+	static bool hasletter(string s) {
+		if (string.IsNullOrEmpty(s)) return false;
+		foreach (var c in s)
+			if (char.IsLetter(c)) return true;
+		return false;
 	}
 
 	static string date(object faker) {

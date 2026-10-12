@@ -4007,6 +4007,19 @@ static class Cli {
 				Out(lang.Id + " " + kind + ": " + lines[0]);
 				shown++;
 			}
+			if (kind == "user" && lang.Id == "zh_CN") {
+				Out("zh_CN user: " + lines[0]);
+				Out("zh_CN user: " + lines[1]);
+				foreach (var line in lines) {
+					var letter = false;
+					foreach (var c in line)
+						if (char.IsLetter(c)) { letter = true; break; }
+					if (!letter) {
+						Err("FAIL zh_CN user 没有汉字: " + line);
+						return false;
+					}
+				}
+			}
 		}
 		Out(lang.Id + " 共 " + lang.Kinds.Length + " 类");
 		return true;
