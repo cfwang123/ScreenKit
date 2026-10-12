@@ -86,11 +86,11 @@
 			+ '<label>记谱<select id="bit-oct"><option value="-12">低八度</option><option value="0" selected>原调</option><option value="12">高八度</option></select></label>'
 			+ '<button type="button" id="bit-play">播放</button>'
 			+ '<button type="button" id="bit-songstop">停止</button>'
-			+ '<button type="button" id="bit-ex">示例</button>'
+			+ '<label>示例<select id="bit-ex">' + exopts() + "</select></label>"
 			+ '<button type="button" id="bit-clear">清空</button>'
 			+ "</div>"
 			+ '<div class="bitgrid" id="bit-grid"></div>'
-			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。</p>'
+			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。</p>'
 			+ '<p class="kicker">音效</p>'
 			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
 			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排。警报、火警、蜂鸣、电话再点一次就停。</p>'
@@ -131,7 +131,7 @@
 		document.getElementById("bit-stop").onclick = stopaudio;
 		document.getElementById("bit-play").onclick = songplay;
 		document.getElementById("bit-songstop").onclick = function(){ songstop(); };
-		document.getElementById("bit-ex").onclick = fillex;
+		document.getElementById("bit-ex").onchange = onex;
 		document.getElementById("bit-clear").onclick = clearsong;
 		document.getElementById("bit-bpm").onchange = function(){ readbpm(); savesong(); };
 		document.getElementById("bit-grid").onclick = ongrid;
@@ -663,11 +663,61 @@
 	var STEPS = 16;
 	var DEFINST = ["sq", "p25", "tri", "drum"];
 	var chinst = DEFINST.slice();
-	var EX = [
-		[60, 0, 64, 0, 67, 0, 64, 0, 69, 0, 67, 0, 64, 0, 60, 0],
-		[67, 0, 72, 0, 76, 0, 72, 0, 74, 0, 72, 0, 67, 0, 64, 0],
-		[36, 0, 0, 0, 43, 0, 0, 0, 41, 0, 0, 0, 36, 0, 0, 0],
-		[2, 0, 5, 0, 2, 0, 5, 0, 2, 0, 5, 0, 2, 0, 6, 0]
+	var EXS = [
+		{
+			id: "march", name: "进行曲", bpm: 120, inst: ["sq", "p25", "tri", "drum"],
+			song: [
+				[60, 0, 64, 0, 67, 0, 64, 0, 69, 0, 67, 0, 64, 0, 60, 0],
+				[67, 0, 72, 0, 76, 0, 72, 0, 74, 0, 72, 0, 67, 0, 64, 0],
+				[36, 0, 0, 0, 43, 0, 0, 0, 41, 0, 0, 0, 36, 0, 0, 0],
+				[2, 0, 5, 0, 2, 0, 5, 0, 2, 0, 5, 0, 2, 0, 6, 0]
+			]
+		},
+		{
+			id: "jump", name: "跳跃", bpm: 150, inst: ["sq", "p12", "bass", "drum"],
+			song: [
+				[72, 0, 76, 0, 79, 0, 84, 0, 79, 0, 76, 0, 72, 0, 67, 0],
+				[60, 0, 64, 0, 67, 0, 72, 0, 67, 0, 64, 0, 60, 0, 55, 0],
+				[48, 0, 0, 48, 43, 0, 0, 43, 41, 0, 0, 41, 36, 0, 0, 36],
+				[4, 0, 2, 0, 5, 0, 2, 0, 4, 0, 2, 0, 6, 0, 2, 5]
+			]
+		},
+		{
+			id: "water", name: "水下", bpm: 96, inst: ["flute", "tri", "bass", "drum"],
+			song: [
+				[67, 0, 0, 71, 72, 0, 0, 67, 64, 0, 0, 60, 62, 0, 64, 0],
+				[60, 0, 64, 0, 67, 0, 64, 0, 60, 0, 55, 0, 57, 0, 60, 0],
+				[43, 0, 0, 0, 48, 0, 0, 0, 41, 0, 0, 0, 36, 0, 0, 0],
+				[1, 0, 0, 3, 1, 0, 0, 3, 1, 0, 0, 3, 1, 0, 2, 4]
+			]
+		},
+		{
+			id: "cave", name: "地牢", bpm: 88, inst: ["p25", "org", "bass", "drum"],
+			song: [
+				[60, 0, 63, 0, 67, 0, 63, 0, 58, 0, 63, 0, 55, 0, 51, 0],
+				[55, 0, 58, 0, 63, 0, 58, 0, 51, 0, 58, 0, 48, 0, 46, 0],
+				[36, 0, 0, 0, 39, 0, 0, 0, 34, 0, 0, 0, 36, 0, 0, 43],
+				[3, 0, 0, 0, 5, 0, 2, 0, 3, 0, 0, 0, 6, 0, 0, 2]
+			]
+		},
+		{
+			id: "fight", name: "战斗", bpm: 168, inst: ["sq", "saw", "tri", "drum"],
+			song: [
+				[64, 64, 67, 0, 72, 0, 70, 0, 67, 67, 64, 0, 60, 0, 64, 0],
+				[52, 0, 55, 0, 59, 0, 55, 0, 52, 0, 48, 0, 47, 0, 48, 0],
+				[40, 0, 40, 0, 43, 0, 43, 0, 36, 0, 36, 0, 35, 0, 36, 0],
+				[5, 2, 4, 2, 5, 2, 6, 2, 5, 2, 4, 2, 6, 5, 2, 4]
+			]
+		},
+		{
+			id: "clear", name: "通关", bpm: 132, inst: ["bell", "sq", "tri", "drum"],
+			song: [
+				[72, 0, 76, 0, 79, 0, 84, 84, 0, 0, 84, 0, 79, 0, 84, 0],
+				[60, 0, 64, 0, 67, 0, 72, 72, 0, 0, 72, 0, 67, 0, 72, 0],
+				[48, 0, 0, 0, 43, 0, 0, 0, 48, 0, 0, 0, 36, 0, 48, 0],
+				[4, 0, 2, 0, 5, 0, 6, 0, 0, 0, 4, 0, 2, 0, 6, 0]
+			]
+		}
 	];
 	var song = blanks();
 	var en = [true, true, true, true];
@@ -849,12 +899,36 @@
 		paintgrid();
 	}
 
-	function fillex(){
+	function exopts(){
+		var html = '<option value="">示例</option>';
+		var i;
+		for (i = 0; i < EXS.length; i++)
+			html += '<option value="' + EXS[i].id + '">' + EXS[i].name + "</option>";
+		return html;
+	}
+
+	function exof(id){
+		var i;
+		for (i = 0; i < EXS.length; i++) if (EXS[i].id === id) return EXS[i];
+		return null;
+	}
+
+	function onex(){
+		var el = document.getElementById("bit-ex");
+		var id = el ? el.value : "";
+		if (!id) return;
+		fillex(id);
+		if (el) el.value = "";
+	}
+
+	function fillex(id){
+		var ex = exof(id) || EXS[0];
 		var ch, s;
 		song = blanks();
-		chinst = DEFINST.slice();
+		chinst = ex.inst.slice();
+		bpm = ex.bpm;
 		for (ch = 0; ch < 4; ch++)
-			for (s = 0; s < STEPS; s++) song[ch][s] = EX[ch][s];
+			for (s = 0; s < STEPS; s++) song[ch][s] = ex.song[ch][s];
 		sel = null;
 		savesong();
 		paintgrid();

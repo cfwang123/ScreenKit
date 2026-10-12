@@ -570,6 +570,7 @@ input[type="file"] {
 .bitmsg { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .bit .row #bit-bpm { width: 72px; height: 32px; margin: 0; padding: 4px 8px; }
 .bit .row #bit-oct { width: 96px; height: 32px; margin: 0; padding: 4px 8px; }
+.bit .row #bit-ex { width: 88px; height: 32px; margin: 0; padding: 4px 8px; }
 .bitgrid { margin: 4px 0 8px; }
 .bitrow { display: flex; align-items: center; gap: 3px; margin: 3px 0; }
 .bitrow select.bitinst {

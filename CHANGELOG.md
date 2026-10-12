@@ -88,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Common colors is now Color table and opens as a tree with two branches. Web colors holds the 148 CSS named colors in 11 hue groups; C# colors holds the 174 names of .NET (System.Drawing.KnownColor), 141 named colors plus 33 system colors whose values follow the Windows theme. The branches never mix, the All entry is gone, and Transparent is drawn as a checkerboard with an A=0 note.
 - Web tool addresses and favorites accept only a current card id. An unknown id is ignored. config.toml reads only keys the program still writes; retired keys and old spellings are ignored, and a missing key keeps the field default.
 - The 8-bit arranger stores an instrument on each of the four channels. Playback uses that instrument, and the choice is kept in the browser with the loop.
+- The 8-bit arranger has six one-bar example loops: march, jump, underwater, dungeon, battle, and stage clear. Each sets the tempo and the four instruments.
 
 #### Fixed
 
@@ -156,6 +157,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 「常用颜色表」改名「颜色表」，改成树形两支：web 颜色是 148 个 CSS 命名色（11 个色相分组），C# 颜色是 .NET 的 174 个名字（System.Drawing.KnownColor），141 个命名色 + 33 个系统色（色值随 Windows 主题）。两支互不混，不再有「全部」；Transparent 画成棋盘格并标注 A=0。
 - 网页工具的地址和收藏只认当前卡片。没有这张卡片就忽略。config.toml 只读程序仍在写出的键。已停用的键和旧写法忽略，缺键用字段默认值。
 - 8bit 编排的四个通道各自记住乐器。播放用这一路所选的乐器，选择和循环一起记在浏览器里。
+- 8bit 编排增加六段一小节示例：进行曲、跳跃、水下、地牢、战斗、通关。每段会带上速度和四路乐器。
 
 #### 修复
 
