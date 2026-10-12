@@ -41,7 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page **8-bit synthesizer** can arrange a loop on 4 channels: two squares, a triangle, and noise. Click a cell, then a key, to write a note. Noise cells cycle through six pitches. Tempo is in BPM, and each cell is a sixteenth note. The loop stays in the browser.
 - The tools page has an **8-bit synthesizer** under Speech. Pick a voice (square, narrow pulse, thin pulse, triangle, saw, organ, bell, bass, flute, or noise drum), play the keyboard or the computer keys, and try the built-in effects: explosion, alarm, fire alarm, buzzer, phone, laser, jump, coin, power-up, hit, shot, pickup, fail, and heartbeat. Looping alarms stop when clicked again, or with Stop. Sound is generated in the browser.
 - `GET /api/tts/devices` lists playback devices. `POST /api/tts/speak` synthesizes speech and plays it on one or more of those devices. `play=queue` waits its turn. `play=now` interrupts the current clip. The call returns when playback is queued, without WAV bytes.
-- **Tools → Auto key** repeats a key or a mouse click to the foreground window. A hotkey (default F6, editable in the tool) starts and stops it. The button in the window does the same. The interval is 20–60000 ms (default 200). A click lands at the cursor, or at the center of that window when the cursor is elsewhere, and the cursor then moves back. Nothing is sent while ScreenKit is in front.
+- **Tools → Auto key** repeats a key or a mouse click to the foreground window. A hotkey (default F6, editable in the tool) starts and stops it only while that window is open. Closing the window stops listening and stops a run. The button in the window does the same. The interval is 20–60000 ms (default 200). A click lands at the cursor, or at the center of that window when the cursor is elsewhere, and the cursor then moves back. Nothing is sent while ScreenKit is in front.
 - **Tools → Chinese to pinyin** turns characters into pinyin without tone marks, or into one capital initial per character, using `NPinyin.dll`. Common polyphonic words use their usual reading (`重庆` is `chong qing`, `银行` is `yin hang`). The library still writes ü as u. The tools page has the same card under Text. The DLL is about 75 KB and is not in the slim package. **Help → Install features → Tools** installs it. `GET/POST /api/pinyin` takes `text` and `mode=py|init`. Without the DLL the call returns 803. CLI: `ScreenKit --pinyin "重庆" [--init]`. The word list is `pinyin.toml` beside the program. The same word in `pinyin.user.toml` overrides it, and an empty reading drops that system word. Updates replace `pinyin.toml` and leave `pinyin.user.toml`.
 - **Tools → Batch video convert** converts added videos to MP4, MKV, or WebM with FFmpeg. Defaults are x265, CRF 40, and a 480 shorter-side cap. Audio defaults to 64 kbps, 22050 Hz, and mono. MP4 and MKV can also use x264; WebM stays VP9. Audio can be turned off. Output goes to `output/` beside each source, a chosen folder, or replaces the source (permanent delete or Recycle Bin).
 - **Tools → Video to GIF** previews one video, takes a start and end (at most 60 seconds), and saves a silent GIF. Frame rate, palette (32/64/128/256), and a shorter-side cap match GIF recording. Needs `ffmpeg64`.
@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- **Tools → Auto key** listens for its hotkey only while that window is open. Closing the window unregisters the hotkey and stops a run that is still sending.
 - Starting no longer puts the SendFile listen line on the status bar.
 - PDF workbench is on the Tools menu. It is no longer on the File menu.
 - The tools page no longer has the HTML table card.
@@ -94,7 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页 **8bit合成器** 可以编排循环，四个通道：两路方波、三角波、杂音。点格子再点琴键写入。杂音格子在 6 档之间轮换。速度按每分钟拍数，一格是十六分音符。循环记在浏览器里。
 - 工具页「语音」增加 **8bit合成器**。可选方波、窄脉冲、细脉冲、三角波、锯齿、风琴、铃、贝斯、笛子、噪声鼓，用琴键或电脑键盘演奏。音效有爆炸、警报、火警、蜂鸣、电话、激光、跳跃、金币、升级、受伤、射击、拾取、失败、心跳。循环的警报再点一次停止，或点「停止」。声音在浏览器里生成。
 - `GET /api/tts/devices` 列出播放设备。`POST /api/tts/speak` 按与 `/api/tts` 相同的参数合成，并在一个或多个设备上直接播放。`play=queue` 排队，`play=now` 打断当前并立即播放。接口在排上队后就返回，不带回 WAV。
-- **工具 → 自动按键**：向前台窗口连续发送按键或鼠标点击。快捷键（默认 F6，可在该窗口里改）开始和停止，窗口里的按钮同样可以。间隔 20～60000 毫秒（默认 200）。点击落在光标处；光标不在该窗口上时点客户区中心，再把光标移回。前台是本程序时不发送。
+- **工具 → 自动按键**：向前台窗口连续发送按键或鼠标点击。快捷键（默认 F6，可在该窗口里改）只在该窗口打开时开始和停止。关掉窗口就不再监听，正在发送的也会停。窗口里的按钮同样可以。间隔 20～60000 毫秒（默认 200）。点击落在光标处；光标不在该窗口上时点客户区中心，再把光标移回。前台是本程序时不发送。
 - **工具 → 中文转拼音**：用 `NPinyin.dll` 把汉字转成不带声调的拼音，或每个字一个大写首字母。常见多音词改成常用读法（「重庆」是 `chong qing`，「银行」是 `yin hang`）。ü 仍写成 u。工具页「文字」里有同样的卡片。库约 75 KB，不进精简包。在 **帮助 → 安装功能 → 工具集** 安装。`GET/POST /api/pinyin` 传 `text` 和 `mode=py|init`。没装库时返回 803。命令行：`ScreenKit --pinyin "重庆" [--init]`。词表是程序旁的 `pinyin.toml`。`pinyin.user.toml` 里的同名词条盖住它，读音留空就去掉系统里的这一条。升级会换掉 `pinyin.toml`，不会动 `pinyin.user.toml`。
 - **工具 → 视频批量转换**：添加视频后用 FFmpeg 转到 MP4、MKV 或 WebM。默认 x265、CRF 40、较短边 480。声音默认 64 kbps、22050 Hz、单声道。MP4 / MKV 也可选 x264，WebM 仍用 VP9。声音可以关掉。输出到每个源文件旁的 `output/`、指定目录，或替换源文件（永久删除 / 回收站）。
 - **工具 → 视频转 GIF**：预览一个视频，选取起止时间（最长 60 秒），按帧率、调色板（32/64/128/256）和较短边生成无声 GIF 并保存。参数与 GIF 录屏一致。需要 `ffmpeg64`。
@@ -115,6 +116,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- **工具 → 自动按键**只在该窗口打开时监听快捷键。关掉窗口就注销快捷键，正在发送的也会停。
 - 启动时状态栏不再显示 SendFile 的监听端口。
 - PDF 识别工作台改到「工具」菜单，不再放在「文件」菜单。
 - 工具页去掉 HTML 表格。

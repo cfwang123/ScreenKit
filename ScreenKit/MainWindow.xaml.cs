@@ -882,8 +882,8 @@ public partial class MainWindow : Window {
 					|| (hotkeyLive != null && !string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption) && !hotkeyLive.IsRegistered)
 					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered)
 					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered)
-					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered)
-					|| (hotkeyAuto != null && !string.IsNullOrWhiteSpace(opt.AutoKeyHotkey) && !hotkeyAuto.IsRegistered);
+					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered);
+					// 自动按键只在工具窗口打开时注册，启动时不重试
 				if (need)
 					registerhotkey();
 			};
@@ -932,13 +932,8 @@ public partial class MainWindow : Window {
 			hotkeyDict.Attach();
 			if (!hotkeyDict.Register(opt.ModDict ? opt.HotkeyDict : "")) errs.Add(hotkeyDict.LastError);
 		}
-		if (hotkeyAuto != null) {
-			hotkeyAuto.Attach();
-			if (!hotkeyAuto.Register(opt.AutoKeyHotkey ?? "")) {
-				if (!string.IsNullOrWhiteSpace(opt.AutoKeyHotkey))
-					errs.Add(hotkeyAuto.LastError);
-			}
-		}
+		var akerr = bindautokeyhotkey();
+		if (akerr.Length > 0) errs.Add(akerr);
 		if (errs.Count > 0) {
 			var msg = string.Join(" · ", errs);
 			setstatus(msg);
@@ -4256,19 +4251,39 @@ public partial class MainWindow : Window {
 	void openwintop(bool fromTray = false) =>
 		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop", fromTray);
 
-	void openautokey(bool fromTray = false) =>
+	void openautokey(bool fromTray = false) {
 		opentoolwin(ref autoKeyWin, () => new AutoKeyWindow(opt, autokeytoggle, registerhotkey), "menu.autokey", fromTray);
+		var err = bindautokeyhotkey();
+		if (err.Length == 0) return;
+		setstatus(err);
+		try { tray?.ShowToast("热键注册失败", err, 5000); } catch { }
+		try { CaptureLog.Info("autokey hotkey: " + err); } catch { }
+	}
+
+	// 窗口开着才注册；关掉或快捷键留空则注销。
+	string bindautokeyhotkey() {
+		if (hotkeyAuto == null) return "";
+		hotkeyAuto.Attach();
+		var hk = autoKeyWin != null ? (opt.AutoKeyHotkey ?? "").Trim() : "";
+		if (hotkeyAuto.Register(hk)) return "";
+		if (string.IsNullOrWhiteSpace(hk)) return "";
+		return hotkeyAuto.LastError ?? "";
+	}
 
 	void openfastcopy(bool fromTray = false) =>
 		opentoolwin(ref fastCopyWin, () => new FastCopyWindow(opt), "menu.fastcopy", fromTray);
 
 	void autokeytoggle() {
+		if (autoKeyWin == null) {
+			autokeystop();
+			return;
+		}
 		if (autokeyOn) autokeystop();
 		else autokeystart();
 	}
 
 	void autokeystart() {
-		if (opt == null) return;
+		if (autoKeyWin == null || opt == null) return;
 		if (!AutoKey.TryMake(opt.AutoKeyMode, opt.AutoKeyKey, out _)) {
 			setstatus(Loc.T("autokey.badkey"));
 			try { autoKeyWin?.ShowRun(false, autokeySent, false); } catch { }
@@ -4364,7 +4379,11 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(winCalWin, w)) winCalWin = null;
 				else if (ReferenceEquals(jpYomiWin, w)) jpYomiWin = null;
 				else if (ReferenceEquals(winTopWin, w)) winTopWin = null;
-				else if (ReferenceEquals(autoKeyWin, w)) autoKeyWin = null;
+				else if (ReferenceEquals(autoKeyWin, w)) {
+					autoKeyWin = null;
+					autokeystop();
+					bindautokeyhotkey();
+				}
 				else if (ReferenceEquals(fastCopyWin, w)) fastCopyWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
