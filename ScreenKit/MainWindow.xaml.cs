@@ -1932,14 +1932,14 @@ public partial class MainWindow : Window {
 			var tr = fmttrayhk(opt.HotkeyTranslate);
 			var copy = fmttrayhk(opt.HotkeySnapCopy);
 			var dict = fmttrayhk(opt.HotkeyDict);
-			var autokey = fmttrayhk(opt.AutoKeyHotkey);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
 			mntrpopup.InputGestureText = tr;
 			mndict.InputGestureText = dict;
-			if (mnautokey != null) mnautokey.InputGestureText = autokey;
+			// 只在工具窗口打开时监听，菜单上不标快捷键
+			if (mnautokey != null) mnautokey.InputGestureText = "";
 			if (mnsnapcopyimg != null) mnsnapcopyimg.InputGestureText = copy;
 			if (mnsnapcopyfile != null) mnsnapcopyfile.InputGestureText = copy;
 			if (mnsnapcopypath != null) mnsnapcopypath.InputGestureText = copy;
