@@ -7,6 +7,9 @@ public partial class AutoKeyWindow : Window {
 	readonly Action onhotkey;
 	bool loading = true;
 	bool capturing;
+	Brush statidle;
+	Brush statrun;
+	Brush statskip;
 	TextBox capbox;
 	Button capbtn;
 	string capprev = "";
@@ -28,6 +31,19 @@ public partial class AutoKeyWindow : Window {
 		if (!on) lbstat.Text = Loc.T("autokey.idle");
 		else if (skipped) lbstat.Text = Loc.T("autokey.skip", sent);
 		else lbstat.Text = Loc.T("autokey.run", sent);
+		paintstat(on, skipped);
+	}
+
+	void paintstat(bool on, bool skipped) {
+		if (statidle == null) {
+			statidle = (Brush)FindResource("Danger");
+			statrun = (Brush)FindResource("Success");
+			statskip = new SolidColorBrush(Color.FromRgb(217, 119, 6));
+			statskip.Freeze();
+		}
+		if (!on) lbstat.Foreground = statidle;
+		else if (skipped) lbstat.Foreground = statskip;
+		else lbstat.Foreground = statrun;
 	}
 
 	void initev() {
@@ -88,6 +104,7 @@ public partial class AutoKeyWindow : Window {
 		bstart.Content = Loc.T("autokey.start");
 		bclose.Content = Loc.T("close");
 		lbstat.Text = Loc.T("autokey.idle");
+		paintstat(false, false);
 	}
 
 	void loadfields() {

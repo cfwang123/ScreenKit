@@ -91,7 +91,8 @@
 			        AutomationProperties.AutomationId="autokey.close"/>
 			<Button x:Name="bstart" Style="{StaticResource ToolBtn}" Content="开始" Margin="0,0,12,0"
 			        AutomationProperties.AutomationId="autokey.start"/>
-			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+			<TextBlock x:Name="lbstat" VerticalAlignment="Center" FontWeight="SemiBold"
+			           Foreground="{StaticResource Danger}"
 			           Text="已停止" AutomationProperties.AutomationId="autokey.stat"/>
 		</DockPanel>
 	</Grid>
