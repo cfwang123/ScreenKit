@@ -1,5 +1,8 @@
+using System.Collections;
 using System.IO;
+using System.Text;
 using System.Windows;
+using System.Windows.Media.Imaging;
 
 namespace ScreenKit;
 
@@ -24,8 +27,11 @@ public partial class CharArtWindow : Window {
 		ecols.TextChanged += (_, _) => showascii();
 		ckinv.Checked += (_, _) => showascii();
 		ckinv.Unchecked += (_, _) => showascii();
-		PreviewDragOver += ondrag;
-		Drop += ondrop;
+		eout.AllowDrop = true;
+		AddHandler(DragOverEvent, new DragEventHandler(ondrag), true);
+		AddHandler(DropEvent, new DragEventHandler(ondrop), true);
+		eout.AddHandler(DragOverEvent, new DragEventHandler(ondrag), true);
+		eout.AddHandler(DropEvent, new DragEventHandler(ondrop), true);
 	}
 
 	void applylang() {
@@ -49,36 +55,92 @@ public partial class CharArtWindow : Window {
 	}
 
 	void ondrag(object sender, DragEventArgs e) {
-		e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+		e.Effects = candrop(e.Data) ? DragDropEffects.Copy : DragDropEffects.None;
 		e.Handled = true;
 	}
 
 	void ondrop(object sender, DragEventArgs e) {
-		var file = firstimage(e.Data.GetData(DataFormats.FileDrop));
-		if (file != null) load(file);
-	}
-
-	static string firstimage(object data) {
-		if (data is string one) return imagefile(one);
-		if (data is string[] many) {
-			foreach (var p in many) {
-				var hit = imagefile(p);
-				if (hit != null) return hit;
-			}
+		if (e.Handled) return;
+		e.Handled = true;
+		var file = firstpath(e.Data);
+		if (file == null) {
+			lbstat.Text = Loc.T("charart.bad");
+			return;
 		}
-		return null;
+		load(file);
 	}
 
-	static string imagefile(string p) {
-		if (string.IsNullOrWhiteSpace(p)) return null;
-		if (File.Exists(p) && ImageUtil.IsImagePath(p)) return p;
-		if (!Directory.Exists(p)) return null;
+	static bool candrop(IDataObject data) {
+		if (data == null) return false;
 		try {
-			foreach (var f in Directory.GetFiles(p))
-				if (ImageUtil.IsImagePath(f)) return f;
+			if (data.GetDataPresent(DataFormats.FileDrop)) return true;
+			if (data.GetDataPresent(DataFormats.Bitmap)) return true;
+			if (data.GetDataPresent("FileNameW") || data.GetDataPresent("FileName")) return true;
+			if (data.GetDataPresent("FileGroupDescriptorW")) return true;
+		}
+		catch { }
+		return false;
+	}
+
+	static string firstpath(IDataObject data) {
+		if (data == null) return null;
+		var list = new List<string>();
+		try { addfiledrop(data, list); } catch { }
+		if (list.Count == 0) try { addfilename(data, list); } catch { }
+		if (list.Count == 0) try { addvirtual(data, list); } catch { }
+		if (list.Count > 0) return list[0];
+		try {
+			if (!data.GetDataPresent(DataFormats.Bitmap)) return null;
+			var raw = data.GetData(DataFormats.Bitmap);
+			if (raw is BitmapSource bs) return ImgConvert.SaveTemp(bs);
+			if (raw is System.Drawing.Bitmap db) {
+				using (db) {
+					var path = TmpStore.NewPath("charart", ".png");
+					db.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+					return path;
+				}
+			}
 		}
 		catch { }
 		return null;
+	}
+
+	static void addfiledrop(IDataObject data, List<string> list) {
+		var raw = data.GetData(DataFormats.FileDrop);
+		if (raw is string[] arr) list.AddRange(ImgConvert.CollectImages(arr));
+		else if (raw is string one) list.AddRange(ImgConvert.CollectImages(new[] { one }));
+		else if (raw is IEnumerable en) {
+			var paths = new List<string>();
+			foreach (var o in en) {
+				if (o is string s && s.Length > 0) paths.Add(s);
+			}
+			if (paths.Count > 0) list.AddRange(ImgConvert.CollectImages(paths));
+		}
+	}
+
+	static void addfilename(IDataObject data, List<string> list) {
+		var name = data.GetData("FileNameW") as string;
+		if (string.IsNullOrWhiteSpace(name)) name = data.GetData("FileName") as string;
+		if (!string.IsNullOrWhiteSpace(name)) list.AddRange(ImgConvert.CollectImages(new[] { name }));
+	}
+
+	static void addvirtual(IDataObject data, List<string> list) {
+		if (!data.GetDataPresent("FileGroupDescriptorW")) return;
+		if (data.GetData("FileGroupDescriptorW") is not MemoryStream desc) return;
+		var buf = desc.ToArray();
+		if (buf.Length < 4) return;
+		var count = BitConverter.ToInt32(buf, 0);
+		const int descSize = 592;
+		const int nameOff = 72;
+		if (count < 1 || 4 + descSize > buf.Length) return;
+		var name = Encoding.Unicode.GetString(buf, 4 + nameOff, 520).TrimEnd('\0');
+		var ext = Path.GetExtension(name);
+		if (string.IsNullOrEmpty(ext) || !ImageUtil.IsImagePath("x" + ext)) return;
+		if (data.GetData("FileContents") is not Stream content) return;
+		var path = TmpStore.NewPath("charart", ext);
+		using (var fs = File.Create(path)) content.CopyTo(fs);
+		if (new FileInfo(path).Length > 0) list.Add(path);
+		else try { File.Delete(path); } catch { }
 	}
 
 	void load(string file) {

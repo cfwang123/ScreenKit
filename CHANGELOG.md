@@ -130,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page QR caption stays readable. A short window used to squeeze that line until only a sliver of the letters showed.
 - Image convert accepts a dropped JPEG, including a virtual file with no real path. The picture is decoded from memory, so the thumbnail and the encode do not lock the source file.
 - Color character art keeps half blocks, quadrants, and 1/8 to 7/8 blocks when the two colors differ. Nearly identical colors still use a full block.
+- Character art accepts a picture dropped on the text area, including a file, a file name, a virtual JPEG, or a bitmap.
 
 #### Removed
 
@@ -235,6 +236,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页二维码图下的原文保持完整。窗口较矮时，这行字以前会被挤到只剩一条缝。
 - 图片格式转换可以拖入 JPEG，没有真实路径的虚拟文件也会收下。图片在内存里解码，缩略图和转码不再独占源文件。
 - 全色字符画在两种颜色有差别时保留半块、四象限和 1/8～7/8 块。几乎相同的颜色仍用整块。
+- 字符画可以把图片拖到文字区域。文件、文件名、虚拟 JPEG 和位图都可以。
 
 #### 移除
 

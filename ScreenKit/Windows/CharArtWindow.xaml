@@ -35,7 +35,7 @@
 		<TextBlock x:Name="lbhint" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}"
 		           Text="拖入图片。单色用 ASCII。全色在新的命令行窗口里用色块显示。"/>
-		<TextBox x:Name="eout" Grid.Row="2"
+		<TextBox x:Name="eout" Grid.Row="2" AllowDrop="True"
 		         FontFamily="Consolas" FontSize="12"
 		         AcceptsReturn="True" IsReadOnly="True"
 		         TextWrapping="NoWrap"
