@@ -162,6 +162,9 @@
 				<MenuItem x:Name="mnnettool" Header="网络工具(_N)…"
 				          AutomationProperties.AutomationId="menu.nettool"
 				          ToolTip="Ping、域名解析、WHOIS"/>
+				<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
+				          AutomationProperties.AutomationId="menu.httpdbg"
+				          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>
 				<MenuItem x:Name="mnzhconv" Header="简繁转换(_S)…"
 				          AutomationProperties.AutomationId="menu.zhconv"
 				          ToolTip="系统简体/繁体映射，繁体接近台湾用字"/>

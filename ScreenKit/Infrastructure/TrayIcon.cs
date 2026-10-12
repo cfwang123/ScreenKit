@@ -41,6 +41,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miTextTool;
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miNetTool;
+	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miZhConv;
 	Forms.ToolStripMenuItem miPinyin;
 	Forms.ToolStripMenuItem miHtmlUi;
@@ -163,6 +164,7 @@ sealed class TrayIcon : IDisposable {
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
+		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
 		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
 		miHtmlUi = item("tray.htmlui", () => HtmlUiRequested?.Invoke());
@@ -190,6 +192,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miTextTool);
 		miTools.DropDownItems.Add(miPwGen);
 		miTools.DropDownItems.Add(miNetTool);
+		miTools.DropDownItems.Add(miHttpDbg);
 		miTools.DropDownItems.Add(miZhConv);
 		miTools.DropDownItems.Add(miPinyin);
 		miTools.DropDownItems.Add(miHtmlUi);
@@ -397,6 +400,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miTextTool, null);
 		setshortcut(miPwGen, null);
 		setshortcut(miNetTool, null);
+		setshortcut(miHttpDbg, null);
 		setshortcut(miZhConv, null);
 		setshortcut(miPinyin, null);
 		setshortcut(miHtmlUi, null);
@@ -451,6 +455,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miTextTool, "tray.texttool");
 			settext(miPwGen, "tray.pwgen");
 			settext(miNetTool, "tray.nettool");
+			settext(miHttpDbg, "tray.httpdbg");
 			settext(miZhConv, "tray.zhconv");
 			settext(miPinyin, "tray.pinyin");
 			settext(miHtmlUi, "tray.htmlui");
@@ -550,6 +555,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action TextToolRequested;
 	public event Action PwGenRequested;
 	public event Action NetToolRequested;
+	public event Action HttpDbgRequested;
 	public event Action ZhConvRequested;
 	public event Action PinyinRequested;
 	public event Action HtmlUiRequested;

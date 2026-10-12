@@ -1,0 +1,136 @@
+<Window x:Class="ScreenKit.HttpDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HTTP 请求调试"
+        Width="980" Height="700"
+        MinWidth="780" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="httpdbg.window">
+	<Grid Margin="16">
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="280"/>
+			<ColumnDefinition Width="14"/>
+			<ColumnDefinition Width="*"/>
+		</Grid.ColumnDefinitions>
+		<Grid Grid.Column="0">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="140"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+				<RowDefinition Height="Auto"/>
+			</Grid.RowDefinitions>
+			<TextBlock x:Name="lbgroup" Text="分组" Margin="0,0,0,6"/>
+			<ListBox x:Name="egroups" Grid.Row="1" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="httpdbg.groups"/>
+			<StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,12">
+				<Button x:Name="bgroupadd" Style="{StaticResource ToolBtnSm}"
+				        AutomationProperties.AutomationId="httpdbg.group.add"/>
+				<Button x:Name="bgroupren" Style="{StaticResource ToolBtnSm}"
+				        AutomationProperties.AutomationId="httpdbg.group.ren"/>
+				<Button x:Name="bgroupdel" Style="{StaticResource ToolBtnSm}"
+				        AutomationProperties.AutomationId="httpdbg.group.del"/>
+			</StackPanel>
+			<TextBlock x:Name="lbreq" Grid.Row="3" Text="请求" Margin="0,0,0,6"/>
+			<ListBox x:Name="ereqs" Grid.Row="4" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="httpdbg.reqs"/>
+			<StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,8,0,0">
+				<Button x:Name="bnew" Style="{StaticResource ToolBtnSm}"
+				        AutomationProperties.AutomationId="httpdbg.new"/>
+				<Button x:Name="bsave" Style="{StaticResource ToolBtnSm}"
+				        AutomationProperties.AutomationId="httpdbg.save"/>
+				<Button x:Name="bdel" Style="{StaticResource ToolBtnSm}"
+				        AutomationProperties.AutomationId="httpdbg.del"/>
+			</StackPanel>
+		</Grid>
+		<Grid Grid.Column="2">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="2*"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="2*"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="3*"/>
+				<RowDefinition Height="Auto"/>
+			</Grid.RowDefinitions>
+			<Grid Margin="0,0,0,8">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="120"/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="88"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock x:Name="lbname" Text="名称" VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<TextBox x:Name="ename" Grid.Column="1" Height="32" Padding="8,4"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         SpellCheck.IsEnabled="False"
+				         AutomationProperties.AutomationId="httpdbg.name"/>
+				<TextBlock x:Name="lbitemgroup" Grid.Column="2" Text="分组" VerticalAlignment="Center" Margin="12,0,8,0"/>
+				<ComboBox x:Name="eitemgroup" Grid.Column="3" Height="32"
+				          AutomationProperties.AutomationId="httpdbg.itemgroup"/>
+				<TextBlock x:Name="lbmethod" Grid.Column="4" Text="方法" VerticalAlignment="Center" Margin="12,0,8,0"/>
+				<ComboBox x:Name="emethod" Grid.Column="5" Height="32"
+				          AutomationProperties.AutomationId="httpdbg.method"/>
+			</Grid>
+			<Grid Grid.Row="1" Margin="0,0,0,8">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock x:Name="lburl" Text="地址" VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<TextBox x:Name="eurl" Grid.Column="1" Height="32" Padding="8,4"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         SpellCheck.IsEnabled="False"
+				         AutomationProperties.AutomationId="httpdbg.url"/>
+			</Grid>
+			<TextBlock x:Name="lbquery" Grid.Row="2" Margin="0,0,0,4" Foreground="{StaticResource TextMuted}"/>
+			<TextBox x:Name="equery" Grid.Row="3" AcceptsReturn="True" AcceptsTab="True"
+			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+			         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
+			         Padding="8" BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
+			         AutomationProperties.AutomationId="httpdbg.query"/>
+			<DockPanel Grid.Row="4" Margin="0,8,0,4">
+				<TextBlock x:Name="lbbody" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+					<RadioButton x:Name="rparams" GroupName="httpbody" IsChecked="True" VerticalAlignment="Center"
+					             AutomationProperties.AutomationId="httpdbg.params"/>
+					<RadioButton x:Name="rjson" GroupName="httpbody" Margin="16,0,0,0" VerticalAlignment="Center"
+					             AutomationProperties.AutomationId="httpdbg.json"/>
+				</StackPanel>
+			</DockPanel>
+			<TextBox x:Name="ebody" Grid.Row="5" AcceptsReturn="True" AcceptsTab="True"
+			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+			         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
+			         Padding="8" BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
+			         AutomationProperties.AutomationId="httpdbg.body"/>
+			<StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,8,0,0">
+				<Button x:Name="bsend" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+				        AutomationProperties.AutomationId="httpdbg.send"/>
+				<Button x:Name="bstop" Style="{StaticResource ToolBtn}" IsEnabled="False"
+				        AutomationProperties.AutomationId="httpdbg.stop"/>
+			</StackPanel>
+			<TextBlock x:Name="lbstat" Grid.Row="7" Margin="0,8,0,4" Foreground="{StaticResource TextMuted}"
+			           TextWrapping="Wrap"/>
+			<TextBox x:Name="eout" Grid.Row="8" IsReadOnly="True" AcceptsReturn="True"
+			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+			         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
+			         Padding="8" BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
+			         AutomationProperties.AutomationId="httpdbg.out"/>
+			<DockPanel Grid.Row="9" Margin="0,8,0,0">
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+					<Button x:Name="bcopy" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"/>
+					<Button x:Name="bclose" Style="{StaticResource ToolBtn}"/>
+				</StackPanel>
+			</DockPanel>
+		</Grid>
+	</Grid>
+</Window>
