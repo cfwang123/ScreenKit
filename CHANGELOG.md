@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- The tools page board fills its card and does not scroll. The title and the hint are hidden. A rectangle, ellipse, arrow, or pen stroke is painted onto the picture. Only a pasted picture or text can be moved or resized.
 - **Tools → Auto key** listens for its hotkey only while that window is open. Closing the window unregisters the hotkey and stops a run that is still sending.
 - Starting no longer puts the SendFile listen line on the status bar.
 - PDF workbench is on the Tools menu. It is no longer on the File menu.
@@ -108,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **Help → Install features** treats a `dict2.db` symbolic link beside the program as installed when the target is at least 100 MB. Windows reports the link itself as 0 bytes.
 - The Common colors grid keeps its swatch size and scrolls. A short or narrow window used to squeeze every card until the color band collapsed to nothing, and the clipped rows could not be reached.
 - The tools page QR caption stays readable. A short window used to squeeze that line until only a sliver of the letters showed.
+- Image convert accepts a dropped JPEG, including a virtual file with no real path. The picture is decoded from memory, so the thumbnail and the encode do not lock the source file.
 
 #### Removed
 
@@ -151,6 +153,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 工具页画板铺满卡片，不显示标题和说明，页面不滚动。矩形、椭圆、箭头和画笔直接画进图里。只有粘贴的图片和文字可以拖动、改大小。
 - **工具 → 自动按键**只在该窗口打开时监听快捷键。关掉窗口就注销快捷键，正在发送的也会停。
 - 启动时状态栏不再显示 SendFile 的监听端口。
 - PDF 识别工作台改到「工具」菜单，不再放在「文件」菜单。
@@ -190,6 +193,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **帮助 → 安装功能**把程序旁的 `dict2.db` 符号链接按目标文件判断。目标至少 100 MB 时词典显示已安装。Windows 把链接本身报成 0 字节。
 - 常用颜色表不再被压扁：色卡保持大小，内容区自己滚动。以前窗口矮或窄时每张色卡会被等分压缩，色条被挤成一条线，超出的行也滚不到。
 - 工具页二维码图下的原文保持完整。窗口较矮时，这行字以前会被挤到只剩一条缝。
+- 图片格式转换可以拖入 JPEG，没有真实路径的虚拟文件也会收下。图片在内存里解码，缩略图和转码不再独占源文件。
 
 #### 移除
 
