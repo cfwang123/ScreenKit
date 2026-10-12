@@ -1,38 +1,121 @@
 (function(){
-	var KINDS = [
-		["name", "中文姓名"],
-		["cnnick", "中文网名"],
-		["ennick", "英文网名"],
-		["mail", "邮箱"],
-		["phone", "手机"],
-		["addr", "地址"],
-		["corp", "公司"],
-		["user", "用户名"],
-		["id", "身份证"],
-		["mac", "MAC 地址"],
-		["uuid", "UUID"]
+	var BASE = [
+		["name", "中文姓名", "web.fake.name"],
+		["cnnick", "中文网名", "web.fake.cnnick"],
+		["ennick", "英文网名", "web.fake.ennick"],
+		["mail", "邮箱", "web.fake.mail"],
+		["phone", "手机", "web.fake.phone"],
+		["addr", "地址", "web.fake.addr"],
+		["corp", "公司", "web.fake.corp"],
+		["user", "用户名", "web.fake.user"],
+		["id", "身份证", "web.fake.id"],
+		["mac", "MAC 地址", "web.fake.mac"],
+		["uuid", "UUID", "web.fake.uuid"]
+	];
+	var EXTRA = [
+		["enname", "英文姓名", "web.fake.enname"],
+		["job", "职位", "web.fake.job"],
+		["city", "城市", "web.fake.city"],
+		["url", "网址", "web.fake.url"],
+		["ip", "IP 地址", "web.fake.ip"],
+		["color", "颜色", "web.fake.color"],
+		["date", "日期", "web.fake.date"],
+		["sentence", "句子", "web.fake.sentence"],
+		["product", "商品", "web.fake.product"]
 	];
 	var SUR = "赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张";
 	var GIV = "伟芳娜敏静磊洋艳勇杰涛明超秀英丽强军平刚桂英";
-	SK.regutil("u-fake", {
+	var bogus = false;
+	var spec = {
 		title: "生成测试数据",
 		go: "生成",
+		own: false,
 		body: function(){
 			var kind = SK.fakepick || "name";
 			SK.fakepick = "";
 			return SK.row2(
-				SK.lab("类型", '<select id="box-kind">' + SK.opts(KINDS, kind) + "</select>"),
-				SK.lab("行数", SK.numin("box-n", "10")));
+				SK.lab("类型", '<select id="box-kind">' + kindhtml(BASE, kind) + "</select>"),
+				SK.lab("行数", SK.numin("box-n", "10")))
+				+ '<p id="box-bogus" class="hint" data-k="web.fake.off">' + hint("web.fake.off") + "</p>";
 		},
 		open: function(){
-			if (!SK.fakerun) return;
-			SK.fakerun = 0;
-			SK.utilrun();
+			refreshbogus(function(){
+				if (SK.fakerun) {
+					SK.fakerun = 0;
+					SK.utilrun();
+					return;
+				}
+				if (bogus && SK.$("box-out") && SK.$("box-out").value) SK.utilrun();
+			});
 		},
-		run: function(){
-			return fakedata(SK.val("box-n"), SK.val("box-kind"));
+		run: run
+	};
+	SK.regutil("u-fake", spec);
+
+	function run(){
+		try {
+			var n = SK.val("box-n");
+			var kind = SK.val("box-kind");
+			if (!bogus) return fakedata(n, kind);
+			var count = parseInt(n, 10);
+			if (!(count >= 1 && count <= 50)) throw new Error("行数要在 1 到 50");
+			SK.post("/api/fake", { kind: kind, n: count }, function(data){
+				SK.$("box-out").value = data.text || "";
+				SK.msg("box-msg", "完成");
+			}, "box-msg");
 		}
-	});
+		catch (ex) {
+			if (!spec.own) throw ex;
+			SK.$("box-out").value = "";
+			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
+		}
+	}
+
+	function refreshbogus(done){
+		SK.get("/api/fake", function(data){
+			bogus = !!(data && data.installed);
+			spec.own = bogus;
+			var sel = SK.$("box-kind");
+			var cur = sel ? sel.value : "name";
+			if (sel) sel.innerHTML = kindhtml(bogus ? BASE.concat(EXTRA) : BASE, cur);
+			var el = SK.$("box-bogus");
+			if (el) {
+				var key = bogus ? "web.fake.on" : "web.fake.off";
+				el.setAttribute("data-k", key);
+				el.textContent = hint(key);
+			}
+			if (done) done();
+		}, "", function(){
+			bogus = false;
+			spec.own = false;
+			if (done) done();
+		});
+	}
+
+	function hint(key){
+		var s = SK.t(key);
+		if (s) return s;
+		if (key === "web.fake.on") return "Bogus 已安装";
+		return "Bogus 未安装，正在用内置数据。可在「帮助 → 安装功能」里安装";
+	}
+
+	function kindhtml(list, sel){
+		var html = "";
+		var i;
+		var found = false;
+		for (i = 0; i < list.length; i++) {
+			if (list[i][0] === sel) found = true;
+		}
+		if (!found) sel = list[0][0];
+		for (i = 0; i < list.length; i++) {
+			var key = list[i][2];
+			var label = SK.t(key) || list[i][1];
+			html += '<option value="' + list[i][0] + '" data-k="' + key + '"'
+				+ (list[i][0] === sel ? " selected" : "") + ">" + label + "</option>";
+		}
+		return html;
+	}
+
 	function fakedata(count, kind){
 		var n = parseInt(count, 10);
 		if (!(n >= 1 && n <= 50)) throw new Error("行数要在 1 到 50");
