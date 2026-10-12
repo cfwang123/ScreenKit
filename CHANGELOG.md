@@ -110,6 +110,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The chat room can send a message to yourself, and your name is listed with the other people. The nickname field matches the gender list and the join button.
 - Date math takes a date and time. The unit sits after the amount when adding or subtracting.
 - Tools page: the 8-bit synthesizer's octave keys are now Shift (one octave up) and Alt (one octave down) while held, instead of Ctrl and Shift.
+- The tools page reads a number in Chinese and English, and lists grouped digits, scientific notation, percent, formal Chinese, Roman numerals, and base 2, 8, and 16.
 
 #### Fixed
 
@@ -207,6 +208,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 聊天室可以给自己发消息，在线名单里也有自己。昵称框与性别、进入按钮样式一致。
 - 日期计算改为输入日期时间。日期加减时，单位放在数量后面。
 - 工具页：8bit合成器升降 8 度的键从 Ctrl/Shift 改成按住 Shift 升、Alt 降。
+- 工具页输入数字后列出中文读法、英文读法，以及千分位、科学计数、百分数、中文大写、罗马数字和二、八、十六进制。
 
 #### 修复
 

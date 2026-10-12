@@ -15,6 +15,10 @@
 	var watch = null;
 	var hooked = false;
 	var busy = false;
+	var PALETTE = [
+		"#000000", "#808080", "#800000", "#808000", "#008000", "#008080", "#000080", "#800080", "#808040", "#004040", "#0080FF", "#004080", "#8000FF", "#804000",
+		"#FFFFFF", "#C0C0C0", "#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF", "#FFFF80", "#00FF80", "#80FFFF", "#8080FF", "#FF0080", "#FF8040"
+	];
 	var FB = {
 		"web.board.copied": "已复制",
 		"web.board.saved": "已保存",
@@ -35,6 +39,7 @@
 	function body(){
 		return '<div class="board">'
 			+ '<div class="board-bar">'
+			+ '<div class="board-tools">'
 			+ tbtn("select", "web.board.select", "选择", true)
 			+ tbtn("rect", "web.board.rect", "矩形", false)
 			+ tbtn("ellipse", "web.board.ellipse", "椭圆", false)
@@ -43,14 +48,15 @@
 			+ tbtn("lasso", "web.board.lasso", "圈选", false)
 			+ tbtn("text", "web.board.text", "文字", false)
 			+ '<span class="sep"></span>'
-			+ '<input type="color" id="board-color" value="' + color + '" data-ktip="web.board.color" title="' + tip("web.board.color", "颜色") + '">'
-			+ '<select id="board-w" data-ktip="web.board.wide" title="' + tip("web.board.wide", "线宽") + '"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select>'
+			+ wbtn(2) + wbtn(4) + wbtn(8)
 			+ '<span class="sep"></span>'
 			+ abtn("paste", "web.board.paste", "粘贴")
 			+ abtn("undo", "web.board.undo", "撤销")
 			+ abtn("clear", "web.board.clear", "清空")
 			+ abtn("copy", "web.board.copy", "复制图片")
 			+ abtn("save", "web.board.save", "保存")
+			+ "</div>"
+			+ colors()
 			+ "</div>"
 			+ '<div class="board-stage select"><canvas id="board-cv"></canvas>'
 			+ '<input id="board-txt" class="board-text" type="text" hidden spellcheck="false">'
@@ -64,12 +70,29 @@
 
 	function tbtn(name, key, fb, on){
 		return '<button type="button" data-board="' + name + '"' + (on ? ' class="on"' : "") + ' data-ktip="' + key + '" title="' + tip(key, fb) + '">'
-			+ icon(name) + '<span data-k="' + key + '">' + tip(key, fb) + "</span></button>";
+			+ icon(name) + "</button>";
 	}
 
 	function abtn(name, key, fb){
 		return '<button type="button" data-act="' + name + '" data-ktip="' + key + '" title="' + tip(key, fb) + '">'
-			+ icon(name) + '<span data-k="' + key + '">' + tip(key, fb) + "</span></button>";
+			+ '<span data-k="' + key + '">' + tip(key, fb) + "</span></button>";
+	}
+
+	function wbtn(n){
+		return '<button type="button" data-w="' + n + '"' + (width === n ? ' class="on"' : "") + ' data-ktip="web.board.wide" title="' + tip("web.board.wide", "线宽") + '">' + n + "</button>";
+	}
+
+	function colors(){
+		var top = "", bot = "", i, hex, btn;
+		for (i = 0; i < PALETTE.length; i++) {
+			hex = PALETTE[i];
+			btn = '<button type="button" data-color="' + hex + '"' + (hex.toLowerCase() === String(color).toLowerCase() ? ' class="on"' : "") + ' title="' + hex + '" style="background:' + hex + '"></button>';
+			if (i < 14) top += btn;
+			else bot += btn;
+		}
+		return '<div class="board-colors">'
+			+ '<input type="color" id="board-color" value="' + color + '" data-ktip="web.board.color" title="' + tip("web.board.color", "颜色") + '">'
+			+ '<span class="board-swatches"><span>' + top + "</span><span>" + bot + "</span></span></div>";
 	}
 
 	function icon(name){
@@ -80,12 +103,7 @@
 			arrow: '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M2.8 13.2L13.2 2.8M8.2 2.8h5v5"/>',
 			pen: '<path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" d="M2.6 12.2l2.8-2.8 6.2-6.2 2.2 2.2-6.2 6.2-2.8 2.8-2.2-2.2zm6.6-7.6l2.2 2.2"/>',
 			lasso: '<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2.2 1.4" d="M8.1 2.5a4.3 3.6 0 1 0 .5 6.9"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8.4 9.2l2.3 3.3"/>',
-			text: '<path fill="currentColor" d="M2.2 2.2h11.6v2.2H9.2v9.2H6.8V4.4H2.2V2.2z"/>',
-			paste: '<path fill="currentColor" d="M5 1.6h6v2.2h2.2v10.6H2.8V3.8H5V1.6zm1.2 1.2v2h3.6V2.8H6.2zM4.4 6.2h7.2v6.6H4.4V6.2z"/>',
-			undo: '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3 7.2h6.6a3.2 3.2 0 1 1 0 6.4H6.2M3 7.2l2.6-2.6M3 7.2l2.6 2.6"/>',
-			clear: '<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3 4.2h10M5.2 4.2l.7 9h4.2l.7-9M6.4 4.2V2.4h3.2v1.8"/>',
-			copy: '<path fill="none" stroke="currentColor" stroke-width="1.4" d="M6 2.4h7.2v8.4H6zM2.8 5.2v8.4h7.2"/>',
-			save: '<path fill="currentColor" d="M2.4 2h8.2l3 3v8.8H2.4V2zm1.6 1.2v3.6h6.4V3.2H4zm.6 6.2h6.8v3.4H4.6V9.4z"/>'
+			text: '<path fill="currentColor" d="M2.2 2.2h11.6v2.2H9.2v9.2H6.8V4.4H2.2V2.2z"/>'
 		};
 		return '<svg viewBox="0 0 16 16" aria-hidden="true">' + (d[name] || "") + "</svg>";
 	}
@@ -104,12 +122,7 @@
 		var col = SK.$("board-color");
 		if (col) {
 			col.value = color;
-			col.oninput = function(){ color = col.value; };
-		}
-		var wsel = SK.$("board-w");
-		if (wsel) {
-			wsel.value = String(width);
-			wsel.onchange = function(){ width = parseInt(wsel.value, 10) || 4; };
+			col.oninput = function(){ setcolor(col.value); };
 		}
 		var txt = SK.$("board-txt");
 		if (txt) {
@@ -120,6 +133,8 @@
 			txt.onblur = function(){ committext(true); };
 		}
 		settool(tool);
+		setwidth(width);
+		setcolor(color);
 		fit();
 		requestAnimationFrame(fit);
 		if (watch) watch.disconnect();
@@ -142,6 +157,8 @@
 		var mode = el.getAttribute("data-board");
 		var act = el.getAttribute("data-act");
 		if (mode) settool(mode);
+		else if (el.getAttribute("data-color")) setcolor(el.getAttribute("data-color"));
+		else if (el.getAttribute("data-w")) setwidth(parseInt(el.getAttribute("data-w"), 10) || 4);
 		else if (act === "paste") dopaste();
 		else if (act === "undo") undolast();
 		else if (act === "clear") clearall();
@@ -158,6 +175,24 @@
 			nodes[i].className = nodes[i].getAttribute("data-board") === name ? "on" : "";
 		var stage = document.querySelector(".board-stage");
 		if (stage) stage.className = "board-stage" + (name === "select" ? " select" : "");
+	}
+
+	function setwidth(n){
+		width = n;
+		var nodes = document.querySelectorAll(".board-tools [data-w]");
+		var i;
+		for (i = 0; i < nodes.length; i++)
+			nodes[i].className = String(nodes[i].getAttribute("data-w")) === String(n) ? "on" : "";
+	}
+
+	function setcolor(hex){
+		color = hex;
+		var col = SK.$("board-color");
+		if (col && col.value !== hex) col.value = hex;
+		var nodes = document.querySelectorAll(".board-colors [data-color]");
+		var i, want = String(hex).toLowerCase();
+		for (i = 0; i < nodes.length; i++)
+			nodes[i].className = String(nodes[i].getAttribute("data-color")).toLowerCase() === want ? "on" : "";
 	}
 
 	function onkey(ev){
