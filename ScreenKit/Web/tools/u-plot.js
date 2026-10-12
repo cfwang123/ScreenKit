@@ -2,7 +2,7 @@
 	var mode = "2";
 	var fn = null;
 	var view = { x0: -8, x1: 8, y0: -5, y1: 5 };
-	var cam = { cx: 0, cy: 0, span: 4, yaw: -0.6, pitch: 0.65 };
+	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
 	var canvas = null;
 	var watch = null;
 	var drag = null;
@@ -36,7 +36,7 @@
 			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。")) + '">'
 			+ '<button type="button" data-act="reset" data-k="web.plot.reset">' + SK.esc(tt("web.plot.reset", "复位")) + "</button>"
 			+ "</div>"
-			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。")) + "</p>"
+			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。")) + "</p>"
 			+ '<div class="plot-stage"><canvas id="plot-cv"></canvas></div>'
 			+ '<p class="hint" id="plot-msg"></p>'
 			+ "</div>";
@@ -97,7 +97,8 @@
 		if (mode === "3") {
 			cam.cx = 0;
 			cam.cy = 0;
-			cam.span = 4;
+			cam.xspan = 4;
+			cam.yspan = 4;
 			cam.yaw = -0.6;
 			cam.pitch = 0.65;
 			return;
@@ -153,7 +154,7 @@
 		drag = {
 			x: ev.clientX, y: ev.clientY, button: ev.button, shift: !!ev.shiftKey,
 			x0: view.x0, x1: view.x1, y0: view.y0, y1: view.y1,
-			cx: cam.cx, cy: cam.cy, yaw: cam.yaw, pitch: cam.pitch
+			cx: cam.cx, cy: cam.cy, xspan: cam.xspan, yspan: cam.yspan, yaw: cam.yaw, pitch: cam.pitch
 		};
 		canvas.className = "drag";
 		if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId);
@@ -168,9 +169,8 @@
 			if (pan) {
 				var stage = canvas.parentElement;
 				var w = stage.clientWidth || 1;
-				var units = cam.span * 2 / w;
-				cam.cx = drag.cx - dx * units;
-				cam.cy = drag.cy + dy * units;
+				cam.cx = drag.cx - dx * (drag.xspan * 2 / w);
+				cam.cy = drag.cy + dy * (drag.yspan * 2 / w);
 			}
 			else {
 				cam.yaw = drag.yaw + dx * 0.01;
@@ -201,11 +201,14 @@
 	function wheel(ev){
 		if (!canvas) return;
 		ev.preventDefault();
-		var factor = ev.deltaY > 0 ? 1.12 : 1 / 1.12;
+		var delta = ev.deltaY || ev.deltaX;
+		if (!delta) return;
+		var factor = delta > 0 ? 1.12 : 1 / 1.12;
+		var xonly = ev.ctrlKey && !ev.shiftKey;
+		var yonly = ev.shiftKey && !ev.ctrlKey;
 		if (mode === "3") {
-			cam.span *= factor;
-			if (cam.span < 0.05) cam.span = 0.05;
-			if (cam.span > 1000) cam.span = 1000;
+			if (!yonly) setspan("xspan", factor);
+			if (!xonly) setspan("yspan", factor);
 			paint();
 			return;
 		}
@@ -214,19 +217,32 @@
 		var py = ev.clientY - rect.top;
 		var w = rect.width || 1;
 		var h = rect.height || 1;
-		var mx = view.x0 + px / w * (view.x1 - view.x0);
-		var my = view.y1 - py / h * (view.y1 - view.y0);
-		var nx0 = mx - (mx - view.x0) * factor;
-		var nx1 = mx + (view.x1 - mx) * factor;
-		var ny0 = my - (my - view.y0) * factor;
-		var ny1 = my + (view.y1 - my) * factor;
-		if (nx1 - nx0 < 1e-6 || nx1 - nx0 > 1e6) return;
-		if (ny1 - ny0 < 1e-6 || ny1 - ny0 > 1e6) return;
-		view.x0 = nx0;
-		view.x1 = nx1;
-		view.y0 = ny0;
-		view.y1 = ny1;
+		if (!yonly) {
+			var mx = view.x0 + px / w * (view.x1 - view.x0);
+			var nx0 = mx - (mx - view.x0) * factor;
+			var nx1 = mx + (view.x1 - mx) * factor;
+			if (nx1 - nx0 >= 1e-6 && nx1 - nx0 <= 1e6) {
+				view.x0 = nx0;
+				view.x1 = nx1;
+			}
+		}
+		if (!xonly) {
+			var my = view.y1 - py / h * (view.y1 - view.y0);
+			var ny0 = my - (my - view.y0) * factor;
+			var ny1 = my + (view.y1 - my) * factor;
+			if (ny1 - ny0 >= 1e-6 && ny1 - ny0 <= 1e6) {
+				view.y0 = ny0;
+				view.y1 = ny1;
+			}
+		}
 		paint();
+	}
+
+	function setspan(key, factor){
+		var v = cam[key] * factor;
+		if (v < 0.05) v = 0.05;
+		if (v > 1000) v = 1000;
+		cam[key] = v;
 	}
 
 	function draw2(ctx, w, h){
@@ -312,12 +328,13 @@
 	function draw3(ctx, w, h){
 		var n = 46;
 		var grid = n + 1;
+		var fit = Math.max(cam.xspan, cam.yspan);
 		var zraw = new Array(grid * grid);
 		var i, j, x, y, z, finite = [];
 		for (j = 0; j < grid; j++) {
-			y = cam.cy - cam.span + cam.span * 2 * j / n;
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
 			for (i = 0; i < grid; i++) {
-				x = cam.cx - cam.span + cam.span * 2 * i / n;
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
 				z = fn ? ev(fn, x, y) : NaN;
 				zraw[j * grid + i] = z;
 				if (isFinite(z)) finite.push(z);
@@ -333,23 +350,23 @@
 		}
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
-		var zfit = cam.span / (hi - lo);
-		var scale = Math.min(w, h) * 0.42 / cam.span;
+		var zfit = fit / (hi - lo);
+		var scale = Math.min(w, h) * 0.42 / fit;
 		var pts = new Array(grid * grid);
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		for (j = 0; j < grid; j++) {
-			y = cam.cy - cam.span + cam.span * 2 * j / n;
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
 			for (i = 0; i < grid; i++) {
-				x = cam.cx - cam.span + cam.span * 2 * i / n;
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
 				z = zraw[j * grid + i];
 				var ok = isFinite(z);
 				if (ok) {
 					if (z < lo - pad) z = lo - pad;
 					else if (z > hi + pad) z = hi + pad;
 				}
-				var X = x - cam.cx;
-				var Y = y - cam.cy;
+				var X = (x - cam.cx) / cam.xspan * fit;
+				var Y = (y - cam.cy) / cam.yspan * fit;
 				var Z = ok ? (z - zmid) * zfit : 0;
 				var x1 = X * cyaw - Y * syaw;
 				var y1 = X * syaw + Y * cyaw;
@@ -405,8 +422,9 @@
 
 	function drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
 		function proj(x, y, z){
-			var X = x - cam.cx;
-			var Y = y - cam.cy;
+			var fit = Math.max(cam.xspan, cam.yspan);
+			var X = (x - cam.cx) / cam.xspan * fit;
+			var Y = (y - cam.cy) / cam.yspan * fit;
 			var Z = (z - zmid) * zfit;
 			var x1 = X * cyaw - Y * syaw;
 			var y1 = X * syaw + Y * cyaw;
@@ -414,8 +432,8 @@
 			return { x: w / 2 + x1 * scale, y: h / 2 - z2 * scale };
 		}
 		var o = proj(0, 0, 0);
-		var ax = proj(cam.span * 0.85, 0, 0);
-		var ay = proj(0, cam.span * 0.85, 0);
+		var ax = proj(cam.xspan * 0.85, 0, 0);
+		var ay = proj(0, cam.yspan * 0.85, 0);
 		var az = proj(0, 0, hi);
 		ctx.lineWidth = 1.5;
 		ctx.font = '12px "Segoe UI", "Microsoft YaHei UI", sans-serif';

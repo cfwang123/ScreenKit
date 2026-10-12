@@ -125,6 +125,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation also leaves the Korean native reading and the base-2, base-8, and base-16 cells blank when they do not apply.
 - Number notation is listed under Text on the tools page.
 - The web tools page has a top bar with the logo, back, favorite, and language. Opening a tool hides the left category list.
+- Function graph: hold Ctrl to zoom the x-axis only, or Shift to zoom the y-axis only.
 
 #### Fixed
 
@@ -243,6 +244,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记在韩文固有和二、八、十六进制不适用时也留空。
 - 工具页里数字表记改到「文字」。
 - web 工具页上方增加标题栏，放 logo、返回、收藏和语言。进入工具后隐藏左侧分类栏。
+- 函数图像按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。
 
 #### 修复
 
