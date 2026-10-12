@@ -101,6 +101,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Random colors list HEX, RGB, HSL, HSV, CMYK, and YUV. Click one value to copy it. Pick color also writes YUV (BT.601 full range, 0-255).
 - CSS gradient on the tools page supports linear, radial, and conic gradients. Linear and conic take an angle. The preview and the background code update as you change the settings.
 - Image convert places palette colors to minimize the total squared error. A palette color does not have to be a color from the picture.
+- Random color on the tools page defaults to 10 colors and generates once when the card opens.
+- The placeholder image redraws as soon as width, height, colors, or caption change. Ctrl+C or Copy result puts the PNG on the clipboard.
 
 #### Fixed
 
@@ -189,6 +191,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页随机颜色列出 HEX、RGB、HSL、HSV、CMYK 和 YUV，点一个色值就复制它。取色也写出 YUV（BT.601 全范围，0–255）。
 - 工具页 CSS 渐变支持线性、径向和锥形。线性和锥形可设角度。预览和 background 代码随设置立即更新。
 - 图片格式转换的调色板按总平方色差最小来分配颜色，调色板里的颜色不必取自原图。
+- 工具页随机颜色默认 10 个，打开后立即生成一次。
+- 占位图在改宽高、颜色或文字后马上出预览。Ctrl+C 或「复制结果」把 PNG 放进剪贴板。
 
 #### 修复
 

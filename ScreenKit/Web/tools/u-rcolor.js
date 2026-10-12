@@ -3,7 +3,10 @@
 		title: "随机颜色",
 		go: "生成",
 		body: function(){
-			return SK.lab("个数", SK.numin("box-n", "5"));
+			return SK.lab("个数", SK.numin("box-n", "10"));
+		},
+		open: function(){
+			if (SK.utilrun) SK.utilrun();
 		},
 		run: function(){
 			return rcolor(SK.val("box-n"));
