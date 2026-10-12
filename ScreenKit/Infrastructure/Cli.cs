@@ -2940,6 +2940,27 @@ static class Cli {
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int pngplte(byte[] png, out int colorType, out int bitDepth) {
+		colorType = -1;
+		bitDepth = -1;
+		var plte = -1;
+		if (png == null || png.Length < 8) return plte;
+		var i = 8;
+		while (i + 12 <= png.Length) {
+			var len = (png[i] << 24) | (png[i + 1] << 16) | (png[i + 2] << 8) | png[i + 3];
+			if (len < 0 || i + 12L + len > png.Length) break;
+			var type = Encoding.ASCII.GetString(png, i + 4, 4);
+			if (type == "IHDR" && len >= 13) {
+				bitDepth = png[i + 16];
+				colorType = png[i + 17];
+			}
+			else if (type == "PLTE") plte = len / 3;
+			else if (type == "IEND") break;
+			i += 12 + len;
+		}
+		return plte;
+	}
+
 	static int testimgconvert() {
 		Out("=== 图片格式转换 --test-img-convert ===");
 		var bad = 0;
@@ -3043,6 +3064,59 @@ static class Cli {
 				}
 				else Out("png size OK 200x100");
 			}
+
+			if (ImgConvert.NormFmt("png8") != "png8" || ImgConvert.NormFmt("palette") != "png8") {
+				Err("FAIL: png8 格式名");
+				bad++;
+			}
+			if (ImgConvert.ExtOf("png8") != ".png") {
+				Err("FAIL: png8 扩展名 " + ImgConvert.ExtOf("png8"));
+				bad++;
+			}
+			if (ImgConvert.NormPngColors(0) != 256 || ImgConvert.NormPngColors(3) != 4) {
+				Err($"FAIL: 颜色数 {ImgConvert.NormPngColors(0)} {ImgConvert.NormPngColors(3)}");
+				bad++;
+			}
+			var palDir = Path.Combine(dir, "palout");
+			Directory.CreateDirectory(palDir);
+			var palName = ImgConvert.MakeOutPath(src, "png8", false, palDir, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+			if (!palName.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || palName.EndsWith(".png8", StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL: png8 输出路径 " + palName);
+				bad++;
+			}
+			var pal = ImgConvert.Encode(src, "png8", 60, false, 1920, 1080, 0, false, CancellationToken.None, pngColors: 16);
+			var plte = pngplte(pal, out var colorType, out var bitDepth);
+			if (colorType != 3 || bitDepth != 8 || plte != 16) {
+				Err($"FAIL: png8 IHDR type={colorType} depth={bitDepth} PLTE={plte} 期望 3/8/16");
+				bad++;
+			}
+			else Out($"png8 PLTE {plte}");
+			using (var msPal = new MemoryStream(pal))
+			using (var palImg = new System.Drawing.Bitmap(msPal)) {
+				if (palImg.Width != 200 || palImg.Height != 100) {
+					Err($"FAIL: png8 尺寸 {palImg.Width}x{palImg.Height}");
+					bad++;
+				}
+				var uniq = new HashSet<int>();
+				for (var y = 0; y < palImg.Height; y += 2) {
+					for (var x = 0; x < palImg.Width; x += 2) {
+						var c = palImg.GetPixel(x, y);
+						uniq.Add((c.R << 16) | (c.G << 8) | c.B);
+					}
+				}
+				if (uniq.Count > 16 || uniq.Count < 2) {
+					Err($"FAIL: png8 抽样颜色 {uniq.Count}");
+					bad++;
+				}
+				else Out($"png8 colors {uniq.Count}");
+			}
+			var pal2 = ImgConvert.Encode(src, "png8", 60, false, 1920, 1080, 0, false, CancellationToken.None, pngColors: 2);
+			var plte2 = pngplte(pal2, out _, out _);
+			if (plte2 != 2) {
+				Err("FAIL: png8 2 色 PLTE " + plte2);
+				bad++;
+			}
+			else Out("png8 2 colors OK");
 
 			var q20 = ImgConvert.Encode(src, "jpg", 20, false, 1920, 1080, 0, false, CancellationToken.None);
 			var q90 = ImgConvert.Encode(src, "jpg", 90, false, 1920, 1080, 0, false, CancellationToken.None);

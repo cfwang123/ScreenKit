@@ -134,6 +134,8 @@ static class AppConfig {
 			}
 			if (map.TryGetValue("imgconv_format", out var icfmt) && !string.IsNullOrWhiteSpace(icfmt))
 				o.ImgConvFormat = ImgConvert.NormFmt(icfmt.Trim().Trim('"'));
+			if (map.TryGetValue("imgconv_png_colors", out var icpc) && int.TryParse(icpc, out var icPal))
+				o.ImgConvPngColors = ImgConvert.NormPngColors(icPal);
 			if (map.TryGetValue("imgconv_jpg_quality", out var icq) && int.TryParse(icq, out var icQ))
 				o.ImgConvJpgQuality = Compat.Clamp(icQ, 1, 100);
 			if (map.TryGetValue("imgconv_short", out var icss))
@@ -625,8 +627,9 @@ static class AppConfig {
 		sb.AppendLine($"screenshot_short_px = {Compat.Clamp(o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx, 16, 16384)}");
 		var icFmt = ImgConvert.NormFmt(o.ImgConvFormat);
 		var icOut = ImgConvert.NormOutMode(o.ImgConvOutMode);
-		sb.AppendLine($"# 图片格式转换：jpg | png | bmp；输出 beside | other | replace | recycle");
+		sb.AppendLine($"# 图片格式转换：jpg | png | png8 | bmp；png8 为调色板，颜色数 2/4/8/16/32/64/128/256；输出 beside | other | replace | recycle");
 		sb.AppendLine($"imgconv_format = \"{icFmt}\"");
+		sb.AppendLine($"imgconv_png_colors = {ImgConvert.NormPngColors(o.ImgConvPngColors)}");
 		sb.AppendLine($"imgconv_jpg_quality = {Compat.Clamp(o.ImgConvJpgQuality <= 0 ? 60 : o.ImgConvJpgQuality, 1, 100)}");
 		sb.AppendLine($"# 较短边上限：宽高里较小的一边超过则等比缩小，不放大");
 		sb.AppendLine($"imgconv_short = {(o.ImgConvShortEnabled ? "true" : "false")}");

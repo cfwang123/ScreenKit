@@ -215,8 +215,10 @@ public sealed class OcrOptions {
 	public string ScreenshotDir = "";
 	/// <summary>截图文件名格式。默认 shot_yyyyMMdd_HHmmss_fff。#### 为序号，rrr 为随机数字。</summary>
 	public string ScreenshotName = ImageUtil.ScreenshotNameDefault;
-	/// <summary>图片格式转换：目标格式 jpg / png / bmp（默认 jpg）。</summary>
+	/// <summary>图片格式转换：目标格式 jpg / png / png8 / bmp（默认 jpg）。png8 为调色板 PNG。</summary>
 	public string ImgConvFormat = "jpg";
+	/// <summary>PNG 调色板颜色数：2/4/8/16/32/64/128/256（默认 256）。</summary>
+	public int ImgConvPngColors = 256;
 	/// <summary>图片格式转换 JPG 质量 1–100（默认 60）。</summary>
 	public int ImgConvJpgQuality = 60;
 	/// <summary>图片格式转换是否限制较短边（超过则等比缩小，不放大）。</summary>
@@ -564,6 +566,7 @@ public sealed class OcrOptions {
 		ScreenshotName = string.IsNullOrWhiteSpace(ScreenshotName)
 			? ImageUtil.ScreenshotNameDefault : ScreenshotName,
 		ImgConvFormat = ImgConvFormat ?? "jpg",
+		ImgConvPngColors = ImgConvPngColors,
 		ImgConvJpgQuality = ImgConvJpgQuality,
 		ImgConvShortEnabled = ImgConvShortEnabled,
 		ImgConvShortPx = ImgConvShortPx,

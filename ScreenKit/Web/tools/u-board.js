@@ -629,7 +629,7 @@
 	}
 
 	function drawimg(ctx, it){
-		if (!it.img) return;
+		if (!it.img || it.img.complete === false || !it.img.naturalWidth) return;
 		ctx.drawImage(it.img, it.x, it.y, it.w, it.h);
 	}
 

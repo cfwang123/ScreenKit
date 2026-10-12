@@ -45,6 +45,7 @@ public partial class ImgConvertWindow : Window {
 		bgo.Click += (_, _) => _ = go();
 		bclose.Click += (_, _) => Close();
 		efmt.SelectionChanged += (_, _) => { syncfmtui(); queuepreview(); };
+		ecolors.SelectionChanged += (_, _) => queuepreview();
 		ejpgq.TextChanged += (_, _) => queuepreview();
 		eshorten.Checked += (_, _) => queuepreview();
 		eshorten.Unchecked += (_, _) => queuepreview();
@@ -75,6 +76,8 @@ public partial class ImgConvertWindow : Window {
 		lbfmt.Text = Loc.T("imgconv.fmt");
 		lbjpgq.Text = Loc.T("imgconv.jpgq");
 		ejpgq.ToolTip = Loc.T("imgconv.jpgq.tip");
+		lbcolors.Text = Loc.T("imgconv.colors");
+		ecolors.ToolTip = Loc.T("imgconv.colors.tip");
 		eshorten.Content = Loc.T("imgconv.short");
 		ekeeporig.Content = Loc.T("imgconv.keeporig");
 		lbkeeppct.Text = Loc.T("imgconv.keeppct");
@@ -113,6 +116,7 @@ public partial class ImgConvertWindow : Window {
 			var tag = it.Tag as string ?? "";
 			it.Content = tag switch {
 				"png" => Loc.T("imgconv.fmt.png"),
+				"png8" => Loc.T("imgconv.fmt.png8"),
 				"bmp" => Loc.T("imgconv.fmt.bmp"),
 				_ => Loc.T("imgconv.fmt.jpg"),
 			};
@@ -129,6 +133,14 @@ public partial class ImgConvertWindow : Window {
 			}
 		}
 		if (efmt.SelectedItem == null) efmt.SelectedIndex = 0;
+		var wantColors = ImgConvert.NormPngColors(opt.ImgConvPngColors).ToString();
+		foreach (ComboBoxItem it in ecolors.Items) {
+			if (string.Equals(it.Tag as string, wantColors, StringComparison.Ordinal)) {
+				ecolors.SelectedItem = it;
+				break;
+			}
+		}
+		if (ecolors.SelectedItem == null) ecolors.SelectedIndex = ecolors.Items.Count - 1;
 		var q = Compat.Clamp(opt.ImgConvJpgQuality <= 0 ? 60 : opt.ImgConvJpgQuality, 1, 100);
 		ejpgq.Text = q.ToString();
 		eshorten.IsChecked = opt.ImgConvShortEnabled;
@@ -153,6 +165,7 @@ public partial class ImgConvertWindow : Window {
 
 	bool saveui() {
 		opt.ImgConvFormat = (efmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "jpg";
+		opt.ImgConvPngColors = pickcolors();
 		if (!int.TryParse((ejpgq.Text ?? "").Trim(), out var q) || q < 1 || q > 100) {
 			MessageBox.Show(this, Loc.T("imgconv.jpgq.bad"), Loc.T("imgconv.title"),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -209,11 +222,23 @@ public partial class ImgConvertWindow : Window {
 	}
 
 	void syncfmtui() {
-		var jpg = string.Equals((efmt.SelectedItem as ComboBoxItem)?.Tag as string, "jpg",
-			StringComparison.OrdinalIgnoreCase);
+		var tag = (efmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+		var jpg = string.Equals(tag, "jpg", StringComparison.OrdinalIgnoreCase);
+		var pal = string.Equals(tag, "png8", StringComparison.OrdinalIgnoreCase);
+		lbjpgq.Visibility = pal ? Visibility.Collapsed : Visibility.Visible;
+		ejpgq.Visibility = pal ? Visibility.Collapsed : Visibility.Visible;
+		lbcolors.Visibility = pal ? Visibility.Visible : Visibility.Collapsed;
+		ecolors.Visibility = pal ? Visibility.Visible : Visibility.Collapsed;
 		ejpgq.IsEnabled = jpg && !busy;
 		lbjpgq.Opacity = jpg ? 1 : 0.55;
 		ejpgq.Opacity = jpg ? 1 : 0.55;
+		ecolors.IsEnabled = pal && !busy;
+	}
+
+	int pickcolors() {
+		var tag = (ecolors.SelectedItem as ComboBoxItem)?.Tag as string;
+		if (int.TryParse(tag, out var n)) return ImgConvert.NormPngColors(n);
+		return 256;
 	}
 
 	void syncoutui() {
@@ -303,8 +328,10 @@ public partial class ImgConvertWindow : Window {
 			if (seq != prevSeq) return;
 			if (!peekopts(out var fmt, out var quality, out var shortEn, out var shortPx))
 				return;
+			var colors = pickcolors();
 			var bytes = await Task.Run(() =>
-				ImgConvert.Encode(path, fmt, quality, shortEn, shortPx, 0, rotate, mirror, token, shortSide: true),
+				ImgConvert.Encode(path, fmt, quality, shortEn, shortPx, 0, rotate, mirror, token,
+					shortSide: true, pngColors: colors),
 				token).ConfigureAwait(true);
 			if (seq != prevSeq) return;
 			BitmapSource bmp;
@@ -320,12 +347,12 @@ public partial class ImgConvertWindow : Window {
 			if (seq != prevSeq) return;
 			iprev.Source = bmp;
 			lbprevempty.Visibility = Visibility.Collapsed;
-			var fmtName = fmt switch {
+			var kind = fmt switch {
 				"png" => Loc.T("imgconv.fmt.png"),
+				"png8" => Loc.T("imgconv.fmt.png8") + " " + colors,
 				"bmp" => Loc.T("imgconv.fmt.bmp"),
-				_ => Loc.T("imgconv.fmt.jpg"),
+				_ => Loc.T("imgconv.fmt.jpg") + " " + quality + "%",
 			};
-			var kind = fmt == "jpg" ? $"{fmtName} {quality}%" : fmtName;
 			var info = Loc.T("imgconv.preview.info",
 				bmp.PixelWidth, bmp.PixelHeight, kind,
 				FeatureInstaller.FormatBytes(bytes.Length));
@@ -595,6 +622,7 @@ public partial class ImgConvertWindow : Window {
 		bgo.IsEnabled = true;
 		var fmt = ImgConvert.NormFmt(opt.ImgConvFormat);
 		var quality = opt.ImgConvJpgQuality;
+		var pngColors = ImgConvert.NormPngColors(opt.ImgConvPngColors);
 		var shortEn = opt.ImgConvShortEnabled;
 		var shortPx = opt.ImgConvShortPx;
 		var outMode = ImgConvert.NormOutMode(opt.ImgConvOutMode);
@@ -625,7 +653,8 @@ public partial class ImgConvertWindow : Window {
 					var dst = ImgConvert.MakeOutPath(src, fmt, outMode, outDir, reserved);
 					var usedOrig = await Task.Run(() => ImgConvert.ConvertOne(src, dst, fmt, quality,
 						shortEn, shortPx, 0, rot, mir, token,
-						opt.ImgConvKeepOrigEnabled, opt.ImgConvKeepOrigPct, outMode, shortSide: true), token).ConfigureAwait(true);
+						opt.ImgConvKeepOrigEnabled, opt.ImgConvKeepOrigPct, outMode, shortSide: true,
+						pngColors: pngColors), token).ConfigureAwait(true);
 					if (!usedOrig && ImgConvert.IsReplace(outMode)
 						&& !string.Equals(src, dst, StringComparison.OrdinalIgnoreCase))
 						row.FilePath = dst;

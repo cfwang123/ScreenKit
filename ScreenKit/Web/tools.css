@@ -119,8 +119,8 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 	gap: 12px;
 }
 .cards button {
-	display: flex; align-items: center; gap: 8px;
-	height: 52px; padding: 0 12px;
+	display: flex; align-items: center; gap: 6px;
+	min-height: 36px; height: auto; padding: 4px 6px;
 	text-align: left; background: #eef1f4; border: 0; border-radius: 8px;
 }
 .cards button:hover { background: #e4e8ed; }
@@ -137,8 +137,10 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 #tool-fav { margin-left: 8px; color: #888; }
 #tool-fav.on, #tool-fav.on i { color: #f97316; }
 .cards span {
-	font-size: 14px; font-weight: 500;
-	white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+	flex: 1; min-width: 0;
+	font-size: 14px; font-weight: 500; line-height: 1.25;
+	display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+	overflow: hidden; overflow-wrap: break-word;
 }
 .none { margin: 18px 0 0; color: var(--muted); }
 label { display: block; color: var(--muted); font-size: 12px; }
