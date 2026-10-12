@@ -64,7 +64,7 @@
 		hideOut: true,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英文多边形名，如 pentagon、hectogon、chiliagon、myriagon，到 1 亿边。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -163,6 +163,7 @@
 			["科学计数", sciform(p)],
 			["百分数", percent(p)],
 			["罗马数字", romanof(p)],
+			["多边形", polyof(p)],
 			["二进制", baseof(p, 2)],
 			["八进制", baseof(p, 8)],
 			["十六进制", baseof(p, 16)]
@@ -841,6 +842,118 @@
 		}
 		left = left.replace(/^0+/, "") || "0";
 		return sign(p) + left + (right ? "." + right : "") + "%";
+	}
+
+	// 英文多边形名：1–9999 用 hecta 体系，万以上用「若干次 myriad」。超过 1 亿显示超出。
+	function polyof(p){
+		if (p.neg || p.fp || p.ip === "0") return "—";
+		if (p.ip.length > 9) return "超出";
+		var n = parseInt(p.ip, 10);
+		if (n > 100000000) return "超出";
+		return polyName(n);
+	}
+
+	function polyName(n){
+		if (n === 3) return "triangle";
+		if (n === 4) return "quadrilateral";
+		var name;
+		if (n === 100000000) name = "myriakismyriagon";
+		else if (n < 10000) name = stemUnderMyriad(n) + "gon";
+		else {
+			var high = Math.floor(n / 10000);
+			var low = n % 10000;
+			var pref = high === 1 ? "myria" : polyAdverb(high) + "myria";
+			name = low ? pref + "kai" + stemUnderMyriad(low) + "gon" : pref + "gon";
+		}
+		var alias = megaAlias(n);
+		if (alias) name += " (" + alias + ")";
+		return name;
+	}
+
+	function stemUnderMyriad(n){
+		if (n < 1000) return stemUnder1000(n);
+		var t = Math.floor(n / 1000);
+		var rest = n % 1000;
+		var th = polyThousand(t);
+		if (!rest) return th;
+		return th + "kai" + stemUnder1000(rest);
+	}
+
+	function stemUnder1000(n){
+		if (n < 100) return stemUnder100(n);
+		var h = Math.floor(n / 100);
+		var rest = n % 100;
+		if (!rest) return h === 1 ? "hecto" : polyUnit(h) + "hecta";
+		if (h === 1) return "hecaton" + stemUnder100(rest);
+		return polyUnit(h) + "hecta" + stemUnder100(rest);
+	}
+
+	function stemUnder100(n){
+		var ones = n % 10;
+		var tens = Math.floor(n / 10);
+		if (n < 10) return polyUnit(n);
+		if (n < 20) return polyTeen(n - 10);
+		if (n === 20) return "icosa";
+		if (n < 30) return "icosikai" + polyUnit(ones);
+		var ten = polyTen(tens);
+		if (!ones) return ten;
+		return ten + "kai" + polyUnit(ones);
+	}
+
+	function polyUnit(d){
+		return ["", "hena", "di", "tri", "tetra", "penta", "hexa", "hepta", "octa", "ennea"][d];
+	}
+
+	function polyTeen(i){
+		return ["deca", "hendeca", "dodeca", "trideca", "tetradeca", "pentadeca", "hexadeca", "heptadeca", "octadeca", "enneadeca"][i];
+	}
+
+	function polyTen(t){
+		if (t === 2) return "icosa";
+		return ["", "", "", "triaconta", "tetraconta", "pentaconta", "hexaconta", "heptaconta", "octaconta", "enneaconta"][t];
+	}
+
+	function polyThousand(t){
+		return ["", "chilia", "dischilia", "trischilia", "tetrakischilia", "pentakischilia", "hexakischilia", "heptakischilia", "octakischilia", "enneakischilia"][t];
+	}
+
+	function polyAdverb(k){
+		if (k === 2) return "dis";
+		if (k === 3) return "tris";
+		return kisStem(k) + "kis";
+	}
+
+	function kisStem(k){
+		if (k < 100) return stemUnder100(k);
+		if (k < 1000) {
+			var h = Math.floor(k / 100);
+			var rest = k % 100;
+			if (!rest) return h === 1 ? "hecatonta" : polyCosi(h, "cosa");
+			return (h === 1 ? "hecaton" : polyCosi(h, "cosi")) + "kai" + stemUnder100(rest);
+		}
+		var t = Math.floor(k / 1000);
+		var low = k % 1000;
+		var th = polyThousand(t);
+		if (!low) return th;
+		return th + "kai" + kisStem(low);
+	}
+
+	function polyCosi(d, tail){
+		var p = polyUnit(d);
+		if (p.charAt(p.length - 1) === "a") p = p.slice(0, -1);
+		return p + "a" + tail;
+	}
+
+	function megaAlias(n){
+		if (n % 1000000) return "";
+		var k = n / 1000000;
+		if (k === 1) return "megagon";
+		if (k === 10) return "decamegagon";
+		if (k === 20) return "icosamegagon";
+		if (k === 100) return "hectamegagon";
+		if (k >= 2 && k <= 9) return polyUnit(k) + "megagon";
+		if (k >= 30 && k <= 90 && k % 10 === 0) return stemUnder100(k) + "megagon";
+		return "";
 	}
 
 	function romanof(p){

@@ -119,6 +119,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation also reads Chinese in the small, middle, and large scales, and names the digits after the decimal point from fen downward.
 - Number notation adds an SI row, one prefix for each power of one thousand, from quecto and yocto through kilo, mega, and quetta.
 - Number notation adds Korean native and Sino-Korean, Japanese, and German, French, Spanish, Portuguese, and Russian readings.
+- Number notation names a positive integer as an English polygon, from triangle and hectogon through myriakismyriagon.
 
 #### Fixed
 
@@ -231,6 +232,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记增加中文小数、中数、大数三种读法，小数点后用分、厘、毫、丝等单位。
 - 数字表记增加 SI 词头，按千进位，从 quecto、yocto 到 kilo、mega、quetta。
 - 数字表记增加韩文固有、韩文汉字、日语，以及德语、法语、西班牙语、葡萄牙语和俄语读法。
+- 数字表记为正整数增加英文多边形名，从 triangle、hectogon 到 myriakismyriagon。
 
 #### 修复
 
