@@ -101,6 +101,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Common colors grid keeps its swatch size and scrolls. A short or narrow window used to squeeze every card until the color band collapsed to nothing, and the clipped rows could not be reached.
 - The tools page QR caption stays readable. A short window used to squeeze that line until only a sliver of the letters showed.
 
+#### Removed
+
+- The tools page no longer has a Color conversion card under Image. Pick color already shows HEX, RGB, HSL, HSV, and CMYK.
+
 ### 中文
 
 #### 新增
@@ -169,6 +173,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - **帮助 → 安装功能**把程序旁的 `dict2.db` 符号链接按目标文件判断。目标至少 100 MB 时词典显示已安装。Windows 把链接本身报成 0 字节。
 - 常用颜色表不再被压扁：色卡保持大小，内容区自己滚动。以前窗口矮或窄时每张色卡会被等分压缩，色条被挤成一条线，超出的行也滚不到。
 - 工具页二维码图下的原文保持完整。窗口较矮时，这行字以前会被挤到只剩一条缝。
+
+#### 移除
+
+- 工具页「图像」不再单列「颜色转换」。取色已经给出 HEX、RGB、HSL、HSV 和 CMYK。
 
 ## v1.0.18 (2026-10-10)
 
