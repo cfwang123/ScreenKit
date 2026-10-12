@@ -147,9 +147,8 @@ static class TtsSpeak {
 			using var en = new MMDeviceEnumerator();
 			foreach (var id in job.Ids) {
 				if (job.Cts.IsCancellationRequested) break;
-				MMDevice dev = null;
 				try {
-					dev = en.GetDevice(id);
+					var dev = en.GetDevice(id);
 					var reader = new WaveFileReader(job.Wav);
 					var wo = new WasapiOut(dev, AudioClientShareMode.Shared, false, 120);
 					wo.PlaybackStopped += (_, _) => {
@@ -163,7 +162,6 @@ static class TtsSpeak {
 				}
 				catch (Exception ex) {
 					CaptureLog.Ex("tts speak dev", ex);
-					try { dev?.Dispose(); } catch { }
 				}
 			}
 			if (Volatile.Read(ref left) == 0) return;
@@ -183,11 +181,12 @@ static class TtsSpeak {
 			}
 		}
 		finally {
-			IWavePlayer[] arr;
-			lock (job.Players) arr = job.Players.ToArray();
-			foreach (var p in arr) {
-				try { p.Stop(); } catch { }
-				try { p.Dispose(); } catch { }
+			job.Stop();
+			lock (job.Players) {
+				foreach (var p in job.Players) {
+					try { p.Dispose(); } catch { }
+				}
+				job.Players.Clear();
 			}
 			foreach (var r in readers) {
 				try { r.Dispose(); } catch { }
@@ -234,10 +233,10 @@ static class TtsSpeak {
 
 		public void Stop() {
 			try { Cts.Cancel(); } catch { }
-			IWavePlayer[] arr;
-			lock (Players) arr = Players.ToArray();
-			foreach (var p in arr) {
-				try { p.Stop(); } catch { }
+			lock (Players) {
+				foreach (var p in Players) {
+					try { p.Stop(); } catch { }
+				}
 			}
 		}
 	}

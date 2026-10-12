@@ -10,8 +10,11 @@ static class PinyinConvert {
 	static readonly object gate = new();
 	static Assembly asm;
 	static MethodInfo py;
-	static MethodInfo ini;
-	static readonly Dictionary<char, Hit[]> hits = buildhits();
+	static readonly Dictionary<char, Hit[]> hits;
+
+	static PinyinConvert() {
+		hits = buildhits();
+	}
 
 	public static bool Installed => NativeRuntime.HasNPinyin();
 
@@ -98,8 +101,7 @@ static class PinyinConvert {
 		var t = asm.GetType("NPinyin.Pinyin");
 		if (t == null) throw new InvalidOperationException("NPinyin.dll 里没有 NPinyin.Pinyin");
 		py = t.GetMethod("GetPinyin", new[] { typeof(string) });
-		ini = t.GetMethod("GetInitials", new[] { typeof(string) });
-		if (py == null || ini == null) throw new InvalidOperationException("NPinyin.dll 缺少 GetPinyin 或 GetInitials");
+		if (py == null) throw new InvalidOperationException("NPinyin.dll 缺少 GetPinyin");
 	}
 
 	static Dictionary<char, Hit[]> buildhits() {

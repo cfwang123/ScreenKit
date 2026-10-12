@@ -265,7 +265,7 @@ ScreenKit --zhconv "國發" --simp
 
 ## 5.2.1 GET/POST `/api/pinyin`
 
-Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **Help → Install features → Tools**. It is not in the slim package. There are no tone marks. A character with several readings uses the one in that library (`重庆` is `zhong qing`). Letters and digits are spaced one by one.
+Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **Help → Install features → Tools**. It is not in the slim package. There are no tone marks. Common polyphonic words use their usual reading (`重庆` is `chong qing`, `银行` is `yin hang`). The letter ü is written as u. Letters and digits are spaced one by one.
 
 **GET:** `/api/pinyin?text=中国人民银行&mode=py`
 
@@ -280,7 +280,7 @@ Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **H
 { "text": "中国人民银行", "mode": "py" }
 ```
 
-**Response `data`:** `installed`, `text`, and `mode` (`py` or `init`). `中国人民银行` is `zhong guo ren min yin xing` or `ZGRMYX`. A bad `mode` returns 802. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
+**Response `data`:** `installed`, `text`, and `mode` (`py` or `init`). `中国人民银行` is `zhong guo ren min yin hang` or `ZGRMYH`. `重庆` is `chong qing`. A bad `mode` returns 802. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
 
 ```bash
 ScreenKit --test-pinyin

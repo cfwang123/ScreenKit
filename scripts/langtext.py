@@ -3,6 +3,7 @@
 
 命令：
   set <key> [text]     新增或修改一条文案（默认中文 zh）
+  del <key>…           删除一条或多条文案
   get <key>            查看某个键在各语言下的值
   missing              列出各语言相对基础语言缺失或为空的键
   fill --from zh       用某个语言的文案补齐其它语言（批量新增，默认不覆盖）
@@ -19,6 +20,8 @@
   scripts\\langtext.cmd set app.demo.title "演示标题" -l zh
   scripts\\langtext.cmd set app.demo.title "Demo title" -l all
   scripts\\langtext.cmd set app.demo.title -l all --each zh=演示标题 --each en=Demo title
+  scripts\\langtext.cmd del app.demo.title -l all
+  scripts\\langtext.cmd set app.demo.title --delete -l all
   scripts\\langtext.cmd get app.demo.title -l zh,en
   scripts\\langtext.cmd missing --base zh
   scripts\\langtext.cmd fill --from zh -l all
@@ -226,6 +229,15 @@ class Lang:
         self.lines.append("[text]")
         self.lines.append(line)
 
+    def remove(self, key: str) -> tuple[str, str | None]:
+        """删掉一个键的整行。返回 (动作, 旧值)：removed / absent。"""
+        i = self.index_of(key)
+        if i is None:
+            return "absent", None
+        old = split_line(self.lines[i])[1]
+        del self.lines[i]
+        return "removed", old
+
     def save(self, dry: bool = False) -> bool:
         if not self.changed:
             return False
@@ -315,6 +327,10 @@ def parse_each(pairs) -> dict[str, str]:
 
 
 def cmd_set(args, files: dict[str, Path]) -> int:
+    if args.delete:
+        if args.text is not None or args.each or args.after or args.add_only or args.if_missing:
+            raise SystemExit("--delete 只删键，不能再带文本 / --each / --after / --if-missing / --add-only")
+        return delete_keys([args.key], args, files)
     if args.key.strip().lower() in META_KEYS:
         raise SystemExit(f"{args.key} 是语言显示名，不是文案键；改它请直接编辑 lang/*.toml")
     each = parse_each(args.each)
@@ -360,6 +376,44 @@ def cmd_set(args, files: dict[str, Path]) -> int:
     elif touched:
         print(f"共处理 {len(touched)} 个文件")
     return 0
+
+
+def delete_keys(keys: list[str], args, files: dict[str, Path]) -> int:
+    """删除键的公共实现：del 命令与 set --delete 都走这里。"""
+    for k in keys:
+        if k.strip().lower() in META_KEYS:
+            raise SystemExit(f"{k} 是语言显示名，不是文案键；要改它请直接编辑 lang/*.toml")
+    codes = resolve_codes(args.lang, files, ["zh"])
+    total = 0
+    for code in codes:
+        lang = Lang(files[code])
+        hits = [(k,) + lang.remove(k) for k in keys]
+        removed = [h for h in hits if h[1] == "removed"]
+        for k, act, old in hits:
+            if act == "removed":
+                print(f"[删除] {code}.toml  {k}   （原: \"{old}\"）")
+            else:
+                print(f"[无此键] {code}.toml  {k}")
+        if removed and lang.save(dry=args.dry_run) and args.sync:
+            for p in sync_copies(Path(args.root), code, lang.path):
+                print(f"[同步] {p}")
+        total += len(removed)
+    if not args.dry_run:
+        left = [c for c in sort_codes(files)
+                if c not in codes and any(Lang(files[c]).get(k) is not None for k in keys)]
+        if left:
+            print(f"提示：{', '.join(left)} 里还有这个键，要删干净用 -l all")
+    if args.dry_run:
+        print(f"（--dry-run：将删除 {total} 处，未写入）")
+    elif total:
+        print(f"共删除 {total} 处")
+    else:
+        print("没有找到要删的键")
+    return 0
+
+
+def cmd_del(args, files: dict[str, Path]) -> int:
+    return delete_keys(args.key, args, files)
 
 
 def cmd_get(args, files: dict[str, Path]) -> int:
@@ -519,7 +573,14 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--after", default=None, help="新增时插到这个键后面")
     s.add_argument("--if-missing", action="store_true", help="只在缺键或为空时写入")
     s.add_argument("--add-only", action="store_true", help="只在键不存在时写入")
+    s.add_argument("--delete", action="store_true", help="删掉这个键（等同于 del）")
     s.set_defaults(func=cmd_set)
+
+    d = sub.add_parser("del", help="删除一条或多条文案", aliases=["rm", "remove", "delete"], parents=[common])
+    d.add_argument("key", nargs="+", help="要删的键，可给多个")
+    d.add_argument("-l", "--lang", action="append", default=[],
+                   help="目标语言：zh / en / all / zh,en；可重复。默认 zh")
+    d.set_defaults(func=cmd_del)
 
     g = sub.add_parser("get", help="查看某个键在各语言下的值", parents=[common])
     g.add_argument("key")

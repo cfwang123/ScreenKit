@@ -274,7 +274,7 @@ ScreenKit --zhconv "國發" --simp
 
 ## 5.2.1 GET/POST `/api/pinyin`
 
-用可选的 `NPinyin.dll`（约 75 KB）把汉字转成拼音或首字母。在 **帮助 → 安装功能 → 工具集** 安装，不进精简包。不带声调。多音字用词库里的一种读法（「重庆」是 `zhong qing`）。英文字母和数字会逐个分开。
+用可选的 `NPinyin.dll`（约 75 KB）把汉字转成拼音或首字母。在 **帮助 → 安装功能 → 工具集** 安装，不进精简包。不带声调。常见多音词按常用读法修正（「重庆」是 `chong qing`，「银行」是 `yin hang`）。ü 写成 u。英文字母和数字会逐个分开。
 
 **GET**
 
@@ -293,7 +293,7 @@ ScreenKit --zhconv "國發" --simp
 { "text": "中国人民银行", "mode": "py" }
 ```
 
-**响应 `data`：** `installed`、`text`、`mode`（`py` 或 `init`）。「中国人民银行」是 `zhong guo ren min yin xing` 或 `ZGRMYX`。`mode` 不对返回 802。超过 20000 字返回 500。有原文但没装库返回 803。
+**响应 `data`：** `installed`、`text`、`mode`（`py` 或 `init`）。「中国人民银行」是 `zhong guo ren min yin hang` 或 `ZGRMYH`。「重庆」是 `chong qing`。`mode` 不对返回 802。超过 20000 字返回 500。有原文但没装库返回 803。
 
 ```bash
 ScreenKit --test-pinyin

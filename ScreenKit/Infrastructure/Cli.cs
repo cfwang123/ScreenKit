@@ -3597,12 +3597,32 @@ static class Cli {
 			Err("FAIL convert: " + ex.Message);
 			return 1;
 		}
-		if (py != "zhong guo ren min yin xing") {
+		if (py != "zhong guo ren min yin hang") {
 			Err("FAIL py: " + py);
 			return 1;
 		}
-		if (ini != "ZGRMYX") {
+		if (ini != "ZGRMYH") {
 			Err("FAIL init: " + ini);
+			return 1;
+		}
+		if (PinyinConvert.Convert("重庆", false) != "chong qing" || PinyinConvert.Convert("重庆", true) != "CQ") {
+			Err("FAIL 重庆: " + PinyinConvert.Convert("重庆", false));
+			return 1;
+		}
+		if (PinyinConvert.Convert("这很重要", false) != "zhe hen zhong yao") {
+			Err("FAIL 重要: " + PinyinConvert.Convert("这很重要", false));
+			return 1;
+		}
+		if (PinyinConvert.Convert("长城", false) != "chang cheng" || PinyinConvert.Convert("长大", false) != "zhang da") {
+			Err("FAIL 长: " + PinyinConvert.Convert("长城", false) + " / " + PinyinConvert.Convert("长大", false));
+			return 1;
+		}
+		if (PinyinConvert.Convert("Hello 重庆 123", false) != "H e l l o   chong qing   1 2 3") {
+			Err("FAIL mix: [" + PinyinConvert.Convert("Hello 重庆 123", false) + "]");
+			return 1;
+		}
+		if (PinyinConvert.Convert("Hello 重庆 123", true) != "HELLO CQ 123") {
+			Err("FAIL mix init: [" + PinyinConvert.Convert("Hello 重庆 123", true) + "]");
 			return 1;
 		}
 		if (PinyinConvert.Convert("", false) != "") {
