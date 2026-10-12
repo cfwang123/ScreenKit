@@ -2730,6 +2730,14 @@ static class Cli {
 			bad++;
 		}
 		else Out("OK name style");
+		if (AppConfig.ParseScalarForTest("screenshot_name = \"dd_#\"", "screenshot_name") != "dd_#"
+			|| AppConfig.ParseScalarForTest("screenshot_name = \"dd_###\" # 注释", "screenshot_name") != "dd_###"
+			|| AppConfig.ParseScalarForTest("screenshot_name = \"plain\" # tail", "screenshot_name") != "plain"
+			|| AppConfig.ParseScalarForTest("asr_cap_fg = \"#FFFFFFFF\"", "asr_cap_fg") != "#FFFFFFFF") {
+			Err("FAIL name hash");
+			bad++;
+		}
+		else Out("OK name hash");
 		try {
 			ImageUtil.NormScreenshotName("a:b");
 			Err("FAIL name invalid");

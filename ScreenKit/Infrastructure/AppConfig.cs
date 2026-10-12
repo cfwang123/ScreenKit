@@ -1027,12 +1027,7 @@ static class AppConfig {
 			var eq = line.IndexOf('=');
 			if (eq <= 0) continue;
 			var key = line[..eq].Trim();
-			var val = line[(eq + 1)..].Trim();
-			var hash = val.IndexOf('#');
-			if (hash >= 0 && !(val.StartsWith("\"") && val.LastIndexOf('"') > 0 && hash > val.LastIndexOf('"')))
-				val = val[..hash].Trim();
-			if (val.Length >= 2 && val[0] == '"' && val[val.Length - 1] == '"')
-				val = val[1..^1].Replace("\\\"", "\"").Replace("\\\\", "\\");
+			var val = unquote(striphash(line[(eq + 1)..].Trim()));
 			if (key.Equals("id", StringComparison.OrdinalIgnoreCase))
 				cur.Id = val;
 			else if (key.Equals("name", StringComparison.OrdinalIgnoreCase))
@@ -1068,12 +1063,7 @@ static class AppConfig {
 			var eq = line.IndexOf('=');
 			if (eq <= 0) continue;
 			var key = line[..eq].Trim();
-			var val = line[(eq + 1)..].Trim();
-			var hash = val.IndexOf('#');
-			if (hash >= 0 && !(val.StartsWith("\"") && val.LastIndexOf('"') > 0 && hash > val.LastIndexOf('"')))
-				val = val[..hash].Trim();
-			if (val.Length >= 2 && val[0] == '"' && val[val.Length - 1] == '"')
-				val = val[1..^1].Replace("\\\"", "\"").Replace("\\\\", "\\");
+			var val = unquote(striphash(line[(eq + 1)..].Trim()));
 			if (key.Equals("name", StringComparison.OrdinalIgnoreCase))
 				cur.Name = val;
 			else if (key.Equals("url", StringComparison.OrdinalIgnoreCase))
@@ -1134,16 +1124,35 @@ static class AppConfig {
 			var eq = line.IndexOf('=');
 			if (eq <= 0) continue;
 			var key = line[..eq].Trim();
-			var val = line[(eq + 1)..].Trim();
-			// 去掉行尾注释
-			var hash = val.IndexOf('#');
-			if (hash >= 0 && !(val.StartsWith("\"") && val.LastIndexOf('"') > 0 && hash > val.LastIndexOf('"')))
-				val = val[..hash].Trim();
-			if (val.Length >= 2 && val[0] == '"' && val[val.Length - 1] == '"')
-				val = val[1..^1].Replace("\\\"", "\"").Replace("\\\\", "\\");
-			if (key.Length > 0)
-				map[key] = val;
+			if (key.Length == 0) continue;
+			map[key] = unquote(striphash(line[(eq + 1)..].Trim()));
 		}
 		return map;
+	}
+
+	/// <summary>去掉引号外的行尾注释。引号里的 # 是内容。</summary>
+	static string striphash(string val) {
+		if (string.IsNullOrEmpty(val)) return val ?? "";
+		var inq = false;
+		var escaped = false;
+		for (int i = 0; i < val.Length; i++) {
+			var c = val[i];
+			if (escaped) { escaped = false; continue; }
+			if (inq && c == '\\') { escaped = true; continue; }
+			if (c == '"') { inq = !inq; continue; }
+			if (c == '#' && !inq) return val.Substring(0, i).Trim();
+		}
+		return val;
+	}
+
+	static string unquote(string val) {
+		if (val.Length >= 2 && val[0] == '"' && val[val.Length - 1] == '"')
+			return val.Substring(1, val.Length - 2).Replace("\\\"", "\"").Replace("\\\\", "\\");
+		return val;
+	}
+
+	internal static string ParseScalarForTest(string line, string key) {
+		var map = parsetoml(line);
+		return map.TryGetValue(key, out var v) ? v : null;
 	}
 }
