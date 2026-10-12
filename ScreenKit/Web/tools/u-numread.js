@@ -313,7 +313,7 @@
 	}
 
 	function enread(p){
-		if (p.ip.length > 18) return (p.neg ? "negative " : "") + "超出";
+		if (p.ip.length > 18) return "";
 		var body = enint(p.ip);
 		if (p.fp) body += " point " + endigits(p.fp);
 		return (p.neg ? "negative " : "") + body;
@@ -321,7 +321,7 @@
 
 	function enint(ip){
 		if (ip === "0") return "zero";
-		if (ip.length > 18) return "超出";
+		if (ip.length > 18) return "";
 		var chunks = splitend(ip, 3);
 		var parts = [];
 		var i;
@@ -371,7 +371,7 @@
 	}
 
 	function koSino(p){
-		if (p.ip.length > KO_SC.length * 4) return "超出";
+		if (p.ip.length > KO_SC.length * 4) return "";
 		var body = koInt(p.ip);
 		if (p.fp) body += " 점 " + spellDigits(p.fp, KO_D);
 		return (p.neg ? "마이너스 " : "") + body;
@@ -405,7 +405,7 @@
 	}
 
 	function jaRead(p){
-		if (p.ip.length > JA_SC.length * 4) return "超出";
+		if (p.ip.length > JA_SC.length * 4) return "";
 		var body = p.ip === "0" ? "ゼロ" : jaInt(p.ip);
 		if (p.fp) body += " てん " + spellDigits(p.fp, JA_DIG);
 		return (p.neg ? "マイナス " : "") + body;
@@ -457,7 +457,7 @@
 	}
 
 	function deRead(p){
-		if (p.ip.length > 21) return "超出";
+		if (p.ip.length > 21) return "";
 		var body = deInt(p.ip);
 		if (p.fp) body += " Komma " + spellDigits(p.fp, DE_DIG, " ");
 		return (p.neg ? "minus " : "") + body;
@@ -524,7 +524,7 @@
 	}
 
 	function frRead(p){
-		if (p.ip.length > 24) return "超出";
+		if (p.ip.length > 24) return "";
 		var body = frInt(p.ip);
 		if (p.fp) body += " virgule " + spellDigits(p.fp, FR_D, " ");
 		return (p.neg ? "moins " : "") + body;
@@ -578,7 +578,7 @@
 	}
 
 	function esRead(p){
-		if (p.ip.length > 30) return "超出";
+		if (p.ip.length > 30) return "";
 		var body = esInt(p.ip);
 		if (p.fp) body += " coma " + spellDigits(p.fp, ES_DIG, " ");
 		return (p.neg ? "menos " : "") + body;
@@ -632,7 +632,7 @@
 	}
 
 	function ptRead(p){
-		if (p.ip.length > 30) return "超出";
+		if (p.ip.length > 30) return "";
 		var body = ptInt(p.ip);
 		if (p.fp) body += " vírgula " + spellDigits(p.fp, PT_DIG, " ");
 		return (p.neg ? "menos " : "") + body;
@@ -682,7 +682,7 @@
 	}
 
 	function ruRead(p){
-		if (p.ip.length > 21) return "超出";
+		if (p.ip.length > 21) return "";
 		var fem = p.fp && p.fp.length <= 9;
 		var body = ruInt(p.ip, fem);
 		if (p.fp) {
@@ -846,7 +846,7 @@
 
 	// 英语多边形。四位一组：第 1 组 myriad，再上一组 myriakis myriad，可一直叠到整数上限。
 	function polyof(p){
-		if (p.neg || p.fp || p.ip === "0") return "—";
+		if (p.neg || p.fp || p.ip === "0") return "";
 		return polyName(p.ip);
 	}
 
@@ -981,9 +981,9 @@
 	}
 
 	function romanof(p){
-		if (p.neg || p.fp || p.ip.length > 4) return "—";
+		if (p.neg || p.fp || p.ip.length > 4) return "";
 		var n = parseInt(p.ip, 10);
-		if (!(n >= 1 && n <= 3999)) return "—";
+		if (!(n >= 1 && n <= 3999)) return "";
 		var out = "";
 		var i;
 		for (i = 0; i < ROM.length; i++) {
@@ -997,7 +997,7 @@
 
 	function baseof(p, radix){
 		if (p.fp) return "仅整数";
-		if (typeof BigInt !== "function") return "—";
+		if (typeof BigInt !== "function") return "";
 		return sign(p) + BigInt(p.ip).toString(radix).toUpperCase();
 	}
 
