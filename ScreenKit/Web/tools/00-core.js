@@ -72,6 +72,7 @@ SK.watchAcc = 0;
 			|| start === "u-mass" || start === "u-area" || start === "u-vol" || start === "u-tunit"
 			|| start === "u-press" || start === "u-power") start = "u-unit";
 		if (start === "u-datediff" || start === "u-dadd" || start === "u-madd") start = "u-datecalc";
+		if (start === "u-down") start = "u-watch";
 		if (start === "u-mac" || start === "u-uuid") {
 			SK.fakepick = start === "u-mac" ? "mac" : "uuid";
 			SK.fakerun = 1;
@@ -135,6 +136,7 @@ SK.watchAcc = 0;
 			|| id === "u-mass" || id === "u-area" || id === "u-vol" || id === "u-tunit"
 			|| id === "u-press" || id === "u-power") id = "u-unit";
 		if (id === "u-datediff" || id === "u-dadd" || id === "u-madd") id = "u-datecalc";
+		if (id === "u-down") id = "u-watch";
 		if (id === "u-mac" || id === "u-uuid") {
 			SK.fakepick = id === "u-mac" ? "mac" : "uuid";
 			SK.fakerun = 1;
@@ -453,6 +455,7 @@ SK.watchAcc = 0;
 				|| id === "u-mass" || id === "u-area" || id === "u-vol" || id === "u-tunit"
 				|| id === "u-press" || id === "u-power") id = "u-unit";
 			if (id === "u-datediff" || id === "u-dadd" || id === "u-madd") id = "u-datecalc";
+			if (id === "u-down") id = "u-watch";
 			if (id === "u-mac" || id === "u-uuid") id = "u-fake";
 			if (!id || seen[id] || !cardof(id)) continue;
 			seen[id] = 1;

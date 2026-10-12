@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page merges Stopwatch and Countdown into Timer. It can count up, count down from a number of seconds, or count down to a date and time you pick.
 - **Tools → HTML layout** edits HTML on the left and previews it on the right as you type. Templates replace the current text: buttons, a card, a media card, inputs, choices, and a form. The tools page has the same card under Image. That preview is a sandboxed frame.
 - **Tools → Fast copy** copies or moves files and folders. The same volume prefers a rename. Same-name files can be overwritten, skipped, or renamed. **Register menu** adds a current-user Explorer cascade (fast cut, copy, delete to the Recycle Bin, and copy paths). After a cut or copy, folder background gets fast paste and cancel. Shift copies paths relative to their common folder, and Shift+paste keeps the clip. No administrator. On Windows 11 the items are under Show more options. Selecting more than about 100 items can hide this static menu.
 - The tools page **8-bit synthesizer** can arrange a loop on 4 channels: two squares, a triangle, and noise. Click a cell, then a key, to write a note. Noise cells cycle through six pitches. Tempo is in BPM, and each cell is a sixteenth note. The loop stays in the browser.
@@ -100,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页把秒表和倒计时合成「计时」。可以正向计时、按秒倒计时，或选一个截止日期时间看剩余时间。
 - **工具 → HTML 界面设计**：左边写 HTML，右边随输入显示效果。模板会换掉当前内容，有按钮、卡片、图文卡片、输入框、选项和表单。工具页「图像」里有同样的卡片。网页上的预览放在隔离的框架里。
 - **工具 → 快速复制**：复制或剪切文件和文件夹。同一分区优先改名。同名可以覆盖、跳过或重命名。**注册菜单**给当前用户加上资源管理器级联菜单（快速剪切、快速复制、快速删除到回收站、复制路径）。剪切或复制之后，文件夹空白处出现快速粘贴和取消。按着 Shift 复制相对路径，Shift 粘贴会留下剪贴内容。不用管理员。Windows 11 在「显示更多选项」里。一次选中大约超过 100 项时，这项静态菜单可能不出现。
 - 工具页 **8bit合成器** 可以编排循环，四个通道：两路方波、三角波、杂音。点格子再点琴键写入。杂音格子在 6 档之间轮换。速度按每分钟拍数，一格是十六分音符。循环记在浏览器里。
