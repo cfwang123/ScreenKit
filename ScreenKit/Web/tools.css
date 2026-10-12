@@ -475,3 +475,27 @@ input[type="file"] {
 #chat-room #chat-sendrow button.ghost:hover { background: var(--paper); }
 .chatpic { display: block; max-width: 100%; max-height: 220px; margin-top: 4px; border-radius: 6px; }
 .chatfile { display: inline-block; margin-top: 4px; }
+.bit .row label { width: auto; }
+.bit .row input[type="range"] { width: 140px; height: 32px; padding: 0; }
+.bitkeys {
+	position: relative; height: 148px; margin: 4px 0 12px;
+	user-select: none; touch-action: none;
+}
+.bitkeys .whites { display: flex; height: 148px; }
+.bitkeys button {
+	font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	padding: 0 0 8px; display: flex; align-items: flex-end; justify-content: center;
+}
+.bitkeys button small { display: block; margin-left: 3px; font-size: 10px; opacity: 0.7; }
+.bitkeys button.w {
+	position: relative; z-index: 1; flex: 1; height: 148px; min-width: 0;
+	background: #f7f4ef; color: #6b645c;
+	border: 1px solid #6b645c; border-radius: 0 0 6px 6px; margin: 0 2px 0 0;
+}
+.bitkeys button.b {
+	position: absolute; z-index: 2; top: 0; width: 28px; height: 92px;
+	background: #2c2824; color: #f3efe8;
+	border: 1px solid #111; border-radius: 0 0 4px 4px; padding-bottom: 6px;
+}
+.bitkeys button.on { background: #f97316; color: #fff; border-color: #c2410c; }
+.bitmsg { margin: 8px 0 0; color: var(--muted); font-size: 13px; }

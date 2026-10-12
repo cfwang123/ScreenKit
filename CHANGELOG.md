@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page has an **8-bit synthesizer** under Speech. Pick a voice (square, narrow pulse, thin pulse, triangle, saw, organ, bell, bass, flute, or noise drum), play the keyboard or the computer keys, and try the built-in effects: explosion, alarm, fire alarm, buzzer, phone, laser, jump, coin, power-up, hit, shot, pickup, fail, and heartbeat. Looping alarms stop when clicked again, or with Stop. Sound is generated in the browser.
 - `GET /api/tts/devices` lists playback devices. `POST /api/tts/speak` synthesizes speech and plays it on one or more of those devices. `play=queue` waits its turn. `play=now` interrupts the current clip. The call returns when playback is queued, without WAV bytes.
 - **Tools → Auto key** repeats a key or a mouse click to the foreground window. A hotkey (default F6, editable in the tool) starts and stops it. The button in the window does the same. The interval is 20–60000 ms (default 200). A click lands at the cursor, or at the center of that window when the cursor is elsewhere, and the cursor then moves back. Nothing is sent while ScreenKit is in front.
 - **Tools → Chinese to pinyin** turns characters into pinyin without tone marks, or into one capital initial per character, using `NPinyin.dll`. Common polyphonic words use their usual reading (`重庆` is `chong qing`, `银行` is `yin hang`). The library still writes ü as u. The tools page has the same card under Text. The DLL is about 75 KB and is not in the slim package. **Help → Install features → Tools** installs it. `GET/POST /api/pinyin` takes `text` and `mode=py|init`. Without the DLL the call returns 803. CLI: `ScreenKit --pinyin "重庆" [--init]`. The word list is `pinyin.toml` beside the program. The same word in `pinyin.user.toml` overrides it, and an empty reading drops that system word. Updates replace `pinyin.toml` and leave `pinyin.user.toml`.
@@ -54,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `ScreenKit --test-mem-load` starts one process per feature (baseline, OCR, translation, offline ASR, streaming ASR, TTS, dictionary, face) and prints commit size, private working set, and working set after that feature loads. The default device is CPU. ASR and TTS load the smallest installed model. `winocr` runs Windows OCR on a tiny image and does not load an ONNX pack.
 - **Help → Memory** lists the open dictionary database and can unload it, which closes the database and drops the in-memory index. **Force GC** runs a full collection without unloading a row. The summary line also shows commit size. Private working set is the physical memory held by this process alone.
 - `scripts\langtext.cmd` adds or changes one UI phrase in `ScreenKit/lang/*.toml` from a single command. `-l zh` writes one language, `-l all` writes every language, and `--each zh=… --each en=…` gives each language its own text. A new key goes to the end of `[text]` or after `--after KEY`. Line endings, the missing BOM, and untouched lines are kept. `--if-missing` only fills empty keys, `--dry-run` previews, and `--sync` also copies into the `lang/` folders already present under `ScreenKit/bin`. `get`, `missing`, `fill`, `check`, and `langs` round out the tool. `del KEY…` removes one or more keys (`rm` / `remove` / `delete` are the same command, and `set KEY --delete` works too); deleting in only some languages prints which ones still keep the key.
+- `scripts\changelog.cmd` adds one bilingual entry to `CHANGELOG.md` under `## unreleased` (`added` / `changed` / `fixed` / `removed` / `docs` / `security`, or the Chinese category names). It takes a lock file and re-reads the file right before writing, so two writers cannot clobber each other; adding the same entry again is a no-op. `--file` points it at another changelog for testing.
 
 #### Changed
 
@@ -83,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页「语音」增加 **8bit合成器**。可选方波、窄脉冲、细脉冲、三角波、锯齿、风琴、铃、贝斯、笛子、噪声鼓，用琴键或电脑键盘演奏。音效有爆炸、警报、火警、蜂鸣、电话、激光、跳跃、金币、升级、受伤、射击、拾取、失败、心跳。循环的警报再点一次停止，或点「停止」。声音在浏览器里生成。
 - `GET /api/tts/devices` 列出播放设备。`POST /api/tts/speak` 按与 `/api/tts` 相同的参数合成，并在一个或多个设备上直接播放。`play=queue` 排队，`play=now` 打断当前并立即播放。接口在排上队后就返回，不带回 WAV。
 - **工具 → 自动按键**：向前台窗口连续发送按键或鼠标点击。快捷键（默认 F6，可在该窗口里改）开始和停止，窗口里的按钮同样可以。间隔 20～60000 毫秒（默认 200）。点击落在光标处；光标不在该窗口上时点客户区中心，再把光标移回。前台是本程序时不发送。
 - **工具 → 中文转拼音**：用 `NPinyin.dll` 把汉字转成不带声调的拼音，或每个字一个大写首字母。常见多音词改成常用读法（「重庆」是 `chong qing`，「银行」是 `yin hang`）。ü 仍写成 u。工具页「文字」里有同样的卡片。库约 75 KB，不进精简包。在 **帮助 → 安装功能 → 工具集** 安装。`GET/POST /api/pinyin` 传 `text` 和 `mode=py|init`。没装库时返回 803。命令行：`ScreenKit --pinyin "重庆" [--init]`。词表是程序旁的 `pinyin.toml`。`pinyin.user.toml` 里的同名词条盖住它，读音留空就去掉系统里的这一条。升级会换掉 `pinyin.toml`，不会动 `pinyin.user.toml`。
@@ -101,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - `ScreenKit --test-mem-load` 为每个功能单独冷启动（基线、识别、翻译、离线语音识别、流式语音识别、语音合成、词典、人脸），打印加载后的提交大小、专用工作集和工作集。默认 CPU。语音识别和语音合成加载已安装模型里最小的一份。`winocr` 用一张小图走 Windows 自带识别，不加载 ONNX 模型包。
 - **帮助 → 内存占用**列出已打开的词典数据库，并可卸载：关掉库并丢掉内存里的索引。**强制回收**只做完整回收，不卸载某一行。摘要行同时显示提交大小。专用工作集是本进程此刻独占的物理内存。
 - `scripts\langtext.cmd` 一条命令新增或修改 `ScreenKit/lang/*.toml` 里的一条界面文案。`-l zh` 只写一个语言，`-l all` 写进全部语言，`--each zh=… --each en=…` 逐语言给不同文本。新键追加到 `[text]` 末尾，或用 `--after <键>` 插到其后。保留每个文件原有的换行风格、无 BOM，未涉及的行不动。`--if-missing` 只补空，`--dry-run` 只预览，`--sync` 顺带覆盖 `ScreenKit/bin` 下已有的 `lang/` 副本。另有 `get`、`missing`、`fill`、`check`、`langs`。`del 键…` 删除一条或多条键（`rm` / `remove` / `delete` 是同一个命令，写成 `set 键 --delete` 也一样）；只删部分语言时会提示哪些语言还留着这个键。
+- `scripts\changelog.cmd` 往 `CHANGELOG.md` 的 `## unreleased` 追加一条中英文条目（`added` / `changed` / `fixed` / `removed` / `docs` / `security`，也可写中文类别名）。写盘前先抢锁文件、再读一次比对，别人插队就整段重来，两个写入方不会互相覆盖；同一条重复添加直接跳过。`--file` 可指向别的 changelog，便于测试。
 
 #### 变更
 
