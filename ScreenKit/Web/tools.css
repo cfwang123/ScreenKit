@@ -679,22 +679,29 @@ input[type="file"] {
 	display: flex; flex-direction: column; overflow: hidden;
 }
 .board { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-.board-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: none; }
+.board-bar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; flex: none; }
 .board-bar button {
-	height: 28px; padding: 0 10px; cursor: pointer;
-	border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
-	font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px;
+	cursor: pointer; border: 1px solid #D5DEE8; border-radius: 8px;
+	background: #E8EEF4; color: #1A202C;
+	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
-.board-bar button.on { border-color: #f97316; background: #fff1e8; color: #c2410c; }
+.board-bar button svg { width: 16px; height: 16px; flex: none; display: block; }
+.board-bar button:hover { background: #DBEAFE; border-color: #BFDBFE; }
+.board-bar button.on { background: #DBEAFE; border-color: #3B82F6; color: #2563EB; }
+.board-bar .sep { width: 1px; height: 22px; margin: 0 4px; background: #E2E8F0; flex: none; }
 .board-bar input[type="color"] {
-	width: 36px; height: 28px; margin: 0; padding: 2px; border-radius: 8px;
+	width: 32px; height: 32px; margin: 0; padding: 3px; border-radius: 8px;
+	border: 1px solid #D5DEE8; background: #E8EEF4;
 }
 .board-bar select {
-	width: auto; height: 28px; margin: 0; padding: 0 8px; border-radius: 999px;
+	width: auto; height: 32px; margin: 0; padding: 0 8px; border-radius: 8px;
+	border: 1px solid #D5DEE8; background: #E8EEF4;
+	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .board-stage {
 	position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden;
-	border-radius: 8px; background: #fff;
+	border: 1px solid #8b98a8; border-radius: 8px; background: #fff;
 }
 .board-stage canvas {
 	position: absolute; left: 0; top: 0; width: 100%; height: 100%;

@@ -100,6 +100,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools page: clicking a Morse code now plays it through the 8-bit synthesizer (about 784 Hz, one unit per dot and three per dash at 90 ms, one unit between symbols), using the instrument and volume chosen in the 8-bit tool.
 - Random colors list HEX, RGB, HSL, HSV, CMYK, and YUV. Click one value to copy it. Pick color also writes YUV (BT.601 full range, 0-255).
 - CSS gradient on the tools page supports linear, radial, and conic gradients. Linear and conic take an angle. The preview and the background code update as you change the settings.
+- Image convert places palette colors to minimize the total squared error. A palette color does not have to be a color from the picture.
 
 #### Fixed
 
@@ -187,6 +188,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页：摩斯码表点一下会用 8bit 合成器把这条码播出来（约 784Hz，一个单位 90 毫秒，点 1 单位、划 3 单位，符号之间空 1 单位），音色和音量用 8bit 工具里选的。
 - 工具页随机颜色列出 HEX、RGB、HSL、HSV、CMYK 和 YUV，点一个色值就复制它。取色也写出 YUV（BT.601 全范围，0–255）。
 - 工具页 CSS 渐变支持线性、径向和锥形。线性和锥形可设角度。预览和 background 代码随设置立即更新。
+- 图片格式转换的调色板按总平方色差最小来分配颜色，调色板里的颜色不必取自原图。
 
 #### 修复
 

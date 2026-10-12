@@ -604,7 +604,7 @@ static class ImgConvert {
 
 	sealed class PalCube {
 		public int R0, R1, G0, G1, B0, B1, Pop;
-		public long Sr, Sg, Sb;
+		public long Sr, Sg, Sb, S2;
 	}
 
 	static readonly uint[] Crc32Tab = makecrc32();
@@ -663,13 +663,14 @@ static class ImgConvert {
 		return buf;
 	}
 
-	/// <summary>5 位直方图中位切，写成 8 位调色板 PNG。半透明先铺到白底。</summary>
+	/// <summary>按总平方色差最小分配调色板，写成 8 位索引 PNG。半透明先铺到白底。调色板项是加权平均，不必等于图中某个像素。</summary>
 	static byte[] png8bytes(int w, int h, byte[] bgra, int colors) {
 		colors = NormPngColors(colors);
 		var cnt = new int[32768];
 		var sr = new long[32768];
 		var sg = new long[32768];
 		var sb = new long[32768];
+		var s2 = new long[32768];
 		var n = w * h;
 		for (var i = 0; i < n; i++) {
 			var o = i * 4;
@@ -679,9 +680,10 @@ static class ImgConvert {
 			sr[bin] += r;
 			sg[bin] += g;
 			sb[bin] += b;
+			s2[bin] += (long)r * r + (long)g * g + (long)b * b;
 		}
-		var pal = mediancut(cnt, sr, sg, sb, colors);
-		var map = nearestmap(pal);
+		var pal = bestpal(cnt, sr, sg, sb, s2, colors);
+		var map = palmap(pal, cnt, sr, sg, sb);
 		var idx = new byte[n];
 		for (var i = 0; i < n; i++) {
 			var o = i * 4;
@@ -702,7 +704,8 @@ static class ImgConvert {
 		b = (b * a + 255 * (255 - a) + 127) / 255;
 	}
 
-	static byte[] mediancut(int[] cnt, long[] sr, long[] sg, long[] sb, int colors) {
+	/// <summary>先把色差最大的一块沿使两侧平方差之和最小的位置切开，再把每色移到所属像素的平均色。</summary>
+	static byte[] bestpal(int[] cnt, long[] sr, long[] sg, long[] sb, long[] s2, int colors) {
 		var r0 = 31;
 		var r1 = 0;
 		var g0 = 31;
@@ -725,21 +728,21 @@ static class ImgConvert {
 		}
 		if (!any) return new byte[] { 255, 255, 255 };
 		var root = new PalCube { R0 = r0, R1 = r1, G0 = g0, G1 = g1, B0 = b0, B1 = b1 };
-		fillcube(root, cnt, sr, sg, sb);
+		fillcube(root, cnt, sr, sg, sb, s2);
 		var cubes = new List<PalCube> { root };
 		var dead = new List<bool> { false };
 		while (cubes.Count < colors) {
 			var pick = -1;
-			var best = 1;
+			var best = 0.0;
 			for (var i = 0; i < cubes.Count; i++) {
 				if (dead[i]) continue;
-				if (cubes[i].Pop > best) {
-					best = cubes[i].Pop;
-					pick = i;
-				}
+				var e = cubesse(cubes[i]);
+				if (e <= best) continue;
+				best = e;
+				pick = i;
 			}
 			if (pick < 0) break;
-			if (!splitcube(cubes[pick], cnt, sr, sg, sb, out var left, out var right)) {
+			if (!minsplit(cubes[pick], cnt, sr, sg, sb, s2, out var left, out var right)) {
 				dead[pick] = true;
 				continue;
 			}
@@ -749,21 +752,17 @@ static class ImgConvert {
 			dead.Add(false);
 		}
 		var pal = new byte[cubes.Count * 3];
-		for (var i = 0; i < cubes.Count; i++) {
-			var c = cubes[i];
-			var pop = Math.Max(1, c.Pop);
-			pal[i * 3] = (byte)(c.Sr / pop);
-			pal[i * 3 + 1] = (byte)(c.Sg / pop);
-			pal[i * 3 + 2] = (byte)(c.Sb / pop);
-		}
-		return pal;
+		for (var i = 0; i < cubes.Count; i++)
+			putmean(pal, i, cubes[i].Pop, cubes[i].Sr, cubes[i].Sg, cubes[i].Sb);
+		return refinepal(pal, cnt, sr, sg, sb);
 	}
 
-	static void fillcube(PalCube c, int[] cnt, long[] sr, long[] sg, long[] sb) {
+	static void fillcube(PalCube c, int[] cnt, long[] sr, long[] sg, long[] sb, long[] s2) {
 		c.Pop = 0;
 		c.Sr = 0;
 		c.Sg = 0;
 		c.Sb = 0;
+		c.S2 = 0;
 		for (var r = c.R0; r <= c.R1; r++) {
 			for (var g = c.G0; g <= c.G1; g++) {
 				for (var b = c.B0; b <= c.B1; b++) {
@@ -774,65 +773,83 @@ static class ImgConvert {
 					c.Sr += sr[i];
 					c.Sg += sg[i];
 					c.Sb += sb[i];
+					c.S2 += s2[i];
 				}
 			}
 		}
 	}
 
-	static bool splitcube(PalCube c, int[] cnt, long[] sr, long[] sg, long[] sb, out PalCube left, out PalCube right) {
-		left = null;
-		right = null;
-		var order = new[] { 0, 1, 2 };
-		var range = new[] { c.R1 - c.R0, c.G1 - c.G0, c.B1 - c.B0 };
-		for (var a = 0; a < 3; a++) {
-			for (var b = a + 1; b < 3; b++) {
-				if (range[order[b]] <= range[order[a]]) continue;
-				var t = order[a];
-				order[a] = order[b];
-				order[b] = t;
-			}
-		}
-		foreach (var axis in order) {
-			if (range[axis] <= 0) continue;
-			if (trysplit(c, axis, cnt, sr, sg, sb, out left, out right)) return true;
-		}
-		return false;
+	static double cubesse(PalCube c) => cubesse(c.Pop, c.Sr, c.Sg, c.Sb, c.S2);
+
+	static double cubesse(long pop, long sr, long sg, long sb, long s2) {
+		if (pop <= 0) return 0;
+		return s2 - ((double)sr * sr + (double)sg * sg + (double)sb * sb) / pop;
 	}
 
-	static bool trysplit(PalCube c, int axis, int[] cnt, long[] sr, long[] sg, long[] sb, out PalCube left, out PalCube right) {
+	/// <summary>在三轴上找使两侧平方差之和最小的一刀。切不开或不能再降误差时返回 false。</summary>
+	static bool minsplit(PalCube c, int[] cnt, long[] sr, long[] sg, long[] sb, long[] s2,
+		out PalCube left, out PalCube right) {
 		left = null;
 		right = null;
-		int lo, hi;
-		if (axis == 0) { lo = c.R0; hi = c.R1; }
-		else if (axis == 1) { lo = c.G0; hi = c.G1; }
-		else { lo = c.B0; hi = c.B1; }
-		var hist = new int[hi - lo + 1];
-		for (var r = c.R0; r <= c.R1; r++) {
-			for (var g = c.G0; g <= c.G1; g++) {
-				for (var b = c.B0; b <= c.B1; b++) {
-					var n = cnt[(r << 10) | (g << 5) | b];
-					if (n == 0) continue;
-					var v = axis == 0 ? r : axis == 1 ? g : b;
-					hist[v - lo] += n;
+		if (c.Pop < 2) return false;
+		var parent = cubesse(c);
+		if (parent <= 0) return false;
+		var best = parent;
+		var axis = -1;
+		var cut = 0;
+		for (var ax = 0; ax < 3; ax++) {
+			int lo, hi;
+			if (ax == 0) { lo = c.R0; hi = c.R1; }
+			else if (ax == 1) { lo = c.G0; hi = c.G1; }
+			else { lo = c.B0; hi = c.B1; }
+			if (hi <= lo) continue;
+			var len = hi - lo + 1;
+			var pPop = new long[len];
+			var pSr = new long[len];
+			var pSg = new long[len];
+			var pSb = new long[len];
+			var pS2 = new long[len];
+			for (var r = c.R0; r <= c.R1; r++) {
+				for (var g = c.G0; g <= c.G1; g++) {
+					for (var b = c.B0; b <= c.B1; b++) {
+						var i = (r << 10) | (g << 5) | b;
+						var n = cnt[i];
+						if (n == 0) continue;
+						var v = (ax == 0 ? r : ax == 1 ? g : b) - lo;
+						pPop[v] += n;
+						pSr[v] += sr[i];
+						pSg[v] += sg[i];
+						pSb[v] += sb[i];
+						pS2[v] += s2[i];
+					}
 				}
 			}
+			for (var i = 1; i < len; i++) {
+				pPop[i] += pPop[i - 1];
+				pSr[i] += pSr[i - 1];
+				pSg[i] += pSg[i - 1];
+				pSb[i] += pSb[i - 1];
+				pS2[i] += pS2[i - 1];
+			}
+			for (var i = 0; i < len - 1; i++) {
+				var lp = pPop[i];
+				if (lp <= 0 || lp >= c.Pop) continue;
+				var sse = cubesse(lp, pSr[i], pSg[i], pSb[i], pS2[i])
+					+ cubesse(c.Pop - lp, c.Sr - pSr[i], c.Sg - pSg[i], c.Sb - pSb[i], c.S2 - pS2[i]);
+				if (sse >= best) continue;
+				best = sse;
+				axis = ax;
+				cut = lo + i;
+			}
 		}
-		var half = c.Pop / 2;
-		if (half < 1) return false;
-		long acc = 0;
-		var cut = lo;
-		for (var i = 0; i < hist.Length - 1; i++) {
-			acc += hist[i];
-			cut = lo + i;
-			if (acc >= half) break;
-		}
+		if (axis < 0) return false;
 		left = copycube(c);
 		right = copycube(c);
 		if (axis == 0) { left.R1 = cut; right.R0 = cut + 1; }
 		else if (axis == 1) { left.G1 = cut; right.G0 = cut + 1; }
 		else { left.B1 = cut; right.B0 = cut + 1; }
-		fillcube(left, cnt, sr, sg, sb);
-		fillcube(right, cnt, sr, sg, sb);
+		fillcube(left, cnt, sr, sg, sb, s2);
+		fillcube(right, cnt, sr, sg, sb, s2);
 		if (left.Pop == 0 || right.Pop == 0) {
 			left = null;
 			right = null;
@@ -845,26 +862,147 @@ static class ImgConvert {
 		R0 = c.R0, R1 = c.R1, G0 = c.G0, G1 = c.G1, B0 = c.B0, B1 = c.B1,
 	};
 
-	static byte[] nearestmap(byte[] pal) {
+	static void putmean(byte[] pal, int slot, long pop, long sr, long sg, long sb) {
+		if (pop < 1) pop = 1;
+		pal[slot * 3] = (byte)((sr + pop / 2) / pop);
+		pal[slot * 3 + 1] = (byte)((sg + pop / 2) / pop);
+		pal[slot * 3 + 2] = (byte)((sb + pop / 2) / pop);
+	}
+
+	/// <summary>反复把每个色块分给最近的调色板色，再把该色改成这些色块的平均。空出来的位置改去误差最大的色块。</summary>
+	static byte[] refinepal(byte[] pal, int[] cnt, long[] sr, long[] sg, long[] sb) {
+		var nslot = pal.Length / 3;
+		if (nslot <= 1) return pal;
+		var occ = new List<int>();
+		for (var i = 0; i < 32768; i++)
+			if (cnt[i] != 0) occ.Add(i);
+		var prev = double.MaxValue;
+		for (var round = 0; round < 8; round++) {
+			var np = new int[nslot];
+			var nsr = new long[nslot];
+			var nsg = new long[nslot];
+			var nsb = new long[nslot];
+			double err = 0;
+			foreach (var i in occ) {
+				var n = cnt[i];
+				var r = (int)((sr[i] + n / 2) / n);
+				var g = (int)((sg[i] + n / 2) / n);
+				var b = (int)((sb[i] + n / 2) / n);
+				var slot = nearestslot(pal, nslot, r, g, b, out var dist);
+				np[slot] += n;
+				nsr[slot] += sr[i];
+				nsg[slot] += sg[i];
+				nsb[slot] += sb[i];
+				err += n * (double)dist;
+			}
+			var moved = false;
+			for (var p = 0; p < nslot; p++) {
+				if (np[p] == 0) {
+					if (reseed(pal, nslot, p, occ, cnt, sr, sg, sb)) moved = true;
+					continue;
+				}
+				var nr = (byte)((nsr[p] + np[p] / 2) / np[p]);
+				var ng = (byte)((nsg[p] + np[p] / 2) / np[p]);
+				var nb = (byte)((nsb[p] + np[p] / 2) / np[p]);
+				if (pal[p * 3] != nr || pal[p * 3 + 1] != ng || pal[p * 3 + 2] != nb) moved = true;
+				pal[p * 3] = nr;
+				pal[p * 3 + 1] = ng;
+				pal[p * 3 + 2] = nb;
+			}
+			for (var p = 1; p < nslot; p++) {
+				for (var q = 0; q < p; q++) {
+					if (!sameslot(pal, p, q)) continue;
+					if (reseed(pal, nslot, p, occ, cnt, sr, sg, sb)) moved = true;
+					break;
+				}
+			}
+			if (!moved || err >= prev - 0.5) break;
+			prev = err;
+		}
+		return compactpal(pal);
+	}
+
+	static int nearestslot(byte[] pal, int nslot, int r, int g, int b, out int dist) {
+		var best = 0;
+		var bestd = int.MaxValue;
+		for (var p = 0; p < nslot; p++) {
+			var dr = r - pal[p * 3];
+			var dg = g - pal[p * 3 + 1];
+			var db = b - pal[p * 3 + 2];
+			var d = dr * dr + dg * dg + db * db;
+			if (d >= bestd) continue;
+			bestd = d;
+			best = p;
+		}
+		dist = bestd;
+		return best;
+	}
+
+	static bool sameslot(byte[] pal, int a, int b) =>
+		pal[a * 3] == pal[b * 3] && pal[a * 3 + 1] == pal[b * 3 + 1] && pal[a * 3 + 2] == pal[b * 3 + 2];
+
+	static bool hasrgb(byte[] pal, int nslot, int r, int g, int b) {
+		for (var p = 0; p < nslot; p++) {
+			if (pal[p * 3] == r && pal[p * 3 + 1] == g && pal[p * 3 + 2] == b) return true;
+		}
+		return false;
+	}
+
+	/// <summary>把空位或重复色挪到当前误差最大、且平均色还不在调色板里的色块上。</summary>
+	static bool reseed(byte[] pal, int nslot, int slot, List<int> occ, int[] cnt, long[] sr, long[] sg, long[] sb) {
+		double worst = 0;
+		var bin = -1;
+		foreach (var i in occ) {
+			var n = cnt[i];
+			var r = (int)((sr[i] + n / 2) / n);
+			var g = (int)((sg[i] + n / 2) / n);
+			var b = (int)((sb[i] + n / 2) / n);
+			if (hasrgb(pal, nslot, r, g, b)) continue;
+			nearestslot(pal, nslot, r, g, b, out var dist);
+			var score = n * (double)dist;
+			if (score <= worst) continue;
+			worst = score;
+			bin = i;
+		}
+		if (bin < 0 || worst <= 0) return false;
+		var bn = cnt[bin];
+		putmean(pal, slot, bn, sr[bin], sg[bin], sb[bin]);
+		return true;
+	}
+
+	static byte[] compactpal(byte[] pal) {
+		var n = pal.Length / 3;
+		var keep = new List<byte>();
+		for (var p = 0; p < n; p++) {
+			var dup = false;
+			for (var q = 0; q < keep.Count; q += 3) {
+				if (keep[q] == pal[p * 3] && keep[q + 1] == pal[p * 3 + 1] && keep[q + 2] == pal[p * 3 + 2]) {
+					dup = true;
+					break;
+				}
+			}
+			if (dup) continue;
+			keep.Add(pal[p * 3]);
+			keep.Add(pal[p * 3 + 1]);
+			keep.Add(pal[p * 3 + 2]);
+		}
+		if (keep.Count == pal.Length) return pal;
+		if (keep.Count == 0) return new byte[] { 255, 255, 255 };
+		return keep.ToArray();
+	}
+
+	/// <summary>每个 5 位色块用自己的平均色去找最近的调色板项，使这块像素的平方差最小。</summary>
+	static byte[] palmap(byte[] pal, int[] cnt, long[] sr, long[] sg, long[] sb) {
 		var n = pal.Length / 3;
 		var map = new byte[32768];
 		if (n <= 1) return map;
 		for (var i = 0; i < 32768; i++) {
-			var r = Math.Min(255, ((i >> 10) << 3) + 4);
-			var g = Math.Min(255, (((i >> 5) & 31) << 3) + 4);
-			var b = Math.Min(255, ((i & 31) << 3) + 4);
-			var best = 0;
-			var bestd = int.MaxValue;
-			for (var p = 0; p < n; p++) {
-				var dr = r - pal[p * 3];
-				var dg = g - pal[p * 3 + 1];
-				var db = b - pal[p * 3 + 2];
-				var d = dr * dr + dg * dg + db * db;
-				if (d >= bestd) continue;
-				bestd = d;
-				best = p;
-			}
-			map[i] = (byte)best;
+			if (cnt[i] == 0) continue;
+			var c = cnt[i];
+			var r = (int)((sr[i] + c / 2) / c);
+			var g = (int)((sg[i] + c / 2) / c);
+			var b = (int)((sb[i] + c / 2) / c);
+			map[i] = (byte)nearestslot(pal, n, r, g, b, out _);
 		}
 		return map;
 	}

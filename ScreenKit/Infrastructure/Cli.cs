@@ -2961,6 +2961,31 @@ static class Cli {
 		return plte;
 	}
 
+	static bool pltnear(byte[] png, int r, int g, int b, int tol) {
+		if (png == null || png.Length < 8) return false;
+		var i = 8;
+		while (i + 12 <= png.Length) {
+			var len = (png[i] << 24) | (png[i + 1] << 16) | (png[i + 2] << 8) | png[i + 3];
+			if (len < 0 || i + 12L + len > png.Length) break;
+			var type = Encoding.ASCII.GetString(png, i + 4, 4);
+			if (type == "PLTE") {
+				for (var k = 0; k + 2 < len; k += 3) {
+					var dr = png[i + 8 + k] - r;
+					var dg = png[i + 9 + k] - g;
+					var db = png[i + 10 + k] - b;
+					if (dr < 0) dr = -dr;
+					if (dg < 0) dg = -dg;
+					if (db < 0) db = -db;
+					if (dr <= tol && dg <= tol && db <= tol) return true;
+				}
+				return false;
+			}
+			if (type == "IEND") break;
+			i += 12 + len;
+		}
+		return false;
+	}
+
 	static int testimgconvert() {
 		Out("=== 图片格式转换 --test-img-convert ===");
 		var bad = 0;
@@ -3117,6 +3142,25 @@ static class Cli {
 				bad++;
 			}
 			else Out("png8 2 colors OK");
+
+			var mix = Path.Combine(dir, "mix.bmp");
+			using (var mb = new System.Drawing.Bitmap(10, 3, System.Drawing.Imaging.PixelFormat.Format24bppRgb)) {
+				for (var x = 0; x < 10; x++) {
+					mb.SetPixel(x, 0, System.Drawing.Color.FromArgb(0, 0, 0));
+					mb.SetPixel(x, 1, System.Drawing.Color.FromArgb(0, 0, 10));
+					mb.SetPixel(x, 2, System.Drawing.Color.FromArgb(255, 0, 0));
+				}
+				mb.Save(mix, System.Drawing.Imaging.ImageFormat.Bmp);
+			}
+			var mixPal = ImgConvert.Encode(mix, "png8", 60, false, 1920, 1080, 0, false, CancellationToken.None, pngColors: 2);
+			var mixN = pngplte(mixPal, out var mixType, out _);
+			if (mixType != 3 || mixN != 2
+				|| !pltnear(mixPal, 0, 0, 5, 1)
+				|| !pltnear(mixPal, 255, 0, 0, 1)) {
+				Err($"FAIL: 调色板应合成 (0,0,5) 与红色，PLTE={mixN}");
+				bad++;
+			}
+			else Out("palette mean not from pixels OK");
 
 			var jpgSrc = Path.Combine(dir, "cam.jpg");
 			using (var jb = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format24bppRgb)) {

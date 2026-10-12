@@ -41,8 +41,10 @@
 			+ tbtn("arrow", "web.board.arrow", "箭头", false)
 			+ tbtn("pen", "web.board.pen", "画笔", false)
 			+ tbtn("text", "web.board.text", "文字", false)
-			+ '<input type="color" id="board-color" value="' + color + '" data-ktip="web.board.color">'
-			+ '<select id="board-w" data-ktip="web.board.wide"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select>'
+			+ '<span class="sep"></span>'
+			+ '<input type="color" id="board-color" value="' + color + '" data-ktip="web.board.color" title="' + tip("web.board.color", "颜色") + '">'
+			+ '<select id="board-w" data-ktip="web.board.wide" title="' + tip("web.board.wide", "线宽") + '"><option value="2">2</option><option value="4">4</option><option value="8">8</option></select>'
+			+ '<span class="sep"></span>'
 			+ abtn("paste", "web.board.paste", "粘贴")
 			+ abtn("undo", "web.board.undo", "撤销")
 			+ abtn("clear", "web.board.clear", "清空")
@@ -55,12 +57,35 @@
 			+ "</div></div>";
 	}
 
+	function tip(key, fb){
+		return SK.esc(SK.t(key) || fb);
+	}
+
 	function tbtn(name, key, fb, on){
-		return '<button type="button" data-board="' + name + '"' + (on ? ' class="on"' : "") + ' data-k="' + key + '">' + SK.esc(SK.t(key) || fb) + "</button>";
+		return '<button type="button" data-board="' + name + '"' + (on ? ' class="on"' : "") + ' data-ktip="' + key + '" title="' + tip(key, fb) + '">'
+			+ icon(name) + '<span data-k="' + key + '">' + tip(key, fb) + "</span></button>";
 	}
 
 	function abtn(name, key, fb){
-		return '<button type="button" data-act="' + name + '" data-k="' + key + '">' + SK.esc(SK.t(key) || fb) + "</button>";
+		return '<button type="button" data-act="' + name + '" data-ktip="' + key + '" title="' + tip(key, fb) + '">'
+			+ icon(name) + '<span data-k="' + key + '">' + tip(key, fb) + "</span></button>";
+	}
+
+	function icon(name){
+		var d = {
+			select: '<path fill="currentColor" d="M3.2 1.6l.8 12.2 3-3.1 2.2 4.3 1.6-.8-2.2-4.2h4.6L3.2 1.6z"/>',
+			rect: '<rect x="2.4" y="2.4" width="11.2" height="11.2" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+			ellipse: '<ellipse cx="8" cy="8" rx="5.6" ry="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+			arrow: '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M2.8 13.2L13.2 2.8M8.2 2.8h5v5"/>',
+			pen: '<path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" d="M2.6 12.2l2.8-2.8 6.2-6.2 2.2 2.2-6.2 6.2-2.8 2.8-2.2-2.2zm6.6-7.6l2.2 2.2"/>',
+			text: '<path fill="currentColor" d="M2.2 2.2h11.6v2.2H9.2v9.2H6.8V4.4H2.2V2.2z"/>',
+			paste: '<path fill="currentColor" d="M5 1.6h6v2.2h2.2v10.6H2.8V3.8H5V1.6zm1.2 1.2v2h3.6V2.8H6.2zM4.4 6.2h7.2v6.6H4.4V6.2z"/>',
+			undo: '<path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3 7.2h6.6a3.2 3.2 0 1 1 0 6.4H6.2M3 7.2l2.6-2.6M3 7.2l2.6 2.6"/>',
+			clear: '<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3 4.2h10M5.2 4.2l.7 9h4.2l.7-9M6.4 4.2V2.4h3.2v1.8"/>',
+			copy: '<path fill="none" stroke="currentColor" stroke-width="1.4" d="M6 2.4h7.2v8.4H6zM2.8 5.2v8.4h7.2"/>',
+			save: '<path fill="currentColor" d="M2.4 2h8.2l3 3v8.8H2.4V2zm1.6 1.2v3.6h6.4V3.2H4zm.6 6.2h6.8v3.4H4.6V9.4z"/>'
+		};
+		return '<svg viewBox="0 0 16 16" aria-hidden="true">' + (d[name] || "") + "</svg>";
 	}
 
 	function open(){
@@ -110,9 +135,7 @@
 	}
 
 	function onbar(ev){
-		var el = ev.target;
-		if (!el || !el.getAttribute) return;
-		if (el.tagName !== "BUTTON") el = el.parentElement;
+		var el = ev.target && ev.target.closest ? ev.target.closest("button") : ev.target;
 		if (!el || !el.getAttribute) return;
 		var mode = el.getAttribute("data-board");
 		var act = el.getAttribute("data-act");
