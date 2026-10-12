@@ -118,6 +118,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page reads a number in Chinese and English, and lists grouped digits, scientific notation, percent, formal Chinese, Roman numerals, and base 2, 8, and 16.
 - Number notation also reads Chinese in the small, middle, and large scales, and names the digits after the decimal point from fen downward.
 - Number notation adds an SI row, one prefix for each power of one thousand, from quecto and yocto through kilo, mega, and quetta.
+- Number notation adds Korean native and Sino-Korean, Japanese, and German, French, Spanish, Portuguese, and Russian readings.
 
 #### Fixed
 
@@ -135,6 +136,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Character art accepts a picture dropped on the text area, including a file, a file name, a virtual JPEG, or a bitmap.
 - System info opens at once. The system, USB, and serial tabs read in the background and show Reading until each list arrives.
 - Color character art defaults to quadrant blocks. A cell splits when its quadrants differ, and a flat cell is a space with the background color instead of a full block. Key 1 still draws full blocks.
+- Morse chart playback now moves the highlight with each character. The timers were waiting on the audio clock, so only the first character lit up.
 
 #### Removed
 
@@ -228,6 +230,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页输入数字后列出中文读法、英文读法，以及千分位、科学计数、百分数、中文大写、罗马数字和二、八、十六进制。
 - 数字表记增加中文小数、中数、大数三种读法，小数点后用分、厘、毫、丝等单位。
 - 数字表记增加 SI 词头，按千进位，从 quecto、yocto 到 kilo、mega、quetta。
+- 数字表记增加韩文固有、韩文汉字、日语，以及德语、法语、西班牙语、葡萄牙语和俄语读法。
 
 #### 修复
 
@@ -245,6 +248,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字符画可以把图片拖到文字区域。文件、文件名、虚拟 JPEG 和位图都可以。
 - 系统信息窗口马上打开。系统、USB 和串口在后台读取，读完前状态显示正在读取。
 - 全色字符画默认改用四象限。象限之间有色差就拆开，接近一色的格子用空格铺背景色，不再铺整块。按 1 仍是整块。
+- 摩斯码表整段播放时，高亮跟着当前字符走。原先把音频时钟当成等待时间，所以只有第一个字会亮。
 
 #### 移除
 

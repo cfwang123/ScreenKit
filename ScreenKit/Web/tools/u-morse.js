@@ -172,25 +172,30 @@
 		});
 	}
 
-	// 依次发声；items 每项 [符号, 后面停几个单位]，符号为空表示只停顿
+	// 依次发声；items 每项 [符号, 后面停几个单位]，符号为空表示只停顿。
+	// bitblip 的 at 是音频时钟上的绝对时间，0 表示现在。
+	// starts 和 end 给页面高亮的 setTimeout 用，必须是从现在起的秒数。
 	function queue(items){
 		var unit = UNIT / 1000;
 		var starts = [];
-		var t = 0;
-		var i, it, end, dur;
+		var rel = 0;
+		var origin = 0;
+		var i, it, end, dur, at;
 		if (!SK.bitblip) return null;
 		for (i = 0; i < items.length; i++) {
 			it = items[i];
-			starts.push(t);
+			starts.push(rel);
 			if (it[0]) {
 				dur = it[0] === "-" ? unit * 3 : unit;
-				end = SK.bitblip(MIDI, dur, t);
+				at = origin ? origin + rel : 0;
+				end = SK.bitblip(MIDI, dur, at);
 				if (end < 0) return null;
-				t = end;
+				if (!origin) origin = end - dur;
+				rel += dur;
 			}
-			t += unit * (it[1] || 0);
+			rel += unit * (it[1] || 0);
 		}
-		return { end: t, starts: starts };
+		return { end: rel, starts: starts };
 	}
 
 	// 排音：超时就截断

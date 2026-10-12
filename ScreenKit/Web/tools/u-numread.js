@@ -20,6 +20,42 @@
 		["exa", "E"], ["zetta", "Z"], ["yotta", "Y"], ["ronna", "R"], ["quetta", "Q"]
 	];
 	var ROM = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+	var KO_N10 = ["", "열", "스물", "서른", "마흔", "쉰", "예순", "일흔", "여든", "아흔"];
+	var KO_N1 = ["", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉"];
+	var KO_ND = ["영", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉"];
+	var KO_D = ["영", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"];
+	var KO_U4 = ["천", "백", "십", ""];
+	var KO_SC = ["", "만", "억", "조", "경", "해", "자", "양", "구", "간", "정", "재", "극", "항하사", "아승기", "나유타", "불가사의", "무량대수"];
+	var JA_D = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
+	var JA_DIG = ["れい", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
+	var JA_SC = ["", "まん", "おく", "ちょう", "けい", "がい", "じょ", "じょう", "こう", "かん", "せい", "さい", "ごく", "ごうがしゃ", "あそうぎ", "なゆた", "ふかしぎ", "むりょうたいすう"];
+	var DE_U = ["", "ein", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"];
+	var DE_DIG = ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"];
+	var DE_BIG = [null, null, ["Million", "Millionen"], ["Milliarde", "Milliarden"], ["Billion", "Billionen"], ["Billiarde", "Billiarden"], ["Trillion", "Trillionen"]];
+	var FR_D = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"];
+	var FR_TEEN = ["dix", "onze", "douze", "treize", "quatorze", "quinze", "seize"];
+	var FR_TENS = ["", "", "vingt", "trente", "quarante", "cinquante", "soixante"];
+	var FR_SC = ["", "", "million", "milliard", "billion", "billiard", "trillion", "trilliard"];
+	var ES_1 = ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve"];
+	var ES_20 = ["", "", "veintidós", "veintitrés", "veinticuatro", "veinticinco", "veintiséis", "veintisiete", "veintiocho", "veintinueve"];
+	var ES_10 = ["", "", "veinte", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"];
+	var ES_100 = ["", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos", "seiscientos", "setecientos", "ochocientos", "novecientos"];
+	var ES_LL = [["millón", "millones"], ["billón", "billones"], ["trillón", "trillones"], ["cuatrillón", "cuatrillones"]];
+	var ES_DIG = ["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
+	var PT_1 = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze", "catorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+	var PT_10 = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+	var PT_100 = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+	var PT_BIG = [null, null, ["milhão", "milhões"], ["bilhão", "bilhões"], ["trilhão", "trilhões"], ["quatrilhão", "quatrilhões"], ["quintilhão", "quintilhões"], ["sextilhão", "sextilhões"], ["septilhão", "septilhões"], ["octilhão", "octilhões"]];
+	var PT_DIG = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+	var RU_M = ["", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
+	var RU_DIG = ["ноль", "один", "два", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
+	var RU_F = ["", "одна", "две", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять"];
+	var RU_TEEN = ["десять", "одиннадцать", "двенадцать", "тринадцать", "четырнадцать", "пятнадцать", "шестнадцать", "семнадцать", "восемнадцать", "девятнадцать"];
+	var RU_10 = ["", "", "двадцать", "тридцать", "сорок", "пятьдесят", "шестьдесят", "семьдесят", "восемьдесят", "девяносто"];
+	var RU_100 = ["", "сто", "двести", "триста", "четыреста", "пятьсот", "шестьсот", "семьсот", "восемьсот", "девятьсот"];
+	var RU_SC = [null, ["тысяча", "тысячи", "тысяч", true], ["миллион", "миллиона", "миллионов", false], ["миллиард", "миллиарда", "миллиардов", false], ["биллион", "биллиона", "биллионов", false], ["биллиард", "биллиарда", "биллиардов", false], ["триллион", "триллиона", "триллионов", false]];
+	var RU_DEN1 = ["", "десятая", "сотая", "тысячная", "десятитысячная", "стотысячная", "миллионная", "десятимиллионная", "стомиллионная", "миллиардная"];
+	var RU_DEN = ["", "десятых", "сотых", "тысячных", "десятитысячных", "стотысячных", "миллионных", "десятимиллионных", "стомиллионных", "миллиардных"];
 
 	SK.regutil("u-numread", {
 		title: "数字表记转换",
@@ -316,6 +352,392 @@
 		var i;
 		for (i = 0; i < fp.length; i++) out.push(EN1[fp.charCodeAt(i) - 48]);
 		return out.join(" ");
+	}
+
+	function spellDigits(fp, words, sep){
+		var out = [];
+		var i;
+		for (i = 0; i < fp.length; i++) out.push(words[fp.charCodeAt(i) - 48]);
+		return out.join(sep || "");
+	}
+
+	function koNative(p){
+		if (p.ip.length > 2) return "固有数词只到九十九";
+		var n = parseInt(p.ip, 10);
+		var body = n ? KO_N10[Math.floor(n / 10)] + KO_N1[n % 10] : "영";
+		if (p.fp) body += " 점 " + spellDigits(p.fp, KO_ND);
+		return (p.neg ? "마이너스 " : "") + body;
+	}
+
+	function koSino(p){
+		if (p.ip.length > KO_SC.length * 4) return "超出";
+		var body = koInt(p.ip);
+		if (p.fp) body += " 점 " + spellDigits(p.fp, KO_D);
+		return (p.neg ? "마이너스 " : "") + body;
+	}
+
+	function koInt(ip){
+		if (ip === "0") return "영";
+		var chunks = splitend(ip, 4);
+		var parts = [];
+		var i;
+		for (i = chunks.length - 1; i >= 0; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			parts.push(ko4(n) + KO_SC[i]);
+		}
+		return parts.join(" ");
+	}
+
+	// 十、百、千前的「일」省掉，万及以上保留。中间空位不补「영」。
+	function ko4(n){
+		var s = ("0000" + n).slice(-4);
+		var out = "";
+		var i;
+		for (i = 0; i < 4; i++) {
+			var d = s.charCodeAt(i) - 48;
+			if (!d) continue;
+			if (!(d === 1 && KO_U4[i])) out += KO_D[d];
+			out += KO_U4[i];
+		}
+		return out;
+	}
+
+	function jaRead(p){
+		if (p.ip.length > JA_SC.length * 4) return "超出";
+		var body = p.ip === "0" ? "ゼロ" : jaInt(p.ip);
+		if (p.fp) body += " てん " + spellDigits(p.fp, JA_DIG);
+		return (p.neg ? "マイナス " : "") + body;
+	}
+
+	function jaInt(ip){
+		var chunks = splitend(ip, 4);
+		var parts = [];
+		var i;
+		for (i = chunks.length - 1; i >= 0; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			parts.push(jaGroup(n, i));
+		}
+		return parts.join(" ");
+	}
+
+	// ちょう 只在整段正好是 いち / はち / じゅう 时促音。其余单位直接拼接。
+	function jaGroup(n, i){
+		var piece = ja4(n);
+		if (i === 3) {
+			if (piece === "いち") return "いっちょう";
+			if (piece === "はち") return "はっちょう";
+			if (piece === "じゅう") return "じゅっちょう";
+		}
+		return piece + JA_SC[i];
+	}
+
+	function ja4(n){
+		var s = ("0000" + n).slice(-4);
+		var d0 = s.charCodeAt(0) - 48;
+		var d1 = s.charCodeAt(1) - 48;
+		var d2 = s.charCodeAt(2) - 48;
+		var d3 = s.charCodeAt(3) - 48;
+		var out = "";
+		if (d0 === 1) out += "せん";
+		else if (d0 === 3) out += "さんぜん";
+		else if (d0 === 8) out += "はっせん";
+		else if (d0) out += JA_D[d0] + "せん";
+		if (d1 === 1) out += "ひゃく";
+		else if (d1 === 3) out += "さんびゃく";
+		else if (d1 === 6) out += "ろっぴゃく";
+		else if (d1 === 8) out += "はっぴゃく";
+		else if (d1) out += JA_D[d1] + "ひゃく";
+		if (d2 === 1) out += "じゅう";
+		else if (d2) out += JA_D[d2] + "じゅう";
+		if (d3) out += JA_D[d3];
+		return out;
+	}
+
+	function deRead(p){
+		if (p.ip.length > 21) return "超出";
+		var body = deInt(p.ip);
+		if (p.fp) body += " Komma " + spellDigits(p.fp, DE_DIG, " ");
+		return (p.neg ? "minus " : "") + body;
+	}
+
+	function deInt(ip){
+		if (ip === "0") return "null";
+		var chunks = splitend(ip, 3);
+		var parts = [];
+		var i;
+		for (i = chunks.length - 1; i >= 2; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			var pair = DE_BIG[i];
+			parts.push((n === 1 ? "eine" : de999(n, true)) + " " + (n === 1 ? pair[0] : pair[1]));
+		}
+		var low = parseInt(chunks[0], 10);
+		if (chunks.length > 1) low += parseInt(chunks[1], 10) * 1000;
+		if (low) parts.push(deBelow(low));
+		return parts.join(" ");
+	}
+
+	function deBelow(n){
+		if (n < 1000) return de999(n, true);
+		var th = Math.floor(n / 1000);
+		var rest = n % 1000;
+		var s = (th === 1 ? "ein" : de999(th, false)) + "tausend";
+		if (rest) s += de999(rest, true);
+		return s;
+	}
+
+	function de999(n, end){
+		var s = "";
+		if (n >= 100) {
+			var h = Math.floor(n / 100);
+			s = (h === 1 ? "ein" : DE_U[h]) + "hundert";
+			n = n % 100;
+		}
+		if (n) s += de99(n, end);
+		return s;
+	}
+
+	function de99(n, end){
+		if (n < 10) return n === 1 ? (end ? "eins" : "ein") : DE_U[n];
+		if (n === 11) return "elf";
+		if (n === 12) return "zwölf";
+		if (n < 20) {
+			if (n === 16) return "sechzehn";
+			if (n === 17) return "siebzehn";
+			return DE_U[n - 10] + "zehn";
+		}
+		var u = n % 10;
+		var ten = deTen(Math.floor(n / 10));
+		if (!u) return ten;
+		return (u === 1 ? "ein" : DE_U[u]) + "und" + ten;
+	}
+
+	function deTen(t){
+		if (t === 2) return "zwanzig";
+		if (t === 3) return "dreißig";
+		if (t === 6) return "sechzig";
+		if (t === 7) return "siebzig";
+		return DE_U[t] + "zig";
+	}
+
+	function frRead(p){
+		if (p.ip.length > 24) return "超出";
+		var body = frInt(p.ip);
+		if (p.fp) body += " virgule " + spellDigits(p.fp, FR_D, " ");
+		return (p.neg ? "moins " : "") + body;
+	}
+
+	function frInt(ip){
+		if (ip === "0") return "zéro";
+		var chunks = splitend(ip, 3);
+		var parts = [];
+		var i;
+		for (i = chunks.length - 1; i >= 0; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			if (i === 0) parts.push(fr999(n, true));
+			else if (i === 1) parts.push((n === 1 ? "" : fr999(n, false) + " ") + "mille");
+			else parts.push(fr999(n, false) + " " + FR_SC[i] + (n > 1 ? "s" : ""));
+		}
+		return parts.join(" ");
+	}
+
+	// final：这一段后面没有别的成分，vingt / cent 才加 s。
+	function fr999(n, final){
+		var h = Math.floor(n / 100);
+		var rest = n % 100;
+		var s = "";
+		if (h === 1) s = "cent";
+		else if (h) s = FR_D[h] + " " + (rest || !final ? "cent" : "cents");
+		if (rest) s += (s ? " " : "") + fr99(rest, final);
+		return s;
+	}
+
+	function fr99(n, final){
+		if (n < 10) return FR_D[n];
+		if (n < 17) return FR_TEEN[n - 10];
+		if (n < 20) return "dix-" + FR_D[n - 10];
+		if (n < 70) {
+			var u = n % 10;
+			var name = FR_TENS[Math.floor(n / 10)];
+			if (!u) return name;
+			if (u === 1) return name + " et un";
+			return name + "-" + FR_D[u];
+		}
+		if (n < 80) {
+			if (n === 71) return "soixante et onze";
+			return "soixante-" + fr99(n - 60, final);
+		}
+		var r = n - 80;
+		if (!r) return final ? "quatre-vingts" : "quatre-vingt";
+		if (n === 81) return "quatre-vingt-un";
+		return "quatre-vingt-" + fr99(r, final);
+	}
+
+	function esRead(p){
+		if (p.ip.length > 30) return "超出";
+		var body = esInt(p.ip);
+		if (p.fp) body += " coma " + spellDigits(p.fp, ES_DIG, " ");
+		return (p.neg ? "menos " : "") + body;
+	}
+
+	function esInt(ip){
+		if (ip === "0") return "cero";
+		var chunks = splitend(ip, 3);
+		var items = [];
+		var i;
+		for (i = chunks.length - 1; i >= 0; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			items.push([n, esPart(n, i)]);
+		}
+		if (items.length === 1) return items[0][1];
+		var text = items[0][1];
+		for (i = 1; i < items.length; i++) {
+			var last = i === items.length - 1 && items[i][0] < 100;
+			text += (last ? " y " : " ") + items[i][1];
+		}
+		return text;
+	}
+
+	function esPart(n, i){
+		if (i === 0) return es999(n, false);
+		if (i === 1) return n === 1 ? "mil" : es999(n, true) + " mil";
+		var pair = ES_LL[Math.floor((i - 2) / 2)];
+		if (i % 2 === 0) return (n === 1 ? "un" : es999(n, true)) + " " + (n === 1 ? pair[0] : pair[1]);
+		if (n === 1) return "mil " + pair[1];
+		return es999(n, true) + " mil " + pair[1];
+	}
+
+	function es999(n, apo){
+		if (n === 100) return "cien";
+		var h = Math.floor(n / 100);
+		var rest = n % 100;
+		var s = h ? ES_100[h] : "";
+		if (rest) s += (s ? " " : "") + es99(rest, apo);
+		return s;
+	}
+
+	function es99(n, apo){
+		if (n < 20) return n === 1 && apo ? "un" : ES_1[n];
+		if (n === 20) return "veinte";
+		if (n < 30) return n === 21 ? (apo ? "veintiún" : "veintiuno") : ES_20[n - 20];
+		var u = n % 10;
+		var s = ES_10[Math.floor(n / 10)];
+		if (!u) return s;
+		return s + " y " + (u === 1 && apo ? "un" : ES_1[u]);
+	}
+
+	function ptRead(p){
+		if (p.ip.length > 30) return "超出";
+		var body = ptInt(p.ip);
+		if (p.fp) body += " vírgula " + spellDigits(p.fp, PT_DIG, " ");
+		return (p.neg ? "menos " : "") + body;
+	}
+
+	function ptInt(ip){
+		if (ip === "0") return "zero";
+		var chunks = splitend(ip, 3);
+		var items = [];
+		var i;
+		for (i = chunks.length - 1; i >= 0; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			items.push([n, ptPart(n, i)]);
+		}
+		var text = items[0][1];
+		for (i = 1; i < items.length; i++) {
+			var n = items[i][0];
+			var last = i === items.length - 1 && (n < 100 || n % 100 === 0);
+			text += (last ? " e " : " ") + items[i][1];
+		}
+		return text;
+	}
+
+	function ptPart(n, i){
+		if (i === 0) return pt999(n);
+		if (i === 1) return n === 1 ? "mil" : pt999(n) + " mil";
+		var pair = PT_BIG[i];
+		return (n === 1 ? "um " + pair[0] : pt999(n) + " " + pair[1]);
+	}
+
+	function pt999(n){
+		if (n === 100) return "cem";
+		var h = Math.floor(n / 100);
+		var rest = n % 100;
+		var s = h ? PT_100[h] : "";
+		if (!rest) return s;
+		return s ? s + " e " + pt99(rest) : pt99(rest);
+	}
+
+	function pt99(n){
+		if (n < 20) return PT_1[n];
+		var u = n % 10;
+		var s = PT_10[Math.floor(n / 10)];
+		if (!u) return s;
+		return s + " e " + PT_1[u];
+	}
+
+	function ruRead(p){
+		if (p.ip.length > 21) return "超出";
+		var fem = p.fp && p.fp.length <= 9;
+		var body = ruInt(p.ip, fem);
+		if (p.fp) {
+			if (fem) {
+				var num = parseInt(p.fp, 10);
+				var one = ruForm(num) === "one";
+				var cel = ruForm(parseInt(p.ip.slice(-2), 10)) === "one" ? "целая" : "целых";
+				body += " " + cel + " " + ruInt(String(num), true) + " " + (one ? RU_DEN1[p.fp.length] : RU_DEN[p.fp.length]);
+			}
+			else body += " запятая " + spellDigits(p.fp, RU_DIG, " ");
+		}
+		return (p.neg ? "минус " : "") + body;
+	}
+
+	function ruInt(ip, fem){
+		if (ip === "0") return "ноль";
+		var chunks = splitend(ip, 3);
+		var parts = [];
+		var i;
+		for (i = chunks.length - 1; i >= 0; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			if (i === 0) parts.push(ru999(n, fem));
+			else {
+				var sc = RU_SC[i];
+				var form = ruForm(n);
+				var name = form === "one" ? sc[0] : form === "few" ? sc[1] : sc[2];
+				parts.push(ru999(n, sc[3]) + " " + name);
+			}
+		}
+		return parts.join(" ");
+	}
+
+	function ru999(n, fem){
+		var ones = fem ? RU_F : RU_M;
+		var h = Math.floor(n / 100);
+		var rest = n % 100;
+		var parts = [];
+		if (h) parts.push(RU_100[h]);
+		if (rest >= 10 && rest < 20) parts.push(RU_TEEN[rest - 10]);
+		else {
+			var t = Math.floor(rest / 10);
+			var u = rest % 10;
+			if (t) parts.push(RU_10[t]);
+			if (u) parts.push(ones[u]);
+		}
+		return parts.join(" ");
+	}
+
+	function ruForm(n){
+		var m100 = n % 100;
+		var m10 = n % 10;
+		if (m100 >= 11 && m100 <= 14) return "many";
+		if (m10 === 1) return "one";
+		if (m10 >= 2 && m10 <= 4) return "few";
+		return "many";
 	}
 
 	function siread(p){
