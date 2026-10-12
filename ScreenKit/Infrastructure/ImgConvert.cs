@@ -408,10 +408,13 @@ static class ImgConvert {
 	static Encoded encodegdi(string src, string fmt, int quality,
 		bool maxEn, int maxW, int maxH, int rotate, bool mirror, CancellationToken ct,
 		bool shortSide, int pngColors) {
-		using var loaded = new GdiBmp(src);
+		// 读进内存再解码。GDI 用路径打开 JPEG 会独占文件，和缩略图抢锁就失败。
+		var raw = File.ReadAllBytes(src);
+		using var msIn = new MemoryStream(raw);
+		using var loaded = new GdiBmp(msIn);
 		var srcW = loaded.Width;
 		var srcH = loaded.Height;
-		using var img = new GdiBmp(loaded);
+		using var img = clone32(loaded);
 		ct.ThrowIfCancellationRequested();
 		var xf = toflip(rotate, mirror);
 		if (xf != RotateFlipType.RotateNoneFlipNone)
@@ -519,10 +522,12 @@ static class ImgConvert {
 
 	static BitmapSource loadwpf(string path) {
 		try {
-			using var fs = File.OpenRead(path);
+			var raw = File.ReadAllBytes(path);
+			using var fs = new MemoryStream(raw);
 			var bi = new BitmapImage();
 			bi.BeginInit();
 			bi.CacheOption = BitmapCacheOption.OnLoad;
+			bi.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
 			bi.StreamSource = fs;
 			bi.EndInit();
 			bi.Freeze();
@@ -571,6 +576,15 @@ static class ImgConvert {
 			return;
 		}
 		img.Save(dst, ImageFormat.Png);
+	}
+
+	/// <summary>画到新的 32 位图上。JPEG 的 Bitmap(Image) 拷贝仍挂着文件，保存会失败。</summary>
+	static GdiBmp clone32(GdiImg src) {
+		var b = new GdiBmp(src.Width, src.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+		using var g = GdiGfx.FromImage(b);
+		g.Clear(System.Drawing.Color.White);
+		g.DrawImage(src, 0, 0, src.Width, src.Height);
+		return b;
 	}
 
 	static GdiBmp as24(GdiImg img) {

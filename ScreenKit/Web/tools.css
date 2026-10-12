@@ -519,6 +519,24 @@ input[type="file"] {
 }
 /* 正在试听的那条 */
 .morse button.on { border-color: var(--accent); background: #fff1e8; }
+/* 摩斯试听：输入一段文字整段播放 */
+.mtry { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.mtry input { flex: 1; height: 32px; margin-top: 0; }
+.mtry button {
+	height: 32px; padding: 0 14px; white-space: nowrap; cursor: pointer;
+	border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
+}
+.mtry button.primary { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.mtry .msg { min-height: 0; white-space: nowrap; }
+.mpv { margin: 0 0 10px; color: var(--muted); word-break: break-all; }
+.mpv i { margin: 0 4px; color: var(--line); font-style: normal; }
+.mpv span {
+	display: inline-block; margin: 0 2px 4px; padding: 1px 5px; border-radius: 5px;
+	background: var(--paper); color: var(--ink);
+	font: 13px/1.5 Consolas, "Microsoft YaHei UI", monospace;
+}
+.mpv span.on { background: #fff1e8; box-shadow: inset 0 0 0 1px var(--accent); }
+.mpv small { font-size: 13px; }
 /* 左边小色块，右边两行：中文名 + 英文名 / 十六进制 */
 .cgrid button {
 	display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto;

@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools page, Text: Morse chart. Letters, digits, punctuation, and procedure signals. A click copies the dots and dashes.
 - New tool: ASCII code chart (Text). It covers 0x00-0x7F in six groups and draws the classic 16-column grid with column and row headers; control characters show their usual abbreviations (NUL, HT, DEL ...). Click a cell to select and copy it (controls copy their escape), and the preview lists decimal, hex, octal, binary, the Unicode name and the category plus the C, JavaScript, HTML, URL and UTF-8 forms.
 - Tools, Image convert: palette PNG with a choice of 2, 4, 8, 16, 32, 64, 128, or 256 colors. The file extension stays .png.
+- Tools page: the Morse chart can play a whole typed text, not just one code. Letters are separated by three units and words by seven, the strip below shows the dots and dashes of what you type, and the current letter is highlighted while it plays. Playback stops at 20 seconds and says how much was left out.
 
 #### Changed
 
@@ -146,6 +147,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页「文字」增加摩斯码表。字母、数字、标点和信号。点一下复制点划。
 - 新增工具：ASCII码表（文字）。0x00–0x7F 分六组，画成经典 16 列并带行列码表头；控制字符显示 NUL、HT、DEL 等惯用缩写。点格子选中并复制（控制字符复制它的转义写法），右边预览列出十进制、十六进制、八进制、二进制、Unicode 名称、类别，以及 C、JavaScript、HTML、URL、UTF-8 写法。
 - 工具 → 图片格式转换可输出 PNG 调色板，颜色数可选 2、4、8、16、32、64、128、256，扩展名仍是 .png。
+- 工具页：摩斯码表可以整段播放输入的文字，不只是单条码。字母之间空 3 点、词之间空 7 点，输入框下面显示转换出的点划，播放时逐字高亮。最长播 20 秒，超了会截断并说明只播了前几个字符。
 
 #### 变更
 

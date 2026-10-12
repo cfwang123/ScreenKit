@@ -65,8 +65,10 @@ public partial class ImgConvertWindow : Window {
 		cmirror.Checked += (_, _) => applyxf();
 		cmirror.Unchecked += (_, _) => applyxf();
 		lv.PreviewDragOver += ondragover;
+		lv.DragOver += ondragover;
 		lv.Drop += ondrop;
 		PreviewDragOver += ondragover;
+		DragOver += ondragover;
 		Drop += ondrop;
 		Closing += onclosing;
 	}
@@ -402,11 +404,14 @@ public partial class ImgConvertWindow : Window {
 	static bool hasdrop(System.Windows.IDataObject data) {
 		if (data == null) return false;
 		try {
-			if (data.GetDataPresent(DataFormats.FileDrop)) return true;
-		}
-		catch { }
-		try {
-			if (data.GetDataPresent(DataFormats.Bitmap)) return true;
+			var fmts = data.GetFormats();
+			if (fmts == null) return false;
+			foreach (var f in fmts) {
+				if (f == DataFormats.FileDrop || f == DataFormats.Bitmap
+					|| f == "FileNameW" || f == "FileName"
+					|| f == "FileGroupDescriptorW")
+					return true;
+			}
 		}
 		catch { }
 		return false;
@@ -416,13 +421,15 @@ public partial class ImgConvertWindow : Window {
 		var r = new List<string>();
 		if (data == null) return r;
 		try {
-			if (data.GetDataPresent(DataFormats.FileDrop)) {
-				var files = data.GetData(DataFormats.FileDrop) as string[];
-				if (files != null && files.Length > 0)
-					r.AddRange(ImgConvert.CollectImages(files));
-			}
+			addfiledrop(data, r);
 		}
 		catch { }
+		if (r.Count == 0) {
+			try { addfilename(data, r); } catch { }
+		}
+		if (r.Count == 0) {
+			try { addvirtual(data, r); } catch { }
+		}
 		if (r.Count > 0) return r;
 		try {
 			if (!data.GetDataPresent(DataFormats.Bitmap)) return r;
@@ -534,10 +541,56 @@ public partial class ImgConvertWindow : Window {
 		catch { }
 	}
 
+	static void addfiledrop(System.Windows.IDataObject data, List<string> r) {
+		var raw = data.GetData(DataFormats.FileDrop);
+		if (raw is string[] arr)
+			r.AddRange(ImgConvert.CollectImages(arr));
+		else if (raw is string one)
+			r.AddRange(ImgConvert.CollectImages(new[] { one }));
+		else if (raw is System.Collections.IEnumerable en) {
+			var list = new List<string>();
+			foreach (var o in en) {
+				if (o is string s && !string.IsNullOrWhiteSpace(s)) list.Add(s);
+			}
+			if (list.Count > 0) r.AddRange(ImgConvert.CollectImages(list));
+		}
+	}
+
+	static void addfilename(System.Windows.IDataObject data, List<string> r) {
+		var name = data.GetData("FileNameW") as string;
+		if (string.IsNullOrWhiteSpace(name))
+			name = data.GetData("FileName") as string;
+		if (!string.IsNullOrWhiteSpace(name))
+			r.AddRange(ImgConvert.CollectImages(new[] { name }));
+	}
+
+	/// <summary>浏览器、邮件里拖出的 JPEG 常常只有 FileContents，没有真实路径。</summary>
+	static void addvirtual(System.Windows.IDataObject data, List<string> r) {
+		if (!data.GetDataPresent("FileGroupDescriptorW")) return;
+		if (data.GetData("FileGroupDescriptorW") is not MemoryStream desc) return;
+		var buf = desc.ToArray();
+		if (buf.Length < 4) return;
+		var count = BitConverter.ToInt32(buf, 0);
+		const int descSize = 592;
+		const int nameOff = 72;
+		if (count < 1) return;
+		if (4 + descSize > buf.Length) return;
+		var name = System.Text.Encoding.Unicode.GetString(buf, 4 + nameOff, 520).TrimEnd('\0');
+		var ext = Path.GetExtension(name);
+		if (string.IsNullOrEmpty(ext) || !ImageUtil.IsImagePath("x" + ext)) return;
+		if (data.GetData("FileContents") is not Stream content) return;
+		var path = TmpStore.NewPath("imgconv", ext);
+		using (var fs = File.Create(path))
+			content.CopyTo(fs);
+		if (new FileInfo(path).Length > 0) r.Add(path);
+		else try { File.Delete(path); } catch { }
+	}
+
 	static BitmapSource makethumb(string path) {
 		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return null;
 		try {
-			using var fs = File.OpenRead(path);
+			var raw = File.ReadAllBytes(path);
+			using var fs = new MemoryStream(raw);
 			var bi = new BitmapImage();
 			bi.BeginInit();
 			bi.CacheOption = BitmapCacheOption.OnLoad;

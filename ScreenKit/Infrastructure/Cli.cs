@@ -3118,6 +3118,34 @@ static class Cli {
 			}
 			else Out("png8 2 colors OK");
 
+			var jpgSrc = Path.Combine(dir, "cam.jpg");
+			using (var jb = new System.Drawing.Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format24bppRgb)) {
+				for (var y = 0; y < h; y++) {
+					for (var x = 0; x < w; x++)
+						jb.SetPixel(x, y, System.Drawing.Color.FromArgb((x * 13) & 255, (y * 17) & 255, 80));
+				}
+				jb.Save(jpgSrc, System.Drawing.Imaging.ImageFormat.Jpeg);
+			}
+			var jpgGot = ImgConvert.CollectImages(new[] { jpgSrc });
+			if (jpgGot.Count != 1) {
+				Err("FAIL: jpg 未被收集");
+				bad++;
+			}
+			else Out("jpg collect OK");
+			var jpgPal = ImgConvert.Encode(jpgSrc, "png8", 60, false, 1920, 1080, 0, false, CancellationToken.None, pngColors: 16);
+			var jpgPlte = pngplte(jpgPal, out var jct, out _);
+			if (jct != 3 || jpgPlte < 2 || jpgPlte > 16) {
+				Err($"FAIL: jpg→png8 type={jct} PLTE={jpgPlte}");
+				bad++;
+			}
+			else Out("jpg to png8 OK");
+			var jpgPng = ImgConvert.Encode(jpgSrc, "png", 60, false, 1920, 1080, 0, false, CancellationToken.None);
+			if (jpgPng == null || jpgPng.Length < 32 || jpgPng[0] != 137) {
+				Err("FAIL: jpg→png");
+				bad++;
+			}
+			else Out($"jpg to png OK {jpgPng.Length}");
+
 			var q20 = ImgConvert.Encode(src, "jpg", 20, false, 1920, 1080, 0, false, CancellationToken.None);
 			var q90 = ImgConvert.Encode(src, "jpg", 90, false, 1920, 1080, 0, false, CancellationToken.None);
 			if (q20.Length * 5 / 4 >= q90.Length) {

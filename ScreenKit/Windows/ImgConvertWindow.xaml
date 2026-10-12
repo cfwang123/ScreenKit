@@ -18,11 +18,13 @@
 			<VirtualizingStackPanel />
 		</ItemsPanelTemplate>
 		<Style x:Key="styleListItem" TargetType="ListViewItem">
+			<Setter Property="AllowDrop" Value="True"/>
 			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
 			<Setter Property="ToolTip" Value="{Binding FilePath}"/>
 			<Setter Property="Padding" Value="0,2"/>
 		</Style>
 		<Style x:Key="styleThumbItem" TargetType="ListViewItem">
+			<Setter Property="AllowDrop" Value="True"/>
 			<Setter Property="HorizontalContentAlignment" Value="Center"/>
 			<Setter Property="VerticalContentAlignment" Value="Top"/>
 			<Setter Property="Width" Value="116"/>
