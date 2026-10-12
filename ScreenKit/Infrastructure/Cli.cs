@@ -82,7 +82,7 @@ static class Cli {
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--toast"
-				or "--zhconv" or "--calendar" or "--jpyomi"
+				or "--zhconv" or "--pinyin" or "--calendar" or "--jpyomi"
 				or "--asr" or "--list-asr"
 				or "--translate" or "--translate-file" or "--list-translate"
 				or "--list-install" or "--list-tts-install"
@@ -402,6 +402,8 @@ static class Cli {
 						return runtoast(args, i);
 					case "--zhconv":
 						return runzhconv(args, i);
+					case "--pinyin":
+						return runpinyin(args, i);
 					case "--calendar":
 						return runcalendar(args, i);
 					case "--jpyomi":
@@ -3629,6 +3631,7 @@ static class Cli {
 			Err("FAIL empty");
 			return 1;
 		}
+		if (testpinyinhttp() != 0) return 1;
 		Out(py + " / " + ini);
 		if (!had) {
 			NativeRuntime.UninstallNPinyin();
@@ -3646,6 +3649,67 @@ static class Cli {
 		}
 		Out("OK");
 		return 0;
+	}
+
+	static int testpinyinhttp() {
+		HttpOcrServer srv = null;
+		try {
+			srv = new HttpOcrServer(() => new OcrOptions(), new OcrRunner());
+			var port = 0;
+			for (var p = 18780; p <= 18784; p++) {
+				try {
+					srv.Start("127.0.0.1", p);
+					port = p;
+					break;
+				}
+				catch (Exception ex) {
+					Out("bind " + p + " fail: " + ex.Message);
+				}
+			}
+			if (port == 0) {
+				Err("FAIL: 无法绑定拼音 HTTP");
+				return 1;
+			}
+			using var handler = new HttpClientHandler { UseProxy = false };
+			using var http = new HttpClient(handler);
+			var baseUrl = "http://127.0.0.1:" + port + "/api/pinyin";
+			var pyUrl = baseUrl + "?text=" + Uri.EscapeDataString("重庆") + "&mode=py";
+			var pyJson = Task.Run(() => http.GetStringAsync(pyUrl).GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("http " + pyJson);
+			if (pyJson == null || pyJson.IndexOf("chong qing", StringComparison.Ordinal) < 0) {
+				Err("FAIL: HTTP 拼音");
+				return 1;
+			}
+			var body = new StringContent("{\"text\":\"重庆\",\"mode\":\"init\"}", Encoding.UTF8, "application/json");
+			var iniJson = Task.Run(() => http.PostAsync(baseUrl, body).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("http init " + iniJson);
+			if (iniJson == null || iniJson.IndexOf("\"CQ\"", StringComparison.Ordinal) < 0) {
+				Err("FAIL: HTTP 首字母");
+				return 1;
+			}
+			var empty = Task.Run(() => http.GetStringAsync(baseUrl).GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("http empty " + empty);
+			if (empty == null || empty.IndexOf("installed", StringComparison.Ordinal) < 0
+				|| empty.IndexOf("\"text\"", StringComparison.Ordinal) >= 0) {
+				Err("FAIL: 空 text 应只有 installed");
+				return 1;
+			}
+			var badUrl = baseUrl + "?text=" + Uri.EscapeDataString("重庆") + "&mode=nope";
+			var bad = Task.Run(() => http.GetStringAsync(badUrl).GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			if (bad == null || bad.IndexOf("802", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 错误 mode 应为 802");
+				return 1;
+			}
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL http: " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { srv?.Stop(); } catch { }
+			try { srv?.Dispose(); } catch { }
+		}
 	}
 
 	static bool fakeone(FakeLang lang) {
@@ -5083,6 +5147,37 @@ static class Cli {
 		}
 	}
 
+	static int runpinyin(string[] args, int at) {
+		string text = null;
+		var initials = false;
+		for (var j = at + 1; j < args.Length; j++) {
+			var a = args[j] ?? "";
+			if (a is "--init" or "--initial" or "--first") { initials = true; continue; }
+			if (a is "--py" or "--pinyin") { initials = false; continue; }
+			if (a.StartsWith("-")) {
+				Err("未知参数 " + a);
+				return 2;
+			}
+			text = text == null ? a : text + " " + a;
+		}
+		if (string.IsNullOrEmpty(text)) {
+			Err("用法: ScreenKit --pinyin <文字> [--init]");
+			return 2;
+		}
+		if (!PinyinConvert.Installed) {
+			Err("NPinyin 未安装。帮助 → 安装功能 → 工具集");
+			return 1;
+		}
+		try {
+			Out(PinyinConvert.Convert(text, initials));
+			return 0;
+		}
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+	}
+
 	static int runcalendar(string[] args, int at) {
 		string dateText = null;
 		string cal = null;
@@ -5164,6 +5259,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 用法:
   ScreenKit --toast <文字> [--ms 1900]
   ScreenKit --zhconv <文字> [--trad|--simp]
+  ScreenKit --pinyin <文字> [--init]
   ScreenKit --calendar [yyyy-MM-dd] [--cal lunar]
   ScreenKit --jpyomi <日文> [--mono]
   ScreenKit --image <路径> [选项]
@@ -5271,7 +5367,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-fx  货币换算：查询失败回退默认并缓存 10 分钟，成功也缓存 10 分钟
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
       --test-fake  安装 Bogus 后生成各类测试数据；原来没有则测完删掉
-      --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母；原来没有则测完删掉
+      --pinyin    中文转拼音（需已安装 NPinyin）。--init 输出首字母
+      --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，并测本机 /api/pinyin；原来没有则测完删掉
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
@@ -5357,6 +5454,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-fx
   ScreenKit --test-pwgen
   ScreenKit --test-fake
+  ScreenKit --pinyin "重庆"
+  ScreenKit --pinyin "重庆" --init
   ScreenKit --test-pinyin
   ScreenKit --test-nettool
   ScreenKit --test-update-notes

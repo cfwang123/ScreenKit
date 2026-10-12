@@ -73,7 +73,7 @@ Windows 桌面工具（程序 `ScreenKit.exe`，中文界面标题「屏幕截�
 | **中文转拼音** | **工具 → 中文转拼音**：把汉字转成不带声调的拼音，或每个字一个大写首字母。常见多音词按常用读法修正，例如「重庆」是 chong qing、「银行」是 yin hang。ü 写成 u。工具页在「文字」分类，改原文或方式后直接出结果。需要 `NPinyin.dll`（**帮助 → 安装功能 → 工具集**，约 75 KB，不进精简包）。 |
 | **历法** | **工具 → 历法**：`Windows.Globalization.Calendar`。公历换农历（干支、闰月）以及日本、民国、希伯来、伊斯兰、波斯等历法。 |
 | **日文注音** | **工具 → 日文注音**：`JapanesePhoneticAnalyzer` 把日文句子转成读音（词组或逐字）。工具页上非逐字和逐字是「文本转换」里的两个按钮。需要本机日语语言支持。Windows 没有同等的汉语拼音接口。 |
-| **自动按键** | **工具 → 自动按键**：向前台窗口连续发送按键或鼠标点击。默认快捷键 Ctrl+Alt+F8 开始和停止，窗口里的按钮同样可以。间隔 20～60000 毫秒，默认 200。点击落在光标处；光标不在该窗口上时点客户区中心，再把光标移回。前台是本程序时不发送。 |
+| **自动按键** | **工具 → 自动按键**：向前台窗口连续发送按键或鼠标点击。默认快捷键 F6 开始和停止，可在窗口里修改；窗口里的按钮同样可以。间隔 20～60000 毫秒，默认 200。点击落在光标处；光标不在该窗口上时点客户区中心，再把光标移回。前台是本程序时不发送。 |
 | **窗口管理** | **工具 → 窗口管理**：列出可见顶层窗口，可点选或填入 HWND，设置或取消固定在前面。点选时绿框预览光标下的窗口，选中后绿框留在该窗口上。 |
 | **投屏** | 主界面 **投屏** Tab：把本机投到另一台电脑。左侧一直列出已保存的电脑，点一项即填入 IP，也可手填或 **搜索局域网**（含本机）。**限制宽高** 默认 1000×1000（等比缩小进框内，不放大）。**开始投屏** 后先框选区域（单击窗口或拖拽，和截图一样）。选好后可改声音开关和来源（扬声器、麦克风或两者），再点开始才发送。红框和操作条可开始、暂停或停止。控制条显示当前声音来源，投屏中可点「选项」开关声音或更换来源，马上生效。暂停只停画面和声音，连接保留，可继续。红框不进入对方画面。**托盘 → 工具 → 投屏**打开主窗口并切到投屏页。声音连续播放；画面按声音实际落后的时间自动对齐。画面窗默认在主屏幕中心打开，不置顶；画面可选适应窗口或铺满窗口。手机切横竖屏时窗口的大小、位置和最大化状态保持不变，只在当前窗口里适应或铺满。发现与传文件共用 UDP 17531，画面走 HTTP `/cast`（默认 1224）。**连接安卓USB配件**在托盘、文件同步页和投屏窗：点击后弹出「等待安卓USB配件中」，并通知已连接的手机进入配件；两端显示已连接 / 等待中 / 未连接。2 分钟无连接自动关闭。或 **USB 投屏(adb)**（需 USB 调试）。手机 App 桌面有独立「投屏」图标。 |
 | **全局热键** | 主窗呼出/隐藏 · 截图标注 · 截图识别 · 语音输入 · 翻译小窗（可配置、可清空禁用）。 |
@@ -184,6 +184,8 @@ rem 全部语言写同一条文本
 scripts\langtext.cmd set app.demo.title "Demo title" -l all
 rem 逐语言给不同文本
 scripts\langtext.cmd set app.demo.title -l all --each zh=演示标题 --each en=Demo title
+rem 删掉一个键（del / rm / remove，或 set 键 --delete）
+scripts\langtext.cmd del app.demo.title -l all
 rem 查看、体检、批量补齐
 scripts\langtext.cmd get app.demo.title -l zh,en
 scripts\langtext.cmd missing --base zh
@@ -191,7 +193,7 @@ scripts\langtext.cmd fill --from zh -l all
 scripts\langtext.cmd -h
 ```
 
-新键追加到 `[text]` 末尾，或用 `--after <键>` 插到某个键之后。每个文件保留自己原有的换行风格（CRLF / LF）和无 BOM，未涉及的行不动。文本里的换行写 `\n`。只改 `[text]` 段里的键，`name`（语言显示名）不碰。`--dry-run` 只预览不写盘。`--sync` 顺带把改过的文件覆盖到 `ScreenKit\bin` 下已有的 `lang/` 副本，正在跑的 exe 不用重新编译就能读到。
+新键追加到 `[text]` 末尾，或用 `--after <键>` 插到某个键之后。`del 键…` 删除一条或多条键（`rm`、`remove`、`delete` 是同一个命令，写成 `set 键 --delete` 也一样）；只删部分语言时会提示哪些语言还留着这个键。每个文件保留自己原有的换行风格（CRLF / LF）和无 BOM，未涉及的行不动。文本里的换行写 `\n`。只改 `[text]` 段里的键，`name`（语言显示名）不碰。`--dry-run` 只预览不写盘。`--sync` 顺带把改过的文件覆盖到 `ScreenKit\bin` 下已有的 `lang/` 副本，正在跑的 exe 不用重新编译就能读到。
 
 ### 检查更新
 
@@ -287,7 +289,7 @@ scripts\langtext.cmd -h
 - `GET  /api?lang=` · `/api/status` — `/api` 列出仍开启的接口，含方法和 HTTP 页里的参数说明。`lang` 省略时用程序当前语言。
 - `GET/POST /api/toast` — 底部 Toast（`text`，可选 `ms`）。命令行：`ScreenKit --toast "文字" [--ms 1900]`。HTTP 接口页的模板下拉里也有这两项。
 - `GET/POST /api/zhconv` — 简繁（`text`，`to=trad|simp`）。GET 查询串按 UTF-8 解码。命令行：`ScreenKit --zhconv "文字" [--trad|--simp]`
-- `GET/POST /api/pinyin` — 中文转拼音（`text`，`mode=py|init`）。不带 text 时 `data.installed` 表示是否已装 `NPinyin.dll`。有原文但没装库返回 803。不带声调。命令行：`ScreenKit --test-pinyin`
+- `GET/POST /api/pinyin` — 中文转拼音（`text`，`mode=py|init`）。不带 text 时 `data.installed` 表示是否已装 `NPinyin.dll`。有原文但没装库返回 803。不带声调。命令行：`ScreenKit --pinyin "重庆" [--init]`
 - `GET/POST /api/calendar` — 历法（`date`，`cal=lunar` 等）。命令行：`ScreenKit --calendar 2024-02-10 --cal lunar`
 - `GET/POST /api/jpyomi` — 日文注音（`text`，可选 `mono`）。命令行：`ScreenKit --jpyomi "日文" [--mono]`
 - `GET/POST /api/cast/stop` — 立刻关闭投屏画面窗

@@ -296,7 +296,8 @@ ScreenKit --zhconv "國發" --simp
 **响应 `data`：** `installed`、`text`、`mode`（`py` 或 `init`）。「中国人民银行」是 `zhong guo ren min yin hang` 或 `ZGRMYH`。「重庆」是 `chong qing`。`mode` 不对返回 802。超过 20000 字返回 500。有原文但没装库返回 803。
 
 ```bash
-ScreenKit --test-pinyin
+ScreenKit --pinyin "重庆"
+ScreenKit --pinyin "重庆" --init
 ```
 
 ---

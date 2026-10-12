@@ -604,7 +604,7 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
 		sb.AppendLine($"# 词典页（前台不是主窗则唤出、置顶并切换；剪贴板像单词才搜索；已是主窗则隐藏；默认空=不注册）");
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
-		sb.AppendLine("# 自动按键：开始/停止热键。留空 = 只用窗口按钮。默认 Ctrl+Alt+F8");
+		sb.AppendLine("# 自动按键：开始/停止热键。留空 = 只用窗口按钮。默认 F6");
 		sb.AppendLine($"autokey_hotkey = \"{esc((o.AutoKeyHotkey ?? "").Trim())}\"");
 		sb.AppendLine("# key / left / right / middle");
 		sb.AppendLine($"autokey_mode = \"{esc((o.AutoKeyMode ?? "key").Trim())}\"");

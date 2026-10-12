@@ -283,7 +283,8 @@ Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **H
 **Response `data`:** `installed`, `text`, and `mode` (`py` or `init`). `中国人民银行` is `zhong guo ren min yin hang` or `ZGRMYH`. `重庆` is `chong qing`. A bad `mode` returns 802. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
 
 ```bash
-ScreenKit --test-pinyin
+ScreenKit --pinyin "重庆"
+ScreenKit --pinyin "重庆" --init
 ```
 
 ---

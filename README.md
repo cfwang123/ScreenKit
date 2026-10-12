@@ -73,7 +73,7 @@ Changelog: [CHANGELOG.md](CHANGELOG.md) (English and Chinese per version).
 | **Calendars** | **Tools → Calendars**: `Windows.Globalization.Calendar`. Gregorian to Chinese lunar (sexagenary year, leap month), plus Japanese, Taiwan, Hebrew, Hijri, Persian, and others. |
 | **Japanese yomi** | **Tools → Japanese yomi**: `JapanesePhoneticAnalyzer` turns a Japanese sentence into readings (by word or by character). On the tools page those two buttons are on Text convert. The Japanese language feature must be installed. Windows has no equivalent Chinese pinyin API. |
 | **Chinese to pinyin** | **Tools → Chinese to pinyin**: pinyin without tone marks, or one capital initial per character. Common polyphonic words use their usual reading (`重庆` is `chong qing`, `银行` is `yin hang`). The letter ü is written as u. Letters and digits are spaced one by one. On the tools page the card is under Text and updates as you type. Needs `NPinyin.dll` (**Help → Install features → Tools**, about 75 KB, not in the slim package). |
-| **Auto key** | **Tools → Auto key**: repeat a key or a mouse click to the foreground window. Default hotkey Ctrl+Alt+F8 starts and stops; the window button does the same. Interval 20–60000 ms, default 200. A click hits the cursor, or the center of that window when the cursor is elsewhere, then the cursor moves back. Nothing is sent while ScreenKit is in front. |
+| **Auto key** | **Tools → Auto key**: repeat a key or a mouse click to the foreground window. Default hotkey F6 starts and stops, and can be changed in the window; the window button does the same. Interval 20–60000 ms, default 200. A click hits the cursor, or the center of that window when the cursor is elsewhere, then the cursor moves back. Nothing is sent while ScreenKit is in front. |
 | **Window manager** | **Tools → Window manager**: list visible top-level windows, pick one by clicking, or enter an HWND. A green frame follows the window under the cursor while picking, and stays on the selected window. Pin in front or unpin (`HWND_TOPMOST`). |
 | **Screencast** | Main window **Screencast** tab: cast this PC to another. Saved PCs stay in the left list; click one to fill the IP, or type an address / **Scan LAN**. **Max size** defaults to 1000×1000 (shrink to fit, never enlarge). **Start cast** first picks a region the same way as a screenshot (click a window or drag). Sending waits until Start is pressed again, so audio and its source (speakers, microphone, or both) can be changed. The toolbar shows the current audio source. **Options** stays available while casting and applies the mute or source at once. The red frame and toolbar can start, pause, or stop; pause keeps the connection and stops picture and audio until resume. The frame is not part of the picture. **tray → Tools → Screencast** opens the main window on the Screencast tab. Audio plays continuously; the picture waits only as long as the sound is behind. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Rotating the phone keeps the viewer’s size, position, and maximized state; the picture fits or fills inside that window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). **Connect Android USB accessory** (tray, file-sync tab, screencast window) opens “Waiting for Android USB accessory” and tells a phone already connected for file sync to enter accessory mode. Both sides show connected / waiting / not connected. It turns off after 2 minutes with no connection. Or **USB cast (adb)** with USB debugging. The phone app has a separate **Screencast** launcher icon. |
 | **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
@@ -184,6 +184,8 @@ rem the same text into every language
 scripts\langtext.cmd set app.demo.title "Demo title" -l all
 rem a different text per language
 scripts\langtext.cmd set app.demo.title -l all --each zh=演示标题 --each en=Demo title
+rem delete a key (del / rm / remove, or set KEY --delete)
+scripts\langtext.cmd del app.demo.title -l all
 rem read, audit, bulk fill
 scripts\langtext.cmd get app.demo.title -l zh,en
 scripts\langtext.cmd missing --base zh
@@ -191,7 +193,7 @@ scripts\langtext.cmd fill --from zh -l all
 scripts\langtext.cmd -h
 ```
 
-A new key goes to the end of `[text]`, or after `--after KEY`. Each file keeps its own line endings (CRLF or LF) and stays BOM-free. A line break inside the text is written `\n`. Only keys under `[text]` are touched; `name` is left alone. `--dry-run` prints what would change. `--sync` also copies the changed files into the `lang/` folders that already exist under `ScreenKit\bin`, so a running build sees them without a rebuild.
+A new key goes to the end of `[text]`, or after `--after KEY`. `del KEY…` removes one or more keys (`rm`, `remove`, and `delete` are the same command, and `set KEY --delete` does the same); deleting in only some languages prints which ones still keep the key. Each file keeps its own line endings (CRLF or LF) and stays BOM-free. A line break inside the text is written `\n`. Only keys under `[text]` are touched; `name` is left alone. `--dry-run` prints what would change. `--sync` also copies the changed files into the `lang/` folders that already exist under `ScreenKit\bin`, so a running build sees them without a rebuild.
 
 ### Updates
 
@@ -287,7 +289,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 - `GET  /api?lang=` · `/api/status` — `/api` lists each enabled route with its method and the HTTP tab's parameter text. `lang` defaults to the app language.
 - `GET/POST /api/toast` — bottom toast (`text`, optional `ms`). CLI: `ScreenKit --toast "text" [--ms 1900]`. Both are in the HTTP tab template list.
 - `GET/POST /api/zhconv` — simplified/traditional (`text`, `to=trad|simp`). GET query strings are UTF-8. CLI: `ScreenKit --zhconv "text" [--trad|--simp]`
-- `GET/POST /api/pinyin` — Chinese to pinyin (`text`, `mode=py|init`). With no text, `data.installed` says whether `NPinyin.dll` is present. Text with the DLL missing returns 803. No tone marks. CLI: `ScreenKit --test-pinyin`
+- `GET/POST /api/pinyin` — Chinese to pinyin (`text`, `mode=py|init`). With no text, `data.installed` says whether `NPinyin.dll` is present. Text with the DLL missing returns 803. No tone marks. CLI: `ScreenKit --pinyin "重庆" [--init]`
 - `GET/POST /api/calendar` — calendars (`date`, `cal=lunar` and others). CLI: `ScreenKit --calendar 2024-02-10 --cal lunar`
 - `GET/POST /api/jpyomi` — Japanese reading (`text`, optional `mono`). CLI: `ScreenKit --jpyomi "text" [--mono]`
 - `GET/POST /api/cast/stop` — close screencast viewer now

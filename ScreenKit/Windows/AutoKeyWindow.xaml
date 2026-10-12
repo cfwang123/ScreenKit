@@ -78,7 +78,7 @@
 			<TextBlock x:Name="lbhotkey" Text="开始/停止" VerticalAlignment="Center"/>
 			<TextBox x:Name="ehotkey" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
 			         BorderBrush="{StaticResource BorderSoft}"
-			         VerticalContentAlignment="Center" Text="Ctrl+Alt+F8"
+			         VerticalContentAlignment="Center" Text="F6"
 			         AutomationProperties.AutomationId="autokey.hotkey"/>
 			<Button x:Name="bhotcap" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
 			        Content="捕获" AutomationProperties.AutomationId="autokey.hotkey.cap"/>
