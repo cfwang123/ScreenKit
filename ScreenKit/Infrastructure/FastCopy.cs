@@ -10,7 +10,7 @@ namespace ScreenKit;
 /// 快速复制：复制 / 剪切文件和文件夹，并把当前用户的资源管理器右键菜单接到本程序。
 /// 多选时资源管理器会每个文件起一个进程，这里在短时间里收成一批。
 /// </summary>
-static class FastCopy {
+public static class FastCopy {
 	public const int WORKERS_MIN = 1;
 	public const int WORKERS_MAX = 32;
 	public const int WORKERS_DEF = 8;
