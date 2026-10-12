@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Starting no longer puts the SendFile listen line on the status bar.
 - PDF workbench is on the Tools menu. It is no longer on the File menu.
 - The tools page no longer has the HTML table card.
 - Packing the slim release deletes runtime files from `bin/Release/ScreenKit/` before the archive is built: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. A Release build removes the same files when it refreshes that folder.
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- 启动时状态栏不再显示 SendFile 的监听端口。
 - PDF 识别工作台改到「工具」菜单，不再放在「文件」菜单。
 - 工具页去掉 HTML 表格。
 - 打精简发布包前，先删掉 `bin/Release/ScreenKit/` 里运行时留下的 `screenshots/`、`log/`、`sendfile/`、`tmp/`、`config.toml` 和 `*.log`。Release 编译刷新这个目录时同样删掉这些文件。

@@ -265,7 +265,6 @@ public sealed partial class SendFileServer : IDisposable {
 		var udpPort = udp != null ? wantUdp : 0;
 		tryfirewall(used, udpPort);
 		LastError = "";
-		log($"SendFile HTTP :{used} UDP :{udpPort}");
 	}
 
 	public void Stop() {
