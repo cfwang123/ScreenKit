@@ -9,6 +9,7 @@ namespace ScreenKit;
 sealed class UsbDev {
 	public string Name { get; set; }
 	public string VidPid { get; set; }
+	public string Com { get; set; }
 	public string ClassName { get; set; }
 	public string Status { get; set; }
 	public string InstanceId { get; set; }
@@ -50,6 +51,41 @@ static class UsbList {
 
 	public static List<UsbDev> Scan() {
 		var h = SetupDiGetClassDevs(IntPtr.Zero, "USB", IntPtr.Zero, DIGCF_PRESENT | DIGCF_ALLCLASSES);
+		var list = finish(h);
+		list.Sort((a, b) => {
+			var c = string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase);
+			if (c != 0) return c;
+			return string.Compare(a.InstanceId, b.InstanceId, StringComparison.OrdinalIgnoreCase);
+		});
+		return list;
+	}
+
+	/// <summary>当前串口。Ports 类里带 COM 的设备，再加上设备映射里还没出现的口。</summary>
+	public static List<UsbDev> ScanPorts() {
+		var guid = new Guid("4d36e978-e325-11ce-bfc1-08002be10318");
+		var list = finish(SetupDiGetClassDevsGuid(ref guid, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT));
+		var keep = new List<UsbDev>();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var dev in list) {
+			var com = portname(dev.InstanceId);
+			if (com.Length == 0) com = comin(dev.Name);
+			if (!com.StartsWith("COM", StringComparison.OrdinalIgnoreCase)) continue;
+			com = com.ToUpperInvariant();
+			dev.Com = com;
+			dev.Props.Insert(0, new UsbPair { Name = Loc.T("com.port"), Value = com });
+			dev.Filter = (dev.Filter ?? "") + "\n" + com.ToLowerInvariant();
+			if (seen.Add(com)) keep.Add(dev);
+		}
+		mergecom(keep, seen);
+		keep.Sort((a, b) => {
+			var c = comnum(a.Com).CompareTo(comnum(b.Com));
+			if (c != 0) return c;
+			return string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase);
+		});
+		return keep;
+	}
+
+	static List<UsbDev> finish(IntPtr h) {
 		if (h == IntPtr.Zero || h == new IntPtr(-1))
 			throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
 		var list = new List<UsbDev>();
@@ -61,12 +97,60 @@ static class UsbList {
 			}
 		}
 		finally { SetupDiDestroyDeviceInfoList(h); }
-		list.Sort((a, b) => {
-			var c = string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase);
-			if (c != 0) return c;
-			return string.Compare(a.InstanceId, b.InstanceId, StringComparison.OrdinalIgnoreCase);
-		});
 		return list;
+	}
+
+	static void mergecom(List<UsbDev> keep, HashSet<string> seen) {
+		RegistryKey key = null;
+		try {
+			key = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DEVICEMAP\SERIALCOMM");
+			if (key == null) return;
+			foreach (var name in key.GetValueNames()) {
+				var com = (key.GetValue(name) as string ?? "").Trim().ToUpperInvariant();
+				if (!com.StartsWith("COM", StringComparison.Ordinal) || !seen.Add(com)) continue;
+				var props = new List<UsbPair> {
+					new UsbPair { Name = Loc.T("com.port"), Value = com },
+					new UsbPair { Name = Loc.T("com.map"), Value = name ?? "" },
+				};
+				keep.Add(new UsbDev {
+					Name = com,
+					Com = com,
+					InstanceId = name ?? "",
+					Status = "",
+					ClassName = "",
+					Props = props,
+					Filter = (com + "\n" + name).ToLowerInvariant(),
+				});
+			}
+		}
+		catch { }
+		finally { try { key?.Dispose(); } catch { } }
+	}
+
+	static string portname(string id) {
+		if (string.IsNullOrEmpty(id)) return "";
+		RegistryKey key = null;
+		try {
+			key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\" + id + @"\Device Parameters");
+			return ((key?.GetValue("PortName") as string) ?? "").Trim();
+		}
+		catch { return ""; }
+		finally { try { key?.Dispose(); } catch { } }
+	}
+
+	static string comin(string name) {
+		if (string.IsNullOrEmpty(name)) return "";
+		var i = name.LastIndexOf("(COM", StringComparison.OrdinalIgnoreCase);
+		if (i < 0) return "";
+		var j = name.IndexOf(')', i);
+		if (j < 0) return "";
+		return name.Substring(i + 1, j - i - 1).Trim();
+	}
+
+	static int comnum(string com) {
+		if (string.IsNullOrEmpty(com) || com.Length < 4) return 9999;
+		if (int.TryParse(com.Substring(3), NumberStyles.Integer, CultureInfo.InvariantCulture, out var n)) return n;
+		return 9999;
 	}
 
 	static UsbDev read(IntPtr h, SpDevinfoData data) {
@@ -494,6 +578,9 @@ static class UsbList {
 
 	[DllImport("setupapi.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "SetupDiGetClassDevsW")]
 	static extern IntPtr SetupDiGetClassDevs(IntPtr cls, string enumerator, IntPtr parent, int flags);
+
+	[DllImport("setupapi.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "SetupDiGetClassDevsW")]
+	static extern IntPtr SetupDiGetClassDevsGuid(ref Guid cls, IntPtr enumerator, IntPtr parent, int flags);
 
 	[DllImport("setupapi.dll", SetLastError = true)]
 	static extern bool SetupDiEnumDeviceInfo(IntPtr h, int index, ref SpDevinfoData data);

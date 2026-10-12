@@ -10,6 +10,8 @@
 	var draft = null;
 	var lift = null;
 	var edit = null;
+	var texttok = 0;
+	var textarmed = false;
 	var canvas = null;
 	var base = null;
 	var dirty = false;
@@ -117,6 +119,9 @@
 		canvas.onpointermove = move;
 		canvas.onpointerup = up;
 		canvas.onpointercancel = up;
+		canvas.onmousedown = function(ev){
+			if (tool === "text" && ev.button === 0 && ev.preventDefault) ev.preventDefault();
+		};
 		canvas.ondblclick = dbl;
 		var bar = document.querySelector(".board-bar");
 		if (bar) bar.onclick = onbar;
@@ -132,8 +137,10 @@
 				else if (ev.key === "Escape") { ev.preventDefault(); committext(false); }
 			};
 			txt.onblur = function(){
+				var token = texttok;
+				var armed = textarmed;
 				setTimeout(function(){
-					if (!edit || document.activeElement === txt) return;
+					if (!armed || token !== texttok || !edit || document.activeElement === txt) return;
 					committext(true);
 				}, 0);
 			};
@@ -458,6 +465,14 @@
 	}
 
 	function up(){
+		if (tool === "text" && edit && !textarmed) {
+			var txt = SK.$("board-txt");
+			if (txt) setTimeout(function(){
+				if (!edit || textarmed) return;
+				txt.focus();
+				textarmed = document.activeElement === txt;
+			}, 0);
+		}
 		if (drag) {
 			var waslift = drag.mode === "lift";
 			if (!waslift && !drag.moved && undo.length) undo.pop();
@@ -610,6 +625,8 @@
 	}
 
 	function begintext(i, x, y){
+		texttok++;
+		textarmed = false;
 		if (edit) committext(true);
 		var txt = SK.$("board-txt");
 		if (!txt || !canvas) return;
@@ -629,10 +646,12 @@
 		txt.style.width = Math.max(80, (it ? measure(it).w : 140) * sx) + "px";
 		txt.hidden = false;
 		txt.style.height = Math.max(32, Math.round(size * sy) + 8) + "px";
+		var token = texttok;
 		setTimeout(function(){
-			if (!edit || !txt) return;
+			if (token !== texttok || !edit) return;
 			txt.focus();
-			if (it) txt.select();
+			textarmed = document.activeElement === txt;
+			if (textarmed && it) txt.select();
 		}, 0);
 		paint(true);
 	}
@@ -749,6 +768,7 @@
 			if (base.height > h) h = base.height;
 		}
 		if (base && base.width === w && base.height === h && canvas.width === w && canvas.height === h) return;
+		if (lift && base && (w !== base.width || h !== base.height)) stamplit();
 		var prev = base;
 		var grew = !!(prev && (w !== prev.width || h !== prev.height));
 		base = document.createElement("canvas");

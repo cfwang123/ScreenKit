@@ -37,6 +37,7 @@ static class CharArt {
 	const uint ENABLE_PROCESSED_OUTPUT = 0x0001;
 	const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
 	const uint ENABLE_WRAP_AT_EOL_OUTPUT = 0x0002;
+	const uint DISABLE_NEWLINE_AUTO_RETURN = 0x0008;
 	const ushort KEY_EVENT = 0x0001;
 	const ushort MOUSE_EVENT = 0x0002;
 	const ushort SIZE_EVENT = 0x0004;
@@ -59,6 +60,12 @@ static class CharArt {
 
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern bool GetConsoleScreenBufferInfo(IntPtr h, out CONSOLE_SCREEN_BUFFER_INFO info);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern bool SetConsoleScreenBufferSize(IntPtr h, COORD size);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern bool SetConsoleWindowInfo(IntPtr h, bool absolute, ref SMALL_RECT rect);
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	static extern bool SetConsoleTitle(string title);
@@ -239,20 +246,19 @@ static class CharArt {
 		var colc = new int[8];
 		for (var col = 0; col < 8; col++) colc[col] = mix(s[col], s[8 + col]);
 		var full = avg(colc, 0, 8);
-		var errFull = err(colc, 0, 8, full);
 		int fg, bg;
 		long errHalf, errEighth, errQuarter;
 		char chHalf, chEighth, chQuarter;
 		int fgH, bgH, fgE, bgE, fgQ, bgQ;
 		half(s, out chHalf, out fgH, out bgH, out errHalf);
-		eighth(colc, out chEighth, out fgE, out bgE, out errEighth);
+		eighth(s, out chEighth, out fgE, out bgE, out errEighth);
 		quarter(s, out chQuarter, out fgQ, out bgQ, out errQuarter);
 		var use = mode;
 		if (use == MODE_AUTO) {
 			use = MODE_FULL;
-			var best = errFull;
+			var best = err(s, 0, 16, full);
 			if (errHalf < best) { best = errHalf; use = MODE_HALF; }
-			if (errQuarter < best) { best = errQuarter; use = MODE_QUARTER; }
+			if (errQuarter * 4 < best) { best = errQuarter * 4; use = MODE_QUARTER; }
 			if (errEighth < best) use = MODE_EIGHTH;
 		}
 		if (use == MODE_HALF) { cell.Ch = chHalf; fg = fgH; bg = bgH; }
@@ -261,7 +267,7 @@ static class CharArt {
 		else { cell.Ch = '\u2588'; fg = full; bg = full; }
 		if (fg < 0) return cell;
 		if (bg < 0) bg = fg;
-		if (fg != bg && dist(fg, bg) < 30 * 30) {
+		if (fg != bg && near(fg, bg)) {
 			cell.Ch = '\u2588';
 			fg = mix(fg, bg);
 			bg = fg;
@@ -394,9 +400,29 @@ static class CharArt {
 			bad($"charart pan {pox} {poy}");
 			return 1;
 		}
+		var soft = solid(8, 2, 40, 80, 40);
+		fill(soft, 8, 2, 0, 4, 40, 100, 40);
+		var softEdge = Pick(soft, 8, 2, 0, 8, 0, 2, MODE_AUTO);
+		if (softEdge.Ch != '\u258c') {
+			bad($"charart soft eighth U+{(int)softEdge.Ch:X4}");
+			return 1;
+		}
+		var band = solid(4, 2, 100, 100, 100);
+		for (var i = 4 * 4; i < band.Length; i += 4) {
+			band[i] = 100;
+			band[i + 1] = 100;
+			band[i + 2] = 120;
+			band[i + 3] = 255;
+		}
+		var softHalf = Pick(band, 4, 2, 0, 4, 0, 2, MODE_AUTO);
+		if (softHalf.Ch != '\u2580') {
+			bad($"charart soft half U+{(int)softHalf.Ch:X4}");
+			return 1;
+		}
 		ok("charart OK");
 		ok("charart eighth 1/8 3/8 1/2 7/8 OK");
 		ok("charart half quarter ascii fit zoom OK");
+		ok("charart soft split keeps half and eighth");
 		return 0;
 	}
 
@@ -404,7 +430,7 @@ static class CharArt {
 		var hout = GetStdHandle(STD_OUTPUT_HANDLE);
 		var hin = GetStdHandle(STD_INPUT_HANDLE);
 		if (GetConsoleMode(hout, out var omode))
-			SetConsoleMode(hout, omode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_WRAP_AT_EOL_OUTPUT);
+			SetConsoleMode(hout, (omode | ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN) & ~ENABLE_WRAP_AT_EOL_OUTPUT);
 		if (GetConsoleMode(hin, out var imode)) {
 			imode |= ENABLE_EXTENDED_FLAGS | ENABLE_MOUSE_INPUT | ENABLE_WINDOW_INPUT | ENABLE_PROCESSED_INPUT;
 			imode &= ~ENABLE_QUICK_EDIT_MODE;
@@ -418,7 +444,7 @@ static class CharArt {
 		font.cbSize = Marshal.SizeOf(font);
 		SetCurrentConsoleFontEx(hout, false, ref font);
 		try { SetConsoleTitle(Loc.T("charart.title") + " — " + name); } catch { }
-		Console.Out.Write("\x1b[?1049h\x1b[?25l");
+		Console.Out.Write("\x1b[?1049h\x1b[?25l\x1b[?7l");
 		Console.Out.Flush();
 		var quit = false;
 		ConsoleCancelEventHandler oncancel = (_, e) => { e.Cancel = true; quit = true; };
@@ -437,6 +463,12 @@ static class CharArt {
 				if (!GetConsoleScreenBufferInfo(hout, out var info)) break;
 				var cols = info.Window.Right - info.Window.Left + 1;
 				var rows = info.Window.Bottom - info.Window.Top + 1;
+				if (info.Size.X != cols || info.Size.Y != rows || info.Window.Left != 0 || info.Window.Top != 0) {
+					fitbuffer(hout, cols, rows);
+					if (!GetConsoleScreenBufferInfo(hout, out info)) break;
+					cols = info.Window.Right - info.Window.Left + 1;
+					rows = info.Window.Bottom - info.Window.Top + 1;
+				}
 				if (cols < 4) cols = 4;
 				if (rows < 3) rows = 3;
 				var picRows = rows - 1;
@@ -515,7 +547,7 @@ static class CharArt {
 		finally {
 			Console.CancelKeyPress -= oncancel;
 			try {
-				Console.Out.Write("\x1b[0m\x1b[?25h\x1b[?1049l");
+				Console.Out.Write("\x1b[0m\x1b[?7h\x1b[?25h\x1b[?1049l");
 				Console.Out.Flush();
 			}
 			catch { }
@@ -602,16 +634,18 @@ static class CharArt {
 		if (fg < 0 && bg >= 0) { ch = '\u2584'; fg = bg; bg = 0; }
 	}
 
-	static void eighth(int[] col, out char ch, out int fg, out int bg, out long errv) {
+	static void eighth(int[] s, out char ch, out int fg, out int bg, out long errv) {
+		var col = new int[8];
+		for (var i = 0; i < 8; i++) col[i] = mix(s[i], s[8 + i]);
 		fg = avg(col, 0, 8);
 		bg = fg;
-		errv = err(col, 0, 8, fg);
+		errv = sideerr(s, 0, 8, fg);
 		var bestK = 8;
 		for (var k = 1; k <= 7; k++) {
 			var left = avg(col, 0, k);
 			var right = avg(col, k, 8);
 			if (left < 0 || right < 0) continue;
-			var e = err(col, 0, k, left) + err(col, k, 8, right);
+			var e = sideerr(s, 0, k, left) + sideerr(s, k, 8, right);
 			if (e < errv) {
 				errv = e;
 				bestK = k;
@@ -620,6 +654,16 @@ static class CharArt {
 			}
 		}
 		ch = Eighth(bestK);
+	}
+
+	static long sideerr(int[] s, int a, int b, int color) {
+		if (color < 0) return 0;
+		long e = 0;
+		for (var c = a; c < b; c++) {
+			if (s[c] >= 0) e += dist(s[c], color);
+			if (s[8 + c] >= 0) e += dist(s[8 + c], color);
+		}
+		return e;
 	}
 
 	static void quarter(int[] s, out char ch, out int fg, out int bg, out long errv) {
@@ -715,6 +759,18 @@ static class CharArt {
 	static int red(int c) => (c >> 16) & 255;
 	static int green(int c) => (c >> 8) & 255;
 	static int blue(int c) => c & 255;
+
+	static bool near(int a, int b) {
+		return Math.Abs(red(a) - red(b)) <= 2 && Math.Abs(green(a) - green(b)) <= 2 && Math.Abs(blue(a) - blue(b)) <= 2;
+	}
+
+	static void fitbuffer(IntPtr hout, int cols, int rows) {
+		if (cols < 4) cols = 4;
+		if (rows < 3) rows = 3;
+		var rect = new SMALL_RECT { Left = 0, Top = 0, Right = (short)(cols - 1), Bottom = (short)(rows - 1) };
+		SetConsoleWindowInfo(hout, true, ref rect);
+		SetConsoleScreenBufferSize(hout, new COORD { X = (short)cols, Y = (short)rows });
+	}
 
 	static long dist(int a, int b) {
 		var dr = red(a) - red(b);

@@ -142,6 +142,8 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 .cards i.star.on { color: #f97316; }
 .cards i.star.on:hover { background: #f7e6d5; }
 #tool-fav { margin-left: 8px; color: #888; }
+/* main 是纵向 flex，子项默认拉伸到头；这两个按钮按自己的内容宽，右边空白不算点击区 */
+#back, #tool-fav { align-self: flex-start; }
 #tool-fav.on, #tool-fav.on i { color: #f97316; }
 .cards span {
 	flex: 1; min-width: 0;

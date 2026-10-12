@@ -72,7 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- The tools page board has a lasso. Releasing it lifts the ink inside the loop into a picture you can drag. A larger page rebuilds the canvas at the new size and does not scale the picture. A smaller page leaves the canvas as it is.
+- The tools page board lasso lifts the ink inside the loop so you can drag it, then paints it back onto the picture. It does not stay a selectable object. A larger page rebuilds the canvas at the new size and does not scale the picture. A smaller page leaves the canvas as it is.
 - The tools page board fills its card and does not scroll. The title and the hint are hidden. A rectangle, ellipse, arrow, or pen stroke is painted onto the picture. Only a pasted picture or text can be moved or resized.
 - **Tools → Auto key** listens for its hotkey only while that window is open. Closing the window unregisters the hotkey and stops a run that is still sending.
 - Starting no longer puts the SendFile listen line on the status bar.
@@ -113,9 +113,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Date math takes a date and time. The unit sits after the amount when adding or subtracting.
 - Tools page: the 8-bit synthesizer's octave keys are now Shift (one octave up) and Alt (one octave down) while held, instead of Ctrl and Shift.
 - The tools page reads a number in Chinese and English, and lists grouped digits, scientific notation, percent, formal Chinese, Roman numerals, and base 2, 8, and 16.
+- Number notation also reads Chinese in the small, middle, and large scales, and names the digits after the decimal point from fen downward.
 
 #### Fixed
 
+- The tools page board text tool opens an editor where you click and leaves it open so you can type. Enter or a click elsewhere places the text.
 - The web tools color picker updates the result while you drag or edit RGB. The Convert button is gone.
 - **Tools → Auto key** reaches WezTerm. With a Chinese keyboard layout, simulated keys and clicks were counted but never arrived. They are now delivered as window messages.
 - HTTP API failures return 200. The error stays in the JSON `code` and `data`, including an unknown path, a wrong method, and an internal error. OPTIONS stays 204. A successful WebSocket upgrade stays 101.
@@ -125,6 +127,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Common colors grid keeps its swatch size and scrolls. A short or narrow window used to squeeze every card until the color band collapsed to nothing, and the clipped rows could not be reached.
 - The tools page QR caption stays readable. A short window used to squeeze that line until only a sliver of the letters showed.
 - Image convert accepts a dropped JPEG, including a virtual file with no real path. The picture is decoded from memory, so the thumbnail and the encode do not lock the source file.
+- Color character art keeps half blocks, quadrants, and 1/8 to 7/8 blocks when the two colors differ. Nearly identical colors still use a full block.
 
 #### Removed
 
@@ -172,7 +175,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 工具页画板增加圈选。松开后把圈里的笔迹抠成一张图，可以拖动。页面变大时按新尺寸重建画布，内容不缩放。页面变小时画布保持原样。
+- 工具页画板的圈选抠起圈里的笔迹，拖动后画回图里，不再变成可选择的对象。页面变大时按新尺寸重建画布，内容不缩放。页面变小时画布保持原样。
 - 工具页画板铺满卡片，不显示标题和说明，页面不滚动。矩形、椭圆、箭头和画笔直接画进图里。只有粘贴的图片和文字可以拖动、改大小。
 - **工具 → 自动按键**只在该窗口打开时监听快捷键。关掉窗口就注销快捷键，正在发送的也会停。
 - 启动时状态栏不再显示 SendFile 的监听端口。
@@ -213,9 +216,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日期计算改为输入日期时间。日期加减时，单位放在数量后面。
 - 工具页：8bit合成器升降 8 度的键从 Ctrl/Shift 改成按住 Shift 升、Alt 降。
 - 工具页输入数字后列出中文读法、英文读法，以及千分位、科学计数、百分数、中文大写、罗马数字和二、八、十六进制。
+- 数字表记增加中文小数、中数、大数三种读法，小数点后用分、厘、毫、丝等单位。
 
 #### 修复
 
+- 工具页画板的文字工具在点击处打开输入框，这次点击不再把空的输入框立刻关掉。回车或点到别处写入文字。
 - 工具页取色在拖动或修改 RGB 时直接更新结果，去掉了转换按钮。
 - **工具 → 自动按键**可以作用到 WezTerm。中文键盘布局下，模拟的按键和点击会计数，但到不了终端。现在改成窗口消息送进去。
 - HTTP 接口失败也返回 200。错误在 JSON 的 `code` 和 `data` 里，包括未知路径、方法不对和内部错误。OPTIONS 仍是 204。WebSocket 升级成功仍是 101。
@@ -225,6 +230,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 常用颜色表不再被压扁：色卡保持大小，内容区自己滚动。以前窗口矮或窄时每张色卡会被等分压缩，色条被挤成一条线，超出的行也滚不到。
 - 工具页二维码图下的原文保持完整。窗口较矮时，这行字以前会被挤到只剩一条缝。
 - 图片格式转换可以拖入 JPEG，没有真实路径的虚拟文件也会收下。图片在内存里解码，缩略图和转码不再独占源文件。
+- 全色字符画在两种颜色有差别时保留半块、四象限和 1/8～7/8 块。几乎相同的颜色仍用整块。
 
 #### 移除
 

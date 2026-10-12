@@ -4,6 +4,9 @@
 	var ZU = ["千", "百", "十", ""];
 	var ZB = ["仟", "佰", "拾", ""];
 	var ZG = ["", "万", "亿", "万亿"];
+	// 小数逢十，中数逢万万，大数自乘。万在三套里都是 10^4。
+	var BIGU = ["万", "亿", "兆", "京", "垓", "秭", "穰", "沟", "涧", "正", "载", "极", "恒河沙", "阿僧祇", "那由他", "不可思议", "无量大数"];
+	var FRACU = ["分", "厘", "毫", "丝", "忽", "微", "纤", "沙", "尘", "埃", "渺", "漠", "模糊", "逡巡", "须臾", "瞬息", "弹指", "刹那", "六德", "虚空", "清净", "阿赖耶", "阿摩罗", "涅槃寂静"];
 	var EN1 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
 	var EN10 = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
 	var ENS = ["", " thousand", " million", " billion", " trillion", " quadrillion"];
@@ -17,6 +20,7 @@
 		hideOut: true,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -72,7 +76,7 @@
 	function parsenum(text){
 		var s = String(text).trim().replace(/[\s,，]/g, "");
 		if (!s) return null;
-		if (s.length > 64) throw new Error("太长");
+		if (s.length > 220) throw new Error("太长");
 		var neg = false;
 		var c0 = s.charAt(0);
 		if (c0 === "+" || c0 === "-" || c0 === "−") {
@@ -86,8 +90,8 @@
 		var parts = s.split(".");
 		var ip = parts[0].replace(/^0+/, "") || "0";
 		var fp = (parts[1] || "").replace(/0+$/, "");
-		if (ip.length > 16) throw new Error("整数部分最多 16 位");
-		if (fp.length > 12) throw new Error("小数部分最多 12 位");
+		if (ip.length > 129) throw new Error("整数部分最多 129 位");
+		if (fp.length > FRACU.length) throw new Error("小数部分最多 " + FRACU.length + " 位");
 		if (ip === "0" && !fp) neg = false;
 		return { neg: neg, ip: ip, fp: fp };
 	}
@@ -97,8 +101,11 @@
 		var rows = [
 			["数字", plain],
 			["中文读法", zhread(p, false)],
-			["英文读法", enread(p)],
 			["中文大写", zhread(p, true)],
+			["小数", scaleread(p, "small")],
+			["中数", scaleread(p, "mid")],
+			["大数", scaleread(p, "big")],
+			["英文读法", enread(p)],
 			["千分位", sign(p) + group3(p.ip) + (p.fp ? "." + p.fp : "")],
 			["科学计数", sciform(p)],
 			["百分数", percent(p)],
@@ -135,7 +142,7 @@
 			}
 			var piece = read4(chunks[gi], formal, gi === hi);
 			if (body && (gap || sec < 1000)) body += "零";
-			body += piece + ZG[gi];
+			body += piece + groupname(gi);
 			gap = false;
 		}
 		return body;
@@ -166,6 +173,83 @@
 		return out;
 	}
 
+	function groupname(i){
+		if (i < ZG.length) return ZG[i];
+		var s = i % 2 ? "万" : "";
+		var n = Math.floor(i / 2);
+		var k;
+		for (k = 0; k < n; k++) s += "亿";
+		return s;
+	}
+
+	function expsFor(mode){
+		var exps = [];
+		var e = 4;
+		var i;
+		for (i = 0; i < BIGU.length; i++) {
+			exps.push(e);
+			if (mode === "small") e += 1;
+			else if (mode === "mid") e = i === 0 ? 8 : e + 8;
+			else e = i === 0 ? 8 : e * 2;
+		}
+		return exps;
+	}
+
+	function scaleread(p, mode){
+		var body = "";
+		if (p.ip !== "0") body = readscale(p.ip, expsFor(mode));
+		if (p.fp) {
+			if (body) body += "又";
+			body += readfrac(p.fp);
+		}
+		if (!body) body = "零";
+		return (p.neg ? "负" : "") + body;
+	}
+
+	function readscale(ip, exps){
+		if (ip === "0") return "零";
+		return readat(ip, exps, true);
+	}
+
+	function readat(ip, exps, drop){
+		var exp = -1;
+		var name = "";
+		var i;
+		for (i = exps.length - 1; i >= 0; i--) {
+			if (exps[i] < ip.length) {
+				exp = exps[i];
+				name = BIGU[i];
+				break;
+			}
+		}
+		if (exp < 0) return read4(ip, false, drop);
+		var q = ip.slice(0, ip.length - exp).replace(/^0+/, "");
+		var r = ip.slice(ip.length - exp).replace(/^0+/, "");
+		var left = readat(q, exps, drop) + name;
+		if (!r) return left;
+		if (r.length < exp) left += "零";
+		return left + readat(r, exps, false);
+	}
+
+	function readfrac(fp){
+		var out = "";
+		var zero = false;
+		var started = false;
+		var i;
+		for (i = 0; i < fp.length; i++) {
+			var d = fp.charCodeAt(i) - 48;
+			if (!d) {
+				if (started) zero = true;
+				continue;
+			}
+			if (zero) out += "零";
+			zero = false;
+			out += ZHS.charAt(d) + FRACU[i];
+			started = true;
+		}
+		return out;
+	}
+
 	function zhdigits(fp, formal){
 		var digs = formal ? ZHB : ZHS;
 		var out = "";
@@ -175,6 +259,7 @@
 	}
 
 	function enread(p){
+		if (p.ip.length > 18) return (p.neg ? "negative " : "") + "超出";
 		var body = enint(p.ip);
 		if (p.fp) body += " point " + endigits(p.fp);
 		return (p.neg ? "negative " : "") + body;
@@ -182,6 +267,7 @@
 
 	function enint(ip){
 		if (ip === "0") return "zero";
+		if (ip.length > 18) return "超出";
 		var chunks = splitend(ip, 3);
 		var parts = [];
 		var i;
