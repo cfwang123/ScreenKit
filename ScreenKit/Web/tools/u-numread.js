@@ -62,6 +62,7 @@
 		go: "转换",
 		noGo: true,
 		hideOut: true,
+		live: false,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
 				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。</p>'

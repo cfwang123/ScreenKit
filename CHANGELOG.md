@@ -123,6 +123,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Polygon names continue past 100 million sides by stacking myriads, so one billion is decakismyriakismyriagon (gigagon).
 - Number notation leaves a cell blank when that reading or notation does not apply.
 - Number notation also leaves the Korean native reading and the base-2, base-8, and base-16 cells blank when they do not apply.
+- Number notation is listed under Text on the tools page.
+- The web tools page has a top bar with the logo, back, favorite, and language. Opening a tool hides the left category list.
 
 #### Fixed
 
@@ -239,6 +241,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英文多边形名超过 1 亿边后按 myriad 继续叠乘，十亿边是 decakismyriakismyriagon（gigagon）。
 - 数字表记在某一读法或表记不适用时，该格留空。
 - 数字表记在韩文固有和二、八、十六进制不适用时也留空。
+- 工具页里数字表记改到「文字」。
+- web 工具页上方增加标题栏，放 logo、返回、收藏和语言。进入工具后隐藏左侧分类栏。
 
 #### 修复
 

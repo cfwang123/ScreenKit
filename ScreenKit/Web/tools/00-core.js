@@ -139,6 +139,7 @@ SK.watchAcc = 0;
 		for (i = 0; i < panels.length; i++)
 			panels[i].className = panels[i].id === name ? "panel on" : "panel";
 		$("back").hidden = name === "home";
+		document.documentElement.classList.toggle("in-tool", SK.curtool !== "home");
 		var favbtn = $("tool-fav");
 		if (SK.curtool === "home") {
 			favbtn.hidden = true;

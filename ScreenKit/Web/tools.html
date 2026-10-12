@@ -8,15 +8,20 @@
 <link rel="stylesheet" href="/sk/tools.css?__SK_WEB_VER__"/>
 </head>
 <body>
+<header class="topbar">
+	<div class="brand">
+		<span class="mark">S</span>
+		<div>
+			<strong>ScreenKit</strong>
+			<small data-k="web.brand">本机工具</small>
+		</div>
+	</div>
+	<button type="button" id="back" class="back" data-tool="home" hidden><i class="fa-solid fa-arrow-left"></i><span data-k="web.back">返回</span></button>
+	<button type="button" id="tool-fav" class="back" hidden><i class="fa-solid fa-star"></i><span data-k="web.fav">收藏</span></button>
+	<label class="lang"><span data-k="web.f.lang">语言</span><select id="lang"></select></label>
+</header>
 <div class="shell">
 	<aside>
-		<div class="brand">
-			<span class="mark">S</span>
-			<div>
-				<strong>ScreenKit</strong>
-				<small data-k="web.brand">本机工具</small>
-			</div>
-		</div>
 		<nav id="cats">
 			<button type="button" data-cat="fav" data-title="收藏" data-kt="web.cat.fav"><i class="fa-solid fa-star"></i><span data-k="web.cat.fav">收藏</span></button>
 			<button type="button" data-cat="all" data-title="全部" data-kt="web.cat.all" class="on"><i class="fa-solid fa-border-all"></i><span data-k="web.cat.all">全部</span></button>
@@ -28,11 +33,8 @@
 			<button type="button" data-cat="talk" data-title="交流" data-kt="web.cat.talk"><i class="fa-solid fa-comments"></i><span data-k="web.cat.talk">交流</span></button>
 		</nav>
 		<a class="files" href="/files" target="_blank" rel="noopener"><i class="fa-solid fa-folder"></i><span data-k="web.files">文件传输</span></a>
-		<label class="lang"><select id="lang"></select></label>
 	</aside>
 	<main>
-		<button type="button" id="back" class="back" data-tool="home" hidden><i class="fa-solid fa-arrow-left"></i><span data-k="web.back">返回</span></button>
-		<button type="button" id="tool-fav" class="back" hidden><i class="fa-solid fa-star"></i><span>收藏</span></button>
 		<section id="home" class="panel on">
 			<div class="head">
 				<label class="find">
@@ -120,7 +122,7 @@
 					<i class="fa-solid fa-yen-sign"></i><span data-k="web.tool.rmb">人民币大写</span>
 					<i class="star fa-solid fa-star" data-fav="u-rmb" title="收藏"></i>
 				</button>
-				<button type="button" data-tool="u-numread" data-cat="calc" data-name="数字表记 转换 中文读法 英文读法 韩语 韩文 固有 汉字 日语 德语 法语 西班牙语 葡萄牙语 俄语 小数 中数 大数 分厘毫 SI kilo mega 大写 罗马 英语多边形 pentagon chiliagon myriagon 千分位 科学计数" title="输入数字，列出中文、韩文、日语、德法西葡俄读法、英语多边形名，以及小数中数大数和常用表记">
+				<button type="button" data-tool="u-numread" data-cat="text" data-name="数字表记 转换 中文读法 英文读法 韩语 韩文 固有 汉字 日语 德语 法语 西班牙语 葡萄牙语 俄语 小数 中数 大数 分厘毫 SI kilo mega 大写 罗马 英语多边形 pentagon chiliagon myriagon 千分位 科学计数" title="输入数字，列出中文、韩文、日语、德法西葡俄读法、英语多边形名，以及小数中数大数和常用表记">
 					<i class="fa-solid fa-font"></i><span data-k="web.tool.numread">数字表记转换</span>
 					<i class="star fa-solid fa-star" data-fav="u-numread" title="收藏"></i>
 				</button>

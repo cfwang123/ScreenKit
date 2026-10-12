@@ -16,6 +16,10 @@ html, body { margin: 0; height: 100%; }
 body {
 	min-width: 1080px;
 	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 16px;
 	background: #f3f1ec;
 	color: var(--ink);
 	font: 15px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
@@ -24,13 +28,25 @@ body {
 @media (max-width: 1079px) {
 	body { overflow: auto; }
 }
-.shell { display: flex; height: 100%; gap: 16px; padding: 16px; align-items: flex-start; }
+.topbar {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 52px;
+	padding: 8px 14px;
+	background: #fff;
+	border-radius: 12px;
+	box-shadow: 0 1px 2px rgba(36, 31, 27, .06);
+}
+.shell { display: flex; flex: 1; min-height: 0; gap: 16px; align-items: flex-start; }
+html.in-tool aside { display: none; }
 aside {
 	width: 196px;
 	flex: none;
 	align-self: stretch;
 	position: sticky;
-	top: 16px;
+	top: 0;
 	background: #fff;
 	color: #2b2926;
 	display: flex;
@@ -39,7 +55,7 @@ aside {
 	border-radius: 12px;
 	box-shadow: 0 1px 2px rgba(36, 31, 27, .06);
 }
-.brand { display: flex; gap: 10px; align-items: center; padding: 0 6px 14px; }
+.brand { display: flex; gap: 10px; align-items: center; }
 .brand strong { display: block; font-size: 15px; }
 .brand small { color: var(--muted); }
 .mark {
@@ -69,11 +85,18 @@ nav button.on i { color: #fff; }
 }
 .files i { width: 18px; flex: none; text-align: center; color: #888; }
 .files:hover { background: #f3f4f6; color: #222; }
-.lang { display: block; margin-top: 8px; }
-.lang select {
-	width: 100%; font: inherit; color: inherit;
-	padding: 8px; border-radius: 8px;
+.topbar .lang {
+	display: flex; align-items: center; gap: 8px;
+	width: auto; margin: 0 0 0 auto;
+	color: var(--muted); font-size: 13px;
+}
+.topbar .lang span { white-space: nowrap; }
+.topbar .lang select {
+	width: auto; min-width: 108px; height: 32px; margin: 0;
+	padding: 0 8px; border-radius: 8px;
 	border: 1px solid var(--line); background: #fff;
+	font: 14px/32px "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	color: var(--ink);
 }
 main {
 	flex: 1; min-width: 0; align-self: stretch;
@@ -91,8 +114,9 @@ main {
 .back {
 	display: inline-flex; align-items: center; gap: 6px;
 	border: 0; background: transparent; color: #f97316;
-	padding: 0 0 10px; font-size: 14px;
+	padding: 6px 10px; border-radius: 8px; font-size: 14px;
 }
+.back:hover { background: #f3f4f6; }
 .head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 .head h1 { margin: 0; font-size: 20px; }
@@ -141,9 +165,7 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 .cards i.star:hover { background: #d9dfe5; color: #8a827a; }
 .cards i.star.on { color: #f97316; }
 .cards i.star.on:hover { background: #f7e6d5; }
-#tool-fav { margin-left: 8px; color: #888; }
-/* main 是纵向 flex，子项默认拉伸到头；这两个按钮按自己的内容宽，右边空白不算点击区 */
-#back, #tool-fav { align-self: flex-start; }
+#tool-fav { color: #888; }
 #tool-fav.on, #tool-fav.on i { color: #f97316; }
 .cards span {
 	flex: 1; min-width: 0;
