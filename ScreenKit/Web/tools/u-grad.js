@@ -4,13 +4,14 @@
 		title: "CSS 渐变",
 		go: "生成",
 		noGo: true,
+		hideOut: true,
 		body: function(){
 			return SK.lab("类型", '<select id="box-type"><option value="linear">线性</option><option value="radial">径向</option><option value="conic">锥形</option></select>')
 				+ '<div class="grad-lab">颜色</div>'
 				+ '<div id="grad-stops" class="grad-stops"></div>'
 				+ '<button type="button" id="grad-add" class="ghost">加一个颜色</button>'
 				+ SK.lab("角度", SK.numin("box-n", "90"))
-				+ '<div id="grad-view" class="grad-view"></div>';
+				+ '<div class="grad-row"><div id="grad-view" class="grad-view"></div><textarea id="grad-out" readonly></textarea></div>';
 		},
 		open: function(){
 			addstop("#f97316");
@@ -79,6 +80,9 @@
 		if (n) n.disabled = SK.val("box-type") === "radial";
 		syncstops();
 		SK.utilrun();
+		var shown = SK.$("grad-out");
+		var box = SK.$("box-out");
+		if (shown && box) shown.value = box.value;
 	}
 	function gradcss(type, colors, angle){
 		type = String(type || "linear");

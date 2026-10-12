@@ -337,16 +337,16 @@
 			p.setAttribute("data-id", String(item.id || ""));
 			p.onclick = (function(id){
 				return function(){
-					if (!sel || String(id) === String(me)) return;
+					if (!sel) return;
 					sel.value = String(id);
 					markpeer();
 				};
 			})(item.id);
 			box.appendChild(p);
-			if (sel && item.id !== me) {
+			if (sel) {
 				var opt = document.createElement("option");
 				opt.value = String(item.id);
-				opt.textContent = item.nick || "";
+				opt.textContent = (item.nick || "") + (item.id === me ? " · " + label("web.chat.self", "我") : "");
 				sel.appendChild(opt);
 			}
 		}

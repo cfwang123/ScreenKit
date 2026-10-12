@@ -301,7 +301,7 @@ static partial class ChatRoom {
 		to = num(jo, "to");
 		priv = flag(jo, "priv");
 		dest = null;
-		if (to == from.id || (priv && to <= 0)) {
+		if (priv && to <= 0) {
 			enqueue(from, errjson("to"));
 			return false;
 		}
@@ -770,6 +770,16 @@ static partial class ChatRoom {
 		}
 		if (sawtext(d, holdd, "悄悄", 400)) {
 			err("chat: 丙看到了私密消息");
+			return false;
+		}
+		Thread.Sleep(300);
+		send(a, "{\"op\":\"say\",\"text\":\"自言\",\"to\":" + ida + ",\"priv\":true}");
+		if (!wait(a, holda, "say", "自言", 4000) || !istrue(lastjo, "priv")) {
+			err("chat: 自己没有收到私密消息");
+			return false;
+		}
+		if (sawtext(b, holdb, "自言", 400) || sawtext(d, holdd, "自言", 400)) {
+			err("chat: 别人看到了发给自己的私密消息");
 			return false;
 		}
 		Thread.Sleep(300);

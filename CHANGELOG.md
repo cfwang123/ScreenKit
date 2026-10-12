@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - New tool: ASCII code chart (Text). It covers 0x00-0x7F in six groups and draws the classic 16-column grid with column and row headers; control characters show their usual abbreviations (NUL, HT, DEL ...). Click a cell to select and copy it (controls copy their escape), and the preview lists decimal, hex, octal, binary, the Unicode name and the category plus the C, JavaScript, HTML, URL and UTF-8 forms.
 - Tools, Image convert: palette PNG with a choice of 2, 4, 8, 16, 32, 64, 128, or 256 colors. The file extension stays .png.
 - Tools page: the Morse chart can play a whole typed text, not just one code. Letters are separated by three units and words by seven, the strip below shows the dots and dashes of what you type, and the current letter is highlighted while it plays. Playback stops at 20 seconds and says how much was left out.
+- Tools page: the 8-bit synthesizer keyboard now shows three octaves. It draws one row when the width allows and one octave per row (three rows) when it does not; holding Ctrl plays an octave up and holding Shift an octave down, the keys move with it, and a note that was started keeps sounding until its own key is released.
 
 #### Changed
 
@@ -106,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The placeholder image redraws as soon as width, height, colors, or caption change. Ctrl+C or Copy result puts the PNG on the clipboard.
 - Image convert preview zooms with the wheel toward the cursor, pans by dragging, and fits again on a double-click.
 - CSS gradient on the tools page takes 2 to 8 colors from the browser color picker. They are spaced evenly in the order shown.
+- The chat room can send a message to yourself, and your name is listed with the other people. The nickname field matches the gender list and the join button.
 
 #### Fixed
 
@@ -159,6 +161,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增工具：ASCII码表（文字）。0x00–0x7F 分六组，画成经典 16 列并带行列码表头；控制字符显示 NUL、HT、DEL 等惯用缩写。点格子选中并复制（控制字符复制它的转义写法），右边预览列出十进制、十六进制、八进制、二进制、Unicode 名称、类别，以及 C、JavaScript、HTML、URL、UTF-8 写法。
 - 工具 → 图片格式转换可输出 PNG 调色板，颜色数可选 2、4、8、16、32、64、128、256，扩展名仍是 .png。
 - 工具页：摩斯码表可以整段播放输入的文字，不只是单条码。字母之间空 3 点、词之间空 7 点，输入框下面显示转换出的点划，播放时逐字高亮。最长播 20 秒，超了会截断并说明只播了前几个字符。
+- 工具页：8bit合成器的琴键显示 3 个八度，宽度够就一行放下、不够就一行一个八度分三行；按住 Ctrl 升 8 度、Shift 降 8 度（琴键跟着换一组；先松开修饰键不会把已经按下的音弄丢，松开那个音自己的键才停）。
 
 #### 变更
 
@@ -199,6 +202,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 占位图在改宽高、颜色或文字后马上出预览。Ctrl+C 或「复制结果」把 PNG 放进剪贴板。
 - 图片格式转换的预览可以用滚轮对着光标缩放、拖动平移，双击重新适应窗口。
 - 工具页 CSS 渐变可以用浏览器选色器选 2 到 8 种颜色，按列出的顺序均匀过渡。
+- 聊天室可以给自己发消息，在线名单里也有自己。昵称框与性别、进入按钮样式一致。
 
 #### 修复
 

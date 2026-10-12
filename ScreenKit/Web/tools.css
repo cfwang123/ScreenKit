@@ -312,9 +312,14 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .grad-stop input[type="color"] { width: 72px; flex: none; margin-top: 0; }
 .grad-stop button { height: 32px; padding: 0 12px; }
 #grad-add { margin-top: 8px; height: 32px; padding: 0 12px; }
+.grad-row { display: flex; align-items: flex-start; gap: 12px; margin-top: 8px; }
 .grad-view {
-	height: 140px; margin-top: 8px;
+	width: 120px; height: 120px; flex: none; margin: 0;
 	border: 1px solid var(--line); border-radius: 12px;
+}
+.grad-row textarea {
+	flex: 1 1 auto; width: auto; min-width: 0; height: 120px; min-height: 120px;
+	margin: 0; resize: none;
 }
 .facts {
 	display: grid; grid-template-columns: 120px 1fr; gap: 8px 16px;
@@ -575,6 +580,12 @@ input[type="file"] {
 	font: 12px/1.4 Consolas, "Microsoft YaHei UI", monospace;
 }
 .cnone { margin: 8px; color: var(--muted); }
+#chat-gate .row { align-items: flex-end; }
+#chat-gate #chat-join {
+	height: 40px; margin: 6px 0 0; padding: 0 16px;
+	border-radius: 12px; font-size: 14px;
+}
+#chat-nick:focus, #chat-gender:focus { outline: none; border-color: #f97316; }
 #chat.panel.on { overflow: hidden; }
 #chat-room { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .chatmain { display: flex; gap: 12px; flex: 1; min-height: 0; }
@@ -654,7 +665,11 @@ input[type="file"] {
 	font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 	padding: 0 0 8px; display: flex; align-items: flex-end; justify-content: center;
 }
-.bitkeys button small { display: block; margin-left: 3px; font-size: 10px; opacity: 0.7; }
+.bitkeys button small {
+	display: block; margin-left: 5px; padding: 1px 3px; border-radius: 3px;
+	font-size: 10px; opacity: 0.7; background: rgba(120, 120, 120, 0.18);
+}
+.bitkeys button.b small { background: rgba(255, 255, 255, 0.18); }
 .bitkeys button.w {
 	position: relative; z-index: 1; flex: 1; height: 148px; min-width: 0;
 	background: #f7f4ef; color: #6b645c;
