@@ -1,0 +1,49 @@
+<Window x:Class="ScreenKit.CharArtWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="字符画"
+        Width="920" Height="640"
+        MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="charart.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
+			<Button x:Name="bpick" Content="选择图片" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="charart.pick"/>
+			<Button x:Name="bcopy" Content="复制" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="charart.copy"/>
+			<Button x:Name="bcolor" Content="全色字符画" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="charart.color"/>
+			<TextBlock x:Name="lbcols" Text="列数" VerticalAlignment="Center" Margin="8,0,6,0"/>
+			<TextBox x:Name="ecols" Width="64" Height="30" Text="100" Padding="6,4"
+			         VerticalContentAlignment="Center"
+			         BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="charart.cols"/>
+			<CheckBox x:Name="ckinv" Content="反色" VerticalAlignment="Center" Margin="12,0,0,0"
+			          AutomationProperties.AutomationId="charart.invert"/>
+		</DockPanel>
+		<TextBlock x:Name="lbhint" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
+		           Foreground="{StaticResource TextMuted}"
+		           Text="拖入图片。单色用 ASCII。全色在新的命令行窗口里用色块显示。"/>
+		<TextBox x:Name="eout" Grid.Row="2"
+		         FontFamily="Consolas" FontSize="12"
+		         AcceptsReturn="True" IsReadOnly="True"
+		         TextWrapping="NoWrap"
+		         HorizontalScrollBarVisibility="Auto"
+		         VerticalScrollBarVisibility="Auto"
+		         BorderBrush="{StaticResource BorderSoft}"
+		         AutomationProperties.AutomationId="charart.out"/>
+		<TextBlock x:Name="lbstat" Grid.Row="3" Margin="0,8,0,0"
+		           Foreground="{StaticResource TextMuted}"/>
+	</Grid>
+</Window>

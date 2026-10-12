@@ -138,6 +138,9 @@
 				<MenuItem x:Name="mnimgconv" Header="图片格式转换(_C)…"
 				          AutomationProperties.AutomationId="menu.imgconv"
 				          ToolTip="批量转换图片格式，可缩放、旋转、镜像"/>
+				<MenuItem x:Name="mncharart" Header="字符画(_Z)…"
+				          AutomationProperties.AutomationId="menu.charart"
+				          ToolTip="把图片变成单色 ASCII，或在命令行里看全色字符块"/>
 				<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
 				          AutomationProperties.AutomationId="menu.vidconv"
 				          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>

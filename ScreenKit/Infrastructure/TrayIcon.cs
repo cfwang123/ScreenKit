@@ -33,6 +33,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miWebHome;
 	Forms.ToolStripMenuItem miWebFiles;
 	Forms.ToolStripMenuItem miImgConv;
+	Forms.ToolStripMenuItem miCharArt;
 	Forms.ToolStripMenuItem miVidConv;
 	Forms.ToolStripMenuItem miVidGif;
 	Forms.ToolStripMenuItem miQrMake;
@@ -157,6 +158,7 @@ sealed class TrayIcon : IDisposable {
 		miGifRecord = item("tray.gifrecord", () => GifRecordRequested?.Invoke());
 		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
 		miImgConv = item("tray.imgconv", () => ImgConvRequested?.Invoke());
+		miCharArt = item("tray.charart", () => CharArtRequested?.Invoke());
 		miVidConv = item("tray.vidconv", () => VidConvRequested?.Invoke());
 		miVidGif = item("tray.vidgif", () => VidGifRequested?.Invoke());
 		miQrMake = item("tray.qrmake", () => QrMakeRequested?.Invoke());
@@ -185,6 +187,7 @@ sealed class TrayIcon : IDisposable {
 		miWeb.DropDownOpening += (_, _) => fillwebtools();
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
+		miTools.DropDownItems.Add(miCharArt);
 		miTools.DropDownItems.Add(miVidConv);
 		miTools.DropDownItems.Add(miVidGif);
 		miTools.DropDownItems.Add(miQrMake);
@@ -393,6 +396,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miTools, null);
 		setshortcut(miWebHome, null);
 		setshortcut(miImgConv, null);
+		setshortcut(miCharArt, null);
 		setshortcut(miVidConv, null);
 		setshortcut(miVidGif, null);
 		setshortcut(miQrMake, null);
@@ -448,6 +452,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miWebHome, "tray.webhome");
 			settext(miWebFiles, "tray.webfiles");
 			settext(miImgConv, "tray.imgconv");
+			settext(miCharArt, "tray.charart");
 			settext(miVidConv, "tray.vidconv");
 			settext(miVidGif, "tray.vidgif");
 			settext(miQrMake, "tray.qrmake");
@@ -548,6 +553,7 @@ sealed class TrayIcon : IDisposable {
 		return list;
 	}
 	public event Action ImgConvRequested;
+	public event Action CharArtRequested;
 	public event Action VidConvRequested;
 	public event Action VidGifRequested;
 	public event Action QrMakeRequested;

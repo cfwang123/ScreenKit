@@ -77,6 +77,7 @@ public partial class MainWindow : Window {
 	HttpOcrServer httpServer;
 	SendFileServer sendFile;
 	ImgConvertWindow imgConvWin;
+	CharArtWindow charArtWin;
 	VidConvertWindow vidConvWin;
 	VidGifWindow vidGifWin;
 	QrMakeWindow qrMakeWin;
@@ -623,6 +624,7 @@ public partial class MainWindow : Window {
 			tray.WebFilesRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpfiles(fromTray: true)));
 			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true, tool: id)));
 			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv(fromTray: true)));
+			tray.CharArtRequested += () => Dispatcher.BeginInvoke(new Action(() => opencharart(fromTray: true)));
 			tray.VidConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidconv(fromTray: true)));
 			tray.VidGifRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidgif(fromTray: true)));
 			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake(fromTray: true)));
@@ -1564,6 +1566,7 @@ public partial class MainWindow : Window {
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mndict.Click += (_, _) => showdicttab();
 		mnimgconv.Click += (_, _) => openimgconv();
+		mncharart.Click += (_, _) => opencharart();
 		mnvidconv.Click += (_, _) => openvidconv();
 		mnvidgif.Click += (_, _) => openvidgif();
 		mnqrmake.Click += (_, _) => openqrmake();
@@ -1703,6 +1706,8 @@ public partial class MainWindow : Window {
 			mndict.ToolTip = Loc.T("menu.dict.tip");
 			mnimgconv.Header = Loc.T("menu.imgconv");
 			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
+			mncharart.Header = Loc.T("menu.charart");
+			mncharart.ToolTip = Loc.T("menu.charart.tip");
 			mnvidconv.Header = Loc.T("menu.vidconv");
 			mnvidconv.ToolTip = Loc.T("menu.vidconv.tip");
 			mnvidgif.Header = Loc.T("menu.vidgif");
@@ -4415,6 +4420,7 @@ public partial class MainWindow : Window {
 					bindautokeyhotkey();
 				}
 				else if (ReferenceEquals(fastCopyWin, w)) fastCopyWin = null;
+				else if (ReferenceEquals(charArtWin, w)) charArtWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
 			w.Show();
@@ -4423,6 +4429,10 @@ public partial class MainWindow : Window {
 			MessageBox.Show(this, ex.Message, Loc.T(titleKey),
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
+	}
+
+	void opencharart(bool fromTray = false) {
+		opentoolwin(ref charArtWin, () => new CharArtWindow(), "menu.charart", fromTray);
 	}
 
 	void openimgconv(bool fromTray = false) {

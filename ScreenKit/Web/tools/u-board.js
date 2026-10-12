@@ -8,6 +8,7 @@
 	var sel = -1;
 	var drag = null;
 	var draft = null;
+	var lift = null;
 	var edit = null;
 	var canvas = null;
 	var base = null;
@@ -130,7 +131,13 @@
 				if (ev.key === "Enter") { ev.preventDefault(); committext(true); }
 				else if (ev.key === "Escape") { ev.preventDefault(); committext(false); }
 			};
-			txt.onblur = function(){ committext(true); };
+			txt.onblur = function(){
+				setTimeout(function(){
+					if (!edit || document.activeElement === txt) return;
+					committext(true);
+				}, 0);
+			};
+			txt.onmousedown = function(ev){ ev.stopPropagation(); };
 		}
 		settool(tool);
 		setwidth(width);
@@ -168,6 +175,8 @@
 
 	function settool(name){
 		if (edit) committext(true);
+		var baked = name !== tool && !!lift;
+		if (baked) stamplit();
 		tool = name;
 		var nodes = document.querySelectorAll(".board-bar [data-board]");
 		var i;
@@ -175,6 +184,7 @@
 			nodes[i].className = nodes[i].getAttribute("data-board") === name ? "on" : "";
 		var stage = document.querySelector(".board-stage");
 		if (stage) stage.className = "board-stage" + (name === "select" ? " select" : "");
+		if (baked) paint(true);
 	}
 
 	function setwidth(n){
@@ -211,6 +221,11 @@
 			return;
 		}
 		if (ev.key === "Escape") {
+			if (lift) {
+				if (undo.length) undolast();
+				else { stamplit(); paint(true); }
+				return;
+			}
 			draft = null;
 			drag = null;
 			paint(true);
@@ -302,11 +317,12 @@
 
 	function clearall(){
 		if (edit) committext(true);
-		if (!items.length && !dirty) return;
+		if (!items.length && !dirty && !lift) return;
 		pushundo();
 		items = [];
 		sel = -1;
 		draft = null;
+		lift = null;
 		dirty = false;
 		whitebase();
 		paint(true);
@@ -324,6 +340,7 @@
 			base.getContext("2d").putImageData(snap.pixels, 0, 0);
 		draft = null;
 		drag = null;
+		lift = null;
 		paint(true);
 	}
 
@@ -366,8 +383,15 @@
 
 	function down(ev){
 		if (busy || !canvas || ev.button != null && ev.button !== 0) return;
-		if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId);
 		var p = xy(ev);
+		if (tool === "text") {
+			if (ev.preventDefault) ev.preventDefault();
+			var ti = hittext(p);
+			if (ti >= 0) begintext(ti);
+			else begintext(-1, p.x, p.y);
+			return;
+		}
+		if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId);
 		if (tool === "select") {
 			if (sel >= 0 && sel < items.length) {
 				var handle = handleat(boxof(items[sel]), p);
@@ -386,14 +410,17 @@
 			paint(true);
 			return;
 		}
-		if (tool === "text") {
-			var ti = hittext(p);
-			if (ti >= 0) begintext(ti);
-			else begintext(-1, p.x, p.y);
+		if (tool === "lasso") {
+			if (lift && hitlift(p)) {
+				drag = { mode: "lift", x0: p.x, y0: p.y, ox: lift.x, oy: lift.y, moved: false };
+				return;
+			}
+			if (lift) stamplit();
+			draft = { t: "lasso", pts: [{ x: p.x, y: p.y }] };
+			paint(true);
 			return;
 		}
-		if (tool === "lasso") draft = { t: "lasso", pts: [{ x: p.x, y: p.y }] };
-		else if (tool === "pen") draft = { t: "pen", x: p.x, y: p.y, pts: [{ x: 0, y: 0 }], c: color, lw: width };
+		if (tool === "pen") draft = { t: "pen", x: p.x, y: p.y, pts: [{ x: 0, y: 0 }], c: color, lw: width };
 		else if (tool === "arrow") draft = { t: "arrow", x1: p.x, y1: p.y, x2: p.x, y2: p.y, c: color, lw: width };
 		else draft = { t: tool, x: p.x, y: p.y, w: 0, h: 0, c: color, lw: width };
 		paint(true);
@@ -406,6 +433,12 @@
 			var dx = p.x - drag.x0, dy = p.y - drag.y0;
 			if (!drag.moved && Math.hypot(dx, dy) < 1) return;
 			drag.moved = true;
+			if (drag.mode === "lift" && lift) {
+				lift.x = drag.ox + dx;
+				lift.y = drag.oy + dy;
+				paint(true);
+				return;
+			}
 			var it = items[drag.i];
 			if (!it) return;
 			if (drag.mode === "move") applymove(it, drag.start, dx, dy);
@@ -426,8 +459,10 @@
 
 	function up(){
 		if (drag) {
-			if (!drag.moved && undo.length) undo.pop();
+			var waslift = drag.mode === "lift";
+			if (!waslift && !drag.moved && undo.length) undo.pop();
 			drag = null;
+			if (waslift) stamplit();
 			paint(true);
 		}
 		if (draft) commitdraft();
@@ -541,11 +576,26 @@
 			if (!seen) kept.push(items[i]);
 		}
 		items = kept;
-		items.push({ t: "img", img: cut, x: minx, y: miny, w: bw, h: bh });
-		sel = items.length - 1;
+		lift = { img: cut, x: minx, y: miny, w: bw, h: bh };
+		sel = -1;
 		dirty = true;
-		settool("select");
 		paint(true);
+	}
+
+	function hitlift(p){
+		if (!lift) return false;
+		var pad = 4;
+		return p.x >= lift.x - pad && p.y >= lift.y - pad && p.x <= lift.x + lift.w + pad && p.y <= lift.y + lift.h + pad;
+	}
+
+	function stamplit(){
+		if (!lift) return;
+		var box = lift;
+		lift = null;
+		sel = -1;
+		if (!base) return;
+		base.getContext("2d").drawImage(box.img, box.x, box.y, box.w, box.h);
+		dirty = true;
 	}
 
 	function inpoly(x, y, pts){
@@ -578,8 +628,12 @@
 		txt.style.color = it ? it.c : color;
 		txt.style.width = Math.max(80, (it ? measure(it).w : 140) * sx) + "px";
 		txt.hidden = false;
-		txt.focus();
-		if (it) txt.select();
+		txt.style.height = Math.max(32, Math.round(size * sy) + 8) + "px";
+		setTimeout(function(){
+			if (!edit || !txt) return;
+			txt.focus();
+			if (it) txt.select();
+		}, 0);
 		paint(true);
 	}
 
@@ -731,6 +785,10 @@
 			if (edit && edit.i === i) continue;
 			drawitem(ctx, items[i]);
 		}
+		if (lift) {
+			drawimg(ctx, lift);
+			if (showSel) drawliftbox(ctx);
+		}
 		if (draft) {
 			if (draft.t === "lasso") drawlasso(ctx, draft);
 			else drawitem(ctx, draft);
@@ -814,6 +872,16 @@
 		}
 		else if (src.complete === false || !src.naturalWidth) return;
 		ctx.drawImage(src, it.x, it.y, it.w, it.h);
+	}
+
+	function drawliftbox(ctx){
+		if (!lift) return;
+		ctx.save();
+		ctx.strokeStyle = "#3b82f6";
+		ctx.lineWidth = 1;
+		ctx.setLineDash([6, 4]);
+		ctx.strokeRect(lift.x, lift.y, Math.max(1, lift.w), Math.max(1, lift.h));
+		ctx.restore();
 	}
 
 	function drawlasso(ctx, it){

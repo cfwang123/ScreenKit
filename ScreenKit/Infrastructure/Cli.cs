@@ -58,7 +58,7 @@ static class Cli {
 				or "--test-sendfile"
 				or "--test-lang"
 				or "--test-apk-qr"
-				or "--test-img-convert" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
+				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-httpdbg"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
@@ -178,6 +178,8 @@ static class Cli {
 				}
 				switch (a) {
 					case "--image": case "-i": image = Next(); break;
+					case "--charart": return CharArt.View(Next());
+					case "--test-charart": return CharArt.Test(Out, Err);
 					case "--models": case "-m": models = Next(); break;
 					case "--pack": case "-p": packId = Next(); break;
 					case "--variant": case "-v": variant = Next(); break;
@@ -5588,6 +5590,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --calendar [yyyy-MM-dd] [--cal lunar]
   ScreenKit --jpyomi <日文> [--mono]
   ScreenKit --image <路径> [选项]
+  ScreenKit --charart <图片>
+  ScreenKit --test-charart
   ScreenKit --snap [--out <目录>]
   ScreenKit --record-snap [--region L,T,W,H] [--wait-ms 800] [--out <目录>]
   ScreenKit --test-capture-during-record [--region L,T,W,H] [--out <目录>]
