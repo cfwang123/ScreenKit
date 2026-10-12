@@ -12,12 +12,13 @@ public partial class FastCopyWindow : Window {
 	bool dead;
 	bool ready;
 
-	public FastCopyWindow(OcrOptions opt) {
+	public FastCopyWindow(OcrOptions opt, IEnumerable<string> paths = null) {
 		this.opt = opt ?? new OcrOptions();
 		InitializeComponent();
 		lsrc.ItemsSource = rows;
 		applylang();
 		initev();
+		if (paths != null) addpaths(paths);
 		WindowEsc.Attach(this, onesc);
 	}
 
@@ -32,6 +33,8 @@ public partial class FastCopyWindow : Window {
 		breg.Click += (_, _) => togglereg();
 		rcopy.Checked += (_, _) => saveopt();
 		rmove.Checked += (_, _) => saveopt();
+		rsym.Checked += (_, _) => saveopt();
+		rhard.Checked += (_, _) => saveopt();
 		econflict.SelectionChanged += (_, _) => saveopt();
 		eworkers.LostFocus += (_, _) => saveopt();
 		Drop += (_, e) => {
@@ -47,8 +50,7 @@ public partial class FastCopyWindow : Window {
 			try { cts?.Cancel(); } catch { }
 			saveopt();
 		};
-		if (FastCopy.NormMode(opt.FastCopyMode) == "move") rmove.IsChecked = true;
-		else rcopy.IsChecked = true;
+		pickmode(opt.FastCopyMode);
 		eworkers.Text = FastCopy.NormWorkers(opt.FastCopyWorkers).ToString();
 		fillconflict();
 		syncreg();
@@ -67,6 +69,8 @@ public partial class FastCopyWindow : Window {
 		lbmode.Text = Loc.T("fc.mode");
 		rcopy.Content = Loc.T("fc.modecopy");
 		rmove.Content = Loc.T("fc.modemove");
+		rsym.Content = Loc.T("fc.modesym");
+		rhard.Content = Loc.T("fc.modehard");
 		lbconflict.Text = Loc.T("fc.conflict");
 		lbworkers.Text = Loc.T("fc.workers");
 		bstart.Content = Loc.T("fc.start");
@@ -163,9 +167,24 @@ public partial class FastCopyWindow : Window {
 
 	string conflict() => (econflict.SelectedItem as ComboBoxItem)?.Tag as string ?? "overwrite";
 
+	string curmode() {
+		if (rmove.IsChecked == true) return "move";
+		if (rsym.IsChecked == true) return "symlink";
+		if (rhard.IsChecked == true) return "hardlink";
+		return "copy";
+	}
+
+	void pickmode(string mode) {
+		mode = FastCopy.NormMode(mode);
+		if (mode == "move") rmove.IsChecked = true;
+		else if (mode == "symlink") rsym.IsChecked = true;
+		else if (mode == "hardlink") rhard.IsChecked = true;
+		else rcopy.IsChecked = true;
+	}
+
 	void saveopt() {
 		if (!ready || opt == null) return;
-		opt.FastCopyMode = rmove.IsChecked == true ? "move" : "copy";
+		opt.FastCopyMode = FastCopy.NormMode(curmode());
 		opt.FastCopyConflict = FastCopy.NormConflict(conflict());
 		if (int.TryParse((eworkers.Text ?? "").Trim(), out var n))
 			opt.FastCopyWorkers = FastCopy.NormWorkers(n);
@@ -184,9 +203,11 @@ public partial class FastCopyWindow : Window {
 		bcancel.IsEnabled = true;
 		breg.IsEnabled = false;
 		cts = new CancellationTokenSource();
+		var mode = curmode();
 		var job = new FastCopy.Job {
 			Dest = dest,
-			Move = rmove.IsChecked == true,
+			Move = mode == "move",
+			Link = mode == "symlink" || mode == "hardlink" ? mode : "",
 			Conflict = conflict(),
 			Workers = opt.FastCopyWorkers,
 			Cancel = cts.Token,

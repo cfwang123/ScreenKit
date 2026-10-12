@@ -81,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Settings → General feature switches hide the page, disable the feature (hotkeys, tray, and its HTTP routes), and release loaded models. LLM log only hides its page. The HTTP page only hides that entry. File sync and Screencast also stop those services.
 - With every feature switch off, the main window no longer keeps the OCR tab on screen.
 - Common colors shows the web English name beside each Chinese name, and every color is now a compact row: a small swatch on the left, two lines on the right. The search box also matches the English name (peacock, darkgoldenrod) and ignores spaces in it.
+- Common colors now covers all 148 CSS named colors. The curated 83 grew to 155 rows (139 named colors plus 16 Chinese-specific colors) with a new White / Paper group for the near-white tones, and spellings that differ between US and UK share one row (Gray / Grey, Cyan / Aqua, Fuchsia / Magenta).
 
 #### Fixed
 
@@ -139,6 +140,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 参数设置 → 常规的功能开关关闭后隐藏页面，停用该功能（热键、托盘和对应 HTTP），并释放已加载的模型。LLM 日志只隐藏页面。HTTP 接口页只隐藏入口。文件同步和投屏同时停用对应服务。
 - 功能开关全部关闭时，主窗口不再留下截图识别页。
 - 常用颜色表在中文名旁边显示 web 英文名，色卡改成紧凑一行：左边小色块，右边两行文字（中文名 + 英文名 / 十六进制）。搜索框也能按英文名查（peacock、darkgoldenrod），英文里的空格可以省。
+- 常用颜色表补全到全部 148 个 CSS 命名色：原来的 83 条扩到 155 条（139 个命名色 + 16 个中文专名色），近白色单开「白/纸色」组；英美拼写同值的合并成一条显示双拼（Gray / Grey、Cyan / Aqua、Fuchsia / Magenta）。
 
 #### 修复
 

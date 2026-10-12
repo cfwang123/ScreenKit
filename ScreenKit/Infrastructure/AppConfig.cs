@@ -689,7 +689,7 @@ static class AppConfig {
 		sb.AppendLine($"vidgif_colors = {VidGif.NormColors(o.VidGifColors)}");
 		sb.AppendLine($"vidgif_short = {(o.VidGifShortEnabled ? "true" : "false")}");
 		sb.AppendLine($"vidgif_short_px = {Compat.Clamp(o.VidGifShortPx < 16 ? 480 : o.VidGifShortPx, 16, 7680)}");
-		sb.AppendLine($"# 快速复制：同名 overwrite | skip | rename；方式 copy | move");
+		sb.AppendLine($"# 快速复制：同名 overwrite | skip | rename；方式 copy | move | symlink | hardlink");
 		sb.AppendLine($"fc_workers = {FastCopy.NormWorkers(o.FastCopyWorkers)}");
 		sb.AppendLine($"fc_conflict = \"{FastCopy.NormConflict(o.FastCopyConflict)}\"");
 		sb.AppendLine($"fc_mode = \"{FastCopy.NormMode(o.FastCopyMode)}\"");

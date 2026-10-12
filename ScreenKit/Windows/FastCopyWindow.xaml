@@ -46,14 +46,20 @@
 			<Button x:Name="bbrowse" Grid.Column="2" Style="{StaticResource ToolBtn}" Content="浏览"
 			        AutomationProperties.AutomationId="fastcopy.browse"/>
 		</Grid>
-		<StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,10">
+		<WrapPanel Grid.Row="4" Margin="0,0,0,10">
 			<TextBlock x:Name="lbmode" Text="方式" VerticalAlignment="Center" Margin="0,0,8,0"/>
 			<RadioButton x:Name="rcopy" Content="复制" GroupName="fcmode" Margin="0,0,12,0"
 			             VerticalAlignment="Center" IsChecked="True"
 			             AutomationProperties.AutomationId="fastcopy.mode.copy"/>
-			<RadioButton x:Name="rmove" Content="剪切" GroupName="fcmode" Margin="0,0,16,0"
+			<RadioButton x:Name="rmove" Content="剪切" GroupName="fcmode" Margin="0,0,12,0"
 			             VerticalAlignment="Center"
 			             AutomationProperties.AutomationId="fastcopy.mode.move"/>
+			<RadioButton x:Name="rsym" Content="符号链接" GroupName="fcmode" Margin="0,0,12,0"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="fastcopy.mode.symlink"/>
+			<RadioButton x:Name="rhard" Content="硬链接" GroupName="fcmode" Margin="0,0,16,0"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="fastcopy.mode.hardlink"/>
 			<TextBlock x:Name="lbconflict" Text="同名" VerticalAlignment="Center" Margin="0,0,8,0"/>
 			<ComboBox x:Name="econflict" Width="110" Height="32" Margin="0,0,16,0"
 			          VerticalContentAlignment="Center"
@@ -62,7 +68,7 @@
 			<TextBox x:Name="eworkers" Width="56" Height="32" Padding="8,4"
 			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 			         Text="8" AutomationProperties.AutomationId="fastcopy.workers"/>
-		</StackPanel>
+		</WrapPanel>
 		<StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,8">
 			<Button x:Name="bstart" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="开始"
 			        AutomationProperties.AutomationId="fastcopy.start"/>

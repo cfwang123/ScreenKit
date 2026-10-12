@@ -271,7 +271,7 @@ public sealed class OcrOptions {
 	public int FastCopyWorkers = 8;
 	/// <summary>同名文件：overwrite / skip / rename。</summary>
 	public string FastCopyConflict = "overwrite";
-	/// <summary>copy 或 move。</summary>
+	/// <summary>copy、move、symlink 或 hardlink。</summary>
 	public string FastCopyMode = "copy";
 	/// <summary>密码生成器上次设置。</summary>
 	public int PwLen = 6;

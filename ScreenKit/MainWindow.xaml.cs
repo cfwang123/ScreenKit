@@ -173,6 +173,7 @@ public partial class MainWindow : Window {
 		LocationChanged += (_, _) => scheduleboundsave();
 		SizeChanged += (_, _) => scheduleboundsave();
 		// 系统 OCR 可直接用，启动不再弹出安装向导。按间隔检查更新。
+		Loaded += (_, _) => refreshfcmenu();
 		Loaded += onautoupdate;
 	}
 
@@ -4276,6 +4277,13 @@ public partial class MainWindow : Window {
 		if (hotkeyAuto.Register(hk)) return "";
 		if (string.IsNullOrWhiteSpace(hk)) return "";
 		return hotkeyAuto.LastError ?? "";
+	}
+
+	void refreshfcmenu() {
+		try {
+			if (FastCopy.MenuExists()) FastCopy.Register();
+		}
+		catch { }
 	}
 
 	void openfastcopy(bool fromTray = false) =>

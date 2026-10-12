@@ -25,6 +25,7 @@ public static class FastCopy {
 		public List<string> Sources = new();
 		public string Dest;
 		public bool Move;
+		public string Link;
 		public string Conflict = "overwrite";
 		public int Workers = WORKERS_DEF;
 		public CancellationToken Cancel;
@@ -65,8 +66,18 @@ public static class FastCopy {
 	[DllImport("shell32.dll")]
 	static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
 
+	[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+	static extern bool CreateSymbolicLinkW(string link, string target, int flags);
+
+	[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+	static extern bool CreateHardLinkW(string link, string existing, IntPtr security);
+
 	const int SHCNE_ASSOCCHANGED = 0x08000000;
 	const uint SHCNF_IDLIST = 0x1000;
+	const int SYMLINK_DIR = 1;
+	const int SYMLINK_UNPRIV = 2;
+	const int ERR_NOT_SAME_DEVICE = 17;
+	const int ERR_PRIVILEGE = 1314;
 
 	public static int NormWorkers(int n) => Compat.Clamp(n <= 0 ? WORKERS_DEF : n, WORKERS_MIN, WORKERS_MAX);
 
@@ -76,25 +87,30 @@ public static class FastCopy {
 		return "overwrite";
 	}
 
-	public static string NormMode(string raw) =>
-		string.Equals((raw ?? "").Trim(), "move", StringComparison.OrdinalIgnoreCase) ? "move" : "copy";
+	public static string NormMode(string raw) {
+		raw = (raw ?? "").Trim().ToLowerInvariant();
+		if (raw is "move" or "symlink" or "hardlink") return raw;
+		return "copy";
+	}
 
 	public static bool IsShell(string[] args) {
 		if (args == null) return false;
-		foreach (var a in args) {
-			if (a is "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
-				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister")
-				return true;
-		}
+		foreach (var a in args)
+			if (isshellflag(a)) return true;
 		return false;
 	}
 
 	public static bool NeedsWindow(string[] args) {
 		if (args == null) return false;
 		foreach (var a in args)
-			if (a == "--fc-paste") return true;
+			if (a is "--fc-paste" or "--fc-settings") return true;
 		return false;
 	}
+
+	static bool isshellflag(string a) =>
+		a is "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
+			or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
+			or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings";
 
 	// ==================== 复制 ====================
 	#region
@@ -119,6 +135,11 @@ public static class FastCopy {
 			return res;
 		}
 		var conflict = NormConflict(job.Conflict);
+		var link = (job.Link ?? "").Trim().ToLowerInvariant();
+		if (link is "symlink" or "hardlink") {
+			job.Link = link;
+			return runlinks(job, dest, conflict);
+		}
 		var items = new List<Work>();
 		var sweep = new List<string>();
 		foreach (var raw in job.Sources ?? new List<string>()) {
@@ -360,6 +381,289 @@ public static class FastCopy {
 		catch { return false; }
 	}
 
+	static Result runlinks(Job job, string dest, string conflict) {
+		var res = new Result();
+		var hard = job.Link == "hardlink";
+		var items = new List<Work>();
+		foreach (var raw in job.Sources ?? new List<string>()) {
+			if (job.Cancel.IsCancellationRequested) {
+				res.Cancelled = true;
+				return res;
+			}
+			var src = (raw ?? "").Trim().Trim('"');
+			if (src.Length == 0) continue;
+			if (!named(src)) {
+				res.Failed++;
+				res.Error ??= src;
+				continue;
+			}
+			var name = Path.GetFileName(src.TrimEnd('\\', '/'));
+			var to = Path.Combine(dest, name);
+			if (samepath(src, to)) { res.Skipped++; continue; }
+			if (hard && isdir(src)) {
+				if (!samevol(src, dest)) {
+					res.Failed++;
+					res.Error ??= Loc.T("fc.link.vol");
+					continue;
+				}
+				if (isinside(src, dest)) {
+					res.Failed++;
+					res.Error ??= "inside";
+					continue;
+				}
+				if (named(to) && !isdir(to)) {
+					res.Failed++;
+					res.Error ??= to;
+					continue;
+				}
+				var before = items.Count;
+				var failed = res.Failed;
+				planharddir(src, to, items, res);
+				if (items.Count == before && res.Failed == failed) res.Ok++;
+				continue;
+			}
+			if (hard && !samevol(src, dest)) {
+				res.Failed++;
+				res.Error ??= Loc.T("fc.link.vol");
+				continue;
+			}
+			items.Add(new Work { Src = full(src), Dest = full(to), Size = 1 });
+		}
+		if (res.Cancelled) return res;
+		if (items.Count == 0 && res.Failed == 0 && res.Skipped == 0 && res.Ok == 0) {
+			res.Failed = 1;
+			res.Error = "empty";
+			return res;
+		}
+		int doneFiles = 0;
+		long doneBytes = 0;
+		int nextui = Environment.TickCount - 1000;
+		void ping(string file, bool force) {
+			var now = Environment.TickCount;
+			if (!force && unchecked(now - nextui) < 80) return;
+			nextui = now;
+			try {
+				job.OnProgress?.Invoke(new Progress {
+					File = file ?? "",
+					DoneBytes = Interlocked.Read(ref doneBytes),
+					TotalBytes = items.Count,
+					DoneFiles = Volatile.Read(ref doneFiles),
+					TotalFiles = items.Count,
+				});
+			}
+			catch { }
+		}
+		var po = new ParallelOptions {
+			MaxDegreeOfParallelism = NormWorkers(job.Workers),
+			CancellationToken = job.Cancel,
+		};
+		try {
+			Parallel.ForEach(items, po, it => {
+				job.Cancel.ThrowIfCancellationRequested();
+				linkone(it, hard, conflict, res);
+				if (it.Copied) {
+					Interlocked.Increment(ref doneFiles);
+					Interlocked.Increment(ref doneBytes);
+				}
+				ping(it.Src, false);
+			});
+		}
+		catch (OperationCanceledException) { res.Cancelled = true; }
+		catch (AggregateException ex) {
+			if (ex.InnerExceptions.All(e => e is OperationCanceledException)) res.Cancelled = true;
+			else {
+				res.Failed++;
+				res.Error ??= ex.InnerException?.Message ?? ex.Message;
+			}
+		}
+		ping("", true);
+		return res;
+	}
+
+	static void planharddir(string src, string dest, List<Work> items, Result res) {
+		try {
+			Directory.CreateDirectory(dest);
+			foreach (var file in Directory.EnumerateFiles(src)) {
+				var to = Path.Combine(dest, Path.GetFileName(file));
+				if (samepath(file, to)) { res.Skipped++; continue; }
+				items.Add(new Work { Src = full(file), Dest = full(to), Size = 1 });
+			}
+			foreach (var sub in Directory.EnumerateDirectories(src)) {
+				FileAttributes attr;
+				try { attr = File.GetAttributes(sub); }
+				catch { continue; }
+				if ((attr & FileAttributes.ReparsePoint) != 0) continue;
+				planharddir(sub, Path.Combine(dest, Path.GetFileName(sub)), items, res);
+			}
+		}
+		catch (Exception ex) {
+			res.Failed++;
+			res.Error ??= ex.Message;
+		}
+	}
+
+	static void linkone(Work it, bool hard, string conflict, Result res) {
+		var dest = it.Dest;
+		try {
+			if (named(dest)) {
+				if (conflict == "skip") {
+					lock (res) res.Skipped++;
+					return;
+				}
+				if (realdir(dest)) {
+					lock (res) {
+						res.Failed++;
+						res.Error ??= dest;
+					}
+					return;
+				}
+				if (conflict == "rename") dest = uniquename(dest);
+				else removelink(dest);
+			}
+			var parent = Path.GetDirectoryName(dest);
+			if (!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
+			if (hard) {
+				if (!CreateHardLinkW(dest, it.Src, IntPtr.Zero)) {
+					var err = Marshal.GetLastWin32Error();
+					lock (res) {
+						res.Failed++;
+						res.Error ??= err == ERR_NOT_SAME_DEVICE ? Loc.T("fc.link.vol") : "hardlink " + err;
+					}
+					return;
+				}
+			}
+			else if (!makesymlink(dest, it.Src, out var err)) {
+				lock (res) {
+					res.Failed++;
+					res.Error ??= err == ERR_PRIVILEGE ? Loc.T("fc.link.priv") : "symlink " + err;
+				}
+				return;
+			}
+			it.Copied = true;
+			lock (res) res.Ok++;
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) {
+			lock (res) {
+				res.Failed++;
+				res.Error ??= ex.Message;
+			}
+		}
+	}
+
+	static bool makesymlink(string dest, string src, out int err) {
+		var flags = SYMLINK_UNPRIV;
+		if (isdir(src)) flags |= SYMLINK_DIR;
+		if (CreateSymbolicLinkW(dest, src, flags)) { err = 0; return true; }
+		err = Marshal.GetLastWin32Error();
+		if (err != 87 && err != 1) return false;
+		flags &= ~SYMLINK_UNPRIV;
+		if (CreateSymbolicLinkW(dest, src, flags)) { err = 0; return true; }
+		err = Marshal.GetLastWin32Error();
+		return false;
+	}
+
+	static bool named(string path) {
+		try { File.GetAttributes(path); return true; }
+		catch { return false; }
+	}
+
+	static bool isdir(string path) {
+		try { return (File.GetAttributes(path) & FileAttributes.Directory) != 0; }
+		catch { return false; }
+	}
+
+	static bool realdir(string path) {
+		try {
+			var a = File.GetAttributes(path);
+			return (a & FileAttributes.Directory) != 0 && (a & FileAttributes.ReparsePoint) == 0;
+		}
+		catch { return false; }
+	}
+
+	static void removelink(string path) {
+		var a = File.GetAttributes(path);
+		if ((a & FileAttributes.Directory) != 0) Directory.Delete(path, false);
+		else File.Delete(path);
+	}
+
+	sealed class SizeInfo {
+		public int Files;
+		public int Dirs;
+		public long Bytes;
+	}
+
+	static SizeInfo measure(IList<string> paths) {
+		var info = new SizeInfo();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		if (paths == null) return info;
+		foreach (var raw in paths) {
+			var p = full((raw ?? "").Trim().Trim('"'));
+			if (p.Length == 0 || !seen.Add(p)) continue;
+			measureone(p, info, seen);
+		}
+		return info;
+	}
+
+	static void measureone(string path, SizeInfo info, HashSet<string> seen) {
+		FileAttributes attr;
+		try { attr = File.GetAttributes(path); }
+		catch { return; }
+		if ((attr & FileAttributes.Directory) != 0) {
+			info.Dirs++;
+			if ((attr & FileAttributes.ReparsePoint) != 0) return;
+			try {
+				foreach (var file in Directory.EnumerateFiles(path)) {
+					var fp = full(file);
+					if (!seen.Add(fp)) continue;
+					info.Files++;
+					try { info.Bytes += new FileInfo(file).Length; } catch { }
+				}
+				foreach (var sub in Directory.EnumerateDirectories(path)) {
+					var dp = full(sub);
+					if (!seen.Add(dp)) continue;
+					measureone(dp, info, seen);
+				}
+			}
+			catch { }
+			return;
+		}
+		info.Files++;
+		try { info.Bytes += new FileInfo(path).Length; } catch { }
+	}
+
+	static string fmtbytes(long n) {
+		if (n < 1024) return n + " B";
+		double v = n;
+		string[] units = { "KB", "MB", "GB", "TB" };
+		int i = -1;
+		while (v >= 1024 && i < units.Length - 1) {
+			v /= 1024;
+			i++;
+		}
+		return v.ToString("0.##") + " " + units[i];
+	}
+
+	static void rmreparse(string dir) {
+		if (!Directory.Exists(dir)) return;
+		foreach (var file in Directory.EnumerateFiles(dir)) {
+			try {
+				if ((File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0) File.Delete(file);
+			}
+			catch { }
+		}
+		foreach (var sub in Directory.EnumerateDirectories(dir)) {
+			try {
+				var attr = File.GetAttributes(sub);
+				if ((attr & FileAttributes.ReparsePoint) != 0) {
+					Directory.Delete(sub, false);
+					continue;
+				}
+			}
+			catch { continue; }
+			rmreparse(sub);
+		}
+	}
+
 	#endregion
 
 	// ==================== 选择合并 ====================
@@ -481,9 +785,7 @@ public static class FastCopy {
 		var paths = new List<string>();
 		if (args != null) {
 			foreach (var a in args) {
-				if (a is "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
-					or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister")
-					verb ??= a;
+				if (isshellflag(a)) verb ??= a;
 				else if (!string.IsNullOrWhiteSpace(a) && !a.StartsWith("-"))
 					paths.Add(a.Trim().Trim('"'));
 			}
@@ -502,10 +804,18 @@ public static class FastCopy {
 				case "--fc-copy":
 				case "--fc-cut":
 					return shellclip(verb == "--fc-cut" ? "move" : "copy", paths);
+				case "--fc-symlink":
+					return shellclip("symlink", paths);
+				case "--fc-hardlink":
+					return shellclip("hardlink", paths);
 				case "--fc-delete":
 					return shelldelete(paths);
+				case "--fc-size":
+					return shellsize(paths);
 				case "--fc-paths":
 					return shellpaths(paths);
+				case "--fc-settings":
+					return shellsettings(paths);
 				case "--fc-paste":
 					return shellpaste(paths.Count > 0 ? paths[0] : "");
 				default:
@@ -574,9 +884,14 @@ public static class FastCopy {
 		}
 		if (!keep) setclip(null, null);
 		var opt = loadopt();
+		var kind = clip.Kind ?? "";
+		var link = "";
+		if (string.Equals(kind, "symlink", StringComparison.OrdinalIgnoreCase)) link = "symlink";
+		else if (string.Equals(kind, "hardlink", StringComparison.OrdinalIgnoreCase)) link = "hardlink";
 		var job = new Job {
 			Dest = dest,
-			Move = string.Equals(clip.Kind, "move", StringComparison.OrdinalIgnoreCase),
+			Move = string.Equals(kind, "move", StringComparison.OrdinalIgnoreCase),
+			Link = link,
 			Conflict = NormConflict(opt.FastCopyConflict),
 			Workers = NormWorkers(opt.FastCopyWorkers),
 			Sources = clip.Paths,
@@ -585,6 +900,25 @@ public static class FastCopy {
 		win.ShowDialog();
 		fclog($"paste code={win.Code} ok={win.Ok} fail={win.Failed}");
 		return win.Code;
+	}
+
+	static int shellsize(List<string> paths) {
+		var batch = claim("size", paths, OWNER_WAIT_MS);
+		if (batch == null) return 0;
+		var info = measure(batch);
+		tell(Loc.T("fc.size.msg", info.Files, info.Dirs, fmtbytes(info.Bytes)));
+		fclog($"size files={info.Files} dirs={info.Dirs} bytes={info.Bytes}");
+		return 0;
+	}
+
+	static int shellsettings(List<string> paths) {
+		var batch = claim("settings", paths, OWNER_WAIT_MS);
+		if (batch == null) return 0;
+		var win = new FastCopyWindow(loadopt(), batch);
+		win.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+		win.ShowInTaskbar = true;
+		win.ShowDialog();
+		return 0;
 	}
 
 	public static void Register() {
@@ -633,6 +967,7 @@ public static class FastCopy {
 	}
 
 	static void writecascade(RegistryKey root, string path) {
+		deltree(root, path);
 		using var key = root.CreateSubKey(path);
 		key.SetValue("MUIVerb", Loc.T("fc.menu"));
 		key.SetValue("SubCommands", "");
@@ -642,7 +977,11 @@ public static class FastCopy {
 		writechild(key, "1cut", Loc.T("fc.menucut"), "--fc-cut");
 		writechild(key, "2copy", Loc.T("fc.menucopy"), "--fc-copy");
 		writechild(key, "3delete", Loc.T("fc.menudel"), "--fc-delete");
-		writechild(key, "4paths", Loc.T("fc.menupath"), "--fc-paths");
+		writechild(key, "4symlink", Loc.T("fc.menusym"), "--fc-symlink");
+		writechild(key, "5hardlink", Loc.T("fc.menuhard"), "--fc-hardlink");
+		writechild(key, "6size", Loc.T("fc.menusize"), "--fc-size");
+		writechild(key, "7paths", Loc.T("fc.menupath"), "--fc-paths");
+		writechild(key, "8settings", Loc.T("fc.menuset"), "--fc-settings");
 	}
 
 	static void writechild(RegistryKey parent, string name, string label, string flag) {
@@ -872,9 +1211,58 @@ public static class FastCopy {
 				return bad(say, $"claim nulls={nulls} n={got?.Count}");
 			var rel = PathText(new[] { @"C:\a\one.txt", @"C:\a\two.txt" }, true);
 			if (rel != "one.txt\r\ntwo.txt") return bad(say, "rel " + rel);
-			var cmd = command("--fc-copy");
-			if (cmd.IndexOf("--fc-copy", StringComparison.Ordinal) < 0 || cmd.IndexOf("%1", StringComparison.Ordinal) < 0)
-				return bad(say, "cmd");
+			foreach (var flag in new[] { "--fc-copy", "--fc-symlink", "--fc-hardlink", "--fc-size", "--fc-settings" }) {
+				var cmd = command(flag);
+				if (cmd.IndexOf(flag, StringComparison.Ordinal) < 0 || cmd.IndexOf("%1", StringComparison.Ordinal) < 0)
+					return bad(say, "cmd " + flag);
+			}
+			if (!IsShell(new[] { "--fc-size", @"C:\a" }) || !NeedsWindow(new[] { "--fc-settings" }))
+				return bad(say, "flags");
+			if (NeedsWindow(new[] { "--fc-size" })) return bad(say, "sizewin");
+			if (NormMode("hardlink") != "hardlink" || NormMode("symlink") != "symlink" || NormMode("nope") != "copy")
+				return bad(say, "mode");
+			var hf = Path.Combine(root, "h.txt");
+			File.WriteAllText(hf, "H");
+			var hdest = Path.Combine(root, "hdir");
+			var hj = new Job { Dest = hdest, Link = "hardlink", Conflict = "overwrite" };
+			hj.Sources.Add(hf);
+			r = Run(hj);
+			var linkp = Path.Combine(hdest, "h.txt");
+			if (r.Failed != 0 || File.ReadAllText(linkp) != "H") return bad(say, "hardlink " + r.Error);
+			File.WriteAllText(linkp, "H2");
+			if (File.ReadAllText(hf) != "H2") return bad(say, "hardlink write");
+			File.Delete(linkp);
+			if (!File.Exists(hf) || File.ReadAllText(hf) != "H2") return bad(say, "hardlink unlink");
+			Directory.CreateDirectory(linkp);
+			hj.Sources.Clear();
+			hj.Sources.Add(hf);
+			r = Run(hj);
+			if (r.Failed < 1 || !Directory.Exists(linkp)) return bad(say, "overwrite dir");
+			var htree = Path.Combine(root, "htree");
+			Directory.CreateDirectory(Path.Combine(htree, "n"));
+			File.WriteAllText(Path.Combine(htree, "n", "z.txt"), "Z");
+			var hdj = new Job { Dest = Path.Combine(root, "htdst"), Link = "hardlink" };
+			hdj.Sources.Add(htree);
+			r = Run(hdj);
+			var z = Path.Combine(root, "htdst", "htree", "n", "z.txt");
+			if (r.Ok < 1 || File.ReadAllText(z) != "Z") return bad(say, "hardtree " + r.Error);
+			File.WriteAllText(Path.Combine(htree, "n", "z.txt"), "Z2");
+			if (File.ReadAllText(z) != "Z2") return bad(say, "hardtree write");
+			var sized = measure(new[] { src });
+			if (sized.Files != 2 || sized.Dirs != 2 || sized.Bytes != 8) return bad(say, $"size {sized.Files}/{sized.Dirs}/{sized.Bytes}");
+			var sj = new Job { Dest = Path.Combine(root, "sdir"), Link = "symlink", Conflict = "overwrite" };
+			sj.Sources.Add(hf);
+			sj.Sources.Add(htree);
+			r = Run(sj);
+			if (r.Failed == 0 && r.Ok >= 2) {
+				var sa = Path.Combine(root, "sdir", "h.txt");
+				if ((File.GetAttributes(sa) & FileAttributes.ReparsePoint) == 0) return bad(say, "symlink attr");
+				if (File.ReadAllText(sa) != "H2") return bad(say, "symlink read");
+				File.Delete(sa);
+				if (!File.Exists(hf)) return bad(say, "symlink unlink");
+			}
+			else if (!privdeny(r.Error)) return bad(say, "symlink " + r.Error);
+			else say("SKIP symlink");
 			say("=== OK：快速复制");
 			return 0;
 		}
@@ -882,6 +1270,7 @@ public static class FastCopy {
 			return bad(say, ex.Message);
 		}
 		finally {
+			try { rmreparse(root); } catch { }
 			try { Directory.Delete(root, true); } catch { }
 			try { File.Delete(selfile("t")); } catch { }
 		}
@@ -890,6 +1279,12 @@ public static class FastCopy {
 	static int bad(Action<string> say, string msg) {
 		say("FAIL " + msg);
 		return 1;
+	}
+
+	static bool privdeny(string err) {
+		if (string.IsNullOrEmpty(err)) return false;
+		if (err.IndexOf("1314", StringComparison.Ordinal) >= 0) return true;
+		return err == Loc.T("fc.link.priv");
 	}
 
 	#endregion

@@ -1,57 +1,89 @@
 (function(){
-	// 每条：[中文名, 十六进制, web 英文名]。英文名用 CSS 命名色，中文专名用通行 web 叫法。
+	// 每条：[中文名, 十六进制, web 英文名]。英文名是 CSS 命名色（gray/grey、aqua/cyan 这类
+	// 英美拼写同值的合并成一条显示双拼）；中文专名色用通行 web 叫法。共 155 条。
 	var GROUPS = [
 		group("red", "红", [
 			["红", "#FF0000", "Red"], ["深红", "#8B0000", "DarkRed"], ["绯红", "#DC143C", "Crimson"],
 			["砖红", "#B22222", "FireBrick"], ["印度红", "#CD5C5C", "IndianRed"], ["栗色", "#800000", "Maroon"],
 			["番茄", "#FF6347", "Tomato"], ["珊瑚", "#FF7F50", "Coral"], ["鲑鱼", "#FA8072", "Salmon"],
-			["中国红", "#DE2910", "China Red"]
+			["浅鲑鱼", "#FFA07A", "LightSalmon"], ["暗鲑鱼", "#E9967A", "DarkSalmon"],
+			["浅珊瑚", "#F08080", "LightCoral"], ["中国红", "#DE2910", "China Red"]
 		]),
 		group("orange", "橙", [
 			["橙", "#FFA500", "Orange"], ["深橙", "#FF8C00", "DarkOrange"], ["暗橙", "#FF4500", "OrangeRed"],
 			["柿", "#FF4D00", "Persimmon"], ["橘", "#F28500", "Tangerine"], ["南瓜", "#FF7518", "Pumpkin"],
-			["杏", "#FBCEB1", "Apricot"], ["桃", "#FFCBA4", "Peach"]
+			["杏", "#FBCEB1", "Apricot"], ["桃", "#FFCBA4", "Peach"], ["桃脯", "#FFDAB9", "PeachPuff"],
+			["鹿皮色", "#FFE4B5", "Moccasin"], ["纳瓦霍白", "#FFDEAD", "NavajoWhite"], ["浓汤色", "#FFE4C4", "Bisque"]
 		]),
 		group("yellow", "黄", [
-			["黄", "#FFFF00", "Yellow"], ["金", "#FFD700", "Gold"], ["暗金", "#B8860B", "DarkGoldenrod"],
-			["琥珀", "#FFBF00", "Amber"], ["卡其", "#F0E68C", "Khaki"], ["浅黄", "#FFFFE0", "LightYellow"],
-			["玉米", "#FFF8DC", "Cornsilk"], ["橄榄", "#808000", "Olive"]
+			["黄", "#FFFF00", "Yellow"], ["金", "#FFD700", "Gold"], ["金菊色", "#DAA520", "Goldenrod"],
+			["暗金", "#B8860B", "DarkGoldenrod"], ["琥珀", "#FFBF00", "Amber"], ["卡其", "#F0E68C", "Khaki"],
+			["暗卡其", "#BDB76B", "DarkKhaki"], ["苍金菊", "#EEE8AA", "PaleGoldenrod"],
+			["浅黄", "#FFFFE0", "LightYellow"], ["玉米", "#FFF8DC", "Cornsilk"], ["橄榄", "#808000", "Olive"]
 		]),
 		group("green", "绿", [
-			["绿", "#008000", "Green"], ["纯绿", "#00FF00", "Lime"], ["浅绿", "#90EE90", "LightGreen"],
-			["春绿", "#00FF7F", "SpringGreen"], ["草绿", "#7CFC00", "LawnGreen"], ["海绿", "#2E8B57", "SeaGreen"],
-			["森林", "#228B22", "ForestGreen"], ["橄榄绿", "#6B8E23", "OliveDrab"], ["翠绿", "#00A86B", "Jade"],
-			["薄荷", "#98FF98", "Mint"]
+			["绿", "#008000", "Green"], ["暗绿", "#006400", "DarkGreen"], ["纯绿", "#00FF00", "Lime"],
+			["酸橙绿", "#32CD32", "LimeGreen"], ["查特绿", "#7FFF00", "Chartreuse"], ["绿黄", "#ADFF2F", "GreenYellow"],
+			["黄绿", "#9ACD32", "YellowGreen"], ["浅绿", "#90EE90", "LightGreen"], ["苍绿", "#98FB98", "PaleGreen"],
+			["春绿", "#00FF7F", "SpringGreen"], ["中春绿", "#00FA9A", "MediumSpringGreen"],
+			["草绿", "#7CFC00", "LawnGreen"], ["海绿", "#2E8B57", "SeaGreen"], ["中海绿", "#3CB371", "MediumSeaGreen"],
+			["浅海绿", "#20B2AA", "LightSeaGreen"], ["暗海绿", "#8FBC8F", "DarkSeaGreen"],
+			["森林", "#228B22", "ForestGreen"], ["橄榄绿", "#6B8E23", "OliveDrab"],
+			["暗橄榄绿", "#556B2F", "DarkOliveGreen"], ["翠绿", "#00A86B", "Jade"], ["薄荷", "#98FF98", "Mint"]
 		]),
 		group("cyan", "青", [
-			["青", "#00FFFF", "Cyan"], ["深青", "#008B8B", "DarkCyan"], ["青绿", "#008080", "Teal"],
-			["碧", "#00CED1", "DarkTurquoise"], ["浅青", "#E0FFFF", "LightCyan"], ["湖蓝", "#30D5C8", "Turquoise"],
-			["孔雀蓝", "#00A4A6", "Peacock Blue"]
+			["青", "#00FFFF", "Cyan / Aqua"], ["深青", "#008B8B", "DarkCyan"], ["青绿", "#008080", "Teal"],
+			["碧", "#00CED1", "DarkTurquoise"], ["浅青", "#E0FFFF", "LightCyan"], ["绿松石", "#40E0D0", "Turquoise"],
+			["中绿松石", "#48D1CC", "MediumTurquoise"], ["苍绿松石", "#AFEEEE", "PaleTurquoise"],
+			["碧蓝", "#7FFFD4", "Aquamarine"], ["中海蓝", "#66CDAA", "MediumAquamarine"],
+			["军校蓝", "#5F9EA0", "CadetBlue"], ["粉蓝", "#B0E0E6", "PowderBlue"],
+			["湖蓝", "#30D5C8", "Lake Blue"], ["孔雀蓝", "#00A4A6", "Peacock Blue"]
 		]),
 		group("blue", "蓝", [
-			["蓝", "#0000FF", "Blue"], ["深蓝", "#00008B", "DarkBlue"], ["海军", "#000080", "Navy"],
-			["午夜", "#191970", "MidnightBlue"], ["皇家蓝", "#4169E1", "RoyalBlue"], ["道奇蓝", "#1E90FF", "DodgerBlue"],
-			["钢蓝", "#4682B4", "SteelBlue"], ["天蓝", "#87CEEB", "SkyBlue"], ["矢车菊", "#6495ED", "CornflowerBlue"],
-			["普鲁士蓝", "#003153", "Prussian Blue"]
+			["蓝", "#0000FF", "Blue"], ["中蓝", "#0000CD", "MediumBlue"], ["深蓝", "#00008B", "DarkBlue"],
+			["海军", "#000080", "Navy"], ["午夜", "#191970", "MidnightBlue"], ["皇家蓝", "#4169E1", "RoyalBlue"],
+			["道奇蓝", "#1E90FF", "DodgerBlue"], ["深天蓝", "#00BFFF", "DeepSkyBlue"], ["钢蓝", "#4682B4", "SteelBlue"],
+			["浅钢蓝", "#B0C4DE", "LightSteelBlue"], ["天蓝", "#87CEEB", "SkyBlue"],
+			["浅天蓝", "#87CEFA", "LightSkyBlue"], ["浅蓝", "#ADD8E6", "LightBlue"],
+			["矢车菊", "#6495ED", "CornflowerBlue"], ["普鲁士蓝", "#003153", "Prussian Blue"]
 		]),
 		group("purple", "紫", [
-			["紫", "#800080", "Purple"], ["深紫", "#4B0082", "Indigo"], ["蓝紫", "#8A2BE2", "BlueViolet"],
-			["中紫", "#9370DB", "MediumPurple"], ["兰花", "#DA70D6", "Orchid"], ["梅", "#DDA0DD", "Plum"],
-			["薰衣草", "#E6E6FA", "Lavender"], ["深紫红", "#C71585", "MediumVioletRed"]
+			["紫", "#800080", "Purple"], ["暗洋红", "#8B008B", "DarkMagenta"], ["洋红", "#FF00FF", "Fuchsia / Magenta"],
+			["深紫", "#4B0082", "Indigo"], ["丽贝卡紫", "#663399", "RebeccaPurple"], ["板岩蓝", "#6A5ACD", "SlateBlue"],
+			["中板岩蓝", "#7B68EE", "MediumSlateBlue"], ["暗板岩蓝", "#483D8B", "DarkSlateBlue"],
+			["蓝紫", "#8A2BE2", "BlueViolet"], ["暗紫罗兰", "#9400D3", "DarkViolet"], ["紫罗兰", "#EE82EE", "Violet"],
+			["中紫", "#9370DB", "MediumPurple"], ["暗兰花", "#9932CC", "DarkOrchid"],
+			["中兰花", "#BA55D3", "MediumOrchid"], ["兰花", "#DA70D6", "Orchid"], ["蓟色", "#D8BFD8", "Thistle"],
+			["梅", "#DDA0DD", "Plum"], ["薰衣草", "#E6E6FA", "Lavender"], ["深紫红", "#C71585", "MediumVioletRed"]
 		]),
 		group("pink", "粉", [
 			["粉", "#FFC0CB", "Pink"], ["浅粉", "#FFB6C1", "LightPink"], ["热粉", "#FF69B4", "HotPink"],
-			["深粉", "#FF1493", "DeepPink"], ["玫瑰", "#FF007F", "Rose"], ["浅玫瑰", "#FFE4E1", "MistyRose"]
+			["深粉", "#FF1493", "DeepPink"], ["玫瑰", "#FF007F", "Rose"],
+			["苍紫罗兰红", "#DB7093", "PaleVioletRed"], ["浅玫瑰", "#FFE4E1", "MistyRose"]
 		]),
 		group("brown", "棕", [
-			["棕", "#A52A2A", "Brown"], ["巧克力", "#D2691E", "Chocolate"], ["咖啡", "#6F4E37", "Coffee"],
-			["赭", "#CC7722", "Ochre"], ["沙", "#F4A460", "SandyBrown"], ["棕褐", "#D2B48C", "Tan"],
-			["小麦", "#F5DEB3", "Wheat"], ["米色", "#F5F5DC", "Beige"]
+			["棕", "#A52A2A", "Brown"], ["马鞍棕", "#8B4513", "SaddleBrown"], ["赭石", "#A0522D", "Sienna"],
+			["秘鲁色", "#CD853F", "Peru"], ["巧克力", "#D2691E", "Chocolate"], ["咖啡", "#6F4E37", "Coffee"],
+			["赭", "#CC7722", "Ochre"], ["沙", "#F4A460", "SandyBrown"], ["实木色", "#DEB887", "BurlyWood"],
+			["棕褐", "#D2B48C", "Tan"], ["小麦", "#F5DEB3", "Wheat"], ["米色", "#F5F5DC", "Beige"],
+			["玫瑰棕", "#BC8F8F", "RosyBrown"]
 		]),
 		group("gray", "灰", [
+			["庚斯博罗灰", "#DCDCDC", "Gainsboro"], ["浅灰", "#D3D3D3", "LightGray / Grey"],
+			["银", "#C0C0C0", "Silver"], ["板岩灰", "#708090", "SlateGray / Grey"],
+			["浅板岩", "#778899", "LightSlateGray / Grey"], ["暗灰", "#A9A9A9", "DarkGray / Grey"],
+			["灰", "#808080", "Gray / Grey"], ["昏灰", "#696969", "DimGray / Grey"],
+			["暗板岩", "#2F4F4F", "DarkSlateGray / Grey"], ["深灰", "#404040", "Charcoal"], ["黑", "#000000", "Black"]
+		]),
+		group("paper", "白/纸色", [
 			["白", "#FFFFFF", "White"], ["雪白", "#FFFAFA", "Snow"], ["象牙", "#FFFFF0", "Ivory"],
-			["浅灰", "#D3D3D3", "LightGray"], ["银", "#C0C0C0", "Silver"], ["灰", "#808080", "Gray"],
-			["深灰", "#404040", "Charcoal"], ["黑", "#000000", "Black"]
+			["烟白", "#F5F5F5", "WhiteSmoke"], ["爱丽丝蓝", "#F0F8FF", "AliceBlue"],
+			["幽灵白", "#F8F8FF", "GhostWhite"], ["天青", "#F0FFFF", "Azure"], ["蜜露", "#F0FFF0", "Honeydew"],
+			["薄荷奶油", "#F5FFFA", "MintCream"], ["花白", "#FFFAF0", "FloralWhite"],
+			["贝壳色", "#FFF5EE", "Seashell"], ["亚麻色", "#FAF0E6", "Linen"], ["老花边", "#FDF5E6", "OldLace"],
+			["古董白", "#FAEBD7", "AntiqueWhite"], ["杏仁绸", "#FFEBCD", "BlanchedAlmond"],
+			["番木瓜", "#FFEFD5", "PapayaWhip"], ["柠檬绸", "#FFFACD", "LemonChiffon"],
+			["淡金菊", "#FAFAD2", "LightGoldenrodYellow"], ["薰衣草粉", "#FFF0F5", "LavenderBlush"]
 		])
 	];
 	var cur = "all";
@@ -129,8 +161,8 @@
 		if (color[1].toLowerCase().indexOf(q) >= 0) return true;
 		var en = color[2] ? color[2].toLowerCase() : "";
 		if (en.indexOf(q) >= 0) return true;
-		// 也允许连写查询，例如 peacockblue
-		if (q.indexOf(" ") < 0 && en.replace(/\s+/g, "").indexOf(q) >= 0) return true;
+		// 也允许连写查询，例如 peacockblue、lightgray
+		if (q.indexOf(" ") < 0 && en.replace(/\s+/g, "").replace(/\//g, "").indexOf(q) >= 0) return true;
 		return false;
 	}
 
