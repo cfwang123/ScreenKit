@@ -257,7 +257,7 @@ GDI 抓屏不含指针：勾选 **录制鼠标** 叠加系统光标；**高亮�
 - `GET/POST /api/jpyomi` — 日文注音（`text`，可选 `mono`）。命令行：`ScreenKit --jpyomi "日文" [--mono]`
 - `GET/POST /api/cast/stop` — 立刻关闭投屏画面窗
 - WebSocket `/cast` — 投屏媒体（与 HTTP API 同端口）
-- WebSocket `/chat` — 工具页聊天室。进入前填昵称和性别，浏览器记住上次的昵称和性别。同一台正在运行的 ScreenKit 上的人互相发文字、图片和文件。图片和文件写到程序目录 `tmp/chat-` 加编号（单个 8 MB），下次启动时删除。文字只留在内存里
+- WebSocket `/chat` — 工具页聊天室。进入前填昵称和性别，浏览器记住上次的昵称和性别。同一台正在运行的 ScreenKit 上的人互相发文字、图片和文件。图片和文件写到程序目录 `tmp/chat-` 加编号（单个 8 MB），下次启动时删除。文字只留在内存里。每 5 秒一次心跳，失败就断开。可以指定发给某一个人。私密消息只有双方能看到。直传把文件经服务器交给对方，对方点接收后才开始下载
 - `POST /api/ocr` — `box` 为原图像素。`ocr.engine=winocr` 让这一次走 Windows 系统 OCR
 - `POST /api/qr` — 仅条码/二维码（`/api/barcode`）
 - `GET  /api/ocr/get_options`

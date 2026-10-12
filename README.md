@@ -257,7 +257,7 @@ LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairin
 - `GET/POST /api/jpyomi` — Japanese reading (`text`, optional `mono`). CLI: `ScreenKit --jpyomi "text" [--mono]`
 - `GET/POST /api/cast/stop` — close screencast viewer now
 - WebSocket `/cast` — screencast media (same HTTP port)
-- WebSocket `/chat` — tools-page chat room. A nickname and gender are required. The browser keeps the last nickname and gender. People on the same running ScreenKit send text, images, and files to each other. Images and files are written under the program directory as `tmp/chat-` plus an id (8 MB each) and deleted the next time ScreenKit starts. Text stays in memory only
+- WebSocket `/chat` — tools-page chat room. A nickname and gender are required. The browser keeps the last nickname and gender. People on the same running ScreenKit send text, images, and files to each other. Images and files are written under the program directory as `tmp/chat-` plus an id (8 MB each) and deleted the next time ScreenKit starts. Text stays in memory only. A heartbeat goes out every 5 seconds, and a missed heartbeat drops the connection. A message can name one person. Private messages reach only the two of you. Direct sends a file through the server, and the other person downloads it only after clicking Accept
 - `POST /api/ocr` — `box` is original-image pixels. `ocr.engine=winocr` uses Windows OCR on this request
 - `POST /api/qr` — barcode / QR only (`/api/barcode`)
 - `GET  /api/ocr/get_options`

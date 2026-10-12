@@ -216,6 +216,16 @@
 					<div id="chat-log"></div>
 					<aside id="chat-peers"></aside>
 				</div>
+				<div id="chat-offers"></div>
+				<div class="row" id="chat-torow">
+					<label><span data-k="web.chat.to">发给</span>
+						<select id="chat-to">
+							<option value="" data-k="web.chat.all">所有人</option>
+						</select>
+					</label>
+					<label class="chatpriv"><input id="chat-priv" type="checkbox"/> <span data-k="web.chat.priv">私密</span></label>
+					<button type="button" id="chat-direct" class="ghost" data-k="web.chat.direct">直传</button>
+				</div>
 				<div class="row" id="chat-sendrow">
 					<input id="chat-text" maxlength="500" data-kph="web.chat.ph" placeholder="说点什么"/>
 					<button type="button" id="chat-send" class="primary" data-k="web.chat.send">发送</button>
@@ -224,6 +234,7 @@
 					<button type="button" id="chat-leave" class="ghost" data-k="web.chat.leave">离开</button>
 					<input id="chat-img" type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/bmp" hidden/>
 					<input id="chat-file" type="file" hidden/>
+					<input id="chat-directfile" type="file" hidden/>
 				</div>
 			</div>
 		</section>

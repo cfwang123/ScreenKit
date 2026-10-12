@@ -3,6 +3,9 @@
 	var me = 0;
 	var opening = 0;
 	var leaving = 0;
+	var beat = 0;
+	var beatsince = 0;
+	var offers = [];
 	var NICK = "sk-chat-nick";
 	var GENDER = "sk-chat-gender";
 
@@ -23,6 +26,8 @@
 		SK.$("chat-leave").onclick = leave;
 		SK.$("chat-imgbtn").onclick = function(){ pick("image"); };
 		SK.$("chat-filebtn").onclick = function(){ pick("file"); };
+		SK.$("chat-direct").onclick = function(){ pick("direct"); };
+		SK.$("chat-to").onchange = markpeer;
 		SK.$("chat-nick").onkeydown = function(ev){
 			if (ev.key === "Enter") join();
 		};
@@ -52,10 +57,12 @@
 		sock.onopen = function(){
 			if (ws !== sock) return;
 			opening = 0;
+			startbeat(sock);
 			sock.send(JSON.stringify({ op: "join", nick: nick, gender: gender }));
 		};
 		sock.onmessage = function(ev){
 			if (ws !== sock) return;
+			beatsince = 0;
 			onmsg(ev.data);
 		};
 		sock.onerror = function(){
@@ -64,6 +71,7 @@
 		sock.onclose = function(){
 			if (ws !== sock && !leaving) return;
 			opening = 0;
+			stopbeat();
 			if (ws === sock) ws = null;
 			me = 0;
 			if (leaving) { leaving = 0; return; }
@@ -77,6 +85,8 @@
 	function leave(){
 		leaving = 1;
 		opening = 0;
+		stopbeat();
+		offers = [];
 		if (ws) {
 			try { ws.close(); } catch (e) {}
 			ws = null;
@@ -84,6 +94,53 @@
 		me = 0;
 		showgate();
 		setmsg("");
+	}
+
+	function startbeat(sock){
+		stopbeat();
+		beatsince = 0;
+		beat = setInterval(function(){
+			if (ws !== sock || sock.readyState !== 1) { stopbeat(); return; }
+			if (beatsince && Date.now() - beatsince >= 5000) {
+				stopbeat();
+				try { sock.close(); } catch (e) {}
+				return;
+			}
+			try {
+				sock.send(JSON.stringify({ op: "ping" }));
+				beatsince = Date.now();
+			}
+			catch (e) {
+				stopbeat();
+				try { sock.close(); } catch (e2) {}
+			}
+		}, 5000);
+	}
+
+	function stopbeat(){
+		if (beat) clearInterval(beat);
+		beat = 0;
+		beatsince = 0;
+	}
+
+	function targetof(need){
+		var sel = SK.$("chat-to");
+		var to = sel && sel.value ? parseInt(sel.value, 10) : 0;
+		if (!to) to = 0;
+		var priv = !!(SK.$("chat-priv") && SK.$("chat-priv").checked);
+		if ((need || priv) && !to) {
+			setmsg(label("web.chat.err.to", "请选择一个在线的人"), true);
+			return null;
+		}
+		return { to: to, priv: priv };
+	}
+
+	function stamp(obj, need){
+		var t = targetof(need);
+		if (!t) return false;
+		if (t.to) obj.to = t.to;
+		if (t.priv) obj.priv = true;
+		return true;
 	}
 
 	function send(){
@@ -94,14 +151,17 @@
 			setmsg(label("web.chat.err.text", "最多 500 个字"), true);
 			return;
 		}
-		ws.send(JSON.stringify({ op: "say", text: text }));
+		var body = { op: "say", text: text };
+		if (!stamp(body, false)) return;
+		ws.send(JSON.stringify(body));
 		SK.$("chat-text").value = "";
 		setmsg("");
 	}
 
 	function pick(kind){
 		if (!ws || ws.readyState !== 1 || opening) return;
-		var input = SK.$(kind === "image" ? "chat-img" : "chat-file");
+		if (kind === "direct" && !targetof(true)) return;
+		var input = SK.$(kind === "image" ? "chat-img" : kind === "direct" ? "chat-directfile" : "chat-file");
 		if (!input) return;
 		input.value = "";
 		input.onchange = function(){
@@ -123,6 +183,8 @@
 		}
 		var fd = new FormData();
 		fd.append("file", file, file.name || "file");
+		var aim = kind === "direct" ? targetof(true) : null;
+		if (kind === "direct" && !aim) return;
 		fd.append("kind", kind === "image" ? "image" : "file");
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/chat/file");
@@ -135,7 +197,14 @@
 				return;
 			}
 			if (!ws || ws.readyState !== 1) return;
-			ws.send(JSON.stringify({ op: "file", file: m.id }));
+			if (kind === "direct") {
+				ws.send(JSON.stringify({ op: "offer", file: m.id, to: aim.to }));
+			}
+			else {
+				var body = { op: "file", file: m.id };
+				if (!stamp(body, false)) return;
+				ws.send(JSON.stringify(body));
+			}
 			setmsg("");
 		};
 		xhr.onerror = function(){
@@ -169,15 +238,26 @@
 		if (m.op === "file") { addfile(m); return; }
 		if (m.op === "sys") { addsys(m); return; }
 		if (m.op === "peers") { paintpeers(m.list || []); return; }
+		if (m.op === "offer") { addoffer(m); return; }
+		if (m.op === "xfer") { onxfer(m); return; }
+		if (m.op === "pong") return;
 		if (m.op === "err") setmsg(errmsg(m.code), true);
+	}
+
+	function wholine(m){
+		var who = document.createElement("span");
+		who.className = "who g-" + (m.gender || "x");
+		var tail = "";
+		if (m.to) tail += " → " + (m.tonick || "");
+		if (m.priv) tail += " · " + label("web.chat.priv", "私密");
+		who.textContent = (m.nick || "") + gendertag(m.gender) + tail;
+		return who;
 	}
 
 	function addsay(m){
 		var row = document.createElement("div");
-		row.className = "chatline" + (m.id === me ? " mine" : "");
-		var who = document.createElement("span");
-		who.className = "who g-" + (m.gender || "x");
-		who.textContent = (m.nick || "") + gendertag(m.gender);
+		row.className = "chatline" + (m.priv ? " priv" : "") + (m.id === me ? " mine" : "");
+		var who = wholine(m);
 		var body = document.createElement("span");
 		body.textContent = m.text || "";
 		row.appendChild(who);
@@ -187,11 +267,8 @@
 
 	function addfile(m){
 		var row = document.createElement("div");
-		row.className = "chatline" + (m.id === me ? " mine" : "");
-		var who = document.createElement("span");
-		who.className = "who g-" + (m.gender || "x");
-		who.textContent = (m.nick || "") + gendertag(m.gender);
-		row.appendChild(who);
+		row.className = "chatline" + (m.priv ? " priv" : "") + (m.id === me ? " mine" : "");
+		row.appendChild(wholine(m));
 		var id = m.file || "";
 		if (!/^[a-f0-9]{32}$/.test(id)) {
 			pushlog(row);
@@ -241,14 +318,146 @@
 
 	function paintpeers(list){
 		var box = SK.$("chat-peers");
+		var sel = SK.$("chat-to");
+		var cur = sel ? sel.value : "";
 		while (box.firstChild) box.removeChild(box.firstChild);
+		if (sel) {
+			while (sel.options.length) sel.remove(0);
+			var all = document.createElement("option");
+			all.value = "";
+			all.textContent = label("web.chat.all", "所有人");
+			sel.appendChild(all);
+		}
 		var i;
 		for (i = 0; i < list.length; i++) {
+			var item = list[i];
 			var p = document.createElement("div");
-			p.className = "peer g-" + (list[i].gender || "x");
-			p.textContent = (list[i].nick || "") + gendertag(list[i].gender);
+			p.className = "peer g-" + (item.gender || "x");
+			p.textContent = (item.nick || "") + gendertag(item.gender);
+			p.setAttribute("data-id", String(item.id || ""));
+			p.onclick = (function(id){
+				return function(){
+					if (!sel || String(id) === String(me)) return;
+					sel.value = String(id);
+					markpeer();
+				};
+			})(item.id);
 			box.appendChild(p);
+			if (sel && item.id !== me) {
+				var opt = document.createElement("option");
+				opt.value = String(item.id);
+				opt.textContent = item.nick || "";
+				sel.appendChild(opt);
+			}
 		}
+		if (sel) {
+			sel.value = cur;
+			if (sel.value !== cur) sel.value = "";
+		}
+		markpeer();
+	}
+
+	function markpeer(){
+		var sel = SK.$("chat-to");
+		var cur = sel ? sel.value : "";
+		var box = SK.$("chat-peers");
+		if (!box) return;
+		var i;
+		for (i = 0; i < box.children.length; i++) {
+			var n = box.children[i];
+			var base = n.className.replace(" on", "");
+			n.className = (cur && n.getAttribute("data-id") === cur) ? base + " on" : base;
+		}
+	}
+
+	function addoffer(m){
+		offers.push(m);
+		paintoffers();
+	}
+
+	function paintoffers(){
+		var box = SK.$("chat-offers");
+		if (!box) return;
+		while (box.firstChild) box.removeChild(box.firstChild);
+		var i;
+		for (i = 0; i < offers.length; i++) {
+			var o = offers[i];
+			var row = document.createElement("div");
+			row.className = "chatoffer";
+			var t = document.createElement("span");
+			t.textContent = (o.nick || "") + " " + label("web.chat.incoming", "发来文件")
+				+ " " + (o.name || "") + " (" + sizestr(o.size) + ")";
+			var ok = document.createElement("button");
+			ok.type = "button";
+			ok.className = "primary";
+			ok.textContent = label("web.chat.accept", "接收");
+			ok.onclick = (function(xfer){
+				return function(){
+					if (ws && ws.readyState === 1) ws.send(JSON.stringify({ op: "take", xfer: xfer }));
+				};
+			})(o.xfer);
+			var no = document.createElement("button");
+			no.type = "button";
+			no.className = "ghost";
+			no.textContent = label("web.chat.reject", "拒绝");
+			no.onclick = (function(xfer){
+				return function(){
+					if (ws && ws.readyState === 1) ws.send(JSON.stringify({ op: "drop", xfer: xfer }));
+				};
+			})(o.xfer);
+			row.appendChild(t);
+			row.appendChild(ok);
+			row.appendChild(no);
+			box.appendChild(row);
+		}
+	}
+
+	function onxfer(m){
+		var i;
+		var next = [];
+		for (i = 0; i < offers.length; i++) {
+			if (offers[i].xfer !== m.xfer) next.push(offers[i]);
+		}
+		offers = next;
+		paintoffers();
+		var name = m.name || "";
+		if (m.state === "wait") addnote((m.tonick || "") + " " + label("web.chat.wait", "正在等对方接收") + " " + name);
+		else if (m.state === "ok") {
+			addnote(label("web.chat.got", "对方接收了") + " " + name);
+			if (m.file && /^[a-f0-9]{32}$/.test(m.file)) {
+				addlink(name, m.file);
+				startdown(m.file, name);
+			}
+		}
+		else addnote(label("web.chat.no", "对方拒绝了") + " " + name);
+	}
+
+	function startdown(id, name){
+		var a = document.createElement("a");
+		a.href = "/chat/file/" + id;
+		a.download = name || "file";
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+	}
+
+	function addnote(text){
+		var row = document.createElement("div");
+		row.className = "chatline sys";
+		row.textContent = text;
+		pushlog(row);
+	}
+
+	function addlink(name, id){
+		var row = document.createElement("div");
+		row.className = "chatline";
+		var a = document.createElement("a");
+		a.className = "chatfile";
+		a.href = "/chat/file/" + id;
+		a.download = name || "file";
+		a.textContent = name || "file";
+		row.appendChild(a);
+		pushlog(row);
 	}
 
 	function gendertag(g){
@@ -268,6 +477,7 @@
 		if (code === "empty") return label("web.chat.err.empty", "文件是空的");
 		if (code === "img") return label("web.chat.err.img", "这不是图片");
 		if (code === "file") return label("web.chat.err.file", "文件已经不在了");
+		if (code === "to") return label("web.chat.err.to", "请选择一个在线的人");
 		if (code === "join") return label("web.chat.err.nick", "请先进入");
 		return label("web.chat.err.bad", "消息无法识别");
 	}
@@ -282,6 +492,10 @@
 		while (log.firstChild) log.removeChild(log.firstChild);
 		var peers = SK.$("chat-peers");
 		while (peers.firstChild) peers.removeChild(peers.firstChild);
+		offers = [];
+		paintoffers();
+		var sel = SK.$("chat-to");
+		if (sel) sel.value = "";
 	}
 
 	function showgate(){

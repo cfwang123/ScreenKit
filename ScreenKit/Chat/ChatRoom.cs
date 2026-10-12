@@ -20,8 +20,7 @@ static partial class ChatRoom {
 	const int MAXTEXT = 500;
 	const int HISTN = 40;
 	const int JOINMS = 8000;
-	const int IDLEMS = 70000;
-	const int PINGMS = 20000;
+	const int PINGMS = 5000;
 	const int SAYMS = 200;
 	static readonly byte[] PNG1 = Convert.FromBase64String(
 		"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
@@ -32,6 +31,8 @@ static partial class ChatRoom {
 	static readonly object gate = new();
 	static List<Conn> conns = new();
 	static readonly List<string> hist = new();
+	static readonly List<Offer> offers = new();
+	static int nextxfer = 1;
 	static Thread thread;
 	static int nextid = 1;
 	static volatile bool stop;
@@ -43,7 +44,7 @@ static partial class ChatRoom {
 			state = S_OPEN,
 			born = Environment.TickCount,
 			lastrecv = Environment.TickCount,
-			lastping = Environment.TickCount,
+			lastping = Environment.TickCount - PINGMS,
 			done = new ManualResetEvent(false),
 		};
 		lock (gate) {
@@ -72,6 +73,7 @@ static partial class ChatRoom {
 			copy = conns;
 			conns = new();
 			hist.Clear();
+			offers.Clear();
 			th = thread;
 		}
 		foreach (var c in copy) {
@@ -118,6 +120,7 @@ static partial class ChatRoom {
 
 	static void drop(Conn c) {
 		var was = c.joined;
+		canceloffers(c);
 		c.joined = false;
 		c.state = S_DEAD;
 		if (was && !string.IsNullOrEmpty(c.nick)) {
@@ -136,16 +139,18 @@ static partial class ChatRoom {
 		if (c.state != S_OPEN) return false;
 		var now = Environment.TickCount;
 		if (!c.joined && now - c.born >= JOINMS) return false;
-		if (now - c.lastrecv >= IDLEMS) return false;
+		if (c.pingwait && now - c.lastping >= PINGMS) return false;
 		if (!pull(c)) return false;
 		if (c.state != S_OPEN) return false;
+		if (!c.pingwait && now - c.lastping >= PINGMS) {
+			c.lastping = now;
+			c.pingwait = true;
+			if (!writeframe(c.net, 0x09, Array.Empty<byte>())) return false;
+			return c.state == S_OPEN;
+		}
 		if (c.outq.Count > 0) {
 			var b = c.outq.Dequeue();
 			if (!writeframe(c.net, 1, b)) return false;
-		}
-		else if (now - c.lastping >= PINGMS) {
-			c.lastping = now;
-			if (!writeframe(c.net, 0x09, Array.Empty<byte>())) return false;
 		}
 		return c.state == S_OPEN;
 	}
@@ -210,6 +215,7 @@ static partial class ChatRoom {
 			}
 			consume(c, hdr + len);
 			c.lastrecv = Environment.TickCount;
+			c.pingwait = false;
 			if (!onframe(c, op, fin, data)) return false;
 		}
 		return false;
@@ -254,6 +260,9 @@ static partial class ChatRoom {
 		if (op == "join") onjoin(c, jo);
 		else if (op == "say") onsay(c, jo);
 		else if (op == "file") onfile(c, jo);
+		else if (op == "offer") onoffer(c, jo);
+		else if (op == "take") ontake(c, jo);
+		else if (op == "drop") ondrop(c, jo);
 		else if (op == "ping") enqueue(c, "{\"op\":\"pong\"}");
 	}
 
@@ -279,15 +288,168 @@ static partial class ChatRoom {
 		text = text.Replace("\r\n", "\n").Replace('\r', '\n').Trim();
 		if (text.Length == 0) return;
 		if (text.Length > MAXTEXT) { enqueue(c, errjson("text")); return; }
+		if (!aim(c, jo, out var to, out var dest, out var priv)) return;
 		if (c.lastsay != 0 && Environment.TickCount - c.lastsay < SAYMS) {
 			enqueue(c, errjson("fast"));
 			return;
 		}
 		c.lastsay = Environment.TickCount;
-		var line = sayjson(c, text);
-		hist.Add(line);
-		if (hist.Count > HISTN) hist.RemoveAt(0);
+		give(c, dest, priv, sayjson(c, text, to, dest?.nick ?? "", priv), true);
+	}
+
+	static bool aim(Conn from, JsonObject jo, out int to, out Conn dest, out bool priv) {
+		to = num(jo, "to");
+		priv = flag(jo, "priv");
+		dest = null;
+		if (to == from.id || (priv && to <= 0)) {
+			enqueue(from, errjson("to"));
+			return false;
+		}
+		if (to > 0) {
+			dest = findconn(to);
+			if (dest == null) {
+				enqueue(from, errjson("to"));
+				return false;
+			}
+		}
+		return true;
+	}
+
+	static void give(Conn from, Conn dest, bool priv, string line, bool keep) {
+		if (priv) {
+			enqueue(from, line);
+			if (dest != null && dest != from) enqueue(dest, line);
+			return;
+		}
+		if (keep) {
+			hist.Add(line);
+			if (hist.Count > HISTN) hist.RemoveAt(0);
+		}
 		broadcast(line, null);
+	}
+
+	static void onoffer(Conn c, JsonObject jo) {
+		if (!c.joined) { enqueue(c, errjson("join")); return; }
+		if (!aim(c, jo, out var to, out var dest, out _)) return;
+		if (to <= 0 || dest == null) { enqueue(c, errjson("to")); return; }
+		var fid = jo["file"]?.ToString() ?? "";
+		if (!lookup(fid, out var up)) { enqueue(c, errjson("file")); return; }
+		if (c.lastsay != 0 && Environment.TickCount - c.lastsay < SAYMS) {
+			enqueue(c, errjson("fast"));
+			return;
+		}
+		Offer o;
+		lock (gate) {
+			if (offers.Count >= 32) {
+				enqueue(c, errjson("full"));
+				return;
+			}
+			o = new Offer {
+				id = nextxfer++,
+				from = c.id,
+				to = dest.id,
+				file = up.id,
+				name = up.name,
+				size = up.size,
+			};
+			if (nextxfer > 100000000) nextxfer = 1;
+			offers.Add(o);
+		}
+		c.lastsay = Environment.TickCount;
+		enqueue(dest, new JsonObject {
+			["op"] = "offer",
+			["xfer"] = o.id,
+			["from"] = c.id,
+			["nick"] = c.nick,
+			["gender"] = c.gender,
+			["name"] = o.name,
+			["size"] = o.size,
+		}.ToJsonString(jsonopt));
+		enqueue(c, xferjson(o, "wait", false));
+	}
+
+	static void ontake(Conn c, JsonObject jo) {
+		if (!c.joined) { enqueue(c, errjson("join")); return; }
+		var id = num(jo, "xfer");
+		Offer o;
+		Conn from;
+		lock (gate) {
+			o = offers.Find(x => x.id == id && x.to == c.id);
+			if (o == null) { enqueue(c, errjson("file")); return; }
+			offers.Remove(o);
+		}
+		from = findconn(o.from);
+		enqueue(c, xferjson(o, "ok", true));
+		if (from != null) enqueue(from, xferjson(o, "ok", false));
+	}
+
+	static void ondrop(Conn c, JsonObject jo) {
+		if (!c.joined) { enqueue(c, errjson("join")); return; }
+		var id = num(jo, "xfer");
+		Offer o;
+		lock (gate) {
+			o = offers.Find(x => x.id == id && x.to == c.id);
+			if (o == null) { enqueue(c, errjson("file")); return; }
+			offers.Remove(o);
+		}
+		var from = findconn(o.from);
+		enqueue(c, xferjson(o, "no", false));
+		if (from != null) enqueue(from, xferjson(o, "no", false));
+	}
+
+	static void canceloffers(Conn c) {
+		List<Offer> gone = new();
+		lock (gate) {
+			for (var i = offers.Count - 1; i >= 0; i--) {
+				if (offers[i].from != c.id && offers[i].to != c.id) continue;
+				gone.Add(offers[i]);
+				offers.RemoveAt(i);
+			}
+		}
+		foreach (var o in gone) {
+			var otherId = o.from == c.id ? o.to : o.from;
+			var other = findconn(otherId);
+			if (other != null && other != c) enqueue(other, xferjson(o, "no", false));
+		}
+	}
+
+	static string xferjson(Offer o, string state, bool withfile) {
+		var jo = new JsonObject {
+			["op"] = "xfer",
+			["xfer"] = o.id,
+			["state"] = state,
+			["to"] = o.to,
+			["name"] = o.name,
+			["size"] = o.size,
+		};
+		var dest = findconn(o.to);
+		if (dest != null) jo["tonick"] = dest.nick;
+		if (withfile) jo["file"] = o.file;
+		return jo.ToJsonString(jsonopt);
+	}
+
+	static Conn findconn(int id) {
+		List<Conn> cur;
+		lock (gate) cur = conns;
+		foreach (var c in cur)
+			if (c.state == S_OPEN && c.joined && c.id == id) return c;
+		return null;
+	}
+
+	static int num(JsonObject jo, string key) {
+		var n = jo?[key];
+		if (n == null) return 0;
+		if (n is JsonValue v && v.TryGetValue<int>(out var i)) return i;
+		return int.TryParse(n.ToString(), out var p) ? p : 0;
+	}
+
+	static bool flag(JsonObject jo, string key) {
+		var n = jo?[key];
+		if (n == null) return false;
+		if (n.GetValueKind() == JsonValueKind.True) return true;
+		if (n.GetValueKind() == JsonValueKind.False) return false;
+		var s = n.ToString();
+		return s == "true" || s == "1";
 	}
 
 	static string trimnick(string s, out string err) {
@@ -348,14 +510,26 @@ static partial class ChatRoom {
 		return new JsonObject { ["op"] = "hist", ["items"] = items }.ToJsonString(jsonopt);
 	}
 
-	static string sayjson(Conn c, string text) => new JsonObject {
-		["op"] = "say",
-		["id"] = c.id,
-		["nick"] = c.nick,
-		["gender"] = c.gender,
-		["text"] = text,
-		["t"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-	}.ToJsonString(jsonopt);
+	static string sayjson(Conn c, string text, int to, string tonick, bool priv) {
+		var o = new JsonObject {
+			["op"] = "say",
+			["id"] = c.id,
+			["nick"] = c.nick,
+			["gender"] = c.gender,
+			["text"] = text,
+			["t"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+		};
+		stamp(o, to, tonick, priv);
+		return o.ToJsonString(jsonopt);
+	}
+
+	static void stamp(JsonObject o, int to, string tonick, bool priv) {
+		if (to > 0) {
+			o["to"] = to;
+			o["tonick"] = tonick ?? "";
+		}
+		if (priv) o["priv"] = true;
+	}
 
 	static string sysjson(string kind, Conn c) => new JsonObject {
 		["op"] = "sys",
@@ -406,6 +580,7 @@ static partial class ChatRoom {
 		ClientWebSocket a = null;
 		ClientWebSocket b = null;
 		ClientWebSocket c = null;
+		ClientWebSocket d = null;
 		try {
 			server = new SockHttpServer();
 			server.Start("127.0.0.1", port, ctx => {
@@ -439,11 +614,13 @@ static partial class ChatRoom {
 				err("chat: 甲没有 hello");
 				return 1;
 			}
+			var ida = idof();
 			send(b, "{\"op\":\"join\",\"nick\":\"乙\",\"gender\":\"f\"}");
 			if (!wait(b, holdb, "hello", null, 4000)) {
 				err("chat: 乙没有 hello");
 				return 1;
 			}
+			var idb = idof();
 			send(a, "{\"op\":\"say\",\"text\":\"你好\"}");
 			if (!wait(b, holdb, "say", "你好", 4000)) {
 				err("chat: 乙没有收到 你好");
@@ -458,6 +635,7 @@ static partial class ChatRoom {
 				return 1;
 			}
 			if (!testfile(port, a, b, holdb, err)) return 1;
+			if (!testmore(port, a, b, holda, holdb, ida, idb, err, ref d)) return 1;
 			log("chat: 两人互发通过");
 			return 0;
 		}
@@ -469,6 +647,7 @@ static partial class ChatRoom {
 			try { a?.Abort(); } catch { }
 			try { b?.Abort(); } catch { }
 			try { c?.Abort(); } catch { }
+			try { d?.Abort(); } catch { }
 			CloseAll();
 			PurgeUploads();
 			try { server?.Stop(); } catch { }
@@ -564,6 +743,159 @@ static partial class ChatRoom {
 		return true;
 	}
 
+	static bool testmore(int port, ClientWebSocket a, ClientWebSocket b, Hold holda, Hold holdb,
+		int ida, int idb, Action<string> err, ref ClientWebSocket d) {
+		if (ida <= 0 || idb <= 0) {
+			err("chat: 没有编号");
+			return false;
+		}
+		send(a, "{\"op\":\"ping\"}");
+		if (!wait(a, holda, "pong", null, 2000)) {
+			err("chat: 没有心跳应答");
+			return false;
+		}
+		d = open(port, err);
+		if (d == null) return false;
+		var holdd = new Hold();
+		send(d, "{\"op\":\"join\",\"nick\":\"丙\",\"gender\":\"\"}");
+		if (!wait(d, holdd, "hello", null, 4000)) {
+			err("chat: 丙没有 hello");
+			return false;
+		}
+		Thread.Sleep(300);
+		send(a, "{\"op\":\"say\",\"text\":\"悄悄\",\"to\":" + idb + ",\"priv\":true}");
+		if (!wait(b, holdb, "say", "悄悄", 4000) || !istrue(lastjo, "priv")) {
+			err("chat: 乙没有收到私密消息");
+			return false;
+		}
+		if (sawtext(d, holdd, "悄悄", 400)) {
+			err("chat: 丙看到了私密消息");
+			return false;
+		}
+		Thread.Sleep(300);
+		send(a, "{\"op\":\"say\",\"text\":\"点名\",\"to\":" + idb + "}");
+		if (!wait(d, holdd, "say", "点名", 4000)) {
+			err("chat: 丙没有收到点名");
+			return false;
+		}
+		var body = Encoding.UTF8.GetBytes("go");
+		var fid = postfile(port, body, "n.bin", "application/octet-stream", "file", out var ecode);
+		if (fid == null) {
+			err("chat: 直传上传失败 " + ecode);
+			return false;
+		}
+		Thread.Sleep(300);
+		send(a, "{\"op\":\"offer\",\"file\":\"" + fid + "\",\"to\":" + idb + "}");
+		if (!waitop(b, holdb, "offer", 4000) || lastjo["file"] != null) {
+			err("chat: 乙没有收到待接收的文件");
+			return false;
+		}
+		var xfer = num(lastjo, "xfer");
+		if (sawop(d, holdd, "offer", 300)) {
+			err("chat: 丙看到了直传");
+			return false;
+		}
+		send(b, "{\"op\":\"take\",\"xfer\":" + xfer + "}");
+		if (!waitstate(b, holdb, "ok", 4000) || (lastjo["file"]?.ToString() ?? "") != fid) {
+			err("chat: 乙接收后没有文件");
+			return false;
+		}
+		if (!getfile(port, fid, body)) {
+			err("chat: 直传下载不一致");
+			return false;
+		}
+		if (!waitstate(a, holda, "ok", 4000)) {
+			err("chat: 甲不知道对方已接收");
+			return false;
+		}
+		var fid2 = postfile(port, body, "m.bin", "application/octet-stream", "file", out ecode);
+		if (fid2 == null) {
+			err("chat: 第二次直传上传失败 " + ecode);
+			return false;
+		}
+		Thread.Sleep(300);
+		send(a, "{\"op\":\"offer\",\"file\":\"" + fid2 + "\",\"to\":" + idb + "}");
+		if (!waitop(b, holdb, "offer", 4000)) {
+			err("chat: 乙没有收到第二次直传");
+			return false;
+		}
+		xfer = num(lastjo, "xfer");
+		send(b, "{\"op\":\"drop\",\"xfer\":" + xfer + "}");
+		if (!waitstate(a, holda, "no", 4000)) {
+			err("chat: 甲不知道对方拒绝了");
+			return false;
+		}
+		return true;
+	}
+
+	static bool istrue(JsonObject jo, string key) {
+		var n = jo?[key];
+		return n != null && n.GetValueKind() == JsonValueKind.True;
+	}
+
+	static int idof() => num(lastjo, "id");
+
+	static bool sawtext(ClientWebSocket ws, Hold hold, string text, int ms) {
+		var t0 = Environment.TickCount;
+		while (Environment.TickCount - t0 < ms) {
+			var s = nextmsg(ws, hold, 100);
+			if (string.IsNullOrEmpty(s)) continue;
+			JsonObject jo;
+			try { jo = JsonNode.Parse(s) as JsonObject; }
+			catch { continue; }
+			if (jo == null) continue;
+			if ((jo["op"]?.ToString() ?? "") == "say" && (jo["text"]?.ToString() ?? "") == text) return true;
+		}
+		return false;
+	}
+
+	static bool sawop(ClientWebSocket ws, Hold hold, string op, int ms) {
+		var t0 = Environment.TickCount;
+		while (Environment.TickCount - t0 < ms) {
+			var s = nextmsg(ws, hold, 100);
+			if (string.IsNullOrEmpty(s)) continue;
+			JsonObject jo;
+			try { jo = JsonNode.Parse(s) as JsonObject; }
+			catch { continue; }
+			if (jo == null) continue;
+			if ((jo["op"]?.ToString() ?? "") == op) return true;
+		}
+		return false;
+	}
+
+	static bool waitop(ClientWebSocket ws, Hold hold, string op, int ms) {
+		var t0 = Environment.TickCount;
+		while (Environment.TickCount - t0 < ms) {
+			var s = nextmsg(ws, hold, 200);
+			if (string.IsNullOrEmpty(s)) continue;
+			JsonObject jo;
+			try { jo = JsonNode.Parse(s) as JsonObject; }
+			catch { continue; }
+			if (jo == null) continue;
+			if ((jo["op"]?.ToString() ?? "") != op) continue;
+			lastjo = jo;
+			return true;
+		}
+		return false;
+	}
+
+	static bool waitstate(ClientWebSocket ws, Hold hold, string state, int ms) {
+		var t0 = Environment.TickCount;
+		while (Environment.TickCount - t0 < ms) {
+			var s = nextmsg(ws, hold, 200);
+			if (string.IsNullOrEmpty(s)) continue;
+			JsonObject jo;
+			try { jo = JsonNode.Parse(s) as JsonObject; }
+			catch { continue; }
+			if (jo == null) continue;
+			if ((jo["op"]?.ToString() ?? "") != "xfer") continue;
+			if ((jo["state"]?.ToString() ?? "") != state) continue;
+			lastjo = jo;
+			return true;
+		}
+		return false;
+	}
+
 	static bool waitfile(ClientWebSocket ws, Hold hold, string id, int ms) {
 		var t0 = Environment.TickCount;
 		while (Environment.TickCount - t0 < ms) {
@@ -595,6 +927,8 @@ static partial class ChatRoom {
 		ws.SendAsync(new ArraySegment<byte>(b), WebSocketMessageType.Text, true, CancellationToken.None).Wait(3000);
 	}
 
+	static JsonObject lastjo;
+
 	static bool wait(ClientWebSocket ws, Hold hold, string op, string text, int ms) {
 		var t0 = Environment.TickCount;
 		while (Environment.TickCount - t0 < ms) {
@@ -605,9 +939,9 @@ static partial class ChatRoom {
 			catch { continue; }
 			if (jo == null) continue;
 			if ((jo["op"]?.ToString() ?? "") != op) continue;
-			if (text == null) return true;
+			if (text == null) { lastjo = jo; return true; }
 			var got = op == "err" ? (jo["code"]?.ToString() ?? "") : (jo["text"]?.ToString() ?? "");
-			if (got == text) return true;
+			if (got == text) { lastjo = jo; return true; }
 		}
 		return false;
 	}
@@ -650,8 +984,18 @@ static partial class ChatRoom {
 		public int born;
 		public int lastrecv;
 		public int lastping;
+		public bool pingwait;
 		public int lastsay;
 		public readonly Queue<byte[]> outq = new();
 		public ManualResetEvent done;
+	}
+
+	sealed class Offer {
+		public int id;
+		public int from;
+		public int to;
+		public string file;
+		public string name;
+		public int size;
 	}
 }

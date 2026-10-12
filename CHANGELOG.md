@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools-page chat room sends a heartbeat every 5 seconds and disconnects when that heartbeat fails. You can address a message to one person. Private messages are delivered only to the two of you. **Direct** uploads a file through the server to the selected person, and the download starts only after they click Accept.
 - **Help → Install features** can install Bogus (`Bogus.dll`, about 2.3 MB, not in the slim package). The tools page **Generate test data** says whether it is installed. Without it, the page keeps the built-in generator. With it, Bogus generates the lines and adds English names, job titles, cities, URLs, IP addresses, colors, dates, sentences, and products. `GET/POST /api/fake` reports the install state and, once installed, generates a kind.
 - The tools-page chat room can send an image or a file, up to 8 MB. The bytes are stored as `tmp/chat-` plus an id beside the program. Starting ScreenKit deletes those files and leaves the other `tmp` folders alone. Pictures show in the room. Other files are download links.
 - The web tools page has a **Chat room** under Talk. A nickname and a gender (private, male, or female) are required before entering. The last nickname and gender are kept in the browser. People on the same ScreenKit talk over WebSocket `/chat`. Text is kept only in memory and is dropped when the program exits. A nickname already in the room is rejected.
@@ -76,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页聊天室每 5 秒心跳一次，失败就断开。发送时可以指定一个人。私密消息只有双方能看到。直传把文件经服务器交给选中的人，对方点接收后才开始下载。
 - **帮助 → 安装功能**可以安装 Bogus（`Bogus.dll`，约 2.3 MB，不进精简包）。工具页「生成测试数据」会提示是否已安装。未安装时仍用内置生成。安装后由 Bogus 生成，并多出英文姓名、职位、城市、网址、IP、颜色、日期、句子、商品。`GET/POST /api/fake` 返回是否已安装，已安装时按类型生成。
 - 工具页聊天室可以发图片和文件，单个不超过 8 MB。内容写到程序目录 `tmp/chat-` 加编号。启动时删掉这些文件，其它 `tmp` 子目录不动。图片直接显示，其它文件是下载链接。
 - web 工具增加 **聊天室**，在「交流」分类。进入前填写昵称和性别（保密、男、女）。浏览器记住上次的昵称和性别。同一台 ScreenKit 上的人通过 WebSocket `/chat` 发文字。内容只留在内存里，程序退出后没有了。已经有人用的昵称不能再进。

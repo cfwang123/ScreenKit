@@ -56,6 +56,7 @@ static partial class ChatRoom {
 
 	static void onfile(Conn c, JsonObject jo) {
 		if (!c.joined) { enqueue(c, errjson("join")); return; }
+		if (!aim(c, jo, out var to, out var dest, out var priv)) return;
 		var fid = jo["file"]?.ToString() ?? "";
 		if (!lookup(fid, out var up)) { enqueue(c, errjson("file")); return; }
 		if (c.lastsay != 0 && Environment.TickCount - c.lastsay < SAYMS) {
@@ -63,10 +64,7 @@ static partial class ChatRoom {
 			return;
 		}
 		c.lastsay = Environment.TickCount;
-		var line = filejson(c, up);
-		hist.Add(line);
-		if (hist.Count > HISTN) hist.RemoveAt(0);
-		broadcast(line, null);
+		give(c, dest, priv, filejson(c, up, to, dest?.nick ?? "", priv), true);
 	}
 
 	static void saveupload(SockCtx ctx) {
@@ -179,18 +177,22 @@ static partial class ChatRoom {
 		lock (gate) return ups.TryGetValue(id, out up);
 	}
 
-	static string filejson(Conn c, Up up) => new JsonObject {
-		["op"] = "file",
-		["id"] = c.id,
-		["nick"] = c.nick,
-		["gender"] = c.gender,
-		["file"] = up.id,
-		["name"] = up.name,
-		["kind"] = up.kind,
-		["size"] = up.size,
-		["mime"] = up.mime,
-		["t"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-	}.ToJsonString(jsonopt);
+	static string filejson(Conn c, Up up, int to, string tonick, bool priv) {
+		var o = new JsonObject {
+			["op"] = "file",
+			["id"] = c.id,
+			["nick"] = c.nick,
+			["gender"] = c.gender,
+			["file"] = up.id,
+			["name"] = up.name,
+			["kind"] = up.kind,
+			["size"] = up.size,
+			["mime"] = up.mime,
+			["t"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+		};
+		stamp(o, to, tonick, priv);
+		return o.ToJsonString(jsonopt);
+	}
 
 	static string httperr(string code) =>
 		new JsonObject { ["code"] = 400, ["err"] = code }.ToJsonString(jsonopt);

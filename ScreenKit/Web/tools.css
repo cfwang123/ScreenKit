@@ -430,7 +430,13 @@ input[type="file"] {
 .chatline.mine .who { color: var(--accent); }
 .g-m { color: #2a6fdb; }
 .g-f { color: #c43b6e; }
-.peer { padding: 2px 0; }
+.peer { padding: 2px 4px; cursor: pointer; border-radius: 4px; }
+.peer.on { background: var(--paper); }
+#chat-offers:empty { display: none; }
+.chatoffer { display: flex; gap: 8px; align-items: center; margin: 8px 0 0; }
+.chatline.priv { background: rgba(0, 0, 0, .04); border-radius: 6px; padding: 2px 6px; }
+#chat-torow { margin-top: 8px; align-items: center; }
+#chat-torow label { width: auto; }
 #chat-sendrow { margin-top: 10px; flex-wrap: nowrap; }
 #chat-text { flex: 1; min-width: 0; }
 #chat-sendrow .ghost { flex: none; }
