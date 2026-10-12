@@ -7,12 +7,20 @@ public partial class SysInfoWindow : Window {
 	List<UsbPair> sysrows = new();
 	List<UsbDev> usball = new();
 	List<UsbDev> comall = new();
+	int sysgen;
+	int usbgen;
+	int comgen;
+	bool dead;
 
 	public SysInfoWindow() {
 		InitializeComponent();
 		applylang();
 		initev();
 		WindowEsc.Attach(this, Close);
+		Closed += (_, _) => dead = true;
+		lbsysstat.Text = Loc.T("sys.loading");
+		lbusbstat.Text = Loc.T("sys.loading");
+		lbcomstat.Text = Loc.T("sys.loading");
 		reloadsys();
 		reloadusb();
 		reloadcom();
@@ -68,41 +76,76 @@ public partial class SysInfoWindow : Window {
 	}
 
 	void reloadsys() {
-		try { sysrows = SysInfo.Scan(); }
-		catch (Exception ex) {
-			sysrows = new List<UsbPair>();
-			lvsys.ItemsSource = sysrows;
-			lbsysstat.Text = Loc.T("usb.fail", ex.Message);
-			return;
-		}
-		lvsys.ItemsSource = sysrows;
-		lbsysstat.Text = sysrows.Count == 0 ? Loc.T("sys.none") : Loc.T("sys.count", sysrows.Count);
+		var gen = ++sysgen;
+		lbsysstat.Text = Loc.T("sys.loading");
+		Task.Run(() => {
+			List<UsbPair> rows;
+			string err = null;
+			try { rows = SysInfo.Scan(); }
+			catch (Exception ex) {
+				rows = new List<UsbPair>();
+				err = ex.Message;
+			}
+			apply(gen, () => sysgen, () => {
+				sysrows = rows;
+				lvsys.ItemsSource = sysrows;
+				lbsysstat.Text = err != null ? Loc.T("usb.fail", err)
+					: sysrows.Count == 0 ? Loc.T("sys.none") : Loc.T("sys.count", sysrows.Count);
+			});
+		});
 	}
 
 	void reloadusb() {
 		var id = keep(lvusb);
-		try { usball = UsbList.Scan(); }
-		catch (Exception ex) {
-			usball = new List<UsbDev>();
-			lvusb.ItemsSource = usball;
-			lvusbprop.ItemsSource = null;
-			lbusbstat.Text = Loc.T("usb.fail", ex.Message);
-			return;
-		}
-		showusb(id);
+		var gen = ++usbgen;
+		lbusbstat.Text = Loc.T("sys.loading");
+		Task.Run(() => {
+			List<UsbDev> rows = null;
+			string err = null;
+			try { rows = UsbList.Scan(); }
+			catch (Exception ex) { err = ex.Message; }
+			apply(gen, () => usbgen, () => {
+				if (err != null) {
+					usball = new List<UsbDev>();
+					lvusb.ItemsSource = usball;
+					lvusbprop.ItemsSource = null;
+					lbusbstat.Text = Loc.T("usb.fail", err);
+					return;
+				}
+				usball = rows;
+				showusb(id);
+			});
+		});
 	}
 
 	void reloadcom() {
 		var id = keep(lvcom);
-		try { comall = UsbList.ScanPorts(); }
-		catch (Exception ex) {
-			comall = new List<UsbDev>();
-			lvcom.ItemsSource = comall;
-			lvcomprop.ItemsSource = null;
-			lbcomstat.Text = Loc.T("usb.fail", ex.Message);
-			return;
-		}
-		showcom(id);
+		var gen = ++comgen;
+		lbcomstat.Text = Loc.T("sys.loading");
+		Task.Run(() => {
+			List<UsbDev> rows = null;
+			string err = null;
+			try { rows = UsbList.ScanPorts(); }
+			catch (Exception ex) { err = ex.Message; }
+			apply(gen, () => comgen, () => {
+				if (err != null) {
+					comall = new List<UsbDev>();
+					lvcom.ItemsSource = comall;
+					lvcomprop.ItemsSource = null;
+					lbcomstat.Text = Loc.T("usb.fail", err);
+					return;
+				}
+				comall = rows;
+				showcom(id);
+			});
+		});
+	}
+
+	void apply(int gen, Func<int> current, Action fill) {
+		Dispatcher.BeginInvoke(new Action(() => {
+			if (dead || gen != current()) return;
+			fill();
+		}));
 	}
 
 	void showusb(string keepId) =>

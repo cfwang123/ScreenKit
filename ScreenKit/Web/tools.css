@@ -789,3 +789,25 @@ input[type="file"] {
 	position: absolute; left: 8px; bottom: 6px; margin: 0; pointer-events: none;
 	color: var(--muted); font-size: 12px;
 }
+#box.panel.on:has(.plot) { overflow: hidden; }
+#box.panel.on:has(.plot) #box-body {
+	flex: 1 1 auto; min-height: 0;
+	display: flex; flex-direction: column;
+}
+.plot { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.plot-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.plot-bar button {
+	height: 36px; padding: 0 12px; cursor: pointer; border-radius: 999px;
+	border: 1px solid var(--line); background: var(--card); color: var(--ink);
+}
+.plot-bar button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.plot-bar input[type="text"] {
+	flex: 1 1 180px; width: auto; height: 36px; margin: 0; padding: 6px 10px;
+}
+.plot .hint { flex: 1 1 100%; margin: 0; }
+.plot-stage {
+	position: relative; flex: 1 1 auto; min-height: 280px; overflow: hidden;
+	border: 1px solid var(--line); border-radius: 12px; background: #fafaf9;
+}
+.plot-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.plot-stage canvas.drag { cursor: grabbing; }

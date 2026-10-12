@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The tools page adds Function graph under Calculate. Type `y = f(x)` or `z = f(x, y)` and it draws the curve or the surface. Drag pans and the wheel zooms. In 3D, drag rotates and Shift-drag pans. Trig functions use radians. Double-click resets the view.
 - The tools page Image category has a board. It draws a rectangle, an ellipse, an arrow, a pen stroke, or text. Ctrl+V pastes a picture. Drag moves it, and the corners change its size.
 - The tools page merges Stopwatch and Countdown into Timer. It can count up, count down from a number of seconds, or count down to a date and time you pick.
 - **Tools → HTML layout** edits HTML on the left and previews it on the right as you type. Templates replace the current text: buttons, a card, a media card, inputs, choices, and a form. The tools page has the same card under Image. That preview is a sandboxed frame.
@@ -131,6 +132,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Image convert accepts a dropped JPEG, including a virtual file with no real path. The picture is decoded from memory, so the thumbnail and the encode do not lock the source file.
 - Color character art keeps half blocks, quadrants, and 1/8 to 7/8 blocks when the two colors differ. Nearly identical colors still use a full block.
 - Character art accepts a picture dropped on the text area, including a file, a file name, a virtual JPEG, or a bitmap.
+- System info opens at once. The system, USB, and serial tabs read in the background and show Reading until each list arrives.
 
 #### Removed
 
@@ -142,6 +144,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- 工具页「计算」增加函数图像。输入 `y=f(x)` 或 `z=f(x,y)` 画出曲线或曲面。拖动平移，滚轮缩放。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。
 - 工具页「图像」增加画板。可以画矩形、椭圆、箭头、画笔和文字。Ctrl+V 粘贴图片后，拖动改位置，角点改大小。
 - 工具页把秒表和倒计时合成「计时」。可以正向计时、按秒倒计时，或选一个截止日期时间看剩余时间。
 - **工具 → HTML 界面设计**：左边写 HTML，右边随输入显示效果。模板会换掉当前内容，有按钮、卡片、图文卡片、输入框、选项和表单。工具页「图像」里有同样的卡片。网页上的预览放在隔离的框架里。
@@ -237,6 +240,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 图片格式转换可以拖入 JPEG，没有真实路径的虚拟文件也会收下。图片在内存里解码，缩略图和转码不再独占源文件。
 - 全色字符画在两种颜色有差别时保留半块、四象限和 1/8～7/8 块。几乎相同的颜色仍用整块。
 - 字符画可以把图片拖到文字区域。文件、文件名、虚拟 JPEG 和位图都可以。
+- 系统信息窗口马上打开。系统、USB 和串口在后台读取，读完前状态显示正在读取。
 
 #### 移除
 
