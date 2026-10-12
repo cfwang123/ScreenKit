@@ -448,6 +448,16 @@ input[type="file"] {
 	display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
 	grid-auto-rows: max-content; gap: 8px;
 }
+/* 分组标题行：横跨整行，下面才是这组的色卡 */
+.cgrid .cgh {
+	grid-column: 1 / -1; margin: 0; padding: 2px 2px 3px;
+	border-bottom: 1px solid var(--line);
+	color: var(--ink); font: 600 13px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.cgrid .cgh .n {
+	margin-left: 6px; color: var(--muted);
+	font: 400 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
 /* 左边小色块，右边两行：中文名 + 英文名 / 十六进制 */
 .cgrid button {
 	display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto;
@@ -562,8 +572,9 @@ input[type="file"] {
 .bit .row #bit-oct { width: 96px; height: 32px; margin: 0; padding: 4px 8px; }
 .bitgrid { margin: 4px 0 8px; }
 .bitrow { display: flex; align-items: center; gap: 3px; margin: 3px 0; }
-.bitname {
-	flex: none; width: 48px; color: var(--ink); font-size: 12px; font-weight: 650;
+.bitrow select.bitinst {
+	flex: none; width: 76px; height: 28px; margin: 0; padding: 0 2px;
+	font-size: 12px;
 }
 .bitrow label.check { display: flex; align-items: center; width: 36px; margin: 0; font-size: 12px; }
 .bitrow label.check input { width: auto; height: auto; margin: 0 3px 0 0; }

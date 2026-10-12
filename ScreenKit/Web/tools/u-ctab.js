@@ -2,26 +2,26 @@
 	// 每条：[中文名, 十六进制, 名字]，第 4 项可选，是备注（如 Transparent 的 A=0）。
 	// web 支：CSS 命名色 + 中文专名色，按色相分组。
 	var WEB = [
-		group("red", "红", [
+		group("red", "红色", [
 			["红", "#FF0000", "Red"], ["深红", "#8B0000", "DarkRed"], ["绯红", "#DC143C", "Crimson"],
 			["砖红", "#B22222", "FireBrick"], ["印度红", "#CD5C5C", "IndianRed"], ["栗色", "#800000", "Maroon"],
 			["番茄", "#FF6347", "Tomato"], ["珊瑚", "#FF7F50", "Coral"], ["鲑鱼", "#FA8072", "Salmon"],
 			["浅鲑鱼", "#FFA07A", "LightSalmon"], ["暗鲑鱼", "#E9967A", "DarkSalmon"],
 			["浅珊瑚", "#F08080", "LightCoral"], ["中国红", "#DE2910", "China Red"]
 		]),
-		group("orange", "橙", [
+		group("orange", "橙色", [
 			["橙", "#FFA500", "Orange"], ["深橙", "#FF8C00", "DarkOrange"], ["暗橙", "#FF4500", "OrangeRed"],
 			["柿", "#FF4D00", "Persimmon"], ["橘", "#F28500", "Tangerine"], ["南瓜", "#FF7518", "Pumpkin"],
 			["杏", "#FBCEB1", "Apricot"], ["桃", "#FFCBA4", "Peach"], ["桃脯", "#FFDAB9", "PeachPuff"],
 			["鹿皮色", "#FFE4B5", "Moccasin"], ["纳瓦霍白", "#FFDEAD", "NavajoWhite"], ["浓汤色", "#FFE4C4", "Bisque"]
 		]),
-		group("yellow", "黄", [
+		group("yellow", "黄色", [
 			["黄", "#FFFF00", "Yellow"], ["金", "#FFD700", "Gold"], ["金菊色", "#DAA520", "Goldenrod"],
 			["暗金", "#B8860B", "DarkGoldenrod"], ["琥珀", "#FFBF00", "Amber"], ["卡其", "#F0E68C", "Khaki"],
 			["暗卡其", "#BDB76B", "DarkKhaki"], ["苍金菊", "#EEE8AA", "PaleGoldenrod"],
 			["浅黄", "#FFFFE0", "LightYellow"], ["玉米", "#FFF8DC", "Cornsilk"], ["橄榄", "#808000", "Olive"]
 		]),
-		group("green", "绿", [
+		group("green", "绿色", [
 			["绿", "#008000", "Green"], ["暗绿", "#006400", "DarkGreen"], ["纯绿", "#00FF00", "Lime"],
 			["酸橙绿", "#32CD32", "LimeGreen"], ["查特绿", "#7FFF00", "Chartreuse"], ["绿黄", "#ADFF2F", "GreenYellow"],
 			["黄绿", "#9ACD32", "YellowGreen"], ["浅绿", "#90EE90", "LightGreen"], ["苍绿", "#98FB98", "PaleGreen"],
@@ -31,7 +31,7 @@
 			["森林", "#228B22", "ForestGreen"], ["橄榄绿", "#6B8E23", "OliveDrab"],
 			["暗橄榄绿", "#556B2F", "DarkOliveGreen"], ["翠绿", "#00A86B", "Jade"], ["薄荷", "#98FF98", "Mint"]
 		]),
-		group("cyan", "青", [
+		group("cyan", "青色", [
 			["青", "#00FFFF", "Cyan / Aqua"], ["深青", "#008B8B", "DarkCyan"], ["青绿", "#008080", "Teal"],
 			["碧", "#00CED1", "DarkTurquoise"], ["浅青", "#E0FFFF", "LightCyan"], ["绿松石", "#40E0D0", "Turquoise"],
 			["中绿松石", "#48D1CC", "MediumTurquoise"], ["苍绿松石", "#AFEEEE", "PaleTurquoise"],
@@ -39,7 +39,7 @@
 			["军校蓝", "#5F9EA0", "CadetBlue"], ["粉蓝", "#B0E0E6", "PowderBlue"],
 			["湖蓝", "#30D5C8", "Lake Blue"], ["孔雀蓝", "#00A4A6", "Peacock Blue"]
 		]),
-		group("blue", "蓝", [
+		group("blue", "蓝色", [
 			["蓝", "#0000FF", "Blue"], ["中蓝", "#0000CD", "MediumBlue"], ["深蓝", "#00008B", "DarkBlue"],
 			["海军", "#000080", "Navy"], ["午夜", "#191970", "MidnightBlue"], ["皇家蓝", "#4169E1", "RoyalBlue"],
 			["道奇蓝", "#1E90FF", "DodgerBlue"], ["深天蓝", "#00BFFF", "DeepSkyBlue"], ["钢蓝", "#4682B4", "SteelBlue"],
@@ -47,7 +47,7 @@
 			["浅天蓝", "#87CEFA", "LightSkyBlue"], ["浅蓝", "#ADD8E6", "LightBlue"],
 			["矢车菊", "#6495ED", "CornflowerBlue"], ["普鲁士蓝", "#003153", "Prussian Blue"]
 		]),
-		group("purple", "紫", [
+		group("purple", "紫色", [
 			["紫", "#800080", "Purple"], ["暗洋红", "#8B008B", "DarkMagenta"], ["洋红", "#FF00FF", "Fuchsia / Magenta"],
 			["深紫", "#4B0082", "Indigo"], ["丽贝卡紫", "#663399", "RebeccaPurple"], ["板岩蓝", "#6A5ACD", "SlateBlue"],
 			["中板岩蓝", "#7B68EE", "MediumSlateBlue"], ["暗板岩蓝", "#483D8B", "DarkSlateBlue"],
@@ -56,19 +56,19 @@
 			["中兰花", "#BA55D3", "MediumOrchid"], ["兰花", "#DA70D6", "Orchid"], ["蓟色", "#D8BFD8", "Thistle"],
 			["梅", "#DDA0DD", "Plum"], ["薰衣草", "#E6E6FA", "Lavender"], ["深紫红", "#C71585", "MediumVioletRed"]
 		]),
-		group("pink", "粉", [
+		group("pink", "粉色", [
 			["粉", "#FFC0CB", "Pink"], ["浅粉", "#FFB6C1", "LightPink"], ["热粉", "#FF69B4", "HotPink"],
 			["深粉", "#FF1493", "DeepPink"], ["玫瑰", "#FF007F", "Rose"],
 			["苍紫罗兰红", "#DB7093", "PaleVioletRed"], ["浅玫瑰", "#FFE4E1", "MistyRose"]
 		]),
-		group("brown", "棕", [
+		group("brown", "棕色", [
 			["棕", "#A52A2A", "Brown"], ["马鞍棕", "#8B4513", "SaddleBrown"], ["赭石", "#A0522D", "Sienna"],
 			["秘鲁色", "#CD853F", "Peru"], ["巧克力", "#D2691E", "Chocolate"], ["咖啡", "#6F4E37", "Coffee"],
 			["赭", "#CC7722", "Ochre"], ["沙", "#F4A460", "SandyBrown"], ["实木色", "#DEB887", "BurlyWood"],
 			["棕褐", "#D2B48C", "Tan"], ["小麦", "#F5DEB3", "Wheat"], ["米色", "#F5F5DC", "Beige"],
 			["玫瑰棕", "#BC8F8F", "RosyBrown"]
 		]),
-		group("gray", "灰", [
+		group("gray", "灰色", [
 			["庚斯博罗灰", "#DCDCDC", "Gainsboro"], ["浅灰", "#D3D3D3", "LightGray / Grey"],
 			["银", "#C0C0C0", "Silver"], ["板岩灰", "#708090", "SlateGray / Grey"],
 			["浅板岩", "#778899", "LightSlateGray / Grey"], ["暗灰", "#A9A9A9", "DarkGray / Grey"],
@@ -380,17 +380,11 @@
 		return false;
 	}
 
-	function listed(){
-		var groups = setof(cur.set).groups;
-		var q = query();
+	function pick(group, q){
 		var out = [];
 		var i;
-		var j;
-		for (i = 0; i < groups.length; i++) {
-			if (cur.g && groups[i].id !== cur.g) continue;
-			for (j = 0; j < groups[i].colors.length; j++) {
-				if (hit(groups[i].colors[j], q)) out.push(groups[i].colors[j]);
-			}
+		for (i = 0; i < group.colors.length; i++) {
+			if (hit(group.colors[i], q)) out.push(group.colors[i]);
 		}
 		return out;
 	}
@@ -418,23 +412,33 @@
 	}
 
 	function paint(){
-		var rows = listed();
+		var groups = setof(cur.set).groups;
+		var q = query();
 		var html = "";
+		var rows;
 		var i;
-		var en;
-		var note;
-		for (i = 0; i < rows.length; i++) {
-			en = rows[i][2] || "";
-			note = rows[i][3] || "";
-			html += '<button type="button" data-hex="' + rows[i][1] + '" data-name="' + esc(rows[i][0]) + '"'
-				+ ' data-en="' + esc(en) + '"'
-				+ ' title="' + esc(rows[i][0] + " " + en + "  " + rows[i][1] + (note ? "  " + note : "")) + '">'
-				+ (note ? '<i class="chk"></i>' : '<i style="background:' + rows[i][1] + '"></i>')
-				+ "<b>" + esc(rows[i][0]) + (en ? '<span class="en">' + esc(en) + "</span>" : "") + "</b>"
-				+ "<small>" + rows[i][1] + (note ? '<span class="note">' + esc(note) + "</span>" : "") + "</small></button>";
+		var j;
+		for (i = 0; i < groups.length; i++) {
+			if (cur.g && groups[i].id !== cur.g) continue;
+			rows = pick(groups[i], q);
+			if (!rows.length) continue;
+			// 每个分组一行标题，下面才是这组的色卡
+			html += '<h4 class="cgh">' + esc(groups[i].name) + '<span class="n">' + rows.length + "</span></h4>";
+			for (j = 0; j < rows.length; j++) html += card(rows[j]);
 		}
 		if (!html) html = '<p class="cnone">没有这种颜色</p>';
 		SK.$("c-grid").innerHTML = html;
+	}
+
+	function card(c){
+		var en = c[2] || "";
+		var note = c[3] || "";
+		return '<button type="button" data-hex="' + c[1] + '" data-name="' + esc(c[0]) + '"'
+			+ ' data-en="' + esc(en) + '"'
+			+ ' title="' + esc(c[0] + " " + en + "  " + c[1] + (note ? "  " + note : "")) + '">'
+			+ (note ? '<i class="chk"></i>' : '<i style="background:' + c[1] + '"></i>')
+			+ "<b>" + esc(c[0]) + (en ? '<span class="en">' + esc(en) + "</span>" : "") + "</b>"
+			+ "<small>" + c[1] + (note ? '<span class="note">' + esc(note) + "</span>" : "") + "</small></button>";
 	}
 
 	function esc(s){

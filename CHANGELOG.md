@@ -87,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The HTML layout tool is now only the tools-page card HTML tool, under Image. The desktop window, Tools menu item, and tray item are gone. Templates also include a table, a nav bar, alerts, tags, a list, progress, an empty state, a dialog, pages, and steps.
 - Common colors is now Color table and opens as a tree with two branches. Web colors holds the 148 CSS named colors in 11 hue groups; C# colors holds the 174 names of .NET (System.Drawing.KnownColor), 141 named colors plus 33 system colors whose values follow the Windows theme. The branches never mix, the All entry is gone, and Transparent is drawn as a checkerboard with an A=0 note.
 - Web tool addresses and favorites accept only a current card id. An unknown id is ignored. config.toml reads only keys the program still writes; retired keys and old spellings are ignored, and a missing key keeps the field default.
+- The 8-bit arranger stores an instrument on each of the four channels. Playback uses that instrument, and the choice is kept in the browser with the loop.
 
 #### Fixed
 
@@ -154,6 +155,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTML 界面设计改为工具页「图像」里的 HTML工具。桌面窗口、工具菜单和托盘项已去掉。模板增加表格、导航、提示、标签、列表、进度、空状态、对话框、分页和步骤。
 - 「常用颜色表」改名「颜色表」，改成树形两支：web 颜色是 148 个 CSS 命名色（11 个色相分组），C# 颜色是 .NET 的 174 个名字（System.Drawing.KnownColor），141 个命名色 + 33 个系统色（色值随 Windows 主题）。两支互不混，不再有「全部」；Transparent 画成棋盘格并标注 A=0。
 - 网页工具的地址和收藏只认当前卡片。没有这张卡片就忽略。config.toml 只读程序仍在写出的键。已停用的键和旧写法忽略，缺键用字段默认值。
+- 8bit 编排的四个通道各自记住乐器。播放用这一路所选的乐器，选择和循环一起记在浏览器里。
 
 #### 修复
 

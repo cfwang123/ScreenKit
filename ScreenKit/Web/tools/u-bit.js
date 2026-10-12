@@ -90,7 +90,7 @@
 			+ '<button type="button" id="bit-clear">清空</button>'
 			+ "</div>"
 			+ '<div class="bitgrid" id="bit-grid"></div>'
-			+ '<p class="bitmsg">四个通道：方波1、方波2、三角波、杂音。点格子再点琴键写入，写完到下一格；再点当前格就清掉。杂音点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。</p>'
+			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。</p>'
 			+ '<p class="kicker">音效</p>'
 			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
 			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排。警报、火警、蜂鸣、电话再点一次就停。</p>'
@@ -661,12 +661,8 @@
 	}
 
 	var STEPS = 16;
-	var CHANS = [
-		{ name: "方波1", kind: "square", duty: 0.5, peak: 0.12 },
-		{ name: "方波2", kind: "pulse", duty: 0.25, peak: 0.1 },
-		{ name: "三角波", kind: "triangle", duty: 0, peak: 0.16 },
-		{ name: "杂音", kind: "noise", duty: 0, peak: 0.22 }
-	];
+	var DEFINST = ["sq", "p25", "tri", "drum"];
+	var chinst = DEFINST.slice();
 	var EX = [
 		[60, 0, 64, 0, 67, 0, 64, 0, 69, 0, 67, 0, 64, 0, 60, 0],
 		[67, 0, 72, 0, 76, 0, 72, 0, 74, 0, 72, 0, 67, 0, 64, 0],
@@ -701,9 +697,34 @@
 		return NAMES[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
 	}
 
+	function instbyid(id){
+		var i;
+		for (i = 0; i < INST.length; i++) if (INST[i].id === id) return INST[i];
+		return null;
+	}
+
+	function chaninst(ch){
+		return instbyid(chinst[ch]) || INST[0];
+	}
+
+	function isnoise(ch){
+		return chaninst(ch).wave === "noise";
+	}
+
+	function instopts(ch){
+		var html = "";
+		var i, it, sel;
+		for (i = 0; i < INST.length; i++) {
+			it = INST[i];
+			sel = it.id === chinst[ch] ? " selected" : "";
+			html += '<option value="' + it.id + '"' + sel + ">" + it.name + "</option>";
+		}
+		return html;
+	}
+
 	function celltext(ch, v){
 		if (!v) return "";
-		if (CHANS[ch].kind === "noise") return String(v);
+		if (isnoise(ch)) return String(v);
 		return notename(v);
 	}
 
@@ -715,7 +736,8 @@
 		var html = "";
 		var ch, s, v, cls;
 		for (ch = 0; ch < 4; ch++) {
-			html += '<div class="bitrow"><span class="bitname">' + CHANS[ch].name + "</span>";
+			html += '<div class="bitrow"><select class="bitinst" data-inst="' + ch + '">'
+				+ instopts(ch) + "</select>";
 			html += '<label class="check"><input type="checkbox" data-mute="' + ch + '"'
 				+ (en[ch] ? " checked" : "") + ">开</label>";
 			for (s = 0; s < STEPS; s++) {
@@ -755,7 +777,7 @@
 		if (!cell) return;
 		var ch = Number(cell.getAttribute("data-ch"));
 		var step = Number(cell.getAttribute("data-step"));
-		if (CHANS[ch].kind === "noise") {
+		if (isnoise(ch)) {
 			var v = song[ch][step];
 			song[ch][step] = v >= 6 ? 0 : v + 1;
 			if (song[ch][step]) preview(ch, song[ch][step]);
@@ -771,16 +793,41 @@
 	}
 
 	function onmute(ev){
-		var m = ev.target.getAttribute && ev.target.getAttribute("data-mute");
+		var t = ev.target;
+		var inst = t.getAttribute && t.getAttribute("data-inst");
+		if (inst != null) {
+			setchaninst(Number(inst), t.value);
+			return;
+		}
+		var m = t.getAttribute && t.getAttribute("data-mute");
 		if (m == null) return;
-		en[Number(m)] = !!ev.target.checked;
+		en[Number(m)] = !!t.checked;
 		savesong();
+	}
+
+	function setchaninst(ch, id){
+		var next = instbyid(id);
+		if (!next || ch < 0 || ch > 3) return;
+		var was = isnoise(ch);
+		chinst[ch] = next.id;
+		var now = next.wave === "noise";
+		var s, v;
+		if (was !== now) {
+			for (s = 0; s < STEPS; s++) {
+				v = song[ch][s];
+				if (now) song[ch][s] = v >= 1 && v <= 6 ? v : 0;
+				else if (v > 0 && v < 24) song[ch][s] = 0;
+			}
+			sel = null;
+		}
+		savesong();
+		paintgrid();
 	}
 
 	function writenote(midi){
 		if (!sel) return false;
 		var ch = sel.ch;
-		if (CHANS[ch].kind === "noise") return false;
+		if (isnoise(ch)) return false;
 		var oct = document.getElementById("bit-oct");
 		var shift = oct ? Number(oct.value) : 0;
 		if (shift !== -12 && shift !== 12) shift = 0;
@@ -805,6 +852,7 @@
 	function fillex(){
 		var ch, s;
 		song = blanks();
+		chinst = DEFINST.slice();
 		for (ch = 0; ch < 4; ch++)
 			for (s = 0; s < STEPS; s++) song[ch][s] = EX[ch][s];
 		sel = null;
@@ -828,7 +876,9 @@
 
 	function savesong(){
 		try {
-			localStorage.setItem("sk-bit-song", JSON.stringify({ bpm: bpm, en: en, song: song }));
+			localStorage.setItem("sk-bit-song", JSON.stringify({
+				bpm: bpm, en: en, song: song, inst: chinst
+			}));
 		}
 		catch (e) {}
 	}
@@ -851,6 +901,10 @@
 			if (o.en && o.en.length === 4) en[ch] = !!o.en[ch];
 		}
 		if (o.bpm >= 40 && o.bpm <= 240) bpm = Math.round(o.bpm);
+		if (o.inst && o.inst.length === 4) {
+			for (ch = 0; ch < 4; ch++)
+				if (instbyid(o.inst[ch])) chinst[ch] = o.inst[ch];
+		}
 	}
 
 	function preview(ch, value){
@@ -861,26 +915,20 @@
 
 	function schedulevoice(ch, value, t, dur){
 		if (!value || !en[ch]) return;
-		var spec = CHANS[ch];
+		var spec = chaninst(ch);
 		var c = ac;
-		var g = c.createGain();
-		var atk = 0.004;
-		var rel = Math.min(0.03, dur * 0.25);
-		var hold = dur - rel;
-		if (hold < atk) hold = atk;
-		g.gain.setValueAtTime(0.0001, t);
-		g.gain.exponentialRampToValueAtTime(spec.peak, t + atk);
-		g.gain.setValueAtTime(spec.peak, t + hold);
-		g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+		var peak = spec.wave === "noise" ? 0.2 : 0.14;
+		var g = stepgain(c, spec, t, dur, peak);
 		g.connect(master);
-		if (spec.kind === "noise") {
+		if (spec.wave === "noise") {
+			var level = value > 6 ? 6 : value;
 			var src = c.createBufferSource();
 			src.buffer = noisebuf(c);
 			src.loop = true;
-			src.playbackRate.value = 0.35 + value * 0.45;
+			src.playbackRate.value = 0.35 + level * 0.45;
 			var flt = c.createBiquadFilter();
 			flt.type = "bandpass";
-			flt.frequency.value = 180 + value * 650;
+			flt.frequency.value = 180 + level * 650;
 			flt.Q.value = 0.6;
 			src.connect(flt);
 			flt.connect(g);
@@ -889,11 +937,71 @@
 			remember(src);
 			return;
 		}
-		var o = makeosc(c, { wave: spec.kind, duty: spec.duty }, freq(value));
+		var f = freq(value);
+		if (spec.oct) f *= Math.pow(2, spec.oct);
+		var o = makeosc(c, spec, f);
 		o.connect(g);
 		o.start(t);
 		o.stop(t + dur + 0.02);
 		remember(o);
+		if (spec.vib) {
+			var lfo = c.createOscillator();
+			var depth = c.createGain();
+			lfo.frequency.value = spec.vibhz || 5;
+			depth.gain.value = spec.vib;
+			lfo.connect(depth);
+			depth.connect(o.frequency);
+			lfo.start(t);
+			lfo.stop(t + dur + 0.02);
+			remember(lfo);
+		}
+		if (spec.detune) {
+			var o2 = makeosc(c, spec, f);
+			var o3 = makeosc(c, spec, f);
+			o2.detune.value = spec.detune;
+			o3.detune.value = -spec.detune;
+			o2.connect(g);
+			o3.connect(g);
+			o2.start(t);
+			o3.start(t);
+			o2.stop(t + dur + 0.02);
+			o3.stop(t + dur + 0.02);
+			remember(o2);
+			remember(o3);
+		}
+		if (spec.harm) {
+			var oh = c.createOscillator();
+			var hg = c.createGain();
+			oh.type = "square";
+			oh.frequency.value = f * spec.harm;
+			hg.gain.value = 0.28;
+			oh.connect(hg);
+			hg.connect(g);
+			oh.start(t);
+			oh.stop(t + dur + 0.02);
+			remember(oh);
+		}
+	}
+
+	function stepgain(c, spec, t, dur, peak){
+		var g = c.createGain();
+		var a = spec.a;
+		if (a < 0.002) a = 0.002;
+		if (a > dur * 0.35) a = dur * 0.35;
+		var rel = spec.r;
+		if (rel > dur * 0.45) rel = dur * 0.45;
+		if (rel < 0.01) rel = 0.01;
+		var susAt = t + a + spec.d;
+		var endHold = t + dur - rel;
+		if (susAt > endHold) susAt = endHold;
+		var top = Math.max(peak, 0.0001);
+		var sus = Math.max(spec.s * peak, 0.0001);
+		g.gain.setValueAtTime(0.0001, t);
+		g.gain.exponentialRampToValueAtTime(top, t + a);
+		if (susAt > t + a + 0.004)
+			g.gain.exponentialRampToValueAtTime(sus, susAt);
+		g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+		return g;
 	}
 
 	function firestep(step, t){
