@@ -225,7 +225,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 |---------|--------|
 | Screenshot, annotate, long screenshot, clipboard, text overlay, window management, auto key, network tools, system info, hotkeys | No extra files. Long screenshot stitches with Bitmap |
 | Screenshot save folder | Ready |
-| Windows OCR | Uses whichever OCR language packs are installed in Windows. No ONNX model and no OpenCV. Missing languages are added under **Help → Install features → Windows OCR/Speech** |
+| Windows OCR | Uses whichever OCR language packs are installed in Windows. No ONNX model and no OpenCV. Pieces on the same baseline are joined into one line; a wide gutter on a multi-line page stays a separate column. A short strip is not shrunk just because its long side exceeds the detection limit. Missing languages are added under **Help → Install features → Windows OCR/Speech** |
 | Windows speech recognition | Uses whichever speech-recognition language packs are installed in Windows. Missing languages are added on the same page |
 | SAPI speech | Includes 32-bit voices reached through `x86host.exe`. That exe is in the package |
 | Windows speech and Edge online voices | Voices already installed in Windows work immediately. With none, Edge online voices need a network and no model download |

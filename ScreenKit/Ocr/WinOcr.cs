@@ -20,6 +20,8 @@ sealed class WinOcrLang {
 static class WinOcr {
 	public const string PackId = "winocr";
 	const int MAXSIDE = 4096;
+	/// <summary>缩小后短边低于这个值就不再按检测边长缩小，避免扁图上的小字被丢掉。</summary>
+	const int THIN = 80;
 
 	public static bool IsId(string id) =>
 		string.Equals(id, PackId, StringComparison.OrdinalIgnoreCase);
@@ -134,6 +136,16 @@ static class WinOcr {
 		return avail.Count > 0 ? avail[0].Tag : "";
 	}
 
+	/// <summary>长边上限。扁图若缩到短边过小，则只受 <see cref="MAXSIDE"/> 限制。</summary>
+	static int scalecap(int width, int height, int limit) {
+		var maxs = Math.Max(width, height);
+		if (maxs <= limit) return maxs;
+		var mins = Math.Min(width, height);
+		var nextMin = mins * (limit / (double)maxs);
+		if (nextMin < THIN) return Math.Min(maxs, MAXSIDE);
+		return limit;
+	}
+
 	static int limitof(OcrOptions opt) {
 		var limit = opt == null || opt.DetLimitSideLen <= 0 ? 1024 : opt.DetLimitSideLen;
 		if (limit < 320) limit = 320;
@@ -150,8 +162,9 @@ static class WinOcr {
 		var dw = width;
 		var dh = height;
 		var maxs = Math.Max(width, height);
-		if (maxs > limit) {
-			scale = limit / (double)maxs;
+		var cap = scalecap(width, height, limit);
+		if (maxs > cap) {
+			scale = cap / (double)maxs;
 			dw = Math.Max(1, (int)Math.Round(width * scale));
 			dh = Math.Max(1, (int)Math.Round(height * scale));
 			work = resizebgra(bgra, width, height, width * 4, dw, dh);
@@ -197,6 +210,7 @@ static class WinOcr {
 					lines.Add(new OcrLine { Text = text, Score = 1f, Box = box });
 				}
 			}
+			mergelines(lines);
 			sortlines(lines);
 			return new OcrResult {
 				Lines = lines,
@@ -223,8 +237,9 @@ static class WinOcr {
 			InterpolationMode = BitmapInterpolationMode.Linear,
 		};
 		var maxs = Math.Max(sw, sh);
-		if (maxs > limit) {
-			scale = limit / (double)maxs;
+		var cap = scalecap(sw, sh, limit);
+		if (maxs > cap) {
+			scale = cap / (double)maxs;
 			transform.ScaledWidth = (uint)Math.Max(1, (int)Math.Round(sw * scale));
 			transform.ScaledHeight = (uint)Math.Max(1, (int)Math.Round(sh * scale));
 		}
@@ -334,6 +349,152 @@ static class WinOcr {
 			new Point2f((float)r * inv, (float)btm * inv),
 			new Point2f((float)l * inv, (float)btm * inv),
 		};
+	}
+
+	/// <summary>同一基线上被拆开的字拼成一行。横向空档相对整行很宽时仍分成两列。</summary>
+	static void mergelines(List<OcrLine> lines) {
+		if (lines == null || lines.Count < 2) return;
+		var items = new List<Seg>();
+		foreach (var ln in lines) {
+			if (!segof(ln, out var seg)) continue;
+			items.Add(seg);
+		}
+		if (items.Count < 2) return;
+		items.Sort((a, b) => {
+			var dy = a.Cy - b.Cy;
+			if (Math.Abs(dy) > 1f) return dy < 0 ? -1 : 1;
+			return a.L.CompareTo(b.L);
+		});
+		var rows = new List<List<Seg>>();
+		foreach (var it in items) {
+			List<Seg> hit = null;
+			var best = float.MaxValue;
+			foreach (var row in rows) {
+				if (!samerow(row, it)) continue;
+				var d = Math.Abs(rowcy(row) - it.Cy);
+				if (d < best) { best = d; hit = row; }
+			}
+			if (hit == null) rows.Add(new List<Seg> { it });
+			else hit.Add(it);
+		}
+		lines.Clear();
+		var multi = rows.Count > 1;
+		foreach (var row in rows) {
+			row.Sort((a, b) => a.L.CompareTo(b.L));
+			var groups = multi ? splitgaps(row) : new List<List<Seg>> { row };
+			foreach (var g in groups) {
+				var joined = joingroup(g);
+				if (joined != null) lines.Add(joined);
+			}
+		}
+	}
+
+	sealed class Seg {
+		public OcrLine Line;
+		public float L, T, R, B;
+		public float Cy;
+		public float H;
+	}
+
+	static bool segof(OcrLine ln, out Seg seg) {
+		seg = null;
+		if (ln?.Box == null || ln.Box.Length == 0 || string.IsNullOrEmpty(ln.Text)) return false;
+		float l = float.MaxValue, t = float.MaxValue, r = float.MinValue, b = float.MinValue;
+		foreach (var p in ln.Box) {
+			if (p.X < l) l = p.X;
+			if (p.Y < t) t = p.Y;
+			if (p.X > r) r = p.X;
+			if (p.Y > b) b = p.Y;
+		}
+		if (r <= l || b <= t) return false;
+		seg = new Seg { Line = ln, L = l, T = t, R = r, B = b, Cy = (t + b) * 0.5f, H = b - t };
+		return true;
+	}
+
+	static float rowcy(List<Seg> row) {
+		float cy = 0;
+		foreach (var s in row) cy += s.Cy;
+		return cy / row.Count;
+	}
+
+	static bool samerow(List<Seg> row, Seg it) {
+		float cy = 0, h = 0;
+		foreach (var s in row) { cy += s.Cy; h += s.H; }
+		cy /= row.Count;
+		h /= row.Count;
+		if (Math.Abs(it.Cy - cy) > 0.55f * Math.Max(h, it.H)) return false;
+		var top = cy - h * 0.5f;
+		var bot = cy + h * 0.5f;
+		var ov = Math.Min(bot, it.B) - Math.Max(top, it.T);
+		return ov >= 0.35f * Math.Min(h, it.H);
+	}
+
+	static float charw(List<Seg> row) {
+		var ws = new List<float>();
+		foreach (var s in row) {
+			var n = s.Line.Text?.Length ?? 0;
+			if (n < 2) continue;
+			var w = (s.R - s.L) / n;
+			if (w > 0.5f) ws.Add(w);
+		}
+		if (ws.Count == 0) return 8f;
+		ws.Sort();
+		return ws[ws.Count / 2];
+	}
+
+	static List<List<Seg>> splitgaps(List<Seg> row) {
+		var groups = new List<List<Seg>>();
+		var cur = new List<Seg> { row[0] };
+		groups.Add(cur);
+		if (row.Count == 1) return groups;
+		var cw = charw(row);
+		var span = row[row.Count - 1].R - row[0].L;
+		var cut = Math.Max(cw * 10f, span * 0.12f);
+		for (int i = 1; i < row.Count; i++) {
+			var gap = row[i].L - row[i - 1].R;
+			if (gap > cut) {
+				cur = new List<Seg>();
+				groups.Add(cur);
+			}
+			cur.Add(row[i]);
+		}
+		return groups;
+	}
+
+	static OcrLine joingroup(List<Seg> g) {
+		if (g.Count == 1) return g[0].Line;
+		var cw = charw(g);
+		var sb = new StringBuilder();
+		float l = float.MaxValue, t = float.MaxValue, r = float.MinValue, btm = float.MinValue;
+		for (int i = 0; i < g.Count; i++) {
+			var s = g[i];
+			if (s.L < l) l = s.L;
+			if (s.T < t) t = s.T;
+			if (s.R > r) r = s.R;
+			if (s.B > btm) btm = s.B;
+			if (i > 0 && needspace(sb, s.Line.Text, s.L - g[i - 1].R, cw))
+				sb.Append(' ');
+			sb.Append(s.Line.Text);
+		}
+		var text = normtext(sb.ToString());
+		if (text.Length == 0) return null;
+		return new OcrLine {
+			Text = text,
+			Score = 1f,
+			Box = new[] {
+				new Point2f(l, t),
+				new Point2f(r, t),
+				new Point2f(r, btm),
+				new Point2f(l, btm),
+			},
+		};
+	}
+
+	static bool needspace(StringBuilder sb, string next, float gap, float cw) {
+		if (gap <= cw * 0.62f) return false;
+		if (sb.Length == 0 || string.IsNullOrEmpty(next)) return false;
+		if (sb[sb.Length - 1] == ' ' || next[0] == ' ') return false;
+		return true;
 	}
 
 	static void sortlines(List<OcrLine> lines) {

@@ -39,11 +39,21 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Settings can write screenshot paths with forward slashes (snap_path_slash).
 
+#### Fixed
+
+- Windows OCR joins fragments on the same baseline into one line.
+- Windows OCR no longer shrinks a short strip just because its long side exceeds the detection limit.
+
 ### 中文
 
 #### 新增
 
 - 参数设置可让复制截图路径时把反斜杠写成正斜杠（snap_path_slash）。
+
+#### 修复
+
+- Windows OCR 把同一行上的碎片拼回一整行。
+- Windows OCR 遇到扁图时不再按检测边长缩小，避免小字被丢掉。
 
 ## v1.0.19 (2026-10-10 ~ 12)
 
