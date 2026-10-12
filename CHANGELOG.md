@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools page: the 8-bit synthesizer keyboard now shows three octaves. It draws one row when the width allows and one octave per row (three rows) when it does not; holding Ctrl plays an octave up and holding Shift an octave down, the keys move with it, and a note that was started keeps sounding until its own key is released.
 - Tools, USB devices: list USB devices that are connected now. Select one to see its name, VID/PID, class, status, hardware IDs, driver, location, parent, and other parameters. The window only reads the system record and does not open the device.
 - Tools, Character art: a picture becomes plain ASCII, or a console picture in full color using a full block, upper and lower halves, quadrants, and left blocks from 1/8 to 7/8. The wheel zooms, dragging pans, and resizing the console redraws.
+- Tools, System info: one window with System, USB devices, and Serial ports. System lists the processor, graphics, memory, disks, volumes, and network. USB devices is now a tab in that window. Serial ports lists COM ports. It only reads the system record and does not open a device or a port.
 
 #### Changed
 
@@ -114,6 +115,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools page: the 8-bit synthesizer's octave keys are now Shift (one octave up) and Alt (one octave down) while held, instead of Ctrl and Shift.
 - The tools page reads a number in Chinese and English, and lists grouped digits, scientific notation, percent, formal Chinese, Roman numerals, and base 2, 8, and 16.
 - Number notation also reads Chinese in the small, middle, and large scales, and names the digits after the decimal point from fen downward.
+- Number notation adds an SI row, one prefix for each power of one thousand, from quecto and yocto through kilo, mega, and quetta.
 
 #### Fixed
 
@@ -172,6 +174,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页：8bit合成器的琴键显示 3 个八度，宽度够就一行放下、不够就一行一个八度分三行；按住 Ctrl 升 8 度、Shift 降 8 度（琴键跟着换一组；先松开修饰键不会把已经按下的音弄丢，松开那个音自己的键才停）。
 - 工具 → USB 设备：列出当前已连接的 USB 设备。点一项查看名称、VID/PID、类、状态、硬件 ID、驱动、位置和父设备等参数。只读系统记录，不打开设备。
 - 新增工具「字符画」。选图或拖入后生成纯 ASCII；全色在命令行窗口用整块、上下半块、四象限和从左加宽的 1/8～7/8 块显示，可平移、缩放，并随窗口大小重画。
+- 工具 → 系统信息：一个窗口，分系统、USB 设备、串口三页。系统页列出处理器、显卡、内存、硬盘、分区和网络。原来的 USB 设备窗口改为其中一页。串口页列出 COM 口。只读系统记录，不打开设备，也不打开串口。
 
 #### 变更
 
@@ -217,6 +220,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页：8bit合成器升降 8 度的键从 Ctrl/Shift 改成按住 Shift 升、Alt 降。
 - 工具页输入数字后列出中文读法、英文读法，以及千分位、科学计数、百分数、中文大写、罗马数字和二、八、十六进制。
 - 数字表记增加中文小数、中数、大数三种读法，小数点后用分、厘、毫、丝等单位。
+- 数字表记增加 SI 词头，按千进位，从 quecto、yocto 到 kilo、mega、quetta。
 
 #### 修复
 

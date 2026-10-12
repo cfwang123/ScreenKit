@@ -1,0 +1,198 @@
+<Window x:Class="ScreenKit.SysInfoWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="系统信息"
+        Width="980" Height="680"
+        MinWidth="760" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="sys.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<TabControl x:Name="tabsys" Grid.Row="0" Margin="0,0,0,8"
+		            BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="sys.tabs">
+			<TabItem x:Name="tabsystem" Header="系统"
+			         AutomationProperties.AutomationId="sys.tab.sys">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbsyshint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+						<Button x:Name="bsysrefresh" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+						        AutomationProperties.AutomationId="sys.refresh"/>
+						<Button x:Name="bsyscopy" Style="{StaticResource ToolBtn}"
+						        AutomationProperties.AutomationId="sys.copy"/>
+					</StackPanel>
+					<ListView x:Name="lvsys" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+					          SelectionMode="Single"
+					          FontFamily="Consolas, Microsoft YaHei UI"
+					          AutomationProperties.AutomationId="sys.list">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colsysname" Width="220"
+								                DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colsysval" Width="520"
+								                DisplayMemberBinding="{Binding Value}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbsysstat" Grid.Row="3" Margin="0,8,0,0"
+					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabusb" Header="USB 设备"
+			         AutomationProperties.AutomationId="sys.tab.usb">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbusbhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<Grid Grid.Row="1" Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock x:Name="lbusbfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<TextBox x:Name="eusbfilter" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         VerticalContentAlignment="Center"
+						         AutomationProperties.AutomationId="usb.filter"/>
+						<Button x:Name="busbrefresh" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+						        AutomationProperties.AutomationId="usb.refresh"/>
+						<Button x:Name="busbcopy" Grid.Column="3" Style="{StaticResource ToolBtn}"
+						        AutomationProperties.AutomationId="usb.copy"/>
+					</Grid>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="1.15*" MinWidth="280"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*" MinWidth="260"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvusb" BorderBrush="{StaticResource BorderSoft}"
+						          SelectionMode="Single"
+						          AutomationProperties.AutomationId="usb.list">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colusbname" Width="220"
+									                DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colusbvid" Width="90"
+									                DisplayMemberBinding="{Binding VidPid}"/>
+									<GridViewColumn x:Name="colusbcls" Width="90"
+									                DisplayMemberBinding="{Binding ClassName}"/>
+									<GridViewColumn x:Name="colusbstatus" Width="110"
+									                DisplayMemberBinding="{Binding Status}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+						<ListView x:Name="lvusbprop" Grid.Column="2" BorderBrush="{StaticResource BorderSoft}"
+						          SelectionMode="Single"
+						          FontFamily="Consolas, Microsoft YaHei UI"
+						          AutomationProperties.AutomationId="usb.detail">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colusbprop" Width="120"
+									                DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colusbval" Width="360"
+									                DisplayMemberBinding="{Binding Value}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+					</Grid>
+					<TextBlock x:Name="lbusbstat" Grid.Row="3" Margin="0,8,0,0"
+					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabcom" Header="串口"
+			         AutomationProperties.AutomationId="sys.tab.com">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbcomhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<Grid Grid.Row="1" Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock x:Name="lbcomfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<TextBox x:Name="ecomfilter" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         VerticalContentAlignment="Center"
+						         AutomationProperties.AutomationId="com.filter"/>
+						<Button x:Name="bcomrefresh" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+						        AutomationProperties.AutomationId="com.refresh"/>
+						<Button x:Name="bcomcopy" Grid.Column="3" Style="{StaticResource ToolBtn}"
+						        AutomationProperties.AutomationId="com.copy"/>
+					</Grid>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="1.15*" MinWidth="280"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*" MinWidth="260"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvcom" BorderBrush="{StaticResource BorderSoft}"
+						          SelectionMode="Single"
+						          AutomationProperties.AutomationId="com.list">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colcomname" Width="220"
+									                DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colcomport" Width="80"
+									                DisplayMemberBinding="{Binding Com}"/>
+									<GridViewColumn x:Name="colcomcls" Width="90"
+									                DisplayMemberBinding="{Binding ClassName}"/>
+									<GridViewColumn x:Name="colcomstatus" Width="110"
+									                DisplayMemberBinding="{Binding Status}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+						<ListView x:Name="lvcomprop" Grid.Column="2" BorderBrush="{StaticResource BorderSoft}"
+						          SelectionMode="Single"
+						          FontFamily="Consolas, Microsoft YaHei UI"
+						          AutomationProperties.AutomationId="com.detail">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colcomprop" Width="120"
+									                DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colcomval" Width="360"
+									                DisplayMemberBinding="{Binding Value}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+					</Grid>
+					<TextBlock x:Name="lbcomstat" Grid.Row="3" Margin="0,8,0,0"
+					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+		</TabControl>
+		<DockPanel Grid.Row="1">
+			<Button x:Name="bclose" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
+			        AutomationProperties.AutomationId="sys.close"/>
+		</DockPanel>
+	</Grid>
+</Window>

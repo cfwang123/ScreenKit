@@ -11,6 +11,14 @@
 	var EN10 = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
 	var ENS = ["", " thousand", " million", " billion", " trillion", " quadrillion"];
 	var SUP = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹" };
+	// 每千进一位，从 10^-30 到 10^30。下标 10 是个位，没有词头。
+	var SI = [
+		["quecto", "q"], ["ronto", "r"], ["yocto", "y"], ["zepto", "z"], ["atto", "a"],
+		["femto", "f"], ["pico", "p"], ["nano", "n"], ["micro", "μ"], ["milli", "m"],
+		null,
+		["kilo", "k"], ["mega", "M"], ["giga", "G"], ["tera", "T"], ["peta", "P"],
+		["exa", "E"], ["zetta", "Z"], ["yotta", "Y"], ["ronna", "R"], ["quetta", "Q"]
+	];
 	var ROM = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
 
 	SK.regutil("u-numread", {
@@ -20,7 +28,7 @@
 		hideOut: true,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。SI 每千进一位，如 kilo、mega、zepto、yocto。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -106,6 +114,7 @@
 			["中数", scaleread(p, "mid")],
 			["大数", scaleread(p, "big")],
 			["英文读法", enread(p)],
+			["SI", siread(p)],
 			["千分位", sign(p) + group3(p.ip) + (p.fp ? "." + p.fp : "")],
 			["科学计数", sciform(p)],
 			["百分数", percent(p)],
@@ -299,6 +308,52 @@
 		var i;
 		for (i = 0; i < fp.length; i++) out.push(EN1[fp.charCodeAt(i) - 48]);
 		return out.join(" ");
+	}
+
+	function siread(p){
+		if (p.ip === "0" && !p.fp) return "0";
+		var exp;
+		var digits;
+		if (p.ip !== "0") {
+			exp = p.ip.length - 1;
+			digits = (p.ip + p.fp).replace(/0+$/, "");
+		}
+		else {
+			var i = 0;
+			while (p.fp.charAt(i) === "0") i++;
+			exp = -(i + 1);
+			digits = p.fp.slice(i);
+		}
+		var idx = Math.floor(exp / 3);
+		if (idx > 10) idx = 10;
+		if (idx < -10) idx = -10;
+		var mant = placePoint(digits, exp - idx * 3 + 1);
+		var unit = SI[idx + 10];
+		var text = mant;
+		if (unit) text += " " + unit[0] + " (" + unit[1] + ")";
+		return sign(p) + text;
+	}
+
+	function placePoint(digits, point){
+		var left;
+		var right;
+		var z;
+		if (point <= 0) {
+			left = "0";
+			right = digits;
+			for (z = 0; z < -point; z++) right = "0" + right;
+		}
+		else if (point >= digits.length) {
+			left = digits;
+			for (z = digits.length; z < point; z++) left += "0";
+			right = "";
+		}
+		else {
+			left = digits.slice(0, point);
+			right = digits.slice(point);
+		}
+		right = right.replace(/0+$/, "");
+		return left + (right ? "." + right : "");
 	}
 
 	function group3(ip){

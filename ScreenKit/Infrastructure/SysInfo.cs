@@ -118,7 +118,7 @@ static class SysInfo {
 				var d = adapter.Description1;
 				if ((d.Flags & AdapterFlags.Software) != 0) continue;
 				found.Add((d.Description?.Trim() ?? "", unchecked((uint)d.VendorId), unchecked((uint)d.DeviceId),
-					(ulong)(long)d.DedicatedVideoMemory, (ulong)(long)d.SharedSystemMemory));
+					Convert.ToUInt64(d.DedicatedVideoMemory), Convert.ToUInt64(d.SharedSystemMemory)));
 			}
 		}
 		for (var i = 0; i < found.Count; i++) {

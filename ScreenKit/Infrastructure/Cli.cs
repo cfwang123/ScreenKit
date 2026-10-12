@@ -59,7 +59,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy"
@@ -301,6 +301,8 @@ static class Cli {
 					return testnettool();
 				case "--test-usb":
 					return testusb();
+				case "--test-sysinfo":
+					return testsysinfo();
 				case "--test-httpdbg":
 					return testhttpdbg();
 				case "--test-update-notes":
@@ -4683,6 +4685,57 @@ static class Cli {
 		return 0;
 	}
 
+	static int testsysinfo() {
+		Out("=== 系统信息 --test-sysinfo ===");
+		List<UsbPair> rows;
+		try { rows = SysInfo.Scan(); }
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+		Out("sys=" + rows.Count);
+		if (rows.Count < 8) {
+			Err("系统信息太少");
+			return 1;
+		}
+		var hasGb = false;
+		var hasCpu = false;
+		foreach (var p in rows) {
+			var v = p.Value ?? "";
+			if (v.IndexOf(" GB", StringComparison.Ordinal) >= 0) hasGb = true;
+			if (v.IndexOf("GHz", StringComparison.OrdinalIgnoreCase) >= 0
+				|| v.IndexOf("Intel", StringComparison.OrdinalIgnoreCase) >= 0
+				|| v.IndexOf("AMD", StringComparison.OrdinalIgnoreCase) >= 0
+				|| v.IndexOf("Processor", StringComparison.OrdinalIgnoreCase) >= 0
+				|| v.IndexOf("CPU", StringComparison.OrdinalIgnoreCase) >= 0)
+				hasCpu = true;
+		}
+		if (!hasGb) {
+			Err("没有读到容量");
+			return 1;
+		}
+		if (!hasCpu) {
+			Err("没有读到处理器名称");
+			return 1;
+		}
+		List<UsbDev> ports;
+		try { ports = UsbList.ScanPorts(); }
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+		Out("com=" + ports.Count);
+		foreach (var d in ports) {
+			if (string.IsNullOrEmpty(d.Com) || d.Props == null || d.Props.Count == 0) {
+				Err("串口缺少端口或参数");
+				return 1;
+			}
+		}
+		if (testusb() != 0) return 1;
+		Out("=== OK：系统信息 ===");
+		return 0;
+	}
+
 	static int testhttpdbg() {
 		Out("=== HTTP 请求调试 --test-httpdbg ===");
 		var bad = HttpDebug.SelfTest(Out, Err);
@@ -5618,6 +5671,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-htmlui
   ScreenKit --test-nettool
   ScreenKit --test-usb
+  ScreenKit --test-sysinfo
   ScreenKit --test-httpdbg
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv
@@ -5707,6 +5761,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
+      --test-sysinfo  只读检查处理器、内存容量、串口和 USB 设备
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
@@ -5801,6 +5856,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-htmlui
   ScreenKit --test-nettool
   ScreenKit --test-usb
+  ScreenKit --test-sysinfo
   ScreenKit --test-httpdbg
   ScreenKit --test-update-notes
   ScreenKit --test-zhconv
