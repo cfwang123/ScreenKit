@@ -80,6 +80,17 @@
 			+ '<button type="button" id="bit-stop">停止</button>'
 			+ "</div>"
 			+ '<div class="bitkeys" id="bit-keys">' + keys() + "</div>"
+			+ '<p class="kicker">编排</p>'
+			+ '<div class="row">'
+			+ '<label>速度<input id="bit-bpm" type="number" min="40" max="240" value="120"></label>'
+			+ '<label>记谱<select id="bit-oct"><option value="-12">低八度</option><option value="0" selected>原调</option><option value="12">高八度</option></select></label>'
+			+ '<button type="button" id="bit-play">播放</button>'
+			+ '<button type="button" id="bit-songstop">停止</button>'
+			+ '<button type="button" id="bit-ex">示例</button>'
+			+ '<button type="button" id="bit-clear">清空</button>'
+			+ "</div>"
+			+ '<div class="bitgrid" id="bit-grid"></div>'
+			+ '<p class="bitmsg">四个通道：方波1、方波2、三角波、杂音。点格子再点琴键写入，写完到下一格；再点当前格就清掉。杂音点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。</p>'
 			+ '<p class="kicker">音效</p>'
 			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
 			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排。警报、火警、蜂鸣、电话再点一次就停。</p>'
@@ -118,6 +129,15 @@
 		sfx.onclick = onsfx;
 		document.getElementById("bit-demo").onclick = demo;
 		document.getElementById("bit-stop").onclick = stopaudio;
+		document.getElementById("bit-play").onclick = songplay;
+		document.getElementById("bit-songstop").onclick = function(){ songstop(); };
+		document.getElementById("bit-ex").onclick = fillex;
+		document.getElementById("bit-clear").onclick = clearsong;
+		document.getElementById("bit-bpm").onchange = function(){ readbpm(); savesong(); };
+		document.getElementById("bit-grid").onclick = ongrid;
+		document.getElementById("bit-grid").onchange = onmute;
+		loadsong();
+		paintgrid();
 		document.getElementById("bit-vol").oninput = applyvol;
 		bind();
 		placeblack();
@@ -371,6 +391,7 @@
 	}
 
 	function stopaudio(){
+		songstop();
 		cleardemo();
 		stoploop();
 		releaseall();
@@ -619,6 +640,7 @@
 		var midi = CODE[ev.code];
 		if (!midi) return;
 		ev.preventDefault();
+		if (writenote(midi)) return;
 		noteon(midi);
 	}
 
@@ -633,7 +655,293 @@
 		if (!btn) return;
 		ev.preventDefault();
 		try { btn.setPointerCapture(ev.pointerId); } catch (e) {}
-		noteon(Number(btn.getAttribute("data-midi")));
+		var midi = Number(btn.getAttribute("data-midi"));
+		if (writenote(midi)) return;
+		noteon(midi);
+	}
+
+	var STEPS = 16;
+	var CHANS = [
+		{ name: "方波1", kind: "square", duty: 0.5, peak: 0.12 },
+		{ name: "方波2", kind: "pulse", duty: 0.25, peak: 0.1 },
+		{ name: "三角波", kind: "triangle", duty: 0, peak: 0.16 },
+		{ name: "杂音", kind: "noise", duty: 0, peak: 0.22 }
+	];
+	var EX = [
+		[60, 0, 64, 0, 67, 0, 64, 0, 69, 0, 67, 0, 64, 0, 60, 0],
+		[67, 0, 72, 0, 76, 0, 72, 0, 74, 0, 72, 0, 67, 0, 64, 0],
+		[36, 0, 0, 0, 43, 0, 0, 0, 41, 0, 0, 0, 36, 0, 0, 0],
+		[2, 0, 5, 0, 2, 0, 5, 0, 2, 0, 5, 0, 2, 0, 6, 0]
+	];
+	var song = blanks();
+	var en = [true, true, true, true];
+	var bpm = 120;
+	var sel = null;
+	var playOn = false;
+	var playTimer = null;
+	var songgen = 0;
+	var nextTime = 0;
+	var cursor = 0;
+	var queued = [];
+	var heard = -1;
+
+	function blanks(){
+		var a = [];
+		var ch, s, row;
+		for (ch = 0; ch < 4; ch++) {
+			row = [];
+			for (s = 0; s < STEPS; s++) row.push(0);
+			a.push(row);
+		}
+		return a;
+	}
+
+	function notename(midi){
+		if (!midi) return "";
+		return NAMES[((midi % 12) + 12) % 12] + (Math.floor(midi / 12) - 1);
+	}
+
+	function celltext(ch, v){
+		if (!v) return "";
+		if (CHANS[ch].kind === "noise") return String(v);
+		return notename(v);
+	}
+
+	function paintgrid(){
+		var grid = document.getElementById("bit-grid");
+		var bpmel = document.getElementById("bit-bpm");
+		if (!grid) return;
+		if (bpmel) bpmel.value = String(bpm);
+		var html = "";
+		var ch, s, v, cls;
+		for (ch = 0; ch < 4; ch++) {
+			html += '<div class="bitrow"><span class="bitname">' + CHANS[ch].name + "</span>";
+			html += '<label class="check"><input type="checkbox" data-mute="' + ch + '"'
+				+ (en[ch] ? " checked" : "") + ">开</label>";
+			for (s = 0; s < STEPS; s++) {
+				v = song[ch][s];
+				cls = "bitcell";
+				if (s % 4 === 0) cls += " bar";
+				if (v) cls += " on";
+				if (sel && sel.ch === ch && sel.step === s) cls += " sel";
+				html += '<button type="button" class="' + cls + '" data-ch="' + ch
+					+ '" data-step="' + s + '">' + celltext(ch, v) + "</button>";
+			}
+			html += "</div>";
+		}
+		grid.innerHTML = html;
+		marknow(playOn ? heard : -1);
+	}
+
+	function marknow(step){
+		var nodes = document.querySelectorAll("#bit-grid .bitcell");
+		var i, on;
+		for (i = 0; i < nodes.length; i++) {
+			on = step >= 0 && Number(nodes[i].getAttribute("data-step")) === step;
+			if (on) nodes[i].classList.add("now");
+			else nodes[i].classList.remove("now");
+		}
+	}
+
+	function paintplaybtn(){
+		var b = document.getElementById("bit-play");
+		if (!b) return;
+		if (playOn) b.classList.add("primary");
+		else b.classList.remove("primary");
+	}
+
+	function ongrid(ev){
+		var cell = ev.target.closest(".bitcell");
+		if (!cell) return;
+		var ch = Number(cell.getAttribute("data-ch"));
+		var step = Number(cell.getAttribute("data-step"));
+		if (CHANS[ch].kind === "noise") {
+			var v = song[ch][step];
+			song[ch][step] = v >= 6 ? 0 : v + 1;
+			if (song[ch][step]) preview(ch, song[ch][step]);
+			sel = null;
+		}
+		else if (sel && sel.ch === ch && sel.step === step) {
+			song[ch][step] = 0;
+			sel = null;
+		}
+		else sel = { ch: ch, step: step };
+		savesong();
+		paintgrid();
+	}
+
+	function onmute(ev){
+		var m = ev.target.getAttribute && ev.target.getAttribute("data-mute");
+		if (m == null) return;
+		en[Number(m)] = !!ev.target.checked;
+		savesong();
+	}
+
+	function writenote(midi){
+		if (!sel) return false;
+		var ch = sel.ch;
+		if (CHANS[ch].kind === "noise") return false;
+		var oct = document.getElementById("bit-oct");
+		var shift = oct ? Number(oct.value) : 0;
+		if (shift !== -12 && shift !== 12) shift = 0;
+		var n = midi + shift;
+		if (n < 24) n = 24;
+		if (n > 108) n = 108;
+		song[ch][sel.step] = n;
+		preview(ch, n);
+		sel.step = (sel.step + 1) % STEPS;
+		savesong();
+		paintgrid();
+		return true;
+	}
+
+	function clearsong(){
+		song = blanks();
+		sel = null;
+		savesong();
+		paintgrid();
+	}
+
+	function fillex(){
+		var ch, s;
+		song = blanks();
+		for (ch = 0; ch < 4; ch++)
+			for (s = 0; s < STEPS; s++) song[ch][s] = EX[ch][s];
+		sel = null;
+		savesong();
+		paintgrid();
+	}
+
+	function readbpm(){
+		var el = document.getElementById("bit-bpm");
+		var v = el ? Number(el.value) : bpm;
+		if (!(v >= 40)) v = 40;
+		if (v > 240) v = 240;
+		bpm = Math.round(v);
+		if (el) el.value = String(bpm);
+		return bpm;
+	}
+
+	function stepdur(){
+		return 60 / readbpm() / 4;
+	}
+
+	function savesong(){
+		try {
+			localStorage.setItem("sk-bit-song", JSON.stringify({ bpm: bpm, en: en, song: song }));
+		}
+		catch (e) {}
+	}
+
+	function loadsong(){
+		var raw, o, ch, s, v;
+		try { raw = localStorage.getItem("sk-bit-song"); }
+		catch (e) { return; }
+		if (!raw) return;
+		try { o = JSON.parse(raw); }
+		catch (e2) { return; }
+		if (!o || !o.song || o.song.length !== 4) return;
+		for (ch = 0; ch < 4; ch++) {
+			if (!o.song[ch] || o.song[ch].length !== STEPS) return;
+			for (s = 0; s < STEPS; s++) {
+				v = Number(o.song[ch][s]);
+				if (!(v >= 0) || v > 127) v = 0;
+				song[ch][s] = v;
+			}
+			if (o.en && o.en.length === 4) en[ch] = !!o.en[ch];
+		}
+		if (o.bpm >= 40 && o.bpm <= 240) bpm = Math.round(o.bpm);
+	}
+
+	function preview(ch, value){
+		var c = ensure();
+		if (!c) return;
+		schedulevoice(ch, value, c.currentTime, 0.12);
+	}
+
+	function schedulevoice(ch, value, t, dur){
+		if (!value || !en[ch]) return;
+		var spec = CHANS[ch];
+		var c = ac;
+		var g = c.createGain();
+		var atk = 0.004;
+		var rel = Math.min(0.03, dur * 0.25);
+		var hold = dur - rel;
+		if (hold < atk) hold = atk;
+		g.gain.setValueAtTime(0.0001, t);
+		g.gain.exponentialRampToValueAtTime(spec.peak, t + atk);
+		g.gain.setValueAtTime(spec.peak, t + hold);
+		g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+		g.connect(master);
+		if (spec.kind === "noise") {
+			var src = c.createBufferSource();
+			src.buffer = noisebuf(c);
+			src.loop = true;
+			src.playbackRate.value = 0.35 + value * 0.45;
+			var flt = c.createBiquadFilter();
+			flt.type = "bandpass";
+			flt.frequency.value = 180 + value * 650;
+			flt.Q.value = 0.6;
+			src.connect(flt);
+			flt.connect(g);
+			src.start(t);
+			src.stop(t + dur);
+			remember(src);
+			return;
+		}
+		var o = makeosc(c, { wave: spec.kind, duty: spec.duty }, freq(value));
+		o.connect(g);
+		o.start(t);
+		o.stop(t + dur + 0.02);
+		remember(o);
+	}
+
+	function firestep(step, t){
+		var ch;
+		var dur = Math.max(0.04, stepdur() * 0.92);
+		for (ch = 0; ch < 4; ch++) schedulevoice(ch, song[ch][step], t, dur);
+		queued.push({ step: step, t: t });
+	}
+
+	function songplay(){
+		var c = ensure();
+		if (!c) return;
+		songstop();
+		var gen = songgen;
+		playOn = true;
+		cursor = 0;
+		nextTime = c.currentTime + 0.06;
+		queued = [];
+		paintplaybtn();
+		function pump(){
+			if (!playOn || gen !== songgen || !ac) return;
+			var horizon = ac.currentTime + 0.18;
+			var dur = stepdur();
+			var i, hear = -1;
+			while (nextTime < horizon) {
+				firestep(cursor, nextTime);
+				cursor = (cursor + 1) % STEPS;
+				nextTime += dur;
+			}
+			for (i = 0; i < queued.length; i++)
+				if (queued[i].t <= ac.currentTime) hear = queued[i].step;
+			heard = hear;
+			queued = queued.filter(function(q){ return q.t + dur > ac.currentTime - 0.05; });
+			marknow(heard);
+		}
+		pump();
+		playTimer = setInterval(pump, 40);
+	}
+
+	function songstop(){
+		songgen++;
+		playOn = false;
+		if (playTimer) clearInterval(playTimer);
+		playTimer = null;
+		queued = [];
+		heard = -1;
+		marknow(-1);
+		paintplaybtn();
 	}
 
 	function onpointerup(ev){

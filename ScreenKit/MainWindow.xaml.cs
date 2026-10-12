@@ -88,6 +88,7 @@ public partial class MainWindow : Window {
 	NetToolsWindow netToolWin;
 	ZhConvertWindow zhConvWin;
 	PinyinWindow pinyinWin;
+	HtmlUiWindow htmlUiWin;
 	WinCalWindow winCalWin;
 	JpYomiWindow jpYomiWin;
 	WinTopWindow winTopWin;
@@ -628,6 +629,7 @@ public partial class MainWindow : Window {
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
 			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv(fromTray: true)));
 			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin(fromTray: true)));
+			tray.HtmlUiRequested += () => Dispatcher.BeginInvoke(new Action(() => openhtmlui(fromTray: true)));
 			tray.WinCalRequested += () => Dispatcher.BeginInvoke(new Action(() => openwincal(fromTray: true)));
 			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi(fromTray: true)));
 			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
@@ -1563,6 +1565,7 @@ public partial class MainWindow : Window {
 		mnnettool.Click += (_, _) => opennettool();
 		mnzhconv.Click += (_, _) => openzhconv();
 		mnpinyin.Click += (_, _) => openpinyin();
+		mnhtmlui.Click += (_, _) => openhtmlui();
 		mnwincal.Click += (_, _) => openwincal();
 		mnjpyomi.Click += (_, _) => openjpyomi();
 		mnwintop.Click += (_, _) => openwintop();
@@ -1709,6 +1712,8 @@ public partial class MainWindow : Window {
 			mnzhconv.ToolTip = Loc.T("menu.zhconv.tip");
 			mnpinyin.Header = Loc.T("menu.pinyin");
 			mnpinyin.ToolTip = Loc.T("menu.pinyin.tip");
+			mnhtmlui.Header = Loc.T("menu.htmlui");
+			mnhtmlui.ToolTip = Loc.T("menu.htmlui.tip");
 			mnwincal.Header = Loc.T("menu.wincal");
 			mnwincal.ToolTip = Loc.T("menu.wincal.tip");
 			mnjpyomi.Header = Loc.T("menu.jpyomi");
@@ -4238,6 +4243,9 @@ public partial class MainWindow : Window {
 
 	void openpinyin(bool fromTray = false) =>
 		opentoolwin(ref pinyinWin, () => new PinyinWindow(), "menu.pinyin", fromTray);
+
+	void openhtmlui(bool fromTray = false) =>
+		opentoolwin(ref htmlUiWin, () => new HtmlUiWindow(), "menu.htmlui", fromTray);
 
 	void openwincal(bool fromTray = false) =>
 		opentoolwin(ref winCalWin, () => new WinCalWindow(), "menu.wincal", fromTray);

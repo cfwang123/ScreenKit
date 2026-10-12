@@ -43,6 +43,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miNetTool;
 	Forms.ToolStripMenuItem miZhConv;
 	Forms.ToolStripMenuItem miPinyin;
+	Forms.ToolStripMenuItem miHtmlUi;
 	Forms.ToolStripMenuItem miWinCal;
 	Forms.ToolStripMenuItem miJpYomi;
 	Forms.ToolStripMenuItem miWinTop;
@@ -164,6 +165,7 @@ sealed class TrayIcon : IDisposable {
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
 		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
+		miHtmlUi = item("tray.htmlui", () => HtmlUiRequested?.Invoke());
 		miWinCal = item("tray.wincal", () => WinCalRequested?.Invoke());
 		miJpYomi = item("tray.jpyomi", () => JpYomiRequested?.Invoke());
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
@@ -190,6 +192,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miNetTool);
 		miTools.DropDownItems.Add(miZhConv);
 		miTools.DropDownItems.Add(miPinyin);
+		miTools.DropDownItems.Add(miHtmlUi);
 		miTools.DropDownItems.Add(miWinCal);
 		miTools.DropDownItems.Add(miJpYomi);
 		miTools.DropDownItems.Add(miWinTop);
@@ -396,6 +399,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miNetTool, null);
 		setshortcut(miZhConv, null);
 		setshortcut(miPinyin, null);
+		setshortcut(miHtmlUi, null);
 		setshortcut(miWinCal, null);
 		setshortcut(miJpYomi, null);
 		setshortcut(miWinTop, null);
@@ -449,6 +453,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miNetTool, "tray.nettool");
 			settext(miZhConv, "tray.zhconv");
 			settext(miPinyin, "tray.pinyin");
+			settext(miHtmlUi, "tray.htmlui");
 			settext(miWinCal, "tray.wincal");
 			settext(miJpYomi, "tray.jpyomi");
 			settext(miWinTop, "tray.wintop");
@@ -547,6 +552,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action NetToolRequested;
 	public event Action ZhConvRequested;
 	public event Action PinyinRequested;
+	public event Action HtmlUiRequested;
 	public event Action WinCalRequested;
 	public event Action JpYomiRequested;
 	public event Action WinTopRequested;

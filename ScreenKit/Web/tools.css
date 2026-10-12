@@ -372,6 +372,34 @@ input[type="file"] {
 	margin: 0; font: 12px/1.45 Consolas, "Microsoft YaHei UI", monospace;
 	word-break: break-all;
 }
+#box.panel.on:has(.htmlui) { overflow: hidden; }
+#box.panel.on:has(.htmlui) #box-body {
+	flex: 1 1 auto; min-height: 0;
+	display: flex; flex-direction: column;
+}
+.htmlui { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.htmlui .hint { margin: 0; }
+.htmlui-tpl { display: flex; flex-wrap: wrap; gap: 6px; }
+.htmlui-tpl button {
+	height: 28px; padding: 0 10px; cursor: pointer;
+	border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
+	font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.htmlui-split {
+	display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 8px; flex: 1 1 auto; min-height: 0;
+}
+.htmlui-split textarea, .htmlui-split iframe {
+	width: 100%; height: 100%; min-height: 280px; box-sizing: border-box;
+	border: 1px solid var(--line); border-radius: 10px; background: #fff;
+}
+.htmlui-split textarea {
+	padding: 8px; resize: none;
+	font: 13px/1.45 Consolas, "Microsoft YaHei UI", monospace;
+}
+@media (max-width: 800px) {
+	.htmlui-split { grid-template-columns: minmax(0, 1fr); }
+}
 #box.panel.on:has(.ctab) { overflow: hidden; }
 #box.panel.on:has(.ctab) #box-body {
 	flex: 1 1 auto; min-height: 0;
@@ -499,3 +527,21 @@ input[type="file"] {
 }
 .bitkeys button.on { background: #f97316; color: #fff; border-color: #c2410c; }
 .bitmsg { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.bit .row #bit-bpm { width: 72px; height: 32px; margin: 0; padding: 4px 8px; }
+.bit .row #bit-oct { width: 96px; height: 32px; margin: 0; padding: 4px 8px; }
+.bitgrid { margin: 4px 0 8px; }
+.bitrow { display: flex; align-items: center; gap: 3px; margin: 3px 0; }
+.bitname {
+	flex: none; width: 48px; color: var(--ink); font-size: 12px; font-weight: 650;
+}
+.bitrow label.check { display: flex; align-items: center; width: 36px; margin: 0; font-size: 12px; }
+.bitrow label.check input { width: auto; height: auto; margin: 0 3px 0 0; }
+.bitcell {
+	flex: 1; min-width: 0; height: 28px; padding: 0;
+	font: 10px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	border: 1px solid #d9d3cb; background: #fff; color: #6b645c; border-radius: 4px;
+}
+.bitcell.bar { border-color: #b7afa4; }
+.bitcell.on { background: #fff1e8; color: #9a3412; border-color: #fdba74; }
+.bitcell.sel { outline: 2px solid #f97316; outline-offset: -2px; }
+.bitcell.now { box-shadow: inset 0 -3px 0 #111; }
