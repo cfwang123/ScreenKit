@@ -679,6 +679,7 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentSnapCopyAsImage = opt.SnapCopyAsImage;
 		ImageUtil.CurrentSnapCopyAsFile = opt.SnapCopyAsFile;
 		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;
+		ImageUtil.CurrentSnapPathSlash = opt.SnapPathSlash;
 		opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(opt.SnapAnnTool);
 		ImageUtil.CurrentSnapAnnTool = opt.SnapAnnTool;
 	}
@@ -3618,13 +3619,15 @@ public partial class MainWindow : Window {
 		try {
 			string path;
 			if (!string.IsNullOrWhiteSpace(curimgsrcpath) && File.Exists(curimgsrcpath)) {
-				path = curimgsrcpath;
-				ImageUtil.CopyPathToClipboard(path);
+				path = ImageUtil.CopyPathToClipboard(curimgsrcpath,
+					ImageUtil.CurrentSnapPathSlash && inscreenshotfile(curimgsrcpath));
 			}
 			else {
 				// 截图/粘贴等无源文件：落盘 screenshots/ 并复制路径文本
 				path = ImageUtil.SaveScreenshotAndCopy(curimg, "copy", copyAsImage: false,
 					copyAsFile: false, copyAsPath: true);
+				if (ImageUtil.CurrentSnapPathSlash)
+					path = path.Replace('\\', '/');
 			}
 			setstatus("已复制路径 · " + path);
 		}

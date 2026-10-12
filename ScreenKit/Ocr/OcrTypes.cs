@@ -295,6 +295,8 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsFile = false;
 	/// <summary>截图完成时复制文件完整路径文本（与 AsImage / AsFile 三选一）。</summary>
 	public bool SnapCopyAsPath = false;
+	/// <summary>复制截图路径时把反斜杠写成正斜杠。打开的其它文件不改。</summary>
+	public bool SnapPathSlash = false;
 	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。默认矩形。</summary>
 	public string SnapAnnTool = "rect";
 	/// <summary>界面语言：zh / en。</summary>
@@ -609,6 +611,7 @@ public sealed class OcrOptions {
 		SnapCopyAsImage = SnapCopyAsImage,
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,
+		SnapPathSlash = SnapPathSlash,
 		SnapAnnTool = string.IsNullOrWhiteSpace(SnapAnnTool) ? "rect" : SnapAnnTool,
 		UiLang = UiLang ?? "zh",
 		ModOcr = ModOcr,

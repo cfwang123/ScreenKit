@@ -95,6 +95,8 @@ static class AppConfig {
 				o.SnapCopyAsFile = parsebool(scaf, false);
 			if (map.TryGetValue("snap_copy_as_path", out var scap))
 				o.SnapCopyAsPath = parsebool(scap, false);
+			if (map.TryGetValue("snap_path_slash", out var sps))
+				o.SnapPathSlash = parsebool(sps, false);
 			if (map.TryGetValue("snap_ann_tool", out var sat))
 				o.SnapAnnTool = ImageUtil.NormSnapAnnTool(sat);
 			// 三选一：路径 > 文件 > 图片
@@ -614,6 +616,8 @@ static class AppConfig {
 		sb.AppendLine($"snap_copy_as_image = {(!snapFile && !snapPath ? "true" : "false")}");
 		sb.AppendLine($"snap_copy_as_file = {(snapFile ? "true" : "false")}");
 		sb.AppendLine($"snap_copy_as_path = {(snapPath ? "true" : "false")}");
+		sb.AppendLine($"# 复制截图路径时把 \\ 写成 /（默认 false）。打开的其它文件不改");
+		sb.AppendLine($"snap_path_slash = {(o.SnapPathSlash ? "true" : "false")}");
 		sb.AppendLine($"# 截图标注上次工具：none | rect | ellipse | line | arrow | text");
 		sb.AppendLine($"snap_ann_tool = \"{ImageUtil.NormSnapAnnTool(o.SnapAnnTool)}\"");
 		// 截图保存参数

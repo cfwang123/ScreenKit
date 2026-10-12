@@ -608,6 +608,9 @@ static class ImageUtil {
 	/// <summary>截图完成时是否以路径文本放入剪贴板（与 AsImage / AsFile 三选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsPath = false;
 
+	/// <summary>复制截图路径时把反斜杠写成正斜杠（主窗配置同步）。</summary>
+	public static bool CurrentSnapPathSlash = false;
+
 	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。</summary>
 	public static string CurrentSnapAnnTool = "rect";
 
@@ -851,7 +854,7 @@ static class ImageUtil {
 	static void copysnapshotclipboard(BitmapSource src, string path,
 		bool asImage, bool asFile, bool asPath) {
 		if (asPath)
-			copypathtoclipboard(path);
+			copypathtoclipboard(path, CurrentSnapPathSlash);
 		else if (asFile && !asImage)
 			copyfiletoclipboard(path);
 		else
@@ -968,9 +971,9 @@ static class ImageUtil {
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern bool GlobalUnlock(IntPtr hMem);
 
-	/// <summary>将文件完整路径作为文本写入剪贴板（公开入口，供主窗复制图片路径等）。</summary>
-	public static void CopyPathToClipboard(string path) =>
-		copypathtoclipboard(path);
+	/// <summary>将文件完整路径作为文本写入剪贴板。forwardSlash 时把反斜杠写成正斜杠。返回写入的文本。</summary>
+	public static string CopyPathToClipboard(string path, bool forwardSlash = false) =>
+		copypathtoclipboard(path, forwardSlash);
 
 	/// <summary>
 	/// 将文件完整路径作为文本写入剪贴板（可贴到终端/对话框等）。
@@ -979,11 +982,13 @@ static class ImageUtil {
 	/// 会先 OleFlushClipboard 旧图，剪贴板历史/云同步下能卡数秒到数分钟，还可能残留 DIB 导致微信粘成「▀」。
 	/// EmptyClipboard 只 Release 旧 IDataObject，不渲染延迟格式。校验只用 Win32 枚举。
 	/// </summary>
-	static void copypathtoclipboard(string path) {
+	static string copypathtoclipboard(string path, bool forwardSlash = false) {
 		if (string.IsNullOrWhiteSpace(path))
 			throw new ArgumentException("路径无效", nameof(path));
 		var full = path;
 		try { full = Path.GetFullPath(path); } catch { }
+		if (forwardSlash)
+			full = full.Replace('\\', '/');
 		Exception last = null;
 		for (var i = 0; i < 4; i++) {
 			var t0 = Environment.TickCount;
@@ -993,7 +998,7 @@ static class ImageUtil {
 				CaptureLog.Info($"copypath win32 try={i + 1} {ms}ms formats={ClipboardFormatList()}");
 				if (ms >= 200)
 					CaptureLog.Info($"copypath SLOW {ms}ms (EmptyClipboard/SetClipboardData；若仍很慢查剪贴板监听进程)");
-				if (cliptextispath(full)) return;
+				if (cliptextispath(full)) return full;
 				last = new InvalidOperationException("剪贴板校验失败: " + ClipboardFormatList());
 			}
 			catch (Exception ex) {

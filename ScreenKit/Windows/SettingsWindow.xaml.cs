@@ -397,6 +397,8 @@ public partial class SettingsWindow : Window {
 			esnapcopyimg.Content = Loc.T("set.snap.copy.img");
 			esnapcopyfile.Content = Loc.T("set.snap.copy.file");
 			esnapcopypath.Content = Loc.T("set.snap.copy.path");
+			esnappathslash.Content = Loc.T("set.snap.path.slash");
+			esnappathslash.ToolTip = Loc.T("set.snap.path.slash.tip");
 			foreach (ComboBoxItem it in esnapkeep.Items) {
 				var tag = (it.Tag as string) ?? "";
 				it.Content = Loc.T("set.keep." + tag);
@@ -529,6 +531,7 @@ public partial class SettingsWindow : Window {
 		esnapcopyimg.IsChecked = !asPath && !asFile;
 		esnapcopyfile.IsChecked = asFile;
 		esnapcopypath.IsChecked = asPath;
+		esnappathslash.IsChecked = o.SnapPathSlash;
 		// 截图历史保留天数
 		var keep = o.ScreenshotKeepDays < 0 ? 0 : o.ScreenshotKeepDays;
 		ComboBoxItem keepHit = null;
@@ -803,6 +806,7 @@ public partial class SettingsWindow : Window {
 		Result.SnapCopyAsImage = !asPath && !asFile;
 		Result.SnapCopyAsFile = asFile;
 		Result.SnapCopyAsPath = asPath;
+		Result.SnapPathSlash = esnappathslash.IsChecked == true;
 		Result.HttpEnabled = ehttpen.IsChecked == true;
 		Result.HttpOcr = ehttpocr.IsChecked == true;
 		Result.HttpTts = ehttptts.IsChecked == true;

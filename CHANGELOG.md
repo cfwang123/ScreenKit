@@ -35,7 +35,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Settings can write screenshot paths with forward slashes (snap_path_slash).
+
 ### 中文
+
+#### 新增
+
+- 参数设置可让复制截图路径时把反斜杠写成正斜杠（snap_path_slash）。
 
 ## v1.0.19 (2026-10-10 ~ 12)
 
