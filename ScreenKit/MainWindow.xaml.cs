@@ -1448,12 +1448,12 @@ public partial class MainWindow : Window {
 		// 主窗内点截图：不隐藏主窗（冻结画面会带上主窗；需要无主窗时用热键）
 		bcapture.Click += async (_, _) => await captureasync(hideMain: false);
 		bsnap.Click += async (_, _) => await snapannotateasync(restoreUi: false);
-		bsaveclip.Click += (_, _) => saveimage();
 		mnimgpaste.Click += async (_, _) => await pasteasync();
 		mnimghist.Click += (_, _) => openhistory();
 		mnimgcopy.Click += (_, _) => copyimage();
 		mnimgfile.Click += (_, _) => copyfile();
 		mnimgpath.Click += (_, _) => copypath();
+		mnimgsave.Click += (_, _) => saveimage();
 		mnimgopen.Click += (_, _) => openshotapp();
 		mnimgexp.Click += (_, _) => openshotexplorer();
 		mnimgreannot.Click += (_, _) => reannotateshot();
@@ -1724,6 +1724,8 @@ public partial class MainWindow : Window {
 			mnimgcopy.Header = Loc.T("img.menu.copy");
 			mnimgfile.Header = Loc.T("img.menu.file");
 			mnimgpath.Header = Loc.T("img.menu.path");
+			mnimgsave.Header = Loc.T("img.menu.save");
+			mnimgsave.ToolTip = Loc.T("img.menu.save.tip");
 			mnimgopen.Header = Loc.T("img.menu.open");
 			mnimgopen.ToolTip = Loc.T("img.menu.open.tip");
 			mnimgexp.Header = Loc.T("img.menu.explorer");
@@ -1737,8 +1739,6 @@ public partial class MainWindow : Window {
 			mnimgclear.Header = Loc.T("img.menu.clear");
 			mnimgclear.ToolTip = Loc.T("img.menu.clear.tip");
 			try { histwin?.ApplyLang(); } catch { }
-			tbsave.Text = Loc.T("tb.save");
-			bsaveclip.ToolTip = Loc.T("tb.save.tip");
 			tbtext.Text = Loc.T("tb.text");
 			btoggletext.ToolTip = Loc.T("tb.text.tip");
 			tbtr.Text = Loc.T("tb.tr");
@@ -3371,6 +3371,7 @@ public partial class MainWindow : Window {
 		mnimgcopy.IsEnabled = on;
 		mnimgfile.IsEnabled = on;
 		mnimgpath.IsEnabled = on;
+		mnimgsave.IsEnabled = on && !busy;
 		mnimgopen.IsEnabled = on;
 		mnimgexp.IsEnabled = on;
 		mnimgreannot.IsEnabled = on;
@@ -4670,8 +4671,8 @@ public partial class MainWindow : Window {
 		// 图区按钮
 		bcapture.IsEnabled = !on;
 		bsnap.IsEnabled = !on;
-		bsaveclip.IsEnabled = !on;
 		mnimgpaste.IsEnabled = !on;
+		mnimgsave.IsEnabled = !on && curimg != null;
 		// 菜单
 		mncapture.IsEnabled = !on;
 		mnsnap.IsEnabled = !on;

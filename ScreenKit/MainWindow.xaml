@@ -329,12 +329,6 @@
 														<TextBlock x:Name="tbsnap" Text="截图标注" VerticalAlignment="Center"/>
 													</StackPanel>
 												</Button>
-												<Button x:Name="bsaveclip" ToolTip="将当前图片保存到文件">
-													<StackPanel Orientation="Horizontal">
-														<TextBlock Text="&#xE74E;" Style="{StaticResource tbico}"/>
-														<TextBlock x:Name="tbsave" Text="保存" VerticalAlignment="Center"/>
-													</StackPanel>
-												</Button>
 												<Separator/>
 												<ToggleButton x:Name="btoggletext" IsChecked="True"
 												              ToolTip="叠加识别文字；在文字上拖选">
@@ -379,6 +373,8 @@
 												          AutomationProperties.AutomationId="img.menu.file"/>
 												<MenuItem x:Name="mnimgpath" Header="复制为路径"
 												          AutomationProperties.AutomationId="img.menu.path"/>
+												<MenuItem x:Name="mnimgsave" Header="保存图片"
+												          AutomationProperties.AutomationId="img.menu.save"/>
 												<Separator/>
 												<MenuItem x:Name="mnimgopen" Header="系统打开"
 												          AutomationProperties.AutomationId="img.menu.open"/>
@@ -609,7 +605,7 @@
 									<ComboBox x:Name="ettslang" MinWidth="140" Height="32" Margin="0,0,8,0"
 									          VerticalContentAlignment="Center"
 									          AutomationProperties.AutomationId="tts.lang"
-									          ToolTip="按语言筛选。有名称的语言在前，其余按代码排列"/>
+									          ToolTip="按语言筛选。每一项都显示语言名称"/>
 									<ComboBox x:Name="ettsgender" Width="110" Height="32"
 									          VerticalContentAlignment="Center"
 									          ToolTip="按性别筛选发音人"/>
