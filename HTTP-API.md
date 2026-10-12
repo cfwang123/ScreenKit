@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|

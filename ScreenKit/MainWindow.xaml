@@ -26,9 +26,6 @@
 				<MenuItem x:Name="mnsaveclip" Header="保存图片(_S)"
 				          ToolTip="将当前图片保存为 PNG/JPEG/BMP 文件"/>
 				<Separator/>
-				<MenuItem x:Name="mnpdf" Header="PDF 识别工作台(_P)…"
-				          ToolTip="识别、编辑、存草稿、导出可检索 PDF"/>
-				<Separator/>
 				<MenuItem x:Name="mnexit" Header="退出(_X)" InputGestureText="Alt+F4"/>
 			</MenuItem>
 			<MenuItem x:Name="mncap" Header="截图(_C)"
@@ -118,6 +115,10 @@
 			</MenuItem>
 			<MenuItem x:Name="mntools" Header="工具(_T)"
 			          AutomationProperties.AutomationId="menu.tools">
+				<MenuItem x:Name="mnpdf" Header="PDF 识别工作台(_F)…"
+				          AutomationProperties.AutomationId="menu.pdf"
+				          ToolTip="识别、编辑、存草稿、导出可检索 PDF"/>
+				<Separator/>
 				<MenuItem x:Name="mnweb" Header="web工具(_B)"
 				          AutomationProperties.AutomationId="menu.webtools"
 				          ToolTip="在浏览器打开本机工具页">
@@ -406,7 +407,7 @@
 											<Canvas x:Name="poverlay"/>
 										</Canvas>
 										<TextBlock x:Name="lbhint"
-										           Text="菜单「截图」识别 / 标注 ·「文件」粘贴 / PDF&#x0a;也可拖入图片 · 滚轮缩放 · 文字拖选 · Ctrl+C 复制"
+										           Text="菜单「截图」识别 / 标注 · 右键粘贴、截图历史&#x0a;也可拖入图片 · 滚轮缩放 · 文字拖选 · Ctrl+V 粘贴"
 										           Foreground="#8A93A3" FontSize="14"
 										           HorizontalAlignment="Center" VerticalAlignment="Center"
 										           TextAlignment="Center" LineHeight="24"/>

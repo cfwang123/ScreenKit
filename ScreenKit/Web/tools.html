@@ -25,6 +25,7 @@
 			<button type="button" data-cat="speech" data-title="语音" data-kt="web.cat.speech"><i class="fa-solid fa-volume-high"></i><span data-k="web.cat.speech">语音</span></button>
 			<button type="button" data-cat="time" data-title="历法" data-kt="web.cat.time"><i class="fa-solid fa-calendar-days"></i><span data-k="web.cat.time">历法</span></button>
 			<button type="button" data-cat="image" data-title="图像" data-kt="web.cat.image"><i class="fa-solid fa-image"></i><span data-k="web.cat.image">图像</span></button>
+			<button type="button" data-cat="talk" data-title="交流" data-kt="web.cat.talk"><i class="fa-solid fa-comments"></i><span data-k="web.cat.talk">交流</span></button>
 		</nav>
 		<a class="files" href="/files" target="_blank" rel="noopener"><i class="fa-solid fa-folder"></i><span data-k="web.files">文件传输</span></a>
 		<label class="lang"><select id="lang"></select></label>
@@ -179,6 +180,10 @@
 					<i class="fa-solid fa-percent"></i><span data-k="web.tool.comp">复利</span>
 					<i class="star fa-solid fa-star" data-fav="u-comp" title="收藏"></i>
 				</button>
+				<button type="button" data-tool="chat" data-cat="talk" data-name="聊天室 昵称 性别" title="进入前填写昵称和性别，同一台电脑上的人互相发文字">
+					<i class="fa-solid fa-comments"></i><span data-k="web.tool.chat">聊天室</span>
+					<i class="star fa-solid fa-star" data-fav="chat" title="收藏"></i>
+				</button>
 				<button type="button" data-tool="u-fake" data-cat="text" data-name="生成测试数据 测试数据 假数据 中文姓名 中文网名 英文网名 邮箱 手机 地址 公司 用户名 身份证 mac 地址 uuid" title="按类型生成，一行一条">
 					<i class="fa-solid fa-user-group"></i><span data-k="web.tool.fake">生成测试数据</span>
 					<i class="star fa-solid fa-star" data-fav="u-fake" title="收藏"></i>
@@ -186,6 +191,37 @@
 
 			</div>
 			<p id="tool-none" class="none" hidden data-k="web.find.none">没有匹配的工具</p>
+		</section>
+
+		<section id="chat" class="panel">
+			<h1>聊天室</h1>
+			<div id="chat-gate">
+				<div class="row">
+					<label><span data-k="web.chat.nick">昵称</span>
+						<input id="chat-nick" maxlength="16" autocomplete="nickname"/>
+					</label>
+					<label><span data-k="web.chat.gender">性别</span>
+						<select id="chat-gender">
+							<option value="" data-k="web.chat.secret">保密</option>
+							<option value="m" data-k="web.chat.m">男</option>
+							<option value="f" data-k="web.chat.f">女</option>
+						</select>
+					</label>
+					<button type="button" id="chat-join" class="primary" data-k="web.chat.join">进入</button>
+					<span id="chat-msg" class="msg"></span>
+				</div>
+			</div>
+			<div id="chat-room" hidden>
+				<div class="chatmain">
+					<div id="chat-log"></div>
+					<aside id="chat-peers"></aside>
+				</div>
+				<div class="row" id="chat-sendrow">
+					<input id="chat-text" maxlength="500" data-kph="web.chat.ph" placeholder="说点什么"/>
+					<button type="button" id="chat-send" class="primary" data-k="web.chat.send">发送</button>
+					<button type="button" id="chat-leave" class="ghost" data-k="web.chat.leave">离开</button>
+				</div>
+			</div>
 		</section>
 
 		<section id="box" class="panel">

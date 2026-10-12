@@ -12,6 +12,7 @@ namespace ScreenKit;
 /// HTTP API（Umi 兼容 OCR + 本项目扩展）。
 /// <list type="bullet">
 /// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
+/// <item>WebSocket /chat 工具页聊天室（昵称、性别，文字）</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
 /// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
@@ -83,6 +84,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			sock = null;
 		}
 		try { s?.Stop(); } catch { }
+		ChatRoom.CloseAll();
 	}
 
 	void handle(SockCtx ctx) {
@@ -104,6 +106,10 @@ sealed partial class HttpOcrServer : IDisposable {
 			var optNow = getOpts?.Invoke() ?? new OcrOptions();
 			if (path is "/cast") {
 				handlecast(ctx);
+				return;
+			}
+			if (path is "/chat") {
+				handlechatws(ctx);
 				return;
 			}
 			if (path is "/sk/l.js") {
@@ -488,6 +494,29 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 		catch (Exception ex) {
 			Logged?.Invoke($"cast ws: {ex.Message}");
+			if (!ctx.Upgraded)
+				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
+		}
+	}
+
+	void handlechatws(SockCtx ctx) {
+		var req = ctx.Request;
+		var up = req.Headers["Upgrade"] ?? "";
+		var wsreq = req.IsWebSocketRequest
+			|| up.IndexOf("websocket", StringComparison.OrdinalIgnoreCase) >= 0;
+		if (!wsreq) {
+			writejson(ctx, 426, err(805, "请用 WebSocket 连接 /chat"));
+			return;
+		}
+		try {
+			if (!ctx.TryUpgrade()) {
+				writejson(ctx, 400, err(400, "缺少 Sec-WebSocket-Key"));
+				return;
+			}
+			ChatRoom.Attach(ctx.Net, ctx.Prefetch);
+		}
+		catch (Exception ex) {
+			Logged?.Invoke($"chat ws: {ex.Message}");
 			if (!ctx.Upgraded)
 				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
 		}
@@ -2082,6 +2111,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}",
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
+			"WebSocket /chat  工具页聊天室",
 		};
 		if (o.HttpOcr && o.ModOcr) {
 			a.Add("GET  /api/ocr/models");

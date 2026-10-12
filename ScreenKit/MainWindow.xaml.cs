@@ -1473,7 +1473,6 @@ public partial class MainWindow : Window {
 		// 文件菜单
 		mnpaste.Click += async (_, _) => await pasteasync();
 		mnsaveclip.Click += (_, _) => saveimage();
-		mnpdf.Click += (_, _) => openpdfworkbench();
 		mnexit.Click += (_, _) => RequestExit();
 		// 截图菜单
 		mncapture.Click += async (_, _) => await captureasync(hideMain: false);
@@ -1506,6 +1505,7 @@ public partial class MainWindow : Window {
 		};
 		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
+		mnpdf.Click += (_, _) => openpdfworkbench();
 		mntools.SubmenuOpened += (_, e) => {
 			if (!ReferenceEquals(e.OriginalSource, mntools)) return;
 			fillwebmenu();

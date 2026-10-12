@@ -411,3 +411,25 @@ input[type="file"] {
 	font: 12px/1.4 Consolas, "Microsoft YaHei UI", monospace;
 }
 .cnone { margin: 8px; color: var(--muted); }
+#chat.panel.on { overflow: hidden; }
+#chat-room { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.chatmain { display: flex; gap: 12px; flex: 1; min-height: 0; }
+#chat-log {
+	flex: 1; min-width: 0; overflow: auto;
+	border: 1px solid var(--line); border-radius: 8px;
+	padding: 10px 12px; background: var(--paper);
+}
+#chat-peers {
+	width: 168px; flex: none; overflow: auto;
+	border: 1px solid var(--line); border-radius: 8px;
+	padding: 8px 10px; background: #fff;
+}
+.chatline { margin: 0 0 8px; word-break: break-word; }
+.chatline .who { font-weight: 650; margin-right: 8px; }
+.chatline.sys { color: var(--muted); }
+.chatline.mine .who { color: var(--accent); }
+.g-m { color: #2a6fdb; }
+.g-f { color: #c43b6e; }
+.peer { padding: 2px 0; }
+#chat-sendrow { margin-top: 10px; }
+#chat-text { flex: 1; min-width: 0; }

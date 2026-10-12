@@ -36,6 +36,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
+- The web tools page has a **Chat room** under Talk. A nickname and a gender (private, male, or female) are required before entering. The last nickname and gender are kept in the browser. People on the same ScreenKit talk over WebSocket `/chat`. Text is kept only in memory and is dropped when the program exits. A nickname already in the room is rejected.
 - Edge and the other speech engines show a language name for every code in the filter, such as Afrikaans (af). Chinese, English, Japanese, Korean, Vietnamese, Cantonese, French, German, and Spanish stay at the top.
 - Text convert on the tools page has Swap next to Copy. It exchanges the source and the result, and drops a conversion that has not come back yet.
 - Right-click the screenshot area to paste (a picture, a copied image file, or an image path), open screenshot history, copy as an image, file, or path, save the picture, open with the default app, show in Explorer, annotate again, recognize text or a barcode, or clear the picture and its results.
@@ -47,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- PDF workbench is on the Tools menu. It is no longer on the File menu.
 - The tools page no longer has the HTML table card.
 - Packing the slim release deletes runtime files from `bin/Release/ScreenKit/` before the archive is built: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. A Release build removes the same files when it refreshes that folder.
 - The screenshot toolbar no longer has History, Paste, Copy image, or Save. Paste, screenshot history, and Save image are on the picture's right-click menu. Paste also accepts text that is an image path. The File menu still has Save image.
@@ -71,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
+- web 工具增加 **聊天室**，在「交流」分类。进入前填写昵称和性别（保密、男、女）。浏览器记住上次的昵称和性别。同一台 ScreenKit 上的人通过 WebSocket `/chat` 发文字。内容只留在内存里，程序退出后没有了。已经有人用的昵称不能再进。
 - Edge 以及其它语音引擎的语言筛选都会显示名称，例如南非荷兰语 (af)。中文、英文、日文、韩文、越南语、粤语、法语、德语、西班牙语仍排在前面。
 - 工具页「文本转换」在复制旁边增加「交换」。点一下把原文和结果对调，还没回来的转换会被丢掉。
 - 截图区右键可以粘贴（图片、复制的图片文件或图片路径）、打开截图历史、复制为图片、文件或路径、保存图片，用系统打开，在资源管理器中查看，重新标注，做文字识别或条码识别，以及清空当前图片和识别结果。
@@ -82,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
+- PDF 识别工作台改到「工具」菜单，不再放在「文件」菜单。
 - 工具页去掉 HTML 表格。
 - 打精简发布包前，先删掉 `bin/Release/ScreenKit/` 里运行时留下的 `screenshots/`、`log/`、`sendfile/`、`tmp/`、`config.toml` 和 `*.log`。Release 编译刷新这个目录时同样删掉这些文件。
 - 截图工具栏去掉截图历史、粘贴、复制图和保存。粘贴、截图历史和保存图片改到图片右键菜单。粘贴也接受一段图片路径。文件菜单仍有保存图片。
