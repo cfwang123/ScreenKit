@@ -1218,7 +1218,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 | 行为 | 说明 |
 |------|------|
-| OCR 模型 | 未指定 `ocr.engine` 和 `ocr.language` 时跟主窗。`ocr.engine=winocr`（或 `ocr.language=winocr`）走 Windows 系统 OCR，语言用 `ocr.language`，缺省为主窗 `win_ocr_langs`，不加载 ONNX。主窗已是系统 OCR 时，`ocr.engine=onnx` 或一个 ONNX 变体标题改回模型包。边长仍用 `ocr.maxSideLen`，缺省跟主窗 `det_limit` |
+| OCR 模型 | 未指定 `ocr.engine` 和 `ocr.language` 时跟主窗。`ocr.engine=winocr`（或 `ocr.language=winocr`）走 Windows 系统 OCR，语言用 `ocr.language`，缺省为主窗 `win_ocr_langs`，不加载 ONNX。主窗已是系统 OCR 时，`ocr.engine=onnx` 或一个 ONNX 变体标题改回模型包。`ocr.maxSideLen` 只约束 ONNX。Windows OCR 不按它缩小，缺省语言仍跟主窗 `win_ocr_langs` |
 | 设备 | 可用 `ocr.device` 覆盖；否则用主窗设备配置 |
 | 服务模式 | `service_mode = true` 时启动预热，引擎常驻，适合频繁 API 调用；不按空闲卸载 |
 | 空闲卸载 | `onnx_unload_min`（默认 5）分钟内未使用则卸载 OCR、翻译、人脸、语音识别和合成。`0` 表示不自动卸载。服务模式开启时忽略 |

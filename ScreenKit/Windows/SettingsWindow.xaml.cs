@@ -619,6 +619,9 @@ public partial class SettingsWindow : Window {
 		evariant.Visibility = hide;
 		psetonnx.Visibility = hide;
 		psetth.Visibility = hide;
+		lbsetdetlen.Visibility = hide;
+		lbsetdetlenhint.Visibility = hide;
+		if (edetlen.Parent is System.Windows.UIElement detrow) detrow.Visibility = hide;
 		if (win) {
 			var langs = WinOcr.Languages();
 			ewinlang.ItemsSource = langs;

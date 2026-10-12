@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR no longer shrinks a short strip just because its long side exceeds the detection limit.
 - Windows OCR enlarges an image whose short side is under 72 pixels so small gray text is not reduced to the last word.
 - Chinese usernames stay as family name plus given name. Bogus was stripping the characters and leaving only a separator or digits.
+- Windows OCR ignores the detection side limit. A short text line is enlarged about 2x with Lanczos so a small second line is kept, and punctuation sitting against a word is not split off with a space.
 
 ### 中文
 
@@ -66,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR 遇到扁图时不再按检测边长缩小，避免小字被丢掉。
 - Windows OCR 会把短边不足 72 像素的图先放大，避免浅色小字只剩最后一个词。
 - 中文用户名改为姓加名。原先 Bogus 会抹掉汉字，只剩分隔符或数字。
+- Windows OCR 不再按检测边长缩小。字行太矮时用 Lanczos 放大约 2 倍，避免短行被丢掉；紧挨着的标点不再被拆成带空格的词。
 
 ## v1.0.19 (2026-10-10 ~ 12)
 

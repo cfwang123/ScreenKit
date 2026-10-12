@@ -1363,6 +1363,8 @@ public partial class MainWindow : Window {
 		evariant.Visibility = hide;
 		lbdevice.Visibility = hide;
 		edevice.Visibility = hide;
+		lbdetlen.Visibility = hide;
+		edetlen.Visibility = hide;
 		if (!win) return;
 		lbwinlang.Text = Loc.T("ocr.win.lang");
 		ewinlang.ToolTip = Loc.T("ocr.win.lang.tip");
@@ -1413,7 +1415,7 @@ public partial class MainWindow : Window {
 		try { AppConfig.Save(opt); } catch { }
 		if (!reload) return;
 		if (WinOcr.Is(opt)) {
-			var wlabel = $"Windows OCR · {WinOcr.Summary(opt)} · 边长{opt.DetLimitSideLen}";
+			var wlabel = $"Windows OCR · {WinOcr.Summary(opt)}";
 			if (opt.ServiceMode)
 				tryservicewarmup($"已切换 · {wlabel}");
 			else {
@@ -4041,13 +4043,13 @@ public partial class MainWindow : Window {
 			? "Windows OCR"
 			: (string.IsNullOrWhiteSpace(opt.ModelVariant) ? (opt.ModelPackId ?? "模型") : opt.ModelVariant);
 		ocrMetaText = winocr
-			? $"识别中 · Windows OCR · {WinOcr.Summary(opt)} · 边长{opt.DetLimitSideLen}"
+			? $"识别中 · Windows OCR · {WinOcr.Summary(opt)}"
 			: $"识别中 · {pack} · {dev} · 边长{opt.DetLimitSideLen}";
 		syncresultmetafromtab();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		lbocrruntitle.Text = Loc.T("ocr.running");
 		lbocrrunhint.Text = winocr
-			? $"Windows OCR · {WinOcr.Summary(opt)} · 边长 {opt.DetLimitSideLen}"
+			? $"Windows OCR · {WinOcr.Summary(opt)}"
 			: $"{pack} · {dev} · 边长 {opt.DetLimitSideLen}\n检测 → 方向 → 识别";
 		eresult.Text = "";
 		last = null;
@@ -4618,7 +4620,8 @@ public partial class MainWindow : Window {
 		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
 		var loadPart = r.LoadMs > 0 ? $" · 加载 {(r.LoadMs / 1000.0):0.00}s" : "";
 		// 详细耗时/置信度等只写右侧识别结果区，顶部状态不重复
-		ocrMetaBase = $"推理 {inferS}s · 端到端 {wallS}s{loadPart} | 置信度 {conf:0.00} | {r.DeviceUsed}{model}{res} | {r.Lines.Count} 行 | 边长{opt.DetLimitSideLen}";
+		var sidePart = WinOcr.Is(opt) ? "" : $" | 边长{opt.DetLimitSideLen}";
+		ocrMetaBase = $"推理 {inferS}s · 端到端 {wallS}s{loadPart} | 置信度 {conf:0.00} | {r.DeviceUsed}{model}{res} | {r.Lines.Count} 行{sidePart}";
 		ocrTrMs = 0;
 		applyocrmeta();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");

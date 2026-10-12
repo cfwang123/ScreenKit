@@ -19,11 +19,11 @@ sealed class WinOcrLang {
 /// </summary>
 static class WinOcr {
 	public const string PackId = "winocr";
-	const int MAXSIDE = 4096;
-	/// <summary>缩小后短边低于这个值就不再按检测边长缩小，避免扁图上的小字被丢掉。</summary>
-	const int THIN = 80;
 	/// <summary>短边低于这个值就放大。大约 40 像素高的浅色小字，Windows OCR 只会剩最后一个词。</summary>
 	const int MINSHORT = 72;
+	/// <summary>墨水行矮于这个值就按 2 倍放大。大约 16 像素的路径行，原图和双线性放大都整行丢失。</summary>
+	const int TEXTPX = 24;
+	const int TAP = 6;
 
 	public static bool IsId(string id) =>
 		string.Equals(id, PackId, StringComparison.OrdinalIgnoreCase);
@@ -93,7 +93,7 @@ static class WinOcr {
 			throw new FileNotFoundException("图像不存在", path);
 		return offsta(() => {
 			using var fs = File.OpenRead(path);
-			var bmp = decode(fs, limitof(opt), out var w, out var h, out var scale);
+			var bmp = decode(fs, out var w, out var h, out var scale);
 			return withsize(recognizebmp(opt, bmp, scale), w, h);
 		});
 	}
@@ -103,7 +103,7 @@ static class WinOcr {
 			throw new InvalidOperationException("图像为空");
 		return offsta(() => {
 			using var ms = new MemoryStream(image, false);
-			var bmp = decode(ms, limitof(opt), out var w, out var h, out var scale);
+			var bmp = decode(ms, out var w, out var h, out var scale);
 			return withsize(recognizebmp(opt, bmp, scale), w, h);
 		});
 	}
@@ -138,51 +138,99 @@ static class WinOcr {
 		return avail.Count > 0 ? avail[0].Tag : "";
 	}
 
-	/// <summary>长边上限。扁图若缩到短边过小，则只受 <see cref="MAXSIDE"/> 限制。</summary>
-	static int scalecap(int width, int height, int limit) {
-		var maxs = Math.Max(width, height);
-		if (maxs <= limit) return maxs;
-		var mins = Math.Min(width, height);
-		var nextMin = mins * (limit / (double)maxs);
-		if (nextMin < THIN) return Math.Min(maxs, MAXSIDE);
-		return limit;
+	/// <summary>引擎能接受的长边。检测边长不参与，只守这个上限。</summary>
+	static int maxside() {
+		try {
+			var n = (int)WinMedia.OcrEngine.MaxImageDimension;
+			if (n >= 256) return n;
+		}
+		catch { }
+		return 10000;
 	}
 
-	/// <summary>先按长边上限缩小，短边仍然太小再放大。返回相对原图的比例。</summary>
-	static double fitscale(int width, int height, int limit) {
+	/// <summary>准备送进引擎的图。不按检测边长缩小；字行太矮则 Lanczos 放大。</summary>
+	static byte[] prepare(byte[] bgra, int width, int height, out int dw, out int dh, out double scale) {
+		var cap = maxside();
+		scale = 1;
+		dw = width;
+		dh = height;
+		var work = bgra;
 		var maxs = Math.Max(width, height);
-		var cap = scalecap(width, height, limit);
-		double scale = 1;
-		if (maxs > cap) scale = cap / (double)maxs;
-		var mins = Math.Min(width, height) * scale;
-		if (mins >= MINSHORT || mins < 1) return scale;
-		var up = MINSHORT / mins;
-		var longAfter = maxs * scale * up;
-		if (longAfter > MAXSIDE) up = MAXSIDE / (maxs * scale);
-		if (up > 1.02) scale *= up;
-		return scale;
+		if (maxs > cap) {
+			scale = cap / (double)maxs;
+			dw = Math.Max(1, (int)Math.Round(width * scale));
+			dh = Math.Max(1, (int)Math.Round(height * scale));
+			work = resizebgra(bgra, width, height, width * 4, dw, dh);
+		}
+		var grow = growof(work, dw, dh, cap);
+		if (grow > 1.02) {
+			var fw = Math.Max(1, (int)Math.Round(dw * grow));
+			var fh = Math.Max(1, (int)Math.Round(dh * grow));
+			work = lanczos(work, dw, dh, dw * 4, fw, fh);
+			scale *= grow;
+			dw = fw;
+			dh = fh;
+		}
+		return work;
 	}
 
-	static int limitof(OcrOptions opt) {
-		var limit = opt == null || opt.DetLimitSideLen <= 0 ? 1024 : opt.DetLimitSideLen;
-		if (limit < 320) limit = 320;
-		if (limit > MAXSIDE) limit = MAXSIDE;
-		return limit;
+	static double growof(byte[] bgra, int width, int height, int cap) {
+		double grow = 1;
+		var band = inkband(bgra, width, height);
+		if (band >= 6 && band < TEXTPX) grow = 2;
+		var maxs = Math.Max(width, height);
+		if (maxs * grow > cap) grow = cap / (double)maxs;
+		var mins = Math.Min(width, height) * grow;
+		if (mins < MINSHORT && mins >= 1) {
+			var up = MINSHORT / mins;
+			if (maxs * grow * up > cap) up = cap / (maxs * grow);
+			if (up > 1.02) grow *= up;
+		}
+		if (grow < 1) grow = 1;
+		return grow;
+	}
+
+	/// <summary>最矮的一行墨水有多高。照片般的碎块返回 0，不再放大。</summary>
+	static int inkband(byte[] bgra, int w, int h) {
+		if (bgra == null || w < 8 || h < 8) return 0;
+		int lum(int x, int y) {
+			var i = (y * w + x) * 4;
+			return (bgra[i] * 11 + bgra[i + 1] * 59 + bgra[i + 2] * 30) / 100;
+		}
+		var bg = (lum(2, 2) + lum(w - 3, 2) + lum(2, h - 3) + lum(w - 3, h - 3)) / 4;
+		var need = Math.Max(6, w / 80);
+		var ink = new bool[h];
+		for (int y = 0; y < h; y++) {
+			int n = 0;
+			var row = y * w * 4;
+			for (int x = 0; x < w; x++) {
+				var i = row + x * 4;
+				var v = (bgra[i] * 11 + bgra[i + 1] * 59 + bgra[i + 2] * 30) / 100;
+				if (v < bg - 28 || v > bg + 28) n++;
+			}
+			ink[y] = n >= need;
+		}
+		int best = 0, run = 0, bands = 0;
+		void close() {
+			if (run >= 6) {
+				bands++;
+				if (best == 0 || run < best) best = run;
+			}
+			run = 0;
+		}
+		for (int y = 0; y < h; y++) {
+			if (ink[y]) run++;
+			else close();
+		}
+		close();
+		if (bands == 0 || bands > 40) return 0;
+		return best;
 	}
 
 	static OcrResult recognizebgra(OcrOptions opt, byte[] bgra, int width, int height) {
 		if (bgra == null || width < 1 || height < 1)
 			throw new InvalidOperationException("图像为空");
-		var limit = limitof(opt);
-		var scale = fitscale(width, height, limit);
-		var work = bgra;
-		var dw = width;
-		var dh = height;
-		if (Math.Abs(scale - 1) > 0.001) {
-			dw = Math.Max(1, (int)Math.Round(width * scale));
-			dh = Math.Max(1, (int)Math.Round(height * scale));
-			work = resizebgra(bgra, width, height, width * 4, dw, dh);
-		}
+		var work = prepare(bgra, width, height, out var dw, out var dh, out var scale);
 		var bmp = SoftwareBitmap.CreateCopyFromBuffer(
 			work.AsBuffer(), BitmapPixelFormat.Bgra8, dw, dh, BitmapAlphaMode.Ignore);
 		return withsize(recognizebmp(opt, bmp, scale), width, height);
@@ -217,7 +265,7 @@ static class WinOcr {
 			var inv = (float)(1.0 / scale);
 			if (raw?.Lines != null) {
 				foreach (var line in raw.Lines) {
-					var text = normtext(line.Text);
+					var text = linewords(line);
 					if (text.Length == 0) continue;
 					var box = linebox(line, inv);
 					if (box == null) continue;
@@ -238,7 +286,7 @@ static class WinOcr {
 		}
 	}
 
-	static SoftwareBitmap decode(Stream stream, int limit, out int width, out int height, out double scale) {
+	static SoftwareBitmap decode(Stream stream, out int width, out int height, out double scale) {
 		using var ras = stream.AsRandomAccessStream();
 		var decoder = wait(Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(ras).AsTask());
 		var sw = (int)decoder.PixelWidth;
@@ -246,20 +294,30 @@ static class WinOcr {
 		if (sw < 1 || sh < 1) throw new InvalidOperationException("图像为空");
 		width = sw;
 		height = sh;
-		scale = fitscale(sw, sh, limit);
+		var cap = maxside();
 		var transform = new BitmapTransform {
 			InterpolationMode = BitmapInterpolationMode.Linear,
 		};
-		if (Math.Abs(scale - 1) > 0.001) {
-			transform.ScaledWidth = (uint)Math.Max(1, (int)Math.Round(sw * scale));
-			transform.ScaledHeight = (uint)Math.Max(1, (int)Math.Round(sh * scale));
+		var dw = sw;
+		var dh = sh;
+		if (Math.Max(sw, sh) > cap) {
+			var pre = cap / (double)Math.Max(sw, sh);
+			dw = Math.Max(1, (int)Math.Round(sw * pre));
+			dh = Math.Max(1, (int)Math.Round(sh * pre));
+			transform.ScaledWidth = (uint)dw;
+			transform.ScaledHeight = (uint)dh;
 		}
-		return wait(decoder.GetSoftwareBitmapAsync(
+		var data = wait(decoder.GetPixelDataAsync(
 			BitmapPixelFormat.Bgra8,
 			BitmapAlphaMode.Ignore,
 			transform,
 			ExifOrientationMode.IgnoreExifOrientation,
 			ColorManagementMode.DoNotColorManage).AsTask());
+		var pixels = data.DetachPixelData();
+		var work = prepare(pixels, dw, dh, out var fw, out var fh, out var rel);
+		scale = (dw / (double)sw) * rel;
+		return SoftwareBitmap.CreateCopyFromBuffer(
+			work.AsBuffer(), BitmapPixelFormat.Bgra8, fw, fh, BitmapAlphaMode.Ignore);
 	}
 
 	static byte[] copybgra(BitmapSource src) {
@@ -274,6 +332,100 @@ static class WinOcr {
 		var pixels = new byte[stride * h];
 		bgra.CopyPixels(pixels, stride, 0);
 		return pixels;
+	}
+
+	/// <summary>词距很小时不插空格，避免 <c>D:\path</c> 被写成 <c>D : \path</c>。</summary>
+	static string linewords(WinMedia.OcrLine line) {
+		if (line?.Words == null || line.Words.Count == 0) return normtext(line?.Text);
+		var sb = new StringBuilder();
+		double prevR = 0;
+		var any = false;
+		foreach (var w in line.Words) {
+			var t = w?.Text;
+			if (string.IsNullOrEmpty(t)) continue;
+			var rc = w.BoundingRect;
+			if (any) {
+				var gap = rc.X - prevR;
+				var h = rc.Height > 1 ? rc.Height : 12;
+				if (gap > h * 0.42) sb.Append(' ');
+			}
+			sb.Append(t);
+			if (rc.Width > 0) prevR = rc.X + rc.Width;
+			any = true;
+		}
+		var text = normtext(sb.ToString());
+		if (text.Length == 0) return normtext(line.Text);
+		return text;
+	}
+
+	static double l3(double x) {
+		x = Math.Abs(x);
+		if (x < 1e-8) return 1;
+		if (x >= 3) return 0;
+		var p = Math.PI * x;
+		var q = p / 3;
+		return Math.Sin(p) / p * Math.Sin(q) / q;
+	}
+
+	static void fillw(int dn, int sn, int[] idx, double[] wt) {
+		for (int x = 0; x < dn; x++) {
+			var sx = (x + 0.5) * sn / (double)dn - 0.5;
+			var i0 = (int)Math.Floor(sx) - 2;
+			double sum = 0;
+			for (int k = 0; k < TAP; k++) {
+				var si = i0 + k;
+				if (si < 0) si = 0;
+				if (si >= sn) si = sn - 1;
+				idx[x * TAP + k] = si;
+				var lw = l3(sx - (i0 + k));
+				wt[x * TAP + k] = lw;
+				sum += lw;
+			}
+			if (Math.Abs(sum) < 1e-6) sum = 1;
+			for (int k = 0; k < TAP; k++) wt[x * TAP + k] /= sum;
+		}
+	}
+
+	/// <summary>可分离 Lanczos-3。双线性放大后，大约 16 像素的第二行会整行丢失。</summary>
+	static byte[] lanczos(byte[] src, int sw, int sh, int sstride, int dw, int dh) {
+		var xidx = new int[dw * TAP];
+		var xwt = new double[dw * TAP];
+		fillw(dw, sw, xidx, xwt);
+		var tmp = new float[dw * sh * 4];
+		for (int y = 0; y < sh; y++) {
+			var row = y * sstride;
+			for (int x = 0; x < dw; x++) {
+				var di = (y * dw + x) * 4;
+				var b = x * TAP;
+				for (int c = 0; c < 4; c++) {
+					double v = 0;
+					for (int k = 0; k < TAP; k++)
+						v += src[row + xidx[b + k] * 4 + c] * xwt[b + k];
+					if (v < 0) v = 0;
+					if (v > 255) v = 255;
+					tmp[di + c] = (float)v;
+				}
+			}
+		}
+		var yidx = new int[dh * TAP];
+		var ywt = new double[dh * TAP];
+		fillw(dh, sh, yidx, ywt);
+		var dst = new byte[dw * dh * 4];
+		for (int y = 0; y < dh; y++) {
+			var b = y * TAP;
+			for (int x = 0; x < dw; x++) {
+				var di = (y * dw + x) * 4;
+				for (int c = 0; c < 4; c++) {
+					double v = 0;
+					for (int k = 0; k < TAP; k++)
+						v += tmp[(yidx[b + k] * dw + x) * 4 + c] * ywt[b + k];
+					if (v < 0) v = 0;
+					if (v > 255) v = 255;
+					dst[di + c] = (byte)Math.Round(v);
+				}
+			}
+		}
+		return dst;
 	}
 
 	static byte[] resizebgra(byte[] src, int sw, int sh, int sstride, int dw, int dh) {

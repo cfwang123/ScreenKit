@@ -1088,7 +1088,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8")))
 
 | Behavior | Description |
 |----------|-------------|
-| OCR model | With `ocr.engine` and `ocr.language` omitted, follows the main window. `ocr.engine=winocr` (or `ocr.language=winocr`) uses Windows OCR. Its language is `ocr.language`, or the main window `win_ocr_langs` when omitted, and no ONNX model is loaded. When the main window is already Windows OCR, `ocr.engine=onnx` or an ONNX variant title switches back to a model pack. `ocr.maxSideLen` still applies and defaults to the main window `det_limit` |
+| OCR model | With `ocr.engine` and `ocr.language` omitted, follows the main window. `ocr.engine=winocr` (or `ocr.language=winocr`) uses Windows OCR. Its language is `ocr.language`, or the main window `win_ocr_langs` when omitted, and no ONNX model is loaded. When the main window is already Windows OCR, `ocr.engine=onnx` or an ONNX variant title switches back to a model pack. `ocr.maxSideLen` applies only to ONNX. Windows OCR does not shrink to it. The language still defaults to the main window `win_ocr_langs` |
 | Device | May override with `ocr.device`; otherwise uses main-window device |
 | Service mode | `service_mode = true` preloads engines for frequent API calls and does not unload them on idle |
 | Idle unload | `onnx_unload_min` (default 5) unloads OCR, translation, face, speech recognition, and speech synthesis after that many idle minutes. `0` disables it. Ignored while service mode is on |
