@@ -279,6 +279,7 @@ sealed partial class HttpOcrServer {
 		bad = null;
 		var engineRaw = jo["engine"]?.GetValue<string>() ?? "";
 		var modelName = jo["model"]?.GetValue<string>() ?? "";
+		var lang = jo["lang"]?.GetValue<string>() ?? "";
 		var voice = jo["voice"]?.GetValue<string>()
 			?? jo["speaker"]?.GetValue<string>() ?? "";
 		int? sid = null;
@@ -296,7 +297,7 @@ sealed partial class HttpOcrServer {
 			return false;
 		}
 		if (kind == null)
-			kind = inferengine(modelName, voice);
+			kind = lang.Trim().Length > 0 ? engineforlang(lang) : inferengine(modelName, voice);
 		if (kind == TtsEngineKind.Sherpa && svc?.TtsEngine == null) {
 			bad = err(921, "TTS 引擎不可用（Sherpa）");
 			return false;
@@ -312,13 +313,13 @@ sealed partial class HttpOcrServer {
 			string engOut;
 			if (kind == TtsEngineKind.Sapi)
 				(samples, sr, provider, modelOut, voiceOut, sidOut, engOut) =
-					synthsapi(text, voice, sid, speed, volume);
+					synthsapi(text, voice, sid, speed, volume, lang);
 			else if (kind == TtsEngineKind.WinRt)
 				(samples, sr, provider, modelOut, voiceOut, sidOut, engOut) =
-					synthwinrt(text, voice, sid, speed, volume);
+					synthwinrt(text, voice, sid, speed, volume, lang);
 			else if (kind == TtsEngineKind.Edge)
 				(samples, sr, provider, modelOut, voiceOut, sidOut, engOut) =
-					synthedge(text, voice, sid, speed, volume);
+					synthedge(text, voice, sid, speed, volume, lang);
 			else
 				(samples, sr, provider, modelOut, voiceOut, sidOut, engOut) =
 					synthsherpa(text, modelName, sidVal, speed, compute);
@@ -479,12 +480,12 @@ sealed partial class HttpOcrServer {
 	}
 
 	(float[] samples, int sr, string provider, string model, string voice, int sid, string engine)
-		synthsapi(string text, string voice, int? sid, float speed, int volume) {
+		synthsapi(string text, string voice, int? sid, float speed, int volume, string lang = null) {
 		refreshvoices();
 		var list = cachedSapiVoices ?? new List<SapiVoiceItem>();
 		if (list.Count == 0)
 			throw new InvalidOperationException("无可用 SAPI 发音人");
-		var pick = pickvoice(list, voice, sid);
+		var pick = pickvoice(list, voice, sid, lang);
 		if (pick == null)
 			throw new InvalidOperationException("未找到 SAPI 发音人: " + (voice ?? ""));
 		var rate = (int)Math.Round((speed - 1.0) * 10);
@@ -519,12 +520,12 @@ sealed partial class HttpOcrServer {
 	}
 
 	(float[] samples, int sr, string provider, string model, string voice, int sid, string engine)
-		synthwinrt(string text, string voice, int? sid, float speed, int volume) {
+		synthwinrt(string text, string voice, int? sid, float speed, int volume, string lang = null) {
 		refreshvoices();
 		var list = cachedWinRtVoices ?? new List<SapiVoiceItem>();
 		if (list.Count == 0)
 			throw new InvalidOperationException("无可用 Windows 语音");
-		var pick = pickvoice(list, voice, sid);
+		var pick = pickvoice(list, voice, sid, lang);
 		if (pick == null)
 			throw new InvalidOperationException("未找到 Windows 语音: " + (voice ?? ""));
 		var segs = TtsTextSplitter.Split(text);
@@ -556,12 +557,12 @@ sealed partial class HttpOcrServer {
 	}
 
 	(float[] samples, int sr, string provider, string model, string voice, int sid, string engine)
-		synthedge(string text, string voice, int? sid, float speed, int volume) {
+		synthedge(string text, string voice, int? sid, float speed, int volume, string lang = null) {
 		lock (edgeGate) {
 			var eng = ensureedge();
 			var list = eng.LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult().ToList();
 			cachedEdgeVoices = list;
-			var pick = pickvoice(list, voice, sid);
+			var pick = pickvoice(list, voice, sid, lang);
 			if (pick == null)
 				throw new InvalidOperationException("未找到 Edge 在线发音人: " + (voice ?? ""));
 			if (!eng.SelectVoice(pick.Key))
@@ -637,7 +638,30 @@ sealed partial class HttpOcrServer {
 		return false;
 	}
 
-	static SapiVoiceItem pickvoice(List<SapiVoiceItem> list, string voice, int? sid) {
+	TtsEngineKind engineforlang(string lang) {
+		refreshvoices();
+		if (voicelang(cachedWinRtVoices, lang) != null) return TtsEngineKind.WinRt;
+		if (voicelang(cachedSapiVoices, lang) != null) return TtsEngineKind.Sapi;
+		return TtsEngineKind.Edge;
+	}
+
+	static SapiVoiceItem voicelang(List<SapiVoiceItem> list, string lang) {
+		if (list == null || list.Count == 0) return null;
+		var q = (lang ?? "").Trim().Replace('_', '-');
+		if (q.Length == 0) return null;
+		var exact = list.FirstOrDefault(v =>
+			string.Equals(v.Culture, q, StringComparison.OrdinalIgnoreCase));
+		if (exact != null) return exact;
+		var two = SapiVoiceItem.LangOf(q);
+		var same = list.FirstOrDefault(v =>
+			!string.IsNullOrEmpty(v.Culture)
+			&& v.Culture.StartsWith(two + "-", StringComparison.OrdinalIgnoreCase));
+		if (same != null) return same;
+		return list.FirstOrDefault(v =>
+			string.Equals(v.Lang, two, StringComparison.OrdinalIgnoreCase));
+	}
+
+	static SapiVoiceItem pickvoice(List<SapiVoiceItem> list, string voice, int? sid, string lang = null) {
 		if (list == null || list.Count == 0) return null;
 		var q = (voice ?? "").Trim();
 		if (q.Length > 0) {
@@ -659,6 +683,8 @@ sealed partial class HttpOcrServer {
 				|| Compat.Contains(v.DisplayName, q, StringComparison.OrdinalIgnoreCase));
 			return hit;
 		}
+		var byLang = voicelang(list, lang);
+		if (byLang != null) return byLang;
 		if (sid != null && sid.Value >= 0 && sid.Value < list.Count)
 			return list[sid.Value];
 		return list.FirstOrDefault(v => v.Lang == "zh")

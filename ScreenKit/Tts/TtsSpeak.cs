@@ -23,12 +23,7 @@ static class TtsSpeak {
 	public static List<TtsOutDev> Devices() {
 		var list = new List<TtsOutDev>();
 		using var en = new MMDeviceEnumerator();
-		var defId = "";
-		try {
-			using var def = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
-			defId = def?.ID ?? "";
-		}
-		catch { }
+		var defId = defaultid(en);
 		var i = 0;
 		foreach (var d in en.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)) {
 			using (d) {
@@ -43,6 +38,20 @@ static class TtsSpeak {
 			i++;
 		}
 		return list;
+	}
+
+	/// <summary>系统「默认设备」。先控制台，没有再退到多媒体。</summary>
+	static string defaultid(MMDeviceEnumerator en) {
+		try {
+			using var def = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
+			if (!string.IsNullOrEmpty(def?.ID)) return def.ID;
+		}
+		catch { }
+		try {
+			using var def = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+			return def?.ID ?? "";
+		}
+		catch { return ""; }
 	}
 
 	/// <summary>空列表用默认设备。下标、id、完整名称或唯一的名称片段都可以。</summary>

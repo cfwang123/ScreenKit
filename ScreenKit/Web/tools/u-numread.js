@@ -131,15 +131,11 @@
 	}
 
 	function speak(text, lang){
-		var syn = window.speechSynthesis;
-		if (!syn || typeof SpeechSynthesisUtterance !== "function") {
-			SK.msg("box-msg", "无法发音", true);
-			return;
-		}
-		syn.cancel();
-		var u = new SpeechSynthesisUtterance(text);
-		if (lang) u.lang = lang;
-		syn.speak(u);
+		SK.post("/api/tts/speak", {
+			text: text,
+			lang: lang || "",
+			play: "now"
+		}, function(){}, "box-msg");
 	}
 
 	function numread(text){

@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - GET /api/fonts caches the installed font list for 10 minutes. An empty list is not cached.
 - The 2D Cross tool draws only a vertical line and lists where that line meets the curve.
 - Clicking an 8-bit effect stops the others. Volume starts at 100%.
+- Number notation speak plays through the system default output device.
 
 #### Fixed
 
@@ -91,6 +92,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - GET /api/fonts 把已安装字体列表缓存 10 分钟。空列表不缓存。
 - 二维 Cross 只画竖线，并显示这条线与曲线的交点。
 - 8bit 合成器点一个音效会停掉其它正在响的。音量默认 100%。
+- 数字表记的发音改走系统默认播放设备。
 
 #### 修复
 
