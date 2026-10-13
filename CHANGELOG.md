@@ -40,6 +40,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Settings can write screenshot paths with forward slashes (snap_path_slash).
 - Function plots can draw equations such as x^2+y^2=1, and Examples opens a list of curves and surfaces.
 - 3D function plots can switch among a shaded surface, a grid, points, and contour lines.
+- Unicode, ASCII, and GBK charts can draw with an installed font. GET /api/fonts lists the system fonts. The choice is remembered.
 
 #### Changed
 
@@ -47,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - RMB in words is a row on Number notation. The separate card is gone. A non-negative amount of at most 12 integer digits is rounded to fen; otherwise the row is blank.
 - Number notation no longer shows a row when that reading has no value.
 - Number notation accepts integers longer than 129 digits. The whole entry still stops at 10000 characters.
+- Number notation accepts scientific input such as 1e9 and 1e-9, expanded from the digit string.
 
 #### Fixed
 
@@ -68,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 参数设置可让复制截图路径时把反斜杠写成正斜杠（snap_path_slash）。
 - 函数图像可以画 x^2+y^2=1 这类等式，点「示例」后从列表里选曲线或曲面。
 - 三维函数图像可在曲面、网格、点阵、等高线之间切换。
+- Unicode、ASCII、GBK 码表可以用本机已安装的字体显示。GET /api/fonts 列出系统字体。选过的字体会记住。
 
 #### 变更
 
@@ -75,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 人民币大写并入数字表记，不再单独成卡。非负且整数不超过 12 位时四舍五入到分；否则该行留空。
 - 数字表记不再显示没有值的行。
 - 数字表记不再把整数限制在 129 位。整段输入超过 10000 个字符时仍提示太长。
+- 数字表记可输入 1e9、1e-9 这种科学计数，按数字字符串展开。
 
 #### 修复
 

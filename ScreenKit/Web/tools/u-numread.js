@@ -91,7 +91,7 @@
 		hideOut: true,
 		live: false,
 		body: function(){
-			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
+			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
 				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
@@ -173,13 +173,45 @@
 		}
 		if (s.charAt(s.length - 1) === ".") s = s.slice(0, -1);
 		if (!s) return null;
-		if (!/^\d+(\.\d+)?$/.test(s)) throw new Error("请输入数字");
-		var parts = s.split(".");
-		var ip = parts[0].replace(/^0+/, "") || "0";
-		var fp = (parts[1] || "").replace(/0+$/, "");
+		var exp = 0;
+		var em = /^(\d+(?:\.\d+)?)[eE]([+\-−]?\d+)$/.exec(s);
+		if (em) {
+			s = em[1];
+			exp = readexp(em[2]);
+		}
+		else if (!/^\d+(\.\d+)?$/.test(s)) throw new Error("请输入数字");
+		var shifted = shiftdigits(s, exp);
+		var ip = shifted.ip.replace(/^0+/, "") || "0";
+		var fp = shifted.fp.replace(/0+$/, "");
 		if (fp.length > FRACU.length) throw new Error("小数部分最多 " + FRACU.length + " 位");
 		if (ip === "0" && !fp) neg = false;
 		return { neg: neg, ip: ip, fp: fp };
+	}
+
+	function readexp(raw){
+		var t = raw.replace("−", "-");
+		var digits = t.charAt(0) === "+" || t.charAt(0) === "-" ? t.slice(1) : t;
+		if (digits.length > 5) throw new Error("太长");
+		return parseInt(t, 10);
+	}
+
+	// 按指数挪小数点。位数用字符串保存，不经过浮点。
+	function shiftdigits(s, exp){
+		var dot = s.indexOf(".");
+		var digits = dot < 0 ? s : s.slice(0, dot) + s.slice(dot + 1);
+		var point = (dot < 0 ? digits.length : dot) + exp;
+		var i;
+		if (point >= digits.length) {
+			if (point > 10000) throw new Error("太长");
+			for (i = digits.length; i < point; i++) digits += "0";
+			return { ip: digits, fp: "" };
+		}
+		if (point <= 0) {
+			if (digits.length - point > 10000) throw new Error("太长");
+			for (i = 0; i < -point; i++) digits = "0" + digits;
+			return { ip: "0", fp: digits };
+		}
+		return { ip: digits.slice(0, point), fp: digits.slice(point) };
 	}
 
 	function makerows(p){
