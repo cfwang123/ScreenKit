@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Character bitmaps turns each character into a dot matrix from a font and pixel size, then exports a C array, hex, or a dot picture.
 - Character bitmaps can shift the dots with X and Y offsets.
 - The file-transfer sign-in page and the file page link to the web tools home (/).
+- ASCII character art has a threshold from 0 to 255. Brightness at or below it becomes a space. 0 keeps the full range.
 
 #### Changed
 
@@ -97,6 +98,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字符取模按字体和字号把每个字符画成点阵，可导出 C 数组、十六进制或点阵文本。
 - 字符取模可以用 X、Y 偏移挪动点阵。
 - 文件传输的登录页和文件页可以回到工具主页（/）。
+- 单色 ASCII 字符画增加 threshold（0～255）。亮度不超过该值的地方用空格，0 表示不截断。
 
 #### 变更
 

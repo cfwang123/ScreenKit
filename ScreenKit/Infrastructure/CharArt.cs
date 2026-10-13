@@ -159,11 +159,13 @@ static class CharArt {
 		return buf;
 	}
 
-	/// <summary>纯 ASCII。字符格子大约两倍高，按列数算出行数。</summary>
-	public static string Ascii(byte[] px, int w, int h, int cols, bool invert) {
+	/// <summary>纯 ASCII。字符格子大约两倍高，按列数算出行数。threshold 为 0～255，不超过它的亮度用空格。</summary>
+	public static string Ascii(byte[] px, int w, int h, int cols, bool invert, int threshold) {
 		if (px == null || w < 1 || h < 1) return "";
 		if (cols < 1) cols = 1;
 		if (cols > 400) cols = 400;
+		if (threshold < 0) threshold = 0;
+		if (threshold > 255) threshold = 255;
 		var rows = (int)Math.Round(h / (double)w * cols / CELL_ASPECT);
 		if (rows < 1) rows = 1;
 		if (rows > 400) rows = 400;
@@ -177,7 +179,13 @@ static class CharArt {
 				var c = sample(px, w, h, (x0 + x1) / 2, (y0 + y1) / 2);
 				var lum = c < 0 ? 0 : (red(c) * 2126 + green(c) * 7152 + blue(c) * 722) / 10000;
 				if (invert) lum = 255 - lum;
-				var i = lum * (RAMP.Length - 1) / 255;
+				var i = 0;
+				if (lum > threshold) {
+					var span = 255 - threshold;
+					if (span < 1) span = 1;
+					i = (lum - threshold) * (RAMP.Length - 1) / span;
+					if (i >= RAMP.Length) i = RAMP.Length - 1;
+				}
 				sb.Append(RAMP[i]);
 			}
 			if (y + 1 < rows) sb.Append('\n');
@@ -380,10 +388,18 @@ static class CharArt {
 		fill(white, 4, 2, 0, 4, 255, 255, 255);
 		var black = new byte[4 * 2 * 4];
 		fill(black, 4, 2, 0, 4, 0, 0, 0);
-		var aw = Ascii(white, 4, 2, 4, false);
-		var ab = Ascii(black, 4, 2, 4, false);
+		var aw = Ascii(white, 4, 2, 4, false, 0);
+		var ab = Ascii(black, 4, 2, 4, false, 0);
 		if (aw.IndexOf('@') < 0 || ab.Trim().Length != 0 || !isascii(aw) || !isascii(ab)) {
 			bad("charart ascii");
+			return 1;
+		}
+		var dim = solid(4, 2, 80, 80, 80);
+		var cut = Ascii(dim, 4, 2, 4, false, 128);
+		var hi = Ascii(white, 4, 2, 4, false, 255);
+		var kept = Ascii(white, 4, 2, 4, false, 128);
+		if (cut.Trim().Length != 0 || hi.Trim().Length != 0 || kept.IndexOf('@') < 0) {
+			bad("charart threshold");
 			return 1;
 		}
 		Fit(100, 50, 50, 20, out var fw, out var fh, out var fox, out var foy);

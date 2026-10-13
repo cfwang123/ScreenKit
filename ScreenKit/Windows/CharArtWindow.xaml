@@ -31,6 +31,11 @@
 			         AutomationProperties.AutomationId="charart.cols"/>
 			<CheckBox x:Name="ckinv" Content="反色" VerticalAlignment="Center" Margin="12,0,0,0"
 			          AutomationProperties.AutomationId="charart.invert"/>
+			<TextBlock x:Name="lbth" Text="阈值" VerticalAlignment="Center" Margin="12,0,6,0"/>
+			<TextBox x:Name="eth" Width="64" Height="30" Text="0" Padding="6,4"
+			         VerticalContentAlignment="Center"
+			         BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="charart.threshold"/>
 		</DockPanel>
 		<TextBlock x:Name="lbhint" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}"

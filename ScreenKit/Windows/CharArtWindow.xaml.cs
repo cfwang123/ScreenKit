@@ -25,6 +25,7 @@ public partial class CharArtWindow : Window {
 		bcopy.Click += (_, _) => copy();
 		bcolor.Click += (_, _) => color();
 		ecols.TextChanged += (_, _) => showascii();
+		eth.TextChanged += (_, _) => showascii();
 		ckinv.Checked += (_, _) => showascii();
 		ckinv.Unchecked += (_, _) => showascii();
 		eout.AllowDrop = true;
@@ -37,6 +38,8 @@ public partial class CharArtWindow : Window {
 	void applylang() {
 		Title = Loc.T("charart.title");
 		lbcols.Text = Loc.T("charart.cols");
+		lbth.Text = Loc.T("charart.threshold");
+		eth.ToolTip = Loc.T("charart.threshold.tip");
 		ckinv.Content = Loc.T("charart.invert");
 		lbhint.Text = Loc.T("charart.hint");
 		ToolBtnUi.Set(bpick, ToolBtnUi.Browse, Loc.T("charart.pick"));
@@ -164,7 +167,11 @@ public partial class CharArtWindow : Window {
 		int.TryParse((ecols.Text ?? "").Trim(), out cols);
 		if (cols < 1) cols = 1;
 		if (cols > 400) cols = 400;
-		eout.Text = CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true);
+		var threshold = 0;
+		int.TryParse((eth.Text ?? "").Trim(), out threshold);
+		if (threshold < 0) threshold = 0;
+		if (threshold > 255) threshold = 255;
+		eout.Text = CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold);
 		var lines = 1;
 		foreach (var ch in eout.Text)
 			if (ch == '\n') lines++;
