@@ -29,8 +29,11 @@ input[type=password],input[type=text]{height:36px;padding:0 10px;border:1px soli
 .login .langline button:hover{background:#f3f4f6}
 .langline button.on,.login .langline button.on{background:#2563eb;border-color:#2563eb;color:#fff}
 .tools .langline{margin:0}
-.switch{margin-top:12px;text-align:right}
+.switch{margin-top:12px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:14px}
 .switch a{display:inline-flex;align-items:center;gap:6px}
+.tools a.toolhome{height:32px;padding:0 12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;
+	display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.tools a.toolhome:hover{background:#f3f4f6;text-decoration:none}
 #main{min-height:100%;display:flex;flex-direction:column}
 header{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 20px 10px}
 .brand{display:flex;align-items:baseline;gap:10px;margin-bottom:8px}

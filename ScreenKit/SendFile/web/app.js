@@ -168,6 +168,9 @@ window.sfweb = (function(){
 		settxt("empty", zh ? "这个文件夹是空的" : "This folder is empty");
 		settxt("lpc", zh ? "手机版" : "Phone");
 		settxt("ldesk", zh ? "电脑版" : "Desktop");
+		settxt("lhome", zh ? "工具主页" : "Tools home");
+		settxt("lhomebar", zh ? "工具主页" : "Tools home");
+		setaria("mhome", zh ? "工具主页" : "Tools home");
 		setaria("crumbs", zh ? "当前位置" : "Location");
 		setaria("mprofile", zh ? "账户" : "Account");
 		setaria("mdocknav", zh ? "文件操作" : "File actions");
@@ -182,6 +185,7 @@ window.sfweb = (function(){
 		settxt("lmselcopy", zh ? "复制链接" : "Copy link");
 		settxt("lmselrename", zh ? "改名" : "Rename");
 		settxt("lmseldel", zh ? "删除" : "Delete");
+		settxt("lmhome", zh ? "工具主页" : "Tools home");
 		settxt("lmcheckupdate", zh ? "检查更新" : "Check for updates");
 		settxt("lmlogout", zh ? "退出登录" : "Sign out");
 		settxt("mupdatetitle", zh ? "检查更新" : "Check for updates");

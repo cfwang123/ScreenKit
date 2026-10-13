@@ -48,13 +48,14 @@ input[type=password]:focus{outline:none;border-color:#b8c6ff;box-shadow:0 0 0 3p
 	border:1px solid var(--line);color:var(--ink)}
 .langline button.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .sheet-lang{margin:0 0 12px}
-.switch{margin-top:20px;text-align:center}
+.switch{margin-top:20px;display:flex;justify-content:center;flex-wrap:wrap;gap:18px}
 .switch a{display:inline-flex;align-items:center;gap:6px;color:#8a9099;font-size:14px}
 .switch a .ico{width:16px;height:16px}
 
 .app{width:100%;max-width:720px;min-height:100vh;margin:0 auto;padding-bottom:calc(124px + var(--safe-bottom))}
 .profile{width:44px;height:44px;border:1px solid var(--line);border-radius:15px;background:var(--surface);
 	color:var(--ink);display:grid;place-items:center;box-shadow:0 4px 16px rgba(27,31,59,.05);flex:0 0 auto}
+a.profile{color:var(--ink);text-decoration:none}
 .profile .ico{width:20px;height:20px}
 
 .path-wrap{position:sticky;top:0;z-index:5;padding:calc(8px + env(safe-area-inset-top,0px)) 12px 9px;
@@ -161,6 +162,7 @@ input[type=password]:focus{outline:none;border-color:#b8c6ff;box-shadow:0 0 0 3p
 .sheet-list{display:grid;gap:7px}
 .sheet-choice{height:50px;padding:0 15px;border-radius:14px;background:var(--surface-soft);color:var(--ink);
 	display:flex;align-items:center;justify-content:space-between;font-weight:700;text-align:left;width:100%}
+.sheet-list a.sheet-choice{color:var(--ink);text-decoration:none}
 .sheet-choice .ico{width:19px;height:19px}
 
 .dialog{position:fixed;z-index:35;left:50%;top:50%;width:min(calc(100% - 32px),420px);padding:22px;
