@@ -183,7 +183,6 @@
 		var shifted = shiftdigits(s, exp);
 		var ip = shifted.ip.replace(/^0+/, "") || "0";
 		var fp = shifted.fp.replace(/0+$/, "");
-		if (fp.length > FRACU.length) throw new Error("小数部分最多 " + FRACU.length + " 位");
 		if (ip === "0" && !fp) neg = false;
 		return { neg: neg, ip: ip, fp: fp };
 	}
@@ -207,9 +206,12 @@
 			return { ip: digits, fp: "" };
 		}
 		if (point <= 0) {
-			if (digits.length - point > 10000) throw new Error("太长");
-			for (i = 0; i < -point; i++) digits = "0" + digits;
-			return { ip: "0", fp: digits };
+			var lead = -point;
+			if (digits.length + lead > 10000) throw new Error("太长");
+			var bits = [];
+			for (i = 0; i < lead; i++) bits.push("0");
+			bits.push(digits);
+			return { ip: "0", fp: bits.join("") };
 		}
 		return { ip: digits.slice(0, point), fp: digits.slice(point) };
 	}
@@ -391,6 +393,7 @@
 	}
 
 	function scaleread(p, mode){
+		if (p.fp.length > FRACU.length) return "";
 		var body = "";
 		if (p.ip !== "0") body = readscale(p.ip, expsFor(mode));
 		if (p.fp) {

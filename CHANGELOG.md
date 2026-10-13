@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation no longer shows a row when that reading has no value.
 - Number notation accepts integers longer than 129 digits. The whole entry still stops at 10000 characters.
 - Number notation accepts scientific input such as 1e9 and 1e-9, expanded from the digit string.
+- Number notation no longer caps the decimal length. A Chinese scale row is omitted when a place is smaller than 涅槃寂静.
 
 #### Fixed
 
@@ -79,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记不再显示没有值的行。
 - 数字表记不再把整数限制在 129 位。整段输入超过 10000 个字符时仍提示太长。
 - 数字表记可输入 1e9、1e-9 这种科学计数，按数字字符串展开。
+- 数字表记不再限制小数位数。小数位小于「涅槃寂静」时，小数、中数、大数三行不显示。
 
 #### 修复
 
