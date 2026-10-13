@@ -873,6 +873,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .plot-bar .plot-seg button {
 	height: 30px; margin: 0; border: 0; border-radius: 999px; background: transparent;
 }
+.plot-bar .plot-seg button.on { background: var(--accent); color: var(--accent-ink); }
 .plot-bar .plot-seg button:hover:not(.on) { background: #e8e1d8; }
 .plot-style button i { margin-right: 6px; }
 .plot-ex { position: relative; }
