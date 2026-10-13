@@ -48,7 +48,9 @@ sealed partial class HttpOcrServer : IDisposable {
 	SendFileServer sendFile;
 	public bool LanAll;
 	public event Action<string> Logged;
+	const int FONTCACHEMS = 10 * 60 * 1000;
 	static string[] fontNames;
+	static int lastfonts;
 	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
@@ -757,7 +759,8 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	static string[] systemfonts() {
-		if (fontNames != null) return fontNames;
+		var now = Environment.TickCount;
+		if (fontNames != null && unchecked(now - lastfonts) < FONTCACHEMS) return fontNames;
 		var set = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
 		try {
 			using var col = new InstalledFontCollection();
@@ -770,6 +773,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		catch { }
 		if (set.Count == 0) return Array.Empty<string>();
 		fontNames = set.ToArray();
+		lastfonts = now;
 		return fontNames;
 	}
 

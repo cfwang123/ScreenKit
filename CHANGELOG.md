@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Function plots can draw equations such as x^2+y^2=1, and Examples opens a list of curves and surfaces.
 - 3D function plots can switch among a shaded surface, a grid, points, and contour lines.
 - Unicode, ASCII, and GBK charts can draw with an installed font. GET /api/fonts lists the system fonts. The choice is remembered.
+- 2D function plots include a Cross tool, on by default, that lists where the crosshair meets the curve.
 
 #### Changed
 
@@ -51,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation accepts scientific input such as 1e9 and 1e-9, expanded from the digit string.
 - Number notation no longer caps the decimal length. A Chinese scale row is omitted when a place is smaller than 涅槃寂静.
 - The drawing board opens on the pen, black, at 2 px.
+- GET /api/fonts caches the installed font list for 10 minutes. An empty list is not cached.
 
 #### Fixed
 
@@ -73,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 函数图像可以画 x^2+y^2=1 这类等式，点「示例」后从列表里选曲线或曲面。
 - 三维函数图像可在曲面、网格、点阵、等高线之间切换。
 - Unicode、ASCII、GBK 码表可以用本机已安装的字体显示。GET /api/fonts 列出系统字体。选过的字体会记住。
+- 二维函数图像增加 Cross，默认开启，显示十字线与曲线的交点坐标。
 
 #### 变更
 
@@ -83,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记可输入 1e9、1e-9 这种科学计数，按数字字符串展开。
 - 数字表记不再限制小数位数。小数位小于「涅槃寂静」时，小数、中数、大数三行不显示。
 - 画板进入后使用黑色、2 像素的画笔。
+- GET /api/fonts 把已安装字体列表缓存 10 分钟。空列表不缓存。
 
 #### 修复
 

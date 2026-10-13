@@ -1,6 +1,10 @@
 (function(){
 	var mode = "2";
 	var style = "fill";
+	var crossOn = true;
+	var hover = null;
+	var plate = null;
+	var plateKey = "";
 	var fn = null;
 	var implicit = false;
 	var docOn = false;
@@ -51,6 +55,7 @@
 			+ '<div class="plot-bar">'
 			+ '<button type="button" data-mode="2" class="on" data-k="web.plot.y">' + SK.esc(tt("web.plot.y", "y = f(x)")) + "</button>"
 			+ '<button type="button" data-mode="3" data-k="web.plot.z">' + SK.esc(tt("web.plot.z", "z = f(x, y)")) + "</button>"
+			+ '<button type="button" class="on" data-act="cross" data-ktip="web.plot.crossTip" title="' + SK.esc(tt("web.plot.crossTip", "十字线与曲线的交点。再点一次关闭。")) + '"><i class="fa-solid fa-crosshairs"></i><span data-k="web.plot.cross">' + SK.esc(tt("web.plot.cross", "Cross")) + "</span></button>"
 			+ '<span class="plot-style" hidden>'
 			+ styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面")
 			+ styleBtn("grid", "fa-border-all", "web.plot.grid", "网格")
@@ -65,7 +70,7 @@
 			+ '<button type="button" data-act="reset" data-k="web.plot.reset">' + SK.esc(tt("web.plot.reset", "复位")) + "</button>"
 			+ "</div>"
 			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。等式如 x^2+y^2=1 会画出曲线。点「示例」可选择。")) + "</p>"
-			+ '<div class="plot-stage"><canvas id="plot-cv"></canvas></div>'
+			+ '<div class="plot-stage"><canvas id="plot-cv"></canvas><div class="plot-read" id="plot-read" hidden></div></div>'
 			+ '<p class="hint" id="plot-msg"></p>'
 			+ "</div>";
 	}
@@ -81,6 +86,7 @@
 		canvas.onpointermove = move;
 		canvas.onpointerup = up;
 		canvas.onpointercancel = up;
+		canvas.onpointerleave = leave;
 		canvas.ondblclick = function(){ resetview(); paint(); };
 		canvas.oncontextmenu = function(ev){ ev.preventDefault(); };
 		canvas.addEventListener("wheel", wheel, { passive: false });
@@ -115,6 +121,13 @@
 		var sample = el.getAttribute("data-ex");
 		if (sample != null) {
 			pick(sample, el.getAttribute("data-mode"));
+			return;
+		}
+		if (el.getAttribute("data-act") === "cross") {
+			crossOn = !crossOn;
+			el.className = crossOn ? "on" : "";
+			if (!crossOn) hover = null;
+			paint();
 			return;
 		}
 		if (el.getAttribute("data-act") === "reset") {
@@ -196,6 +209,9 @@
 			nodes[i].className = nodes[i].getAttribute("data-mode") === mode ? "on" : "";
 		var box = document.querySelector(".plot-style");
 		if (box) box.hidden = mode !== "3";
+		var cross = document.querySelector('.plot-bar > [data-act="cross"]');
+		if (cross) cross.hidden = mode !== "2";
+		if (mode !== "2") hover = null;
 	}
 
 	function markstyle(){
@@ -273,12 +289,36 @@
 			canvas.height = bh;
 		}
 		var ctx = canvas.getContext("2d");
-		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-		ctx.clearRect(0, 0, w, h);
-		ctx.fillStyle = "#fafaf9";
-		ctx.fillRect(0, 0, w, h);
-		if (mode === "3") draw3(ctx, w, h);
-		else draw2(ctx, w, h);
+		var key = sceneKey(w, h);
+		if (plateKey !== key) {
+			if (!plate) plate = document.createElement("canvas");
+			plate.width = bw;
+			plate.height = bh;
+			var pctx = plate.getContext("2d");
+			pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+			pctx.clearRect(0, 0, w, h);
+			pctx.fillStyle = "#fafaf9";
+			pctx.fillRect(0, 0, w, h);
+			if (mode === "3") draw3(pctx, w, h);
+			else draw2(pctx, w, h);
+			plateKey = key;
+		}
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.clearRect(0, 0, bw, bh);
+		ctx.drawImage(plate, 0, 0);
+		if (mode === "2" && crossOn && hover && !drag) {
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+			drawCross(ctx, w, h);
+		}
+		else hideRead();
+	}
+
+	function sceneKey(w, h){
+		var input = SK.$("plot-fn");
+		var src = input ? input.value : "";
+		if (mode === "3")
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
+		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1;
 	}
 
 	function down(ev){
@@ -293,8 +333,23 @@
 		if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId);
 	}
 
+	function track(ev){
+		if (!canvas || mode !== "2" || !crossOn) return;
+		var rect = canvas.getBoundingClientRect();
+		hover = { px: ev.clientX - rect.left, py: ev.clientY - rect.top };
+	}
+
+	function leave(){
+		hover = null;
+		if (mode === "2" && crossOn) paint();
+	}
+
 	function move(ev){
-		if (!drag || !canvas) return;
+		track(ev);
+		if (!drag || !canvas) {
+			if (mode === "2" && crossOn) paint();
+			return;
+		}
 		var dx = ev.clientX - drag.x;
 		var dy = ev.clientY - drag.y;
 		if (mode === "3") {
@@ -327,7 +382,7 @@
 	}
 
 	function up(){
-		var was = drag && implicit;
+		var was = drag && (implicit || crossOn);
 		drag = null;
 		if (canvas) canvas.className = "";
 		if (was) paint();
@@ -378,6 +433,137 @@
 		if (v < 0.05) v = 0.05;
 		if (v > 1000) v = 1000;
 		cam[key] = v;
+	}
+
+	function hideRead(){
+		var el = SK.$("plot-read");
+		if (el) el.hidden = true;
+	}
+
+	function drawCross(ctx, w, h){
+		var mx = view.x0 + hover.px / w * (view.x1 - view.x0);
+		var my = view.y1 - hover.py / h * (view.y1 - view.y0);
+		var xSpan = view.x1 - view.x0;
+		var ySpan = view.y1 - view.y0;
+		function X(x){ return (x - view.x0) / xSpan * w; }
+		function Y(y){ return (view.y1 - y) / ySpan * h; }
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(0, 0, w, h);
+		ctx.clip();
+		ctx.strokeStyle = "rgba(37, 99, 235, .8)";
+		ctx.lineWidth = 1;
+		ctx.setLineDash([4, 4]);
+		ctx.beginPath();
+		ctx.moveTo(hover.px, 0);
+		ctx.lineTo(hover.px, h);
+		ctx.moveTo(0, hover.py);
+		ctx.lineTo(w, hover.py);
+		ctx.stroke();
+		ctx.setLineDash([]);
+		var pts = crossings(mx, my);
+		var i, p, px, py, lines = [];
+		for (i = 0; i < pts.length; i++) {
+			p = pts[i];
+			lines.push("(" + fmt(p.x) + ", " + fmt(p.y) + ")");
+			px = X(p.x);
+			py = Y(p.y);
+			if (px < -6 || px > w + 6 || py < -6 || py > h + 6) continue;
+			ctx.fillStyle = "#fff";
+			ctx.beginPath();
+			ctx.arc(px, py, 4.5, 0, 6.2832);
+			ctx.fill();
+			ctx.fillStyle = "#1d4ed8";
+			ctx.beginPath();
+			ctx.arc(px, py, 3, 0, 6.2832);
+			ctx.fill();
+		}
+		ctx.restore();
+		var box = SK.$("plot-read");
+		if (!box) return;
+		if (!lines.length) {
+			box.hidden = true;
+			return;
+		}
+		box.textContent = lines.join("\n");
+		box.hidden = false;
+		var left = hover.px + 14;
+		var top = hover.py + 14;
+		if (left > w - 130) left = hover.px - 130;
+		if (top > h - lines.length * 18 - 8) top = hover.py - lines.length * 18 - 8;
+		if (left < 4) left = 4;
+		if (top < 4) top = 4;
+		box.style.left = left + "px";
+		box.style.top = top + "px";
+	}
+
+	function crossings(mx, my){
+		var raw = [];
+		function add(x, y){
+			if (!isFinite(x) || !isFinite(y)) return;
+			var i, dx, dy;
+			for (i = 0; i < raw.length; i++) {
+				dx = (raw[i].x - x) / (view.x1 - view.x0);
+				dy = (raw[i].y - y) / (view.y1 - view.y0);
+				if (dx * dx + dy * dy < 1e-5) return;
+			}
+			raw.push({ x: x, y: y });
+		}
+		if (!fn) return raw;
+		var i, xs, ys;
+		if (implicit) {
+			ys = zeros(function(y){ return ev(fn, mx, y); }, view.y0, view.y1);
+			for (i = 0; i < ys.length; i++) add(mx, ys[i]);
+			xs = zeros(function(x){ return ev(fn, x, my); }, view.x0, view.x1);
+			for (i = 0; i < xs.length; i++) add(xs[i], my);
+		}
+		else {
+			add(mx, ev(fn, mx, 0));
+			xs = zeros(function(x){ return ev(fn, x, 0) - my; }, view.x0, view.x1);
+			for (i = 0; i < xs.length; i++) add(xs[i], my);
+		}
+		var sx = view.x1 - view.x0;
+		var sy = view.y1 - view.y0;
+		raw.sort(function(a, b){
+			var d1 = (a.x - mx) / sx, e1 = (a.y - my) / sy;
+			var d2 = (b.x - mx) / sx, e2 = (b.y - my) / sy;
+			return d1 * d1 + e1 * e1 - (d2 * d2 + e2 * e2);
+		});
+		if (raw.length > 8) raw.length = 8;
+		return raw;
+	}
+
+	function zeros(sample, a0, a1){
+		var n = 360;
+		var out = [];
+		var i, k, t0, t1, f0, f1, lo, hi, flo, fhi, tm, fm;
+		f0 = sample(a0);
+		for (i = 1; i <= n; i++) {
+			t1 = a0 + (a1 - a0) * i / n;
+			f1 = sample(t1);
+			t0 = a0 + (a1 - a0) * (i - 1) / n;
+			if (isFinite(f0) && isFinite(f1) && (f0 === 0 || (f1 === 0 && i === n) || (f0 > 0) !== (f1 > 0))) {
+				if (Math.abs(f0) > 1e4 && Math.abs(f1) > 1e4) { f0 = f1; continue; }
+				if (f0 === 0) out.push(t0);
+				else if (f1 === 0 && i === n) out.push(t1);
+				else if (f1 !== 0) {
+					lo = t0;
+					hi = t1;
+					flo = f0;
+					fhi = f1;
+					for (k = 0; k < 12; k++) {
+						tm = (lo + hi) / 2;
+						fm = sample(tm);
+						if (!isFinite(fm)) { lo = NaN; break; }
+						if ((flo > 0) === (fm > 0)) { lo = tm; flo = fm; }
+						else { hi = tm; fhi = fm; }
+					}
+					if (isFinite(lo)) out.push((lo + hi) / 2);
+				}
+			}
+			f0 = f1;
+		}
+		return out;
 	}
 
 	function draw2(ctx, w, h){

@@ -856,6 +856,16 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .plot-bar input[type="text"] {
 	flex: 1 1 180px; width: auto; height: 36px; margin: 0; padding: 6px 10px;
 }
+.plot-bar > button[hidden] { display: none; }
+.plot-bar > [data-act="cross"] i { margin-right: 6px; }
+.plot-read {
+	position: absolute; z-index: 2; pointer-events: none;
+	max-width: 220px; padding: 4px 8px; border-radius: 8px;
+	border: 1px solid var(--line); background: rgba(255, 255, 255, .94);
+	color: #1d4ed8; font: 12px Consolas, "Cascadia Mono", monospace;
+	line-height: 1.45; white-space: pre;
+}
+.plot-read[hidden] { display: none; }
 .plot-style { display: inline-flex; gap: 4px; }
 .plot-style[hidden] { display: none; }
 .plot-style button i { margin-right: 6px; }
