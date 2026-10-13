@@ -42,6 +42,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miTextTool;
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miNetTool;
+	Forms.ToolStripMenuItem miPortUse;
 	Forms.ToolStripMenuItem miSys;
 	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miZhConv;
@@ -166,6 +167,7 @@ sealed class TrayIcon : IDisposable {
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
+		miPortUse = item("tray.portuse", () => PortUseRequested?.Invoke());
 		miSys = item("tray.sysinfo", () => SysRequested?.Invoke());
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
@@ -195,6 +197,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miTextTool);
 		miTools.DropDownItems.Add(miPwGen);
 		miTools.DropDownItems.Add(miNetTool);
+		miTools.DropDownItems.Add(miPortUse);
 		miTools.DropDownItems.Add(miSys);
 		miTools.DropDownItems.Add(miHttpDbg);
 		miTools.DropDownItems.Add(miZhConv);
@@ -404,6 +407,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miTextTool, null);
 		setshortcut(miPwGen, null);
 		setshortcut(miNetTool, null);
+		setshortcut(miPortUse, null);
 		setshortcut(miSys, null);
 		setshortcut(miHttpDbg, null);
 		setshortcut(miZhConv, null);
@@ -460,6 +464,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miTextTool, "tray.texttool");
 			settext(miPwGen, "tray.pwgen");
 			settext(miNetTool, "tray.nettool");
+			settext(miPortUse, "tray.portuse");
 			settext(miSys, "tray.sysinfo");
 			settext(miHttpDbg, "tray.httpdbg");
 			settext(miZhConv, "tray.zhconv");
@@ -561,6 +566,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action TextToolRequested;
 	public event Action PwGenRequested;
 	public event Action NetToolRequested;
+	public event Action PortUseRequested;
 	public event Action SysRequested;
 	public event Action HttpDbgRequested;
 	public event Action ZhConvRequested;

@@ -32,10 +32,11 @@
 			<CheckBox x:Name="ckinv" Content="反色" VerticalAlignment="Center" Margin="12,0,0,0"
 			          AutomationProperties.AutomationId="charart.invert"/>
 			<TextBlock x:Name="lbth" Text="阈值" VerticalAlignment="Center" Margin="12,0,6,0"/>
-			<TextBox x:Name="eth" Width="64" Height="30" Text="0" Padding="6,4"
-			         VerticalContentAlignment="Center"
-			         BorderBrush="{StaticResource BorderSoft}"
-			         AutomationProperties.AutomationId="charart.threshold"/>
+			<Slider x:Name="eth" Width="140" Minimum="0" Maximum="255" TickFrequency="1"
+			        IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center"
+			        AutomationProperties.AutomationId="charart.threshold"/>
+			<TextBlock x:Name="lbthv" Text="0" Width="28" VerticalAlignment="Center" Margin="6,0,0,0"
+			           Foreground="{StaticResource TextMuted}"/>
 		</DockPanel>
 		<TextBlock x:Name="lbhint" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}"

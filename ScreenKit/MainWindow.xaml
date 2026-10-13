@@ -165,6 +165,9 @@
 				<MenuItem x:Name="mnnettool" Header="网络工具(_N)…"
 				          AutomationProperties.AutomationId="menu.nettool"
 				          ToolTip="Ping、域名解析、WHOIS"/>
+				<MenuItem x:Name="mnportuse" Header="网络端口占用(_O)…"
+				          AutomationProperties.AutomationId="menu.portuse"
+				          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>
 				<MenuItem x:Name="mnsys" Header="系统信息(_U)…"
 				          AutomationProperties.AutomationId="menu.sysinfo"
 				          ToolTip="处理器、显卡、内存、硬盘、网络、USB、串口、打印机和声音设备"/>

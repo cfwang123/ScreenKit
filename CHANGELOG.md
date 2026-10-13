@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Character bitmaps can shift the dots with X and Y offsets.
 - The file-transfer sign-in page and the file page link to the web tools home (/).
 - ASCII character art has a threshold from 0 to 255. Brightness at or below it becomes a space. 0 keeps the full range.
+- Ports in use lists TCP and UDP ports and the process that owns each one. It uses the system iphlpapi and needs no extra library.
 
 #### Changed
 
@@ -99,6 +100,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字符取模可以用 X、Y 偏移挪动点阵。
 - 文件传输的登录页和文件页可以回到工具主页（/）。
 - 单色 ASCII 字符画增加 threshold（0～255）。亮度不超过该值的地方用空格，0 表示不截断。
+- 网络端口占用列出正在使用的 TCP、UDP 端口和对应进程。调用系统 iphlpapi，不另装库。
 
 #### 变更
 

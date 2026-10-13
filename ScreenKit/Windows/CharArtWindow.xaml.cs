@@ -25,7 +25,10 @@ public partial class CharArtWindow : Window {
 		bcopy.Click += (_, _) => copy();
 		bcolor.Click += (_, _) => color();
 		ecols.TextChanged += (_, _) => showascii();
-		eth.TextChanged += (_, _) => showascii();
+		eth.ValueChanged += (_, _) => {
+			lbthv.Text = ((int)eth.Value).ToString();
+			showascii();
+		};
 		ckinv.Checked += (_, _) => showascii();
 		ckinv.Unchecked += (_, _) => showascii();
 		eout.AllowDrop = true;
@@ -167,8 +170,7 @@ public partial class CharArtWindow : Window {
 		int.TryParse((ecols.Text ?? "").Trim(), out cols);
 		if (cols < 1) cols = 1;
 		if (cols > 400) cols = 400;
-		var threshold = 0;
-		int.TryParse((eth.Text ?? "").Trim(), out threshold);
+		var threshold = (int)eth.Value;
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
 		eout.Text = CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold);

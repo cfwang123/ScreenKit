@@ -98,6 +98,7 @@ public partial class MainWindow : Window {
 	AutoKeyWindow autoKeyWin;
 	FastCopyWindow fastCopyWin;
 	GlyphModWindow glyphModWin;
+	PortUseWindow portUseWin;
 	System.Windows.Threading.DispatcherTimer autokeyTimer;
 	bool autokeyOn;
 	long autokeySent;
@@ -645,6 +646,7 @@ public partial class MainWindow : Window {
 			tray.AutoKeyRequested += () => Dispatcher.BeginInvoke(new Action(() => openautokey(fromTray: true)));
 			tray.FastCopyRequested += () => Dispatcher.BeginInvoke(new Action(() => openfastcopy(fromTray: true)));
 			tray.GlyphModRequested += () => Dispatcher.BeginInvoke(new Action(() => openglyphmod(fromTray: true)));
+			tray.PortUseRequested += () => Dispatcher.BeginInvoke(new Action(() => openportuse(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -1580,6 +1582,7 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
+		mnportuse.Click += (_, _) => openportuse();
 		mnsys.Click += (_, _) => opensys();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
@@ -1730,6 +1733,8 @@ public partial class MainWindow : Window {
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnnettool.Header = Loc.T("menu.nettool");
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
+			mnportuse.Header = Loc.T("menu.portuse");
+			mnportuse.ToolTip = Loc.T("menu.portuse.tip");
 			mnsys.Header = Loc.T("menu.sysinfo");
 			mnsys.ToolTip = Loc.T("menu.sysinfo.tip");
 			mnhttpdbg.Header = Loc.T("menu.httpdbg");
@@ -4261,6 +4266,9 @@ public partial class MainWindow : Window {
 
 	void opennettool(bool fromTray = false) =>
 		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.nettool", fromTray);
+
+	void openportuse(bool fromTray = false) =>
+		opentoolwin(ref portUseWin, () => new PortUseWindow(), "menu.portuse", fromTray);
 
 	void opensys(bool fromTray = false) =>
 		opentoolwin(ref sysWin, () => new SysInfoWindow(), "menu.sysinfo", fromTray);
