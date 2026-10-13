@@ -97,6 +97,7 @@ public partial class MainWindow : Window {
 	WinTopWindow winTopWin;
 	AutoKeyWindow autoKeyWin;
 	FastCopyWindow fastCopyWin;
+	GlyphModWindow glyphModWin;
 	System.Windows.Threading.DispatcherTimer autokeyTimer;
 	bool autokeyOn;
 	long autokeySent;
@@ -643,6 +644,7 @@ public partial class MainWindow : Window {
 			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
 			tray.AutoKeyRequested += () => Dispatcher.BeginInvoke(new Action(() => openautokey(fromTray: true)));
 			tray.FastCopyRequested += () => Dispatcher.BeginInvoke(new Action(() => openfastcopy(fromTray: true)));
+			tray.GlyphModRequested += () => Dispatcher.BeginInvoke(new Action(() => openglyphmod(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -1588,6 +1590,7 @@ public partial class MainWindow : Window {
 		mnwintop.Click += (_, _) => openwintop();
 		mnautokey.Click += (_, _) => openautokey();
 		mnfastcopy.Click += (_, _) => openfastcopy();
+		mnglyphmod.Click += (_, _) => openglyphmod();
 		// 选项菜单
 		mnsettings.Click += (_, _) => opensettings();
 		// 帮助菜单
@@ -1745,6 +1748,8 @@ public partial class MainWindow : Window {
 			mnautokey.ToolTip = Loc.T("menu.autokey.tip");
 			mnfastcopy.Header = Loc.T("menu.fastcopy");
 			mnfastcopy.ToolTip = Loc.T("menu.fastcopy.tip");
+			mnglyphmod.Header = Loc.T("menu.glyphmod");
+			mnglyphmod.ToolTip = Loc.T("menu.glyphmod.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mninstall.Header = Loc.T("menu.install");
@@ -4306,6 +4311,9 @@ public partial class MainWindow : Window {
 
 	void openfastcopy(bool fromTray = false) =>
 		opentoolwin(ref fastCopyWin, () => new FastCopyWindow(opt), "menu.fastcopy", fromTray);
+
+	void openglyphmod(bool fromTray = false) =>
+		opentoolwin(ref glyphModWin, () => new GlyphModWindow(), "menu.glyphmod", fromTray);
 
 	void autokeytoggle() {
 		if (autoKeyWin == null) {

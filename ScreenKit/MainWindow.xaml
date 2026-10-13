@@ -192,6 +192,9 @@
 				<MenuItem x:Name="mnfastcopy" Header="快速复制(_A)…"
 				          AutomationProperties.AutomationId="menu.fastcopy"
 				          ToolTip="复制或剪切文件，并可注册资源管理器右键菜单"/>
+				<MenuItem x:Name="mnglyphmod" Header="字符取模(_G)…"
+				          AutomationProperties.AutomationId="menu.glyphmod"
+				          ToolTip="把字符画成点阵，导出 C 代码"/>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

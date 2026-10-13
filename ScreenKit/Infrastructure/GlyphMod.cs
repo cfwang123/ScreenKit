@@ -59,10 +59,7 @@ public static class GlyphMod {
 			spec.Bold ? FontWeights.Bold : FontWeights.Regular,
 			FontStretches.Normal);
 		var chars = takechars(text);
-		if (chars.Count > MAX_CHARS) {
-			sheet.Truncated = true;
-			chars.RemoveRange(MAX_CHARS, chars.Count - MAX_CHARS);
-		}
+		trim(chars, sheet);
 		foreach (var ch in chars) {
 			try {
 				var g = raster(ch, face, size);
@@ -120,13 +117,36 @@ public static class GlyphMod {
 	}
 
 	static Glyph raster(string ch, Typeface face, double size) {
+		int h = Math.Max(1, (int)Math.Ceiling(size));
+		if (face.TryGetGlyphTypeface(out var gt)) return rasterglyph(ch, gt, size, h);
+		return rastertext(ch, face, size, h);
+	}
+
+	static Glyph rasterglyph(string ch, GlyphTypeface gt, double size, int h) {
+		int cp = char.ConvertToUtf32(ch, 0);
+		if (!gt.CharacterToGlyphMap.TryGetValue(cp, out ushort index)) index = 0;
+		double adv = gt.AdvanceWidths[index] * size;
+		int w = Math.Max(1, (int)Math.Ceiling(adv));
+		var run = new GlyphRun(gt, 0, false, size, 1f, new ushort[] { index },
+			new Point(0, gt.Baseline * size), new double[] { adv },
+			null, null, null, null, null, null);
+		var dv = new DrawingVisual();
+		using (var dc = dv.RenderOpen())
+			dc.DrawGlyphRun(Brushes.Black, run);
+		return readbmp(ch, cp, w, h, dv);
+	}
+
+	static Glyph rastertext(string ch, Typeface face, double size, int h) {
 		var ft = new FormattedText(ch, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
 			face, size, Brushes.Black, 1.0);
 		int w = Math.Max(1, (int)Math.Ceiling(ft.WidthIncludingTrailingWhitespace));
-		int h = Math.Max(1, (int)Math.Ceiling(ft.Height));
 		var dv = new DrawingVisual();
 		using (var dc = dv.RenderOpen())
 			dc.DrawText(ft, new Point(0, 0));
+		return readbmp(ch, char.ConvertToUtf32(ch, 0), w, h, dv);
+	}
+
+	static Glyph readbmp(string ch, int cp, int w, int h, DrawingVisual dv) {
 		var bmp = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
 		bmp.Render(dv);
 		int stride = w * 4;
@@ -135,8 +155,13 @@ public static class GlyphMod {
 		var ink = new bool[w * h];
 		for (int i = 0; i < ink.Length; i++)
 			ink[i] = buf[i * 4 + 3] >= 128;
-		int cp = char.ConvertToUtf32(ch, 0);
 		return new Glyph { Ch = ch, Cp = cp, W = w, H = h, Ink = ink };
+	}
+
+	static void trim(List<string> chars, Sheet sheet) {
+		if (chars == null || chars.Count <= MAX_CHARS) return;
+		sheet.Truncated = true;
+		chars.RemoveRange(MAX_CHARS, chars.Count - MAX_CHARS);
 	}
 
 	static List<string> takechars(string text) {
@@ -260,7 +285,7 @@ public static class GlyphMod {
 			var col = Pack(ink, 8, 8, true, true, false);
 			if (col.Length != 8 || col[0] != 0x80 || col[1] != 0x80) return bad(say, "col msb");
 			var inv = Pack(ink, 8, 8, false, true, true);
-			if (inv[0] != (byte)~0xC0 || inv[1] != 0xFF) return bad(say, "invert");
+			if (inv[0] != unchecked((byte)~0xC0) || inv[1] != 0xFF) return bad(say, "invert");
 			var wide = new bool[10];
 			wide[8] = true;
 			var wrow = Pack(wide, 10, 1, false, true, false);
@@ -278,7 +303,16 @@ public static class GlyphMod {
 			if (dots < 1) return bad(say, "blank A");
 			int stride = (a.W + 7) / 8;
 			if (a.Data.Length != stride * a.H) return bad(say, "len");
+			if (a.H != 16) return bad(say, "h " + a.H);
 			if (sheet.Glyphs[1].Cp != 0x20) return bad(say, "space");
+			var zh = Build("中", new Spec { Font = "Microsoft YaHei", Size = 16, Format = "dots" });
+			if (!string.IsNullOrEmpty(zh.Error)) return bad(say, zh.Error);
+			if (zh.Glyphs.Count != 1 || zh.Glyphs[0].Cp != 0x4E2D || zh.Glyphs[0].H != 16)
+				return bad(say, "zhong");
+			int zdots = 0;
+			foreach (var bit in zh.Glyphs[0].Ink)
+				if (bit) zdots++;
+			if (zdots < 8) return bad(say, "zhong ink " + zdots);
 			var code = Export(sheet.Glyphs, spec);
 			if (code.IndexOf("uint8_t", StringComparison.Ordinal) < 0 || code.IndexOf("glyph_41", StringComparison.Ordinal) < 0)
 				return bad(say, "c");
@@ -291,10 +325,7 @@ public static class GlyphMod {
 			var extra = takechars(many.ToString());
 			if (extra.Count != MAX_CHARS + 2) return bad(say, "chars " + extra.Count);
 			var cut = new Sheet();
-			if (extra.Count > MAX_CHARS) {
-				cut.Truncated = true;
-				extra.RemoveRange(MAX_CHARS, extra.Count - MAX_CHARS);
-			}
+			trim(extra, cut);
 			if (!cut.Truncated || extra.Count != MAX_CHARS) return bad(say, "trunc");
 			say("=== OK：字符取模");
 			return 0;

@@ -1,0 +1,71 @@
+<Window x:Class="ScreenKit.GlyphModWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="字符取模"
+        Width="860" Height="640"
+        MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="glyphmod.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
+		           FontSize="12" Margin="0,0,0,10"/>
+		<WrapPanel Grid.Row="1" Margin="0,0,0,8">
+			<TextBlock x:Name="lbfont" Text="字体" VerticalAlignment="Center" Margin="0,0,8,6"/>
+			<ComboBox x:Name="efont" Width="220" Height="32" Margin="0,0,12,6"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="glyphmod.font"/>
+			<TextBlock x:Name="lbsize" Text="字号" VerticalAlignment="Center" Margin="0,0,8,6"/>
+			<TextBox x:Name="esize" Width="56" Height="32" Padding="8,4" Margin="0,0,12,6"
+			         Text="16" BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="glyphmod.size"/>
+			<CheckBox x:Name="ebold" Content="粗体" VerticalAlignment="Center" Margin="0,0,12,6"
+			          AutomationProperties.AutomationId="glyphmod.bold"/>
+			<ComboBox x:Name="escan" Width="90" Height="32" Margin="0,0,8,6"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="glyphmod.scan"/>
+			<ComboBox x:Name="ebit" Width="120" Height="32" Margin="0,0,8,6"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="glyphmod.bit"/>
+			<ComboBox x:Name="epolar" Width="90" Height="32" Margin="0,0,8,6"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="glyphmod.polar"/>
+			<ComboBox x:Name="efmt" Width="120" Height="32" Margin="0,0,0,6"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="glyphmod.format"/>
+		</WrapPanel>
+		<TextBox x:Name="etext" Grid.Row="2" Height="64" AcceptsReturn="True" TextWrapping="Wrap"
+		         VerticalScrollBarVisibility="Auto" Padding="8" Margin="0,0,0,8"
+		         BorderBrush="{StaticResource BorderSoft}"
+		         AutomationProperties.AutomationId="glyphmod.text"/>
+		<StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8">
+			<Button x:Name="bmake" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="生成"
+			        AutomationProperties.AutomationId="glyphmod.make"/>
+			<Button x:Name="bcopy" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="复制"/>
+			<Button x:Name="bsave" Style="{StaticResource ToolBtn}" Content="保存"/>
+		</StackPanel>
+		<ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
+			<WrapPanel x:Name="pdots"/>
+		</ScrollViewer>
+		<TextBlock x:Name="lbout" Grid.Row="5" Text="输出" FontWeight="SemiBold" Margin="0,0,0,6"/>
+		<TextBox x:Name="eout" Grid.Row="6" AcceptsReturn="True" TextWrapping="NoWrap"
+		         HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+		         IsReadOnly="True" FontFamily="Consolas" Padding="8"
+		         BorderBrush="{StaticResource BorderSoft}"
+		         AutomationProperties.AutomationId="glyphmod.out"/>
+		<TextBlock x:Name="lbstat" Grid.Row="7" Margin="0,8,0,0" TextWrapping="Wrap"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+	</Grid>
+</Window>

@@ -91,6 +91,29 @@ sealed class GifScreenRecorder : IDisposable {
 			$"mouse={gifOpt.RecordMouse} clickHl={gifOpt.HighlightClicks}");
 		RecordLog.Step("paths", $"video={videoTmp}");
 
+		Exception openEx = null;
+		var opened = new ManualResetEventSlim(false);
+		thread = new Thread(() => {
+			try { openwriter(); }
+			catch (Exception ex) { openEx = ex; }
+			opened.Set();
+			if (openEx != null) return;
+			try { loop(); }
+			finally { closesink(); }
+		}) { IsBackground = true, Name = "GifScreenRecorder" };
+		thread.Start();
+		if (!opened.Wait(20000))
+			throw new InvalidOperationException("GIF 编码器启动超时");
+		if (openEx != null) {
+			try { thread.Join(3000); } catch { }
+			thread = null;
+			throw openEx;
+		}
+		startTick = Compat.TickCount64;
+		RecordLog.Step("thread", "GifScreenRecorder loop started");
+	}
+
+	void openwriter() {
 		try {
 			var ro = new RecordOptions {
 				Codec = "mf",
@@ -99,21 +122,30 @@ sealed class GifScreenRecorder : IDisposable {
 				MaxSizeEnabled = false,
 			};
 			ro.Clamp();
-			ff = new MfH264Writer(videoTmp, grabW, grabH, ro, withAudio: false);
-			Backend = $"GIF源 {ff.OutWidth}x{ff.OutHeight}@{fps}fps 系统 H.264 无声（预览可选输出帧率）";
+			var w = new MfH264Writer(videoTmp, grabW, grabH, ro, withAudio: false);
+			lock (gate) ff = w;
+			Backend = $"GIF源 {w.OutWidth}x{w.OutHeight}@{fps}fps 系统 H.264 无声（预览可选输出帧率）";
 			RecordLog.Step("video_writer", Backend);
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("MfH264Writer.gif", ex);
 			RecordLog.Ex("MfH264Writer.gif", ex);
-			ff = null;
+			lock (gate) ff = null;
 			throw new InvalidOperationException("无法创建系统 H.264 编码器: " + ex.Message, ex);
 		}
+	}
 
-		startTick = Compat.TickCount64;
-		thread = new Thread(loop) { IsBackground = true, Name = "GifScreenRecorder" };
-		thread.Start();
-		RecordLog.Step("thread", "GifScreenRecorder loop started");
+	void closesink() {
+		IRecordVideoSink s;
+		lock (gate) {
+			s = ff;
+			ff = null;
+		}
+		if (s == null) return;
+		try { s.Finish(); }
+		catch (Exception ex) { RecordLog.Ex("ff.Finish", ex); }
+		try { s.Dispose(); } catch { }
+		finalizeDone = true;
 	}
 
 	public void Pause() {
@@ -136,16 +168,10 @@ sealed class GifScreenRecorder : IDisposable {
 		RecordLog.Step("stop_begin", $"frames={frames} elapsed={Elapsed} " + RecordLog.FileInfo(videoTmp));
 		report("正在停止采集…");
 		stop = true;
+		report("正在写入视频…");
 		try { thread?.Join(15000); } catch (Exception ex) { RecordLog.Ex("thread.Join", ex); }
 		thread = null;
 		RecordLog.Step("video_loop_done", $"frames={frames} " + RecordLog.FileInfo(videoTmp));
-
-		report("正在写入视频…");
-		lock (gate) {
-			try { ff?.Finish(); } catch (Exception ex) { RecordLog.Ex("ff.Finish", ex); }
-			try { ff?.Dispose(); } catch { }
-			ff = null;
-		}
 		finalizeDone = true;
 		report("完成");
 		RecordLog.Step("stop_end", RecordLog.FileInfo(videoTmp));

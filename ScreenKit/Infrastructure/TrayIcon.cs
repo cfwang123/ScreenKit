@@ -52,6 +52,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miWinTop;
 	Forms.ToolStripMenuItem miAutoKey;
 	Forms.ToolStripMenuItem miFastCopy;
+	Forms.ToolStripMenuItem miGlyphMod;
 	Forms.ToolStripMenuItem miCast;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
@@ -174,6 +175,7 @@ sealed class TrayIcon : IDisposable {
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
 		miAutoKey = item("tray.autokey", () => AutoKeyRequested?.Invoke());
 		miFastCopy = item("tray.fastcopy", () => FastCopyRequested?.Invoke());
+		miGlyphMod = item("tray.glyphmod", () => GlyphModRequested?.Invoke());
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
 		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
@@ -202,6 +204,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miWinTop);
 		miTools.DropDownItems.Add(miAutoKey);
 		miTools.DropDownItems.Add(miFastCopy);
+		miTools.DropDownItems.Add(miGlyphMod);
 		miTools.DropDownItems.Add(miCast);
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
@@ -410,6 +413,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miWinTop, null);
 		setshortcut(miAutoKey, null);
 		setshortcut(miFastCopy, null);
+		setshortcut(miGlyphMod, null);
 		setshortcut(miCast, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
@@ -465,6 +469,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miWinTop, "tray.wintop");
 			settext(miAutoKey, "tray.autokey");
 			settext(miFastCopy, "tray.fastcopy");
+			settext(miGlyphMod, "tray.glyphmod");
 			settext(miCast, "tray.cast");
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
@@ -566,6 +571,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action WinTopRequested;
 	public event Action AutoKeyRequested;
 	public event Action FastCopyRequested;
+	public event Action GlyphModRequested;
 	public event Action CastRequested;
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
