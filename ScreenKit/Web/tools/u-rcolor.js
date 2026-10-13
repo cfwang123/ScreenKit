@@ -22,7 +22,7 @@
 		var i;
 		for (i = 0; i < n; i++) {
 			var b = new Uint8Array(3);
-			crypto.getRandomValues(b);
+			F.rand(b);
 			var parts = colorparts(b[0], b[1], b[2]);
 			lines.push(parts.join("  "));
 			html += "<li><i style=\"background:" + parts[0] + "\"></i>";
@@ -31,7 +31,7 @@
 				html += "<button type=\"button\" data-v=\"" + escv(parts[k]) + "\">" + escv(parts[k]) + "</button>";
 			html += "</li>";
 		}
-		var list = SK.$("rcolor-list");
+		var list = F.id("rcolor-list");
 		if (list) {
 			list.innerHTML = html;
 			if (SK.showrcolor) SK.showrcolor(true);
@@ -60,20 +60,20 @@
 	}
 
 	function bindrcolor(){
-		var list = SK.$("rcolor-list");
-		if (!list || list.getAttribute("data-bind")) return;
-		list.setAttribute("data-bind", "1");
+		var list = F.id("rcolor-list");
+		if (!list || F.attr(list, "data-bind")) return;
+		F.seta(list, "data-bind", "1");
 		list.onclick = function(ev){
 			var btn = ev.target;
 			while (btn && btn !== list && btn.tagName !== "BUTTON") btn = btn.parentNode;
 			if (!btn || btn === list) return;
-			SK.copytext(btn.getAttribute("data-v") || btn.textContent, "box-msg");
+			SK.copytext(F.attr(btn, "data-v") || btn.textContent, "box-msg");
 		};
 	}
 
 	function showrcolor(on){
-		var list = SK.$("rcolor-list");
-		var out = SK.$("box-out");
+		var list = F.id("rcolor-list");
+		var out = F.id("box-out");
 		if (!list || !out) return;
 		list.hidden = !on;
 		out.hidden = !!on;

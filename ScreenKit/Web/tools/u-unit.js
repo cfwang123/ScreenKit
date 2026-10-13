@@ -83,9 +83,9 @@
 			var ids = ["box-kind", "box-from", "box-to"];
 			var i;
 			fillunits(false);
-			for (i = 0; i < ids.length; i++) SK.$(ids[i]).onchange = onpick;
-			SK.$("box-in").oninput = live;
-			SK.$("box-root").oninput = live;
+			for (i = 0; i < ids.length; i++) F.id(ids[i]).onchange = onpick;
+			F.id("box-in").oninput = live;
+			F.id("box-root").oninput = live;
 			live();
 		},
 		run: function(){
@@ -114,7 +114,7 @@
 
 	function striptext(){
 		var picked = detect(SK.val("box-in"));
-		if (picked) SK.$("box-in").value = SK.trimnum(picked.num);
+		if (picked) F.id("box-in").value = SK.trimnum(picked.num);
 	}
 
 	function live(){
@@ -127,12 +127,12 @@
 		var job;
 		try { job = readin(); }
 		catch (ex) {
-			SK.$("box-out").value = "";
+			F.id("box-out").value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 			return;
 		}
 		if (job.spec.id !== "money") {
-			SK.$("box-out").value = render(job.spec, job.n, job.from, job.to);
+			F.id("box-out").value = render(job.spec, job.n, job.from, job.to);
 			SK.msg("box-msg", "完成");
 			return;
 		}
@@ -140,14 +140,14 @@
 		fxtimer = setTimeout(function(){
 			fxtimer = 0;
 			if (mine !== fxseq || SK.curtool !== "u-unit") return;
-			SK.$("box-out").value = "";
+			F.id("box-out").value = "";
 			SK.post("/api/fx", {
 				amount: job.amount,
 				from: job.from,
 				to: job.to === ALL ? "all" : job.to
 			}, function(data){
 				if (mine !== fxseq || SK.curtool !== "u-unit") return;
-				SK.$("box-out").value = data && data.text ? data.text : "";
+				F.id("box-out").value = data && data.text ? data.text : "";
 				SK.msg("box-msg", "完成");
 			}, "box-msg");
 		}, 200);
@@ -161,9 +161,9 @@
 		var spec = findkind(SK.val("box-kind")) || KINDS[0];
 		var from = keep ? SK.val("box-from") : spec.from;
 		var to = keep ? SK.val("box-to") : ALL;
-		SK.$("box-from").innerHTML = SK.opts(spec.units, from);
-		SK.$("box-to").innerHTML = SK.opts(allunits(spec.units), to);
-		SK.$("box-root-row").hidden = spec.id !== "px";
+		F.id("box-from").innerHTML = SK.opts(spec.units, from);
+		F.id("box-to").innerHTML = SK.opts(allunits(spec.units), to);
+		F.id("box-root-row").hidden = spec.id !== "px";
 	}
 
 	function readin(){
@@ -176,10 +176,10 @@
 		if (picked) {
 			spec = findkind(picked.kind);
 			if (SK.val("box-kind") !== spec.id) {
-				SK.$("box-kind").value = spec.id;
+				F.id("box-kind").value = spec.id;
 				fillunits(false);
 			}
-			SK.$("box-from").value = picked.unit;
+			F.id("box-from").value = picked.unit;
 			from = picked.unit;
 			n = picked.num;
 			amount = String(picked.num);

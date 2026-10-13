@@ -26,8 +26,8 @@
 			}
 			var cur = (data && data.current) || {};
 			if (!pickPack) pickPack = cur.pack || "";
-			SK.fillsel(SK.$("ocr-pack"), rows, pickPack);
-			if (cur.device) SK.$("ocr-dev").value = cur.device;
+			SK.fillsel(F.id("ocr-pack"), rows, pickPack);
+			if (cur.device) F.id("ocr-dev").value = cur.device;
 			var langPrefer = "";
 			if (pickPack && pickPack === (cur.pack || "")) langPrefer = cur.language || "";
 			else if (pickPack === "winocr") langPrefer = ocrwinlang(ocrpack());
@@ -54,7 +54,7 @@
 	}
 
 	function ocrpack(){
-		var id = SK.$("ocr-pack").value;
+		var id = F.id("ocr-pack").value;
 		var i;
 		for (i = 0; i < ocrPacks.length; i++)
 			if (ocrPacks[i].id === id) return ocrPacks[i];
@@ -69,18 +69,18 @@
 		for (i = 0; i < models.length; i++)
 			rows.push({ value: models[i].id, label: models[i].name || models[i].id });
 		var pick = typeof prefer === "string" ? prefer : "";
-		SK.fillsel(SK.$("ocr-model"), rows, pick);
+		SK.fillsel(F.id("ocr-model"), rows, pick);
 		var win = !pack || pack.engine === "winocr";
-		SK.$("ocr-dev-lab").style.display = win ? "none" : "";
-		var lab = SK.$("ocr-model-lab").querySelector("[data-k]");
+		F.id("ocr-dev-lab").style.display = win ? "none" : "";
+		var lab = F.q("[data-k]", F.id("ocr-model-lab"));
 		if (lab) {
-			lab.setAttribute("data-k", win ? "web.f.lang" : "web.f.model");
-			lab.textContent = (SK.t && SK.t(lab.getAttribute("data-k"))) || (win ? "语言" : "模型");
+			F.seta(lab, "data-k", win ? "web.f.lang" : "web.f.model");
+			lab.textContent = (SK.t && SK.t(F.attr(lab, "data-k"))) || (win ? "语言" : "模型");
 		}
 	}
 
 	function onocrfile(){
-		var file = SK.$("ocr-file").files && SK.$("ocr-file").files[0];
+		var file = F.id("ocr-file").files && F.id("ocr-file").files[0];
 		if (file) setocrpic(file);
 	}
 
@@ -102,25 +102,25 @@
 		if (!file && cd.files && cd.files.length && cd.files[0].type.indexOf("image/") === 0)
 			file = cd.files[0];
 		if (!file) return;
-		ev.preventDefault();
+		F.pd(ev);
 		if (SK.curtool === "u-ico") SK.seticopic(file);
 		else setocrpic(file);
 	}
 
 	function setocrpic(file){
 		ocrPic = file;
-		if (ocrPicUrl) URL.revokeObjectURL(ocrPicUrl);
-		ocrPicUrl = URL.createObjectURL(file);
-		var img = SK.$("ocr-img");
+		if (ocrPicUrl) F.unurl(ocrPicUrl);
+		ocrPicUrl = F.url(file);
+		var img = F.id("ocr-img");
 		img.src = ocrPicUrl;
 		img.hidden = false;
-		SK.$("ocr-out").value = "";
+		F.id("ocr-out").value = "";
 		clearocrmeta();
 		loadoocr(ocrgo);
 	}
 
 	function clearocrmeta(){
-		var meta = SK.$("ocr-meta");
+		var meta = F.id("ocr-meta");
 		if (!meta) return;
 		meta.textContent = "";
 		meta.hidden = true;
@@ -141,7 +141,7 @@
 	}
 
 	function ocrgo(){
-		var file = ocrPic || (SK.$("ocr-file").files && SK.$("ocr-file").files[0]);
+		var file = ocrPic || (F.id("ocr-file").files && F.id("ocr-file").files[0]);
 		if (!file) {
 			SK.msg("ocr-msg", "请选择或粘贴图片", true);
 			return;
@@ -162,16 +162,16 @@
 				options: {
 					"ocr.engine": pack.engine,
 					"ocr.pack": pack.id,
-					"ocr.language": SK.$("ocr-model").value,
-					"ocr.device": SK.$("ocr-dev").value,
+					"ocr.language": F.id("ocr-model").value,
+					"ocr.device": F.id("ocr-dev").value,
 					"data.format": "text",
 				},
 			}, function(jo){
 				if (gen !== ocrGen) return;
 				SK.msg("ocr-msg", "");
 				var data = jo ? jo.data : "";
-				SK.$("ocr-out").value = typeof data === "string" ? data : "";
-				var meta = SK.$("ocr-meta");
+				F.id("ocr-out").value = typeof data === "string" ? data : "";
+				var meta = F.id("ocr-meta");
 				var text = ocrmeta(jo && jo.stat, Date.now() - wall0);
 				if (meta) {
 					meta.textContent = text;

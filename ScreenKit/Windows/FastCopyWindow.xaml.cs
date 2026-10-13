@@ -31,10 +31,12 @@ public partial class FastCopyWindow : Window {
 		bstart.Click += (_, _) => start();
 		bcancel.Click += (_, _) => cts?.Cancel();
 		breg.Click += (_, _) => togglereg();
-		rcopy.Checked += (_, _) => saveopt();
-		rmove.Checked += (_, _) => saveopt();
-		rsym.Checked += (_, _) => saveopt();
-		rhard.Checked += (_, _) => saveopt();
+		rcopy.Checked += (_, _) => onmode();
+		rmove.Checked += (_, _) => onmode();
+		rsym.Checked += (_, _) => onmode();
+		rhard.Checked += (_, _) => onmode();
+		rdel.Checked += (_, _) => onmode();
+		rrecycle.Checked += (_, _) => onmode();
 		econflict.SelectionChanged += (_, _) => saveopt();
 		eworkers.LostFocus += (_, _) => saveopt();
 		Drop += (_, e) => {
@@ -51,6 +53,7 @@ public partial class FastCopyWindow : Window {
 			saveopt();
 		};
 		pickmode(opt.FastCopyMode);
+		syncmode();
 		eworkers.Text = FastCopy.NormWorkers(opt.FastCopyWorkers).ToString();
 		fillconflict();
 		syncreg();
@@ -71,6 +74,8 @@ public partial class FastCopyWindow : Window {
 		rmove.Content = Loc.T("fc.modemove");
 		rsym.Content = Loc.T("fc.modesym");
 		rhard.Content = Loc.T("fc.modehard");
+		rdel.Content = Loc.T("fc.modedelete");
+		rrecycle.Content = Loc.T("fc.moderecycle");
 		lbconflict.Text = Loc.T("fc.conflict");
 		lbworkers.Text = Loc.T("fc.workers");
 		bstart.Content = Loc.T("fc.start");
@@ -171,6 +176,8 @@ public partial class FastCopyWindow : Window {
 		if (rmove.IsChecked == true) return "move";
 		if (rsym.IsChecked == true) return "symlink";
 		if (rhard.IsChecked == true) return "hardlink";
+		if (rdel.IsChecked == true) return "delete";
+		if (rrecycle.IsChecked == true) return "recycle";
 		return "copy";
 	}
 
@@ -179,7 +186,25 @@ public partial class FastCopyWindow : Window {
 		if (mode == "move") rmove.IsChecked = true;
 		else if (mode == "symlink") rsym.IsChecked = true;
 		else if (mode == "hardlink") rhard.IsChecked = true;
+		else if (mode == "delete") rdel.IsChecked = true;
+		else if (mode == "recycle") rrecycle.IsChecked = true;
 		else rcopy.IsChecked = true;
+	}
+
+	void onmode() {
+		syncmode();
+		saveopt();
+	}
+
+	void syncmode() {
+		var del = curmode() is "delete" or "recycle";
+		lbdest.IsEnabled = !del;
+		edest.IsEnabled = !del;
+		bbrowse.IsEnabled = !del;
+		lbconflict.IsEnabled = !del;
+		econflict.IsEnabled = !del;
+		lbworkers.IsEnabled = !del;
+		eworkers.IsEnabled = !del;
 	}
 
 	void saveopt() {
@@ -195,19 +220,26 @@ public partial class FastCopyWindow : Window {
 	void start() {
 		if (busy) return;
 		if (rows.Count == 0) { lbstat.Text = Loc.T("fc.empty"); return; }
+		var mode = curmode();
+		var del = mode is "delete" or "recycle";
 		var dest = (edest.Text ?? "").Trim();
-		if (dest.Length == 0 || File.Exists(dest)) { lbstat.Text = Loc.T("fc.nodest"); return; }
+		if (!del && (dest.Length == 0 || File.Exists(dest))) { lbstat.Text = Loc.T("fc.nodest"); return; }
+		if (del) {
+			var ask = Loc.T(mode == "recycle" ? "fc.recycle.ask" : "fc.delete.ask", rows.Count);
+			if (MessageBox.Show(ask, Loc.T("fc.title"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+				return;
+		}
 		saveopt();
 		busy = true;
 		bstart.IsEnabled = false;
 		bcancel.IsEnabled = true;
 		breg.IsEnabled = false;
 		cts = new CancellationTokenSource();
-		var mode = curmode();
 		var job = new FastCopy.Job {
 			Dest = dest,
 			Move = mode == "move",
 			Link = mode == "symlink" || mode == "hardlink" ? mode : "",
+			Delete = del ? mode : "",
 			Conflict = conflict(),
 			Workers = opt.FastCopyWorkers,
 			Cancel = cts.Token,
@@ -249,5 +281,11 @@ public partial class FastCopyWindow : Window {
 		else if (res.Error == "inside") lbstat.Text = Loc.T("fc.inside");
 		else lbstat.Text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed)
 			+ (string.IsNullOrEmpty(res.Error) || res.Failed == 0 ? "" : "  " + res.Error);
+		if (!res.Cancelled && curmode() is "delete" or "recycle") {
+			var gone = new List<string>();
+			foreach (var p in rows)
+				if (!File.Exists(p) && !Directory.Exists(p)) gone.Add(p);
+			foreach (var p in gone) rows.Remove(p);
+		}
 	}
 }

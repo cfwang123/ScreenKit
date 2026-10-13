@@ -4,7 +4,7 @@
 	}
 
 	function setqrcap(text){
-		var cap = SK.$("qr-cap");
+		var cap = F.id("qr-cap");
 		if (!cap) return;
 		var line = qrcaptext(text);
 		cap.textContent = line;
@@ -14,27 +14,27 @@
 	}
 
 	function qrcapon(){
-		var box = SK.$("qr-capon");
+		var box = F.id("qr-capon");
 		return !box || box.checked;
 	}
 
 	function onqrcap(){
-		var img = SK.$("qr-img");
+		var img = F.id("qr-img");
 		if (!img || img.hidden) return;
-		setqrcap(SK.$("qr-in").value);
-		if (!SK.$("qr-cap").hidden) requestAnimationFrame(qrgap);
+		setqrcap(F.id("qr-in").value);
+		if (!F.id("qr-cap").hidden) F.raf(qrgap);
 	}
 
 	function qrgap(){
-		var img = SK.$("qr-img");
-		var cap = SK.$("qr-cap");
+		var img = F.id("qr-img");
+		var cap = F.id("qr-cap");
 		if (!img || !cap || cap.hidden || !img.naturalWidth) return;
 		var w = img.naturalWidth;
 		var h = img.naturalHeight;
-		var canvas = document.createElement("canvas");
+		var canvas = F.el("canvas");
 		canvas.width = w;
 		canvas.height = h;
-		var ctx = canvas.getContext("2d");
+		var ctx = F.ctx(canvas);
 		var bottom = 0;
 		try {
 			ctx.drawImage(img, 0, 0);
@@ -62,21 +62,21 @@
 	}
 
 	function qrmake(){
-		var text = SK.$("qr-in").value;
+		var text = F.id("qr-in").value;
 		SK.post("/api/qrmake", {
 			text: text,
-			format: SK.$("qr-fmt").value,
-			encoding: SK.$("qr-enc").value,
+			format: F.id("qr-fmt").value,
+			encoding: F.id("qr-enc").value,
 		}, function(data){
-			var img = SK.$("qr-img");
+			var img = F.id("qr-img");
 			if (!data || !data.png) {
-				img.removeAttribute("src");
+				F.unset(img, "src");
 				img.hidden = true;
 				setqrcap("");
 				SK.msg("qr-msg", "没有图片", true);
 				return;
 			}
-			img.onload = function(){ requestAnimationFrame(qrgap); };
+			img.onload = function(){ F.raf(qrgap); };
 			img.src = "data:image/png;base64," + data.png;
 			img.hidden = false;
 			setqrcap(text);
@@ -88,7 +88,7 @@
 	var qrsUrl = "";
 
 	function onqrsfile(){
-		var file = SK.$("qrs-file").files && SK.$("qrs-file").files[0];
+		var file = F.id("qrs-file").files && F.id("qrs-file").files[0];
 		if (file) setqrspic(file);
 	}
 
@@ -110,23 +110,23 @@
 		if (!file && cd.files && cd.files.length && cd.files[0].type.indexOf("image/") === 0)
 			file = cd.files[0];
 		if (!file) return;
-		ev.preventDefault();
+		F.pd(ev);
 		setqrspic(file);
 	}
 
 	function setqrspic(file){
 		qrsPic = file;
-		if (qrsUrl) URL.revokeObjectURL(qrsUrl);
-		qrsUrl = URL.createObjectURL(file);
-		var img = SK.$("qrs-img");
+		if (qrsUrl) F.unurl(qrsUrl);
+		qrsUrl = F.url(file);
+		var img = F.id("qrs-img");
 		img.src = qrsUrl;
 		img.hidden = false;
-		SK.$("qrs-out").value = "";
+		F.id("qrs-out").value = "";
 		qrscan();
 	}
 
 	function qrscan(){
-		var file = qrsPic || (SK.$("qrs-file").files && SK.$("qrs-file").files[0]);
+		var file = qrsPic || (F.id("qrs-file").files && F.id("qrs-file").files[0]);
 		if (!file) {
 			SK.msg("qrs-msg", "请选择或粘贴图片", true);
 			return;
@@ -137,7 +137,7 @@
 				var lines = [];
 				var i;
 				if (typeof data === "string") {
-					SK.$("qrs-out").value = data;
+					F.id("qrs-out").value = data;
 					SK.msg("qrs-msg", "");
 					return;
 				}
@@ -147,16 +147,16 @@
 					var item = arr[i] || {};
 					lines.push((item.type || "") + "  " + (item.text || ""));
 				}
-				SK.$("qrs-out").value = lines.join("\n");
+				F.id("qrs-out").value = lines.join("\n");
 				if (!lines.length) SK.msg("qrs-msg", "未检测到条码或二维码", true);
 				else SK.msg("qrs-msg", "");
 			}, "qrs-msg");
 		}, "qrs-msg");
 	}
 
-	SK.$("qrs-file").onchange = onqrsfile;
-	SK.$("qr-capon").onchange = onqrcap;
-	document.addEventListener("paste", onqrpaste);
+	F.id("qrs-file").onchange = onqrsfile;
+	F.id("qr-capon").onchange = onqrcap;
+	F.on(document, "paste", onqrpaste);
 
 	SK.qrcaptext = qrcaptext;
 	SK.setqrcap = setqrcap;

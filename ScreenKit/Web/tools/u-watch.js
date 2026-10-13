@@ -16,11 +16,11 @@
 			return watchreset();
 		},
 		open: function(){
-			SK.$("box-start").onclick = watchtoggle;
-			SK.$("watch-sw").onchange = watchmode;
-			SK.$("watch-down").onchange = watchmode;
-			SK.$("watch-until").onchange = watchmode;
-			SK.$("watch-at").oninput = watchuntil;
+			F.id("box-start").onclick = watchtoggle;
+			F.id("watch-sw").onchange = watchmode;
+			F.id("watch-down").onchange = watchmode;
+			F.id("watch-until").onchange = watchmode;
+			F.id("watch-at").oninput = watchuntil;
 			filluntil();
 			watchmode();
 		}
@@ -33,14 +33,14 @@
 	}
 
 	function curmode(){
-		if (SK.$("watch-down") && SK.$("watch-down").checked) return "down";
-		if (SK.$("watch-until") && SK.$("watch-until").checked) return "until";
+		if (F.id("watch-down") && F.id("watch-down").checked) return "down";
+		if (F.id("watch-until") && F.id("watch-until").checked) return "until";
 		return "sw";
 	}
 
 	function watchcap(btn, key, fallback){
 		if (!btn) return;
-		btn.setAttribute("data-k", key);
+		F.seta(btn, "data-k", key);
 		btn.textContent = (SK.t && SK.t(key)) || fallback;
 	}
 
@@ -80,7 +80,7 @@
 	}
 
 	function filluntil(){
-		var el = SK.$("watch-at");
+		var el = F.id("watch-at");
 		if (!el || el.value) return;
 		var d = new Date(Date.now() + 3600000);
 		el.value = d.getFullYear() + "-" + SK.pad2(d.getMonth() + 1) + "-" + SK.pad2(d.getDate())
@@ -97,21 +97,21 @@
 
 	function donebox(){
 		SK.stoptick();
-		watchcap(SK.$("box-start"), "web.go.start", "开始");
-		SK.$("box-out").value = "00:00:00\n" + say("web.watch.done", "时间到");
+		watchcap(F.id("box-start"), "web.go.start", "开始");
+		F.id("box-out").value = "00:00:00\n" + say("web.watch.done", "时间到");
 		SK.msg("box-msg", say("web.watch.done", "时间到"));
 	}
 
 	function watchmode(){
 		SK.stoptick();
 		SK.watchAcc = 0;
-		watchcap(SK.$("box-start"), "web.go.start", "开始");
+		watchcap(F.id("box-start"), "web.go.start", "开始");
 		var mode = curmode();
-		SK.$("watch-secrow").hidden = mode !== "down";
-		SK.$("watch-untilrow").hidden = mode !== "until";
+		F.id("watch-secrow").hidden = mode !== "down";
+		F.id("watch-untilrow").hidden = mode !== "until";
 		SK.msg("box-msg", "");
 		if (mode === "down") {
-			SK.$("box-out").value = fmthms(readsec(false));
+			F.id("box-out").value = fmthms(readsec(false));
 			return;
 		}
 		if (mode === "until") {
@@ -119,12 +119,12 @@
 			watchuntil();
 			return;
 		}
-		SK.$("box-out").value = "00:00.00";
+		F.id("box-out").value = "00:00.00";
 	}
 
 	function watchtoggle(){
 		var mode = curmode();
-		var btn = SK.$("box-start");
+		var btn = F.id("box-start");
 		if (mode === "down") {
 			if (SK.watchOn) {
 				SK.stoptick();
@@ -147,14 +147,14 @@
 		if (SK.watchOn) {
 			SK.stoptick();
 			watchcap(btn, "web.go.start", "开始");
-			SK.$("box-out").value = fmtwatch(SK.watchAcc);
+			F.id("box-out").value = fmtwatch(SK.watchAcc);
 			return;
 		}
 		SK.watch0 = Date.now();
 		SK.watchOn = true;
 		watchcap(btn, "web.f.stop", "停止");
 		SK.tick = setInterval(function(){
-			SK.$("box-out").value = fmtwatch(SK.watchAcc + Date.now() - SK.watch0);
+			F.id("box-out").value = fmtwatch(SK.watchAcc + Date.now() - SK.watch0);
 		}, 50);
 	}
 
@@ -163,8 +163,8 @@
 		var sec = readsec(true);
 		var end = Date.now() + sec * 1000;
 		SK.watchOn = true;
-		watchcap(SK.$("box-start"), "web.f.stop", "停止");
-		SK.$("box-out").value = fmthms(sec);
+		watchcap(F.id("box-start"), "web.f.stop", "停止");
+		F.id("box-out").value = fmthms(sec);
 		SK.msg("box-msg", say("web.watch.run", "计时中"));
 		SK.tick = setInterval(function(){
 			var left = Math.ceil((end - Date.now()) / 1000);
@@ -172,7 +172,7 @@
 				donebox();
 				return;
 			}
-			SK.$("box-out").value = fmthms(left);
+			F.id("box-out").value = fmthms(left);
 		}, 200);
 	}
 
@@ -188,7 +188,7 @@
 			return;
 		}
 		SK.watchOn = true;
-		watchcap(SK.$("box-start"), "web.f.stop", "停止");
+		watchcap(F.id("box-start"), "web.f.stop", "停止");
 		SK.msg("box-msg", say("web.watch.run", "计时中"));
 		function tick(){
 			var left = end - Date.now();
@@ -196,7 +196,7 @@
 				donebox();
 				return;
 			}
-			SK.$("box-out").value = fmtleft(left);
+			F.id("box-out").value = fmtleft(left);
 		}
 		tick();
 		SK.tick = setInterval(tick, 200);
@@ -205,7 +205,7 @@
 	function watchreset(){
 		SK.stoptick();
 		SK.watchAcc = 0;
-		watchcap(SK.$("box-start"), "web.go.start", "开始");
+		watchcap(F.id("box-start"), "web.go.start", "开始");
 		SK.msg("box-msg", "");
 		var mode = curmode();
 		if (mode === "down") return fmthms(readsec(false));

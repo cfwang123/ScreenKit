@@ -16,7 +16,7 @@
 		},
 		open: function(){
 			hookcopy();
-			var body = SK.$("box-body");
+			var body = F.id("box-body");
 			if (body) {
 				body.oninput = draw;
 				body.onchange = draw;
@@ -31,10 +31,10 @@
 		}
 		catch (ex) {
 			last = null;
-			var img = SK.$("box-img");
+			var img = F.id("box-img");
 			if (img) {
 				img.hidden = true;
-				img.removeAttribute("src");
+				F.unset(img, "src");
 			}
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
@@ -52,10 +52,10 @@
 		var back = SK.colorrgb("hex", bg);
 		var ink = SK.colorrgb("hex", fg);
 		if (typeof document === "undefined" || !document.createElement) throw new Error("浏览器不能画图");
-		var canvas = document.createElement("canvas");
+		var canvas = F.el("canvas");
 		canvas.width = wh[0];
 		canvas.height = wh[1];
-		var g = canvas.getContext("2d");
+		var g = F.ctx(canvas);
 		if (!g) throw new Error("浏览器不能画图");
 		g.fillStyle = "#" + SK.hex2(back[0]) + SK.hex2(back[1]) + SK.hex2(back[2]);
 		g.fillRect(0, 0, wh[0], wh[1]);
@@ -65,7 +65,7 @@
 		g.textBaseline = "middle";
 		g.fillText(String(label || "").trim() || (wh[0] + "×" + wh[1]), wh[0] / 2, wh[1] / 2);
 		last = canvas;
-		var img = SK.$("box-img");
+		var img = F.id("box-img");
 		if (img) {
 			img.src = canvas.toDataURL("image/png");
 			img.hidden = false;
@@ -74,25 +74,25 @@
 	}
 
 	function hookcopy(){
-		var btn = SK.$("box-copy");
-		if (btn && !btn.getAttribute("data-ph")) {
-			btn.setAttribute("data-ph", "1");
+		var btn = F.id("box-copy");
+		if (btn && !F.attr(btn, "data-ph")) {
+			F.seta(btn, "data-ph", "1");
 			var orig = btn.onclick;
 			btn.onclick = function(){
-				var img = SK.$("box-img");
+				var img = F.id("box-img");
 				if (img && !img.hidden && last) copyph();
 				else if (orig) orig.call(btn);
 			};
 		}
 		if (!hookcopy.bound) {
 			hookcopy.bound = true;
-			document.addEventListener("keydown", onkey);
+			F.on(document, "keydown", onkey);
 		}
 	}
 
 	function onkey(ev){
 		if ((ev.key !== "c" && ev.key !== "C") || !ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) return;
-		var img = SK.$("box-img");
+		var img = F.id("box-img");
 		if (!img || img.hidden || !last) return;
 		var el = document.activeElement;
 		if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
@@ -100,7 +100,7 @@
 			var b = el.selectionEnd;
 			if (typeof a === "number" && typeof b === "number" && b > a) return;
 		}
-		ev.preventDefault();
+		F.pd(ev);
 		copyph();
 	}
 

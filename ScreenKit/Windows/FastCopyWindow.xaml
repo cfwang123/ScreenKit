@@ -57,9 +57,15 @@
 			<RadioButton x:Name="rsym" Content="符号链接" GroupName="fcmode" Margin="0,0,12,0"
 			             VerticalAlignment="Center"
 			             AutomationProperties.AutomationId="fastcopy.mode.symlink"/>
-			<RadioButton x:Name="rhard" Content="硬链接" GroupName="fcmode" Margin="0,0,16,0"
+			<RadioButton x:Name="rhard" Content="硬链接" GroupName="fcmode" Margin="0,0,12,0"
 			             VerticalAlignment="Center"
 			             AutomationProperties.AutomationId="fastcopy.mode.hardlink"/>
+			<RadioButton x:Name="rdel" Content="删除" GroupName="fcmode" Margin="0,0,12,0"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="fastcopy.mode.delete"/>
+			<RadioButton x:Name="rrecycle" Content="删除到回收站" GroupName="fcmode" Margin="0,0,16,0"
+			             VerticalAlignment="Center"
+			             AutomationProperties.AutomationId="fastcopy.mode.recycle"/>
 			<TextBlock x:Name="lbconflict" Text="同名" VerticalAlignment="Center" Margin="0,0,8,0"/>
 			<ComboBox x:Name="econflict" Width="110" Height="32" Margin="0,0,16,0"
 			          VerticalContentAlignment="Center"

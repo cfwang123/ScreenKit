@@ -42,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 3D function plots can switch among a shaded surface, a grid, points, and contour lines.
 - Unicode, ASCII, and GBK charts can draw with an installed font. GET /api/fonts lists the system fonts. The choice is remembered.
 - 2D function plots include a Cross tool, on by default, that lists where the crosshair meets the curve.
+- Fast copy can delete the listed files permanently or move them to the Recycle Bin. It asks before starting, and does not need a destination.
 
 #### Changed
 
@@ -79,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维函数图像可在曲面、网格、点阵、等高线之间切换。
 - Unicode、ASCII、GBK 码表可以用本机已安装的字体显示。GET /api/fonts 列出系统字体。选过的字体会记住。
 - 二维函数图像增加 Cross，默认开启，显示十字线与曲线的交点坐标。
+- 快速复制可以永久删除列表里的文件，或删除到回收站。开始前会再确认，不用填目标。
 
 #### 变更
 

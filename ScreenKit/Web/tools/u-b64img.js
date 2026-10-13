@@ -11,7 +11,7 @@
 		own: true
 	});
 	function imgb64(){
-		var input = SK.$("box-file");
+		var input = F.id("box-file");
 		var file = input && input.files && input.files[0];
 		if (!file) {
 			SK.msg("box-msg", "请选择图片", true);
@@ -23,7 +23,7 @@
 		}
 		var reader = new FileReader();
 		reader.onload = function(){
-			SK.$("box-out").value = String(reader.result || "");
+			F.id("box-out").value = String(reader.result || "");
 			SK.msg("box-msg", "完成");
 		};
 		reader.onerror = function(){ SK.msg("box-msg", "读取失败", true); };

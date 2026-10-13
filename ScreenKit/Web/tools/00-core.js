@@ -8,6 +8,45 @@ SK.tick = null;
 SK.watchOn = false;
 SK.watch0 = 0;
 SK.watchAcc = 0;
+
+window.F = {};
+var F = window.F;
+F.id = function(id){ return document.getElementById(id); };
+F.q = function(sel, root){ return (root || document).querySelector(sel); };
+F.qa = function(sel, root){ return (root || document).querySelectorAll(sel); };
+F.el = function(tag){ return document.createElement(tag); };
+F.on = function(el, type, fn, opt){
+	if (arguments.length < 4) el.addEventListener(type, fn);
+	else el.addEventListener(type, fn, opt);
+};
+F.pd = function(ev){ ev.preventDefault(); };
+F.attr = function(el, name){ return el.getAttribute(name); };
+F.seta = function(el, name, val){ el.setAttribute(name, val); };
+F.unset = function(el, name){ el.removeAttribute(name); };
+F.ctx = function(el, opt){
+	if (arguments.length < 2) return el.getContext("2d");
+	return el.getContext("2d", opt);
+};
+F.append = function(parent, child){ return parent.appendChild(child); };
+F.parse = function(){ return JSON.parse.apply(JSON, arguments); };
+F.json = function(){ return JSON.stringify.apply(JSON, arguments); };
+F.lget = function(key){ return localStorage.getItem(key); };
+F.lset = function(key, val){ localStorage.setItem(key, val); };
+F.url = function(obj){ return URL.createObjectURL(obj); };
+F.unurl = function(url){ URL.revokeObjectURL(url); };
+F.cp = function(){ return String.fromCodePoint.apply(String, arguments); };
+F.ch = function(){ return String.fromCharCode.apply(String, arguments); };
+F.raf = function(fn){ return requestAnimationFrame(fn); };
+F.rand = function(buf){ return crypto.getRandomValues(buf); };
+F.rect = function(el){ return el.getBoundingClientRect(); };
+F.into = function(el, opt){
+	if (arguments.length < 2) el.scrollIntoView();
+	else el.scrollIntoView(opt);
+};
+F.hdr = function(xhr, name, val){ xhr.setRequestHeader(name, val); };
+F.clip = function(text){ return navigator.clipboard.writeText(text); };
+F.tags = function(name, root){ return (root || document).getElementsByTagName(name); };
+
 (function(){
 	SK.utils = {};
 	SK.regutil = function(name, spec){
@@ -32,52 +71,52 @@ SK.watchAcc = 0;
 		var today = new Date();
 		var month = today.getMonth() + 1;
 		var day = today.getDate();
-		$("cal-date").value = today.getFullYear()
+		F.id("cal-date").value = today.getFullYear()
 			+ "-" + (month < 10 ? "0" : "") + month
 			+ "-" + (day < 10 ? "0" : "") + day;
-		document.addEventListener("click", onclick);
-		$("cal-go").onclick = SK.cal;
-		$("tr-go").onclick = function(){ if (SK.trgo) SK.trgo(); };
-		$("tr-swap").onclick = function(){ if (SK.trswap) SK.trswap(); };
-		$("tr-copy").onclick = function(){ copytext($("tr-out").value, "tr-msg"); };
-		$("tr-paste").onclick = function(){ if (SK.trpaste) SK.trpaste(); };
-		$("tr-speak-src").onclick = function(){ if (SK.trspeak) SK.trspeak("src"); };
-		$("tr-speak-dst").onclick = function(){ if (SK.trspeak) SK.trspeak("dst"); };
-		$("tr-src").onchange = function(){ if (SK.trdst) SK.trdst(true); };
-		$("tr-in").onkeydown = function(ev){
+		F.on(document, "click", onclick);
+		F.id("cal-go").onclick = SK.cal;
+		F.id("tr-go").onclick = function(){ if (SK.trgo) SK.trgo(); };
+		F.id("tr-swap").onclick = function(){ if (SK.trswap) SK.trswap(); };
+		F.id("tr-copy").onclick = function(){ copytext(F.id("tr-out").value, "tr-msg"); };
+		F.id("tr-paste").onclick = function(){ if (SK.trpaste) SK.trpaste(); };
+		F.id("tr-speak-src").onclick = function(){ if (SK.trspeak) SK.trspeak("src"); };
+		F.id("tr-speak-dst").onclick = function(){ if (SK.trspeak) SK.trspeak("dst"); };
+		F.id("tr-src").onchange = function(){ if (SK.trdst) SK.trdst(true); };
+		F.id("tr-in").onkeydown = function(ev){
 			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
-				ev.preventDefault();
+				F.pd(ev);
 				if (SK.trgo) SK.trgo();
 			}
 		};
-		$("tx-copy").onclick = function(){ copytext($("tx-out").value, "tx-msg"); };
-		$("qr-make").onclick = SK.qrmake;
-		$("qr-scan").onclick = SK.qrscan;
-		$("ocr-pack").onchange = SK.fillocrmodels;
-		$("ocr-file").onchange = SK.onocrfile;
-		$("ocr-go").onclick = SK.ocrgo;
-		document.addEventListener("paste", SK.onocrpaste);
-		$("ocr-copy").onclick = function(){ copytext($("ocr-out").value, "ocr-msg"); };
-		$("tts-eng").onchange = SK.fillttsmodels;
-		$("tts-lang").onchange = SK.fillttsmodels;
-		$("tts-gender").onchange = SK.fillttsmodels;
-		$("tts-model").onchange = SK.fillttsvoices;
-		$("tts-go").onclick = function(){ SK.ttsgo(false); };
-		$("tts-wav").onclick = function(){ SK.ttsgo(true); };
-		$("asr-eng").onchange = SK.fillasrmodels;
-		$("asr-filego").onclick = SK.asrfile;
-		$("asr-rec").onclick = SK.asrrec;
-		$("asr-copy").onclick = function(){ copytext($("asr-out").value, "asr-msg"); };
-		$("tool-q").oninput = paintcats;
-		$("box-go").onclick = utilrun;
-		$("box-copy").onclick = function(){ copytext($("box-out").value, "box-msg"); };
+		F.id("tx-copy").onclick = function(){ copytext(F.id("tx-out").value, "tx-msg"); };
+		F.id("qr-make").onclick = SK.qrmake;
+		F.id("qr-scan").onclick = SK.qrscan;
+		F.id("ocr-pack").onchange = SK.fillocrmodels;
+		F.id("ocr-file").onchange = SK.onocrfile;
+		F.id("ocr-go").onclick = SK.ocrgo;
+		F.on(document, "paste", SK.onocrpaste);
+		F.id("ocr-copy").onclick = function(){ copytext(F.id("ocr-out").value, "ocr-msg"); };
+		F.id("tts-eng").onchange = SK.fillttsmodels;
+		F.id("tts-lang").onchange = SK.fillttsmodels;
+		F.id("tts-gender").onchange = SK.fillttsmodels;
+		F.id("tts-model").onchange = SK.fillttsvoices;
+		F.id("tts-go").onclick = function(){ SK.ttsgo(false); };
+		F.id("tts-wav").onclick = function(){ SK.ttsgo(true); };
+		F.id("asr-eng").onchange = SK.fillasrmodels;
+		F.id("asr-filego").onclick = SK.asrfile;
+		F.id("asr-rec").onclick = SK.asrrec;
+		F.id("asr-copy").onclick = function(){ copytext(F.id("asr-out").value, "asr-msg"); };
+		F.id("tool-q").oninput = paintcats;
+		F.id("box-go").onclick = utilrun;
+		F.id("box-copy").onclick = function(){ copytext(F.id("box-out").value, "box-msg"); };
 		filllang();
 		loadfav();
 		buildgroups();
 		paintfav();
 		paintstars();
 		paintcats();
-		window.addEventListener("popstate", applyhash);
+		F.on(window, "popstate", applyhash);
 		var start = toolhash();
 		if (start && start !== "home" && cardof(start)) show(start, true);
 		applylang();
@@ -87,23 +126,23 @@ SK.watchAcc = 0;
 		var el = ev.target;
 		while (el && el !== document.body) {
 			if (el.id === "tx-ops") return;
-			var fav = el.getAttribute && el.getAttribute("data-fav");
+			var fav = el.getAttribute && F.attr(el, "data-fav");
 			if (fav) {
 				togglefav(fav);
 				return;
 			}
-			var tool = el.getAttribute && el.getAttribute("data-tool");
+			var tool = el.getAttribute && F.attr(el, "data-tool");
 			if (tool) {
 				if (tool !== "home" && ev.ctrlKey) opentab(tool);
 				else show(tool);
 				return;
 			}
-			var cat = el.getAttribute && el.getAttribute("data-cat");
-			if (cat && el.tagName === "BUTTON" && !el.getAttribute("data-tool")) {
+			var cat = el.getAttribute && F.attr(el, "data-cat");
+			if (cat && el.tagName === "BUTTON" && !F.attr(el, "data-tool")) {
 				jumpcat(cat);
 				return;
 			}
-			var op = el.getAttribute && el.getAttribute("data-op");
+			var op = el.getAttribute && F.attr(el, "data-op");
 			if (op) {
 				SK.textop(op);
 				return;
@@ -152,20 +191,20 @@ SK.watchAcc = 0;
 			openutil(name);
 			name = "box";
 		}
-		var panels = document.querySelectorAll(".panel");
+		var panels = F.qa(".panel");
 		var i;
 		for (i = 0; i < panels.length; i++)
 			panels[i].className = panels[i].id === name ? "panel on" : "panel";
-		$("back").hidden = name === "home";
+		F.id("back").hidden = name === "home";
 		document.documentElement.classList.toggle("in-tool", SK.curtool !== "home");
-		var favbtn = $("tool-fav");
+		var favbtn = F.id("tool-fav");
 		if (SK.curtool === "home") {
 			favbtn.hidden = true;
-			favbtn.removeAttribute("data-fav");
+			F.unset(favbtn, "data-fav");
 		}
 		else {
 			favbtn.hidden = false;
-			favbtn.setAttribute("data-fav", SK.curtool);
+			F.seta(favbtn, "data-fav", SK.curtool);
 		}
 		paintstars();
 		if (name === "home") paintcats();
@@ -186,7 +225,7 @@ SK.watchAcc = 0;
 			return;
 		}
 		var card = cardof(SK.curtool);
-		var span = card ? card.querySelector("span") : null;
+		var span = card ? F.q("span", card) : null;
 		var toolName = span ? span.textContent : "";
 		document.title = toolName || t("web.title") || "web工具集";
 	}
@@ -231,17 +270,17 @@ SK.watchAcc = 0;
 	}
 
 	function filllang(){
-		var sel = $("lang");
+		var sel = F.id("lang");
 		if (!sel) return;
 		var codes = langs();
 		var names = (window.L && L._name) || [];
 		while (sel.firstChild) sel.removeChild(sel.firstChild);
 		var i;
 		for (i = 0; i < codes.length; i++) {
-			var op = document.createElement("option");
+			var op = F.el("option");
 			op.value = codes[i];
 			op.textContent = names[i] || codes[i];
-			sel.appendChild(op);
+			F.append(sel, op);
 		}
 		var use = String(window.SKL || "").toLowerCase();
 		langAt = 0;
@@ -253,7 +292,7 @@ SK.watchAcc = 0;
 	}
 
 	function onlang(){
-		var code = $("lang").value;
+		var code = F.id("lang").value;
 		var codes = langs();
 		var i;
 		langAt = 0;
@@ -262,25 +301,25 @@ SK.watchAcc = 0;
 	}
 
 	function applylang(){
-		var nodes = document.querySelectorAll("[data-k]");
+		var nodes = F.qa("[data-k]");
 		var i, s;
 		for (i = 0; i < nodes.length; i++) {
-			s = t(nodes[i].getAttribute("data-k"));
+			s = t(F.attr(nodes[i], "data-k"));
 			if (s) nodes[i].textContent = s;
 		}
-		nodes = document.querySelectorAll("[data-kph]");
+		nodes = F.qa("[data-kph]");
 		for (i = 0; i < nodes.length; i++) {
-			s = t(nodes[i].getAttribute("data-kph"));
+			s = t(F.attr(nodes[i], "data-kph"));
 			if (s) nodes[i].placeholder = s;
 		}
-		nodes = document.querySelectorAll("[data-kt]");
+		nodes = F.qa("[data-kt]");
 		for (i = 0; i < nodes.length; i++) {
-			s = t(nodes[i].getAttribute("data-kt"));
-			if (s) nodes[i].setAttribute("data-title", s);
+			s = t(F.attr(nodes[i], "data-kt"));
+			if (s) F.seta(nodes[i], "data-title", s);
 		}
-		nodes = document.querySelectorAll("[data-ktip]");
+		nodes = F.qa("[data-ktip]");
 		for (i = 0; i < nodes.length; i++) {
-			s = t(nodes[i].getAttribute("data-ktip"));
+			s = t(F.attr(nodes[i], "data-ktip"));
 			if (s) nodes[i].title = s;
 		}
 		var code = langs()[langAt] || "zh";
@@ -290,7 +329,7 @@ SK.watchAcc = 0;
 			marktool(SK.curtool, panel);
 		}
 		settitle();
-		if (SK.fillttslang && $("tts-lang")) SK.fillttslang();
+		if (SK.fillttslang && F.id("tts-lang")) SK.fillttslang();
 		if (SK.filltrlang) SK.filltrlang();
 		paintstars();
 		if (!SK.curtool || SK.curtool === "home") paintcats();
@@ -299,70 +338,70 @@ SK.watchAcc = 0;
 	function marktool(id, panelId){
 		var card = cardof(id);
 		if (!card) return;
-		var cat = card.getAttribute("data-cat") || "";
+		var cat = F.attr(card, "data-cat") || "";
 		var catName = cattitle(cat);
-		var span = card.querySelector("span");
+		var span = F.q("span", card);
 		var toolName = span ? span.textContent : "";
-		var h1 = document.querySelector("#" + panelId + " h1");
+		var h1 = F.q("#" + panelId + " h1");
 		if (h1 && catName && toolName) h1.textContent = catName + " - " + toolName;
 	}
 
 	function cattitle(cat){
-		var btn = document.querySelector('#cats button[data-cat="' + cat + '"]');
+		var btn = F.q('#cats button[data-cat="' + cat + '"]');
 		if (!btn) return "";
-		return btn.getAttribute("data-title") || "";
+		return F.attr(btn, "data-title") || "";
 	}
 
 	function buildgroups(){
-		var host = $("cards");
-		var btns = host.querySelectorAll("button");
-		var nav = document.querySelectorAll("#cats button");
+		var host = F.id("cards");
+		var btns = F.qa("button", host);
+		var nav = F.qa("#cats button");
 		var pending = [];
 		var map = {};
 		var i;
 		for (i = 0; i < btns.length; i++) pending.push(btns[i]);
 		for (i = 0; i < nav.length; i++) {
-			var cat = nav[i].getAttribute("data-cat");
+			var cat = F.attr(nav[i], "data-cat");
 			if (cat === "all") continue;
-			var sec = document.createElement("section");
+			var sec = F.el("section");
 			sec.className = "catsec";
 			sec.id = "sec-" + cat;
-			sec.setAttribute("data-cat", cat);
-			var h = document.createElement("h2");
-			var icon = nav[i].querySelector("i");
-			if (icon) h.appendChild(icon.cloneNode(true));
+			F.seta(sec, "data-cat", cat);
+			var h = F.el("h2");
+			var icon = F.q("i", nav[i]);
+			if (icon) F.append(h, icon.cloneNode(true));
 			var catKey = "web.cat." + cat;
-			var catLabel = t(catKey) || nav[i].getAttribute("data-title") || "";
-			var catSpan = document.createElement("span");
-			catSpan.setAttribute("data-k", catKey);
+			var catLabel = t(catKey) || F.attr(nav[i], "data-title") || "";
+			var catSpan = F.el("span");
+			F.seta(catSpan, "data-k", catKey);
 			catSpan.textContent = catLabel;
-			h.appendChild(catSpan);
-			var grid = document.createElement("div");
+			F.append(h, catSpan);
+			var grid = F.el("div");
 			grid.className = "cards";
-			sec.appendChild(h);
-			sec.appendChild(grid);
+			F.append(sec, h);
+			F.append(sec, grid);
 			if (cat === "fav") {
-				var empty = document.createElement("p");
+				var empty = F.el("p");
 				empty.className = "none";
 				empty.id = "fav-none";
 				empty.hidden = true;
-				empty.setAttribute("data-k", "web.fav.none");
+				F.seta(empty, "data-k", "web.fav.none");
 				empty.textContent = t("web.fav.none") || "还没有收藏。点卡片右侧的星可以加进来。";
-				sec.appendChild(empty);
+				F.append(sec, empty);
 			}
 			map[cat] = grid;
-			host.appendChild(sec);
+			F.append(host, sec);
 		}
 		for (i = 0; i < pending.length; i++) {
-			var into = map[pending[i].getAttribute("data-cat") || ""];
-			if (into) into.appendChild(pending[i]);
+			var into = map[F.attr(pending[i], "data-cat") || ""];
+			if (into) F.append(into, pending[i]);
 		}
 		host.className = "groups";
 		host.id = "groups";
 	}
 
 	function paintfav(){
-		var grid = document.querySelector("#sec-fav .cards");
+		var grid = F.q("#sec-fav .cards");
 		if (!grid) return;
 		while (grid.firstChild) grid.removeChild(grid.firstChild);
 		var i;
@@ -370,74 +409,74 @@ SK.watchAcc = 0;
 			var src = cardof(favs[i]);
 			if (!src) continue;
 			var copy = src.cloneNode(true);
-			copy.setAttribute("data-clone", "1");
+			F.seta(copy, "data-clone", "1");
 			copy.hidden = false;
-			grid.appendChild(copy);
+			F.append(grid, copy);
 		}
-		var empty = $("fav-none");
+		var empty = F.id("fav-none");
 		if (empty) empty.hidden = favs.length !== 0;
 	}
 
 	function paintnav(){
-		var cats = document.querySelectorAll("#cats button");
+		var cats = F.qa("#cats button");
 		var i;
 		for (i = 0; i < cats.length; i++)
-			cats[i].className = cats[i].getAttribute("data-cat") === curcat ? "on" : "";
+			cats[i].className = F.attr(cats[i], "data-cat") === curcat ? "on" : "";
 	}
 
 	function jumpcat(cat){
 		curcat = cat;
 		if (SK.curtool !== "home") show("home");
 		else paintcats();
-		var home = $("home");
+		var home = F.id("home");
 		if (home) home.scrollTop = 0;
 	}
 
 	function paintcats(){
-		var q = ($("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
-		var cards = document.querySelectorAll(".catsec .cards button");
+		var q = (F.id("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
+		var cards = F.qa(".catsec .cards button");
 		var n = 0;
 		var i;
 		for (i = 0; i < cards.length; i++) {
 			var sec = cards[i].parentNode ? cards[i].parentNode.parentNode : null;
-			var cat = sec ? (sec.getAttribute("data-cat") || "") : "";
+			var cat = sec ? (F.attr(sec, "data-cat") || "") : "";
 			var incat = curcat === "all" || cat === curcat;
-			var name = (cards[i].getAttribute("data-name") || "").toLowerCase();
+			var name = (F.attr(cards[i], "data-name") || "").toLowerCase();
 			var vis = incat && (!q || name.indexOf(q) >= 0);
 			cards[i].hidden = !vis;
 			if (vis) n++;
 		}
-		var secs = document.querySelectorAll(".catsec");
+		var secs = F.qa(".catsec");
 		for (i = 0; i < secs.length; i++) {
-			var cat = secs[i].getAttribute("data-cat");
+			var cat = F.attr(secs[i], "data-cat");
 			if (curcat !== "all" && cat !== curcat) {
 				secs[i].hidden = true;
 				continue;
 			}
-			var grid = secs[i].querySelector(".cards");
-			var buttons = grid ? grid.querySelectorAll("button") : [];
+			var grid = F.q(".cards", secs[i]);
+			var buttons = grid ? F.qa("button", grid) : [];
 			var visn = 0;
 			var j;
 			for (j = 0; j < buttons.length; j++) if (!buttons[j].hidden) visn++;
 			if (cat === "fav" && !q) {
 				secs[i].hidden = false;
-				var empty = $("fav-none");
+				var empty = F.id("fav-none");
 				if (empty) empty.hidden = visn !== 0;
 			}
 			else secs[i].hidden = visn === 0;
 		}
-		$("tool-none").textContent = t("web.find.none") || "没有匹配的工具";
-		$("tool-none").hidden = n !== 0;
+		F.id("tool-none").textContent = t("web.find.none") || "没有匹配的工具";
+		F.id("tool-none").hidden = n !== 0;
 		paintnav();
 	}
 
 	function loadfav(){
 		favs = [];
 		var raw = "";
-		try { raw = localStorage.getItem("sk-tool-fav") || ""; }
+		try { raw = F.lget("sk-tool-fav") || ""; }
 		catch (e) { return; }
 		var list;
-		try { list = JSON.parse(raw || "[]"); }
+		try { list = F.parse(raw || "[]"); }
 		catch (e) { return; }
 		if (!list || typeof list.length !== "number") return;
 		var i, seen = {};
@@ -458,16 +497,16 @@ SK.watchAcc = 0;
 	}
 
 	function savefav(){
-		try { localStorage.setItem("sk-tool-fav", JSON.stringify(favs)); }
+		try { F.lset("sk-tool-fav", F.json(favs)); }
 		catch (e) {}
 	}
 
 	function cardof(id){
-		var cards = document.querySelectorAll(".cards button");
+		var cards = F.qa(".cards button");
 		var i;
 		for (i = 0; i < cards.length; i++) {
-			if (cards[i].getAttribute("data-clone")) continue;
-			if (cards[i].getAttribute("data-tool") === id) return cards[i];
+			if (F.attr(cards[i], "data-clone")) continue;
+			if (F.attr(cards[i], "data-tool") === id) return cards[i];
 		}
 		return null;
 	}
@@ -500,39 +539,35 @@ SK.watchAcc = 0;
 	}
 
 	function paintstars(){
-		var nodes = document.querySelectorAll(".cards .star");
+		var nodes = F.qa(".cards .star");
 		var i;
 		for (i = 0; i < nodes.length; i++) {
-			var on = isfav(nodes[i].getAttribute("data-fav"));
+			var on = isfav(F.attr(nodes[i], "data-fav"));
 			nodes[i].className = on ? "star on fa-solid fa-star" : "star fa-solid fa-star";
 			var tipKey = on ? "web.fav.tip.off" : "web.fav.tip";
-			nodes[i].setAttribute("data-ktip", tipKey);
+			F.seta(nodes[i], "data-ktip", tipKey);
 			nodes[i].title = t(tipKey) || (on ? "取消收藏" : "收藏");
 		}
-		var btn = $("tool-fav");
+		var btn = F.id("tool-fav");
 		if (!btn) return;
-		var picked = btn.getAttribute("data-fav") || "";
+		var picked = F.attr(btn, "data-fav") || "";
 		var lit = picked && isfav(picked);
 		btn.className = lit ? "back on" : "back";
 		var favKey = lit ? "web.fav.on" : "web.fav";
-		btn.setAttribute("data-ktip", favKey);
+		F.seta(btn, "data-ktip", favKey);
 		btn.title = t(favKey) || (lit ? "已收藏" : "收藏");
 	}
 
-	function $(id){
-		return document.getElementById(id);
-	}
-
 	function msg(id, text, bad){
-		var el = $(id);
+		var el = F.id(id);
 		if (!el) return;
 		var key = webkey(text);
 		if (key) {
-			el.setAttribute("data-k", key);
+			F.seta(el, "data-k", key);
 			el.textContent = t(key);
 		}
 		else {
-			el.removeAttribute("data-k");
+			F.unset(el, "data-k");
 			el.textContent = text || "";
 		}
 		el.className = bad ? "msg bad" : "msg";
@@ -542,10 +577,10 @@ SK.watchAcc = 0;
 		msg(mid, "");
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", url, true);
-		xhr.setRequestHeader("Content-Type", "application/json;charset=utf-8");
+		F.hdr(xhr, "Content-Type", "application/json;charset=utf-8");
 		xhr.onload = function(){
 			var jo;
-			try { jo = JSON.parse(xhr.responseText); }
+			try { jo = F.parse(xhr.responseText); }
 			catch (e) {
 				msg(mid, "响应不是 JSON", true);
 				return;
@@ -560,7 +595,7 @@ SK.watchAcc = 0;
 			done(raw ? jo : (jo.data || {}));
 		};
 		xhr.onerror = function(){ msg(mid, "网络错误", true); };
-		xhr.send(JSON.stringify(body));
+		xhr.send(F.json(body));
 	}
 
 	var chartFont = null;
@@ -575,15 +610,15 @@ SK.watchAcc = 0;
 	}
 
 	function chartfont(id){
-		var box = $(id);
+		var box = F.id(id);
 		if (!box) return;
 		if (chartFont == null) {
 			chartFont = "";
-			try { chartFont = localStorage.getItem("sk-chart-font") || ""; } catch (e) {}
+			try { chartFont = F.lget("sk-chart-font") || ""; } catch (e) {}
 		}
 		box.onchange = function(){
 			chartFont = box.value || "";
-			try { localStorage.setItem("sk-chart-font", chartFont); } catch (e) {}
+			try { F.lset("sk-chart-font", chartFont); } catch (e) {}
 			applychart();
 			if (SK.onchartfont) SK.onchartfont();
 		};
@@ -630,7 +665,7 @@ SK.watchAcc = 0;
 		if (chartFont) box.value = chartFont;
 		if (box.value !== chartFont) {
 			chartFont = "";
-			try { localStorage.setItem("sk-chart-font", ""); } catch (e) {}
+			try { F.lset("sk-chart-font", ""); } catch (e) {}
 		}
 		applychart();
 		if (SK.onchartfont) SK.onchartfont();
@@ -640,11 +675,11 @@ SK.watchAcc = 0;
 		var root = document.documentElement;
 		if (!chartFont) {
 			root.style.removeProperty("--ufont");
-			root.removeAttribute("data-ufont");
+			F.unset(root, "data-ufont");
 			return;
 		}
 		root.style.setProperty("--ufont", chartfaceq(chartFont));
-		root.setAttribute("data-ufont", "1");
+		F.seta(root, "data-ufont", "1");
 	}
 
 	function chartface(){
@@ -661,7 +696,7 @@ SK.watchAcc = 0;
 		xhr.open("GET", url, true);
 		xhr.onload = function(){
 			var jo;
-			try { jo = JSON.parse(xhr.responseText); }
+			try { jo = F.parse(xhr.responseText); }
 			catch (e) {
 				msg(mid, "响应不是 JSON", true);
 				if (fail) fail();
@@ -686,10 +721,10 @@ SK.watchAcc = 0;
 		sel.innerHTML = "";
 		var i;
 		for (i = 0; i < rows.length; i++) {
-			var op = document.createElement("option");
+			var op = F.el("option");
 			op.value = rows[i].value;
 			op.textContent = rows[i].label;
-			sel.appendChild(op);
+			F.append(sel, op);
 		}
 		if (pick) sel.value = pick;
 		if (sel.selectedIndex < 0 && sel.options.length) sel.selectedIndex = 0;
@@ -712,7 +747,7 @@ SK.watchAcc = 0;
 			return;
 		}
 		if (navigator.clipboard && navigator.clipboard.writeText) {
-			navigator.clipboard.writeText(text).then(function(){
+			F.clip(text).then(function(){
 				msg(mid, "已复制");
 			}, function(){
 				fallback(text, mid);
@@ -723,9 +758,9 @@ SK.watchAcc = 0;
 	}
 
 	function fallback(text, mid){
-		var ta = document.createElement("textarea");
+		var ta = F.el("textarea");
 		ta.value = text;
-		document.body.appendChild(ta);
+		F.append(document.body, ta);
 		ta.select();
 		try {
 			document.execCommand("copy");
@@ -781,12 +816,12 @@ SK.watchAcc = 0;
 	}
 
 	function val(id){
-		var el = $(id);
+		var el = F.id(id);
 		return el && el.value != null ? String(el.value) : "";
 	}
 
 	function onbox(id){
-		var el = $(id);
+		var el = F.id(id);
 		return !!(el && el.checked);
 	}
 
@@ -846,7 +881,7 @@ SK.watchAcc = 0;
 		var limit = Math.floor(0x100000000 / n) * n;
 		var x;
 		do {
-			crypto.getRandomValues(buf);
+			F.rand(buf);
 			x = buf[0];
 		} while (x >= limit);
 		return x % n;
@@ -1026,9 +1061,9 @@ SK.watchAcc = 0;
 			return;
 		}
 		SK.icoPic = file;
-		if (SK.icoUrl) URL.revokeObjectURL(SK.icoUrl);
-		SK.icoUrl = URL.createObjectURL(file);
-		var img = $("ico-img");
+		if (SK.icoUrl) F.unurl(SK.icoUrl);
+		SK.icoUrl = F.url(file);
+		var img = F.id("ico-img");
 		if (img) {
 			img.onload = SK.drawicoprev;
 			img.src = SK.icoUrl;
@@ -1049,40 +1084,40 @@ SK.watchAcc = 0;
 		var spec = SK.utils[name];
 		if (!spec) return;
 		util = name;
-		$("box-title").textContent = spec.title;
+		F.id("box-title").textContent = spec.title;
 		var gokey = webkey(spec.go);
 		if (gokey) {
-			$("box-go").setAttribute("data-k", gokey);
-			$("box-go").textContent = t(gokey);
+			F.seta(F.id("box-go"), "data-k", gokey);
+			F.id("box-go").textContent = t(gokey);
 		}
 		else {
-			$("box-go").removeAttribute("data-k");
-			$("box-go").textContent = spec.go;
+			F.unset(F.id("box-go"), "data-k");
+			F.id("box-go").textContent = spec.go;
 		}
-		$("box-body").innerHTML = spec.body();
-		$("box-out").value = "";
-		$("box-go").parentElement.style.display = "";
-		$("box-go").style.display = "";
-		$("box-copy").style.display = "";
-		$("box-out").parentElement.style.display = "";
+		F.id("box-body").innerHTML = spec.body();
+		F.id("box-out").value = "";
+		F.id("box-go").parentElement.style.display = "";
+		F.id("box-go").style.display = "";
+		F.id("box-copy").style.display = "";
+		F.id("box-out").parentElement.style.display = "";
 		if (SK.showreout) SK.showreout(false);
 		if (SK.showrcolor) SK.showrcolor(false);
 		msg("box-msg", "");
-		if (spec.hideGo) $("box-go").parentElement.style.display = "none";
-		if (spec.noGo) $("box-go").style.display = "none";
-		if (spec.hideCopy) $("box-copy").style.display = "none";
-		if (spec.hideOut) $("box-out").parentElement.style.display = "none";
+		if (spec.hideGo) F.id("box-go").parentElement.style.display = "none";
+		if (spec.noGo) F.id("box-go").style.display = "none";
+		if (spec.hideCopy) F.id("box-copy").style.display = "none";
+		if (spec.hideOut) F.id("box-out").parentElement.style.display = "none";
 		if (spec.open) spec.open();
 		if (spec.live !== false && textcard(name)) bindboxlive();
 	}
 
 	function textcard(name){
 		var card = cardof(name);
-		return !!(card && card.getAttribute("data-cat") === "text");
+		return !!(card && F.attr(card, "data-cat") === "text");
 	}
 
 	function bindboxlive(){
-		var body = $("box-body");
+		var body = F.id("box-body");
 		if (!body) return;
 		body.oninput = function(){ utilrun(); };
 		body.onchange = function(ev){
@@ -1102,11 +1137,11 @@ SK.watchAcc = 0;
 		}
 		SK.reNote = "";
 		try {
-			$("box-out").value = spec.run();
+			F.id("box-out").value = spec.run();
 			msg("box-msg", SK.reNote || "完成");
 		}
 		catch (ex) {
-			$("box-out").value = "";
+			F.id("box-out").value = "";
 			if (SK.showreout) SK.showreout(false);
 			if (SK.showrcolor) SK.showrcolor(false);
 			msg("box-msg", ex && ex.message ? ex.message : "失败", true);
@@ -1132,7 +1167,7 @@ SK.watchAcc = 0;
 	SK.isfav = isfav;
 	SK.togglefav = togglefav;
 	SK.paintstars = paintstars;
-	SK.$ = $;
+	SK.$ = F.id;
 	SK.msg = msg;
 	SK.post = post;
 	SK.get = get;

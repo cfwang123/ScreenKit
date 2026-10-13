@@ -46,14 +46,14 @@
 	}
 
 	function open(){
-		var src = SK.$("htmlui-src");
-		var bar = document.querySelector(".htmlui-tpl");
+		var src = F.id("htmlui-src");
+		var bar = F.q(".htmlui-tpl");
 		if (!src || !bar) return;
 		src.oninput = schedule;
 		bar.onclick = function(ev){
 			var el = ev.target;
 			if (!el || !el.getAttribute) return;
-			var id = el.getAttribute("data-htmlui");
+			var id = F.attr(el, "data-htmlui");
 			if (!id) return;
 			var one = find(id);
 			if (!one) return;
@@ -81,8 +81,8 @@
 	}
 
 	function paint(){
-		var src = SK.$("htmlui-src");
-		var view = SK.$("htmlui-view");
+		var src = F.id("htmlui-src");
+		var view = F.id("htmlui-view");
 		if (!src || !view) return;
 		view.srcdoc = wrap(src.value);
 	}

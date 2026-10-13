@@ -23,14 +23,14 @@
 		},
 		open: function(){
 			var now = new Date();
-			SK.$("dc-a").value = stamp(now);
-			SK.$("dc-b").value = stamp(now);
+			F.id("dc-a").value = stamp(now);
+			F.id("dc-b").value = stamp(now);
 			fillunits(false);
-			SK.$("dc-mode").onchange = onpick;
-			SK.$("dc-unit").onchange = onpick;
-			SK.$("dc-a").oninput = live;
-			SK.$("dc-b").oninput = live;
-			SK.$("dc-n").oninput = live;
+			F.id("dc-mode").onchange = onpick;
+			F.id("dc-unit").onchange = onpick;
+			F.id("dc-a").oninput = live;
+			F.id("dc-b").oninput = live;
+			F.id("dc-n").oninput = live;
 			applymode();
 			live();
 		},
@@ -70,24 +70,24 @@
 		var i;
 		for (i = 0; i < rows.length; i++) if (rows[i][0] === cur) pick = cur;
 		if (!pick) pick = add ? "d" : ALL;
-		SK.$("dc-unit").innerHTML = SK.opts(rows, pick);
+		F.id("dc-unit").innerHTML = SK.opts(rows, pick);
 	}
 
 	/** 加减藏起结束时间，差值藏起数量。单位始终在这一行的后面。 */
 	function applymode(){
 		var add = SK.val("dc-mode") === "add";
-		SK.$("dc-nwrap").hidden = !add;
-		SK.$("dc-bwrap").hidden = add;
+		F.id("dc-nwrap").hidden = !add;
+		F.id("dc-bwrap").hidden = add;
 		setlabel("dc-a", add ? "web.f.when" : "web.f.startat", add ? "时间" : "开始时间");
 	}
 
 	function setlabel(id, key, text){
-		var el = SK.$(id);
+		var el = F.id(id);
 		var lab = el && el.parentNode;
 		if (!lab) return;
-		var span = lab.querySelector("[data-k]");
+		var span = F.q("[data-k]", lab);
 		if (span) {
-			span.setAttribute("data-k", key);
+			F.seta(span, "data-k", key);
 			span.textContent = (SK.t && SK.t(key)) || text;
 			return;
 		}
@@ -97,11 +97,11 @@
 	function live(){
 		SK.msg("box-msg", "");
 		try {
-			SK.$("box-out").value = calc();
+			F.id("box-out").value = calc();
 			SK.msg("box-msg", "完成");
 		}
 		catch (ex) {
-			SK.$("box-out").value = "";
+			F.id("box-out").value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}

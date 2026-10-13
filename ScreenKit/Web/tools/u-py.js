@@ -25,14 +25,14 @@
 	SK.regutil("u-py", spec);
 
 	function sethint(on){
-		var el = SK.$("py-hint");
+		var el = F.id("py-hint");
 		if (!el) return;
 		if (on) {
-			el.removeAttribute("data-k");
+			F.unset(el, "data-k");
 			el.textContent = "";
 			return;
 		}
-		el.setAttribute("data-k", "web.pinyin.off");
+		F.seta(el, "data-k", "web.pinyin.off");
 		el.textContent = SK.t("web.pinyin.off") || "";
 	}
 
@@ -46,7 +46,7 @@
 				if (n !== seq) return;
 				var on = !!(data && data.installed);
 				sethint(on);
-				if (SK.$("box-out")) SK.$("box-out").value = on ? (data.text || "") : "";
+				if (F.id("box-out")) F.id("box-out").value = on ? (data.text || "") : "";
 				if (on) SK.msg("box-msg", "完成");
 			}, "box-msg");
 		}, 200);

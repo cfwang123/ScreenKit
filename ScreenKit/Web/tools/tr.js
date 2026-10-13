@@ -27,32 +27,32 @@
 	}
 
 	function filltrlang(){
-		if (!trLangs || !SK.$("tr-src")) return;
-		var prev = SK.$("tr-src").value || "auto";
+		if (!trLangs || !F.id("tr-src")) return;
+		var prev = F.id("tr-src").value || "auto";
 		var rows = [];
 		var srcs = trLangs.src || ["auto"];
 		var i;
 		for (i = 0; i < srcs.length; i++)
 			rows.push({ value: srcs[i], label: langlabel(srcs[i]) });
-		SK.fillsel(SK.$("tr-src"), rows, prev);
+		SK.fillsel(F.id("tr-src"), rows, prev);
 		filldst(true);
 	}
 
 	function filldst(preserve){
-		if (!trLangs || !SK.$("tr-dst")) return;
-		var src = SK.$("tr-src").value || "auto";
-		var prev = preserve ? (SK.$("tr-dst").value || "") : "";
+		if (!trLangs || !F.id("tr-dst")) return;
+		var src = F.id("tr-src").value || "auto";
+		var prev = preserve ? (F.id("tr-dst").value || "") : "";
 		var codes = (trLangs.dst && trLangs.dst[src]) || [];
 		var rows = [];
 		var i;
 		for (i = 0; i < codes.length; i++)
 			rows.push({ value: codes[i], label: langlabel(codes[i]) });
 		if (!rows.length) rows.push({ value: "", label: SK.t("lang.none.tgt") || "没有目标语言" });
-		SK.fillsel(SK.$("tr-dst"), rows, prev);
+		SK.fillsel(F.id("tr-dst"), rows, prev);
 	}
 
 	function setsel(id, code){
-		var sel = SK.$(id);
+		var sel = F.id(id);
 		var i;
 		if (!sel) return false;
 		for (i = 0; i < sel.options.length; i++) {
@@ -80,7 +80,7 @@
 	}
 
 	function trgo(){
-		var text = SK.$("tr-in").value || "";
+		var text = F.id("tr-in").value || "";
 		if (!String(text).replace(/^\s+|\s+$/g, "")) {
 			SK.msg("tr-msg", SK.t("tr.popup.need_src") || "请输入原文", true);
 			return;
@@ -89,8 +89,8 @@
 			SK.msg("tr-msg", SK.t("tr.popup.too_long") || "原文过长（建议 ≤8000 字）", true);
 			return;
 		}
-		var src = SK.$("tr-src").value || "auto";
-		var dst = SK.$("tr-dst").value || "auto";
+		var src = F.id("tr-src").value || "auto";
+		var dst = F.id("tr-dst").value || "auto";
 		if (!src || !dst) {
 			SK.msg("tr-msg", SK.t("tr.popup.need_lang") || "请选择源/目标语言", true);
 			return;
@@ -98,7 +98,7 @@
 		SK.post("/api/translate", { text: text, src: src, dst: dst }, function(data){
 			var items = (data && data.items) || [];
 			var out = items.length ? (items[0].out || "") : "";
-			SK.$("tr-out").value = out;
+			F.id("tr-out").value = out;
 			if (!String(out).replace(/^\s+|\s+$/g, "")) {
 				SK.msg("tr-msg", SK.t("tr.dst.empty") || "译文为空", true);
 				return;
@@ -108,10 +108,10 @@
 	}
 
 	function trswap(){
-		var src = SK.$("tr-src").value || "auto";
-		var dst = SK.$("tr-dst").value || "auto";
-		var inn = SK.$("tr-in").value || "";
-		var out = SK.$("tr-out").value || "";
+		var src = F.id("tr-src").value || "auto";
+		var dst = F.id("tr-dst").value || "auto";
+		var inn = F.id("tr-in").value || "";
+		var out = F.id("tr-out").value || "";
 		if (src === "auto" || dst === "auto") {
 			var probe = String(out).replace(/^\s+|\s+$/g, "") ? out : inn;
 			var a = detectcode(probe);
@@ -126,8 +126,8 @@
 			setsel("tr-dst", src);
 		}
 		if (String(out).replace(/^\s+|\s+$/g, "")) {
-			SK.$("tr-in").value = out;
-			SK.$("tr-out").value = inn;
+			F.id("tr-in").value = out;
+			F.id("tr-out").value = inn;
 		}
 		SK.msg("tr-msg", SK.t("tr.swap.done") || "已交换语言");
 	}
@@ -138,7 +138,7 @@
 		var i;
 		for (i = 0; i < srcs.length; i++)
 			rows.push({ value: srcs[i], label: langlabel(srcs[i]) });
-		SK.fillsel(SK.$("tr-src"), rows, code);
+		SK.fillsel(F.id("tr-src"), rows, code);
 	}
 
 	function trpaste(){
@@ -152,7 +152,7 @@
 				SK.msg("tr-msg", SK.t("tr.popup.clip_empty") || "剪贴板没有文字", true);
 				return;
 			}
-			SK.$("tr-in").value = clip;
+			F.id("tr-in").value = clip;
 			SK.msg("tr-msg", SK.t("pasted") || "已粘贴");
 		}, function(){
 			SK.msg("tr-msg", SK.t("tr.popup.clip_empty") || "剪贴板没有文字", true);
@@ -160,7 +160,7 @@
 	}
 
 	function trspeak(side){
-		var text = side === "dst" ? (SK.$("tr-out").value || "") : (SK.$("tr-in").value || "");
+		var text = side === "dst" ? (F.id("tr-out").value || "") : (F.id("tr-in").value || "");
 		if (!String(text).replace(/^\s+|\s+$/g, "")) {
 			SK.msg("tr-msg", side === "dst" ? (SK.t("tr.dst.empty") || "译文为空") : (SK.t("tr.popup.need_src") || "请输入原文"), true);
 			return;
@@ -170,7 +170,7 @@
 			SK.msg("tr-msg", SK.t("web.tr.nospeak") || "无法发音", true);
 			return;
 		}
-		var code = side === "dst" ? (SK.$("tr-dst").value || "auto") : (SK.$("tr-src").value || "auto");
+		var code = side === "dst" ? (F.id("tr-dst").value || "auto") : (F.id("tr-src").value || "auto");
 		if (code === "auto" || !code) code = detectcode(text);
 		syn.cancel();
 		var u = new SpeechSynthesisUtterance(text);

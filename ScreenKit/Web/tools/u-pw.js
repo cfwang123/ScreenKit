@@ -17,8 +17,8 @@
 		open: function(){
 			var pwids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb"];
 			var pi;
-			for (pi = 0; pi < pwids.length; pi++) SK.$(pwids[pi]).onchange = fillpwset;
-			SK.$("box-set").onchange = pwsetmode;
+			for (pi = 0; pi < pwids.length; pi++) F.id(pwids[pi]).onchange = fillpwset;
+			F.id("box-set").onchange = pwsetmode;
 			pwsetmode();
 			if (SK.utilrun) SK.utilrun();
 		}
@@ -28,10 +28,10 @@
 		var ids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb", "box-each"];
 		var i;
 		for (i = 0; i < ids.length; i++) {
-			var el = SK.$(ids[i]);
+			var el = F.id(ids[i]);
 			if (el) el.disabled = on;
 		}
-		var box = SK.$("box-set-chars");
+		var box = F.id("box-set-chars");
 		if (box) box.disabled = !on;
 		if (!on) fillpwset();
 	}
@@ -51,7 +51,7 @@
 
 	function fillpwset(){
 		if (SK.onbox("box-set")) return;
-		var box = SK.$("box-set-chars");
+		var box = F.id("box-set-chars");
 		if (!box) return;
 		var groups = pwgroups();
 		var s = "";

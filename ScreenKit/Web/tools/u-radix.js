@@ -17,10 +17,10 @@
 				+ "</div>";
 		},
 		open: function(){
-			SK.$("box-in").oninput = rerun;
-			SK.$("box-from").oninput = rerun;
-			SK.$("box-base").oninput = rerun;
-			SK.$("box-to").onchange = function(){
+			F.id("box-in").oninput = rerun;
+			F.id("box-from").oninput = rerun;
+			F.id("box-base").oninput = rerun;
+			F.id("box-to").onchange = function(){
 				showbase();
 				rerun();
 			};
@@ -34,13 +34,13 @@
 	});
 
 	function showbase(){
-		var lab = SK.$("box-base-lab");
+		var lab = F.id("box-base-lab");
 		if (lab) lab.hidden = SK.val("box-to") !== "custom";
 	}
 
 	function rerun(){
 		if (!String(SK.val("box-in")).trim()) {
-			SK.$("box-out").value = "";
+			F.id("box-out").value = "";
 			SK.msg("box-msg", "");
 			return;
 		}

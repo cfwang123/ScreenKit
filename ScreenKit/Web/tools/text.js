@@ -7,18 +7,18 @@
 		lastop = op;
 		var seq = ++textseq;
 		if (op === "yomi" || op === "yomimono") {
-			SK.post("/api/jpyomi", { text: SK.$("tx-in").value, mono: op === "yomimono" }, function(data){
+			SK.post("/api/jpyomi", { text: F.id("tx-in").value, mono: op === "yomimono" }, function(data){
 				if (seq !== textseq) return;
 				var ruby = data.ruby || "";
 				var yomi = data.yomi || "";
-				SK.$("tx-out").value = ruby && yomi && ruby !== yomi ? ruby + "\n" + yomi : (yomi || ruby);
+				F.id("tx-out").value = ruby && yomi && ruby !== yomi ? ruby + "\n" + yomi : (yomi || ruby);
 			}, "tx-msg");
 			return;
 		}
 		if (op === "trad" || op === "simp") {
-			SK.post("/api/zhconv", { text: SK.$("tx-in").value, to: op }, function(data){
+			SK.post("/api/zhconv", { text: F.id("tx-in").value, to: op }, function(data){
 				if (seq !== textseq) return;
-				SK.$("tx-out").value = data.text || "";
+				F.id("tx-out").value = data.text || "";
 			}, "tx-msg");
 			return;
 		}
@@ -30,9 +30,9 @@
 			textlocal(op, seq);
 			return;
 		}
-		SK.post("/api/text", { text: SK.$("tx-in").value, op: op }, function(data){
+		SK.post("/api/text", { text: F.id("tx-in").value, op: op }, function(data){
 			if (seq !== textseq) return;
-			SK.$("tx-out").value = data.text || "";
+			F.id("tx-out").value = data.text || "";
 		}, "tx-msg");
 	}
 
@@ -46,7 +46,7 @@
 	}
 
 	function textlocal(op, seq){
-		var text = SK.$("tx-in").value;
+		var text = F.id("tx-in").value;
 		if (op === "sha") {
 			if (text.length > 200000) {
 				SK.msg("tx-msg", "文字太长", true);
@@ -59,7 +59,7 @@
 			SK.msg("tx-msg", "计算中");
 			crypto.subtle.digest("SHA-256", SK.utf8bytes(text)).then(function(buf){
 				if (seq !== textseq) return;
-				SK.$("tx-out").value = SK.hexbytes(new Uint8Array(buf));
+				F.id("tx-out").value = SK.hexbytes(new Uint8Array(buf));
 				SK.msg("tx-msg", "完成");
 			}, function(){
 				if (seq !== textseq) return;
@@ -87,11 +87,11 @@
 			else if (op === "hmin") out = htmlmin(text);
 			else if (op === "cmin") out = cssmin(text);
 			else if (op === "jsmin") out = jsmin(text);
-			SK.$("tx-out").value = out;
+			F.id("tx-out").value = out;
 			SK.msg("tx-msg", "完成");
 		}
 		catch (ex) {
-			SK.$("tx-out").value = "";
+			F.id("tx-out").value = "";
 			SK.msg("tx-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}
@@ -112,14 +112,14 @@
 			var hex = body.charAt(1) === "x" || body.charAt(1) === "X";
 			var n = parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10);
 			if (!isFinite(n) || n < 0 || n > 0x10FFFF) return all;
-			return String.fromCodePoint(n);
+			return F.cp(n);
 		});
 	}
 
 	function jsonmin(text){
 		text = String(text);
 		if (text.length > 200000) throw new Error("文字太长");
-		try { return JSON.stringify(JSON.parse(text)); }
+		try { return F.json(F.parse(text)); }
 		catch (ex) { throw new Error("不是合法的 JSON"); }
 	}
 
@@ -250,12 +250,12 @@
 			if (!src) throw new Error("请输入文字");
 			if (src.charAt(0) !== '"') src = '"' + src + '"';
 			var v;
-			try { v = JSON.parse(src); }
+			try { v = F.parse(src); }
 			catch (ex) { throw new Error("不是合法的 JSON 字符串"); }
 			if (typeof v !== "string") throw new Error("请输入 JSON 字符串");
 			return v;
 		}
-		return JSON.stringify(text);
+		return F.json(text);
 	}
 
 	function uaparse(text){
@@ -418,7 +418,7 @@
 		if (s.length > 200000) throw new Error("文字太长");
 		if (typeof DOMParser === "function") {
 			var doc = new DOMParser().parseFromString(s, "application/xml");
-			if (doc.getElementsByTagName("parsererror").length) throw new Error("不是合法的 XML");
+			if (F.tags("parsererror", doc).length) throw new Error("不是合法的 XML");
 		}
 		s = s.replace(/>\s+</g, "><");
 		if (mode === "min") return s;
@@ -500,7 +500,7 @@
 	function html2js(text){
 		var s = String(text);
 		if (s.length > 200000) throw new Error("文字太长");
-		return "var html = " + JSON.stringify(s) + ";";
+		return "var html = " + F.json(s) + ";";
 	}
 
 	function txswap(){
@@ -509,8 +509,8 @@
 			textwait = 0;
 		}
 		textseq++;
-		var src = SK.$("tx-in");
-		var out = SK.$("tx-out");
+		var src = F.id("tx-in");
+		var out = F.id("tx-out");
 		if (!src || !out) return;
 		var text = src.value;
 		src.value = out.value;
@@ -519,8 +519,8 @@
 	}
 
 	SK.textop = textop;
-	if (SK.$("tx-in")) SK.$("tx-in").oninput = textlive;
-	if (SK.$("tx-swap")) SK.$("tx-swap").onclick = txswap;
+	if (F.id("tx-in")) F.id("tx-in").oninput = textlive;
+	if (F.id("tx-swap")) F.id("tx-swap").onclick = txswap;
 	SK.textlocal = textlocal;
 	SK.htmldec = htmldec;
 	SK.jsonmin = jsonmin;

@@ -13,15 +13,15 @@
 		},
 		open: function(){
 			var now = new Date();
-			SK.$("box-in").value = String(Math.floor(now.getTime() / 1000));
+			F.id("box-in").value = String(Math.floor(now.getTime() / 1000));
 			settspick(now);
-			SK.$("ts-pick").onchange = function(){
-				var v = SK.$("ts-pick").value;
+			F.id("ts-pick").onchange = function(){
+				var v = F.id("ts-pick").value;
 				if (!v) return;
-				SK.$("box-in").value = v.replace("T", " ");
+				F.id("box-in").value = v.replace("T", " ");
 				SK.utilrun();
 			};
-			SK.$("box-in").oninput = function(){
+			F.id("box-in").oninput = function(){
 				try { tsdate(SK.val("box-in")); }
 				catch (e) { return; }
 				SK.utilrun();
@@ -50,7 +50,7 @@
 	}
 
 	function settspick(d){
-		var el = SK.$("ts-pick");
+		var el = F.id("ts-pick");
 		if (!el) return;
 		el.value = SK.fmtdt(d).replace(" ", "T");
 	}

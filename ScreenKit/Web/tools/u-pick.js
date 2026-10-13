@@ -27,8 +27,8 @@
 		var hue = 220;
 		var sat = 0.75;
 		var val = 0.8;
-		var sv = SK.$("cpick-sv");
-		var huebar = SK.$("cpick-hue");
+		var sv = F.id("cpick-sv");
+		var huebar = F.id("cpick-hue");
 		var drag = "";
 		function clamp01(n){
 			if (n < 0) return 0;
@@ -38,25 +38,25 @@
 		function paint(){
 			var rgb = hsv2rgb(hue, sat * 100, val * 100);
 			var hex = "#" + SK.hex2(rgb[0]) + SK.hex2(rgb[1]) + SK.hex2(rgb[2]);
-			SK.$("box-color").value = hex;
-			SK.$("cpick-swatch").style.background = hex;
+			F.id("box-color").value = hex;
+			F.id("cpick-swatch").style.background = hex;
 			sv.style.backgroundColor = "hsl(" + hue + ",100%,50%)";
-			SK.$("cpick-svdot").style.left = (sat * 100) + "%";
-			SK.$("cpick-svdot").style.top = ((1 - val) * 100) + "%";
-			SK.$("cpick-huedot").style.left = (hue / 360 * 100) + "%";
-			SK.$("cpick-r").value = String(rgb[0]);
-			SK.$("cpick-g").value = String(rgb[1]);
-			SK.$("cpick-b").value = String(rgb[2]);
+			F.id("cpick-svdot").style.left = (sat * 100) + "%";
+			F.id("cpick-svdot").style.top = ((1 - val) * 100) + "%";
+			F.id("cpick-huedot").style.left = (hue / 360 * 100) + "%";
+			F.id("cpick-r").value = String(rgb[0]);
+			F.id("cpick-g").value = String(rgb[1]);
+			F.id("cpick-b").value = String(rgb[2]);
 			SK.utilrun();
 		}
 		function fromsv(ev){
-			var r = sv.getBoundingClientRect();
+			var r = F.rect(sv);
 			sat = clamp01((ev.clientX - r.left) / r.width);
 			val = 1 - clamp01((ev.clientY - r.top) / r.height);
 			paint();
 		}
 		function fromhue(ev){
-			var r = huebar.getBoundingClientRect();
+			var r = F.rect(huebar);
 			hue = clamp01((ev.clientX - r.left) / r.width) * 360;
 			if (hue >= 360) hue = 0;
 			paint();
@@ -74,9 +74,9 @@
 		huebar.onpointermove = function(ev){ if (drag === "hue") fromhue(ev); };
 		huebar.onpointerup = function(){ drag = ""; };
 		function fromrgb(){
-			var r = Number(SK.$("cpick-r").value);
-			var g = Number(SK.$("cpick-g").value);
-			var b = Number(SK.$("cpick-b").value);
+			var r = Number(F.id("cpick-r").value);
+			var g = Number(F.id("cpick-g").value);
+			var b = Number(F.id("cpick-b").value);
 			if (!isFinite(r) || !isFinite(g) || !isFinite(b)) return;
 			if (r < 0) r = 0;
 			if (g < 0) g = 0;
@@ -93,9 +93,9 @@
 			val = hsv[2] / 100;
 			paint();
 		}
-		SK.$("cpick-r").oninput = fromrgb;
-		SK.$("cpick-g").oninput = fromrgb;
-		SK.$("cpick-b").oninput = fromrgb;
+		F.id("cpick-r").oninput = fromrgb;
+		F.id("cpick-g").oninput = fromrgb;
+		F.id("cpick-b").oninput = fromrgb;
 		var start = SK.rgb2hsv(51, 102, 204);
 		hue = start[0];
 		sat = start[1] / 100;

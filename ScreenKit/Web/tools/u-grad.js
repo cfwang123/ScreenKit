@@ -16,12 +16,12 @@
 		open: function(){
 			addstop("#f97316");
 			addstop("#111827");
-			var add = SK.$("grad-add");
+			var add = F.id("grad-add");
 			if (add) add.onclick = function(){
 				addstop(nexts[(stopcount() - 2) % nexts.length]);
 				gradlive();
 			};
-			var body = SK.$("box-body");
+			var body = F.id("box-body");
 			body.oninput = gradlive;
 			body.onchange = gradlive;
 			gradlive();
@@ -31,42 +31,42 @@
 		}
 	});
 	function addstop(hex){
-		var box = SK.$("grad-stops");
+		var box = F.id("grad-stops");
 		if (!box || stopcount() >= 8) return;
-		var row = document.createElement("div");
+		var row = F.el("div");
 		row.className = "grad-stop";
 		row.innerHTML = '<input type="color" value="' + hex + '">'
 			+ '<button type="button" class="ghost">去掉</button>';
-		row.querySelector("button").onclick = function(){
+		F.q("button", row).onclick = function(){
 			if (stopcount() <= 2) return;
 			row.parentNode.removeChild(row);
 			gradlive();
 		};
-		box.appendChild(row);
+		F.append(box, row);
 		syncstops();
 	}
 
 	function stopcount(){
-		var box = SK.$("grad-stops");
-		return box ? box.querySelectorAll("input[type=color]").length : 0;
+		var box = F.id("grad-stops");
+		return box ? F.qa("input[type=color]", box).length : 0;
 	}
 
 	function syncstops(){
 		var n = stopcount();
-		var box = SK.$("grad-stops");
-		var add = SK.$("grad-add");
+		var box = F.id("grad-stops");
+		var add = F.id("grad-add");
 		if (add) add.hidden = n >= 8;
 		if (!box) return;
-		var btns = box.querySelectorAll("button");
+		var btns = F.qa("button", box);
 		var i;
 		for (i = 0; i < btns.length; i++) btns[i].hidden = n <= 2;
 	}
 
 	function stopcolors(){
-		var box = SK.$("grad-stops");
+		var box = F.id("grad-stops");
 		var out = [];
 		if (!box) return out;
-		var inputs = box.querySelectorAll("input[type=color]");
+		var inputs = F.qa("input[type=color]", box);
 		var i;
 		for (i = 0; i < inputs.length; i++) {
 			var rgb = SK.colorrgb("hex", inputs[i].value);
@@ -76,12 +76,12 @@
 	}
 
 	function gradlive(){
-		var n = SK.$("box-n");
+		var n = F.id("box-n");
 		if (n) n.disabled = SK.val("box-type") === "radial";
 		syncstops();
 		SK.utilrun();
-		var shown = SK.$("grad-out");
-		var box = SK.$("box-out");
+		var shown = F.id("grad-out");
+		var box = F.id("box-out");
 		if (shown && box) shown.value = box.value;
 	}
 	function gradcss(type, colors, angle){
@@ -96,7 +96,7 @@
 		if (type === "radial") fn = "radial-gradient(circle, " + list + ")";
 		else if (type === "conic") fn = "conic-gradient(from " + deg + "deg, " + list + ")";
 		else fn = "linear-gradient(" + deg + "deg, " + list + ")";
-		var view = SK.$("grad-view");
+		var view = F.id("grad-view");
 		if (view) view.style.background = fn;
 		return "background: " + fn + ";";
 	}

@@ -295,9 +295,9 @@
 			cur = { set: "web", g: "" };
 			paintgroups();
 			paint();
-			SK.$("c-q").oninput = paint;
-			SK.$("c-groups").onclick = ongroup;
-			SK.$("c-grid").onclick = onswatch;
+			F.id("c-q").oninput = paint;
+			F.id("c-groups").onclick = ongroup;
+			F.id("c-grid").onclick = onswatch;
 		}
 	});
 
@@ -326,13 +326,13 @@
 			// 点三角只展开/收起，点文字才是选中
 			if (el.className && typeof el.className === "string" && el.className.indexOf("tw") === 0
 				&& el.className.indexOf("leaf") < 0) {
-				var id = el.parentNode.getAttribute("data-set");
+				var id = F.attr(el.parentNode, "data-set");
 				expanded[id] = !expanded[id];
 				paintgroups();
 				return;
 			}
-			if (el.getAttribute && el.getAttribute("data-set")) {
-				cur = { set: el.getAttribute("data-set"), g: el.getAttribute("data-g") };
+			if (el.getAttribute && F.attr(el, "data-set")) {
+				cur = { set: F.attr(el, "data-set"), g: F.attr(el, "data-g") };
 				paintgroups();
 				paint();
 				return;
@@ -344,8 +344,8 @@
 	function onswatch(ev){
 		var el = ev.target;
 		while (el && el !== this) {
-			if (el.getAttribute && el.getAttribute("data-hex")) {
-				copyhex(el.getAttribute("data-hex"), el.getAttribute("data-name"), el.getAttribute("data-en"));
+			if (el.getAttribute && F.attr(el, "data-hex")) {
+				copyhex(F.attr(el, "data-hex"), F.attr(el, "data-name"), F.attr(el, "data-en"));
 				return;
 			}
 			el = el.parentNode;
@@ -355,7 +355,7 @@
 	function copyhex(hex, name, en){
 		var what = en ? hex + " " + name + " " + en : hex + " " + name;
 		if (navigator.clipboard && navigator.clipboard.writeText) {
-			navigator.clipboard.writeText(hex).then(function(){
+			F.clip(hex).then(function(){
 				SK.msg("box-msg", "已复制 " + what);
 			}, function(){
 				SK.fallback(hex, "box-msg");
@@ -401,7 +401,7 @@
 			for (j = 0; j < t.groups.length; j++)
 				html += node(1, t.id, t.groups[j].id, t.groups[j].name, t.groups[j].colors.length, false);
 		}
-		SK.$("c-groups").innerHTML = html;
+		F.id("c-groups").innerHTML = html;
 	}
 
 	function node(lv, set, g, name, n, opened){
@@ -427,7 +427,7 @@
 			for (j = 0; j < rows.length; j++) html += card(rows[j]);
 		}
 		if (!html) html = '<p class="cnone">没有这种颜色</p>';
-		SK.$("c-grid").innerHTML = html;
+		F.id("c-grid").innerHTML = html;
 	}
 
 	function card(c){

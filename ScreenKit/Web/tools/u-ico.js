@@ -23,17 +23,17 @@
 			icogo();
 		},
 		open: function(){
-			SK.$("box-file").onchange = function(){
-				var file = SK.$("box-file").files && SK.$("box-file").files[0];
+			F.id("box-file").onchange = function(){
+				var file = F.id("box-file").files && F.id("box-file").files[0];
 				if (file) SK.seticopic(file);
 			};
-			var sizes = document.querySelectorAll('input[name="ico-size"]');
+			var sizes = F.qa('input[name="ico-size"]');
 			var s;
 			for (s = 0; s < sizes.length; s++) sizes[s].onchange = drawicoprev;
-			var modes = document.querySelectorAll('input[name="ico-mode"]');
+			var modes = F.qa('input[name="ico-mode"]');
 			for (s = 0; s < modes.length; s++) modes[s].onchange = drawicoprev;
 			if (SK.icoUrl) {
-				var prev = SK.$("ico-img");
+				var prev = F.id("ico-img");
 				prev.onload = drawicoprev;
 				prev.src = SK.icoUrl;
 				prev.hidden = false;
@@ -45,7 +45,7 @@
 		own: true
 	});
 	function icosize(){
-		var picked = document.querySelector('input[name="ico-size"]:checked');
+		var picked = F.q('input[name="ico-size"]:checked');
 		var size = picked ? parseInt(picked.value, 10) : 32;
 		if (size !== 16 && size !== 32 && size !== 48 && size !== 64 && size !== 128 && size !== 256)
 			size = 32;
@@ -53,23 +53,23 @@
 	}
 
 	function drawicoprev(){
-		var canvas = SK.$("ico-prev");
+		var canvas = F.id("ico-prev");
 		if (!canvas) return;
 		var size = icosize();
-		var label = SK.$("ico-prev-size");
+		var label = F.id("ico-prev-size");
 		if (label) label.textContent = size + "×" + size;
 		canvas.width = size;
 		canvas.height = size;
-		var g = canvas.getContext("2d");
+		var g = F.ctx(canvas);
 		if (!g) return;
 		g.clearRect(0, 0, size, size);
-		var src = SK.$("ico-img");
+		var src = F.id("ico-img");
 		if (!src || src.hidden || !src.naturalWidth) return;
 		fiticon(g, src, size, icomode());
 	}
 
 	function icomode(){
-		var picked = document.querySelector('input[name="ico-mode"]:checked');
+		var picked = F.q('input[name="ico-mode"]:checked');
 		var mode = picked ? picked.value : "fit";
 		if (mode !== "stretch" && mode !== "crop") mode = "fit";
 		return mode;
@@ -125,10 +125,10 @@
 		var c, cg, src, out, dst, o, og, y, x, y0f, y1f, x0f, x1f, j0, j1, i0, i1, j, i;
 		var top, bot, left, right, wy, wx, wgt, si, pa, accA, accR, accG, accB, cov, di;
 		try {
-			c = document.createElement("canvas");
+			c = F.el("canvas");
 			c.width = sw;
 			c.height = sh;
-			cg = c.getContext("2d", { willReadFrequently: true });
+			cg = F.ctx(c, { willReadFrequently: true });
 			if (!cg) return null;
 			cg.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 			src = cg.getImageData(0, 0, sw, sh).data;
@@ -180,10 +180,10 @@
 					}
 				}
 			}
-			o = document.createElement("canvas");
+			o = F.el("canvas");
 			o.width = dw;
 			o.height = dh;
-			og = o.getContext("2d");
+			og = F.ctx(o);
 			if (!og) return null;
 			og.putImageData(out, 0, 0);
 			return o;
@@ -206,14 +206,14 @@
 			for (n = 0; n < sizes.length; n++) jobs.push(iconpng(img, sizes[n]));
 			Promise.all(jobs).then(function(parts){
 				var blob = icoblob(sizes, parts);
-				var a = document.createElement("a");
-				var url = URL.createObjectURL(blob);
+				var a = F.el("a");
+				var url = F.url(blob);
 				a.href = url;
 				a.download = iconame(SK.icoPic.name);
-				document.body.appendChild(a);
+				F.append(document.body, a);
 				a.click();
 				document.body.removeChild(a);
-				setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+				setTimeout(function(){ F.unurl(url); }, 4000);
 				SK.msg("box-msg", "已下载 " + a.download + "（" + blob.size + " 字节）");
 			}, function(){
 				SK.msg("box-msg", "生成失败", true);
@@ -231,10 +231,10 @@
 	}
 
 	function iconpng(img, size){
-		var canvas = document.createElement("canvas");
+		var canvas = F.el("canvas");
 		canvas.width = size;
 		canvas.height = size;
-		var g = canvas.getContext("2d");
+		var g = F.ctx(canvas);
 		if (!g) return Promise.reject();
 		g.clearRect(0, 0, size, size);
 		fiticon(g, img, size, icomode());

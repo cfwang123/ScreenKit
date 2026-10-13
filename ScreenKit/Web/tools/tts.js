@@ -33,9 +33,9 @@
 				seen[eng] = true;
 				rows.push({ value: eng, label: ttslabel(eng) });
 			}
-			var curEng = SK.$("tts-eng").value;
+			var curEng = F.id("tts-eng").value;
 			if (!curEng) curEng = "winrt";
-			SK.fillsel(SK.$("tts-eng"), rows, curEng);
+			SK.fillsel(F.id("tts-eng"), rows, curEng);
 			fillttsmodels();
 			if (!hasEdge && ttsEdgeWait < 2) {
 				ttsEdgeWait++;
@@ -46,9 +46,9 @@
 
 	function fillttsmodels(){
 		fillttslang();
-		var eng = SK.$("tts-eng").value;
+		var eng = F.id("tts-eng").value;
 		var want = ttswant();
-		var prev = SK.$("tts-model").value;
+		var prev = F.id("tts-model").value;
 		var rows = [];
 		var i;
 		for (i = 0; i < ttsItems.length; i++) {
@@ -56,12 +56,12 @@
 			if (!ttsmodelok(ttsItems[i], want)) continue;
 			rows.push({ value: String(i), label: ttsItems[i].name || eng });
 		}
-		SK.fillsel(SK.$("tts-model"), rows, prev);
+		SK.fillsel(F.id("tts-model"), rows, prev);
 		fillttsvoices();
 	}
 
 	function ttsitem(){
-		var n = parseInt(SK.$("tts-model").value, 10);
+		var n = parseInt(F.id("tts-model").value, 10);
 		if (isNaN(n) || n < 0 || n >= ttsItems.length) return null;
 		return ttsItems[n];
 	}
@@ -70,7 +70,7 @@
 		var item = ttsitem();
 		var speakers = (item && item.speakers) || [];
 		var want = ttswant();
-		var prevIdx = parseInt(SK.$("tts-voice").value, 10);
+		var prevIdx = parseInt(F.id("tts-voice").value, 10);
 		var prev = speakers[prevIdx] || null;
 		var rows = [];
 		var pick = "";
@@ -84,7 +84,7 @@
 			if (prev && ((prev.key && prev.key === sp.key) || (!prev.key && prev.name && prev.name === sp.name)))
 				pick = String(i);
 		}
-		SK.fillsel(SK.$("tts-voice"), rows, pick);
+		SK.fillsel(F.id("tts-voice"), rows, pick);
 	}
 
 	function ttsgo(save){
@@ -93,17 +93,17 @@
 			SK.msg("tts-msg", "没有可用的语音", true);
 			return;
 		}
-		if (!SK.$("tts-voice").options.length) {
+		if (!F.id("tts-voice").options.length) {
 			SK.msg("tts-msg", "没有符合筛选的发音人", true);
 			return;
 		}
 		var speakers = item.speakers || [];
-		var vi = parseInt(SK.$("tts-voice").value, 10);
+		var vi = parseInt(F.id("tts-voice").value, 10);
 		var sp = speakers[vi] || {};
-		var speed = parseFloat(SK.$("tts-speed").value);
+		var speed = parseFloat(F.id("tts-speed").value);
 		if (isNaN(speed)) speed = 1;
 		SK.post("/api/tts", {
-			text: SK.$("tts-in").value,
+			text: F.id("tts-in").value,
 			engine: item.engine,
 			model: item.name,
 			voice: sp.key || sp.name || "",
@@ -118,7 +118,7 @@
 				ttssavewav(data.wav_base64, sp, item);
 				return;
 			}
-			var audio = SK.$("tts-audio");
+			var audio = F.id("tts-audio");
 			audio.src = "data:audio/wav;base64," + data.wav_base64;
 			audio.hidden = false;
 			audio.play();
@@ -131,31 +131,31 @@
 		var i;
 		for (i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 255;
 		var blob = new Blob([bytes], { type: "audio/wav" });
-		var a = document.createElement("a");
-		var url = URL.createObjectURL(blob);
+		var a = F.el("a");
+		var url = F.url(blob);
 		var name = (sp && (sp.label || sp.name || sp.key)) || (item && item.name) || "tts";
 		name = String(name).replace(/[\\/:*?"<>|]+/g, " ").replace(/^\s+|\s+$/g, "");
 		if (!name) name = "tts";
 		if (name.length > 40) name = name.substring(0, 40).replace(/\s+$/g, "");
 		a.href = url;
 		a.download = name + ".wav";
-		document.body.appendChild(a);
+		F.append(document.body, a);
 		a.click();
 		document.body.removeChild(a);
-		setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+		setTimeout(function(){ F.unurl(url); }, 4000);
 		SK.msg("tts-msg", "已下载 " + a.download);
 	}
 
 	function ttswant(){
 		return {
-			lang: (SK.$("tts-lang") && SK.$("tts-lang").value) || "",
-			gender: (SK.$("tts-gender") && SK.$("tts-gender").value) || "",
+			lang: (F.id("tts-lang") && F.id("tts-lang").value) || "",
+			gender: (F.id("tts-gender") && F.id("tts-gender").value) || "",
 		};
 	}
 
 	function fillttslang(){
-		var eng = SK.$("tts-eng").value;
-		var prev = SK.$("tts-lang").value;
+		var eng = F.id("tts-eng").value;
+		var prev = F.id("tts-lang").value;
 		var seen = {};
 		var named = [
 			["zh", "中文 (zh)"], ["en", "英文 (en)"], ["ja", "日文 (ja)"], ["ko", "韩文 (ko)"],
@@ -179,7 +179,7 @@
 		for (var k in seen) if (!used[k]) rest.push(k);
 		rest.sort();
 		for (i = 0; i < rest.length; i++) rows.push({ value: rest[i], label: ttslanglabel(rest[i]) });
-		SK.fillsel(SK.$("tts-lang"), rows, seen[ttsnormlang(prev)] ? ttsnormlang(prev) : "");
+		SK.fillsel(F.id("tts-lang"), rows, seen[ttsnormlang(prev)] ? ttsnormlang(prev) : "");
 	}
 
 	function ttslanglabel(code){

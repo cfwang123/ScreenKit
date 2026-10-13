@@ -11,8 +11,8 @@
 		},
 		open: function(){
 			var day = new Date();
-			var a = SK.$("box-a");
-			var b = SK.$("box-b");
+			var a = F.id("box-a");
+			var b = F.id("box-b");
 			b.value = SK.ymd(day);
 			day.setDate(day.getDate() - 7);
 			a.value = SK.ymd(day);

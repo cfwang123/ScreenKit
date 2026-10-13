@@ -126,37 +126,37 @@
 	}
 
 	function open(){
-		var root = document.getElementById("bit-keys");
-		var sfx = document.getElementById("bit-sfx");
+		var root = F.id("bit-keys");
+		var sfx = F.id("bit-sfx");
 		if (!root || !sfx) return;
 		root.onpointerdown = onpointerdown;
 		root.onpointerup = onpointerup;
 		root.onpointercancel = onpointerup;
 		sfx.onclick = onsfx;
-		document.getElementById("bit-demo").onclick = demo;
-		document.getElementById("bit-stop").onclick = stopaudio;
-		document.getElementById("bit-play").onclick = songplay;
-		document.getElementById("bit-songstop").onclick = function(){ songstop(); };
-		document.getElementById("bit-ex").onchange = onex;
-		document.getElementById("bit-clear").onclick = clearsong;
-		document.getElementById("bit-bpm").onchange = function(){ readbpm(); savesong(); };
-		document.getElementById("bit-grid").onclick = ongrid;
-		document.getElementById("bit-grid").onchange = onmute;
+		F.id("bit-demo").onclick = demo;
+		F.id("bit-stop").onclick = stopaudio;
+		F.id("bit-play").onclick = songplay;
+		F.id("bit-songstop").onclick = function(){ songstop(); };
+		F.id("bit-ex").onchange = onex;
+		F.id("bit-clear").onclick = clearsong;
+		F.id("bit-bpm").onchange = function(){ readbpm(); savesong(); };
+		F.id("bit-grid").onclick = ongrid;
+		F.id("bit-grid").onchange = onmute;
 		loadsong();
 		paintgrid();
-		document.getElementById("bit-vol").oninput = applyvol;
+		F.id("bit-vol").oninput = applyvol;
 		bind();
 		layoutkeys();
-		requestAnimationFrame(layoutkeys);
+		F.raf(layoutkeys);
 	}
 
 	function bind(){
 		if (bound) return;
 		bound = true;
-		window.addEventListener("keydown", ondown);
-		window.addEventListener("keyup", onup);
-		window.addEventListener("blur", releaseall);
-		window.addEventListener("resize", layoutkeys);
+		F.on(window, "keydown", ondown);
+		F.on(window, "keyup", onup);
+		F.on(window, "blur", releaseall);
+		F.on(window, "resize", layoutkeys);
 	}
 
 	function unbind(){
@@ -174,12 +174,12 @@
 	}
 
 	function placeblack(){
-		var whites = document.querySelectorAll("#bit-keys .w");
-		var blacks = document.querySelectorAll("#bit-keys .b");
+		var whites = F.qa("#bit-keys .w");
+		var blacks = F.qa("#bit-keys .b");
 		var i, w, bw;
 		if (!whites.length) return;
 		for (i = 0; i < blacks.length; i++) {
-			w = whites[Number(blacks[i].getAttribute("data-after"))];
+			w = whites[Number(F.attr(blacks[i], "data-after"))];
 			if (!w || w.offsetWidth < 2) continue;
 			bw = Math.max(16, Math.round(w.offsetWidth * 0.6));
 			blacks[i].style.width = bw + "px";
@@ -191,7 +191,7 @@
 
 	// 白键能到 40px 宽就一行放下 21 个，不然一行一个八度分三行（21×40 + 20 = 860）
 	function layoutkeys(){
-		var root = document.getElementById("bit-keys");
+		var root = F.id("bit-keys");
 		if (!root) return;
 		root.className = "bitkeys " + (root.clientWidth >= 21 * 40 + 20 ? "onerow" : "rows3");
 		placeblack();
@@ -205,7 +205,7 @@
 	}
 
 	function paintkeys(){
-		var root = document.getElementById("bit-keys");
+		var root = F.id("bit-keys");
 		var k;
 		if (!root) return;
 		root.innerHTML = keys();
@@ -218,7 +218,7 @@
 	}
 
 	function inst(){
-		var el = document.getElementById("bit-inst");
+		var el = F.id("bit-inst");
 		var id = el ? el.value : "sq";
 		var i;
 		for (i = 0; i < INST.length; i++) if (INST[i].id === id) return INST[i];
@@ -232,7 +232,7 @@
 	}
 
 	function volnow(){
-		var el = document.getElementById("bit-vol");
+		var el = F.id("bit-vol");
 		var v = el ? Number(el.value) : 100;
 		if (!(v >= 0)) v = 100;
 		return v / 100;
@@ -261,7 +261,7 @@
 	}
 
 	function say(text){
-		var el = document.getElementById("bit-msg");
+		var el = F.id("bit-msg");
 		if (el) el.textContent = text;
 	}
 
@@ -416,7 +416,7 @@
 	}
 
 	function paintkey(midi, on){
-		var btn = document.querySelector('#bit-keys button[data-midi="' + midi + '"]');
+		var btn = F.q('#bit-keys button[data-midi="' + midi + '"]');
 		if (!btn) return;
 		if (on) btn.classList.add("on");
 		else btn.classList.remove("on");
@@ -452,10 +452,10 @@
 	}
 
 	function paintloops(){
-		var nodes = document.querySelectorAll(".bit-sfx");
+		var nodes = F.qa(".bit-sfx");
 		var i, id;
 		for (i = 0; i < nodes.length; i++) {
-			id = nodes[i].getAttribute("data-sfx");
+			id = F.attr(nodes[i], "data-sfx");
 			if (loop && loop.kind === id) nodes[i].classList.add("primary");
 			else nodes[i].classList.remove("primary");
 		}
@@ -652,7 +652,7 @@
 	function onsfx(ev){
 		var btn = ev.target.closest(".bit-sfx");
 		if (!btn) return;
-		var spec = sfxof(btn.getAttribute("data-sfx"));
+		var spec = sfxof(F.attr(btn, "data-sfx"));
 		if (!spec) return;
 		if (spec.loop) {
 			if (loop && loop.kind === spec.loop) {
@@ -696,7 +696,7 @@
 			return;
 		}
 		if (!base) return;
-		ev.preventDefault();
+		F.pd(ev);
 		syncmods(ev);
 		midi = base + shift;
 		if (writenote(midi)) return;
@@ -720,9 +720,9 @@
 	function onpointerdown(ev){
 		var btn = ev.target.closest("button[data-midi]");
 		if (!btn) return;
-		ev.preventDefault();
+		F.pd(ev);
 		try { btn.setPointerCapture(ev.pointerId); } catch (e) {}
-		var midi = Number(btn.getAttribute("data-midi"));
+		var midi = Number(F.attr(btn, "data-midi"));
 		if (writenote(midi)) return;
 		noteon(midi);
 	}
@@ -846,8 +846,8 @@
 	}
 
 	function paintgrid(){
-		var grid = document.getElementById("bit-grid");
-		var bpmel = document.getElementById("bit-bpm");
+		var grid = F.id("bit-grid");
+		var bpmel = F.id("bit-bpm");
 		if (!grid) return;
 		if (bpmel) bpmel.value = String(bpm);
 		var html = "";
@@ -873,17 +873,17 @@
 	}
 
 	function marknow(step){
-		var nodes = document.querySelectorAll("#bit-grid .bitcell");
+		var nodes = F.qa("#bit-grid .bitcell");
 		var i, on;
 		for (i = 0; i < nodes.length; i++) {
-			on = step >= 0 && Number(nodes[i].getAttribute("data-step")) === step;
+			on = step >= 0 && Number(F.attr(nodes[i], "data-step")) === step;
 			if (on) nodes[i].classList.add("now");
 			else nodes[i].classList.remove("now");
 		}
 	}
 
 	function paintplaybtn(){
-		var b = document.getElementById("bit-play");
+		var b = F.id("bit-play");
 		if (!b) return;
 		if (playOn) b.classList.add("primary");
 		else b.classList.remove("primary");
@@ -892,8 +892,8 @@
 	function ongrid(ev){
 		var cell = ev.target.closest(".bitcell");
 		if (!cell) return;
-		var ch = Number(cell.getAttribute("data-ch"));
-		var step = Number(cell.getAttribute("data-step"));
+		var ch = Number(F.attr(cell, "data-ch"));
+		var step = Number(F.attr(cell, "data-step"));
 		if (isnoise(ch)) {
 			var v = song[ch][step];
 			song[ch][step] = v >= 6 ? 0 : v + 1;
@@ -911,12 +911,12 @@
 
 	function onmute(ev){
 		var t = ev.target;
-		var inst = t.getAttribute && t.getAttribute("data-inst");
+		var inst = t.getAttribute && F.attr(t, "data-inst");
 		if (inst != null) {
 			setchaninst(Number(inst), t.value);
 			return;
 		}
-		var m = t.getAttribute && t.getAttribute("data-mute");
+		var m = t.getAttribute && F.attr(t, "data-mute");
 		if (m == null) return;
 		en[Number(m)] = !!t.checked;
 		savesong();
@@ -945,7 +945,7 @@
 		if (!sel) return false;
 		var ch = sel.ch;
 		if (isnoise(ch)) return false;
-		var oct = document.getElementById("bit-oct");
+		var oct = F.id("bit-oct");
 		var shift = oct ? Number(oct.value) : 0;
 		if (shift !== -12 && shift !== 12) shift = 0;
 		var n = midi + shift;
@@ -981,7 +981,7 @@
 	}
 
 	function onex(){
-		var el = document.getElementById("bit-ex");
+		var el = F.id("bit-ex");
 		var id = el ? el.value : "";
 		if (!id) return;
 		fillex(id);
@@ -1002,7 +1002,7 @@
 	}
 
 	function readbpm(){
-		var el = document.getElementById("bit-bpm");
+		var el = F.id("bit-bpm");
 		var v = el ? Number(el.value) : bpm;
 		if (!(v >= 40)) v = 40;
 		if (v > 240) v = 240;
@@ -1017,7 +1017,7 @@
 
 	function savesong(){
 		try {
-			localStorage.setItem("sk-bit-song", JSON.stringify({
+			F.lset("sk-bit-song", F.json({
 				bpm: bpm, en: en, song: song, inst: chinst
 			}));
 		}
@@ -1026,10 +1026,10 @@
 
 	function loadsong(){
 		var raw, o, ch, s, v;
-		try { raw = localStorage.getItem("sk-bit-song"); }
+		try { raw = F.lget("sk-bit-song"); }
 		catch (e) { return; }
 		if (!raw) return;
-		try { o = JSON.parse(raw); }
+		try { o = F.parse(raw); }
 		catch (e2) { return; }
 		if (!o || !o.song || o.song.length !== 4) return;
 		for (ch = 0; ch < 4; ch++) {
@@ -1196,7 +1196,7 @@
 	function onpointerup(ev){
 		var btn = ev.target.closest("button[data-midi]");
 		if (!btn) return;
-		noteoff(Number(btn.getAttribute("data-midi")));
+		noteoff(Number(F.attr(btn, "data-midi")));
 	}
 
 	// 给别的工具用（摩斯码表）：按当前乐器和音量播一段音。

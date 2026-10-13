@@ -67,22 +67,22 @@
 				+ esc(runs.map(ascrun).join("、") + " · 点一下看这一组") + '"><b>' + esc(GROUPS[i].name)
 				+ "</b><small>" + (range ? range + " · " : "") + GROUPS[i].codes.length + " 个</small></button>");
 		}
-		SK.$("a-groups").innerHTML = html.join("");
-		SK.$("a-groups").onclick = function(ev){
+		F.id("a-groups").innerHTML = html.join("");
+		F.id("a-groups").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "a-groups") {
-				if (el.getAttribute && el.getAttribute("data-i") != null) {
-					ascshow(parseInt(el.getAttribute("data-i"), 10), -1);
+				if (el.getAttribute && F.attr(el, "data-i") != null) {
+					ascshow(parseInt(F.attr(el, "data-i"), 10), -1);
 					return;
 				}
 				el = el.parentNode;
 			}
 		};
-		SK.$("a-grid").onclick = function(ev){
+		F.id("a-grid").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "a-grid") {
-				if (el.getAttribute && el.getAttribute("data-cp") != null) {
-					var cp = parseInt(el.getAttribute("data-cp"), 10);
+				if (el.getAttribute && F.attr(el, "data-cp") != null) {
+					var cp = parseInt(F.attr(el, "data-cp"), 10);
 					ascmark(cp);
 					ascpreview(cp);
 					SK.copytext(ascpay(cp), "a-msg");
@@ -91,7 +91,7 @@
 				el = el.parentNode;
 			}
 		};
-		SK.$("a-q").oninput = ascquery;
+		F.id("a-q").oninput = ascquery;
 	}
 
 	function ascruns(codes){
@@ -124,14 +124,14 @@
 
 	function ascshow(index, focus){
 		var g = GROUPS[index];
-		var buttons = document.querySelectorAll("#a-groups button");
-		var grid = SK.$("a-grid");
+		var buttons = F.qa("#a-groups button");
+		var grid = F.id("a-grid");
 		var has = {};
 		var pick = focus >= 0 && g.codes.indexOf(focus) >= 0 ? focus : g.codes[0];
 		var html = [];
 		var i, c, row, base, cp, empty;
 		for (i = 0; i < buttons.length; i++) buttons[i].className = i === index ? "on" : "";
-		if (buttons[index]) buttons[index].scrollIntoView({ block: "nearest" });
+		if (buttons[index]) F.into(buttons[index], { block: "nearest" });
 		cur = index;
 		for (i = 0; i < g.codes.length; i++) has[g.codes[i]] = true;
 		// 每个分类都画成同一张带行列表头的 16 列码表：不属于本组的格子留空位，整行没成员的不画
@@ -155,8 +155,8 @@
 			}
 		}
 		grid.innerHTML = html.join("");
-		var on = grid.querySelector("button.on");
-		if (on && focus >= 0) on.scrollIntoView({ block: "center" });
+		var on = F.q("button.on", grid);
+		if (on && focus >= 0) F.into(on, { block: "center" });
 		ascpreview(pick);
 	}
 
@@ -177,7 +177,7 @@
 			cls.push("ctrl");
 		}
 		else {
-			text = String.fromCharCode(cp);
+			text = F.ch(cp);
 		}
 		if (off) cls.push("off");
 		if (on) cls.push("on");
@@ -186,27 +186,27 @@
 	}
 
 	function ascmark(cp){
-		var buttons = document.querySelectorAll("#a-grid button");
+		var buttons = F.qa("#a-grid button");
 		var i;
 		var cls;
 		for (i = 0; i < buttons.length; i++) {
 			cls = buttons[i].className.replace(/\bon\b/g, "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
-			if (parseInt(buttons[i].getAttribute("data-cp"), 10) === cp) cls = cls ? cls + " on" : "on";
+			if (parseInt(F.attr(buttons[i], "data-cp"), 10) === cp) cls = cls ? cls + " on" : "on";
 			buttons[i].className = cls;
 		}
 	}
 
 	function ascpreview(cp){
 		var ctrl = isctrl(cp);
-		var box = SK.$("a-ch");
-		box.textContent = ctrl ? (NAMES[cp] || "DEL") : String.fromCharCode(cp);
+		var box = F.id("a-ch");
+		box.textContent = ctrl ? (NAMES[cp] || "DEL") : F.ch(cp);
 		box.className = ctrl ? "uprev-ch ctrl" : "uprev-ch";
 		var rows = [
 			["十进制", String(cp)],
 			["十六进制", asc2(cp, 16) + "   " + cp.toString(16).toUpperCase()],
 			["八进制", "0o" + cp.toString(8)],
 			["二进制", ascbin(cp)],
-			["字符", ctrl ? "（" + NAMES[cp] + "）" : String.fromCharCode(cp)],
+			["字符", ctrl ? "（" + NAMES[cp] + "）" : F.ch(cp)],
 			["名称", ascname(cp)],
 			["类别", asckind(cp)],
 			["C 转义", ascc(cp)],
@@ -217,7 +217,7 @@
 			["可打印", ctrl ? (cp === 127 ? "否（删除）" : "否") : "是"]
 		];
 		if (ctrl) rows.push(["中文名", cp === 127 ? "删除" : CN[cp]]);
-		SK.$("a-meta").innerHTML = rows.map(function(r){
+		F.id("a-meta").innerHTML = rows.map(function(r){
 			return "<dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>";
 		}).join("");
 	}
@@ -237,8 +237,8 @@
 		if (isctrl(cp)) return cp === 127 ? "DELETE" : NAMES[cp];
 		if (cp === 32) return "SPACE";
 		if (cp >= 48 && cp <= 57) return "DIGIT " + DIGITS[cp - 48];
-		if (cp >= 65 && cp <= 90) return "LATIN CAPITAL LETTER " + String.fromCharCode(cp);
-		if (cp >= 97 && cp <= 122) return "LATIN SMALL LETTER " + String.fromCharCode(cp);
+		if (cp >= 65 && cp <= 90) return "LATIN CAPITAL LETTER " + F.ch(cp);
+		if (cp >= 97 && cp <= 122) return "LATIN SMALL LETTER " + F.ch(cp);
 		return PUNCT[PUNCTCP.indexOf(cp)] || "PRINTABLE";
 	}
 
@@ -261,7 +261,7 @@
 		if (cp === 13) return "'\\r'";
 		if (cp === 39) return "'\\''";
 		if (cp === 92) return "'\\\\'";
-		return "'" + (cp < 32 || cp === 127 ? "\\x" + asc2(cp, 16).slice(2) : String.fromCharCode(cp)) + "'";
+		return "'" + (cp < 32 || cp === 127 ? "\\x" + asc2(cp, 16).slice(2) : F.ch(cp)) + "'";
 	}
 
 	function ascjs(cp){
@@ -276,7 +276,7 @@
 	function ascpay(cp){
 		if (cp === 127) return "\\x7F";
 		if (cp < 32) return ascc(cp).slice(1, -1);
-		return String.fromCharCode(cp);
+		return F.ch(cp);
 	}
 
 	function ascparse(s){
@@ -312,7 +312,7 @@
 	}
 
 	function ascquery(){
-		var cp = ascparse(SK.$("a-q").value);
+		var cp = ascparse(F.id("a-q").value);
 		if (cp === -2) {
 			SK.msg("a-msg", "");
 			return;
@@ -327,7 +327,7 @@
 			if (GROUPS[i].codes.indexOf(cp) >= 0) break;
 		}
 		if (i >= GROUPS.length) i = 0;
-		SK.msg("a-msg", asc2(cp, 16) + " · " + cp + " · " + (isctrl(cp) ? ascshort(cp) : String.fromCharCode(cp)));
+		SK.msg("a-msg", asc2(cp, 16) + " · " + cp + " · " + (isctrl(cp) ? ascshort(cp) : F.ch(cp)));
 		ascshow(i, cp);
 	}
 

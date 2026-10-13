@@ -26,6 +26,8 @@ public static class FastCopy {
 		public string Dest;
 		public bool Move;
 		public string Link;
+		/// <summary>delete 永久删除，recycle 进回收站。空则按复制、剪切或链接。</summary>
+		public string Delete;
 		public string Conflict = "overwrite";
 		public int Workers = WORKERS_DEF;
 		public CancellationToken Cancel;
@@ -89,7 +91,7 @@ public static class FastCopy {
 
 	public static string NormMode(string raw) {
 		raw = (raw ?? "").Trim().ToLowerInvariant();
-		if (raw is "move" or "symlink" or "hardlink") return raw;
+		if (raw is "move" or "symlink" or "hardlink" or "delete" or "recycle") return raw;
 		return "copy";
 	}
 
@@ -122,6 +124,8 @@ public static class FastCopy {
 			res.Error = "job";
 			return res;
 		}
+		var del = (job.Delete ?? "").Trim().ToLowerInvariant();
+		if (del is "delete" or "recycle") return rundelete(job, del == "recycle");
 		var dest = (job.Dest ?? "").Trim();
 		if (dest.Length == 0 || !trydir(dest)) {
 			res.Failed = 1;
@@ -202,6 +206,95 @@ public static class FastCopy {
 		}
 		ping("", true);
 		return res;
+	}
+
+	static Result rundelete(Job job, bool recycle) {
+		var res = new Result();
+		var list = new List<string>();
+		foreach (var raw in job.Sources ?? new List<string>()) {
+			if (job.Cancel.IsCancellationRequested) {
+				res.Cancelled = true;
+				return res;
+			}
+			var src = (raw ?? "").Trim().Trim('"');
+			if (src.Length == 0) continue;
+			if (!File.Exists(src) && !Directory.Exists(src)) {
+				res.Failed++;
+				res.Error ??= src;
+				continue;
+			}
+			list.Add(full(src));
+		}
+		if (res.Cancelled) return res;
+		if (list.Count == 0 && res.Failed == 0) {
+			res.Failed = 1;
+			res.Error = "empty";
+			return res;
+		}
+		list.Sort((a, b) => b.Length.CompareTo(a.Length));
+		var done = 0;
+		foreach (var path in list) {
+			if (job.Cancel.IsCancellationRequested) {
+				res.Cancelled = true;
+				break;
+			}
+			if (!File.Exists(path) && !Directory.Exists(path)) {
+				res.Skipped++;
+				done++;
+				continue;
+			}
+			try {
+				if (recycle) RecycleBin.Send(path);
+				else purge(path, job.Cancel);
+				res.Ok++;
+			}
+			catch (OperationCanceledException) {
+				res.Cancelled = true;
+				break;
+			}
+			catch (Exception ex) {
+				res.Failed++;
+				res.Error ??= ex.Message;
+			}
+			done++;
+			try {
+				job.OnProgress?.Invoke(new Progress {
+					File = path,
+					DoneFiles = done,
+					TotalFiles = list.Count,
+				});
+			}
+			catch { }
+		}
+		return res;
+	}
+
+	static void purge(string path, CancellationToken cancel) {
+		cancel.ThrowIfCancellationRequested();
+		var attr = File.GetAttributes(path);
+		clearro(path);
+		if ((attr & FileAttributes.ReparsePoint) != 0) {
+			if ((attr & FileAttributes.Directory) != 0) Directory.Delete(path, false);
+			else File.Delete(path);
+			return;
+		}
+		if ((attr & FileAttributes.Directory) != 0) {
+			foreach (var sub in Directory.EnumerateFileSystemEntries(path))
+				purge(sub, cancel);
+			clearro(path);
+			Directory.Delete(path, false);
+			return;
+		}
+		File.Delete(path);
+	}
+
+	static void clearro(string path) {
+		try {
+			var attr = File.GetAttributes(path);
+			if ((attr & FileAttributes.ReadOnly) != 0)
+				File.SetAttributes(path, attr & ~FileAttributes.ReadOnly);
+		}
+		catch { }
 	}
 
 	static void plan(string src, string destDir, bool move, string conflict, List<Work> items, List<string> sweep, Result res) {
@@ -1221,6 +1314,21 @@ public static class FastCopy {
 			if (NeedsWindow(new[] { "--fc-size" })) return bad(say, "sizewin");
 			if (NormMode("hardlink") != "hardlink" || NormMode("symlink") != "symlink" || NormMode("nope") != "copy")
 				return bad(say, "mode");
+			if (NormMode("delete") != "delete" || NormMode("recycle") != "recycle")
+				return bad(say, "delmode");
+			var gone = Path.Combine(root, "gone.txt");
+			File.WriteAllText(gone, "x");
+			File.SetAttributes(gone, FileAttributes.ReadOnly);
+			var gdir = Path.Combine(root, "gonedir");
+			Directory.CreateDirectory(Path.Combine(gdir, "n"));
+			File.WriteAllText(Path.Combine(gdir, "n", "a.txt"), "a");
+			var gj = new Job { Delete = "delete" };
+			gj.Sources.Add(gone);
+			gj.Sources.Add(gdir);
+			gj.Sources.Add(Path.Combine(root, "missing-fc.txt"));
+			r = Run(gj);
+			if (File.Exists(gone) || Directory.Exists(gdir) || r.Ok != 2 || r.Failed != 1)
+				return bad(say, $"delete ok={r.Ok} fail={r.Failed} {r.Error}");
 			var hf = Path.Combine(root, "h.txt");
 			File.WriteAllText(hf, "H");
 			var hdest = Path.Combine(root, "hdir");

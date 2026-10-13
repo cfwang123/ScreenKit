@@ -76,11 +76,11 @@
 	}
 
 	function open(){
-		canvas = SK.$("plot-cv");
+		canvas = F.id("plot-cv");
 		if (!canvas) return;
-		var bar = document.querySelector(".plot-bar");
+		var bar = F.q(".plot-bar");
 		if (bar) bar.onclick = onbar;
-		var input = SK.$("plot-fn");
+		var input = F.id("plot-fn");
 		if (input) input.oninput = function(){ reparse(); paint(); };
 		canvas.onpointerdown = down;
 		canvas.onpointermove = move;
@@ -88,11 +88,11 @@
 		canvas.onpointercancel = up;
 		canvas.onpointerleave = leave;
 		canvas.ondblclick = function(){ resetview(); paint(); };
-		canvas.oncontextmenu = function(ev){ ev.preventDefault(); };
-		canvas.addEventListener("wheel", wheel, { passive: false });
+		canvas.oncontextmenu = function(ev){ F.pd(ev); };
+		F.on(canvas, "wheel", wheel, { passive: false });
 		if (!docOn) {
 			docOn = true;
-			document.addEventListener("pointerdown", ondoc);
+			F.on(document, "pointerdown", ondoc);
 		}
 		if (watch) watch.disconnect();
 		if (window.ResizeObserver && canvas.parentElement) {
@@ -103,7 +103,7 @@
 		markstyle();
 		resetview();
 		reparse();
-		requestAnimationFrame(paint);
+		F.raf(paint);
 	}
 
 	function styleBtn(id, icon, key, fb){
@@ -114,29 +114,29 @@
 	function onbar(ev){
 		var el = ev.target && ev.target.closest ? ev.target.closest("button") : ev.target;
 		if (!el || !el.getAttribute) return;
-		if (el.getAttribute("data-act") === "ex") {
+		if (F.attr(el, "data-act") === "ex") {
 			togglemenu();
 			return;
 		}
-		var sample = el.getAttribute("data-ex");
+		var sample = F.attr(el, "data-ex");
 		if (sample != null) {
-			pick(sample, el.getAttribute("data-mode"));
+			pick(sample, F.attr(el, "data-mode"));
 			return;
 		}
-		if (el.getAttribute("data-act") === "cross") {
+		if (F.attr(el, "data-act") === "cross") {
 			crossOn = !crossOn;
 			el.className = crossOn ? "on" : "";
 			if (!crossOn) hover = null;
 			paint();
 			return;
 		}
-		if (el.getAttribute("data-act") === "reset") {
+		if (F.attr(el, "data-act") === "reset") {
 			hidemenu();
 			resetview();
 			paint();
 			return;
 		}
-		var st = el.getAttribute("data-style");
+		var st = F.attr(el, "data-style");
 		if (st) {
 			if (st === style) return;
 			style = st;
@@ -144,7 +144,7 @@
 			paint();
 			return;
 		}
-		var next = el.getAttribute("data-mode");
+		var next = F.attr(el, "data-mode");
 		if (!next || next === mode) return;
 		hidemenu();
 		mode = next;
@@ -172,25 +172,25 @@
 	}
 
 	function togglemenu(){
-		var menu = SK.$("plot-menu");
+		var menu = F.id("plot-menu");
 		if (!menu) return;
 		menu.hidden = !menu.hidden;
 	}
 
 	function hidemenu(){
-		var menu = SK.$("plot-menu");
+		var menu = F.id("plot-menu");
 		if (menu) menu.hidden = true;
 	}
 
 	function ondoc(ev){
-		var menu = SK.$("plot-menu");
+		var menu = F.id("plot-menu");
 		if (!menu || menu.hidden) return;
 		if (ev.target && ev.target.closest && ev.target.closest(".plot-ex")) return;
 		menu.hidden = true;
 	}
 
 	function pick(src, next){
-		var input = SK.$("plot-fn");
+		var input = F.id("plot-fn");
 		if (input) input.value = src;
 		hidemenu();
 		if (next && next !== mode) {
@@ -203,26 +203,26 @@
 	}
 
 	function markmode(){
-		var nodes = document.querySelectorAll(".plot-bar > button[data-mode]");
+		var nodes = F.qa(".plot-bar > button[data-mode]");
 		var i;
 		for (i = 0; i < nodes.length; i++)
-			nodes[i].className = nodes[i].getAttribute("data-mode") === mode ? "on" : "";
-		var box = document.querySelector(".plot-style");
+			nodes[i].className = F.attr(nodes[i], "data-mode") === mode ? "on" : "";
+		var box = F.q(".plot-style");
 		if (box) box.hidden = mode !== "3";
-		var cross = document.querySelector('.plot-bar > [data-act="cross"]');
+		var cross = F.q('.plot-bar > [data-act="cross"]');
 		if (cross) cross.hidden = mode !== "2";
 		if (mode !== "2") hover = null;
 	}
 
 	function markstyle(){
-		var nodes = document.querySelectorAll(".plot-style [data-style]");
+		var nodes = F.qa(".plot-style [data-style]");
 		var i;
 		for (i = 0; i < nodes.length; i++)
-			nodes[i].className = nodes[i].getAttribute("data-style") === style ? "on" : "";
+			nodes[i].className = F.attr(nodes[i], "data-style") === style ? "on" : "";
 	}
 
 	function say(text, bad){
-		var el = SK.$("plot-msg");
+		var el = F.id("plot-msg");
 		if (!el) return;
 		el.textContent = text || "";
 		el.className = bad ? "hint bad" : "hint";
@@ -249,7 +249,7 @@
 	}
 
 	function reparse(){
-		var input = SK.$("plot-fn");
+		var input = F.id("plot-fn");
 		var src = input ? input.value : "";
 		implicit = false;
 		try {
@@ -288,13 +288,13 @@
 			canvas.width = bw;
 			canvas.height = bh;
 		}
-		var ctx = canvas.getContext("2d");
+		var ctx = F.ctx(canvas);
 		var key = sceneKey(w, h);
 		if (plateKey !== key) {
-			if (!plate) plate = document.createElement("canvas");
+			if (!plate) plate = F.el("canvas");
 			plate.width = bw;
 			plate.height = bh;
-			var pctx = plate.getContext("2d");
+			var pctx = F.ctx(plate);
 			pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 			pctx.clearRect(0, 0, w, h);
 			pctx.fillStyle = "#fafaf9";
@@ -314,7 +314,7 @@
 	}
 
 	function sceneKey(w, h){
-		var input = SK.$("plot-fn");
+		var input = F.id("plot-fn");
 		var src = input ? input.value : "";
 		if (mode === "3")
 			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
@@ -323,7 +323,7 @@
 
 	function down(ev){
 		if (!canvas || ev.button != null && ev.button !== 0 && ev.button !== 1 && ev.button !== 2) return;
-		if (ev.preventDefault) ev.preventDefault();
+		if (ev.preventDefault) F.pd(ev);
 		drag = {
 			x: ev.clientX, y: ev.clientY, button: ev.button, shift: !!ev.shiftKey,
 			x0: view.x0, x1: view.x1, y0: view.y0, y1: view.y1,
@@ -335,7 +335,7 @@
 
 	function track(ev){
 		if (!canvas || mode !== "2" || !crossOn) return;
-		var rect = canvas.getBoundingClientRect();
+		var rect = F.rect(canvas);
 		hover = { px: ev.clientX - rect.left, py: ev.clientY - rect.top };
 	}
 
@@ -390,7 +390,7 @@
 
 	function wheel(ev){
 		if (!canvas) return;
-		ev.preventDefault();
+		F.pd(ev);
 		var delta = ev.deltaY || ev.deltaX;
 		if (!delta) return;
 		var factor = delta > 0 ? 1.12 : 1 / 1.12;
@@ -402,7 +402,7 @@
 			paint();
 			return;
 		}
-		var rect = canvas.getBoundingClientRect();
+		var rect = F.rect(canvas);
 		var px = ev.clientX - rect.left;
 		var py = ev.clientY - rect.top;
 		var w = rect.width || 1;
@@ -436,7 +436,7 @@
 	}
 
 	function hideRead(){
-		var el = SK.$("plot-read");
+		var el = F.id("plot-read");
 		if (el) el.hidden = true;
 	}
 
@@ -477,7 +477,7 @@
 			ctx.fill();
 		}
 		ctx.restore();
-		var box = SK.$("plot-read");
+		var box = F.id("plot-read");
 		if (!box) return;
 		if (!lines.length) {
 			box.hidden = true;

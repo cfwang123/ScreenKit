@@ -38,36 +38,36 @@
 		for (i = 0; i < slices.length; i++)
 			html.push('<button type="button" data-i="' + i + '" title="' + unihtml(unirange(slices[i])) + '"><b>'
 				+ unihtml(slices[i][0]) + '</b><small>' + unihtml(unirange(slices[i])) + '</small></button>');
-		SK.$("u-groups").innerHTML = html.join("");
-		SK.$("u-groups").onclick = function(ev){
+		F.id("u-groups").innerHTML = html.join("");
+		F.id("u-groups").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "u-groups") {
-				if (el.getAttribute && el.getAttribute("data-i") != null) {
-					unishow(parseInt(el.getAttribute("data-i"), 10), -1);
+				if (el.getAttribute && F.attr(el, "data-i") != null) {
+					unishow(parseInt(F.attr(el, "data-i"), 10), -1);
 					return;
 				}
 				el = el.parentNode;
 			}
 		};
-		SK.$("u-grid").onclick = function(ev){
+		F.id("u-grid").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "u-grid") {
-				if (el.getAttribute && el.getAttribute("data-cp") != null) {
-					var cp = parseInt(el.getAttribute("data-cp"), 10);
+				if (el.getAttribute && F.attr(el, "data-cp") != null) {
+					var cp = parseInt(F.attr(el, "data-cp"), 10);
 					unimark(cp);
 					unipreview(cp);
-					SK.copytext(String.fromCodePoint(cp), "u-msg");
+					SK.copytext(F.cp(cp), "u-msg");
 					return;
 				}
 				el = el.parentNode;
 			}
 		};
-		SK.$("u-q").oninput = uniquery;
+		F.id("u-q").oninput = uniquery;
 		unishow(0, -1);
 	}
 
 	function uniquery(){
-		var cp = uniparse(SK.$("u-q").value);
+		var cp = uniparse(F.id("u-q").value);
 		if (cp === -1) {
 			SK.msg("u-msg", "");
 			return;
@@ -88,7 +88,7 @@
 	function unirefont(){
 		uniInk = {};
 		uniSeen = {};
-		if (!SK.$("u-grid")) return;
+		if (!F.id("u-grid")) return;
 		unishow(uniAt, uniCp);
 	}
 
@@ -101,11 +101,11 @@
 		uniAt = index;
 		var slices = unislices();
 		var g = slices[index];
-		var groups = document.querySelectorAll("#u-groups button");
+		var groups = F.qa("#u-groups button");
 		var i;
 		for (i = 0; i < groups.length; i++)
 			groups[i].className = i === index ? "on" : "";
-		if (groups[index]) groups[index].scrollIntoView({ block: "nearest" });
+		if (groups[index]) F.into(groups[index], { block: "nearest" });
 		var pick = focus >= g[1] && focus <= g[2] ? focus : g[1];
 		uniCp = pick;
 		var html = [];
@@ -117,22 +117,22 @@
 				+ (cls ? ' class="' + cls + '"' : '') + (cp === pick ? ' id="u-on"' : '') + '>'
 				+ glyph.t + '</button>');
 		}
-		SK.$("u-grid").innerHTML = html.join("");
-		var on = SK.$("u-on");
+		F.id("u-grid").innerHTML = html.join("");
+		var on = F.id("u-on");
 		if (on) {
 			on.className = (on.className ? on.className + " " : "") + "on";
-			on.removeAttribute("id");
-			if (focus >= g[1] && focus <= g[2]) on.scrollIntoView({ block: "center" });
+			F.unset(on, "id");
+			if (focus >= g[1] && focus <= g[2]) F.into(on, { block: "center" });
 		}
 		unipreview(pick);
 	}
 
 	function unimark(cp){
-		var buttons = document.querySelectorAll("#u-grid button");
+		var buttons = F.qa("#u-grid button");
 		var i, cls;
 		for (i = 0; i < buttons.length; i++) {
 			cls = buttons[i].className.replace(/\bon\b/g, "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
-			if (parseInt(buttons[i].getAttribute("data-cp"), 10) === cp)
+			if (parseInt(F.attr(buttons[i], "data-cp"), 10) === cp)
 				cls = cls ? cls + " on" : "on";
 			buttons[i].className = cls;
 		}
@@ -140,7 +140,7 @@
 
 	function unipreview(cp){
 		var glyph = uniglyph(cp);
-		var box = SK.$("u-ch");
+		var box = F.id("u-ch");
 		if (glyph.empty) {
 			box.textContent = "";
 			box.className = "uprev-ch gap";
@@ -151,7 +151,7 @@
 		}
 		else {
 			var show = glyph.alt || cp;
-			var ch = String.fromCodePoint(show);
+			var ch = F.cp(show);
 			if (unicomb(show)) ch = "\u25CC" + ch;
 			box.textContent = ch;
 			box.className = "uprev-ch";
@@ -184,19 +184,19 @@
 		}
 		if (glyph.alt)
 			rows.push(
-				["等价", "U+" + unihex(glyph.alt) + " " + String.fromCodePoint(glyph.alt)],
+				["等价", "U+" + unihex(glyph.alt) + " " + F.cp(glyph.alt)],
 				["字形", "本机字体没有单独字形，格内是等价汉字。复制的仍是原码位。花园明朝（HanaMin）或 BabelStone Han 有独立字形。"]
 			);
 		var html = [];
 		var i;
 		for (i = 0; i < rows.length; i++)
 			html.push("<dt>" + rows[i][0] + "</dt><dd>" + unihtml(rows[i][1]) + "</dd>");
-		SK.$("u-meta").innerHTML = html.join("");
+		F.id("u-meta").innerHTML = html.join("");
 		uniask(cp);
 	}
 
 	function unicn(cp){
-		return /^\p{Cn}$/u.test(String.fromCodePoint(cp));
+		return /^\p{Cn}$/u.test(F.cp(cp));
 	}
 
 	function unihtml(s){
@@ -260,18 +260,18 @@
 		uniPend[cp] = 1;
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/api/enc", true);
-		xhr.setRequestHeader("Content-Type", "application/json;charset=utf-8");
+		F.hdr(xhr, "Content-Type", "application/json;charset=utf-8");
 		xhr.onload = function(){
 			uniPend[cp] = 0;
 			var jo;
-			try { jo = JSON.parse(xhr.responseText); }
+			try { jo = F.parse(xhr.responseText); }
 			catch (e) { return; }
 			if (!jo || jo.code !== 100 || !jo.data) return;
 			uniPage[cp] = jo.data;
 			if (uniPageCp === cp) unipreview(cp);
 		};
 		xhr.onerror = function(){ uniPend[cp] = 0; };
-		xhr.send(JSON.stringify({ cp: cp }));
+		xhr.send(F.json({ cp: cp }));
 	}
 
 	function uniutf16(cp){
@@ -337,7 +337,7 @@
 		var gap = unigap(cp);
 		if (gap.empty) return { t: "", ctrl: false, empty: true, alt: 0 };
 		var show = gap.alt || cp;
-		var ch = String.fromCodePoint(show);
+		var ch = F.cp(show);
 		if (unicomb(show)) ch = "\u25CC" + ch;
 		if (ch === "&") ch = "&amp;";
 		else if (ch === "<") ch = "&lt;";
@@ -347,7 +347,7 @@
 
 	function unigap(cp){
 		if (uniSeen[cp]) return uniSeen[cp];
-		var ch = String.fromCodePoint(cp);
+		var ch = F.cp(cp);
 		var nfkc = ch.normalize ? ch.normalize("NFKC") : ch;
 		var eq = nfkc.codePointAt(0);
 		var one = nfkc.length === (eq > 0xFFFF ? 2 : 1);
@@ -374,18 +374,18 @@
 	function uniink(cp){
 		var c = uniCan;
 		if (!c) {
-			c = document.createElement("canvas");
+			c = F.el("canvas");
 			c.width = 24;
 			c.height = 24;
 			uniCan = c;
 		}
-		var g = c.getContext("2d", { willReadFrequently: true });
+		var g = F.ctx(c, { willReadFrequently: true });
 		g.clearRect(0, 0, 24, 24);
 		g.font = "16px " + uniface();
 		g.fillStyle = "#000";
 		g.textAlign = "center";
 		g.textBaseline = "middle";
-		g.fillText(String.fromCodePoint(cp), 12, 12);
+		g.fillText(F.cp(cp), 12, 12);
 		var d = g.getImageData(0, 0, 24, 24).data;
 		var n = 0;
 		var i;

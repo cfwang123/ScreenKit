@@ -116,28 +116,28 @@
 
 	function open(){
 		hook();
-		canvas = SK.$("board-cv");
+		canvas = F.id("board-cv");
 		if (!canvas) return;
 		canvas.onpointerdown = down;
 		canvas.onpointermove = move;
 		canvas.onpointerup = up;
 		canvas.onpointercancel = up;
 		canvas.onmousedown = function(ev){
-			if (tool === "text" && ev.button === 0 && ev.preventDefault) ev.preventDefault();
+			if (tool === "text" && ev.button === 0 && ev.preventDefault) F.pd(ev);
 		};
 		canvas.ondblclick = dbl;
-		var bar = document.querySelector(".board-bar");
+		var bar = F.q(".board-bar");
 		if (bar) bar.onclick = onbar;
-		var col = SK.$("board-color");
+		var col = F.id("board-color");
 		if (col) {
 			col.value = color;
 			col.oninput = function(){ setcolor(col.value); };
 		}
-		var txt = SK.$("board-txt");
+		var txt = F.id("board-txt");
 		if (txt) {
 			txt.onkeydown = function(ev){
-				if (ev.key === "Enter") { ev.preventDefault(); committext(true); }
-				else if (ev.key === "Escape") { ev.preventDefault(); committext(false); }
+				if (ev.key === "Enter") { F.pd(ev); committext(true); }
+				else if (ev.key === "Escape") { F.pd(ev); committext(false); }
 			};
 			txt.onblur = function(){
 				var token = texttok;
@@ -153,7 +153,7 @@
 		setwidth(width);
 		setcolor(color);
 		fit();
-		requestAnimationFrame(fit);
+		F.raf(fit);
 		if (watch) watch.disconnect();
 		if (window.ResizeObserver && canvas.parentElement) {
 			watch = new ResizeObserver(function(){ fit(); });
@@ -164,18 +164,18 @@
 	function hook(){
 		if (hooked) return;
 		hooked = true;
-		document.addEventListener("paste", onpaste);
-		document.addEventListener("keydown", onkey);
+		F.on(document, "paste", onpaste);
+		F.on(document, "keydown", onkey);
 	}
 
 	function onbar(ev){
 		var el = ev.target && ev.target.closest ? ev.target.closest("button") : ev.target;
 		if (!el || !el.getAttribute) return;
-		var mode = el.getAttribute("data-board");
-		var act = el.getAttribute("data-act");
+		var mode = F.attr(el, "data-board");
+		var act = F.attr(el, "data-act");
 		if (mode) settool(mode);
-		else if (el.getAttribute("data-color")) setcolor(el.getAttribute("data-color"));
-		else if (el.getAttribute("data-w")) setwidth(parseInt(el.getAttribute("data-w"), 10) || 4);
+		else if (F.attr(el, "data-color")) setcolor(F.attr(el, "data-color"));
+		else if (F.attr(el, "data-w")) setwidth(parseInt(F.attr(el, "data-w"), 10) || 4);
 		else if (act === "paste") dopaste();
 		else if (act === "undo") undolast();
 		else if (act === "clear") clearall();
@@ -188,31 +188,31 @@
 		var baked = name !== tool && !!lift;
 		if (baked) stamplit();
 		tool = name;
-		var nodes = document.querySelectorAll(".board-bar [data-board]");
+		var nodes = F.qa(".board-bar [data-board]");
 		var i;
 		for (i = 0; i < nodes.length; i++)
-			nodes[i].className = nodes[i].getAttribute("data-board") === name ? "on" : "";
-		var stage = document.querySelector(".board-stage");
+			nodes[i].className = F.attr(nodes[i], "data-board") === name ? "on" : "";
+		var stage = F.q(".board-stage");
 		if (stage) stage.className = "board-stage" + (name === "select" ? " select" : "");
 		if (baked) paint(true);
 	}
 
 	function setwidth(n){
 		width = n;
-		var nodes = document.querySelectorAll(".board-tools [data-w]");
+		var nodes = F.qa(".board-tools [data-w]");
 		var i;
 		for (i = 0; i < nodes.length; i++)
-			nodes[i].className = String(nodes[i].getAttribute("data-w")) === String(n) ? "on" : "";
+			nodes[i].className = String(F.attr(nodes[i], "data-w")) === String(n) ? "on" : "";
 	}
 
 	function setcolor(hex){
 		color = hex;
-		var col = SK.$("board-color");
+		var col = F.id("board-color");
 		if (col && col.value !== hex) col.value = hex;
-		var nodes = document.querySelectorAll(".board-colors [data-color]");
+		var nodes = F.qa(".board-colors [data-color]");
 		var i, want = String(hex).toLowerCase();
 		for (i = 0; i < nodes.length; i++)
-			nodes[i].className = String(nodes[i].getAttribute("data-color")).toLowerCase() === want ? "on" : "";
+			nodes[i].className = String(F.attr(nodes[i], "data-color")).toLowerCase() === want ? "on" : "";
 	}
 
 	function onkey(ev){
@@ -220,13 +220,13 @@
 		var tag = ev.target && ev.target.tagName;
 		if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
 			if (ev.target && ev.target.id === "board-txt") {
-				if (ev.key === "Escape") { ev.preventDefault(); committext(false); }
-				else if (ev.key === "Enter") { ev.preventDefault(); committext(true); }
+				if (ev.key === "Escape") { F.pd(ev); committext(false); }
+				else if (ev.key === "Enter") { F.pd(ev); committext(true); }
 			}
 			return;
 		}
 		if ((ev.ctrlKey || ev.metaKey) && (ev.key === "z" || ev.key === "Z") && !ev.shiftKey) {
-			ev.preventDefault();
+			F.pd(ev);
 			undolast();
 			return;
 		}
@@ -242,7 +242,7 @@
 			return;
 		}
 		if ((ev.key === "Delete" || ev.key === "Backspace") && sel >= 0 && sel < items.length) {
-			ev.preventDefault();
+			F.pd(ev);
 			pushundo();
 			items.splice(sel, 1);
 			sel = -1;
@@ -265,7 +265,7 @@
 		if (!blob && cd.files && cd.files.length && cd.files[0].type.indexOf("image/") === 0)
 			blob = cd.files[0];
 		if (!blob) return;
-		ev.preventDefault();
+		F.pd(ev);
 		addblob(blob);
 	}
 
@@ -289,13 +289,13 @@
 
 	function addblob(blob){
 		if (!blob) return;
-		var url = URL.createObjectURL(blob);
+		var url = F.url(blob);
 		var im = new Image();
 		im.onload = function(){
-			URL.revokeObjectURL(url);
+			F.unurl(url);
 			placeimg(im);
 		};
-		im.onerror = function(){ URL.revokeObjectURL(url); };
+		im.onerror = function(){ F.unurl(url); };
 		im.src = url;
 	}
 
@@ -321,7 +321,7 @@
 	}
 
 	function say(key){
-		var el = SK.$("board-msg");
+		var el = F.id("board-msg");
 		if (el) el.textContent = SK.t(key) || FB[key] || "";
 	}
 
@@ -347,7 +347,7 @@
 		dirty = snap.dirty;
 		if (sel >= items.length) sel = items.length - 1;
 		if (snap.pixels && base && snap.pixels.width === base.width && snap.pixels.height === base.height)
-			base.getContext("2d").putImageData(snap.pixels, 0, 0);
+			F.ctx(base).putImageData(snap.pixels, 0, 0);
 		draft = null;
 		drag = null;
 		lift = null;
@@ -368,14 +368,14 @@
 	function saveimg(){
 		exportpng(function(blob){
 			if (!blob) return;
-			var a = document.createElement("a");
-			var url = URL.createObjectURL(blob);
+			var a = F.el("a");
+			var url = F.url(blob);
 			a.href = url;
 			a.download = "board.png";
-			document.body.appendChild(a);
+			F.append(document.body, a);
 			a.click();
 			a.remove();
-			setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+			setTimeout(function(){ F.unurl(url); }, 1500);
 			say("web.board.saved");
 		});
 	}
@@ -395,7 +395,7 @@
 		if (busy || !canvas || ev.button != null && ev.button !== 0) return;
 		var p = xy(ev);
 		if (tool === "text") {
-			if (ev.preventDefault) ev.preventDefault();
+			if (ev.preventDefault) F.pd(ev);
 			var ti = hittext(p);
 			if (ti >= 0) begintext(ti);
 			else begintext(-1, p.x, p.y);
@@ -469,7 +469,7 @@
 
 	function up(){
 		if (tool === "text" && edit && !textarmed) {
-			var txt = SK.$("board-txt");
+			var txt = F.id("board-txt");
 			if (txt) setTimeout(function(){
 				if (!edit || textarmed) return;
 				txt.focus();
@@ -513,7 +513,7 @@
 		if (!base) fit();
 		if (!base) { paint(true); return; }
 		pushundo();
-		drawitem(base.getContext("2d"), d);
+		drawitem(F.ctx(base), d);
 		dirty = true;
 		sel = -1;
 		paint(true);
@@ -552,22 +552,22 @@
 		maxy = Math.min(base.height, Math.ceil(maxy));
 		var bw = maxx - minx, bh = maxy - miny;
 		if (bw < 2 || bh < 2) { paint(true); return; }
-		var mask = document.createElement("canvas");
+		var mask = F.el("canvas");
 		mask.width = bw;
 		mask.height = bh;
-		var mctx = mask.getContext("2d");
+		var mctx = F.ctx(mask);
 		mctx.beginPath();
 		mctx.moveTo(pts[0].x - minx, pts[0].y - miny);
 		for (i = 1; i < pts.length; i++) mctx.lineTo(pts[i].x - minx, pts[i].y - miny);
 		mctx.closePath();
 		mctx.fill();
 		var md = mctx.getImageData(0, 0, bw, bh).data;
-		var bctx = base.getContext("2d");
+		var bctx = F.ctx(base);
 		var src = bctx.getImageData(minx, miny, bw, bh);
-		var cut = document.createElement("canvas");
+		var cut = F.el("canvas");
 		cut.width = bw;
 		cut.height = bh;
-		var cctx = cut.getContext("2d");
+		var cctx = F.ctx(cut);
 		var out = cctx.createImageData(bw, bh);
 		var sd = src.data, od = out.data, n = bw * bh, p, o, r, g, b, a, any = take.length > 0;
 		for (p = 0; p < n; p++) {
@@ -612,7 +612,7 @@
 		lift = null;
 		sel = -1;
 		if (!base) return;
-		base.getContext("2d").drawImage(box.img, box.x, box.y, box.w, box.h);
+		F.ctx(base).drawImage(box.img, box.x, box.y, box.w, box.h);
 		dirty = true;
 	}
 
@@ -631,11 +631,11 @@
 		texttok++;
 		textarmed = false;
 		if (edit) committext(true);
-		var txt = SK.$("board-txt");
+		var txt = F.id("board-txt");
 		if (!txt || !canvas) return;
 		var it = i >= 0 ? items[i] : null;
 		edit = { i: i, x: it ? it.x : x, y: it ? it.y : y };
-		var rect = canvas.getBoundingClientRect();
+		var rect = F.rect(canvas);
 		var sx = rect.width / canvas.width || 1;
 		var sy = rect.height / canvas.height || 1;
 		var px = it ? it.x : x;
@@ -662,7 +662,7 @@
 	function committext(keep){
 		if (!edit) return;
 		var ed = edit;
-		var txt = SK.$("board-txt");
+		var txt = F.id("board-txt");
 		var val = txt ? String(txt.value || "").replace(/^\s+|\s+$/g, "") : "";
 		edit = null;
 		if (txt) txt.hidden = true;
@@ -745,7 +745,7 @@
 	function pushundo(){
 		var a = [], i, pixels = null;
 		for (i = 0; i < items.length; i++) a.push(cloneitem(items[i]));
-		if (base) pixels = base.getContext("2d").getImageData(0, 0, base.width, base.height);
+		if (base) pixels = F.ctx(base).getImageData(0, 0, base.width, base.height);
 		undo.push({ items: a, sel: sel, pixels: pixels, dirty: dirty });
 		if (undo.length > 20) undo.shift();
 	}
@@ -774,10 +774,10 @@
 		if (lift && base && (w !== base.width || h !== base.height)) stamplit();
 		var prev = base;
 		var grew = !!(prev && (w !== prev.width || h !== prev.height));
-		base = document.createElement("canvas");
+		base = F.el("canvas");
 		base.width = w;
 		base.height = h;
-		var bctx = base.getContext("2d");
+		var bctx = F.ctx(base);
 		bctx.fillStyle = "#ffffff";
 		bctx.fillRect(0, 0, w, h);
 		if (prev && prev.width && prev.height) bctx.drawImage(prev, 0, 0);
@@ -789,14 +789,14 @@
 
 	function whitebase(){
 		if (!base) return;
-		var bctx = base.getContext("2d");
+		var bctx = F.ctx(base);
 		bctx.fillStyle = "#ffffff";
 		bctx.fillRect(0, 0, base.width, base.height);
 	}
 
 	function paint(showSel){
 		if (!canvas) return;
-		var ctx = canvas.getContext("2d");
+		var ctx = F.ctx(canvas);
 		var i;
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		if (base) ctx.drawImage(base, 0, 0);
@@ -953,7 +953,7 @@
 	}
 
 	function measure(it){
-		var ctx = canvas.getContext("2d");
+		var ctx = F.ctx(canvas);
 		ctx.font = it.size + 'px "Microsoft YaHei UI", sans-serif';
 		var w = ctx.measureText(it.s || " ").width;
 		return { x: it.x, y: it.y, w: Math.max(12, w), h: it.size * 1.35 };
@@ -997,13 +997,13 @@
 	}
 
 	function px(n){
-		var r = canvas.getBoundingClientRect();
+		var r = F.rect(canvas);
 		var w = r.width || canvas.width || 1;
 		return n * canvas.width / w;
 	}
 
 	function xy(ev){
-		var r = canvas.getBoundingClientRect();
+		var r = F.rect(canvas);
 		var w = r.width || canvas.width || 1;
 		var h = r.height || canvas.height || 1;
 		return {

@@ -28,8 +28,8 @@
 	function gbkbuild(){
 		var pages = gbkpages();
 		if (!pages) {
-			SK.$("gbk-groups").innerHTML = "";
-			SK.$("gbk-grid").innerHTML = "";
+			F.id("gbk-groups").innerHTML = "";
+			F.id("gbk-grid").innerHTML = "";
 			SK.msg("gbk-msg", "这个浏览器不能解码 GBK", true);
 			return;
 		}
@@ -38,33 +38,33 @@
 		for (i = 0; i < pages.length; i++)
 			html.push('<button type="button" data-i="' + i + '" title="' + gbkesc(gbkrange(pages[i])) + '"><b>'
 				+ gbkesc(pages[i].name) + '</b><small>' + gbkesc(gbkrange(pages[i])) + '</small></button>');
-		SK.$("gbk-groups").innerHTML = html.join("");
-		SK.$("gbk-groups").onclick = function(ev){
+		F.id("gbk-groups").innerHTML = html.join("");
+		F.id("gbk-groups").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "gbk-groups") {
-				if (el.getAttribute && el.getAttribute("data-i") != null) {
-					gbkshow(parseInt(el.getAttribute("data-i"), 10), -1);
+				if (el.getAttribute && F.attr(el, "data-i") != null) {
+					gbkshow(parseInt(F.attr(el, "data-i"), 10), -1);
 					return;
 				}
 				el = el.parentNode;
 			}
 		};
-		SK.$("gbk-grid").onclick = function(ev){
+		F.id("gbk-grid").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "gbk-grid") {
-				if (el.getAttribute && el.getAttribute("data-j") != null) {
-					gbkpick(parseInt(el.getAttribute("data-j"), 10), true);
+				if (el.getAttribute && F.attr(el, "data-j") != null) {
+					gbkpick(parseInt(F.attr(el, "data-j"), 10), true);
 					return;
 				}
 				el = el.parentNode;
 			}
 		};
-		SK.$("gbk-q").oninput = gbkquery;
+		F.id("gbk-q").oninput = gbkquery;
 		gbkshow(0, -1);
 	}
 
 	function gbkquery(){
-		var hit = gbkparse(SK.$("gbk-q").value);
+		var hit = gbkparse(F.id("gbk-q").value);
 		if (!hit) {
 			SK.msg("gbk-msg", "");
 			return;
@@ -79,11 +79,11 @@
 
 	function gbkshow(index, focus){
 		var page = gbkpages()[index];
-		var groups = document.querySelectorAll("#gbk-groups button");
+		var groups = F.qa("#gbk-groups button");
 		var i;
 		for (i = 0; i < groups.length; i++)
 			groups[i].className = i === index ? "on" : "";
-		if (groups[index]) groups[index].scrollIntoView({ block: "nearest" });
+		if (groups[index]) F.into(groups[index], { block: "nearest" });
 		var pick = focus >= 0 ? focus : gbkfirst(page);
 		var html = [];
 		for (i = 0; i < page.cells.length; i++) {
@@ -94,12 +94,12 @@
 				+ (cls ? ' class="' + cls + '"' : '') + (i === pick ? ' id="gbk-on"' : '') + '>'
 				+ glyph.t + '</button>');
 		}
-		SK.$("gbk-grid").innerHTML = html.join("");
-		var on = SK.$("gbk-on");
+		F.id("gbk-grid").innerHTML = html.join("");
+		var on = F.id("gbk-on");
 		if (on) {
 			on.className = (on.className ? on.className + " " : "") + "on";
-			on.removeAttribute("id");
-			if (focus >= 0) on.scrollIntoView({ block: "center" });
+			F.unset(on, "id");
+			if (focus >= 0) F.into(on, { block: "center" });
 		}
 		gbkcur = index;
 		gbkpreview(page.cells[pick]);
@@ -116,15 +116,15 @@
 			return;
 		}
 		SK.msg("gbk-msg", gbkbytes(cell));
-		if (copy) SK.copytext(String.fromCodePoint(cell.cp), "gbk-msg");
+		if (copy) SK.copytext(F.cp(cell.cp), "gbk-msg");
 	}
 
 	function gbkmark(j){
-		var buttons = document.querySelectorAll("#gbk-grid button");
+		var buttons = F.qa("#gbk-grid button");
 		var i, cls;
 		for (i = 0; i < buttons.length; i++) {
 			cls = buttons[i].className.replace(/\bon\b/g, "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
-			if (parseInt(buttons[i].getAttribute("data-j"), 10) === j)
+			if (parseInt(F.attr(buttons[i], "data-j"), 10) === j)
 				cls = cls ? cls + " on" : "on";
 			buttons[i].className = cls;
 		}
@@ -132,7 +132,7 @@
 
 	function gbkpreview(cell){
 		var glyph = gbkglyph(cell);
-		var box = SK.$("gbk-ch");
+		var box = F.id("gbk-ch");
 		if (glyph.empty) {
 			box.textContent = "";
 			box.className = "uprev-ch gap";
@@ -142,7 +142,7 @@
 			box.className = "uprev-ch ctrl";
 		}
 		else {
-			box.textContent = String.fromCodePoint(cell.cp);
+			box.textContent = F.cp(cell.cp);
 			box.className = "uprev-ch";
 		}
 		var rows = [
@@ -158,7 +158,7 @@
 		var i;
 		for (i = 0; i < rows.length; i++)
 			html.push("<dt>" + rows[i][0] + "</dt><dd>" + gbkesc(rows[i][1]) + "</dd>");
-		SK.$("gbk-meta").innerHTML = html.join("");
+		F.id("gbk-meta").innerHTML = html.join("");
 	}
 
 	function gbkpages(){
@@ -203,7 +203,7 @@
 			}
 			if (any < 0) continue;
 			gbkLead[lead] = gbkPages.length;
-			gbkPages.push({ name: gbkhex(lead, 2) + " " + String.fromCodePoint(any), cells: cells, n: n, from: from, to: to });
+			gbkPages.push({ name: gbkhex(lead, 2) + " " + F.cp(any), cells: cells, n: n, from: from, to: to });
 		}
 		return gbkPages;
 	}
@@ -279,7 +279,7 @@
 		if (cell.cp < 0) return { t: "", empty: true };
 		if (cell.cp < 32) return { t: names[cell.cp], ctrl: true };
 		if (cell.cp === 0x7F) return { t: "DEL", ctrl: true };
-		var ch = String.fromCodePoint(cell.cp);
+		var ch = F.cp(cell.cp);
 		if (ch === "&") ch = "&amp;";
 		else if (ch === "<") ch = "&lt;";
 		else if (ch === ">") ch = "&gt;";

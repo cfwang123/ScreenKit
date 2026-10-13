@@ -13,8 +13,8 @@
 			return retest(SK.val("box-pat"), SK.val("box-flags"), SK.val("box-in"));
 		},
 		open: function(){
-			SK.$("box-preset").onchange = repick;
-			SK.$("box-re-mode").onchange = retip;
+			F.id("box-preset").onchange = repick;
+			F.id("box-re-mode").onchange = retip;
 			retip();
 		},
 		live: false
@@ -49,46 +49,46 @@
 	}
 
 	function repick(){
-		var sel = SK.$("box-preset");
+		var sel = F.id("box-preset");
 		var list = repatterns();
 		var i = sel ? parseInt(sel.value, 10) : -1;
 		if (!(i >= 0) || !list[i]) return;
-		var box = SK.$("box-in");
+		var box = F.id("box-in");
 		var cur = box ? box.value : "";
 		var sample = !cur;
 		var k;
 		if (!sample) {
 			for (k = 0; k < list.length; k++) if (cur === list[k][3]) sample = true;
 		}
-		SK.$("box-pat").value = list[i][1];
-		SK.$("box-flags").value = list[i][2];
+		F.id("box-pat").value = list[i][1];
+		F.id("box-flags").value = list[i][2];
 		if (sample && box) box.value = list[i][3] || "";
 	}
 
 	function retip(){
 		var lines = SK.val("box-re-mode") === "lines";
-		var hint = SK.$("re-hint");
-		var box = SK.$("box-in");
+		var hint = F.id("re-hint");
+		var box = F.id("box-in");
 		var hk = lines ? "web.re.lines" : "web.re.find";
 		if (hint) {
-			hint.setAttribute("data-k", hk);
+			F.seta(hint, "data-k", hk);
 			hint.textContent = (SK.t && SK.t(hk)) || (lines ? "一行一条。整行匹配算通过。" : "在文本里查找匹配。");
 		}
 		if (box) {
 			if (lines) {
-				box.setAttribute("data-kph", "web.re.lineph");
+				F.seta(box, "data-kph", "web.re.lineph");
 				box.placeholder = (SK.t && SK.t("web.re.lineph")) || "一行一条";
 			}
 			else {
-				box.removeAttribute("data-kph");
+				F.unset(box, "data-kph");
 				box.placeholder = "";
 			}
 		}
 	}
 
 	function showreout(batch){
-		var list = SK.$("re-list");
-		var out = SK.$("box-out");
+		var list = F.id("re-list");
+		var out = F.id("box-out");
 		if (!list || !out) return;
 		list.hidden = !batch;
 		out.hidden = !!batch;
@@ -132,7 +132,7 @@
 			html += '<div>' + SK.esc(rows[i]) + ' <span class="' + (ok ? "ok" : "bad") + '">[' + mark + "]</span></div>";
 			plain.push(rows[i] + " [" + mark + "]");
 		}
-		SK.$("re-list").innerHTML = html;
+		F.id("re-list").innerHTML = html;
 		showreout(true);
 		SK.reNote = "通过 " + pass + "，未通过 " + (rows.length - pass);
 		return plain.join("\n");

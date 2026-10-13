@@ -96,11 +96,11 @@
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
-			var box = SK.$("box-in");
-			var list = SK.$("num-list");
+			var box = F.id("box-in");
+			var list = F.id("num-list");
 			if (box) box.oninput = rerun;
-			if (list && !list.getAttribute("data-bind")) {
-				list.setAttribute("data-bind", "1");
+			if (list && !F.attr(list, "data-bind")) {
+				F.seta(list, "data-bind", "1");
 				list.onclick = onlist;
 			}
 		},
@@ -112,7 +112,7 @@
 	function rerun(){
 		if (!String(SK.val("box-in")).trim()) {
 			paint([]);
-			if (SK.$("box-out")) SK.$("box-out").value = "";
+			if (F.id("box-out")) F.id("box-out").value = "";
 			SK.msg("box-msg", "");
 			return;
 		}
@@ -121,12 +121,12 @@
 
 	function onlist(ev){
 		var btn = ev.target;
-		var list = SK.$("num-list");
+		var list = F.id("num-list");
 		while (btn && btn !== list && btn.tagName !== "BUTTON") btn = btn.parentNode;
 		if (!btn || btn === list) return;
-		var text = btn.getAttribute("data-v") || "";
+		var text = F.attr(btn, "data-v") || "";
 		if (!text) return;
-		if (btn.getAttribute("data-act") === "speak") speak(text, btn.getAttribute("data-lang") || "");
+		if (F.attr(btn, "data-act") === "speak") speak(text, F.attr(btn, "data-lang") || "");
 		else SK.copytext(text, "box-msg");
 	}
 
@@ -1167,7 +1167,7 @@
 	}
 
 	function paint(rows){
-		var list = SK.$("num-list");
+		var list = F.id("num-list");
 		if (!list) return;
 		if (!rows.length) {
 			list.innerHTML = "";

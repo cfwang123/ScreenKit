@@ -13,25 +13,25 @@
 		var nick = "";
 		var gender = "";
 		try {
-			nick = localStorage.getItem(NICK) || "";
-			gender = localStorage.getItem(GENDER) || "";
+			nick = F.lget(NICK) || "";
+			gender = F.lget(GENDER) || "";
 		}
 		catch (e) {}
-		var box = SK.$("chat-nick");
-		var sel = SK.$("chat-gender");
+		var box = F.id("chat-nick");
+		var sel = F.id("chat-gender");
 		if (box) box.value = nick;
 		if (sel && (gender === "" || gender === "m" || gender === "f")) sel.value = gender;
-		SK.$("chat-join").onclick = join;
-		SK.$("chat-send").onclick = send;
-		SK.$("chat-leave").onclick = leave;
-		SK.$("chat-imgbtn").onclick = function(){ pick("image"); };
-		SK.$("chat-filebtn").onclick = function(){ pick("file"); };
-		SK.$("chat-direct").onclick = function(){ pick("direct"); };
-		SK.$("chat-to").onchange = markpeer;
-		SK.$("chat-nick").onkeydown = function(ev){
+		F.id("chat-join").onclick = join;
+		F.id("chat-send").onclick = send;
+		F.id("chat-leave").onclick = leave;
+		F.id("chat-imgbtn").onclick = function(){ pick("image"); };
+		F.id("chat-filebtn").onclick = function(){ pick("file"); };
+		F.id("chat-direct").onclick = function(){ pick("direct"); };
+		F.id("chat-to").onchange = markpeer;
+		F.id("chat-nick").onkeydown = function(ev){
 			if (ev.key === "Enter") join();
 		};
-		SK.$("chat-text").onkeydown = function(ev){
+		F.id("chat-text").onkeydown = function(ev){
 			if (ev.key === "Enter") send();
 		};
 		if (!ws) showgate();
@@ -39,13 +39,13 @@
 
 	function join(){
 		if (ws || opening) return;
-		var nick = (SK.$("chat-nick").value || "").replace(/^\s+|\s+$/g, "");
-		var gender = SK.$("chat-gender").value || "";
+		var nick = (F.id("chat-nick").value || "").replace(/^\s+|\s+$/g, "");
+		var gender = F.id("chat-gender").value || "";
 		if (!nick) { setmsg(label("web.chat.err.nick", "请填写昵称"), true); return; }
 		if (nick.length > 16) { setmsg(label("web.chat.err.long", "昵称最多 16 个字"), true); return; }
 		try {
-			localStorage.setItem(NICK, nick);
-			localStorage.setItem(GENDER, gender);
+			F.lset(NICK, nick);
+			F.lset(GENDER, gender);
 		}
 		catch (e) {}
 		var url = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/chat";
@@ -58,7 +58,7 @@
 			if (ws !== sock) return;
 			opening = 0;
 			startbeat(sock);
-			sock.send(JSON.stringify({ op: "join", nick: nick, gender: gender }));
+			sock.send(F.json({ op: "join", nick: nick, gender: gender }));
 		};
 		sock.onmessage = function(ev){
 			if (ws !== sock) return;
@@ -107,7 +107,7 @@
 				return;
 			}
 			try {
-				sock.send(JSON.stringify({ op: "ping" }));
+				sock.send(F.json({ op: "ping" }));
 				beatsince = Date.now();
 			}
 			catch (e) {
@@ -124,10 +124,10 @@
 	}
 
 	function targetof(need){
-		var sel = SK.$("chat-to");
+		var sel = F.id("chat-to");
 		var to = sel && sel.value ? parseInt(sel.value, 10) : 0;
 		if (!to) to = 0;
-		var priv = !!(SK.$("chat-priv") && SK.$("chat-priv").checked);
+		var priv = !!(F.id("chat-priv") && F.id("chat-priv").checked);
 		if ((need || priv) && !to) {
 			setmsg(label("web.chat.err.to", "请选择一个在线的人"), true);
 			return null;
@@ -145,7 +145,7 @@
 
 	function send(){
 		if (!ws || ws.readyState !== 1) return;
-		var text = (SK.$("chat-text").value || "").replace(/^\s+|\s+$/g, "");
+		var text = (F.id("chat-text").value || "").replace(/^\s+|\s+$/g, "");
 		if (!text) return;
 		if (text.length > 500) {
 			setmsg(label("web.chat.err.text", "最多 500 个字"), true);
@@ -153,15 +153,15 @@
 		}
 		var body = { op: "say", text: text };
 		if (!stamp(body, false)) return;
-		ws.send(JSON.stringify(body));
-		SK.$("chat-text").value = "";
+		ws.send(F.json(body));
+		F.id("chat-text").value = "";
 		setmsg("");
 	}
 
 	function pick(kind){
 		if (!ws || ws.readyState !== 1 || opening) return;
 		if (kind === "direct" && !targetof(true)) return;
-		var input = SK.$(kind === "image" ? "chat-img" : kind === "direct" ? "chat-directfile" : "chat-file");
+		var input = F.id(kind === "image" ? "chat-img" : kind === "direct" ? "chat-directfile" : "chat-file");
 		if (!input) return;
 		input.value = "";
 		input.onchange = function(){
@@ -190,7 +190,7 @@
 		xhr.open("POST", "/chat/file");
 		xhr.onload = function(){
 			var m;
-			try { m = JSON.parse(xhr.responseText); }
+			try { m = F.parse(xhr.responseText); }
 			catch (e) { setmsg(label("web.chat.err.bad", "消息无法识别"), true); return; }
 			if (!m || m.code !== 100 || !m.id) {
 				setmsg(errmsg(m && m.err), true);
@@ -198,12 +198,12 @@
 			}
 			if (!ws || ws.readyState !== 1) return;
 			if (kind === "direct") {
-				ws.send(JSON.stringify({ op: "offer", file: m.id, to: aim.to }));
+				ws.send(F.json({ op: "offer", file: m.id, to: aim.to }));
 			}
 			else {
 				var body = { op: "file", file: m.id };
 				if (!stamp(body, false)) return;
-				ws.send(JSON.stringify(body));
+				ws.send(F.json(body));
 			}
 			setmsg("");
 		};
@@ -215,7 +215,7 @@
 
 	function onmsg(raw){
 		var m;
-		try { m = JSON.parse(raw); }
+		try { m = F.parse(raw); }
 		catch (e) { return; }
 		if (!m || !m.op) return;
 		if (m.op === "hello") {
@@ -245,7 +245,7 @@
 	}
 
 	function wholine(m){
-		var who = document.createElement("span");
+		var who = F.el("span");
 		who.className = "who g-" + (m.gender || "x");
 		var tail = "";
 		if (m.to) tail += " → " + (m.tonick || "");
@@ -255,20 +255,20 @@
 	}
 
 	function addsay(m){
-		var row = document.createElement("div");
+		var row = F.el("div");
 		row.className = "chatline" + (m.priv ? " priv" : "") + (m.id === me ? " mine" : "");
 		var who = wholine(m);
-		var body = document.createElement("span");
+		var body = F.el("span");
 		body.textContent = m.text || "";
-		row.appendChild(who);
-		row.appendChild(body);
+		F.append(row, who);
+		F.append(row, body);
 		pushlog(row);
 	}
 
 	function addfile(m){
-		var row = document.createElement("div");
+		var row = F.el("div");
 		row.className = "chatline" + (m.priv ? " priv" : "") + (m.id === me ? " mine" : "");
-		row.appendChild(wholine(m));
+		F.append(row, wholine(m));
 		var id = m.file || "";
 		if (!/^[a-f0-9]{32}$/.test(id)) {
 			pushlog(row);
@@ -276,19 +276,19 @@
 		}
 		var url = "/chat/file/" + id;
 		if (m.kind === "image") {
-			var img = document.createElement("img");
+			var img = F.el("img");
 			img.className = "chatpic";
 			img.alt = m.name || "";
 			img.src = url;
-			row.appendChild(img);
+			F.append(row, img);
 		}
 		else {
-			var a = document.createElement("a");
+			var a = F.el("a");
 			a.className = "chatfile";
 			a.href = url;
 			a.download = m.name || "file";
 			a.textContent = (m.name || "file") + " (" + sizestr(m.size) + ")";
-			row.appendChild(a);
+			F.append(row, a);
 		}
 		pushlog(row);
 	}
@@ -301,7 +301,7 @@
 	}
 
 	function addsys(m){
-		var row = document.createElement("div");
+		var row = F.el("div");
 		row.className = "chatline sys";
 		var verb = m.kind === "leave"
 			? label("web.chat.left", "离开了")
@@ -311,30 +311,30 @@
 	}
 
 	function pushlog(row){
-		var log = SK.$("chat-log");
-		log.appendChild(row);
+		var log = F.id("chat-log");
+		F.append(log, row);
 		log.scrollTop = log.scrollHeight;
 	}
 
 	function paintpeers(list){
-		var box = SK.$("chat-peers");
-		var sel = SK.$("chat-to");
+		var box = F.id("chat-peers");
+		var sel = F.id("chat-to");
 		var cur = sel ? sel.value : "";
 		while (box.firstChild) box.removeChild(box.firstChild);
 		if (sel) {
 			while (sel.options.length) sel.remove(0);
-			var all = document.createElement("option");
+			var all = F.el("option");
 			all.value = "";
 			all.textContent = label("web.chat.all", "所有人");
-			sel.appendChild(all);
+			F.append(sel, all);
 		}
 		var i;
 		for (i = 0; i < list.length; i++) {
 			var item = list[i];
-			var p = document.createElement("div");
+			var p = F.el("div");
 			p.className = "peer g-" + (item.gender || "x");
 			p.textContent = (item.nick || "") + gendertag(item.gender);
-			p.setAttribute("data-id", String(item.id || ""));
+			F.seta(p, "data-id", String(item.id || ""));
 			p.onclick = (function(id){
 				return function(){
 					if (!sel) return;
@@ -342,12 +342,12 @@
 					markpeer();
 				};
 			})(item.id);
-			box.appendChild(p);
+			F.append(box, p);
 			if (sel) {
-				var opt = document.createElement("option");
+				var opt = F.el("option");
 				opt.value = String(item.id);
 				opt.textContent = (item.nick || "") + (item.id === me ? " · " + label("web.chat.self", "我") : "");
-				sel.appendChild(opt);
+				F.append(sel, opt);
 			}
 		}
 		if (sel) {
@@ -358,15 +358,15 @@
 	}
 
 	function markpeer(){
-		var sel = SK.$("chat-to");
+		var sel = F.id("chat-to");
 		var cur = sel ? sel.value : "";
-		var box = SK.$("chat-peers");
+		var box = F.id("chat-peers");
 		if (!box) return;
 		var i;
 		for (i = 0; i < box.children.length; i++) {
 			var n = box.children[i];
 			var base = n.className.replace(" on", "");
-			n.className = (cur && n.getAttribute("data-id") === cur) ? base + " on" : base;
+			n.className = (cur && F.attr(n, "data-id") === cur) ? base + " on" : base;
 		}
 	}
 
@@ -376,39 +376,39 @@
 	}
 
 	function paintoffers(){
-		var box = SK.$("chat-offers");
+		var box = F.id("chat-offers");
 		if (!box) return;
 		while (box.firstChild) box.removeChild(box.firstChild);
 		var i;
 		for (i = 0; i < offers.length; i++) {
 			var o = offers[i];
-			var row = document.createElement("div");
+			var row = F.el("div");
 			row.className = "chatoffer";
-			var t = document.createElement("span");
+			var t = F.el("span");
 			t.textContent = (o.nick || "") + " " + label("web.chat.incoming", "发来文件")
 				+ " " + (o.name || "") + " (" + sizestr(o.size) + ")";
-			var ok = document.createElement("button");
+			var ok = F.el("button");
 			ok.type = "button";
 			ok.className = "primary";
 			ok.textContent = label("web.chat.accept", "接收");
 			ok.onclick = (function(xfer){
 				return function(){
-					if (ws && ws.readyState === 1) ws.send(JSON.stringify({ op: "take", xfer: xfer }));
+					if (ws && ws.readyState === 1) ws.send(F.json({ op: "take", xfer: xfer }));
 				};
 			})(o.xfer);
-			var no = document.createElement("button");
+			var no = F.el("button");
 			no.type = "button";
 			no.className = "ghost";
 			no.textContent = label("web.chat.reject", "拒绝");
 			no.onclick = (function(xfer){
 				return function(){
-					if (ws && ws.readyState === 1) ws.send(JSON.stringify({ op: "drop", xfer: xfer }));
+					if (ws && ws.readyState === 1) ws.send(F.json({ op: "drop", xfer: xfer }));
 				};
 			})(o.xfer);
-			row.appendChild(t);
-			row.appendChild(ok);
-			row.appendChild(no);
-			box.appendChild(row);
+			F.append(row, t);
+			F.append(row, ok);
+			F.append(row, no);
+			F.append(box, row);
 		}
 	}
 
@@ -433,30 +433,30 @@
 	}
 
 	function startdown(id, name){
-		var a = document.createElement("a");
+		var a = F.el("a");
 		a.href = "/chat/file/" + id;
 		a.download = name || "file";
-		document.body.appendChild(a);
+		F.append(document.body, a);
 		a.click();
 		document.body.removeChild(a);
 	}
 
 	function addnote(text){
-		var row = document.createElement("div");
+		var row = F.el("div");
 		row.className = "chatline sys";
 		row.textContent = text;
 		pushlog(row);
 	}
 
 	function addlink(name, id){
-		var row = document.createElement("div");
+		var row = F.el("div");
 		row.className = "chatline";
-		var a = document.createElement("a");
+		var a = F.el("a");
 		a.className = "chatfile";
 		a.href = "/chat/file/" + id;
 		a.download = name || "file";
 		a.textContent = name || "file";
-		row.appendChild(a);
+		F.append(row, a);
 		pushlog(row);
 	}
 
@@ -488,25 +488,25 @@
 	}
 
 	function clearlog(){
-		var log = SK.$("chat-log");
+		var log = F.id("chat-log");
 		while (log.firstChild) log.removeChild(log.firstChild);
-		var peers = SK.$("chat-peers");
+		var peers = F.id("chat-peers");
 		while (peers.firstChild) peers.removeChild(peers.firstChild);
 		offers = [];
 		paintoffers();
-		var sel = SK.$("chat-to");
+		var sel = F.id("chat-to");
 		if (sel) sel.value = "";
 	}
 
 	function showgate(){
-		SK.$("chat-gate").hidden = false;
-		SK.$("chat-room").hidden = true;
+		F.id("chat-gate").hidden = false;
+		F.id("chat-room").hidden = true;
 	}
 
 	function showroom(){
-		SK.$("chat-gate").hidden = true;
-		SK.$("chat-room").hidden = false;
-		var text = SK.$("chat-text");
+		F.id("chat-gate").hidden = true;
+		F.id("chat-room").hidden = false;
+		var text = F.id("chat-text");
 		if (text) text.focus();
 	}
 

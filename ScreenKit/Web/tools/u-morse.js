@@ -71,11 +71,11 @@
 	}
 
 	function open(){
-		var q = document.getElementById("morse-q");
-		var list = document.getElementById("morse-list");
-		var text = document.getElementById("morse-t");
-		var play = document.getElementById("morse-play");
-		var stopb = document.getElementById("morse-stop");
+		var q = F.id("morse-q");
+		var list = F.id("morse-list");
+		var text = F.id("morse-t");
+		var play = F.id("morse-play");
+		var stopb = F.id("morse-stop");
 		if (!q || !list) return;
 		q.oninput = paint;
 		list.onclick = onclick;
@@ -94,8 +94,8 @@
 	function onclick(ev){
 		var el = ev.target;
 		while (el && el.id !== "morse-list") {
-			if (el.getAttribute && el.getAttribute("data-code")) {
-				SK.copytext(el.getAttribute("data-code"), "morse-msg");
+			if (el.getAttribute && F.attr(el, "data-code")) {
+				SK.copytext(F.attr(el, "data-code"), "morse-msg");
 				play(el);
 				return;
 			}
@@ -105,7 +105,7 @@
 
 	// 点单条码：符号之间空 1 单位
 	function play(btn){
-		var code = btn.getAttribute("data-code");
+		var code = F.attr(btn, "data-code");
 		var items = [];
 		var i;
 		var r;
@@ -120,8 +120,8 @@
 
 	// 整段播放：字符内空 1 单位，字符之间空 3 单位，词之间空 7 单位
 	function playtext(){
-		var el = document.getElementById("morse-t");
-		var msg = document.getElementById("morse-tmsg");
+		var el = F.id("morse-t");
+		var msg = F.id("morse-tmsg");
 		var got = tokens(clean(el ? el.value : ""));
 		var plan;
 		var r;
@@ -153,7 +153,7 @@
 		for (i = 0; i < timers.length; i++) clearTimeout(timers[i]);
 		timers = [];
 		if (SK.bitblipstop) SK.bitblipstop();
-		on = document.querySelectorAll("#morse-list button.on, #morse-pv span.on");
+		on = F.qa("#morse-list button.on, #morse-pv span.on");
 		for (i = 0; i < on.length; i++) on[i].classList.remove("on");
 	}
 
@@ -164,8 +164,8 @@
 	// 播到第 order 个字符时，把预览里那一段点亮
 	function mark(order, ms){
 		later(ms, function(){
-			var on = document.querySelectorAll("#morse-pv span.on");
-			var el = document.querySelector('#morse-pv span[data-i="' + order + '"]');
+			var on = F.qa("#morse-pv span.on");
+			var el = F.q('#morse-pv span[data-i="' + order + '"]');
 			var i;
 			for (i = 0; i < on.length; i++) on[i].classList.remove("on");
 			if (el) el.classList.add("on");
@@ -257,14 +257,14 @@
 
 	// 输入框下面的点划预览，播放时逐字高亮
 	function paintpv(){
-		var el = document.getElementById("morse-t");
-		var out = document.getElementById("morse-pv");
+		var el = F.id("morse-t");
+		var out = F.id("morse-pv");
 		var got;
 		var html = "";
 		var order = 0;
 		var i, tk;
 		if (!out) return;
-		if (el) say(document.getElementById("morse-tmsg"), "");
+		if (el) say(F.id("morse-tmsg"), "");
 		got = tokens(clean(el ? el.value : ""));
 		for (i = 0; i < got.list.length; i++) {
 			tk = got.list[i];
@@ -285,8 +285,8 @@
 	}
 
 	function paint(){
-		var list = document.getElementById("morse-list");
-		var qel = document.getElementById("morse-q");
+		var list = F.id("morse-list");
+		var qel = F.id("morse-q");
 		if (!list) return;
 		var q = norm(qel ? qel.value : "");
 		var html = "";

@@ -38,7 +38,7 @@
 					SK.utilrun();
 					return;
 				}
-				if (bogus && SK.$("box-out") && SK.$("box-out").value) SK.utilrun();
+				if (bogus && F.id("box-out") && F.id("box-out").value) SK.utilrun();
 			});
 		},
 		run: run
@@ -58,13 +58,13 @@
 			SK.fakelang = locale;
 			SK.fakekind = kind;
 			SK.post("/api/fake", { locale: locale, kind: kind, n: count }, function(data){
-				SK.$("box-out").value = data.text || "";
+				F.id("box-out").value = data.text || "";
 				SK.msg("box-msg", "完成");
 			}, "box-msg");
 		}
 		catch (ex) {
 			if (!spec.own) throw ex;
-			SK.$("box-out").value = "";
+			F.id("box-out").value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}
@@ -78,24 +78,24 @@
 			var ks = data && data.kinds ? data.kinds : [];
 			var i;
 			for (i = 0; i < ks.length; i++) kindkeys[ks[i].id] = ks[i].key;
-			var langlab = SK.$("box-lang-lab");
+			var langlab = F.id("box-lang-lab");
 			if (langlab) langlab.style.display = bogus ? "" : "none";
-			var cap = SK.$("box-kind-cap");
+			var cap = F.id("box-kind-cap");
 			if (cap) {
 				var capkey = bogus ? "web.fake.cat" : "web.f.kind";
-				cap.setAttribute("data-k", capkey);
+				F.seta(cap, "data-k", capkey);
 				cap.textContent = SK.t(capkey) || (bogus ? "分类" : "类型");
 			}
 			if (bogus) filllangs();
 			else {
-				var sel = SK.$("box-kind");
+				var sel = F.id("box-kind");
 				var cur = sel ? sel.value : "name";
 				if (sel) sel.innerHTML = kindhtml(BASE, cur);
 			}
-			var el = SK.$("box-bogus");
+			var el = F.id("box-bogus");
 			if (el) {
 				var key = bogus ? "web.fake.on" : "web.fake.off";
-				el.setAttribute("data-k", key);
+				F.seta(el, "data-k", key);
 				el.textContent = hint(key);
 			}
 			if (done) done();
@@ -107,7 +107,7 @@
 	}
 
 	function filllangs(){
-		var sel = SK.$("box-lang");
+		var sel = F.id("box-lang");
 		if (!sel) return;
 		var cur = SK.fakelang || sel.value || "zh_CN";
 		var html = "";
@@ -128,8 +128,8 @@
 	}
 
 	function fillkinds(){
-		var sel = SK.$("box-kind");
-		var langsel = SK.$("box-lang");
+		var sel = F.id("box-kind");
+		var langsel = F.id("box-lang");
 		if (!sel || !langsel) return;
 		var id = langsel.value;
 		var kinds = [];
@@ -200,7 +200,7 @@
 	function mac(){
 		if (!window.crypto || typeof crypto.getRandomValues !== "function") throw new Error("浏览器不能生成随机数");
 		var b = new Uint8Array(6);
-		crypto.getRandomValues(b);
+		F.rand(b);
 		b[0] = (b[0] & 252) | 2;
 		var parts = [];
 		var j;
@@ -211,7 +211,7 @@
 	function uuid(){
 		if (!window.crypto || typeof crypto.getRandomValues !== "function") throw new Error("浏览器不能生成随机数");
 		var b = new Uint8Array(16);
-		crypto.getRandomValues(b);
+		F.rand(b);
 		b[6] = (b[6] & 15) | 64;
 		b[8] = (b[8] & 63) | 128;
 		var h = SK.hexbytes(b);
