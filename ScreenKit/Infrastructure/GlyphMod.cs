@@ -21,6 +21,9 @@ public static class GlyphMod {
 		public bool Invert;
 		/// <summary>c、hex、dots。</summary>
 		public string Format = "c";
+		/// <summary>点阵内平移。正 X 向右，正 Y 向下。超出格子的点裁掉。</summary>
+		public int OffX;
+		public int OffY;
 	}
 
 	public sealed class Glyph {
@@ -60,9 +63,12 @@ public static class GlyphMod {
 			FontStretches.Normal);
 		var chars = takechars(text);
 		trim(chars, sheet);
+		var dx = clampoff(spec.OffX);
+		var dy = clampoff(spec.OffY);
 		foreach (var ch in chars) {
 			try {
 				var g = raster(ch, face, size);
+				if (dx != 0 || dy != 0) g.Ink = Move(g.Ink, g.W, g.H, dx, dy);
 				g.Data = Pack(g.Ink, g.W, g.H, spec.Column, spec.Msb, spec.Invert);
 				sheet.Glyphs.Add(g);
 			}
@@ -114,6 +120,30 @@ public static class GlyphMod {
 		if (invert)
 			for (int i = 0; i < data.Length; i++) data[i] = (byte)~data[i];
 		return data;
+	}
+
+	/// <summary>把点在格子里平移。正 dx 向右，正 dy 向下。移出格子的点丢掉。</summary>
+	public static bool[] Move(bool[] ink, int w, int h, int dx, int dy) {
+		if (w <= 0 || h <= 0) return Array.Empty<bool>();
+		if ((dx == 0 && dy == 0) || ink == null) return ink ?? new bool[w * h];
+		var dst = new bool[w * h];
+		for (int y = 0; y < h; y++) {
+			int sy = y - dy;
+			if ((uint)sy >= (uint)h) continue;
+			for (int x = 0; x < w; x++) {
+				int sx = x - dx;
+				if ((uint)sx >= (uint)w) continue;
+				int si = sy * w + sx;
+				if ((uint)si < (uint)ink.Length && ink[si]) dst[y * w + x] = true;
+			}
+		}
+		return dst;
+	}
+
+	static int clampoff(int n) {
+		if (n < -SIZE_MAX) return -SIZE_MAX;
+		if (n > SIZE_MAX) return SIZE_MAX;
+		return n;
 	}
 
 	static Glyph raster(string ch, Typeface face, double size) {
@@ -195,6 +225,7 @@ public static class GlyphMod {
 		sb.Append(" scan=").Append(spec.Column ? "col" : "row");
 		sb.Append(" bit=").Append(spec.Msb ? "msb" : "lsb");
 		sb.Append(" polar=").Append(spec.Invert ? "off" : "on");
+		sb.Append(" off=").Append(spec.OffX).Append(",").Append(spec.OffY);
 		sb.Append(" */\n");
 		sb.Append("#pragma once\n#include <stdint.h>\n\n");
 		foreach (var g in glyphs) {
@@ -226,7 +257,8 @@ public static class GlyphMod {
 		sb.Append(" size=").Append(spec.Size.ToString("0.##", CultureInfo.InvariantCulture));
 		sb.Append(" scan=").Append(spec.Column ? "col" : "row");
 		sb.Append(" bit=").Append(spec.Msb ? "msb" : "lsb");
-		sb.Append(" polar=").Append(spec.Invert ? "off" : "on").Append("\n");
+		sb.Append(" polar=").Append(spec.Invert ? "off" : "on");
+		sb.Append(" off=").Append(spec.OffX).Append(",").Append(spec.OffY).Append("\n");
 		foreach (var g in glyphs) {
 			sb.Append("U+").Append(g.Cp.ToString("X4")).Append(" ").Append(g.Ch);
 			sb.Append(" ").Append(g.W).Append("x").Append(g.H).Append("\n");
@@ -291,6 +323,13 @@ public static class GlyphMod {
 			var wrow = Pack(wide, 10, 1, false, true, false);
 			if (wrow.Length != 2 || wrow[1] != 0x80) return bad(say, "stride");
 			if (NormFormat("nope") != "c" || NormFormat("HEX") != "hex") return bad(say, "fmt");
+			var dot = new bool[] { true, false, false, false };
+			var right = Move(dot, 2, 2, 1, 0);
+			if (right[0] || !right[1]) return bad(say, "movex");
+			var down = Move(dot, 2, 2, 0, 1);
+			if (down[0] || !down[2]) return bad(say, "movey");
+			var outx = Move(dot, 2, 2, -1, 0);
+			if (outx[0] || outx[1] || outx[2] || outx[3]) return bad(say, "moveout");
 			var spec = new Spec { Font = "Segoe UI", Size = 16, Format = "c" };
 			var sheet = Build("AA A", spec);
 			if (!string.IsNullOrEmpty(sheet.Error)) return bad(say, sheet.Error);
@@ -313,6 +352,12 @@ public static class GlyphMod {
 			foreach (var bit in zh.Glyphs[0].Ink)
 				if (bit) zdots++;
 			if (zdots < 8) return bad(say, "zhong ink " + zdots);
+			var shifted = Build("中", new Spec { Font = "Microsoft YaHei", Size = 16, OffX = 64 });
+			if (!string.IsNullOrEmpty(shifted.Error) || shifted.Glyphs.Count != 1) return bad(say, shifted.Error ?? "off");
+			int left = 0;
+			foreach (var bit in shifted.Glyphs[0].Ink)
+				if (bit) left++;
+			if (left != 0 || shifted.Glyphs[0].W != zh.Glyphs[0].W) return bad(say, "offx " + left);
 			var code = Export(sheet.Glyphs, spec);
 			if (code.IndexOf("uint8_t", StringComparison.Ordinal) < 0 || code.IndexOf("glyph_41", StringComparison.Ordinal) < 0)
 				return bad(say, "c");

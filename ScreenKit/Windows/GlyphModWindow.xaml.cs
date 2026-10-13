@@ -2,6 +2,11 @@ namespace ScreenKit;
 
 /// <summary>工具 → 字符取模。</summary>
 public partial class GlyphModWindow : Window {
+	GlyphMod.Sheet shown;
+	int sel;
+	int builtx;
+	int builty;
+
 	public GlyphModWindow() {
 		InitializeComponent();
 		fillfonts();
@@ -9,6 +14,8 @@ public partial class GlyphModWindow : Window {
 		bmake.Click += (_, _) => make();
 		bcopy.Click += (_, _) => copyout();
 		bsave.Click += (_, _) => saveout();
+		eoffx.LostFocus += (_, _) => onoff();
+		eoffy.LostFocus += (_, _) => onoff();
 		WindowEsc.Attach(this);
 	}
 
@@ -18,6 +25,7 @@ public partial class GlyphModWindow : Window {
 		lbfont.Text = Loc.T("gm.font");
 		lbsize.Text = Loc.T("gm.size");
 		ebold.Content = Loc.T("gm.bold");
+		lboff.Text = Loc.T("gm.offset");
 		lbout.Text = Loc.T("gm.out");
 		bmake.Content = Loc.T("gm.make");
 		bcopy.Content = Loc.T("gm.copy");
@@ -60,6 +68,16 @@ public partial class GlyphModWindow : Window {
 		if (box.Items.Count > 0 && box.SelectedIndex < 0) box.SelectedIndex = 0;
 	}
 
+	void onoff() {
+		if ((etext.Text ?? "").Trim().Length == 0) return;
+		if (!readoff(eoffx, out var x) || !readoff(eoffy, out var y)) {
+			lbstat.Text = Loc.T("gm.badoff", -GlyphMod.SIZE_MAX, GlyphMod.SIZE_MAX);
+			return;
+		}
+		if (shown != null && x == builtx && y == builty) return;
+		make();
+	}
+
 	void make() {
 		var text = etext.Text ?? "";
 		if (text.Trim().Length == 0) {
@@ -70,6 +88,10 @@ public partial class GlyphModWindow : Window {
 			lbstat.Text = Loc.T("gm.badsize", GlyphMod.SIZE_MIN, GlyphMod.SIZE_MAX);
 			return;
 		}
+		if (!readoff(eoffx, out var offx) || !readoff(eoffy, out var offy)) {
+			lbstat.Text = Loc.T("gm.badoff", -GlyphMod.SIZE_MAX, GlyphMod.SIZE_MAX);
+			return;
+		}
 		var spec = new GlyphMod.Spec {
 			Font = tag(efont) ?? "Segoe UI",
 			Size = size,
@@ -78,10 +100,17 @@ public partial class GlyphModWindow : Window {
 			Msb = tag(ebit) != "lsb",
 			Invert = tag(epolar) == "off",
 			Format = GlyphMod.NormFormat(tag(efmt)),
+			OffX = offx,
+			OffY = offy,
 		};
 		var sheet = GlyphMod.Build(text, spec);
 		eout.Text = GlyphMod.Export(sheet.Glyphs, spec);
+		shown = sheet;
+		builtx = offx;
+		builty = offy;
+		if (sel >= sheet.Glyphs.Count) sel = 0;
 		showdots(sheet);
+		showbig();
 		var bytes = 0;
 		foreach (var g in sheet.Glyphs) bytes += g.Data.Length;
 		var stat = Loc.T("gm.stat", sheet.Glyphs.Count, bytes);
@@ -96,31 +125,60 @@ public partial class GlyphModWindow : Window {
 		Brush border = null;
 		try { muted = (Brush)FindResource("TextMuted"); } catch { }
 		try { border = (Brush)FindResource("BorderSoft"); } catch { }
-		foreach (var g in sheet.Glyphs) {
+		for (int i = 0; i < sheet.Glyphs.Count; i++) {
+			var g = sheet.Glyphs[i];
+			int idx = i;
 			var img = new Image {
-				Source = dotbmp(g),
+				Source = dotbmp(g, false),
 				Stretch = Stretch.None,
 				SnapsToDevicePixels = true,
 			};
-			var box = new StackPanel { Margin = new Thickness(0, 0, 12, 12) };
+			var box = new StackPanel();
 			box.Children.Add(new TextBlock {
 				Text = g.Ch + "  " + g.W + "×" + g.H,
 				Foreground = muted,
 				FontSize = 12,
 				Margin = new Thickness(0, 0, 0, 4),
 			});
-			box.Children.Add(new Border {
+			box.Children.Add(img);
+			var frame = new Border {
 				BorderBrush = border,
-				BorderThickness = new Thickness(1),
-				Child = img,
-			});
-			pdots.Children.Add(box);
+				BorderThickness = new Thickness(i == sel ? 2 : 1),
+				Padding = new Thickness(4),
+				Margin = new Thickness(0, 0, 8, 8),
+				Child = box,
+				Cursor = Cursors.Hand,
+			};
+			frame.MouseLeftButtonUp += (_, e) => {
+				sel = idx;
+				showdots(shown);
+				showbig();
+				e.Handled = true;
+			};
+			pdots.Children.Add(frame);
 		}
 	}
 
-	static BitmapSource dotbmp(GlyphMod.Glyph g) {
-		int z = Math.Max(2, 64 / Math.Max(1, g.H));
-		if (z > 8) z = 8;
+	void showbig() {
+		if (shown == null || shown.Glyphs.Count == 0 || sel < 0 || sel >= shown.Glyphs.Count) {
+			lprev.Text = "";
+			eprev.Source = null;
+			return;
+		}
+		var g = shown.Glyphs[sel];
+		lprev.Text = g.Ch + "  " + g.W + "×" + g.H;
+		eprev.Source = dotbmp(g, true);
+	}
+
+	static bool readoff(TextBox box, out int n) {
+		var s = (box.Text ?? "").Trim();
+		if (s.Length == 0) { n = 0; return true; }
+		return int.TryParse(s, out n) && n >= -GlyphMod.SIZE_MAX && n <= GlyphMod.SIZE_MAX;
+	}
+
+	static BitmapSource dotbmp(GlyphMod.Glyph g, bool big) {
+		int z = big ? Math.Max(4, 180 / Math.Max(1, Math.Max(g.W, g.H))) : Math.Max(2, 64 / Math.Max(1, g.H));
+		if (z > (big ? 14 : 8)) z = big ? 14 : 8;
 		int w = Math.Max(1, g.W * z);
 		int h = Math.Max(1, g.H * z);
 		var bmp = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);

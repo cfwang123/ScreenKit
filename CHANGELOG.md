@@ -45,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Fast copy can delete the listed files permanently or move them to the Recycle Bin. It asks before starting, and does not need a destination.
 - Fast copy accepts a drop on the list as sources and a drop on the destination as the target folder. A dropped file uses its parent folder.
 - Character bitmaps turns each character into a dot matrix from a font and pixel size, then exports a C array, hex, or a dot picture.
+- Character bitmaps can enlarge each character and shift the dots with X and Y offsets.
 
 #### Changed
 
@@ -91,6 +92,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 快速复制可以永久删除列表里的文件，或删除到回收站。开始前会再确认，不用填目标。
 - 快速复制可以把拖到列表上的项当作源，拖到目标上的文件夹当作目标。拖进去的是文件时，用它所在的文件夹。
 - 字符取模按字体和字号把每个字符画成点阵，可导出 C 数组、十六进制或点阵文本。
+- 字符取模可以放大看每个字，并用 X、Y 偏移挪动点阵。
 
 #### 变更
 
