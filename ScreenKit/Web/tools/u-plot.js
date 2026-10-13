@@ -1,7 +1,26 @@
 (function(){
 	var mode = "2";
 	var fn = null;
+	var implicit = false;
+	var docOn = false;
 	var view = { x0: -8, x1: 8, y0: -5, y1: 5 };
+	var SAMPLES = [
+		{ g: "y", mode: "2", fn: "sin(x)" },
+		{ g: "y", mode: "2", fn: "x^2" },
+		{ g: "y", mode: "2", fn: "1/x" },
+		{ g: "y", mode: "2", fn: "exp(-x^2)" },
+		{ g: "y", mode: "2", fn: "sin(x)/x" },
+		{ g: "y", mode: "2", fn: "tan(x)" },
+		{ g: "eq", mode: "2", fn: "x^2+y^2=1" },
+		{ g: "eq", mode: "2", fn: "x^2/4+y^2/9=1" },
+		{ g: "eq", mode: "2", fn: "x^2-y^2=1" },
+		{ g: "eq", mode: "2", fn: "y^2=x^3-x" },
+		{ g: "eq", mode: "2", fn: "(x^2+y^2-1)^3=x^2*y^3" },
+		{ g: "z", mode: "3", fn: "sin(x)*cos(y)" },
+		{ g: "z", mode: "3", fn: "x^2-y^2" },
+		{ g: "z", mode: "3", fn: "sin(sqrt(x^2+y^2))" },
+		{ g: "z", mode: "3", fn: "exp(-(x^2+y^2))" }
+	];
 	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
 	var canvas = null;
 	var watch = null;
@@ -33,10 +52,12 @@
 			+ '<button type="button" data-mode="3" data-k="web.plot.z">' + SK.esc(tt("web.plot.z", "z = f(x, y)")) + "</button>"
 			+ '<input id="plot-fn" type="text" value="sin(x)" spellcheck="false" autocomplete="off"'
 			+ ' data-kph="web.plot.ph" placeholder="' + SK.esc(tt("web.plot.ph", "sin(x)")) + '"'
-			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。")) + '">'
+			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。二维还可以写等式，例如 x^2+y^2=1。")) + '">'
+			+ '<div class="plot-ex"><button type="button" data-act="ex"><i class="fa-solid fa-caret-down"></i><span data-k="web.plot.ex">' + SK.esc(tt("web.plot.ex", "示例")) + "</span></button>"
+			+ '<div class="plot-menu" id="plot-menu" hidden>' + samples() + "</div></div>"
 			+ '<button type="button" data-act="reset" data-k="web.plot.reset">' + SK.esc(tt("web.plot.reset", "复位")) + "</button>"
 			+ "</div>"
-			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。")) + "</p>"
+			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。等式如 x^2+y^2=1 会画出曲线。点「示例」可选择。")) + "</p>"
 			+ '<div class="plot-stage"><canvas id="plot-cv"></canvas></div>'
 			+ '<p class="hint" id="plot-msg"></p>'
 			+ "</div>";
@@ -56,6 +77,10 @@
 		canvas.ondblclick = function(){ resetview(); paint(); };
 		canvas.oncontextmenu = function(ev){ ev.preventDefault(); };
 		canvas.addEventListener("wheel", wheel, { passive: false });
+		if (!docOn) {
+			docOn = true;
+			document.addEventListener("pointerdown", ondoc);
+		}
 		if (watch) watch.disconnect();
 		if (window.ResizeObserver && canvas.parentElement) {
 			watch = new ResizeObserver(function(){ paint(); });
@@ -69,21 +94,84 @@
 	function onbar(ev){
 		var el = ev.target && ev.target.closest ? ev.target.closest("button") : ev.target;
 		if (!el || !el.getAttribute) return;
+		if (el.getAttribute("data-act") === "ex") {
+			togglemenu();
+			return;
+		}
+		var sample = el.getAttribute("data-ex");
+		if (sample != null) {
+			pick(sample, el.getAttribute("data-mode"));
+			return;
+		}
 		if (el.getAttribute("data-act") === "reset") {
+			hidemenu();
 			resetview();
 			paint();
 			return;
 		}
 		var next = el.getAttribute("data-mode");
 		if (!next || next === mode) return;
+		hidemenu();
 		mode = next;
-		var nodes = document.querySelectorAll(".plot-bar [data-mode]");
-		var i;
-		for (i = 0; i < nodes.length; i++)
-			nodes[i].className = nodes[i].getAttribute("data-mode") === mode ? "on" : "";
+		markmode();
 		resetview();
 		reparse();
 		paint();
+	}
+
+	function samples(){
+		var html = "";
+		var g = "";
+		var i, row, key, fb;
+		for (i = 0; i < SAMPLES.length; i++) {
+			row = SAMPLES[i];
+			if (row.g !== g) {
+				g = row.g;
+				key = g === "eq" ? "web.plot.exeq" : g === "z" ? "web.plot.z" : "web.plot.y";
+				fb = g === "eq" ? "方程" : g === "z" ? "z = f(x, y)" : "y = f(x)";
+				html += '<p data-k="' + key + '">' + SK.esc(tt(key, fb)) + "</p>";
+			}
+			html += '<button type="button" data-ex="' + SK.esc(row.fn) + '" data-mode="' + row.mode + '">' + SK.esc(row.fn) + "</button>";
+		}
+		return html;
+	}
+
+	function togglemenu(){
+		var menu = SK.$("plot-menu");
+		if (!menu) return;
+		menu.hidden = !menu.hidden;
+	}
+
+	function hidemenu(){
+		var menu = SK.$("plot-menu");
+		if (menu) menu.hidden = true;
+	}
+
+	function ondoc(ev){
+		var menu = SK.$("plot-menu");
+		if (!menu || menu.hidden) return;
+		if (ev.target && ev.target.closest && ev.target.closest(".plot-ex")) return;
+		menu.hidden = true;
+	}
+
+	function pick(src, next){
+		var input = SK.$("plot-fn");
+		if (input) input.value = src;
+		hidemenu();
+		if (next && next !== mode) {
+			mode = next;
+			markmode();
+		}
+		resetview();
+		reparse();
+		paint();
+	}
+
+	function markmode(){
+		var nodes = document.querySelectorAll(".plot-bar > button[data-mode]");
+		var i;
+		for (i = 0; i < nodes.length; i++)
+			nodes[i].className = nodes[i].getAttribute("data-mode") === mode ? "on" : "";
 	}
 
 	function say(text, bad){
@@ -116,12 +204,26 @@
 	function reparse(){
 		var input = SK.$("plot-fn");
 		var src = input ? input.value : "";
+		implicit = false;
 		try {
-			fn = compile(src, mode === "3" ? 2 : 1);
+			var norm = normalize(src);
+			if (mode === "3" && norm.indexOf("=") >= 0) {
+				fn = null;
+				say(tt("web.plot.eq3", "三维画的是 z=f(x, y)。x^2+y^2=1 这类等式请改用 y=f(x)。"), true);
+				return;
+			}
+			fn = compile(src, mode === "3" || norm.indexOf("=") >= 0 ? 2 : 1);
+			implicit = fn.t === "eq";
+			if (mode !== "3" && !implicit && usesY(fn)) {
+				fn = null;
+				say(tt("web.plot.xonly", "二维函数只能使用 x。要画圆、椭圆这类图，请写成等式，例如 x^2+y^2=1。"), true);
+				return;
+			}
 			say("");
 		}
 		catch (ex) {
 			fn = null;
+			implicit = false;
 			say(ex && ex.message ? ex.message : tt("web.plot.bad", "公式无法识别"), true);
 		}
 	}
@@ -194,8 +296,10 @@
 	}
 
 	function up(){
+		var was = drag && implicit;
 		drag = null;
 		if (canvas) canvas.className = "";
+		if (was) paint();
 	}
 
 	function wheel(ev){
@@ -300,7 +404,8 @@
 			if (Math.abs(y) < ys * 1e-6) continue;
 			ctx.fillText(fmt(y), Math.min(w - 36, Math.max(4, X(0) + 4)), Y(y));
 		}
-		if (fn) {
+		if (fn && implicit) drawContour(ctx, w, h, X, Y);
+		else if (fn) {
 			ctx.strokeStyle = "#e11d48";
 			ctx.lineWidth = 2;
 			ctx.lineJoin = "round";
@@ -323,6 +428,109 @@
 			ctx.stroke();
 		}
 		ctx.restore();
+	}
+
+	function drawContour(ctx, w, h, X, Y){
+		var cols = drag ? 110 : Math.max(160, Math.min(420, Math.floor(w / 2.5)));
+		var rows = Math.max(80, Math.round(cols * h / Math.max(w, 1)));
+		if (drag) rows = Math.max(60, Math.round(rows * 0.6));
+		var gw = cols + 1;
+		var gh = rows + 1;
+		var vals = new Array(gw * gh);
+		var i, j, x0, y0, x1, y1;
+		for (j = 0; j < gh; j++) {
+			y0 = view.y0 + (view.y1 - view.y0) * j / rows;
+			for (i = 0; i < gw; i++) {
+				x0 = view.x0 + (view.x1 - view.x0) * i / cols;
+				vals[j * gw + i] = ev(fn, x0, y0);
+			}
+		}
+		ctx.strokeStyle = "#e11d48";
+		ctx.lineWidth = 2;
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		ctx.beginPath();
+		for (j = 0; j < rows; j++) {
+			y0 = view.y0 + (view.y1 - view.y0) * j / rows;
+			y1 = view.y0 + (view.y1 - view.y0) * (j + 1) / rows;
+			for (i = 0; i < cols; i++) {
+				x0 = view.x0 + (view.x1 - view.x0) * i / cols;
+				x1 = view.x0 + (view.x1 - view.x0) * (i + 1) / cols;
+				cell(ctx, X, Y, x0, y0, x1, y1, vals[j * gw + i], vals[j * gw + i + 1], vals[(j + 1) * gw + i + 1], vals[(j + 1) * gw + i]);
+			}
+		}
+		ctx.stroke();
+	}
+
+	function cell(ctx, X, Y, x0, y0, x1, y1, v00, v10, v11, v01){
+		if (v00 === 0 && v10 === 0) addseg(ctx, X, Y, { x: x0, y: y0 }, { x: x1, y: y0 });
+		if (v10 === 0 && v11 === 0) addseg(ctx, X, Y, { x: x1, y: y0 }, { x: x1, y: y1 });
+		if (v11 === 0 && v01 === 0) addseg(ctx, X, Y, { x: x1, y: y1 }, { x: x0, y: y1 });
+		if (v01 === 0 && v00 === 0) addseg(ctx, X, Y, { x: x0, y: y1 }, { x: x0, y: y0 });
+		var pB = edgePt(x0, y0, v00, x1, y0, v10);
+		var pR = edgePt(x1, y0, v10, x1, y1, v11);
+		var pT = edgePt(x1, y1, v11, x0, y1, v01);
+		var pL = edgePt(x0, y1, v01, x0, y0, v00);
+		var pts = distinct([pB, pR, pT, pL]);
+		if (pts.length === 2) {
+			addseg(ctx, X, Y, pts[0], pts[1]);
+			return;
+		}
+		if (pts.length !== 4) return;
+		var fc = ev(fn, (x0 + x1) / 2, (y0 + y1) / 2);
+		var same = isFinite(fc) && fc !== 0 && (fc > 0) === (v00 > 0);
+		if (!isFinite(fc) || fc === 0) {
+			addseg(ctx, X, Y, pB, pT);
+			addseg(ctx, X, Y, pL, pR);
+		}
+		else if (same) {
+			addseg(ctx, X, Y, pB, pR);
+			addseg(ctx, X, Y, pT, pL);
+		}
+		else {
+			addseg(ctx, X, Y, pB, pL);
+			addseg(ctx, X, Y, pR, pT);
+		}
+	}
+
+	function edgePt(x0, y0, f0, x1, y1, f1){
+		if (!isFinite(f0) || !isFinite(f1)) return null;
+		if (f0 === 0 && f1 === 0) return null;
+		if (f0 === 0) return { x: x0, y: y0 };
+		if (f1 === 0) return { x: x1, y: y1 };
+		if ((f0 > 0) === (f1 > 0)) return null;
+		var a0 = f0 < 0 ? -f0 : f0;
+		var a1 = f1 < 0 ? -f1 : f1;
+		if (a0 > 1e4 && a1 > 1e4) {
+			var fm = ev(fn, (x0 + x1) / 2, (y0 + y1) / 2);
+			var am = fm < 0 ? -fm : fm;
+			if (!isFinite(fm) || am > 1e4) return null;
+		}
+		var t = f0 / (f0 - f1);
+		if (!(t >= 0 && t <= 1)) return null;
+		return { x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t };
+	}
+
+	function distinct(list){
+		var out = [];
+		var i, j, a, dup;
+		for (i = 0; i < list.length; i++) {
+			a = list[i];
+			if (!a) continue;
+			dup = false;
+			for (j = 0; j < out.length; j++) {
+				if (Math.abs(a.x - out[j].x) < 1e-9 && Math.abs(a.y - out[j].y) < 1e-9) dup = true;
+			}
+			if (!dup) out.push(a);
+		}
+		return out;
+	}
+
+	function addseg(ctx, X, Y, a, b){
+		if (!a || !b) return;
+		if (Math.abs(a.x - b.x) < 1e-15 && Math.abs(a.y - b.y) < 1e-15) return;
+		ctx.moveTo(X(a.x), Y(a.y));
+		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
 	function draw3(ctx, w, h){
@@ -493,9 +701,18 @@
 		if (!s) throw new Error("请输入公式");
 		if (s.length > 400) throw new Error("公式太长");
 		var i = 0;
-		var tree = expr();
+		var tree = relation();
 		if (i !== s.length) throw new Error("公式里有无法识别的部分");
 		return tree;
+		function relation(){
+			var left = expr();
+			if (peek() !== "=") return left;
+			i++;
+			if (peek() === "=") i++;
+			var right = expr();
+			if (peek() === "=") throw new Error("公式里有无法识别的部分");
+			return { t: "eq", a: left, b: right };
+		}
 		function expr(){
 			var left = term();
 			while (peek() === "+" || peek() === "-") {
@@ -572,9 +789,10 @@
 			if (name === "e") return { t: "n", v: Math.E };
 			if (name === "x") return { t: "v", i: 0 };
 			if (name === "y") {
-				if (dim < 2) throw new Error(tt("web.plot.xonly", "二维公式只能使用 x"));
+				if (dim < 2) throw new Error(tt("web.plot.xonly", "二维函数只能使用 x。要画圆、椭圆这类图，请写成等式，例如 x^2+y^2=1。"));
 				return { t: "v", i: 1 };
 			}
+			if (name === "z") throw new Error(tt("web.plot.noz", "公式里不要写 z。三维请写成 z=f(x, y)"));
 			throw new Error("没有这个名字");
 		}
 		function splitknown(word){
@@ -641,6 +859,7 @@
 		if (node.t === "n") return node.v;
 		if (node.t === "v") return node.i ? y : x;
 		if (node.t === "u") return -ev(node.a, x, y);
+		if (node.t === "eq") return ev(node.a, x, y) - ev(node.b, x, y);
 		if (node.t === "b") {
 			var a = ev(node.a, x, y);
 			var b = ev(node.b, x, y);
@@ -683,6 +902,18 @@
 		else if (name === "hypot") out = Math.hypot(a, b);
 		else return NaN;
 		return isFinite(out) ? out : NaN;
+	}
+
+	function usesY(node){
+		if (!node) return false;
+		if (node.t === "v") return node.i === 1;
+		if (node.t === "u" || node.t === "eq") return usesY(node.a) || usesY(node.b);
+		if (node.t === "b") return usesY(node.a) || usesY(node.b);
+		if (node.t === "f") {
+			var i;
+			for (i = 0; i < node.args.length; i++) if (usesY(node.args[i])) return true;
+		}
+		return false;
 	}
 
 	function isletter(c){ return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"); }

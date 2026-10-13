@@ -851,6 +851,22 @@ input[type="file"] {
 .plot-bar input[type="text"] {
 	flex: 1 1 180px; width: auto; height: 36px; margin: 0; padding: 6px 10px;
 }
+.plot-ex { position: relative; }
+.plot-ex > button i { margin-right: 6px; }
+.plot-menu {
+	position: absolute; top: 40px; right: 0; z-index: 5;
+	min-width: 240px; max-height: 320px; overflow: auto;
+	padding: 4px; border: 1px solid var(--line); border-radius: 12px;
+	background: var(--card); box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+}
+.plot-menu[hidden] { display: none; }
+.plot-menu p { margin: 8px 10px 2px; font-size: 12px; color: var(--muted); }
+.plot-bar .plot-menu button {
+	display: block; width: 100%; height: auto; margin: 0; padding: 6px 10px;
+	border: 0; border-radius: 8px; background: transparent; text-align: left;
+	font-family: Consolas, "Cascadia Mono", monospace;
+}
+.plot-bar .plot-menu button:hover { background: #f5f5f4; }
 .plot .hint { flex: none; margin: 0; }
 .plot .hint.bad { color: #b91c1c; }
 .plot-stage {

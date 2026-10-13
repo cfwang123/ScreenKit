@@ -38,6 +38,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Settings can write screenshot paths with forward slashes (snap_path_slash).
+- Function plots can draw equations such as x^2+y^2=1, and Examples opens a list of curves and surfaces.
 
 #### Changed
 
@@ -63,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 参数设置可让复制截图路径时把反斜杠写成正斜杠（snap_path_slash）。
+- 函数图像可以画 x^2+y^2=1 这类等式，点「示例」后从列表里选曲线或曲面。
 
 #### 变更
 
