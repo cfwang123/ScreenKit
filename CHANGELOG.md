@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation and translate speak request a WAV from /api/tts and play it in the page.
 - Color character art opens through cmd. Auto uses quadrant blocks for double resolution, and a 1/8 to 7/8 block only when that vertical edge fits better.
 - Character bitmaps put every character in one C array, one line each.
+- Ports in use lists listening ports first.
 
 #### Fixed
 
@@ -122,6 +123,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记和翻译的发音改为向 /api/tts 要 WAV，再在网页里播放。
 - 全色字符画改由 cmd 打开。自动以四分块为主，分辨率是整块的两倍；左右边界不在正中、而且更贴时才用 1/8～7/8。
 - 字符取模的 C 代码把全部字符写进同一个数组，每个字一行。
+- 网络端口占用先列出监听端口。
 
 #### 修复
 

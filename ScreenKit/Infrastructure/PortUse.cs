@@ -34,7 +34,9 @@ static class PortUse {
 		readudp(rows, proc, AF_INET, false);
 		readudp(rows, proc, AF_INET6, true);
 		rows.Sort((a, b) => {
-			int c = a.LocalPort.CompareTo(b.LocalPort);
+			int c = rank(a).CompareTo(rank(b));
+			if (c != 0) return c;
+			c = a.LocalPort.CompareTo(b.LocalPort);
 			if (c != 0) return c;
 			c = string.Compare(a.Proto, b.Proto, StringComparison.Ordinal);
 			if (c != 0) return c;
@@ -53,12 +55,15 @@ static class PortUse {
 			int pid = Process.GetCurrentProcess().Id;
 			var rows = List();
 			if (rows.Count < 1) return bad(say, "empty");
-			bool tcp = false, udp = false, hit = false;
+			bool tcp = false, udp = false, hit = false, past = false;
 			foreach (var r in rows) {
 				if (r.LocalPort <= 0 || r.LocalPort > 65535) return bad(say, "port " + r.LocalPort);
+				bool listen = r.State == "listen";
+				if (listen && past) return bad(say, "order");
+				if (!listen) past = true;
 				if (r.Proto == "TCP") tcp = true;
 				if (r.Proto == "UDP") udp = true;
-				if (r.Proto == "TCP" && r.LocalPort == port && r.Pid == pid && r.State == "listen") hit = true;
+				if (listen && r.LocalPort == port && r.Pid == pid) hit = true;
 			}
 			if (!tcp) return bad(say, "tcp");
 			if (!udp) return bad(say, "udp");
@@ -187,6 +192,8 @@ static class PortUse {
 		Marshal.FreeHGlobal(buf);
 		return IntPtr.Zero;
 	}
+
+	static int rank(Row r) => r.State == "listen" ? 0 : 1;
 
 	static int ntohs(int v) {
 		int p = v & 0xFFFF;
