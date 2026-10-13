@@ -47,6 +47,18 @@ public partial class FastCopyWindow : Window {
 			e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
 			e.Handled = true;
 		};
+		pdest.PreviewDragOver += (_, e) => {
+			var ok = !busy && edest.IsEnabled && e.Data.GetDataPresent(DataFormats.FileDrop);
+			e.Effects = ok ? DragDropEffects.Copy : DragDropEffects.None;
+			e.Handled = true;
+		};
+		pdest.PreviewDrop += (_, e) => {
+			e.Handled = true;
+			if (busy || !edest.IsEnabled) return;
+			if (e.Data.GetData(DataFormats.FileDrop) is not string[] files) return;
+			var dest = FastCopy.DropDest(files);
+			if (dest.Length > 0) edest.Text = dest;
+		};
 		Closing += (_, _) => {
 			dead = true;
 			try { cts?.Cancel(); } catch { }

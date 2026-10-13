@@ -866,8 +866,14 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	line-height: 1.45; white-space: pre;
 }
 .plot-read[hidden] { display: none; }
-.plot-style { display: inline-flex; gap: 4px; }
-.plot-style[hidden] { display: none; }
+.plot-seg {
+	display: inline-flex; align-items: center; padding: 2px; gap: 2px;
+	border: 1px solid var(--line); border-radius: 999px; background: #f3efe9;
+}
+.plot-bar .plot-seg button {
+	height: 30px; margin: 0; border: 0; border-radius: 999px; background: transparent;
+}
+.plot-bar .plot-seg button:hover:not(.on) { background: #e8e1d8; }
 .plot-style button i { margin-right: 6px; }
 .plot-ex { position: relative; }
 .plot-ex > button i { margin-right: 6px; }

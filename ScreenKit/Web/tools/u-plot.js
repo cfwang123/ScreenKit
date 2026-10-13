@@ -1,6 +1,6 @@
 (function(){
 	var mode = "2";
-	var style = "fill";
+	var style = "grid";
 	var crossOn = true;
 	var hover = null;
 	var plate = null;
@@ -53,10 +53,12 @@
 	function body(){
 		return '<div class="plot">'
 			+ '<div class="plot-bar">'
+			+ '<span class="plot-seg">'
 			+ '<button type="button" data-mode="2" class="on" data-k="web.plot.y">' + SK.esc(tt("web.plot.y", "y = f(x)")) + "</button>"
 			+ '<button type="button" data-mode="3" data-k="web.plot.z">' + SK.esc(tt("web.plot.z", "z = f(x, y)")) + "</button>"
+			+ "</span>"
 			+ '<button type="button" class="on" data-act="cross" data-ktip="web.plot.crossTip" title="' + SK.esc(tt("web.plot.crossTip", "竖线与曲线的交点。再点一次关闭。")) + '"><i class="fa-solid fa-crosshairs"></i><span data-k="web.plot.cross">' + SK.esc(tt("web.plot.cross", "Cross")) + "</span></button>"
-			+ '<span class="plot-style" hidden>'
+			+ '<span class="plot-style plot-seg" hidden>'
 			+ styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面")
 			+ styleBtn("grid", "fa-border-all", "web.plot.grid", "网格")
 			+ styleBtn("dots", "fa-braille", "web.plot.dots", "点阵")
@@ -203,7 +205,7 @@
 	}
 
 	function markmode(){
-		var nodes = F.qa(".plot-bar > button[data-mode]");
+		var nodes = F.qa(".plot-seg > button[data-mode]");
 		var i;
 		for (i = 0; i < nodes.length; i++)
 			nodes[i].className = F.attr(nodes[i], "data-mode") === mode ? "on" : "";

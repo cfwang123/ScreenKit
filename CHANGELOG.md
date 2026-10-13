@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Unicode, ASCII, and GBK charts can draw with an installed font. GET /api/fonts lists the system fonts. The choice is remembered.
 - 2D function plots include a Cross tool, on by default, that lists where the crosshair meets the curve.
 - Fast copy can delete the listed files permanently or move them to the Recycle Bin. It asks before starting, and does not need a destination.
+- Fast copy accepts a drop on the list as sources and a drop on the destination as the target folder. A dropped file uses its parent folder.
 
 #### Changed
 
@@ -59,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation speak plays through the system default output device.
 - Translate speak on the tools page plays through the system default output device.
 - Screen recording defaults to Windows Media Foundation H.264, which does not need FFmpeg.
+- 3D function plots open on the grid. The dimension and the drawing style are each one segmented control.
 
 #### Fixed
 
@@ -84,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Unicode、ASCII、GBK 码表可以用本机已安装的字体显示。GET /api/fonts 列出系统字体。选过的字体会记住。
 - 二维函数图像增加 Cross，默认开启，显示十字线与曲线的交点坐标。
 - 快速复制可以永久删除列表里的文件，或删除到回收站。开始前会再确认，不用填目标。
+- 快速复制可以把拖到列表上的项当作源，拖到目标上的文件夹当作目标。拖进去的是文件时，用它所在的文件夹。
 
 #### 变更
 
@@ -100,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记的发音改走系统默认播放设备。
 - 工具页翻译的发音改走系统默认播放设备。
 - 录屏默认使用 Windows Media Foundation 的 H.264，不需要 FFmpeg。
+- 三维函数图像默认用网格。维度和画法各自是一组按钮。
 
 #### 修复
 

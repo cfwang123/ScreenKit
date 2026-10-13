@@ -33,7 +33,7 @@
 		<ListBox x:Name="lsrc" Grid.Row="2" Margin="0,0,0,10"
 		         BorderBrush="{StaticResource BorderSoft}"
 		         AutomationProperties.AutomationId="fastcopy.src"/>
-		<Grid Grid.Row="3" Margin="0,0,0,10">
+		<Grid x:Name="pdest" Grid.Row="3" Margin="0,0,0,10" AllowDrop="True">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="52"/>
 				<ColumnDefinition Width="*"/>

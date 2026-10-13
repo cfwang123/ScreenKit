@@ -97,6 +97,21 @@ public static class FastCopy {
 		return "copy";
 	}
 
+	/// <summary>拖到目标上：文件夹用本身，文件用所在目录。多个时用第一个存在的。</summary>
+	public static string DropDest(IEnumerable<string> paths) {
+		if (paths == null) return "";
+		foreach (var raw in paths) {
+			var p = (raw ?? "").Trim().Trim('"');
+			if (p.Length == 0) continue;
+			p = full(p);
+			if (Directory.Exists(p)) return p;
+			if (!File.Exists(p)) continue;
+			var dir = Path.GetDirectoryName(p);
+			if (!string.IsNullOrEmpty(dir)) return full(dir);
+		}
+		return "";
+	}
+
 	public static bool IsShell(string[] args) {
 		if (args == null) return false;
 		foreach (var a in args)
@@ -1331,6 +1346,13 @@ public static class FastCopy {
 			r = Run(gj);
 			if (File.Exists(gone) || Directory.Exists(gdir) || r.Ok != 2 || r.Failed != 1)
 				return bad(say, $"delete ok={r.Ok} fail={r.Failed} {r.Error}");
+			var dropf = Path.Combine(root, "dropf.txt");
+			File.WriteAllText(dropf, "d");
+			var dropd = Path.Combine(root, "dropd");
+			Directory.CreateDirectory(dropd);
+			if (!samepath(DropDest(new[] { dropf }), root)) return bad(say, "dropfile");
+			if (!samepath(DropDest(new[] { dropd, dropf }), dropd)) return bad(say, "dropdir");
+			if (DropDest(new[] { Path.Combine(root, "no-such-fc") }) != "") return bad(say, "dropmiss");
 			var hf = Path.Combine(root, "h.txt");
 			File.WriteAllText(hf, "H");
 			var hdest = Path.Combine(root, "hdir");
