@@ -131,11 +131,13 @@
 	}
 
 	function speak(text, lang){
-		SK.post("/api/tts/speak", {
+		SK.stopwav();
+		SK.post("/api/tts", {
 			text: text,
-			lang: lang || "",
-			play: "now"
-		}, function(){}, "box-msg");
+			lang: lang || ""
+		}, function(data){
+			SK.playwav(data && data.wav_base64, "box-msg");
+		}, "box-msg");
 	}
 
 	function numread(text){

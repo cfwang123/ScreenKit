@@ -1900,7 +1900,7 @@ static class Cli {
 			if (opt.MaxSizeEnabled)
 				opt.FitSize(rec.SrcWidth, rec.SrcHeight, out ow, out oh);
 			Out($"encode GIF {ow}x{oh} outFps=8 colors=128 (src={rec.Fps})…");
-			FfmpegGifEncode.FromVideo(src, dest, ow, oh, 8, 128, rec.Fps);
+			GifFile.FromVideo(src, dest, ow, oh, 8, 128, rec.Fps);
 			var len = new FileInfo(dest).Length;
 			Out($"saved={dest} bytes={len}");
 			// GIF89a / GIF87a
@@ -1919,6 +1919,15 @@ static class Cli {
 			if (len < 64) {
 				Err("GIF 过小");
 				return 1;
+			}
+			using (var img = System.Drawing.Image.FromFile(dest)) {
+				var dim = new System.Drawing.Imaging.FrameDimension(img.FrameDimensionsList[0]);
+				var frames = img.GetFrameCount(dim);
+				Out($"gifFrames={frames} {img.Width}x{img.Height}");
+				if (frames < 1 || img.Width < 16 || img.Height < 16) {
+					Err("GIF 帧或尺寸无效");
+					return 1;
+				}
 			}
 			Out("=== OK：GIF 录屏可用 ===");
 			return 0;

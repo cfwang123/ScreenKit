@@ -598,6 +598,46 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		xhr.send(F.json(body));
 	}
 
+	var wavclip = null;
+	var wavurl = "";
+
+	function stopwav(){
+		if (wavclip) {
+			wavclip.pause();
+			wavclip.src = "";
+			wavclip = null;
+		}
+		if (wavurl) {
+			F.unurl(wavurl);
+			wavurl = "";
+		}
+	}
+
+	function playwav(b64, mid){
+		var bin, bytes, i, blob, url, audio, played;
+		if (!b64) {
+			msg(mid, "没有音频", true);
+			return;
+		}
+		bin = atob(b64);
+		bytes = new Uint8Array(bin.length);
+		for (i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 255;
+		blob = new Blob([bytes], { type: "audio/wav" });
+		url = F.url(blob);
+		stopwav();
+		wavurl = url;
+		audio = new Audio(url);
+		wavclip = audio;
+		audio.onended = function(){
+			if (wavclip === audio) stopwav();
+		};
+		played = audio.play();
+		if (played && played.then) played.then(function(){}, function(){
+			msg(mid, "无法播放", true);
+			if (wavclip === audio) stopwav();
+		});
+	}
+
 	var chartFont = null;
 	var chartFonts = null;
 	var chartAt = 0;
@@ -1170,6 +1210,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.$ = F.id;
 	SK.msg = msg;
 	SK.post = post;
+	SK.playwav = playwav;
+	SK.stopwav = stopwav;
 	SK.get = get;
 	SK.chartfont = chartfont;
 	SK.chartface = chartface;

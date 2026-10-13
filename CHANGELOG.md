@@ -61,6 +61,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Translate speak on the tools page plays through the system default output device.
 - Screen recording defaults to Windows Media Foundation H.264, which does not need FFmpeg.
 - 3D function plots open on the grid. The dimension and the drawing style are each one segmented control.
+- GIF screen recording uses system H.264 and encodes the GIF without FFmpeg.
+- Number notation and translate speak request a WAV from /api/tts and play it in the page.
 
 #### Fixed
 
@@ -104,6 +106,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页翻译的发音改走系统默认播放设备。
 - 录屏默认使用 Windows Media Foundation 的 H.264，不需要 FFmpeg。
 - 三维函数图像默认用网格。维度和画法各自是一组按钮。
+- GIF 录屏改用系统 H.264，编码 GIF 不再需要 FFmpeg。
+- 数字表记和翻译的发音改为向 /api/tts 要 WAV，再在网页里播放。
 
 #### 修复
 

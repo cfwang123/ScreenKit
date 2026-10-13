@@ -2938,10 +2938,6 @@ public partial class MainWindow : Window {
 			setstatus("请等待当前截图/录屏结束");
 			return;
 		}
-		if (!FeaturePrompt.EnsureFfmpeg(this)) {
-			setstatus("未安装 FFmpeg，已取消 GIF 录屏");
-			return;
-		}
 		try {
 			capturing = true;
 			setstatus("GIF 录屏 · 请单击窗口或拖拽框选区域…");

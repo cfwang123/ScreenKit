@@ -203,7 +203,7 @@ public partial class GifPreviewWindow : Window {
 		Task.Run(() => {
 			string err = null;
 			try {
-				FfmpegGifEncode.FromVideo(videoPath, outPath, ow, oh, outFps, colors, cap);
+				GifFile.FromVideo(videoPath, outPath, ow, oh, outFps, colors, cap);
 			}
 			catch (Exception ex) {
 				err = ex.Message;

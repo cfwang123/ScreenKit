@@ -168,12 +168,12 @@
 		var code = side === "dst" ? (F.id("tr-dst").value || "auto") : (F.id("tr-src").value || "auto");
 		if (code === "auto" || !code) code = detectcode(text);
 		var lang = BCP[code] || code;
-		SK.post("/api/tts/speak", {
+		SK.stopwav();
+		SK.post("/api/tts", {
 			text: text,
-			lang: lang,
-			play: "now"
-		}, function(){
-			SK.msg("tr-msg", "");
+			lang: lang
+		}, function(data){
+			SK.playwav(data && data.wav_base64, "tr-msg");
 		}, "tr-msg");
 	}
 

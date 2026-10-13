@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace ScreenKit;
 
 /// <summary>
-/// GIF 区域录屏：先写无声临时 MP4，停录后由预览窗按调色板/缩放重编码为 GIF。
+/// GIF 区域录屏：用系统 H.264 写无声临时 MP4，停录后由预览窗编成 GIF。不依赖 FFmpeg。
 /// </summary>
 sealed class GifScreenRecorder : IDisposable {
 	System.Drawing.Rectangle region;
@@ -15,7 +15,7 @@ sealed class GifScreenRecorder : IDisposable {
 	readonly string videoTmp;
 	readonly object gate = new();
 
-	FfmpegMp4Writer ff;
+	IRecordVideoSink ff;
 	Thread thread;
 	volatile bool stop;
 	volatile bool paused;
@@ -91,34 +91,23 @@ sealed class GifScreenRecorder : IDisposable {
 			$"mouse={gifOpt.RecordMouse} clickHl={gifOpt.HighlightClicks}");
 		RecordLog.Step("paths", $"video={videoTmp}");
 
-		if (!FfmpegLoader.TryInit(out var ffErr)) {
-			RecordLog.Step("ffmpeg_dll", "fail: " + (ffErr ?? "unknown"));
-			if (!FeaturePrompt.EnsureFfmpeg() || !FfmpegLoader.TryInit(out ffErr))
-				throw new InvalidOperationException(
-					"无法加载 FFmpeg。请通过「安装功能」安装 FFmpeg，"
-					+ "或将 FFmpeg 4.4 shared 库放到程序目录 ffmpeg64/。\n" + (ffErr ?? ""));
-		}
-		RecordLog.Step("ffmpeg_dll", "ok root=" + (FfmpegLoader.DllRoot ?? ""));
 		try {
 			var ro = new RecordOptions {
-				Codec = "x264",
+				Codec = "mf",
 				Fps = fps,
-				Crf = 28,
 				AudioEnabled = false,
 				MaxSizeEnabled = false,
 			};
 			ro.Clamp();
-			ff = new FfmpegMp4Writer(videoTmp, grabW, grabH, ro);
-			Backend = $"GIF源 {ff.OutWidth}x{ff.OutHeight}@{fps}fps 无声（预览可选输出帧率）";
+			ff = new MfH264Writer(videoTmp, grabW, grabH, ro, withAudio: false);
+			Backend = $"GIF源 {ff.OutWidth}x{ff.OutHeight}@{fps}fps 系统 H.264 无声（预览可选输出帧率）";
 			RecordLog.Step("video_writer", Backend);
 		}
 		catch (Exception ex) {
-			CaptureLog.Ex("FfmpegMp4Writer.gif", ex);
-			RecordLog.Ex("FfmpegMp4Writer.gif", ex);
+			CaptureLog.Ex("MfH264Writer.gif", ex);
+			RecordLog.Ex("MfH264Writer.gif", ex);
 			ff = null;
-			throw new InvalidOperationException(
-				"无法创建临时视频编码器: " + ex.Message
-				+ "\n请检查 ffmpeg64 是否完整。", ex);
+			throw new InvalidOperationException("无法创建系统 H.264 编码器: " + ex.Message, ex);
 		}
 
 		startTick = Compat.TickCount64;
