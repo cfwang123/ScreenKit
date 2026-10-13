@@ -2,8 +2,8 @@ namespace ScreenKit;
 
 /// <summary>录屏编码参数（可持久化到 config.toml）。</summary>
 public sealed class RecordOptions {
-	/// <summary>x264 / x265 / av1 / mf / mjpeg。</summary>
-	public string Codec = "x264";
+	/// <summary>x264 / x265 / av1 / mf / mjpeg。缺省是系统 H.264，不用 FFmpeg。</summary>
+	public string Codec = "mf";
 	/// <summary>帧率 5–60。</summary>
 	public int Fps = 24;
 	/// <summary>x264/x265 CRF 质量 0–51，越大体积越小。</summary>
@@ -69,13 +69,19 @@ public sealed class RecordOptions {
 		|| string.Equals(codec, "mjpg", StringComparison.OrdinalIgnoreCase)
 		|| string.Equals(codec, "mjpegavi", StringComparison.OrdinalIgnoreCase);
 
-	/// <summary>规范化为 x264 / x265 / av1 / mf，未知值回落 x264。MJPEG AVI 先隐藏，已保存的值改走系统 H.264。</summary>
+	public static bool IsX264Name(string codec) =>
+		string.Equals(codec, "x264", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "libx264", StringComparison.OrdinalIgnoreCase)
+		|| string.Equals(codec, "h264", StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>规范化为 x264 / x265 / av1 / mf。未知值用系统 H.264。MJPEG AVI 先隐藏，已保存的值改走系统 H.264。</summary>
 	public static string NormalizeCodec(string codec) {
 		if (IsAv1Name(codec)) return "av1";
 		if (IsHevcName(codec)) return "x265";
+		if (IsX264Name(codec)) return "x264";
 		if (IsMfName(codec)) return "mf";
 		if (IsMjpegName(codec)) return "mf";
-		return "x264";
+		return "mf";
 	}
 
 	public RecordAudioMode AudioMode {

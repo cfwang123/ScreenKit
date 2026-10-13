@@ -80,7 +80,7 @@ public partial class RecordOptionsWindow : Window {
 
 	bool saveui() {
 		var o = Result;
-		o.Codec = (ecodec.SelectedItem as ComboBoxItem)?.Tag as string ?? "x264";
+		o.Codec = (ecodec.SelectedItem as ComboBoxItem)?.Tag as string ?? "mf";
 		if (!tryint(efps, "帧率 (FPS)", 5, 60, out var fps)) return false;
 		o.Fps = fps;
 		if (pcrf.Visibility == Visibility.Visible) {
@@ -108,7 +108,7 @@ public partial class RecordOptionsWindow : Window {
 	}
 
 	void synccodec() {
-		var tag = (ecodec.SelectedItem as ComboBoxItem)?.Tag as string ?? "x264";
+		var tag = (ecodec.SelectedItem as ComboBoxItem)?.Tag as string ?? "mf";
 		var o = new RecordOptions { Codec = tag };
 		o.Clamp();
 		pcrf.Visibility = o.UsesX264Crf ? Visibility.Visible : Visibility.Collapsed;

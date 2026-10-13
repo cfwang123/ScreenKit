@@ -38,7 +38,7 @@ unsafe sealed class FfmpegMp4Writer : IRecordVideoSink {
 		if (!FfmpegLoader.TryInit(out var err))
 			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
 		this.path = path ?? throw new ArgumentNullException(nameof(path));
-		opt ??= new RecordOptions();
+		opt ??= new RecordOptions { Codec = "x264" };
 		opt.Clamp();
 
 		srcW = Math.Max(2, captureW / 2 * 2);
@@ -58,7 +58,7 @@ unsafe sealed class FfmpegMp4Writer : IRecordVideoSink {
 
 	/// <summary>兼容旧调用。</summary>
 	public FfmpegMp4Writer(string path, int width, int height, int fps = 24)
-		: this(path, width, height, new RecordOptions { Fps = fps }) { }
+		: this(path, width, height, new RecordOptions { Codec = "x264", Fps = fps }) { }
 
 	void open() {
 		AVFormatContext* f = null;
@@ -133,7 +133,7 @@ unsafe sealed class FfmpegMp4Writer : IRecordVideoSink {
 	public static string FindEncoderName(RecordOptions opt) {
 		if (!FfmpegLoader.TryInit(out var err))
 			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
-		opt ??= new RecordOptions();
+		opt ??= new RecordOptions { Codec = "x264" };
 		opt.Clamp();
 		findvideoenc(opt.IsAv1, opt.IsHevc, out var name);
 		return name;

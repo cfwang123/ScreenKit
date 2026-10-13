@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chinese usernames stay as family name plus given name. Bogus was stripping the characters and leaving only a separator or digits.
 - Windows OCR ignores the detection side limit. A short text line is enlarged about 2x with Lanczos so a small second line is kept, and punctuation sitting against a word is not split off with a space.
 - Unicode, ASCII, and GBK charts show the character detail card again. Entering a tool hid every aside, including that card.
+- Creating a symbolic link no longer counts as success when Windows rejects it.
 
 #### Removed
 
@@ -108,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 中文用户名改为姓加名。原先 Bogus 会抹掉汉字，只剩分隔符或数字。
 - Windows OCR 不再按检测边长缩小。字行太矮时用 Lanczos 放大约 2 倍，避免短行被丢掉；紧挨着的标点不再被拆成带空格的词。
 - Unicode、ASCII、GBK 码表重新显示右侧字符详情。进入工具时隐藏了所有 aside，详情卡片也被藏起来。
+- 创建符号链接时，Windows 拒绝之后不再算成功。
 
 #### 移除
 

@@ -19,7 +19,7 @@ sealed class MjpegAviWriter : IRecordVideoSink {
 
 	public MjpegAviWriter(string path, int captureW, int captureH, RecordOptions opt) {
 		if (path == null) throw new ArgumentNullException(nameof(path));
-		opt ??= new RecordOptions();
+		opt ??= new RecordOptions { Codec = "mjpeg" };
 		opt.Clamp();
 		srcW = Math.Max(2, captureW / 2 * 2);
 		srcH = Math.Max(2, captureH / 2 * 2);

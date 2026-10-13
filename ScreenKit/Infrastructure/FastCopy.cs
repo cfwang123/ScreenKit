@@ -68,7 +68,9 @@ public static class FastCopy {
 	[DllImport("shell32.dll")]
 	static extern void SHChangeNotify(int eventId, uint flags, IntPtr item1, IntPtr item2);
 
+	// BOOLEAN 只占 1 字节。按 4 字节 BOOL 读时，特权失败也会被当成成功。
 	[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+	[return: MarshalAs(UnmanagedType.U1)]
 	static extern bool CreateSymbolicLinkW(string link, string target, int flags);
 
 	[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]

@@ -24,10 +24,10 @@
 				<TextBlock Text="编码" FontWeight="SemiBold" Margin="0,0,0,6"/>
 				<ComboBox x:Name="ecodec" Height="32" Margin="0,0,0,4"
 				          VerticalContentAlignment="Center">
-					<ComboBoxItem Content="x264 (H.264，兼容性好)" Tag="x264" IsSelected="True"/>
+					<ComboBoxItem Content="Media Foundation (系统 H.264，无需 FFmpeg)" Tag="mf" IsSelected="True"/>
+					<ComboBoxItem Content="x264 (H.264，兼容性好)" Tag="x264"/>
 					<ComboBoxItem Content="x265 (H.265/HEVC，更小体积)" Tag="x265"/>
 					<ComboBoxItem Content="AV1 (更小体积，需较新播放器)" Tag="av1"/>
-					<ComboBoxItem Content="Media Foundation (系统 H.264，无需 FFmpeg)" Tag="mf"/>
 				</ComboBox>
 				<TextBlock x:Name="lbcode" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,14"
 				           TextWrapping="Wrap"
