@@ -565,8 +565,14 @@ SK.watchAcc = 0;
 
 	var chartFont = null;
 	var chartFonts = null;
+	var chartAt = 0;
 	var chartWait = [];
 	var chartPend = false;
+	var chartMs = 10 * 60 * 1000;
+
+	function chartfresh(){
+		return chartFonts && chartAt && Date.now() - chartAt < chartMs;
+	}
 
 	function chartfont(id){
 		var box = $(id);
@@ -581,26 +587,29 @@ SK.watchAcc = 0;
 			applychart();
 			if (SK.onchartfont) SK.onchartfont();
 		};
-		if (chartFonts) {
+		if (chartfresh()) {
 			paintchart(box);
 			return;
 		}
+		if (chartFonts) paintchart(box);
 		chartWait.push(box);
 		if (chartPend) return;
 		chartPend = true;
 		get("/api/fonts", function(data){
 			var i;
-			chartFonts = [];
 			chartPend = false;
+			chartFonts = [];
+			chartAt = 0;
 			if (data && data.length) {
 				for (i = 0; i < data.length; i++) chartFonts.push(String(data[i]));
+				chartAt = Date.now();
 			}
 			var nodes = chartWait;
 			chartWait = [];
 			for (i = 0; i < nodes.length; i++) paintchart(nodes[i]);
 		}, "", function(){
-			chartFonts = [];
 			chartPend = false;
+			if (!chartFonts) chartFonts = [];
 			var nodes = chartWait;
 			var i;
 			chartWait = [];
