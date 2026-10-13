@@ -46,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Fast copy accepts a drop on the list as sources and a drop on the destination as the target folder. A dropped file uses its parent folder.
 - Character bitmaps turns each character into a dot matrix from a font and pixel size, then exports a C array, hex, or a dot picture.
 - Character bitmaps can shift the dots with X and Y offsets.
+- The file-transfer sign-in page and the file page link to the web tools home (/).
 
 #### Changed
 
@@ -95,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 快速复制可以把拖到列表上的项当作源，拖到目标上的文件夹当作目标。拖进去的是文件时，用它所在的文件夹。
 - 字符取模按字体和字号把每个字符画成点阵，可导出 C 数组、十六进制或点阵文本。
 - 字符取模可以用 X、Y 偏移挪动点阵。
+- 文件传输的登录页和文件页可以回到工具主页（/）。
 
 #### 变更
 
