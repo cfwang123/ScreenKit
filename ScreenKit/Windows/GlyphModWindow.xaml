@@ -65,23 +65,9 @@
 			<Button x:Name="bcopy" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="复制"/>
 			<Button x:Name="bsave" Style="{StaticResource ToolBtn}" Content="保存"/>
 		</StackPanel>
-		<Grid Grid.Row="4" Margin="0,0,0,8">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="*"/>
-				<ColumnDefinition Width="240"/>
-			</Grid.ColumnDefinitions>
-			<ScrollViewer VerticalScrollBarVisibility="Auto">
-				<WrapPanel x:Name="pdots"/>
-			</ScrollViewer>
-			<Border Grid.Column="1" Margin="8,0,0,0" Padding="8"
-			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
-				<StackPanel>
-					<TextBlock x:Name="lprev" FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,0,6"/>
-					<Image x:Name="eprev" Stretch="None" HorizontalAlignment="Left" SnapsToDevicePixels="True"
-					       AutomationProperties.AutomationId="glyphmod.preview"/>
-				</StackPanel>
-			</Border>
-		</Grid>
+		<ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" Margin="0,0,0,8">
+			<WrapPanel x:Name="pdots"/>
+		</ScrollViewer>
 		<TextBlock x:Name="lbout" Grid.Row="5" Text="输出" FontWeight="SemiBold" Margin="0,0,0,6"/>
 		<TextBox x:Name="eout" Grid.Row="6" AcceptsReturn="True" TextWrapping="NoWrap"
 		         HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"

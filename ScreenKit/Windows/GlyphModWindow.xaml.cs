@@ -3,7 +3,6 @@ namespace ScreenKit;
 /// <summary>工具 → 字符取模。</summary>
 public partial class GlyphModWindow : Window {
 	GlyphMod.Sheet shown;
-	int sel;
 	int builtx;
 	int builty;
 
@@ -108,9 +107,7 @@ public partial class GlyphModWindow : Window {
 		shown = sheet;
 		builtx = offx;
 		builty = offy;
-		if (sel >= sheet.Glyphs.Count) sel = 0;
 		showdots(sheet);
-		showbig();
 		var bytes = 0;
 		foreach (var g in sheet.Glyphs) bytes += g.Data.Length;
 		var stat = Loc.T("gm.stat", sheet.Glyphs.Count, bytes);
@@ -125,11 +122,9 @@ public partial class GlyphModWindow : Window {
 		Brush border = null;
 		try { muted = (Brush)FindResource("TextMuted"); } catch { }
 		try { border = (Brush)FindResource("BorderSoft"); } catch { }
-		for (int i = 0; i < sheet.Glyphs.Count; i++) {
-			var g = sheet.Glyphs[i];
-			int idx = i;
+		foreach (var g in sheet.Glyphs) {
 			var img = new Image {
-				Source = dotbmp(g, false),
+				Source = dotbmp(g),
 				Stretch = Stretch.None,
 				SnapsToDevicePixels = true,
 			};
@@ -141,33 +136,14 @@ public partial class GlyphModWindow : Window {
 				Margin = new Thickness(0, 0, 0, 4),
 			});
 			box.Children.Add(img);
-			var frame = new Border {
+			pdots.Children.Add(new Border {
 				BorderBrush = border,
-				BorderThickness = new Thickness(i == sel ? 2 : 1),
+				BorderThickness = new Thickness(1),
 				Padding = new Thickness(4),
 				Margin = new Thickness(0, 0, 8, 8),
 				Child = box,
-				Cursor = Cursors.Hand,
-			};
-			frame.MouseLeftButtonUp += (_, e) => {
-				sel = idx;
-				showdots(shown);
-				showbig();
-				e.Handled = true;
-			};
-			pdots.Children.Add(frame);
+			});
 		}
-	}
-
-	void showbig() {
-		if (shown == null || shown.Glyphs.Count == 0 || sel < 0 || sel >= shown.Glyphs.Count) {
-			lprev.Text = "";
-			eprev.Source = null;
-			return;
-		}
-		var g = shown.Glyphs[sel];
-		lprev.Text = g.Ch + "  " + g.W + "×" + g.H;
-		eprev.Source = dotbmp(g, true);
 	}
 
 	static bool readoff(TextBox box, out int n) {
@@ -176,9 +152,9 @@ public partial class GlyphModWindow : Window {
 		return int.TryParse(s, out n) && n >= -GlyphMod.SIZE_MAX && n <= GlyphMod.SIZE_MAX;
 	}
 
-	static BitmapSource dotbmp(GlyphMod.Glyph g, bool big) {
-		int z = big ? Math.Max(4, 180 / Math.Max(1, Math.Max(g.W, g.H))) : Math.Max(2, 64 / Math.Max(1, g.H));
-		if (z > (big ? 14 : 8)) z = big ? 14 : 8;
+	static BitmapSource dotbmp(GlyphMod.Glyph g) {
+		int z = Math.Max(2, 64 / Math.Max(1, g.H));
+		if (z > 8) z = 8;
 		int w = Math.Max(1, g.W * z);
 		int h = Math.Max(1, g.H * z);
 		var bmp = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
