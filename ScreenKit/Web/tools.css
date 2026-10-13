@@ -430,6 +430,9 @@ input[type="file"] {
 }
 .uquery { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .uquery input { flex: 1; height: 32px; margin-top: 0; }
+.uquery select.ufont {
+	flex: none; width: 180px; height: 32px; margin: 0; padding: 0 8px;
+}
 .uquery .msg { min-height: 0; white-space: nowrap; }
 #box.panel.on:has(.unitab) { overflow: hidden; }
 #box.panel.on:has(.unitab) #box-body {
@@ -490,6 +493,7 @@ input[type="file"] {
 }
 .ugrid button.alt { background: #fbf6f0; }
 .ugrid button.on { border-color: var(--accent); background: #fff1e8; }
+html[data-ufont] .ugrid button:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .uprev {
 	width: auto; position: static; align-self: stretch;
 	border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px;
@@ -500,6 +504,7 @@ input[type="file"] {
 	border: 1px solid var(--line); border-radius: 8px; background: #fff;
 	font: 80px/1 "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei", "Meiryo", "Yu Gothic", "Microsoft JhengHei", "MingLiU", "Noto Sans SC", "Noto Sans JP", "Noto Sans KR", sans-serif;
 }
+html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .uprev-ch.gap { background: #f3f1ec; }
 .uprev-ch.ctrl { font: 28px/1.2 "Segoe UI", "Microsoft YaHei UI", sans-serif; }
 .uprev-meta { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 6px 8px; margin: 0; }
@@ -851,6 +856,9 @@ input[type="file"] {
 .plot-bar input[type="text"] {
 	flex: 1 1 180px; width: auto; height: 36px; margin: 0; padding: 6px 10px;
 }
+.plot-style { display: inline-flex; gap: 4px; }
+.plot-style[hidden] { display: none; }
+.plot-style button i { margin-right: 6px; }
 .plot-ex { position: relative; }
 .plot-ex > button i { margin-right: 6px; }
 .plot-menu {

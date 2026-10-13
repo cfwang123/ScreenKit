@@ -8,7 +8,7 @@
 		title: "GBK码表",
 		go: "显示",
 		body: function(){
-			return '<div class="uquery"><input id="gbk-q" type="text" placeholder="字、B0A1 或 U+4E00"><span id="gbk-msg" class="msg"></span></div>'
+			return '<div class="uquery"><input id="gbk-q" type="text" placeholder="字、B0A1 或 U+4E00"><select id="gbk-font" class="ufont" title="字体"></select><span id="gbk-msg" class="msg"></span></div>'
 				+ '<p class="hint">点一下选中并复制。左边每个首字节写出字数和起止码。每页 16 列。空位没有字符。</p>'
 				+ '<div class="unitab"><div class="ugroups" id="gbk-groups"></div><div class="ugrid g16" id="gbk-grid"></div>'
 				+ '<aside class="uprev"><div class="uprev-ch" id="gbk-ch"></div><dl class="uprev-meta" id="gbk-meta"></dl></aside></div>';
@@ -17,7 +17,9 @@
 			throw new Error("没有这个工具");
 		},
 		open: function(){
+			SK.onchartfont = null;
 			gbkbuild();
+			SK.chartfont("gbk-font");
 		},
 		hideGo: true,
 		hideOut: true

@@ -1,3 +1,4 @@
+using System.Drawing.Text;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -23,6 +24,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/fake 测试数据（Bogus 已安装时生成）</item>
 /// <item>GET/POST /api/fx 货币换算（中国银行中间价，缓存 10 分钟）</item>
 /// <item>GET/POST /api/enc 单码位代码页（GBK、GB18030、Big5、Shift_JIS、EUC-KR、Latin-1）</item>
+/// <item>GET /api/fonts 本机已安装字体</item>
 /// <item>POST /api/qrmake 生成二维码/条码 · POST /api/qrscan 识别</item>
 /// <item>GET/POST /api/cast/stop 立即关闭投屏画面</item>
 /// <item>GET  /api/ocr/models · /api/ocr/get_options · POST /api/ocr</item>
@@ -46,6 +48,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	SendFileServer sendFile;
 	public bool LanAll;
 	public event Action<string> Logged;
+	static string[] fontNames;
 	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
@@ -263,6 +266,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handleenc(ctx);
+				return;
+			}
+
+			if (path is "/api/fonts" or "/api/fonts/") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "fonts 仅支持 GET"));
+					return;
+				}
+				handlefonts(ctx);
 				return;
 			}
 
@@ -732,6 +744,32 @@ sealed partial class HttpOcrServer : IDisposable {
 				["op"] = op,
 			},
 		});
+	}
+
+	void handlefonts(SockCtx ctx) {
+		var arr = new JsonArray();
+		foreach (var name in systemfonts())
+			arr.Add(name);
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = arr,
+		});
+	}
+
+	static string[] systemfonts() {
+		if (fontNames != null) return fontNames;
+		var set = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
+		try {
+			using var col = new InstalledFontCollection();
+			foreach (var fam in col.Families) {
+				var name = fam.Name;
+				if (string.IsNullOrWhiteSpace(name) || name[0] == '@') continue;
+				set.Add(name.Trim());
+			}
+		}
+		catch { }
+		fontNames = set.Count == 0 ? Array.Empty<string>() : set.ToArray();
+		return fontNames;
 	}
 
 	void handleenc(SockCtx ctx) {
@@ -2248,6 +2286,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成",
 			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",
 			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
+			"GET  /api/fonts  本机已安装字体",
 			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",
 			"POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart",
 			"GET  /api/status",

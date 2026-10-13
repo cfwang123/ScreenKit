@@ -1,5 +1,6 @@
 (function(){
 	var mode = "2";
+	var style = "fill";
 	var fn = null;
 	var implicit = false;
 	var docOn = false;
@@ -50,6 +51,12 @@
 			+ '<div class="plot-bar">'
 			+ '<button type="button" data-mode="2" class="on" data-k="web.plot.y">' + SK.esc(tt("web.plot.y", "y = f(x)")) + "</button>"
 			+ '<button type="button" data-mode="3" data-k="web.plot.z">' + SK.esc(tt("web.plot.z", "z = f(x, y)")) + "</button>"
+			+ '<span class="plot-style" hidden>'
+			+ styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面")
+			+ styleBtn("grid", "fa-border-all", "web.plot.grid", "网格")
+			+ styleBtn("dots", "fa-braille", "web.plot.dots", "点阵")
+			+ styleBtn("level", "fa-layer-group", "web.plot.level", "等高线")
+			+ "</span>"
 			+ '<input id="plot-fn" type="text" value="sin(x)" spellcheck="false" autocomplete="off"'
 			+ ' data-kph="web.plot.ph" placeholder="' + SK.esc(tt("web.plot.ph", "sin(x)")) + '"'
 			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。二维还可以写等式，例如 x^2+y^2=1。")) + '">'
@@ -86,9 +93,16 @@
 			watch = new ResizeObserver(function(){ paint(); });
 			watch.observe(canvas.parentElement);
 		}
+		markmode();
+		markstyle();
 		resetview();
 		reparse();
 		requestAnimationFrame(paint);
+	}
+
+	function styleBtn(id, icon, key, fb){
+		var on = id === style ? ' class="on"' : "";
+		return '<button type="button" data-style="' + id + '"' + on + '><i class="fa-solid ' + icon + '"></i><span data-k="' + key + '">' + SK.esc(tt(key, fb)) + "</span></button>";
 	}
 
 	function onbar(ev){
@@ -106,6 +120,14 @@
 		if (el.getAttribute("data-act") === "reset") {
 			hidemenu();
 			resetview();
+			paint();
+			return;
+		}
+		var st = el.getAttribute("data-style");
+		if (st) {
+			if (st === style) return;
+			style = st;
+			markstyle();
 			paint();
 			return;
 		}
@@ -172,6 +194,15 @@
 		var i;
 		for (i = 0; i < nodes.length; i++)
 			nodes[i].className = nodes[i].getAttribute("data-mode") === mode ? "on" : "";
+		var box = document.querySelector(".plot-style");
+		if (box) box.hidden = mode !== "3";
+	}
+
+	function markstyle(){
+		var nodes = document.querySelectorAll(".plot-style [data-style]");
+		var i;
+		for (i = 0; i < nodes.length; i++)
+			nodes[i].className = nodes[i].getAttribute("data-style") === style ? "on" : "";
 	}
 
 	function say(text, bad){
@@ -589,8 +620,21 @@
 				};
 			}
 		}
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(0, 0, w, h);
+		ctx.clip();
+		if (style === "grid") drawGrid(ctx, pts, n, grid);
+		else if (style === "dots") drawDots(ctx, pts);
+		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
+		else drawFill(ctx, pts, n, grid);
+		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
+		ctx.restore();
+	}
+
+	function drawFill(ctx, pts, n, grid){
 		var tris = [];
-		var a, b, c, d, p0, p1, p2;
+		var i, j, a, b, c, d, p0, p1, p2;
 		for (j = 0; j < n; j++) {
 			for (i = 0; i < n; i++) {
 				a = j * grid + i;
@@ -602,10 +646,6 @@
 			}
 		}
 		tris.sort(function(u, v){ return v.d - u.d; });
-		ctx.save();
-		ctx.beginPath();
-		ctx.rect(0, 0, w, h);
-		ctx.clip();
 		for (i = 0; i < tris.length; i++) {
 			p0 = pts[tris[i].a];
 			p1 = pts[tris[i].b];
@@ -618,8 +658,118 @@
 			ctx.fillStyle = zcolor((p0.t + p1.t + p2.t) / 3);
 			ctx.fill();
 		}
-		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
-		ctx.restore();
+	}
+
+	function drawGrid(ctx, pts, n, grid){
+		var segs = [];
+		var i, j, a;
+		for (j = 0; j < grid; j++) {
+			for (i = 0; i < grid; i++) {
+				a = j * grid + i;
+				if (i + 1 < grid) pushseg(segs, pts, a, a + 1);
+				if (j + 1 < grid) pushseg(segs, pts, a, a + grid);
+			}
+		}
+		strokeSegs(ctx, segs, 1);
+	}
+
+	function drawDots(ctx, pts){
+		var list = [];
+		var i, p;
+		for (i = 0; i < pts.length; i++) if (pts[i].ok) list.push(pts[i]);
+		list.sort(function(a, b){ return b.d - a.d; });
+		for (i = 0; i < list.length; i++) {
+			p = list[i];
+			ctx.fillStyle = zcolor(p.t);
+			ctx.beginPath();
+			ctx.arc(p.x, p.y, 2.2, 0, 6.2832);
+			ctx.fill();
+		}
+	}
+
+	function drawLevels(ctx, pts, zraw, n, grid, lo, hi){
+		var bands = 8;
+		var segs = [];
+		var k, level, i, j, a, z00, z10, z11, z01, p00, p10, p11, p01, e0, e1, e2, e3, hit;
+		var span = hi - lo;
+		if (!(span > 0)) return;
+		for (k = 1; k < bands; k++) {
+			level = lo + span * k / bands;
+			for (j = 0; j < n; j++) {
+				for (i = 0; i < n; i++) {
+					a = j * grid + i;
+					z00 = zraw[a];
+					z10 = zraw[a + 1];
+					z01 = zraw[a + grid];
+					z11 = zraw[a + grid + 1];
+					p00 = pts[a];
+					p10 = pts[a + 1];
+					p01 = pts[a + grid];
+					p11 = pts[a + grid + 1];
+					e0 = crossZ(p00, p10, z00, z10, level);
+					e1 = crossZ(p10, p11, z10, z11, level);
+					e2 = crossZ(p11, p01, z11, z01, level);
+					e3 = crossZ(p01, p00, z01, z00, level);
+					hit = [];
+					if (e0) hit.push(e0);
+					if (e1) hit.push(e1);
+					if (e2) hit.push(e2);
+					if (e3) hit.push(e3);
+					if (hit.length === 4) {
+						var zc = (z00 + z10 + z11 + z01) / 4;
+						if ((zc >= level) === (z00 >= level)) {
+							pushLevel(segs, e0, e1, level, lo, span);
+							pushLevel(segs, e2, e3, level, lo, span);
+						}
+						else {
+							pushLevel(segs, e0, e3, level, lo, span);
+							pushLevel(segs, e1, e2, level, lo, span);
+						}
+					}
+					else if (hit.length === 2) pushLevel(segs, hit[0], hit[1], level, lo, span);
+				}
+			}
+		}
+		strokeSegs(ctx, segs, 1.6);
+	}
+
+	function pushLevel(segs, p, q, level, lo, span){
+		segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: (level - lo) / span });
+	}
+
+	function crossZ(p, q, z0, z1, level){
+		if (!p.ok || !q.ok || !isFinite(z0) || !isFinite(z1)) return null;
+		if ((z0 >= level) === (z1 >= level)) return null;
+		var t = (level - z0) / (z1 - z0);
+		if (!(t >= 0 && t <= 1)) return null;
+		return {
+			x: p.x + (q.x - p.x) * t,
+			y: p.y + (q.y - p.y) * t,
+			d: p.d + (q.d - p.d) * t,
+			t: p.t + (q.t - p.t) * t
+		};
+	}
+
+	function pushseg(segs, pts, a, b){
+		var p = pts[a], q = pts[b];
+		if (!p.ok || !q.ok) return;
+		segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: (p.t + q.t) / 2 });
+	}
+
+	function strokeSegs(ctx, segs, width){
+		var i, s;
+		segs.sort(function(a, b){ return b.d - a.d; });
+		ctx.lineWidth = width;
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		for (i = 0; i < segs.length; i++) {
+			s = segs[i];
+			ctx.strokeStyle = zcolor(s.t);
+			ctx.beginPath();
+			ctx.moveTo(s.p.x, s.p.y);
+			ctx.lineTo(s.q.x, s.q.y);
+			ctx.stroke();
+		}
 	}
 
 	function pushtri(tris, pts, a, b, c){

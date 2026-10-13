@@ -75,6 +75,7 @@ static class HttpApiCatalog {
 		add(list, "POST /api/fake", "POST", "/api/fake", "{\n  \"locale\": \"zh_CN\",\n  \"kind\": \"name\",\n  \"n\": 2\n}", "http.doc.fake");
 		add(list, "POST /api/fx", "POST", "/api/fx", "{\n  \"amount\": 1,\n  \"from\": \"USD\",\n  \"to\": \"CNY\"\n}", "http.doc.fx", accept: "GET/POST");
 		add(list, "GET /api/enc", "GET", "/api/enc?cp=21834", "", "http.doc.enc", accept: "GET/POST");
+		add(list, "GET /api/fonts", "GET", "/api/fonts", "", "http.doc.fonts");
 		add(list, "POST /api/qrmake", "POST", "/api/qrmake", "{\n  \"text\": \"hello\",\n  \"format\": \"qr\",\n  \"encoding\": \"utf8\"\n}", "http.doc.qrmake", accept: "GET/POST");
 		add(list, "POST /api/qrscan", "POST", "/api/qrscan", "{\n  \"base64\": \"\"\n}", "http.doc.qrscan");
 		add(list, "POST /api/cast/stop", "POST", "/api/cast/stop", "", "http.doc.caststop", accept: "GET/POST");

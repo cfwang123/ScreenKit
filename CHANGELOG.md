@@ -39,6 +39,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Settings can write screenshot paths with forward slashes (snap_path_slash).
 - Function plots can draw equations such as x^2+y^2=1, and Examples opens a list of curves and surfaces.
+- 3D function plots can switch among a shaded surface, a grid, points, and contour lines.
 
 #### Changed
 
@@ -66,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 参数设置可让复制截图路径时把反斜杠写成正斜杠（snap_path_slash）。
 - 函数图像可以画 x^2+y^2=1 这类等式，点「示例」后从列表里选曲线或曲面。
+- 三维函数图像可在曲面、网格、点阵、等高线之间切换。
 
 #### 变更
 

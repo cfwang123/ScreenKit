@@ -7,11 +7,14 @@
 	var uniNot = null;
 	var uniInk = {};
 	var uniSeen = {};
+	var uniAt = 0;
+	var uniCp = -1;
+	var UNIFACE = "\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Microsoft YaHei\",\"Meiryo\",\"Yu Gothic\",\"Microsoft JhengHei\",\"MingLiU\",\"Noto Sans SC\",\"Noto Sans JP\",\"Noto Sans KR\",sans-serif";
 	SK.regutil("u-ascii", {
 		title: "Unicode码表",
 		go: "显示",
 		body: function(){
-			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><span id="u-msg" class="msg"></span></div>'
+			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><select id="u-font" class="ufont" title="字体"></select><span id="u-msg" class="msg"></span></div>'
 				+ '<p class="hint">点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位，以及 GBK 等编码。</p>'
 				+ '<div class="unitab"><div class="ugroups" id="u-groups"></div><div class="ugrid" id="u-grid"></div>'
 				+ '<aside class="uprev"><div class="uprev-ch" id="u-ch"></div><dl class="uprev-meta" id="u-meta"></dl></aside></div>';
@@ -20,7 +23,9 @@
 			throw new Error("没有这个工具");
 		},
 		open: function(){
+			SK.onchartfont = unirefont;
 			unibuild();
+			SK.chartfont("u-font");
 		},
 		hideGo: true,
 		live: false,
@@ -80,7 +85,20 @@
 		unishow(i, cp);
 	}
 
+	function unirefont(){
+		uniInk = {};
+		uniSeen = {};
+		if (!SK.$("u-grid")) return;
+		unishow(uniAt, uniCp);
+	}
+
+	function uniface(){
+		var face = SK.chartface ? SK.chartface() : "";
+		return face ? face + "," + UNIFACE : UNIFACE;
+	}
+
 	function unishow(index, focus){
+		uniAt = index;
 		var slices = unislices();
 		var g = slices[index];
 		var groups = document.querySelectorAll("#u-groups button");
@@ -89,6 +107,7 @@
 			groups[i].className = i === index ? "on" : "";
 		if (groups[index]) groups[index].scrollIntoView({ block: "nearest" });
 		var pick = focus >= g[1] && focus <= g[2] ? focus : g[1];
+		uniCp = pick;
 		var html = [];
 		var cp;
 		for (cp = g[1]; cp <= g[2]; cp++) {
@@ -362,7 +381,7 @@
 		}
 		var g = c.getContext("2d", { willReadFrequently: true });
 		g.clearRect(0, 0, 24, 24);
-		g.font = "16px \"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Microsoft YaHei\",\"Meiryo\",\"Yu Gothic\",\"Microsoft JhengHei\",\"MingLiU\",\"Noto Sans SC\",\"Noto Sans JP\",\"Noto Sans KR\",sans-serif";
+		g.font = "16px " + uniface();
 		g.fillStyle = "#000";
 		g.textAlign = "center";
 		g.textBaseline = "middle";

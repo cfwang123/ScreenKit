@@ -26,7 +26,7 @@
 	SK.regutil("u-asc", {
 		title: "ASCII码表",
 		body: function(){
-			return '<div class="uquery"><input id="a-q" type="text" placeholder="字符、0x41、65、0b1000001 或 NUL"><span id="a-msg" class="msg"></span></div>'
+			return '<div class="uquery"><input id="a-q" type="text" placeholder="字符、0x41、65、0b1000001 或 NUL"><select id="a-font" class="ufont" title="字体"></select><span id="a-msg" class="msg"></span></div>'
 				+ '<p class="hint">点一下选中并复制。左边按类别分组，控制字符显示标准缩写。最右边是大字、十进制、十六进制、八进制、二进制、转义写法。</p>'
 				+ '<div class="unitab"><div class="ugroups" id="a-groups"></div><div class="ugrid a16h" id="a-grid"></div>'
 				+ '<aside class="uprev"><div class="uprev-ch ctrl" id="a-ch"></div><dl class="uprev-meta" id="a-meta"></dl></aside></div>';
@@ -35,8 +35,10 @@
 			throw new Error("没有这个工具");
 		},
 		open: function(){
+			SK.onchartfont = null;
 			ascgroups();
 			ascshow(0, -1);
+			SK.chartfont("a-font");
 		},
 		hideGo: true,
 		live: false,
