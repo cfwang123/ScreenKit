@@ -42,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - The System tab of System info groups the computer, processor, graphics, memory, disks, volumes, and network into blocks.
+- RMB in words is a row on Number notation. The separate card is gone. A non-negative amount of at most 12 integer digits is rounded to fen; otherwise the row is blank.
 
 #### Fixed
 
@@ -60,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 系统信息的系统页按计算机、处理器、显卡、内存、硬盘、分区和网络分块显示。
+- 人民币大写并入数字表记，不再单独成卡。非负且整数不超过 12 位时四舍五入到分；否则该行留空。
 
 #### 修复
 

@@ -60,6 +60,7 @@
 		"数字": "zh-CN",
 		"中文读法": "zh-CN",
 		"中文大写": "zh-CN",
+		"人民币大写": "zh-CN",
 		"小数": "zh-CN",
 		"中数": "zh-CN",
 		"大数": "zh-CN",
@@ -91,7 +92,7 @@
 		live: false,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分；负数或整数超过 12 位时这一行留空。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -188,6 +189,7 @@
 			["数字", plain],
 			["中文读法", zhread(p, false)],
 			["中文大写", zhread(p, true)],
+			["人民币大写", rmbof(p)],
 			["小数", scaleread(p, "small")],
 			["中数", scaleread(p, "mid")],
 			["大数", scaleread(p, "big")],
@@ -215,6 +217,66 @@
 
 	function sign(p){
 		return p.neg ? "-" : "";
+	}
+
+	// 非负、整数不超过 12 位。只看小数第三位做四舍五入，进位后仍超过 12 位则留空。
+	function rmbof(p){
+		if (p.neg || p.ip.length > 12) return "";
+		var yuan = parseInt(p.ip, 10);
+		var frac = (p.fp || "") + "000";
+		var fen = parseInt(frac.slice(0, 2), 10);
+		if (parseInt(frac.charAt(2), 10) >= 5) fen++;
+		var all = yuan * 100 + fen;
+		if (!isFinite(all) || Math.floor(all / 100) > 999999999999) return "";
+		if (all === 0) return "零元整";
+		var small = ["", "拾", "佰", "仟"];
+		var big = ["", "万", "亿"];
+		var y = Math.floor(all / 100);
+		var jiao = Math.floor(all / 10) % 10;
+		var f = all % 10;
+		var chunks = [];
+		while (y > 0) {
+			chunks.push(y % 10000);
+			y = Math.floor(y / 10000);
+		}
+		var body = "";
+		var gap = false;
+		var gi;
+		for (gi = chunks.length - 1; gi >= 0; gi--) {
+			var sec = chunks[gi];
+			if (!sec) {
+				gap = true;
+				continue;
+			}
+			var piece = "";
+			var zero = false;
+			var left = sec;
+			var i;
+			for (i = 0; i < 4; i++) {
+				var d = left % 10;
+				if (d === 0) {
+					if (piece) zero = true;
+				}
+				else {
+					piece = ZHB.charAt(d) + small[i] + (zero ? "零" : "") + piece;
+					zero = false;
+				}
+				left = Math.floor(left / 10);
+			}
+			if (body && (gap || sec < 1000)) body += "零";
+			body += piece + big[gi];
+			gap = false;
+		}
+		var tail;
+		if (jiao === 0 && f === 0) tail = "整";
+		else {
+			tail = "";
+			if (jiao) tail += ZHB.charAt(jiao) + "角";
+			else if (f && yuan) tail += "零";
+			if (f) tail += ZHB.charAt(f) + "分";
+		}
+		if (!body) return tail;
+		return body + "元" + tail;
 	}
 
 	function zhread(p, formal){
