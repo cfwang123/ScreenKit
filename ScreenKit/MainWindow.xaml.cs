@@ -575,7 +575,6 @@ public partial class MainWindow : Window {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;
 				syncusbaccui();
 			};
-			tray.UsbAccessoryRequested += () => Dispatcher.BeginInvoke(new Action(() => CastUsbWaitWindow.ShowWait(this)));
 			// 截图识别：成功后弹出主窗、切到「截图识别」页并显示结果
 			tray.OcrRequested += () => Dispatcher.BeginInvoke(new Action(() => {
 				// 菜单关闭瞬间可能把托盘主窗拉起：若点菜单前是隐藏的，立刻藏回再截

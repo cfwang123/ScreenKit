@@ -92,7 +92,7 @@
 		live: false,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分；负数或整数超过 12 位时这一行留空。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -212,14 +212,19 @@
 			["八进制", baseof(p, 8)],
 			["十六进制", baseof(p, 16)]
 		];
-		return rows;
+		var out = [];
+		var i;
+		for (i = 0; i < rows.length; i++) {
+			if (rows[i][1]) out.push(rows[i]);
+		}
+		return out;
 	}
 
 	function sign(p){
 		return p.neg ? "-" : "";
 	}
 
-	// 非负、整数不超过 12 位。只看小数第三位做四舍五入，进位后仍超过 12 位则留空。
+	// 非负、整数不超过 12 位。只看小数第三位做四舍五入，进位后仍超过 12 位则没有这一行。
 	function rmbof(p){
 		if (p.neg || p.ip.length > 12) return "";
 		var yuan = parseInt(p.ip, 10);

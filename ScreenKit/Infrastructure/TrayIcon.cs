@@ -53,7 +53,6 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miAutoKey;
 	Forms.ToolStripMenuItem miFastCopy;
 	Forms.ToolStripMenuItem miCast;
-	Forms.ToolStripMenuItem miUsbAcc;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
@@ -61,7 +60,6 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miExit;
 	bool disposed;
 	bool snapCopyUi;
-	string usbStat = "";
 	/// <summary>刚点了 radio：菜单正常关掉后在原位再打开（避免 Cancel 关掉导致点外面关不上）。</summary>
 	bool reopenAfterRadio;
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
@@ -177,7 +175,6 @@ sealed class TrayIcon : IDisposable {
 		miAutoKey = item("tray.autokey", () => AutoKeyRequested?.Invoke());
 		miFastCopy = item("tray.fastcopy", () => FastCopyRequested?.Invoke());
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
-		miUsbAcc = item("tray.usbacc", () => UsbAccessoryRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
 		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
 		miWeb = new Forms.ToolStripMenuItem(Loc.T("tray.webtools"));
@@ -239,7 +236,6 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miGifRecord);
 		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(new Forms.ToolStripSeparator());
-		menu.Items.Add(miUsbAcc);
 		menu.Items.Add(miWeb);
 		menu.Items.Add(miTools);
 		menu.Items.Add(miSettings);
@@ -415,7 +411,6 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miAutoKey, null);
 		setshortcut(miFastCopy, null);
 		setshortcut(miCast, null);
-		setshortcut(miUsbAcc, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
 	}
@@ -471,7 +466,6 @@ sealed class TrayIcon : IDisposable {
 			settext(miAutoKey, "tray.autokey");
 			settext(miFastCopy, "tray.fastcopy");
 			settext(miCast, "tray.cast");
-			SetUsbAccStatus(usbStat);
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
@@ -573,14 +567,6 @@ sealed class TrayIcon : IDisposable {
 	public event Action AutoKeyRequested;
 	public event Action FastCopyRequested;
 	public event Action CastRequested;
-	public event Action UsbAccessoryRequested;
-
-	public void SetUsbAccStatus(string status) {
-		usbStat = status ?? "";
-		if (miUsbAcc == null) return;
-		var name = Loc.T("tray.usbacc");
-		miUsbAcc.Text = usbStat.Length == 0 ? name : $"{name}（{usbStat}）";
-	}
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>

@@ -44,7 +44,8 @@ body {
 	box-shadow: none;
 }
 .shell { display: flex; flex: 1; min-height: 0; margin: 0; gap: 0; align-items: stretch; }
-html.in-tool aside, html.in-tool .brand { display: none; }
+/* 只藏分类栏。码表预览和聊天室成员列表也是 aside，不能一起藏。 */
+html.in-tool .shell > aside, html.in-tool .brand { display: none; }
 aside {
 	width: 196px;
 	flex: none;
@@ -490,6 +491,7 @@ input[type="file"] {
 .ugrid button.alt { background: #fbf6f0; }
 .ugrid button.on { border-color: var(--accent); background: #fff1e8; }
 .uprev {
+	width: auto; position: static; align-self: stretch;
 	border: 1px solid var(--line); border-radius: 10px; background: var(--card); padding: 12px;
 }
 .uprev-ch {

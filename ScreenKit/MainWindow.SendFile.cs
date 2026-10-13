@@ -115,7 +115,6 @@ public partial class MainWindow {
 	void syncusbaccui() {
 		var line = Loc.T("usbacc.line", CastHost.UsbAccStatus());
 		if (lbsfusbstat != null) lbsfusbstat.Text = line;
-		try { tray?.SetUsbAccStatus(CastHost.UsbAccStatus()); } catch { }
 	}
 
 	void showapkinstall() {

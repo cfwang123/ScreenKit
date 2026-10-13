@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The System tab of System info groups the computer, processor, graphics, memory, disks, volumes, and network into blocks.
 - RMB in words is a row on Number notation. The separate card is gone. A non-negative amount of at most 12 integer digits is rounded to fen; otherwise the row is blank.
+- Number notation no longer shows a row when that reading has no value.
 
 #### Fixed
 
@@ -51,6 +52,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR enlarges an image whose short side is under 72 pixels so small gray text is not reduced to the last word.
 - Chinese usernames stay as family name plus given name. Bogus was stripping the characters and leaving only a separator or digits.
 - Windows OCR ignores the detection side limit. A short text line is enlarged about 2x with Lanczos so a small second line is kept, and punctuation sitting against a word is not split off with a space.
+- Unicode, ASCII, and GBK charts show the character detail card again. Entering a tool hid every aside, including that card.
+
+#### Removed
+
+- The tray menu no longer includes Connect Android USB accessory. The file-sync page and the screencast window still open it.
 
 ### 中文
 
@@ -62,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 系统信息的系统页按计算机、处理器、显卡、内存、硬盘、分区和网络分块显示。
 - 人民币大写并入数字表记，不再单独成卡。非负且整数不超过 12 位时四舍五入到分；否则该行留空。
+- 数字表记不再显示没有值的行。
 
 #### 修复
 
@@ -70,6 +77,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR 会把短边不足 72 像素的图先放大，避免浅色小字只剩最后一个词。
 - 中文用户名改为姓加名。原先 Bogus 会抹掉汉字，只剩分隔符或数字。
 - Windows OCR 不再按检测边长缩小。字行太矮时用 Lanczos 放大约 2 倍，避免短行被丢掉；紧挨着的标点不再被拆成带空格的词。
+- Unicode、ASCII、GBK 码表重新显示右侧字符详情。进入工具时隐藏了所有 aside，详情卡片也被藏起来。
+
+#### 移除
+
+- 托盘菜单去掉「连接安卓USB配件」。文件同步页和投屏窗仍可打开。
 
 ## v1.0.19 (2026-10-10 ~ 12)
 
