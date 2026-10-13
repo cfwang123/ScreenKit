@@ -163,7 +163,7 @@
 	function parsenum(text){
 		var s = String(text).trim().replace(/[\s,，]/g, "");
 		if (!s) return null;
-		if (s.length > 220) throw new Error("太长");
+		if (s.length > 10000) throw new Error("太长");
 		var neg = false;
 		var c0 = s.charAt(0);
 		if (c0 === "+" || c0 === "-" || c0 === "−") {
@@ -177,7 +177,6 @@
 		var parts = s.split(".");
 		var ip = parts[0].replace(/^0+/, "") || "0";
 		var fp = (parts[1] || "").replace(/0+$/, "");
-		if (ip.length > 129) throw new Error("整数部分最多 129 位");
 		if (fp.length > FRACU.length) throw new Error("小数部分最多 " + FRACU.length + " 位");
 		if (ip === "0" && !fp) neg = false;
 		return { neg: neg, ip: ip, fp: fp };
@@ -338,11 +337,12 @@
 
 	function groupname(i){
 		if (i < ZG.length) return ZG[i];
-		var s = i % 2 ? "万" : "";
 		var n = Math.floor(i / 2);
+		var bits = [];
 		var k;
-		for (k = 0; k < n; k++) s += "亿";
-		return s;
+		if (i % 2) bits.push("万");
+		for (k = 0; k < n; k++) bits.push("亿");
+		return bits.join("");
 	}
 
 	function expsFor(mode){
@@ -963,8 +963,13 @@
 		if (ip === "3") return "triangle";
 		if (ip === "4") return "quadrilateral";
 		var groups = splitend(ip, 4);
-		var parts = [];
+		var est = 0;
 		var i;
+		for (i = 1; i < groups.length; i++) {
+			if (+groups[i]) est += 8 * i + 24;
+		}
+		if (est > 200000) return "";
+		var parts = [];
 		for (i = groups.length - 1; i >= 0; i--) {
 			var k = parseInt(groups[i], 10);
 			if (!k) continue;
@@ -977,9 +982,11 @@
 	}
 
 	function groupPrefix(k, order){
-		var unit = "myria";
+		var bits = [];
 		var i;
-		for (i = 1; i < order; i++) unit = "myriakis" + unit;
+		for (i = 1; i < order; i++) bits.push("myriakis");
+		bits.push("myria");
+		var unit = bits.join("");
 		if (k === 1) return unit;
 		if (k === 2) return "dis" + unit;
 		if (k === 3) return "tris" + unit;
