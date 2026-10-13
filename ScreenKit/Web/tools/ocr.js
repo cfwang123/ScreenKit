@@ -5,6 +5,7 @@
 	var ocrLoading = false;
 	var ocrAfter = [];
 	var ocrGen = 0;
+	function tr(s){ return (SK.tr ? SK.tr(s) : s); }
 	function loadoocr(after){
 		if (ocrPacks.length) {
 			if (after) after();
@@ -130,14 +131,14 @@
 		if (!stat) return "";
 		var inferS = (Math.max(0, Number(stat.infer) || 0) / 1000).toFixed(2);
 		var wallS = (Math.max(0, wallMs) / 1000).toFixed(2);
-		var loadPart = stat.load > 0 ? " · 加载 " + (stat.load / 1000).toFixed(2) + "s" : "";
+		var loadPart = stat.load > 0 ? " · " + tr("加载") + " " + (stat.load / 1000).toFixed(2) + "s" : "";
 		var conf = (Number(stat.score) || 0).toFixed(2);
 		var device = stat.device || "";
 		var model = stat.model ? " | " + stat.model : "";
 		var res = stat.width > 0 && stat.height > 0 ? " | " + stat.width + "×" + stat.height : "";
-		return "推理 " + inferS + "s · 端到端 " + wallS + "s" + loadPart
-			+ " | 置信度 " + conf + " | " + device + model + res
-			+ " | " + (stat.lines || 0) + " 行 | 边长" + (stat.limit || 0);
+		return tr("推理") + " " + inferS + "s · " + tr("端到端") + " " + wallS + "s" + loadPart
+			+ " | " + tr("置信度") + " " + conf + " | " + device + model + res
+			+ " | " + (stat.lines || 0) + " " + tr("行") + " | " + tr("边长") + (stat.limit || 0);
 	}
 
 	function ocrgo(){

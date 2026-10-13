@@ -68,6 +68,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		"换算": "web.go.unit"
 	};
 	function boot(){
+		hookhtml();
 		var today = new Date();
 		var month = today.getMonth() + 1;
 		var day = today.getDate();
@@ -269,6 +270,109 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		return '<span data-k="' + key + '">' + esc(t(key)) + "</span>";
 	}
 
+	function tr(text){
+		if (!text) return "";
+		var key = webkey(text);
+		if (!key) return text;
+		return t(key) || text;
+	}
+
+	function hookhtml(){
+		if (hookhtml.done) return;
+		hookhtml.done = true;
+		var desc = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+		if (!desc || !desc.set) return;
+		Object.defineProperty(Element.prototype, "innerHTML", {
+			configurable: true,
+			enumerable: desc.enumerable,
+			get: desc.get,
+			set: function(v){
+				desc.set.call(this, v);
+				try { markhtml(this); } catch (e) {}
+			}
+		});
+	}
+
+	function skipped(el){
+		while (el && el.nodeType === 1) {
+			if (el.id === "chat-log" || el.id === "chat-peers" || el.id === "chat-offers") return true;
+			if (el.classList && (el.classList.contains("num-v") || el.classList.contains("uprev-ch"))) return true;
+			var tag = el.tagName;
+			if (tag === "TEXTAREA" || tag === "SCRIPT" || tag === "STYLE" || tag === "INPUT") return true;
+			el = el.parentNode;
+		}
+		return false;
+	}
+
+	function markhtml(root){
+		if (!root || root.nodeType !== 1 || skipped(root)) return;
+		var list = [];
+		var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+		var n;
+		while ((n = walker.nextNode())) list.push(n);
+		var i;
+		for (i = 0; i < list.length; i++) marktext(list[i]);
+		markattr(root);
+		var els = root.querySelectorAll("[placeholder], [title], [alt]");
+		for (i = 0; i < els.length; i++) markattr(els[i]);
+	}
+
+	function marktext(node){
+		var parent = node.parentNode;
+		if (!parent || parent.nodeType !== 1 || skipped(parent)) return;
+		if (parent.hasAttribute("data-k") || parent.hasAttribute("data-kz")) return;
+		var raw = node.nodeValue;
+		if (!raw) return;
+		var s = raw.replace(/^\s+|\s+$/g, "");
+		if (!s) return;
+		var key = webkey(s);
+		if (!key) return;
+		var shown = t(key) || s;
+		if (parent.childNodes.length === 1 && parent.tagName !== "BODY" && parent.tagName !== "HTML") {
+			F.seta(parent, "data-k", key);
+			parent.textContent = shown;
+			return;
+		}
+		var span = F.el("span");
+		F.seta(span, "data-k", key);
+		span.textContent = shown;
+		var lead = raw.match(/^\s*/)[0];
+		var tail = raw.match(/\s*$/)[0];
+		if (lead) parent.insertBefore(document.createTextNode(lead), node);
+		parent.insertBefore(span, node);
+		if (tail) parent.insertBefore(document.createTextNode(tail), node);
+		parent.removeChild(node);
+	}
+
+	function markattr(el){
+		if (!el || el.nodeType !== 1 || skipped(el)) return;
+		var ph = el.getAttribute("placeholder");
+		var key;
+		if (ph && !el.getAttribute("data-kph")) {
+			key = webkey(ph);
+			if (key) {
+				F.seta(el, "data-kph", key);
+				F.seta(el, "placeholder", t(key) || ph);
+			}
+		}
+		var title = el.getAttribute("title");
+		if (title && !el.getAttribute("data-ktip") && !el.getAttribute("data-kt")) {
+			key = webkey(title);
+			if (key) {
+				F.seta(el, "data-ktip", key);
+				F.seta(el, "title", t(key) || title);
+			}
+		}
+		var alt = el.getAttribute("alt");
+		if (alt && !el.getAttribute("data-ka")) {
+			key = webkey(alt);
+			if (key) {
+				F.seta(el, "data-ka", key);
+				F.seta(el, "alt", t(key) || alt);
+			}
+		}
+	}
+
 	function filllang(){
 		var sel = F.id("lang");
 		if (!sel) return;
@@ -322,6 +426,16 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			s = t(F.attr(nodes[i], "data-ktip"));
 			if (s) nodes[i].title = s;
 		}
+		nodes = F.qa("[data-ka]");
+		for (i = 0; i < nodes.length; i++) {
+			s = t(F.attr(nodes[i], "data-ka"));
+			if (s) F.seta(nodes[i], "alt", s);
+		}
+		nodes = F.qa("[data-kz]");
+		for (i = 0; i < nodes.length; i++) {
+			s = tr(F.attr(nodes[i], "data-kz"));
+			if (s) nodes[i].textContent = s + (F.attr(nodes[i], "data-kx") || "");
+		}
 		var code = langs()[langAt] || "zh";
 		document.documentElement.lang = code === "zh" ? "zh-CN" : code;
 		if (SK.curtool && SK.curtool !== "home") {
@@ -329,6 +443,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			marktool(SK.curtool, panel);
 		}
 		settitle();
+		markhtml(document.body);
 		if (SK.fillttslang && F.id("tts-lang")) SK.fillttslang();
 		if (SK.filltrlang) SK.filltrlang();
 		paintstars();
@@ -843,14 +958,19 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function radio(name, id, title, on){
-		return '<label class="check"><input id="' + id + '" name="' + name + '" type="radio" value="' + title + '"' + (on ? " checked" : "") + "> " + title + "</label>";
+		return '<label class="check"><input id="' + id + '" name="' + name + '" type="radio" value="' + title + '"' + (on ? " checked" : "") + "> " + khtml(title) + "</label>";
 	}
 
 	function opts(list, sel){
 		var html = "";
 		var i;
+		var label;
+		var key;
 		for (i = 0; i < list.length; i++) {
-			html += '<option value="' + list[i][0] + '"' + (list[i][0] === sel ? " selected" : "") + ">" + list[i][1] + "</option>";
+			label = list[i][1];
+			key = webkey(label);
+			html += '<option value="' + list[i][0] + '"' + (list[i][0] === sel ? " selected" : "")
+				+ (key ? ' data-k="' + key + '"' : "") + ">" + (key ? esc(t(key)) : label) + "</option>";
 		}
 		return html;
 	}
@@ -1177,7 +1297,10 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		}
 		SK.reNote = "";
 		try {
-			F.id("box-out").value = spec.run();
+			var out = spec.run();
+			out = out == null ? "" : String(out);
+			var outKey = webkey(out);
+			F.id("box-out").value = outKey ? (t(outKey) || out) : out;
 			msg("box-msg", SK.reNote || "完成");
 		}
 		catch (ex) {
@@ -1252,6 +1375,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.stoptick = stoptick;
 	SK.seticopic = seticopic;
 	SK.esc = esc;
+	SK.tr = tr;
+	SK.markhtml = markhtml;
 	SK.openutil = openutil;
 	SK.utilrun = utilrun;
 	SK.t = t;

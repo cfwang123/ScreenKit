@@ -2,6 +2,7 @@
 	var lastop = "";
 	var textseq = 0;
 	var textwait = 0;
+	function tr(s){ return SK.tr ? SK.tr(s) : s; }
 
 	function textop(op){
 		lastop = op;
@@ -308,21 +309,21 @@
 		else throw new Error("用 5 段：分 时 日 月 周");
 		var lines = [];
 		var i;
-		for (i = 0; i < p.length; i++) lines.push(names[i] + "  " + cronpart(p[i], ranges[i][0], ranges[i][1]));
+		for (i = 0; i < p.length; i++) lines.push(tr(names[i]) + "  " + cronpart(p[i], ranges[i][0], ranges[i][1]));
 		return lines.join("\n");
 	}
 
 	function cronpart(part, lo, hi){
-		if (part === "*") return "每档";
+		if (part === "*") return tr("每档");
 		var step = part.split("/");
 		if (step.length > 2) throw new Error("表达式无效");
 		var base = step[0];
 		var every = "";
 		if (step.length === 2) {
 			if (!/^\d+$/.test(step[1]) || Number(step[1]) < 1) throw new Error("步长无效");
-			every = "，每隔 " + step[1];
+			every = tr("，每隔") + " " + step[1];
 		}
-		if (base === "*") return "每档" + every;
+		if (base === "*") return tr("每档") + every;
 		var bits = base.split(",");
 		var out = [];
 		var i;
@@ -336,7 +337,7 @@
 			else if (span.length === 2) {
 				cronnum(span[0], lo, hi);
 				cronnum(span[1], lo, hi);
-				out.push(span[0] + " 到 " + span[1]);
+				out.push(span[0] + " " + tr("到") + " " + span[1]);
 			}
 			else throw new Error("表达式无效");
 		}
@@ -494,7 +495,7 @@
 		var n = 0;
 		var re = /[\u3400-\u9fff]|[A-Za-z]+|\d+|[^\s]/g;
 		while (re.exec(s)) n++;
-		return "约 " + n + " 个 token\n字符  " + s.length + "\n这是按汉字、英文单词和符号粗算的，不是某个模型的分词器。";
+		return tr("约") + " " + n + " " + tr("个 token") + "\n" + tr("字符") + "  " + s.length + "\n" + tr("这是按汉字、英文单词和符号粗算的，不是某个模型的分词器。");
 	}
 
 	function html2js(text){

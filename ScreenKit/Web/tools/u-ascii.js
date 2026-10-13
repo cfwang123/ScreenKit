@@ -36,8 +36,9 @@
 		var html = ['<div class="usum">共 ' + unitotal(slices) + ' 个</div>'];
 		var i;
 		for (i = 0; i < slices.length; i++)
-			html.push('<button type="button" data-i="' + i + '" title="' + unihtml(unirange(slices[i])) + '"><b>'
-				+ unihtml(slices[i][0]) + '</b><small>' + unihtml(unirange(slices[i])) + '</small></button>');
+			html.push('<button type="button" data-i="' + i + '" title="' + unihtml(unirange(slices[i])) + '"><b'
+				+ unitag(slices[i][0]) + '>' + unihtml(uniname(slices[i][0])) + '</b><small>'
+				+ unihtml(unirange(slices[i])) + '</small></button>');
 		F.id("u-groups").innerHTML = html.join("");
 		F.id("u-groups").onclick = function(ev){
 			var el = ev.target;
@@ -160,7 +161,7 @@
 		var rows = [
 			["码位", "U+" + unihex(cp)],
 			["十进制", String(cp)],
-			["分组", uniblock(cp)],
+			["分组", uniname(uniblock(cp))],
 			["平面", uniplane(cp)],
 			["类型", unikind(cp)],
 			["UTF-8", uniutf8(cp)],
@@ -189,8 +190,12 @@
 			);
 		var html = [];
 		var i;
-		for (i = 0; i < rows.length; i++)
-			html.push("<dt>" + rows[i][0] + "</dt><dd>" + unihtml(rows[i][1]) + "</dd>");
+		for (i = 0; i < rows.length; i++) {
+			if (rows[i][0] === "分组")
+				html.push("<dt>" + rows[i][0] + "</dt><dd" + unitag(uniblock(cp)) + ">" + unihtml(rows[i][1]) + "</dd>");
+			else
+				html.push("<dt>" + rows[i][0] + "</dt><dd>" + unihtml(rows[i][1]) + "</dd>");
+		}
 		F.id("u-meta").innerHTML = html.join("");
 		uniask(cp);
 	}
@@ -201,6 +206,23 @@
 
 	function unihtml(s){
 		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+	}
+
+	function unisplit(s){
+		s = String(s || "");
+		var i = s.lastIndexOf(" ");
+		if (i > 0 && /^[0-9A-F]+$/.test(s.slice(i + 1))) return [s.slice(0, i), s.slice(i)];
+		return [s, ""];
+	}
+
+	function uniname(s){
+		var p = unisplit(s);
+		return (SK.tr ? SK.tr(p[0]) : p[0]) + p[1];
+	}
+
+	function unitag(s){
+		var p = unisplit(s);
+		return ' data-kz="' + unihtml(p[0]) + '" data-kx="' + unihtml(p[1]) + '"';
 	}
 
 	function uniblock(cp){

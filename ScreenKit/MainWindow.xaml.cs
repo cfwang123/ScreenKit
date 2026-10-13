@@ -99,6 +99,7 @@ public partial class MainWindow : Window {
 	FastCopyWindow fastCopyWin;
 	GlyphModWindow glyphModWin;
 	PortUseWindow portUseWin;
+	MidiSynthWindow midiWin;
 	System.Windows.Threading.DispatcherTimer autokeyTimer;
 	bool autokeyOn;
 	long autokeySent;
@@ -647,6 +648,7 @@ public partial class MainWindow : Window {
 			tray.FastCopyRequested += () => Dispatcher.BeginInvoke(new Action(() => openfastcopy(fromTray: true)));
 			tray.GlyphModRequested += () => Dispatcher.BeginInvoke(new Action(() => openglyphmod(fromTray: true)));
 			tray.PortUseRequested += () => Dispatcher.BeginInvoke(new Action(() => openportuse(fromTray: true)));
+			tray.MidiSynthRequested += () => Dispatcher.BeginInvoke(new Action(() => openmidi(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -1583,6 +1585,7 @@ public partial class MainWindow : Window {
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
+		mnmidi.Click += (_, _) => openmidi();
 		mnsys.Click += (_, _) => opensys();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
@@ -1735,6 +1738,8 @@ public partial class MainWindow : Window {
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
 			mnportuse.Header = Loc.T("menu.portuse");
 			mnportuse.ToolTip = Loc.T("menu.portuse.tip");
+			mnmidi.Header = Loc.T("menu.midisynth");
+			mnmidi.ToolTip = Loc.T("menu.midisynth.tip");
 			mnsys.Header = Loc.T("menu.sysinfo");
 			mnsys.ToolTip = Loc.T("menu.sysinfo.tip");
 			mnhttpdbg.Header = Loc.T("menu.httpdbg");
@@ -4269,6 +4274,9 @@ public partial class MainWindow : Window {
 
 	void openportuse(bool fromTray = false) =>
 		opentoolwin(ref portUseWin, () => new PortUseWindow(), "menu.portuse", fromTray);
+
+	void openmidi(bool fromTray = false) =>
+		opentoolwin(ref midiWin, () => new MidiSynthWindow(), "menu.midisynth", fromTray);
 
 	void opensys(bool fromTray = false) =>
 		opentoolwin(ref sysWin, () => new SysInfoWindow(), "menu.sysinfo", fromTray);
