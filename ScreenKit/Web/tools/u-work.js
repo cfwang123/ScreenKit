@@ -23,6 +23,7 @@
 			SK.utilrun();
 		}
 	});
+	function tr(s){ return SK.tr ? SK.tr(s) : s; }
 	function workdays(a, b){
 		if (!a || !b) throw new Error("请选择两个日期");
 		var da = new Date(a + "T00:00:00");
@@ -38,7 +39,7 @@
 			if (w !== 0 && w !== 6) n++;
 			d.setDate(d.getDate() + 1);
 		}
-		return "工作日  " + n + " 天\n已跳过周六和周日，不含法定假日";
+		return tr("工作日") + "  " + n + " " + tr("天") + "\n" + tr("已跳过周六和周日，不含法定假日");
 	}
 
 	SK.workdays = workdays;

@@ -10,6 +10,7 @@
 			return loanpay(SK.val("box-p"), SK.val("box-rate"), SK.val("box-n"), SK.val("box-mode"));
 		}
 	});
+	function tr(s){ return SK.tr ? SK.tr(s) : s; }
 	function loanpay(p, rate, months, mode){
 		var money = Number(String(p).trim());
 		var y = Number(String(rate).trim());
@@ -23,17 +24,17 @@
 			var first = prin + money * r;
 			var last = prin + prin * r;
 			var interest = (n + 1) * money * r / 2;
-			return "等额本金\n每月本金  " + SK.trimnum(prin)
-				+ "\n首月还款  " + SK.trimnum(first)
-				+ "\n末月还款  " + SK.trimnum(last)
-				+ "\n利息合计  " + SK.trimnum(interest)
-				+ "\n还款合计  " + SK.trimnum(money + interest);
+			return tr("等额本金") + "\n" + tr("每月本金") + "  " + SK.trimnum(prin)
+				+ "\n" + tr("首月还款") + "  " + SK.trimnum(first)
+				+ "\n" + tr("末月还款") + "  " + SK.trimnum(last)
+				+ "\n" + tr("利息合计") + "  " + SK.trimnum(interest)
+				+ "\n" + tr("还款合计") + "  " + SK.trimnum(money + interest);
 		}
 		var pay = r === 0 ? money / n : money * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
 		var total = pay * n;
-		return "等额本息\n每月还款  " + SK.trimnum(pay)
-			+ "\n利息合计  " + SK.trimnum(total - money)
-			+ "\n还款合计  " + SK.trimnum(total);
+		return tr("等额本息") + "\n" + tr("每月还款") + "  " + SK.trimnum(pay)
+			+ "\n" + tr("利息合计") + "  " + SK.trimnum(total - money)
+			+ "\n" + tr("还款合计") + "  " + SK.trimnum(total);
 	}
 
 	SK.loanpay = loanpay;

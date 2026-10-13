@@ -10,6 +10,7 @@
 			return compound(SK.val("box-p"), SK.val("box-rate"), SK.val("box-years"), SK.val("box-n"));
 		}
 	});
+	function tr(s){ return SK.tr ? SK.tr(s) : s; }
 	function compound(p, rate, years, times){
 		var money = Number(String(p).trim());
 		var y = Number(String(rate).trim());
@@ -20,7 +21,7 @@
 		if (!(t > 0) || t > 100) throw new Error("年数要大于 0，且不超过 100");
 		if (!(n >= 1 && n <= 365)) throw new Error("每年计息次数要在 1 到 365");
 		var a = money * Math.pow(1 + y / 100 / n, n * t);
-		return "本息  " + SK.trimnum(a) + "\n利息  " + SK.trimnum(a - money);
+		return tr("本息") + "  " + SK.trimnum(a) + "\n" + tr("利息") + "  " + SK.trimnum(a - money);
 	}
 
 	SK.compound = compound;

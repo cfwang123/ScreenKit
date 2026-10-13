@@ -1,6 +1,7 @@
 (function(){
 	var ALL = "all";
-	var WEEK = "日一二三四五六";
+	var WEEK = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+	function tr(s){ return SK.tr ? SK.tr(s) : s; }
 	var UNITS = [
 		["s", "秒", 1, "秒"],
 		["min", "分", 60, "分"],
@@ -143,12 +144,12 @@
 		var sign = back ? "-" : "";
 		var span = secs(lo, hi);
 		var p = calcdiff(lo, hi);
-		var lines = ["从 " + SK.fmtdt(a) + " 到 " + SK.fmtdt(b) + " 相差"];
+		var lines = [tr("从") + " " + SK.fmtdt(a) + " " + tr("到") + " " + SK.fmtdt(b) + " " + tr("相差")];
 		var i;
 		for (i = 0; i < UNITS.length; i++) {
 			var unit = findunit(UNITS[i][0]);
 			var text;
-			if (unit.sec) text = SK.trimnum(span / unit.sec) + " " + unit.name;
+			if (unit.sec) text = SK.trimnum(span / unit.sec) + " " + tr(unit.name);
 			else text = (unit.id === "m" ? monthparts : yearparts)(p);
 			if (text === lines[lines.length - 1]) continue;
 			lines.push(sign + text);
@@ -162,36 +163,36 @@
 		var hi = back ? a : b;
 		var span = secs(lo, hi);
 		var days = span / 86400;
-		var head = "从 " + SK.fmtdt(a) + " 到 " + SK.fmtdt(b) + " 相差 " + (back ? "-" : "");
+		var head = tr("从") + " " + SK.fmtdt(a) + " " + tr("到") + " " + SK.fmtdt(b) + " " + tr("相差") + " " + (back ? "-" : "");
 		if (unit.sec) {
-			var text = head + SK.trimnum(span / unit.sec) + " " + unit.name;
-			if (unit.id !== "d" && span) text += "（共 " + SK.trimnum(days) + " 天）";
+			var text = head + SK.trimnum(span / unit.sec) + " " + tr(unit.name);
+			if (unit.id !== "d" && span) text += tr("（共") + " " + SK.trimnum(days) + " " + tr("天）");
 			return text;
 		}
 		var parts = (unit.id === "y" ? yearparts : monthparts)(calcdiff(lo, hi));
 		var line = head + parts;
-		if (span && (parts.indexOf("个月") >= 0 || parts.indexOf("年") >= 0))
-			line += "（共 " + SK.trimnum(days) + " 天）";
+		if (span && (parts.indexOf(tr("个月")) >= 0 || parts.indexOf(tr("年")) >= 0))
+			line += tr("（共") + " " + SK.trimnum(days) + " " + tr("天）");
 		return line;
 	}
 
 	function monthparts(p){
 		var parts = [];
 		var rest;
-		if (p.months) parts.push(p.months + " 个月");
+		if (p.months) parts.push(p.months + " " + tr("个月"));
 		rest = resttext(p.rest);
 		if (rest) parts.push(rest);
-		return parts.length ? parts.join(" ") : "0 天";
+		return parts.length ? parts.join(" ") : tr("0 天");
 	}
 
 	function yearparts(p){
 		var parts = [];
 		var rest;
-		if (p.y) parts.push(p.y + " 年");
-		if (p.m) parts.push(p.m + " 个月");
+		if (p.y) parts.push(p.y + " " + tr("年"));
+		if (p.m) parts.push(p.m + " " + tr("个月"));
 		rest = resttext(p.rest);
 		if (rest) parts.push(rest);
-		return parts.length ? parts.join(" ") : "0 天";
+		return parts.length ? parts.join(" ") : tr("0 天");
 	}
 
 	function resttext(ms){
@@ -205,10 +206,10 @@
 		m = Math.floor(sec / 60);
 		sec -= m * 60;
 		parts = [];
-		if (d) parts.push(d + " 天");
-		if (h) parts.push(h + " 小时");
-		if (m) parts.push(m + " 分");
-		if (sec) parts.push(sec + " 秒");
+		if (d) parts.push(d + " " + tr("天"));
+		if (h) parts.push(h + " " + tr("小时"));
+		if (m) parts.push(m + " " + tr("分"));
+		if (sec) parts.push(sec + " " + tr("秒"));
 		return parts.join(" ");
 	}
 
@@ -241,8 +242,8 @@
 		}
 		year = d.getFullYear();
 		if (isNaN(d.getTime()) || year < 1 || year > 9999) throw new Error("结果超出范围");
-		return SK.fmtdt(base) + " 增加：" + SK.trimnum(n) + " " + unit.word
-			+ " → " + SK.fmtdt(d) + "  周" + WEEK.charAt(d.getDay());
+		return SK.fmtdt(base) + " " + tr("增加：") + SK.trimnum(n) + " " + tr(unit.word)
+			+ " → " + SK.fmtdt(d) + "  " + tr(WEEK[d.getDay()]);
 	}
 
 	function addmonths(date, n){

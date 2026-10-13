@@ -9,7 +9,7 @@
 		run: function(){
 			var d = tsdate(SK.val("box-in"));
 			settspick(d);
-			return "本地 " + SK.fmtdt(d) + "\n秒 " + Math.floor(d.getTime() / 1000) + "\n毫秒 " + d.getTime();
+			return tsline(d);
 		},
 		open: function(){
 			var now = new Date();
@@ -29,9 +29,13 @@
 			SK.utilrun();
 		}
 	});
+	function tr(s){ return SK.tr ? SK.tr(s) : s; }
+	function tsline(d){
+		return tr("本地") + " " + SK.fmtdt(d) + "\n" + tr("秒") + " " + Math.floor(d.getTime() / 1000) + "\n" + tr("毫秒") + " " + d.getTime();
+	}
 	function tsconv(raw){
 		var d = tsdate(raw);
-		return "本地 " + SK.fmtdt(d) + "\n秒 " + Math.floor(d.getTime() / 1000) + "\n毫秒 " + d.getTime();
+		return tsline(d);
 	}
 
 	function tsdate(raw){

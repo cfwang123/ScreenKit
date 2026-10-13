@@ -1084,8 +1084,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			+ "\nHSV  " + hsv[0] + ", " + hsv[1] + "%, " + hsv[2] + "%"
 			+ "\nCMYK  " + cmyk[0] + "%, " + cmyk[1] + "%, " + cmyk[2] + "%, " + cmyk[3] + "%"
 			+ "\nYUV  " + yuv[0] + ", " + yuv[1] + ", " + yuv[2]
-			+ "\nCMYK 用的是简单公式，不是印刷配置文件。"
-			+ "\nYUV 是 BT.601 全范围，分量 0–255。";
+			+ "\n" + tr("CMYK 用的是简单公式，不是印刷配置文件。")
+			+ "\n" + tr("YUV 是 BT.601 全范围，分量 0–255。");
 	}
 
 	function colorrgb(mode, text){

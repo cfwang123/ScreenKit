@@ -236,11 +236,11 @@
 			if (i > 0) camel += cap(w[i]);
 			pascal += cap(w[i]);
 		}
-		return "小驼峰  " + camel
-			+ "\n大驼峰  " + pascal
-			+ "\n下划线  " + w.join("_")
-			+ "\n大写下划线  " + w.join("_").toUpperCase()
-			+ "\n短横线  " + w.join("-");
+		return tr("小驼峰") + "  " + camel
+			+ "\n" + tr("大驼峰") + "  " + pascal
+			+ "\n" + tr("下划线") + "  " + w.join("_")
+			+ "\n" + tr("大写下划线") + "  " + w.join("_").toUpperCase()
+			+ "\n" + tr("短横线") + "  " + w.join("-");
 	}
 
 	function jsonesc(text, mode){
@@ -278,7 +278,7 @@
 		else if ((m = /Chrome\/(\d+)/.exec(s))) br = "Chrome " + m[1];
 		else if ((m = /Firefox\/(\d+)/.exec(s))) br = "Firefox " + m[1];
 		else if (/Safari\//.test(s) && (m = /Version\/(\d+)/.exec(s))) br = "Safari " + m[1];
-		return "系统  " + os + "\n浏览器  " + br;
+		return tr("系统") + "  " + tr(os) + "\n" + tr("浏览器") + "  " + br;
 	}
 
 	function crondesc(expr){
