@@ -78,7 +78,7 @@
 		return '<div class="bit">'
 			+ '<div class="row">'
 			+ '<label>乐器<select id="bit-inst">' + opts + "</select></label>"
-			+ '<label>音量<input id="bit-vol" type="range" min="0" max="100" value="70"></label>'
+			+ '<label>音量<input id="bit-vol" type="range" min="0" max="100" value="100"></label>'
 			+ '<button type="button" id="bit-demo">试听</button>'
 			+ '<button type="button" id="bit-stop">停止</button>'
 			+ "</div>"
@@ -96,7 +96,7 @@
 			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。</p>'
 			+ '<p class="kicker">音效</p>'
 			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
-			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组）。警报、火警、蜂鸣、电话再点一次就停。</p>'
+			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组）。点一个音效会停掉其它正在响的。警报、火警、蜂鸣、电话再点一次就停。</p>'
 			+ "</div>";
 	}
 
@@ -233,8 +233,8 @@
 
 	function volnow(){
 		var el = document.getElementById("bit-vol");
-		var v = el ? Number(el.value) : 70;
-		if (!(v >= 0)) v = 70;
+		var v = el ? Number(el.value) : 100;
+		if (!(v >= 0)) v = 100;
 		return v / 100;
 	}
 
@@ -641,16 +641,30 @@
 		hit: sfxhit, shot: sfxshot, pick: sfxpick, fail: sfxfail, heart: sfxheart
 	};
 
+	function stoponeshots(){
+		var i;
+		for (i = 0; i < sources.length; i++) {
+			try { sources[i].stop(); } catch (e) {}
+		}
+		sources = [];
+	}
+
 	function onsfx(ev){
 		var btn = ev.target.closest(".bit-sfx");
 		if (!btn) return;
 		var spec = sfxof(btn.getAttribute("data-sfx"));
 		if (!spec) return;
 		if (spec.loop) {
-			if (loop && loop.kind === spec.loop) stoploop();
-			else startloop(spec.loop);
+			if (loop && loop.kind === spec.loop) {
+				stoploop();
+				return;
+			}
+			stoponeshots();
+			startloop(spec.loop);
 			return;
 		}
+		stoploop();
+		stoponeshots();
 		var fn = PLAY[spec.id];
 		if (fn) fn();
 	}

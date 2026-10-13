@@ -55,7 +55,7 @@
 			+ '<div class="plot-bar">'
 			+ '<button type="button" data-mode="2" class="on" data-k="web.plot.y">' + SK.esc(tt("web.plot.y", "y = f(x)")) + "</button>"
 			+ '<button type="button" data-mode="3" data-k="web.plot.z">' + SK.esc(tt("web.plot.z", "z = f(x, y)")) + "</button>"
-			+ '<button type="button" class="on" data-act="cross" data-ktip="web.plot.crossTip" title="' + SK.esc(tt("web.plot.crossTip", "十字线与曲线的交点。再点一次关闭。")) + '"><i class="fa-solid fa-crosshairs"></i><span data-k="web.plot.cross">' + SK.esc(tt("web.plot.cross", "Cross")) + "</span></button>"
+			+ '<button type="button" class="on" data-act="cross" data-ktip="web.plot.crossTip" title="' + SK.esc(tt("web.plot.crossTip", "竖线与曲线的交点。再点一次关闭。")) + '"><i class="fa-solid fa-crosshairs"></i><span data-k="web.plot.cross">' + SK.esc(tt("web.plot.cross", "Cross")) + "</span></button>"
 			+ '<span class="plot-style" hidden>'
 			+ styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面")
 			+ styleBtn("grid", "fa-border-all", "web.plot.grid", "网格")
@@ -457,8 +457,6 @@
 		ctx.beginPath();
 		ctx.moveTo(hover.px, 0);
 		ctx.lineTo(hover.px, h);
-		ctx.moveTo(0, hover.py);
-		ctx.lineTo(w, hover.py);
 		ctx.stroke();
 		ctx.setLineDash([]);
 		var pts = crossings(mx, my);
@@ -510,24 +508,17 @@
 			raw.push({ x: x, y: y });
 		}
 		if (!fn) return raw;
-		var i, xs, ys;
+		var i, ys;
 		if (implicit) {
 			ys = zeros(function(y){ return ev(fn, mx, y); }, view.y0, view.y1);
 			for (i = 0; i < ys.length; i++) add(mx, ys[i]);
-			xs = zeros(function(x){ return ev(fn, x, my); }, view.x0, view.x1);
-			for (i = 0; i < xs.length; i++) add(xs[i], my);
 		}
-		else {
-			add(mx, ev(fn, mx, 0));
-			xs = zeros(function(x){ return ev(fn, x, 0) - my; }, view.x0, view.x1);
-			for (i = 0; i < xs.length; i++) add(xs[i], my);
-		}
-		var sx = view.x1 - view.x0;
+		else add(mx, ev(fn, mx, 0));
 		var sy = view.y1 - view.y0;
 		raw.sort(function(a, b){
-			var d1 = (a.x - mx) / sx, e1 = (a.y - my) / sy;
-			var d2 = (b.x - mx) / sx, e2 = (b.y - my) / sy;
-			return d1 * d1 + e1 * e1 - (d2 * d2 + e2 * e2);
+			var e1 = (a.y - my) / sy;
+			var e2 = (b.y - my) / sy;
+			return e1 * e1 - e2 * e2;
 		});
 		if (raw.length > 8) raw.length = 8;
 		return raw;

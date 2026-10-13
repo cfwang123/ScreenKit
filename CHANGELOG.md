@@ -53,6 +53,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation no longer caps the decimal length. A Chinese scale row is omitted when a place is smaller than 涅槃寂静.
 - The drawing board opens on the pen, black, at 2 px.
 - GET /api/fonts caches the installed font list for 10 minutes. An empty list is not cached.
+- The 2D Cross tool draws only a vertical line and lists where that line meets the curve.
+- Clicking an 8-bit effect stops the others. Volume starts at 100%.
 
 #### Fixed
 
@@ -87,6 +89,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记不再限制小数位数。小数位小于「涅槃寂静」时，小数、中数、大数三行不显示。
 - 画板进入后使用黑色、2 像素的画笔。
 - GET /api/fonts 把已安装字体列表缓存 10 分钟。空列表不缓存。
+- 二维 Cross 只画竖线，并显示这条线与曲线的交点。
+- 8bit 合成器点一个音效会停掉其它正在响的。音量默认 100%。
 
 #### 修复
 
