@@ -228,27 +228,19 @@ public static class GlyphMod {
 		sb.Append(" off=").Append(spec.OffX).Append(",").Append(spec.OffY);
 		sb.Append(" */\n");
 		sb.Append("#pragma once\n#include <stdint.h>\n\n");
+		sb.Append("const uint8_t buf[] = {\n");
 		foreach (var g in glyphs) {
-			sb.Append("/* U+").Append(g.Cp.ToString("X4"));
-			sb.Append(" ").Append((g.Ch ?? "").Replace("*/", ""));
-			sb.Append("  ").Append(g.W).Append("x").Append(g.H);
-			sb.Append("  ").Append(g.Data.Length).Append(" */\n");
-			sb.Append("static const uint8_t glyph_").Append(g.Cp.ToString("X"));
-			sb.Append("[] = {\n");
+			sb.Append("\t/*").Append(ccomment(g.Ch)).Append("*/");
 			appendbytes(sb, g.Data);
-			sb.Append("\n};\n\n");
-		}
-		sb.Append("typedef struct GlyphModItem {\n");
-		sb.Append("\tuint32_t cp;\n\tuint16_t w;\n\tuint16_t h;\n\tconst uint8_t *bits;\n");
-		sb.Append("} GlyphModItem;\n\n");
-		sb.Append("static const GlyphModItem glyphmod_table[] = {\n");
-		foreach (var g in glyphs) {
-			sb.Append("\t{ 0x").Append(g.Cp.ToString("X")).Append("u, ");
-			sb.Append(g.W).Append(", ").Append(g.H).Append(", glyph_").Append(g.Cp.ToString("X")).Append(" },\n");
+			sb.Append(",\n");
 		}
 		sb.Append("};\n");
-		sb.Append("static const unsigned glyphmod_count = ").Append(glyphs.Count).Append(";\n");
 		return sb.ToString();
+	}
+
+	static string ccomment(string ch) {
+		if (string.IsNullOrEmpty(ch)) return "?";
+		return ch.Replace("*/", "").Replace("\r", "").Replace("\n", "");
 	}
 
 	static string exporthex(IList<Glyph> glyphs, Spec spec) {
@@ -291,15 +283,11 @@ public static class GlyphMod {
 
 	static void appendbytes(StringBuilder sb, byte[] data) {
 		if (data == null || data.Length == 0) {
-			sb.Append("\t0");
+			sb.Append("0");
 			return;
 		}
 		for (int i = 0; i < data.Length; i++) {
-			if (i % 16 == 0) {
-				if (i > 0) sb.Append(",\n");
-				sb.Append("\t");
-			}
-			else sb.Append(", ");
+			if (i > 0) sb.Append(", ");
 			sb.Append("0x").Append(data[i].ToString("x2"));
 		}
 	}
@@ -359,9 +347,16 @@ public static class GlyphMod {
 				if (bit) left++;
 			if (left != 0 || shifted.Glyphs[0].W != zh.Glyphs[0].W) return bad(say, "offx " + left);
 			var code = Export(sheet.Glyphs, spec);
-			if (code.IndexOf("uint8_t", StringComparison.Ordinal) < 0 || code.IndexOf("glyph_41", StringComparison.Ordinal) < 0)
+			int aAt = code.IndexOf("/*A*/", StringComparison.Ordinal);
+			int spAt = code.IndexOf("/* */", StringComparison.Ordinal);
+			if (code.IndexOf("const uint8_t buf[]", StringComparison.Ordinal) < 0 || aAt < 0 || spAt <= aAt)
 				return bad(say, "c");
-			if (code.IndexOf("glyphmod_count = 2", StringComparison.Ordinal) < 0) return bad(say, "table");
+			int aNl = code.IndexOf('\n', aAt);
+			int spNl = code.IndexOf('\n', spAt);
+			if (aNl < 0 || aNl >= spAt || spNl < 0) return bad(say, "c line");
+			if (code.Substring(aAt, aNl - aAt).IndexOf("0x", StringComparison.Ordinal) < 0) return bad(say, "c A");
+			if (code.Substring(spAt, spNl - spAt).IndexOf("0x", StringComparison.Ordinal) < 0) return bad(say, "c space");
+			if (code.IndexOf("glyph_", StringComparison.Ordinal) >= 0) return bad(say, "old c");
 			spec.Format = "dots";
 			var art = Export(sheet.Glyphs, spec);
 			if (art.IndexOf("#", StringComparison.Ordinal) < 0) return bad(say, "dots");

@@ -22,8 +22,8 @@ static class CharArt {
 	public const int MODE_QUARTER = 4;
 	public const int MODE_EIGHTH = 8;
 	const double CELL_ASPECT = 2;
-	// 与 imgview Paint.split 相同：四象限最远一对的通道平方和小于此值才当成一色。
-	const int SPLIT_DIST = 40;
+	// 四象限最远一对的通道平方和小于此值才当成一色。差 3 级就要拆开。
+	const int SPLIT_DIST = 9;
 	const string RAMP = " .:-=+*#%@";
 	// 四象限位：1 左上、2 右上、4 左下、8 右下。前景是置位的那一侧。
 	const string QUAD =
@@ -236,20 +236,22 @@ static class CharArt {
 		var s = new int[16];
 		var n = 0;
 		for (var row = 0; row < 2; row++) {
-			var y = y0 + (y1 - y0) * (row + 0.5) / 2;
+			var ya = y0 + (y1 - y0) * row / 2;
+			var yb = y0 + (y1 - y0) * (row + 1) / 2;
 			for (var col = 0; col < 8; col++) {
-				var x = x0 + (x1 - x0) * (col + 0.5) / 8;
-				var c = sample(px, w, h, x, y);
+				var xa = x0 + (x1 - x0) * col / 8;
+				var xb = x0 + (x1 - x0) * (col + 1) / 8;
+				var c = area(px, w, h, xa, xb, ya, yb);
 				s[row * 8 + col] = c;
 				if (c >= 0) n++;
 			}
 		}
 		if (n == 0) return cell;
 		int fg, bg;
-		var use = mode == MODE_AUTO ? MODE_QUARTER : mode;
-		if (use == MODE_HALF) half(s, out cell.Ch, out fg, out bg);
-		else if (use == MODE_EIGHTH) eighth(s, out cell.Ch, out fg, out bg);
-		else if (use == MODE_QUARTER) quarter(s, out cell.Ch, out fg, out bg);
+		if (mode == MODE_HALF) half(s, out cell.Ch, out fg, out bg);
+		else if (mode == MODE_EIGHTH) eighth(s, out cell.Ch, out fg, out bg);
+		else if (mode == MODE_QUARTER) quarter(s, out cell.Ch, out fg, out bg);
+		else if (mode == MODE_AUTO) autosplit(s, out cell.Ch, out fg, out bg);
 		else {
 			var colc = new int[8];
 			for (var col = 0; col < 8; col++) colc[col] = mix(s[col], s[8 + col]);
@@ -268,10 +270,12 @@ static class CharArt {
 		if (string.IsNullOrWhiteSpace(path)) return;
 		var exe = Process.GetCurrentProcess().MainModule?.FileName;
 		if (string.IsNullOrWhiteSpace(exe)) return;
+		// cmd 自己开一个控制台。直接挂到 PowerShell 上时，读按键会立刻返回，窗口一闪就关。
+		var inner = $"{quote(exe)} --charart {quote(path)}";
 		Process.Start(new ProcessStartInfo {
-			FileName = exe,
-			Arguments = "--charart " + quote(path),
-			UseShellExecute = false,
+			FileName = "cmd.exe",
+			Arguments = $"/s /c \"{inner}\"",
+			UseShellExecute = true,
 		});
 	}
 
@@ -329,11 +333,21 @@ static class CharArt {
 			bad($"charart 1/8 U+{(int)one.Ch:X4}");
 			return 1;
 		}
+		var autoOne = Pick(thin, 8, 2, 0, 8, 0, 2, MODE_AUTO);
+		if (autoOne.Ch != Eighth(1)) {
+			bad($"charart auto 1/8 U+{(int)autoOne.Ch:X4}");
+			return 1;
+		}
 		var three = solid(8, 2, 0, 0, 0);
 		fill(three, 8, 2, 0, 3, 255, 128, 0);
 		var tcell = Pick(three, 8, 2, 0, 8, 0, 2, MODE_EIGHTH);
 		if (tcell.Ch != Eighth(3)) {
 			bad($"charart 3/8 U+{(int)tcell.Ch:X4}");
+			return 1;
+		}
+		var autoThree = Pick(three, 8, 2, 0, 8, 0, 2, MODE_AUTO);
+		if (autoThree.Ch != Eighth(3)) {
+			bad($"charart auto 3/8 U+{(int)autoThree.Ch:X4}");
 			return 1;
 		}
 		var seven = solid(8, 2, 0, 0, 0);
@@ -413,10 +427,10 @@ static class CharArt {
 			return 1;
 		}
 		var close = solid(4, 2, 100, 100, 100);
-		fill(close, 4, 2, 2, 4, 100, 105, 100);
+		fill(close, 4, 2, 2, 4, 100, 102, 100);
 		var closeCell = Pick(close, 4, 2, 0, 4, 0, 2, MODE_AUTO);
 		if (closeCell.Ch != ' ') {
-			bad($"charart under 40 U+{(int)closeCell.Ch:X4}");
+			bad($"charart under split U+{(int)closeCell.Ch:X4}");
 			return 1;
 		}
 		var grad = solid(2, 2, 200, 100, 70);
@@ -646,6 +660,50 @@ static class CharArt {
 		if (fg < 0 && bg >= 0) { ch = '\u2584'; fg = bg; bg = 0; }
 	}
 
+	static void autosplit(int[] s, out char ch, out int fg, out int bg) {
+		quarter(s, out var qch, out var qfg, out var qbg);
+		eighth(s, out var ech, out var efg, out var ebg);
+		var k = eighthof(ech);
+		// 正中的半块四分块已经能画。只有边界落在 1/8～3/8 或 5/8～7/8，而且确实更贴时才换。
+		if (k >= 1 && k <= 7 && k != 4 && efg >= 0 && ebg >= 0 && dist(efg, ebg) >= SPLIT_DIST
+			&& glypherr(s, ech, efg, ebg) < glypherr(s, qch, qfg, qbg)) {
+			ch = ech;
+			fg = efg;
+			bg = ebg;
+			return;
+		}
+		ch = qch;
+		fg = qfg;
+		bg = qbg;
+	}
+
+	static long glypherr(int[] s, char ch, int fg, int bg) {
+		if (fg < 0) return long.MaxValue / 4;
+		if (bg < 0) bg = fg;
+		var k = eighthof(ch);
+		if (k >= 0) return sideerr(s, 0, k, fg) + sideerr(s, k, 8, bg);
+		var mask = QUAD.IndexOf(ch);
+		if (mask <= 0) return sideerr(s, 0, 8, bg);
+		long e = 0;
+		for (var q = 0; q < 4; q++) {
+			var color = (mask & (1 << q)) != 0 ? fg : bg;
+			var row = q / 2;
+			var col0 = (q % 2) * 4;
+			for (var c = 0; c < 4; c++) {
+				var i = row * 8 + col0 + c;
+				if (s[i] >= 0) e += dist(s[i], color);
+			}
+		}
+		return e;
+	}
+
+	static int eighthof(char ch) {
+		if (ch == ' ') return 0;
+		if (ch == '\u2588') return 8;
+		if (ch >= '\u2589' && ch <= '\u258f') return 0x2590 - ch;
+		return -1;
+	}
+
 	static void eighth(int[] s, out char ch, out int fg, out int bg) {
 		var col = new int[8];
 		for (var i = 0; i < 8; i++) col[i] = mix(s[i], s[8 + i]);
@@ -729,6 +787,35 @@ static class CharArt {
 		var tmp = new int[4];
 		for (var i = 0; i < 4; i++) tmp[i] = s[row * 8 + col0 + i];
 		return avg(tmp, 0, 4);
+	}
+
+	static int area(byte[] px, int w, int h, double x0, double x1, double y0, double y1) {
+		if (x1 < x0) { var t = x0; x0 = x1; x1 = t; }
+		if (y1 < y0) { var t = y0; y0 = y1; y1 = t; }
+		var xa = (int)Math.Floor(x0);
+		var xb = (int)Math.Floor(x1 - 1e-6);
+		var ya = (int)Math.Floor(y0);
+		var yb = (int)Math.Floor(y1 - 1e-6);
+		if (xa < 0) xa = 0;
+		if (ya < 0) ya = 0;
+		if (xb >= w) xb = w - 1;
+		if (yb >= h) yb = h - 1;
+		if (xa > xb || ya > yb) return -1;
+		long r = 0, g = 0, b = 0;
+		var n = 0;
+		for (var y = ya; y <= yb; y++) {
+			for (var x = xa; x <= xb; x++) {
+				var i = (y * w + x) * 4;
+				if (i < 0 || i + 3 >= px.Length) continue;
+				if (px[i + 3] < 16) continue;
+				b += px[i];
+				g += px[i + 1];
+				r += px[i + 2];
+				n++;
+			}
+		}
+		if (n == 0) return -1;
+		return ((int)(r / n) << 16) | ((int)(g / n) << 8) | (int)(b / n);
 	}
 
 	static int sample(byte[] px, int w, int h, double x, double y) {
