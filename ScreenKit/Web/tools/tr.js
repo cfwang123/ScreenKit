@@ -165,30 +165,16 @@
 			SK.msg("tr-msg", side === "dst" ? (SK.t("tr.dst.empty") || "译文为空") : (SK.t("tr.popup.need_src") || "请输入原文"), true);
 			return;
 		}
-		var syn = window.speechSynthesis;
-		if (!syn || typeof SpeechSynthesisUtterance !== "function") {
-			SK.msg("tr-msg", SK.t("web.tr.nospeak") || "无法发音", true);
-			return;
-		}
 		var code = side === "dst" ? (F.id("tr-dst").value || "auto") : (F.id("tr-src").value || "auto");
 		if (code === "auto" || !code) code = detectcode(text);
-		syn.cancel();
-		var u = new SpeechSynthesisUtterance(text);
 		var lang = BCP[code] || code;
-		u.lang = lang;
-		var voices = syn.getVoices ? syn.getVoices() : [];
-		var want = String(lang).toLowerCase();
-		var short = want.split("-")[0];
-		var hit = null;
-		var i;
-		for (i = 0; i < voices.length; i++) {
-			var vl = String(voices[i].lang || "").toLowerCase();
-			if (vl === want) { hit = voices[i]; break; }
-			if (!hit && vl.indexOf(short) === 0) hit = voices[i];
-		}
-		if (hit) u.voice = hit;
-		syn.speak(u);
-		SK.msg("tr-msg", "");
+		SK.post("/api/tts/speak", {
+			text: text,
+			lang: lang,
+			play: "now"
+		}, function(){
+			SK.msg("tr-msg", "");
+		}, "tr-msg");
 	}
 
 	SK.loadtr = loadtr;

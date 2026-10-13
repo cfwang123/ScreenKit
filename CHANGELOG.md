@@ -57,6 +57,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The 2D Cross tool draws only a vertical line and lists where that line meets the curve.
 - Clicking an 8-bit effect stops the others. Volume starts at 100%.
 - Number notation speak plays through the system default output device.
+- Translate speak on the tools page plays through the system default output device.
+- Screen recording defaults to Windows Media Foundation H.264, which does not need FFmpeg.
 
 #### Fixed
 
@@ -95,6 +97,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 二维 Cross 只画竖线，并显示这条线与曲线的交点。
 - 8bit 合成器点一个音效会停掉其它正在响的。音量默认 100%。
 - 数字表记的发音改走系统默认播放设备。
+- 工具页翻译的发音改走系统默认播放设备。
+- 录屏默认使用 Windows Media Foundation 的 H.264，不需要 FFmpeg。
 
 #### 修复
 
