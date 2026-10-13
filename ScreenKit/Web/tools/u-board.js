@@ -2,9 +2,9 @@
 	var HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 	var items = [];
 	var undo = [];
-	var tool = "select";
-	var color = "#e11d48";
-	var width = 4;
+	var tool = "pen";
+	var color = "#000000";
+	var width = 2;
 	var sel = -1;
 	var drag = null;
 	var draft = null;
@@ -40,14 +40,17 @@
 	});
 
 	function body(){
+		tool = "pen";
+		color = "#000000";
+		width = 2;
 		return '<div class="board">'
 			+ '<div class="board-bar">'
 			+ '<div class="board-tools">'
-			+ tbtn("select", "web.board.select", "选择", true)
+			+ tbtn("select", "web.board.select", "选择", false)
 			+ tbtn("rect", "web.board.rect", "矩形", false)
 			+ tbtn("ellipse", "web.board.ellipse", "椭圆", false)
 			+ tbtn("arrow", "web.board.arrow", "箭头", false)
-			+ tbtn("pen", "web.board.pen", "画笔", false)
+			+ tbtn("pen", "web.board.pen", "画笔", true)
 			+ tbtn("lasso", "web.board.lasso", "圈选", false)
 			+ tbtn("text", "web.board.text", "文字", false)
 			+ '<span class="sep"></span>'
@@ -61,7 +64,7 @@
 			+ "</div>"
 			+ colors()
 			+ "</div>"
-			+ '<div class="board-stage select"><canvas id="board-cv"></canvas>'
+			+ '<div class="board-stage"><canvas id="board-cv"></canvas>'
 			+ '<input id="board-txt" class="board-text" type="text" hidden spellcheck="false">'
 			+ '<p class="board-msg" id="board-msg"></p>'
 			+ "</div></div>";

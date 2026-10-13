@@ -563,6 +563,89 @@ SK.watchAcc = 0;
 		xhr.send(JSON.stringify(body));
 	}
 
+	var chartFont = null;
+	var chartFonts = null;
+	var chartWait = [];
+	var chartPend = false;
+
+	function chartfont(id){
+		var box = $(id);
+		if (!box) return;
+		if (chartFont == null) {
+			chartFont = "";
+			try { chartFont = localStorage.getItem("sk-chart-font") || ""; } catch (e) {}
+		}
+		box.onchange = function(){
+			chartFont = box.value || "";
+			try { localStorage.setItem("sk-chart-font", chartFont); } catch (e) {}
+			applychart();
+			if (SK.onchartfont) SK.onchartfont();
+		};
+		if (chartFonts) {
+			paintchart(box);
+			return;
+		}
+		chartWait.push(box);
+		if (chartPend) return;
+		chartPend = true;
+		get("/api/fonts", function(data){
+			var i;
+			chartFonts = [];
+			chartPend = false;
+			if (data && data.length) {
+				for (i = 0; i < data.length; i++) chartFonts.push(String(data[i]));
+			}
+			var nodes = chartWait;
+			chartWait = [];
+			for (i = 0; i < nodes.length; i++) paintchart(nodes[i]);
+		}, "", function(){
+			chartFonts = [];
+			chartPend = false;
+			var nodes = chartWait;
+			var i;
+			chartWait = [];
+			for (i = 0; i < nodes.length; i++) paintchart(nodes[i]);
+		});
+	}
+
+	function paintchart(box){
+		var html = '<option value="">默认</option>';
+		var i;
+		var name;
+		for (i = 0; i < chartFonts.length; i++) {
+			name = chartFonts[i];
+			html += '<option value="' + htmlenc(name) + '" style="font-family:' + htmlenc(chartfaceq(name)) + ',sans-serif">'
+				+ htmlenc(name) + "</option>";
+		}
+		box.innerHTML = html;
+		if (chartFont) box.value = chartFont;
+		if (box.value !== chartFont) {
+			chartFont = "";
+			try { localStorage.setItem("sk-chart-font", ""); } catch (e) {}
+		}
+		applychart();
+		if (SK.onchartfont) SK.onchartfont();
+	}
+
+	function applychart(){
+		var root = document.documentElement;
+		if (!chartFont) {
+			root.style.removeProperty("--ufont");
+			root.removeAttribute("data-ufont");
+			return;
+		}
+		root.style.setProperty("--ufont", chartfaceq(chartFont));
+		root.setAttribute("data-ufont", "1");
+	}
+
+	function chartface(){
+		return chartFont ? chartfaceq(chartFont) : "";
+	}
+
+	function chartfaceq(name){
+		return '"' + String(name).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+	}
+
 	function get(url, done, mid, fail){
 		msg(mid, "");
 		var xhr = new XMLHttpRequest();
@@ -1044,6 +1127,8 @@ SK.watchAcc = 0;
 	SK.msg = msg;
 	SK.post = post;
 	SK.get = get;
+	SK.chartfont = chartfont;
+	SK.chartface = chartface;
 	SK.fillsel = fillsel;
 	SK.readfile = readfile;
 	SK.copytext = copytext;

@@ -768,7 +768,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 		}
 		catch { }
-		fontNames = set.Count == 0 ? Array.Empty<string>() : set.ToArray();
+		if (set.Count == 0) return Array.Empty<string>();
+		fontNames = set.ToArray();
 		return fontNames;
 	}
 
