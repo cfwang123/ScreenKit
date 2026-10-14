@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -11,11 +12,20 @@ using Windows.Devices.Geolocation;
 
 namespace ScreenKit;
 
+sealed class LanComputer {
+	public string HostName { get; set; }
+	public string Ip { get; set; }
+	public string Mac { get; set; }
+}
+
 /// <summary>Ping / DNS / WHOIS（TCP 43，不走 HTTP 代理）。</summary>
 static class NetTools {
 	static readonly Regex WhoisRefer = new(
 		@"^(?:refer|whois)\s*:\s*(\S+)",
 		RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.CultureInvariant);
+	static readonly Regex ArpLine = new(
+		@"(?m)^\s*((?:\d{1,3}\.){3}\d{1,3})\s+((?:[0-9a-f]{2}[-:]){5}[0-9a-f]{2})\s+",
+		RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
 	public static string AsciiHost(string host) {
 		host = (host ?? "").Trim();
@@ -97,6 +107,171 @@ static class NetTools {
 		line?.Invoke(sum);
 		return sum;
 	}
+
+	/// <summary>搜索活动网卡所在局域网，通过并发 ICMP 填充 ARP 表，再反查主机名。</summary>
+	public static async Task<List<LanComputer>> SearchComputers(Action<string> line, CancellationToken ct) {
+		var candidates = lancandidates();
+		line?.Invoke(Loc.T("nettool.scan.start", candidates.Count));
+		if (candidates.Count == 0) {
+			line?.Invoke(Loc.T("nettool.scan.none"));
+			return new List<LanComputer>();
+		}
+		var done = 0;
+		var gate = new SemaphoreSlim(48);
+		var tasks = new List<Task>();
+		try {
+			foreach (var value in candidates) {
+				ct.ThrowIfCancellationRequested();
+				await gate.WaitAsync(ct).ConfigureAwait(false);
+				var ip = ipof(value);
+				tasks.Add(scanone(ip, gate, () => {
+					var n = Interlocked.Increment(ref done);
+					if (n == candidates.Count || n % 64 == 0)
+						line?.Invoke(Loc.T("nettool.scan.progress", n, candidates.Count));
+				}, ct));
+			}
+		}
+		finally {
+			try { await Task.WhenAll(tasks).ConfigureAwait(false); }
+			catch (OperationCanceledException) { }
+		}
+		ct.ThrowIfCancellationRequested();
+		var arp = await Task.Run(readarp, ct).ConfigureAwait(false);
+		var wanted = new HashSet<string>(candidates.Select(x => ipof(x).ToString()), StringComparer.Ordinal);
+		var rows = ParseArp(arp).Where(x => wanted.Contains(x.Ip)).ToList();
+		await resolvenames(rows, ct).ConfigureAwait(false);
+		rows.Sort((a, b) => ipuint(IPAddress.Parse(a.Ip)).CompareTo(ipuint(IPAddress.Parse(b.Ip))));
+		if (rows.Count == 0) {
+			line?.Invoke(Loc.T("nettool.scan.none"));
+			return rows;
+		}
+		line?.Invoke(Loc.T("nettool.scan.columns"));
+		foreach (var row in rows)
+			line?.Invoke($"{(row.HostName.Length > 0 ? row.HostName : "-")}\t{row.Ip}\t{row.Mac}");
+		line?.Invoke(Loc.T("nettool.scan.found", rows.Count));
+		return rows;
+	}
+
+	internal static List<LanComputer> ParseArp(string text) {
+		var map = new Dictionary<string, LanComputer>(StringComparer.Ordinal);
+		foreach (Match match in ArpLine.Matches(text ?? "")) {
+			var rawip = match.Groups[1].Value;
+			if (!IPAddress.TryParse(rawip, out var ip) || ip.AddressFamily != AddressFamily.InterNetwork) continue;
+			var mac = match.Groups[2].Value.Replace(':', '-').ToUpperInvariant();
+			if (mac == "00-00-00-00-00-00" || mac == "FF-FF-FF-FF-FF-FF") continue;
+			map[rawip] = new LanComputer { HostName = "", Ip = rawip, Mac = mac };
+		}
+		return map.Values.ToList();
+	}
+
+	static async Task scanone(IPAddress ip, SemaphoreSlim gate, Action complete, CancellationToken ct) {
+		try {
+			ct.ThrowIfCancellationRequested();
+			using var ping = new Ping();
+			try { await ping.SendPingAsync(ip, 350).ConfigureAwait(false); }
+			catch (PingException) { }
+			ct.ThrowIfCancellationRequested();
+		}
+		finally {
+			complete();
+			gate.Release();
+		}
+	}
+
+	static async Task resolvenames(List<LanComputer> rows, CancellationToken ct) {
+		var gate = new SemaphoreSlim(16);
+		var tasks = new List<Task>();
+		try {
+			foreach (var row in rows) {
+				await gate.WaitAsync(ct).ConfigureAwait(false);
+				tasks.Add(resolveone(row, gate, ct));
+			}
+		}
+		finally {
+			try { await Task.WhenAll(tasks).ConfigureAwait(false); }
+			catch (OperationCanceledException) { }
+		}
+		ct.ThrowIfCancellationRequested();
+	}
+
+	static async Task resolveone(LanComputer row, SemaphoreSlim gate, CancellationToken ct) {
+		try {
+			var task = Dns.GetHostEntryAsync(row.Ip);
+			var done = await Task.WhenAny(task, Task.Delay(1200, ct)).ConfigureAwait(false);
+			if (done == task) {
+				var entry = await task.ConfigureAwait(false);
+				row.HostName = (entry?.HostName ?? "").Trim().TrimEnd('.');
+			}
+			ct.ThrowIfCancellationRequested();
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) { }
+		finally { gate.Release(); }
+	}
+
+	static List<uint> lancandidates() {
+		var own = new HashSet<uint>();
+		var all = new HashSet<uint>();
+		foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()) {
+			if (nic.OperationalStatus != OperationalStatus.Up ||
+				nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+			IPInterfaceProperties props;
+			try { props = nic.GetIPProperties(); }
+			catch { continue; }
+			foreach (var unicast in props.UnicastAddresses) {
+				var ip = unicast.Address;
+				var mask = unicast.IPv4Mask;
+				if (ip == null || mask == null || ip.AddressFamily != AddressFamily.InterNetwork) continue;
+				var value = ipuint(ip);
+				var m = ipuint(mask);
+				if (value == 0 || m == 0) continue;
+				own.Add(value);
+				var network = value & m;
+				var broadcast = network | ~m;
+				var count = broadcast > network ? (ulong)broadcast - network - 1 : 0;
+				if (count > 1024) {
+					m = 0xFFFFFF00;
+					network = value & m;
+					broadcast = network | ~m;
+				}
+				for (var at = network + 1; at < broadcast && all.Count < 2048; at++)
+					all.Add(at);
+			}
+		}
+		all.ExceptWith(own);
+		var rows = all.ToList();
+		rows.Sort();
+		return rows;
+	}
+
+	static string readarp() {
+		var path = Path.Combine(Environment.SystemDirectory, "arp.exe");
+		var psi = new System.Diagnostics.ProcessStartInfo {
+			FileName = path,
+			Arguments = "-a",
+			UseShellExecute = false,
+			CreateNoWindow = true,
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			StandardOutputEncoding = Encoding.Default,
+		};
+		using var process = System.Diagnostics.Process.Start(psi);
+		if (process == null) throw new InvalidOperationException("arp start failed");
+		var text = process.StandardOutput.ReadToEnd();
+		var error = process.StandardError.ReadToEnd();
+		process.WaitForExit();
+		if (process.ExitCode != 0)
+			throw new InvalidOperationException(error.Trim().Length > 0 ? error.Trim() : "arp exit " + process.ExitCode);
+		return text;
+	}
+
+	static uint ipuint(IPAddress ip) {
+		var b = ip.GetAddressBytes();
+		return ((uint)b[0] << 24) | ((uint)b[1] << 16) | ((uint)b[2] << 8) | b[3];
+	}
+
+	static IPAddress ipof(uint value) => new(new[] {
+		(byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value,
+	});
 
 	public static async Task Trace(string host, int maxHops, Action<string> line, CancellationToken ct) {
 		host = AsciiHost(host);

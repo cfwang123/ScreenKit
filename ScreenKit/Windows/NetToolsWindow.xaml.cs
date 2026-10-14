@@ -38,6 +38,7 @@ public partial class NetToolsWindow : Window {
 		busb.Click += (_, _) => _ = run("usb");
 		bhttp.Click += (_, _) => _ = run("http");
 		bgeo.Click += (_, _) => _ = run("geo");
+		bscan.Click += (_, _) => _ = run("scan");
 		bmap.Click += (_, _) => openmap();
 		bstop.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
@@ -79,6 +80,7 @@ public partial class NetToolsWindow : Window {
 		ToolBtnUi.Set(busb, ToolBtnUi.Font, Loc.T("nettool.usb"));
 		ToolBtnUi.Set(bhttp, ToolBtnUi.Play, Loc.T("nettool.http"));
 		ToolBtnUi.Set(bgeo, ToolBtnUi.Pin, Loc.T("nettool.geo"));
+		ToolBtnUi.Set(bscan, ToolBtnUi.Browse, Loc.T("nettool.scan"));
 		ToolBtnUi.Set(bmap, ToolBtnUi.Browse, Loc.T("nettool.map"));
 		bmap.ToolTip = Loc.T("nettool.map.tip");
 		ToolBtnUi.Set(bstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
@@ -100,6 +102,7 @@ public partial class NetToolsWindow : Window {
 		busb.IsEnabled = !on;
 		bhttp.IsEnabled = !on;
 		bgeo.IsEnabled = !on;
+		bscan.IsEnabled = !on;
 		bmap.IsEnabled = !on && hasmap;
 		bstop.IsEnabled = on;
 		ehost.IsEnabled = !on;
@@ -169,7 +172,7 @@ public partial class NetToolsWindow : Window {
 	async Task run(string kind) {
 		if (busy) return;
 		var host = (ehost.Text ?? "").Trim();
-		if (kind != "locate" && kind != "proxy" && kind != "http" && kind != "geo" && kind != "ipcity"
+		if (kind != "locate" && kind != "proxy" && kind != "http" && kind != "geo" && kind != "scan" && kind != "ipcity"
 			&& host.Length == 0) {
 			lbstat.Text = Loc.T("nettool.empty");
 			ehost.Focus();
@@ -228,6 +231,10 @@ public partial class NetToolsWindow : Window {
 				var fix = await NetTools.Geolocate(s => Dispatcher.Invoke(() => append(s)), token)
 					.ConfigureAwait(true);
 				if (fix.Ok) setmap(fix.Lat, fix.Lon);
+			}
+			else if (kind == "scan") {
+				await NetTools.SearchComputers(s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
 			}
 			else {
 				var s = await NetTools.Whois(host, token).ConfigureAwait(true);

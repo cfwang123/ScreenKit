@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Network tools can look up a USB vendor and product from usb.ids, also as GET/POST /api/usb.
 - System info has a Fonts tab showing each installed font name, a live preview, and its font file names.
 - System info lists displays, cameras, Bluetooth, network and input adapters, physical disks, batteries, PCI/system devices, and devices with Windows problem codes.
+- Network tools can find other computers and network devices on active local IPv4 networks, listing host name, IP, and MAC address.
 
 #### Changed
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网络工具可按 usb.ids 查询 USB 厂家和产品，并提供 GET/POST /api/usb。
 - 系统信息新增字体列表页，显示已安装字体名称、实际字体预览和字体文件名。
 - 系统信息新增显示器、摄像头、蓝牙、网络与输入设备、物理磁盘、电池、PCI/系统设备和异常设备列表。
+- 网络工具可搜索活动本地 IPv4 网络中的其它计算机和网络设备，并列出主机名、IP 和 MAC 地址。
 
 #### 变更
 
