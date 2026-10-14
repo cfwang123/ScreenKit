@@ -344,7 +344,9 @@ public sealed class OcrOptions {
 
 	/// <summary>启动时自动检查更新的间隔（天）。默认 7；0 = 不自动检查。菜单「检查更新」不受限。</summary>
 	public int UpdateCheckDays = 7;
-	/// <summary>上次成功查询 GitHub Releases 的 UTC unix 秒；0 = 从未检查。</summary>
+	/// <summary>自建更新服务器根地址。空则仍查询 GitHub Releases。</summary>
+	public string UpdateUrl = "";
+	/// <summary>上次成功查询更新的 UTC unix 秒；0 = 从未检查。</summary>
 	public long LastUpdateCheckUnix;
 	/// <summary>访问 GitHub 等非中国站点时使用 HTTP 代理。true 仅表示手动地址。</summary>
 	public bool HttpProxyEnabled;
@@ -639,6 +641,7 @@ public sealed class OcrOptions {
 		TabCastVisible = TabCastVisible,
 		TabDictVisible = TabDictVisible,
 		UpdateCheckDays = UpdateCheckDays,
+		UpdateUrl = UpdateUrl ?? "",
 		LastUpdateCheckUnix = LastUpdateCheckUnix,
 		HttpProxyEnabled = HttpProxyEnabled,
 		HttpProxyAddr = HttpProxyAddr ?? "127.0.0.1:7897",

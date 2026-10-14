@@ -255,6 +255,8 @@ static class AppConfig {
 				o.TabDictVisible = parsebool(tdictv, true);
 			if (map.TryGetValue("update_check_days", out var ucd) && int.TryParse(ucd, out var ucDays))
 				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
+			if (map.TryGetValue("update_url", out var uurl))
+				o.UpdateUrl = (uurl ?? "").Trim().Trim('"');
 			if (map.TryGetValue("update_last_check", out var ulc) && long.TryParse(ulc, out var ulcUnix))
 				o.LastUpdateCheckUnix = ulcUnix < 0 ? 0 : ulcUnix;
 			if (map.TryGetValue("http_proxy", out var hpx))
@@ -703,6 +705,8 @@ static class AppConfig {
 		sb.AppendLine($"tab_dict_visible = {(o.TabDictVisible ? "true" : "false")}");
 		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
+		sb.AppendLine($"# 自建更新地址。空=仍查 GitHub。填写后请求该地址下的 latest.json / releases.json");
+		sb.AppendLine($"update_url = \"{esc((o.UpdateUrl ?? "").Trim())}\"");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");
 		sb.AppendLine($"update_last_check = {(o.LastUpdateCheckUnix < 0 ? 0 : o.LastUpdateCheckUnix)}");
 		var proxyMode = HttpProxy.NormalizeMode(string.IsNullOrWhiteSpace(o.HttpProxyMode)

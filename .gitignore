@@ -78,6 +78,9 @@ ScreenKit/Web/tools.js
 
 # ── Temp & scratch ───────────────────────────────────────
 tmp/
+
+# 自建更新服务器（只给朋友用，不公开）
+/update-server/
 **/tmp/
 # install.ps1 download cache
 tmp/install-cache/

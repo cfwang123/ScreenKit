@@ -204,6 +204,9 @@ public partial class SettingsWindow : Window {
 			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
 			lbsetupdatehint.Text = Loc.T("set.update.hint");
 			eupdatedays.ToolTip = Loc.T("set.update.hint");
+			lbsetupdateurl.Text = Loc.T("set.update.url");
+			lbsetupdateurlhint.Text = Loc.T("set.update.url.hint");
+			eupdateurl.ToolTip = Loc.T("set.update.url.hint");
 			lbsetproxy.Text = Loc.T("set.proxy");
 			rsetproxysys.Content = Loc.T("set.proxy.system");
 			rsetproxyman.Content = Loc.T("set.proxy.manual");
@@ -512,6 +515,7 @@ public partial class SettingsWindow : Window {
 		etabcastvisible.IsChecked = o.TabCastVisible;
 		etabdictvisible.IsChecked = o.TabDictVisible && o.ModDict;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
+		eupdateurl.Text = o.UpdateUrl ?? "";
 		var proxyMode = HttpProxy.NormalizeMode(string.IsNullOrWhiteSpace(o.HttpProxyMode)
 			? (o.HttpProxyEnabled ? "manual" : "system") : o.HttpProxyMode);
 		rsetproxysys.IsChecked = proxyMode == "system";
@@ -772,6 +776,15 @@ public partial class SettingsWindow : Window {
 		Result.TabDictVisible = Result.ModDict = etabdictvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
+		var updateUrl = (eupdateurl.Text ?? "").Trim();
+		if (updateUrl.Length > 0 && !AppUpdater.IsUpdateBase(updateUrl)) {
+			MessageBox.Show(this, Loc.T("set.update.url.bad"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			tabset.SelectedItem = tabsetgen;
+			eupdateurl.Focus();
+			return false;
+		}
+		Result.UpdateUrl = updateUrl;
 		Result.HttpProxyMode = rsetproxyman.IsChecked == true ? "manual"
 			: rsetproxyoff.IsChecked == true ? "off" : "system";
 		Result.HttpProxyEnabled = Result.HttpProxyMode == "manual";

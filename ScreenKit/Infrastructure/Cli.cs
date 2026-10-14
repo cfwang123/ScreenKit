@@ -60,7 +60,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
-				or "--test-update-notes"
+				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-portuse" or "--test-midisynth"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
@@ -309,6 +309,8 @@ static class Cli {
 					return testhttpdbg();
 				case "--test-update-notes":
 					return testupdatenotes();
+				case "--test-update-url":
+					return testupdateurl(args);
 				case "--test-zhconv":
 					return testzhconv();
 				case "--test-wincal":
@@ -5752,6 +5754,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-sysinfo
   ScreenKit --test-httpdbg
   ScreenKit --test-update-notes
+  ScreenKit --test-update-url <地址>
   ScreenKit --test-zhconv
   ScreenKit --test-wincal
   ScreenKit --test-jpyomi
@@ -5846,6 +5849,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-sysinfo  只读检查处理器、内存容量、串口、打印机、声音设备和 USB 设备
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
+      --test-update-url  向自建更新地址取 9.9.9 测试包、中文说明并下载 zip
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
       --test-wincal  农历甲辰正月与 2023 闰二月
       --test-jpyomi  東京 的系统读音
@@ -5945,6 +5949,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-sysinfo
   ScreenKit --test-httpdbg
   ScreenKit --test-update-notes
+  ScreenKit --test-update-url <地址>
   ScreenKit --test-zhconv
   ScreenKit --test-wincal
   ScreenKit --test-jpyomi
@@ -6085,6 +6090,69 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			ApkHost.SetFileForTest(null);
 		}
 		Out("apk-qr ok");
+		return 0;
+	}
+
+	static int testupdateurl(string[] args) {
+		string url = null;
+		for (var i = 0; i < args.Length; i++) {
+			if (args[i] != "--test-update-url") continue;
+			if (i + 1 >= args.Length) break;
+			url = args[++i];
+		}
+		if (string.IsNullOrWhiteSpace(url)) {
+			Err("用法: ScreenKit --test-update-url <http://主机>");
+			return 2;
+		}
+		Out("=== 自建更新 --test-update-url ===");
+		if (!AppUpdater.IsUpdateBase(url)) {
+			Err("FAIL: 地址无效");
+			return 1;
+		}
+		UpdateInfo info;
+		try {
+			info = AppUpdater.CheckLatestAsync(url).GetAwaiter().GetResult();
+		}
+		catch (Exception ex) {
+			Err("FAIL check: " + ex.Message);
+			return 1;
+		}
+		Out("remote " + info.Version + " has=" + info.HasUpdate);
+		if (!info.HasUpdate || info.Version != "9.9.9") {
+			Err("FAIL: 期望 9.9.9 且比当前新");
+			return 1;
+		}
+		var notes = AppUpdater.ListNewerNotesAsync(AppUpdater.CurrentVersion(), url).GetAwaiter().GetResult();
+		var hit = false;
+		foreach (var n in notes) {
+			if (n.Version == "1.0.0") {
+				Err("FAIL: 旧版本不应列出");
+				return 1;
+			}
+			if (n.Version == "9.9.9" && (n.Chinese ?? "").IndexOf("私有测试", StringComparison.Ordinal) >= 0)
+				hit = true;
+		}
+		if (!hit) {
+			Err("FAIL: 说明里没有 9.9.9");
+			return 1;
+		}
+		string path;
+		try {
+			path = AppUpdater.DownloadAsync(info, null, null).GetAwaiter().GetResult();
+		}
+		catch (Exception ex) {
+			Err("FAIL download: " + ex.Message);
+			return 1;
+		}
+		long len = 0;
+		try { len = new FileInfo(path).Length; } catch { }
+		try { if (!string.IsNullOrEmpty(path)) File.Delete(path); } catch { }
+		Out("download " + len);
+		if (len < 64) {
+			Err("FAIL: 包太小");
+			return 1;
+		}
+		Out("OK");
 		return 0;
 	}
 

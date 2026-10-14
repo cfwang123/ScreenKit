@@ -216,6 +216,8 @@ A new key goes to the end of `[text]`, or after `--after KEY`. `del KEY…` remo
 
 **Help → Check for updates** also runs at startup after the interval in Settings. When a newer release exists, a window lists every version after the current build up to the latest. Select a row to read that version’s notes. **Chinese / English** switches the notes. **Update** downloads and installs the latest package. **Ignore** closes the window.
 
+Leave the update URL in Settings empty to keep using GitHub. When it is set, checks request `latest.json` and `releases.json` under that address, and the package URL comes from the JSON. Use this only for a server you run yourself.
+
 ## Install features
 
 The slim package (`bin\Release\ScreenKit\`) does not include models or the large runtimes. The tables below say which features work as shipped. Sizes are the installer’s expected sizes, the same numbers as **Help → Install features**. A shared runtime is downloaded once.

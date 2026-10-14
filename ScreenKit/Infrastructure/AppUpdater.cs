@@ -194,10 +194,22 @@ static class AppUpdater {
 		}
 	}
 
-	/// <summary>查询最新 Release；网络失败抛异常。</summary>
-	public static async Task<UpdateInfo> CheckLatestAsync(CancellationToken ct = default) {
+	/// <summary>查询最新 Release；网络失败抛异常。地址空则查 GitHub。</summary>
+	public static Task<UpdateInfo> CheckLatestAsync(CancellationToken ct = default) =>
+		checklatest(null, ct);
+
+	/// <summary>向指定更新地址查询。空字符串仍查 GitHub。</summary>
+	public static Task<UpdateInfo> CheckLatestAsync(string baseUrl, CancellationToken ct = default) =>
+		checklatest(baseUrl, ct);
+
+	/// <summary>http 或 https 的绝对地址。</summary>
+	public static bool IsUpdateBase(string baseUrl) => resolveexplicit(baseUrl).Length > 0;
+
+	static async Task<UpdateInfo> checklatest(string baseUrl, CancellationToken ct) {
 		var cur = CurrentVersion();
-		var json = await fetchjson(REPO_API, ct).ConfigureAwait(false);
+		var custom = resolvebase(baseUrl);
+		var api = custom.Length > 0 ? custom + "/latest.json" : REPO_API;
+		var json = await fetchjson(api, ct, custom.Length > 0).ConfigureAwait(false);
 		var info = parserrelease(json, cur);
 		if (info != null) return info;
 		throw new InvalidOperationException("无法解析更新信息");
@@ -271,17 +283,51 @@ static class AppUpdater {
 	}
 
 	/// <summary>当前版本之后、到最新版的每条 Release 说明。按版本从旧到新。</summary>
-	public static async Task<List<ReleaseNote>> ListNewerNotesAsync(string currentVersion, CancellationToken ct = default) {
+	public static Task<List<ReleaseNote>> ListNewerNotesAsync(string currentVersion, CancellationToken ct = default) =>
+		listnotes(currentVersion, null, ct);
+
+	/// <summary>向指定更新地址取说明。空字符串仍查 GitHub。</summary>
+	public static Task<List<ReleaseNote>> ListNewerNotesAsync(
+		string currentVersion, string baseUrl, CancellationToken ct = default) =>
+		listnotes(currentVersion, baseUrl, ct);
+
+	static async Task<List<ReleaseNote>> listnotes(string currentVersion, string baseUrl, CancellationToken ct) {
 		var cur = NormalizeVersion(currentVersion) ?? (currentVersion ?? "").Trim();
+		var custom = resolvebase(baseUrl);
+		if (custom.Length > 0) {
+			var json = await fetchjson(custom + "/releases.json", ct, true).ConfigureAwait(false);
+			return sortnotes(parsenotes(json, cur, out _, out _));
+		}
 		var all = new List<ReleaseNote>();
 		for (int page = 1; page <= 4; page++) {
 			ct.ThrowIfCancellationRequested();
-			var json = await fetchjson(REPO_API_PAGE + page, ct).ConfigureAwait(false);
+			var json = await fetchjson(REPO_API_PAGE + page, ct, false).ConfigureAwait(false);
 			var batch = parsenotes(json, cur, out var count, out var hitOlder);
 			all.AddRange(batch);
 			if (count == 0 || count < 100 || hitOlder) break;
 		}
 		return sortnotes(all);
+	}
+
+	/// <summary>null 读配置。空字符串表示仍用 GitHub。</summary>
+	static string resolvebase(string over) {
+		if (over != null) return resolveexplicit(over);
+		try {
+			var o = new OcrOptions();
+			AppConfig.LoadInto(o);
+			return resolveexplicit(o.UpdateUrl);
+		}
+		catch { return ""; }
+	}
+
+	static string resolveexplicit(string raw) {
+		var s = (raw ?? "").Trim();
+		if (s.Length == 0) return "";
+		if (!Uri.TryCreate(s, UriKind.Absolute, out var u)) return "";
+		if (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) return "";
+		if (!string.IsNullOrEmpty(u.UserInfo)) return "";
+		var path = u.AbsolutePath.TrimEnd('/');
+		return u.GetLeftPart(UriPartial.Authority) + path;
 	}
 
 	/// <summary>查询最新 Android APK；无 APK 时仍返回发布页链接。</summary>
@@ -373,9 +419,9 @@ static class AppUpdater {
 		Environment.Exit(0);
 	}
 
-	static async Task<string> fetchjson(string apiUrl, CancellationToken ct) {
-		// 中文环境先国内镜像，每个地址限时；镜像失败再试 GitHub 官方（ExpandUrls 已排在后面）
-		var urls = FeatureInstaller.ExpandUrls(apiUrl);
+	static async Task<string> fetchjson(string apiUrl, CancellationToken ct, bool direct = false) {
+		// 自建地址只请求这一处。GitHub 仍走国内镜像，失败再试官方。
+		var urls = direct ? new[] { apiUrl } : FeatureInstaller.ExpandUrls(apiUrl);
 		Exception last = null;
 		foreach (var url in urls) {
 			ct.ThrowIfCancellationRequested();

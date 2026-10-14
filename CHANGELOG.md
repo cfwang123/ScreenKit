@@ -36,6 +36,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Settings can use a private update URL. Leave it empty to keep checking GitHub. A set URL is asked for latest.json and releases.json.
+
 #### Changed
 
 - 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
@@ -45,6 +49,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Chinese README is now the short feature overview. The previous full text is kept at docs/archive/README.zh.md.
 
 ### 中文
+
+#### 新增
+
+- 设置里可以填写自建更新地址。留空时仍向 GitHub 检查。填写后改为请求该地址下的 latest.json 和 releases.json。
 
 #### 变更
 
