@@ -3881,6 +3881,7 @@ public partial class MainWindow : Window {
 		catch (Exception ex) {
 			try { prog?.ForceClose(); } catch { }
 			prog = null;
+			if (offerlocalpackage()) return;
 			if (silent) {
 				CaptureLog.Ex("auto update", ex);
 				return;
@@ -3894,6 +3895,21 @@ public partial class MainWindow : Window {
 		finally {
 			try { prog?.ForceClose(); } catch { }
 		}
+	}
+
+	bool offerlocalpackage() {
+		string pack;
+		try { pack = AppUpdater.FindOfflinePackage(); }
+		catch { return false; }
+		if (string.IsNullOrEmpty(pack)) return false;
+		var ask = MessageBox.Show(this,
+			Loc.T("update.offline", Path.GetFileName(pack)),
+			Loc.T("update.title"),
+			MessageBoxButton.YesNo,
+			MessageBoxImage.Question);
+		if (ask != MessageBoxResult.Yes) return false;
+		AppUpdater.LaunchUpdaterAndExit(pack);
+		return true;
 	}
 
 	public void SetHttpProxy(string mode, string addr) {

@@ -214,7 +214,7 @@ A new key goes to the end of `[text]`, or after `--after KEY`. `del KEY…` remo
 
 ### Updates
 
-**Help → Check for updates** also runs at startup after the interval in Settings. When a newer release exists, a window lists every version after the current build up to the latest. Select a row to read that version’s notes. **Chinese / English** switches the notes. **Update** downloads the package into the program folder, then exits and extracts it there. **Ignore** closes the window.
+**Help → Check for updates** also runs at startup after the interval in Settings. When a newer release exists, a window lists every version after the current build up to the latest. Select a row to read that version’s notes. **Chinese / English** switches the notes. **Update** downloads and installs the latest package. **Ignore** closes the window. If the update server cannot be reached, put `screenkit_<version>.7z` in the program folder and check again. The app offers to install that package.
 
 ## Install features
 
