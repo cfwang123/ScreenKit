@@ -355,6 +355,65 @@
 					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
+			<TabItem x:Name="tabfont" Header="字体列表"
+			         AutomationProperties.AutomationId="sys.tab.font">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbfonthint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<Grid Grid.Row="1" Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock x:Name="lbfontfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<TextBox x:Name="efontfilter" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         VerticalContentAlignment="Center"
+						         AutomationProperties.AutomationId="font.filter"/>
+						<Button x:Name="bfontrefresh" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+						        AutomationProperties.AutomationId="font.refresh"/>
+						<Button x:Name="bfontcopy" Grid.Column="3" Style="{StaticResource ToolBtn}"
+						        AutomationProperties.AutomationId="font.copy"/>
+					</Grid>
+					<ListView x:Name="lvfont" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+					          SelectionMode="Single"
+					          AutomationProperties.AutomationId="font.list">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colfontname" Width="220"
+								                DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colfontpreview" Width="360">
+									<GridViewColumn.CellTemplate>
+										<DataTemplate>
+											<TextBlock Text="Aa Bb 0123 中文 日本語 한글"
+											           FontFamily="{Binding Name}" FontSize="22"
+											           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+										</DataTemplate>
+									</GridViewColumn.CellTemplate>
+								</GridViewColumn>
+								<GridViewColumn x:Name="colfontfile" Width="300">
+									<GridViewColumn.CellTemplate>
+										<DataTemplate>
+											<TextBlock Text="{Binding Files}" ToolTip="{Binding Files}"
+											           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+										</DataTemplate>
+									</GridViewColumn.CellTemplate>
+								</GridViewColumn>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbfontstat" Grid.Row="3" Margin="0,8,0,0"
+					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
 		</TabControl>
 		<DockPanel Grid.Row="1">
 			<Button x:Name="bclose" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"

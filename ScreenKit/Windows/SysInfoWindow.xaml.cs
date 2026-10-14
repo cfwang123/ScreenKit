@@ -7,18 +7,26 @@ sealed class SysBlock {
 	public List<UsbPair> Items { get; set; }
 }
 
-/// <summary>工具 → 系统信息：系统、USB、串口、打印机和声音设备。</summary>
+sealed class FontRow {
+	public string Name { get; set; }
+	public string Files { get; set; }
+	public string Filter { get; set; }
+}
+
+/// <summary>工具 → 系统信息：系统、USB、串口、打印机、声音设备和字体。</summary>
 public partial class SysInfoWindow : Window {
 	List<UsbPair> sysrows = new();
 	List<UsbDev> usball = new();
 	List<UsbDev> comall = new();
 	List<UsbDev> prnall = new();
 	List<UsbDev> audall = new();
+	List<FontRow> fontall = new();
 	int sysgen;
 	int usbgen;
 	int comgen;
 	int prngen;
 	int audgen;
+	int fontgen;
 	bool dead;
 
 	public SysInfoWindow() {
@@ -32,11 +40,13 @@ public partial class SysInfoWindow : Window {
 		lbcomstat.Text = Loc.T("sys.loading");
 		lbprnstat.Text = Loc.T("sys.loading");
 		lbaudstat.Text = Loc.T("sys.loading");
+		lbfontstat.Text = Loc.T("sys.loading");
 		reloadsys();
 		reloadusb();
 		reloadcom();
 		reloadprn();
 		reloadaud();
+		reloadfont();
 	}
 
 	void initev() {
@@ -50,11 +60,14 @@ public partial class SysInfoWindow : Window {
 		bprncopy.Click += (_, _) => copydev(lvprn, lbprnstat);
 		baudrefresh.Click += (_, _) => reloadaud();
 		baudcopy.Click += (_, _) => copydev(lvaud, lbaudstat);
+		bfontrefresh.Click += (_, _) => reloadfont();
+		bfontcopy.Click += (_, _) => copyfont();
 		bclose.Click += (_, _) => Close();
 		eusbfilter.TextChanged += (_, _) => showusb(keep(lvusb));
 		ecomfilter.TextChanged += (_, _) => showcom(keep(lvcom));
 		eprnfilter.TextChanged += (_, _) => showprn(keep(lvprn));
 		eaudfilter.TextChanged += (_, _) => showaud(keep(lvaud));
+		efontfilter.TextChanged += (_, _) => showfont(keepfont());
 		lvusb.SelectionChanged += (_, _) => showprops(lvusb, lvusbprop);
 		lvcom.SelectionChanged += (_, _) => showprops(lvcom, lvcomprop);
 		lvprn.SelectionChanged += (_, _) => showprops(lvprn, lvprnprop);
@@ -68,6 +81,7 @@ public partial class SysInfoWindow : Window {
 		tabcom.Header = Loc.T("sys.tab.com");
 		tabprn.Header = Loc.T("sys.tab.prn");
 		tabaud.Header = Loc.T("sys.tab.aud");
+		tabfont.Header = Loc.T("sys.tab.font");
 		lbsyshint.Text = Loc.T("sys.hint");
 		ToolBtnUi.Set(bsysrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(bsyscopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
@@ -115,6 +129,14 @@ public partial class SysInfoWindow : Window {
 		colaudval.Header = Loc.T("usb.col.value");
 		ToolBtnUi.Set(baudrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(baudcopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
+		lbfonthint.Text = Loc.T("font.hint");
+		lbfontfilter.Text = Loc.T("usb.filter");
+		efontfilter.ToolTip = Loc.T("font.filter.tip");
+		colfontname.Header = Loc.T("font.col.name");
+		colfontpreview.Header = Loc.T("font.col.preview");
+		colfontfile.Header = Loc.T("font.col.file");
+		ToolBtnUi.Set(bfontrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
+		ToolBtnUi.Set(bfontcopy, ToolBtnUi.Copy, Loc.T("font.copy"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
@@ -230,6 +252,28 @@ public partial class SysInfoWindow : Window {
 		});
 	}
 
+	void reloadfont() {
+		var name = keepfont();
+		var gen = ++fontgen;
+		lbfontstat.Text = Loc.T("sys.loading");
+		Task.Run(() => {
+			List<FontRow> rows = null;
+			string err = null;
+			try { rows = scanfonts(); }
+			catch (Exception ex) { err = ex.Message; }
+			apply(gen, () => fontgen, () => {
+				if (err != null) {
+					fontall = new List<FontRow>();
+					lvfont.ItemsSource = fontall;
+					lbfontstat.Text = Loc.T("usb.fail", err);
+					return;
+				}
+				fontall = rows;
+				showfont(name);
+			});
+		});
+	}
+
 	void apply(int gen, Func<int> current, Action fill) {
 		Dispatcher.BeginInvoke(new Action(() => {
 			if (dead || gen != current()) return;
@@ -248,6 +292,27 @@ public partial class SysInfoWindow : Window {
 
 	void showaud(string keepId) =>
 		showdev(audall, eaudfilter.Text, lvaud, lvaudprop, lbaudstat, keepId, "aud.none", "aud.count");
+
+	void showfont(string keepName) {
+		var q = (efontfilter.Text ?? "").Trim().ToLowerInvariant();
+		var view = new List<FontRow>();
+		foreach (var row in fontall) {
+			if (q.Length == 0 || row.Filter.IndexOf(q, StringComparison.Ordinal) >= 0) view.Add(row);
+		}
+		lvfont.ItemsSource = view;
+		FontRow sel = null;
+		if (!string.IsNullOrEmpty(keepName)) {
+			foreach (var row in view) {
+				if (row.Name == keepName) { sel = row; break; }
+			}
+		}
+		if (sel == null && view.Count > 0) sel = view[0];
+		if (sel != null) {
+			lvfont.SelectedItem = sel;
+			lvfont.ScrollIntoView(sel);
+		}
+		lbfontstat.Text = view.Count == 0 ? Loc.T("font.none") : Loc.T("font.count", view.Count);
+	}
 
 	static void showdev(List<UsbDev> all, string query, ListView list, ListView props, TextBlock stat, string keepId, string noneKey, string countKey) {
 		var q = (query ?? "").Trim().ToLowerInvariant();
@@ -278,10 +343,47 @@ public partial class SysInfoWindow : Window {
 
 	static string keep(ListView list) => (list.SelectedItem as UsbDev)?.InstanceId;
 
+	string keepfont() => (lvfont.SelectedItem as FontRow)?.Name;
+
 	static void copydev(ListView list, TextBlock stat) {
 		var dev = list.SelectedItem as UsbDev;
 		if (dev == null || dev.Props == null || dev.Props.Count == 0) return;
 		copypairs(dev.Props, stat);
+	}
+
+	void copyfont() {
+		var row = lvfont.SelectedItem as FontRow;
+		if (row == null) return;
+		try {
+			Clipboard.SetText($"{row.Name}\t{row.Files}");
+			lbfontstat.Text = Loc.T("font.copied");
+		}
+		catch (Exception ex) {
+			lbfontstat.Text = Loc.T("usb.fail", ex.Message);
+		}
+	}
+
+	static List<FontRow> scanfonts() {
+		var rows = new List<FontRow>();
+		foreach (var family in Fonts.SystemFontFamilies.OrderBy(x => x.Source, StringComparer.CurrentCultureIgnoreCase)) {
+			var files = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
+			foreach (var face in family.GetTypefaces()) {
+				try {
+					if (!face.TryGetGlyphTypeface(out var glyph) || glyph.FontUri == null) continue;
+					var file = Path.GetFileName(Uri.UnescapeDataString(glyph.FontUri.LocalPath));
+					if (!string.IsNullOrWhiteSpace(file)) files.Add(file);
+				}
+				catch { }
+			}
+			var name = family.Source;
+			var joined = files.Count == 0 ? "—" : string.Join(", ", files);
+			rows.Add(new FontRow {
+				Name = name,
+				Files = joined,
+				Filter = $"{name}\n{joined}".ToLowerInvariant(),
+			});
+		}
+		return rows;
 	}
 
 	static List<SysBlock> sysblocks(List<UsbPair> rows) {
