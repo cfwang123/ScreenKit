@@ -40,11 +40,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
 
+#### Documentation
+
+- The Chinese README is now the short feature overview. The previous full text is kept at docs/archive/README.zh.md.
+
 ### 中文
 
 #### 变更
 
 - 解压 7z 只使用 7za.dll，不再下载或依赖 SharpSevenZip。
+
+#### 文档
+
+- 中文 README 改为简版功能说明。原先的完整说明保留在 docs/archive/README.zh.md。
 
 ## v1.0.20 (2026-10-13 ~ 14)
 
