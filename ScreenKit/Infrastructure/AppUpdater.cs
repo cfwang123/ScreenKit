@@ -282,6 +282,12 @@ static class AppUpdater {
 		return sortnotes(parsenotes(json, currentVersion, out _, out _));
 	}
 
+	/// <summary>自建服务器的更新日志。不是该格式时返回 null。含全部版本，不按当前版本过滤。</summary>
+	public static List<ReleaseNote> ParseVersionLog(string json) {
+		if (!tryversionlog(json, out var list)) return null;
+		return list;
+	}
+
 	/// <summary>当前版本之后、到最新版的每条 Release 说明。按版本从旧到新。</summary>
 	public static Task<List<ReleaseNote>> ListNewerNotesAsync(string currentVersion, CancellationToken ct = default) =>
 		listnotes(currentVersion, null, ct);
@@ -296,6 +302,8 @@ static class AppUpdater {
 		var custom = resolvebase(baseUrl);
 		if (custom.Length > 0) {
 			var json = await fetchjson(custom + "/releases.json", ct, true).ConfigureAwait(false);
+			var log = ParseVersionLog(json);
+			if (log != null) return sortnotes(log);
 			return sortnotes(parsenotes(json, cur, out _, out _));
 		}
 		var all = new List<ReleaseNote>();
@@ -618,6 +626,44 @@ static class AppUpdater {
 
 	static bool islang(string s, string token) =>
 		string.Equals(s, token, StringComparison.OrdinalIgnoreCase);
+
+	static bool tryversionlog(string json, out List<ReleaseNote> list) {
+		list = null;
+		if (string.IsNullOrWhiteSpace(json)) return false;
+		try {
+			using var doc = JsonDocument.Parse(json);
+			var root = doc.RootElement;
+			if (root.ValueKind != JsonValueKind.Object) return false;
+			if (!root.TryGetProperty("versions", out var arr) || arr.ValueKind != JsonValueKind.Array)
+				return false;
+			list = new List<ReleaseNote>();
+			foreach (var el in arr.EnumerateArray()) {
+				if (el.ValueKind != JsonValueKind.Object) continue;
+				var ver = el.TryGetProperty("version", out var v) ? v.GetString() : null;
+				ver = normalizever(ver);
+				if (string.IsNullOrEmpty(ver)) continue;
+				var date = el.TryGetProperty("date", out var d) ? d.GetString() ?? "" : "";
+				var en = el.TryGetProperty("english", out var e) ? e.GetString() ?? "" : "";
+				var zh = el.TryGetProperty("chinese", out var z) ? z.GetString() ?? "" : "";
+				var body = new StringBuilder();
+				if (en.Length > 0) body.Append("## English\n\n").Append(en.Trim()).Append("\n\n");
+				if (zh.Length > 0) body.Append("## 中文\n\n").Append(zh.Trim()).Append('\n');
+				list.Add(new ReleaseNote {
+					Version = ver,
+					TagName = "v" + ver,
+					Published = date.Trim(),
+					Body = body.ToString().Trim(),
+					English = en.Trim(),
+					Chinese = zh.Trim(),
+				});
+			}
+			return true;
+		}
+		catch {
+			list = null;
+			return false;
+		}
+	}
 
 	static List<ReleaseNote> parsenotes(string json, string currentVersion, out int count, out bool hitOlder) {
 		count = 0;

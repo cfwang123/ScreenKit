@@ -6203,6 +6203,23 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				Err("update-notes: 日期 " + list[0].Published);
 				return 1;
 			}
+			var vlog = AppUpdater.ParseVersionLog("""
+{"versions":[
+  {"version":"1.0.0","date":"2026-08-01","english":"- old en","chinese":"- 旧版"},
+  {"version":"9.9.9","date":"2026-10-14","english":"- Private test","chinese":"- 私有测试"}
+]}
+""");
+			if (vlog == null || vlog.Count != 2
+				|| vlog[0].Version != "1.0.0" || vlog[0].Chinese.IndexOf("旧版", StringComparison.Ordinal) < 0
+				|| vlog[1].Version != "9.9.9" || vlog[1].Chinese.IndexOf("私有测试", StringComparison.Ordinal) < 0
+				|| vlog[1].Published != "2026-10-14") {
+				Err("update-notes: 版本日志 JSON 不符");
+				return 1;
+			}
+			if (AppUpdater.ParseVersionLog("[]") != null) {
+				Err("update-notes: 数组不应当作版本日志");
+				return 1;
+			}
 			Loc.Lang = "zh";
 			var info = new UpdateInfo {
 				Version = "1.0.5",

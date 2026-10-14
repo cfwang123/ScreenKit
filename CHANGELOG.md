@@ -39,6 +39,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Settings can use a private update URL. Leave it empty to keep checking GitHub. A set URL is asked for latest.json and releases.json.
+- The private update server stores notes as changelog.json. releases.json lists every version in English and Chinese.
 
 #### Changed
 
@@ -53,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 设置里可以填写自建更新地址。留空时仍向 GitHub 检查。填写后改为请求该地址下的 latest.json 和 releases.json。
+- 自建更新服务器用 changelog.json 保存更新日志。releases.json 列出每个版本的中文和英文说明。
 
 #### 变更
 
