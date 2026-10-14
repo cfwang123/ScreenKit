@@ -44,6 +44,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System info has a Fonts tab showing each installed font name, a live preview, and its font file names.
 - System info lists displays, cameras, Bluetooth, network and input adapters, physical disks, batteries, PCI/system devices, and devices with Windows problem codes.
 - Network tools can find other computers and network devices on active local IPv4 networks, listing host name, IP, and MAC address.
+- Network tools show the DNS resolution process with PTR lookups, and provide local ARP lookup and reverse lookup by MAC.
+- HTTP request debugger adds a Test group with sample calls to this program's own API.
 
 #### Changed
 
@@ -71,6 +73,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统信息新增字体列表页，显示已安装字体名称、实际字体预览和字体文件名。
 - 系统信息新增显示器、摄像头、蓝牙、网络与输入设备、物理磁盘、电池、PCI/系统设备和异常设备列表。
 - 网络工具可搜索活动本地 IPv4 网络中的其它计算机和网络设备，并列出主机名、IP 和 MAC 地址。
+- 网络工具可显示 DNS 正向解析与 PTR 反查过程，并新增本地 ARP 解析和按 MAC 反查。
+- HTTP 请求调试默认增加分组「测试」，里面是几条本程序自己的接口。
 
 #### 变更
 

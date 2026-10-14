@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Globalization;
 using System.IO;
 using System.Net;
@@ -44,21 +43,202 @@ static class NetTools {
 		}
 	}
 
-	public static async Task<string> Resolve(string host, CancellationToken ct) {
-		host = AsciiHost(host);
-		ct.ThrowIfCancellationRequested();
-		var sb = new StringBuilder();
-		sb.AppendLine("host: " + host);
-		if (IPAddress.TryParse(host, out var ip)) {
-			sb.AppendLine(ip.AddressFamily + "  " + ip);
-			return sb.ToString().TrimEnd();
+	public static Task<string> Resolve(string host, CancellationToken ct) => Resolve(host, null, ct);
+
+	/// <summary>通过系统 DNS 解析，并依次显示服务器、正向查询和 PTR 反查。</summary>
+	public static async Task<string> Resolve(string host, Action<string> line, CancellationToken ct) {
+		var input = (host ?? "").Trim();
+		host = AsciiHost(input);
+		var rows = new List<string>();
+		void emit(string text) {
+			rows.Add(text);
+			line?.Invoke(text);
 		}
-		var addrs = await withtimeout(Dns.GetHostAddressesAsync(host), 8000, ct).ConfigureAwait(false);
-		if (addrs == null || addrs.Length == 0)
-			throw new InvalidOperationException("no address");
-		foreach (var a in addrs)
-			sb.AppendLine(a.AddressFamily + "  " + a);
-		return sb.ToString().TrimEnd();
+		emit("DNS 解析  " + input);
+		if (!string.Equals(input.TrimEnd('.'), host, StringComparison.OrdinalIgnoreCase))
+			emit("规范化: " + host);
+		var servers = dnsservers();
+		emit("系统 DNS 服务器: " + (servers.Count > 0 ? string.Join(", ", servers) : "默认配置"));
+		ct.ThrowIfCancellationRequested();
+		if (IPAddress.TryParse(host, out var ip)) {
+			var started = Environment.TickCount;
+			emit("PTR 查询: " + ip);
+			var entry = await withtimeout(Dns.GetHostEntryAsync(ip), 8000, ct).ConfigureAwait(false);
+			emit("主机名: " + entry.HostName + elapsed(started));
+			showaliases(entry, emit);
+			showaddresses(entry.AddressList, emit, "正向确认");
+			return string.Join(Environment.NewLine, rows);
+		}
+		var begin = Environment.TickCount;
+		emit("A / AAAA 查询: " + host);
+		var hit = await withtimeout(Dns.GetHostEntryAsync(host), 8000, ct).ConfigureAwait(false);
+		if (!string.Equals(hit.HostName, host, StringComparison.OrdinalIgnoreCase))
+			emit("规范名称: " + hit.HostName);
+		showaliases(hit, emit);
+		var addrs = hit.AddressList?.Distinct().ToArray() ?? Array.Empty<IPAddress>();
+		if (addrs.Length == 0) throw new InvalidOperationException("no address");
+		showaddresses(addrs, emit, "地址");
+		emit("正向查询完成" + elapsed(begin));
+		var reverseAddrs = addrs.Take(8).ToArray();
+		foreach (var addr in reverseAddrs) {
+			ct.ThrowIfCancellationRequested();
+			var started = Environment.TickCount;
+			emit("PTR 反查: " + addr);
+			try {
+				var reverse = await withtimeout(Dns.GetHostEntryAsync(addr), 2000, ct).ConfigureAwait(false);
+				emit("  " + reverse.HostName + elapsed(started));
+			}
+			catch (Exception ex) when (ex is not OperationCanceledException) {
+				emit("  无 PTR 记录: " + (ex.InnerException?.Message ?? ex.Message));
+			}
+		}
+		if (addrs.Length > reverseAddrs.Length)
+			emit("其余 " + (addrs.Length - reverseAddrs.Length) + " 个地址未反查");
+		return string.Join(Environment.NewLine, rows);
+	}
+
+	/// <summary>将主机名或本地 IPv4 地址解析为 ARP 缓存中的 MAC。</summary>
+	public static async Task ArpResolve(string query, Action<string> line, CancellationToken ct) {
+		var host = AsciiHost(query);
+		var ips = new List<IPAddress>();
+		if (IPAddress.TryParse(host, out var parsed)) {
+			if (parsed.AddressFamily != AddressFamily.InterNetwork)
+				throw new ArgumentException("ARP 只支持 IPv4");
+			ips.Add(parsed);
+		}
+		else {
+			line?.Invoke("DNS A 查询: " + host);
+			var addrs = await withtimeout(Dns.GetHostAddressesAsync(host), 8000, ct).ConfigureAwait(false);
+			ips.AddRange(addrs.Where(x => x.AddressFamily == AddressFamily.InterNetwork).Distinct());
+			if (ips.Count == 0) throw new InvalidOperationException("没有 IPv4 地址");
+			foreach (var ip in ips) line?.Invoke("  " + ip);
+		}
+		foreach (var ip in ips) {
+			ct.ThrowIfCancellationRequested();
+			line?.Invoke("ARP 解析: " + ip);
+			var local = localarp(ip);
+			if (local != null) {
+				line?.Invoke("  " + local.Ip + "  " + local.Mac + "  " + local.HostName);
+				continue;
+			}
+			var rows = await arprows(ct).ConfigureAwait(false);
+			var hit = rows.FirstOrDefault(x => x.Ip == ip.ToString());
+			if (hit == null) {
+				line?.Invoke("  缓存未命中，发送本地网络探测…");
+				await pingarp(ip, ct).ConfigureAwait(false);
+				rows = await arprows(ct).ConfigureAwait(false);
+				hit = rows.FirstOrDefault(x => x.Ip == ip.ToString());
+			}
+			if (hit == null) {
+				line?.Invoke("  未找到；ARP 只能解析同一本地网络中的 IPv4 设备");
+				continue;
+			}
+			hit.HostName = await ptrname(ip, ct).ConfigureAwait(false);
+			line?.Invoke("  " + hit.Ip + "  " + hit.Mac + "  " + (hit.HostName.Length > 0 ? hit.HostName : "-"));
+		}
+	}
+
+	/// <summary>按 MAC 地址反查本机及当前 ARP 缓存中的 IPv4 地址。</summary>
+	public static async Task ArpReverse(string query, Action<string> line, CancellationToken ct) {
+		var hex = MacHex(query);
+		if (hex.Length != 12) throw new ArgumentException("请输入完整的 MAC 地址");
+		var mac = macshow(hex).Replace(':', '-');
+		line?.Invoke("ARP 反查: " + mac);
+		line?.Invoke("读取本机接口和 ARP 缓存…");
+		var rows = localarps();
+		rows.AddRange(await arprows(ct).ConfigureAwait(false));
+		var hits = rows.Where(x => string.Equals(x.Mac, mac, StringComparison.OrdinalIgnoreCase))
+			.GroupBy(x => x.Ip, StringComparer.Ordinal).Select(x => x.First()).ToList();
+		if (hits.Count == 0) {
+			line?.Invoke("未找到；反查只检查本机接口和当前 ARP 缓存，可先搜索其它计算机以填充缓存");
+			return;
+		}
+		foreach (var hit in hits) {
+			ct.ThrowIfCancellationRequested();
+			if (hit.HostName.Length == 0)
+				hit.HostName = await ptrname(IPAddress.Parse(hit.Ip), ct).ConfigureAwait(false);
+			line?.Invoke(hit.Ip + "  " + hit.Mac + "  " + (hit.HostName.Length > 0 ? hit.HostName : "-"));
+		}
+	}
+
+	static List<string> dnsservers() {
+		var rows = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()) {
+			if (nic.OperationalStatus != OperationalStatus.Up) continue;
+			try {
+				foreach (var ip in nic.GetIPProperties().DnsAddresses)
+					if (!IPAddress.IsLoopback(ip) && !ip.Equals(IPAddress.Any) && !ip.Equals(IPAddress.IPv6Any))
+						rows.Add(ip.ToString());
+			}
+			catch { }
+		}
+		return rows.ToList();
+	}
+
+	static void showaliases(IPHostEntry entry, Action<string> emit) {
+		foreach (var alias in entry.Aliases ?? Array.Empty<string>())
+			emit("别名: " + alias);
+	}
+
+	static void showaddresses(IEnumerable<IPAddress> addresses, Action<string> emit, string title) {
+		foreach (var address in addresses)
+			emit(title + ": " + address.AddressFamily + "  " + address);
+	}
+
+	static string elapsed(int started) {
+		var ms = Environment.TickCount - started;
+		return "  (" + Math.Max(0, ms) + " ms)";
+	}
+
+	static async Task<List<LanComputer>> arprows(CancellationToken ct) {
+		var text = await Task.Run(readarp, ct).ConfigureAwait(false);
+		ct.ThrowIfCancellationRequested();
+		return ParseArp(text);
+	}
+
+	static async Task pingarp(IPAddress ip, CancellationToken ct) {
+		using var ping = new Ping();
+		var task = ping.SendPingAsync(ip, 900);
+		var done = await Task.WhenAny(task, Task.Delay(1000, ct)).ConfigureAwait(false);
+		if (done == task) {
+			try { await task.ConfigureAwait(false); }
+			catch (PingException) { }
+		}
+		ct.ThrowIfCancellationRequested();
+	}
+
+	static async Task<string> ptrname(IPAddress ip, CancellationToken ct) {
+		try {
+			var entry = await withtimeout(Dns.GetHostEntryAsync(ip), 2000, ct).ConfigureAwait(false);
+			return (entry?.HostName ?? "").Trim().TrimEnd('.');
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) {
+			return "";
+		}
+	}
+
+	static LanComputer localarp(IPAddress ip) => localarps().FirstOrDefault(x => x.Ip == ip.ToString());
+
+	static List<LanComputer> localarps() {
+		var rows = new List<LanComputer>();
+		foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()) {
+			if (nic.OperationalStatus != OperationalStatus.Up) continue;
+			var bytes = nic.GetPhysicalAddress()?.GetAddressBytes() ?? Array.Empty<byte>();
+			if (bytes.Length != 6) continue;
+			var mac = string.Join("-", bytes.Select(x => x.ToString("X2", CultureInfo.InvariantCulture)));
+			try {
+				foreach (var addr in nic.GetIPProperties().UnicastAddresses) {
+					if (addr.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+					rows.Add(new LanComputer {
+						HostName = Environment.MachineName,
+						Ip = addr.Address.ToString(),
+						Mac = mac,
+					});
+				}
+			}
+			catch { }
+		}
+		return rows;
 	}
 
 	public static async Task<string> Ping(string host, int count, int timeoutMs,
@@ -1229,7 +1409,10 @@ static class NetTools {
 
 	static async Task<T> withtimeout<T>(Task<T> task, int ms, CancellationToken ct) {
 		var done = await Task.WhenAny(task, Task.Delay(ms, ct)).ConfigureAwait(false);
-		if (done != task) throw new TimeoutException("dns timeout");
+		if (done != task) {
+			ct.ThrowIfCancellationRequested();
+			throw new TimeoutException("dns timeout");
+		}
 		return await task.ConfigureAwait(false);
 	}
 

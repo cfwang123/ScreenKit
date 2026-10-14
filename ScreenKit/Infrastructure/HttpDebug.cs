@@ -28,6 +28,8 @@ sealed class HttpDbgItem {
 sealed class HttpDbgBook {
 	public List<HttpDbgGroup> Groups { get; set; } = new();
 	public List<HttpDbgItem> Items { get; set; } = new();
+	/// <summary>已经写入过「测试」分组。为真时不再补示例，删掉后不会回来。</summary>
+	public bool Seeded { get; set; }
 }
 
 sealed class HttpDbgResult {
@@ -43,10 +45,13 @@ sealed class HttpDbgResult {
 /// <summary>
 /// HTTP 请求调试：一行一个参数，POST 可为表单或 JSON。
 /// 请求存在程序目录 httpdbg.json，不写入 config.toml。
+/// 还没有示例时补上分组「测试」和本程序 1224 端口的几条接口。
 /// </summary>
 static class HttpDebug {
 	public const string FILE_NAME = "httpdbg.json";
 	public const string DEFAULT_GROUP = "default";
+	public const string SELF_GROUP = "self";
+	const string SELF_ORIGIN = "http://127.0.0.1:1224";
 	const int TIMEOUT_MS = 30000;
 	const int MAX_BODY = 1024 * 1024;
 
@@ -73,6 +78,10 @@ static class HttpDebug {
 			}
 		}
 		normalize(book, defaultName);
+		if (!book.Seeded) {
+			seedself(book);
+			book.Seeded = true;
+		}
 		return book;
 	}
 
@@ -242,7 +251,7 @@ static class HttpDebug {
 		var path = Path.Combine(dir, FILE_NAME);
 		HttpListener lis = null;
 		try {
-			var book = new HttpDbgBook();
+			var book = new HttpDbgBook { Seeded = true };
 			normalize(book, "未分组");
 			book.Groups.Add(new HttpDbgGroup { Id = "g1", Name = "接口" });
 			book.Items.Add(new HttpDbgItem {
@@ -253,8 +262,26 @@ static class HttpDebug {
 			var back = Load(path, "未分组", out var lerr);
 			if (lerr != null) fail("load " + lerr);
 			if (back.Groups.Count != 2 || back.Items.Count != 1 || back.Items[0].Json != "{\"a\":1}"
-				|| back.Items[0].Body != "json" || back.Groups[1].Name != "接口")
+				|| back.Items[0].Body != "json" || back.Groups[1].Name != "接口" || !back.Seeded)
 				fail("roundtrip");
+			var freshPath = Path.Combine(dir, "fresh.json");
+			var fresh = Load(freshPath, "未分组", out var ferr);
+			if (ferr != null) fail("fresh " + ferr);
+			var self = fresh.Groups.FirstOrDefault(g => g.Id == SELF_GROUP);
+			var usb = fresh.Items.FirstOrDefault(it => it.Id == "self-usb");
+			var fx = fresh.Items.FirstOrDefault(it => it.Id == "self-fx");
+			if (self == null || self.Name != "测试" || fresh.Items.Count(it => it.Group == SELF_GROUP) != 6)
+				fail("seed group");
+			if (usb == null || usb.Method != "GET" || usb.Url != SELF_ORIGIN + "/api/usb" || usb.Query.IndexOf("vid=046d", StringComparison.Ordinal) < 0)
+				fail("seed usb");
+			if (fx == null || fx.Method != "POST" || fx.Body != "json" || fx.Json.IndexOf("USD", StringComparison.Ordinal) < 0)
+				fail("seed fx");
+			fresh.Groups.RemoveAll(g => g.Id == SELF_GROUP);
+			fresh.Items.RemoveAll(it => it.Group == SELF_GROUP);
+			Save(freshPath, fresh);
+			var kept = Load(freshPath, "未分组", out _);
+			if (kept.Groups.Any(g => g.Id == SELF_GROUP) || kept.Items.Any(it => it.Id == "self-usb"))
+				fail("seed returned");
 			var port = freeport();
 			lis = new HttpListener();
 			lis.Prefixes.Add($"http://127.0.0.1:{port}/");
@@ -371,6 +398,35 @@ static class HttpDebug {
 	}
 
 	static string newid(string prefix) => prefix + Guid.NewGuid().ToString("N").Substring(0, 12);
+
+	/// <summary>补上分组「测试」和本程序默认端口上的几条接口。分组已在时不改用户删过的请求。</summary>
+	static void seedself(HttpDbgBook book) {
+		if (book.Groups.Any(g => g.Id == SELF_GROUP)) return;
+		var at = book.Groups.FindIndex(g => g.Id == DEFAULT_GROUP);
+		var row = new HttpDbgGroup { Id = SELF_GROUP, Name = "测试" };
+		if (at >= 0) book.Groups.Insert(at + 1, row);
+		else book.Groups.Add(row);
+		add("self-status", "状态", "GET", "/api/status", "", "");
+		add("self-zhconv", "简繁", "GET", "/api/zhconv", "text=软件\nto=trad", "");
+		add("self-pinyin", "拼音", "GET", "/api/pinyin", "text=中国\nmode=py", "");
+		add("self-usb", "USB 厂家", "GET", "/api/usb", "vid=046d\npid=c52b", "");
+		add("self-fx", "货币", "POST", "/api/fx", "", "{\n  \"amount\": 1,\n  \"from\": \"USD\",\n  \"to\": \"CNY\"\n}");
+		add("self-text", "文本 Base64", "POST", "/api/text", "", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}");
+
+		void add(string id, string name, string method, string path, string query, string json) {
+			if (book.Items.Any(it => it.Id == id)) return;
+			book.Items.Add(new HttpDbgItem {
+				Id = id,
+				Group = SELF_GROUP,
+				Name = name,
+				Method = method,
+				Url = SELF_ORIGIN + path,
+				Query = query,
+				Json = json ?? "",
+				Body = string.IsNullOrEmpty(json) ? "params" : "json",
+			});
+		}
+	}
 
 	static void normalize(HttpDbgBook book, string defaultName) {
 		if (book.Groups == null) book.Groups = new List<HttpDbgGroup>();

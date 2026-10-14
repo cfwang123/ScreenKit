@@ -29,6 +29,8 @@ public partial class NetToolsWindow : Window {
 	void initev() {
 		bping.Click += (_, _) => _ = run("ping");
 		bdns.Click += (_, _) => _ = run("dns");
+		barp.Click += (_, _) => _ = run("arp");
+		barprev.Click += (_, _) => _ = run("arprev");
 		bwhois.Click += (_, _) => _ = run("whois");
 		btrace.Click += (_, _) => _ = run("trace");
 		blocate.Click += (_, _) => _ = run("locate");
@@ -71,6 +73,8 @@ public partial class NetToolsWindow : Window {
 		ehost.ToolTip = Loc.T("nettool.host.tip");
 		ToolBtnUi.Set(bping, ToolBtnUi.Play, Loc.T("nettool.ping"));
 		ToolBtnUi.Set(bdns, ToolBtnUi.Encode, Loc.T("nettool.dns"));
+		ToolBtnUi.Set(barp, ToolBtnUi.Encode, Loc.T("nettool.arp"));
+		ToolBtnUi.Set(barprev, ToolBtnUi.Browse, Loc.T("nettool.arprev"));
 		ToolBtnUi.Set(bwhois, ToolBtnUi.Font, Loc.T("nettool.whois"));
 		ToolBtnUi.Set(btrace, ToolBtnUi.Up, Loc.T("nettool.trace"));
 		ToolBtnUi.Set(blocate, ToolBtnUi.Encode, Loc.T("nettool.locate"));
@@ -93,6 +97,8 @@ public partial class NetToolsWindow : Window {
 		busy = on;
 		bping.IsEnabled = !on;
 		bdns.IsEnabled = !on;
+		barp.IsEnabled = !on;
+		barprev.IsEnabled = !on;
 		bwhois.IsEnabled = !on;
 		btrace.IsEnabled = !on;
 		blocate.IsEnabled = !on;
@@ -193,8 +199,16 @@ public partial class NetToolsWindow : Window {
 					.ConfigureAwait(true);
 			}
 			else if (kind == "dns") {
-				var s = await NetTools.Resolve(host, token).ConfigureAwait(true);
-				append(s);
+				await NetTools.Resolve(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "arp") {
+				await NetTools.ArpResolve(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "arprev") {
+				await NetTools.ArpReverse(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
 			}
 			else if (kind == "trace") {
 				await NetTools.Trace(host, 30, s => Dispatcher.Invoke(() => append(s)), token)
