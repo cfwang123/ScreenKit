@@ -6,7 +6,7 @@ using Microsoft.Win32;
 namespace ScreenKit;
 
 /// <summary>一个已连接的 USB 设备，以及右侧要显示的参数。</summary>
-sealed class UsbDev {
+public sealed class UsbDev {
 	public string Name { get; set; }
 	public string VidPid { get; set; }
 	public string Com { get; set; }
@@ -21,7 +21,7 @@ sealed class UsbDev {
 }
 
 /// <summary>参数名和值。</summary>
-sealed class UsbPair {
+public sealed class UsbPair {
 	public string Name { get; set; }
 	public string Value { get; set; }
 }
@@ -93,7 +93,9 @@ static class UsbList {
 		foreach (var cls in classes) {
 			var copy = cls;
 			try { list.AddRange(finish(SetupDiGetClassDevsGuid(ref copy, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT))); }
-			catch { }
+			catch (Exception ex) {
+				if (SysDeviceAdmin.IsAccessDenied(ex)) throw;
+			}
 		}
 		return distinct(list);
 	}
@@ -103,7 +105,9 @@ static class UsbList {
 		foreach (var name in enumerators) {
 			if (string.IsNullOrWhiteSpace(name)) continue;
 			try { list.AddRange(finish(SetupDiGetClassDevs(IntPtr.Zero, name, IntPtr.Zero, DIGCF_PRESENT | DIGCF_ALLCLASSES))); }
-			catch { }
+			catch (Exception ex) {
+				if (SysDeviceAdmin.IsAccessDenied(ex)) throw;
+			}
 		}
 		return distinct(list);
 	}

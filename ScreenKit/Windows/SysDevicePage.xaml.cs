@@ -49,7 +49,7 @@ public partial class SysDevicePage : UserControl {
 		all = new List<UsbDev>();
 		lvdev.ItemsSource = all;
 		lvprop.ItemsSource = null;
-		lbstat.Text = Loc.T("usb.fail", error);
+		lbstat.Text = Loc.T("dev.fail.retry", error);
 	}
 
 	internal void SetRows(List<UsbDev> rows, string keepId) {

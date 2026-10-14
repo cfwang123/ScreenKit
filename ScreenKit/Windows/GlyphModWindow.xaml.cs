@@ -1,6 +1,6 @@
 namespace ScreenKit;
 
-/// <summary>工具 → 字符取模。</summary>
+/// <summary>工具 → 字符点阵提取。</summary>
 public partial class GlyphModWindow : Window {
 	GlyphMod.Sheet shown;
 	int builtx;

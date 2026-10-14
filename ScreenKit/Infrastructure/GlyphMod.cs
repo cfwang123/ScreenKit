@@ -3,7 +3,7 @@ using System.Text;
 
 namespace ScreenKit;
 
-/// <summary>字符取模：按字体和字号把每个字画成点阵，再按行或按列打成字节。</summary>
+/// <summary>字符点阵提取：按字体和字号把每个字画成点阵，再按行或按列打成字节。</summary>
 public static class GlyphMod {
 	public const int SIZE_MIN = 8;
 	public const int SIZE_MAX = 128;
@@ -367,7 +367,7 @@ public static class GlyphMod {
 			var cut = new Sheet();
 			trim(extra, cut);
 			if (!cut.Truncated || extra.Count != MAX_CHARS) return bad(say, "trunc");
-			say("=== OK：字符取模");
+			say("=== OK：字符点阵提取");
 			return 0;
 		}
 		catch (Exception ex) {

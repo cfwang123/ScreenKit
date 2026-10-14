@@ -90,6 +90,7 @@ static class Cli {
 				or "--translate" or "--translate-file" or "--list-translate"
 				or "--list-install" or "--list-tts-install"
 				or "--list-face"
+				or "--sysdev-scan"
 				or "--apply-update" or "--self-update")
 				return true;
 		}
@@ -100,6 +101,11 @@ static class Cli {
 		// 自更新：不初始化 CUDA（由 App 入口优先处理；此处兜底）
 		if (AppUpdater.IsApplyUpdateArgs(args))
 			return AppUpdater.RunApplyUpdate(args);
+		for (var i = 0; i < args.Length; i++) {
+			if (args[i] != "--sysdev-scan") continue;
+			if (i + 2 >= args.Length) return 2;
+			return SysDeviceAdmin.RunChild(args[i + 1], args[i + 2]);
+		}
 
 		try {
 			var o = new OcrOptions();
@@ -4912,7 +4918,7 @@ static class Cli {
 	}
 
 	static int testglyphmod() {
-		Out("=== 字符取模 --test-glyphmod ===");
+		Out("=== 字符点阵提取 --test-glyphmod ===");
 		return GlyphMod.SelfTest(Out);
 	}
 
@@ -5945,7 +5951,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、MAC 厂家、USB 厂家、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
-      --test-sysinfo  只读检查处理器、内存容量、串口、打印机、声音设备和 USB 设备
+      --test-sysinfo  只读检查系统信息及各类设备扫描
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-update-url  向自建更新地址取 9.9.9 测试包、中文说明并下载 zip

@@ -42,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Network tools can look up the IEEE vendor of a MAC address, also as GET/POST /api/mac.
 - Network tools can look up a USB vendor and product from usb.ids, also as GET/POST /api/usb.
 - System info has a Fonts tab showing each installed font name, a live preview, and its font file names.
+- System info lists displays, cameras, Bluetooth, network and input adapters, physical disks, batteries, PCI/system devices, and devices with Windows problem codes.
 
 #### Changed
 
@@ -49,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The release folder keeps only the current screenkit package. Older screenkit_*.7z files are removed after packing.
 - On startup, a newer screenkit_*.7z in the program folder asks whether to install it.
 - Sound / mic shows active devices by default. Show all includes inactive devices and keeps active devices first.
+- System info queries each tab only on first entry. A permission-denied device query can retry through the elevated device-scan CLI; failures remain visible with Refresh available.
 
 #### Fixed
 
@@ -66,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网络工具可查询 MAC 地址的 IEEE 厂家，并提供 GET/POST /api/mac。
 - 网络工具可按 usb.ids 查询 USB 厂家和产品，并提供 GET/POST /api/usb。
 - 系统信息新增字体列表页，显示已安装字体名称、实际字体预览和字体文件名。
+- 系统信息新增显示器、摄像头、蓝牙、网络与输入设备、物理磁盘、电池、PCI/系统设备和异常设备列表。
 
 #### 变更
 
@@ -73,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - release 目录只保留当前版本的 screenkit 安装包。打包后会删掉更早的 screenkit_*.7z。
 - 程序目录里有更新的 screenkit_版本.7z 时，启动会询问是否安装。
 - 声音/麦克风默认只显示活动设备；勾选显示全部后会包含非活动设备，并保持活动设备在前。
+- 系统信息改为首次进入各 Tab 时才查询；设备查询权限不足时可通过管理员设备扫描命令行重试，失败原因会保留并可点刷新重试。
 
 #### 修复
 

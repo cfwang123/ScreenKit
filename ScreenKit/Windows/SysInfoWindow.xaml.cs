@@ -70,15 +70,15 @@ public partial class SysInfoWindow : Window {
 		tabloads[tabprn] = reloadprn;
 		tabloads[tabaud] = reloadaud;
 		tabloads[tabfont] = reloadfont;
-		addpage(tabdisplay, pdisplay, SysDevices.ScanDisplays);
-		addpage(tabcamera, pcamera, SysDevices.ScanCameras);
-		addpage(tabbt, pbt, SysDevices.ScanBluetooth);
-		addpage(tabnet, pnet, SysDevices.ScanNetwork);
-		addpage(tabinput, pinput, SysDevices.ScanInput);
-		addpage(tabdisk, pdisk, SysDevices.ScanDisks);
-		addpage(tabbattery, pbattery, SysDevices.ScanBatteries);
-		addpage(tabpci, ppci, SysDevices.ScanSystemDevices);
-		addpage(tabproblem, pproblem, SysDevices.ScanProblems);
+		addpage(tabdisplay, pdisplay, "display", SysDevices.ScanDisplays);
+		addpage(tabcamera, pcamera, "camera", SysDevices.ScanCameras);
+		addpage(tabbt, pbt, "bt", SysDevices.ScanBluetooth);
+		addpage(tabnet, pnet, "net", SysDevices.ScanNetwork);
+		addpage(tabinput, pinput, "input", SysDevices.ScanInput);
+		addpage(tabdisk, pdisk, "disk", SysDevices.ScanDisks);
+		addpage(tabbattery, pbattery, "battery", SysDevices.ScanBatteries);
+		addpage(tabpci, ppci, "pci", SysDevices.ScanSystemDevices);
+		addpage(tabproblem, pproblem, "problem", SysDevices.ScanProblems);
 		tabsys.SelectionChanged += (_, e) => {
 			if (e.Source == tabsys) ensuretab();
 		};
@@ -150,15 +150,15 @@ public partial class SysInfoWindow : Window {
 		colaudval.Header = Loc.T("usb.col.value");
 		ToolBtnUi.Set(baudrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(baudcopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
-		pdisplay.Init("display", "display.hint", "display.none", "display.count");
-		pcamera.Init("camera", "camera.hint", "camera.none", "camera.count");
-		pbt.Init("bt", "bt.hint", "bt.none", "bt.count");
-		pnet.Init("netdev", "netdev.hint", "netdev.none", "netdev.count");
-		pinput.Init("input", "input.hint", "input.none", "input.count");
-		pdisk.Init("diskdev", "diskdev.hint", "diskdev.none", "diskdev.count");
-		pbattery.Init("battery", "battery.hint", "battery.none", "battery.count");
-		ppci.Init("pci", "pci.hint", "pci.none", "pci.count");
-		pproblem.Init("problem", "problem.hint", "problem.none", "problem.count");
+		pdisplay.Init("display", "dev.hint", "dev.none", "dev.count");
+		pcamera.Init("camera", "dev.hint", "dev.none", "dev.count");
+		pbt.Init("bt", "dev.hint", "dev.none", "dev.count");
+		pnet.Init("netdev", "dev.hint", "dev.none", "dev.count");
+		pinput.Init("input", "dev.hint", "dev.none", "dev.count");
+		pdisk.Init("diskdev", "dev.hint", "dev.none", "dev.count");
+		pbattery.Init("battery", "dev.hint", "dev.none", "dev.count");
+		ppci.Init("pci", "dev.hint", "dev.none", "dev.count");
+		pproblem.Init("problem", "dev.hint", "dev.none", "dev.count");
 		lbfonthint.Text = Loc.T("font.hint");
 		lbfontfilter.Text = Loc.T("usb.filter");
 		efontfilter.ToolTip = Loc.T("font.filter.tip");
@@ -170,10 +170,10 @@ public partial class SysInfoWindow : Window {
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
-	void addpage(TabItem tab, SysDevicePage page, Func<List<UsbDev>> scan) {
+	void addpage(TabItem tab, SysDevicePage page, string kind, Func<List<UsbDev>> scan) {
 		pagegens[page] = 0;
-		tabloads[tab] = () => reloaddev(page, scan);
-		page.RefreshRequested += () => reloaddev(page, scan);
+		tabloads[tab] = () => reloaddev(page, kind, scan);
+		page.RefreshRequested += () => reloaddev(page, kind, scan);
 	}
 
 	void ensuretab() {
@@ -182,7 +182,7 @@ public partial class SysInfoWindow : Window {
 		if (tabloads.TryGetValue(tab, out var load)) load();
 	}
 
-	void reloaddev(SysDevicePage page, Func<List<UsbDev>> scan) {
+	void reloaddev(SysDevicePage page, string kind, Func<List<UsbDev>> scan) {
 		var id = page.SelectedId;
 		var gen = pagegens[page] + 1;
 		pagegens[page] = gen;
@@ -191,7 +191,14 @@ public partial class SysInfoWindow : Window {
 			List<UsbDev> rows = null;
 			string err = null;
 			try { rows = scan(); }
-			catch (Exception ex) { err = ex.Message; }
+			catch (Exception ex) {
+				if (!SysDeviceAdmin.IsAdmin() && SysDeviceAdmin.IsAccessDenied(ex)) {
+					var elevated = SysDeviceAdmin.Scan(kind);
+					rows = elevated.Rows;
+					err = elevated.Error;
+				}
+				else err = ex.Message;
+			}
 			apply(gen, () => pagegens[page], () => {
 				if (err != null) page.Failed(err);
 				else page.SetRows(rows, id);

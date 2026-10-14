@@ -16,6 +16,19 @@ static class SysDevices {
 	static readonly Guid HidClass = new("745a17a0-74d3-11d0-b6fe-00a0c90f57da");
 	static readonly Guid SystemClass = new("4d36e97d-e325-11ce-bfc1-08002be10318");
 
+	public static List<UsbDev> Scan(string kind) => kind switch {
+		"display" => ScanDisplays(),
+		"camera" => ScanCameras(),
+		"bt" => ScanBluetooth(),
+		"net" => ScanNetwork(),
+		"input" => ScanInput(),
+		"disk" => ScanDisks(),
+		"battery" => ScanBatteries(),
+		"pci" => ScanSystemDevices(),
+		"problem" => ScanProblems(),
+		_ => throw new ArgumentException("unknown device kind: " + kind),
+	};
+
 	public static List<UsbDev> ScanDisplays() {
 		var rows = new List<UsbDev>();
 		var edids = readedids();
@@ -166,7 +179,7 @@ static class SysDevices {
 		var full = wmifirst(@"root\wmi", "SELECT FullChargedCapacity FROM BatteryFullChargedCapacity", "FullChargedCapacity");
 		var cycles = wmifirst(@"root\wmi", "SELECT CycleCount FROM BatteryCycleCount", "CycleCount");
 		using var search = new ManagementObjectSearcher(
-			"SELECT DeviceID, PNPDeviceID, Name, Manufacturer, Status, BatteryStatus, EstimatedChargeRemaining, EstimatedRunTime, DesignCapacity, FullChargeCapacity, DesignVoltage, Chemistry FROM Win32_Battery");
+			"SELECT DeviceID, PNPDeviceID, Name, Status, BatteryStatus, EstimatedChargeRemaining, EstimatedRunTime, DesignCapacity, FullChargeCapacity, DesignVoltage, Chemistry FROM Win32_Battery");
 		using var found = search.Get();
 		foreach (ManagementObject item in found) {
 			using (item) {
@@ -175,7 +188,6 @@ static class SysDevices {
 				var status = batterystatus(wint(item, "BatteryStatus"));
 				var props = new List<UsbPair>();
 				add(props, "usb.p.name", name);
-				add(props, "usb.p.mfg", wstr(item, "Manufacturer"));
 				add(props, "sys.p.status", status);
 				add(props, "dev.p.charge", charge.Length > 0 ? charge + "%" : "");
 				add(props, "dev.p.design", capacity(wstr(item, "DesignCapacity")));
@@ -254,7 +266,9 @@ static class SysDevices {
 				}
 			}
 		}
-		catch { }
+		catch (Exception ex) {
+			if (SysDeviceAdmin.IsAccessDenied(ex)) throw;
+		}
 		return map;
 	}
 
@@ -275,7 +289,9 @@ static class SysDevices {
 				}
 			}
 		}
-		catch { }
+		catch (Exception ex) {
+			if (SysDeviceAdmin.IsAccessDenied(ex)) throw;
+		}
 		return rows;
 	}
 
@@ -309,7 +325,9 @@ static class SysDevices {
 				}
 			}
 		}
-		catch { }
+		catch (Exception ex) {
+			if (SysDeviceAdmin.IsAccessDenied(ex)) throw;
+		}
 		return rows;
 	}
 
@@ -331,7 +349,9 @@ static class SysDevices {
 				using (item) return wstr(item, property);
 			}
 		}
-		catch { }
+		catch (Exception ex) {
+			if (SysDeviceAdmin.IsAccessDenied(ex)) throw;
+		}
 		return "";
 	}
 
