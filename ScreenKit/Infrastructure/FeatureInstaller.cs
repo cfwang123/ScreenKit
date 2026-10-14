@@ -12,7 +12,6 @@ using System.Text.Json.Nodes;
 using Microsoft.Win32.SafeHandles;
 using SharpCompress.Common;
 using SharpCompress.Readers;
-using SharpSevenZip;
 
 namespace ScreenKit;
 
@@ -53,8 +52,6 @@ public enum FeatureKind {
 	NativeZxing,
 	/// <summary>SharpCompress.dll（解压 tar.bz2 等，约 2.5MB）。</summary>
 	SharpCompress,
-	/// <summary>SharpSevenZip.dll（配合 7za 解压 7z，约 1.8MB）。</summary>
-	SharpSevenZip,
 	/// <summary>7za.dll（解压 7z，约 0.4MB）。</summary>
 	Native7za,
 	/// <summary>e_sqlite3.dll（词典 SQLite，约 1.7MB）。</summary>
@@ -208,7 +205,6 @@ static class FeatureInstaller {
 			make(FeatureKind.NativeOpenCv, "native"),
 			make(FeatureKind.NativeZxing, "native"),
 			make(FeatureKind.SharpCompress, "native"),
-			make(FeatureKind.SharpSevenZip, "native"),
 			make(FeatureKind.Native7za, "native"),
 			make(FeatureKind.NativeSqlite, "native"),
 			make(FeatureKind.Bogus, "native"),
@@ -269,7 +265,6 @@ static class FeatureInstaller {
 		FeatureKind.NativeOpenCv => NativeRuntime.OpenCvSizeHint,
 		FeatureKind.NativeZxing => NativeRuntime.ZxingSizeHint,
 		FeatureKind.SharpCompress => NativeRuntime.SharpCompressSizeHint,
-		FeatureKind.SharpSevenZip => NativeRuntime.SharpSevenZipSizeHint,
 		FeatureKind.Native7za => NativeRuntime.SevenZipSizeHint,
 		FeatureKind.NativeSqlite => NativeRuntime.SqliteSizeHint,
 		FeatureKind.Bogus => NativeRuntime.BogusSizeHint,
@@ -340,8 +335,6 @@ static class FeatureInstaller {
 				return filesize(Path.Combine(BaseDir, "ZXing.dll"));
 			case FeatureKind.SharpCompress:
 				return filesize(Path.Combine(BaseDir, "SharpCompress.dll"));
-			case FeatureKind.SharpSevenZip:
-				return filesize(Path.Combine(BaseDir, "SharpSevenZip.dll"));
 			case FeatureKind.Native7za:
 				return filesize(Path.Combine(BaseDir, "7za.dll"));
 			case FeatureKind.NativeSqlite:
@@ -425,8 +418,6 @@ static class FeatureInstaller {
 			return NativeRuntime.HasZxing() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.SharpCompress:
 			return NativeRuntime.HasSharpCompress() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
-		case FeatureKind.SharpSevenZip:
-			return NativeRuntime.HasSharpSevenZip() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.Native7za:
 			return NativeRuntime.Has7za() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSqlite:
@@ -593,9 +584,6 @@ static class FeatureInstaller {
 		case FeatureKind.SharpCompress:
 			await NativeRuntime.InstallSharpCompress(log, progress, ct).ConfigureAwait(false);
 			break;
-		case FeatureKind.SharpSevenZip:
-			await NativeRuntime.InstallSharpSevenZip(log, progress, ct).ConfigureAwait(false);
-			break;
 		case FeatureKind.Native7za:
 			await NativeRuntime.Install7za(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -688,9 +676,6 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.SharpCompress:
 			NativeRuntime.UninstallSharpCompress(log);
-			break;
-		case FeatureKind.SharpSevenZip:
-			NativeRuntime.UninstallSharpSevenZip(log);
 			break;
 		case FeatureKind.Native7za:
 			NativeRuntime.Uninstall7za(log);
@@ -2036,13 +2021,11 @@ arabic_dict.txt
 		long expectedTotal = 0) =>
 		downloadfirst(urls, dest, log, progress, ct, expectedTotal: expectedTotal);
 
-	/// <summary>解压前补上下载缺失的 SharpCompress / SharpSevenZip / 7za。zip 不需要。</summary>
+	/// <summary>解压前补上下载缺失的 SharpCompress / 7za。zip 不需要。</summary>
 	public static async Task EnsureExtractAsync(
 		string archive, IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		var ext = Path.GetExtension(archive ?? "").ToLowerInvariant();
 		if (ext == ".7z") {
-			if (!NativeRuntime.HasSharpSevenZip())
-				await NativeRuntime.InstallSharpSevenZip(log, progress, ct).ConfigureAwait(false);
 			if (!NativeRuntime.Has7za())
 				await NativeRuntime.Install7za(log, progress, ct).ConfigureAwait(false);
 			return;
@@ -2054,19 +2037,12 @@ arabic_dict.txt
 
 	/// <summary>用 7za.dll 解压 .7z。只支持 7z，不走系统 7z.exe。</summary>
 	static void extract7z(string archive, string destDir, IProgress<string> log) {
-		if (!NativeRuntime.Has7za() || !NativeRuntime.HasSharpSevenZip())
+		if (!NativeRuntime.Has7za())
 			throw new InvalidOperationException(
-				"解压 7z 需要 7za.dll 和 SharpSevenZip.dll。请在「安装功能」里安装。");
-		extract7zcore(archive, destDir, log);
-	}
-
-	static void extract7zcore(string archive, string destDir, IProgress<string> log) {
-		var lib = Path.Combine(BaseDir, "7za.dll");
-		SharpSevenZipBase.SetLibraryPath(lib);
+				"解压 7z 需要 7za.dll。请在「安装功能」里安装。");
 		Directory.CreateDirectory(destDir);
 		log?.Report("7za 解压 " + Path.GetFileName(archive));
-		using (var ext = new SharpSevenZipExtractor(archive))
-			ext.ExtractArchive(destDir);
+		SevenZipExtract.Extract(archive, destDir);
 	}
 
 	/// <summary>解压 zip / 7z / tar.bz2 到目标目录。</summary>

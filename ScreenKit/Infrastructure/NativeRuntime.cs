@@ -25,15 +25,12 @@ static class NativeRuntime {
 	const string OpenCvExtern = "OpenCvSharpExtern.dll";
 	const string ZxingDll = "ZXing.dll";
 	const string SharpCompressDll = "SharpCompress.dll";
-	const string SharpSevenZipDll = "SharpSevenZip.dll";
 	const string SevenZipDll = "7za.dll";
 	const string SqliteDll = "e_sqlite3.dll";
 	const string ZxingPkg = "ZXingCpp";
 	const string ZxingVer = "0.5.3";
 	const string CompressPkg = "SharpCompress";
 	const string CompressVer = "0.50.4";
-	const string SevenPkg = "SharpSevenZip";
-	const string SevenVer = "2.0.128";
 	const string SevenLibPkg = "7z.Libs";
 	const string SevenLibVer = "26.3.0";
 	const string SqlitePkg = "SQLitePCLRaw.lib.e_sqlite3";
@@ -72,7 +69,6 @@ static class NativeRuntime {
 
 	public static bool HasZxing() => File.Exists(Path.Combine(BaseDir, ZxingDll));
 	public static bool HasSharpCompress() => File.Exists(Path.Combine(BaseDir, SharpCompressDll));
-	public static bool HasSharpSevenZip() => File.Exists(Path.Combine(BaseDir, SharpSevenZipDll));
 	public static bool Has7za() => File.Exists(Path.Combine(BaseDir, SevenZipDll));
 	public static bool HasSqlite() => File.Exists(Path.Combine(BaseDir, SqliteDll));
 	public static bool HasBogus() => File.Exists(Path.Combine(BaseDir, BogusDll));
@@ -96,7 +92,6 @@ static class NativeRuntime {
 	public static long OpenCvSizeHint => 61L * 1024 * 1024;
 	public static long ZxingSizeHint => 3149312L;
 	public static long SharpCompressSizeHint => 2477056L;
-	public static long SharpSevenZipSizeHint => 1865728L;
 	public static long SevenZipSizeHint => 416256L;
 	public static long SqliteSizeHint => 1759232L;
 	public static long BogusSizeHint => 2429952L;
@@ -179,14 +174,6 @@ static class NativeRuntime {
 			CompressPkg, CompressVer,
 			new[] { ("lib/net48/" + SharpCompressDll, SharpCompressDll) },
 			log, progress, ct, SharpCompressSizeHint).ConfigureAwait(false);
-	}
-
-	public static async Task InstallSharpSevenZip(
-		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
-		await extractfromnupkg(
-			SevenPkg, SevenVer,
-			new[] { ("lib/net48/" + SharpSevenZipDll, SharpSevenZipDll) },
-			log, progress, ct, SharpSevenZipSizeHint).ConfigureAwait(false);
 	}
 
 	public static async Task Install7za(
@@ -285,11 +272,8 @@ static class NativeRuntime {
 	public static void UninstallSharpCompress(IProgress<string> log = null) =>
 		deletefiles(log, SharpCompressDll);
 
-	public static void UninstallSharpSevenZip(IProgress<string> log = null) =>
-		deletefiles(log, SharpSevenZipDll);
-
 	public static void Uninstall7za(IProgress<string> log = null) =>
-		deletefiles(log, SevenZipDll);
+		deletefiles(log, SevenZipDll, "SharpSevenZip.dll");
 
 	public static void UninstallSqlite(IProgress<string> log = null) =>
 		deletefiles(log, SqliteDll);
@@ -449,7 +433,6 @@ static class NativeRuntime {
 		sb.AppendLine($"OpenCvSharpExtern: {(HasOpenCv() ? "OK" : "缺失")}  ({OpenCvExtern})");
 		sb.AppendLine($"ZXing: {(HasZxing() ? "OK" : "缺失")}  ({ZxingDll})");
 		sb.AppendLine($"SharpCompress: {(HasSharpCompress() ? "OK" : "缺失")}  ({SharpCompressDll})");
-		sb.AppendLine($"SharpSevenZip: {(HasSharpSevenZip() ? "OK" : "缺失")}  ({SharpSevenZipDll})");
 		sb.AppendLine($"7za: {(Has7za() ? "OK" : "缺失")}  ({SevenZipDll})");
 		sb.AppendLine($"e_sqlite3: {(HasSqlite() ? "OK" : "缺失")}  ({SqliteDll})");
 		sb.AppendLine($"Bogus: {(HasBogus() ? "OK" : "缺失")}  ({BogusDll})");

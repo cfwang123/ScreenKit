@@ -255,10 +255,10 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | Local Chinese↔English translation | `translatemodels.7z` (both Opus-MT directions). Also selects CPU ONNX Runtime | 981 MB download, about 1.08 GB extracted. Runtime is another 16 MB |
 | Offline speech recognition | A model, plus the Sherpa native library. `.tar.bz2` packs also need SharpCompress | SenseVoice 230 MB; streaming Zipformer 75 MB; Whisper tiny 78 MB; Whisper base 148 MB; Silero VAD 2 MB. Sherpa 5 MB. SharpCompress 2.4 MB |
 | Offline speech synthesis | A model under `ttsmodels/`, plus the Sherpa native library | Each voice pack shows its own size on the install page. Sherpa 5 MB |
-| Dictionary | `dict2.7z` extracts `dict2.db` next to the program and removes an old `dict.db`. Opening it needs `e_sqlite3.dll`. Extracting needs `7za.dll` and `SharpSevenZip.dll` | Dictionary archive 136 MB. SQLite 1.7 MB. 7za 406.5 KB. SharpSevenZip 1.8 MB |
+| Dictionary | `dict2.7z` extracts `dict2.db` next to the program and removes an old `dict.db`. Opening it needs `e_sqlite3.dll`. Extracting needs `7za.dll` | Dictionary archive 136 MB. SQLite 1.7 MB. 7za 406.5 KB |
 | PDF to images | `pdfium.dll`, `libSkiaSharp.dll` | 6 MB + 11 MB |
 | x264 / x265 / AV1 / video to GIF | `ffmpeg64/` (`ffmpeg.7z`) | 32.5 MB download, about 117 MB unpacked |
-| Archive extract | `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll` | 2.4 MB + 1.8 MB + 406.5 KB |
+| Archive extract | `SharpCompress.dll`, `7za.dll` | 2.4 MB + 406.5 KB |
 | ONNX OCR, face, and QR | `OpenCvSharpExtern.dll`. The OpenCV video library is not included. Image convert uses it only when it is already installed, to read more formats. Long screenshot and Windows OCR do not need it | 61 MB |
 | Android package | Not in the slim folder. **Install on phone** on the file-sync page downloads it | Whatever that APK release is |
 | NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
@@ -267,7 +267,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 
 1. Startup does not open the installer. Windows OCR is available immediately.
 2. **Help → Install features**
-   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary, Chinese↔English ONNX translation, and FFmpeg 4.4 shared download `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z` from the fixed `dict-db` release (not the app update package). Translation includes the two minimal Opus-MT runtime packs (~981 MB download, ~1.08 GiB extracted) and automatically selects CPU ONNX Runtime. Extracting either archive downloads `7za.dll` and `SharpSevenZip.dll` when they are not already installed. Opening the database needs `e_sqlite3.dll`.
+   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary, Chinese↔English ONNX translation, and FFmpeg 4.4 shared download `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z` from the fixed `dict-db` release (not the app update package). Translation includes the two minimal Opus-MT runtime packs (~981 MB download, ~1.08 GiB extracted) and automatically selects CPU ONNX Runtime. Extracting either archive downloads `7za.dll` when it is not already installed. Opening the database needs `e_sqlite3.dll`.
    - **ONNX speech models**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported. Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). Choose Japanese in the language list. That pack also speaks the other Supertonic 3 languages.
    - **Windows OCR/Speech**: one language tree manages `Language.OCR`, `Language.TextToSpeech`, and `Language.Speech`. Languages are sorted Chinese, English, Japanese, Korean, then others. A language with an installed pack or currently available engine opens by default; other languages remain collapsed but can be opened for installation. Each language has fixed OCR, speech synthesis, and speech recognition children, with a tri-state language checkbox. The page shows WinRT OCR languages, voices, and `System.Speech` recognizers. The installed-pack check runs once after ScreenKit starts. Opening this window again uses that result. Refresh checks every pack again. Installing or removing rechecks only those packs, in the same administrator window when one is already required. Querying or changing a mixed selection uses one administrator window/UAC prompt. The copyable command box groups all install commands before all remove commands. Restart ScreenKit after changes. Windows OCR is especially fast; Windows recognition performs poorly for Chinese, so SenseVoice is recommended for Chinese ASR.
 3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
@@ -282,7 +282,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | **Bogus** | `Bogus.dll`. Tools-page test data. With it, pick a language, then a category that language has | ~2.3 MB |
 | **NPinyin** | `NPinyin.dll`. Chinese pinyin and initials. Install it under Tools | ~75 KB |
 | **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
-| **SharpSevenZip / 7za** | Extract dictionary and translation model `.7z` packages | ~1.8 MB + ~0.4 MB |
+| **7za** | Extract dictionary and translation model `.7z` packages | ~0.4 MB |
 | **SQLite** | `e_sqlite3.dll`. Opens `dict2.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 and video to GIF | ~33 MB 7z / ~117 MB unpacked |
 
@@ -400,7 +400,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE, `web/`, `pinyin.toml`, and `pinyin.user.toml`. The tools page is the joined `tools.js` only. The separate scripts under `web/tools` are not in this package.
-- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict2.db`, `ZXing.dll`, `SharpCompress.dll`, `SharpSevenZip.dll`, `7za.dll`, `e_sqlite3.dll`, `Bogus.dll`, or `NPinyin.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, archive extract, and the dictionary each ask to install the missing library when you use them.
+- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict2.db`, `ZXing.dll`, `SharpCompress.dll`, `7za.dll`, `e_sqlite3.dll`, `Bogus.dll`, or `NPinyin.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, archive extract, and the dictionary each ask to install the missing library when you use them.
 - End users install those via **Install features**. Custom Opus-MT ONNX packs can still be placed under `translatemodels/` manually.
 
 For local development with models already present, run **`bin\Release\net48\`**.

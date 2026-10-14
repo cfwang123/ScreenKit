@@ -59,7 +59,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
 				or "--test-update-notes"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-portuse" or "--test-midisynth"
@@ -295,6 +295,8 @@ static class Cli {
 					return testfake();
 				case "--test-pinyin":
 					return testpinyin();
+				case "--test-7za":
+					return test7za();
 				case "--test-htmlui":
 					return testhtmlui();
 				case "--test-nettool":
@@ -3780,6 +3782,15 @@ static class Cli {
 		return 0;
 	}
 
+	static int test7za() {
+		Out("=== 7za 解压 --test-7za ===");
+		if (!NativeRuntime.Has7za()) {
+			Err("FAIL: 缺少 7za.dll");
+			return 1;
+		}
+		return SevenZipExtract.SelfTest(Out, Err);
+	}
+
 	static int testpinyin() {
 		Out("=== 中文转拼音 --test-pinyin ===");
 		var had = NativeRuntime.HasNPinyin();
@@ -5734,6 +5745,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-pwgen
   ScreenKit --test-fake
   ScreenKit --test-pinyin
+  ScreenKit --test-7za
   ScreenKit --test-htmlui
   ScreenKit --test-nettool
   ScreenKit --test-usb
@@ -5827,6 +5839,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-fake  安装 Bogus 后生成各类测试数据；原来没有则测完删掉
       --pinyin    中文转拼音（需已安装 NPinyin）。--init 输出首字母
       --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，测 pinyin.user.toml 盖住系统词表，并测本机 /api/pinyin；原来没有则测完删掉
+      --test-7za  用 7za.dll 解压内置小 7z（含中文文件名）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
@@ -5925,6 +5938,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --pinyin "重庆"
   ScreenKit --pinyin "重庆" --init
   ScreenKit --test-pinyin
+  ScreenKit --test-7za
   ScreenKit --test-htmlui
   ScreenKit --test-nettool
   ScreenKit --test-usb

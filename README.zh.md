@@ -255,10 +255,10 @@ scripts\langtext.cmd -h
 | 本地中英翻译 | `translatemodels.7z`（Opus-MT 双向）。会带上 CPU ONNX Runtime | 下载 981 MB，解压约 1.08 GB。运行库另计 16 MB |
 | 离线语音识别 | 模型，加上 Sherpa 原生库。`.tar.bz2` 还要 SharpCompress | SenseVoice 230 MB；流式 Zipformer 75 MB；Whisper tiny 78 MB；Whisper base 148 MB；Silero VAD 2 MB。Sherpa 5 MB。SharpCompress 2.4 MB |
 | 离线语音合成 | `ttsmodels/` 里的模型，加上 Sherpa 原生库 | 各语音包的大小在安装页按包显示。Sherpa 5 MB |
-| 词典 | `dict2.7z` 解出程序旁的 `dict2.db`，并删掉旧的 `dict.db`。打开库要 `e_sqlite3.dll`。解压要 `7za.dll` 和 `SharpSevenZip.dll` | 词典包 136 MB。SQLite 1.7 MB。7za 406.5 KB。SharpSevenZip 1.8 MB |
+| 词典 | `dict2.7z` 解出程序旁的 `dict2.db`，并删掉旧的 `dict.db`。打开库要 `e_sqlite3.dll`。解压要 `7za.dll` | 词典包 136 MB。SQLite 1.7 MB。7za 406.5 KB |
 | PDF 转图 | `pdfium.dll`、`libSkiaSharp.dll` | 6 MB + 11 MB |
 | x264 / x265 / AV1 / 视频转 GIF | `ffmpeg64/`（`ffmpeg.7z`） | 下载 32.5 MB，解压约 117 MB |
-| 解压 | `SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll` | 2.4 MB + 1.8 MB + 406.5 KB |
+| 解压 | `SharpCompress.dll`、`7za.dll` | 2.4 MB + 406.5 KB |
 | ONNX 识别、人脸、二维码 | `OpenCvSharpExtern.dll`。不含 OpenCV 视频库。图片转换只在已经装了时多读几种格式。长截图和 Windows 系统 OCR 不需要 | 61 MB |
 | 安卓安装包 | 不在精简包目录。文件同步页 **安装到手机** 再下载 | 随该版本的 APK |
 | NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
@@ -267,7 +267,7 @@ scripts\langtext.cmd -h
 
 1. 启动时不弹出安装窗口。Windows 系统 OCR 可以直接用。
 2. **帮助 → 安装功能**
-   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典、中英 ONNX 翻译和 FFmpeg 4.4 shared 分别下载固定 `dict-db` 上的 `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 和 `SharpSevenZip.dll` 会先下载。打开词典库需要 `e_sqlite3.dll`。
+   - **功能选择**：打开时勾选已装功能；增删显示将新增（绿）/ 删除（红）的组件数与大小，可复位。点确认即安装或卸载。语音包不在此页。词典、中英 ONNX 翻译和 FFmpeg 4.4 shared 分别下载固定 `dict-db` 上的 `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z`（不是应用更新包）。解压时若还没有 `7za.dll` 会先下载。打开词典库需要 `e_sqlite3.dll`。
    - **onnx语音模型**：按语言筛选；下载进度显示**整批总大小与已下载量**；`.tar.bz2` 包由程序内部解压，无需系统 `tar` / `bzip2`，并支持将 `ttsmodels` 设为 Junction。日文是 Supertonic 3（`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`），在语言里选日文。这一包同时包含 Supertonic 3 的其它语言。
    - **Windows语音**：进入本页时才读取已安装的 `Language.TextToSpeech` 功能包和发音人。本进程是管理员时直接读取、安装或卸载。不是管理员时，查看、安装或卸载都用 `start` 弹出管理员窗口（一次用户账户控制）。命令仍可复制。装好后需重启本程序，语音合成页才会列出新发音人。
 3. 使用某功能时若缺依赖，会提示打开安装窗（例如：没有任何 ORT 时做 OCR → 提示安装 `onnxcpu64`）。
@@ -282,7 +282,7 @@ scripts\langtext.cmd -h
 | **Bogus** | `Bogus.dll`。工具页「生成测试数据」。已安装时先选语言，再选该语言有的分类 | ~2.3 MB |
 | **NPinyin** | `NPinyin.dll`。中文转拼音和首字母。在「工具集」里安装 | ~75 KB |
 | **SharpCompress** | `SharpCompress.dll`。解压语音和识别的 `tar.bz2` | ~2.5 MB |
-| **SharpSevenZip / 7za** | 解压词典 `dict2.7z` | ~1.8 MB + ~0.4 MB |
+| **7za** | 解压词典和翻译模型 `.7z` | ~0.4 MB |
 | **SQLite** | `e_sqlite3.dll`。打开 `dict2.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 与视频转 GIF | 7z 约 33 MB / 解压约 117 MB |
 
@@ -398,7 +398,7 @@ dotnet build -c Release
 ### 精简发布包（`bin\Release\ScreenKit\`）
 
 - **包含**：`ScreenKit.exe`、**`x86host.exe`**、托管依赖、**`wetext/`**（ITN）、Assets、许可证、`web/`、`pinyin.toml`、`pinyin.user.toml`。工具页只有合成后的 `tools.js`，没有 `web/tools` 里的各工具脚本。
-- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict2.db`、`ZXing.dll`、`SharpCompress.dll`、`SharpSevenZip.dll`、`7za.dll`、`e_sqlite3.dll`、`Bogus.dll`、`NPinyin.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
+- **不含**：安卓 APK、OCR/ASR/TTS/人脸模型、ORT、OpenCV / Skia / PDFium、Sherpa natives、`ffmpeg64`、`dict2.db`、`ZXing.dll`、`SharpCompress.dll`、`7za.dll`、`e_sqlite3.dll`、`Bogus.dll`、`NPinyin.dll`。词典库用 **帮助 → 安装功能** 下载，或自行放在程序旁边。数据从哪来见 [词典](#词典)。条码、解压和词典在使用时若缺库，会提示安装。
 - 用户通过 **安装功能** 按需下载。本地 Opus-MT 需自行将 ONNX 放到 `translatemodels/`。
 
 本机开发且已有模型时，请继续用 **`bin\Release\net48\`**。

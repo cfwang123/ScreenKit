@@ -36,7 +36,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
+
 ### 中文
+
+#### 变更
+
+- 解压 7z 只使用 7za.dll，不再下载或依赖 SharpSevenZip。
 
 ## v1.0.20 (2026-10-13 ~ 14)
 

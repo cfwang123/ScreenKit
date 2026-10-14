@@ -16,8 +16,7 @@ This file summarizes **third-party components** that may be used at build time o
 | [PDFtoImage](https://github.com/sungaila/PDFtoImage) | PDF rasterize | MIT (plus Pdfium/Skia natives) |
 | [NAudio](https://github.com/naudio/NAudio) | WASAPI capture | MIT |
 | [SharpCompress](https://github.com/adamhathcock/sharpcompress) | Model archive extraction | MIT |
-| [SharpSevenZip](https://github.com/JeremyAnsel/SharpSevenZip) | Calls `7za.dll` to extract `.7z` | LGPL-3.0-or-later |
-| [7-Zip](https://www.7-zip.org/) `7za.dll` | 7z extraction only (about 400 KB) | LGPL-2.1-or-later; see `License.7za.txt` |
+| [7-Zip](https://www.7-zip.org/) `7za.dll` | 7z extraction only (about 400 KB). Called in-process via `CreateObject` | LGPL-2.1-or-later; see `License.7za.txt` |
 | [FFmpeg.AutoGen](https://github.com/Ruslan-B/FFmpeg.AutoGen) | FFmpeg P/Invoke | LGPL-3.0-or-later (bindings) |
 | [Vortice.DXGI / Direct3D11](https://github.com/amerkoleci/Vortice.Windows) | DXGI capture | MIT |
 
@@ -31,7 +30,7 @@ Always verify the license of the **exact package version** you ship.
 | **FFmpeg shared libraries** (`ffmpeg64/`) | Screen-record encode / remux | GPL or LGPL depending on the build (e.g. BtbN gpl-shared). Do not redistribute without matching FFmpeg license compliance |
 | **CUDA / cuDNN redistributables** | NVIDIA GPU inference | NVIDIA EULA; often not redistributable freely — prefer system install or user-provided `onnxgpu64` |
 | **DirectML / ORT native DLLs** | iGPU / CUDA EP | Follow Microsoft / ORT redistributable terms |
-| **ZXing.dll**, **SharpCompress.dll**, **SharpSevenZip.dll**, **7za.dll**, **e_sqlite3.dll** | Barcode, `tar.bz2` extract, 7z extract, dictionary | Not in the release archive. **Help → Install features** downloads them. `7za.dll` stays LGPL-2.1-or-later; its license is written beside the program as `License.7za.txt` |
+| **ZXing.dll**, **SharpCompress.dll**, **7za.dll**, **e_sqlite3.dll** | Barcode, `tar.bz2` extract, 7z extract, dictionary | Not in the release archive. **Help → Install features** downloads them. `7za.dll` stays LGPL-2.1-or-later; its license is written beside the program as `License.7za.txt` |
 | [Bogus](https://github.com/bchavez/Bogus) `Bogus.dll` 35.6.5 | Test data on the tools page | MIT. Not in the release archive. **Help → Install features** downloads it |
 | [NPinyin](https://www.nuget.org/packages/NPinyin) `NPinyin.dll` 0.2.6321.26573 | Chinese to pinyin and initials | AWangSoft Inc. © 2011. The nupkg ships no license file. Not in the release archive. **Help → Install features** downloads it |
 
