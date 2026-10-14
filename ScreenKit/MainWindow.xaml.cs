@@ -3767,9 +3767,12 @@ public partial class MainWindow : Window {
 
 	void onautoupdate(object sender, RoutedEventArgs e) {
 		Loaded -= onautoupdate;
-		if (!autoupdatedue()) return;
 		Dispatcher.BeginInvoke(new Action(() => {
-			try { _ = runupdateasync(silent: true); }
+			try {
+				if (offerlocalpackage()) return;
+				if (!autoupdatedue()) return;
+				_ = runupdateasync(silent: true);
+			}
 			catch (Exception ex) { CaptureLog.Ex("auto update", ex); }
 		}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 	}
@@ -3897,11 +3900,15 @@ public partial class MainWindow : Window {
 		}
 	}
 
+	bool localPackAsked;
+
 	bool offerlocalpackage() {
+		if (localPackAsked) return false;
 		string pack;
 		try { pack = AppUpdater.FindOfflinePackage(); }
 		catch { return false; }
 		if (string.IsNullOrEmpty(pack)) return false;
+		localPackAsked = true;
 		var ask = MessageBox.Show(this,
 			Loc.T("update.offline", Path.GetFileName(pack)),
 			Loc.T("update.title"),
