@@ -149,6 +149,13 @@ function main() {
 
 	const stat = fs.statSync(archive);
 	const mb = (stat.size / (1024 * 1024)).toFixed(2);
+	const keep = path.basename(archive).toLowerCase();
+	for (const name of fs.readdirSync(releaseDir)) {
+		const low = name.toLowerCase();
+		if (!low.startsWith('screenkit_') || !low.endsWith('.7z') || low === keep) continue;
+		fs.unlinkSync(path.join(releaseDir, name));
+		console.log(`已删除旧包 ${name}`);
+	}
 	console.log(`\n已发布: ${path.relative(root, archive)} (${mb} MB)`);
 	console.log(`来源: ${path.relative(root, slimDir)}`);
 }

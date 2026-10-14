@@ -414,7 +414,7 @@ node scripts/publish-release.mjs
 node scripts/publish-update-server.mjs --dest <更新服务器目录>
 ```
 
-Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/screenkit_<version>.7z` (needs [7-Zip](https://www.7-zip.org/) on PATH). Before packing, it deletes runtime files in that folder: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. A Release build removes the same files when it refreshes the folder. `release/` is gitignored.
+Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/screenkit_<version>.7z` (needs [7-Zip](https://www.7-zip.org/) on PATH). Before packing, it deletes runtime files in that folder: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. After packing, older `screenkit_*.7z` files in `release/` are removed, so only the current package remains. A Release build removes the same runtime files when it refreshes the folder. `release/` is gitignored.
 
 `publish-update-server.mjs` writes `changelog.json` into the update-server directory. `versions` lists every released version from `CHANGELOG.md`, with `english` and `chinese`. It also copies `release/screenkit_<version>.7z` into `releases/<version>/`. The directory itself is not part of the public repo.
 
