@@ -45,6 +45,7 @@ public partial class NetToolsWindow : Window {
 		bhttp.Click += (_, _) => _ = run("http");
 		bgeo.Click += (_, _) => _ = run("geo");
 		bscan.Click += (_, _) => _ = run("scan");
+		bdiscover.Click += (_, _) => _ = run("discover");
 		bmap.Click += (_, _) => openmap();
 		bstop.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
@@ -93,6 +94,7 @@ public partial class NetToolsWindow : Window {
 		ToolBtnUi.Set(bhttp, ToolBtnUi.Play, Loc.T("nettool.http"));
 		ToolBtnUi.Set(bgeo, ToolBtnUi.Pin, Loc.T("nettool.geo"));
 		ToolBtnUi.Set(bscan, ToolBtnUi.Browse, Loc.T("nettool.scan"));
+		ToolBtnUi.Set(bdiscover, ToolBtnUi.Browse, Loc.T("nettool.discover"));
 		ToolBtnUi.Set(bmap, ToolBtnUi.Browse, Loc.T("nettool.map"));
 		bmap.ToolTip = Loc.T("nettool.map.tip");
 		ToolBtnUi.Set(bstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
@@ -121,6 +123,7 @@ public partial class NetToolsWindow : Window {
 		bhttp.IsEnabled = !on;
 		bgeo.IsEnabled = !on;
 		bscan.IsEnabled = !on;
+		bdiscover.IsEnabled = !on;
 		bmap.IsEnabled = !on && hasmap;
 		bstop.IsEnabled = on;
 		ehost.IsEnabled = !on;
@@ -191,7 +194,7 @@ public partial class NetToolsWindow : Window {
 		if (busy) return;
 		var host = (ehost.Text ?? "").Trim();
 		if (kind != "locate" && kind != "proxy" && kind != "http" && kind != "geo" && kind != "scan"
-			&& kind != "ipcity" && kind != "local" && host.Length == 0) {
+			&& kind != "ipcity" && kind != "local" && kind != "discover" && host.Length == 0) {
 			lbstat.Text = Loc.T("nettool.empty");
 			ehost.Focus();
 			return;
@@ -278,6 +281,10 @@ public partial class NetToolsWindow : Window {
 				await NetTools.SearchComputers(s => Dispatcher.Invoke(() => append(s)), token)
 					.ConfigureAwait(true);
 			}
+			else if (kind == "discover") {
+				await NetTools.DiscoverComputers(s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
 			else {
 				var s = await NetTools.Whois(host, token).ConfigureAwait(true);
 				append(s);
@@ -312,8 +319,8 @@ public partial class NetToolsWindow : Window {
 	}
 
 	public void Start(string kind) {
-		if (kind == "local") {
-			_ = run("local");
+		if (kind == "local" || kind == "discover") {
+			_ = run(kind);
 			return;
 		}
 		if (busy) return;

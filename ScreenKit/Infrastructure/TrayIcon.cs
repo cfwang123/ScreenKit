@@ -44,6 +44,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miNet;
 	Forms.ToolStripMenuItem miInfo;
 	Forms.ToolStripMenuItem miNetTool;
+	Forms.ToolStripMenuItem miNetFind;
 	Forms.ToolStripMenuItem miNetDns;
 	Forms.ToolStripMenuItem miNetPort;
 	Forms.ToolStripMenuItem miNetWake;
@@ -173,6 +174,7 @@ sealed class TrayIcon : IDisposable {
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
+		miNetFind = item("tray.netfind", () => NetActionRequested?.Invoke("discover"));
 		miNetDns = item("tray.netdns", () => NetActionRequested?.Invoke("dnsrec"));
 		miNetPort = item("tray.netport", () => NetActionRequested?.Invoke("port"));
 		miNetWake = item("tray.netwake", () => NetActionRequested?.Invoke("wol"));
@@ -208,6 +210,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miPwGen);
 		miNet = new Forms.ToolStripMenuItem(Loc.T("tray.net"));
 		miNet.DropDownItems.Add(miNetTool);
+		miNet.DropDownItems.Add(miNetFind);
 		miNet.DropDownItems.Add(miNetPort);
 		miNet.DropDownItems.Add(miNetWake);
 		miNet.DropDownItems.Add(miHttpDbg);
@@ -426,6 +429,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miPwGen, null);
 		setshortcut(miNet, null);
 		setshortcut(miNetTool, null);
+		setshortcut(miNetFind, null);
 		setshortcut(miNetDns, null);
 		setshortcut(miNetPort, null);
 		setshortcut(miNetWake, null);
@@ -489,6 +493,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miNet, "tray.net");
 			settext(miInfo, "tray.info");
 			settext(miNetTool, "tray.nettool");
+			settext(miNetFind, "tray.netfind");
 			settext(miNetDns, "tray.netdns");
 			settext(miNetPort, "tray.netport");
 			settext(miNetWake, "tray.netwake");

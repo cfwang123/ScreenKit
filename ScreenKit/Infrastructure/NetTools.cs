@@ -18,6 +18,13 @@ sealed class LanComputer {
 	public string Mac { get; set; }
 }
 
+sealed class WinNetComputer {
+	public string Name { get; set; }
+	public string Comment { get; set; }
+	public string Ip { get; set; }
+	public string Mac { get; set; }
+}
+
 /// <summary>Ping / DNS / WHOIS（TCP 43，不走 HTTP 代理）。</summary>
 static class NetTools {
 	static readonly Regex WhoisRefer = new(
@@ -722,6 +729,39 @@ static class NetTools {
 			line?.Invoke($"{(row.HostName.Length > 0 ? row.HostName : "-")}\t{row.Ip}\t{row.Mac}");
 		line?.Invoke(Loc.T("nettool.scan.found", rows.Count));
 		return rows;
+	}
+
+	/// <summary>用 Windows 网络文件夹和计算机浏览器列出其它电脑，再补 IP 与 MAC。</summary>
+	public static async Task DiscoverComputers(Action<string> line, CancellationToken ct) {
+		line?.Invoke(Loc.T("nettool.discover.start"));
+		var rows = await Task.Run(() => {
+			var list = shellnetwait(ct);
+			ct.ThrowIfCancellationRequested();
+			browsercomputers(list);
+			return list;
+		}, ct).ConfigureAwait(false);
+		ct.ThrowIfCancellationRequested();
+		if (rows.Count == 0) {
+			line?.Invoke(Loc.T("nettool.discover.none"));
+			return;
+		}
+		line?.Invoke(Loc.T("nettool.discover.resolve", rows.Count));
+		await filldiscover(rows, ct).ConfigureAwait(false);
+		rows.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+		line?.Invoke(Loc.T("nettool.discover.columns"));
+		foreach (var row in rows) {
+			var comment = row.Comment.Length > 0 ? row.Comment : "-";
+			line?.Invoke($"{row.Name}\t{(row.Ip.Length > 0 ? row.Ip : "-")}\t{(row.Mac.Length > 0 ? row.Mac : "-")}\t{comment}");
+		}
+		line?.Invoke(Loc.T("nettool.discover.found", rows.Count));
+	}
+
+	internal static string UncComputer(string parsing) {
+		parsing = (parsing ?? "").Trim();
+		if (!parsing.StartsWith(@"\\", StringComparison.Ordinal)) return "";
+		var rest = parsing.Substring(2);
+		if (rest.Length == 0 || rest.IndexOf('\\') >= 0 || rest.IndexOf(':') >= 0) return "";
+		return rest;
 	}
 
 	internal static List<LanComputer> ParseArp(string text) {
@@ -1893,6 +1933,159 @@ static class NetTools {
 		return decode(ms.ToArray());
 	}
 
+	static List<WinNetComputer> shellnetwait(CancellationToken ct) {
+		var rows = new List<WinNetComputer>();
+		Exception error = null;
+		var ready = false;
+		var thread = new Thread(() => {
+			try {
+				var got = shellnet();
+				lock (rows) {
+					rows.Clear();
+					rows.AddRange(got);
+				}
+			}
+			catch (Exception ex) { error = ex; }
+			ready = true;
+		});
+		thread.IsBackground = true;
+		thread.SetApartmentState(ApartmentState.STA);
+		thread.Start();
+		var started = Environment.TickCount;
+		while (!ready && Environment.TickCount - started < 20000) {
+			if (ct.IsCancellationRequested) break;
+			thread.Join(200);
+		}
+		if (error != null && !ct.IsCancellationRequested) throw error;
+		lock (rows) return rows.ToList();
+	}
+
+	static List<WinNetComputer> shellnet() {
+		var rows = new List<WinNetComputer>();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		if (SHGetDesktopFolder(out var desktop) != 0 || desktop == null) return rows;
+		if (SHGetSpecialFolderLocation(IntPtr.Zero, 0x12, out var netPidl) != 0 || netPidl == IntPtr.Zero) return rows;
+		try {
+			var iid = typeof(IShellFolder).GUID;
+			if (desktop.BindToObject(netPidl, IntPtr.Zero, ref iid, out var folder) != 0 || folder == null) return rows;
+			enumnet(folder, netPidl, 0, rows, seen);
+		}
+		finally { ILFree(netPidl); }
+		return rows;
+	}
+
+	static void enumnet(IShellFolder folder, IntPtr folderPidl, int depth, List<WinNetComputer> rows, HashSet<string> seen) {
+		if (depth > 1 || rows.Count >= 200) return;
+		if (folder.EnumObjects(IntPtr.Zero, 0xE0, out var enumerator) != 0 || enumerator == null) return;
+		var iid = typeof(IShellFolder).GUID;
+		var n = 0;
+		while (n < 300 && rows.Count < 200 && enumerator.Next(1, out var rel, out var fetched) == 0 && fetched == 1) {
+			n++;
+			var abs = ILCombine(folderPidl, rel);
+			try {
+				var parsing = shellname(abs, 0x80028000);
+				var display = shellname(abs, 0);
+				var host = UncComputer(parsing);
+				if (host.Length > 0)
+					addcomputer(rows, seen, host, "");
+				else if (depth > 0)
+					addcomputer(rows, seen, display, "");
+				else {
+					var attr = 0x20000000u;
+					if (folder.GetAttributesOf(1, ref rel, ref attr) == 0 && (attr & 0x20000000) != 0
+						&& folder.BindToObject(rel, IntPtr.Zero, ref iid, out var child) == 0 && child != null)
+						enumnet(child, abs == IntPtr.Zero ? rel : abs, depth + 1, rows, seen);
+				}
+			}
+			finally {
+				if (rel != IntPtr.Zero) ILFree(rel);
+				if (abs != IntPtr.Zero) ILFree(abs);
+			}
+		}
+	}
+
+	static string shellname(IntPtr pidl, uint sigdn) {
+		if (pidl == IntPtr.Zero || SHGetNameFromIDList(pidl, sigdn, out var ptr) != 0 || ptr == IntPtr.Zero) return "";
+		try { return Marshal.PtrToStringUni(ptr) ?? ""; }
+		finally { Marshal.FreeCoTaskMem(ptr); }
+	}
+
+	static void addcomputer(List<WinNetComputer> rows, HashSet<string> seen, string name, string comment) {
+		name = (name ?? "").Trim().Trim('\\');
+		if (name.Length == 0 || name.IndexOf('\\') >= 0 || name.IndexOf(':') >= 0) return;
+		if (name.Equals(Environment.MachineName, StringComparison.OrdinalIgnoreCase)) return;
+		if (!seen.Add(name) || rows.Count >= 200) return;
+		rows.Add(new WinNetComputer { Name = name, Comment = (comment ?? "").Trim(), Ip = "", Mac = "" });
+	}
+
+	static void browsercomputers(List<WinNetComputer> rows) {
+		var seen = new HashSet<string>(rows.Select(x => x.Name), StringComparer.OrdinalIgnoreCase);
+		if (NetServerEnum(null, 101, out var buf, -1, out var count, out _, 3, null, IntPtr.Zero) != 0 || buf == IntPtr.Zero)
+			return;
+		try {
+			var size = Marshal.SizeOf<SERVER_INFO_101>();
+			for (var i = 0; i < count; i++) {
+				var info = Marshal.PtrToStructure<SERVER_INFO_101>(IntPtr.Add(buf, i * size));
+				addcomputer(rows, seen, info.Name, info.Comment);
+			}
+		}
+		finally { NetApiBufferFree(buf); }
+	}
+
+	static async Task filldiscover(List<WinNetComputer> rows, CancellationToken ct) {
+		var macs = new Dictionary<string, string>(StringComparer.Ordinal);
+		try {
+			foreach (var row in ParseArp(readarp())) macs[row.Ip] = row.Mac;
+		}
+		catch { }
+		foreach (var row in localarps()) macs[row.Ip] = row.Mac;
+		var gate = new SemaphoreSlim(8);
+		var tasks = new List<Task>();
+		try {
+			foreach (var row in rows) {
+				await gate.WaitAsync(ct).ConfigureAwait(false);
+				tasks.Add(fillone(row, macs, gate, ct));
+			}
+		}
+		finally {
+			try { await Task.WhenAll(tasks).ConfigureAwait(false); }
+			catch (OperationCanceledException) { }
+		}
+		ct.ThrowIfCancellationRequested();
+	}
+
+	static async Task fillone(WinNetComputer row, Dictionary<string, string> macs, SemaphoreSlim gate, CancellationToken ct) {
+		try {
+			var addrs = await withtimeout(Dns.GetHostAddressesAsync(row.Name), 2000, ct).ConfigureAwait(false);
+			var ip = addrs?.FirstOrDefault(x => x.AddressFamily == AddressFamily.InterNetwork);
+			row.Ip = ip?.ToString() ?? "";
+			if (row.Ip.Length > 0 && macs.TryGetValue(row.Ip, out var mac)) row.Mac = mac;
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) { }
+		finally { gate.Release(); }
+	}
+
+	[DllImport("shell32.dll")]
+	static extern int SHGetDesktopFolder(out IShellFolder folder);
+
+	[DllImport("shell32.dll")]
+	static extern int SHGetSpecialFolderLocation(IntPtr hwnd, int csidl, out IntPtr pidl);
+
+	[DllImport("shell32.dll")]
+	static extern IntPtr ILCombine(IntPtr a, IntPtr b);
+
+	[DllImport("shell32.dll")]
+	static extern void ILFree(IntPtr pidl);
+
+	[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+	static extern int SHGetNameFromIDList(IntPtr pidl, uint sigdn, out IntPtr name);
+
+	[DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+	static extern int NetServerEnum(string server, int level, out IntPtr buf, int prefmaxlen, out int entriesread, out int totalentries, uint servertype, string domain, IntPtr resume);
+
+	[DllImport("netapi32.dll")]
+	static extern int NetApiBufferFree(IntPtr buf);
+
 	static string decode(byte[] bytes) {
 		if (bytes == null || bytes.Length == 0) return "";
 		Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -1900,4 +2093,52 @@ static class NetTools {
 		if (utf.IndexOf('\uFFFD') < 0) return utf;
 		return Encoding.GetEncoding(936).GetString(bytes);
 	}
+
+	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+	struct SERVER_INFO_101 {
+		public int Platform;
+		[MarshalAs(UnmanagedType.LPWStr)] public string Name;
+		public int Major;
+		public int Minor;
+		public int Type;
+		[MarshalAs(UnmanagedType.LPWStr)] public string Comment;
+	}
+}
+
+[ComImport, Guid("000214E6-0000-0000-C000-000000000046")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IShellFolder {
+	[PreserveSig]
+	int ParseDisplayName(IntPtr hwnd, IntPtr bind, [MarshalAs(UnmanagedType.LPWStr)] string name, out uint eaten, out IntPtr pidl, ref uint attr);
+	[PreserveSig]
+	int EnumObjects(IntPtr hwnd, uint flags, out IEnumIDList enumerator);
+	[PreserveSig]
+	int BindToObject(IntPtr pidl, IntPtr bind, ref Guid iid, out IShellFolder folder);
+	[PreserveSig]
+	int BindToStorage(IntPtr pidl, IntPtr bind, ref Guid iid, out IntPtr storage);
+	[PreserveSig]
+	int CompareIDs(IntPtr param, IntPtr a, IntPtr b);
+	[PreserveSig]
+	int CreateViewObject(IntPtr hwnd, ref Guid iid, out IntPtr view);
+	[PreserveSig]
+	int GetAttributesOf(uint count, ref IntPtr pidl, ref uint attr);
+	[PreserveSig]
+	int GetUIObjectOf(IntPtr hwnd, uint count, ref IntPtr pidl, ref Guid iid, IntPtr reserved, out IntPtr obj);
+	[PreserveSig]
+	int GetDisplayNameOf(IntPtr pidl, uint flags, IntPtr name);
+	[PreserveSig]
+	int SetNameOf(IntPtr hwnd, IntPtr pidl, [MarshalAs(UnmanagedType.LPWStr)] string name, uint flags, out IntPtr renamed);
+}
+
+[ComImport, Guid("000214F2-0000-0000-C000-000000000046")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IEnumIDList {
+	[PreserveSig]
+	int Next(uint count, out IntPtr pidl, out uint fetched);
+	[PreserveSig]
+	int Skip(uint count);
+	[PreserveSig]
+	int Reset();
+	[PreserveSig]
+	int Clone(out IEnumIDList enumerator);
 }

@@ -165,6 +165,9 @@
 					<MenuItem x:Name="mnnettool" Header="网络诊断(_D)…"
 					          AutomationProperties.AutomationId="menu.nettool"
 					          ToolTip="Ping、域名解析、WHOIS"/>
+					<MenuItem x:Name="mnnetfind" Header="网络发现(_F)…"
+					          AutomationProperties.AutomationId="menu.netfind"
+					          ToolTip="用 Windows 网络发现列出其它电脑"/>
 					<MenuItem x:Name="mnnetport" Header="端口测试(_P)…"
 					          AutomationProperties.AutomationId="menu.netport"
 					          ToolTip="测试 TCP 端口是否连通"/>

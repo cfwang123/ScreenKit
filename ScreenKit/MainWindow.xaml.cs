@@ -1585,6 +1585,7 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
+		mnnetfind.Click += (_, _) => opennettool(kind: "discover");
 		mnnetdns.Click += (_, _) => opennettool(kind: "dnsrec");
 		mnnetport.Click += (_, _) => opennettool(kind: "port");
 		mnnetwake.Click += (_, _) => opennettool(kind: "wol");
@@ -1744,6 +1745,8 @@ public partial class MainWindow : Window {
 			mninfo.ToolTip = Loc.T("menu.info.tip");
 			mnnettool.Header = Loc.T("menu.nettool");
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
+			mnnetfind.Header = Loc.T("menu.netfind");
+			mnnetfind.ToolTip = Loc.T("menu.netfind.tip");
 			mnnetdns.Header = Loc.T("menu.netdns");
 			mnnetdns.ToolTip = Loc.T("menu.netdns.tip");
 			mnnetport.Header = Loc.T("menu.netport");
