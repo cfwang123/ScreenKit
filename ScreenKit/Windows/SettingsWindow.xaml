@@ -60,17 +60,8 @@
 							         AutomationProperties.AutomationId="set.update.days"/>
 						</DockPanel>
 						<TextBlock x:Name="lbsetupdatehint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,0,0,10"
+						           TextWrapping="Wrap" Margin="0,0,0,16"
 						           Text="0=不自动检查。仅在启动时判断：超过该天数未检查则查询更新。菜单「检查更新」随时可用。"/>
-
-						<TextBlock x:Name="lbsetupdateurl" Text="更新地址" FontWeight="SemiBold" Margin="0,0,0,6"/>
-						<TextBox x:Name="eupdateurl" Height="32" Padding="8,4"
-						         BorderBrush="{StaticResource BorderSoft}"
-						         VerticalContentAlignment="Center"
-						         AutomationProperties.AutomationId="set.update.url"/>
-						<TextBlock x:Name="lbsetupdateurlhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,4,0,16"
-						           Text="留空则仍向 GitHub 检查。填写后改为请求这个地址。"/>
 
 						<TextBlock x:Name="lbsetproxy" Text="HTTP 代理" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<StackPanel Orientation="Horizontal" Margin="0,0,0,6">

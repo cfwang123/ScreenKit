@@ -216,7 +216,7 @@ A new key goes to the end of `[text]`, or after `--after KEY`. `del KEY…` remo
 
 **Help → Check for updates** also runs at startup after the interval in Settings. When a newer release exists, a window lists every version after the current build up to the latest. Select a row to read that version’s notes. **Chinese / English** switches the notes. **Update** downloads and installs the latest package. **Ignore** closes the window.
 
-Leave the update URL in Settings empty to keep using GitHub. When it is set, checks request `latest.json` and `releases.json` under that address, and the package URL comes from the JSON. `releases.json` is a JSON log of every version, in English and Chinese, and the update window lists all of them. Use this only for a server you run yourself.
+`update_url` in `config.toml` is the only place to set a private update address. It is not shown in Settings. Leave it empty to keep using GitHub. When it is set, checks request `latest.json` and `releases.json` under that address, and the package URL comes from the JSON. `releases.json` is a JSON log of every version, in English and Chinese, and the update window lists all of them. Use this only for a server you run yourself.
 
 ## Install features
 

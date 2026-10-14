@@ -44,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
+- The private update address stays in config.toml as update_url and is not shown in Settings.
 
 #### Documentation
 
@@ -59,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 解压 7z 只使用 7za.dll，不再下载或依赖 SharpSevenZip。
+- 自建更新地址只写在 config.toml 的 update_url，设置窗口里不再显示。
 
 #### 文档
 
