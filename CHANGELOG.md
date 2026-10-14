@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Sound / mic shows active devices by default. Show all includes inactive devices and keeps active devices first.
 - System info queries each tab only on first entry. A permission-denied device query can retry through the elevated device-scan CLI; failures remain visible with Refresh available.
 - USB vendor lookup is now USB ID lookup and returns the vendor, product, model, and interfaces.
+- Local network is a button in the network tools window, not a Lookup menu item.
 
 #### Fixed
 
@@ -89,6 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 声音/麦克风默认只显示活动设备；勾选显示全部后会包含非活动设备，并保持活动设备在前。
 - 系统信息改为首次进入各 Tab 时才查询；设备查询权限不足时可通过管理员设备扫描命令行重试，失败原因会保留并可点刷新重试。
 - USB 厂家改为 USB ID 查询，返回厂家、产品、型号和接口。
+- 本机网络改在网络工具窗口里作为按钮，不再放在信息查询菜单。
 
 #### 修复
 

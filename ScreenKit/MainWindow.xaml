@@ -177,7 +177,7 @@
 				</MenuItem>
 				<MenuItem x:Name="mninfo" Header="信息查询(_I)"
 				          AutomationProperties.AutomationId="menu.info"
-				          ToolTip="词典、系统信息、DNS、本机网络和端口占用">
+				          ToolTip="词典、系统信息、DNS 和端口占用">
 					<MenuItem x:Name="mndict" Header="词典(_K)"
 					          AutomationProperties.AutomationId="menu.dict"
 					          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
@@ -188,9 +188,6 @@
 					<MenuItem x:Name="mnnetdns" Header="DNS 记录(_R)…"
 					          AutomationProperties.AutomationId="menu.netdns"
 					          ToolTip="查询 MX、TXT、NS、CNAME 和 SOA"/>
-					<MenuItem x:Name="mnnetlocal" Header="本机网络(_L)…"
-					          AutomationProperties.AutomationId="menu.netlocal"
-					          ToolTip="显示网卡、网关、DNS 和路由"/>
 					<MenuItem x:Name="mnportuse" Header="网络端口占用(_O)…"
 					          AutomationProperties.AutomationId="menu.portuse"
 					          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>

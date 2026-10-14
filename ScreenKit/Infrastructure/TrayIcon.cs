@@ -46,7 +46,6 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miNetTool;
 	Forms.ToolStripMenuItem miNetDns;
 	Forms.ToolStripMenuItem miNetPort;
-	Forms.ToolStripMenuItem miNetLocal;
 	Forms.ToolStripMenuItem miNetWake;
 	Forms.ToolStripMenuItem miPortUse;
 	Forms.ToolStripMenuItem miMidi;
@@ -176,7 +175,6 @@ sealed class TrayIcon : IDisposable {
 		miNetTool = item("tray.nettool", () => NetToolRequested?.Invoke());
 		miNetDns = item("tray.netdns", () => NetActionRequested?.Invoke("dnsrec"));
 		miNetPort = item("tray.netport", () => NetActionRequested?.Invoke("port"));
-		miNetLocal = item("tray.netlocal", () => NetActionRequested?.Invoke("local"));
 		miNetWake = item("tray.netwake", () => NetActionRequested?.Invoke("wol"));
 		miPortUse = item("tray.portuse", () => PortUseRequested?.Invoke());
 		miMidi = item("tray.midisynth", () => MidiSynthRequested?.Invoke());
@@ -216,7 +214,6 @@ sealed class TrayIcon : IDisposable {
 		miInfo = new Forms.ToolStripMenuItem(Loc.T("tray.info"));
 		miInfo.DropDownItems.Add(miSys);
 		miInfo.DropDownItems.Add(miNetDns);
-		miInfo.DropDownItems.Add(miNetLocal);
 		miInfo.DropDownItems.Add(miPortUse);
 		miTools.DropDownItems.Add(miNet);
 		miTools.DropDownItems.Add(miInfo);
@@ -431,7 +428,6 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miNetTool, null);
 		setshortcut(miNetDns, null);
 		setshortcut(miNetPort, null);
-		setshortcut(miNetLocal, null);
 		setshortcut(miNetWake, null);
 		setshortcut(miPortUse, null);
 		setshortcut(miMidi, null);
@@ -495,7 +491,6 @@ sealed class TrayIcon : IDisposable {
 			settext(miNetTool, "tray.nettool");
 			settext(miNetDns, "tray.netdns");
 			settext(miNetPort, "tray.netport");
-			settext(miNetLocal, "tray.netlocal");
 			settext(miNetWake, "tray.netwake");
 			settext(miPortUse, "tray.portuse");
 			settext(miMidi, "tray.midisynth");
