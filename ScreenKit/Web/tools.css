@@ -903,3 +903,19 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	display: block; touch-action: none; cursor: grab;
 }
 .plot-stage canvas.drag { cursor: grabbing; }
+.usbscroll {
+	max-height: 420px; overflow: auto;
+	border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+}
+.usblist { width: 100%; border-collapse: collapse; }
+.usblist th, .usblist td {
+	padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line);
+	font-size: 13px; white-space: nowrap;
+}
+.usblist th { position: sticky; top: 0; background: var(--card); }
+.usblist tbody tr { cursor: pointer; }
+.usblist tbody tr:hover, .usblist tbody tr.on { background: #f4f4f5; }
+.usbdetail {
+	margin: 8px 0 0; white-space: pre-wrap;
+	font: 13px/1.5 Consolas, "Microsoft YaHei UI", sans-serif;
+}

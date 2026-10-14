@@ -46,6 +46,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Network tools can find other computers and network devices on active local IPv4 networks, listing host name, IP, and MAC address.
 - Network tools show the DNS resolution process with PTR lookups, and provide local ARP lookup and reverse lookup by MAC.
 - HTTP request debugger adds a Test group with sample calls to this program's own API.
+- Network tools are grouped in a submenu, with DNS record lookup, TCP port tests, local adapter and route details, Wake-on-LAN, and NetBIOS names for discovered computers.
+- Tools menu and the tools page add a Lookup section, including a common USB ID list.
 
 #### Changed
 
@@ -76,6 +78,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网络工具可搜索活动本地 IPv4 网络中的其它计算机和网络设备，并列出主机名、IP 和 MAC 地址。
 - 网络工具可显示 DNS 正向解析与 PTR 反查过程，并新增本地 ARP 解析和按 MAC 反查。
 - HTTP 请求调试默认增加分组「测试」，里面是几条本程序自己的接口。
+- 网络工具收进子菜单，并增加 DNS 记录、TCP 端口测试、本机网卡与路由、网络唤醒，以及搜索计算机时的 NetBIOS 名称。
+- 工具菜单和网页工具增加「信息查询」，网页里可列表查看常见 USB ID。
 
 #### 变更
 

@@ -41,6 +41,14 @@
 			        AutomationProperties.AutomationId="nettool.ping"/>
 			<Button x:Name="bdns" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.dns"/>
+			<Button x:Name="bdnsrec" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="nettool.dnsrec"/>
+			<Button x:Name="bport" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="nettool.port"/>
+			<Button x:Name="blocal" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="nettool.local"/>
+			<Button x:Name="bwake" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="nettool.wake"/>
 			<Button x:Name="barp" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="nettool.arp"/>
 			<Button x:Name="barprev" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"

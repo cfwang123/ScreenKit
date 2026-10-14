@@ -29,6 +29,10 @@ public partial class NetToolsWindow : Window {
 	void initev() {
 		bping.Click += (_, _) => _ = run("ping");
 		bdns.Click += (_, _) => _ = run("dns");
+		bdnsrec.Click += (_, _) => _ = run("dnsrec");
+		bport.Click += (_, _) => _ = run("port");
+		blocal.Click += (_, _) => _ = run("local");
+		bwake.Click += (_, _) => _ = run("wol");
 		barp.Click += (_, _) => _ = run("arp");
 		barprev.Click += (_, _) => _ = run("arprev");
 		bwhois.Click += (_, _) => _ = run("whois");
@@ -73,6 +77,10 @@ public partial class NetToolsWindow : Window {
 		ehost.ToolTip = Loc.T("nettool.host.tip");
 		ToolBtnUi.Set(bping, ToolBtnUi.Play, Loc.T("nettool.ping"));
 		ToolBtnUi.Set(bdns, ToolBtnUi.Encode, Loc.T("nettool.dns"));
+		ToolBtnUi.Set(bdnsrec, ToolBtnUi.Font, Loc.T("nettool.dnsrec"));
+		ToolBtnUi.Set(bport, ToolBtnUi.Play, Loc.T("nettool.port"));
+		ToolBtnUi.Set(blocal, ToolBtnUi.Browse, Loc.T("nettool.local"));
+		ToolBtnUi.Set(bwake, ToolBtnUi.Up, Loc.T("nettool.wake"));
 		ToolBtnUi.Set(barp, ToolBtnUi.Encode, Loc.T("nettool.arp"));
 		ToolBtnUi.Set(barprev, ToolBtnUi.Browse, Loc.T("nettool.arprev"));
 		ToolBtnUi.Set(bwhois, ToolBtnUi.Font, Loc.T("nettool.whois"));
@@ -97,6 +105,10 @@ public partial class NetToolsWindow : Window {
 		busy = on;
 		bping.IsEnabled = !on;
 		bdns.IsEnabled = !on;
+		bdnsrec.IsEnabled = !on;
+		bport.IsEnabled = !on;
+		blocal.IsEnabled = !on;
+		bwake.IsEnabled = !on;
 		barp.IsEnabled = !on;
 		barprev.IsEnabled = !on;
 		bwhois.IsEnabled = !on;
@@ -178,8 +190,8 @@ public partial class NetToolsWindow : Window {
 	async Task run(string kind) {
 		if (busy) return;
 		var host = (ehost.Text ?? "").Trim();
-		if (kind != "locate" && kind != "proxy" && kind != "http" && kind != "geo" && kind != "scan" && kind != "ipcity"
-			&& host.Length == 0) {
+		if (kind != "locate" && kind != "proxy" && kind != "http" && kind != "geo" && kind != "scan"
+			&& kind != "ipcity" && kind != "local" && host.Length == 0) {
 			lbstat.Text = Loc.T("nettool.empty");
 			ehost.Focus();
 			return;
@@ -200,6 +212,22 @@ public partial class NetToolsWindow : Window {
 			}
 			else if (kind == "dns") {
 				await NetTools.Resolve(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "dnsrec") {
+				await NetTools.DnsRecords(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "port") {
+				await NetTools.PortProbe(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "local") {
+				await Task.Run(() => NetTools.LocalNetwork(s => Dispatcher.Invoke(() => append(s))), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "wol") {
+				await Task.Run(() => NetTools.Wake(host, s => Dispatcher.Invoke(() => append(s))), token)
 					.ConfigureAwait(true);
 			}
 			else if (kind == "arp") {
@@ -281,6 +309,17 @@ public partial class NetToolsWindow : Window {
 	void clearmap() {
 		hasmap = false;
 		bmap.IsEnabled = false;
+	}
+
+	public void Start(string kind) {
+		if (kind == "local") {
+			_ = run("local");
+			return;
+		}
+		if (busy) return;
+		ehost.Focus();
+		if ((kind == "dnsrec" || kind == "port" || kind == "wol") && (ehost.Text ?? "").Trim().Length > 0)
+			_ = run(kind);
 	}
 
 	void openmap() {

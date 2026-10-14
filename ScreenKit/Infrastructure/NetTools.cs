@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -241,6 +242,397 @@ static class NetTools {
 		return rows;
 	}
 
+	static readonly (string Name, ushort Type)[] DnsRecordTypes = {
+		("CNAME", 5), ("MX", 15), ("NS", 2), ("TXT", 16), ("SOA", 6),
+	};
+	static readonly int[] CommonPorts = { 22, 80, 443, 445, 3389, 8080 };
+
+	/// <summary>向系统 DNS 查询 CNAME、MX、NS、TXT 和 SOA，并显示每一步。</summary>
+	public static async Task DnsRecords(string host, Action<string> line, CancellationToken ct) {
+		var input = (host ?? "").Trim();
+		host = AsciiHost(input);
+		if (IPAddress.TryParse(host, out _)) throw new ArgumentException("请输入域名");
+		var servers = dnsservers();
+		if (servers.Count == 0) throw new InvalidOperationException("没有可用的 DNS 服务器");
+		line?.Invoke("DNS 记录  " + host);
+		line?.Invoke("DNS 服务器: " + string.Join(", ", servers));
+		foreach (var rec in DnsRecordTypes) {
+			ct.ThrowIfCancellationRequested();
+			var started = Environment.TickCount;
+			line?.Invoke(rec.Name + " 查询…");
+			Exception last = null;
+			List<string> rows = null;
+			foreach (var server in servers) {
+				try {
+					rows = await querydns(server, host, rec.Type, ct).ConfigureAwait(false);
+					last = null;
+					break;
+				}
+				catch (Exception ex) when (ex is not OperationCanceledException) {
+					last = ex;
+				}
+			}
+			if (last != null) {
+				line?.Invoke("  失败: " + (last.InnerException?.Message ?? last.Message));
+				continue;
+			}
+			if (rows == null || rows.Count == 0)
+				line?.Invoke("  无记录" + elapsed(started));
+			else {
+				foreach (var row in rows) line?.Invoke("  " + row);
+				line?.Invoke("  完成" + elapsed(started));
+			}
+		}
+	}
+
+	/// <summary>测试一个 TCP 端口；未写端口时测试一组常用端口。</summary>
+	public static async Task PortProbe(string input, Action<string> line, CancellationToken ct) {
+		var target = ParsePortTarget(input);
+		var ports = target.Port > 0 ? new[] { target.Port } : CommonPorts;
+		line?.Invoke("端口测试  " + target.Host);
+		foreach (var port in ports) {
+			ct.ThrowIfCancellationRequested();
+			var started = Environment.TickCount;
+			var result = "关闭或无响应";
+			using var tcp = new TcpClient();
+			var task = tcp.ConnectAsync(target.Host, port);
+			var done = await Task.WhenAny(task, Task.Delay(1500, ct)).ConfigureAwait(false);
+			if (done == task) {
+				try {
+					await task.ConfigureAwait(false);
+					result = "连通  " + Math.Max(0, Environment.TickCount - started) + " ms";
+				}
+				catch (Exception ex) when (ex is not OperationCanceledException) {
+					result = "失败: " + (ex.InnerException?.Message ?? ex.Message);
+				}
+			}
+			ct.ThrowIfCancellationRequested();
+			line?.Invoke(port + "  " + result);
+		}
+	}
+
+	/// <summary>列出活动网卡的地址、网关、DNS、速率，以及 IPv4 路由。</summary>
+	public static void LocalNetwork(Action<string> line) {
+		line?.Invoke("本机网络");
+		var found = false;
+		foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()) {
+			if (nic.OperationalStatus != OperationalStatus.Up) continue;
+			found = true;
+			var speed = nic.Speed > 0 ? (nic.Speed / 1000000).ToString(CultureInfo.InvariantCulture) + " Mbps" : "-";
+			line?.Invoke(nic.Name + "  " + nic.NetworkInterfaceType + "  " + speed);
+			var bytes = nic.GetPhysicalAddress()?.GetAddressBytes() ?? Array.Empty<byte>();
+			if (bytes.Length == 6)
+				line?.Invoke("  MAC: " + string.Join("-", bytes.Select(x => x.ToString("X2", CultureInfo.InvariantCulture))));
+			IPInterfaceProperties props = null;
+			try { props = nic.GetIPProperties(); }
+			catch { }
+			if (props == null) continue;
+			foreach (var addr in props.UnicastAddresses) {
+				if (addr.Address.AddressFamily == AddressFamily.InterNetwork)
+					line?.Invoke("  IPv4: " + addr.Address + "  掩码: " + (addr.IPv4Mask?.ToString() ?? "-"));
+				else if (addr.Address.AddressFamily == AddressFamily.InterNetworkV6)
+					line?.Invoke("  IPv6: " + addr.Address);
+			}
+			foreach (var gate in props.GatewayAddresses)
+				line?.Invoke("  网关: " + gate.Address);
+			var dns = props.DnsAddresses.Select(x => x.ToString()).ToArray();
+			line?.Invoke("  DNS: " + (dns.Length > 0 ? string.Join(", ", dns) : "-"));
+		}
+		if (!found) line?.Invoke("没有活动网卡");
+		line?.Invoke("IPv4 路由");
+		var routes = ipv4routes();
+		if (routes.Count == 0) line?.Invoke("  未读取到路由");
+		foreach (var route in routes) line?.Invoke("  " + route);
+	}
+
+	/// <summary>向广播地址发送 Wake-on-LAN 魔术包。</summary>
+	public static void Wake(string macText, Action<string> line) {
+		var packet = BuildWake(macText);
+		var show = macshow(MacHex(macText)).Replace(':', '-');
+		using var udp = new UdpClient();
+		udp.EnableBroadcast = true;
+		var targets = new List<IPEndPoint> {
+			new(IPAddress.Broadcast, 9),
+			new(IPAddress.Broadcast, 7),
+		};
+		foreach (var broadcast in broadcasts())
+			targets.Add(new IPEndPoint(broadcast, 9));
+		var sent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var target in targets) {
+			var key = target.ToString();
+			if (!sent.Add(key)) continue;
+			udp.Send(packet, packet.Length, target);
+			line?.Invoke("已发送  " + show + "  →  " + key);
+		}
+	}
+
+	internal static (string Host, int Port) ParsePortTarget(string raw) {
+		raw = (raw ?? "").Trim();
+		if (raw.Length == 0) throw new ArgumentException("empty");
+		if (raw.StartsWith("[")) {
+			var end = raw.IndexOf(']');
+			if (end > 1 && end + 1 < raw.Length && raw[end + 1] == ':') {
+				var host6 = raw.Substring(1, end - 1);
+				if (!int.TryParse(raw.Substring(end + 2), out var port6) || port6 < 1 || port6 > 65535)
+					throw new ArgumentException("无效的端口");
+				return (AsciiHost(host6), port6);
+			}
+		}
+		var colon = raw.LastIndexOf(':');
+		if (colon > 0 && raw.IndexOf(':') == colon) {
+			var tail = raw.Substring(colon + 1);
+			if (int.TryParse(tail, out var port) && port >= 1 && port <= 65535)
+				return (AsciiHost(raw.Substring(0, colon)), port);
+		}
+		return (AsciiHost(raw), 0);
+	}
+
+	internal static byte[] BuildWake(string macText) {
+		var hex = MacHex(macText);
+		if (hex.Length != 12) throw new ArgumentException("请输入完整的 MAC 地址");
+		var mac = new byte[6];
+		for (var i = 0; i < 6; i++)
+			mac[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+		var packet = new byte[102];
+		for (var i = 0; i < 6; i++) packet[i] = 0xFF;
+		for (var i = 0; i < 16; i++)
+			Buffer.BlockCopy(mac, 0, packet, 6 + i * 6, 6);
+		return packet;
+	}
+
+	internal static List<string> ParseDns(byte[] buf) {
+		var rows = new List<string>();
+		if (buf == null || buf.Length < 12) return rows;
+		var rcode = ((buf[2] << 8) | buf[3]) & 0x0F;
+		var questions = (buf[4] << 8) | buf[5];
+		var answers = (buf[6] << 8) | buf[7];
+		var i = 12;
+		for (var q = 0; q < questions; q++) {
+			dnsname(buf, ref i);
+			i += 4;
+		}
+		if (rcode != 0 && answers == 0) {
+			rows.Add("DNS 返回码 " + rcode);
+			return rows;
+		}
+		for (var a = 0; a < answers && i + 10 <= buf.Length; a++) {
+			dnsname(buf, ref i);
+			var typ = (buf[i] << 8) | buf[i + 1];
+			var len = (buf[i + 8] << 8) | buf[i + 9];
+			i += 10;
+			if (len < 0 || i + len > buf.Length) break;
+			var text = dnstext(buf, typ, i, len);
+			if (text.Length > 0) rows.Add(text);
+			i += len;
+		}
+		return rows;
+	}
+
+	internal static string ParseNetBios(byte[] buf) {
+		if (buf == null || buf.Length < 63 || buf[46] != 0 || buf[47] != 0x21) return "";
+		var count = buf[62];
+		var at = 63;
+		var enc = Encoding.Default;
+		for (var n = 0; n < count && at + 18 <= buf.Length; n++) {
+			var name = enc.GetString(buf, at, 15).Trim().Trim('\0', ' ');
+			var suffix = buf[at + 15];
+			var flags = (buf[at + 16] << 8) | buf[at + 17];
+			at += 18;
+			if ((flags & 0x8000) == 0 && suffix == 0 && name.Length > 0) return name;
+		}
+		return "";
+	}
+
+	static async Task<List<string>> querydns(string server, string name, ushort type, CancellationToken ct) {
+		var id = (ushort)(Environment.TickCount & 0xFFFF);
+		var packet = dnsquery(id, name, type);
+		using var udp = new UdpClient();
+		var send = udp.SendAsync(packet, packet.Length, server, 53);
+		if (await Task.WhenAny(send, Task.Delay(3000, ct)).ConfigureAwait(false) != send)
+			throw new TimeoutException("dns timeout");
+		await send.ConfigureAwait(false);
+		var recv = udp.ReceiveAsync();
+		if (await Task.WhenAny(recv, Task.Delay(3000, ct)).ConfigureAwait(false) != recv) {
+			ct.ThrowIfCancellationRequested();
+			throw new TimeoutException("dns timeout");
+		}
+		var result = await recv.ConfigureAwait(false);
+		if (result.Buffer.Length < 2 || ((result.Buffer[0] << 8) | result.Buffer[1]) != id)
+			throw new InvalidOperationException("DNS 应答不匹配");
+		return ParseDns(result.Buffer);
+	}
+
+	static byte[] dnsquery(ushort id, string name, ushort type) {
+		var ms = new MemoryStream();
+		void u16(ushort value) {
+			ms.WriteByte((byte)(value >> 8));
+			ms.WriteByte((byte)value);
+		}
+		u16(id);
+		u16(0x0100);
+		u16(1);
+		u16(0);
+		u16(0);
+		u16(0);
+		foreach (var label in name.Split('.')) {
+			var bytes = Encoding.ASCII.GetBytes(label);
+			if (bytes.Length == 0 || bytes.Length > 63) throw new ArgumentException("无效的域名");
+			ms.WriteByte((byte)bytes.Length);
+			ms.Write(bytes, 0, bytes.Length);
+		}
+		ms.WriteByte(0);
+		u16(type);
+		u16(1);
+		return ms.ToArray();
+	}
+
+	static string dnsname(byte[] buf, ref int i) {
+		var labels = new List<string>();
+		var jumped = false;
+		var end = i;
+		for (var hop = 0; hop < 16 && i < buf.Length; hop++) {
+			var n = buf[i];
+			if (n == 0) {
+				i++;
+				break;
+			}
+			if ((n & 0xC0) == 0xC0) {
+				if (i + 1 >= buf.Length) break;
+				if (!jumped) end = i + 2;
+				jumped = true;
+				i = ((n & 0x3F) << 8) | buf[i + 1];
+				continue;
+			}
+			i++;
+			if (n > 63 || i + n > buf.Length) break;
+			labels.Add(Encoding.ASCII.GetString(buf, i, n));
+			i += n;
+		}
+		if (jumped) i = end;
+		return string.Join(".", labels);
+	}
+
+	static string dnstext(byte[] buf, int type, int at, int len) {
+		var end = at + len;
+		if (type == 1 && len == 4) return "A " + new IPAddress(buf.Skip(at).Take(4).ToArray());
+		if (type == 28 && len == 16) return "AAAA " + new IPAddress(buf.Skip(at).Take(16).ToArray());
+		if (type == 5 || type == 2) {
+			var i = at;
+			return (type == 5 ? "CNAME " : "NS ") + dnsname(buf, ref i);
+		}
+		if (type == 15 && len >= 3) {
+			var pref = (buf[at] << 8) | buf[at + 1];
+			var i = at + 2;
+			return "MX " + pref + " " + dnsname(buf, ref i);
+		}
+		if (type == 16) {
+			var parts = new List<string>();
+			var i = at;
+			while (i < end) {
+				var n = buf[i++];
+				if (i + n > end) break;
+				parts.Add(Encoding.UTF8.GetString(buf, i, n));
+				i += n;
+			}
+			return "TXT " + string.Join("", parts);
+		}
+		if (type == 6) {
+			var i = at;
+			var primary = dnsname(buf, ref i);
+			var mail = dnsname(buf, ref i);
+			if (i + 4 <= end) {
+				var serial = (uint)((buf[i] << 24) | (buf[i + 1] << 16) | (buf[i + 2] << 8) | buf[i + 3]);
+				return "SOA " + primary + " " + mail + " " + serial;
+			}
+		}
+		return "";
+	}
+
+	static async Task<string> netbios(IPAddress ip, CancellationToken ct) {
+		try {
+			var query = new byte[] {
+				0x82, 0x28, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20,
+				0x43, 0x4B, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+				0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
+				0x41, 0x41, 0x41, 0x41, 0x41, 0x00, 0x00, 0x21, 0x00, 0x01,
+			};
+			using var udp = new UdpClient();
+			var send = udp.SendAsync(query, query.Length, new IPEndPoint(ip, 137));
+			if (await Task.WhenAny(send, Task.Delay(700, ct)).ConfigureAwait(false) != send) return "";
+			await send.ConfigureAwait(false);
+			var recv = udp.ReceiveAsync();
+			if (await Task.WhenAny(recv, Task.Delay(700, ct)).ConfigureAwait(false) != recv) {
+				ct.ThrowIfCancellationRequested();
+				return "";
+			}
+			return ParseNetBios((await recv.ConfigureAwait(false)).Buffer);
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) {
+			return "";
+		}
+	}
+
+	static List<IPAddress> broadcasts() {
+		var rows = new List<IPAddress>();
+		foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()) {
+			if (nic.OperationalStatus != OperationalStatus.Up ||
+				nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+			try {
+				foreach (var addr in nic.GetIPProperties().UnicastAddresses) {
+					if (addr.Address.AddressFamily != AddressFamily.InterNetwork || addr.IPv4Mask == null) continue;
+					var value = ipuint(addr.Address);
+					var mask = ipuint(addr.IPv4Mask);
+					if (mask == 0) continue;
+					rows.Add(ipof(value | ~mask));
+				}
+			}
+			catch { }
+		}
+		return rows;
+	}
+
+	[DllImport("iphlpapi.dll", SetLastError = true)]
+	static extern int GetIpForwardTable(IntPtr table, ref int size, bool order);
+
+	static List<string> ipv4routes() {
+		var rows = new List<string>();
+		var size = 0;
+		GetIpForwardTable(IntPtr.Zero, ref size, true);
+		if (size <= 0) return rows;
+		var mem = Marshal.AllocHGlobal(size);
+		try {
+			if (GetIpForwardTable(mem, ref size, true) != 0) return rows;
+			var count = Marshal.ReadInt32(mem);
+			var max = size > 4 ? (size - 4) / 56 : 0;
+			if (count > max) count = max;
+			if (count > 64) count = 64;
+			for (var i = 0; i < count; i++) {
+				var at = IntPtr.Add(mem, 4 + i * 56);
+				var dest = swap32((uint)Marshal.ReadInt32(at));
+				var mask = swap32((uint)Marshal.ReadInt32(IntPtr.Add(at, 4)));
+				var hop = swap32((uint)Marshal.ReadInt32(IntPtr.Add(at, 12)));
+				var metric = Marshal.ReadInt32(IntPtr.Add(at, 36));
+				if ((dest & 0xF0000000) == 0xE0000000) continue;
+				rows.Add(ipof(dest) + "/" + maskbits(mask) + "  via " + ipof(hop) + "  metric " + metric);
+			}
+		}
+		catch { }
+		finally { Marshal.FreeHGlobal(mem); }
+		return rows;
+	}
+
+	static uint swap32(uint value) =>
+		(value >> 24) | ((value >> 8) & 0xFF00) | ((value << 8) & 0xFF0000) | (value << 24);
+
+	static int maskbits(uint mask) {
+		var n = 0;
+		while (mask != 0) {
+			n += (int)(mask & 1);
+			mask >>= 1;
+		}
+		return n;
+	}
+
 	public static async Task<string> Ping(string host, int count, int timeoutMs,
 		Action<string> line, CancellationToken ct) {
 		host = AsciiHost(host);
@@ -381,7 +773,10 @@ static class NetTools {
 			if (done == task) {
 				var entry = await task.ConfigureAwait(false);
 				row.HostName = (entry?.HostName ?? "").Trim().TrimEnd('.');
+				if (row.HostName == row.Ip) row.HostName = "";
 			}
+			if (row.HostName.Length == 0)
+				row.HostName = await netbios(IPAddress.Parse(row.Ip), ct).ConfigureAwait(false);
 			ct.ThrowIfCancellationRequested();
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException) { }

@@ -636,6 +636,7 @@ public partial class MainWindow : Window {
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
+			tray.NetActionRequested += kind => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true, kind: kind)));
 			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys(fromTray: true)));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg(fromTray: true)));
 			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv(fromTray: true)));
@@ -1584,6 +1585,10 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnettool.Click += (_, _) => opennettool();
+		mnnetdns.Click += (_, _) => opennettool(kind: "dnsrec");
+		mnnetport.Click += (_, _) => opennettool(kind: "port");
+		mnnetlocal.Click += (_, _) => opennettool(kind: "local");
+		mnnetwake.Click += (_, _) => opennettool(kind: "wol");
 		mnportuse.Click += (_, _) => openportuse();
 		mnmidi.Click += (_, _) => openmidi();
 		mnsys.Click += (_, _) => opensys();
@@ -1734,8 +1739,20 @@ public partial class MainWindow : Window {
 			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
 			mnpwgen.Header = Loc.T("menu.pwgen");
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
+			mnnet.Header = Loc.T("menu.net");
+			mnnet.ToolTip = Loc.T("menu.net.tip");
+			mninfo.Header = Loc.T("menu.info");
+			mninfo.ToolTip = Loc.T("menu.info.tip");
 			mnnettool.Header = Loc.T("menu.nettool");
 			mnnettool.ToolTip = Loc.T("menu.nettool.tip");
+			mnnetdns.Header = Loc.T("menu.netdns");
+			mnnetdns.ToolTip = Loc.T("menu.netdns.tip");
+			mnnetport.Header = Loc.T("menu.netport");
+			mnnetport.ToolTip = Loc.T("menu.netport.tip");
+			mnnetlocal.Header = Loc.T("menu.netlocal");
+			mnnetlocal.ToolTip = Loc.T("menu.netlocal.tip");
+			mnnetwake.Header = Loc.T("menu.netwake");
+			mnnetwake.ToolTip = Loc.T("menu.netwake.tip");
 			mnportuse.Header = Loc.T("menu.portuse");
 			mnportuse.ToolTip = Loc.T("menu.portuse.tip");
 			mnmidi.Header = Loc.T("menu.midisynth");
@@ -4292,8 +4309,10 @@ public partial class MainWindow : Window {
 		if (again) pwGenWin?.Generate();
 	}
 
-	void opennettool(bool fromTray = false) =>
+	void opennettool(bool fromTray = false, string kind = null) {
 		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.nettool", fromTray);
+		if (!string.IsNullOrEmpty(kind)) netToolWin?.Start(kind);
+	}
 
 	void openportuse(bool fromTray = false) =>
 		opentoolwin(ref portUseWin, () => new PortUseWindow(), "menu.portuse", fromTray);
