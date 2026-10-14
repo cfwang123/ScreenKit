@@ -39,6 +39,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Network tools can look up a city for an IP or domain, also as GET/POST /api/ipcity. An empty address uses this PC's public IP.
+- Network tools can look up the IEEE vendor of a MAC address, also as GET/POST /api/mac.
 
 #### Changed
 
@@ -55,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 网络工具可查询 IP 或域名所在城市，并提供 GET/POST /api/ipcity。地址留空时查本机出口。
+- 网络工具可查询 MAC 地址的 IEEE 厂家，并提供 GET/POST /api/mac。
 
 #### 变更
 

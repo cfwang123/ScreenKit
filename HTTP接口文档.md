@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -110,6 +110,7 @@ http_port = 1224
 | GET/POST | `/api/text` | 文本编解码（不随模块开关关闭） |
 | GET/POST | `/api/fx` | 货币换算（不随模块开关关闭） |
 | GET/POST | `/api/ipcity` | IP 城市（不随模块开关关闭） |
+| GET/POST | `/api/mac` | MAC 厂家（不随模块开关关闭） |
 | GET/POST | `/api/qrmake` | 生成二维码/条码（不随模块开关关闭） |
 | POST | `/api/qrscan` | 识别二维码/条码（不随模块开关关闭） |
 | GET | `/api/ocr/models` | 识别引擎和模型（与主窗口相同） |
@@ -411,6 +412,22 @@ ScreenKit --jpyomi "東京" --mono
 ```
 
 **响应 `data`：** `ip`、`country`、`region`、`city`、`isp`、`text`。服务返回坐标时还有 `lat`、`lon`。
+
+---
+
+## 5.5.3 GET/POST `/api/mac`
+
+查 MAC 在 IEEE 登记的厂家。不随模块开关关闭。冒号、减号、点号或纯十六进制都可以，前 6 位到完整地址都行。请求走程序里的 HTTP 代理，依次试 macaddresslookup.app、api.macvendors.com、macverify.com。第一字节次低位为 1 的是本地管理地址，没有厂家登记，直接返回 802，不访问网络。查不到前缀也返回 802。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `mac` | string | MAC 或前缀。也可用 `oui`、`host`、`query` |
+
+```json
+{ "mac": "00:1A:2B:3C:4D:5E" }
+```
+
+**响应 `data`：** `mac`、`company`、`country`、`address`、`block`（能判定时为 `MA-L`、`MA-M` 或 `MA-S`）、`local`、`multicast`、`text`。
 
 ---
 

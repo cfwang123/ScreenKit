@@ -566,6 +566,185 @@ static class NetTools {
 			|| s.IndexOf("invalid", StringComparison.Ordinal) >= 0;
 	}
 
+	/// <summary>MAC 的 IEEE 登记厂家。</summary>
+	public sealed class MacVendorInfo {
+		public bool Ok { get; set; }
+		public string Mac { get; set; } = "";
+		public string Company { get; set; } = "";
+		public string Country { get; set; } = "";
+		public string Address { get; set; } = "";
+		public string Block { get; set; } = "";
+		public bool Local { get; set; }
+		public bool Multicast { get; set; }
+		public string Error { get; set; } = "";
+		public string Text { get; set; } = "";
+	}
+
+	/// <summary>抽出 6 到 12 位十六进制。冒号、减号、点号和空格都去掉。</summary>
+	public static string MacHex(string raw) {
+		raw = (raw ?? "").Trim();
+		var sb = new StringBuilder();
+		foreach (var ch in raw) {
+			if (ch == ':' || ch == '-' || ch == '.' || ch == ' ' || ch == '\t') continue;
+			var c = ch;
+			if (c >= 'a' && c <= 'f') c = (char)(c - 32);
+			var ok = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
+			if (!ok) throw new ArgumentException("无效的 MAC 地址");
+			sb.Append(c);
+		}
+		if (sb.Length < 6 || sb.Length > 12) throw new ArgumentException("无效的 MAC 地址");
+		return sb.ToString();
+	}
+
+	/// <summary>解析厂家查询的 JSON 或纯文本。不访问网络。</summary>
+	public static MacVendorInfo ParseMacVendor(string body, string mac) {
+		var info = new MacVendorInfo { Mac = mac ?? "" };
+		body = (body ?? "").Trim();
+		if (body.Length == 0) {
+			info.Error = "empty";
+			return info;
+		}
+		if (body[0] != '{' && body[0] != '[') {
+			info.Company = body;
+			info.Ok = true;
+			info.Text = mactext(info);
+			return info;
+		}
+		try {
+			using var doc = JsonDocument.Parse(body);
+			var r = doc.RootElement;
+			if (r.ValueKind == JsonValueKind.Array) {
+				if (r.GetArrayLength() == 0) {
+					info.Error = "未登记厂家";
+					info.Text = mactext(info);
+					return info;
+				}
+				r = r[0];
+			}
+			if (r.ValueKind != JsonValueKind.Object) {
+				info.Error = "bad json";
+				return info;
+			}
+			string get(params string[] keys) {
+				foreach (var k in keys) {
+					if (!r.TryGetProperty(k, out var v)) continue;
+					if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
+				}
+				return "";
+			}
+			if (r.TryGetProperty("found", out var found) && found.ValueKind == JsonValueKind.False) {
+				info.Error = "未登记厂家";
+				info.Text = mactext(info);
+				return info;
+			}
+			var company = "";
+			if (r.TryGetProperty("vendor", out var ven) && ven.ValueKind == JsonValueKind.Object
+				&& ven.TryGetProperty("name", out var nm) && nm.ValueKind == JsonValueKind.String)
+				company = nm.GetString() ?? "";
+			if (company.Length == 0) company = get("company", "org");
+			info.Company = company;
+			info.Country = get("country");
+			var a1 = get("addressL1");
+			var a2 = get("addressL2");
+			var a3 = get("addressL3");
+			if (a1.Length + a2.Length + a3.Length > 0)
+				info.Address = string.Join(" ", new[] { a1, a2, a3 }.Where(s => s.Length > 0));
+			else
+				info.Address = get("address");
+			var typ = get("type");
+			if (typ.StartsWith("MA-", StringComparison.Ordinal)) info.Block = typ;
+			info.Ok = company.Length > 0;
+			if (!info.Ok) info.Error = "未登记厂家";
+			info.Text = mactext(info);
+			return info;
+		}
+		catch {
+			info.Error = "bad json";
+			info.Text = body.Length > 400 ? body.Substring(0, 400) + "…" : body;
+			return info;
+		}
+	}
+
+	/// <summary>查 MAC 厂家。本地管理地址不访问网络。走程序里的 HTTP 代理。</summary>
+	public static async Task<MacVendorInfo> MacVendor(string query, Action<string> line, CancellationToken ct) {
+		var hex = MacHex(query);
+		var show = macshow(hex);
+		var local = macbit(hex, 0x02);
+		var multi = macbit(hex, 0x01);
+		line?.Invoke("MAC 厂家  " + show);
+		if (local) {
+			var info = new MacVendorInfo {
+				Mac = show,
+				Local = true,
+				Multicast = multi,
+				Error = "本地管理地址，没有厂家登记",
+			};
+			info.Text = mactext(info);
+			line?.Invoke(info.Text);
+			return info;
+		}
+		var urls = new[] {
+			"https://macaddresslookup.app/api/v2/" + show,
+			"https://api.macvendors.com/" + show,
+			"https://macverify.com/api/v1/lookup?mac=" + show,
+		};
+		MacVendorInfo last = null;
+		Exception lastEx = null;
+		foreach (var url in urls) {
+			ct.ThrowIfCancellationRequested();
+			try {
+				var body = await httpgetproxy(url, ct).ConfigureAwait(false);
+				var info = ParseMacVendor(body, show);
+				info.Local = false;
+				info.Multicast = multi;
+				info.Text = mactext(info);
+				line?.Invoke(url);
+				line?.Invoke(info.Text.Length > 0 ? info.Text : info.Error);
+				if (info.Ok) return info;
+				last = info;
+			}
+			catch (Exception ex) when (ex is not OperationCanceledException) {
+				lastEx = ex;
+				line?.Invoke(url + "  " + (ex.InnerException?.Message ?? ex.Message));
+			}
+		}
+		line?.Invoke("未查到厂家");
+		if (last != null) return last;
+		return new MacVendorInfo {
+			Mac = show,
+			Multicast = multi,
+			Error = lastEx?.InnerException?.Message ?? lastEx?.Message ?? "未登记厂家",
+		};
+	}
+
+	static string macshow(string hex) {
+		if ((hex.Length % 2) != 0) return hex;
+		var sb = new StringBuilder();
+		for (var i = 0; i < hex.Length; i += 2) {
+			if (i > 0) sb.Append(':');
+			sb.Append(hex, i, 2);
+		}
+		return sb.ToString();
+	}
+
+	static bool macbit(string hex, int bit) {
+		var n = Convert.ToInt32(hex.Substring(0, 2), 16);
+		return (n & bit) != 0;
+	}
+
+	static string mactext(MacVendorInfo info) {
+		var sb = new StringBuilder();
+		if (info.Mac.Length > 0) sb.AppendLine("MAC: " + info.Mac);
+		if (info.Local) sb.AppendLine("本地管理地址，没有厂家登记");
+		else if (info.Company.Length > 0) sb.AppendLine("厂家: " + info.Company);
+		else if (info.Error.Length > 0) sb.AppendLine(info.Error);
+		if (info.Country.Length > 0) sb.AppendLine("国家: " + info.Country);
+		if (info.Address.Length > 0) sb.AppendLine("地址: " + info.Address);
+		if (info.Block.Length > 0) sb.AppendLine("分配: " + info.Block);
+		if (info.Multicast) sb.AppendLine("组播地址");
+		return sb.ToString().TrimEnd();
+	}
+
 	/// <summary>经 Windows 系统代理用 HTTP 查出口 IP 与地区。</summary>
 	public static async Task HttpLocate(Action<string> line, CancellationToken ct) {
 		line?.Invoke("HTTP 定位（系统代理）");

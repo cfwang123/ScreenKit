@@ -34,6 +34,7 @@ public partial class NetToolsWindow : Window {
 		blocate.Click += (_, _) => _ = run("locate");
 		bproxy.Click += (_, _) => _ = run("proxy");
 		bipcity.Click += (_, _) => _ = run("ipcity");
+		bmac.Click += (_, _) => _ = run("mac");
 		bhttp.Click += (_, _) => _ = run("http");
 		bgeo.Click += (_, _) => _ = run("geo");
 		bmap.Click += (_, _) => openmap();
@@ -73,6 +74,7 @@ public partial class NetToolsWindow : Window {
 		ToolBtnUi.Set(blocate, ToolBtnUi.Encode, Loc.T("nettool.locate"));
 		ToolBtnUi.Set(bproxy, ToolBtnUi.Font, Loc.T("nettool.proxy"));
 		ToolBtnUi.Set(bipcity, ToolBtnUi.Pin, Loc.T("nettool.ipcity"));
+		ToolBtnUi.Set(bmac, ToolBtnUi.Font, Loc.T("nettool.mac"));
 		ToolBtnUi.Set(bhttp, ToolBtnUi.Play, Loc.T("nettool.http"));
 		ToolBtnUi.Set(bgeo, ToolBtnUi.Pin, Loc.T("nettool.geo"));
 		ToolBtnUi.Set(bmap, ToolBtnUi.Browse, Loc.T("nettool.map"));
@@ -92,6 +94,7 @@ public partial class NetToolsWindow : Window {
 		blocate.IsEnabled = !on;
 		bproxy.IsEnabled = !on;
 		bipcity.IsEnabled = !on;
+		bmac.IsEnabled = !on;
 		bhttp.IsEnabled = !on;
 		bgeo.IsEnabled = !on;
 		bmap.IsEnabled = !on && hasmap;
@@ -204,6 +207,10 @@ public partial class NetToolsWindow : Window {
 				var hit = await NetTools.IpCity(host, s => Dispatcher.Invoke(() => append(s)), token)
 					.ConfigureAwait(true);
 				if (hit.HasPos) setmap(hit.Lat, hit.Lon);
+			}
+			else if (kind == "mac") {
+				await NetTools.MacVendor(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
 			}
 			else if (kind == "http") {
 				await NetTools.HttpSpeedLocate(s => Dispatcher.Invoke(() => append(s)), token)

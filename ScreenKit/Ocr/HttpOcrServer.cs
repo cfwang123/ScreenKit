@@ -24,6 +24,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/fake 测试数据（Bogus 已安装时生成）</item>
 /// <item>GET/POST /api/fx 货币换算（中国银行中间价，缓存 10 分钟）</item>
 /// <item>GET/POST /api/ipcity IP 城市（空 ip 为本机出口）</item>
+/// <item>GET/POST /api/mac MAC 厂家</item>
 /// <item>GET/POST /api/enc 单码位代码页（GBK、GB18030、Big5、Shift_JIS、EUC-KR、Latin-1）</item>
 /// <item>GET /api/fonts 本机已安装字体</item>
 /// <item>POST /api/qrmake 生成二维码/条码 · POST /api/qrscan 识别</item>
@@ -269,6 +270,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handleipcity(ctx);
+				return;
+			}
+
+			if (path is "/api/mac" or "/api/mac/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "mac 仅支持 GET 或 POST"));
+					return;
+				}
+				handlemac(ctx);
 				return;
 			}
 
@@ -2301,6 +2311,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成",
 			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",
 			"GET/POST /api/ipcity  IP 城市。GET ?ip= 或 POST JSON{ip}。ip 为空时查本机出口",
+			"GET/POST /api/mac  MAC 厂家。GET ?mac= 或 POST JSON{mac}",
 			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
 			"GET  /api/fonts  本机已安装字体",
 			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",
