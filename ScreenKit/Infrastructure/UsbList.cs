@@ -15,6 +15,7 @@ sealed class UsbDev {
 	public string InstanceId { get; set; }
 	public string Filter { get; set; }
 	public List<UsbPair> Props { get; set; }
+	public bool Active { get; set; }
 }
 
 /// <summary>参数名和值。</summary>

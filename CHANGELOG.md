@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
 - The release folder keeps only the current screenkit package. Older screenkit_*.7z files are removed after packing.
 - On startup, a newer screenkit_*.7z in the program folder asks whether to install it.
+- Sound / mic shows active devices by default. Show all includes inactive devices and keeps active devices first.
 
 #### Documentation
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 解压 7z 只使用 7za.dll，不再下载或依赖 SharpSevenZip。
 - release 目录只保留当前版本的 screenkit 安装包。打包后会删掉更早的 screenkit_*.7z。
 - 程序目录里有更新的 screenkit_版本.7z 时，启动会询问是否安装。
+- 声音/麦克风默认只显示活动设备；勾选显示全部后会包含非活动设备，并保持活动设备在前。
 
 #### 文档
 

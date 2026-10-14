@@ -60,6 +60,7 @@ public partial class SysInfoWindow : Window {
 		bprncopy.Click += (_, _) => copydev(lvprn, lbprnstat);
 		baudrefresh.Click += (_, _) => reloadaud();
 		baudcopy.Click += (_, _) => copydev(lvaud, lbaudstat);
+		eaudall.Click += (_, _) => showaud(keep(lvaud));
 		bfontrefresh.Click += (_, _) => reloadfont();
 		bfontcopy.Click += (_, _) => copyfont();
 		bclose.Click += (_, _) => Close();
@@ -120,6 +121,7 @@ public partial class SysInfoWindow : Window {
 		ToolBtnUi.Set(bprncopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
 		lbaudhint.Text = Loc.T("aud.hint");
 		lbaudfilter.Text = Loc.T("usb.filter");
+		eaudall.Content = Loc.T("aud.showall");
 		eaudfilter.ToolTip = Loc.T("usb.filter.tip");
 		colaudname.Header = Loc.T("usb.col.name");
 		colaudkind.Header = Loc.T("aud.p.kind");
@@ -290,8 +292,10 @@ public partial class SysInfoWindow : Window {
 	void showprn(string keepId) =>
 		showdev(prnall, eprnfilter.Text, lvprn, lvprnprop, lbprnstat, keepId, "prn.none", "prn.count");
 
-	void showaud(string keepId) =>
-		showdev(audall, eaudfilter.Text, lvaud, lvaudprop, lbaudstat, keepId, "aud.none", "aud.count");
+	void showaud(string keepId) {
+		var rows = eaudall.IsChecked == true ? audall : audall.Where(x => x.Active).ToList();
+		showdev(rows, eaudfilter.Text, lvaud, lvaudprop, lbaudstat, keepId, "aud.none", "aud.count");
+	}
 
 	void showfont(string keepName) {
 		var q = (efontfilter.Text ?? "").Trim().ToLowerInvariant();

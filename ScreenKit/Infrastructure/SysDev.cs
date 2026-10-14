@@ -58,6 +58,8 @@ static class SysDev {
 		collect(en, list, roles, DataFlow.Render, Loc.T("aud.kind.out"));
 		collect(en, list, roles, DataFlow.Capture, Loc.T("aud.kind.in"));
 		list.Sort((a, b) => {
+			var active = b.Active.CompareTo(a.Active);
+			if (active != 0) return active;
 			var c = string.Compare(a.ClassName, b.ClassName, StringComparison.CurrentCulture);
 			if (c != 0) {
 				if (a.ClassName == Loc.T("aud.kind.out")) return -1;
@@ -109,6 +111,7 @@ static class SysDev {
 					InstanceId = id.Length > 0 ? id : name,
 					Props = props,
 					Filter = filter,
+					Active = (state & DeviceState.Active) != 0,
 				});
 			}
 		}
