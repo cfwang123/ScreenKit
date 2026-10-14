@@ -23,6 +23,7 @@ public partial class VidGifWindow : Window {
 	bool scrub;
 	bool playing;
 	bool dragging;
+	bool draghide;
 
 	public VidGifWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
@@ -161,20 +162,24 @@ public partial class VidGifWindow : Window {
 
 	void showdrag() {
 		if (pdrop.Visibility == Visibility.Visible) return;
+		if (eplay.Visibility == Visibility.Visible) {
+			eplay.Visibility = Visibility.Hidden;
+			draghide = true;
+		}
 		pdrop.Visibility = Visibility.Visible;
-		pview.BorderBrush = (Brush)FindResource("Accent");
-		pview.BorderThickness = new Thickness(2);
-		lbdrop.Text = Loc.T("vidgif.release");
-		lbdrop.Foreground = Brushes.White;
-		if (string.IsNullOrEmpty(src)) lbdrop.Visibility = Visibility.Visible;
+		lbdrop.Visibility = Visibility.Collapsed;
 	}
 
 	void hidedrag() {
 		if (pdrop.Visibility != Visibility.Visible) return;
 		pdrop.Visibility = Visibility.Collapsed;
-		pview.BorderThickness = new Thickness(0);
-		lbdrop.Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA));
-		lbdrop.Text = Loc.T("vidgif.drop");
+		if (draghide) eplay.Visibility = Visibility.Visible;
+		draghide = false;
+		if (string.IsNullOrEmpty(src)) {
+			lbdrop.Text = Loc.T("vidgif.drop");
+			lbdrop.Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA));
+			lbdrop.Visibility = Visibility.Visible;
+		}
 	}
 
 	static bool filedrag(IDataObject data) {

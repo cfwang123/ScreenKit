@@ -34,7 +34,13 @@
 				              ScrubbingEnabled="True" Stretch="Uniform" IsHitTestVisible="False"/>
 				<TextBlock x:Name="lbdrop" Text="拖入视频或打开文件" HorizontalAlignment="Center"
 				           VerticalAlignment="Center" Foreground="#AAA" IsHitTestVisible="False"/>
-				<Border x:Name="phit" Background="Transparent" AllowDrop="True"/>
+				<Border x:Name="pdrop" Background="#E6111820" BorderBrush="{StaticResource Accent}"
+				        BorderThickness="2" CornerRadius="4" Visibility="Collapsed" AllowDrop="True"
+				        AutomationProperties.AutomationId="vidgif.dropmask">
+					<TextBlock x:Name="lbrelease" Text="松开以打开" FontSize="22" FontWeight="SemiBold"
+					           HorizontalAlignment="Center" VerticalAlignment="Center"
+					           Foreground="White" IsHitTestVisible="False"/>
+				</Border>
 			</Grid>
 		</Border>
 
@@ -116,14 +122,5 @@
 			<TextBlock x:Name="lbmsg" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
 			           TextTrimming="CharacterEllipsis"/>
 		</DockPanel>
-
-		<Border x:Name="pdrop" Grid.RowSpan="6" Margin="-8" CornerRadius="8" Padding="24"
-		        Background="#E6EFF6FF" BorderBrush="{StaticResource Accent}" BorderThickness="2"
-		        Visibility="Collapsed" AllowDrop="True" IsHitTestVisible="True"
-		        AutomationProperties.AutomationId="vidgif.dropmask">
-			<TextBlock x:Name="lbrelease" Text="松开以打开" FontSize="22" FontWeight="SemiBold"
-			           HorizontalAlignment="Center" VerticalAlignment="Center"
-			           Foreground="{StaticResource Accent}" IsHitTestVisible="False"/>
-		</Border>
 	</Grid>
 </Window>

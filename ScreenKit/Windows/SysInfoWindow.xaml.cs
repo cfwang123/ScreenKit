@@ -28,6 +28,9 @@ public partial class SysInfoWindow : Window {
 	int audgen;
 	int fontgen;
 	bool dead;
+	readonly HashSet<TabItem> loadedtabs = new();
+	readonly Dictionary<TabItem, Action> tabloads = new();
+	readonly Dictionary<SysDevicePage, int> pagegens = new();
 
 	public SysInfoWindow() {
 		InitializeComponent();
@@ -35,18 +38,6 @@ public partial class SysInfoWindow : Window {
 		initev();
 		WindowEsc.Attach(this, Close);
 		Closed += (_, _) => dead = true;
-		lbsysstat.Text = Loc.T("sys.loading");
-		lbusbstat.Text = Loc.T("sys.loading");
-		lbcomstat.Text = Loc.T("sys.loading");
-		lbprnstat.Text = Loc.T("sys.loading");
-		lbaudstat.Text = Loc.T("sys.loading");
-		lbfontstat.Text = Loc.T("sys.loading");
-		reloadsys();
-		reloadusb();
-		reloadcom();
-		reloadprn();
-		reloadaud();
-		reloadfont();
 	}
 
 	void initev() {
@@ -73,6 +64,25 @@ public partial class SysInfoWindow : Window {
 		lvcom.SelectionChanged += (_, _) => showprops(lvcom, lvcomprop);
 		lvprn.SelectionChanged += (_, _) => showprops(lvprn, lvprnprop);
 		lvaud.SelectionChanged += (_, _) => showprops(lvaud, lvaudprop);
+		tabloads[tabsystem] = reloadsys;
+		tabloads[tabusb] = reloadusb;
+		tabloads[tabcom] = reloadcom;
+		tabloads[tabprn] = reloadprn;
+		tabloads[tabaud] = reloadaud;
+		tabloads[tabfont] = reloadfont;
+		addpage(tabdisplay, pdisplay, SysDevices.ScanDisplays);
+		addpage(tabcamera, pcamera, SysDevices.ScanCameras);
+		addpage(tabbt, pbt, SysDevices.ScanBluetooth);
+		addpage(tabnet, pnet, SysDevices.ScanNetwork);
+		addpage(tabinput, pinput, SysDevices.ScanInput);
+		addpage(tabdisk, pdisk, SysDevices.ScanDisks);
+		addpage(tabbattery, pbattery, SysDevices.ScanBatteries);
+		addpage(tabpci, ppci, SysDevices.ScanSystemDevices);
+		addpage(tabproblem, pproblem, SysDevices.ScanProblems);
+		tabsys.SelectionChanged += (_, e) => {
+			if (e.Source == tabsys) ensuretab();
+		};
+		Loaded += (_, _) => ensuretab();
 	}
 
 	void applylang() {
@@ -82,6 +92,15 @@ public partial class SysInfoWindow : Window {
 		tabcom.Header = Loc.T("sys.tab.com");
 		tabprn.Header = Loc.T("sys.tab.prn");
 		tabaud.Header = Loc.T("sys.tab.aud");
+		tabdisplay.Header = Loc.T("sys.tab.display");
+		tabcamera.Header = Loc.T("sys.tab.camera");
+		tabbt.Header = Loc.T("sys.tab.bt");
+		tabnet.Header = Loc.T("sys.tab.net");
+		tabinput.Header = Loc.T("sys.tab.input");
+		tabdisk.Header = Loc.T("sys.tab.disk");
+		tabbattery.Header = Loc.T("sys.tab.battery");
+		tabpci.Header = Loc.T("sys.tab.pci");
+		tabproblem.Header = Loc.T("sys.tab.problem");
 		tabfont.Header = Loc.T("sys.tab.font");
 		lbsyshint.Text = Loc.T("sys.hint");
 		ToolBtnUi.Set(bsysrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
@@ -131,6 +150,15 @@ public partial class SysInfoWindow : Window {
 		colaudval.Header = Loc.T("usb.col.value");
 		ToolBtnUi.Set(baudrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(baudcopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
+		pdisplay.Init("display", "display.hint", "display.none", "display.count");
+		pcamera.Init("camera", "camera.hint", "camera.none", "camera.count");
+		pbt.Init("bt", "bt.hint", "bt.none", "bt.count");
+		pnet.Init("netdev", "netdev.hint", "netdev.none", "netdev.count");
+		pinput.Init("input", "input.hint", "input.none", "input.count");
+		pdisk.Init("diskdev", "diskdev.hint", "diskdev.none", "diskdev.count");
+		pbattery.Init("battery", "battery.hint", "battery.none", "battery.count");
+		ppci.Init("pci", "pci.hint", "pci.none", "pci.count");
+		pproblem.Init("problem", "problem.hint", "problem.none", "problem.count");
 		lbfonthint.Text = Loc.T("font.hint");
 		lbfontfilter.Text = Loc.T("usb.filter");
 		efontfilter.ToolTip = Loc.T("font.filter.tip");
@@ -140,6 +168,35 @@ public partial class SysInfoWindow : Window {
 		ToolBtnUi.Set(bfontrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(bfontcopy, ToolBtnUi.Copy, Loc.T("font.copy"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
+	}
+
+	void addpage(TabItem tab, SysDevicePage page, Func<List<UsbDev>> scan) {
+		pagegens[page] = 0;
+		tabloads[tab] = () => reloaddev(page, scan);
+		page.RefreshRequested += () => reloaddev(page, scan);
+	}
+
+	void ensuretab() {
+		var tab = tabsys.SelectedItem as TabItem;
+		if (tab == null || !loadedtabs.Add(tab)) return;
+		if (tabloads.TryGetValue(tab, out var load)) load();
+	}
+
+	void reloaddev(SysDevicePage page, Func<List<UsbDev>> scan) {
+		var id = page.SelectedId;
+		var gen = pagegens[page] + 1;
+		pagegens[page] = gen;
+		page.Loading();
+		Task.Run(() => {
+			List<UsbDev> rows = null;
+			string err = null;
+			try { rows = scan(); }
+			catch (Exception ex) { err = ex.Message; }
+			apply(gen, () => pagegens[page], () => {
+				if (err != null) page.Failed(err);
+				else page.SetRows(rows, id);
+			});
+		});
 	}
 
 	void reloadsys() {

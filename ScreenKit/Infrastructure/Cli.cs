@@ -4864,6 +4864,15 @@ static class Cli {
 		}
 		if (!checkdev("prn", SysDev.ScanPrinters, false)) return 1;
 		if (!checkdev("aud", SysDev.ScanAudio, true)) return 1;
+		if (!checkdev("display", SysDevices.ScanDisplays, false)) return 1;
+		if (!checkdev("camera", SysDevices.ScanCameras, false)) return 1;
+		if (!checkdev("bluetooth", SysDevices.ScanBluetooth, false)) return 1;
+		if (!checkdev("network", SysDevices.ScanNetwork, false)) return 1;
+		if (!checkdev("input", SysDevices.ScanInput, false)) return 1;
+		if (!checkdev("disk", SysDevices.ScanDisks, false)) return 1;
+		if (!checkdev("battery", SysDevices.ScanBatteries, false)) return 1;
+		if (!checkdev("pci", SysDevices.ScanSystemDevices, false)) return 1;
+		if (!checkdev("problem", SysDevices.ScanProblems, false)) return 1;
 		if (testusb() != 0) return 1;
 		Out("=== OK：系统信息 ===");
 		return 0;

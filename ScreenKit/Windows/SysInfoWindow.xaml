@@ -1,6 +1,7 @@
 <Window x:Class="ScreenKit.SysInfoWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ScreenKit"
         Title="系统信息"
         Width="980" Height="680"
         MinWidth="760" MinHeight="480"
@@ -358,6 +359,42 @@
 					<TextBlock x:Name="lbaudstat" Grid.Row="3" Margin="0,8,0,0"
 					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabdisplay" Header="显示器"
+			         AutomationProperties.AutomationId="sys.tab.display">
+				<local:SysDevicePage x:Name="pdisplay"/>
+			</TabItem>
+			<TabItem x:Name="tabcamera" Header="摄像头"
+			         AutomationProperties.AutomationId="sys.tab.camera">
+				<local:SysDevicePage x:Name="pcamera"/>
+			</TabItem>
+			<TabItem x:Name="tabbt" Header="蓝牙设备"
+			         AutomationProperties.AutomationId="sys.tab.bt">
+				<local:SysDevicePage x:Name="pbt"/>
+			</TabItem>
+			<TabItem x:Name="tabnet" Header="网络适配器"
+			         AutomationProperties.AutomationId="sys.tab.net">
+				<local:SysDevicePage x:Name="pnet"/>
+			</TabItem>
+			<TabItem x:Name="tabinput" Header="输入设备"
+			         AutomationProperties.AutomationId="sys.tab.input">
+				<local:SysDevicePage x:Name="pinput"/>
+			</TabItem>
+			<TabItem x:Name="tabdisk" Header="磁盘设备"
+			         AutomationProperties.AutomationId="sys.tab.disk">
+				<local:SysDevicePage x:Name="pdisk"/>
+			</TabItem>
+			<TabItem x:Name="tabbattery" Header="电池"
+			         AutomationProperties.AutomationId="sys.tab.battery">
+				<local:SysDevicePage x:Name="pbattery"/>
+			</TabItem>
+			<TabItem x:Name="tabpci" Header="PCI/系统设备"
+			         AutomationProperties.AutomationId="sys.tab.pci">
+				<local:SysDevicePage x:Name="ppci"/>
+			</TabItem>
+			<TabItem x:Name="tabproblem" Header="异常设备"
+			         AutomationProperties.AutomationId="sys.tab.problem">
+				<local:SysDevicePage x:Name="pproblem"/>
 			</TabItem>
 			<TabItem x:Name="tabfont" Header="字体列表"
 			         AutomationProperties.AutomationId="sys.tab.font">
