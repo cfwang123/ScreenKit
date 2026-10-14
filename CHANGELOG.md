@@ -36,15 +36,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
-#### Added
-
-- Settings can use a private update URL. Leave it empty to keep checking GitHub. A set URL is asked for latest.json and releases.json.
-- The private update server stores notes as changelog.json. releases.json lists every version in English and Chinese.
-
 #### Changed
 
 - 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
-- The private update address stays in config.toml as update_url and is not shown in Settings.
 - The release folder keeps only the current screenkit package. Older screenkit_*.7z files are removed after packing.
 
 #### Documentation
@@ -53,15 +47,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
-#### 新增
-
-- 设置里可以填写自建更新地址。留空时仍向 GitHub 检查。填写后改为请求该地址下的 latest.json 和 releases.json。
-- 自建更新服务器用 changelog.json 保存更新日志。releases.json 列出每个版本的中文和英文说明。
-
 #### 变更
 
 - 解压 7z 只使用 7za.dll，不再下载或依赖 SharpSevenZip。
-- 自建更新地址只写在 config.toml 的 update_url，设置窗口里不再显示。
 - release 目录只保留当前版本的 screenkit 安装包。打包后会删掉更早的 screenkit_*.7z。
 
 #### 文档

@@ -216,8 +216,6 @@ A new key goes to the end of `[text]`, or after `--after KEY`. `del KEY…` remo
 
 **Help → Check for updates** also runs at startup after the interval in Settings. When a newer release exists, a window lists every version after the current build up to the latest. Select a row to read that version’s notes. **Chinese / English** switches the notes. **Update** downloads and installs the latest package. **Ignore** closes the window.
 
-`update_url` in `config.toml` is the only place to set a private update address. It is not shown in Settings. Leave it empty to keep using GitHub. When it is set, checks request `latest.json` and `releases.json` under that address, and the package URL comes from the JSON. `releases.json` is a JSON log of every version, in English and Chinese, and the update window lists all of them. Use this only for a server you run yourself.
-
 ## Install features
 
 The slim package (`bin\Release\ScreenKit\`) does not include models or the large runtimes. The tables below say which features work as shipped. Sizes are the installer’s expected sizes, the same numbers as **Help → Install features**. A shared runtime is downloaded once.
@@ -411,12 +409,9 @@ For local development with models already present, run **`bin\Release\net48\`**.
 
 ```bash
 node scripts/publish-release.mjs
-node scripts/publish-update-server.mjs --dest <更新服务器目录>
 ```
 
 Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/screenkit_<version>.7z` (needs [7-Zip](https://www.7-zip.org/) on PATH). Before packing, it deletes runtime files in that folder: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. After packing, older `screenkit_*.7z` files in `release/` are removed, so only the current package remains. A Release build removes the same runtime files when it refreshes the folder. `release/` is gitignored.
-
-`publish-update-server.mjs` writes `changelog.json` into the update-server directory. `versions` lists every released version from `CHANGELOG.md`, with `english` and `chinese`. It also copies `release/screenkit_<version>.7z` into `releases/<version>/`. The directory itself is not part of the public repo.
 
 Release documentation:
 
