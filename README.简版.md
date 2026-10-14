@@ -53,6 +53,12 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
 - **参数设置 → 词典**可改一次列出的条数、数据库保持时间，以及每种语言的引擎、发音人和语速。引擎选自动时，用该语言的 Windows 语音，没有则用 Edge。
 - 词典热键默认是空的。设上之后：不在主窗口时唤出并切到词典（剪贴板像一个单词才搜索）；已经是主窗口时隐藏。
 
+`dict2.db` 把四种词典放在同一个文件里。每个词只存一份。ScreenKit 不生成这个文件，由安装功能下载。
+
+- **汉语。** 汉字、词语、成语来自 [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary)（拼音辞典）。许可为 MIT。上游说明里注明部分材料来源不明。
+- **日语。** 词汇释义来自 [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)（EDRDG）。许可为 [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html)。再分发须保留 EDRDG 署名，并遵守其更新条款。
+- **韩语。** 国立国语院词典的衍生数据。许可为 CC BY-SA 2.0 KR。
+
 ## 文件与投屏
 
 ### 文件同步
@@ -129,5 +135,11 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
 Windows 10/11（x64），需要 [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
 
 本机 HTTP 默认端口 1224。勾选允许局域网访问后，同一局域网可连接；否则只对本机开放。文件传输、网页工具和投屏共用这个端口。命令行可批量识图、列出模型，或做几项自检。
+
+## 许可证
+
+本仓库应用程序源码采用 **MIT License**，全文见 [LICENSE](LICENSE)。Copyright (c) 2026 ScreenKit Contributors。在遵守 MIT 条件的前提下，可自由使用、复制、修改、合并、发布、分发、再授权及销售。软件按「现状」提供，不附带任何明示或暗示担保。
+
+模型、FFmpeg、CUDA/cuDNN、词典数据和部分原生库不自动适用这份 MIT。摘要见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 更细的用法、接口和编译见 [README.zh.md](README.zh.md)。手机端见 [android/README.md](android/README.md)。
