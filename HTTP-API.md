@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/ipcity`, `/api/mac`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/ipcity`, `/api/mac`, `/api/usb`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -110,6 +110,7 @@ Failures also return **HTTP 200**. Success or failure is only the JSON `code` an
 | GET/POST | `/api/fx` | Currency conversion (not tied to a module switch) |
 | GET/POST | `/api/ipcity` | IP city lookup (not tied to a module switch) |
 | GET/POST | `/api/mac` | MAC vendor lookup (not tied to a module switch) |
+| GET/POST | `/api/usb` | USB vendor lookup (not tied to a module switch) |
 | GET/POST | `/api/qrmake` | Make a QR code or barcode (not tied to a module switch) |
 | POST | `/api/qrscan` | Read a QR code or barcode (not tied to a module switch) |
 | GET | `/api/ocr/models` | OCR engines and models (same as the main window) |
@@ -407,6 +408,24 @@ IEEE registrant for a MAC address. Not tied to a module switch. Colons, dashes, 
 ```
 
 **Response `data`:** `mac`, `company`, `country`, `address`, `block` (`MA-L`, `MA-M`, or `MA-S` when known), `local`, `multicast`, and `text`.
+
+---
+
+## 5.5.4 GET/POST `/api/usb`
+
+Vendor and product name for a USB ID. Not tied to a module switch. The list is the public `usb.ids` file. It is downloaded through the app HTTP proxy, stored as `tmp/usb.ids` beside the program, and used again for 7 days. Accepted forms: `046d`, `046d:c52b`, `0x046d`, and `VID_046D&PID_C52B`. An unknown vendor returns 802. An unknown product still returns the vendor.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `vid` | string | Vendor ID, four hex digits |
+| `pid` | string | Product ID, optional |
+| `id` | string | `vid` or `vid:pid`. `usb`, `host`, and `query` are aliases |
+
+```json
+{ "vid": "046d", "pid": "c52b" }
+```
+
+**Response `data`:** `vid`, `pid`, `vendor`, `product`, and `text`.
 
 ---
 

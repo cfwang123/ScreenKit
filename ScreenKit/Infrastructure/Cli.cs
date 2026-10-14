@@ -4264,6 +4264,38 @@ static class Cli {
 			catch (ArgumentException) {
 				Out("bad mac rejected");
 			}
+			var usb = NetTools.ParseUsbIds(
+				"046d  Logitech, Inc.\n\tc52b  Unifying Receiver\n05ac  Apple, Inc.\n",
+				"046d", "c52b");
+			Out(usb.Text);
+			if (!usb.Ok || usb.Vendor != "Logitech, Inc." || usb.Product != "Unifying Receiver") {
+				Err("FAIL: USB 厂家解析");
+				bad++;
+			}
+			var apple = NetTools.ParseUsbIds("05ac  Apple, Inc.\n\t8290  iPhone\n", "05ac", "");
+			if (!apple.Ok || apple.Vendor != "Apple, Inc." || apple.Product.Length != 0) {
+				Err("FAIL: USB 只查 VID");
+				bad++;
+			}
+			var miss = NetTools.ParseUsbIds("046d  Logitech, Inc.\n", "0000", "");
+			if (miss.Ok) {
+				Err("FAIL: 未登记 USB 厂家应失败");
+				bad++;
+			}
+			var hw = NetTools.UsbIds("VID_046D&PID_C52B");
+			var hexid = NetTools.UsbIds("0x046d:0xc52b");
+			if (hw.Vid != "046D" || hw.Pid != "C52B" || hexid.Vid != "046D" || hexid.Pid != "C52B") {
+				Err("FAIL: USB ID 格式");
+				bad++;
+			}
+			try {
+				NetTools.UsbIds("not-a-usb");
+				Err("FAIL: 非法 USB ID 应拒绝");
+				bad++;
+			}
+			catch (ArgumentException) {
+				Out("bad usb rejected");
+			}
 			var geo = new List<string>();
 			using (var geoCts = new CancellationTokenSource(25000)) {
 				Task.Run(() => NetTools.Geolocate(s => geo.Add(s), geoCts.Token)).GetAwaiter().GetResult();
@@ -5902,7 +5934,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，测 pinyin.user.toml 盖住系统词表，并测本机 /api/pinyin；原来没有则测完删掉
       --test-7za  用 7za.dll 解压内置小 7z（含中文文件名）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
-      --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、MAC 厂家、系统定位权限
+      --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、MAC 厂家、USB 厂家、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
       --test-sysinfo  只读检查处理器、内存容量、串口、打印机、声音设备和 USB 设备
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST

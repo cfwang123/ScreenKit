@@ -35,6 +35,7 @@ public partial class NetToolsWindow : Window {
 		bproxy.Click += (_, _) => _ = run("proxy");
 		bipcity.Click += (_, _) => _ = run("ipcity");
 		bmac.Click += (_, _) => _ = run("mac");
+		busb.Click += (_, _) => _ = run("usb");
 		bhttp.Click += (_, _) => _ = run("http");
 		bgeo.Click += (_, _) => _ = run("geo");
 		bmap.Click += (_, _) => openmap();
@@ -75,6 +76,7 @@ public partial class NetToolsWindow : Window {
 		ToolBtnUi.Set(bproxy, ToolBtnUi.Font, Loc.T("nettool.proxy"));
 		ToolBtnUi.Set(bipcity, ToolBtnUi.Pin, Loc.T("nettool.ipcity"));
 		ToolBtnUi.Set(bmac, ToolBtnUi.Font, Loc.T("nettool.mac"));
+		ToolBtnUi.Set(busb, ToolBtnUi.Font, Loc.T("nettool.usb"));
 		ToolBtnUi.Set(bhttp, ToolBtnUi.Play, Loc.T("nettool.http"));
 		ToolBtnUi.Set(bgeo, ToolBtnUi.Pin, Loc.T("nettool.geo"));
 		ToolBtnUi.Set(bmap, ToolBtnUi.Browse, Loc.T("nettool.map"));
@@ -95,6 +97,7 @@ public partial class NetToolsWindow : Window {
 		bproxy.IsEnabled = !on;
 		bipcity.IsEnabled = !on;
 		bmac.IsEnabled = !on;
+		busb.IsEnabled = !on;
 		bhttp.IsEnabled = !on;
 		bgeo.IsEnabled = !on;
 		bmap.IsEnabled = !on && hasmap;
@@ -210,6 +213,10 @@ public partial class NetToolsWindow : Window {
 			}
 			else if (kind == "mac") {
 				await NetTools.MacVendor(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+			}
+			else if (kind == "usb") {
+				await NetTools.UsbVendor(host, s => Dispatcher.Invoke(() => append(s)), token)
 					.ConfigureAwait(true);
 			}
 			else if (kind == "http") {

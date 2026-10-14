@@ -78,6 +78,8 @@ static class HttpApiCatalog {
 		add(list, "POST /api/ipcity", "POST", "/api/ipcity", "{\n  \"ip\": \"8.8.8.8\"\n}", "http.doc.ipcity");
 		add(list, "GET /api/mac", "GET", "/api/mac?mac=00:1A:2B:3C:4D:5E", "", "http.doc.mac", accept: "GET/POST");
 		add(list, "POST /api/mac", "POST", "/api/mac", "{\n  \"mac\": \"00:1A:2B:3C:4D:5E\"\n}", "http.doc.mac");
+		add(list, "GET /api/usb", "GET", "/api/usb?vid=046d&pid=c52b", "", "http.doc.usb", accept: "GET/POST");
+		add(list, "POST /api/usb", "POST", "/api/usb", "{\n  \"vid\": \"046d\",\n  \"pid\": \"c52b\"\n}", "http.doc.usb");
 		add(list, "GET /api/enc", "GET", "/api/enc?cp=21834", "", "http.doc.enc", accept: "GET/POST");
 		add(list, "GET /api/fonts", "GET", "/api/fonts", "", "http.doc.fonts");
 		add(list, "POST /api/qrmake", "POST", "/api/qrmake", "{\n  \"text\": \"hello\",\n  \"format\": \"qr\",\n  \"encoding\": \"utf8\"\n}", "http.doc.qrmake", accept: "GET/POST");

@@ -24,7 +24,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/usb`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -111,6 +111,7 @@ http_port = 1224
 | GET/POST | `/api/fx` | 货币换算（不随模块开关关闭） |
 | GET/POST | `/api/ipcity` | IP 城市（不随模块开关关闭） |
 | GET/POST | `/api/mac` | MAC 厂家（不随模块开关关闭） |
+| GET/POST | `/api/usb` | USB 厂家（不随模块开关关闭） |
 | GET/POST | `/api/qrmake` | 生成二维码/条码（不随模块开关关闭） |
 | POST | `/api/qrscan` | 识别二维码/条码（不随模块开关关闭） |
 | GET | `/api/ocr/models` | 识别引擎和模型（与主窗口相同） |
@@ -428,6 +429,24 @@ ScreenKit --jpyomi "東京" --mono
 ```
 
 **响应 `data`：** `mac`、`company`、`country`、`address`、`block`（能判定时为 `MA-L`、`MA-M` 或 `MA-S`）、`local`、`multicast`、`text`。
+
+---
+
+## 5.5.4 GET/POST `/api/usb`
+
+查 USB 的厂家和产品名。不随模块开关关闭。名单是公开的 `usb.ids`。经程序里的 HTTP 代理下载，存成程序目录下的 `tmp/usb.ids`，7 天内重复使用。可写 `046d`、`046d:c52b`、`0x046d` 或 `VID_046D&PID_C52B`。厂家未登记返回 802。产品未登记时仍返回厂家。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `vid` | string | 厂家号，4 位十六进制 |
+| `pid` | string | 产品号，可空 |
+| `id` | string | `vid` 或 `vid:pid`。也可用 `usb`、`host`、`query` |
+
+```json
+{ "vid": "046d", "pid": "c52b" }
+```
+
+**响应 `data`：** `vid`、`pid`、`vendor`、`product`、`text`。
 
 ---
 

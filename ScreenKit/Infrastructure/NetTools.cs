@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.NetworkInformation;
@@ -745,6 +746,193 @@ static class NetTools {
 		return sb.ToString().TrimEnd();
 	}
 
+	/// <summary>USB VID / PID 的厂家和产品名。</summary>
+	public sealed class UsbVendorInfo {
+		public bool Ok { get; set; }
+		public string Vid { get; set; } = "";
+		public string Pid { get; set; } = "";
+		public string Vendor { get; set; } = "";
+		public string Product { get; set; } = "";
+		public string Error { get; set; } = "";
+		public string Text { get; set; } = "";
+	}
+
+	/// <summary>解析 VID，或 VID 加 PID。接受 046d、046d:c52b、0x046d、VID_046D&PID_C52B。</summary>
+	public static (string Vid, string Pid) UsbIds(string raw) {
+		raw = (raw ?? "").Trim();
+		if (raw.Length == 0) throw new ArgumentException("无效的 USB ID");
+		var up = raw.ToUpperInvariant();
+		var vidAt = up.IndexOf("VID_", StringComparison.Ordinal);
+		if (vidAt >= 0) {
+			var vid = takehex(up, vidAt + 4);
+			var pidAt = up.IndexOf("PID_", StringComparison.Ordinal);
+			var pid = pidAt >= 0 ? takehex(up, pidAt + 4) : "";
+			if (vid.Length != 4 || (pid.Length != 0 && pid.Length != 4))
+				throw new ArgumentException("无效的 USB ID");
+			return (vid, pid);
+		}
+		var s = up.Replace("0X", "");
+		var sb = new StringBuilder();
+		foreach (var ch in s) {
+			if (ch == ':' || ch == '-' || ch == '/' || ch == ' ' || ch == '\t' || ch == '_') continue;
+			var ok = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'F');
+			if (!ok) throw new ArgumentException("无效的 USB ID");
+			sb.Append(ch);
+		}
+		if (sb.Length != 4 && sb.Length != 8) throw new ArgumentException("无效的 USB ID");
+		var all = sb.ToString();
+		if (all.Length == 4) return (all, "");
+		return (all.Substring(0, 4), all.Substring(4, 4));
+	}
+
+	/// <summary>在 usb.ids 文本里查一个 VID，以及可选的 PID。不访问网络。</summary>
+	public static UsbVendorInfo ParseUsbIds(string text, string vid, string pid) {
+		var info = new UsbVendorInfo {
+			Vid = (vid ?? "").ToUpperInvariant(),
+			Pid = (pid ?? "").ToUpperInvariant(),
+		};
+		var wantVid = info.Vid.ToLowerInvariant();
+		var wantPid = info.Pid.ToLowerInvariant();
+		if (wantVid.Length != 4) {
+			info.Error = "无效的 USB ID";
+			info.Text = usbtext(info);
+			return info;
+		}
+		var inVendor = false;
+		foreach (var raw in (text ?? "").Replace("\r", "").Split('\n')) {
+			if (raw.Length == 0 || raw[0] == '#') continue;
+			if (raw[0] != '\t') {
+				if (raw.Length >= 6 && hex4(raw, 0) && raw[4] == ' ') {
+					var id = raw.Substring(0, 4).ToLowerInvariant();
+					if (inVendor && id != wantVid) break;
+					if (id == wantVid) {
+						info.Vendor = idname(raw);
+						inVendor = true;
+						if (wantPid.Length == 0) break;
+					}
+				}
+				else if (inVendor) break;
+				continue;
+			}
+			if (!inVendor || wantPid.Length == 0) continue;
+			if (raw.Length > 1 && raw[1] == '\t') continue;
+			var line = raw.Substring(1);
+			if (line.Length >= 6 && hex4(line, 0) && line[4] == ' '
+				&& string.Equals(line.Substring(0, 4), wantPid, StringComparison.OrdinalIgnoreCase)) {
+				info.Product = idname(line);
+				break;
+			}
+		}
+		info.Ok = info.Vendor.Length > 0;
+		if (!info.Ok) info.Error = "未登记厂家";
+		else if (wantPid.Length > 0 && info.Product.Length == 0) info.Error = "未登记产品";
+		info.Text = usbtext(info);
+		return info;
+	}
+
+	/// <summary>查 USB 厂家。名单来自 usb.ids，缓存在程序目录 tmp，超过 7 天再下载。</summary>
+	public static async Task<UsbVendorInfo> UsbVendor(string query, Action<string> line, CancellationToken ct) {
+		var id = UsbIds(query);
+		var show = id.Pid.Length == 0 ? id.Vid : id.Vid + ":" + id.Pid;
+		line?.Invoke("USB 厂家  " + show);
+		string text;
+		try {
+			text = await loadusbids(line, ct).ConfigureAwait(false);
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) {
+			var msg = ex.InnerException?.Message ?? ex.Message;
+			line?.Invoke(msg);
+			return new UsbVendorInfo { Vid = id.Vid, Pid = id.Pid, Error = msg, Text = msg };
+		}
+		var info = ParseUsbIds(text, id.Vid, id.Pid);
+		line?.Invoke(info.Text);
+		return info;
+	}
+
+	static string usbcached;
+
+	static async Task<string> loadusbids(Action<string> line, CancellationToken ct) {
+		if (usbcached != null && usbcached.Length > 10000) return usbcached;
+		var path = Path.Combine(TmpStore.Root, "usb.ids");
+		if (File.Exists(path)) {
+			var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(path);
+			if (age < TimeSpan.FromDays(7)) {
+				var cached = File.ReadAllText(path, Encoding.UTF8);
+				if (cached.IndexOf("\n046d  ", StringComparison.OrdinalIgnoreCase) >= 0) {
+					usbcached = cached;
+					line?.Invoke("名单: " + path);
+					return cached;
+				}
+			}
+		}
+		var urls = new[] {
+			"http://www.linux-usb.org/usb.ids",
+			"https://raw.githubusercontent.com/vcrhonek/hwdata/master/usb.ids",
+		};
+		Exception last = null;
+		foreach (var url in urls) {
+			ct.ThrowIfCancellationRequested();
+			try {
+				line?.Invoke(url);
+				var body = await httpgetproxy(url, 30, ct).ConfigureAwait(false);
+				if (body.IndexOf("\n046d  ", StringComparison.OrdinalIgnoreCase) < 0)
+					throw new InvalidOperationException("usb.ids 内容不对");
+				try {
+					var part = path + ".part";
+					File.WriteAllText(part, body, new UTF8Encoding(false));
+					if (File.Exists(path)) File.Delete(path);
+					File.Move(part, path);
+				}
+				catch { }
+				usbcached = body;
+				return body;
+			}
+			catch (Exception ex) when (ex is not OperationCanceledException) {
+				last = ex;
+				line?.Invoke(url + "  " + (ex.InnerException?.Message ?? ex.Message));
+			}
+		}
+		throw new IOException(last?.InnerException?.Message ?? last?.Message ?? "无法下载 usb.ids");
+	}
+
+	static string takehex(string s, int i) {
+		var n = 0;
+		while (i + n < s.Length && n < 4) {
+			var c = s[i + n];
+			var ok = (c >= '0' && c <= '9') || (c >= 'A' && c <= 'F');
+			if (!ok) break;
+			n++;
+		}
+		return n == 0 ? "" : s.Substring(i, n);
+	}
+
+	static bool hex4(string s, int i) {
+		if (i + 4 > s.Length) return false;
+		for (var k = 0; k < 4; k++) {
+			var c = s[i + k];
+			var ok = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+			if (!ok) return false;
+		}
+		return true;
+	}
+
+	static string idname(string line) {
+		var i = 4;
+		while (i < line.Length && line[i] == ' ') i++;
+		return i < line.Length ? line.Substring(i).Trim() : "";
+	}
+
+	static string usbtext(UsbVendorInfo info) {
+		var sb = new StringBuilder();
+		var id = info.Pid.Length == 0 ? info.Vid : info.Vid + ":" + info.Pid;
+		if (id.Length > 0) sb.AppendLine("USB: " + id);
+		if (info.Vendor.Length > 0) sb.AppendLine("厂家: " + info.Vendor);
+		if (info.Product.Length > 0) sb.AppendLine("产品: " + info.Product);
+		else if (info.Ok && info.Pid.Length > 0) sb.AppendLine("产品: 未登记");
+		else if (!info.Ok && info.Error.Length > 0) sb.AppendLine(info.Error);
+		return sb.ToString().TrimEnd();
+	}
+
 	/// <summary>经 Windows 系统代理用 HTTP 查出口 IP 与地区。</summary>
 	public static async Task HttpLocate(Action<string> line, CancellationToken ct) {
 		line?.Invoke("HTTP 定位（系统代理）");
@@ -783,10 +971,13 @@ static class NetTools {
 		line?.Invoke("HTTP 定位失败");
 	}
 
-	static async Task<string> httpgetproxy(string url, CancellationToken ct) {
+	static Task<string> httpgetproxy(string url, CancellationToken ct) =>
+		httpgetproxy(url, 8, ct);
+
+	static async Task<string> httpgetproxy(string url, int timeoutSec, CancellationToken ct) {
 		var handler = HttpProxy.CreateHandler();
 		handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-		using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
+		using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(timeoutSec) };
 		http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ScreenKit");
 		using var resp = await http.GetAsync(url, ct).ConfigureAwait(false);
 		resp.EnsureSuccessStatusCode();
