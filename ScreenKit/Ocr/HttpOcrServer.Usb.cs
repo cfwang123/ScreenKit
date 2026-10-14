@@ -25,6 +25,13 @@ sealed partial class HttpOcrServer {
 				writejson(ctx, 200, err(802, msg));
 				return;
 			}
+			var ifs = new JsonArray();
+			if (info.Interfaces != null) {
+				foreach (var it in info.Interfaces) {
+					if (it == null) continue;
+					ifs.Add(new JsonObject { ["id"] = it.Id, ["name"] = it.Name });
+				}
+			}
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
 				["data"] = new JsonObject {
@@ -32,6 +39,8 @@ sealed partial class HttpOcrServer {
 					["pid"] = info.Pid,
 					["vendor"] = info.Vendor,
 					["product"] = info.Product,
+					["model"] = info.Model.Length > 0 ? info.Model : info.Product,
+					["interfaces"] = ifs,
 					["text"] = info.Text,
 				},
 			});

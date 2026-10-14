@@ -111,7 +111,7 @@ http_port = 1224
 | GET/POST | `/api/fx` | 货币换算（不随模块开关关闭） |
 | GET/POST | `/api/ipcity` | IP 城市（不随模块开关关闭） |
 | GET/POST | `/api/mac` | MAC 厂家（不随模块开关关闭） |
-| GET/POST | `/api/usb` | USB 厂家（不随模块开关关闭） |
+| GET/POST | `/api/usb` | USB ID 查询：厂家、产品、型号、接口（不随模块开关关闭） |
 | GET/POST | `/api/qrmake` | 生成二维码/条码（不随模块开关关闭） |
 | POST | `/api/qrscan` | 识别二维码/条码（不随模块开关关闭） |
 | GET | `/api/ocr/models` | 识别引擎和模型（与主窗口相同） |

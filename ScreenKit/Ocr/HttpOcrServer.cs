@@ -25,7 +25,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/fx 货币换算（中国银行中间价，缓存 10 分钟）</item>
 /// <item>GET/POST /api/ipcity IP 城市（空 ip 为本机出口）</item>
 /// <item>GET/POST /api/mac MAC 厂家</item>
-/// <item>GET/POST /api/usb USB 厂家（usb.ids）</item>
+/// <item>GET/POST /api/usb USB ID（usb.ids：厂家、产品、型号、接口）</item>
 /// <item>GET/POST /api/enc 单码位代码页（GBK、GB18030、Big5、Shift_JIS、EUC-KR、Latin-1）</item>
 /// <item>GET /api/fonts 本机已安装字体</item>
 /// <item>POST /api/qrmake 生成二维码/条码 · POST /api/qrscan 识别</item>
@@ -2322,7 +2322,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",
 			"GET/POST /api/ipcity  IP 城市。GET ?ip= 或 POST JSON{ip}。ip 为空时查本机出口",
 			"GET/POST /api/mac  MAC 厂家。GET ?mac= 或 POST JSON{mac}",
-			"GET/POST /api/usb  USB 厂家。GET ?vid=&pid= 或 POST JSON{vid,pid}",
+			"GET/POST /api/usb  USB ID。GET ?vid=&pid= 或 POST JSON{vid,pid}。返回厂家、产品、型号和接口",
 			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
 			"GET  /api/fonts  本机已安装字体",
 			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",

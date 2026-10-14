@@ -1101,13 +1101,21 @@ static class NetTools {
 		return sb.ToString().TrimEnd();
 	}
 
-	/// <summary>USB VID / PID 的厂家和产品名。</summary>
+	/// <summary>usb.ids 里一条接口名。</summary>
+	public sealed class UsbIfInfo {
+		public string Id { get; set; } = "";
+		public string Name { get; set; } = "";
+	}
+
+	/// <summary>USB ID 在 usb.ids 里的厂家、产品和型号。型号与产品都是设备名，接口另列。</summary>
 	public sealed class UsbVendorInfo {
 		public bool Ok { get; set; }
 		public string Vid { get; set; } = "";
 		public string Pid { get; set; } = "";
 		public string Vendor { get; set; } = "";
 		public string Product { get; set; } = "";
+		public string Model { get; set; } = "";
+		public List<UsbIfInfo> Interfaces { get; set; } = new();
 		public string Error { get; set; } = "";
 		public string Text { get; set; } = "";
 	}
@@ -1140,7 +1148,7 @@ static class NetTools {
 		return (all.Substring(0, 4), all.Substring(4, 4));
 	}
 
-	/// <summary>在 usb.ids 文本里查一个 VID，以及可选的 PID。不访问网络。</summary>
+	/// <summary>在 usb.ids 文本里查一个 VID，以及可选的 PID。带上该产品的接口。不访问网络。</summary>
 	public static UsbVendorInfo ParseUsbIds(string text, string vid, string pid) {
 		var info = new UsbVendorInfo {
 			Vid = (vid ?? "").ToUpperInvariant(),
@@ -1154,29 +1162,37 @@ static class NetTools {
 			return info;
 		}
 		var inVendor = false;
+		var inDevice = false;
 		foreach (var raw in (text ?? "").Replace("\r", "").Split('\n')) {
 			if (raw.Length == 0 || raw[0] == '#') continue;
-			if (raw[0] != '\t') {
-				if (raw.Length >= 6 && hex4(raw, 0) && raw[4] == ' ') {
-					var id = raw.Substring(0, 4).ToLowerInvariant();
-					if (inVendor && id != wantVid) break;
-					if (id == wantVid) {
-						info.Vendor = idname(raw);
-						inVendor = true;
-						if (wantPid.Length == 0) break;
-					}
+			var tabs = 0;
+			while (tabs < raw.Length && raw[tabs] == '\t') tabs++;
+			var line = raw.Substring(tabs);
+			if (line.Length == 0) continue;
+			if (tabs == 0) {
+				if (inVendor) break;
+				if (line.Length >= 6 && hex4(line, 0) && line[4] == ' '
+					&& string.Equals(line.Substring(0, 4), wantVid, StringComparison.OrdinalIgnoreCase)) {
+					info.Vendor = idname(line);
+					inVendor = true;
+					if (wantPid.Length == 0) break;
 				}
-				else if (inVendor) break;
 				continue;
 			}
-			if (!inVendor || wantPid.Length == 0) continue;
-			if (raw.Length > 1 && raw[1] == '\t') continue;
-			var line = raw.Substring(1);
-			if (line.Length >= 6 && hex4(line, 0) && line[4] == ' '
-				&& string.Equals(line.Substring(0, 4), wantPid, StringComparison.OrdinalIgnoreCase)) {
-				info.Product = idname(line);
-				break;
+			if (!inVendor) continue;
+			if (tabs == 1) {
+				if (inDevice) break;
+				if (wantPid.Length == 0) continue;
+				if (line.Length >= 6 && hex4(line, 0) && line[4] == ' '
+					&& string.Equals(line.Substring(0, 4), wantPid, StringComparison.OrdinalIgnoreCase)) {
+					info.Product = idname(line);
+					info.Model = info.Product;
+					inDevice = true;
+				}
+				continue;
 			}
+			if (!inDevice || !ifid(line, out var iid, out var iname)) continue;
+			info.Interfaces.Add(new UsbIfInfo { Id = iid.ToUpperInvariant(), Name = iname });
 		}
 		info.Ok = info.Vendor.Length > 0;
 		if (!info.Ok) info.Error = "未登记厂家";
@@ -1185,11 +1201,11 @@ static class NetTools {
 		return info;
 	}
 
-	/// <summary>查 USB 厂家。名单来自 usb.ids，缓存在程序目录 tmp，超过 7 天再下载。</summary>
+	/// <summary>查 USB ID。名单来自 usb.ids，缓存在程序目录 tmp，超过 7 天再下载。</summary>
 	public static async Task<UsbVendorInfo> UsbVendor(string query, Action<string> line, CancellationToken ct) {
 		var id = UsbIds(query);
 		var show = id.Pid.Length == 0 ? id.Vid : id.Vid + ":" + id.Pid;
-		line?.Invoke("USB 厂家  " + show);
+		line?.Invoke("USB ID  " + show);
 		string text;
 		try {
 			text = await loadusbids(line, ct).ConfigureAwait(false);
@@ -1277,14 +1293,45 @@ static class NetTools {
 		return i < line.Length ? line.Substring(i).Trim() : "";
 	}
 
+	static bool ifid(string line, out string id, out string name) {
+		id = "";
+		name = "";
+		if (!hex4(line, 0) && line.Length >= 2) {
+			var a = line[0];
+			var b = line[1];
+			var ha = (a >= '0' && a <= '9') || (a >= 'a' && a <= 'f') || (a >= 'A' && a <= 'F');
+			var hb = (b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F');
+			if (!ha || !hb) return false;
+			if (line.Length > 2 && line[2] != ' ' && line[2] != '\t') return false;
+			id = line.Substring(0, 2);
+			var i = 2;
+			while (i < line.Length && (line[i] == ' ' || line[i] == '\t')) i++;
+			name = i < line.Length ? line.Substring(i).Trim() : "";
+			return true;
+		}
+		return false;
+	}
+
 	static string usbtext(UsbVendorInfo info) {
 		var sb = new StringBuilder();
 		var id = info.Pid.Length == 0 ? info.Vid : info.Vid + ":" + info.Pid;
 		if (id.Length > 0) sb.AppendLine("USB: " + id);
 		if (info.Vendor.Length > 0) sb.AppendLine("厂家: " + info.Vendor);
-		if (info.Product.Length > 0) sb.AppendLine("产品: " + info.Product);
-		else if (info.Ok && info.Pid.Length > 0) sb.AppendLine("产品: 未登记");
+		if (info.Product.Length > 0) {
+			sb.AppendLine("产品: " + info.Product);
+			sb.AppendLine("型号: " + (info.Model.Length > 0 ? info.Model : info.Product));
+		}
+		else if (info.Ok && info.Pid.Length > 0) {
+			sb.AppendLine("产品: 未登记");
+			sb.AppendLine("型号: 未登记");
+		}
 		else if (!info.Ok && info.Error.Length > 0) sb.AppendLine(info.Error);
+		if (info.Interfaces != null) {
+			foreach (var it in info.Interfaces) {
+				if (it == null) continue;
+				sb.AppendLine("接口: " + it.Id + "  " + it.Name);
+			}
+		}
 		return sb.ToString().TrimEnd();
 	}
 

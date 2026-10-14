@@ -409,7 +409,7 @@ static class HttpDebug {
 		add("self-status", "状态", "GET", "/api/status", "", "");
 		add("self-zhconv", "简繁", "GET", "/api/zhconv", "text=软件\nto=trad", "");
 		add("self-pinyin", "拼音", "GET", "/api/pinyin", "text=中国\nmode=py", "");
-		add("self-usb", "USB 厂家", "GET", "/api/usb", "vid=046d\npid=c52b", "");
+		add("self-usb", "USB ID", "GET", "/api/usb", "vid=046d\npid=c52b", "");
 		add("self-fx", "货币", "POST", "/api/fx", "", "{\n  \"amount\": 1,\n  \"from\": \"USD\",\n  \"to\": \"CNY\"\n}");
 		add("self-text", "文本 Base64", "POST", "/api/text", "", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}");
 

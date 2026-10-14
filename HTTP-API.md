@@ -110,7 +110,7 @@ Failures also return **HTTP 200**. Success or failure is only the JSON `code` an
 | GET/POST | `/api/fx` | Currency conversion (not tied to a module switch) |
 | GET/POST | `/api/ipcity` | IP city lookup (not tied to a module switch) |
 | GET/POST | `/api/mac` | MAC vendor lookup (not tied to a module switch) |
-| GET/POST | `/api/usb` | USB vendor lookup (not tied to a module switch) |
+| GET/POST | `/api/usb` | USB ID lookup: vendor, product, model, and interfaces (not tied to a module switch) |
 | GET/POST | `/api/qrmake` | Make a QR code or barcode (not tied to a module switch) |
 | POST | `/api/qrscan` | Read a QR code or barcode (not tied to a module switch) |
 | GET | `/api/ocr/models` | OCR engines and models (same as the main window) |
