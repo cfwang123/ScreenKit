@@ -50,6 +50,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - On startup, a newer screenkit_*.7z in the program folder asks whether to install it.
 - Sound / mic shows active devices by default. Show all includes inactive devices and keeps active devices first.
 
+#### Fixed
+
+- Video to GIF accepts a dropped video and shows a release hint while dragging.
+
 #### Documentation
 
 - The Chinese README is now the short feature overview. The previous full text is kept at docs/archive/README.zh.md.
@@ -69,6 +73,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - release 目录只保留当前版本的 screenkit 安装包。打包后会删掉更早的 screenkit_*.7z。
 - 程序目录里有更新的 screenkit_版本.7z 时，启动会询问是否安装。
 - 声音/麦克风默认只显示活动设备；勾选显示全部后会包含非活动设备，并保持活动设备在前。
+
+#### 修复
+
+- 视频转 GIF 可拖入打开视频，拖动经过窗口时提示松开。
 
 #### 文档
 

@@ -1,7 +1,10 @@
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using System.Windows.Threading;
 
 namespace ScreenKit;
@@ -19,6 +22,7 @@ public partial class VidGifWindow : Window {
 	bool busy;
 	bool scrub;
 	bool playing;
+	bool dragging;
 
 	public VidGifWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
@@ -27,6 +31,7 @@ public partial class VidGifWindow : Window {
 		loadui();
 		initev();
 		WindowEsc.Attach(this, onesc);
+		SourceInitialized += (_, _) => hookdrop();
 		ready = true;
 	}
 
@@ -46,8 +51,14 @@ public partial class VidGifWindow : Window {
 		eslider.PreviewMouseDown += (_, _) => scrub = true;
 		eslider.PreviewMouseUp += (_, _) => { scrub = false; seek(eslider.Value); };
 		eslider.ValueChanged += (_, _) => { if (scrub) seek(eslider.Value); };
-		PreviewDragOver += ondragover;
-		Drop += ondrop;
+		AddHandler(DragDrop.PreviewDragEnterEvent, new DragEventHandler(ondrag), true);
+		AddHandler(DragDrop.PreviewDragOverEvent, new DragEventHandler(ondrag), true);
+		AddHandler(DragDrop.DragEnterEvent, new DragEventHandler(ondrag), true);
+		AddHandler(DragDrop.DragOverEvent, new DragEventHandler(ondrag), true);
+		AddHandler(DragDrop.PreviewDragLeaveEvent, new DragEventHandler(ondragleave), true);
+		AddHandler(DragDrop.PreviewDropEvent, new DragEventHandler(ondrop), true);
+		eplay.Loaded += (_, _) => clearchilddrop();
+		pdrop.PreviewMouseLeftButtonDown += (_, _) => hidedrag();
 		Closing += (_, _) => { tick.Stop(); try { eplay.Stop(); } catch { } if (ready) saveopt(); };
 	}
 
@@ -56,6 +67,7 @@ public partial class VidGifWindow : Window {
 		ToolBtnUi.Set(bopen, ToolBtnUi.Browse, Loc.T("vidgif.open"));
 		lbfile.Text = Loc.T("vidgif.drop");
 		lbdrop.Text = Loc.T("vidgif.drop");
+		lbrelease.Text = Loc.T("vidgif.release");
 		lbstart.Text = Loc.T("vidgif.start");
 		lbend.Text = Loc.T("vidgif.end");
 		ToolBtnUi.Set(bstart, null, Loc.T("vidgif.setstart"));
@@ -101,19 +113,193 @@ public partial class VidGifWindow : Window {
 		if (dlg.ShowDialog(this) == true) loadfile(dlg.FileName);
 	}
 
-	void ondragover(object sender, DragEventArgs e) {
-		e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+	void ondrag(object sender, DragEventArgs e) {
+		if (busy || !filedrag(e.Data)) {
+			e.Effects = DragDropEffects.None;
+			e.Handled = true;
+			return;
+		}
+		var allow = e.AllowedEffects;
+		if ((allow & DragDropEffects.Copy) != 0) e.Effects = DragDropEffects.Copy;
+		else if ((allow & DragDropEffects.Move) != 0) e.Effects = DragDropEffects.Move;
+		else e.Effects = allow;
 		e.Handled = true;
+		if (e.Effects == DragDropEffects.None) return;
+		dragging = true;
+		showdrag();
+	}
+
+	void ondragleave(object sender, DragEventArgs e) {
+		dragging = false;
+		Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => {
+			if (dragging) return;
+			if (insidecursor()) return;
+			hidedrag();
+		}));
+	}
+
+	bool insidecursor() {
+		try {
+			var p = Mouse.GetPosition(this);
+			return p.X >= 0 && p.Y >= 0 && p.X <= ActualWidth && p.Y <= ActualHeight;
+		}
+		catch { return false; }
 	}
 
 	void ondrop(object sender, DragEventArgs e) {
-		if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-		var files = e.Data.GetData(DataFormats.FileDrop) as string[];
-		if (files == null) return;
+		dragging = false;
+		hidedrag();
+		e.Handled = true;
+		if (busy) return;
+		var path = takepath(e.Data);
+		if (string.IsNullOrEmpty(path)) {
+			lbmsg.Text = Loc.T("vidgif.notvideo");
+			return;
+		}
+		loadfile(path);
+	}
+
+	void showdrag() {
+		if (pdrop.Visibility == Visibility.Visible) return;
+		pdrop.Visibility = Visibility.Visible;
+		pview.BorderBrush = (Brush)FindResource("Accent");
+		pview.BorderThickness = new Thickness(2);
+		lbdrop.Text = Loc.T("vidgif.release");
+		lbdrop.Foreground = Brushes.White;
+		if (string.IsNullOrEmpty(src)) lbdrop.Visibility = Visibility.Visible;
+	}
+
+	void hidedrag() {
+		if (pdrop.Visibility != Visibility.Visible) return;
+		pdrop.Visibility = Visibility.Collapsed;
+		pview.BorderThickness = new Thickness(0);
+		lbdrop.Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA));
+		lbdrop.Text = Loc.T("vidgif.drop");
+	}
+
+	static bool filedrag(IDataObject data) {
+		if (data == null) return false;
+		try {
+			string[] fmts = null;
+			try { fmts = data.GetFormats(); }
+			catch { return true; }
+			if (fmts == null || fmts.Length == 0) return true;
+			var text = true;
+			foreach (var f in fmts) {
+				if (string.IsNullOrEmpty(f)) continue;
+				if (f == DataFormats.FileDrop || f == "FileNameW" || f == "FileName"
+					|| f == "FileGroupDescriptorW" || f == "FileGroupDescriptor"
+					|| f.IndexOf("FileContents", StringComparison.OrdinalIgnoreCase) >= 0
+					|| f.IndexOf("Shell IDList", StringComparison.OrdinalIgnoreCase) >= 0)
+					return true;
+				if (f != DataFormats.Text && f != DataFormats.UnicodeText && f != "Text" && f != "UnicodeText")
+					text = false;
+			}
+			return !text;
+		}
+		catch { return true; }
+	}
+
+	static string takepath(IDataObject data) {
+		if (data == null) return "";
+		var files = new List<string>();
+		try { addfiledrop(data, files); }
+		catch { }
+		if (files.Count == 0) {
+			try { addfilename(data, files); }
+			catch { }
+		}
 		foreach (var f in files) {
-			if (VidConvert.IsVideoPath(f)) { loadfile(f); return; }
+			if (VidConvert.IsVideoPath(f) && File.Exists(f)) return f;
+		}
+		try {
+			var virt = takevirtual(data);
+			if (!string.IsNullOrEmpty(virt)) return virt;
+		}
+		catch { }
+		return "";
+	}
+
+	static void addfiledrop(IDataObject data, List<string> r) {
+		object raw;
+		try { raw = data.GetData(DataFormats.FileDrop); }
+		catch { return; }
+		if (raw is string[] arr) r.AddRange(arr);
+		else if (raw is string one) r.Add(one);
+		else if (raw is System.Collections.IEnumerable en) {
+			foreach (var o in en) {
+				if (o is string s && !string.IsNullOrWhiteSpace(s)) r.Add(s);
+			}
 		}
 	}
+
+	static void addfilename(IDataObject data, List<string> r) {
+		object raw = null;
+		try { raw = data.GetData("FileNameW"); }
+		catch { }
+		if (raw == null) {
+			try { raw = data.GetData("FileName"); }
+			catch { }
+		}
+		if (raw is string s) r.Add(s.TrimEnd('\0'));
+		else if (raw is string[] a) r.AddRange(a);
+	}
+
+	static string takevirtual(IDataObject data) {
+		if (!data.GetDataPresent("FileGroupDescriptorW")) return "";
+		if (data.GetData("FileGroupDescriptorW") is not MemoryStream desc) return "";
+		var buf = desc.ToArray();
+		if (buf.Length < 4) return "";
+		var count = BitConverter.ToInt32(buf, 0);
+		const int descSize = 592;
+		const int nameOff = 72;
+		if (count < 1 || 4 + descSize > buf.Length) return "";
+		var name = Encoding.Unicode.GetString(buf, 4 + nameOff, 520).TrimEnd('\0');
+		if (!VidConvert.IsVideoPath(name)) return "";
+		if (data.GetData("FileContents") is not Stream content) return "";
+		var ext = Path.GetExtension(name);
+		if (string.IsNullOrEmpty(ext)) ext = ".mp4";
+		var path = TmpStore.NewPath("vidgif", ext);
+		using (var fs = File.Create(path))
+			content.CopyTo(fs);
+		if (new FileInfo(path).Length > 0) return path;
+		try { File.Delete(path); } catch { }
+		return "";
+	}
+
+	void hookdrop() {
+		var src = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+		src?.AddHook(onmsg);
+		clearchilddrop();
+	}
+
+	IntPtr onmsg(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) {
+		const int WM_PARENTNOTIFY = 0x0210;
+		const int WM_CREATE = 1;
+		if (msg == WM_PARENTNOTIFY && (wParam.ToInt32() & 0xFFFF) == WM_CREATE)
+			Dispatcher.BeginInvoke(new Action(clearchilddrop));
+		return IntPtr.Zero;
+	}
+
+	// 预览控件会建子窗口并自己注册拖放，落在画面上时事件到不了本窗口。
+	void clearchilddrop() {
+		var hwnd = new WindowInteropHelper(this).Handle;
+		if (hwnd == IntPtr.Zero) return;
+		EnumChildWindows(hwnd, clearchild, IntPtr.Zero);
+	}
+
+	static bool clearchild(IntPtr hwnd, IntPtr lp) {
+		RevokeDragDrop(hwnd);
+		return true;
+	}
+
+	[DllImport("user32.dll")]
+	static extern bool EnumChildWindows(IntPtr hwnd, EnumChildProc cb, IntPtr lp);
+
+	[DllImport("ole32.dll")]
+	static extern int RevokeDragDrop(IntPtr hwnd);
+
+	delegate bool EnumChildProc(IntPtr hwnd, IntPtr lp);
 
 	void loadfile(string path) {
 		if (busy || string.IsNullOrWhiteSpace(path)) return;

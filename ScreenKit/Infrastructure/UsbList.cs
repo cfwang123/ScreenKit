@@ -16,6 +16,8 @@ sealed class UsbDev {
 	public string Filter { get; set; }
 	public List<UsbPair> Props { get; set; }
 	public bool Active { get; set; }
+	public uint NodeStatus { get; set; }
+	public uint ProblemCode { get; set; }
 }
 
 /// <summary>参数名和值。</summary>
@@ -84,6 +86,48 @@ static class UsbList {
 			return string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase);
 		});
 		return keep;
+	}
+
+	public static List<UsbDev> ScanClasses(params Guid[] classes) {
+		var list = new List<UsbDev>();
+		foreach (var cls in classes) {
+			var copy = cls;
+			try { list.AddRange(finish(SetupDiGetClassDevsGuid(ref copy, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT))); }
+			catch { }
+		}
+		return distinct(list);
+	}
+
+	public static List<UsbDev> ScanEnumerators(params string[] enumerators) {
+		var list = new List<UsbDev>();
+		foreach (var name in enumerators) {
+			if (string.IsNullOrWhiteSpace(name)) continue;
+			try { list.AddRange(finish(SetupDiGetClassDevs(IntPtr.Zero, name, IntPtr.Zero, DIGCF_PRESENT | DIGCF_ALLCLASSES))); }
+			catch { }
+		}
+		return distinct(list);
+	}
+
+	public static List<UsbDev> ScanProblems() {
+		var list = finish(SetupDiGetClassDevs(IntPtr.Zero, null, IntPtr.Zero, DIGCF_PRESENT | DIGCF_ALLCLASSES));
+		return distinct(list.Where(x => x.ProblemCode != 0));
+	}
+
+	static List<UsbDev> distinct(IEnumerable<UsbDev> source) {
+		var map = new Dictionary<string, UsbDev>(StringComparer.OrdinalIgnoreCase);
+		foreach (var dev in source) {
+			var key = string.IsNullOrWhiteSpace(dev.InstanceId) ? $"{dev.ClassName}\n{dev.Name}" : dev.InstanceId;
+			if (!map.ContainsKey(key)) map[key] = dev;
+		}
+		var list = map.Values.ToList();
+		list.Sort((a, b) => {
+			var c = b.ProblemCode.CompareTo(a.ProblemCode);
+			if (c != 0) return c;
+			c = string.Compare(a.ClassName, b.ClassName, StringComparison.CurrentCultureIgnoreCase);
+			if (c != 0) return c;
+			return string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase);
+		});
+		return list;
 	}
 
 	static List<UsbDev> finish(IntPtr h) {
@@ -227,6 +271,8 @@ static class UsbList {
 			Status = status,
 			InstanceId = id,
 			Props = props,
+			NodeStatus = node,
+			ProblemCode = problem,
 		};
 		var sb = new StringBuilder();
 		sb.Append(name).Append('\n').Append(vidpid).Append('\n').Append(cls).Append('\n');
