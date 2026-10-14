@@ -36,6 +36,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Network tools can look up a city for an IP or domain, also as GET/POST /api/ipcity. An empty address uses this PC's public IP.
+
 #### Changed
 
 - 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
@@ -47,6 +51,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Chinese README is now the short feature overview. The previous full text is kept at docs/archive/README.zh.md.
 
 ### 中文
+
+#### 新增
+
+- 网络工具可查询 IP 或域名所在城市，并提供 GET/POST /api/ipcity。地址留空时查本机出口。
 
 #### 变更
 

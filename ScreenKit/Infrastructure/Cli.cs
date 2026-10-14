@@ -4206,6 +4206,33 @@ static class Cli {
 				Err("FAIL: 境外高德应保持 WGS84");
 				bad++;
 			}
+			var city = NetTools.ParseIpCity(
+				"{\"status\":\"success\",\"country\":\"美国\",\"regionName\":\"加利福尼亚州\",\"city\":\"山景城\",\"isp\":\"Google LLC\",\"query\":\"8.8.8.8\",\"lat\":37.386,\"lon\":-122.0838}");
+			Out(city.Text);
+			if (!city.Ok || city.City != "山景城" || city.Ip != "8.8.8.8" || !city.HasPos
+				|| city.Country != "美国") {
+				Err("FAIL: ip-api 城市解析");
+				bad++;
+			}
+			var infoip = NetTools.ParseIpCity(
+				"{\"ip\":\"1.1.1.1\",\"city\":\"Los Angeles\",\"region\":\"California\",\"country\":\"US\",\"org\":\"AS13335\",\"loc\":\"34.0522,-118.2437\"}");
+			if (!infoip.Ok || infoip.City != "Los Angeles" || infoip.Isp != "AS13335" || !infoip.HasPos) {
+				Err("FAIL: ipinfo 城市解析");
+				bad++;
+			}
+			var priv = NetTools.ParseIpCity("{\"status\":\"fail\",\"message\":\"private range\"}");
+			if (priv.Ok || priv.Error != "private range") {
+				Err("FAIL: 内网 IP 应失败");
+				bad++;
+			}
+			try {
+				NetTools.IpCity("bad host!", null, CancellationToken.None).GetAwaiter().GetResult();
+				Err("FAIL: 非法主机应拒绝");
+				bad++;
+			}
+			catch (ArgumentException) {
+				Out("bad host rejected");
+			}
 			var geo = new List<string>();
 			using (var geoCts = new CancellationTokenSource(25000)) {
 				Task.Run(() => NetTools.Geolocate(s => geo.Add(s), geoCts.Token)).GetAwaiter().GetResult();
@@ -5844,7 +5871,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，测 pinyin.user.toml 盖住系统词表，并测本机 /api/pinyin；原来没有则测完删掉
       --test-7za  用 7za.dll 解压内置小 7z（含中文文件名）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
-      --test-nettool  localhost 解析、ping 127.0.0.1、系统定位权限
+      --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
       --test-sysinfo  只读检查处理器、内存容量、串口、打印机、声音设备和 USB 设备
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST

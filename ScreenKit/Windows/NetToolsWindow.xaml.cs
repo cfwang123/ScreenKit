@@ -33,6 +33,7 @@ public partial class NetToolsWindow : Window {
 		btrace.Click += (_, _) => _ = run("trace");
 		blocate.Click += (_, _) => _ = run("locate");
 		bproxy.Click += (_, _) => _ = run("proxy");
+		bipcity.Click += (_, _) => _ = run("ipcity");
 		bhttp.Click += (_, _) => _ = run("http");
 		bgeo.Click += (_, _) => _ = run("geo");
 		bmap.Click += (_, _) => openmap();
@@ -71,6 +72,7 @@ public partial class NetToolsWindow : Window {
 		ToolBtnUi.Set(btrace, ToolBtnUi.Up, Loc.T("nettool.trace"));
 		ToolBtnUi.Set(blocate, ToolBtnUi.Encode, Loc.T("nettool.locate"));
 		ToolBtnUi.Set(bproxy, ToolBtnUi.Font, Loc.T("nettool.proxy"));
+		ToolBtnUi.Set(bipcity, ToolBtnUi.Pin, Loc.T("nettool.ipcity"));
 		ToolBtnUi.Set(bhttp, ToolBtnUi.Play, Loc.T("nettool.http"));
 		ToolBtnUi.Set(bgeo, ToolBtnUi.Pin, Loc.T("nettool.geo"));
 		ToolBtnUi.Set(bmap, ToolBtnUi.Browse, Loc.T("nettool.map"));
@@ -89,6 +91,7 @@ public partial class NetToolsWindow : Window {
 		btrace.IsEnabled = !on;
 		blocate.IsEnabled = !on;
 		bproxy.IsEnabled = !on;
+		bipcity.IsEnabled = !on;
 		bhttp.IsEnabled = !on;
 		bgeo.IsEnabled = !on;
 		bmap.IsEnabled = !on && hasmap;
@@ -160,7 +163,8 @@ public partial class NetToolsWindow : Window {
 	async Task run(string kind) {
 		if (busy) return;
 		var host = (ehost.Text ?? "").Trim();
-		if (kind != "locate" && kind != "proxy" && kind != "http" && kind != "geo" && host.Length == 0) {
+		if (kind != "locate" && kind != "proxy" && kind != "http" && kind != "geo" && kind != "ipcity"
+			&& host.Length == 0) {
 			lbstat.Text = Loc.T("nettool.empty");
 			ehost.Focus();
 			return;
@@ -194,6 +198,12 @@ public partial class NetToolsWindow : Window {
 			else if (kind == "proxy") {
 				await NetTools.HttpLocate(s => Dispatcher.Invoke(() => append(s)), token)
 					.ConfigureAwait(true);
+			}
+			else if (kind == "ipcity") {
+				clearmap();
+				var hit = await NetTools.IpCity(host, s => Dispatcher.Invoke(() => append(s)), token)
+					.ConfigureAwait(true);
+				if (hit.HasPos) setmap(hit.Lat, hit.Lon);
 			}
 			else if (kind == "http") {
 				await NetTools.HttpSpeedLocate(s => Dispatcher.Invoke(() => append(s)), token)

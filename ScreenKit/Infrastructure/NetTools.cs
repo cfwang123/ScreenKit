@@ -405,6 +405,167 @@ static class NetTools {
 		return "较近：" + nearest.Place + "（" + nearest.Ms + "ms）";
 	}
 
+	/// <summary>IP 或域名的国家、地区、城市。空字符串查本机出口。</summary>
+	public sealed class IpCityInfo {
+		public bool Ok { get; set; }
+		public string Ip { get; set; } = "";
+		public string Country { get; set; } = "";
+		public string Region { get; set; } = "";
+		public string City { get; set; } = "";
+		public string Isp { get; set; } = "";
+		public string Error { get; set; } = "";
+		public string Text { get; set; } = "";
+		public double Lat { get; set; }
+		public double Lon { get; set; }
+		public bool HasPos { get; set; }
+	}
+
+	/// <summary>解析 ip-api / ipinfo / ip.sb 的 JSON。不访问网络。</summary>
+	public static IpCityInfo ParseIpCity(string json) {
+		var info = new IpCityInfo();
+		json = (json ?? "").Trim();
+		if (json.Length == 0) {
+			info.Error = "empty";
+			return info;
+		}
+		try {
+			using var doc = JsonDocument.Parse(json);
+			var r = doc.RootElement;
+			string get(params string[] keys) {
+				foreach (var k in keys) {
+					if (!r.TryGetProperty(k, out var v)) continue;
+					if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
+					if (v.ValueKind == JsonValueKind.Number || v.ValueKind == JsonValueKind.True
+						|| v.ValueKind == JsonValueKind.False)
+						return v.ToString();
+				}
+				return "";
+			}
+			if (string.Equals(get("status"), "fail", StringComparison.OrdinalIgnoreCase)) {
+				info.Error = get("message");
+				if (info.Error.Length == 0) info.Error = "fail";
+				info.Text = "fail: " + info.Error;
+				return info;
+			}
+			info.Ip = get("query", "ip");
+			info.Country = get("country", "country_name");
+			info.Region = get("regionName", "region");
+			info.City = get("city");
+			info.Isp = get("isp", "org", "organization");
+			var latS = get("lat", "latitude");
+			var lonS = get("lon", "longitude");
+			var loc = get("loc");
+			var comma = loc.IndexOf(',');
+			if (comma > 0) {
+				if (latS.Length == 0) latS = loc.Substring(0, comma).Trim();
+				if (lonS.Length == 0) lonS = loc.Substring(comma + 1).Trim();
+			}
+			if (double.TryParse(latS, NumberStyles.Float, CultureInfo.InvariantCulture, out var lat)
+				&& double.TryParse(lonS, NumberStyles.Float, CultureInfo.InvariantCulture, out var lon)
+				&& lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+				info.Lat = lat;
+				info.Lon = lon;
+				info.HasPos = true;
+			}
+			var sb = new StringBuilder();
+			if (info.Ip.Length > 0) sb.AppendLine($"IP: {info.Ip}");
+			var where = string.Join(" ", new[] { info.Country, info.Region, info.City }.Where(s => s.Length > 0));
+			if (where.Length > 0) sb.AppendLine($"位置: {where}");
+			if (info.Isp.Length > 0) sb.AppendLine($"ISP: {info.Isp}");
+			if (info.HasPos) {
+				sb.AppendLine("纬度: " + info.Lat.ToString("0.######", CultureInfo.InvariantCulture));
+				sb.AppendLine("经度: " + info.Lon.ToString("0.######", CultureInfo.InvariantCulture));
+			}
+			info.Text = sb.ToString().TrimEnd();
+			info.Ok = info.City.Length > 0 || info.Country.Length > 0 || info.Region.Length > 0;
+			if (!info.Ok) {
+				info.Error = "empty";
+				info.Text = json.Length > 400 ? json.Substring(0, 400) + "…" : json;
+			}
+			return info;
+		}
+		catch {
+			info.Error = "bad json";
+			info.Text = json.Length > 400 ? json.Substring(0, 400) + "…" : json;
+			return info;
+		}
+	}
+
+	/// <summary>查 IP 所在城市。query 为空时查本机出口。走程序里的 HTTP 代理设置。</summary>
+	public static async Task<IpCityInfo> IpCity(string query, Action<string> line, CancellationToken ct) {
+		var host = (query ?? "").Trim();
+		if (host.Length > 0) {
+			host = AsciiHost(host);
+			if (!cityhost(host)) throw new ArgumentException("无效的 IP 或域名");
+		}
+		line?.Invoke(host.Length == 0 ? "IP 城市（本机出口）" : $"IP 城市  {host}");
+		var path = host.Length == 0 ? "" : citypath(host);
+		var urls = new[] {
+			"http://ip-api.com/json/" + path + "?fields=status,message,country,regionName,city,isp,query,lat,lon&lang=zh-CN",
+			path.Length == 0 ? "https://ipinfo.io/json" : "https://ipinfo.io/" + path + "/json",
+			path.Length == 0 ? "https://api.ip.sb/geoip" : "https://api.ip.sb/geoip/" + path,
+		};
+		IpCityInfo lastInfo = null;
+		Exception lastEx = null;
+		foreach (var url in urls) {
+			ct.ThrowIfCancellationRequested();
+			try {
+				var body = await httpgetproxy(url, ct).ConfigureAwait(false);
+				var info = ParseIpCity(body);
+				line?.Invoke(url);
+				line?.Invoke(info.Text.Length > 0 ? info.Text : info.Error);
+				if (info.Ok) {
+					if (info.HasPos) {
+						line?.Invoke("OpenStreetMap: " + MapOsm(info.Lat, info.Lon));
+						line?.Invoke("高德地图: " + MapAmap(info.Lat, info.Lon));
+					}
+					return info;
+				}
+				lastInfo = info;
+				if (cityhard(info.Error)) return info;
+			}
+			catch (Exception ex) when (ex is not OperationCanceledException) {
+				lastEx = ex;
+				line?.Invoke(url + "  " + (ex.InnerException?.Message ?? ex.Message));
+			}
+		}
+		line?.Invoke("IP 城市查询失败");
+		if (lastInfo != null) return lastInfo;
+		return new IpCityInfo { Error = lastEx?.InnerException?.Message ?? lastEx?.Message ?? "查询失败" };
+	}
+
+	static bool cityhost(string host) {
+		if (host.Length == 0 || host.Length > 253) return false;
+		if (IPAddress.TryParse(host, out _)) return true;
+		var parts = host.Split('.');
+		if (parts.Length < 2) return false;
+		foreach (var part in parts) {
+			if (part.Length == 0 || part.Length > 63) return false;
+			for (var i = 0; i < part.Length; i++) {
+				var c = part[i];
+				var ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+					|| (c >= '0' && c <= '9') || c == '-';
+				if (!ok) return false;
+			}
+			if (part[0] == '-' || part[part.Length - 1] == '-') return false;
+		}
+		return true;
+	}
+
+	static string citypath(string host) {
+		if (IPAddress.TryParse(host, out var ip) && ip.AddressFamily == AddressFamily.InterNetworkV6)
+			return "[" + host + "]";
+		return host;
+	}
+
+	static bool cityhard(string error) {
+		if (string.IsNullOrEmpty(error)) return false;
+		var s = error.ToLowerInvariant();
+		return s.IndexOf("private", StringComparison.Ordinal) >= 0
+			|| s.IndexOf("reserved", StringComparison.Ordinal) >= 0
+			|| s.IndexOf("invalid", StringComparison.Ordinal) >= 0;
+	}
+
 	/// <summary>经 Windows 系统代理用 HTTP 查出口 IP 与地区。</summary>
 	public static async Task HttpLocate(Action<string> line, CancellationToken ct) {
 		line?.Invoke("HTTP 定位（系统代理）");
@@ -441,6 +602,16 @@ static class NetTools {
 			}
 		}
 		line?.Invoke("HTTP 定位失败");
+	}
+
+	static async Task<string> httpgetproxy(string url, CancellationToken ct) {
+		var handler = HttpProxy.CreateHandler();
+		handler.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+		using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
+		http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ScreenKit");
+		using var resp = await http.GetAsync(url, ct).ConfigureAwait(false);
+		resp.EnsureSuccessStatusCode();
+		return await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 	}
 
 	static async Task<string> httpget(string url, IWebProxy proxy, CancellationToken ct) {
