@@ -40,6 +40,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 7z extract uses 7za.dll only. SharpSevenZip is no longer downloaded or required.
 - The release folder keeps only the current screenkit package. Older screenkit_*.7z files are removed after packing.
+- An update downloads the 7z into the program folder and extracts it there after the app exits.
 
 #### Documentation
 
@@ -51,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 解压 7z 只使用 7za.dll，不再下载或依赖 SharpSevenZip。
 - release 目录只保留当前版本的 screenkit 安装包。打包后会删掉更早的 screenkit_*.7z。
+- 有新版本时，安装包下载到程序目录，程序退出后直接解压覆盖。
 
 #### 文档
 

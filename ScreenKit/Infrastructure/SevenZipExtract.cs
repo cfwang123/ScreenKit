@@ -152,9 +152,12 @@ static class SevenZipExtract {
 		OutWrap current;
 		public string Error;
 
-		public ExtractCb(IInArchive archive, string dest) {
+		public readonly bool DropTop;
+
+		public ExtractCb(IInArchive archive, string dest, bool dropTop) {
 			this.archive = archive;
 			this.dest = dest;
+			DropTop = dropTop;
 		}
 
 		public void SetTotal(ulong total) { }
@@ -169,6 +172,8 @@ static class SevenZipExtract {
 				var rel = propstr(index, KPID_PATH);
 				if (string.IsNullOrEmpty(rel)) rel = index.ToString();
 				var isDir = propbool(index, KPID_IS_DIR) || rel.EndsWith("/") || rel.EndsWith("\\");
+				rel = maprel(rel, DropTop, isDir);
+				if (rel == null) return 0;
 				var full = safepath(dest, rel);
 				if (isDir) {
 					Directory.CreateDirectory(full);
@@ -220,10 +225,17 @@ static class SevenZipExtract {
 		}
 	}
 
-	public static void Extract(string archive, string destDir) {
+	public static void Extract(string archive, string destDir) =>
+		extract(archive, destDir, false);
+
+	/// <summary>解压到目标目录。压缩包若有一层根目录则去掉，并跳过用户数据。</summary>
+	public static void ExtractDropTop(string archive, string destDir) =>
+		extract(archive, destDir, true);
+
+	static void extract(string archive, string destDir, bool dropTop) {
 		if (string.IsNullOrEmpty(archive) || !File.Exists(archive))
 			throw new FileNotFoundException("找不到压缩包", archive);
-		var dll = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "7za.dll");
+		var dll = finddll();
 		if (!File.Exists(dll))
 			throw new InvalidOperationException("解压 7z 需要 7za.dll。请在「安装功能」里安装。");
 		Directory.CreateDirectory(destDir);
@@ -245,7 +257,7 @@ static class SevenZipExtract {
 			}
 			finally { Marshal.FreeHGlobal(check); }
 			opened = true;
-			var cb = new ExtractCb(archiveObj, Path.GetFullPath(destDir));
+			var cb = new ExtractCb(archiveObj, Path.GetFullPath(destDir), dropTop);
 			var code2 = archiveObj.Extract(IntPtr.Zero, ALL_ITEMS, 0, cb);
 			if (code2 < 0) throw new InvalidOperationException("解压 7z 失败 " + code2.ToString("X8"));
 			if (cb.Error != null) throw new InvalidOperationException(cb.Error);
@@ -311,6 +323,46 @@ static class SevenZipExtract {
 	static void clearprop(ref PropVar value) {
 		if (value.vt == 0) return;
 		propvariantclear(ref value);
+	}
+
+	static string finddll() {
+		var root = AppDomain.CurrentDomain.BaseDirectory;
+		var beside = Path.Combine(root, "7za.dll");
+		if (File.Exists(beside)) return beside;
+		var nested = Path.Combine(root, "dll", "x64", "7za.dll");
+		if (File.Exists(nested)) return nested;
+		return beside;
+	}
+
+	static string maprel(string rel, bool dropTop, bool isDir) {
+		rel = (rel ?? "").Replace('/', '\\').Trim('\\');
+		if (rel.Length == 0) return null;
+		if (dropTop) {
+			var cut = rel.IndexOf('\\');
+			if (cut < 0) {
+				if (isDir) return null;
+			}
+			else rel = rel.Substring(cut + 1);
+			if (rel.Length == 0 || skipuser(rel)) return null;
+		}
+		return rel;
+	}
+
+	static bool skipuser(string rel) {
+		var top = rel;
+		var cut = rel.IndexOf('\\');
+		if (cut >= 0) top = rel.Substring(0, cut);
+		if (top.Equals("config.toml", StringComparison.OrdinalIgnoreCase)) return true;
+		if (top.Equals("pinyin.user.toml", StringComparison.OrdinalIgnoreCase)) return true;
+		string[] dirs = {
+			"ocrmodels", "asrmodels", "ttsmodels", "tmp", "log", "screenshots",
+			"onnxgpu64", "onnxdml64", "onnxcpu64", "ffmpeg64", "translatemodels", "facemodels",
+			"sendfile", "apk",
+		};
+		foreach (var d in dirs) {
+			if (top.Equals(d, StringComparison.OrdinalIgnoreCase)) return true;
+		}
+		return false;
 	}
 
 	static string safepath(string dest, string rel) {

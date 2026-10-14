@@ -144,32 +144,21 @@ static class AppUpdater {
 			if (waitPid > 0)
 				waitprocess(waitPid, 120_000);
 
-			// 解压到 tmp/update_extract，再覆盖到安装目录（避免半截写入）
-			var extractDir = Path.Combine(target, "tmp", "update_extract");
-			try {
-				if (Directory.Exists(extractDir))
-					Directory.Delete(extractDir, true);
-			}
-			catch { }
-			Directory.CreateDirectory(extractDir);
-
-			logline("extract…");
-			extractarchive(archive, extractDir);
-			var payload = resolvepayload(extractDir);
-			logline("payload=" + payload);
-
-			logline("copy overwrite…");
-			copytree(payload, target);
-			logline("copy done");
+			logline("extract into target…");
+			extractinto(archive, target);
+			logline("extract done");
 			droplegacyexe(target);
 
 			var mainExe = findmainexe(target);
 			if (!File.Exists(mainExe))
 				throw new FileNotFoundException(
 					"更新后未找到主程序（解压内容可能不正确）: " + mainExe);
-
-			// 清理解压目录（保留下载包，过期由 TmpStore 清理）
-			try { Directory.Delete(extractDir, true); } catch { }
+			try {
+				var arcFull = Path.GetFullPath(archive);
+				if (!string.Equals(arcFull, mainExe, StringComparison.OrdinalIgnoreCase))
+					File.Delete(archive);
+			}
+			catch { }
 
 			if (restart) {
 				var exe = mainExe;
@@ -357,7 +346,7 @@ static class AppUpdater {
 		};
 	}
 
-	/// <summary>下载更新包到 tmp/，返回本地路径。</summary>
+	/// <summary>下载更新包到程序目录，返回本地路径。</summary>
 	public static async Task<string> DownloadAsync(
 		UpdateInfo info,
 		IProgress<InstallProgress> progress,
@@ -371,7 +360,7 @@ static class AppUpdater {
 		// 去掉路径非法字符
 		foreach (var c in Path.GetInvalidFileNameChars())
 			name = name.Replace(c, '_');
-		var dest = Path.Combine(TmpStore.Root, name);
+		var dest = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, name);
 		var urls = FeatureInstaller.ExpandUrls(info.DownloadUrl);
 		await FeatureInstaller.DownloadUrlAsync(
 			urls, dest, log, progress, ct, expectedTotal: info.SizeBytes).ConfigureAwait(false);
@@ -751,8 +740,32 @@ static class AppUpdater {
 				}
 				catch { }
 			}
+			var seven = Path.Combine(baseDir, "dll", "x64", "7za.dll");
+			var sevenDst = Path.Combine(tmpDir, "7za.dll");
+			if (!File.Exists(sevenDst) && File.Exists(seven)) {
+				try { File.Copy(seven, sevenDst, true); } catch { }
+			}
 		}
 		catch { }
+	}
+
+	static void extractinto(string archive, string target) {
+		var ext = Path.GetExtension(archive).ToLowerInvariant();
+		if (ext == ".7z") {
+			SevenZipExtract.ExtractDropTop(archive, target);
+			return;
+		}
+		var extractDir = Path.Combine(target, "tmp", "update_extract");
+		try {
+			if (Directory.Exists(extractDir))
+				Directory.Delete(extractDir, true);
+		}
+		catch { }
+		Directory.CreateDirectory(extractDir);
+		extractarchive(archive, extractDir);
+		var payload = resolvepayload(extractDir);
+		copytree(payload, target);
+		try { Directory.Delete(extractDir, true); } catch { }
 	}
 
 	static void waitprocess(int pid, int timeoutMs) {
