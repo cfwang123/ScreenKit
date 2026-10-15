@@ -5,14 +5,11 @@
 		title: "中文转拼音",
 		go: "转换",
 		own: true,
+		hideOut: true,
 		body: function(){
-			var py = SK.t("web.pinyin.py") || "拼音";
-			var ini = SK.t("web.pinyin.init") || "首字母";
-			var mode = SK.t("web.pinyin.mode") || "方式";
 			return SK.lab("原文", SK.ta("box-in", 8, ""))
-				+ '<div class="row"><label><span data-k="web.pinyin.mode">' + SK.esc(mode) + '</span>'
-				+ '<select id="py-mode"><option value="py">' + SK.esc(py) + '</option>'
-				+ '<option value="init">' + SK.esc(ini) + '</option></select></label></div>'
+				+ SK.lab("web.pinyin.py", '<textarea id="py-full" rows="3" readonly></textarea>')
+				+ SK.lab("web.pinyin.init", '<textarea id="py-ini" rows="2" readonly></textarea>')
 				+ '<p id="py-hint" class="hint" data-k="web.pinyin.off">' + SK.esc(SK.t("web.pinyin.off") || "") + "</p>";
 		},
 		open: function(){
@@ -36,17 +33,24 @@
 		el.textContent = SK.t("web.pinyin.off") || "";
 	}
 
+	function show(data, on){
+		var full = on && data ? (data.pinyin || "") : "";
+		var ini = on && data ? (data.py || "") : "";
+		if (F.id("py-full")) F.id("py-full").value = full;
+		if (F.id("py-ini")) F.id("py-ini").value = ini;
+		if (F.id("box-out")) F.id("box-out").value = full && ini ? full + "\n" + ini : (full || ini);
+	}
+
 	function run(){
 		var n = ++seq;
 		if (wait) clearTimeout(wait);
 		wait = setTimeout(function(){
 			wait = 0;
-			var mode = SK.val("py-mode") === "init" ? "init" : "py";
-			SK.post("/api/pinyin", { text: SK.val("box-in"), mode: mode }, function(data){
+			SK.post("/api/pinyin", { text: SK.val("box-in") }, function(data){
 				if (n !== seq) return;
 				var on = !!(data && data.installed);
 				sethint(on);
-				if (F.id("box-out")) F.id("box-out").value = on ? (data.text || "") : "";
+				show(data, on);
 				if (on) SK.msg("box-msg", "完成");
 			}, "box-msg");
 		}, 200);

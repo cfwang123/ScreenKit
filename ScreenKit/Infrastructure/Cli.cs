@@ -3984,31 +3984,29 @@ static class Cli {
 			using var handler = new HttpClientHandler { UseProxy = false };
 			using var http = new HttpClient(handler);
 			var baseUrl = "http://127.0.0.1:" + port + "/api/pinyin";
-			var pyUrl = baseUrl + "?text=" + Uri.EscapeDataString("重庆") + "&mode=py";
+			var pyUrl = baseUrl + "?text=" + Uri.EscapeDataString("重庆");
 			var pyJson = Task.Run(() => http.GetStringAsync(pyUrl).GetAwaiter().GetResult()).GetAwaiter().GetResult();
 			Out("http " + pyJson);
-			if (pyJson == null || pyJson.IndexOf("chong qing", StringComparison.Ordinal) < 0) {
-				Err("FAIL: HTTP 拼音");
+			if (pyJson == null || pyJson.IndexOf("\"pinyin\"", StringComparison.Ordinal) < 0
+				|| pyJson.IndexOf("chong qing", StringComparison.Ordinal) < 0
+				|| pyJson.IndexOf("\"py\"", StringComparison.Ordinal) < 0
+				|| pyJson.IndexOf("\"CQ\"", StringComparison.Ordinal) < 0) {
+				Err("FAIL: HTTP 拼音应同时返回 pinyin 和 py");
 				return 1;
 			}
-			var body = new StringContent("{\"text\":\"重庆\",\"mode\":\"init\"}", Encoding.UTF8, "application/json");
-			var iniJson = Task.Run(() => http.PostAsync(baseUrl, body).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
-			Out("http init " + iniJson);
-			if (iniJson == null || iniJson.IndexOf("\"CQ\"", StringComparison.Ordinal) < 0) {
-				Err("FAIL: HTTP 首字母");
+			var body = new StringContent("{\"text\":\"重庆\"}", Encoding.UTF8, "application/json");
+			var postJson = Task.Run(() => http.PostAsync(baseUrl, body).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("http post " + postJson);
+			if (postJson == null || postJson.IndexOf("chong qing", StringComparison.Ordinal) < 0
+				|| postJson.IndexOf("\"CQ\"", StringComparison.Ordinal) < 0) {
+				Err("FAIL: HTTP POST 拼音");
 				return 1;
 			}
 			var empty = Task.Run(() => http.GetStringAsync(baseUrl).GetAwaiter().GetResult()).GetAwaiter().GetResult();
 			Out("http empty " + empty);
 			if (empty == null || empty.IndexOf("installed", StringComparison.Ordinal) < 0
-				|| empty.IndexOf("\"text\"", StringComparison.Ordinal) >= 0) {
+				|| empty.IndexOf("\"pinyin\"", StringComparison.Ordinal) >= 0) {
 				Err("FAIL: 空 text 应只有 installed");
-				return 1;
-			}
-			var badUrl = baseUrl + "?text=" + Uri.EscapeDataString("重庆") + "&mode=nope";
-			var bad = Task.Run(() => http.GetStringAsync(badUrl).GetAwaiter().GetResult()).GetAwaiter().GetResult();
-			if (bad == null || bad.IndexOf("802", StringComparison.Ordinal) < 0) {
-				Err("FAIL: 错误 mode 应为 802");
 				return 1;
 			}
 			return 0;

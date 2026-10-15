@@ -283,21 +283,20 @@ ScreenKit --zhconv "國發" --simp
 **GET**
 
 ```
-/api/pinyin?text=中国人民银行&mode=py
+/api/pinyin?text=中国人民银行
 ```
 
 **POST** `application/json`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `text` | string | 原文。也可用 `message`。空或不传时只返回 `data.installed`（code 100），没有 `data.text` |
-| `mode` | string | `py` 或 `pinyin`（默认）是空格分开的拼音。`init`、`initial`、`first` 是每个字一个大写首字母 |
+| `text` | string | 原文。也可用 `message`。空或不传时只返回 `data.installed`（code 100），没有 `pinyin` 和 `py` |
 
 ```json
-{ "text": "中国人民银行", "mode": "py" }
+{ "text": "中国人民银行" }
 ```
 
-**响应 `data`：** `installed`、`text`、`mode`（`py` 或 `init`）。「中国人民银行」是 `zhong guo ren min yin hang` 或 `ZGRMYH`。「重庆」是 `chong qing`。`mode` 不对返回 802。超过 20000 字返回 500。有原文但没装库返回 803。
+**响应 `data`：** `installed`、`pinyin`（空格分开、不带声调）、`py`（每个字一个大写首字母）。「中国人民银行」的 `pinyin` 是 `zhong guo ren min yin hang`，`py` 是 `ZGRMYH`。「重庆」是 `chong qing` 和 `CQ`。超过 20000 字返回 500。有原文但没装库返回 803。
 
 ```bash
 ScreenKit --pinyin "重庆"

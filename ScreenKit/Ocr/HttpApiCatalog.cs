@@ -64,8 +64,8 @@ static class HttpApiCatalog {
 		add(list, "POST /api/toast", "POST", "/api/toast", "{\n  \"text\": \"你好\",\n  \"ms\": 1900\n}", "http.doc.toast");
 		add(list, "GET /api/zhconv", "GET", "/api/zhconv?text=软件&to=trad", "", "http.doc.zhconv");
 		add(list, "POST /api/zhconv", "POST", "/api/zhconv", "{\n  \"text\": \"软件\",\n  \"to\": \"trad\"\n}", "http.doc.zhconv");
-		add(list, "GET /api/pinyin", "GET", "/api/pinyin?text=中国&mode=py", "", "http.doc.pinyin", accept: "GET/POST");
-		add(list, "POST /api/pinyin", "POST", "/api/pinyin", "{\n  \"text\": \"中国\",\n  \"mode\": \"py\"\n}", "http.doc.pinyin");
+		add(list, "GET /api/pinyin", "GET", "/api/pinyin?text=中国", "", "http.doc.pinyin", accept: "GET/POST");
+		add(list, "POST /api/pinyin", "POST", "/api/pinyin", "{\n  \"text\": \"中国\"\n}", "http.doc.pinyin");
 		add(list, "GET /api/calendar", "GET", "/api/calendar?date=2024-02-10&cal=lunar", "", "http.doc.calendar");
 		add(list, "POST /api/calendar", "POST", "/api/calendar", "{\n  \"date\": \"2024-02-10\",\n  \"cal\": \"lunar\"\n}", "http.doc.calendar");
 		add(list, "GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");

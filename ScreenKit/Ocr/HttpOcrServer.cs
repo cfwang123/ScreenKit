@@ -966,8 +966,6 @@ sealed partial class HttpOcrServer : IDisposable {
 	void handlepinyin(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
-		var mode = (field(ctx, jo, "mode") ?? "").Trim().ToLowerInvariant();
-		var initials = mode is "init" or "initial" or "first";
 		if (string.IsNullOrEmpty(text)) {
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
@@ -975,16 +973,16 @@ sealed partial class HttpOcrServer : IDisposable {
 			});
 			return;
 		}
-		if (mode.Length > 0 && !initials && mode != "py" && mode != "pinyin") {
-			writejson(ctx, 200, err(802, "mode 应为 py 或 init"));
-			return;
-		}
 		if (!PinyinConvert.Installed) {
 			writejson(ctx, 200, err(803, "NPinyin 未安装"));
 			return;
 		}
-		string outText;
-		try { outText = PinyinConvert.Convert(text, initials); }
+		string pinyin;
+		string py;
+		try {
+			pinyin = PinyinConvert.Convert(text, false);
+			py = PinyinConvert.Convert(text, true);
+		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(500, ex.Message));
 			return;
@@ -993,8 +991,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			["code"] = 100,
 			["data"] = new JsonObject {
 				["installed"] = true,
-				["text"] = outText,
-				["mode"] = initials ? "init" : "py",
+				["pinyin"] = pinyin,
+				["py"] = py,
 			},
 		});
 	}
@@ -2330,7 +2328,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /api/status",
 			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
 			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
-			"GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；GET/POST text&mode=py|init",
+			"GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；有 text 时同时返回 pinyin 和 py",
 			"GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}",
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",

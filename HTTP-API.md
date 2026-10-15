@@ -271,20 +271,19 @@ ScreenKit --zhconv "國發" --simp
 
 Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **Help → Install features → Tools**. It is not in the slim package. There are no tone marks. Common polyphonic words are listed in `pinyin.toml` beside the program (`重庆` is `chong qing`, `银行` is `yin hang`). The same word in `pinyin.user.toml` overrides it. An empty reading drops that system word. Updates replace `pinyin.toml` and leave `pinyin.user.toml`. The letter ü is written as u. Letters and digits are spaced one by one.
 
-**GET:** `/api/pinyin?text=中国人民银行&mode=py`
+**GET:** `/api/pinyin?text=中国人民银行`
 
 **POST** `application/json`
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `text` | string | Source. `message` is an alias. Empty or omitted returns only `data.installed` (code 100) and does not return `data.text` |
-| `mode` | string | `py` or `pinyin` (default) for spaced pinyin. `init`, `initial`, or `first` for one capital initial per character |
+| `text` | string | Source. `message` is an alias. Empty or omitted returns only `data.installed` (code 100) and does not return `pinyin` or `py` |
 
 ```json
-{ "text": "中国人民银行", "mode": "py" }
+{ "text": "中国人民银行" }
 ```
 
-**Response `data`:** `installed`, `text`, and `mode` (`py` or `init`). `中国人民银行` is `zhong guo ren min yin hang` or `ZGRMYH`. `重庆` is `chong qing`. A bad `mode` returns 802. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
+**Response `data`:** `installed`, `pinyin` (spaced, no tone marks), and `py` (one capital initial per character). `中国人民银行` is `pinyin` `zhong guo ren min yin hang` and `py` `ZGRMYH`. `重庆` is `chong qing` and `CQ`. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
 
 ```bash
 ScreenKit --pinyin "重庆"

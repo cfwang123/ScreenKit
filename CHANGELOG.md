@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Network diagnostics, discovery, DNS records, port test, and Wake-on-LAN are buttons in the Network tools window. The Tools menu and tray open that window as one item.
 - Port scan shows a progress bar and lists each open port with its type.
 - IP scan uses a progress bar and a host list, and can open Port scan for the selected address. Port scan reads a service banner, and accepts a timeout and common ports.
+- GET/POST /api/pinyin no longer takes mode. One call returns data.pinyin and data.py.
 
 #### Fixed
 
@@ -104,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网络诊断、网络发现、DNS 记录、端口测试和网络唤醒改为网络工具窗口里的按钮。工具菜单和托盘只保留一项网络工具。
 - 端口扫描显示进度条，并用列表列出开放端口和类型。
 - IP 扫描改为进度条和主机列表，选中后可打开该地址的端口扫描。端口扫描会读取服务标识，并可设置超时和常用端口。
+- GET/POST /api/pinyin 不再接收 mode，一次返回 data.pinyin 和 data.py。
 
 #### 修复
 
