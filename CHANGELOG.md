@@ -104,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Camera scan shows the same code again after 3 seconds, on the desktop window and the tools page.
 - The RTSP test preview no longer flashes black. The picture is copied before the next frame clears the buffer.
 - Scientific calculator keys + - * / are add, subtract, multiply, and divide, including Shift+8 and Shift+=.
+- Web RTSP playback keeps every slice of one picture together, so the test square is no longer missing a corner or gaining an extra block.
 
 #### Documentation
 
@@ -179,6 +180,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 桌面相机和工具页扫码时，同一个码隔 3 秒会再显示一次。
 - RTSP 测试画面不再闪黑。先复制完一帧，再让下一帧清屏。
 - 科学计算器按键 + - * / 对应加、减、乘、除，Shift+8 和 Shift+= 也一样。
+- 网页播放 RTSP 时把同一帧的切片合成一张，测试画面的方块不再缺一块或多一块。
 
 #### 文档
 

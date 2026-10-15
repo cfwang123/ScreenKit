@@ -108,20 +108,43 @@ sealed class RtspTestSrv : IDisposable {
 				log("rtspsrv: 跳过编码 " + ferr);
 				return 0;
 			}
-			using (var enc = new RtspH264(64, 64, 10, 200_000)) {
-				var bgra = new byte[64 * 64 * 4];
+			using (var enc = new RtspH264(160, 120, 10, 400_000))
+			using (var dec = new CastVideoDecoder()) {
+				var bgra = new byte[160 * 120 * 4];
+				for (var i = 0; i < bgra.Length; i += 4) bgra[i + 3] = 0xFF;
+				fillrect(bgra, 160, 48, 40, 40, 40, 0x44, 0x44, 0xFF);
 				byte[] au = null;
-				for (var i = 0; i < 8; i++) {
+				for (var i = 0; i < 6; i++) {
 					au = enc.Encode(bgra);
-					if (au != null && hasidr(au)) break;
+					if (au == null) continue;
+					var nals = split(au);
+					var kinds = "";
+					foreach (var n in nals) {
+						if (n.Length < 1) continue;
+						kinds += (n[0] & 0x1F) + ":" + n.Length + " ";
+					}
+					log("rtspsrv: nal " + kinds + " head " + hex(au, 16));
+					if (!dec.Decode(au, out var pix, out var dw, out var dh, out var st)) continue;
+					var red = 0;
+					var outred = 0;
+					for (var y = 0; y < dh; y++) {
+						for (var x = 0; x < dw; x++) {
+							var o = y * st + x * 4;
+							var isred = pix[o + 2] > 180 && pix[o + 1] < 120 && pix[o] < 120;
+							var inside = x >= 48 && x < 88 && y >= 40 && y < 80;
+							if (isred && inside) red++;
+							else if (isred) outred++;
+						}
+					}
+					log("rtspsrv: 解码 " + dw + "x" + dh + " 方块内红点 " + red + " 外面 " + outred);
+					if (red > 1400 && outred < 80) {
+						log("rtspsrv: 方块完整");
+						return 0;
+					}
 				}
-				if (au == null || !hasidr(au)) {
-					err("rtspsrv: 没有编出关键帧");
-					return 1;
-				}
+				err("rtspsrv: 方块被拆开或编出来就不完整");
+				return 1;
 			}
-			log("rtspsrv: 已编出关键帧");
-			return 0;
 		}
 		catch (Exception ex) {
 			err("rtspsrv: " + ex.Message);
@@ -133,14 +156,26 @@ sealed class RtspTestSrv : IDisposable {
 		}
 	}
 
-	static bool hasidr(byte[] annex) {
-		for (var i = 0; i + 4 < annex.Length; i++) {
-			var sc = 0;
-			if (annex[i] == 0 && annex[i + 1] == 0 && annex[i + 2] == 0 && annex[i + 3] == 1) sc = 4;
-			else if (annex[i] == 0 && annex[i + 1] == 0 && annex[i + 2] == 1) sc = 3;
-			if (sc > 0 && i + sc < annex.Length && (annex[i + sc] & 0x1F) == 5) return true;
+	static void fillrect(byte[] bgra, int stridePx, int x, int y, int rw, int rh, byte b, byte g, byte r) {
+		for (var yy = 0; yy < rh; yy++) {
+			for (var xx = 0; xx < rw; xx++) {
+				var o = ((y + yy) * stridePx + (x + xx)) * 4;
+				bgra[o] = b;
+				bgra[o + 1] = g;
+				bgra[o + 2] = r;
+				bgra[o + 3] = 0xFF;
+			}
 		}
-		return false;
+	}
+
+	static string hex(byte[] data, int n) {
+		var sb = new StringBuilder();
+		var m = Math.Min(n, data.Length);
+		for (var i = 0; i < m; i++) {
+			if (i > 0) sb.Append(' ');
+			sb.Append(data[i].ToString("X2"));
+		}
+		return sb.ToString();
 	}
 
 	void accept() {

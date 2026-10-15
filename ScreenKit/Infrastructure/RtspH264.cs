@@ -37,6 +37,7 @@ unsafe sealed class RtspH264 : IDisposable {
 		enc->max_b_frames = 0;
 		enc->bit_rate = bitrate;
 		enc->flags |= ffmpeg.AV_CODEC_FLAG_LOW_DELAY;
+		enc->thread_count = 1;
 		if (enc->priv_data != null) {
 			ffmpeg.av_opt_set(enc->priv_data, "preset", "ultrafast", 0);
 			ffmpeg.av_opt_set(enc->priv_data, "tune", "zerolatency", 0);

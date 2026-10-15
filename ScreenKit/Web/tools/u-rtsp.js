@@ -3,6 +3,8 @@
 	var decoder = null;
 	var sps = null;
 	var pps = null;
+	var cfgSps = null;
+	var cfgPps = null;
 	var waitkey = true;
 	var ts = 0;
 	SK.regutil("u-rtsp", {
@@ -53,6 +55,8 @@
 		halt();
 		sps = null;
 		pps = null;
+		cfgSps = null;
+		cfgPps = null;
 		waitkey = true;
 		ts = 0;
 		var wsurl = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/rtsp?rtsp=" + encodeURIComponent(url);
@@ -106,34 +110,48 @@
 			if (sc) payload = frame.subarray(4);
 		}
 		var nals = split(payload);
-		var slices = [];
+		var parts = [];
 		var key = false;
+		var bytes = 0;
 		for (var i = 0; i < nals.length; i++) {
 			var nal = nals[i];
 			if (!nal.length) continue;
 			var typ = nal[0] & 0x1F;
-			if (typ === 7) { sps = nal.slice(); setup(); continue; }
-			if (typ === 8) { pps = nal.slice(); setup(); continue; }
-			if (typ === 5) { key = true; slices.push(nal); }
-			else if (typ === 1) slices.push(nal);
+			if (typ === 7) { sps = nal.slice(); continue; }
+			if (typ === 8) { pps = nal.slice(); continue; }
+			if (typ !== 1 && typ !== 5 && typ !== 6) continue;
+			if (typ === 5) key = true;
+			parts.push(nal);
+			bytes += 4 + nal.length;
 		}
-		if (!slices.length || !decoder || decoder.state !== "configured") return;
+		setup();
+		if (!parts.length || !decoder || decoder.state !== "configured") return;
 		if (waitkey && !key) return;
 		if (key) waitkey = false;
-		for (var j = 0; j < slices.length; j++) {
-			var n = slices[j];
-			var chunk = new EncodedVideoChunk({
-				type: (n[0] & 0x1F) === 5 ? "key" : "delta",
-				timestamp: ts,
-				data: avcc(n)
-			});
-			ts += 1000;
-			try { decoder.decode(chunk); } catch (e) { say(e.message, true); }
+		var data = new Uint8Array(bytes);
+		var o = 0;
+		for (var j = 0; j < parts.length; j++) {
+			var n = parts[j];
+			data[o] = (n.length >>> 24) & 255;
+			data[o + 1] = (n.length >>> 16) & 255;
+			data[o + 2] = (n.length >>> 8) & 255;
+			data[o + 3] = n.length & 255;
+			data.set(n, o + 4);
+			o += 4 + n.length;
 		}
+		try {
+			decoder.decode(new EncodedVideoChunk({
+				type: key ? "key" : "delta",
+				timestamp: ts,
+				data: data
+			}));
+			ts += 33333;
+		} catch (e) { say(e.message, true); }
 	}
 
 	function setup(){
 		if (!sps || !pps || sps.length < 4) return;
+		if (same(cfgSps, sps) && same(cfgPps, pps) && decoder && decoder.state === "configured") return;
 		if (!decoder || decoder.state === "closed") makedec();
 		try {
 			decoder.configure({
@@ -142,9 +160,17 @@
 				hardwareAcceleration: "prefer-software",
 				optimizeForLatency: true
 			});
+			cfgSps = sps;
+			cfgPps = pps;
 		} catch (e) {
 			say(e.message, true);
 		}
+	}
+
+	function same(a, b){
+		if (!a || !b || a.length !== b.length) return false;
+		for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+		return true;
 	}
 
 	function makedec(){

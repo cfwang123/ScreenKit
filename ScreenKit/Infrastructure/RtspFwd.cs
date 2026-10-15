@@ -290,6 +290,10 @@ static class RtspFwd {
 		int nc;
 		byte[] sps;
 		byte[] pps;
+		readonly List<byte[]> au = new();
+		uint austamp;
+		bool auon;
+		bool aukey;
 		byte[] recv = new byte[RECV];
 		int recvlen;
 		int parseat;
@@ -477,26 +481,38 @@ static class RtspFwd {
 				var typ = nal[4] & 0x1F;
 				if (typ == 7) sps = (byte[])nal.Clone();
 				else if (typ == 8) pps = (byte[])nal.Clone();
-				if (typ is not (1 or 5 or 7 or 8)) continue;
-				uint? pts = null;
-				if (typ is 1 or 5)
-					pts = (uint)Math.Min(clock.Elapsed.TotalMilliseconds * 1000.0, uint.MaxValue);
-				byte[] wire;
-				if (pts.HasValue) {
-					wire = new byte[4 + nal.Length];
-					var p = pts.Value;
-					wire[0] = (byte)(p >> 24);
-					wire[1] = (byte)(p >> 16);
-					wire[2] = (byte)(p >> 8);
-					wire[3] = (byte)p;
-					Buffer.BlockCopy(nal, 0, wire, 4, nal.Length);
-				}
-				else wire = nal;
-				var key = typ == 5;
-				View[] snap;
-				lock (vgate) snap = views.ToArray();
-				foreach (var v in snap) v.binary(wire, key);
+				if (typ is not (1 or 5 or 6 or 7 or 8 or 9)) continue;
+				if (auon && pkt.Stamp != austamp) flushau();
+				austamp = pkt.Stamp;
+				auon = true;
+				au.Add(nal);
+				if (typ == 5) aukey = true;
+				if (pkt.Marker) flushau();
 			}
+		}
+
+		void flushau() {
+			if (au.Count == 0) { auon = false; aukey = false; return; }
+			var len = 0;
+			foreach (var n in au) len += n.Length;
+			var body = new byte[4 + len];
+			var p = (uint)Math.Min(clock.Elapsed.TotalMilliseconds * 1000.0, uint.MaxValue);
+			body[0] = (byte)(p >> 24);
+			body[1] = (byte)(p >> 16);
+			body[2] = (byte)(p >> 8);
+			body[3] = (byte)p;
+			var o = 4;
+			foreach (var n in au) {
+				Buffer.BlockCopy(n, 0, body, o, n.Length);
+				o += n.Length;
+			}
+			var key = aukey;
+			au.Clear();
+			auon = false;
+			aukey = false;
+			View[] snap;
+			lock (vgate) snap = views.ToArray();
+			foreach (var v in snap) v.binary(body, key);
 		}
 
 		void sendboot(View v) {
@@ -944,6 +960,7 @@ static class RtspFwd {
 	sealed class Rtp {
 		public bool Marker;
 		public ushort Seq;
+		public uint Stamp;
 		public byte[] Payload = Array.Empty<byte>();
 
 		public static Rtp Parse(byte[] data, int offset, int length) {
@@ -955,6 +972,7 @@ static class RtspFwd {
 			var b1 = data[offset + 1];
 			p.Marker = ((b1 >> 7) & 1) == 1;
 			p.Seq = (ushort)((data[offset + 2] << 8) | data[offset + 3]);
+			p.Stamp = (uint)((data[offset + 4] << 24) | (data[offset + 5] << 16) | (data[offset + 6] << 8) | data[offset + 7]);
 			var head = 12 + cc * 4;
 			if (ext) {
 				if (length < head + 4) throw new ArgumentException("RTP ext");
