@@ -1010,3 +1010,26 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .scikey.digit { font-size: 14px; }
 .scikey.danger { background: #7f1d1d; }
 .scikey.eq { background: #c2410c; font-size: 14px; }
+.wclock-bar { align-items: flex-end; margin-top: 0; }
+.wclock-bar label { width: auto; flex: 1; min-width: 180px; }
+.wclock-h { margin: 4px 0 8px; color: var(--muted); font-size: 12px; }
+.wclock-grid {
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 8px;
+}
+.wclock-card {
+	border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+	padding: 10px 12px; cursor: pointer;
+}
+.wclock-card.on { border-color: var(--accent); }
+.wclock-card.night { background: #241f1b; color: #f4efe8; }
+.wclock-card.night .wclock-name,
+.wclock-card.night .wclock-sub { color: #c8bfb4; }
+#wclock-one { margin: 0 0 10px; }
+#wclock-one .wclock-card { cursor: default; }
+#wclock-one .wclock-time { font-size: 32px; }
+.wclock-name { font-size: 13px; font-weight: 600; }
+.wclock-time {
+	display: block; margin: 2px 0; font-size: 22px; font-weight: 650;
+	font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+}
+.wclock-sub { color: var(--muted); font-size: 12px; }

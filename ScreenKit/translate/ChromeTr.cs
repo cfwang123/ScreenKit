@@ -217,7 +217,7 @@ static class ChromeTr {
 		args.Append("--disable-web-security --allow-file-access-from-files ");
 		args.Append("--disable-features=BlockInsecurePrivateNetworkRequests ");
 		args.Append("--no-first-run --no-default-browser-check --disable-sync --disable-extensions ");
-		args.Append("--disable-component-update --disable-popup-blocking ");
+		args.Append("--disable-popup-blocking ");
 		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
 		args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
 		args.Append("--disable-background-timer-throttling ");
@@ -245,6 +245,14 @@ static class ChromeTr {
 		}
 		if (p == null) return;
 		try { if (!p.HasExited) p.Kill(); } catch { }
+	}
+
+	public static void Stop() => stopproc();
+
+	public static string ProfileDir() {
+		var profile = Path.Combine(workdir(), "profile");
+		Directory.CreateDirectory(profile);
+		return profile;
 	}
 
 	static string workdir() {

@@ -386,6 +386,78 @@
 					         AutomationProperties.AutomationId="inst.winlang.cmd"/>
 				</Grid>
 			</TabItem>
+
+			<TabItem x:Name="tabchrome" Header="Chrome"
+			         AutomationProperties.AutomationId="inst.tab.chrome">
+				<Grid Margin="8">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbchromehint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+					           FontSize="12" Foreground="{StaticResource TextMuted}"
+					           Text="本程序隐藏 Chrome 的翻译语言包和离线语音包。专用配置，不改日常浏览的数据。"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="False">
+						<TextBlock x:Name="lbchromekind" Text="种类" VerticalAlignment="Center" Margin="0,0,6,0"
+						           Foreground="{StaticResource TextMuted}"/>
+						<ComboBox x:Name="echromekind" Width="120" Height="28" Margin="0,0,12,0"
+						          VerticalContentAlignment="Center"
+						          AutomationProperties.AutomationId="inst.chrome.kind"/>
+						<CheckBox x:Name="cchromeonly" Content="仅未安装" VerticalAlignment="Center"
+						          Margin="0,0,12,0" IsChecked="False"
+						          AutomationProperties.AutomationId="inst.chrome.only"/>
+						<Button x:Name="bchromerefresh" Content="刷新" Style="{StaticResource ToolBtn}"
+						        Width="72" Margin="0,0,8,0"
+						        AutomationProperties.AutomationId="inst.chrome.refresh"/>
+						<TextBlock x:Name="lbchromesum" VerticalAlignment="Center"
+						           FontSize="11" Foreground="{StaticResource TextMuted}" Text=""/>
+					</DockPanel>
+					<Border Grid.Row="2" Background="{StaticResource BgPanel}"
+					        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+					        CornerRadius="8">
+						<ListView x:Name="lvchrome" BorderThickness="0"
+						          Background="Transparent"
+						          VirtualizingPanel.IsVirtualizing="True"
+						          VirtualizingPanel.VirtualizationMode="Recycling"
+						          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+						          AutomationProperties.AutomationId="inst.chrome.list">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn Width="36">
+										<GridViewColumn.Header>
+											<CheckBox x:Name="cchromeheader" ToolTip="全选当前列表"/>
+										</GridViewColumn.Header>
+										<GridViewColumn.CellTemplate>
+											<DataTemplate>
+												<CheckBox IsChecked="{Binding Selected, Mode=TwoWay}"
+												          VerticalAlignment="Center"/>
+											</DataTemplate>
+										</GridViewColumn.CellTemplate>
+									</GridViewColumn>
+									<GridViewColumn Header="模型" Width="220" DisplayMemberBinding="{Binding Title}"/>
+									<GridViewColumn Header="种类" Width="72" DisplayMemberBinding="{Binding KindText}"/>
+									<GridViewColumn Header="说明" Width="280" DisplayMemberBinding="{Binding Detail}"/>
+									<GridViewColumn Header="大小" Width="80" DisplayMemberBinding="{Binding SizeText}"/>
+									<GridViewColumn Header="状态" Width="88">
+										<GridViewColumn.CellTemplate>
+											<DataTemplate>
+												<Border CornerRadius="4" Padding="8,2"
+												        HorizontalAlignment="Left"
+												        Background="{Binding StateBg}">
+													<TextBlock Text="{Binding StateText}"
+													           FontSize="11" FontWeight="SemiBold"
+													           Foreground="{Binding StateFg}"/>
+												</Border>
+											</DataTemplate>
+										</GridViewColumn.CellTemplate>
+									</GridViewColumn>
+								</GridView>
+							</ListView.View>
+						</ListView>
+					</Border>
+				</Grid>
+			</TabItem>
 		</TabControl>
 
 		<DockPanel Grid.Row="2" Margin="0,0,0,6">

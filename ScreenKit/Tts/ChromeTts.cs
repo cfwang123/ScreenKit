@@ -160,7 +160,7 @@ static class ChromeTts {
 		args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
 		args.Append("--allow-file-access-from-files ");
 		args.Append("--no-first-run --no-default-browser-check --disable-sync --disable-extensions ");
-		args.Append("--disable-component-update --disable-popup-blocking ");
+		args.Append("--disable-popup-blocking ");
 		args.Append("--autoplay-policy=no-user-gesture-required ");
 		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
 		args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
@@ -178,6 +178,12 @@ static class ChromeTts {
 			proc = p;
 			launched = path;
 		}
+	}
+
+	public static string ProfileDir() {
+		var profile = Path.Combine(workdir(), "profile");
+		Directory.CreateDirectory(profile);
+		return profile;
 	}
 
 	static string workdir() {

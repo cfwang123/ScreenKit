@@ -71,10 +71,12 @@ partial class InstallFeaturesWindow : Window {
 		etree.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(onpickclick), true);
 		binstall.Click += async (_, _) => {
 			if (tabmain.SelectedItem == tabwinlang) await runwinlang(true);
+			else if (tabmain.SelectedItem == tabchrome) await runchrome(true);
 			else await runinstall();
 		};
 		bdelete.Click += async (_, _) => {
 			if (tabmain.SelectedItem == tabwinlang) await runwinlang(false);
+			else if (tabmain.SelectedItem == tabchrome) await runchrome(false);
 			else await rundelete();
 		};
 		bcancel.Click += (_, _) => {
@@ -112,14 +114,27 @@ partial class InstallFeaturesWindow : Window {
 		cwinlangheader.Unchecked += (_, _) => {
 			if (!winlangUiLoading) setwinlangcheck(false);
 		};
+		bchromerefresh.Click += async (_, _) => await loadchrome();
+		echromekind.SelectionChanged += (_, _) => {
+			if (!chromeUiLoading) applychromefilter();
+		};
+		cchromeonly.Checked += (_, _) => applychromefilter();
+		cchromeonly.Unchecked += (_, _) => applychromefilter();
+		cchromeheader.Checked += (_, _) => setchromecheck(true);
+		cchromeheader.Unchecked += (_, _) => {
+			if (!chromeUiLoading) setchromecheck(false);
+		};
 		tabmain.SelectionChanged += async (_, _) => {
 			applytabbuttons();
 			if (tabmain.SelectedItem == tabtts && !ttsLoaded && !busy)
 				await loadtts(force: false);
 			if (tabmain.SelectedItem == tabwinlang && !winlangLoaded && !busy)
 				await loadwinlang(false);
+			if (tabmain.SelectedItem == tabchrome && !chromeLoaded && !busy)
+				await loadchrome();
 		};
 		lvtss.ItemsSource = ttsRows;
+		lvchrome.ItemsSource = chromeRows;
 		loadproxy();
 		rproxysys.Checked += (_, _) => onproxy();
 		rproxyman.Checked += (_, _) => onproxy();
@@ -155,6 +170,7 @@ partial class InstallFeaturesWindow : Window {
 		tabpick.Header = Loc.T("inst.tab.pick");
 		tabtts.Header = Loc.T("inst.tab.tts");
 		tabwinlang.Header = Loc.T("inst.tab.winlang");
+		tabchrome.Header = Loc.T("inst.tab.chrome");
 		lbpickhint.Text = Loc.T(firstRun ? "inst.pick.hint.first" : "inst.pick.hint");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
@@ -177,6 +193,12 @@ partial class InstallFeaturesWindow : Window {
 		lbwinlangcoldetail.Text = Loc.T("inst.winlang.col.detail");
 		lbwinlangcolstate.Text = Loc.T("inst.win.col.state");
 		lbwinlangcolpack.Text = Loc.T("inst.win.col.pack");
+		lbchromehint.Text = Loc.T("inst.chrome.hint");
+		lbchromekind.Text = Loc.T("inst.chrome.kind");
+		cchromeonly.Content = Loc.T("inst.chrome.onlymissing");
+		bchromerefresh.Content = Loc.T("inst.chrome.refresh");
+		cchromeheader.ToolTip = Loc.T("inst.tts.selectall");
+		fillchromekind();
 		bmissing.Content = Loc.T("inst.sel.missing");
 		bmissing.ToolTip = Loc.T("inst.sel.missing.tip");
 		bnone.Content = Loc.T("inst.sel.none");
@@ -204,7 +226,8 @@ partial class InstallFeaturesWindow : Window {
 
 	void applytabbuttons() {
 		var onPack = tabmain.SelectedItem == tabtts
-			|| tabmain.SelectedItem == tabwinlang;
+			|| tabmain.SelectedItem == tabwinlang
+			|| tabmain.SelectedItem == tabchrome;
 		var ready = !busy && !winlangQuerying;
 		binstall.IsEnabled = ready && onPack;
 		bdelete.IsEnabled = ready && onPack;
@@ -500,6 +523,12 @@ partial class InstallFeaturesWindow : Window {
 			winlangUiLoading = false;
 			refreshwinlangcmd();
 		}
+		else if (tabmain.SelectedItem == tabchrome) {
+			foreach (var r in chromeRows) {
+				r.Selected = r.Item.State != FeatureInstallState.Installed;
+				r.Notify();
+			}
+		}
 		else {
 			FeaturePick.SelectMissing(pickRoots);
 			updatepicksum();
@@ -515,6 +544,10 @@ partial class InstallFeaturesWindow : Window {
 		else if (tabmain.SelectedItem == tabwinlang) {
 			setwinlangcheck(on);
 			cwinlangheader.IsChecked = on;
+		}
+		else if (tabmain.SelectedItem == tabchrome) {
+			setchromecheck(on);
+			cchromeheader.IsChecked = on;
 		}
 		else {
 			FeaturePick.SelectAll(pickRoots, on);
@@ -557,6 +590,11 @@ partial class InstallFeaturesWindow : Window {
 		bwinlangrefresh.IsEnabled = !on;
 		cwinlangonly.IsEnabled = !on;
 		cwinlangheader.IsEnabled = !on;
+		bchromerefresh.IsEnabled = !on;
+		echromekind.IsEnabled = !on;
+		cchromeonly.IsEnabled = !on;
+		cchromeheader.IsEnabled = !on;
+		lvchrome.IsEnabled = !on;
 		applytabbuttons();
 	}
 
