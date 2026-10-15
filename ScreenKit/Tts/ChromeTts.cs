@@ -121,6 +121,9 @@ static class ChromeTts {
 	/// <summary>本程序启动的 Chrome 还在。朗读和翻译是同一个进程。children 是它下面还活着的子进程数。</summary>
 	public static bool TryRun(out int children) => ChromeHost.TryRun(out children);
 
+	/// <summary>本进程和子进程的工作集。没在跑时为 0。</summary>
+	public static long WorkingSet() => ChromeHost.WorkingSet();
+
 	/// <summary>pid 下面的子进程个数。快照失败返回 -1。</summary>
 	public static int ChildCount(int pid) {
 		if (pid <= 0) return 0;
@@ -150,6 +153,47 @@ static class ChromeTts {
 				}
 			}
 			return n;
+		}
+		finally {
+			CloseHandle(snap);
+		}
+	}
+
+	/// <summary>pid 自己和它下面的进程的工作集。快照失败返回 0。</summary>
+	public static long TreeWorkingSet(int pid) {
+		if (pid <= 0) return 0;
+		var snap = CreateToolhelp32Snapshot(2, 0);
+		if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return 0;
+		try {
+			var rows = new List<int[]>();
+			var pe = new PROCESSENTRY32();
+			pe.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
+			if (!Process32First(snap, ref pe)) return 0;
+			do {
+				rows.Add(new[] { (int)pe.th32ProcessID, (int)pe.th32ParentProcessID });
+			}
+			while (Process32Next(snap, ref pe));
+			var seen = new HashSet<int>();
+			var q = new Queue<int>();
+			q.Enqueue(pid);
+			seen.Add(pid);
+			while (q.Count > 0) {
+				var id = q.Dequeue();
+				foreach (var row in rows) {
+					if (row[1] != id || seen.Contains(row[0])) continue;
+					seen.Add(row[0]);
+					q.Enqueue(row[0]);
+				}
+			}
+			long sum = 0;
+			foreach (var id in seen) {
+				try {
+					using var p = Process.GetProcessById(id);
+					sum += p.WorkingSet64;
+				}
+				catch { }
+			}
+			return sum;
 		}
 		finally {
 			CloseHandle(snap);

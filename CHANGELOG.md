@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Speech has a Detect path button that fills chrome.exe from common install locations.
 - chrome.exe path, Detect path, and idle seconds moved to Settings → General.
 - Chrome speech and translation share one hidden Chrome process. Requests run one after another in that window, so speech stays in the foreground tab.
+- The Chrome speech window stays off the taskbar. Memory lists that Chrome process and can close it.
 
 #### Fixed
 
@@ -87,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 语音合成增加「检测路径」，从常见安装位置填入 chrome.exe。
 - chrome.exe 路径、检测路径和空闲秒改到参数设置 → 常规。
 - Chrome 朗读和翻译共用一个隐藏进程。请求在这个窗口里排队，朗读页保持在前台。
+- Chrome 窗口不再出现在任务栏。内存占用列出这个 Chrome 进程，可以手动关闭。
 
 #### 修复
 

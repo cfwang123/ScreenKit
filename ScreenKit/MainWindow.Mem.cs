@@ -108,7 +108,7 @@ public partial class MainWindow {
 		var models = 0;
 		long sum = 0;
 		foreach (var it in snap.Items) {
-			if (it.Id == "dictdb") continue;
+			if (it.Id == "dictdb" || it.Id == "chrome") continue;
 			sum += it.Bytes;
 			if (it.Id != "ort") models++;
 		}
@@ -224,6 +224,11 @@ public partial class MainWindow {
 		catch { }
 		try { httpServer?.CopyFaceMem(items); } catch { }
 		addortruntime(items);
+		try {
+			if (ChromeTts.TryRun(out _))
+				items.Add(hold("chrome", "chrome", "chrome.exe", "", ChromeTts.WorkingSet()));
+		}
+		catch { }
 		return snap;
 	}
 
@@ -276,7 +281,7 @@ public partial class MainWindow {
 		var snap = MemSnapNow();
 		var busy = false;
 		foreach (var it in snap.Items) {
-			if (it.Id == "ort") continue;
+			if (it.Id == "ort" || it.Id == "chrome") continue;
 			if (unloadmem(it.Id, trim: false) == "busy") busy = true;
 		}
 		MemUsage.Trim();
@@ -323,6 +328,8 @@ public partial class MainWindow {
 		else if (id == "httpface" || id == "httpattr") {
 			if (httpServer != null && !httpServer.UnloadFaceMem(id)) return "busy";
 		}
+		else if (id == "chrome")
+			ChromeTts.Stop();
 		if (trim) MemUsage.Trim();
 		return "";
 	}

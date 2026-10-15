@@ -77,11 +77,12 @@ public partial class MemWindow : Window {
 		var items = snap.Items ?? new List<MemHold>();
 		long sum = 0;
 		var action = Loc.T("mem.unload.row");
+		var close = Loc.T("mem.close.row");
 		foreach (var it in items) {
 			it.EngineText = Loc.T("mem.eng." + (it.Engine ?? ""));
 			it.BytesText = FeatureInstaller.FormatBytes(it.Bytes);
-			it.ActionText = action;
-			sum += it.Bytes;
+			it.ActionText = it.Id == "chrome" ? close : action;
+			if (it.Id != "chrome") sum += it.Bytes;
 		}
 		if (!force && samerows(items)) {
 			if (!msgfresh()) {

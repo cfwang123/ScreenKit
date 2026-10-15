@@ -8,7 +8,7 @@ using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
-/// <summary>一个停在屏幕外的 Chrome。朗读和翻译在同一个窗口里排队，这一页保持在前台。</summary>
+/// <summary>一个不出现在任务栏上的 Chrome。朗读和翻译在同一个窗口里排队，这一页保持在前台。空闲时藏起来，正在朗读时停在屏幕外。</summary>
 static class ChromeHost {
 	static readonly object gate = new();
 	static readonly Dictionary<int, Slot> slots = new();
@@ -87,6 +87,17 @@ static class ChromeHost {
 		var n = ChromeTts.ChildCount(pid);
 		children = n < 0 ? 0 : n;
 		return true;
+	}
+
+	/// <summary>本进程和子进程的工作集。没在跑时为 0。</summary>
+	public static long WorkingSet() {
+		Process p;
+		lock (gate) p = proc;
+		if (!up(p)) return 0;
+		int pid;
+		try { pid = p.Id; }
+		catch { return 0; }
+		return ChromeTts.TreeWorkingSet(pid);
 	}
 
 	/// <summary>不启动 Chrome。两路结果同时回来时互不覆盖。</summary>
@@ -306,16 +317,22 @@ static class ChromeHost {
 		var start = Environment.TickCount;
 		while (unchecked(Environment.TickCount - start) < 15000) {
 			if (ct.IsCancellationRequested) return false;
-			if (hastitle("skc-ready")) return true;
+			if (hastitle("skc-ready")) {
+				cloak();
+				return true;
+			}
 			if (!up(proc)) return false;
 			Thread.Sleep(100);
 		}
-		return hastitle("skc-ready");
+		var ok = hastitle("skc-ready");
+		if (ok) cloak();
+		return ok;
 	}
 
 	static void idleloop() {
 		while (true) {
 			Thread.Sleep(200);
+			try { cloak(); } catch { }
 			lock (gate) {
 				if (!due()) continue;
 				stopunlocked();
@@ -557,6 +574,7 @@ static class ChromeHost {
 				break;
 			}
 		}
+		if (body.Length > 0) cloak();
 		return body;
 	}
 
@@ -570,6 +588,41 @@ static class ChromeHost {
 		var dir = Path.GetDirectoryName(ChromeTts.ProfileDir());
 		Directory.CreateDirectory(dir);
 		return dir;
+	}
+
+	const int GWL_EXSTYLE = -20;
+	const int WS_EX_TOOLWINDOW = 0x80;
+	const int WS_EX_APPWINDOW = 0x40000;
+	const int SW_HIDE = 0;
+	const int SW_SHOWNA = 8;
+	const uint SWP_NOZORDER = 0x0004;
+	const uint SWP_NOACTIVATE = 0x0010;
+	const uint SWP_SHOWWINDOW = 0x0040;
+
+	static bool cloakedBusy;
+
+	static void cloak() {
+		var busy = false;
+		lock (slots) busy = slots.Count > 0;
+		var flip = busy != cloakedBusy;
+		cloakedBusy = busy;
+		EnumWindows((h, _) => {
+			var sb = new StringBuilder(256);
+			if (GetWindowText(h, sb, sb.Capacity) <= 0) return true;
+			if (!sb.ToString().StartsWith("skc", StringComparison.Ordinal)) return true;
+			var ex = GetWindowLongPtr(h, GWL_EXSTYLE).ToInt64();
+			var next = (ex | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW;
+			var changed = next != ex;
+			if (changed) SetWindowLongPtr(h, GWL_EXSTYLE, new IntPtr(next));
+			if (busy) {
+				if (changed || flip) {
+					ShowWindow(h, SW_SHOWNA);
+					SetWindowPos(h, IntPtr.Zero, -32000, -32000, 160, 80, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+				}
+			}
+			else if (changed || flip || IsWindowVisible(h)) ShowWindow(h, SW_HIDE);
+			return true;
+		}, IntPtr.Zero);
 	}
 
 	static bool hastitle(string part) {
@@ -600,4 +653,9 @@ static class ChromeHost {
 	delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
 	[DllImport("user32.dll")] static extern bool EnumWindows(EnumProc lpEnumFunc, IntPtr lParam);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+	[DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
+	[DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+	[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+	[DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
+	[DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
 }
