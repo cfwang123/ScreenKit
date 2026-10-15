@@ -215,6 +215,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (name === "tr" && SK.loadtr) SK.loadtr();
 		if (name === "asr") SK.loadasr();
 		if (prev === "chat" && SK.curtool !== "chat" && SK.chatclose) SK.chatclose();
+		if (prev === "u-aim" && SK.curtool !== "u-aim" && SK.aimclose) SK.aimclose();
 		if (SK.curtool === "chat" && SK.chatopen) SK.chatopen();
 		settitle();
 		if (!fromHist) pushhash(SK.curtool);
