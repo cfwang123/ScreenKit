@@ -744,6 +744,8 @@
 									           VerticalAlignment="Center" Margin="0,0,8,0" DockPanel.Dock="Left"/>
 									<Button x:Name="bchromepath" Content="浏览…" DockPanel.Dock="Right" Width="72" Height="28"
 									        Margin="8,0,0,0" AutomationProperties.AutomationId="tts.chrome.browse"/>
+									<Button x:Name="bchromedetect" Content="检测路径" DockPanel.Dock="Right" MinWidth="80" Height="28"
+									        Margin="8,0,0,0" AutomationProperties.AutomationId="tts.chrome.detect"/>
 									<TextBox x:Name="echromeidle" DockPanel.Dock="Right" Width="64" Height="28"
 									         VerticalContentAlignment="Center" Text="60" Margin="8,0,0,0"
 									         AutomationProperties.AutomationId="tts.chrome.idle"/>

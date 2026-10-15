@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Win32;
 
 namespace ScreenKit;
 
@@ -32,26 +33,87 @@ static class ChromeTts {
 	public static string FindExe(string configured) {
 		if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
 			return configured;
-		string[] roots = {
-			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-		};
-		foreach (var root in roots) {
-			if (string.IsNullOrEmpty(root)) continue;
-			var path = Path.Combine(root, "Google", "Chrome", "Application", "chrome.exe");
-			if (File.Exists(path)) return path;
-		}
-		var env = Environment.GetEnvironmentVariable("PATH") ?? "";
-		foreach (var dir in env.Split(';')) {
-			if (string.IsNullOrWhiteSpace(dir)) continue;
+		foreach (var path in commonpaths()) {
 			try {
-				var path = Path.Combine(dir.Trim(), "chrome.exe");
 				if (File.Exists(path)) return path;
 			}
 			catch { }
 		}
 		return null;
+	}
+
+	static List<string> commonpaths() {
+		var list = new List<string>();
+		string[] roots = {
+			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+			Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+		};
+		string[] tails = {
+			@"Google\Chrome\Application\chrome.exe",
+			@"Google\Chrome Beta\Application\chrome.exe",
+			@"Google\Chrome Dev\Application\chrome.exe",
+			@"Google\Chrome SxS\Application\chrome.exe",
+			@"Chromium\Application\chrome.exe",
+		};
+		foreach (var root in roots) {
+			if (string.IsNullOrEmpty(root)) continue;
+			foreach (var tail in tails)
+				list.Add(Path.Combine(root, tail));
+		}
+		var env = Environment.GetEnvironmentVariable("PATH") ?? "";
+		foreach (var dir in env.Split(';')) {
+			if (string.IsNullOrWhiteSpace(dir)) continue;
+			try { list.Add(Path.Combine(dir.Trim(), "chrome.exe")); }
+			catch { }
+		}
+		regpaths(list);
+		return list;
+	}
+
+	static void regpaths(List<string> list) {
+		var views = new[] { RegistryView.Registry64, RegistryView.Registry32 };
+		var hives = new[] { RegistryHive.LocalMachine, RegistryHive.CurrentUser };
+		string[] subs = {
+			@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe",
+			@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome",
+			@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome",
+			@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome Beta",
+			@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome Dev",
+			@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Google Chrome SxS",
+		};
+		foreach (var hive in hives) {
+			foreach (var view in views) {
+				RegistryKey root = null;
+				try { root = RegistryKey.OpenBaseKey(hive, view); }
+				catch { continue; }
+				using (root) {
+					foreach (var sub in subs) {
+						try {
+							using var key = root.OpenSubKey(sub);
+							if (key == null) continue;
+							addreg(list, key.GetValue(null) as string);
+							addreg(list, key.GetValue("Path") as string);
+							addreg(list, key.GetValue("InstallLocation") as string);
+							addreg(list, key.GetValue("DisplayIcon") as string);
+						}
+						catch { }
+					}
+				}
+			}
+		}
+	}
+
+	static void addreg(List<string> list, string raw) {
+		if (string.IsNullOrWhiteSpace(raw)) return;
+		var s = raw.Trim().Trim('"');
+		var exe = s.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+		if (exe >= 0) {
+			list.Add(s.Substring(0, exe + 4).Trim().Trim('"'));
+			return;
+		}
+		try { list.Add(Path.Combine(s, "chrome.exe")); }
+		catch { }
 	}
 
 	/// <summary>隐藏的 Chrome 里朗读，直到这一句结束、取消，或进程退出。</summary>

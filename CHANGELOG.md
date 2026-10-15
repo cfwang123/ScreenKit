@@ -46,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Character art preview has a font-size slider (6–36).
 - Chrome translation and voice pack installs show download progress while a pack is still downloading.
 - Character art defaults to 250 columns and preview font size 6.
+- Speech has a Detect path button that fills chrome.exe from common install locations.
 
 #### Fixed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字符画预览可以用滑块调整字号（6～36）。
 - 安装 Chrome 翻译包和语音包时，下载过程中显示进度。
 - 字符画默认列数为 250，预览字号为 6。
+- 语音合成增加「检测路径」，从常见安装位置填入 chrome.exe。
 
 #### 修复
 

@@ -186,6 +186,7 @@ public partial class MainWindow {
 				_ = loadedgevoicesasync(force: true);
 		};
 		bchromepath.Click += (_, _) => browsechromepath();
+		bchromedetect.Click += (_, _) => detectchromepath();
 		echromepath.TextChanged += (_, _) => {
 			if (!ttsUiLoading) savettsprefs();
 		};
@@ -840,6 +841,19 @@ public partial class MainWindow {
 		};
 		if (dlg.ShowDialog(this) != true) return;
 		echromepath.Text = dlg.FileName;
+		savettsprefs();
+		if (currentttsengine() == TtsEngineKind.Chrome)
+			applyttsengineui();
+	}
+
+	void detectchromepath() {
+		var path = ChromeTts.FindExe("");
+		if (string.IsNullOrEmpty(path)) {
+			MessageBox.Show(this, Loc.T("tts.chrome.detect.none"), Loc.T("tts.chrome.detect"),
+				MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
+		echromepath.Text = path;
 		savettsprefs();
 		if (currentttsengine() == TtsEngineKind.Chrome)
 			applyttsengineui();
@@ -1812,6 +1826,7 @@ public partial class MainWindow {
 		lbttsbrand.Text = Loc.T("tab.tts");
 		lbchromepath.Text = Loc.T("tts.chrome.path");
 		bchromepath.Content = Loc.T("tts.chrome.browse");
+		bchromedetect.Content = Loc.T("tts.chrome.detect");
 		echromepath.ToolTip = Loc.T("tts.chrome.tip");
 		lbchromeidle.Text = Loc.T("tts.chrome.idle");
 		echromeidle.ToolTip = Loc.T("tts.chrome.idle.tip");
