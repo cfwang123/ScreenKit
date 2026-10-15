@@ -10,6 +10,7 @@ public partial class CamWindow : Window {
 	int holduntil;
 	int rec0;
 	bool filling;
+	bool userpick;
 	string opened = "";
 	bool scanning;
 	bool scanbusy;
@@ -21,9 +22,12 @@ public partial class CamWindow : Window {
 		InitializeComponent();
 		applylang();
 		bdev.Click += (_, _) => filldev();
+		edev.PreviewMouseLeftButtonDown += (_, _) => userpick = true;
+		edev.PreviewKeyDown += (_, _) => userpick = true;
 		edev.SelectionChanged += (_, _) => {
-			if (filling || movie != null) return;
-			opendev(false);
+			if (!userpick || filling || movie != null) return;
+			userpick = false;
+			opendev(true);
 		};
 		bshot.Click += (_, _) => shot();
 		brec.Click += (_, _) => rec();
