@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.21 (2026-10-14 ~ 15)](#v1021-2026-10-14--15)
 - [v1.0.20 (2026-10-13 ~ 14)](#v1020-2026-10-13--14)
 - [v1.0.19 (2026-10-10 ~ 12)](#v1019-2026-10-10--12)
 - [v1.0.18 (2026-10-10)](#v1018-2026-10-10)
@@ -33,6 +34,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v0.1.0](#v010-initial-milestone--初始里程碑)
 
 ## unreleased
+
+### English
+
+### 中文
+
+## v1.0.21 (2026-10-14 ~ 15)
 
 ### English
 
@@ -62,11 +69,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Scientific calculator on the Tools menu, tray, and tools page: compact keypad, degrees or radians, memory, percent, and a borderless black translucent window.
 - The web port forwards one RTSP stream over WebSocket /rtsp, and the tools page can play H.264.
 - Tools page: browser on-device model and this-browser info cards.
-- Desktop RTSP test server draws a bouncing picture, encodes H.264 with ffmpeg.exe, and serves rtsp://127.0.0.1:port/live.
+- Desktop RTSP test server draws a bouncing picture, encodes H.264 with libx264 in ffmpeg64, and serves rtsp://127.0.0.1:port/live.
 - Desktop note: a borderless translucent window for text or a to-do list. Closing it keeps the note and the window position.
 - The tools-page camera plays a square-wave beep when a code is accepted.
 - Tools page: Chinese segmentation with Intl.Segmenter, by word, sentence, or grapheme.
-- Chrome TTS plays Google voices in local Chrome. Set chrome.exe under Speech. Audio is not exported or returned as WAV.
+- Chrome TTS plays Google voices in a hidden local Chrome. Set chrome.exe under Speech. It closes after an idle timeout (default 60 seconds, 0 keeps it). Playback uses the current system default output device. Audio is not exported or returned as WAV.
 - IP scan list can copy the host name, IP, or MAC from the right-click menu.
 - RTSP forward and the tools-page player can include PCMU, PCMA, or AAC. The RTSP test server has a sound switch for an 8 kHz PCMU tone.
 - Translate can use Chrome's built-in model. Pick Chrome on the Translate tab. It uses the chrome.exe path from Speech and hides the window.
@@ -76,7 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Install Features can list, install, and remove Chrome translation packs and offline voice packs. They stay in this app's private Chrome profile.
 - The web tools page has a world clock under Calendar. It lists local time for common places and can show one more region.
 - The tools-page chat room accepts Ctrl+V to paste an image or a file.
-- Chat images open in Viewer.js from the cdnjs CDN, with transitions turned off.
+- Chat images open in the local Viewer.js files, with transitions turned off.
 - The status bar shows when a Chrome child process started by ScreenKit is still running.
 
 #### Changed
@@ -105,8 +112,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chinese segmentation lists each word, sentence, or grapheme on its own line.
 - Tools is one menu. Web entries are marked (web). Korean input stays on Tools.
 - RTSP test server video bitrate now defaults to 200 kbps.
-- Chrome speech runs in a hidden window and closes after an idle timeout (default 60 seconds, 0 keeps it). Desktop and tools-page playback use the current system default output device.
-- Chat image zoom uses the local Viewer.js files instead of the cdnjs CDN.
 
 #### Fixed
 
@@ -121,7 +126,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Opened tools stay within the window. Extra content scrolls inside the tool.
 - The camera preview picks a mode up to 1280x720 with a higher frame rate. The old default stayed on a large, slow format, about 2 frames per second.
 - When Check for updates cannot reach GitHub, the dialog says to put a newer screenkit_*.7z in the program folder and click Check for updates again.
-- The RTSP test server encodes with libx264 in ffmpeg64. It no longer looks for ffmpeg.exe.
 - Camera scan shows the same code again after 3 seconds, on the desktop window and the tools page.
 - The RTSP test preview no longer flashes black. The picture is copied before the next frame clears the buffer.
 - Scientific calculator keys + - * / are add, subtract, multiply, and divide, including Shift+8 and Shift+=.
@@ -168,11 +172,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具菜单、托盘和工具页增加科学计算器：紧凑按键、角度或弧度、内存和百分数，窗口无边框、黑色半透明。
 - 网页端口用 WebSocket /rtsp 转发一路 RTSP，工具页可播放 H.264。
 - 工具页新增「浏览器小模型」和「本机信息」。
-- 桌面 RTSP 测试服务器画出弹跳画面，用 ffmpeg.exe 编成 H.264，并在本机端口提供 rtsp://127.0.0.1:端口/live。
+- 桌面 RTSP 测试服务器画出弹跳画面，用 ffmpeg64 里的 libx264 编成 H.264，并在本机端口提供 rtsp://127.0.0.1:端口/live。
 - 桌面便笺：无边框半透明窗口，可写文字或待办。关掉后再打开，内容和窗口位置仍在。
 - 工具页相机扫出码时播放一声方波 8bit 提示音。
 - 工具页新增「中文分词」，用浏览器分词按词、句或字素切开。
-- 增加 Chrome 语音：用本机 Chrome 的 Google 语音朗读，可指定 chrome.exe。声音从 Chrome 放出，不能导出，HTTP 也不返回 WAV。
+- 增加 Chrome 语音：用本机隐藏的 Chrome 朗读 Google 语音，可指定 chrome.exe。空闲默认 60 秒后关闭（可改，0 为不关）。桌面和网页工具播放都走系统当前的默认输出设备。不能导出，HTTP 也不返回 WAV。
 - IP 扫描列表可右键复制主机名、IP 或 MAC
 - RTSP 转发和工具页播放可以带上 PCMU、PCMA 或 AAC。RTSP 测试服务器增加声音开关，打开时发送 8 kHz PCMU 提示音。
 - 翻译引擎增加 Chrome：用本机 Chrome 的翻译模型。在翻译页选择 Chrome，沿用语音合成里的 chrome.exe，窗口隐藏。
@@ -182,7 +186,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安装功能可以查询、安装和卸载 Chrome 翻译语言包和离线语音包。它们放在本程序专用的 Chrome 配置里。
 - 网页工具的历法分类增加世界时钟，默认列出常用地区的本地时间，也可以再选一个地区。
 - 网页聊天室可以用 Ctrl+V 粘贴图片或文件。
-- 聊天图片用 cdnjs 上的 Viewer.js 点击放大，并关闭过渡动画。
+- 聊天图片用本机的 Viewer.js 点击放大，并关闭过渡动画。
 - 状态栏在本程序启动的 Chrome 子进程还在运行时显示状态。
 
 #### 变更
@@ -211,8 +215,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 中文分词按词、句或字素切开后，每行一段。
 - 工具菜单合并成一个，网页工具标注 (web)，韩语输入直接放在工具下
 - RTSP 测试服务器的视频码率默认改为 200 kbps。
-- Chrome 朗读改为隐藏窗口，空闲默认 60 秒后关闭（可改，0 为不关）。桌面和网页工具播放都走系统当前的默认输出设备。
-- 聊天图片放大改为使用本机的 Viewer.js，不再从 cdnjs 加载。
 
 #### 修复
 
@@ -227,7 +229,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 打开工具后宽度不超过窗口，超出的内容在工具内部滚动。
 - 相机预览改选不超过 1280×720、帧率更高的模式。原先停在又大又慢的格式上，大约每秒 2 帧。
 - 检查更新连不上 GitHub 时，提示可以将新版本的 7z 放到程序目录下，再点击检查更新以更新。
-- RTSP 测试服务器改用 ffmpeg64 里的 libx264 编码，不再查找 ffmpeg.exe。
 - 桌面相机和工具页扫码时，同一个码隔 3 秒会再显示一次。
 - RTSP 测试画面不再闪黑。先复制完一帧，再让下一帧清屏。
 - 科学计算器按键 + - * / 对应加、减、乘、除，Shift+8 和 Shift+= 也一样。
