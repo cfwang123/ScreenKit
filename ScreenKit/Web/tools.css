@@ -601,7 +601,9 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 }
 .rtsp { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%; overflow: hidden; }
 .rtsp-bar { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.rtsp-bar input { flex: 1 1 auto; min-width: 0; height: 32px; margin: 0; }
+.rtsp-bar input[type="text"] { flex: 1 1 auto; min-width: 0; height: 32px; margin: 0; }
+.rtsp-bar label { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.rtsp-bar label input { width: auto; height: auto; margin: 0; flex: 0 0 auto; }
 .rtsp-bar button {
 	height: 32px; padding: 0 12px; cursor: pointer; flex: 0 0 auto;
 	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);

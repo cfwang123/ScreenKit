@@ -10,14 +10,16 @@ namespace ScreenKit;
 
 /// <summary>
 /// 把一路 RTSP（TCP 交织）收成 H.264，经已有网页端口的 WebSocket /rtsp 转给浏览器。
-/// 相同地址只拉一路。二进制帧：切片前 4 字节是大端微秒时间戳，后面是带起始码的 NAL。
+/// 勾选声音时再 SETUP 音频轨，转发 PCMU、PCMA 或 AAC。相同地址只拉一路。
+/// 视频帧：切片前 4 字节是大端微秒时间戳，后面是带起始码的 NAL。
+/// 音频帧以 0xA1 开头：类型、采样率、声道、时间戳，后面是载荷。
 /// </summary>
 static class RtspFwd {
 	const int RECV = 262144;
 	static readonly object gate = new();
 	static readonly Dictionary<string, Pull> pulls = new(StringComparer.OrdinalIgnoreCase);
 
-	public static void Attach(Stream net, byte[] prefetch, string rtspUrl) {
+	public static void Attach(Stream net, byte[] prefetch, string rtspUrl, bool audio = true) {
 		if (!okurl(rtspUrl)) {
 			try { writeframe(net, 1, Encoding.UTF8.GetBytes("ERROR: rtsp 参数必须是 rtsp:// 开头的 URL")); } catch { }
 			return;
@@ -28,7 +30,7 @@ static class RtspFwd {
 		lock (gate) {
 			if (!pulls.TryGetValue(key, out pull) || pull.dead)
 				pulls[key] = pull = new Pull(rtspUrl, key);
-			view = pull.add(net, prefetch);
+			view = pull.add(net, prefetch, audio);
 		}
 		try { view.pump(); }
 		finally { pull.leave(view); }
@@ -36,6 +38,7 @@ static class RtspFwd {
 
 	public static int Test(Action<string> log, Action<string> err) {
 		if (!testfua(err)) return 1;
+		if (!testaac(err)) return 1;
 		TcpListener cam = null;
 		SockHttpServer http = null;
 		ClientWebSocket ws = null;
@@ -135,6 +138,16 @@ static class RtspFwd {
 		}
 		if (got[0][0] != 0 || got[0][1] != 0 || got[0][2] != 0 || got[0][3] != 1 || got[0][4] != 0x65) {
 			err("rtsp: FU-A 起始码不对");
+			return false;
+		}
+		return true;
+	}
+
+	static bool testaac(Action<string> err) {
+		var payload = new byte[] { 0x00, 0x10, 0x00, 0x10, 0x11, 0x22 };
+		var aus = Pull.aacframes(payload, 13, 3);
+		if (aus.Count != 1 || aus[0].Length != 2 || aus[0][0] != 0x11 || aus[0][1] != 0x22) {
+			err("rtsp: AAC 帧没有拆出来");
 			return false;
 		}
 		return true;
@@ -279,6 +292,17 @@ static class RtspFwd {
 		string session;
 		int rtpch;
 		int rtcpch = 1;
+		bool hasAudio;
+		int artp = 2;
+		int artcp = 3;
+		int akind;
+		int arate = 8000;
+		int ach = 1;
+		int asize = 13;
+		int aindex = 3;
+		string aname = "";
+		string acontrol;
+		byte[] aacAsc;
 		string control;
 		string contentbase;
 		string user = "";
@@ -309,8 +333,8 @@ static class RtspFwd {
 			}
 		}
 
-		public View add(Stream net, byte[] prefetch) {
-			var v = new View(net, prefetch);
+		public View add(Stream net, byte[] prefetch, bool audio) {
+			var v = new View(net, prefetch, audio);
 			lock (vgate) views.Add(v);
 			v.text("INFO: 加入共享流，当前 " + count() + " 人观看");
 			if (failed) {
@@ -407,17 +431,32 @@ static class RtspFwd {
 				throw new UnauthorizedAccessException("RTSP 认证失败");
 			ok("DESCRIBE", sdp);
 			parsebase(sdp);
+			parseaudio(sdp);
 			if (!h264(sdp))
 				throw new InvalidOperationException("只转发 H.264，这条流不是 H.264");
-			var setup = setupurl(host, port, root);
+			var setup = trackurl(control, host, port, root);
 			var setupResp = command("SETUP", setup, "Transport: RTP/AVP/TCP;unicast;interleaved=0-1");
 			ok("SETUP", setupResp);
 			parsesess(setupResp);
-			parsetrans(setupResp);
+			parsetrans(setupResp, false);
+			if (hasAudio) {
+				try {
+					var setupA = trackurl(acontrol, host, port, root);
+					var setupAResp = command("SETUP", setupA, "Transport: RTP/AVP/TCP;unicast;interleaved=2-3");
+					ok("SETUP", setupAResp);
+					parsetrans(setupAResp, true);
+				}
+				catch (Exception ex) {
+					hasAudio = false;
+					textall("INFO: 声音未接通：" + ex.Message);
+				}
+			}
 			var play = string.IsNullOrEmpty(contentbase) ? root : contentbase;
 			var playResp = command("PLAY", play, "Range: npt=0.000-");
 			ok("PLAY", playResp);
-			textall("INFO: RTSP 已连接，等待视频流");
+			var hello = "INFO: RTSP 已连接，等待视频流";
+			if (hasAudio) hello += "，" + aname;
+			textall(hello);
 			lock (vgate) {
 				foreach (var v in views) sendboot(v);
 			}
@@ -445,13 +484,16 @@ static class RtspFwd {
 				if (b0 == (byte)'$') {
 					var ch = recv[parseat + 1];
 					var plen = (recv[parseat + 2] << 8) | recv[parseat + 3];
-					if ((ch != rtpch && ch != rtcpch) || plen <= 0 || plen > recv.Length) {
+					var video = ch == rtpch;
+					var sound = hasAudio && ch == artp;
+					if ((!video && !sound && ch != rtcpch && ch != artcp) || plen <= 0 || plen > recv.Length) {
 						parseat++;
 						continue;
 					}
 					var end = parseat + 4 + plen;
 					if (end > recvlen) break;
-					if (ch == rtpch) onrtp(parseat + 4, plen);
+					if (video) onrtp(parseat + 4, plen);
+					else if (sound) onaud(parseat + 4, plen);
 					parseat = end;
 				}
 				else if (b0 == (byte)'R' && parseat + 4 <= recvlen
@@ -491,6 +533,38 @@ static class RtspFwd {
 			}
 		}
 
+		void onaud(int off, int len) {
+			Rtp pkt;
+			try { pkt = Rtp.Parse(recv, off, len); }
+			catch { return; }
+			if (pkt.Payload == null || pkt.Payload.Length == 0) return;
+			if (akind == 2) {
+				foreach (var au in aacframes(pkt.Payload, asize, aindex))
+					sendaudio(2, au);
+				return;
+			}
+			sendaudio(akind, pkt.Payload);
+		}
+
+		void sendaudio(int kind, byte[] payload) {
+			if (payload == null || payload.Length == 0) return;
+			var body = new byte[9 + payload.Length];
+			body[0] = 0xA1;
+			body[1] = (byte)kind;
+			body[2] = (byte)(arate >> 8);
+			body[3] = (byte)arate;
+			body[4] = (byte)ach;
+			var p = (uint)Math.Min(clock.Elapsed.TotalMilliseconds * 1000.0, uint.MaxValue);
+			body[5] = (byte)(p >> 24);
+			body[6] = (byte)(p >> 16);
+			body[7] = (byte)(p >> 8);
+			body[8] = (byte)p;
+			Buffer.BlockCopy(payload, 0, body, 9, payload.Length);
+			View[] snap;
+			lock (vgate) snap = views.ToArray();
+			foreach (var v in snap) v.audio(body);
+		}
+
 		void flushau() {
 			if (au.Count == 0) { auon = false; aukey = false; return; }
 			var len = 0;
@@ -516,6 +590,16 @@ static class RtspFwd {
 		}
 
 		void sendboot(View v) {
+			if (hasAudio && akind == 2 && aacAsc != null) {
+				var cfg = new byte[9 + aacAsc.Length];
+				cfg[0] = 0xA1;
+				cfg[1] = 3;
+				cfg[2] = (byte)(arate >> 8);
+				cfg[3] = (byte)arate;
+				cfg[4] = (byte)ach;
+				Buffer.BlockCopy(aacAsc, 0, cfg, 9, aacAsc.Length);
+				v.audio(cfg);
+			}
 			if (sps == null || pps == null) return;
 			var merged = new byte[sps.Length + pps.Length];
 			Buffer.BlockCopy(sps, 0, merged, 0, sps.Length);
@@ -647,11 +731,139 @@ static class RtspFwd {
 			return true;
 		}
 
-		string setupurl(string host, int port, string root) {
-			if (string.IsNullOrEmpty(control) || control == "*") return root;
-			if (control.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase)) return control;
-			if (control.StartsWith("/")) return "rtsp://" + host + ":" + port + control;
-			return root.TrimEnd('/') + "/" + control;
+		static string trackurl(string ctrl, string host, int port, string root) {
+			if (string.IsNullOrEmpty(ctrl) || ctrl == "*") return root;
+			if (ctrl.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase)) return ctrl;
+			if (ctrl.StartsWith("/")) return "rtsp://" + host + ":" + port + ctrl;
+			return root.TrimEnd('/') + "/" + ctrl;
+		}
+
+		void parseaudio(string sdp) {
+			hasAudio = false;
+			var lines = sdp.Split('\n');
+			var at = -1;
+			for (var i = 0; i < lines.Length; i++) {
+				if (lines[i].Trim().StartsWith("m=audio", StringComparison.OrdinalIgnoreCase)) { at = i; break; }
+			}
+			if (at < 0) return;
+			var parts = lines[at].Trim().Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+			var pt = -1;
+			for (var i = 3; i < parts.Length; i++) {
+				if (int.TryParse(parts[i], out var n)) { pt = n; break; }
+			}
+			string map = null;
+			string fmtp = null;
+			string ctrl = null;
+			for (var i = at + 1; i < lines.Length; i++) {
+				var line = lines[i].Trim();
+				if (line.StartsWith("m=", StringComparison.OrdinalIgnoreCase)) break;
+				if (line.StartsWith("a=rtpmap:", StringComparison.OrdinalIgnoreCase)) {
+					var m = Regex.Match(line, @"a=rtpmap:(\d+)", RegexOptions.IgnoreCase);
+					if (!m.Success || pt < 0 || m.Groups[1].Value == pt.ToString()) map = line;
+				}
+				else if (line.StartsWith("a=fmtp:", StringComparison.OrdinalIgnoreCase)) {
+					var m = Regex.Match(line, @"a=fmtp:(\d+)", RegexOptions.IgnoreCase);
+					if (!m.Success || pt < 0 || m.Groups[1].Value == pt.ToString()) fmtp = line;
+				}
+				else if (line.StartsWith("a=control:", StringComparison.OrdinalIgnoreCase))
+					ctrl = line.Substring("a=control:".Length).Trim();
+			}
+			var codec = "";
+			var rate = 8000;
+			var ch = 1;
+			if (map != null) {
+				var m = Regex.Match(map, @"a=rtpmap:\d+\s+([^/\s]+)/(\d+)(?:/(\d+))?", RegexOptions.IgnoreCase);
+				if (m.Success) {
+					codec = m.Groups[1].Value;
+					int.TryParse(m.Groups[2].Value, out rate);
+					if (m.Groups[3].Success) int.TryParse(m.Groups[3].Value, out ch);
+				}
+			}
+			else if (pt == 0) codec = "PCMU";
+			else if (pt == 8) codec = "PCMA";
+			if (rate <= 0) rate = 8000;
+			if (ch <= 0) ch = 1;
+			var name = codec.ToUpperInvariant();
+			if (name == "PCMU") { akind = 0; aname = "PCMU " + rate + " Hz"; }
+			else if (name == "PCMA") { akind = 1; aname = "PCMA " + rate + " Hz"; }
+			else if (name == "MPEG4-GENERIC" || name == "MPEG4-GENERIC/AAC" || name.IndexOf("AAC", StringComparison.Ordinal) >= 0) {
+				akind = 2;
+				aname = "AAC " + rate + " Hz";
+				asize = 13;
+				aindex = 3;
+				if (fmtp != null) {
+					var sm = Regex.Match(fmtp, @"sizelength\s*=\s*(\d+)", RegexOptions.IgnoreCase);
+					var im = Regex.Match(fmtp, @"indexlength\s*=\s*(\d+)", RegexOptions.IgnoreCase);
+					if (sm.Success) int.TryParse(sm.Groups[1].Value, out asize);
+					if (im.Success) int.TryParse(im.Groups[1].Value, out aindex);
+					var cm = Regex.Match(fmtp, @"config\s*=\s*([0-9a-fA-F]+)", RegexOptions.IgnoreCase);
+					if (cm.Success) aacAsc = hexbytes(cm.Groups[1].Value);
+				}
+				if (aacAsc == null) aacAsc = aacasc(rate, ch);
+			}
+			else {
+				if (codec.Length > 0) textall("INFO: 声音是 " + codec + "，暂不转发");
+				return;
+			}
+			arate = rate;
+			ach = ch;
+			acontrol = string.IsNullOrEmpty(ctrl) ? control : ctrl;
+			hasAudio = true;
+		}
+
+		static byte[] aacasc(int rate, int channels) {
+			int[] rates = { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350 };
+			var idx = 4;
+			for (var i = 0; i < rates.Length; i++) {
+				if (rates[i] == rate) { idx = i; break; }
+			}
+			if (channels < 1) channels = 1;
+			if (channels > 2) channels = 2;
+			return new[] { (byte)((2 << 3) | (idx >> 1)), (byte)(((idx & 1) << 7) | (channels << 3)) };
+		}
+
+		static byte[] hexbytes(string s) {
+			if ((s.Length & 1) != 0) s = "0" + s;
+			var b = new byte[s.Length / 2];
+			for (var i = 0; i < b.Length; i++)
+				b[i] = Convert.ToByte(s.Substring(i * 2, 2), 16);
+			return b;
+		}
+
+		internal static List<byte[]> aacframes(byte[] payload, int sizeBits, int indexBits) {
+			var list = new List<byte[]>();
+			if (payload == null || payload.Length < 2) return list;
+			if (sizeBits <= 0) sizeBits = 13;
+			if (indexBits < 0) indexBits = 3;
+			var headerBits = (payload[0] << 8) | payload[1];
+			var headerBytes = (headerBits + 7) / 8;
+			if (headerBytes < 0 || 2 + headerBytes > payload.Length) return list;
+			var auBits = sizeBits + indexBits;
+			if (auBits <= 0) return list;
+			var count = headerBits / auBits;
+			var bit = 16;
+			var data = 2 + headerBytes;
+			for (var i = 0; i < count; i++) {
+				var size = readbits(payload, bit, sizeBits);
+				bit += auBits;
+				if (size <= 0 || data + size > payload.Length) break;
+				var au = new byte[size];
+				Buffer.BlockCopy(payload, data, au, 0, size);
+				data += size;
+				list.Add(au);
+			}
+			return list;
+		}
+
+		static int readbits(byte[] data, int bit, int n) {
+			var v = 0;
+			for (var i = 0; i < n; i++) {
+				var p = bit + i;
+				var b = p >> 3;
+				if (b < 0 || b >= data.Length) break;
+				v = (v << 1) | ((data[b] >> (7 - (p & 7))) & 1);
+			}
+			return v;
 		}
 
 		string baseurl() {
@@ -682,11 +894,13 @@ static class RtspFwd {
 			if (m.Success) session = m.Groups[1].Value;
 		}
 
-		void parsetrans(string response) {
+		void parsetrans(string response, bool audio) {
 			var m = Regex.Match(response, @"interleaved=(\d+)-(\d+)", RegexOptions.IgnoreCase);
 			if (!m.Success) return;
-			rtpch = int.Parse(m.Groups[1].Value);
-			rtcpch = int.Parse(m.Groups[2].Value);
+			var a = int.Parse(m.Groups[1].Value);
+			var b = int.Parse(m.Groups[2].Value);
+			if (audio) { artp = a; artcp = b; }
+			else { rtpch = a; rtcpch = b; }
 		}
 
 		void parseauth(string response) {
@@ -776,12 +990,14 @@ static class RtspFwd {
 		readonly object qgate = new();
 		readonly Queue<Item> q = new();
 		readonly WsIn bin = new();
+		readonly bool hear;
 		volatile bool dead;
 		bool waitkey = true;
 		byte[] pre;
 
-		public View(Stream net, byte[] prefetch) {
+		public View(Stream net, byte[] prefetch, bool audio) {
 			this.net = net;
+			hear = audio;
 			pre = prefetch ?? Array.Empty<byte>();
 		}
 
@@ -796,6 +1012,14 @@ static class RtspFwd {
 			waitkey = true;
 		}
 
+		public void audio(byte[] data) {
+			if (dead || !hear || data == null) return;
+			lock (qgate) {
+				while (q.Count > 120) q.Dequeue();
+				q.Enqueue(new Item { op = 2, data = data });
+			}
+		}
+
 		public void binary(byte[] data, bool key) {
 			if (dead) return;
 			if (waitkey) {
@@ -803,7 +1027,7 @@ static class RtspFwd {
 				waitkey = false;
 			}
 			lock (qgate) {
-				while (q.Count > 48) q.Dequeue();
+				while (q.Count > 120) q.Dequeue();
 				q.Enqueue(new Item { op = 2, data = data });
 			}
 		}

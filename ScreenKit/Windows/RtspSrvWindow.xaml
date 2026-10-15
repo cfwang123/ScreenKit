@@ -27,7 +27,12 @@
 					<Button x:Name="btoggle" Content="启动" Width="72" Height="26"/>
 				</StackPanel>
 				<StackPanel VerticalAlignment="Center">
-					<TextBlock x:Name="lbstatus" Text="已停止" Foreground="#4EC9B0" FontWeight="SemiBold"/>
+					<StackPanel Orientation="Horizontal">
+						<TextBlock x:Name="lbstatus" Text="已停止" Foreground="#4EC9B0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+						<CheckBox x:Name="caudio" Content="声音" IsChecked="True" Foreground="#CCC"
+						          VerticalAlignment="Center" Margin="12,0,0,0"
+						          AutomationProperties.AutomationId="rtspsrv.audio"/>
+					</StackPanel>
 					<TextBlock x:Name="lbinfo" Text="" Foreground="#888" FontSize="11" Margin="0,2,0,0"/>
 				</StackPanel>
 			</DockPanel>

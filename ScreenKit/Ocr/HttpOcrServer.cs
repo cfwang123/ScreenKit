@@ -647,16 +647,19 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 			var rtsp = "";
+			var audio = true;
 			var q = req.Url?.Query ?? "";
 			if (q.StartsWith("?")) q = q.Substring(1);
 			foreach (var part in q.Split('&')) {
 				var i = part.IndexOf('=');
 				var k = Uri.UnescapeDataString(i < 0 ? part : part.Substring(0, i));
-				if (!k.Equals("rtsp", StringComparison.OrdinalIgnoreCase)) continue;
-				rtsp = i < 0 ? "" : Uri.UnescapeDataString(part.Substring(i + 1));
-				break;
+				var v = i < 0 ? "" : Uri.UnescapeDataString(part.Substring(i + 1));
+				if (k.Equals("rtsp", StringComparison.OrdinalIgnoreCase)) rtsp = v;
+				else if (k.Equals("audio", StringComparison.OrdinalIgnoreCase))
+					audio = v != "0" && !v.Equals("false", StringComparison.OrdinalIgnoreCase)
+						&& !v.Equals("off", StringComparison.OrdinalIgnoreCase) && !v.Equals("no", StringComparison.OrdinalIgnoreCase);
 			}
-			RtspFwd.Attach(ctx.Net, ctx.Prefetch, rtsp);
+			RtspFwd.Attach(ctx.Net, ctx.Prefetch, rtsp, audio);
 		}
 		catch (Exception ex) {
 			Logged?.Invoke($"rtsp ws: {ex.Message}");

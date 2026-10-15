@@ -28,6 +28,7 @@ sealed class RtspTestSrv : IDisposable {
 	}
 
 	public int Port { get; private set; }
+	public bool Audio { get; set; }
 	public bool Running => running;
 	public int ClientCount => sessions.Count;
 	public bool Playing => sessions.Values.Any(s => s.Playing);
@@ -80,6 +81,7 @@ sealed class RtspTestSrv : IDisposable {
 		TcpClient c = null;
 		try {
 			srv = new RtspTestSrv(0, loopback: true);
+			srv.Audio = true;
 			srv.Start();
 			c = new TcpClient();
 			if (!c.ConnectAsync(IPAddress.Loopback, srv.Port).Wait(2000)) {
@@ -104,6 +106,29 @@ sealed class RtspTestSrv : IDisposable {
 				return 1;
 			}
 			log("rtspsrv: OPTIONS 200");
+			var dreq = Encoding.ASCII.GetBytes("DESCRIBE rtsp://127.0.0.1:" + srv.Port + "/live RTSP/1.0\r\nCSeq: 2\r\nAccept: application/sdp\r\n\r\n");
+			ns.Write(dreq, 0, dreq.Length);
+			acc.Clear();
+			t0 = Environment.TickCount;
+			while (Environment.TickCount - t0 < 2000) {
+				if (!ns.DataAvailable) { Thread.Sleep(10); continue; }
+				var n = ns.Read(buf, 0, buf.Length);
+				if (n <= 0) break;
+				acc.Append(Encoding.ASCII.GetString(buf, 0, n));
+				var got = acc.ToString();
+				var mark = got.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+				if (mark < 0) continue;
+				var cm = Regex.Match(got, @"Content-Length:\s*(\d+)", RegexOptions.IgnoreCase);
+				var need = cm.Success ? int.Parse(cm.Groups[1].Value) : 0;
+				if (got.Length >= mark + 4 + need) break;
+			}
+			var sdp = acc.ToString();
+			if (sdp.IndexOf("m=audio", StringComparison.OrdinalIgnoreCase) < 0
+				|| sdp.IndexOf("PCMU/8000", StringComparison.OrdinalIgnoreCase) < 0) {
+				err("rtspsrv: SDP 没有 PCMU");
+				return 1;
+			}
+			log("rtspsrv: SDP 含 PCMU");
 			if (!FfmpegLoader.TryInit(out var ferr)) {
 				log("rtspsrv: 跳过编码 " + ferr);
 				return 0;
@@ -254,6 +279,12 @@ sealed class RtspTestSrv : IDisposable {
 		readonly uint ssrc = (uint)rand.Next();
 		ushort seq;
 		uint stamp;
+		ushort aseq;
+		uint astamp;
+		int asamp;
+		int atick;
+		double phase;
+		bool audioGo;
 		int closed;
 		int dropidr = 1;
 		public Guid Id { get; } = Guid.NewGuid();
@@ -374,7 +405,9 @@ sealed class RtspTestSrv : IDisposable {
 					"Content-Length: " + n,
 					"Content-Base: " + req.Url) + sdp;
 			case "SETUP":
-				return headers(req, "Transport: RTP/AVP/TCP;unicast;interleaved=0-1");
+				var audioTrack = owner.Audio && req.Url.IndexOf("track1", StringComparison.OrdinalIgnoreCase) >= 0;
+				if (audioTrack) audioGo = true;
+				return headers(req, "Transport: RTP/AVP/TCP;unicast;interleaved=" + (audioTrack ? "2-3" : "0-1"));
 			case "PLAY":
 				return headers(req, "Range: npt=0.000-", "RTP-Info: url=" + req.Url + ";seq=" + seq + ";rtptime=" + stamp);
 			case "PAUSE":
@@ -420,11 +453,17 @@ sealed class RtspTestSrv : IDisposable {
 				sb.Append(Convert.ToBase64String(owner.pps, 4, owner.pps.Length - 4));
 			}
 			sb.Append("\r\n");
+			if (owner.Audio) {
+				sb.Append("m=audio 0 RTP/AVP 0\r\n");
+				sb.Append("a=rtpmap:0 PCMU/8000/1\r\n");
+				sb.Append("a=control:track1\r\n");
+			}
 			return sb.ToString();
 		}
 
 		async Task sendloop(CancellationToken token) {
 			while (!token.IsCancellationRequested && Playing && client.Connected) {
+				await pumpaudio(token);
 				if (!kick.WaitOne(100) && frames.IsEmpty) continue;
 				while (frames.TryDequeue(out var frame)) {
 					var nals = split(frame);
@@ -446,6 +485,58 @@ sealed class RtspTestSrv : IDisposable {
 					stamp += 3000;
 				}
 			}
+		}
+
+		async Task pumpaudio(CancellationToken token) {
+			if (!audioGo || !owner.Audio) return;
+			if (atick == 0) atick = Environment.TickCount;
+			var due = (Environment.TickCount - atick) * 8;
+			var n = 0;
+			while (asamp + 160 <= due && n < 8) {
+				var packet = new byte[12 + 160];
+				packet[0] = 0x80;
+				packet[1] = 0;
+				packet[2] = (byte)(aseq >> 8);
+				packet[3] = (byte)aseq;
+				packet[4] = (byte)(astamp >> 24);
+				packet[5] = (byte)(astamp >> 16);
+				packet[6] = (byte)(astamp >> 8);
+				packet[7] = (byte)astamp;
+				packet[8] = (byte)(ssrc >> 24);
+				packet[9] = (byte)(ssrc >> 16);
+				packet[10] = (byte)(ssrc >> 8);
+				packet[11] = (byte)ssrc;
+				for (var i = 0; i < 160; i++) {
+					var s = Math.Sin(phase) * 7000.0;
+					phase += 2 * Math.PI * 440.0 / 8000.0;
+					if (phase > Math.PI * 2) phase -= Math.PI * 2;
+					packet[12 + i] = mulaw((short)s);
+				}
+				var frame = new byte[4 + packet.Length];
+				frame[0] = (byte)'$';
+				frame[1] = 2;
+				frame[2] = (byte)(packet.Length >> 8);
+				frame[3] = (byte)packet.Length;
+				Buffer.BlockCopy(packet, 0, frame, 4, packet.Length);
+				await stream.WriteAsync(frame, 0, frame.Length, token);
+				aseq++;
+				astamp += 160;
+				asamp += 160;
+				n++;
+			}
+		}
+
+		static byte mulaw(short sample) {
+			const int BIAS = 0x84;
+			const int CLIP = 32635;
+			var sign = (sample >> 8) & 0x80;
+			if (sign != 0) sample = (short)-sample;
+			if (sample > CLIP) sample = CLIP;
+			sample += BIAS;
+			var exp = 7;
+			for (var mask = 0x4000; (sample & mask) == 0 && exp > 0; mask >>= 1) exp--;
+			var mantissa = (sample >> (exp + 3)) & 0x0F;
+			return (byte)~(sign | (exp << 4) | mantissa);
 		}
 
 		async Task sendnal(byte[] nalUnit, bool marker, CancellationToken token) {

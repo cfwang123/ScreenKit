@@ -127,6 +127,16 @@
 					          SelectionMode="Single"
 					          FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI"
 					          AutomationProperties.AutomationId="nettool.ip.list">
+						<ListView.ContextMenu>
+							<ContextMenu>
+								<MenuItem x:Name="mnipname" Header="复制主机名(_N)"
+								          AutomationProperties.AutomationId="nettool.ip.copy.name"/>
+								<MenuItem x:Name="mnipaddr" Header="复制 IP(_I)"
+								          AutomationProperties.AutomationId="nettool.ip.copy.ip"/>
+								<MenuItem x:Name="mnipmac" Header="复制 MAC(_M)"
+								          AutomationProperties.AutomationId="nettool.ip.copy.mac"/>
+							</ContextMenu>
+						</ListView.ContextMenu>
 						<ListView.View>
 							<GridView>
 								<GridViewColumn x:Name="colipname" Header="主机名" Width="220"

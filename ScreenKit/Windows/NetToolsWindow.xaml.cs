@@ -102,6 +102,18 @@ public partial class NetToolsWindow : Window {
 			}
 		};
 		biclose.Click += (_, _) => Close();
+		lvip.PreviewMouseRightButtonDown += (_, e) => pickiprow(e.OriginalSource as DependencyObject);
+		mnipname.Click += (_, _) => copyip("name");
+		mnipaddr.Click += (_, _) => copyip("ip");
+		mnipmac.Click += (_, _) => copyip("mac");
+		if (lvip.ContextMenu != null) {
+			lvip.ContextMenu.Opened += (_, _) => {
+				var on = lvip.SelectedItem is IpRow;
+				mnipname.IsEnabled = on;
+				mnipaddr.IsEnabled = on;
+				mnipmac.IsEnabled = on;
+			};
+		}
 		epsip.KeyDown += (_, e) => {
 			if (e.Key == System.Windows.Input.Key.Enter && !busy) {
 				_ = runpscan();
@@ -133,6 +145,9 @@ public partial class NetToolsWindow : Window {
 		colipname.Header = Loc.T("nettool.ip.col.name");
 		colipaddr.Header = Loc.T("nettool.ip.col.ip");
 		colipmac.Header = Loc.T("nettool.ip.col.mac");
+		mnipname.Header = Loc.T("nettool.ip.copy.name");
+		mnipaddr.Header = Loc.T("nettool.ip.copy.ip");
+		mnipmac.Header = Loc.T("nettool.ip.copy.mac");
 		ToolBtnUi.Set(bistart, ToolBtnUi.Play, Loc.T("nettool.pscan.start"));
 		ToolBtnUi.Set(bistop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
 		ToolBtnUi.Set(biport, ToolBtnUi.Browse, Loc.T("nettool.scan.toport"));
@@ -484,6 +499,31 @@ public partial class NetToolsWindow : Window {
 			try { cts.Dispose(); } catch { }
 			cts = null;
 			setbusy(false);
+		}
+	}
+
+	void pickiprow(DependencyObject src) {
+		while (src != null && src is not ListViewItem)
+			src = VisualTreeHelper.GetParent(src);
+		if (src is not ListViewItem item) return;
+		item.IsSelected = true;
+		item.Focus();
+	}
+
+	void copyip(string kind) {
+		if (lvip.SelectedItem is not IpRow row) {
+			lbistat.Text = Loc.T("nettool.scan.pick");
+			return;
+		}
+		var text = kind == "ip" ? row.Ip : kind == "mac" ? row.Mac : row.Name;
+		if (kind == "name" && text == "-") text = "";
+		if (string.IsNullOrEmpty(text)) return;
+		try {
+			Clipboard.SetText(text);
+			lbistat.Text = Loc.T("nettool.copied");
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
 

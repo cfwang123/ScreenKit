@@ -55,6 +55,7 @@ public partial class RtspSrvWindow : Window {
 		bclear.Content = Loc.T("rtspsrv.clear");
 		btoggle.Content = Loc.T("rtspsrv.start");
 		lbstatus.Text = Loc.T("rtspsrv.stopped");
+		caudio.Content = Loc.T("rtspsrv.audio");
 	}
 
 	void toggle() {
@@ -72,6 +73,7 @@ public partial class RtspSrvWindow : Window {
 			for (var i = 3; i < warm.Length; i += 4) warm[i] = 0xFF;
 			enc.Encode(warm);
 			srv = new RtspTestSrv(port);
+			srv.Audio = caudio.IsChecked == true;
 			srv.Log += msg => Dispatcher.BeginInvoke(new Action(() => log(msg)));
 			srv.ClientPlaying += () => enc.ForceKey();
 			if (enc.Sps != null) srv.SetCodec(enc.Sps, enc.Pps);
@@ -246,6 +248,7 @@ public partial class RtspSrvWindow : Window {
 		eheight.IsEnabled = on;
 		efps.IsEnabled = on;
 		ebitrate.IsEnabled = on;
+		caudio.IsEnabled = on;
 	}
 
 	void log(string msg) {

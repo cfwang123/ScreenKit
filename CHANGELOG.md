@@ -66,6 +66,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Desktop note: a borderless translucent window for text or a to-do list. Closing it keeps the note and the window position.
 - The tools-page camera plays a square-wave beep when a code is accepted.
 - Tools page: Chinese segmentation with Intl.Segmenter, by word, sentence, or grapheme.
+- Chrome TTS plays Google voices in local Chrome. Set chrome.exe under Speech. Audio is not exported or returned as WAV.
+- IP scan list can copy the host name, IP, or MAC from the right-click menu.
 
 #### Changed
 
@@ -154,6 +156,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 桌面便笺：无边框半透明窗口，可写文字或待办。关掉后再打开，内容和窗口位置仍在。
 - 工具页相机扫出码时播放一声方波 8bit 提示音。
 - 工具页新增「中文分词」，用浏览器分词按词、句或字素切开。
+- 增加 Chrome 语音：用本机 Chrome 的 Google 语音朗读，可指定 chrome.exe。声音从 Chrome 放出，不能导出，HTTP 也不返回 WAV。
+- IP 扫描列表可右键复制主机名、IP 或 MAC
 
 #### 变更
 
