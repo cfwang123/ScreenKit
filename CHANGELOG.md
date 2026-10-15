@@ -84,6 +84,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The camera window no longer opens the device twice. A second open was waiting on the window thread, so the window looked stuck and the camera did not start.
 - Opening the Markdown reader no longer fails because the page view cannot take a file drop that way.
 - The Markdown reader keeps tabbed nested lists, including the bullet used in the source, at the same depth.
+- The Markdown reader stays within the page. Wide tables scroll inside the preview.
+- The camera preview shows the picture. Media Foundation RGB32 leaves the alpha byte at zero, so the preview drew it as fully transparent.
 
 #### Documentation
 
@@ -139,6 +141,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 相机窗口不再把同一摄像头打开两次。第二次打开会堵在窗口线程上，窗口看起来卡住，摄像头也起不来。
 - 打开 MD 阅读器不再因为页面不能那样接收拖放而报错。
 - MD 阅读器按源码的制表符层级显示嵌套列表，圆点项目和源码同级缩进。
+- MD 阅读器不再把页面撑出横向滚动，宽表格在预览内部滚动。
+- 相机预览能看到画面。Media Foundation 的 RGB32 把透明字节留成 0，预览就把它画成全透明。
 
 #### 文档
 

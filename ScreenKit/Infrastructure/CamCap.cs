@@ -76,6 +76,7 @@ static class CamCap {
 			var at = stride > 0 ? origin + y * stride : origin + (h - 1 - y) * abs;
 			Buffer.BlockCopy(src, at, dst, y * tight, tight);
 		}
+		opaque(dst);
 		return dst;
 	}
 
@@ -93,7 +94,13 @@ static class CamCap {
 			for (var y = 0; y < h; y++)
 				Marshal.Copy(ptr + (h - 1 - y) * abs, dst, y * tight, tight);
 		}
+		opaque(dst);
 		return dst;
+	}
+
+	/// <summary>RGB32 的透明字节通常是 0。WPF 的 Bgra32 按预乘透明合成，留 0 时预览是一块黑。</summary>
+	static void opaque(byte[] dst) {
+		for (var i = 3; i < dst.Length; i += 4) dst[i] = 255;
 	}
 
 	/// <summary>去掉奇数的末列末行。宽或高不足 2 时返回空。</summary>
@@ -413,7 +420,7 @@ static class CamCap {
 		pad[0] = 0x11;
 		pad[12] = 0x22;
 		var top = CopyRgb32(pad, 0, 2, 2, 12);
-		if (top.Length != 16 || top[0] != 0x11 || top[8] != 0x22) fail("stride+");
+		if (top.Length != 16 || top[0] != 0x11 || top[8] != 0x22 || top[3] != 255) fail("stride+");
 		pad[0] = 0x22;
 		pad[12] = 0x11;
 		var bot = CopyRgb32(pad, 0, 2, 2, -12);
@@ -427,19 +434,32 @@ static class CamCap {
 		try {
 			var list = Devices();
 			log("cams " + list.Count);
-			if (list.Count > 0) {
-				using var s = Session.Open(list[0].Link);
+			foreach (var dev in list) {
+				using var s = Session.Open(dev.Link);
 				var t0 = Environment.TickCount;
 				byte[] frame = null;
 				var w = 0;
 				var h = 0;
-				while (Environment.TickCount - t0 < 3000) {
+				while (Environment.TickCount - t0 < 2500) {
 					if (s.TryCopy(out frame, out w, out h)) break;
 					Thread.Sleep(40);
 				}
-				if (frame == null) fail("no frame");
+				if (frame == null) fail("no frame " + dev.Name);
 				else if ((w & 1) != 0 || (h & 1) != 0 || w < 2 || h < 2 || frame.Length != w * h * 4) fail("frame " + w + "x" + h);
-				else log("frame " + w + "x" + h);
+				else {
+					var mb = 0;
+					var mg = 0;
+					var mr = 0;
+					var ma = 0;
+					for (var i = 0; i + 3 < frame.Length; i += 4) {
+						if (frame[i] > mb) mb = frame[i];
+						if (frame[i + 1] > mg) mg = frame[i + 1];
+						if (frame[i + 2] > mr) mr = frame[i + 2];
+						if (frame[i + 3] > ma) ma = frame[i + 3];
+					}
+					log("frame " + w + "x" + h + " B" + mb + " G" + mg + " R" + mr + " A" + ma + " " + dev.Name);
+					if (ma != 255) fail("alpha " + dev.Name);
+				}
 			}
 		}
 		catch (Exception ex) { fail(ex.Message); }
