@@ -40,6 +40,11 @@ public partial class RtspSrvWindow : Window {
 		applytext();
 		btoggle.Click += (_, _) => toggle();
 		bclear.Click += (_, _) => elog.Clear();
+		caudio.Click += (_, _) => {
+			if (srv == null) return;
+			srv.Audio = caudio.IsChecked == true;
+			if (srv.Audio && !srv.AudioOffered) log(Loc.T("rtspsrv.audiolater"));
+		};
 		Closed += (_, _) => stop();
 		timer.Tick += (_, _) => paintstatus();
 		timer.Start();
@@ -248,7 +253,6 @@ public partial class RtspSrvWindow : Window {
 		eheight.IsEnabled = on;
 		efps.IsEnabled = on;
 		ebitrate.IsEnabled = on;
-		caudio.IsEnabled = on;
 	}
 
 	void log(string msg) {

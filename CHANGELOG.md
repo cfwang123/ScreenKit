@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools page: Chinese segmentation with Intl.Segmenter, by word, sentence, or grapheme.
 - Chrome TTS plays Google voices in local Chrome. Set chrome.exe under Speech. Audio is not exported or returned as WAV.
 - IP scan list can copy the host name, IP, or MAC from the right-click menu.
+- RTSP forward and the tools-page player can include PCMU, PCMA, or AAC. The RTSP test server has a sound switch for an 8 kHz PCMU tone.
 
 #### Changed
 
@@ -158,6 +159,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页新增「中文分词」，用浏览器分词按词、句或字素切开。
 - 增加 Chrome 语音：用本机 Chrome 的 Google 语音朗读，可指定 chrome.exe。声音从 Chrome 放出，不能导出，HTTP 也不返回 WAV。
 - IP 扫描列表可右键复制主机名、IP 或 MAC
+- RTSP 转发和工具页播放可以带上 PCMU、PCMA 或 AAC。RTSP 测试服务器增加声音开关，打开时发送 8 kHz PCMU 提示音。
 
 #### 变更
 

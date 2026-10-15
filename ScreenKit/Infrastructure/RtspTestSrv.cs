@@ -29,6 +29,7 @@ sealed class RtspTestSrv : IDisposable {
 
 	public int Port { get; private set; }
 	public bool Audio { get; set; }
+	public bool AudioOffered { get; private set; }
 	public bool Running => running;
 	public int ClientCount => sessions.Count;
 	public bool Playing => sessions.Values.Any(s => s.Playing);
@@ -46,6 +47,7 @@ sealed class RtspTestSrv : IDisposable {
 		listener = new TcpListener(loopback ? IPAddress.Loopback : IPAddress.Any, Port);
 		listener.Start();
 		Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+		AudioOffered = Audio;
 		running = true;
 		say("RTSP 测试服务已开，端口 " + Port);
 		if (!loopback) {

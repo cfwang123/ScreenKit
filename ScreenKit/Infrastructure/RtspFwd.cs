@@ -105,7 +105,8 @@ static class RtspFwd {
 			try { http?.Stop(); } catch { }
 			try { cam?.Stop(); } catch { }
 			lock (gate) {
-				foreach (var p in pulls.Values) p.stop();
+				var alive = new List<Pull>(pulls.Values);
+				foreach (var p in alive) p.stop();
 				pulls.Clear();
 			}
 		}
@@ -486,7 +487,8 @@ static class RtspFwd {
 					var plen = (recv[parseat + 2] << 8) | recv[parseat + 3];
 					var video = ch == rtpch;
 					var sound = hasAudio && ch == artp;
-					if ((!video && !sound && ch != rtcpch && ch != artcp) || plen <= 0 || plen > recv.Length) {
+					var known = video || sound || ch == rtcpch || (hasAudio && ch == artcp);
+					if (!known || plen <= 0 || plen > recv.Length) {
 						parseat++;
 						continue;
 					}
