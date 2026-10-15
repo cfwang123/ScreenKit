@@ -476,6 +476,10 @@
 						<Button x:Name="bchromerefresh" Content="刷新" Style="{StaticResource ToolBtn}"
 						        Width="72" Margin="0,0,8,0"
 						        AutomationProperties.AutomationId="inst.chrome.refresh"/>
+						<Button x:Name="bchromemodel" Content="本机模型" Style="{StaticResource ToolBtn}"
+						        MinWidth="96" Padding="12,0" Margin="0,0,8,0"
+						        ToolTip="用 Chrome 打开 chrome://on-device-internals"
+						        AutomationProperties.AutomationId="inst.chrome.model"/>
 						<TextBlock x:Name="lbchromesum" VerticalAlignment="Center"
 						           FontSize="11" Foreground="{StaticResource TextMuted}" Text=""/>
 					</DockPanel>

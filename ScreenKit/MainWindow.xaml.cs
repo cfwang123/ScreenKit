@@ -97,6 +97,7 @@ public partial class MainWindow : Window {
 	SysInfoWindow sysWin;
 	SysToolWindow sysToolWin;
 	FileProbeWindow fileProbeWin;
+	PerfMonWindow perfMonWin;
 	HttpDebugWindow httpDbgWin;
 	ZhConvertWindow zhConvWin;
 	PinyinWindow pinyinWin;
@@ -657,6 +658,7 @@ public partial class MainWindow : Window {
 			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys(fromTray: true)));
 			tray.SysToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opensystool(fromTray: true)));
 			tray.FileProbeRequested += () => Dispatcher.BeginInvoke(new Action(() => openfileprobe(fromTray: true)));
+			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon(fromTray: true)));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg(fromTray: true)));
 			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv(fromTray: true)));
 			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin(fromTray: true)));
@@ -1640,6 +1642,7 @@ public partial class MainWindow : Window {
 		mnsys.Click += (_, _) => opensys();
 		mnsystool.Click += (_, _) => opensystool();
 		mnfileprobe.Click += (_, _) => openfileprobe();
+		mnperfmon.Click += (_, _) => openperfmon();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
 		mnpinyin.Click += (_, _) => openpinyin();
@@ -1827,6 +1830,8 @@ public partial class MainWindow : Window {
 			mnsystool.ToolTip = Loc.T("menu.systool.tip");
 			mnfileprobe.Header = Loc.T("menu.fileprobe");
 			mnfileprobe.ToolTip = Loc.T("menu.fileprobe.tip");
+			mnperfmon.Header = Loc.T("menu.perfmon");
+			mnperfmon.ToolTip = Loc.T("menu.perfmon.tip");
 			mnhttpdbg.Header = Loc.T("menu.httpdbg");
 			mnhttpdbg.ToolTip = Loc.T("menu.httpdbg.tip");
 			mnzhconv.Header = Loc.T("menu.zhconv");
@@ -4443,6 +4448,9 @@ public partial class MainWindow : Window {
 
 	void openfileprobe(bool fromTray = false) =>
 		opentoolwin(ref fileProbeWin, () => new FileProbeWindow(), "menu.fileprobe", fromTray);
+
+	void openperfmon(bool fromTray = false) =>
+		opentoolwin(ref perfMonWin, () => new PerfMonWindow(), "menu.perfmon", fromTray);
 
 	void openhttpdbg(bool fromTray = false) =>
 		opentoolwin(ref httpDbgWin, () => new HttpDebugWindow(), "menu.httpdbg", fromTray);

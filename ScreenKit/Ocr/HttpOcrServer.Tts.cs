@@ -329,7 +329,7 @@ sealed partial class HttpOcrServer {
 			if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
 			var pack = ChromePack.SpeakLang(pick?.Culture ?? lang);
 			ChromePack.RequireVoice(pack, exe, HttpProxy.Mode, HttpProxy.Addr, CancellationToken.None);
-			ChromeTts.Start(text, pick?.Name ?? name, pick?.Culture ?? lang, speed, volume / 100.0, exe, idle);
+			ChromeTts.Speak(text, pick?.Name ?? name, pick?.Culture ?? lang, speed, volume / 100.0, exe, idle, CancellationToken.None);
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
 				["data"] = new JsonObject {

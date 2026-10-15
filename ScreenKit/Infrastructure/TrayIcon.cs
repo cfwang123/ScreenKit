@@ -64,6 +64,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miSys;
 	Forms.ToolStripMenuItem miSysTool;
 	Forms.ToolStripMenuItem miFileProbe;
+	Forms.ToolStripMenuItem miPerfMon;
 	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miZhConv;
 	Forms.ToolStripMenuItem miPinyin;
@@ -200,6 +201,7 @@ sealed class TrayIcon : IDisposable {
 		miSys = item("tray.sysinfo", () => SysRequested?.Invoke());
 		miSysTool = item("tray.systool", () => SysToolRequested?.Invoke());
 		miFileProbe = item("tray.fileprobe", () => FileProbeRequested?.Invoke());
+		miPerfMon = item("tray.perfmon", () => PerfMonRequested?.Invoke());
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
 		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
@@ -260,6 +262,7 @@ sealed class TrayIcon : IDisposable {
 		miCatFile.DropDownItems.Add(miFileProbe);
 		miCatSys = new Forms.ToolStripMenuItem(Loc.T("menu.cat.sys"));
 		miCatSys.DropDownItems.Add(miSysTool);
+		miCatSys.DropDownItems.Add(miPerfMon);
 		miCatSys.DropDownItems.Add(miWinTop);
 		miCatSys.DropDownItems.Add(miAutoKey);
 		miTools.DropDownItems.Add(miCatText);
@@ -559,6 +562,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miCam, "tray.cam");
 			settext(miSys, "tray.sysinfo");
 			settext(miSysTool, "tray.systool");
+			settext(miPerfMon, "tray.perfmon");
 			settext(miHttpDbg, "tray.httpdbg");
 			settext(miZhConv, "tray.zhconv");
 			settext(miPinyin, "tray.pinyin");
@@ -706,6 +710,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action SysRequested;
 	public event Action SysToolRequested;
 	public event Action FileProbeRequested;
+	public event Action PerfMonRequested;
 	public event Action HttpDbgRequested;
 	public event Action ZhConvRequested;
 	public event Action PinyinRequested;

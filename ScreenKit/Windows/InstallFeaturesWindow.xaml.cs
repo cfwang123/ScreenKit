@@ -119,6 +119,7 @@ partial class InstallFeaturesWindow : Window {
 			if (!winlangUiLoading) setwinlangcheck(false);
 		};
 		bchromerefresh.Click += async (_, _) => await loadchrome();
+		bchromemodel.Click += (_, _) => openchromemodel();
 		echromekind.SelectionChanged += (_, _) => {
 			if (!chromeUiLoading) applychromefilter();
 		};
@@ -215,6 +216,8 @@ partial class InstallFeaturesWindow : Window {
 		lbchromekind.Text = Loc.T("inst.chrome.kind");
 		cchromeonly.Content = Loc.T("inst.chrome.onlymissing");
 		bchromerefresh.Content = Loc.T("inst.chrome.refresh");
+		bchromemodel.Content = Loc.T("inst.chrome.model");
+		bchromemodel.ToolTip = Loc.T("inst.chrome.model.tip");
 		cchromeheader.ToolTip = Loc.T("inst.tts.selectall");
 		fillchromekind();
 		bmissing.Content = Loc.T("inst.sel.missing");

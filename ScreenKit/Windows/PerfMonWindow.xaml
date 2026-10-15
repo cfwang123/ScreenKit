@@ -1,0 +1,23 @@
+<Window x:Class="ScreenKit.PerfMonWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="性能监控"
+        SizeToContent="WidthAndHeight"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        Topmost="True"
+        ShowInTaskbar="True"
+        WindowStartupLocation="Manual"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        UseLayoutRounding="True"
+        AutomationProperties.AutomationId="perf.window">
+	<Border x:Name="card" Background="#D0141418" CornerRadius="12" BorderBrush="#55FFFFFF" BorderThickness="1"
+	        Padding="14,10" MinWidth="168" Cursor="SizeAll">
+		<StackPanel>
+			<TextBlock x:Name="lbtitle" FontSize="11" Foreground="#99FFFFFF" Margin="0,0,0,6"/>
+			<StackPanel x:Name="rows"/>
+		</StackPanel>
+	</Border>
+</Window>

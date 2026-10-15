@@ -43,6 +43,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System tools lists processes, file locks, environment variables, startup items, and installed programs.
 - Help, Install features adds a Single components tab. It installs or removes one package at a time, such as FFmpeg, without the other packages a feature would pull in.
 - System tools list services, hotfixes, store apps, and file associations. System info shows memory modules and the motherboard. File info compares a file header with its extension and shows version, image, media, and text encoding.
+- Sound recorder can include system audio, and its device list shows microphones only.
+- Install features, Chrome page: On-device model opens chrome://on-device-internals in Chrome.
+- A borderless translucent performance window shows CPU, GPU, memory, network, and disk, plus temperature and power when available. Right-click turns each field on or off.
 
 #### Changed
 
@@ -57,7 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Line mode at threshold 0 keeps faint edges, including edges that fall on a cell boundary.
 - Character art draws darker cells denser unless Invert is on.
-- Chrome speech no longer shows the extension connection error. It speaks in the already open page, and uses a local voice when the Google network voice does not start. The old offline voice pack is not installed.
+- Chrome speech no longer substitutes another voice when the Google voice cannot speak. The desktop shows an error, and the HTTP API returns an error. The old offline voice pack is not installed.
 
 #### Documentation
 
@@ -71,6 +74,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统工具只读列出进程、文件占用、环境变量、启动项和已安装程序。
 - 帮助 → 安装功能增加「单个组件安装」。可以单独安装或删除一个组件，例如 FFmpeg，不会带上该功能里的其它组件。
 - 系统工具列出服务、补丁、商店应用和文件关联。系统信息显示内存条和主板。文件分析对照文件头与扩展名，并显示版本、图片、媒体和文本编码。
+- 录音机可以同时录系统声音，设备列表只显示麦克风。
+- 安装功能的 Chrome 页增加「本机模型」，用 Chrome 打开 chrome://on-device-internals。
+- 性能监控是半透明无边框小窗，显示 CPU、GPU、内存、网络和磁盘，能读到时也显示温度和功率。右键可开关每一项。
 
 #### 变更
 
@@ -85,7 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 线条模式在阈值为 0 时会保留很淡的边缘，格子交界上的线也会画出来。
 - 字符画不勾选反色时，越暗的地方字符越密。
-- Chrome 语音不再弹出扩展连接错误。朗读留在已经打开的页面里；Google 联网语音发不出声时改用本机语音。不再安装旧的离线语音包。
+- Chrome 语音发不出声时不再改用别的语音。桌面弹出错误，HTTP 接口返回错误。不再安装旧的离线语音包。
 
 #### 文档
 

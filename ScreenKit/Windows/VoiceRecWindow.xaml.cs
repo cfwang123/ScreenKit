@@ -48,12 +48,14 @@ public partial class VoiceRecWindow : Window {
 
 	void filldev() {
 		var cur = edev.SelectedItem as VoiceRec.Dev;
+		bool wasEmpty = edev.Items.Count == 0;
 		List<VoiceRec.Dev> list;
 		try { list = VoiceRec.Devices(); }
 		catch { list = new List<VoiceRec.Dev>(); }
 		edev.Items.Clear();
 		foreach (var d in list) edev.Items.Add(d);
 		if (list.Count == 0) {
+			cmic.IsChecked = false;
 			paint();
 			return;
 		}
@@ -64,7 +66,7 @@ public partial class VoiceRecWindow : Window {
 			}
 		}
 		edev.SelectedIndex = pick;
-		if (list.Count == 0) cmic.IsChecked = false;
+		if (wasEmpty) cmic.IsChecked = true;
 		paint();
 	}
 
