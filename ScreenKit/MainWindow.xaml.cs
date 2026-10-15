@@ -105,6 +105,7 @@ public partial class MainWindow : Window {
 	PortUseWindow portUseWin;
 	MidiSynthWindow midiWin;
 	VoiceRecWindow voiceRecWin;
+	CamWindow camWin;
 	System.Windows.Threading.DispatcherTimer autokeyTimer;
 	bool autokeyOn;
 	long autokeySent;
@@ -577,7 +578,8 @@ public partial class MainWindow : Window {
 				fmttrayhk(opt.HotkeyBoard),
 				fmttrayhk(opt.HotkeyVoiceInput),
 				fmttrayhk(opt.HotkeyTranslate),
-				fmttrayhk(opt.HotkeySnapCopy));
+				fmttrayhk(opt.HotkeySnapCopy),
+				fmttrayhk(opt.HotkeyHangul));
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
 			tray.MenuOpening += () => {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;
@@ -658,6 +660,7 @@ public partial class MainWindow : Window {
 			tray.PortUseRequested += () => Dispatcher.BeginInvoke(new Action(() => openportuse(fromTray: true)));
 			tray.MidiSynthRequested += () => Dispatcher.BeginInvoke(new Action(() => openmidi(fromTray: true)));
 			tray.VoiceRecRequested += () => Dispatcher.BeginInvoke(new Action(() => openvoicerec(fromTray: true)));
+			tray.CamRequested += () => Dispatcher.BeginInvoke(new Action(() => opencam(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -1618,6 +1621,7 @@ public partial class MainWindow : Window {
 		mnportuse.Click += (_, _) => openportuse();
 		mnmidi.Click += (_, _) => openmidi();
 		mnvoicerec.Click += (_, _) => openvoicerec();
+		mncam.Click += (_, _) => opencam();
 		mnsys.Click += (_, _) => opensys();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
@@ -1783,6 +1787,8 @@ public partial class MainWindow : Window {
 			mnmidi.ToolTip = Loc.T("menu.midisynth.tip");
 			mnvoicerec.Header = Loc.T("menu.voicerec");
 			mnvoicerec.ToolTip = Loc.T("menu.voicerec.tip");
+			mncam.Header = Loc.T("menu.cam");
+			mncam.ToolTip = Loc.T("menu.cam.tip");
 			mnsys.Header = Loc.T("menu.sysinfo");
 			mnsys.ToolTip = Loc.T("menu.sysinfo.tip");
 			mnhttpdbg.Header = Loc.T("menu.httpdbg");
@@ -4370,6 +4376,9 @@ public partial class MainWindow : Window {
 	void openvoicerec(bool fromTray = false) =>
 		opentoolwin(ref voiceRecWin, () => new VoiceRecWindow(), "menu.voicerec", fromTray);
 
+	void opencam(bool fromTray = false) =>
+		opentoolwin(ref camWin, () => new CamWindow(), "menu.cam", fromTray);
+
 	void opensys(bool fromTray = false) =>
 		opentoolwin(ref sysWin, () => new SysInfoWindow(), "menu.sysinfo", fromTray);
 
@@ -4544,6 +4553,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(charArtWin, w)) charArtWin = null;
 				else if (ReferenceEquals(pixelArtWin, w)) pixelArtWin = null;
 				else if (ReferenceEquals(voiceRecWin, w)) voiceRecWin = null;
+				else if (ReferenceEquals(camWin, w)) camWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
 			w.Show();

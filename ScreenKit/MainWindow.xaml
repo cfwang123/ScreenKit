@@ -194,6 +194,9 @@
 				<MenuItem x:Name="mnvoicerec" Header="录音机(_O)…"
 				          AutomationProperties.AutomationId="menu.voicerec"
 				          ToolTip="从麦克风录音，播放并保存为 WAV"/>
+				<MenuItem x:Name="mncam" Header="相机(_1)…"
+				          AutomationProperties.AutomationId="menu.cam"
+				          ToolTip="用摄像头拍照、录像，或扫描二维码和条码"/>
 				<MenuItem x:Name="mnzhconv" Header="简繁转换(_S)…"
 				          AutomationProperties.AutomationId="menu.zhconv"
 				          ToolTip="系统简体/繁体映射，繁体接近台湾用字"/>
@@ -202,6 +205,7 @@
 				          ToolTip="把汉字转成拼音或拼音首字母"/>
 				<MenuItem x:Name="mnhangul" Header="韩语输入(_U)"
 				          IsCheckable="True"
+				          InputGestureText="Ctrl+Alt+K"
 				          AutomationProperties.AutomationId="menu.hangul"
 				          ToolTip="打开后接管键盘，按 Windows 韩语输入法组字。右 Alt 切换韩文和英文"/>
 				<MenuItem x:Name="mnwincal" Header="历法(_L)…"

@@ -49,6 +49,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miPortUse;
 	Forms.ToolStripMenuItem miMidi;
 	Forms.ToolStripMenuItem miVoiceRec;
+	Forms.ToolStripMenuItem miCam;
 	Forms.ToolStripMenuItem miSys;
 	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miZhConv;
@@ -75,7 +76,7 @@ sealed class TrayIcon : IDisposable {
 	System.Drawing.Point menuScreenLoc;
 
 	/// <summary>返回 (呼出, 截图识别, 截图标注, 屏幕画板, 语音输入, 翻译小窗, 切换复制方式) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string board, string voice, string tr, string copy)> HotkeyProvider { get; set; }
+	public Func<(string show, string ocr, string snap, string board, string voice, string tr, string copy, string hangul)> HotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -179,6 +180,7 @@ sealed class TrayIcon : IDisposable {
 		miPortUse = item("tray.portuse", () => PortUseRequested?.Invoke());
 		miMidi = item("tray.midisynth", () => MidiSynthRequested?.Invoke());
 		miVoiceRec = item("tray.voicerec", () => VoiceRecRequested?.Invoke());
+		miCam = item("tray.cam", () => CamRequested?.Invoke());
 		miSys = item("tray.sysinfo", () => SysRequested?.Invoke());
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
@@ -220,6 +222,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miInfo);
 		miTools.DropDownItems.Add(miMidi);
 		miTools.DropDownItems.Add(miVoiceRec);
+		miTools.DropDownItems.Add(miCam);
 		miTools.DropDownItems.Add(miZhConv);
 		miTools.DropDownItems.Add(miPinyin);
 		miTools.DropDownItems.Add(miHangul);
@@ -392,10 +395,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", board = "", voice = "", tr = "", copy = "";
+		string show = "", ocr = "", snap = "", board = "", voice = "", tr = "", copy = "", hangul = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, board, voice, tr, copy) = HotkeyProvider();
+				(show, ocr, snap, board, voice, tr, copy, hangul) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
@@ -434,11 +437,12 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miPortUse, null);
 		setshortcut(miMidi, null);
 		setshortcut(miVoiceRec, null);
+		setshortcut(miCam, null);
 		setshortcut(miSys, null);
 		setshortcut(miHttpDbg, null);
 		setshortcut(miZhConv, null);
 		setshortcut(miPinyin, null);
-		setshortcut(miHangul, null);
+		setshortcut(miHangul, hangul);
 		setshortcut(miWinCal, null);
 		setshortcut(miJpYomi, null);
 		setshortcut(miWinTop, null);
@@ -498,6 +502,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miPortUse, "tray.portuse");
 			settext(miMidi, "tray.midisynth");
 			settext(miVoiceRec, "tray.voicerec");
+			settext(miCam, "tray.cam");
 			settext(miSys, "tray.sysinfo");
 			settext(miHttpDbg, "tray.httpdbg");
 			settext(miZhConv, "tray.zhconv");
@@ -605,6 +610,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action PortUseRequested;
 	public event Action MidiSynthRequested;
 	public event Action VoiceRecRequested;
+	public event Action CamRequested;
 	public event Action SysRequested;
 	public event Action HttpDbgRequested;
 	public event Action ZhConvRequested;
