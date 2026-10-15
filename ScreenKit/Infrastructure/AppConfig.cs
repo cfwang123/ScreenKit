@@ -297,6 +297,8 @@ static class AppConfig {
 				o.HttpChat = parsebool(hch, true);
 			if (map.TryGetValue("http_face", out var hfa))
 				o.HttpFace = parsebool(hfa, true);
+			if (map.TryGetValue("http_rtsp", out var hrt))
+				o.HttpRtsp = parsebool(hrt, true);
 			if (map.TryGetValue("http_lan", out var hl))
 				o.HttpLan = parsebool(hl, true);
 			if (map.TryGetValue("http_port", out var hp) && int.TryParse(hp, out var port))
@@ -747,6 +749,7 @@ static class AppConfig {
 		sb.AppendLine($"http_translate = {(o.HttpTranslate ? "true" : "false")}");
 		sb.AppendLine($"http_chat = {(o.HttpChat ? "true" : "false")}");
 		sb.AppendLine($"http_face = {(o.HttpFace ? "true" : "false")}");
+		sb.AppendLine($"http_rtsp = {(o.HttpRtsp ? "true" : "false")}");
 		sb.AppendLine("# 允许局域网访问。false 时只监听 127.0.0.1");
 		sb.AppendLine($"http_lan = {(o.HttpLan ? "true" : "false")}");
 		sb.AppendLine($"http_port = {o.HttpPort}");

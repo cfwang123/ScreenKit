@@ -20,11 +20,12 @@ http_asr = true
 http_translate = true
 http_chat = true
 http_face = true
+http_rtsp = true
 http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/ipcity`, `/api/mac`, `/api/usb`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `http_rtsp = false` refuses `WebSocket /rtsp` and does not upgrade the connection. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/ipcity`, `/api/mac`, `/api/usb`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -186,6 +187,7 @@ Health check and capability probe.
 | `http_translate` | bool | Translate path enabled |
 | `http_chat` | bool | Chat path enabled |
 | `http_face` | bool | Face paths enabled |
+| `http_rtsp` | bool | RTSP relay enabled |
 | `ocr_engine` | bool | OCR runner available |
 | `asr_engine` | bool | ASR engine injected |
 | `tts_engine` | bool | TTS (Sherpa) engine injected |

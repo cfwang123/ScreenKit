@@ -330,6 +330,7 @@ public partial class SettingsWindow : Window {
 			ehttptranslate.Content = Loc.T("tab.translate");
 			ehttpchat.Content = Loc.T("tab.chat");
 			ehttpface.Content = Loc.T("tab.face");
+			ehttprtsp.Content = Loc.T("set.http.rtsp");
 			ehttplan.Content = Loc.T("set.http.lan");
 			lbsethttplanhint.Text = Loc.T("set.http.lan.hint");
 			lbsethttpport.Text = Loc.T("set.http.port");
@@ -592,6 +593,7 @@ public partial class SettingsWindow : Window {
 		ehttptranslate.IsChecked = o.HttpTranslate;
 		ehttpchat.IsChecked = o.HttpChat;
 		ehttpface.IsChecked = o.HttpFace;
+		ehttprtsp.IsChecked = o.HttpRtsp;
 		ehttplan.IsChecked = o.HttpLan;
 		ehttpport.Text = o.HttpPort > 0 ? o.HttpPort.ToString() : "1224";
 		eservicemode.IsChecked = o.ServiceMode;
@@ -829,6 +831,7 @@ public partial class SettingsWindow : Window {
 		Result.HttpTranslate = ehttptranslate.IsChecked == true;
 		Result.HttpChat = ehttpchat.IsChecked == true;
 		Result.HttpFace = ehttpface.IsChecked == true;
+		Result.HttpRtsp = ehttprtsp.IsChecked == true;
 		Result.HttpLan = ehttplan.IsChecked == true;
 		if (!int.TryParse((ehttpport.Text ?? "").Trim(), out var port) || port < 1 || port > 65535) {
 			tabset.SelectedItem = tabsethttp;

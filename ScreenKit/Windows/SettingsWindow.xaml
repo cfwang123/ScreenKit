@@ -790,6 +790,8 @@
 							          AutomationProperties.AutomationId="set.http.chat"/>
 							<CheckBox x:Name="ehttpface" Content="人脸识别" Width="140" Margin="0,0,0,6" IsChecked="True"
 							          AutomationProperties.AutomationId="set.http.face"/>
+							<CheckBox x:Name="ehttprtsp" Content="RTSP转发" Width="160" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.http.rtsp"/>
 						</WrapPanel>
 						<CheckBox x:Name="ehttplan" Content="允许局域网访问" Margin="0,0,0,4" IsChecked="True"
 						          AutomationProperties.AutomationId="set.http.lan"/>

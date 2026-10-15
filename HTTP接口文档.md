@@ -20,11 +20,12 @@ http_asr = true
 http_translate = true
 http_chat = true
 http_face = true
+http_rtsp = true
 http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/usb`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`http_rtsp = false` 时 `WebSocket /rtsp` 不接收，也不升级连接。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/usb`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -187,6 +188,7 @@ http_port = 1224
 | `http_translate` | bool | 翻译路径是否启用 |
 | `http_chat` | bool | 对话路径是否启用 |
 | `http_face` | bool | 人脸路径是否启用 |
+| `http_rtsp` | bool | RTSP 转发是否启用 |
 | `ocr_engine` | bool | OCR 运行器是否可用 |
 | `asr_engine` | bool | ASR 引擎是否注入 |
 | `tts_engine` | bool | TTS（Sherpa）引擎是否注入 |

@@ -318,6 +318,8 @@ public sealed class OcrOptions {
 	public bool HttpTranslate = true;
 	public bool HttpChat = true;
 	public bool HttpFace = true;
+	/// <summary>WebSocket /rtsp 转发。关闭后不接收该请求。</summary>
+	public bool HttpRtsp = true;
 	/// <summary>功能开关：页面是否显示。识别、语音、翻译、对话、人脸、词典与 mod_* 同时关闭。文件同步和投屏同时停服务。</summary>
 	public bool TabOcrVisible = true;
 	public bool TabTtsVisible = true;
@@ -636,6 +638,7 @@ public sealed class OcrOptions {
 		HttpTranslate = HttpTranslate,
 		HttpChat = HttpChat,
 		HttpFace = HttpFace,
+		HttpRtsp = HttpRtsp,
 		TabOcrVisible = TabOcrVisible,
 		TabTtsVisible = TabTtsVisible,
 		TabAsrVisible = TabAsrVisible,

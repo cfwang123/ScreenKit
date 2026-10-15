@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - IP scan list can copy the host name, IP, or MAC from the right-click menu.
 - RTSP forward and the tools-page player can include PCMU, PCMA, or AAC. The RTSP test server has a sound switch for an 8 kHz PCMU tone.
 - Translate can use Chrome's built-in model. Pick Chrome on the Translate tab. It uses the chrome.exe path from Speech and hides the window.
+- Settings, API, has an RTSP forward switch. Off refuses WebSocket /rtsp.
 
 #### Changed
 
@@ -166,6 +167,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - IP 扫描列表可右键复制主机名、IP 或 MAC
 - RTSP 转发和工具页播放可以带上 PCMU、PCMA 或 AAC。RTSP 测试服务器增加声音开关，打开时发送 8 kHz PCMU 提示音。
 - 翻译引擎增加 Chrome：用本机 Chrome 的翻译模型。在翻译页选择 Chrome，沿用语音合成里的 chrome.exe，窗口隐藏。
+- 参数设置的 web/接口 增加 RTSP转发，关闭后不接收 /rtsp
 
 #### 变更
 

@@ -560,6 +560,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				["http_translate"] = o.HttpTranslate,
 				["http_chat"] = o.HttpChat,
 				["http_face"] = o.HttpFace,
+				["http_rtsp"] = o.HttpRtsp,
 				["ocr_engine"] = runner != null,
 				["asr_engine"] = svc?.AsrEngine != null,
 				["tts_engine"] = svc?.TtsEngine != null,
@@ -633,6 +634,8 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handlertsp(SockCtx ctx) {
+		var optNow = getOpts?.Invoke() ?? new OcrOptions();
+		if (!apiok(ctx, optNow.HttpRtsp)) return;
 		var req = ctx.Request;
 		var up = req.Headers["Upgrade"] ?? "";
 		var wsreq = req.IsWebSocketRequest
@@ -2423,7 +2426,6 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
 			"WebSocket /chat  工具页聊天室",
-			"WebSocket /rtsp?rtsp=  转发一路 RTSP。只收 H.264。相同地址只拉一路，浏览器用 WebCodecs 播放",
 			"POST /chat/file  聊天室上传。multipart 字段 file，kind=image|file。图片和文件写入程序目录 tmp/chat-*，启动时删除",
 			"GET  /chat/file/{id}  下载聊天室里的图片或文件",
 		};
@@ -2451,6 +2453,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 		if (o.HttpChat && o.ModChat)
 			a.Add("POST /api/chat  JSON{text|base64|path, messages?, tts?, agent?, llm?}  LLM对话");
+		if (o.HttpRtsp)
+			a.Add("WebSocket /rtsp?rtsp=  转发一路 RTSP。只收 H.264。相同地址只拉一路，浏览器用 WebCodecs 播放");
 		if (o.HttpFace && o.ModFace) {
 			a.Add("GET  /api/face/models");
 			a.Add("POST /api/face  JSON{base64|base64_b|path} 或 multipart 人脸检测/比对");
