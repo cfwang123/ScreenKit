@@ -159,7 +159,7 @@ static class CharArt {
 		return buf;
 	}
 
-	/// <summary>按格子里的明暗走向画线。横线 -，竖线 |，斜线 / 与 \，十字 +。threshold 越高越只留更明显的线。</summary>
+	/// <summary>按格子里的明暗走向画线。横线 -，竖线 |，斜线 / 与 \，十字 +。threshold 为 0 时很淡的边和落在格子交界上的线也保留，越高越只留更明显的线。</summary>
 	public static string Lines(byte[] px, int w, int h, int cols, bool invert, int threshold) {
 		if (px == null || w < 1 || h < 1) return "";
 		if (cols < 1) cols = 1;
@@ -167,25 +167,43 @@ static class CharArt {
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
 		var rows = gridrows(w, h, cols);
-		var sb = new StringBuilder(rows * (cols + 1));
+		var ncell = rows * cols;
+		var lums = new int[ncell];
+		var chars = new char[ncell];
 		var s = new int[9];
+		var cut = linecut(threshold);
 		for (var y = 0; y < rows; y++) {
 			var y0 = h * (y / (double)rows);
 			var y1 = h * ((y + 1) / (double)rows);
 			for (var x = 0; x < cols; x++) {
 				var x0 = w * (x / (double)cols);
 				var x1 = w * ((x + 1) / (double)cols);
+				var sum = 0;
 				for (var sy = 0; sy < 3; sy++) {
 					var ya = y0 + (y1 - y0) * sy / 3;
 					var yb = y0 + (y1 - y0) * (sy + 1) / 3;
 					for (var sx = 0; sx < 3; sx++) {
 						var xa = x0 + (x1 - x0) * sx / 3;
 						var xb = x0 + (x1 - x0) * (sx + 1) / 3;
-						s[sy * 3 + sx] = lumof(area(px, w, h, xa, xb, ya, yb), invert);
+						var lum = lumof(area(px, w, h, xa, xb, ya, yb), invert);
+						s[sy * 3 + sx] = lum;
+						sum += lum;
 					}
 				}
-				sb.Append(linech(s, threshold));
+				var i = y * cols + x;
+				lums[i] = sum / 9;
+				chars[i] = linech(s, cut);
 			}
+		}
+		for (var y = 0; y < rows; y++) {
+			for (var x = 0; x < cols; x++) {
+				var i = y * cols + x;
+				if (chars[i] == ' ') chars[i] = edgech(lums, x, y, cols, rows, cut);
+			}
+		}
+		var sb = new StringBuilder(rows * (cols + 1));
+		for (var y = 0; y < rows; y++) {
+			sb.Append(chars, y * cols, cols);
 			if (y + 1 < rows) sb.Append('\n');
 		}
 		return sb.ToString();
@@ -950,8 +968,15 @@ static class CharArt {
 		return lum;
 	}
 
-	/// <summary>9 格亮度。中间一行更暗是横线，中间一列更暗是竖线，两条斜线谁更暗决定 / 或 \。</summary>
-	static char linech(int[] s, int threshold) {
+	/// <summary>阈值 0 仍保留很淡的边。返回 4～255，越大越只留更明显的线。</summary>
+	static int linecut(int threshold) {
+		var cut = 4 + threshold;
+		if (cut > 255) cut = 255;
+		return cut;
+	}
+
+	/// <summary>9 格亮度。中间一行更暗是横线，中间一列更暗是竖线，两条斜线谁更暗决定 / 或 \。cut 是亮度差，格子内按三格合计比较。</summary>
+	static char linech(int[] s, int cut) {
 		int at(int i) => s[i] < 0 ? 255 : s[i];
 		int dark(int a, int b, int c) => 765 - (at(a) + at(b) + at(c));
 		var top = dark(0, 1, 2);
@@ -965,13 +990,42 @@ static class CharArt {
 		var hScore = Math.Max(top, Math.Max(mid, bot)) - Math.Min(top, Math.Min(mid, bot));
 		var vScore = Math.Max(left, Math.Max(cen, right)) - Math.Min(left, Math.Min(cen, right));
 		var diag = Math.Abs(slash - back);
-		var floor = 70 + threshold * 2;
+		var floor = cut * 3;
 		if (hScore >= floor && vScore >= floor && hScore * 3 >= diag * 2 && vScore * 3 >= diag * 2)
 			return '+';
 		if (diag >= hScore && diag >= vScore && diag >= floor)
 			return slash > back ? '/' : '\\';
 		if (hScore >= vScore && hScore >= floor) return '-';
 		if (vScore >= floor) return '|';
+		return ' ';
+	}
+
+	/// <summary>格子内部没有对比时，看比相邻格子更暗的一侧。线正好落在交界上也会画出来，而且只占更暗的那一格。</summary>
+	static char edgech(int[] lum, int x, int y, int cols, int rows, int cut) {
+		int at(int xx, int yy) {
+			if (xx < 0) xx = 0;
+			if (yy < 0) yy = 0;
+			if (xx >= cols) xx = cols - 1;
+			if (yy >= rows) yy = rows - 1;
+			return lum[yy * cols + xx];
+		}
+		var here = at(x, y);
+		int brighter(int xx, int yy) {
+			var d = at(xx, yy) - here;
+			if (d < 0) return 0;
+			return d;
+		}
+		var ax = Math.Max(brighter(x - 1, y), brighter(x + 1, y));
+		var ay = Math.Max(brighter(x, y - 1), brighter(x, y + 1));
+		var slash = Math.Max(brighter(x + 1, y - 1), brighter(x - 1, y + 1));
+		var back = Math.Max(brighter(x - 1, y - 1), brighter(x + 1, y + 1));
+		var diag = Math.Abs(slash - back);
+		if (ax >= cut && ay >= cut && ax * 3 >= diag * 2 && ay * 3 >= diag * 2)
+			return '+';
+		if (diag >= ax && diag >= ay && diag >= cut)
+			return slash > back ? '/' : '\\';
+		if (ay >= ax && ay >= cut) return '-';
+		if (ax >= cut) return '|';
 		return ' ';
 	}
 
