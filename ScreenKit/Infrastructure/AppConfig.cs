@@ -98,7 +98,7 @@ static class AppConfig {
 			if (map.TryGetValue("snap_copy_as_path", out var scap))
 				o.SnapCopyAsPath = parsebool(scap, false);
 			if (map.TryGetValue("snap_path_slash", out var sps))
-				o.SnapPathSlash = parsebool(sps, false);
+				o.SnapPathSlash = parsebool(sps, true);
 			if (map.TryGetValue("snap_ann_tool", out var sat))
 				o.SnapAnnTool = ImageUtil.NormSnapAnnTool(sat);
 			// 三选一：路径 > 文件 > 图片
@@ -606,9 +606,10 @@ static class AppConfig {
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");
 		sb.AppendLine($"# LLM 请求日志（默认 false）：log/llm.log，勿提交含隐私的日志");
 		sb.AppendLine($"llm_log = {(o.LlmLog ? "true" : "false")}");
-		sb.AppendLine($"# 截图保存目录。留空 = 程序目录 screenshots/。可填外部目录，例如 D:/s/，复制路径更短");
+		sb.AppendLine($"# 截图保存目录。留空 = 有 D 盘时 D:/s/，否则程序目录 screenshots/。路径用 /");
 		var shotDir = "";
 		try { shotDir = ImageUtil.NormScreenshotDir(o.ScreenshotDir); } catch { shotDir = ""; }
+		shotDir = shotDir.Replace('\\', '/');
 		sb.AppendLine($"screenshot_dir = \"{esc(shotDir)}\"");
 		sb.AppendLine($"# 截图文件名。yyyy MM dd HH mm ss fff 为时间；rrr 为随机数字；#### 为序号（相同前缀取下一个）");
 		var shotName = ImageUtil.ScreenshotNameDefault;
@@ -622,7 +623,7 @@ static class AppConfig {
 		sb.AppendLine($"snap_copy_as_image = {(!snapFile && !snapPath ? "true" : "false")}");
 		sb.AppendLine($"snap_copy_as_file = {(snapFile ? "true" : "false")}");
 		sb.AppendLine($"snap_copy_as_path = {(snapPath ? "true" : "false")}");
-		sb.AppendLine($"# 复制截图路径时把 \\ 写成 /（默认 false）。打开的其它文件不改");
+		sb.AppendLine($"# 复制截图路径时把 \\ 写成 /（默认 true）。打开的其它文件不改");
 		sb.AppendLine($"snap_path_slash = {(o.SnapPathSlash ? "true" : "false")}");
 		sb.AppendLine($"# 截图标注上次工具：none | rect | ellipse | line | arrow | text");
 		sb.AppendLine($"snap_ann_tool = \"{ImageUtil.NormSnapAnnTool(o.SnapAnnTool)}\"");

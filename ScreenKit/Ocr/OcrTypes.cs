@@ -211,11 +211,11 @@ public sealed class OcrOptions {
 	/// <summary>截图较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
 	public int ScreenshotShortPx = 1080;
 	/// <summary>
-	/// 截图保存目录。空 = 程序目录下 screenshots/。
-	/// 可填外部目录（如 D:/s/），复制出的路径更短。
+	/// 截图保存目录。空 = 有 D 盘时 D:/s/，否则程序目录下 screenshots/。
+	/// screenshots 仍表示程序旁的目录。
 	/// </summary>
 	public string ScreenshotDir = "";
-	/// <summary>截图文件名格式。默认 shot_yyyyMMdd_HHmmss_fff。#### 为序号，rrr 为随机数字。</summary>
+	/// <summary>截图文件名格式。默认 dd_##。#### 为序号，rrr 为随机数字。</summary>
 	public string ScreenshotName = ImageUtil.ScreenshotNameDefault;
 	/// <summary>图片格式转换：目标格式 jpg / png / png8 / bmp（默认 jpg）。png8 为调色板 PNG。</summary>
 	public string ImgConvFormat = "jpg";
@@ -297,8 +297,8 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsFile = false;
 	/// <summary>截图完成时复制文件完整路径文本（与 AsImage / AsFile 三选一）。</summary>
 	public bool SnapCopyAsPath = false;
-	/// <summary>复制截图路径时把反斜杠写成正斜杠。打开的其它文件不改。</summary>
-	public bool SnapPathSlash = false;
+	/// <summary>复制截图路径时把反斜杠写成正斜杠。默认开。打开的其它文件不改。</summary>
+	public bool SnapPathSlash = true;
 	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。默认矩形。</summary>
 	public string SnapAnnTool = "rect";
 	/// <summary>界面语言：zh / en。</summary>

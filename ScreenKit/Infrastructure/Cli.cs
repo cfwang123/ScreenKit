@@ -2725,7 +2725,9 @@ static class Cli {
 	static int testscreenshotdir() {
 		Out("=== 截图保存目录 --test-screenshot-dir ===");
 		var bad = 0;
-		var def = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
+		var beside = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots"));
+		var hasD = Directory.Exists(@"D:\");
+		var def = hasD ? @"D:\s" : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
 		void check(string name, string raw, string expect) {
 			string got;
 			try { got = ImageUtil.ResolveScreenshotDir(raw); }
@@ -2741,9 +2743,9 @@ static class Cli {
 			else Out($"OK {name} {got}");
 		}
 		check("empty", "", def);
-		check("name", "screenshots", def);
-		check("slash", "screenshots/", def);
-		check("dot", ".\\screenshots", def);
+		check("name", "screenshots", beside);
+		check("slash", "screenshots/", beside);
+		check("dot", ".\\screenshots", beside);
 		check("abs", "D:/s/", @"D:\s");
 		check("abs2", @"D:\s\", @"D:\s");
 		check("root", "D:/", @"D:\");
@@ -2755,19 +2757,30 @@ static class Cli {
 			bad++;
 		}
 		catch { Out("OK invalid"); }
-		if (ImageUtil.NormScreenshotDir("  D:/s/ ") != @"D:\s") {
-			Err("FAIL norm: " + ImageUtil.NormScreenshotDir("  D:/s/ "));
+		if (ImageUtil.NormScreenshotDir("  D:/s/ ") != @"D:\s"
+			|| ImageUtil.NormScreenshotDir("screenshots") != "screenshots"
+			|| ImageUtil.NormScreenshotDir("screenshots/") != "screenshots") {
+			Err("FAIL norm: " + ImageUtil.NormScreenshotDir("  D:/s/ ")
+				+ " / " + ImageUtil.NormScreenshotDir("screenshots"));
 			bad++;
 		}
 		else Out(@"OK norm D:\s");
-		if (ImageUtil.DisplayScreenshotDir("") != "screenshots/"
+		var defText = hasD ? "D:/s/" : "screenshots/";
+		if (ImageUtil.DisplayScreenshotDir("") != defText
 			|| ImageUtil.DisplayScreenshotDir("screenshots/") != "screenshots/"
 			|| ImageUtil.DisplayScreenshotDir(@"D:\s") != "D:/s/"
-			|| ImageUtil.DisplayScreenshotDir("D:/s/") != "D:/s/") {
-			Err("FAIL display dir");
+			|| ImageUtil.DisplayScreenshotDir("D:/s/") != "D:/s/"
+			|| ImageUtil.DisplayScreenshotDir(@"C:\temp\shot") != "C:/temp/shot/") {
+			Err("FAIL display dir " + ImageUtil.DisplayScreenshotDir("")
+				+ " / " + ImageUtil.DisplayScreenshotDir(@"C:\temp\shot"));
 			bad++;
 		}
 		else Out("OK display dir");
+		if (ImageUtil.ScreenshotNameDefault != "dd_##" || !new OcrOptions().SnapPathSlash) {
+			Err("FAIL defaults name=" + ImageUtil.ScreenshotNameDefault);
+			bad++;
+		}
+		else Out("OK defaults dd_## slash");
 		if (ImageUtil.NormScreenshotName("0001") != "####"
 			|| ImageUtil.NormScreenshotName("") != ImageUtil.ScreenshotNameDefault
 			|| ImageUtil.NormScreenshotName("time") != ImageUtil.ScreenshotNameDefault
@@ -2820,12 +2833,21 @@ static class Cli {
 				bad++;
 			}
 			else Out("OK day seq " + Path.GetFileName(dayNext));
+			var dd = DateTime.Now.ToString("dd");
 			var timed = Path.GetFileName(ImageUtil.MakeScreenshotPath(ndir, "ocr", ".png", "time"));
-			if (timed == null || !timed.StartsWith("shot_" + day + "_", StringComparison.Ordinal)) {
+			if (!string.Equals(timed, dd + "_01.png", StringComparison.OrdinalIgnoreCase)) {
 				Err("FAIL time name: " + timed);
 				bad++;
 			}
 			else Out("OK time " + timed);
+			File.WriteAllText(Path.Combine(ndir, dd + "_01.png"), "x");
+			File.WriteAllText(Path.Combine(ndir, dd + "_03.jpg"), "x");
+			var ddNext = ImageUtil.MakeScreenshotPath(ndir, "shot", ".png", "dd_##");
+			if (!string.Equals(Path.GetFileName(ddNext), dd + "_04.png", StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL dd seq: " + ddNext);
+				bad++;
+			}
+			else Out("OK dd seq " + Path.GetFileName(ddNext));
 			var rand = Path.GetFileNameWithoutExtension(ImageUtil.MakeScreenshotPath(ndir, "shot", ".png", "shot_yyyyMMdd_HHmmss_rrr"));
 			if (rand == null || !rand.StartsWith("shot_" + day + "_", StringComparison.Ordinal) || rand.Length != 24) {
 				Err("FAIL rand name: " + rand);
@@ -6023,7 +6045,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
       --test-vid-convert  视频较短边取偶数、输出路径和编码参数；有 ffmpeg.exe 时转一段 320×240
       --test-vid-gif      视频转 GIF 的调色板档、起止时间和较短边
-      --test-screenshot-dir  截图保存目录：空为 screenshots/，D:/s/ 解析为 D:\s
+      --test-screenshot-dir  截图目录：空为 D:/s/（无 D 盘则 screenshots/），文件名 dd_##，显示用 /
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256

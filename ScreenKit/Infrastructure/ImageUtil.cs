@@ -326,36 +326,49 @@ static class ImageUtil {
 		return bmp;
 	}
 
-	/// <summary>截图保存目录（主窗配置同步）。空 = 程序目录下 screenshots/。</summary>
+	/// <summary>截图保存目录（主窗配置同步）。空 = 有 D 盘时 D:\s，否则程序目录下 screenshots/。</summary>
 	public static string CurrentScreenshotDir = "";
 
-	/// <summary>设置里显示的默认保存位置。</summary>
+	/// <summary>设置里可选的程序旁目录。</summary>
 	public const string ScreenshotDirDefaultText = "screenshots/";
 
 	/// <summary>设置里可选的短路径。</summary>
 	public const string ScreenshotDirShortText = "D:/s/";
 
-	/// <summary>设置框里显示的保存位置。默认写成 screenshots/，D:\s 写成 D:/s/。</summary>
+	/// <summary>当前默认保存位置的显示文本。有 D 盘时是 D:/s/。</summary>
+	public static string DefaultScreenshotDirText =>
+		Directory.Exists(@"D:\") ? ScreenshotDirShortText : ScreenshotDirDefaultText;
+
+	/// <summary>设置框里显示的保存位置。一律用 /，并带末尾斜杠。</summary>
 	public static string DisplayScreenshotDir(string raw) {
 		string norm;
 		try { norm = NormScreenshotDir(raw); }
-		catch { return ScreenshotDirDefaultText; }
-		if (norm.Length == 0) return ScreenshotDirDefaultText;
+		catch { return DefaultScreenshotDirText; }
+		if (norm.Length == 0) return DefaultScreenshotDirText;
 		try {
-			var full = ResolveScreenshotDir(norm);
-			var shortFull = ResolveScreenshotDir(ScreenshotDirShortText);
-			if (string.Equals(full, shortFull, StringComparison.OrdinalIgnoreCase))
+			var full = Path.GetFullPath(ResolveScreenshotDir(norm));
+			if (string.Equals(full, Path.GetFullPath(@"D:\s"), StringComparison.OrdinalIgnoreCase))
 				return ScreenshotDirShortText;
+			var beside = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots"));
+			if (string.Equals(full, beside, StringComparison.OrdinalIgnoreCase))
+				return ScreenshotDirDefaultText;
 		}
 		catch { }
-		return norm;
+		return slashdir(norm);
+	}
+
+	static string slashdir(string path) {
+		var s = (path ?? "").Replace('\\', '/');
+		if (s.Length == 0) return DefaultScreenshotDirText;
+		if (s[s.Length - 1] != '/') s += "/";
+		return s;
 	}
 
 	/// <summary>截图文件名格式（主窗配置同步）。</summary>
 	public static string CurrentScreenshotName = ScreenshotNameDefault;
 
-	/// <summary>默认文件名：shot_ 加时间到毫秒。</summary>
-	public const string ScreenshotNameDefault = "shot_yyyyMMdd_HHmmss_fff";
+	/// <summary>默认文件名：日 + 两位序号，如 15_01。</summary>
+	public const string ScreenshotNameDefault = "dd_##";
 
 	const int TOKLIT = 0;
 	const int TOKDATE = 1;
@@ -368,7 +381,7 @@ static class ImageUtil {
 	}
 
 	/// <summary>
-	/// 文件名格式。空或 time 用默认时间戳；num / 0001 用 ####。
+	/// 文件名格式。空或 time 用默认 dd_##；num / 0001 用 ####。
 	/// 含不能出现在文件名里的字符时抛出。
 	/// </summary>
 	public static string NormScreenshotName(string raw) {
@@ -545,7 +558,8 @@ static class ImageUtil {
 	}
 
 	/// <summary>
-	/// 规范化保存目录。空、screenshots、screenshots/ 都视为默认，返回空字符串。
+	/// 规范化保存目录。空视为默认，返回空字符串。
+	/// screenshots 仍是程序旁的目录，不并进默认。
 	/// 其它路径去掉末尾分隔符（盘符根目录除外），斜杠改为当前系统分隔符。
 	/// </summary>
 	public static string NormScreenshotDir(string raw) {
@@ -558,30 +572,30 @@ static class ImageUtil {
 		if (s.Length == 0) return "";
 		if (s.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
 			throw new ArgumentException("截图保存目录含非法字符");
-		var cmp = s;
-		if (cmp.StartsWith("." + Path.DirectorySeparatorChar, StringComparison.Ordinal))
-			cmp = cmp.Substring(2);
-		if (string.Equals(cmp, "screenshots", StringComparison.OrdinalIgnoreCase))
-			return "";
 		return s;
 	}
 
-	/// <summary>解析为完整目录。默认是程序目录下 screenshots/。</summary>
+	/// <summary>空目录的实际位置。有 D 盘时是 D:\s，否则是程序目录下 screenshots。</summary>
+	public static string DefaultScreenshotDir() {
+		if (Directory.Exists(@"D:\")) return @"D:\s";
+		return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
+	}
+
+	/// <summary>解析为完整目录。空目录见 <see cref="DefaultScreenshotDir"/>。</summary>
 	public static string ResolveScreenshotDir(string raw) {
 		var norm = NormScreenshotDir(raw);
-		if (norm.Length == 0)
-			return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots");
+		if (norm.Length == 0) return DefaultScreenshotDir();
 		if (!Path.IsPathRooted(norm))
 			return Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, norm));
 		return Path.GetFullPath(norm);
 	}
 
-	/// <summary>当前配置的截图目录（默认程序目录下 screenshots/）。</summary>
+	/// <summary>当前配置的截图目录。空配置在有 D 盘时用 D:\s。</summary>
 	public static string ScreenshotsDir {
 		get {
 			string dir;
 			try { dir = ResolveScreenshotDir(CurrentScreenshotDir); }
-			catch { dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screenshots"); }
+			catch { dir = DefaultScreenshotDir(); }
 			try { Directory.CreateDirectory(dir); } catch { }
 			return dir;
 		}
@@ -608,8 +622,8 @@ static class ImageUtil {
 	/// <summary>截图完成时是否以路径文本放入剪贴板（与 AsImage / AsFile 三选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsPath = false;
 
-	/// <summary>复制截图路径时把反斜杠写成正斜杠（主窗配置同步）。</summary>
-	public static bool CurrentSnapPathSlash = false;
+	/// <summary>复制截图路径时把反斜杠写成正斜杠（主窗配置同步）。默认开。</summary>
+	public static bool CurrentSnapPathSlash = true;
 
 	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。</summary>
 	public static string CurrentSnapAnnTool = "rect";

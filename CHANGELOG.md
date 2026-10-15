@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP request debugger POST body can be XML or raw text with a MIME type you type.
 - Character art can draw detected edges with - | / \ and +.
 - The tools page has a Markdown reader. Drop a file to preview it with the same renderer, and POST /api/md returns the page.
+- Screenshot defaults: save to D:/s/ when drive D exists, otherwise screenshots/ next to the program. The file name defaults to dd_##. The folder box and copied screenshot paths use /.
 
 #### Changed
 
@@ -115,6 +116,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 请求调试的 POST 正文可以是 XML，或自己填写 MIME 的原文。
 - 字符画可以勾选线条，按检测出的边缘用 - | / \ 和 + 来画。
 - 工具页增加 MD 阅读器。拖入文件后用和桌面相同的规则预览，POST /api/md 返回网页。
+- 截图默认：有 D 盘时存到 D:/s/，否则仍是程序旁的 screenshots/。文件名默认 dd_##。保存位置和复制出来的截图路径用 /。
 
 #### 变更
 

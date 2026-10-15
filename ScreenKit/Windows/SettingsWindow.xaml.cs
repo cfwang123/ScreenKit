@@ -49,9 +49,16 @@ public partial class SettingsWindow : Window {
 			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
 		bsfunpair.Click += (_, _) => unpairselected();
 		bsnapdir.Click += (_, _) => browsesnapdir();
-		esnapdir.Items.Add(ImageUtil.ScreenshotDirDefaultText);
-		esnapdir.Items.Add(ImageUtil.ScreenshotDirShortText);
+		if (System.IO.Directory.Exists(@"D:\")) {
+			esnapdir.Items.Add(ImageUtil.ScreenshotDirShortText);
+			esnapdir.Items.Add(ImageUtil.ScreenshotDirDefaultText);
+		}
+		else {
+			esnapdir.Items.Add(ImageUtil.ScreenshotDirDefaultText);
+			esnapdir.Items.Add(ImageUtil.ScreenshotDirShortText);
+		}
 		esnapname.Items.Add(ImageUtil.ScreenshotNameDefault);
+		esnapname.Items.Add("shot_yyyyMMdd_HHmmss_fff");
 		esnapname.Items.Add("shot_yyyyMMdd_HHmmss_rrr");
 		esnapname.Items.Add("####");
 		esnapname.Items.Add("yyyyMMdd_###");
@@ -1298,7 +1305,7 @@ public partial class SettingsWindow : Window {
 			var full = System.IO.Path.GetFullPath(picked);
 			var def = ImageUtil.ResolveScreenshotDir("");
 			if (string.Equals(full, def, StringComparison.OrdinalIgnoreCase)) {
-				esnapdir.Text = ImageUtil.ScreenshotDirDefaultText;
+				esnapdir.Text = ImageUtil.DisplayScreenshotDir("");
 				return;
 			}
 			esnapdir.Text = ImageUtil.DisplayScreenshotDir(full);
@@ -1306,7 +1313,7 @@ public partial class SettingsWindow : Window {
 		catch { esnapdir.Text = picked; }
 	}
 
-	/// <summary>保存位置：空为 screenshots/；其它目录须能创建。</summary>
+	/// <summary>保存位置：与当前默认目录相同则留空；其它目录须能创建。</summary>
 	bool applysnapdir() {
 		string norm;
 		try { norm = ImageUtil.NormScreenshotDir(esnapdir.Text); }
@@ -1323,6 +1330,15 @@ public partial class SettingsWindow : Window {
 		string full;
 		try { full = ImageUtil.ResolveScreenshotDir(norm); }
 		catch { full = null; }
+		try {
+			var defFull = ImageUtil.ResolveScreenshotDir("");
+			if (!string.IsNullOrEmpty(full) &&
+				string.Equals(full, defFull, StringComparison.OrdinalIgnoreCase)) {
+				Result.ScreenshotDir = "";
+				return true;
+			}
+		}
+		catch { }
 		if (string.IsNullOrEmpty(full)) {
 			tabset.SelectedItem = tabsetsnap;
 			MessageBox.Show(this, Loc.T("set.snap.dir.bad"), Loc.T("settings"),
