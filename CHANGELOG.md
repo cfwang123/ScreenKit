@@ -59,6 +59,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Character art can draw detected edges with - | / \ and +.
 - The tools page has a Markdown reader. Drop a file to preview it with the same renderer, and POST /api/md returns the page.
 - Screenshot defaults: save to D:/s/ when drive D exists, otherwise screenshots/ next to the program. The file name defaults to dd_##. The folder box and copied screenshot paths use /.
+- Scientific calculator on the Tools menu, tray, and tools page: compact keypad, degrees or radians, memory, percent, and a borderless black translucent window.
+- The web port forwards one RTSP stream over WebSocket /rtsp, and the tools page can play H.264.
 
 #### Changed
 
@@ -89,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The camera preview shows the picture. Media Foundation RGB32 leaves the alpha byte at zero, so the preview drew it as fully transparent.
 - Opened tools stay within the window. Extra content scrolls inside the tool.
 - The camera preview picks a mode up to 1280x720 with a higher frame rate. The old default stayed on a large, slow format, about 2 frames per second.
+- When Check for updates cannot reach GitHub, the dialog says to put a newer screenkit_*.7z in the program folder and click Check for updates again.
 
 #### Documentation
 
@@ -119,6 +122,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字符画可以勾选线条，按检测出的边缘用 - | / \ 和 + 来画。
 - 工具页增加 MD 阅读器。拖入文件后用和桌面相同的规则预览，POST /api/md 返回网页。
 - 截图默认：有 D 盘时存到 D:/s/，否则仍是程序旁的 screenshots/。文件名默认 dd_##。保存位置和复制出来的截图路径用 /。
+- 工具菜单、托盘和工具页增加科学计算器：紧凑按键、角度或弧度、内存和百分数，窗口无边框、黑色半透明。
+- 网页端口用 WebSocket /rtsp 转发一路 RTSP，工具页可播放 H.264。
 
 #### 变更
 
@@ -149,6 +154,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 相机预览能看到画面。Media Foundation 的 RGB32 把透明字节留成 0，预览就把它画成全透明。
 - 打开工具后宽度不超过窗口，超出的内容在工具内部滚动。
 - 相机预览改选不超过 1280×720、帧率更高的模式。原先停在又大又慢的格式上，大约每秒 2 帧。
+- 检查更新连不上 GitHub 时，提示可以将新版本的 7z 放到程序目录下，再点击检查更新以更新。
 
 #### 文档
 

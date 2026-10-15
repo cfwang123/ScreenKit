@@ -43,6 +43,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miTextTool;
 	Forms.ToolStripMenuItem miMdRead;
 	Forms.ToolStripMenuItem miPwGen;
+	Forms.ToolStripMenuItem miSciCalc;
 	Forms.ToolStripMenuItem miNet;
 	Forms.ToolStripMenuItem miNetGroup;
 	Forms.ToolStripMenuItem miInfo;
@@ -176,6 +177,7 @@ sealed class TrayIcon : IDisposable {
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
 		miMdRead = item("tray.mdread", () => MdReadRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
+		miSciCalc = item("tray.scicalc", () => SciCalcRequested?.Invoke());
 		miNet = item("tray.net", () => NetToolRequested?.Invoke());
 		miPortUse = item("tray.portuse", () => PortUseRequested?.Invoke());
 		miMidi = item("tray.midisynth", () => MidiSynthRequested?.Invoke());
@@ -212,6 +214,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miTextTool);
 		miTools.DropDownItems.Add(miMdRead);
 		miTools.DropDownItems.Add(miPwGen);
+		miTools.DropDownItems.Add(miSciCalc);
 		miNetGroup = new Forms.ToolStripMenuItem(Loc.T("tray.netgroup"));
 		miNetGroup.DropDownItems.Add(miNet);
 		miNetGroup.DropDownItems.Add(miHttpDbg);
@@ -432,6 +435,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miTextTool, null);
 		setshortcut(miMdRead, null);
 		setshortcut(miPwGen, null);
+		setshortcut(miSciCalc, null);
 		setshortcut(miNet, null);
 		setshortcut(miNetGroup, null);
 		setshortcut(miPortUse, null);
@@ -496,6 +500,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miTextTool, "tray.texttool");
 			settext(miMdRead, "tray.mdread");
 			settext(miPwGen, "tray.pwgen");
+			settext(miSciCalc, "tray.scicalc");
 			settext(miNet, "tray.net");
 			settext(miNetGroup, "tray.netgroup");
 			settext(miInfo, "tray.info");
@@ -606,6 +611,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action TextToolRequested;
 	public event Action MdReadRequested;
 	public event Action PwGenRequested;
+	public event Action SciCalcRequested;
 	public event Action NetToolRequested;
 	public event Action PortUseRequested;
 	public event Action MidiSynthRequested;

@@ -14,6 +14,7 @@ namespace ScreenKit;
 /// <list type="bullet">
 /// <item>WebSocket /cast 投屏媒体（与 HTTP API 同端口）</item>
 /// <item>WebSocket /chat 工具页聊天室（昵称、性别，文字）</item>
+/// <item>WebSocket /rtsp?rtsp= 把一路 RTSP 转成 H.264 给网页播放</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
 /// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
@@ -120,6 +121,10 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 			if (path is "/chat") {
 				handlechatws(ctx);
+				return;
+			}
+			if (path is "/rtsp") {
+				handlertsp(ctx);
 				return;
 			}
 			if (path.StartsWith("/chat/", StringComparison.Ordinal) && ChatRoom.TryFile(ctx))
@@ -622,6 +627,39 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 		catch (Exception ex) {
 			Logged?.Invoke($"chat ws: {ex.Message}");
+			if (!ctx.Upgraded)
+				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
+		}
+	}
+
+	void handlertsp(SockCtx ctx) {
+		var req = ctx.Request;
+		var up = req.Headers["Upgrade"] ?? "";
+		var wsreq = req.IsWebSocketRequest
+			|| up.IndexOf("websocket", StringComparison.OrdinalIgnoreCase) >= 0;
+		if (!wsreq) {
+			writejson(ctx, 426, err(805, "请用 WebSocket 连接 /rtsp"));
+			return;
+		}
+		try {
+			if (!ctx.TryUpgrade()) {
+				writejson(ctx, 400, err(400, "缺少 Sec-WebSocket-Key"));
+				return;
+			}
+			var rtsp = "";
+			var q = req.Url?.Query ?? "";
+			if (q.StartsWith("?")) q = q.Substring(1);
+			foreach (var part in q.Split('&')) {
+				var i = part.IndexOf('=');
+				var k = Uri.UnescapeDataString(i < 0 ? part : part.Substring(0, i));
+				if (!k.Equals("rtsp", StringComparison.OrdinalIgnoreCase)) continue;
+				rtsp = i < 0 ? "" : Uri.UnescapeDataString(part.Substring(i + 1));
+				break;
+			}
+			RtspFwd.Attach(ctx.Net, ctx.Prefetch, rtsp);
+		}
+		catch (Exception ex) {
+			Logged?.Invoke($"rtsp ws: {ex.Message}");
 			if (!ctx.Upgraded)
 				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
 		}
@@ -2382,6 +2420,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
 			"WebSocket /chat  工具页聊天室",
+			"WebSocket /rtsp?rtsp=  转发一路 RTSP。只收 H.264。相同地址只拉一路，浏览器用 WebCodecs 播放",
 			"POST /chat/file  聊天室上传。multipart 字段 file，kind=image|file。图片和文件写入程序目录 tmp/chat-*，启动时删除",
 			"GET  /chat/file/{id}  下载聊天室里的图片或文件",
 		};

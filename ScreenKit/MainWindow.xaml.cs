@@ -90,6 +90,7 @@ public partial class MainWindow : Window {
 	TextToolWindow textToolWin;
 	MdReadWindow mdReadWin;
 	PasswordWindow pwGenWin;
+	SciCalcWindow sciCalcWin;
 	NetToolsWindow netToolWin;
 	SysInfoWindow sysWin;
 	HttpDebugWindow httpDbgWin;
@@ -644,6 +645,7 @@ public partial class MainWindow : Window {
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
 			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
+			tray.SciCalcRequested += () => Dispatcher.BeginInvoke(new Action(() => openscicalc(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
 			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys(fromTray: true)));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg(fromTray: true)));
@@ -1617,6 +1619,7 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnmdread.Click += (_, _) => openmdread();
 		mnpwgen.Click += (_, _) => openpwgen();
+		mnscicalc.Click += (_, _) => openscicalc();
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
 		mnmidi.Click += (_, _) => openmidi();
@@ -1775,6 +1778,8 @@ public partial class MainWindow : Window {
 			mnmdread.ToolTip = Loc.T("menu.mdread.tip");
 			mnpwgen.Header = Loc.T("menu.pwgen");
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
+			mnscicalc.Header = Loc.T("menu.scicalc");
+			mnscicalc.ToolTip = Loc.T("menu.scicalc.tip");
 			mnnetgroup.Header = Loc.T("menu.netgroup");
 			mnnetgroup.ToolTip = Loc.T("menu.netgroup.tip");
 			mnnet.Header = Loc.T("menu.net");
@@ -3885,7 +3890,10 @@ public partial class MainWindow : Window {
 		return notes;
 	}
 
-	async void openupdate() => await runupdateasync(silent: false);
+	async void openupdate() {
+		localPackAsked = false;
+		await runupdateasync(silent: false);
+	}
 
 	async Task runupdateasync(bool silent) {
 		UpdateProgressWindow prog = null;
@@ -3898,6 +3906,7 @@ public partial class MainWindow : Window {
 				if (!info.HasUpdate) return;
 			}
 			else {
+				if (offerlocalpackage()) return;
 				prog = new UpdateProgressWindow { Owner = this };
 				prog.Show();
 				prog.Report("check", 0);
@@ -3959,8 +3968,11 @@ public partial class MainWindow : Window {
 				CaptureLog.Ex("auto update", ex);
 				return;
 			}
+			var text = Loc.T("update.fail", ex.Message);
+			if (updateconnectfail(ex))
+				text += "\n\n" + Loc.T("update.fail.local");
 			MessageBox.Show(this,
-				Loc.T("update.fail", ex.Message),
+				text,
 				Loc.T("update.title"),
 				MessageBoxButton.OK,
 				MessageBoxImage.Warning);
@@ -3971,6 +3983,18 @@ public partial class MainWindow : Window {
 	}
 
 	bool localPackAsked;
+
+	static bool updateconnectfail(Exception ex) {
+		for (var e = ex; e != null; e = e.InnerException) {
+			if (e is System.Net.Http.HttpRequestException) return true;
+			if (e is System.Net.WebException) return true;
+			if (e is System.Net.Sockets.SocketException) return true;
+			if (e is TimeoutException) return true;
+			var msg = e.Message ?? "";
+			if (msg.IndexOf("无法获取更新信息", StringComparison.Ordinal) >= 0) return true;
+		}
+		return false;
+	}
 
 	bool offerlocalpackage() {
 		if (localPackAsked) return false;
@@ -4435,6 +4459,9 @@ public partial class MainWindow : Window {
 	void openmdread(bool fromTray = false) =>
 		opentoolwin(ref mdReadWin, () => new MdReadWindow(), "menu.mdread", fromTray);
 
+	void openscicalc(bool fromTray = false) =>
+		opentoolwin(ref sciCalcWin, () => new SciCalcWindow(), "menu.scicalc", fromTray);
+
 	void autokeytoggle() {
 		if (autoKeyWin == null) {
 			autokeystop();
@@ -4537,6 +4564,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
 				else if (ReferenceEquals(mdReadWin, w)) mdReadWin = null;
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
+				else if (ReferenceEquals(sciCalcWin, w)) sciCalcWin = null;
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
 				else if (ReferenceEquals(sysWin, w)) sysWin = null;
 				else if (ReferenceEquals(httpDbgWin, w)) httpDbgWin = null;

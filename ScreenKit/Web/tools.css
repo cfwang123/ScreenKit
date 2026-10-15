@@ -585,6 +585,24 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	pointer-events: auto; background: rgba(194, 65, 12, .08);
 	border: 2px dashed #c2410c; border-radius: 10px;
 }
+#box.panel.on:has(.rtsp) { min-width: 0; max-width: 100%; overflow: hidden; }
+#box.panel.on:has(.rtsp) #box-body {
+	flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%;
+	display: flex; flex-direction: column; overflow: hidden;
+}
+.rtsp { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%; overflow: hidden; }
+.rtsp-bar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rtsp-bar input { flex: 1 1 auto; min-width: 0; height: 32px; margin: 0; }
+.rtsp-bar button {
+	height: 32px; padding: 0 12px; cursor: pointer; flex: 0 0 auto;
+	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
+}
+.rtsp-stage {
+	position: relative; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden;
+	border: 1px solid var(--line); border-radius: 10px; background: #111;
+}
+.rtsp-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.rtsp-msg { color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #box.panel.on:has(.ctab) { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 #box.panel.on:has(.ctab) #box-body {
 	flex: 1 1 auto; min-height: 0; min-width: 0;
@@ -963,3 +981,20 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	margin: 8px 0 0; white-space: pre-wrap;
 	font: 13px/1.5 Consolas, "Microsoft YaHei UI", sans-serif;
 }
+.scicalc {
+	width: 312px; max-width: 100%; outline: none;
+	background: rgba(0, 0, 0, .8); color: #fff; border-radius: 12px; padding: 8px;
+}
+.scitop { display: flex; justify-content: flex-end; min-height: 18px; }
+.scimem { margin-right: auto; color: #f59e0b; font-size: 11px; }
+.scitop button, .scikey {
+	border: 0; color: #fff; background: #262626; cursor: pointer; border-radius: 6px;
+}
+.scitop button { width: 36px; height: 18px; font-size: 10px; }
+.sciexpr { min-height: 15px; text-align: right; color: #a3a3a3; font-size: 11px; overflow: hidden; }
+.scival { text-align: right; font: 26px/1.2 Consolas, "Segoe UI", sans-serif; margin: 0 2px 6px; cursor: copy; }
+.scikeys { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.scikey { height: 30px; font-size: 12px; }
+.scikey.digit { font-size: 14px; }
+.scikey.danger { background: #7f1d1d; }
+.scikey.eq { background: #c2410c; font-size: 14px; }

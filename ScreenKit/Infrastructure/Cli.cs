@@ -62,7 +62,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam"
+				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -82,6 +82,7 @@ static class Cli {
 				or "--test-http-tts"
 				or "--test-http-chat"
 				or "--test-chat"
+				or "--test-rtsp"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--toast"
@@ -271,6 +272,8 @@ static class Cli {
 					return runtesthttpchat();
 				case "--test-chat":
 					return ChatRoom.Test(Out, Err);
+				case "--test-rtsp":
+					return RtspFwd.Test(Out, Err);
 				case "--test-sendfile":
 					return testsendfile();
 				case "--test-lang":
@@ -343,6 +346,8 @@ static class Cli {
 					return testvoicerec();
 				case "--test-cam":
 					return testcam();
+				case "--test-scicalc":
+					return testscicalc();
 				case "--fc-copy":
 				case "--fc-cut":
 				case "--fc-delete":
@@ -2719,6 +2724,74 @@ static class Cli {
 		else Out("path-after-image timing OK");
 
 		Out(bad == 0 ? "=== OK：复制为路径不残留位图 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testscicalc() {
+		Out("=== 科学计算器 --test-scicalc ===");
+		var bad = 0;
+		void check(string name, string src, bool deg, double expect) {
+			if (!SciCalc.TryEval(src, deg, out var v) || Math.Abs(v - expect) > 1e-8) {
+				var got = SciCalc.TryEval(src, deg, out var g) ? g.ToString(System.Globalization.CultureInfo.InvariantCulture) : "bad";
+				Err($"FAIL {name}: got={got} expect={expect}");
+				bad++;
+			}
+			else Out("OK " + name);
+		}
+		check("sin30", "sin(30)", true, 0.5);
+		check("sinpi2", "sin(π/2)", false, 1);
+		check("paren", "(2+3)*4", true, 20);
+		check("pow", "2^10", true, 1024);
+		check("fact", "5!", true, 120);
+		check("log", "log(1000)", true, 3);
+		check("ln", "ln(e)", true, 1);
+		check("pct", "50+10%", true, 55);
+		check("sqrt", "sqrt(9)", true, 3);
+		check("asin", "asin(0.5)", true, 30);
+		check("nroot", "3√8", true, 2);
+		check("nrootneg", "3√-8", true, -2);
+		check("expn", "1.5E2", true, 150);
+		check("prec", "2+3*4", true, 14);
+		check("unarypow", "-2^2", true, -4);
+		var pad = new SciCalc();
+		pad.Press("2");
+		pad.Press("+");
+		pad.Press("3");
+		pad.Press("eq");
+		if (!pad.Ok || pad.Value != "5") {
+			Err("FAIL press 2+3: " + pad.Value);
+			bad++;
+		}
+		else Out("OK press 2+3");
+		pad = new SciCalc();
+		pad.Press("second");
+		pad.Press("asin", true);
+		pad.Press("0");
+		pad.Press(".");
+		pad.Press("5");
+		pad.Press(")");
+		pad.Press("eq");
+		if (!pad.Ok || Math.Abs(pad.Ans - 30) > 1e-6) {
+			Err("FAIL press asin: " + pad.Value);
+			bad++;
+		}
+		else Out("OK press asin");
+		var jsPath = Path.Combine(NativeRuntime.BaseDir, "web", "tools", "u-scicalc.js");
+		var pagePath = Path.Combine(NativeRuntime.BaseDir, "web", "tools.html");
+		if (!File.Exists(jsPath) || !File.Exists(pagePath)) {
+			Err("FAIL missing web");
+			bad++;
+		}
+		else {
+			var js = File.ReadAllText(jsPath);
+			var page = File.ReadAllText(pagePath);
+			if (!page.Contains("u-scicalc") || !js.Contains("sin⁻¹")) {
+				Err("FAIL web card");
+				bad++;
+			}
+			else Out("OK web card");
+		}
+		Out(bad == 0 ? "=== OK：科学计算器 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}
 
@@ -5977,6 +6050,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-midisynth
   ScreenKit --test-voicerec
   ScreenKit --test-cam
+  ScreenKit --test-scicalc
   ScreenKit --fc-register
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts
@@ -5995,6 +6069,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-tts
   ScreenKit --test-http-chat
   ScreenKit --test-chat
+  ScreenKit --test-rtsp
   ScreenKit --test-face-overlay
   ScreenKit --test-tts-sherpa <模型名> [--tts-text "文本"]
   ScreenKit --test-edge-tts [发音人] [--tts-text "文本"]
@@ -6076,6 +6151,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-midisynth  弹琴键位、通用乐器表，以及 MIDI 文件的打开、改音符和保存
       --test-voicerec  录音时长、电平、WAV 往返，并列出麦克风
       --test-cam  摄像头枚举、RGB32 行距，有摄像头时取一帧；并检查工具页相机
+      --test-scicalc  科学计算：三角函数、乘方、阶乘、百分数、按键，并检查工具页卡片
       --fc-register / --fc-unregister  注册或去掉当前用户的资源管理器「快速复制」菜单
       --fc-copy / --fc-cut / --fc-delete / --fc-symlink / --fc-hardlink / --fc-size / --fc-paths / --fc-settings / --fc-paste / --fc-clear  资源管理器菜单调用
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
@@ -6099,6 +6175,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-http-tts  HTTP /api/tts 走 SAPI 与 Windows 语音，校验 WAV，并试播放设备与直接发音
       --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
       --test-chat  两个 WebSocket 进 /chat，互发一条文字，重复昵称会被拒绝
+      --test-rtsp  本机假 RTSP 打一帧 H.264，经 WebSocket /rtsp 转发关键帧
       --test-face-overlay  用 GDI+ 在 Bitmap 上写「女 22岁」，不加载 OpenCV
       --test-tts-sherpa  用 CPU 加载指定 Sherpa 模型并完成一次合成
       --test-edge-tts  联网调用 Edge 自然语音并校验返回音频
@@ -6179,6 +6256,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-midisynth
   ScreenKit --test-voicerec
   ScreenKit --test-cam
+  ScreenKit --test-scicalc
   ScreenKit --fc-register
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts
@@ -6197,6 +6275,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-tts
   ScreenKit --test-http-chat
   ScreenKit --test-chat
+  ScreenKit --test-rtsp
   ScreenKit --test-face-overlay
   ScreenKit --test-tts-sherpa vits-mimic3-ko_KO-kss_low
   ScreenKit --test-edge-tts ko-KR-SunHiNeural
