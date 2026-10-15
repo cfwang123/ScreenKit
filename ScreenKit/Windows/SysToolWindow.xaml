@@ -177,6 +177,124 @@
 					<TextBlock x:Name="lbappstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
+			<TabItem x:Name="tabsvc" Header="服务" AutomationProperties.AutomationId="systool.tab.svc">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbsvchint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbsvcfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="bsvccopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bsvcrefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="esvc" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvsvc" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colsvcname" Width="240" DisplayMemberBinding="{Binding Disp}"/>
+								<GridViewColumn x:Name="colsvcstate" Width="90" DisplayMemberBinding="{Binding State}"/>
+								<GridViewColumn x:Name="colsvcstart" Width="90" DisplayMemberBinding="{Binding Start}"/>
+								<GridViewColumn x:Name="colsvcpath" Width="420" DisplayMemberBinding="{Binding Path}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbsvcdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lbsvcstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabpatch" Header="补丁" AutomationProperties.AutomationId="systool.tab.patch">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbpatchhint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbpatchfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="bpatchcopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bpatchrefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="epatch" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvpatch" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colpatchid" Width="140" DisplayMemberBinding="{Binding Id}"/>
+								<GridViewColumn x:Name="colpatchdate" Width="120" DisplayMemberBinding="{Binding Date}"/>
+								<GridViewColumn x:Name="colpatchdesc" Width="480" DisplayMemberBinding="{Binding Desc}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbpatchdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lbpatchstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabstore" Header="商店应用" AutomationProperties.AutomationId="systool.tab.store">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbstorehint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbstorefilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="bstorecopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bstorerefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="estore" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvstore" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colstorename" Width="360" DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colstorever" Width="140" DisplayMemberBinding="{Binding Ver}"/>
+								<GridViewColumn x:Name="colstorepub" Width="280" DisplayMemberBinding="{Binding Pub}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbstoredetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lbstorestat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabassoc" Header="文件关联" AutomationProperties.AutomationId="systool.tab.assoc">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbassochint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<Button x:Name="bassoccopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bassocfind" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="eassoc" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<TextBlock x:Name="lbassocdetail" Grid.Row="2" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="13"/>
+					<TextBlock x:Name="lbassocstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
 		</TabControl>
 	</Grid>
 </Window>

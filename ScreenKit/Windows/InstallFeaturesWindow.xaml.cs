@@ -24,6 +24,8 @@ partial class InstallFeaturesWindow : Window {
 
 	readonly List<FeaturePickNode> pickRoots = new();
 	readonly List<FeatureItem> featItems = new();
+	readonly ObservableCollection<FeatRow> featRows = new();
+	bool featUiLoading;
 
 	readonly ObservableCollection<TtsRow> ttsRows = new();
 	List<TtsInstallItem> ttsAll = new();
@@ -72,11 +74,13 @@ partial class InstallFeaturesWindow : Window {
 		binstall.Click += async (_, _) => {
 			if (tabmain.SelectedItem == tabwinlang) await runwinlang(true);
 			else if (tabmain.SelectedItem == tabchrome) await runchrome(true);
+			else if (tabmain.SelectedItem == tabfeat) await runfeat(true);
 			else await runinstall();
 		};
 		bdelete.Click += async (_, _) => {
 			if (tabmain.SelectedItem == tabwinlang) await runwinlang(false);
 			else if (tabmain.SelectedItem == tabchrome) await runchrome(false);
+			else if (tabmain.SelectedItem == tabfeat) await runfeat(false);
 			else await rundelete();
 		};
 		bcancel.Click += (_, _) => {
@@ -127,6 +131,12 @@ partial class InstallFeaturesWindow : Window {
 		cchromeheader.Unchecked += (_, _) => {
 			if (!chromeUiLoading) setchromecheck(false);
 		};
+		cfeatheader.Checked += (_, _) => {
+			if (!featUiLoading) setfeatcheck(true);
+		};
+		cfeatheader.Unchecked += (_, _) => {
+			if (!featUiLoading) setfeatcheck(false);
+		};
 		tabmain.SelectionChanged += async (_, _) => {
 			applytabbuttons();
 			if (tabmain.SelectedItem == tabtts && !ttsLoaded && !busy)
@@ -138,6 +148,7 @@ partial class InstallFeaturesWindow : Window {
 		};
 		lvtss.ItemsSource = ttsRows;
 		lvchrome.ItemsSource = chromeRows;
+		lvfeat.ItemsSource = featRows;
 		loadproxy();
 		rproxysys.Checked += (_, _) => onproxy();
 		rproxyman.Checked += (_, _) => onproxy();
@@ -171,10 +182,13 @@ partial class InstallFeaturesWindow : Window {
 		else Title = Loc.T("inst.title");
 		lbtitle.Text = Title;
 		tabpick.Header = Loc.T("inst.tab.pick");
+		tabfeat.Header = Loc.T("inst.tab.feat");
 		tabtts.Header = Loc.T("inst.tab.tts");
 		tabwinlang.Header = Loc.T("inst.tab.winlang");
 		tabchrome.Header = Loc.T("inst.tab.chrome");
 		lbpickhint.Text = Loc.T(firstRun ? "inst.pick.hint.first" : "inst.pick.hint");
+		lbfeathint.Text = Loc.T("inst.feat.hint");
+		cfeatheader.ToolTip = Loc.T("inst.tts.selectall");
 		bconfirm.Content = Loc.T("inst.pick.confirm");
 		bconfirm.ToolTip = Loc.T("inst.pick.confirm.tip");
 		breset.Content = Loc.T("inst.pick.reset");
@@ -217,6 +231,13 @@ partial class InstallFeaturesWindow : Window {
 		rproxyman.Content = Loc.T("set.proxy.manual");
 		rproxyoff.Content = Loc.T("set.proxy.off");
 		eproxyaddr.ToolTip = Loc.T("set.proxy.hint");
+		if (lvfeat.View is GridView gfeat && gfeat.Columns.Count >= 6) {
+			gfeat.Columns[1].Header = Loc.T("inst.col.name");
+			gfeat.Columns[2].Header = Loc.T("inst.col.cat");
+			gfeat.Columns[3].Header = Loc.T("inst.col.detail");
+			gfeat.Columns[4].Header = Loc.T("inst.col.size");
+			gfeat.Columns[5].Header = Loc.T("inst.col.state");
+		}
 		if (lvtss.View is GridView gv && gv.Columns.Count >= 6) {
 			gv.Columns[1].Header = Loc.T("inst.col.model");
 			gv.Columns[2].Header = Loc.T("inst.col.lang");
@@ -231,7 +252,8 @@ partial class InstallFeaturesWindow : Window {
 	void applytabbuttons() {
 		var onPack = tabmain.SelectedItem == tabtts
 			|| tabmain.SelectedItem == tabwinlang
-			|| tabmain.SelectedItem == tabchrome;
+			|| tabmain.SelectedItem == tabchrome
+			|| tabmain.SelectedItem == tabfeat;
 		var ready = !busy && !winlangQuerying;
 		binstall.IsEnabled = ready && onPack;
 		bdelete.IsEnabled = ready && onPack;
@@ -356,6 +378,7 @@ partial class InstallFeaturesWindow : Window {
 		featItems.AddRange(FeatureInstaller.BuildCatalog(
 			firstRunDefaults: firstRun,
 			preferSelect: firstRun ? null : preferSelect));
+		fillfeatrows();
 		refreshmirror();
 	}
 
@@ -533,6 +556,9 @@ partial class InstallFeaturesWindow : Window {
 				r.Notify();
 			}
 		}
+		else if (tabmain.SelectedItem == tabfeat) {
+			setfeatcheckmissing();
+		}
 		else {
 			FeaturePick.SelectMissing(pickRoots);
 			updatepicksum();
@@ -552,6 +578,12 @@ partial class InstallFeaturesWindow : Window {
 		else if (tabmain.SelectedItem == tabchrome) {
 			setchromecheck(on);
 			cchromeheader.IsChecked = on;
+		}
+		else if (tabmain.SelectedItem == tabfeat) {
+			featUiLoading = true;
+			cfeatheader.IsChecked = on;
+			featUiLoading = false;
+			setfeatcheck(on);
 		}
 		else {
 			FeaturePick.SelectAll(pickRoots, on);
@@ -600,6 +632,8 @@ partial class InstallFeaturesWindow : Window {
 		cchromeonly.IsEnabled = !on;
 		cchromeheader.IsEnabled = !on;
 		lvchrome.IsEnabled = !on;
+		lvfeat.IsEnabled = !on;
+		cfeatheader.IsEnabled = !on;
 		applytabbuttons();
 	}
 
@@ -677,8 +711,101 @@ partial class InstallFeaturesWindow : Window {
 	void afterpickchange() {
 		foreach (var it in featItems)
 			refreshfeat(it);
+		foreach (var r in featRows)
+			r.Notify();
 		FeaturePick.RefreshDiff(pickRoots);
 		updatepicksum();
+		updatefeatsum();
+	}
+
+	void fillfeatrows() {
+		featRows.Clear();
+		foreach (var it in featItems) {
+			it.Selected = false;
+			featRows.Add(new FeatRow(it));
+		}
+		featUiLoading = true;
+		cfeatheader.IsChecked = false;
+		featUiLoading = false;
+		updatefeatsum();
+	}
+
+	void updatefeatsum() {
+		if (lbfeatsum == null) return;
+		var n = featRows.Count;
+		var miss = 0;
+		var part = 0;
+		var ok = 0;
+		foreach (var r in featRows) {
+			if (r.Item.State == FeatureInstallState.Installed) ok++;
+			else if (r.Item.State == FeatureInstallState.Partial) part++;
+			else miss++;
+		}
+		lbfeatsum.Text = miss == 0 && part == 0
+			? Loc.T("inst.feat.allok", n)
+			: Loc.T("inst.feat.sum", n, miss, part, ok);
+		lbfeatsum.Foreground = miss > 0 || part > 0 ? MissFg : (Brush)FindResource("TextMuted");
+	}
+
+	void setfeatcheck(bool on) {
+		foreach (var r in featRows) {
+			if (!r.CanSelect) continue;
+			r.Selected = on;
+			r.Notify();
+		}
+	}
+
+	void setfeatcheckmissing() {
+		foreach (var r in featRows) {
+			r.Selected = r.CanSelect && r.Item.State != FeatureInstallState.Installed;
+			r.Notify();
+		}
+	}
+
+	async Task runfeat(bool install) {
+		if (busy) return;
+		foreach (var r in featRows)
+			r.Item.Selected = r.Selected && r.CanSelect;
+		foreach (var it in featItems)
+			refreshfeat(it);
+		var picked = featItems.Where(x => x.Selected).ToList();
+		if (install) {
+			var add = picked.Where(x => x.State != FeatureInstallState.Installed).ToList();
+			if (add.Count == 0) {
+				MessageBox.Show(this, Loc.T("inst.feat.install.none"), Title,
+					MessageBoxButton.OK, MessageBoxImage.Information);
+				return;
+			}
+			await runpick(add, new List<FeatureItem>());
+			clearfeatdone(true);
+			return;
+		}
+		var del = picked.Where(x => x.State != FeatureInstallState.Missing).ToList();
+		if (del.Count == 0) {
+			MessageBox.Show(this, Loc.T("inst.feat.delete.none"), Title,
+				MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
+		var names = del.Select(t => t.Title).Take(12).ToList();
+		var more = del.Count - names.Count;
+		var msg = string.Format(Loc.T("inst.delete.confirm"),
+			string.Join("\n· ", names),
+			more > 0 ? string.Format(Loc.T("inst.delete.more"), more) : "");
+		if (MessageBox.Show(this, msg, Loc.T("inst.delete.title"), MessageBoxButton.YesNo, MessageBoxImage.Warning)
+			!= MessageBoxResult.Yes)
+			return;
+		await runpick(new List<FeatureItem>(), del);
+		clearfeatdone(false);
+	}
+
+	void clearfeatdone(bool install) {
+		foreach (var r in featRows) {
+			if (!r.Selected) continue;
+			var done = install
+				? r.Item.State == FeatureInstallState.Installed
+				: r.Item.State == FeatureInstallState.Missing;
+			if (done) r.Selected = false;
+		}
 	}
 
 	async Task runpick(List<FeatureItem> add, List<FeatureItem> del) {
@@ -1015,6 +1142,55 @@ partial class InstallFeaturesWindow : Window {
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SizeText)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateText)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsMissing)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateBg)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateFg)));
+		}
+
+		public event PropertyChangedEventHandler PropertyChanged;
+	}
+
+	/// <summary>单个组件列表行。</summary>
+	sealed class FeatRow : INotifyPropertyChanged {
+		public FeatureItem Item { get; }
+		bool selected;
+
+		public FeatRow(FeatureItem item) {
+			Item = item;
+			selected = false;
+		}
+
+		public bool CanSelect =>
+			Item.Kind is not FeatureKind.MediaFoundation and not FeatureKind.Mjpeg;
+
+		public bool Selected {
+			get => selected;
+			set {
+				if (!CanSelect) value = false;
+				if (selected == value) return;
+				selected = value;
+				Item.Selected = value;
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Selected)));
+			}
+		}
+
+		public string Title => Item.Title;
+		public string Detail => Item.Detail;
+		public string Category {
+			get {
+				var key = "feat.cat." + (Item.Category ?? "");
+				var text = Loc.T(key);
+				return text == key ? Item.Category : text;
+			}
+		}
+		public string SizeText => Item.SizeText;
+		public string StateText => Item.StateText;
+		public Brush StateBg => statebg(Item.State);
+		public Brush StateFg => statefg(Item.State);
+
+		public void Notify() {
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Selected)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SizeText)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateText)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateBg)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateFg)));
 		}

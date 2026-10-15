@@ -14,6 +14,8 @@ static class SysInfo {
 		try { pc(rows); } catch { }
 		try { cpu(rows); } catch { }
 		try { mem(rows); } catch { }
+		try { sticks(rows); } catch { }
+		try { board(rows); } catch { }
 		try { gpu(rows); } catch { }
 		try { disks(rows); } catch { }
 		try { volumes(rows); } catch { }
@@ -108,6 +110,61 @@ static class SysInfo {
 		add(rows, "sys.sec.mem", "sys.p.load", st.MemoryLoad + "%");
 		add(rows, "sys.sec.mem", "sys.p.page", bytes(st.TotalPageFile));
 		add(rows, "sys.sec.mem", "sys.p.pagefree", bytes(st.AvailPageFile));
+	}
+
+	static void board(List<UsbPair> rows) {
+		using var s = new ManagementObjectSearcher(
+			"SELECT Manufacturer, Product, Version, SerialNumber FROM Win32_BaseBoard");
+		using var col = s.Get();
+		foreach (ManagementObject o in col) {
+			using (o) {
+				add(rows, "sys.sec.board", "sys.p.vendor", wstr(o, "Manufacturer"));
+				add(rows, "sys.sec.board", "sys.p.model", wstr(o, "Product"));
+				add(rows, "sys.sec.board", "sys.p.boardver", wstr(o, "Version"));
+				add(rows, "sys.sec.board", "sys.p.serial", wstr(o, "SerialNumber"));
+			}
+			break;
+		}
+	}
+
+	static void sticks(List<UsbPair> rows) {
+		var found = new List<(string Slot, string Size, string Mhz, string Kind, string Vendor, string Part)>();
+		using var s = new ManagementObjectSearcher(
+			"SELECT BankLabel, DeviceLocator, Capacity, Speed, SMBIOSMemoryType, Manufacturer, PartNumber FROM Win32_PhysicalMemory");
+		using var col = s.Get();
+		foreach (ManagementObject o in col) {
+			using (o) {
+				var slot = wstr(o, "DeviceLocator");
+				if (slot.Length == 0) slot = wstr(o, "BankLabel");
+				var size = "";
+				ulong n;
+				if (ulong.TryParse(wstr(o, "Capacity"), out n) && n > 0) size = bytes(n);
+				var mhz = wint(o, "Speed");
+				found.Add((slot, size, mhz > 0 ? $"{mhz} MHz" : "", ramtype(wint(o, "SMBIOSMemoryType")),
+					wstr(o, "Manufacturer"), wstr(o, "PartNumber")));
+			}
+		}
+		for (var i = 0; i < found.Count; i++) {
+			var d = found[i];
+			var sec = found.Count == 1 ? "sys.sec.stick" : null;
+			var head = found.Count == 1 ? "" : " " + (i + 1);
+			addn(rows, sec, head, "sys.sec.stick", "sys.p.slot", d.Slot);
+			addn(rows, sec, head, "sys.sec.stick", "sys.p.size", d.Size);
+			addn(rows, sec, head, "sys.sec.stick", "sys.p.mhz", d.Mhz);
+			addn(rows, sec, head, "sys.sec.stick", "sys.p.ramtype", d.Kind);
+			addn(rows, sec, head, "sys.sec.stick", "sys.p.vendor", d.Vendor);
+			addn(rows, sec, head, "sys.sec.stick", "sys.p.part", d.Part);
+		}
+	}
+
+	static string ramtype(int n) {
+		if (n == 20) return "DDR";
+		if (n == 21) return "DDR2";
+		if (n == 24) return "DDR3";
+		if (n == 26) return "DDR4";
+		if (n == 34) return "DDR5";
+		if (n == 0) return "";
+		return n.ToString();
 	}
 
 	static void gpu(List<UsbPair> rows) {

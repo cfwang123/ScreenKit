@@ -41,6 +41,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Chrome speech installs a missing offline voice pack on the spot and shows a progress window that can be cancelled. The HTTP API still requires the pack to be installed first and returns 927 when it is missing.
 - System tools lists processes, file locks, environment variables, startup items, and installed programs.
+- Help, Install features adds a Single components tab. It installs or removes one package at a time, such as FFmpeg, without the other packages a feature would pull in.
+- System tools list services, hotfixes, store apps, and file associations. System info shows memory modules and the motherboard. File info compares a file header with its extension and shows version, image, media, and text encoding.
 
 #### Changed
 
@@ -55,7 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Line mode at threshold 0 keeps faint edges, including edges that fall on a cell boundary.
 - Character art draws darker cells denser unless Invert is on.
-- Chrome speech no longer stops on the extension message error. Speaking uses the local page, and current Chrome network voices skip the old offline voice-pack install.
+- Chrome speech no longer shows the extension connection error. It speaks in the already open page, and current Chrome voices skip the old offline voice-pack install.
 
 #### Documentation
 
@@ -67,6 +69,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Chrome 语音合成在对应离线语音包未安装时临时安装，并显示可中止的进度窗。HTTP 接口仍须事先安装，未安装返回 927。
 - 系统工具只读列出进程、文件占用、环境变量、启动项和已安装程序。
+- 帮助 → 安装功能增加「单个组件安装」。可以单独安装或删除一个组件，例如 FFmpeg，不会带上该功能里的其它组件。
+- 系统工具列出服务、补丁、商店应用和文件关联。系统信息显示内存条和主板。文件分析对照文件头与扩展名，并显示版本、图片、媒体和文本编码。
 
 #### 变更
 
@@ -81,7 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 线条模式在阈值为 0 时会保留很淡的边缘，格子交界上的线也会画出来。
 - 字符画不勾选反色时，越暗的地方字符越密。
-- Chrome 语音不再因扩展消息报错而停住。朗读改走本机网页，当前 Chrome 的联网语音不再安装旧的离线语音包。
+- Chrome 语音不再弹出扩展连接错误。朗读留在已经打开的页面里，当前 Chrome 的语音不再安装旧的离线语音包。
 
 #### 文档
 

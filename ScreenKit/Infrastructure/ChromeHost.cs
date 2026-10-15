@@ -10,7 +10,6 @@ namespace ScreenKit;
 
 /// <summary>一个停在屏幕外的 Chrome。朗读和翻译在同一个窗口里排队，这一页保持在前台。</summary>
 static class ChromeHost {
-	const int SW_HIDE = 0;
 	const int SW_SHOWNA = 8;
 	static readonly object gate = new();
 	static readonly Dictionary<int, Slot> slots = new();
@@ -286,11 +285,8 @@ static class ChromeHost {
 		var args = new StringBuilder();
 		args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
 		args.Append("--no-first-run --no-default-browser-check --disable-sync ");
-		args.Append("--disable-popup-blocking ");
 		args.Append("--autoplay-policy=no-user-gesture-required ");
 		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
-		args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
-		args.Append("--disable-background-timer-throttling ");
 		args.Append("--window-position=-32000,-32000 --window-size=160,80 ");
 		args.Append('"').Append(url).Append('"');
 		proc = Process.Start(new ProcessStartInfo {
@@ -429,7 +425,6 @@ static class ChromeHost {
 		if (sp2 > 0) url = url.Substring(0, sp2);
 		var q = url.IndexOf('?');
 		if (q >= 0) url = url.Substring(0, q);
-		try { File.AppendAllText(Path.Combine(workdir(), "http.log"), method + " " + url + "\n"); } catch { }
 		if (method.Equals("GET", StringComparison.OrdinalIgnoreCase)) {
 			if (url == "/next") {
 				writetext(stream, nextpage());
@@ -540,19 +535,26 @@ static class ChromeHost {
 	}
 
 	static string nextpage() {
-		string url = "";
+		string body = "";
 		lock (slots) {
 			if (!ready) return "";
 			while (order.Count > 0) {
-				var id = order.Dequeue();
-				if (!slots.TryGetValue(id, out var slot) || slot.Opened || string.IsNullOrEmpty(slot.Page)) continue;
+				var id = order.Peek();
+				if (!slots.TryGetValue(id, out var slot) || slot.Opened) {
+					order.Dequeue();
+					continue;
+				}
+				var path = Path.Combine(workdir(), "jobs", id + ".json");
+				if (!File.Exists(path)) break;
+				try { body = File.ReadAllText(path); }
+				catch { break; }
+				if (string.IsNullOrWhiteSpace(body)) break;
+				order.Dequeue();
 				slot.Opened = true;
-				url = "/" + slot.Page + "#" + slot.Id;
 				break;
 			}
 		}
-		if (url.Length > 0) show();
-		return url;
+		return body;
 	}
 
 	static void cleanup(int id) {
@@ -586,25 +588,6 @@ static class ChromeHost {
 	}
 
 	static void hide() {
-		return;
-		lock (slots) {
-			if (slots.Count > 0) return;
-		}
-		Process p;
-		lock (gate) p = proc;
-		int pid = 0;
-		if (p != null) {
-			try { if (!p.HasExited) pid = p.Id; } catch { pid = 0; }
-		}
-		EnumWindows((h, _) => {
-			var sb = new StringBuilder(256);
-			var n = GetWindowText(h, sb, sb.Capacity);
-			var text = n > 0 ? sb.ToString() : "";
-			GetWindowThreadProcessId(h, out var wpid);
-			if ((pid > 0 && (int)wpid == pid) || text.StartsWith("skc", StringComparison.Ordinal))
-				ShowWindow(h, SW_HIDE);
-			return true;
-		}, IntPtr.Zero);
 	}
 
 	static bool hastitle(string part) {
@@ -618,130 +601,19 @@ static class ChromeHost {
 		return ok;
 	}
 
-	static string pagehtml(string js, int listenPort) {
-		return "<!DOCTYPE html><meta charset=\"utf-8\"><title>skc-job</title><script>"
-			+ js.Replace("@@PORT@@", listenPort.ToString())
-			+ "</script>";
-	}
-
-	static string pinghtml(int listenPort) {
-		return pagehtml(pingjs, listenPort);
-	}
-
-	const string boothtml = "<!DOCTYPE html><meta charset=\"utf-8\"><title>skc-ready</title><script>function poll(){var x=new XMLHttpRequest();x.open('GET','/next',true);x.onload=function(){var t=(x.responseText||'').replace(/\\s/g,'');if(t.charAt(0)=='/')location.href=t;else setTimeout(poll,200);};x.onerror=function(){setTimeout(poll,400);};try{x.send();}catch(e){setTimeout(poll,400);}}poll();</script>";
-
-	const string qidjs = @"
-function qid(){var s=location.hash||'';if(s.charAt(0)=='#')s=s.substring(1);var n=parseInt(s,10);return n||0;}
-var id=qid();
-var stopping=false;
-document.title='skc-job-'+id;
-function watch(){
-var x=new XMLHttpRequest();
-x.open('GET','jobs/'+id+'.stop',true);
-x.onload=function(){if((x.responseText||'').charAt(0)=='1'){stopping=true;try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}location.href='/boot.html';}};
-try{x.send();}catch(e){}
-}
-setInterval(watch,200);
-";
-
-	const string speakjs = qidjs + @"
-function post(ok,err){
-var body=JSON.stringify({id:id,ok:!!ok,err:err||'',items:[]});
-var done=function(){setTimeout(function(){location.href='/boot.html';},200);};
-try{fetch('http://127.0.0.1:@@PORT@@/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(done,done);}catch(e){done();}
-}
-function pick(job){
-var list=speechSynthesis.getVoices(),name=job.name||'',lang=(job.lang||'').toLowerCase(),i,google=[];
-if(name){for(i=0;i<list.length;i++)if(list[i].name===name)return list[i];}
-for(i=0;i<list.length;i++)if(list[i].name.indexOf('Google')===0)google.push(list[i]);
-if(lang){for(i=0;i<google.length;i++)if((google[i].lang||'').toLowerCase().indexOf(lang)===0)return google[i];}
-if(google.length)return google[0];
-if(lang){for(i=0;i<list.length;i++)if((list[i].lang||'').toLowerCase().indexOf(lang)===0)return list[i];}
-return list[0]||null;
-}
-var started=false;
-function go(job,v){
-if(started)return;
-started=true;
-try{
-var u=new SpeechSynthesisUtterance(job.text||'');
-if(v){u.voice=v;u.lang=v.lang||job.lang||'';}else u.lang=job.lang||'';
-u.rate=job.rate>0?+job.rate:1;u.volume=job.volume==null?1:+job.volume;
-u.onend=function(){post(true,'');};
-u.onerror=function(e){if(stopping)return;var m=(e&&e.error)||'';if(!m||m.indexOf('Receiving end')>=0)m='Chrome 没有发出声音';post(false,m);};
-document.title='skc-go';
-try{speechSynthesis.cancel();}catch(e){}
-speechSynthesis.speak(u);
-try{if(speechSynthesis.paused)speechSynthesis.resume();}catch(e){}
-}catch(e){post(false,e&&e.message?e.message:'speak');}
-}
-function speak(job){
-if(!window.speechSynthesis){post(false,'Chrome 没有发出声音');return;}
-var v=pick(job);
-if(v){go(job,v);return;}
-var t0=Date.now();
-var timer=setInterval(function(){
-var u=pick(job);
-if(u){clearInterval(timer);go(job,u);}
-else if(Date.now()-t0>12000){clearInterval(timer);post(false,'Chrome 没有发出声音');}
-},200);
-speechSynthesis.onvoiceschanged=function(){var u=pick(job);if(u){clearInterval(timer);go(job,u);}};
-}
-function load(){
-document.title='skc-load-'+id;
-var x=new XMLHttpRequest();
-x.open('GET','jobs/'+id+'.json',true);
-x.onload=function(){var j;try{j=JSON.parse(x.responseText||'');}catch(e){post(false,'job');return;}document.title='skc-json';speak(j);};
-x.onerror=function(){post(false,'job');};
-try{x.send();}catch(e){post(false,'job');}
-}
-load();
-";
-
-	const string trjs = qidjs + @"
-function post(jobId,ok,err,items){
-var body=JSON.stringify({id:jobId,ok:!!ok,err:err||'',items:items||[]});
-var done=function(){setTimeout(function(){location.href='/boot.html';},200);};
-try{fetch('http://127.0.0.1:@@PORT@@/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(done,done);}catch(e){done();}
-}
-function ctor(){
-if(typeof Translator==='function')return Translator;
-if(self.ai&&typeof self.ai.translator==='function')return self.ai.translator;
-return null;
-}
-async function run(job){
-var C=ctor();
-if(!C){post(job.id,false,'这个 Chrome 没有翻译接口',[]);return;}
-try{
-var opt={sourceLanguage:job.src,targetLanguage:job.dst};
-var avail='available';
-if(typeof C.availability==='function')avail=await C.availability(opt);
-if(avail==='unavailable'||avail==='no'){post(job.id,false,'Chrome 不能翻译这对语言',[]);return;}
-var t=await C.create(opt),outs=[],i,s;
-for(i=0;i<job.items.length;i++){
-s=job.items[i]||'';
-outs.push(s.trim()?await t.translate(s):'');
-}
-post(job.id,true,'',outs);
-}catch(e){post(job.id,false,e&&e.message?e.message:'Chrome 翻译失败',[]);}
-}
-function load(){
-var x=new XMLHttpRequest();
-x.open('GET','jobs/'+id+'.json',true);
-x.onload=function(){var j;try{j=JSON.parse(x.responseText||'');}catch(e){post(id,false,'job',[]);return;}run(j);};
-x.onerror=function(){post(id,false,'job',[]);};
-try{x.send();}catch(e){post(id,false,'job',[]);}
-}
-load();
-";
-
-	const string pingjs = @"
-function qid(){var s=location.hash||'';if(s.charAt(0)=='#')s=s.substring(1);var n=parseInt(s,10);return n||0;}
-var id=qid();
-document.title='skc-job-'+id;
-var body=JSON.stringify({id:id,ok:true,err:'',items:['P']});
-fetch('http://127.0.0.1:@@PORT@@/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(function(){location.href='/boot.html';},function(){location.href='/boot.html';});
-";
+	const string boothtml = "<!DOCTYPE html><meta charset=\"utf-8\"><title>skc-ready</title><script>\n"
+		+ "var stopping=false,cur=0;\n"
+		+ "function poll(){var x=new XMLHttpRequest();x.open('GET','/next',true);x.onload=function(){var t=x.responseText||'';if(t.charAt(0)!='{'){setTimeout(poll,200);return;}var j;try{j=JSON.parse(t);}catch(e){setTimeout(poll,200);return;}cur=j.id||0;stopping=false;if(j.op=='ping'){post(j,true,'',['P']);return;}if(j.op=='tr'){runtr(j);return;}speak(j);};x.onerror=function(){setTimeout(poll,400);};try{x.send();}catch(e){setTimeout(poll,400);}}\n"
+		+ "function post(job,ok,err,items){cur=0;var body=JSON.stringify({id:job.id,ok:!!ok,err:err||'',items:items||[]});var done=function(){setTimeout(poll,50);};try{fetch('/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(done,done);}catch(e){done();}}\n"
+		+ "function watch(){if(!cur)return;var id=cur,x=new XMLHttpRequest();x.open('GET','jobs/'+id+'.stop',true);x.onload=function(){if(cur!=id)return;if((x.responseText||'').charAt(0)=='1'){stopping=true;cur=0;try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}setTimeout(poll,50);}};try{x.send();}catch(e){}}\n"
+		+ "setInterval(watch,200);\n"
+		+ "function pick(job){var list=speechSynthesis.getVoices(),name=job.name||'',lang=(job.lang||'').toLowerCase(),i,match=[];if(name){for(i=0;i<list.length;i++)if(list[i].name===name)return list[i];}if(!lang)return list[0]||null;for(i=0;i<list.length;i++)if((list[i].lang||'').toLowerCase().indexOf(lang)===0)match.push(list[i]);for(i=0;i<match.length;i++)if(match[i].name.indexOf('Google')!==0)return match[i];return null;}\n"
+		+ "function go(job,v){try{var u=new SpeechSynthesisUtterance(job.text||'');if(v){u.voice=v;u.lang=v.lang||job.lang||'';}else u.lang=job.lang||'';u.rate=job.rate>0?+job.rate:1;u.volume=job.volume==null?1:+job.volume;u.onend=function(){if(stopping)return;post(job,true,'',[]);};u.onerror=function(e){if(stopping)return;var m=(e&&e.error)||'';if(!m||m.indexOf('Receiving end')>=0)m='Chrome 没有发出声音';post(job,false,m,[]);};setTimeout(function(){try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(e){post(job,false,e&&e.message?e.message:'speak',[]);}},200);}catch(e){post(job,false,e&&e.message?e.message:'speak',[]);}}\n"
+		+ "function speak(job){if(!window.speechSynthesis){post(job,false,'Chrome 没有发出声音',[]);return;}var started=false;function kick(){if(started||stopping)return true;var v=pick(job);if(!v)return false;started=true;go(job,v);return true;}if(kick())return;var t0=Date.now();var timer=setInterval(function(){if(kick()){clearInterval(timer);return;}if(Date.now()-t0>12000){clearInterval(timer);if(!started)post(job,false,'Chrome 没有发出声音',[]);}},200);speechSynthesis.onvoiceschanged=function(){if(kick())clearInterval(timer);};}\n"
+		+ "function ctor(){if(typeof Translator==='function')return Translator;if(self.ai&&typeof self.ai.translator==='function')return self.ai.translator;return null;}\n"
+		+ "async function runtr(job){var C=ctor();if(!C){post(job,false,'这个 Chrome 没有翻译接口',[]);return;}try{var opt={sourceLanguage:job.src,targetLanguage:job.dst};var avail='available';if(typeof C.availability==='function')avail=await C.availability(opt);if(avail==='unavailable'||avail==='no'){post(job,false,'Chrome 不能翻译这对语言',[]);return;}var t=await C.create(opt),outs=[],i,s;for(i=0;i<job.items.length;i++){s=job.items[i]||'';outs.push(s.trim()?await t.translate(s):'');}post(job,true,'',outs);}catch(e){post(job,false,e&&e.message?e.message:'Chrome 翻译失败',[]);}}\n"
+		+ "poll();\n"
+		+ "</script>";
 
 	delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
 	[DllImport("user32.dll")] static extern bool EnumWindows(EnumProc lpEnumFunc, IntPtr lParam);

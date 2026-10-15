@@ -21,6 +21,7 @@ public partial class SysToolWindow : Window {
 		InitializeComponent();
 		applylang();
 		initev();
+		initmore();
 		WindowEsc.Attach(this);
 		ensure();
 	}
@@ -140,6 +141,7 @@ public partial class SysToolWindow : Window {
 		ToolBtnUi.Set(bstartcopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
 		ToolBtnUi.Set(bapprefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
 		ToolBtnUi.Set(bappcopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
+		applymore();
 	}
 
 	void ensure() {
@@ -147,6 +149,9 @@ public partial class SysToolWindow : Window {
 		else if (tabs.SelectedItem == tabenv && loaded.Add("env")) loadenv();
 		else if (tabs.SelectedItem == tabstart && loaded.Add("start")) loadstart();
 		else if (tabs.SelectedItem == tabapp && loaded.Add("app")) loadapp();
+		else if (tabs.SelectedItem == tabsvc && loaded.Add("svc")) loadsvc();
+		else if (tabs.SelectedItem == tabpatch && loaded.Add("patch")) loadpatch();
+		else if (tabs.SelectedItem == tabstore && loaded.Add("store")) loadstore();
 	}
 
 	void loadproc() {

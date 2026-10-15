@@ -43,6 +43,33 @@ static class SysTool {
 		public string Scope = "";
 	}
 
+	public sealed class SvcRow {
+		public string Name = "";
+		public string Disp = "";
+		public string State = "";
+		public string Start = "";
+		public string Path = "";
+	}
+
+	public sealed class PatchRow {
+		public string Id = "";
+		public string Date = "";
+		public string Desc = "";
+	}
+
+	public sealed class StoreRow {
+		public string Name = "";
+		public string Ver = "";
+		public string Pub = "";
+	}
+
+	public sealed class AssocRow {
+		public string Ext = "";
+		public string App = "";
+		public string Exe = "";
+		public string Cmd = "";
+	}
+
 	public static List<ProcRow> Procs() {
 		var list = new List<ProcRow>();
 		using var search = new ManagementObjectSearcher(
@@ -167,6 +194,107 @@ static class SysTool {
 		return list;
 	}
 
+	public static List<SvcRow> Services() {
+		var list = new List<SvcRow>();
+		using var search = new ManagementObjectSearcher(
+			"SELECT Name, DisplayName, State, StartMode, PathName FROM Win32_Service");
+		foreach (ManagementObject mo in search.Get()) {
+			using (mo) {
+				var row = new SvcRow {
+					Name = text(mo["Name"]),
+					Disp = text(mo["DisplayName"]),
+					State = text(mo["State"]),
+					Start = text(mo["StartMode"]),
+					Path = text(mo["PathName"]),
+				};
+				if (row.Disp.Length == 0) row.Disp = row.Name;
+				if (row.Name.Length == 0) continue;
+				list.Add(row);
+			}
+		}
+		list.Sort((a, b) => string.Compare(a.Disp, b.Disp, StringComparison.OrdinalIgnoreCase));
+		return list;
+	}
+
+	public static List<PatchRow> Patches() {
+		var list = new List<PatchRow>();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		using var search = new ManagementObjectSearcher(
+			"SELECT HotFixID, InstalledOn, Description FROM Win32_QuickFixEngineering");
+		foreach (ManagementObject mo in search.Get()) {
+			using (mo) {
+				var id = text(mo["HotFixID"]);
+				if (id.Length == 0 || !seen.Add(id)) continue;
+				list.Add(new PatchRow {
+					Id = id,
+					Date = patchdate(mo["InstalledOn"]),
+					Desc = text(mo["Description"]),
+				});
+			}
+		}
+		list.Sort((a, b) => string.Compare(b.Date, a.Date, StringComparison.Ordinal));
+		return list;
+	}
+
+	public static List<StoreRow> Store(out string err) {
+		err = null;
+		var list = new List<StoreRow>();
+		var psi = new ProcessStartInfo {
+			FileName = "powershell.exe",
+			Arguments = "-NoProfile -NonInteractive -Command \"[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; Get-AppxPackage | Where-Object { -not $_.IsFramework } | ForEach-Object { $_.Name + [char]9 + $_.Version + [char]9 + $_.PublisherDisplayName }\"",
+			UseShellExecute = false,
+			RedirectStandardOutput = true,
+			CreateNoWindow = true,
+			StandardOutputEncoding = Encoding.UTF8,
+		};
+		try {
+			using var p = Process.Start(psi);
+			if (p == null) {
+				err = "powershell";
+				return list;
+			}
+			var text = p.StandardOutput.ReadToEnd();
+			if (!p.WaitForExit(25000)) {
+				try { p.Kill(); } catch { }
+				err = "timeout";
+				return list;
+			}
+			foreach (var line in text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+				var parts = line.Split('\t');
+				if (parts.Length < 1) continue;
+				var name = parts[0].Trim();
+				if (name.Length == 0) continue;
+				list.Add(new StoreRow {
+					Name = name,
+					Ver = parts.Length > 1 ? parts[1].Trim() : "",
+					Pub = parts.Length > 2 ? parts[2].Trim() : "",
+				});
+			}
+		}
+		catch (Exception ex) {
+			err = ex.Message;
+		}
+		list.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+		return list;
+	}
+
+	public static AssocRow Assoc(string ext, out string err) {
+		err = null;
+		var row = new AssocRow();
+		ext = (ext ?? "").Trim().Trim('"');
+		if (ext.Length == 0) {
+			err = "empty";
+			return row;
+		}
+		if (ext[0] != '.') ext = "." + ext;
+		row.Ext = ext;
+		row.App = assocstr(4, ext);
+		row.Exe = assocstr(2, ext);
+		row.Cmd = assocstr(1, ext);
+		if (row.App.Length == 0 && row.Exe.Length == 0 && row.Cmd.Length == 0) err = "none";
+		return row;
+	}
+
 	public static int Test(Action<string> log, Action<string> err) {
 		log("=== 系统工具 --test-systool ===");
 		var procs = Procs();
@@ -217,6 +345,37 @@ static class SysTool {
 		var miss = Locks(path + ".nope", out var misserr);
 		if (miss.Count != 0 || misserr != "missing") {
 			err("不存在的路径应记为 missing");
+			return 1;
+		}
+		var svcs = Services();
+		log($"svc={svcs.Count}");
+		if (svcs.Count < 8) {
+			err("服务太少");
+			return 1;
+		}
+		var svcpath = false;
+		foreach (var s in svcs)
+			if (s.Path.Length > 0) svcpath = true;
+		if (!svcpath) {
+			err("服务没有可执行路径");
+			return 1;
+		}
+		var patches = Patches();
+		log($"patch={patches.Count}");
+		var store = Store(out var storeerr);
+		log($"store={store.Count} {storeerr}");
+		if (storeerr != null) {
+			err($"商店应用 {storeerr}");
+			return 1;
+		}
+		if (store.Count < 3) {
+			err("商店应用太少");
+			return 1;
+		}
+		var assoc = Assoc(".txt", out var assocerr);
+		log($"assoc={assoc.App} {assoc.Exe} {assocerr}");
+		if (assocerr != null || assoc.Exe.Length == 0) {
+			err("txt 没有默认程序");
 			return 1;
 		}
 		log("=== OK：系统工具 ===");
@@ -378,6 +537,30 @@ static class SysTool {
 		catch { }
 	}
 
+	static string assocstr(int kind, string ext) {
+		var buf = new StringBuilder(1024);
+		var n = buf.Capacity;
+		var rc = AssocQueryString(0, kind, ext, null, buf, ref n);
+		if (rc != 0) return "";
+		return buf.ToString().Trim();
+	}
+
+	static string patchdate(object v) {
+		if (v == null) return "";
+		var s = v.ToString().Trim();
+		if (s.Length >= 8 && char.IsDigit(s[0])) {
+			var digits = 0;
+			foreach (var c in s) {
+				if (!char.IsDigit(c)) break;
+				digits++;
+			}
+			if (digits >= 8)
+				return $"{s.Substring(0, 4)}-{s.Substring(4, 2)}-{s.Substring(6, 2)}";
+		}
+		if (DateTime.TryParse(s, out var dt)) return dt.ToString("yyyy-MM-dd");
+		return s;
+	}
+
 	static string text(object v) => v as string ?? "";
 
 	static int toint(object v) {
@@ -401,6 +584,9 @@ static class SysTool {
 		if (n >= kb) return $"{n / kb:0} KB";
 		return $"{n} B";
 	}
+
+	[DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+	static extern int AssocQueryString(int flags, int str, string assoc, string extra, StringBuilder pszOut, ref int pcchOut);
 
 	[DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)]
 	static extern int RmStartSession(out uint pSessionHandle, int dwSessionFlags, StringBuilder strSessionKey);

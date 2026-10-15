@@ -246,12 +246,15 @@
 					<MenuItem x:Name="mnfastcopy" Header="快速复制(_A)…"
 					          AutomationProperties.AutomationId="menu.fastcopy"
 					          ToolTip="复制或剪切文件，并可注册资源管理器右键菜单"/>
+					<MenuItem x:Name="mnfileprobe" Header="文件分析(_P)…"
+					          AutomationProperties.AutomationId="menu.fileprobe"
+					          ToolTip="看文件头、版本、图片信息、媒体和文本编码"/>
 				</MenuItem>
 				<MenuItem x:Name="mncatsys" Header="系统(_Y)"
 				          AutomationProperties.AutomationId="menu.cat.sys">
 					<MenuItem x:Name="mnsystool" Header="系统工具(_S)…"
 					          AutomationProperties.AutomationId="menu.systool"
-					          ToolTip="进程、文件占用、环境变量、启动项和已安装程序"/>
+					          ToolTip="进程、文件占用、环境变量、启动项、已安装程序、服务、补丁、商店应用和文件关联"/>
 					<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
 					          AutomationProperties.AutomationId="menu.wintop"
 					          ToolTip="选择窗口，设置或取消固定在前面"/>

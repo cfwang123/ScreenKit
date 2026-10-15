@@ -63,6 +63,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miCam;
 	Forms.ToolStripMenuItem miSys;
 	Forms.ToolStripMenuItem miSysTool;
+	Forms.ToolStripMenuItem miFileProbe;
 	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miZhConv;
 	Forms.ToolStripMenuItem miPinyin;
@@ -198,6 +199,7 @@ sealed class TrayIcon : IDisposable {
 		miCam = item("tray.cam", () => CamRequested?.Invoke());
 		miSys = item("tray.sysinfo", () => SysRequested?.Invoke());
 		miSysTool = item("tray.systool", () => SysToolRequested?.Invoke());
+		miFileProbe = item("tray.fileprobe", () => FileProbeRequested?.Invoke());
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
 		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
@@ -255,6 +257,7 @@ sealed class TrayIcon : IDisposable {
 		miCatFile = new Forms.ToolStripMenuItem(Loc.T("menu.cat.file"));
 		miCatFile.DropDownItems.Add(miRename);
 		miCatFile.DropDownItems.Add(miFastCopy);
+		miCatFile.DropDownItems.Add(miFileProbe);
 		miCatSys = new Forms.ToolStripMenuItem(Loc.T("menu.cat.sys"));
 		miCatSys.DropDownItems.Add(miSysTool);
 		miCatSys.DropDownItems.Add(miWinTop);
@@ -487,6 +490,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miWinTop, null);
 		setshortcut(miAutoKey, null);
 		setshortcut(miFastCopy, null);
+		setshortcut(miFileProbe, null);
 		setshortcut(miGlyphMod, null);
 		setshortcut(miCast, null);
 		setshortcut(miSettings, null);
@@ -564,6 +568,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miWinTop, "tray.wintop");
 			settext(miAutoKey, "tray.autokey");
 			settext(miFastCopy, "tray.fastcopy");
+			settext(miFileProbe, "tray.fileprobe");
 			settext(miGlyphMod, "tray.glyphmod");
 			settext(miCast, "tray.cast");
 			settext(miSettings, "tray.settings");
@@ -700,6 +705,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action CamRequested;
 	public event Action SysRequested;
 	public event Action SysToolRequested;
+	public event Action FileProbeRequested;
 	public event Action HttpDbgRequested;
 	public event Action ZhConvRequested;
 	public event Action PinyinRequested;
