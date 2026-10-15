@@ -109,6 +109,9 @@ static class MdRead {
 				return bad(say, "code");
 			if (html.IndexOf("<li>", StringComparison.Ordinal) < 0)
 				return bad(say, "list");
+			var nest = ToHtml("- 父\n\t● 子\n\t\t● 孙\n", "", "t");
+			if (nest.IndexOf("<li>父<ul><li>子<ul><li>孙</li></ul></li></ul></li>", StringComparison.Ordinal) < 0)
+				return bad(say, "nest");
 			if (html.IndexOf("&lt;script&gt;", StringComparison.Ordinal) < 0)
 				return bad(say, "fence");
 			if (html.IndexOf("<table>", StringComparison.Ordinal) < 0 || html.IndexOf("<td>1</td>", StringComparison.Ordinal) < 0)
@@ -226,6 +229,9 @@ static class MdRead {
 		sb.Append("h2{font-size:22px;line-height:1.35;border-bottom:1px solid #f3f4f6;padding-bottom:4px;}");
 		sb.Append("h3{font-size:18px;}");
 		sb.Append("p{margin:0 0 12px;}");
+		sb.Append("ul,ol{margin:0;padding:0 0 0 2em;}");
+		sb.Append("body>ul,body>ol{padding-left:0;}");
+		sb.Append("li{margin:0;}");
 		sb.Append("a{color:#c2410c;}");
 		sb.Append("code{font-family:Consolas,'Cascadia Mono',monospace;background:#f3f4f6;padding:1px 4px;}");
 		sb.Append("pre{background:#f3f4f6;padding:12px 14px;overflow:auto;}");
@@ -529,11 +535,11 @@ static class MdRead {
 	}
 
 	static bool listline(string line, out int indent, out bool ordered, out string item) {
-		indent = indentof(line);
+		var n = skipindent(line, out indent);
 		ordered = false;
 		item = "";
-		var s = line.Substring(indent);
-		if (s.StartsWith("- ") || s.StartsWith("* ") || s.StartsWith("+ ")) {
+		var s = n < line.Length ? line.Substring(n) : "";
+		if (s.StartsWith("- ") || s.StartsWith("* ") || s.StartsWith("+ ") || s.StartsWith("● ") || s.StartsWith("• ")) {
 			item = s.Substring(2);
 			return true;
 		}
@@ -548,8 +554,23 @@ static class MdRead {
 	}
 
 	static int indentof(string line) {
+		skipindent(line, out var col);
+		return col;
+	}
+
+	static int skipindent(string line, out int col) {
+		col = 0;
 		var n = 0;
-		while (n < line.Length && line[n] == ' ') n++;
+		while (n < line.Length) {
+			var c = line[n];
+			if (c == ' ') { col++; n++; continue; }
+			if (c == '\t') {
+				col += 4 - (col % 4);
+				n++;
+				continue;
+			}
+			break;
+		}
 		return n;
 	}
 

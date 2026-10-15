@@ -31,6 +31,8 @@
 			         AutomationProperties.AutomationId="charart.cols"/>
 			<CheckBox x:Name="ckinv" Content="反色" VerticalAlignment="Center" Margin="12,0,0,0"
 			          AutomationProperties.AutomationId="charart.invert"/>
+			<CheckBox x:Name="ckline" Content="线条" VerticalAlignment="Center" Margin="12,0,0,0"
+			          AutomationProperties.AutomationId="charart.line"/>
 			<TextBlock x:Name="lbth" Text="阈值" VerticalAlignment="Center" Margin="12,0,6,0"/>
 			<Slider x:Name="eth" Width="140" Minimum="0" Maximum="255" TickFrequency="1"
 			        IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center"

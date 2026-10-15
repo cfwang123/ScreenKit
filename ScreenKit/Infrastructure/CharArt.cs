@@ -159,6 +159,38 @@ static class CharArt {
 		return buf;
 	}
 
+	/// <summary>按格子里的明暗走向画线。横线 -，竖线 |，斜线 / 与 \，十字 +。threshold 越高越只留更明显的线。</summary>
+	public static string Lines(byte[] px, int w, int h, int cols, bool invert, int threshold) {
+		if (px == null || w < 1 || h < 1) return "";
+		if (cols < 1) cols = 1;
+		if (cols > 400) cols = 400;
+		if (threshold < 0) threshold = 0;
+		if (threshold > 255) threshold = 255;
+		var rows = gridrows(w, h, cols);
+		var sb = new StringBuilder(rows * (cols + 1));
+		var s = new int[9];
+		for (var y = 0; y < rows; y++) {
+			var y0 = h * (y / (double)rows);
+			var y1 = h * ((y + 1) / (double)rows);
+			for (var x = 0; x < cols; x++) {
+				var x0 = w * (x / (double)cols);
+				var x1 = w * ((x + 1) / (double)cols);
+				for (var sy = 0; sy < 3; sy++) {
+					var ya = y0 + (y1 - y0) * sy / 3;
+					var yb = y0 + (y1 - y0) * (sy + 1) / 3;
+					for (var sx = 0; sx < 3; sx++) {
+						var xa = x0 + (x1 - x0) * sx / 3;
+						var xb = x0 + (x1 - x0) * (sx + 1) / 3;
+						s[sy * 3 + sx] = lumof(area(px, w, h, xa, xb, ya, yb), invert);
+					}
+				}
+				sb.Append(linech(s, threshold));
+			}
+			if (y + 1 < rows) sb.Append('\n');
+		}
+		return sb.ToString();
+	}
+
 	/// <summary>纯 ASCII。字符格子大约两倍高，按列数算出行数。threshold 为 0～255，不超过它的亮度用空格。</summary>
 	public static string Ascii(byte[] px, int w, int h, int cols, bool invert, int threshold) {
 		if (px == null || w < 1 || h < 1) return "";
@@ -166,9 +198,7 @@ static class CharArt {
 		if (cols > 400) cols = 400;
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
-		var rows = (int)Math.Round(h / (double)w * cols / CELL_ASPECT);
-		if (rows < 1) rows = 1;
-		if (rows > 400) rows = 400;
+		var rows = gridrows(w, h, cols);
 		var sb = new StringBuilder(rows * (cols + 1));
 		for (var y = 0; y < rows; y++) {
 			var y0 = h * (y / (double)rows);
@@ -402,6 +432,46 @@ static class CharArt {
 			bad("charart threshold");
 			return 1;
 		}
+		var hz = solid(9, 18, 255, 255, 255);
+		paintrow(hz, 9, 8, 0, 0, 0);
+		paintrow(hz, 9, 9, 0, 0, 0);
+		var hzt = Lines(hz, 9, 18, 3, false, 0);
+		if (countch(hzt, '-') < 3 || countch(hzt, '|') != 0) {
+			bad("charart line h " + hzt.Replace("\n", "/"));
+			return 1;
+		}
+		var vt = solid(9, 18, 255, 255, 255);
+		paintcol(vt, 9, 18, 4, 0, 0, 0);
+		var vtt = Lines(vt, 9, 18, 3, false, 0);
+		if (countch(vtt, '|') < 3 || countch(vtt, '-') != 0) {
+			bad("charart line v " + vtt.Replace("\n", "/"));
+			return 1;
+		}
+		var dg = solid(9, 18, 255, 255, 255);
+		paintdiag(dg, 3, 3, 3, 6, true);
+		var dgt = Lines(dg, 9, 18, 3, false, 0);
+		if (countch(dgt, '/') < 6) {
+			bad("charart line / " + dgt.Replace("\n", "/"));
+			return 1;
+		}
+		var bk = solid(9, 18, 255, 255, 255);
+		paintdiag(bk, 3, 3, 3, 6, false);
+		var bkt = Lines(bk, 9, 18, 3, false, 0);
+		if (countch(bkt, '\\') < 6) {
+			bad("charart line \\ " + bkt.Replace("\n", "/"));
+			return 1;
+		}
+		var flat = Lines(solid(9, 18, 255, 255, 255), 9, 18, 3, false, 0);
+		if (flat.Trim().Length != 0) {
+			bad("charart line blank");
+			return 1;
+		}
+		var faint = solid(9, 18, 255, 255, 255);
+		paintrow(faint, 9, 9, 200, 200, 200);
+		if (Lines(faint, 9, 18, 3, false, 255).Trim().Length != 0) {
+			bad("charart line faint");
+			return 1;
+		}
 		Fit(100, 50, 50, 20, out var fw, out var fh, out var fox, out var foy);
 		if (Math.Abs(fw - 2) > 1e-6 || Math.Abs(fh - 4) > 1e-6 || Math.Abs(fox) > 1e-6 || Math.Abs(foy - (-15)) > 1e-6) {
 			bad($"charart fit {fw} {fh} {fox} {foy}");
@@ -436,8 +506,8 @@ static class CharArt {
 			bad($"charart soft half U+{(int)softHalf.Ch:X4}");
 			return 1;
 		}
-		var flat = solid(4, 2, 180, 90, 30);
-		var flatCell = Pick(flat, 4, 2, 0, 4, 0, 2, MODE_AUTO);
+		var flatpx = solid(4, 2, 180, 90, 30);
+		var flatCell = Pick(flatpx, 4, 2, 0, 4, 0, 2, MODE_AUTO);
 		if (flatCell.Ch != ' ' || flatCell.Fg != 0xB45A1E || flatCell.Bg != 0xB45A1E) {
 			bad($"charart flat U+{(int)flatCell.Ch:X4} {flatCell.Fg:X6}");
 			return 1;
@@ -864,6 +934,95 @@ static class CharArt {
 		if (a < 0) return b;
 		if (b < 0) return a;
 		return (((red(a) + red(b)) / 2) << 16) | (((green(a) + green(b)) / 2) << 8) | ((blue(a) + blue(b)) / 2);
+	}
+
+	static int gridrows(int w, int h, int cols) {
+		var rows = (int)Math.Round(h / (double)w * cols / CELL_ASPECT);
+		if (rows < 1) rows = 1;
+		if (rows > 400) rows = 400;
+		return rows;
+	}
+
+	static int lumof(int c, bool invert) {
+		if (c < 0) return 255;
+		var lum = (red(c) * 2126 + green(c) * 7152 + blue(c) * 722) / 10000;
+		if (invert) lum = 255 - lum;
+		return lum;
+	}
+
+	/// <summary>9 格亮度。中间一行更暗是横线，中间一列更暗是竖线，两条斜线谁更暗决定 / 或 \。</summary>
+	static char linech(int[] s, int threshold) {
+		int at(int i) => s[i] < 0 ? 255 : s[i];
+		int dark(int a, int b, int c) => 765 - (at(a) + at(b) + at(c));
+		var top = dark(0, 1, 2);
+		var mid = dark(3, 4, 5);
+		var bot = dark(6, 7, 8);
+		var left = dark(0, 3, 6);
+		var cen = dark(1, 4, 7);
+		var right = dark(2, 5, 8);
+		var slash = dark(2, 4, 6);
+		var back = dark(0, 4, 8);
+		var hScore = Math.Max(top, Math.Max(mid, bot)) - Math.Min(top, Math.Min(mid, bot));
+		var vScore = Math.Max(left, Math.Max(cen, right)) - Math.Min(left, Math.Min(cen, right));
+		var diag = Math.Abs(slash - back);
+		var floor = 70 + threshold * 2;
+		if (hScore >= floor && vScore >= floor && hScore * 3 >= diag * 2 && vScore * 3 >= diag * 2)
+			return '+';
+		if (diag >= hScore && diag >= vScore && diag >= floor)
+			return slash > back ? '/' : '\\';
+		if (hScore >= vScore && hScore >= floor) return '-';
+		if (vScore >= floor) return '|';
+		return ' ';
+	}
+
+	static int countch(string s, char ch) {
+		var n = 0;
+		if (s == null) return 0;
+		foreach (var c in s)
+			if (c == ch) n++;
+		return n;
+	}
+
+	static void paintrow(byte[] px, int w, int y, int r, int g, int b) {
+		for (var x = 0; x < w; x++) {
+			var i = (y * w + x) * 4;
+			px[i] = (byte)b;
+			px[i + 1] = (byte)g;
+			px[i + 2] = (byte)r;
+			px[i + 3] = 255;
+		}
+	}
+
+	static void paintcol(byte[] px, int w, int h, int x, int r, int g, int b) {
+		for (var y = 0; y < h; y++) {
+			var i = (y * w + x) * 4;
+			px[i] = (byte)b;
+			px[i + 1] = (byte)g;
+			px[i + 2] = (byte)r;
+			px[i + 3] = 255;
+		}
+	}
+
+	static void ink(byte[] px, int w, int x, int y) {
+		var i = (y * w + x) * 4;
+		px[i] = 0;
+		px[i + 1] = 0;
+		px[i + 2] = 0;
+		px[i + 3] = 255;
+	}
+
+	static void paintdiag(byte[] px, int cols, int rows, int cw, int ch, bool slash) {
+		var w = cols * cw;
+		for (var cy = 0; cy < rows; cy++) {
+			for (var cx = 0; cx < cols; cx++) {
+				for (var t = 0; t < cw; t++) {
+					var x = cx * cw + t;
+					var ly = slash ? (ch - 1 - t * (ch - 1) / (cw - 1)) : t * (ch - 1) / (cw - 1);
+					ink(px, w, x, cy * ch + ly);
+					if (ly + 1 < ch) ink(px, w, x, cy * ch + ly + 1);
+				}
+			}
+		}
 	}
 
 	static int red(int c) => (c >> 16) & 255;

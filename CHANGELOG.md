@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools and the tray add a Markdown reader. A dropped .md file is shown as HTML in the Windows 10 IE11 WebBrowser.
 - Tools → Camera previews a camera, saves a JPEG or PNG, and records an MP4 with Media Foundation. Scan reads a QR code or barcode and needs the optional OpenCV and ZXing install. The tools page camera takes a photo and scans the live picture.
 - HTTP request debugger POST body can be XML or raw text with a MIME type you type.
+- Character art can draw detected edges with - | / \ and +.
 
 #### Changed
 
@@ -81,6 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Korean input tray icon uses a larger Hangul glyph, and its menu opens above the taskbar.
 - The camera window no longer opens the device twice. A second open was waiting on the window thread, so the window looked stuck and the camera did not start.
 - Opening the Markdown reader no longer fails because the page view cannot take a file drop that way.
+- The Markdown reader keeps tabbed nested lists, including the bullet used in the source, at the same depth.
 
 #### Documentation
 
@@ -108,6 +110,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具菜单和托盘增加 MD 阅读器。拖入 .md 文件后，用 Windows 10 的 IE11 内核显示成网页。
 - 工具 → 相机用系统摄像头预览、拍照，并用 Media Foundation 录成 MP4。扫码识别二维码和条码，需要另装的 OpenCV 与 ZXing。工具页的相机可以拍照，并扫描实时画面。
 - HTTP 请求调试的 POST 正文可以是 XML，或自己填写 MIME 的原文。
+- 字符画可以勾选线条，按检测出的边缘用 - | / \ 和 + 来画。
 
 #### 变更
 
@@ -133,6 +136,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语输入托盘图标的韩文更大，右键菜单改到任务栏上方，不再被挡住。
 - 相机窗口不再把同一摄像头打开两次。第二次打开会堵在窗口线程上，窗口看起来卡住，摄像头也起不来。
 - 打开 MD 阅读器不再因为页面不能那样接收拖放而报错。
+- MD 阅读器按源码的制表符层级显示嵌套列表，圆点项目和源码同级缩进。
 
 #### 文档
 

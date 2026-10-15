@@ -31,6 +31,8 @@ public partial class CharArtWindow : Window {
 		};
 		ckinv.Checked += (_, _) => showascii();
 		ckinv.Unchecked += (_, _) => showascii();
+		ckline.Checked += (_, _) => showascii();
+		ckline.Unchecked += (_, _) => showascii();
 		eout.AllowDrop = true;
 		AddHandler(DragOverEvent, new DragEventHandler(ondrag), true);
 		AddHandler(DropEvent, new DragEventHandler(ondrop), true);
@@ -44,6 +46,8 @@ public partial class CharArtWindow : Window {
 		lbth.Text = Loc.T("charart.threshold");
 		eth.ToolTip = Loc.T("charart.threshold.tip");
 		ckinv.Content = Loc.T("charart.invert");
+		ckline.Content = Loc.T("charart.line");
+		ckline.ToolTip = Loc.T("charart.line.tip");
 		lbhint.Text = Loc.T("charart.hint");
 		ToolBtnUi.Set(bpick, ToolBtnUi.Browse, Loc.T("charart.pick"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("charart.copy"));
@@ -173,7 +177,11 @@ public partial class CharArtWindow : Window {
 		var threshold = (int)eth.Value;
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
-		eout.Text = CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold);
+		var line = ckline.IsChecked == true;
+		eth.ToolTip = Loc.T(line ? "charart.line.th" : "charart.threshold.tip");
+		eout.Text = line
+			? CharArt.Lines(px, w, h, cols, ckinv.IsChecked == true, threshold)
+			: CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold);
 		var lines = 1;
 		foreach (var ch in eout.Text)
 			if (ch == '\n') lines++;
