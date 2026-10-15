@@ -7,6 +7,7 @@
 	var detector = null;
 	var detBroken = false;
 	var last = "";
+	var lastAt = 0;
 	var icap = false;
 	var torchOn = false;
 	var shotUrl = "";
@@ -485,10 +486,22 @@
 	function showlines(lines){
 		if (!lines || !lines.length) return;
 		var text = lines.join("\n");
-		if (text === last) return;
+		var now = Date.now();
+		if (text === last && now - lastAt < 3000) return;
+		var again = text === last;
 		last = text;
+		lastAt = now;
 		var box = F.id("cam-code");
-		if (box) box.textContent = text;
+		if (box) {
+			box.textContent = text;
+			if (again) flash(box);
+		}
 		SK.msg("cam-msg", "");
+	}
+
+	function flash(box){
+		box.classList.remove("hit");
+		void box.offsetWidth;
+		box.classList.add("hit");
 	}
 })();

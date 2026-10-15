@@ -91,6 +91,7 @@ public partial class MainWindow : Window {
 	MdReadWindow mdReadWin;
 	PasswordWindow pwGenWin;
 	SciCalcWindow sciCalcWin;
+	DeskNoteWindow noteWin;
 	RtspSrvWindow rtspSrvWin;
 	NetToolsWindow netToolWin;
 	SysInfoWindow sysWin;
@@ -647,6 +648,7 @@ public partial class MainWindow : Window {
 			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.SciCalcRequested += () => Dispatcher.BeginInvoke(new Action(() => openscicalc(fromTray: true)));
+			tray.NoteRequested += () => Dispatcher.BeginInvoke(new Action(() => opennote(fromTray: true)));
 			tray.RtspSrvRequested += () => Dispatcher.BeginInvoke(new Action(() => openrtspsrv(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
 			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys(fromTray: true)));
@@ -1622,6 +1624,7 @@ public partial class MainWindow : Window {
 		mnmdread.Click += (_, _) => openmdread();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnscicalc.Click += (_, _) => openscicalc();
+		mnnote.Click += (_, _) => opennote();
 		mnrtspsrv.Click += (_, _) => openrtspsrv();
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
@@ -1783,6 +1786,8 @@ public partial class MainWindow : Window {
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnscicalc.Header = Loc.T("menu.scicalc");
 			mnscicalc.ToolTip = Loc.T("menu.scicalc.tip");
+			mnnote.Header = Loc.T("menu.note");
+			mnnote.ToolTip = Loc.T("menu.note.tip");
 			mnrtspsrv.Header = Loc.T("menu.rtspsrv");
 			mnrtspsrv.ToolTip = Loc.T("menu.rtspsrv.tip");
 			mnnetgroup.Header = Loc.T("menu.netgroup");
@@ -4467,6 +4472,9 @@ public partial class MainWindow : Window {
 	void openscicalc(bool fromTray = false) =>
 		opentoolwin(ref sciCalcWin, () => new SciCalcWindow(), "menu.scicalc", fromTray);
 
+	void opennote(bool fromTray = false) =>
+		opentoolwin(ref noteWin, () => new DeskNoteWindow(), "menu.note", fromTray);
+
 	void openrtspsrv(bool fromTray = false) =>
 		opentoolwin(ref rtspSrvWin, () => new RtspSrvWindow(), "menu.rtspsrv", fromTray);
 
@@ -4573,6 +4581,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(mdReadWin, w)) mdReadWin = null;
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
 				else if (ReferenceEquals(sciCalcWin, w)) sciCalcWin = null;
+				else if (ReferenceEquals(noteWin, w)) noteWin = null;
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
 				else if (ReferenceEquals(sysWin, w)) sysWin = null;
 				else if (ReferenceEquals(httpDbgWin, w)) httpDbgWin = null;

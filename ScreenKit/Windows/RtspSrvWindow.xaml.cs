@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows.Threading;
 
 namespace ScreenKit;
@@ -21,9 +20,7 @@ public partial class RtspSrvWindow : Window {
 	const int SCALE = 4;
 
 	RtspTestSrv srv;
-	Process ff;
-	Stream ffIn;
-	Thread readth;
+	RtspH264 enc;
 	Thread drawth;
 	WriteableBitmap bmp;
 	byte[] pixels;

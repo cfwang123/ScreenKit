@@ -15,6 +15,7 @@ public partial class CamWindow : Window {
 	bool scanning;
 	bool scanbusy;
 	int nextscan;
+	int scanat;
 	string scantxt = "";
 	string recpath = "";
 
@@ -274,8 +275,9 @@ public partial class CamWindow : Window {
 				scanbusy = false;
 				if (!scanning) return;
 				if (err != null) hold(Loc.T("cam.fail", err));
-				else if (!string.IsNullOrEmpty(text) && text != scantxt) {
+				else if (!string.IsNullOrEmpty(text) && (text != scantxt || Environment.TickCount - scanat >= 3000)) {
 					scantxt = text;
+					scanat = Environment.TickCount;
 					ecode.Text = text;
 					hold(Loc.T("cam.scanning"));
 				}

@@ -63,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web port forwards one RTSP stream over WebSocket /rtsp, and the tools page can play H.264.
 - Tools page: browser on-device model and this-browser info cards.
 - Desktop RTSP test server draws a bouncing picture, encodes H.264 with ffmpeg.exe, and serves rtsp://127.0.0.1:port/live.
+- Desktop note: a borderless translucent window for text or a to-do list. Closing it keeps the note and the window position.
 
 #### Changed
 
@@ -96,6 +97,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Opened tools stay within the window. Extra content scrolls inside the tool.
 - The camera preview picks a mode up to 1280x720 with a higher frame rate. The old default stayed on a large, slow format, about 2 frames per second.
 - When Check for updates cannot reach GitHub, the dialog says to put a newer screenkit_*.7z in the program folder and click Check for updates again.
+- Find the small ffmpeg.exe that ships in ffmpeg64 next to avcodec, so the RTSP test server can start.
+- Camera scan shows the same code again after 3 seconds, on the desktop window and the tools page.
 
 #### Documentation
 
@@ -130,6 +133,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页端口用 WebSocket /rtsp 转发一路 RTSP，工具页可播放 H.264。
 - 工具页新增「浏览器小模型」和「本机信息」。
 - 桌面 RTSP 测试服务器画出弹跳画面，用 ffmpeg.exe 编成 H.264，并在本机端口提供 rtsp://127.0.0.1:端口/live。
+- 桌面便笺：无边框半透明窗口，可写文字或待办。关掉后再打开，内容和窗口位置仍在。
 
 #### 变更
 
@@ -163,6 +167,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 打开工具后宽度不超过窗口，超出的内容在工具内部滚动。
 - 相机预览改选不超过 1280×720、帧率更高的模式。原先停在又大又慢的格式上，大约每秒 2 帧。
 - 检查更新连不上 GitHub 时，提示可以将新版本的 7z 放到程序目录下，再点击检查更新以更新。
+- 认 ffmpeg64 里、avcodec 旁边那个较小的 ffmpeg.exe，RTSP 测试服务器才能启动。
+- 桌面相机和工具页扫码时，同一个码隔 3 秒会再显示一次。
 
 #### 文档
 

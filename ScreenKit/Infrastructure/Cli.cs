@@ -62,7 +62,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc"
+				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -351,6 +351,8 @@ static class Cli {
 					return testcam();
 				case "--test-scicalc":
 					return testscicalc();
+				case "--test-note":
+					return testdesknote();
 				case "--fc-copy":
 				case "--fc-cut":
 				case "--fc-delete":
@@ -2795,6 +2797,69 @@ static class Cli {
 			else Out("OK web card");
 		}
 		Out(bad == 0 ? "=== OK：科学计算器 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testdesknote() {
+		Out("=== 桌面便笺 --test-note ===");
+		var bad = 0;
+		var items = DeskNote.Parse("买菜\n[x] 写完\n[ ] 还没");
+		if (items.Count != 3 || items[0].Done || items[0].Text != "买菜" || !items[1].Done || items[1].Text != "写完" || items[2].Done || items[2].Text != "还没") {
+			Err("FAIL parse");
+			bad++;
+		}
+		else Out("OK parse");
+		var back = DeskNote.Parse(DeskNote.Format(items));
+		if (back.Count != 3 || back[0].Text != "买菜" || !back[1].Done || back[2].Text != "还没") {
+			Err("FAIL roundtrip " + DeskNote.Format(items));
+			bad++;
+		}
+		else Out("OK roundtrip");
+		var path = Path.Combine(Path.GetTempPath(), "sk-note-" + Environment.TickCount + ".json");
+		try {
+			var note = new DeskNote {
+				Todo = true,
+				Text = DeskNote.Format(items),
+				Items = items,
+				Left = 12,
+				Top = 34,
+				Width = 300,
+				Height = 220,
+				HasPos = true,
+			};
+			note.Save(path);
+			var loaded = DeskNote.Load(path);
+			if (!loaded.Todo || !loaded.HasPos || loaded.Left != 12 || loaded.Top != 34 || loaded.Width != 300
+				|| loaded.Items.Count != 3 || !loaded.Items[1].Done || loaded.Items[1].Text != "写完") {
+				Err("FAIL save");
+				bad++;
+			}
+			else Out("OK save");
+			File.WriteAllText(path, "{");
+			var broken = DeskNote.Load(path);
+			if (broken.Todo || broken.Text.Length != 0 || broken.Items.Count != 0) {
+				Err("FAIL bad json");
+				bad++;
+			}
+			else Out("OK bad json");
+			var plain = new DeskNote { Text = "hello\nworld" };
+			plain.Save(path);
+			var text = DeskNote.Load(path);
+			if (text.Todo || text.Text != "hello\nworld") {
+				Err("FAIL text " + text.Text);
+				bad++;
+			}
+			else Out("OK text");
+		}
+		finally {
+			try { if (File.Exists(path)) File.Delete(path); } catch { }
+		}
+		if (DeskNote.Load(path + ".missing").Text.Length != 0) {
+			Err("FAIL missing");
+			bad++;
+		}
+		else Out("OK missing");
+		Out(bad == 0 ? "=== OK：桌面便笺 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}
 
@@ -6054,6 +6119,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-voicerec
   ScreenKit --test-cam
   ScreenKit --test-scicalc
+  ScreenKit --test-note
   ScreenKit --fc-register
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts
@@ -6156,6 +6222,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-voicerec  录音时长、电平、WAV 往返，并列出麦克风
       --test-cam  摄像头枚举、RGB32 行距，有摄像头时取一帧；并检查工具页相机
       --test-scicalc  科学计算：三角函数、乘方、阶乘、百分数、按键，并检查工具页卡片
+      --test-note  便笺文字与待办的保存、读回，坏文件按空便笺处理
       --fc-register / --fc-unregister  注册或去掉当前用户的资源管理器「快速复制」菜单
       --fc-copy / --fc-cut / --fc-delete / --fc-symlink / --fc-hardlink / --fc-size / --fc-paths / --fc-settings / --fc-paste / --fc-clear  资源管理器菜单调用
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
@@ -6262,6 +6329,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-voicerec
   ScreenKit --test-cam
   ScreenKit --test-scicalc
+  ScreenKit --test-note
   ScreenKit --fc-register
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts

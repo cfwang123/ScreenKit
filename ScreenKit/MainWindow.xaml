@@ -168,6 +168,9 @@
 				<MenuItem x:Name="mnscicalc" Header="科学计算器(_2)…"
 				          AutomationProperties.AutomationId="menu.scicalc"
 				          ToolTip="三角函数、对数、乘方、阶乘和内存"/>
+				<MenuItem x:Name="mnnote" Header="桌面便笺(_3)…"
+				          AutomationProperties.AutomationId="menu.note"
+				          ToolTip="无边框便笺，可记文字或待办，关闭后再打开仍在"/>
 				<MenuItem x:Name="mnrtspsrv" Header="RTSP 测试服务器…"
 				          AutomationProperties.AutomationId="menu.rtspsrv"
 				          ToolTip="弹跳画面推成 H.264，本机开一个 RTSP 端口"/>
