@@ -118,6 +118,8 @@ public partial class SciCalcWindow : Window {
 		var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
 		string key = null;
 		if (shift && k == Key.D8) key = "*";
+		else if (shift && k == Key.D9) key = "(";
+		else if (shift && k == Key.D0) key = ")";
 		else if (!shift && k >= Key.D0 && k <= Key.D9) key = ((int)(k - Key.D0)).ToString();
 		else if (k >= Key.NumPad0 && k <= Key.NumPad9) key = ((int)(k - Key.NumPad0)).ToString();
 		else if (k == Key.Decimal || k == Key.OemPeriod) key = ".";

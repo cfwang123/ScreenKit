@@ -481,6 +481,8 @@
 		if (k === "-") return "-";
 		if (k === "*") return "*";
 		if (k === "/") return "/";
+		if (k === "(") return "(";
+		if (k === ")") return ")";
 		if (k === "Enter") return "eq";
 		if (k === "Backspace") return "bs";
 		if (k === "Delete") return "ac";

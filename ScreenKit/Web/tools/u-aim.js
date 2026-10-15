@@ -1,7 +1,14 @@
 (function(){
 	var sessions = {};
 	var aimGen = 0;
+	var rec = null;
+	var hearing = false;
+	var voicesHooked = false;
 	var LANGS = ["zh", "en", "ja", "ko", "es", "fr", "de", "pt", "ru", "it"];
+	var SPEECH = {
+		zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR", es: "es-ES",
+		fr: "fr-FR", de: "de-DE", pt: "pt-BR", ru: "ru-RU", it: "it-IT"
+	};
 
 	SK.regutil("u-aim", {
 		title: "浏览器小模型",
@@ -27,7 +34,10 @@
 			+ '<option value="rewrite"></option>'
 			+ '<option value="proof"></option>'
 			+ '<option value="prompt"></option>'
+			+ '<option value="speak"></option>'
+			+ '<option value="listen"></option>'
 			+ "</select></label>"
+			+ '<label id="aim-voicelab" hidden><select id="aim-voice"></select></label>'
 			+ '<div class="row" id="aim-tr" hidden>'
 			+ '<label id="aim-srclab"><select id="aim-src"></select></label>'
 			+ '<label id="aim-dstlab"><select id="aim-dst"></select></label>'
@@ -56,15 +66,23 @@
 			go.textContent = tx("web.aim.run", "运行");
 		}
 		fillangs();
+		fillvoices();
 		labels();
 		var task = F.id("aim-task");
 		if (task) task.onchange = showtask;
+		var syn = window.speechSynthesis;
+		if (syn && !voicesHooked) {
+			voicesHooked = true;
+			syn.addEventListener("voiceschanged", function(){
+				if (SK.curtool === "u-aim") fillvoices();
+			});
+		}
 		showtask();
 	}
 
 	function labels(){
 		var hint = F.id("aim-hint");
-		if (hint) hint.textContent = tx("web.aim.hint", "用这个 Chrome 里自带的本地小模型。第一次使用时会下载模型。");
+		if (hint) hint.textContent = tx("web.aim.hint", "本地小模型做检测、翻译、摘要、改写、校对和提问。朗读和语音识别用浏览器自己的语音，不下载模型。");
 		setlab("aim-tasklab", "web.aim.task", "任务");
 		setlab("aim-srclab", "web.aim.src", "原文语言");
 		setlab("aim-dstlab", "web.aim.dst", "目标语言");
@@ -77,6 +95,9 @@
 		setopt("aim-task", "rewrite", "web.aim.rewrite", "改写");
 		setopt("aim-task", "proof", "web.aim.proof", "校对");
 		setopt("aim-task", "prompt", "web.aim.prompt", "自由提问");
+		setopt("aim-task", "speak", "web.aim.speak", "朗读");
+		setopt("aim-task", "listen", "web.aim.listen", "语音识别");
+		setlab("aim-voicelab", "web.aim.voice", "声音");
 		setopt("aim-sum", "key-points", "web.aim.sum.keypoints", "要点");
 		setopt("aim-sum", "tldr", "web.aim.sum.tldr", "一句话");
 		setopt("aim-sum", "teaser", "web.aim.sum.teaser", "导语");
@@ -137,12 +158,47 @@
 		var tr = F.id("aim-tr");
 		var sum = F.id("aim-sumlab");
 		var tone = F.id("aim-tonelab");
-		if (tr) tr.hidden = kind !== "translate";
+		if (tr) tr.hidden = kind !== "translate" && kind !== "listen";
+		var dst = F.id("aim-dstlab");
+		if (dst) dst.hidden = kind !== "translate";
 		if (sum) sum.hidden = kind !== "summarize";
 		if (tone) tone.hidden = kind !== "rewrite";
+		var voice = F.id("aim-voicelab");
+		if (voice) voice.hidden = kind !== "speak";
+		if (kind !== "listen") stophear();
+		if (kind !== "speak" && window.speechSynthesis) window.speechSynthesis.cancel();
+		paintgo();
+	}
+
+	function paintgo(){
+		var go = F.id("box-go");
+		var task = F.id("aim-task");
+		var kind = task ? task.value : "";
+		if (!go) return;
+		if (kind === "listen" && hearing) {
+			F.seta(go, "data-k", "web.aim.listenstop");
+			go.textContent = tx("web.aim.listenstop", "停止");
+			return;
+		}
+		if (kind === "listen") {
+			F.seta(go, "data-k", "web.aim.listen");
+			go.textContent = tx("web.aim.listen", "语音识别");
+			return;
+		}
+		if (kind === "speak") {
+			F.seta(go, "data-k", "web.aim.speak");
+			go.textContent = tx("web.aim.speak", "朗读");
+			return;
+		}
+		F.seta(go, "data-k", "web.aim.run");
+		go.textContent = tx("web.aim.run", "运行");
 	}
 
 	function run(){
+		var task = F.id("aim-task");
+		var kind = task ? task.value : "detect";
+		if (kind === "listen") { listen(); return; }
+		if (kind === "speak") { speak(); return; }
 		var mine = ++aimGen;
 		var box = F.id("aim-in");
 		var text = box ? String(box.value || "").trim() : "";
@@ -150,8 +206,6 @@
 			SK.msg("aim-msg", tx("web.aim.empty", "先写一段文字"), true);
 			return;
 		}
-		var task = F.id("aim-task");
-		var kind = task ? task.value : "detect";
 		SK.msg("aim-msg", "");
 		var job = null;
 		if (kind === "detect") job = detect(text);
@@ -310,6 +364,144 @@
 		try { return JSON.stringify(v); }
 		catch (ex) { return String(v); }
 	}
+
+	function speechlang(){
+		var el = F.id("aim-src");
+		var code = el ? el.value : "zh";
+		return SPEECH[code] || code || "zh-CN";
+	}
+
+	function fillvoices(){
+		var syn = window.speechSynthesis;
+		var sel = F.id("aim-voice");
+		if (!syn || !sel) return;
+		var list = syn.getVoices() || [];
+		var prev = sel.value;
+		var i, v, o;
+		sel.innerHTML = "";
+		o = F.el("option");
+		o.value = "";
+		o.textContent = tx("web.aim.voiceauto", "默认");
+		sel.appendChild(o);
+		for (i = 0; i < list.length; i++) {
+			v = list[i];
+			o = F.el("option");
+			o.value = v.voiceURI || v.name;
+			o.textContent = v.name + (v.lang ? " (" + v.lang + ")" : "");
+			sel.appendChild(o);
+		}
+		sel.value = prev;
+		if (sel.value !== prev) sel.selectedIndex = 0;
+	}
+
+	function speak(){
+		var syn = window.speechSynthesis;
+		if (!syn || typeof SpeechSynthesisUtterance !== "function") {
+			SK.msg("aim-msg", tx("web.aim.novoice", "这个浏览器不能朗读"), true);
+			return;
+		}
+		var box = F.id("aim-in");
+		var text = box ? String(box.value || "").trim() : "";
+		if (!text) {
+			SK.msg("aim-msg", tx("web.aim.empty", "先写一段文字"), true);
+			return;
+		}
+		stophear();
+		syn.cancel();
+		var u = new SpeechSynthesisUtterance(text);
+		var sel = F.id("aim-voice");
+		var uri = sel ? sel.value : "";
+		var list = syn.getVoices() || [];
+		var i;
+		for (i = 0; i < list.length; i++) {
+			if (uri && (list[i].voiceURI === uri || list[i].name === uri)) {
+				u.voice = list[i];
+				u.lang = list[i].lang;
+				break;
+			}
+		}
+		if (!u.lang) u.lang = speechlang();
+		u.onend = function(){
+			if (SK.curtool === "u-aim") SK.msg("aim-msg", "");
+		};
+		u.onerror = function(ev){
+			if (ev && ev.error === "interrupted") return;
+			if (SK.curtool !== "u-aim") return;
+			SK.msg("aim-msg", tx("web.aim.novoice", "这个浏览器不能朗读"), true);
+		};
+		var out = F.id("box-out");
+		if (out) out.value = text;
+		SK.msg("aim-msg", tx("web.aim.speaking", "正在朗读"));
+		syn.speak(u);
+	}
+
+	function listen(){
+		if (hearing) { stophear(); return; }
+		var Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+		if (!Ctor) {
+			SK.msg("aim-msg", tx("web.aim.nohear", "这个浏览器不能语音识别"), true);
+			return;
+		}
+		if (window.speechSynthesis) window.speechSynthesis.cancel();
+		var r = new Ctor();
+		r.lang = speechlang();
+		r.continuous = true;
+		r.interimResults = true;
+		r.onresult = function(ev){
+			if (SK.curtool !== "u-aim") { stophear(); return; }
+			var parts = [];
+			var i, res;
+			for (i = 0; i < ev.results.length; i++) {
+				res = ev.results[i];
+				if (res && res[0]) parts.push(res[0].transcript);
+			}
+			var text = parts.join("");
+			var out = F.id("box-out");
+			var box = F.id("aim-in");
+			if (out) out.value = text;
+			if (box) box.value = text;
+		};
+		r.onerror = function(ev){
+			var code = ev && ev.error;
+			if (code === "aborted" || code === "no-speech") return;
+			hearing = false;
+			if (SK.curtool !== "u-aim") return;
+			SK.msg("aim-msg", code === "not-allowed" ? tx("web.aim.nomic", "没有允许使用麦克风") : tx("web.aim.nohear", "这个浏览器不能语音识别"), true);
+			paintgo();
+		};
+		r.onend = function(){
+			hearing = false;
+			rec = null;
+			if (SK.curtool === "u-aim") paintgo();
+		};
+		rec = r;
+		hearing = true;
+		paintgo();
+		SK.msg("aim-msg", tx("web.aim.hearing", "正在听"));
+		try { r.start(); }
+		catch (ex) {
+			hearing = false;
+			rec = null;
+			paintgo();
+			SK.msg("aim-msg", tx("web.aim.nohear", "这个浏览器不能语音识别"), true);
+		}
+	}
+
+	function stophear(){
+		hearing = false;
+		if (rec) {
+			try { rec.stop(); } catch (ex) {}
+			rec = null;
+		}
+		if (SK.curtool === "u-aim") paintgo();
+	}
+
+	function aimclose(){
+		stophear();
+		if (window.speechSynthesis) window.speechSynthesis.cancel();
+	}
+
+	SK.aimclose = aimclose;
 
 	function prompt(text){
 		var ctor = api("LanguageModel");

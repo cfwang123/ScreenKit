@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Desktop RTSP test server draws a bouncing picture, encodes H.264 with ffmpeg.exe, and serves rtsp://127.0.0.1:port/live.
 - Desktop note: a borderless translucent window for text or a to-do list. Closing it keeps the note and the window position.
 - The tools-page camera plays a square-wave beep when a code is accepted.
+- Tools page: Chinese segmentation with Intl.Segmenter, by word, sentence, or grapheme.
 
 #### Changed
 
@@ -86,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The color picker can sample the screen. The camera can take an ImageCapture still and tune zoom, torch, and focus. Pen strokes keep coalesced points and a predicted tail, and a pen can use the system ink trail. Scanning reads frames with MediaStreamTrackProcessor when the browser has it.
 - Desktop note: the lower-right chip opens the color dialog. The corner mark resizes the window. The color is kept.
 - The tools-page scan beep is a 0.2 second 440 Hz square wave, the same pitch as the 8bit buzzer.
+- Browser model can speak with speechSynthesis and dictate with webkitSpeechRecognition.
 
 #### Fixed
 
@@ -105,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The RTSP test preview no longer flashes black. The picture is copied before the next frame clears the buffer.
 - Scientific calculator keys + - * / are add, subtract, multiply, and divide, including Shift+8 and Shift+=.
 - Web RTSP playback keeps every slice of one picture together, so the test square is no longer missing a corner or gaining an extra block.
+- Scientific calculator accepts parentheses from Shift+9 and Shift+0.
 
 #### Documentation
 
@@ -141,6 +144,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 桌面 RTSP 测试服务器画出弹跳画面，用 ffmpeg.exe 编成 H.264，并在本机端口提供 rtsp://127.0.0.1:端口/live。
 - 桌面便笺：无边框半透明窗口，可写文字或待办。关掉后再打开，内容和窗口位置仍在。
 - 工具页相机扫出码时播放一声方波 8bit 提示音。
+- 工具页新增「中文分词」，用浏览器分词按词、句或字素切开。
 
 #### 变更
 
@@ -162,6 +166,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页取色可以从屏幕吸色。相机可以改用 ImageCapture 拍静帧，并调节变焦、手电和对焦。画笔补上快速移动丢掉的点，并画出预测的一段，触控笔走系统墨迹。扫码在浏览器提供时用 MediaStreamTrackProcessor 读帧。
 - 桌面便笺：右下角色块打开选色，角标用来改大小，所选颜色会保留。
 - 工具页扫码提示音改为 0.2 秒、440 Hz 方波，音高跟 8bit 蜂鸣一样。
+- 浏览器小模型可以朗读，也可以用语音识别听写。
 
 #### 修复
 
@@ -181,6 +186,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - RTSP 测试画面不再闪黑。先复制完一帧，再让下一帧清屏。
 - 科学计算器按键 + - * / 对应加、减、乘、除，Shift+8 和 Shift+= 也一样。
 - 网页播放 RTSP 时把同一帧的切片合成一张，测试画面的方块不再缺一块或多一块。
+- 科学计算器可用 Shift+9 和 Shift+0 输入括号。
 
 #### 文档
 
