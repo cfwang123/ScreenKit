@@ -37,6 +37,76 @@
 		if (!ws) showgate();
 	}
 
+	F.on(document, "paste", onpaste);
+
+	function onpaste(ev){
+		if (SK.curtool !== "chat") return;
+		var room = F.id("chat-room");
+		if (!room || room.hidden) return;
+		var files = clipfiles(ev.clipboardData);
+		if (!files.length) return;
+		F.pd(ev);
+		if (!ws || ws.readyState !== 1) {
+			setmsg(label("web.chat.err.closed", "连接已断开"), true);
+			return;
+		}
+		var i;
+		for (i = 0; i < files.length; i++)
+			upload(withname(files[i]), imagefile(files[i]) ? "image" : "file");
+	}
+
+	function clipfiles(cd){
+		var out = [];
+		if (!cd) return out;
+		var i, item, f;
+		if (cd.items) {
+			for (i = 0; i < cd.items.length; i++) {
+				item = cd.items[i];
+				if (item.kind !== "file") continue;
+				f = item.getAsFile();
+				pushfile(out, f);
+			}
+		}
+		if (cd.files) {
+			for (i = 0; i < cd.files.length; i++) pushfile(out, cd.files[i]);
+		}
+		return out;
+	}
+
+	function pushfile(out, f){
+		if (!f || !f.size) return;
+		var key = filekey(f);
+		var i;
+		for (i = 0; i < out.length; i++) if (filekey(out[i]) === key) return;
+		out.push(f);
+	}
+
+	function filekey(f){
+		return (f.name || "") + "\n" + f.size + "\n" + (f.type || "") + "\n" + (f.lastModified || 0);
+	}
+
+	function imagefile(f){
+		var t = (f.type || "").toLowerCase();
+		if (t === "image/png" || t === "image/jpeg" || t === "image/jpg"
+			|| t === "image/gif" || t === "image/webp" || t === "image/bmp") return true;
+		var n = (f.name || "").toLowerCase();
+		return n.slice(-4) === ".png" || n.slice(-4) === ".jpg" || n.slice(-5) === ".jpeg"
+			|| n.slice(-4) === ".gif" || n.slice(-5) === ".webp" || n.slice(-4) === ".bmp";
+	}
+
+	function withname(file){
+		if (file.name) return file;
+		var ext = "bin";
+		var t = (file.type || "").toLowerCase();
+		if (t === "image/png") ext = "png";
+		else if (t === "image/jpeg" || t === "image/jpg") ext = "jpg";
+		else if (t === "image/gif") ext = "gif";
+		else if (t === "image/webp") ext = "webp";
+		else if (t === "image/bmp") ext = "bmp";
+		try { return new File([file], "paste." + ext, { type: file.type || "" }); }
+		catch (e) { return file; }
+	}
+
 	function join(){
 		if (ws || opening) return;
 		var nick = (F.id("chat-nick").value || "").replace(/^\s+|\s+$/g, "");

@@ -781,6 +781,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 }
 #chat-torow, #chat-sendrow { margin: 0; gap: 6px; flex-wrap: nowrap; min-width: 0; max-width: 100%; overflow-x: auto; }
 #chat-sendrow { margin-top: 6px; }
+#chat-sendrow .hint { flex: none; margin: 0; white-space: nowrap; }
 #chat-torow .chatlab { flex: none; color: var(--muted); font-size: 12px; }
 #chat-to {
 	flex: none; width: 128px; height: 30px; margin: 0; padding: 0 8px;

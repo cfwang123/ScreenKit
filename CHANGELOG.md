@@ -75,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web dictionary is a separate page at /dict. The tools page, menu, and tray open it in a new window. It looks up Chinese, English, Japanese, and Korean the same way as the desktop dictionary.
 - Install Features can list, install, and remove Chrome translation packs and offline voice packs. They stay in this app's private Chrome profile.
 - The web tools page has a world clock under Calendar. It lists local time for common places and can show one more region.
+- The tools-page chat room accepts Ctrl+V to paste an image or a file.
 
 #### Changed
 
@@ -176,6 +177,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页词典是单独的 /dict 页面。工具页、菜单和托盘都用新窗口打开。查汉语、英语、日语、韩语，和桌面词典一样。
 - 安装功能可以查询、安装和卸载 Chrome 翻译语言包和离线语音包。它们放在本程序专用的 Chrome 配置里。
 - 网页工具的历法分类增加世界时钟，默认列出常用地区的本地时间，也可以再选一个地区。
+- 网页聊天室可以用 Ctrl+V 粘贴图片或文件。
 
 #### 变更
 
