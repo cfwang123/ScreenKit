@@ -246,12 +246,14 @@
 		}
 		if (!ac) {
 			ac = new Ctor();
+			F.sink(ac);
 			master = ac.createGain();
 			master.gain.value = volnow();
 			master.connect(ac.destination);
 			waves = {};
 		}
 		if (ac.state === "suspended") ac.resume();
+		F.sink(ac);
 		return ac;
 	}
 

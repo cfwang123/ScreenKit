@@ -73,7 +73,7 @@
 		waitkey = true;
 		ts = 0;
 		if (hear && typeof AudioContext !== "undefined") {
-			try { actx = new AudioContext(); actx.resume(); } catch (e3) { actx = null; }
+			try { actx = new AudioContext(); F.sink(actx); actx.resume(); } catch (e3) { actx = null; }
 		}
 		var wsurl = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/rtsp?rtsp=" + encodeURIComponent(url) + "&audio=" + (hear ? "1" : "0");
 		ws = new WebSocket(wsurl);

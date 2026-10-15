@@ -4111,3 +4111,5 @@ http.doc.tts.chrome = "用本机 Chrome 的 Google 语音朗读。声音从 Chro
 nettool.ip.copy.name = "复制主机名(_N)"
 nettool.ip.copy.ip = "复制 IP(_I)"
 nettool.ip.copy.mac = "复制 MAC(_M)"
+tts.chrome.idle = "空闲秒"
+tts.chrome.idle.tip = "没有朗读这么多秒后关闭隐藏的 Chrome。0 表示一直开着，直到点停止。"

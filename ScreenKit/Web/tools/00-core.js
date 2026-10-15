@@ -33,6 +33,15 @@ F.json = function(){ return JSON.stringify.apply(JSON, arguments); };
 F.lget = function(key){ return localStorage.getItem(key); };
 F.lset = function(key, val){ localStorage.setItem(key, val); };
 F.url = function(obj){ return URL.createObjectURL(obj); };
+F.sink = function(node){
+	if (!node || typeof node.setSinkId !== "function") return;
+	var p;
+	try { p = node.setSinkId("default"); }
+	catch (e) { return; }
+	if (p && p.then) p.then(function(){}, function(){
+		try { node.setSinkId(""); } catch (e2) {}
+	});
+};
 F.unurl = function(url){ URL.revokeObjectURL(url); };
 F.cp = function(){ return String.fromCodePoint.apply(String, arguments); };
 F.ch = function(){ return String.fromCharCode.apply(String, arguments); };
@@ -743,6 +752,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		stopwav();
 		wavurl = url;
 		audio = new Audio(url);
+		F.sink(audio);
 		wavclip = audio;
 		audio.onended = function(){
 			if (wavclip === audio) stopwav();

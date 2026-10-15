@@ -418,6 +418,8 @@ static class AppConfig {
 				o.TtsEngine = te.Trim();
 			if (map.TryGetValue("chrome_exe", out var tchrome))
 				o.ChromeExe = (tchrome ?? "").Trim();
+			if (map.TryGetValue("chrome_idle", out var tidle) && int.TryParse(tidle, out var idleSec))
+				o.ChromeIdleSec = ChromeTts.ClampIdle(idleSec);
 			if (map.TryGetValue("tts_compute", out var tc) && !string.IsNullOrWhiteSpace(tc))
 				o.TtsCompute = tc.Trim();
 			if (map.TryGetValue("tts_model", out var tm))
@@ -848,6 +850,8 @@ static class AppConfig {
 		sb.AppendLine($"tts_engine = \"{esc(o.TtsEngine ?? "")}\"");
 		sb.AppendLine("# chrome.exe 完整路径；空则自动查找");
 		sb.AppendLine($"chrome_exe = \"{esc(o.ChromeExe ?? "")}\"");
+		sb.AppendLine("# 隐藏的 Chrome 空闲多少秒后关闭；0 表示不自动关");
+		sb.AppendLine($"chrome_idle = {ChromeTts.ClampIdle(o.ChromeIdleSec)}");
 		sb.AppendLine($"tts_compute = \"{esc(string.IsNullOrWhiteSpace(o.TtsCompute) ? "Auto" : o.TtsCompute)}\"");
 		sb.AppendLine($"tts_model = \"{esc(o.TtsModel ?? "")}\"");
 		sb.AppendLine($"tts_voice = \"{esc(o.TtsVoice ?? "")}\"");

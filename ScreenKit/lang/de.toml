@@ -3966,3 +3966,5 @@ http.doc.tts.chrome = "Spricht mit Google-Stimmen im lokalen Chrome. Ton kommt a
 nettool.ip.copy.name = "Hostname kopieren(_N)"
 nettool.ip.copy.ip = "IP kopieren(_I)"
 nettool.ip.copy.mac = "MAC kopieren(_M)"
+tts.chrome.idle = "Leerlauf s"
+tts.chrome.idle.tip = "Blendet Chrome nach so vielen Sekunden ohne Sprache aus. 0 bleibt bis Stopp."

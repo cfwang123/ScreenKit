@@ -4107,3 +4107,5 @@ http.doc.tts.chrome = "ローカルの Chrome で Google 音声を再生しま�
 nettool.ip.copy.name = "ホスト名をコピー(_N)"
 nettool.ip.copy.ip = "IPをコピー(_I)"
 nettool.ip.copy.mac = "MACをコピー(_M)"
+tts.chrome.idle = "待機秒"
+tts.chrome.idle.tip = "読み上げがこの秒数ないと、隠した Chrome を閉じます。0 は停止まで開いたままです。"

@@ -296,12 +296,12 @@ sealed partial class HttpOcrServer {
 
 	void writechrome(SockCtx ctx, JsonObject jo, string text) {
 		try {
+			var saved = new OcrOptions();
+			try { AppConfig.LoadInto(saved); } catch { }
 			var exe = jo["chrome_exe"]?.GetValue<string>() ?? "";
-			if (string.IsNullOrWhiteSpace(exe)) {
-				var saved = new OcrOptions();
-				try { AppConfig.LoadInto(saved); } catch { }
-				exe = saved.ChromeExe;
-			}
+			if (string.IsNullOrWhiteSpace(exe)) exe = saved.ChromeExe;
+			var idle = saved.ChromeIdleSec;
+			if (jo["chrome_idle"] != null) idle = asint(jo["chrome_idle"], idle);
 			var voice = jo["voice"]?.GetValue<string>() ?? jo["speaker"]?.GetValue<string>() ?? "";
 			var lang = jo["lang"]?.GetValue<string>() ?? "";
 			var name = voice.StartsWith("chrome:", StringComparison.OrdinalIgnoreCase) ? voice.Substring(7) : voice;
@@ -327,7 +327,7 @@ sealed partial class HttpOcrServer {
 			if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
 			var volume = 100;
 			if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
-			ChromeTts.Start(text, pick?.Name ?? name, pick?.Culture ?? lang, speed, volume / 100.0, exe);
+			ChromeTts.Start(text, pick?.Name ?? name, pick?.Culture ?? lang, speed, volume / 100.0, exe, idle);
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
 				["data"] = new JsonObject {

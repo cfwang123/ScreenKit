@@ -4107,3 +4107,5 @@ http.doc.tts.chrome = "로컬 Chrome의 Google 음성으로 읽습니다. 소리
 nettool.ip.copy.name = "호스트 이름 복사(_N)"
 nettool.ip.copy.ip = "IP 복사(_I)"
 nettool.ip.copy.mac = "MAC 복사(_M)"
+tts.chrome.idle = "대기 초"
+tts.chrome.idle.tip = "이 초 동안 읽지 않으면 숨긴 Chrome을 닫습니다. 0이면 중지를 누를 때까지 둡니다."

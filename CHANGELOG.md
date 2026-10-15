@@ -96,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chinese segmentation lists each word, sentence, or grapheme on its own line.
 - Tools is one menu. Web entries are marked (web). Korean input stays on Tools.
 - RTSP test server video bitrate now defaults to 200 kbps.
+- Chrome speech runs in a hidden window and closes after an idle timeout (default 60 seconds, 0 keeps it). Desktop and tools-page playback use the current system default output device.
 
 #### Fixed
 
@@ -188,6 +189,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 中文分词按词、句或字素切开后，每行一段。
 - 工具菜单合并成一个，网页工具标注 (web)，韩语输入直接放在工具下
 - RTSP 测试服务器的视频码率默认改为 200 kbps。
+- Chrome 朗读改为隐藏窗口，空闲默认 60 秒后关闭（可改，0 为不关）。桌面和网页工具播放都走系统当前的默认输出设备。
 
 #### 修复
 

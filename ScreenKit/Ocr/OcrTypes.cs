@@ -380,6 +380,8 @@ public sealed class OcrOptions {
 	public string TtsEngine = "";
 	/// <summary>chrome.exe 完整路径。空则自动查找。</summary>
 	public string ChromeExe = "";
+	/// <summary>Chrome 朗读空闲多少秒后关闭。0 表示不自动关。</summary>
+	public int ChromeIdleSec = 60;
 	/// <summary>Auto / Gpu / Cpu / Igpu。</summary>
 	public string TtsCompute = "Auto";
 	/// <summary>模型目录名（DisplayName）。</summary>
@@ -662,6 +664,7 @@ public sealed class OcrOptions {
 		WinMax = WinMax,
 		TtsEngine = TtsEngine,
 		ChromeExe = ChromeExe ?? "",
+		ChromeIdleSec = ChromeIdleSec < 0 ? 60 : ChromeIdleSec,
 		TtsCompute = TtsCompute,
 		TtsModel = TtsModel,
 		TtsVoice = TtsVoice,

@@ -4111,3 +4111,5 @@ http.doc.tts.chrome = "Speaks with Google voices in local Chrome. Sound comes fr
 nettool.ip.copy.name = "Copy host name(_N)"
 nettool.ip.copy.ip = "Copy IP(_I)"
 nettool.ip.copy.mac = "Copy MAC(_M)"
+tts.chrome.idle = "Idle sec"
+tts.chrome.idle.tip = "Close the hidden Chrome after this many seconds without speech. 0 keeps it until Stop."

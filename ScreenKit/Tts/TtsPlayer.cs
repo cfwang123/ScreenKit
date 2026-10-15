@@ -1,4 +1,5 @@
 using System.IO;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace ScreenKit;
@@ -6,6 +7,7 @@ namespace ScreenKit;
 /// <summary>TTS 播放：内存 WAV → WaveOut；支持暂停/继续与异步等待播完。</summary>
 sealed class TtsPlayer : IDisposable {
 	IWavePlayer player;
+	MMDeviceEnumerator audioEn;
 	WaveFileReader reader;
 	string tempWav;
 	bool disposed;
@@ -47,7 +49,7 @@ sealed class TtsPlayer : IDisposable {
 		Stop();
 		if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
 		reader = new WaveFileReader(path);
-		player = new WaveOutEvent();
+		player = opendefault();
 		player.Init(reader);
 		player.Play();
 	}
@@ -63,7 +65,7 @@ sealed class TtsPlayer : IDisposable {
 		tempWav = Path.Combine(Path.GetTempPath(), $"screenkit_tts_{Guid.NewGuid():N}.wav");
 		SaveWav(tempWav, samples, sampleRate);
 		reader = new WaveFileReader(tempWav);
-		player = new WaveOutEvent();
+		player = opendefault();
 		var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 		playTcs = tcs;
 		player.PlaybackStopped += (_, e) => {
@@ -137,6 +139,8 @@ sealed class TtsPlayer : IDisposable {
 		try { player?.Stop(); } catch { }
 		try { player?.Dispose(); } catch { }
 		player = null;
+		try { audioEn?.Dispose(); } catch { }
+		audioEn = null;
 		try { reader?.Dispose(); } catch { }
 		reader = null;
 		if (!string.IsNullOrEmpty(tempWav)) {
@@ -149,6 +153,25 @@ sealed class TtsPlayer : IDisposable {
 	}
 
 	public void Stop() => StopSegment();
+
+	IWavePlayer opendefault() {
+		try { audioEn?.Dispose(); } catch { }
+		audioEn = null;
+		try {
+			audioEn = new MMDeviceEnumerator();
+			MMDevice dev = null;
+			try { dev = audioEn.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console); }
+			catch { }
+			if (dev == null)
+				dev = audioEn.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+			return new WasapiOut(dev, AudioClientShareMode.Shared, true, 200);
+		}
+		catch {
+			try { audioEn?.Dispose(); } catch { }
+			audioEn = null;
+			return new WaveOutEvent();
+		}
+	}
 
 	public static void SaveWav(string path, float[] samples, int sampleRate) {
 		var dir = Path.GetDirectoryName(path);

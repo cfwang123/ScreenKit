@@ -189,6 +189,9 @@ public partial class MainWindow {
 		echromepath.TextChanged += (_, _) => {
 			if (!ttsUiLoading) savettsprefs();
 		};
+		echromeidle.TextChanged += (_, _) => {
+			if (!ttsUiLoading) savettsprefs();
+		};
 		scanttssmodels();
 		// 扫描完 Sherpa 后再并入模型语言
 		rebuildttslangcombo(preserve: true);
@@ -249,6 +252,7 @@ public partial class MainWindow {
 			lbttsrate.Text = $"{ettsrate.Value:0.0}x";
 			lbttsvol.Text = ((int)ettsvol.Value).ToString();
 			echromepath.Text = opt.ChromeExe ?? "";
+			echromeidle.Text = ChromeTts.ClampIdle(opt.ChromeIdleSec).ToString();
 			var kbps = Compat.Clamp(opt.TtsKbps <= 0 ? 192 : opt.TtsKbps, 32, 320);
 			foreach (ComboBoxItem it in ettskbps.Items) {
 				if (it.Tag is int k && k == kbps) {
@@ -455,6 +459,7 @@ public partial class MainWindow {
 				_ => "Sherpa",
 			};
 			opt.ChromeExe = (echromepath.Text ?? "").Trim();
+			opt.ChromeIdleSec = chromeidle();
 			if (ettscompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode cm)
 				opt.TtsCompute = cm.ToString();
 			else
@@ -819,6 +824,12 @@ public partial class MainWindow {
 		finally {
 			ttsUiLoading = false;
 		}
+	}
+
+	int chromeidle() {
+		var s = (echromeidle.Text ?? "").Trim();
+		if (!int.TryParse(s, out var n)) n = opt.ChromeIdleSec;
+		return ChromeTts.ClampIdle(n);
 	}
 
 	void browsechromepath() {
@@ -1513,7 +1524,8 @@ public partial class MainWindow {
 			if (!string.IsNullOrEmpty(uiText)) highlightttssegment(segments[i], uiText);
 			updatettsctrlui();
 			var part = segments[i].Text;
-			await Task.Run(() => ChromeTts.Speak(part, name, lang, rate, vol, exe, ct));
+			var idle = chromeidle();
+			await Task.Run(() => ChromeTts.Speak(part, name, lang, rate, vol, exe, idle, ct));
 			if (ttsSkipDelta != 0) {
 				var next = i + ttsSkipDelta;
 				ttsSkipDelta = 0;
@@ -1774,6 +1786,8 @@ public partial class MainWindow {
 		lbchromepath.Text = Loc.T("tts.chrome.path");
 		bchromepath.Content = Loc.T("tts.chrome.browse");
 		echromepath.ToolTip = Loc.T("tts.chrome.tip");
+		lbchromeidle.Text = Loc.T("tts.chrome.idle");
+		echromeidle.ToolTip = Loc.T("tts.chrome.idle.tip");
 		if (string.IsNullOrWhiteSpace(lbttsstatus.Text) || lbttsstatus.Text == "就绪" || lbttsstatus.Text == Loc.T("ready"))
 			lbttsstatus.Text = Loc.T("ready");
 		lbttsengine.Text = Loc.T("tts.engine");

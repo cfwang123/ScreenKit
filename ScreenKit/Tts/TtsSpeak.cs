@@ -70,7 +70,12 @@ static class TtsSpeak {
 		}
 		if (want == null || want.Count == 0) {
 			var one = all.FirstOrDefault(x => x.Default) ?? all[0];
-			picked.Add(one);
+			picked.Add(new TtsOutDev {
+				Id = "",
+				Name = one.Name,
+				Index = one.Index,
+				Default = true,
+			});
 			return true;
 		}
 		foreach (var raw in want) {
@@ -89,7 +94,15 @@ static class TtsSpeak {
 	public static int Enqueue(float[] samples, int sampleRate, IReadOnlyList<string> ids, bool immediate) {
 		var path = Path.Combine(Path.GetTempPath(), $"screenkit_say_{Guid.NewGuid():N}.wav");
 		TtsPlayer.SaveWav(path, samples, sampleRate);
-		var job = new TtsSpeakJob { Wav = path, Ids = ids.Where(x => !string.IsNullOrEmpty(x)).Distinct().ToArray() };
+		var idsNow = new List<string>();
+		if (ids != null) {
+			foreach (var id in ids) {
+				var one = id ?? "";
+				if (!idsNow.Contains(one)) idsNow.Add(one);
+			}
+		}
+		if (idsNow.Count == 0) idsNow.Add("");
+		var job = new TtsSpeakJob { Wav = path, Ids = idsNow.ToArray() };
 		int ahead;
 		lock (gate) {
 			if (immediate) {
@@ -154,9 +167,12 @@ static class TtsSpeak {
 		var started = Environment.TickCount;
 		try {
 			using var en = new MMDeviceEnumerator();
-			foreach (var id in job.Ids) {
+			foreach (var raw in job.Ids) {
 				if (job.Cts.IsCancellationRequested) break;
 				try {
+					var id = raw;
+					if (string.IsNullOrEmpty(id)) id = defaultid(en);
+					if (string.IsNullOrEmpty(id)) continue;
 					var dev = en.GetDevice(id);
 					var reader = new WaveFileReader(job.Wav);
 					var wo = new WasapiOut(dev, AudioClientShareMode.Shared, false, 120);

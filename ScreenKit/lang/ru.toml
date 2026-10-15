@@ -3966,3 +3966,5 @@ http.doc.tts.chrome = "Читает голосами Google в локально�
 nettool.ip.copy.name = "Копировать имя(_N)"
 nettool.ip.copy.ip = "Копировать IP(_I)"
 nettool.ip.copy.mac = "Копировать MAC(_M)"
+tts.chrome.idle = "Простой, с"
+tts.chrome.idle.tip = "Скрытый Chrome закроется после стольких секунд без чтения. 0 — пока не нажата остановка."

@@ -121,6 +121,7 @@
 			var audio = F.id("tts-audio");
 			audio.src = "data:audio/wav;base64," + data.wav_base64;
 			audio.hidden = false;
+			F.sink(audio);
 			audio.play();
 		}, "tts-msg");
 	}
