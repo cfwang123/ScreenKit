@@ -27,6 +27,7 @@ public partial class RtspSrvWindow : Window {
 	int w = 640, h = 480, fps = 30;
 	float bx = 80, by = 80, vx = SPEED, vy = SPEED;
 	volatile bool on;
+	int showbusy;
 	int frames;
 	int lastfps;
 	int lasttick;
@@ -114,16 +115,29 @@ public partial class RtspSrvWindow : Window {
 			frames++;
 			var wait = delay - (Environment.TickCount - t0);
 			if (wait > 0) Thread.Sleep(wait);
-			try {
-				Dispatcher.BeginInvoke(new Action(() => {
-					if (bmp == null || bmp.PixelWidth != w || bmp.PixelHeight != h)
-						bmp = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
-					bmp.WritePixels(new Int32Rect(0, 0, w, h), pixels, w * 4, 0);
-					imgprev.Source = bmp;
-				}));
-			}
-			catch { }
+			showframe();
 		}
+	}
+
+	void showframe() {
+		if (pixels == null || Interlocked.CompareExchange(ref showbusy, 1, 0) != 0) return;
+		var snap = new byte[pixels.Length];
+		Buffer.BlockCopy(pixels, 0, snap, 0, pixels.Length);
+		var pw = w;
+		var ph = h;
+		try {
+			Dispatcher.BeginInvoke(new Action(() => {
+				try {
+					if (bmp == null || bmp.PixelWidth != pw || bmp.PixelHeight != ph) {
+						bmp = new WriteableBitmap(pw, ph, 96, 96, PixelFormats.Bgra32, null);
+						imgprev.Source = bmp;
+					}
+					bmp.WritePixels(new Int32Rect(0, 0, pw, ph), snap, pw * 4, 0);
+				}
+				finally { Interlocked.Exchange(ref showbusy, 0); }
+			}));
+		}
+		catch { Interlocked.Exchange(ref showbusy, 0); }
 	}
 
 	void step() {

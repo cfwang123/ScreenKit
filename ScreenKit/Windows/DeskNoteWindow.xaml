@@ -14,7 +14,7 @@
         FontFamily="Segoe UI, Microsoft YaHei UI"
         UseLayoutRounding="True"
         AutomationProperties.AutomationId="note.window">
-	<Border Background="#E6F6E7A0" CornerRadius="12" BorderBrush="#66A16207" BorderThickness="1" Padding="8,6,8,8">
+	<Border x:Name="paper" Background="#E6F6E7A0" CornerRadius="12" BorderBrush="#66A16207" BorderThickness="1" Padding="8,6,8,8">
 		<Grid>
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
@@ -45,8 +45,27 @@
 				<Button x:Name="badd" Content="添加" HorizontalAlignment="Left" Width="52" Height="22" Padding="0"
 				        FontSize="12" Background="#33A16207" Foreground="#292524" BorderThickness="0"
 				        Cursor="Hand" Visibility="Collapsed" AutomationProperties.AutomationId="note.add"/>
-				<p:Thumb x:Name="bsz" Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-				         Cursor="SizeNWSE" Opacity="0.35" Background="#A16207"/>
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+					<Button x:Name="bcolor" Width="16" Height="16" Margin="0,0,8,0" Padding="0"
+					        BorderThickness="1" BorderBrush="#66292524" Cursor="Hand"
+					        AutomationProperties.AutomationId="note.color">
+						<Button.Template>
+							<ControlTemplate TargetType="Button">
+								<Border Background="{TemplateBinding Background}"
+								        BorderBrush="{TemplateBinding BorderBrush}"
+								        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="2"/>
+							</ControlTemplate>
+						</Button.Template>
+					</Button>
+					<p:Thumb x:Name="bsz" Width="16" Height="16" Cursor="SizeNWSE" VerticalAlignment="Bottom">
+						<p:Thumb.Template>
+							<ControlTemplate TargetType="p:Thumb">
+								<TextBlock x:Name="grip" Text="◢" FontSize="11" Foreground="#8844403C"
+								           HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+							</ControlTemplate>
+						</p:Thumb.Template>
+					</p:Thumb>
+				</StackPanel>
 			</Grid>
 		</Grid>
 	</Border>

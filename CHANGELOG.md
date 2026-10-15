@@ -84,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean input no longer joins vowels into a diphthong, and a repeated key does not type a second vowel.
 - The slim release package includes 7za.dll and License.7za.txt.
 - The color picker can sample the screen. The camera can take an ImageCapture still and tune zoom, torch, and focus. Pen strokes keep coalesced points and a predicted tail, and a pen can use the system ink trail. Scanning reads frames with MediaStreamTrackProcessor when the browser has it.
+- Desktop note: the lower-right chip opens the color dialog. The corner mark resizes the window. The color is kept.
 
 #### Fixed
 
@@ -100,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - When Check for updates cannot reach GitHub, the dialog says to put a newer screenkit_*.7z in the program folder and click Check for updates again.
 - The RTSP test server encodes with libx264 in ffmpeg64. It no longer looks for ffmpeg.exe.
 - Camera scan shows the same code again after 3 seconds, on the desktop window and the tools page.
+- The RTSP test preview no longer flashes black. The picture is copied before the next frame clears the buffer.
 
 #### Documentation
 
@@ -155,6 +157,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语输入不再把元音并成双元音，按键连发也不会再打出一个元音。
 - 精简发布包带上 7za.dll 和 License.7za.txt。
 - 工具页取色可以从屏幕吸色。相机可以改用 ImageCapture 拍静帧，并调节变焦、手电和对焦。画笔补上快速移动丢掉的点，并画出预测的一段，触控笔走系统墨迹。扫码在浏览器提供时用 MediaStreamTrackProcessor 读帧。
+- 桌面便笺：右下角色块打开选色，角标用来改大小，所选颜色会保留。
 
 #### 修复
 
@@ -171,6 +174,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 检查更新连不上 GitHub 时，提示可以将新版本的 7z 放到程序目录下，再点击检查更新以更新。
 - RTSP 测试服务器改用 ffmpeg64 里的 libx264 编码，不再查找 ffmpeg.exe。
 - 桌面相机和工具页扫码时，同一个码隔 3 秒会再显示一次。
+- RTSP 测试画面不再闪黑。先复制完一帧，再让下一帧清屏。
 
 #### 文档
 

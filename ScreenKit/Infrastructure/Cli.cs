@@ -2859,6 +2859,14 @@ static class Cli {
 			bad++;
 		}
 		else Out("OK missing");
+		if (DeskNote.NormColor("") != DeskNote.DefaultColor
+			|| DeskNote.NormColor("#112233") != "#E6112233"
+			|| DeskNote.NormColor("#80112233") != "#80112233"
+			|| DeskNote.NormColor("zz") != DeskNote.DefaultColor) {
+			Err("FAIL color " + DeskNote.NormColor("#112233"));
+			bad++;
+		}
+		else Out("OK color");
 		Out(bad == 0 ? "=== OK：桌面便笺 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}

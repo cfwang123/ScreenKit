@@ -13,6 +13,22 @@ public sealed class DeskNote {
 	public double Width { get; set; }
 	public double Height { get; set; }
 	public bool HasPos { get; set; }
+	public string Color { get; set; } = "";
+
+	public const string DefaultColor = "#E6F6E7A0";
+
+	public static string NormColor(string raw) {
+		var s = (raw ?? "").Trim();
+		if (s.StartsWith("#")) s = s.Substring(1);
+		if (s.Length == 6) s = "E6" + s;
+		if (s.Length != 8) return DefaultColor;
+		for (var i = 0; i < s.Length; i++) {
+			var c = s[i];
+			var hex = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+			if (!hex) return DefaultColor;
+		}
+		return "#" + s.ToUpperInvariant();
+	}
 
 	public static string DefaultPath =>
 		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "note.json");

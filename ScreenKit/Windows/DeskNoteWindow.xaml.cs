@@ -6,6 +6,7 @@ public partial class DeskNoteWindow : Window {
 	readonly DeskNote note;
 	readonly string path;
 	readonly DispatcherTimer timer;
+	Brush ink = Brushes.Black;
 	bool ready;
 
 	public DeskNoteWindow() : this(DeskNote.DefaultPath) { }
@@ -21,6 +22,8 @@ public partial class DeskNoteWindow : Window {
 		bclose.Click += (_, _) => Close();
 		btodo.Click += (_, _) => toggle();
 		badd.Click += (_, _) => additem(null);
+		bcolor.Click += (_, _) => pickcolor();
+		bcolor.ToolTip = Loc.T("note.color");
 		bar.MouseLeftButtonDown += (_, e) => {
 			if (e.OriginalSource is Button) return;
 			try { DragMove(); } catch { }
@@ -39,14 +42,51 @@ public partial class DeskNoteWindow : Window {
 			timer.Stop();
 			flush();
 		};
+		applypaint();
 		Loaded += (_, _) => {
 			place();
+			applypaint();
 			showmode();
 			ready = true;
 		};
 		Closing += (_, _) => flush();
 		LocationChanged += (_, _) => queue();
 		SizeChanged += (_, _) => queue();
+	}
+
+	void pickcolor() {
+		var cur = paintcolor(DeskNote.NormColor(note.Color));
+		var dlg = new HsvColorDialog(cur) { Owner = this };
+		if (dlg.ShowDialog() != true) return;
+		var c = dlg.SelectedColor;
+		note.Color = $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
+		applypaint();
+		if (note.Todo) fillrows();
+		queue();
+	}
+
+	void applypaint() {
+		var c = paintcolor(DeskNote.NormColor(note.Color));
+		paper.Background = new SolidColorBrush(c);
+		bcolor.Background = new SolidColorBrush(Color.FromRgb(c.R, c.G, c.B));
+		var dark = c.R * 0.299 + c.G * 0.587 + c.B * 0.114 < 150;
+		var fg = dark ? Colors.White : Color.FromRgb(0x29, 0x25, 0x24);
+		ink = new SolidColorBrush(fg);
+		etext.Foreground = ink;
+		etext.CaretBrush = ink;
+		lbtitle.Foreground = ink;
+		bclose.Foreground = ink;
+		btodo.Foreground = ink;
+		badd.Foreground = ink;
+		bcolor.BorderBrush = new SolidColorBrush(fg);
+		bsz.ApplyTemplate();
+		if (bsz.Template.FindName("grip", bsz) is TextBlock mark)
+			mark.Foreground = new SolidColorBrush(Color.FromArgb(0x88, fg.R, fg.G, fg.B));
+	}
+
+	static Color paintcolor(string hex) {
+		var n = Convert.ToUInt32(hex.Substring(1), 16);
+		return Color.FromArgb((byte)(n >> 24), (byte)(n >> 16), (byte)(n >> 8), (byte)n);
 	}
 
 	void place() {
@@ -94,14 +134,14 @@ public partial class DeskNoteWindow : Window {
 		var ck = new CheckBox {
 			IsChecked = item.Done,
 			VerticalAlignment = VerticalAlignment.Center,
-			Foreground = new SolidColorBrush(Color.FromRgb(0x29, 0x25, 0x24)),
+			Foreground = ink,
 		};
 		var box = new TextBox {
 			Text = item.Text ?? "",
 			BorderThickness = new Thickness(0),
 			Background = Brushes.Transparent,
-			Foreground = new SolidColorBrush(Color.FromRgb(0x29, 0x25, 0x24)),
-			CaretBrush = Brushes.Black,
+			Foreground = ink,
+			CaretBrush = ink,
 			FontSize = 15,
 			Padding = new Thickness(2, 0, 0, 0),
 			TextDecorations = item.Done ? TextDecorations.Strikethrough : null,
