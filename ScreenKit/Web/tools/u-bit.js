@@ -582,6 +582,25 @@
 		tone("square", 1319, null, t0 + 0.08, 0.18, 0.2);
 	}
 
+	function sfxbeep(){
+		var c = ensure();
+		if (!c) return;
+		var t0 = c.currentTime;
+		var o = c.createOscillator();
+		o.type = "square";
+		o.frequency.value = 440;
+		var g = c.createGain();
+		g.gain.setValueAtTime(0.0001, t0);
+		g.gain.exponentialRampToValueAtTime(0.22, t0 + 0.005);
+		g.gain.setValueAtTime(0.22, t0 + 0.19);
+		g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+		o.connect(g);
+		g.connect(master);
+		o.start(t0);
+		o.stop(t0 + 0.23);
+		remember(o);
+	}
+
 	function sfxup(){
 		var c = ensure();
 		if (!c) return;
@@ -1201,8 +1220,8 @@
 
 	// 给别的工具用：先在点击里打开音频，之后才能响。
 	SK.bitarm = function(){ ensure(); };
-	// 扫码成功的提示：两声方波，不跟当前乐器走。
-	SK.bitok = sfxcoin;
+	// 扫码成功：0.2 秒方波，音高跟循环蜂鸣一样。
+	SK.bitok = sfxbeep;
 
 	// 给别的工具用（摩斯码表）：按当前乐器和音量播一段音。
 	// midi 音高，dur 秒数，at 是 AudioContext 时间轴上的起点（留空即现在）；返回结束时间，发不了声返回 -1
