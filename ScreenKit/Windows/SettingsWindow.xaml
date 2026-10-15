@@ -28,6 +28,31 @@
 						           TextWrapping="Wrap" Margin="0,0,0,16"
 						           Text="切换后立即生效，并写入 config.toml"/>
 
+						<TextBlock x:Name="lbsetchrome" Text="chrome.exe" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<DockPanel Margin="0,0,0,4" LastChildFill="True">
+							<Button x:Name="bsetchromebrowse" Content="浏览…" DockPanel.Dock="Right"
+							        Style="{StaticResource ToolBtn}" Width="72" Height="32" Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.chrome.browse"/>
+							<Button x:Name="bsetchromedetect" Content="检测路径" DockPanel.Dock="Right"
+							        Style="{StaticResource ToolBtn}" MinWidth="80" Height="32" Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.chrome.detect"/>
+							<TextBox x:Name="esetchromeidle" DockPanel.Dock="Right" Width="64" Height="32"
+							         Padding="8,4" Margin="8,0,0,0"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         VerticalContentAlignment="Center" Text="60"
+							         AutomationProperties.AutomationId="set.chrome.idle"/>
+							<TextBlock x:Name="lbsetchromeidle" DockPanel.Dock="Right"
+							           Text="空闲秒" VerticalAlignment="Center" Margin="12,0,0,0"/>
+							<TextBox x:Name="esetchromepath" Height="32" Padding="8,4"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.chrome.path"
+							         ToolTip="留空则自动查找 chrome.exe"/>
+						</DockPanel>
+						<TextBlock x:Name="lbsetchromehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,16"
+						           Text="朗读和翻译用的本机 Chrome。留空则自动查找。空闲秒为 0 时不自动关闭。"/>
+
 						<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）"
 						          Margin="0,0,0,16" IsChecked="True"/>
 

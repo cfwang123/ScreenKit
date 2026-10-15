@@ -49,6 +49,8 @@ public partial class SettingsWindow : Window {
 			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
 		bsfunpair.Click += (_, _) => unpairselected();
 		bsnapdir.Click += (_, _) => browsesnapdir();
+		bsetchromebrowse.Click += (_, _) => browsechrome();
+		bsetchromedetect.Click += (_, _) => detectchrome();
 		if (System.IO.Directory.Exists(@"D:\")) {
 			esnapdir.Items.Add(ImageUtil.ScreenshotDirShortText);
 			esnapdir.Items.Add(ImageUtil.ScreenshotDirDefaultText);
@@ -194,6 +196,13 @@ public partial class SettingsWindow : Window {
 			tabsethttp.Header = Loc.T("set.tab.http");
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
+			lbsetchrome.Text = Loc.T("tts.chrome.path");
+			bsetchromebrowse.Content = Loc.T("tts.chrome.browse");
+			bsetchromedetect.Content = Loc.T("tts.chrome.detect");
+			esetchromepath.ToolTip = Loc.T("tts.chrome.tip");
+			lbsetchromeidle.Text = Loc.T("tts.chrome.idle");
+			esetchromeidle.ToolTip = Loc.T("tts.chrome.idle.tip");
+			lbsetchromehint.Text = Loc.T("set.chrome.hint");
 			emintray.Content = Loc.T("set.tray");
 			lbsettabsvisible.Text = Loc.T("set.tabs.visible");
 			lbsettabsvisiblehint.Text = Loc.T("set.tabs.visible.hint");
@@ -436,6 +445,8 @@ public partial class SettingsWindow : Window {
 
 	void loadui(OcrOptions o) {
 		filluilang(o.UiLang);
+		esetchromepath.Text = o.ChromeExe ?? "";
+		esetchromeidle.Text = ChromeTts.ClampIdle(o.ChromeIdleSec).ToString();
 
 		if (packs.Count == 0) {
 			lbmodelhint.Text = Loc.IsEn
@@ -865,6 +876,10 @@ public partial class SettingsWindow : Window {
 		}
 		Result.SendFileUdpPort = sfUdp;
 		Result.PdfInvisibleText = epdftext.IsChecked == true;
+		Result.ChromeExe = (esetchromepath.Text ?? "").Trim();
+		if (!int.TryParse((esetchromeidle.Text ?? "").Trim(), out var chromeIdle))
+			chromeIdle = Result.ChromeIdleSec;
+		Result.ChromeIdleSec = ChromeTts.ClampIdle(chromeIdle);
 		Result.CaptureLog = ecapturelog.IsChecked == true;
 		Result.LlmLog = ellmlog.IsChecked == true;
 		// PdfDpi 固定内部默认，不再由界面配置
@@ -1289,6 +1304,26 @@ public partial class SettingsWindow : Window {
 		easrvoicesplitsec.IsEnabled = on;
 		lbsetasrvoicesplitsec.Opacity = on ? 1 : 0.45;
 		easrvoicesplitsec.Opacity = on ? 1 : 0.55;
+	}
+
+	void browsechrome() {
+		var dlg = new Microsoft.Win32.OpenFileDialog {
+			Title = Loc.T("tts.chrome.browse"),
+			Filter = "chrome.exe|chrome.exe|*.exe|*.exe",
+			FileName = "chrome.exe",
+		};
+		if (dlg.ShowDialog(this) != true) return;
+		esetchromepath.Text = dlg.FileName;
+	}
+
+	void detectchrome() {
+		var path = ChromeTts.FindExe("");
+		if (string.IsNullOrEmpty(path)) {
+			MessageBox.Show(this, Loc.T("tts.chrome.detect.none"), Loc.T("tts.chrome.detect"),
+				MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
+		esetchromepath.Text = path;
 	}
 
 	void browsesnapdir() {

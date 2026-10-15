@@ -118,29 +118,16 @@ static class ChromeTts {
 
 	/// <summary>隐藏的 Chrome 里朗读，直到这一句结束、取消，或进程退出。</summary>
 	public static void Speak(string text, string voiceName, string lang, double rate, double volume, string exe, int idleSec, CancellationToken ct) {
-		int id;
-		lock (speakGate) id = post(text, voiceName, lang, rate, volume, exe, idleSec);
-		wait(id, ct);
+		ChromeHost.Speak(text, voiceName, lang, rate, volume, exe, idleSec, ct, true);
 	}
 
-	/// <summary>交给已经打开或即将打开的隐藏 Chrome，不等读完。</summary>
+	/// <summary>交给已经打开或即将打开的隐藏 Chrome，不等读完。和其他请求并行。</summary>
 	public static void Start(string text, string voiceName, string lang, double rate, double volume, string exe, int idleSec) {
-		lock (speakGate) post(text, voiceName, lang, rate, volume, exe, idleSec);
+		ChromeHost.Speak(text, voiceName, lang, rate, volume, exe, idleSec, CancellationToken.None, false);
 	}
 
-	/// <summary>本程序启动的朗读 Chrome 还在。children 是它下面还活着的子进程数。</summary>
-	public static bool TryRun(out int children) {
-		children = 0;
-		Process p;
-		lock (gate) p = proc;
-		if (!up(p)) return false;
-		int pid;
-		try { pid = p.Id; }
-		catch { return false; }
-		var n = ChildCount(pid);
-		children = n < 0 ? 0 : n;
-		return true;
-	}
+	/// <summary>本程序启动的 Chrome 还在。朗读和翻译是同一个进程。children 是它下面还活着的子进程数。</summary>
+	public static bool TryRun(out int children) => ChromeHost.TryRun(out children);
 
 	/// <summary>pid 下面的子进程个数。快照失败返回 -1。</summary>
 	public static int ChildCount(int pid) {
@@ -177,28 +164,11 @@ static class ChromeTts {
 		}
 	}
 
-	static bool up(Process p) {
-		if (p == null) return false;
-		try { return !p.HasExited; }
-		catch { return false; }
-	}
-
-	public static void Stop() {
-		Process p;
-		lock (gate) {
-			p = proc;
-			proc = null;
-			launched = null;
-		}
-		if (p == null) return;
-		try {
-			if (!p.HasExited) p.Kill();
-		}
-		catch { }
-	}
+	public static void Stop() => ChromeHost.Stop();
 
 	public static int Test() {
 		if (ClampIdle(-1) != 60 || ClampIdle(0) != 0 || ClampIdle(99999) != 3600) return 2;
+		if (ChromeHost.Test() != 0) return 2;
 		var dir = Path.Combine(Path.GetTempPath(), "sk-chrome-tts-test");
 		Directory.CreateDirectory(dir);
 		var fake = Path.Combine(dir, "chrome.exe");

@@ -674,7 +674,6 @@
 									<RowDefinition Height="Auto"/>
 									<RowDefinition Height="Auto"/>
 									<RowDefinition Height="Auto"/>
-									<RowDefinition Height="Auto"/>
 								</Grid.RowDefinitions>
 
 								<TextBlock x:Name="lbttsengine" Grid.Row="0" Grid.Column="0" Text="引擎" FontWeight="SemiBold"
@@ -736,24 +735,6 @@
 									<Slider x:Name="ettsvol" Minimum="0" Maximum="100" TickFrequency="5"
 									        IsSnapToTickEnabled="True" Value="100" VerticalAlignment="Center"
 									        ToolTip="SAPI 音量（Sherpa 为波形原始电平）"/>
-								</DockPanel>
-
-								<DockPanel x:Name="pchrome" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="5"
-								           Margin="0,8,0,0" Visibility="Collapsed" LastChildFill="True">
-									<TextBlock x:Name="lbchromepath" Text="chrome.exe" FontWeight="SemiBold"
-									           VerticalAlignment="Center" Margin="0,0,8,0" DockPanel.Dock="Left"/>
-									<Button x:Name="bchromepath" Content="浏览…" DockPanel.Dock="Right" Width="72" Height="28"
-									        Margin="8,0,0,0" AutomationProperties.AutomationId="tts.chrome.browse"/>
-									<Button x:Name="bchromedetect" Content="检测路径" DockPanel.Dock="Right" MinWidth="80" Height="28"
-									        Margin="8,0,0,0" AutomationProperties.AutomationId="tts.chrome.detect"/>
-									<TextBox x:Name="echromeidle" DockPanel.Dock="Right" Width="64" Height="28"
-									         VerticalContentAlignment="Center" Text="60" Margin="8,0,0,0"
-									         AutomationProperties.AutomationId="tts.chrome.idle"/>
-									<TextBlock x:Name="lbchromeidle" DockPanel.Dock="Right" VerticalAlignment="Center"
-									           Margin="12,0,0,0" Text="空闲秒"/>
-									<TextBox x:Name="echromepath" Height="28" VerticalContentAlignment="Center"
-									         AutomationProperties.AutomationId="tts.chrome.path"
-									         ToolTip="留空则自动查找 chrome.exe"/>
 								</DockPanel>
 							</Grid>
 						</Border>
