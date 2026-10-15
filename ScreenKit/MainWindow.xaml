@@ -138,6 +138,9 @@
 				<MenuItem x:Name="mncharart" Header="字符画(_Z)…"
 				          AutomationProperties.AutomationId="menu.charart"
 				          ToolTip="把图片变成单色 ASCII，或在命令行里看全色字符块"/>
+				<MenuItem x:Name="mnpixel" Header="像素画(_D)…"
+				          AutomationProperties.AutomationId="menu.pixel"
+				          ToolTip="选定宽高后用大格作画，旁边按真实像素预览"/>
 				<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
 				          AutomationProperties.AutomationId="menu.vidconv"
 				          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>

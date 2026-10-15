@@ -1,0 +1,105 @@
+<Window x:Class="ScreenKit.PixelArtWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="像素画"
+        Width="960" Height="680"
+        MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="pixel.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<WrapPanel Grid.Row="0" Margin="0,0,0,8">
+			<TextBlock x:Name="lbw" Text="宽" VerticalAlignment="Center" Margin="0,0,6,6"/>
+			<TextBox x:Name="ew" Width="56" Height="32" Text="16" Padding="6,4" Margin="0,0,10,6"
+			         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="pixel.w"/>
+			<TextBlock x:Name="lbh" Text="高" VerticalAlignment="Center" Margin="0,0,6,6"/>
+			<TextBox x:Name="eh" Width="56" Height="32" Text="16" Padding="6,4" Margin="0,0,8,6"
+			         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="pixel.h"/>
+			<Button x:Name="bnew" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="pixel.new"/>
+			<Button x:Name="b8" Content="8" Style="{StaticResource ToolBtn}" Margin="0,0,6,6" MinWidth="36"
+			        AutomationProperties.AutomationId="pixel.s8"/>
+			<Button x:Name="b16" Content="16" Style="{StaticResource ToolBtn}" Margin="0,0,6,6" MinWidth="36"
+			        AutomationProperties.AutomationId="pixel.s16"/>
+			<Button x:Name="b32" Content="32" Style="{StaticResource ToolBtn}" Margin="0,0,6,6" MinWidth="36"
+			        AutomationProperties.AutomationId="pixel.s32"/>
+			<Button x:Name="b64" Content="64" Style="{StaticResource ToolBtn}" Margin="0,0,6,6" MinWidth="36"
+			        AutomationProperties.AutomationId="pixel.s64"/>
+		</WrapPanel>
+		<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+			<Border x:Name="pcolor" Width="32" Height="32" Margin="0,0,8,0" BorderThickness="1"
+			        BorderBrush="{StaticResource BorderSoft}" Background="Black" VerticalAlignment="Center"
+			        Cursor="Hand" AutomationProperties.AutomationId="pixel.color"/>
+			<Button x:Name="berase" Style="{StaticResource ToolBtn}" Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="pixel.erase"/>
+			<WrapPanel x:Name="pcolors"/>
+		</DockPanel>
+		<TextBlock x:Name="lbhint" Grid.Row="2" Margin="0,0,0,8" TextWrapping="Wrap"
+		           Foreground="{StaticResource TextMuted}"/>
+		<Grid Grid.Row="3">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="220"/>
+			</Grid.ColumnDefinitions>
+			<Border Grid.Column="0" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+			        Background="#F3F3F3" Margin="0,0,12,0">
+				<Viewbox Margin="8">
+					<Image x:Name="eedit" SnapsToDevicePixels="True" Cursor="Pen"
+					       RenderOptions.BitmapScalingMode="NearestNeighbor"
+					       AutomationProperties.AutomationId="pixel.edit"/>
+				</Viewbox>
+			</Border>
+			<DockPanel Grid.Column="1">
+				<TextBlock x:Name="lbpreview" DockPanel.Dock="Top" Margin="0,0,0,8"/>
+				<TextBlock x:Name="lbsize" DockPanel.Dock="Bottom" Margin="0,8,0,0"
+				           Foreground="{StaticResource TextMuted}"/>
+				<Border HorizontalAlignment="Left" VerticalAlignment="Top" SnapsToDevicePixels="True">
+					<Border.Background>
+						<DrawingBrush TileMode="Tile" Viewport="0,0,8,8" ViewportUnits="Absolute">
+							<DrawingBrush.Drawing>
+								<DrawingGroup>
+									<GeometryDrawing Brush="#FFFFFF">
+										<GeometryDrawing.Geometry>
+											<RectangleGeometry Rect="0,0,8,8"/>
+										</GeometryDrawing.Geometry>
+									</GeometryDrawing>
+									<GeometryDrawing Brush="#E4E4E4">
+										<GeometryDrawing.Geometry>
+											<GeometryGroup>
+												<RectangleGeometry Rect="0,0,4,4"/>
+												<RectangleGeometry Rect="4,4,4,4"/>
+											</GeometryGroup>
+										</GeometryDrawing.Geometry>
+									</GeometryDrawing>
+								</DrawingGroup>
+							</DrawingBrush.Drawing>
+						</DrawingBrush>
+					</Border.Background>
+					<Image x:Name="epreview" Stretch="None" SnapsToDevicePixels="True"
+					       RenderOptions.BitmapScalingMode="NearestNeighbor"
+					       AutomationProperties.AutomationId="pixel.preview"/>
+				</Border>
+			</DockPanel>
+		</Grid>
+		<DockPanel Grid.Row="4" Margin="0,8,0,0">
+			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+				<Button x:Name="bclear" Style="{StaticResource ToolBtn}"/>
+				<Button x:Name="bcopy" Style="{StaticResource ToolBtn}"/>
+				<Button x:Name="bsave" Style="{StaticResource ToolBtn}"/>
+				<Button x:Name="bclose" Style="{StaticResource ToolBtn}"/>
+			</StackPanel>
+		</DockPanel>
+	</Grid>
+</Window>

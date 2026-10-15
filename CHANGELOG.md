@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools menu and the tools page add a Lookup section, including a common USB ID list.
 - Network tools can use Windows network discovery to list other computers with their names, comments, IP addresses, and MAC addresses.
 - Network tools renames Find other computers to IP scan, and adds a Port scan tab for an IP address and a port range.
+- Tools and the tray add Pixel art: choose a size, paint large cells, and preview the real pixel size.
 
 #### Changed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具菜单和网页工具增加「信息查询」，网页里可列表查看常见 USB ID。
 - 网络工具可通过 Windows 网络发现列出其它电脑的名称、说明、IP 和 MAC。
 - 网络工具把“搜索其它计算机”改为“IP扫描”，并增加“端口扫描”标签页，填写 IP 和端口范围后开始。
+- 工具菜单和托盘增加像素画：选定尺寸后用大格作画，并按真实像素预览。
 
 #### 变更
 

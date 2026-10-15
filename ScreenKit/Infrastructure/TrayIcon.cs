@@ -34,6 +34,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miWebFiles;
 	Forms.ToolStripMenuItem miImgConv;
 	Forms.ToolStripMenuItem miCharArt;
+	Forms.ToolStripMenuItem miPixel;
 	Forms.ToolStripMenuItem miVidConv;
 	Forms.ToolStripMenuItem miVidGif;
 	Forms.ToolStripMenuItem miQrMake;
@@ -161,6 +162,7 @@ sealed class TrayIcon : IDisposable {
 		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
 		miImgConv = item("tray.imgconv", () => ImgConvRequested?.Invoke());
 		miCharArt = item("tray.charart", () => CharArtRequested?.Invoke());
+		miPixel = item("tray.pixel", () => PixelArtRequested?.Invoke());
 		miVidConv = item("tray.vidconv", () => VidConvRequested?.Invoke());
 		miVidGif = item("tray.vidgif", () => VidGifRequested?.Invoke());
 		miQrMake = item("tray.qrmake", () => QrMakeRequested?.Invoke());
@@ -192,6 +194,7 @@ sealed class TrayIcon : IDisposable {
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miImgConv);
 		miTools.DropDownItems.Add(miCharArt);
+		miTools.DropDownItems.Add(miPixel);
 		miTools.DropDownItems.Add(miVidConv);
 		miTools.DropDownItems.Add(miVidGif);
 		miTools.DropDownItems.Add(miQrMake);
@@ -405,6 +408,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miWebHome, null);
 		setshortcut(miImgConv, null);
 		setshortcut(miCharArt, null);
+		setshortcut(miPixel, null);
 		setshortcut(miVidConv, null);
 		setshortcut(miVidGif, null);
 		setshortcut(miQrMake, null);
@@ -463,6 +467,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miWebFiles, "tray.webfiles");
 			settext(miImgConv, "tray.imgconv");
 			settext(miCharArt, "tray.charart");
+			settext(miPixel, "tray.pixel");
 			settext(miVidConv, "tray.vidconv");
 			settext(miVidGif, "tray.vidgif");
 			settext(miQrMake, "tray.qrmake");
@@ -567,6 +572,7 @@ sealed class TrayIcon : IDisposable {
 	}
 	public event Action ImgConvRequested;
 	public event Action CharArtRequested;
+	public event Action PixelArtRequested;
 	public event Action VidConvRequested;
 	public event Action VidGifRequested;
 	public event Action QrMakeRequested;
