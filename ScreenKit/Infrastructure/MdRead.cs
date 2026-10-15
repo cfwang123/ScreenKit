@@ -42,8 +42,10 @@ static class MdRead {
 		return 0;
 	}
 
-	public static string ReadText(string path) {
-		var bytes = File.ReadAllBytes(path);
+	public static string ReadText(string path) => Decode(File.ReadAllBytes(path));
+
+	public static string Decode(byte[] bytes) {
+		if (bytes == null || bytes.Length == 0) return "";
 		if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
 			return Encoding.UTF8.GetString(bytes, 3, bytes.Length - 3);
 		if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE)

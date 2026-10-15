@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools → Camera previews a camera, saves a JPEG or PNG, and records an MP4 with Media Foundation. Scan reads a QR code or barcode and needs the optional OpenCV and ZXing install. The tools page camera takes a photo and scans the live picture.
 - HTTP request debugger POST body can be XML or raw text with a MIME type you type.
 - Character art can draw detected edges with - | / \ and +.
+- The tools page has a Markdown reader. Drop a file to preview it with the same renderer, and POST /api/md returns the page.
 
 #### Changed
 
@@ -111,6 +112,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具 → 相机用系统摄像头预览、拍照，并用 Media Foundation 录成 MP4。扫码识别二维码和条码，需要另装的 OpenCV 与 ZXing。工具页的相机可以拍照，并扫描实时画面。
 - HTTP 请求调试的 POST 正文可以是 XML，或自己填写 MIME 的原文。
 - 字符画可以勾选线条，按检测出的边缘用 - | / \ 和 + 来画。
+- 工具页增加 MD 阅读器。拖入文件后用和桌面相同的规则预览，POST /api/md 返回网页。
 
 #### 变更
 

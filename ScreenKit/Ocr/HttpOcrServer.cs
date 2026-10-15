@@ -220,6 +220,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/md" or "/api/md/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "md 仅支持 GET 或 POST"));
+					return;
+				}
+				handlemd(ctx);
+				return;
+			}
+
 			if (path is "/api/calendar" or "/api/calendar/") {
 				if (!isget(req) && !ispost(req)) {
 					writejson(ctx, 405, err(805, "calendar 仅支持 GET 或 POST"));
@@ -994,6 +1003,45 @@ sealed partial class HttpOcrServer : IDisposable {
 				["pinyin"] = pinyin,
 				["py"] = py,
 			},
+		});
+	}
+
+	void handlemd(SockCtx ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		string text;
+		var b64 = field(ctx, jo, "base64");
+		if (!string.IsNullOrEmpty(b64)) {
+			byte[] raw;
+			try { raw = Convert.FromBase64String(b64); }
+			catch {
+				writejson(ctx, 200, err(802, "base64 无法解码"));
+				return;
+			}
+			if (raw.Length > 2000000) {
+				writejson(ctx, 200, err(802, "文件过大"));
+				return;
+			}
+			text = MdRead.Decode(raw);
+		}
+		else text = field(ctx, jo, "text") ?? "";
+		if (text.Length == 0) {
+			writejson(ctx, 200, err(802, "请提供 text 或 base64"));
+			return;
+		}
+		if (text.Length > 2000000) {
+			writejson(ctx, 200, err(802, "text 过长"));
+			return;
+		}
+		var title = field(ctx, jo, "title") ?? "";
+		string html;
+		try { html = MdRead.ToHtml(text, "", title); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(500, ex.Message));
+			return;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject { ["html"] = html },
 		});
 	}
 
@@ -2329,6 +2377,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
 			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
 			"GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；有 text 时同时返回 pinyin 和 py",
+			"GET/POST /api/md  Markdown 转网页。POST JSON{text|base64,title?}，返回 data.html",
 			"GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}",
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",
