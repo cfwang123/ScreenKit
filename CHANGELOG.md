@@ -88,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Markdown reader stays within the page. Wide tables scroll inside the preview.
 - The camera preview shows the picture. Media Foundation RGB32 leaves the alpha byte at zero, so the preview drew it as fully transparent.
 - Opened tools stay within the window. Extra content scrolls inside the tool.
+- The camera preview picks a mode up to 1280x720 with a higher frame rate. The old default stayed on a large, slow format, about 2 frames per second.
 
 #### Documentation
 
@@ -147,6 +148,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD 阅读器不再把页面撑出横向滚动，宽表格在预览内部滚动。
 - 相机预览能看到画面。Media Foundation 的 RGB32 把透明字节留成 0，预览就把它画成全透明。
 - 打开工具后宽度不超过窗口，超出的内容在工具内部滚动。
+- 相机预览改选不超过 1280×720、帧率更高的模式。原先停在又大又慢的格式上，大约每秒 2 帧。
 
 #### 文档
 

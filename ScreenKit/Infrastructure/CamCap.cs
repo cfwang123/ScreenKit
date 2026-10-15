@@ -135,8 +135,11 @@ static class CamCap {
 		bool nv12;
 		int width, height, stride;
 		bool started;
+		int frames;
 
 		public string Error { get { lock (gate) return error; } }
+		public int Count { get { return frames; } }
+		public string Mode { get; private set; } = "";
 
 		public static Session Open(string link) {
 			if (string.IsNullOrWhiteSpace(link)) throw new ArgumentException("no camera");
@@ -227,9 +230,16 @@ static class CamCap {
 				MfApi.Release(ra);
 			}
 
-			if (!setrgb(reader) && !setnative(reader))
+			var asked = 0;
+			foreach (var m in listmodes(reader)) {
+				if (!usemode(reader, m)) continue;
+				asked = m.Fps >= 1 ? (int)Math.Round(m.Fps) : 0;
+				break;
+			}
+			if (asked == 0 && !setrgb(reader) && !setnative(reader))
 				throw new InvalidOperationException("摄像头不能输出 RGB32 或 NV12");
 			readfmt();
+			Mode = width + "x" + height + "@" + asked;
 		}
 
 		void loop() {
@@ -267,6 +277,7 @@ static class CamCap {
 						frame = bgra;
 						fw = ew;
 						fh = eh;
+						frames++;
 					}
 				}
 				finally {
@@ -457,8 +468,16 @@ static class CamCap {
 						if (frame[i + 2] > mr) mr = frame[i + 2];
 						if (frame[i + 3] > ma) ma = frame[i + 3];
 					}
-					log("frame " + w + "x" + h + " B" + mb + " G" + mg + " R" + mr + " A" + ma + " " + dev.Name);
+					log("frame " + w + "x" + h + " B" + mb + " G" + mg + " R" + mr + " A" + ma + " " + s.Mode + " " + dev.Name);
 					if (ma != 255) fail("alpha " + dev.Name);
+					var c0 = s.Count;
+					Thread.Sleep(1000);
+					var fps = s.Count - c0;
+					log("fps " + fps + " " + dev.Name);
+					var at = s.Mode.IndexOf('@');
+					var asked = 0;
+					if (at >= 0) int.TryParse(s.Mode.Substring(at + 1), out asked);
+					if (asked >= 15 && fps < 8) fail("fps " + fps + " " + dev.Name);
 				}
 			}
 		}
@@ -481,7 +500,108 @@ static class CamCap {
 		return bad == 0 ? 0 : 1;
 	}
 
-	static bool setrgb(IMFSourceReader reader) => tryfmt(reader, MfApi.FmtRgb32, 0, 0);
+	static readonly Guid FmtMjpg = new("47504A4D-0000-0010-8000-00AA00389B71");
+
+	sealed class Mode {
+		public int Index, W, H, Num, Den, Tier;
+		public double Fps;
+		public bool Mjpg;
+	}
+
+	/// <summary>不低于 15fps 且不超过 1280×720 的优先。同档先用 MJPEG，避免 USB 上的未压缩大画面掉到几帧。</summary>
+	static List<Mode> listmodes(IMFSourceReader reader) {
+		var list = new List<Mode>();
+		for (var i = 0; i < 80; i++) {
+			IMFMediaType t = null;
+			try { reader.GetNativeMediaType(FirstVideo, i, out t); }
+			catch { break; }
+			try {
+				var fs = MfApi.FrameSize;
+				t.GetUINT64(ref fs, out var packed);
+				var ww = (int)((ulong)packed >> 32);
+				var hh = (int)(packed & 0xFFFFFFFF);
+				if (ww < 160 || hh < 120) continue;
+				var nn = 0;
+				var dd = 1;
+				try {
+					var fr = MfApi.FrameRate;
+					t.GetUINT64(ref fr, out var rp);
+					nn = (int)((ulong)rp >> 32);
+					dd = (int)(rp & 0xFFFFFFFF);
+				}
+				catch { nn = 0; dd = 1; }
+				if (dd <= 0) dd = 1;
+				var fps = nn <= 0 ? 0 : nn / (double)dd;
+				var mjpg = false;
+				try {
+					var sk = MfApi.SubType;
+					t.GetGUID(ref sk, out var g);
+					mjpg = g == FmtMjpg;
+				}
+				catch { }
+				int tier;
+				if (fps >= 15 && ww <= 1280 && hh <= 720) tier = 0;
+				else if (fps >= 15) tier = 1;
+				else tier = 2;
+				list.Add(new Mode { Index = i, W = ww, H = hh, Num = nn, Den = dd, Fps = fps, Tier = tier, Mjpg = mjpg });
+			}
+			catch { }
+			finally { MfApi.Release(t); }
+		}
+		list.Sort(rankmode);
+		return list;
+	}
+
+	static int rankmode(Mode a, Mode b) {
+		if (a.Tier != b.Tier) return a.Tier - b.Tier;
+		if (a.Tier == 0) {
+			var area = b.W * b.H - a.W * a.H;
+			if (area != 0) return area;
+		}
+		else if (a.Tier == 1) {
+			if (Math.Abs(a.Fps - b.Fps) > 0.4) return a.Fps > b.Fps ? -1 : 1;
+			var area = a.W * a.H - b.W * b.H;
+			if (area != 0) return area;
+		}
+		if (a.Tier != 1 && Math.Abs(a.Fps - b.Fps) > 0.4) return a.Fps > b.Fps ? -1 : 1;
+		if (a.Mjpg != b.Mjpg) return a.Mjpg ? -1 : 1;
+		return 0;
+	}
+
+	static bool usemode(IMFSourceReader reader, Mode m) {
+		IMFMediaType native = null;
+		try {
+			reader.GetNativeMediaType(FirstVideo, m.Index, out native);
+			reader.SetCurrentMediaType(FirstVideo, IntPtr.Zero, native);
+		}
+		catch { return false; }
+		finally { MfApi.Release(native); }
+		if (!tryfmt(reader, MfApi.FmtRgb32, m.W, m.H, m.Num, m.Den) && !tryfmt(reader, MfH264Reader.FmtNv12, m.W, m.H, m.Num, m.Den))
+			return false;
+		IMFMediaType cur = null;
+		try {
+			reader.GetCurrentMediaType(FirstVideo, out cur);
+			var fs = MfApi.FrameSize;
+			cur.GetUINT64(ref fs, out var packed);
+			var ww = (int)((ulong)packed >> 32);
+			var hh = (int)(packed & 0xFFFFFFFF);
+			if (Math.Abs(ww - m.W) > 16 || Math.Abs(hh - m.H) > 16) return false;
+			try {
+				var fr = MfApi.FrameRate;
+				cur.GetUINT64(ref fr, out var rp);
+				var nn = (int)((ulong)rp >> 32);
+				var dd = (int)(rp & 0xFFFFFFFF);
+				var fps = dd <= 0 || nn <= 0 ? 0 : nn / (double)dd;
+				if (m.Fps >= 15 && fps > 0 && fps < 12) return false;
+			}
+			catch { }
+			return true;
+		}
+		catch { return false; }
+		finally { MfApi.Release(cur); }
+	}
+
+	static bool setrgb(IMFSourceReader reader) => tryfmt(reader, MfApi.FmtRgb32, 0, 0, 0, 0);
 
 	static bool setnative(IMFSourceReader reader) {
 		int w, h;
@@ -496,11 +616,11 @@ static class CamCap {
 		catch { return false; }
 		finally { MfApi.Release(native); }
 		if (w < 2 || h < 2) return false;
-		if (tryfmt(reader, MfApi.FmtRgb32, w, h)) return true;
-		return tryfmt(reader, MfH264Reader.FmtNv12, w, h);
+		if (tryfmt(reader, MfApi.FmtRgb32, w, h, 0, 0)) return true;
+		return tryfmt(reader, MfH264Reader.FmtNv12, w, h, 0, 0);
 	}
 
-	static bool tryfmt(IMFSourceReader reader, Guid subtype, int w, int h) {
+	static bool tryfmt(IMFSourceReader reader, Guid subtype, int w, int h, int num, int den) {
 		IMFMediaType t = null;
 		try {
 			MfApi.Check(MfApi.MFCreateMediaType(out t), "cam type");
@@ -513,6 +633,10 @@ static class CamCap {
 			if (w > 0 && h > 0) {
 				var fs = MfApi.FrameSize;
 				t.SetUINT64(ref fs, MfApi.Pack((uint)w, (uint)h));
+			}
+			if (num > 0 && den > 0) {
+				var fr = MfApi.FrameRate;
+				t.SetUINT64(ref fr, MfApi.Pack((uint)num, (uint)den));
 			}
 			var il = MfApi.Interlace;
 			t.SetUINT32(ref il, 2);
