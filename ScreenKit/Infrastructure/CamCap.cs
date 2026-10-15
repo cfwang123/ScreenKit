@@ -43,7 +43,10 @@ static class CamCap {
 						var obj = Marshal.GetObjectForIUnknown(p);
 						Marshal.Release(p);
 						var a = obj as IMFAttributes;
-						if (a == null) continue;
+						if (a == null) {
+							MfApi.Release(obj);
+							continue;
+						}
 						try {
 							var name = attrstr(a, Friendly);
 							var link = attrstr(a, SymLink);

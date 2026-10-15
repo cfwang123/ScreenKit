@@ -25,6 +25,9 @@ sealed class HangulIme : IDisposable {
 	const int VK_LWIN = 0x5B;
 	const int VK_RWIN = 0x5C;
 	const int VK_A = 0x41;
+	const uint SWP_NOSIZE = 0x0001;
+	const uint SWP_NOMOVE = 0x0002;
+	const uint SWP_SHOWWINDOW = 0x0040;
 
 	readonly Hangul hang = new();
 	readonly HashSet<int> eaten = new();
@@ -163,11 +166,29 @@ sealed class HangulIme : IDisposable {
 		miclose.Click += (_, _) => Set(false);
 		menu.Items.Add(miset);
 		menu.Items.Add(miclose);
-		ni.ContextMenuStrip = menu;
 		ni.MouseClick += (_, e) => {
 			if (e.Button == Forms.MouseButtons.Left) ToggleEnglish();
 		};
+		ni.MouseUp += (_, e) => {
+			if (e.Button == Forms.MouseButtons.Right) showmenu();
+		};
 		applytraylang();
+	}
+
+	void showmenu() {
+		if (menu == null) return;
+		var p = Forms.Cursor.Position;
+		var wa = Forms.Screen.FromPoint(p).WorkingArea;
+		var sz = menu.GetPreferredSize(System.Drawing.Size.Empty);
+		int x = p.X - sz.Width;
+		int y = p.Y - sz.Height;
+		if (x + sz.Width > wa.Right) x = wa.Right - sz.Width;
+		if (y + sz.Height > wa.Bottom) y = wa.Bottom - sz.Height;
+		if (x < wa.Left) x = wa.Left;
+		if (y < wa.Top) y = wa.Top;
+		SetForegroundWindow(menu.Handle);
+		menu.Show(new System.Drawing.Point(x, y));
+		SetWindowPos(menu.Handle, new IntPtr(-1), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 	}
 
 	void applytraylang() {
@@ -183,17 +204,25 @@ sealed class HangulIme : IDisposable {
 	}
 
 	static System.Drawing.Icon badge(bool en) {
-		using var bmp = new System.Drawing.Bitmap(32, 32);
+		const int n = 64;
+		using var bmp = new System.Drawing.Bitmap(n, n);
 		using (var g = System.Drawing.Graphics.FromImage(bmp)) {
 			g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-			g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+			g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
 			g.Clear(en ? System.Drawing.Color.FromArgb(90, 90, 90) : System.Drawing.Color.FromArgb(20, 110, 70));
-			float size = en ? 18f : 13f;
-			using var font = new System.Drawing.Font("Malgun Gothic", size, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
 			var text = en ? "A" : "한";
-			var box = g.MeasureString(text, font);
+			using var font = new System.Drawing.Font("Malgun Gothic", 100f, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
+			using var path = new System.Drawing.Drawing2D.GraphicsPath();
+			path.AddString(text, font.FontFamily, (int)System.Drawing.FontStyle.Bold, 100f, new System.Drawing.PointF(0, 0), System.Drawing.StringFormat.GenericTypographic);
+			var box = path.GetBounds();
+			float pad = 3f;
+			float s = 1f;
+			if (box.Width > 1f && box.Height > 1f)
+				s = Math.Min((n - pad * 2f) / box.Width, (n - pad * 2f) / box.Height);
+			g.TranslateTransform((n - box.Width * s) / 2f - box.X * s, (n - box.Height * s) / 2f - box.Y * s);
+			g.ScaleTransform(s, s);
 			using var brush = new System.Drawing.SolidBrush(System.Drawing.Color.White);
-			g.DrawString(text, font, brush, (32f - box.Width) / 2f, (32f - box.Height) / 2f - 1f);
+			g.FillPath(brush, path);
 		}
 		var h = bmp.GetHicon();
 		try {
@@ -415,4 +444,6 @@ sealed class HangulIme : IDisposable {
 	[DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
 	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
 	[DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr h);
+	[DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
+	[DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
 }
