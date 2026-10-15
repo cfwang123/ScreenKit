@@ -4191,6 +4191,32 @@ static class Cli {
 				Err("FAIL: ping 127.0.0.1");
 				bad++;
 			}
+			if (!NetTools.TryParsePorts("80,443,20-22", out var ports, out var perr) || ports.Count != 5
+				|| ports[0] != 20 || ports[4] != 443 || perr.Length != 0) {
+				Err("FAIL: 端口范围");
+				bad++;
+			}
+			else Out("ports " + string.Join(",", ports));
+			if (NetTools.TryParsePorts("5-1", out _, out perr) || perr != "bad"
+				|| NetTools.TryParsePorts("", out _, out perr) || perr != "empty") {
+				Err("FAIL: 非法端口范围");
+				bad++;
+			}
+			var lis = new TcpListener(IPAddress.Loopback, 0);
+			lis.Start();
+			try {
+				var open = ((IPEndPoint)lis.LocalEndpoint).Port;
+				var closed = open == 65535 ? open - 1 : open + 1;
+				var plines = new List<string>();
+				Task.Run(() => NetTools.PortScan("127.0.0.1", new List<int> { open, closed }, s => plines.Add(s), CancellationToken.None))
+					.GetAwaiter().GetResult();
+				Out(string.Join("\n", plines));
+				if (!plines.Any(s => s.IndexOf(open.ToString(), StringComparison.Ordinal) >= 0)) {
+					Err("FAIL: 本机监听端口未扫到");
+					bad++;
+				}
+			}
+			finally { try { lis.Stop(); } catch { } }
 			var osm = NetTools.MapOsm(39.9087, 116.3975);
 			var amap = NetTools.MapAmap(39.9087, 116.3975);
 			var london = NetTools.MapAmap(51.5074, -0.1278);

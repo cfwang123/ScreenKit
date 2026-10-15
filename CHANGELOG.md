@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Network tools are grouped in a submenu, with DNS record lookup, TCP port tests, local adapter and route details, Wake-on-LAN, and NetBIOS names for discovered computers.
 - Tools menu and the tools page add a Lookup section, including a common USB ID list.
 - Network tools can use Windows network discovery to list other computers with their names, comments, IP addresses, and MAC addresses.
+- Network tools renames Find other computers to IP scan, and adds a Port scan tab for an IP address and a port range.
 
 #### Changed
 
@@ -84,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网络工具收进子菜单，并增加 DNS 记录、TCP 端口测试、本机网卡与路由、网络唤醒，以及搜索计算机时的 NetBIOS 名称。
 - 工具菜单和网页工具增加「信息查询」，网页里可列表查看常见 USB ID。
 - 网络工具可通过 Windows 网络发现列出其它电脑的名称、说明、IP 和 MAC。
+- 网络工具把“搜索其它计算机”改为“IP扫描”，并增加“端口扫描”标签页，填写 IP 和端口范围后开始。
 
 #### 变更
 

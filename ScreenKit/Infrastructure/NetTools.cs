@@ -158,7 +158,7 @@ static class NetTools {
 		var hits = rows.Where(x => string.Equals(x.Mac, mac, StringComparison.OrdinalIgnoreCase))
 			.GroupBy(x => x.Ip, StringComparer.Ordinal).Select(x => x.First()).ToList();
 		if (hits.Count == 0) {
-			line?.Invoke("未找到；反查只检查本机接口和当前 ARP 缓存，可先搜索其它计算机以填充缓存");
+			line?.Invoke("未找到；反查只检查本机接口和当前 ARP 缓存，可先做 IP 扫描以填充缓存");
 			return;
 		}
 		foreach (var hit in hits) {
@@ -253,6 +253,7 @@ static class NetTools {
 		("CNAME", 5), ("MX", 15), ("NS", 2), ("TXT", 16), ("SOA", 6),
 	};
 	static readonly int[] CommonPorts = { 22, 80, 443, 445, 3389, 8080 };
+	const int MAX_SCAN_PORTS = 65535;
 
 	/// <summary>向系统 DNS 查询 CNAME、MX、NS、TXT 和 SOA，并显示每一步。</summary>
 	public static async Task DnsRecords(string host, Action<string> line, CancellationToken ct) {
@@ -316,6 +317,100 @@ static class NetTools {
 			ct.ThrowIfCancellationRequested();
 			line?.Invoke(port + "  " + result);
 		}
+	}
+
+	/// <summary>按端口范围并发测试 TCP 连接，只列出开放端口。</summary>
+	public static async Task PortScan(string host, IReadOnlyList<int> ports, Action<string> line, CancellationToken ct) {
+		host = AsciiHost((host ?? "").Trim());
+		if (host.Length == 0) throw new ArgumentException("empty");
+		if (ports == null || ports.Count == 0) throw new ArgumentException("empty");
+		line?.Invoke(Loc.T("nettool.pscan.begin", host, ports.Count));
+		var open = 0;
+		var done = 0;
+		var gate = new SemaphoreSlim(64);
+		var tasks = new List<Task>();
+		try {
+			foreach (var port in ports) {
+				ct.ThrowIfCancellationRequested();
+				await gate.WaitAsync(ct).ConfigureAwait(false);
+				var p = port;
+				tasks.Add(Task.Run(async () => {
+					try {
+						var started = Environment.TickCount;
+						using var tcp = new TcpClient();
+						var task = tcp.ConnectAsync(host, p);
+						var finished = await Task.WhenAny(task, Task.Delay(400, ct)).ConfigureAwait(false);
+						if (finished == task) {
+							try {
+								await task.ConfigureAwait(false);
+								var ms = Math.Max(0, Environment.TickCount - started);
+								line?.Invoke(Loc.T("nettool.pscan.open", p, ms));
+								Interlocked.Increment(ref open);
+							}
+							catch (Exception ex) when (ex is not OperationCanceledException) { }
+						}
+						ct.ThrowIfCancellationRequested();
+						var n = Interlocked.Increment(ref done);
+						if (n == ports.Count || n % 256 == 0)
+							line?.Invoke(Loc.T("nettool.pscan.progress", n, ports.Count, Volatile.Read(ref open)));
+					}
+					finally { gate.Release(); }
+				}, ct));
+			}
+		}
+		finally {
+			try { await Task.WhenAll(tasks).ConfigureAwait(false); }
+			catch (Exception) when (ct.IsCancellationRequested) { }
+		}
+		ct.ThrowIfCancellationRequested();
+		var found = Volatile.Read(ref open);
+		line?.Invoke(found == 0 ? Loc.T("nettool.pscan.none") : Loc.T("nettool.pscan.found", found));
+	}
+
+	/// <summary>解析端口范围，如 80、80,443、1-1024、20-25,80。去重后按端口排序。</summary>
+	internal static bool TryParsePorts(string raw, out List<int> ports, out string error) {
+		ports = new List<int>();
+		error = "";
+		raw = (raw ?? "").Trim();
+		if (raw.Length == 0) {
+			error = "empty";
+			return false;
+		}
+		var set = new HashSet<int>();
+		foreach (var part in raw.Split(',')) {
+			var item = part.Trim();
+			if (item.Length == 0) {
+				error = "bad";
+				return false;
+			}
+			var dash = item.IndexOf('-');
+			if (dash >= 0) {
+				if (dash == 0 || dash != item.LastIndexOf('-') || dash == item.Length - 1
+					|| !int.TryParse(item.Substring(0, dash), out var from)
+					|| !int.TryParse(item.Substring(dash + 1), out var to)
+					|| from < 1 || to > 65535 || from > to) {
+					error = "bad";
+					return false;
+				}
+				for (var p = from; p <= to; p++) set.Add(p);
+			}
+			else if (!int.TryParse(item, out var one) || one < 1 || one > 65535) {
+				error = "bad";
+				return false;
+			}
+			else set.Add(one);
+			if (set.Count > MAX_SCAN_PORTS) {
+				error = "toomany";
+				return false;
+			}
+		}
+		if (set.Count == 0) {
+			error = "empty";
+			return false;
+		}
+		ports.AddRange(set);
+		ports.Sort();
+		return true;
 	}
 
 	/// <summary>列出活动网卡的地址、网关、DNS、速率，以及 IPv4 路由。</summary>

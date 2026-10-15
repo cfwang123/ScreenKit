@@ -46,8 +46,12 @@ public partial class NetToolsWindow : Window {
 		bgeo.Click += (_, _) => _ = run("geo");
 		bscan.Click += (_, _) => _ = run("scan");
 		bdiscover.Click += (_, _) => _ = run("discover");
+		bpstart.Click += (_, _) => _ = runpscan();
 		bmap.Click += (_, _) => openmap();
 		bstop.Click += (_, _) => {
+			try { cts?.Cancel(); } catch { }
+		};
+		bpstop.Click += (_, _) => {
 			try { cts?.Cancel(); } catch { }
 		};
 		bclear.Click += (_, _) => { clearout(); lbstat.Text = ""; clearmap(); };
@@ -60,6 +64,28 @@ public partial class NetToolsWindow : Window {
 			}
 		};
 		bclose.Click += (_, _) => Close();
+		bpsclear.Click += (_, _) => { epsout.Clear(); lbpsstat.Text = ""; };
+		bpscopy.Click += (_, _) => {
+			var s = epsout.Text ?? "";
+			if (s.Length == 0) return;
+			try { Clipboard.SetText(s); lbpsstat.Text = Loc.T("nettool.copied"); }
+			catch (Exception ex) {
+				MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+			}
+		};
+		bpsclose.Click += (_, _) => Close();
+		epsip.KeyDown += (_, e) => {
+			if (e.Key == System.Windows.Input.Key.Enter && !busy) {
+				_ = runpscan();
+				e.Handled = true;
+			}
+		};
+		epsports.KeyDown += (_, e) => {
+			if (e.Key == System.Windows.Input.Key.Enter && !busy) {
+				_ = runpscan();
+				e.Handled = true;
+			}
+		};
 		ehost.KeyDown += (_, e) => {
 			if (e.Key == System.Windows.Input.Key.Enter && !busy) {
 				_ = run("ping");
@@ -73,6 +99,17 @@ public partial class NetToolsWindow : Window {
 
 	void applylang() {
 		Title = Loc.T("nettool.title");
+		tabdiag.Header = Loc.T("nettool.tab.diag");
+		tabpscan.Header = Loc.T("nettool.tab.pscan");
+		lbpsip.Text = Loc.T("nettool.pscan.ip");
+		lbpsports.Text = Loc.T("nettool.pscan.ports");
+		epsip.ToolTip = Loc.T("nettool.pscan.ip.tip");
+		epsports.ToolTip = Loc.T("nettool.pscan.ports.tip");
+		ToolBtnUi.Set(bpstart, ToolBtnUi.Play, Loc.T("nettool.pscan.start"));
+		ToolBtnUi.Set(bpstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
+		ToolBtnUi.Set(bpsclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
+		ToolBtnUi.Set(bpscopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
+		ToolBtnUi.Set(bpsclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 		lbhost.Text = Loc.T("nettool.host");
 		lbcount.Text = Loc.T("nettool.count");
 		ehost.ToolTip = Loc.T("nettool.host.tip");
@@ -124,10 +161,14 @@ public partial class NetToolsWindow : Window {
 		bgeo.IsEnabled = !on;
 		bscan.IsEnabled = !on;
 		bdiscover.IsEnabled = !on;
+		bpstart.IsEnabled = !on;
 		bmap.IsEnabled = !on && hasmap;
 		bstop.IsEnabled = on;
+		bpstop.IsEnabled = on;
 		ehost.IsEnabled = !on;
 		ecount.IsEnabled = !on;
+		epsip.IsEnabled = !on;
+		epsports.IsEnabled = !on;
 	}
 
 	void clearout() => eout.Document.Blocks.Clear();
@@ -304,6 +345,54 @@ public partial class NetToolsWindow : Window {
 			cts = null;
 			setbusy(false);
 		}
+	}
+
+	async Task runpscan() {
+		if (busy) return;
+		var host = (epsip.Text ?? "").Trim();
+		if (host.Length == 0) {
+			lbpsstat.Text = Loc.T("nettool.pscan.emptyip");
+			epsip.Focus();
+			return;
+		}
+		if (!NetTools.TryParsePorts(epsports.Text, out var ports, out var err)) {
+			lbpsstat.Text = err == "toomany" ? Loc.T("nettool.pscan.toomany", 65535)
+				: err == "empty" ? Loc.T("nettool.pscan.emptyports")
+				: Loc.T("nettool.pscan.badports");
+			epsports.Focus();
+			return;
+		}
+		cts = new CancellationTokenSource();
+		var token = cts.Token;
+		setbusy(true);
+		lbpsstat.Text = Loc.T("nettool.busy");
+		epsout.Clear();
+		try {
+			await NetTools.PortScan(host, ports, s => Dispatcher.Invoke(() => appendpscan(s)), token)
+				.ConfigureAwait(true);
+			lbpsstat.Text = Loc.T("nettool.done");
+		}
+		catch (OperationCanceledException) {
+			appendpscan(Loc.T("nettool.cancelled"));
+			lbpsstat.Text = Loc.T("nettool.cancelled");
+		}
+		catch (Exception ex) {
+			appendpscan(ex.Message);
+			lbpsstat.Text = Loc.T("nettool.fail", ex.Message);
+		}
+		finally {
+			try { cts.Dispose(); } catch { }
+			cts = null;
+			setbusy(false);
+		}
+	}
+
+	void appendpscan(string line) {
+		if (string.IsNullOrEmpty(line)) return;
+		var text = line.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
+		if (epsout.Text.Length > 0) epsout.AppendText("\n");
+		epsout.AppendText(text);
+		epsout.ScrollToEnd();
 	}
 
 	void setmap(double lat, double lon) {
