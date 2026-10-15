@@ -20,31 +20,85 @@
 
 	kind.onchange = paint;
 	lang.onchange = paint;
-	document.getElementById("refresh").onclick = function(){ load(true); };
+	document.getElementById("refresh").onclick = function(){ load(); };
 	document.getElementById("install").onclick = function(){ apply("install"); };
 	document.getElementById("remove").onclick = function(){ apply("remove"); };
-	load(false);
+	load();
 
-	function load(probe){
+	function load(){
 		var n = ++gen;
 		busy = true;
 		paint();
-		say(probe ? "正在打开 Chrome 查询…" : "正在读取本机模型…", false);
-		get("/api/chrome/packs" + (probe ? "?probe=1" : ""), function(data){
+		say("正在读取本机模型…", false);
+		get("/api/chrome/packs", function(data){
 			if (n !== gen) return;
-			busy = false;
 			rows = data && data.items ? data.items : [];
-			filllang();
-			var line = counton(rows) + " 个已安装 / " + rows.length + " 项";
-			line += probe ? " · 已查询语音包" : " · 语音包尚未查询";
-			if (data && data.log) line += " · " + data.log;
-			say(line, false);
-			paint();
+			say("正在查询这个 Chrome 的语音…", false);
+			queryvoices(function(){
+				if (n !== gen) return;
+				busy = false;
+				filllang();
+				say(counton(rows) + " 个已安装 / " + rows.length + " 项", false);
+				paint();
+			});
 		}, function(){
 			if (n !== gen) return;
 			busy = false;
 			paint();
 		});
+	}
+
+	function queryvoices(done){
+		if (!window.speechSynthesis) {
+			markvoices([]);
+			done();
+			return;
+		}
+		var voices = speechSynthesis.getVoices();
+		if (voices && voices.length) {
+			markvoices(voices);
+			done();
+			return;
+		}
+		var finished = false;
+		function finish(){
+			if (finished) return;
+			finished = true;
+			speechSynthesis.onvoiceschanged = null;
+			markvoices(speechSynthesis.getVoices() || []);
+			done();
+		}
+		speechSynthesis.onvoiceschanged = finish;
+		setTimeout(finish, 1200);
+	}
+
+	function markvoices(voices){
+		var i;
+		var j;
+		for (i = 0; i < rows.length; i++) {
+			var r = rows[i];
+			if (!r || r.kind !== "tts") continue;
+			var lang = String(r.id || "").replace(/^tts:/i, "");
+			var hit = false;
+			for (j = 0; j < voices.length; j++) {
+				var v = voices[j];
+				if (!v || !v.localService) continue;
+				if (samelang(v.lang, lang)) {
+					hit = true;
+					break;
+				}
+			}
+			r.state = hit ? "installed" : "missing";
+		}
+	}
+
+	function samelang(a, b){
+		a = String(a || "").toLowerCase().replace(/_/g, "-");
+		b = String(b || "").toLowerCase().replace(/_/g, "-");
+		if (a === b) return true;
+		if ((a === "zh-hk" || a === "yue-hk" || a === "yue") && (b === "zh-hk" || b === "yue-hk" || b === "yue"))
+			return true;
+		return false;
 	}
 
 	function apply(op){

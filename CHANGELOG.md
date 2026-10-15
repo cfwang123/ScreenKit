@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation shows that a model is downloading, and the percent when it is known.
 - The dictionary hotkey does not open the SQLite dictionary when there is nothing to search.
 - Chrome models is a separate page opened from Install features in Chrome, and is no longer a web tool
+- The Chrome models page checks voice packs in the Chrome that is showing the page
 
 #### Fixed
 
@@ -117,6 +118,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 翻译下载模型时显示正在下载，有百分比时一并显示。
 - 词典热键在没有搜索内容时不打开 SQLite 词典库。
 - Chrome 模型改为单独页面，在安装功能里用 Chrome 打开，不再放在网页工具里
+- Chrome 模型页在正在显示它的 Chrome 里查询语音包，不再另开隐藏的 Chrome
 
 #### 修复
 
