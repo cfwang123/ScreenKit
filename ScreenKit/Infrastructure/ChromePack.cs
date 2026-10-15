@@ -52,6 +52,8 @@ static class ChromePack {
 	const int SW_HIDE = 0;
 	static readonly object voiceOp = new();
 	static Dictionary<string, bool> voiceKnown;
+	static bool wasmProbed;
+	static bool wasmHave;
 
 	public static readonly string[] TrPairs = {
 		"en - es", "en - ja", "ar - en", "bn - en", "de - en", "en - fr", "en - hi", "en - it",
@@ -141,13 +143,27 @@ static class ChromePack {
 		if (lang.Length == 0 || installedof(lang) == true) return;
 		lock (voiceOp) {
 			if (installedof(lang) == true) return;
+			if (wasmProbed && !wasmHave) return;
 			ct.ThrowIfCancellationRequested();
 			progress?.Invoke(Loc.T("tts.chrome.voice.check"), -1, 0, 0);
 			ChromeTts.Stop();
 			preparevoice(ChromeTts.ProfileDir());
 			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, null, ct, exe);
-			sess.WaitExt(15000, ct);
-			var state = onestatus(sess, lang, ct);
+			if (!sess.TryWaitExt(8000, ct)) {
+				wasmProbed = true;
+				wasmHave = false;
+				return;
+			}
+			FeatureInstallState state;
+			try { state = onestatus(sess, lang, ct); }
+			catch (InvalidOperationException ex) {
+				if (noconnect(ex.Message)) {
+					wasmProbed = true;
+					wasmHave = false;
+					return;
+				}
+				throw;
+			}
 			if (state == FeatureInstallState.Installed) {
 				remember(lang, true);
 				progress?.Invoke(Loc.T("tts.chrome.voice.done"), 1, 0, 0);
@@ -155,11 +171,27 @@ static class ChromePack {
 			}
 			var note = Loc.T("tts.chrome.voice.install", lang);
 			var expect = voicesize(lang);
-			progress?.Invoke(note, -1, 0, expect);
-			onevoice(sess, lang, true, ct, (part, got, total) => progress?.Invoke(note, part, got, total));
+			try {
+				progress?.Invoke(note, -1, 0, expect);
+				onevoice(sess, lang, true, ct, (part, got, total) => progress?.Invoke(note, part, got, total));
+			}
+			catch (InvalidOperationException ex) {
+				if (noconnect(ex.Message)) {
+					wasmProbed = true;
+					wasmHave = false;
+					return;
+				}
+				throw;
+			}
+			wasmProbed = true;
+			wasmHave = true;
 			remember(lang, true);
 			progress?.Invoke(Loc.T("tts.chrome.voice.done"), 1, expect, expect);
 		}
+	}
+
+	static bool noconnect(string msg) {
+		return (msg ?? "").IndexOf("Receiving end does not exist", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
 	/// <summary>HTTP：只查询，不安装。未安装抛 <see cref="ChromeVoiceMissingException"/>。</summary>
@@ -997,15 +1029,20 @@ return 'started';
 		}
 
 		public void WaitExt(int ms, CancellationToken ct) {
+			if (!TryWaitExt(ms, ct))
+				throw new InvalidOperationException(Loc.T("inst.chrome.noext"));
+		}
+
+		public bool TryWaitExt(int ms, CancellationToken ct) {
 			var start = Environment.TickCount;
 			while (unchecked(Environment.TickCount - start) < ms) {
 				ct.ThrowIfCancellationRequested();
 				hide(proc);
 				ext ??= connectext();
-				if (ext != null) return;
+				if (ext != null) return true;
 				Thread.Sleep(200);
 			}
-			throw new InvalidOperationException(Loc.T("inst.chrome.noext"));
+			return false;
 		}
 
 		public string EvalPage(string expr, bool wait, int ms, CancellationToken ct) {

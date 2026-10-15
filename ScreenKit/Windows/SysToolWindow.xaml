@@ -1,0 +1,182 @@
+<Window x:Class="ScreenKit.SysToolWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="系统工具"
+        Width="980" Height="680"
+        MinWidth="760" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="systool.window">
+	<Grid Margin="16">
+		<TabControl x:Name="tabs" BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="systool.tabs">
+			<TabItem x:Name="tabproc" Header="进程" AutomationProperties.AutomationId="systool.tab.proc">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbprochint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbprocfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="bprocopen" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bproccopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bprocrefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="eproc" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvproc" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colprocname" Width="180" DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colprocpid" Width="80" DisplayMemberBinding="{Binding Pid}"/>
+								<GridViewColumn x:Name="colprocmem" Width="90" DisplayMemberBinding="{Binding Mem}"/>
+								<GridViewColumn x:Name="colprocpath" Width="280" DisplayMemberBinding="{Binding Path}"/>
+								<GridViewColumn x:Name="colproccmd" Width="280" DisplayMemberBinding="{Binding Cmd}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbprocdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lbprocstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tablock" Header="文件占用" AutomationProperties.AutomationId="systool.tab.lock">
+				<Grid Margin="12" AllowDrop="True">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lblockhint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<Button x:Name="blockfile" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="blockdir" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="blockfind" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="elock" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvlock" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="collockname" Width="220" DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="collockpid" Width="80" DisplayMemberBinding="{Binding Pid}"/>
+								<GridViewColumn x:Name="collockpath" Width="420" DisplayMemberBinding="{Binding Path}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lblockdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lblockstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabenv" Header="环境变量" AutomationProperties.AutomationId="systool.tab.env">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbenvhint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbenvfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="benvcopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="benvrefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="eenv" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvenv" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colenvscope" Width="80" DisplayMemberBinding="{Binding Scope}"/>
+								<GridViewColumn x:Name="colenvname" Width="220" DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colenvvalue" Width="480" DisplayMemberBinding="{Binding Value}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbenvdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lbenvstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabstart" Header="启动项" AutomationProperties.AutomationId="systool.tab.start">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbstarthint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbstartfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="bstartcopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bstartrefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="estart" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvstart" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colstartsrc" Width="140" DisplayMemberBinding="{Binding Source}"/>
+								<GridViewColumn x:Name="colstartname" Width="220" DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colstartcmd" Width="420" DisplayMemberBinding="{Binding Cmd}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbstartdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lbstartstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+			<TabItem x:Name="tabapp" Header="已安装程序" AutomationProperties.AutomationId="systool.tab.app">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbapphint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbappfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="bappcopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bapprefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="eapp" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<ListView x:Name="lvapp" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colappname" Width="260" DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colappver" Width="120" DisplayMemberBinding="{Binding Ver}"/>
+								<GridViewColumn x:Name="colapppub" Width="200" DisplayMemberBinding="{Binding Pub}"/>
+								<GridViewColumn x:Name="colappdate" Width="110" DisplayMemberBinding="{Binding Date}"/>
+								<GridViewColumn x:Name="colappscope" Width="100" DisplayMemberBinding="{Binding Scope}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbappdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
+					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
+					<TextBlock x:Name="lbappstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
+		</TabControl>
+	</Grid>
+</Window>

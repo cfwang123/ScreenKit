@@ -8,11 +8,13 @@ using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
-/// <summary>一个隐藏的 Chrome。朗读和翻译各开一个页面，多路请求同时进行。</summary>
+/// <summary>一个停在屏幕外的 Chrome。朗读和翻译在同一个窗口里排队，这一页保持在前台。</summary>
 static class ChromeHost {
 	const int SW_HIDE = 0;
+	const int SW_SHOWNA = 8;
 	static readonly object gate = new();
 	static readonly Dictionary<int, Slot> slots = new();
+	static readonly Queue<int> order = new();
 	static Process proc;
 	static string launched;
 	static string profile;
@@ -22,9 +24,12 @@ static class ChromeHost {
 	static int idle;
 	static int nextkill;
 	static bool loops;
+	static bool ready;
 
 	sealed class Slot {
 		public int Id;
+		public string Page;
+		public bool Opened;
 		public string Fail = "Chrome 失败";
 		public TaskCompletionSource<List<string>> Done;
 	}
@@ -34,6 +39,7 @@ static class ChromeHost {
 		var jobRate = Math.Max(0.5, Math.Min(2.0, rate));
 		var jobVol = Math.Max(0, Math.Min(1, volume));
 		var json = JsonSerializer.Serialize(new {
+			op = "speak",
 			id,
 			text = text ?? "",
 			name = voiceName ?? "",
@@ -42,7 +48,7 @@ static class ChromeHost {
 			volume = jobVol,
 		}).Replace("<", "\\u003c");
 		var done = waiter(wait);
-		var slot = new Slot { Id = id, Fail = "Chrome 没有发出声音", Done = done };
+		var slot = new Slot { Id = id, Page = "speak.html", Fail = "Chrome 没有发出声音", Done = done };
 		submit(id, "speak.html", json, slot, exe, idleSec, ct);
 		if (!wait) return;
 		waitdone(id, done, ct, "Chrome 朗读超时");
@@ -55,6 +61,7 @@ static class ChromeHost {
 			foreach (var s in texts) items.Add(s ?? "");
 		}
 		var jo = new JsonObject {
+			["op"] = "tr",
 			["id"] = id,
 			["src"] = src ?? "",
 			["dst"] = dst ?? "",
@@ -62,7 +69,7 @@ static class ChromeHost {
 		};
 		var json = jo.ToJsonString().Replace("<", "\\u003c");
 		var done = waiter(true);
-		var slot = new Slot { Id = id, Fail = "Chrome 翻译失败", Done = done };
+		var slot = new Slot { Id = id, Page = "tr.html", Fail = "Chrome 翻译失败", Done = done };
 		submit(id, "tr.html", json, slot, exe, idleSec, ct);
 		return waitdone(id, done, ct, "Chrome 翻译超时");
 	}
@@ -88,6 +95,7 @@ static class ChromeHost {
 	public static int Test() {
 		lock (slots) {
 			slots.Clear();
+			order.Clear();
 			nextkill = 0;
 		}
 		var a = new TaskCompletionSource<List<string>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -114,24 +122,36 @@ static class ChromeHost {
 		if (string.IsNullOrEmpty(exe)) return 0;
 		try {
 			ensure(exe, 30, CancellationToken.None);
-			File.WriteAllText(Path.Combine(workdir(), "ping.html"), pinghtml(port), new UTF8Encoding(false));
 			var a = Task.Run(ping);
 			var b = Task.Run(ping);
 			if (!Task.WaitAll(new[] { a, b }, 20000)) return 2;
 			if (a.Result.Count != 1 || a.Result[0] != "P") return 2;
 			if (b.Result.Count != 1 || b.Result[0] != "P") return 2;
 			if (!TryRun(out _)) return 2;
+			speaklive();
 			return 0;
 		}
-		catch { return 2; }
+		catch (Exception ex) {
+			Console.Error.WriteLine(ex);
+			return 2;
+		}
 		finally { Stop(); }
+	}
+
+	static void speaklive() {
+		var id = Interlocked.Increment(ref seq);
+		var done = waiter(true);
+		var slot = new Slot { Id = id, Page = "speak.html", Fail = "speak", Done = done };
+		var json = "{\"id\":" + id + ",\"text\":\"hi\",\"name\":\"\",\"lang\":\"en-US\",\"rate\":1,\"volume\":1}";
+		submit(id, "speak.html", json, slot, "", 60, CancellationToken.None);
+		waitdone(id, done, CancellationToken.None, "Chrome 朗读超时");
 	}
 
 	static List<string> ping() {
 		var id = Interlocked.Increment(ref seq);
 		var done = waiter(true);
-		var slot = new Slot { Id = id, Fail = "ping", Done = done };
-		submit(id, "ping.html", $"{{\"id\":{id}}}", slot, "", 30, CancellationToken.None);
+		var slot = new Slot { Id = id, Page = "ping.html", Fail = "ping", Done = done };
+		submit(id, "ping.html", $"{{\"op\":\"ping\",\"id\":{id}}}", slot, "", 30, CancellationToken.None);
 		return waitdone(id, done, CancellationToken.None, "Chrome 朗读超时");
 	}
 
@@ -144,16 +164,18 @@ static class ChromeHost {
 
 	static void submit(int id, string page, string json, Slot slot, string exe, int idleSec, CancellationToken ct) {
 		ct.ThrowIfCancellationRequested();
+		ensure(exe, idleSec, ct);
+		slot.Page = page;
 		lock (slots) {
 			slots[id] = slot;
+			order.Enqueue(id);
 			nextkill = 0;
 		}
 		try {
 			var dir = Path.Combine(workdir(), "jobs");
 			Directory.CreateDirectory(dir);
+			try { File.Delete(Path.Combine(dir, id + ".stop")); } catch { }
 			File.WriteAllText(Path.Combine(dir, id + ".json"), json, new UTF8Encoding(false));
-			ensure(exe, idleSec, ct);
-			openwindow(page, id);
 		}
 		catch {
 			dropslot(id);
@@ -215,19 +237,23 @@ static class ChromeHost {
 		if (path == null) throw new InvalidOperationException("找不到 chrome.exe");
 		lock (gate) {
 			Volatile.Write(ref idle, idleSec);
-			if (up(proc) && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)) return;
+			if (up(proc) && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)) {
+				lock (slots) ready = true;
+				return;
+			}
 			stopunlocked();
 			starthttp();
 			launch(path);
-			if (!waitready(ct)) {
-				var cancel = ct.IsCancellationRequested;
-				stopunlocked();
-				if (cancel) throw new OperationCanceledException(ct);
-				throw new InvalidOperationException("Chrome 没有打开朗读页");
-			}
-			lock (slots) {
-				if (slots.Count == 0) armidle();
-			}
+		}
+		if (!waitready(ct)) {
+			var cancel = ct.IsCancellationRequested;
+			lock (gate) stopunlocked();
+			if (cancel) throw new OperationCanceledException(ct);
+			throw new InvalidOperationException("Chrome 没有打开朗读页");
+		}
+		lock (slots) {
+			ready = true;
+			if (slots.Count == 0) armidle();
 		}
 	}
 
@@ -247,17 +273,19 @@ static class ChromeHost {
 	static void launch(string path) {
 		var dir = workdir();
 		profile = ChromeTts.ProfileDir();
-		Directory.CreateDirectory(Path.Combine(dir, "jobs"));
+		var jobs = Path.Combine(dir, "jobs");
+		Directory.CreateDirectory(jobs);
+		try {
+			foreach (var old in Directory.GetFiles(jobs))
+				try { File.Delete(old); } catch { }
+		}
+		catch { }
 		var utf8 = new UTF8Encoding(false);
 		File.WriteAllText(Path.Combine(dir, "boot.html"), boothtml, utf8);
-		File.WriteAllText(Path.Combine(dir, "speak.html"), pagehtml(speakjs, port), utf8);
-		File.WriteAllText(Path.Combine(dir, "tr.html"), pagehtml(trjs, port), utf8);
-		var url = new Uri(Path.Combine(dir, "boot.html")).AbsoluteUri;
+		var url = "http://127.0.0.1:" + port + "/boot.html";
 		var args = new StringBuilder();
 		args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
-		args.Append("--disable-web-security --allow-file-access-from-files ");
-		args.Append("--disable-features=BlockInsecurePrivateNetworkRequests ");
-		args.Append("--no-first-run --no-default-browser-check --disable-sync --disable-extensions ");
+		args.Append("--no-first-run --no-default-browser-check --disable-sync ");
 		args.Append("--disable-popup-blocking ");
 		args.Append("--autoplay-policy=no-user-gesture-required ");
 		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
@@ -274,33 +302,9 @@ static class ChromeHost {
 		launched = path;
 	}
 
-	static void openwindow(string page, int id) {
-		string path;
-		string dirName;
-		lock (gate) {
-			if (!up(proc)) throw new InvalidOperationException("Chrome 已退出");
-			path = launched;
-			dirName = profile;
-		}
-		var root = Path.GetDirectoryName(dirName);
-		var url = new Uri(Path.Combine(root, page)).AbsoluteUri + "#" + id;
-		var args = new StringBuilder();
-		args.Append("--user-data-dir=\"").Append(dirName).Append("\" ");
-		args.Append("--new-window ");
-		args.Append("--window-position=-32000,-32000 --window-size=160,80 ");
-		args.Append('"').Append(url).Append('"');
-		using var p = Process.Start(new ProcessStartInfo {
-			FileName = path,
-			Arguments = args.ToString(),
-			UseShellExecute = false,
-			CreateNoWindow = true,
-		});
-	}
-
 	static bool waitready(CancellationToken ct) {
 		var start = Environment.TickCount;
 		while (unchecked(Environment.TickCount - start) < 15000) {
-			hide();
 			if (ct.IsCancellationRequested) return false;
 			if (hastitle("skc-ready")) return true;
 			if (!up(proc)) return false;
@@ -342,8 +346,10 @@ static class ChromeHost {
 		launched = null;
 		List<Slot> left;
 		lock (slots) {
+			ready = false;
 			left = new List<Slot>(slots.Values);
 			slots.Clear();
+			order.Clear();
 			nextkill = 0;
 		}
 		foreach (var s in left)
@@ -415,13 +421,58 @@ static class ChromeHost {
 			have += n;
 		}
 		var body = Encoding.UTF8.GetString(buf.GetBuffer(), bodyAt, Math.Max(0, Math.Min(len, (int)buf.Length - bodyAt)));
+		var line = head.Split('\n')[0].Trim();
+		var sp = line.IndexOf(' ');
+		var method = sp > 0 ? line.Substring(0, sp) : "";
+		var url = sp > 0 ? line.Substring(sp + 1).Trim() : "";
+		var sp2 = url.IndexOf(' ');
+		if (sp2 > 0) url = url.Substring(0, sp2);
+		var q = url.IndexOf('?');
+		if (q >= 0) url = url.Substring(0, q);
+		try { File.AppendAllText(Path.Combine(workdir(), "http.log"), method + " " + url + "\n"); } catch { }
+		if (method.Equals("GET", StringComparison.OrdinalIgnoreCase)) {
+			if (url == "/next") {
+				writetext(stream, nextpage());
+				return;
+			}
+			writefile(stream, url);
+			return;
+		}
 		try {
 			var raw = Encoding.ASCII.GetBytes("HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n");
 			stream.Write(raw, 0, raw.Length);
 		}
 		catch { }
-		if (head.StartsWith("POST ", StringComparison.OrdinalIgnoreCase))
+		if (method.Equals("POST", StringComparison.OrdinalIgnoreCase))
 			take(body);
+	}
+
+	static void writefile(Stream stream, string urlPath) {
+		if (urlPath.StartsWith("/")) urlPath = urlPath.Substring(1);
+		urlPath = urlPath.Replace('/', Path.DirectorySeparatorChar);
+		byte[] bytes = null;
+		if (urlPath.Length > 0 && !urlPath.Contains("..")) {
+			try {
+				var root = Path.GetFullPath(workdir());
+				var full = Path.GetFullPath(Path.Combine(root, urlPath));
+				if (full.StartsWith(root, StringComparison.OrdinalIgnoreCase) && File.Exists(full))
+					bytes = File.ReadAllBytes(full);
+			}
+			catch { bytes = null; }
+		}
+		if (bytes == null) {
+			var miss = Encoding.ASCII.GetBytes("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+			try { stream.Write(miss, 0, miss.Length); } catch { }
+			return;
+		}
+		var type = urlPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ? "application/json" : "text/html";
+		var head = "HTTP/1.1 200 OK\r\nContent-Type: " + type + "; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n";
+		var hb = Encoding.ASCII.GetBytes(head);
+		try {
+			stream.Write(hb, 0, hb.Length);
+			stream.Write(bytes, 0, bytes.Length);
+		}
+		catch { }
 	}
 
 	static void take(string body) {
@@ -477,6 +528,33 @@ static class ChromeHost {
 		return -1;
 	}
 
+	static void writetext(Stream stream, string text) {
+		var bytes = Encoding.UTF8.GetBytes(text ?? "");
+		var head = "HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n";
+		var hb = Encoding.ASCII.GetBytes(head);
+		try {
+			stream.Write(hb, 0, hb.Length);
+			stream.Write(bytes, 0, bytes.Length);
+		}
+		catch { }
+	}
+
+	static string nextpage() {
+		string url = "";
+		lock (slots) {
+			if (!ready) return "";
+			while (order.Count > 0) {
+				var id = order.Dequeue();
+				if (!slots.TryGetValue(id, out var slot) || slot.Opened || string.IsNullOrEmpty(slot.Page)) continue;
+				slot.Opened = true;
+				url = "/" + slot.Page + "#" + slot.Id;
+				break;
+			}
+		}
+		if (url.Length > 0) show();
+		return url;
+	}
+
 	static void cleanup(int id) {
 		var dir = Path.Combine(workdir(), "jobs");
 		try { File.Delete(Path.Combine(dir, id + ".json")); } catch { }
@@ -489,7 +567,29 @@ static class ChromeHost {
 		return dir;
 	}
 
+	static void show() {
+		Process p;
+		lock (gate) p = proc;
+		int pid = 0;
+		if (p != null) {
+			try { if (!p.HasExited) pid = p.Id; } catch { pid = 0; }
+		}
+		EnumWindows((h, _) => {
+			var sb = new StringBuilder(256);
+			var n = GetWindowText(h, sb, sb.Capacity);
+			var text = n > 0 ? sb.ToString() : "";
+			GetWindowThreadProcessId(h, out var wpid);
+			if ((pid > 0 && (int)wpid == pid) || text.StartsWith("skc", StringComparison.Ordinal))
+				ShowWindow(h, SW_SHOWNA);
+			return true;
+		}, IntPtr.Zero);
+	}
+
 	static void hide() {
+		return;
+		lock (slots) {
+			if (slots.Count > 0) return;
+		}
 		Process p;
 		lock (gate) p = proc;
 		int pid = 0;
@@ -528,16 +628,17 @@ static class ChromeHost {
 		return pagehtml(pingjs, listenPort);
 	}
 
-	const string boothtml = "<!DOCTYPE html><meta charset=\"utf-8\"><title>skc-ready</title>";
+	const string boothtml = "<!DOCTYPE html><meta charset=\"utf-8\"><title>skc-ready</title><script>function poll(){var x=new XMLHttpRequest();x.open('GET','/next',true);x.onload=function(){var t=(x.responseText||'').replace(/\\s/g,'');if(t.charAt(0)=='/')location.href=t;else setTimeout(poll,200);};x.onerror=function(){setTimeout(poll,400);};try{x.send();}catch(e){setTimeout(poll,400);}}poll();</script>";
 
 	const string qidjs = @"
 function qid(){var s=location.hash||'';if(s.charAt(0)=='#')s=s.substring(1);var n=parseInt(s,10);return n||0;}
 var id=qid();
+var stopping=false;
 document.title='skc-job-'+id;
 function watch(){
 var x=new XMLHttpRequest();
 x.open('GET','jobs/'+id+'.stop',true);
-x.onload=function(){if((x.responseText||'').charAt(0)=='1'){try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}try{window.close();}catch(e){}}};
+x.onload=function(){if((x.responseText||'').charAt(0)=='1'){stopping=true;try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}location.href='/boot.html';}};
 try{x.send();}catch(e){}
 }
 setInterval(watch,200);
@@ -546,7 +647,7 @@ setInterval(watch,200);
 	const string speakjs = qidjs + @"
 function post(ok,err){
 var body=JSON.stringify({id:id,ok:!!ok,err:err||'',items:[]});
-var done=function(){setTimeout(function(){try{window.close();}catch(e){}},200);};
+var done=function(){setTimeout(function(){location.href='/boot.html';},200);};
 try{fetch('http://127.0.0.1:@@PORT@@/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(done,done);}catch(e){done();}
 }
 function pick(job){
@@ -562,11 +663,17 @@ var started=false;
 function go(job,v){
 if(started)return;
 started=true;
+try{
 var u=new SpeechSynthesisUtterance(job.text||'');
-u.voice=v;u.lang=v.lang||job.lang||'';u.rate=job.rate;u.volume=job.volume;
+if(v){u.voice=v;u.lang=v.lang||job.lang||'';}else u.lang=job.lang||'';
+u.rate=job.rate>0?+job.rate:1;u.volume=job.volume==null?1:+job.volume;
 u.onend=function(){post(true,'');};
-u.onerror=function(){post(false,'Chrome 没有发出声音');};
+u.onerror=function(e){if(stopping)return;var m=(e&&e.error)||'';if(!m||m.indexOf('Receiving end')>=0)m='Chrome 没有发出声音';post(false,m);};
+document.title='skc-go';
+try{speechSynthesis.cancel();}catch(e){}
 speechSynthesis.speak(u);
+try{if(speechSynthesis.paused)speechSynthesis.resume();}catch(e){}
+}catch(e){post(false,e&&e.message?e.message:'speak');}
 }
 function speak(job){
 if(!window.speechSynthesis){post(false,'Chrome 没有发出声音');return;}
@@ -581,9 +688,10 @@ else if(Date.now()-t0>12000){clearInterval(timer);post(false,'Chrome 没有发�
 speechSynthesis.onvoiceschanged=function(){var u=pick(job);if(u){clearInterval(timer);go(job,u);}};
 }
 function load(){
+document.title='skc-load-'+id;
 var x=new XMLHttpRequest();
 x.open('GET','jobs/'+id+'.json',true);
-x.onload=function(){var j;try{j=JSON.parse(x.responseText||'');}catch(e){post(false,'job');return;}speak(j);};
+x.onload=function(){var j;try{j=JSON.parse(x.responseText||'');}catch(e){post(false,'job');return;}document.title='skc-json';speak(j);};
 x.onerror=function(){post(false,'job');};
 try{x.send();}catch(e){post(false,'job');}
 }
@@ -593,7 +701,7 @@ load();
 	const string trjs = qidjs + @"
 function post(jobId,ok,err,items){
 var body=JSON.stringify({id:jobId,ok:!!ok,err:err||'',items:items||[]});
-var done=function(){setTimeout(function(){try{window.close();}catch(e){}},200);};
+var done=function(){setTimeout(function(){location.href='/boot.html';},200);};
 try{fetch('http://127.0.0.1:@@PORT@@/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(done,done);}catch(e){done();}
 }
 function ctor(){
@@ -632,7 +740,7 @@ function qid(){var s=location.hash||'';if(s.charAt(0)=='#')s=s.substring(1);var 
 var id=qid();
 document.title='skc-job-'+id;
 var body=JSON.stringify({id:id,ok:true,err:'',items:['P']});
-fetch('http://127.0.0.1:@@PORT@@/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(function(){try{window.close();}catch(e){}},function(){try{window.close();}catch(e){}});
+fetch('http://127.0.0.1:@@PORT@@/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(function(){location.href='/boot.html';},function(){location.href='/boot.html';});
 ";
 
 	delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);

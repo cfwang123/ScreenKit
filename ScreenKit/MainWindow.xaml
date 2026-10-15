@@ -249,6 +249,9 @@
 				</MenuItem>
 				<MenuItem x:Name="mncatsys" Header="系统(_Y)"
 				          AutomationProperties.AutomationId="menu.cat.sys">
+					<MenuItem x:Name="mnsystool" Header="系统工具(_S)…"
+					          AutomationProperties.AutomationId="menu.systool"
+					          ToolTip="进程、文件占用、环境变量、启动项和已安装程序"/>
 					<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
 					          AutomationProperties.AutomationId="menu.wintop"
 					          ToolTip="选择窗口，设置或取消固定在前面"/>
