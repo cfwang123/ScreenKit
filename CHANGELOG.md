@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Install features, Chrome page: On-device model opens chrome://on-device-internals in Chrome.
 - A borderless translucent performance window shows CPU, GPU, memory, network, and disk, plus temperature and power when available. Right-click turns each field on or off.
 - The web tools page can list, install, and remove the hidden Chrome translation models and offline voice packs.
+- File menu has Restart, which quits and starts the program again.
 
 #### Changed
 
@@ -60,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The hidden Chrome process uses the HTTP proxy from Settings. Loopback, private networks, .cn, and China mirrors stay direct. A proxy change restarts that process.
 - The performance window is a two-column slate panel with a pin button that keeps it in front.
 - Chrome speech plays immediately. The offline voice pack is installed only after playback fails, then the text is spoken once more. The HTTP API does the same.
+- The web tools page is built in JavaScript. tools.html only links the stylesheets and scripts.
 
 #### Fixed
 
@@ -70,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The performance window samples on the window thread, so CPU, memory, network, and disk show up without administrator rights.
 - Edge online speech uses the current Sec-MS-GEC v2 token. The previous token was rejected with HTTP 403.
 - CPU temperature is read from the thermal zone counter, so the performance window shows it again.
+- Chrome translation downloads a missing language pack without a click, then translates.
 
 #### Documentation
 
@@ -87,6 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安装功能的 Chrome 页增加「本机模型」，用 Chrome 打开 chrome://on-device-internals。
 - 性能监控是半透明无边框小窗，显示 CPU、GPU、内存、网络和磁盘，能读到时也显示温度和功率。右键可开关每一项。
 - 网页工具可以查看、安装和卸载隐藏 Chrome 的翻译模型与离线语音包。
+- 文件菜单增加重启，退出后重新打开程序。
 
 #### 变更
 
@@ -100,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 隐藏的 Chrome 进程使用参数设置里的 HTTP 代理。回环、内网、.cn 和国内镜像仍然直连。代理改了会重新打开这个进程。
 - 性能小窗改为双列石板样式，标题旁的图钉可固定到前面。
 - Chrome 语音先直接朗读。发不出声才安装离线语音包，装完再读一次。HTTP 接口同样如此。
+- web 工具页改由脚本生成页面，tools.html 只保留样式和脚本引用。
 
 #### 修复
 
@@ -110,6 +115,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 性能小窗改在窗口线程里采样，CPU、内存、网络和磁盘不用管理员也会出数。
 - Edge 在线语音改用现在的 Sec-MS-GEC v2 令牌。旧令牌在合成时会被拒绝并返回 403。
 - 性能小窗改从温度区域计数器读取 CPU 温度，数值会再显示出来。
+- Chrome 翻译在语言包还没下载时会自动下载，不用在页面里点击，然后再翻译。
 
 #### 文档
 

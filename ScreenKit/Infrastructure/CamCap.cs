@@ -485,15 +485,18 @@ static class CamCap {
 		var root = NativeRuntime.BaseDir;
 		var js = Path.Combine(root, "web", "tools", "u-cam.js");
 		var page = Path.Combine(root, "web", "tools.html");
+		var home = Path.Combine(root, "web", "tools", "00-home.js");
 		var bundle = Path.Combine(root, "web", "tools.js");
-		if (!File.Exists(js) || !File.Exists(page) || !File.Exists(bundle)) fail("missing web");
+		if (!File.Exists(js) || !File.Exists(page) || !File.Exists(home) || !File.Exists(bundle)) fail("missing web");
 		else {
 			var src = File.ReadAllText(js);
 			var html = File.ReadAllText(page);
+			var cards = File.ReadAllText(home);
 			var joined = File.ReadAllText(bundle);
 			if (src.IndexOf("getUserMedia", StringComparison.Ordinal) < 0 || src.IndexOf("/api/qrscan", StringComparison.Ordinal) < 0)
 				fail("u-cam.js");
-			if (html.IndexOf("data-tool=\"u-cam\"", StringComparison.Ordinal) < 0) fail("tools.html");
+			if (html.IndexOf("/sk/tools.js", StringComparison.Ordinal) < 0) fail("tools.html");
+			if (cards.IndexOf("\"data-tool\":\"u-cam\"", StringComparison.Ordinal) < 0) fail("00-home.js");
 			if (joined.IndexOf("SK.regutil(\"u-cam\"", StringComparison.Ordinal) < 0) fail("tools.js");
 		}
 		log(bad == 0 ? "cam OK" : "cam FAIL " + bad);

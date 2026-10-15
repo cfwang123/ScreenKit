@@ -2840,7 +2840,7 @@ static class Cli {
 		}
 		else Out("OK press asin");
 		var jsPath = Path.Combine(NativeRuntime.BaseDir, "web", "tools", "u-scicalc.js");
-		var pagePath = Path.Combine(NativeRuntime.BaseDir, "web", "tools.html");
+		var pagePath = Path.Combine(NativeRuntime.BaseDir, "web", "tools", "00-home.js");
 		if (!File.Exists(jsPath) || !File.Exists(pagePath)) {
 			Err("FAIL missing web");
 			bad++;
@@ -2848,7 +2848,7 @@ static class Cli {
 		else {
 			var js = File.ReadAllText(jsPath);
 			var page = File.ReadAllText(pagePath);
-			if (!page.Contains("u-scicalc") || !js.Contains("sin⁻¹")) {
+			if (!page.Contains("\"data-tool\":\"u-scicalc\"") || !js.Contains("sin⁻¹")) {
 				Err("FAIL web card");
 				bad++;
 			}
@@ -4137,15 +4137,15 @@ static class Cli {
 	static int testhtmlui() {
 		Out("=== HTML 工具 --test-htmlui ===");
 		var jsPath = Path.Combine(NativeRuntime.BaseDir, "web", "tools", "u-html.js");
-		var pagePath = Path.Combine(NativeRuntime.BaseDir, "web", "tools.html");
+		var pagePath = Path.Combine(NativeRuntime.BaseDir, "web", "tools", "00-home.js");
 		if (!File.Exists(jsPath) || !File.Exists(pagePath)) {
 			Err("FAIL missing web");
 			return 1;
 		}
 		var js = File.ReadAllText(jsPath);
 		var page = File.ReadAllText(pagePath);
-		if (page.IndexOf("data-tool=\"u-html\"", StringComparison.Ordinal) < 0
-			|| page.IndexOf("HTML工具", StringComparison.Ordinal) < 0) {
+		if (page.IndexOf("\"data-tool\":\"u-html\"", StringComparison.Ordinal) < 0
+			|| page.IndexOf("HTML界面设计", StringComparison.Ordinal) < 0) {
 			Err("FAIL page");
 			return 1;
 		}
@@ -4672,19 +4672,24 @@ static class Cli {
 				return 1;
 			}
 			var home = Task.Run(() => new HttpClient().GetStringAsync($"http://127.0.0.1:{port}/").GetAwaiter().GetResult()).GetAwaiter().GetResult();
-			if (home == null || home.IndexOf("简繁转换", StringComparison.Ordinal) < 0
-				|| home.IndexOf("二维码", StringComparison.Ordinal) < 0
-				|| home.IndexOf("文字识别", StringComparison.Ordinal) < 0
-				|| home.IndexOf("语音合成", StringComparison.Ordinal) < 0
-				|| home.IndexOf("语音识别", StringComparison.Ordinal) < 0
-				|| home.IndexOf("id=\"tool-q\"", StringComparison.Ordinal) < 0
-				|| home.IndexOf("data-cat=\"all\"", StringComparison.Ordinal) < 0
-				|| home.IndexOf("时间戳", StringComparison.Ordinal) < 0
-				|| home.IndexOf("温度换算", StringComparison.Ordinal) < 0
-				|| home.IndexOf("秒表", StringComparison.Ordinal) < 0
-				|| home.IndexOf("id=\"box\"", StringComparison.Ordinal) < 0
-				|| home.IndexOf("data-cat=\"fav\"", StringComparison.Ordinal) < 0
-				|| home.IndexOf("id=\"tool-fav\"", StringComparison.Ordinal) < 0) {
+			var homeJsPath = Path.Combine(NativeRuntime.BaseDir, "web", "tools", "00-home.js");
+			var homeJs = File.Exists(homeJsPath) ? File.ReadAllText(homeJsPath) : "";
+			if (home == null || home.IndexOf("/sk/tools.css", StringComparison.Ordinal) < 0
+				|| home.IndexOf("/sk/tools.js", StringComparison.Ordinal) < 0
+				|| home.IndexOf("web工具集", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("简繁转换", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("二维码", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("文字识别", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("语音合成", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("语音识别", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("input#tool-q", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("\"data-cat\":\"all\"", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("时间戳", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("温度换算", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("秒表", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("section#box", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("\"data-cat\":\"fav\"", StringComparison.Ordinal) < 0
+				|| homeJs.IndexOf("button#tool-fav", StringComparison.Ordinal) < 0) {
 				Err("FAIL: GET / 不是工具页");
 				return 1;
 			}

@@ -658,6 +658,17 @@ sealed class TrayIcon : IDisposable {
 		return null;
 	}
 
+	static string catalogjs() {
+		try {
+			var home = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", "tools", "00-home.js");
+			if (File.Exists(home)) return File.ReadAllText(home);
+		}
+		catch { }
+		if (SendFileWebPages.TryLoad("tools.js", out var bytes) && bytes != null && bytes.Length > 0)
+			return Encoding.UTF8.GetString(bytes);
+		return "";
+	}
+
 	static string webname(string key, string fallback) {
 		var name = (fallback ?? "").Trim();
 		if (string.IsNullOrEmpty(key) || !key.StartsWith("web.", StringComparison.Ordinal)) return name;
@@ -669,14 +680,13 @@ sealed class TrayIcon : IDisposable {
 		var cats = new List<(string Id, string Title)>();
 		var tools = new List<(string Id, string Cat, string Name)>();
 		var list = new List<(string Id, string Title, List<(string Id, string Name)> Tools)>();
-		if (!SendFileWebPages.TryLoad("tools.html", out var bytes) || bytes == null || bytes.Length == 0)
-			return list;
-		var html = Encoding.UTF8.GetString(bytes);
-		foreach (Match m in Regex.Matches(html, "data-cat=\"([^\"]+)\"\\s+data-title=\"([^\"]+)\"(?:\\s+data-kt=\"([^\"]+)\")?")) {
+		var js = catalogjs();
+		if (js.Length == 0) return list;
+		foreach (Match m in Regex.Matches(js, "\"data-cat\":\"([^\"]+)\"\\s*,\\s*\"data-title\":\"([^\"]+)\"\\s*,\\s*\"data-kt\":\"([^\"]+)\"")) {
 			if (m.Groups[1].Value == "fav" || m.Groups[1].Value == "all") continue;
 			cats.Add((m.Groups[1].Value, webname(m.Groups[3].Value, m.Groups[2].Value)));
 		}
-		foreach (Match m in Regex.Matches(html, "data-tool=\"([^\"]+)\"\\s+data-cat=\"([^\"]+)\"[\\s\\S]*?<span\\s+data-k=\"([^\"]+)\"[^>]*>([^<]*)</span>"))
+		foreach (Match m in Regex.Matches(js, "\"data-tool\":\"([^\"]+)\"\\s*,\\s*\"data-cat\":\"([^\"]+)\"[\\s\\S]*?\"data-k\":\"([^\"]+)\"\\s*,\\s*c:\"([^\"]*)\""))
 			tools.Add((m.Groups[1].Value, m.Groups[2].Value, webname(m.Groups[3].Value, m.Groups[4].Value)));
 		foreach (var cat in cats) {
 			var rows = new List<(string Id, string Name)>();

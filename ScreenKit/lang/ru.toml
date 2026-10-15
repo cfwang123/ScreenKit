@@ -34,6 +34,7 @@ menu.saveimg.tip = "Сохранить текущее изображение к�
 menu.pdf = "Обработка PDF(_F)…"
 menu.pdf.tip = "OCR, правка, черновик, экспорт PDF с поиском"
 menu.exit = "Выход(_X)"
+menu.restart = "_Перезапуск"
 menu.ocr = "Снимок OCR(_O)"
 menu.ocr.tip = "Захватить область и выполнить OCR"
 menu.snap = "Пометки на снимке(_A)"

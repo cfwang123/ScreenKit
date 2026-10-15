@@ -67,10 +67,28 @@ static class ChromeHost {
 			["items"] = items,
 		};
 		var json = jo.ToJsonString().Replace("<", "\\u003c");
+		try {
+			return translateonce(id, json, exe, idleSec, ct);
+		}
+		catch (InvalidOperationException ex) when (needpack(ex)) {
+			ChromePack.EnsurePair(src, dst, exe, ct);
+			id = Interlocked.Increment(ref seq);
+			jo["id"] = id;
+			json = jo.ToJsonString().Replace("<", "\\u003c");
+			return translateonce(id, json, exe, idleSec, ct);
+		}
+	}
+
+	static List<string> translateonce(int id, string json, string exe, int idleSec, CancellationToken ct) {
 		var done = waiter(true);
 		var slot = new Slot { Id = id, Page = "tr.html", Fail = "Chrome 翻译失败", Done = done };
 		submit(id, "tr.html", json, slot, exe, idleSec, ct);
 		return waitdone(id, done, ct, "Chrome 翻译超时");
+	}
+
+	static bool needpack(Exception ex) {
+		var msg = ex?.Message ?? "";
+		return msg.IndexOf("user gesture", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
 	public static void Stop() {

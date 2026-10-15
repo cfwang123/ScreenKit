@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
@@ -120,6 +121,7 @@ public partial class MainWindow : Window {
 	MemWindow memWin;
 	readonly OcrRunner runner = new();
 	bool forceExit;
+	bool restarting;
 	bool capturing; // 防止热键重入（框选/标注遮罩）
 	/// <summary>同步「复制为图片/文件/路径」勾选时防重入。</summary>
 	bool snapCopyUi;
@@ -1039,6 +1041,30 @@ public partial class MainWindow : Window {
 		try { Close(); } catch { }
 	}
 
+	/// <summary>先拉起等待进程，再走正常退出。等本进程结束后由它重新打开，避免单实例锁还在时新进程直接退出。</summary>
+	void restartapp() {
+		if (restarting) return;
+		try {
+			var exe = Process.GetCurrentProcess().MainModule?.FileName;
+			if (string.IsNullOrEmpty(exe))
+				exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ScreenKit.exe");
+			var psi = new ProcessStartInfo {
+				FileName = exe,
+				Arguments = "--restart-after " + Process.GetCurrentProcess().Id,
+				WorkingDirectory = Path.GetDirectoryName(exe),
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			};
+			if (Process.Start(psi) == null) return;
+			restarting = true;
+		}
+		catch (Exception ex) {
+			setstatus(ex.Message);
+			return;
+		}
+		RequestExit();
+	}
+
 	void onclosing(object sender, System.ComponentModel.CancelEventArgs e) {
 		// 点关闭 / Alt+F4：隐藏到托盘，不退出（仅「文件→退出」或托盘退出）
 		if (!forceExit) {
@@ -1577,6 +1603,7 @@ public partial class MainWindow : Window {
 		// 文件菜单
 		mnpaste.Click += async (_, _) => await pasteasync();
 		mnsaveclip.Click += (_, _) => saveimage();
+		mnrestart.Click += (_, _) => restartapp();
 		mnexit.Click += (_, _) => RequestExit();
 		// 截图菜单
 		mncapture.Click += async (_, _) => await captureasync(hideMain: false);
@@ -1728,6 +1755,7 @@ public partial class MainWindow : Window {
 			mnsaveclip.ToolTip = Loc.T("menu.saveimg.tip");
 			mnpdf.Header = Loc.T("menu.pdf");
 			mnpdf.ToolTip = Loc.T("menu.pdf.tip");
+			mnrestart.Header = Loc.T("menu.restart");
 			mnexit.Header = Loc.T("menu.exit");
 
 			mncapture.Header = Loc.T("menu.ocr");

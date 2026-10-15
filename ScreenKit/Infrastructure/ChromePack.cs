@@ -559,6 +559,33 @@ static class ChromePack {
 		throw new InvalidOperationException(pair + " " + Loc.T("inst.chrome.timeout"));
 	}
 
+	/// <summary>模型还要下载时，用调试接口带上用户手势再创建一次。创建完就关掉这次 Chrome。</summary>
+	public static void EnsurePair(string src, string dst, string exe, CancellationToken ct) {
+		src = (src ?? "").Trim();
+		dst = (dst ?? "").Trim();
+		if (src.Length == 0 || dst.Length == 0)
+			throw new InvalidOperationException("请选择源语言和目标语言");
+		ChromeTr.Stop();
+		using var sess = Sess.Open(ChromeTr.ProfileDir(), HttpProxy.Mode, HttpProxy.Addr, null, ct, exe);
+		if (!sess.TryTranslator(ct))
+			throw new InvalidOperationException("Chrome 不能下载这对语言的翻译模型");
+		var started = sess.EvalWeb(trstart(src, dst), false, 15000, ct);
+		if (started != "started")
+			throw new InvalidOperationException("Chrome 不能下载这对语言的翻译模型");
+		var start = Environment.TickCount;
+		while (unchecked(Environment.TickCount - start) < 180000) {
+			ct.ThrowIfCancellationRequested();
+			sess.PumpAll(300, ct);
+			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out _, out _, out var done, out var err, out _, out _))
+				continue;
+			if (!done) continue;
+			if (!string.IsNullOrWhiteSpace(err))
+				throw new InvalidOperationException(err);
+			return;
+		}
+		throw new InvalidOperationException(Loc.T("inst.chrome.timeout"));
+	}
+
 	/// <summary>和网页「浏览器小模型」一样，用 Translator.create 的 downloadprogress。</summary>
 	static bool webpair(Sess sess, string pair, string title, Action<double, string, string> report, Action<string> log, CancellationToken ct) {
 		var bits = (pair ?? "").Split(new[] { " - " }, StringSplitOptions.None);

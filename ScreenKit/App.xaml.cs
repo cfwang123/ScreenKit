@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -19,6 +20,12 @@ public partial class App : System.Windows.Application {
 	protected override void OnStartup(StartupEventArgs e) {
 		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 		var args = e.Args ?? Array.Empty<string>();
+
+		// 文件 → 重启：等旧进程退出后再打开，不占单实例锁
+		if (restartafter(args)) {
+			Environment.Exit(0);
+			return;
+		}
 
 		// 编译脚本请求退出：关掉 HTTP 后结束，不走 taskkill
 		if (args.Any(a => a == "--request-exit")) {
@@ -198,6 +205,35 @@ public partial class App : System.Windows.Application {
 			ev.Set();
 		}
 		catch { }
+	}
+
+	static bool restartafter(string[] args) {
+		if (args == null) return false;
+		for (int i = 0; i < args.Length; i++) {
+			if (args[i] != "--restart-after") continue;
+			var pid = 0;
+			if (i + 1 < args.Length) int.TryParse(args[i + 1], out pid);
+			if (pid > 0) {
+				try {
+					using var p = Process.GetProcessById(pid);
+					if (!p.HasExited) p.WaitForExit(20000);
+				}
+				catch { }
+			}
+			Thread.Sleep(400);
+			var exe = "";
+			try { exe = Process.GetCurrentProcess().MainModule?.FileName ?? ""; } catch { }
+			if (exe.Length == 0)
+				exe = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ScreenKit.exe");
+			var dir = Path.GetDirectoryName(exe) ?? AppDomain.CurrentDomain.BaseDirectory;
+			Process.Start(new ProcessStartInfo {
+				FileName = exe,
+				WorkingDirectory = dir,
+				UseShellExecute = true,
+			});
+			return true;
+		}
+		return false;
 	}
 
 	static void signalrequestexit() {
