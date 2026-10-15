@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Documents;
@@ -16,9 +17,11 @@ public partial class NetToolsWindow : Window {
 	double maplat;
 	double maplon;
 	Brush linkbrush;
+	readonly ObservableCollection<PortRow> psrows = new();
 
 	public NetToolsWindow() {
 		InitializeComponent();
+		lvps.ItemsSource = psrows;
 		linkbrush = TryFindResource("Accent") as Brush ?? Brushes.DodgerBlue;
 		applylang();
 		initev();
@@ -64,10 +67,12 @@ public partial class NetToolsWindow : Window {
 			}
 		};
 		bclose.Click += (_, _) => Close();
-		bpsclear.Click += (_, _) => { epsout.Clear(); lbpsstat.Text = ""; };
+		bpsclear.Click += (_, _) => { psrows.Clear(); psbar.Value = 0; lbpsstat.Text = ""; };
 		bpscopy.Click += (_, _) => {
-			var s = epsout.Text ?? "";
-			if (s.Length == 0) return;
+			if (psrows.Count == 0) return;
+			var sb = new System.Text.StringBuilder();
+			foreach (var row in psrows) sb.Append(row.Port).Append('\t').Append(row.Kind).Append('\n');
+			var s = sb.ToString();
 			try { Clipboard.SetText(s); lbpsstat.Text = Loc.T("nettool.copied"); }
 			catch (Exception ex) {
 				MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -105,6 +110,8 @@ public partial class NetToolsWindow : Window {
 		lbpsports.Text = Loc.T("nettool.pscan.ports");
 		epsip.ToolTip = Loc.T("nettool.pscan.ip.tip");
 		epsports.ToolTip = Loc.T("nettool.pscan.ports.tip");
+		colpsport.Header = Loc.T("nettool.pscan.col.port");
+		colpskind.Header = Loc.T("nettool.pscan.col.kind");
 		ToolBtnUi.Set(bpstart, ToolBtnUi.Play, Loc.T("nettool.pscan.start"));
 		ToolBtnUi.Set(bpstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
 		ToolBtnUi.Set(bpsclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
@@ -365,19 +372,26 @@ public partial class NetToolsWindow : Window {
 		cts = new CancellationTokenSource();
 		var token = cts.Token;
 		setbusy(true);
-		lbpsstat.Text = Loc.T("nettool.busy");
-		epsout.Clear();
+		lbpsstat.Text = Loc.T("nettool.pscan.begin", host, ports.Count);
+		psrows.Clear();
+		psbar.Minimum = 0;
+		psbar.Maximum = ports.Count;
+		psbar.Value = 0;
 		try {
-			await NetTools.PortScan(host, ports, s => Dispatcher.Invoke(() => appendpscan(s)), token)
+			await NetTools.PortScan(host, ports, _ => { }, token,
+				(done, total, open) => Dispatcher.Invoke(() => {
+					psbar.Maximum = Math.Max(1, total);
+					psbar.Value = done;
+					lbpsstat.Text = Loc.T("nettool.pscan.progress", done, total, open);
+				}),
+				(port, kind) => Dispatcher.Invoke(() => addport(port, kind)))
 				.ConfigureAwait(true);
-			lbpsstat.Text = Loc.T("nettool.done");
+			lbpsstat.Text = psrows.Count == 0 ? Loc.T("nettool.pscan.none") : Loc.T("nettool.pscan.found", psrows.Count);
 		}
 		catch (OperationCanceledException) {
-			appendpscan(Loc.T("nettool.cancelled"));
 			lbpsstat.Text = Loc.T("nettool.cancelled");
 		}
 		catch (Exception ex) {
-			appendpscan(ex.Message);
 			lbpsstat.Text = Loc.T("nettool.fail", ex.Message);
 		}
 		finally {
@@ -387,12 +401,12 @@ public partial class NetToolsWindow : Window {
 		}
 	}
 
-	void appendpscan(string line) {
-		if (string.IsNullOrEmpty(line)) return;
-		var text = line.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
-		if (epsout.Text.Length > 0) epsout.AppendText("\n");
-		epsout.AppendText(text);
-		epsout.ScrollToEnd();
+	void addport(int port, string kind) {
+		var row = new PortRow { Port = port, Kind = kind };
+		var i = 0;
+		while (i < psrows.Count && psrows[i].Port < port) i++;
+		if (i < psrows.Count && psrows[i].Port == port) return;
+		psrows.Insert(i, row);
 	}
 
 	void setmap(double lat, double lon) {
@@ -420,4 +434,9 @@ public partial class NetToolsWindow : Window {
 			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
+}
+
+sealed class PortRow {
+	public int Port { get; set; }
+	public string Kind { get; set; }
 }

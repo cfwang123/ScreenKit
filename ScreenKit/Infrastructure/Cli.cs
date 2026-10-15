@@ -4208,11 +4208,17 @@ static class Cli {
 				var open = ((IPEndPoint)lis.LocalEndpoint).Port;
 				var closed = open == 65535 ? open - 1 : open + 1;
 				var plines = new List<string>();
-				Task.Run(() => NetTools.PortScan("127.0.0.1", new List<int> { open, closed }, s => plines.Add(s), CancellationToken.None))
-					.GetAwaiter().GetResult();
+				var hits = new List<string>();
+				Task.Run(() => NetTools.PortScan("127.0.0.1", new List<int> { open, closed }, s => plines.Add(s), CancellationToken.None, null,
+					(port, kind) => hits.Add(port + " " + kind))).GetAwaiter().GetResult();
 				Out(string.Join("\n", plines));
-				if (!plines.Any(s => s.IndexOf(open.ToString(), StringComparison.Ordinal) >= 0)) {
+				Out(string.Join("\n", hits));
+				if (!hits.Any(s => s == open + " TCP")) {
 					Err("FAIL: 本机监听端口未扫到");
+					bad++;
+				}
+				if (NetTools.PortKind(22) != "SSH" || NetTools.PortKind(80) != "HTTP" || NetTools.PortKind(443) != "HTTPS") {
+					Err("FAIL: 端口类型");
 					bad++;
 				}
 			}

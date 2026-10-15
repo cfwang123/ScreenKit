@@ -108,6 +108,7 @@
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
@@ -137,13 +138,24 @@
 						<Button x:Name="bpstop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 						        AutomationProperties.AutomationId="nettool.pscan.stop"/>
 					</WrapPanel>
-					<TextBox x:Name="epsout" Grid.Row="2" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-					         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-					         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
-					         Padding="8" BorderBrush="{StaticResource BorderSoft}"
-					         AutomationProperties.AutomationId="nettool.pscan.out"/>
-					<TextBlock x:Name="lbpsstat" Grid.Row="3" Margin="0,8,0,8" Foreground="{StaticResource TextMuted}"/>
-					<DockPanel Grid.Row="4">
+					<ProgressBar x:Name="psbar" Grid.Row="2" Height="8" Minimum="0" Maximum="1" Value="0"
+					             Margin="0,0,0,10"
+					             AutomationProperties.AutomationId="nettool.pscan.bar"/>
+					<ListView x:Name="lvps" Grid.Row="3" BorderBrush="{StaticResource BorderSoft}"
+					          SelectionMode="Single"
+					          FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI"
+					          AutomationProperties.AutomationId="nettool.pscan.list">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colpsport" Header="端口" Width="120"
+								                DisplayMemberBinding="{Binding Port}"/>
+								<GridViewColumn x:Name="colpskind" Header="类型" Width="180"
+								                DisplayMemberBinding="{Binding Kind}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbpsstat" Grid.Row="4" Margin="0,8,0,8" Foreground="{StaticResource TextMuted}"/>
+					<DockPanel Grid.Row="5">
 						<Button x:Name="bpsclear" Style="{StaticResource ToolBtn}"/>
 						<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
 							<Button x:Name="bpscopy" Style="{StaticResource ToolBtn}"/>

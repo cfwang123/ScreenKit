@@ -319,14 +319,16 @@ static class NetTools {
 		}
 	}
 
-	/// <summary>按端口范围并发测试 TCP 连接，只列出开放端口。</summary>
-	public static async Task PortScan(string host, IReadOnlyList<int> ports, Action<string> line, CancellationToken ct) {
+	/// <summary>按端口范围并发测试 TCP 连接。开放端口通过 hit 给出端口和类型，progress 给出已扫数量。</summary>
+	public static async Task PortScan(string host, IReadOnlyList<int> ports, Action<string> line, CancellationToken ct, Action<int, int, int> progress = null, Action<int, string> hit = null) {
 		host = AsciiHost((host ?? "").Trim());
 		if (host.Length == 0) throw new ArgumentException("empty");
 		if (ports == null || ports.Count == 0) throw new ArgumentException("empty");
 		line?.Invoke(Loc.T("nettool.pscan.begin", host, ports.Count));
+		progress?.Invoke(0, ports.Count, 0);
 		var open = 0;
 		var done = 0;
+		var step = Math.Max(1, ports.Count / 100);
 		var gate = new SemaphoreSlim(64);
 		var tasks = new List<Task>();
 		try {
@@ -336,23 +338,21 @@ static class NetTools {
 				var p = port;
 				tasks.Add(Task.Run(async () => {
 					try {
-						var started = Environment.TickCount;
 						using var tcp = new TcpClient();
 						var task = tcp.ConnectAsync(host, p);
 						var finished = await Task.WhenAny(task, Task.Delay(400, ct)).ConfigureAwait(false);
 						if (finished == task) {
 							try {
 								await task.ConfigureAwait(false);
-								var ms = Math.Max(0, Environment.TickCount - started);
-								line?.Invoke(Loc.T("nettool.pscan.open", p, ms));
+								hit?.Invoke(p, PortKind(p));
 								Interlocked.Increment(ref open);
 							}
 							catch (Exception ex) when (ex is not OperationCanceledException) { }
 						}
 						ct.ThrowIfCancellationRequested();
 						var n = Interlocked.Increment(ref done);
-						if (n == ports.Count || n % 256 == 0)
-							line?.Invoke(Loc.T("nettool.pscan.progress", n, ports.Count, Volatile.Read(ref open)));
+						if (n == ports.Count || n % step == 0)
+							progress?.Invoke(n, ports.Count, Volatile.Read(ref open));
 					}
 					finally { gate.Release(); }
 				}, ct));
@@ -364,8 +364,51 @@ static class NetTools {
 		}
 		ct.ThrowIfCancellationRequested();
 		var found = Volatile.Read(ref open);
+		progress?.Invoke(ports.Count, ports.Count, found);
 		line?.Invoke(found == 0 ? Loc.T("nettool.pscan.none") : Loc.T("nettool.pscan.found", found));
 	}
+
+	/// <summary>常见 TCP 端口的服务名；不认识的记为 TCP。</summary>
+	internal static string PortKind(int port) => port switch {
+		20 or 21 => "FTP",
+		22 => "SSH",
+		23 => "Telnet",
+		25 => "SMTP",
+		53 => "DNS",
+		80 or 8000 or 8008 or 8080 or 8081 or 8888 => "HTTP",
+		110 => "POP3",
+		111 => "RPC",
+		135 => "RPC",
+		139 => "NetBIOS",
+		143 => "IMAP",
+		389 => "LDAP",
+		443 or 8443 => "HTTPS",
+		445 => "SMB",
+		465 or 587 => "SMTP",
+		554 => "RTSP",
+		631 => "IPP",
+		873 => "rsync",
+		993 => "IMAPS",
+		995 => "POP3S",
+		1080 => "SOCKS",
+		1433 => "MSSQL",
+		1521 => "Oracle",
+		1883 => "MQTT",
+		2049 => "NFS",
+		2375 => "Docker",
+		3306 => "MySQL",
+		3389 => "RDP",
+		5432 => "PostgreSQL",
+		5672 => "AMQP",
+		5900 => "VNC",
+		6379 => "Redis",
+		6443 => "Kubernetes",
+		8088 or 9000 or 9090 => "HTTP",
+		9200 => "Elasticsearch",
+		11211 => "Memcached",
+		27017 => "MongoDB",
+		_ => "TCP",
+	};
 
 	/// <summary>解析端口范围，如 80、80,443、1-1024、20-25,80。去重后按端口排序。</summary>
 	internal static bool TryParsePorts(string raw, out List<int> ports, out string error) {
