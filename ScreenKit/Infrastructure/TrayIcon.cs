@@ -44,6 +44,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miMdRead;
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miNet;
+	Forms.ToolStripMenuItem miNetGroup;
 	Forms.ToolStripMenuItem miInfo;
 	Forms.ToolStripMenuItem miPortUse;
 	Forms.ToolStripMenuItem miMidi;
@@ -209,11 +210,13 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miTextTool);
 		miTools.DropDownItems.Add(miMdRead);
 		miTools.DropDownItems.Add(miPwGen);
-		miTools.DropDownItems.Add(miNet);
-		miTools.DropDownItems.Add(miHttpDbg);
+		miNetGroup = new Forms.ToolStripMenuItem(Loc.T("tray.netgroup"));
+		miNetGroup.DropDownItems.Add(miNet);
+		miNetGroup.DropDownItems.Add(miHttpDbg);
+		miNetGroup.DropDownItems.Add(miPortUse);
+		miTools.DropDownItems.Add(miNetGroup);
 		miInfo = new Forms.ToolStripMenuItem(Loc.T("tray.info"));
 		miInfo.DropDownItems.Add(miSys);
-		miInfo.DropDownItems.Add(miPortUse);
 		miTools.DropDownItems.Add(miInfo);
 		miTools.DropDownItems.Add(miMidi);
 		miTools.DropDownItems.Add(miVoiceRec);
@@ -427,6 +430,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miMdRead, null);
 		setshortcut(miPwGen, null);
 		setshortcut(miNet, null);
+		setshortcut(miNetGroup, null);
 		setshortcut(miPortUse, null);
 		setshortcut(miMidi, null);
 		setshortcut(miVoiceRec, null);
@@ -489,6 +493,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miMdRead, "tray.mdread");
 			settext(miPwGen, "tray.pwgen");
 			settext(miNet, "tray.net");
+			settext(miNetGroup, "tray.netgroup");
 			settext(miInfo, "tray.info");
 			settext(miPortUse, "tray.portuse");
 			settext(miMidi, "tray.midisynth");

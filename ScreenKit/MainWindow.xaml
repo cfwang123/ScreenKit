@@ -165,25 +165,28 @@
 				<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
 				          AutomationProperties.AutomationId="menu.pwgen"
 				          ToolTip="随机密码，可选字符集"/>
-				<MenuItem x:Name="mnnet" Header="网络工具(_N)…"
-				          AutomationProperties.AutomationId="menu.net"
-				          ToolTip="Ping、域名解析、端口测试、网络唤醒和网络发现"/>
-				<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
-				          AutomationProperties.AutomationId="menu.httpdbg"
-				          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>
+				<MenuItem x:Name="mnnetgroup" Header="网络工具(_N)"
+				          AutomationProperties.AutomationId="menu.netgroup"
+				          ToolTip="网络工具、HTTP 请求调试和端口占用">
+					<MenuItem x:Name="mnnet" Header="网络工具(_N)…"
+					          AutomationProperties.AutomationId="menu.net"
+					          ToolTip="Ping、域名解析、端口测试、网络唤醒和网络发现"/>
+					<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
+					          AutomationProperties.AutomationId="menu.httpdbg"
+					          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>
+					<MenuItem x:Name="mnportuse" Header="网络端口占用(_O)…"
+					          AutomationProperties.AutomationId="menu.portuse"
+					          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>
+				</MenuItem>
 				<MenuItem x:Name="mninfo" Header="信息查询(_I)"
 				          AutomationProperties.AutomationId="menu.info"
-				          ToolTip="词典、系统信息和端口占用">
+				          ToolTip="词典和系统信息">
 					<MenuItem x:Name="mndict" Header="词典(_K)"
 					          AutomationProperties.AutomationId="menu.dict"
 					          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
 					<MenuItem x:Name="mnsys" Header="系统信息(_U)…"
 					          AutomationProperties.AutomationId="menu.sysinfo"
 					          ToolTip="查看系统、外设、驱动、状态和异常设备信息"/>
-					<Separator/>
-					<MenuItem x:Name="mnportuse" Header="网络端口占用(_O)…"
-					          AutomationProperties.AutomationId="menu.portuse"
-					          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>
 				</MenuItem>
 				<MenuItem x:Name="mnmidi" Header="MIDI 合成器(_M)…"
 				          AutomationProperties.AutomationId="menu.midisynth"

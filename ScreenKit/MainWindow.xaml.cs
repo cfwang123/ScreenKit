@@ -1771,6 +1771,8 @@ public partial class MainWindow : Window {
 			mnmdread.ToolTip = Loc.T("menu.mdread.tip");
 			mnpwgen.Header = Loc.T("menu.pwgen");
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
+			mnnetgroup.Header = Loc.T("menu.netgroup");
+			mnnetgroup.ToolTip = Loc.T("menu.netgroup.tip");
 			mnnet.Header = Loc.T("menu.net");
 			mnnet.ToolTip = Loc.T("menu.net.tip");
 			mninfo.Header = Loc.T("menu.info");
