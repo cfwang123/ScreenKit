@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - chrome.exe path, Detect path, and idle seconds moved to Settings → General.
 - Chrome speech and translation share one hidden Chrome process. Requests run one after another in that window, so speech stays in the foreground tab.
 - The Chrome speech window stays off the taskbar. Memory lists that Chrome process and can close it.
+- The hidden Chrome process uses the HTTP proxy from Settings. Loopback, private networks, .cn, and China mirrors stay direct. A proxy change restarts that process.
 
 #### Fixed
 
@@ -63,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Character art draws darker cells denser unless Invert is on.
 - Chrome speech no longer substitutes another voice when the Google voice cannot speak. The desktop shows an error, and the HTTP API returns an error. The old offline voice pack is not installed.
 - The performance window updates again. Temperature lookup no longer blocks the other readings. Settings set the refresh interval from 0.2 to 5 seconds.
+- The performance window samples on the window thread, so CPU, memory, network, and disk show up without administrator rights.
 
 #### Documentation
 
@@ -89,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - chrome.exe 路径、检测路径和空闲秒改到参数设置 → 常规。
 - Chrome 朗读和翻译共用一个隐藏进程。请求在这个窗口里排队，朗读页保持在前台。
 - Chrome 窗口不再出现在任务栏。内存占用列出这个 Chrome 进程，可以手动关闭。
+- 隐藏的 Chrome 进程使用参数设置里的 HTTP 代理。回环、内网、.cn 和国内镜像仍然直连。代理改了会重新打开这个进程。
 
 #### 修复
 
@@ -96,6 +99,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字符画不勾选反色时，越暗的地方字符越密。
 - Chrome 语音发不出声时不再改用别的语音。桌面弹出错误，HTTP 接口返回错误。不再安装旧的离线语音包。
 - 性能小窗恢复刷新。查温度不再挡住其它读数。参数设置里可把更新间隔调成 0.2 到 5 秒。
+- 性能小窗改在窗口线程里采样，CPU、内存、网络和磁盘不用管理员也会出数。
 
 #### 文档
 

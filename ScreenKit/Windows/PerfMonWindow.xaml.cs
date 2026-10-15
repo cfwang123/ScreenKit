@@ -8,7 +8,6 @@ public partial class PerfMonWindow : Window {
 	readonly DispatcherTimer timer;
 	readonly Dictionary<string, TextBlock> cells = new();
 	PerfMonOptWindow optWin;
-	bool busy;
 	bool placed;
 
 	public PerfMonWindow() {
@@ -112,17 +111,8 @@ public partial class PerfMonWindow : Window {
 	}
 
 	void tick() {
-		if (busy) return;
-		busy = true;
-		Task.Run(() => {
-			PerfMon.Snap snap = null;
-			try { snap = PerfMon.Take(); }
-			catch { }
-			Dispatcher.BeginInvoke(new Action(() => {
-				busy = false;
-				if (snap != null) paint(snap);
-			}));
-		});
+		try { paint(PerfMon.Take()); }
+		catch (Exception ex) { lbtitle.Text = ex.Message; }
 	}
 
 	void paint(PerfMon.Snap s) {
@@ -137,6 +127,36 @@ public partial class PerfMonWindow : Window {
 		set("gputemp", temp(s.GpuTemp));
 		set("gpupower", watt(s.GpuPower));
 		set("cpupower", watt(s.CpuPower));
+	}
+
+	public string Shown(string key) => cells.TryGetValue(key, out var block) ? block.Text ?? "" : "";
+
+	public static int Check(Action<string> log, Action<string> err) {
+		var win = new PerfMonWindow();
+		win.Show();
+		var frame = new DispatcherFrame();
+		var pump = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+		var n = 0;
+		pump.Tick += (_, _) => {
+			n++;
+			if (n >= 50) frame.Continue = false;
+		};
+		pump.Start();
+		Dispatcher.PushFrame(frame);
+		pump.Stop();
+		var cpu = win.Shown("cpu");
+		var mem = win.Shown("mem");
+		log($"win cpu={cpu} mem={mem}");
+		win.Close();
+		if (cpu.Length == 0 || cpu == "—") {
+			err("窗口没有显示 CPU");
+			return 1;
+		}
+		if (mem.Length == 0 || mem == "—") {
+			err("窗口没有显示内存");
+			return 1;
+		}
+		return 0;
 	}
 
 	void set(string key, string text) {

@@ -328,7 +328,8 @@ static class Cli {
 				case "--test-fileprobe":
 					return FileProbe.Test(Out, Err);
 				case "--test-perfmon":
-					return PerfMon.Test(Out, Err);
+					if (PerfMon.Test(Out, Err) != 0) return 1;
+					return PerfMonWindow.Check(Out, Err);
 				case "--test-httpdbg":
 					return testhttpdbg();
 				case "--test-update-notes":
