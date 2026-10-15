@@ -107,6 +107,8 @@ public sealed class OcrOptions {
 	public string HotkeySnapCopy = "Ctrl+Alt+P";
 	/// <summary>词典页热键：前台不是主窗则唤出、置顶并切到词典；已是主窗则隐藏。默认空 = 不注册。</summary>
 	public string HotkeyDict = "";
+	/// <summary>韩语输入：打开后接管键盘，再按一次关闭。默认 Ctrl+Alt+K。空 = 不注册，仍可用菜单。</summary>
+	public string HotkeyHangul = "Ctrl+Alt+K";
 	/// <summary>自动按键开始/停止。默认 F6。空 = 只能用窗口里的按钮。</summary>
 	public string AutoKeyHotkey = "F6";
 	/// <summary>key / left / right / middle。</summary>
@@ -520,6 +522,7 @@ public sealed class OcrOptions {
 		HotkeyTranslate = HotkeyTranslate,
 		HotkeySnapCopy = HotkeySnapCopy,
 		HotkeyDict = HotkeyDict,
+		HotkeyHangul = string.IsNullOrWhiteSpace(HotkeyHangul) ? "" : HotkeyHangul,
 		AutoKeyHotkey = AutoKeyHotkey ?? "",
 		AutoKeyMode = string.IsNullOrWhiteSpace(AutoKeyMode) ? "key" : AutoKeyMode,
 		AutoKeyKey = string.IsNullOrWhiteSpace(AutoKeyKey) ? "Space" : AutoKeyKey,

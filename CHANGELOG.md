@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Network tools can use Windows network discovery to list other computers with their names, comments, IP addresses, and MAC addresses.
 - Network tools renames Find other computers to IP scan, and adds a Port scan tab for an IP address and a port range.
 - Tools and the tray add Pixel art: choose a size, paint large cells, and preview the real pixel size.
+- Tools menu adds Korean input. A hotkey takes over the keyboard and composes two-set Hangul at the caret, like the Windows Korean IME.
 
 #### Changed
 
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网络工具可通过 Windows 网络发现列出其它电脑的名称、说明、IP 和 MAC。
 - 网络工具把“搜索其它计算机”改为“IP扫描”，并增加“端口扫描”标签页，填写 IP 和端口范围后开始。
 - 工具菜单和托盘增加像素画：选定尺寸后用大格作画，并按真实像素预览。
+- 工具菜单增加韩语输入。快捷键接管键盘后，按 Windows 韩语输入法在光标处用两套式组字。
 
 #### 变更
 

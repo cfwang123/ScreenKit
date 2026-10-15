@@ -50,6 +50,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miZhConv;
 	Forms.ToolStripMenuItem miPinyin;
+	Forms.ToolStripMenuItem miHangul;
 
 	Forms.ToolStripMenuItem miWinCal;
 	Forms.ToolStripMenuItem miJpYomi;
@@ -177,6 +178,7 @@ sealed class TrayIcon : IDisposable {
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
 		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
+		miHangul = item("tray.hangul", () => HangulRequested?.Invoke());
 		miWinCal = item("tray.wincal", () => WinCalRequested?.Invoke());
 		miJpYomi = item("tray.jpyomi", () => JpYomiRequested?.Invoke());
 		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
@@ -211,6 +213,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miMidi);
 		miTools.DropDownItems.Add(miZhConv);
 		miTools.DropDownItems.Add(miPinyin);
+		miTools.DropDownItems.Add(miHangul);
 		miTools.DropDownItems.Add(miWinCal);
 		miTools.DropDownItems.Add(miJpYomi);
 		miTools.DropDownItems.Add(miWinTop);
@@ -423,6 +426,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miHttpDbg, null);
 		setshortcut(miZhConv, null);
 		setshortcut(miPinyin, null);
+		setshortcut(miHangul, null);
 		setshortcut(miWinCal, null);
 		setshortcut(miJpYomi, null);
 		setshortcut(miWinTop, null);
@@ -483,6 +487,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miHttpDbg, "tray.httpdbg");
 			settext(miZhConv, "tray.zhconv");
 			settext(miPinyin, "tray.pinyin");
+			settext(miHangul, "tray.hangul");
 			settext(miWinCal, "tray.wincal");
 			settext(miJpYomi, "tray.jpyomi");
 			settext(miWinTop, "tray.wintop");
@@ -587,6 +592,12 @@ sealed class TrayIcon : IDisposable {
 	public event Action HttpDbgRequested;
 	public event Action ZhConvRequested;
 	public event Action PinyinRequested;
+	public event Action HangulRequested;
+
+	public void SetHangul(bool on) {
+		if (miHangul == null) return;
+		miHangul.Checked = on;
+	}
 
 	public event Action WinCalRequested;
 	public event Action JpYomiRequested;

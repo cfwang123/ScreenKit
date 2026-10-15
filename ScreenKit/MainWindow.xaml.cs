@@ -71,6 +71,8 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyTr;     // 翻译小窗
 	GlobalHotkey hotkeySnapCopy; // 切换截图复制方式
 	GlobalHotkey hotkeyDict;  // 词典
+	GlobalHotkey hotkeyHangul; // 韩语输入
+	HangulIme hangul;
 	GlobalHotkey hotkeyAuto; // 自动按键开始/停止
 	TranslatePopupWindow trPopup;
 
@@ -642,6 +644,7 @@ public partial class MainWindow : Window {
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg(fromTray: true)));
 			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv(fromTray: true)));
 			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin(fromTray: true)));
+			tray.HangulRequested += () => Dispatcher.BeginInvoke(new Action(() => hangulset(hangul == null || !hangul.On)));
 
 			tray.WinCalRequested += () => Dispatcher.BeginInvoke(new Action(() => openwincal(fromTray: true)));
 			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi(fromTray: true)));
@@ -883,6 +886,18 @@ public partial class MainWindow : Window {
 					try { setstatus(Loc.T("st.dict_hk_fail", ex.Message)); } catch { }
 				}
 			}));
+			hotkeyHangul = new GlobalHotkey(this, 0x700B);
+			hotkeyHangul.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { hangulset(!hangul.On); }
+				catch (Exception ex) {
+					try { setstatus(ex.Message); } catch { }
+				}
+			}));
+			hangul = new HangulIme();
+			hangul.Changed += () => {
+				painthangul();
+				setstatus(Loc.T(!hangul.On ? "hangul.off" : hangul.English ? "hangul.en" : "hangul.ko"));
+			};
 			hotkeyAuto = new GlobalHotkey(this, 0x700A);
 			hotkeyAuto.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
@@ -906,7 +921,8 @@ public partial class MainWindow : Window {
 					|| (hotkeyLive != null && !string.IsNullOrWhiteSpace(opt.HotkeyLiveCaption) && !hotkeyLive.IsRegistered)
 					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered)
 					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered)
-					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered);
+					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered)
+					|| (hotkeyHangul != null && !string.IsNullOrWhiteSpace(opt.HotkeyHangul) && !hotkeyHangul.IsRegistered);
 					// 自动按键只在工具窗口打开时注册，启动时不重试
 				if (need)
 					registerhotkey();
@@ -955,6 +971,10 @@ public partial class MainWindow : Window {
 		if (hotkeyDict != null) {
 			hotkeyDict.Attach();
 			if (!hotkeyDict.Register(opt.ModDict ? opt.HotkeyDict : "")) errs.Add(hotkeyDict.LastError);
+		}
+		if (hotkeyHangul != null) {
+			hotkeyHangul.Attach();
+			if (!hotkeyHangul.Register(opt.HotkeyHangul)) errs.Add(hotkeyHangul.LastError);
 		}
 		var akerr = bindautokeyhotkey();
 		if (akerr.Length > 0) errs.Add(akerr);
@@ -1047,6 +1067,8 @@ public partial class MainWindow : Window {
 		try { hotkeyLive?.Dispose(); } catch { }
 		try { hotkeyTr?.Dispose(); } catch { }
 		try { hotkeyDict?.Dispose(); } catch { }
+		try { hotkeyHangul?.Dispose(); } catch { }
+		try { hangul?.Dispose(); } catch { }
 		try { autokeyOn = false; autokeyTimer?.Stop(); } catch { }
 		try { hotkeyAuto?.Dispose(); } catch { }
 		try { trPopup?.ForceClose(); } catch { }
@@ -1593,6 +1615,7 @@ public partial class MainWindow : Window {
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
 		mnpinyin.Click += (_, _) => openpinyin();
+		mnhangul.Click += (_, _) => hangulset(mnhangul.IsChecked == true);
 
 		mnwincal.Click += (_, _) => openwincal();
 		mnjpyomi.Click += (_, _) => openjpyomi();
@@ -1755,6 +1778,9 @@ public partial class MainWindow : Window {
 			mnzhconv.ToolTip = Loc.T("menu.zhconv.tip");
 			mnpinyin.Header = Loc.T("menu.pinyin");
 			mnpinyin.ToolTip = Loc.T("menu.pinyin.tip");
+			mnhangul.Header = Loc.T("menu.hangul");
+			mnhangul.ToolTip = Loc.T("menu.hangul.tip");
+			try { hangul?.ApplyLang(); } catch { }
 			mnwincal.Header = Loc.T("menu.wincal");
 			mnwincal.ToolTip = Loc.T("menu.wincal.tip");
 			mnjpyomi.Header = Loc.T("menu.jpyomi");
@@ -1980,12 +2006,15 @@ public partial class MainWindow : Window {
 			var tr = fmttrayhk(opt.HotkeyTranslate);
 			var copy = fmttrayhk(opt.HotkeySnapCopy);
 			var dict = fmttrayhk(opt.HotkeyDict);
+			var hg = fmttrayhk(opt.HotkeyHangul);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
 			mntrpopup.InputGestureText = tr;
 			mndict.InputGestureText = dict;
+			if (mnhangul != null) mnhangul.InputGestureText = hg;
+			painthangul();
 			// 只在工具窗口打开时监听，菜单上不标快捷键
 			if (mnautokey != null) mnautokey.InputGestureText = "";
 			if (mnsnapcopyimg != null) mnsnapcopyimg.InputGestureText = copy;
@@ -1994,6 +2023,21 @@ public partial class MainWindow : Window {
 			try { tray?.ApplyHotkeys(); } catch { }
 		}
 		catch { }
+	}
+
+	void hangulset(bool on) {
+		if (hangul == null) return;
+		if (hangul.On == on) return;
+		if (!hangul.Set(on)) {
+			if (mnhangul != null) mnhangul.IsChecked = false;
+			try { tray?.SetHangul(false); } catch { }
+			setstatus(Loc.T("hangul.hookfail"));
+		}
+	}
+
+	void painthangul() {
+		if (mnhangul != null) mnhangul.IsChecked = hangul != null && hangul.On;
+		try { tray?.SetHangul(hangul != null && hangul.On); } catch { }
 	}
 
 	// ───────── viewport：文字上拖选 / 空白处平移 ─────────
@@ -3968,6 +4012,7 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyHangul, opt.HotkeyHangul, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.AutoKeyHotkey, opt.AutoKeyHotkey, StringComparison.OrdinalIgnoreCase)
 			|| old.ModOcr != opt.ModOcr || old.ModAsr != opt.ModAsr
 			|| old.ModTranslate != opt.ModTranslate || old.ModDict != opt.ModDict)
@@ -4631,6 +4676,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
 		sb.AppendLine($"Hotkey snap copy: {opt.HotkeySnapCopy}");
 		sb.AppendLine($"Hotkey dictionary: {opt.HotkeyDict}");
+		sb.AppendLine($"Hotkey hangul: {opt.HotkeyHangul}");
 		sb.AppendLine($"Hotkey auto key: {opt.AutoKeyHotkey} mode={opt.AutoKeyMode} key={opt.AutoKeyKey} ms={opt.AutoKeyIntervalMs}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off")}");
 		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{SendFileServer.FileHttpPort(opt)}/udp:{opt.SendFileUdpPort}" : "off")}");

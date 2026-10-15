@@ -87,6 +87,7 @@ public partial class SettingsWindow : Window {
 		bindhotkey(ehotkeytr, bhktrcap, bhktrclear);
 		bindhotkey(ehotkeysnapcopy, bhksnapcopycap, bhksnapcopyclear);
 		bindhotkey(ehotkeydict, bhkdictcap, bhkdictclear);
+		bindhotkey(ehotkeyhangul, bhkhangulcap, bhkhangulclear);
 	}
 
 	void bindhotkey(WpfTextBox box, WpfButton cap, WpfButton clear) {
@@ -246,6 +247,7 @@ public partial class SettingsWindow : Window {
 			lbhkhinttr.Text = Loc.T("set.hotkey.translate");
 			lbhkhintsnapcopy.Text = Loc.T("set.hotkey.snapcopy");
 			lbhkhintDict.Text = Loc.T("set.hotkey.dict");
+			lbhkhintHangul.Text = Loc.T("set.hotkey.hangul");
 			lbdictlimit.Text = Loc.T("set.dict.limit");
 			lbdictlimithint.Text = Loc.T("set.dict.limit.hint");
 			lbdicthold.Text = Loc.T("set.dict.dbhold");
@@ -473,6 +475,7 @@ public partial class SettingsWindow : Window {
 		ehotkeytr.Text = o.HotkeyTranslate ?? "";
 		ehotkeysnapcopy.Text = o.HotkeySnapCopy ?? "";
 		ehotkeydict.Text = o.HotkeyDict ?? "";
+		ehotkeyhangul.Text = o.HotkeyHangul ?? "";
 		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
 		edicthold.Text = OnnxIdle.ClampMin(o.DictDbHoldMin).ToString();
 		loaddicttts(o);
@@ -727,6 +730,7 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeytr, Loc.T("set.hotkey.translate"), out Result.HotkeyTranslate, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeysnapcopy, Loc.T("set.hotkey.snapcopy"), out Result.HotkeySnapCopy, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydict, Loc.T("set.hotkey.dict"), out Result.HotkeyDict, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyhangul, Loc.T("set.hotkey.hangul"), out Result.HotkeyHangul, tabsethk)) return false;
 		if (!tryint(edictlimit, Loc.T("set.dict.limit"), 1, DictDb.SEARCH_MAX, out var dictLimit, tabsetdict)) return false;
 		Result.DictLimit = dictLimit;
 		if (!tryint(edicthold, Loc.T("set.dict.dbhold"), 0, OnnxIdle.MaxMin, out var dictHold, tabsetdict)) return false;
