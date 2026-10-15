@@ -37,11 +37,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- Character art preview has a font-size slider (6–36).
+
 #### Documentation
 
 - The English README is now the short feature overview, matching the Chinese one. The previous full text is kept at docs/archive/README.md.
 
 ### 中文
+
+#### 变更
+
+- 字符画预览可以用滑块调整字号（6～36）。
 
 #### 文档
 

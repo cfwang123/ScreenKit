@@ -4019,3 +4019,5 @@ web.chat.paste = "Ctrl+V вставляет изображение или фай
 stbar.chrome = "Дочерний процесс Chrome запущен"
 stbar.chrome.n = "Дочерние процессы Chrome: {0}"
 stbar.chrome.tip = "Скрытый Chrome, запущенный этой программой, ещё работает. Он завершится после простоя."
+charart.size = "Размер"
+charart.size.tip = "Размер шрифта предпросмотра, 6–36."

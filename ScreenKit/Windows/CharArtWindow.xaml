@@ -17,29 +17,38 @@
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
-		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
+		<WrapPanel Grid.Row="0" Margin="0,0,0,2">
 			<Button x:Name="bpick" Content="选择图片" Style="{StaticResource ToolBtn}"
+			        Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="charart.pick"/>
 			<Button x:Name="bcopy" Content="复制" Style="{StaticResource ToolBtn}"
+			        Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="charart.copy"/>
 			<Button x:Name="bcolor" Content="全色字符画" Style="{StaticResource ToolBtn}"
+			        Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="charart.color"/>
-			<TextBlock x:Name="lbcols" Text="列数" VerticalAlignment="Center" Margin="8,0,6,0"/>
+			<TextBlock x:Name="lbcols" Text="列数" VerticalAlignment="Center" Margin="8,0,6,6"/>
 			<TextBox x:Name="ecols" Width="64" Height="30" Text="100" Padding="6,4"
-			         VerticalContentAlignment="Center"
+			         VerticalContentAlignment="Center" Margin="0,0,0,6"
 			         BorderBrush="{StaticResource BorderSoft}"
 			         AutomationProperties.AutomationId="charart.cols"/>
-			<CheckBox x:Name="ckinv" Content="反色" VerticalAlignment="Center" Margin="12,0,0,0"
+			<CheckBox x:Name="ckinv" Content="反色" VerticalAlignment="Center" Margin="12,0,0,6"
 			          AutomationProperties.AutomationId="charart.invert"/>
-			<CheckBox x:Name="ckline" Content="线条" VerticalAlignment="Center" Margin="12,0,0,0"
+			<CheckBox x:Name="ckline" Content="线条" VerticalAlignment="Center" Margin="12,0,0,6"
 			          AutomationProperties.AutomationId="charart.line"/>
-			<TextBlock x:Name="lbth" Text="阈值" VerticalAlignment="Center" Margin="12,0,6,0"/>
+			<TextBlock x:Name="lbth" Text="阈值" VerticalAlignment="Center" Margin="12,0,6,6"/>
 			<Slider x:Name="eth" Width="140" Minimum="0" Maximum="255" TickFrequency="1"
-			        IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center"
+			        IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center" Margin="0,0,0,6"
 			        AutomationProperties.AutomationId="charart.threshold"/>
-			<TextBlock x:Name="lbthv" Text="0" Width="28" VerticalAlignment="Center" Margin="6,0,0,0"
+			<TextBlock x:Name="lbthv" Text="0" Width="28" VerticalAlignment="Center" Margin="6,0,0,6"
 			           Foreground="{StaticResource TextMuted}"/>
-		</DockPanel>
+			<TextBlock x:Name="lbsize" Text="字号" VerticalAlignment="Center" Margin="12,0,6,6"/>
+			<Slider x:Name="esize" Width="120" Minimum="6" Maximum="36" TickFrequency="1"
+			        IsSnapToTickEnabled="True" Value="12" VerticalAlignment="Center" Margin="0,0,0,6"
+			        AutomationProperties.AutomationId="charart.size"/>
+			<TextBlock x:Name="lbsizev" Text="12" Width="24" VerticalAlignment="Center" Margin="6,0,0,6"
+			           Foreground="{StaticResource TextMuted}"/>
+		</WrapPanel>
 		<TextBlock x:Name="lbhint" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}"
 		           Text="拖入图片。单色用 ASCII。全色在新的命令行窗口里用色块显示。"/>

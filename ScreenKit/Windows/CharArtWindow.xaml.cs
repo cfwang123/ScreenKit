@@ -29,6 +29,11 @@ public partial class CharArtWindow : Window {
 			lbthv.Text = ((int)eth.Value).ToString();
 			showascii();
 		};
+		esize.ValueChanged += (_, _) => {
+			var n = (int)esize.Value;
+			lbsizev.Text = n.ToString();
+			eout.FontSize = n;
+		};
 		ckinv.Checked += (_, _) => showascii();
 		ckinv.Unchecked += (_, _) => showascii();
 		ckline.Checked += (_, _) => showascii();
@@ -45,6 +50,8 @@ public partial class CharArtWindow : Window {
 		lbcols.Text = Loc.T("charart.cols");
 		lbth.Text = Loc.T("charart.threshold");
 		eth.ToolTip = Loc.T("charart.threshold.tip");
+		lbsize.Text = Loc.T("charart.size");
+		esize.ToolTip = Loc.T("charart.size.tip");
 		ckinv.Content = Loc.T("charart.invert");
 		ckline.Content = Loc.T("charart.line");
 		ckline.ToolTip = Loc.T("charart.line.tip");
