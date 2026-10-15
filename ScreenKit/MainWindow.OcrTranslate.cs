@@ -178,9 +178,15 @@ public partial class MainWindow {
 			refreshocrtrview();
 			return;
 		}
+		var chrome = opt.ChromeTranslate();
 		var ep = opt.SelectedTranslateLlm() ?? opt.SelectedLlm();
-		if (!AsrLlmClient.IsEndpointReady(ep)) {
+		if (!chrome && !AsrLlmClient.IsEndpointReady(ep)) {
 			setstatus(Loc.T("st.ocr_tr_need_llm"));
+			refreshocrtrview();
+			return;
+		}
+		if (chrome && ChromeTts.FindExe(opt.ChromeExe) == null) {
+			setstatus(Loc.T("tr.need.chrome"));
 			refreshocrtrview();
 			return;
 		}
@@ -202,8 +208,15 @@ public partial class MainWindow {
 		var t0 = Environment.TickCount;
 		try {
 			var o = opt;
-			outs = await Task.Run(() => AsrLlmClient.TranslateBatch(o, items, src, dst, 0, ep, cts.Token),
-				cts.Token).ConfigureAwait(true);
+			if (chrome) {
+				var exe = o.ChromeExe;
+				var idle = o.ChromeIdleSec;
+				outs = await Task.Run(() => ChromeTr.TranslateMany(items, src, dst, exe, idle, cts.Token),
+					cts.Token).ConfigureAwait(true);
+			}
+			else
+				outs = await Task.Run(() => AsrLlmClient.TranslateBatch(o, items, src, dst, 0, ep, cts.Token),
+					cts.Token).ConfigureAwait(true);
 		}
 		catch (OperationCanceledException) {
 			return;

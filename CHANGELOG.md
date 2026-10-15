@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome TTS plays Google voices in local Chrome. Set chrome.exe under Speech. Audio is not exported or returned as WAV.
 - IP scan list can copy the host name, IP, or MAC from the right-click menu.
 - RTSP forward and the tools-page player can include PCMU, PCMA, or AAC. The RTSP test server has a sound switch for an 8 kHz PCMU tone.
+- Translate can use Chrome's built-in model. Pick Chrome on the Translate tab. It uses the chrome.exe path from Speech and hides the window.
 
 #### Changed
 
@@ -119,6 +120,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Scientific calculator accepts parentheses from Shift+9 and Shift+0.
 - IP scan lists hosts as soon as they are found, and fills each name as it resolves.
 - RTSP test server preview now shows the newest frame instead of lagging the player.
+- RTSP test server paints the preview on screen before that frame is encoded and sent.
 
 #### Removed
 
@@ -163,6 +165,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 增加 Chrome 语音：用本机 Chrome 的 Google 语音朗读，可指定 chrome.exe。声音从 Chrome 放出，不能导出，HTTP 也不返回 WAV。
 - IP 扫描列表可右键复制主机名、IP 或 MAC
 - RTSP 转发和工具页播放可以带上 PCMU、PCMA 或 AAC。RTSP 测试服务器增加声音开关，打开时发送 8 kHz PCMU 提示音。
+- 翻译引擎增加 Chrome：用本机 Chrome 的翻译模型。在翻译页选择 Chrome，沿用语音合成里的 chrome.exe，窗口隐藏。
 
 #### 变更
 
@@ -213,6 +216,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 科学计算器可用 Shift+9 和 Shift+0 输入括号。
 - IP 扫描发现主机后立即列出，每解析出一个主机名就更新一行
 - RTSP 测试服务器的预览改为显示最新画面，不再比播放器慢一截。
+- RTSP 测试服务器先把预览画到窗口上，再编码送出这一帧。
 
 #### 移除
 

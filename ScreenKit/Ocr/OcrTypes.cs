@@ -727,7 +727,10 @@ public sealed class OcrOptions {
 	}
 
 	/// <summary>翻译选用的 LLM；未选或找不到返回 null（走本地 ONNX）。</summary>
-	public LlmEndpoint SelectedTranslateLlm() => FindLlm(TranslateLlm);
+	public bool ChromeTranslate() =>
+		string.Equals((TranslateLlm ?? "").Trim(), "chrome", StringComparison.OrdinalIgnoreCase);
+
+	public LlmEndpoint SelectedTranslateLlm() => ChromeTranslate() ? null : FindLlm(TranslateLlm);
 
 	/// <summary>对话用 LLM；未选则回退润色所选 / 列表第一项。</summary>
 	public LlmEndpoint SelectedChatLlm() {

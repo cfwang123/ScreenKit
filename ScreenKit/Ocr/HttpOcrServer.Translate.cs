@@ -10,23 +10,26 @@ sealed partial class HttpOcrServer {
 
 	void handletranslatelangs(SockCtx ctx) {
 		var o = getOpts?.Invoke() ?? new OcrOptions();
+		var chrome = o.ChromeTranslate();
 		var llm = AsrLlmClient.IsEndpointReady(o.SelectedTranslateLlm());
 		List<TranslateModelInfo> models;
 		try { models = TranslateModelScanner.Scan(); }
 		catch { models = new List<TranslateModelInfo>(); }
-		var srcs = translatesrcs(models, llm);
+		var wide = llm || chrome;
+		var srcs = translatesrcs(models, wide);
 		var srcArr = new JsonArray();
 		var dst = new JsonObject();
 		foreach (var s in srcs) {
 			srcArr.Add(s);
 			var arr = new JsonArray();
-			foreach (var t in translatedsts(models, llm, s)) arr.Add(t);
+			foreach (var t in translatedsts(models, wide, s)) arr.Add(t);
 			dst[s] = arr;
 		}
 		writejson(ctx, 200, new JsonObject {
 			["code"] = 100,
 			["data"] = new JsonObject {
 				["llm"] = llm,
+				["chrome"] = chrome,
 				["src"] = srcArr,
 				["dst"] = dst,
 			},
@@ -42,6 +45,10 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		var o = getOpts?.Invoke() ?? new OcrOptions();
+		if (wantchrome(jo, o)) {
+			translatechrome(ctx, o, jo);
+			return;
+		}
 		var wantLlm = str(jo, "llm") ?? str(jo, "model");
 		var ep = resolveep(o, wantLlm);
 
@@ -112,6 +119,73 @@ sealed partial class HttpOcrServer {
 				["model"] = ep.Model ?? "",
 				["llm"] = ep.DisplayName ?? "",
 				["chunk"] = chunk,
+				["count"] = items.Count,
+				["miss"] = miss,
+				["items"] = arr,
+			},
+			["time"] = ms,
+			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+		});
+	}
+
+	static bool wantchrome(JsonObject jo, OcrOptions o) {
+		var e = str(jo, "engine") ?? str(jo, "llm") ?? str(jo, "model") ?? "";
+		if (e.Equals("chrome", StringComparison.OrdinalIgnoreCase)) return true;
+		return e.Length == 0 && o != null && o.ChromeTranslate();
+	}
+
+	void translatechrome(SockCtx ctx, OcrOptions o, JsonObject jo) {
+		var items = readitems(jo);
+		if (items == null || items.Count == 0) {
+			writejson(ctx, 200, err(941, "请提供 items 字符串数组，或 text"));
+			return;
+		}
+		var src = TrLang.Normalize(str(jo, "src") ?? str(jo, "from") ?? "");
+		var dst = TrLang.Normalize(str(jo, "dst") ?? str(jo, "to") ?? "");
+		var dir = str(jo, "dir") ?? str(jo, "tr_dir") ?? "";
+		if ((src.Length == 0 || dst.Length == 0) && TrLang.TryParsePair(dir, out var ds, out var dd)) {
+			if (src.Length == 0) src = ds;
+			if (dst.Length == 0) dst = dd;
+		}
+		if (src.Length == 0 || dst.Length == 0 || src == TrLang.Auto || dst == TrLang.Auto) {
+			var probe = "";
+			foreach (var t in items) {
+				if (!string.IsNullOrWhiteSpace(t)) { probe = t; break; }
+			}
+			LangDetect.DetectZhEnPair(probe, out var asrc, out var adst);
+			if (src.Length == 0 || src == TrLang.Auto) src = asrc;
+			if (dst.Length == 0 || dst == TrLang.Auto) dst = adst;
+		}
+		var t0 = Environment.TickCount;
+		List<string> outs;
+		try {
+			outs = ChromeTr.TranslateMany(items, src, dst, o?.ChromeExe, o?.ChromeIdleSec ?? 60, CancellationToken.None);
+		}
+		catch (Exception ex) {
+			writejson(ctx, 200, err(942, "翻译失败: " + ex.Message));
+			return;
+		}
+		var ms = Math.Max(0, Environment.TickCount - t0);
+		var arr = new JsonArray();
+		var miss = 0;
+		for (var i = 0; i < items.Count; i++) {
+			var srcText = items[i] ?? "";
+			var outText = i < outs.Count ? (outs[i] ?? "") : "";
+			if (srcText.Trim().Length > 0 && outText.Trim().Length == 0) miss++;
+			arr.Add(new JsonObject {
+				["i"] = i + 1,
+				["text"] = srcText,
+				["out"] = outText,
+			});
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["src"] = src,
+				["dst"] = dst,
+				["model"] = "Chrome",
+				["llm"] = "",
+				["engine"] = "chrome",
 				["count"] = items.Count,
 				["miss"] = miss,
 				["items"] = arr,

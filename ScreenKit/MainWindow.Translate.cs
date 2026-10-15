@@ -242,7 +242,15 @@ public partial class MainWindow {
 				Tag = "",
 				ToolTip = Loc.T("tr.hint"),
 			});
+			var chrome = new ComboBoxItem {
+				Content = Loc.T("tr.engine.chrome"),
+				Tag = "chrome",
+				ToolTip = Loc.T("tr.hint.chrome"),
+			};
+			etrengine.Items.Add(chrome);
 			ComboBoxItem pick = null;
+			if (want.Equals("chrome", StringComparison.OrdinalIgnoreCase))
+				pick = chrome;
 			if (opt.LlmList != null) {
 				foreach (var ep in opt.LlmList) {
 					if (ep == null) continue;
@@ -265,6 +273,10 @@ public partial class MainWindow {
 		finally { trUiLoading = false; }
 	}
 
+	bool usechrome() =>
+		etrengine?.SelectedItem is ComboBoxItem it && it.Tag is string s
+		&& s.Equals("chrome", StringComparison.OrdinalIgnoreCase);
+
 	bool usellm() =>
 		etrengine?.SelectedItem is ComboBoxItem it && it.Tag is LlmEndpoint;
 
@@ -273,11 +285,16 @@ public partial class MainWindow {
 
 	void synctrengineui() {
 		var llm = usellm();
-		etrcompute.IsEnabled = !llm;
-		etrmodel.IsEnabled = !llm;
-		etrcompute.Opacity = llm ? 0.45 : 1;
-		etrmodel.Opacity = llm ? 0.45 : 1;
-		if (llm) {
+		var chrome = usechrome();
+		var local = !llm && !chrome;
+		etrcompute.IsEnabled = local;
+		etrmodel.IsEnabled = local;
+		etrcompute.Opacity = local ? 1 : 0.45;
+		etrmodel.Opacity = local ? 1 : 0.45;
+		if (chrome) {
+			lbtrhint.Text = Loc.T("tr.hint.chrome");
+		}
+		else if (llm) {
 			var ep = currenttrllm();
 			var n = ep != null ? ep.DisplayName : "";
 			lbtrhint.Text = Loc.T("tr.hint.llm", n);
@@ -307,7 +324,9 @@ public partial class MainWindow {
 			fillsrclangcombo();
 			filldstlangcombo(preserve: false);
 			syncmodelcombo();
-			if (usellm()) {
+			if (usechrome())
+				lbtrstatus.Text = Loc.T("tr.ready.chrome");
+			else if (usellm()) {
 				var ep = currenttrllm();
 				lbtrstatus.Text = Loc.T("tr.ready.llm", ep != null ? ep.DisplayName : "");
 			}
@@ -335,7 +354,7 @@ public partial class MainWindow {
 			.Where(s => !string.IsNullOrEmpty(s))
 			.Distinct(StringComparer.OrdinalIgnoreCase)
 			.ToList();
-		if (usellm()) {
+		if (usellm() || usechrome()) {
 			foreach (var s in TrLang.LlmCodes)
 				if (!srcs.Any(x => string.Equals(x, s, StringComparison.OrdinalIgnoreCase)))
 					srcs.Add(s);
@@ -372,7 +391,7 @@ public partial class MainWindow {
 			.Where(t => !string.IsNullOrEmpty(t))
 			.Distinct(StringComparer.OrdinalIgnoreCase)
 			.ToList();
-		if (usellm()) {
+		if (usellm() || usechrome()) {
 			foreach (var t in TrLang.LlmCodes) {
 				if (string.Equals(t, src, StringComparison.OrdinalIgnoreCase)) continue;
 				if (!tgts.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
@@ -480,7 +499,7 @@ public partial class MainWindow {
 			if (etrcompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode cm)
 				opt.TranslateCompute = cm.ToString();
 			var ep = currenttrllm();
-			opt.TranslateLlm = ep != null ? ep.DisplayName : "";
+			opt.TranslateLlm = usechrome() ? "chrome" : (ep != null ? ep.DisplayName : "");
 			AppConfig.Save(opt);
 		}
 		catch (Exception ex) {
@@ -513,6 +532,14 @@ public partial class MainWindow {
 		}
 
 		key = LangDetect.DirKey(src, dst);
+		if (usechrome()) {
+			if (ChromeTts.FindExe(opt.ChromeExe) == null) {
+				lbtrstatus.Text = Loc.T("tr.need.chrome");
+				return false;
+			}
+			model = null;
+			return true;
+		}
 		if (usellm()) {
 			var ep = currenttrllm();
 			if (!AsrLlmClient.IsEndpointReady(ep)) {
@@ -544,7 +571,7 @@ public partial class MainWindow {
 	async Task runtranslate() {
 		if (trBusy) return;
 		if (!tryresolveforward(out var src, out var dst, out var model, out var key)) {
-			if (usellm()) return;
+			if (usellm() || usechrome()) return;
 			if (!FeaturePrompt.EnsureTranslateModels(this))
 				return;
 			try { scantrmodels(); } catch { }
@@ -565,14 +592,26 @@ public partial class MainWindow {
 		var ct = trCts.Token;
 		var sw = System.Diagnostics.Stopwatch.StartNew();
 		var llm = usellm();
+		var chrome = usechrome();
 		var ep = currenttrllm();
-		lbtrstatus.Text = llm
+		lbtrstatus.Text = chrome
+			? Loc.T("tr.run.chrome", TrLang.Label(src), TrLang.Label(dst))
+			: llm
 			? Loc.T("tr.run.llm", TrLang.Label(src), TrLang.Label(dst), ep.DisplayName)
 			: Loc.T("tr.run.onnx", TrLang.Label(src), TrLang.Label(dst), prefer);
 
 		try {
 			string result;
-			if (llm) {
+			if (chrome) {
+				var text = textIn;
+				var s = src;
+				var d = dst;
+				var exe = opt.ChromeExe;
+				var idle = opt.ChromeIdleSec;
+				result = await Task.Run(() => ChromeTr.Translate(text, s, d, exe, idle, ct), ct)
+					.ConfigureAwait(true);
+			}
+			else if (llm) {
 				var o = opt;
 				var text = textIn;
 				var s = src;
@@ -595,7 +634,10 @@ public partial class MainWindow {
 
 			etrdst.Text = result ?? "";
 			var empty = string.IsNullOrWhiteSpace(result) ? Loc.T("tr.empty.out") : "";
-			if (llm)
+			if (chrome)
+				lbtrstatus.Text = Loc.T("tr.ok.chrome", TrLang.Label(src), TrLang.Label(dst),
+					sw.ElapsedMilliseconds) + empty;
+			else if (llm)
 				lbtrstatus.Text = Loc.T("tr.ok.llm", TrLang.Label(src), TrLang.Label(dst), ep.DisplayName,
 					sw.ElapsedMilliseconds) + empty;
 			else {
@@ -611,7 +653,7 @@ public partial class MainWindow {
 		catch (Exception ex) {
 			CaptureLog.Ex("translate", ex);
 			var msg = ex.Message ?? "";
-			if (!llm && (prefer == "cuda" || Compat.Contains(msg, "CUDA", StringComparison.OrdinalIgnoreCase)))
+			if (!llm && !chrome && (prefer == "cuda" || Compat.Contains(msg, "CUDA", StringComparison.OrdinalIgnoreCase)))
 				msg += Loc.T("tr.cuda.hint");
 			lbtrstatus.Text = Loc.T("tr.fail", msg);
 		}
@@ -633,6 +675,40 @@ public partial class MainWindow {
 
 		var textIn = (etrsrc?.Text ?? "").Trim();
 		savetrprefs();
+
+		if (usechrome()) {
+			var fwdLabel = $"{TrLang.Label(src)}→{TrLang.Label(dst)}";
+			var revLabel = $"{TrLang.Label(dst)}→{TrLang.Label(src)}";
+			var exe = opt.ChromeExe;
+			var idle = opt.ChromeIdleSec;
+			var s0 = src;
+			var d0 = dst;
+			trBusy = true;
+			btrgo.IsEnabled = false;
+			btrpingpong.IsEnabled = false;
+			btrstop.IsEnabled = false;
+			lbtrstatus.Text = Loc.T("tr.pp.run.llm", TranslatePingPongWindow.DefaultRounds);
+			try {
+				var dlg = new TranslatePingPongWindow(
+					textIn, fwdLabel, revLabel, TranslatePingPongWindow.DefaultRounds,
+					(t, rev, ct) => ChromeTr.Translate(t, rev ? d0 : s0, rev ? s0 : d0, exe, idle, ct));
+				attachdialogowner(dlg);
+				dlg.ShowDialog();
+				applypingpongresult(dlg);
+			}
+			catch (Exception ex) {
+				CaptureLog.Ex("runpingpong", ex);
+				lbtrstatus.Text = Loc.T("tr.pp.fail", ex.Message);
+			}
+			finally {
+				trBusy = false;
+				btrgo.IsEnabled = true;
+				btrpingpong.IsEnabled = true;
+				btrstop.IsEnabled = false;
+			}
+			await Task.CompletedTask;
+			return;
+		}
 
 		if (usellm()) {
 			var fwdLabel = $"{TrLang.Label(src)}→{TrLang.Label(dst)}";
@@ -754,6 +830,8 @@ public partial class MainWindow {
 		foreach (var o in etrengine.Items) {
 			if (o is ComboBoxItem it && it.Tag is string s && s.Length == 0)
 				it.Content = Loc.T("tr.engine.onnx");
+			else if (o is ComboBoxItem it2 && it2.Tag is string s2 && s2 == "chrome")
+				it2.Content = Loc.T("tr.engine.chrome");
 		}
 		var keep = trUiLoading;
 		trUiLoading = true;

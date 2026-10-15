@@ -140,7 +140,10 @@ public partial class TranslatePopupWindow : Window {
 		pick(edstlng, keepDst);
 	}
 
+	bool usechrome() => getopt()?.ChromeTranslate() == true;
+
 	bool usellm() {
+		if (usechrome()) return false;
 		var ep = getopt()?.SelectedTranslateLlm();
 		return AsrLlmClient.IsEndpointReady(ep);
 	}
@@ -158,7 +161,7 @@ public partial class TranslatePopupWindow : Window {
 				.Where(s => !string.IsNullOrEmpty(s))
 				.Distinct(StringComparer.OrdinalIgnoreCase)
 				.ToList();
-			if (usellm()) {
+			if (usellm() || usechrome()) {
 				foreach (var s in TrLang.LlmCodes)
 					if (!srcs.Any(x => string.Equals(x, s, StringComparison.OrdinalIgnoreCase)))
 						srcs.Add(s);
@@ -190,7 +193,7 @@ public partial class TranslatePopupWindow : Window {
 				.Where(t => !string.IsNullOrEmpty(t))
 				.Distinct(StringComparer.OrdinalIgnoreCase)
 				.ToList();
-			if (usellm()) {
+			if (usellm() || usechrome()) {
 				foreach (var t in TrLang.LlmCodes) {
 					if (string.Equals(t, src, StringComparison.OrdinalIgnoreCase)) continue;
 					if (!tgts.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
@@ -357,11 +360,16 @@ public partial class TranslatePopupWindow : Window {
 			}
 		}
 		var o = getopt() ?? new OcrOptions();
+		var chrome = usechrome();
 		var llm = usellm();
 		var ep = o.SelectedTranslateLlm();
 		TranslateModelInfo model = null;
 		var key = LangDetect.DirKey(src, dst);
-		if (!llm) {
+		if (chrome && ChromeTts.FindExe(o.ChromeExe) == null) {
+			lbstatus.Text = Loc.T("tr.need.chrome");
+			return;
+		}
+		if (!llm && !chrome) {
 			model = models.FirstOrDefault(m => m.IsReady
 				&& string.Equals(m.DirKey, key, StringComparison.OrdinalIgnoreCase));
 			if (model == null || !model.IsReady) {
@@ -382,7 +390,15 @@ public partial class TranslatePopupWindow : Window {
 		lbstatus.Text = Loc.T("tr.popup.run", TrLang.Label(src), TrLang.Label(dst));
 		try {
 			string result;
-			if (llm) {
+			if (chrome) {
+				var s = src;
+				var d = dst;
+				var exe = o.ChromeExe;
+				var idle = o.ChromeIdleSec;
+				result = await Task.Run(() => ChromeTr.Translate(textIn, s, d, exe, idle, ct), ct)
+					.ConfigureAwait(true);
+			}
+			else if (llm) {
 				var s = src;
 				var d = dst;
 				result = await Task.Run(() => AsrLlmClient.Translate(o, textIn, s, d, ct), ct)

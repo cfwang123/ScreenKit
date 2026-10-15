@@ -916,7 +916,7 @@ static class AppConfig {
 			}
 		}
 		sb.AppendLine("[translate]");
-		sb.AppendLine("# 翻译：translate_llm 空=本地 ONNX；否则为 [[llm]] 显示名称");
+		sb.AppendLine("# 翻译：translate_llm 空=本地 ONNX；chrome=本机 Chrome；否则为 [[llm]] 显示名称");
 		sb.AppendLine($"translate_compute = \"{esc(string.IsNullOrWhiteSpace(o.TranslateCompute) ? "Auto" : o.TranslateCompute)}\"");
 		sb.AppendLine($"translate_llm = \"{esc(o.TranslateLlm ?? "")}\"");
 		var trPromptSave = string.IsNullOrWhiteSpace(o.TranslateLlmPrompt)

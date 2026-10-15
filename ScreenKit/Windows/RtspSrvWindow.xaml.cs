@@ -27,13 +27,8 @@ public partial class RtspSrvWindow : Window {
 	int w = 640, h = 480, fps = 30;
 	float bx = 80, by = 80, vx = SPEED, vy = SPEED;
 	volatile bool on;
-	readonly object previewgate = new object();
-	byte[] previewbuf;
-	byte[] sparebuf;
-	int previeww;
-	int previewh;
-	bool previewdirty;
-	int previewposted;
+	int previewwait;
+	int stopping;
 	int frames;
 	int lastfps;
 	int lasttick;
@@ -134,60 +129,25 @@ public partial class RtspSrvWindow : Window {
 
 	void showframe() {
 		if (pixels == null) return;
-		var post = false;
-		lock (previewgate) {
-			if (previewbuf == null || previewbuf.Length != pixels.Length)
-				previewbuf = new byte[pixels.Length];
-			Buffer.BlockCopy(pixels, 0, previewbuf, 0, pixels.Length);
-			previeww = w;
-			previewh = h;
-			previewdirty = true;
-			if (previewposted == 0) {
-				previewposted = 1;
-				post = true;
-			}
+		var pw = w;
+		var ph = h;
+		var src = pixels;
+		Interlocked.Exchange(ref previewwait, 1);
+		try {
+			Dispatcher.Invoke(new Action(() => writepreview(src, pw, ph)), DispatcherPriority.Send);
+			Dispatcher.Invoke(new Action(() => { }), DispatcherPriority.Background);
 		}
-		if (!post) return;
-		try { Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(paintpreview)); }
-		catch { lock (previewgate) previewposted = 0; }
+		catch { }
+		finally { Interlocked.Exchange(ref previewwait, 0); }
 	}
 
-	void paintpreview() {
-		while (on) {
-			byte[] snap;
-			int pw, ph;
-			lock (previewgate) {
-				if (!previewdirty) {
-					previewposted = 0;
-					return;
-				}
-				previewdirty = false;
-				snap = previewbuf;
-				previewbuf = sparebuf;
-				sparebuf = null;
-				pw = previeww;
-				ph = previewh;
-			}
-			if (snap == null) {
-				lock (previewgate) previewposted = 0;
-				return;
-			}
-			try {
-				if (bmp == null || bmp.PixelWidth != pw || bmp.PixelHeight != ph) {
-					bmp = new WriteableBitmap(pw, ph, 96, 96, PixelFormats.Bgra32, null);
-					imgprev.Source = bmp;
-				}
-				bmp.WritePixels(new Int32Rect(0, 0, pw, ph), snap, pw * 4, 0);
-			}
-			catch { }
-			lock (previewgate) {
-				if (sparebuf == null) sparebuf = snap;
-				if (previewdirty) continue;
-				previewposted = 0;
-				return;
-			}
+	void writepreview(byte[] src, int pw, int ph) {
+		if (src == null || pw < 1 || ph < 1) return;
+		if (bmp == null || bmp.PixelWidth != pw || bmp.PixelHeight != ph) {
+			bmp = new WriteableBitmap(pw, ph, 96, 96, PixelFormats.Bgra32, null);
+			imgprev.Source = bmp;
 		}
-		lock (previewgate) previewposted = 0;
+		bmp.WritePixels(new Int32Rect(0, 0, pw, ph), src, pw * 4, 0);
 	}
 
 	void step() {
@@ -279,6 +239,15 @@ public partial class RtspSrvWindow : Window {
 
 	void stop() {
 		on = false;
+		if (Interlocked.Exchange(ref stopping, 1) != 0) return;
+		finishstop();
+	}
+
+	void finishstop() {
+		if (previewwait != 0) {
+			Dispatcher.BeginInvoke(new Action(finishstop));
+			return;
+		}
 		try { drawth?.Join(800); } catch { }
 		try { enc?.Dispose(); } catch { }
 		enc = null;
@@ -288,6 +257,7 @@ public partial class RtspSrvWindow : Window {
 		btoggle.Content = Loc.T("rtspsrv.start");
 		lbstatus.Text = Loc.T("rtspsrv.stopped");
 		lbinfo.Text = "";
+		Interlocked.Exchange(ref stopping, 0);
 	}
 
 	void setinputs(bool on) {
