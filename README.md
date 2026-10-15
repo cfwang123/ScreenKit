@@ -130,6 +130,7 @@ This program receives while it is running. That can be turned off in Settings. *
   - **Compound interest**: Interest compounded yearly
 - **Speech**
   - **Speech**: Read text aloud
+  - **Chrome models**: List, install, or remove translation models and offline voice packs for the hidden Chrome. Translation install state comes from local files; refresh asks Chrome about voice packs
   - **Speech recognition**: Turn speech into text
   - **8-bit synthesizer**: Square-wave tones and effects
 - **Calendar**

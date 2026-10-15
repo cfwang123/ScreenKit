@@ -37,6 +37,7 @@ namespace ScreenKit;
 /// <item>GET  /api/tts/engines · /api/tts/models · /api/tts/devices · POST /api/tts · POST /api/tts/speak</item>
 /// <item>POST /api/itn</item>
 /// <item>GET /api/translate/langs · POST /api/translate · /api/translate/batch</item>
+/// <item>GET/POST /api/chrome/packs 隐藏 Chrome 的翻译模型和离线语音包</item>
 /// <item>POST /api/chat  LLM 对话（文本/语音入，可选 TTS）</item>
 /// <item>POST /api/qr · /api/barcode</item>
 /// <item>GET  /api/face/models · POST /api/face</item>
@@ -366,6 +367,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handleqr(ctx);
+				return;
+			}
+
+			if (path is "/api/chrome/packs") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "chrome/packs 仅支持 GET 或 POST"));
+					return;
+				}
+				handlechromepacks(ctx);
 				return;
 			}
 

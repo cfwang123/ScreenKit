@@ -267,6 +267,14 @@ static class ChromePack {
 		return list;
 	}
 
+	/// <summary>probe 为 false 时翻译模型看本机目录，语音包只列目录、不打开 Chrome。</summary>
+	public static List<ChromePackItem> Catalog(bool probe, string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct) {
+		if (probe) return Query(proxyMode, proxyAddr, log, ct);
+		var list = tritems();
+		list.AddRange(readvoices());
+		return list;
+	}
+
 	public static void Apply(IReadOnlyList<ChromePackItem> items, bool install, string proxyMode, string proxyAddr, Action<string> log, Action<double> progress, Action<string> status, Action<string> bytes, CancellationToken ct) {
 		var tr = new List<ChromePackItem>();
 		var tts = new List<ChromePackItem>();
