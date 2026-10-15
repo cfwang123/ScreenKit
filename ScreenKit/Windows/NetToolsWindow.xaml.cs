@@ -318,17 +318,6 @@ public partial class NetToolsWindow : Window {
 		bmap.IsEnabled = false;
 	}
 
-	public void Start(string kind) {
-		if (kind == "local" || kind == "discover") {
-			_ = run(kind);
-			return;
-		}
-		if (busy) return;
-		ehost.Focus();
-		if ((kind == "dnsrec" || kind == "port" || kind == "wol") && (ehost.Text ?? "").Trim().Length > 0)
-			_ = run(kind);
-	}
-
 	void openmap() {
 		if (!hasmap) return;
 		var url = NetTools.MapAmap(maplat, maplon);

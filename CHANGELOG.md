@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System info queries each tab only on first entry. A permission-denied device query can retry through the elevated device-scan CLI; failures remain visible with Refresh available.
 - USB vendor lookup is now USB ID lookup and returns the vendor, product, model, and interfaces.
 - Local network is a button in the network tools window, not a Lookup menu item.
+- Network diagnostics, discovery, DNS records, port test, and Wake-on-LAN are buttons in the Network tools window. The Tools menu and tray open that window as one item.
 
 #### Fixed
 
@@ -93,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统信息改为首次进入各 Tab 时才查询；设备查询权限不足时可通过管理员设备扫描命令行重试，失败原因会保留并可点刷新重试。
 - USB 厂家改为 USB ID 查询，返回厂家、产品、型号和接口。
 - 本机网络改在网络工具窗口里作为按钮，不再放在信息查询菜单。
+- 网络诊断、网络发现、DNS 记录、端口测试和网络唤醒改为网络工具窗口里的按钮。工具菜单和托盘只保留一项网络工具。
 
 #### 修复
 

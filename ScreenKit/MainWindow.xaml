@@ -159,28 +159,15 @@
 				<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
 				          AutomationProperties.AutomationId="menu.pwgen"
 				          ToolTip="随机密码，可选字符集"/>
-				<MenuItem x:Name="mnnet" Header="网络工具(_N)"
+				<MenuItem x:Name="mnnet" Header="网络工具(_N)…"
 				          AutomationProperties.AutomationId="menu.net"
-				          ToolTip="网络诊断、端口测试、网络唤醒和 HTTP 调试">
-					<MenuItem x:Name="mnnettool" Header="网络诊断(_D)…"
-					          AutomationProperties.AutomationId="menu.nettool"
-					          ToolTip="Ping、域名解析、WHOIS"/>
-					<MenuItem x:Name="mnnetfind" Header="网络发现(_F)…"
-					          AutomationProperties.AutomationId="menu.netfind"
-					          ToolTip="用 Windows 网络发现列出其它电脑"/>
-					<MenuItem x:Name="mnnetport" Header="端口测试(_P)…"
-					          AutomationProperties.AutomationId="menu.netport"
-					          ToolTip="测试 TCP 端口是否连通"/>
-					<MenuItem x:Name="mnnetwake" Header="网络唤醒(_W)…"
-					          AutomationProperties.AutomationId="menu.netwake"
-					          ToolTip="按 MAC 地址发送网络唤醒包"/>
-					<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
-					          AutomationProperties.AutomationId="menu.httpdbg"
-					          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>
-				</MenuItem>
+				          ToolTip="Ping、域名解析、端口测试、网络唤醒和网络发现"/>
+				<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
+				          AutomationProperties.AutomationId="menu.httpdbg"
+				          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>
 				<MenuItem x:Name="mninfo" Header="信息查询(_I)"
 				          AutomationProperties.AutomationId="menu.info"
-				          ToolTip="词典、系统信息、DNS 和端口占用">
+				          ToolTip="词典、系统信息和端口占用">
 					<MenuItem x:Name="mndict" Header="词典(_K)"
 					          AutomationProperties.AutomationId="menu.dict"
 					          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
@@ -188,9 +175,6 @@
 					          AutomationProperties.AutomationId="menu.sysinfo"
 					          ToolTip="查看系统、外设、驱动、状态和异常设备信息"/>
 					<Separator/>
-					<MenuItem x:Name="mnnetdns" Header="DNS 记录(_R)…"
-					          AutomationProperties.AutomationId="menu.netdns"
-					          ToolTip="查询 MX、TXT、NS、CNAME 和 SOA"/>
 					<MenuItem x:Name="mnportuse" Header="网络端口占用(_O)…"
 					          AutomationProperties.AutomationId="menu.portuse"
 					          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>
