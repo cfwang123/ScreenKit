@@ -62,7 +62,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-portuse" or "--test-midisynth" or "--test-voicerec"
+				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -333,6 +333,8 @@ static class Cli {
 					return testfastcopy();
 				case "--test-glyphmod":
 					return testglyphmod();
+				case "--test-mdread":
+					return testmdread();
 				case "--test-portuse":
 					return testportuse();
 				case "--test-midisynth":
@@ -4982,6 +4984,11 @@ static class Cli {
 		return GlyphMod.SelfTest(Out);
 	}
 
+	static int testmdread() {
+		Out("=== MD阅读器 --test-mdread ===");
+		return MdRead.SelfTest(Out);
+	}
+
 	static int testportuse() {
 		Out("=== 网络端口占用 --test-portuse ===");
 		return PortUse.SelfTest(Out);
@@ -5934,6 +5941,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-autokey
   ScreenKit --test-fastcopy
   ScreenKit --test-glyphmod
+  ScreenKit --test-mdread
   ScreenKit --test-portuse
   ScreenKit --test-midisynth
   ScreenKit --test-voicerec
@@ -6031,6 +6039,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-autokey  解析按键与间隔，并向探测窗发送一次 F13 和一次左键点击
       --test-fastcopy  复制、跳过、重命名、同分区剪切、硬链接、统计大小，以及多选合并
       --test-glyphmod  点阵按行按列打包，并给 Segoe UI 的 A 和空格生成 C 数组
+      --test-mdread  Markdown 转 HTML，并用 Windows 10 的 IE11 内核核对文档模式
       --test-portuse  列出 TCP/UDP 占用，并确认本进程监听的端口在表里
       --test-midisynth  弹琴键位、通用乐器表，以及 MIDI 文件的打开、改音符和保存
       --test-voicerec  录音时长、电平、WAV 往返，并列出麦克风
@@ -6132,6 +6141,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-autokey
   ScreenKit --test-fastcopy
   ScreenKit --test-glyphmod
+  ScreenKit --test-mdread
   ScreenKit --test-portuse
   ScreenKit --test-midisynth
   ScreenKit --test-voicerec

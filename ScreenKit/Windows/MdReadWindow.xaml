@@ -1,0 +1,32 @@
+<Window x:Class="ScreenKit.MdReadWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
+        Title="MD阅读器"
+        Width="960" Height="720"
+        MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="mdread.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+		<DockPanel Margin="0,0,0,8">
+			<Button x:Name="bopen" Content="打开" DockPanel.Dock="Left" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="mdread.open"/>
+			<Button x:Name="bclose" Content="关闭" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="mdread.close"/>
+			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="12,0,12,0"
+			           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
+			           AutomationProperties.AutomationId="mdread.stat"/>
+		</DockPanel>
+		<Border Grid.Row="1" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Background="White">
+			<wfi:WindowsFormsHost x:Name="phost" AutomationProperties.AutomationId="mdread.view"/>
+		</Border>
+	</Grid>
+</Window>

@@ -7,7 +7,8 @@ namespace ScreenKit;
 /// <summary>
 /// 按快捷键接管键盘，行为对齐 Windows 韩语输入法：两套式在光标处组字，没有候选条。
 /// 打开后另有一个托盘图标，左键切换韩文和英文，右键可关闭或打开参数。本程序窗口里的按键不接管。
-/// 右 Alt 或韩/英键在韩文和英文之间切换。空格、回车和标点先留下已组的字，再把该键交给当前窗口。
+/// 单独按 Shift、右 Alt 或韩/英键在韩文和英文之间切换。Shift 加字母仍是双辅音或双元音。
+/// 空格、回车和标点先留下已组的字，再把该键交给当前窗口。
 /// </summary>
 sealed class HangulIme : IDisposable {
 	const int WH_KEYBOARD_LL = 13;
@@ -40,6 +41,7 @@ sealed class HangulIme : IDisposable {
 	string shown = "";
 	bool enabled;
 	bool english;
+	bool shiftlone;
 	bool sending;
 	bool eat;
 	bool dead;
@@ -213,23 +215,34 @@ sealed class HangulIme : IDisposable {
 	}
 
 	void onkey(int vk, bool down) {
+		bool shiftkey = vk == VK_SHIFT || vk == 0xA0 || vk == 0xA1;
 		if (!down) {
+			if (shiftkey && shiftlone) {
+				shiftlone = false;
+				if (!ours(GetForegroundWindow())) ToggleEnglish();
+			}
 			eat = eaten.Remove(vk);
 			return;
 		}
 		if (ours(GetForegroundWindow())) {
+			shiftlone = false;
 			if (shown.Length > 0) commit();
 			return;
 		}
 		bool ctrl = held(VK_CONTROL) || held(0xA2) || held(0xA3);
 		bool win = held(VK_LWIN) || held(VK_RWIN);
+		bool alt = held(VK_MENU) || held(0xA4);
+		if (shiftkey) {
+			shiftlone = !ctrl && !alt && !win;
+			return;
+		}
+		shiftlone = false;
 		if ((vk == VK_RMENU || vk == VK_HANGUL) && !ctrl && !win) {
 			ToggleEnglish();
 			markeat(vk);
 			return;
 		}
 		if (english) return;
-		bool alt = held(VK_MENU) || held(0xA4);
 		if (ctrl || alt || win) {
 			commit();
 			return;

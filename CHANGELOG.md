@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools and the tray add Pixel art: choose a size, paint large cells, and preview the real pixel size.
 - Tools menu adds Korean input. A hotkey takes over the keyboard and composes two-set Hangul at the caret, like the Windows Korean IME.
 - Tools and the tray add a sound recorder. It records the microphone, can pause and continue, then play or save a WAV.
+- Tools and the tray add a Markdown reader. A dropped .md file is shown as HTML in the Windows 10 IE11 WebBrowser.
 
 #### Changed
 
@@ -68,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - IP scan uses a progress bar and a host list, and can open Port scan for the selected address. Port scan reads a service banner, and accepts a timeout and common ports.
 - GET/POST /api/pinyin no longer takes mode. One call returns data.pinyin and data.py.
 - Korean input uses its own tray icon for Hangul or English, with close and settings on the right-click menu.
+- Shift alone switches Korean input between Hangul and English. Shift plus a letter still types a double jamo.
 
 #### Fixed
 
@@ -97,6 +99,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具菜单和托盘增加像素画：选定尺寸后用大格作画，并按真实像素预览。
 - 工具菜单增加韩语输入。快捷键接管键盘后，按 Windows 韩语输入法在光标处用两套式组字。
 - 工具菜单和托盘增加录音机。从麦克风录音，暂停后可以继续，停止后播放或另存为 WAV。
+- 工具菜单和托盘增加 MD 阅读器。拖入 .md 文件后，用 Windows 10 的 IE11 内核显示成网页。
 
 #### 变更
 
@@ -112,6 +115,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - IP 扫描改为进度条和主机列表，选中后可打开该地址的端口扫描。端口扫描会读取服务标识，并可设置超时和常用端口。
 - GET/POST /api/pinyin 不再接收 mode，一次返回 data.pinyin 和 data.py。
 - 韩语输入改为单独的托盘图标，显示韩文或英文，右键可关闭或打开参数设置。
+- 韩语输入单独按 Shift 在韩文和英文之间切换。Shift 加字母仍输入双辅音或双元音。
 
 #### 修复
 

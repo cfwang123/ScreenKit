@@ -159,6 +159,9 @@
 				<MenuItem x:Name="mntexttool" Header="文本小工具(_X)…"
 				          AutomationProperties.AutomationId="menu.texttool"
 				          ToolTip="Base64、URL、UTF-8/GBK 十六进制"/>
+				<MenuItem x:Name="mnmdread" Header="MD阅读器(_O)…"
+				          AutomationProperties.AutomationId="menu.mdread"
+				          ToolTip="拖入 Markdown，用 Windows 10 的 IE11 内核显示"/>
 				<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
 				          AutomationProperties.AutomationId="menu.pwgen"
 				          ToolTip="随机密码，可选字符集"/>

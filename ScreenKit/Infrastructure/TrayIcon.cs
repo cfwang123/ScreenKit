@@ -41,6 +41,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miRename;
 	Forms.ToolStripMenuItem miHash;
 	Forms.ToolStripMenuItem miTextTool;
+	Forms.ToolStripMenuItem miMdRead;
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miNet;
 	Forms.ToolStripMenuItem miInfo;
@@ -171,6 +172,7 @@ sealed class TrayIcon : IDisposable {
 		miRename = item("tray.rename", () => RenameRequested?.Invoke());
 		miHash = item("tray.hash", () => HashRequested?.Invoke());
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
+		miMdRead = item("tray.mdread", () => MdReadRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miNet = item("tray.net", () => NetToolRequested?.Invoke());
 		miPortUse = item("tray.portuse", () => PortUseRequested?.Invoke());
@@ -205,6 +207,7 @@ sealed class TrayIcon : IDisposable {
 		miTools.DropDownItems.Add(miRename);
 		miTools.DropDownItems.Add(miHash);
 		miTools.DropDownItems.Add(miTextTool);
+		miTools.DropDownItems.Add(miMdRead);
 		miTools.DropDownItems.Add(miPwGen);
 		miTools.DropDownItems.Add(miNet);
 		miTools.DropDownItems.Add(miHttpDbg);
@@ -421,6 +424,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miRename, null);
 		setshortcut(miHash, null);
 		setshortcut(miTextTool, null);
+		setshortcut(miMdRead, null);
 		setshortcut(miPwGen, null);
 		setshortcut(miNet, null);
 		setshortcut(miPortUse, null);
@@ -482,6 +486,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miRename, "tray.rename");
 			settext(miHash, "tray.hash");
 			settext(miTextTool, "tray.texttool");
+			settext(miMdRead, "tray.mdread");
 			settext(miPwGen, "tray.pwgen");
 			settext(miNet, "tray.net");
 			settext(miInfo, "tray.info");
@@ -589,6 +594,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action RenameRequested;
 	public event Action HashRequested;
 	public event Action TextToolRequested;
+	public event Action MdReadRequested;
 	public event Action PwGenRequested;
 	public event Action NetToolRequested;
 	public event Action PortUseRequested;

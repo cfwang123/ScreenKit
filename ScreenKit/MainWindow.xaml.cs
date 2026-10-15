@@ -88,6 +88,7 @@ public partial class MainWindow : Window {
 	HashWindow hashWin;
 	ShotHistoryWindow histwin;
 	TextToolWindow textToolWin;
+	MdReadWindow mdReadWin;
 	PasswordWindow pwGenWin;
 	NetToolsWindow netToolWin;
 	SysInfoWindow sysWin;
@@ -639,6 +640,7 @@ public partial class MainWindow : Window {
 			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename(fromTray: true)));
 			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash(fromTray: true)));
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
+			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
 			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys(fromTray: true)));
@@ -1610,6 +1612,7 @@ public partial class MainWindow : Window {
 		mnrename.Click += (_, _) => openrename();
 		mnhash.Click += (_, _) => openhash();
 		mntexttool.Click += (_, _) => opentexttool();
+		mnmdread.Click += (_, _) => openmdread();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
@@ -1764,6 +1767,8 @@ public partial class MainWindow : Window {
 			mnhash.ToolTip = Loc.T("menu.hash.tip");
 			mntexttool.Header = Loc.T("menu.texttool");
 			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
+			mnmdread.Header = Loc.T("menu.mdread");
+			mnmdread.ToolTip = Loc.T("menu.mdread.tip");
 			mnpwgen.Header = Loc.T("menu.pwgen");
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnnet.Header = Loc.T("menu.net");
@@ -4416,6 +4421,9 @@ public partial class MainWindow : Window {
 	void openglyphmod(bool fromTray = false) =>
 		opentoolwin(ref glyphModWin, () => new GlyphModWindow(), "menu.glyphmod", fromTray);
 
+	void openmdread(bool fromTray = false) =>
+		opentoolwin(ref mdReadWin, () => new MdReadWindow(), "menu.mdread", fromTray);
+
 	void autokeytoggle() {
 		if (autoKeyWin == null) {
 			autokeystop();
@@ -4516,6 +4524,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(renameWin, w)) renameWin = null;
 				else if (ReferenceEquals(hashWin, w)) hashWin = null;
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
+				else if (ReferenceEquals(mdReadWin, w)) mdReadWin = null;
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
 				else if (ReferenceEquals(sysWin, w)) sysWin = null;
