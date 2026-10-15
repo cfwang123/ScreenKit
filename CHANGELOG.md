@@ -95,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page language script web/L.js is rebuilt only when a lang/*.toml file is newer.
 - Chinese segmentation lists each word, sentence, or grapheme on its own line.
 - Tools is one menu. Web entries are marked (web). Korean input stays on Tools.
+- RTSP test server video bitrate now defaults to 200 kbps.
 
 #### Fixed
 
@@ -186,6 +187,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页语言脚本 web/L.js 只在某个 lang/*.toml 比它新时才重新合成。
 - 中文分词按词、句或字素切开后，每行一段。
 - 工具菜单合并成一个，网页工具标注 (web)，韩语输入直接放在工具下
+- RTSP 测试服务器的视频码率默认改为 200 kbps。
 
 #### 修复
 

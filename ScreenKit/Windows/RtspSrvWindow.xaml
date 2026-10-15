@@ -22,7 +22,7 @@
 					<TextBlock x:Name="lbfps" Text="帧率" Foreground="#AAA" VerticalAlignment="Center" Margin="8,0,4,0"/>
 					<TextBox x:Name="efps" Text="30" Width="40" VerticalAlignment="Center"/>
 					<TextBlock x:Name="lbbr" Text="码率" Foreground="#AAA" VerticalAlignment="Center" Margin="8,0,4,0"/>
-					<TextBox x:Name="ebitrate" Text="1500" Width="56" VerticalAlignment="Center"/>
+					<TextBox x:Name="ebitrate" Text="200" Width="56" VerticalAlignment="Center"/>
 					<TextBlock Text="kbps" Foreground="#888" VerticalAlignment="Center" Margin="4,0,8,0"/>
 					<Button x:Name="btoggle" Content="启动" Width="72" Height="26"/>
 				</StackPanel>
