@@ -9,7 +9,7 @@ public partial class SciCalcWindow : Window {
 	public SciCalcWindow() {
 		InitializeComponent();
 		Title = Loc.T("scicalc.title");
-		WindowEsc.Attach(this);
+		WindowEsc.Attach(this, () => { calc.Press("ac"); paint(); });
 		bclose.Click += (_, _) => Close();
 		bdeg.Click += (_, _) => { calc.Press("deg"); paint(); };
 		chrome.MouseLeftButtonDown += (_, e) => {

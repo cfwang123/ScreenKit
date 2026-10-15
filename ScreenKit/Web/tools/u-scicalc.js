@@ -485,7 +485,7 @@
 		if (k === ")") return ")";
 		if (k === "Enter") return "eq";
 		if (k === "Backspace") return "bs";
-		if (k === "Delete") return "ac";
+		if (k === "Delete" || k === "Escape") return "ac";
 		return "";
 	}
 })();
