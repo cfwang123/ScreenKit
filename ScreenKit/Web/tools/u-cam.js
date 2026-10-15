@@ -308,11 +308,15 @@
 			SK.msg("cam-msg", tx("web.cam.noicap", "这个浏览器没有静帧拍照"), true);
 			return;
 		}
+		var resume = frameScan;
+		if (resume) stopframes();
 		cap.takePhoto().then(function(blob){
+			if (resume && scanOn) startframes();
 			if (SK.curtool !== "u-cam") return;
 			showshot(F.url(blob));
 			SK.msg("cam-msg", "");
 		}, function(){
+			if (resume && scanOn) startframes();
 			if (SK.curtool !== "u-cam") return;
 			shotpreview();
 			SK.msg("cam-msg", tx("web.cam.icapfail", "静帧失败，已改用预览画面"), true);

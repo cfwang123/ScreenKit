@@ -61,6 +61,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Screenshot defaults: save to D:/s/ when drive D exists, otherwise screenshots/ next to the program. The file name defaults to dd_##. The folder box and copied screenshot paths use /.
 - Scientific calculator on the Tools menu, tray, and tools page: compact keypad, degrees or radians, memory, percent, and a borderless black translucent window.
 - The web port forwards one RTSP stream over WebSocket /rtsp, and the tools page can play H.264.
+- Tools page: browser on-device model and this-browser info cards.
+- Desktop RTSP test server draws a bouncing picture, encodes H.264 with ffmpeg.exe, and serves rtsp://127.0.0.1:port/live.
 
 #### Changed
 
@@ -79,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Shift alone switches Korean input between Hangul and English. Shift plus a letter still types a double jamo.
 - Korean input no longer joins vowels into a diphthong, and a repeated key does not type a second vowel.
 - The slim release package includes 7za.dll and License.7za.txt.
+- The color picker can sample the screen. The camera can take an ImageCapture still and tune zoom, torch, and focus. Pen strokes keep coalesced points and a predicted tail, and a pen can use the system ink trail. Scanning reads frames with MediaStreamTrackProcessor when the browser has it.
 
 #### Fixed
 
@@ -125,6 +128,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 截图默认：有 D 盘时存到 D:/s/，否则仍是程序旁的 screenshots/。文件名默认 dd_##。保存位置和复制出来的截图路径用 /。
 - 工具菜单、托盘和工具页增加科学计算器：紧凑按键、角度或弧度、内存和百分数，窗口无边框、黑色半透明。
 - 网页端口用 WebSocket /rtsp 转发一路 RTSP，工具页可播放 H.264。
+- 工具页新增「浏览器小模型」和「本机信息」。
+- 桌面 RTSP 测试服务器画出弹跳画面，用 ffmpeg.exe 编成 H.264，并在本机端口提供 rtsp://127.0.0.1:端口/live。
 
 #### 变更
 
@@ -143,6 +148,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语输入单独按 Shift 在韩文和英文之间切换。Shift 加字母仍输入双辅音或双元音。
 - 韩语输入不再把元音并成双元音，按键连发也不会再打出一个元音。
 - 精简发布包带上 7za.dll 和 License.7za.txt。
+- 工具页取色可以从屏幕吸色。相机可以改用 ImageCapture 拍静帧，并调节变焦、手电和对焦。画笔补上快速移动丢掉的点，并画出预测的一段，触控笔走系统墨迹。扫码在浏览器提供时用 MediaStreamTrackProcessor 读帧。
 
 #### 修复
 

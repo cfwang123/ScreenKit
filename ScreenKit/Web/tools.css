@@ -251,6 +251,14 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .row.grow > label:last-child { flex: none; width: 140px; }
 .cpick { width: 220px; }
 .cpick-top { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+#cpick-eye {
+	height: 32px; margin-left: auto; padding: 4px 10px;
+	border: 1px solid var(--line); border-radius: 999px;
+	background: var(--card); color: var(--ink); cursor: pointer;
+}
+#cam-tune { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+#cam-tune label { display: flex; align-items: center; gap: 8px; width: auto; }
+#cam-zoom { width: 140px; height: 32px; margin: 0; }
 .cpick-swatch, #cpick-swatch {
 	display: block; width: 36px; height: 36px; margin: 0; padding: 0;
 	border: 1px solid var(--line); border-radius: 8px; background: #3366cc;

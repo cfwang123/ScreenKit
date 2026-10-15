@@ -83,6 +83,7 @@ static class Cli {
 				or "--test-http-chat"
 				or "--test-chat"
 				or "--test-rtsp"
+				or "--test-rtspsrv"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--toast"
@@ -274,6 +275,8 @@ static class Cli {
 					return ChatRoom.Test(Out, Err);
 				case "--test-rtsp":
 					return RtspFwd.Test(Out, Err);
+				case "--test-rtspsrv":
+					return RtspTestSrv.Test(Out, Err);
 				case "--test-sendfile":
 					return testsendfile();
 				case "--test-lang":
@@ -6070,6 +6073,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-chat
   ScreenKit --test-chat
   ScreenKit --test-rtsp
+  ScreenKit --test-rtspsrv
   ScreenKit --test-face-overlay
   ScreenKit --test-tts-sherpa <模型名> [--tts-text "文本"]
   ScreenKit --test-edge-tts [发音人] [--tts-text "文本"]
@@ -6176,6 +6180,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-http-chat  HTTP /api/chat（无 LLM 时期望 960/961；有配置可测 TTS）
       --test-chat  两个 WebSocket 进 /chat，互发一条文字，重复昵称会被拒绝
       --test-rtsp  本机假 RTSP 打一帧 H.264，经 WebSocket /rtsp 转发关键帧
+      --test-rtspsrv  本机起 RTSP 测试服务，OPTIONS 应回 200
       --test-face-overlay  用 GDI+ 在 Bitmap 上写「女 22岁」，不加载 OpenCV
       --test-tts-sherpa  用 CPU 加载指定 Sherpa 模型并完成一次合成
       --test-edge-tts  联网调用 Edge 自然语音并校验返回音频
@@ -6276,6 +6281,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-http-chat
   ScreenKit --test-chat
   ScreenKit --test-rtsp
+  ScreenKit --test-rtspsrv
   ScreenKit --test-face-overlay
   ScreenKit --test-tts-sherpa vits-mimic3-ko_KO-kss_low
   ScreenKit --test-edge-tts ko-KR-SunHiNeural

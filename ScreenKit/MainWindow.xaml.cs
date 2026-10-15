@@ -91,6 +91,7 @@ public partial class MainWindow : Window {
 	MdReadWindow mdReadWin;
 	PasswordWindow pwGenWin;
 	SciCalcWindow sciCalcWin;
+	RtspSrvWindow rtspSrvWin;
 	NetToolsWindow netToolWin;
 	SysInfoWindow sysWin;
 	HttpDebugWindow httpDbgWin;
@@ -646,6 +647,7 @@ public partial class MainWindow : Window {
 			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread(fromTray: true)));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
 			tray.SciCalcRequested += () => Dispatcher.BeginInvoke(new Action(() => openscicalc(fromTray: true)));
+			tray.RtspSrvRequested += () => Dispatcher.BeginInvoke(new Action(() => openrtspsrv(fromTray: true)));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
 			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys(fromTray: true)));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg(fromTray: true)));
@@ -1620,6 +1622,7 @@ public partial class MainWindow : Window {
 		mnmdread.Click += (_, _) => openmdread();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnscicalc.Click += (_, _) => openscicalc();
+		mnrtspsrv.Click += (_, _) => openrtspsrv();
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
 		mnmidi.Click += (_, _) => openmidi();
@@ -1780,6 +1783,8 @@ public partial class MainWindow : Window {
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnscicalc.Header = Loc.T("menu.scicalc");
 			mnscicalc.ToolTip = Loc.T("menu.scicalc.tip");
+			mnrtspsrv.Header = Loc.T("menu.rtspsrv");
+			mnrtspsrv.ToolTip = Loc.T("menu.rtspsrv.tip");
 			mnnetgroup.Header = Loc.T("menu.netgroup");
 			mnnetgroup.ToolTip = Loc.T("menu.netgroup.tip");
 			mnnet.Header = Loc.T("menu.net");
@@ -4461,6 +4466,9 @@ public partial class MainWindow : Window {
 
 	void openscicalc(bool fromTray = false) =>
 		opentoolwin(ref sciCalcWin, () => new SciCalcWindow(), "menu.scicalc", fromTray);
+
+	void openrtspsrv(bool fromTray = false) =>
+		opentoolwin(ref rtspSrvWin, () => new RtspSrvWindow(), "menu.rtspsrv", fromTray);
 
 	void autokeytoggle() {
 		if (autoKeyWin == null) {
