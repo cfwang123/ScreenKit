@@ -226,7 +226,7 @@ static class MdRead {
 		}
 		sb.Append("<style>");
 		sb.Append("html{height:100%;}");
-		sb.Append("body{box-sizing:border-box;height:100%;margin:0 auto;max-width:860px;overflow:auto;padding:28px 32px 64px;");
+		sb.Append("body{box-sizing:border-box;height:100%;margin:0;max-width:100%;overflow:auto;padding:28px 32px 64px;");
 		sb.Append("font:15px/1.65 'Segoe UI','Microsoft YaHei UI',sans-serif;color:#1f2937;background:#fff;}");
 		sb.Append("h1{font-size:28px;line-height:1.3;border-bottom:1px solid #e5e7eb;padding-bottom:8px;}");
 		sb.Append("h2{font-size:22px;line-height:1.35;border-bottom:1px solid #f3f4f6;padding-bottom:4px;}");
