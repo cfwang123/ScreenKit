@@ -388,7 +388,13 @@ static class WinOcr {
 			if (string.IsNullOrWhiteSpace(piece)) return text;
 			bits.Add(piece.Trim());
 		}
-		return joinbits(bits);
+		var joined = joinbits(bits);
+		if (text.Length > 0 && joined.Length > 0) {
+			var end = text[text.Length - 1];
+			if (end is '.' or ',' or '!' or '?' or '。' && joined[joined.Length - 1] != end)
+				joined += end;
+		}
+		return joined;
 	}
 
 	static bool haslatin(string s) {

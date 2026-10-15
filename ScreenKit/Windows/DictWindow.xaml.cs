@@ -183,7 +183,6 @@ public partial class DictWindow : UserControl {
 	}
 
 	public void FocusSearch() {
-		ensuredb();
 		try {
 			esearch.Focus();
 			esearch.SelectAll();
@@ -278,8 +277,6 @@ public partial class DictWindow : UserControl {
 	}
 
 	void runsearch() {
-		ensuredb();
-		if (!DictDb.Ready) return;
 		var q = esearch.Text ?? "";
 		var dict = filter ?? "";
 		if (string.IsNullOrWhiteSpace(q)) {
@@ -288,9 +285,11 @@ public partial class DictWindow : UserControl {
 			lhits.ItemsSource = null;
 			filling = false;
 			cleardetail();
-			lbstatus.Text = Loc.T("dict.ready");
+			if (DictDb.Ready) lbstatus.Text = Loc.T("dict.ready");
 			return;
 		}
+		ensuredb();
+		if (!DictDb.Ready) return;
 		var g = ++gen;
 		lbstatus.Text = Loc.T("dict.searching");
 		var took = new int[1];

@@ -211,7 +211,7 @@ public partial class MainWindow {
 			if (chrome) {
 				var exe = o.ChromeExe;
 				var idle = o.ChromeIdleSec;
-				outs = await Task.Run(() => ChromeTr.TranslateMany(items, src, dst, exe, idle, cts.Token),
+				outs = await Task.Run(() => ChromeTr.TranslateMany(items, src, dst, exe, idle, cts.Token, chromedown(lbstatus)),
 					cts.Token).ConfigureAwait(true);
 			}
 			else

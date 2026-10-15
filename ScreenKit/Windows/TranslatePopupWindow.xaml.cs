@@ -479,7 +479,11 @@ public partial class TranslatePopupWindow : Window {
 				var d = dst;
 				var exe = o.ChromeExe;
 				var idle = o.ChromeIdleSec;
-				result = await Task.Run(() => ChromeTr.Translate(textIn, s, d, exe, idle, ct), ct)
+				result = await Task.Run(() => ChromeTr.Translate(textIn, s, d, exe, idle, ct, part => {
+					var line = ChromeTr.DownText(part);
+					try { Dispatcher.BeginInvoke(new Action(() => lbstatus.Text = line)); }
+					catch { }
+				}), ct)
 					.ConfigureAwait(true);
 			}
 			else if (llm) {

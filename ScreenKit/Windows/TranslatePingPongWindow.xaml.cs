@@ -29,7 +29,7 @@ partial class TranslatePingPongWindow : Window {
 	readonly string startText;
 	readonly string fwdLabel;
 	readonly string revLabel;
-	readonly Func<string, bool, CancellationToken, string> stepFn;
+	readonly Func<string, bool, CancellationToken, Action<double>, string> stepFn;
 
 	CancellationTokenSource cts;
 	bool running;
@@ -55,13 +55,13 @@ partial class TranslatePingPongWindow : Window {
 		bindchrome();
 	}
 
-	/// <summary>LLM 来回翻译：step(text, reverse, ct)。</summary>
+	/// <summary>来回翻译：step(text, reverse, ct, progress)。progress 小于 0 表示还没有百分比。</summary>
 	internal TranslatePingPongWindow(
 		string text,
 		string fwdLabel,
 		string revLabel,
 		int rounds,
-		Func<string, bool, CancellationToken, string> step) {
+		Func<string, bool, CancellationToken, Action<double>, string> step) {
 		InitializeComponent();
 		engine = null;
 		forward = null;
@@ -177,7 +177,7 @@ partial class TranslatePingPongWindow : Window {
 				var t1 = text;
 				var out1 = await Task.Run(() => {
 					ct.ThrowIfCancellationRequested();
-					if (step != null) return step(t1, false, ct);
+					if (step != null) return step(t1, false, ct, chromedown);
 					return eng.Translate(fwd.DirKey, t1, ct);
 				}, ct).ConfigureAwait(true);
 				out1 = (out1 ?? "").Trim();
@@ -200,7 +200,7 @@ partial class TranslatePingPongWindow : Window {
 				var t2 = text;
 				var out2 = await Task.Run(() => {
 					ct.ThrowIfCancellationRequested();
-					if (step != null) return step(t2, true, ct);
+					if (step != null) return step(t2, true, ct, chromedown);
 					return eng.Translate(rev.DirKey, t2, ct);
 				}, ct).ConfigureAwait(true);
 				out2 = (out2 ?? "").Trim();
@@ -251,5 +251,11 @@ partial class TranslatePingPongWindow : Window {
 			try { cts?.Dispose(); } catch { }
 			cts = null;
 		}
+	}
+
+	void chromedown(double part) {
+		var line = ChromeTr.DownText(part);
+		try { Dispatcher.BeginInvoke(new Action(() => lbstatus.Text = line)); }
+		catch { }
 	}
 }

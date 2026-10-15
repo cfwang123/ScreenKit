@@ -560,11 +560,12 @@ static class ChromePack {
 	}
 
 	/// <summary>模型还要下载时，用调试接口带上用户手势再创建一次。创建完就关掉这次 Chrome。</summary>
-	public static void EnsurePair(string src, string dst, string exe, CancellationToken ct) {
+	public static void EnsurePair(string src, string dst, string exe, CancellationToken ct, Action<double> progress = null) {
 		src = (src ?? "").Trim();
 		dst = (dst ?? "").Trim();
 		if (src.Length == 0 || dst.Length == 0)
 			throw new InvalidOperationException("请选择源语言和目标语言");
+		progress?.Invoke(-1);
 		ChromeTr.Stop();
 		using var sess = Sess.Open(ChromeTr.ProfileDir(), HttpProxy.Mode, HttpProxy.Addr, null, ct, exe);
 		if (!sess.TryTranslator(ct))
@@ -576,11 +577,15 @@ static class ChromePack {
 		while (unchecked(Environment.TickCount - start) < 180000) {
 			ct.ThrowIfCancellationRequested();
 			sess.PumpAll(300, ct);
-			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out _, out _, out var done, out var err, out _, out _))
+			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out _, out _))
 				continue;
-			if (!done) continue;
+			if (!done) {
+				progress?.Invoke(seen ? p : -1);
+				continue;
+			}
 			if (!string.IsNullOrWhiteSpace(err))
 				throw new InvalidOperationException(err);
+			progress?.Invoke(1);
 			return;
 		}
 		throw new InvalidOperationException(Loc.T("inst.chrome.timeout"));

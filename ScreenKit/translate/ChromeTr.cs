@@ -9,12 +9,21 @@ static class ChromeTr {
 		return code;
 	}
 
-	public static string Translate(string text, string src, string dst, string exe, int idleSec, CancellationToken ct) {
-		var list = TranslateMany(new[] { text ?? "" }, src, dst, exe, idleSec, ct);
+	public static string Translate(string text, string src, string dst, string exe, int idleSec, CancellationToken ct, Action<double> progress = null) {
+		var list = TranslateMany(new[] { text ?? "" }, src, dst, exe, idleSec, ct, progress);
 		return list.Count > 0 ? list[0] ?? "" : "";
 	}
 
-	public static List<string> TranslateMany(IReadOnlyList<string> items, string src, string dst, string exe, int idleSec, CancellationToken ct) {
+	/// <summary>progress 小于 0 表示正在下载但还没有百分比。</summary>
+	public static string DownText(double part) {
+		if (part < 0) return Loc.T("tr.chrome.down");
+		var pct = (int)Math.Round(part * 100);
+		if (pct < 0) pct = 0;
+		if (pct > 100) pct = 100;
+		return Loc.T("tr.chrome.down.pct", pct);
+	}
+
+	public static List<string> TranslateMany(IReadOnlyList<string> items, string src, string dst, string exe, int idleSec, CancellationToken ct, Action<double> progress = null) {
 		var list = new List<string>();
 		if (items == null || items.Count == 0) return list;
 		src = TrLang.Normalize(src);
@@ -27,7 +36,7 @@ static class ChromeTr {
 		}
 		var texts = new List<string>();
 		foreach (var s in items) texts.Add(s ?? "");
-		return ChromeHost.Translate(texts, Bcp(src), Bcp(dst), exe, idleSec, ct);
+		return ChromeHost.Translate(texts, Bcp(src), Bcp(dst), exe, idleSec, ct, progress);
 	}
 
 	public static int Test() {

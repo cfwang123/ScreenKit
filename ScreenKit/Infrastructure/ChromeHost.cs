@@ -53,7 +53,7 @@ static class ChromeHost {
 		waitdone(id, done, ct, "Chrome 朗读超时");
 	}
 
-	public static List<string> Translate(List<string> texts, string src, string dst, string exe, int idleSec, CancellationToken ct) {
+	public static List<string> Translate(List<string> texts, string src, string dst, string exe, int idleSec, CancellationToken ct, Action<double> progress = null) {
 		var id = Interlocked.Increment(ref seq);
 		var items = new JsonArray();
 		if (texts != null) {
@@ -71,7 +71,7 @@ static class ChromeHost {
 			return translateonce(id, json, exe, idleSec, ct);
 		}
 		catch (InvalidOperationException ex) when (needpack(ex)) {
-			ChromePack.EnsurePair(src, dst, exe, ct);
+			ChromePack.EnsurePair(src, dst, exe, ct, progress);
 			id = Interlocked.Increment(ref seq);
 			jo["id"] = id;
 			json = jo.ToJsonString().Replace("<", "\\u003c");

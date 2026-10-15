@@ -613,7 +613,7 @@ public partial class MainWindow {
 				var d = dst;
 				var exe = opt.ChromeExe;
 				var idle = opt.ChromeIdleSec;
-				result = await Task.Run(() => ChromeTr.Translate(text, s, d, exe, idle, ct), ct)
+				result = await Task.Run(() => ChromeTr.Translate(text, s, d, exe, idle, ct, chromedown(lbtrstatus)), ct)
 					.ConfigureAwait(true);
 			}
 			else if (llm) {
@@ -696,7 +696,7 @@ public partial class MainWindow {
 			try {
 				var dlg = new TranslatePingPongWindow(
 					textIn, fwdLabel, revLabel, TranslatePingPongWindow.DefaultRounds,
-					(t, rev, ct) => ChromeTr.Translate(t, rev ? d0 : s0, rev ? s0 : d0, exe, idle, ct));
+					(t, rev, ct, progress) => ChromeTr.Translate(t, rev ? d0 : s0, rev ? s0 : d0, exe, idle, ct, progress));
 				attachdialogowner(dlg);
 				dlg.ShowDialog();
 				applypingpongresult(dlg);
@@ -729,7 +729,7 @@ public partial class MainWindow {
 			try {
 				var dlg = new TranslatePingPongWindow(
 					textIn, fwdLabel, revLabel, TranslatePingPongWindow.DefaultRounds,
-					(t, rev, ct) => AsrLlmClient.Translate(o, t, rev ? d0 : s0, rev ? s0 : d0, ct));
+					(t, rev, ct, _) => AsrLlmClient.Translate(o, t, rev ? d0 : s0, rev ? s0 : d0, ct));
 				attachdialogowner(dlg);
 				dlg.ShowDialog();
 				applypingpongresult(dlg);
@@ -798,6 +798,12 @@ public partial class MainWindow {
 		else
 			lbtrstatus.Text = Loc.T("tr.pp.closed");
 	}
+
+	Action<double> chromedown(TextBlock lb) => part => {
+		var line = ChromeTr.DownText(part);
+		try { Dispatcher.BeginInvoke(new Action(() => { if (lb != null) lb.Text = line; })); }
+		catch { }
+	};
 
 	void applytrlang() {
 		lbtrbrand.Text = Loc.T("tab.translate");

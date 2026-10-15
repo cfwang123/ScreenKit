@@ -62,6 +62,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The performance window is a two-column slate panel with a pin button that keeps it in front.
 - Chrome speech plays immediately. The offline voice pack is installed only after playback fails, then the text is spoken once more. The HTTP API does the same.
 - The web tools page is built in JavaScript. tools.html only links the stylesheets and scripts.
+- Chrome translation shows that a model is downloading, and the percent when it is known.
+- The dictionary hotkey does not open the SQLite dictionary when there is nothing to search.
 
 #### Fixed
 
@@ -107,6 +109,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 性能小窗改为双列石板样式，标题旁的图钉可固定到前面。
 - Chrome 语音先直接朗读。发不出声才安装离线语音包，装完再读一次。HTTP 接口同样如此。
 - web 工具页改由脚本生成页面，tools.html 只保留样式和脚本引用。
+- Chrome 翻译下载模型时显示正在下载，有百分比时一并显示。
+- 词典热键在没有搜索内容时不打开 SQLite 词典库。
 
 #### 修复
 
