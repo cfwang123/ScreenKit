@@ -266,4 +266,6 @@ enum TtsEngineKind {
 	Sherpa = 1,
 	/// <summary>Microsoft Edge 在线自然语音。</summary>
 	Edge = 3,
+	/// <summary>本机 Chrome 的 Google 在线语音。只出声，不返回采样。</summary>
+	Chrome = 4,
 }

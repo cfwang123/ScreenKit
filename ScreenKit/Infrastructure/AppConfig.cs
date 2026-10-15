@@ -416,6 +416,8 @@ static class AppConfig {
 			// TTS
 			if (map.TryGetValue("tts_engine", out var te) && !string.IsNullOrWhiteSpace(te))
 				o.TtsEngine = te.Trim();
+			if (map.TryGetValue("chrome_exe", out var tchrome))
+				o.ChromeExe = (tchrome ?? "").Trim();
 			if (map.TryGetValue("tts_compute", out var tc) && !string.IsNullOrWhiteSpace(tc))
 				o.TtsCompute = tc.Trim();
 			if (map.TryGetValue("tts_model", out var tm))
@@ -842,8 +844,10 @@ static class AppConfig {
 		sb.AppendLine($"gif_click_highlight = {(gif.HighlightClicks ? "true" : "false")}");
 		sb.AppendLine();
 		sb.AppendLine("[tts]");
-		sb.AppendLine("# 引擎 Sapi | WinRt | Edge | Sherpa；空则启动时有 Windows 语音用 WinRT，否则 Edge");
+		sb.AppendLine("# 引擎 Sapi | WinRt | Edge | Chrome | Sherpa；空则启动时有 Windows 语音用 WinRT，否则 Edge");
 		sb.AppendLine($"tts_engine = \"{esc(o.TtsEngine ?? "")}\"");
+		sb.AppendLine("# chrome.exe 完整路径；空则自动查找");
+		sb.AppendLine($"chrome_exe = \"{esc(o.ChromeExe ?? "")}\"");
 		sb.AppendLine($"tts_compute = \"{esc(string.IsNullOrWhiteSpace(o.TtsCompute) ? "Auto" : o.TtsCompute)}\"");
 		sb.AppendLine($"tts_model = \"{esc(o.TtsModel ?? "")}\"");
 		sb.AppendLine($"tts_voice = \"{esc(o.TtsVoice ?? "")}\"");

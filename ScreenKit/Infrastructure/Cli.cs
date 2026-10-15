@@ -49,7 +49,7 @@ static class Cli {
 			if (a is "--image" or "-i" or "--probe-cuda" or "--list-models" or "--list-tts"
 				or "--list-sapi"
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
-				or "--test-tts-sherpa" or "--test-edge-tts" or "--list-edge-tts"
+				or "--test-tts-sherpa" or "--test-edge-tts" or "--test-chrome-tts" or "--list-edge-tts"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
 				or "--test-overlay-layout" or "--test-overlay-span-adj"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
@@ -160,6 +160,7 @@ static class Cli {
 		bool probeTtsGender = false;
 		bool doTestTtsSherpa = false;
 		bool doTestEdgeTts = false;
+		bool doTestChromeTts = false;
 		string testTtsModel = null;
 		string testEdgeVoice = "zh-CN-XiaoxiaoNeural";
 		string testTtsText = "안녕하세요. 한국어 음성 합성 테스트입니다.";
@@ -435,6 +436,9 @@ static class Cli {
 						if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
 							testEdgeVoice = Next();
 						break;
+					case "--test-chrome-tts":
+						doTestChromeTts = true;
+						break;
 					case "--tts-text":
 						testTtsText = Next();
 						break;
@@ -648,6 +652,13 @@ static class Cli {
 				Err(ex.ToString());
 				return 1;
 			}
+		}
+
+		if (doTestChromeTts) {
+			var code = ChromeTts.Test();
+			if (code == 0) Out($"OK chrome voices={ChromeTts.Voices.Count}");
+			else Err("FAIL chrome tts");
+			return code;
 		}
 
 		if (translateText != null) {

@@ -58,6 +58,7 @@ public partial class MainWindow {
 			IsEnabled = winRtTts != null && winRtTts.Voices.Count > 0,
 		});
 		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.edge"), Tag = TtsEngineKind.Edge });
+		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.chrome"), Tag = TtsEngineKind.Chrome });
 		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.sherpa"), Tag = TtsEngineKind.Sherpa });
 		// 未保存引擎：有 Windows 语音用 WinRT，否则 Edge 在线
 		ettsengine.SelectedIndex = ttsfallbackengine() == TtsEngineKind.WinRt ? 1 : 2;
@@ -160,6 +161,10 @@ public partial class MainWindow {
 				}
 				catch (Exception ex) { lbttsstatus.Text = "选语音失败: " + ex.Message; }
 			}
+			else if (eng == TtsEngineKind.Chrome
+				&& ettsvoice.SelectedItem is SapiVoiceItem ci2) {
+				lbttsstatus.Text = "Chrome · " + ci2.DisplayName;
+			}
 			savettsprefs();
 		};
 		ettskbps.SelectionChanged += (_, _) => {
@@ -180,6 +185,10 @@ public partial class MainWindow {
 			if (currentttsengine() == TtsEngineKind.Edge)
 				_ = loadedgevoicesasync(force: true);
 		};
+		bchromepath.Click += (_, _) => browsechromepath();
+		echromepath.TextChanged += (_, _) => {
+			if (!ttsUiLoading) savettsprefs();
+		};
 		scanttssmodels();
 		// 扫描完 Sherpa 后再并入模型语言
 		rebuildttslangcombo(preserve: true);
@@ -195,16 +204,19 @@ public partial class MainWindow {
 		try {
 			var engName = (opt.TtsEngine ?? "").Trim();
 			if (engName.Length > 0) {
-				var wantEng = engName.Equals("WinRt", StringComparison.OrdinalIgnoreCase)
+				var wantEng = TtsEngineKind.Sherpa;
+				if (engName.Equals("WinRt", StringComparison.OrdinalIgnoreCase)
 					|| engName.Equals("Windows", StringComparison.OrdinalIgnoreCase)
-					|| engName.Equals("OneCore", StringComparison.OrdinalIgnoreCase)
-					? TtsEngineKind.WinRt
-					: engName.Equals("Edge", StringComparison.OrdinalIgnoreCase)
-						|| engName.Equals("EdgeOnline", StringComparison.OrdinalIgnoreCase)
-						? TtsEngineKind.Edge
-					: engName.Equals("Sapi", StringComparison.OrdinalIgnoreCase)
-						? TtsEngineKind.Sapi
-						: TtsEngineKind.Sherpa;
+					|| engName.Equals("OneCore", StringComparison.OrdinalIgnoreCase))
+					wantEng = TtsEngineKind.WinRt;
+				else if (engName.Equals("Edge", StringComparison.OrdinalIgnoreCase)
+					|| engName.Equals("EdgeOnline", StringComparison.OrdinalIgnoreCase))
+					wantEng = TtsEngineKind.Edge;
+				else if (engName.Equals("Chrome", StringComparison.OrdinalIgnoreCase)
+					|| engName.Equals("Google", StringComparison.OrdinalIgnoreCase))
+					wantEng = TtsEngineKind.Chrome;
+				else if (engName.Equals("Sapi", StringComparison.OrdinalIgnoreCase))
+					wantEng = TtsEngineKind.Sapi;
 				if (wantEng == TtsEngineKind.Sherpa && sherpaTts == null)
 					wantEng = ttsfallbackengine();
 				if (wantEng == TtsEngineKind.WinRt && (winRtTts == null || winRtTts.Voices.Count == 0))
@@ -236,6 +248,7 @@ public partial class MainWindow {
 			ettsvol.Value = Compat.Clamp(opt.TtsVolume, 0, 100);
 			lbttsrate.Text = $"{ettsrate.Value:0.0}x";
 			lbttsvol.Text = ((int)ettsvol.Value).ToString();
+			echromepath.Text = opt.ChromeExe ?? "";
 			var kbps = Compat.Clamp(opt.TtsKbps <= 0 ? 192 : opt.TtsKbps, 32, 320);
 			foreach (ComboBoxItem it in ettskbps.Items) {
 				if (it.Tag is int k && k == kbps) {
@@ -268,6 +281,8 @@ public partial class MainWindow {
 			collectwinrtlangs(set);
 		else if (eng == TtsEngineKind.Edge)
 			collectedgelangs(set);
+		else if (eng == TtsEngineKind.Chrome)
+			collectchromelangs(set);
 		else {
 			collectsherpalangs(set);
 			if (set.Count == 0) {
@@ -320,6 +335,11 @@ public partial class MainWindow {
 
 	void collectedgelangs(SortedSet<string> set) {
 		foreach (var v in edgeVoicesCache ?? Enumerable.Empty<SapiVoiceItem>())
+			addttslang(set, v.Lang);
+	}
+
+	void collectchromelangs(SortedSet<string> set) {
+		foreach (var v in ChromeTts.Voices)
 			addttslang(set, v.Lang);
 	}
 
@@ -384,6 +404,10 @@ public partial class MainWindow {
 				if (ettsvoice.Items.Count == 0)
 					filledgevoices();
 			}
+			else if (eng == TtsEngineKind.Chrome) {
+				if (ettsvoice.Items.Count == 0)
+					fillechromevoices();
+			}
 			restorettsvoice();
 		}
 		finally {
@@ -395,7 +419,7 @@ public partial class MainWindow {
 		if (string.IsNullOrEmpty(opt.TtsVoice)) return;
 		var want = opt.TtsVoice;
 		var eng = currentttsengine();
-		if (eng is TtsEngineKind.Sapi or TtsEngineKind.WinRt or TtsEngineKind.Edge) {
+		if (eng is TtsEngineKind.Sapi or TtsEngineKind.WinRt or TtsEngineKind.Edge or TtsEngineKind.Chrome) {
 			foreach (var item in ettsvoice.Items) {
 				if (item is SapiVoiceItem wi
 					&& (string.Equals(wi.Key, want, StringComparison.OrdinalIgnoreCase)
@@ -427,8 +451,10 @@ public partial class MainWindow {
 				TtsEngineKind.Sapi => "Sapi",
 				TtsEngineKind.WinRt => "WinRt",
 				TtsEngineKind.Edge => "Edge",
+				TtsEngineKind.Chrome => "Chrome",
 				_ => "Sherpa",
 			};
+			opt.ChromeExe = (echromepath.Text ?? "").Trim();
 			if (ettscompute.SelectedItem is ComboBoxItem ci && ci.Tag is TtsComputeMode cm)
 				opt.TtsCompute = cm.ToString();
 			else
@@ -616,6 +642,10 @@ public partial class MainWindow {
 			filledgevoices();
 			return;
 		}
+		if (eng == TtsEngineKind.Chrome) {
+			fillechromevoices();
+			return;
+		}
 		var prev = ettsmodel.SelectedItem as TtsModelInfo;
 		ttsUiLoading = true;
 		try {
@@ -654,6 +684,7 @@ public partial class MainWindow {
 		}
 
 		var eng2 = currentttsengine();
+		pchrome.Visibility = eng2 == TtsEngineKind.Chrome ? Visibility.Visible : Visibility.Collapsed;
 		if (eng2 == TtsEngineKind.Sherpa) {
 			applyttsfilter();
 			var cuda = TtsEngine.ProbeCuda(out var cudaReason);
@@ -683,6 +714,13 @@ public partial class MainWindow {
 				: $"Edge 在线 · {ettsvoice.Items.Count}/{edgeVoicesCache.Count} 个自然语音";
 			if (edgeVoicesCache.Count == 0)
 				_ = loadedgevoicesasync();
+		}
+		else if (eng2 == TtsEngineKind.Chrome) {
+			fillechromevoices();
+			var exe = ChromeTts.FindExe(opt.ChromeExe);
+			lbttsstatus.Text = string.IsNullOrEmpty(exe)
+				? Loc.T("tts.chrome.missing")
+				: $"Chrome · {ettsvoice.Items.Count} · {exe}";
 		}
 		else {
 			// 先填本机 x64，再异步合并 x86 Web（按需启动）
@@ -748,6 +786,52 @@ public partial class MainWindow {
 		finally {
 			ttsUiLoading = false;
 		}
+	}
+
+	void fillechromevoices() {
+		ttsUiLoading = true;
+		try {
+			var previous = ettsvoice.SelectedItem is SapiVoiceItem old ? old.Key : opt.TtsVoice;
+			ettsvoice.Items.Clear();
+			ettsvoice.DisplayMemberPath = "DisplayName";
+			ttsfilterwant(out var wantLang, out var wantGender);
+			foreach (var v in ChromeTts.Voices) {
+				if (!winrtvoicematches(v, wantLang, wantGender)) continue;
+				ettsvoice.Items.Add(v);
+			}
+			SapiVoiceItem pick = null;
+			foreach (SapiVoiceItem item in ettsvoice.Items) {
+				if (string.Equals(item.Key, previous, StringComparison.OrdinalIgnoreCase)
+					|| string.Equals(item.Name, previous, StringComparison.OrdinalIgnoreCase)) {
+					pick = item;
+					break;
+				}
+			}
+			if (pick == null) {
+				foreach (SapiVoiceItem item in ettsvoice.Items) {
+					if (item.Lang == TtsLang.Zh) { pick = item; break; }
+				}
+			}
+			if (pick == null && ettsvoice.Items.Count > 0)
+				pick = ettsvoice.Items[0] as SapiVoiceItem;
+			ettsvoice.SelectedItem = pick;
+		}
+		finally {
+			ttsUiLoading = false;
+		}
+	}
+
+	void browsechromepath() {
+		var dlg = new Microsoft.Win32.OpenFileDialog {
+			Title = Loc.T("tts.chrome.browse"),
+			Filter = "chrome.exe|chrome.exe|*.exe|*.exe",
+			FileName = "chrome.exe",
+		};
+		if (dlg.ShowDialog(this) != true) return;
+		echromepath.Text = dlg.FileName;
+		savettsprefs();
+		if (currentttsengine() == TtsEngineKind.Chrome)
+			applyttsengineui();
 	}
 
 	/// <summary>后台拉 x86 发音人并合并到下拉（不挡 UI）。</summary>
@@ -936,6 +1020,7 @@ public partial class MainWindow {
 		ttsSkipDelta = 0;
 		ttsPaused = false;
 		try { ttsSpeakCts?.Cancel(); } catch { }
+		try { ChromeTts.Stop(); } catch { }
 		try { sapiTts?.Stop(); } catch { }
 		try { ttsPlayer?.Stop(); } catch { }
 		ttsSession = false;
@@ -974,7 +1059,14 @@ public partial class MainWindow {
 	async Task speaktextasync(string text, TtsPlayer player, CancellationToken ct,
 		Action<string> onStatus = null) {
 		text = (text ?? "").Trim();
-		if (text.Length == 0 || player == null) return;
+		if (text.Length == 0) return;
+		if (currentttsengine() == TtsEngineKind.Chrome) {
+			var chromeSegs = TtsTextSplitter.Split(text);
+			if (chromeSegs.Count == 0) return;
+			await speakchromeasync(chromeSegs, null, ct);
+			return;
+		}
+		if (player == null) return;
 		var segments = TtsTextSplitter.Split(text);
 		if (segments.Count == 0) return;
 
@@ -1082,6 +1174,10 @@ public partial class MainWindow {
 
 	void ttstogglepause() {
 		if (!ttsSession) return;
+		if (currentttsengine() == TtsEngineKind.Chrome) {
+			ttsstop();
+			return;
+		}
 		if (ttsPaused) {
 			ttsPaused = false;
 			try { ttsPlayer?.Resume(); } catch { }
@@ -1102,7 +1198,10 @@ public partial class MainWindow {
 			try { ttsPlayer?.Resume(); } catch { }
 		}
 		ttsSkipDelta = delta;
-		try { ttsPlayer?.StopSegment(); } catch { }
+		if (currentttsengine() == TtsEngineKind.Chrome)
+			try { ChromeTts.Stop(); } catch { }
+		else
+			try { ttsPlayer?.StopSegment(); } catch { }
 		updatettsctrlui();
 	}
 
@@ -1219,6 +1318,10 @@ public partial class MainWindow {
 		string fallback = null;
 		try {
 			savettsprefs();
+			if (eng == TtsEngineKind.Chrome) {
+				await speakchromeasync(segments, uiText, ct);
+				return;
+			}
 			if (eng == TtsEngineKind.Sapi) {
 				if (useX86Sapi) {
 					if (!SapiX86Client.ExeAvailable) { lbttsstatus.Text = "无 x86host.exe，无法用 x86 音"; return; }
@@ -1393,7 +1496,42 @@ public partial class MainWindow {
 		return 192;
 	}
 
+	async Task speakchromeasync(List<TtsSegment> segments, string uiText, CancellationToken ct) {
+		var exe = ChromeTts.FindExe(string.IsNullOrWhiteSpace(echromepath.Text) ? opt.ChromeExe : echromepath.Text);
+		if (string.IsNullOrEmpty(exe))
+			throw new InvalidOperationException(Loc.T("tts.chrome.missing"));
+		var voice = ettsvoice.SelectedItem as SapiVoiceItem;
+		var name = voice?.Name ?? "";
+		var lang = voice != null && !string.IsNullOrEmpty(voice.Culture) ? voice.Culture : currentttslang();
+		var rate = ettsrate.Value;
+		var vol = ettsvol.Value / 100.0;
+		var i = 0;
+		while (i < segments.Count) {
+			ct.ThrowIfCancellationRequested();
+			ttsSegIndex = i;
+			lbttsstatus.Text = $"{Loc.T("tts.chrome.speaking")} {i + 1}/{segments.Count}";
+			if (!string.IsNullOrEmpty(uiText)) highlightttssegment(segments[i], uiText);
+			updatettsctrlui();
+			var part = segments[i].Text;
+			await Task.Run(() => ChromeTts.Speak(part, name, lang, rate, vol, exe, ct));
+			if (ttsSkipDelta != 0) {
+				var next = i + ttsSkipDelta;
+				ttsSkipDelta = 0;
+				if (next >= segments.Count) break;
+				i = Math.Max(0, next);
+				continue;
+			}
+			i++;
+		}
+		if (!ct.IsCancellationRequested)
+			lbttsstatus.Text = $"Chrome · {segments.Count}";
+	}
+
 	async Task ttsexportasync() {
+		if (currentttsengine() == TtsEngineKind.Chrome) {
+			lbttsstatus.Text = Loc.T("tts.chrome.export");
+			return;
+		}
 		var uiText = ettstext.Text ?? "";
 		var segments = TtsTextSplitter.Split(uiText);
 		if (segments.Count == 0) {
@@ -1633,6 +1771,9 @@ public partial class MainWindow {
 
 	void applyttslang() {
 		lbttsbrand.Text = Loc.T("tab.tts");
+		lbchromepath.Text = Loc.T("tts.chrome.path");
+		bchromepath.Content = Loc.T("tts.chrome.browse");
+		echromepath.ToolTip = Loc.T("tts.chrome.tip");
 		if (string.IsNullOrWhiteSpace(lbttsstatus.Text) || lbttsstatus.Text == "就绪" || lbttsstatus.Text == Loc.T("ready"))
 			lbttsstatus.Text = Loc.T("ready");
 		lbttsengine.Text = Loc.T("tts.engine");
@@ -1672,6 +1813,7 @@ public partial class MainWindow {
 					TtsEngineKind.Sapi => Loc.T("tts.engine.sapi"),
 					TtsEngineKind.WinRt => Loc.T("tts.engine.winrt"),
 					TtsEngineKind.Edge => Loc.T("tts.engine.edge"),
+					TtsEngineKind.Chrome => Loc.T("tts.engine.chrome"),
 					_ => Loc.T("tts.engine.sherpa"),
 				};
 		}

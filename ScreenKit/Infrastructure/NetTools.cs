@@ -881,7 +881,7 @@ static class NetTools {
 	}
 
 	/// <summary>搜索活动网卡所在局域网，通过并发 ICMP 填充 ARP 表，再反查主机名。</summary>
-	public static async Task<List<LanComputer>> SearchComputers(Action<string> line, CancellationToken ct, Action<int, int> progress = null) {
+	public static async Task<List<LanComputer>> SearchComputers(Action<string> line, CancellationToken ct, Action<int, int> progress = null, Action<LanComputer> found = null, Action<LanComputer> named = null) {
 		var candidates = lancandidates();
 		line?.Invoke(Loc.T("nettool.scan.start", candidates.Count));
 		progress?.Invoke(0, candidates.Count);
@@ -917,9 +917,10 @@ static class NetTools {
 		var arp = await Task.Run(readarp, ct).ConfigureAwait(false);
 		var wanted = new HashSet<string>(candidates.Select(x => ipof(x).ToString()), StringComparer.Ordinal);
 		var rows = ParseArp(arp).Where(x => wanted.Contains(x.Ip)).ToList();
-		if (rows.Count > 0) line?.Invoke(Loc.T("nettool.scan.names", rows.Count));
-		await resolvenames(rows, ct).ConfigureAwait(false);
 		rows.Sort((a, b) => ipuint(IPAddress.Parse(a.Ip)).CompareTo(ipuint(IPAddress.Parse(b.Ip))));
+		foreach (var row in rows) found?.Invoke(row);
+		if (rows.Count > 0) line?.Invoke(Loc.T("nettool.scan.names", rows.Count));
+		await resolvenames(rows, ct, named).ConfigureAwait(false);
 		if (rows.Count == 0) {
 			line?.Invoke(Loc.T("nettool.scan.none"));
 			return rows;
@@ -990,13 +991,13 @@ static class NetTools {
 		}
 	}
 
-	static async Task resolvenames(List<LanComputer> rows, CancellationToken ct) {
+	static async Task resolvenames(List<LanComputer> rows, CancellationToken ct, Action<LanComputer> named) {
 		var gate = new SemaphoreSlim(16);
 		var tasks = new List<Task>();
 		try {
 			foreach (var row in rows) {
 				await gate.WaitAsync(ct).ConfigureAwait(false);
-				tasks.Add(resolveone(row, gate, ct));
+				tasks.Add(resolveone(row, gate, ct, named));
 			}
 		}
 		finally {
@@ -1006,7 +1007,7 @@ static class NetTools {
 		ct.ThrowIfCancellationRequested();
 	}
 
-	static async Task resolveone(LanComputer row, SemaphoreSlim gate, CancellationToken ct) {
+	static async Task resolveone(LanComputer row, SemaphoreSlim gate, CancellationToken ct, Action<LanComputer> named) {
 		try {
 			var task = Dns.GetHostEntryAsync(row.Ip);
 			var done = await Task.WhenAny(task, Task.Delay(1200, ct)).ConfigureAwait(false);
@@ -1020,7 +1021,10 @@ static class NetTools {
 			ct.ThrowIfCancellationRequested();
 		}
 		catch (Exception ex) when (ex is not OperationCanceledException) { }
-		finally { gate.Release(); }
+		finally {
+			try { named?.Invoke(row); } catch { }
+			gate.Release();
+		}
 	}
 
 	static List<uint> lancandidates() {

@@ -5,7 +5,7 @@ using System.Windows.Threading;
 
 namespace ScreenKit;
 
-/// <summary>HTTP TTS：Sherpa + SAPI + Windows（WinRT）+ Edge 在线语音。</summary>
+/// <summary>HTTP TTS：Sherpa + SAPI + Windows（WinRT）+ Edge 在线语音 + Chrome（本机播放）。</summary>
 sealed partial class HttpOcrServer {
 	const int VoiceCacheMs = 30_000;
 	readonly object sapiGate = new();
@@ -27,6 +27,7 @@ sealed partial class HttpOcrServer {
 			ttsengine("sapi", "SAPI"),
 			ttsengine("winrt", "Windows"),
 			ttsengine("edge", "Edge Online"),
+			ttsengine("chrome", "Chrome"),
 		};
 		writejson(ctx, 200, new JsonObject {
 			["code"] = 100,
@@ -108,6 +109,7 @@ sealed partial class HttpOcrServer {
 		TtsEngineKind.Sapi => "sapi",
 		TtsEngineKind.WinRt => "winrt",
 		TtsEngineKind.Edge => "edge",
+		TtsEngineKind.Chrome => "chrome",
 		_ => "sherpa",
 	};
 
@@ -141,6 +143,10 @@ sealed partial class HttpOcrServer {
 		}
 		if (text.Length > 20000) {
 			writejson(ctx, 200, err(803, "text 过长（上限 20000 字）"));
+			return;
+		}
+		if (ischromereq(jo)) {
+			writechrome(ctx, jo, text);
 			return;
 		}
 		if (!tryplaymode(jo, out var immediate, out var playErr)) {
@@ -249,6 +255,10 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, err(803, "text 过长（上限 20000 字）"));
 			return;
 		}
+		if (ischromereq(jo)) {
+			writechrome(ctx, jo, text);
+			return;
+		}
 		var t0 = Environment.TickCount;
 		if (!maketts(jo, text, out var made, out var bad)) {
 			writejson(ctx, 200, bad);
@@ -274,6 +284,69 @@ sealed partial class HttpOcrServer {
 		});
 	}
 
+	static bool ischromereq(JsonObject jo) {
+		var engine = jo["engine"]?.GetValue<string>() ?? "";
+		if (tryparseengine(engine, out var kind) && kind == TtsEngineKind.Chrome) return true;
+		var voice = jo["voice"]?.GetValue<string>() ?? jo["speaker"]?.GetValue<string>() ?? "";
+		if (voice.StartsWith("chrome:", StringComparison.OrdinalIgnoreCase)) return true;
+		var model = jo["model"]?.GetValue<string>() ?? "";
+		return model.Equals("Chrome", StringComparison.OrdinalIgnoreCase)
+			|| model.Equals("Google", StringComparison.OrdinalIgnoreCase);
+	}
+
+	void writechrome(SockCtx ctx, JsonObject jo, string text) {
+		try {
+			var exe = jo["chrome_exe"]?.GetValue<string>() ?? "";
+			if (string.IsNullOrWhiteSpace(exe)) {
+				var saved = new OcrOptions();
+				try { AppConfig.LoadInto(saved); } catch { }
+				exe = saved.ChromeExe;
+			}
+			var voice = jo["voice"]?.GetValue<string>() ?? jo["speaker"]?.GetValue<string>() ?? "";
+			var lang = jo["lang"]?.GetValue<string>() ?? "";
+			var name = voice.StartsWith("chrome:", StringComparison.OrdinalIgnoreCase) ? voice.Substring(7) : voice;
+			SapiVoiceItem pick = null;
+			foreach (var v in ChromeTts.Voices) {
+				if (name.Length > 0 && (string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase)
+					|| string.Equals(v.Key, voice, StringComparison.OrdinalIgnoreCase))) {
+					pick = v;
+					break;
+				}
+			}
+			if (pick == null && lang.Length > 0) {
+				var want = TtsLang.Normalize(lang);
+				foreach (var v in ChromeTts.Voices) {
+					if (TtsLang.Match(v.Lang, want) || TtsLang.Match(v.Culture, want)) {
+						pick = v;
+						break;
+					}
+				}
+			}
+			pick ??= ChromeTts.Voices.Count > 0 ? ChromeTts.Voices[0] : null;
+			var speed = 1.0;
+			if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
+			var volume = 100;
+			if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
+			ChromeTts.Start(text, pick?.Name ?? name, pick?.Culture ?? lang, speed, volume / 100.0, exe);
+			writejson(ctx, 200, new JsonObject {
+				["code"] = 100,
+				["data"] = new JsonObject {
+					["engine"] = "chrome",
+					["played"] = true,
+					["format"] = "",
+					["voice"] = pick?.Key ?? "",
+					["model"] = "Chrome",
+				},
+			});
+		}
+		catch (InvalidOperationException ex) {
+			writejson(ctx, 200, err(922, ex.Message));
+		}
+		catch (Exception ex) {
+			writejson(ctx, 200, err(924, "Chrome 朗读失败: " + ex.Message));
+		}
+	}
+
 	bool maketts(JsonObject jo, string text, out TtsMade made, out JsonObject bad) {
 		made = null;
 		bad = null;
@@ -293,11 +366,15 @@ sealed partial class HttpOcrServer {
 		var compute = parsecompute(jo["device"]?.GetValue<string>() ?? jo["compute"]?.GetValue<string>() ?? "auto");
 
 		if (!tryparseengine(engineRaw, out var kind)) {
-			bad = err(925, "未知 engine（sherpa / sapi / winrt / edge）");
+			bad = err(925, "未知 engine（sherpa / sapi / winrt / edge / chrome）");
 			return false;
 		}
 		if (kind == null)
 			kind = lang.Trim().Length > 0 ? engineforlang(lang) : inferengine(modelName, voice);
+		if (kind == TtsEngineKind.Chrome) {
+			bad = err(926, "Chrome 语音在本机 Chrome 播放，不返回 WAV");
+			return false;
+		}
 		if (kind == TtsEngineKind.Sherpa && svc?.TtsEngine == null) {
 			bad = err(921, "TTS 引擎不可用（Sherpa）");
 			return false;
@@ -381,6 +458,8 @@ sealed partial class HttpOcrServer {
 			cachedEdgeVoices ??= listedgevoices();
 			addsysmodel(arr, "Edge Online", "edge", "Edge", cachedEdgeVoices);
 		}
+		if (all || only == "chrome")
+			addsysmodel(arr, "Chrome", "chrome", "Chrome", ChromeTts.Voices);
 		return arr;
 	}
 
@@ -395,6 +474,8 @@ sealed partial class HttpOcrServer {
 			addsysmodel(arr, "Windows", "winrt", "WinRt", cat?.WinRt);
 		if (all || only == "edge")
 			addsysmodel(arr, "Edge Online", "edge", "Edge", cat?.Edge);
+		if (all || only == "chrome")
+			addsysmodel(arr, "Chrome", "chrome", "Chrome", ChromeTts.Voices);
 		return arr;
 	}
 
@@ -587,6 +668,8 @@ sealed partial class HttpOcrServer {
 			return TtsEngineKind.WinRt;
 		if (v.StartsWith("edge:", StringComparison.OrdinalIgnoreCase))
 			return TtsEngineKind.Edge;
+		if (v.StartsWith("chrome:", StringComparison.OrdinalIgnoreCase))
+			return TtsEngineKind.Chrome;
 
 		var m = (modelName ?? "").Trim();
 		if (m.Equals("SAPI", StringComparison.OrdinalIgnoreCase)
@@ -599,6 +682,9 @@ sealed partial class HttpOcrServer {
 		if (m.Equals("Edge", StringComparison.OrdinalIgnoreCase)
 			|| m.Equals("Edge Online", StringComparison.OrdinalIgnoreCase))
 			return TtsEngineKind.Edge;
+		if (m.Equals("Chrome", StringComparison.OrdinalIgnoreCase)
+			|| m.Equals("Google", StringComparison.OrdinalIgnoreCase))
+			return TtsEngineKind.Chrome;
 
 		var sherpa = svc?.ScanTts?.Invoke();
 		if (!string.IsNullOrEmpty(m) && sherpa != null) {
@@ -633,6 +719,10 @@ sealed partial class HttpOcrServer {
 		}
 		if (s is "edge" or "edge-online" or "edge_tts") {
 			kind = TtsEngineKind.Edge;
+			return true;
+		}
+		if (s is "chrome" or "google") {
+			kind = TtsEngineKind.Chrome;
 			return true;
 		}
 		return false;

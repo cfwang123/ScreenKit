@@ -112,6 +112,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Scientific calculator keys + - * / are add, subtract, multiply, and divide, including Shift+8 and Shift+=.
 - Web RTSP playback keeps every slice of one picture together, so the test square is no longer missing a corner or gaining an extra block.
 - Scientific calculator accepts parentheses from Shift+9 and Shift+0.
+- IP scan lists hosts as soon as they are found, and fills each name as it resolves.
 
 #### Removed
 
@@ -199,6 +200,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 科学计算器按键 + - * / 对应加、减、乘、除，Shift+8 和 Shift+= 也一样。
 - 网页播放 RTSP 时把同一帧的切片合成一张，测试画面的方块不再缺一块或多一块。
 - 科学计算器可用 Shift+9 和 Shift+0 输入括号。
+- IP 扫描发现主机后立即列出，每解析出一个主机名就更新一行
 
 #### 移除
 

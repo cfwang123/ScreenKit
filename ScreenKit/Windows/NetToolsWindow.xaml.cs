@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Documents;
@@ -464,14 +466,12 @@ public partial class NetToolsWindow : Window {
 					isbar.Maximum = Math.Max(1, total);
 					isbar.Value = done;
 					if (total > 0) lbistat.Text = Loc.T("nettool.scan.progress", done, total);
-				})).ConfigureAwait(true);
-			iprows.Clear();
-			foreach (var row in rows)
-				iprows.Add(new IpRow {
-					Name = string.IsNullOrEmpty(row.HostName) ? "-" : row.HostName,
-					Ip = row.Ip,
-					Mac = row.Mac,
-				});
+				}),
+				row => Dispatcher.Invoke(() => showhost(row, false)),
+				row => Dispatcher.Invoke(() => showhost(row, true))).ConfigureAwait(true);
+			if (iprows.Count == 0) {
+				foreach (var row in rows) showhost(row, true);
+			}
 			lbistat.Text = rows.Count == 0 ? Loc.T("nettool.scan.none") : Loc.T("nettool.scan.found", rows.Count);
 		}
 		catch (OperationCanceledException) {
@@ -485,6 +485,21 @@ public partial class NetToolsWindow : Window {
 			cts = null;
 			setbusy(false);
 		}
+	}
+
+	void showhost(LanComputer row, bool named) {
+		if (row == null || string.IsNullOrEmpty(row.Ip)) return;
+		IpRow item = null;
+		foreach (var it in iprows) {
+			if (it.Ip == row.Ip) { item = it; break; }
+		}
+		if (item == null) {
+			item = new IpRow { Ip = row.Ip, Mac = row.Mac ?? "", Name = "-" };
+			iprows.Add(item);
+		}
+		if (!named) return;
+		var name = (row.HostName ?? "").Trim();
+		item.Name = name.Length == 0 ? "-" : name;
 	}
 
 	void toport() {
@@ -537,8 +552,19 @@ sealed class PortRow {
 	public string Banner { get; set; }
 }
 
-sealed class IpRow {
-	public string Name { get; set; }
+sealed class IpRow : INotifyPropertyChanged {
+	string name = "-";
+	public string Name {
+		get => name;
+		set {
+			if (name == value) return;
+			name = value ?? "";
+			On();
+		}
+	}
 	public string Ip { get; set; }
 	public string Mac { get; set; }
+	public event PropertyChangedEventHandler PropertyChanged;
+	void On([CallerMemberName] string n = null) =>
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }

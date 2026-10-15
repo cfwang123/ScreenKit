@@ -376,8 +376,10 @@ public sealed class OcrOptions {
 	public bool WinMax;
 
 	// ─── TTS 上次参数（config.toml [tts]） ───
-	/// <summary>Sapi / WinRt / Edge / Sherpa。空表示启动时有 Windows 语音用 WinRT，否则 Edge。</summary>
+	/// <summary>Sapi / WinRt / Edge / Chrome / Sherpa。空表示启动时有 Windows 语音用 WinRT，否则 Edge。</summary>
 	public string TtsEngine = "";
+	/// <summary>chrome.exe 完整路径。空则自动查找。</summary>
+	public string ChromeExe = "";
 	/// <summary>Auto / Gpu / Cpu / Igpu。</summary>
 	public string TtsCompute = "Auto";
 	/// <summary>模型目录名（DisplayName）。</summary>
@@ -659,6 +661,7 @@ public sealed class OcrOptions {
 		WinT = WinT,
 		WinMax = WinMax,
 		TtsEngine = TtsEngine,
+		ChromeExe = ChromeExe ?? "",
 		TtsCompute = TtsCompute,
 		TtsModel = TtsModel,
 		TtsVoice = TtsVoice,
