@@ -1754,9 +1754,9 @@ public partial class MainWindow : Window {
 			mncancelocr.Header = Loc.T("menu.cancelocr");
 			mncancelocr.ToolTip = Loc.T("menu.cancelocr.tip");
 
-			mnwebhome.Header = Loc.T("tray.webhome") + "(_B) (web)";
+			mnwebhome.Header = Loc.T("tray.webhome") + "(_B)";
 			mnwebhome.ToolTip = Loc.T("menu.webhome.tip");
-			mnwebfiles.Header = Loc.T("tray.webfiles") + " (web)";
+			mnwebfiles.Header = Loc.T("tray.webfiles");
 			mncattext.Header = Loc.T("web.cat.text") + "(_X)";
 			mncatcalc.Header = Loc.T("web.cat.calc") + "(_C)";
 			mncatspeech.Header = Loc.T("web.cat.speech") + "(_V)";

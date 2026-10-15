@@ -208,12 +208,10 @@ sealed class TrayIcon : IDisposable {
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
 		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
-		miWebHome.Text = Loc.T("tray.webhome") + " (web)";
-		miWebFiles.Text = Loc.T("tray.webfiles") + " (web)";
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
-		miTools.DropDownItems.Add(miHangul);
 		miTools.DropDownItems.Add(miWebHome);
 		miTools.DropDownItems.Add(miWebFiles);
+		miTools.DropDownItems.Add(miHangul);
 		miTools.DropDownItems.Add(new Forms.ToolStripSeparator());
 		miCatText = new Forms.ToolStripMenuItem(Loc.T("web.cat.text"));
 		miCatText.DropDownItems.Add(miTextTool);
@@ -517,8 +515,8 @@ sealed class TrayIcon : IDisposable {
 			settext(miGifRecord, "tray.gifrecord");
 			settext(miGifRecordOpt, "tray.gifrecordopt");
 			settext(miTools, "tray.tools");
-			setweb(miWebHome, "tray.webhome");
-			setweb(miWebFiles, "tray.webfiles");
+			settext(miWebHome, "tray.webhome");
+			settext(miWebFiles, "tray.webfiles");
 			settext(miCatText, "web.cat.text");
 			settext(miCatCalc, "web.cat.calc");
 			settext(miCatSpeech, "web.cat.speech");
@@ -570,10 +568,6 @@ sealed class TrayIcon : IDisposable {
 
 	static void settext(Forms.ToolStripMenuItem mi, string key) {
 		if (mi != null) mi.Text = Loc.T(key);
-	}
-
-	static void setweb(Forms.ToolStripMenuItem mi, string key) {
-		if (mi != null) mi.Text = Loc.T(key) + " (web)";
 	}
 
 	public event Action ClipboardOcrRequested;
