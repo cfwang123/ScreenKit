@@ -7,10 +7,15 @@ public partial class PerfMonWindow : Window {
 	readonly PerfOpt opt;
 	readonly DispatcherTimer timer;
 	readonly Dictionary<string, TextBlock> cells = new();
-	readonly SolidColorBrush nameBrush = freeze("#E4EAEF");
-	readonly SolidColorBrush valueBrush = freeze("#F8F8F8");
+	readonly SolidColorBrush nameBrush = freeze("#9BB0B8");
+	readonly SolidColorBrush okBrush = freeze("#3DDC84");
+	readonly SolidColorBrush warnBrush = freeze("#F5C518");
+	readonly SolidColorBrush hotBrush = freeze("#FF6B5A");
+	readonly SolidColorBrush downBrush = freeze("#4CC2F0");
+	readonly SolidColorBrush dimBrush = freeze("#7E9098");
 	readonly SolidColorBrush pinOn = freeze("#40C070");
 	readonly SolidColorBrush pinOff = freeze("#C5D0D6");
+	const double BODY = 10;
 	static readonly string[] ShowOrder = {
 		"cpu", "gpu", "mem", "cputemp", "down", "up", "read", "write", "gputemp", "gpupower", "cpupower",
 	};
@@ -113,31 +118,43 @@ public partial class PerfMonWindow : Window {
 
 	void buildrows() {
 		rows.Children.Clear();
+		rows.RowDefinitions.Clear();
+		rows.ColumnDefinitions.Clear();
 		cells.Clear();
-		foreach (var key in ShowOrder) {
-			if (!opt.On(key)) continue;
-			var grid = new Grid { Margin = new Thickness(0, 2, 16, 2) };
-			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+		var on = new List<string>();
+		foreach (var key in ShowOrder)
+			if (opt.On(key)) on.Add(key);
+		for (var i = 0; i < on.Count; i++) {
+			var row = i / 2;
+			if (i % 2 == 0) rows.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			var col = i % 2 == 0 ? 0 : 3;
 			var name = new TextBlock {
-				Text = Loc.T($"perf.{key}"),
+				Text = Loc.T($"perf.{on[i]}"),
 				Foreground = nameBrush,
-				FontSize = 13,
+				FontSize = BODY,
 				VerticalAlignment = VerticalAlignment.Center,
+				Margin = new Thickness(0, 1, 8, 1),
 			};
 			var val = new TextBlock {
 				Text = "—",
-				Foreground = valueBrush,
-				FontSize = 13,
-				FontWeight = FontWeights.SemiBold,
+				Foreground = dimBrush,
+				FontSize = BODY,
 				HorizontalAlignment = HorizontalAlignment.Right,
 				VerticalAlignment = VerticalAlignment.Center,
+				Margin = new Thickness(0, 1, 0, 1),
 			};
-			Grid.SetColumn(val, 1);
-			grid.Children.Add(name);
-			grid.Children.Add(val);
-			rows.Children.Add(grid);
-			cells[key] = val;
+			Grid.SetRow(name, row);
+			Grid.SetColumn(name, col);
+			Grid.SetRow(val, row);
+			Grid.SetColumn(val, col + 1);
+			rows.Children.Add(name);
+			rows.Children.Add(val);
+			cells[on[i]] = val;
 		}
 	}
 
@@ -147,17 +164,17 @@ public partial class PerfMonWindow : Window {
 	}
 
 	void paint(PerfMon.Snap s) {
-		set("cpu", pct(s.Cpu));
-		set("gpu", pct(s.Gpu));
-		set("mem", pct(s.Mem));
-		set("down", rate(s.Down));
-		set("up", rate(s.Up));
-		set("read", rate(s.Read));
-		set("write", rate(s.Write));
-		set("cputemp", temp(s.CpuTemp));
-		set("gputemp", temp(s.GpuTemp));
-		set("gpupower", watt(s.GpuPower));
-		set("cpupower", watt(s.CpuPower));
+		set("cpu", pct(s.Cpu), pctc(s.Cpu));
+		set("gpu", pct(s.Gpu), pctc(s.Gpu));
+		set("mem", pct(s.Mem), pctc(s.Mem));
+		set("down", rate(s.Down), downBrush);
+		set("up", rate(s.Up), warnBrush);
+		set("read", rate(s.Read), downBrush);
+		set("write", rate(s.Write), warnBrush);
+		set("cputemp", temp(s.CpuTemp), heat(s.CpuTemp));
+		set("gputemp", temp(s.GpuTemp), heat(s.GpuTemp));
+		set("gpupower", watt(s.GpuPower), downBrush);
+		set("cpupower", watt(s.CpuPower), warnBrush);
 	}
 
 	public string Shown(string key) => cells.TryGetValue(key, out var block) ? block.Text ?? "" : "";
@@ -190,8 +207,24 @@ public partial class PerfMonWindow : Window {
 		return 0;
 	}
 
-	void set(string key, string text) {
-		if (cells.TryGetValue(key, out var block)) block.Text = text;
+	void set(string key, string text, SolidColorBrush brush) {
+		if (!cells.TryGetValue(key, out var block)) return;
+		block.Text = text;
+		block.Foreground = text == "—" ? dimBrush : brush;
+	}
+
+	SolidColorBrush pctc(double v) {
+		if (double.IsNaN(v)) return dimBrush;
+		if (v < 50) return okBrush;
+		if (v < 80) return warnBrush;
+		return hotBrush;
+	}
+
+	SolidColorBrush heat(double v) {
+		if (double.IsNaN(v)) return dimBrush;
+		if (v < 55) return okBrush;
+		if (v < 75) return warnBrush;
+		return hotBrush;
 	}
 
 	static string pct(double v) {

@@ -15,12 +15,12 @@
         TextOptions.TextFormattingMode="Display"
         AutomationProperties.AutomationId="perf.window">
 	<Border x:Name="card" Background="#434C53" CornerRadius="8" BorderBrush="#2A3238" BorderThickness="1"
-	        Padding="12,8,12,10" MinWidth="280" Cursor="SizeAll">
+	        Padding="10,6,10,8" MinWidth="240" Cursor="SizeAll">
 		<StackPanel>
-			<Grid Margin="0,0,0,6">
-				<TextBlock x:Name="lbtitle" FontSize="15" FontWeight="SemiBold" Foreground="#F4F7F8"
+			<Grid Margin="0,0,0,4">
+				<TextBlock x:Name="lbtitle" FontSize="12" FontWeight="SemiBold" Foreground="#D6E4EA"
 				           VerticalAlignment="Center"/>
-				<Button x:Name="btop" Width="26" Height="22" HorizontalAlignment="Right" Cursor="Arrow"
+				<Button x:Name="btop" Width="22" Height="18" HorizontalAlignment="Right" Cursor="Arrow"
 				        Focusable="False" Background="Transparent" BorderThickness="0" Padding="0"
 				        Click="btop_Click" AutomationProperties.AutomationId="perf.pin">
 					<Button.Template>
@@ -35,12 +35,12 @@
 							</ControlTemplate.Triggers>
 						</ControlTemplate>
 					</Button.Template>
-					<TextBlock x:Name="lbtop" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="14"
+					<TextBlock x:Name="lbtop" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="12"
 					           Foreground="#40C070" VerticalAlignment="Center"/>
 				</Button>
 			</Grid>
-			<Border Height="1" Background="#556068" Margin="0,0,0,6"/>
-			<UniformGrid x:Name="rows" Columns="2"/>
+			<Border Height="1" Background="#556068" Margin="0,0,0,4"/>
+			<Grid x:Name="rows"/>
 		</StackPanel>
 	</Border>
 </Window>
