@@ -8,6 +8,7 @@ namespace ScreenKit;
 public partial class TranslatePopupWindow : Window {
 	readonly Func<OcrOptions> getopt;
 	readonly TranslateEngine engine;
+	readonly Action onengine;
 	List<TranslateModelInfo> models = new();
 	bool uiLoading;
 	bool busy;
@@ -17,9 +18,10 @@ public partial class TranslatePopupWindow : Window {
 	TtsPlayer player;
 	CancellationTokenSource cts;
 
-	internal TranslatePopupWindow(Func<OcrOptions> getOpt, TranslateEngine trEngine) {
+	internal TranslatePopupWindow(Func<OcrOptions> getOpt, TranslateEngine trEngine, Action onEngine = null) {
 		getopt = getOpt ?? (() => new OcrOptions());
 		engine = trEngine;
+		onengine = onEngine;
 		InitializeComponent();
 		WindowEsc.Attach(this, Hide);
 		Closing += (_, e) => {
@@ -42,6 +44,19 @@ public partial class TranslatePopupWindow : Window {
 		esrclng.SelectionChanged += (_, _) => {
 			if (uiLoading) return;
 			filldst(preserve: true);
+		};
+		etrengine.SelectionChanged += (_, _) => {
+			if (uiLoading) return;
+			applyenginechoice(save: true);
+			var keepSrc = selected(esrclng);
+			var keepDst = selected(edstlng);
+			fillsrc();
+			if (!pick(esrclng, keepSrc) && esrclng.Items.Count > 0)
+				esrclng.SelectedIndex = 0;
+			filldst(preserve: false);
+			if (!pick(edstlng, keepDst) && edstlng.Items.Count > 0)
+				edstlng.SelectedIndex = 0;
+			try { onengine?.Invoke(); } catch { }
 		};
 		esrc.PreviewKeyDown += (_, e) => {
 			if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Control) != 0) {
@@ -96,17 +111,23 @@ public partial class TranslatePopupWindow : Window {
 	}
 
 	public void Reload() {
-		var prevSrc = selected(esrclng);
-		var prevDst = selected(edstlng);
 		try { models = TranslateModelScanner.Scan(); }
 		catch { models = new List<TranslateModelInfo>(); }
+		SyncEngine();
+		applylang();
+	}
+
+	/// <summary>按已保存的翻译引擎重填下拉，不写配置。</summary>
+	public void SyncEngine() {
+		var prevSrc = selected(esrclng);
+		var prevDst = selected(edstlng);
+		fillengine();
 		fillsrc();
 		if (!pick(esrclng, prevSrc) && esrclng.Items.Count > 0)
 			esrclng.SelectedIndex = 0;
 		filldst(preserve: false);
 		if (!pick(edstlng, prevDst) && edstlng.Items.Count > 0)
 			edstlng.SelectedIndex = 0;
-		applylang();
 	}
 
 	public void ApplyLang() => applylang();
@@ -127,6 +148,13 @@ public partial class TranslatePopupWindow : Window {
 		bspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
 		esrclng.ToolTip = Loc.T("tr.src.tip");
 		edstlng.ToolTip = Loc.T("tr.dst.tip");
+		etrengine.ToolTip = Loc.T("tr.engine.tip");
+		foreach (var o in etrengine.Items) {
+			if (o is ComboBoxItem it && it.Tag is string s && s.Length == 0)
+				it.Content = Loc.T("tr.engine.onnx");
+			else if (o is ComboBoxItem it2 && it2.Tag is string s2 && s2 == "chrome")
+				it2.Content = Loc.T("tr.engine.chrome");
+		}
 		if (string.IsNullOrWhiteSpace(lbstatus.Text)
 			|| lbstatus.Text == Loc.T("tr.popup.hint")
 			|| lbstatus.Text == "Ctrl+Enter 翻译 · Esc 隐藏"
@@ -140,12 +168,68 @@ public partial class TranslatePopupWindow : Window {
 		pick(edstlng, keepDst);
 	}
 
-	bool usechrome() => getopt()?.ChromeTranslate() == true;
+	bool usechrome() =>
+		etrengine?.SelectedItem is ComboBoxItem it && it.Tag is string s
+		&& s.Equals("chrome", StringComparison.OrdinalIgnoreCase);
 
-	bool usellm() {
-		if (usechrome()) return false;
-		var ep = getopt()?.SelectedTranslateLlm();
-		return AsrLlmClient.IsEndpointReady(ep);
+	bool usellm() =>
+		etrengine?.SelectedItem is ComboBoxItem it && it.Tag is LlmEndpoint;
+
+	LlmEndpoint currentllm() =>
+		etrengine?.SelectedItem is ComboBoxItem it ? it.Tag as LlmEndpoint : null;
+
+	void fillengine() {
+		uiLoading = true;
+		try {
+			var want = (getopt()?.TranslateLlm ?? "").Trim();
+			etrengine.Items.Clear();
+			etrengine.Items.Add(new ComboBoxItem {
+				Content = Loc.T("tr.engine.onnx"),
+				Tag = "",
+				ToolTip = Loc.T("tr.hint"),
+			});
+			var chrome = new ComboBoxItem {
+				Content = Loc.T("tr.engine.chrome"),
+				Tag = "chrome",
+				ToolTip = Loc.T("tr.hint.chrome"),
+			};
+			etrengine.Items.Add(chrome);
+			ComboBoxItem pickItem = null;
+			if (want.Equals("chrome", StringComparison.OrdinalIgnoreCase))
+				pickItem = chrome;
+			var list = getopt()?.LlmList;
+			if (list != null) {
+				foreach (var ep in list) {
+					if (ep == null) continue;
+					var name = ep.DisplayName;
+					if (name.Length == 0) continue;
+					var it = new ComboBoxItem {
+						Content = name,
+						Tag = ep,
+						ToolTip = string.IsNullOrWhiteSpace(ep.Model) ? name : ep.Model,
+					};
+					etrengine.Items.Add(it);
+					if (pickItem == null &&
+						(string.Equals(name, want, StringComparison.OrdinalIgnoreCase)
+						|| string.Equals(ep.Model ?? "", want, StringComparison.OrdinalIgnoreCase)))
+						pickItem = it;
+				}
+			}
+			etrengine.SelectedItem = pickItem ?? etrengine.Items[0];
+		}
+		finally { uiLoading = false; }
+	}
+
+	void applyenginechoice(bool save) {
+		var o = getopt();
+		if (o == null) return;
+		var ep = currentllm();
+		var next = usechrome() ? "chrome" : (ep != null ? ep.DisplayName : "");
+		if (string.Equals((o.TranslateLlm ?? "").Trim(), next, StringComparison.Ordinal)) return;
+		o.TranslateLlm = next;
+		if (!save) return;
+		try { AppConfig.Save(o); }
+		catch (Exception ex) { CaptureLog.Ex("tr.popup.engine", ex); }
 	}
 
 	void fillsrc() {
@@ -360,9 +444,9 @@ public partial class TranslatePopupWindow : Window {
 			}
 		}
 		var o = getopt() ?? new OcrOptions();
+		applyenginechoice(save: false);
 		var chrome = usechrome();
 		var llm = usellm();
-		var ep = o.SelectedTranslateLlm();
 		TranslateModelInfo model = null;
 		var key = LangDetect.DirKey(src, dst);
 		if (chrome && ChromeTts.FindExe(o.ChromeExe) == null) {

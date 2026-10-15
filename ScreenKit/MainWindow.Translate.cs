@@ -71,6 +71,7 @@ public partial class MainWindow {
 			synctrengineui();
 			filltrlangcombos();
 			savetrprefs();
+			try { trPopup?.SyncEngine(); } catch { }
 		};
 		etrcompute.SelectionChanged += (_, _) => {
 			if (trUiLoading) return;
@@ -172,7 +173,11 @@ public partial class MainWindow {
 
 	void ensuretranslatepopup() {
 		if (trPopup != null) return;
-		trPopup = new TranslatePopupWindow(() => opt, trEngine);
+		trPopup = new TranslatePopupWindow(() => opt, trEngine, () => {
+			filltrengine();
+			filltrlangcombos();
+			synctrengineui();
+		});
 		trPopup.Closed += (_, _) => trPopup = null;
 	}
 

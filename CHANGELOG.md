@@ -71,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - RTSP forward and the tools-page player can include PCMU, PCMA, or AAC. The RTSP test server has a sound switch for an 8 kHz PCMU tone.
 - Translate can use Chrome's built-in model. Pick Chrome on the Translate tab. It uses the chrome.exe path from Speech and hides the window.
 - Settings, API, has an RTSP forward switch. Off refuses WebSocket /rtsp.
+- Translate popup can choose local ONNX, Chrome, or a configured LLM, and still picks the ONNX model by language direction.
 
 #### Changed
 
@@ -168,6 +169,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - RTSP 转发和工具页播放可以带上 PCMU、PCMA 或 AAC。RTSP 测试服务器增加声音开关，打开时发送 8 kHz PCMU 提示音。
 - 翻译引擎增加 Chrome：用本机 Chrome 的翻译模型。在翻译页选择 Chrome，沿用语音合成里的 chrome.exe，窗口隐藏。
 - 参数设置的 web/接口 增加 RTSP转发，关闭后不接收 /rtsp
+- 翻译小窗可以选择本地 ONNX、Chrome 或已配置的 LLM，本地模型仍按语言方向自动选用。
 
 #### 变更
 
