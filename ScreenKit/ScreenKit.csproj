@@ -219,7 +219,7 @@
 
   <!--
     精简发布包：bin\Release\ScreenKit\
-    仅托管程序 + wetext/Assets/许可证；不含安卓 APK。模型与 ORT/OpenCV/Sherpa/FFmpeg 等通过应用内「安装功能」获取。
+    仅托管程序 + wetext/Assets/许可证 + 7za.dll；不含安卓 APK。模型与 ORT/OpenCV/Sherpa/FFmpeg 等通过应用内「安装功能」获取。
     翻译模型需自行放到 translatemodels/（不在安装窗内）。
   -->
   <Target Name="PackageSlimRelease" AfterTargets="CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
@@ -242,7 +242,6 @@
       <_SlimRoot Remove="$(OutputPath)ZXing.dll" />
       <_SlimRoot Remove="$(OutputPath)SharpCompress.dll" />
       <_SlimRoot Remove="$(OutputPath)SharpSevenZip.dll" />
-      <_SlimRoot Remove="$(OutputPath)7za.dll" />
       <_SlimRoot Remove="$(OutputPath)e_sqlite3.dll" />
       <_SlimRoot Remove="$(OutputPath)Bogus.dll" />
       <_SlimRoot Remove="$(OutputPath)NPinyin.dll" />
@@ -303,7 +302,7 @@
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
       <_SlimJunk Include="$(_SlimOut)\OpenCvSharpExtern.dll;$(_SlimOut)\libSkiaSharp.dll;$(_SlimOut)\pdfium.dll;$(_SlimOut)\sherpa-onnx-c-api.dll" />
       <_SlimJunk Include="$(_SlimOut)\opencv_videoio_ffmpeg*.dll" />
-      <_SlimJunk Include="$(_SlimOut)\ZXing.dll;$(_SlimOut)\SharpCompress.dll;$(_SlimOut)\SharpSevenZip.dll;$(_SlimOut)\7za.dll;$(_SlimOut)\e_sqlite3.dll;$(_SlimOut)\Bogus.dll;$(_SlimOut)\NPinyin.dll" />
+      <_SlimJunk Include="$(_SlimOut)\ZXing.dll;$(_SlimOut)\SharpCompress.dll;$(_SlimOut)\SharpSevenZip.dll;$(_SlimOut)\e_sqlite3.dll;$(_SlimOut)\Bogus.dll;$(_SlimOut)\NPinyin.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
     </ItemGroup>

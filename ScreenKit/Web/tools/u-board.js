@@ -18,6 +18,8 @@
 	var watch = null;
 	var hooked = false;
 	var busy = false;
+	var ink = null;
+	var inkWait = null;
 	var PALETTE = [
 		"#000000", "#808080", "#800000", "#808000", "#008000", "#008080", "#000080", "#800080", "#808040", "#004040", "#0080FF", "#004080", "#8000FF", "#804000",
 		"#FFFFFF", "#C0C0C0", "#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF", "#FFFF80", "#00FF80", "#80FFFF", "#8080FF", "#FF0080", "#FF8040"
@@ -122,6 +124,7 @@
 		canvas.onpointermove = move;
 		canvas.onpointerup = up;
 		canvas.onpointercancel = up;
+		canvas.onpointerrawupdate = rawink;
 		canvas.onmousedown = function(ev){
 			if (tool === "text" && ev.button === 0 && ev.preventDefault) F.pd(ev);
 		};
@@ -430,7 +433,11 @@
 			paint(true);
 			return;
 		}
-		if (tool === "pen") draft = { t: "pen", x: p.x, y: p.y, pts: [{ x: 0, y: 0 }], c: color, lw: width };
+		if (tool === "pen") {
+			draft = { t: "pen", x: p.x, y: p.y, pts: [{ x: 0, y: 0 }], pred: [], c: color, lw: width };
+			ensureink();
+			inktrail(ev);
+		}
 		else if (tool === "arrow") draft = { t: "arrow", x1: p.x, y1: p.y, x2: p.x, y2: p.y, c: color, lw: width };
 		else draft = { t: tool, x: p.x, y: p.y, w: 0, h: 0, c: color, lw: width };
 		paint(true);
@@ -457,11 +464,8 @@
 			return;
 		}
 		if (!draft) return;
-		if (draft.t === "lasso") {
-			var last = draft.pts[draft.pts.length - 1];
-			if (Math.hypot(p.x - last.x, p.y - last.y) >= 2) draft.pts.push({ x: p.x, y: p.y });
-		}
-		else if (draft.t === "pen") draft.pts.push({ x: p.x - draft.x, y: p.y - draft.y });
+		if (draft.t === "lasso") addlasso(ev);
+		else if (draft.t === "pen") addpen(ev);
 		else if (draft.t === "arrow") { draft.x2 = p.x; draft.y2 = p.y; }
 		else { draft.w = p.x - draft.x; draft.h = p.y - draft.y; }
 		paint(true);
@@ -498,6 +502,7 @@
 		if (!d) return;
 		if (d.t === "lasso") { liftlasso(d); return; }
 		if (d.t === "pen") {
+			d.pred = null;
 			if (!d.pts || d.pts.length < 2) { paint(true); return; }
 		}
 		else if (d.t === "arrow") {
@@ -878,6 +883,83 @@
 		var i;
 		for (i = 1; i < it.pts.length; i++) ctx.lineTo(it.x + it.pts[i].x, it.y + it.pts[i].y);
 		ctx.stroke();
+		if (!it.pred || !it.pred.length) return;
+		var last = it.pts[it.pts.length - 1];
+		ctx.save();
+		ctx.globalAlpha = 0.35;
+		ctx.setLineDash([4, 3]);
+		ctx.beginPath();
+		ctx.moveTo(it.x + last.x, it.y + last.y);
+		for (i = 0; i < it.pred.length; i++) ctx.lineTo(it.x + it.pred[i].x, it.y + it.pred[i].y);
+		ctx.stroke();
+		ctx.restore();
+	}
+
+	function eventsOf(ev){
+		var list = ev.getCoalescedEvents ? ev.getCoalescedEvents() : null;
+		if (!list || !list.length) return [ev];
+		return list;
+	}
+
+	function addpen(ev){
+		var list = eventsOf(ev);
+		var i, p, dx, dy, last;
+		for (i = 0; i < list.length; i++) {
+			p = xy(list[i]);
+			dx = p.x - draft.x;
+			dy = p.y - draft.y;
+			last = draft.pts[draft.pts.length - 1];
+			if (last && Math.hypot(dx - last.x, dy - last.y) < 0.4) continue;
+			draft.pts.push({ x: dx, y: dy });
+		}
+		draft.pred = [];
+		if (ev.getPredictedEvents) {
+			list = ev.getPredictedEvents();
+			for (i = 0; i < list.length; i++) {
+				p = xy(list[i]);
+				draft.pred.push({ x: p.x - draft.x, y: p.y - draft.y });
+			}
+		}
+		inktrail(ev);
+	}
+
+	function addlasso(ev){
+		var list = eventsOf(ev);
+		var i, p, last;
+		for (i = 0; i < list.length; i++) {
+			p = xy(list[i]);
+			last = draft.pts[draft.pts.length - 1];
+			if (last && Math.hypot(p.x - last.x, p.y - last.y) < 2) continue;
+			draft.pts.push(p);
+		}
+	}
+
+	function ensureink(){
+		if (ink || inkWait || !navigator.ink || !navigator.ink.requestPresenter || !canvas) return;
+		try {
+			inkWait = navigator.ink.requestPresenter({ presentationArea: canvas });
+		}
+		catch (ex) {
+			inkWait = null;
+			return;
+		}
+		inkWait.then(function(p){
+			ink = p;
+			inkWait = null;
+		}, function(){ inkWait = null; });
+	}
+
+	function inktrail(ev){
+		if (!ink || !ev || ev.pointerType !== "pen" || tool !== "pen") return;
+		try {
+			ink.updateInkTrailStartPoint(ev, { color: color, diameter: width });
+		}
+		catch (ex) {}
+	}
+
+	function rawink(ev){
+		if (!draft || draft.t !== "pen") return;
+		inktrail(ev);
 	}
 
 	function drawtext(ctx, it){

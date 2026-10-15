@@ -143,7 +143,7 @@ function main() {
 		`"-x!${slimName}\\dict2.db" "-x!${slimName}\\dict2.db-wal" "-x!${slimName}\\dict2.db-shm" ` +
 		`"-x!${slimName}\\opencv_videoio_ffmpeg*.dll" ` +
 		`"-x!${slimName}\\ZXing.dll" "-x!${slimName}\\SharpCompress.dll" "-x!${slimName}\\SharpSevenZip.dll" ` +
-		`"-x!${slimName}\\7za.dll" "-x!${slimName}\\e_sqlite3.dll"`;
+		`"-x!${slimName}\\e_sqlite3.dll"`;
 	console.log(`> ${cmd}`);
 	execSync(cmd, { cwd: slimParent, stdio: 'inherit', shell: true });
 

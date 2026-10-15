@@ -78,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean input uses its own tray icon for Hangul or English, with close and settings on the right-click menu.
 - Shift alone switches Korean input between Hangul and English. Shift plus a letter still types a double jamo.
 - Korean input no longer joins vowels into a diphthong, and a repeated key does not type a second vowel.
+- The slim release package includes 7za.dll and License.7za.txt.
 
 #### Fixed
 
@@ -141,6 +142,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语输入改为单独的托盘图标，显示韩文或英文，右键可关闭或打开参数设置。
 - 韩语输入单独按 Shift 在韩文和英文之间切换。Shift 加字母仍输入双辅音或双元音。
 - 韩语输入不再把元音并成双元音，按键连发也不会再打出一个元音。
+- 精简发布包带上 7za.dll 和 License.7za.txt。
 
 #### 修复
 

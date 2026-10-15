@@ -5,7 +5,9 @@
 		noGo: true,
 		body: function(){
 			return '<div class="cpick">'
-				+ '<div class="cpick-top"><span>颜色</span><i id="cpick-swatch"></i></div>'
+				+ '<div class="cpick-top"><span>颜色</span><i id="cpick-swatch"></i>'
+				+ '<button type="button" id="cpick-eye"></button></div>'
+				+ '<p id="cpick-msg" class="msg"></p>'
 				+ '<div class="cpick-sv" id="cpick-sv"><i id="cpick-svdot"></i></div>'
 				+ '<div class="cpick-hue" id="cpick-hue"><i id="cpick-huedot"></i></div>'
 				+ '<div class="cpick-rgb">'
@@ -23,6 +25,11 @@
 			bindpick();
 		}
 	});
+	function tx(key, fb){
+		var s = SK.t ? SK.t(key) : "";
+		return s || fb;
+	}
+
 	function bindpick(){
 		var hue = 220;
 		var sat = 0.75;
@@ -47,7 +54,18 @@
 			F.id("cpick-r").value = String(rgb[0]);
 			F.id("cpick-g").value = String(rgb[1]);
 			F.id("cpick-b").value = String(rgb[2]);
+			SK.msg("cpick-msg", "");
 			SK.utilrun();
+		}
+		function fromhex(hex){
+			var m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
+			if (!m) return;
+			var n = parseInt(m[1], 16);
+			var hsv = SK.rgb2hsv((n >> 16) & 255, (n >> 8) & 255, n & 255);
+			hue = hsv[0];
+			sat = hsv[1] / 100;
+			val = hsv[2] / 100;
+			paint();
 		}
 		function fromsv(ev){
 			var r = F.rect(sv);
@@ -96,6 +114,24 @@
 		F.id("cpick-r").oninput = fromrgb;
 		F.id("cpick-g").oninput = fromrgb;
 		F.id("cpick-b").oninput = fromrgb;
+		var eye = F.id("cpick-eye");
+		if (eye) {
+			eye.textContent = tx("web.pick.eye", "屏幕取色");
+			eye.onclick = function(){
+				if (!window.EyeDropper) {
+					SK.msg("cpick-msg", tx("web.pick.noeye", "这个浏览器没有屏幕取色"), true);
+					return;
+				}
+				var drop = new EyeDropper();
+				drop.open().then(function(res){
+					if (!res || !res.sRGBHex) return;
+					fromhex(res.sRGBHex);
+				}, function(err){
+					if (err && err.name === "AbortError") return;
+					SK.msg("cpick-msg", tx("web.pick.noeye", "这个浏览器没有屏幕取色"), true);
+				});
+			};
+		}
 		var start = SK.rgb2hsv(51, 102, 204);
 		hue = start[0];
 		sat = start[1] / 100;

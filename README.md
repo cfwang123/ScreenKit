@@ -293,7 +293,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | **Bogus** | `Bogus.dll`. Tools-page test data. With it, pick a language, then a category that language has | ~2.3 MB |
 | **NPinyin** | `NPinyin.dll`. Chinese pinyin and initials. Install it under Tools | ~75 KB |
 | **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
-| **7za** | Extract dictionary and translation model `.7z` packages | ~0.4 MB |
+| **7za** | Extract dictionary and translation model `.7z` packages. Already in the slim package, with `License.7za.txt` | ~0.4 MB |
 | **SQLite** | `e_sqlite3.dll`. Opens `dict2.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 and video to GIF | ~33 MB 7z / ~117 MB unpacked |
 
@@ -411,8 +411,8 @@ dotnet build -c Release
 
 ### Slim package (`bin\Release\ScreenKit\`)
 
-- Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE, `web/`, `pinyin.toml`, and `pinyin.user.toml`. The tools page is the joined `tools.js` only. The separate scripts under `web/tools` are not in this package.
-- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict2.db`, `ZXing.dll`, `SharpCompress.dll`, `7za.dll`, `e_sqlite3.dll`, `Bogus.dll`, or `NPinyin.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, archive extract, and the dictionary each ask to install the missing library when you use them.
+- Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE, `7za.dll`, `License.7za.txt`, `web/`, `pinyin.toml`, and `pinyin.user.toml`. The tools page is the joined `tools.js` only. The separate scripts under `web/tools` are not in this package. `7za.dll` extracts `.7z` packages such as the dictionary and translation models.
+- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict2.db`, `ZXing.dll`, `SharpCompress.dll`, `e_sqlite3.dll`, `Bogus.dll`, or `NPinyin.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, `tar.bz2` extract, and the dictionary each ask to install the missing library when you use them.
 - End users install those via **Install features**. Custom Opus-MT ONNX packs can still be placed under `translatemodels/` manually.
 
 For local development with models already present, run **`bin\Release\net48\`**.
