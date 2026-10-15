@@ -80,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Pixel art fills every cell between mouse samples, so a fast stroke stays continuous.
 - The Korean input tray icon uses a larger Hangul glyph, and its menu opens above the taskbar.
 - The camera window no longer opens the device twice. A second open was waiting on the window thread, so the window looked stuck and the camera did not start.
+- Opening the Markdown reader no longer fails because the page view cannot take a file drop that way.
 
 #### Documentation
 
@@ -131,6 +132,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 像素画在两次鼠标采样之间补上经过的格子，快速移动时线条不断。
 - 韩语输入托盘图标的韩文更大，右键菜单改到任务栏上方，不再被挡住。
 - 相机窗口不再把同一摄像头打开两次。第二次打开会堵在窗口线程上，窗口看起来卡住，摄像头也起不来。
+- 打开 MD 阅读器不再因为页面不能那样接收拖放而报错。
 
 #### 文档
 

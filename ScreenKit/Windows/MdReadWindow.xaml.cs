@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ScreenKit;
@@ -39,10 +40,11 @@ public partial class MdReadWindow : Window {
 		var h = docwnd(browser.Handle);
 		if (h == IntPtr.Zero) h = browser.Handle;
 		if (h == drophwnd) return;
-		if (drophwnd != IntPtr.Zero) {
+		if (drophwnd != IntPtr.Zero && drophwnd != h) {
 			try { RevokeDragDrop(drophwnd); } catch { }
 			drophwnd = IntPtr.Zero;
 		}
+		try { RevokeDragDrop(h); } catch { }
 		if (RegisterDragDrop(h, drop) != 0) return;
 		drophwnd = h;
 	}
@@ -194,7 +196,7 @@ public partial class MdReadWindow : Window {
 
 	[DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd, EnumProc proc, IntPtr lparam);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int len);
-	[DllImport("ole32.dll")] static extern int RegisterDragDrop(IntPtr hwnd, MdDrop target);
+	[DllImport("ole32.dll")] static extern int RegisterDragDrop(IntPtr hwnd, IOleDropTarget target);
 	[DllImport("ole32.dll")] static extern int RevokeDragDrop(IntPtr hwnd);
 }
 
