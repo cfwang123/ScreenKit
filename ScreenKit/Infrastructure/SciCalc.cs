@@ -22,8 +22,7 @@ sealed class SciCalc {
 
 	public string Shown {
 		get {
-			var s = Expr.Replace("*", "×").Replace("/", "÷");
-			return s.Length == 0 ? "" : s;
+			return Expr;
 		}
 	}
 

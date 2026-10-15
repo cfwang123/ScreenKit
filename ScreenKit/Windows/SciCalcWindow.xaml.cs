@@ -47,19 +47,19 @@ public partial class SciCalcWindow : Window {
 		add("7", "7", "7", "7", "", digit: true);
 		add("8", "8", "8", "8", "", digit: true);
 		add("9", "9", "9", "9", "", digit: true);
-		add("div", "÷", "÷", "/", "", op: true);
+		add("div", "/", "/", "/", "", op: true);
 		add("pct", "%", "mod", "pct", "mod");
 		add("ans", "Ans", "Ans", "ans", "");
 		add("4", "4", "4", "4", "", digit: true);
 		add("5", "5", "5", "5", "", digit: true);
 		add("6", "6", "6", "6", "", digit: true);
-		add("mul", "×", "×", "*", "", op: true);
+		add("mul", "*", "*", "*", "", op: true);
 		add("sign", "±", "±", "sign", "");
 		add("expn", "EXP", "EXP", "expn", "");
 		add("1", "1", "1", "1", "", digit: true);
 		add("2", "2", "2", "2", "", digit: true);
 		add("3", "3", "3", "3", "", digit: true);
-		add("sub", "−", "−", "-", "", op: true);
+		add("sub", "-", "-", "-", "", op: true);
 		add("mc", "MC", "MC", "mc", "");
 		add("mr", "MR", "MR", "mr", "");
 		add("0", "0", "0", "0", "", digit: true);
@@ -115,18 +115,20 @@ public partial class SciCalcWindow : Window {
 
 	void onkey(object sender, KeyEventArgs e) {
 		var k = e.Key == Key.System ? e.SystemKey : e.Key;
+		var shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
 		string key = null;
-		if (k >= Key.D0 && k <= Key.D9) key = ((int)(k - Key.D0)).ToString();
+		if (shift && k == Key.D8) key = "*";
+		else if (!shift && k >= Key.D0 && k <= Key.D9) key = ((int)(k - Key.D0)).ToString();
 		else if (k >= Key.NumPad0 && k <= Key.NumPad9) key = ((int)(k - Key.NumPad0)).ToString();
 		else if (k == Key.Decimal || k == Key.OemPeriod) key = ".";
-		else if (k == Key.Add) key = "+";
+		else if (k == Key.Add || (shift && k == Key.OemPlus)) key = "+";
+		else if (k == Key.OemPlus) key = "eq";
 		else if (k == Key.Subtract || k == Key.OemMinus) key = "-";
 		else if (k == Key.Multiply) key = "*";
-		else if (k == Key.Divide || k == Key.Oem2) key = "/";
+		else if (k == Key.Divide || (!shift && k == Key.Oem2)) key = "/";
 		else if (k == Key.Enter) key = "eq";
 		else if (k == Key.Back) key = "bs";
 		else if (k == Key.Delete) key = "ac";
-		else if (k == Key.OemPlus) key = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? "*" : "+";
 		if (key == null) return;
 		calc.Press(key);
 		paint();

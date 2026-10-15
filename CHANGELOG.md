@@ -103,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The RTSP test server encodes with libx264 in ffmpeg64. It no longer looks for ffmpeg.exe.
 - Camera scan shows the same code again after 3 seconds, on the desktop window and the tools page.
 - The RTSP test preview no longer flashes black. The picture is copied before the next frame clears the buffer.
+- Scientific calculator keys + - * / are add, subtract, multiply, and divide, including Shift+8 and Shift+=.
 
 #### Documentation
 
@@ -177,6 +178,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - RTSP 测试服务器改用 ffmpeg64 里的 libx264 编码，不再查找 ffmpeg.exe。
 - 桌面相机和工具页扫码时，同一个码隔 3 秒会再显示一次。
 - RTSP 测试画面不再闪黑。先复制完一帧，再让下一帧清屏。
+- 科学计算器按键 + - * / 对应加、减、乘、除，Shift+8 和 Shift+= 也一样。
 
 #### 文档
 
