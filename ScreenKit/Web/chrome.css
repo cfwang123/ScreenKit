@@ -1,0 +1,68 @@
+:root {
+	--ink: #1c1915;
+	--muted: #6b645c;
+	--line: #e4ddd4;
+	--paper: #f6f3ee;
+	--card: #fffcf8;
+	--accent: #b4532a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+	display: flex;
+	flex-direction: column;
+	min-height: 100%;
+	background: var(--paper);
+	color: var(--ink);
+	font: 15px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+header {
+	flex: none;
+	padding: 16px 20px 8px;
+}
+h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.bar {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 20px;
+}
+select, button {
+	height: 32px;
+	padding: 0 12px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+	background: #fff;
+	color: var(--ink);
+	font: inherit;
+}
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.55; cursor: default; }
+#msg { color: var(--muted); font-size: 13px; }
+#msg.bad { color: #9f2d2d; }
+.hint {
+	flex: none;
+	margin: 8px 20px;
+	color: var(--muted);
+	font-size: 13px;
+}
+.scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	margin: 0 20px 20px;
+	overflow: auto;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--card);
+}
+table { width: 100%; border-collapse: collapse; }
+th, td {
+	padding: 6px 10px;
+	text-align: left;
+	border-bottom: 1px solid var(--line);
+	font-size: 13px;
+	white-space: nowrap;
+}
+th { position: sticky; top: 0; background: var(--card); }

@@ -305,19 +305,6 @@
 					{
 						x:"button",
 						"type":"button",
-						"data-tool":"u-chrome",
-						"data-cat":"speech",
-						"data-name":"chrome 语音 翻译 模型 安装 语言包",
-						"title":"查看并安装 Chrome 的语音包和翻译模型",
-						c:[
-						{x:"i.fa-solid.fa-language"},
-						{x:"span","data-k":"web.tool.chrome",c:"Chrome模型"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-chrome","title":"收藏"}
-					]
-					},
-					{
-						x:"button",
-						"type":"button",
 						"data-tool":"asr",
 						"data-cat":"speech",
 						"data-name":"语音识别 录音",

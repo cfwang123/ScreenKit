@@ -120,6 +120,7 @@ partial class InstallFeaturesWindow : Window {
 		};
 		bchromerefresh.Click += async (_, _) => await loadchrome();
 		bchromemodel.Click += (_, _) => openchromemodel();
+		bchromepage.Click += (_, _) => openchromepage();
 		echromekind.SelectionChanged += (_, _) => {
 			if (!chromeUiLoading) applychromefilter();
 		};
@@ -218,6 +219,8 @@ partial class InstallFeaturesWindow : Window {
 		bchromerefresh.Content = Loc.T("inst.chrome.refresh");
 		bchromemodel.Content = Loc.T("inst.chrome.model");
 		bchromemodel.ToolTip = Loc.T("inst.chrome.model.tip");
+		bchromepage.Content = Loc.T("inst.chrome.page");
+		bchromepage.ToolTip = Loc.T("inst.chrome.page.tip");
 		cchromeheader.ToolTip = Loc.T("inst.tts.selectall");
 		fillchromekind();
 		bmissing.Content = Loc.T("inst.sel.missing");

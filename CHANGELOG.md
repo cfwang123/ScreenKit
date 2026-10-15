@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web tools page is built in JavaScript. tools.html only links the stylesheets and scripts.
 - Chrome translation shows that a model is downloading, and the percent when it is known.
 - The dictionary hotkey does not open the SQLite dictionary when there is nothing to search.
+- Chrome models is a separate page opened from Install features in Chrome, and is no longer a web tool
 
 #### Fixed
 
@@ -114,6 +115,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具页改由脚本生成页面，tools.html 只保留样式和脚本引用。
 - Chrome 翻译下载模型时显示正在下载，有百分比时一并显示。
 - 词典热键在没有搜索内容时不打开 SQLite 词典库。
+- Chrome 模型改为单独页面，在安装功能里用 Chrome 打开，不再放在网页工具里
 
 #### 修复
 

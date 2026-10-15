@@ -65,6 +65,9 @@
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />
     <None Include="Web\dict.js" CopyToOutputDirectory="PreserveNewest" Link="web\dict.js" />
+    <None Include="Web\chrome.html" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.html" />
+    <None Include="Web\chrome.css" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.css" />
+    <None Include="Web\chrome.js" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.js" />
     <EmbeddedResource Include="Web\tools.html" LogicalName="web.tools.html" />
     <EmbeddedResource Include="Web\tools.css" LogicalName="web.tools.css" />
     <EmbeddedResource Include="Web\tools.js" LogicalName="web.tools.js" Condition="Exists('Web\tools.js')" />
@@ -75,6 +78,9 @@
     <EmbeddedResource Include="Web\dict.html" LogicalName="web.dict.html" />
     <EmbeddedResource Include="Web\dict.css" LogicalName="web.dict.css" />
     <EmbeddedResource Include="Web\dict.js" LogicalName="web.dict.js" />
+    <EmbeddedResource Include="Web\chrome.html" LogicalName="web.chrome.html" />
+    <EmbeddedResource Include="Web\chrome.css" LogicalName="web.chrome.css" />
+    <EmbeddedResource Include="Web\chrome.js" LogicalName="web.chrome.js" />
     <EmbeddedResource Include="SendFile\web\index.html" LogicalName="web.index.html" />
     <EmbeddedResource Include="SendFile\web\m.html" LogicalName="web.m.html" />
     <EmbeddedResource Include="SendFile\web\app.js" LogicalName="web.app.js" />

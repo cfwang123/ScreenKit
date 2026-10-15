@@ -55,6 +55,29 @@ partial class InstallFeaturesWindow {
 		}
 	}
 
+	void openchromepage() {
+		var o = new OcrOptions();
+		try { AppConfig.LoadInto(o); } catch { }
+		var exe = ChromeTts.FindExe(o.ChromeExe);
+		if (string.IsNullOrEmpty(exe)) {
+			MessageBox.Show(this, Loc.T("inst.chrome.need"), Title,
+				MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
+		var port = o.HttpPort > 0 ? o.HttpPort : 1224;
+		var url = "http://127.0.0.1:" + port + "/chrome";
+		try {
+			Process.Start(new ProcessStartInfo {
+				FileName = exe,
+				Arguments = "\"" + url + "\"",
+				UseShellExecute = false,
+			});
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
 	async Task loadchrome() {
 		if (busy) return;
 		setbusy(true);

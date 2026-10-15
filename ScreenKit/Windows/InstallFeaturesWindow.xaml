@@ -480,6 +480,10 @@
 						        MinWidth="96" Padding="12,0" Margin="0,0,8,0"
 						        ToolTip="用 Chrome 打开 chrome://on-device-internals"
 						        AutomationProperties.AutomationId="inst.chrome.model"/>
+						<Button x:Name="bchromepage" Content="Chrome模型" Style="{StaticResource ToolBtn}"
+						        MinWidth="96" Padding="12,0" Margin="0,0,8,0"
+						        ToolTip="用 Chrome 打开本程序的 Chrome 模型页"
+						        AutomationProperties.AutomationId="inst.chrome.page"/>
 						<TextBlock x:Name="lbchromesum" VerticalAlignment="Center"
 						           FontSize="11" Foreground="{StaticResource TextMuted}" Text=""/>
 					</DockPanel>

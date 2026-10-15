@@ -540,6 +540,174 @@ static class WinOcr {
 		return lines;
 	}
 
+	static bool ispuncttok(string s) {
+		if (string.IsNullOrEmpty(s)) return false;
+		foreach (var c in s)
+			if (char.IsLetterOrDigit(c) || iscjk(c)) return false;
+		return true;
+	}
+
+	static string jointoks(List<MixTok> toks) {
+		toks.Sort((a, b) => a.L.CompareTo(b.L));
+		var sb = new StringBuilder();
+		MixTok prev = null;
+		foreach (var tok in toks) {
+			if (prev != null && sb.Length > 0 && tok.Text.Length > 0) {
+				var gap = tok.L - prev.R;
+				var h = Math.Max(1, Math.Max(prev.H, tok.H));
+				if (gap > Math.Max(3, h * 0.15) && needsword(sb[sb.Length - 1], tok.Text[0]))
+					sb.Append(' ');
+			}
+			sb.Append(tok.Text);
+			prev = tok;
+		}
+		return sb.ToString();
+	}
+
+	/// <summary>两边拉丁串对得上时，按空格和 0/O、1/l 这类易混字挑更干净的一版。</summary>
+	static string picklatin(string zh, string en) {
+		if (string.IsNullOrEmpty(en)) return zh ?? "";
+		if (string.IsNullOrEmpty(zh)) return en;
+		var zs = skel(zh);
+		var es = skel(en);
+		if (zs.Length == 0) return en;
+		if (es.Length == 0) return zh;
+		if (zs == es) return spacemark(en) >= spacemark(zh) ? en : zh;
+		if (sameconfuse(zs, es)) return applyconfuse(en, zs, es);
+		if (es.StartsWith(zs) && es.Length == zs.Length + 1)
+			return spacemark(zh) >= spacemark(en) ? zh : trimlastalnum(en);
+		if (zs.StartsWith(es) && zs.Length == es.Length + 1)
+			return spacemark(en) >= spacemark(zh) ? en : trimlastalnum(zh);
+		return dirt(en) < dirt(zh) ? en : zh;
+	}
+
+	static string skel(string s) {
+		var sb = new StringBuilder();
+		foreach (var c in s)
+			if (char.IsLetterOrDigit(c)) sb.Append(char.ToLowerInvariant(c));
+		return sb.ToString();
+	}
+
+	static int spacemark(string s) {
+		var score = 0;
+		var parts = s.Split(' ');
+		if (parts.Length <= 1) return 0;
+		for (int i = 0; i < parts.Length; i++) {
+			if (parts[i].Length == 0) { score -= 2; continue; }
+			if (i == 0) continue;
+			var one = parts[i].Length == 1 ? parts[i][0] : '\0';
+			if (one != '\0' && one != 'a' && one != 'A' && one != 'I') score -= 3;
+			else score += 1;
+		}
+		return score;
+	}
+
+	static int dirt(string s) {
+		var d = 0;
+		foreach (var raw in s.Split(' ')) {
+			if (raw.Length == 0) continue;
+			var let = false;
+			var dig = false;
+			var odd = false;
+			var dot = false;
+			foreach (var c in raw) {
+				if (char.IsLetter(c)) let = true;
+				else if (char.IsDigit(c)) dig = true;
+				else if (c == '.') dot = true;
+				else if (c != '\'' && c != '"' && c != '-' && c != ',') odd = true;
+			}
+			if (let && dig && !dot) d += 6;
+			if (odd) d += 4;
+			if (dot && (raw.IndexOf('O') >= 0 || raw.IndexOf('l') >= 0)) d += 3;
+		}
+		return d;
+	}
+
+	static int confgroup(char c) {
+		c = char.ToLowerInvariant(c);
+		if (c == '0' || c == 'o') return 1;
+		if (c == '1' || c == 'l' || c == 'i') return 2;
+		if (c == '5' || c == 's') return 3;
+		return 0;
+	}
+
+	static bool sameconfuse(string zs, string es) {
+		if (zs.Length != es.Length || zs.Length == 0) return false;
+		for (int i = 0; i < zs.Length; i++) {
+			if (zs[i] == es[i]) continue;
+			var g = confgroup(zs[i]);
+			if (g == 0 || g != confgroup(es[i])) return false;
+		}
+		return true;
+	}
+
+	static string applyconfuse(string en, string zs, string es) {
+		var sb = new StringBuilder();
+		var k = 0;
+		for (int i = 0; i < en.Length; i++) {
+			var c = en[i];
+			if (!char.IsLetterOrDigit(c)) { sb.Append(c); continue; }
+			var zc = k < zs.Length ? zs[k] : c;
+			var ec = k < es.Length ? es[k] : c;
+			k++;
+			if (zc == ec) { sb.Append(c); continue; }
+			var prev = i > 0 ? en[i - 1] : '\0';
+			var next = i + 1 < en.Length ? en[i + 1] : '\0';
+			var digitctx = prev == '.' || next == '.' || char.IsDigit(prev) || char.IsDigit(next);
+			if (digitctx) {
+				var g = confgroup(zc);
+				if (g == 1) sb.Append('0');
+				else if (g == 2) sb.Append('1');
+				else if (g == 3) sb.Append('5');
+				else sb.Append(c);
+				continue;
+			}
+			if (char.IsLetter(c)) { sb.Append(c); continue; }
+			var gg = confgroup(c);
+			if (gg == 1) sb.Append('O');
+			else if (gg == 2) sb.Append('l');
+			else if (gg == 3) sb.Append('S');
+			else sb.Append(c);
+		}
+		return sb.ToString();
+	}
+
+	static string trimlastalnum(string s) {
+		for (int i = s.Length - 1; i >= 0; i--) {
+			if (!char.IsLetterOrDigit(s[i])) continue;
+			return s.Substring(0, i) + s.Substring(i + 1);
+		}
+		return s;
+	}
+
+	static string tidy(string s) {
+		if (string.IsNullOrEmpty(s)) return s ?? "";
+		var sb = new StringBuilder();
+		for (int i = 0; i < s.Length; i++) {
+			var c = s[i];
+			if (c == ' ') {
+				if (sb.Length > 0 && cjkpunct(sb[sb.Length - 1])) continue;
+				if (i + 1 < s.Length && cjkpunct(s[i + 1])) continue;
+			}
+			if (foldpunct(c) != '\0') {
+				if (i + 1 < s.Length && foldpunct(c) == foldpunct(s[i + 1])) continue;
+				if (sb.Length > 0 && foldpunct(c) == foldpunct(sb[sb.Length - 1])) continue;
+			}
+			sb.Append(c);
+		}
+		return sb.ToString();
+	}
+
+	static bool cjkpunct(char c) => c is '，' or '。' or '：' or '；' or '、' or '！' or '？';
+
+	static char foldpunct(char c) => c switch {
+		',' or '，' => ',',
+		'.' or '。' => '.',
+		':' or '：' => ':',
+		';' or '；' => ';',
+		_ => '\0',
+	};
+
 	static bool langpair(List<WinOcrLang> avail, out string zh, out string en) {
 		zh = picktag(avail, "zh-Hans-CN", "zh-CN", "zh-Hans");
 		en = picktag(avail, "en-US", "en-GB", "en");

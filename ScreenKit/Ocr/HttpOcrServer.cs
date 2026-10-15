@@ -16,7 +16,7 @@ namespace ScreenKit;
 /// <item>WebSocket /chat 工具页聊天室（昵称、性别，文字）</item>
 /// <item>WebSocket /rtsp?rtsp= 把一路 RTSP 转成 H.264 给网页播放</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
-/// <item>GET / 本机工具页；/dict 词典页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
+/// <item>GET / 本机工具页；/dict 词典页；/chrome Chrome 模型页；/sk/tools.css · /sk/tools.js · /sk/chrome.css · /sk/chrome.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
 /// <item>GET /api/dict · /api/dict/entry · /api/dict/speak · /api/dict/export</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
 /// <item>GET/POST /api/pinyin 中文转拼音（NPinyin 已安装时）</item>
@@ -137,6 +137,14 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlelangjs(ctx);
+				return;
+			}
+			if (path is "/chrome" or "/sk/chrome.css" or "/sk/chrome.js") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "Chrome 模型页仅支持 GET"));
+					return;
+				}
+				handlechromepage(ctx, path);
 				return;
 			}
 			if (path is "/dict" or "/sk/dict.css" or "/sk/dict.js") {
@@ -762,6 +770,52 @@ sealed partial class HttpOcrServer : IDisposable {
 			if (c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-') sb.Append(c);
 		}
 		return sb.Length == 0 ? "zh" : sb.ToString();
+	}
+
+	void handlechromepage(SockCtx ctx, string path) {
+		string name;
+		string mime;
+		if (path == "/sk/chrome.css") {
+			name = "chrome.css";
+			mime = "text/css; charset=utf-8";
+		}
+		else if (path == "/sk/chrome.js") {
+			name = "chrome.js";
+			mime = "application/javascript; charset=utf-8";
+		}
+		else {
+			name = "chrome.html";
+			mime = "text/html; charset=utf-8";
+		}
+		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
+			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
+			return;
+		}
+		var html = name == "chrome.html";
+		if (html) {
+			var text = Encoding.UTF8.GetString(bytes);
+			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
+			bytes = Encoding.UTF8.GetBytes(text);
+		}
+		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
+		var res = ctx.Response;
+		res.StatusCode = 200;
+		res.ContentType = mime;
+		res.ContentLength64 = bytes.Length;
+		if (html) {
+			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
+			res.Headers["Pragma"] = "no-cache";
+		}
+		else
+			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
+		res.Headers["Access-Control-Allow-Origin"] = "*";
+		try {
+			if (!head) res.OutputStream.Write(bytes, 0, bytes.Length);
+		}
+		finally {
+			try { res.OutputStream.Close(); } catch { }
+			try { res.Close(); } catch { }
+		}
 	}
 
 	void handletoolspage(SockCtx ctx, string path) {
@@ -2452,6 +2506,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		var a = new JsonArray {
 			"GET  /  本机工具页",
 			"GET  /dict  词典页（新窗口）",
+			"GET  /chrome  Chrome 模型页",
 			"GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语",
 			"GET  /api/dict/entry  ?id=",
 			"GET  /api/dict/speak  ?text=&lang=  WAV",
