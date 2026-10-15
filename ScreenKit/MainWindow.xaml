@@ -165,6 +165,9 @@
 				<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
 				          AutomationProperties.AutomationId="menu.pwgen"
 				          ToolTip="随机密码，可选字符集"/>
+				<MenuItem x:Name="mnscicalc" Header="科学计算器(_2)…"
+				          AutomationProperties.AutomationId="menu.scicalc"
+				          ToolTip="三角函数、对数、乘方、阶乘和内存"/>
 				<MenuItem x:Name="mnnetgroup" Header="网络工具(_N)"
 				          AutomationProperties.AutomationId="menu.netgroup"
 				          ToolTip="网络工具、HTTP 请求调试和端口占用">
