@@ -27,7 +27,13 @@ public partial class RtspSrvWindow : Window {
 	int w = 640, h = 480, fps = 30;
 	float bx = 80, by = 80, vx = SPEED, vy = SPEED;
 	volatile bool on;
-	int showbusy;
+	readonly object previewgate = new object();
+	byte[] previewbuf;
+	byte[] sparebuf;
+	int previeww;
+	int previewh;
+	bool previewdirty;
+	int previewposted;
 	int frames;
 	int lastfps;
 	int lasttick;
@@ -114,6 +120,7 @@ public partial class RtspSrvWindow : Window {
 			step();
 			var text = DateTime.Now.ToString("HH:mm:ss.fff");
 			drawtext(text, 16, 16);
+			showframe();
 			try {
 				var au = enc.Encode(pixels);
 				if (au != null) srv?.Push(au);
@@ -122,29 +129,65 @@ public partial class RtspSrvWindow : Window {
 			frames++;
 			var wait = delay - (Environment.TickCount - t0);
 			if (wait > 0) Thread.Sleep(wait);
-			showframe();
 		}
 	}
 
 	void showframe() {
-		if (pixels == null || Interlocked.CompareExchange(ref showbusy, 1, 0) != 0) return;
-		var snap = new byte[pixels.Length];
-		Buffer.BlockCopy(pixels, 0, snap, 0, pixels.Length);
-		var pw = w;
-		var ph = h;
-		try {
-			Dispatcher.BeginInvoke(new Action(() => {
-				try {
-					if (bmp == null || bmp.PixelWidth != pw || bmp.PixelHeight != ph) {
-						bmp = new WriteableBitmap(pw, ph, 96, 96, PixelFormats.Bgra32, null);
-						imgprev.Source = bmp;
-					}
-					bmp.WritePixels(new Int32Rect(0, 0, pw, ph), snap, pw * 4, 0);
-				}
-				finally { Interlocked.Exchange(ref showbusy, 0); }
-			}));
+		if (pixels == null) return;
+		var post = false;
+		lock (previewgate) {
+			if (previewbuf == null || previewbuf.Length != pixels.Length)
+				previewbuf = new byte[pixels.Length];
+			Buffer.BlockCopy(pixels, 0, previewbuf, 0, pixels.Length);
+			previeww = w;
+			previewh = h;
+			previewdirty = true;
+			if (previewposted == 0) {
+				previewposted = 1;
+				post = true;
+			}
 		}
-		catch { Interlocked.Exchange(ref showbusy, 0); }
+		if (!post) return;
+		try { Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(paintpreview)); }
+		catch { lock (previewgate) previewposted = 0; }
+	}
+
+	void paintpreview() {
+		while (on) {
+			byte[] snap;
+			int pw, ph;
+			lock (previewgate) {
+				if (!previewdirty) {
+					previewposted = 0;
+					return;
+				}
+				previewdirty = false;
+				snap = previewbuf;
+				previewbuf = sparebuf;
+				sparebuf = null;
+				pw = previeww;
+				ph = previewh;
+			}
+			if (snap == null) {
+				lock (previewgate) previewposted = 0;
+				return;
+			}
+			try {
+				if (bmp == null || bmp.PixelWidth != pw || bmp.PixelHeight != ph) {
+					bmp = new WriteableBitmap(pw, ph, 96, 96, PixelFormats.Bgra32, null);
+					imgprev.Source = bmp;
+				}
+				bmp.WritePixels(new Int32Rect(0, 0, pw, ph), snap, pw * 4, 0);
+			}
+			catch { }
+			lock (previewgate) {
+				if (sparebuf == null) sparebuf = snap;
+				if (previewdirty) continue;
+				previewposted = 0;
+				return;
+			}
+		}
+		lock (previewgate) previewposted = 0;
 	}
 
 	void step() {

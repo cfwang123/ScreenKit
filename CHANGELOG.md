@@ -118,6 +118,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web RTSP playback keeps every slice of one picture together, so the test square is no longer missing a corner or gaining an extra block.
 - Scientific calculator accepts parentheses from Shift+9 and Shift+0.
 - IP scan lists hosts as soon as they are found, and fills each name as it resolves.
+- RTSP test server preview now shows the newest frame instead of lagging the player.
 
 #### Removed
 
@@ -211,6 +212,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页播放 RTSP 时把同一帧的切片合成一张，测试画面的方块不再缺一块或多一块。
 - 科学计算器可用 Shift+9 和 Shift+0 输入括号。
 - IP 扫描发现主机后立即列出，每解析出一个主机名就更新一行
+- RTSP 测试服务器的预览改为显示最新画面，不再比播放器慢一截。
 
 #### 移除
 

@@ -38,9 +38,7 @@
 			</DockPanel>
 		</Border>
 		<Border Grid.Row="1" Background="#111" CornerRadius="4" ClipToBounds="True">
-			<Viewbox Stretch="Uniform">
-				<Image x:Name="imgprev" Stretch="Fill"/>
-			</Viewbox>
+			<Image x:Name="imgprev" Stretch="Uniform"/>
 		</Border>
 		<GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="#333" Margin="0,4"/>
 		<DockPanel Grid.Row="3" Margin="0,4,0,0">
