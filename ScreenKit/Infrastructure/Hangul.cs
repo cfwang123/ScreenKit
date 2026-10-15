@@ -1,6 +1,6 @@
 namespace ScreenKit;
 
-/// <summary>Windows 韩语输入法的两套式（KS X 5002）。当前音节随按键改写，完成的音节留在前面。</summary>
+/// <summary>Windows 韩语输入法的两套式（KS X 5002）。当前音节随按键改写，完成的音节留在前面。元音不合并成双元音。</summary>
 sealed class Hangul {
 	string done = "";
 	int cho = -1;
@@ -31,8 +31,7 @@ sealed class Hangul {
 			return;
 		}
 		if (jung >= 0) {
-			int basev = uncombinejung(jung);
-			jung = basev >= 0 ? basev : -1;
+			jung = -1;
 			return;
 		}
 		if (cho >= 0) {
@@ -73,8 +72,6 @@ sealed class Hangul {
 		if (cho < 0 && jung < 0) { jung = ji; return; }
 		if (cho >= 0 && jung < 0) { jung = ji; return; }
 		if (jung >= 0 && jong < 0) {
-			int comb = combinejung(jung, ji);
-			if (comb >= 0) { jung = comb; return; }
 			flush();
 			jung = ji;
 			return;
@@ -188,24 +185,6 @@ sealed class Hangul {
 		keep = -1;
 	}
 
-	static int combinejung(int cur, int add) {
-		if (cur == 8 && add == 0) return 9;
-		if (cur == 8 && add == 1) return 10;
-		if (cur == 8 && add == 20) return 11;
-		if (cur == 13 && add == 4) return 14;
-		if (cur == 13 && add == 5) return 15;
-		if (cur == 13 && add == 20) return 16;
-		if (cur == 18 && add == 20) return 19;
-		return -1;
-	}
-
-	static int uncombinejung(int j) {
-		if (j == 9 || j == 10 || j == 11) return 8;
-		if (j == 14 || j == 15 || j == 16) return 13;
-		if (j == 19) return 18;
-		return -1;
-	}
-
 	static int uncombinejong(int j) {
 		switch (j) {
 			case 3: return 1;
@@ -249,11 +228,9 @@ sealed class Hangul {
 			case 'k': kind = 1; idx = 0; return true;
 			case 'o': kind = 1; idx = 1; return true;
 			case 'i': kind = 1; idx = 2; return true;
-			case 'O': kind = 1; idx = 3; return true;
 			case 'j': kind = 1; idx = 4; return true;
 			case 'p': kind = 1; idx = 5; return true;
 			case 'u': kind = 1; idx = 6; return true;
-			case 'P': kind = 1; idx = 7; return true;
 			case 'h': kind = 1; idx = 8; return true;
 			case 'y': kind = 1; idx = 12; return true;
 			case 'n': kind = 1; idx = 13; return true;

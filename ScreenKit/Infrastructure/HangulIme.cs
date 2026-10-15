@@ -7,7 +7,7 @@ namespace ScreenKit;
 /// <summary>
 /// 按快捷键接管键盘，行为对齐 Windows 韩语输入法：两套式在光标处组字，没有候选条。
 /// 打开后另有一个托盘图标，左键切换韩文和英文，右键可关闭或打开参数。本程序窗口里的按键不接管。
-/// 单独按 Shift、右 Alt 或韩/英键在韩文和英文之间切换。Shift 加字母仍是双辅音或双元音。
+/// 单独按 Shift、右 Alt 或韩/英键在韩文和英文之间切换。Shift 加辅音仍是双辅音，元音不加双。
 /// 空格、回车和标点先留下已组的字，再把该键交给当前窗口。
 /// </summary>
 sealed class HangulIme : IDisposable {
@@ -28,6 +28,7 @@ sealed class HangulIme : IDisposable {
 
 	readonly Hangul hang = new();
 	readonly HashSet<int> eaten = new();
+	readonly HashSet<int> downvks = new();
 	readonly DispatcherTimer timer;
 	Forms.NotifyIcon ni;
 	Forms.ContextMenuStrip menu;
@@ -140,6 +141,7 @@ sealed class HangulIme : IDisposable {
 		UnhookWindowsHookEx(hook);
 		hook = IntPtr.Zero;
 		eaten.Clear();
+		downvks.Clear();
 	}
 
 	void showtray(bool en) {
@@ -217,11 +219,16 @@ sealed class HangulIme : IDisposable {
 	void onkey(int vk, bool down) {
 		bool shiftkey = vk == VK_SHIFT || vk == 0xA0 || vk == 0xA1;
 		if (!down) {
+			downvks.Remove(vk);
 			if (shiftkey && shiftlone) {
 				shiftlone = false;
 				if (!ours(GetForegroundWindow())) ToggleEnglish();
 			}
 			eat = eaten.Remove(vk);
+			return;
+		}
+		if (!downvks.Add(vk)) {
+			eat = eaten.Contains(vk);
 			return;
 		}
 		if (ours(GetForegroundWindow())) {
