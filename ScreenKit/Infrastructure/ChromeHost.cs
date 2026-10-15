@@ -16,6 +16,8 @@ static class ChromeHost {
 	static Process proc;
 	static string launched;
 	static string launchedpx;
+	static int debugPort;
+	static int pin;
 	static string profile;
 	static TcpListener lis;
 	static int port;
@@ -119,6 +121,37 @@ static class ChromeHost {
 		return ChromeTts.TreeWorkingSet(pid);
 	}
 
+	/// <summary>下载模型时别把窗口藏起来，也别按空闲关掉。</summary>
+	public static IDisposable Pin() {
+		Interlocked.Increment(ref pin);
+		try { cloak(); } catch { }
+		return new Pinned();
+	}
+
+	sealed class Pinned : IDisposable {
+		public void Dispose() {
+			if (Interlocked.Decrement(ref pin) < 0) Interlocked.Exchange(ref pin, 0);
+		}
+	}
+
+	/// <summary>正在跑的这只 Chrome 的调试端口。没有开调试时为 0。</summary>
+	public static int DebugPort() {
+		if (!TryRun(out _)) return 0;
+		if (debugPort <= 0) debugPort = readdebug();
+		return debugPort;
+	}
+
+	static int readdebug() {
+		try {
+			var path = Path.Combine(ChromeTts.ProfileDir(), "DevToolsActivePort");
+			if (!File.Exists(path)) return 0;
+			var line = File.ReadAllLines(path);
+			if (line.Length == 0) return 0;
+			return int.TryParse(line[0].Trim(), out var n) ? n : 0;
+		}
+		catch { return 0; }
+	}
+
 	/// <summary>不启动 Chrome。两路结果同时回来时互不覆盖。</summary>
 	public static int Test() {
 		lock (slots) {
@@ -150,6 +183,7 @@ static class ChromeHost {
 		if (string.IsNullOrEmpty(exe)) return 0;
 		try {
 			ensure(exe, 30, CancellationToken.None);
+			if (DebugPort() <= 0) return 3;
 			var a = Task.Run(ping);
 			var b = Task.Run(ping);
 			if (!Task.WaitAll(new[] { a, b }, 20000)) return 2;
@@ -269,27 +303,33 @@ static class ChromeHost {
 		var path = ChromeTts.FindExe(exe);
 		if (path == null) throw new InvalidOperationException("找不到 chrome.exe");
 		var px = HttpProxy.ChromeArgs();
-		lock (gate) {
-			Volatile.Write(ref idle, idleSec);
-			if (up(proc) && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)
-				&& string.Equals(launchedpx, px, StringComparison.Ordinal)) {
-				lock (slots) ready = true;
+		for (var attempt = 0; attempt < 3; attempt++) {
+			lock (gate) {
+				Volatile.Write(ref idle, idleSec);
+				if (up(proc) && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)
+					&& string.Equals(launchedpx, px, StringComparison.Ordinal)) {
+					lock (slots) ready = true;
+					return;
+				}
+				stopunlocked();
+				starthttp();
+				launch(path, px);
+			}
+			if (waitready(ct)) {
+				debugPort = readdebug();
+				lock (slots) {
+					ready = true;
+					if (slots.Count == 0) armidle();
+				}
 				return;
 			}
-			stopunlocked();
-			starthttp();
-			launch(path, px);
-		}
-		if (!waitready(ct)) {
 			var cancel = ct.IsCancellationRequested;
 			lock (gate) stopunlocked();
 			if (cancel) throw new OperationCanceledException(ct);
-			throw new InvalidOperationException("Chrome 没有打开朗读页");
+			killstale();
+			Thread.Sleep(800);
 		}
-		lock (slots) {
-			ready = true;
-			if (slots.Count == 0) armidle();
-		}
+		throw new InvalidOperationException("Chrome 没有打开朗读页");
 	}
 
 	static void starthttp() {
@@ -320,6 +360,7 @@ static class ChromeHost {
 		var url = "http://127.0.0.1:" + port + "/boot.html";
 		var args = new StringBuilder();
 		args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
+		args.Append("--remote-debugging-port=0 ");
 		args.Append("--no-first-run --no-default-browser-check --disable-sync ");
 		args.Append("--autoplay-policy=no-user-gesture-required ");
 		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
@@ -365,7 +406,7 @@ static class ChromeHost {
 
 	static bool due() {
 		lock (slots) {
-			if (slots.Count > 0 || nextkill == 0) return false;
+			if (slots.Count > 0 || Volatile.Read(ref pin) > 0 || nextkill == 0) return false;
 			return unchecked(Environment.TickCount - nextkill) >= 0;
 		}
 	}
@@ -384,6 +425,7 @@ static class ChromeHost {
 		proc = null;
 		launched = null;
 		launchedpx = null;
+		debugPort = 0;
 		List<Slot> left;
 		lock (slots) {
 			ready = false;
@@ -395,6 +437,24 @@ static class ChromeHost {
 		foreach (var s in left)
 			s.Done?.TrySetException(new InvalidOperationException("Chrome 已退出"));
 		killtree(p);
+	}
+
+	static void killstale() {
+		try {
+			using var search = new System.Management.ManagementObjectSearcher(
+				"SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name='chrome.exe'");
+			foreach (System.Management.ManagementObject mo in search.Get()) {
+				var cmd = mo["CommandLine"] as string ?? "";
+				if (cmd.IndexOf("sk-chrome-tts", StringComparison.OrdinalIgnoreCase) < 0) continue;
+				var pid = Convert.ToInt32(mo["ProcessId"]);
+				try {
+					using var p = Process.GetProcessById(pid);
+					killtree(p);
+				}
+				catch { }
+			}
+		}
+		catch { }
 	}
 
 	static void killtree(Process p) {
@@ -627,7 +687,7 @@ static class ChromeHost {
 
 	static void cloak() {
 		var busy = false;
-		lock (slots) busy = slots.Count > 0;
+		lock (slots) busy = slots.Count > 0 || Volatile.Read(ref pin) > 0;
 		var flip = busy != cloakedBusy;
 		cloakedBusy = busy;
 		EnumWindows((h, _) => {

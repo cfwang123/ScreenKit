@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - A borderless translucent performance window shows CPU, GPU, memory, network, and disk, plus temperature and power when available. Right-click turns each field on or off.
 - The web tools page can list, install, and remove the hidden Chrome translation models and offline voice packs.
 - File menu has Restart, which quits and starts the program again.
+- Windows OCR can recognize Chinese and English together: both languages run once, then Chinese characters stay from the Chinese pass and Latin text comes from the English pass.
 
 #### Changed
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation downloads a missing language pack without a click, then translates.
 - Windows OCR in Chinese or English puts spaces back into English words where the picture has a word gap.
 - Tool scripts run after the page is created, so the tools home shows its cards and panels.
+- Chrome translation downloads a missing language pack in the speech page that is already open
 
 #### Documentation
 
@@ -95,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 性能监控是半透明无边框小窗，显示 CPU、GPU、内存、网络和磁盘，能读到时也显示温度和功率。右键可开关每一项。
 - 网页工具可以查看、安装和卸载隐藏 Chrome 的翻译模型与离线语音包。
 - 文件菜单增加重启，退出后重新打开程序。
+- Windows OCR 增加中英混合：中文和英文各识别一次，汉字留中文结果，英文留英文结果。
 
 #### 变更
 
@@ -124,6 +127,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 翻译在语言包还没下载时会自动下载，不用在页面里点击，然后再翻译。
 - Windows OCR 在中文或英文下，按画面词距把粘在一起的英文补回空格。
 - 工具脚本在页面生成之后再执行，工具主页会画出卡片和各个面板。
+- Chrome 翻译缺少语言模型时，在已经打开的朗读页里下载，不再关掉 Chrome 后重开
 
 #### 文档
 

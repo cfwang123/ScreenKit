@@ -1450,7 +1450,7 @@ public partial class MainWindow : Window {
 	void fillwinlang() {
 		winLangLoading = true;
 		try {
-			var langs = WinOcr.Languages();
+			var langs = WinOcr.Choices();
 			ewinlang.ItemsSource = langs;
 			var tag = WinOcr.SelectedTag(opt);
 			var hit = langs.FirstOrDefault(x =>

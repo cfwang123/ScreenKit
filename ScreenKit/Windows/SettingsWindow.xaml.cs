@@ -645,7 +645,7 @@ public partial class SettingsWindow : Window {
 		lbsetdetlenhint.Visibility = hide;
 		if (edetlen.Parent is System.Windows.UIElement detrow) detrow.Visibility = hide;
 		if (win) {
-			var langs = WinOcr.Languages();
+			var langs = WinOcr.Choices();
 			ewinlang.ItemsSource = langs;
 			var tag = WinOcr.SelectedTag(Result);
 			ewinlang.SelectedItem = langs.FirstOrDefault(x =>

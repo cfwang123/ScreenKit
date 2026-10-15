@@ -15,10 +15,11 @@ sealed class WinOcrLang {
 }
 
 /// <summary>
-/// Windows 系统 OCR（WinRT）。一次只认一种语言，不加载 ONNX 模型。
+/// Windows 系统 OCR（WinRT）。一次认一种语言，或中英各认一次再合并。不加载 ONNX 模型。
 /// </summary>
 static class WinOcr {
 	public const string PackId = "winocr";
+	public const string MIX_TAG = "zh+en";
 	/// <summary>短边低于这个值就放大。大约 40 像素高的浅色小字，Windows OCR 只会剩最后一个词。</summary>
 	const int MINSHORT = 72;
 	/// <summary>墨水行矮于这个值就按 2 倍放大。大约 16 像素的路径行，原图和双线性放大都整行丢失。</summary>
@@ -58,6 +59,17 @@ static class WinOcr {
 		return list;
 	}
 
+	/// <summary>语言列表。中文和英文都已安装时，最前面加「中英混合」。</summary>
+	public static List<WinOcrLang> Choices() {
+		var list = Languages();
+		if (langpair(list, out _, out _))
+			list.Insert(0, new WinOcrLang { Tag = MIX_TAG, Name = Loc.T("ocr.win.mix") });
+		return list;
+	}
+
+	public static bool IsMix(string tag) =>
+		string.Equals((tag ?? "").Trim(), MIX_TAG, StringComparison.OrdinalIgnoreCase);
+
 	/// <summary>当前语言。配置为空或已不可用时，优先简体中文，其次英语，再退回第一种。</summary>
 	public static string SelectedTag(OcrOptions opt) {
 		var avail = Languages();
@@ -65,6 +77,7 @@ static class WinOcr {
 		var raw = opt?.WinOcrLangs ?? "";
 		var first = raw.Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
 			.Select(x => x.Trim()).FirstOrDefault(x => x.Length > 0);
+		if (IsMix(first) && langpair(avail, out _, out _)) return MIX_TAG;
 		var hit = avail.FirstOrDefault(x =>
 			string.Equals(x.Tag, first, StringComparison.OrdinalIgnoreCase));
 		if (hit != null) return hit.Tag;
@@ -74,6 +87,7 @@ static class WinOcr {
 	public static string Summary(OcrOptions opt) {
 		var tag = SelectedTag(opt);
 		if (string.IsNullOrEmpty(tag)) return Loc.T("ocr.win.empty");
+		if (IsMix(tag)) return Loc.T("ocr.win.mix");
 		var hit = Languages().FirstOrDefault(x =>
 			string.Equals(x.Tag, tag, StringComparison.OrdinalIgnoreCase));
 		return string.IsNullOrWhiteSpace(hit?.Name) ? tag : hit.Name;
@@ -251,6 +265,7 @@ static class WinOcr {
 		}
 		var t0 = Environment.TickCount;
 		try {
+			if (IsMix(tag)) return mixresult(bmp, scale, t0);
 			var lang = new Windows.Globalization.Language(tag);
 			var engine = WinMedia.OcrEngine.TryCreateFromLanguage(lang);
 			if (engine == null)
@@ -292,6 +307,272 @@ static class WinOcr {
 		finally {
 			try { bmp?.Dispose(); } catch { }
 		}
+	}
+
+	/// <summary>中文、英文各认一次。汉字留中文结果，拉丁和数字用英文结果，按框对齐后拼行。</summary>
+	static OcrResult mixresult(SoftwareBitmap bmp, double scale, int t0) {
+		var avail = Languages();
+		if (!langpair(avail, out var zh, out var en))
+			throw new InvalidOperationException(Loc.T("ocr.win.empty"));
+		var pw = bmp.PixelWidth;
+		var ph = bmp.PixelHeight;
+		byte[] px = null;
+		try {
+			px = new byte[pw * ph * 4];
+			bmp.CopyToBuffer(px.AsBuffer());
+		}
+		catch { px = null; }
+		var zheng = makeeng(zh);
+		var eneng = makeeng(en);
+		var zraw = recognize(zheng, bmp, zh);
+		SoftwareBitmap copy = null;
+		if (px != null) {
+			try { copy = SoftwareBitmap.CreateCopyFromBuffer(px.AsBuffer(), BitmapPixelFormat.Bgra8, pw, ph); }
+			catch { copy = null; }
+		}
+		WinMedia.OcrResult eraw = null;
+		try { eraw = recognize(eneng, copy ?? bmp, en); }
+		catch (Exception ex) {
+			CaptureLog.Ex("WinOcr mix en", ex);
+			eraw = null;
+		}
+		finally {
+			if (copy != null) try { copy.Dispose(); } catch { }
+		}
+		var ztok = mixtoks(zraw);
+		var etok = eraw == null ? new List<MixTok>() : mixtoks(eraw);
+		return new OcrResult {
+			Lines = mixlines(ztok, etok, (float)(1.0 / scale)),
+			DeviceUsed = "Windows",
+			ModelLabel = $"Windows OCR · {Loc.T("ocr.win.mix")}",
+			InferMs = Math.Max(0, Environment.TickCount - t0),
+		};
+	}
+
+	static WinMedia.OcrEngine makeeng(string tag) {
+		var lang = new Windows.Globalization.Language(tag);
+		var engine = WinMedia.OcrEngine.TryCreateFromLanguage(lang);
+		if (engine == null) throw new InvalidOperationException(Loc.T("ocr.win.empty"));
+		return engine;
+	}
+
+	static WinMedia.OcrResult recognize(WinMedia.OcrEngine engine, SoftwareBitmap bmp, string tag) {
+		try { return wait(engine.RecognizeAsync(bmp).AsTask()); }
+		catch (Exception ex) {
+			CaptureLog.Ex("WinOcr " + tag, ex);
+			throw new InvalidOperationException($"Windows OCR 失败: {ex.Message}", ex);
+		}
+	}
+
+	static List<MixTok> mixtoks(WinMedia.OcrResult raw) {
+		var list = new List<MixTok>();
+		if (raw?.Lines == null) return list;
+		foreach (var line in raw.Lines) {
+			if (line?.Words == null) continue;
+			foreach (var word in line.Words) {
+				var text = word?.Text ?? "";
+				if (text.Length == 0) continue;
+				var r = word.BoundingRect;
+				if (r.Width < 1 || r.Height < 1) continue;
+				list.Add(new MixTok {
+					Text = text,
+					L = r.X,
+					T = r.Y,
+					R = r.X + r.Width,
+					B = r.Y + r.Height,
+				});
+			}
+		}
+		return list;
+	}
+
+	/// <summary>不含汉字、且含字母或数字时，改用英文引擎的读法。</summary>
+	static bool preferen(string s) {
+		if (string.IsNullOrEmpty(s)) return false;
+		var latin = false;
+		foreach (var c in s) {
+			if (iscjk(c)) return false;
+			if (char.IsLetterOrDigit(c)) latin = true;
+		}
+		return latin;
+	}
+
+	static bool samerow(MixTok a, MixTok b) {
+		if (a == null || b == null) return false;
+		var top = Math.Max(a.T, b.T);
+		var bot = Math.Min(a.B, b.B);
+		var small = Math.Min(a.H, b.H);
+		return small > 1 && bot - top >= small * 0.4;
+	}
+
+	static bool overlaps(MixTok a, MixTok b) {
+		if (!samerow(a, b)) return false;
+		var left = Math.Max(a.L, b.L);
+		var right = Math.Min(a.R, b.R);
+		var ov = right - left;
+		if (ov <= 1) return false;
+		var small = Math.Min(a.W, b.W);
+		if (small < 1) return false;
+		if (ov >= small * 0.35) return true;
+		return b.Cx >= a.L && b.Cx <= a.R;
+	}
+
+	static List<OcrLine> mixlines(List<MixTok> zh, List<MixTok> en, float inv) {
+		var kept = new List<MixTok>();
+		var taken = new bool[zh.Count];
+		for (int i = 0; i < zh.Count; i++) {
+			if (taken[i] || !preferen(zh[i].Text)) continue;
+			var hits = new List<MixTok>();
+			foreach (var e in en)
+				if (!e.Used && overlaps(zh[i], e)) hits.Add(e);
+			if (hits.Count == 0) continue;
+			var grew = true;
+			while (grew) {
+				grew = false;
+				for (int j = 0; j < zh.Count; j++) {
+					if (!preferen(zh[j].Text)) continue;
+					var touch = false;
+					foreach (var e in hits)
+						if (overlaps(zh[j], e)) { touch = true; break; }
+					if (!touch) continue;
+					foreach (var e in en) {
+						if (e.Used || hits.Contains(e)) continue;
+						if (!overlaps(zh[j], e)) continue;
+						hits.Add(e);
+						grew = true;
+					}
+				}
+			}
+			double l = zh[i].L, t = zh[i].T, r = zh[i].R, b = zh[i].B;
+			foreach (var e in hits) {
+				e.Used = true;
+				if (e.L < l) l = e.L;
+				if (e.T < t) t = e.T;
+				if (e.R > r) r = e.R;
+				if (e.B > b) b = e.B;
+			}
+			var members = new List<MixTok>();
+			for (int j = 0; j < zh.Count; j++) {
+				if (taken[j]) continue;
+				var tok = zh[j];
+				var latin = preferen(tok.Text) && hits.Exists(e => overlaps(tok, e));
+				var punct = ispuncttok(tok.Text) && tok.Cx >= l - 2 && tok.Cx <= r + 2 && samerow(tok, zh[i]);
+				if (!latin && !punct) continue;
+				taken[j] = true;
+				members.Add(tok);
+				if (tok.L < l) l = tok.L;
+				if (tok.T < t) t = tok.T;
+				if (tok.R > r) r = tok.R;
+				if (tok.B > b) b = tok.B;
+			}
+			if (members.Count == 0) continue;
+			hits.Sort((a, c) => a.L.CompareTo(c.L));
+			kept.Add(new MixTok {
+				Text = picklatin(jointoks(members), jointoks(hits)),
+				L = l, T = t, R = r, B = b,
+			});
+		}
+		for (int i = 0; i < zh.Count; i++)
+			if (!taken[i]) kept.Add(zh[i]);
+		foreach (var e in en) {
+			if (e.Used || !preferen(e.Text)) continue;
+			var hit = false;
+			foreach (var k in kept) {
+				if (overlaps(k, e)) { hit = true; break; }
+			}
+			if (!hit) kept.Add(e);
+		}
+		kept.Sort((a, b) => {
+			var dy = a.Cy.CompareTo(b.Cy);
+			return dy != 0 ? dy : a.L.CompareTo(b.L);
+		});
+		var rows = new List<List<MixTok>>();
+		foreach (var t in kept) {
+			List<MixTok> row = null;
+			foreach (var cand in rows) {
+				if (samerow(cand[cand.Count / 2], t)) { row = cand; break; }
+			}
+			if (row == null) {
+				row = new List<MixTok>();
+				rows.Add(row);
+			}
+			row.Add(t);
+		}
+		var lines = new List<OcrLine>();
+		foreach (var row in rows) {
+			row.Sort((a, b) => a.L.CompareTo(b.L));
+			var sb = new StringBuilder();
+			MixTok prev = null;
+			double l = 0, t = 0, r = 0, btm = 0;
+			var any = false;
+			foreach (var tok in row) {
+				if (prev != null) {
+					var gap = tok.L - prev.R;
+					var h = Math.Max(1, Math.Max(prev.H, tok.H));
+					if (gap > Math.Max(3, h * 0.15) && sb.Length > 0 && tok.Text.Length > 0 &&
+						needsword(sb[sb.Length - 1], tok.Text[0]))
+						sb.Append(' ');
+				}
+				sb.Append(tok.Text);
+				if (!any) { l = tok.L; t = tok.T; r = tok.R; btm = tok.B; any = true; }
+				else {
+					if (tok.L < l) l = tok.L;
+					if (tok.T < t) t = tok.T;
+					if (tok.R > r) r = tok.R;
+					if (tok.B > btm) btm = tok.B;
+				}
+				prev = tok;
+			}
+			var text = tidy(normtext(sb.ToString()));
+			if (text.Length == 0 || !any) continue;
+			lines.Add(new OcrLine {
+				Text = text,
+				Score = 1f,
+				Box = new[] {
+					new Point2f((float)l * inv, (float)t * inv),
+					new Point2f((float)r * inv, (float)t * inv),
+					new Point2f((float)r * inv, (float)btm * inv),
+					new Point2f((float)l * inv, (float)btm * inv),
+				},
+			});
+		}
+		sortlines(lines);
+		return lines;
+	}
+
+	static bool langpair(List<WinOcrLang> avail, out string zh, out string en) {
+		zh = picktag(avail, "zh-Hans-CN", "zh-CN", "zh-Hans");
+		en = picktag(avail, "en-US", "en-GB", "en");
+		return zh.Length > 0 && en.Length > 0;
+	}
+
+	static string picktag(List<WinOcrLang> avail, params string[] tags) {
+		if (avail == null) return "";
+		foreach (var tag in tags) {
+			if (string.IsNullOrWhiteSpace(tag)) continue;
+			foreach (var lang in avail) {
+				if (string.Equals(lang.Tag, tag, StringComparison.OrdinalIgnoreCase))
+					return lang.Tag;
+			}
+		}
+		foreach (var tag in tags) {
+			if (string.IsNullOrWhiteSpace(tag) || tag.Length < 2) continue;
+			foreach (var lang in avail) {
+				if (lang.Tag != null && lang.Tag.StartsWith(tag, StringComparison.OrdinalIgnoreCase))
+					return lang.Tag;
+			}
+		}
+		return "";
+	}
+
+	sealed class MixTok {
+		public string Text;
+		public double L, T, R, B;
+		public bool Used;
+		public double Cx => (L + R) * 0.5;
+		public double Cy => (T + B) * 0.5;
+		public double W => R - L;
+		public double H => B - T;
 	}
 
 	static SoftwareBitmap decode(Stream stream, out int width, out int height, out double scale) {

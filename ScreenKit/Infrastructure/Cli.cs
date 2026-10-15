@@ -139,6 +139,7 @@ static class Cli {
 		string image = null;
 		string models = null;
 		string packId = null;
+		string winLang = null;
 		string variant = null;
 		string device = "auto";
 		string snapOut = null;
@@ -194,6 +195,7 @@ static class Cli {
 					case "--test-charart": return CharArt.Test(Out, Err);
 					case "--models": case "-m": models = Next(); break;
 					case "--pack": case "-p": packId = Next(); break;
+					case "--win-lang": winLang = Next(); break;
 					case "--variant": case "-v": variant = Next(); break;
 					case "--device": case "-d": device = Next().ToLowerInvariant(); break;
 					case "--no-cls": noCls = true; break;
@@ -742,7 +744,7 @@ static class Cli {
 		}
 
 		try {
-			return runocr(image, models, packId, variant, device, noCls, detLimit, detPad, boxThresh, detThresh);
+			return runocr(image, models, packId, variant, device, noCls, detLimit, detPad, boxThresh, detThresh, winLang);
 		}
 		catch (Exception ex) {
 			Err($"错误: {ex.Message}");
@@ -755,7 +757,7 @@ static class Cli {
 	}
 
 	static int runocr(string image, string models, string packId, string variant, string device, bool noCls,
-		int? detLimit, int? detPad, float? boxThresh, float? detThresh) {
+		int? detLimit, int? detPad, float? boxThresh, float? detThresh, string winLang = null) {
 		image = Path.GetFullPath(image);
 		if (!File.Exists(image)) {
 			Err($"图像不存在: {image}");
@@ -763,6 +765,7 @@ static class Cli {
 		}
 
 		var opt = buildoptions(models, packId, variant, device, noCls, detLimit, detPad, boxThresh, detThresh);
+		if (!string.IsNullOrWhiteSpace(winLang)) opt.WinOcrLangs = winLang.Trim();
 		Out($"模型包: {opt.ModelPackId}");
 		Out($"变体: {opt.ModelVariant}");
 		Out($"模型目录: {opt.ModelsDir}");

@@ -559,36 +559,23 @@ static class ChromePack {
 		throw new InvalidOperationException(pair + " " + Loc.T("inst.chrome.timeout"));
 	}
 
-	/// <summary>模型还要下载时，用调试接口带上用户手势再创建一次。创建完就关掉这次 Chrome。</summary>
+	/// <summary>模型还要下载时，在已经打开的朗读页里带上用户手势再创建一次。</summary>
 	public static void EnsurePair(string src, string dst, string exe, CancellationToken ct, Action<double> progress = null) {
 		src = (src ?? "").Trim();
 		dst = (dst ?? "").Trim();
 		if (src.Length == 0 || dst.Length == 0)
 			throw new InvalidOperationException("请选择源语言和目标语言");
+		using var hold = ChromeHost.Pin();
 		progress?.Invoke(-1);
+		var port = ChromeHost.DebugPort();
+		if (port > 0) {
+			using var live = Sess.Attach(port);
+			if (live.Download(src, dst, ct, progress, true)) return;
+		}
 		ChromeTr.Stop();
 		using var sess = Sess.Open(ChromeTr.ProfileDir(), HttpProxy.Mode, HttpProxy.Addr, null, ct, exe);
-		if (!sess.TryTranslator(ct))
+		if (!sess.Download(src, dst, ct, progress, false))
 			throw new InvalidOperationException("Chrome 不能下载这对语言的翻译模型");
-		var started = sess.EvalWeb(trstart(src, dst), false, 15000, ct);
-		if (started != "started")
-			throw new InvalidOperationException("Chrome 不能下载这对语言的翻译模型");
-		var start = Environment.TickCount;
-		while (unchecked(Environment.TickCount - start) < 180000) {
-			ct.ThrowIfCancellationRequested();
-			sess.PumpAll(300, ct);
-			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out _, out _))
-				continue;
-			if (!done) {
-				progress?.Invoke(seen ? p : -1);
-				continue;
-			}
-			if (!string.IsNullOrWhiteSpace(err))
-				throw new InvalidOperationException(err);
-			progress?.Invoke(1);
-			return;
-		}
-		throw new InvalidOperationException(Loc.T("inst.chrome.timeout"));
 	}
 
 	/// <summary>和网页「浏览器小模型」一样，用 Translator.create 的 downloadprogress。</summary>
@@ -983,6 +970,7 @@ return 'started';
 	sealed class Sess : IDisposable {
 		Process proc;
 		int port;
+		bool own = true;
 		Sock page;
 		Sock web;
 		Sock ext;
@@ -996,6 +984,38 @@ return 'started';
 		bool dlNet;
 
 		public bool HasPage => page != null;
+
+		public static Sess Attach(int debugPort) {
+			var sess = new Sess { own = false, port = debugPort };
+			return sess;
+		}
+
+		/// <summary>在已打开的页面里创建翻译器。boot 为真时只用朗读页，不另开窗口。</summary>
+		public bool Download(string src, string dst, CancellationToken ct, Action<double> progress, bool boot) {
+			if (boot) {
+				web = connect("page", "boot.html");
+				if (web == null) return false;
+			}
+			else if (!TryTranslator(ct)) return false;
+			var started = EvalWeb(trstart(src, dst), false, 15000, ct);
+			if (started != "started") return false;
+			var start = Environment.TickCount;
+			while (unchecked(Environment.TickCount - start) < 180000) {
+				ct.ThrowIfCancellationRequested();
+				PumpAll(300, ct);
+				if (!readtr(EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out _, out _))
+					continue;
+				if (!done) {
+					progress?.Invoke(seen ? p : -1);
+					continue;
+				}
+				if (!string.IsNullOrWhiteSpace(err))
+					throw new InvalidOperationException(err);
+				progress?.Invoke(1);
+				return true;
+			}
+			throw new InvalidOperationException(Loc.T("inst.chrome.timeout"));
+		}
 
 		Sess() { }
 
@@ -1345,7 +1365,7 @@ return JSON.stringify(out);
 			browser = null;
 			var p = proc;
 			proc = null;
-			if (p == null) return;
+			if (!own || p == null) return;
 			try {
 				if (!p.HasExited) {
 					var kill = Process.Start(new ProcessStartInfo {
@@ -1359,6 +1379,7 @@ return JSON.stringify(out);
 			}
 			catch { }
 			try { if (!p.HasExited) p.Kill(); } catch { }
+			try { if (!p.HasExited) p.WaitForExit(4000); } catch { }
 		}
 
 		static void appendproxy(StringBuilder args, string mode, string addr) {
