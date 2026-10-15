@@ -261,11 +261,19 @@ static class WinOcr {
 				CaptureLog.Ex("WinOcr " + tag, ex);
 				throw new InvalidOperationException("Windows OCR 失败: " + ex.Message, ex);
 			}
+			byte[] px = null;
+			var pw = bmp.PixelWidth;
+			var ph = bmp.PixelHeight;
+			try {
+				px = new byte[pw * ph * 4];
+				bmp.CopyToBuffer(px.AsBuffer());
+			}
+			catch { px = null; }
 			var lines = new List<OcrLine>();
 			var inv = (float)(1.0 / scale);
 			if (raw?.Lines != null) {
 				foreach (var line in raw.Lines) {
-					var text = linewords(line);
+					var text = linewords(engine, line, px, pw, ph);
 					if (text.Length == 0) continue;
 					var box = linebox(line, inv);
 					if (box == null) continue;
@@ -334,8 +342,11 @@ static class WinOcr {
 		return pixels;
 	}
 
-	/// <summary>词距很小时不插空格，避免 <c>D:\path</c> 被写成 <c>D : \path</c>。</summary>
-	static string linewords(WinMedia.OcrLine line) {
+	/// <summary>
+	/// 词框之间按空隙补空格。中文引擎常把英文粘成一个词，再按画面词距拆开，和 Umi 一样。
+	/// 标点贴着字时不插，避免 <c>D:\path</c> 被写成 <c>D : \path</c>。
+	/// </summary>
+	static string linewords(WinMedia.OcrEngine engine, WinMedia.OcrLine line, byte[] px, int imgW, int imgH) {
 		if (line?.Words == null || line.Words.Count == 0) return normtext(line?.Text);
 		var sb = new StringBuilder();
 		double prevR = 0;
@@ -344,10 +355,14 @@ static class WinOcr {
 			var t = w?.Text;
 			if (string.IsNullOrEmpty(t)) continue;
 			var rc = w.BoundingRect;
+			t = fillword(engine, t, px, imgW, imgH, rc);
+			if (t.Length == 0) continue;
 			if (any) {
 				var gap = rc.X - prevR;
 				var h = rc.Height > 1 ? rc.Height : 12;
-				if (gap > h * 0.42) sb.Append(' ');
+				var prev = sb[sb.Length - 1];
+				if (gap > Math.Max(3, h * 0.18) && needsword(prev, t[0]) && sb[sb.Length - 1] != ' ')
+					sb.Append(' ');
 			}
 			sb.Append(t);
 			if (rc.Width > 0) prevR = rc.X + rc.Width;
@@ -356,6 +371,156 @@ static class WinOcr {
 		var text = normtext(sb.ToString());
 		if (text.Length == 0) return normtext(line.Text);
 		return text;
+	}
+
+	/// <summary>一个词框里若有多段墨水，按词距拆开再各认一次。纯中文不拆。</summary>
+	static string fillword(WinMedia.OcrEngine engine, string text, byte[] px, int imgW, int imgH, Windows.Foundation.Rect rc) {
+		if (string.IsNullOrEmpty(text) || px == null || !haslatin(text)) return text ?? "";
+		var parts = visualparts(px, imgW, imgH, rc);
+		if (parts == null || parts.Count <= 1) return text;
+		var spaces = 0;
+		foreach (var c in text)
+			if (c == ' ') spaces++;
+		if (spaces + 1 >= parts.Count) return text;
+		var bits = new List<string>();
+		foreach (var p in parts) {
+			var piece = readpiece(engine, px, imgW, p);
+			if (string.IsNullOrWhiteSpace(piece)) return text;
+			bits.Add(piece.Trim());
+		}
+		return joinbits(bits);
+	}
+
+	static bool haslatin(string s) {
+		foreach (var c in s) {
+			if (c >= 'A' && c <= 'Z') return true;
+			if (c >= 'a' && c <= 'z') return true;
+		}
+		return false;
+	}
+
+	/// <summary>词框内按列对比度找出被词距分开的墨水段。坐标是原图像素，含上下边。</summary>
+	static List<(int x0, int y0, int x1, int y1)> visualparts(byte[] bgra, int imgW, int imgH, Windows.Foundation.Rect rc) {
+		if (bgra == null || imgW < 2 || imgH < 2 || rc.Width < 4 || rc.Height < 4) return null;
+		int x0 = (int)Math.Floor(rc.X);
+		int y0 = (int)Math.Floor(rc.Y);
+		int x1 = (int)Math.Ceiling(rc.X + rc.Width) - 1;
+		int y1 = (int)Math.Ceiling(rc.Y + rc.Height) - 1;
+		if (x0 < 0) x0 = 0;
+		if (y0 < 0) y0 = 0;
+		if (x1 >= imgW) x1 = imgW - 1;
+		if (y1 >= imgH) y1 = imgH - 1;
+		int ww = x1 - x0 + 1;
+		int hh = y1 - y0 + 1;
+		if (ww < 8 || hh < 6) return null;
+		var contrast = new int[ww];
+		int maxC = 0;
+		for (int xi = 0; xi < ww; xi++) {
+			int mn = 255, mx = 0;
+			int xx = x0 + xi;
+			for (int yi = 0; yi < hh; yi++) {
+				int i = ((y0 + yi) * imgW + xx) * 4;
+				int v = (bgra[i + 2] * 30 + bgra[i + 1] * 59 + bgra[i] * 11) / 100;
+				if (v < mn) mn = v;
+				if (v > mx) mx = v;
+			}
+			var c = mx - mn;
+			contrast[xi] = c;
+			if (c > maxC) maxC = c;
+		}
+		if (maxC < 10) return null;
+		int th = Math.Max(12, maxC / 4);
+		int minGap = Math.Max(5, (int)Math.Round(hh * 0.18));
+		var runs = new List<(int a, int b)>();
+		int run = -1;
+		for (int xi = 0; xi <= ww; xi++) {
+			var ink = xi < ww && contrast[xi] >= th;
+			if (ink) {
+				if (run < 0) run = xi;
+			}
+			else if (run >= 0) {
+				runs.Add((run, xi - 1));
+				run = -1;
+			}
+		}
+		if (runs.Count <= 1) return null;
+		var parts = new List<(int x0, int y0, int x1, int y1)>();
+		int pa = runs[0].a, pb = runs[0].b;
+		for (int i = 1; i < runs.Count; i++) {
+			int gap = runs[i].a - pb - 1;
+			if (gap >= minGap) {
+				parts.Add((x0 + pa, y0, x0 + pb, y1));
+				pa = runs[i].a;
+			}
+			pb = runs[i].b;
+		}
+		parts.Add((x0 + pa, y0, x0 + pb, y1));
+		return parts.Count <= 1 ? null : parts;
+	}
+
+	static string readpiece(WinMedia.OcrEngine engine, byte[] bgra, int imgW, (int x0, int y0, int x1, int y1) p) {
+		if (engine == null) return "";
+		int pad = 6;
+		int dw = p.x1 - p.x0 + 1 + pad * 2;
+		int dh = p.y1 - p.y0 + 1 + pad * 2;
+		if (dw < 1 || dh < 1 || dw > 8000 || dh > 8000) return "";
+		var crop = new byte[dw * dh * 4];
+		int si = (p.y0 * imgW + p.x0) * 4;
+		byte b0 = bgra[si], g0 = bgra[si + 1], r0 = bgra[si + 2];
+		for (int i = 0; i < crop.Length; i += 4) {
+			crop[i] = b0;
+			crop[i + 1] = g0;
+			crop[i + 2] = r0;
+			crop[i + 3] = 255;
+		}
+		int rowBytes = (p.x1 - p.x0 + 1) * 4;
+		for (int y = p.y0; y <= p.y1; y++) {
+			int src = (y * imgW + p.x0) * 4;
+			int dst = ((y - p.y0 + pad) * dw + pad) * 4;
+			Buffer.BlockCopy(bgra, src, crop, dst, rowBytes);
+		}
+		var bmp = SoftwareBitmap.CreateCopyFromBuffer(
+			crop.AsBuffer(), BitmapPixelFormat.Bgra8, dw, dh, BitmapAlphaMode.Ignore);
+		try {
+			var raw = wait(engine.RecognizeAsync(bmp).AsTask());
+			return readraw(raw);
+		}
+		catch { return ""; }
+		finally { try { bmp.Dispose(); } catch { } }
+	}
+
+	static string readraw(WinMedia.OcrResult raw) {
+		if (raw?.Lines == null) return "";
+		var sb = new StringBuilder();
+		foreach (var line in raw.Lines) {
+			if (line?.Words == null) continue;
+			foreach (var w in line.Words) {
+				if (string.IsNullOrEmpty(w?.Text)) continue;
+				if (sb.Length > 0 && sb[sb.Length - 1] != ' ') sb.Append(' ');
+				sb.Append(w.Text);
+			}
+		}
+		return sb.ToString().Trim();
+	}
+
+	static string joinbits(List<string> bits) {
+		var sb = new StringBuilder();
+		foreach (var bit in bits) {
+			if (string.IsNullOrWhiteSpace(bit)) continue;
+			var t = bit.Trim();
+			if (sb.Length > 0 && needsword(sb[sb.Length - 1], t[0]) && sb[sb.Length - 1] != ' ' && t[0] != ' ')
+				sb.Append(' ');
+			sb.Append(t);
+		}
+		return sb.ToString();
+	}
+
+	static bool needsword(char a, char b) {
+		if (a == '\0' || b == '\0' || a == ' ' || b == ' ') return false;
+		if (iscjk(a) && iscjk(b)) return false;
+		if (b is ',' or '.' or ';' or ':' or '!' or '?' or ')' or ']' or '}' or '%' or '\\' or '/') return false;
+		if (a is '(' or '[' or '{' or '\\' or '/') return false;
+		return true;
 	}
 
 	static double l3(double x) {

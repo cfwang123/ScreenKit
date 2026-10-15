@@ -73,6 +73,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Edge online speech uses the current Sec-MS-GEC v2 token. The previous token was rejected with HTTP 403.
 - CPU temperature is read from the thermal zone counter, so the performance window shows it again.
 - Chrome translation downloads a missing language pack without a click, then translates.
+- Windows OCR in Chinese or English puts spaces back into English words where the picture has a word gap.
+- Tool scripts run after the page is created, so the tools home shows its cards and panels.
 
 #### Documentation
 
@@ -116,6 +118,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Edge 在线语音改用现在的 Sec-MS-GEC v2 令牌。旧令牌在合成时会被拒绝并返回 403。
 - 性能小窗改从温度区域计数器读取 CPU 温度，数值会再显示出来。
 - Chrome 翻译在语言包还没下载时会自动下载，不用在页面里点击，然后再翻译。
+- Windows OCR 在中文或英文下，按画面词距把粘在一起的英文补回空格。
+- 工具脚本在页面生成之后再执行，工具主页会画出卡片和各个面板。
 
 #### 文档
 
