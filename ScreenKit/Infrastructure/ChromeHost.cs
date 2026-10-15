@@ -131,7 +131,7 @@ static class ChromeHost {
 		var id = Interlocked.Increment(ref seq);
 		var done = waiter(true);
 		var slot = new Slot { Id = id, Fail = "ping", Done = done };
-		submit(id, "ping.html", "{\"id\":" + id + "}", slot, "", 30, CancellationToken.None);
+		submit(id, "ping.html", $"{{\"id\":{id}}}", slot, "", 30, CancellationToken.None);
 		return waitdone(id, done, CancellationToken.None, "Chrome 朗读超时");
 	}
 
@@ -143,6 +143,7 @@ static class ChromeHost {
 	}
 
 	static void submit(int id, string page, string json, Slot slot, string exe, int idleSec, CancellationToken ct) {
+		ct.ThrowIfCancellationRequested();
 		lock (slots) {
 			slots[id] = slot;
 			nextkill = 0;
@@ -356,7 +357,7 @@ static class ChromeHost {
 			if (!p.HasExited) {
 				var kill = Process.Start(new ProcessStartInfo {
 					FileName = "taskkill",
-					Arguments = "/T /F /PID " + p.Id,
+					Arguments = $"/T /F /PID {p.Id}",
 					UseShellExecute = false,
 					CreateNoWindow = true,
 				});

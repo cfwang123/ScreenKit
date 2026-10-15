@@ -1,19 +1,11 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.Json;
 using Microsoft.Win32;
 
 namespace ScreenKit;
 
-/// <summary>本机 Chrome 的 speechSynthesis（Google 语音）。只出声，不返回采样。窗口隐藏，空闲后退出。</summary>
+/// <summary>本机 Chrome 的 speechSynthesis（Google 语音）。只出声，不返回采样。和翻译共用一个隐藏进程。</summary>
 static class ChromeTts {
-	const int SW_HIDE = 0;
-	static readonly object gate = new();
-	static readonly object speakGate = new();
-	static Process proc;
-	static string launched;
-	static int seq;
 	static List<SapiVoiceItem> voices;
 
 	public static List<SapiVoiceItem> Voices {
@@ -190,57 +182,6 @@ static class ChromeTts {
 		}
 	}
 
-	static int post(string text, string voiceName, string lang, double rate, double volume, string exe, int idleSec) {
-		idleSec = ClampIdle(idleSec);
-		var path = FindExe(exe);
-		if (path == null) throw new InvalidOperationException("找不到 chrome.exe");
-		var dir = workdir();
-		var alive = false;
-		lock (gate) alive = proc != null && !proc.HasExited && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase);
-		if (!alive) {
-			Stop();
-			write(Path.Combine(dir, "job.json"), new { id = 0, text = "", name = "", lang = "", rate = 1.0, volume = 1.0, idle = idleSec });
-			File.WriteAllText(Path.Combine(dir, "speak.html"), page(idleSec), new UTF8Encoding(false));
-			launch(path, dir);
-			if (!waittitle("sktts-ready", 15000, CancellationToken.None))
-				throw new InvalidOperationException("Chrome 没有打开朗读页");
-		}
-		var id = Interlocked.Increment(ref seq);
-		write(Path.Combine(dir, "job.json"), new {
-			id,
-			text = text ?? "",
-			name = voiceName ?? "",
-			lang = lang ?? "",
-			rate = Math.Max(0.5, Math.Min(2.0, rate)),
-			volume = Math.Max(0, Math.Min(1, volume)),
-			idle = idleSec,
-		});
-		return id;
-	}
-
-	static void wait(int id, CancellationToken ct) {
-		var mark = "sktts-done-" + id;
-		var bad = "sktts-err-" + id;
-		var start = Environment.TickCount;
-		while (true) {
-			hide();
-			if (ct.IsCancellationRequested) {
-				Stop();
-				ct.ThrowIfCancellationRequested();
-			}
-			if (hastitle(bad)) throw new InvalidOperationException("Chrome 没有发出声音");
-			if (hastitle(mark)) return;
-			Process p;
-			lock (gate) p = proc;
-			if (p == null || p.HasExited) throw new InvalidOperationException("Chrome 已退出");
-			if (unchecked(Environment.TickCount - start) > 180000) {
-				Stop();
-				throw new InvalidOperationException("Chrome 朗读超时");
-			}
-			Thread.Sleep(150);
-		}
-	}
-
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint pid);
 
@@ -268,34 +209,6 @@ static class ChromeTts {
 		public string szExeFile;
 	}
 
-	static void launch(string path, string dir) {
-		var profile = Path.Combine(dir, "profile");
-		Directory.CreateDirectory(profile);
-		var url = new Uri(Path.Combine(dir, "speak.html")).AbsoluteUri;
-		var args = new StringBuilder();
-		args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
-		args.Append("--allow-file-access-from-files ");
-		args.Append("--no-first-run --no-default-browser-check --disable-sync --disable-extensions ");
-		args.Append("--disable-popup-blocking ");
-		args.Append("--autoplay-policy=no-user-gesture-required ");
-		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
-		args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
-		args.Append("--disable-background-timer-throttling ");
-		args.Append("--window-position=-32000,-32000 --window-size=160,80 ");
-		args.Append("--app=\"").Append(url).Append('"');
-		var psi = new ProcessStartInfo {
-			FileName = path,
-			Arguments = args.ToString(),
-			UseShellExecute = false,
-			CreateNoWindow = true,
-		};
-		var p = Process.Start(psi);
-		lock (gate) {
-			proc = p;
-			launched = path;
-		}
-	}
-
 	public static string ProfileDir() {
 		var profile = Path.Combine(workdir(), "profile");
 		Directory.CreateDirectory(profile);
@@ -306,114 +219,6 @@ static class ChromeTts {
 		var dir = Path.Combine(Path.GetTempPath(), "sk-chrome-tts");
 		Directory.CreateDirectory(dir);
 		return dir;
-	}
-
-	static void write(string path, object job) {
-		var json = JsonSerializer.Serialize(job).Replace("<", "\\u003c");
-		var tmp = path + ".tmp";
-		File.WriteAllText(tmp, json, new UTF8Encoding(false));
-		File.Copy(tmp, path, true);
-		try { File.Delete(tmp); } catch { }
-	}
-
-	static bool waittitle(string part, int ms, CancellationToken ct) {
-		var start = Environment.TickCount;
-		while (unchecked(Environment.TickCount - start) < ms) {
-			hide();
-			if (ct.IsCancellationRequested) return false;
-			if (hastitle(part)) return true;
-			Process p;
-			lock (gate) p = proc;
-			if (p == null || p.HasExited) return false;
-			Thread.Sleep(100);
-		}
-		return hastitle(part);
-	}
-
-	static bool hastitle(string part) {
-		var ok = false;
-		eachtitles((t) => { if (t.IndexOf(part, StringComparison.Ordinal) >= 0) ok = true; });
-		return ok;
-	}
-
-	static void hide() {
-		eachtitles((_) => { });
-	}
-
-	static void eachtitles(Action<string> hit) {
-		EnumWindows((h, _) => {
-			var sb = new StringBuilder(256);
-			if (GetWindowText(h, sb, sb.Capacity) <= 0) return true;
-			var t = sb.ToString();
-			if (!t.StartsWith("sktts", StringComparison.Ordinal)) return true;
-			hit(t);
-			ShowWindow(h, SW_HIDE);
-			return true;
-		}, IntPtr.Zero);
-	}
-
-	static string page(int idleSec) {
-		return "<!DOCTYPE html><meta charset=\"utf-8\"><title>sktts-ready</title><script>"
-			+ "var idleSec=" + idleSec + @";
-var jobId=0,speaking=false,timer=null,armedIdle=-1,waitId=0,waitAt=0;
-document.title='sktts-ready';
-function arm(){
-if(speaking||!(idleSec>0)){clearTimeout(timer);timer=null;return;}
-if(armedIdle===idleSec&&timer)return;
-clearTimeout(timer);
-armedIdle=idleSec;
-timer=setTimeout(function(){if(!speaking)window.close();},idleSec*1000);
-}
-function pick(job){
-var list=speechSynthesis.getVoices(),name=job.name||'',lang=(job.lang||'').toLowerCase(),i,google=[];
-if(name){for(i=0;i<list.length;i++)if(list[i].name===name)return list[i];}
-for(i=0;i<list.length;i++)if(list[i].name.indexOf('Google')===0)google.push(list[i]);
-if(lang){for(i=0;i<google.length;i++)if((google[i].lang||'').toLowerCase().indexOf(lang)===0)return google[i];}
-if(google.length)return google[0];
-if(lang){for(i=0;i<list.length;i++)if((list[i].lang||'').toLowerCase().indexOf(lang)===0)return list[i];}
-return list[0]||null;
-}
-function speak(job){
-var v=pick(job);
-if(!v){document.title='sktts-err-'+job.id;speaking=false;arm();return;}
-speaking=true;
-clearTimeout(timer);
-var u=new SpeechSynthesisUtterance(job.text||'');
-u.voice=v;u.lang=v.lang||job.lang||'';u.rate=job.rate;u.volume=job.volume;
-function fin(ok){
-speaking=false;
-armedIdle=-1;
-document.title=(ok?'sktts-done-':'sktts-err-')+job.id;
-arm();
-}
-u.onend=function(){fin(true);};
-u.onerror=function(){fin(false);};
-speechSynthesis.cancel();
-speechSynthesis.speak(u);
-}
-function poll(){
-var x=new XMLHttpRequest();
-x.open('GET','job.json?'+Date.now(),true);
-x.onload=function(){
-var j;try{j=JSON.parse(x.responseText||'');}catch(e){return;}
-if(!j)return;
-if(typeof j.idle==='number'&&j.idle!==idleSec){idleSec=j.idle;armedIdle=-1;}
-if(!speaking)arm();
-if(speaking||!j.id||!j.text||j.id===jobId)return;
-if(!pick(j)){
-if(waitId!==j.id){waitId=j.id;waitAt=Date.now();}
-if(Date.now()-waitAt>12000){jobId=j.id;document.title='sktts-err-'+j.id;armedIdle=-1;arm();}
-return;
-}
-jobId=j.id;
-speak(j);
-};
-try{x.send();}catch(e){}
-}
-setInterval(poll,200);
-arm();
-speechSynthesis.onvoiceschanged=poll;
-</script>";
 	}
 
 	static List<SapiVoiceItem> buildvoices() {
@@ -457,8 +262,4 @@ speechSynthesis.onvoiceschanged=poll;
 		return list;
 	}
 
-	delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
-	[DllImport("user32.dll")] static extern bool EnumWindows(EnumProc lpEnumFunc, IntPtr lParam);
-	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-	[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 }

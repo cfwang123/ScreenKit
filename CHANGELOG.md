@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Character art defaults to 250 columns and preview font size 6.
 - Speech has a Detect path button that fills chrome.exe from common install locations.
 - chrome.exe path, Detect path, and idle seconds moved to Settings → General.
+- Chrome speech and translation share one hidden Chrome process. Each request opens its own page and they run at the same time.
 
 #### Fixed
 
@@ -71,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字符画默认列数为 250，预览字号为 6。
 - 语音合成增加「检测路径」，从常见安装位置填入 chrome.exe。
 - chrome.exe 路径、检测路径和空闲秒改到参数设置 → 常规。
+- Chrome 朗读和翻译共用一个隐藏进程。多路请求各自打开页面，同时进行。
 
 #### 修复
 

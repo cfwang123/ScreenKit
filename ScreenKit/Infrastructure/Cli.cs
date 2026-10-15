@@ -49,7 +49,7 @@ static class Cli {
 			if (a is "--image" or "-i" or "--probe-cuda" or "--list-models" or "--list-tts"
 				or "--list-sapi"
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
-				or "--test-tts-sherpa" or "--test-edge-tts" or "--test-chrome-tts" or "--test-chrome-tr" or "--test-chrome-pack" or "--list-edge-tts"
+				or "--test-tts-sherpa" or "--test-edge-tts" or "--test-chrome-tts" or "--test-chrome-tr" or "--test-chrome-pack" or "--test-chrome-host" or "--list-edge-tts"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
 				or "--test-overlay-layout" or "--test-overlay-span-adj"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
@@ -163,6 +163,7 @@ static class Cli {
 		bool doTestChromeTts = false;
 		bool doTestChromeTr = false;
 		bool doTestChromePack = false;
+		bool doTestChromeHost = false;
 		string testTtsModel = null;
 		string testEdgeVoice = "zh-CN-XiaoxiaoNeural";
 		string testTtsText = "안녕하세요. 한국어 음성 합성 테스트입니다.";
@@ -449,6 +450,9 @@ static class Cli {
 					case "--test-chrome-pack":
 						doTestChromePack = true;
 						break;
+					case "--test-chrome-host":
+						doTestChromeHost = true;
+						break;
 					case "--tts-text":
 						testTtsText = Next();
 						break;
@@ -682,6 +686,18 @@ static class Cli {
 			var code = ChromePack.Test();
 			if (code == 0) Out("OK chrome pack");
 			else Err("FAIL chrome pack");
+			return code;
+		}
+
+		if (doTestChromeHost) {
+			var code = ChromeHost.Test();
+			if (code != 0) {
+				Err("FAIL chrome host");
+				return code;
+			}
+			code = ChromeHost.TestLive();
+			if (code == 0) Out("OK chrome host");
+			else Err("FAIL chrome host");
 			return code;
 		}
 

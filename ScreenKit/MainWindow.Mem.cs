@@ -95,10 +95,7 @@ public partial class MainWindow {
 	}
 
 	static string statusbarchrome() {
-		var tts = ChromeTts.TryRun(out var tc);
-		var tr = ChromeTr.TryRun(out var rc);
-		if (!tts && !tr) return "";
-		var n = (tts ? tc : 0) + (tr ? rc : 0);
+		if (!ChromeTts.TryRun(out var n)) return "";
 		if (n <= 0) return Loc.T("stbar.chrome");
 		return Loc.T("stbar.chrome.n", n);
 	}

@@ -733,7 +733,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), **Windows** (`engine=winrt`, WinRT / OneCore neural voices), and **Edge online** (`engine=edge`, no model/API key, Internet required). Omitting `engine` keeps the Sherpa path when a Sherpa model exists; otherwise it uses Windows speech when a voice is installed, or Edge online when none is.
 
-**Chrome** (`engine=chrome`) speaks in a hidden local Chrome and does not return WAV. On the desktop, a missing offline voice pack is installed on the spot, with a progress window you can cancel. This HTTP API does not install it. A missing pack returns 927; install it first under **Help → Install features → Chrome**.
+**Chrome** (`engine=chrome`) speaks in a hidden local Chrome and does not return WAV. Speech and translation share that one process, and several requests run at the same time. On the desktop, a missing offline voice pack is installed on the spot, with a progress window you can cancel. This HTTP API does not install it. A missing pack returns 927; install it first under **Help → Install features → Chrome**.
 
 ### 8.1 GET `/api/tts/engines` · GET `/api/tts/models`
 
