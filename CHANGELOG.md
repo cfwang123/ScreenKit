@@ -87,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Markdown reader keeps tabbed nested lists, including the bullet used in the source, at the same depth.
 - The Markdown reader stays within the page. Wide tables scroll inside the preview.
 - The camera preview shows the picture. Media Foundation RGB32 leaves the alpha byte at zero, so the preview drew it as fully transparent.
+- Opened tools stay within the window. Extra content scrolls inside the tool.
 
 #### Documentation
 
@@ -145,6 +146,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD 阅读器按源码的制表符层级显示嵌套列表，圆点项目和源码同级缩进。
 - MD 阅读器不再把页面撑出横向滚动，宽表格在预览内部滚动。
 - 相机预览能看到画面。Media Foundation 的 RGB32 把透明字节留成 0，预览就把它画成全透明。
+- 打开工具后宽度不超过窗口，超出的内容在工具内部滚动。
 
 #### 文档
 

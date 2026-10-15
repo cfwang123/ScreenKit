@@ -408,6 +408,7 @@ public partial class SettingsWindow : Window {
 			esnapcopypath.Content = Loc.T("set.snap.copy.path");
 			esnappathslash.Content = Loc.T("set.snap.path.slash");
 			esnappathslash.ToolTip = Loc.T("set.snap.path.slash.tip");
+			lbsetsnapslashhint.Text = Loc.T("set.snap.path.slash.tip");
 			foreach (ComboBoxItem it in esnapkeep.Items) {
 				var tag = (it.Tag as string) ?? "";
 				it.Content = Loc.T("set.keep." + tag);

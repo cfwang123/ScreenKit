@@ -25,10 +25,16 @@ body {
 	color: var(--ink);
 	font: 15px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
-/* 窗口比布局窄时不压缩内容，给横向滚动，别把右边裁掉 */
+/* 目录页窗口比布局窄时不压缩内容，给横向滚动，别把右边裁掉 */
 @media (max-width: 1079px) {
 	body { overflow: auto; }
 }
+/* 打开工具后宽度不超过窗口。超出的部分在工具内部滚动 */
+html.in-tool body { min-width: 0; overflow: hidden; }
+html.in-tool .shell,
+html.in-tool .topbar,
+html.in-tool main { min-width: 0; max-width: 100%; }
+html.in-tool .panel.on { min-width: 0; max-width: 100%; }
 .topbar {
 	flex: none;
 	display: flex;
@@ -235,7 +241,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 	background-position: 0 0, 0 4px, 4px -4px, -4px 0;
 }
 #ico-prev-size { color: var(--muted); font-size: 13px; }
-.split, .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.split, .stack { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
 .stack { margin-top: 12px; }
 .row { display: flex; align-items: center; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
 .row label { width: 220px; }
@@ -286,7 +292,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .ghost { background: transparent; }
 .ops { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .txpair { align-items: stretch; min-height: 0; }
-#text.panel.on, #tr.panel.on { overflow: hidden; }
+#text.panel.on, #tr.panel.on { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 #tr > .row { align-items: flex-end; }
 #tr > .row > button { height: 40px; padding: 0 14px; }
 #tr .txpair { flex: 1 1 auto; }
@@ -444,14 +450,14 @@ input[type="file"] {
 	flex: none; width: 180px; height: 32px; margin: 0; padding: 0 8px;
 }
 .uquery .msg { min-height: 0; white-space: nowrap; }
-#box.panel.on:has(.unitab) { overflow: hidden; }
+#box.panel.on:has(.unitab) { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 #box.panel.on:has(.unitab) #box-body {
-	flex: 1 1 auto; min-height: 0;
+	flex: 1 1 auto; min-height: 0; min-width: 0;
 	display: flex; flex-direction: column;
 }
 .unitab {
 	display: grid; grid-template-columns: 208px minmax(0, 1fr) 240px; grid-template-rows: minmax(0, 1fr);
-	gap: 12px; flex: 1 1 auto; min-height: 0;
+	gap: 12px; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto;
 }
 .ugroups, .ugrid, .uprev { min-height: 0; overflow: auto; }
 .ugroups {
@@ -523,12 +529,12 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	margin: 0; font: 12px/1.45 Consolas, "Microsoft YaHei UI", monospace;
 	word-break: break-all;
 }
-#box.panel.on:has(.htmlui) { overflow: hidden; }
+#box.panel.on:has(.htmlui) { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 #box.panel.on:has(.htmlui) #box-body {
-	flex: 1 1 auto; min-height: 0;
+	flex: 1 1 auto; min-height: 0; min-width: 0;
 	display: flex; flex-direction: column;
 }
-.htmlui { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.htmlui { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; min-width: 0; }
 .htmlui .hint { margin: 0; }
 .htmlui-tpl { display: flex; flex-wrap: wrap; gap: 6px; }
 .htmlui-tpl button {
@@ -551,8 +557,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 @media (max-width: 800px) {
 	.htmlui-split { grid-template-columns: minmax(0, 1fr); }
 }
-body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
-#box.panel.on:has(.mdread) { overflow: hidden; min-width: 0; max-width: 100%; }
+#box.panel.on:has(.mdread) { overflow-x: auto; overflow-y: hidden; min-width: 0; max-width: 100%; }
 #box.panel.on:has(.mdread) #box-body {
 	flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%;
 	display: flex; flex-direction: column; overflow: hidden;
@@ -580,14 +585,14 @@ body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
 	pointer-events: auto; background: rgba(194, 65, 12, .08);
 	border: 2px dashed #c2410c; border-radius: 10px;
 }
-#box.panel.on:has(.ctab) { overflow: hidden; }
+#box.panel.on:has(.ctab) { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 #box.panel.on:has(.ctab) #box-body {
-	flex: 1 1 auto; min-height: 0;
+	flex: 1 1 auto; min-height: 0; min-width: 0;
 	display: flex; flex-direction: column;
 }
 .ctab {
 	display: grid; grid-template-columns: 176px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
-	gap: 12px; flex: 1 1 auto; min-height: 0;
+	gap: 12px; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: auto;
 }
 .ctab .uquery { grid-column: 1 / -1; margin: 0; }
 .cgroups {
@@ -706,9 +711,9 @@ body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
 	border-radius: 12px; font-size: 14px;
 }
 #chat-nick:focus, #chat-gender:focus { outline: none; border-color: #f97316; }
-#chat.panel.on { overflow: hidden; }
-#chat-room { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.chatmain { display: flex; gap: 12px; flex: 1; min-height: 0; }
+#chat.panel.on { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+#chat-room { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.chatmain { display: flex; gap: 12px; flex: 1; min-height: 0; min-width: 0; }
 #chat-log {
 	flex: 1; min-width: 0; overflow: auto;
 	border: 1px solid var(--line); border-radius: 8px;
@@ -744,7 +749,7 @@ body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
 	margin-top: 8px; padding: 8px;
 	border: 1px solid var(--line); border-radius: 10px; background: #fff;
 }
-#chat-torow, #chat-sendrow { margin: 0; gap: 6px; flex-wrap: nowrap; }
+#chat-torow, #chat-sendrow { margin: 0; gap: 6px; flex-wrap: nowrap; min-width: 0; max-width: 100%; overflow-x: auto; }
 #chat-sendrow { margin-top: 6px; }
 #chat-torow .chatlab { flex: none; color: var(--muted); font-size: 12px; }
 #chat-to {
@@ -822,13 +827,13 @@ body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
 .bitcell.on { background: #fff1e8; color: #9a3412; border-color: #fdba74; }
 .bitcell.sel { outline: 2px solid #f97316; outline-offset: -2px; }
 .bitcell.now { box-shadow: inset 0 -3px 0 #111; }
-#box.panel.on:has(.board) { overflow: hidden; padding: 8px; }
+#box.panel.on:has(.board) { min-width: 0; max-width: 100%; overflow: hidden; padding: 8px; }
 #box.panel.on:has(.board) > h1 { display: none; }
 #box.panel.on:has(.board) #box-body {
-	flex: 1 1 auto; min-height: 0;
+	flex: 1 1 auto; min-height: 0; min-width: 0;
 	display: flex; flex-direction: column; overflow: hidden;
 }
-.board { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.board { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; min-width: 0; overflow: hidden; }
 .board-bar {
 	display: flex; flex-direction: column; gap: 4px; flex: none;
 	background: #ECE9D8; border: 1px solid #ACA899; padding: 3px 4px;
@@ -880,12 +885,12 @@ body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
 	position: absolute; left: 8px; bottom: 6px; margin: 0; pointer-events: none;
 	color: var(--muted); font-size: 12px;
 }
-#box.panel.on:has(.plot) { overflow: hidden; }
+#box.panel.on:has(.plot) { min-width: 0; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 #box.panel.on:has(.plot) #box-body {
-	flex: 1 1 auto; min-height: 0;
+	flex: 1 1 auto; min-height: 0; min-width: 0;
 	display: flex; flex-direction: column;
 }
-.plot { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.plot { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%; }
 .plot-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .plot-bar button {
 	height: 36px; padding: 0 12px; cursor: pointer; border-radius: 999px;
@@ -943,7 +948,7 @@ body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
 }
 .plot-stage canvas.drag { cursor: grabbing; }
 .usbscroll {
-	max-height: 420px; overflow: auto;
+	max-height: 420px; max-width: 100%; min-width: 0; overflow: auto;
 	border: 1px solid var(--line); border-radius: 10px; background: var(--card);
 }
 .usblist { width: 100%; border-collapse: collapse; }
