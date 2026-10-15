@@ -7,6 +7,7 @@ public partial class PerfMonWindow : Window {
 	readonly PerfOpt opt;
 	readonly DispatcherTimer timer;
 	readonly Dictionary<string, TextBlock> cells = new();
+	PerfMonOptWindow optWin;
 	bool busy;
 	bool placed;
 
@@ -28,7 +29,7 @@ public partial class PerfMonWindow : Window {
 			savepos();
 		};
 		WindowEsc.Attach(this);
-		timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(PerfOpt.NormMs(opt.IntervalMs)) };
 		timer.Tick += (_, _) => tick();
 		timer.Start();
 		tick();
@@ -64,6 +65,9 @@ public partial class PerfMonWindow : Window {
 			menu.Items.Add(item);
 		}
 		menu.Items.Add(new Separator());
+		var settings = new MenuItem { Header = Loc.T("perf.settings") };
+		settings.Click += (_, _) => opensettings();
+		menu.Items.Add(settings);
 		var top = new MenuItem { Header = Loc.T("perf.top"), IsCheckable = true, IsChecked = opt.Topmost };
 		top.Click += (_, _) => {
 			opt.Topmost = top.IsChecked;
@@ -84,7 +88,7 @@ public partial class PerfMonWindow : Window {
 			if (!opt.On(key)) continue;
 			var grid = new Grid { Margin = new Thickness(0, 1, 0, 1) };
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(96) });
 			var name = new TextBlock {
 				Text = Loc.T($"perf.{key}"),
 				Foreground = ColorBrush("#C8FFFFFF"),
@@ -114,10 +118,10 @@ public partial class PerfMonWindow : Window {
 			PerfMon.Snap snap = null;
 			try { snap = PerfMon.Take(); }
 			catch { }
-			Dispatcher.Invoke(() => {
+			Dispatcher.BeginInvoke(new Action(() => {
 				busy = false;
 				if (snap != null) paint(snap);
-			});
+			}));
 		});
 	}
 
@@ -173,6 +177,22 @@ public partial class PerfMonWindow : Window {
 		var b = new SolidColorBrush(c);
 		b.Freeze();
 		return b;
+	}
+
+	void opensettings() {
+		if (optWin != null) {
+			optWin.Activate();
+			return;
+		}
+		optWin = new PerfMonOptWindow(opt, setinterval) { Owner = this, Topmost = Topmost };
+		optWin.Closed += (_, _) => optWin = null;
+		optWin.Show();
+	}
+
+	void setinterval(int ms) {
+		opt.IntervalMs = PerfOpt.NormMs(ms);
+		timer.Interval = TimeSpan.FromMilliseconds(opt.IntervalMs);
+		opt.Save(PerfOpt.DefaultPath);
 	}
 
 	void savepos() {

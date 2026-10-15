@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Line mode at threshold 0 keeps faint edges, including edges that fall on a cell boundary.
 - Character art draws darker cells denser unless Invert is on.
 - Chrome speech no longer substitutes another voice when the Google voice cannot speak. The desktop shows an error, and the HTTP API returns an error. The old offline voice pack is not installed.
+- The performance window updates again. Temperature lookup no longer blocks the other readings. Settings set the refresh interval from 0.2 to 5 seconds.
 
 #### Documentation
 
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 线条模式在阈值为 0 时会保留很淡的边缘，格子交界上的线也会画出来。
 - 字符画不勾选反色时，越暗的地方字符越密。
 - Chrome 语音发不出声时不再改用别的语音。桌面弹出错误，HTTP 接口返回错误。不再安装旧的离线语音包。
+- 性能小窗恢复刷新。查温度不再挡住其它读数。参数设置里可把更新间隔调成 0.2 到 5 秒。
 
 #### 文档
 

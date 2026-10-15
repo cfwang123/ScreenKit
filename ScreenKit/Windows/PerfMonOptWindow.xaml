@@ -1,0 +1,21 @@
+<Window x:Class="ScreenKit.PerfMonOptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="性能监控"
+        Width="380" Height="168"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="perf.settings.window">
+	<StackPanel Margin="16">
+		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" Margin="0,0,0,12"/>
+		<DockPanel LastChildFill="True">
+			<TextBlock x:Name="lbval" DockPanel.Dock="Right" MinWidth="64" Margin="12,0,0,0"
+			           VerticalAlignment="Center" HorizontalAlignment="Right" FontWeight="SemiBold"/>
+			<Slider x:Name="eslider" Minimum="0.2" Maximum="5" TickFrequency="0.1"
+			        IsSnapToTickEnabled="True" VerticalAlignment="Center"
+			        AutomationProperties.AutomationId="perf.interval"/>
+		</DockPanel>
+	</StackPanel>
+</Window>

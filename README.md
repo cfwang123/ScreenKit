@@ -94,7 +94,7 @@ This program receives while it is running. That can be turned off in Settings. *
 - **Ports in use**: Under Network. It lists TCP and UDP ports that are in use, with listening ports first. Select a row to see the process and its path, and to open that folder.
 - **System info**: Each tab is queried in the background the first time you open it. Refresh queries only the current page again. Besides the system, USB, serial ports, printers, sound, and fonts, it also lists displays, cameras, Bluetooth, network adapters, input devices, physical disks, batteries, PCI and system devices, and problem devices. You can see the driver, identifiers, status, and, when the system provides them, resolution and DPI, disk health, and battery capacity. The system page also lists each memory module's slot, capacity, and speed, plus the motherboard vendor and model. Sound devices show active items by default. Show all still keeps the active items first. Queries are read-only and do not open or control a device. When permission is missing, ScreenKit starts its own administrator command line through `start`. Cancel or failure shows the reason, and Refresh tries again.
 - **System tools**: On the Tools menu and the tray System submenu. Read-only lists of processes (name, PID, memory, path, command line), environment variables (user and machine kept apart; semicolons in a value become separate lines in the detail pane), startup items (Run keys, startup folders, logon and boot scheduled tasks), installed programs (name, version, publisher, date, uninstall command), services (name, state, start type, path), installed hotfixes, and the current user's Store and UWP packages. File locks accepts a file or folder by picker or drag-and-drop and lists the processes holding it. File associations takes an extension and shows the default program. Services are listed only.
-- **Performance**: On the Tools menu and the tray System submenu. A borderless translucent window you can drag; it remembers where you left it. It shows CPU, GPU, and memory use, network upload and download, disk read and write, and CPU or GPU temperature and power when the machine exposes them. A missing sensor is a dash. Right-click turns each field on or off, and can keep the window on top or close it.
+- **Performance**: On the Tools menu and the tray System submenu. A borderless translucent window you can drag; it remembers where you left it. It shows CPU, GPU, and memory use, network upload and download, disk read and write, and CPU or GPU temperature and power when the machine exposes them. A missing sensor is a dash. Right-click turns each field on or off, keeps the window on top, closes it, or opens settings to change the update interval (0.2–5 seconds).
 - **File info**: On the Tools menu and the tray File submenu. Pick or drop a file. The header type is compared with the extension. Executables show product name, version, and company. Images show width, height, capture time, and camera maker. GPS is shown only in this window. When ffmpeg is present, duration, resolution, codec, and bit rate are read; otherwise only what the system can read is shown. Text files show whether a BOM is present and whether the bytes look more like UTF-8 or GBK.
 - **HTTP request debugger**: Under Network. Requests are saved in groups. Parameters are one `key=value` per line. A POST can be those parameters, JSON, XML, or raw text with a MIME type you type. The list is `httpdbg.json` next to the program. Until there is a sample, it adds a group named 测试, with calls to this program on `127.0.0.1:1224`: status, simplified/traditional, pinyin, USB ID, currency, and Base64 text. After that group is deleted and the list is saved, it is not added again.
 - **MIDI synthesizer**: Play with the mouse or the computer keyboard. Sound goes to the selected MIDI output. A MIDI keyboard can be connected. A MIDI file can be opened, and its tracks, tempo, and notes can be changed and saved.
@@ -108,11 +108,61 @@ This program receives while it is running. That can be turned off in Settings. *
 
 ### Web tools
 
-These pages appear in the matching category of the **Tools** menu, with `(web)` after the name, on the same port as the local HTTP API. The home page and file transfer sit above the categories and do not get that mark. The language menu on the title bar follows the desktop UI language. `/sk/L.js` is built from the modification times of `lang/*.toml`. When those files are unchanged, it serves the `web/L.js` already written. Categories are on the left and tools are on the right. Favorites has All underneath. Hold Ctrl and click to open a tool in a new tab. A tool that is no longer in the address or in Favorites is ignored.
-
-Besides the same recognition, speech, QR, pinyin, simplified/traditional, calendars, and yomi as the desktop, the page also has a camera (preview photo, still, zoom, and scan), a small in-browser model, RTSP playback (H.264, with optional audio), a Markdown reader (drop to preview), text convert, hash, a scientific calculator, regular expressions, unit conversion (including exchange rates), radix conversion, date arithmetic, a timer, a world clock, a function graph, image to ICO, a placeholder image, random colors, a CSS gradient, an HTML UI preview, a drawing board, an 8-bit synthesizer, test-data generation, and a chat room. The color picker can drag a palette, or sample one pixel from the screen. The pen on the board fills in points a fast stroke would otherwise drop, and a stylus also follows the system ink trail. The in-browser model uses the on-device model built into desktop Chrome for language detection, translation, summary, rewrite, proofreading, and a free prompt. That model is downloaded separately for each site. The same card can also speak with the browser’s speechSynthesis and dictate with webkitSpeechRecognition. Chinese segmentation uses Intl.Segmenter and splits by word, sentence, or grapheme, one piece per line. The chat room asks for a nickname before you enter. After that, Ctrl+V can paste a picture or a file. Clicking a picture in the chat opens it larger with the local Viewer.js, with no transition. The world clock lists local time for common places by default, and one more region can be added. After you edit the input, many text tools show a result at once.
-
-The Lookup category has Unicode, ASCII, and GBK code charts, Morse code, a color chart, this-browser info, and a list of common USB IDs. This-browser info lists the version, screen, memory, keyboard, and processor pressure this browser can read. Reading each screen, and idle detection, ask for permission only after a click. The list shows the vendor, product, and model. Click a row and the local `/api/usb` fills in the interfaces. On the desktop, **Tools → Lookup** has the dictionary and system info. Ports in use is under **Tools → Network**. DNS records, port test, local network, Wake-on-LAN, and network discovery are all inside the Network window.
+- **Text**
+  - **Text convert**: Encoding, escaping, and common text transforms
+  - **Chinese to pinyin**: Characters to pinyin or initials
+  - **Markdown reader**: Preview Markdown
+  - **Chinese segmentation**: Split by word, sentence, or grapheme
+  - **In-browser model**: Run text tasks on the browser’s local model
+  - **Translate**: Translate text into another language
+  - **Password generator**: Generate passwords
+  - **Regular expressions**: Find regex matches
+  - **Number names**: Write a number in several readings
+  - **Test data**: Generate fake data by type
+- **Math**
+  - **Scientific calculator**: Scientific calculation
+  - **Radix conversion**: Convert among base 2, 8, 10, and 16
+  - **Unit conversion**: Length, weight, currency, and more
+  - **Random number**: A number inside a chosen range
+  - **Function graph**: Plot a formula
+  - **BMI**: Body mass index from height and weight
+  - **Mortgage**: Equal payment or equal principal
+  - **Compound interest**: Interest compounded yearly
+- **Speech**
+  - **Speech**: Read text aloud
+  - **Speech recognition**: Turn speech into text
+  - **8-bit synthesizer**: Square-wave tones and effects
+- **Calendar**
+  - **Calendars**: Gregorian alongside lunar and other calendars
+  - **Timestamp**: Unix time and local time
+  - **Date arithmetic**: Difference or offset between dates
+  - **Timer**: Stopwatch and countdown
+  - **World clock**: Local time in other places
+  - **Workdays**: Move a date by workdays
+- **Image**
+  - **Text recognition**: Read text in a picture
+  - **QR / barcode**: Make a QR code or barcode
+  - **Scan QR / barcode**: Read a code from a picture
+  - **Camera**: Take a photo or scan a code
+  - **RTSP player**: Play an RTSP video
+  - **Image Base64**: Picture and Base64
+  - **Image to ICO**: Turn a picture into an icon
+  - **Color picker**: Pick or sample a color
+  - **CSS gradient**: Preview a CSS gradient
+  - **Drawing board**: Draw on the page
+  - **HTML preview**: Write HTML and see it
+  - **Placeholder image**: Make a placeholder picture
+  - **Random colors**: A set of random colors
+- **Lookup**
+  - **Color chart**: Named colors
+  - **This browser**: What the browser can read about this device
+  - **USB IDs**: USB vendor and product
+  - **Unicode chart**: Unicode characters
+  - **ASCII chart**: ASCII characters
+  - **GBK chart**: GBK characters
+  - **Morse code**: Morse code
+- **Talk**
+  - **Chat room**: Send text, pictures, and files
 
 ## Hotkeys
 

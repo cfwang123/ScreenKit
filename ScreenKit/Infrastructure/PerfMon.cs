@@ -15,7 +15,15 @@ public sealed class PerfOpt {
 	public double Left { get; set; }
 	public double Top { get; set; }
 	public bool HasPos { get; set; }
+	/// <summary>采样间隔，毫秒。200～5000，缺省 1000。</summary>
+	public int IntervalMs { get; set; } = 1000;
 	public Dictionary<string, bool> Flags { get; set; } = new();
+
+	public static int NormMs(int ms) {
+		if (ms < 200) return 1000;
+		if (ms > 5000) return 5000;
+		return ms;
+	}
 
 	public static string DefaultPath =>
 		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "perf.json");
@@ -80,7 +88,8 @@ static class PerfMon {
 	static bool hasCpu;
 	static ulong prevIdle, prevKernel, prevUser;
 	static double lastCpuTemp = double.NaN;
-	static int tempWait;
+	static int tempLeft;
+	static int tempBusy;
 	static bool nvmlTried;
 	static bool nvmlOk;
 	static IntPtr nvmlLib;
@@ -97,12 +106,28 @@ static class PerfMon {
 		try { s.Mem = mem(); } catch { }
 		try { pdh(s); } catch { }
 		try { nvml(s); } catch { }
-		if (tempWait <= 0) {
-			try { lastCpuTemp = cputemp(); } catch { lastCpuTemp = double.NaN; }
-			tempWait = 5;
-		}
 		s.CpuTemp = lastCpuTemp;
+		if (tempLeft <= 0) {
+			tempLeft = 4;
+			kicktemp();
+		}
+		else tempLeft--;
 		return s;
+	}
+
+	static void kicktemp() {
+		if (Interlocked.CompareExchange(ref tempBusy, 1, 0) != 0) return;
+		var th = new Thread(() => {
+			try {
+				var v = cputemp();
+				if (!double.IsNaN(v)) lastCpuTemp = v;
+			}
+			catch { }
+			Interlocked.Exchange(ref tempBusy, 0);
+		});
+		th.IsBackground = true;
+		th.SetApartmentState(ApartmentState.STA);
+		th.Start();
 	}
 
 	public static int Test(Action<string> log, Action<string> err) {
@@ -131,9 +156,10 @@ static class PerfMon {
 		try {
 			var o = new PerfOpt();
 			o.Set("gpu", false);
+			o.IntervalMs = 2500;
 			o.Save(path);
 			var q = PerfOpt.Load(path);
-			if (q.On("gpu") || !q.On("cpu") || !q.Topmost) {
+			if (q.On("gpu") || !q.On("cpu") || !q.Topmost || q.IntervalMs != 2500 || PerfOpt.NormMs(0) != 1000) {
 				err("开关没有保存");
 				return 1;
 			}
@@ -375,20 +401,14 @@ static class PerfMon {
 		return Marshal.GetDelegateForFunctionPointer<T>(p);
 	}
 
-	static double cputemp() {
-		var v = kelvinzone("SELECT Temperature FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation", "Temperature");
-		if (!double.IsNaN(v)) return v;
-		return kelvinzone(@"root\wmi", "SELECT CurrentTemperature FROM MSAcpi_ThermalZoneTemperature", "CurrentTemperature");
-	}
+	static double cputemp() =>
+		kelvinzone("SELECT Temperature FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation", "Temperature");
 
-	static double kelvinzone(string query, string field) => kelvinzone(null, query, field);
-
-	static double kelvinzone(string scope, string query, string field) {
+	static double kelvinzone(string query, string field) {
 		double best = double.NaN;
 		try {
-			using var search = scope == null
-				? new ManagementObjectSearcher(query)
-				: new ManagementObjectSearcher(scope, query);
+			using var search = new ManagementObjectSearcher(query);
+			search.Options.Timeout = TimeSpan.FromSeconds(2);
 			foreach (ManagementObject mo in search.Get()) {
 				using (mo) {
 					var raw = mo[field];
