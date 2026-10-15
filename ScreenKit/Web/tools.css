@@ -551,21 +551,29 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 @media (max-width: 800px) {
 	.htmlui-split { grid-template-columns: minmax(0, 1fr); }
 }
-#box.panel.on:has(.mdread) { overflow: hidden; }
+body:has(#box.panel.on .mdread) { min-width: 0; overflow: hidden; }
+#box.panel.on:has(.mdread) { overflow: hidden; min-width: 0; max-width: 100%; }
 #box.panel.on:has(.mdread) #box-body {
-	flex: 1 1 auto; min-height: 0;
-	display: flex; flex-direction: column;
+	flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%;
+	display: flex; flex-direction: column; overflow: hidden;
 }
-.mdread { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; }
+.mdread {
+	display: flex; flex-direction: column; gap: 8px;
+	flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%; overflow: hidden;
+}
 .mdread-bar { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .mdread-bar button {
 	height: 28px; padding: 0 12px; cursor: pointer; flex: 0 0 auto;
 	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
 }
 .mdread-bar span { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mdread-stage { position: relative; flex: 1 1 auto; min-height: 280px; }
+.mdread-stage {
+	position: relative; flex: 1 1 auto; min-height: 0; min-width: 0;
+	overflow: hidden;
+}
 .mdread-stage iframe {
-	width: 100%; height: 100%; border: 1px solid var(--line); border-radius: 10px; background: #fff;
+	position: absolute; inset: 0; width: 100%; height: 100%;
+	border: 1px solid var(--line); border-radius: 10px; background: #fff;
 }
 .mdread-mask { position: absolute; inset: 0; pointer-events: none; }
 .mdread-mask.on {

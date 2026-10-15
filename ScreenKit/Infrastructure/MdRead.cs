@@ -225,7 +225,8 @@ static class MdRead {
 			catch { }
 		}
 		sb.Append("<style>");
-		sb.Append("body{margin:0 auto;max-width:860px;padding:28px 32px 64px;");
+		sb.Append("html{height:100%;}");
+		sb.Append("body{box-sizing:border-box;height:100%;margin:0 auto;max-width:860px;overflow:auto;padding:28px 32px 64px;");
 		sb.Append("font:15px/1.65 'Segoe UI','Microsoft YaHei UI',sans-serif;color:#1f2937;background:#fff;}");
 		sb.Append("h1{font-size:28px;line-height:1.3;border-bottom:1px solid #e5e7eb;padding-bottom:8px;}");
 		sb.Append("h2{font-size:22px;line-height:1.35;border-bottom:1px solid #f3f4f6;padding-bottom:4px;}");
@@ -236,10 +237,11 @@ static class MdRead {
 		sb.Append("li{margin:0;}");
 		sb.Append("a{color:#c2410c;}");
 		sb.Append("code{font-family:Consolas,'Cascadia Mono',monospace;background:#f3f4f6;padding:1px 4px;}");
-		sb.Append("pre{background:#f3f4f6;padding:12px 14px;overflow:auto;}");
+		sb.Append("pre{background:#f3f4f6;padding:12px 14px;overflow:auto;max-width:100%;}");
 		sb.Append("pre code{background:transparent;padding:0;}");
 		sb.Append("blockquote{margin:0 0 12px;padding:2px 14px;border-left:4px solid #d1d5db;color:#4b5563;}");
-		sb.Append("table{border-collapse:collapse;margin:0 0 14px;}");
+		sb.Append(".tbl{max-width:100%;overflow:auto;margin:0 0 14px;}");
+		sb.Append("table{border-collapse:collapse;margin:0;}");
 		sb.Append("th,td{border:1px solid #e5e7eb;padding:6px 10px;}");
 		sb.Append("th{background:#f9fafb;}");
 		sb.Append("img{max-width:100%;height:auto;}");
@@ -376,7 +378,7 @@ static class MdRead {
 	static int addtable(StringBuilder sb, string[] lines, int i, string baseDir) {
 		var head = splitrow(lines[i]);
 		var sep = splitrow(lines[i + 1]);
-		sb.Append("<table><thead><tr>");
+		sb.Append("<div class=\"tbl\"><table><thead><tr>");
 		for (var c = 0; c < head.Count; c++) {
 			var al = c < sep.Count ? alignof(sep[c]) : "";
 			sb.Append("<th");
@@ -401,7 +403,7 @@ static class MdRead {
 			sb.Append("</tr>");
 			i++;
 		}
-		sb.Append("</tbody></table>");
+		sb.Append("</tbody></table></div>");
 		return i;
 	}
 
