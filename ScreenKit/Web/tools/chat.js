@@ -6,6 +6,7 @@
 	var beat = 0;
 	var beatsince = 0;
 	var offers = [];
+	var picview = null;
 	var NICK = "sk-chat-nick";
 	var GENDER = "sk-chat-gender";
 
@@ -361,6 +362,7 @@
 			F.append(row, a);
 		}
 		pushlog(row);
+		if (m.kind === "image") refreshpics();
 	}
 
 	function sizestr(n){
@@ -384,6 +386,36 @@
 		var log = F.id("chat-log");
 		F.append(log, row);
 		log.scrollTop = log.scrollHeight;
+	}
+
+	function refreshpics(){
+		if (!window.Viewer) return;
+		var log = F.id("chat-log");
+		if (!log) return;
+		if (!picview) {
+			picview = new Viewer(log, {
+				transition: false,
+				url: "src",
+				filter: function(image){
+					return image.className.indexOf("chatpic") >= 0;
+				},
+				toolbar: {
+					zoomIn: 1,
+					zoomOut: 1,
+					oneToOne: 1,
+					reset: 1,
+					prev: 1,
+					play: 0,
+					next: 1,
+					rotateLeft: 1,
+					rotateRight: 1,
+					flipHorizontal: 0,
+					flipVertical: 0
+				}
+			});
+			return;
+		}
+		picview.update();
 	}
 
 	function paintpeers(list){
@@ -560,6 +592,7 @@
 	function clearlog(){
 		var log = F.id("chat-log");
 		while (log.firstChild) log.removeChild(log.firstChild);
+		if (picview) picview.update();
 		var peers = F.id("chat-peers");
 		while (peers.firstChild) peers.removeChild(peers.firstChild);
 		offers = [];

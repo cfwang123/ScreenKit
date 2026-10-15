@@ -804,7 +804,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 }
 #chat-room #chat-torow button.ghost:hover,
 #chat-room #chat-sendrow button.ghost:hover { background: var(--paper); }
-.chatpic { display: block; max-width: 100%; max-height: 220px; margin-top: 4px; border-radius: 6px; }
+.chatpic { display: block; max-width: 100%; max-height: 220px; margin-top: 4px; border-radius: 6px; cursor: zoom-in; }
 .chatfile { display: inline-block; margin-top: 4px; }
 .bit .row label { width: auto; }
 .bit .row input[type="range"] { width: 140px; height: 32px; padding: 0; }

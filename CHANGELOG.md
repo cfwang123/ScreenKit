@@ -76,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Install Features can list, install, and remove Chrome translation packs and offline voice packs. They stay in this app's private Chrome profile.
 - The web tools page has a world clock under Calendar. It lists local time for common places and can show one more region.
 - The tools-page chat room accepts Ctrl+V to paste an image or a file.
+- Chat images open in Viewer.js from the cdnjs CDN, with transitions turned off.
 
 #### Changed
 
@@ -178,6 +179,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安装功能可以查询、安装和卸载 Chrome 翻译语言包和离线语音包。它们放在本程序专用的 Chrome 配置里。
 - 网页工具的历法分类增加世界时钟，默认列出常用地区的本地时间，也可以再选一个地区。
 - 网页聊天室可以用 Ctrl+V 粘贴图片或文件。
+- 聊天图片用 cdnjs 上的 Viewer.js 点击放大，并关闭过渡动画。
 
 #### 变更
 
