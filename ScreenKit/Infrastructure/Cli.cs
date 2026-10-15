@@ -6039,7 +6039,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、MAC 厂家、USB ID、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
       --test-sysinfo  只读检查系统信息及各类设备扫描
-      --test-httpdbg  参数拼进地址、表单编码、JSON 检查、保存往返，并向本机临时端口发 GET 和 POST
+      --test-httpdbg  参数拼进地址、表单编码、JSON 检查、XML 与自定义 MIME、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-update-url  向自建更新地址取 9.9.9 测试包、中文说明并下载 zip
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）

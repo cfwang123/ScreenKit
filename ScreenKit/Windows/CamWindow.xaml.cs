@@ -10,6 +10,7 @@ public partial class CamWindow : Window {
 	int holduntil;
 	int rec0;
 	bool filling;
+	string opened = "";
 	bool scanning;
 	bool scanbusy;
 	int nextscan;
@@ -22,7 +23,7 @@ public partial class CamWindow : Window {
 		bdev.Click += (_, _) => filldev();
 		edev.SelectionChanged += (_, _) => {
 			if (filling || movie != null) return;
-			opendev();
+			opendev(false);
 		};
 		bshot.Click += (_, _) => shot();
 		brec.Click += (_, _) => rec();
@@ -63,7 +64,7 @@ public partial class CamWindow : Window {
 		foreach (var d in list) edev.Items.Add(d);
 		if (list.Count == 0) {
 			filling = false;
-			opendev();
+			opendev(true);
 			return;
 		}
 		var pick = 0;
@@ -74,27 +75,37 @@ public partial class CamWindow : Window {
 		}
 		edev.SelectedIndex = pick;
 		filling = false;
-		opendev();
+		opendev(true);
 	}
 
-	void opendev() {
-		closesess();
+	void opendev(bool force) {
 		var dev = edev.SelectedItem as CamCap.Dev;
 		if (dev == null) {
+			opened = "";
+			dropcap();
 			hold(Loc.T("cam.nodev"));
 			return;
 		}
-		var gen = openGen;
+		if (!force && opened == dev.Link) return;
+		opened = dev.Link;
+		var old = cap;
+		cap = null;
+		bmp = null;
+		eprev.Source = null;
+		var gen = ++openGen;
 		var link = dev.Link;
-		hold(Loc.T("cam.opening"));
+		lbstat.Text = Loc.T("cam.opening");
+		holduntil = Environment.TickCount - 1;
 		Task.Run(() => {
+			try { old?.Dispose(); } catch { }
+			if (gen != openGen) return;
 			CamCap.Session s = null;
 			string err = null;
 			try { s = CamCap.Session.Open(link); }
 			catch (Exception ex) { err = ex.Message; }
 			Dispatcher.BeginInvoke(new Action(() => {
 				if (gen != openGen) {
-					try { s?.Dispose(); } catch { }
+					if (s != null) Task.Run(() => { try { s.Dispose(); } catch { } });
 					return;
 				}
 				cap = s;
@@ -103,14 +114,13 @@ public partial class CamWindow : Window {
 		});
 	}
 
-	void closesess() {
-		openGen++;
+	void dropcap() {
 		var s = cap;
 		cap = null;
 		bmp = null;
 		eprev.Source = null;
-		if (s == null) return;
-		try { s.Dispose(); } catch { }
+		openGen++;
+		if (s != null) Task.Run(() => { try { s.Dispose(); } catch { } });
 	}
 
 	void tick() {
@@ -277,7 +287,8 @@ public partial class CamWindow : Window {
 	void shutdown() {
 		try { timer.Stop(); } catch { }
 		scanning = false;
+		opened = "";
 		try { stoprec(); } catch { }
-		try { closesess(); } catch { }
+		try { dropcap(); } catch { }
 	}
 }

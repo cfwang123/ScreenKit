@@ -5,6 +5,8 @@ namespace ScreenKit;
 /// <summary>工具 → MD 阅读器。拖入 Markdown，用 Windows 10 的 IE11 WebBrowser 显示。</summary>
 public partial class MdReadWindow : Window {
 	System.Windows.Forms.WebBrowser browser;
+	MdDrop drop;
+	IntPtr drophwnd;
 	string curpath = "";
 	string curmode = "";
 	string page;
@@ -24,13 +26,25 @@ public partial class MdReadWindow : Window {
 			Dock = System.Windows.Forms.DockStyle.Fill,
 			ScriptErrorsSuppressed = true,
 			AllowWebBrowserDrop = false,
-			AllowDrop = true,
 		};
-		browser.DragEnter += ondrag;
-		browser.DragDrop += ondrop;
+		drop = new MdDrop(opendrop);
+		browser.HandleCreated += (_, _) => hookdrop();
 		browser.DocumentCompleted += ondoc;
 		browser.Navigating += onnav;
 		phost.Child = browser;
+	}
+
+	void hookdrop() {
+		if (browser == null || !browser.IsHandleCreated) return;
+		var h = docwnd(browser.Handle);
+		if (h == IntPtr.Zero) h = browser.Handle;
+		if (h == drophwnd) return;
+		if (drophwnd != IntPtr.Zero) {
+			try { RevokeDragDrop(drophwnd); } catch { }
+			drophwnd = IntPtr.Zero;
+		}
+		if (RegisterDragDrop(h, drop) != 0) return;
+		drophwnd = h;
 	}
 
 	void initev() {
@@ -45,6 +59,10 @@ public partial class MdReadWindow : Window {
 		};
 		Loaded += (_, _) => showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint")));
 		Closed += (_, _) => {
+			if (drophwnd != IntPtr.Zero) {
+				try { RevokeDragDrop(drophwnd); } catch { }
+				drophwnd = IntPtr.Zero;
+			}
 			try { browser?.Dispose(); } catch { }
 			foreach (var p in oldpages) {
 				try { if (File.Exists(p)) File.Delete(p); } catch { }
@@ -66,15 +84,6 @@ public partial class MdReadWindow : Window {
 		};
 		if (ofd.ShowDialog(this) != true) return;
 		openpath(ofd.FileName);
-	}
-
-	void ondrag(object sender, System.Windows.Forms.DragEventArgs e) {
-		var ok = e.Data.GetDataPresent(System.Windows.Forms.DataFormats.FileDrop);
-		e.Effect = ok ? System.Windows.Forms.DragDropEffects.Copy : System.Windows.Forms.DragDropEffects.None;
-	}
-
-	void ondrop(object sender, System.Windows.Forms.DragEventArgs e) {
-		opendrop(e.Data.GetData(System.Windows.Forms.DataFormats.FileDrop) as string[]);
 	}
 
 	void opendrop(string[] files) {
@@ -130,6 +139,7 @@ public partial class MdReadWindow : Window {
 		catch { curmode = ""; }
 		showstat();
 		trimpages();
+		hookdrop();
 	}
 
 	void onnav(object sender, System.Windows.Forms.WebBrowserNavigatingEventArgs e) {
@@ -167,4 +177,122 @@ public partial class MdReadWindow : Window {
 		oldpages.Clear();
 		if (!string.IsNullOrEmpty(page)) oldpages.Add(page);
 	}
+
+	static IntPtr docwnd(IntPtr root) {
+		IntPtr found = IntPtr.Zero;
+		EnumChildWindows(root, (h, _) => {
+			var name = new StringBuilder(64);
+			GetClassName(h, name, name.Capacity);
+			if (name.ToString() != "Internet Explorer_Server") return true;
+			found = h;
+			return false;
+		}, IntPtr.Zero);
+		return found;
+	}
+
+	delegate bool EnumProc(IntPtr hwnd, IntPtr lparam);
+
+	[DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd, EnumProc proc, IntPtr lparam);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int len);
+	[DllImport("ole32.dll")] static extern int RegisterDragDrop(IntPtr hwnd, MdDrop target);
+	[DllImport("ole32.dll")] static extern int RevokeDragDrop(IntPtr hwnd);
+}
+
+sealed class MdDrop : IOleDropTarget {
+	readonly Action<string[]> open;
+	bool ok;
+
+	public MdDrop(Action<string[]> open) { this.open = open; }
+
+	public int DragEnter(IntPtr data, uint key, PointL pt, ref uint effect) {
+		ok = filesof(data) != null;
+		effect = ok ? 1u : 0u;
+		return 0;
+	}
+
+	public int DragOver(uint key, PointL pt, ref uint effect) {
+		effect = ok ? 1u : 0u;
+		return 0;
+	}
+
+	public int DragLeave() {
+		ok = false;
+		return 0;
+	}
+
+	public int Drop(IntPtr data, uint key, PointL pt, ref uint effect) {
+		var files = filesof(data);
+		effect = files != null ? 1u : 0u;
+		if (files != null) {
+			try { open(files); } catch { }
+		}
+		return 0;
+	}
+
+	static string[] filesof(IntPtr data) {
+		if (data == IntPtr.Zero) return null;
+		var obj = (IOleDataObject)Marshal.GetObjectForIUnknown(data);
+		try {
+			var fmt = new FormatEtc {
+				cfFormat = 15,
+				dwAspect = 1,
+				lindex = -1,
+				tymed = 1,
+			};
+			if (obj.GetData(ref fmt, out var med) != 0 || med.data == IntPtr.Zero) return null;
+			try {
+				uint n = DragQueryFile(med.data, 0xFFFFFFFF, null, 0);
+				if (n == 0) return null;
+				var list = new string[n];
+				var sb = new StringBuilder(1024);
+				for (uint i = 0; i < n; i++) {
+					sb.Clear();
+					if (DragQueryFile(med.data, i, sb, sb.Capacity) == 0) return null;
+					list[i] = sb.ToString();
+				}
+				return list;
+			}
+			finally { ReleaseStgMedium(ref med); }
+		}
+		finally { Marshal.ReleaseComObject(obj); }
+	}
+
+	[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+	static extern uint DragQueryFile(IntPtr drop, uint index, StringBuilder file, int len);
+	[DllImport("ole32.dll")] static extern void ReleaseStgMedium(ref StgMedium medium);
+}
+
+[ComImport, Guid("00000122-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IOleDropTarget {
+	[PreserveSig] int DragEnter(IntPtr data, uint key, PointL pt, ref uint effect);
+	[PreserveSig] int DragOver(uint key, PointL pt, ref uint effect);
+	[PreserveSig] int DragLeave();
+	[PreserveSig] int Drop(IntPtr data, uint key, PointL pt, ref uint effect);
+}
+
+[ComImport, Guid("0000010E-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IOleDataObject {
+	[PreserveSig] int GetData(ref FormatEtc format, out StgMedium medium);
+}
+
+[StructLayout(LayoutKind.Sequential)]
+struct PointL {
+	public int x;
+	public int y;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+struct FormatEtc {
+	public short cfFormat;
+	public IntPtr ptd;
+	public int dwAspect;
+	public int lindex;
+	public int tymed;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+struct StgMedium {
+	public int tymed;
+	public IntPtr data;
+	public IntPtr unk;
 }

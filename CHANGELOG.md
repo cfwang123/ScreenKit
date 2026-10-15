@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools and the tray add a sound recorder. It records the microphone, can pause and continue, then play or save a WAV.
 - Tools and the tray add a Markdown reader. A dropped .md file is shown as HTML in the Windows 10 IE11 WebBrowser.
 - Tools → Camera previews a camera, saves a JPEG or PNG, and records an MP4 with Media Foundation. Scan reads a QR code or barcode and needs the optional OpenCV and ZXing install. The tools page camera takes a photo and scans the live picture.
+- HTTP request debugger POST body can be XML or raw text with a MIME type you type.
 
 #### Changed
 
@@ -78,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Video to GIF accepts a dropped video and shows a release hint while dragging.
 - Pixel art fills every cell between mouse samples, so a fast stroke stays continuous.
 - The Korean input tray icon uses a larger Hangul glyph, and its menu opens above the taskbar.
+- The camera window no longer opens the device twice. A second open was waiting on the window thread, so the window looked stuck and the camera did not start.
 
 #### Documentation
 
@@ -104,6 +106,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具菜单和托盘增加录音机。从麦克风录音，暂停后可以继续，停止后播放或另存为 WAV。
 - 工具菜单和托盘增加 MD 阅读器。拖入 .md 文件后，用 Windows 10 的 IE11 内核显示成网页。
 - 工具 → 相机用系统摄像头预览、拍照，并用 Media Foundation 录成 MP4。扫码识别二维码和条码，需要另装的 OpenCV 与 ZXing。工具页的相机可以拍照，并扫描实时画面。
+- HTTP 请求调试的 POST 正文可以是 XML，或自己填写 MIME 的原文。
 
 #### 变更
 
@@ -127,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 视频转 GIF 可拖入打开视频，拖动经过窗口时提示松开。
 - 像素画在两次鼠标采样之间补上经过的格子，快速移动时线条不断。
 - 韩语输入托盘图标的韩文更大，右键菜单改到任务栏上方，不再被挡住。
+- 相机窗口不再把同一摄像头打开两次。第二次打开会堵在窗口线程上，窗口看起来卡住，摄像头也起不来。
 
 #### 文档
 

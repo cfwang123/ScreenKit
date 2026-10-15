@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="HTTP 请求调试"
         Width="980" Height="700"
-        MinWidth="780" MinHeight="520"
+        MinWidth="900" MinHeight="520"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{StaticResource BgApp}"
@@ -100,11 +100,19 @@
 			         AutomationProperties.AutomationId="httpdbg.query"/>
 			<DockPanel Grid.Row="4" Margin="0,8,0,4">
 				<TextBlock x:Name="lbbody" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+				<TextBox x:Name="emime" DockPanel.Dock="Right" Width="168" Height="28" Margin="12,0,0,0"
+				         Padding="8,2" VerticalContentAlignment="Center" Visibility="Collapsed"
+				         BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
+				         AutomationProperties.AutomationId="httpdbg.mime.type"/>
 				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
 					<RadioButton x:Name="rparams" GroupName="httpbody" IsChecked="True" VerticalAlignment="Center"
 					             AutomationProperties.AutomationId="httpdbg.params"/>
-					<RadioButton x:Name="rjson" GroupName="httpbody" Margin="16,0,0,0" VerticalAlignment="Center"
+					<RadioButton x:Name="rjson" GroupName="httpbody" Margin="12,0,0,0" VerticalAlignment="Center"
 					             AutomationProperties.AutomationId="httpdbg.json"/>
+					<RadioButton x:Name="rxml" GroupName="httpbody" Margin="12,0,0,0" VerticalAlignment="Center"
+					             AutomationProperties.AutomationId="httpdbg.xml"/>
+					<RadioButton x:Name="rmime" GroupName="httpbody" Margin="12,0,0,0" VerticalAlignment="Center"
+					             AutomationProperties.AutomationId="httpdbg.mime"/>
 				</StackPanel>
 			</DockPanel>
 			<TextBox x:Name="ebody" Grid.Row="5" AcceptsReturn="True" AcceptsTab="True"

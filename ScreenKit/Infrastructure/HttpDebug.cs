@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
@@ -21,7 +22,11 @@ sealed class HttpDbgItem {
 	public string Query { get; set; } = "";
 	public string Form { get; set; } = "";
 	public string Json { get; set; } = "";
-	/// <summary>params 或 json。GET 不使用正文。</summary>
+	public string Xml { get; set; } = "";
+	public string Raw { get; set; } = "";
+	/// <summary>自定义正文的 Content-Type。可带 charset。</summary>
+	public string Mime { get; set; } = "";
+	/// <summary>params、json、xml 或 mime。GET 不使用正文。</summary>
 	public string Body { get; set; } = "params";
 }
 
@@ -43,7 +48,7 @@ sealed class HttpDbgResult {
 }
 
 /// <summary>
-/// HTTP 请求调试：一行一个参数，POST 可为表单或 JSON。
+/// HTTP 请求调试：一行一个参数。POST 可为表单、JSON、XML，或自定义 MIME 的原文。
 /// 请求存在程序目录 httpdbg.json，不写入 config.toml。
 /// 还没有示例时补上分组「测试」和本程序 1224 端口的几条接口。
 /// </summary>
@@ -153,6 +158,30 @@ static class HttpDebug {
 		return true;
 	}
 
+	/// <summary>按给定 Content-Type 发送 UTF-8 或该类型里 charset 指定的编码。类型无效时 error 为 badmime。</summary>
+	public static bool TryRawContent(string text, string mime, out StringContent content, out string error) {
+		content = null;
+		error = "";
+		mime = (mime ?? "").Trim();
+		if (mime.Length == 0 || !MediaTypeHeaderValue.TryParse(mime, out var parsed)
+			|| string.IsNullOrEmpty(parsed.MediaType) || parsed.MediaType.IndexOf('/') < 0) {
+			error = "badmime";
+			return false;
+		}
+		Encoding enc;
+		try {
+			enc = string.IsNullOrEmpty(parsed.CharSet) ? Encoding.UTF8 : Encoding.GetEncoding(parsed.CharSet);
+		}
+		catch {
+			error = "badmime";
+			return false;
+		}
+		if (string.IsNullOrEmpty(parsed.CharSet)) parsed.CharSet = "utf-8";
+		content = new StringContent(text ?? "", enc);
+		content.Headers.ContentType = parsed;
+		return true;
+	}
+
 	public static string EncodeForm(string text) {
 		var sb = new StringBuilder();
 		foreach (var pair in ParseLines(text)) {
@@ -190,12 +219,28 @@ static class HttpDebug {
 		}
 		StringContent content = null;
 		if (method == "POST") {
-			if (string.Equals(item.Body, "json", StringComparison.OrdinalIgnoreCase)) {
+			var body = (item.Body ?? "").Trim();
+			if (string.Equals(body, "json", StringComparison.OrdinalIgnoreCase)) {
 				if (!TryCheckJson(item.Json, out var jerr)) {
 					r.Error = jerr;
 					return r;
 				}
-				content = new StringContent(item.Json ?? "", Encoding.UTF8, "application/json");
+				if (!TryRawContent(item.Json, "application/json", out content, out var jmime)) {
+					r.Error = jmime;
+					return r;
+				}
+			}
+			else if (string.Equals(body, "xml", StringComparison.OrdinalIgnoreCase)) {
+				if (!TryRawContent(item.Xml, "application/xml", out content, out var xerr)) {
+					r.Error = xerr;
+					return r;
+				}
+			}
+			else if (string.Equals(body, "mime", StringComparison.OrdinalIgnoreCase)) {
+				if (!TryRawContent(item.Raw, item.Mime, out content, out var merr)) {
+					r.Error = merr;
+					return r;
+				}
 			}
 			else content = new StringContent(EncodeForm(item.Form), Encoding.UTF8, "application/x-www-form-urlencoded");
 		}
@@ -256,13 +301,15 @@ static class HttpDebug {
 			book.Groups.Add(new HttpDbgGroup { Id = "g1", Name = "接口" });
 			book.Items.Add(new HttpDbgItem {
 				Id = "r1", Group = "g1", Name = "示例", Method = "POST", Url = "http://ex.com",
-				Query = "q=1", Form = "a=1", Json = "{\"a\":1}", Body = "json",
+				Query = "q=1", Form = "a=1", Json = "{\"a\":1}", Xml = "<a/>", Raw = "hi",
+				Mime = "text/plain", Body = "mime",
 			});
 			Save(path, book);
 			var back = Load(path, "未分组", out var lerr);
 			if (lerr != null) fail("load " + lerr);
 			if (back.Groups.Count != 2 || back.Items.Count != 1 || back.Items[0].Json != "{\"a\":1}"
-				|| back.Items[0].Body != "json" || back.Groups[1].Name != "接口" || !back.Seeded)
+				|| back.Items[0].Xml != "<a/>" || back.Items[0].Raw != "hi" || back.Items[0].Mime != "text/plain"
+				|| back.Items[0].Body != "mime" || back.Groups[1].Name != "接口" || !back.Seeded)
 				fail("roundtrip");
 			var freshPath = Path.Combine(dir, "fresh.json");
 			var fresh = Load(freshPath, "未分组", out var ferr);
@@ -308,6 +355,25 @@ static class HttpDebug {
 			if (!js.Ok || js.Body.IndexOf("application/json", StringComparison.Ordinal) < 0
 				|| js.Body.IndexOf("\"a\"", StringComparison.Ordinal) < 0)
 				fail("POST json " + js.Error + " " + js.Body);
+			var xml = SendAsync(new HttpDbgItem {
+				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "xml", Xml = "<a>1</a>",
+			}, CancellationToken.None).GetAwaiter().GetResult();
+			log(xml.Body);
+			if (!xml.Ok || xml.Body.IndexOf("application/xml", StringComparison.Ordinal) < 0
+				|| xml.Body.IndexOf("<a>1</a>", StringComparison.Ordinal) < 0)
+				fail("POST xml " + xml.Error + " " + xml.Body);
+			var raw = SendAsync(new HttpDbgItem {
+				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "mime",
+				Mime = "text/plain; charset=utf-8", Raw = "hi",
+			}, CancellationToken.None).GetAwaiter().GetResult();
+			log(raw.Body);
+			if (!raw.Ok || raw.Body.IndexOf("text/plain", StringComparison.Ordinal) < 0
+				|| raw.Body.IndexOf("hi", StringComparison.Ordinal) < 0)
+				fail("POST mime " + raw.Error + " " + raw.Body);
+			var badm = SendAsync(new HttpDbgItem {
+				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "mime", Mime = "nope", Raw = "x",
+			}, CancellationToken.None).GetAwaiter().GetResult();
+			if (badm.Ok || badm.Error != "badmime") fail("bad mime sent " + badm.Error);
 			var badj = SendAsync(new HttpDbgItem {
 				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "json", Json = "{",
 			}, CancellationToken.None).GetAwaiter().GetResult();
@@ -462,7 +528,15 @@ static class HttpDebug {
 			it.Query = it.Query ?? "";
 			it.Form = it.Form ?? "";
 			it.Json = it.Json ?? "";
-			it.Body = string.Equals(it.Body, "json", StringComparison.OrdinalIgnoreCase) ? "json" : "params";
+			it.Xml = it.Xml ?? "";
+			it.Raw = it.Raw ?? "";
+			it.Mime = (it.Mime ?? "").Trim();
+			var body = (it.Body ?? "").Trim();
+			if (!string.Equals(body, "json", StringComparison.OrdinalIgnoreCase)
+				&& !string.Equals(body, "xml", StringComparison.OrdinalIgnoreCase)
+				&& !string.Equals(body, "mime", StringComparison.OrdinalIgnoreCase))
+				body = "params";
+			it.Body = body.ToLowerInvariant();
 		}
 	}
 }

@@ -14,7 +14,9 @@ public partial class HttpDebugWindow : Window {
 	string snap;
 	string draftform = "";
 	string draftjson = "";
-	bool bodyjson;
+	string draftxml = "";
+	string draw = "";
+	string bodykind = "params";
 	bool loading;
 	bool filling;
 	bool busy;
@@ -63,8 +65,10 @@ public partial class HttpDebugWindow : Window {
 		bcopy.Click += (_, _) => copyout();
 		bclose.Click += (_, _) => Close();
 		emethod.SelectionChanged += (_, _) => { if (!loading) syncmethod(); };
-		rparams.Checked += (_, _) => onbody(false);
-		rjson.Checked += (_, _) => onbody(true);
+		rparams.Checked += (_, _) => onbody("params");
+		rjson.Checked += (_, _) => onbody("json");
+		rxml.Checked += (_, _) => onbody("xml");
+		rmime.Checked += (_, _) => onbody("mime");
 		Closing += (_, e) => {
 			if (!askdirty()) e.Cancel = true;
 			else { try { cts?.Cancel(); } catch { } }
@@ -83,6 +87,8 @@ public partial class HttpDebugWindow : Window {
 		lbbody.Text = Loc.T("httpdbg.body");
 		rparams.Content = Loc.T("httpdbg.params");
 		rjson.Content = Loc.T("httpdbg.json");
+		rxml.Content = Loc.T("httpdbg.xml");
+		rmime.Content = Loc.T("httpdbg.mime");
 		ToolBtnUi.Set(bgroupadd, ToolBtnUi.Add, Loc.T("httpdbg.group.new"));
 		ToolBtnUi.Set(bgroupren, ToolBtnUi.Rename, Loc.T("httpdbg.group.ren"));
 		ToolBtnUi.Set(bgroupdel, ToolBtnUi.Delete, Loc.T("httpdbg.group.del"));
@@ -163,10 +169,10 @@ public partial class HttpDebugWindow : Window {
 		emethod.SelectedItem = item.Method == "POST" ? "POST" : "GET";
 		draftform = item.Form ?? "";
 		draftjson = item.Json ?? "";
-		bodyjson = item.Body == "json";
-		rjson.IsChecked = bodyjson;
-		rparams.IsChecked = !bodyjson;
-		ebody.Text = bodyjson ? draftjson : draftform;
+		draftxml = item.Xml ?? "";
+		draw = item.Raw ?? "";
+		emime.Text = string.IsNullOrWhiteSpace(item.Mime) ? "text/plain" : item.Mime;
+		setbody(item.Body);
 		fillitemgroups(item.Group);
 		loading = false;
 		syncmethod();
@@ -189,9 +195,10 @@ public partial class HttpDebugWindow : Window {
 		emethod.SelectedItem = "GET";
 		draftform = "";
 		draftjson = "";
-		bodyjson = false;
-		rparams.IsChecked = true;
-		ebody.Text = "";
+		draftxml = "";
+		draw = "";
+		emime.Text = "text/plain";
+		setbody("params");
 		fillitemgroups(group);
 		loading = false;
 		syncmethod();
@@ -280,15 +287,18 @@ public partial class HttpDebugWindow : Window {
 	}
 
 	void apply(HttpDbgItem item) {
-		var json = rjson.IsChecked == true;
+		stash();
 		item.Name = (ename.Text ?? "").Trim();
 		item.Group = itemgroupid();
 		item.Method = methodof();
 		item.Url = eurl.Text ?? "";
 		item.Query = equery.Text ?? "";
-		item.Body = json ? "json" : "params";
-		item.Form = json ? draftform : (ebody.Text ?? "");
-		item.Json = json ? (ebody.Text ?? "") : draftjson;
+		item.Body = bodykind;
+		item.Form = draftform;
+		item.Json = draftjson;
+		item.Xml = draftxml;
+		item.Raw = draw;
+		item.Mime = (emime.Text ?? "").Trim();
 	}
 
 	HttpDbgItem draft() {
@@ -320,11 +330,12 @@ public partial class HttpDebugWindow : Window {
 	bool isdirty() => snap != null && takesnap() != snap;
 
 	string takesnap() {
-		var json = rjson.IsChecked == true;
-		var form = json ? draftform : (ebody.Text ?? "");
-		var js = json ? (ebody.Text ?? "") : draftjson;
+		var form = bodykind == "params" ? (ebody.Text ?? "") : draftform;
+		var js = bodykind == "json" ? (ebody.Text ?? "") : draftjson;
+		var xml = bodykind == "xml" ? (ebody.Text ?? "") : draftxml;
+		var raw = bodykind == "mime" ? (ebody.Text ?? "") : draw;
 		return string.Join("\u0001", itemgroupid(), ename.Text ?? "", methodof(), eurl.Text ?? "",
-			equery.Text ?? "", json ? "json" : "params", form, js);
+			equery.Text ?? "", bodykind, form, js, xml, raw, emime.Text ?? "");
 	}
 
 	string groupid() {
@@ -346,20 +357,58 @@ public partial class HttpDebugWindow : Window {
 		return url;
 	}
 
-	void onbody(bool json) {
-		if (loading || json == bodyjson) return;
-		if (bodyjson) draftjson = ebody.Text ?? "";
-		else draftform = ebody.Text ?? "";
-		bodyjson = json;
+	void onbody(string kind) {
+		kind = normkind(kind);
+		if (loading || kind == bodykind) return;
+		stash();
+		bodykind = kind;
 		loading = true;
-		ebody.Text = json ? draftjson : draftform;
+		ebody.Text = textforkind(kind);
+		showmime();
 		loading = false;
+	}
+
+	void setbody(string kind) {
+		bodykind = normkind(kind);
+		rparams.IsChecked = bodykind == "params";
+		rjson.IsChecked = bodykind == "json";
+		rxml.IsChecked = bodykind == "xml";
+		rmime.IsChecked = bodykind == "mime";
+		ebody.Text = textforkind(bodykind);
+		showmime();
+	}
+
+	void stash() {
+		var text = ebody.Text ?? "";
+		if (bodykind == "json") draftjson = text;
+		else if (bodykind == "xml") draftxml = text;
+		else if (bodykind == "mime") draw = text;
+		else draftform = text;
+	}
+
+	string textforkind(string kind) {
+		if (kind == "json") return draftjson;
+		if (kind == "xml") return draftxml;
+		if (kind == "mime") return draw;
+		return draftform;
+	}
+
+	static string normkind(string kind) {
+		if (kind == "json" || kind == "xml" || kind == "mime") return kind;
+		return "params";
+	}
+
+	void showmime() {
+		emime.Visibility = bodykind == "mime" ? Visibility.Visible : Visibility.Collapsed;
 	}
 
 	void syncmethod() {
 		var post = methodof() == "POST";
 		rparams.IsEnabled = post;
 		rjson.IsEnabled = post;
+		rxml.IsEnabled = post;
+		rmime.IsEnabled = post;
+		emime.IsEnabled = post;
 		ebody.IsEnabled = post;
 	}
 
@@ -391,6 +440,7 @@ public partial class HttpDebugWindow : Window {
 				"empty" => Loc.T("httpdbg.needurl"),
 				"bad" => Loc.T("httpdbg.badurl"),
 				"emptyjson" => Loc.T("httpdbg.emptyjson"),
+				"badmime" => Loc.T("httpdbg.badmime"),
 				"cancel" => Loc.T("httpdbg.cancelled"),
 				"timeout" => Loc.T("httpdbg.timeout"),
 				_ => Loc.T("httpdbg.fail", r.Error ?? ""),

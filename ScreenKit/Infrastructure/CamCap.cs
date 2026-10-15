@@ -181,7 +181,7 @@ static class CamCap {
 			}
 			ready.Set();
 			try {
-				if (error == null) loop();
+				if (!stop && error == null) loop();
 			}
 			catch (Exception ex) {
 				lock (gate) if (error == null) error = ex.Message;
