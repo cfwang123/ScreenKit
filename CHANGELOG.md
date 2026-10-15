@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Video to GIF accepts a dropped video and shows a release hint while dragging.
+- Pixel art fills every cell between mouse samples, so a fast stroke stays continuous.
 
 #### Documentation
 
@@ -107,6 +108,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 视频转 GIF 可拖入打开视频，拖动经过窗口时提示松开。
+- 像素画在两次鼠标采样之间补上经过的格子，快速移动时线条不断。
 
 #### 文档
 

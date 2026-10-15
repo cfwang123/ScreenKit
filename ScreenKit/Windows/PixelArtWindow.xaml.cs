@@ -23,6 +23,9 @@ public partial class PixelArtWindow : Window {
 	bool drawing;
 	bool rdraw;
 	bool dirty;
+	bool haslast;
+	int lastx;
+	int lasty;
 	int cell;
 	WriteableBitmap raw;
 
@@ -177,6 +180,7 @@ public partial class PixelArtWindow : Window {
 	void begindraw(Point pos, bool aserase) {
 		if (aserase) rdraw = true;
 		else drawing = true;
+		haslast = false;
 		eedit.CaptureMouse();
 		paintat(pos, aserase);
 	}
@@ -184,13 +188,51 @@ public partial class PixelArtWindow : Window {
 	void enddraw(bool aserase) {
 		if (aserase) rdraw = false;
 		else drawing = false;
-		if (!drawing && !rdraw && eedit.IsMouseCaptured) eedit.ReleaseMouseCapture();
+		if (drawing || rdraw) return;
+		haslast = false;
+		if (eedit.IsMouseCaptured) eedit.ReleaseMouseCapture();
 	}
 
 	void paintat(Point pos, bool aserase) {
 		if (eedit.ActualWidth <= 0 || eedit.ActualHeight <= 0) return;
-		int x = (int)(pos.X / eedit.ActualWidth * gw);
-		int y = (int)(pos.Y / eedit.ActualHeight * gh);
+		int x = (int)Math.Floor(pos.X / eedit.ActualWidth * gw);
+		int y = (int)Math.Floor(pos.Y / eedit.ActualHeight * gh);
+		x = Compat.Clamp(x, -1, gw);
+		y = Compat.Clamp(y, -1, gh);
+		if (!haslast) {
+			put(x, y, aserase);
+			lastx = x;
+			lasty = y;
+			haslast = true;
+			return;
+		}
+		stroke(lastx, lasty, x, y, aserase);
+		lastx = x;
+		lasty = y;
+	}
+
+	void stroke(int x0, int y0, int x1, int y1, bool aserase) {
+		int dx = Math.Abs(x1 - x0);
+		int dy = Math.Abs(y1 - y0);
+		int sx = x0 < x1 ? 1 : -1;
+		int sy = y0 < y1 ? 1 : -1;
+		int err = dx - dy;
+		while (true) {
+			put(x0, y0, aserase);
+			if (x0 == x1 && y0 == y1) break;
+			int e2 = err * 2;
+			if (e2 > -dy) {
+				err -= dy;
+				x0 += sx;
+			}
+			if (e2 < dx) {
+				err += dx;
+				y0 += sy;
+			}
+		}
+	}
+
+	void put(int x, int y, bool aserase) {
 		if (x < 0 || y < 0 || x >= gw || y >= gh) return;
 		Color c = aserase || erase ? Color.FromArgb(0, 0, 0, 0) : ink;
 		int i = y * gw + x;
