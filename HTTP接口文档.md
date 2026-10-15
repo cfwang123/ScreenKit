@@ -754,7 +754,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 
 四种引擎：**Sherpa**（`ttsmodels` 下 ONNX 包）、**SAPI**（经典 `System.Speech`，含经 `x86host.exe` 的 32 位音）、**Windows**（`engine=winrt`，WinRT / OneCore 神经语音）、**Edge 在线**（`engine=edge`，无需模型/API Key但必须联网）。省略 `engine` 时：有 Sherpa 模型则走 Sherpa；否则有 Windows 语音就用它，没有再用 Edge 在线。
 
-**Chrome**（`engine=chrome`）在本机隐藏的 Chrome 里朗读，不返回 WAV。朗读和翻译共用这一个进程，多路请求同时进行。桌面语音合成发现对应离线语音包未安装时，会临时安装并显示可中止的进度窗。这个 HTTP 接口不安装；未安装时返回 927，需要先在 **帮助 → 安装功能 → Chrome** 里装好。
+**Chrome**（`engine=chrome`）在本机隐藏的 Chrome 里朗读，不返回 WAV。朗读和翻译共用这一个进程，多路请求同时进行。先直接朗读。发不出声时再安装这一语言的离线语音包，装完再读一次。仍失败则返回错误。桌面安装时显示可中止的进度窗。
 
 ### 8.1 GET `/api/tts/engines` · GET `/api/tts/models`
 

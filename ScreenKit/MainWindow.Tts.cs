@@ -1483,9 +1483,9 @@ public partial class MainWindow {
 		var voice = ettsvoice.SelectedItem as SapiVoiceItem;
 		var name = voice?.Name ?? "";
 		var lang = voice != null && !string.IsNullOrEmpty(voice.Culture) ? voice.Culture : currentttslang();
-		await ensurechromevoice(lang, exe, ct);
 		var rate = ettsrate.Value;
 		var vol = ettsvol.Value / 100.0;
+		var triedInstall = false;
 		var i = 0;
 		while (i < segments.Count) {
 			ct.ThrowIfCancellationRequested();
@@ -1495,7 +1495,14 @@ public partial class MainWindow {
 			updatettsctrlui();
 			var part = segments[i].Text;
 			var idle = ChromeTts.ClampIdle(opt.ChromeIdleSec);
-			await Task.Run(() => ChromeTts.Speak(part, name, lang, rate, vol, exe, idle, ct));
+			try {
+				await Task.Run(() => ChromeTts.Speak(part, name, lang, rate, vol, exe, idle, ct));
+			}
+			catch (InvalidOperationException ex) when (!triedInstall && chromevoicemiss(ex)) {
+				triedInstall = true;
+				await ensurechromevoice(lang, exe, ct);
+				await Task.Run(() => ChromeTts.Speak(part, name, lang, rate, vol, exe, idle, ct));
+			}
 			if (ttsSkipDelta != 0) {
 				var next = i + ttsSkipDelta;
 				ttsSkipDelta = 0;
@@ -1509,7 +1516,10 @@ public partial class MainWindow {
 			lbttsstatus.Text = $"Chrome · {segments.Count}";
 	}
 
-	/// <summary>对应语言的离线语音包没装就当场安装，进度窗可以取消。</summary>
+	static bool chromevoicemiss(Exception ex) =>
+		(ex?.Message ?? "").IndexOf("没有发出声音", StringComparison.Ordinal) >= 0;
+
+	/// <summary>朗读失败后再安装这一语言的离线语音包。进度窗可以取消。</summary>
 	async Task ensurechromevoice(string culture, string exe, CancellationToken ct) {
 		var pack = ChromePack.SpeakLang(culture);
 		if (pack.Length == 0 || ChromePack.VoiceInstalled(pack) == true) return;
