@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Management;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
@@ -84,12 +82,10 @@ static class PerfMon {
 	static IntPtr rdCtr;
 	static IntPtr wrCtr;
 	static IntPtr pwrCtr;
+	static IntPtr tzCtr;
 	static bool opened;
 	static bool hasCpu;
 	static ulong prevIdle, prevKernel, prevUser;
-	static double lastCpuTemp = double.NaN;
-	static int tempLeft;
-	static int tempBusy;
 	static bool nvmlTried;
 	static bool nvmlOk;
 	static IntPtr nvmlLib;
@@ -106,28 +102,7 @@ static class PerfMon {
 		try { s.Mem = mem(); } catch { }
 		try { pdh(s); } catch { }
 		try { nvml(s); } catch { }
-		s.CpuTemp = lastCpuTemp;
-		if (tempLeft <= 0) {
-			tempLeft = 4;
-			kicktemp();
-		}
-		else tempLeft--;
 		return s;
-	}
-
-	static void kicktemp() {
-		if (Interlocked.CompareExchange(ref tempBusy, 1, 0) != 0) return;
-		var th = new Thread(() => {
-			try {
-				var v = cputemp();
-				if (!double.IsNaN(v)) lastCpuTemp = v;
-			}
-			catch { }
-			Interlocked.Exchange(ref tempBusy, 0);
-		});
-		th.IsBackground = true;
-		th.SetApartmentState(ApartmentState.STA);
-		th.Start();
 	}
 
 	public static int Test(Action<string> log, Action<string> err) {
@@ -146,6 +121,10 @@ static class PerfMon {
 		}
 		if (double.IsNaN(s.Down) || double.IsNaN(s.Up)) {
 			err("没有网络速率");
+			return 1;
+		}
+		if (double.IsNaN(s.CpuTemp)) {
+			err("没有 CPU 温度");
 			return 1;
 		}
 		if (double.IsNaN(s.Read) || double.IsNaN(s.Write)) {
@@ -221,6 +200,8 @@ static class PerfMon {
 		if (!double.IsNaN(wr)) s.Write = wr;
 		var pwr = sumctr(pwrCtr, false);
 		if (!double.IsNaN(pwr)) s.CpuPower = pwr;
+		var tz = cputemp();
+		if (!double.IsNaN(tz)) s.CpuTemp = tz;
 	}
 
 	static void ensure() {
@@ -236,6 +217,7 @@ static class PerfMon {
 		rdCtr = add(@"\PhysicalDisk(_Total)\Disk Read Bytes/sec");
 		wrCtr = add(@"\PhysicalDisk(_Total)\Disk Write Bytes/sec");
 		pwrCtr = add(@"\Power Meter(*)\Power");
+		tzCtr = add(@"\Thermal Zone Information(*)\Temperature");
 		PdhCollectQueryData(query);
 	}
 
@@ -401,29 +383,24 @@ static class PerfMon {
 		return Marshal.GetDelegateForFunctionPointer<T>(p);
 	}
 
-	static double cputemp() =>
-		kelvinzone("SELECT Temperature FROM Win32_PerfFormattedData_Counters_ThermalZoneInformation", "Temperature");
-
-	static double kelvinzone(string query, string field) {
-		double best = double.NaN;
-		try {
-			using var search = new ManagementObjectSearcher(query);
-			search.Options.Timeout = TimeSpan.FromSeconds(2);
-			foreach (ManagementObject mo in search.Get()) {
-				using (mo) {
-					var raw = mo[field];
-					if (raw == null) continue;
-					var n = Convert.ToDouble(raw);
-					var c = n;
-					if (n > 2000) c = n / 10.0 - 273.15;
-					else if (n > 200) c = n - 273.15;
-					if (c < 5 || c > 120) continue;
-					if (double.IsNaN(best) || c > best) best = c;
-				}
-			}
+	static double cputemp() {
+		var items = array(tzCtr);
+		if (items == null) return double.NaN;
+		var best = double.NaN;
+		foreach (var it in items) {
+			var c = kelvin(it.Value);
+			if (double.IsNaN(c)) continue;
+			if (double.IsNaN(best) || c > best) best = c;
 		}
-		catch { }
 		return best;
+	}
+
+	static double kelvin(double n) {
+		var c = n;
+		if (n > 2000) c = n / 10.0 - 273.15;
+		else if (n > 200) c = n - 273.15;
+		if (c < 5 || c > 120) return double.NaN;
+		return c;
 	}
 
 	[StructLayout(LayoutKind.Sequential)]

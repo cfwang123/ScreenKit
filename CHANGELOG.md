@@ -46,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Sound recorder can include system audio, and its device list shows microphones only.
 - Install features, Chrome page: On-device model opens chrome://on-device-internals in Chrome.
 - A borderless translucent performance window shows CPU, GPU, memory, network, and disk, plus temperature and power when available. Right-click turns each field on or off.
+- The web tools page can list, install, and remove the hidden Chrome translation models and offline voice packs.
 
 #### Changed
 
@@ -67,6 +68,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome speech no longer substitutes another voice when the Google voice cannot speak. The desktop shows an error, and the HTTP API returns an error. The old offline voice pack is not installed.
 - The performance window updates again. Temperature lookup no longer blocks the other readings. Settings set the refresh interval from 0.2 to 5 seconds.
 - The performance window samples on the window thread, so CPU, memory, network, and disk show up without administrator rights.
+- Edge online speech uses the current Sec-MS-GEC v2 token. The previous token was rejected with HTTP 403.
+- CPU temperature is read from the thermal zone counter, so the performance window shows it again.
 
 #### Documentation
 
@@ -83,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 录音机可以同时录系统声音，设备列表只显示麦克风。
 - 安装功能的 Chrome 页增加「本机模型」，用 Chrome 打开 chrome://on-device-internals。
 - 性能监控是半透明无边框小窗，显示 CPU、GPU、内存、网络和磁盘，能读到时也显示温度和功率。右键可开关每一项。
+- 网页工具可以查看、安装和卸载隐藏 Chrome 的翻译模型与离线语音包。
 
 #### 变更
 
@@ -104,6 +108,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 语音发不出声时不再改用别的语音。桌面弹出错误，HTTP 接口返回错误。不再安装旧的离线语音包。
 - 性能小窗恢复刷新。查温度不再挡住其它读数。参数设置里可把更新间隔调成 0.2 到 5 秒。
 - 性能小窗改在窗口线程里采样，CPU、内存、网络和磁盘不用管理员也会出数。
+- Edge 在线语音改用现在的 Sec-MS-GEC v2 令牌。旧令牌在合成时会被拒绝并返回 403。
+- 性能小窗改从温度区域计数器读取 CPU 温度，数值会再显示出来。
 
 #### 文档
 
