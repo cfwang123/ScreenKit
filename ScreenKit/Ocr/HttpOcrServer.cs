@@ -16,7 +16,7 @@ namespace ScreenKit;
 /// <item>WebSocket /chat 工具页聊天室（昵称、性别，文字）</item>
 /// <item>WebSocket /rtsp?rtsp= 把一路 RTSP 转成 H.264 给网页播放</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
-/// <item>GET / 本机工具页；/dict 词典页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
+/// <item>GET / 本机工具页；/dict 词典页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
 /// <item>GET /api/dict · /api/dict/entry · /api/dict/speak · /api/dict/export</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
 /// <item>GET/POST /api/pinyin 中文转拼音（NPinyin 已安装时）</item>
@@ -146,7 +146,8 @@ sealed partial class HttpOcrServer : IDisposable {
 				handledictpage(ctx, path);
 				return;
 			}
-			if (path is "/" or "/sk/tools.css" or "/sk/tools.js" or "/sk/fa.css" or "/sk/fa-solid-900.woff2") {
+			if (path is "/" or "/sk/tools.css" or "/sk/tools.js" or "/sk/fa.css" or "/sk/fa-solid-900.woff2"
+				or "/sk/viewer.min.css" or "/sk/viewer.min.js") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "工具页仅支持 GET"));
 					return;
@@ -771,6 +772,14 @@ sealed partial class HttpOcrServer : IDisposable {
 		else if (path == "/sk/fa-solid-900.woff2") {
 			name = "fa-solid-900.woff2";
 			mime = "font/woff2";
+		}
+		else if (path == "/sk/viewer.min.css") {
+			name = "viewer.min.css";
+			mime = "text/css; charset=utf-8";
+		}
+		else if (path == "/sk/viewer.min.js") {
+			name = "viewer.min.js";
+			mime = "application/javascript; charset=utf-8";
 		}
 		else {
 			name = "tools.html";
@@ -2437,7 +2446,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /api/dict/entry  ?id=",
 			"GET  /api/dict/speak  ?text=&lang=  WAV",
 			"GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md",
-			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2",
+			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
 			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成",
 			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",

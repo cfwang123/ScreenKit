@@ -59,6 +59,8 @@
     <!-- 开发输出保留各工具脚本，启动时再合成。精简包在 PackageSlimRelease 里去掉。 -->
     <None Include="Web\tools\*.js" CopyToOutputDirectory="PreserveNewest" Link="web\tools\%(Filename)%(Extension)" />
     <None Include="Web\fa.css" CopyToOutputDirectory="PreserveNewest" Link="web\fa.css" />
+    <None Include="Web\viewer.min.css" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.css" />
+    <None Include="Web\viewer.min.js" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.js" />
     <None Include="Web\fa-solid-900.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\fa-solid-900.woff2" />
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />
@@ -67,6 +69,8 @@
     <EmbeddedResource Include="Web\tools.css" LogicalName="web.tools.css" />
     <EmbeddedResource Include="Web\tools.js" LogicalName="web.tools.js" Condition="Exists('Web\tools.js')" />
     <EmbeddedResource Include="Web\fa.css" LogicalName="web.fa.css" />
+    <EmbeddedResource Include="Web\viewer.min.css" LogicalName="web.viewer.min.css" />
+    <EmbeddedResource Include="Web\viewer.min.js" LogicalName="web.viewer.min.js" />
     <EmbeddedResource Include="Web\fa-solid-900.woff2" LogicalName="web.fa-solid-900.woff2" />
     <EmbeddedResource Include="Web\dict.html" LogicalName="web.dict.html" />
     <EmbeddedResource Include="Web\dict.css" LogicalName="web.dict.css" />

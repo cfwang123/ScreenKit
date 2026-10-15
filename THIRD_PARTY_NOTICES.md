@@ -19,6 +19,7 @@ This file summarizes **third-party components** that may be used at build time o
 | [7-Zip](https://www.7-zip.org/) `7za.dll` | 7z extraction only (about 400 KB). Called in-process via `CreateObject` | LGPL-2.1-or-later; see `License.7za.txt` |
 | [FFmpeg.AutoGen](https://github.com/Ruslan-B/FFmpeg.AutoGen) | FFmpeg P/Invoke | LGPL-3.0-or-later (bindings) |
 | [Vortice.DXGI / Direct3D11](https://github.com/amerkoleci/Vortice.Windows) | DXGI capture | MIT |
+| [Viewer.js](https://github.com/fengyuanchen/viewerjs) 1.11.7 | Chat image zoom (`web/viewer.min.js`, `web/viewer.min.css`) | MIT |
 
 Always verify the license of the **exact package version** you ship.
 
