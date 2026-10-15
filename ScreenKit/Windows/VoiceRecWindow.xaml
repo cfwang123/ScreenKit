@@ -1,0 +1,53 @@
+<Window x:Class="ScreenKit.VoiceRecWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="录音机"
+        Width="560" Height="320"
+        MinWidth="480" MinHeight="280"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="vrec.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Margin="0,0,0,10"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+		<DockPanel Grid.Row="1" Margin="0,0,0,12" LastChildFill="True">
+			<TextBlock x:Name="lbdev" Text="麦克风" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<Button x:Name="bdev" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="vrec.refresh"/>
+			<ComboBox x:Name="edev" Height="32" VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="vrec.dev"/>
+		</DockPanel>
+		<TextBlock x:Name="lbtime" Grid.Row="2" Text="00:00.0" FontSize="40" FontWeight="SemiBold"
+		           FontFamily="Consolas, Segoe UI" HorizontalAlignment="Center" Margin="0,0,0,8"
+		           AutomationProperties.AutomationId="vrec.time"/>
+		<ProgressBar x:Name="plevel" Grid.Row="3" Height="10" Minimum="0" Maximum="100" Margin="0,0,0,14"
+		             AutomationProperties.AutomationId="vrec.level"/>
+		<WrapPanel Grid.Row="4">
+			<Button x:Name="brec" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="vrec.rec"/>
+			<Button x:Name="bpause" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="vrec.pause"/>
+			<Button x:Name="bstop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="vrec.stop"/>
+			<Button x:Name="bplay" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="vrec.play"/>
+			<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="vrec.open"/>
+			<Button x:Name="bsave" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+			        AutomationProperties.AutomationId="vrec.save"/>
+		</WrapPanel>
+		<TextBlock x:Name="lbstat" Grid.Row="5" Margin="0,8,0,0" TextWrapping="Wrap"
+		           VerticalAlignment="Bottom"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+	</Grid>
+</Window>

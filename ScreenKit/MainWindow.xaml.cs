@@ -103,6 +103,7 @@ public partial class MainWindow : Window {
 	GlyphModWindow glyphModWin;
 	PortUseWindow portUseWin;
 	MidiSynthWindow midiWin;
+	VoiceRecWindow voiceRecWin;
 	System.Windows.Threading.DispatcherTimer autokeyTimer;
 	bool autokeyOn;
 	long autokeySent;
@@ -654,6 +655,7 @@ public partial class MainWindow : Window {
 			tray.GlyphModRequested += () => Dispatcher.BeginInvoke(new Action(() => openglyphmod(fromTray: true)));
 			tray.PortUseRequested += () => Dispatcher.BeginInvoke(new Action(() => openportuse(fromTray: true)));
 			tray.MidiSynthRequested += () => Dispatcher.BeginInvoke(new Action(() => openmidi(fromTray: true)));
+			tray.VoiceRecRequested += () => Dispatcher.BeginInvoke(new Action(() => openvoicerec(fromTray: true)));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -898,6 +900,7 @@ public partial class MainWindow : Window {
 				painthangul();
 				setstatus(Loc.T(!hangul.On ? "hangul.off" : hangul.English ? "hangul.en" : "hangul.ko"));
 			};
+			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			hotkeyAuto = new GlobalHotkey(this, 0x700A);
 			hotkeyAuto.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
@@ -1611,6 +1614,7 @@ public partial class MainWindow : Window {
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
 		mnmidi.Click += (_, _) => openmidi();
+		mnvoicerec.Click += (_, _) => openvoicerec();
 		mnsys.Click += (_, _) => opensys();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
@@ -1770,6 +1774,8 @@ public partial class MainWindow : Window {
 			mnportuse.ToolTip = Loc.T("menu.portuse.tip");
 			mnmidi.Header = Loc.T("menu.midisynth");
 			mnmidi.ToolTip = Loc.T("menu.midisynth.tip");
+			mnvoicerec.Header = Loc.T("menu.voicerec");
+			mnvoicerec.ToolTip = Loc.T("menu.voicerec.tip");
 			mnsys.Header = Loc.T("menu.sysinfo");
 			mnsys.ToolTip = Loc.T("menu.sysinfo.tip");
 			mnhttpdbg.Header = Loc.T("menu.httpdbg");
@@ -4354,6 +4360,9 @@ public partial class MainWindow : Window {
 	void openmidi(bool fromTray = false) =>
 		opentoolwin(ref midiWin, () => new MidiSynthWindow(), "menu.midisynth", fromTray);
 
+	void openvoicerec(bool fromTray = false) =>
+		opentoolwin(ref voiceRecWin, () => new VoiceRecWindow(), "menu.voicerec", fromTray);
+
 	void opensys(bool fromTray = false) =>
 		opentoolwin(ref sysWin, () => new SysInfoWindow(), "menu.sysinfo", fromTray);
 
@@ -4523,6 +4532,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(fastCopyWin, w)) fastCopyWin = null;
 				else if (ReferenceEquals(charArtWin, w)) charArtWin = null;
 				else if (ReferenceEquals(pixelArtWin, w)) pixelArtWin = null;
+				else if (ReferenceEquals(voiceRecWin, w)) voiceRecWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
 			w.Show();

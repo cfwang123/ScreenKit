@@ -1,11 +1,12 @@
 using System.Runtime.InteropServices;
-using System.Windows.Interop;
 using System.Windows.Threading;
+using Forms = System.Windows.Forms;
 
 namespace ScreenKit;
 
 /// <summary>
 /// 按快捷键接管键盘，行为对齐 Windows 韩语输入法：两套式在光标处组字，没有候选条。
+/// 打开后另有一个托盘图标，左键切换韩文和英文，右键可关闭或打开参数。本程序窗口里的按键不接管。
 /// 右 Alt 或韩/英键在韩文和英文之间切换。空格、回车和标点先留下已组的字，再把该键交给当前窗口。
 /// </summary>
 sealed class HangulIme : IDisposable {
@@ -27,7 +28,12 @@ sealed class HangulIme : IDisposable {
 	readonly Hangul hang = new();
 	readonly HashSet<int> eaten = new();
 	readonly DispatcherTimer timer;
-	Mark mark;
+	Forms.NotifyIcon ni;
+	Forms.ContextMenuStrip menu;
+	Forms.ToolStripMenuItem miset;
+	Forms.ToolStripMenuItem miclose;
+	System.Drawing.Icon icoko;
+	System.Drawing.Icon icoen;
 	IntPtr hook;
 	HookProc proc;
 	IntPtr watch;
@@ -39,6 +45,7 @@ sealed class HangulIme : IDisposable {
 	bool dead;
 
 	public event Action Changed;
+	public event Action Settings;
 
 	public bool On => enabled;
 	public bool English => english;
@@ -57,7 +64,7 @@ sealed class HangulIme : IDisposable {
 			english = false;
 			remove();
 			timer.Stop();
-			if (mark != null) mark.Hide();
+			if (ni != null) ni.Visible = false;
 			Changed?.Invoke();
 			return true;
 		}
@@ -65,8 +72,7 @@ sealed class HangulIme : IDisposable {
 		enabled = true;
 		english = false;
 		watch = GetForegroundWindow();
-		ensuremark();
-		mark.ShowAt(false);
+		showtray(false);
 		timer.Start();
 		Changed?.Invoke();
 		return true;
@@ -79,27 +85,41 @@ sealed class HangulIme : IDisposable {
 			commit();
 			english = true;
 		}
-		if (mark != null) mark.ShowAt(english);
+		showtray(english);
 		Changed?.Invoke();
 	}
 
-	public void ApplyLang() {
-		if (mark != null) mark.Tip(Loc.T("hangul.tip"));
-	}
+	public void ApplyLang() { applytraylang(); }
 
 	public void Dispose() {
 		if (dead) return;
 		dead = true;
 		try { Set(false); } catch { }
-		try { mark?.Close(); } catch { }
-		mark = null;
+		try {
+			if (ni != null) {
+				ni.Visible = false;
+				ni.Icon = null;
+				ni.Dispose();
+			}
+		}
+		catch { }
+		ni = null;
+		try { menu?.Dispose(); } catch { }
+		menu = null;
+		try { icoko?.Dispose(); } catch { }
+		try { icoen?.Dispose(); } catch { }
+		icoko = null;
+		icoen = null;
 	}
 
 	void pollfg() {
 		if (!enabled || english) return;
 		var fg = GetForegroundWindow();
 		if (fg == IntPtr.Zero) return;
-		if (mark != null && mark.Hwnd == fg) return;
+		if (ours(fg)) {
+			if (shown.Length > 0) commit();
+			return;
+		}
 		if (watch != IntPtr.Zero && watch != fg && shown.Length > 0) commit();
 		watch = fg;
 	}
@@ -120,11 +140,63 @@ sealed class HangulIme : IDisposable {
 		eaten.Clear();
 	}
 
-	void ensuremark() {
-		if (mark != null) return;
-		mark = new Mark();
-		mark.Pick += () => ToggleEnglish();
-		ApplyLang();
+	void showtray(bool en) {
+		ensuretray();
+		ni.Icon = en ? icoen : icoko;
+		ni.Text = traytext(en);
+		ni.Visible = true;
+	}
+
+	void ensuretray() {
+		if (ni != null) return;
+		icoko = badge(false);
+		icoen = badge(true);
+		ni = new Forms.NotifyIcon { Visible = false };
+		menu = new Forms.ContextMenuStrip();
+		miset = new Forms.ToolStripMenuItem();
+		miclose = new Forms.ToolStripMenuItem();
+		miset.Click += (_, _) => { try { Settings?.Invoke(); } catch { } };
+		miclose.Click += (_, _) => Set(false);
+		menu.Items.Add(miset);
+		menu.Items.Add(miclose);
+		ni.ContextMenuStrip = menu;
+		ni.MouseClick += (_, e) => {
+			if (e.Button == Forms.MouseButtons.Left) ToggleEnglish();
+		};
+		applytraylang();
+	}
+
+	void applytraylang() {
+		if (miset != null) miset.Text = Loc.T("hangul.menu.settings");
+		if (miclose != null) miclose.Text = Loc.T("hangul.menu.close");
+		if (ni != null && enabled) ni.Text = traytext(english);
+	}
+
+	static string traytext(bool en) {
+		var s = Loc.T(en ? "hangul.en" : "hangul.ko") ?? "";
+		if (s.Length > 63) s = s.Substring(0, 63);
+		return s;
+	}
+
+	static System.Drawing.Icon badge(bool en) {
+		using var bmp = new System.Drawing.Bitmap(32, 32);
+		using (var g = System.Drawing.Graphics.FromImage(bmp)) {
+			g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+			g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+			g.Clear(en ? System.Drawing.Color.FromArgb(90, 90, 90) : System.Drawing.Color.FromArgb(20, 110, 70));
+			float size = en ? 18f : 13f;
+			using var font = new System.Drawing.Font("Malgun Gothic", size, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
+			var text = en ? "A" : "한";
+			var box = g.MeasureString(text, font);
+			using var brush = new System.Drawing.SolidBrush(System.Drawing.Color.White);
+			g.DrawString(text, font, brush, (32f - box.Width) / 2f, (32f - box.Height) / 2f - 1f);
+		}
+		var h = bmp.GetHicon();
+		try {
+			using var tmp = System.Drawing.Icon.FromHandle(h);
+			return (System.Drawing.Icon)tmp.Clone();
+		}
+		finally { DestroyIcon(h); }
 	}
 
 	IntPtr callback(int nCode, IntPtr wParam, IntPtr lParam) {
@@ -143,6 +215,10 @@ sealed class HangulIme : IDisposable {
 	void onkey(int vk, bool down) {
 		if (!down) {
 			eat = eaten.Remove(vk);
+			return;
+		}
+		if (ours(GetForegroundWindow())) {
+			if (shown.Length > 0) commit();
 			return;
 		}
 		bool ctrl = held(VK_CONTROL) || held(0xA2) || held(0xA3);
@@ -216,6 +292,12 @@ sealed class HangulIme : IDisposable {
 	}
 
 	static bool held(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
+
+	static bool ours(IntPtr fg) {
+		if (fg == IntPtr.Zero) return false;
+		GetWindowThreadProcessId(fg, out var pid);
+		return pid == (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
+	}
 
 	void replace(int dels, string add) {
 		var list = new List<INPUT>();
@@ -304,57 +386,6 @@ sealed class HangulIme : IDisposable {
 		public IntPtr dwExtraInfo;
 	}
 
-	sealed class Mark : Window {
-		readonly TextBlock lb;
-		public event Action Pick;
-		public IntPtr Hwnd { get; private set; }
-
-		public Mark() {
-			WindowStyle = WindowStyle.None;
-			ResizeMode = ResizeMode.NoResize;
-			ShowInTaskbar = false;
-			ShowActivated = false;
-			Topmost = true;
-			Focusable = false;
-			Width = 52;
-			Height = 36;
-			Background = Brushes.Transparent;
-			Content = new Border {
-				CornerRadius = new CornerRadius(6),
-				Child = lb = new TextBlock {
-					Text = "한",
-					FontSize = 18,
-					FontFamily = new FontFamily("Malgun Gothic, Segoe UI"),
-					HorizontalAlignment = HorizontalAlignment.Center,
-					VerticalAlignment = VerticalAlignment.Center,
-					Foreground = Brushes.White,
-				},
-			};
-			MouseLeftButtonDown += (_, e) => {
-				Pick?.Invoke();
-				e.Handled = true;
-			};
-			SourceInitialized += (_, _) => {
-				Hwnd = new WindowInteropHelper(this).Handle;
-				var ex = GetWindowLongPtr(Hwnd, -20);
-				var flags = ex.ToInt64() | 0x08000000L | 0x00000080L;
-				SetWindowLongPtr(Hwnd, -20, new IntPtr(flags));
-			};
-		}
-
-		public void ShowAt(bool en) {
-			var box = (Border)Content;
-			box.Background = en ? new SolidColorBrush(Color.FromRgb(90, 90, 90)) : new SolidColorBrush(Color.FromRgb(20, 110, 70));
-			lb.Text = en ? "A" : "한";
-			var area = SystemParameters.WorkArea;
-			Left = area.Right - Width - 18;
-			Top = area.Bottom - Height - 18;
-			if (!IsVisible) Show();
-		}
-
-		public void Tip(string text) { ToolTip = text ?? ""; }
-	}
-
 	[DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(int id, HookProc proc, IntPtr mod, uint tid);
 	[DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr h);
 	[DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr h, int code, IntPtr w, IntPtr l);
@@ -362,6 +393,6 @@ sealed class HangulIme : IDisposable {
 	[DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] inputs, int cb);
 	[DllImport("user32.dll")] static extern short GetAsyncKeyState(int vKey);
 	[DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
-	[DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
-	[DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+	[DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr h);
 }

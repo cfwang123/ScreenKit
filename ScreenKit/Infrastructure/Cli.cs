@@ -62,7 +62,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-portuse" or "--test-midisynth"
+				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-portuse" or "--test-midisynth" or "--test-voicerec"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -337,6 +337,8 @@ static class Cli {
 					return testportuse();
 				case "--test-midisynth":
 					return testmidisynth();
+				case "--test-voicerec":
+					return testvoicerec();
 				case "--fc-copy":
 				case "--fc-cut":
 				case "--fc-delete":
@@ -4990,6 +4992,13 @@ static class Cli {
 		return MidiSynth.SelfTest(Out);
 	}
 
+	static int testvoicerec() {
+		Out("=== 录音机 --test-voicerec ===");
+		int bad = VoiceRec.SelfTest(Out);
+		Out(bad == 0 ? "=== OK：录音机 ===" : "=== FAIL：录音机 ===");
+		return bad;
+	}
+
 	static int testwintop() {
 		Out("=== 窗口管理 --test-wintop ===");
 		var bad = 0;
@@ -5927,6 +5936,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-glyphmod
   ScreenKit --test-portuse
   ScreenKit --test-midisynth
+  ScreenKit --test-voicerec
   ScreenKit --fc-register
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts
@@ -6023,6 +6033,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-glyphmod  点阵按行按列打包，并给 Segoe UI 的 A 和空格生成 C 数组
       --test-portuse  列出 TCP/UDP 占用，并确认本进程监听的端口在表里
       --test-midisynth  弹琴键位、通用乐器表，以及 MIDI 文件的打开、改音符和保存
+      --test-voicerec  录音时长、电平、WAV 往返，并列出麦克风
       --fc-register / --fc-unregister  注册或去掉当前用户的资源管理器「快速复制」菜单
       --fc-copy / --fc-cut / --fc-delete / --fc-symlink / --fc-hardlink / --fc-size / --fc-paths / --fc-settings / --fc-paste / --fc-clear  资源管理器菜单调用
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
@@ -6123,6 +6134,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-glyphmod
   ScreenKit --test-portuse
   ScreenKit --test-midisynth
+  ScreenKit --test-voicerec
   ScreenKit --fc-register
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts

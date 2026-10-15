@@ -185,6 +185,9 @@
 				<MenuItem x:Name="mnmidi" Header="MIDI 合成器(_M)…"
 				          AutomationProperties.AutomationId="menu.midisynth"
 				          ToolTip="弹琴，打开、编辑并保存 MIDI 文件"/>
+				<MenuItem x:Name="mnvoicerec" Header="录音机(_O)…"
+				          AutomationProperties.AutomationId="menu.voicerec"
+				          ToolTip="从麦克风录音，播放并保存为 WAV"/>
 				<MenuItem x:Name="mnzhconv" Header="简繁转换(_S)…"
 				          AutomationProperties.AutomationId="menu.zhconv"
 				          ToolTip="系统简体/繁体映射，繁体接近台湾用字"/>
