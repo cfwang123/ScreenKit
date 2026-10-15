@@ -115,65 +115,113 @@
 			</MenuItem>
 			<MenuItem x:Name="mntools" Header="工具(_T)"
 			          AutomationProperties.AutomationId="menu.tools">
-				<MenuItem x:Name="mnpdf" Header="PDF 识别工作台(_F)…"
-				          AutomationProperties.AutomationId="menu.pdf"
-				          ToolTip="识别、编辑、存草稿、导出可检索 PDF"/>
+				<MenuItem x:Name="mnhangul" Header="韩语输入(_U)"
+				          IsCheckable="True"
+				          InputGestureText="Ctrl+Alt+K"
+				          AutomationProperties.AutomationId="menu.hangul"
+				          ToolTip="打开后接管键盘，按 Windows 韩语输入法组字。右 Alt 切换韩文和英文"/>
+				<MenuItem x:Name="mnwebhome" Header="web工具主页(_B) (web)"
+				          AutomationProperties.AutomationId="menu.webhome"
+				          ToolTip="在浏览器打开本机工具页"/>
+				<MenuItem x:Name="mnwebfiles" Header="文件传输 (web)"
+				          AutomationProperties.AutomationId="menu.webfiles"/>
 				<Separator/>
-				<MenuItem x:Name="mnweb" Header="web工具(_B)"
-				          AutomationProperties.AutomationId="menu.webtools"
-				          ToolTip="在浏览器打开本机工具页">
-					<MenuItem x:Name="mnwebhome" Header="web工具主页"
-					          AutomationProperties.AutomationId="menu.webhome"/>
-					<MenuItem x:Name="mnwebfiles" Header="文件传输"
-					          AutomationProperties.AutomationId="menu.webfiles"/>
-					<Separator/>
+				<MenuItem x:Name="mncattext" Header="文字(_X)"
+				          AutomationProperties.AutomationId="menu.cat.text">
+					<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
+					          AutomationProperties.AutomationId="menu.translate.popup"
+					          ToolTip="浮窗翻译；热键再按一次隐藏"/>
+					<MenuItem x:Name="mntexttool" Header="文本小工具(_X)…"
+					          AutomationProperties.AutomationId="menu.texttool"
+					          ToolTip="Base64、URL、UTF-8/GBK 十六进制"/>
+					<MenuItem x:Name="mnmdread" Header="MD阅读器…"
+					          AutomationProperties.AutomationId="menu.mdread"
+					          ToolTip="拖入 Markdown，用 Windows 10 的 IE11 内核显示"/>
+					<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
+					          AutomationProperties.AutomationId="menu.pwgen"
+					          ToolTip="随机密码，可选字符集"/>
+					<MenuItem x:Name="mnnote" Header="桌面便笺(_3)…"
+					          AutomationProperties.AutomationId="menu.note"
+					          ToolTip="无边框便笺，可记文字或待办，关闭后再打开仍在"/>
+					<MenuItem x:Name="mnzhconv" Header="简繁转换(_S)…"
+					          AutomationProperties.AutomationId="menu.zhconv"
+					          ToolTip="系统简体/繁体映射，繁体接近台湾用字"/>
+					<MenuItem x:Name="mnpinyin" Header="中文转拼音(_Y)…"
+					          AutomationProperties.AutomationId="menu.pinyin"
+					          ToolTip="把汉字转成拼音或拼音首字母"/>
+					<MenuItem x:Name="mnjpyomi" Header="日文注音(_J)…"
+					          AutomationProperties.AutomationId="menu.jpyomi"
+					          ToolTip="日文句子转读音。没有同等的汉语拼音接口"/>
+					<MenuItem x:Name="mnhash" Header="校验哈希(_H)…"
+					          AutomationProperties.AutomationId="menu.hash"
+					          ToolTip="MD5 / SHA-1 / SHA-256"/>
 				</MenuItem>
-				<MenuItem x:Name="mntrpopup" Header="翻译小窗(_T)"
-				          AutomationProperties.AutomationId="menu.translate.popup"
-				          ToolTip="浮窗翻译；热键再按一次隐藏"/>
-				<Separator/>
-				<MenuItem x:Name="mnimgconv" Header="图片格式转换(_C)…"
-				          AutomationProperties.AutomationId="menu.imgconv"
-				          ToolTip="批量转换图片格式，可缩放、旋转、镜像"/>
-				<MenuItem x:Name="mncharart" Header="字符画(_Z)…"
-				          AutomationProperties.AutomationId="menu.charart"
-				          ToolTip="把图片变成单色 ASCII，或在命令行里看全色字符块"/>
-				<MenuItem x:Name="mnpixel" Header="像素画(_D)…"
-				          AutomationProperties.AutomationId="menu.pixel"
-				          ToolTip="选定宽高后用大格作画，旁边按真实像素预览"/>
-				<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
-				          AutomationProperties.AutomationId="menu.vidconv"
-				          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>
-				<MenuItem x:Name="mnvidgif" Header="视频转 GIF(_G)…"
-				          AutomationProperties.AutomationId="menu.vidgif"
-				          ToolTip="预览视频，选取起止时间，按帧率和调色板生成 GIF"/>
-				<MenuItem x:Name="mnqrmake" Header="二维码 / 条码生成(_Q)…"
-				          AutomationProperties.AutomationId="menu.qrmake"
-				          ToolTip="生成二维码或条码，图下显示原文"/>
-				<MenuItem x:Name="mnrename" Header="批量重命名(_R)…"
-				          AutomationProperties.AutomationId="menu.rename"
-				          ToolTip="Everything 风格批量改名"/>
-				<MenuItem x:Name="mnhash" Header="校验哈希(_H)…"
-				          AutomationProperties.AutomationId="menu.hash"
-				          ToolTip="MD5 / SHA-1 / SHA-256"/>
-				<MenuItem x:Name="mntexttool" Header="文本小工具(_X)…"
-				          AutomationProperties.AutomationId="menu.texttool"
-				          ToolTip="Base64、URL、UTF-8/GBK 十六进制"/>
-				<MenuItem x:Name="mnmdread" Header="MD阅读器…"
-				          AutomationProperties.AutomationId="menu.mdread"
-				          ToolTip="拖入 Markdown，用 Windows 10 的 IE11 内核显示"/>
-				<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
-				          AutomationProperties.AutomationId="menu.pwgen"
-				          ToolTip="随机密码，可选字符集"/>
-				<MenuItem x:Name="mnscicalc" Header="科学计算器(_2)…"
-				          AutomationProperties.AutomationId="menu.scicalc"
-				          ToolTip="三角函数、对数、乘方、阶乘和内存"/>
-				<MenuItem x:Name="mnnote" Header="桌面便笺(_3)…"
-				          AutomationProperties.AutomationId="menu.note"
-				          ToolTip="无边框便笺，可记文字或待办，关闭后再打开仍在"/>
-				<MenuItem x:Name="mnrtspsrv" Header="RTSP 测试服务器…"
-				          AutomationProperties.AutomationId="menu.rtspsrv"
-				          ToolTip="弹跳画面推成 H.264，本机开一个 RTSP 端口"/>
+				<MenuItem x:Name="mncatcalc" Header="计算(_C)"
+				          AutomationProperties.AutomationId="menu.cat.calc">
+					<MenuItem x:Name="mnscicalc" Header="科学计算器(_2)…"
+					          AutomationProperties.AutomationId="menu.scicalc"
+					          ToolTip="三角函数、对数、乘方、阶乘和内存"/>
+				</MenuItem>
+				<MenuItem x:Name="mncatspeech" Header="语音(_V)"
+				          AutomationProperties.AutomationId="menu.cat.speech">
+					<MenuItem x:Name="mnvoicerec" Header="录音机(_O)…"
+					          AutomationProperties.AutomationId="menu.voicerec"
+					          ToolTip="从麦克风录音，播放并保存为 WAV"/>
+					<MenuItem x:Name="mnmidi" Header="MIDI 合成器(_M)…"
+					          AutomationProperties.AutomationId="menu.midisynth"
+					          ToolTip="弹琴，打开、编辑并保存 MIDI 文件"/>
+				</MenuItem>
+				<MenuItem x:Name="mncattime" Header="历法(_L)"
+				          AutomationProperties.AutomationId="menu.cat.time">
+					<MenuItem x:Name="mnwincal" Header="历法(_L)…"
+					          AutomationProperties.AutomationId="menu.wincal"
+					          ToolTip="公历换农历、干支、闰月和其它历法"/>
+				</MenuItem>
+				<MenuItem x:Name="mncatimage" Header="图像(_G)"
+				          AutomationProperties.AutomationId="menu.cat.image">
+					<MenuItem x:Name="mnpdf" Header="PDF 识别工作台(_F)…"
+					          AutomationProperties.AutomationId="menu.pdf"
+					          ToolTip="识别、编辑、存草稿、导出可检索 PDF"/>
+					<MenuItem x:Name="mnimgconv" Header="图片格式转换(_C)…"
+					          AutomationProperties.AutomationId="menu.imgconv"
+					          ToolTip="批量转换图片格式，可缩放、旋转、镜像"/>
+					<MenuItem x:Name="mncharart" Header="字符画(_Z)…"
+					          AutomationProperties.AutomationId="menu.charart"
+					          ToolTip="把图片变成单色 ASCII，或在命令行里看全色字符块"/>
+					<MenuItem x:Name="mnpixel" Header="像素画(_D)…"
+					          AutomationProperties.AutomationId="menu.pixel"
+					          ToolTip="选定宽高后用大格作画，旁边按真实像素预览"/>
+					<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
+					          AutomationProperties.AutomationId="menu.vidconv"
+					          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>
+					<MenuItem x:Name="mnvidgif" Header="视频转 GIF(_G)…"
+					          AutomationProperties.AutomationId="menu.vidgif"
+					          ToolTip="预览视频，选取起止时间，按帧率和调色板生成 GIF"/>
+					<MenuItem x:Name="mnqrmake" Header="二维码 / 条码生成(_Q)…"
+					          AutomationProperties.AutomationId="menu.qrmake"
+					          ToolTip="生成二维码或条码，图下显示原文"/>
+					<MenuItem x:Name="mncam" Header="相机(_1)…"
+					          AutomationProperties.AutomationId="menu.cam"
+					          ToolTip="用摄像头拍照、录像，或扫描二维码和条码"/>
+					<MenuItem x:Name="mnrtspsrv" Header="RTSP 测试服务器…"
+					          AutomationProperties.AutomationId="menu.rtspsrv"
+					          ToolTip="弹跳画面推成 H.264，本机开一个 RTSP 端口"/>
+					<MenuItem x:Name="mnglyphmod" Header="字符点阵提取(_E)…"
+					          AutomationProperties.AutomationId="menu.glyphmod"
+					          ToolTip="把字符画成点阵，导出 C 代码"/>
+				</MenuItem>
+				<MenuItem x:Name="mninfo" Header="信息查询(_I)"
+				          AutomationProperties.AutomationId="menu.info"
+				          ToolTip="词典和系统信息">
+					<MenuItem x:Name="mndict" Header="词典(_K)"
+					          AutomationProperties.AutomationId="menu.dict"
+					          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
+					<MenuItem x:Name="mnsys" Header="系统信息(_U)…"
+					          AutomationProperties.AutomationId="menu.sysinfo"
+					          ToolTip="查看系统、外设、驱动、状态和异常设备信息"/>
+				</MenuItem>
+				<MenuItem x:Name="mncattalk" Header="交流(_A)"
+				          AutomationProperties.AutomationId="menu.cat.talk"/>
 				<MenuItem x:Name="mnnetgroup" Header="网络工具(_N)"
 				          AutomationProperties.AutomationId="menu.netgroup"
 				          ToolTip="网络工具、HTTP 请求调试和端口占用">
@@ -187,54 +235,24 @@
 					          AutomationProperties.AutomationId="menu.portuse"
 					          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>
 				</MenuItem>
-				<MenuItem x:Name="mninfo" Header="信息查询(_I)"
-				          AutomationProperties.AutomationId="menu.info"
-				          ToolTip="词典和系统信息">
-					<MenuItem x:Name="mndict" Header="词典(_K)"
-					          AutomationProperties.AutomationId="menu.dict"
-					          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
-					<MenuItem x:Name="mnsys" Header="系统信息(_U)…"
-					          AutomationProperties.AutomationId="menu.sysinfo"
-					          ToolTip="查看系统、外设、驱动、状态和异常设备信息"/>
+				<MenuItem x:Name="mncatfile" Header="文件(_F)"
+				          AutomationProperties.AutomationId="menu.cat.file">
+					<MenuItem x:Name="mnrename" Header="批量重命名(_R)…"
+					          AutomationProperties.AutomationId="menu.rename"
+					          ToolTip="Everything 风格批量改名"/>
+					<MenuItem x:Name="mnfastcopy" Header="快速复制(_A)…"
+					          AutomationProperties.AutomationId="menu.fastcopy"
+					          ToolTip="复制或剪切文件，并可注册资源管理器右键菜单"/>
 				</MenuItem>
-				<MenuItem x:Name="mnmidi" Header="MIDI 合成器(_M)…"
-				          AutomationProperties.AutomationId="menu.midisynth"
-				          ToolTip="弹琴，打开、编辑并保存 MIDI 文件"/>
-				<MenuItem x:Name="mnvoicerec" Header="录音机(_O)…"
-				          AutomationProperties.AutomationId="menu.voicerec"
-				          ToolTip="从麦克风录音，播放并保存为 WAV"/>
-				<MenuItem x:Name="mncam" Header="相机(_1)…"
-				          AutomationProperties.AutomationId="menu.cam"
-				          ToolTip="用摄像头拍照、录像，或扫描二维码和条码"/>
-				<MenuItem x:Name="mnzhconv" Header="简繁转换(_S)…"
-				          AutomationProperties.AutomationId="menu.zhconv"
-				          ToolTip="系统简体/繁体映射，繁体接近台湾用字"/>
-				<MenuItem x:Name="mnpinyin" Header="中文转拼音(_Y)…"
-				          AutomationProperties.AutomationId="menu.pinyin"
-				          ToolTip="把汉字转成拼音或拼音首字母"/>
-				<MenuItem x:Name="mnhangul" Header="韩语输入(_U)"
-				          IsCheckable="True"
-				          InputGestureText="Ctrl+Alt+K"
-				          AutomationProperties.AutomationId="menu.hangul"
-				          ToolTip="打开后接管键盘，按 Windows 韩语输入法组字。右 Alt 切换韩文和英文"/>
-				<MenuItem x:Name="mnwincal" Header="历法(_L)…"
-				          AutomationProperties.AutomationId="menu.wincal"
-				          ToolTip="公历换农历、干支、闰月和其它历法"/>
-				<MenuItem x:Name="mnjpyomi" Header="日文注音(_J)…"
-				          AutomationProperties.AutomationId="menu.jpyomi"
-				          ToolTip="日文句子转读音。没有同等的汉语拼音接口"/>
-				<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
-				          AutomationProperties.AutomationId="menu.wintop"
-				          ToolTip="选择窗口，设置或取消固定在前面"/>
-				<MenuItem x:Name="mnautokey" Header="自动按键(_K)…"
-				          AutomationProperties.AutomationId="menu.autokey"
-				          ToolTip="按快捷键开始或停止，连续向前台窗口发送按键或鼠标点击"/>
-				<MenuItem x:Name="mnfastcopy" Header="快速复制(_A)…"
-				          AutomationProperties.AutomationId="menu.fastcopy"
-				          ToolTip="复制或剪切文件，并可注册资源管理器右键菜单"/>
-				<MenuItem x:Name="mnglyphmod" Header="字符点阵提取(_G)…"
-				          AutomationProperties.AutomationId="menu.glyphmod"
-				          ToolTip="把字符画成点阵，导出 C 代码"/>
+				<MenuItem x:Name="mncatsys" Header="系统(_Y)"
+				          AutomationProperties.AutomationId="menu.cat.sys">
+					<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
+					          AutomationProperties.AutomationId="menu.wintop"
+					          ToolTip="选择窗口，设置或取消固定在前面"/>
+					<MenuItem x:Name="mnautokey" Header="自动按键(_K)…"
+					          AutomationProperties.AutomationId="menu.autokey"
+					          ToolTip="按快捷键开始或停止，连续向前台窗口发送按键或鼠标点击"/>
+				</MenuItem>
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">

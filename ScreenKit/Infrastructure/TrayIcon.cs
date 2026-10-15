@@ -29,9 +29,16 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miGifRecord;
 	Forms.ToolStripMenuItem miGifRecordOpt;
 	Forms.ToolStripMenuItem miTools;
-	Forms.ToolStripMenuItem miWeb;
 	Forms.ToolStripMenuItem miWebHome;
 	Forms.ToolStripMenuItem miWebFiles;
+	Forms.ToolStripMenuItem miCatText;
+	Forms.ToolStripMenuItem miCatCalc;
+	Forms.ToolStripMenuItem miCatSpeech;
+	Forms.ToolStripMenuItem miCatTime;
+	Forms.ToolStripMenuItem miCatImage;
+	Forms.ToolStripMenuItem miCatTalk;
+	Forms.ToolStripMenuItem miCatFile;
+	Forms.ToolStripMenuItem miCatSys;
 	Forms.ToolStripMenuItem miImgConv;
 	Forms.ToolStripMenuItem miCharArt;
 	Forms.ToolStripMenuItem miPixel;
@@ -201,47 +208,64 @@ sealed class TrayIcon : IDisposable {
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
 		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
-		miWeb = new Forms.ToolStripMenuItem(Loc.T("tray.webtools"));
-		miWeb.DropDownItems.Add(miWebHome);
-		miWeb.DropDownItems.Add(miWebFiles);
-		miWeb.DropDownItems.Add(new Forms.ToolStripSeparator());
-		miWeb.DropDownOpening += (_, _) => fillwebtools();
+		miWebHome.Text = Loc.T("tray.webhome") + " (web)";
+		miWebFiles.Text = Loc.T("tray.webfiles") + " (web)";
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
-		miTools.DropDownItems.Add(miImgConv);
-		miTools.DropDownItems.Add(miCharArt);
-		miTools.DropDownItems.Add(miPixel);
-		miTools.DropDownItems.Add(miVidConv);
-		miTools.DropDownItems.Add(miVidGif);
-		miTools.DropDownItems.Add(miQrMake);
-		miTools.DropDownItems.Add(miRename);
-		miTools.DropDownItems.Add(miHash);
-		miTools.DropDownItems.Add(miTextTool);
-		miTools.DropDownItems.Add(miMdRead);
-		miTools.DropDownItems.Add(miPwGen);
-		miTools.DropDownItems.Add(miSciCalc);
-		miTools.DropDownItems.Add(miNote);
-		miTools.DropDownItems.Add(miRtspSrv);
+		miTools.DropDownItems.Add(miHangul);
+		miTools.DropDownItems.Add(miWebHome);
+		miTools.DropDownItems.Add(miWebFiles);
+		miTools.DropDownItems.Add(new Forms.ToolStripSeparator());
+		miCatText = new Forms.ToolStripMenuItem(Loc.T("web.cat.text"));
+		miCatText.DropDownItems.Add(miTextTool);
+		miCatText.DropDownItems.Add(miMdRead);
+		miCatText.DropDownItems.Add(miPwGen);
+		miCatText.DropDownItems.Add(miNote);
+		miCatText.DropDownItems.Add(miZhConv);
+		miCatText.DropDownItems.Add(miPinyin);
+		miCatText.DropDownItems.Add(miJpYomi);
+		miCatText.DropDownItems.Add(miHash);
+		miCatCalc = new Forms.ToolStripMenuItem(Loc.T("web.cat.calc"));
+		miCatCalc.DropDownItems.Add(miSciCalc);
+		miCatSpeech = new Forms.ToolStripMenuItem(Loc.T("web.cat.speech"));
+		miCatSpeech.DropDownItems.Add(miVoiceRec);
+		miCatSpeech.DropDownItems.Add(miMidi);
+		miCatTime = new Forms.ToolStripMenuItem(Loc.T("web.cat.time"));
+		miCatTime.DropDownItems.Add(miWinCal);
+		miCatImage = new Forms.ToolStripMenuItem(Loc.T("web.cat.image"));
+		miCatImage.DropDownItems.Add(miImgConv);
+		miCatImage.DropDownItems.Add(miCharArt);
+		miCatImage.DropDownItems.Add(miPixel);
+		miCatImage.DropDownItems.Add(miVidConv);
+		miCatImage.DropDownItems.Add(miVidGif);
+		miCatImage.DropDownItems.Add(miQrMake);
+		miCatImage.DropDownItems.Add(miCam);
+		miCatImage.DropDownItems.Add(miRtspSrv);
+		miCatImage.DropDownItems.Add(miGlyphMod);
+		miCatImage.DropDownItems.Add(miCast);
+		miInfo = new Forms.ToolStripMenuItem(Loc.T("tray.info"));
+		miInfo.DropDownItems.Add(miSys);
+		miCatTalk = new Forms.ToolStripMenuItem(Loc.T("web.cat.talk"));
 		miNetGroup = new Forms.ToolStripMenuItem(Loc.T("tray.netgroup"));
 		miNetGroup.DropDownItems.Add(miNet);
 		miNetGroup.DropDownItems.Add(miHttpDbg);
 		miNetGroup.DropDownItems.Add(miPortUse);
-		miTools.DropDownItems.Add(miNetGroup);
-		miInfo = new Forms.ToolStripMenuItem(Loc.T("tray.info"));
-		miInfo.DropDownItems.Add(miSys);
+		miCatFile = new Forms.ToolStripMenuItem(Loc.T("menu.cat.file"));
+		miCatFile.DropDownItems.Add(miRename);
+		miCatFile.DropDownItems.Add(miFastCopy);
+		miCatSys = new Forms.ToolStripMenuItem(Loc.T("menu.cat.sys"));
+		miCatSys.DropDownItems.Add(miWinTop);
+		miCatSys.DropDownItems.Add(miAutoKey);
+		miTools.DropDownItems.Add(miCatText);
+		miTools.DropDownItems.Add(miCatCalc);
+		miTools.DropDownItems.Add(miCatSpeech);
+		miTools.DropDownItems.Add(miCatTime);
+		miTools.DropDownItems.Add(miCatImage);
 		miTools.DropDownItems.Add(miInfo);
-		miTools.DropDownItems.Add(miMidi);
-		miTools.DropDownItems.Add(miVoiceRec);
-		miTools.DropDownItems.Add(miCam);
-		miTools.DropDownItems.Add(miZhConv);
-		miTools.DropDownItems.Add(miPinyin);
-		miTools.DropDownItems.Add(miHangul);
-		miTools.DropDownItems.Add(miWinCal);
-		miTools.DropDownItems.Add(miJpYomi);
-		miTools.DropDownItems.Add(miWinTop);
-		miTools.DropDownItems.Add(miAutoKey);
-		miTools.DropDownItems.Add(miFastCopy);
-		miTools.DropDownItems.Add(miGlyphMod);
-		miTools.DropDownItems.Add(miCast);
+		miTools.DropDownItems.Add(miCatTalk);
+		miTools.DropDownItems.Add(miNetGroup);
+		miTools.DropDownItems.Add(miCatFile);
+		miTools.DropDownItems.Add(miCatSys);
+		miTools.DropDownOpening += (_, _) => fillwebtools();
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
@@ -275,7 +299,6 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miGifRecord);
 		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(new Forms.ToolStripSeparator());
-		menu.Items.Add(miWeb);
 		menu.Items.Add(miTools);
 		menu.Items.Add(miSettings);
 		menu.Items.Add(new Forms.ToolStripSeparator());
@@ -494,9 +517,16 @@ sealed class TrayIcon : IDisposable {
 			settext(miGifRecord, "tray.gifrecord");
 			settext(miGifRecordOpt, "tray.gifrecordopt");
 			settext(miTools, "tray.tools");
-			settext(miWeb, "tray.webtools");
-			settext(miWebHome, "tray.webhome");
-			settext(miWebFiles, "tray.webfiles");
+			setweb(miWebHome, "tray.webhome");
+			setweb(miWebFiles, "tray.webfiles");
+			settext(miCatText, "web.cat.text");
+			settext(miCatCalc, "web.cat.calc");
+			settext(miCatSpeech, "web.cat.speech");
+			settext(miCatTime, "web.cat.time");
+			settext(miCatImage, "web.cat.image");
+			settext(miCatTalk, "web.cat.talk");
+			settext(miCatFile, "menu.cat.file");
+			settext(miCatSys, "menu.cat.sys");
 			settext(miImgConv, "tray.imgconv");
 			settext(miCharArt, "tray.charart");
 			settext(miPixel, "tray.pixel");
@@ -533,12 +563,17 @@ sealed class TrayIcon : IDisposable {
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
 			applyhotkeys();
+			fillwebtools();
 		}
 		catch { }
 	}
 
 	static void settext(Forms.ToolStripMenuItem mi, string key) {
 		if (mi != null) mi.Text = Loc.T(key);
+	}
+
+	static void setweb(Forms.ToolStripMenuItem mi, string key) {
+		if (mi != null) mi.Text = Loc.T(key) + " (web)";
 	}
 
 	public event Action ClipboardOcrRequested;
@@ -559,25 +594,56 @@ sealed class TrayIcon : IDisposable {
 	public event Action<string> WebToolRequested;
 
 	void fillwebtools() {
-		while (miWeb.DropDownItems.Count > 0 && miWeb.DropDownItems[miWeb.DropDownItems.Count - 1] is not Forms.ToolStripSeparator) {
-			var last = miWeb.DropDownItems.Count - 1;
-			var it = miWeb.DropDownItems[last];
-			miWeb.DropDownItems.RemoveAt(last);
-			it.Dispose();
+		stripweb(miCatText);
+		stripweb(miCatCalc);
+		stripweb(miCatSpeech);
+		stripweb(miCatTime);
+		stripweb(miCatImage);
+		stripweb(miInfo);
+		stripweb(miCatTalk);
+		for (int i = miTools.DropDownItems.Count - 1; i >= 0; i--) {
+			var it = miTools.DropDownItems[i];
+			if (it.Tag is string tag && tag.StartsWith("webcat:")) {
+				miTools.DropDownItems.RemoveAt(i);
+				it.Dispose();
+			}
 		}
 		foreach (var cat in WebCatalog()) {
-			var sub = new Forms.ToolStripMenuItem(cat.Title);
+			var host = trayhost(cat.Id);
+			if (host == null) {
+				if (cat.Tools.Count == 0) continue;
+				host = new Forms.ToolStripMenuItem(cat.Title) { Tag = "webcat:" + cat.Id };
+				miTools.DropDownItems.Add(host);
+			}
 			foreach (var tool in cat.Tools) {
 				var id = tool.Id;
-				sub.DropDownItems.Add(new Forms.ToolStripMenuItem(tool.Name, null, (_, _) => {
+				host.DropDownItems.Add(new Forms.ToolStripMenuItem(tool.Name + " (web)", null, (_, _) => {
 					try { WebToolRequested?.Invoke(id); } catch { }
-				}));
+				}) { Tag = "web" });
 			}
-			if (sub.DropDownItems.Count > 0)
-				miWeb.DropDownItems.Add(sub);
-			else
-				sub.Dispose();
 		}
+	}
+
+	static void stripweb(Forms.ToolStripMenuItem host) {
+		if (host == null) return;
+		for (int i = host.DropDownItems.Count - 1; i >= 0; i--) {
+			var it = host.DropDownItems[i];
+			if (Equals(it.Tag, "web")) {
+				host.DropDownItems.RemoveAt(i);
+				it.Dispose();
+			}
+		}
+	}
+
+	Forms.ToolStripMenuItem trayhost(string id) {
+		if (id == "text") return miCatText;
+		if (id == "calc") return miCatCalc;
+		if (id == "speech") return miCatSpeech;
+		if (id == "time") return miCatTime;
+		if (id == "image") return miCatImage;
+		if (id == "info") return miInfo;
+		if (id == "talk") return miCatTalk;
+		return null;
 	}
 
 	static string webname(string key, string fallback) {
@@ -587,15 +653,15 @@ sealed class TrayIcon : IDisposable {
 		return string.IsNullOrEmpty(tr) || tr == key ? name : tr;
 	}
 
-	public static List<(string Title, List<(string Id, string Name)> Tools)> WebCatalog() {
+	public static List<(string Id, string Title, List<(string Id, string Name)> Tools)> WebCatalog() {
 		var cats = new List<(string Id, string Title)>();
 		var tools = new List<(string Id, string Cat, string Name)>();
-		var list = new List<(string Title, List<(string Id, string Name)> Tools)>();
+		var list = new List<(string Id, string Title, List<(string Id, string Name)> Tools)>();
 		if (!SendFileWebPages.TryLoad("tools.html", out var bytes) || bytes == null || bytes.Length == 0)
 			return list;
 		var html = Encoding.UTF8.GetString(bytes);
 		foreach (Match m in Regex.Matches(html, "data-cat=\"([^\"]+)\"\\s+data-title=\"([^\"]+)\"(?:\\s+data-kt=\"([^\"]+)\")?")) {
-			if (m.Groups[1].Value == "fav") continue;
+			if (m.Groups[1].Value == "fav" || m.Groups[1].Value == "all") continue;
 			cats.Add((m.Groups[1].Value, webname(m.Groups[3].Value, m.Groups[2].Value)));
 		}
 		foreach (Match m in Regex.Matches(html, "data-tool=\"([^\"]+)\"\\s+data-cat=\"([^\"]+)\"[\\s\\S]*?<span\\s+data-k=\"([^\"]+)\"[^>]*>([^<]*)</span>"))
@@ -606,7 +672,7 @@ sealed class TrayIcon : IDisposable {
 				if (tool.Cat == cat.Id && tool.Name.Length > 0)
 					rows.Add((tool.Id, tool.Name));
 			}
-			if (rows.Count > 0) list.Add((cat.Title, rows));
+			if (rows.Count > 0) list.Add((cat.Id, cat.Title, rows));
 		}
 		return list;
 	}

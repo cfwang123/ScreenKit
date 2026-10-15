@@ -91,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Scientific calculator: Escape clears the expression and does not close the window.
 - The tools page language script web/L.js is rebuilt only when a lang/*.toml file is newer.
 - Chinese segmentation lists each word, sentence, or grapheme on its own line.
+- Tools is one menu. Web entries are marked (web). Korean input stays on Tools.
 
 #### Fixed
 
@@ -177,6 +178,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 科学计算器按 Esc 清空算式，不再关闭窗口。
 - 工具页语言脚本 web/L.js 只在某个 lang/*.toml 比它新时才重新合成。
 - 中文分词按词、句或字素切开后，每行一段。
+- 工具菜单合并成一个，网页工具标注 (web)，韩语输入直接放在工具下
 
 #### 修复
 

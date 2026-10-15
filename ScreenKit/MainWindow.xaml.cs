@@ -1754,10 +1754,17 @@ public partial class MainWindow : Window {
 			mncancelocr.Header = Loc.T("menu.cancelocr");
 			mncancelocr.ToolTip = Loc.T("menu.cancelocr.tip");
 
-			mnweb.Header = Loc.T("menu.webhome");
-			mnweb.ToolTip = Loc.T("menu.webhome.tip");
-			mnwebhome.Header = Loc.T("tray.webhome");
-			mnwebfiles.Header = Loc.T("tray.webfiles");
+			mnwebhome.Header = Loc.T("tray.webhome") + "(_B) (web)";
+			mnwebhome.ToolTip = Loc.T("menu.webhome.tip");
+			mnwebfiles.Header = Loc.T("tray.webfiles") + " (web)";
+			mncattext.Header = Loc.T("web.cat.text") + "(_X)";
+			mncatcalc.Header = Loc.T("web.cat.calc") + "(_C)";
+			mncatspeech.Header = Loc.T("web.cat.speech") + "(_V)";
+			mncattime.Header = Loc.T("web.cat.time") + "(_L)";
+			mncatimage.Header = Loc.T("web.cat.image") + "(_G)";
+			mncattalk.Header = Loc.T("web.cat.talk") + "(_A)";
+			mncatfile.Header = Loc.T("menu.cat.file") + "(_F)";
+			mncatsys.Header = Loc.T("menu.cat.sys") + "(_Y)";
 			mntrpopup.Header = Loc.T("menu.translate.popup");
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mndict.Header = Loc.T("menu.dict");
@@ -1827,6 +1834,7 @@ public partial class MainWindow : Window {
 			mnfastcopy.ToolTip = Loc.T("menu.fastcopy.tip");
 			mnglyphmod.Header = Loc.T("menu.glyphmod");
 			mnglyphmod.ToolTip = Loc.T("menu.glyphmod.tip");
+			fillwebmenu();
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mninstall.Header = Loc.T("menu.install");
