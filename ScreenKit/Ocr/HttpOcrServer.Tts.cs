@@ -327,6 +327,8 @@ sealed partial class HttpOcrServer {
 			if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
 			var volume = 100;
 			if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
+			var pack = ChromePack.SpeakLang(pick?.Culture ?? lang);
+			ChromePack.RequireVoice(pack, exe, HttpProxy.Mode, HttpProxy.Addr, CancellationToken.None);
 			ChromeTts.Start(text, pick?.Name ?? name, pick?.Culture ?? lang, speed, volume / 100.0, exe, idle);
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
@@ -338,6 +340,9 @@ sealed partial class HttpOcrServer {
 					["model"] = "Chrome",
 				},
 			});
+		}
+		catch (ChromeVoiceMissingException ex) {
+			writejson(ctx, 200, err(927, ex.Message));
 		}
 		catch (InvalidOperationException ex) {
 			writejson(ctx, 200, err(922, ex.Message));

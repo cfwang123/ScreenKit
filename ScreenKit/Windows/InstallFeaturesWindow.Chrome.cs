@@ -154,12 +154,13 @@ partial class InstallFeaturesWindow {
 		cts = new CancellationTokenSource();
 		setbusy(true);
 		setprogress(0);
+		setbytes("");
 		var ok = 0;
 		var fail = 0;
 		try {
 			var mode = proxymode();
 			var addr = (eproxyaddr.Text ?? "").Trim();
-			await Task.Run(() => ChromePack.Apply(pick, install, mode, addr, appendlog, setprogress, cts.Token));
+			await Task.Run(() => ChromePack.Apply(pick, install, mode, addr, appendlog, setprogress, setstatus, setbytes, cts.Token));
 			ok = pick.Count;
 		}
 		catch (OperationCanceledException) {

@@ -37,9 +37,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Chrome speech installs a missing offline voice pack on the spot and shows a progress window that can be cancelled. The HTTP API still requires the pack to be installed first and returns 927 when it is missing.
+
 #### Changed
 
 - Character art preview has a font-size slider (6–36).
+
+#### Fixed
+
+- Line mode at threshold 0 keeps faint edges, including edges that fall on a cell boundary.
+- Character art draws darker cells denser unless Invert is on.
 
 #### Documentation
 
@@ -47,9 +56,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+#### 新增
+
+- Chrome 语音合成在对应离线语音包未安装时临时安装，并显示可中止的进度窗。HTTP 接口仍须事先安装，未安装返回 927。
+
 #### 变更
 
 - 字符画预览可以用滑块调整字号（6～36）。
+
+#### 修复
+
+- 线条模式在阈值为 0 时会保留很淡的边缘，格子交界上的线也会画出来。
+- 字符画不勾选反色时，越暗的地方字符越密。
 
 #### 文档
 

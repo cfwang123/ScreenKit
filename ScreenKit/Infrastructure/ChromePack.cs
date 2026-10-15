@@ -39,11 +39,19 @@ sealed class ChromePackItem {
 	};
 }
 
+/// <summary>HTTP 朗读时这一语言的离线语音包还没装。桌面朗读会安装，接口不装。</summary>
+sealed class ChromeVoiceMissingException : InvalidOperationException {
+	public ChromeVoiceMissingException(string lang)
+		: base(Loc.T("tts.chrome.voice.need", lang ?? "")) { }
+}
+
 /// <summary>查询、安装、卸载 Chrome 翻译包（TranslateKit）和离线语音包（Wasm TTS）。</summary>
 static class ChromePack {
 	const string TTS_EXT = "gjjabgpgjpampikjhjpfhneeoapjbjaf";
 	const string TTS_EXT_OLD = "nkeimhogjdpnpccoofpliimaahmaaome";
 	const int SW_HIDE = 0;
+	static readonly object voiceOp = new();
+	static Dictionary<string, bool> voiceKnown;
 
 	public static readonly string[] TrPairs = {
 		"en - es", "en - ja", "ar - en", "bn - en", "de - en", "en - fr", "en - hi", "en - it",
@@ -70,8 +78,110 @@ static class ChromePack {
 		if (!seen) return 2;
 		if (PackState("Installed") != FeatureInstallState.Installed) return 2;
 		if (PackState("not installed") != FeatureInstallState.Missing) return 2;
+		if (PackState("notInstalled") != FeatureInstallState.Missing) return 2;
 		if (PackState("installing") != FeatureInstallState.Partial) return 2;
+		if (SpeakLang("zh-HK") != "yue-HK" || SpeakLang("yue") != "yue-HK") return 2;
+		if (SpeakLang("zh-CN") != "zh-CN" || SpeakLang("zh") != "zh-CN") return 2;
+		if (SpeakLang("zh-TW") != "zh-TW" || SpeakLang("cht") != "zh-TW") return 2;
+		if (SpeakLang("ja") != "ja-JP" || SpeakLang("en-GB") != "en-GB") return 2;
+		if (SpeakLang("EN-us") != "en-US") return 2;
+		if (SpeakLang("") != "" || SpeakLang(null) != "") return 2;
+		if (Math.Abs(frac(0.37, 1) - 0.37) > 0.001) return 2;
+		if (Math.Abs(frac(37, 100) - 0.37) > 0.001) return 2;
+		if (frac(50, 0) != 0) return 2;
+		if (frac(-1, 1) != -1) return 2;
+		if (Math.Abs(percentin("Installing 45%") - 0.45) > 0.001) return 2;
+		if (Math.Abs(percentin("下载 12.5%") - 0.125) > 0.001) return 2;
+		if (percentin("已安装") != -1) return 2;
 		return 0;
+	}
+
+	/// <summary>朗读用的语言代码，对应离线语音包。粤语是 yue-HK。</summary>
+	public static string SpeakLang(string culture) {
+		var s = (culture ?? "").Trim().Replace('_', '-');
+		if (s.Length == 0) return "";
+		var lower = s.ToLowerInvariant();
+		if (lower is "zh-hk" or "yue" or "yue-hk") return "yue-HK";
+		if (lower is "zh" or "zh-cn" or "zh-hans") return "zh-CN";
+		if (lower is "zh-tw" or "zh-hant" or "cht") return "zh-TW";
+		var dash = s.IndexOf('-');
+		if (dash > 0 && dash < s.Length - 1) {
+			var region = s.Substring(dash + 1);
+			var cut = region.IndexOf('-');
+			if (cut > 0) region = region.Substring(0, cut);
+			if (region.Length > 0)
+				return s.Substring(0, dash).ToLowerInvariant() + "-" + region.ToUpperInvariant();
+		}
+		return lower switch {
+			"ja" => "ja-JP",
+			"ko" => "ko-KR",
+			"en" => "en-US",
+			"de" => "de-DE",
+			"fr" => "fr-FR",
+			"es" => "es-ES",
+			"pt" => "pt-BR",
+			"it" => "it-IT",
+			"ru" => "ru-RU",
+			"hi" => "hi-IN",
+			"id" => "id-ID",
+			"vi" => "vi-VN",
+			"nl" => "nl-NL",
+			"pl" => "pl-PL",
+			_ => s,
+		};
+	}
+
+	/// <summary>已知已安装为 true，已知未安装为 false，还没查过为 null。</summary>
+	public static bool? VoiceInstalled(string lang) => installedof(SpeakLang(lang));
+
+	/// <summary>桌面朗读：这一语言没装就装上。已安装则马上返回。progress 的 frac 小于 0 表示还没有百分比。</summary>
+	public static void EnsureVoice(string lang, string exe, string proxyMode, string proxyAddr,
+		Action<string, double, long, long> progress, CancellationToken ct) {
+		lang = SpeakLang(lang);
+		if (lang.Length == 0 || installedof(lang) == true) return;
+		lock (voiceOp) {
+			if (installedof(lang) == true) return;
+			ct.ThrowIfCancellationRequested();
+			progress?.Invoke(Loc.T("tts.chrome.voice.check"), -1, 0, 0);
+			ChromeTts.Stop();
+			preparevoice(ChromeTts.ProfileDir());
+			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, null, ct, exe);
+			sess.WaitExt(15000, ct);
+			var state = onestatus(sess, lang, ct);
+			if (state == FeatureInstallState.Installed) {
+				remember(lang, true);
+				progress?.Invoke(Loc.T("tts.chrome.voice.done"), 1, 0, 0);
+				return;
+			}
+			var note = Loc.T("tts.chrome.voice.install", lang);
+			var expect = voicesize(lang);
+			progress?.Invoke(note, -1, 0, expect);
+			onevoice(sess, lang, true, ct, (part, got, total) => progress?.Invoke(note, part, got, total));
+			remember(lang, true);
+			progress?.Invoke(Loc.T("tts.chrome.voice.done"), 1, expect, expect);
+		}
+	}
+
+	/// <summary>HTTP：只查询，不安装。未安装抛 <see cref="ChromeVoiceMissingException"/>。</summary>
+	public static void RequireVoice(string lang, string exe, string proxyMode, string proxyAddr, CancellationToken ct) {
+		lang = SpeakLang(lang);
+		if (lang.Length == 0) return;
+		var known = installedof(lang);
+		if (known == true) return;
+		if (known == false) throw new ChromeVoiceMissingException(lang);
+		lock (voiceOp) {
+			known = installedof(lang);
+			if (known == true) return;
+			if (known == false) throw new ChromeVoiceMissingException(lang);
+			ct.ThrowIfCancellationRequested();
+			ChromeTts.Stop();
+			preparevoice(ChromeTts.ProfileDir());
+			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, null, ct, exe);
+			sess.WaitExt(15000, ct);
+			var on = onestatus(sess, lang, ct) == FeatureInstallState.Installed;
+			remember(lang, on);
+			if (!on) throw new ChromeVoiceMissingException(lang);
+		}
 	}
 
 	public static string TrFolder(string pair) => (pair ?? "").Replace(" - ", "_");
@@ -125,7 +235,7 @@ static class ChromePack {
 		return list;
 	}
 
-	public static void Apply(IReadOnlyList<ChromePackItem> items, bool install, string proxyMode, string proxyAddr, Action<string> log, Action<double> progress, CancellationToken ct) {
+	public static void Apply(IReadOnlyList<ChromePackItem> items, bool install, string proxyMode, string proxyAddr, Action<string> log, Action<double> progress, Action<string> status, Action<string> bytes, CancellationToken ct) {
 		var tr = new List<ChromePackItem>();
 		var tts = new List<ChromePackItem>();
 		if (items != null) {
@@ -138,30 +248,54 @@ static class ChromePack {
 		var total = tr.Count + tts.Count;
 		if (total == 0) return;
 		var done = 0;
+		void tick(double part, string title, string byteLine) {
+			var shown = part;
+			if (shown < 0) shown = 0;
+			if (shown > 1) shown = 1;
+			progress?.Invoke((done + shown) / (double)total);
+			string text;
+			if (!install) text = Loc.T("inst.chrome.remove", title);
+			else if (part < 0) text = Loc.T("inst.chrome.working", title);
+			else text = Loc.T("inst.chrome.down", title, (int)Math.Round(part * 100));
+			status?.Invoke(text);
+			bytes?.Invoke(byteLine ?? "");
+		}
 		if (tr.Count > 0) {
 			ChromeTr.Stop();
 			using var sess = Sess.Open(ChromeTr.ProfileDir(), proxyMode, proxyAddr, log, ct);
-			sess.OpenPage("chrome://on-device-translation-internals/");
-			sess.WaitPage("en - ", 20000, ct);
+			var web = false;
+			if (install) {
+				try { web = sess.TryTranslator(ct); }
+				catch (Exception ex) { log?.Invoke(ex.Message); }
+			}
+			if (!web) sess.OpenInternals(ct);
 			foreach (var it in tr) {
 				ct.ThrowIfCancellationRequested();
 				log?.Invoke((install ? "安装" : "卸载") + " " + it.Title);
-				onepair(sess, it.Pair, install, log, ct);
+				onepair(sess, it, install, web, tick, log, ct);
 				done++;
 				progress?.Invoke(done / (double)total);
 			}
 		}
 		if (tts.Count == 0) return;
-		ChromeTts.Stop();
-		preparevoice(ChromeTts.ProfileDir());
-		using var voice = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
-		voice.WaitExt(15000, ct);
-		foreach (var it in tts) {
-			ct.ThrowIfCancellationRequested();
-			log?.Invoke((install ? "安装" : "卸载") + " " + it.Title);
-			onevoice(voice, it.Lang, install, ct);
-			done++;
-			progress?.Invoke(done / (double)total);
+		lock (voiceOp) {
+			ChromeTts.Stop();
+			preparevoice(ChromeTts.ProfileDir());
+			using var voice = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
+			voice.WaitExt(15000, ct);
+			foreach (var it in tts) {
+				ct.ThrowIfCancellationRequested();
+				log?.Invoke((install ? "安装" : "卸载") + " " + it.Title);
+				onevoice(voice, it.Lang, install, ct, (part, got, all) => {
+					var line = "";
+					if (all > 0) line = FeatureInstaller.FormatBytes(got) + " / " + FeatureInstaller.FormatBytes(all);
+					else if (got > 0) line = FeatureInstaller.FormatBytes(got);
+					tick(part, it.Title, line);
+				});
+				remember(it.Lang, install);
+				done++;
+				progress?.Invoke(done / (double)total);
+			}
 		}
 	}
 
@@ -234,13 +368,15 @@ static class ChromePack {
 		}
 		Dictionary<string, string> st = null;
 		try {
-			ChromeTts.Stop();
-			preparevoice(ChromeTts.ProfileDir());
-			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
-			sess.WaitExt(15000, ct);
-			var langs = new List<string>();
-			foreach (var it in list) langs.Add(it.Lang);
-			st = sess.VoiceStatus(langs, ct);
+			lock (voiceOp) {
+				ChromeTts.Stop();
+				preparevoice(ChromeTts.ProfileDir());
+				using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
+				sess.WaitExt(15000, ct);
+				var langs = new List<string>();
+				foreach (var it in list) langs.Add(it.Lang);
+				st = sess.VoiceStatus(langs, ct);
+			}
 		}
 		catch (OperationCanceledException) { throw; }
 		catch (Exception ex) {
@@ -250,6 +386,8 @@ static class ChromePack {
 		foreach (var it in list) {
 			st.TryGetValue(it.Lang, out var s);
 			it.State = PackState(s);
+			if (it.State == FeatureInstallState.Installed) remember(it.Lang, true);
+			else if (it.State == FeatureInstallState.Missing) remember(it.Lang, false);
 		}
 		return list;
 	}
@@ -346,46 +484,223 @@ static class ChromePack {
 		return best;
 	}
 
-	static void onepair(Sess sess, string pair, bool install, Action<string> log, CancellationToken ct) {
+	static void onepair(Sess sess, ChromePackItem it, bool install, bool web, Action<double, string, string> report, Action<string> log, CancellationToken ct) {
+		var pair = it.Pair;
+		var title = string.IsNullOrWhiteSpace(it.Title) ? pair : it.Title;
+		if (install && web && webpair(sess, pair, title, report, log, ct)) return;
+		if (!sess.HasPage) sess.OpenInternals(ct);
 		var want = install ? "install" : "uninstall";
+		report(-1, title, "");
 		var r = sess.EvalPage(clickjs(pair, want), false, 15000, ct);
-		if (r == "already") return;
+		if (r == "already") {
+			report(1, title, "");
+			return;
+		}
 		if (r != "clicked") throw new InvalidOperationException(pair + " " + r);
+		var root = ChromeTr.ProfileDir();
+		var baseBytes = dirsize(root);
+		sess.ArmNet(ct);
 		var start = Environment.TickCount;
 		while (unchecked(Environment.TickCount - start) < 180000) {
 			ct.ThrowIfCancellationRequested();
+			sess.PumpAll(350, ct);
 			var text = sess.EvalPage(rowjs(pair), false, 8000, ct);
 			var st = PackState(text);
-			if (install && st == FeatureInstallState.Installed) return;
-			if (!install && st == FeatureInstallState.Missing) return;
-			Thread.Sleep(400);
+			if ((install && st == FeatureInstallState.Installed) || (!install && st == FeatureInstallState.Missing)) {
+				report(1, title, "");
+				return;
+			}
+			var disk = dirsize(root) - baseBytes;
+			if (disk < 0) disk = 0;
+			liveline(sess, it.Size, disk, percentin(text), out var part, out var line);
+			report(part, title, line);
 		}
 		throw new InvalidOperationException(pair + " " + Loc.T("inst.chrome.timeout"));
 	}
 
-	static void onevoice(Sess sess, string lang, bool install, CancellationToken ct) {
-		var type = install ? "installLanguage" : "uninstallLanguage";
-		var raw = sess.EvalExt(voicejs(type, lang), true, 180000, ct);
-		var st = statusof(raw);
-		if (install && st == FeatureInstallState.Installed) return;
-		if (!install && st == FeatureInstallState.Missing) return;
-		if (st == FeatureInstallState.Installed && !install)
-			throw new InvalidOperationException(lang + " " + raw);
-		if (st == FeatureInstallState.Missing && install)
-			throw new InvalidOperationException(lang + " " + raw);
+	/// <summary>和网页「浏览器小模型」一样，用 Translator.create 的 downloadprogress。</summary>
+	static bool webpair(Sess sess, string pair, string title, Action<double, string, string> report, Action<string> log, CancellationToken ct) {
+		var bits = (pair ?? "").Split(new[] { " - " }, StringSplitOptions.None);
+		if (bits.Length != 2) return false;
+		report(-1, title, "");
+		var started = sess.EvalWeb(trstart(apilang(bits[0]), apilang(bits[1])), false, 15000, ct);
+		if (started != "started") return false;
+		string net = "";
+		var start = Environment.TickCount;
+		while (unchecked(Environment.TickCount - start) < 180000) {
+			ct.ThrowIfCancellationRequested();
+			sess.PumpAll(300, ct);
+			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out var loaded, out var total))
+				continue;
+			if (err == "noapi") return false;
+			var line = bytelinetext(loaded, total);
+			if (done) {
+				if (!string.IsNullOrWhiteSpace(err)) {
+					log?.Invoke(pair + " " + err);
+					return false;
+				}
+				report(1, title, line);
+				return true;
+			}
+			var part = seen ? p : -1.0;
+			if (part < 0) liveline(sess, 0, 0, -1, out part, out net);
+			if (line.Length == 0) line = net ?? "";
+			report(part, title, line);
+		}
+		throw new InvalidOperationException(pair + " " + Loc.T("inst.chrome.timeout"));
 	}
+
+	static void onevoice(Sess sess, string lang, bool install, CancellationToken ct, Action<double, long, long> live = null) {
+		var type = install ? "installLanguage" : "uninstallLanguage";
+		var root = ChromeTts.ProfileDir();
+		var baseBytes = dirsize(root);
+		var expect = voicesize(lang);
+		sess.ClearBytes();
+		var started = sess.EvalExt(voicestart(type, lang), false, 15000, ct);
+		if (started != "started") throw new InvalidOperationException(lang + " " + started);
+		sess.ArmNet(ct);
+		var start = Environment.TickCount;
+		while (unchecked(Environment.TickCount - start) < 180000) {
+			ct.ThrowIfCancellationRequested();
+			sess.PumpAll(350, ct);
+			if (!readvoice(sess.EvalExt(VOICEPOLL, false, 8000, ct), out var done, out var err, out var body))
+				continue;
+			if (done) {
+				var raw = string.IsNullOrWhiteSpace(body) ? err : body;
+				if (string.IsNullOrWhiteSpace(raw)) raw = err ?? "";
+				var st = statusof(raw);
+				if (install && st == FeatureInstallState.Installed) {
+					live?.Invoke(1, expect, expect);
+					return;
+				}
+				if (!install && st == FeatureInstallState.Missing) {
+					live?.Invoke(1, 0, 0);
+					return;
+				}
+				throw new InvalidOperationException(lang + " " + raw);
+			}
+			var disk = dirsize(root) - baseBytes;
+			if (disk < 0) disk = 0;
+			liveline(sess, expect, disk, -1, out var part, out _);
+			long got = 0;
+			long all = 0;
+			if (part >= 0 && expect > 0) {
+				got = (long)(part * expect);
+				all = expect;
+			}
+			else if (disk > 0) {
+				got = disk;
+				all = expect;
+			}
+			live?.Invoke(part, got, all);
+		}
+		throw new InvalidOperationException(lang + " " + Loc.T("inst.chrome.timeout"));
+	}
+
+	static void liveline(Sess sess, long expect, long disk, double rowFrac, out double part, out string line) {
+		part = rowFrac;
+		line = "";
+		var net = sess.TakeFrac(expect, out var netLine);
+		if (part < 0) part = net;
+		if (!string.IsNullOrEmpty(netLine)) line = netLine;
+		if (part < 0 && disk > 0 && expect > 0) {
+			part = disk / (double)expect;
+			if (part > 0.99) part = 0.99;
+			line = FeatureInstaller.FormatBytes(disk) + " / " + FeatureInstaller.FormatBytes(expect);
+		}
+		else if (line.Length == 0 && disk > 0)
+			line = FeatureInstaller.FormatBytes(disk);
+	}
+
+	static FeatureInstallState onestatus(Sess sess, string lang, CancellationToken ct) {
+		var st = sess.VoiceStatus(new List<string> { lang }, ct);
+		st.TryGetValue(lang, out var raw);
+		return PackState(raw);
+	}
+
+	static long voicesize(string lang) {
+		foreach (var it in readvoices())
+			if (string.Equals(it.Lang, lang, StringComparison.OrdinalIgnoreCase) && it.Size > 0)
+				return it.Size;
+		return 0;
+	}
+
+	static bool? installedof(string lang) {
+		if (string.IsNullOrWhiteSpace(lang)) return null;
+		lock (voiceOp) {
+			loadvoice();
+			if (!voiceKnown.TryGetValue(lang, out var on)) return null;
+			return on;
+		}
+	}
+
+	static void remember(string lang, bool on) {
+		if (string.IsNullOrWhiteSpace(lang)) return;
+		lock (voiceOp) {
+			loadvoice();
+			if (voiceKnown.TryGetValue(lang, out var cur) && cur == on) return;
+			voiceKnown[lang] = on;
+			savevoice();
+		}
+	}
+
+	static void loadvoice() {
+		if (voiceKnown != null) return;
+		voiceKnown = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+		var path = voicefile();
+		if (!File.Exists(path)) return;
+		string[] lines;
+		try { lines = File.ReadAllLines(path); }
+		catch { return; }
+		foreach (var line in lines) {
+			var s = (line ?? "").Trim();
+			if (s.Length == 0 || s[0] == '#') continue;
+			var i = s.IndexOf(' ');
+			if (i <= 0) continue;
+			var key = s.Substring(0, i).Trim();
+			var bit = s.Substring(i + 1).Trim();
+			if (key.Length == 0) continue;
+			if (bit == "1") voiceKnown[key] = true;
+			else if (bit == "0") voiceKnown[key] = false;
+		}
+	}
+
+	static void savevoice() {
+		var sb = new StringBuilder();
+		foreach (var kv in voiceKnown)
+			sb.Append(kv.Key).Append(kv.Value ? " 1" : " 0").Append('\n');
+		try { File.WriteAllText(voicefile(), sb.ToString(), new UTF8Encoding(false)); }
+		catch { }
+	}
+
+	static string voicefile() => Path.Combine(ChromeTts.ProfileDir(), "voice-state.txt");
 
 	static FeatureInstallState statusof(string raw) {
 		if (string.IsNullOrWhiteSpace(raw)) return FeatureInstallState.Missing;
 		try {
 			using var doc = JsonDocument.Parse(raw);
-			if (doc.RootElement.TryGetProperty("status", out var s))
-				return PackState(s.GetString());
-			if (doc.RootElement.TryGetProperty("error", out var e))
-				throw new InvalidOperationException(e.GetString());
+			if (doc.RootElement.ValueKind == JsonValueKind.Object) {
+				var status = fieldstatus(doc.RootElement);
+				if (status.Length > 0) return PackState(status);
+				if (doc.RootElement.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.String) {
+					var msg = e.GetString();
+					if (!string.IsNullOrWhiteSpace(msg))
+						throw new InvalidOperationException(msg);
+				}
+			}
 		}
 		catch (JsonException) { }
+		catch (InvalidOperationException) { throw; }
 		return PackState(raw);
+	}
+
+	static string fieldstatus(JsonElement el) {
+		var status = "";
+		if (el.TryGetProperty("status", out var s) && s.ValueKind == JsonValueKind.String)
+			status = s.GetString() ?? "";
+		if (status.Length == 0 && el.TryGetProperty("installStatus", out var i) && i.ValueKind == JsonValueKind.String)
+			status = i.GetString() ?? "";
+		return status;
 	}
 
 	public static FeatureInstallState PackState(string text) {
@@ -415,6 +730,97 @@ static class ChromePack {
 
 	static string voicejs(string type, string lang) {
 		return "(async function(){var type=" + jsstr(type) + ";var lang=" + jsstr(lang) + ";" + VOICE + "})()";
+	}
+
+	static string voicestart(string type, string lang) {
+		return "(function(){var type=" + jsstr(type) + ";var lang=" + jsstr(lang) + ";" + VOICESTART + "})()";
+	}
+
+	static string trstart(string src, string dst) {
+		return "(function(){var src=" + jsstr(src) + ";var dst=" + jsstr(dst) + ";" + TRSTART + "})()";
+	}
+
+	static string apilang(string code) {
+		var s = (code ?? "").Trim();
+		if (s.Equals("iw", StringComparison.OrdinalIgnoreCase)) return "he";
+		return s;
+	}
+
+	/// <summary>与网页 downloadprogress 相同：0–1 直接用，大于 1 时按 total 换算。没有进度返回 -1。</summary>
+	static double frac(double loaded, double total) {
+		if (double.IsNaN(loaded) || loaded < 0) return -1;
+		var n = loaded;
+		if (n > 1) {
+			if (!(total > 0)) return 0;
+			n = n / total;
+		}
+		if (n < 0) n = 0;
+		if (n > 1) n = 1;
+		return n;
+	}
+
+	static double percentin(string text) {
+		var s = text ?? "";
+		for (var i = 0; i < s.Length; i++) {
+			if (s[i] != '%') continue;
+			var j = i - 1;
+			while (j >= 0 && s[j] == ' ') j--;
+			var end = j + 1;
+			while (j >= 0 && (char.IsDigit(s[j]) || s[j] == '.')) j--;
+			if (end <= j + 1) continue;
+			var num = s.Substring(j + 1, end - (j + 1));
+			if (!double.TryParse(num, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v))
+				continue;
+			if (v < 0) v = 0;
+			if (v > 100) v = 100;
+			return v / 100.0;
+		}
+		return -1;
+	}
+
+	static string bytelinetext(double loaded, double total) {
+		if (total > 1)
+			return FeatureInstaller.FormatBytes((long)loaded) + " / " + FeatureInstaller.FormatBytes((long)total);
+		if (loaded > 1) return FeatureInstaller.FormatBytes((long)loaded);
+		return "";
+	}
+
+	static bool readtr(string raw, out double p, out bool seen, out bool done, out string err, out double loaded, out double total) {
+		p = 0;
+		seen = false;
+		done = false;
+		err = "";
+		loaded = 0;
+		total = 0;
+		if (string.IsNullOrWhiteSpace(raw)) return false;
+		try {
+			using var doc = JsonDocument.Parse(raw);
+			var root = doc.RootElement;
+			if (root.TryGetProperty("p", out var pv) && pv.TryGetDouble(out var d)) p = d;
+			seen = root.TryGetProperty("seen", out var sv) && sv.ValueKind == JsonValueKind.True;
+			done = root.TryGetProperty("done", out var dv) && dv.ValueKind == JsonValueKind.True;
+			if (root.TryGetProperty("err", out var ev) && ev.ValueKind == JsonValueKind.String) err = ev.GetString() ?? "";
+			if (root.TryGetProperty("loaded", out var lv) && lv.TryGetDouble(out var ld)) loaded = ld;
+			if (root.TryGetProperty("total", out var tv) && tv.TryGetDouble(out var td)) total = td;
+			return true;
+		}
+		catch { return false; }
+	}
+
+	static bool readvoice(string raw, out bool done, out string err, out string body) {
+		done = false;
+		err = "";
+		body = "";
+		if (string.IsNullOrWhiteSpace(raw)) return false;
+		try {
+			using var doc = JsonDocument.Parse(raw);
+			var root = doc.RootElement;
+			done = root.TryGetProperty("done", out var dv) && dv.ValueKind == JsonValueKind.True;
+			if (root.TryGetProperty("err", out var ev) && ev.ValueKind == JsonValueKind.String) err = ev.GetString() ?? "";
+			if (root.TryGetProperty("raw", out var rv) && rv.ValueKind == JsonValueKind.String) body = rv.GetString() ?? "";
+			return true;
+		}
+		catch { return false; }
 	}
 
 	const string WALK = @"
@@ -452,6 +858,56 @@ var res=await new Promise(function(resolve){chrome.runtime.sendMessage({type:typ
 return JSON.stringify(res||{});
 ";
 
+	const string VOICESTART = @"
+self.__skp={done:false,err:'',raw:''};
+function ready(){
+if(!chrome.offscreen||!chrome.offscreen.createDocument)return Promise.resolve();
+return chrome.offscreen.hasDocument().catch(function(){return false;}).then(function(has){
+if(has)return;
+return chrome.offscreen.createDocument({url:'offscreen.html',reasons:['AUDIO_PLAYBACK','USER_MEDIA'],justification:'ScreenKit voice pack'}).catch(function(){});
+});
+}
+ready().then(function(){
+chrome.runtime.sendMessage({type:type,lang:lang},function(r){
+var err=chrome.runtime.lastError;
+var res=err?{error:err.message}:(r||{});
+self.__skp.raw=JSON.stringify(res||{});
+self.__skp.err=(res&&res.error)||'';
+self.__skp.done=true;
+});
+}).catch(function(e){self.__skp.err=String(e&&e.message||e);self.__skp.done=true;});
+return 'started';
+";
+
+	const string VOICEPOLL = "(function(){var s=self.__skp||{};return JSON.stringify({done:!!s.done,err:s.err||'',raw:s.raw||''});})()";
+
+	const string TRSTART = @"
+window.__skp={p:0,seen:false,done:false,err:'',loaded:0,total:0};
+var T=window.Translator;
+if(!T||typeof T.create!=='function'){window.__skp.err='noapi';window.__skp.done=true;return 'noapi';}
+var opt={sourceLanguage:src,targetLanguage:dst};
+opt.monitor=function(m){
+if(!m||!m.addEventListener)return;
+m.addEventListener('downloadprogress',function(e){
+var n=e&&e.loaded;if(n==null)return;
+var total=e.total||0;
+window.__skp.loaded=n;window.__skp.total=total;window.__skp.seen=true;
+if(n>1)n=total?n/total:0;
+if(n<0)n=0;if(n>1)n=1;
+window.__skp.p=n;
+});
+};
+try{
+T.create(opt).then(function(){window.__skp.p=1;window.__skp.seen=true;window.__skp.done=true;},function(err){
+window.__skp.err=(err&&(err.message||String(err)))||'error';
+window.__skp.done=true;
+});
+}catch(ex){window.__skp.err=String(ex);window.__skp.done=true;return 'noapi';}
+return 'started';
+";
+
+	const string TRPOLL = "(function(){var s=window.__skp||{};return JSON.stringify({p:s.p||0,seen:!!s.seen,done:!!s.done,err:s.err||'',loaded:s.loaded||0,total:s.total||0});})()";
+
 	static long dirsize(string dir) {
 		long n = 0;
 		try {
@@ -467,12 +923,20 @@ return JSON.stringify(res||{});
 		Process proc;
 		int port;
 		Sock page;
+		Sock web;
 		Sock ext;
+		Sock off;
+		Sock browser;
+		bool extNet;
+		bool offNet;
+		bool dlNet;
+
+		public bool HasPage => page != null;
 
 		Sess() { }
 
-		public static Sess Open(string profile, string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct) {
-			var exe = ChromeTts.FindExe(null);
+		public static Sess Open(string profile, string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct, string chromeExe = null) {
+			var exe = ChromeTts.FindExe(chromeExe);
 			if (exe == null) throw new InvalidOperationException(Loc.T("inst.chrome.need"));
 			log?.Invoke(Loc.T("inst.chrome.open"));
 			var sess = new Sess();
@@ -564,6 +1028,147 @@ return JSON.stringify(res||{});
 			return ext.Eval(expr, wait, ms, ct);
 		}
 
+		public string EvalWeb(string expr, bool wait, int ms, CancellationToken ct) {
+			if (web == null) throw new InvalidOperationException(Loc.T("inst.chrome.nopage"));
+			return web.Eval(expr, wait, ms, ct);
+		}
+
+		public void OpenInternals(CancellationToken ct) {
+			if (page != null) return;
+			OpenPage("chrome://on-device-translation-internals/");
+			WaitPage("en - ", 20000, ct);
+		}
+
+		public bool TryTranslator(CancellationToken ct) {
+			var portNo = 1224;
+			try {
+				var o = new OcrOptions();
+				AppConfig.LoadInto(o);
+				if (o.HttpPort > 0) portNo = o.HttpPort;
+			}
+			catch { }
+			OpenPage("http://127.0.0.1:" + portNo + "/");
+			var start = Environment.TickCount;
+			while (unchecked(Environment.TickCount - start) < 12000) {
+				ct.ThrowIfCancellationRequested();
+				hide(proc);
+				web ??= connect("page", "127.0.0.1");
+				if (web != null) {
+					string ok;
+					try { ok = web.Eval("(function(){return (window.Translator&&window.isSecureContext)?'yes':'no';})()", false, 5000, ct); }
+					catch { ok = ""; }
+					if (ok == "yes") return true;
+					if (ok == "no") return false;
+				}
+				Thread.Sleep(250);
+			}
+			return false;
+		}
+
+		public void ArmNet(CancellationToken ct) {
+			arm(ext, ref extNet, ct);
+			if (off == null) off = connectany("offscreen");
+			arm(off, ref offNet, ct);
+			if (dlNet || browser != null && dlNet) return;
+			try {
+				if (browser == null) {
+					var ws = browserws();
+					if (!string.IsNullOrEmpty(ws)) browser = Sock.Connect(ws);
+				}
+				browser?.Call("Browser.setDownloadBehavior", "{\"behavior\":\"default\",\"eventsEnabled\":true}", ct);
+				dlNet = browser != null;
+			}
+			catch { dlNet = true; }
+		}
+
+		public void ClearBytes() {
+			page?.ClearBytes();
+			web?.ClearBytes();
+			ext?.ClearBytes();
+			off?.ClearBytes();
+			browser?.ClearBytes();
+		}
+
+		public void PumpAll(int ms, CancellationToken ct) {
+			var start = Environment.TickCount;
+			while (unchecked(Environment.TickCount - start) < ms) {
+				ct.ThrowIfCancellationRequested();
+				var any = false;
+				if (web != null && web.Pump(40)) any = true;
+				if (ext != null && ext.Pump(40)) any = true;
+				if (off != null && off.Pump(40)) any = true;
+				if (browser != null && browser.Pump(40)) any = true;
+				if (page != null && page.Pump(40)) any = true;
+				if (!any) Thread.Sleep(40);
+				hide(proc);
+			}
+		}
+
+		public double TakeFrac(long expect, out string line) {
+			line = "";
+			var best = -1.0;
+			scan(web, expect, ref best, ref line);
+			scan(ext, expect, ref best, ref line);
+			scan(off, expect, ref best, ref line);
+			scan(browser, expect, ref best, ref line);
+			scan(page, expect, ref best, ref line);
+			return best;
+		}
+
+		static void scan(Sock sock, long expect, ref double best, ref string line) {
+			if (sock == null) return;
+			sock.ReadBytes(out var loaded, out var total, out var full);
+			var frac = -1.0;
+			var text = "";
+			if (sock.ConsoleFrac >= 0 && sock.ConsoleFrac > frac) frac = sock.ConsoleFrac;
+			if (full && total > 0) {
+				frac = loaded / (double)total;
+				if (frac > 0.99) frac = 0.99;
+				text = FeatureInstaller.FormatBytes(loaded) + " / " + FeatureInstaller.FormatBytes(total);
+			}
+			else if (loaded > 0 && expect > 0) {
+				var guess = loaded / (double)expect;
+				if (guess > 0.99) guess = 0.99;
+				if (guess > frac) frac = guess;
+				text = FeatureInstaller.FormatBytes(loaded) + " / " + FeatureInstaller.FormatBytes(expect);
+			}
+			else if (loaded > 0)
+				text = FeatureInstaller.FormatBytes(loaded);
+			if (frac > best) {
+				best = frac;
+				if (text.Length > 0) line = text;
+			}
+			else if (best < 0 && line.Length == 0 && text.Length > 0)
+				line = text;
+		}
+
+		void arm(Sock sock, ref bool flag, CancellationToken ct) {
+			if (sock == null || flag) return;
+			try {
+				sock.Call("Network.enable", "{}", ct);
+				sock.Call("Runtime.enable", "{}", ct);
+				flag = true;
+			}
+			catch { flag = true; }
+		}
+
+		Sock connectany(string urlPart) {
+			try { return connect("", urlPart, true); }
+			catch { return null; }
+		}
+
+		string browserws() {
+			try {
+				var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/version");
+				req.Timeout = 4000;
+				using var resp = req.GetResponse();
+				using var rd = new StreamReader(resp.GetResponseStream());
+				using var doc = JsonDocument.Parse(rd.ReadToEnd());
+				return doc.RootElement.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
+			}
+			catch { return ""; }
+		}
+
 		public Dictionary<string, string> VoiceStatus(List<string> langs, CancellationToken ct) {
 			var arr = new StringBuilder("[");
 			for (var i = 0; i < langs.Count; i++) {
@@ -580,7 +1185,9 @@ return JSON.stringify(res||{});
 			if (doc.RootElement.ValueKind != JsonValueKind.Array) return map;
 			foreach (var el in doc.RootElement.EnumerateArray()) {
 				var lang = el.TryGetProperty("lang", out var l) ? l.GetString() : "";
-				var st = el.TryGetProperty("status", out var s) ? s.GetString() : "";
+				var st = fieldstatus(el);
+				if (st.Length == 0 && el.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String)
+					st = errEl.GetString() ?? "";
 				if (!string.IsNullOrEmpty(lang)) map[lang] = st ?? "";
 			}
 			return map;
@@ -630,7 +1237,9 @@ return JSON.stringify(out);
 			return null;
 		}
 
-		Sock connect(string type, string urlPart) {
+		Sock connect(string type, string urlPart) => connect(type, urlPart, false);
+
+		Sock connect(string type, string urlPart, bool anyType) {
 			var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/list");
 			req.Timeout = 4000;
 			using var resp = req.GetResponse();
@@ -640,7 +1249,8 @@ return JSON.stringify(out);
 				var ty = el.TryGetProperty("type", out var t) ? t.GetString() : "";
 				var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
 				var ws = el.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
-				if (ty != type || string.IsNullOrEmpty(ws)) continue;
+				if (string.IsNullOrEmpty(ws)) continue;
+				if (!anyType && ty != type) continue;
 				if ((url ?? "").IndexOf(urlPart, StringComparison.OrdinalIgnoreCase) < 0) continue;
 				return Sock.Connect(ws);
 			}
@@ -649,9 +1259,15 @@ return JSON.stringify(out);
 
 		public void Dispose() {
 			try { page?.Dispose(); } catch { }
+			try { web?.Dispose(); } catch { }
 			try { ext?.Dispose(); } catch { }
+			try { off?.Dispose(); } catch { }
+			try { browser?.Dispose(); } catch { }
 			page = null;
+			web = null;
 			ext = null;
+			off = null;
+			browser = null;
 			var p = proc;
 			proc = null;
 			if (p == null) return;
@@ -700,6 +1316,9 @@ return JSON.stringify(out);
 		Socket io;
 		MemoryStream pending = new();
 		int seq;
+		readonly Dictionary<string, long> reqgot = new();
+		readonly Dictionary<string, long> reqtotal = new();
+		double consolefrac = -1;
 
 		public static Sock Connect(string wsUrl) {
 			var uri = new Uri(wsUrl);
@@ -743,11 +1362,15 @@ return JSON.stringify(out);
 			while (unchecked(Environment.TickCount - start) < ms) {
 				ct.ThrowIfCancellationRequested();
 				var left = ms - unchecked(Environment.TickCount - start);
-				if (left < 200) left = 200;
+				if (left > 400) left = 400;
+				if (left < 50) left = 50;
 				var msg = recv(left);
 				if (msg == null) continue;
 				using var doc = JsonDocument.Parse(msg);
-				if (!doc.RootElement.TryGetProperty("id", out var idEl) || idEl.GetInt32() != id) continue;
+				if (!matchid(doc.RootElement, id)) {
+					note(msg);
+					continue;
+				}
 				if (doc.RootElement.TryGetProperty("error", out var err))
 					throw new InvalidOperationException(err.ToString());
 				if (!doc.RootElement.TryGetProperty("result", out var result)) return "";
@@ -760,6 +1383,187 @@ return JSON.stringify(out);
 				return "";
 			}
 			throw new InvalidOperationException(Loc.T("inst.chrome.timeout"));
+		}
+
+		public double ConsoleFrac => consolefrac;
+
+		public void Call(string method, string paramsJson, CancellationToken ct) {
+			var id = ++seq;
+			var node = new JsonObject {
+				["id"] = id,
+				["method"] = method ?? "",
+				["params"] = JsonNode.Parse(string.IsNullOrWhiteSpace(paramsJson) ? "{}" : paramsJson),
+			};
+			send(node.ToJsonString());
+			var start = Environment.TickCount;
+			while (unchecked(Environment.TickCount - start) < 8000) {
+				ct.ThrowIfCancellationRequested();
+				var left = 8000 - unchecked(Environment.TickCount - start);
+				if (left > 400) left = 400;
+				if (left < 50) left = 50;
+				var msg = recv(left);
+				if (msg == null) continue;
+				using var doc = JsonDocument.Parse(msg);
+				if (!matchid(doc.RootElement, id)) {
+					note(msg);
+					continue;
+				}
+				if (doc.RootElement.TryGetProperty("error", out var err))
+					throw new InvalidOperationException(err.ToString());
+				return;
+			}
+			throw new InvalidOperationException(Loc.T("inst.chrome.timeout"));
+		}
+
+		public void ClearBytes() {
+			reqgot.Clear();
+			reqtotal.Clear();
+			consolefrac = -1;
+		}
+
+		public bool Pump(int ms) {
+			if (ms < 1) ms = 1;
+			var start = Environment.TickCount;
+			var any = false;
+			while (unchecked(Environment.TickCount - start) < ms) {
+				var left = ms - unchecked(Environment.TickCount - start);
+				if (left > 40) left = 40;
+				if (left < 1) left = 1;
+				var msg = recv(left);
+				if (msg == null) continue;
+				any = true;
+				note(msg);
+			}
+			return any;
+		}
+
+		public void ReadBytes(out long loaded, out long total, out bool full) {
+			long netGot = 0, netAll = 0, dlGot = 0, dlAll = 0;
+			var netN = 0;
+			var dlN = 0;
+			var netFull = true;
+			var dlFull = true;
+			foreach (var kv in reqgot) {
+				var dl = kv.Key.StartsWith("dl:");
+				if (dl) { dlN++; dlGot += kv.Value; }
+				else { netN++; netGot += kv.Value; }
+				if (!reqtotal.TryGetValue(kv.Key, out var t) || t <= 0) {
+					if (dl) dlFull = false;
+					else netFull = false;
+				}
+				else if (dl) dlAll += t;
+				else netAll += t;
+			}
+			if (dlN > 0) {
+				loaded = dlGot;
+				full = dlFull && dlAll > 0;
+				total = full ? dlAll : 0;
+				return;
+			}
+			loaded = netGot;
+			full = netN > 0 && netFull && netAll > 0;
+			total = full ? netAll : 0;
+		}
+
+		static bool matchid(JsonElement root, int id) {
+			if (!root.TryGetProperty("id", out var idEl) || idEl.ValueKind != JsonValueKind.Number) return false;
+			return idEl.TryGetInt32(out var n) && n == id;
+		}
+
+		void note(string msg) {
+			try {
+				using var doc = JsonDocument.Parse(msg);
+				var root = doc.RootElement;
+				if (!root.TryGetProperty("method", out var methodEl) || methodEl.ValueKind != JsonValueKind.String) return;
+				var method = methodEl.GetString() ?? "";
+				if (!root.TryGetProperty("params", out var p) || p.ValueKind != JsonValueKind.Object) return;
+				if (method == "Network.dataReceived") {
+					var n = jsonlong(p, "encodedDataLength");
+					if (n <= 0) n = jsonlong(p, "dataLength");
+					addgot(text(p, "requestId"), n);
+					return;
+				}
+				if (method == "Network.loadingFinished") {
+					setmax(text(p, "requestId"), jsonlong(p, "encodedDataLength"));
+					return;
+				}
+				if (method == "Network.responseReceived") {
+					settotal(text(p, "requestId"), contentlen(p));
+					return;
+				}
+				if (method == "Browser.downloadProgress" || method == "Page.downloadProgress") {
+					var id = text(p, "guid");
+					if (id.Length == 0) id = text(p, "id");
+					if (id.Length == 0) return;
+					var got = jsonlong(p, "receivedBytes");
+					var all = jsonlong(p, "totalBytes");
+					if (got > 0) reqgot["dl:" + id] = got;
+					if (all > 0) reqtotal["dl:" + id] = all;
+					return;
+				}
+				if (method != "Runtime.consoleAPICalled") return;
+				var frac = percentin(consoletext(p));
+				if (frac > consolefrac) consolefrac = frac;
+			}
+			catch { }
+		}
+
+		void addgot(string id, long add) {
+			if (id.Length == 0 || add <= 0) return;
+			reqgot.TryGetValue(id, out var cur);
+			reqgot[id] = cur + add;
+		}
+
+		void setmax(string id, long n) {
+			if (id.Length == 0 || n <= 0) return;
+			reqgot.TryGetValue(id, out var cur);
+			if (n > cur) reqgot[id] = n;
+		}
+
+		void settotal(string id, long n) {
+			if (id.Length == 0 || n <= 0) return;
+			reqtotal[id] = n;
+		}
+
+		static string text(JsonElement el, string name) {
+			if (!el.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.String) return "";
+			return v.GetString() ?? "";
+		}
+
+		static long jsonlong(JsonElement el, string name) {
+			if (!el.TryGetProperty(name, out var v)) return 0;
+			if (v.ValueKind == JsonValueKind.Number) {
+				if (v.TryGetInt64(out var n)) return n;
+				if (v.TryGetDouble(out var d)) return (long)d;
+			}
+			if (v.ValueKind == JsonValueKind.String && long.TryParse(v.GetString(), out var s)) return s;
+			return 0;
+		}
+
+		static long contentlen(JsonElement p) {
+			if (!p.TryGetProperty("response", out var resp) || resp.ValueKind != JsonValueKind.Object) return 0;
+			if (!resp.TryGetProperty("headers", out var headers) || headers.ValueKind != JsonValueKind.Object) return 0;
+			foreach (var h in headers.EnumerateObject()) {
+				if (!h.Name.Equals("content-length", StringComparison.OrdinalIgnoreCase)) continue;
+				if (h.Value.ValueKind == JsonValueKind.String && long.TryParse(h.Value.GetString(), out var n)) return n;
+				if (h.Value.ValueKind == JsonValueKind.Number && h.Value.TryGetInt64(out var n2)) return n2;
+			}
+			return 0;
+		}
+
+		static string consoletext(JsonElement p) {
+			if (!p.TryGetProperty("args", out var args) || args.ValueKind != JsonValueKind.Array) return "";
+			var sb = new StringBuilder();
+			foreach (var a in args.EnumerateArray()) {
+				if (sb.Length > 0) sb.Append(' ');
+				if (a.TryGetProperty("value", out var v)) {
+					if (v.ValueKind == JsonValueKind.String) sb.Append(v.GetString());
+					else sb.Append(v.ToString());
+				}
+				else if (a.TryGetProperty("description", out var d) && d.ValueKind == JsonValueKind.String)
+					sb.Append(d.GetString());
+			}
+			return sb.ToString();
 		}
 
 		void send(string text) {

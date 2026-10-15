@@ -209,7 +209,7 @@ static class CharArt {
 		return sb.ToString();
 	}
 
-	/// <summary>纯 ASCII。字符格子大约两倍高，按列数算出行数。threshold 为 0～255，不超过它的亮度用空格。</summary>
+	/// <summary>纯 ASCII。字符格子大约两倍高，按列数算出行数。不勾选反色时越暗越密，勾选后反过来。threshold 以下留空。</summary>
 	public static string Ascii(byte[] px, int w, int h, int cols, bool invert, int threshold) {
 		if (px == null || w < 1 || h < 1) return "";
 		if (cols < 1) cols = 1;
@@ -226,7 +226,7 @@ static class CharArt {
 				var x1 = w * ((x + 1) / (double)cols);
 				var c = sample(px, w, h, (x0 + x1) / 2, (y0 + y1) / 2);
 				var lum = c < 0 ? 0 : (red(c) * 2126 + green(c) * 7152 + blue(c) * 722) / 10000;
-				if (invert) lum = 255 - lum;
+				if (!invert) lum = 255 - lum;
 				var i = 0;
 				if (lum > threshold) {
 					var span = 255 - threshold;
@@ -438,14 +438,14 @@ static class CharArt {
 		fill(black, 4, 2, 0, 4, 0, 0, 0);
 		var aw = Ascii(white, 4, 2, 4, false, 0);
 		var ab = Ascii(black, 4, 2, 4, false, 0);
-		if (aw.IndexOf('@') < 0 || ab.Trim().Length != 0 || !isascii(aw) || !isascii(ab)) {
+		if (ab.IndexOf('@') < 0 || aw.Trim().Length != 0 || !isascii(aw) || !isascii(ab)) {
 			bad("charart ascii");
 			return 1;
 		}
-		var dim = solid(4, 2, 80, 80, 80);
-		var cut = Ascii(dim, 4, 2, 4, false, 128);
-		var hi = Ascii(white, 4, 2, 4, false, 255);
-		var kept = Ascii(white, 4, 2, 4, false, 128);
+		var pale = solid(4, 2, 200, 200, 200);
+		var cut = Ascii(pale, 4, 2, 4, false, 128);
+		var hi = Ascii(black, 4, 2, 4, false, 255);
+		var kept = Ascii(black, 4, 2, 4, false, 128);
 		if (cut.Trim().Length != 0 || hi.Trim().Length != 0 || kept.IndexOf('@') < 0) {
 			bad("charart threshold");
 			return 1;

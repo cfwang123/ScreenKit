@@ -89,7 +89,7 @@ Failures also return **HTTP 200**. Success or failure is only the JSON `code` an
 | 900 | Internal error |
 | 901 | OCR recognition failed |
 | 910+ | ASR-related |
-| 920+ | TTS-related (921 Sherpa unavailable, 922 no model/voice, 923 empty audio, 924 synth failed, 925 unknown engine) |
+| 920+ | TTS-related (921 Sherpa unavailable, 922 no model/voice, 923 empty audio, 924 synth failed, 925 unknown engine, 927 Chrome voice pack not installed) |
 | 930+ | Face-related (930 no models, 931 failed, 932 missing det/rec files) |
 | 950 | Barcode / QR scan failed |
 
@@ -732,6 +732,8 @@ curl -s -X POST "http://127.0.0.1:1224/api/asr" \
 ## 8. TTS (speech synthesis)
 
 Four engines: **Sherpa** (ONNX packs under `ttsmodels`), **SAPI** (classic `System.Speech`, including x86-only voices via `x86host.exe`), **Windows** (`engine=winrt`, WinRT / OneCore neural voices), and **Edge online** (`engine=edge`, no model/API key, Internet required). Omitting `engine` keeps the Sherpa path when a Sherpa model exists; otherwise it uses Windows speech when a voice is installed, or Edge online when none is.
+
+**Chrome** (`engine=chrome`) speaks in a hidden local Chrome and does not return WAV. On the desktop, a missing offline voice pack is installed on the spot, with a progress window you can cancel. This HTTP API does not install it. A missing pack returns 927; install it first under **Help → Install features → Chrome**.
 
 ### 8.1 GET `/api/tts/engines` · GET `/api/tts/models`
 

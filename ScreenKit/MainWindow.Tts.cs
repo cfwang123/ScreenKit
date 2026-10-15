@@ -1514,6 +1514,7 @@ public partial class MainWindow {
 		var voice = ettsvoice.SelectedItem as SapiVoiceItem;
 		var name = voice?.Name ?? "";
 		var lang = voice != null && !string.IsNullOrEmpty(voice.Culture) ? voice.Culture : currentttslang();
+		await ensurechromevoice(lang, exe, ct);
 		var rate = ettsrate.Value;
 		var vol = ettsvol.Value / 100.0;
 		var i = 0;
@@ -1537,6 +1538,32 @@ public partial class MainWindow {
 		}
 		if (!ct.IsCancellationRequested)
 			lbttsstatus.Text = $"Chrome · {segments.Count}";
+	}
+
+	/// <summary>对应语言的离线语音包没装就当场安装，进度窗可以取消。</summary>
+	async Task ensurechromevoice(string culture, string exe, CancellationToken ct) {
+		var pack = ChromePack.SpeakLang(culture);
+		if (pack.Length == 0 || ChromePack.VoiceInstalled(pack) == true) return;
+		ct.ThrowIfCancellationRequested();
+		var prog = new ChromeVoiceProgressWindow { Owner = this };
+		using var reg = ct.Register(() => prog.RequestCancel());
+		Exception fail = null;
+		var mode = HttpProxy.Mode;
+		var addr = HttpProxy.Addr;
+		prog.Show();
+		var task = Task.Run(() => {
+			try {
+				ChromePack.EnsureVoice(pack, exe, mode, addr, (note, frac, done, total) => {
+					try { prog.Report(note, frac, done, total); } catch { }
+				}, prog.Token);
+			}
+			catch (Exception ex) { fail = ex; }
+		});
+		try { await task.ConfigureAwait(true); }
+		finally { prog.ForceClose(); }
+		if (prog.WasCancelled || ct.IsCancellationRequested)
+			throw new OperationCanceledException(ct);
+		if (fail != null) throw fail;
 	}
 
 	async Task ttsexportasync() {
