@@ -792,6 +792,8 @@
 							          AutomationProperties.AutomationId="set.http.face"/>
 							<CheckBox x:Name="ehttprtsp" Content="RTSP转发" Width="160" Margin="0,0,0,6" IsChecked="True"
 							          AutomationProperties.AutomationId="set.http.rtsp"/>
+							<CheckBox x:Name="esfen" Content="文件传输" Width="140" Margin="0,0,0,6" IsChecked="True"
+							          AutomationProperties.AutomationId="set.sendfile.enable"/>
 						</WrapPanel>
 						<CheckBox x:Name="ehttplan" Content="允许局域网访问" Margin="0,0,0,4" IsChecked="True"
 						          AutomationProperties.AutomationId="set.http.lan"/>
@@ -820,13 +822,6 @@
 						           TextWrapping="Wrap" Margin="0,0,0,4"
 						           Text="识别、翻译、人脸、语音识别和合成空闲达到该分钟数后释放。默认 5，0 表示不自动卸载。"/>
 
-						<TextBlock x:Name="lbsetsf" Text="PC 文件传输（局域网）"
-						           FontWeight="SemiBold" Margin="0,20,0,6"/>
-						<TextBlock x:Name="lbsetsfhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           Margin="0,0,0,8" TextWrapping="Wrap"
-						           Text="手机 App「PC文件传输」搜索本机；首次连接需弹窗确认。目录为程序旁 sendfile/"/>
-						<CheckBox x:Name="esfen" Content="启用文件传输服务" Margin="0,0,0,10" IsChecked="True"
-						          AutomationProperties.AutomationId="set.sendfile.enable"/>
 						<TextBlock x:Name="lbsetcast" Text="局域网投屏"
 						           FontWeight="SemiBold" Margin="0,16,0,6"/>
 						<TextBlock x:Name="lbsetcasthint" FontSize="11" Foreground="{StaticResource TextMuted}"

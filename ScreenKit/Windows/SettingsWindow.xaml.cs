@@ -334,8 +334,6 @@ public partial class SettingsWindow : Window {
 			ehttplan.Content = Loc.T("set.http.lan");
 			lbsethttplanhint.Text = Loc.T("set.http.lan.hint");
 			lbsethttpport.Text = Loc.T("set.http.port");
-			lbsetsf.Text = Loc.T("set.sendfile");
-			lbsetsfhint.Text = Loc.T("set.sendfile.hint");
 			esfen.Content = Loc.T("set.sendfile.enable");
 			lbsetcast.Text = Loc.T("set.cast");
 			lbsetcasthint.Text = Loc.T("set.cast.hint");
