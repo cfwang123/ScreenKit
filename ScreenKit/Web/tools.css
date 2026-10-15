@@ -92,8 +92,9 @@ nav button i {
 nav button:hover { background: #f3f4f6; }
 nav button.on { background: #f97316; color: #fff; }
 nav button.on i { color: #fff; }
+.side-links { margin-top: auto; display: flex; flex-direction: column; gap: 2px; }
 .files {
-	margin-top: auto; color: #666; text-decoration: none;
+	color: #666; text-decoration: none;
 	display: flex; align-items: center; gap: 8px;
 	padding: 9px 10px; border-radius: 8px;
 }

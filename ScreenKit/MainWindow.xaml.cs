@@ -635,6 +635,7 @@ public partial class MainWindow : Window {
 			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => opengifrecordoptions(fromTray: true)));
 			tray.WebHomeRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true)));
 			tray.WebFilesRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpfiles(fromTray: true)));
+			tray.WebDictRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdict(fromTray: true)));
 			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true, tool: id)));
 			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv(fromTray: true)));
 			tray.CharArtRequested += () => Dispatcher.BeginInvoke(new Action(() => opencharart(fromTray: true)));
@@ -1610,6 +1611,7 @@ public partial class MainWindow : Window {
 		fillwebmenu();
 		mnwebhome.Click += (_, _) => openhttptools();
 		mnwebfiles.Click += (_, _) => openhttpfiles(false);
+		mnwebdict.Click += (_, _) => openhttpdict(false);
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mndict.Click += (_, _) => showdicttab();
 		mnimgconv.Click += (_, _) => openimgconv();
@@ -1757,6 +1759,8 @@ public partial class MainWindow : Window {
 			mnwebhome.Header = Loc.T("tray.webhome") + "(_B)";
 			mnwebhome.ToolTip = Loc.T("menu.webhome.tip");
 			mnwebfiles.Header = Loc.T("tray.webfiles");
+			mnwebdict.Header = Loc.T("web.dict");
+			mnwebdict.ToolTip = Loc.T("web.dict.tip");
 			mncattext.Header = Loc.T("web.cat.text") + "(_X)";
 			mncatcalc.Header = Loc.T("web.cat.calc") + "(_C)";
 			mncatspeech.Header = Loc.T("web.cat.speech") + "(_V)";

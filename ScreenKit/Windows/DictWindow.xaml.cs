@@ -520,6 +520,14 @@ public partial class DictWindow : UserControl {
 		return s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 	}
 
+	internal static string ExportPlain(DictEntry e) => detailplain(e);
+
+	internal static string ExportHtml(string s) => htmlesc(s);
+
+	internal static string ExportCsv(string s) => csvcell(s);
+
+	internal const string ExportCss = EXPORT_TABLE_CSS;
+
 	static string detailplain(DictEntry e) {
 		if (e == null) return "";
 		var lines = new List<string>();

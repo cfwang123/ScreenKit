@@ -120,6 +120,9 @@
 				          ToolTip="在浏览器打开本机工具页"/>
 				<MenuItem x:Name="mnwebfiles" Header="文件传输"
 				          AutomationProperties.AutomationId="menu.webfiles"/>
+				<MenuItem x:Name="mnwebdict" Header="词典"
+				          AutomationProperties.AutomationId="menu.webdict"
+				          ToolTip="在新窗口打开网页词典"/>
 				<MenuItem x:Name="mnhangul" Header="韩语输入(_U)"
 				          IsCheckable="True"
 				          InputGestureText="Ctrl+Alt+K"

@@ -141,6 +141,10 @@ public partial class MainWindow {
 		openhttppage(fromTray, "/files");
 	}
 
+	void openhttpdict(bool fromTray) {
+		openhttppage(fromTray, "/dict");
+	}
+
 	void fillwebmenu() {
 		stripweb(mncattext);
 		stripweb(mncatcalc);

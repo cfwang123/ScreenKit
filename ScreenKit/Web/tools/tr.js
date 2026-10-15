@@ -13,12 +13,26 @@
 	function loadtr(){
 		if (trLangs) {
 			filltrlang();
+			takedict();
 			return;
 		}
 		SK.get("/api/translate/langs", function(data){
 			trLangs = data && data.src ? data : { src: ["auto"], dst: { auto: ["auto"] } };
 			filltrlang();
+			takedict();
 		}, "tr-msg");
+	}
+
+	function takedict(){
+		var text = "";
+		try {
+			text = sessionStorage.getItem("sk.dict.tr") || "";
+			if (text) sessionStorage.removeItem("sk.dict.tr");
+		}
+		catch (e) {}
+		if (!text || !F.id("tr-in")) return;
+		F.id("tr-in").value = text;
+		trgo();
 	}
 
 	function langlabel(code){

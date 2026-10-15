@@ -16,7 +16,8 @@ namespace ScreenKit;
 /// <item>WebSocket /chat 工具页聊天室（昵称、性别，文字）</item>
 /// <item>WebSocket /rtsp?rtsp= 把一路 RTSP 转成 H.264 给网页播放</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
-/// <item>GET / 本机工具页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
+/// <item>GET / 本机工具页；/dict 词典页；/sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2</item>
+/// <item>GET /api/dict · /api/dict/entry · /api/dict/speak · /api/dict/export</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
 /// <item>GET/POST /api/pinyin 中文转拼音（NPinyin 已安装时）</item>
 /// <item>GET/POST /api/calendar 历法</item>
@@ -135,6 +136,14 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlelangjs(ctx);
+				return;
+			}
+			if (path is "/dict" or "/sk/dict.css" or "/sk/dict.js") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "词典页仅支持 GET"));
+					return;
+				}
+				handledictpage(ctx, path);
 				return;
 			}
 			if (path is "/" or "/sk/tools.css" or "/sk/tools.js" or "/sk/fa.css" or "/sk/fa-solid-900.woff2") {
@@ -294,6 +303,23 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlemac(ctx);
+				return;
+			}
+
+			if (path is "/api/dict" or "/api/dict/") {
+				handledictsearch(ctx);
+				return;
+			}
+			if (path is "/api/dict/entry") {
+				handledictentry(ctx);
+				return;
+			}
+			if (path is "/api/dict/speak") {
+				handledictspeak(ctx);
+				return;
+			}
+			if (path is "/api/dict/export") {
+				handledictexport(ctx);
 				return;
 			}
 
@@ -2406,6 +2432,11 @@ sealed partial class HttpOcrServer : IDisposable {
 	static JsonArray apilist(OcrOptions o) {
 		var a = new JsonArray {
 			"GET  /  本机工具页",
+			"GET  /dict  词典页（新窗口）",
+			"GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语",
+			"GET  /api/dict/entry  ?id=",
+			"GET  /api/dict/speak  ?text=&lang=  WAV",
+			"GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md",
 			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
 			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成",

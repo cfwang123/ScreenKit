@@ -31,6 +31,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miTools;
 	Forms.ToolStripMenuItem miWebHome;
 	Forms.ToolStripMenuItem miWebFiles;
+	Forms.ToolStripMenuItem miWebDict;
 	Forms.ToolStripMenuItem miCatText;
 	Forms.ToolStripMenuItem miCatCalc;
 	Forms.ToolStripMenuItem miCatSpeech;
@@ -208,9 +209,11 @@ sealed class TrayIcon : IDisposable {
 		miCast = item("tray.cast", () => CastRequested?.Invoke());
 		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
 		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
+		miWebDict = item("web.dict", () => WebDictRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
 		miTools.DropDownItems.Add(miWebHome);
 		miTools.DropDownItems.Add(miWebFiles);
+		miTools.DropDownItems.Add(miWebDict);
 		miTools.DropDownItems.Add(miHangul);
 		miTools.DropDownItems.Add(new Forms.ToolStripSeparator());
 		miCatText = new Forms.ToolStripMenuItem(Loc.T("web.cat.text"));
@@ -517,6 +520,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miTools, "tray.tools");
 			settext(miWebHome, "tray.webhome");
 			settext(miWebFiles, "tray.webfiles");
+			settext(miWebDict, "web.dict");
 			settext(miCatText, "web.cat.text");
 			settext(miCatCalc, "web.cat.calc");
 			settext(miCatSpeech, "web.cat.speech");
@@ -585,6 +589,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action GifRecordOptionsRequested;
 	public event Action WebHomeRequested;
 	public event Action WebFilesRequested;
+	public event Action WebDictRequested;
 	public event Action<string> WebToolRequested;
 
 	void fillwebtools() {

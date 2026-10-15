@@ -73,7 +73,7 @@ static class Cli {
 				or "--test-ort-lazy"
 				or "--test-ort-release"
 				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
-				or "--test-dict-host" or "--test-dict-tr"
+				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -400,6 +400,8 @@ static class Cli {
 					return testdicttr();
 				case "--test-dict-tts":
 					return DictTts.TestCache();
+				case "--test-dict-web":
+					return testdictweb();
 				case "--test-cast":
 					return testcast();
 				case "--test-cast-recv":
@@ -5464,6 +5466,42 @@ static class Cli {
 		return 0;
 	}
 
+	static int testdictweb() {
+		Out("=== 网页词典 --test-dict-web ===");
+		var hits = DictWeb.Hits(null, "hello", "en", 5);
+		if (hits == null) {
+			Out(DictDb.Error == "missing" ? "dict2.db not found beside exe" : "dict open fail: " + DictDb.Error);
+			return 2;
+		}
+		if (hits.Count == 0) {
+			Out("no hits");
+			return 3;
+		}
+		var e = DictDb.Get(hits[0].Id);
+		var node = DictWeb.EntryNode(e);
+		var word = "";
+		try { if (node?["word"] != null) word = node["word"].GetValue<string>() ?? ""; }
+		catch { word = ""; }
+		if (word.Length == 0) {
+			Out("entry json empty");
+			return 4;
+		}
+		var plain = DictWindow.ExportPlain(e);
+		if (plain.Length == 0) {
+			Out("export plain empty");
+			return 5;
+		}
+		using (var ms = new MemoryStream()) {
+			var n = DictWeb.Export(ms, "txt", "hello", "en");
+			if (n < 1 || ms.Length < 1) {
+				Out("export n=" + n);
+				return 6;
+			}
+		}
+		Out("ok " + word + " hits=" + hits.Count);
+		return 0;
+	}
+
 	static int testdict(string one) {
 		var forms = DictDb.JaForms("其奴", "そいつ, そやつ, すやつ'out-dated or obsolete kana usage'");
 		if (forms != "其奴, そいつ, そやつ") {
@@ -6159,6 +6197,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
   ScreenKit --test-dict-tts
+  ScreenKit --test-dict-web
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue
@@ -6266,6 +6305,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge
+      --test-dict-web  网页词典查询 hello，并导出一条纯文本
       --test-cast  投屏协议打包/拆包与画质 Fit（有 ffmpeg64 时编一帧）
       --test-cast-recv  HTTP /cast hello 往返必须进本进程（WiFi/ADB 弹窗路径）
       --test-aoa  列出 LibUsb 可见的 WinUSB 设备并探测 AOA GET_PROTOCOL
@@ -6369,6 +6409,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
   ScreenKit --test-dict-tts
+  ScreenKit --test-dict-web
   ScreenKit --test-cast
   ScreenKit --test-cast-recv
   ScreenKit --test-llm-continue

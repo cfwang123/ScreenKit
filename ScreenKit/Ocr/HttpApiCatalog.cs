@@ -79,6 +79,10 @@ static class HttpApiCatalog {
 		add(list, "POST /api/ipcity", "POST", "/api/ipcity", "{\n  \"ip\": \"8.8.8.8\"\n}", "http.doc.ipcity");
 		add(list, "GET /api/mac", "GET", "/api/mac?mac=00:1A:2B:3C:4D:5E", "", "http.doc.mac", accept: "GET/POST");
 		add(list, "POST /api/mac", "POST", "/api/mac", "{\n  \"mac\": \"00:1A:2B:3C:4D:5E\"\n}", "http.doc.mac");
+		add(list, "GET /api/dict", "GET", "/api/dict?q=hello&dict=en", "", "http.doc.dict", "dict");
+		add(list, "GET /api/dict/entry", "GET", "/api/dict/entry?id=1", "", "http.doc.dict", "dict");
+		add(list, "GET /api/dict/speak", "GET", "/api/dict/speak?text=hello&lang=en", "", "http.doc.dict", "dict");
+		add(list, "GET /api/dict/export", "GET", "/api/dict/export?q=hello&fmt=txt", "", "http.doc.dict", "dict");
 		add(list, "GET /api/usb", "GET", "/api/usb?vid=046d&pid=c52b", "", "http.doc.usb", accept: "GET/POST");
 		add(list, "POST /api/usb", "POST", "/api/usb", "{\n  \"vid\": \"046d\",\n  \"pid\": \"c52b\"\n}", "http.doc.usb");
 		add(list, "GET /api/enc", "GET", "/api/enc?cp=21834", "", "http.doc.enc", accept: "GET/POST");
@@ -136,6 +140,7 @@ static class HttpApiCatalog {
 			"translate" => o.HttpTranslate,
 			"chat" => o.HttpChat,
 			"face" => o.HttpFace,
+			"dict" => o.ModDict,
 			_ => true,
 		};
 	}
