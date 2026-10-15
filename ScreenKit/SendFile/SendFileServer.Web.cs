@@ -443,6 +443,7 @@ static class SendFileWebPages {
 	public static string BootStamp {
 		get {
 			EnsureBootStamp();
+			try { Loc.WebFile(); } catch { }
 			var stamp = bootStamp;
 			try {
 				var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web");

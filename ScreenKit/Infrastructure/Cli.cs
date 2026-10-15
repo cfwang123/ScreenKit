@@ -6793,6 +6793,25 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				Err("lang: 别名未映射");
 				return 1;
 			}
+			var js1 = Loc.WebFile();
+			var js2 = Loc.WebFile();
+			if (!ReferenceEquals(js1, js2)) {
+				Err("lang: toml 未改时重复合成 L.js");
+				return 1;
+			}
+			var text1 = Encoding.UTF8.GetString(js1);
+			if (!text1.StartsWith("L=", StringComparison.Ordinal) || text1.IndexOf("Bonjour", StringComparison.Ordinal) < 0) {
+				Err("lang: L.js 内容不符");
+				return 1;
+			}
+			var zhPath = Path.Combine(dir, "zh.toml");
+			File.WriteAllText(zhPath, "name = \"中文\"\n[text]\napp.title = \"中\"\nextra.mark = \"新句子\"\n", new UTF8Encoding(false));
+			File.SetLastWriteTimeUtc(zhPath, DateTime.UtcNow.AddSeconds(2));
+			var js3 = Loc.WebFile();
+			if (ReferenceEquals(js1, js3) || Encoding.UTF8.GetString(js3).IndexOf("新句子", StringComparison.Ordinal) < 0) {
+				Err("lang: toml 更新后没有重新合成 L.js");
+				return 1;
+			}
 			Out("lang ok " + codes);
 			return 0;
 		}

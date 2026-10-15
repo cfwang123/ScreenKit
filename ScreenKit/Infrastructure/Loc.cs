@@ -30,6 +30,9 @@ static class Loc {
 	static List<UiLang> langs = new();
 	static Dictionary<string, Dictionary<string, string>> maps =
 		new(StringComparer.OrdinalIgnoreCase);
+	static byte[] webBytes;
+	static long webTicks;
+	static int webCount = -1;
 
 	public static IReadOnlyList<UiLang> Languages {
 		get { ensure(); return langs; }
@@ -62,11 +65,19 @@ static class Loc {
 		lock (gate) {
 			testRoot = string.IsNullOrWhiteSpace(dir) ? null : Path.GetFullPath(dir);
 			loaded = false;
+			webBytes = null;
+			webTicks = 0;
+			webCount = -1;
 		}
 	}
 
 	internal static void Reload() {
-		lock (gate) loaded = false;
+		lock (gate) {
+			loaded = false;
+			webBytes = null;
+			webTicks = 0;
+			webCount = -1;
+		}
 		ensure();
 	}
 
@@ -252,9 +263,80 @@ static class Loc {
 		return true;
 	}
 
-	/// <summary>工具页语言包。请求时生成，内容只有一次赋值 L={键:[各语言]}。</summary>
+	/// <summary>工具页语言包。内容只有一次赋值 L={键:[各语言]}。</summary>
 	public static string WebScript() {
 		ensure();
+		return buildscript();
+	}
+
+	/// <summary>
+	/// 程序目录 web/L.js。比较 lang/*.toml 的修改时间，有更新才重新合成。
+	/// </summary>
+	public static byte[] WebFile() {
+		lock (gate) {
+			var newest = 0L;
+			var count = 0;
+			langtimes(ref newest, ref count);
+			if (webBytes != null && count == webCount && newest <= webTicks)
+				return webBytes;
+			var path = webpath();
+			if (string.IsNullOrEmpty(testRoot) && webBytes == null && count > 0 && File.Exists(path)) {
+				DateTime old;
+				try { old = File.GetLastWriteTimeUtc(path); }
+				catch { old = DateTime.MinValue; }
+				if (old != DateTime.MinValue && newest <= old.Ticks) {
+					try {
+						webBytes = File.ReadAllBytes(path);
+						webTicks = old.Ticks;
+						webCount = count;
+						return webBytes;
+					}
+					catch { }
+				}
+			}
+			loaded = false;
+			ensure();
+			webBytes = new UTF8Encoding(false).GetBytes(buildscript());
+			webCount = count;
+			webTicks = newest;
+			if (string.IsNullOrEmpty(testRoot)) {
+				try {
+					var dir = Path.GetDirectoryName(path);
+					if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+					File.WriteAllBytes(path, webBytes);
+					var written = DateTime.UtcNow;
+					File.SetLastWriteTimeUtc(path, written);
+					var ticks = File.GetLastWriteTimeUtc(path).Ticks;
+					if (ticks > webTicks) webTicks = ticks;
+				}
+				catch { }
+			}
+			if (webTicks < newest) webTicks = newest;
+			return webBytes;
+		}
+	}
+
+	static void langtimes(ref long newest, ref int count) {
+		var dir = root();
+		if (!Directory.Exists(dir)) return;
+		string[] files;
+		try { files = Directory.GetFiles(dir, "*.toml"); }
+		catch { return; }
+		foreach (var f in files) {
+			var code = Path.GetFileNameWithoutExtension(f).Trim().ToLowerInvariant();
+			if (!okcode(code)) continue;
+			count++;
+			long ticks;
+			try { ticks = File.GetLastWriteTimeUtc(f).Ticks; }
+			catch { continue; }
+			if (ticks > newest) newest = ticks;
+		}
+	}
+
+	static string webpath() =>
+		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", "L.js");
+
+	static string buildscript() {
 		var codes = new List<string>();
 		var names = new List<string>();
 		foreach (var one in langs) {

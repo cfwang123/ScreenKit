@@ -89,6 +89,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools-page scan beep is a 0.2 second 440 Hz square wave, the same pitch as the 8bit buzzer.
 - Browser model can speak with speechSynthesis and dictate with webkitSpeechRecognition.
 - Scientific calculator: Escape clears the expression and does not close the window.
+- The tools page language script web/L.js is rebuilt only when a lang/*.toml file is newer.
+- Chinese segmentation lists each word, sentence, or grapheme on its own line.
 
 #### Fixed
 
@@ -173,6 +175,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页扫码提示音改为 0.2 秒、440 Hz 方波，音高跟 8bit 蜂鸣一样。
 - 浏览器小模型可以朗读，也可以用语音识别听写。
 - 科学计算器按 Esc 清空算式，不再关闭窗口。
+- 工具页语言脚本 web/L.js 只在某个 lang/*.toml 比它新时才重新合成。
+- 中文分词按词、句或字素切开后，每行一段。
 
 #### 修复
 

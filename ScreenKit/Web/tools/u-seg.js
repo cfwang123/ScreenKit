@@ -70,7 +70,6 @@
 			piece = step.value && step.value.segment;
 			if (piece) parts.push(piece);
 		}
-		if (grain === "word") return parts.join(" / ");
 		return parts.join("\n");
 	}
 })();

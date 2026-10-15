@@ -698,7 +698,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handlelangjs(SockCtx ctx) {
-		var bytes = Encoding.UTF8.GetBytes(Loc.WebScript());
+		var bytes = Loc.WebFile();
 		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
 		var res = ctx.Response;
 		res.StatusCode = 200;
