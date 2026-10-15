@@ -28,7 +28,7 @@
 			        Margin="0,0,6,6"
 			        AutomationProperties.AutomationId="charart.color"/>
 			<TextBlock x:Name="lbcols" Text="列数" VerticalAlignment="Center" Margin="8,0,6,6"/>
-			<TextBox x:Name="ecols" Width="64" Height="30" Text="100" Padding="6,4"
+			<TextBox x:Name="ecols" Width="64" Height="30" Text="250" Padding="6,4"
 			         VerticalContentAlignment="Center" Margin="0,0,0,6"
 			         BorderBrush="{StaticResource BorderSoft}"
 			         AutomationProperties.AutomationId="charart.cols"/>
@@ -44,16 +44,16 @@
 			           Foreground="{StaticResource TextMuted}"/>
 			<TextBlock x:Name="lbsize" Text="字号" VerticalAlignment="Center" Margin="12,0,6,6"/>
 			<Slider x:Name="esize" Width="120" Minimum="6" Maximum="36" TickFrequency="1"
-			        IsSnapToTickEnabled="True" Value="12" VerticalAlignment="Center" Margin="0,0,0,6"
+			        IsSnapToTickEnabled="True" Value="6" VerticalAlignment="Center" Margin="0,0,0,6"
 			        AutomationProperties.AutomationId="charart.size"/>
-			<TextBlock x:Name="lbsizev" Text="12" Width="24" VerticalAlignment="Center" Margin="6,0,0,6"
+			<TextBlock x:Name="lbsizev" Text="6" Width="24" VerticalAlignment="Center" Margin="6,0,0,6"
 			           Foreground="{StaticResource TextMuted}"/>
 		</WrapPanel>
 		<TextBlock x:Name="lbhint" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}"
 		           Text="拖入图片。单色用 ASCII。全色在新的命令行窗口里用色块显示。"/>
 		<TextBox x:Name="eout" Grid.Row="2" AllowDrop="True"
-		         FontFamily="Consolas" FontSize="12"
+		         FontFamily="Consolas" FontSize="6"
 		         AcceptsReturn="True" IsReadOnly="True"
 		         TextWrapping="NoWrap"
 		         HorizontalScrollBarVisibility="Auto"

@@ -177,7 +177,7 @@ public partial class CharArtWindow : Window {
 
 	void showascii() {
 		if (px == null) return;
-		var cols = 100;
+		var cols = 250;
 		int.TryParse((ecols.Text ?? "").Trim(), out cols);
 		if (cols < 1) cols = 1;
 		if (cols > 400) cols = 400;
