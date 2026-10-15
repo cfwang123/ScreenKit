@@ -85,16 +85,10 @@ partial class InstallFeaturesWindow {
 		foreach (var c in rest)
 			echromelang.Items.Add(new ComboBoxItem { Content = chromelanglabel(c), Tag = c });
 		var pick = 0;
-		for (var i = 0; i < echromelang.Items.Count; i++) {
-			if (echromelang.Items[i] is ComboBoxItem ci
-				&& string.Equals(ci.Tag as string, prev, StringComparison.OrdinalIgnoreCase)) {
-				pick = i;
-				break;
-			}
-		}
-		if (string.IsNullOrEmpty(prev)) {
+		if (!string.IsNullOrEmpty(prev)) {
 			for (var i = 0; i < echromelang.Items.Count; i++) {
-				if (echromelang.Items[i] is ComboBoxItem ci && (ci.Tag as string) == "zh") {
+				if (echromelang.Items[i] is ComboBoxItem ci
+					&& string.Equals(ci.Tag as string, prev, StringComparison.OrdinalIgnoreCase)) {
 					pick = i;
 					break;
 				}
