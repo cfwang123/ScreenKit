@@ -66,6 +66,61 @@ static class ChromeTts {
 		lock (speakGate) post(text, voiceName, lang, rate, volume, exe, idleSec);
 	}
 
+	/// <summary>本程序启动的朗读 Chrome 还在。children 是它下面还活着的子进程数。</summary>
+	public static bool TryRun(out int children) {
+		children = 0;
+		Process p;
+		lock (gate) p = proc;
+		if (!up(p)) return false;
+		int pid;
+		try { pid = p.Id; }
+		catch { return false; }
+		var n = ChildCount(pid);
+		children = n < 0 ? 0 : n;
+		return true;
+	}
+
+	/// <summary>pid 下面的子进程个数。快照失败返回 -1。</summary>
+	public static int ChildCount(int pid) {
+		if (pid <= 0) return 0;
+		var snap = CreateToolhelp32Snapshot(2, 0);
+		if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return -1;
+		try {
+			var rows = new List<int[]>();
+			var pe = new PROCESSENTRY32();
+			pe.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
+			if (!Process32First(snap, ref pe)) return -1;
+			do {
+				rows.Add(new[] { (int)pe.th32ProcessID, (int)pe.th32ParentProcessID });
+			}
+			while (Process32Next(snap, ref pe));
+			var n = 0;
+			var seen = new HashSet<int>();
+			var q = new Queue<int>();
+			q.Enqueue(pid);
+			seen.Add(pid);
+			while (q.Count > 0) {
+				var id = q.Dequeue();
+				foreach (var row in rows) {
+					if (row[1] != id || seen.Contains(row[0])) continue;
+					seen.Add(row[0]);
+					n++;
+					q.Enqueue(row[0]);
+				}
+			}
+			return n;
+		}
+		finally {
+			CloseHandle(snap);
+		}
+	}
+
+	static bool up(Process p) {
+		if (p == null) return false;
+		try { return !p.HasExited; }
+		catch { return false; }
+	}
+
 	public static void Stop() {
 		Process p;
 		lock (gate) {
@@ -94,6 +149,8 @@ static class ChromeTts {
 			var zh = Voices.Find(v => v.Lang == TtsLang.Zh && v.Source == "chrome");
 			if (zh == null || string.IsNullOrEmpty(zh.Key) || !zh.Key.StartsWith("chrome:", StringComparison.Ordinal))
 				return 2;
+			if (ChildCount(Process.GetCurrentProcess().Id) < 0) return 2;
+			if (TryRun(out _)) return 2;
 			return 0;
 		}
 		finally {
@@ -150,6 +207,33 @@ static class ChromeTts {
 			}
 			Thread.Sleep(150);
 		}
+	}
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint pid);
+
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32FirstW", SetLastError = true)]
+	static extern bool Process32First(IntPtr snap, ref PROCESSENTRY32 pe);
+
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32NextW", SetLastError = true)]
+	static extern bool Process32Next(IntPtr snap, ref PROCESSENTRY32 pe);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern bool CloseHandle(IntPtr handle);
+
+	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+	struct PROCESSENTRY32 {
+		public uint dwSize;
+		public uint cntUsage;
+		public uint th32ProcessID;
+		public IntPtr th32DefaultHeapID;
+		public uint th32ModuleID;
+		public uint cntThreads;
+		public uint th32ParentProcessID;
+		public int pcPriClassBase;
+		public uint dwFlags;
+		[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+		public string szExeFile;
 	}
 
 	static void launch(string path, string dir) {

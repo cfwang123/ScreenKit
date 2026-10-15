@@ -2291,6 +2291,11 @@
 				           AutomationProperties.AutomationId="status.use"/>
 				<TextBlock x:Name="lstusesep" Text=" · " FontSize="12"
 				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+				<TextBlock x:Name="lbchrome" Text="" FontSize="12" Visibility="Collapsed"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+				           AutomationProperties.AutomationId="status.chrome"/>
+				<TextBlock x:Name="lstchromesep" Text=" · " FontSize="12" Visibility="Collapsed"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 				<TextBlock x:Name="bstbar" Text="未加载模型" FontSize="12" Cursor="Hand"
 				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
 				           AutomationProperties.AutomationId="status.bar"/>

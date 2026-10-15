@@ -77,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web tools page has a world clock under Calendar. It lists local time for common places and can show one more region.
 - The tools-page chat room accepts Ctrl+V to paste an image or a file.
 - Chat images open in Viewer.js from the cdnjs CDN, with transitions turned off.
+- The status bar shows when a Chrome child process started by ScreenKit is still running.
 
 #### Changed
 
@@ -129,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - IP scan lists hosts as soon as they are found, and fills each name as it resolves.
 - RTSP test server preview now shows the newest frame instead of lagging the player.
 - RTSP test server paints the preview on screen before that frame is encoded and sent.
+- Chrome translation install clicks the language-pack row that has the button. Voice packs load the speech component in current Chrome.
 
 #### Removed
 
@@ -181,6 +183,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页工具的历法分类增加世界时钟，默认列出常用地区的本地时间，也可以再选一个地区。
 - 网页聊天室可以用 Ctrl+V 粘贴图片或文件。
 - 聊天图片用 cdnjs 上的 Viewer.js 点击放大，并关闭过渡动画。
+- 状态栏在本程序启动的 Chrome 子进程还在运行时显示状态。
 
 #### 变更
 
@@ -233,6 +236,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - IP 扫描发现主机后立即列出，每解析出一个主机名就更新一行
 - RTSP 测试服务器的预览改为显示最新画面，不再比播放器慢一截。
 - RTSP 测试服务器先把预览画到窗口上，再编码送出这一帧。
+- 安装 Chrome 翻译包时点带按钮的那一行。语音包会加载当前 Chrome 的语音组件。
 
 #### 移除
 

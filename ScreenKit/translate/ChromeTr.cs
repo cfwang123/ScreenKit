@@ -54,6 +54,7 @@ static class ChromeTr {
 		if (Bcp("zh-TW") != "zh-Hant") return 2;
 		if (Bcp("en") != "en") return 2;
 		if (Bcp("ja") != "ja") return 2;
+		if (TryRun(out _)) return 2;
 		return 0;
 	}
 
@@ -245,6 +246,24 @@ static class ChromeTr {
 		}
 		if (p == null) return;
 		try { if (!p.HasExited) p.Kill(); } catch { }
+	}
+
+	/// <summary>本程序启动的翻译 Chrome 还在。children 是它下面还活着的子进程数。</summary>
+	public static bool TryRun(out int children) {
+		children = 0;
+		Process p;
+		lock (gate) p = proc;
+		if (p == null) return false;
+		try {
+			if (p.HasExited) return false;
+		}
+		catch { return false; }
+		int pid;
+		try { pid = p.Id; }
+		catch { return false; }
+		var n = ChromeTts.ChildCount(pid);
+		children = n < 0 ? 0 : n;
+		return true;
 	}
 
 	public static void Stop() => stopproc();

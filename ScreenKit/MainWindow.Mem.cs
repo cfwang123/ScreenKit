@@ -48,6 +48,7 @@ public partial class MainWindow {
 		if (bstbar == null) return;
 		try {
 			if (windowshown()) refreshuse();
+			refreshchrome();
 			bstbar.Text = statusbarmem();
 			var http = statusbarhttp();
 			if (bsthttp != null) {
@@ -80,6 +81,26 @@ public partial class MainWindow {
 		if (value > 100) value = 100;
 		if (value >= 10 || value < 0.05) return Math.Round(value).ToString("0") + "%";
 		return value.ToString("0.0") + "%";
+	}
+
+	void refreshchrome() {
+		if (lbchrome == null) return;
+		var text = statusbarchrome();
+		var on = text.Length > 0;
+		lbchrome.Text = text;
+		lbchrome.ToolTip = Loc.T("stbar.chrome.tip");
+		lbchrome.Visibility = on ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+		if (lstchromesep != null)
+			lstchromesep.Visibility = on ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+	}
+
+	static string statusbarchrome() {
+		var tts = ChromeTts.TryRun(out var tc);
+		var tr = ChromeTr.TryRun(out var rc);
+		if (!tts && !tr) return "";
+		var n = (tts ? tc : 0) + (tr ? rc : 0);
+		if (n <= 0) return Loc.T("stbar.chrome");
+		return Loc.T("stbar.chrome.n", n);
 	}
 
 	string statusbarmem() {

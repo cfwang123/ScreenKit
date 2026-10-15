@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
@@ -40,7 +41,8 @@ sealed class ChromePackItem {
 
 /// <summary>查询、安装、卸载 Chrome 翻译包（TranslateKit）和离线语音包（Wasm TTS）。</summary>
 static class ChromePack {
-	const string TTS_EXT = "nkeimhogjdpnpccoofpliimaahmaaome";
+	const string TTS_EXT = "gjjabgpgjpampikjhjpfhneeoapjbjaf";
+	const string TTS_EXT_OLD = "nkeimhogjdpnpccoofpliimaahmaaome";
 	const int SW_HIDE = 0;
 
 	public static readonly string[] TrPairs = {
@@ -151,6 +153,7 @@ static class ChromePack {
 		}
 		if (tts.Count == 0) return;
 		ChromeTts.Stop();
+		preparevoice(ChromeTts.ProfileDir());
 		using var voice = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
 		voice.WaitExt(15000, ct);
 		foreach (var it in tts) {
@@ -232,6 +235,7 @@ static class ChromePack {
 		Dictionary<string, string> st = null;
 		try {
 			ChromeTts.Stop();
+			preparevoice(ChromeTts.ProfileDir());
 			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
 			sess.WaitExt(15000, ct);
 			var langs = new List<string>();
@@ -292,6 +296,32 @@ static class ChromePack {
 		var list = new List<ChromePackItem>(map.Values);
 		list.Sort((a, b) => string.Compare(a.Lang, b.Lang, StringComparison.OrdinalIgnoreCase));
 		return list;
+	}
+
+	static void preparevoice(string profile) {
+		try {
+			if (string.IsNullOrWhiteSpace(profile)) return;
+			Directory.CreateDirectory(profile);
+			var path = Path.Combine(profile, "Local State");
+			JsonNode root = File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path)) : new JsonObject();
+			if (root is not JsonObject) root = new JsonObject();
+			var settings = child(root, "settings");
+			var a11y = child(settings, "a11y");
+			var read = child(a11y, "read_anything");
+			var epoch = new DateTime(1601, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+			var us = (DateTime.UtcNow.AddDays(-20) - epoch).Ticks / 10;
+			read["last_opened_date"] = us.ToString();
+			read["tts_engine_reinstalled"] = false;
+			File.WriteAllText(path, root.ToJsonString(), new UTF8Encoding(false));
+		}
+		catch { }
+	}
+
+	static JsonObject child(JsonNode parent, string key) {
+		if (parent[key] is JsonObject obj) return obj;
+		var next = new JsonObject();
+		parent[key] = next;
+		return next;
 	}
 
 	static string findvoices() {
@@ -573,9 +603,31 @@ return JSON.stringify(out);
 ";
 
 		Sock connectext() {
-			var page = connect("background_page", TTS_EXT);
-			if (page != null) return page;
-			return connect("service_worker", TTS_EXT);
+			var sw = connect("service_worker", TTS_EXT) ?? connect("service_worker", TTS_EXT_OLD);
+			if (sw != null) return sw;
+			return connectbg();
+		}
+
+		Sock connectbg() {
+			var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/list");
+			req.Timeout = 4000;
+			using var resp = req.GetResponse();
+			using var rd = new StreamReader(resp.GetResponseStream());
+			using var doc = JsonDocument.Parse(rd.ReadToEnd());
+			foreach (var el in doc.RootElement.EnumerateArray()) {
+				var ty = el.TryGetProperty("type", out var t) ? t.GetString() : "";
+				var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
+				var ws = el.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
+				if (ty != "background_page" || string.IsNullOrEmpty(ws) || string.IsNullOrEmpty(url)) continue;
+				if (url.IndexOf("offscreen", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+				if (url.IndexOf("hangout", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+				var hit = url.IndexOf(TTS_EXT, StringComparison.OrdinalIgnoreCase) >= 0
+					|| url.IndexOf("WasmTts", StringComparison.OrdinalIgnoreCase) >= 0
+					|| url.IndexOf("background_compiled", StringComparison.OrdinalIgnoreCase) >= 0;
+				if (!hit) continue;
+				return Sock.Connect(ws);
+			}
+			return null;
 		}
 
 		Sock connect(string type, string urlPart) {
