@@ -1322,10 +1322,7 @@ return JSON.stringify(out);
 		}
 
 		static void appendproxy(StringBuilder args, string mode, string addr) {
-			mode = (mode ?? "").Trim().ToLowerInvariant();
-			if (mode == "off") args.Append("--no-proxy-server ");
-			else if (mode == "manual" && !string.IsNullOrWhiteSpace(addr))
-				args.Append("--proxy-server=\"").Append(addr.Trim()).Append("\" ");
+			HttpProxy.AppendChrome(args, mode, addr);
 		}
 
 		static void hide(Process p) {

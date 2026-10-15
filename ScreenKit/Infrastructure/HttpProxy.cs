@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using Microsoft.Win32;
 
 namespace ScreenKit;
@@ -15,6 +16,10 @@ sealed class HttpProxy : IWebProxy {
 	public static string Addr = "127.0.0.1:7897";
 	/// <summary>system / manual / off。</summary>
 	public static string Mode = "system";
+
+	const string CHROMEBYPASS = "<-loopback>;<local>;*.cn;10.0.0.0/8;172.16.0.0/12;192.168.0.0/16;169.254.0.0/16;"
+		+ "hf-mirror.com;*.hf-mirror.com;ghfast.top;*.ghfast.top;ghproxy.net;*.ghproxy.net;"
+		+ "ghproxy.com;*.ghproxy.com;ghproxy.org;*.ghproxy.org;mirror.ghproxy.com;ghps.cc;*.ghps.cc";
 
 	HttpProxy() {
 		Credentials = CredentialCache.DefaultCredentials;
@@ -51,6 +56,46 @@ sealed class HttpProxy : IWebProxy {
 
 	public static HttpClientHandler CreateHandler() =>
 		new() { UseProxy = true, Proxy = Instance };
+
+	/// <summary>当前代理写成 Chrome 启动参数。关掉或系统代理未开时是 --no-proxy-server。</summary>
+	public static string ChromeArgs() {
+		var sb = new StringBuilder();
+		AppendChrome(sb, Mode, Addr);
+		return sb.ToString();
+	}
+
+	/// <summary>按程序的代理设置追加 Chrome 参数。回环、内网、.cn 和国内镜像不走代理。</summary>
+	public static void AppendChrome(StringBuilder args, string mode, string addr) {
+		if (args == null) return;
+		var server = chromeserver(NormalizeMode(mode), addr);
+		if (server == null) {
+			args.Append("--no-proxy-server ");
+			return;
+		}
+		args.Append("--proxy-server=\"").Append(server).Append("\" ");
+		args.Append("--proxy-bypass-list=\"").Append(CHROMEBYPASS).Append("\" ");
+	}
+
+	static string chromeserver(string mode, string addr) {
+		if (mode == "off") return null;
+		var u = mode == "manual" ? parseaddr(addr) : systemuri();
+		if (u == null || string.IsNullOrEmpty(u.Host)) return null;
+		var host = u.Host;
+		if (host.IndexOf(':') >= 0 && !host.StartsWith("[", StringComparison.Ordinal))
+			host = $"[{host}]";
+		var port = u.IsDefaultPort ? "" : $":{u.Port}";
+		if (u.Scheme.StartsWith("socks", StringComparison.OrdinalIgnoreCase))
+			return $"{u.Scheme}://{host}{port}";
+		return $"{host}{port}";
+	}
+
+	static Uri parseaddr(string raw) {
+		raw = (raw ?? "").Trim().Trim('"');
+		if (raw.Length == 0) return null;
+		if (raw.IndexOf("://", StringComparison.Ordinal) < 0)
+			raw = "http://" + raw;
+		return Uri.TryCreate(raw, UriKind.Absolute, out var u) ? u : null;
+	}
 
 	public bool IsBypassed(Uri host) => !Need(host);
 
@@ -127,13 +172,7 @@ sealed class HttpProxy : IWebProxy {
 		return Uri.TryCreate(pick, UriKind.Absolute, out var u) ? u : null;
 	}
 
-	static Uri parse() {
-		var raw = (Addr ?? "").Trim();
-		if (raw.Length == 0) return null;
-		if (raw.IndexOf("://", StringComparison.Ordinal) < 0)
-			raw = "http://" + raw;
-		return Uri.TryCreate(raw, UriKind.Absolute, out var u) ? u : null;
-	}
+	static Uri parse() => parseaddr(Addr);
 
 	static bool iscnmirror(string host) {
 		host = (host ?? "").ToLowerInvariant();

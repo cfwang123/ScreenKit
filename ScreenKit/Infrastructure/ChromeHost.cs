@@ -15,6 +15,7 @@ static class ChromeHost {
 	static readonly Queue<int> order = new();
 	static Process proc;
 	static string launched;
+	static string launchedpx;
 	static string profile;
 	static TcpListener lis;
 	static int port;
@@ -249,15 +250,17 @@ static class ChromeHost {
 		idleSec = ChromeTts.ClampIdle(idleSec);
 		var path = ChromeTts.FindExe(exe);
 		if (path == null) throw new InvalidOperationException("找不到 chrome.exe");
+		var px = HttpProxy.ChromeArgs();
 		lock (gate) {
 			Volatile.Write(ref idle, idleSec);
-			if (up(proc) && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)) {
+			if (up(proc) && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)
+				&& string.Equals(launchedpx, px, StringComparison.Ordinal)) {
 				lock (slots) ready = true;
 				return;
 			}
 			stopunlocked();
 			starthttp();
-			launch(path);
+			launch(path, px);
 		}
 		if (!waitready(ct)) {
 			var cancel = ct.IsCancellationRequested;
@@ -284,7 +287,7 @@ static class ChromeHost {
 		u.Start();
 	}
 
-	static void launch(string path) {
+	static void launch(string path, string px) {
 		var dir = workdir();
 		profile = ChromeTts.ProfileDir();
 		var jobs = Path.Combine(dir, "jobs");
@@ -303,6 +306,7 @@ static class ChromeHost {
 		args.Append("--autoplay-policy=no-user-gesture-required ");
 		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
 		args.Append("--window-position=-32000,-32000 --window-size=160,80 ");
+		args.Append(px ?? "");
 		args.Append('"').Append(url).Append('"');
 		proc = Process.Start(new ProcessStartInfo {
 			FileName = path,
@@ -311,6 +315,7 @@ static class ChromeHost {
 			CreateNoWindow = true,
 		});
 		launched = path;
+		launchedpx = px ?? "";
 	}
 
 	static bool waitready(CancellationToken ct) {
@@ -360,6 +365,7 @@ static class ChromeHost {
 		var p = proc;
 		proc = null;
 		launched = null;
+		launchedpx = null;
 		List<Slot> left;
 		lock (slots) {
 			ready = false;
