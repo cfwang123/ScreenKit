@@ -11,11 +11,7 @@
         FontFamily="Segoe UI, Microsoft YaHei UI"
         AutomationProperties.AutomationId="sys.window">
 	<Grid Margin="16">
-		<Grid.RowDefinitions>
-			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
-		</Grid.RowDefinitions>
-		<TabControl x:Name="tabsys" Grid.Row="0" Margin="0,0,0,8"
+		<TabControl x:Name="tabsys" Margin="0"
 		            BorderBrush="{StaticResource BorderSoft}"
 		            AutomationProperties.AutomationId="sys.tabs">
 			<TabItem x:Name="tabsystem" Header="系统"
@@ -456,9 +452,5 @@
 				</Grid>
 			</TabItem>
 		</TabControl>
-		<DockPanel Grid.Row="1">
-			<Button x:Name="bclose" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
-			        AutomationProperties.AutomationId="sys.close"/>
-		</DockPanel>
 	</Grid>
 </Window>

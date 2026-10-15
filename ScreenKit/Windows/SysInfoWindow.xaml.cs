@@ -54,7 +54,6 @@ public partial class SysInfoWindow : Window {
 		eaudall.Click += (_, _) => showaud(keep(lvaud));
 		bfontrefresh.Click += (_, _) => reloadfont();
 		bfontcopy.Click += (_, _) => copyfont();
-		bclose.Click += (_, _) => Close();
 		eusbfilter.TextChanged += (_, _) => showusb(keep(lvusb));
 		ecomfilter.TextChanged += (_, _) => showcom(keep(lvcom));
 		eprnfilter.TextChanged += (_, _) => showprn(keep(lvprn));
@@ -167,7 +166,6 @@ public partial class SysInfoWindow : Window {
 		colfontfile.Header = Loc.T("font.col.file");
 		ToolBtnUi.Set(bfontrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(bfontcopy, ToolBtnUi.Copy, Loc.T("font.copy"));
-		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
 	void addpage(TabItem tab, SysDevicePage page, string kind, Func<List<UsbDev>> scan) {
