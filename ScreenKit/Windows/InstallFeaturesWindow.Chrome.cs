@@ -173,6 +173,7 @@ partial class InstallFeaturesWindow {
 		}
 		try { await fetchchrome(); }
 		catch (Exception ex) { appendlog(ex.Message); }
+		setbytes("");
 		setbusy(false);
 		var summary = string.Format(Loc.T(install ? "inst.install.done" : "inst.delete.done"), ok, fail);
 		setstatus(summary);

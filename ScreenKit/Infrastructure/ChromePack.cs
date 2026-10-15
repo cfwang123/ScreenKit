@@ -490,6 +490,8 @@ static class ChromePack {
 		if (install && web && webpair(sess, pair, title, report, log, ct)) return;
 		if (!sess.HasPage) sess.OpenInternals(ct);
 		var want = install ? "install" : "uninstall";
+		sess.ArmNet(ct);
+		sess.ClearBytes();
 		report(-1, title, "");
 		var r = sess.EvalPage(clickjs(pair, want), false, 15000, ct);
 		if (r == "already") {
@@ -499,7 +501,6 @@ static class ChromePack {
 		if (r != "clicked") throw new InvalidOperationException(pair + " " + r);
 		var root = ChromeTr.ProfileDir();
 		var baseBytes = dirsize(root);
-		sess.ArmNet(ct);
 		var start = Environment.TickCount;
 		while (unchecked(Environment.TickCount - start) < 180000) {
 			ct.ThrowIfCancellationRequested();
@@ -522,6 +523,8 @@ static class ChromePack {
 	static bool webpair(Sess sess, string pair, string title, Action<double, string, string> report, Action<string> log, CancellationToken ct) {
 		var bits = (pair ?? "").Split(new[] { " - " }, StringSplitOptions.None);
 		if (bits.Length != 2) return false;
+		sess.ArmNet(ct);
+		sess.ClearBytes();
 		report(-1, title, "");
 		var started = sess.EvalWeb(trstart(apilang(bits[0]), apilang(bits[1])), false, 15000, ct);
 		if (started != "started") return false;
@@ -555,6 +558,7 @@ static class ChromePack {
 		var root = ChromeTts.ProfileDir();
 		var baseBytes = dirsize(root);
 		var expect = voicesize(lang);
+		sess.ArmNet(ct);
 		sess.ClearBytes();
 		var started = sess.EvalExt(voicestart(type, lang), false, 15000, ct);
 		if (started != "started") throw new InvalidOperationException(lang + " " + started);
@@ -728,10 +732,6 @@ static class ChromePack {
 		return "(function(){var pair=" + jsstr(pair) + ";" + ROW + "})()";
 	}
 
-	static string voicejs(string type, string lang) {
-		return "(async function(){var type=" + jsstr(type) + ";var lang=" + jsstr(lang) + ";" + VOICE + "})()";
-	}
-
 	static string voicestart(string type, string lang) {
 		return "(function(){var type=" + jsstr(type) + ";var lang=" + jsstr(lang) + ";" + VOICESTART + "})()";
 	}
@@ -847,17 +847,6 @@ btn.click();return 'clicked';
 var row=findrow();return row?(text(row)||'').replace(/\s+/g,' ').trim():'';
 ";
 
-	const string VOICE = @"
-async function ready(){
-if(!chrome.offscreen||!chrome.offscreen.createDocument)return;
-var has=false;try{has=await chrome.offscreen.hasDocument();}catch(e){}
-if(!has){try{await chrome.offscreen.createDocument({url:'offscreen.html',reasons:['AUDIO_PLAYBACK','USER_MEDIA'],justification:'ScreenKit voice pack'});}catch(e){}}
-}
-await ready();
-var res=await new Promise(function(resolve){chrome.runtime.sendMessage({type:type,lang:lang},function(r){var err=chrome.runtime.lastError;resolve(err?{error:err.message}:(r||{}));});});
-return JSON.stringify(res||{});
-";
-
 	const string VOICESTART = @"
 self.__skp={done:false,err:'',raw:''};
 function ready(){
@@ -927,8 +916,11 @@ return 'started';
 		Sock ext;
 		Sock off;
 		Sock browser;
+		bool webNet;
+		bool pageNet;
 		bool extNet;
 		bool offNet;
+		bool browserNet;
 		bool dlNet;
 
 		public bool HasPage => page != null;
@@ -1066,19 +1058,25 @@ return 'started';
 		}
 
 		public void ArmNet(CancellationToken ct) {
+			arm(web, ref webNet, ct);
+			arm(page, ref pageNet, ct);
 			arm(ext, ref extNet, ct);
 			if (off == null) off = connectany("offscreen");
 			arm(off, ref offNet, ct);
-			if (dlNet || browser != null && dlNet) return;
-			try {
-				if (browser == null) {
-					var ws = browserws();
-					if (!string.IsNullOrEmpty(ws)) browser = Sock.Connect(ws);
+			if (!dlNet) {
+				try {
+					if (browser == null) {
+						var ws = browserws();
+						if (!string.IsNullOrEmpty(ws)) browser = Sock.Connect(ws);
+					}
+					if (browser != null) {
+						browser.Call("Browser.setDownloadBehavior", "{\"behavior\":\"default\",\"eventsEnabled\":true}", ct);
+						dlNet = true;
+					}
 				}
-				browser?.Call("Browser.setDownloadBehavior", "{\"behavior\":\"default\",\"eventsEnabled\":true}", ct);
-				dlNet = browser != null;
+				catch { dlNet = true; }
 			}
-			catch { dlNet = true; }
+			arm(browser, ref browserNet, ct);
 		}
 
 		public void ClearBytes() {
@@ -1316,6 +1314,8 @@ return JSON.stringify(out);
 		Socket io;
 		MemoryStream pending = new();
 		int seq;
+		readonly HashSet<string> watch = new();
+		readonly HashSet<string> dlSkip = new();
 		readonly Dictionary<string, long> reqgot = new();
 		readonly Dictionary<string, long> reqtotal = new();
 		double consolefrac = -1;
@@ -1355,6 +1355,7 @@ return JSON.stringify(out);
 					["expression"] = expr,
 					["returnByValue"] = true,
 					["awaitPromise"] = wait,
+					["userGesture"] = true,
 				},
 			});
 			send(payload);
@@ -1416,6 +1417,8 @@ return JSON.stringify(out);
 		}
 
 		public void ClearBytes() {
+			watch.Clear();
+			dlSkip.Clear();
 			reqgot.Clear();
 			reqtotal.Clear();
 			consolefrac = -1;
@@ -1454,15 +1457,19 @@ return JSON.stringify(out);
 				else if (dl) dlAll += t;
 				else netAll += t;
 			}
-			if (dlN > 0) {
-				loaded = dlGot;
-				full = dlFull && dlAll > 0;
-				total = full ? dlAll : 0;
+			var netOk = netN > 0 && netFull && netAll > 0;
+			var dlOkNow = dlN > 0 && dlFull && dlAll > 0;
+			if (netOk && dlOkNow) {
+				if (dlGot > netGot) { loaded = dlGot; total = dlAll; full = true; }
+				else { loaded = netGot; total = netAll; full = true; }
 				return;
 			}
+			if (dlOkNow) { loaded = dlGot; total = dlAll; full = true; return; }
+			if (netOk) { loaded = netGot; total = netAll; full = true; return; }
+			if (dlGot >= netGot && dlGot > 0) { loaded = dlGot; total = 0; full = false; return; }
 			loaded = netGot;
-			full = netN > 0 && netFull && netAll > 0;
-			total = full ? netAll : 0;
+			total = 0;
+			full = false;
 		}
 
 		static bool matchid(JsonElement root, int id) {
@@ -1477,32 +1484,69 @@ return JSON.stringify(out);
 				if (!root.TryGetProperty("method", out var methodEl) || methodEl.ValueKind != JsonValueKind.String) return;
 				var method = methodEl.GetString() ?? "";
 				if (!root.TryGetProperty("params", out var p) || p.ValueKind != JsonValueKind.Object) return;
+				if (method == "Network.requestWillBeSent") {
+					var id = reqid(p);
+					var url = p.TryGetProperty("request", out var req) ? text(req, "url") : "";
+					if (id.Length > 0 && packurl(url)) watch.Add(id);
+					return;
+				}
+				if (method == "Network.responseReceived" || method == "Network.responseReceivedExtraInfo") {
+					var id = reqid(p);
+					var url = "";
+					if (p.TryGetProperty("response", out var resp)) url = text(resp, "url");
+					if (id.Length > 0 && url.Length > 0 && !packurl(url)) {
+						watch.Remove(id);
+						reqgot.Remove(id);
+						reqtotal.Remove(id);
+						return;
+					}
+					if (id.Length > 0 && packurl(url)) watch.Add(id);
+					if (watch.Contains(id)) settotal(id, contentlen(p));
+					return;
+				}
 				if (method == "Network.dataReceived") {
+					var id = reqid(p);
+					if (!watch.Contains(id)) return;
 					var n = jsonlong(p, "encodedDataLength");
 					if (n <= 0) n = jsonlong(p, "dataLength");
-					addgot(text(p, "requestId"), n);
+					addgot(id, n);
 					return;
 				}
 				if (method == "Network.loadingFinished") {
-					setmax(text(p, "requestId"), jsonlong(p, "encodedDataLength"));
+					var id = reqid(p);
+					if (!watch.Contains(id)) return;
+					setmax(id, jsonlong(p, "encodedDataLength"));
 					return;
 				}
-				if (method == "Network.responseReceived") {
-					settotal(text(p, "requestId"), contentlen(p));
+				if (method == "Browser.downloadWillBegin") {
+					var id = text(p, "guid");
+					if (id.Length == 0) return;
+					var url = text(p, "url");
+					if (url.Length > 0 && !packurl(url)) {
+						dlSkip.Add(id);
+						reqgot.Remove("dl:" + id);
+						reqtotal.Remove("dl:" + id);
+						return;
+					}
+					dlSkip.Remove(id);
 					return;
 				}
 				if (method == "Browser.downloadProgress" || method == "Page.downloadProgress") {
 					var id = text(p, "guid");
 					if (id.Length == 0) id = text(p, "id");
-					if (id.Length == 0) return;
-					var got = jsonlong(p, "receivedBytes");
+					if (id.Length == 0 || dlSkip.Contains(id)) return;
+					var gotBytes = jsonlong(p, "receivedBytes");
 					var all = jsonlong(p, "totalBytes");
-					if (got > 0) reqgot["dl:" + id] = got;
+					if (gotBytes > 0) reqgot["dl:" + id] = gotBytes;
 					if (all > 0) reqtotal["dl:" + id] = all;
 					return;
 				}
-				if (method != "Runtime.consoleAPICalled") return;
-				var frac = percentin(consoletext(p));
+				if (method != "Runtime.consoleAPICalled" && method != "Runtime.exceptionThrown") return;
+				var line = method == "Runtime.consoleAPICalled" ? consoletext(p) : p.GetRawText();
+				var low = line.ToLowerInvariant();
+				if (!low.Contains("download") && !low.Contains("install") && !line.Contains("下载") && !line.Contains("安装") && !low.Contains("progress"))
+					return;
+				var frac = percentin(line);
 				if (frac > consolefrac) consolefrac = frac;
 			}
 			catch { }
@@ -1530,6 +1574,20 @@ return JSON.stringify(out);
 			return v.GetString() ?? "";
 		}
 
+		static string reqid(JsonElement p) {
+			if (!p.TryGetProperty("requestId", out var v)) return "";
+			if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
+			if (v.ValueKind == JsonValueKind.Number) return v.ToString();
+			return "";
+		}
+
+		static bool packurl(string url) {
+			if (string.IsNullOrEmpty(url)) return false;
+			var s = url.ToLowerInvariant();
+			return s.Contains("gvt1") || s.Contains(".crx") || s.Contains("wasm") || s.Contains("translate")
+				|| s.Contains("edgedl") || s.Contains("dl.google.") || s.Contains("update2/crx") || s.Contains("clients2.google.");
+		}
+
 		static long jsonlong(JsonElement el, string name) {
 			if (!el.TryGetProperty(name, out var v)) return 0;
 			if (v.ValueKind == JsonValueKind.Number) {
@@ -1541,12 +1599,30 @@ return JSON.stringify(out);
 		}
 
 		static long contentlen(JsonElement p) {
-			if (!p.TryGetProperty("response", out var resp) || resp.ValueKind != JsonValueKind.Object) return 0;
-			if (!resp.TryGetProperty("headers", out var headers) || headers.ValueKind != JsonValueKind.Object) return 0;
-			foreach (var h in headers.EnumerateObject()) {
-				if (!h.Name.Equals("content-length", StringComparison.OrdinalIgnoreCase)) continue;
-				if (h.Value.ValueKind == JsonValueKind.String && long.TryParse(h.Value.GetString(), out var n)) return n;
-				if (h.Value.ValueKind == JsonValueKind.Number && h.Value.TryGetInt64(out var n2)) return n2;
+			if (p.TryGetProperty("response", out var resp) && resp.ValueKind == JsonValueKind.Object && resp.TryGetProperty("headers", out var headers)) {
+				var n = headerlen(headers);
+				if (n > 0) return n;
+			}
+			if (p.TryGetProperty("headers", out var extra)) return headerlen(extra);
+			return 0;
+		}
+
+		static long headerlen(JsonElement headers) {
+			if (headers.ValueKind == JsonValueKind.Object) {
+				foreach (var h in headers.EnumerateObject()) {
+					if (!h.Name.Equals("content-length", StringComparison.OrdinalIgnoreCase)) continue;
+					if (h.Value.ValueKind == JsonValueKind.String && long.TryParse(h.Value.GetString(), out var n)) return n;
+					if (h.Value.ValueKind == JsonValueKind.Number && h.Value.TryGetInt64(out var n2)) return n2;
+				}
+			}
+			if (headers.ValueKind == JsonValueKind.Array) {
+				foreach (var el in headers.EnumerateArray()) {
+					var name = text(el, "name");
+					if (!name.Equals("content-length", StringComparison.OrdinalIgnoreCase)) continue;
+					if (!el.TryGetProperty("value", out var val)) continue;
+					if (val.ValueKind == JsonValueKind.String && long.TryParse(val.GetString(), out var n)) return n;
+					if (val.ValueKind == JsonValueKind.Number && val.TryGetInt64(out var n2)) return n2;
+				}
 			}
 			return 0;
 		}
