@@ -37,7 +37,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Documentation
+
+- The English README is now the short feature overview, matching the Chinese one. The previous full text is kept at docs/archive/README.md.
+
 ### 中文
+
+#### 文档
+
+- 英文 README 改为与中文相同的简版功能说明。原先的完整说明保留在 docs/archive/README.md。
 
 ## v1.0.21 (2026-10-14 ~ 15)
 

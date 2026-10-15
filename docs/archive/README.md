@@ -1,0 +1,457 @@
+> Archived: this is the full English guide from before it was replaced. The current short version is [README.md](../../README.md).
+
+# ScreenKit
+
+Windows desktop tool (`ScreenKit.exe`): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
+
+**Current version: 1.0.21** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+
+Changelog: [CHANGELOG.md](../../CHANGELOG.md) (English and Chinese per version).
+
+**Languages:** [English](../../README.md) · [Chinese](../../README.zh.md)
+
+## Contents
+
+1. [Screenshots](#screenshots)
+2. [Features](#features)
+3. [Dictionary](#dictionary)
+4. [Requirements](#requirements)
+5. [Using ScreenKit](#using-screenkit)
+6. [Install features](#install-features)
+7. [HTTP API](#http-api-overview)
+8. [CLI](#cli)
+9. [x86host](#x86host-32-bit-sapi-only)
+10. [Build from source](#build-from-source)
+11. [License](#license)
+
+## Screenshots
+
+![ScreenKit main window](../1%20screenshot.en.png)
+
+## Features
+
+### Capture and recognition
+
+| Area | Description |
+|------|-------------|
+| **Screenshot OCR** | Region capture → text OCR or barcode/QR; multi-monitor DXGI. The model list includes especially fast **Windows OCR** (the default when none is saved; no model download and no OpenCV; one language, shown only for that engine; the side-length cap applies only to ONNX) and ONNX packs. ONNX OCR and barcodes still ask for OpenCV. Long screenshot stitches with Bitmap and does not need OpenCV. Settings → Recognition describes the selected engine directly below the model picker. Korean/English word spaces restored from visual gaps (no spaces between CJK). Optional overlay translation via LLM. The image bar is a compact WPF toolbar; items that do not fit move to the overflow menu. **History** lists the save folder as thumbnails (default `D:/s/` when drive D exists, otherwise `screenshots/` next to the program; Settings → Capture lists both), previews with pan and zoom, and annotates under that preview. With marks, Done, OCR, or Open saves a new screenshot and copies it. With no marks they use the original file and do not write a new one. Done, OCR, and Open then close the history window and show the picture on the main window; OCR also recognizes it. Copy and Ctrl+C put the current picture on the clipboard and leave the window open. Right-click the picture to paste (a picture, a copied image file, or an image path), open screenshot history, copy it as an image, file, or path, save it, open it with the default app, show it in Explorer, annotate it again, recognize text or a barcode, or clear it. The toolbar no longer has History, Paste, Copy image, or Save. The File menu still has Save image. |
+| **Annotate** | WeChat-style tools: rect / ellipse / arrow / pen / text, or none. The next region select restores the last tool. Dropdown next to confirm for copy-as image / file / path. |
+| **Long screenshot** | Pick a scrollable window → auto-scroll, match the overlap on a Bitmap, then copy with the screenshot copy mode (image / file / path). No OCR, the picture is not shown on the main window, and OpenCV is not required. |
+| **Screen recording** | Window or region → HUD → MP4 + optional system/mic audio; optional mouse cursor and click highlight. Default codec is Windows Media Foundation H.264 (MP4, no FFmpeg). x264 / x265 / AV1 still use FFmpeg. |
+| **GIF recording** | Same region flow → 24 fps capture (system H.264, no FFmpeg) → preview (FPS, scale, palette) → silent GIF. |
+| **Clipboard** | Paste image and OCR; Capture menu copy image / file / path; menu/tray sets on-capture copy mode. |
+| **Overlay text** | Click-release selects one OCR block; empty click clears; drag-select stays in range. Ctrl+C copies. |
+| **PDF workbench** | **Tools → PDF workbench**. Open PDF → page OCR → edit lines → export searchable PDF. |
+
+### Speech, LLM, translation, face
+
+| Area | Description |
+|------|-------------|
+| **ASR / TTS** | ASR supports Sherpa offline/streaming models and installed **Windows system recognizers** (`System.Speech`, offline utterance recognition; the default offline model when none is saved) for files, recordings, hotkey dictation, live captions, subtitle batches, CLI, and HTTP. The help icon next to the offline-model picker notes that Windows ASR performs poorly for Chinese and recommends SenseVoice. TTS supports Sherpa / SAPI / WinRT offline voices, Edge online natural voices, and Google voices played in a hidden local Chrome (`chrome.exe` path optional; closes after an idle timeout, default 60 seconds; audio is not returned). The status bar shows Chrome child process running, with the live child-process count, while that hidden Chrome (speech or translation) is still running. Playback uses the current system default output device, including tools-page audio. The language list shows a name for every language, such as Afrikaans (af). Speak remains available during playback; clicking it again stops the current playback and restarts from the beginning. |
+| **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
+| **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
+| **Translation** | Local Opus-MT ONNX, a configured **LLM**, or Chrome's built-in translator (hidden `chrome.exe`, language packs download on demand). 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). The popup chooses the same engine as the main tab (local ONNX, Chrome, or a configured LLM) and does not pick a model. It has Speak on the source and on the translation, using the dictionary voice for that language. |
+| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict2.db` is not in the release archive. **Help → Install features** downloads `dict2.7z` from the fixed `dict-db` release and removes an old `dict.db` beside the program. |
+| **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
+| **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
+
+### Transfer, API, setup
+
+| Area | Description |
+|------|-------------|
+| **PC file transfer** | Same HTTP API port (`1224`) + UDP discovery `17531`. **File sync** tab lists the `sendfile/` inbox (no subfolders): **list / thumbnails** toggle, marquee and Shift/Ctrl multi-select, **Ctrl+X/C** cut/copy (cut items shown faded), paste, delete to Recycle Bin, drag to Explorer. Drop on the lower zone to send to the phone while connected; phone shares land in `sendfile/`. **Install on phone** checks and downloads the latest APK, then shows a LAN URL and QR. **Web manager** (same port): desktop `/files`, phone `/m` (compact list, long-press multi-select, Upload/Camera/New/Text); login to upload/manage; download only needs `/f/…`. Companion: `android/` (`com.whj.screenkit`, launchers **File transfer** / **Screencast**). |
+| **HTTP API** | JSON API (default port `1224`). **Allow LAN access** opens every interface; otherwise it listens on `127.0.0.1` only. Main-window tab: call log + request builder. **Tools** is one menu on the main window and the tray. Web tools home and File transfer come first, with no `(web)` mark, then Korean input, then categories that match the tools page (Text, Math, Speech, Calendar, Image, Lookup, Talk), then Network, Files, and System. Web-only entries inside a category are marked `(web)`. The language menu on the right of the top bar loads `/sk/L.js`. ScreenKit writes `web/L.js` from `lang/*.toml` when one of those files is newer, and otherwise serves the file already written. The script is one assignment, `L={...}`. Each value is an array of the installed UI languages, in the desktop language order, Chinese first. The browser may cache the script for 1 hour. Restarting ScreenKit changes the script address, so the next page load fetches it again. Choosing a language updates the open page at once and does not reload it. Opening the page uses the desktop UI language. The menu starts with **Web tools home** and **File transfer** (`/files`), then Korean input, then each category. A tool opens `http://127.0.0.1:port/#tool`. A hash or favorite that is not a current card is ignored. Opening a tool writes that hash and hides the left category list. Holding Ctrl while opening a tool opens it in a new browser tab. The local tools page (chat room under Talk, nickname and gender before entering, images and files too; calendars, text convert (simplified/traditional, Japanese yomi, Other (variable-name convert, crontab, User-Agent parse, character count, token count, collapse whitespace, drop empty lines), XML, JSON escape, SQL, and HTML-to-JS are buttons there; after one operation, further edits update the result. Swap next to Copy exchanges the source and the result). Other Text-category tools do the same when a field changes. Japanese yomi and the regex tester stay on a button. The HTML table card is gone. Generate test data is one kind per line. The page says whether Bogus is installed. Without it, built-in data is used, including Chinese and English screen names, MAC addresses, and UUIDs (the separate MAC and UUID cards are gone). With Bogus installed, pick a language first, then a category that language has data for. Dates, IP addresses, MAC addresses, and UUIDs stay available for every language. The color picker writes HEX, RGB, HSL, HSV, CMYK, and YUV as you drag or edit RGB, and has no Convert button. Screen sample reads one pixel anywhere on the screen. The pen on the board keeps points that a fast stroke would otherwise drop, and a pen can use the system ink trail. Browser model, under Text, uses the on-device model built into desktop Chrome for language detection, translation, summary, rewrite, proofreading, and a free prompt. The model downloads the first time that site uses it. The same card can speak with speechSynthesis and dictate with webkitSpeechRecognition. Chinese segmentation, also under Text, uses Intl.Segmenter for words, sentences, or graphemes, one piece per line. YUV is BT.601 full range, components 0–255. The separate color-conversion and palette cards are gone. Under Time, Stopwatch and Countdown are one Timer: a stopwatch, a seconds countdown, or a deadline. World clock lists local time for common places and can also show one more region. The Image category has a board that fills the card, with no title or hint and no scrolling. Opening it selects the pen, black, at 2 px. A rectangle, ellipse, arrow, or pen stroke is painted onto the picture. Lasso lifts the ink inside the loop so you can drag it, then paints it back onto the picture. It does not stay a separate object. Ctrl+V pastes a picture. Drag moves that picture or text, and the corners resize it. A larger page rebuilds the canvas at the new size without scaling the picture. A smaller page leaves the canvas as it is. OCR under Image (opens on Windows OCR when a language pack is installed), speech synthesis (opens on Windows speech when a voice is installed), speech recognition, an 8-bit synthesizer (square, pulse, triangle, saw, organ, bell, bass, flute, and noise drum on a keyboard that shows three octaves, one row when the width allows and three when it does not, with Shift and Alt playing an octave up and down while held; plus a 4-channel loop that remembers each channel's instrument. Examples are one-bar FC-style loops: march, jump, underwater, dungeon, battle, and stage clear, and effects such as explosion, alarm, laser, jump, and coin; choosing one stops the others; volume starts at 100%), QR generate (optional line of source text under the code; the window gap is half a line) and QR recognize (paste a picture), a camera (photo and live scan), and in-page tools such as timestamps (with a date-time picker), date arithmetic (one tool: the gap between two date-times, All by default and listing every unit from seconds to years, or moving a date-time by seconds, minutes, hours, days, months, or years; the unit sits after the amount, and a negative count goes back), unit conversion (one tool: pick a kind, and the number may carry its unit such as `1 m`; the new unit defaults to All, which lists every unit of that kind; foreign currency asks the Bank of China for the middle rate, caches a success or a failure for 10 minutes, and uses the 2026-10-10 table if the query fails), radix conversion (Convert to is a dropdown and starts on All; Custom shows a target base on the right, from 2 to 36; the first line is the original number, then bases 2, 8, 10, and 16, or that one target base, one per line), a function graph (type y = f(x) or z = f(x, y); 3D opens on a grid and can switch to a shaded surface, points, or contour lines; drag pans and the wheel zooms; hold Ctrl to zoom the x-axis only, or Shift to zoom the y-axis only; in 3D, drag rotates and Shift-drag pans), color, a color chart (a tree: web colors is the 148 CSS named colors in 11 hue groups, and C# colors is the 174 names of the local .NET, 141 named colors plus 33 system colors that follow the Windows theme; the two branches never mix and there is no All entry; every group starts with a heading row (红色, 橙色 …) and its colors follow; each row is a small swatch, the Chinese name, the platform's name, and the hex; a click copies the hex), hashes, calculators, regular expressions (batch test, one line each, pass in green and fail in red), a Unicode code chart (groups on the left with the total, and each group's count and first and last code; as many columns as fit without clipping a character; a large preview with code details. The search row can pick an installed font for the cells and the large character (the list is cached for 10 minutes); a unified equivalent or an empty cell when the installed fonts have no glyph), an ASCII code chart (0x00-0x7F in six groups; every group is drawn on the same classic 16-column chart with column and row headers, the cells of other groups are left blank and a row that belongs to no cell of the group is dropped; controls show NUL, HT, DEL and the like; click to select and copy; the the search row can pick an installed font for the cells and the large character (the list is cached for 10 minutes). The preview lists decimal, hex, octal, binary, the Unicode name, and the C, JavaScript, HTML and URL escapes), a GBK code chart (one page per lead byte, the total, and each page's count and first and last code; 16 columns; click to copy. The search row can pick an installed font for the cells and the large character (the list is cached for 10 minutes). The preview shows the GBK bytes), and a Morse chart (letters, digits, punctuation, and procedure signals; a click copies the dots and dashes and plays them through the 8-bit synthesizer, and a text box starts as HELLO and plays a whole typed message with the right letter and word gaps), and image to ICO with a same-size bordered preview and fit, stretch, or crop; categories down the left; File transfer at the lower left opens in a new window; every category's tools stay on the right under its own heading. Favorites has All underneath, selected by default, which lists favorites and every category. Choosing a category lists only that category. A favorite is listed again once under its own category. A favorite of a tool that is gone is removed when the page opens. Name search, four to six cards per row). OCR can pick an engine. Choosing or pasting a picture starts recognition immediately and shows a preview, and show the same result summary as the desktop: time, confidence, engine, image size, line count, and side limit. Speech can pick an engine, a language, a gender, and a model, then play or download a WAV. Voice names match the desktop list. Opening the page lists the models and voices the speech tab already loaded. The selected template shows what that endpoint does and which parameters it takes. Styles, scripts, and images are cached for 1 hour. HTML pages are not cached. Restarting ScreenKit changes the version on those style and script URLs, so the browser loads the new files. Each tool is a separate script in `web/tools`; startup joins them into `tools.js` when a source file is newer. The bottom status bar shows `HTTP 0.0.0.0:1224`, `HTTP 127.0.0.1:1224`, `HTTP LAN:1224`, `HTTP not started`, or `HTTP off`. Click that HTTP text to open the web home; click the model summary to open Memory; the empty space to the right does nothing. A failed start is retried every 10 seconds until the listener is up, or until the API, file transfer, and cast are all off. |
+| **Install features** | Feature tree (installed items checked); add (green) / remove (red); Confirm installs/uninstalls. ONNX speech models have their own tab. Windows OCR, speech synthesis, and speech recognition share one language tree. The Chrome tab lists, installs, and removes translation packs and offline voice packs for this app's hidden Chrome, in a private profile. The proxy choice is follow system, a manual address, or off. With a proxy, GitHub and Hugging Face come first; without one, China mirrors come first. A failed address is still followed by the others. |
+| **Pixel art** | **Tools → Pixel art**: choose a width and height from 1 to 128, or a preset of 8, 16, 32, or 64. Paint with large cells. A fast stroke still fills every cell it crosses. The side preview is the picture at its real pixel size. Copy or save a PNG. |
+| **Character art** | **Tools → Character art**: pick or drop a picture. Monochrome output is plain ASCII. threshold is a slider from 0 to 255 and defaults to 0: brightness at or below it becomes a space, and brighter cells run from sparse to dense. **Lines** draws the edges with `-`, `|`, `/`, `\`, and `+`; a higher threshold keeps only stronger lines. **Color blocks** starts this program in a console and draws the picture in full color with a full block, upper/lower halves, quadrants, and left blocks from 1/8 to 7/8 wide. Auto, the default, uses quadrant blocks, so one cell is four blocks and the resolution is double a full block. A difference of about 3 levels splits the cell, and a flat cell is a space filled with the background color. A left 1/8–3/8 or 5/8–7/8 block is used only when that edge fits better than a quadrant. Key 1 still draws a full block. The color window is opened through cmd. The wheel zooms toward the cursor, dragging pans, and resizing the console redraws. |
+| **Image convert** | **Tools → Image convert**: batch JPG, PNG, palette PNG (2–256 colors, placed to minimize total error; a color need not come from the picture), or BMP, optional shorter-side cap (shrink only), rotate/flip; icon view with small thumbnails or a details list; live preview of the selected file after those settings (wheel zoom, drag to pan, double-click to fit); write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Optional: keep the original file when the result is still ≥ N% of the original size (default 80%; rotate/resize still writes the new file). JPG, PNG, BMP, GIF, and TIFF work without OpenCV. If it is already installed, WebP and more can be read, and that does not open the installer. |
+| **Video to GIF** | **Tools → Video to GIF**: open or drop one video (the preview says to release while dragging), preview it, and pick a start and end (at most 60 seconds). Set frame rate, palette (32/64/128/256, same as GIF recording), and a shorter-side cap (default 480), then save a silent GIF. Needs `ffmpeg64`. |
+| **Fast copy** | **Tools → Fast copy**: copy, move, delete, or link files and folders (same volume prefers a rename). Delete can be permanent or to the Recycle Bin, and the window asks before it starts. Drop onto the list to add sources, or onto the destination to set that folder; a dropped file uses its parent folder. Same-name files can be overwritten, skipped, or renamed. **Register menu** adds a current-user Explorer cascade: fast cut, copy, delete to the Recycle Bin, copy as symbolic link, copy as hard link, total size, copy paths, and settings. A symbolic link points at the selected item. A hard link must stay on the same volume; a folder becomes a tree of file hard links. Size shows file count, folder count, and bytes, and does not follow reparse points. Settings opens this window with the selection filled in. After a cut, copy, or link, folder background shows fast paste and cancel. An existing registration is rewritten when the program starts. Shift copies a path relative to the common folder. Windows 11 shows it under Show more options. A static menu can disappear above about 100 selected items. |
+| **Character bitmaps** | **Tools → Character bitmaps**: pick a font and a pixel size, then draw each character as a dot matrix. Scan by row or by column, high bit or low bit first, positive or negative (every byte inverted). A repeated character is kept once. X and Y offsets shift it by pixels, positive means right and down, and dots that leave the cell are clipped. Export puts every character in one C array, one line each, or exports hex or a dot picture, then copy or save it. |
+| **Batch video convert** | **Tools → Batch video convert**: add video files, then convert to MP4, MKV, or WebM with FFmpeg. Default codec is x265 at CRF 40, with the shorter side capped at 480. Audio stays on at 64 kbps, 22050 Hz, mono. x264 is available for MP4 and MKV; WebM stays VP9. Write to `output/` next to each source, a chosen folder, or replace the source (permanently delete, or Recycle Bin). Needs `ffmpeg.exe` (`ffmpeg64/` or **Help → Install features**). |
+| **QR / barcode** | **Tools → QR / barcode**: QR, Data Matrix, Code 128/39, EAN, UPC. Optional line of original text under the image (on by default); the gap is half a line. UTF-8, GBK, or Hex bytes (default UTF-8). |
+| **Batch rename** | **Tools → Batch rename**: source list (add/remove/move, sort by name / modified / added); new names in a textarea. Everything / FastCopy patterns (`%1`/`%2` shortest capture, `#` / `###`); changing the list or rules recalculates names. |
+| **Hash** | **Tools → Hash**: MD5 / SHA-1 / SHA-256; paste an expected hash to match. |
+| **Text tools** | **Tools → Text tools**: Base64, URL, UTF-8/GBK hex, Unicode escape, case, whitespace, counts, smart JSON pretty-print (short arrays/objects stay on one line). |
+| **Markdown reader** | **Tools → Markdown reader**: open or drop a Markdown file. It is rendered as HTML in the Windows 10 IE11 WebBrowser (Trident). Images load from the file's folder. Web links open in the system browser. The tools page card under Text previews a dropped file with the same renderer. `POST /api/md` takes `text` or the file as `base64`, optional `title`, and returns `data.html`. |
+| **Password generator** | **Tools → Password generator**: crypto-random. Opening the window generates one batch immediately, and opening it again while it is still open generates another. The first open uses lowercase letters and digits, length 6, and 10 passwords. Uppercase, symbols, skip `0OIl1`, one of each class, and a typed set start off. Changing a class rewrites the set to match. Remembers last settings. On the tools page it is under Text, directly after Text convert. Opening that card generates one batch immediately. It can generate 1 to 50 at once (length 4–128). The separate random-string card is gone. **Word lex** tab: pick an LLM, then translations (including Literary Chinese, Ancient Greek, Latin, Sanskrit, Biblical Hebrew) plus pinyin / romaji / romanization. **Variants** tab: from a seed password, the LLM mostly translates into other languages and spells them in ASCII romanization (at most one English paraphrase; no extra symbols, digits, leetspeak, or word-reordering). |
+| **Network tools** | **Tools → Network** is a submenu: Network, HTTP request debugger, and Ports in use. **Network** opens one window. Its buttons cover Ping, DNS, ARP, WHOIS, traceroute, ping-locate, proxy-locate, HTTP speed-locate, IP city, MAC vendor, USB ID, system location (Windows geolocation over Wi-Fi or GPS; the system asks for permission the first time), and **IP scan**, a separate tab that probes the active local IPv4 networks with a progress bar and lists each host as soon as the probe finishes, with IP and MAC first and a dash for the name, then fills in each host name as it is resolved. Right-click a row to copy the host name, IP, or MAC. Selecting a row carries that IP into Port scan. DNS displays the configured servers, forward A/AAAA results, aliases, timing, and PTR reverse lookups. **DNS records** queries CNAME, MX, NS, TXT, and SOA through the system DNS servers. **Port test** checks one TCP port, or common ports when none is entered. **Port scan** is its own tab: enter an IP address and a port range such as `1-1024` or `80,443,8000-8100`, or use Common ports. The connect timeout can be set from 100 to 5000 ms. A progress bar shows how much of the range is done. The list shows each open port, a type taken from the first line the service sends when it speaks first, and that line. With no banner, the type comes from the port number; an unrecognized port is listed as TCP. **Local network** lists each active adapter's addresses, mask, gateway, DNS, speed, and the IPv4 routes. **Wake-on-LAN** sends a magic packet to a MAC address. ARP resolves a local host/IP to a MAC after probing when necessary; reverse ARP lookup finds IPs by MAC in local interfaces and the current ARP cache. Computer search also tries NetBIOS when a host has no PTR name. **Network discovery** uses the Windows network folder and the computer browser to list other computers with their names, comments, IP addresses, and MAC addresses. It needs a private network profile with network discovery turned on. **IP city** looks up the host box, or this PC's public address when the box is empty. The same lookup is `GET/POST /api/ipcity`. **MAC vendor** looks up the IEEE registrant for a MAC address (`GET/POST /api/mac`). A locally administered address has no registrant. **USB ID** looks up a VID or VID:PID in the Linux usb.ids list and returns the vendor, product, model, and interfaces (`GET/POST /api/usb`). The list is cached under the program's tmp folder and refreshed after 7 days. **Map** opens Amap in the browser (GCJ-02 inside China) and the result includes an OpenStreetMap link (WGS84). |
+| **Ports in use** | **Tools → Network → Ports in use**: list TCP and UDP ports in use (IPv4 and IPv6), with listening ports first. Select a row to see the process name and program path, and open that program's folder. Uses the system iphlpapi and needs no extra library. |
+| **MIDI synthesizer** | **Tools → MIDI synthesizer**: play with the mouse or the computer keyboard through a MIDI output (Windows usually has the GS wavetable). A MIDI keyboard can be connected. Open a MIDI file, edit tracks, tempo, and notes (start, length, pitch, velocity, channel), then save. No extra library. |
+| **Sound recorder** | **Tools → Sound recorder**: pick a microphone and record. Pause keeps the take so recording can continue. Stop, then play it or save a WAV. An existing WAV can be opened or dropped onto the window. |
+| **Camera** | **Tools → Camera**: preview a camera, save a JPEG or PNG, and record an MP4 with Media Foundation. Preview prefers a mode up to 1280×720 with a higher frame rate. The microphone can be included. Scan reads a QR code or barcode in the picture and needs the optional OpenCV and ZXing install. The same code is shown again only after 3 seconds. The tools-page camera, under Image, takes a preview photo or an ImageCapture still, and can zoom, turn on the torch, and focus when the device allows it. Scanning reads frames with MediaStreamTrackProcessor when the browser has it, and also waits 3 seconds before showing the same code again. Each accepted code plays a 0.2 second square wave at 440 Hz, the same pitch as the 8bit buzzer. It does not record video. |
+| **Scientific calculator** | **Tools → Scientific calculator** and the tools-page card: a compact keypad for trigonometry, logarithms, powers, roots, factorial, percent, and memory. Angle mode is degrees or radians. The window is borderless and the whole client area is the keypad on a black translucent background. |
+| **Desktop note** | **Tools → Desktop note**: a borderless translucent sticky. Type text, or switch to a to-do list and check items off. The color chip at the lower right opens the color dialog; the corner mark resizes the window. Closing it keeps the text, the list, the color, and the window position. |
+| **RTSP test server** | **Tools → RTSP test server**: draws a bouncing ball and a clock on a dark frame, encodes it with libx264 from `ffmpeg64` as H.264 at 200 kbps by default, and serves `rtsp://127.0.0.1:<port>/live` (default port 8554). **Sound** adds an 8 kHz PCMU tone; turn it off before start to omit the audio track, or while running to mute the tone. Several TCP interleaved clients can play at once. The tools-page RTSP card can open that URL. |
+| **Lookup** | **Tools → Lookup**: dictionary and system info. Ports in use is under **Tools → Network**. The tools page has a Lookup category for the Unicode, ASCII, and GBK tables, Morse code, the color table, a this-browser info card, and a common USB ID list. The info card lists the version, screen, memory, keyboard layout, and CPU pressure this browser can read. Screen details and idle detection ask only after a click. The list shows vendor, product, and model. Click a row to copy `VID:PID` and load interfaces from `/api/usb`. |
+| **System info** | **Tools → Lookup → System info**: each tab is queried in the background only when it is opened for the first time; Refresh queries that tab again. Besides the grouped system summary, USB, serial ports, printers, sound / mic, and fonts, the window lists displays, cameras, Bluetooth, network adapters, input devices, physical disks, batteries, PCI / system devices, and devices with Windows problem codes. Select an item for driver, identifier, location, state, and category-specific details such as display resolution / DPI, network addresses, disk health, or battery capacity when Windows exposes them. Sound / mic shows active endpoints by default; Show all keeps active endpoints first. Queries are read-only and do not open or control devices. If a query is denied, ScreenKit starts its device-scan CLI through `start` with administrator approval; cancellation or failure is shown on the page and Refresh retries it. |
+| **HTTP request debugger** | **Tools → Network → HTTP request debugger**: save requests in groups. GET and POST parameters are one `key=value` line each (`#` starts a comment). POST body is those parameters, JSON, XML, or raw text with a MIME type you type. Sending uses the program's HTTP proxy; loopback and private addresses stay direct. The list is `httpdbg.json` beside the program. Until samples have been saved once, the list includes a group named 测试 with calls to this program on `127.0.0.1:1224`: status, simplified/traditional, pinyin, USB ID, currency, and Base64 text. After that group is deleted and the list is saved, it is not added again. |
+| **Simplified / Traditional** | **Tools → Simplified/Traditional**: simplified on top, traditional below, two buttons convert either way. On the tools page those two buttons are on Text convert. `LCMapStringEx`; traditional Chinese follows the `zh-TW` table (Taiwan character forms), not the Hong Kong table, and it does not rewrite whole words. |
+| **Calendars** | **Tools → Calendars**: `Windows.Globalization.Calendar`. Gregorian to Chinese lunar (sexagenary year, leap month), plus Japanese, Taiwan, Hebrew, Hijri, Persian, and others. |
+| **Japanese yomi** | **Tools → Japanese yomi**: `JapanesePhoneticAnalyzer` turns a Japanese sentence into readings (by word or by character). On the tools page those two buttons are on Text convert. The Japanese language feature must be installed. Windows has no equivalent Chinese pinyin API. |
+| **HTML UI design** | Tools page, under Image: type HTML on the left and see it on the right as you type. A template replaces the text. Templates include buttons, a card, a media card, inputs, choices, a form, a table, a nav bar, alerts, tags, a list, progress, an empty state, a dialog, a pager, and steps. The preview is a sandboxed frame. |
+| **Placeholder** | Tools page, under Image: width and height 1 to 2000, HEX background and text color. An empty caption shows the size. Changing a value redraws the preview at once. Ctrl+C or Copy result puts the PNG on the clipboard. |
+| **Random color** | Tools page, under Image: generate 1 to 20 random colors, 10 by default. Opening the card generates once. Each row is a swatch plus HEX, RGB, HSL, HSV, CMYK, and YUV. Click one value to copy it. Copy result still copies the whole line. |
+| **CSS gradient** | Tools page, under Image: linear, radial, or conic. Linear and conic take an angle from 0 to 360. Colors use the browser color picker, from 2 to 8, spaced evenly in order. A 120×120 preview sits on the left and the `background` code on the right. Type, colors, and angle update it at once. |
+| **Number notation** | Tools page, under Text: type a number and see the digits, a Chinese reading, an English reading, formal Chinese, RMB in words, thousands separators, scientific notation, a percent, and Roman numerals. Neither the integer nor the decimal part has a digit cap; the whole entry stops at 10000 characters. The three Chinese scale rows stop at 涅槃寂静; a smaller decimal place leaves those rows out. Scientific form such as 1e9 or 1.5e-3 is expanded from the digit string, not through floating point. Chinese is also read three ways: small scale (times ten), middle scale (times a hundred million), and large scale (each unit squared). Digits after the decimal point use 分, 厘, 毫, 丝, and the smaller unit names. RMB in words accepts only a non-negative amount with at most 12 integer digits, rounds to fen, and writes 元, 角, and 分. A reading or notation that does not apply is left out. Korean is read in the native system through ninety-nine and in Sino-Korean, along with Japanese, German, French, Spanish, Portuguese, and Russian. An SI row uses the prefix for each power of one thousand, from quecto, yocto, and zepto through kilo, mega, and quetta. An integer also lists base 2, 8, and 16, and an English polygon name. One hundred million sides is myriakismyriagon; larger counts keep stacking myriads, so one billion is decakismyriakismyriagon (gigagon), one trillion is teragon, and one quadrillion is petagon. Each row can be selected by dragging, with Copy and Speak beside it. Speak asks this PC for a WAV and plays it in the page, through the browser's current output. Copy result still copies every row. |
+| **Translate** | Tools page, under Text: source on the left, translation on the right. Auto is Chinese–English only. Swap exchanges the languages, and also the two texts when a translation is present. Speak works on both sides: this PC returns a WAV and the page plays it through the browser's current output. Ctrl+Enter translates. A configured translate LLM is used when present; otherwise an installed local model is used. |
+| **Chinese to pinyin** | **Tools → Chinese to pinyin**: pinyin without tone marks, or one capital initial per character. Common polyphonic words are in `pinyin.toml` beside the program (`重庆` is `chong qing`, `银行` is `yin hang`). The same word in `pinyin.user.toml` overrides it. An empty reading drops that system word and uses NPinyin. Updates replace `pinyin.toml` and leave `pinyin.user.toml`. The letter ü is written as u. Letters and digits are spaced one by one. On the tools page the card is under Text and updates as you type, showing the spaced pinyin and the initials together. `GET/POST /api/pinyin` takes `text` and returns both as `data.pinyin` and `data.py`. Needs `NPinyin.dll` (**Help → Install features → Tools**, about 75 KB, not in the slim package). |
+| **Korean input** | **Tools → Korean input**, or `Ctrl+Alt+K`: takes over the keyboard the way the Windows Korean IME does. Two-set Hangul is composed at the caret. There is no candidate list. Vowels stay separate and do not join into a diphthong. Backspace removes the last jamo. Space, Enter, and punctuation leave the syllable and then type that key. Shift alone, or Right Alt, switches Hangul and English. Shift plus a consonant still types a double consonant. Vowels do not. While it is on, a second tray icon shows Hangul (green) or English (gray): left click switches, right click can turn it off or open Settings. Keys typed in this program are left alone. The hotkey again hands the keyboard back. |
+| **Auto key** | **Tools → Auto key**: repeat a key or a mouse click to the foreground window. Default hotkey F6 starts and stops only while this window is open, and can be changed in the window. Closing the window stops listening and stops a run. The window button does the same. Interval 20–60000 ms, default 200. A click hits the cursor, or the center of that window when the cursor is elsewhere, then the cursor moves back. Nothing is sent while ScreenKit is in front. WezTerm is sent window messages, because a Chinese keyboard layout there drops simulated input. |
+| **Window manager** | **Tools → Window manager**: list visible top-level windows, pick one by clicking, or enter an HWND. A green frame follows the window under the cursor while picking, and stays on the selected window. Pin in front or unpin (`HWND_TOPMOST`). |
+| **Screencast** | Main window **Screencast** tab: cast this PC to another. Saved PCs stay in the left list; click one to fill the IP, or type an address / **Scan LAN**. **Max size** defaults to 1000×1000 (shrink to fit, never enlarge). **Start cast** first picks a region the same way as a screenshot (click a window or drag). Sending waits until Start is pressed again, so audio and its source (speakers, microphone, or both) can be changed. The toolbar shows the current audio source. **Options** stays available while casting and applies the mute or source at once. The red frame and toolbar can start, pause, or stop; pause keeps the connection and stops picture and audio until resume. The frame is not part of the picture. **tray → Tools → Screencast** opens the main window on the Screencast tab. Audio plays continuously; the picture waits only as long as the sound is behind. The viewer is not always-on-top; picture can **Fit** or **Fill** the window. Rotating the phone keeps the viewer’s size, position, and maximized state; the picture fits or fills inside that window. Discovery shares UDP 17531 with file transfer; video uses WebSocket `HTTP /cast` (default 1224). **Connect Android USB accessory** (file-sync tab, screencast window) opens “Waiting for Android USB accessory” and tells a phone already connected for file sync to enter accessory mode. Both sides show connected / waiting / not connected. It turns off after 2 minutes with no connection. Or **USB cast (adb)** with USB debugging. The phone app has a separate **Screencast** launcher icon. |
+| **Hotkeys** | Toggle window · snap annotate · snap OCR · voice input · translate popup (configurable). |
+| **Features** | Settings → General. Off hides that page, disables its hotkey, tray entry, and HTTP routes, and releases models it has loaded (OCR, speech, translation, face, dictionary). `tab_*_visible` and `mod_*` are saved together. LLM log only hides its page. The HTTP page only hides that entry; the service switch stays under Settings → API. File sync and Screencast also stop those services. Each HTTP path can still be turned off under Settings → API (`http_ocr` and the same keys for speech, translation, chat, and face). Off returns code 810. |
+| **Diagnostics** | **Help → Diagnostics**. A ready check is green. An optional item that is off (service mode, CUDA / DirectML not installed, ONNX not loaded, no face models, OCR engine not loaded) shows as not enabled. A missing file or a failed check is red. **Help → Memory** shows working set, private working set, commit size, and the managed heap, and unloads loaded models. An open dictionary database is listed and can be unloaded. **Force GC** collects without unloading a row. Click the memory readout or the model summary on the status bar to open the same window. The left of the status bar shows this program's commit size, CPU, and GPU, and updates every 2 seconds while the window is visible. |
+| **Devices** | CPU · NVIDIA CUDA · Intel DirectML; missing accel → CPU. |
+| **CLI** | Batch OCR, list models / SAPI voices, probe CUDA, multi-monitor snap test. |
+
+## Dictionary
+
+Look up Chinese, English, Japanese, and Korean. The release archive does not include the dictionary file. **Help → Install features** downloads it next to the program.
+
+### Using it
+
+- Language buttons: All, Chinese, Japanese, Korean, English.
+- Each hit shows the language, the headword, and the gloss, and can be spoken. The entry shows pronunciation, part of speech, senses, phrases, and examples. Each example can be spoken. A Korean phrase has the same speak button after the Korean text and reads that text.
+- **Export** writes every hit for the current search, not only the rows on screen. Each entry is the same plain text as the detail. txt joins them into one text. csv is a sheet. html and md are a table: Word, then Detail (the detail column fills the remaining width).
+- Double-click, drag, or right-click text in an entry to open a popup of matching headwords. Hover and selection keep dark text on a light blue row.
+- **Settings → Dictionary** sets how many hits to list (1–4000, default 1000), how many minutes to keep the database open after the last lookup (default 1; 0 keeps it open), and, for each language, an TTS engine (Auto / ONNX / SAPI / Windows speech / Edge), a voice, and a rate from 0.5 to 2. Auto uses that language's Windows speech, or Edge online when none is installed.
+- The web dictionary is its own page at `/dict`. The tools page opens it in a new window from the lower-left **Dictionary** link. The same entry is under **Web tools** in the menu and the tray. It is not a card inside the tools page. Search, the four languages, speech, export, and the selection popup match the window above. **Translate** in that popup opens the tools-page translator.
+
+### Data sources
+
+`dict2.db` holds four dictionaries in one file. Each word is stored once, and search uses the packed index in that file. ScreenKit does not build the file. **Help → Install features** downloads `dict2.7z` and removes an old `dict.db` next to the program. An existing `dict2.db` beside the program counts as installed, including a symbolic link, which is measured by the target file's size.
+
+- **Chinese.** Characters, words, and idioms from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). License: MIT. The upstream project notes that the origin of some material is unclear.
+- **Japanese.** Vocabulary senses from the [JMdict/EDICT Dictionary Project](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG). License: [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project's update terms.
+- **Korean.** A derivative of the National Institute of Korean Language dictionary. License: CC BY-SA 2.0 KR.
+
+## Requirements
+
+- Windows 10/11 (x64)
+- [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
+- Build: Visual Studio / MSBuild with a `net48` WPF targeting pack
+- Optional: NVIDIA GPU + CUDA matching `onnxgpu64`; DirectML GPU for `onnxdml64`
+- Optional (x264 / x265 / AV1, and video to GIF): FFmpeg **4.4 shared** under `ffmpeg64/` next to the exe, or **Help → Install features** (`ffmpeg.7z` from `dict-db`, ~33 MB). Media Foundation H.264 and GIF recording need no download.
+
+## Using ScreenKit
+
+### Screenshot, annotate, OCR
+
+Capture a region (hotkey or menu). Result panel splits **OCR / Barcode**. Overlay translation uses a configured LLM when a dest language is selected. Annotate tools sit on the capture overlay; a region that spans monitors can be drawn on, moved, or resized on every screen it covers (move hot-zone is 10px outside the frame). The toolbar can open the shot with the default app. The Done dropdown copies as image, file, or path and remembers the default. After the region is set, the bar selects the last annotate tool, which may be none. That choice stays in memory and is written when ScreenKit exits. The screen board still starts on the pen and does not change it. **Settings → Capture** can cap the shorter side: if the smaller of width and height is over the limit, the saved file shrinks to fit and is never enlarged. That applies to the save folder and copy-as-file; OCR still uses the full image. The folder box (`screenshot_dir`) defaults to `D:/s/` when drive D exists, and to `screenshots/` next to the program otherwise. Either folder can be picked, or another folder typed or browsed. The box shows paths with `/`. The file name (`screenshot_name`) is a pattern, typed or picked from the list. The default is `dd_##` (day of the month and a two-digit counter, such as `15_01.png`). `shot_yyyyMMdd_HHmmss_fff` is still in the list. Repeated `r` is random digits (`shot_yyyyMMdd_HHmmss_rrr`). Repeated `#` is a counter: `####` saves `0001.png`, and `yyyyMMdd_###` takes the next number among files that share that date prefix. History and startup cleanup use the same folder. Copying a screenshot path uses `/` (`snap_path_slash`, on unless the config says false): `D:/s/15_01.png`. A forward slash needs no escape, so the path uses fewer tokens and an LLM is less likely to misread it. Other opened files stay unchanged.
+
+### Screen / GIF recording
+
+1. **Capture → Screen record** (or GIF record): click a window or drag a region.
+2. **HUD** (drawn outside the capture area):
+   - Red frame; drag the **5px strip** to move, or **8 grips** to resize. Aspect is free before **Start** and locked afterwards unless `record_lock_aspect = false`.
+   - Floating **control bar**: left grip to drag; collapse; shows the current audio source. **Options** stays before and during recording: before Start it edits every setting, and during recording it changes the audio source or turns audio off, applied at once. Start and pause share one slot. Stays on the current monitor.
+3. Stop → save MP4 (Explorer selects the file) or open the GIF preview (output FPS 1–24, scale, palette) then save a silent GIF. GIF recording keeps a temporary system H.264 file and encodes the GIF in the preview, without FFmpeg.
+4. **Capture → Record options**: codec (Media Foundation H.264 by default, or x264 / x265 / AV1), FPS, CRF (x264/x265 only) or AV1 CRF (0–63, default 56; hidden for the other codecs), audio, **shorter-side cap** (shrink only, same rule as screenshots), **record mouse** / **highlight clicks**. AV1 needs libsvtav1 / libaom-av1 in `ffmpeg64` and fails clearly with no fallback to x264. Media Foundation does not use FFmpeg. System H.264 writes AAC during capture at 44.1 kHz or 48 kHz, and does not mix a second file when saving. A saved `record_codec` of `mjpeg` is read as system H.264.
+
+GDI capture has no cursor: enable **record mouse** to overlay the pointer; **highlight clicks** draws a short yellow (left) / blue (right) / green (middle) ripple. GIF size grows quickly — use preview scale/FPS and the max-size limit. GIF still uses a max width and height box.
+
+### File sync (PC ↔ Android)
+
+1. On the PC, open the **File sync** tab (enable under Settings → API if needed; default on).
+2. **Install on phone**: check and download the latest APK from GitHub, then show LAN URL `http://<pc-ip>:1224/apk` and a QR code (defaults to an internet-reachable NIC). Phone and PC on the same LAN; scan with a browser to install. The Windows release package does not include the APK.
+3. First connection: the phone shows a waiting dialog (cancellable) until the PC allows pairing. The PC dialog stays always-on-top (also when the main window is in the tray).
+4. The upper list is the PC `sendfile/` inbox (root only, no subfolder navigation; folders are rows). **Double-click** a file to open it with the system, or a folder to open Explorer. The **right-click** menu acts on the current selection (Open, Cut, Copy, Paste, Push, Delete) and does not clear a multi-selection when you click an already selected row. Use the toolbar to switch **list / thumbnails**; marquee, Shift range, and Ctrl multi-select; **Ctrl+X/C/V** cut/copy/paste (cut rows appear semi-transparent), Delete to Recycle Bin, or drag to Explorer. Dropping files onto the list imports them. Drop on the **lower** zone to send to the phone while the app is connected; otherwise nothing is sent. File/image paste goes into the inbox; text paste still goes to the right-hand pane. Phone share/upload always writes to PC `sendfile/`.
+5. Both sides show in-progress transfers; the PC also has a transfer log. The phone saves the original file name, including Chinese, spaces, and brackets. Text sync is one text box with **Send**, **Copy**, and **Clear**. The phone auto-connects by LAN IP only, not over USB.
+6. **Web manager** (same HTTP port): **File sync → Web manager** shows the LAN URL, QR, and login password. Desktop page `/files`, phone page `/m`. The sign-in page and the file page both link to **Web tools home** (`/`). `/index.html` redirects to `/files`. The page follows the browser language and has a **Chinese / EN** switch (saved in the browser). Sign in to upload, mkdir, rename, delete; optional **Stay signed in** (about 30 days, still signed in after this program restarts). Phone UI: breadcrumb path, compact list (tap to open/download, long-press to multi-select), bottom **Upload / Camera / New / Text**. The desktop toolbar has **Text**. The dialog shows the current text on the PC File sync page. **Clear** empties it there. **Send to PC** writes the edited text back, copies it to the clipboard, and shows a toast `Copied text: …`. **Camera** compresses in the browser before upload, using **Settings → API** (format, JPG quality, shorter-side cap). If the browser cannot compress, the PC applies the same settings. Reopen the page after updating the PC app, then take the photo. Zip/copy/rename/delete from the selection bar. A correct `/f/<relative-path>` URL downloads without login. Design reference: `ScreenKit/SendFile/web/m-prototype.html`.
+
+Android details: [android/README.md](../../android/README.md).
+
+### Screencast (PC ↔ Android / PC ↔ PC)
+
+1. Keep this app running (receive starts with the app; Settings → API can turn it off). **tray → Tools → Screencast** opens the main window on the Screencast tab. Same Wi‑Fi, not a guest network. Launching this build ends leftover ScreenKit from another folder. Wi‑Fi/ADB media uses the same HTTP port as file transfer (`/cast`); scan uses UDP 17531.
+2. Phone **File transfer / Screencast** → **Screencast**. The page fills the saved PC IP; confirm it and tap **Start cast**, then allow screen capture. Use **Saved PCs** or **Scan LAN** to pick another PC. **Stop cast** appears only while casting. USB cast is a separate section below. The phone sends `hello` and waits for the PC’s `hello` before capture; the PC viewer opens only after that reply. Wi‑Fi media uses HTTP `/cast` (default 1224). The file-transfer listener on a LAN address completes that WebSocket handshake as well. If the PC app is closed, the handshake fails, the PC disconnects, or screen capture is denied, the phone shows a **Cast failed** dialog. After ~90s without an accessory it falls back to USB tethering. **USB debugging cast** uses `adb reverse` and needs USB debugging. Debug forward: `adb shell am start -n com.whj.screenkit/.CastActivity --ez scst_adb_probe true`. WiFi hello: `--es scst_ip <PC LAN IP> --ez scst_wifi_probe true`. USB-only test pattern: `scst_usb_pat`.
+3. A view window opens in front, centered on the primary monitor. **Tab** overlay (type / resolution / fps) is off until you press Tab. Closing the window disconnects. Quality changes apply live. Landscape re-encodes at the same short-edge quality (does not crop a portrait frame). Stopping on the phone closes the PC window immediately (`GET /api/cast/stop`).
+4. PC-to-PC: the receiver keeps this app open (receive is on by default). On the sender, open the **Screencast** tab, click a saved PC to fill the IP (or scan the LAN, which includes this PC), set max width and height, tap **Start cast**, then click a window or drag a region.
+
+### Pixel art
+
+**Tools → Pixel art**: choose a width and height from 1 to 128, or a preset of 8, 16, 32, or 64. The canvas starts white. Left-drag paints the current color; right-drag and the eraser paint transparency. A fast stroke fills every cell between samples, so the line stays continuous. The side preview is the picture at its real pixel size. Copy or save a PNG.
+
+### Character art
+
+**Tools → Character art**: choose or drop a picture. The window shows plain ASCII (column count, invert, and threshold). threshold is a slider from 0 to 255 and defaults to 0: brightness at or below it becomes a space, and brighter cells run from sparse to dense. **Lines** draws the edges with `-`, `|`, `/`, `\`, and `+`; a higher threshold keeps only stronger lines. **Color blocks** launches this program with `--charart` so a console window draws the same picture in 24-bit color. Each cell can be a full block, an upper/lower half, a quadrant, or a left block from 1/8 through 7/8 of the cell (the blocks that grow from the left). Auto, the default, uses quadrant blocks, so one cell is four blocks and the resolution is double a full block. A difference of about 3 levels splits the cell, and a flat cell is a space filled with the background color. A left 1/8–3/8 or 5/8–7/8 block is used only when that edge fits better than a quadrant. The wheel zooms toward the cursor, dragging pans, double-click fits, and changing the console size redraws at the same zoom. The color window is opened through cmd. Keys: 1 full, 2 half, 4 quarter, 8 eighths, 0 auto, F fit, Q quit.
+
+### Image convert
+
+**Tools → Image convert**: drop files, folders, or images; choose JPG, PNG, palette PNG (2–256 colors, placed to minimize total error; a color need not come from the picture), or BMP; optional shorter-side cap (if the smaller side is over the limit, shrink to fit; never upscale); rotate 90/180/270° or flip the selected item. **Icons** shows a small thumbnail per file (**List** for details). The right pane previews the selected file after those settings. The wheel zooms toward the cursor, dragging pans, and a double-click fits the picture again. Convert-all writes next to each source under `output/`, into a chosen folder, or replaces the source (permanently delete, or Recycle Bin; convert-all asks first). Common formats (JPG, PNG, BMP, GIF, TIFF) work without OpenCV. If OpenCvSharpExtern is already next to the program, WebP and more can be read, and that does not open the installer.
+
+### Batch video convert
+
+**Tools → Batch video convert**: drop files or folders, or add videos. Choose MP4, MKV, or WebM, x265 or x264 (default x265; WebM stays VP9), and a CRF (x264 / x265 0–51, WebM 0–63, default 40). The shorter-side cap defaults to 480 (if the smaller side is over the limit, shrink to fit and round both sides to even pixels; never upscale). Audio defaults to on, 64 kbps, 22050 Hz, and mono (clear mono to keep the source channel count). Convert-all writes next to each source under `output/`, into a chosen folder, or replaces the source (permanently delete, or Recycle Bin; convert-all asks first). Encoding uses `ffmpeg.exe` from `ffmpeg64/` beside the program, or **Help → Install features**.
+
+### Video to GIF
+
+**Tools → Video to GIF**: open or drop one video. While a file is dragged over the window, the preview asks you to release. Play the video and scrub the timeline. Start and end are in seconds, or use the current frame. The range is at most 60 seconds. Frame rate defaults to 8 (1–30, and not above the source). The palette matches GIF recording: 32, 64, 128, or 256 colors, default 128. The shorter side defaults to 480 and only shrinks. The GIF has no audio. This needs the FFmpeg shared libraries from **Help → Install features** (`ffmpeg64`).
+
+### Default hotkeys
+
+| Hotkey | Action |
+|--------|--------|
+| `Ctrl+Alt+O` | Show the main window on top when another window is active; hide it when the main window is active |
+| `Ctrl+Alt+Q` | Screenshot annotate |
+| `Ctrl+Alt+W` | Screenshot and OCR |
+| `Ctrl+Alt+V` | Voice input (press again to stop) |
+| `Ctrl+Alt+B` | Live caption |
+| `Ctrl+Alt+T` | Translate popup |
+| `Ctrl+Alt+P` | Cycle on-capture copy (image → file → path) |
+
+Leave a hotkey string empty in Settings to disable it. The dictionary-tab hotkey is empty by default: if another window is active it shows the main window on top and selects the dictionary (and searches only when the clipboard is one word); if the main window is already active it hides the window. Tray left-click uses the same rule as the main-window hotkey (hide when the main window is in front, otherwise show and bring it to the front); context menu has voice input, translate popup, clipboard OCR, on-capture copy mode, and exit. Closing the main window typically **hides** to tray. Switching the copy mode from the menu, tray, or `Ctrl+Alt+P` recopies the last screenshot and shows a toast at the bottom center of the screen. After a region is selected, the annotate bar shows the copy mode as a combo (for example “Copy as image p”). Choosing an item finishes the shot with that mode and remembers it. `P` on the bar cycles image / file / path and does not finish.
+
+### UI language
+
+**Language** on the menu bar, or Settings → General. Each language is a toml file in `lang/` next to the program (Chinese, English, Japanese, Korean, and other languages: German, Spanish, French, Portuguese, Russian; you can add more). Startup reads them all and lists Chinese, English, Japanese, Korean, then the other languages. `ui_lang` in `config.toml` is that file name. A missing phrase falls back to Chinese. Labels, hints, result lines, and Unicode block names that used to be fixed Chinese on the tools page follow the current language. Block names use the English Unicode names outside Chinese. Covers menus, Settings, OCR toolbar Pack/Lang names (`ocr-display.json` `nameEn`), Translate, Face, the translate popup, and the dictionary window.
+
+Adding or changing a phrase is one command, for one language or for every file at once:
+
+```
+rem Chinese only
+scripts\langtext.cmd set app.demo.title "演示标题" -l zh
+rem the same text into every language
+scripts\langtext.cmd set app.demo.title "Demo title" -l all
+rem a different text per language
+scripts\langtext.cmd set app.demo.title -l all --each zh=演示标题 --each en=Demo title
+rem delete a key (del / rm / remove, or set KEY --delete)
+scripts\langtext.cmd del app.demo.title -l all
+rem read, audit, bulk fill
+scripts\langtext.cmd get app.demo.title -l zh,en
+scripts\langtext.cmd missing --base zh
+scripts\langtext.cmd fill --from zh -l all
+scripts\langtext.cmd -h
+```
+
+A new key goes to the end of `[text]`, or after `--after KEY`. `del KEY…` removes one or more keys (`rm`, `remove`, and `delete` are the same command, and `set KEY --delete` does the same); deleting in only some languages prints which ones still keep the key. Each file keeps its own line endings (CRLF or LF) and stays BOM-free. A line break inside the text is written `\n`. Only keys under `[text]` are touched; `name` is left alone. `--dry-run` prints what would change. `--sync` also copies the changed files into the `lang/` folders that already exist under `ScreenKit\bin`, so a running build sees them without a rebuild.
+
+### Updates
+
+**Help → Check for updates** also runs at startup after the interval in Settings. When a newer release exists, a window lists every version after the current build up to the latest. Select a row to read that version’s notes. **Chinese / English** switches the notes. **Update** downloads and installs the latest package. **Ignore** closes the window. Put a newer `screenkit_<version>.7z` in the program folder. The app asks on startup, or the next time you click Check for updates, whether to install it. If GitHub cannot be reached, the check says to put that 7z in the program folder and click Check for updates again.
+
+## Install features
+
+The slim package (`bin\Release\ScreenKit\`) does not include models or the large runtimes. The tables below say which features work as shipped. Sizes are the installer’s expected sizes, the same numbers as **Help → Install features**. A shared runtime is downloaded once. The Chrome tab manages translation language packs and offline voice packs for the hidden Chrome this app starts. They are stored in that private profile.
+
+### Ready to use
+
+No extra download. Windows OCR, Windows speech recognition, Windows speech synthesis, and Japanese reading still need the matching Windows language support. Those language packs are not files from this program.
+
+| Feature | Notes |
+|---------|--------|
+| Screenshot, annotate, long screenshot, clipboard, text overlay, window management, auto key, network tools, ports in use, MIDI synthesizer, sound recorder, camera photo and video, system info, hotkeys | No extra files. Long screenshot stitches with Bitmap. Ports in use calls the system iphlpapi. MIDI uses the system synthesizer. The sound recorder uses the system microphone and writes WAV. The camera previews, takes photos, and records MP4 with Media Foundation. Scanning a code needs the optional OpenCV and ZXing install |
+| Screenshot save folder | Ready |
+| Windows OCR | Uses whichever OCR language packs are installed in Windows. No ONNX model and no OpenCV. Pieces on the same baseline are joined into one line; a wide gutter on a multi-line page stays a separate column. It does not shrink to the detection side limit. A short text line is enlarged about 2× with a sharper resample; an image whose short side is under 72 pixels is enlarged too. Punctuation that sits against a word is not split off with a space. Missing languages are added under **Help → Install features → Windows OCR/Speech** |
+| Windows speech recognition | Uses whichever speech-recognition language packs are installed in Windows. Missing languages are added on the same page |
+| SAPI speech | Includes 32-bit voices reached through `x86host.exe`. That exe is in the package |
+| Windows speech and Edge online voices | Voices already installed in Windows work immediately. With none, Edge online voices need a network and no model download |
+| Text tools, checksums, password generator, batch rename | No extra files |
+| Calendars, Japanese reading | Japanese reading needs Japanese language support installed in Windows |
+| Simplified/traditional | Uses the system API. On the tools page the buttons sit inside Text convert. All under Favorites lists every category; it is not a simplified/traditional category. A check that still looks for that old category is not a missing file, and the conversion itself works |
+| Image convert, image to ICO | JPG, PNG, BMP, GIF, and TIFF work without OpenCV. If OpenCV is already installed, WebP and more can be read. That does not open the installer |
+| Batch video convert | Needs `ffmpeg.exe` in `ffmpeg64/` or beside the program. **Help → Install features** can download it |
+| Video to GIF | Needs `ffmpeg64`. GIF recording does not. **Help → Install features** can download it |
+| System H.264 recording | Windows Media Foundation. No FFmpeg. Present in the install folder |
+| Tools page, UI languages, wetext | `lang/` and `wetext/` are in the package. Text ITN uses wetext |
+| LLM chat, LLM log, LLM translation | No extra files. Configure an endpoint in Settings before calling it |
+| File transfer and screencast (PC side) | No extra files. The Android package is not in this folder |
+
+### Install first
+
+| Feature | Components | Typical size |
+|---------|------------|----------------|
+| Barcode / QR | `ZXing.dll` | 3 MB |
+| Generate test data (Bogus) | `Bogus.dll`. Without it the page uses built-in data. With it, pick a language, then a category that language has | 2.3 MB |
+| Chinese to pinyin | `NPinyin.dll`. The desktop window and the tools-page card of the same name | 75 KB |
+| ONNX OCR | A model, plus `onnxcpu64` and `OpenCvSharpExtern.dll` | rapid-ch 18 MB; Umi 78 MB; rapid-i18n 42 MB. CPU runtime 16 MB. OpenCV 61 MB |
+| Face | InsightFace `buffalo_l` (`facemodels/`) | 326 MB |
+| Local Chinese↔English translation | `translatemodels.7z` (both Opus-MT directions). Also selects CPU ONNX Runtime | 981 MB download, about 1.08 GB extracted. Runtime is another 16 MB |
+| Offline speech recognition | A model, plus the Sherpa native library. `.tar.bz2` packs also need SharpCompress | SenseVoice 230 MB; streaming Zipformer 75 MB; Whisper tiny 78 MB; Whisper base 148 MB; Silero VAD 2 MB. Sherpa 5 MB. SharpCompress 2.4 MB |
+| Offline speech synthesis | A model under `ttsmodels/`, plus the Sherpa native library | Each voice pack shows its own size on the install page. Sherpa 5 MB |
+| Dictionary | `dict2.7z` extracts `dict2.db` next to the program and removes an old `dict.db`. Opening it needs `e_sqlite3.dll`. Extracting needs `7za.dll` | Dictionary archive 136 MB. SQLite 1.7 MB. 7za 406.5 KB |
+| PDF to images | `pdfium.dll`, `libSkiaSharp.dll` | 6 MB + 11 MB |
+| x264 / x265 / AV1 / video to GIF | `ffmpeg64/` (`ffmpeg.7z`) | 32.5 MB download, about 117 MB unpacked |
+| Archive extract | `SharpCompress.dll`, `7za.dll` | 2.4 MB + 406.5 KB |
+| ONNX OCR, face, and QR | `OpenCvSharpExtern.dll`. The OpenCV video library is not included. Image convert uses it only when it is already installed, to read more formats. Long screenshot and Windows OCR do not need it | 61 MB |
+| Android package | Not in the slim folder. **Install on phone** on the file-sync page downloads it | Whatever that APK release is |
+| NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
+| iGPU DirectML | `onnxdml64` | 18 MB |
+| ONNX Runtime CPU | `onnxcpu64` | 16 MB |
+
+1. Startup does not open the installer. Windows OCR is available immediately.
+2. **Help → Install features**
+   - **Features**: installed items are checked; add (green) / remove (red) counts and sizes; Reset restores. Confirm installs and uninstalls. Speech packs are not on this tab. Dictionary, Chinese↔English ONNX translation, and FFmpeg 4.4 shared download `dict2.7z` / `translatemodels.7z` / `ffmpeg.7z` from the fixed `dict-db` release (not the app update package). Translation includes the two minimal Opus-MT runtime packs (~981 MB download, ~1.08 GiB extracted) and automatically selects CPU ONNX Runtime. Extracting either archive downloads `7za.dll` when it is not already installed. Opening the database needs `e_sqlite3.dll`.
+   - **ONNX speech models**: TTS models with language filter; progress shows **total batch size and downloaded bytes**. `.tar.bz2` packages are extracted in-process (no system `tar` / `bzip2`); a junction-based `ttsmodels` directory is supported. Japanese is Supertonic 3 (`sherpa-onnx-supertonic-3-tts-int8-2026-05-11`). Choose Japanese in the language list. That pack also speaks the other Supertonic 3 languages.
+   - **Windows OCR/Speech**: one language tree manages `Language.OCR`, `Language.TextToSpeech`, and `Language.Speech`. Languages are sorted Chinese, English, Japanese, Korean, then others. A language with an installed pack or currently available engine opens by default; other languages remain collapsed but can be opened for installation. Each language has fixed OCR, speech synthesis, and speech recognition children, with a tri-state language checkbox. The page shows WinRT OCR languages, voices, and `System.Speech` recognizers. The installed-pack check runs once after ScreenKit starts. Opening this window again uses that result. Refresh checks every pack again. Installing or removing rechecks only those packs, in the same administrator window when one is already required. Querying or changing a mixed selection uses one administrator window/UAC prompt. The copyable command box groups all install commands before all remove commands. Restart ScreenKit after changes. Windows OCR is especially fast; Windows recognition performs poorly for Chinese, so SenseVoice is recommended for Chinese ASR.
+3. Using a feature that needs a missing package prompts to open the installer (e.g. OCR without any ORT → install `onnxcpu64`).
+
+| Runtime | Role | Typical size |
+|---------|------|----------------|
+| **onnxcpu64** | CPU ONNX Runtime (required for OCR if no GPU/iGPU ORT) | ~16 MB |
+| **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN (optional) | large |
+| **onnxdml64** | DirectML EP for iGPU (optional) | ~18 MB |
+| **OpenCV** | ONNX OCR, face, and QR (`OpenCvSharpExtern.dll`). The OpenCV video library is not included. Image convert uses it only when it is already installed, to read more formats. Long screenshot and Windows OCR do not need it | ~61 MB |
+| **ZXing** | `ZXing.dll`. Barcode scan and QR images. Asked for when you use them | ~3 MB |
+| **Bogus** | `Bogus.dll`. Tools-page test data. With it, pick a language, then a category that language has | ~2.3 MB |
+| **NPinyin** | `NPinyin.dll`. Chinese pinyin and initials. Install it under Tools | ~75 KB |
+| **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
+| **7za** | Extract dictionary and translation model `.7z` packages. Already in the slim package, with `License.7za.txt` | ~0.4 MB |
+| **SQLite** | `e_sqlite3.dll`. Opens `dict2.db` | ~1.7 MB |
+| **ffmpeg64** | x264 / x265 / AV1 and video to GIF | ~33 MB 7z / ~117 MB unpacked |
+
+Download prefers CN mirrors when UI or system locale is Chinese.
+
+**Edge online** TTS: 300+ Microsoft natural voices (including Korean), no model or API key. Requires Internet; listing and synthesis go to Microsoft Edge Read Aloud (unofficial; not paid Azure Speech). HTTP uses the proxy choice: follow the system proxy, a manual address, or no proxy.
+
+Optional env vars for local full libraries (do not commit secrets/paths):
+
+| Variable | Meaning |
+|----------|---------|
+| `WPF_OCR_CUDA_LIB` | Folder with full CUDA / onnxgpu64 DLLs |
+| `WPF_OCR_FFMPEG_LIB` | Folder with FFmpeg 4.4 shared DLLs |
+
+## HTTP API (overview)
+
+When enabled, the OCR API listens on `http_port` (default `1224`). `http_lan = true` (default) accepts this PC and the LAN; `false` listens on `127.0.0.1` only. A missing `http_lan` keeps that default. Retired config keys are not read. The listener is a normal TCP socket, the same approach as websocket-sharp, so opening the LAN address does not need an administrator or an HTTP.sys URL reservation. File transfer, the web manager, and Wi-Fi cast share this port and need LAN access left on. There is no authentication — do not expose it on an untrusted network. API failures also return HTTP 200. The error is in the JSON `code` and `data`.
+
+LAN **PC file transfer** shares this HTTP port (`1224`) plus UDP `17531` (pairing required): [HTTP-API.md](../../HTTP-API.md) · [android/README.md](../../android/README.md).
+
+- `GET  /api?lang=` · `/api/status` — `/api` lists each enabled route with its method and the HTTP tab's parameter text. `lang` defaults to the app language.
+- `GET/POST /api/toast` — bottom toast (`text`, optional `ms`). CLI: `ScreenKit --toast "text" [--ms 1900]`. Both are in the HTTP tab template list.
+- `GET/POST /api/zhconv` — simplified/traditional (`text`, `to=trad|simp`). GET query strings are UTF-8. CLI: `ScreenKit --zhconv "text" [--trad|--simp]`
+- `GET/POST /api/pinyin` — Chinese to pinyin (`text` only). With no text, `data.installed` says whether `NPinyin.dll` is present. With text, `data.pinyin` is spaced pinyin and `data.py` is one capital initial per character. Text with the DLL missing returns 803. No tone marks. Readings come from `pinyin.toml`; `pinyin.user.toml` overrides the same word. CLI: `ScreenKit --pinyin "重庆" [--init]`
+- `GET/POST /api/calendar` — calendars (`date`, `cal=lunar` and others). CLI: `ScreenKit --calendar 2024-02-10 --cal lunar`
+- `GET/POST /api/jpyomi` — Japanese reading (`text`, optional `mono`). CLI: `ScreenKit --jpyomi "text" [--mono]`
+- `GET/POST /api/cast/stop` — close screencast viewer now
+- WebSocket `/cast` — screencast media (same HTTP port)
+- WebSocket `/chat` — tools-page chat room. A nickname and gender are required. The browser keeps the last nickname and gender. People on the same running ScreenKit send text, images, and files to each other. Ctrl+V in the room pastes an image or a file. Click a chat image to open it larger with the local Viewer.js file, with no transition. Images and files are written under the program directory as `tmp/chat-` plus an id (8 MB each) and deleted the next time ScreenKit starts. Text stays in memory only. A heartbeat goes out every 5 seconds, and a missed heartbeat drops the connection. A message can name one person, including yourself. Private messages reach only the two of you. A private message to yourself stays with you. Direct sends a file through the server, and the other person downloads it only after clicking Accept
+- WebSocket `/rtsp?rtsp=&audio=1` — pull one RTSP URL (TCP interleaved, H.264) and forward Annex-B NALs to the browser. `audio=1` also forwards PCMU, PCMA, or AAC. The same URL is pulled once and shared. The tools-page **RTSP** card plays video with WebCodecs and sound with an audio context (Chrome or Edge). **Settings → API → RTSP forward** off refuses new `/rtsp` requests. H.265 is refused. **Tools → RTSP test server** publishes a local H.264 stream at `rtsp://127.0.0.1:8554/live` (port is editable), with an optional PCMU tone.
+- `POST /api/ocr` — `box` is original-image pixels. `ocr.engine=winocr` uses Windows OCR on this request
+- `POST /api/qr` — barcode / QR only (`/api/barcode`)
+- `GET  /api/ocr/get_options`
+- `GET  /api/asr/models` · `POST /api/asr` — Sherpa or an installed Windows system recognizer selected by `model`
+- `GET  /api/tts/engines` · `GET /api/tts/models?engine=` · `POST /api/tts` — Sherpa, SAPI, Windows (`engine=winrt`), Edge (`engine=edge`). When the desktop app is open, this is the speech tab's current list and returns at once. Otherwise the full list is cached; `refresh=1` scans again. `GET /api/tts/devices` lists playback devices. `POST /api/tts/speak` plays with the same synthesis fields. `play=queue` waits, `play=now` interrupts, and `devices` can name more than one output. With no device, playback uses the system default output. `lang` such as `zh-CN` selects a voice for that language.
+- `POST /api/itn`
+- `POST /api/translate` — LLM batch (`items[]`)
+- `GET  /api/face/models` · `POST /api/face`
+
+Full field reference: **[HTTP-API.md](../../HTTP-API.md)** · **[Chinese HTTP API](../../HTTP%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3.md)**.
+
+## CLI
+
+```text
+ScreenKit --image <path> [options]
+ScreenKit --snap [--out <dir>]
+ScreenKit --list-models
+ScreenKit --list-face
+ScreenKit --list-sapi              # local SAPI + (x64) x86host voices
+ScreenKit --list-asr               # Sherpa models + Windows system recognizers
+ScreenKit --list-edge-tts
+ScreenKit --probe-cuda
+ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
+ScreenKit --help
+```
+
+Useful options: `-d gpu|cpu`, `-p rapid-ch`, `-v <variant>`, `-m <models-dir>`, `--det-limit`, `--no-cls`.
+
+## x86host (32-bit SAPI only)
+
+Some classic **SAPI** voices register only for 32-bit processes. Ship **`x86host.exe`** next to `ScreenKit.exe` (built from `x86host/`; a Release build of ScreenKit also builds and copies it).
+
+| Item | Detail |
+|------|--------|
+| Role | HTTP helper: list SAPI voices + synth WAV; **no GUI** |
+| Start | On demand by the x64 app, or run `x86host.exe` |
+| Bind | `127.0.0.1` only, default port **17886** |
+| Idle | Exit after **60s** (`--idle-ms` to override) |
+| API | `GET /api/sapi/status` · `GET /api/sapi/voices` · `POST /api/sapi/synth` · `POST /api/sapi/shutdown` |
+
+```text
+dotnet build x86host/x86host.csproj -c Release
+x86host.exe --port 17886 --idle-ms 60000
+x86host.exe --list-sapi
+```
+
+In the UI, engine **SAPI** lists local voices plus **x86-only** entries (name ends with `· x86`).
+
+## Build from source
+
+```
+OCR/
+├── ScreenKit/                 # WPF app (net48, x64)
+│   └── bin/Release/
+│       ├── net48/          # Dev output (models / runtimes live here)
+│       └── ScreenKit/      # Slim package: exe + x86host.exe + managed deps
+├── x86host/                # 32-bit SAPI HTTP helper
+├── android/                # Companion app (com.whj.screenkit)
+├── docs/                   # README screenshots
+├── scripts/                # publish-release.mjs, langtext.cmd (UI text), changelog.cmd (release notes)
+├── README.md · README.zh.md · CHANGELOG.md
+└── HTTP-API.md · Chinese HTTP API doc
+```
+
+Model packs and large native runtimes are **not** in git. Place them next to the exe (or install in-app):
+
+```
+ScreenKit/bin/Release/net48/
+├── ScreenKit.exe
+├── config.toml
+├── pinyin.toml
+├── pinyin.user.toml
+├── ocrmodels/  asrmodels/  ttsmodels/  translatemodels/  facemodels/
+├── onnxcpu64/  onnxgpu64/  onnxdml64/
+└── ffmpeg64/
+```
+
+A **Release** build does not copy those folders. Each OCR pack needs ONNX + `configs.txt` (and dict/keys). Optional `pack.json` (`name` / `nameEn` / `variants`) supplies English UI labels; defaults live in `ocr-display.json`. **Windows OCR** in the model list does not use these folders; its languages come from the OCR packs installed in Windows.
+
+```bash
+cd ScreenKit
+dotnet build -c Release
+./ScreenKit/bin/Release/net48/ScreenKit.exe
+```
+
+### Slim package (`bin\Release\ScreenKit\`)
+
+- Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE, `7za.dll`, `License.7za.txt`, `web/`, `pinyin.toml`, and `pinyin.user.toml`. The tools page is the joined `tools.js` only. The separate scripts under `web/tools` are not in this package. `7za.dll` extracts `.7z` packages such as the dictionary and translation models.
+- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict2.db`, `ZXing.dll`, `SharpCompress.dll`, `e_sqlite3.dll`, `Bogus.dll`, or `NPinyin.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, `tar.bz2` extract, and the dictionary each ask to install the missing library when you use them.
+- End users install those via **Install features**. Custom Opus-MT ONNX packs can still be placed under `translatemodels/` manually.
+
+For local development with models already present, run **`bin\Release\net48\`**.
+
+### Release archive
+
+```bash
+node scripts/publish-release.mjs
+```
+
+Release-builds, then packs `ScreenKit/bin/Release/ScreenKit/` into `release/screenkit_<version>.7z` (needs [7-Zip](https://www.7-zip.org/) on PATH). Before packing, it deletes runtime files in that folder: `screenshots/`, `log/`, `sendfile/`, `tmp/`, `config.toml`, and `*.log`. After packing, older `screenkit_*.7z` files in `release/` are removed, so only the current package remains. A Release build removes the same runtime files when it refreshes the folder. `release/` is gitignored.
+
+Release documentation:
+
+- Every `CHANGELOG.md` version has matching **English** and **Chinese** sections.
+- Every GitHub Release description is bilingual (English first, Chinese second).
+- Checksums and links are listed once after both summaries.
+
+## License
+
+**ScreenKit application source** is **MIT**. See [LICENSE](../../LICENSE).
+
+```
+Copyright (c) 2026 ScreenKit Contributors
+```
+
+**THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.**
+
+Bundled or optional dependencies are **not** all MIT (models, FFmpeg, CUDA/cuDNN, some natives). See [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md). Do not commit large ONNX weights, CUDA redistributables, or FFmpeg shared binaries without a redistribution plan.
+
+## See also
+
+- [CHANGELOG.md](../../CHANGELOG.md)
+- [HTTP-API.md](../../HTTP-API.md) · [Chinese HTTP API](../../HTTP%E6%8E%A5%E5%8F%A3%E6%96%87%E6%A1%A3.md)
+- [android/README.md](../../android/README.md) — companion app
+- [LICENSE](../../LICENSE) · [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md)
+- [README.zh.md](../../README.zh.md)
