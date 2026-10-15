@@ -32,6 +32,7 @@ sealed class RtspTestSrv : IDisposable {
 	public int ClientCount => sessions.Count;
 	public bool Playing => sessions.Values.Any(s => s.Playing);
 	public event Action<string> Log;
+	public event Action ClientPlaying;
 
 	public void SetCodec(byte[] spsNal, byte[] ppsNal) {
 		if (spsNal != null) sps = spsNal;
@@ -103,6 +104,23 @@ sealed class RtspTestSrv : IDisposable {
 				return 1;
 			}
 			log("rtspsrv: OPTIONS 200");
+			if (!FfmpegLoader.TryInit(out var ferr)) {
+				log("rtspsrv: 跳过编码 " + ferr);
+				return 0;
+			}
+			using (var enc = new RtspH264(64, 64, 10, 200_000)) {
+				var bgra = new byte[64 * 64 * 4];
+				byte[] au = null;
+				for (var i = 0; i < 8; i++) {
+					au = enc.Encode(bgra);
+					if (au != null && hasidr(au)) break;
+				}
+				if (au == null || !hasidr(au)) {
+					err("rtspsrv: 没有编出关键帧");
+					return 1;
+				}
+			}
+			log("rtspsrv: 已编出关键帧");
 			return 0;
 		}
 		catch (Exception ex) {
@@ -113,6 +131,16 @@ sealed class RtspTestSrv : IDisposable {
 			try { c?.Close(); } catch { }
 			try { srv?.Dispose(); } catch { }
 		}
+	}
+
+	static bool hasidr(byte[] annex) {
+		for (var i = 0; i + 4 < annex.Length; i++) {
+			var sc = 0;
+			if (annex[i] == 0 && annex[i + 1] == 0 && annex[i + 2] == 0 && annex[i + 3] == 1) sc = 4;
+			else if (annex[i] == 0 && annex[i + 1] == 0 && annex[i + 2] == 1) sc = 3;
+			if (sc > 0 && i + sc < annex.Length && (annex[i + sc] & 0x1F) == 5) return true;
+		}
+		return false;
 	}
 
 	void accept() {
@@ -251,6 +279,7 @@ sealed class RtspTestSrv : IDisposable {
 					stamp = (uint)rand.Next();
 					while (frames.TryDequeue(out _)) { }
 					dropidr = 1;
+					try { owner.ClientPlaying?.Invoke(); } catch { }
 				}
 				var resp = reply(req);
 				if (resp == null) break;

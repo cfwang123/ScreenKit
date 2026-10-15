@@ -65,20 +65,21 @@ public partial class RtspSrvWindow : Window {
 		if (!int.TryParse(ebitrate.Text, out var kbps) || kbps < 100) { log(Loc.T("rtspsrv.badbr")); return; }
 		w &= ~1;
 		h &= ~1;
-		var exe = VidConvert.FindExe();
-		if (string.IsNullOrEmpty(exe)) { log(Loc.T("rtspsrv.noffmpeg")); return; }
 		try {
+			enc = new RtspH264(w, h, fps, kbps * 1000);
+			var warm = new byte[w * h * 4];
+			for (var i = 3; i < warm.Length; i += 4) warm[i] = 0xFF;
+			enc.Encode(warm);
 			srv = new RtspTestSrv(port);
 			srv.Log += msg => Dispatcher.BeginInvoke(new Action(() => log(msg)));
+			srv.ClientPlaying += () => enc.ForceKey();
+			if (enc.Sps != null) srv.SetCodec(enc.Sps, enc.Pps);
 			srv.Start();
 		}
 		catch (Exception ex) {
 			log(ex.Message);
-			try { srv?.Dispose(); } catch { }
-			srv = null;
-			return;
-		}
-		if (!startff(exe, kbps * 1000)) {
+			try { enc?.Dispose(); } catch { }
+			enc = null;
 			try { srv?.Dispose(); } catch { }
 			srv = null;
 			return;
@@ -98,43 +99,6 @@ public partial class RtspSrvWindow : Window {
 		drawth.Start();
 	}
 
-	bool startff(string exe, int bps) {
-		var gop = Math.Max(1, fps / 2);
-		var psi = new ProcessStartInfo {
-			FileName = exe,
-			Arguments = "-hide_banner -loglevel error -f rawvideo -pix_fmt bgra -video_size " + w + "x" + h
-				+ " -framerate " + fps + " -i pipe:0 -an -c:v libx264 -preset ultrafast -tune zerolatency"
-				+ " -profile:v baseline -bf 0 -g " + gop + " -keyint_min " + gop + " -sc_threshold 0"
-				+ " -b:v " + bps + " -x264-params repeat-headers=1:aud=1 -f h264 pipe:1",
-			UseShellExecute = false,
-			CreateNoWindow = true,
-			RedirectStandardInput = true,
-			RedirectStandardOutput = true,
-			RedirectStandardError = true,
-		};
-		try {
-			ff = Process.Start(psi);
-			ffIn = ff.StandardInput.BaseStream;
-			_ = Task.Run(() => {
-				try {
-					var err = ff.StandardError.ReadToEnd();
-					if (!string.IsNullOrWhiteSpace(err))
-						Dispatcher.BeginInvoke(new Action(() => log(err.Trim())));
-				}
-				catch { }
-			});
-			readth = new Thread(readloop) { IsBackground = true, Name = "rtspsrv-h264" };
-			readth.Start();
-			return true;
-		}
-		catch (Exception ex) {
-			log(ex.Message);
-			try { ff?.Kill(); } catch { }
-			ff = null;
-			return false;
-		}
-	}
-
 	void drawloop() {
 		var delay = Math.Max(1, 1000 / fps);
 		while (on) {
@@ -142,7 +106,10 @@ public partial class RtspSrvWindow : Window {
 			step();
 			var text = DateTime.Now.ToString("HH:mm:ss.fff");
 			drawtext(text, 16, 16);
-			try { ffIn?.Write(pixels, 0, pixels.Length); }
+			try {
+				var au = enc.Encode(pixels);
+				if (au != null) srv?.Push(au);
+			}
 			catch { break; }
 			frames++;
 			var wait = delay - (Environment.TickCount - t0);
@@ -232,74 +199,6 @@ public partial class RtspSrvWindow : Window {
 		}
 	}
 
-	void readloop() {
-		var acc = new List<byte>(1 << 16);
-		var buf = new byte[8192];
-		var pending = new List<byte[]>();
-		try {
-			var stdout = ff.StandardOutput.BaseStream;
-			while (on) {
-				var n = stdout.Read(buf, 0, buf.Length);
-				if (n <= 0) break;
-				for (var i = 0; i < n; i++) acc.Add(buf[i]);
-				var nals = take(acc);
-				foreach (var nal in nals) {
-					if (nal.Length < 5) continue;
-					var typ = nal[4] & 0x1F;
-					if (typ == 7 || typ == 8) {
-						pending.Add(nal);
-						if (typ == 7) srv?.SetCodec(nal, null);
-						else srv?.SetCodec(null, nal);
-						continue;
-					}
-					if (typ == 9) continue;
-					if (typ != 1 && typ != 5) continue;
-					var size = nal.Length;
-					foreach (var p in pending) size += p.Length;
-					var frame = new byte[size];
-					var o = 0;
-					foreach (var p in pending) {
-						Buffer.BlockCopy(p, 0, frame, o, p.Length);
-						o += p.Length;
-					}
-					pending.Clear();
-					Buffer.BlockCopy(nal, 0, frame, o, nal.Length);
-					srv?.Push(frame);
-				}
-			}
-		}
-		catch { }
-	}
-
-	static List<byte[]> take(List<byte> acc) {
-		var outn = new List<byte[]>();
-		var starts = new List<int>();
-		for (var i = 0; i + 3 < acc.Count; i++) {
-			if (acc[i] == 0 && acc[i + 1] == 0 && acc[i + 2] == 0 && acc[i + 3] == 1) {
-				starts.Add(i);
-				i += 3;
-			}
-			else if (acc[i] == 0 && acc[i + 1] == 0 && acc[i + 2] == 1) {
-				starts.Add(i);
-				i += 2;
-			}
-		}
-		if (starts.Count < 2) return outn;
-		for (var k = 0; k < starts.Count - 1; k++) {
-			var a = starts[k];
-			var b = starts[k + 1];
-			var sc = acc[a + 2] == 1 ? 3 : 4;
-			var payload = b - (a + sc);
-			if (payload <= 0) continue;
-			var nal = new byte[4 + payload];
-			nal[3] = 1;
-			for (var i = 0; i < payload; i++) nal[4 + i] = acc[a + sc + i];
-			outn.Add(nal);
-		}
-		acc.RemoveRange(0, starts[starts.Count - 1]);
-		return outn;
-	}
-
 	void paintstatus() {
 		if (!on) return;
 		var now = Environment.TickCount;
@@ -317,17 +216,8 @@ public partial class RtspSrvWindow : Window {
 	void stop() {
 		on = false;
 		try { drawth?.Join(800); } catch { }
-		try { ffIn?.Close(); } catch { }
-		try {
-			if (ff != null && !ff.HasExited) {
-				ff.Kill();
-				ff.WaitForExit(500);
-			}
-		}
-		catch { }
-		try { readth?.Join(400); } catch { }
-		ff = null;
-		ffIn = null;
+		try { enc?.Dispose(); } catch { }
+		enc = null;
 		try { srv?.Dispose(); } catch { }
 		srv = null;
 		setinputs(true);

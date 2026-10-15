@@ -97,7 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Opened tools stay within the window. Extra content scrolls inside the tool.
 - The camera preview picks a mode up to 1280x720 with a higher frame rate. The old default stayed on a large, slow format, about 2 frames per second.
 - When Check for updates cannot reach GitHub, the dialog says to put a newer screenkit_*.7z in the program folder and click Check for updates again.
-- Find the small ffmpeg.exe that ships in ffmpeg64 next to avcodec, so the RTSP test server can start.
+- The RTSP test server encodes with libx264 in ffmpeg64. It no longer looks for ffmpeg.exe.
 - Camera scan shows the same code again after 3 seconds, on the desktop window and the tools page.
 
 #### Documentation
@@ -167,7 +167,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 打开工具后宽度不超过窗口，超出的内容在工具内部滚动。
 - 相机预览改选不超过 1280×720、帧率更高的模式。原先停在又大又慢的格式上，大约每秒 2 帧。
 - 检查更新连不上 GitHub 时，提示可以将新版本的 7z 放到程序目录下，再点击检查更新以更新。
-- 认 ffmpeg64 里、avcodec 旁边那个较小的 ffmpeg.exe，RTSP 测试服务器才能启动。
+- RTSP 测试服务器改用 ffmpeg64 里的 libx264 编码，不再查找 ffmpeg.exe。
 - 桌面相机和工具页扫码时，同一个码隔 3 秒会再显示一次。
 
 #### 文档
