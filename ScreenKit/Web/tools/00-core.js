@@ -306,6 +306,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	function skipped(el){
 		while (el && el.nodeType === 1) {
 			if (el.id === "chat-log" || el.id === "chat-peers" || el.id === "chat-offers") return true;
+			// 语言菜单用各语言自己的名字。「中文」和网页文案相同，扫到就会被译走。
+			if (el.id === "lang") return true;
 			if (el.classList && (el.classList.contains("num-v") || el.classList.contains("uprev-ch"))) return true;
 			var tag = el.tagName;
 			if (tag === "TEXTAREA" || tag === "SCRIPT" || tag === "STYLE" || tag === "INPUT") return true;
