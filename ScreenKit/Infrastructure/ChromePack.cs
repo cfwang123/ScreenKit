@@ -390,7 +390,8 @@ static class ChromePack {
 	const string WALK = @"
 function nodes(n,acc){if(!n)return;if(n.shadowRoot)nodes(n.shadowRoot,acc);acc.push(n);var ch=n.children||[];for(var i=0;i<ch.length;i++)nodes(ch[i],acc);}
 function text(n){if(!n)return '';var s='';if(n.shadowRoot)s+=text(n.shadowRoot);var ch=n.childNodes||[];for(var i=0;i<ch.length;i++){if(ch[i].nodeType===3)s+=ch[i].textContent;else s+=text(ch[i]);}return s;}
-function findrow(){var all=[];nodes(document.body,all);var row=null;for(var i=0;i<all.length;i++){var t=(text(all[i])||'').replace(/\s+/g,' ').trim();if(t.indexOf(pair)!==0)continue;if(t.length>120)continue;row=all[i];}return row;}
+function hit(t){if(t.indexOf(pair)!==0)return false;var rest=t.slice(pair.length);return !rest.length||rest.charAt(0)===' ';}
+function findrow(){var all=[];nodes(document.body,all);var best=null,bestLen=1e9;for(var i=0;i<all.length;i++){var t=(text(all[i])||'').replace(/\s+/g,' ').trim();if(!hit(t)||t.length>200)continue;var kids=[];nodes(all[i],kids);var has=false;for(var j=0;j<kids.length;j++){var tag=(kids[j].tagName||'').toLowerCase();if(tag==='button'||tag==='cr-button'){has=true;break;}}if(!has)continue;if(t.length<bestLen){best=all[i];bestLen=t.length;}}return best;}
 ";
 
 	const string CLICK = WALK + @"
