@@ -1199,6 +1199,11 @@
 		noteoff(Number(F.attr(btn, "data-midi")));
 	}
 
+	// 给别的工具用：先在点击里打开音频，之后才能响。
+	SK.bitarm = function(){ ensure(); };
+	// 扫码成功的提示：两声方波，不跟当前乐器走。
+	SK.bitok = sfxcoin;
+
 	// 给别的工具用（摩斯码表）：按当前乐器和音量播一段音。
 	// midi 音高，dur 秒数，at 是 AudioContext 时间轴上的起点（留空即现在）；返回结束时间，发不了声返回 -1
 	SK.bitblip = function(midi, dur, at){

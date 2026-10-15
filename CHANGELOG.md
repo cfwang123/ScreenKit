@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools page: browser on-device model and this-browser info cards.
 - Desktop RTSP test server draws a bouncing picture, encodes H.264 with ffmpeg.exe, and serves rtsp://127.0.0.1:port/live.
 - Desktop note: a borderless translucent window for text or a to-do list. Closing it keeps the note and the window position.
+- The tools-page camera plays a square-wave beep when a code is accepted.
 
 #### Changed
 
@@ -134,6 +135,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页新增「浏览器小模型」和「本机信息」。
 - 桌面 RTSP 测试服务器画出弹跳画面，用 ffmpeg.exe 编成 H.264，并在本机端口提供 rtsp://127.0.0.1:端口/live。
 - 桌面便笺：无边框半透明窗口，可写文字或待办。关掉后再打开，内容和窗口位置仍在。
+- 工具页相机扫出码时播放一声方波 8bit 提示音。
 
 #### 变更
 

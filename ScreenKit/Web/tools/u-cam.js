@@ -339,7 +339,10 @@
 			scanning = false;
 			stopframes();
 		}
-		else startframes();
+		else {
+			if (SK.bitarm) SK.bitarm();
+			startframes();
+		}
 		labels();
 	}
 
@@ -496,6 +499,7 @@
 			box.textContent = text;
 			if (again) flash(box);
 		}
+		if (SK.bitok) SK.bitok();
 		SK.msg("cam-msg", "");
 	}
 
