@@ -102,6 +102,52 @@
 					</DockPanel>
 				</Grid>
 			</TabItem>
+			<TabItem x:Name="tabip" Header="IP扫描"
+			         AutomationProperties.AutomationId="nettool.tab.ip">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<WrapPanel Grid.Row="0" Margin="0,0,0,10">
+						<Button x:Name="bistart" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+						        AutomationProperties.AutomationId="nettool.ip.start"/>
+						<Button x:Name="bistop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+						        AutomationProperties.AutomationId="nettool.ip.stop"/>
+						<Button x:Name="biport" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+						        AutomationProperties.AutomationId="nettool.ip.toport"/>
+					</WrapPanel>
+					<ProgressBar x:Name="isbar" Grid.Row="1" Height="8" Minimum="0" Maximum="1" Value="0"
+					             Margin="0,0,0,10"
+					             AutomationProperties.AutomationId="nettool.ip.bar"/>
+					<ListView x:Name="lvip" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+					          SelectionMode="Single"
+					          FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI"
+					          AutomationProperties.AutomationId="nettool.ip.list">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colipname" Header="主机名" Width="220"
+								                DisplayMemberBinding="{Binding Name}"/>
+								<GridViewColumn x:Name="colipaddr" Header="IP" Width="140"
+								                DisplayMemberBinding="{Binding Ip}"/>
+								<GridViewColumn x:Name="colipmac" Header="MAC" Width="180"
+								                DisplayMemberBinding="{Binding Mac}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+					<TextBlock x:Name="lbistat" Grid.Row="3" Margin="0,8,0,8" Foreground="{StaticResource TextMuted}"/>
+					<DockPanel Grid.Row="4">
+						<Button x:Name="biclear" Style="{StaticResource ToolBtn}"/>
+						<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+							<Button x:Name="bicopy" Style="{StaticResource ToolBtn}"/>
+							<Button x:Name="biclose" Style="{StaticResource ToolBtn}"/>
+						</StackPanel>
+					</DockPanel>
+				</Grid>
+			</TabItem>
 			<TabItem x:Name="tabpscan" Header="端口扫描"
 			         AutomationProperties.AutomationId="nettool.tab.pscan">
 				<Grid Margin="12">
@@ -137,6 +183,13 @@
 						        AutomationProperties.AutomationId="nettool.pscan.start"/>
 						<Button x:Name="bpstop" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
 						        AutomationProperties.AutomationId="nettool.pscan.stop"/>
+						<Button x:Name="bpcommon" Style="{StaticResource ToolBtn}" Margin="0,0,6,6"
+						        AutomationProperties.AutomationId="nettool.pscan.common"/>
+						<TextBlock x:Name="lbptimeout" Text="超时" VerticalAlignment="Center" Margin="8,0,8,6"/>
+						<TextBox x:Name="eptimeout" Width="64" Height="32" Padding="6,4" Text="400"
+						         Margin="0,0,0,6" BorderBrush="{StaticResource BorderSoft}"
+						         VerticalContentAlignment="Center"
+						         AutomationProperties.AutomationId="nettool.pscan.timeout"/>
 					</WrapPanel>
 					<ProgressBar x:Name="psbar" Grid.Row="2" Height="8" Minimum="0" Maximum="1" Value="0"
 					             Margin="0,0,0,10"
@@ -149,8 +202,10 @@
 							<GridView>
 								<GridViewColumn x:Name="colpsport" Header="端口" Width="120"
 								                DisplayMemberBinding="{Binding Port}"/>
-								<GridViewColumn x:Name="colpskind" Header="类型" Width="180"
+								<GridViewColumn x:Name="colpskind" Header="类型" Width="120"
 								                DisplayMemberBinding="{Binding Kind}"/>
+								<GridViewColumn x:Name="colpsbanner" Header="标识" Width="280"
+								                DisplayMemberBinding="{Binding Banner}"/>
 							</GridView>
 						</ListView.View>
 					</ListView>

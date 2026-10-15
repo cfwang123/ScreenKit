@@ -4210,7 +4210,7 @@ static class Cli {
 				var plines = new List<string>();
 				var hits = new List<string>();
 				Task.Run(() => NetTools.PortScan("127.0.0.1", new List<int> { open, closed }, s => plines.Add(s), CancellationToken.None, null,
-					(port, kind) => hits.Add(port + " " + kind))).GetAwaiter().GetResult();
+					(port, kind, _) => hits.Add(port + " " + kind), 200)).GetAwaiter().GetResult();
 				Out(string.Join("\n", plines));
 				Out(string.Join("\n", hits));
 				if (!hits.Any(s => s == open + " TCP")) {
@@ -4219,6 +4219,12 @@ static class Cli {
 				}
 				if (NetTools.PortKind(22) != "SSH" || NetTools.PortKind(80) != "HTTP" || NetTools.PortKind(443) != "HTTPS") {
 					Err("FAIL: 端口类型");
+					bad++;
+				}
+				if (NetTools.KindFromBanner("SSH-2.0-OpenSSH_8.9", 2222) != "SSH"
+					|| NetTools.KindFromBanner("", 443) != "HTTPS"
+					|| NetTools.CommonPortText().IndexOf("22", StringComparison.Ordinal) < 0) {
+					Err("FAIL: 标识或常用端口");
 					bad++;
 				}
 			}

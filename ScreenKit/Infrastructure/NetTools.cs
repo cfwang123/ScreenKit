@@ -253,7 +253,13 @@ static class NetTools {
 		("CNAME", 5), ("MX", 15), ("NS", 2), ("TXT", 16), ("SOA", 6),
 	};
 	static readonly int[] CommonPorts = { 22, 80, 443, 445, 3389, 8080 };
+	internal static readonly int[] CommonScanPorts = {
+		21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445,
+		1433, 3306, 3389, 5432, 5900, 6379, 8080, 8443, 27017,
+	};
 	const int MAX_SCAN_PORTS = 65535;
+
+	internal static string CommonPortText() => string.Join(",", CommonScanPorts);
 
 	/// <summary>向系统 DNS 查询 CNAME、MX、NS、TXT 和 SOA，并显示每一步。</summary>
 	public static async Task DnsRecords(string host, Action<string> line, CancellationToken ct) {
@@ -320,7 +326,7 @@ static class NetTools {
 	}
 
 	/// <summary>按端口范围并发测试 TCP 连接。开放端口通过 hit 给出端口和类型，progress 给出已扫数量。</summary>
-	public static async Task PortScan(string host, IReadOnlyList<int> ports, Action<string> line, CancellationToken ct, Action<int, int, int> progress = null, Action<int, string> hit = null) {
+	public static async Task PortScan(string host, IReadOnlyList<int> ports, Action<string> line, CancellationToken ct, Action<int, int, int> progress = null, Action<int, string, string> hit = null, int timeoutMs = 400) {
 		host = AsciiHost((host ?? "").Trim());
 		if (host.Length == 0) throw new ArgumentException("empty");
 		if (ports == null || ports.Count == 0) throw new ArgumentException("empty");
@@ -328,6 +334,7 @@ static class NetTools {
 		progress?.Invoke(0, ports.Count, 0);
 		var open = 0;
 		var done = 0;
+		var wait = Compat.Clamp(timeoutMs <= 0 ? 400 : timeoutMs, 100, 5000);
 		var step = Math.Max(1, ports.Count / 100);
 		var gate = new SemaphoreSlim(64);
 		var tasks = new List<Task>();
@@ -340,11 +347,12 @@ static class NetTools {
 					try {
 						using var tcp = new TcpClient();
 						var task = tcp.ConnectAsync(host, p);
-						var finished = await Task.WhenAny(task, Task.Delay(400, ct)).ConfigureAwait(false);
+						var finished = await Task.WhenAny(task, Task.Delay(wait, ct)).ConfigureAwait(false);
 						if (finished == task) {
 							try {
 								await task.ConfigureAwait(false);
-								hit?.Invoke(p, PortKind(p));
+								var banner = await readbanner(tcp, ct).ConfigureAwait(false);
+								hit?.Invoke(p, KindFromBanner(banner, p), banner);
 								Interlocked.Increment(ref open);
 							}
 							catch (Exception ex) when (ex is not OperationCanceledException) { }
@@ -366,6 +374,53 @@ static class NetTools {
 		var found = Volatile.Read(ref open);
 		progress?.Invoke(ports.Count, ports.Count, found);
 		line?.Invoke(found == 0 ? Loc.T("nettool.pscan.none") : Loc.T("nettool.pscan.found", found));
+	}
+
+	static async Task<string> readbanner(TcpClient tcp, CancellationToken ct) {
+		try {
+			var stream = tcp.GetStream();
+			var buf = new byte[256];
+			var read = stream.ReadAsync(buf, 0, buf.Length, ct);
+			var done = await Task.WhenAny(read, Task.Delay(300, ct)).ConfigureAwait(false);
+			if (done != read) return "";
+			var n = await read.ConfigureAwait(false);
+			if (n <= 0) return "";
+			var chars = new char[n];
+			var ok = 0;
+			for (var i = 0; i < n; i++) {
+				var b = buf[i];
+				if (b == 9 || b == 10 || b == 13 || (b >= 32 && b < 127)) {
+					chars[i] = (char)b;
+					ok++;
+				}
+				else chars[i] = ' ';
+			}
+			if (ok * 2 < n) return "";
+			var text = new string(chars).Replace('\r', ' ').Replace('\n', ' ').Trim();
+			while (text.Contains("  ")) text = text.Replace("  ", " ");
+			if (text.Length > 96) text = text.Substring(0, 96);
+			return text;
+		}
+		catch (Exception ex) when (ex is not OperationCanceledException) {
+			return "";
+		}
+	}
+
+	/// <summary>用服务主动发来的第一行判断类型；没有标识时按端口号。</summary>
+	internal static string KindFromBanner(string banner, int port) {
+		var s = (banner ?? "").Trim();
+		if (s.Length == 0) return PortKind(port);
+		if (s.StartsWith("SSH-", StringComparison.OrdinalIgnoreCase)) return "SSH";
+		if (s.StartsWith("HTTP/", StringComparison.OrdinalIgnoreCase)) return "HTTP";
+		if (s.StartsWith("RFB ", StringComparison.OrdinalIgnoreCase)) return "VNC";
+		if (s.StartsWith("+OK", StringComparison.OrdinalIgnoreCase)) return "POP3";
+		if (s.StartsWith("* OK", StringComparison.OrdinalIgnoreCase)) return "IMAP";
+		if (s.StartsWith("220", StringComparison.Ordinal)) {
+			if (s.IndexOf("FTP", StringComparison.OrdinalIgnoreCase) >= 0) return "FTP";
+			if (s.IndexOf("SMTP", StringComparison.OrdinalIgnoreCase) >= 0
+				|| s.IndexOf("mail", StringComparison.OrdinalIgnoreCase) >= 0) return "SMTP";
+		}
+		return PortKind(port);
 	}
 
 	/// <summary>常见 TCP 端口的服务名；不认识的记为 TCP。</summary>
@@ -826,14 +881,16 @@ static class NetTools {
 	}
 
 	/// <summary>搜索活动网卡所在局域网，通过并发 ICMP 填充 ARP 表，再反查主机名。</summary>
-	public static async Task<List<LanComputer>> SearchComputers(Action<string> line, CancellationToken ct) {
+	public static async Task<List<LanComputer>> SearchComputers(Action<string> line, CancellationToken ct, Action<int, int> progress = null) {
 		var candidates = lancandidates();
 		line?.Invoke(Loc.T("nettool.scan.start", candidates.Count));
+		progress?.Invoke(0, candidates.Count);
 		if (candidates.Count == 0) {
 			line?.Invoke(Loc.T("nettool.scan.none"));
 			return new List<LanComputer>();
 		}
 		var done = 0;
+		var step = Math.Max(1, candidates.Count / 100);
 		var gate = new SemaphoreSlim(48);
 		var tasks = new List<Task>();
 		try {
@@ -843,19 +900,24 @@ static class NetTools {
 				var ip = ipof(value);
 				tasks.Add(scanone(ip, gate, () => {
 					var n = Interlocked.Increment(ref done);
-					if (n == candidates.Count || n % 64 == 0)
+					if (progress != null) {
+						if (n == candidates.Count || n % step == 0)
+							progress(n, candidates.Count);
+					}
+					else if (n == candidates.Count || n % 64 == 0)
 						line?.Invoke(Loc.T("nettool.scan.progress", n, candidates.Count));
 				}, ct));
 			}
 		}
 		finally {
 			try { await Task.WhenAll(tasks).ConfigureAwait(false); }
-			catch (OperationCanceledException) { }
+			catch (Exception) when (ct.IsCancellationRequested) { }
 		}
 		ct.ThrowIfCancellationRequested();
 		var arp = await Task.Run(readarp, ct).ConfigureAwait(false);
 		var wanted = new HashSet<string>(candidates.Select(x => ipof(x).ToString()), StringComparer.Ordinal);
 		var rows = ParseArp(arp).Where(x => wanted.Contains(x.Ip)).ToList();
+		if (rows.Count > 0) line?.Invoke(Loc.T("nettool.scan.names", rows.Count));
 		await resolvenames(rows, ct).ConfigureAwait(false);
 		rows.Sort((a, b) => ipuint(IPAddress.Parse(a.Ip)).CompareTo(ipuint(IPAddress.Parse(b.Ip))));
 		if (rows.Count == 0) {
