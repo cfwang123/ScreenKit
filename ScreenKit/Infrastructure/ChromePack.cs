@@ -16,6 +16,7 @@ sealed class ChromePackItem {
 	public long Size { get; set; }
 	public string Pair { get; set; } = "";
 	public string Lang { get; set; } = "";
+	public List<string> Langs { get; set; } = new();
 	public FeatureInstallState State { get; set; }
 	public bool Selected { get; set; }
 
@@ -56,6 +57,10 @@ static class ChromePack {
 		if (VoiceLang("ja-jp-x-multi") != "ja-JP") return 2;
 		if (VoiceLang("yue-hk-x-multi") != "yue-HK") return 2;
 		if (VoiceLang("en-us") != "en-US") return 2;
+		if (FilterCode("en - zh").IndexOf("zh") < 0 || FilterCode("en - zh").IndexOf("en") < 0) return 2;
+		if (FilterCode("en - zh-Hant").IndexOf("cht") < 0) return 2;
+		if (FilterCode("ja-JP") != "ja") return 2;
+		if (FilterCode("yue-HK") != "yue") return 2;
 		if (TrPairs.Length < 30) return 2;
 		var seen = false;
 		foreach (var p in TrPairs)
@@ -68,6 +73,41 @@ static class ChromePack {
 	}
 
 	public static string TrFolder(string pair) => (pair ?? "").Replace(" - ", "_");
+
+	/// <summary>筛选用的语言代码，逗号分隔。翻译包含两侧，语音包取主语言。</summary>
+	public static string FilterCode(string text) {
+		var raw = text ?? "";
+		if (raw.Contains(" - ")) {
+			var bits = raw.Split(new[] { " - " }, StringSplitOptions.None);
+			var list = new List<string>();
+			foreach (var b in bits) {
+				var c = onecode(b);
+				if (c.Length > 0 && !list.Contains(c)) list.Add(c);
+			}
+			return string.Join(",", list);
+		}
+		return onecode(raw);
+	}
+
+	static List<string> splitcodes(string text) {
+		var list = new List<string>();
+		foreach (var p in (text ?? "").Split(',')) {
+			var s = p.Trim();
+			if (s.Length > 0 && !list.Contains(s)) list.Add(s);
+		}
+		return list;
+	}
+
+	static string onecode(string code) {
+		var s = (code ?? "").Trim().ToLowerInvariant().Replace('_', '-');
+		if (s is "zh" or "zh-hans" or "zh-cn") return "zh";
+		if (s is "zh-hant" or "zh-tw") return "cht";
+		if (s is "zh-hk" or "yue" or "yue-hk") return "yue";
+		if (s is "iw" or "iw-il") return "he";
+		var i = s.IndexOf('-');
+		if (i > 0) return onecode(s.Substring(0, i));
+		return s;
+	}
 
 	public static string VoiceLang(string id) {
 		var parts = (id ?? "").Split('-');
@@ -137,6 +177,7 @@ static class ChromePack {
 				Pair = pair,
 				Title = pairlabel(pair),
 				Detail = pair,
+				Langs = splitcodes(FilterCode(pair)),
 				Size = on ? dirsize(dir) : 0,
 				State = on ? FeatureInstallState.Installed : FeatureInstallState.Missing,
 			});
@@ -150,6 +191,7 @@ static class ChromePack {
 				Kind = "tr",
 				Pair = name.Replace("_", " - "),
 				Title = name.Replace("_", " - "),
+				Langs = splitcodes(FilterCode(name.Replace("_", " - "))),
 				Detail = name,
 				Size = dirsize(dir),
 				State = FeatureInstallState.Installed,
@@ -227,6 +269,7 @@ static class ChromePack {
 						Id = "tts:" + lang,
 						Kind = "tts",
 						Lang = lang,
+						Langs = splitcodes(FilterCode(lang)),
 						Title = langname(baseCode) + "  " + lang,
 						Detail = "",
 						State = FeatureInstallState.Missing,

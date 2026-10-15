@@ -387,7 +387,7 @@
 				</Grid>
 			</TabItem>
 
-			<TabItem x:Name="tabchrome" Header="Chrome"
+			<TabItem x:Name="tabchrome" Header="Chrome本地翻译/语音模型"
 			         AutomationProperties.AutomationId="inst.tab.chrome">
 				<Grid Margin="8">
 					<Grid.RowDefinitions>
@@ -399,6 +399,11 @@
 					           FontSize="12" Foreground="{StaticResource TextMuted}"
 					           Text="本程序隐藏 Chrome 的翻译语言包和离线语音包。专用配置，不改日常浏览的数据。"/>
 					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="False">
+						<TextBlock x:Name="lbchromelang" Text="语言" VerticalAlignment="Center" Margin="0,0,6,0"
+						           Foreground="{StaticResource TextMuted}"/>
+						<ComboBox x:Name="echromelang" Width="160" Height="28" Margin="0,0,12,0"
+						          VerticalContentAlignment="Center"
+						          AutomationProperties.AutomationId="inst.chrome.lang"/>
 						<TextBlock x:Name="lbchromekind" Text="种类" VerticalAlignment="Center" Margin="0,0,6,0"
 						           Foreground="{StaticResource TextMuted}"/>
 						<ComboBox x:Name="echromekind" Width="120" Height="28" Margin="0,0,12,0"

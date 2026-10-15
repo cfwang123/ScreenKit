@@ -118,6 +118,9 @@ partial class InstallFeaturesWindow : Window {
 		echromekind.SelectionChanged += (_, _) => {
 			if (!chromeUiLoading) applychromefilter();
 		};
+		echromelang.SelectionChanged += (_, _) => {
+			if (!chromeUiLoading) applychromefilter();
+		};
 		cchromeonly.Checked += (_, _) => applychromefilter();
 		cchromeonly.Unchecked += (_, _) => applychromefilter();
 		cchromeheader.Checked += (_, _) => setchromecheck(true);
@@ -194,6 +197,7 @@ partial class InstallFeaturesWindow : Window {
 		lbwinlangcolstate.Text = Loc.T("inst.win.col.state");
 		lbwinlangcolpack.Text = Loc.T("inst.win.col.pack");
 		lbchromehint.Text = Loc.T("inst.chrome.hint");
+		lbchromelang.Text = Loc.T("inst.tts.lang");
 		lbchromekind.Text = Loc.T("inst.chrome.kind");
 		cchromeonly.Content = Loc.T("inst.chrome.onlymissing");
 		bchromerefresh.Content = Loc.T("inst.chrome.refresh");
@@ -591,6 +595,7 @@ partial class InstallFeaturesWindow : Window {
 		cwinlangonly.IsEnabled = !on;
 		cwinlangheader.IsEnabled = !on;
 		bchromerefresh.IsEnabled = !on;
+		echromelang.IsEnabled = !on;
 		echromekind.IsEnabled = !on;
 		cchromeonly.IsEnabled = !on;
 		cchromeheader.IsEnabled = !on;

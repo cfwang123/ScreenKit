@@ -56,11 +56,8 @@ partial class InstallFeaturesWindow {
 		List<ChromePackItem> list = null;
 		await Task.Run(() => list = ChromePack.Query(mode, addr, appendlog, token));
 		chromeAll = list ?? new List<ChromePackItem>();
+		fillchromelang();
 		applychromefilter();
-		var on = 0;
-		foreach (var it in chromeAll)
-			if (it.State == FeatureInstallState.Installed) on++;
-		lbchromesum.Text = string.Format(Loc.T("inst.chrome.sum"), chromeAll.Count, on);
 	}
 
 	string proxymode() {
@@ -69,18 +66,76 @@ partial class InstallFeaturesWindow {
 		return "system";
 	}
 
+	void fillchromelang() {
+		chromeUiLoading = true;
+		var prev = (echromelang.SelectedItem as ComboBoxItem)?.Tag as string;
+		echromelang.Items.Clear();
+		echromelang.Items.Add(new ComboBoxItem { Content = Loc.T("lang.all"), Tag = "" });
+		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var it in chromeAll)
+			foreach (var c in it.Langs ?? new List<string>())
+				if (!string.IsNullOrEmpty(c)) set.Add(c);
+		string[] prefer = { "zh", "cht", "en", "ja", "ko", "yue", "fr", "de", "es", "pt", "ru" };
+		foreach (var p in prefer) {
+			if (!set.Remove(p)) continue;
+			echromelang.Items.Add(new ComboBoxItem { Content = chromelanglabel(p), Tag = p });
+		}
+		var rest = new List<string>(set);
+		rest.Sort(StringComparer.OrdinalIgnoreCase);
+		foreach (var c in rest)
+			echromelang.Items.Add(new ComboBoxItem { Content = chromelanglabel(c), Tag = c });
+		var pick = 0;
+		for (var i = 0; i < echromelang.Items.Count; i++) {
+			if (echromelang.Items[i] is ComboBoxItem ci
+				&& string.Equals(ci.Tag as string, prev, StringComparison.OrdinalIgnoreCase)) {
+				pick = i;
+				break;
+			}
+		}
+		if (string.IsNullOrEmpty(prev)) {
+			for (var i = 0; i < echromelang.Items.Count; i++) {
+				if (echromelang.Items[i] is ComboBoxItem ci && (ci.Tag as string) == "zh") {
+					pick = i;
+					break;
+				}
+			}
+		}
+		if (echromelang.Items.Count > 0)
+			echromelang.SelectedIndex = pick;
+		chromeUiLoading = false;
+	}
+
+	static string chromelanglabel(string code) {
+		var name = Loc.LangName(code);
+		if (string.IsNullOrWhiteSpace(name) || name == code) return code;
+		return name;
+	}
+
 	void applychromefilter() {
 		var kind = chromekind();
+		var lang = (echromelang.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
 		var only = cchromeonly.IsChecked == true;
 		chromeUiLoading = true;
 		chromeRows.Clear();
 		foreach (var it in chromeAll) {
 			if (kind.Length > 0 && it.Kind != kind) continue;
+			if (lang.Length > 0 && !haslang(it, lang)) continue;
 			if (only && it.State == FeatureInstallState.Installed) continue;
 			chromeRows.Add(new ChromeRow(it));
 		}
 		cchromeheader.IsChecked = false;
 		chromeUiLoading = false;
+		var on = 0;
+		foreach (var r in chromeRows)
+			if (r.Item.State == FeatureInstallState.Installed) on++;
+		lbchromesum.Text = string.Format(Loc.T("inst.chrome.sum"), chromeRows.Count, on);
+	}
+
+	static bool haslang(ChromePackItem it, string lang) {
+		if (it?.Langs == null) return false;
+		foreach (var c in it.Langs)
+			if (string.Equals(c, lang, StringComparison.OrdinalIgnoreCase)) return true;
+		return false;
 	}
 
 	void setchromecheck(bool on) {
