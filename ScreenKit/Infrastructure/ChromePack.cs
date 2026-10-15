@@ -95,6 +95,12 @@ static class ChromePack {
 		if (Math.Abs(percentin("Installing 45%") - 0.45) > 0.001) return 2;
 		if (Math.Abs(percentin("下载 12.5%") - 0.125) > 0.001) return 2;
 		if (percentin("已安装") != -1) return 2;
+		var voices = readvoices();
+		if (voices.Count < VOICE_LANGS.Length) return 2;
+		var hasZh = false;
+		foreach (var v in voices)
+			if (v.Kind == "tts" && v.Lang == "zh-CN") hasZh = true;
+		if (!hasZh) return 2;
 		return 0;
 	}
 
@@ -432,7 +438,41 @@ static class ChromePack {
 		return list;
 	}
 
+	static readonly string[] VOICE_LANGS = {
+		"zh-CN", "yue-HK", "zh-TW", "en-US", "en-GB", "ja-JP", "ko-KR",
+		"de-DE", "fr-FR", "es-ES", "es-US", "pt-BR", "it-IT", "ru-RU",
+		"hi-IN", "id-ID", "vi-VN", "nl-NL", "pl-PL",
+	};
+
 	static List<ChromePackItem> readvoices() {
+		var map = new Dictionary<string, ChromePackItem>(StringComparer.OrdinalIgnoreCase);
+		foreach (var it in builtinvoices())
+			if (it.Lang.Length > 0) map[it.Lang] = it;
+		foreach (var it in readvoicefile())
+			if (it.Lang.Length > 0) map[it.Lang] = it;
+		var list = new List<ChromePackItem>(map.Values);
+		list.Sort((a, b) => string.Compare(a.Lang, b.Lang, StringComparison.OrdinalIgnoreCase));
+		return list;
+	}
+
+	static List<ChromePackItem> builtinvoices() {
+		var list = new List<ChromePackItem>();
+		foreach (var lang in VOICE_LANGS) {
+			var key = FilterCode(lang);
+			list.Add(new ChromePackItem {
+				Id = "tts:" + lang,
+				Kind = "tts",
+				Lang = lang,
+				Langs = splitcodes(FilterCode(lang)),
+				Title = langname(key) + "  " + lang,
+				Detail = "",
+				State = FeatureInstallState.Missing,
+			});
+		}
+		return list;
+	}
+
+	static List<ChromePackItem> readvoicefile() {
 		var path = findvoices();
 		var map = new Dictionary<string, ChromePackItem>(StringComparer.OrdinalIgnoreCase);
 		if (path == null) return new List<ChromePackItem>();
@@ -446,7 +486,7 @@ static class ChromePack {
 				var lang = VoiceLang(id);
 				if (lang.Length == 0) continue;
 				if (!map.TryGetValue(lang, out var it)) {
-					var baseCode = lang.Split('-')[0];
+					var baseCode = FilterCode(lang);
 					it = new ChromePackItem {
 						Id = "tts:" + lang,
 						Kind = "tts",

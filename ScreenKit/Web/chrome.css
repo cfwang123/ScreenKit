@@ -66,3 +66,16 @@ th, td {
 	white-space: nowrap;
 }
 th { position: sticky; top: 0; background: var(--card); }
+.st {
+	display: inline-block;
+	min-width: 52px;
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 700;
+	text-align: center;
+}
+.st.on { color: #14532d; background: #4ade80; }
+.st.off { color: #7f1d1d; background: #fca5a5; }
+.st.part { color: #78350f; background: #fbbf24; }
+.st.unk { color: #44403c; background: #d6d3d1; }

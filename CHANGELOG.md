@@ -80,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR in Chinese or English puts spaces back into English words where the picture has a word gap.
 - Tool scripts run after the page is created, so the tools home shows its cards and panels.
 - Chrome translation downloads a missing language pack in the speech page that is already open
+- The Chrome models page lists voice languages, filters by language, and colors installed packs green and missing packs red
 
 #### Documentation
 
@@ -130,6 +131,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR 在中文或英文下，按画面词距把粘在一起的英文补回空格。
 - 工具脚本在页面生成之后再执行，工具主页会画出卡片和各个面板。
 - Chrome 翻译缺少语言模型时，在已经打开的朗读页里下载，不再关掉 Chrome 后重开
+- Chrome 模型页列出语音语言，可按语言筛选，已安装为绿色，未安装为红色
 
 #### 文档
 

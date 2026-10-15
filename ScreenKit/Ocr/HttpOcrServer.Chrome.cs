@@ -78,6 +78,10 @@ sealed partial class HttpOcrServer {
 		if (list == null) return arr;
 		foreach (var it in list) {
 			if (it == null) continue;
+			var langs = new JsonArray();
+			if (it.Langs != null)
+				foreach (var c in it.Langs)
+					if (!string.IsNullOrEmpty(c)) langs.Add(c);
 			arr.Add(new JsonObject {
 				["id"] = it.Id ?? "",
 				["kind"] = it.Kind ?? "",
@@ -86,6 +90,7 @@ sealed partial class HttpOcrServer {
 				["size"] = it.Size,
 				["sizeText"] = it.SizeText ?? "",
 				["state"] = packstate(it, probe),
+				["langs"] = langs,
 			});
 		}
 		return arr;

@@ -11,6 +11,9 @@
 	<h1>Chrome模型</h1>
 </header>
 <div class="bar">
+	<select id="lang">
+		<option value="">全部语言</option>
+	</select>
 	<select id="kind">
 		<option value="all">全部</option>
 		<option value="on">已安装</option>
@@ -22,7 +25,7 @@
 	<button type="button" id="remove">卸载所选</button>
 	<span id="msg"></span>
 </div>
-<p class="hint">翻译模型按本机文件显示是否已安装。刷新会打开隐藏的 Chrome，查询语音包。</p>
+<p class="hint">翻译模型按本机文件显示是否已安装。语音列出 Chrome 的朗读语言。刷新会打开隐藏的 Chrome，查询语音包是否已安装。</p>
 <div class="scroll">
 	<table id="tab"></table>
 </div>
