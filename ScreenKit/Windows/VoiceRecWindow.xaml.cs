@@ -13,6 +13,10 @@ public partial class VoiceRecWindow : Window {
 		session.Error += onerror;
 		applylang();
 		filldev();
+		cmic.Checked += (_, _) => paint();
+		cmic.Unchecked += (_, _) => paint();
+		csys.Checked += (_, _) => paint();
+		csys.Unchecked += (_, _) => paint();
 		bdev.Click += (_, _) => filldev();
 		brec.Click += (_, _) => rec();
 		bpause.Click += (_, _) => pause();
@@ -36,7 +40,8 @@ public partial class VoiceRecWindow : Window {
 	void applylang() {
 		Title = Loc.T("vrec.title");
 		lbhint.Text = Loc.T("vrec.hint");
-		lbdev.Text = Loc.T("vrec.dev");
+		cmic.Content = Loc.T("vrec.dev");
+		csys.Content = Loc.T("vrec.sys");
 		ToolBtnUi.Set(bdev, ToolBtnUi.Swap, Loc.T("vrec.refresh"));
 		paint();
 	}
@@ -55,22 +60,26 @@ public partial class VoiceRecWindow : Window {
 		int pick = 0;
 		if (cur != null) {
 			for (int i = 0; i < list.Count; i++) {
-				if (list[i].Index == cur.Index) pick = i;
+				if (list[i].Id == cur.Id) pick = i;
 			}
 		}
 		edev.SelectedIndex = pick;
+		if (list.Count == 0) cmic.IsChecked = false;
 		paint();
 	}
 
 	void rec() {
+		bool useMic = cmic.IsChecked == true;
+		bool useSys = csys.IsChecked == true;
 		var dev = edev.SelectedItem as VoiceRec.Dev;
-		if (dev == null) {
+		if ((useMic && dev == null) || (!useMic && !useSys)) {
 			lbstat.Text = Loc.T("vrec.nodev");
 			return;
 		}
 		try {
-			if (mode == "pause") session.Resume(dev.Index);
-			else session.StartNew(dev.Index);
+			string id = useMic ? dev.Id : null;
+			if (mode == "pause") session.Resume(id, useSys);
+			else session.StartNew(id, useSys);
 			mode = "rec";
 			plevel.Value = 0;
 		}
@@ -192,9 +201,14 @@ public partial class VoiceRecWindow : Window {
 		bool hold = mode == "pause";
 		bool busy = rec || hold;
 		bool has = session.ByteCount >= 2;
-		edev.IsEnabled = !rec;
+		bool useMic = cmic.IsChecked == true && edev.Items.Count > 0;
+		bool useSys = csys.IsChecked == true;
+		bool can = (useMic && edev.SelectedItem != null) || useSys;
+		cmic.IsEnabled = !rec && edev.Items.Count > 0;
+		csys.IsEnabled = !rec;
+		edev.IsEnabled = !rec && cmic.IsChecked == true && edev.Items.Count > 0;
 		bdev.IsEnabled = !rec;
-		brec.IsEnabled = edev.Items.Count > 0 && mode != "rec";
+		brec.IsEnabled = can && mode != "rec";
 		bpause.IsEnabled = busy;
 		bstop.IsEnabled = busy || mode == "play";
 		bplay.IsEnabled = has && !rec;
@@ -209,7 +223,7 @@ public partial class VoiceRecWindow : Window {
 		if (rec) lbstat.Text = Loc.T("vrec.recording");
 		else if (hold) lbstat.Text = Loc.T("vrec.paused");
 		else if (mode == "play") lbstat.Text = Loc.T("vrec.playing");
-		else if (edev.Items.Count == 0) lbstat.Text = Loc.T("vrec.nodev");
+		else if (!can) lbstat.Text = Loc.T(edev.Items.Count == 0 ? "vrec.nodev" : "vrec.nosrc");
 		else lbstat.Text = Loc.T("vrec.idle");
 		showtime();
 	}
@@ -228,6 +242,7 @@ public partial class VoiceRecWindow : Window {
 			Dispatcher.BeginInvoke(() => onerror(message));
 			return;
 		}
+		try { session.Pause(); } catch { }
 		mode = "idle";
 		plevel.Value = 0;
 		paint();

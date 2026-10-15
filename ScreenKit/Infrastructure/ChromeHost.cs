@@ -10,7 +10,6 @@ namespace ScreenKit;
 
 /// <summary>一个停在屏幕外的 Chrome。朗读和翻译在同一个窗口里排队，这一页保持在前台。</summary>
 static class ChromeHost {
-	const int SW_SHOWNA = 8;
 	static readonly object gate = new();
 	static readonly Dictionary<int, Slot> slots = new();
 	static readonly Queue<int> order = new();
@@ -141,7 +140,7 @@ static class ChromeHost {
 		var id = Interlocked.Increment(ref seq);
 		var done = waiter(true);
 		var slot = new Slot { Id = id, Page = "speak.html", Fail = "speak", Done = done };
-		var json = "{\"id\":" + id + ",\"text\":\"hi\",\"name\":\"\",\"lang\":\"en-US\",\"rate\":1,\"volume\":1}";
+		var json = "{\"op\":\"speak\",\"id\":" + id + ",\"text\":\"hi\",\"name\":\"Google US English\",\"lang\":\"en-US\",\"rate\":1,\"volume\":1}";
 		submit(id, "speak.html", json, slot, "", 60, CancellationToken.None);
 		waitdone(id, done, CancellationToken.None, "Chrome 朗读超时");
 	}
@@ -312,7 +311,6 @@ static class ChromeHost {
 	static void idleloop() {
 		while (true) {
 			Thread.Sleep(200);
-			try { hide(); } catch { }
 			lock (gate) {
 				if (!due()) continue;
 				stopunlocked();
@@ -569,27 +567,6 @@ static class ChromeHost {
 		return dir;
 	}
 
-	static void show() {
-		Process p;
-		lock (gate) p = proc;
-		int pid = 0;
-		if (p != null) {
-			try { if (!p.HasExited) pid = p.Id; } catch { pid = 0; }
-		}
-		EnumWindows((h, _) => {
-			var sb = new StringBuilder(256);
-			var n = GetWindowText(h, sb, sb.Capacity);
-			var text = n > 0 ? sb.ToString() : "";
-			GetWindowThreadProcessId(h, out var wpid);
-			if ((pid > 0 && (int)wpid == pid) || text.StartsWith("skc", StringComparison.Ordinal))
-				ShowWindow(h, SW_SHOWNA);
-			return true;
-		}, IntPtr.Zero);
-	}
-
-	static void hide() {
-	}
-
 	static bool hastitle(string part) {
 		var ok = false;
 		EnumWindows((h, _) => {
@@ -607,7 +584,7 @@ static class ChromeHost {
 		+ "function post(job,ok,err,items){cur=0;var body=JSON.stringify({id:job.id,ok:!!ok,err:err||'',items:items||[]});var done=function(){setTimeout(poll,50);};try{fetch('/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(done,done);}catch(e){done();}}\n"
 		+ "function watch(){if(!cur)return;var id=cur,x=new XMLHttpRequest();x.open('GET','jobs/'+id+'.stop',true);x.onload=function(){if(cur!=id)return;if((x.responseText||'').charAt(0)=='1'){stopping=true;cur=0;try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}setTimeout(poll,50);}};try{x.send();}catch(e){}}\n"
 		+ "setInterval(watch,200);\n"
-		+ "function pick(job){var list=speechSynthesis.getVoices(),name=job.name||'',lang=(job.lang||'').toLowerCase(),i,match=[];if(name){for(i=0;i<list.length;i++)if(list[i].name===name)return list[i];}if(!lang)return list[0]||null;for(i=0;i<list.length;i++)if((list[i].lang||'').toLowerCase().indexOf(lang)===0)match.push(list[i]);for(i=0;i<match.length;i++)if(match[i].name.indexOf('Google')!==0)return match[i];return null;}\n"
+		+ "function pick(job){var list=speechSynthesis.getVoices(),name=job.name||'',lang=(job.lang||'').toLowerCase(),i,match=[];if(name){for(i=0;i<list.length;i++)if(list[i].name===name&&list[i].name.indexOf('Google')!==0)return list[i];}if(!lang)return list[0]||null;for(i=0;i<list.length;i++)if((list[i].lang||'').toLowerCase().indexOf(lang)===0)match.push(list[i]);for(i=0;i<match.length;i++)if(match[i].name.indexOf('Google')!==0)return match[i];return null;}\n"
 		+ "function go(job,v){try{var u=new SpeechSynthesisUtterance(job.text||'');if(v){u.voice=v;u.lang=v.lang||job.lang||'';}else u.lang=job.lang||'';u.rate=job.rate>0?+job.rate:1;u.volume=job.volume==null?1:+job.volume;u.onend=function(){if(stopping)return;post(job,true,'',[]);};u.onerror=function(e){if(stopping)return;var m=(e&&e.error)||'';if(!m||m.indexOf('Receiving end')>=0)m='Chrome 没有发出声音';post(job,false,m,[]);};setTimeout(function(){try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(e){post(job,false,e&&e.message?e.message:'speak',[]);}},200);}catch(e){post(job,false,e&&e.message?e.message:'speak',[]);}}\n"
 		+ "function speak(job){if(!window.speechSynthesis){post(job,false,'Chrome 没有发出声音',[]);return;}var started=false;function kick(){if(started||stopping)return true;var v=pick(job);if(!v)return false;started=true;go(job,v);return true;}if(kick())return;var t0=Date.now();var timer=setInterval(function(){if(kick()){clearInterval(timer);return;}if(Date.now()-t0>12000){clearInterval(timer);if(!started)post(job,false,'Chrome 没有发出声音',[]);}},200);speechSynthesis.onvoiceschanged=function(){if(kick())clearInterval(timer);};}\n"
 		+ "function ctor(){if(typeof Translator==='function')return Translator;if(self.ai&&typeof self.ai.translator==='function')return self.ai.translator;return null;}\n"
@@ -618,6 +595,4 @@ static class ChromeHost {
 	delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
 	[DllImport("user32.dll")] static extern bool EnumWindows(EnumProc lpEnumFunc, IntPtr lParam);
 	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
-	[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 }

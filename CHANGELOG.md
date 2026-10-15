@@ -57,7 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Line mode at threshold 0 keeps faint edges, including edges that fall on a cell boundary.
 - Character art draws darker cells denser unless Invert is on.
-- Chrome speech no longer shows the extension connection error. It speaks in the already open page, and current Chrome voices skip the old offline voice-pack install.
+- Chrome speech no longer shows the extension connection error. It speaks in the already open page, and uses a local voice when the Google network voice does not start. The old offline voice pack is not installed.
 
 #### Documentation
 
@@ -85,7 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 线条模式在阈值为 0 时会保留很淡的边缘，格子交界上的线也会画出来。
 - 字符画不勾选反色时，越暗的地方字符越密。
-- Chrome 语音不再弹出扩展连接错误。朗读留在已经打开的页面里，当前 Chrome 的语音不再安装旧的离线语音包。
+- Chrome 语音不再弹出扩展连接错误。朗读留在已经打开的页面里；Google 联网语音发不出声时改用本机语音。不再安装旧的离线语音包。
 
 #### 文档
 
