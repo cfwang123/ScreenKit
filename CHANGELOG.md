@@ -57,6 +57,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome speech and translation share one hidden Chrome process. Requests run one after another in that window, so speech stays in the foreground tab.
 - The Chrome speech window stays off the taskbar. Memory lists that Chrome process and can close it.
 - The hidden Chrome process uses the HTTP proxy from Settings. Loopback, private networks, .cn, and China mirrors stay direct. A proxy change restarts that process.
+- The performance window is a two-column slate panel with a pin button that keeps it in front.
+- Chrome speech plays immediately. The offline voice pack is installed only after playback fails, then the text is spoken once more. The HTTP API does the same.
 
 #### Fixed
 
@@ -92,6 +94,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 朗读和翻译共用一个隐藏进程。请求在这个窗口里排队，朗读页保持在前台。
 - Chrome 窗口不再出现在任务栏。内存占用列出这个 Chrome 进程，可以手动关闭。
 - 隐藏的 Chrome 进程使用参数设置里的 HTTP 代理。回环、内网、.cn 和国内镜像仍然直连。代理改了会重新打开这个进程。
+- 性能小窗改为双列石板样式，标题旁的图钉可固定到前面。
+- Chrome 语音先直接朗读。发不出声才安装离线语音包，装完再读一次。HTTP 接口同样如此。
 
 #### 修复
 

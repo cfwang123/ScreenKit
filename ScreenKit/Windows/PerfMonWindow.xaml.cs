@@ -2,12 +2,20 @@ using System.Windows.Threading;
 
 namespace ScreenKit;
 
-/// <summary>半透明无边框性能小窗。右键开关每一项。</summary>
+/// <summary>无边框性能小窗。双列显示，右键开关每一项，图钉固定到前面。</summary>
 public partial class PerfMonWindow : Window {
 	readonly PerfOpt opt;
 	readonly DispatcherTimer timer;
 	readonly Dictionary<string, TextBlock> cells = new();
+	readonly SolidColorBrush nameBrush = freeze("#E4EAEF");
+	readonly SolidColorBrush valueBrush = freeze("#F8F8F8");
+	readonly SolidColorBrush pinOn = freeze("#40C070");
+	readonly SolidColorBrush pinOff = freeze("#C5D0D6");
+	static readonly string[] ShowOrder = {
+		"cpu", "gpu", "mem", "cputemp", "down", "up", "read", "write", "gputemp", "gpupower", "cpupower",
+	};
 	PerfMonOptWindow optWin;
+	MenuItem topmi;
 	bool placed;
 
 	public PerfMonWindow() {
@@ -16,9 +24,12 @@ public partial class PerfMonWindow : Window {
 		Title = Loc.T("perf.title");
 		lbtitle.Text = Loc.T("perf.title");
 		Topmost = opt.Topmost;
+		btop.ToolTip = Loc.T("perf.top");
+		paintpin();
 		buildmenu();
 		buildrows();
-		card.MouseLeftButtonDown += (_, _) => {
+		card.MouseLeftButtonDown += (_, e) => {
+			if (under(btop, e.OriginalSource as DependencyObject)) return;
 			try { DragMove(); } catch { }
 		};
 		card.MouseLeftButtonUp += (_, _) => savepos();
@@ -67,36 +78,56 @@ public partial class PerfMonWindow : Window {
 		var settings = new MenuItem { Header = Loc.T("perf.settings") };
 		settings.Click += (_, _) => opensettings();
 		menu.Items.Add(settings);
-		var top = new MenuItem { Header = Loc.T("perf.top"), IsCheckable = true, IsChecked = opt.Topmost };
-		top.Click += (_, _) => {
-			opt.Topmost = top.IsChecked;
-			Topmost = opt.Topmost;
-			opt.Save(PerfOpt.DefaultPath);
-		};
-		menu.Items.Add(top);
+		topmi = new MenuItem { Header = Loc.T("perf.top"), IsCheckable = true, IsChecked = opt.Topmost };
+		topmi.Click += (_, _) => settop(topmi.IsChecked);
+		menu.Items.Add(topmi);
 		var close = new MenuItem { Header = Loc.T("perf.close") };
 		close.Click += (_, _) => Close();
 		menu.Items.Add(close);
 		card.ContextMenu = menu;
 	}
 
+	void btop_Click(object sender, RoutedEventArgs e) {
+		settop(!opt.Topmost);
+	}
+
+	void settop(bool on) {
+		opt.Topmost = on;
+		Topmost = on;
+		if (topmi != null) topmi.IsChecked = on;
+		paintpin();
+		opt.Save(PerfOpt.DefaultPath);
+	}
+
+	void paintpin() {
+		lbtop.Foreground = opt.Topmost ? pinOn : pinOff;
+	}
+
+	static bool under(DependencyObject root, DependencyObject node) {
+		while (node != null) {
+			if (node == root) return true;
+			node = VisualTreeHelper.GetParent(node);
+		}
+		return false;
+	}
+
 	void buildrows() {
 		rows.Children.Clear();
 		cells.Clear();
-		foreach (var key in PerfOpt.Keys) {
+		foreach (var key in ShowOrder) {
 			if (!opt.On(key)) continue;
-			var grid = new Grid { Margin = new Thickness(0, 1, 0, 1) };
+			var grid = new Grid { Margin = new Thickness(0, 2, 16, 2) };
 			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(96) });
+			grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
 			var name = new TextBlock {
 				Text = Loc.T($"perf.{key}"),
-				Foreground = ColorBrush("#C8FFFFFF"),
+				Foreground = nameBrush,
 				FontSize = 13,
 				VerticalAlignment = VerticalAlignment.Center,
 			};
 			var val = new TextBlock {
 				Text = "—",
-				Foreground = Brushes.White,
+				Foreground = valueBrush,
 				FontSize = 13,
 				FontWeight = FontWeights.SemiBold,
 				HorizontalAlignment = HorizontalAlignment.Right,
@@ -175,10 +206,10 @@ public partial class PerfMonWindow : Window {
 		const double kb = 1024;
 		const double mb = 1024 * 1024;
 		const double gb = 1024 * 1024 * 1024;
-		if (v >= gb) return $"{v / gb:0.0} GB/s";
-		if (v >= mb) return $"{v / mb:0.0} MB/s";
-		if (v >= kb) return $"{v / kb:0} KB/s";
-		return $"{v:0} B/s";
+		if (v >= gb) return $"{v / gb:0.0}G/s";
+		if (v >= mb) return $"{v / mb:0.0}M/s";
+		if (v >= kb) return $"{v / kb:0}K/s";
+		return $"{v:0}B/s";
 	}
 
 	static string temp(double v) {
@@ -192,7 +223,7 @@ public partial class PerfMonWindow : Window {
 		return $"{v:0.0} W";
 	}
 
-	static SolidColorBrush ColorBrush(string hex) {
+	static SolidColorBrush freeze(string hex) {
 		var c = (Color)ColorConverter.ConvertFromString(hex);
 		var b = new SolidColorBrush(c);
 		b.Freeze();
