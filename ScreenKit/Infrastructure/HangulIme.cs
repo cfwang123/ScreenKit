@@ -30,8 +30,10 @@ sealed class HangulIme : IDisposable {
 	const uint SWP_SHOWWINDOW = 0x0040;
 
 	readonly Hangul hang = new();
+	readonly List<ImeHit> cands = new();
 	readonly HashSet<int> eaten = new();
 	readonly HashSet<int> downvks = new();
+	HangulCand bar;
 	readonly DispatcherTimer timer;
 	Forms.NotifyIcon ni;
 	Forms.ContextMenuStrip menu;
@@ -294,9 +296,15 @@ sealed class HangulIme : IDisposable {
 			markeat(vk);
 			return;
 		}
+		var digit = digitof(vk);
+		bool shift = held(VK_SHIFT) || held(0xA0) || held(0xA1);
+		if (!shift && digit >= 1 && digit <= cands.Count) {
+			pickcand(digit - 1);
+			markeat(vk);
+			return;
+		}
 		if (vk >= VK_A && vk <= 0x5A) {
 			char lower = (char)('a' + vk - VK_A);
-			bool shift = held(VK_SHIFT) || held(0xA0) || held(0xA1);
 			bool ok = shift && hang.Push(char.ToUpper(lower));
 			if (!ok) ok = hang.Push(lower);
 			if (!ok) {
@@ -315,6 +323,8 @@ sealed class HangulIme : IDisposable {
 			replace(hang.Partial.Length, "");
 			hang.Clear();
 			shown = "";
+			cands.Clear();
+			hidecand();
 			markeat(VK_ESC);
 			return;
 		}
@@ -324,6 +334,8 @@ sealed class HangulIme : IDisposable {
 	void commit() {
 		hang.Clear();
 		shown = "";
+		cands.Clear();
+		hidecand();
 	}
 
 	void sync() {
@@ -333,6 +345,53 @@ sealed class HangulIme : IDisposable {
 		while (n < m && shown[n] == text[n]) n++;
 		replace(shown.Length - n, text.Substring(n));
 		shown = text;
+		reloadcand();
+	}
+
+	void reloadcand() {
+		cands.Clear();
+		if (!hang.Ready || !ImeLex.Ready) {
+			hidecand();
+			return;
+		}
+		var exact = hang.Text;
+		cands.Add(new ImeHit { Text = exact, Comment = ImeLex.Hanja(exact) });
+		foreach (var p in ImeLex.Query(exact)) cands.Add(p);
+		if (bar == null) bar = new HangulCand();
+		bar.ShowHits(cands, caretbox());
+	}
+
+	void pickcand(int i) {
+		if (i < 0 || i >= cands.Count) return;
+		var t = cands[i].Text ?? "";
+		replace(shown.Length, t);
+		hang.Clear();
+		shown = "";
+		cands.Clear();
+		hidecand();
+	}
+
+	void hidecand() {
+		try { bar?.HideBar(); } catch { }
+	}
+
+	static int digitof(int vk) {
+		if (vk >= 0x30 && vk <= 0x39) return vk - 0x30;
+		if (vk >= 0x60 && vk <= 0x69) return vk - 0x60;
+		return -1;
+	}
+
+	static Rect caretbox() {
+		var fg = GetForegroundWindow();
+		if (fg == IntPtr.Zero) return Rect.Empty;
+		var tid = GetWindowThreadProcessId(fg, out _);
+		var info = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
+		if (!GetGUIThreadInfo(tid, ref info) || info.hwndCaret == IntPtr.Zero) return Rect.Empty;
+		var r = info.rcCaret;
+		if (r.Right <= r.Left || r.Bottom <= r.Top) return Rect.Empty;
+		var pt = new POINT { x = r.Left, y = r.Bottom };
+		if (!ClientToScreen(info.hwndCaret, ref pt)) return Rect.Empty;
+		return new Rect(pt.x, pt.y - Math.Max(1, r.Bottom - r.Top), Math.Max(1, r.Right - r.Left), Math.Max(1, r.Bottom - r.Top));
 	}
 
 	void markeat(int vk) {
@@ -446,4 +505,29 @@ sealed class HangulIme : IDisposable {
 	[DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr h);
 	[DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
 	[DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+	[DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
+	[DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr hwnd, ref POINT pt);
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct GUITHREADINFO {
+		public int cbSize;
+		public int flags;
+		public IntPtr hwndActive;
+		public IntPtr hwndFocus;
+		public IntPtr hwndCapture;
+		public IntPtr hwndMenuOwner;
+		public IntPtr hwndMoveSize;
+		public IntPtr hwndCaret;
+		public RECT rcCaret;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct RECT {
+		public int Left, Top, Right, Bottom;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct POINT {
+		public int x, y;
+	}
 }

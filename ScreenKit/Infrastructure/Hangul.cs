@@ -8,6 +8,8 @@ sealed class Hangul {
 	int jong = -1;
 
 	public string Text => done + partial();
+	/// <summary>当前音节已有声母和元音，可以出词。</summary>
+	public bool Ready => cho >= 0 && jung >= 0;
 	/// <summary>还没提交的当前音节。Esc 只删这一段。</summary>
 	public string Partial => partial();
 

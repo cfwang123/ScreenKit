@@ -60,6 +60,8 @@ public enum FeatureKind {
 	Bogus,
 	/// <summary>NPinyin.dll（中文转拼音，约 75KB）。</summary>
 	NPinyin,
+	/// <summary>输入法 ime.db。从固定 Release dict-db 的 ime.7z 解出，不进应用更新包。</summary>
+	ImeDb,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -129,6 +131,8 @@ static class FeatureInstaller {
 	/// <summary>固定标签 dict-db，不跟随最新 Release，避免被当成应用更新包。</summary>
 	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict2.7z";
 	const long DICT7Z_BYTES = 142807076L;
+	const string IME7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ime.7z";
+	const long IME7Z_BYTES = 6242584L;
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
 	const long TRANSLATE7Z_BYTES = 1028366964L;
 	const string FFMPEG7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ffmpeg.7z";
@@ -227,6 +231,7 @@ static class FeatureInstaller {
 			make(FeatureKind.TranslateOnnx, "translate"),
 			make(FeatureKind.FaceInsight, "face"),
 			make(FeatureKind.DictDb, "dict"),
+			make(FeatureKind.ImeDb, "ime"),
 			make(FeatureKind.CudaGpu, "accel", true),
 			make(FeatureKind.DirectMl, "accel", true),
 			make(FeatureKind.MediaFoundation, "media"),
@@ -290,6 +295,7 @@ static class FeatureInstaller {
 		FeatureKind.Ffmpeg => FFMPEG7Z_BYTES,
 		FeatureKind.FaceInsight => 326L * 1024 * 1024,
 		FeatureKind.DictDb => DICT7Z_BYTES,
+		FeatureKind.ImeDb => IME7Z_BYTES,
 		FeatureKind.TranslateOnnx => TRANSLATE7Z_BYTES,
 		_ => 0,
 	};
@@ -369,6 +375,7 @@ static class FeatureInstaller {
 			case FeatureKind.Ffmpeg: return dirsize(FfmpegDir);
 			case FeatureKind.FaceInsight: return dirsize(FaceModelsDir);
 			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict2.db"));
+			case FeatureKind.ImeDb: return filesize(Path.Combine(BaseDir, "ime.db"));
 			case FeatureKind.TranslateOnnx:
 				return dirsize(Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"))
 					+ dirsize(Path.Combine(TranslateModelsDir, "opus-mt-en-zh-onnx"));
@@ -477,6 +484,8 @@ static class FeatureInstaller {
 			return probeface();
 		case FeatureKind.DictDb:
 			return probedict();
+		case FeatureKind.ImeDb:
+			return probeime();
 		case FeatureKind.TranslateOnnx:
 			return probetranslate();
 		default:
@@ -660,6 +669,9 @@ static class FeatureInstaller {
 		case FeatureKind.DictDb:
 			await installdict(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.ImeDb:
+			await installime(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.TranslateOnnx:
 			await installtranslate(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -746,6 +758,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.DictDb:
 			uninstalldict(log);
+			break;
+		case FeatureKind.ImeDb:
+			uninstallime(log);
 			break;
 		case FeatureKind.TranslateOnnx:
 			uninstalltranslate(log);
@@ -1336,6 +1351,74 @@ arabic_dict.txt
 		removeolddict(log);
 		reportprog(progress, 1, zlen, zlen, "dict2.db", "完成");
 		log?.Report("词典 dict2.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
+	}
+
+	// ───────── 输入法 ime.7z ─────────
+
+	static string imedbpath() => Path.Combine(BaseDir, "ime.db");
+
+	static FeatureInstallState probeime() {
+		var path = imedbpath();
+		try {
+			if (!File.Exists(path)) return FeatureInstallState.Missing;
+			var n = filesize(path);
+			if (n >= 8L * 1024 * 1024) return FeatureInstallState.Installed;
+			return n > 0 ? FeatureInstallState.Partial : FeatureInstallState.Missing;
+		}
+		catch { return FeatureInstallState.Missing; }
+	}
+
+	static async Task installime(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		if (probeime() == FeatureInstallState.Installed) {
+			log?.Report("ime.db 已存在，跳过");
+			reportprog(progress, 1, note: "已存在");
+			return;
+		}
+		Directory.CreateDirectory(CacheDir);
+		var arc = Path.Combine(CacheDir, "ime.7z");
+		if (File.Exists(arc)) {
+			long have = 0;
+			try { have = new FileInfo(arc).Length; } catch { }
+			if (have != IME7Z_BYTES) {
+				try { File.Delete(arc); } catch { }
+			}
+		}
+		await downloadfirst(ExpandUrls(IME7Z_URL), arc, log, progress, ct,
+			expectedTotal: IME7Z_BYTES, overallWeight: 0.9).ConfigureAwait(false);
+		var unpack = Path.Combine(CacheDir, "ime-unpack");
+		if (Directory.Exists(unpack)) {
+			try { Directory.Delete(unpack, true); } catch { }
+		}
+		Directory.CreateDirectory(unpack);
+		log?.Report("解压 ime.7z …");
+		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : IME7Z_BYTES;
+		reportprog(progress, 0.92, zlen, zlen, "ime.7z", "解压中…");
+		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
+		extract7z(arc, unpack, log);
+		string found = null;
+		try {
+			found = Directory.GetFiles(unpack, "ime.db", SearchOption.AllDirectories).FirstOrDefault();
+		}
+		catch { }
+		if (string.IsNullOrEmpty(found))
+			throw new InvalidOperationException("ime.7z 里没有 ime.db");
+		var dest = imedbpath();
+		unlinkifreparse(dest);
+		if (File.Exists(dest)) File.Delete(dest);
+		try { if (File.Exists(dest + "-wal")) File.Delete(dest + "-wal"); } catch { }
+		try { if (File.Exists(dest + "-shm")) File.Delete(dest + "-shm"); } catch { }
+		File.Move(found, dest);
+		reportprog(progress, 1, zlen, zlen, "ime.db", "完成");
+		log?.Report("输入法 ime.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
+	}
+
+	static void uninstallime(IProgress<string> log) {
+		var dest = imedbpath();
+		unlinkifreparse(dest);
+		deletefile(dest, log);
+		deletefile(dest + "-wal", log);
+		deletefile(dest + "-shm", log);
 	}
 
 	static void uninstalldict(IProgress<string> log) {

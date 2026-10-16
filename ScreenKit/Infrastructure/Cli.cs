@@ -59,7 +59,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
@@ -317,6 +317,8 @@ static class Cli {
 					return testpinyin();
 				case "--test-hangul":
 					return testhangul();
+				case "--test-ime":
+					return testime();
 				case "--test-7za":
 					return test7za();
 				case "--test-htmlui":
@@ -4102,6 +4104,60 @@ static class Cli {
 		return 0;
 	}
 
+	static int testime() {
+		Out("=== 输入法词库 --test-ime ===");
+		var path = Path.Combine(Path.GetTempPath(), "screenkit-ime-test.db");
+		try { if (File.Exists(path)) File.Delete(path); } catch { }
+		try {
+			if (!NativeRuntime.HasSqlite()) {
+				Err("FAIL: 缺少 e_sqlite3.dll");
+				return 1;
+			}
+			SQLitePCL.Batteries_V2.Init();
+			var csb = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path };
+			using (var c = new Microsoft.Data.Sqlite.SqliteConnection(csb.ToString())) {
+				c.Open();
+				using var cmd = c.CreateCommand();
+				cmd.CommandText = @"CREATE TABLE kr_word (text TEXT PRIMARY KEY, freq INTEGER NOT NULL);
+CREATE TABLE kr_hanja (hangul TEXT NOT NULL, hanja TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (hangul, hanja));
+INSERT INTO kr_word(text,freq) VALUES('한국',100),('한국어',80),('학교',90);
+INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1),('학교에','學校에',1);";
+				cmd.ExecuteNonQuery();
+			}
+			ImeLex.Use(path);
+			var han = ImeLex.Hanja("한국");
+			if (han != "韓國") {
+				Err("FAIL hanja " + han);
+				return 1;
+			}
+			var rows = ImeLex.Query("한");
+			if (rows.Count < 2 || rows[0].Text != "한국" || rows[1].Text != "한국어") {
+				Err("FAIL query " + string.Join(",", rows.ConvertAll(x => x.Text).ToArray()));
+				return 1;
+			}
+			if (rows[0].Comment != "韓國") {
+				Err("FAIL note " + rows[0].Comment);
+				return 1;
+			}
+			var mixed = ImeLex.Hanja("학교에");
+			if (mixed != "學校에") {
+				Err("FAIL mixed " + mixed);
+				return 1;
+			}
+			Out("한국 / 한국어 / 學校에");
+			Out("OK");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { ImeLex.Close(); } catch { }
+			try { if (File.Exists(path)) File.Delete(path); } catch { }
+		}
+	}
+
 	static int testpinyin() {
 		Out("=== 中文转拼音 --test-pinyin ===");
 		var had = NativeRuntime.HasNPinyin();
@@ -6383,6 +6439,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --pinyin    中文转拼音（需已安装 NPinyin）。--init 输出首字母
       --test-pinyin  安装 NPinyin 后把「中国人民银行」转成拼音和首字母，测 pinyin.user.toml 盖住系统词表，并测本机 /api/pinyin；原来没有则测完删掉
       --test-hangul  两套式组字：한글、가나、退格拆音节
+      --test-ime     输入法词库：词前缀和汉字注释
       --test-7za  用 7za.dll 解压内置小 7z（含中文文件名）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、MAC 厂家、USB ID、系统定位权限
