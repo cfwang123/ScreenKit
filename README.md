@@ -56,6 +56,7 @@ The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese
 - **Settings → Dictionary** sets how many hits to list at once, how long to keep the database open, and, for each language, the engine, the voice, and the rate. When the engine is Auto, it uses that language’s Windows speech, or Edge when none is installed.
 - The dictionary hotkey is empty by default. After it is set: when this is not the main window, it brings the window forward and selects the dictionary (and searches only when the clipboard looks like one word; with nothing to search, the dictionary database stays closed); when it is already the main window, it hides it.
 - The web dictionary is its own page at `/dict`. **Dictionary** at the lower left of the tools page, and **Web tools** in the menu and the tray, open it in a new window. It is not embedded in a tool card. Search, the four languages, speech, export, and selection match the window above. **Translate** in that popup opens the translator on the tools page.
+- **Selection bar** is under **Tools → Lookup**. While it is checked, dragging or double-clicking text in Chrome shows a placeholder bar above the selection (AI search, translate, explain, copy, read aloud, more). Copy writes the text it could read. The other buttons only show a note. The bar does not take focus. Another click on the page, Esc, or the pause button on the left closes it. Clear the check to stop showing it.
 
 ## Files and screencast
 

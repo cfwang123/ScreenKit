@@ -91,6 +91,8 @@
   <!-- .NET Framework 程序集引用 -->
   <ItemGroup>
     <Reference Include="System.Speech" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
     <Reference Include="System.Management" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.IO.Compression" />

@@ -38,6 +38,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Chrome text selection shows a placeholder toolbar. Copy uses the text that was read; the other buttons only show a note.
+
 #### Changed
 
 - Screenshots default to JPG at quality 60. A saved format and quality in config.toml stay as they are.
@@ -50,6 +54,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - POST /api/qrcode matches Umi-OCR. Each code includes format (QRCode for a QR code) and text.
 
 ### 中文
+
+#### 新增
+
+- 在 Chrome 里划选文字会弹出占位工具条。复制会写入读到的文字，其余按钮只提示。
 
 #### 变更
 

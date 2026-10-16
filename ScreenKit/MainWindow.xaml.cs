@@ -1120,6 +1120,7 @@ public partial class MainWindow : Window {
 		try { hotkeyAuto?.Dispose(); } catch { }
 		try { trPopup?.ForceClose(); } catch { }
 		try { dicthost?.Shutdown(); } catch { }
+		try { SelBar.Shutdown(); } catch { }
 		try { tray?.Dispose(); } catch { }
 		unhookfg();
 		// 不在此 Dispose runner/ORT
@@ -1647,6 +1648,11 @@ public partial class MainWindow : Window {
 		mnwebdict.Click += (_, _) => openhttpdict(false);
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mndict.Click += (_, _) => showdicttab();
+		SelBar.Changed += v => {
+			if (mnselbar.IsChecked != v) mnselbar.IsChecked = v;
+		};
+		mnselbar.Click += (_, _) => SelBar.SetOn(mnselbar.IsChecked == true);
+		SelBar.SetOn(true);
 		mnimgconv.Click += (_, _) => openimgconv();
 		mncharart.Click += (_, _) => opencharart();
 		mnpixel.Click += (_, _) => openpixel();
@@ -1810,6 +1816,9 @@ public partial class MainWindow : Window {
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mndict.Header = Loc.T("menu.dict");
 			mndict.ToolTip = Loc.T("menu.dict.tip");
+			mnselbar.Header = Loc.T("menu.selbar");
+			mnselbar.ToolTip = Loc.T("menu.selbar.tip");
+			SelBar.ApplyText();
 			mnimgconv.Header = Loc.T("menu.imgconv");
 			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
 			mncharart.Header = Loc.T("menu.charart");
