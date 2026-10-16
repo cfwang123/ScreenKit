@@ -62,7 +62,10 @@ public partial class DictWindow : UserControl {
 	string curspeak = "";
 	string curlang = "";
 	string filter = "";
+	string selfilter = "";
+	bool selfsync;
 	ToggleButton[] filts;
+	ToggleButton[] selfilts;
 	Point downpt;
 	bool dragsel;
 	Window hostwin;
@@ -163,9 +166,37 @@ public partial class DictWindow : UserControl {
 		wirefilter(bfiltko, "ko");
 		wirefilter(bfilten, "en");
 		bfiltall.IsChecked = true;
+		selfilts = new[] { bselfall, bselfzh, bselfja, bselfko, bselfen };
+		wireself(bselfall, "");
+		wireself(bselfzh, "zh");
+		wireself(bselfja, "ja");
+		wireself(bselfko, "ko");
+		wireself(bselfen, "en");
 		applylang();
 		cleardetail();
 		return;
+
+		void wireself(ToggleButton b, string dict) {
+			b.Checked += (_, _) => {
+				if (selfsync) return;
+				selfsync = true;
+				foreach (var o in selfilts)
+					if (!ReferenceEquals(o, b)) o.IsChecked = false;
+				selfsync = false;
+				if (selfilter == dict) return;
+				selfilter = dict;
+				try { outwin?.SetLang(dict); } catch { }
+				refreshsel();
+			};
+			b.Unchecked += (_, _) => {
+				if (selfsync) return;
+				foreach (var o in selfilts)
+					if (o.IsChecked == true) return;
+				selfsync = true;
+				b.IsChecked = true;
+				selfsync = false;
+			};
+		}
 
 		void wirefilter(ToggleButton b, string dict) {
 			b.Checked += (_, _) => {
@@ -254,6 +285,11 @@ public partial class DictWindow : UserControl {
 		bfiltja.Content = Loc.T("dict.filter.ja");
 		bfiltko.Content = Loc.T("dict.filter.ko");
 		bfilten.Content = Loc.T("dict.filter.en");
+		bselfall.Content = Loc.T("dict.filter.all");
+		bselfzh.Content = Loc.T("dict.filter.zh");
+		bselfja.Content = Loc.T("dict.filter.ja");
+		bselfko.Content = Loc.T("dict.filter.ko");
+		bselfen.Content = Loc.T("dict.filter.en");
 	}
 
 	int searchlimit() {
@@ -826,17 +862,9 @@ public partial class DictWindow : UserControl {
 		if (text.Length == 0) return;
 		seltext = text;
 		sellang = langofselection(text);
-		var q = text.Length > 80 ? text.Substring(0, 80) : text;
 		placepop();
 		psel.IsOpen = true;
-		showselhits(null, true);
-		var g = ++sgen;
-		Task.Run(() => searchsel(q)).ContinueWith(t => {
-			Dispatcher.BeginInvoke(new Action(() => {
-				if (g != sgen || !psel.IsOpen) return;
-				showselhits(t.Result, false);
-			}));
-		});
+		searchinside();
 	}
 
 	Rect selbox() {
@@ -927,7 +955,24 @@ public partial class DictWindow : UserControl {
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
 		if (psel.IsOpen) placepop();
+	}
+
+	void searchinside() {
+		var text = seltext ?? "";
+		var q = text.Length > 80 ? text.Substring(0, 80) : text;
+		var dict = selfilter ?? "";
+		showselhits(null, true);
+		var g = ++sgen;
+		Task.Run(() => searchsel(q, dict)).ContinueWith(t => {
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (g != sgen || !psel.IsOpen) return;
+				List<DictHit> hits = null;
+				try { hits = t.Result; } catch { }
+				showselhits(hits, false);
+			}));
+		});
 	}
 
 	/// <summary>其它程序里的划词。浮窗和词典里的一样：词头、发音、搜索、翻译、复制。</summary>
@@ -942,19 +987,8 @@ public partial class DictWindow : UserControl {
 		outlang = langoutside(text);
 		outbox = screenPx;
 		outwin.ApplyText();
-		outwin.ShowRows(null, true);
-		outwin.ShowAt(outbox);
-		var q = text.Length > 80 ? text.Substring(0, 80) : text;
-		var g = ++ogen;
-		Task.Run(() => searchsel(q)).ContinueWith(t => {
-			Dispatcher.BeginInvoke(new Action(() => {
-				if (g != ogen || outwin == null || !outwin.IsVisible) return;
-				List<DictHit> hits = null;
-				try { hits = t.Result; } catch { }
-				outwin.ShowRows(selrows(hits), false);
-				outwin.ShowAt(outbox);
-			}));
-		});
+		outwin.SetLang(selfilter);
+		searchoutside();
 	}
 
 	public void HideOutside() {
@@ -995,16 +1029,61 @@ public partial class DictWindow : UserControl {
 			else lbstatus.Text = Loc.T("dict.sel.notr");
 		};
 		outwin.CopyClick += () => copytext(outtext);
+		outwin.LangChanged += dict => {
+			dict = dict ?? "";
+			if (selfilter == dict) return;
+			selfilter = dict;
+			syncself();
+			refreshsel();
+		};
 		outwin.ApplyText();
+		outwin.SetLang(selfilter);
 	}
 
-	/// <summary>划词查询。库还没打开时先按词典页的路径打开，再查最多 8 条。</summary>
-	List<DictHit> searchsel(string q) {
+	void syncself() {
+		selfsync = true;
+		try {
+			bselfall.IsChecked = selfilter.Length == 0;
+			bselfzh.IsChecked = selfilter == "zh";
+			bselfja.IsChecked = selfilter == "ja";
+			bselfko.IsChecked = selfilter == "ko";
+			bselfen.IsChecked = selfilter == "en";
+		}
+		finally { selfsync = false; }
+		try { outwin?.SetLang(selfilter); } catch { }
+	}
+
+	void refreshsel() {
+		if (psel != null && psel.IsOpen) searchinside();
+		if (outwin != null && outwin.IsVisible) searchoutside();
+	}
+
+	void searchoutside() {
+		if (outwin == null) return;
+		var text = outtext ?? "";
+		var q = text.Length > 80 ? text.Substring(0, 80) : text;
+		var dict = selfilter ?? "";
+		outwin.ShowRows(null, true);
+		outwin.ShowAt(outbox);
+		var g = ++ogen;
+		Task.Run(() => searchsel(q, dict)).ContinueWith(t => {
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (g != ogen || outwin == null || !outwin.IsVisible) return;
+				List<DictHit> hits = null;
+				try { hits = t.Result; } catch { }
+				outwin.ShowRows(selrows(hits), false);
+				outwin.ShowAt(outbox);
+			}));
+		});
+	}
+
+	/// <summary>划词查询。库还没打开时先按词典页的路径打开，再按浮窗语言查最多 100 条。</summary>
+	List<DictHit> searchsel(string q, string dict) {
 		try {
 			var o = Options != null ? Options() : null;
 			if (o != null && !o.ModDict) return new List<DictHit>();
 			if (!DictDb.Ready) DictDb.Init(DictWeb.DbPath);
-			return DictDb.Search(q, "", 8);
+			return DictDb.Search(q, dict ?? "", 100);
 		}
 		catch { return new List<DictHit>(); }
 	}
@@ -1029,7 +1108,7 @@ public partial class DictWindow : UserControl {
 				Title = code.Length > 0 ? "[" + code + "] " + shown : shown,
 				Gloss = h.Preview ?? "",
 			});
-			if (rows.Count >= 8) break;
+			if (rows.Count >= 100) break;
 		}
 		return rows;
 	}

@@ -46,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Screenshots default to JPG at quality 60. A saved format and quality in config.toml stay as they are.
+- The selection popup can choose All, Chinese, Japanese, Korean, or English, and lists up to 100 hits that scroll.
 
 #### Fixed
 
@@ -65,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 截图默认保存为 JPG，质量 60。config.toml 里已经写过的格式和质量保持不变。
+- 查词浮窗可以选全部、汉语、日语、韩语、英语，列表最多 100 条，可以滚动查看。
 
 #### 修复
 

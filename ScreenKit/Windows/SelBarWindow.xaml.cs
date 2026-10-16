@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 
@@ -37,13 +39,24 @@ public partial class SelBarWindow : Window {
 	internal event Action SearchClick;
 	internal event Action TrClick;
 	internal event Action CopyClick;
+	internal event Action<string> LangChanged;
+
+	bool langsync;
+	ToggleButton[] langs;
 
 	public SelBarWindow() {
 		InitializeComponent();
+		langs = new[] { bselfall, bselfzh, bselfja, bselfko, bselfen };
+		wirelang(bselfall, "");
+		wirelang(bselfzh, "zh");
+		wirelang(bselfja, "ja");
+		wirelang(bselfko, "ko");
+		wirelang(bselfen, "en");
 		bselspeak.Click += (_, _) => SpeakClick?.Invoke();
 		bselsearch.Click += (_, _) => SearchClick?.Invoke();
 		bseltr.Click += (_, _) => TrClick?.Invoke();
 		bselcopy.Click += (_, _) => CopyClick?.Invoke();
+		lsel.PreviewMouseWheel += (_, e) => scrolllist(lsel, e);
 		lsel.PreviewMouseLeftButtonUp += (_, e) => {
 			var row = rowat(e.OriginalSource as DependencyObject);
 			if (row != null) HitClick?.Invoke(row);
@@ -66,6 +79,23 @@ public partial class SelBarWindow : Window {
 		bseltr.Content = Loc.T("dict.sel.translate");
 		bselcopy.Content = Loc.T("dict.sel.copy");
 		lbselwait.Text = Loc.T("dict.sel.searching");
+		bselfall.Content = Loc.T("dict.filter.all");
+		bselfzh.Content = Loc.T("dict.filter.zh");
+		bselfja.Content = Loc.T("dict.filter.ja");
+		bselfko.Content = Loc.T("dict.filter.ko");
+		bselfen.Content = Loc.T("dict.filter.en");
+	}
+
+	internal void SetLang(string dict) {
+		langsync = true;
+		try {
+			bselfall.IsChecked = string.IsNullOrEmpty(dict);
+			bselfzh.IsChecked = dict == "zh";
+			bselfja.IsChecked = dict == "ja";
+			bselfko.IsChecked = dict == "ko";
+			bselfen.IsChecked = dict == "en";
+		}
+		finally { langsync = false; }
 	}
 
 	internal string SearchLabel => bselsearch.Content as string ?? "";
@@ -76,6 +106,44 @@ public partial class SelBarWindow : Window {
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
+	}
+
+	void wirelang(ToggleButton b, string dict) {
+		b.Checked += (_, _) => {
+			if (langsync) return;
+			langsync = true;
+			foreach (var o in langs)
+				if (!ReferenceEquals(o, b)) o.IsChecked = false;
+			langsync = false;
+			LangChanged?.Invoke(dict);
+		};
+		b.Unchecked += (_, _) => {
+			if (langsync) return;
+			foreach (var o in langs)
+				if (o.IsChecked == true) return;
+			langsync = true;
+			b.IsChecked = true;
+			langsync = false;
+		};
+	}
+
+	static void scrolllist(ListBox box, MouseWheelEventArgs e) {
+		var sv = scrollof(box);
+		if (sv == null) return;
+		sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta);
+		e.Handled = true;
+	}
+
+	static ScrollViewer scrollof(DependencyObject d) {
+		if (d == null) return null;
+		for (var i = 0; i < VisualTreeHelper.GetChildrenCount(d); i++) {
+			var c = VisualTreeHelper.GetChild(d, i);
+			if (c is ScrollViewer sv) return sv;
+			var inner = scrollof(c);
+			if (inner != null) return inner;
+		}
+		return null;
 	}
 
 	/// <summary>浮窗放在选区物理矩形下方。放不下时改到上方。不激活，也不盖住选区。</summary>

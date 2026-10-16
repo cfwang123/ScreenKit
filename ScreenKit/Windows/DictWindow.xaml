@@ -108,10 +108,30 @@
 					<DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.22" Direction="270"/>
 				</Border.Effect>
 				<StackPanel>
+					<WrapPanel x:Name="pselfilt" Margin="0,0,0,6">
+						<ToggleButton x:Name="bselfall" Content="全部" Height="26" Padding="8,0" FontSize="12"
+						              Style="{StaticResource ToolToggleSm}" IsChecked="True"
+						              AutomationProperties.AutomationId="dict.sel.filter.all"/>
+						<ToggleButton x:Name="bselfzh" Content="汉语" Height="26" Padding="8,0" FontSize="12"
+						              Style="{StaticResource ToolToggleSm}"
+						              AutomationProperties.AutomationId="dict.sel.filter.zh"/>
+						<ToggleButton x:Name="bselfja" Content="日语" Height="26" Padding="8,0" FontSize="12"
+						              Style="{StaticResource ToolToggleSm}"
+						              AutomationProperties.AutomationId="dict.sel.filter.ja"/>
+						<ToggleButton x:Name="bselfko" Content="韩语" Height="26" Padding="8,0" FontSize="12"
+						              Style="{StaticResource ToolToggleSm}"
+						              AutomationProperties.AutomationId="dict.sel.filter.ko"/>
+						<ToggleButton x:Name="bselfen" Content="英语" Height="26" Padding="8,0" FontSize="12"
+						              Style="{StaticResource ToolToggleSm}"
+						              AutomationProperties.AutomationId="dict.sel.filter.en"/>
+					</WrapPanel>
 					<TextBlock x:Name="lbselwait" Text="搜索中…" FontSize="13" Foreground="#6E6E6E"
 					           Margin="2,0,0,4"/>
-					<ListBox x:Name="lsel" MaxHeight="200" FontSize="13" BorderThickness="0"
-					         Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+					<ListBox x:Name="lsel" MaxHeight="280" FontSize="13" BorderThickness="0"
+					         Background="Transparent"
+					         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+					         ScrollViewer.VerticalScrollBarVisibility="Auto"
+					         ScrollViewer.CanContentScroll="False"
 					         AutomationProperties.AutomationId="dict.sel.hits">
 						<ListBox.ItemContainerStyle>
 							<Style TargetType="ListBoxItem">
