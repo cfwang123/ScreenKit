@@ -264,7 +264,7 @@ scripts\langtext.cmd -h
 | ONNX 识别、人脸、二维码 | `OpenCvSharpExtern.dll`。不含 OpenCV 视频库。图片转换只在已经装了时多读几种格式。长截图和 Windows 系统 OCR 不需要 | 61 MB |
 | 安卓安装包 | 不在精简包目录。文件同步页 **安装到手机** 再下载 | 随该版本的 APK |
 | NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
-| 核显 DirectML | `onnxdml64` | 18 MB |
+| 核显 DirectML | `onnxdml64` | 约 205 MB |
 | ONNX Runtime CPU | `onnxcpu64` | 16 MB |
 
 1. 启动时不弹出安装窗口。Windows 系统 OCR 可以直接用。
@@ -278,7 +278,7 @@ scripts\langtext.cmd -h
 |--------|------|--------|
 | **onnxcpu64** | CPU 推理用 ONNX Runtime（无 GPU/核显 ORT 时 OCR 需要） | ~16 MB |
 | **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN（可选） | 较大 |
-| **onnxdml64** | 核显 DirectML EP（可选） | ~18 MB |
+| **onnxdml64** | 核显 DirectML EP（可选） | ~205 MB |
 | **OpenCV** | ONNX 识别、人脸、二维码（`OpenCvSharpExtern.dll`）。不含 OpenCV 视频库。图片转换只在已经装了时多读几种格式。长截图和 Windows 系统 OCR 不需要 | ~61 MB |
 | **ZXing** | `ZXing.dll`。条码识别和二维码图。用到时才提示安装 | ~3 MB |
 | **Bogus** | `Bogus.dll`。工具页「生成测试数据」。已安装时先选语言，再选该语言有的分类 | ~2.3 MB |

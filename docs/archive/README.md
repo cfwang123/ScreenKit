@@ -278,7 +278,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | ONNX OCR, face, and QR | `OpenCvSharpExtern.dll`. The OpenCV video library is not included. Image convert uses it only when it is already installed, to read more formats. Long screenshot and Windows OCR do not need it | 61 MB |
 | Android package | Not in the slim folder. **Install on phone** on the file-sync page downloads it | Whatever that APK release is |
 | NVIDIA CUDA | `onnxgpu64` | 1.17 GB |
-| iGPU DirectML | `onnxdml64` | 18 MB |
+| iGPU DirectML | `onnxdml64` | about 205 MB |
 | ONNX Runtime CPU | `onnxcpu64` | 16 MB |
 
 1. Startup does not open the installer. Windows OCR is available immediately.
@@ -292,7 +292,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 |---------|------|----------------|
 | **onnxcpu64** | CPU ONNX Runtime (required for OCR if no GPU/iGPU ORT) | ~16 MB |
 | **onnxgpu64** | NVIDIA CUDA EP + CUDA/cuDNN (optional) | large |
-| **onnxdml64** | DirectML EP for iGPU (optional) | ~18 MB |
+| **onnxdml64** | DirectML EP for iGPU (optional) | ~205 MB |
 | **OpenCV** | ONNX OCR, face, and QR (`OpenCvSharpExtern.dll`). The OpenCV video library is not included. Image convert uses it only when it is already installed, to read more formats. Long screenshot and Windows OCR do not need it | ~61 MB |
 | **ZXing** | `ZXing.dll`. Barcode scan and QR images. Asked for when you use them | ~3 MB |
 | **Bogus** | `Bogus.dll`. Tools-page test data. With it, pick a language, then a category that language has | ~2.3 MB |

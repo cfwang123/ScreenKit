@@ -119,6 +119,9 @@ static class FeatureInstaller {
 	const string OrtGpuVer = "1.27.1";
 	const string OrtDmlVer = "1.24.4";
 	const string DmlVer = "1.15.4";
+	// 核显要下整包 nupkg，不是解出的 x64 DLL（DirectML.dll 约 18 MB，包约 193 MB）
+	const long ORT_DML_NUPKG_BYTES = 12458649L;
+	const long DML_NUPKG_BYTES = 202292617L;
 	const string MsRapid = "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.9.2";
 	const string AsrRelease = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models";
 	const string FaceBuffaloLZip = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip";
@@ -282,7 +285,7 @@ static class FeatureInstaller {
 		FeatureKind.AsrSileroVad => 2L * 1024 * 1024,
 		// 完整 CUDA 重发行库很大；仅 EP 约数十 MB
 		FeatureKind.CudaGpu => 1200L * 1024 * 1024,
-		FeatureKind.DirectMl => 18L * 1024 * 1024,
+		FeatureKind.DirectMl => ORT_DML_NUPKG_BYTES + DML_NUPKG_BYTES,
 		FeatureKind.OrtCpu => 16L * 1024 * 1024,
 		FeatureKind.Ffmpeg => FFMPEG7Z_BYTES,
 		FeatureKind.FaceInsight => 326L * 1024 * 1024,
@@ -1550,14 +1553,14 @@ arabic_dict.txt
 				("runtimes/win-x64/native/onnxruntime_providers_shared.dll",
 					Path.Combine(OnnxDmlDir, "onnxruntime_providers_shared.dll")),
 			},
-			log, progress, ct, ExpectedSize(FeatureKind.DirectMl) * 8 / 10).ConfigureAwait(false);
+			log, progress, ct, ORT_DML_NUPKG_BYTES).ConfigureAwait(false);
 		try {
 			await extractnupkgfiles(
 				"microsoft.ai.directml", DmlVer,
 				new[] {
 					("bin/x64-win/DirectML.dll", Path.Combine(OnnxDmlDir, "DirectML.dll")),
 				},
-				log, progress, ct, 18L * 1024 * 1024).ConfigureAwait(false);
+				log, progress, ct, DML_NUPKG_BYTES).ConfigureAwait(false);
 		}
 		catch (Exception ex) {
 			log?.Report("DirectML.dll 下载失败（系统目录可能仍可用）: " + ex.Message);

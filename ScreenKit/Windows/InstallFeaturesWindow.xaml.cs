@@ -685,20 +685,20 @@ partial class InstallFeaturesWindow : Window {
 		lbbytes.Text = s ?? "";
 	}
 
-	void applyitemprogress(int itemIndex, int itemCount, long batchDone, long batchTotal, InstallProgress p) {
+	void applyitemprogress(int itemIndex, int itemCount, long batchDone, long batchTotal, long itemExpect, InstallProgress p) {
 		if (p == null) return;
 		if (!Dispatcher.CheckAccess()) {
-			Dispatcher.Invoke(() => applyitemprogress(itemIndex, itemCount, batchDone, batchTotal, p));
+			Dispatcher.Invoke(() => applyitemprogress(itemIndex, itemCount, batchDone, batchTotal, itemExpect, p));
 			return;
 		}
 		var baseP = itemIndex / (double)itemCount;
 		var span = 1.0 / itemCount;
 		var overall = baseP + Math.Max(0, Math.Min(1, p.Overall)) * span;
 		setprogress(overall);
-		// 合计 = 已完成项 + 当前项已下；总大小 = 全部勾选预估
+		// 合计 = 已完成项 + 当前项已下。当前包比该项预估更大时，分母加上超出的部分。
 		var done = batchDone + Math.Max(0L, p.BytesDone);
 		if (batchTotal > 0 || done > 0 || p.BytesTotal > 0) {
-			var total = batchTotal > 0 ? batchTotal : Math.Max(done, batchDone + Math.Max(0L, p.BytesTotal));
+			var total = ProgressTotal(batchTotal, batchDone, itemExpect, p.BytesDone, p.BytesTotal);
 			var bytes = FeatureInstaller.FormatBytes(done)
 				+ " / "
 				+ (total > 0 ? FeatureInstaller.FormatBytes(total) : "?");
@@ -711,6 +711,21 @@ partial class InstallFeaturesWindow : Window {
 		else if (!string.IsNullOrEmpty(p.Note)) {
 			setbytes(p.Note + (string.IsNullOrEmpty(p.FileName) ? "" : " · " + p.FileName));
 		}
+	}
+
+	/// <summary>进度分母。当前包比该项预估更大时，把超出的字节加进整批合计。</summary>
+	internal static long ProgressTotal(long batchTotal, long batchDone, long itemExpect, long bytesDone, long bytesTotal) {
+		var doneNow = bytesDone < 0 ? 0 : bytesDone;
+		var known = bytesTotal > doneNow ? bytesTotal : doneNow;
+		var done = batchDone + doneNow;
+		var total = batchTotal;
+		if (itemExpect > 0 && known > itemExpect)
+			total = batchTotal + (known - itemExpect);
+		else if (itemExpect <= 0 && batchDone + known > total)
+			total = batchDone + known;
+		if (total < done) total = done;
+		if (total < 0) total = 0;
+		return total;
 	}
 
 	void refreshfeat(FeatureItem it) {
@@ -880,7 +895,7 @@ partial class InstallFeaturesWindow : Window {
 				var idx = step;
 				var doneBase = batchDone;
 				var itemProg = new Progress<InstallProgress>(p =>
-					applyitemprogress(idx, totalSteps, doneBase, batchTotal, p));
+					applyitemprogress(idx, totalSteps, doneBase, batchTotal, expect, p));
 				try {
 					await Task.Run(async () => {
 						await FeatureInstaller.InstallAsync(it.Kind, log, itemProg, cts.Token)
@@ -1049,7 +1064,7 @@ partial class InstallFeaturesWindow : Window {
 				var idx = step;
 				var doneBase = batchDone;
 				var itemProg = new Progress<InstallProgress>(p =>
-					applyitemprogress(idx, totalSteps, doneBase, batchTotal, p));
+					applyitemprogress(idx, totalSteps, doneBase, batchTotal, expect, p));
 				try {
 					await Task.Run(async () => {
 						await TtsInstallCatalog.InstallAsync(it, log, itemProg, cts.Token)

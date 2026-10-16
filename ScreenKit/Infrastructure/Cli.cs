@@ -1086,6 +1086,12 @@ static class Cli {
 		var ch = FeaturePick.Leaves(only).First(n => n.Id == "ocr.ch");
 		var cpu = FeaturePick.Leaves(only).First(n => n.Id == "accel.cpu");
 		Out($"Pick ocr.ch only: ch={ch.SizeLabel} cpu checked={cpu.IsChecked == true} diff={cpu.Diff} size={cpu.SizeLabel} addCpu={addOnly.Contains(FeatureKind.OrtCpu)} delCpu={delOnly.Contains(FeatureKind.OrtCpu)}");
+		var dml = FeatureInstaller.ExpectedSize(FeatureKind.DirectMl);
+		var dmlNow = InstallFeaturesWindow.ProgressTotal(dml, 0, dml, 164L * 1024 * 1024, 193L * 1024 * 1024);
+		var dmlWas = InstallFeaturesWindow.ProgressTotal(18L * 1024 * 1024, 0, 18L * 1024 * 1024, 164L * 1024 * 1024, 193L * 1024 * 1024);
+		Out($"DirectMl size={FeatureInstaller.FormatBytes(dml)} progress={FeatureInstaller.FormatBytes(dmlNow)} grown={FeatureInstaller.FormatBytes(dmlWas)}");
+		if (dml < 180L * 1024 * 1024 || dmlNow < dml || dmlWas < 190L * 1024 * 1024)
+			return 1;
 		return 0;
 	}
 
