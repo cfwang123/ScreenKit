@@ -38,7 +38,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Fixed
+
+- Checking screenshot OCR or translation also checks the ONNX CPU row and counts its size once. After install that row stays checked instead of turning red for removal.
+
 ### 中文
+
+#### 修复
+
+- 勾选截图识别或翻译时会同时勾上 ONNX CPU，体积在合计里只算一次。装完后该项保持勾选，不再显示为红色待删除。
 
 ## v1.0.22 (2026-10-15 ~ 16)
 

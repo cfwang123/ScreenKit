@@ -23,6 +23,7 @@ partial class InstallFeaturesWindow : Window {
 	static readonly Brush AddBg = freeze(Color.FromRgb(0xDC, 0xFC, 0xE7));
 
 	readonly List<FeaturePickNode> pickRoots = new();
+	bool picksync;
 	readonly List<FeatureItem> featItems = new();
 	readonly ObservableCollection<FeatRow> featRows = new();
 	bool featUiLoading;
@@ -304,8 +305,11 @@ partial class InstallFeaturesWindow : Window {
 	void watchpick(FeaturePickNode n) {
 		if (n == null) return;
 		n.PropertyChanged += (_, e) => {
-			if (e.PropertyName == nameof(FeaturePickNode.IsChecked))
-				updatepicksum();
+			if (e.PropertyName != nameof(FeaturePickNode.IsChecked) || picksync) return;
+			picksync = true;
+			try { FeaturePick.SyncShared(pickRoots); }
+			finally { picksync = false; }
+			updatepicksum();
 		};
 		foreach (var c in n.Children)
 			watchpick(c);
@@ -719,6 +723,9 @@ partial class InstallFeaturesWindow : Window {
 			refreshfeat(it);
 		foreach (var r in featRows)
 			r.Notify();
+		picksync = true;
+		try { FeaturePick.SyncShared(pickRoots); }
+		finally { picksync = false; }
 		FeaturePick.RefreshDiff(pickRoots);
 		updatepicksum();
 		updatefeatsum();

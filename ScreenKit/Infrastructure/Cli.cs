@@ -1074,6 +1074,16 @@ static class Cli {
 		Out($"Pick installed add={addN}/{FeatureInstaller.FormatBytes(addSz)} del={delN}/{FeatureInstaller.FormatBytes(delSz)}");
 		foreach (var n in FeaturePick.Leaves(tree))
 			Out($"  pick [{(n.IsChecked == true ? "x" : " ")}] {n.Diff,-4} {n.SizeLabel,-12} {n.Title}  ({n.Id})");
+		var only = FeaturePick.BuildTree();
+		FeaturePick.SelectAll(only, false);
+		foreach (var n in FeaturePick.Leaves(only))
+			if (n.Id == "ocr.ch") n.SetCheck(true, fromUi: true);
+		FeaturePick.SyncShared(only);
+		FeaturePick.RefreshDiff(only);
+		FeaturePick.CollectDelta(only, out var addOnly, out var delOnly, false);
+		var ch = FeaturePick.Leaves(only).First(n => n.Id == "ocr.ch");
+		var cpu = FeaturePick.Leaves(only).First(n => n.Id == "accel.cpu");
+		Out($"Pick ocr.ch only: ch={ch.SizeLabel} cpu checked={cpu.IsChecked == true} diff={cpu.Diff} size={cpu.SizeLabel} addCpu={addOnly.Contains(FeatureKind.OrtCpu)} delCpu={delOnly.Contains(FeatureKind.OrtCpu)}");
 		return 0;
 	}
 

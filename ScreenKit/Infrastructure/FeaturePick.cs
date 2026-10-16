@@ -112,7 +112,13 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 static class FeaturePick {
 	public static readonly string[] RecommendedIds = ["ocr.ch", "asr.sv", "asr.zip", "rec.ffmpeg"];
 
-	public static List<FeaturePickNode> BuildTree() => [
+	public static List<FeaturePickNode> BuildTree() {
+		var roots = buildtree();
+		assignsizes(roots);
+		return roots;
+	}
+
+	static List<FeaturePickNode> buildtree() => [
 		group("ocr", "feat.pick.ocr", "feat.pick.ocr.detail",
 			leaf("ocr.ch", "feat.pick.ocr.ch", "feat.OcrRapidCh.detail",
 				FeatureKind.NativeOpenCv, FeatureKind.OrtCpu, FeatureKind.OcrRapidCh),
@@ -199,6 +205,30 @@ static class FeaturePick {
 			}
 			n.SetCheck(want, fromUi: true);
 		}
+		SyncShared(roots);
+	}
+
+	/// <summary>
+	/// 勾了 OCR / 翻译等功能时，把树里单独列出的依赖（如 ONNX CPU）一并勾上。
+	/// 否则依赖装完后该项仍未勾，会被标成红色待删除。
+	/// </summary>
+	public static void SyncShared(IEnumerable<FeaturePickNode> roots) {
+		var leaves = Leaves(roots).ToList();
+		var shared = sharedset(leaves);
+		if (shared.Count == 0) return;
+		var implied = new HashSet<FeatureKind>();
+		foreach (var n in leaves) {
+			if (n.IsChecked != true || n.Kinds == null) continue;
+			foreach (var k in n.Kinds)
+				implied.Add(k);
+		}
+		foreach (var n in leaves) {
+			if (n.Locked || n.Kinds == null || n.Kinds.Length != 1) continue;
+			var k = n.Kinds[0];
+			if (!shared.Contains(k) || !implied.Contains(k)) continue;
+			if (n.IsChecked != true)
+				n.SetCheck(true, fromUi: true);
+		}
 	}
 
 	public static void CollectDelta(IEnumerable<FeaturePickNode> roots, out HashSet<FeatureKind> add, out HashSet<FeatureKind> del, bool keepInstalled = false) {
@@ -281,18 +311,43 @@ static class FeaturePick {
 	}
 
 	static FeaturePickNode leaf(string id, string titleKey, string detailKey, params FeatureKind[] kinds) {
-		long sz = 0;
-		var seen = new HashSet<FeatureKind>();
-		foreach (var k in kinds) {
-			if (!seen.Add(k)) continue;
-			sz += FeatureInstaller.ExpectedSize(k);
-		}
 		return new FeaturePickNode {
 			Id = id,
 			Title = Loc.T(titleKey),
 			Detail = Loc.T(detailKey),
 			Kinds = kinds,
-			SizeLabel = sz > 0 ? Loc.T("feat.size.about", FeatureInstaller.FormatBytes(sz)) : "",
 		};
+	}
+
+	/// <summary>单独成行、又被别的功能带上的组件。体积只记在自己那一行，避免合计看起来漏了或重复。</summary>
+	static HashSet<FeatureKind> sharedset(List<FeaturePickNode> leaves) {
+		var sole = new HashSet<FeatureKind>();
+		var dep = new HashSet<FeatureKind>();
+		foreach (var n in leaves) {
+			if (n.Kinds == null || n.Kinds.Length == 0) continue;
+			if (n.Kinds.Length == 1) sole.Add(n.Kinds[0]);
+			else {
+				for (var i = 0; i < n.Kinds.Length - 1; i++)
+					dep.Add(n.Kinds[i]);
+			}
+		}
+		sole.IntersectWith(dep);
+		return sole;
+	}
+
+	static void assignsizes(IEnumerable<FeaturePickNode> roots) {
+		var leaves = Leaves(roots).ToList();
+		var shared = sharedset(leaves);
+		foreach (var n in leaves) {
+			if (n.Locked || n.Kinds == null) continue;
+			long sz = 0;
+			var seen = new HashSet<FeatureKind>();
+			foreach (var k in n.Kinds) {
+				if (!seen.Add(k)) continue;
+				if (n.Kinds.Length > 1 && shared.Contains(k)) continue;
+				sz += FeatureInstaller.ExpectedSize(k);
+			}
+			n.SizeLabel = sz > 0 ? Loc.T("feat.size.about", FeatureInstaller.FormatBytes(sz)) : "";
+		}
 	}
 }
