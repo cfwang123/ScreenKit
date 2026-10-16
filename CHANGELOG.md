@@ -41,6 +41,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Chrome text selection shows a placeholder toolbar. Copy uses the text that was read; the other buttons only show a note.
+- The dictionary page and Dictionary settings can turn on a selection popup, with a hotkey that toggles it. A drag or double-click in another program shows the same lookup popup as the dictionary.
 
 #### Changed
 
@@ -58,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 在 Chrome 里划选文字会弹出占位工具条。复制会写入读到的文字，其余按钮只提示。
+- 词典页和词典参数可以打开划词浮窗，并设置切换这个开关的快捷键。在其它程序里拖选或双击时，会弹出和词典里一样的查词浮窗。
 
 #### 变更
 

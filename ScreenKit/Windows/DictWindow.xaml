@@ -18,6 +18,9 @@
 			<Button x:Name="bexport" DockPanel.Dock="Right" Content="导出" Height="28" MinWidth="52"
 			        Margin="6,0,0,0" Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 			        AutomationProperties.AutomationId="dict.export"/>
+			<CheckBox x:Name="cbselbar" DockPanel.Dock="Right" Content="划词浮窗" FontSize="12"
+			          VerticalAlignment="Center" Margin="10,0,0,0"
+			          AutomationProperties.AutomationId="dict.selbar"/>
 			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"
 			            AutomationProperties.AutomationId="dict.filter">
 				<ToggleButton x:Name="bfiltall" Content="全部" Height="28" Padding="8,0" FontSize="12"

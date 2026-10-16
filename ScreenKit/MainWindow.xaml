@@ -221,9 +221,6 @@
 					<MenuItem x:Name="mndict" Header="词典(_K)"
 					          AutomationProperties.AutomationId="menu.dict"
 					          ToolTip="打开主窗口并切到词典页；热键在剪贴板是单词时搜索，再按一次隐藏主窗口"/>
-					<MenuItem x:Name="mnselbar" Header="划词浮窗(_B)" IsCheckable="True" IsChecked="True"
-					          AutomationProperties.AutomationId="menu.selbar"
-					          ToolTip="在 Chrome 里拖选或双击文字后，在选区旁显示占位工具条"/>
 					<MenuItem x:Name="mnsys" Header="系统信息(_U)…"
 					          AutomationProperties.AutomationId="menu.sysinfo"
 					          ToolTip="查看系统、外设、驱动、状态和异常设备信息"/>

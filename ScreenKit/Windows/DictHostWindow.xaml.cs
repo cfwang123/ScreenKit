@@ -13,6 +13,7 @@ public partial class DictHostWindow : Window {
 		var n = slot++;
 		host.Options = options;
 		host.OnTranslate = onTranslate;
+		host.HideSelSwitch();
 		host.ApplyLang();
 		Title = Loc.T("dict.win", query ?? "");
 		WindowEsc.Attach(this, () => {

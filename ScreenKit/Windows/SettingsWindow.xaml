@@ -356,6 +356,23 @@
 						<TextBlock x:Name="lbdictholdhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,10"
 						           Text="连续这么多分钟没有查询，就关闭数据库。下次查询再打开。默认 1。0 表示不关闭。"/>
+						<CheckBox x:Name="cbdictselbar" Content="划词浮窗" Margin="0,0,0,4"
+						          AutomationProperties.AutomationId="set.dict.selbar"/>
+						<TextBlock x:Name="lbdictselbarhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,8"
+						           Text="打开后，在其它程序里拖选或双击文字，会在选区旁显示和词典里一样的查词浮窗。默认关闭。"/>
+						<TextBlock x:Name="lbhkhintDictSel" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="划词浮窗 · 打开或关闭。默认留空不注册"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkdictselclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkdictselcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeydictsel" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.dictsel"/>
+						</DockPanel>
 						<TextBlock x:Name="lbdicttts" Text="词典发音" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbdictttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"

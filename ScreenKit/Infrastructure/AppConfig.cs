@@ -58,6 +58,8 @@ static class AppConfig {
 				o.HotkeySnapCopy = (hksc ?? "").Trim();
 			if (map.TryGetValue("hotkey_dict", out var hkdict))
 				o.HotkeyDict = (hkdict ?? "").Trim();
+			if (map.TryGetValue("hotkey_dict_sel", out var hkdsel))
+				o.HotkeyDictSel = (hkdsel ?? "").Trim();
 			if (map.TryGetValue("hotkey_hangul", out var hkhg))
 				o.HotkeyHangul = (hkhg ?? "").Trim();
 			if (map.TryGetValue("autokey_hotkey", out var akhk))
@@ -72,6 +74,8 @@ static class AppConfig {
 				o.DictLimit = Compat.Clamp(dlimN, 1, DictDb.SEARCH_MAX);
 			if (map.TryGetValue("dict_db_hold", out var dhold) && int.TryParse(dhold, out var dholdN))
 				o.DictDbHoldMin = OnnxIdle.ClampMin(dholdN);
+			if (map.TryGetValue("dict_selbar", out var dsel))
+				o.DictSelBar = parsebool(dsel, false);
 			readdicttts(map, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 			readdicttts(map, "en", o.DictTtsEn, "en-US-AriaNeural");
 			readdicttts(map, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
@@ -590,6 +594,8 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_snap_copy = \"{esc((o.HotkeySnapCopy ?? "").Trim())}\"");
 		sb.AppendLine($"# 词典页（前台不是主窗则唤出、置顶并切换；剪贴板像单词才搜索；已是主窗则隐藏；默认空=不注册）");
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
+		sb.AppendLine("# 划词浮窗开关（留空=不注册）");
+		sb.AppendLine($"hotkey_dict_sel = \"{esc((o.HotkeyDictSel ?? "").Trim())}\"");
 		sb.AppendLine("# 韩语输入（接管键盘，再按一次关闭；单独按 Shift 或右 Alt 切换韩/英；默认 Ctrl+Alt+K；留空=不注册）");
 		sb.AppendLine($"hotkey_hangul = \"{esc((o.HotkeyHangul ?? "").Trim())}\"");
 		sb.AppendLine("# 自动按键：开始/停止热键。留空 = 只用窗口按钮。默认 F6");
@@ -602,6 +608,8 @@ static class AppConfig {
 		sb.AppendLine($"dict_limit = {Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX)}");
 		sb.AppendLine("# 词典数据库空闲多少分钟后关闭。默认 1。0 = 不自动关闭");
 		sb.AppendLine($"dict_db_hold = {OnnxIdle.ClampMin(o.DictDbHoldMin)}");
+		sb.AppendLine("# 划词浮窗（其它程序里拖选或双击，弹出和词典一样的查词浮窗；默认关）");
+		sb.AppendLine($"dict_selbar = {(o.DictSelBar ? "true" : "false")}");
 		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
 		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 		writedicttts(sb, "en", o.DictTtsEn, "en-US-AriaNeural");

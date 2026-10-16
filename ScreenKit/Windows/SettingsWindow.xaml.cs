@@ -96,6 +96,7 @@ public partial class SettingsWindow : Window {
 		bindhotkey(ehotkeytr, bhktrcap, bhktrclear);
 		bindhotkey(ehotkeysnapcopy, bhksnapcopycap, bhksnapcopyclear);
 		bindhotkey(ehotkeydict, bhkdictcap, bhkdictclear);
+		bindhotkey(ehotkeydictsel, bhkdictselcap, bhkdictselclear);
 		bindhotkey(ehotkeyhangul, bhkhangulcap, bhkhangulclear);
 	}
 
@@ -268,6 +269,9 @@ public partial class SettingsWindow : Window {
 			lbdictlimithint.Text = Loc.T("set.dict.limit.hint");
 			lbdicthold.Text = Loc.T("set.dict.dbhold");
 			lbdictholdhint.Text = Loc.T("set.dict.dbhold.hint");
+			cbdictselbar.Content = Loc.T("dict.selbar");
+			lbdictselbarhint.Text = Loc.T("set.dict.selbar.hint");
+			lbhkhintDictSel.Text = Loc.T("set.hotkey.dictsel");
 			lbdicttts.Text = Loc.T("set.dict.tts");
 			lbdictttshint.Text = Loc.T("set.dict.tts.hint");
 			lbdictzh.Text = Loc.T("dict.filter.zh");
@@ -494,6 +498,8 @@ public partial class SettingsWindow : Window {
 		ehotkeysnapcopy.Text = o.HotkeySnapCopy ?? "";
 		ehotkeydict.Text = o.HotkeyDict ?? "";
 		ehotkeyhangul.Text = o.HotkeyHangul ?? "";
+		ehotkeydictsel.Text = o.HotkeyDictSel ?? "";
+		cbdictselbar.IsChecked = o.DictSelBar;
 		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
 		edicthold.Text = OnnxIdle.ClampMin(o.DictDbHoldMin).ToString();
 		loaddicttts(o);
@@ -750,6 +756,8 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeysnapcopy, Loc.T("set.hotkey.snapcopy"), out Result.HotkeySnapCopy, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydict, Loc.T("set.hotkey.dict"), out Result.HotkeyDict, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyhangul, Loc.T("set.hotkey.hangul"), out Result.HotkeyHangul, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeydictsel, Loc.T("set.hotkey.dictsel"), out Result.HotkeyDictSel, tabsetdict)) return false;
+		Result.DictSelBar = cbdictselbar.IsChecked == true;
 		if (!tryint(edictlimit, Loc.T("set.dict.limit"), 1, DictDb.SEARCH_MAX, out var dictLimit, tabsetdict)) return false;
 		Result.DictLimit = dictLimit;
 		if (!tryint(edicthold, Loc.T("set.dict.dbhold"), 0, OnnxIdle.MaxMin, out var dictHold, tabsetdict)) return false;

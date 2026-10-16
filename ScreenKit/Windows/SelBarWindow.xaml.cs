@@ -1,11 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace ScreenKit;
 
-/// <summary>划词占位条。置顶、不激活、不进任务栏，点按钮不把前台从浏览器抢走。</summary>
+/// <summary>外部划词的查词浮窗。置顶、不激活、不进任务栏。内容和词典里的选区浮窗一样。</summary>
 public partial class SelBarWindow : Window {
 	const int GWL_EXSTYLE = -20;
 	const int WS_EX_NOACTIVATE = 0x08000000;
@@ -29,20 +32,24 @@ public partial class SelBarWindow : Window {
 	[DllImport("user32.dll", SetLastError = true)]
 	static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
 
-	internal Action<string> Act;
-	internal string Text = "";
+	internal event Action<DictSelRow> HitClick;
+	internal event Action SpeakClick;
+	internal event Action SearchClick;
+	internal event Action TrClick;
+	internal event Action CopyClick;
 
 	public SelBarWindow() {
 		InitializeComponent();
-		bpause.Click += (_, _) => Act?.Invoke("pause");
-		bavatar.Click += (_, _) => Act?.Invoke("avatar");
-		bsearch.Click += (_, _) => Act?.Invoke("search");
-		btr.Click += (_, _) => Act?.Invoke("translate");
-		bexplain.Click += (_, _) => Act?.Invoke("explain");
-		bcopy.Click += (_, _) => Act?.Invoke("copy");
-		bread.Click += (_, _) => Act?.Invoke("read");
-		bmore.Click += (_, _) => Act?.Invoke("more");
+		bselspeak.Click += (_, _) => SpeakClick?.Invoke();
+		bselsearch.Click += (_, _) => SearchClick?.Invoke();
+		bseltr.Click += (_, _) => TrClick?.Invoke();
+		bselcopy.Click += (_, _) => CopyClick?.Invoke();
+		lsel.PreviewMouseLeftButtonUp += (_, e) => {
+			var row = rowat(e.OriginalSource as DependencyObject);
+			if (row != null) HitClick?.Invoke(row);
+		};
 		ApplyText();
+		ShowRows(null, true);
 		SourceInitialized += (_, _) => {
 			var src = (HwndSource)PresentationSource.FromVisual(this);
 			src.AddHook(onmsg);
@@ -54,22 +61,24 @@ public partial class SelBarWindow : Window {
 	}
 
 	public void ApplyText() {
-		lbsearch.Text = Loc.T("selbar.search");
-		lbtr.Text = Loc.T("selbar.translate");
-		lbexplain.Text = Loc.T("selbar.explain");
-		lbcopy.Text = Loc.T("selbar.copy");
-		lbread.Text = Loc.T("selbar.read");
-		bpause.ToolTip = Loc.T("selbar.pause.tip");
-		bavatar.ToolTip = Loc.T("selbar.avatar");
-		bsearch.ToolTip = Loc.T("selbar.search");
-		btr.ToolTip = Loc.T("selbar.translate");
-		bexplain.ToolTip = Loc.T("selbar.explain");
-		bcopy.ToolTip = Loc.T("selbar.copy");
-		bread.ToolTip = Loc.T("selbar.read");
-		bmore.ToolTip = Loc.T("selbar.more");
+		bselspeak.Content = Loc.T("dict.speak");
+		bselsearch.Content = Loc.T("dict.sel.search");
+		bseltr.Content = Loc.T("dict.sel.translate");
+		bselcopy.Content = Loc.T("dict.sel.copy");
+		lbselwait.Text = Loc.T("dict.sel.searching");
 	}
 
-	/// <summary>把整条放在选区物理矩形上方。放不下时改到下方。不激活。</summary>
+	internal string SearchLabel => bselsearch.Content as string ?? "";
+
+	internal void ShowRows(List<DictSelRow> rows, bool searching) {
+		if (rows == null) rows = new List<DictSelRow>();
+		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+		lsel.ItemsSource = rows;
+		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+	}
+
+	/// <summary>浮窗放在选区物理矩形下方。放不下时改到上方。不激活，也不盖住选区。</summary>
 	public void ShowAt(Rect px) {
 		if (px.Width < 1) px.Width = 1;
 		if (px.Height < 1) px.Height = 1;
@@ -84,13 +93,23 @@ public partial class SelBarWindow : Window {
 		if (hwnd != IntPtr.Zero) scale = Math.Max(0.25, ScreenDpi.WindowScale(hwnd));
 		var wpx = Math.Max(1, ActualWidth * scale);
 		var hpx = Math.Max(1, ActualHeight * scale);
-		var gap = 8 * scale;
+		var gap = 6 * scale;
 		var (vl, vt, vw, vh) = ScreenDpi.VirtualScreenPixels();
-		var left = px.Left + (px.Width - wpx) / 2.0;
-		var top = px.Top - hpx - gap;
-		if (top < vt) top = px.Bottom + gap;
+		var left = px.Left;
+		var below = px.Bottom + gap;
+		var above = px.Top - hpx - gap;
+		var fitBelow = below + hpx <= vt + vh;
+		var fitAbove = above >= vt;
+		double top;
+		if (fitBelow) top = below;
+		else if (fitAbove) top = above;
+		else {
+			var roomBelow = vt + vh - below;
+			top = roomBelow >= px.Top - vt ? below : Math.Max(vt, above);
+		}
 		if (left < vl) left = vl;
 		if (left + wpx > vl + vw) left = vl + vw - wpx;
+		if (top < vt) top = vt;
 		if (top + hpx > vt + vh) top = vt + vh - hpx;
 		var ix = (int)Math.Round(left);
 		var iy = (int)Math.Round(top);
@@ -109,6 +128,12 @@ public partial class SelBarWindow : Window {
 	internal static bool HasNoActivate(IntPtr hwnd) {
 		if (hwnd == IntPtr.Zero) return false;
 		return (GetWindowLong(hwnd, GWL_EXSTYLE) & WS_EX_NOACTIVATE) != 0;
+	}
+
+	static DictSelRow rowat(DependencyObject d) {
+		while (d != null && d is not ListBoxItem)
+			d = VisualTreeHelper.GetParent(d);
+		return d is ListBoxItem li ? li.Content as DictSelRow : null;
 	}
 
 	IntPtr onmsg(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) {

@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Windows;
 using System.Windows.Automation;
@@ -16,8 +15,8 @@ sealed class SelHit {
 }
 
 /// <summary>
-/// Chrome 划词占位条。低级鼠标钩子看拖选和双击，松开后在选区旁显示工具条。
-/// 文字用 UI Automation 的 TextPattern 读，读不到时仍按光标位置显示。
+/// 外部划词。低级鼠标钩子看拖选和双击，松开后把选中文字交给词典查词浮窗。
+/// 本进程里的选区交给词典页自己的浮窗。文字用 UI Automation 的 TextPattern 读。
 /// </summary>
 static class SelBar {
 	const int WH_MOUSE_LL = 14;
@@ -29,11 +28,9 @@ static class SelBar {
 	const int WM_SYSKEYDOWN = 0x0104;
 	const int VK_ESCAPE = 0x1B;
 	const int GA_ROOT = 2;
-	const int PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 	const int DRAG = 6;
 	const int UIA_MS = 1600;
 
-	static SelBarWindow bar;
 	static IntPtr mouseHook, keyHook;
 	static HookProc mouseProc, keyProc;
 	static Dispatcher disp;
@@ -41,10 +38,13 @@ static class SelBar {
 	static volatile bool shown;
 	static int readers;
 	static bool down, hadUp;
-	static int downX, downY, lastUpX, lastUpY, lastUpTick, lastFgTick, gen;
+	static int downX, downY, lastUpX, lastUpY, lastUpTick, lastMoveTick, gen;
+	static IntPtr selroot;
 
 	public static bool On => on;
-	public static event Action<bool> Changed;
+	public static event Action<string, Rect> Picked;
+	public static event Action Hiding;
+	public static Func<IntPtr> PopupHwnd;
 
 	public static void SetOn(bool value) {
 		if (value == on) return;
@@ -53,7 +53,6 @@ static class SelBar {
 			gen++;
 			hide();
 			unhook();
-			raise();
 			return;
 		}
 		disp = Application.Current?.Dispatcher;
@@ -61,11 +60,9 @@ static class SelBar {
 			on = false;
 			unhook();
 			try { UiToast.Show(null, Loc.T("selbar.hookfail")); } catch { }
-			raise();
 			return;
 		}
 		on = true;
-		raise();
 	}
 
 	public static void Shutdown() {
@@ -73,10 +70,6 @@ static class SelBar {
 		gen++;
 		hide();
 		unhook();
-	}
-
-	public static void ApplyText() {
-		try { bar?.ApplyText(); } catch { }
 	}
 
 	/// <summary>拖选或双击才弹出。贴着窗口右缘的竖拖当成滚动条，不弹。</summary>
@@ -171,8 +164,8 @@ static class SelBar {
 			for (var i = 0; i < 6; i++) pump();
 			var hwnd = new WindowInteropHelper(win).Handle;
 			var px = win.ScreenPx();
-			say($"bar {px.Width:0}x{px.Height:0} at {px.Left:0},{px.Top:0} noact={SelBarWindow.HasNoActivate(hwnd)} label={win.lbsearch.Text}");
-			if (px.Width < 240 || px.Height < 28 || px.Height > 180 || win.lbsearch.Text.Length == 0) {
+			say($"bar {px.Width:0}x{px.Height:0} at {px.Left:0},{px.Top:0} noact={SelBarWindow.HasNoActivate(hwnd)} label={win.SearchLabel}");
+			if (px.Width < 240 || px.Height < 28 || px.Height > 420 || win.SearchLabel.Length == 0) {
 				say("FAIL: 浮窗尺寸不对");
 				return 3;
 			}
@@ -180,13 +173,11 @@ static class SelBar {
 				say("FAIL: 浮窗会抢焦点");
 				return 4;
 			}
-			var gapAbove = sel.Top - (px.Top + px.Height);
 			var gapBelow = px.Top - (sel.Top + sel.Height);
-			var above = gapAbove >= -2 && gapAbove <= 36;
-			var below = gapBelow >= -2 && gapBelow <= 36;
-			var near = Math.Abs((px.Left + px.Width / 2) - (sel.Left + sel.Width / 2)) < px.Width;
-			say($"gapAbove={gapAbove:0} gapBelow={gapBelow:0} near={near}");
-			if ((!above && !below) || !near) {
+			var overlaps = px.Top < sel.Bottom - 1 && px.Bottom > sel.Top + 1;
+			var near = px.Right > sel.Left - 8 && px.Left < sel.Right + 8;
+			say($"gapBelow={gapBelow:0} overlaps={overlaps} near={near}");
+			if (overlaps || gapBelow < -2 || gapBelow > 48 || !near) {
 				say("FAIL: 浮窗挡住选区或离得太远");
 				return 5;
 			}
@@ -198,7 +189,7 @@ static class SelBar {
 		finally {
 			try { win?.Close(); } catch { }
 		}
-		say("=== OK：划词占位浮窗 ===");
+		say("=== OK：划词查词浮窗 ===");
 		return 0;
 
 		static void pump() {
@@ -206,10 +197,6 @@ static class SelBar {
 			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
 			Dispatcher.PushFrame(frame);
 		}
-	}
-
-	static void raise() {
-		try { Changed?.Invoke(on); } catch { }
 	}
 
 	static bool hookup() {
@@ -235,11 +222,11 @@ static class SelBar {
 	}
 
 	static void hide() {
+		var was = shown || selroot != IntPtr.Zero;
 		shown = false;
-		try {
-			if (bar != null && bar.IsVisible) bar.Hide();
-		}
-		catch { }
+		selroot = IntPtr.Zero;
+		if (!was) return;
+		try { Hiding?.Invoke(); } catch { }
 	}
 
 	static IntPtr onmouse(int code, IntPtr wParam, IntPtr lParam) {
@@ -268,15 +255,18 @@ static class SelBar {
 		var y = Marshal.ReadInt32(lParam, 4);
 		if (msg == WM_MOUSEMOVE) {
 			if (!shown) return;
-			if (Environment.TickCount - lastFgTick < 200) return;
-			lastFgTick = Environment.TickCount;
-			if (onbar(x, y) || ischrome()) return;
+			if (Environment.TickCount - lastMoveTick < 200) return;
+			lastMoveTick = Environment.TickCount;
+			if (onpopup(x, y)) return;
+			var h = WindowFromPoint(new POINT { X = x, Y = y });
+			var root = h == IntPtr.Zero ? IntPtr.Zero : GetAncestor(h, GA_ROOT);
+			if (root != IntPtr.Zero && root == selroot) return;
 			gen++;
 			disp?.BeginInvoke(new Action(hide));
 			return;
 		}
 		if (msg == WM_LBUTTONDOWN) {
-			if (onbar(x, y)) return;
+			if (onpopup(x, y)) return;
 			gen++;
 			down = true;
 			downX = x;
@@ -285,13 +275,13 @@ static class SelBar {
 			return;
 		}
 		if (msg != WM_LBUTTONUP) return;
-		if (onbar(x, y)) {
+		if (onpopup(x, y)) {
 			down = false;
 			return;
 		}
 		if (!down) return;
 		down = false;
-		if (!ischrome()) return;
+		if (isours()) return;
 		var dx = x - downX;
 		var dy = y - downY;
 		var drag = dx * (long)dx + dy * (long)dy >= DRAG * (long)DRAG;
@@ -309,11 +299,7 @@ static class SelBar {
 		var g = ++gen;
 		var ux = x;
 		var uy = y;
-		disp?.BeginInvoke(new Action(() => {
-			if (!on || g != gen) return;
-			if (bar != null) bar.Text = "";
-			present(ux, uy, null);
-		}));
+		var rootfg = fg;
 		if (Interlocked.Increment(ref readers) > 2) {
 			Interlocked.Decrement(ref readers);
 			return;
@@ -333,57 +319,14 @@ static class SelBar {
 			disp?.BeginInvoke(new Action(() => {
 				if (!on || g != gen || !box.Done) return;
 				if (box.Hit == null || box.Hit.Text.Length == 0) return;
-				if (bar != null) bar.Text = box.Hit.Text;
-				present(ux, uy, box.Hit);
+				var bounds = box.Hit.Bounds.IsEmpty ? new Rect(ux, uy - 4, 2, 18) : box.Hit.Bounds;
+				selroot = rootfg;
+				shown = true;
+				try { Picked?.Invoke(box.Hit.Text, bounds); } catch { }
 			}));
 		});
 		wait.IsBackground = true;
 		wait.Start();
-	}
-
-	static void present(int x, int y, SelHit hit) {
-		if (!on) return;
-		if (bar == null) {
-			bar = new SelBarWindow();
-			bar.Act = onact;
-		}
-		var bounds = hit != null && !hit.Bounds.IsEmpty ? hit.Bounds : new Rect(x, y - 4, 2, 18);
-		if (hit != null && !string.IsNullOrEmpty(hit.Text)) bar.Text = hit.Text;
-		bar.ShowAt(bounds);
-		shown = true;
-	}
-
-	static void onact(string id) {
-		if (id == "pause") {
-			try { UiToast.Show(null, Loc.T("selbar.pause")); } catch { }
-			SetOn(false);
-			return;
-		}
-		var label = Loc.T("selbar." + id);
-		var t = (bar?.Text ?? "").Trim();
-		if (id == "copy") {
-			if (t.Length == 0) {
-				UiToast.Show(null, Loc.T("selbar.empty"));
-				return;
-			}
-			try {
-				Clipboard.SetText(t);
-				UiToast.Show(null, Loc.T("selbar.copied"));
-			}
-			catch {
-				UiToast.Show(null, Loc.T("selbar.copyfail"));
-			}
-			return;
-		}
-		if (t.Length == 0) UiToast.Show(null, Loc.T("selbar.stubempty", label));
-		else UiToast.Show(null, Loc.T("selbar.stub", label, clip(t)));
-	}
-
-	static string clip(string t) {
-		t = t.Replace('\r', ' ').Replace('\n', ' ').Trim();
-		while (t.Contains("  ")) t = t.Replace("  ", " ");
-		if (t.Length > 36) return t.Substring(0, 36) + "…";
-		return t;
 	}
 
 	static SelHit fromel(AutomationElement el) {
@@ -419,42 +362,20 @@ static class SelBar {
 		return new Rect(l, t, r - l, b - t);
 	}
 
-	static bool onbar(int x, int y) {
-		var hwnd = barhwnd();
+	static bool onpopup(int x, int y) {
+		IntPtr hwnd;
+		try { hwnd = PopupHwnd != null ? PopupHwnd() : IntPtr.Zero; }
+		catch { return false; }
 		if (hwnd == IntPtr.Zero) return false;
-		var h = WindowFromPoint(new POINT { X = x, Y = y });
-		if (h == IntPtr.Zero) return false;
-		if (h == hwnd) return true;
-		return GetAncestor(h, GA_ROOT) == hwnd;
+		if (!GetWindowRect(hwnd, out var rc)) return false;
+		return x >= rc.Left && x < rc.Right && y >= rc.Top && y < rc.Bottom;
 	}
 
-	static IntPtr barhwnd() {
-		try {
-			if (bar == null) return IntPtr.Zero;
-			return new WindowInteropHelper(bar).Handle;
-		}
-		catch { return IntPtr.Zero; }
-	}
-
-	static bool ischrome() {
+	static bool isours() {
 		var hwnd = GetForegroundWindow();
-		if (hwnd == IntPtr.Zero || hwnd == barhwnd()) return false;
-		var path = procpath(hwnd);
-		return path.EndsWith("\\chrome.exe", StringComparison.OrdinalIgnoreCase);
-	}
-
-	static string procpath(IntPtr hwnd) {
+		if (hwnd == IntPtr.Zero) return true;
 		GetWindowThreadProcessId(hwnd, out var pid);
-		if (pid == 0) return "";
-		var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
-		if (h == IntPtr.Zero) return "";
-		try {
-			var sb = new StringBuilder(520);
-			var n = sb.Capacity;
-			if (!QueryFullProcessImageName(h, 0, sb, ref n)) return "";
-			return sb.ToString();
-		}
-		finally { CloseHandle(h); }
+		return pid == 0 || pid == GetCurrentProcessId();
 	}
 
 	sealed class UiaBox {
@@ -502,15 +423,9 @@ static class SelBar {
 	[DllImport("user32.dll")]
 	static extern uint GetDoubleClickTime();
 
+	[DllImport("kernel32.dll")]
+	static extern uint GetCurrentProcessId();
+
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
 	static extern IntPtr GetModuleHandle(string name);
-
-	[DllImport("kernel32.dll", SetLastError = true)]
-	static extern IntPtr OpenProcess(int access, bool inherit, uint pid);
-
-	[DllImport("kernel32.dll", SetLastError = true)]
-	static extern bool CloseHandle(IntPtr h);
-
-	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-	static extern bool QueryFullProcessImageName(IntPtr hProcess, int dwFlags, StringBuilder lpExeName, ref int lpdwSize);
 }

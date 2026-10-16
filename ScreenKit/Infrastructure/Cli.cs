@@ -6417,7 +6417,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
-      --test-selbar  读本进程文本框的选中文字，并检查划词占位条的位置和不抢焦点
+      --test-selbar  读本进程文本框的选中文字，并检查划词查词浮窗的位置和不抢焦点
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge
       --test-dict-web  网页词典查询 hello，并导出一条纯文本

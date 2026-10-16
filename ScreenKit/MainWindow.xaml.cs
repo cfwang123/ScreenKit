@@ -72,6 +72,7 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyTr;     // 翻译小窗
 	GlobalHotkey hotkeySnapCopy; // 切换截图复制方式
 	GlobalHotkey hotkeyDict;  // 词典
+	GlobalHotkey hotkeyDictSel; // 划词浮窗开关
 	GlobalHotkey hotkeyHangul; // 韩语输入
 	HangulIme hangul;
 	GlobalHotkey hotkeyAuto; // 自动按键开始/停止
@@ -908,6 +909,13 @@ public partial class MainWindow : Window {
 					try { setstatus(Loc.T("st.dict_hk_fail", ex.Message)); } catch { }
 				}
 			}));
+			hotkeyDictSel = new GlobalHotkey(this, 0x700C);
+			hotkeyDictSel.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { applyselbar(!opt.DictSelBar, true, true); }
+				catch (Exception ex) {
+					try { setstatus(ex.Message); } catch { }
+				}
+			}));
 			hotkeyHangul = new GlobalHotkey(this, 0x700B);
 			hotkeyHangul.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try { hangulset(!hangul.On); }
@@ -945,6 +953,7 @@ public partial class MainWindow : Window {
 					|| (hotkeyTr != null && !string.IsNullOrWhiteSpace(opt.HotkeyTranslate) && !hotkeyTr.IsRegistered)
 					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered)
 					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered)
+					|| (hotkeyDictSel != null && !string.IsNullOrWhiteSpace(opt.HotkeyDictSel) && !hotkeyDictSel.IsRegistered)
 					|| (hotkeyHangul != null && !string.IsNullOrWhiteSpace(opt.HotkeyHangul) && !hotkeyHangul.IsRegistered);
 					// 自动按键只在工具窗口打开时注册，启动时不重试
 				if (need)
@@ -995,6 +1004,10 @@ public partial class MainWindow : Window {
 			hotkeyDict.Attach();
 			if (!hotkeyDict.Register(opt.ModDict ? opt.HotkeyDict : "")) errs.Add(hotkeyDict.LastError);
 		}
+		if (hotkeyDictSel != null) {
+			hotkeyDictSel.Attach();
+			if (!hotkeyDictSel.Register(opt.ModDict ? opt.HotkeyDictSel : "")) errs.Add(hotkeyDictSel.LastError);
+		}
 		if (hotkeyHangul != null) {
 			hotkeyHangul.Attach();
 			if (!hotkeyHangul.Register(opt.HotkeyHangul)) errs.Add(hotkeyHangul.LastError);
@@ -1026,6 +1039,18 @@ public partial class MainWindow : Window {
 			catch { }
 		}
 		updatehotkeymenutext();
+	}
+
+	void applyselbar(bool want, bool save, bool toast) {
+		opt.DictSelBar = want;
+		try { dicthost?.SetSelBarChecked(want); } catch { }
+		var run = want && opt.ModDict;
+		SelBar.SetOn(run);
+		if (save) {
+			try { AppConfig.Save(opt); } catch { }
+		}
+		if (!toast) return;
+		try { UiToast.Show(null, Loc.T(run && SelBar.On ? "dict.selbar.on" : "dict.selbar.off")); } catch { }
 	}
 
 	void onstatechanged(object sender, EventArgs e) {
@@ -1114,6 +1139,7 @@ public partial class MainWindow : Window {
 		try { hotkeyLive?.Dispose(); } catch { }
 		try { hotkeyTr?.Dispose(); } catch { }
 		try { hotkeyDict?.Dispose(); } catch { }
+		try { hotkeyDictSel?.Dispose(); } catch { }
 		try { hotkeyHangul?.Dispose(); } catch { }
 		try { hangul?.Dispose(); } catch { }
 		try { autokeyOn = false; autokeyTimer?.Stop(); } catch { }
@@ -1648,11 +1674,15 @@ public partial class MainWindow : Window {
 		mnwebdict.Click += (_, _) => openhttpdict(false);
 		mntrpopup.Click += (_, _) => showtranslatepopup();
 		mndict.Click += (_, _) => showdicttab();
-		SelBar.Changed += v => {
-			if (mnselbar.IsChecked != v) mnselbar.IsChecked = v;
+		SelBar.Picked += (text, bounds) => {
+			try { dicthost?.ShowOutside(text, bounds); } catch { }
 		};
-		mnselbar.Click += (_, _) => SelBar.SetOn(mnselbar.IsChecked == true);
-		SelBar.SetOn(true);
+		SelBar.Hiding += () => {
+			try { dicthost?.HideOutside(); } catch { }
+		};
+		SelBar.PopupHwnd = () => dicthost?.OutsideHwnd() ?? IntPtr.Zero;
+		if (dicthost != null) dicthost.SelBarChanged += v => applyselbar(v, true, false);
+		applyselbar(opt.DictSelBar, false, false);
 		mnimgconv.Click += (_, _) => openimgconv();
 		mncharart.Click += (_, _) => opencharart();
 		mnpixel.Click += (_, _) => openpixel();
@@ -1816,9 +1846,6 @@ public partial class MainWindow : Window {
 			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
 			mndict.Header = Loc.T("menu.dict");
 			mndict.ToolTip = Loc.T("menu.dict.tip");
-			mnselbar.Header = Loc.T("menu.selbar");
-			mnselbar.ToolTip = Loc.T("menu.selbar.tip");
-			SelBar.ApplyText();
 			mnimgconv.Header = Loc.T("menu.imgconv");
 			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
 			mncharart.Header = Loc.T("menu.charart");
@@ -4160,11 +4187,15 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyTranslate, opt.HotkeyTranslate, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyDictSel, opt.HotkeyDictSel, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyHangul, opt.HotkeyHangul, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.AutoKeyHotkey, opt.AutoKeyHotkey, StringComparison.OrdinalIgnoreCase)
 			|| old.ModOcr != opt.ModOcr || old.ModAsr != opt.ModAsr
-			|| old.ModTranslate != opt.ModTranslate || old.ModDict != opt.ModDict)
+			|| old.ModTranslate != opt.ModTranslate || old.ModDict != opt.ModDict
+			|| old.DictSelBar != opt.DictSelBar)
 			registerhotkey();
+		if (old.DictSelBar != opt.DictSelBar || old.ModDict != opt.ModDict)
+			applyselbar(opt.DictSelBar, false, false);
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
 			|| old.SendFileEnabled != opt.SendFileEnabled
@@ -4856,6 +4887,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey translate popup: {opt.HotkeyTranslate}");
 		sb.AppendLine($"Hotkey snap copy: {opt.HotkeySnapCopy}");
 		sb.AppendLine($"Hotkey dictionary: {opt.HotkeyDict}");
+		sb.AppendLine($"Selection popup: {(opt.DictSelBar ? "on" : "off")} hotkey={opt.HotkeyDictSel}");
 		sb.AppendLine($"Hotkey hangul: {opt.HotkeyHangul}");
 		sb.AppendLine($"Hotkey auto key: {opt.AutoKeyHotkey} mode={opt.AutoKeyMode} key={opt.AutoKeyKey} ms={opt.AutoKeyIntervalMs}");
 		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off")}");

@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 
@@ -65,9 +66,17 @@ public partial class DictWindow : UserControl {
 	Point downpt;
 	bool dragsel;
 	Window hostwin;
+	SelBarWindow outwin;
+	int ogen;
+	string outtext = "";
+	string outlang = "";
+	Rect outbox;
+	bool selbarsync;
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
 	public Action<string> OnTranslate;
+	/// <summary>词典页上的划词浮窗开关。</summary>
+	public Action<bool> SelBarChanged;
 	/// <summary>当前选项。发音读这里的词典引擎和发音人。</summary>
 	public Func<OcrOptions> Options;
 
@@ -141,6 +150,12 @@ public partial class DictWindow : UserControl {
 			if (e.OriginalSource is DependencyObject d && under(psel.Child, d)) return;
 			psel.IsOpen = false;
 		};
+		cbselbar.Checked += (_, _) => {
+			if (!selbarsync) SelBarChanged?.Invoke(true);
+		};
+		cbselbar.Unchecked += (_, _) => {
+			if (!selbarsync) SelBarChanged?.Invoke(false);
+		};
 		filts = new[] { bfiltall, bfiltzh, bfiltja, bfiltko, bfilten };
 		wirefilter(bfiltall, "");
 		wirefilter(bfiltzh, "zh");
@@ -180,6 +195,19 @@ public partial class DictWindow : UserControl {
 		try { tick?.Stop(); } catch { }
 		try { player?.Dispose(); } catch { }
 		player = null;
+		HideOutside();
+		try { outwin?.Close(); } catch { }
+		outwin = null;
+	}
+
+	public void SetSelBarChecked(bool on) {
+		selbarsync = true;
+		try { cbselbar.IsChecked = on; }
+		finally { selbarsync = false; }
+	}
+
+	internal void HideSelSwitch() {
+		cbselbar.Visibility = Visibility.Collapsed;
 	}
 
 	public void FocusSearch() {
@@ -218,6 +246,9 @@ public partial class DictWindow : UserControl {
 		bseltr.Content = Loc.T("dict.sel.translate");
 		bselcopy.Content = Loc.T("dict.sel.copy");
 		lbselwait.Text = Loc.T("dict.sel.searching");
+		cbselbar.Content = Loc.T("dict.selbar");
+		cbselbar.ToolTip = Loc.T("dict.selbar.tip");
+		try { outwin?.ApplyText(); } catch { }
 		bfiltall.Content = Loc.T("dict.filter.all");
 		bfiltzh.Content = Loc.T("dict.filter.zh");
 		bfiltja.Content = Loc.T("dict.filter.ja");
@@ -894,27 +925,108 @@ public partial class DictWindow : UserControl {
 	}
 
 	void showselhits(List<DictHit> hits, bool searching) {
-		var rows = new List<DictSelRow>();
-		if (hits != null) {
-			foreach (var h in hits) {
-				if (h.Id == 0) continue;
-				var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
-				var shown = listword(h.Dict, word, h.Kanji);
-				var code = listcode(h.Dict);
-				rows.Add(new DictSelRow {
-					Id = h.Id,
-					Word = word,
-					Title = code.Length > 0 ? "[" + code + "] " + shown : shown,
-					Gloss = h.Preview ?? "",
-				});
-				if (rows.Count >= 8) break;
-			}
-		}
+		var rows = selrows(hits);
 		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		if (psel.IsOpen) placepop();
+	}
+
+	/// <summary>其它程序里的划词。浮窗和词典里的一样：词头、发音、搜索、翻译、复制。</summary>
+	public void ShowOutside(string text, Rect screenPx) {
+		text = oneline(text);
+		if (text.Length == 0) {
+			HideOutside();
+			return;
+		}
+		ensureout();
+		outtext = text;
+		outlang = langoutside(text);
+		outbox = screenPx;
+		outwin.ApplyText();
+		outwin.ShowRows(null, true);
+		outwin.ShowAt(outbox);
+		var q = text.Length > 80 ? text.Substring(0, 80) : text;
+		var g = ++ogen;
+		Task.Run(() => {
+			try { return DictDb.Search(q, "", 8); }
+			catch { return new List<DictHit>(); }
+		}).ContinueWith(t => {
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (g != ogen || outwin == null || !outwin.IsVisible) return;
+				List<DictHit> hits = null;
+				try { hits = t.Result; } catch { }
+				outwin.ShowRows(selrows(hits), false);
+				outwin.ShowAt(outbox);
+			}));
+		});
+	}
+
+	public void HideOutside() {
+		ogen++;
+		try {
+			if (outwin != null && outwin.IsVisible) outwin.Hide();
+		}
+		catch { }
+	}
+
+	public IntPtr OutsideHwnd() {
+		try {
+			if (outwin == null || !outwin.IsVisible) return IntPtr.Zero;
+			return new WindowInteropHelper(outwin).Handle;
+		}
+		catch { return IntPtr.Zero; }
+	}
+
+	void ensureout() {
+		if (outwin != null) return;
+		outwin = new SelBarWindow();
+		outwin.HitClick += row => {
+			if (row == null || row.Word.Length == 0) return;
+			HideOutside();
+			opensearch(row.Word, row.Id);
+		};
+		outwin.SpeakClick += () => _ = speak(outtext, outlang);
+		outwin.SearchClick += () => {
+			var q = outtext;
+			HideOutside();
+			opensearch(q);
+		};
+		outwin.TrClick += () => {
+			var q = outtext;
+			HideOutside();
+			if (q.Length == 0) return;
+			if (OnTranslate != null) OnTranslate(q);
+			else lbstatus.Text = Loc.T("dict.sel.notr");
+		};
+		outwin.CopyClick += () => copytext(outtext);
+		outwin.ApplyText();
+	}
+
+	string langoutside(string text) {
+		var score = new int[4];
+		addscript(score, text, true);
+		return bestlang(score, "en");
+	}
+
+	static List<DictSelRow> selrows(List<DictHit> hits) {
+		var rows = new List<DictSelRow>();
+		if (hits == null) return rows;
+		foreach (var h in hits) {
+			if (h.Id == 0) continue;
+			var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
+			var shown = listword(h.Dict, word, h.Kanji);
+			var code = listcode(h.Dict);
+			rows.Add(new DictSelRow {
+				Id = h.Id,
+				Word = word,
+				Title = code.Length > 0 ? "[" + code + "] " + shown : shown,
+				Gloss = h.Preview ?? "",
+			});
+			if (rows.Count >= 8) break;
+		}
+		return rows;
 	}
 
 	void hookhost() {
