@@ -2881,9 +2881,40 @@ public partial class MainWindow : Window {
 		// 投影到 u 方向 [0,1]
 		var t = (dx * ux + dy * uy) / ulen2;
 		t = Compat.Clamp(t, 0f, 1f);
-		// 光标：四舍五入到最近字符边界
-		var ch = (int)Math.Round(t * len);
+		var w = Math.Sqrt(ulen2);
+		var vh = Math.Sqrt(vx * vx + vy * vy);
+		var span = overlayspan(text, w, Math.Max(2, vh));
+		if (span < 1e-3) return len;
+		if (t >= span - 1e-4) return len;
+		var ch = (int)Math.Round(t / span * len);
 		return Compat.Clamp(ch, 0, len);
+	}
+
+	/// <summary>
+	/// 叠字按行高缩放、不横向拉满。返回字实际占用的行宽比例（短行小于 1，右侧空白）。
+	/// </summary>
+	internal static double overlayspan(string show, double w, double h) {
+		overlayfit(show, w, h, out _, out var span);
+		return span;
+	}
+
+	static void overlayfit(string show, double w, double h, out double scale, out double span) {
+		scale = 1;
+		span = 1;
+		if (string.IsNullOrEmpty(show) || w < 1 || h < 1) return;
+		var tb = new TextBlock {
+			Text = show,
+			FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI"),
+			FontWeight = FontWeights.Medium,
+			FontSize = Math.Max(2, h),
+			TextWrapping = TextWrapping.NoWrap,
+		};
+		tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+		var dw = tb.DesiredSize.Width;
+		var dh = tb.DesiredSize.Height;
+		if (dw < 0.5 || dh < 0.5) return;
+		scale = Math.Min(w / dw, h / dh);
+		span = Math.Min(1, dw * scale / w);
 	}
 
 	static bool pointinbox(float x, float y, Point2f[] box, float pad) {
@@ -5039,18 +5070,29 @@ public partial class MainWindow : Window {
 				if (t1 - t0 < 1e-4f) partial = false;
 			}
 
-			// 底：半透明黑 + 白字（Umi）
+			// 底：半透明黑 + 白字。字按行高排、保持字形比例，短行右侧留白。
+			overlayfit(show, w, h, out var scale, out var span);
 			var tb = new TextBlock {
 				Text = show,
 				Foreground = TextFg,
 				FontFamily = new FontFamily("Microsoft YaHei UI, Segoe UI"),
 				FontWeight = FontWeights.Medium,
+				FontSize = Math.Max(2, h),
 				TextAlignment = TextAlignment.Left,
 				TextWrapping = TextWrapping.NoWrap,
-				Padding = new Thickness(1, 0, 1, 0),
-				VerticalAlignment = System.Windows.VerticalAlignment.Center,
-				HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
+				IsHitTestVisible = false,
 			};
+			tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+			var drawnH = tb.DesiredSize.Height * scale;
+			tb.LayoutTransform = new ScaleTransform(scale, scale);
+			var host = new Canvas {
+				Width = w,
+				Height = h,
+				IsHitTestVisible = false,
+			};
+			Canvas.SetLeft(tb, 0);
+			Canvas.SetTop(tb, Math.Max(0, (h - drawnH) / 2));
+			host.Children.Add(tb);
 			var box = new Border {
 				Width = w,
 				Height = h,
@@ -5059,11 +5101,7 @@ public partial class MainWindow : Window {
 				BorderThickness = new Thickness(0.5),
 				IsHitTestVisible = false,
 				SnapsToDevicePixels = true,
-				Child = new Viewbox {
-					Stretch = Stretch.Fill,
-					StretchDirection = StretchDirection.Both,
-					Child = tb,
-				},
+				Child = host,
 				RenderTransformOrigin = new Point(0, 0),
 				RenderTransform = new RotateTransform(angle),
 			};
@@ -5073,10 +5111,12 @@ public partial class MainWindow : Window {
 
 			// 选区高亮：行内局部四边形（可从句中到句中）
 			if (partial) {
-				var tl = lerp(p0, p1, t0);
-				var tr = lerp(p0, p1, t1);
-				var br = lerp(p3, p2, t1);
-				var bl = lerp(p3, p2, t0);
+				var u0 = (float)(t0 * span);
+				var u1 = (float)(t1 * span);
+				var tl = lerp(p0, p1, u0);
+				var tr = lerp(p0, p1, u1);
+				var br = lerp(p3, p2, u1);
+				var bl = lerp(p3, p2, u0);
 				var poly = new System.Windows.Shapes.Polygon {
 					Points = new PointCollection {
 						new Point(tl.X, tl.Y),

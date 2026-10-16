@@ -51,7 +51,7 @@ static class Cli {
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
 				or "--test-tts-sherpa" or "--test-edge-tts" or "--test-chrome-tts" or "--test-chrome-tr" or "--test-chrome-pack" or "--test-chrome-host" or "--list-edge-tts"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
-				or "--test-overlay-layout" or "--test-overlay-span-adj"
+				or "--test-overlay-layout" or "--test-overlay-span-adj" or "--test-ocr-overlay-fit"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
 				or "--test-clipboard-path"
@@ -219,6 +219,8 @@ static class Cli {
 						return runtestoverlaylayout();
 					case "--test-overlay-span-adj":
 						return runtestoverlayspanadj();
+					case "--test-ocr-overlay-fit":
+						return testocroverlayfit();
 					case "--test-record-avsync":
 						doTestRecordAvsync = true;
 						break;
@@ -1346,6 +1348,30 @@ static class Cli {
 			return 1;
 		}
 		return code;
+	}
+
+	/// <summary>叠字短行不拉满行宽，长行仍占满，行高加倍时字宽跟着加。</summary>
+	static int testocroverlayfit() {
+		Out("=== 叠字比例 --test-ocr-overlay-fit ===");
+		var shortSpan = MainWindow.overlayspan("目的地", 800, 40);
+		var longSpan = MainWindow.overlayspan("目的地门口城市配送中心这一行特别长", 160, 36);
+		var h20 = MainWindow.overlayspan("目", 500, 20);
+		var h40 = MainWindow.overlayspan("目", 500, 40);
+		Out($"short={shortSpan:0.###} long={longSpan:0.###} h20={h20:0.###} h40={h40:0.###}");
+		if (shortSpan <= 0 || shortSpan >= 0.45) {
+			Err("短行被拉满行宽");
+			return 1;
+		}
+		if (longSpan < 0.9) {
+			Err("长行没有占满行宽");
+			return 1;
+		}
+		if (h40 < h20 * 1.6) {
+			Err("行高加倍后字宽没有跟着加");
+			return 1;
+		}
+		Out("=== OK ===");
+		return 0;
 	}
 
 	/// <summary>跨屏虚拟选区进入标注，检查副屏是否显示缩放手柄。</summary>
@@ -6212,6 +6238,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-overlay-during-record [--region L,T,W,H]
   ScreenKit --test-overlay-layout
   ScreenKit --test-overlay-span-adj
+  ScreenKit --test-ocr-overlay-fit
   ScreenKit --test-record-avsync [--seconds 10] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-gif-record [--seconds 2] [--region L,T,W,H] [--out <目录>]
   ScreenKit --test-record-codec [av1|x264|x265|mf] [--seconds 2] [--repeat 2] [--region L,T,W,H] [--out <目录>]
@@ -6314,6 +6341,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-overlay-during-record  开录+HUD 挂起后弹出截图遮罩（自动 ESC）
       --test-overlay-layout  弹出截屏遮罩并记录各屏 HWND/DPI（自动关闭）
       --test-overlay-span-adj  跨屏选区进入标注，检查副屏手柄（自动关闭）
+      --test-ocr-overlay-fit  叠字短行不拉满、长行占满、行高与字宽成比例
       --test-record-avsync  有声0.1s/静音0.1s循环→录N秒→分析音画同步
       --test-gif-record  录制低帧率无声 GIF 数秒并校验文件头
       --test-record-codec  用 ScreenRecorder 短录并探测视频 codec（av1|x264|x265|mf，默认 av1；mjpeg 读入后按 mf）

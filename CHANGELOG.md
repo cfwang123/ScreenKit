@@ -41,12 +41,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Checking screenshot OCR or translation also checks the ONNX CPU row and counts its size once. After install that row stays checked instead of turning red for removal.
+- OCR overlay text keeps its normal shape. Short lines leave the rest of the box blank instead of stretching the glyphs.
 
 ### 中文
 
 #### 修复
 
 - 勾选截图识别或翻译时会同时勾上 ONNX CPU，体积在合计里只算一次。装完后该项保持勾选，不再显示为红色待删除。
+- 识别结果的叠加文字按正常字形显示。短行右侧留白，不再把字拉满整行。
 
 ## v1.0.22 (2026-10-15 ~ 16)
 
