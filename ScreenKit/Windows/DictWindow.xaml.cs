@@ -831,10 +831,7 @@ public partial class DictWindow : UserControl {
 		psel.IsOpen = true;
 		showselhits(null, true);
 		var g = ++sgen;
-		Task.Run(() => {
-			try { return DictDb.Search(q, "", 8); }
-			catch { return new List<DictHit>(); }
-		}).ContinueWith(t => {
+		Task.Run(() => searchsel(q)).ContinueWith(t => {
 			Dispatcher.BeginInvoke(new Action(() => {
 				if (g != sgen || !psel.IsOpen) return;
 				showselhits(t.Result, false);
@@ -949,10 +946,7 @@ public partial class DictWindow : UserControl {
 		outwin.ShowAt(outbox);
 		var q = text.Length > 80 ? text.Substring(0, 80) : text;
 		var g = ++ogen;
-		Task.Run(() => {
-			try { return DictDb.Search(q, "", 8); }
-			catch { return new List<DictHit>(); }
-		}).ContinueWith(t => {
+		Task.Run(() => searchsel(q)).ContinueWith(t => {
 			Dispatcher.BeginInvoke(new Action(() => {
 				if (g != ogen || outwin == null || !outwin.IsVisible) return;
 				List<DictHit> hits = null;
@@ -1002,6 +996,17 @@ public partial class DictWindow : UserControl {
 		};
 		outwin.CopyClick += () => copytext(outtext);
 		outwin.ApplyText();
+	}
+
+	/// <summary>划词查询。库还没打开时先按词典页的路径打开，再查最多 8 条。</summary>
+	List<DictHit> searchsel(string q) {
+		try {
+			var o = Options != null ? Options() : null;
+			if (o != null && !o.ModDict) return new List<DictHit>();
+			if (!DictDb.Ready) DictDb.Init(DictWeb.DbPath);
+			return DictDb.Search(q, "", 8);
+		}
+		catch { return new List<DictHit>(); }
 	}
 
 	string langoutside(string text) {

@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - OCR overlay text keeps its normal shape. Short lines leave the rest of the box blank instead of stretching the glyphs.
 - iGPU DirectML size follows the NuGet packages to download (about 205 MB). The progress total grows when a package is larger than the estimate.
 - POST /api/qrcode matches Umi-OCR. Each code includes format (QRCode for a QR code) and text.
+- A selection lookup opens the dictionary file when it is not open yet, then searches.
 
 ### 中文
 
@@ -71,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 识别结果的叠加文字按正常字形显示。短行右侧留白，不再把字拉满整行。
 - 核显 DirectML 的安装大小按要下载的 NuGet 包计算（约 205 MB）。包比预估更大时，进度分母跟着加大。
 - POST /api/qrcode 与 Umi-OCR 兼容。每条码带 format（二维码为 QRCode）和 text。
+- 词典库还没打开时，划词会先打开库再查词。
 
 ## v1.0.22 (2026-10-15 ~ 16)
 
