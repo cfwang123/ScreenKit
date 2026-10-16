@@ -698,10 +698,10 @@ public partial class MainWindow : Window {
 	}
 
 	void syncsnapcopyopts() {
-		var fmt = (opt.ScreenshotFormat ?? "png").Trim().ToLowerInvariant();
+		var fmt = (opt.ScreenshotFormat ?? "jpg").Trim().ToLowerInvariant();
 		ImageUtil.CurrentScreenshotFormat = fmt is "jpg" or "jpeg" ? "jpg" : "png";
 		ImageUtil.CurrentScreenshotJpgQuality = Compat.Clamp(
-			opt.ScreenshotJpgQuality <= 0 ? 92 : opt.ScreenshotJpgQuality, 1, 100);
+			opt.ScreenshotJpgQuality <= 0 ? 60 : opt.ScreenshotJpgQuality, 1, 100);
 		ImageUtil.CurrentScreenshotShortEnabled = opt.ScreenshotShortEnabled;
 		ImageUtil.CurrentScreenshotShortPx = Math.Max(16, opt.ScreenshotShortPx);
 		try { ImageUtil.CurrentScreenshotDir = ImageUtil.NormScreenshotDir(opt.ScreenshotDir); }

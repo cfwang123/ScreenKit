@@ -639,7 +639,7 @@ static class AppConfig {
 			? "jpg" : "png";
 		sb.AppendLine($"# 截图保存格式 png | jpg；jpg 质量 1–100；较短边可关（超过则等比缩小，不放大）");
 		sb.AppendLine($"screenshot_format = \"{shotFmt}\"");
-		sb.AppendLine($"screenshot_jpg_quality = {Compat.Clamp(o.ScreenshotJpgQuality <= 0 ? 92 : o.ScreenshotJpgQuality, 1, 100)}");
+		sb.AppendLine($"screenshot_jpg_quality = {Compat.Clamp(o.ScreenshotJpgQuality <= 0 ? 60 : o.ScreenshotJpgQuality, 1, 100)}");
 		sb.AppendLine($"screenshot_short = {(o.ScreenshotShortEnabled ? "true" : "false")}");
 		sb.AppendLine($"screenshot_short_px = {Compat.Clamp(o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx, 16, 16384)}");
 		var icFmt = ImgConvert.NormFmt(o.ImgConvFormat);

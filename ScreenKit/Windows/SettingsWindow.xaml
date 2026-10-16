@@ -738,13 +738,13 @@
 							<ComboBox x:Name="esnapfmt" Grid.Column="1" Height="32"
 							          VerticalContentAlignment="Center"
 							          AutomationProperties.AutomationId="set.screenshot.format">
-								<ComboBoxItem Content="PNG（无损）" Tag="png" IsSelected="True"/>
-								<ComboBoxItem Content="JPG（体积小）" Tag="jpg"/>
+								<ComboBoxItem Content="PNG（无损）" Tag="png"/>
+								<ComboBoxItem Content="JPG（体积小）" Tag="jpg" IsSelected="True"/>
 							</ComboBox>
 							<TextBlock x:Name="lbsnapjpgq" Grid.Column="3" Text="JPG 质量"
 							           FontSize="12" Foreground="{StaticResource TextMuted}"
 							           VerticalAlignment="Center" Margin="0,0,8,0"/>
-							<TextBox x:Name="esnapjpgq" Grid.Column="4" Height="30" Padding="6,4" Text="92"
+							<TextBox x:Name="esnapjpgq" Grid.Column="4" Height="30" Padding="6,4" Text="60"
 							         BorderBrush="{StaticResource BorderSoft}"
 							         VerticalContentAlignment="Center"
 							         ToolTip="1–100，越大越清晰、体积越大"

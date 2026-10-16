@@ -38,12 +38,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- Screenshots default to JPG at quality 60. A saved format and quality in config.toml stay as they are.
+
 #### Fixed
 
 - Checking screenshot OCR or translation also checks the ONNX CPU row and counts its size once. After install that row stays checked instead of turning red for removal.
 - OCR overlay text keeps its normal shape. Short lines leave the rest of the box blank instead of stretching the glyphs.
 
 ### 中文
+
+#### 变更
+
+- 截图默认保存为 JPG，质量 60。config.toml 里已经写过的格式和质量保持不变。
 
 #### 修复
 

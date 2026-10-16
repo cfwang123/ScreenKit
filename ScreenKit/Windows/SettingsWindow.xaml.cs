@@ -576,7 +576,7 @@ public partial class SettingsWindow : Window {
 			esnapkeep.SelectedIndex = 1;
 		}
 		// 保存格式 / jpg 质量 / 较短边
-		var fmt = (o.ScreenshotFormat ?? "png").Trim().ToLowerInvariant();
+		var fmt = (o.ScreenshotFormat ?? "jpg").Trim().ToLowerInvariant();
 		var wantJpg = fmt is "jpg" or "jpeg";
 		foreach (ComboBoxItem it in esnapfmt.Items) {
 			var tag = (it.Tag as string) ?? "";
@@ -586,7 +586,7 @@ public partial class SettingsWindow : Window {
 			}
 		}
 		if (esnapfmt.SelectedItem == null) esnapfmt.SelectedIndex = 0;
-		var jq = o.ScreenshotJpgQuality <= 0 ? 92 : Compat.Clamp(o.ScreenshotJpgQuality, 1, 100);
+		var jq = o.ScreenshotJpgQuality <= 0 ? 60 : Compat.Clamp(o.ScreenshotJpgQuality, 1, 100);
 		esnapjpgq.Text = jq.ToString();
 		esnapshorten.IsChecked = o.ScreenshotShortEnabled;
 		esnapshort.Text = (o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx).ToString();
@@ -806,7 +806,7 @@ public partial class SettingsWindow : Window {
 			keepDays = 3;
 		Result.ScreenshotKeepDays = keepDays > 3650 ? 3650 : keepDays;
 		// 保存格式 / jpg 质量 / 较短边
-		var fmtTag = (esnapfmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "png";
+		var fmtTag = (esnapfmt.SelectedItem as ComboBoxItem)?.Tag as string ?? "jpg";
 		Result.ScreenshotFormat = string.Equals(fmtTag, "jpg", StringComparison.OrdinalIgnoreCase) ? "jpg" : "png";
 		if (!int.TryParse((esnapjpgq.Text ?? "").Trim(), out var jpgQ) || jpgQ < 1 || jpgQ > 100) {
 			tabset.SelectedItem = tabsetsnap;

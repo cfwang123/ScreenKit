@@ -202,10 +202,10 @@ public sealed class OcrOptions {
 	/// 仅启动时后台清理，截图保存与改设置时不删。
 	/// </summary>
 	public int ScreenshotKeepDays = 3;
-	/// <summary>截图保存格式：png / jpg（默认 png）。</summary>
-	public string ScreenshotFormat = "png";
-	/// <summary>JPG 质量 1–100（仅 format=jpg 时生效；默认 92）。</summary>
-	public int ScreenshotJpgQuality = 92;
+	/// <summary>截图保存格式：png / jpg（默认 jpg）。</summary>
+	public string ScreenshotFormat = "jpg";
+	/// <summary>JPG 质量 1–100（仅 format=jpg 时生效；默认 60）。</summary>
+	public int ScreenshotJpgQuality = 60;
 	/// <summary>是否限制截图保存较短边（超过则等比缩小，不放大）。</summary>
 	public bool ScreenshotShortEnabled = false;
 	/// <summary>截图较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
@@ -571,7 +571,7 @@ public sealed class OcrOptions {
 		CaptureLog = CaptureLog,
 		LlmLog = LlmLog,
 		ScreenshotKeepDays = ScreenshotKeepDays,
-		ScreenshotFormat = ScreenshotFormat ?? "png",
+		ScreenshotFormat = ScreenshotFormat ?? "jpg",
 		ScreenshotJpgQuality = ScreenshotJpgQuality,
 		ScreenshotShortEnabled = ScreenshotShortEnabled,
 		ScreenshotShortPx = ScreenshotShortPx,

@@ -602,10 +602,10 @@ static class ImageUtil {
 	}
 
 	/// <summary>截图保存格式 png / jpg（主窗配置同步）。</summary>
-	public static string CurrentScreenshotFormat = "png";
+	public static string CurrentScreenshotFormat = "jpg";
 
 	/// <summary>JPG 质量 1–100（主窗配置同步）。</summary>
-	public static int CurrentScreenshotJpgQuality = 92;
+	public static int CurrentScreenshotJpgQuality = 60;
 
 	/// <summary>是否限制截图保存较短边（主窗配置同步）。</summary>
 	public static bool CurrentScreenshotShortEnabled = false;
@@ -778,7 +778,7 @@ static class ImageUtil {
 
 	/// <summary>当前配置下的截图扩展名（.png / .jpg）。</summary>
 	static string screenshotext() {
-		var f = (CurrentScreenshotFormat ?? "png").Trim().ToLowerInvariant();
+		var f = (CurrentScreenshotFormat ?? "jpg").Trim().ToLowerInvariant();
 		return f is "jpg" or "jpeg" ? ".jpg" : ".png";
 	}
 
