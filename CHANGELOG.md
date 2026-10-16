@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.22 (2026-10-15 ~ 16)](#v1022-2026-10-15--16)
 - [v1.0.21 (2026-10-14 ~ 15)](#v1021-2026-10-14--15)
 - [v1.0.20 (2026-10-13 ~ 14)](#v1020-2026-10-13--14)
 - [v1.0.19 (2026-10-10 ~ 12)](#v1019-2026-10-10--12)
@@ -37,51 +38,38 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+### 中文
+
+## v1.0.22 (2026-10-15 ~ 16)
+
+### English
+
 #### Added
 
-- Chrome speech installs a missing offline voice pack on the spot and shows a progress window that can be cancelled. The HTTP API still requires the pack to be installed first and returns 927 when it is missing.
-- System tools lists processes, file locks, environment variables, startup items, and installed programs.
-- Help, Install features adds a Single components tab. It installs or removes one package at a time, such as FFmpeg, without the other packages a feature would pull in.
-- System tools list services, hotfixes, store apps, and file associations. System info shows memory modules and the motherboard. File info compares a file header with its extension and shows version, image, media, and text encoding.
-- Sound recorder can include system audio, and its device list shows microphones only.
-- Install features, Chrome page: On-device model opens chrome://on-device-internals in Chrome.
+- System tools list processes, file locks, environment variables, startup items, installed programs, services, hotfixes, store apps, and file associations. Services are listed only.
+- System info shows each memory module and the motherboard.
+- File info compares a file header with its extension and shows version, image, media, and text encoding.
+- Sound recorder can include system audio. Its device list shows microphones only.
+- Help → Install features adds Single components. It installs or removes one package at a time, such as FFmpeg, without the other packages a feature would pull in.
+- Install features, Chrome page: On-device model opens chrome://on-device-internals. Chrome models opens a separate page in Chrome, not a web tool. That page lists translation models and offline voice packs, filters by language, and colors installed packs green and missing packs red. Voice packs are checked in the Chrome that is showing the page. Installing a pack shows download progress.
 - A borderless translucent performance window shows CPU, GPU, memory, network, and disk, plus temperature and power when available. Right-click turns each field on or off.
-- The web tools page can list, install, and remove the hidden Chrome translation models and offline voice packs.
 - File menu has Restart, which quits and starts the program again.
-- Windows OCR can recognize Chinese and English together: both languages run once, then Chinese characters stay from the Chinese pass and Latin text comes from the English pass.
+- Windows OCR can recognize Chinese and English together. Both languages run once. Chinese characters stay from the Chinese pass, and Latin text comes from the English pass.
 
 #### Changed
 
-- Character art preview has a font-size slider (6–36).
-- Chrome translation and voice pack installs show download progress while a pack is still downloading.
-- Character art defaults to 250 columns and preview font size 6.
-- Speech has a Detect path button that fills chrome.exe from common install locations.
-- chrome.exe path, Detect path, and idle seconds moved to Settings → General.
-- Chrome speech and translation share one hidden Chrome process. Requests run one after another in that window, so speech stays in the foreground tab.
-- The Chrome speech window stays off the taskbar. Memory lists that Chrome process and can close it.
-- The hidden Chrome process uses the HTTP proxy from Settings. Loopback, private networks, .cn, and China mirrors stay direct. A proxy change restarts that process.
-- The performance window is a two-column slate panel with a pin button that keeps it in front.
-- Chrome speech plays immediately. The offline voice pack is installed only after playback fails, then the text is spoken once more. The HTTP API does the same.
-- The web tools page is built in JavaScript. tools.html only links the stylesheets and scripts.
-- Chrome translation shows that a model is downloading, and the percent when it is known.
+- Character art defaults to 250 columns and preview font size 6. A slider sets the preview font size from 6 to 36. With Invert off, darker cells use denser characters. Line mode at threshold 0 keeps faint edges, including edges on a cell boundary.
+- chrome.exe path, Detect path, and idle seconds are on Settings → General. Detect path fills chrome.exe from common install locations.
+- Chrome speech and translation share one hidden Chrome process. Requests run one after another, so speech stays in the foreground tab. The window stays off the taskbar. Memory lists that process and can close it. It uses the HTTP proxy from Settings. Loopback, private networks, .cn, and China mirrors stay direct. A proxy change restarts the process.
+- Chrome speech plays immediately. If it cannot speak, that language's offline voice pack is installed, with a progress window that can be cancelled, and the text is spoken once more. It does not switch to another voice. If it still cannot speak, the desktop shows an error and the HTTP API returns an error. Chrome translation downloads a missing language pack in that same window, shows the download and the percent when it is known, then translates.
+- The performance window is a two-column slate panel. A pin keeps it in front. It samples on the window thread, so CPU, memory, network, and disk show up without administrator rights. CPU temperature comes from the thermal zone counter and does not block the other readings. Settings set the refresh interval from 0.2 to 5 seconds.
+- The web tools page is built in JavaScript. tools.html only links the stylesheets and scripts. The scripts run after the page is created, so the tools home shows its cards and panels.
 - The dictionary hotkey does not open the SQLite dictionary when there is nothing to search.
-- Chrome models is a separate page opened from Install features in Chrome, and is no longer a web tool
-- The Chrome models page checks voice packs in the Chrome that is showing the page
 
 #### Fixed
 
-- Line mode at threshold 0 keeps faint edges, including edges that fall on a cell boundary.
-- Character art draws darker cells denser unless Invert is on.
-- Chrome speech no longer substitutes another voice when the Google voice cannot speak. The desktop shows an error, and the HTTP API returns an error. The old offline voice pack is not installed.
-- The performance window updates again. Temperature lookup no longer blocks the other readings. Settings set the refresh interval from 0.2 to 5 seconds.
-- The performance window samples on the window thread, so CPU, memory, network, and disk show up without administrator rights.
 - Edge online speech uses the current Sec-MS-GEC v2 token. The previous token was rejected with HTTP 403.
-- CPU temperature is read from the thermal zone counter, so the performance window shows it again.
-- Chrome translation downloads a missing language pack without a click, then translates.
 - Windows OCR in Chinese or English puts spaces back into English words where the picture has a word gap.
-- Tool scripts run after the page is created, so the tools home shows its cards and panels.
-- Chrome translation downloads a missing language pack in the speech page that is already open
-- The Chrome models page lists voice languages, filters by language, and colors installed packs green and missing packs red
 
 #### Documentation
 
@@ -91,49 +79,30 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- Chrome 语音合成在对应离线语音包未安装时临时安装，并显示可中止的进度窗。HTTP 接口仍须事先安装，未安装返回 927。
-- 系统工具只读列出进程、文件占用、环境变量、启动项和已安装程序。
-- 帮助 → 安装功能增加「单个组件安装」。可以单独安装或删除一个组件，例如 FFmpeg，不会带上该功能里的其它组件。
-- 系统工具列出服务、补丁、商店应用和文件关联。系统信息显示内存条和主板。文件分析对照文件头与扩展名，并显示版本、图片、媒体和文本编码。
+- 系统工具只读列出进程、文件占用、环境变量、启动项、已安装程序、服务、补丁、商店应用和文件关联。服务只列出，不控制。
+- 系统信息显示内存条和主板。
+- 文件分析对照文件头与扩展名，并显示版本、图片、媒体和文本编码。
 - 录音机可以同时录系统声音，设备列表只显示麦克风。
-- 安装功能的 Chrome 页增加「本机模型」，用 Chrome 打开 chrome://on-device-internals。
+- 帮助 → 安装功能增加「单个组件安装」。可以单独安装或删除一个组件，例如 FFmpeg，不会带上该功能里的其它组件。
+- 安装功能的 Chrome 页：「本机模型」用 Chrome 打开 chrome://on-device-internals。Chrome 模型是单独页面，在这里用 Chrome 打开，不再放在网页工具里。页面列出翻译模型和离线语音包，可按语言筛选，已安装为绿色，未安装为红色。语音包在正在显示该页的 Chrome 里查询。安装过程中显示下载进度。
 - 性能监控是半透明无边框小窗，显示 CPU、GPU、内存、网络和磁盘，能读到时也显示温度和功率。右键可开关每一项。
-- 网页工具可以查看、安装和卸载隐藏 Chrome 的翻译模型与离线语音包。
 - 文件菜单增加重启，退出后重新打开程序。
 - Windows OCR 增加中英混合：中文和英文各识别一次，汉字留中文结果，英文留英文结果。
 
 #### 变更
 
-- 字符画预览可以用滑块调整字号（6～36）。
-- 安装 Chrome 翻译包和语音包时，下载过程中显示进度。
-- 字符画默认列数为 250，预览字号为 6。
-- 语音合成增加「检测路径」，从常见安装位置填入 chrome.exe。
-- chrome.exe 路径、检测路径和空闲秒改到参数设置 → 常规。
-- Chrome 朗读和翻译共用一个隐藏进程。请求在这个窗口里排队，朗读页保持在前台。
-- Chrome 窗口不再出现在任务栏。内存占用列出这个 Chrome 进程，可以手动关闭。
-- 隐藏的 Chrome 进程使用参数设置里的 HTTP 代理。回环、内网、.cn 和国内镜像仍然直连。代理改了会重新打开这个进程。
-- 性能小窗改为双列石板样式，标题旁的图钉可固定到前面。
-- Chrome 语音先直接朗读。发不出声才安装离线语音包，装完再读一次。HTTP 接口同样如此。
-- web 工具页改由脚本生成页面，tools.html 只保留样式和脚本引用。
-- Chrome 翻译下载模型时显示正在下载，有百分比时一并显示。
+- 字符画默认列数为 250，预览字号为 6。预览字号可用滑块在 6～36 之间调整。不勾选反色时，越暗的地方字符越密。线条模式在阈值为 0 时保留很淡的边缘，格子交界上的线也会画出来。
+- chrome.exe 路径、检测路径和空闲秒改到参数设置 → 常规。检测路径从常见安装位置填入 chrome.exe。
+- Chrome 朗读和翻译共用一个隐藏进程。请求在这个窗口里排队，朗读页保持在前台。窗口不出现在任务栏。内存占用列出这个进程，可以手动关闭。它使用参数设置里的 HTTP 代理。回环、内网、.cn 和国内镜像仍然直连。代理改了会重新打开这个进程。
+- Chrome 语音先直接朗读。发不出声才安装该语言的离线语音包，进度窗可以中止，装完再读一次。不再改用别的语音。仍然发不出声时，桌面弹出错误，HTTP 接口返回错误。Chrome 翻译缺少语言模型时，在这个已经打开的窗口里下载，显示正在下载，有百分比时一并显示，然后再翻译。
+- 性能小窗改为双列石板样式，标题旁的图钉可固定到前面。采样在窗口线程进行，CPU、内存、网络和磁盘不用管理员也会出数。CPU 温度从温度区域计数器读取，查温度不再挡住其它读数。参数设置里可把更新间隔调成 0.2 到 5 秒。
+- 网页工具页改由脚本生成，tools.html 只保留样式和脚本引用。脚本在页面生成之后再执行，工具主页会画出卡片和各个面板。
 - 词典热键在没有搜索内容时不打开 SQLite 词典库。
-- Chrome 模型改为单独页面，在安装功能里用 Chrome 打开，不再放在网页工具里
-- Chrome 模型页在正在显示它的 Chrome 里查询语音包，不再另开隐藏的 Chrome
 
 #### 修复
 
-- 线条模式在阈值为 0 时会保留很淡的边缘，格子交界上的线也会画出来。
-- 字符画不勾选反色时，越暗的地方字符越密。
-- Chrome 语音发不出声时不再改用别的语音。桌面弹出错误，HTTP 接口返回错误。不再安装旧的离线语音包。
-- 性能小窗恢复刷新。查温度不再挡住其它读数。参数设置里可把更新间隔调成 0.2 到 5 秒。
-- 性能小窗改在窗口线程里采样，CPU、内存、网络和磁盘不用管理员也会出数。
 - Edge 在线语音改用现在的 Sec-MS-GEC v2 令牌。旧令牌在合成时会被拒绝并返回 403。
-- 性能小窗改从温度区域计数器读取 CPU 温度，数值会再显示出来。
-- Chrome 翻译在语言包还没下载时会自动下载，不用在页面里点击，然后再翻译。
 - Windows OCR 在中文或英文下，按画面词距把粘在一起的英文补回空格。
-- 工具脚本在页面生成之后再执行，工具主页会画出卡片和各个面板。
-- Chrome 翻译缺少语言模型时，在已经打开的朗读页里下载，不再关掉 Chrome 后重开
-- Chrome 模型页列出语音语言，可按语言筛选，已安装为绿色，未安装为红色
 
 #### 文档
 
