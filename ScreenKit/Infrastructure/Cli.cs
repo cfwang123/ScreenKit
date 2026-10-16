@@ -4771,6 +4771,15 @@ static class Cli {
 				Err("FAIL: /api/qrscan 未读出 hello");
 				return 1;
 			}
+			var codeUrl = $"http://127.0.0.1:{port}/api/qrcode";
+			var codeBody = new StringContent($"{{\"base64\":\"{png}\"}}", Encoding.UTF8, "application/json");
+			var codeJson = Task.Run(() => new HttpClient().PostAsync(codeUrl, codeBody).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
+			Out("qrcode " + codeJson);
+			if (codeJson == null || codeJson.IndexOf("\"format\":\"QRCode\"", StringComparison.Ordinal) < 0
+				|| codeJson.IndexOf("hello", StringComparison.Ordinal) < 0) {
+				Err("FAIL: /api/qrcode 未返回 format=QRCode");
+				return 1;
+			}
 			var stamp = SendFileWebPages.BootStamp;
 			if (string.IsNullOrEmpty(stamp)
 				|| home.IndexOf("/sk/tools.js?" + stamp, StringComparison.Ordinal) < 0

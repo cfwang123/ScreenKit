@@ -25,7 +25,7 @@ http_lan = true
 http_port = 1224
 ```
 
-各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`http_rtsp = false` 时 `WebSocket /rtsp` 不接收，也不升级连接。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/usb`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
+各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`http_rtsp = false` 时 `WebSocket /rtsp` 不接收，也不升级连接。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/usb`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr` 和 Umi-OCR 兼容的 `/api/qrcode`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
 
 | 项 | 说明 |
 |----|------|
@@ -118,7 +118,7 @@ http_port = 1224
 | GET | `/api/ocr/models` | 识别引擎和模型（与主窗口相同） |
 | GET | `/api/ocr/get_options` | OCR 可选项描述 |
 | POST | `/api/ocr` | 图片 OCR |
-| POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR） |
+| POST | `/api/qr` · `/api/qrcode` · `/api/barcode` · `/api/barcodes` | 仅条码/二维码（不跑 OCR）。`/api/qrcode` 与 Umi-OCR 相同 |
 | GET | `/api/asr/models` | 列出 ASR 模型 |
 | POST | `/api/asr` | 语音识别 |
 | GET | `/api/tts/engines` | 只列出 TTS 引擎 |
@@ -471,7 +471,7 @@ ScreenKit --jpyomi "東京" --mono
 
 **识别** `POST /api/qrscan`
 
-图片用 `base64`、`path` 或 multipart，和 `POST /api/qr` 相同。`format` 为 `dict`（默认，带坐标）或 `text`。没有码时 `code` 为 101。
+图片用 `base64`、`path` 或 multipart，和 `POST /api/qr` 相同。请求里的 `format` 为 `dict`（默认，带坐标）或 `text`。每条结果另有字段 `format`（二维码为 `QRCode`）。没有码时 `code` 为 101。
 
 ---
 
@@ -1205,7 +1205,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ## 12. 条码 / 二维码
 
-只扫条码，**不跑 OCR**。与结果区 **条码** Tab 同一套 ZXingCpp 流程（QR、Aztec、Data Matrix、PDF417、EAN-8/13、UPC-A/E、Code 39/93/128、Codabar、ITF，外加轻量 OpenCV QR 补充）。`ZXing.dll` 不在发布包里，用 **帮助 → 安装功能** 下载。没有这个文件时返回代码 950。别名：`POST /api/barcode`、`POST /api/barcodes`（同一处理）。OCR 顺带扫码仍用 `POST /api/ocr` 的 `options.ocr.barcode`。
+只扫条码，**不跑 OCR**。与结果区 **条码** Tab 同一套 ZXingCpp 流程（QR、Aztec、Data Matrix、PDF417、EAN-8/13、UPC-A/E、Code 39/93/128、Codabar、ITF，外加轻量 OpenCV QR 补充）。`ZXing.dll` 不在发布包里，用 **帮助 → 安装功能** 下载。没有这个文件时返回代码 950。别名：`POST /api/qrcode`（Umi-OCR 的二维码地址）、`POST /api/barcode`、`POST /api/barcodes`（同一处理）。请求体仍是 `base64` 或 `path`。每条结果同时有 `type` 和 `format`，二维码的值是 `QRCode`。OCR 顺带扫码仍用 `POST /api/ocr` 的 `options.ocr.barcode`。
 
 ### 12.1 POST `/api/qr`
 
@@ -1236,6 +1236,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
   "data": [
     {
       "type": "QRCode",
+      "format": "QRCode",
       "text": "https://example.com",
       "box": [[12.0, 40.0], [180.0, 40.0], [180.0, 210.0], [12.0, 210.0]]
     }
@@ -1246,7 +1247,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 }
 ```
 
-`type` / `text` / `box` 与 `POST /api/ocr` 的 `barcodes[]` 一致。
+`type` / `format` / `text` / `box` 与 `POST /api/ocr` 的 `barcodes[]` 一致。Umi-OCR 客户端读 `data[].format` 和 `data[].text`。
 
 **成功（`format=text`）：** `data` 为 `[QRCode] https://example.com` 这种多行文本。
 

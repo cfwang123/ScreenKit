@@ -192,7 +192,7 @@ Barcode, ONNX text recognition, offline speech, face, local Chinese–English tr
 
 Windows 10/11 (x64). It needs [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
 
-The local HTTP port defaults to 1224. After **Allow LAN access** is checked, the same LAN can connect. Otherwise it is open only on this PC. File transfer, the web tools, and screencast share this port. The command line can recognize images in a batch, list models, or run a few checks.
+The local HTTP port defaults to 1224. After **Allow LAN access** is checked, the same LAN can connect. Otherwise it is open only on this PC. File transfer, the web tools, and screencast share this port. `POST /api/ocr` matches Umi-OCR text recognition. `POST /api/qrcode` matches Umi-OCR QR codes: each hit has `format` (`QRCode` for a QR code) and `text`. The command line can recognize images in a batch, list models, or run a few checks.
 
 ## License
 

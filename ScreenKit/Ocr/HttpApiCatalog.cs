@@ -94,7 +94,7 @@ static class HttpApiCatalog {
 		add(list, "GET /api/ocr/models", "GET", "/api/ocr/models", "", "http.doc.ocrmodels", "ocr");
 		add(list, "GET /api/ocr/get_options", "GET", "/api/ocr/get_options", "", "http.doc.ocropt", "ocr");
 		add(list, "POST /api/ocr", "POST", "/api/ocr", "{\n  \"base64\": \"\",\n  \"options\": {}\n}", "http.doc.ocr", "ocr");
-		add(list, "POST /api/qr", "POST", "/api/qr", "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}", "http.doc.qr", "ocr", aliases: "/api/barcode,/api/barcodes");
+		add(list, "POST /api/qr", "POST", "/api/qr", "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}", "http.doc.qr", "ocr", aliases: "/api/qrcode,/api/barcode,/api/barcodes");
 		add(list, "GET /api/asr/models", "GET", "/api/asr/models", "", "http.doc.asrmodels", "asr");
 		add(list, "POST /api/asr", "POST", "/api/asr", "{\n  \"path\": \"\",\n  \"lang\": \"auto\"\n}", "http.doc.asr", "asr");
 		add(list, "GET /api/tts/engines", "GET", "/api/tts/engines", "", "http.doc.ttsengines", "tts");

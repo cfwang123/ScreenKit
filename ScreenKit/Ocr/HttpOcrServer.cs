@@ -39,7 +39,7 @@ namespace ScreenKit;
 /// <item>GET /api/translate/langs · POST /api/translate · /api/translate/batch</item>
 /// <item>GET/POST /api/chrome/packs 隐藏 Chrome 的翻译模型和离线语音包</item>
 /// <item>POST /api/chat  LLM 对话（文本/语音入，可选 TTS）</item>
-/// <item>POST /api/qr · /api/barcode</item>
+/// <item>POST /api/qr · /api/qrcode · /api/barcode</item>
 /// <item>GET  /api/face/models · POST /api/face</item>
 /// </list>
 /// </summary>
@@ -198,7 +198,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
-			if (path is "/api/qr" or "/api/barcode" or "/api/barcodes") {
+			if (path is "/api/qr" or "/api/qrcode" or "/api/barcode" or "/api/barcodes") {
 				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "qr 仅支持 POST"));
@@ -1826,8 +1826,11 @@ sealed partial class HttpOcrServer : IDisposable {
 				foreach (var p in c.Box)
 					box.Add(new JsonArray { Math.Round(p.X, 1), Math.Round(p.Y, 1) });
 			}
+			var typ = string.IsNullOrEmpty(c.Type) ? "UNKNOWN" : c.Type;
 			arr.Add(new JsonObject {
-				["type"] = string.IsNullOrEmpty(c.Type) ? "UNKNOWN" : c.Type,
+				["type"] = typ,
+				// Umi-OCR /api/qrcode 读 format（二维码为 QRCode），本接口仍保留 type
+				["format"] = typ,
 				["text"] = c.Text ?? "",
 				["box"] = box,
 			});
@@ -2538,7 +2541,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			a.Add("GET  /api/ocr/models");
 			a.Add("GET  /api/ocr/get_options");
 			a.Add("POST /api/ocr   JSON{base64,options} 或 multipart");
-			a.Add("POST /api/qr    JSON{base64|path} 或 multipart 条码/二维码");
+			a.Add("POST /api/qr · /api/qrcode  JSON{base64|path} 或 multipart 条码/二维码");
 		}
 		if (o.HttpAsr && o.ModAsr) {
 			a.Add("GET  /api/asr/models");

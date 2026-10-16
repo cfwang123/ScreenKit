@@ -315,7 +315,7 @@ scripts\langtext.cmd -h
 - WebSocket `/cast` — 投屏媒体（与 HTTP API 同端口）
 - WebSocket `/chat` — 工具页聊天室。进入前填昵称和性别，浏览器记住上次的昵称和性别。同一台正在运行的 ScreenKit 上的人互相发文字、图片和文件。图片和文件写到程序目录 `tmp/chat-` 加编号（单个 8 MB），下次启动时删除。文字只留在内存里。每 5 秒一次心跳，失败就断开。可以指定发给某一个人，包括自己。私密消息只有双方能看到；发给自己时只有自己能看到。直传把文件经服务器交给对方，对方点接收后才开始下载
 - `POST /api/ocr` — `box` 为原图像素。`ocr.engine=winocr` 让这一次走 Windows 系统 OCR
-- `POST /api/qr` — 仅条码/二维码（`/api/barcode`）
+- `POST /api/qr` · `/api/qrcode` — 仅条码/二维码（`/api/barcode`）。`/api/qrcode` 与 Umi-OCR 相同，每项有 `format`
 - `GET  /api/ocr/get_options`
 - `GET  /api/asr/models` · `POST /api/asr`
 - `GET  /api/tts/engines` · `GET /api/tts/models?engine=` · `POST /api/tts` — Sherpa、SAPI、Windows（`engine=winrt`）、Edge（`engine=edge`）。桌面程序打开时，这就是语音合成页当前的列表，打开即返回。否则全量列表会缓存，`refresh=1` 重新扫描。`GET /api/tts/devices` 列出播放设备。`POST /api/tts/speak` 用同样的合成参数直接播放，`play=queue` 排队，`play=now` 立即打断，可指定一个或多个设备。不指定设备时用系统默认播放设备。`lang` 如 `zh-CN` 用来选该语言的发音人。

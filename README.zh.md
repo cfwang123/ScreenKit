@@ -192,7 +192,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
 
 Windows 10/11（x64），需要 [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)。
 
-本机 HTTP 默认端口 1224。勾选允许局域网访问后，同一局域网可连接；否则只对本机开放。文件传输、网页工具和投屏共用这个端口。命令行可批量识图、列出模型，或做几项自检。
+本机 HTTP 默认端口 1224。勾选允许局域网访问后，同一局域网可连接；否则只对本机开放。文件传输、网页工具和投屏共用这个端口。`POST /api/ocr` 与 Umi-OCR 的文字识别兼容。`POST /api/qrcode` 与 Umi-OCR 的二维码兼容，每条结果有 `format`（二维码为 `QRCode`）和 `text`。命令行可批量识图、列出模型，或做几项自检。
 
 ## 许可证
 

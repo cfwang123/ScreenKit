@@ -25,7 +25,7 @@ http_lan = true
 http_port = 1224
 ```
 
-Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `http_rtsp = false` refuses `WebSocket /rtsp` and does not upgrade the connection. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/ipcity`, `/api/mac`, `/api/usb`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr`. ASR also covers `/api/itn` and `/api/asr/models`.
+Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `http_rtsp = false` refuses `WebSocket /rtsp` and does not upgrade the connection. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/ipcity`, `/api/mac`, `/api/usb`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr` and the Umi-OCR compatible `/api/qrcode`. ASR also covers `/api/itn` and `/api/asr/models`.
 
 | Item | Description |
 |------|-------------|
@@ -117,7 +117,7 @@ Failures also return **HTTP 200**. Success or failure is only the JSON `code` an
 | GET | `/api/ocr/models` | OCR engines and models (same as the main window) |
 | GET | `/api/ocr/get_options` | OCR option descriptors |
 | POST | `/api/ocr` | Image OCR |
-| POST | `/api/qr` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR) |
+| POST | `/api/qr` · `/api/qrcode` · `/api/barcode` · `/api/barcodes` | Barcode / QR only (no OCR). `/api/qrcode` matches Umi-OCR |
 | GET | `/api/asr/models` | List ASR models |
 | POST | `/api/asr` | Speech recognition |
 | GET | `/api/tts/engines` | List TTS engines only |
@@ -450,7 +450,7 @@ Make or read a QR code or barcode. Not tied to a module switch. Making uses ZXin
 
 **Read** `POST /api/qrscan`
 
-Send the image as `base64`, `path`, or multipart, the same as `POST /api/qr`. `format` is `dict` (default, with boxes) or `text`. No code returns `code` 101.
+Send the image as `base64`, `path`, or multipart, the same as `POST /api/qr`. Request `format` is `dict` (default, with boxes) or `text`. Each hit also has a `format` field (`QRCode` for a QR code). No code returns `code` 101.
 
 ---
 
@@ -1075,7 +1075,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ## 12. QR / barcode
 
-Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the result-panel **Barcode** tab (QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, plus a light OpenCV QR fallback). `ZXing.dll` is not in the release archive. **Help → Install features** downloads it. A request without that file returns code 950. Aliases: `POST /api/barcode`, `POST /api/barcodes` (same handler). Combined OCR+barcode remains `POST /api/ocr` with `options.ocr.barcode`.
+Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the result-panel **Barcode** tab (QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, plus a light OpenCV QR fallback). `ZXing.dll` is not in the release archive. **Help → Install features** downloads it. A request without that file returns code 950. Aliases: `POST /api/qrcode` (Umi-OCR’s QR path), `POST /api/barcode`, `POST /api/barcodes` (same handler). The body is still `base64` or `path`. Each hit has both `type` and `format`; a QR code’s value is `QRCode`. Combined OCR+barcode remains `POST /api/ocr` with `options.ocr.barcode`.
 
 ### 12.1 POST `/api/qr`
 
@@ -1106,6 +1106,7 @@ Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the r
   "data": [
     {
       "type": "QRCode",
+      "format": "QRCode",
       "text": "https://example.com",
       "box": [[12.0, 40.0], [180.0, 40.0], [180.0, 210.0], [12.0, 210.0]]
     }
@@ -1116,7 +1117,7 @@ Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the r
 }
 ```
 
-`type` / `text` / `box` match the `barcodes[]` objects on `POST /api/ocr`.
+`type` / `format` / `text` / `box` match the `barcodes[]` objects on `POST /api/ocr`. Umi-OCR clients read `data[].format` and `data[].text`.
 
 **Success (`format=text`):** `data` is lines like `[QRCode] https://example.com`.
 

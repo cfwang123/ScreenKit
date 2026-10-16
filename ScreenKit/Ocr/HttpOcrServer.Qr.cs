@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
-/// <summary>HTTP 条码：POST /api/qr · /api/barcode · /api/barcodes。</summary>
+/// <summary>HTTP 条码：POST /api/qr · /api/qrcode · /api/barcode · /api/barcodes。</summary>
 sealed partial class HttpOcrServer {
 	void handleqr(SockCtx ctx) {
 		byte[] imageBytes;
