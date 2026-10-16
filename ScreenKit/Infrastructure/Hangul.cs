@@ -1,6 +1,6 @@
 namespace ScreenKit;
 
-/// <summary>Windows 韩语输入法的两套式（KS X 5002）。当前音节随按键改写，完成的音节留在前面。元音不合并成双元音。</summary>
+/// <summary>Windows 韩语输入法的两套式（KS X 5002）。每个键一个单音，w 是 ㅈ。当前音节随按键改写，完成的音节留在前面。元音不合并成双元音。</summary>
 sealed class Hangul {
 	string done = "";
 	int cho = -1;
@@ -102,7 +102,8 @@ sealed class Hangul {
 		return ((char)(0xAC00 + cho * 588 + jung * 28 + j)).ToString();
 	}
 
-	static char compatcons(int ci) => (char)(0x3131 + ci);
+	static readonly string lonecons = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+	static char compatcons(int ci) => lonecons[ci];
 	static char compatvowel(int ji) => (char)(0x314F + ji);
 
 	static int chotojong(int ci) {

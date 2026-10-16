@@ -4090,12 +4090,14 @@ static class Cli {
 			if (got == want) return null;
 			return keys + " -> " + got + " != " + want;
 		}
-		string err = one("gksrmf", "한글") ?? one("rksk", "가나") ?? one("r", "ㄱ") ?? one("R", "ㄲ") ?? one("hk", "ㅗㅏ") ?? one("rks\b", "가");
+		string err = one("gksrmf", "한글") ?? one("rksk", "가나") ?? one("r", "ㄱ") ?? one("R", "ㄲ")
+			?? one("w", "ㅈ") ?? one("W", "ㅉ") ?? one("q", "ㅂ") ?? one("e", "ㄷ") ?? one("d", "ㅇ")
+			?? one("qse", "ㅂㄴㄷ") ?? one("hk", "ㅗㅏ") ?? one("rks\b", "가");
 		if (err != null) {
 			Err("FAIL " + err);
 			return 1;
 		}
-		Out("한글 / 가나 / ㄱ / ㄲ / ㅗㅏ / 가");
+		Out("한글 / 가나 / ㄱ / ㄲ / ㅈ / ㅂㄴㄷ / ㅗㅏ / 가");
 		Out("OK");
 		return 0;
 	}
