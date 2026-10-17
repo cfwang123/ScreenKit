@@ -207,7 +207,7 @@ Windows 10/11（x64），需要 [.NET Framework 4.8](https://dotnet.microsoft.co
 - **NPinyin**：中文转拼音。随包没有许可证文件。
 - **SQLite**（`e_sqlite3.dll`）：打开词典库。公共领域。
 
-`dict2.db` 把汉语、日语、韩语、英语放在同一个文件里。ScreenKit 不生成这个文件，由安装功能下载。其中：
+`dict2.db` 把汉语、日语、韩语、英语放在同一个文件里。ScreenKit 不生成这个文件，由安装功能下载。打开时索引只留一份字节，包含匹配用双字倒排。其中：
 
 - **汉语。** 汉字、词语、成语来自 [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary)（拼音辞典）。许可为 MIT。上游说明里注明部分材料来源不明。
 - **日语。** 词汇释义来自 [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project)（EDRDG）。许可为 [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html)。再分发须保留 EDRDG 署名，并遵守其更新条款。

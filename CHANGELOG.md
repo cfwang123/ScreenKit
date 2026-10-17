@@ -35,7 +35,21 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
 
+### English
+
+#### Changed
+
+- Opening the dictionary keeps one copy of the index and uses a bigram index for contains-search. A cold load of dict2.db adds about 130MB of commit instead of about 530MB.
+
+### 中文
+
+#### 变更
+
+- 打开词典只保留一份索引字节，包含查询改走双字倒排。冷启动加载 dict2.db 的提交大约增加 130MB，不再是大约 530MB。
+
 ## v1.0.23.1 (2026-10-17)
+
+本版包含原计划的 v1.0.23 全部变更；对外仅发布 v1.0.23.1。/ This release includes all changes planned for v1.0.23; only v1.0.23.1 was published.
 
 ### English
 #### Added
