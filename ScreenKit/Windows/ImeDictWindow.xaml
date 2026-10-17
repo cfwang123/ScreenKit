@@ -55,10 +55,6 @@
 					                DisplayMemberBinding="{Binding Key}"/>
 					<GridViewColumn x:Name="colword" Width="220"
 					                DisplayMemberBinding="{Binding Text}"/>
-					<GridViewColumn x:Name="colpin" Width="64"
-					                DisplayMemberBinding="{Binding PinText}"/>
-					<GridViewColumn x:Name="colpick" Width="64"
-					                DisplayMemberBinding="{Binding Picks}"/>
 				</GridView>
 			</ListView.View>
 		</ListView>

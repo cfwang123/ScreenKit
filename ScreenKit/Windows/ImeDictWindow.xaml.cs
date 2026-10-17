@@ -8,8 +8,6 @@ public partial class ImeDictWindow : Window {
 	sealed class Item {
 		public string Key { get; set; }
 		public string Text { get; set; }
-		public string PinText { get; set; }
-		public int Picks { get; set; }
 		public ImeDictEntry Src { get; set; }
 	}
 
@@ -52,8 +50,6 @@ public partial class ImeDictWindow : Window {
 		efilter.ToolTip = Loc.T("ime.dict.filter.tip");
 		colkey.Header = Loc.T("ime.dict.col.key." + kind);
 		colword.Header = Loc.T("ime.dict.col.word");
-		colpin.Header = Loc.T("ime.dict.col.pin");
-		colpick.Header = Loc.T("ime.dict.col.pick");
 		colkey.Width = kind == "ko" ? 0 : 150;
 		ToolBtnUi.Set(bimport, ToolBtnUi.Browse, Loc.T("ime.dict.import"));
 		ToolBtnUi.Set(bexport, ToolBtnUi.Save, Loc.T("ime.dict.export"));
@@ -66,8 +62,15 @@ public partial class ImeDictWindow : Window {
 		if (!ImeLex.DbInstalled) lbstat.Text = Loc.T("hangul.needdb");
 	}
 
+	/// <summary>只列 dict/ 文本里那份自定义词库：打字时选用过的词只影响候选排序，不写进文本，这里也不列。</summary>
 	void reload() {
-		rows = ImeDict.List(kind);
+		int bad;
+		var set = new HashSet<string>();
+		foreach (var e in ImeDict.Read(kind, out bad)) set.Add((e.Key ?? "") + "\n" + e.Text);
+		rows = new List<ImeDictEntry>();
+		foreach (var e in ImeDict.List(kind)) {
+			if (set.Contains((e.Key ?? "") + "\n" + e.Text)) rows.Add(e);
+		}
 		paint();
 	}
 
@@ -76,11 +79,7 @@ public partial class ImeDictWindow : Window {
 		var view = new List<Item>();
 		foreach (var e in rows) {
 			if (q.Length > 0 && !hit(e, q)) continue;
-			view.Add(new Item {
-				Key = e.Key, Text = e.Text,
-				PinText = e.Pinned ? "●" : "",
-				Picks = e.Picks, Src = e
-			});
+			view.Add(new Item { Key = e.Key, Text = e.Text, Src = e });
 		}
 		lv.ItemsSource = view;
 		lbcount.Text = Loc.T("ime.dict.count", view.Count, rows.Count);
