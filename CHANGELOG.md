@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - File info media fields split duration (ms), resolution, codecs, and bit rates
 - LLM chat and the LLM log are hidden by default.
 - File info size shows KB/MB with exact byte count
+- Turning the input method off hides its tray icon.
 
 #### Fixed
 
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文件分析音视频拆分为毫秒时长、分辨率、编码与码率等字段
 - LLM对话和 LLM日志默认不显示。
 - 文件分析大小显示 KB/MB 并附带精确字节数
+- 输入法切到关闭后隐藏托盘图标。
 
 #### 修复
 

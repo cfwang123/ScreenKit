@@ -190,6 +190,11 @@ sealed class HangulIme : IDisposable {
 
 	void showtray() {
 		ensuretray();
+		if (eng.Off) {
+			ni.Visible = false;
+			if (mioff != null) mioff.Checked = true;
+			return;
+		}
 		var mark = eng.Badge;
 		if (!icons.TryGetValue(mark, out var ic)) {
 			ic = badge(mark, eng.Off || eng.Now == View.En);

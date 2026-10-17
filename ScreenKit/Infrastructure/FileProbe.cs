@@ -50,6 +50,7 @@ static class FileProbe {
 		add(rep, "probe.ext", ext.Length == 0 ? "" : "." + ext);
 		add(rep, "probe.magic", kind);
 		if (rep.Compared) add(rep, "probe.match", rep.Match ? "yes" : "no");
+		if (!pe(kind) && !pe(ext)) filesize(rep, path);
 		if (pe(kind) || pe(ext)) {
 			version(rep, path, rep.Kind);
 			peinfo(rep, path);
@@ -105,6 +106,14 @@ static class FileProbe {
 			log($"wav dur={val(w, "probe.media.dur")} codec={val(w, "probe.media.acodec")} {e5}");
 			if (val(w, "probe.media.dur") != "00:00:01.000" || val(w, "probe.media.acodec").Length == 0) {
 				err("WAV 时长或编码未解析");
+				return 1;
+			}
+			var bin = Path.Combine(dir, "s.bin");
+			File.WriteAllBytes(bin, new byte[1500]);
+			var sz = Look(bin, out var e6);
+			log($"size {val(sz, "probe.file.size")} {e6}");
+			if (val(sz, "probe.file.size") != "1 KB (1500 B)") {
+				err("文件大小格式不对");
 				return 1;
 			}
 		}
@@ -260,11 +269,22 @@ static class FileProbe {
 		catch { }
 	}
 
+	static void filesize(Report rep, string path) {
+		try {
+			var len = new FileInfo(path).Length;
+			add(rep, "probe.file.size", formatsize(len));
+		}
+		catch { }
+	}
+
 	static string formatsize(long n) {
+		if (n < 0) n = 0;
 		if (n < 1024) return $"{n} B";
-		if (n < 1024 * 1024) return $"{(n + 511) / 1024} KB";
-		if (n < 1024L * 1024 * 1024) return $"{n / (1024.0 * 1024):0.##} MB";
-		return $"{n / (1024.0 * 1024 * 1024):0.##} GB";
+		string human;
+		if (n < 1024 * 1024) human = $"{(n + 511) / 1024} KB";
+		else if (n < 1024L * 1024 * 1024) human = $"{n / (1024.0 * 1024):0.##} MB";
+		else human = $"{n / (1024.0 * 1024 * 1024):0.##} GB";
+		return $"{human} ({n} B)";
 	}
 
 	static void peinfo(Report rep, string path) {
