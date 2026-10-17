@@ -60,7 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
@@ -330,6 +330,8 @@ static class Cli {
 					return testimekey();
 				case "--ime-dict-import":
 					return imedictimport(Next(), Next());
+				case "--ime-db-clean":
+					return imedbclean(Next(), Next());
 				case "--test-vim-caret":
 					return testvimcaret();
 				case "--test-7za":
@@ -4410,16 +4412,19 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				foreach (var e in rows) if (e.Text == "한국어") hit = true;
 				if (!hit || rows.Count != 2) fail = "ko list " + rows.Count;
 			}
-			// 选用次数不被重导冲掉
+			// 选用次数记在 pick 表，重导词库文本不会冲掉
 			if (fail == null) {
 				ImeLex.TouchWubi("abqi", "七联锁");
+				ImeLex.TouchWubi("abqi", "七联锁");
+				int picks = 0;
+				foreach (var r in ImeLex.QueryWubi("abqi", false, true)) if (r.Raw == "七联锁") picks = r.Picks;
+				if (picks != 2) fail = "touch picks " + picks;
 				var path = ImeDict.FileOf("wubi");
-				File.AppendAllText(path, "", new UTF8Encoding(false));
 				File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(2));
 				ImeDict.Sync("wubi");
-				int picks = 0;
-				foreach (var e in ImeDict.List("wubi")) if (e.Text == "七联锁") picks = e.Picks;
-				if (picks != 2) fail = "picks " + picks;
+				picks = 0;
+				foreach (var r in ImeLex.QueryWubi("abqi", false, true)) if (r.Raw == "七联锁") picks = r.Picks;
+				if (picks != 2) fail = "picks after sync " + picks;
 			}
 			// 外部文件导入：并进词库文本，同时在库里
 			if (fail == null) {
@@ -4434,17 +4439,21 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				foreach (var e in ImeDict.List("wubi")) if (e.Text == "方波") hit = true;
 				if (!hit) fail = "import db";
 			}
-			// 用户词：编不进 GBK 的生僻字跟着开关走，置顶的一直出
+			// 自定义词库里的词一直出（哪怕生僻）；平时选用过的生僻词跟着开关，置顶后又一直出
 			if (fail == null) {
 				bool hit = false;
 				foreach (var r in ImeLex.QueryWubi("zzzz", false, false)) if (r.Raw == "鿍") hit = true;
-				if (hit) fail = "user rare shown";
+				if (!hit) fail = "custom rare hidden";
+				ImeLex.TouchWubi("zzzy", "鿍");
 				hit = false;
-				foreach (var r in ImeLex.QueryWubi("zzzz", false, true)) if (r.Raw == "鿍") hit = true;
-				if (!hit) fail = "user rare hidden on";
-				ImeLex.TogglePinWubi("zzzz", "鿍");
+				foreach (var r in ImeLex.QueryWubi("zzzy", false, false)) if (r.Raw == "鿍") hit = true;
+				if (hit) fail = "picked rare shown";
 				hit = false;
-				foreach (var r in ImeLex.QueryWubi("zzzz", false, false)) if (r.Raw == "鿍") hit = true;
+				foreach (var r in ImeLex.QueryWubi("zzzy", false, true)) if (r.Raw == "鿍") hit = true;
+				if (!hit) fail = "picked rare hidden on";
+				ImeLex.TogglePinWubi("zzzy", "鿍");
+				hit = false;
+				foreach (var r in ImeLex.QueryWubi("zzzy", false, false)) if (r.Raw == "鿍") hit = true;
 				if (!hit) fail = "pinned rare hidden";
 			}
 			// 导出再解析，条数和内容对得上
@@ -4639,8 +4648,81 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 	}
 
+	/// <summary>把一份 ime.db 清成能上传的样子：另存一份，删掉个人数据表（自定义词库、置顶、选用次数、
+	/// 老版本混在库里的 user_* 表）再压紧。默认源是程序旁 ime.db，产物是旁边的 ime.clean.db。</summary>
+	static int imedbclean(string src, string dst) {
+		Out("=== 清理 ime.db --ime-db-clean ===");
+		if (string.IsNullOrWhiteSpace(src)) src = ImeLex.PathOf;
+		src = Path.GetFullPath(src);
+		if (!File.Exists(src)) {
+			Err("FAIL: 没有 " + src);
+			return 1;
+		}
+		if (string.IsNullOrWhiteSpace(dst)) dst = Path.Combine(Path.GetDirectoryName(src) ?? ".", "ime.clean.db");
+		dst = Path.GetFullPath(dst);
+		if (!NativeRuntime.HasSqlite()) {
+			Err("FAIL: 缺少 e_sqlite3.dll");
+			return 1;
+		}
+		SQLitePCL.Batteries_V2.Init();
+		var personal = new[] { "user_wubi", "user_ja", "user_kr", "custom", "pin", "pick", "meta" };
+		try {
+			try { if (File.Exists(dst)) File.Delete(dst); } catch { }
+			using (var c = new Microsoft.Data.Sqlite.SqliteConnection(
+				new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
+					DataSource = src, Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadOnly, Pooling = false
+				}.ToString())) {
+				c.Open();
+				using var v = c.CreateCommand();
+				v.CommandText = "VACUUM INTO $p";
+				v.Parameters.AddWithValue("$p", dst);
+				v.ExecuteNonQuery();
+			}
+			int gone = 0;
+			using (var c = new Microsoft.Data.Sqlite.SqliteConnection(
+				new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
+					DataSource = dst, Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadWrite, Pooling = false
+				}.ToString())) {
+				c.Open();
+				foreach (var t in personal) {
+					long n;
+					try {
+						using var q = c.CreateCommand();
+						q.CommandText = "SELECT count(*) FROM " + t;
+						n = Convert.ToInt64(q.ExecuteScalar());
+					}
+					catch { continue; }     // 本来就没这张表
+					using (var d = c.CreateCommand()) {
+						d.CommandText = "DROP TABLE IF EXISTS " + t;
+						d.ExecuteNonQuery();
+					}
+					Out($"   删掉 {t}（{n} 行）");
+					gone++;
+				}
+				using (var z = c.CreateCommand()) {
+					z.CommandText = "VACUUM";
+					z.ExecuteNonQuery();
+				}
+				using (var l = c.CreateCommand()) {
+					l.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
+					using var r = l.ExecuteReader();
+					while (r.Read()) Out("   留下 " + r.GetString(0));
+				}
+			}
+			Out($"清掉 {gone} 张个人数据表，{new FileInfo(src).Length / 1048576.0:0.0} MB → {new FileInfo(dst).Length / 1048576.0:0.0} MB");
+			Out("产物：" + dst);
+			Out("OK");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			return 1;
+		}
+	}
+
 	/// <summary>把一份文本词库并进程序旁 dict/&lt;kind&gt;.txt，并同步进 ime.db。</summary>
-	static int imedictimport(string kind, string file) {		Out("=== 导入自定义词库 " + kind + " ===");
+	static int imedictimport(string kind, string file) {
+		Out("=== 导入自定义词库 " + kind + " ===");
 		if (!ImeDict.Known(kind)) {
 			Err("FAIL: 语言要 wubi / ja / ko");
 			return 1;

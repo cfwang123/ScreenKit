@@ -3,10 +3,10 @@ using System.Text;
 namespace ScreenKit;
 
 /// <summary>自定义词库：程序旁 dict/ 下的 wubi.txt、ja.txt、kr.txt。
-/// 文本是词库本体，输入法开启和打开词库窗口时按文件变化同步进 ime.db 的用户词表，
-/// 重装 ime.db 后由这些文件恢复。用户平时选用、置顶的词也留在同一批表里。</summary>
+/// 文本是词库本体，输入法开启和打开词库窗口时按文件变化同步进 ime_user.db 的自定义词表，
+/// 重装或换掉 ime.db 后由这些文件恢复。平时选用、置顶的记录另存在 pin / pick 表里。</summary>
 static class ImeDict {
-	/// <summary>三种语言的代码，也是 user_* 表的分类。</summary>
+	/// <summary>三种语言的代码，也是用户库里的 kind。</summary>
 	public static readonly string[] Kinds = { "wubi", "ja", "ko" };
 
 	static string root;
@@ -26,8 +26,8 @@ static class ImeDict {
 
 	static string title(string kind) => kind == "ja" ? "日语" : kind == "ko" ? "韩语" : "五笔";
 
-	/// <summary>ime.db 里该语言的用户词，导入的加平时攒的。</summary>
-	public static List<ImeDictEntry> List(string kind) => ImeLex.UserWords(kind);
+	/// <summary>该语言自定义词库里的词，就是 dict/ 文本同步进来的那份。</summary>
+	public static List<ImeDictEntry> List(string kind) => ImeLex.CustomWords(kind);
 
 	/// <summary>dict/&lt;kind&gt;.txt 里的词。bad 是认不出的行数。</summary>
 	public static List<ImeDictEntry> Read(string kind, out int bad) {
@@ -97,7 +97,7 @@ static class ImeDict {
 	/// <summary>删掉一条：先从库里删，再从词库里删，然后按词库重新灌一遍。</summary>
 	public static void Remove(string kind, ImeDictEntry e) {
 		if (!Known(kind) || e == null) return;
-		ImeLex.DeleteWord(kind, e);
+		ImeLex.DeleteCustom(kind, e);
 		var have = Read(kind, out _);
 		int n = have.RemoveAll(x => sig(x) == sig(e));
 		if (n > 0) {
@@ -117,7 +117,7 @@ static class ImeDict {
 	static int load(string kind, string stamp) {
 		int bad;
 		var rows = Read(kind, out bad);
-		int n = ImeLex.ImportWords(kind, rows);
+		int n = ImeLex.ReplaceCustom(kind, rows);
 		try { ImeLex.SaveMeta("dict:" + kind, stamp); } catch { }
 		return n;
 	}
@@ -138,7 +138,7 @@ static class ImeDict {
 		if (kind == "ja") sb.AppendLine("# 读音 + 词。读音写假名，写罗马字也行，导入时转成假名。");
 		else if (kind == "ko") sb.AppendLine("# 词。第二个字段可写词频，现在用不上，留空即可。");
 		else sb.AppendLine("# 编码 + 词。");
-		sb.AppendLine("# 输入法开启和打开词库窗口时，按文件变化同步进 ime.db 的用户词；重装 ime.db 后由本文件恢复。");
+		sb.AppendLine("# 输入法开启和打开词库窗口时，按文件变化同步进 ime_user.db 的自定义词表；重装或换掉 ime.db 后由本文件恢复。");
 	}
 
 	static string line(ImeDictEntry e) {

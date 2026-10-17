@@ -4,7 +4,7 @@
 	var ZU = ["千", "百", "十", ""];
 	var ZB = ["仟", "佰", "拾", ""];
 	var ZG = ["", "万", "亿", "万亿"];
-	// 小数逢十，中数逢万万，大数自乘。万在三套里都是 10^4。
+	// 小数逢十，中数逢万，大数自乘。万在三套里都是 10^4。
 	var BIGU = ["万", "亿", "兆", "京", "垓", "秭", "穰", "沟", "涧", "正", "载", "极", "恒河沙", "阿僧祇", "那由他", "不可思议", "无量大数"];
 	var FRACU = ["分", "厘", "毫", "丝", "忽", "微", "纤", "沙", "尘", "埃", "渺", "漠", "模糊", "逡巡", "须臾", "瞬息", "弹指", "刹那", "六德", "虚空", "清净", "阿赖耶", "阿摩罗", "涅槃寂静"];
 	var EN1 = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
@@ -92,7 +92,7 @@
 		live: false,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
-				+ '<p class="hint">小数逢十进，中数逢万万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -384,7 +384,7 @@
 		for (i = 0; i < BIGU.length; i++) {
 			exps.push(e);
 			if (mode === "small") e += 1;
-			else if (mode === "mid") e = i === 0 ? 8 : e + 8;
+			else if (mode === "mid") e += 4;
 			else e = i === 0 ? 8 : e * 2;
 		}
 		return exps;

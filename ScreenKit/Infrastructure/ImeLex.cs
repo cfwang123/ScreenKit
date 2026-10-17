@@ -8,15 +8,32 @@ sealed class ImeHit {
 	public string Comment = "";
 }
 
-/// <summary>程序旁的 ime.db。五笔、日语、韩语都从这份可安装词库取词。用户置顶和选用次数写在同一文件的 user_* 表。</summary>
+/// <summary>程序旁的 ime.db 是五笔、日语、韩语的词库本体（可安装、可上传）。
+/// 个人数据放同目录的 ime_user.db：custom（自定义词库）、pin（置顶）、pick（选用次数）三张表，
+/// 这样上传的 ime.db 里只有词库，不带自己的词和使用记录。</summary>
 static class ImeLex {
+	/// <summary>ime_user.db 里的三张表，外加记文件指纹的 meta。</summary>
+	const string usertables = @"
+CREATE TABLE IF NOT EXISTS custom (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (kind,key,text));
+CREATE TABLE IF NOT EXISTS pin (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (kind,key,text));
+CREATE TABLE IF NOT EXISTS pick (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, picks INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (kind,key,text));
+CREATE INDEX IF NOT EXISTS ix_custom_kind ON custom(kind,key);
+CREATE INDEX IF NOT EXISTS ix_pin_kind ON pin(kind,key);
+CREATE INDEX IF NOT EXISTS ix_pick_kind ON pick(kind,key);
+CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
+
 	static SqliteConnection conn;
 	static string opened = "";
+	static string usropened = "";
 	static bool batteries;
 	static bool writable;
+	static bool userwrite;
 	static Dictionary<char, List<string>> tradmap = new Dictionary<char, List<string>>();
 
 	public static string PathOf => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ime.db");
+
+	/// <summary>自定义词库、置顶、选用次数所在的库，跟 ime.db 同目录。</summary>
+	public static string UserPathOf => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ime_user.db");
 
 	/// <summary>帮助 → 安装功能 里的 ime.db 已完整安装。</summary>
 	public static bool DbInstalled =>
@@ -77,16 +94,17 @@ static class ImeLex {
 			var t = r.GetString(0);
 			map[t] = new Cand { Text = t, Raw = t, Rank = -r.GetInt32(1), Comment = Hanja(t) };
 		}, arg);
-		each("SELECT text,pinned,picks FROM user_kr WHERE " + where + " LIMIT 40", r => {
-			var t = r.GetString(0);
-			Cand c;
-			if (!map.TryGetValue(t, out c)) {
-				c = new Cand { Text = t, Raw = t, Comment = Hanja(t) };
-				map[t] = c;
+		userwords("ko", false, where, arg, true, c => {
+			Cand old;
+			if (!map.TryGetValue(c.Raw, out old)) {
+				c.Text = c.Raw;
+				c.Comment = Hanja(c.Raw);
+				map[c.Raw] = c;
+				return;
 			}
-			c.Pinned = r.GetInt32(1) != 0;
-			c.Picks = r.GetInt32(2);
-		}, arg);
+			if (c.Pinned) old.Pinned = true;
+			if (c.Picks > old.Picks) old.Picks = c.Picks;
+		});
 		var list = new List<Cand>(map.Values);
 		list.Sort((a, b) => {
 			int c = b.Pinned.CompareTo(a.Pinned);
@@ -100,22 +118,15 @@ static class ImeLex {
 	}
 
 	public static void TouchKr(string text) {
-		if (string.IsNullOrEmpty(text) || !writable) return;
-		var known = scalar("SELECT 1 FROM kr_word WHERE text=$t UNION SELECT 1 FROM user_kr WHERE text=$t", ("$t", text));
+		if (string.IsNullOrEmpty(text)) return;
+		var known = scalar(@"SELECT 1 FROM kr_word WHERE text=$t
+			UNION SELECT 1 FROM u.custom WHERE kind='ko' AND text=$t
+			UNION SELECT 1 FROM u.pick WHERE kind='ko' AND text=$t", ("$t", text));
 		if (known == null || known is DBNull) return;
-		cmd(@"INSERT INTO user_kr(text,pinned,picks) VALUES($t,0,1)
-			ON CONFLICT(text) DO UPDATE SET picks=picks+1", ("$t", text));
+		touch("ko", "", text);
 	}
 
-	public static void TogglePinKr(string text) {
-		if (string.IsNullOrEmpty(text) || !writable) return;
-		var o = scalar("SELECT pinned FROM user_kr WHERE text=$t", ("$t", text));
-		if (o == null || o is DBNull)
-			cmd("INSERT INTO user_kr(text,pinned,picks) VALUES($t,1,0)", ("$t", text));
-		else
-			cmd("UPDATE user_kr SET pinned=$p WHERE text=$t",
-				("$p", Convert.ToInt32(o) == 0 ? 1 : 0), ("$t", text));
-	}
+	public static void TogglePinKr(string text) => pin("ko", "", text);
 
 	/// <summary>五笔候选。rare 关掉时不要生僻字：词库没词频的行（rank 0 或 1000000 起）、
 	/// 编不进 GBK 的字、以及 GB2312 七千字表外的罕用字（判据见 <see cref="ImeRare"/>）。</summary>
@@ -140,18 +151,30 @@ static class ImeLex {
 				put(new Cand { Code = code, Raw = text, Rank = rank });
 			},
 			("$p", prefix));
-		each(@"SELECT code,text,pinned,picks FROM user_wubi WHERE code LIKE $p || '%'
-			ORDER BY length(code), picks DESC LIMIT 400", r => {
-			var text = r.GetString(1);
-			var pinned = r.GetInt32(2) != 0;
-			// 自己置顶的词一直出；只是选用过的生僻词跟着开关走
-			if (!rare && !pinned && ImeRare.Is(text, null)) return;
-			put(new Cand {
-				Code = r.GetString(0), Raw = text,
-				Pinned = pinned, Picks = r.GetInt32(3), Rank = 500
-			});
-		}, ("$p", prefix));
+		userwords("wubi", true, "key LIKE $p || '%'", new[] { ("$p", (object)prefix) }, rare, put);
 		return Rank.Finish(new List<Cand>(map.Values), prefix, trad, alts);
+	}
+
+	/// <summary>把 ime_user.db 三张表里某个 kind 的词并进候选：自定义词（放进词库的）和置顶的一直出，
+	/// 只有平时选用过的生僻词跟着开关走。</summary>
+	static void userwords(string kind, bool keyed, string where, (string n, object v)[] args, bool rare, Action<Cand> put) {
+		if (!userok()) return;
+		var extra = string.IsNullOrEmpty(where) ? "" : " AND " + where;
+		var key = new List<(string n, object v)> { ("$k", kind) };
+		if (args != null) key.AddRange(args);
+		var all = key.ToArray();
+		Cand one(SqliteDataReader r, bool pin, int picks) => new Cand {
+			Code = keyed ? r.GetString(0) : null,
+			Raw = r.GetString(1),
+			Pinned = pin, Picks = picks, Rank = 500
+		};
+		each("SELECT key,text FROM u.custom WHERE kind=$k" + extra, r => put(one(r, false, 1)), all);
+		each("SELECT key,text FROM u.pin WHERE kind=$k" + extra, r => put(one(r, true, 0)), all);
+		each("SELECT key,text,picks FROM u.pick WHERE kind=$k" + extra, r => {
+			var text = r.GetString(1);
+			if (!rare && ImeRare.Is(text, null)) return;
+			put(one(r, false, r.GetInt32(2)));
+		}, all);
 	}
 
 	/// <summary>启用输入法时先把三种查询各跑一遍：第一次查五笔要把整表扫进缓存，留在打字时会拖慢键盘钩子。</summary>
@@ -207,20 +230,29 @@ static class ImeLex {
 	}
 
 	public static void TouchWubi(string code, string text) {
-		if (!writable || string.IsNullOrEmpty(code) || string.IsNullOrEmpty(text)) return;
-		cmd(@"INSERT INTO user_wubi(code,text,pinned,picks) VALUES($c,$t,0,1)
-			ON CONFLICT(code,text) DO UPDATE SET picks=picks+1",
-			("$c", code), ("$t", text));
+		if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(text)) return;
+		touch("wubi", code, text);
 	}
 
-	public static void TogglePinWubi(string code, string text) {
-		if (!writable || string.IsNullOrEmpty(code) || string.IsNullOrEmpty(text)) return;
-		var o = scalar("SELECT pinned FROM user_wubi WHERE code=$c AND text=$t", ("$c", code), ("$t", text));
+	public static void TogglePinWubi(string code, string text) => pin("wubi", code, text);
+
+	/// <summary>选用次数记一笔。</summary>
+	static void touch(string kind, string key, string text) {
+		if (!userok() || string.IsNullOrEmpty(text)) return;
+		cmd(@"INSERT INTO u.pick(kind,key,text,picks) VALUES($k,$c,$t,1)
+			ON CONFLICT(kind,key,text) DO UPDATE SET picks=picks+1",
+			("$k", kind), ("$c", key ?? ""), ("$t", text));
+	}
+
+	/// <summary>置顶表里有这条就是置顶，再点一次取消。</summary>
+	static void pin(string kind, string key, string text) {
+		if (!userok() || string.IsNullOrEmpty(text)) return;
+		var o = scalar("SELECT 1 FROM u.pin WHERE kind=$k AND key=$c AND text=$t",
+			("$k", kind), ("$c", key ?? ""), ("$t", text));
 		if (o == null || o is DBNull)
-			cmd("INSERT INTO user_wubi(code,text,pinned,picks) VALUES($c,$t,1,0)", ("$c", code), ("$t", text));
+			cmd("INSERT INTO u.pin(kind,key,text) VALUES($k,$c,$t)", ("$k", kind), ("$c", key ?? ""), ("$t", text));
 		else
-			cmd("UPDATE user_wubi SET pinned=$p WHERE code=$c AND text=$t",
-				("$p", Convert.ToInt32(o) == 0 ? 1 : 0), ("$c", code), ("$t", text));
+			cmd("DELETE FROM u.pin WHERE kind=$k AND key=$c AND text=$t", ("$k", kind), ("$c", key ?? ""), ("$t", text));
 	}
 
 	public static string FullCode(char ch) {
@@ -245,128 +277,121 @@ static class ImeLex {
 			each("SELECT reading,text,rank FROM ja_word WHERE reading IN (" + inn + ")", r => {
 				rows.Add(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) });
 			}, args);
-			each("SELECT reading,text,pinned,picks FROM user_ja WHERE reading IN (" + inn + ")", r => {
-				rows.Add(new Cand {
-					Code = r.GetString(0), Raw = r.GetString(1),
-					Pinned = r.GetInt32(2) != 0, Picks = r.GetInt32(3), Rank = 1
-				});
-			}, args);
+			userwords("ja", true, "key IN (" + inn + ")", args, true, c => rows.Add(c));
 		}
 		return JaCand.Build(reading, rows);
 	}
 
 	public static void TouchJa(string reading, string text) {
-		if (!writable || string.IsNullOrEmpty(reading) || string.IsNullOrEmpty(text)) return;
-		cmd(@"INSERT INTO user_ja(reading,text,pinned,picks) VALUES($r,$t,0,1)
-			ON CONFLICT(reading,text) DO UPDATE SET picks=picks+1",
-			("$r", reading), ("$t", text));
+		if (string.IsNullOrEmpty(reading) || string.IsNullOrEmpty(text)) return;
+		touch("ja", reading, text);
 	}
 
-	public static void TogglePinJa(string reading, string text) {
-		if (!writable || string.IsNullOrEmpty(reading) || string.IsNullOrEmpty(text)) return;
-		var o = scalar("SELECT pinned FROM user_ja WHERE reading=$r AND text=$t", ("$r", reading), ("$t", text));
-		if (o == null || o is DBNull)
-			cmd("INSERT INTO user_ja(reading,text,pinned,picks) VALUES($r,$t,1,0)", ("$r", reading), ("$t", text));
-		else
-			cmd("UPDATE user_ja SET pinned=$p WHERE reading=$r AND text=$t",
-				("$p", Convert.ToInt32(o) == 0 ? 1 : 0), ("$r", reading), ("$t", text));
-	}
+	public static void TogglePinJa(string reading, string text) => pin("ja", reading, text);
 
-	// ───────── 自定义词库：导入 / 导出 / 删除 ─────────
+	// ───────── 自定义词库：同步 / 导入 / 删除 ─────────
 
-	/// <summary>该语言的全部用户词（导入的，加上平时选用和置顶攒的）。</summary>
-	public static List<ImeDictEntry> UserWords(string kind) {
+	/// <summary>该语言自定义词库里的词，就是 dict/ 文本同步进来的那份。</summary>
+	public static List<ImeDictEntry> CustomWords(string kind) {
 		var list = new List<ImeDictEntry>();
-		if (string.IsNullOrEmpty(kind) || !ready()) return list;
-		if (kind == "ko") {
-			each("SELECT text,pinned,picks FROM user_kr ORDER BY pinned DESC, picks DESC, text",
-				r => list.Add(new ImeDictEntry {
-					Text = r.GetString(0), Pinned = r.GetInt32(1) != 0, Picks = r.GetInt32(2)
-				}));
-			return list;
-		}
-		var col = kind == "ja" ? "reading" : "code";
-		var table = kind == "ja" ? "user_ja" : "user_wubi";
-		each($"SELECT {col},text,pinned,picks FROM {table} ORDER BY pinned DESC, picks DESC, {col}",
-			r => list.Add(new ImeDictEntry {
-				Key = r.GetString(0), Text = r.GetString(1),
-				Pinned = r.GetInt32(2) != 0, Picks = r.GetInt32(3)
-			}));
+		if (string.IsNullOrEmpty(kind) || !userok()) return list;
+		each("SELECT key,text FROM u.custom WHERE kind=$k ORDER BY key, text",
+			r => list.Add(new ImeDictEntry { Key = r.GetString(0), Text = r.GetString(1) }),
+			("$k", kind));
 		return list;
 	}
 
-	/// <summary>批量写入用户词。已有的只把选用次数抬到至少 1，不动置顶和次数。返回写入条数。</summary>
-	public static int ImportWords(string kind, IList<ImeDictEntry> rows) {
-		if (conn == null || !writable || rows == null || rows.Count == 0) return 0;
-		var sql = importsql(kind);
-		if (sql == null) return 0;
+	/// <summary>按 kind 整份换成给定词条（文本改了以后同步）。返回写入条数，0 也可能是空词库。</summary>
+	public static int ReplaceCustom(string kind, IList<ImeDictEntry> rows) {
+		if (string.IsNullOrEmpty(kind) || !userok()) return 0;
 		int n = 0;
 		try {
 			using var tx = conn.BeginTransaction();
-			using var c = conn.CreateCommand();
-			c.Transaction = tx;
-			c.CommandText = sql;
-			var pk = kind == "ko" ? null : c.Parameters.AddWithValue("$k", "");
-			var pt = c.Parameters.AddWithValue("$t", "");
-			foreach (var e in rows) {
-				if (e == null || string.IsNullOrEmpty(e.Text)) continue;
-				if (kind != "ko" && string.IsNullOrEmpty(e.Key)) continue;
-				if (pk != null) pk.Value = e.Key;
-				pt.Value = e.Text;
-				c.ExecuteNonQuery();
-				n++;
+			using (var d = conn.CreateCommand()) {
+				d.Transaction = tx;
+				d.CommandText = "DELETE FROM u.custom WHERE kind=$k";
+				d.Parameters.AddWithValue("$k", kind);
+				d.ExecuteNonQuery();
 			}
+			n = insertcustom(tx, kind, rows);
 			tx.Commit();
 		}
-		catch { }
+		catch { return 0; }
 		return n;
 	}
 
-	public static int DeleteWord(string kind, ImeDictEntry e) {
-		if (conn == null || !writable || e == null || string.IsNullOrEmpty(e.Text)) return 0;
-		if (kind == "ko") return exec1("DELETE FROM user_kr WHERE text=$t", ("$t", e.Text));
-		if (kind == "ja") return exec1("DELETE FROM user_ja WHERE reading=$k AND text=$t",
-			("$k", e.Key), ("$t", e.Text));
-		if (kind == "wubi") return exec1("DELETE FROM user_wubi WHERE code=$k AND text=$t",
-			("$k", e.Key), ("$t", e.Text));
-		return 0;
+	/// <summary>并入若干条自定义词，已有的跳过。返回新并入条数。</summary>
+	public static int AddCustom(string kind, IList<ImeDictEntry> rows) {
+		if (string.IsNullOrEmpty(kind) || !userok() || rows == null || rows.Count == 0) return 0;
+		int n = 0;
+		try {
+			using var tx = conn.BeginTransaction();
+			n = insertcustom(tx, kind, rows);
+			tx.Commit();
+		}
+		catch { return 0; }
+		return n;
 	}
 
+	static int insertcustom(SqliteTransaction tx, string kind, IList<ImeDictEntry> rows) {
+		if (rows == null || rows.Count == 0) return 0;
+		int n = 0;
+		using var c = conn.CreateCommand();
+		c.Transaction = tx;
+		c.CommandText = "INSERT OR IGNORE INTO u.custom(kind,key,text) VALUES($k,$c,$t)";
+		c.Parameters.AddWithValue("$k", kind);
+		var pc = c.Parameters.AddWithValue("$c", "");
+		var pt = c.Parameters.AddWithValue("$t", "");
+		foreach (var e in rows) {
+			if (e == null || string.IsNullOrEmpty(e.Text)) continue;
+			if (kind != "ko" && string.IsNullOrEmpty(e.Key)) continue;
+			pc.Value = e.Key ?? "";
+			pt.Value = e.Text;
+			n += c.ExecuteNonQuery();
+		}
+		return n;
+	}
+
+	public static int DeleteCustom(string kind, ImeDictEntry e) {
+		if (e == null || string.IsNullOrEmpty(e.Text)) return 0;
+		return exec1("DELETE FROM u.custom WHERE kind=$k AND key=$c AND text=$t",
+			("$k", kind), ("$c", e.Key ?? ""), ("$t", e.Text));
+	}
+
+	/// <summary>清空该语言的自定义词、置顶和选用记录。</summary>
 	public static int ClearWords(string kind) {
-		if (conn == null || !writable) return 0;
-		if (kind == "ko") return exec1("DELETE FROM user_kr");
-		if (kind == "ja") return exec1("DELETE FROM user_ja");
-		if (kind == "wubi") return exec1("DELETE FROM user_wubi");
-		return 0;
+		if (string.IsNullOrEmpty(kind) || !userok()) return 0;
+		int n = 0;
+		try {
+			using var tx = conn.BeginTransaction();
+			foreach (var t in new[] { "custom", "pin", "pick" }) {
+				using var c = conn.CreateCommand();
+				c.Transaction = tx;
+				c.CommandText = "DELETE FROM u." + t + " WHERE kind=$k";
+				c.Parameters.AddWithValue("$k", kind);
+				n += c.ExecuteNonQuery();
+			}
+			tx.Commit();
+		}
+		catch { return 0; }
+		return n;
 	}
 
-	/// <summary>ime.db 里的一份记录，给自定义词库记文件指纹用。</summary>
+	/// <summary>用户库里的一份记录，给自定义词库记文件指纹用。</summary>
 	public static string Meta(string key) {
 		if (conn == null) return "";
-		var o = scalar("SELECT v FROM meta WHERE k=$k", ("$k", key));
+		var o = scalar("SELECT v FROM u.meta WHERE k=$k", ("$k", key));
 		return o == null || o is DBNull ? "" : o.ToString();
 	}
 
 	public static void SaveMeta(string key, string value) {
-		cmd("INSERT INTO meta(k,v) VALUES($k,$v) ON CONFLICT(k) DO UPDATE SET v=$v",
+		if (!userok()) return;
+		cmd("INSERT INTO u.meta(k,v) VALUES($k,$v) ON CONFLICT(k) DO UPDATE SET v=$v",
 			("$k", key), ("$v", value ?? ""));
 	}
 
-	static string importsql(string kind) {
-		if (kind == "wubi")
-			return @"INSERT INTO user_wubi(code,text,pinned,picks) VALUES($k,$t,0,1)
-				ON CONFLICT(code,text) DO UPDATE SET picks=MAX(picks,1)";
-		if (kind == "ja")
-			return @"INSERT INTO user_ja(reading,text,pinned,picks) VALUES($k,$t,0,1)
-				ON CONFLICT(reading,text) DO UPDATE SET picks=MAX(picks,1)";
-		if (kind == "ko")
-			return @"INSERT INTO user_kr(text,pinned,picks) VALUES($t,0,1)
-				ON CONFLICT(text) DO UPDATE SET picks=MAX(picks,1)";
-		return null;
-	}
-
 	static int exec1(string sql, params (string n, object v)[] args) {
-		if (conn == null || !writable) return 0;
+		if (!userok()) return 0;
 		try {
 			using var c = conn.CreateCommand();
 			c.CommandText = sql;
@@ -384,6 +409,12 @@ static class ImeLex {
 	static bool ready() {
 		try { return ensure(string.IsNullOrEmpty(opened) ? PathOf : opened); }
 		catch { return false; }
+	}
+
+	/// <summary>用户库（自定义词 / 置顶 / 选用）能不能用。</summary>
+	static bool userok() {
+		if (!ready() || !userwrite) return false;
+		return true;
 	}
 
 	static bool ensure(string path) {
@@ -423,8 +454,8 @@ static class ImeLex {
 		}
 		conn = c;
 		opened = path;
-		if (writable) ensureuser();
-		else {
+		attachuser(c, path);
+		if (!writable) {
 			try {
 				using var q = conn.CreateCommand();
 				q.CommandText = "PRAGMA query_only = ON;";
@@ -436,19 +467,28 @@ static class ImeLex {
 		return true;
 	}
 
-	static void ensureuser() {
-		exec(@"CREATE TABLE IF NOT EXISTS user_wubi (
-			code TEXT NOT NULL, text TEXT NOT NULL,
-			pinned INTEGER NOT NULL DEFAULT 0, picks INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY (code, text))");
-		exec("CREATE INDEX IF NOT EXISTS ix_user_wubi_code ON user_wubi(code)");
-		exec(@"CREATE TABLE IF NOT EXISTS user_kr (
-			text TEXT PRIMARY KEY, pinned INTEGER NOT NULL DEFAULT 0, picks INTEGER NOT NULL DEFAULT 0)");
-		exec(@"CREATE TABLE IF NOT EXISTS user_ja (
-			reading TEXT NOT NULL, text TEXT NOT NULL,
-			pinned INTEGER NOT NULL DEFAULT 0, picks INTEGER NOT NULL DEFAULT 0,
-			PRIMARY KEY (reading, text))");
-		exec("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)");
+	/// <summary>把 ime_user.db 挂成 u：自定义词库、置顶、选用次数各一张表。挂不上就只当没有用户词。</summary>
+	static void attachuser(SqliteConnection c, string path) {
+		userwrite = false;
+		usropened = "";
+		try {
+			var dir = Path.GetDirectoryName(path);
+			if (string.IsNullOrEmpty(dir)) return;
+			var up = Path.Combine(dir, "ime_user.db");
+			using (var a = c.CreateCommand()) {
+				a.CommandText = "ATTACH DATABASE '" + up.Replace("'", "''") + "' AS u";
+				a.ExecuteNonQuery();
+			}
+			using (var t = c.CreateCommand()) {
+				t.CommandText = usertables;
+				t.ExecuteNonQuery();
+			}
+			usropened = up;
+			userwrite = true;
+		}
+		catch {
+			userwrite = false;
+		}
 	}
 
 	static void loadtrad() {
@@ -464,16 +504,6 @@ static class ImeLex {
 			}
 			list.Add(r.GetString(1));
 		});
-	}
-
-	static void exec(string sql) {
-		if (conn == null) return;
-		try {
-			using var c = conn.CreateCommand();
-			c.CommandText = sql;
-			c.ExecuteNonQuery();
-		}
-		catch { writable = false; }
 	}
 
 	static void cmd(string sql, params (string n, object v)[] args) {
@@ -514,7 +544,9 @@ static class ImeLex {
 		try { conn?.Dispose(); } catch { }
 		conn = null;
 		opened = "";
+		usropened = "";
 		writable = false;
+		userwrite = false;
 		tradmap = new Dictionary<char, List<string>>();
 	}
 }
