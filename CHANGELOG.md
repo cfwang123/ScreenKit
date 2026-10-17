@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - In gVim, normal mode forces English and insert or replace restores the last insert language; Esc returns to English immediately.
 - gVim insert/normal follows system IME open status (ImmGetOpenStatus) like Sogou, instead of polling Vim mode().
 - Restored gVim insert/normal sync via Vim mode() with a Settings toggle (ime_gvim_mode, default on).
+- The input method tray menu opens a dedicated input method settings window (language hotkeys and gVim mode). It no longer opens the main Settings window.
 
 #### Fixed
 
@@ -82,6 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Removed
 
 - Remove legacy hotkey_hangul (Ctrl+Alt+K) setting and global toggle
+- Removed the duplicate Close item from the input method tray menu. The Off entry in the language list still turns input off.
 
 #### Documentation
 
@@ -116,6 +118,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - gVim 下普通模式自动英文，插入/替换恢复上次插入的中英，Esc 立即回到英文。
 - gVim 中英切换改为跟随系统 IME 开关（ImmGetOpenStatus），与搜狗一致，不再轮询 mode()。
 - gVim 模式同步改回查询 Vim mode()，并在参数热键页增加开关（ime_gvim_mode，默认开）。
+- 输入法托盘菜单的「参数设置」改为打开单独的输入法设置窗口，只含输入法热键和 gVim 模式，不再打开主程序参数设置窗口。
 
 #### 修复
 
@@ -136,6 +139,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 移除
 
 - 删除旧的 hotkey_hangul（Ctrl+Alt+K）配置项与全局切换热键
+- 去掉输入法托盘菜单里重复的「关闭」项；语言列表里的「关闭」仍可关闭输入。
 
 #### 文档
 

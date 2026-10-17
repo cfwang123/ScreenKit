@@ -35,7 +35,6 @@ sealed class HangulIme : IDisposable {
 	Forms.ToolStripMenuItem miko;
 	Forms.ToolStripMenuItem mioff;
 	Forms.ToolStripMenuItem miset;
-	Forms.ToolStripMenuItem miclose;
 	IntPtr hook;
 	HookProc proc;
 	IntPtr watch;
@@ -270,15 +269,12 @@ sealed class HangulIme : IDisposable {
 		miko = new Forms.ToolStripMenuItem("", null, (_, _) => Enter("ko"));
 		mioff = new Forms.ToolStripMenuItem("", null, (_, _) => Pause());
 		miset = new Forms.ToolStripMenuItem();
-		miclose = new Forms.ToolStripMenuItem();
 		miset.Click += (_, _) => { try { Settings?.Invoke(); } catch { } };
-		miclose.Click += (_, _) => Set(false);
 		menu.Items.Add(miwubi);
 		menu.Items.Add(mija);
 		menu.Items.Add(miko);
 		menu.Items.Add(mioff);
 		menu.Items.Add(miset);
-		menu.Items.Add(miclose);
 		ni.MouseClick += (_, e) => {
 			if (e.Button == Forms.MouseButtons.Left) Next();
 		};
@@ -310,7 +306,6 @@ sealed class HangulIme : IDisposable {
 		if (miko != null) miko.Text = Loc.T("hangul.menu.ko");
 		if (mioff != null) mioff.Text = Loc.T("hangul.menu.off");
 		if (miset != null) miset.Text = Loc.T("hangul.menu.settings");
-		if (miclose != null) miclose.Text = Loc.T("hangul.menu.close");
 		if (ni != null && enabled) showtray();
 	}
 

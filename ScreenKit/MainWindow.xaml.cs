@@ -970,7 +970,7 @@ public partial class MainWindow : Window {
 					: "hangul.badge.ko";
 				setstatus(Loc.T(st));
 			};
-			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
+			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => openimesettings()));
 			hotkeyAuto = new GlobalHotkey(this, 0x700A);
 			hotkeyAuto.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
@@ -4301,6 +4301,31 @@ public partial class MainWindow : Window {
 		opt.HttpProxyAddr = string.IsNullOrWhiteSpace(addr) ? "127.0.0.1:7897" : addr.Trim();
 		opt.HttpProxyEnabled = opt.HttpProxyMode == "manual";
 		HttpProxy.ApplyFrom(opt);
+		try { AppConfig.Save(opt); } catch { }
+	}
+
+	/// <summary>输入法专用设置窗（输入法托盘菜单「参数设置」）：切换热键与 gVim 模式。
+	/// 主窗可能在托盘里，独立弹出。</summary>
+	void openimesettings() {
+		var dlg = new ImeSettingsWindow(opt);
+		attachdialogowner(dlg, independent: true);
+		dlg.ShowDialog();
+		if (!dlg.Applied) return;
+		var r = dlg.Result;
+		var hotkeyChanged =
+			!string.Equals(opt.HotkeyImeCycle, r.HotkeyImeCycle, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(opt.HotkeyImeWubi, r.HotkeyImeWubi, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(opt.HotkeyImeJa, r.HotkeyImeJa, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(opt.HotkeyImeKo, r.HotkeyImeKo, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(opt.HotkeyImeOff, r.HotkeyImeOff, StringComparison.OrdinalIgnoreCase);
+		opt.HotkeyImeCycle = r.HotkeyImeCycle;
+		opt.HotkeyImeWubi = r.HotkeyImeWubi;
+		opt.HotkeyImeJa = r.HotkeyImeJa;
+		opt.HotkeyImeKo = r.HotkeyImeKo;
+		opt.HotkeyImeOff = r.HotkeyImeOff;
+		opt.ImeGvimMode = r.ImeGvimMode;
+		hangul?.ApplyGvimMode(opt.ImeGvimMode);
+		if (hotkeyChanged) registerhotkey();
 		try { AppConfig.Save(opt); } catch { }
 	}
 
