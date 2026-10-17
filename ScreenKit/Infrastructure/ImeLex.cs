@@ -117,7 +117,8 @@ static class ImeLex {
 				("$p", Convert.ToInt32(o) == 0 ? 1 : 0), ("$t", text));
 	}
 
-	/// <summary>五笔候选。rare 关掉时不要词库里没有词频的字词（rank 0 或 1000000 起，即生僻字）。</summary>
+	/// <summary>五笔候选。rare 关掉时不要生僻字：词库没词频的行（rank 0 或 1000000 起）、
+	/// 编不进 GBK 的字、以及 GB2312 七千字表外的罕用字（判据见 <see cref="ImeRare"/>）。</summary>
 	public static List<Cand> QueryWubi(string prefix, bool trad, bool rare) {
 		var map = new Dictionary<string, Cand>();
 		if (string.IsNullOrEmpty(prefix) || !ready()) return new List<Cand>();
@@ -131,13 +132,23 @@ static class ImeLex {
 		each(@"SELECT code,text,rank FROM wubi WHERE code LIKE $p || '%'"
 			+ (rare ? "" : " AND rank<>0 AND rank<1000000")
 			+ @" ORDER BY length(code), rank LIMIT 400",
-			r => put(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) }),
+			r => {
+				var code = r.GetString(0);
+				var text = r.GetString(1);
+				var rank = r.GetInt32(2);
+				if (!rare && ImeRare.Is(text, rank)) return;
+				put(new Cand { Code = code, Raw = text, Rank = rank });
+			},
 			("$p", prefix));
 		each(@"SELECT code,text,pinned,picks FROM user_wubi WHERE code LIKE $p || '%'
 			ORDER BY length(code), picks DESC LIMIT 400", r => {
+			var text = r.GetString(1);
+			var pinned = r.GetInt32(2) != 0;
+			// 自己置顶的词一直出；只是选用过的生僻词跟着开关走
+			if (!rare && !pinned && ImeRare.Is(text, null)) return;
 			put(new Cand {
-				Code = r.GetString(0), Raw = r.GetString(1),
-				Pinned = r.GetInt32(2) != 0, Picks = r.GetInt32(3), Rank = 500
+				Code = r.GetString(0), Raw = text,
+				Pinned = pinned, Picks = r.GetInt32(3), Rank = 500
 			});
 		}, ("$p", prefix));
 		return Rank.Finish(new List<Cand>(map.Values), prefix, trad, alts);

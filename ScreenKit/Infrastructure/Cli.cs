@@ -4317,7 +4317,7 @@ CREATE TABLE trad (simp TEXT NOT NULL, trad TEXT NOT NULL, rank INTEGER NOT NULL
 CREATE TABLE kr_word (text TEXT PRIMARY KEY, freq INTEGER NOT NULL);
 CREATE TABLE kr_hanja (hangul TEXT NOT NULL, hanja TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (hangul, hanja));
 CREATE TABLE ja_word (reading TEXT NOT NULL, text TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (reading, text));
-INSERT INTO wubi(code,text,rank) VALUES('abqi','七联锁',1000),('abcd','内置',1000),('abcd','内建',1001),('abcd','鿍',1000000),('abce','鿎',0);
+INSERT INTO wubi(code,text,rank) VALUES('abqi','七联锁',1000),('abcd','内置',1000),('abcd','内建',1001),('abcd','鿍',1000000),('abce','鿎',0),('abcf','蘛',-30),('abcg','啰',-3080);
 INSERT INTO kr_word(text,freq) VALUES('한국',100);
 INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1);
 INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
@@ -4364,6 +4364,12 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			if (fail == null) {
 				if (ImeLex.QueryWubi("abce", false, false).Count != 0) fail = "rare zero shown";
 				if (ImeLex.QueryWubi("abce", false, true).Count == 0) fail = "rare zero hidden";
+			}
+			// 字表判定：GB2312 七千字表外又很少用的算生僻；表外但常用的（啰）不算
+			if (fail == null) {
+				if (ImeLex.QueryWubi("abcf", false, false).Count != 0) fail = "charset rare shown";
+				if (ImeLex.QueryWubi("abcf", false, true).Count == 0) fail = "charset rare hidden";
+				if (ImeLex.QueryWubi("abcg", false, false).Count == 0) fail = "busy char hidden";
 			}
 			// 引擎里打字：关掉生僻字只剩常用词，打开后生僻字进来
 			if (fail == null) {
@@ -4428,11 +4434,18 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				foreach (var e in ImeDict.List("wubi")) if (e.Text == "方波") hit = true;
 				if (!hit) fail = "import db";
 			}
-			// 自己置顶和导入的词不受生僻字开关影响
+			// 用户词：编不进 GBK 的生僻字跟着开关走，置顶的一直出
 			if (fail == null) {
 				bool hit = false;
 				foreach (var r in ImeLex.QueryWubi("zzzz", false, false)) if (r.Raw == "鿍") hit = true;
-				if (!hit) fail = "user rare hidden";
+				if (hit) fail = "user rare shown";
+				hit = false;
+				foreach (var r in ImeLex.QueryWubi("zzzz", false, true)) if (r.Raw == "鿍") hit = true;
+				if (!hit) fail = "user rare hidden on";
+				ImeLex.TogglePinWubi("zzzz", "鿍");
+				hit = false;
+				foreach (var r in ImeLex.QueryWubi("zzzz", false, false)) if (r.Raw == "鿍") hit = true;
+				if (!hit) fail = "pinned rare hidden";
 			}
 			// 导出再解析，条数和内容对得上
 			if (fail == null) {
