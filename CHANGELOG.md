@@ -44,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The dictionary page and Dictionary settings can turn on a selection popup, with a hotkey that toggles it. A drag or double-click in another program shows the same lookup popup as the dictionary.
 - Help → Install features can download the input-method file ime.db from the fixed dict-db release. Korean input then lists words, with Hanja notes.
 - The in-browser model tool links to the Chrome model page, where translation models and offline voice packs can be viewed and installed.
+- The in-browser model Speak task can filter voices by language.
 
 #### Changed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典页和词典参数可以打开划词浮窗，并设置切换这个开关的快捷键。在其它程序里拖选或双击时，会弹出和词典里一样的查词浮窗。
 - 帮助 → 安装功能可从固定的 dict-db 下载输入法 ime.db。装上之后，韩语输入会列出词，汉字只作注释。
 - 浏览器小模型工具增加 Chrome 模型页链接，用来查看和安装翻译模型与离线语音包。
+- 浏览器小模型的朗读可以按语言筛选声音。
 
 #### 变更
 

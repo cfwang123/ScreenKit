@@ -38,7 +38,10 @@
 			+ '<option value="speak"></option>'
 			+ '<option value="listen"></option>'
 			+ "</select></label>"
-			+ '<label id="aim-voicelab" hidden><select id="aim-voice"></select></label>'
+			+ '<div class="row" id="aim-speak" hidden>'
+			+ '<label id="aim-vlanglab"><select id="aim-vlang"></select></label>'
+			+ '<label id="aim-voicelab"><select id="aim-voice"></select></label>'
+			+ "</div>"
 			+ '<div class="row" id="aim-tr" hidden>'
 			+ '<label id="aim-srclab"><select id="aim-src"></select></label>'
 			+ '<label id="aim-dstlab"><select id="aim-dst"></select></label>'
@@ -71,6 +74,8 @@
 		labels();
 		var task = F.id("aim-task");
 		if (task) task.onchange = showtask;
+		var vlang = F.id("aim-vlang");
+		if (vlang) vlang.onchange = function(){ fillvoices(); };
 		var syn = window.speechSynthesis;
 		if (syn && !voicesHooked) {
 			voicesHooked = true;
@@ -100,6 +105,7 @@
 		setopt("aim-task", "prompt", "web.aim.prompt", "自由提问");
 		setopt("aim-task", "speak", "web.aim.speak", "朗读");
 		setopt("aim-task", "listen", "web.aim.listen", "语音识别");
+		setlab("aim-vlanglab", "web.f.lang", "语言");
 		setlab("aim-voicelab", "web.aim.voice", "声音");
 		setopt("aim-sum", "key-points", "web.aim.sum.keypoints", "要点");
 		setopt("aim-sum", "tldr", "web.aim.sum.tldr", "一句话");
@@ -166,8 +172,8 @@
 		if (dst) dst.hidden = kind !== "translate";
 		if (sum) sum.hidden = kind !== "summarize";
 		if (tone) tone.hidden = kind !== "rewrite";
-		var voice = F.id("aim-voicelab");
-		if (voice) voice.hidden = kind !== "speak";
+		var speak = F.id("aim-speak");
+		if (speak) speak.hidden = kind !== "speak";
 		if (kind !== "listen") stophear();
 		if (kind !== "speak" && window.speechSynthesis) window.speechSynthesis.cancel();
 		paintgo();
@@ -379,6 +385,8 @@
 		var sel = F.id("aim-voice");
 		if (!syn || !sel) return;
 		var list = syn.getVoices() || [];
+		fillvlang(list);
+		var want = vlang();
 		var prev = sel.value;
 		var i, v, o;
 		sel.innerHTML = "";
@@ -388,6 +396,7 @@
 		sel.appendChild(o);
 		for (i = 0; i < list.length; i++) {
 			v = list[i];
+			if (want && !samelang(v.lang, want)) continue;
 			o = F.el("option");
 			o.value = v.voiceURI || v.name;
 			o.textContent = v.name + (v.lang ? " (" + v.lang + ")" : "");
@@ -395,6 +404,72 @@
 		}
 		sel.value = prev;
 		if (sel.value !== prev) sel.selectedIndex = 0;
+	}
+
+	function vlang(){
+		var el = F.id("aim-vlang");
+		return el ? el.value : "";
+	}
+
+	function fillvlang(list){
+		var sel = F.id("aim-vlang");
+		if (!sel) return;
+		var prev = sel.value;
+		var seen = {};
+		var codes = [];
+		var i, lang;
+		for (i = 0; i < list.length; i++) {
+			lang = String((list[i] && list[i].lang) || "").replace(/_/g, "-");
+			if (!lang || seen[lang]) continue;
+			seen[lang] = true;
+			codes.push(lang);
+		}
+		codes.sort(function(a, b){
+			var d = langrank(a) - langrank(b);
+			if (d) return d;
+			return a < b ? -1 : a > b ? 1 : 0;
+		});
+		var names = null;
+		try { names = new Intl.DisplayNames([document.documentElement.lang || "zh"], { type: "language" }); }
+		catch (ex) { names = null; }
+		sel.innerHTML = "";
+		var o = F.el("option");
+		o.value = "";
+		o.textContent = tx("lang.all", "全部语言");
+		sel.appendChild(o);
+		for (i = 0; i < codes.length; i++) {
+			o = F.el("option");
+			o.value = codes[i];
+			o.textContent = langtitle(codes[i], names);
+			sel.appendChild(o);
+		}
+		sel.value = prev;
+		if (sel.value !== prev) sel.selectedIndex = 0;
+	}
+
+	function langrank(code){
+		var c = String(code || "").toLowerCase();
+		var prefer = ["zh-cn", "zh-tw", "zh-hk", "yue-hk", "en-us", "en-gb", "ja-jp", "ko-kr"];
+		var bases = ["zh", "en", "ja", "ko", "yue", "fr", "de", "es", "pt", "ru", "it"];
+		var i;
+		for (i = 0; i < prefer.length; i++) if (prefer[i] === c) return i;
+		var base = c.split("-")[0];
+		for (i = 0; i < bases.length; i++) if (bases[i] === base) return 20 + i;
+		return 100;
+	}
+
+	function langtitle(code, names){
+		var name = "";
+		try { if (names) name = names.of(code); }
+		catch (ex) { name = ""; }
+		if (!name || name === code) return code;
+		return name;
+	}
+
+	function samelang(a, b){
+		a = String(a || "").toLowerCase().replace(/_/g, "-");
+		b = String(b || "").toLowerCase().replace(/_/g, "-");
+		return a === b;
 	}
 
 	function speak(){
@@ -423,7 +498,7 @@
 				break;
 			}
 		}
-		if (!u.lang) u.lang = speechlang();
+		if (!u.lang) u.lang = vlang() || speechlang();
 		u.onend = function(){
 			if (SK.curtool === "u-aim") SK.msg("aim-msg", "");
 		};
