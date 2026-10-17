@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.24 (2026-10-17)](#v1024-2026-10-17)
 - [v1.0.23.1 (2026-10-17)](#v10231-2026-10-17)
 - [v1.0.22 (2026-10-15 ~ 16)](#v1022-2026-10-15--16)
 - [v1.0.21 (2026-10-14 ~ 15)](#v1021-2026-10-14--15)
@@ -35,6 +36,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
 
+## v1.0.24 (2026-10-17)
+
 ### English
 
 #### Changed
@@ -48,7 +51,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - OCR no longer inserts a space before @ or / or after - or @.
-- Korean romanized dictionary search skips when Japanese romaji applies (e.g. saseko); romanized Korean uses prefix only, not infix.
+- Korean romanized dictionary search skips when Japanese romaji applies; romanized Korean uses prefix only, not infix.
+- Dictionary search runs both Japanese romaji and Korean romanization under All; Korean roman hits use prefix only.
 
 ### 中文
 
@@ -63,7 +67,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 识别结果在 @、/ 前和 -、@ 后不再多插空格。
-- 韩语罗马字检索在日语 romaji 已成立时跳过（如 saseko）；罗马字转谚文只走前缀，不走中缀。
+- 韩语罗马字检索在日语 romaji 已成立时跳过；罗马字转谚文只走前缀，不走中缀。
+- 词典「全部」下同时做日语 romaji 与韩语罗马字检索；韩语罗马字结果只走前缀。
 
 ## v1.0.23.1 (2026-10-17)
 

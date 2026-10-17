@@ -2,7 +2,7 @@
 
 Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recognition, annotation, recording, speech, translation, a dictionary, and face, plus file transfer and screencast with the Android companion. This PC also has an HTTP API and a browser tools page.
 
-**Current version: 1.0.23.1** · [Releases](https://github.com/cfwang123/ScreenKit/releases/latest) · [Changelog](CHANGELOG.md) · [中文](README.zh.md)
+**Current version: 1.0.24** · [Releases](https://github.com/cfwang123/ScreenKit/releases/latest) · [Changelog](CHANGELOG.md) · [中文](README.zh.md)
 
 ![Main window](docs/1%20screenshot.en.png)
 

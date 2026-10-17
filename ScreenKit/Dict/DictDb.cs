@@ -307,15 +307,13 @@ static class DictDb {
 			affixkeys(q, d, hits, cap, limit);
 			var jaon = d.Length == 0 || d == "ja";
 			var moon = d.Length == 0 || d == "ko";
-			var jaRomajiOk = jaon && DictRomanize.RomajiToHiraganaVariants(q).Count > 0;
 			if (jaon) {
 				foreach (var hira in DictRomanize.RomajiToHiraganaVariants(q)) {
 					if (hira == q) continue;
 					affixkeys(hira, "ja", hits, cap, limit);
 				}
 			}
-			// 拉丁串能整段转成日语假名时，在「全部」里不再走韩语罗马字（saseko→させこ，避免 사세고 中缀误命中 사세）。
-			if (moon && !(d.Length == 0 && jaRomajiOk)) {
+			if (moon) {
 				foreach (var hangul in DictRomanize.RomanToHangulVariants(q)) {
 					if (hangul == q) continue;
 					affixkeysroman(hangul, "ko", hits, cap);

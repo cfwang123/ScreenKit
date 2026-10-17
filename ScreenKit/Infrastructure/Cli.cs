@@ -5799,11 +5799,20 @@ INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1),('학교에'
 		foreach (var q in qs) {
 			var hits = DictDb.Search(q, "", 12);
 			if (q == "saseko") {
-				foreach (var h in hits)
-					if (h.Dict == "ko") {
-						Out("saseko should not match ko: " + h.Headword);
+				var koOk = false;
+				foreach (var h in hits) {
+					if (h.Dict != "ko") continue;
+					var w = h.Headword.Length > 0 ? h.Headword : h.Matched;
+					if (w.StartsWith("사세고", StringComparison.Ordinal)) koOk = true;
+					else if (w.StartsWith("사세", StringComparison.Ordinal) && !w.StartsWith("사세고", StringComparison.Ordinal)) {
+						Out("saseko loose ko hit: " + w);
 						return 8;
 					}
+				}
+				if (!koOk) {
+					Out("saseko missing ko 사세고*");
+					return 9;
+				}
 			}
 			Out("q=" + q + " n=" + hits.Count);
 			var shown = 0;
