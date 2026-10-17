@@ -192,6 +192,10 @@ static class Cli {
 					if (i + 1 >= args.Length) throw new ArgumentException($"参数 {a} 缺少值");
 					return args[++i];
 				}
+				string Opt() {
+					if (i + 1 >= args.Length || args[i + 1].StartsWith("-")) return "";
+					return args[++i];
+				}
 				switch (a) {
 					case "--image": case "-i": image = Next(); break;
 					case "--charart": return CharArt.View(Next());
@@ -331,7 +335,7 @@ static class Cli {
 				case "--ime-dict-import":
 					return imedictimport(Next(), Next());
 				case "--ime-db-clean":
-					return imedbclean(Next(), Next());
+					return imedbclean(Opt(), Opt());
 				case "--test-vim-caret":
 					return testvimcaret();
 				case "--test-7za":
@@ -4336,7 +4340,8 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				"한국어\r\n안녕하세요 200\r\n", new UTF8Encoding(false));
 
 			int n = ImeDict.SyncAll();
-			if (n != 7) fail = "sync " + n;
+			if (n != 7) fail = "sync " + n + " err=" + ImeLex.UserError + " ready=" + ImeLex.Ready
+				+ " file=" + ImeDict.Read("wubi", out _).Count + " rows=" + ImeDict.List("wubi").Count;
 
 			// 文件没变不再重导
 			if (fail == null && ImeDict.SyncAll() != 0) fail = "sync again";

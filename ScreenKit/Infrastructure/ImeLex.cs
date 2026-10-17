@@ -428,7 +428,8 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		}
 		var csb = new SqliteConnectionStringBuilder {
 			DataSource = path,
-			Mode = SqliteOpenMode.ReadWrite,
+			// 要 ReadWriteCreate：不然 ATTACH ime_user.db 时文件还不存在就开不了（主库本身先查过存在）
+			Mode = SqliteOpenMode.ReadWriteCreate,
 			Cache = SqliteCacheMode.Shared,
 			Pooling = false,
 		};
@@ -467,10 +468,14 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		return true;
 	}
 
+	/// <summary>用户库挂不上的原因，自测和排障用。</summary>
+	public static string UserError { get; private set; } = "";
+
 	/// <summary>把 ime_user.db 挂成 u：自定义词库、置顶、选用次数各一张表。挂不上就只当没有用户词。</summary>
 	static void attachuser(SqliteConnection c, string path) {
 		userwrite = false;
 		usropened = "";
+		UserError = "";
 		try {
 			var dir = Path.GetDirectoryName(path);
 			if (string.IsNullOrEmpty(dir)) return;
@@ -486,8 +491,9 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 			usropened = up;
 			userwrite = true;
 		}
-		catch {
+		catch (Exception ex) {
 			userwrite = false;
+			UserError = ex.Message;
 		}
 	}
 

@@ -29,6 +29,13 @@
 	var JA_D = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
 	var JA_DIG = ["れい", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
 	var JA_SC = ["", "まん", "おく", "ちょう", "けい", "がい", "じょ", "じょう", "こう", "かん", "せい", "さい", "ごく", "ごうがしゃ", "あそうぎ", "なゆた", "ふかしぎ", "むりょうたいすう"];
+	var JA_K = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+	var JA_KU = ["千", "百", "十", ""];
+	var JA_KSC = ["", "万", "億", "兆", "京", "垓", "秭", "穣", "溝", "澗", "正", "載", "極", "恒河沙", "阿僧祇", "那由他", "不可思議", "無量大数"];
+	// 促音：いち、はち、ろく、じゅう、ひゃく 碰上清音开头的单位要收尾成 っ。
+	var JA_GEM = [["いち", "いっ"], ["はち", "はっ"], ["ろく", "ろっ"], ["じゅう", "じゅっ"], ["ひゃく", "ひゃっ"], ["びゃく", "びゃっ"], ["ぴゃく", "ぴゃっ"]];
+	var JA_SEION = "かきくけこさしすせそたちつてと";
+	var JA_HAGYO = "はひふへほ";
 	var DE_U = ["", "ein", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"];
 	var DE_DIG = ["null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"];
 	var DE_BIG = [null, null, ["Million", "Millionen"], ["Milliarde", "Milliarden"], ["Billion", "Billionen"], ["Billiarde", "Billiarden"], ["Trillion", "Trillionen"]];
@@ -227,7 +234,7 @@
 			["英文读法", enread(p)],
 			["韩文固有", koNative(p)],
 			["韩文汉字", koSino(p)],
-			["日语", jaRead(p)],
+			["日语", jaRead(p), jaSpeak(p)],
 			["德语", deRead(p)],
 			["法语", frRead(p)],
 			["西班牙语", esRead(p)],
@@ -546,11 +553,50 @@
 		return out;
 	}
 
+	// 日语行写成「汉字（读法）」，括号里是假名读法；发音念整段读法。
 	function jaRead(p){
 		if (p.ip.length > JA_SC.length * 4) return "";
+		var kanji = jaKanji(p.ip);
+		if (p.fp) kanji += "点" + spellDigits(p.fp, JA_K);
+		return (p.neg ? "マイナス" : "") + kanji + "（" + jaBody(p) + "）";
+	}
+
+	function jaSpeak(p){
+		if (p.ip.length > JA_SC.length * 4) return "";
+		return (p.neg ? "マイナス" : "") + jaBody(p);
+	}
+
+	function jaBody(p){
 		var body = p.ip === "0" ? "ゼロ" : jaInt(p.ip);
 		if (p.fp) body += " てん " + spellDigits(p.fp, JA_DIG);
-		return (p.neg ? "マイナス " : "") + body;
+		return body;
+	}
+
+	function jaKanji(ip){
+		if (ip === "0") return "零";
+		var chunks = splitend(ip, 4);
+		var parts = [];
+		var i;
+		for (i = chunks.length - 1; i >= 0; i--) {
+			var n = parseInt(chunks[i], 10);
+			if (!n) continue;
+			parts.push(jaKanji4(n) + JA_KSC[i]);
+		}
+		return parts.join("");
+	}
+
+	// 和读法一致：十、百、千 前的「一」省掉。
+	function jaKanji4(n){
+		var s = ("0000" + n).slice(-4);
+		var out = "";
+		var i;
+		for (i = 0; i < 4; i++) {
+			var d = s.charCodeAt(i) - 48;
+			if (!d) continue;
+			if (!(d === 1 && i < 3)) out += JA_K[d];
+			out += JA_KU[i];
+		}
+		return out;
 	}
 
 	function jaInt(ip){
@@ -565,15 +611,23 @@
 		return parts.join(" ");
 	}
 
-	// ちょう 只在整段正好是 いち / はち / じゅう 时促音。其余单位直接拼接。
+	// いち / はち / ろく / じゅう / ひゃく 在清音开头的单位前促音：いっちょう、いっけい、ろっけい。
+	// は行碰上促音再变半浊音：いっぷかしぎ。
 	function jaGroup(n, i){
 		var piece = ja4(n);
-		if (i === 3) {
-			if (piece === "いち") return "いっちょう";
-			if (piece === "はち") return "はっちょう";
-			if (piece === "じゅう") return "じゅっちょう";
+		if (!i) return piece;
+		var unit = JA_SC[i];
+		var k;
+		for (k = 0; k < JA_GEM.length; k++) {
+			var tail = JA_GEM[k][0];
+			if (piece.slice(-tail.length) !== tail) continue;
+			var head = piece.slice(0, -tail.length) + JA_GEM[k][1];
+			var ha = JA_HAGYO.indexOf(unit.charAt(0));
+			if (ha >= 0) return head + "ぱぴぷぺぽ".charAt(ha) + unit.slice(1);
+			if (JA_SEION.indexOf(unit.charAt(0)) >= 0) return head + unit;
+			return piece + unit;
 		}
-		return piece + JA_SC[i];
+		return piece + unit;
 	}
 
 	function ja4(n){
@@ -1182,11 +1236,12 @@
 		for (i = 0; i < rows.length; i++) {
 			var raw = rows[i][1] || "";
 			var v = esc(raw);
+			var say = esc(rows[i][2] || raw);
 			var lang = SPEAK[rows[i][0]] || "";
 			html += "<span>" + esc(rows[i][0]) + "</span><div class=\"num-v\">" + v + "</div><div class=\"num-ops\">";
 			if (raw) {
 				html += "<button type=\"button\" data-act=\"copy\" data-v=\"" + v + "\" data-k=\"web.copy\">" + copyName + "</button>";
-				html += "<button type=\"button\" data-act=\"speak\" data-lang=\"" + lang + "\" data-v=\"" + v + "\" data-k=\"dict.speak\">" + speakName + "</button>";
+				html += "<button type=\"button\" data-act=\"speak\" data-lang=\"" + lang + "\" data-v=\"" + say + "\" data-k=\"dict.speak\">" + speakName + "</button>";
 			}
 			html += "</div>";
 		}

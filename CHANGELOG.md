@@ -45,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - On the Translate tab, **Ctrl+Enter** starts translation (same as the translate popup).
 - Wubi, Japanese, and Korean input takes custom lexicons. The lexicon window (IME tray menu, or Ctrl+Shift+F7) imports a text lexicon, exports the user words, and deletes entries; the text under dict/ next to the program is the source of truth, so a reinstalled ime.db restores it. Wubi is code + word, Japanese reading + word (kana or romaji), Korean just the word. --ime-dict-import <wubi|ja|ko> <file> imports from the command line.
 - Wubi candidates can skip rare characters: entries in the lexicon with no word frequency (CJK extension characters, uncommon idioms) are hidden by default. The Rare characters item in the IME tray menu, or the checkbox in IME settings, brings them back. Words you pinned or imported are always shown.
+- Japanese numbers: the row now shows the kanji form with the kana reading in parentheses, e.g. 一京（いっけい）. The speak button still reads only the kana.
 
 #### Changed
 
@@ -54,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Wubi/Japanese typing no longer drops keys. The candidate bar used to be built and rendered inside the keyboard hook; when that took longer than the Windows hook timeout (300 ms) the system silently removed the hook and letters or Backspace stopped responding. The bar is now rendered after the hook returns and pre-rendered when the IME is switched on, the lexicon is scanned by a background thread at startup, and the tray icon is only touched when it changes.
 - Number notation: the middle-number reading advanced by 10^8, so 1e16 read the same as the large-number reading. It now advances by 10^4, so 1e16 is a jing (一京).
+- Japanese reading: 1e16 read いちけい. Units starting with a voiceless consonant now take the 促音 (六京 ろっけい、百京 ひゃっけい), and a は行 unit turns semi-voiced after it.
 
 ### 中文
 
@@ -64,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 翻译页支持 **Ctrl+Enter** 直接开始翻译（与翻译小窗一致）。
 - 五笔、日语、韩语输入支持自定义词库。「词库」窗口（输入法托盘菜单，或 Ctrl+Shift+F7）可导入文本词库、导出用户词、删除词条；程序旁 dict/ 下的文本是词库本体，重装 ime.db 后自动恢复。五笔是「编码 + 词」，日语「读音 + 词」（假名或罗马字），韩语只有「词」。命令行 --ime-dict-import <wubi|ja|ko> <文件> 也能导入。
 - 五笔候选可以不要生僻字：词库里没有词频的字词（CJK 扩展区、罕用成语）默认不显示，输入法托盘菜单的「生僻字」，或输入法设置里的勾选框可以打开。自己置顶和导入的词照常显示。
+- 日语数字：写成「汉字（读法）」，如 一京（いっけい）；发音仍只念括号里的读法。
 
 #### 变更
 
@@ -73,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 五笔/日语打字不再丢键。候选条原来是在键盘钩子里现建现画的，一旦超过系统的钩子超时（300 毫秒），系统会悄悄把钩子摘掉，之后字母和退格就没了反应。现在候选条改在钩子返回之后再画，并在开启输入法时先离屏渲染一遍；词库在启动时由后台线程预热；托盘图标只在真变了才碰。
 - 数字表记：中数原来按万万（10^8）递进，1e16 与大数同为「兆」；改为按万（10^4）递进，1e16 读作「一京」。
+- 日语读法：1e16 原来读 いちけい。清音开头的单位前改按促音读，如 六京 ろっけい、百京 ひゃっけい；は行促音后变半浊音。
 
 ## v1.0.24 (2026-10-17)
 
