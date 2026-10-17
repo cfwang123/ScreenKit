@@ -60,6 +60,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - A selection lookup opens the dictionary file when it is not open yet, then searches.
 - Korean input shows one jamo per key. w is ㅈ, not the compound ㄽ.
 
+#### Documentation
+
+- The README lists Network tools by feature name.
+
 ### 中文
 
 #### 新增
@@ -83,6 +87,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - POST /api/qrcode 与 Umi-OCR 兼容。每条码带 format（二维码为 QRCode）和 text。
 - 词典库还没打开时，划词会先打开库再查词。
 - 韩语输入每个键一个单音。w 是 ㅈ，不再打出合用收音 ㄽ。
+
+#### 文档
+
+- README 里的网络工具只列功能名称。
 
 ## v1.0.22 (2026-10-15 ~ 16)
 
