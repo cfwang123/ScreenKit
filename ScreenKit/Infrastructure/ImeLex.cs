@@ -143,6 +143,58 @@ static class ImeLex {
 		return Rank.Finish(new List<Cand>(map.Values), prefix, trad, alts);
 	}
 
+	/// <summary>启用输入法时先把三种查询各跑一遍：第一次查五笔要把整表扫进缓存，留在打字时会拖慢键盘钩子。</summary>
+	public static void Warmup() {
+		if (!ready()) return;
+		try { QueryWubi("a", false, false); } catch { }
+		try { QueryJa("あ"); } catch { }
+		try { QueryKr(new List<string> { "가" }, new List<string> { "가" }, "가"); } catch { }
+	}
+
+	static bool prewarmed;
+
+	/// <summary>后台另开只读连接把 ime.db 扫进系统缓存，别等第一次打字时现读。
+	/// 不用打字那条连接：那样两边会互相等，反而把钩子拖住。</summary>
+	public static void Prewarm() {
+		if (prewarmed) return;
+		prewarmed = true;
+		if (!DbInstalled || !NativeRuntime.HasSqlite()) return;
+		if (!batteries) {
+			SQLitePCL.Batteries_V2.Init();
+			batteries = true;
+		}
+		var th = new Thread(() => {
+			try {
+				Thread.Sleep(600);      // 让启动时的窗口、图标先忙完
+				var csb = new SqliteConnectionStringBuilder {
+					DataSource = PathOf,
+					Mode = SqliteOpenMode.ReadOnly,
+					Cache = SqliteCacheMode.Shared,
+					Pooling = false,
+				};
+				using var c = new SqliteConnection(csb.ToString());
+				c.Open();
+				foreach (var sql in new[] {
+					"SELECT code,text,rank FROM wubi WHERE code LIKE 'a%' ORDER BY length(code), rank LIMIT 400",
+					"SELECT code,text,rank FROM wubi WHERE code LIKE 'w%' ORDER BY length(code), rank LIMIT 400",
+					"SELECT code,text,rank FROM wubi WHERE code LIKE 'y%' ORDER BY length(code), rank LIMIT 400",
+					"SELECT reading,text,rank FROM ja_word WHERE reading IN ('あ','あい','きょう') LIMIT 40",
+					"SELECT text,freq FROM kr_word WHERE text LIKE '가%' ORDER BY freq DESC LIMIT 40",
+				}) {
+					try {
+						using var q = c.CreateCommand();
+						q.CommandText = sql;
+						using var r = q.ExecuteReader();
+						while (r.Read()) { }
+					}
+					catch { }
+				}
+			}
+			catch { }
+		}) { IsBackground = true };
+		th.Start();
+	}
+
 	public static void TouchWubi(string code, string text) {
 		if (!writable || string.IsNullOrEmpty(code) || string.IsNullOrEmpty(text)) return;
 		cmd(@"INSERT INTO user_wubi(code,text,pinned,picks) VALUES($c,$t,0,1)

@@ -49,6 +49,7 @@ class ImeEngine {
 	public bool Trad => trad;
 	public bool Rare => rare;
 	public int Page => page;
+	public int CandCount => cands.Count;
 	public int PageCount => cands.Count == 0 ? 0 : (cands.Count + 8) / 9;
 	public IList<Cand> PageItems {
 		get {

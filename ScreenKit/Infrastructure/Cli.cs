@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows.Threading;
 using System.IO;
@@ -59,7 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--ime-dict-import" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
@@ -325,6 +326,8 @@ static class Cli {
 					return testimedic();
 				case "--test-ime-dict-ui":
 					return testimedictui();
+				case "--test-ime-key":
+					return testimekey();
 				case "--ime-dict-import":
 					return imedictimport(Next(), Next());
 				case "--test-vim-caret":
@@ -4525,6 +4528,101 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,
 				new Action(() => frame.Continue = false));
 			Dispatcher.PushFrame(frame);
+		}
+	}
+
+	/// <summary>量按键处理耗时：候选查询、候选条、托盘都在里面。
+	/// 钩子回调超过系统 LowLevelHooksTimeout（默认 300ms）会被静默摘掉，之后按键就没反应。</summary>
+	static int testimekey() {
+		Out("=== 按键耗时 --test-ime-key ===");
+		if (!ImeLex.DbInstalled) {
+			Err("FAIL: 程序旁没有 ime.db（帮助 → 安装功能 里装输入法词库）");
+			return 1;
+		}
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		var ime = new HangulIme();
+		var rows = new List<(string tag, double hook, double ui)>();
+		try {
+			void tap(string tag, int vk) {
+				long t0 = Stopwatch.GetTimestamp();
+				ime.TestKey(vk, true);
+				ime.TestKey(vk, false);
+				long t1 = Stopwatch.GetTimestamp();
+				pump();     // 候选条的绘制排在钩子后面；这段占着 UI 线程，下一键也会被拖住
+				long t2 = Stopwatch.GetTimestamp();
+				rows.Add((tag,
+					(t1 - t0) * 1000.0 / Stopwatch.Frequency,
+					(t2 - t1) * 1000.0 / Stopwatch.Frequency));
+			}
+			void code(string lang, string s) {
+				for (int i = 0; i < s.Length; i++) tap($"{lang}#{i + 1} {s[i]}", Vk.A + (s[i] - 'a'));
+			}
+			ime.Remember("wubi", false, false);
+			long tw = Stopwatch.GetTimestamp();
+			ime.TestBegin();
+			pump();
+			double warm = (Stopwatch.GetTimestamp() - tw) * 1000.0 / Stopwatch.Frequency;
+			string fail = null;
+			// 打字到一半候选条要出来，上屏后要收起来（绘制排在钩子后面，靠 pump 跑完）
+			code("wubi", "wqvb");
+			if (!ime.BarShown) fail = "打 wqvb 后候选条没出来";
+			tap("wubi 空格", Vk.Space);
+			if (ime.BarShown) fail = "上屏后候选条没收起";
+			if (fail != null) {
+				Err("FAIL: " + fail);
+				return 1;
+			}
+			foreach (var s in new[] { "wqvb", "ypsu", "gip", "lwty", "abcd", "ggll" }) {
+				code("wubi", s);
+				tap("wubi 退格", Vk.Back);
+				tap("wubi 补一码", Vk.A + (s[s.Length - 1] - 'a'));
+				tap("wubi 空格", Vk.Space);
+			}
+			// 第一码候选最多的一档
+			for (int i = 0; i < 12; i++) { tap("wubi 单码", Vk.A); tap("wubi 退格", Vk.Back); }
+			int wubi = rows.Count;
+			ime.Remember("ja", false, false);
+			long tw2 = Stopwatch.GetTimestamp();
+			ime.TestBegin();
+			pump();
+			double warm2 = (Stopwatch.GetTimestamp() - tw2) * 1000.0 / Stopwatch.Frequency;
+			foreach (var s in new[] { "kyou", "nihongo", "kore", "sore" }) {
+				code("ja", s);
+				tap("ja 空格", Vk.Space);
+				tap("ja 退格", Vk.Back);
+			}
+			ime.TestEnd();
+			var hooks = new List<double>(rows.Count);
+			var uis = new List<double>(rows.Count);
+			foreach (var r in rows) { hooks.Add(r.hook); uis.Add(r.ui); }
+			hooks.Sort();
+			uis.Sort();
+			double sumh = 0;
+			foreach (var v in hooks) sumh += v;
+			Out($"五笔 {wubi} 键，日语 {rows.Count - wubi} 键；启用准备 冷 {warm:0.0} ms / 热 {warm2:0.0} ms（启动时会后台预热，打字时算热）");
+			Out($"钩子回调 最小 {hooks[0]:0.0} ms，中位 {hooks[hooks.Count / 2]:0.0} ms，平均 {sumh / hooks.Count:0.0} ms，最大 {hooks[hooks.Count - 1]:0.0} ms（超过 300ms 系统就摘钩子）");
+			Out($"随后绘制 最小 {uis[0]:0.0} ms，中位 {uis[uis.Count / 2]:0.0} ms，最大 {uis[uis.Count - 1]:0.0} ms");
+			var slow = new List<(string tag, double hook, double ui)>(rows);
+			slow.Sort((a, b) => (b.hook + b.ui).CompareTo(a.hook + a.ui));
+			foreach (var s in slow) {
+				if (s.hook + s.ui < 40) break;
+				Out($"  慢键 {s.hook:0.0}+{s.ui:0.0} ms  {s.tag}");
+			}
+			if (hooks[hooks.Count - 1] > 120 || uis[uis.Count - 1] > 280) {
+				Err("FAIL: 有按键把钩子拖过 120 ms，钩子可能被系统摘掉");
+				return 1;
+			}
+			Out("OK");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { ime.TestEnd(); } catch { }
+			try { ime.Dispose(); } catch { }
 		}
 	}
 

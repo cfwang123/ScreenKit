@@ -41,6 +41,11 @@ sealed class HangulIme : IDisposable {
 	HookProc proc;
 	IntPtr watch;
 	int nexthook;
+	string traymark = "";
+	string traytext = "";
+	bool trayvisible;
+	bool refreshqueued;
+	int lastslow;
 	bool? vimInsert;
 	bool gvimMode;
 	Lang lang = Lang.Ko;
@@ -68,6 +73,7 @@ sealed class HangulIme : IDisposable {
 		ImeCaret.BindShared(caret);
 		caret.AttachDispatcher(System.Windows.Application.Current?.Dispatcher ?? bar.Dispatcher);
 		caret.Start();
+		ImeLex.Prewarm();
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
 		timer.Tick += (_, _) => pollfg();
 		bar.Picked += onpick;
@@ -143,15 +149,17 @@ sealed class HangulIme : IDisposable {
 			enabled = false;
 			remove();
 			timer.Stop();
-			if (ni != null) ni.Visible = false;
+			hideicon();
 			Changed?.Invoke();
 			return true;
 		}
 		if (!ImeLex.DbInstalled) return false;
 		if (!install()) return false;
 		ImeDict.SyncAll();
+		ImeLex.Warmup();
 		eng.LoadMeta(trad, lang, false, false, rare);
 		enabled = true;
+		bar.Warmup();
 		watch = GetForegroundWindow();
 		showtray();
 		timer.Start();
@@ -254,16 +262,28 @@ sealed class HangulIme : IDisposable {
 	void showtray() {
 		ensuretray();
 		if (eng.Off) {
-			ni.Visible = false;
+			hideicon();
 			if (mioff != null) mioff.Checked = true;
 			return;
 		}
 		var mark = eng.Badge;
-		if (!icons.TryGetValue(mark, out var ic)) {
-			ic = badge(mark, eng.Off || eng.Now == View.En);
-			icons[mark] = ic;
+		// 托盘改动要走 Shell_NotifyIcon（跨进程），打字时每一键都设会把钩子拖慢，只在真变了才碰
+		if (mark != traymark) {
+			traymark = mark;
+			if (!icons.TryGetValue(mark, out var ic)) {
+				ic = badge(mark, eng.Now == View.En);
+				icons[mark] = ic;
+			}
+			ni.Icon = ic;
+			ni.Visible = true;
+			trayvisible = true;
+			if (miwubi != null) {
+				miwubi.Checked = eng.Cjk == Lang.Wubi;
+				mija.Checked = eng.Cjk == Lang.Ja;
+				miko.Checked = eng.Cjk == Lang.Ko;
+				mioff.Checked = false;
+			}
 		}
-		ni.Icon = ic;
 		var bkey = eng.Off ? "hangul.badge.off"
 			: eng.Now == View.Ja ? "hangul.badge.ja"
 			: eng.Now == View.Ko ? "hangul.badge.ko"
@@ -271,14 +291,19 @@ sealed class HangulIme : IDisposable {
 			: "hangul.badge.wubi";
 		var text = Loc.T(bkey) ?? "";
 		if (text.Length > 63) text = text.Substring(0, 63);
-		ni.Text = text;
-		ni.Visible = true;
-		if (miwubi != null) {
-			miwubi.Checked = !eng.Off && eng.Cjk == Lang.Wubi;
-			mija.Checked = !eng.Off && eng.Cjk == Lang.Ja;
-			miko.Checked = !eng.Off && eng.Cjk == Lang.Ko;
-			mioff.Checked = eng.Off;
+		if (text != traytext) {
+			traytext = text;
+			ni.Text = text;
 		}
+		if (!trayvisible) {
+			trayvisible = true;
+			ni.Visible = true;
+		}
+	}
+
+	void hideicon() {
+		if (ni != null && trayvisible) ni.Visible = false;
+		trayvisible = false;
 	}
 
 	void ensuretray() {
@@ -380,8 +405,45 @@ sealed class HangulIme : IDisposable {
 		bool up = msg == 0x0101 || msg == 0x0105;
 		if (!down && !up) return CallNextHookEx(hook, nCode, wParam, lParam);
 		eat = false;
+		int t0 = Environment.TickCount;
 		onkey((int)info.vkCode, down);
+		slowhook(t0, (int)info.vkCode, down);
 		return eat ? (IntPtr)1 : CallNextHookEx(hook, nCode, wParam, lParam);
+	}
+
+	/// <summary>钩子回调一慢，系统就会把钩子悄悄摘掉（按键随后没反应），慢的记一笔。</summary>
+	void slowhook(int t0, int vk, bool down) {
+		int ms = Environment.TickCount - t0;
+		if (ms < 120) return;
+		int now = Environment.TickCount;
+		if (now - lastslow < 1000) return;
+		lastslow = now;
+		try {
+			CaptureLog.Info($"ime hook slow {ms}ms vk={vk} down={down} lang={eng.LangCode} pre={eng.Preedit.Length} cand={eng.CandCount}");
+		}
+		catch { }
+	}
+
+	/// <summary>CLI 自测：不装键盘钩子，直接走按键处理这条路径（含候选条和托盘）。
+	/// 启用时该做的准备（同步词库、载入配置、离屏渲染候选条）照做，量的才是打字时真实的单键开销。</summary>
+	internal void TestBegin() {
+		ImeDict.SyncAll();
+		ImeLex.Warmup();
+		eng.LoadMeta(trad, lang, false, false, rare);
+		enabled = true;
+		bar.Warmup();
+		watch = GetForegroundWindow();
+		showtray();
+	}
+
+	internal void TestKey(int vk, bool down) => onkey(vk, down);
+
+	/// <summary>候选条是否正显示（自测用：绘制排在钩子后面，得等 pump 过才有结果）。</summary>
+	internal bool BarShown => bar.Shown;
+
+	internal void TestEnd() {
+		enabled = false;
+		try { hidecand(); } catch { }
 	}
 
 	void onkey(int vk, bool down) {
@@ -438,8 +500,18 @@ sealed class HangulIme : IDisposable {
 
 	void refresh() {
 		if (!enabled) return;
-		if (bar.Dispatcher.CheckAccess()) refreshui();
-		else bar.Dispatcher.BeginInvoke(new Action(refreshui));
+		if (!bar.Dispatcher.CheckAccess()) {
+			bar.Dispatcher.BeginInvoke(new Action(refreshui));
+			return;
+		}
+		// 钩子里不等 WPF 布局和绘制：排到消息后面再画，回调立刻返回（回调一慢系统就把钩子摘掉）
+		if (refreshqueued) return;
+		refreshqueued = true;
+		bar.Dispatcher.BeginInvoke(new Action(() => {
+			refreshqueued = false;
+			if (!enabled) return;
+			refreshui();
+		}), DispatcherPriority.Input);
 	}
 
 	void refreshui() {

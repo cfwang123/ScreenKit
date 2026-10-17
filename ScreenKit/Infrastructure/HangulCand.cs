@@ -22,6 +22,7 @@ sealed class HangulCand : Window {
 	readonly Border caret;
 	readonly StackPanel items;
 	readonly TextBlock badge;
+	readonly Border box;
 	Rect lastCaretPx;
 
 	public event Action<int> Picked;
@@ -47,7 +48,7 @@ sealed class HangulCand : Window {
 		ResizeMode = ResizeMode.NoResize;
 		Focusable = false;
 		FontFamily = new FontFamily("Microsoft YaHei UI");
-		var box = new Border {
+		box = new Border {
 			Background = Brushes.White,
 			BorderBrush = new SolidColorBrush(Color.FromRgb(214, 214, 214)),
 			BorderThickness = new Thickness(1),
@@ -138,36 +139,7 @@ sealed class HangulCand : Window {
 		items.Children.Clear();
 		int n = 1;
 		foreach (var c in s.PageItems) {
-			int index = n;
-			var row = new TextBlock {
-				Margin = new Thickness(0, 0, 14, 0),
-				VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand
-			};
-			row.Inlines.Add(new Run(n + ".") {
-				Foreground = n == 1
-					? new SolidColorBrush(Color.FromRgb(226, 61, 61))
-					: new SolidColorBrush(Color.FromRgb(153, 153, 153)),
-				FontSize = 15
-			});
-			row.Inlines.Add(new Run(c.Text) {
-				Foreground = new SolidColorBrush(Color.FromRgb(32, 32, 32)),
-				FontSize = 15
-			});
-			if (!string.IsNullOrEmpty(c.Extra))
-				row.Inlines.Add(new Run(c.Extra) {
-					Foreground = new SolidColorBrush(Color.FromRgb(160, 160, 160)),
-					FontSize = 13
-				});
-			if (!string.IsNullOrEmpty(c.Comment))
-				row.Inlines.Add(new Run("  " + c.Comment) {
-					Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)),
-					FontSize = 13
-				});
-			row.MouseLeftButtonDown += (_, e) => {
-				e.Handled = true;
-				Picked?.Invoke(index - 1);
-			};
-			items.Children.Add(row);
+			items.Children.Add(candrow(n, c));
 			n++;
 		}
 		if (!s.ShowBar) { HideBar(); return; }
@@ -180,6 +152,69 @@ sealed class HangulCand : Window {
 
 	public void HideBar() {
 		try { if (IsVisible) Hide(); } catch { }
+	}
+
+	/// <summary>候选条是不是正显示着（自测用）。</summary>
+	public bool Shown => IsVisible;
+
+	TextBlock candrow(int n, Cand c) {
+		int index = n;
+		var row = new TextBlock {
+			Margin = new Thickness(0, 0, 14, 0),
+			VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand
+		};
+		row.Inlines.Add(new Run(n + ".") {
+			Foreground = n == 1
+				? new SolidColorBrush(Color.FromRgb(226, 61, 61))
+				: new SolidColorBrush(Color.FromRgb(153, 153, 153)),
+			FontSize = 15
+		});
+		row.Inlines.Add(new Run(c.Text) {
+			Foreground = new SolidColorBrush(Color.FromRgb(32, 32, 32)),
+			FontSize = 15
+		});
+		if (!string.IsNullOrEmpty(c.Extra))
+			row.Inlines.Add(new Run(c.Extra) {
+				Foreground = new SolidColorBrush(Color.FromRgb(160, 160, 160)),
+				FontSize = 13
+			});
+		if (!string.IsNullOrEmpty(c.Comment))
+			row.Inlines.Add(new Run("  " + c.Comment) {
+				Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)),
+				FontSize = 13
+			});
+		row.MouseLeftButtonDown += (_, e) => {
+			e.Handled = true;
+			Picked?.Invoke(index - 1);
+		};
+		return row;
+	}
+
+	/// <summary>离屏先建出来、真渲染一遍：第一次显示要 300ms 上下，赶在打字时会把键盘钩子拖过系统超时，钩子被摘掉就“按键没反应”。</summary>
+	public void Warmup() {
+		if (!Dispatcher.CheckAccess()) {
+			try { Dispatcher.Invoke(new Action(Warmup)); } catch { }
+			return;
+		}
+		try {
+			pre.Text = "wubi";
+			pre.Visibility = Visibility.Visible;
+			caret.Visibility = Visibility.Visible;
+			badge.Text = "五";
+			items.Children.Clear();
+			for (int i = 1; i <= 4; i++)
+				items.Children.Add(candrow(i, new Cand { Text = "候选" + i }));
+			Show();
+			UpdateLayout();
+			if (ActualWidth >= 1 && ActualHeight >= 1) {
+				var rtb = new RenderTargetBitmap((int)Math.Ceiling(ActualWidth), (int)Math.Ceiling(ActualHeight), 96, 96, PixelFormats.Pbgra32);
+				rtb.Render(box);
+			}
+			Hide();
+			items.Children.Clear();
+			pre.Text = "";
+		}
+		catch { }
 	}
 
 	void place(Rect caretPx) {
