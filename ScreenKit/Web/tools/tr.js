@@ -36,7 +36,8 @@
 	}
 
 	function langlabel(code){
-		if (code === "auto") return SK.t("lang.auto.zhen") || "自动（中英互译）";
+		if (code === "auto")
+			return (trLangs && trLangs.auto_label) || SK.t("lang.auto.zhen") || "自动（中英互译）";
 		return SK.t("lang." + code) || code;
 	}
 
@@ -80,6 +81,8 @@
 
 	function detectcode(text){
 		var han = 0;
+		var kana = 0;
+		var hangul = 0;
 		var letter = 0;
 		var i;
 		var ch;
@@ -87,8 +90,12 @@
 		for (i = 0; i < text.length; i++) {
 			ch = text.charCodeAt(i);
 			if (ch >= 0x4E00 && ch <= 0x9FFF) han++;
+			else if ((ch >= 0x3040 && ch <= 0x30FF)) kana++;
+			else if ((ch >= 0xAC00 && ch <= 0xD7AF)) hangul++;
 			else if ((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 122)) letter++;
 		}
+		if (kana > 0) return "ja";
+		if (hangul > 0) return "ko";
 		if (han === 0 && letter === 0) return "zh";
 		return han * 2 >= letter ? "zh" : "en";
 	}
@@ -129,7 +136,9 @@
 		if (src === "auto" || dst === "auto") {
 			var probe = String(out).replace(/^\s+|\s+$/g, "") ? out : inn;
 			var a = detectcode(probe);
-			var b = a === "zh" ? "en" : "zh";
+			var nat = (trLangs && trLangs.auto_native) || "zh";
+			var lrn = (trLangs && trLangs.auto_learn) || "en";
+			var b = a === nat ? lrn : nat;
 			filltrkeep(b);
 			filldst(false);
 			setsel("tr-dst", a);

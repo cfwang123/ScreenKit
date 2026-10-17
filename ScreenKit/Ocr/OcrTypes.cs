@@ -505,6 +505,14 @@ public sealed class OcrOptions {
 	public int TranslateLlmBatch = 8;
 	/// <summary>一批翻译条数上限。</summary>
 	public const int TranslateLlmBatchMax = 64;
+	/// <summary>「自动」互译的母语：原文不是它时译成它。默认 zh。</summary>
+	public string TranslateAutoNative = TrLang.Zh;
+	/// <summary>「自动」互译的学习语言：原文是母语时译成它。默认 en。</summary>
+	public string TranslateAutoLearn = TrLang.En;
+
+	/// <summary>自动互译的两个语言（已规范化、保证不相同）。</summary>
+	public void AutoTranslatePair(out string native, out string learn) =>
+		TrLang.NormalizeAuto(TranslateAutoNative, TranslateAutoLearn, out native, out learn);
 
 	/// <summary>LLM 翻译默认提示词（中文）。</summary>
 	public const string DefaultTranslateLlmPromptZh =
@@ -744,6 +752,8 @@ public sealed class OcrOptions {
 		TranslateLlm = TranslateLlm ?? "",
 		TranslateLlmPrompt = TranslateLlmPrompt ?? DefaultTranslateLlmPrompt,
 		TranslateLlmBatch = TranslateLlmBatch,
+		TranslateAutoNative = TranslateAutoNative,
+		TranslateAutoLearn = TranslateAutoLearn,
 		FaceCompute = FaceCompute,
 		FaceDetModel = FaceDetModel,
 		FaceRegModel = FaceRegModel,

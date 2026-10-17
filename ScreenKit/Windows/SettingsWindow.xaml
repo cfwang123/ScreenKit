@@ -719,7 +719,32 @@
 					<StackPanel>
 						<TextBlock x:Name="lbsettrhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,12"
-						           Text="引擎在主窗口翻译 Tab 选择（本地 ONNX 或 LLM）。此处配 LLM 一批条数和提示词。"/>
+						           Text="引擎在主窗口翻译 Tab 选择（本地 ONNX 或 LLM）。此处配自动互译语言、LLM 一批条数和提示词。"/>
+						<TextBlock x:Name="lbsettrauto" Text="自动互译" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<Grid Margin="0,0,0,6">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="180"/>
+								<ColumnDefinition Width="Auto"/>
+								<ColumnDefinition Width="180"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock x:Name="lbsettrnative" Text="母语" FontSize="11"
+							           Foreground="{StaticResource TextMuted}"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<ComboBox x:Name="esettrnative" Grid.Column="1" Height="30" Margin="0,0,16,0"
+							          VerticalContentAlignment="Center"
+							          AutomationProperties.AutomationId="set.tr.auto.native"/>
+							<TextBlock x:Name="lbsettrlearn" Text="学习语言" FontSize="11"
+							           Foreground="{StaticResource TextMuted}"
+							           Grid.Column="2" VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<ComboBox x:Name="esettrlearn" Grid.Column="3" Height="30"
+							          VerticalContentAlignment="Center"
+							          AutomationProperties.AutomationId="set.tr.auto.learn"/>
+						</Grid>
+						<TextBlock x:Name="lbsettrnativehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,12"
+						           Text="原文不是母语时译成母语；原文是母语时译成学习语言。默认中文 ↔ 英文。"/>
 						<TextBlock x:Name="lbsettrllmbatch" Text="一批翻译数量" FontSize="11"
 						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
 						<TextBox x:Name="etrllmbatch" Width="88" Height="30" Padding="6,4" Margin="0,0,0,4"

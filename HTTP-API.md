@@ -932,7 +932,7 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Uses `[[llm]]` / `translate_llm` (or request `llm`) when that endpoint is ready. When it is not, the same request uses an installed local Opus-MT model for `src`→`dst`. `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
 
-`GET /api/translate/langs` returns `data.llm`, `data.src` (language codes, `auto` first), and `data.dst` (each source code maps to its target codes). `auto` means Chinese–English.
+`GET /api/translate/langs` returns `data.llm`, `data.src` (language codes, `auto` first), `data.dst` (each source code maps to its target codes), plus the auto pair `data.auto_native` / `data.auto_learn` and its display name `data.auto_label`. `auto` translates between the native and learning languages: text that is not native goes to the native language, native text goes to the learning language. Defaults to Chinese ↔ English; change it in Settings → Translate.
 
 **Request:**
 
@@ -951,7 +951,8 @@ LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexe
 |-------|-------------|
 | `items` / `texts` | String array, unlimited length. Elements may also be `{"text":"…"}` |
 | `text` | Single string; treated as a one-item batch |
-| `src` / `dst` | Language codes (`zh` / `en` / `ja` / `ko` / `fr` / `de` / `es` / `ru` / `ar` / `th` / `cht` / …). If omitted, auto zh↔en from the first non-empty item |
+| `src` / `dst` | Language codes (`zh` / `en` / `ja` / `ko` / `fr` / `de` / `es` / `ru` / `ar` / `th` / `cht` / …). May be omitted or set to `auto`; the first non-empty item is detected against the native/learning pair |
+| `native` / `learn` | Optional overrides for the configured native / learning language (e.g. `native: "zh"`, `learn: "ja"`); used only when `src`/`dst` are missing or `auto` |
 | `dir` | Optional pair such as `zh-en` |
 | `chunk` | Items per LLM call. Omitted uses `translate_llm_batch` (default 8). Range 1–64 |
 | `llm` | Optional `[[llm]]` display name or model id; default `translate_llm`, else first list entry |

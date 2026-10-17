@@ -522,6 +522,10 @@ static class AppConfig {
 			}
 			if (map.TryGetValue("translate_llm_batch", out var trb) && int.TryParse(trb, out var trBatch))
 				o.TranslateLlmBatch = Compat.Clamp(trBatch, 1, OcrOptions.TranslateLlmBatchMax);
+			if (map.TryGetValue("translate_auto_native", out var tran) && TrLang.IsLlm(tran))
+				o.TranslateAutoNative = TrLang.Normalize(tran);
+			if (map.TryGetValue("translate_auto_learn", out var tral) && TrLang.IsLlm(tral))
+				o.TranslateAutoLearn = TrLang.Normalize(tral);
 			if (map.TryGetValue("face_compute", out var fc) && !string.IsNullOrWhiteSpace(fc))
 				o.FaceCompute = fc.Trim();
 			if (map.TryGetValue("face_det_model", out var fdm))
@@ -974,6 +978,10 @@ static class AppConfig {
 		trPromptSave = trPromptSave.Replace("\r\n", "\n").Replace("\n", "\\n").Replace("\t", "\\t");
 		sb.AppendLine($"translate_llm_prompt = \"{esc(trPromptSave)}\"");
 		sb.AppendLine($"translate_llm_batch = {Compat.Clamp(o.TranslateLlmBatch <= 0 ? 8 : o.TranslateLlmBatch, 1, OcrOptions.TranslateLlmBatchMax)}");
+		sb.AppendLine("# 自动互译：原文不是母语时译成母语；原文是母语时译成学习语言。默认 中文 ↔ 英文");
+		o.AutoTranslatePair(out var trAutoNative, out var trAutoLearn);
+		sb.AppendLine($"translate_auto_native = \"{esc(trAutoNative)}\"");
+		sb.AppendLine($"translate_auto_learn = \"{esc(trAutoLearn)}\"");
 		sb.AppendLine();
 		sb.AppendLine("[face]");
 		sb.AppendLine("# 人脸识别 InsightFace ONNX：模型在程序旁 facemodels/");

@@ -181,6 +181,8 @@ static class Cli {
 		bool asrNoItn = false;
 		string translateText = null;
 		string translateDir = "zh-en";
+		string translateNative = null;
+		string translateLearn = null;
 
 		try {
 			for (int i = 0; i < args.Length; i++) {
@@ -492,6 +494,12 @@ static class Cli {
 					case "--tr-dir":
 						translateDir = Next().ToLowerInvariant();
 						break;
+					case "--tr-native":
+						translateNative = Next();
+						break;
+					case "--tr-learn":
+						translateLearn = Next();
+						break;
 					case "--help": case "-h": case "/?":
 						printhelp();
 						return 0;
@@ -720,7 +728,7 @@ static class Cli {
 
 		if (translateText != null) {
 			try {
-				return runtranslate(translateText, translateDir, device);
+				return runtranslate(translateText, translateDir, device, translateNative, translateLearn);
 			}
 			catch (Exception ex) {
 				Err($"翻译失败: {ex.Message}");
@@ -1247,9 +1255,22 @@ static class Cli {
 		return list.Any(m => m.IsReady) ? 0 : 1;
 	}
 
-	static int runtranslate(string text, string dirKey, string device) {
+	static int runtranslate(string text, string dirKey, string device, string native, string learn) {
 		Out("=== 翻译（进程内 ONNX）===");
-		dirKey = (dirKey ?? "zh-en").Trim().ToLowerInvariant();
+		dirKey = (dirKey ?? "").Trim().ToLowerInvariant();
+		if (dirKey.Length == 0 || dirKey == "auto") {
+			if (string.IsNullOrWhiteSpace(native) || string.IsNullOrWhiteSpace(learn)) {
+				var cfg = new OcrOptions();
+				try { AppConfig.LoadInto(cfg); } catch { }
+				cfg.AutoTranslatePair(out var nat, out var lrn);
+				if (string.IsNullOrWhiteSpace(native)) native = nat;
+				if (string.IsNullOrWhiteSpace(learn)) learn = lrn;
+			}
+			LangDetect.DetectPair(text, native, learn, out var asrc, out var adst);
+			dirKey = LangDetect.DirKey(asrc, adst);
+			Out($"auto {TrLang.Label(native)}->{TrLang.Label(learn)} => {dirKey}");
+		}
+		if (dirKey.Length == 0) dirKey = "zh-en";
 		var prefer = (device ?? "auto").Trim().ToLowerInvariant() switch {
 			"gpu" or "cuda" or "nvidia" => "cuda",
 			"intel" or "igpu" or "dml" or "directml" => "dml",
@@ -6517,8 +6538,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --probe-tts-gender [-d auto|gpu|cpu] [--only-model 名] [--no-write-config]
   ScreenKit --probe-cuda
   ScreenKit --list-translate
-  ScreenKit --translate "文本" [--tr-dir zh-en|en-zh] [-d auto|gpu|cpu|igpu]
-  ScreenKit --translate-file <utf8文本文件> [--tr-dir zh-en|en-zh] [-d auto|gpu|cpu|igpu]
+  ScreenKit --translate "文本" [--tr-dir auto|zh-en|en-zh] [--tr-native zh] [--tr-learn en] [-d auto|gpu|cpu|igpu]
+  ScreenKit --translate-file <utf8文本文件> [--tr-dir auto|zh-en|en-zh] [--tr-native zh] [--tr-learn en] [-d auto|gpu|cpu|igpu]
   ScreenKit --apply-update <压缩包> --target <安装目录> [--wait-pid PID] [--restart]
   ScreenKit --list-sapi           本进程 SAPI +（x64 时）x86host Web 发音人
   x86host.exe                  独立 32 位 SAPI Web（空闲 60s；主程序按需拉起）
@@ -6644,7 +6665,9 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --probe-cuda  仅探测 GPU 会话是否可用
       --list-translate  列出 Opus-MT ONNX 翻译模型
       --translate   进程内 ONNX 翻译（无需 Python）
-      --tr-dir      翻译方向 zh-en / en-zh（默认 zh-en）
+      --tr-dir      翻译方向 auto / zh-en / en-zh（默认 zh-en）
+      --tr-native   自动互译的母语（默认取配置，缺省 zh）
+      --tr-learn    自动互译的学习语言（默认取配置，缺省 en）
       --apply-update  解压更新包并覆盖 --target 目录（自更新用）
       --target      安装目录（配合 --apply-update）
       --wait-pid    等待指定进程退出后再覆盖

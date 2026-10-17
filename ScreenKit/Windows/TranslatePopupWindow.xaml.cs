@@ -235,9 +235,10 @@ public partial class TranslatePopupWindow : Window {
 	void fillsrc() {
 		uiLoading = true;
 		try {
+			var o = getopt() ?? new OcrOptions();
 			esrclng.Items.Clear();
 			esrclng.Items.Add(new ComboBoxItem {
-				Content = Loc.T("lang.auto.zhen"),
+				Content = TrLang.AutoLabel(o.TranslateAutoNative, o.TranslateAutoLearn),
 				Tag = TrLang.Auto,
 			});
 			var srcs = models.Where(m => m.IsReady)
@@ -264,8 +265,9 @@ public partial class TranslatePopupWindow : Window {
 		try {
 			edstlng.Items.Clear();
 			if (src == TrLang.Auto || string.IsNullOrEmpty(src)) {
+				var o = getopt() ?? new OcrOptions();
 				edstlng.Items.Add(new ComboBoxItem {
-					Content = Loc.T("lang.auto.zhen"),
+					Content = TrLang.AutoLabel(o.TranslateAutoNative, o.TranslateAutoLearn),
 					Tag = TrLang.Auto,
 				});
 				edstlng.SelectedIndex = 0;
@@ -324,9 +326,12 @@ public partial class TranslatePopupWindow : Window {
 		var src = selected(esrclng);
 		var dst = selected(edstlng);
 		if (src == TrLang.Auto || dst == TrLang.Auto) {
-			LangDetect.DetectZhEnPair(esrc?.Text, out var a, out var b);
+			var o = getopt() ?? new OcrOptions();
+			o.AutoTranslatePair(out var nat, out var lrn);
+			var probe = esrc?.Text ?? "";
 			if (!string.IsNullOrWhiteSpace(edst.Text))
-				LangDetect.DetectZhEnPair(edst.Text, out a, out b);
+				probe = edst.Text;
+			LangDetect.DetectPair(probe, nat, lrn, out var a, out var b);
 			pick(esrclng, b);
 			filldst(preserve: false);
 			pick(edstlng, a);
@@ -415,8 +420,11 @@ public partial class TranslatePopupWindow : Window {
 	bool resolvepair(out string src, out string dst) {
 		src = selected(esrclng);
 		dst = selected(edstlng);
-		if (src == TrLang.Auto || dst == TrLang.Auto || string.IsNullOrEmpty(src) || string.IsNullOrEmpty(dst))
-			LangDetect.DetectZhEnPair(esrc?.Text, out src, out dst);
+		if (src == TrLang.Auto || dst == TrLang.Auto || string.IsNullOrEmpty(src) || string.IsNullOrEmpty(dst)) {
+			var o = getopt() ?? new OcrOptions();
+			o.AutoTranslatePair(out var nat, out var lrn);
+			LangDetect.DetectPair(esrc?.Text, nat, lrn, out src, out dst);
+		}
 		return src.Length > 0 && dst.Length > 0;
 	}
 
@@ -434,14 +442,6 @@ public partial class TranslatePopupWindow : Window {
 		if (!resolvepair(out var src, out var dst)) {
 			lbstatus.Text = Loc.T("tr.popup.need_lang");
 			return;
-		}
-		var uiSrc = selected(esrclng);
-		var uiDst = selected(edstlng);
-		if (uiSrc == TrLang.Auto || uiDst == TrLang.Auto) {
-			if (!((src == TrLang.Zh && dst == TrLang.En) || (src == TrLang.En && dst == TrLang.Zh))) {
-				lbstatus.Text = Loc.T("tr.popup.auto_zhen");
-				return;
-			}
 		}
 		var o = getopt() ?? new OcrOptions();
 		applyenginechoice(save: false);

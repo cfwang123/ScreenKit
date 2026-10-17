@@ -135,10 +135,12 @@ public partial class MainWindow {
 			var dst = selectedlang(etrdstlng);
 			if (src == TrLang.Auto || dst == TrLang.Auto) {
 				// 自动：按当前原文检测后显式设为反向
-				LangDetect.DetectZhEnPair(etrsrc?.Text, out var a, out var b);
+				opt.AutoTranslatePair(out var nat, out var lrn);
+				var probe = etrsrc?.Text ?? "";
 				// 交换：原文若已是译文区则用译文检测
 				if (!string.IsNullOrWhiteSpace(etrdst.Text))
-					LangDetect.DetectZhEnPair(etrdst.Text, out a, out b);
+					probe = etrdst.Text;
+				LangDetect.DetectPair(probe, nat, lrn, out var a, out var b);
 				picklang(etrsrclng, b);
 				filldstlangcombo(preserve: false);
 				picklang(etrdstlng, a);
@@ -348,9 +350,9 @@ public partial class MainWindow {
 	void fillsrclangcombo() {
 		var prev = selectedlang(etrsrclng);
 		etrsrclng.Items.Clear();
-		// 自动：仅中英互译
+		// 自动：母语 ↔ 学习语言
 		etrsrclng.Items.Add(new ComboBoxItem {
-			Content = Loc.T("lang.auto.zhen"),
+			Content = TrLang.AutoLabel(opt.TranslateAutoNative, opt.TranslateAutoLearn),
 			Tag = TrLang.Auto,
 			ToolTip = Loc.T("tr.src.tip"),
 		});
@@ -382,7 +384,7 @@ public partial class MainWindow {
 
 		if (src == TrLang.Auto || string.IsNullOrEmpty(src)) {
 			etrdstlng.Items.Add(new ComboBoxItem {
-				Content = Loc.T("lang.auto.zhen"),
+				Content = TrLang.AutoLabel(opt.TranslateAutoNative, opt.TranslateAutoLearn),
 				Tag = TrLang.Auto,
 				ToolTip = Loc.T("tr.dst.tip"),
 			});
@@ -445,20 +447,22 @@ public partial class MainWindow {
 	void syncmodelcombo() {
 		trUiLoading = true;
 		try {
-			resolvepair(out var src, out var dst, forPick: true);
+			var uiSrc = selectedlang(etrsrclng);
+			var uiDst = selectedlang(etrdstlng);
 			List<TranslateModelInfo> match;
-			if (src == TrLang.Auto || dst == TrLang.Auto) {
-				// 自动：展示中英双向模型
-				match = trModels.Where(m => m.IsReady && iszhenpair(m)).ToList();
+			if (uiSrc == TrLang.Auto || uiDst == TrLang.Auto) {
+				// 自动：展示母语 ↔ 学习语言的模型
+				opt.AutoTranslatePair(out var nat, out var lrn);
+				match = trModels.Where(m => m.IsReady && isautopair(m, nat, lrn)).ToList();
 			}
 			else {
-				var key = LangDetect.DirKey(src, dst);
+				var key = LangDetect.DirKey(uiSrc, uiDst);
 				match = trModels.Where(m => m.IsReady
 					&& string.Equals(m.DirKey, key, StringComparison.OrdinalIgnoreCase)).ToList();
 				if (match.Count == 0)
 					match = trModels.Where(m => m.IsReady
-						&& string.Equals(m.SourceLang, src, StringComparison.OrdinalIgnoreCase)
-						&& string.Equals(m.TargetLang, dst, StringComparison.OrdinalIgnoreCase)).ToList();
+						&& string.Equals(m.SourceLang, uiSrc, StringComparison.OrdinalIgnoreCase)
+						&& string.Equals(m.TargetLang, uiDst, StringComparison.OrdinalIgnoreCase)).ToList();
 			}
 			etrmodel.ItemsSource = null;
 			etrmodel.DisplayMemberPath = "ListName";
@@ -471,20 +475,20 @@ public partial class MainWindow {
 		}
 	}
 
-	static bool iszhenpair(TranslateModelInfo m) {
+	static bool isautopair(TranslateModelInfo m, string nat, string lrn) {
 		if (m == null) return false;
 		var a = m.SourceLang;
 		var b = m.TargetLang;
-		return (a == TrLang.Zh && b == TrLang.En) || (a == TrLang.En && b == TrLang.Zh);
+		return (a == nat && b == lrn) || (a == lrn && b == nat);
 	}
 
-	/// <summary>解析当前 UI 源/目标；自动时按文本检测中英。</summary>
-	void resolvepair(out string src, out string dst, bool forPick) {
+	/// <summary>解析当前 UI 源/目标；自动时按母语/学习语言检测。</summary>
+	void resolvepair(out string src, out string dst) {
 		src = selectedlang(etrsrclng);
 		dst = selectedlang(etrdstlng);
 		if (src == TrLang.Auto || dst == TrLang.Auto || string.IsNullOrEmpty(src) || string.IsNullOrEmpty(dst)) {
-			// 自动仅中英
-			LangDetect.DetectZhEnPair(forPick ? etrsrc?.Text : etrsrc?.Text, out src, out dst);
+			opt.AutoTranslatePair(out var nat, out var lrn);
+			LangDetect.DetectPair(etrsrc?.Text, nat, lrn, out src, out dst);
 		}
 	}
 
@@ -526,16 +530,7 @@ public partial class MainWindow {
 			return false;
 		}
 
-		resolvepair(out src, out dst, forPick: false);
-		var uiSrc = selectedlang(etrsrclng);
-		var uiDst = selectedlang(etrdstlng);
-		if (uiSrc == TrLang.Auto || uiDst == TrLang.Auto) {
-			if (!((src == TrLang.Zh && dst == TrLang.En) || (src == TrLang.En && dst == TrLang.Zh))) {
-				lbtrstatus.Text = Loc.T("tr.popup.auto_zhen");
-				return false;
-			}
-		}
-
+		resolvepair(out src, out dst);
 		key = LangDetect.DirKey(src, dst);
 		if (usechrome()) {
 			if (ChromeTts.FindExe(opt.ChromeExe) == null) {

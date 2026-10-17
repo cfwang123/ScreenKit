@@ -1043,7 +1043,7 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"tr.src",c:"源语言"},
-						{x:"select#tr-src","data-ktip":"tr.src.tip","title":"先选源语言；「自动」仅支持中英互译（按汉字占比判定）"}
+						{x:"select#tr-src","data-ktip":"tr.src.tip","title":"先选源语言；「自动」在母语与学习语言之间互译（参数设置 → 翻译）"}
 					]
 					},
 					{
@@ -1060,7 +1060,7 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"tr.dst",c:"目标语言"},
-						{x:"select#tr-dst","data-ktip":"tr.dst.tip","title":"根据已安装模型与源语言列出可选目标；自动=中英互译"}
+						{x:"select#tr-dst","data-ktip":"tr.dst.tip","title":"根据已安装模型与源语言列出可选目标；自动=母语/学习语言互译"}
 					]
 					},
 					{

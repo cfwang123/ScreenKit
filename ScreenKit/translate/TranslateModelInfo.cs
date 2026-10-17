@@ -62,8 +62,7 @@ static class TrLang {
 		return 1000;
 	}
 
-	public static string Normalize(string code) => (code ?? "").Trim().ToLowerInvariant() switch {
-		"zho" or "chinese" or "cn" or "zh-cn" or "zh-hans" or "zh_cn" => Zh,
+	public static string Normalize(string code) => (code ?? "").Trim().ToLowerInvariant() switch {		"zho" or "chinese" or "cn" or "zh-cn" or "zh-hans" or "zh_cn" => Zh,
 		"eng" or "english" => En,
 		"jpn" or "japanese" => "ja",
 		"kor" or "korean" => "ko",
@@ -106,6 +105,22 @@ static class TrLang {
 		"uig" or "uyghur" or "uighur" => "ug",
 		var c => c,
 	};
+
+	/// <summary>规范化自动互译的两个语言；非法或相同则回落到默认中英。</summary>
+	public static void NormalizeAuto(string native, string learn, out string nat, out string lrn) {
+		nat = Normalize(native);
+		if (!IsLlm(nat)) nat = Zh;
+		lrn = Normalize(learn);
+		if (!IsLlm(lrn)) lrn = En;
+		if (string.Equals(nat, lrn, StringComparison.OrdinalIgnoreCase))
+			lrn = string.Equals(nat, Zh, StringComparison.OrdinalIgnoreCase) ? En : Zh;
+	}
+
+	/// <summary>「自动」下拉的显示名，如 自动（中文 ↔ 英文）。</summary>
+	public static string AutoLabel(string native, string learn) {
+		NormalizeAuto(native, learn, out var nat, out var lrn);
+		return Loc.T("lang.auto.pair", Label(nat), Label(lrn));
+	}
 
 	/// <summary>从 opus-mt-zh-en / zh-en 解析源、目标。</summary>
 	public static bool TryParsePair(string nameOrKey, out string src, out string dst) {

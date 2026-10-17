@@ -337,6 +337,10 @@ public partial class SettingsWindow : Window {
 			itllmthinkhigh.Content = Loc.T("set.llm.think.high");
 			itllmthinkmax.Content = Loc.T("set.llm.think.max");
 			lbsettrhint.Text = Loc.T("set.tr.hint");
+			lbsettrauto.Text = Loc.T("set.tr.auto");
+			lbsettrnative.Text = Loc.T("set.tr.auto.native");
+			lbsettrlearn.Text = Loc.T("set.tr.auto.learn");
+			lbsettrnativehint.Text = Loc.T("set.tr.auto.hint");
 			lbsettrllmbatch.Text = Loc.T("set.tr.llm.batch");
 			lbsettrllmbatchhint.Text = Loc.T("set.tr.llm.batch.hint");
 			lbsettrllmprompt.Text = Loc.T("set.tr.llm.prompt");
@@ -463,6 +467,23 @@ public partial class SettingsWindow : Window {
 		else if (euilang.Items.Count > 0) euilang.SelectedIndex = 0;
 	}
 
+	void filltrlangboxes(OcrOptions o) {
+		o.AutoTranslatePair(out var nat, out var lrn);
+		filltrlangbox(esettrnative, nat);
+		filltrlangbox(esettrlearn, lrn);
+	}
+
+	void filltrlangbox(ComboBox box, string want) {
+		box.Items.Clear();
+		ComboBoxItem pick = null;
+		foreach (var c in TrLang.LlmCodes) {
+			var it = new ComboBoxItem { Content = TrLang.Label(c), Tag = c };
+			box.Items.Add(it);
+			if (string.Equals(c, want, StringComparison.OrdinalIgnoreCase)) pick = it;
+		}
+		box.SelectedItem = pick ?? box.Items[0];
+	}
+
 	void loadui(OcrOptions o) {
 		filluilang(o.UiLang);
 		esetchromepath.Text = o.ChromeExe ?? "";
@@ -546,6 +567,7 @@ public partial class SettingsWindow : Window {
 			? OcrOptions.DefaultTranslatePrompt() : o.TranslateLlmPrompt;
 		etrllmbatch.Text = Compat.Clamp(o.TranslateLlmBatch <= 0 ? 8 : o.TranslateLlmBatch,
 			1, OcrOptions.TranslateLlmBatchMax).ToString();
+		filltrlangboxes(o);
 		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
 		emintray.IsChecked = o.MinimizeToTray;
@@ -817,6 +839,10 @@ public partial class SettingsWindow : Window {
 		if (!tryint(etrllmbatch, Loc.T("set.tr.llm.batch"), 1, OcrOptions.TranslateLlmBatchMax,
 			out var trBatch, tabsettr)) return false;
 		Result.TranslateLlmBatch = trBatch;
+		TrLang.NormalizeAuto((esettrnative.SelectedItem as ComboBoxItem)?.Tag as string,
+			(esettrlearn.SelectedItem as ComboBoxItem)?.Tag as string, out var trAutoNative, out var trAutoLearn);
+		Result.TranslateAutoNative = trAutoNative;
+		Result.TranslateAutoLearn = trAutoLearn;
 		Result.MinimizeToTray = emintray.IsChecked == true;
 		Result.TabOcrVisible = Result.ModOcr = etabocrvisible.IsChecked == true;
 		Result.TabTtsVisible = Result.ModTts = etabttsvisible.IsChecked == true;

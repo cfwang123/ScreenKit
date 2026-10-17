@@ -25,6 +25,7 @@ sealed partial class HttpOcrServer {
 			foreach (var t in translatedsts(models, wide, s)) arr.Add(t);
 			dst[s] = arr;
 		}
+		o.AutoTranslatePair(out var autoNative, out var autoLearn);
 		writejson(ctx, 200, new JsonObject {
 			["code"] = 100,
 			["data"] = new JsonObject {
@@ -32,6 +33,9 @@ sealed partial class HttpOcrServer {
 				["chrome"] = chrome,
 				["src"] = srcArr,
 				["dst"] = dst,
+				["auto_native"] = autoNative,
+				["auto_learn"] = autoLearn,
+				["auto_label"] = TrLang.AutoLabel(autoNative, autoLearn),
 			},
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
 		});
@@ -58,22 +62,7 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 
-		var src = TrLang.Normalize(str(jo, "src") ?? str(jo, "from") ?? "");
-		var dst = TrLang.Normalize(str(jo, "dst") ?? str(jo, "to") ?? "");
-		var dir = str(jo, "dir") ?? str(jo, "tr_dir") ?? "";
-		if ((src.Length == 0 || dst.Length == 0) && TrLang.TryParsePair(dir, out var ds, out var dd)) {
-			if (src.Length == 0) src = ds;
-			if (dst.Length == 0) dst = dd;
-		}
-		if (src.Length == 0 || dst.Length == 0 || src == TrLang.Auto || dst == TrLang.Auto) {
-			var probe = "";
-			foreach (var t in items) {
-				if (!string.IsNullOrWhiteSpace(t)) { probe = t; break; }
-			}
-			LangDetect.DetectZhEnPair(probe, out var asrc, out var adst);
-			if (src.Length == 0 || src == TrLang.Auto) src = asrc;
-			if (dst.Length == 0 || dst == TrLang.Auto) dst = adst;
-		}
+		resolvereq(o, jo, items, out var src, out var dst);
 		if (!AsrLlmClient.IsEndpointReady(ep)) {
 			translateonnx(ctx, o, items, src, dst);
 			return;
@@ -142,20 +131,7 @@ sealed partial class HttpOcrServer {
 		}
 		var src = TrLang.Normalize(str(jo, "src") ?? str(jo, "from") ?? "");
 		var dst = TrLang.Normalize(str(jo, "dst") ?? str(jo, "to") ?? "");
-		var dir = str(jo, "dir") ?? str(jo, "tr_dir") ?? "";
-		if ((src.Length == 0 || dst.Length == 0) && TrLang.TryParsePair(dir, out var ds, out var dd)) {
-			if (src.Length == 0) src = ds;
-			if (dst.Length == 0) dst = dd;
-		}
-		if (src.Length == 0 || dst.Length == 0 || src == TrLang.Auto || dst == TrLang.Auto) {
-			var probe = "";
-			foreach (var t in items) {
-				if (!string.IsNullOrWhiteSpace(t)) { probe = t; break; }
-			}
-			LangDetect.DetectZhEnPair(probe, out var asrc, out var adst);
-			if (src.Length == 0 || src == TrLang.Auto) src = asrc;
-			if (dst.Length == 0 || dst == TrLang.Auto) dst = adst;
-		}
+		resolvereq(o, jo, items, out src, out dst);
 		var t0 = Environment.TickCount;
 		List<string> outs;
 		try {
@@ -228,6 +204,27 @@ sealed partial class HttpOcrServer {
 			return list;
 		}
 		return list;
+	}
+
+	/// <summary>解析请求语言：src/dst/dir 优先；缺省或 auto 时按 native/learn（缺省取配置）检测。</summary>
+	static void resolvereq(OcrOptions o, JsonObject jo, List<string> items, out string src, out string dst) {
+		src = TrLang.Normalize(str(jo, "src") ?? str(jo, "from") ?? "");
+		dst = TrLang.Normalize(str(jo, "dst") ?? str(jo, "to") ?? "");
+		var dir = str(jo, "dir") ?? str(jo, "tr_dir") ?? "";
+		if ((src.Length == 0 || dst.Length == 0) && TrLang.TryParsePair(dir, out var ds, out var dd)) {
+			if (src.Length == 0) src = ds;
+			if (dst.Length == 0) dst = dd;
+		}
+		if (src.Length > 0 && src != TrLang.Auto && dst.Length > 0 && dst != TrLang.Auto) return;
+		var probe = "";
+		foreach (var t in items) {
+			if (!string.IsNullOrWhiteSpace(t)) { probe = t; break; }
+		}
+		var native = str(jo, "native") ?? str(jo, "auto_native") ?? o?.TranslateAutoNative;
+		var learn = str(jo, "learn") ?? str(jo, "auto_learn") ?? o?.TranslateAutoLearn;
+		LangDetect.DetectPair(probe, native, learn, out var asrc, out var adst);
+		if (src.Length == 0 || src == TrLang.Auto) src = asrc;
+		if (dst.Length == 0 || dst == TrLang.Auto) dst = adst;
 	}
 
 	void translateonnx(SockCtx ctx, OcrOptions o, List<string> items, string src, string dst) {
