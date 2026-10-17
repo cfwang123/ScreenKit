@@ -1355,6 +1355,7 @@
 									<RowDefinition Height="Auto"/>
 									<RowDefinition Height="Auto"/>
 									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="Auto"/>
 								</Grid.RowDefinitions>
 
 								<TextBlock x:Name="lbtrengine" Grid.Row="0" Grid.Column="0" Text="引擎" FontWeight="SemiBold"
@@ -1392,7 +1393,10 @@
 								          VerticalContentAlignment="Center" Margin="0,0,0,8"
 								          ToolTip="仅本地 ONNX：与 OCR 共用 CUDA/DirectML。"/>
 
-								<TextBlock x:Name="lbtrhint" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="10"
+								<TextBlock x:Name="lbtrdetect" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="10"
+								           FontSize="11" Foreground="{StaticResource Accent}" TextWrapping="Wrap"
+								           Visibility="Collapsed" Text="自动检测：中文 → 英文"/>
+								<TextBlock x:Name="lbtrhint" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="10"
 								           FontSize="11" Foreground="{StaticResource TextMuted}"
 								           TextWrapping="Wrap"
 								           Text="模型：translatemodels。引擎可选本地 ONNX 或 LLM。"/>

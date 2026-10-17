@@ -16,6 +16,7 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
@@ -40,7 +41,12 @@
 			          AutomationProperties.AutomationId="tr.popup.src"/>
 		</DockPanel>
 
-		<DockPanel Grid.Row="2" Margin="0,0,0,8" LastChildFill="True">
+		<TextBlock x:Name="lbdetect" Grid.Row="2" FontSize="11" Foreground="{StaticResource Accent}"
+		           Margin="0,0,0,8" TextWrapping="Wrap" Visibility="Collapsed"
+		           Text="自动检测：中文 → 英文"
+		           AutomationProperties.AutomationId="tr.popup.detect"/>
+
+		<DockPanel Grid.Row="3" Margin="0,0,0,8" LastChildFill="True">
 			<Grid DockPanel.Dock="Top" Margin="0,0,0,4">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="*"/>
@@ -62,7 +68,7 @@
 			</Border>
 		</DockPanel>
 
-		<DockPanel Grid.Row="3" Margin="0,0,0,8" LastChildFill="True">
+		<DockPanel Grid.Row="4" Margin="0,0,0,8" LastChildFill="True">
 			<Grid DockPanel.Dock="Top" Margin="0,0,0,4">
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition Width="*"/>
@@ -85,7 +91,7 @@
 			</Border>
 		</DockPanel>
 
-		<DockPanel Grid.Row="4">
+		<DockPanel Grid.Row="5">
 			<Button x:Name="bgo" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource ToolBtn}"
 			        Height="30" Padding="14,4" Margin="6,0,0,0"
 			        AutomationProperties.AutomationId="tr.popup.go"/>

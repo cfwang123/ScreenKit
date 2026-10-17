@@ -66,6 +66,7 @@ public partial class MainWindow {
 			if (trUiLoading) return;
 			syncmodelcombo();
 		};
+		etrsrc.TextChanged += (_, _) => syncautodetect();
 		etrengine.SelectionChanged += (_, _) => {
 			if (trUiLoading) return;
 			synctrengineui();
@@ -473,6 +474,21 @@ public partial class MainWindow {
 		finally {
 			trUiLoading = false;
 		}
+		syncautodetect();
+	}
+
+	/// <summary>「自动」时显示源/目标语言的判断结果；选了明确语言则隐藏。</summary>
+	void syncautodetect() {
+		if (lbtrdetect == null) return;
+		var auto = selectedlang(etrsrclng) == TrLang.Auto || selectedlang(etrdstlng) == TrLang.Auto;
+		if (!auto) {
+			lbtrdetect.Visibility = Visibility.Collapsed;
+			return;
+		}
+		opt.AutoTranslatePair(out var nat, out var lrn);
+		LangDetect.DetectPair(etrsrc?.Text, nat, lrn, out var src, out var dst);
+		lbtrdetect.Text = Loc.T("tr.auto.detect", TrLang.Label(src), TrLang.Label(dst));
+		lbtrdetect.Visibility = Visibility.Visible;
 	}
 
 	static bool isautopair(TranslateModelInfo m, string nat, string lrn) {

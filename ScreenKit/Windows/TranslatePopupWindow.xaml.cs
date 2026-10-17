@@ -44,7 +44,13 @@ public partial class TranslatePopupWindow : Window {
 		esrclng.SelectionChanged += (_, _) => {
 			if (uiLoading) return;
 			filldst(preserve: true);
+			syncautodetect();
 		};
+		edstlng.SelectionChanged += (_, _) => {
+			if (uiLoading) return;
+			syncautodetect();
+		};
+		esrc.TextChanged += (_, _) => syncautodetect();
 		etrengine.SelectionChanged += (_, _) => {
 			if (uiLoading) return;
 			applyenginechoice(save: true);
@@ -128,6 +134,7 @@ public partial class TranslatePopupWindow : Window {
 		filldst(preserve: false);
 		if (!pick(edstlng, prevDst) && edstlng.Items.Count > 0)
 			edstlng.SelectedIndex = 0;
+		syncautodetect();
 	}
 
 	public void ApplyLang() => applylang();
@@ -166,6 +173,22 @@ public partial class TranslatePopupWindow : Window {
 		pick(esrclng, keepSrc);
 		filldst(preserve: false);
 		pick(edstlng, keepDst);
+		syncautodetect();
+	}
+
+	/// <summary>「自动」时显示源/目标语言的判断结果；选了明确语言则隐藏。</summary>
+	void syncautodetect() {
+		if (lbdetect == null) return;
+		var auto = selected(esrclng) == TrLang.Auto || selected(edstlng) == TrLang.Auto;
+		if (!auto) {
+			lbdetect.Visibility = Visibility.Collapsed;
+			return;
+		}
+		var o = getopt() ?? new OcrOptions();
+		o.AutoTranslatePair(out var nat, out var lrn);
+		LangDetect.DetectPair(esrc?.Text, nat, lrn, out var src, out var dst);
+		lbdetect.Text = Loc.T("tr.auto.detect", TrLang.Label(src), TrLang.Label(dst));
+		lbdetect.Visibility = Visibility.Visible;
 	}
 
 	bool usechrome() =>
