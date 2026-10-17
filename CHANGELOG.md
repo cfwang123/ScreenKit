@@ -44,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Auto translation now shows the detected direction in the translate tab and popup (for example `Auto detect: English → Chinese`) and updates it as you type.
 - On the Translate tab, **Ctrl+Enter** starts translation (same as the translate popup).
 - Wubi, Japanese, and Korean input takes custom lexicons. The lexicon window (IME tray menu, or Ctrl+Shift+F7) imports a text lexicon, exports the user words, and deletes entries; the text under dict/ next to the program is the source of truth, so a reinstalled ime.db restores it. Wubi is code + word, Japanese reading + word (kana or romaji), Korean just the word. --ime-dict-import <wubi|ja|ko> <file> imports from the command line.
+- Wubi candidates can skip rare characters: entries in the lexicon with no word frequency (CJK extension characters, uncommon idioms) are hidden by default. The Rare characters item in the IME tray menu, or the checkbox in IME settings, brings them back. Words you pinned or imported are always shown.
 
 ### 中文
 
@@ -53,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 翻译页和翻译小窗在「自动」时显示判断结果（如「自动检测：英文 → 中文」），随输入实时更新。
 - 翻译页支持 **Ctrl+Enter** 直接开始翻译（与翻译小窗一致）。
 - 五笔、日语、韩语输入支持自定义词库。「词库」窗口（输入法托盘菜单，或 Ctrl+Shift+F7）可导入文本词库、导出用户词、删除词条；程序旁 dict/ 下的文本是词库本体，重装 ime.db 后自动恢复。五笔是「编码 + 词」，日语「读音 + 词」（假名或罗马字），韩语只有「词」。命令行 --ime-dict-import <wubi|ja|ko> <文件> 也能导入。
+- 五笔候选可以不要生僻字：词库里没有词频的字词（CJK 扩展区、罕用成语）默认不显示，输入法托盘菜单的「生僻字」，或输入法设置里的勾选框可以打开。自己置顶和导入的词照常显示。
 
 ## v1.0.24 (2026-10-17)
 

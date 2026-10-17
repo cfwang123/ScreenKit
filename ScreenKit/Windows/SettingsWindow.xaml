@@ -401,6 +401,11 @@
 						          AutomationProperties.AutomationId="set.ime.gvim"/>
 						<TextBlock x:Name="lbimegvimhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+						<CheckBox x:Name="cbimerare" Margin="0,4,0,4"
+						          AutomationProperties.AutomationId="set.ime.rare"/>
+						<TextBlock x:Name="lbimerarehint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,10" TextWrapping="Wrap"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

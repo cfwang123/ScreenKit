@@ -4314,7 +4314,7 @@ CREATE TABLE trad (simp TEXT NOT NULL, trad TEXT NOT NULL, rank INTEGER NOT NULL
 CREATE TABLE kr_word (text TEXT PRIMARY KEY, freq INTEGER NOT NULL);
 CREATE TABLE kr_hanja (hangul TEXT NOT NULL, hanja TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (hangul, hanja));
 CREATE TABLE ja_word (reading TEXT NOT NULL, text TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (reading, text));
-INSERT INTO wubi(code,text,rank) VALUES('abqi','七联锁',1000),('abcd','内置',1000);
+INSERT INTO wubi(code,text,rank) VALUES('abqi','七联锁',1000),('abcd','内置',1000),('abcd','内建',1001),('abcd','鿍',1000000),('abce','鿎',0);
 INSERT INTO kr_word(text,freq) VALUES('한국',100);
 INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1);
 INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
@@ -4338,16 +4338,48 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 
 			// 五笔：用户词盖过同码内置词，倒序写的那条也认
 			if (fail == null) {
-				var rows = ImeLex.QueryWubi("abqi", false);
+				var rows = ImeLex.QueryWubi("abqi", false, true);
 				if (rows.Count == 0 || rows[0].Raw != "七联锁" || rows[0].Picks <= 0) fail = "wubi rank";
 			}
 			if (fail == null) {
-				var rows = ImeLex.QueryWubi("xyxy", false);
+				var rows = ImeLex.QueryWubi("xyxy", false, true);
 				if (rows.Count == 0 || rows[0].Raw != "神奇") fail = "wubi ordered pair";
 			}
 			if (fail == null) {
-				var rows = ImeLex.QueryWubi("abcd", false);
+				var rows = ImeLex.QueryWubi("abcd", false, true);
 				if (rows.Count == 0 || rows[0].Raw != "内置") fail = "wubi builtin";
+			}
+			// 生僻字开关：rank 0 和 1000000 的算生僻，默认不要
+			if (fail == null) {
+				bool hit = false;
+				foreach (var r in ImeLex.QueryWubi("abcd", false, false)) if (r.Raw == "鿍") hit = true;
+				if (hit) fail = "rare shown";
+				hit = false;
+				foreach (var r in ImeLex.QueryWubi("abcd", false, true)) if (r.Raw == "鿍") hit = true;
+				if (!hit) fail = "rare hidden";
+			}
+			if (fail == null) {
+				if (ImeLex.QueryWubi("abce", false, false).Count != 0) fail = "rare zero shown";
+				if (ImeLex.QueryWubi("abce", false, true).Count == 0) fail = "rare zero hidden";
+			}
+			// 引擎里打字：关掉生僻字只剩常用词，打开后生僻字进来
+			if (fail == null) {
+				var eng = new ImeEngine();
+				eng.LoadMeta(false, Lang.Wubi, false, false, false);
+				foreach (var ch in "abcd") {
+					eng.Key(Vk.A + (ch - 'a'), true, false, false, false, false);
+					eng.Key(Vk.A + (ch - 'a'), false, false, false, false, false);
+				}
+				bool hasrare = false, hasbuilt = false;
+				foreach (var c in eng.PageItems) {
+					if (c.Text == "鿍") hasrare = true;
+					if (c.Text == "内置") hasbuilt = true;
+				}
+				if (hasrare || !hasbuilt) fail = "engine rare off " + hasrare + "/" + hasbuilt;
+				eng.SetRare(true);
+				hasrare = false;
+				foreach (var c in eng.PageItems) if (c.Text == "鿍") hasrare = true;
+				if (!hasrare) fail = "engine rare on";
 			}
 			// 日语：假名和罗马字读音都要落到同一读音上
 			if (fail == null) {
@@ -4383,15 +4415,21 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			// 外部文件导入：并进词库文本，同时在库里
 			if (fail == null) {
 				var ext = Path.Combine(dir, "外部词库.txt");
-				File.WriteAllText(ext, "yyih\t方波\r\nbadline\r\n", new UTF8Encoding(false));
+				File.WriteAllText(ext, "yyih\t方波\r\nzzzz\t鿍\r\nbadline\r\n", new UTF8Encoding(false));
 				int total, bad;
 				int add = ImeDict.Import("wubi", ext, out total, out bad);
-				if (add != 1 || bad != 1 || total != 3) fail = "import add=" + add + " bad=" + bad + " total=" + total;
+				if (add != 2 || bad != 1 || total != 4) fail = "import add=" + add + " bad=" + bad + " total=" + total;
 			}
 			if (fail == null) {
 				bool hit = false;
 				foreach (var e in ImeDict.List("wubi")) if (e.Text == "方波") hit = true;
 				if (!hit) fail = "import db";
+			}
+			// 自己置顶和导入的词不受生僻字开关影响
+			if (fail == null) {
+				bool hit = false;
+				foreach (var r in ImeLex.QueryWubi("zzzz", false, false)) if (r.Raw == "鿍") hit = true;
+				if (!hit) fail = "user rare hidden";
 			}
 			// 导出再解析，条数和内容对得上
 			if (fail == null) {

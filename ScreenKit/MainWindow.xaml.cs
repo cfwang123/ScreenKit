@@ -968,7 +968,7 @@ public partial class MainWindow : Window {
 				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
 			}));
 			hangul = new HangulIme();
-			hangul.Remember(opt.ImeLang, opt.ImeTrad);
+			hangul.Remember(opt.ImeLang, opt.ImeTrad, opt.ImeRare);
 			hangul.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
 			hangul.ApplyGvimMode(opt.ImeGvimMode);
 			hangul.Changed += () => {
@@ -988,6 +988,11 @@ public partial class MainWindow : Window {
 			};
 			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => openimesettings()));
 			hangul.Dict += () => Dispatcher.BeginInvoke(new Action(() => openimedic()));
+			hangul.RareChanged += () => {
+				opt.ImeRare = hangul.Rare;
+				try { AppConfig.Save(opt); } catch { }
+				setstatus(Loc.T(hangul.Rare ? "hangul.rare.on" : "hangul.rare.off"));
+			};
 			hotkeyAuto = new GlobalHotkey(this, 0x700A);
 			hotkeyAuto.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
@@ -1099,6 +1104,7 @@ public partial class MainWindow : Window {
 		try {
 			hangul?.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
 			hangul?.ApplyGvimMode(opt.ImeGvimMode);
+			hangul?.ApplyRare(opt.ImeRare);
 		} catch { }
 		var akerr = bindautokeyhotkey();
 		if (akerr.Length > 0) errs.Add(akerr);
@@ -4371,7 +4377,9 @@ public partial class MainWindow : Window {
 		opt.HotkeyImeKo = r.HotkeyImeKo;
 		opt.HotkeyImeOff = r.HotkeyImeOff;
 		opt.ImeGvimMode = r.ImeGvimMode;
+		opt.ImeRare = r.ImeRare;
 		hangul?.ApplyGvimMode(opt.ImeGvimMode);
+		hangul?.ApplyRare(opt.ImeRare);
 		if (hotkeyChanged) registerhotkey();
 		try { AppConfig.Save(opt); } catch { }
 	}

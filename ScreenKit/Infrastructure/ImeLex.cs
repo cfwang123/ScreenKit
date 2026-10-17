@@ -117,7 +117,8 @@ static class ImeLex {
 				("$p", Convert.ToInt32(o) == 0 ? 1 : 0), ("$t", text));
 	}
 
-	public static List<Cand> QueryWubi(string prefix, bool trad) {
+	/// <summary>五笔候选。rare 关掉时不要词库里没有词频的字词（rank 0 或 1000000 起，即生僻字）。</summary>
+	public static List<Cand> QueryWubi(string prefix, bool trad, bool rare) {
 		var map = new Dictionary<string, Cand>();
 		if (string.IsNullOrEmpty(prefix) || !ready()) return new List<Cand>();
 		void put(Cand c) {
@@ -127,8 +128,9 @@ static class ImeLex {
 			if (c.Pinned) old.Pinned = true;
 			if (c.Picks > old.Picks) old.Picks = c.Picks;
 		}
-		each(@"SELECT code,text,rank FROM wubi WHERE code LIKE $p || '%'
-			ORDER BY length(code), rank LIMIT 400",
+		each(@"SELECT code,text,rank FROM wubi WHERE code LIKE $p || '%'"
+			+ (rare ? "" : " AND rank<>0 AND rank<1000000")
+			+ @" ORDER BY length(code), rank LIMIT 400",
 			r => put(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) }),
 			("$p", prefix));
 		each(@"SELECT code,text,pinned,picks FROM user_wubi WHERE code LIKE $p || '%'

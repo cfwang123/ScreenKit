@@ -146,6 +146,8 @@ public partial class ImeSettingsWindow : Window {
 		lbhkhintImeOff.Text = Loc.T("set.hotkey.ime.off");
 		cbimegvim.Content = Loc.T("set.ime.gvim");
 		lbimegvimhint.Text = Loc.T("set.ime.gvim.hint");
+		cbimerare.Content = Loc.T("set.ime.rare");
+		lbimerarehint.Text = Loc.T("set.ime.rare.hint");
 		foreach (var (clear, cap) in new[] {
 			(bimecycleclear, bimecyclecap), (bimewubiclear, bimewubicap),
 			(bimejaclear, bimejacap), (bimekoclear, bimekocap), (bimeoffclear, bimeoffcap),
@@ -170,6 +172,7 @@ public partial class ImeSettingsWindow : Window {
 		ehotkeyimeko.Text = GlobalHotkey.Display(o.HotkeyImeKo);
 		ehotkeyimeoff.Text = GlobalHotkey.Display(o.HotkeyImeOff);
 		cbimegvim.IsChecked = o.ImeGvimMode;
+		cbimerare.IsChecked = o.ImeRare;
 	}
 
 	bool saveui() {
@@ -179,6 +182,7 @@ public partial class ImeSettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeyimeko, Loc.T("set.hotkey.ime.ko"), out Result.HotkeyImeKo)) return false;
 		if (!tryreadhotkey(ehotkeyimeoff, Loc.T("set.hotkey.ime.off"), out Result.HotkeyImeOff)) return false;
 		Result.ImeGvimMode = cbimegvim.IsChecked == true;
+		Result.ImeRare = cbimerare.IsChecked == true;
 		return true;
 	}
 

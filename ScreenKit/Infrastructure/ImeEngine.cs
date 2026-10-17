@@ -9,6 +9,7 @@ class ImeEngine {
 	bool shiften;
 	bool caps;
 	bool trad;
+	bool rare;
 	bool off;
 	bool shiftdown;
 	bool shiftused;
@@ -46,6 +47,7 @@ class ImeEngine {
 	public View Now => off || caps || shiften ? View.En : cjk == Lang.Ja ? View.Ja : cjk == Lang.Ko ? View.Ko : View.Wubi;
 	public bool Horizontal => Now == View.Wubi;
 	public bool Trad => trad;
+	public bool Rare => rare;
 	public int Page => page;
 	public int PageCount => cands.Count == 0 ? 0 : (cands.Count + 8) / 9;
 	public IList<Cand> PageItems {
@@ -93,11 +95,20 @@ class ImeEngine {
 
 	public void Discard() { clearcomp(); }
 
-	public void LoadMeta(bool tradOn, Lang lang, bool en, bool paused = false) {
+	public void LoadMeta(bool tradOn, Lang lang, bool en, bool paused = false, bool rareOn = false) {
 		trad = tradOn;
 		shiften = en;
 		off = paused;
+		rare = rareOn;
 		if (lang == Lang.Ja || lang == Lang.Ko || lang == Lang.Wubi) cjk = lang;
+	}
+
+	/// <summary>五笔候选里是否带生僻字。正在打五笔时立刻重算候选。</summary>
+	public void SetRare(bool on) {
+		if (rare == on) return;
+		rare = on;
+		ping();
+		if (Now == View.Wubi && code.Length > 0) reload(false);
 	}
 
 	public void LoadOpts(string zh, string ja, string ko, string paused, string cycle, bool zhOn, bool jaOn, bool koOn) {
@@ -625,7 +636,7 @@ class ImeEngine {
 			page = 0;
 			return;
 		}
-		cands = ImeLex.QueryWubi(code, trad);
+		cands = ImeLex.QueryWubi(code, trad, rare);
 		if (page >= PageCount) page = 0;
 		if (!auto) return;
 		if (code.Length == 4 && cands.Count == 1) commitabs(0);

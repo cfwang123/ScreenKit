@@ -36,6 +36,7 @@ sealed class HangulIme : IDisposable {
 	Forms.ToolStripMenuItem mioff;
 	Forms.ToolStripMenuItem miset;
 	Forms.ToolStripMenuItem midict;
+	Forms.ToolStripMenuItem mirare;
 	IntPtr hook;
 	HookProc proc;
 	IntPtr watch;
@@ -44,6 +45,7 @@ sealed class HangulIme : IDisposable {
 	bool gvimMode;
 	Lang lang = Lang.Ko;
 	bool trad;
+	bool rare;
 	bool enabled;
 	bool sending;
 	bool eat;
@@ -52,11 +54,13 @@ sealed class HangulIme : IDisposable {
 	public event Action Changed;
 	public event Action Settings;
 	public event Action Dict;
+	public event Action RareChanged;
 
 	public bool On => enabled;
 	public bool English => eng.Now == View.En;
 	public bool Paused => eng.Off;
 	public bool Trad => eng.Trad;
+	public bool Rare => eng.Rare;
 	public string LangCode => eng.LangCode;
 	public string Badge => eng.Badge;
 
@@ -79,9 +83,23 @@ sealed class HangulIme : IDisposable {
 		};
 	}
 
-	public void Remember(string code, bool tradOn) {
+	public void Remember(string code, bool tradOn, bool rareOn) {
 		trad = tradOn;
+		rare = rareOn;
 		lang = code == "ja" ? Lang.Ja : code == "wubi" ? Lang.Wubi : Lang.Ko;
+	}
+
+	/// <summary>五笔候选带不带生僻字。设置窗和托盘都能改。</summary>
+	public void ApplyRare(bool on) {
+		rare = on;
+		eng.SetRare(on);
+		if (mirare != null) mirare.Checked = on;
+	}
+
+	public void ToggleRare() {
+		if (dead) return;
+		ApplyRare(!rare);
+		try { RareChanged?.Invoke(); } catch { }
 	}
 
 	public void ApplyGvimMode(bool on) {
@@ -132,7 +150,7 @@ sealed class HangulIme : IDisposable {
 		if (!ImeLex.DbInstalled) return false;
 		if (!install()) return false;
 		ImeDict.SyncAll();
-		eng.LoadMeta(trad, lang, false, false);
+		eng.LoadMeta(trad, lang, false, false, rare);
 		enabled = true;
 		watch = GetForegroundWindow();
 		showtray();
@@ -275,10 +293,14 @@ sealed class HangulIme : IDisposable {
 		miset.Click += (_, _) => { try { Settings?.Invoke(); } catch { } };
 		midict = new Forms.ToolStripMenuItem();
 		midict.Click += (_, _) => { try { Dict?.Invoke(); } catch { } };
+		mirare = new Forms.ToolStripMenuItem { CheckOnClick = false };
+		mirare.Click += (_, _) => ToggleRare();
 		menu.Items.Add(miwubi);
 		menu.Items.Add(mija);
 		menu.Items.Add(miko);
 		menu.Items.Add(mioff);
+		menu.Items.Add(new Forms.ToolStripSeparator());
+		menu.Items.Add(mirare);
 		menu.Items.Add(miset);
 		menu.Items.Add(midict);
 		ni.MouseClick += (_, e) => {
@@ -313,6 +335,10 @@ sealed class HangulIme : IDisposable {
 		if (mioff != null) mioff.Text = Loc.T("hangul.menu.off");
 		if (miset != null) miset.Text = Loc.T("hangul.menu.settings");
 		if (midict != null) midict.Text = Loc.T("hangul.menu.dict");
+		if (mirare != null) {
+			mirare.Text = Loc.T("hangul.menu.rare");
+			mirare.Checked = rare;
+		}
 		if (ni != null && enabled) showtray();
 	}
 
