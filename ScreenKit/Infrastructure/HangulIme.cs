@@ -6,7 +6,7 @@ namespace ScreenKit;
 
 /// <summary>
 /// 按快捷键接管键盘。五笔、日语、韩语共用候选条，词从可安装的 ime.db 来。
-/// 组字只显示在候选条上，选定后再送进当前窗口。本程序窗口里的按键不接管。
+/// 组字只显示在候选条上，选定后再送进当前前台窗口（含本程序窗口）。
 /// 单独按 Shift 在当前语言和英文之间切换。右 Alt 或韩/英键同样切换英文。
 /// </summary>
 sealed class HangulIme : IDisposable {
@@ -178,7 +178,7 @@ sealed class HangulIme : IDisposable {
 		if (eng.Off) return;
 		var fg = GetForegroundWindow();
 		if (fg == IntPtr.Zero) return;
-		if (ours(fg) || (watch != IntPtr.Zero && watch != fg)) {
+		if (watch != IntPtr.Zero && watch != fg) {
 			if (eng.ShowBar) {
 				eng.Discard();
 				hidecand();
@@ -352,13 +352,6 @@ sealed class HangulIme : IDisposable {
 	}
 
 	void onkey(int vk, bool down) {
-		if (ours(GetForegroundWindow())) {
-			if (down && eng.ShowBar) {
-				eng.Discard();
-				hidecand();
-			}
-			return;
-		}
 		bool ctrl = downctrl();
 		bool win = downwin();
 		bool alt = downalt();
@@ -449,12 +442,6 @@ sealed class HangulIme : IDisposable {
 	static bool downctrl() => (GetKeyState(Vk.Ctrl) & 0x8000) != 0;
 	static bool downalt() => (GetKeyState(Vk.Alt) & 0x8000) != 0;
 	static bool downwin() => (GetKeyState(Vk.LWin) & 0x8000) != 0 || (GetKeyState(Vk.RWin) & 0x8000) != 0;
-
-	static bool ours(IntPtr fg) {
-		if (fg == IntPtr.Zero) return false;
-		GetWindowThreadProcessId(fg, out var pid);
-		return pid == (uint)System.Diagnostics.Process.GetCurrentProcess().Id;
-	}
 
 	void replace(int dels, string add) {
 		var list = new List<INPUT>();
@@ -550,7 +537,6 @@ sealed class HangulIme : IDisposable {
 	[DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] inputs, int cb);
 	[DllImport("user32.dll")] static extern short GetKeyState(int vKey);
 	[DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
-	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
 	[DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr h);
 	[DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
 	[DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);

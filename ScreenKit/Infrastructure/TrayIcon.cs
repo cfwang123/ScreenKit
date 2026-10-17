@@ -17,6 +17,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miShow;
 	Forms.ToolStripMenuItem miOcr;
 	Forms.ToolStripMenuItem miSnap;
+	Forms.ToolStripMenuItem miScreenSnap;
 	Forms.ToolStripMenuItem miBoard;
 	Forms.ToolStripMenuItem miVoice;
 	Forms.ToolStripMenuItem miTranslate;
@@ -89,8 +90,8 @@ sealed class TrayIcon : IDisposable {
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
 	System.Drawing.Point menuScreenLoc;
 
-	/// <summary>返回 (呼出, 截图识别, 截图标注, 屏幕画板, 语音输入, 翻译小窗, 切换复制方式) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string board, string voice, string tr, string copy, string hangul)> HotkeyProvider { get; set; }
+	/// <summary>返回 (呼出, 截图识别, 截图标注, 重复上次截图, 屏幕画板, 语音输入, 翻译小窗, 切换复制方式, 输入法) 快捷键文案；空串表示无。</summary>
+	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string copy, string hangul)> HotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -160,6 +161,7 @@ sealed class TrayIcon : IDisposable {
 		miShow = item("tray.show", () => showwindow());
 		miOcr = item("tray.ocr", () => OcrRequested?.Invoke());
 		miSnap = item("tray.snap", () => SnapRequested?.Invoke());
+		miScreenSnap = item("tray.screensnap", () => ScreenSnapRequested?.Invoke());
 		miBoard = item("tray.board", () => BoardRequested?.Invoke());
 		miVoice = item("tray.voice", () => VoiceRequested?.Invoke());
 		miTranslate = item("tray.translate", () => TranslateRequested?.Invoke());
@@ -292,6 +294,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miOcr);
 		menu.Items.Add(miSnap);
+		menu.Items.Add(miScreenSnap);
 		menu.Items.Add(miBoard);
 		menu.Items.Add(miVoice);
 		menu.Items.Add(miTranslate);
@@ -437,15 +440,16 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", board = "", voice = "", tr = "", copy = "", hangul = "";
+		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", copy = "", hangul = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, board, voice, tr, copy, hangul) = HotkeyProvider();
+				(show, ocr, snap, screensnap, board, voice, tr, copy, hangul) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
 		setshortcut(miOcr, ocr);
 		setshortcut(miSnap, snap);
+		setshortcut(miScreenSnap, screensnap);
 		setshortcut(miBoard, board);
 		setshortcut(miVoice, voice);
 		setshortcut(miTranslate, tr);
@@ -513,6 +517,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miShow, "tray.show");
 			settext(miOcr, "tray.ocr");
 			settext(miSnap, "tray.snap");
+			settext(miScreenSnap, "tray.screensnap");
 			settext(miBoard, "tray.board");
 			settext(miVoice, "tray.voice");
 			settext(miTranslate, "tray.translate");
@@ -591,6 +596,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action ClipboardAsFileRequested;
 	public event Action OcrRequested;
 	public event Action SnapRequested;
+	public event Action ScreenSnapRequested;
 	public event Action BoardRequested;
 	public event Action VoiceRequested;
 	public event Action TranslateRequested;

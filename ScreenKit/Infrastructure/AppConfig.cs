@@ -46,8 +46,14 @@ static class AppConfig {
 				o.HotkeySnap = (hks ?? "").Trim();
 			if (map.TryGetValue("hotkey_screen_snap", out var hkss))
 				o.HotkeyScreenSnap = (hkss ?? "").Trim();
-			if (map.TryGetValue("snap_screen_index", out var ssi) && int.TryParse(ssi, out var ssiN))
-				o.SnapScreenIndex = SnapScreen.ClampIndex(ssiN);
+			if (map.TryGetValue("snap_last_left", out var sll) && int.TryParse(sll, out var sllN))
+				o.SnapLastLeft = sllN;
+			if (map.TryGetValue("snap_last_top", out var slt) && int.TryParse(slt, out var sltN))
+				o.SnapLastTop = sltN;
+			if (map.TryGetValue("snap_last_width", out var slw) && int.TryParse(slw, out var slwN))
+				o.SnapLastWidth = slwN;
+			if (map.TryGetValue("snap_last_height", out var slh) && int.TryParse(slh, out var slhN))
+				o.SnapLastHeight = slhN;
 			if (map.TryGetValue("hotkey_snap_ocr", out var hkso))
 				o.HotkeySnapOcr = (hkso ?? "").Trim();
 			if (map.TryGetValue("hotkey_board", out var hkb))
@@ -598,9 +604,12 @@ static class AppConfig {
 		sb.AppendLine($"hotkey = \"{esc((o.Hotkey ?? "").Trim())}\"");
 		sb.AppendLine($"# 截图标注（框选 → 画框/线/箭头/文字 → 保存或复制）");
 		sb.AppendLine($"hotkey_snap = \"{esc((o.HotkeySnap ?? "").Trim())}\"");
-		sb.AppendLine($"# 整屏截屏（截取 snap_screen_index 显示器全屏；默认 Ctrl+Alt+G；留空=禁用）");
+		sb.AppendLine($"# 重复上次区域截图（须先做过一次框选截图；默认 Ctrl+Alt+G；留空=禁用）");
 		sb.AppendLine($"hotkey_screen_snap = \"{esc((o.HotkeyScreenSnap ?? "").Trim())}\"");
-		sb.AppendLine($"snap_screen_index = {SnapScreen.ClampIndex(o.SnapScreenIndex)}");
+		sb.AppendLine($"snap_last_left = {o.SnapLastLeft}");
+		sb.AppendLine($"snap_last_top = {o.SnapLastTop}");
+		sb.AppendLine($"snap_last_width = {o.SnapLastWidth}");
+		sb.AppendLine($"snap_last_height = {o.SnapLastHeight}");
 		sb.AppendLine($"# 截图并识别文字");
 		sb.AppendLine($"hotkey_snap_ocr = \"{esc((o.HotkeySnapOcr ?? "").Trim())}\"");
 		sb.AppendLine($"# 屏幕画板（全屏冻结后标注；默认空=禁用）");

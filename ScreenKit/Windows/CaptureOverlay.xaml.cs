@@ -214,6 +214,8 @@ public partial class CaptureOverlay : Window {
 		public CaptureOverlay AnnotateHost;
 		/// <summary>标注选区虚拟屏像素矩形（可跨屏移动/缩放）。</summary>
 		public int AnnVL, AnnVT, AnnVW, AnnVH;
+		/// <summary>最近一次框选确认的虚拟屏像素矩形（截图识别直出时用）。</summary>
+		public int LastVL, LastVT, LastVW, LastVH;
 		/// <summary>已进入标注阶段（多屏时其它屏保持冻结作 guest）。</summary>
 		public bool InAnnotate;
 
@@ -376,6 +378,7 @@ public partial class CaptureOverlay : Window {
 			}
 			Finishing = true;
 			Confirmed = true;
+			rememberlastregion();
 			// 已冻结位图与窗体生命周期无关，勿再全图拷贝（大图可卡数秒）
 			try {
 				Image = EnsureFrozen(img);
@@ -403,6 +406,20 @@ public partial class CaptureOverlay : Window {
 			Image = null;
 			closeall();
 			try { Finished?.Invoke(); } catch (Exception ex) { CaptureLog.Ex("Session.Cancel Finished", ex); }
+		}
+
+		void rememberlastregion() {
+			if (Board && BoardOwner != null) {
+				var w = BoardOwner;
+				SnapLastRegion.Remember(w.monL, w.monT, w.monBoundW, w.monBoundH);
+				return;
+			}
+			if (InAnnotate && AnnVW >= 1 && AnnVH >= 1) {
+				SnapLastRegion.Remember(AnnVL, AnnVT, AnnVW, AnnVH);
+				return;
+			}
+			if (LastVW >= 1)
+				SnapLastRegion.Remember(LastVL, LastVT, LastVW, LastVH);
 		}
 
 		void closeall() {
@@ -1244,6 +1261,12 @@ public partial class CaptureOverlay : Window {
 		hasHoverWin = false;
 
 		CaptureLog.Info($"commitvirtual virt=({left},{top},{pw},{ph}) screens={session?.Windows.Count}");
+		if (session != null) {
+			session.LastVL = left;
+			session.LastVT = top;
+			session.LastVW = Math.Max(1, pw);
+			session.LastVH = Math.Max(1, ph);
+		}
 		// 本屏 desk 像素矩形：裁切与 UI 必须用同一组坐标，否则标注层相对底图会偏移
 		if (!tryvirtualtodesk(left, top, pw, ph, out var dl, out var dt, out var dw, out var dh)) {
 			CaptureLog.Info("commitvirtual no intersect with this monitor");

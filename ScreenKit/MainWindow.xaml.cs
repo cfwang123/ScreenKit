@@ -65,7 +65,7 @@ public partial class MainWindow : Window {
 	TrayIcon tray;
 	GlobalHotkey hotkey;       // 主窗呼出/隐藏
 	GlobalHotkey hotkeySnap;   // 截图标注
-	GlobalHotkey hotkeyScreenSnap; // 整屏截屏
+	GlobalHotkey hotkeyScreenSnap; // 重复上次区域截图
 	GlobalHotkey hotkeySnapOcr;// 截图识别
 	GlobalHotkey hotkeyBoard;  // 屏幕画板
 	GlobalHotkey hotkeyVoice;  // 语音输入
@@ -163,6 +163,12 @@ public partial class MainWindow : Window {
 		CaptureOverlay.SnapCopyModeChosen += (asImg, asFile, asPath) =>
 			applysnapcopyopts(asImg, asFile, asPath, recopy: false);
 		CaptureOverlay.SnapAnnToolChosen += rememberanntool;
+		SnapLastRegion.Saved += (l, t, w, h) => {
+			opt.SnapLastLeft = l;
+			opt.SnapLastTop = t;
+			opt.SnapLastWidth = w;
+			opt.SnapLastHeight = h;
+		};
 		restorewindowbounds();
 		// 启动时后台清理过期截图历史，不阻塞 UI
 		ImageUtil.CleanupScreenshotsBackground(opt.ScreenshotKeepDays);
@@ -589,6 +595,7 @@ public partial class MainWindow : Window {
 				fmttrayhk(opt.Hotkey),
 				fmttrayhk(opt.HotkeySnapOcr),
 				fmttrayhk(opt.HotkeySnap),
+				fmttrayhk(opt.HotkeyScreenSnap),
 				fmttrayhk(opt.HotkeyBoard),
 				fmttrayhk(opt.HotkeyVoiceInput),
 				fmttrayhk(opt.HotkeyTranslate),
@@ -613,6 +620,9 @@ public partial class MainWindow : Window {
 					keepmainhidden();
 				_ = snapannotateasync(restoreUi: false, showMainAfter: false,
 					mainWasVisibleOverride: trayMenuMainVisible);
+			}));
+			tray.ScreenSnapRequested += () => Dispatcher.BeginInvoke(new Action(() => {
+				_ = screensnapasync(mainWasVisibleOverride: trayMenuMainVisible);
 			}));
 			// 屏幕画板：不唤起主窗
 			tray.BoardRequested += () => Dispatcher.BeginInvoke(new Action(() => {
@@ -1710,7 +1720,7 @@ public partial class MainWindow : Window {
 		// 截图菜单
 		mncapture.Click += async (_, _) => await captureasync(hideMain: false);
 		mnsnap.Click += async (_, _) => await snapannotateasync(restoreUi: false);
-		mnscreensnap.SubmenuOpened += (_, _) => fillscreensnapmenu();
+		mnscreensnap.Click += async (_, _) => await screensnapasync();
 		mnboard.Click += async (_, _) => await screenboardasync(restoreUi: false);
 		mnvoice.Click += (_, _) => toggleasrvoice();
 		mnlongshot.Click += async (_, _) => await longshotasync();
@@ -2208,9 +2218,11 @@ public partial class MainWindow : Window {
 			var voice = fmttrayhk(opt.HotkeyVoiceInput);
 			var tr = fmttrayhk(opt.HotkeyTranslate);
 			var copy = fmttrayhk(opt.HotkeySnapCopy);
+			var screensnap = fmttrayhk(opt.HotkeyScreenSnap);
 			var dict = fmttrayhk(opt.HotkeyDict);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
+			if (mnscreensnap != null) mnscreensnap.InputGestureText = screensnap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
 			mntrpopup.InputGestureText = tr;
@@ -3360,52 +3372,55 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void fillscreensnapmenu() {
-		mnscreensnap.Items.Clear();
-		var screens = SnapScreen.List();
-		var pick = SnapScreen.ClampIndex(opt.SnapScreenIndex);
-		for (var i = 0; i < screens.Length; i++) {
-			var idx = i;
-			var item = new MenuItem {
-				Header = SnapScreen.MenuLabel(screens[i], i),
-				IsCheckable = true,
-				IsChecked = idx == pick,
-				StaysOpenOnClick = true,
-			};
-			item.Click += (_, _) => {
-				opt.SnapScreenIndex = idx;
-				try { AppConfig.Save(opt); } catch { }
-				fillscreensnapmenu();
-			};
-			mnscreensnap.Items.Add(item);
-		}
-		if (screens.Length > 0) mnscreensnap.Items.Add(new Separator());
-		var now = new MenuItem { Header = Loc.T("menu.screensnap.now") };
-		now.Click += async (_, _) => await screensnapasync();
-		mnscreensnap.Items.Add(now);
-	}
-
-	/// <summary>整屏截屏：指定显示器全屏一次，按截图完成方式保存并写入剪贴板。</summary>
-	async Task screensnapasync(int? screenIndex = null) {
+	/// <summary>重复上次框选区域截图：保存、复制为图片，并在截图识别页显示（不强制弹出主窗）。</summary>
+	async Task screensnapasync(bool? mainWasVisibleOverride = null) {
 		if (capturing) return;
-		var idx = SnapScreen.ClampIndex(screenIndex ?? opt.SnapScreenIndex);
+		var mainWasVisible = mainWasVisibleOverride
+			?? (IsVisible && WindowState != WindowState.Minimized);
+		var label = Loc.T("menu.screensnap") ?? "";
+		if (label.Length == 0) label = "重复上次截图";
+		if (!SnapLastRegion.TryGet(opt, out _)) {
+			setstatus(Loc.T("st.screensnap.nolast"));
+			try { UiToast.Show(this, Loc.T("st.screensnap.nolast")); } catch { }
+			if (!mainWasVisible)
+				keepmainhidden();
+			return;
+		}
 		try {
 			capturing = true;
 			setstatus(Loc.T("st.screensnap"));
-			var screen = SnapScreen.Pick(idx);
-			var bmp = await Task.Run(() => CaptureOverlay.CaptureMonitor(screen, out _, out _));
+			var bmp = await Task.Run(() => SnapLastRegion.Capture(opt));
 			if (bmp == null) {
 				setstatus(Loc.T("st.screensnap_fail"));
+				if (!mainWasVisible)
+					keepmainhidden();
 				return;
 			}
-			var saved = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, "shot");
-			CaptureLog.Info($"screensnap #{idx + 1} {bmp.PixelWidth}x{bmp.PixelHeight} {saved}");
+			string saved = null;
+			try {
+				saved = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, "shot",
+					copyAsImage: true, copyAsFile: false, copyAsPath: false);
+			}
+			catch (Exception ex) { CaptureLog.Ex("screensnap SaveScreenshot", ex); }
+			CaptureLog.Info($"screensnap repeat {bmp.PixelWidth}x{bmp.PixelHeight} {saved}");
+			clearselection();
+			selectmaintab(tabocr);
+			try { setimage(bmp, saved); }
+			catch (Exception ex) { CaptureLog.Ex("screensnap setimage", ex); }
+			ocrMetaText = $"{label} · {Loc.T("st.screensnap.norec")}";
+			syncresultmetafromtab();
+			drawoverlay();
+			lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 			setstatus(Loc.T("st.screensnap_ok", bmp.PixelWidth, bmp.PixelHeight));
-			try { UiToast.Show(this, snapcopymodetext()); } catch { }
+			try { UiToast.Show(this, Loc.T("toast.snapcopy.img") ?? snapcopymodetext()); } catch { }
+			if (!mainWasVisible)
+				keepmainhidden();
 		}
 		catch (Exception ex) {
 			setstatus(Loc.T("st.screensnap_fail") + ": " + ex.Message);
 			try { UiToast.Show(this, ex.Message); } catch { }
+			if (!mainWasVisible)
+				keepmainhidden();
 		}
 		finally {
 			capturing = false;
@@ -5063,7 +5078,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"ServiceMode: {opt.ServiceMode}");
 		sb.AppendLine($"Hotkey toggle window: {opt.Hotkey}");
 		sb.AppendLine($"Hotkey snap: {opt.HotkeySnap}");
-		sb.AppendLine($"Hotkey screen snap: {opt.HotkeyScreenSnap} monitor={opt.SnapScreenIndex + 1}");
+		sb.AppendLine($"Hotkey repeat snap: {opt.HotkeyScreenSnap} last={opt.SnapLastWidth}x{opt.SnapLastHeight} @ {opt.SnapLastLeft},{opt.SnapLastTop}");
 		sb.AppendLine($"Hotkey snap OCR: {opt.HotkeySnapOcr}");
 		sb.AppendLine($"Hotkey board: {opt.HotkeyBoard}");
 		sb.AppendLine($"Hotkey voice input: {opt.HotkeyVoiceInput}");

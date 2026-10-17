@@ -415,8 +415,6 @@ public partial class SettingsWindow : Window {
 			bhksnapcopyclear.ToolTip = Loc.T("set.hotkey.clear.tip");
 			bhksnapcopycap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			lbsetsnap.Text = Loc.T("set.snap");
-			lbsetsnapscreen.Text = Loc.T("set.snap.screen");
-			lbsetsnapscreenhint.Text = Loc.T("set.snap.screen.hint");
 			lbsetsnapdir.Text = Loc.T("set.snap.dir");
 			esnapdir.ToolTip = Loc.T("set.snap.dir.tip");
 			lbsetsnapdirhint.Text = Loc.T("set.snap.dir.tip");
@@ -620,7 +618,6 @@ public partial class SettingsWindow : Window {
 		esnapjpgq.Text = jq.ToString();
 		esnapshorten.IsChecked = o.ScreenshotShortEnabled;
 		esnapshort.Text = (o.ScreenshotShortPx < 16 ? 1080 : o.ScreenshotShortPx).ToString();
-		fillsnapscreencombo(o.SnapScreenIndex);
 		esnapdir.Text = ImageUtil.DisplayScreenshotDir(o.ScreenshotDir);
 		try { esnapname.Text = ImageUtil.NormScreenshotName(o.ScreenshotName); }
 		catch { esnapname.Text = ImageUtil.ScreenshotNameDefault; }
@@ -857,9 +854,6 @@ public partial class SettingsWindow : Window {
 		Result.ScreenshotShortEnabled = esnapshorten.IsChecked == true;
 		if (!tryint(esnapshort, Loc.T("set.snap.short.name"), 16, 16384, out var sshort, tabsetsnap)) return false;
 		Result.ScreenshotShortPx = sshort;
-		var scrTag = (esnapscreen.SelectedItem as ComboBoxItem)?.Tag as string ?? "0";
-		if (!int.TryParse(scrTag, out var scrIdx)) scrIdx = 0;
-		Result.SnapScreenIndex = SnapScreen.ClampIndex(scrIdx);
 		if (!applysnapdir()) return false;
 		try { Result.ScreenshotName = ImageUtil.NormScreenshotName(esnapname.Text); }
 		catch {
@@ -1434,23 +1428,6 @@ public partial class SettingsWindow : Window {
 		try { Result.ScreenshotDir = ImageUtil.NormScreenshotDir(full); }
 		catch { Result.ScreenshotDir = norm; }
 		return true;
-	}
-
-	void fillsnapscreencombo(int pick) {
-		if (esnapscreen == null) return;
-		esnapscreen.Items.Clear();
-		var screens = SnapScreen.List();
-		pick = SnapScreen.ClampIndex(pick);
-		for (var i = 0; i < screens.Length; i++) {
-			var item = new ComboBoxItem {
-				Content = SnapScreen.MenuLabel(screens[i], i),
-				Tag = i.ToString(),
-			};
-			esnapscreen.Items.Add(item);
-			if (i == pick) esnapscreen.SelectedItem = item;
-		}
-		if (esnapscreen.SelectedItem == null && esnapscreen.Items.Count > 0)
-			esnapscreen.SelectedIndex = 0;
 	}
 
 	/// <summary>JPG 质量输入：仅 jpg 格式可编辑。</summary>

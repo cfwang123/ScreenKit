@@ -760,20 +760,6 @@
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="Auto" MinWidth="72"/>
 								<ColumnDefinition Width="*"/>
-							</Grid.ColumnDefinitions>
-							<TextBlock x:Name="lbsetsnapscreen" Grid.Column="0" Text="截屏显示器" FontWeight="SemiBold"
-							           VerticalAlignment="Center" Margin="0,0,8,0"/>
-							<ComboBox x:Name="esnapscreen" Grid.Column="1" Height="32"
-							          VerticalContentAlignment="Center"
-							          AutomationProperties.AutomationId="set.screenshot.screen"/>
-						</Grid>
-						<TextBlock x:Name="lbsetsnapscreenhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           Margin="0,0,0,10" TextWrapping="Wrap"
-						           Text="热键整屏截屏与「截图 → 截屏」使用此处所选显示器。主菜单里也可切换。"/>
-						<Grid Margin="0,0,0,4">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="Auto" MinWidth="72"/>
-								<ColumnDefinition Width="*"/>
 								<ColumnDefinition Width="8"/>
 								<ColumnDefinition Width="Auto"/>
 							</Grid.ColumnDefinitions>

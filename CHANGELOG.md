@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.23.1 (2026-10-17)](#v10231-2026-10-17)
 - [v1.0.23 (2026-10-17)](#v1023-2026-10-17)
 - [v1.0.22 (2026-10-15 ~ 16)](#v1022-2026-10-15--16)
 - [v1.0.21 (2026-10-14 ~ 15)](#v1021-2026-10-14--15)
@@ -34,6 +35,34 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
+
+## v1.0.23.1 (2026-10-17)
+
+### English
+
+#### Changed
+
+- Full-monitor capture is now repeat-last-region capture (hotkey, menu, tray). The region is saved after Screenshot OCR or annotate.
+- Repeat capture copies as an image, shows it on the Screenshot OCR tab, and does not force the main window forward.
+- Wubi, Japanese, and Korean IME also handles keys in ScreenKit's own windows.
+- The tray menu adds repeat-last capture with the shortcut shown on the item.
+
+#### Documentation
+
+- README: repeat-last capture, a shorter IME section, and related screenshot wording.
+
+### 中文
+
+#### 变更
+
+- 整屏截屏改为重复上次框选区域（热键、菜单、托盘）；区域在截图识别或标注成功后记住。
+- 重复截图复制为图片、在截图识别页显示，且不强制弹出主窗。
+- 五笔/日语/韩语输入法在本程序窗口内同样接管按键。
+- 托盘增加重复上次截图，并显示热键。
+
+#### 文档
+
+- README：同步重复截图与输入法简述等截图相关表述。
 
 ## v1.0.23 (2026-10-17)
 
