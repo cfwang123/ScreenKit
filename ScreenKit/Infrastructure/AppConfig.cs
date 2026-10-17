@@ -246,7 +246,7 @@ static class AppConfig {
 			if (map.TryGetValue("mod_translate", out var mtr))
 				o.ModTranslate = parsebool(mtr, true);
 			if (map.TryGetValue("mod_chat", out var mch))
-				o.ModChat = parsebool(mch, true);
+				o.ModChat = parsebool(mch, false);
 			if (map.TryGetValue("mod_face", out var mfa))
 				o.ModFace = parsebool(mfa, true);
 			if (map.TryGetValue("mod_dict", out var mdi))
@@ -258,9 +258,9 @@ static class AppConfig {
 			if (map.TryGetValue("tab_asr_visible", out var tav))
 				o.TabAsrVisible = parsebool(tav, true);
 			if (map.TryGetValue("tab_chat_visible", out var tcv))
-				o.TabChatVisible = parsebool(tcv, true);
+				o.TabChatVisible = parsebool(tcv, false);
 			if (map.TryGetValue("tab_llmlog_visible", out var tllv))
-				o.TabLlmLogVisible = parsebool(tllv, true);
+				o.TabLlmLogVisible = parsebool(tllv, false);
 			if (map.TryGetValue("tab_translate_visible", out var trv))
 				o.TabTranslateVisible = parsebool(trv, true);
 			if (map.TryGetValue("tab_face_visible", out var tfv))

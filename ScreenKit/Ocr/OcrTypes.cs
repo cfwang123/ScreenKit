@@ -326,7 +326,7 @@ public sealed class OcrOptions {
 	public bool ModTts = true;
 	public bool ModAsr = true;
 	public bool ModTranslate = true;
-	public bool ModChat = true;
+	public bool ModChat = false;
 	public bool ModFace = true;
 	public bool ModDict = true;
 	/// <summary>HTTP 各模块。关闭后该路径返回未启用。总开关 HttpEnabled 优先。</summary>
@@ -342,8 +342,8 @@ public sealed class OcrOptions {
 	public bool TabOcrVisible = true;
 	public bool TabTtsVisible = true;
 	public bool TabAsrVisible = true;
-	public bool TabChatVisible = true;
-	public bool TabLlmLogVisible = true;
+	public bool TabChatVisible = false;
+	public bool TabLlmLogVisible = false;
 	public bool TabTranslateVisible = true;
 	public bool TabFaceVisible = true;
 	public bool TabHttpVisible = true;

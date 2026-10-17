@@ -53,6 +53,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - File info lists Explorer-style PE details, platform, and .NET target framework
 - Korean input uses the installable ime.db for Wubi, Japanese, and Korean, with the same candidate bar. Hotkeys cycle languages or jump to one language or off.
 - File info media fields split duration (ms), resolution, codecs, and bit rates
+- LLM chat and the LLM log are hidden by default.
+- File info size shows KB/MB with exact byte count
 
 #### Fixed
 
@@ -88,6 +90,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文件分析增加与资源管理器详细信息相近的 exe/dll 字段、PE 平台与 .NET 目标框架
 - 韩语输入改用可安装的 ime.db，候选条支持五笔、日语和韩语。快捷键可以轮换语言，或切到某一种语言和关闭。
 - 文件分析音视频拆分为毫秒时长、分辨率、编码与码率等字段
+- LLM对话和 LLM日志默认不显示。
+- 文件分析大小显示 KB/MB 并附带精确字节数
 
 #### 修复
 
