@@ -4,8 +4,6 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 
 **Current version: 1.0.22** · [Releases](https://github.com/cfwang123/ScreenKit/releases/latest) · [Changelog](CHANGELOG.md) · [中文](README.zh.md)
 
-The API, the build, and step-by-step use stay in the [full guide](docs/archive/README.md).
-
 ![Main window](docs/1%20screenshot.en.png)
 
 Closing the main window sends it to the tray. The program keeps running. File → Restart quits and starts it again. A tray click follows the main-window hotkey: hide the window when it is already in front, otherwise bring it to the front. The right-click menu can start voice input, open the translate popup, recognize from the clipboard, switch the screenshot copy mode, or exit.

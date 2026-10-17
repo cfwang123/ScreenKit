@@ -4,8 +4,6 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
 
 **当前版本：1.0.22** · [发布包](https://github.com/cfwang123/ScreenKit/releases/latest) · [更新日志](CHANGELOG.md) · [English](README.md)
 
-接口、编译和逐步操作仍保留在 [完整说明](docs/archive/README.zh.md)。
-
 ![主界面](docs/1%20screenshot.png)
 
 关掉主窗口会进托盘，不会退出。文件 → 重启会退出后重新打开。托盘单击与主窗口热键相同：已在前面就隐藏，否则显示到最前。右键可语音输入、打开翻译小窗、从剪贴板识别、切换截图复制方式，或退出。
