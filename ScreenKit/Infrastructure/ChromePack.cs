@@ -78,6 +78,9 @@ static class ChromePack {
 		foreach (var p in TrPairs)
 			if (p == "en - zh") seen = true;
 		if (!seen) return 2;
+		var both = pairlabel("en - zh");
+		if (both.IndexOf('↔') < 0 || both.IndexOf('→') >= 0) return 2;
+		if (pairlabel("en - zh-Hant").IndexOf('↔') < 0) return 2;
 		if (PackState("Installed") != FeatureInstallState.Installed) return 2;
 		if (PackState("not installed") != FeatureInstallState.Missing) return 2;
 		if (PackState("notInstalled") != FeatureInstallState.Missing) return 2;
@@ -373,7 +376,7 @@ static class ChromePack {
 				Id = "tr:" + name,
 				Kind = "tr",
 				Pair = name.Replace("_", " - "),
-				Title = name.Replace("_", " - "),
+				Title = pairlabel(name.Replace("_", " - ")),
 				Langs = splitcodes(FilterCode(name.Replace("_", " - "))),
 				Detail = name,
 				Size = dirsize(dir),
@@ -386,7 +389,7 @@ static class ChromePack {
 	static string pairlabel(string pair) {
 		var bits = (pair ?? "").Split(new[] { " - " }, StringSplitOptions.None);
 		if (bits.Length != 2) return pair ?? "";
-		return langname(bits[0]) + " → " + langname(bits[1]);
+		return $"{langname(bits[0])} ↔ {langname(bits[1])}";
 	}
 
 	static string langname(string code) {
