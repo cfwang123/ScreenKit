@@ -1421,14 +1421,11 @@
 										<TextBlock x:Name="lbtrsrctext" Text="原文" FontWeight="SemiBold" VerticalAlignment="Center"/>
 										<TextBlock x:Name="lbtrsrclang" FontSize="12" Foreground="{StaticResource Accent}"
 										           VerticalAlignment="Center" Margin="10,1,0,0"/>
-										<Button x:Name="btrpaste" DockPanel.Dock="Right" Content="粘贴"
-										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"
-										        ToolTip="从剪贴板粘贴到原文"/>
-										<Button x:Name="btrfromocr" DockPanel.Dock="Right" Content="从 OCR"
-										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4" Margin="0,0,6,0"
-										        ToolTip="填入截图识别结果文本"/>
-										<Button x:Name="btrclear" DockPanel.Dock="Right" Content="清空"
-										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4" Margin="0,0,6,0"/>
+										<Button x:Name="btrspeaksrc" DockPanel.Dock="Right" Content="&#xE767;"
+										        FontFamily="Segoe MDL2 Assets" FontSize="15"
+										        Style="{StaticResource ToolBtn}" Width="36" Height="28" Padding="0"
+										        ToolTip="朗读原文"
+										        AutomationProperties.AutomationId="tr.speak.src"/>
 									</DockPanel>
 									<TextBox x:Name="etrsrc" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap"
 									         VerticalScrollBarVisibility="Auto" FontSize="14"
@@ -1448,8 +1445,11 @@
 										<TextBlock x:Name="lbtrdsttext" Text="译文" FontWeight="SemiBold" VerticalAlignment="Center"/>
 										<TextBlock x:Name="lbtrdstlang" FontSize="12" Foreground="{StaticResource Accent}"
 										           VerticalAlignment="Center" Margin="10,1,0,0"/>
-										<Button x:Name="btrcopy" DockPanel.Dock="Right" Content="复制译文"
-										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"/>
+										<Button x:Name="btrspeakdst" DockPanel.Dock="Right" Content="&#xE767;"
+										        FontFamily="Segoe MDL2 Assets" FontSize="15"
+										        Style="{StaticResource ToolBtn}" Width="36" Height="28" Padding="0"
+										        ToolTip="朗读译文"
+										        AutomationProperties.AutomationId="tr.speak.dst"/>
 									</DockPanel>
 									<TextBox x:Name="etrdst" Grid.Row="1" AcceptsReturn="True" TextWrapping="Wrap"
 									         VerticalScrollBarVisibility="Auto" FontSize="14"

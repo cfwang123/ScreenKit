@@ -11,6 +11,8 @@ public partial class MainWindow {
 	bool trUiLoading;
 	CancellationTokenSource trCts;
 	bool trBusy;
+	TtsPlayer trSpeakPlayer;
+	int trSpeakGen;
 
 	void inittranslate() {
 		dicthost.OnTranslate = text => {
@@ -99,43 +101,8 @@ public partial class MainWindow {
 			try { trCts?.Cancel(); } catch { }
 			lbtrstatus.Text = Loc.T("cancelling");
 		};
-		btrclear.Click += (_, _) => {
-			etrsrc.Text = "";
-			etrdst.Text = "";
-			lbtrstatus.Text = Loc.T("cleared");
-		};
-		btrpaste.Click += (_, _) => {
-			try {
-				if (Clipboard.ContainsText())
-					etrsrc.Text = Clipboard.GetText() ?? "";
-				lbtrstatus.Text = Loc.T("pasted");
-			}
-			catch (Exception ex) { lbtrstatus.Text = Loc.T("tr.paste.fail", ex.Message); }
-		};
-		btrfromocr.Click += (_, _) => {
-			try {
-				var tb = FindName("eresult") as TextBox;
-				if (tb != null && !string.IsNullOrWhiteSpace(tb.Text)) {
-					etrsrc.Text = tb.Text;
-					lbtrstatus.Text = Loc.T("tr.ocr.filled");
-				}
-				else
-					lbtrstatus.Text = Loc.T("tr.ocr.empty");
-			}
-			catch (Exception ex) { lbtrstatus.Text = Loc.T("tr.ocr.fail", ex.Message); }
-		};
-		btrcopy.Click += (_, _) => {
-			try {
-				var t = etrdst.Text ?? "";
-				if (t.Length == 0) {
-					lbtrstatus.Text = Loc.T("tr.dst.empty");
-					return;
-				}
-				Clipboard.SetText(t);
-				lbtrstatus.Text = Loc.T("copied");
-			}
-			catch (Exception ex) { lbtrstatus.Text = Loc.T("pp.copy.fail", ex.Message); }
-		};
+		btrspeaksrc.Click += async (_, _) => await speaktrside(true);
+		btrspeakdst.Click += async (_, _) => await speaktrside(false);
 		btrswap.Click += (_, _) => {
 			// 交换源/目标语言（自动保持自动）；有译文则对调文本
 			var src = selectedlang(etrsrclng);
@@ -825,6 +792,45 @@ public partial class MainWindow {
 		catch { }
 	};
 
+	/// <summary>朗读原文（src=true）或译文；语言取当前方向，自动时取检测结果。</summary>
+	async Task speaktrside(bool src) {
+		var text = ((src ? etrsrc?.Text : etrdst?.Text) ?? "").Trim();
+		if (text.Length == 0) {
+			lbtrstatus.Text = src ? Loc.T("tr.popup.need_src") : Loc.T("tr.dst.empty");
+			return;
+		}
+		var gen = ++trSpeakGen;
+		var code = "";
+		try {
+			resolvepair(out var s, out var d);
+			code = speakcode(src ? s : d);
+			if (code.Length == 0) {
+				lbtrstatus.Text = Loc.T("tr.popup.need_lang");
+				return;
+			}
+			try { trSpeakPlayer?.Stop(); } catch { }
+			lbtrstatus.Text = Loc.T("dict.speaking", TrLang.Label(code));
+			trSpeakPlayer ??= new TtsPlayer();
+			var pref = DictTts.For(opt, code);
+			var path = await DictTts.EnsureWav(pref, code, text, 1200).ConfigureAwait(true);
+			if (gen != trSpeakGen) return;
+			trSpeakPlayer.PlayFile(path);
+		}
+		catch (Exception ex) {
+			if (gen != trSpeakGen) return;
+			CaptureLog.Ex("tr.speak", ex);
+			lbtrstatus.Text = ex.Message == "novoice"
+				? Loc.T("dict.novoice", TrLang.Label(code))
+				: Loc.T("tr.popup.fail", ex.Message);
+		}
+	}
+
+	static string speakcode(string code) {
+		code = TrLang.Normalize(code);
+		if (code == "cht" || code == "yue") return TrLang.Zh;
+		return code;
+	}
+
 	void applytrlang() {
 		lbtrbrand.Text = Loc.T("tab.translate");
 		if (string.IsNullOrWhiteSpace(lbtrstatus.Text) || lbtrstatus.Text == "就绪" || lbtrstatus.Text == Loc.T("ready"))
@@ -843,13 +849,9 @@ public partial class MainWindow {
 		etrcompute.ToolTip = Loc.T("tr.compute.tip");
 		lbtrhint.Text = Loc.T("tr.hint");
 		lbtrsrctext.Text = Loc.T("tr.src.text");
-		btrpaste.Content = Loc.T("tr.paste");
-		btrpaste.ToolTip = Loc.T("tr.paste.tip");
-		btrfromocr.Content = Loc.T("tr.fromocr");
-		btrfromocr.ToolTip = Loc.T("tr.fromocr.tip");
-		btrclear.Content = Loc.T("tr.clear");
+		btrspeaksrc.ToolTip = Loc.T("tr.speak.src");
 		lbtrdsttext.Text = Loc.T("tr.dst.text");
-		btrcopy.Content = Loc.T("tr.copy");
+		btrspeakdst.ToolTip = Loc.T("tr.speak.dst");
 		btrgo.Content = Loc.T("tr.go");
 		btrgo.ToolTip = Loc.T("tr.go.tip");
 		btrpingpong.Content = Loc.T("tr.pingpong");
