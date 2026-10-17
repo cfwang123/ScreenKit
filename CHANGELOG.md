@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Translation auto mode is configurable: **Settings → Translate** adds **Native language** and **Learning language** (`translate_auto_native` / `translate_auto_learn`, default zh/en). Text that is not native is translated into the native language; native text into the learning language. The translate tab, popup, web tool, CLI (`--tr-dir auto` plus `--tr-native` / `--tr-learn`), and `POST /api/translate` (`native` / `learn`) follow the pair.
 - Auto translation now shows the detected direction in the translate tab and popup (for example `Auto detect: English → Chinese`) and updates it as you type.
 - On the Translate tab, **Ctrl+Enter** starts translation (same as the translate popup).
+- Wubi, Japanese, and Korean input takes custom lexicons. The lexicon window (IME tray menu, or Ctrl+Shift+F7) imports a text lexicon, exports the user words, and deletes entries; the text under dict/ next to the program is the source of truth, so a reinstalled ime.db restores it. Wubi is code + word, Japanese reading + word (kana or romaji), Korean just the word. --ime-dict-import <wubi|ja|ko> <file> imports from the command line.
 
 ### 中文
 
@@ -51,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 翻译的自动互译可配置：**参数设置 → 翻译** 增加 **母语** 与 **学习语言**（`translate_auto_native` / `translate_auto_learn`，默认 zh/en）。非母语文本译成母语，母语文本译成学习语言。翻译页、翻译小窗、网页工具、命令行（`--tr-dir auto` 及 `--tr-native` / `--tr-learn`）和 `POST /api/translate`（`native` / `learn`）都按这对语言互译。
 - 翻译页和翻译小窗在「自动」时显示判断结果（如「自动检测：英文 → 中文」），随输入实时更新。
 - 翻译页支持 **Ctrl+Enter** 直接开始翻译（与翻译小窗一致）。
+- 五笔、日语、韩语输入支持自定义词库。「词库」窗口（输入法托盘菜单，或 Ctrl+Shift+F7）可导入文本词库、导出用户词、删除词条；程序旁 dict/ 下的文本是词库本体，重装 ime.db 后自动恢复。五笔是「编码 + 词」，日语「读音 + 词」（假名或罗马字），韩语只有「词」。命令行 --ime-dict-import <wubi|ja|ko> <文件> 也能导入。
 
 ## v1.0.24 (2026-10-17)
 

@@ -59,7 +59,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--ime-dict-import" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
@@ -321,6 +321,12 @@ static class Cli {
 					return testhangul();
 				case "--test-ime":
 					return testime();
+				case "--test-ime-dict":
+					return testimedic();
+				case "--test-ime-dict-ui":
+					return testimedictui();
+				case "--ime-dict-import":
+					return imedictimport(Next(), Next());
 				case "--test-vim-caret":
 					return testvimcaret();
 				case "--test-7za":
@@ -4282,8 +4288,232 @@ INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1),('학교에'
 		}
 	}
 
-	static int testpinyin() {
-		Out("=== 中文转拼音 --test-pinyin ===");
+	// ───────── 自定义词库（五笔 / 日语 / 韩语）─────────
+
+	/// <summary>造一份临时 ime.db 和 dict/ 文本，走一遍同步、导入、导出、删除、清空。</summary>
+	static int testimedic() {
+		Out("=== 自定义词库 --test-ime-dict ===");
+		var dir = Path.Combine(Path.GetTempPath(), "screenkit-imedict-test");
+		var db = Path.Combine(dir, "ime.db");
+		var dict = Path.Combine(dir, "dict");
+		string fail = null;
+		try {
+			if (Directory.Exists(dir)) Directory.Delete(dir, true);
+			Directory.CreateDirectory(dict);
+			if (!NativeRuntime.HasSqlite()) {
+				Err("FAIL: 缺少 e_sqlite3.dll");
+				return 1;
+			}
+			SQLitePCL.Batteries_V2.Init();
+			var csb = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = db };
+			using (var c = new Microsoft.Data.Sqlite.SqliteConnection(csb.ToString())) {
+				c.Open();
+				using var cmd = c.CreateCommand();
+				cmd.CommandText = @"CREATE TABLE wubi (code TEXT NOT NULL, text TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (code, text));
+CREATE TABLE trad (simp TEXT NOT NULL, trad TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (simp, trad));
+CREATE TABLE kr_word (text TEXT PRIMARY KEY, freq INTEGER NOT NULL);
+CREATE TABLE kr_hanja (hangul TEXT NOT NULL, hanja TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (hangul, hanja));
+CREATE TABLE ja_word (reading TEXT NOT NULL, text TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (reading, text));
+INSERT INTO wubi(code,text,rank) VALUES('abqi','七联锁',1000),('abcd','内置',1000);
+INSERT INTO kr_word(text,freq) VALUES('한국',100);
+INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1);
+INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
+				cmd.ExecuteNonQuery();
+			}
+			ImeLex.Use(db);
+			ImeDict.SetRootForTest(dict);
+			File.WriteAllText(Path.Combine(dict, "wubi.txt"),
+				"# 导出的小词库\r\nabqi 七联锁\r\nxyxy 神奇\r\n七联锁 abqi\r\n单字段\r\n",
+				Encoding.Unicode);
+			File.WriteAllText(Path.Combine(dict, "ja.txt"),
+				"きょう\t今日\r\nkyou\t京\r\n日本語 にほんご\r\n", new UTF8Encoding(false));
+			File.WriteAllText(Path.Combine(dict, "kr.txt"),
+				"한국어\r\n안녕하세요 200\r\n", new UTF8Encoding(false));
+
+			int n = ImeDict.SyncAll();
+			if (n != 7) fail = "sync " + n;
+
+			// 文件没变不再重导
+			if (fail == null && ImeDict.SyncAll() != 0) fail = "sync again";
+
+			// 五笔：用户词盖过同码内置词，倒序写的那条也认
+			if (fail == null) {
+				var rows = ImeLex.QueryWubi("abqi", false);
+				if (rows.Count == 0 || rows[0].Raw != "七联锁" || rows[0].Picks <= 0) fail = "wubi rank";
+			}
+			if (fail == null) {
+				var rows = ImeLex.QueryWubi("xyxy", false);
+				if (rows.Count == 0 || rows[0].Raw != "神奇") fail = "wubi ordered pair";
+			}
+			if (fail == null) {
+				var rows = ImeLex.QueryWubi("abcd", false);
+				if (rows.Count == 0 || rows[0].Raw != "内置") fail = "wubi builtin";
+			}
+			// 日语：假名和罗马字读音都要落到同一读音上
+			if (fail == null) {
+				var rows = ImeLex.QueryJa("きょう");
+				bool hit = false;
+				foreach (var r in rows) if (r.Raw == "今日" || r.Text == "今日") hit = true;
+				if (!hit) fail = "ja kana";
+			}
+			if (fail == null) {
+				var rows = ImeLex.QueryJa("きょう");
+				bool hit = false;
+				foreach (var r in rows) if (r.Raw == "京" || r.Text == "京") hit = true;
+				if (!hit) fail = "ja romaji";
+			}
+			// 韩语
+			if (fail == null) {
+				var rows = ImeDict.List("ko");
+				bool hit = false;
+				foreach (var e in rows) if (e.Text == "한국어") hit = true;
+				if (!hit || rows.Count != 2) fail = "ko list " + rows.Count;
+			}
+			// 选用次数不被重导冲掉
+			if (fail == null) {
+				ImeLex.TouchWubi("abqi", "七联锁");
+				var path = ImeDict.FileOf("wubi");
+				File.AppendAllText(path, "", new UTF8Encoding(false));
+				File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddSeconds(2));
+				ImeDict.Sync("wubi");
+				int picks = 0;
+				foreach (var e in ImeDict.List("wubi")) if (e.Text == "七联锁") picks = e.Picks;
+				if (picks != 2) fail = "picks " + picks;
+			}
+			// 外部文件导入：并进词库文本，同时在库里
+			if (fail == null) {
+				var ext = Path.Combine(dir, "外部词库.txt");
+				File.WriteAllText(ext, "yyih\t方波\r\nbadline\r\n", new UTF8Encoding(false));
+				int total, bad;
+				int add = ImeDict.Import("wubi", ext, out total, out bad);
+				if (add != 1 || bad != 1 || total != 3) fail = "import add=" + add + " bad=" + bad + " total=" + total;
+			}
+			if (fail == null) {
+				bool hit = false;
+				foreach (var e in ImeDict.List("wubi")) if (e.Text == "方波") hit = true;
+				if (!hit) fail = "import db";
+			}
+			// 导出再解析，条数和内容对得上
+			if (fail == null) {
+				var outfile = Path.Combine(dir, "导出.txt");
+				int cnt = ImeDict.Export("wubi", outfile);
+				int bad;
+				var back = ImeDict.Parse("wubi", ImeDict.ReadText(outfile), out bad);
+				if (cnt != back.Count || bad != 0) fail = "export " + cnt + "/" + back.Count + " bad=" + bad;
+			}
+			// 删除：库和文本里都没有了
+			if (fail == null) {
+				ImeDictEntry one = null;
+				foreach (var e in ImeDict.List("wubi")) if (e.Text == "方波") one = e;
+				ImeDict.Remove("wubi", one);
+				foreach (var e in ImeDict.List("wubi")) if (e.Text == "方波") fail = "remove db";
+				int bad;
+				foreach (var e in ImeDict.Read("wubi", out bad)) if (e.Text == "方波") fail = "remove file";
+			}
+			// 清空
+			if (fail == null) {
+				ImeDict.Clear("ko");
+				if (ImeDict.List("ko").Count != 0) fail = "clear db";
+				int bad;
+				if (ImeDict.Read("ko", out bad).Count != 0) fail = "clear file";
+			}
+			if (fail != null) {
+				Err("FAIL " + fail);
+				return 1;
+			}
+			Out("同步 7 条 · 五笔同码用户词优先 · 日语假名/罗马字 · 韩语 · 导入导出 · 删除 · 清空");
+			Out("OK");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { ImeDict.SetRootForTest(null); } catch { }
+			try { ImeLex.Close(); } catch { }
+			try { if (Directory.Exists(dir)) Directory.Delete(dir, true); } catch { }
+		}
+	}
+
+	/// <summary>开一下词库窗口和输入法设置窗，确认 XAML 资源、加载、列数据都过得去。</summary>
+	static int testimedictui() {
+		Out("=== 词库窗口 --test-ime-dict-ui ===");
+		if (!ImeLex.DbInstalled) {
+			Err("FAIL: 程序旁没有 ime.db（帮助 → 安装功能 里装输入法词库）");
+			return 1;
+		}
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		ImeDictWindow dict = null;
+		ImeSettingsWindow set = null;
+		try {
+			dict = new ImeDictWindow();
+			dict.Show();
+			pump();
+			if (!dict.IsVisible) {
+				Err("FAIL: 词库窗口没显示");
+				return 1;
+			}
+			Out("词库窗口打开，五笔用户词 " + dict.RowCount + " 条");
+			if (dict.RowCount <= 0) {
+				Err("FAIL: 词库窗口没有用户词");
+				return 1;
+			}
+			set = new ImeSettingsWindow(new OcrOptions());
+			set.Show();
+			pump();
+			if (!set.IsVisible) {
+				Err("FAIL: 输入法设置窗没显示");
+				return 1;
+			}
+			Out("词库窗口 / 输入法设置窗都能打开");
+			Out("OK");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { dict?.Close(); } catch { }
+			try { set?.Close(); } catch { }
+		}
+	}
+
+	static void pump() {
+		for (int i = 0; i < 6; i++) {
+			var frame = new DispatcherFrame();
+			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background,
+				new Action(() => frame.Continue = false));
+			Dispatcher.PushFrame(frame);
+		}
+	}
+
+	/// <summary>把一份文本词库并进程序旁 dict/&lt;kind&gt;.txt，并同步进 ime.db。</summary>
+	static int imedictimport(string kind, string file) {		Out("=== 导入自定义词库 " + kind + " ===");
+		if (!ImeDict.Known(kind)) {
+			Err("FAIL: 语言要 wubi / ja / ko");
+			return 1;
+		}
+		if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) {
+			Err("FAIL: 找不到词库文件 " + file);
+			return 1;
+		}
+		if (!ImeLex.Ready) {
+			Err("FAIL: 程序旁没有可用的 ime.db（帮助 → 安装功能 里装输入法词库）");
+			return 1;
+		}
+		Out("词库文件 " + ImeDict.FileOf(kind));
+		int total, bad;
+		int add = ImeDict.Import(kind, file, out total, out bad);
+		int have = ImeDict.List(kind).Count;
+		Out($"新并入 {add} 条，词库文本共 {total} 条，跳过 {bad} 行，库里的用户词共 {have} 条");
+		Out("OK");
+		return 0;
+	}
+
+	static int testpinyin() {		Out("=== 中文转拼音 --test-pinyin ===");
 		var had = NativeRuntime.HasNPinyin();
 		Out(had ? "已安装" : "未安装，开始下载");
 		if (!had) {

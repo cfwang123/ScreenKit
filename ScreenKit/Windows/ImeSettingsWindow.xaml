@@ -92,6 +92,9 @@
 		</ScrollViewer>
 
 		<DockPanel Grid.Row="1" Margin="0,12,0,0" LastChildFill="False">
+			<Button x:Name="bdict" DockPanel.Dock="Left" Style="{StaticResource ToolBtn}"
+			        Padding="12,6" Content="词库…"
+			        AutomationProperties.AutomationId="set.ime.dict"/>
 			<Button x:Name="bcancel" Content="取消" Style="{StaticResource ToolBtn}"
 			        DockPanel.Dock="Right" Width="96" Padding="12,6" Margin="8,0,0,0"
 			        IsCancel="True" AutomationProperties.AutomationId="set.ime.cancel"/>

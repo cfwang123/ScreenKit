@@ -22,3 +22,11 @@ class Outcome {
 	public List<string> Texts = new List<string>();
 	public bool OpenDict;
 }
+
+/// <summary>用户词库里的一条。Key 是五笔编码或日语读音，韩语为空。</summary>
+class ImeDictEntry {
+	public string Key = "";
+	public string Text = "";
+	public bool Pinned;
+	public int Picks;
+}

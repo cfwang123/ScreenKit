@@ -35,6 +35,7 @@ sealed class HangulIme : IDisposable {
 	Forms.ToolStripMenuItem miko;
 	Forms.ToolStripMenuItem mioff;
 	Forms.ToolStripMenuItem miset;
+	Forms.ToolStripMenuItem midict;
 	IntPtr hook;
 	HookProc proc;
 	IntPtr watch;
@@ -50,6 +51,7 @@ sealed class HangulIme : IDisposable {
 
 	public event Action Changed;
 	public event Action Settings;
+	public event Action Dict;
 
 	public bool On => enabled;
 	public bool English => eng.Now == View.En;
@@ -129,6 +131,7 @@ sealed class HangulIme : IDisposable {
 		}
 		if (!ImeLex.DbInstalled) return false;
 		if (!install()) return false;
+		ImeDict.SyncAll();
 		eng.LoadMeta(trad, lang, false, false);
 		enabled = true;
 		watch = GetForegroundWindow();
@@ -270,11 +273,14 @@ sealed class HangulIme : IDisposable {
 		mioff = new Forms.ToolStripMenuItem("", null, (_, _) => Pause());
 		miset = new Forms.ToolStripMenuItem();
 		miset.Click += (_, _) => { try { Settings?.Invoke(); } catch { } };
+		midict = new Forms.ToolStripMenuItem();
+		midict.Click += (_, _) => { try { Dict?.Invoke(); } catch { } };
 		menu.Items.Add(miwubi);
 		menu.Items.Add(mija);
 		menu.Items.Add(miko);
 		menu.Items.Add(mioff);
 		menu.Items.Add(miset);
+		menu.Items.Add(midict);
 		ni.MouseClick += (_, e) => {
 			if (e.Button == Forms.MouseButtons.Left) Next();
 		};
@@ -306,6 +312,7 @@ sealed class HangulIme : IDisposable {
 		if (miko != null) miko.Text = Loc.T("hangul.menu.ko");
 		if (mioff != null) mioff.Text = Loc.T("hangul.menu.off");
 		if (miset != null) miset.Text = Loc.T("hangul.menu.settings");
+		if (midict != null) midict.Text = Loc.T("hangul.menu.dict");
 		if (ni != null && enabled) showtray();
 	}
 
@@ -381,6 +388,7 @@ sealed class HangulIme : IDisposable {
 		if (o.Eat) eat = true;
 		else if (!down) eat = eaten.Remove(vk);
 		send(o);
+		if (o.OpenDict) ui(() => { try { Dict?.Invoke(); } catch { } });
 		refresh();
 	}
 

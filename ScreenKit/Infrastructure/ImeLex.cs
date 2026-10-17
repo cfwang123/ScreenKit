@@ -207,6 +207,110 @@ static class ImeLex {
 				("$p", Convert.ToInt32(o) == 0 ? 1 : 0), ("$r", reading), ("$t", text));
 	}
 
+	// ───────── 自定义词库：导入 / 导出 / 删除 ─────────
+
+	/// <summary>该语言的全部用户词（导入的，加上平时选用和置顶攒的）。</summary>
+	public static List<ImeDictEntry> UserWords(string kind) {
+		var list = new List<ImeDictEntry>();
+		if (string.IsNullOrEmpty(kind) || !ready()) return list;
+		if (kind == "ko") {
+			each("SELECT text,pinned,picks FROM user_kr ORDER BY pinned DESC, picks DESC, text",
+				r => list.Add(new ImeDictEntry {
+					Text = r.GetString(0), Pinned = r.GetInt32(1) != 0, Picks = r.GetInt32(2)
+				}));
+			return list;
+		}
+		var col = kind == "ja" ? "reading" : "code";
+		var table = kind == "ja" ? "user_ja" : "user_wubi";
+		each($"SELECT {col},text,pinned,picks FROM {table} ORDER BY pinned DESC, picks DESC, {col}",
+			r => list.Add(new ImeDictEntry {
+				Key = r.GetString(0), Text = r.GetString(1),
+				Pinned = r.GetInt32(2) != 0, Picks = r.GetInt32(3)
+			}));
+		return list;
+	}
+
+	/// <summary>批量写入用户词。已有的只把选用次数抬到至少 1，不动置顶和次数。返回写入条数。</summary>
+	public static int ImportWords(string kind, IList<ImeDictEntry> rows) {
+		if (conn == null || !writable || rows == null || rows.Count == 0) return 0;
+		var sql = importsql(kind);
+		if (sql == null) return 0;
+		int n = 0;
+		try {
+			using var tx = conn.BeginTransaction();
+			using var c = conn.CreateCommand();
+			c.Transaction = tx;
+			c.CommandText = sql;
+			var pk = kind == "ko" ? null : c.Parameters.AddWithValue("$k", "");
+			var pt = c.Parameters.AddWithValue("$t", "");
+			foreach (var e in rows) {
+				if (e == null || string.IsNullOrEmpty(e.Text)) continue;
+				if (kind != "ko" && string.IsNullOrEmpty(e.Key)) continue;
+				if (pk != null) pk.Value = e.Key;
+				pt.Value = e.Text;
+				c.ExecuteNonQuery();
+				n++;
+			}
+			tx.Commit();
+		}
+		catch { }
+		return n;
+	}
+
+	public static int DeleteWord(string kind, ImeDictEntry e) {
+		if (conn == null || !writable || e == null || string.IsNullOrEmpty(e.Text)) return 0;
+		if (kind == "ko") return exec1("DELETE FROM user_kr WHERE text=$t", ("$t", e.Text));
+		if (kind == "ja") return exec1("DELETE FROM user_ja WHERE reading=$k AND text=$t",
+			("$k", e.Key), ("$t", e.Text));
+		if (kind == "wubi") return exec1("DELETE FROM user_wubi WHERE code=$k AND text=$t",
+			("$k", e.Key), ("$t", e.Text));
+		return 0;
+	}
+
+	public static int ClearWords(string kind) {
+		if (conn == null || !writable) return 0;
+		if (kind == "ko") return exec1("DELETE FROM user_kr");
+		if (kind == "ja") return exec1("DELETE FROM user_ja");
+		if (kind == "wubi") return exec1("DELETE FROM user_wubi");
+		return 0;
+	}
+
+	/// <summary>ime.db 里的一份记录，给自定义词库记文件指纹用。</summary>
+	public static string Meta(string key) {
+		if (conn == null) return "";
+		var o = scalar("SELECT v FROM meta WHERE k=$k", ("$k", key));
+		return o == null || o is DBNull ? "" : o.ToString();
+	}
+
+	public static void SaveMeta(string key, string value) {
+		cmd("INSERT INTO meta(k,v) VALUES($k,$v) ON CONFLICT(k) DO UPDATE SET v=$v",
+			("$k", key), ("$v", value ?? ""));
+	}
+
+	static string importsql(string kind) {
+		if (kind == "wubi")
+			return @"INSERT INTO user_wubi(code,text,pinned,picks) VALUES($k,$t,0,1)
+				ON CONFLICT(code,text) DO UPDATE SET picks=MAX(picks,1)";
+		if (kind == "ja")
+			return @"INSERT INTO user_ja(reading,text,pinned,picks) VALUES($k,$t,0,1)
+				ON CONFLICT(reading,text) DO UPDATE SET picks=MAX(picks,1)";
+		if (kind == "ko")
+			return @"INSERT INTO user_kr(text,pinned,picks) VALUES($t,0,1)
+				ON CONFLICT(text) DO UPDATE SET picks=MAX(picks,1)";
+		return null;
+	}
+
+	static int exec1(string sql, params (string n, object v)[] args) {
+		if (conn == null || !writable) return 0;
+		try {
+			using var c = conn.CreateCommand();
+			c.CommandText = sql;
+			foreach (var a in args) c.Parameters.AddWithValue(a.n, a.v ?? "");
+			return c.ExecuteNonQuery();
+		}
+		catch { return 0; }
+	}
+
 	static IList<string> alts(char ch) {
 		List<string> list;
 		return tradmap.TryGetValue(ch, out list) ? list : null;
@@ -272,12 +376,14 @@ static class ImeLex {
 			code TEXT NOT NULL, text TEXT NOT NULL,
 			pinned INTEGER NOT NULL DEFAULT 0, picks INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (code, text))");
+		exec("CREATE INDEX IF NOT EXISTS ix_user_wubi_code ON user_wubi(code)");
 		exec(@"CREATE TABLE IF NOT EXISTS user_kr (
 			text TEXT PRIMARY KEY, pinned INTEGER NOT NULL DEFAULT 0, picks INTEGER NOT NULL DEFAULT 0)");
 		exec(@"CREATE TABLE IF NOT EXISTS user_ja (
 			reading TEXT NOT NULL, text TEXT NOT NULL,
 			pinned INTEGER NOT NULL DEFAULT 0, picks INTEGER NOT NULL DEFAULT 0,
 			PRIMARY KEY (reading, text))");
+		exec("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)");
 	}
 
 	static void loadtrad() {

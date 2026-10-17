@@ -1,0 +1,79 @@
+<Window x:Class="ScreenKit.ImeDictWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="词库"
+        Height="560" Width="640"
+        MinHeight="420" MinWidth="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="imedict.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		<TextBlock x:Name="lbhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+		<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="False">
+			<ComboBox x:Name="ekind" Width="110" Height="32"
+			          AutomationProperties.AutomationId="imedict.kind"/>
+			<Button x:Name="bimport" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
+			        Margin="8,0,0,0" Padding="10,4"
+			        AutomationProperties.AutomationId="imedict.import"/>
+			<Button x:Name="bexport" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
+			        Margin="8,0,0,0" Padding="10,4"
+			        AutomationProperties.AutomationId="imedict.export"/>
+			<Button x:Name="bopen" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
+			        Margin="8,0,0,0" Padding="10,4"
+			        AutomationProperties.AutomationId="imedict.open"/>
+		</DockPanel>
+		<Grid Grid.Row="2" Margin="0,0,0,8">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<TextBox x:Name="efilter" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
+			         BorderBrush="{StaticResource BorderSoft}"
+			         VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="imedict.filter"/>
+			<TextBlock x:Name="lbcount" Grid.Column="2" VerticalAlignment="Center"
+			           Foreground="{StaticResource TextMuted}"/>
+		</Grid>
+		<ListView x:Name="lv" Grid.Row="3" BorderBrush="{StaticResource BorderSoft}"
+		          SelectionMode="Single"
+		          AutomationProperties.AutomationId="imedict.list">
+			<ListView.View>
+				<GridView>
+					<GridViewColumn x:Name="colkey" Width="150"
+					                DisplayMemberBinding="{Binding Key}"/>
+					<GridViewColumn x:Name="colword" Width="220"
+					                DisplayMemberBinding="{Binding Text}"/>
+					<GridViewColumn x:Name="colpin" Width="64"
+					                DisplayMemberBinding="{Binding PinText}"/>
+					<GridViewColumn x:Name="colpick" Width="64"
+					                DisplayMemberBinding="{Binding Picks}"/>
+				</GridView>
+			</ListView.View>
+		</ListView>
+		<DockPanel Grid.Row="4" Margin="0,10,0,0" LastChildFill="False">
+			<Button x:Name="bclose" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
+			        Margin="8,0,0,0" Padding="12,4"
+			        AutomationProperties.AutomationId="imedict.close"/>
+			<Button x:Name="bclear" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
+			        Margin="8,0,0,0" Padding="12,4"
+			        AutomationProperties.AutomationId="imedict.clear"/>
+			<Button x:Name="bdel" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"
+			        Padding="12,4"
+			        AutomationProperties.AutomationId="imedict.del"/>
+			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="0,0,8,0" TextWrapping="Wrap"
+			           Foreground="{StaticResource TextMuted}"/>
+		</DockPanel>
+	</Grid>
+</Window>

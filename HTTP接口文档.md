@@ -968,7 +968,7 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8"))["data"]["ah
 
 LLM 批量翻译（按 `translate_llm_batch` 分组，默认 8 条一组，缺号再逐条补）。**不限制一次请求的条数**。翻译 LLM 已就绪时用 `[[llm]]` / `translate_llm`（或请求里的 `llm`）。没有就绪的 LLM 时，同一请求改用已安装的本地 Opus-MT 模型，按 `src`→`dst`。别名 `/api/translate/batch` 同一处理。条数很多时耗时按组累加（每组最长约 90 秒）。
 
-`GET /api/translate/langs` 返回 `data.llm`、`data.src`（语言代码，`auto` 在前）和 `data.dst`（每个源语言对应可选目标）。`auto` 是中英互译。
+`GET /api/translate/langs` 返回 `data.llm`、`data.src`（语言代码，`auto` 在前）、`data.dst`（每个源语言对应可选目标），以及自动互译的 `data.auto_native` / `data.auto_learn` 和显示名 `data.auto_label`。`auto` 按母语与学习语言互译：原文不是母语时译成母语，原文是母语时译成学习语言；默认中文 ↔ 英文，可在参数设置 → 翻译里改。
 
 **请求：**
 
@@ -987,7 +987,8 @@ LLM 批量翻译（按 `translate_llm_batch` 分组，默认 8 条一组，缺�
 |------|------|
 | `items` / `texts` | 字符串数组，条数不限。元素也可以是 `{"text":"…"}` |
 | `text` | 单条时可用，等价于 `items` 只有一项 |
-| `src` / `dst` | 语言代码（`zh` / `en` / `ja` / `ko` / `fr` / `de` / `es` / `ru` / `ar` / `th` / `cht` 等）。可省略，则按首条非空文本做中英互译自动检测 |
+| `src` / `dst` | 语言代码（`zh` / `en` / `ja` / `ko` / `fr` / `de` / `es` / `ru` / `ar` / `th` / `cht` 等）。可省略或写 `auto`，则按首条非空文本和母语/学习语言自动检测 |
+| `native` / `learn` | 可选，覆盖配置里的自动互译母语 / 学习语言（如 `native: "zh"`、`learn: "ja"`）。只在 `src`/`dst` 缺省或为 `auto` 时生效 |
 | `dir` | 可选，如 `zh-en`，与 `src`/`dst` 二选一 |
 | `chunk` | 每批送给模型的条数。不传则用 `translate_llm_batch`（默认 8），范围 1–64 |
 | `llm` | 可选，`[[llm]]` 显示名称或模型 id；默认 `translate_llm`，再否则列表第一项 |

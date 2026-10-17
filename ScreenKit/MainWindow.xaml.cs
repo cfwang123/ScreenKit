@@ -987,6 +987,7 @@ public partial class MainWindow : Window {
 				setstatus(Loc.T(st));
 			};
 			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => openimesettings()));
+			hangul.Dict += () => Dispatcher.BeginInvoke(new Action(() => openimedic()));
 			hotkeyAuto = new GlobalHotkey(this, 0x700A);
 			hotkeyAuto.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
@@ -4353,6 +4354,7 @@ public partial class MainWindow : Window {
 	/// 主窗可能在托盘里，独立弹出。</summary>
 	void openimesettings() {
 		var dlg = new ImeSettingsWindow(opt);
+		dlg.Dict += openimedic;
 		attachdialogowner(dlg, independent: true);
 		dlg.ShowDialog();
 		if (!dlg.Applied) return;
@@ -4374,8 +4376,15 @@ public partial class MainWindow : Window {
 		try { AppConfig.Save(opt); } catch { }
 	}
 
-	void opensettings(bool fromTray = false) {
-		// 打开前把顶栏当前选择写回 opt
+	/// <summary>输入法词库窗口（托盘「词库」、Ctrl+Shift+F7、输入法设置窗）：导入导出五笔 / 日语 / 韩语用户词。
+	/// 主窗可能在托盘里，独立弹出。</summary>
+	void openimedic() {
+		var dlg = new ImeDictWindow();
+		attachdialogowner(dlg, independent: true);
+		dlg.ShowDialog();
+	}
+
+	void opensettings(bool fromTray = false) {		// 打开前把顶栏当前选择写回 opt
 		applymodelchoice(reload: false);
 		var dlg = new SettingsWindow(opt);
 		attachdialogowner(dlg, fromTray);

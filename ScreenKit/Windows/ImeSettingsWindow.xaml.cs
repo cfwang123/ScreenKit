@@ -12,6 +12,9 @@ public partial class ImeSettingsWindow : Window {
 	public OcrOptions Result { get; private set; }
 	public bool Applied { get; private set; }
 
+	/// <summary>点「词库…」时抛出，由主窗决定怎么弹出（主窗可能在托盘里）。</summary>
+	public event Action Dict;
+
 	WpfTextBox captarget;
 	WpfButton capbtn;
 	string capprev = "";
@@ -22,6 +25,7 @@ public partial class ImeSettingsWindow : Window {
 		inithotkeyui();
 
 		bcancel.Click += (_, _) => { Applied = false; Close(); };
+		bdict.Click += (_, _) => { try { Dict?.Invoke(); } catch { } };
 		bok.Click += (_, _) => {
 			stopcapture(restore: true);
 			if (!saveui()) return;
@@ -134,6 +138,7 @@ public partial class ImeSettingsWindow : Window {
 
 	void applylanglabels() {
 		Title = Loc.T("set.ime.title");
+		bdict.Content = Loc.T("ime.dict.openwin");
 		lbhkhintImeCycle.Text = Loc.T("set.hotkey.ime.cycle");
 		lbhkhintImeWubi.Text = Loc.T("set.hotkey.ime.wubi");
 		lbhkhintImeJa.Text = Loc.T("set.hotkey.ime.ja");
