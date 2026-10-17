@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - POST /api/qrcode matches Umi-OCR. Each code includes format (QRCode for a QR code) and text.
 - A selection lookup opens the dictionary file when it is not open yet, then searches.
 - Korean input shows one jamo per key. w is ㅈ, not the compound ㄽ.
+- System voices in the in-browser model, such as Microsoft Huihui, are synthesized by this app and played on the system default output. Google voices stay in the browser.
 
 #### Documentation
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - POST /api/qrcode 与 Umi-OCR 兼容。每条码带 format（二维码为 QRCode）和 text。
 - 词典库还没打开时，划词会先打开库再查词。
 - 韩语输入每个键一个单音。w 是 ㅈ，不再打出合用收音 ㄽ。
+- 浏览器小模型里的系统语音（如微软慧慧）改由本程序合成，并在系统默认输出设备上播放。Google 语音仍由浏览器朗读。
 
 #### 文档
 

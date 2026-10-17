@@ -4,6 +4,7 @@
 	var rec = null;
 	var hearing = false;
 	var voicesHooked = false;
+	var speakGen = 0;
 	var LANGS = ["zh", "en", "ja", "ko", "es", "fr", "de", "pt", "ru", "it"];
 	var SPEECH = {
 		zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR", es: "es-ES",
@@ -175,7 +176,10 @@
 		var speak = F.id("aim-speak");
 		if (speak) speak.hidden = kind !== "speak";
 		if (kind !== "listen") stophear();
-		if (kind !== "speak" && window.speechSynthesis) window.speechSynthesis.cancel();
+		if (kind !== "speak") {
+			if (window.speechSynthesis) window.speechSynthesis.cancel();
+			if (SK.stopwav) SK.stopwav();
+		}
 		paintgo();
 	}
 
@@ -486,31 +490,98 @@
 		}
 		stophear();
 		syn.cancel();
-		var u = new SpeechSynthesisUtterance(text);
+		if (SK.stopwav) SK.stopwav();
+		var mine = ++speakGen;
+		var out = F.id("box-out");
+		if (out) out.value = text;
 		var sel = F.id("aim-voice");
 		var uri = sel ? sel.value : "";
 		var list = syn.getVoices() || [];
+		var picked = null;
 		var i;
 		for (i = 0; i < list.length; i++) {
 			if (uri && (list[i].voiceURI === uri || list[i].name === uri)) {
-				u.voice = list[i];
-				u.lang = list[i].lang;
+				picked = list[i];
 				break;
 			}
 		}
+		if (picked && sysvoice(picked)) {
+			speakwin(text, picked, mine);
+			return;
+		}
+		var u = new SpeechSynthesisUtterance(text);
+		if (picked) {
+			u.voice = picked;
+			u.lang = picked.lang;
+		}
 		if (!u.lang) u.lang = vlang() || speechlang();
 		u.onend = function(){
-			if (SK.curtool === "u-aim") SK.msg("aim-msg", "");
+			if (mine === speakGen && SK.curtool === "u-aim") SK.msg("aim-msg", "");
 		};
 		u.onerror = function(ev){
 			if (ev && ev.error === "interrupted") return;
 			if (SK.curtool !== "u-aim") return;
 			SK.msg("aim-msg", tx("web.aim.novoice", "这个浏览器不能朗读"), true);
 		};
-		var out = F.id("box-out");
-		if (out) out.value = text;
 		SK.msg("aim-msg", tx("web.aim.speaking", "正在朗读"));
 		syn.speak(u);
+	}
+
+	function sysvoice(v){
+		return /^Microsoft\b/i.test(String(v && v.name || ""));
+	}
+
+	function sysname(v){
+		var name = String(v && v.name || "");
+		var cut = name.indexOf(" - ");
+		if (cut > 0) name = name.substring(0, cut);
+		return name.replace(/^\s+|\s+$/g, "");
+	}
+
+	function speakwin(text, voice, mine){
+		var body = {
+			text: text,
+			voice: sysname(voice),
+			lang: voice.lang || ""
+		};
+		SK.msg("aim-msg", tx("web.aim.speaking", "正在朗读"));
+		posttts(body, "winrt", mine, function(){
+			if (mine !== speakGen) return;
+			posttts(body, "sapi", mine, null);
+		});
+	}
+
+	function posttts(body, engine, mine, again){
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "/api/tts", true);
+		F.hdr(xhr, "Content-Type", "application/json;charset=utf-8");
+		xhr.onload = function(){
+			var jo, err;
+			if (mine !== speakGen) return;
+			try { jo = F.parse(xhr.responseText); }
+			catch (e) {
+				if (again) { again(); return; }
+				SK.msg("aim-msg", "响应不是 JSON", true);
+				return;
+			}
+			if (!jo || jo.code !== 100) {
+				if (again) { again(); return; }
+				err = jo && jo.data;
+				SK.msg("aim-msg", typeof err === "string" && err ? err : "失败", true);
+				return;
+			}
+			if (SK.curtool !== "u-aim") return;
+			SK.playwav(jo.data && jo.data.wav_base64, "aim-msg", function(){
+				if (mine === speakGen && SK.curtool === "u-aim") SK.msg("aim-msg", "");
+			});
+		};
+		xhr.onerror = function(){
+			if (mine !== speakGen) return;
+			if (again) { again(); return; }
+			SK.msg("aim-msg", "网络错误", true);
+		};
+		body.engine = engine;
+		xhr.send(F.json(body));
 	}
 
 	function listen(){
@@ -577,6 +648,7 @@
 	function aimclose(){
 		stophear();
 		if (window.speechSynthesis) window.speechSynthesis.cancel();
+		if (SK.stopwav) SK.stopwav();
 	}
 
 	SK.aimclose = aimclose;

@@ -114,7 +114,7 @@ This program receives while it is running. That can be turned off in Settings. *
   - **Chinese to pinyin**: Characters to pinyin or initials
   - **Markdown reader**: Preview Markdown
   - **Chinese segmentation**: Split by word, sentence, or grapheme
-  - **In-browser model**: Run text tasks on the browser’s local model. Speak can filter voices by language. A link opens the Chrome model page to view and install translation models and offline voice packs
+  - **In-browser model**: Run text tasks on the browser’s local model. Speak can filter voices by language. System voices are synthesized by this app and played in the page on the system default output. A link opens the Chrome model page to view and install translation models and offline voice packs
   - **Translate**: Translate text into another language
   - **Password generator**: Generate passwords
   - **Regular expressions**: Find regex matches
