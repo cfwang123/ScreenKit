@@ -170,10 +170,10 @@ sealed class GlobalHotkey : IDisposable {
 					}
 				}
 				else if (p.Equals("Grave", StringComparison.OrdinalIgnoreCase)
-					|| p.Equals("Backquote", StringComparison.OrdinalIgnoreCase))
+					|| p.Equals("Backquote", StringComparison.OrdinalIgnoreCase)
+					|| p.Equals("Oem3", StringComparison.OrdinalIgnoreCase))
 					key = Key.Oem3;
-				else if (!p.Equals("Oem3", StringComparison.OrdinalIgnoreCase)
-					&& Enum.TryParse<Key>(p, true, out var k))
+				else if (Enum.TryParse<Key>(p, true, out var k))
 					key = k;
 				else if (p.StartsWith("F", StringComparison.OrdinalIgnoreCase)
 					&& int.TryParse(p.Substring(1), out var fn) && fn is >= 1 and <= 24)
