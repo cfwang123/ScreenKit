@@ -4340,8 +4340,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				"한국어\r\n안녕하세요 200\r\n", new UTF8Encoding(false));
 
 			int n = ImeDict.SyncAll();
-			if (n != 7) fail = "sync " + n + " err=" + ImeLex.UserError + " ready=" + ImeLex.Ready
-				+ " file=" + ImeDict.Read("wubi", out _).Count + " rows=" + ImeDict.List("wubi").Count;
+			if (n != 7) fail = "sync " + n + " " + ImeLex.UserError;
 
 			// 文件没变不再重导
 			if (fail == null && ImeDict.SyncAll() != 0) fail = "sync again";
@@ -4660,7 +4659,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		if (string.IsNullOrWhiteSpace(src)) src = ImeLex.PathOf;
 		src = Path.GetFullPath(src);
 		if (!File.Exists(src)) {
-			Err("FAIL: 没有 " + src);
+			Err($"FAIL: 没有 {src}");
 			return 1;
 		}
 		if (string.IsNullOrWhiteSpace(dst)) dst = Path.Combine(Path.GetDirectoryName(src) ?? ".", "ime.clean.db");
@@ -4671,12 +4670,14 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		SQLitePCL.Batteries_V2.Init();
 		var personal = new[] { "user_wubi", "user_ja", "user_kr", "custom", "pin", "pick", "meta" };
+		string connstr(string path, Microsoft.Data.Sqlite.SqliteOpenMode mode) =>
+			new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
+				DataSource = path, Mode = mode, Pooling = false
+			}.ToString();
 		try {
 			try { if (File.Exists(dst)) File.Delete(dst); } catch { }
 			using (var c = new Microsoft.Data.Sqlite.SqliteConnection(
-				new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
-					DataSource = src, Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadOnly, Pooling = false
-				}.ToString())) {
+				connstr(src, Microsoft.Data.Sqlite.SqliteOpenMode.ReadOnly))) {
 				c.Open();
 				using var v = c.CreateCommand();
 				v.CommandText = "VACUUM INTO $p";
@@ -4685,20 +4686,18 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			}
 			int gone = 0;
 			using (var c = new Microsoft.Data.Sqlite.SqliteConnection(
-				new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder {
-					DataSource = dst, Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadWrite, Pooling = false
-				}.ToString())) {
+				connstr(dst, Microsoft.Data.Sqlite.SqliteOpenMode.ReadWrite))) {
 				c.Open();
 				foreach (var t in personal) {
 					long n;
 					try {
 						using var q = c.CreateCommand();
-						q.CommandText = "SELECT count(*) FROM " + t;
+						q.CommandText = $"SELECT count(*) FROM {t}";
 						n = Convert.ToInt64(q.ExecuteScalar());
 					}
 					catch { continue; }     // 本来就没这张表
 					using (var d = c.CreateCommand()) {
-						d.CommandText = "DROP TABLE IF EXISTS " + t;
+						d.CommandText = $"DROP TABLE IF EXISTS {t}";
 						d.ExecuteNonQuery();
 					}
 					Out($"   删掉 {t}（{n} 行）");
@@ -4711,16 +4710,16 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				using (var l = c.CreateCommand()) {
 					l.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
 					using var r = l.ExecuteReader();
-					while (r.Read()) Out("   留下 " + r.GetString(0));
+					while (r.Read()) Out($"   留下 {r.GetString(0)}");
 				}
 			}
 			Out($"清掉 {gone} 张个人数据表，{new FileInfo(src).Length / 1048576.0:0.0} MB → {new FileInfo(dst).Length / 1048576.0:0.0} MB");
-			Out("产物：" + dst);
+			Out($"产物：{dst}");
 			Out("OK");
 			return 0;
 		}
 		catch (Exception ex) {
-			Err("FAIL " + ex.Message);
+			Err($"FAIL {ex.Message}");
 			return 1;
 		}
 	}

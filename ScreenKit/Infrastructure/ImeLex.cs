@@ -13,27 +13,25 @@ sealed class ImeHit {
 /// 这样上传的 ime.db 里只有词库，不带自己的词和使用记录。</summary>
 static class ImeLex {
 	/// <summary>ime_user.db 里的三张表，外加记文件指纹的 meta。</summary>
-	const string usertables = @"
-CREATE TABLE IF NOT EXISTS custom (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (kind,key,text));
-CREATE TABLE IF NOT EXISTS pin (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (kind,key,text));
-CREATE TABLE IF NOT EXISTS pick (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, picks INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (kind,key,text));
-CREATE INDEX IF NOT EXISTS ix_custom_kind ON custom(kind,key);
-CREATE INDEX IF NOT EXISTS ix_pin_kind ON pin(kind,key);
-CREATE INDEX IF NOT EXISTS ix_pick_kind ON pick(kind,key);
-CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
+	static readonly string[] usertables = {
+		"CREATE TABLE IF NOT EXISTS custom (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (kind,key,text))",
+		"CREATE TABLE IF NOT EXISTS pin (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, PRIMARY KEY (kind,key,text))",
+		"CREATE TABLE IF NOT EXISTS pick (kind TEXT NOT NULL, key TEXT NOT NULL, text TEXT NOT NULL, picks INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (kind,key,text))",
+		"CREATE INDEX IF NOT EXISTS ix_custom_kind ON custom(kind,key)",
+		"CREATE INDEX IF NOT EXISTS ix_pin_kind ON pin(kind,key)",
+		"CREATE INDEX IF NOT EXISTS ix_pick_kind ON pick(kind,key)",
+		"CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)",
+	};
 
 	static SqliteConnection conn;
+	static SqliteConnection uconn;
 	static string opened = "";
-	static string usropened = "";
 	static bool batteries;
 	static bool writable;
 	static bool userwrite;
 	static Dictionary<char, List<string>> tradmap = new Dictionary<char, List<string>>();
 
 	public static string PathOf => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ime.db");
-
-	/// <summary>自定义词库、置顶、选用次数所在的库，跟 ime.db 同目录。</summary>
-	public static string UserPathOf => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ime_user.db");
 
 	/// <summary>帮助 → 安装功能 里的 ime.db 已完整安装。</summary>
 	public static bool DbInstalled =>
@@ -58,7 +56,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 	public static string Hanja(string hangul) {
 		if (string.IsNullOrEmpty(hangul) || !ready()) return "";
 		var list = new List<string>();
-		each("SELECT hanja FROM kr_hanja WHERE hangul=$h ORDER BY rank LIMIT 3",
+		each(conn, "SELECT hanja FROM kr_hanja WHERE hangul=$h ORDER BY rank LIMIT 3",
 			r => list.Add(r.GetString(0)), ("$h", hangul));
 		return string.Join(" / ", list.ToArray());
 	}
@@ -67,7 +65,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		var list = new List<ImeHit>();
 		if (string.IsNullOrEmpty(prefix) || !ready()) return list;
 		var words = new List<string>();
-		each("SELECT text, freq FROM kr_word WHERE text LIKE $p || '%' AND text != $p ORDER BY freq DESC LIMIT 8",
+		each(conn, "SELECT text, freq FROM kr_word WHERE text LIKE $p || '%' AND text != $p ORDER BY freq DESC LIMIT 8",
 			r => words.Add(r.GetString(0)), ("$p", prefix));
 		foreach (var t in words)
 			list.Add(new ImeHit { Text = t, Comment = Hanja(t) });
@@ -90,7 +88,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 			args.Add(("$skip", skip));
 		}
 		var arg = args.ToArray();
-		each("SELECT text,freq FROM kr_word WHERE " + where + " ORDER BY freq DESC LIMIT 40", r => {
+		each(conn, "SELECT text,freq FROM kr_word WHERE " + where + " ORDER BY freq DESC LIMIT 40", r => {
 			var t = r.GetString(0);
 			map[t] = new Cand { Text = t, Raw = t, Rank = -r.GetInt32(1), Comment = Hanja(t) };
 		}, arg);
@@ -119,10 +117,11 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 
 	public static void TouchKr(string text) {
 		if (string.IsNullOrEmpty(text)) return;
-		var known = scalar(@"SELECT 1 FROM kr_word WHERE text=$t
-			UNION SELECT 1 FROM u.custom WHERE kind='ko' AND text=$t
-			UNION SELECT 1 FROM u.pick WHERE kind='ko' AND text=$t", ("$t", text));
-		if (known == null || known is DBNull) return;
+		bool known = scalar(conn, "SELECT 1 FROM kr_word WHERE text=$t", ("$t", text)) != null;
+		if (!known)
+			known = scalar(uconn, @"SELECT 1 FROM custom WHERE kind='ko' AND text=$t
+				UNION SELECT 1 FROM pick WHERE kind='ko' AND text=$t", ("$t", text)) != null;
+		if (!known) return;
 		touch("ko", "", text);
 	}
 
@@ -140,7 +139,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 			if (c.Pinned) old.Pinned = true;
 			if (c.Picks > old.Picks) old.Picks = c.Picks;
 		}
-		each(@"SELECT code,text,rank FROM wubi WHERE code LIKE $p || '%'"
+		each(conn, @"SELECT code,text,rank FROM wubi WHERE code LIKE $p || '%'"
 			+ (rare ? "" : " AND rank<>0 AND rank<1000000")
 			+ @" ORDER BY length(code), rank LIMIT 400",
 			r => {
@@ -168,9 +167,9 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 			Raw = r.GetString(1),
 			Pinned = pin, Picks = picks, Rank = 500
 		};
-		each("SELECT key,text FROM u.custom WHERE kind=$k" + extra, r => put(one(r, false, 1)), all);
-		each("SELECT key,text FROM u.pin WHERE kind=$k" + extra, r => put(one(r, true, 0)), all);
-		each("SELECT key,text,picks FROM u.pick WHERE kind=$k" + extra, r => {
+		each(uconn, "SELECT key,text FROM custom WHERE kind=$k" + extra, r => put(one(r, false, 1)), all);
+		each(uconn, "SELECT key,text FROM pin WHERE kind=$k" + extra, r => put(one(r, true, 0)), all);
+		each(uconn, "SELECT key,text,picks FROM pick WHERE kind=$k" + extra, r => {
 			var text = r.GetString(1);
 			if (!rare && ImeRare.Is(text, null)) return;
 			put(one(r, false, r.GetInt32(2)));
@@ -239,7 +238,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 	/// <summary>选用次数记一笔。</summary>
 	static void touch(string kind, string key, string text) {
 		if (!userok() || string.IsNullOrEmpty(text)) return;
-		cmd(@"INSERT INTO u.pick(kind,key,text,picks) VALUES($k,$c,$t,1)
+		cmd(uconn, @"INSERT INTO pick(kind,key,text,picks) VALUES($k,$c,$t,1)
 			ON CONFLICT(kind,key,text) DO UPDATE SET picks=picks+1",
 			("$k", kind), ("$c", key ?? ""), ("$t", text));
 	}
@@ -247,17 +246,17 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 	/// <summary>置顶表里有这条就是置顶，再点一次取消。</summary>
 	static void pin(string kind, string key, string text) {
 		if (!userok() || string.IsNullOrEmpty(text)) return;
-		var o = scalar("SELECT 1 FROM u.pin WHERE kind=$k AND key=$c AND text=$t",
+		var o = scalar(uconn, "SELECT 1 FROM pin WHERE kind=$k AND key=$c AND text=$t",
 			("$k", kind), ("$c", key ?? ""), ("$t", text));
 		if (o == null || o is DBNull)
-			cmd("INSERT INTO u.pin(kind,key,text) VALUES($k,$c,$t)", ("$k", kind), ("$c", key ?? ""), ("$t", text));
+			cmd(uconn, "INSERT INTO pin(kind,key,text) VALUES($k,$c,$t)", ("$k", kind), ("$c", key ?? ""), ("$t", text));
 		else
-			cmd("DELETE FROM u.pin WHERE kind=$k AND key=$c AND text=$t", ("$k", kind), ("$c", key ?? ""), ("$t", text));
+			cmd(uconn, "DELETE FROM pin WHERE kind=$k AND key=$c AND text=$t", ("$k", kind), ("$c", key ?? ""), ("$t", text));
 	}
 
 	public static string FullCode(char ch) {
 		if (!ready()) return "";
-		var o = scalar(@"SELECT code FROM wubi WHERE text=$t AND length(code)>=4
+		var o = scalar(conn, @"SELECT code FROM wubi WHERE text=$t AND length(code)>=4
 			ORDER BY length(code) DESC LIMIT 1", ("$t", ch.ToString()));
 		return o == null || o is DBNull ? "" : o.ToString();
 	}
@@ -274,7 +273,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 				args[i] = (names[i], reading.Substring(0, i + 1));
 			}
 			var inn = string.Join(",", names);
-			each("SELECT reading,text,rank FROM ja_word WHERE reading IN (" + inn + ")", r => {
+			each(conn, "SELECT reading,text,rank FROM ja_word WHERE reading IN (" + inn + ")", r => {
 				rows.Add(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) });
 			}, args);
 			userwords("ja", true, "key IN (" + inn + ")", args, true, c => rows.Add(c));
@@ -295,7 +294,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 	public static List<ImeDictEntry> CustomWords(string kind) {
 		var list = new List<ImeDictEntry>();
 		if (string.IsNullOrEmpty(kind) || !userok()) return list;
-		each("SELECT key,text FROM u.custom WHERE kind=$k ORDER BY key, text",
+		each(uconn, "SELECT key,text FROM custom WHERE kind=$k ORDER BY key, text",
 			r => list.Add(new ImeDictEntry { Key = r.GetString(0), Text = r.GetString(1) }),
 			("$k", kind));
 		return list;
@@ -306,17 +305,17 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		if (string.IsNullOrEmpty(kind) || !userok()) return 0;
 		int n = 0;
 		try {
-			using var tx = conn.BeginTransaction();
-			using (var d = conn.CreateCommand()) {
+			using var tx = uconn.BeginTransaction();
+			using (var d = uconn.CreateCommand()) {
 				d.Transaction = tx;
-				d.CommandText = "DELETE FROM u.custom WHERE kind=$k";
+				d.CommandText = "DELETE FROM custom WHERE kind=$k";
 				d.Parameters.AddWithValue("$k", kind);
 				d.ExecuteNonQuery();
 			}
 			n = insertcustom(tx, kind, rows);
 			tx.Commit();
 		}
-		catch { return 0; }
+		catch (Exception ex) { UserError = ex.Message; return 0; }
 		return n;
 	}
 
@@ -325,20 +324,20 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		if (string.IsNullOrEmpty(kind) || !userok() || rows == null || rows.Count == 0) return 0;
 		int n = 0;
 		try {
-			using var tx = conn.BeginTransaction();
+			using var tx = uconn.BeginTransaction();
 			n = insertcustom(tx, kind, rows);
 			tx.Commit();
 		}
-		catch { return 0; }
+		catch (Exception ex) { UserError = ex.Message; return 0; }
 		return n;
 	}
 
 	static int insertcustom(SqliteTransaction tx, string kind, IList<ImeDictEntry> rows) {
 		if (rows == null || rows.Count == 0) return 0;
 		int n = 0;
-		using var c = conn.CreateCommand();
+		using var c = uconn.CreateCommand();
 		c.Transaction = tx;
-		c.CommandText = "INSERT OR IGNORE INTO u.custom(kind,key,text) VALUES($k,$c,$t)";
+		c.CommandText = "INSERT OR IGNORE INTO custom(kind,key,text) VALUES($k,$c,$t)";
 		c.Parameters.AddWithValue("$k", kind);
 		var pc = c.Parameters.AddWithValue("$c", "");
 		var pt = c.Parameters.AddWithValue("$t", "");
@@ -354,7 +353,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 
 	public static int DeleteCustom(string kind, ImeDictEntry e) {
 		if (e == null || string.IsNullOrEmpty(e.Text)) return 0;
-		return exec1("DELETE FROM u.custom WHERE kind=$k AND key=$c AND text=$t",
+		return exec1(uconn, "DELETE FROM custom WHERE kind=$k AND key=$c AND text=$t",
 			("$k", kind), ("$c", e.Key ?? ""), ("$t", e.Text));
 	}
 
@@ -363,37 +362,36 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		if (string.IsNullOrEmpty(kind) || !userok()) return 0;
 		int n = 0;
 		try {
-			using var tx = conn.BeginTransaction();
+			using var tx = uconn.BeginTransaction();
 			foreach (var t in new[] { "custom", "pin", "pick" }) {
-				using var c = conn.CreateCommand();
+				using var c = uconn.CreateCommand();
 				c.Transaction = tx;
-				c.CommandText = "DELETE FROM u." + t + " WHERE kind=$k";
+				c.CommandText = "DELETE FROM " + t + " WHERE kind=$k";
 				c.Parameters.AddWithValue("$k", kind);
 				n += c.ExecuteNonQuery();
 			}
 			tx.Commit();
 		}
-		catch { return 0; }
+		catch (Exception ex) { UserError = ex.Message; return 0; }
 		return n;
 	}
 
 	/// <summary>用户库里的一份记录，给自定义词库记文件指纹用。</summary>
 	public static string Meta(string key) {
-		if (conn == null) return "";
-		var o = scalar("SELECT v FROM u.meta WHERE k=$k", ("$k", key));
+		var o = scalar(uconn, "SELECT v FROM meta WHERE k=$k", ("$k", key));
 		return o == null || o is DBNull ? "" : o.ToString();
 	}
 
 	public static void SaveMeta(string key, string value) {
 		if (!userok()) return;
-		cmd("INSERT INTO u.meta(k,v) VALUES($k,$v) ON CONFLICT(k) DO UPDATE SET v=$v",
+		cmd(uconn, "INSERT INTO meta(k,v) VALUES($k,$v) ON CONFLICT(k) DO UPDATE SET v=$v",
 			("$k", key), ("$v", value ?? ""));
 	}
 
-	static int exec1(string sql, params (string n, object v)[] args) {
-		if (!userok()) return 0;
+	static int exec1(SqliteConnection cn, string sql, params (string n, object v)[] args) {
+		if (cn == null) return 0;
 		try {
-			using var c = conn.CreateCommand();
+			using var c = cn.CreateCommand();
 			c.CommandText = sql;
 			foreach (var a in args) c.Parameters.AddWithValue(a.n, a.v ?? "");
 			return c.ExecuteNonQuery();
@@ -411,9 +409,9 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		catch { return false; }
 	}
 
-	/// <summary>用户库（自定义词 / 置顶 / 选用）能不能用。</summary>
+	/// <summary>用户库（自定义词 / 置顶 / 选用）能不能用。顺带把两条连接开起来。</summary>
 	static bool userok() {
-		if (!ready() || !userwrite) return false;
+		if (!ready() || uconn == null || !userwrite) return false;
 		return true;
 	}
 
@@ -428,8 +426,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		}
 		var csb = new SqliteConnectionStringBuilder {
 			DataSource = path,
-			// 要 ReadWriteCreate：不然 ATTACH ime_user.db 时文件还不存在就开不了（主库本身先查过存在）
-			Mode = SqliteOpenMode.ReadWriteCreate,
+			Mode = SqliteOpenMode.ReadWrite,
 			Cache = SqliteCacheMode.Shared,
 			Pooling = false,
 		};
@@ -455,7 +452,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		}
 		conn = c;
 		opened = path;
-		attachuser(c, path);
+		openuser(path);
 		if (!writable) {
 			try {
 				using var q = conn.CreateCommand();
@@ -471,27 +468,35 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 	/// <summary>用户库挂不上的原因，自测和排障用。</summary>
 	public static string UserError { get; private set; } = "";
 
-	/// <summary>把 ime_user.db 挂成 u：自定义词库、置顶、选用次数各一张表。挂不上就只当没有用户词。</summary>
-	static void attachuser(SqliteConnection c, string path) {
+	/// <summary>另开一条连接打开 ime_user.db：自定义词库、置顶、选用次数各一张表。
+	/// 不跟 ime.db 合用连接：WAL 下跨库事务不行，而且改 ime.db 就等于把个人数据带进要上传的那份。
+	/// 开不了就只当没有用户词。</summary>
+	static void openuser(string path) {
 		userwrite = false;
-		usropened = "";
 		UserError = "";
 		try {
 			var dir = Path.GetDirectoryName(path);
 			if (string.IsNullOrEmpty(dir)) return;
 			var up = Path.Combine(dir, "ime_user.db");
-			using (var a = c.CreateCommand()) {
-				a.CommandText = "ATTACH DATABASE '" + up.Replace("'", "''") + "' AS u";
-				a.ExecuteNonQuery();
-			}
-			using (var t = c.CreateCommand()) {
-				t.CommandText = usertables;
+			var csb = new SqliteConnectionStringBuilder {
+				DataSource = up,
+				Mode = SqliteOpenMode.ReadWriteCreate,
+				Cache = SqliteCacheMode.Shared,
+				Pooling = false,
+			};
+			var c = new SqliteConnection(csb.ToString());
+			c.Open();
+			foreach (var sql in usertables) {
+				using var t = c.CreateCommand();
+				t.CommandText = sql;
 				t.ExecuteNonQuery();
 			}
-			usropened = up;
+			uconn = c;
 			userwrite = true;
 		}
 		catch (Exception ex) {
+			try { uconn?.Dispose(); } catch { }
+			uconn = null;
 			userwrite = false;
 			UserError = ex.Message;
 		}
@@ -499,7 +504,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 
 	static void loadtrad() {
 		tradmap = new Dictionary<char, List<string>>();
-		each("SELECT simp,trad FROM trad ORDER BY rank", r => {
+		each(conn, "SELECT simp,trad FROM trad ORDER BY rank", r => {
 			var simp = r.GetString(0);
 			if (simp.Length != 1) return;
 			var ch = simp[0];
@@ -512,10 +517,10 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		});
 	}
 
-	static void cmd(string sql, params (string n, object v)[] args) {
-		if (conn == null || !writable) return;
+	static void cmd(SqliteConnection cn, string sql, params (string n, object v)[] args) {
+		if (cn == null) return;
 		try {
-			using var c = conn.CreateCommand();
+			using var c = cn.CreateCommand();
 			c.CommandText = sql;
 			foreach (var a in args) c.Parameters.AddWithValue(a.n, a.v ?? "");
 			c.ExecuteNonQuery();
@@ -523,10 +528,10 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		catch { }
 	}
 
-	static object scalar(string sql, params (string n, object v)[] args) {
-		if (conn == null) return null;
+	static object scalar(SqliteConnection cn, string sql, params (string n, object v)[] args) {
+		if (cn == null) return null;
 		try {
-			using var c = conn.CreateCommand();
+			using var c = cn.CreateCommand();
 			c.CommandText = sql;
 			foreach (var a in args) c.Parameters.AddWithValue(a.n, a.v ?? "");
 			return c.ExecuteScalar();
@@ -534,10 +539,10 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 		catch { return null; }
 	}
 
-	static void each(string sql, Action<SqliteDataReader> row, params (string n, object v)[] args) {
-		if (conn == null) return;
+	static void each(SqliteConnection cn, string sql, Action<SqliteDataReader> row, params (string n, object v)[] args) {
+		if (cn == null) return;
 		try {
-			using var c = conn.CreateCommand();
+			using var c = cn.CreateCommand();
 			c.CommandText = sql;
 			foreach (var a in args) c.Parameters.AddWithValue(a.n, a.v ?? "");
 			using var r = c.ExecuteReader();
@@ -548,9 +553,10 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)";
 
 	static void close() {
 		try { conn?.Dispose(); } catch { }
+		try { uconn?.Dispose(); } catch { }
 		conn = null;
+		uconn = null;
 		opened = "";
-		usropened = "";
 		writable = false;
 		userwrite = false;
 		tradmap = new Dictionary<char, List<string>>();
