@@ -39,13 +39,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Opening the dictionary keeps one copy of the index and uses a bigram index for contains-search. A cold load of dict2.db adds about 130MB of commit instead of about 530MB.
+- Opening the dictionary keeps one copy of the index and uses a bigram index for contains-search. A cold load of dict3.db adds about 130MB of commit instead of about 530MB.
+- Help installs the dictionary from dict3.7z on the fixed release dict-db and extracts dict3.db.
 
 ### 中文
 
 #### 变更
 
-- 打开词典只保留一份索引字节，包含查询改走双字倒排。冷启动加载 dict2.db 的提交大约增加 130MB，不再是大约 530MB。
+- 打开词典只保留一份索引字节，包含查询改走双字倒排。冷启动加载 dict3.db 的提交大约增加 130MB，不再是大约 530MB。
+- 帮助里的词典安装改为从固定 Release dict-db 下载 dict3.7z，解出 dict3.db。
 
 ## v1.0.23.1 (2026-10-17)
 

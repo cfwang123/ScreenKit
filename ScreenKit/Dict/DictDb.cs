@@ -84,7 +84,7 @@ sealed class DictEntry {
 #endregion
 
 // ==================== 词典库（只读） ====================
-// dict2.db：entry 仍是词条正文。检索在 idx 里：每个词只存一份，倒排是整数。
+// dict3.db：entry 仍是词条正文。检索在 idx 里：每个词只存一份，倒排是整数。
 // 前缀按词序；词典过滤走 scope；后缀按反转序；三字以上的中缀走双字 grams。
 // 整数块保持 sqlite 读出的那一份字节，按小端现读，不再复制成 int[]。
 // rank：0 全等 / 1 前缀 / 2 后缀 / 3 中缀。韩语活用形命中很少时再按语尾剥一层。
@@ -142,7 +142,7 @@ static class DictDb {
 	/// <summary>连接还在，或索引还在内存里。大小是库文件。</summary>
 	public static bool TryMem(out string name, out long bytes) {
 		lock (dblock) {
-			name = string.IsNullOrEmpty(dbpath) ? "dict2.db" : Path.GetFileName(dbpath);
+			name = string.IsNullOrEmpty(dbpath) ? "dict3.db" : Path.GetFileName(dbpath);
 			bytes = loadedlen;
 			return conn != null || keybytes != null;
 		}
@@ -193,7 +193,7 @@ static class DictDb {
 				cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('entry','idx','idx_info')";
 				if (Convert.ToInt64(cmd.ExecuteScalar()) < 3) {
 					c.Dispose();
-					dberr = "dict2.db schema";
+					dberr = "dict3.db schema";
 					return false;
 				}
 			}
@@ -201,7 +201,7 @@ static class DictDb {
 				if (!loadindex(c)) {
 					c.Dispose();
 					clearindex();
-					dberr = "dict2.db schema";
+					dberr = "dict3.db schema";
 					return false;
 				}
 				loaded = path;

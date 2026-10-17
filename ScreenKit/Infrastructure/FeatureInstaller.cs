@@ -44,7 +44,7 @@ public enum FeatureKind {
 	MediaFoundation,
 	/// <summary>系统 MJPEG AVI，无需下载。</summary>
 	Mjpeg,
-	/// <summary>词典 dict2.db。从固定 Release dict-db 的 dict2.7z 解出，不进应用更新包。</summary>
+	/// <summary>词典 dict3.db。从固定 Release dict-db 的 dict3.7z 解出，不进应用更新包。</summary>
 	DictDb,
 	/// <summary>中英双向 Opus-MT ONNX 翻译模型。从固定 Release dict-db 下载。</summary>
 	TranslateOnnx,
@@ -129,8 +129,8 @@ static class FeatureInstaller {
 	const string FaceBuffaloLZip = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip";
 	const string FaceBuffaloLHf = "https://huggingface.co/deepinsight/insightface/resolve/main/models/buffalo_l.zip";
 	/// <summary>固定标签 dict-db，不跟随最新 Release，避免被当成应用更新包。</summary>
-	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict2.7z";
-	const long DICT7Z_BYTES = 142807076L;
+	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict3.7z";
+	const long DICT7Z_BYTES = 148086491L;
 	const string IME7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ime.7z";
 	const long IME7Z_BYTES = 6242584L;
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
@@ -374,7 +374,7 @@ static class FeatureInstaller {
 			case FeatureKind.OrtCpu: return dirsize(OnnxCpuDir);
 			case FeatureKind.Ffmpeg: return dirsize(FfmpegDir);
 			case FeatureKind.FaceInsight: return dirsize(FaceModelsDir);
-			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict2.db"));
+			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict3.db"));
 			case FeatureKind.ImeDb: return filesize(Path.Combine(BaseDir, "ime.db"));
 			case FeatureKind.TranslateOnnx:
 				return dirsize(Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"))
@@ -1267,9 +1267,9 @@ arabic_dict.txt
 			deletefile(Path.Combine(FaceModelsDir, extra), log);
 	}
 
-	// ───────── 词典 dict2.7z ─────────
+	// ───────── 词典 dict3.7z ─────────
 
-	static string dictdbpath() => Path.Combine(BaseDir, "dict2.db");
+	static string dictdbpath() => Path.Combine(BaseDir, "dict3.db");
 
 	static string olddictdbpath() => Path.Combine(BaseDir, "dict.db");
 
@@ -1310,12 +1310,12 @@ arabic_dict.txt
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (probedict() == FeatureInstallState.Installed) {
 			removeolddict(log);
-			log?.Report("dict2.db 已存在，跳过");
+			log?.Report("dict3.db 已存在，跳过");
 			reportprog(progress, 1, note: "已存在");
 			return;
 		}
 		Directory.CreateDirectory(CacheDir);
-		var arc = Path.Combine(CacheDir, "dict2.7z");
+		var arc = Path.Combine(CacheDir, "dict3.7z");
 		if (File.Exists(arc)) {
 			long have = 0;
 			try { have = new FileInfo(arc).Length; } catch { }
@@ -1330,18 +1330,18 @@ arabic_dict.txt
 			try { Directory.Delete(unpack, true); } catch { }
 		}
 		Directory.CreateDirectory(unpack);
-		log?.Report("解压 dict2.7z …");
+		log?.Report("解压 dict3.7z …");
 		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : DICT7Z_BYTES;
-		reportprog(progress, 0.92, zlen, zlen, "dict2.7z", "解压中…");
+		reportprog(progress, 0.92, zlen, zlen, "dict3.7z", "解压中…");
 		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
 		extract7z(arc, unpack, log);
 		string found = null;
 		try {
-			found = Directory.GetFiles(unpack, "dict2.db", SearchOption.AllDirectories).FirstOrDefault();
+			found = Directory.GetFiles(unpack, "dict3.db", SearchOption.AllDirectories).FirstOrDefault();
 		}
 		catch { }
 		if (string.IsNullOrEmpty(found))
-			throw new InvalidOperationException("dict2.7z 里没有 dict2.db");
+			throw new InvalidOperationException("dict3.7z 里没有 dict3.db");
 		var dest = dictdbpath();
 		unlinkifreparse(dest);
 		if (File.Exists(dest)) File.Delete(dest);
@@ -1349,8 +1349,8 @@ arabic_dict.txt
 		try { if (File.Exists(dest + "-shm")) File.Delete(dest + "-shm"); } catch { }
 		File.Move(found, dest);
 		removeolddict(log);
-		reportprog(progress, 1, zlen, zlen, "dict2.db", "完成");
-		log?.Report("词典 dict2.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
+		reportprog(progress, 1, zlen, zlen, "dict3.db", "完成");
+		log?.Report("词典 dict3.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}
 
 	// ───────── 输入法 ime.7z ─────────

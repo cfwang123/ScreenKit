@@ -272,21 +272,23 @@ static class MemLoadTest {
 
 	static void loaddict(out string model, out string note) {
 		note = "";
-		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict2.db");
+		var path = Environment.GetEnvironmentVariable("SCREENKIT_DICT_DB");
+		if (string.IsNullOrWhiteSpace(path))
+			path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.db");
 		if (!File.Exists(path)) {
 			model = "";
-			note = "skip=no-dict2.db";
+			note = "skip=no-dict3.db";
 			return;
 		}
 		if (!DictDb.Init(path)) {
-			model = "dict2.db";
+			model = "dict3.db";
 			note = "fail=" + (DictDb.Error ?? "init");
 			return;
 		}
 		var n = 0;
 		try { n = DictDb.Search("hello", "", 3).Count; } catch { }
 		var len = new FileInfo(path).Length;
-		model = "dict2.db/" + (len / (1024 * 1024)) + "MB/hits=" + n;
+		model = Path.GetFileName(path) + "/" + (len / (1024 * 1024)) + "MB/hits=" + n;
 	}
 
 	static IDisposable loadface(string dev, out string model, out string note) {
