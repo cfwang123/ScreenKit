@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.23 (2026-10-17)](#v1023-2026-10-17)
 - [v1.0.22 (2026-10-15 ~ 16)](#v1022-2026-10-15--16)
 - [v1.0.21 (2026-10-14 ~ 15)](#v1021-2026-10-14--15)
 - [v1.0.20 (2026-10-13 ~ 14)](#v1020-2026-10-13--14)
@@ -32,9 +33,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.2 (2026-08-26)](#v102-2026-08-26)
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
-- [v0.1.0](#v010-initial-milestone--初始里程碑)
-
 ## unreleased
+
+## v1.0.23 (2026-10-17)
 
 ### English
 
@@ -59,9 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Turning the input method off hides its tray icon.
 - IME requires installed ime.db; menu and hotkeys stay off until then
 - Dictionary selection popup has Close and turn-off controls
-- In gVim, normal mode forces English and insert or replace restores the last insert language; Esc returns to English immediately.
-- gVim insert/normal follows system IME open status (ImmGetOpenStatus) like Sogou, instead of polling Vim mode().
-- Restored gVim insert/normal sync via Vim mode() with a Settings toggle (ime_gvim_mode, default on).
+- Optional gVim mode sync (Settings → Hotkeys, default on): normal forces English; insert or replace restores the last insert language; Esc returns to English immediately (queries Vim mode()).
 - The input method tray menu opens a dedicated input method settings window (language hotkeys and gVim mode). It no longer opens the main Settings window.
 
 #### Fixed
@@ -79,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - WezTerm cursor-agent popup anchor (arrow line, sync read)
 - Turning the input method on no longer stalls the keyboard. The hook only reads a cached caret, a swallowed key-up is not armed again, and the hook is reinstalled every two seconds.
 - Korean candidates include words that can still be typed when the last syllable is only partial, such as ann-n matching annyeong.
+- Hotkey display shows Ctrl+` instead of Ctrl+Oem3 for the grave key.
 
 #### Removed
 
@@ -115,9 +115,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 输入法切到关闭后隐藏托盘图标。
 - 输入法须先安装 ime.db，未安装时禁用菜单与快捷键
 - 划词查词浮窗增加关闭与关闭划词浮窗按钮
-- gVim 下普通模式自动英文，插入/替换恢复上次插入的中英，Esc 立即回到英文。
-- gVim 中英切换改为跟随系统 IME 开关（ImmGetOpenStatus），与搜狗一致，不再轮询 mode()。
-- gVim 模式同步改回查询 Vim mode()，并在参数热键页增加开关（ime_gvim_mode，默认开）。
+- gVim 可选「随模式切换」（参数→热键，默认开）：普通模式英文，插入/替换恢复上次插入中英，Esc 立即英文（查询 Vim mode()）。
 - 输入法托盘菜单的「参数设置」改为打开单独的输入法设置窗口，只含输入法热键和 gVim 模式，不再打开主程序参数设置窗口。
 
 #### 修复
@@ -135,6 +133,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - WezTerm/cursor-agent 浮窗对齐底部输入行，修正偏上
 - 开启输入法不再把键盘卡住。钩子只读光标缓存，被吞掉的键抬起不会再次登记，钩子每两秒重新装上。
 - 韩语最后一个字只打了部分音节时，候选仍包含还能继续打出的词，例如안ㄴ对应안녕。
+- 热键界面将 Ctrl+Oem3 显示为 Ctrl+`。
 
 #### 移除
 
