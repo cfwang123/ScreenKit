@@ -41,6 +41,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Opening the dictionary keeps one copy of the index and uses a bigram index for contains-search. A cold load of dict3.db adds about 130MB of commit instead of about 530MB.
 - Help installs the dictionary from dict3.7z on the fixed release dict-db and extracts dict3.db.
+- Dictionary search converts Japanese romaji to hiragana and Korean romanization to Hangul (aligned with rustdict).
+- The tray menu can turn the dictionary selection popup on or off, and shows its hotkey.
+- Windows OCR mixed Chinese-English splits a line into cells first, then keeps Latin from the English pass without dropping Chinese.
+
+#### Fixed
+
+- OCR no longer inserts a space before @ or / or after - or @.
+- Korean romanized dictionary search skips when Japanese romaji applies (e.g. saseko); romanized Korean uses prefix only, not infix.
 
 ### 中文
 
@@ -48,6 +56,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 打开词典只保留一份索引字节，包含查询改走双字倒排。冷启动加载 dict3.db 的提交大约增加 130MB，不再是大约 530MB。
 - 帮助里的词典安装改为从固定 Release dict-db 下载 dict3.7z，解出 dict3.db。
+- 词典查询会把日语 romaji 转成平假名、韩语罗马字转成谚文再搜（与 rustdict 一致）。
+- 托盘菜单可开关划词浮窗，并显示对应热键。
+- Windows OCR 中英混合先按格拆行，格内用英文结果替换拉丁块，汉字仍保留。
+
+#### 修复
+
+- 识别结果在 @、/ 前和 -、@ 后不再多插空格。
+- 韩语罗马字检索在日语 romaji 已成立时跳过（如 saseko）；罗马字转谚文只走前缀，不走中缀。
 
 ## v1.0.23.1 (2026-10-17)
 
@@ -99,13 +115,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Remove legacy hotkey_hangul (Ctrl+Alt+K) setting and global toggle
 - Removed the duplicate Close item from the input method tray menu. The Off entry in the language list still turns input off.
 
-#### Documentation
-- The README lists Network tools by feature name.
-- The README lists speech engines by name.
-- The README opening no longer links to the full guide.
-- The README lists System info by category.
-- README: repeat-last capture, a shorter IME section, and related screenshot wording.
-
 ### 中文
 #### 新增
 - 在 Chrome 里划选文字会弹出占位工具条。复制会写入读到的文字，其余按钮只提示。
@@ -151,13 +160,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 移除
 - 删除旧的 hotkey_hangul（Ctrl+Alt+K）配置项与全局切换热键
 - 去掉输入法托盘菜单里重复的「关闭」项；语言列表里的「关闭」仍可关闭输入。
-
-#### 文档
-- README 里的网络工具只列功能名称。
-- README 里的语音合成只列支持的引擎。
-- README 开头不再指向完整说明。
-- README 里的系统信息只列类别。
-- README：同步重复截图与输入法简述等截图相关表述。
 
 ## v1.0.22 (2026-10-15 ~ 16)
 

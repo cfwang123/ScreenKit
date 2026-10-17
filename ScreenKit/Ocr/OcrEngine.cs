@@ -685,10 +685,10 @@ sealed class OcrEngine : IDisposable {
 	static bool iswordch(char ch) => !iscjk(ch) && char.IsLetterOrDigit(ch);
 
 	static bool nospcbefore(char ch) =>
-		ch is ',' or '.' or ';' or ':' or '!' or '?' or ')' or ']' or '}' or '%' or '\'' or '"';
+		ch is ',' or '.' or ';' or ':' or '!' or '?' or ')' or ']' or '}' or '%' or '\'' or '"' or '@' or '/';
 
 	static bool nospcafter(char ch) =>
-		ch is '(' or '[' or '{' or '"' or '\'';
+		ch is '(' or '[' or '{' or '"' or '\'' or '-' or '@';
 
 	/// <summary>列对比度低的宽谷 = 词间空白（深底白字、白底黑字都适用）。</summary>
 	static List<(int x0, int x1)> findgaps(Mat bgr) {

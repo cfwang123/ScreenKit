@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -288,11 +289,8 @@ static class WinOcr {
 			var inv = (float)(1.0 / scale);
 			if (raw?.Lines != null) {
 				foreach (var line in raw.Lines) {
-					var text = linewords(engine, line, px, pw, ph);
-					if (text.Length == 0) continue;
-					var box = linebox(line, inv);
-					if (box == null) continue;
-					lines.Add(new OcrLine { Text = text, Score = 1f, Box = box });
+					foreach (var cell in linesfromrow(engine, line, px, pw, ph, inv))
+						lines.Add(cell);
 				}
 			}
 			mergelines(lines);
@@ -339,14 +337,86 @@ static class WinOcr {
 		finally {
 			if (copy != null) try { copy.Dispose(); } catch { }
 		}
-		var ztok = mixtoks(zraw);
 		var etok = eraw == null ? new List<MixTok>() : mixtoks(eraw);
+		var inv = (float)(1.0 / scale);
+		var lines = mixgridlines(zraw, zheng, px, pw, ph, etok, inv);
+		if (lines.Count == 0) {
+			var ztok = mixtoks(zraw);
+			lines = mixlines(ztok, etok, inv);
+		}
 		return new OcrResult {
-			Lines = mixlines(ztok, etok, (float)(1.0 / scale)),
+			Lines = lines,
 			DeviceUsed = "Windows",
 			ModelLabel = $"Windows OCR · {Loc.T("ocr.win.mix")}",
 			InferMs = Math.Max(0, Environment.TickCount - t0),
 		};
+	}
+
+	/// <summary>中英混合：按中文行内词框分列成单元格，格内再与英文词框 picklatin。</summary>
+	static List<OcrLine> mixgridlines(WinMedia.OcrResult zraw, WinMedia.OcrEngine zheng, byte[] px, int pw, int ph, List<MixTok> etok, float inv) {
+		var lines = new List<OcrLine>();
+		if (zraw?.Lines == null) return lines;
+		foreach (var band in grouprawlines(zraw.Lines)) {
+			var words = new List<WinWord>();
+			foreach (var line in band)
+				words.AddRange(collectwords(zheng, line, px, pw, ph));
+			foreach (var cell in linesfromwords(words, inv)) {
+				if (cell?.Box == null || cell.Box.Length < 4) continue;
+				var l = cell.Box[0].X;
+				var t = cell.Box[0].Y;
+				var r = cell.Box[2].X;
+				var btm = cell.Box[2].Y;
+				cell.Text = fixmixline(tidy(pickcellmix(words, l, t, r, btm, etok)));
+				if (string.IsNullOrEmpty(cell.Text)) continue;
+				lines.Add(cell);
+			}
+		}
+		sortlines(lines);
+		return lines;
+	}
+
+	/// <summary>格内按中文词框与英文词框对齐，只替换拉丁块，不丢掉汉字。</summary>
+	static string pickcellmix(List<WinWord> rowWords, float l, float t, float r, float btm, List<MixTok> etok) {
+		var sb = new StringBuilder();
+		WinWord prev = null;
+		foreach (var wd in rowWords) {
+			var rc = wd.Rc;
+			var cx = rc.X + rc.Width * 0.5;
+			var cy = rc.Y + rc.Height * 0.5;
+			if (cx < l - 2 || cx > r + 2 || cy < t - 2 || cy > btm + 2) continue;
+			var zh = wd.Text ?? "";
+			if (zh.Length == 0) continue;
+			var enHits = new List<MixTok>();
+			foreach (var e in etok) {
+				if (e == null || string.IsNullOrEmpty(e.Text)) continue;
+				if (!overlapsrect(e, rc)) continue;
+				enHits.Add(e);
+			}
+			var piece = zh;
+			if (enHits.Count > 0 && (preferen(zh) || cjklatinmisread(zh))) {
+				enHits.Sort((a, b) => a.L.CompareTo(b.L));
+				piece = picklatin(zh, jointoks(enHits));
+			}
+			if (prev != null && sb.Length > 0 && piece.Length > 0) {
+				var gap = rc.X - (prev.Rc.X + prev.Rc.Width);
+				var h = Math.Max(prev.Rc.Height, rc.Height);
+				if (gap > Math.Max(3, h * 0.15) && needsword(sb[sb.Length - 1], piece[0]))
+					sb.Append(' ');
+			}
+			sb.Append(piece);
+			prev = wd;
+		}
+		return sb.ToString();
+	}
+
+	static bool overlapsrect(MixTok e, Windows.Foundation.Rect rc) {
+		if (e == null) return false;
+		var left = Math.Max(e.L, rc.X);
+		var right = Math.Min(e.R, rc.X + rc.Width);
+		if (right - left < 1) return false;
+		var top = Math.Max(e.T, rc.Y);
+		var bot = Math.Min(e.B, rc.Y + rc.Height);
+		return bot - top >= Math.Min(e.H, rc.Height) * 0.35;
 	}
 
 	static WinMedia.OcrEngine makeeng(string tag) {
@@ -386,15 +456,54 @@ static class WinOcr {
 		return list;
 	}
 
-	/// <summary>不含汉字、且含字母或数字时，改用英文引擎的读法。</summary>
+	/// <summary>不含汉字、且含字母或数字时，改用英文引擎的读法；极短的纯汉字误读块（如「主一」当 i）也走英文对齐。</summary>
 	static bool preferen(string s) {
 		if (string.IsNullOrEmpty(s)) return false;
+		if (cjklatinmisread(s)) return true;
 		var latin = false;
 		foreach (var c in s) {
 			if (iscjk(c)) return false;
 			if (char.IsLetterOrDigit(c)) latin = true;
 		}
 		return latin;
+	}
+
+	static bool cjklatinmisread(string s) {
+		if (string.IsNullOrEmpty(s) || s.Length > 8) return false;
+		foreach (var c in s)
+			if (!iscjk(c)) return false;
+		if (s == "主一" || s == "囗" || s == "口尸曰") return true;
+		if (s.Length <= 3 && s.IndexOf('主') >= 0) return true;
+		return cjkradicalnoise(s);
+	}
+
+	static bool cjkradicalnoise(string s) {
+		if (string.IsNullOrEmpty(s) || s.Length > 6) return false;
+		foreach (var c in s)
+			if (!iscjk(c)) return false;
+		return s.IndexOf('囗') >= 0 || s.IndexOf('亻') >= 0 || s.IndexOf('讠') >= 0 || s.IndexOf('尸') >= 0;
+	}
+
+	static bool purelatin(string s) {
+		if (string.IsNullOrEmpty(s)) return false;
+		foreach (var c in s)
+			if (iscjk(c)) return false;
+		return true;
+	}
+
+	static bool anycjk(string s) {
+		if (string.IsNullOrEmpty(s)) return false;
+		foreach (var c in s)
+			if (iscjk(c)) return true;
+		return false;
+	}
+
+	static int cjkcharcount(string s) {
+		if (string.IsNullOrEmpty(s)) return 0;
+		int n = 0;
+		foreach (var c in s)
+			if (iscjk(c)) n++;
+		return n;
 	}
 
 	static bool samerow(MixTok a, MixTok b) {
@@ -418,6 +527,16 @@ static class WinOcr {
 	}
 
 	static List<OcrLine> mixlines(List<MixTok> zh, List<MixTok> en, float inv) {
+		for (int i = 0; i < zh.Count; i++) {
+			if (!cjklatinmisread(zh[i].Text)) continue;
+			foreach (var e in en) {
+				if (e.Used || !overlaps(zh[i], e)) continue;
+				if (!purelatin(e.Text) || e.Text.Length > 4) continue;
+				zh[i].Text = e.Text;
+				e.Used = true;
+				break;
+			}
+		}
 		var kept = new List<MixTok>();
 		var taken = new bool[zh.Count];
 		for (int i = 0; i < zh.Count; i++) {
@@ -499,43 +618,9 @@ static class WinOcr {
 			row.Add(t);
 		}
 		var lines = new List<OcrLine>();
-		foreach (var row in rows) {
-			row.Sort((a, b) => a.L.CompareTo(b.L));
-			var sb = new StringBuilder();
-			MixTok prev = null;
-			double l = 0, t = 0, r = 0, btm = 0;
-			var any = false;
-			foreach (var tok in row) {
-				if (prev != null) {
-					var gap = tok.L - prev.R;
-					var h = Math.Max(1, Math.Max(prev.H, tok.H));
-					if (gap > Math.Max(3, h * 0.15) && sb.Length > 0 && tok.Text.Length > 0 &&
-						needsword(sb[sb.Length - 1], tok.Text[0]))
-						sb.Append(' ');
-				}
-				sb.Append(tok.Text);
-				if (!any) { l = tok.L; t = tok.T; r = tok.R; btm = tok.B; any = true; }
-				else {
-					if (tok.L < l) l = tok.L;
-					if (tok.T < t) t = tok.T;
-					if (tok.R > r) r = tok.R;
-					if (tok.B > btm) btm = tok.B;
-				}
-				prev = tok;
-			}
-			var text = tidy(normtext(sb.ToString()));
-			if (text.Length == 0 || !any) continue;
-			lines.Add(new OcrLine {
-				Text = text,
-				Score = 1f,
-				Box = new[] {
-					new Point2f((float)l * inv, (float)t * inv),
-					new Point2f((float)r * inv, (float)t * inv),
-					new Point2f((float)r * inv, (float)btm * inv),
-					new Point2f((float)l * inv, (float)btm * inv),
-				},
-			});
-		}
+		foreach (var row in rows)
+			foreach (var ln in mixrowcells(row, inv))
+				if (ln != null) lines.Add(ln);
 		sortlines(lines);
 		return lines;
 	}
@@ -568,6 +653,11 @@ static class WinOcr {
 	static string picklatin(string zh, string en) {
 		if (string.IsNullOrEmpty(en)) return zh ?? "";
 		if (string.IsNullOrEmpty(zh)) return en;
+		if (purelatin(en) && anycjk(zh)) {
+			if (cjkcharcount(zh) >= 4) return zh;
+			if (latinscore(en) >= latinscore(zh) + 2 && en.Length >= zh.Length * 0.55) return en;
+			return zh;
+		}
 		var zs = skel(zh);
 		var es = skel(en);
 		if (zs.Length == 0) return en;
@@ -578,7 +668,35 @@ static class WinOcr {
 			return spacemark(zh) >= spacemark(en) ? zh : trimlastalnum(en);
 		if (zs.StartsWith(es) && zs.Length == es.Length + 1)
 			return spacemark(en) >= spacemark(zh) ? en : trimlastalnum(zh);
+		if (cjkcharcount(zh) >= 4 && cjkcharcount(en) == 0 && skel(es).Length < skel(zs).Length * 0.45)
+			return zh;
+		var zsScore = latinscore(zh);
+		var esScore = latinscore(en);
+		if (esScore > zsScore + 1) return en;
+		if (zsScore > esScore + 1) return zh;
 		return dirt(en) < dirt(zh) ? en : zh;
+	}
+
+	static int latinscore(string s) {
+		if (string.IsNullOrEmpty(s)) return -1000;
+		var score = 0;
+		if (s.Contains("@@")) score -= 24;
+		var at = 0;
+		foreach (var c in s)
+			if (c == '@') at++;
+		if (at == 1) score += 5;
+		else if (at > 1) score -= 10 * (at - 1);
+		foreach (var c in s)
+			if (char.IsDigit(c)) score += 1;
+		if (s.IndexOf("npm", StringComparison.OrdinalIgnoreCase) >= 0 && s.Contains("-g")) {
+			if (Regex.IsMatch(s, @"npm\s+i\s+-g", RegexOptions.IgnoreCase)) score += 10;
+			if (s.Contains("主")) score -= 18;
+		}
+		if (Regex.IsMatch(s, @"[A-Za-z]\s+[a-z](?=[/@])")) score -= 8;
+		if (Regex.IsMatch(s, @"\.\s+exe\b", RegexOptions.IgnoreCase)) score -= 12;
+		if (s.Contains("deepseek-a i") || s.Contains("deepseek-a  i")) score -= 15;
+		score -= dirt(s);
+		return score;
 	}
 
 	static string skel(string s) {
@@ -795,31 +913,310 @@ static class WinOcr {
 	/// 词框之间按空隙补空格。中文引擎常把英文粘成一个词，再按画面词距拆开，和 Umi 一样。
 	/// 标点贴着字时不插，避免 <c>D:\path</c> 被写成 <c>D : \path</c>。
 	/// </summary>
-	static string linewords(WinMedia.OcrEngine engine, WinMedia.OcrLine line, byte[] px, int imgW, int imgH) {
-		if (line?.Words == null || line.Words.Count == 0) return normtext(line?.Text);
-		var sb = new StringBuilder();
-		double prevR = 0;
-		var any = false;
+	sealed class WinWord {
+		public string Text;
+		public Windows.Foundation.Rect Rc;
+	}
+
+	static List<WinWord> collectwords(WinMedia.OcrEngine engine, WinMedia.OcrLine line, byte[] px, int imgW, int imgH) {
+		var list = new List<WinWord>();
+		if (line?.Words == null) return list;
 		foreach (var w in line.Words) {
 			var t = w?.Text;
 			if (string.IsNullOrEmpty(t)) continue;
 			var rc = w.BoundingRect;
 			t = fillword(engine, t, px, imgW, imgH, rc);
 			if (t.Length == 0) continue;
+			foreach (var piece in explodeword(engine, t, rc, px, imgW, imgH))
+				list.Add(piece);
+		}
+		return list;
+	}
+
+	/// <summary>一个词框横跨多列时，按列对比度谷再拆成多个词框（仅数字/英文表格行，避免拆中文段落）。</summary>
+	static IEnumerable<WinWord> explodeword(WinMedia.OcrEngine engine, string text, Windows.Foundation.Rect rc, byte[] px, int imgW, int imgH) {
+		if (px == null || rc.Width < 48 || !shouldexplodeword(text, rc))
+			return new[] { new WinWord { Text = text, Rc = rc } };
+		var parts = visualparts(px, imgW, imgH, rc);
+		if (parts == null || parts.Count <= 1) return new[] { new WinWord { Text = text, Rc = rc } };
+		var bits = new List<string>();
+		foreach (var p in parts) {
+			var piece = readpiece(engine, px, imgW, p);
+			if (string.IsNullOrWhiteSpace(piece)) return new[] { new WinWord { Text = text, Rc = rc } };
+			bits.Add(piece.Trim());
+		}
+		var list = new List<WinWord>();
+		for (int i = 0; i < parts.Count; i++) {
+			var p = parts[i];
+			var dw = p.x1 - p.x0 + 1;
+			var dh = p.y1 - p.y0 + 1;
+			list.Add(new WinWord {
+				Text = bits[i],
+				Rc = new Windows.Foundation.Rect(p.x0, p.y0, dw, dh),
+			});
+		}
+		return list;
+	}
+
+	static int cjkchars(IEnumerable<WinWord> words) {
+		int n = 0;
+		if (words == null) return 0;
+		foreach (var w in words)
+			foreach (var c in w.Text ?? "")
+				if (iscjk(c)) n++;
+		return n;
+	}
+
+	static bool likestable(List<WinWord> words, float cut) {
+		if (words == null || words.Count < 2 || cut >= float.MaxValue * 0.5f) return false;
+		if (cjkchars(words) > 18) return false;
+		int big = 0, num = 0, maxI = 1;
+		float maxG = 0;
+		for (int i = 0; i < words.Count; i++) {
+			var t = words[i].Text ?? "";
+			if (t.Length > 0 && t.All(c => char.IsDigit(c) || c == '.' || c == '+' || c == '-' || c == 'Δ'))
+				num++;
+			if (i == 0) continue;
+			var g = (float)(words[i].Rc.X - (words[i - 1].Rc.X + words[i - 1].Rc.Width));
+			if (g > cut) big++;
+			if (g > maxG) { maxG = g; maxI = i; }
+		}
+		if (big >= 2) return true;
+		if (big != 1 || words.Count < 4 || num < 2) return false;
+		var left = new List<WinWord>();
+		var right = new List<WinWord>();
+		for (int i = 0; i < words.Count; i++) {
+			if (i < maxI) left.Add(words[i]);
+			else right.Add(words[i]);
+		}
+		if (cjkchars(left) > 10 || cjkchars(right) > 10) return false;
+		return true;
+	}
+
+	static bool shouldexplodeword(string text, Windows.Foundation.Rect rc) {
+		if (string.IsNullOrEmpty(text) || !haslatin(text)) return false;
+		var cjk = 0;
+		var lat = 0;
+		foreach (var c in text) {
+			if (iscjk(c)) cjk++;
+			else if (char.IsLetterOrDigit(c)) lat++;
+		}
+		if (cjk >= lat) return false;
+		if (text.IndexOf(' ') >= 0) return true;
+		return lat >= 4 && rc.Width > text.Length * 6;
+	}
+
+	static float columncutpx(List<float> gaps, float avgH, float charW) {
+		if (gaps == null || gaps.Count == 0) return float.MaxValue;
+		gaps.Sort();
+		var med = gaps[gaps.Count / 2];
+		var mx = gaps[gaps.Count - 1];
+		var mincut = Math.Max(charW * 2.2f, avgH * 0.38f);
+		var need = Math.Max(mincut, med * 2.05f);
+		if (mx < need) return float.MaxValue;
+		return need;
+	}
+
+	static List<List<WinMedia.OcrLine>> grouprawlines(IReadOnlyList<WinMedia.OcrLine> lines) {
+		var bands = new List<List<WinMedia.OcrLine>>();
+		if (lines == null || lines.Count == 0) return bands;
+		foreach (var line in lines) {
+			if (line == null) continue;
+			var box = linebox(line, 1f);
+			if (box == null) { bands.Add(new List<WinMedia.OcrLine> { line }); continue; }
+			var cy = (box[0].Y + box[2].Y) * 0.5f;
+			var h = box[2].Y - box[0].Y;
+			List<WinMedia.OcrLine> hit = null;
+			foreach (var band in bands) {
+				var b0 = linebox(band[0], 1f);
+				if (b0 == null) continue;
+				var bcy = (b0[0].Y + b0[2].Y) * 0.5f;
+				var bh = b0[2].Y - b0[0].Y;
+				if (Math.Abs(cy - bcy) <= Math.Max(h, bh) * 0.55f) { hit = band; break; }
+			}
+			if (hit == null) bands.Add(new List<WinMedia.OcrLine> { line });
+			else hit.Add(line);
+		}
+		return bands;
+	}
+
+	static List<OcrLine> linesfromrow(WinMedia.OcrEngine engine, WinMedia.OcrLine line, byte[] px, int imgW, int imgH, float inv) {
+		var words = collectwords(engine, line, px, imgW, imgH);
+		return linesfromwords(words, inv, engine, line, px, imgW, imgH);
+	}
+
+	static List<OcrLine> linesfromwords(List<WinWord> words, float inv, WinMedia.OcrEngine engine = null, WinMedia.OcrLine line = null, byte[] px = null, int imgW = 0, int imgH = 0) {
+		if (words.Count == 0) {
+			if (line != null) {
+				var t = normtext(line.Text);
+				if (t.Length == 0) return new List<OcrLine>();
+				var box = linebox(line, inv);
+				if (box == null) return new List<OcrLine>();
+				return new List<OcrLine> { new OcrLine { Text = t, Score = 1f, Box = box } };
+			}
+			return new List<OcrLine>();
+		}
+		var gaps = new List<float>();
+		float hsum = 0, wsum = 0;
+		int chars = 0;
+		for (int i = 0; i < words.Count; i++) {
+			hsum += (float)words[i].Rc.Height;
+			wsum += (float)words[i].Rc.Width;
+			chars += words[i].Text.Length;
+			if (i == 0) continue;
+			var g = (float)(words[i].Rc.X - (words[i - 1].Rc.X + words[i - 1].Rc.Width));
+			if (g >= 0) gaps.Add(g);
+		}
+		var avgH = hsum / words.Count;
+		var charW = chars > 0 ? wsum / chars : avgH;
+		var cut = columncutpx(gaps, avgH, charW);
+		if (!likestable(words, cut)) {
+			var one = cellfromwords(words, inv);
+			return one != null ? new List<OcrLine> { one } : new List<OcrLine>();
+		}
+		var groups = new List<List<WinWord>> { new List<WinWord> { words[0] } };
+		for (int i = 1; i < words.Count; i++) {
+			var g = (float)(words[i].Rc.X - (words[i - 1].Rc.X + words[i - 1].Rc.Width));
+			if (g > cut) groups.Add(new List<WinWord>());
+			groups[groups.Count - 1].Add(words[i]);
+		}
+		var outLines = new List<OcrLine>();
+		foreach (var grp in groups) {
+			var ln = cellfromwords(grp, inv);
+			if (ln != null) outLines.Add(ln);
+		}
+		return outLines;
+	}
+
+	static OcrLine cellfromwords(List<WinWord> grp, float inv) {
+		if (grp == null || grp.Count == 0) return null;
+		var sb = new StringBuilder();
+		double prevR = 0;
+		var any = false;
+		double l = 0, t = 0, r = 0, btm = 0;
+		foreach (var wd in grp) {
+			var rc = wd.Rc;
+			var text = wd.Text;
 			if (any) {
 				var gap = rc.X - prevR;
 				var h = rc.Height > 1 ? rc.Height : 12;
-				var prev = sb[sb.Length - 1];
-				if (gap > Math.Max(3, h * 0.18) && needsword(prev, t[0]) && sb[sb.Length - 1] != ' ')
+				if (gap > Math.Max(3, h * 0.18) && sb.Length > 0 && text.Length > 0 &&
+					needsword(sb[sb.Length - 1], text[0]) && sb[sb.Length - 1] != ' ')
 					sb.Append(' ');
 			}
-			sb.Append(t);
+			sb.Append(text);
+			if (!any) {
+				l = rc.X; t = rc.Y; r = rc.X + rc.Width; btm = rc.Y + rc.Height;
+				any = true;
+			}
+			else {
+				if (rc.X < l) l = rc.X;
+				if (rc.Y < t) t = rc.Y;
+				if (rc.X + rc.Width > r) r = rc.X + rc.Width;
+				if (rc.Y + rc.Height > btm) btm = rc.Y + rc.Height;
+			}
 			if (rc.Width > 0) prevR = rc.X + rc.Width;
-			any = true;
 		}
-		var text = normtext(sb.ToString());
-		if (text.Length == 0) return normtext(line.Text);
-		return text;
+		var merged = fixmixline(normtext(sb.ToString()));
+		if (merged.Length == 0) return null;
+		return new OcrLine {
+			Text = merged,
+			Score = 1f,
+			Box = new[] {
+				new Point2f((float)l * inv, (float)t * inv),
+				new Point2f((float)r * inv, (float)t * inv),
+				new Point2f((float)r * inv, (float)btm * inv),
+				new Point2f((float)l * inv, (float)btm * inv),
+			},
+		};
+	}
+
+	static List<OcrLine> mixrowcells(List<MixTok> row, float inv) {
+		if (row == null || row.Count == 0) return new List<OcrLine>();
+		row.Sort((a, b) => a.L.CompareTo(b.L));
+		var gaps = new List<float>();
+		float hsum = 0, wsum = 0;
+		int chars = 0;
+		for (int i = 0; i < row.Count; i++) {
+			hsum += (float)row[i].H;
+			wsum += (float)row[i].W;
+			chars += row[i].Text?.Length ?? 0;
+			if (i == 0) continue;
+			var g = (float)(row[i].L - row[i - 1].R);
+			if (g >= 0) gaps.Add(g);
+		}
+		var avgH = hsum / row.Count;
+		var charW = chars > 0 ? (float)(wsum / chars) : avgH;
+		var cut = columncutpx(gaps, avgH, charW);
+		var wordish = new List<WinWord>();
+		foreach (var tok in row)
+			wordish.Add(new WinWord { Text = tok.Text, Rc = new Windows.Foundation.Rect(tok.L, tok.T, tok.W, tok.H) });
+		if (!likestable(wordish, cut)) {
+			var one = mixrowone(row, inv);
+			return one != null ? new List<OcrLine> { one } : new List<OcrLine>();
+		}
+		var groups = new List<List<MixTok>> { new List<MixTok> { row[0] } };
+		for (int i = 1; i < row.Count; i++) {
+			var g = (float)(row[i].L - row[i - 1].R);
+			if (g > cut) groups.Add(new List<MixTok>());
+			groups[groups.Count - 1].Add(row[i]);
+		}
+		var lines = new List<OcrLine>();
+		foreach (var grp in groups) {
+			var ln = mixrowone(grp, inv);
+			if (ln != null) lines.Add(ln);
+		}
+		return lines;
+	}
+
+	static OcrLine mixrowone(List<MixTok> grp, float inv) {
+		if (grp == null || grp.Count == 0) return null;
+		var sb = new StringBuilder();
+		MixTok prev = null;
+		double l = 0, t = 0, r = 0, btm = 0;
+		var any = false;
+		foreach (var tok in grp) {
+			if (prev != null) {
+				var gap = tok.L - prev.R;
+				var h = Math.Max(1, Math.Max(prev.H, tok.H));
+				if (gap > Math.Max(3, h * 0.15) && sb.Length > 0 && tok.Text.Length > 0 &&
+					needsword(sb[sb.Length - 1], tok.Text[0]))
+					sb.Append(' ');
+			}
+			sb.Append(tok.Text);
+			if (!any) { l = tok.L; t = tok.T; r = tok.R; btm = tok.B; any = true; }
+			else {
+				if (tok.L < l) l = tok.L;
+				if (tok.T < t) t = tok.T;
+				if (tok.R > r) r = tok.R;
+				if (tok.B > btm) btm = tok.B;
+			}
+			prev = tok;
+		}
+		var text = fixmixline(tidy(normtext(sb.ToString())));
+		if (text.Length == 0 || !any) return null;
+		return new OcrLine {
+			Text = text,
+			Score = 1f,
+			Box = new[] {
+				new Point2f((float)l * inv, (float)t * inv),
+				new Point2f((float)r * inv, (float)t * inv),
+				new Point2f((float)r * inv, (float)btm * inv),
+				new Point2f((float)l * inv, (float)btm * inv),
+			},
+		};
+	}
+
+	static string linewords(WinMedia.OcrEngine engine, WinMedia.OcrLine line, byte[] px, int imgW, int imgH) {
+		var cells = linesfromrow(engine, line, px, imgW, imgH, 1f);
+		if (cells.Count == 0) return normtext(line?.Text);
+		if (cells.Count == 1) return cells[0].Text;
+		var sb = new StringBuilder();
+		for (int i = 0; i < cells.Count; i++) {
+			if (i > 0) sb.Append('\t');
+			sb.Append(cells[i].Text);
+		}
+		return sb.ToString();
 	}
 
 	/// <summary>一个词框里若有多段墨水，按词距拆开再各认一次。纯中文不拆。</summary>
@@ -975,6 +1372,15 @@ static class WinOcr {
 		if (iscjk(a) && iscjk(b)) return false;
 		if (b is ',' or '.' or ';' or ':' or '!' or '?' or ')' or ']' or '}' or '%' or '\\' or '/') return false;
 		if (a is '(' or '[' or '{' or '\\' or '/') return false;
+		if (b == '@' && (a == 'g' || a == 'G')) return true;
+		if (a == '@' || b == '@') return false;
+		if (char.IsDigit(a) && b == '.') return false;
+		if (a == '.' && (char.IsDigit(b) || b == 'I' || b == 'l')) return false;
+		if (char.IsDigit(a) && b == '-') return false;
+		if (a == '-' && (char.IsDigit(b) || char.IsLetter(b))) return false;
+		if (a == '/' || b == '/') return false;
+		if (char.IsLetter(a) && char.IsLetter(b) && a == 'a' && b == 'i') return false;
+		if (char.IsLetter(a) && b == '/') return false;
 		return true;
 	}
 
@@ -1085,6 +1491,44 @@ static class WinOcr {
 		return dst;
 	}
 
+	/// <summary>中英混合行：修版本号/npm 误空格、误选中文块等。</summary>
+	static string fixmixline(string s) {
+		if (string.IsNullOrEmpty(s)) return s ?? "";
+		if (s.Length > 1 && s[0] == '众' && s[1] == '检') s = s.Substring(1);
+		s = Regex.Replace(s, @"[—–―]", "-");
+		s = Regex.Replace(s, @"\bnprn\b", "npm", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"deepseek—a", "deepseek-ai", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"npm\s*主一\s*", "npm i ", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"npm\s+i\s+一-g", "npm i -g");
+		s = Regex.Replace(s, @"npm\s+i\s*[-—一]+\s*g", "npm i -g", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"npm\s+i\s*-g", "npm i -g", RegexOptions.IgnoreCase);
+		for (int pass = 0; pass < 10; pass++) {
+			var t = Regex.Replace(s, @"(\d)\s+\.", "$1.");
+			t = Regex.Replace(t, @"\.\s+(\d)", ".$1");
+			t = Regex.Replace(t, @"[·•]", ".");
+			t = Regex.Replace(t, @"\.\s*([Il])\s*(?=-rc)", ".1", RegexOptions.IgnoreCase);
+			t = Regex.Replace(t, @"\.[Il]\s*-rc", ".1-rc", RegexOptions.IgnoreCase);
+			t = Regex.Replace(t, @"\(O\.", "(0.");
+			t = Regex.Replace(t, @"(\d\.)[OØ](-rc)", "${1}0$2");
+			if (t == s) break;
+			s = t;
+		}
+		s = Regex.Replace(s, @"(/dsh)@@", "$1@0", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"\.(@)-rc", ".1-rc", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"-g@", "-g @", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"@[\w-]+(?:\s+[\w-]+)+", m => m.Value.Replace(" ", ""));
+		s = Regex.Replace(s, @"/([\w-]+(?:\s+[\w-]+)+)@", m => "/" + Regex.Replace(m.Groups[1].Value, @"\s+", "") + "@");
+		s = Regex.Replace(s, @"\b([\w-]{2,})\.\s+exe\b", "$1.exe", RegexOptions.IgnoreCase);
+		s = Regex.Replace(s, @"\)\s*[一一寸]\s*，", ")，");
+		s = Regex.Replace(s, @"\(\s+", "(");
+		s = Regex.Replace(s, @"\s+\)", ")");
+		s = Regex.Replace(s,
+			@"(\d+\.\d+(?:\.\d+)?(?:-[A-Za-z0-9.]+)?)\s*/\s*(\d+\.\d+(?:\.\d+)?)",
+			"$1 / $2");
+		s = Regex.Replace(s, @"(-rc\.\d+)/(\d+\.\d+)", "$1 / $2");
+		return s;
+	}
+
 	/// <summary>汉字、假名、谚文之间不留空格；英文单词之间的空格保留。</summary>
 	static string normtext(string text) {
 		if (string.IsNullOrWhiteSpace(text)) return "";
@@ -1098,6 +1542,8 @@ static class WinOcr {
 					if (text[j] != ' ' && text[j] != '\u3000') { next = text[j]; break; }
 				}
 				if (iscjk(prev) && iscjk(next)) continue;
+				if (sb.Length > 0 && prev == '.' && char.IsLetter(next) && next != ' ') continue;
+				if (sb.Length > 0 && char.IsLetter(prev) && next == '.') continue;
 				if (sb.Length == 0 || next == '\0') continue;
 				if (sb[sb.Length - 1] == ' ') continue;
 				sb.Append(' ');
@@ -1161,10 +1607,9 @@ static class WinOcr {
 			else hit.Add(it);
 		}
 		lines.Clear();
-		var multi = rows.Count > 1;
 		foreach (var row in rows) {
 			row.Sort((a, b) => a.L.CompareTo(b.L));
-			var groups = multi ? splitgaps(row) : new List<List<Seg>> { row };
+			var groups = splitgaps(row);
 			foreach (var g in groups) {
 				var joined = joingroup(g);
 				if (joined != null) lines.Add(joined);
@@ -1255,11 +1700,12 @@ static class WinOcr {
 			if (s.T < t) t = s.T;
 			if (s.R > r) r = s.R;
 			if (s.B > btm) btm = s.B;
-			if (i > 0 && needspace(sb, s.Line.Text, s.L - g[i - 1].R, cw))
+			if (i > 0 && needspace(sb, s.Line.Text, s.L - g[i - 1].R, cw)
+				&& needsword(sb[sb.Length - 1], s.Line.Text[0]))
 				sb.Append(' ');
 			sb.Append(s.Line.Text);
 		}
-		var text = normtext(sb.ToString());
+		var text = fixmixline(normtext(sb.ToString()));
 		if (text.Length == 0) return null;
 		return new OcrLine {
 			Text = text,

@@ -304,16 +304,41 @@ static class DictDb {
 		var d = normdict(dict);
 		lock (dblock) {
 			if (!readyunlocked()) return hits;
-			prefixkeys(q, d, hits, cap);
-			var prefixN = uniquecount(hits);
-			var wantContains = shouldruncontains(q, prefixN, limit);
-			var deferContains = wantContains && KoStem.HasHangul(q) && prefixN < 4;
-			if (wantContains && !deferContains) containskeys(q, d, hits, cap);
-			if (wantstem(q, d, uniquecount(hits))) stemkeys(q, d, hits, limit);
-			if (deferContains && uniquecount(hits) < 4) containskeys(q, d, hits, cap);
+			affixkeys(q, d, hits, cap, limit);
+			var jaon = d.Length == 0 || d == "ja";
+			var moon = d.Length == 0 || d == "ko";
+			var jaRomajiOk = jaon && DictRomanize.RomajiToHiraganaVariants(q).Count > 0;
+			if (jaon) {
+				foreach (var hira in DictRomanize.RomajiToHiraganaVariants(q)) {
+					if (hira == q) continue;
+					affixkeys(hira, "ja", hits, cap, limit);
+				}
+			}
+			// 拉丁串能整段转成日语假名时，在「全部」里不再走韩语罗马字（saseko→させこ，避免 사세고 中缀误命中 사세）。
+			if (moon && !(d.Length == 0 && jaRomajiOk)) {
+				foreach (var hangul in DictRomanize.RomanToHangulVariants(q)) {
+					if (hangul == q) continue;
+					affixkeysroman(hangul, "ko", hits, cap);
+				}
+			}
 		}
 		sort(hits);
 		return hits;
+	}
+
+	static void affixkeys(string q, string dict, List<DictHit> hits, int cap, int limit) {
+		prefixkeys(q, dict, hits, cap);
+		var prefixN = uniquecount(hits);
+		var wantContains = shouldruncontains(q, prefixN, limit);
+		var deferContains = wantContains && KoStem.HasHangul(q) && prefixN < 4;
+		if (wantContains && !deferContains) containskeys(q, dict, hits, cap);
+		if (wantstem(q, dict, uniquecount(hits))) stemkeys(q, dict, hits, limit);
+		if (deferContains && uniquecount(hits) < 4) containskeys(q, dict, hits, cap);
+	}
+
+	/// <summary>韩语罗马字转谚文后的补充检索：只做前缀，避免中缀把 사세고 扩成 사세。</summary>
+	static void affixkeysroman(string q, string dict, List<DictHit> hits, int cap) {
+		prefixkeys(q, dict, hits, cap);
 	}
 
 	public static DictEntry Get(long id) {

@@ -21,6 +21,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miBoard;
 	Forms.ToolStripMenuItem miVoice;
 	Forms.ToolStripMenuItem miTranslate;
+	Forms.ToolStripMenuItem miDictSel;
 	Forms.ToolStripMenuItem miClip;
 	Forms.ToolStripMenuItem miClipFile;
 	Forms.ToolStripMenuItem miPdf;
@@ -85,13 +86,14 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miExit;
 	bool disposed;
 	bool snapCopyUi;
+	bool dictSelUi;
 	/// <summary>刚点了 radio：菜单正常关掉后在原位再打开（避免 Cancel 关掉导致点外面关不上）。</summary>
 	bool reopenAfterRadio;
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
 	System.Drawing.Point menuScreenLoc;
 
-	/// <summary>返回 (呼出, 截图识别, 截图标注, 重复上次截图, 屏幕画板, 语音输入, 翻译小窗, 切换复制方式, 输入法) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string copy, string hangul)> HotkeyProvider { get; set; }
+	/// <summary>返回 (呼出, 截图识别, 截图标注, 重复上次截图, 屏幕画板, 语音输入, 翻译小窗, 划词浮窗, 切换复制方式, 输入法) 快捷键文案；空串表示无。</summary>
+	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string dictsel, string copy, string hangul)> HotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -165,6 +167,11 @@ sealed class TrayIcon : IDisposable {
 		miBoard = item("tray.board", () => BoardRequested?.Invoke());
 		miVoice = item("tray.voice", () => VoiceRequested?.Invoke());
 		miTranslate = item("tray.translate", () => TranslateRequested?.Invoke());
+		miDictSel = new Forms.ToolStripMenuItem(Loc.T("dict.selbar")) { CheckOnClick = true };
+		miDictSel.CheckedChanged += (_, _) => {
+			if (dictSelUi) return;
+			try { DictSelBarChanged?.Invoke(miDictSel.Checked); } catch { }
+		};
 		miClip = item("tray.clip", () => {
 			showwindow();
 			ClipboardOcrRequested?.Invoke();
@@ -298,6 +305,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miBoard);
 		menu.Items.Add(miVoice);
 		menu.Items.Add(miTranslate);
+		menu.Items.Add(miDictSel);
 		menu.Items.Add(miClip);
 		menu.Items.Add(miClipFile);
 		menu.Items.Add(miPdf);
@@ -410,13 +418,14 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	/// <summary>刷新右侧快捷键显示（不注册 WinForms 快捷键，仅展示）。</summary>
-	public void SetModules(bool ocr, bool asr, bool translate) {
+	public void SetModules(bool ocr, bool asr, bool translate, bool dict) {
 		try {
 			if (miOcr != null) miOcr.Enabled = ocr;
 			if (miClip != null) miClip.Enabled = ocr;
 			if (miPdf != null) miPdf.Enabled = ocr;
 			if (miVoice != null) miVoice.Enabled = asr;
 			if (miTranslate != null) miTranslate.Enabled = translate;
+			if (miDictSel != null) miDictSel.Enabled = dict;
 		}
 		catch { }
 	}
@@ -440,10 +449,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", copy = "", hangul = "";
+		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", dictsel = "", copy = "", hangul = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, screensnap, board, voice, tr, copy, hangul) = HotkeyProvider();
+				(show, ocr, snap, screensnap, board, voice, tr, dictsel, copy, hangul) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
@@ -453,6 +462,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miBoard, board);
 		setshortcut(miVoice, voice);
 		setshortcut(miTranslate, tr);
+		setshortcut(miDictSel, dictsel);
 		// 其余无全局热键，清空以免残留
 		setshortcut(miClip, null);
 		setshortcut(miClipFile, null);
@@ -521,6 +531,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miBoard, "tray.board");
 			settext(miVoice, "tray.voice");
 			settext(miTranslate, "tray.translate");
+			settext(miDictSel, "dict.selbar");
 			settext(miClip, "tray.clip");
 			settext(miClipFile, "tray.clipfile");
 			settext(miPdf, "tray.pdf");
@@ -600,6 +611,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action BoardRequested;
 	public event Action VoiceRequested;
 	public event Action TranslateRequested;
+	public event Action<bool> DictSelBarChanged;
 	public event Action PdfRequested;
 	public event Action SnapshotsRequested;
 	public event Action RecordRequested;
@@ -731,6 +743,15 @@ sealed class TrayIcon : IDisposable {
 	public event Action ZhConvRequested;
 	public event Action PinyinRequested;
 	public event Action HangulRequested;
+
+	public void SetDictSelBarChecked(bool on) {
+		dictSelUi = true;
+		try {
+			if (miDictSel != null) miDictSel.Checked = on;
+		}
+		catch { }
+		dictSelUi = false;
+	}
 
 	public void SetHangul(bool on) {
 		if (miHangul == null) return;

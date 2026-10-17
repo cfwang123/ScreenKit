@@ -31,7 +31,6 @@ KINDS = [
     ("changed", "Changed", "变更"),
     ("fixed", "Fixed", "修复"),
     ("removed", "Removed", "移除"),
-    ("docs", "Documentation", "文档"),
     ("security", "Security / privacy notes", "安全与隐私"),
 ]
 ORDER = {key: i for i, (key, _, _) in enumerate(KINDS)}
@@ -223,7 +222,7 @@ def build_parser() -> argparse.ArgumentParser:
 """,
     )
     p.add_argument("rest", nargs="*", help="[类别] 英文条目 中文条目（类别也可用 --kind 给）")
-    p.add_argument("--kind", default=None, help="类别：added / changed / fixed / removed / docs / security（也可写 新增/变更/修复…）")
+    p.add_argument("--kind", default=None, help="类别：added / changed / fixed / removed / security（也可写 新增/变更/修复…）")
     p.add_argument("--en", default=None, help="英文条目")
     p.add_argument("--zh", default=None, help="中文条目")
     p.add_argument("--file", default=str(DEFAULT_FILE), help="CHANGELOG 路径，默认仓库根目录的 CHANGELOG.md")

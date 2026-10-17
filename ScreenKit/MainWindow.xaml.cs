@@ -131,6 +131,7 @@ public partial class MainWindow : Window {
 	bool capturing; // 防止热键重入（框选/标注遮罩）
 	/// <summary>同步「复制为图片/文件/路径」勾选时防重入。</summary>
 	bool snapCopyUi;
+	bool selBarMenuUi;
 	/// <summary>当前录屏 HUD；非 null 时热键截图走录制区域快照。</summary>
 	RecordHud activeRecordHud;
 	CancellationTokenSource ocrCts;
@@ -599,6 +600,7 @@ public partial class MainWindow : Window {
 				fmttrayhk(opt.HotkeyBoard),
 				fmttrayhk(opt.HotkeyVoiceInput),
 				fmttrayhk(opt.HotkeyTranslate),
+				opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "",
 				fmttrayhk(opt.HotkeySnapCopy),
 				"");
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
@@ -640,6 +642,10 @@ public partial class MainWindow : Window {
 				if (!trayMenuMainVisible)
 					keepmainhidden();
 				showtranslatepopup();
+			}));
+			tray.DictSelBarChanged += on => Dispatcher.BeginInvoke(new Action(() => {
+				if (selBarMenuUi) return;
+				applyselbar(on, true, true);
 			}));
 			tray.ClipboardOcrRequested += () => _ = hotkeyclipboardasync();
 			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(() => {
@@ -1122,9 +1128,20 @@ public partial class MainWindow : Window {
 		updatehotkeymenutext();
 	}
 
+	void syncselbarcheck(bool on) {
+		selBarMenuUi = true;
+		try {
+			if (mndictselbar != null) mndictselbar.IsChecked = on;
+			tray?.SetDictSelBarChecked(on);
+		}
+		catch { }
+		selBarMenuUi = false;
+	}
+
 	void applyselbar(bool want, bool save, bool toast) {
 		opt.DictSelBar = want;
 		try { dicthost?.SetSelBarChecked(want); } catch { }
+		syncselbarcheck(want);
 		var run = want && opt.ModDict;
 		SelBar.SetOn(run);
 		if (save) {
@@ -1804,6 +1821,14 @@ public partial class MainWindow : Window {
 		mnfastcopy.Click += (_, _) => openfastcopy();
 		mnglyphmod.Click += (_, _) => openglyphmod();
 		// 选项菜单
+		mndictselbar.Checked += (_, _) => {
+			if (selBarMenuUi) return;
+			applyselbar(true, true, true);
+		};
+		mndictselbar.Unchecked += (_, _) => {
+			if (selBarMenuUi) return;
+			applyselbar(false, true, true);
+		};
 		mnsettings.Click += (_, _) => opensettings();
 		// 帮助菜单
 		mninstall.Click += (_, _) => openinstallfeatures();
@@ -2006,6 +2031,8 @@ public partial class MainWindow : Window {
 			mnglyphmod.Header = Loc.T("menu.glyphmod");
 			mnglyphmod.ToolTip = Loc.T("menu.glyphmod.tip");
 			fillwebmenu();
+			mndictselbar.Header = Loc.T("dict.selbar");
+			mndictselbar.ToolTip = Loc.T("dict.selbar.tip");
 			mnsettings.Header = Loc.T("menu.settings");
 			mnsettings.ToolTip = Loc.T("menu.settings.tip");
 			mninstall.Header = Loc.T("menu.install");
@@ -2137,7 +2164,8 @@ public partial class MainWindow : Window {
 		mnvoice.IsEnabled = opt.ModAsr;
 		mntrpopup.IsEnabled = opt.ModTranslate;
 		mndict.IsEnabled = opt.ModDict;
-		try { tray?.SetModules(opt.ModOcr, opt.ModAsr, opt.ModTranslate); } catch { }
+		if (mndictselbar != null) mndictselbar.IsEnabled = opt.ModDict;
+		try { tray?.SetModules(opt.ModOcr, opt.ModAsr, opt.ModTranslate, opt.ModDict); } catch { }
 		if (!opt.ModTranslate) try { trPopup?.Hide(); } catch { }
 		if (!opt.ModAsr) {
 			if (asrLiveOn) try { stopasrlive(false); } catch { }
@@ -2227,6 +2255,8 @@ public partial class MainWindow : Window {
 			mnvoice.InputGestureText = voice;
 			mntrpopup.InputGestureText = tr;
 			mndict.InputGestureText = dict;
+			if (mndictselbar != null)
+				mndictselbar.InputGestureText = opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "";
 			if (mnhangul != null) mnhangul.InputGestureText = "";
 			painthangul();
 			// 只在工具窗口打开时监听，菜单上不标快捷键

@@ -40,6 +40,9 @@
 				          AutomationProperties.AutomationId="menu.snap"
 				          AutomationProperties.Name="截图标注"
 				          ToolTip="微信式截图：框选 / 标注 / 复制 / 保存"/>
+				<MenuItem x:Name="mnscreensnap" Header="重复上次截图(_S)"
+				          AutomationProperties.AutomationId="menu.screensnap"
+				          ToolTip="按上次框选区域再截一次，复制为图片并在截图识别页显示"/>
 				<MenuItem x:Name="mnboard" Header="屏幕画板(_B)"
 				          AutomationProperties.AutomationId="menu.board"
 				          AutomationProperties.Name="屏幕画板"
@@ -125,11 +128,10 @@
 				<MenuItem x:Name="mnwebdict" Header="词典"
 				          AutomationProperties.AutomationId="menu.webdict"
 				          ToolTip="在新窗口打开网页词典"/>
-				<MenuItem x:Name="mnhangul" Header="韩语输入(_U)"
+				<MenuItem x:Name="mnhangul" Header="五笔/日语/韩语输入(_U)"
 				          IsCheckable="True"
-				          InputGestureText="Ctrl+Alt+K"
 				          AutomationProperties.AutomationId="menu.hangul"
-				          ToolTip="打开后接管键盘，按 Windows 韩语输入法组字。右 Alt 切换韩文和英文"/>
+				          ToolTip="打开后接管键盘。候选条可打五笔、日语和韩语。Shift 或右 Alt 切换英文"/>
 				<Separator/>
 				<MenuItem x:Name="mncattext" Header="文字(_X)"
 				          AutomationProperties.AutomationId="menu.cat.text">
@@ -270,6 +272,10 @@
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">
+				<MenuItem x:Name="mndictselbar" Header="划词浮窗"
+				          IsCheckable="True"
+				          AutomationProperties.AutomationId="menu.dictselbar"
+				          ToolTip="在其它程序里划选文字时显示查词浮窗"/>
 				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
 				          AutomationProperties.AutomationId="menu.settings"
 				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>

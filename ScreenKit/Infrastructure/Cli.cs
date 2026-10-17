@@ -5770,6 +5770,10 @@ INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1),('학교에'
 	}
 
 	static int testdict(string one) {
+		if (!DictRomanize.SelfTest()) {
+			Out("dict romanize selftest fail");
+			return 7;
+		}
 		var forms = DictDb.JaForms("其奴", "そいつ, そやつ, すやつ'out-dated or obsolete kana usage'");
 		if (forms != "其奴, そいつ, そやつ") {
 			Out("ja forms " + forms);
@@ -5794,6 +5798,13 @@ INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1),('학교에'
 		string[] qs = string.IsNullOrWhiteSpace(one) ? new[] { "学生", "hello" } : new[] { one };
 		foreach (var q in qs) {
 			var hits = DictDb.Search(q, "", 12);
+			if (q == "saseko") {
+				foreach (var h in hits)
+					if (h.Dict == "ko") {
+						Out("saseko should not match ko: " + h.Headword);
+						return 8;
+					}
+			}
 			Out("q=" + q + " n=" + hits.Count);
 			var shown = 0;
 			foreach (var h in hits) {

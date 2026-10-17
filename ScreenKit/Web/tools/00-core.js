@@ -740,7 +740,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		}
 	}
 
-	function playwav(b64, mid){
+	function playwav(b64, mid, onend){
 		var bin, bytes, i, blob, url, audio, played;
 		if (!b64) {
 			msg(mid, "没有音频", true);
@@ -758,6 +758,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		wavclip = audio;
 		audio.onended = function(){
 			if (wavclip === audio) stopwav();
+			if (onend) onend();
 		};
 		played = audio.play();
 		if (played && played.then) played.then(function(){}, function(){
