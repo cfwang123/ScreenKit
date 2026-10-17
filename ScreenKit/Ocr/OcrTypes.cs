@@ -116,7 +116,7 @@ public sealed class OcrOptions {
 	/// <summary>切换划词浮窗。默认空 = 不注册。</summary>
 	public string HotkeyDictSel = "";
 	/// <summary>输入法切换语言，轮到末尾后关闭。默认 Ctrl+`。</summary>
-	public string HotkeyImeCycle = "Ctrl+Oem3";
+	public string HotkeyImeCycle = "Ctrl+`";
 	/// <summary>输入法切到五笔。默认 Ctrl+Alt+1。</summary>
 	public string HotkeyImeWubi = "Ctrl+Alt+1";
 	/// <summary>输入法切到日语。默认 Ctrl+Alt+2。</summary>

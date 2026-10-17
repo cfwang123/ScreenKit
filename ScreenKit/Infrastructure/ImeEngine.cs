@@ -28,8 +28,16 @@ class ImeEngine {
 	bool usezh = true;
 	bool useja = true;
 	bool useko = true;
+	bool gvimInsertEn;
+	bool gvimInsert;
 
 	public ImeEngine() { }
+
+	/// <summary>当前在 gVim 插入/替换模式；中英切换会写入插入记忆。</summary>
+	public bool GvimInsert {
+		get => gvimInsert;
+		set => gvimInsert = value;
+	}
 
 	public event Action StateChanged;
 
@@ -146,7 +154,32 @@ class ImeEngine {
 		if (off) return;
 		shiften = !shiften;
 		clearcomp();
+		if (gvimInsert) gvimInsertEn = shiften;
 		ping();
+	}
+
+	/// <summary>gVim 普通/可视/命令模式：强制英文，不改插入记忆。</summary>
+	public void ForceEnglishForVim() {
+		if (off) return;
+		if (!shiften) {
+			shiften = true;
+			clearcomp();
+			ping();
+			return;
+		}
+		if (busy()) clearcomp();
+	}
+
+	/// <summary>gVim 插入/替换模式：恢复上次插入时的中英状态。</summary>
+	public void RestoreGvimInsertEn() {
+		if (off) return;
+		if (shiften != gvimInsertEn) {
+			shiften = gvimInsertEn;
+			clearcomp();
+			ping();
+			return;
+		}
+		if (busy()) clearcomp();
 	}
 
 	public string LangCode => cjk == Lang.Ja ? "ja" : cjk == Lang.Ko ? "ko" : "wubi";
@@ -297,6 +330,7 @@ class ImeEngine {
 		if (!pure) return;
 		shiften = !shiften;
 		clearcomp();
+		if (gvimInsert) gvimInsertEn = shiften;
 		ping();
 	}
 

@@ -158,13 +158,22 @@ sealed class GlobalHotkey : IDisposable {
 				modifiers |= MOD_WIN;
 			else {
 				if (p.Length == 1) {
-					var c = char.ToUpperInvariant(p[0]);
-					if (c is >= 'A' and <= 'Z')
-						key = Key.A + (c - 'A');
-					else if (c is >= '0' and <= '9')
-						key = Key.D0 + (c - '0');
+					var c = p[0];
+					if (c == '`' || c == 'ˋ' || c == '·')
+						key = Key.Oem3;
+					else {
+						c = char.ToUpperInvariant(c);
+						if (c is >= 'A' and <= 'Z')
+							key = Key.A + (c - 'A');
+						else if (c is >= '0' and <= '9')
+							key = Key.D0 + (c - '0');
+					}
 				}
-				else if (Enum.TryParse<Key>(p, true, out var k))
+				else if (p.Equals("Grave", StringComparison.OrdinalIgnoreCase)
+					|| p.Equals("Backquote", StringComparison.OrdinalIgnoreCase))
+					key = Key.Oem3;
+				else if (!p.Equals("Oem3", StringComparison.OrdinalIgnoreCase)
+					&& Enum.TryParse<Key>(p, true, out var k))
 					key = k;
 				else if (p.StartsWith("F", StringComparison.OrdinalIgnoreCase)
 					&& int.TryParse(p.Substring(1), out var fn) && fn is >= 1 and <= 24)
@@ -190,6 +199,22 @@ sealed class GlobalHotkey : IDisposable {
 		return string.Join("+", parts);
 	}
 
+	/// <summary>把已保存的热键字符串格式化为界面显示（与 <see cref="Format"/> 一致）。</summary>
+	public static string Display(string hotkey) {
+		hotkey = (hotkey ?? "").Trim();
+		if (hotkey.Length == 0) return "";
+		if (!tryparse(hotkey, out var mod, out var vk)) return hotkey;
+		var key = KeyInterop.KeyFromVirtualKey((int)vk);
+		if (key == Key.None) return hotkey;
+		var mods = ModifierKeys.None;
+		if ((mod & MOD_CONTROL) != 0) mods |= ModifierKeys.Control;
+		if ((mod & MOD_ALT) != 0) mods |= ModifierKeys.Alt;
+		if ((mod & MOD_SHIFT) != 0) mods |= ModifierKeys.Shift;
+		if ((mod & MOD_WIN) != 0) mods |= ModifierKeys.Windows;
+		var text = Format(mods, key);
+		return text.Length > 0 ? text : hotkey;
+	}
+
 	static bool ismodkey(Key key) =>
 		key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt
 			or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin
@@ -208,6 +233,7 @@ sealed class GlobalHotkey : IDisposable {
 		return key switch {
 			Key.Space => "Space",
 			Key.Tab => "Tab",
+			Key.Oem3 => "`",
 			Key.OemPlus => "OemPlus",
 			Key.OemMinus => "OemMinus",
 			Key.OemComma => "OemComma",

@@ -504,22 +504,22 @@ public partial class SettingsWindow : Window {
 		lbboxth.Text = o.DetBoxThresh.ToString("0.00");
 		eusecls.IsChecked = o.UseCls;
 		// 空 = 禁用，原样显示，勿填默认
-		ehotkey.Text = o.Hotkey ?? "";
-		ehotkeysnap.Text = o.HotkeySnap ?? "";
-		ehotkeysnapocr.Text = o.HotkeySnapOcr ?? "";
-		ehotkeyboard.Text = o.HotkeyBoard ?? "";
-		ehotkeyscreensnap.Text = o.HotkeyScreenSnap ?? "";
-		ehotkeyvoice.Text = o.HotkeyVoiceInput ?? "";
-		ehotkeylive.Text = o.HotkeyLiveCaption ?? "";
-		ehotkeytr.Text = o.HotkeyTranslate ?? "";
-		ehotkeysnapcopy.Text = o.HotkeySnapCopy ?? "";
-		ehotkeydict.Text = o.HotkeyDict ?? "";
-		ehotkeyimecycle.Text = o.HotkeyImeCycle ?? "";
-		ehotkeyimewubi.Text = o.HotkeyImeWubi ?? "";
-		ehotkeyimeja.Text = o.HotkeyImeJa ?? "";
-		ehotkeyimeko.Text = o.HotkeyImeKo ?? "";
-		ehotkeyimeoff.Text = o.HotkeyImeOff ?? "";
-		ehotkeydictsel.Text = o.HotkeyDictSel ?? "";
+		ehotkey.Text = GlobalHotkey.Display(o.Hotkey);
+		ehotkeysnap.Text = GlobalHotkey.Display(o.HotkeySnap);
+		ehotkeysnapocr.Text = GlobalHotkey.Display(o.HotkeySnapOcr);
+		ehotkeyboard.Text = GlobalHotkey.Display(o.HotkeyBoard);
+		ehotkeyscreensnap.Text = GlobalHotkey.Display(o.HotkeyScreenSnap);
+		ehotkeyvoice.Text = GlobalHotkey.Display(o.HotkeyVoiceInput);
+		ehotkeylive.Text = GlobalHotkey.Display(o.HotkeyLiveCaption);
+		ehotkeytr.Text = GlobalHotkey.Display(o.HotkeyTranslate);
+		ehotkeysnapcopy.Text = GlobalHotkey.Display(o.HotkeySnapCopy);
+		ehotkeydict.Text = GlobalHotkey.Display(o.HotkeyDict);
+		ehotkeyimecycle.Text = GlobalHotkey.Display(o.HotkeyImeCycle);
+		ehotkeyimewubi.Text = GlobalHotkey.Display(o.HotkeyImeWubi);
+		ehotkeyimeja.Text = GlobalHotkey.Display(o.HotkeyImeJa);
+		ehotkeyimeko.Text = GlobalHotkey.Display(o.HotkeyImeKo);
+		ehotkeyimeoff.Text = GlobalHotkey.Display(o.HotkeyImeOff);
+		ehotkeydictsel.Text = GlobalHotkey.Display(o.HotkeyDictSel);
 		cbdictselbar.IsChecked = o.DictSelBar;
 		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
 		edicthold.Text = OnnxIdle.ClampMin(o.DictDbHoldMin).ToString();
@@ -1476,7 +1476,10 @@ public partial class SettingsWindow : Window {
 	bool tryreadhotkey(System.Windows.Controls.TextBox box, string name, out string value, TabItem tab = null) {
 		value = (box?.Text ?? "").Trim();
 		if (string.IsNullOrEmpty(value)) return true;
-		if (GlobalHotkey.tryparse(value, out _, out _)) return true;
+		if (GlobalHotkey.tryparse(value, out _, out _)) {
+			value = GlobalHotkey.Display(value);
+			return true;
+		}
 		if (tab != null) tabset.SelectedItem = tab;
 		MessageBox.Show(this, Loc.T("set.hotkey.parse", name, value), Loc.T("settings"),
 			MessageBoxButton.OK, MessageBoxImage.Warning);

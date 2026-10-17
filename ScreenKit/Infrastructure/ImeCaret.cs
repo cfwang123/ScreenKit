@@ -26,6 +26,9 @@ sealed class ImeCaret : IDisposable {
 	uint vimpid;
 	int vimx, vimy, vimstamp;
 	bool vimok;
+	string vimmode = "";
+	int vimmodestamp;
+	bool vimmodeok;
 	string wezbin;
 	int wezx, wezy, wezstamp;
 	bool wezok;
@@ -66,6 +69,22 @@ sealed class ImeCaret : IDisposable {
 			vimhwnd = IntPtr.Zero;
 		}
 	}
+
+	public bool IsGvimForeground() => vimroot() != IntPtr.Zero;
+
+	/// <summary>前台 gVim 且模式缓存仍新时，返回是否为插入/替换。</summary>
+	public bool TryGvimInsert(out bool insert) {
+		insert = false;
+		if (vimroot() == IntPtr.Zero) return false;
+		lock (gate) {
+			int age = Environment.TickCount - vimmodestamp;
+			if (!vimmodeok || age < 0 || age > 2500) return false;
+			insert = gviminsert(vimmode);
+			return true;
+		}
+	}
+
+	internal static bool GvimInsertMode(string mode) => gviminsert(mode);
 
 	public bool TryAnchor(out int px, out int py) {
 		px = 0;
@@ -182,13 +201,31 @@ sealed class ImeCaret : IDisposable {
 	}
 
 	void vimread(IntPtr fg) {
-		if (!vimpixel(fg, out var x, out var y)) return;
+		if (vimpixel(fg, out var x, out var y)) {
+			lock (gate) {
+				vimx = x;
+				vimy = y;
+				vimok = true;
+				vimstamp = Environment.TickCount;
+			}
+		} else lock (gate) vimok = false;
+		var srv = vimserver(fg);
+		if (srv == IntPtr.Zero) return;
+		var mode = vimaskmode(srv);
+		if (mode == null) return;
 		lock (gate) {
-			vimx = x;
-			vimy = y;
-			vimok = true;
-			vimstamp = Environment.TickCount;
+			vimmode = mode;
+			vimmodeok = true;
+			vimmodestamp = Environment.TickCount;
 		}
+	}
+
+	static bool gviminsert(string mode) {
+		if (string.IsNullOrEmpty(mode)) return false;
+		char c = mode[0];
+		if (c == 'i' || c == 'I') return true;
+		if (c == 'R') return true;
+		return false;
 	}
 
 	bool vimpixel(IntPtr fg, out int x, out int y) {
@@ -243,6 +280,18 @@ sealed class ImeCaret : IDisposable {
 			vimkind = 0;
 			if (!vimsend(srv, 20, "utf-8")) return null;
 			if (!vimsend(srv, 10, "screenrow() . ',' . screencol() . ',' . &lines . ',' . &columns")) return null;
+			if (vimkind != 11 || string.IsNullOrEmpty(vimreply)) return null;
+			return vimreply;
+		}
+	}
+
+	string vimaskmode(IntPtr srv) {
+		if (srv == IntPtr.Zero) return null;
+		lock (vimaskgate) {
+			vimreply = null;
+			vimkind = 0;
+			if (!vimsend(srv, 20, "utf-8")) return null;
+			if (!vimsend(srv, 10, "mode()")) return null;
 			if (vimkind != 11 || string.IsNullOrEmpty(vimreply)) return null;
 			return vimreply;
 		}

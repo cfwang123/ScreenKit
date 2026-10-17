@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Turning the input method off hides its tray icon.
 - IME requires installed ime.db; menu and hotkeys stay off until then
 - Dictionary selection popup has Close and turn-off controls
+- In gVim, normal mode forces English and insert or replace restores the last insert language; Esc returns to English immediately.
 
 #### Fixed
 
@@ -110,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 输入法切到关闭后隐藏托盘图标。
 - 输入法须先安装 ime.db，未安装时禁用菜单与快捷键
 - 划词查词浮窗增加关闭与关闭划词浮窗按钮
+- gVim 下普通模式自动英文，插入/替换恢复上次插入的中英，Esc 立即回到英文。
 
 #### 修复
 
