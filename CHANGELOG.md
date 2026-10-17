@@ -10,7 +10,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - [unreleased](#unreleased)
 - [v1.0.23.1 (2026-10-17)](#v10231-2026-10-17)
-- [v1.0.23 (2026-10-17)](#v1023-2026-10-17)
 - [v1.0.22 (2026-10-15 ~ 16)](#v1022-2026-10-15--16)
 - [v1.0.21 (2026-10-14 ~ 15)](#v1021-2026-10-14--15)
 - [v1.0.20 (2026-10-13 ~ 14)](#v1020-2026-10-13--14)
@@ -39,46 +38,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## v1.0.23.1 (2026-10-17)
 
 ### English
-
-#### Changed
-
-- Full-monitor capture is now repeat-last-region capture (hotkey, menu, tray). The region is saved after Screenshot OCR or annotate.
-- Repeat capture copies as an image, shows it on the Screenshot OCR tab, and does not force the main window forward.
-- Wubi, Japanese, and Korean IME also handles keys in ScreenKit's own windows.
-- The tray menu adds repeat-last capture with the shortcut shown on the item.
-
-#### Documentation
-
-- README: repeat-last capture, a shorter IME section, and related screenshot wording.
-
-### 中文
-
-#### 变更
-
-- 整屏截屏改为重复上次框选区域（热键、菜单、托盘）；区域在截图识别或标注成功后记住。
-- 重复截图复制为图片、在截图识别页显示，且不强制弹出主窗。
-- 五笔/日语/韩语输入法在本程序窗口内同样接管按键。
-- 托盘增加重复上次截图，并显示热键。
-
-#### 文档
-
-- README：同步重复截图与输入法简述等截图相关表述。
-
-## v1.0.23 (2026-10-17)
-
-### English
-
 #### Added
-
 - Chrome text selection shows a placeholder toolbar. Copy uses the text that was read; the other buttons only show a note.
 - The dictionary page and Dictionary settings can turn on a selection popup, with a hotkey that toggles it. A drag or double-click in another program shows the same lookup popup as the dictionary.
 - Help → Install features can download the input-method file ime.db from the fixed dict-db release. Korean input then lists words, with Hanja notes.
 - The in-browser model tool links to the Chrome model page, where translation models and offline voice packs can be viewed and installed.
 - The in-browser model Speak task can filter voices by language.
-- Full-screen capture hotkey and per-monitor picker under Screenshot menu
 
 #### Changed
-
 - Screenshots default to JPG at quality 60. A saved format and quality in config.toml stay as they are.
 - The selection popup can choose All, Chinese, Japanese, Korean, or English, and lists up to 100 hits that scroll.
 - File info lists Explorer-style PE details, platform, and .NET target framework
@@ -91,9 +58,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary selection popup has Close and turn-off controls
 - Optional gVim mode sync (Settings → Hotkeys, default on): normal forces English; insert or replace restores the last insert language; Esc returns to English immediately (queries Vim mode()).
 - The input method tray menu opens a dedicated input method settings window (language hotkeys and gVim mode). It no longer opens the main Settings window.
+- Full-monitor capture is now repeat-last-region capture (hotkey, menu, tray). The region is saved after Screenshot OCR or annotate.
+- Repeat capture copies as an image, shows it on the Screenshot OCR tab, and does not force the main window forward.
+- Wubi, Japanese, and Korean IME also handles keys in ScreenKit's own windows.
+- The tray menu adds repeat-last capture with the shortcut shown on the item.
 
 #### Fixed
-
 - Checking screenshot OCR or translation also checks the ONNX CPU row and counts its size once. After install that row stays checked instead of turning red for removal.
 - OCR overlay text keeps its normal shape. Short lines leave the rest of the box blank instead of stretching the glyphs.
 - iGPU DirectML size follows the NuGet packages to download (about 205 MB). The progress total grows when a package is larger than the estimate.
@@ -110,30 +80,25 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Hotkey display shows Ctrl+` instead of Ctrl+Oem3 for the grave key.
 
 #### Removed
-
 - Remove legacy hotkey_hangul (Ctrl+Alt+K) setting and global toggle
 - Removed the duplicate Close item from the input method tray menu. The Off entry in the language list still turns input off.
 
 #### Documentation
-
 - The README lists Network tools by feature name.
 - The README lists speech engines by name.
 - The README opening no longer links to the full guide.
 - The README lists System info by category.
+- README: repeat-last capture, a shorter IME section, and related screenshot wording.
 
 ### 中文
-
 #### 新增
-
 - 在 Chrome 里划选文字会弹出占位工具条。复制会写入读到的文字，其余按钮只提示。
 - 词典页和词典参数可以打开划词浮窗，并设置切换这个开关的快捷键。在其它程序里拖选或双击时，会弹出和词典里一样的查词浮窗。
 - 帮助 → 安装功能可从固定的 dict-db 下载输入法 ime.db。装上之后，韩语输入会列出词，汉字只作注释。
 - 浏览器小模型工具增加 Chrome 模型页链接，用来查看和安装翻译模型与离线语音包。
 - 浏览器小模型的朗读可以按语言筛选声音。
-- 整屏截屏热键，以及截图菜单里的显示器选择与立即截屏
 
 #### 变更
-
 - 截图默认保存为 JPG，质量 60。config.toml 里已经写过的格式和质量保持不变。
 - 查词浮窗可以选全部、汉语、日语、韩语、英语，列表最多 100 条，可以滚动查看。
 - 文件分析增加与资源管理器详细信息相近的 exe/dll 字段、PE 平台与 .NET 目标框架
@@ -146,9 +111,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词查词浮窗增加关闭与关闭划词浮窗按钮
 - gVim 可选「随模式切换」（参数→热键，默认开）：普通模式英文，插入/替换恢复上次插入中英，Esc 立即英文（查询 Vim mode()）。
 - 输入法托盘菜单的「参数设置」改为打开单独的输入法设置窗口，只含输入法热键和 gVim 模式，不再打开主程序参数设置窗口。
+- 整屏截屏改为重复上次框选区域（热键、菜单、托盘）；区域在截图识别或标注成功后记住。
+- 重复截图复制为图片、在截图识别页显示，且不强制弹出主窗。
+- 五笔/日语/韩语输入法在本程序窗口内同样接管按键。
+- 托盘增加重复上次截图，并显示热键。
 
 #### 修复
-
 - 勾选截图识别或翻译时会同时勾上 ONNX CPU，体积在合计里只算一次。装完后该项保持勾选，不再显示为红色待删除。
 - 识别结果的叠加文字按正常字形显示。短行右侧留白，不再把字拉满整行。
 - 核显 DirectML 的安装大小按要下载的 NuGet 包计算（约 205 MB）。包比预估更大时，进度分母跟着加大。
@@ -165,16 +133,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 热键界面将 Ctrl+Oem3 显示为 Ctrl+`。
 
 #### 移除
-
 - 删除旧的 hotkey_hangul（Ctrl+Alt+K）配置项与全局切换热键
 - 去掉输入法托盘菜单里重复的「关闭」项；语言列表里的「关闭」仍可关闭输入。
 
 #### 文档
-
 - README 里的网络工具只列功能名称。
 - README 里的语音合成只列支持的引擎。
 - README 开头不再指向完整说明。
 - README 里的系统信息只列类别。
+- README：同步重复截图与输入法简述等截图相关表述。
 
 ## v1.0.22 (2026-10-15 ~ 16)
 
