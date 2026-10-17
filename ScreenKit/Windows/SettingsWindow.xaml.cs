@@ -97,7 +97,6 @@ public partial class SettingsWindow : Window {
 		bindhotkey(ehotkeysnapcopy, bhksnapcopycap, bhksnapcopyclear);
 		bindhotkey(ehotkeydict, bhkdictcap, bhkdictclear);
 		bindhotkey(ehotkeydictsel, bhkdictselcap, bhkdictselclear);
-		bindhotkey(ehotkeyhangul, bhkhangulcap, bhkhangulclear);
 		bindhotkey(ehotkeyimecycle, bhkimecyclecap, bhkimecycleclear);
 		bindhotkey(ehotkeyimewubi, bhkimewubicap, bhkimewubiclear);
 		bindhotkey(ehotkeyimeja, bhkimejacap, bhkimejaclear);
@@ -269,7 +268,6 @@ public partial class SettingsWindow : Window {
 			lbhkhinttr.Text = Loc.T("set.hotkey.translate");
 			lbhkhintsnapcopy.Text = Loc.T("set.hotkey.snapcopy");
 			lbhkhintDict.Text = Loc.T("set.hotkey.dict");
-			lbhkhintHangul.Text = Loc.T("set.hotkey.hangul");
 			lbhkhintImeCycle.Text = Loc.T("set.hotkey.ime.cycle");
 			lbhkhintImeWubi.Text = Loc.T("set.hotkey.ime.wubi");
 			lbhkhintImeJa.Text = Loc.T("set.hotkey.ime.ja");
@@ -507,7 +505,6 @@ public partial class SettingsWindow : Window {
 		ehotkeytr.Text = o.HotkeyTranslate ?? "";
 		ehotkeysnapcopy.Text = o.HotkeySnapCopy ?? "";
 		ehotkeydict.Text = o.HotkeyDict ?? "";
-		ehotkeyhangul.Text = o.HotkeyHangul ?? "";
 		ehotkeyimecycle.Text = o.HotkeyImeCycle ?? "";
 		ehotkeyimewubi.Text = o.HotkeyImeWubi ?? "";
 		ehotkeyimeja.Text = o.HotkeyImeJa ?? "";
@@ -770,7 +767,6 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeytr, Loc.T("set.hotkey.translate"), out Result.HotkeyTranslate, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeysnapcopy, Loc.T("set.hotkey.snapcopy"), out Result.HotkeySnapCopy, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydict, Loc.T("set.hotkey.dict"), out Result.HotkeyDict, tabsethk)) return false;
-		if (!tryreadhotkey(ehotkeyhangul, Loc.T("set.hotkey.hangul"), out Result.HotkeyHangul, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyimecycle, Loc.T("set.hotkey.ime.cycle"), out Result.HotkeyImeCycle, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyimewubi, Loc.T("set.hotkey.ime.wubi"), out Result.HotkeyImeWubi, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyimeja, Loc.T("set.hotkey.ime.ja"), out Result.HotkeyImeJa, tabsethk)) return false;

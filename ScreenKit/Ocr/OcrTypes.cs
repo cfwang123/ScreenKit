@@ -111,8 +111,6 @@ public sealed class OcrOptions {
 	public bool DictSelBar;
 	/// <summary>切换划词浮窗。默认空 = 不注册。</summary>
 	public string HotkeyDictSel = "";
-	/// <summary>韩语输入：打开后接管键盘，再按一次关闭。默认 Ctrl+Alt+K。空 = 不注册，仍可用菜单。</summary>
-	public string HotkeyHangul = "Ctrl+Alt+K";
 	/// <summary>输入法切换语言，轮到末尾后关闭。默认 Ctrl+`。</summary>
 	public string HotkeyImeCycle = "Ctrl+Oem3";
 	/// <summary>输入法切到五笔。默认 Ctrl+Alt+1。</summary>
@@ -548,7 +546,6 @@ public sealed class OcrOptions {
 		HotkeyDict = HotkeyDict,
 		DictSelBar = DictSelBar,
 		HotkeyDictSel = HotkeyDictSel ?? "",
-		HotkeyHangul = string.IsNullOrWhiteSpace(HotkeyHangul) ? "" : HotkeyHangul,
 		HotkeyImeCycle = HotkeyImeCycle ?? "",
 		HotkeyImeWubi = HotkeyImeWubi ?? "",
 		HotkeyImeJa = HotkeyImeJa ?? "",

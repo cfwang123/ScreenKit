@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using Forms = System.Windows.Forms;
 
 namespace ScreenKit;
 
@@ -39,6 +40,8 @@ public partial class SelBarWindow : Window {
 	internal event Action SearchClick;
 	internal event Action TrClick;
 	internal event Action CopyClick;
+	internal event Action CloseClick;
+	internal event Action TurnOffClick;
 	internal event Action<string> LangChanged;
 
 	bool langsync;
@@ -56,6 +59,8 @@ public partial class SelBarWindow : Window {
 		bselsearch.Click += (_, _) => SearchClick?.Invoke();
 		bseltr.Click += (_, _) => TrClick?.Invoke();
 		bselcopy.Click += (_, _) => CopyClick?.Invoke();
+		bselclose.Click += (_, _) => CloseClick?.Invoke();
+		bselturnoff.Click += (_, _) => TurnOffClick?.Invoke();
 		lsel.PreviewMouseWheel += (_, e) => scrolllist(lsel, e);
 		lsel.PreviewMouseLeftButtonUp += (_, e) => {
 			var row = rowat(e.OriginalSource as DependencyObject);
@@ -78,6 +83,8 @@ public partial class SelBarWindow : Window {
 		bselsearch.Content = Loc.T("dict.sel.search");
 		bseltr.Content = Loc.T("dict.sel.translate");
 		bselcopy.Content = Loc.T("dict.sel.copy");
+		bselclose.ToolTip = Loc.T("dict.sel.close");
+		bselturnoff.Content = Loc.T("dict.sel.turnoff");
 		lbselwait.Text = Loc.T("dict.sel.searching");
 		bselfall.Content = Loc.T("dict.filter.all");
 		bselfzh.Content = Loc.T("dict.filter.zh");
@@ -156,35 +163,33 @@ public partial class SelBarWindow : Window {
 			Show();
 		}
 		UpdateLayout();
-		var hwnd = new WindowInteropHelper(this).Handle;
-		var scale = 1.0;
-		if (hwnd != IntPtr.Zero) scale = Math.Max(0.25, ScreenDpi.WindowScale(hwnd));
-		var wpx = Math.Max(1, ActualWidth * scale);
-		var hpx = Math.Max(1, ActualHeight * scale);
-		var gap = 6 * scale;
-		var (vl, vt, vw, vh) = ScreenDpi.VirtualScreenPixels();
-		var left = px.Left;
-		var below = px.Bottom + gap;
-		var above = px.Top - hpx - gap;
-		var fitBelow = below + hpx <= vt + vh;
-		var fitAbove = above >= vt;
-		double top;
-		if (fitBelow) top = below;
-		else if (fitAbove) top = above;
-		else {
-			var roomBelow = vt + vh - below;
-			top = roomBelow >= px.Top - vt ? below : Math.Max(vt, above);
+		int apx = (int)Math.Round(px.Left);
+		int apy = (int)Math.Round(px.Bottom);
+		var dip = todip(apx, apy);
+		double w = ActualWidth;
+		double h = ActualHeight;
+		const int gap = 6;
+		double left = dip.X;
+		double top = dip.Y + gap;
+		var area = Forms.Screen.FromPoint(new System.Drawing.Point(apx, apy)).WorkingArea;
+		var tl = todip(area.Left, area.Top);
+		var br = todip(area.Right, area.Bottom);
+		if (top + h > br.Y) {
+			var above = todip(apx, (int)Math.Round(px.Top)).Y - h - gap;
+			if (above >= tl.Y) top = above;
+			else top = Math.Max(tl.Y, dip.Y - h - gap);
 		}
-		if (left < vl) left = vl;
-		if (left + wpx > vl + vw) left = vl + vw - wpx;
-		if (top < vt) top = vt;
-		if (top + hpx > vt + vh) top = vt + vh - hpx;
-		var ix = (int)Math.Round(left);
-		var iy = (int)Math.Round(top);
-		Left = ix / scale;
-		Top = iy / scale;
-		if (hwnd != IntPtr.Zero)
-			SetWindowPos(hwnd, HwndTopmost, ix, iy, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		if (left + w > br.X) left = Math.Max(tl.X, br.X - w);
+		if (left < tl.X) left = tl.X;
+		if (top < tl.Y) top = tl.Y;
+		Left = left;
+		Top = top;
+	}
+
+	Point todip(int px, int py) {
+		var src = PresentationSource.FromVisual(this);
+		if (src?.CompositionTarget == null) return new Point(px, py);
+		return src.CompositionTarget.TransformFromDevice.Transform(new Point(px, py));
 	}
 
 	internal Rect ScreenPx() {

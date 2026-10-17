@@ -122,6 +122,8 @@ public partial class DictWindow : UserControl {
 			else lbstatus.Text = Loc.T("dict.sel.notr");
 		};
 		bselcopy.Click += (_, _) => copytext(seltext);
+		bselclose.Click += (_, _) => { psel.IsOpen = false; };
+		bselturnoff.Click += (_, _) => turnoffselbar();
 		lsel.PreviewMouseLeftButtonUp += (_, _) => {
 			if (lsel.SelectedItem is DictSelRow row) openhit(row);
 		};
@@ -276,6 +278,8 @@ public partial class DictWindow : UserControl {
 		bselsearch.Content = Loc.T("dict.sel.search");
 		bseltr.Content = Loc.T("dict.sel.translate");
 		bselcopy.Content = Loc.T("dict.sel.copy");
+		bselclose.ToolTip = Loc.T("dict.sel.close");
+		bselturnoff.Content = Loc.T("dict.sel.turnoff");
 		lbselwait.Text = Loc.T("dict.sel.searching");
 		cbselbar.Content = Loc.T("dict.selbar");
 		cbselbar.ToolTip = Loc.T("dict.selbar.tip");
@@ -999,6 +1003,14 @@ public partial class DictWindow : UserControl {
 		catch { }
 	}
 
+	void turnoffselbar() {
+		psel.IsOpen = false;
+		HideOutside();
+		if (selbarsync) return;
+		SelBarChanged?.Invoke(false);
+		try { UiToast.Show(null, Loc.T("dict.selbar.off")); } catch { }
+	}
+
 	public IntPtr OutsideHwnd() {
 		try {
 			if (outwin == null || !outwin.IsVisible) return IntPtr.Zero;
@@ -1029,6 +1041,10 @@ public partial class DictWindow : UserControl {
 			else lbstatus.Text = Loc.T("dict.sel.notr");
 		};
 		outwin.CopyClick += () => copytext(outtext);
+		outwin.CloseClick += () => {
+			try { SelBar.DismissShown(); } catch { }
+		};
+		outwin.TurnOffClick += () => turnoffselbar();
 		outwin.LangChanged += dict => {
 			dict = dict ?? "";
 			if (selfilter == dict) return;

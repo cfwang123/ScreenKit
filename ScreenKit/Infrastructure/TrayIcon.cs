@@ -731,6 +731,12 @@ sealed class TrayIcon : IDisposable {
 		miHangul.Checked = on;
 	}
 
+	public void SetHangulAvailable(bool ok) {
+		if (miHangul == null) return;
+		miHangul.Enabled = ok;
+		if (!ok) miHangul.Checked = false;
+	}
+
 	public event Action WinCalRequested;
 	public event Action JpYomiRequested;
 	public event Action WinTopRequested;

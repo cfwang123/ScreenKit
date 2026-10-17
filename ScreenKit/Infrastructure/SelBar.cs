@@ -72,6 +72,12 @@ static class SelBar {
 		unhook();
 	}
 
+	/// <summary>关掉当前外部划词浮窗，不关划词开关。</summary>
+	public static void DismissShown() {
+		gen++;
+		hide();
+	}
+
 	/// <summary>拖选或双击才弹出。贴着窗口右缘的竖拖当成滚动条，不弹。</summary>
 	internal static bool WantBar(bool drag, bool dbl, bool scroll) {
 		if (scroll && !dbl) return false;
@@ -320,6 +326,7 @@ static class SelBar {
 				if (!on || g != gen || !box.Done) return;
 				if (box.Hit == null || box.Hit.Text.Length == 0) return;
 				var bounds = box.Hit.Bounds.IsEmpty ? new Rect(ux, uy - 4, 2, 18) : box.Hit.Bounds;
+				bounds = selanchor(rootfg, bounds, ux, uy);
 				selroot = rootfg;
 				shown = true;
 				try { Picked?.Invoke(box.Hit.Text, bounds); } catch { }
@@ -370,6 +377,45 @@ static class SelBar {
 		if (!GetWindowRect(hwnd, out var rc)) return false;
 		return x >= rc.Left && x < rc.Right && y >= rc.Top && y < rc.Bottom;
 	}
+
+	static Rect selanchor(IntPtr root, Rect bounds, int ux, int uy) {
+		var vroot = root;
+		if (vroot != IntPtr.Zero && winclass(vroot) != "Vim") {
+			var anc = GetAncestor(vroot, GA_ROOT);
+			if (anc != IntPtr.Zero && winclass(anc) == "Vim") vroot = anc;
+		}
+		if (vroot != IntPtr.Zero && winclass(vroot) == "Vim") {
+			var probe = ImeCaret.Shared;
+			if (probe != null && probe.TryVimCaret(out var vx, out var vy))
+				return new Rect(vx, vy - 18, 2, 18);
+		}
+		if (vroot != IntPtr.Zero && winclass(vroot) == "org.wezfurlong.wezterm") {
+			var probe = ImeCaret.Shared;
+			if (probe != null && probe.TryWezCaret(out var wx, out var wy))
+				return new Rect(wx, wy - 18, 2, 18);
+		}
+		if (!bounds.IsEmpty && (bounds.Width > 800 || bounds.Height > 400)) {
+			double cx = bounds.Left + bounds.Width / 2;
+			double cy = bounds.Top + bounds.Height / 2;
+			double dx = cx - ux;
+			double dy = cy - uy;
+			if (dx * dx + dy * dy > 120 * 120)
+				return new Rect(ux, uy - 4, 2, 18);
+		}
+		return bounds;
+	}
+
+	static string winclass(IntPtr hwnd) {
+		var buf = new System.Text.StringBuilder(64);
+		int n = GetClassName(hwnd, buf, buf.Capacity);
+		return n <= 0 ? "" : buf.ToString();
+	}
+
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	static extern int GetClassName(IntPtr hwnd, System.Text.StringBuilder buf, int n);
+
+	[DllImport("user32.dll")]
+	static extern IntPtr GetAncestor(IntPtr hwnd, uint ga);
 
 	static bool isours() {
 		var hwnd = GetForegroundWindow();

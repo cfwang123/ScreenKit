@@ -18,6 +18,10 @@ static class ImeLex {
 
 	public static string PathOf => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ime.db");
 
+	/// <summary>帮助 → 安装功能 里的 ime.db 已完整安装。</summary>
+	public static bool DbInstalled =>
+		FeatureInstaller.Probe(FeatureKind.ImeDb) == FeatureInstallState.Installed;
+
 	public static bool Ready {
 		get {
 			try { return ensure(PathOf); }

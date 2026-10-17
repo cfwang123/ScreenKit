@@ -56,6 +56,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM chat and the LLM log are hidden by default.
 - File info size shows KB/MB with exact byte count
 - Turning the input method off hides its tray icon.
+- IME requires installed ime.db; menu and hotkeys stay off until then
+- Dictionary selection popup has Close and turn-off controls
 
 #### Fixed
 
@@ -66,6 +68,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - A selection lookup opens the dictionary file when it is not open yet, then searches.
 - Korean input shows one jamo per key. w is ㅈ, not the compound ㄽ.
 - System voices in the in-browser model, such as Microsoft Huihui, are synthesized by this app and played on the system default output. Google voices stay in the browser.
+- Align IME candidate bar with gVim and WezTerm caret (ported from standalone IME)
+- Fix IME and selection popups near gVim caret (no mouse fallback, physical DPI)
+- Align gVim caret query and popup DPI with standalone ime
+- WezTerm cursor-agent popup anchor (arrow line, sync read)
+- Turning the input method on no longer stalls the keyboard. The hook only reads a cached caret, a swallowed key-up is not armed again, and the hook is reinstalled every two seconds.
+
+#### Removed
+
+- Remove legacy hotkey_hangul (Ctrl+Alt+K) setting and global toggle
 
 #### Documentation
 
@@ -94,6 +105,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM对话和 LLM日志默认不显示。
 - 文件分析大小显示 KB/MB 并附带精确字节数
 - 输入法切到关闭后隐藏托盘图标。
+- 输入法须先安装 ime.db，未安装时禁用菜单与快捷键
+- 划词查词浮窗增加关闭与关闭划词浮窗按钮
 
 #### 修复
 
@@ -104,6 +117,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典库还没打开时，划词会先打开库再查词。
 - 韩语输入每个键一个单音。w 是 ㅈ，不再打出合用收音 ㄽ。
 - 浏览器小模型里的系统语音（如微软慧慧）改由本程序合成，并在系统默认输出设备上播放。Google 语音仍由浏览器朗读。
+- 输入法候选条在 gVim、WezTerm 下按终端/编辑器光标定位，并修正高 DPI 坐标
+- gVim 下输入法候选条与划词浮窗贴近编辑器光标，不再误用系统插入符/鼠标
+- gVim 光标查询与候选/划词浮窗 DPI 对齐独立 ime，并修编译错误
+- WezTerm/cursor-agent 浮窗对齐底部输入行，修正偏上
+- 开启输入法不再把键盘卡住。钩子只读光标缓存，被吞掉的键抬起不会再次登记，钩子每两秒重新装上。
+
+#### 移除
+
+- 删除旧的 hotkey_hangul（Ctrl+Alt+K）配置项与全局切换热键
 
 #### 文档
 

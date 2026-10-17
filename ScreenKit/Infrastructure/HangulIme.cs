@@ -15,21 +15,15 @@ sealed class HangulIme : IDisposable {
 	const int WM_SYSKEYDOWN = 0x0104;
 	const int LLKHF_INJECTED = 0x10;
 	const int VK_BACK = 0x08;
-	const int VK_ESC = 0x1B;
 	const int VK_HANGUL = 0x15;
-	const int VK_SHIFT = 0x10;
-	const int VK_CONTROL = 0x11;
-	const int VK_MENU = 0x12;
 	const int VK_RMENU = 0xA5;
-	const int VK_LWIN = 0x5B;
-	const int VK_RWIN = 0x5C;
-	const int VK_A = 0x41;
 	const uint SWP_NOSIZE = 0x0001;
 	const uint SWP_NOMOVE = 0x0002;
 	const uint SWP_SHOWWINDOW = 0x0040;
 
 	readonly ImeEngine eng = new();
 	readonly HangulCand bar = new();
+	readonly ImeCaret caret = new();
 	readonly HashSet<int> eaten = new();
 	readonly Dictionary<string, System.Drawing.Icon> icons = new();
 	readonly DispatcherTimer timer;
@@ -44,6 +38,7 @@ sealed class HangulIme : IDisposable {
 	IntPtr hook;
 	HookProc proc;
 	IntPtr watch;
+	int nexthook;
 	Lang lang = Lang.Ko;
 	bool trad;
 	bool enabled;
@@ -62,6 +57,9 @@ sealed class HangulIme : IDisposable {
 	public string Badge => eng.Badge;
 
 	public HangulIme() {
+		ImeCaret.BindShared(caret);
+		caret.AttachDispatcher(System.Windows.Application.Current?.Dispatcher ?? bar.Dispatcher);
+		caret.Start();
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
 		timer.Tick += (_, _) => pollfg();
 		bar.Picked += onpick;
@@ -89,6 +87,7 @@ sealed class HangulIme : IDisposable {
 	}
 
 	public void Enter(string code) {
+		if (!ImeLex.DbInstalled) return;
 		var pick = code == "ja" ? Lang.Ja : code == "ko" ? Lang.Ko : Lang.Wubi;
 		if (!enabled && !Set(true)) return;
 		eng.Enter(pick);
@@ -102,6 +101,7 @@ sealed class HangulIme : IDisposable {
 	}
 
 	public void Next() {
+		if (!ImeLex.DbInstalled) return;
 		if (!enabled) { Set(true); return; }
 		eng.Next();
 		showtray();
@@ -120,6 +120,7 @@ sealed class HangulIme : IDisposable {
 			Changed?.Invoke();
 			return true;
 		}
+		if (!ImeLex.DbInstalled) return false;
 		if (!install()) return false;
 		eng.LoadMeta(trad, lang, false, false);
 		enabled = true;
@@ -141,6 +142,7 @@ sealed class HangulIme : IDisposable {
 	public void Dispose() {
 		if (dead) return;
 		dead = true;
+		try { caret.Dispose(); } catch { }
 		try { Set(false); } catch { }
 		try {
 			if (ni != null) {
@@ -160,7 +162,12 @@ sealed class HangulIme : IDisposable {
 	}
 
 	void pollfg() {
-		if (!enabled || eng.Off) return;
+		if (!enabled) return;
+		if (Environment.TickCount - nexthook >= 2000) {
+			nexthook = Environment.TickCount;
+			front();
+		}
+		if (eng.Off) return;
 		var fg = GetForegroundWindow();
 		if (fg == IntPtr.Zero) return;
 		if (ours(fg) || (watch != IntPtr.Zero && watch != fg)) {
@@ -179,6 +186,14 @@ sealed class HangulIme : IDisposable {
 		proc = callback;
 		hook = SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(null), 0);
 		return hook != IntPtr.Zero;
+	}
+
+	void front() {
+		if (hook == IntPtr.Zero || proc == null) return;
+		var next = SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(null), 0);
+		if (next == IntPtr.Zero) return;
+		UnhookWindowsHookEx(hook);
+		hook = next;
 	}
 
 	void remove() {
@@ -321,20 +336,26 @@ sealed class HangulIme : IDisposable {
 			}
 			return;
 		}
-		bool ctrl = held(VK_CONTROL) || held(0xA2) || held(0xA3);
-		bool win = held(VK_LWIN) || held(VK_RWIN);
-		bool alt = held(VK_MENU) || held(0xA4);
-		bool shift = held(VK_SHIFT) || held(0xA0) || held(0xA1);
+		bool ctrl = downctrl();
+		bool win = downwin();
+		bool alt = downalt();
+		bool shift = downshift();
 		if (down && (vk == VK_RMENU || vk == VK_HANGUL) && !ctrl && !win) {
 			ToggleEnglish();
 			markeat(vk);
 			refresh();
 			return;
 		}
-		if (!eng.Off && vk == Vk.Caps && down) eng.SetCaps((GetAsyncKeyState(Vk.Caps) & 1) == 0);
-		else if (!eng.Off && vk != Vk.Caps) eng.SetCaps((GetAsyncKeyState(Vk.Caps) & 1) != 0);
+		if (!eng.Off) {
+			if (vk == Vk.Caps && down) {
+				eng.SetCaps((GetKeyState(Vk.Caps) & 1) == 0);
+				refresh();
+				return;
+			}
+			if (vk != Vk.Caps) eng.SetCaps((GetKeyState(Vk.Caps) & 1) != 0);
+		}
 		var o = eng.Key(vk, down, shift, ctrl, alt, win);
-		if (o.Eat) markeat(vk);
+		if (o.Eat) eat = true;
 		else if (!down) eat = eaten.Remove(vk);
 		send(o);
 		refresh();
@@ -360,16 +381,18 @@ sealed class HangulIme : IDisposable {
 
 	void refresh() {
 		if (!enabled) return;
-		var box = caretbox();
-		ui(() => {
-			showtray();
-			if (!eng.ShowBar) {
-				hidecand();
-				return;
-			}
-			try { bar.ShowEngine(eng, box); }
-			catch { }
-		});
+		if (bar.Dispatcher.CheckAccess()) refreshui();
+		else bar.Dispatcher.BeginInvoke(new Action(refreshui));
+	}
+
+	void refreshui() {
+		showtray();
+		if (!eng.ShowBar) {
+			hidecand();
+			return;
+		}
+		try { bar.ShowEngine(eng, caretbox()); }
+		catch { }
 	}
 
 	void ui(Action act) {
@@ -382,17 +405,9 @@ sealed class HangulIme : IDisposable {
 		try { bar.HideBar(); } catch { }
 	}
 
-	static Rect caretbox() {
-		var fg = GetForegroundWindow();
-		if (fg == IntPtr.Zero) return Rect.Empty;
-		var tid = GetWindowThreadProcessId(fg, out _);
-		var info = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
-		if (!GetGUIThreadInfo(tid, ref info) || info.hwndCaret == IntPtr.Zero) return Rect.Empty;
-		var r = info.rcCaret;
-		if (r.Right <= r.Left || r.Bottom <= r.Top) return Rect.Empty;
-		var pt = new POINT { x = r.Left, y = r.Bottom };
-		if (!ClientToScreen(info.hwndCaret, ref pt)) return Rect.Empty;
-		return new Rect(pt.x, pt.y - Math.Max(1, r.Bottom - r.Top), Math.Max(1, r.Right - r.Left), Math.Max(1, r.Bottom - r.Top));
+	Rect caretbox() {
+		if (!caret.TryAnchor(out var px, out var py)) return Rect.Empty;
+		return new Rect(px, py, 0, 0);
 	}
 
 	void markeat(int vk) {
@@ -400,7 +415,10 @@ sealed class HangulIme : IDisposable {
 		eaten.Add(vk);
 	}
 
-	static bool held(int vk) => (GetAsyncKeyState(vk) & 0x8000) != 0;
+	static bool downshift() => (GetKeyState(Vk.Shift) & 0x8000) != 0;
+	static bool downctrl() => (GetKeyState(Vk.Ctrl) & 0x8000) != 0;
+	static bool downalt() => (GetKeyState(Vk.Alt) & 0x8000) != 0;
+	static bool downwin() => (GetKeyState(Vk.LWin) & 0x8000) != 0 || (GetKeyState(Vk.RWin) & 0x8000) != 0;
 
 	static bool ours(IntPtr fg) {
 		if (fg == IntPtr.Zero) return false;
@@ -500,35 +518,10 @@ sealed class HangulIme : IDisposable {
 	[DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr h, int code, IntPtr w, IntPtr l);
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern IntPtr GetModuleHandle(string name);
 	[DllImport("user32.dll")] static extern uint SendInput(uint n, INPUT[] inputs, int cb);
-	[DllImport("user32.dll")] static extern short GetAsyncKeyState(int vKey);
+	[DllImport("user32.dll")] static extern short GetKeyState(int vKey);
 	[DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
 	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
 	[DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr h);
 	[DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
 	[DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
-	[DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO info);
-	[DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr hwnd, ref POINT pt);
-
-	[StructLayout(LayoutKind.Sequential)]
-	struct GUITHREADINFO {
-		public int cbSize;
-		public int flags;
-		public IntPtr hwndActive;
-		public IntPtr hwndFocus;
-		public IntPtr hwndCapture;
-		public IntPtr hwndMenuOwner;
-		public IntPtr hwndMoveSize;
-		public IntPtr hwndCaret;
-		public RECT rcCaret;
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	struct RECT {
-		public int Left, Top, Right, Bottom;
-	}
-
-	[StructLayout(LayoutKind.Sequential)]
-	struct POINT {
-		public int x, y;
-	}
 }

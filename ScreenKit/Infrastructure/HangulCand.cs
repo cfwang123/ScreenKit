@@ -1,8 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Windows.Documents;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Windows.Media.Effects;
-
+using Forms = System.Windows.Forms;
 namespace ScreenKit;
 
 /// <summary>输入法候选条。不激活。编码在上，候选在下，右侧翻页。点数字或词即可上屏。</summary>
@@ -12,11 +13,16 @@ sealed class HangulCand : Window {
 	const int WS_EX_TOOLWINDOW = 0x00000080;
 	const int WM_MOUSEACTIVATE = 0x0021;
 	const int MA_NOACTIVATE = 3;
+	const uint SWP_NOSIZE = 0x0001;
+	const uint SWP_NOACTIVATE = 0x0010;
+	const uint SWP_SHOWWINDOW = 0x0040;
+	static readonly IntPtr HwndTopmost = new(-1);
 
 	readonly TextBlock pre;
 	readonly Border caret;
 	readonly StackPanel items;
 	readonly TextBlock badge;
+	Rect lastCaretPx;
 
 	public event Action<int> Picked;
 	public event Action<int> Paged;
@@ -26,6 +32,9 @@ sealed class HangulCand : Window {
 
 	[DllImport("user32.dll")]
 	static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
 
 	public HangulCand() {
 		WindowStyle = WindowStyle.None;
@@ -162,6 +171,8 @@ sealed class HangulCand : Window {
 			n++;
 		}
 		if (!s.ShowBar) { HideBar(); return; }
+		if (!caretPx.IsEmpty) lastCaretPx = caretPx;
+		else if (!lastCaretPx.IsEmpty) caretPx = lastCaretPx;
 		if (!IsVisible) Show();
 		UpdateLayout();
 		place(caretPx);
@@ -172,15 +183,40 @@ sealed class HangulCand : Window {
 	}
 
 	void place(Rect caretPx) {
-		double left = caretPx.IsEmpty ? SystemParameters.WorkArea.Left + 24 : caretPx.Right;
-		double top = caretPx.IsEmpty ? SystemParameters.WorkArea.Bottom - 80 : caretPx.Bottom + 4;
-		var area = SystemParameters.WorkArea;
-		if (left + ActualWidth > area.Right) left = Math.Max(area.Left, area.Right - ActualWidth);
-		if (top + ActualHeight > area.Bottom) top = Math.Max(area.Top, (caretPx.IsEmpty ? top : caretPx.Top) - ActualHeight - 8);
-		if (left < area.Left) left = area.Left;
-		if (top < area.Top) top = area.Top;
+		int px, py, gap = 4;
+		if (caretPx.IsEmpty) {
+			var wa = Forms.SystemInformation.WorkingArea;
+			px = wa.Left + 24;
+			py = wa.Bottom - 80;
+		} else {
+			px = (int)Math.Round(caretPx.Left);
+			py = (int)Math.Round(caretPx.Top);
+		}
+		if (!IsVisible) {
+			Left = -32000;
+			Top = -32000;
+		}
+		UpdateLayout();
+		var dip = todip(px, py);
+		double w = ActualWidth;
+		double h = ActualHeight;
+		double left = dip.X;
+		double top = dip.Y + gap;
+		var area = Forms.Screen.FromPoint(new System.Drawing.Point(px, py)).WorkingArea;
+		var tl = todip(area.Left, area.Top);
+		var br = todip(area.Right, area.Bottom);
+		if (left + w > br.X) left = Math.Max(tl.X, br.X - w);
+		if (top + h > br.Y) top = Math.Max(tl.Y, dip.Y - h - 28);
+		if (left < tl.X) left = tl.X;
+		if (top < tl.Y) top = tl.Y;
 		Left = left;
 		Top = top;
+	}
+
+	Point todip(int px, int py) {
+		var src = PresentationSource.FromVisual(this);
+		if (src?.CompositionTarget == null) return new Point(px, py);
+		return src.CompositionTarget.TransformFromDevice.Transform(new Point(px, py));
 	}
 
 	IntPtr onmsg(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) {

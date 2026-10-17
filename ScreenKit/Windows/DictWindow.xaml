@@ -108,7 +108,12 @@
 					<DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.22" Direction="270"/>
 				</Border.Effect>
 				<StackPanel>
-					<WrapPanel x:Name="pselfilt" Margin="0,0,0,6">
+					<DockPanel x:Name="pselfilt" Margin="0,0,0,6" LastChildFill="True">
+						<Button x:Name="bselclose" DockPanel.Dock="Right" Content="×" Width="28" Height="26"
+						        Margin="4,0,0,0" Padding="0" FontSize="16"
+						        Style="{StaticResource GhostBtn}" VerticalAlignment="Top"
+						        AutomationProperties.AutomationId="dict.sel.close"/>
+						<WrapPanel>
 						<ToggleButton x:Name="bselfall" Content="全部" Height="26" Padding="8,0" FontSize="12"
 						              Style="{StaticResource ToolToggleSm}" IsChecked="True"
 						              AutomationProperties.AutomationId="dict.sel.filter.all"/>
@@ -124,7 +129,8 @@
 						<ToggleButton x:Name="bselfen" Content="英语" Height="26" Padding="8,0" FontSize="12"
 						              Style="{StaticResource ToolToggleSm}"
 						              AutomationProperties.AutomationId="dict.sel.filter.en"/>
-					</WrapPanel>
+						</WrapPanel>
+					</DockPanel>
 					<TextBlock x:Name="lbselwait" Text="搜索中…" FontSize="13" Foreground="#6E6E6E"
 					           Margin="2,0,0,4"/>
 					<ListBox x:Name="lsel" MaxHeight="280" FontSize="13" BorderThickness="0"
@@ -185,9 +191,12 @@
 						<Button x:Name="bseltr" Content="翻译" Height="26" MinWidth="52" Margin="0,0,6,0"
 						        Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 						        AutomationProperties.AutomationId="dict.sel.translate"/>
-						<Button x:Name="bselcopy" Content="复制" Height="26" MinWidth="52"
+						<Button x:Name="bselcopy" Content="复制" Height="26" MinWidth="52" Margin="0,0,6,0"
 						        Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
 						        AutomationProperties.AutomationId="dict.sel.copy"/>
+						<Button x:Name="bselturnoff" Content="关闭划词浮窗" Height="26" MinWidth="52"
+						        Padding="8,0" FontSize="12" Style="{StaticResource GhostBtn}"
+						        AutomationProperties.AutomationId="dict.sel.turnoff"/>
 					</WrapPanel>
 				</StackPanel>
 			</Border>
