@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The README lists Network tools by feature name.
 - The README lists speech engines by name.
 - The README opening no longer links to the full guide.
+- The README lists System info by category.
 
 ### 中文
 
@@ -97,6 +98,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - README 里的网络工具只列功能名称。
 - README 里的语音合成只列支持的引擎。
 - README 开头不再指向完整说明。
+- README 里的系统信息只列类别。
 
 ## v1.0.22 (2026-10-15 ~ 16)
 
