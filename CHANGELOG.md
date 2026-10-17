@@ -45,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Help → Install features can download the input-method file ime.db from the fixed dict-db release. Korean input then lists words, with Hanja notes.
 - The in-browser model tool links to the Chrome model page, where translation models and offline voice packs can be viewed and installed.
 - The in-browser model Speak task can filter voices by language.
+- Full-screen capture hotkey and per-monitor picker under Screenshot menu
 
 #### Changed
 
@@ -73,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Align gVim caret query and popup DPI with standalone ime
 - WezTerm cursor-agent popup anchor (arrow line, sync read)
 - Turning the input method on no longer stalls the keyboard. The hook only reads a cached caret, a swallowed key-up is not armed again, and the hook is reinstalled every two seconds.
+- Korean candidates include words that can still be typed when the last syllable is only partial, such as ann-n matching annyeong.
 
 #### Removed
 
@@ -94,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 帮助 → 安装功能可从固定的 dict-db 下载输入法 ime.db。装上之后，韩语输入会列出词，汉字只作注释。
 - 浏览器小模型工具增加 Chrome 模型页链接，用来查看和安装翻译模型与离线语音包。
 - 浏览器小模型的朗读可以按语言筛选声音。
+- 整屏截屏热键，以及截图菜单里的显示器选择与立即截屏
 
 #### 变更
 
@@ -122,6 +125,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - gVim 光标查询与候选/划词浮窗 DPI 对齐独立 ime，并修编译错误
 - WezTerm/cursor-agent 浮窗对齐底部输入行，修正偏上
 - 开启输入法不再把键盘卡住。钩子只读光标缓存，被吞掉的键抬起不会再次登记，钩子每两秒重新装上。
+- 韩语最后一个字只打了部分音节时，候选仍包含还能继续打出的词，例如안ㄴ对应안녕。
 
 #### 移除
 

@@ -255,6 +255,19 @@
 							         AutomationProperties.AutomationId="set.hotkey.board"/>
 						</DockPanel>
 
+						<TextBlock x:Name="lbhkhintscreensnap" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="整屏截屏 · 截取「截图」页所选显示器全屏；默认 Ctrl+Alt+G；留空禁用"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkscreensnapclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkscreensnapcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyscreensnap" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.screensnap"/>
+						</DockPanel>
+
 						<TextBlock x:Name="lbhkhintvoice" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="语音输入 · 麦克风持续识别并输入到焦点窗口，默认 Ctrl+Alt+V；再按一次结束；留空禁用"/>
@@ -738,6 +751,20 @@
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>
 						<TextBlock x:Name="lbsetsnap" Text="截图保存" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<Grid Margin="0,0,0,4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto" MinWidth="72"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock x:Name="lbsetsnapscreen" Grid.Column="0" Text="截屏显示器" FontWeight="SemiBold"
+							           VerticalAlignment="Center" Margin="0,0,8,0"/>
+							<ComboBox x:Name="esnapscreen" Grid.Column="1" Height="32"
+							          VerticalContentAlignment="Center"
+							          AutomationProperties.AutomationId="set.screenshot.screen"/>
+						</Grid>
+						<TextBlock x:Name="lbsetsnapscreenhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,10" TextWrapping="Wrap"
+						           Text="热键整屏截屏与「截图 → 截屏」使用此处所选显示器。主菜单里也可切换。"/>
 						<Grid Margin="0,0,0,4">
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="Auto" MinWidth="72"/>

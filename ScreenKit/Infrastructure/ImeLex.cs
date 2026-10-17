@@ -57,14 +57,27 @@ static class ImeLex {
 		return list;
 	}
 
-	public static List<Cand> QueryKr(string prefix) {
+	public static List<Cand> QueryKr(IList<string> lo, IList<string> hi, string skip) {
 		var map = new Dictionary<string, Cand>();
-		if (string.IsNullOrEmpty(prefix) || !ready()) return new List<Cand>();
-		each("SELECT text,freq FROM kr_word WHERE text LIKE $p || '%' AND text != $p LIMIT 50", r => {
+		if (lo == null || hi == null || lo.Count == 0 || lo.Count != hi.Count || !ready()) return new List<Cand>();
+		var where = "";
+		var args = new List<(string n, object v)>();
+		for (int i = 0; i < lo.Count; i++) {
+			if (i > 0) where += " OR ";
+			where += "(text>=$a" + i + " AND text<$b" + i + ")";
+			args.Add(("$a" + i, lo[i]));
+			args.Add(("$b" + i, hi[i]));
+		}
+		if (!string.IsNullOrEmpty(skip)) {
+			where = "(" + where + ") AND text!=$skip";
+			args.Add(("$skip", skip));
+		}
+		var arg = args.ToArray();
+		each("SELECT text,freq FROM kr_word WHERE " + where + " ORDER BY freq DESC LIMIT 40", r => {
 			var t = r.GetString(0);
 			map[t] = new Cand { Text = t, Raw = t, Rank = -r.GetInt32(1), Comment = Hanja(t) };
-		}, ("$p", prefix));
-		each("SELECT text,pinned,picks FROM user_kr WHERE text LIKE $p || '%' AND text != $p LIMIT 50", r => {
+		}, arg);
+		each("SELECT text,pinned,picks FROM user_kr WHERE " + where + " LIMIT 40", r => {
 			var t = r.GetString(0);
 			Cand c;
 			if (!map.TryGetValue(t, out c)) {
@@ -73,7 +86,7 @@ static class ImeLex {
 			}
 			c.Pinned = r.GetInt32(1) != 0;
 			c.Picks = r.GetInt32(2);
-		}, ("$p", prefix));
+		}, arg);
 		var list = new List<Cand>(map.Values);
 		list.Sort((a, b) => {
 			int c = b.Pinned.CompareTo(a.Pinned);

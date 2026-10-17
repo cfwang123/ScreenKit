@@ -65,6 +65,7 @@ public partial class MainWindow : Window {
 	TrayIcon tray;
 	GlobalHotkey hotkey;       // 主窗呼出/隐藏
 	GlobalHotkey hotkeySnap;   // 截图标注
+	GlobalHotkey hotkeyScreenSnap; // 整屏截屏
 	GlobalHotkey hotkeySnapOcr;// 截图识别
 	GlobalHotkey hotkeyBoard;  // 屏幕画板
 	GlobalHotkey hotkeyVoice;  // 语音输入
@@ -837,6 +838,9 @@ public partial class MainWindow : Window {
 			// 热键：结束后不唤起主窗；录屏中同样可用（会短暂挂起录屏 HUD）
 			hotkeySnap.Fired += () => Dispatcher.BeginInvoke(new Action(() =>
 				_ = snapannotateasync(restoreUi: false, showMainAfter: false)));
+			hotkeyScreenSnap = new GlobalHotkey(this, 0x700B);
+			hotkeyScreenSnap.Fired += () => Dispatcher.BeginInvoke(new Action(() =>
+				_ = screensnapasync()));
 			hotkeySnapOcr = new GlobalHotkey(this, 0x7003);
 			// 热键截图识别：框选后弹出主窗、切到 tab1 并显示识别结果
 			hotkeySnapOcr.Fired += () => Dispatcher.BeginInvoke(new Action(() =>
@@ -983,6 +987,7 @@ public partial class MainWindow : Window {
 				// 任一热键未注册则重试（含语音输入 / 实时字幕）
 				var need = (hotkey != null && !string.IsNullOrWhiteSpace(opt.Hotkey) && !hotkey.IsRegistered)
 					|| (hotkeySnap != null && !string.IsNullOrWhiteSpace(opt.HotkeySnap) && !hotkeySnap.IsRegistered)
+					|| (hotkeyScreenSnap != null && !string.IsNullOrWhiteSpace(opt.HotkeyScreenSnap) && !hotkeyScreenSnap.IsRegistered)
 					|| (hotkeySnapOcr != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapOcr) && !hotkeySnapOcr.IsRegistered)
 					|| (hotkeyBoard != null && !string.IsNullOrWhiteSpace(opt.HotkeyBoard) && !hotkeyBoard.IsRegistered)
 					|| (hotkeyVoice != null && !string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput) && !hotkeyVoice.IsRegistered)
@@ -1016,6 +1021,10 @@ public partial class MainWindow : Window {
 		if (hotkeySnap != null) {
 			hotkeySnap.Attach();
 			if (!hotkeySnap.Register(opt.HotkeySnap)) errs.Add(hotkeySnap.LastError);
+		}
+		if (hotkeyScreenSnap != null) {
+			hotkeyScreenSnap.Attach();
+			if (!hotkeyScreenSnap.Register(opt.HotkeyScreenSnap)) errs.Add(hotkeyScreenSnap.LastError);
 		}
 		if (hotkeySnapOcr != null) {
 			hotkeySnapOcr.Attach();
@@ -1697,6 +1706,7 @@ public partial class MainWindow : Window {
 		// 截图菜单
 		mncapture.Click += async (_, _) => await captureasync(hideMain: false);
 		mnsnap.Click += async (_, _) => await snapannotateasync(restoreUi: false);
+		mnscreensnap.SubmenuOpened += (_, _) => fillscreensnapmenu();
 		mnboard.Click += async (_, _) => await screenboardasync(restoreUi: false);
 		mnvoice.Click += (_, _) => toggleasrvoice();
 		mnlongshot.Click += async (_, _) => await longshotasync();
@@ -1860,6 +1870,8 @@ public partial class MainWindow : Window {
 			mncapture.ToolTip = Loc.T("menu.ocr.tip");
 			mnsnap.Header = Loc.T("menu.snap");
 			mnsnap.ToolTip = Loc.T("menu.snap.tip");
+			mnscreensnap.Header = Loc.T("menu.screensnap");
+			mnscreensnap.ToolTip = Loc.T("menu.screensnap.tip");
 			mnboard.Header = Loc.T("menu.board");
 			mnboard.ToolTip = Loc.T("menu.board.tip");
 			mnvoice.Header = Loc.T("menu.voice");
@@ -3344,6 +3356,58 @@ public partial class MainWindow : Window {
 		}
 	}
 
+	void fillscreensnapmenu() {
+		mnscreensnap.Items.Clear();
+		var screens = SnapScreen.List();
+		var pick = SnapScreen.ClampIndex(opt.SnapScreenIndex);
+		for (var i = 0; i < screens.Length; i++) {
+			var idx = i;
+			var item = new MenuItem {
+				Header = SnapScreen.MenuLabel(screens[i], i),
+				IsCheckable = true,
+				IsChecked = idx == pick,
+				StaysOpenOnClick = true,
+			};
+			item.Click += (_, _) => {
+				opt.SnapScreenIndex = idx;
+				try { AppConfig.Save(opt); } catch { }
+				fillscreensnapmenu();
+			};
+			mnscreensnap.Items.Add(item);
+		}
+		if (screens.Length > 0) mnscreensnap.Items.Add(new Separator());
+		var now = new MenuItem { Header = Loc.T("menu.screensnap.now") };
+		now.Click += async (_, _) => await screensnapasync();
+		mnscreensnap.Items.Add(now);
+	}
+
+	/// <summary>整屏截屏：指定显示器全屏一次，按截图完成方式保存并写入剪贴板。</summary>
+	async Task screensnapasync(int? screenIndex = null) {
+		if (capturing) return;
+		var idx = SnapScreen.ClampIndex(screenIndex ?? opt.SnapScreenIndex);
+		try {
+			capturing = true;
+			setstatus(Loc.T("st.screensnap"));
+			var screen = SnapScreen.Pick(idx);
+			var bmp = await Task.Run(() => CaptureOverlay.CaptureMonitor(screen, out _, out _));
+			if (bmp == null) {
+				setstatus(Loc.T("st.screensnap_fail"));
+				return;
+			}
+			var saved = await ImageUtil.SaveScreenshotAndCopyAsync(bmp, "shot");
+			CaptureLog.Info($"screensnap #{idx + 1} {bmp.PixelWidth}x{bmp.PixelHeight} {saved}");
+			setstatus(Loc.T("st.screensnap_ok", bmp.PixelWidth, bmp.PixelHeight));
+			try { UiToast.Show(this, snapcopymodetext()); } catch { }
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("st.screensnap_fail") + ": " + ex.Message);
+			try { UiToast.Show(this, ex.Message); } catch { }
+		}
+		finally {
+			capturing = false;
+		}
+	}
+
 	/// <summary>
 	/// 屏幕画板：冻结全屏后直接标注（跳过框选）。
 	/// <paramref name="restoreUi"/>：true=藏主窗后恢复；false=热键/托盘（不隐藏主窗）。
@@ -4263,6 +4327,7 @@ public partial class MainWindow : Window {
 		// 热键变更则重注册
 		if (!string.Equals(old.Hotkey, opt.Hotkey, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeySnap, opt.HotkeySnap, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyScreenSnap, opt.HotkeyScreenSnap, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeySnapOcr, opt.HotkeySnapOcr, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyBoard, opt.HotkeyBoard, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyVoiceInput, opt.HotkeyVoiceInput, StringComparison.OrdinalIgnoreCase)
@@ -4968,6 +5033,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"ServiceMode: {opt.ServiceMode}");
 		sb.AppendLine($"Hotkey toggle window: {opt.Hotkey}");
 		sb.AppendLine($"Hotkey snap: {opt.HotkeySnap}");
+		sb.AppendLine($"Hotkey screen snap: {opt.HotkeyScreenSnap} monitor={opt.SnapScreenIndex + 1}");
 		sb.AppendLine($"Hotkey snap OCR: {opt.HotkeySnapOcr}");
 		sb.AppendLine($"Hotkey board: {opt.HotkeyBoard}");
 		sb.AppendLine($"Hotkey voice input: {opt.HotkeyVoiceInput}");

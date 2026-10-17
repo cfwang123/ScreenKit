@@ -93,6 +93,10 @@ public sealed class OcrOptions {
 	public string Hotkey = "Ctrl+Alt+O";
 	/// <summary>截图标注热键，默认 Ctrl+Alt+Q。空字符串 = 禁用。</summary>
 	public string HotkeySnap = "Ctrl+Alt+Q";
+	/// <summary>整屏截屏热键：截取 <see cref="SnapScreenIndex"/> 指定显示器全屏一次。默认 Ctrl+Alt+G。空 = 禁用。</summary>
+	public string HotkeyScreenSnap = "Ctrl+Alt+G";
+	/// <summary>整屏截屏目标显示器下标（<see cref="SnapScreen.List"/>）。默认 0。</summary>
+	public int SnapScreenIndex;
 	/// <summary>截图识别热键，默认 Ctrl+Alt+W。空字符串 = 禁用。</summary>
 	public string HotkeySnapOcr = "Ctrl+Alt+W";
 	/// <summary>屏幕画板热键：全屏冻结后标注。默认空 = 禁用。</summary>
@@ -537,6 +541,8 @@ public sealed class OcrOptions {
 		UseCls = UseCls,
 		Hotkey = Hotkey,
 		HotkeySnap = HotkeySnap,
+		HotkeyScreenSnap = HotkeyScreenSnap ?? "",
+		SnapScreenIndex = SnapScreenIndex,
 		HotkeySnapOcr = HotkeySnapOcr,
 		HotkeyBoard = HotkeyBoard,
 		HotkeyVoiceInput = HotkeyVoiceInput,

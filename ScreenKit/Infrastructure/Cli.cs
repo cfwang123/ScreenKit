@@ -4096,7 +4096,7 @@ static class Cli {
 		}
 		string err = one("gksrmf", "한글") ?? one("rksk", "가나") ?? one("r", "ㄱ") ?? one("R", "ㄲ")
 			?? one("w", "ㅈ") ?? one("W", "ㅉ") ?? one("q", "ㅂ") ?? one("e", "ㄷ") ?? one("d", "ㅇ")
-			?? one("qse", "ㅂㄴㄷ") ?? one("hk", "ㅘ") ?? one("rks\b", "가");
+			?? one("qse", "ㅂㄴㄷ") ?? one("hk", "ㅘ") ?? one("rks\b", "가") ?? spancheck();
 		if (err == null) err = testimeengine();
 		if (err != null) {
 			Err("FAIL " + err);
@@ -4105,6 +4105,24 @@ static class Cli {
 		Out("한글 / 가나 / ㄱ / ㄲ / ㅈ / ㅂㄴㄷ / ㅘ / 가");
 		Out("OK");
 		return 0;
+	}
+
+	static string spancheck() {
+		var h = new Hangul();
+		foreach (var ch in "dkss") if (!h.Push(ch)) return "push";
+		if (h.Text != "안ㄴ") return "partial " + h.Text;
+		var lo = new List<string>();
+		var hi = new List<string>();
+		h.Spans(lo, hi);
+		if (lo.Count != 1 || string.CompareOrdinal("안녕", lo[0]) < 0 || string.CompareOrdinal("안녕", hi[0]) >= 0)
+			return "span 안녕";
+		if (string.CompareOrdinal("안개", lo[0]) >= 0 && string.CompareOrdinal("안개", hi[0]) < 0)
+			return "span 안개";
+		if (!h.Push('u') || h.Text != "안녀") return "vowel " + h.Text;
+		h.Spans(lo, hi);
+		if (lo.Count != 1 || string.CompareOrdinal("안녕", lo[0]) < 0 || string.CompareOrdinal("안녕", hi[0]) >= 0)
+			return "span 녀";
+		return null;
 	}
 
 	static string testimeengine() {
@@ -4186,7 +4204,7 @@ static class Cli {
 				using var cmd = c.CreateCommand();
 				cmd.CommandText = @"CREATE TABLE kr_word (text TEXT PRIMARY KEY, freq INTEGER NOT NULL);
 CREATE TABLE kr_hanja (hangul TEXT NOT NULL, hanja TEXT NOT NULL, rank INTEGER NOT NULL, PRIMARY KEY (hangul, hanja));
-INSERT INTO kr_word(text,freq) VALUES('한국',100),('한국어',80),('학교',90);
+INSERT INTO kr_word(text,freq) VALUES('한국',100),('한국어',80),('학교',90),('안녕',200),('안녕하세요',180),('안개',190),('너무',300);
 INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1),('학교에','學校에',1);";
 				cmd.ExecuteNonQuery();
 			}
@@ -4210,7 +4228,24 @@ INSERT INTO kr_hanja(hangul,hanja,rank) VALUES('한국','韓國',1),('학교에'
 				Err("FAIL mixed " + mixed);
 				return 1;
 			}
-			Out("한국 / 한국어 / 學校에");
+			var eng = new ImeEngine();
+			eng.LoadMeta(false, Lang.Ko, false, false);
+			void tapk(char ch) {
+				int vk = Vk.A + (ch - 'a');
+				eng.Key(vk, true, false, false, false, false);
+				eng.Key(vk, false, false, false, false, false);
+			}
+			foreach (var ch in "dkss") tapk(ch);
+			bool hello = false, stray = false;
+			foreach (var c in eng.PageItems) {
+				if (c.Text == "안녕" || c.Text == "안녕하세요") hello = true;
+				if (c.Text == "안개" || c.Text == "너무") stray = true;
+			}
+			if (!hello || stray) {
+				Err("FAIL partial " + string.Join(",", eng.PageItems.Select(x => x.Text).ToArray()));
+				return 1;
+			}
+			Out("한국 / 한국어 / 學校에 / 안ㄴ→안녕");
 			Out("OK");
 			return 0;
 		}

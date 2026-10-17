@@ -554,10 +554,13 @@ class ImeEngine {
 	void reloadkr() {
 		cands.Clear();
 		page = 0;
-		if (!hang.Ready) return;
-		var exact = hang.ReadyText;
-		cands.Add(new Cand { Text = exact, Raw = exact, Comment = ImeLex.Hanja(exact) });
-		foreach (var p in ImeLex.QueryKr(exact)) cands.Add(p);
+		var typed = hang.Text;
+		if (typed.Length == 0) return;
+		cands.Add(new Cand { Text = typed, Raw = typed, Comment = ImeLex.Hanja(typed) });
+		var lo = new List<string>();
+		var hi = new List<string>();
+		hang.Spans(lo, hi);
+		foreach (var p in ImeLex.QueryKr(lo, hi, typed)) cands.Add(p);
 	}
 
 	void back() {

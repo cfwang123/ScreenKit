@@ -22,6 +22,37 @@ class Hangul {
 	public bool Ready => cho >= 0 && jung >= 0;
 	public string ReadyText => Ready ? done + syll() : done;
 
+	/// <summary>当前组字还能继续打成的词的正文区间，左闭右开。声母未完成时覆盖该声母的全部音节。</summary>
+	public void Spans(List<string> lo, List<string> hi) {
+		lo.Clear();
+		hi.Clear();
+		if (cho >= 0 && jung < 0) {
+			int a = 0xAC00 + cho * 588;
+			lo.Add(done + (char)a);
+			hi.Add(done + (char)(a + 588));
+			return;
+		}
+		if (cho < 0 || jung < 0) return;
+		if (jong < 0) {
+			int a = 0xAC00 + cho * 588 + jung * 28;
+			lo.Add(done + (char)a);
+			hi.Add(done + (char)(a + 28));
+			return;
+		}
+		spanchar(lo, hi, jong);
+		int[] add = { 1, 16, 17, 19, 22, 25, 26, 27 };
+		for (int i = 0; i < add.Length; i++) {
+			int n = combinejong(jong, add[i]);
+			if (n >= 0) spanchar(lo, hi, n);
+		}
+	}
+
+	void spanchar(List<string> lo, List<string> hi, int j) {
+		int s = 0xAC00 + cho * 588 + jung * 28 + j;
+		lo.Add(done + (char)s);
+		hi.Add(done + (char)(s + 1));
+	}
+
 	public void Clear() {
 		seq = "";
 		reset();
