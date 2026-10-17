@@ -42,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Translation auto mode is configurable: **Settings → Translate** adds **Native language** and **Learning language** (`translate_auto_native` / `translate_auto_learn`, default zh/en). Text that is not native is translated into the native language; native text into the learning language. The translate tab, popup, web tool, CLI (`--tr-dir auto` plus `--tr-native` / `--tr-learn`), and `POST /api/translate` (`native` / `learn`) follow the pair.
 - Auto translation now shows the detected direction in the translate tab and popup (for example `Auto detect: English → Chinese`) and updates it as you type.
+- On the Translate tab, **Ctrl+Enter** starts translation (same as the translate popup).
 
 ### 中文
 
@@ -49,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 翻译的自动互译可配置：**参数设置 → 翻译** 增加 **母语** 与 **学习语言**（`translate_auto_native` / `translate_auto_learn`，默认 zh/en）。非母语文本译成母语，母语文本译成学习语言。翻译页、翻译小窗、网页工具、命令行（`--tr-dir auto` 及 `--tr-native` / `--tr-learn`）和 `POST /api/translate`（`native` / `learn`）都按这对语言互译。
 - 翻译页和翻译小窗在「自动」时显示判断结果（如「自动检测：英文 → 中文」），随输入实时更新。
+- 翻译页支持 **Ctrl+Enter** 直接开始翻译（与翻译小窗一致）。
 
 ## v1.0.24 (2026-10-17)
 

@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace ScreenKit;
 
@@ -88,6 +89,11 @@ public partial class MainWindow {
 			lbtrstatus.Text = usellm() ? Loc.T("tr.refreshed.llm") : Loc.T("tr.refreshed");
 		};
 		btrgo.Click += async (_, _) => await runtranslate();
+		tabtr.PreviewKeyDown += (_, e) => {
+			if (e.Key != Key.Enter || (Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
+			e.Handled = true;
+			_ = runtranslate();
+		};
 		btrpingpong.Click += async (_, _) => await runpingpong();
 		btrstop.Click += (_, _) => {
 			try { trCts?.Cancel(); } catch { }
