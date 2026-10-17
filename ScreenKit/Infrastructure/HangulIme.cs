@@ -5,10 +5,9 @@ using Forms = System.Windows.Forms;
 namespace ScreenKit;
 
 /// <summary>
-/// 按快捷键接管键盘，行为对齐 Windows 韩语输入法：两套式在光标处组字，没有候选条。
-/// 打开后另有一个托盘图标，左键切换韩文和英文，右键可关闭或打开参数。本程序窗口里的按键不接管。
-/// 单独按 Shift、右 Alt 或韩/英键在韩文和英文之间切换。Shift 加辅音仍是双辅音，元音不加双。
-/// 空格、回车和标点先留下已组的字，再把该键交给当前窗口。
+/// 按快捷键接管键盘。五笔、日语、韩语共用候选条，词从可安装的 ime.db 来。
+/// 组字只显示在候选条上，选定后再送进当前窗口。本程序窗口里的按键不接管。
+/// 单独按 Shift 在当前语言和英文之间切换。右 Alt 或韩/英键同样切换英文。
 /// </summary>
 sealed class HangulIme : IDisposable {
 	const int WH_KEYBOARD_LL = 13;
@@ -29,25 +28,25 @@ sealed class HangulIme : IDisposable {
 	const uint SWP_NOMOVE = 0x0002;
 	const uint SWP_SHOWWINDOW = 0x0040;
 
-	readonly Hangul hang = new();
-	readonly List<ImeHit> cands = new();
+	readonly ImeEngine eng = new();
+	readonly HangulCand bar = new();
 	readonly HashSet<int> eaten = new();
-	readonly HashSet<int> downvks = new();
-	HangulCand bar;
+	readonly Dictionary<string, System.Drawing.Icon> icons = new();
 	readonly DispatcherTimer timer;
 	Forms.NotifyIcon ni;
 	Forms.ContextMenuStrip menu;
+	Forms.ToolStripMenuItem miwubi;
+	Forms.ToolStripMenuItem mija;
+	Forms.ToolStripMenuItem miko;
+	Forms.ToolStripMenuItem mioff;
 	Forms.ToolStripMenuItem miset;
 	Forms.ToolStripMenuItem miclose;
-	System.Drawing.Icon icoko;
-	System.Drawing.Icon icoen;
 	IntPtr hook;
 	HookProc proc;
 	IntPtr watch;
-	string shown = "";
+	Lang lang = Lang.Ko;
+	bool trad;
 	bool enabled;
-	bool english;
-	bool shiftlone;
 	bool sending;
 	bool eat;
 	bool dead;
@@ -56,20 +55,65 @@ sealed class HangulIme : IDisposable {
 	public event Action Settings;
 
 	public bool On => enabled;
-	public bool English => english;
+	public bool English => eng.Now == View.En;
+	public bool Paused => eng.Off;
+	public bool Trad => eng.Trad;
+	public string LangCode => eng.LangCode;
+	public string Badge => eng.Badge;
 
 	public HangulIme() {
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
 		timer.Tick += (_, _) => pollfg();
+		bar.Picked += onpick;
+		bar.Paged += onpage;
+		eng.StateChanged += () => {
+			if (!enabled) return;
+			lang = eng.Cjk;
+			trad = eng.Trad;
+			ui(() => {
+				showtray();
+				Changed?.Invoke();
+			});
+		};
+	}
+
+	public void Remember(string code, bool tradOn) {
+		trad = tradOn;
+		lang = code == "ja" ? Lang.Ja : code == "wubi" ? Lang.Wubi : Lang.Ko;
+	}
+
+	public void ApplyHotkeys(string zh, string ja, string ko, string paused, string cycle) {
+		eng.ApplyOpts(true, true, true,
+			Hot.FromCombo(zh), Hot.FromCombo(ja), Hot.FromCombo(ko),
+			Hot.FromCombo(paused), Hot.FromCombo(cycle));
+	}
+
+	public void Enter(string code) {
+		var pick = code == "ja" ? Lang.Ja : code == "ko" ? Lang.Ko : Lang.Wubi;
+		if (!enabled && !Set(true)) return;
+		eng.Enter(pick);
+		showtray();
+	}
+
+	public void Pause() {
+		if (!enabled) return;
+		eng.SetOff(true);
+		showtray();
+	}
+
+	public void Next() {
+		if (!enabled) { Set(true); return; }
+		eng.Next();
+		showtray();
 	}
 
 	public bool Set(bool on) {
 		if (dead) return false;
 		if (on == enabled) return true;
 		if (!on) {
-			commit();
+			eng.Discard();
+			hidecand();
 			enabled = false;
-			english = false;
 			remove();
 			timer.Stop();
 			if (ni != null) ni.Visible = false;
@@ -77,10 +121,10 @@ sealed class HangulIme : IDisposable {
 			return true;
 		}
 		if (!install()) return false;
+		eng.LoadMeta(trad, lang, false, false);
 		enabled = true;
-		english = false;
 		watch = GetForegroundWindow();
-		showtray(false);
+		showtray();
 		timer.Start();
 		Changed?.Invoke();
 		return true;
@@ -88,13 +132,8 @@ sealed class HangulIme : IDisposable {
 
 	public void ToggleEnglish() {
 		if (!enabled) return;
-		if (english) english = false;
-		else {
-			commit();
-			english = true;
-		}
-		showtray(english);
-		Changed?.Invoke();
+		eng.ToggleEn();
+		showtray();
 	}
 
 	public void ApplyLang() { applytraylang(); }
@@ -114,21 +153,22 @@ sealed class HangulIme : IDisposable {
 		ni = null;
 		try { menu?.Dispose(); } catch { }
 		menu = null;
-		try { icoko?.Dispose(); } catch { }
-		try { icoen?.Dispose(); } catch { }
-		icoko = null;
-		icoen = null;
+		foreach (var ic in icons.Values) {
+			try { ic?.Dispose(); } catch { }
+		}
+		icons.Clear();
 	}
 
 	void pollfg() {
-		if (!enabled || english) return;
+		if (!enabled || eng.Off) return;
 		var fg = GetForegroundWindow();
 		if (fg == IntPtr.Zero) return;
-		if (ours(fg)) {
-			if (shown.Length > 0) commit();
-			return;
+		if (ours(fg) || (watch != IntPtr.Zero && watch != fg)) {
+			if (eng.ShowBar) {
+				eng.Discard();
+				hidecand();
+			}
 		}
-		if (watch != IntPtr.Zero && watch != fg && shown.Length > 0) commit();
 		watch = fg;
 	}
 
@@ -146,30 +186,53 @@ sealed class HangulIme : IDisposable {
 		UnhookWindowsHookEx(hook);
 		hook = IntPtr.Zero;
 		eaten.Clear();
-		downvks.Clear();
 	}
 
-	void showtray(bool en) {
+	void showtray() {
 		ensuretray();
-		ni.Icon = en ? icoen : icoko;
-		ni.Text = traytext(en);
+		var mark = eng.Badge;
+		if (!icons.TryGetValue(mark, out var ic)) {
+			ic = badge(mark, eng.Off || eng.Now == View.En);
+			icons[mark] = ic;
+		}
+		ni.Icon = ic;
+		var bkey = eng.Off ? "hangul.badge.off"
+			: eng.Now == View.Ja ? "hangul.badge.ja"
+			: eng.Now == View.Ko ? "hangul.badge.ko"
+			: eng.Now == View.En ? "hangul.badge.en"
+			: "hangul.badge.wubi";
+		var text = Loc.T(bkey) ?? "";
+		if (text.Length > 63) text = text.Substring(0, 63);
+		ni.Text = text;
 		ni.Visible = true;
+		if (miwubi != null) {
+			miwubi.Checked = !eng.Off && eng.Cjk == Lang.Wubi;
+			mija.Checked = !eng.Off && eng.Cjk == Lang.Ja;
+			miko.Checked = !eng.Off && eng.Cjk == Lang.Ko;
+			mioff.Checked = eng.Off;
+		}
 	}
 
 	void ensuretray() {
 		if (ni != null) return;
-		icoko = badge(false);
-		icoen = badge(true);
 		ni = new Forms.NotifyIcon { Visible = false };
 		menu = new Forms.ContextMenuStrip();
+		miwubi = new Forms.ToolStripMenuItem("", null, (_, _) => Enter("wubi"));
+		mija = new Forms.ToolStripMenuItem("", null, (_, _) => Enter("ja"));
+		miko = new Forms.ToolStripMenuItem("", null, (_, _) => Enter("ko"));
+		mioff = new Forms.ToolStripMenuItem("", null, (_, _) => Pause());
 		miset = new Forms.ToolStripMenuItem();
 		miclose = new Forms.ToolStripMenuItem();
 		miset.Click += (_, _) => { try { Settings?.Invoke(); } catch { } };
 		miclose.Click += (_, _) => Set(false);
+		menu.Items.Add(miwubi);
+		menu.Items.Add(mija);
+		menu.Items.Add(miko);
+		menu.Items.Add(mioff);
 		menu.Items.Add(miset);
 		menu.Items.Add(miclose);
 		ni.MouseClick += (_, e) => {
-			if (e.Button == Forms.MouseButtons.Left) ToggleEnglish();
+			if (e.Button == Forms.MouseButtons.Left) Next();
 		};
 		ni.MouseUp += (_, e) => {
 			if (e.Button == Forms.MouseButtons.Right) showmenu();
@@ -194,26 +257,24 @@ sealed class HangulIme : IDisposable {
 	}
 
 	void applytraylang() {
+		if (miwubi != null) miwubi.Text = Loc.T("hangul.menu.wubi");
+		if (mija != null) mija.Text = Loc.T("hangul.menu.ja");
+		if (miko != null) miko.Text = Loc.T("hangul.menu.ko");
+		if (mioff != null) mioff.Text = Loc.T("hangul.menu.off");
 		if (miset != null) miset.Text = Loc.T("hangul.menu.settings");
 		if (miclose != null) miclose.Text = Loc.T("hangul.menu.close");
-		if (ni != null && enabled) ni.Text = traytext(english);
+		if (ni != null && enabled) showtray();
 	}
 
-	static string traytext(bool en) {
-		var s = Loc.T(en ? "hangul.en" : "hangul.ko") ?? "";
-		if (s.Length > 63) s = s.Substring(0, 63);
-		return s;
-	}
-
-	static System.Drawing.Icon badge(bool en) {
+	static System.Drawing.Icon badge(string mark, bool gray) {
 		const int n = 64;
 		using var bmp = new System.Drawing.Bitmap(n, n);
 		using (var g = System.Drawing.Graphics.FromImage(bmp)) {
 			g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 			g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-			g.Clear(en ? System.Drawing.Color.FromArgb(90, 90, 90) : System.Drawing.Color.FromArgb(20, 110, 70));
-			var text = en ? "A" : "한";
-			using var font = new System.Drawing.Font("Malgun Gothic", 100f, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
+			g.Clear(gray ? System.Drawing.Color.FromArgb(90, 90, 90) : System.Drawing.Color.FromArgb(20, 110, 70));
+			var text = string.IsNullOrEmpty(mark) ? "A" : mark;
+			using var font = new System.Drawing.Font("Microsoft YaHei UI", 100f, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Pixel);
 			using var path = new System.Drawing.Drawing2D.GraphicsPath();
 			path.AddString(text, font.FontFamily, (int)System.Drawing.FontStyle.Bold, 100f, new System.Drawing.PointF(0, 0), System.Drawing.StringFormat.GenericTypographic);
 			var box = path.GetBounds();
@@ -248,137 +309,72 @@ sealed class HangulIme : IDisposable {
 	}
 
 	void onkey(int vk, bool down) {
-		bool shiftkey = vk == VK_SHIFT || vk == 0xA0 || vk == 0xA1;
-		if (!down) {
-			downvks.Remove(vk);
-			if (shiftkey && shiftlone) {
-				shiftlone = false;
-				if (!ours(GetForegroundWindow())) ToggleEnglish();
-			}
-			eat = eaten.Remove(vk);
-			return;
-		}
-		if (!downvks.Add(vk)) {
-			eat = eaten.Contains(vk);
-			return;
-		}
 		if (ours(GetForegroundWindow())) {
-			shiftlone = false;
-			if (shown.Length > 0) commit();
+			if (down && eng.ShowBar) {
+				eng.Discard();
+				hidecand();
+			}
 			return;
 		}
 		bool ctrl = held(VK_CONTROL) || held(0xA2) || held(0xA3);
 		bool win = held(VK_LWIN) || held(VK_RWIN);
 		bool alt = held(VK_MENU) || held(0xA4);
-		if (shiftkey) {
-			shiftlone = !ctrl && !alt && !win;
-			return;
-		}
-		shiftlone = false;
-		if ((vk == VK_RMENU || vk == VK_HANGUL) && !ctrl && !win) {
+		bool shift = held(VK_SHIFT) || held(0xA0) || held(0xA1);
+		if (down && (vk == VK_RMENU || vk == VK_HANGUL) && !ctrl && !win) {
 			ToggleEnglish();
 			markeat(vk);
+			refresh();
 			return;
 		}
-		if (english) return;
-		if (ctrl || alt || win) {
-			commit();
-			return;
-		}
-		if (vk == VK_ESC) {
-			cancel();
-			return;
-		}
-		if (vk == VK_BACK) {
-			if (hang.Text.Length == 0) return;
-			hang.Back();
-			sync();
-			markeat(vk);
-			return;
-		}
-		var digit = digitof(vk);
-		bool shift = held(VK_SHIFT) || held(0xA0) || held(0xA1);
-		if (!shift && digit >= 1 && digit <= cands.Count) {
-			pickcand(digit - 1);
-			markeat(vk);
-			return;
-		}
-		if (vk >= VK_A && vk <= 0x5A) {
-			char lower = (char)('a' + vk - VK_A);
-			bool ok = shift && hang.Push(char.ToUpper(lower));
-			if (!ok) ok = hang.Push(lower);
-			if (!ok) {
-				commit();
+		if (!eng.Off && vk == Vk.Caps && down) eng.SetCaps((GetAsyncKeyState(Vk.Caps) & 1) == 0);
+		else if (!eng.Off && vk != Vk.Caps) eng.SetCaps((GetAsyncKeyState(Vk.Caps) & 1) != 0);
+		var o = eng.Key(vk, down, shift, ctrl, alt, win);
+		if (o.Eat) markeat(vk);
+		else if (!down) eat = eaten.Remove(vk);
+		send(o);
+		refresh();
+	}
+
+	void onpick(int visible) {
+		var o = eng.Pick(visible);
+		send(o);
+		refresh();
+	}
+
+	void onpage(int delta) {
+		eng.PageBy(delta);
+		refresh();
+	}
+
+	void send(Outcome o) {
+		if (o == null || o.Texts.Count == 0) return;
+		var sb = new System.Text.StringBuilder();
+		foreach (var t in o.Texts) sb.Append(t);
+		replace(0, sb.ToString());
+	}
+
+	void refresh() {
+		if (!enabled) return;
+		var box = caretbox();
+		ui(() => {
+			showtray();
+			if (!eng.ShowBar) {
+				hidecand();
 				return;
 			}
-			sync();
-			markeat(vk);
-			return;
-		}
-		commit();
+			try { bar.ShowEngine(eng, box); }
+			catch { }
+		});
 	}
 
-	void cancel() {
-		if (hang.Partial.Length > 0) {
-			replace(hang.Partial.Length, "");
-			hang.Clear();
-			shown = "";
-			cands.Clear();
-			hidecand();
-			markeat(VK_ESC);
-			return;
-		}
-		if (shown.Length > 0) commit();
-	}
-
-	void commit() {
-		hang.Clear();
-		shown = "";
-		cands.Clear();
-		hidecand();
-	}
-
-	void sync() {
-		string text = hang.Text;
-		int n = 0;
-		int m = Math.Min(shown.Length, text.Length);
-		while (n < m && shown[n] == text[n]) n++;
-		replace(shown.Length - n, text.Substring(n));
-		shown = text;
-		reloadcand();
-	}
-
-	void reloadcand() {
-		cands.Clear();
-		if (!hang.Ready || !ImeLex.Ready) {
-			hidecand();
-			return;
-		}
-		var exact = hang.Text;
-		cands.Add(new ImeHit { Text = exact, Comment = ImeLex.Hanja(exact) });
-		foreach (var p in ImeLex.Query(exact)) cands.Add(p);
-		if (bar == null) bar = new HangulCand();
-		bar.ShowHits(cands, caretbox());
-	}
-
-	void pickcand(int i) {
-		if (i < 0 || i >= cands.Count) return;
-		var t = cands[i].Text ?? "";
-		replace(shown.Length, t);
-		hang.Clear();
-		shown = "";
-		cands.Clear();
-		hidecand();
+	void ui(Action act) {
+		if (act == null) return;
+		if (bar.Dispatcher.CheckAccess()) act();
+		else bar.Dispatcher.BeginInvoke(act);
 	}
 
 	void hidecand() {
-		try { bar?.HideBar(); } catch { }
-	}
-
-	static int digitof(int vk) {
-		if (vk >= 0x30 && vk <= 0x39) return vk - 0x30;
-		if (vk >= 0x60 && vk <= 0x69) return vk - 0x60;
-		return -1;
+		try { bar.HideBar(); } catch { }
 	}
 
 	static Rect caretbox() {

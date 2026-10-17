@@ -74,6 +74,11 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyDict;  // 词典
 	GlobalHotkey hotkeyDictSel; // 划词浮窗开关
 	GlobalHotkey hotkeyHangul; // 韩语输入
+	GlobalHotkey hotkeyImeCycle;
+	GlobalHotkey hotkeyImeWubi;
+	GlobalHotkey hotkeyImeJa;
+	GlobalHotkey hotkeyImeKo;
+	GlobalHotkey hotkeyImeOff;
 	HangulIme hangul;
 	GlobalHotkey hotkeyAuto; // 自动按键开始/停止
 	TranslatePopupWindow trPopup;
@@ -923,10 +928,48 @@ public partial class MainWindow : Window {
 					try { setstatus(ex.Message); } catch { }
 				}
 			}));
+			hotkeyImeCycle = new GlobalHotkey(this, 0x7010);
+			hotkeyImeCycle.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { if (hangul != null && !hangul.On) hangul.Set(true); }
+				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
+			}));
+			hotkeyImeWubi = new GlobalHotkey(this, 0x7011);
+			hotkeyImeWubi.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { hangul?.Enter("wubi"); }
+				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
+			}));
+			hotkeyImeJa = new GlobalHotkey(this, 0x7012);
+			hotkeyImeJa.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { hangul?.Enter("ja"); }
+				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
+			}));
+			hotkeyImeKo = new GlobalHotkey(this, 0x7013);
+			hotkeyImeKo.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { hangul?.Enter("ko"); }
+				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
+			}));
+			hotkeyImeOff = new GlobalHotkey(this, 0x7014);
+			hotkeyImeOff.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { if (hangul != null && hangul.On) hangul.Pause(); }
+				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
+			}));
 			hangul = new HangulIme();
+			hangul.Remember(opt.ImeLang, opt.ImeTrad);
+			hangul.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
 			hangul.Changed += () => {
 				painthangul();
-				setstatus(Loc.T(!hangul.On ? "hangul.off" : hangul.English ? "hangul.en" : "hangul.ko"));
+				if (hangul.On) {
+					opt.ImeLang = hangul.LangCode;
+					opt.ImeTrad = hangul.Trad;
+					try { AppConfig.Save(opt); } catch { }
+				}
+				var st = !hangul.On ? "hangul.off"
+					: hangul.Paused ? "hangul.badge.off"
+					: hangul.English ? "hangul.badge.en"
+					: hangul.LangCode == "ja" ? "hangul.badge.ja"
+					: hangul.LangCode == "wubi" ? "hangul.badge.wubi"
+					: "hangul.badge.ko";
+				setstatus(Loc.T(st));
 			};
 			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			hotkeyAuto = new GlobalHotkey(this, 0x700A);
@@ -954,7 +997,12 @@ public partial class MainWindow : Window {
 					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered)
 					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered)
 					|| (hotkeyDictSel != null && !string.IsNullOrWhiteSpace(opt.HotkeyDictSel) && !hotkeyDictSel.IsRegistered)
-					|| (hotkeyHangul != null && !string.IsNullOrWhiteSpace(opt.HotkeyHangul) && !hotkeyHangul.IsRegistered);
+					|| (hotkeyHangul != null && !string.IsNullOrWhiteSpace(opt.HotkeyHangul) && !hotkeyHangul.IsRegistered)
+					|| (hotkeyImeCycle != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeCycle) && !hotkeyImeCycle.IsRegistered)
+					|| (hotkeyImeWubi != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeWubi) && !hotkeyImeWubi.IsRegistered)
+					|| (hotkeyImeJa != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeJa) && !hotkeyImeJa.IsRegistered)
+					|| (hotkeyImeKo != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeKo) && !hotkeyImeKo.IsRegistered)
+					|| (hotkeyImeOff != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeOff) && !hotkeyImeOff.IsRegistered);
 					// 自动按键只在工具窗口打开时注册，启动时不重试
 				if (need)
 					registerhotkey();
@@ -1012,6 +1060,27 @@ public partial class MainWindow : Window {
 			hotkeyHangul.Attach();
 			if (!hotkeyHangul.Register(opt.HotkeyHangul)) errs.Add(hotkeyHangul.LastError);
 		}
+		if (hotkeyImeCycle != null) {
+			hotkeyImeCycle.Attach();
+			if (!hotkeyImeCycle.Register(opt.HotkeyImeCycle)) errs.Add(hotkeyImeCycle.LastError);
+		}
+		if (hotkeyImeWubi != null) {
+			hotkeyImeWubi.Attach();
+			if (!hotkeyImeWubi.Register(opt.HotkeyImeWubi)) errs.Add(hotkeyImeWubi.LastError);
+		}
+		if (hotkeyImeJa != null) {
+			hotkeyImeJa.Attach();
+			if (!hotkeyImeJa.Register(opt.HotkeyImeJa)) errs.Add(hotkeyImeJa.LastError);
+		}
+		if (hotkeyImeKo != null) {
+			hotkeyImeKo.Attach();
+			if (!hotkeyImeKo.Register(opt.HotkeyImeKo)) errs.Add(hotkeyImeKo.LastError);
+		}
+		if (hotkeyImeOff != null) {
+			hotkeyImeOff.Attach();
+			if (!hotkeyImeOff.Register(opt.HotkeyImeOff)) errs.Add(hotkeyImeOff.LastError);
+		}
+		try { hangul?.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle); } catch { }
 		var akerr = bindautokeyhotkey();
 		if (akerr.Length > 0) errs.Add(akerr);
 		if (errs.Count > 0) {
@@ -1141,6 +1210,11 @@ public partial class MainWindow : Window {
 		try { hotkeyDict?.Dispose(); } catch { }
 		try { hotkeyDictSel?.Dispose(); } catch { }
 		try { hotkeyHangul?.Dispose(); } catch { }
+		try { hotkeyImeCycle?.Dispose(); } catch { }
+		try { hotkeyImeWubi?.Dispose(); } catch { }
+		try { hotkeyImeJa?.Dispose(); } catch { }
+		try { hotkeyImeKo?.Dispose(); } catch { }
+		try { hotkeyImeOff?.Dispose(); } catch { }
 		try { hangul?.Dispose(); } catch { }
 		try { autokeyOn = false; autokeyTimer?.Stop(); } catch { }
 		try { hotkeyAuto?.Dispose(); } catch { }
@@ -4189,6 +4263,11 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyDictSel, opt.HotkeyDictSel, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyHangul, opt.HotkeyHangul, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyImeCycle, opt.HotkeyImeCycle, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyImeWubi, opt.HotkeyImeWubi, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyImeJa, opt.HotkeyImeJa, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyImeKo, opt.HotkeyImeKo, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyImeOff, opt.HotkeyImeOff, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.AutoKeyHotkey, opt.AutoKeyHotkey, StringComparison.OrdinalIgnoreCase)
 			|| old.ModOcr != opt.ModOcr || old.ModAsr != opt.ModAsr
 			|| old.ModTranslate != opt.ModTranslate || old.ModDict != opt.ModDict

@@ -4094,14 +4094,53 @@ static class Cli {
 		}
 		string err = one("gksrmf", "한글") ?? one("rksk", "가나") ?? one("r", "ㄱ") ?? one("R", "ㄲ")
 			?? one("w", "ㅈ") ?? one("W", "ㅉ") ?? one("q", "ㅂ") ?? one("e", "ㄷ") ?? one("d", "ㅇ")
-			?? one("qse", "ㅂㄴㄷ") ?? one("hk", "ㅗㅏ") ?? one("rks\b", "가");
+			?? one("qse", "ㅂㄴㄷ") ?? one("hk", "ㅘ") ?? one("rks\b", "가");
+		if (err == null) err = testimeengine();
 		if (err != null) {
 			Err("FAIL " + err);
 			return 1;
 		}
-		Out("한글 / 가나 / ㄱ / ㄲ / ㅈ / ㅂㄴㄷ / ㅗㅏ / 가");
+		Out("한글 / 가나 / ㄱ / ㄲ / ㅈ / ㅂㄴㄷ / ㅘ / 가");
 		Out("OK");
 		return 0;
+	}
+
+	static string testimeengine() {
+		var e = new ImeEngine();
+		e.LoadMeta(false, Lang.Ko, false, false);
+		void tap(int vk) {
+			e.Key(vk, true, false, false, false, false);
+			e.Key(vk, false, false, false, false, false);
+		}
+		tap(Vk.A + ('g' - 'a'));
+		tap(Vk.A + ('k' - 'a'));
+		tap(Vk.A + ('s' - 'a'));
+		if (e.Preedit.IndexOf('ㅎ') < 0) return "preedit " + e.Preedit;
+		var sp = e.Key(Vk.Space, true, false, false, false, false);
+		if (sp.Texts.Count < 1 || sp.Texts[0] != "한") return "commit " + string.Join(",", sp.Texts.ToArray());
+		e.LoadMeta(false, Lang.Wubi, false, false);
+		e.Next();
+		if (e.Off || e.LangCode != "ja") return "cycle ja " + e.LangCode;
+		e.Next();
+		if (e.LangCode != "ko") return "cycle ko " + e.LangCode;
+		e.Next();
+		if (!e.Off) return "cycle off";
+		e.Next();
+		if (e.Off || e.LangCode != "wubi") return "cycle wubi";
+		e.ApplyOpts(true, true, true,
+			Hot.FromCombo("Ctrl+Alt+1"), Hot.FromCombo("Ctrl+Alt+2"),
+			Hot.FromCombo("Ctrl+Alt+3"), Hot.FromCombo("Ctrl+Alt+4"),
+			Hot.FromCombo("Ctrl+Oem3"));
+		e.SetOff(true);
+		e.Key(Vk.D0 + 2, true, false, true, true, false);
+		if (e.Off || e.LangCode != "ja") return "hot ja " + e.LangCode + " off=" + e.Off;
+		e.Key(Vk.D0 + 4, true, false, true, true, false);
+		if (!e.Off) return "hot off";
+		e.LoadMeta(false, Lang.Ja, false, false);
+		tap(Vk.A);
+		var kn = e.Key(Vk.Space, true, false, false, false, false);
+		if (kn.Texts.Count < 1 || kn.Texts[0] != "あ") return "kana " + string.Join(",", kn.Texts.ToArray());
+		return null;
 	}
 
 	static int testime() {

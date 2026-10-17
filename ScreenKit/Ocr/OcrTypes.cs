@@ -113,6 +113,20 @@ public sealed class OcrOptions {
 	public string HotkeyDictSel = "";
 	/// <summary>韩语输入：打开后接管键盘，再按一次关闭。默认 Ctrl+Alt+K。空 = 不注册，仍可用菜单。</summary>
 	public string HotkeyHangul = "Ctrl+Alt+K";
+	/// <summary>输入法切换语言，轮到末尾后关闭。默认 Ctrl+`。</summary>
+	public string HotkeyImeCycle = "Ctrl+Oem3";
+	/// <summary>输入法切到五笔。默认 Ctrl+Alt+1。</summary>
+	public string HotkeyImeWubi = "Ctrl+Alt+1";
+	/// <summary>输入法切到日语。默认 Ctrl+Alt+2。</summary>
+	public string HotkeyImeJa = "Ctrl+Alt+2";
+	/// <summary>输入法切到韩语。默认 Ctrl+Alt+3。</summary>
+	public string HotkeyImeKo = "Ctrl+Alt+3";
+	/// <summary>输入法切到关闭，按键交给当前窗口。默认 Ctrl+Alt+4。</summary>
+	public string HotkeyImeOff = "Ctrl+Alt+4";
+	/// <summary>上次使用的输入法：wubi / ja / ko。</summary>
+	public string ImeLang = "ko";
+	/// <summary>五笔候选用繁体。</summary>
+	public bool ImeTrad;
 	/// <summary>自动按键开始/停止。默认 F6。空 = 只能用窗口里的按钮。</summary>
 	public string AutoKeyHotkey = "F6";
 	/// <summary>key / left / right / middle。</summary>
@@ -535,6 +549,13 @@ public sealed class OcrOptions {
 		DictSelBar = DictSelBar,
 		HotkeyDictSel = HotkeyDictSel ?? "",
 		HotkeyHangul = string.IsNullOrWhiteSpace(HotkeyHangul) ? "" : HotkeyHangul,
+		HotkeyImeCycle = HotkeyImeCycle ?? "",
+		HotkeyImeWubi = HotkeyImeWubi ?? "",
+		HotkeyImeJa = HotkeyImeJa ?? "",
+		HotkeyImeKo = HotkeyImeKo ?? "",
+		HotkeyImeOff = HotkeyImeOff ?? "",
+		ImeLang = string.IsNullOrWhiteSpace(ImeLang) ? "ko" : ImeLang,
+		ImeTrad = ImeTrad,
 		AutoKeyHotkey = AutoKeyHotkey ?? "",
 		AutoKeyMode = string.IsNullOrWhiteSpace(AutoKeyMode) ? "key" : AutoKeyMode,
 		AutoKeyKey = string.IsNullOrWhiteSpace(AutoKeyKey) ? "Space" : AutoKeyKey,

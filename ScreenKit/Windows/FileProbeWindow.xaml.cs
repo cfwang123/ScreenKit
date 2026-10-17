@@ -75,6 +75,10 @@ public partial class FileProbeWindow : Window {
 				var value = r.Value;
 				if (r.Key == "probe.magic") value = kind(value);
 				else if (r.Key == "probe.match") value = value == "yes" ? Loc.T("probe.yes") : Loc.T("probe.no");
+				else if (r.Key == "probe.ver.type") value = filetype(value);
+				else if (r.Key == "probe.pe.arch") value = arch(value);
+				else if (r.Key == "probe.pe.subsys") value = subsys(value);
+				else if (r.Key == "probe.pe.managed") value = value == "yes" ? Loc.T("probe.yes") : Loc.T("probe.no");
 				else if (r.Key == "probe.enc.bom" && value == "none") value = Loc.T("probe.enc.none");
 				else if (r.Key == "probe.enc.guess") value = guess(value);
 				view.Add(new Item { Name = Loc.T(r.Key), Value = value });
@@ -108,6 +112,27 @@ public partial class FileProbeWindow : Window {
 
 	static string guess(string id) {
 		var key = $"probe.enc.{id}";
+		var t = Loc.T(key);
+		return t == key ? id : t;
+	}
+
+	static string filetype(string id) {
+		var key = $"probe.ver.type.{id}";
+		var t = Loc.T(key);
+		return t == key ? id : t;
+	}
+
+	static string arch(string id) {
+		if (id.Length == 0) return id;
+		if (id.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) return id;
+		var key = $"probe.pe.arch.{id}";
+		var t = Loc.T(key);
+		return t == key ? id : t;
+	}
+
+	static string subsys(string id) {
+		if (id.Length == 0) return id;
+		var key = $"probe.pe.subsys.{id}";
 		var t = Loc.T(key);
 		return t == key ? id : t;
 	}

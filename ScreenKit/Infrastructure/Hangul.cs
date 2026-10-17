@@ -1,21 +1,36 @@
 namespace ScreenKit;
 
-/// <summary>Windows 韩语输入法的两套式（KS X 5002）。每个键一个单音，w 是 ㅈ。当前音节随按键改写，完成的音节留在前面。元音不合并成双元音。</summary>
-sealed class Hangul {
+class Hangul {
+	string seq = "";
 	string done = "";
 	int cho = -1;
 	int jung = -1;
 	int jong = -1;
 
 	public string Text => done + partial();
-	/// <summary>当前音节已有声母和元音，可以出词。</summary>
+	public string Jamo {
+		get {
+			var sb = new System.Text.StringBuilder(seq.Length);
+			foreach (var ch in seq) {
+				int kind, idx;
+				if (!map(ch, out kind, out idx)) continue;
+				sb.Append(kind == 0 ? compatcons(idx) : compatvowel(idx));
+			}
+			return sb.ToString();
+		}
+	}
 	public bool Ready => cho >= 0 && jung >= 0;
-	/// <summary>还没提交的当前音节。Esc 只删这一段。</summary>
-	public string Partial => partial();
+	public string ReadyText => Ready ? done + syll() : done;
 
 	public void Clear() {
-		done = "";
-		cho = jung = jong = -1;
+		seq = "";
+		reset();
+	}
+
+	public void Back() {
+		if (seq.Length == 0) return;
+		seq = seq.Substring(0, seq.Length - 1);
+		replay();
 	}
 
 	public static string Type(string keys) {
@@ -27,31 +42,33 @@ sealed class Hangul {
 		return h.Text;
 	}
 
-	public void Back() {
-		if (jong >= 0) {
-			jong = uncombinejong(jong);
-			return;
-		}
-		if (jung >= 0) {
-			jung = -1;
-			return;
-		}
-		if (cho >= 0) {
-			cho = -1;
-			return;
-		}
-		if (done.Length > 0) done = done.Substring(0, done.Length - 1);
-	}
-
 	public bool Push(char ch) {
-		if (!map(ch, out var kind, out var idx)) return false;
-		if (kind == 0) pushcons(idx);
-		else pushvowel(idx);
+		int kind, idx;
+		if (!map(ch, out kind, out idx)) return false;
+		seq += ch;
+		apply(ch);
 		return true;
 	}
 
+	void replay() {
+		reset();
+		foreach (var ch in seq) apply(ch);
+	}
+
+	void reset() {
+		done = "";
+		cho = jung = jong = -1;
+	}
+
+	void apply(char ch) {
+		int kind, idx;
+		map(ch, out kind, out idx);
+		if (kind == 0) pushcons(idx);
+		else pushvowel(idx);
+	}
+
 	void pushcons(int ci) {
-		int asjong = chotojong(ci);
+		int asJong = chotojong(ci);
 		if (cho < 0 && jung < 0) { cho = ci; return; }
 		if (cho >= 0 && jung < 0) {
 			done += compatcons(cho);
@@ -59,13 +76,13 @@ sealed class Hangul {
 			return;
 		}
 		if (jung >= 0 && jong < 0) {
-			if (asjong >= 0) { jong = asjong; return; }
+			if (asJong >= 0) { jong = asJong; return; }
 			flush();
 			cho = ci;
 			return;
 		}
-		int comb = combinejong(jong, asjong);
-		if (asjong >= 0 && comb >= 0) { jong = comb; return; }
+		int comb = combinejong(jong, asJong);
+		if (asJong >= 0 && comb >= 0) { jong = comb; return; }
 		flush();
 		cho = ci;
 	}
@@ -74,11 +91,14 @@ sealed class Hangul {
 		if (cho < 0 && jung < 0) { jung = ji; return; }
 		if (cho >= 0 && jung < 0) { jung = ji; return; }
 		if (jung >= 0 && jong < 0) {
+			int comb = combinejung(jung, ji);
+			if (comb >= 0) { jung = comb; return; }
 			flush();
 			jung = ji;
 			return;
 		}
-		splitjong(jong, out var keep, out var move);
+		int keep, move;
+		splitjong(jong, out keep, out move);
 		jong = keep;
 		flush();
 		cho = move;
@@ -93,7 +113,7 @@ sealed class Hangul {
 	}
 
 	string partial() {
-		if (cho >= 0 && jung >= 0) return syll();
+		if (cho >= 0 && jung >= 0) return syll().ToString();
 		if (cho >= 0) return compatcons(cho).ToString();
 		if (jung >= 0) return compatvowel(jung).ToString();
 		return "";
@@ -188,21 +208,15 @@ sealed class Hangul {
 		keep = -1;
 	}
 
-	static int uncombinejong(int j) {
-		switch (j) {
-			case 3: return 1;
-			case 5:
-			case 6: return 4;
-			case 9:
-			case 10:
-			case 11:
-			case 12:
-			case 13:
-			case 14:
-			case 15: return 8;
-			case 18: return 17;
-			default: return -1;
-		}
+	static int combinejung(int cur, int add) {
+		if (cur == 8 && add == 0) return 9;
+		if (cur == 8 && add == 1) return 10;
+		if (cur == 8 && add == 20) return 11;
+		if (cur == 13 && add == 4) return 14;
+		if (cur == 13 && add == 5) return 15;
+		if (cur == 13 && add == 20) return 16;
+		if (cur == 18 && add == 20) return 19;
+		return -1;
 	}
 
 	static bool map(char ch, out int kind, out int idx) {
@@ -231,9 +245,11 @@ sealed class Hangul {
 			case 'k': kind = 1; idx = 0; return true;
 			case 'o': kind = 1; idx = 1; return true;
 			case 'i': kind = 1; idx = 2; return true;
+			case 'O': kind = 1; idx = 3; return true;
 			case 'j': kind = 1; idx = 4; return true;
 			case 'p': kind = 1; idx = 5; return true;
 			case 'u': kind = 1; idx = 6; return true;
+			case 'P': kind = 1; idx = 7; return true;
 			case 'h': kind = 1; idx = 8; return true;
 			case 'y': kind = 1; idx = 12; return true;
 			case 'n': kind = 1; idx = 13; return true;

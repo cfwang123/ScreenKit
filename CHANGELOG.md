@@ -50,6 +50,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Screenshots default to JPG at quality 60. A saved format and quality in config.toml stay as they are.
 - The selection popup can choose All, Chinese, Japanese, Korean, or English, and lists up to 100 hits that scroll.
+- File info lists Explorer-style PE details, platform, and .NET target framework
+- Korean input uses the installable ime.db for Wubi, Japanese, and Korean, with the same candidate bar. Hotkeys cycle languages or jump to one language or off.
+- File info media fields split duration (ms), resolution, codecs, and bit rates
 
 #### Fixed
 
@@ -82,6 +85,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 截图默认保存为 JPG，质量 60。config.toml 里已经写过的格式和质量保持不变。
 - 查词浮窗可以选全部、汉语、日语、韩语、英语，列表最多 100 条，可以滚动查看。
+- 文件分析增加与资源管理器详细信息相近的 exe/dll 字段、PE 平台与 .NET 目标框架
+- 韩语输入改用可安装的 ime.db，候选条支持五笔、日语和韩语。快捷键可以轮换语言，或切到某一种语言和关闭。
+- 文件分析音视频拆分为毫秒时长、分辨率、编码与码率等字段
 
 #### 修复
 

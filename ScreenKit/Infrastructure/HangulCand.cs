@@ -1,9 +1,11 @@
 using System.Runtime.InteropServices;
+using System.Windows.Documents;
 using System.Windows.Interop;
+using System.Windows.Media.Effects;
 
 namespace ScreenKit;
 
-/// <summary>韩语候选条。不激活。数字键选择，不在这里点。</summary>
+/// <summary>输入法候选条。不激活。编码在上，候选在下，右侧翻页。点数字或词即可上屏。</summary>
 sealed class HangulCand : Window {
 	const int GWL_EXSTYLE = -20;
 	const int WS_EX_NOACTIVATE = 0x08000000;
@@ -11,7 +13,13 @@ sealed class HangulCand : Window {
 	const int WM_MOUSEACTIVATE = 0x0021;
 	const int MA_NOACTIVATE = 3;
 
-	readonly StackPanel row;
+	readonly TextBlock pre;
+	readonly Border caret;
+	readonly StackPanel items;
+	readonly TextBlock badge;
+
+	public event Action<int> Picked;
+	public event Action<int> Paged;
 
 	[DllImport("user32.dll")]
 	static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -29,17 +37,66 @@ sealed class HangulCand : Window {
 		SizeToContent = SizeToContent.WidthAndHeight;
 		ResizeMode = ResizeMode.NoResize;
 		Focusable = false;
-		FontFamily = new FontFamily("Segoe UI, Microsoft YaHei UI, Malgun Gothic");
-		FontSize = 13;
+		FontFamily = new FontFamily("Microsoft YaHei UI");
 		var box = new Border {
 			Background = Brushes.White,
-			BorderBrush = new SolidColorBrush(Color.FromRgb(160, 160, 160)),
+			BorderBrush = new SolidColorBrush(Color.FromRgb(214, 214, 214)),
 			BorderThickness = new Thickness(1),
-			Padding = new Thickness(6, 4, 6, 4),
-			MaxWidth = 560,
+			CornerRadius = new CornerRadius(2),
+			Effect = new DropShadowEffect { BlurRadius = 8, ShadowDepth = 1, Opacity = 0.18, Color = Colors.Black }
 		};
-		row = new StackPanel { Orientation = Orientation.Horizontal };
-		box.Child = row;
+		var root = new Grid();
+		root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		pre = new TextBlock {
+			FontSize = 13, FontWeight = FontWeights.Bold,
+			Foreground = Brushes.Black, VerticalAlignment = VerticalAlignment.Center
+		};
+		caret = new Border {
+			Width = 1, Height = 13, Margin = new Thickness(1, 0, 0, 0),
+			Background = new SolidColorBrush(Color.FromRgb(226, 61, 61)),
+			VerticalAlignment = VerticalAlignment.Center
+		};
+		var typing = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+		typing.Children.Add(pre);
+		typing.Children.Add(caret);
+		badge = new TextBlock {
+			Foreground = Brushes.White, FontSize = 11, FontWeight = FontWeights.Bold,
+			HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+		};
+		var badgeBox = new Border {
+			Width = 18, Height = 18, CornerRadius = new CornerRadius(3),
+			Background = new SolidColorBrush(Color.FromRgb(61, 181, 74)),
+			Margin = new Thickness(10, 0, 0, 0),
+			Child = badge, VerticalAlignment = VerticalAlignment.Center
+		};
+		var top = new Grid { Margin = new Thickness(8, 2, 6, 2) };
+		top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+		top.Children.Add(typing);
+		Grid.SetColumn(badgeBox, 1);
+		top.Children.Add(badgeBox);
+		var line = new Border {
+			Height = 1, Background = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
+			Margin = new Thickness(1, 0, 1, 0)
+		};
+		items = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+		var chrome = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
+		chrome.Children.Add(pagebtn("‹", -1));
+		chrome.Children.Add(pagebtn("›", 1));
+		var bottom = new Grid { Margin = new Thickness(10, 4, 6, 5) };
+		bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		bottom.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+		bottom.Children.Add(items);
+		Grid.SetColumn(chrome, 1);
+		bottom.Children.Add(chrome);
+		Grid.SetRow(line, 1);
+		Grid.SetRow(bottom, 2);
+		root.Children.Add(top);
+		root.Children.Add(line);
+		root.Children.Add(bottom);
+		box.Child = root;
 		Content = box;
 		SourceInitialized += (_, _) => {
 			var src = (HwndSource)PresentationSource.FromVisual(this);
@@ -52,23 +109,59 @@ sealed class HangulCand : Window {
 		};
 	}
 
-	public void ShowHits(IList<ImeHit> hits, Rect caretPx) {
-		row.Children.Clear();
-		if (hits == null || hits.Count == 0) {
-			HideBar();
-			return;
-		}
-		var n = Math.Min(9, hits.Count);
-		for (var i = 0; i < n; i++) {
-			var h = hits[i];
-			var text = (i + 1) + " " + (h.Text ?? "");
-			if (!string.IsNullOrEmpty(h.Comment)) text += " " + h.Comment;
-			row.Children.Add(new TextBlock {
-				Text = text,
-				Margin = new Thickness(i == 0 ? 0 : 10, 0, 0, 0),
-				Foreground = Brushes.Black,
+	Button pagebtn(string text, int delta) {
+		var b = new Button {
+			Content = text, Width = 16, Height = 20, Margin = new Thickness(0),
+			Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+			Foreground = new SolidColorBrush(Color.FromRgb(176, 176, 176)),
+			FontSize = 12, Padding = new Thickness(0), Focusable = false
+		};
+		b.Click += (_, _) => Paged?.Invoke(delta);
+		return b;
+	}
+
+	public void ShowEngine(ImeEngine s, Rect caretPx) {
+		pre.Text = s.Preedit;
+		bool typing = s.Preedit.Length > 0;
+		pre.Visibility = typing ? Visibility.Visible : Visibility.Collapsed;
+		caret.Visibility = typing ? Visibility.Visible : Visibility.Collapsed;
+		badge.Text = s.Badge;
+		items.Children.Clear();
+		int n = 1;
+		foreach (var c in s.PageItems) {
+			int index = n;
+			var row = new TextBlock {
+				Margin = new Thickness(0, 0, 14, 0),
+				VerticalAlignment = VerticalAlignment.Center, Cursor = Cursors.Hand
+			};
+			row.Inlines.Add(new Run(n + ".") {
+				Foreground = n == 1
+					? new SolidColorBrush(Color.FromRgb(226, 61, 61))
+					: new SolidColorBrush(Color.FromRgb(153, 153, 153)),
+				FontSize = 15
 			});
+			row.Inlines.Add(new Run(c.Text) {
+				Foreground = new SolidColorBrush(Color.FromRgb(32, 32, 32)),
+				FontSize = 15
+			});
+			if (!string.IsNullOrEmpty(c.Extra))
+				row.Inlines.Add(new Run(c.Extra) {
+					Foreground = new SolidColorBrush(Color.FromRgb(160, 160, 160)),
+					FontSize = 13
+				});
+			if (!string.IsNullOrEmpty(c.Comment))
+				row.Inlines.Add(new Run("  " + c.Comment) {
+					Foreground = new SolidColorBrush(Color.FromRgb(150, 150, 150)),
+					FontSize = 13
+				});
+			row.MouseLeftButtonDown += (_, e) => {
+				e.Handled = true;
+				Picked?.Invoke(index - 1);
+			};
+			items.Children.Add(row);
+			n++;
 		}
+		if (!s.ShowBar) { HideBar(); return; }
 		if (!IsVisible) Show();
 		UpdateLayout();
 		place(caretPx);
@@ -78,31 +171,16 @@ sealed class HangulCand : Window {
 		try { if (IsVisible) Hide(); } catch { }
 	}
 
-	void place(Rect caret) {
-		var hwnd = new WindowInteropHelper(this).Handle;
-		var scale = 1.0;
-		if (hwnd != IntPtr.Zero) scale = Math.Max(0.25, ScreenDpi.WindowScale(hwnd));
-		var wpx = Math.Max(1, ActualWidth * scale);
-		var hpx = Math.Max(1, ActualHeight * scale);
-		var (vl, vt, vw, vh) = ScreenDpi.VirtualScreenPixels();
-		double left;
-		double top;
-		if (caret.Width < 1 && caret.Height < 1) {
-			var p = System.Windows.Forms.Cursor.Position;
-			left = p.X;
-			top = p.Y + 18;
-		}
-		else {
-			left = caret.Left;
-			top = caret.Bottom + 4;
-			if (top + hpx > vt + vh) top = caret.Top - hpx - 4;
-		}
-		if (left < vl) left = vl;
-		if (left + wpx > vl + vw) left = vl + vw - wpx;
-		if (top < vt) top = vt;
-		if (top + hpx > vt + vh) top = vt + vh - hpx;
-		Left = left / scale;
-		Top = top / scale;
+	void place(Rect caretPx) {
+		double left = caretPx.IsEmpty ? SystemParameters.WorkArea.Left + 24 : caretPx.Right;
+		double top = caretPx.IsEmpty ? SystemParameters.WorkArea.Bottom - 80 : caretPx.Bottom + 4;
+		var area = SystemParameters.WorkArea;
+		if (left + ActualWidth > area.Right) left = Math.Max(area.Left, area.Right - ActualWidth);
+		if (top + ActualHeight > area.Bottom) top = Math.Max(area.Top, (caretPx.IsEmpty ? top : caretPx.Top) - ActualHeight - 8);
+		if (left < area.Left) left = area.Left;
+		if (top < area.Top) top = area.Top;
+		Left = left;
+		Top = top;
 	}
 
 	IntPtr onmsg(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) {

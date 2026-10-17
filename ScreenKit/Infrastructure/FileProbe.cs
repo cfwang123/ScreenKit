@@ -50,7 +50,10 @@ static class FileProbe {
 		add(rep, "probe.ext", ext.Length == 0 ? "" : "." + ext);
 		add(rep, "probe.magic", kind);
 		if (rep.Compared) add(rep, "probe.match", rep.Match ? "yes" : "no");
-		if (pe(kind) || pe(ext)) version(rep, path);
+		if (pe(kind) || pe(ext)) {
+			version(rep, path, rep.Kind);
+			peinfo(rep, path);
+		}
 		if (image(kind) || image(ext)) picture(rep, path);
 		if (media(kind) || media(ext)) movie(rep, path);
 		if (textlike(kind, ext, head)) encoding(rep, path, head);
@@ -87,9 +90,21 @@ static class FileProbe {
 				return 1;
 			}
 			var self = Look(Process.GetCurrentProcess().MainModule.FileName, out var e4);
-			log($"exe {self.Kind} {val(self, "probe.ver.file")} {e4}");
-			if (self.Kind != "exe" || val(self, "probe.ver.product").Length == 0) {
-				err("本程序没有版本信息");
+			log($"exe {self.Kind} arch={val(self, "probe.pe.arch")} clr={val(self, "probe.pe.clr")} fx={val(self, "probe.pe.framework")} {e4}");
+			if (self.Kind != "exe" || val(self, "probe.pe.arch") != "x64") {
+				err("本程序应为 x64 exe");
+				return 1;
+			}
+			if (val(self, "probe.pe.managed") != "yes" || val(self, "probe.pe.framework").Length == 0) {
+				err("本程序缺少 .NET 目标框架信息");
+				return 1;
+			}
+			var wav = Path.Combine(dir, "t.wav");
+			writetestwav(wav, 8000, 1, 16, 16000);
+			var w = Look(wav, out var e5);
+			log($"wav dur={val(w, "probe.media.dur")} codec={val(w, "probe.media.acodec")} {e5}");
+			if (val(w, "probe.media.dur") != "00:00:01.000" || val(w, "probe.media.acodec").Length == 0) {
+				err("WAV 时长或编码未解析");
 				return 1;
 			}
 		}
@@ -98,6 +113,26 @@ static class FileProbe {
 		}
 		log("=== OK：文件分析 ===");
 		return 0;
+	}
+
+	static void writetestwav(string path, int sampleRate, short channels, short bits, int dataBytes) {
+		var byteRate = sampleRate * channels * bits / 8;
+		var block = (short)(channels * bits / 8);
+		using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
+		using var w = new BinaryWriter(fs);
+		w.Write(Encoding.ASCII.GetBytes("RIFF"));
+		w.Write(36 + dataBytes);
+		w.Write(Encoding.ASCII.GetBytes("WAVEfmt "));
+		w.Write(16);
+		w.Write((short)1);
+		w.Write(channels);
+		w.Write(sampleRate);
+		w.Write(byteRate);
+		w.Write(block);
+		w.Write(bits);
+		w.Write(Encoding.ASCII.GetBytes("data"));
+		w.Write(dataBytes);
+		w.Write(new byte[dataBytes]);
 	}
 
 	static string val(Report rep, string key) {
@@ -110,6 +145,10 @@ static class FileProbe {
 		value = (value ?? "").Trim();
 		if (value.Length == 0) return;
 		rep.Rows.Add(new Row { Key = key, Value = value });
+	}
+
+	static void add0(Report rep, string key, string value) {
+		rep.Rows.Add(new Row { Key = key, Value = (value ?? "").Trim() });
 	}
 
 	static byte[] readhead(string path, int n) {
@@ -192,15 +231,169 @@ static class FileProbe {
 	static bool media(string k) =>
 		k == "mp4" || k == "mp3" || k == "wav" || k == "flac" || k == "ogg" || k == "avi" || k == "webp";
 
-	static void version(Report rep, string path) {
+	static void version(Report rep, string path, string kind) {
+		long size = 0;
+		DateTime mtime = default;
 		try {
-			var vi = FileVersionInfo.GetVersionInfo(path);
-			add(rep, "probe.ver.product", vi.ProductName);
-			add(rep, "probe.ver.file", vi.FileVersion);
-			add(rep, "probe.ver.company", vi.CompanyName);
-			add(rep, "probe.ver.desc", vi.FileDescription);
+			var fi = new FileInfo(path);
+			size = fi.Length;
+			mtime = fi.LastWriteTime;
 		}
 		catch { }
+		try {
+			var vi = FileVersionInfo.GetVersionInfo(path);
+			add0(rep, "probe.ver.desc", vi.FileDescription);
+			add(rep, "probe.ver.type", kind == "dll" ? "dll" : "exe");
+			add0(rep, "probe.ver.file", vi.FileVersion);
+			add0(rep, "probe.ver.product", vi.ProductName);
+			add0(rep, "probe.ver.productver", vi.ProductVersion);
+			add0(rep, "probe.ver.copyright", vi.LegalCopyright);
+			if (size > 0) add(rep, "probe.file.size", formatsize(size));
+			if (mtime != default) add(rep, "probe.file.mtime", mtime.ToString("G"));
+			add0(rep, "probe.ver.lang", vi.Language);
+			add0(rep, "probe.ver.orig", vi.OriginalFilename);
+			add(rep, "probe.ver.company", vi.CompanyName);
+			add(rep, "probe.ver.internal", vi.InternalName);
+			add(rep, "probe.ver.trademark", vi.LegalTrademarks);
+			add(rep, "probe.ver.comments", vi.Comments);
+		}
+		catch { }
+	}
+
+	static string formatsize(long n) {
+		if (n < 1024) return $"{n} B";
+		if (n < 1024 * 1024) return $"{(n + 511) / 1024} KB";
+		if (n < 1024L * 1024 * 1024) return $"{n / (1024.0 * 1024):0.##} MB";
+		return $"{n / (1024.0 * 1024 * 1024):0.##} GB";
+	}
+
+	static void peinfo(Report rep, string path) {
+		byte[] buf;
+		try {
+			var len = new FileInfo(path).Length;
+			var cap = (int)Math.Min(len, 64L * 1024 * 1024);
+			if (cap < 512) return;
+			buf = readhead(path, cap);
+		}
+		catch { return; }
+		if (buf.Length < 64 || buf[0] != (byte)'M' || buf[1] != (byte)'Z') return;
+		var pe = BitConverter.ToInt32(buf, 0x3C);
+		if (pe < 0 || pe + 248 > buf.Length) return;
+		if (buf[pe] != (byte)'P' || buf[pe + 1] != (byte)'E') return;
+		var machine = BitConverter.ToUInt16(buf, pe + 4);
+		add(rep, "probe.pe.arch", pemachine(machine));
+		var opt = pe + 24;
+		var sizeOpt = BitConverter.ToUInt16(buf, pe + 20);
+		if (opt + sizeOpt > buf.Length) return;
+		var magic = BitConverter.ToUInt16(buf, opt);
+		var pe32 = magic == 0x10b;
+		var pe64 = magic == 0x20b;
+		if (!pe32 && !pe64) return;
+		var sub = BitConverter.ToUInt16(buf, opt + 68);
+		add(rep, "probe.pe.subsys", pesubsys(sub));
+		var dd = opt + (pe64 ? 112 : 96);
+		if (dd + 8 * 15 + 8 > buf.Length) return;
+		var clrRva = BitConverter.ToUInt32(buf, dd + 8 * 14);
+		var clrSz = BitConverter.ToUInt32(buf, dd + 8 * 14 + 4);
+		if (clrRva == 0 || clrSz < 72) {
+			add(rep, "probe.pe.managed", "no");
+			return;
+		}
+		add(rep, "probe.pe.managed", "yes");
+		var clrOff = rvatooff(buf, pe, sizeOpt, clrRva);
+		if (clrOff >= 0 && clrOff + 16 <= buf.Length) {
+			var maj = BitConverter.ToUInt16(buf, clrOff + 4);
+			var min = BitConverter.ToUInt16(buf, clrOff + 6);
+			var metaVer = "";
+			var metaRva = BitConverter.ToUInt32(buf, clrOff + 8);
+			var metaOff = rvatooff(buf, pe, sizeOpt, metaRva);
+			if (metaOff >= 0 && metaOff + 32 <= buf.Length && ascii(buf, metaOff, "BSJB")) {
+				var verLen = BitConverter.ToInt32(buf, metaOff + 12);
+				if (verLen > 0 && verLen < 256 && metaOff + 16 + verLen <= buf.Length)
+					metaVer = Encoding.UTF8.GetString(buf, metaOff + 16, verLen).Trim('\0');
+			}
+			if (metaVer.Length > 0) add(rep, "probe.pe.clr", metaVer.TrimStart('v'));
+			else add(rep, "probe.pe.clr", clrver(maj, min));
+		}
+		var fx = targetfx(buf);
+		if (fx.Length > 0) add(rep, "probe.pe.framework", fx);
+	}
+
+	static string clrver(ushort maj, ushort min) {
+		if (maj == 2 && min == 5) return "4.0";
+		if (maj == 2 && min == 0) return "2.0";
+		return $"{maj}.{min}";
+	}
+
+	static string pemachine(ushort m) {
+		switch (m) {
+			case 0x014c: return "x86";
+			case 0x8664: return "x64";
+			case 0xAA64: return "arm64";
+			case 0x01c0: return "arm";
+			case 0x01c4: return "armnt";
+			case 0x0200: return "ia64";
+			default: return $"0x{m:X4}";
+		}
+	}
+
+	static string pesubsys(ushort s) {
+		switch (s) {
+			case 2: return "gui";
+			case 3: return "console";
+			case 1: return "native";
+			default: return s == 0 ? "" : $"subsys{s}";
+		}
+	}
+
+	static int rvatooff(byte[] buf, int pe, ushort sizeOpt, uint rva) {
+		var nsec = BitConverter.ToUInt16(buf, pe + 6);
+		var sec = pe + 24 + sizeOpt;
+		for (var i = 0; i < nsec; i++) {
+			var at = sec + i * 40;
+			if (at + 40 > buf.Length) break;
+			var va = BitConverter.ToUInt32(buf, at + 12);
+			var vsz = BitConverter.ToUInt32(buf, at + 8);
+			var raw = BitConverter.ToUInt32(buf, at + 20);
+			var rawsz = BitConverter.ToUInt32(buf, at + 16);
+			var span = Math.Max(vsz, rawsz);
+			if (span == 0) span = vsz > 0 ? vsz : rawsz;
+			if (rva < va || rva >= va + span) continue;
+			if (raw == 0) return -1;
+			return (int)(raw + (rva - va));
+		}
+		return -1;
+	}
+
+	static string targetfx(byte[] b) {
+		var fx = readfx(b, ".NETFramework,Version=v", ".NET Framework ");
+		if (fx.Length > 0) return fx;
+		fx = readfx(b, ".NETCoreApp,Version=v", ".NET ");
+		if (fx.Length > 0) return fx;
+		return readfx(b, ".NETStandard,Version=v", ".NET Standard ");
+	}
+
+	static string readfx(byte[] b, string mark, string prefix) {
+		var pat = Encoding.ASCII.GetBytes(mark);
+		var i = indexof(b, pat, 0);
+		if (i < 0) return "";
+		var j = i + pat.Length;
+		var k = j;
+		while (k < b.Length && (b[k] == (byte)'.' || (b[k] >= (byte)'0' && b[k] <= (byte)'9'))) k++;
+		if (k <= j) return "";
+		return prefix + Encoding.ASCII.GetString(b, j, k - j);
+	}
+
+	static int indexof(byte[] b, byte[] pat, int start) {
+		if (pat.Length == 0 || start >= b.Length) return -1;
+		var end = b.Length - pat.Length;
+		for (var i = start; i <= end; i++) {
+			var ok = true;
+			for (var j = 0; j < pat.Length; j++)
+				if (b[i + j] != pat[j]) { ok = false; break; }
+			if (ok) return i;
+		}
+		return -1;
 	}
 
 	static void picture(Report rep, string path) {
@@ -264,7 +457,7 @@ static class FileProbe {
 			: exe;
 		if (!File.Exists(ffprobe)) ffprobe = exe;
 		var args = ffprobe.EndsWith("ffprobe.exe", StringComparison.OrdinalIgnoreCase)
-			? $"-v error -show_entries format=duration,bit_rate -show_entries stream=codec_type,codec_name,width,height,bit_rate -of default=noprint_wrappers=1 \"{path}\""
+			? $"-v error -show_entries format=duration,bit_rate -show_entries stream=codec_type,codec_name,width,height,bit_rate,sample_rate,channels,r_frame_rate -of default=noprint_wrappers=1 \"{path}\""
 			: $"-hide_banner -i \"{path}\"";
 		string stdout, stderr;
 		if (!run(ffprobe, args, out stdout, out stderr)) {
@@ -284,61 +477,109 @@ static class FileProbe {
 	}
 
 	static void parseprobe(Report rep, string blob) {
-		string dur = "", rate = "";
+		string dur = "", fmtRate = "";
 		var vcodec = "";
 		var acodec = "";
-		var wh = "";
-		string cur = "";
+		var vw = "";
+		var vh = "";
+		var vrate = "";
+		var arate = "";
+		var asample = "";
+		var ach = "";
+		var fps = "";
+		var cur = "";
 		foreach (var raw in blob.Split('\n')) {
 			var line = raw.Trim();
 			var i = line.IndexOf('=');
 			if (i <= 0) continue;
 			var k = line.Substring(0, i);
 			var v = line.Substring(i + 1).Trim();
-			if (k == "duration" && dur.Length == 0 && v.Length > 0 && v != "N/A") dur = seconds(v);
-			if (k == "bit_rate" && rate.Length == 0 && cur.Length == 0 && v.Length > 0 && v != "N/A") rate = bits(v);
-		}
-		foreach (var raw in blob.Split('\n')) {
-			var line = raw.Trim();
-			if (line.StartsWith("codec_type=")) cur = line.Substring("codec_type=".Length);
-			else if (line.StartsWith("codec_name=")) {
-				var name = line.Substring("codec_name=".Length);
-				if (cur == "video" && vcodec.Length == 0) vcodec = name;
-				if (cur == "audio" && acodec.Length == 0) acodec = name;
+			if (v.Length == 0 || v == "N/A") continue;
+			if (k == "codec_type") cur = v;
+			else if (k == "codec_name") {
+				if (cur == "video" && vcodec.Length == 0) vcodec = v;
+				if (cur == "audio" && acodec.Length == 0) acodec = v;
 			}
-			else if (line.StartsWith("width=") && cur == "video" && wh.Length == 0) wh = line.Substring("width=".Length);
-			else if (line.StartsWith("height=") && cur == "video" && wh.Length > 0 && wh.IndexOf('x') < 0)
-				wh = $"{wh}x{line.Substring("height=".Length)}";
+			else if (k == "width" && cur == "video" && vw.Length == 0) vw = v;
+			else if (k == "height" && cur == "video" && vh.Length == 0) vh = v;
+			else if (k == "bit_rate") {
+				var br = formatbps(v);
+				if (cur == "video" && vrate.Length == 0) vrate = br;
+				else if (cur == "audio" && arate.Length == 0) arate = br;
+				else if (fmtRate.Length == 0) fmtRate = br;
+			}
+			else if (k == "sample_rate" && cur == "audio" && asample.Length == 0) asample = v;
+			else if (k == "channels" && cur == "audio" && ach.Length == 0) ach = v;
+			else if (k == "r_frame_rate" && cur == "video" && fps.Length == 0) fps = framerate(v);
+			else if (k == "duration" && dur.Length == 0) dur = durms(v);
 		}
-		var video = vcodec.Length == 0 ? "" : (wh.Length > 0 ? $"{vcodec} {wh}" : vcodec);
-		add(rep, "probe.media.dur", dur);
-		add(rep, "probe.media.rate", rate);
-		add(rep, "probe.media.v", video);
-		add(rep, "probe.media.a", acodec);
+		mediarows(rep, dur, fmtRate, vcodec, acodec, vw, vh, vrate, arate, asample, ach, fps);
 	}
 
 	static void parseffmpeg(Report rep, string blob) {
 		var dur = "";
 		var rate = "";
-		var video = "";
-		var audio = "";
+		var vline = "";
+		var aline = "";
 		foreach (var raw in blob.Split('\n')) {
 			var line = raw.Trim();
 			var d = line.IndexOf("Duration:", StringComparison.Ordinal);
 			if (d >= 0) {
 				var rest = line.Substring(d + "Duration:".Length).Trim();
 				var comma = rest.IndexOf(',');
-				if (comma > 0) dur = rest.Substring(0, comma).Trim();
+				if (comma > 0) dur = durfromffmpeg(rest.Substring(0, comma).Trim());
 				var b = rest.IndexOf("bitrate:", StringComparison.Ordinal);
 				if (b >= 0) rate = rest.Substring(b + "bitrate:".Length).Trim();
 			}
-			if (line.IndexOf("Video:", StringComparison.Ordinal) >= 0 && video.Length == 0) video = stream(line, "Video:");
-			if (line.IndexOf("Audio:", StringComparison.Ordinal) >= 0 && audio.Length == 0) audio = stream(line, "Audio:");
+			if (line.IndexOf("Video:", StringComparison.Ordinal) >= 0 && vline.Length == 0) vline = stream(line, "Video:");
+			if (line.IndexOf("Audio:", StringComparison.Ordinal) >= 0 && aline.Length == 0) aline = stream(line, "Audio:");
 		}
+		var vcodec = "";
+		var vw = "";
+		var vh = "";
+		var fps = "";
+		if (vline.Length > 0) {
+			var wh = vline.IndexOf("x", StringComparison.Ordinal);
+			if (wh > 0) {
+				var sp = vline.LastIndexOf(' ', wh);
+				if (sp >= 0 && wh - sp > 1) {
+					vcodec = vline.Substring(0, sp).Trim();
+					var size = vline.Substring(sp + 1);
+					var x = size.IndexOf('x');
+					if (x > 0) {
+						vw = size.Substring(0, x);
+						var tail = size.Substring(x + 1);
+						var sp2 = tail.IndexOf(' ');
+						vh = sp2 > 0 ? tail.Substring(0, sp2) : tail;
+						var fp = tail.IndexOf("fps", StringComparison.Ordinal);
+						if (fp > 0) fps = tail.Substring(0, fp).Trim();
+					}
+				}
+			}
+			if (vcodec.Length == 0) vcodec = vline.Split(' ')[0];
+		}
+		var acodec = aline.Length == 0 ? "" : aline.Split(',')[0].Trim();
+		mediarows(rep, dur, rate, vcodec, acodec, vw, vh, "", "", "", "", fps);
+	}
+
+	static void mediarows(Report rep, string dur, string fmtRate, string vcodec, string acodec, string vw, string vh, string vrate, string arate, string asample, string ach, string fps) {
 		add(rep, "probe.media.dur", dur);
-		add(rep, "probe.media.rate", rate);
-		add(rep, "probe.media.v", video);
-		add(rep, "probe.media.a", audio);
+		if (vw.Length > 0 && vh.Length > 0) add(rep, "probe.media.res", $"{vw}x{vh}");
+		add(rep, "probe.media.vcodec", vcodec);
+		add(rep, "probe.media.acodec", acodec);
+		var sample = audiosample(asample, ach);
+		add(rep, "probe.media.sample", sample);
+		add(rep, "probe.media.rate", fmtRate);
+		add(rep, "probe.media.vrate", vrate);
+		add(rep, "probe.media.arate", arate);
+		add(rep, "probe.media.fps", fps);
+	}
+
+	static string audiosample(string hz, string ch) {
+		if (hz.Length == 0 && ch.Length == 0) return "";
+		if (hz.Length > 0 && ch.Length > 0) return $"{hz} Hz, {ch} ch";
+		if (hz.Length > 0) return $"{hz} Hz";
+		return $"{ch} ch";
 	}
 
 	static string stream(string line, string tag) {
@@ -349,13 +590,40 @@ static class FileProbe {
 		return rest;
 	}
 
-	static string seconds(string v) {
+	static string durms(string v) {
 		if (!double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out var sec)) return v;
-		var ts = TimeSpan.FromSeconds(sec);
-		return ts.ToString(@"hh\:mm\:ss");
+		var ms = (long)Math.Round(sec * 1000.0, MidpointRounding.AwayFromZero);
+		var ts = TimeSpan.FromMilliseconds(ms);
+		return $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}.{ts.Milliseconds:D3}";
 	}
 
-	static string bits(string v) {
+	static string durfromffmpeg(string s) {
+		if (s.IndexOf('.') < 0 && s.IndexOf(':') >= 0) {
+			if (TimeSpan.TryParse(s, out var ts)) return $"{ts.Hours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}.000";
+			return s;
+		}
+		var dot = s.LastIndexOf('.');
+		if (dot < 0) return durms(s);
+		var head = s.Substring(0, dot);
+		var frac = s.Substring(dot + 1);
+		if (!TimeSpan.TryParse(head, out var t)) return s;
+		var ms = 0;
+		if (frac.Length == 1 && int.TryParse(frac, out var d1)) ms = d1 * 100;
+		else if (frac.Length == 2 && int.TryParse(frac, out var d2)) ms = d2 * 10;
+		else if (frac.Length >= 3 && int.TryParse(frac.Substring(0, 3), out var d3)) ms = d3;
+		var total = TimeSpan.FromMilliseconds(t.TotalMilliseconds + ms);
+		return $"{total.Hours:D2}:{total.Minutes:D2}:{total.Seconds:D2}.{total.Milliseconds:D3}";
+	}
+
+	static string framerate(string v) {
+		var slash = v.IndexOf('/');
+		if (slash <= 0) return v;
+		if (!double.TryParse(v.Substring(0, slash), NumberStyles.Float, CultureInfo.InvariantCulture, out var num)) return v;
+		if (!double.TryParse(v.Substring(slash + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out var den) || den == 0) return v;
+		return $"{num / den:0.###}";
+	}
+
+	static string formatbps(string v) {
 		if (!long.TryParse(v, out var n) || n <= 0) return v;
 		if (n >= 1000000) return $"{n / 1000000.0:0.##} Mbps";
 		if (n >= 1000) return $"{n / 1000.0:0} kbps";
@@ -364,15 +632,48 @@ static class FileProbe {
 
 	static void wavhead(Report rep, string path) {
 		try {
-			var b = readhead(path, 44);
-			if (b.Length < 44 || !ascii(b, 0, "RIFF") || !ascii(b, 8, "WAVE")) return;
-			var rate = BitConverter.ToInt32(b, 24);
-			var ch = BitConverter.ToInt16(b, 22);
-			var bits = BitConverter.ToInt16(b, 34);
-			if (valof(rep, "probe.media.a").Length == 0)
-				add(rep, "probe.media.a", $"pcm {rate} Hz {ch}ch {bits}bit");
+			if (!wavinfo(path, out var rate, out var ch, out var bits, out var dataBytes)) return;
+			if (valof(rep, "probe.media.dur").Length == 0) {
+				var bps = rate * ch * (bits / 8);
+				if (bps > 0 && dataBytes > 0) add(rep, "probe.media.dur", durms(((double)dataBytes / bps).ToString(CultureInfo.InvariantCulture)));
+			}
+			if (valof(rep, "probe.media.acodec").Length == 0) add(rep, "probe.media.acodec", $"pcm_s{bits}le");
+			if (valof(rep, "probe.media.sample").Length == 0) add(rep, "probe.media.sample", audiosample(rate.ToString(), ch.ToString()));
+			if (valof(rep, "probe.media.rate").Length == 0) {
+				var bps = rate * ch * bits;
+				if (bps > 0) add(rep, "probe.media.rate", formatbps(bps.ToString()));
+			}
 		}
 		catch { }
+	}
+
+	static bool wavinfo(string path, out int rate, out int ch, out int bits, out long dataBytes) {
+		rate = 0;
+		ch = 0;
+		bits = 0;
+		dataBytes = 0;
+		try {
+			using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+			var b = new byte[44];
+			if (fs.Read(b, 0, 44) < 44 || !ascii(b, 0, "RIFF") || !ascii(b, 8, "WAVE")) return false;
+			ch = BitConverter.ToInt16(b, 22);
+			rate = BitConverter.ToInt32(b, 24);
+			bits = BitConverter.ToInt16(b, 34);
+			fs.Position = 12;
+			var hdr = new byte[8];
+			while (fs.Read(hdr, 0, 8) == 8) {
+				var id = Encoding.ASCII.GetString(hdr, 0, 4);
+				var sz = BitConverter.ToInt32(hdr, 4);
+				if (id == "data") {
+					dataBytes = sz;
+					return rate > 0 && ch > 0 && bits > 0;
+				}
+				if (sz < 0) break;
+				fs.Position += sz + (sz & 1);
+			}
+		}
+		catch { return false; }
+		return rate > 0 && ch > 0 && bits > 0;
 	}
 
 	static bool run(string exe, string args, out string stdout, out string stderr) {

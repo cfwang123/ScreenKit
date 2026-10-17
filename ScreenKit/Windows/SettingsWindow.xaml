@@ -331,6 +331,71 @@
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.hangul"/>
 						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintImeCycle" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="切换语言 · 五笔、日语、韩语，然后再到关闭。默认 Ctrl+`"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkimecycleclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkimecyclecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyimecycle" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.ime.cycle"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintImeWubi" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="切到五笔。默认 Ctrl+Alt+1"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkimewubiclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkimewubicap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyimewubi" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.ime.wubi"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintImeJa" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="切到日语。默认 Ctrl+Alt+2"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkimejaclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkimejacap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyimeja" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.ime.ja"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintImeKo" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="切到韩语。默认 Ctrl+Alt+3"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkimekoclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkimekocap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyimeko" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.ime.ko"/>
+						</DockPanel>
+
+						<TextBlock x:Name="lbhkhintImeOff" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,4" TextWrapping="Wrap"
+						           Text="关闭输入，按键交给当前窗口。默认 Ctrl+Alt+4"/>
+						<DockPanel Margin="0,0,0,10" LastChildFill="True">
+							<Button x:Name="bhkimeoffclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
+							<Button x:Name="bhkimeoffcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
+							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<TextBox x:Name="ehotkeyimeoff" Height="30" Padding="6,4"
+							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							         AutomationProperties.AutomationId="set.hotkey.ime.off"/>
+						</DockPanel>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

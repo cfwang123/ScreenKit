@@ -62,6 +62,20 @@ static class AppConfig {
 				o.HotkeyDictSel = (hkdsel ?? "").Trim();
 			if (map.TryGetValue("hotkey_hangul", out var hkhg))
 				o.HotkeyHangul = (hkhg ?? "").Trim();
+			if (map.TryGetValue("hotkey_ime_cycle", out var hkic))
+				o.HotkeyImeCycle = (hkic ?? "").Trim();
+			if (map.TryGetValue("hotkey_ime_wubi", out var hkiw))
+				o.HotkeyImeWubi = (hkiw ?? "").Trim();
+			if (map.TryGetValue("hotkey_ime_ja", out var hkij))
+				o.HotkeyImeJa = (hkij ?? "").Trim();
+			if (map.TryGetValue("hotkey_ime_ko", out var hkik))
+				o.HotkeyImeKo = (hkik ?? "").Trim();
+			if (map.TryGetValue("hotkey_ime_off", out var hkio))
+				o.HotkeyImeOff = (hkio ?? "").Trim();
+			if (map.TryGetValue("ime_lang", out var imelang))
+				o.ImeLang = (imelang ?? "").Trim();
+			if (map.TryGetValue("ime_trad", out var imetrad))
+				o.ImeTrad = parsebool(imetrad, false);
 			if (map.TryGetValue("autokey_hotkey", out var akhk))
 				o.AutoKeyHotkey = (akhk ?? "").Trim();
 			if (map.TryGetValue("autokey_mode", out var akmode))
@@ -596,8 +610,18 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
 		sb.AppendLine("# 划词浮窗开关（留空=不注册）");
 		sb.AppendLine($"hotkey_dict_sel = \"{esc((o.HotkeyDictSel ?? "").Trim())}\"");
-		sb.AppendLine("# 韩语输入（接管键盘，再按一次关闭；单独按 Shift 或右 Alt 切换韩/英；默认 Ctrl+Alt+K；留空=不注册）");
+		sb.AppendLine("# 输入法（接管键盘，再按一次关闭；五笔、日语、韩语；默认 Ctrl+Alt+K；留空=不注册）");
 		sb.AppendLine($"hotkey_hangul = \"{esc((o.HotkeyHangul ?? "").Trim())}\"");
+		sb.AppendLine("# 切换语言，最后一项之后关闭。默认 Ctrl+`");
+		sb.AppendLine($"hotkey_ime_cycle = \"{esc((o.HotkeyImeCycle ?? "").Trim())}\"");
+		sb.AppendLine("# 切到五笔 / 日语 / 韩语 / 关闭");
+		sb.AppendLine($"hotkey_ime_wubi = \"{esc((o.HotkeyImeWubi ?? "").Trim())}\"");
+		sb.AppendLine($"hotkey_ime_ja = \"{esc((o.HotkeyImeJa ?? "").Trim())}\"");
+		sb.AppendLine($"hotkey_ime_ko = \"{esc((o.HotkeyImeKo ?? "").Trim())}\"");
+		sb.AppendLine($"hotkey_ime_off = \"{esc((o.HotkeyImeOff ?? "").Trim())}\"");
+		sb.AppendLine("# 上次的输入法：wubi / ja / ko");
+		sb.AppendLine($"ime_lang = \"{esc((o.ImeLang ?? "ko").Trim())}\"");
+		sb.AppendLine($"ime_trad = {(o.ImeTrad ? "true" : "false")}");
 		sb.AppendLine("# 自动按键：开始/停止热键。留空 = 只用窗口按钮。默认 F6");
 		sb.AppendLine($"autokey_hotkey = \"{esc((o.AutoKeyHotkey ?? "").Trim())}\"");
 		sb.AppendLine("# key / left / right / middle");

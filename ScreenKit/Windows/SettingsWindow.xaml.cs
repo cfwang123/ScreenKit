@@ -98,6 +98,11 @@ public partial class SettingsWindow : Window {
 		bindhotkey(ehotkeydict, bhkdictcap, bhkdictclear);
 		bindhotkey(ehotkeydictsel, bhkdictselcap, bhkdictselclear);
 		bindhotkey(ehotkeyhangul, bhkhangulcap, bhkhangulclear);
+		bindhotkey(ehotkeyimecycle, bhkimecyclecap, bhkimecycleclear);
+		bindhotkey(ehotkeyimewubi, bhkimewubicap, bhkimewubiclear);
+		bindhotkey(ehotkeyimeja, bhkimejacap, bhkimejaclear);
+		bindhotkey(ehotkeyimeko, bhkimekocap, bhkimekoclear);
+		bindhotkey(ehotkeyimeoff, bhkimeoffcap, bhkimeoffclear);
 	}
 
 	void bindhotkey(WpfTextBox box, WpfButton cap, WpfButton clear) {
@@ -265,6 +270,11 @@ public partial class SettingsWindow : Window {
 			lbhkhintsnapcopy.Text = Loc.T("set.hotkey.snapcopy");
 			lbhkhintDict.Text = Loc.T("set.hotkey.dict");
 			lbhkhintHangul.Text = Loc.T("set.hotkey.hangul");
+			lbhkhintImeCycle.Text = Loc.T("set.hotkey.ime.cycle");
+			lbhkhintImeWubi.Text = Loc.T("set.hotkey.ime.wubi");
+			lbhkhintImeJa.Text = Loc.T("set.hotkey.ime.ja");
+			lbhkhintImeKo.Text = Loc.T("set.hotkey.ime.ko");
+			lbhkhintImeOff.Text = Loc.T("set.hotkey.ime.off");
 			lbdictlimit.Text = Loc.T("set.dict.limit");
 			lbdictlimithint.Text = Loc.T("set.dict.limit.hint");
 			lbdicthold.Text = Loc.T("set.dict.dbhold");
@@ -498,6 +508,11 @@ public partial class SettingsWindow : Window {
 		ehotkeysnapcopy.Text = o.HotkeySnapCopy ?? "";
 		ehotkeydict.Text = o.HotkeyDict ?? "";
 		ehotkeyhangul.Text = o.HotkeyHangul ?? "";
+		ehotkeyimecycle.Text = o.HotkeyImeCycle ?? "";
+		ehotkeyimewubi.Text = o.HotkeyImeWubi ?? "";
+		ehotkeyimeja.Text = o.HotkeyImeJa ?? "";
+		ehotkeyimeko.Text = o.HotkeyImeKo ?? "";
+		ehotkeyimeoff.Text = o.HotkeyImeOff ?? "";
 		ehotkeydictsel.Text = o.HotkeyDictSel ?? "";
 		cbdictselbar.IsChecked = o.DictSelBar;
 		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
@@ -756,6 +771,11 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeysnapcopy, Loc.T("set.hotkey.snapcopy"), out Result.HotkeySnapCopy, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydict, Loc.T("set.hotkey.dict"), out Result.HotkeyDict, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyhangul, Loc.T("set.hotkey.hangul"), out Result.HotkeyHangul, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyimecycle, Loc.T("set.hotkey.ime.cycle"), out Result.HotkeyImeCycle, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyimewubi, Loc.T("set.hotkey.ime.wubi"), out Result.HotkeyImeWubi, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyimeja, Loc.T("set.hotkey.ime.ja"), out Result.HotkeyImeJa, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyimeko, Loc.T("set.hotkey.ime.ko"), out Result.HotkeyImeKo, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeyimeoff, Loc.T("set.hotkey.ime.off"), out Result.HotkeyImeOff, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydictsel, Loc.T("set.hotkey.dictsel"), out Result.HotkeyDictSel, tabsetdict)) return false;
 		Result.DictSelBar = cbdictselbar.IsChecked == true;
 		if (!tryint(edictlimit, Loc.T("set.dict.limit"), 1, DictDb.SEARCH_MAX, out var dictLimit, tabsetdict)) return false;
