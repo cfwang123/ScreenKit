@@ -176,17 +176,19 @@ public partial class TranslatePopupWindow : Window {
 		syncautodetect();
 	}
 
-	/// <summary>「自动」时显示源/目标语言的判断结果；选了明确语言则隐藏。</summary>
+	/// <summary>原文/译文旁显示实际语言；「自动」时另显示检测方向。</summary>
 	void syncautodetect() {
-		if (lbdetect == null) return;
 		var auto = selected(esrclng) == TrLang.Auto || selected(edstlng) == TrLang.Auto;
+		var ok = resolvepair(out var src, out var dst);
+		if (lbsrclang != null)
+			lbsrclang.Text = ok ? TrLang.Label(src) : "";
+		if (lbdstlang != null)
+			lbdstlang.Text = ok ? TrLang.Label(dst) : "";
+		if (lbdetect == null) return;
 		if (!auto) {
 			lbdetect.Visibility = Visibility.Collapsed;
 			return;
 		}
-		var o = getopt() ?? new OcrOptions();
-		o.AutoTranslatePair(out var nat, out var lrn);
-		LangDetect.DetectPair(esrc?.Text, nat, lrn, out var src, out var dst);
 		lbdetect.Text = Loc.T("tr.auto.detect", TrLang.Label(src), TrLang.Label(dst));
 		lbdetect.Visibility = Visibility.Visible;
 	}

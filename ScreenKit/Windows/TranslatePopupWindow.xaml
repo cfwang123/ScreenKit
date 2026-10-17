@@ -52,8 +52,12 @@
 					<ColumnDefinition Width="*"/>
 					<ColumnDefinition Width="Auto"/>
 				</Grid.ColumnDefinitions>
-				<TextBlock x:Name="lbsrc" Text="原文" FontSize="11"
-				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+				<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+					<TextBlock x:Name="lbsrc" Text="原文" FontSize="11"
+					           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+					<TextBlock x:Name="lbsrclang" FontSize="11" Foreground="{StaticResource Accent}"
+					           VerticalAlignment="Center" Margin="8,0,0,0"/>
+				</StackPanel>
 				<Button x:Name="bspeaksrc" Grid.Column="1" Content="发音" Style="{StaticResource GhostBtn}"
 				        Height="22" Padding="8,0" FontSize="11"
 				        ToolTip="朗读这边的文字"
@@ -74,8 +78,12 @@
 					<ColumnDefinition Width="*"/>
 					<ColumnDefinition Width="Auto"/>
 				</Grid.ColumnDefinitions>
-				<TextBlock x:Name="lbout" Text="译文" FontSize="11"
-				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+				<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+					<TextBlock x:Name="lbout" Text="译文" FontSize="11"
+					           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+					<TextBlock x:Name="lbdstlang" FontSize="11" Foreground="{StaticResource Accent}"
+					           VerticalAlignment="Center" Margin="8,0,0,0"/>
+				</StackPanel>
 				<Button x:Name="bspeakdst" Grid.Column="1" Content="发音" Style="{StaticResource GhostBtn}"
 				        Height="22" Padding="8,0" FontSize="11"
 				        ToolTip="朗读这边的文字"

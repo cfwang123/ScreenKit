@@ -1419,6 +1419,8 @@
 									</Grid.RowDefinitions>
 									<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
 										<TextBlock x:Name="lbtrsrctext" Text="原文" FontWeight="SemiBold" VerticalAlignment="Center"/>
+										<TextBlock x:Name="lbtrsrclang" FontSize="12" Foreground="{StaticResource Accent}"
+										           VerticalAlignment="Center" Margin="10,1,0,0"/>
 										<Button x:Name="btrpaste" DockPanel.Dock="Right" Content="粘贴"
 										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"
 										        ToolTip="从剪贴板粘贴到原文"/>
@@ -1444,6 +1446,8 @@
 									</Grid.RowDefinitions>
 									<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
 										<TextBlock x:Name="lbtrdsttext" Text="译文" FontWeight="SemiBold" VerticalAlignment="Center"/>
+										<TextBlock x:Name="lbtrdstlang" FontSize="12" Foreground="{StaticResource Accent}"
+										           VerticalAlignment="Center" Margin="10,1,0,0"/>
 										<Button x:Name="btrcopy" DockPanel.Dock="Right" Content="复制译文"
 										        Style="{StaticResource ToolBtn}" Height="28" Padding="10,4"/>
 									</DockPanel>

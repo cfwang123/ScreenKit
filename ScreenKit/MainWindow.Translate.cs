@@ -483,16 +483,19 @@ public partial class MainWindow {
 		syncautodetect();
 	}
 
-	/// <summary>「自动」时显示源/目标语言的判断结果；选了明确语言则隐藏。</summary>
+	/// <summary>原文/译文旁显示实际语言；「自动」时另显示检测方向。</summary>
 	void syncautodetect() {
-		if (lbtrdetect == null) return;
 		var auto = selectedlang(etrsrclng) == TrLang.Auto || selectedlang(etrdstlng) == TrLang.Auto;
+		resolvepair(out var src, out var dst);
+		if (lbtrsrclang != null)
+			lbtrsrclang.Text = src.Length > 0 ? TrLang.Label(src) : "";
+		if (lbtrdstlang != null)
+			lbtrdstlang.Text = dst.Length > 0 ? TrLang.Label(dst) : "";
+		if (lbtrdetect == null) return;
 		if (!auto) {
 			lbtrdetect.Visibility = Visibility.Collapsed;
 			return;
 		}
-		opt.AutoTranslatePair(out var nat, out var lrn);
-		LangDetect.DetectPair(etrsrc?.Text, nat, lrn, out var src, out var dst);
 		lbtrdetect.Text = Loc.T("tr.auto.detect", TrLang.Label(src), TrLang.Label(dst));
 		lbtrdetect.Visibility = Visibility.Visible;
 	}
