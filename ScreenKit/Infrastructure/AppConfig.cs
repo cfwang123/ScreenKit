@@ -78,6 +78,8 @@ static class AppConfig {
 				o.ImeLang = (imelang ?? "").Trim();
 			if (map.TryGetValue("ime_trad", out var imetrad))
 				o.ImeTrad = parsebool(imetrad, false);
+			if (map.TryGetValue("ime_gvim_mode", out var imegvim))
+				o.ImeGvimMode = parsebool(imegvim, true);
 			if (map.TryGetValue("autokey_hotkey", out var akhk))
 				o.AutoKeyHotkey = (akhk ?? "").Trim();
 			if (map.TryGetValue("autokey_mode", out var akmode))
@@ -625,6 +627,7 @@ static class AppConfig {
 		sb.AppendLine("# 上次的输入法：wubi / ja / ko");
 		sb.AppendLine($"ime_lang = \"{esc((o.ImeLang ?? "ko").Trim())}\"");
 		sb.AppendLine($"ime_trad = {(o.ImeTrad ? "true" : "false")}");
+		sb.AppendLine($"ime_gvim_mode = {(o.ImeGvimMode ? "true" : "false")}");
 		sb.AppendLine("# 自动按键：开始/停止热键。留空 = 只用窗口按钮。默认 F6");
 		sb.AppendLine($"autokey_hotkey = \"{esc((o.AutoKeyHotkey ?? "").Trim())}\"");
 		sb.AppendLine("# key / left / right / middle");

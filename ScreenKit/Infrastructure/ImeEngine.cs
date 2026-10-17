@@ -158,7 +158,7 @@ class ImeEngine {
 		ping();
 	}
 
-	/// <summary>gVim 关闭系统 IME 时：强制英文，不改插入记忆。</summary>
+	/// <summary>gVim 普通/可视/命令模式：强制英文，不改插入记忆。</summary>
 	public void ForceEnglishForVim() {
 		if (off) return;
 		if (!shiften) {
@@ -170,7 +170,7 @@ class ImeEngine {
 		if (busy()) clearcomp();
 	}
 
-	/// <summary>gVim 打开系统 IME 时：恢复上次插入时的中英状态。</summary>
+	/// <summary>gVim 插入/替换模式：恢复上次插入时的中英状态。</summary>
 	public void RestoreGvimInsertEn() {
 		if (off) return;
 		if (shiften != gvimInsertEn) {

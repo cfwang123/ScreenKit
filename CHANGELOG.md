@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary selection popup has Close and turn-off controls
 - In gVim, normal mode forces English and insert or replace restores the last insert language; Esc returns to English immediately.
 - gVim insert/normal follows system IME open status (ImmGetOpenStatus) like Sogou, instead of polling Vim mode().
+- Restored gVim insert/normal sync via Vim mode() with a Settings toggle (ime_gvim_mode, default on).
 
 #### Fixed
 
@@ -114,6 +115,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词查词浮窗增加关闭与关闭划词浮窗按钮
 - gVim 下普通模式自动英文，插入/替换恢复上次插入的中英，Esc 立即回到英文。
 - gVim 中英切换改为跟随系统 IME 开关（ImmGetOpenStatus），与搜狗一致，不再轮询 mode()。
+- gVim 模式同步改回查询 Vim mode()，并在参数热键页增加开关（ime_gvim_mode，默认开）。
 
 #### 修复
 

@@ -129,6 +129,8 @@ public sealed class OcrOptions {
 	public string ImeLang = "ko";
 	/// <summary>五笔候选用繁体。</summary>
 	public bool ImeTrad;
+	/// <summary>gVim 下按 Vim 模式自动切英文/恢复插入记忆。</summary>
+	public bool ImeGvimMode = true;
 	/// <summary>自动按键开始/停止。默认 F6。空 = 只能用窗口里的按钮。</summary>
 	public string AutoKeyHotkey = "F6";
 	/// <summary>key / left / right / middle。</summary>
@@ -559,6 +561,7 @@ public sealed class OcrOptions {
 		HotkeyImeOff = HotkeyImeOff ?? "",
 		ImeLang = string.IsNullOrWhiteSpace(ImeLang) ? "ko" : ImeLang,
 		ImeTrad = ImeTrad,
+		ImeGvimMode = ImeGvimMode,
 		AutoKeyHotkey = AutoKeyHotkey ?? "",
 		AutoKeyMode = string.IsNullOrWhiteSpace(AutoKeyMode) ? "key" : AutoKeyMode,
 		AutoKeyKey = string.IsNullOrWhiteSpace(AutoKeyKey) ? "Space" : AutoKeyKey,

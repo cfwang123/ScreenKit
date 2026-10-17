@@ -275,6 +275,8 @@ public partial class SettingsWindow : Window {
 			lbhkhintImeJa.Text = Loc.T("set.hotkey.ime.ja");
 			lbhkhintImeKo.Text = Loc.T("set.hotkey.ime.ko");
 			lbhkhintImeOff.Text = Loc.T("set.hotkey.ime.off");
+			if (cbimegvim != null) cbimegvim.Content = Loc.T("set.ime.gvim");
+			if (lbimegvimhint != null) lbimegvimhint.Text = Loc.T("set.ime.gvim.hint");
 			lbdictlimit.Text = Loc.T("set.dict.limit");
 			lbdictlimithint.Text = Loc.T("set.dict.limit.hint");
 			lbdicthold.Text = Loc.T("set.dict.dbhold");
@@ -519,6 +521,7 @@ public partial class SettingsWindow : Window {
 		ehotkeyimeja.Text = GlobalHotkey.Display(o.HotkeyImeJa);
 		ehotkeyimeko.Text = GlobalHotkey.Display(o.HotkeyImeKo);
 		ehotkeyimeoff.Text = GlobalHotkey.Display(o.HotkeyImeOff);
+		if (cbimegvim != null) cbimegvim.IsChecked = o.ImeGvimMode;
 		ehotkeydictsel.Text = GlobalHotkey.Display(o.HotkeyDictSel);
 		cbdictselbar.IsChecked = o.DictSelBar;
 		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
@@ -783,6 +786,7 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeyimeja, Loc.T("set.hotkey.ime.ja"), out Result.HotkeyImeJa, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyimeko, Loc.T("set.hotkey.ime.ko"), out Result.HotkeyImeKo, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyimeoff, Loc.T("set.hotkey.ime.off"), out Result.HotkeyImeOff, tabsethk)) return false;
+		Result.ImeGvimMode = cbimegvim != null && cbimegvim.IsChecked == true;
 		if (!tryreadhotkey(ehotkeydictsel, Loc.T("set.hotkey.dictsel"), out Result.HotkeyDictSel, tabsetdict)) return false;
 		Result.DictSelBar = cbdictselbar.IsChecked == true;
 		if (!tryint(edictlimit, Loc.T("set.dict.limit"), 1, DictDb.SEARCH_MAX, out var dictLimit, tabsetdict)) return false;

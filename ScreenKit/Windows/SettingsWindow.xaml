@@ -396,6 +396,11 @@
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.ime.off"/>
 						</DockPanel>
+
+						<CheckBox x:Name="cbimegvim" Margin="0,4,0,4"
+						          AutomationProperties.AutomationId="set.ime.gvim"/>
+						<TextBlock x:Name="lbimegvimhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,10" TextWrapping="Wrap"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

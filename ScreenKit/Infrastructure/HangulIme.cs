@@ -15,6 +15,7 @@ sealed class HangulIme : IDisposable {
 	const int WM_SYSKEYDOWN = 0x0104;
 	const int LLKHF_INJECTED = 0x10;
 	const int VK_BACK = 0x08;
+	const int VK_ESC = 0x1B;
 	const int VK_HANGUL = 0x15;
 	const int VK_RMENU = 0xA5;
 	const uint SWP_NOSIZE = 0x0001;
@@ -40,6 +41,7 @@ sealed class HangulIme : IDisposable {
 	IntPtr watch;
 	int nexthook;
 	bool? vimInsert;
+	bool gvimMode;
 	Lang lang = Lang.Ko;
 	bool trad;
 	bool enabled;
@@ -79,6 +81,11 @@ sealed class HangulIme : IDisposable {
 	public void Remember(string code, bool tradOn) {
 		trad = tradOn;
 		lang = code == "ja" ? Lang.Ja : code == "wubi" ? Lang.Wubi : Lang.Ko;
+	}
+
+	public void ApplyGvimMode(bool on) {
+		gvimMode = on;
+		if (!on) vimInsert = null;
 	}
 
 	public void ApplyHotkeys(string zh, string ja, string ko, string paused, string cycle) {
@@ -134,7 +141,7 @@ sealed class HangulIme : IDisposable {
 
 	public void ToggleEnglish() {
 		if (!enabled) return;
-		eng.GvimInsert = caret.TryGvimInsert(out var ins) && ins;
+		eng.GvimInsert = gvimMode && caret.IsGvimForeground() && caret.TryGvimInsert(out var ins) && ins;
 		eng.ToggleEn();
 		showtray();
 	}
@@ -180,7 +187,7 @@ sealed class HangulIme : IDisposable {
 			vimInsert = null;
 		}
 		watch = fg;
-		if (caret.IsGvimForeground()) pollvim();
+		if (gvimMode && caret.IsGvimForeground()) pollvim();
 		else vimInsert = null;
 	}
 
@@ -361,8 +368,13 @@ sealed class HangulIme : IDisposable {
 		bool win = downwin();
 		bool alt = downalt();
 		bool shift = downshift();
-		bool gvim = caret.IsGvimForeground();
+		bool gvim = gvimMode && caret.IsGvimForeground();
 		eng.GvimInsert = gvim && caret.TryGvimInsert(out var vins) && vins;
+		if (gvim && down && vk == VK_ESC && !ctrl && !alt && !win) {
+			eng.ForceEnglishForVim();
+			vimInsert = false;
+			showtray();
+		}
 		if (down && (vk == VK_RMENU || vk == VK_HANGUL) && !ctrl && !win) {
 			ToggleEnglish();
 			markeat(vk);

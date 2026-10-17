@@ -954,6 +954,7 @@ public partial class MainWindow : Window {
 			hangul = new HangulIme();
 			hangul.Remember(opt.ImeLang, opt.ImeTrad);
 			hangul.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
+			hangul.ApplyGvimMode(opt.ImeGvimMode);
 			hangul.Changed += () => {
 				painthangul();
 				if (hangul.On) {
@@ -1078,7 +1079,10 @@ public partial class MainWindow : Window {
 			hotkeyImeOff.Attach();
 			if (!hotkeyImeOff.Register(opt.HotkeyImeOff)) errs.Add(hotkeyImeOff.LastError);
 		}
-		try { hangul?.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle); } catch { }
+		try {
+			hangul?.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
+			hangul?.ApplyGvimMode(opt.ImeGvimMode);
+		} catch { }
 		var akerr = bindautokeyhotkey();
 		if (akerr.Length > 0) errs.Add(akerr);
 		if (errs.Count > 0) {
@@ -4341,6 +4345,7 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyImeJa, opt.HotkeyImeJa, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeKo, opt.HotkeyImeKo, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeOff, opt.HotkeyImeOff, StringComparison.OrdinalIgnoreCase)
+			|| old.ImeGvimMode != opt.ImeGvimMode
 			|| !string.Equals(old.AutoKeyHotkey, opt.AutoKeyHotkey, StringComparison.OrdinalIgnoreCase)
 			|| old.ModOcr != opt.ModOcr || old.ModAsr != opt.ModAsr
 			|| old.ModTranslate != opt.ModTranslate || old.ModDict != opt.ModDict

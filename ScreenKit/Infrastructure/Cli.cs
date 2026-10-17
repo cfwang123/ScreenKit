@@ -4122,6 +4122,8 @@ static class Cli {
 		h.Spans(lo, hi);
 		if (lo.Count != 1 || string.CompareOrdinal("안녕", lo[0]) < 0 || string.CompareOrdinal("안녕", hi[0]) >= 0)
 			return "span 녀";
+		if (!ImeCaret.GvimInsertMode("i") || ImeCaret.GvimInsertMode("n") || !ImeCaret.GvimInsertMode("R"))
+			return "gvim-mode";
 		return null;
 	}
 
