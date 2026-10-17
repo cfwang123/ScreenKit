@@ -209,6 +209,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 	border: 1px solid var(--line); border-radius: 12px;
 }
 .hint { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+#aim-pages a { color: var(--accent); }
 .ocr-meta {
 	margin: 0 0 12px; padding: 8px 12px;
 	border: 1px solid var(--line); border-radius: 12px; background: var(--card);

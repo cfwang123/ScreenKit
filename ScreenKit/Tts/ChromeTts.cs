@@ -4,7 +4,7 @@ using Microsoft.Win32;
 
 namespace ScreenKit;
 
-/// <summary>本机 Chrome 的 speechSynthesis（Google 语音）。只出声，不返回采样。和翻译共用一个隐藏进程。</summary>
+/// <summary>本机 Chrome 的 speechSynthesis（离线语音）。只出声，不返回采样。和翻译共用一个隐藏进程。</summary>
 static class ChromeTts {
 	static List<SapiVoiceItem> voices;
 
