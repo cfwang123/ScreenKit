@@ -15,7 +15,6 @@ sealed class HangulIme : IDisposable {
 	const int WM_SYSKEYDOWN = 0x0104;
 	const int LLKHF_INJECTED = 0x10;
 	const int VK_BACK = 0x08;
-	const int VK_ESC = 0x1B;
 	const int VK_HANGUL = 0x15;
 	const int VK_RMENU = 0xA5;
 	const uint SWP_NOSIZE = 0x0001;
@@ -364,11 +363,6 @@ sealed class HangulIme : IDisposable {
 		bool shift = downshift();
 		bool gvim = caret.IsGvimForeground();
 		eng.GvimInsert = gvim && caret.TryGvimInsert(out var vins) && vins;
-		if (down && vk == VK_ESC && gvim && !ctrl && !alt && !win) {
-			eng.ForceEnglishForVim();
-			vimInsert = false;
-			showtray();
-		}
 		if (down && (vk == VK_RMENU || vk == VK_HANGUL) && !ctrl && !win) {
 			ToggleEnglish();
 			markeat(vk);

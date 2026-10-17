@@ -26,9 +26,6 @@ sealed class ImeCaret : IDisposable {
 	uint vimpid;
 	int vimx, vimy, vimstamp;
 	bool vimok;
-	string vimmode = "";
-	int vimmodestamp;
-	bool vimmodeok;
 	string wezbin;
 	int wezx, wezy, wezstamp;
 	bool wezok;
@@ -72,19 +69,14 @@ sealed class ImeCaret : IDisposable {
 
 	public bool IsGvimForeground() => vimroot() != IntPtr.Zero;
 
-	/// <summary>前台 gVim 且模式缓存仍新时，返回是否为插入/替换。</summary>
+	/// <summary>前台 gVim 时读系统 IME 开关（与 gVim 通知搜狗的方式一致）。开=插入侧，关=普通侧。</summary>
 	public bool TryGvimInsert(out bool insert) {
 		insert = false;
-		if (vimroot() == IntPtr.Zero) return false;
-		lock (gate) {
-			int age = Environment.TickCount - vimmodestamp;
-			if (!vimmodeok || age < 0 || age > 2500) return false;
-			insert = gviminsert(vimmode);
-			return true;
-		}
+		var root = vimroot();
+		if (root == IntPtr.Zero) return false;
+		if (!gvimimeopen(root, out insert)) return false;
+		return true;
 	}
-
-	internal static bool GvimInsertMode(string mode) => gviminsert(mode);
 
 	public bool TryAnchor(out int px, out int py) {
 		px = 0;
@@ -201,31 +193,37 @@ sealed class ImeCaret : IDisposable {
 	}
 
 	void vimread(IntPtr fg) {
-		if (vimpixel(fg, out var x, out var y)) {
-			lock (gate) {
-				vimx = x;
-				vimy = y;
-				vimok = true;
-				vimstamp = Environment.TickCount;
-			}
-		} else lock (gate) vimok = false;
-		var srv = vimserver(fg);
-		if (srv == IntPtr.Zero) return;
-		var mode = vimaskmode(srv);
-		if (mode == null) return;
+		if (!vimpixel(fg, out var x, out var y)) {
+			lock (gate) vimok = false;
+			return;
+		}
 		lock (gate) {
-			vimmode = mode;
-			vimmodeok = true;
-			vimmodestamp = Environment.TickCount;
+			vimx = x;
+			vimy = y;
+			vimok = true;
+			vimstamp = Environment.TickCount;
 		}
 	}
 
-	static bool gviminsert(string mode) {
-		if (string.IsNullOrEmpty(mode)) return false;
-		char c = mode[0];
-		if (c == 'i' || c == 'I') return true;
-		if (c == 'R') return true;
-		return false;
+	static bool gvimimeopen(IntPtr root, out bool open) {
+		open = false;
+		var area = FindWindowEx(root, IntPtr.Zero, "VimTextArea", null);
+		var hwnd = area != IntPtr.Zero ? area : root;
+		var ctx = ImmGetContext(hwnd);
+		if (ctx == IntPtr.Zero && hwnd != root) ctx = ImmGetContext(root);
+		if (ctx == IntPtr.Zero) {
+			var fg = GetForegroundWindow();
+			if (fg != IntPtr.Zero) {
+				ctx = ImmGetContext(fg);
+				if (ctx != IntPtr.Zero) hwnd = fg;
+			}
+		}
+		if (ctx == IntPtr.Zero) return false;
+		try {
+			open = ImmGetOpenStatus(ctx);
+			return true;
+		}
+		finally { ImmReleaseContext(hwnd, ctx); }
 	}
 
 	bool vimpixel(IntPtr fg, out int x, out int y) {
@@ -280,18 +278,6 @@ sealed class ImeCaret : IDisposable {
 			vimkind = 0;
 			if (!vimsend(srv, 20, "utf-8")) return null;
 			if (!vimsend(srv, 10, "screenrow() . ',' . screencol() . ',' . &lines . ',' . &columns")) return null;
-			if (vimkind != 11 || string.IsNullOrEmpty(vimreply)) return null;
-			return vimreply;
-		}
-	}
-
-	string vimaskmode(IntPtr srv) {
-		if (srv == IntPtr.Zero) return null;
-		lock (vimaskgate) {
-			vimreply = null;
-			vimkind = 0;
-			if (!vimsend(srv, 20, "utf-8")) return null;
-			if (!vimsend(srv, 10, "mode()")) return null;
 			if (vimkind != 11 || string.IsNullOrEmpty(vimreply)) return null;
 			return vimreply;
 		}
@@ -676,4 +662,7 @@ sealed class ImeCaret : IDisposable {
 	[DllImport("user32.dll")] static extern IntPtr DefWindowProc(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
 	[DllImport("user32.dll", SetLastError = true)] static extern IntPtr SendMessageTimeout(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam, uint flags, uint timeout, out IntPtr result);
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern IntPtr GetModuleHandle(string name);
+	[DllImport("imm32.dll")] static extern IntPtr ImmGetContext(IntPtr hwnd);
+	[DllImport("imm32.dll")] static extern bool ImmReleaseContext(IntPtr hwnd, IntPtr ctx);
+	[DllImport("imm32.dll")] static extern bool ImmGetOpenStatus(IntPtr ctx);
 }
