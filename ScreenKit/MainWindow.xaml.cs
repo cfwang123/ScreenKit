@@ -1726,12 +1726,8 @@ public partial class MainWindow : Window {
 		mnimgocr.Click += async (_, _) => await recogfrommenu(false);
 		mnimgqr.Click += async (_, _) => await recogfrommenu(true);
 		mnimgclear.Click += (_, _) => clearshot();
-		btoggletext.Checked += (_, _) => {
-			if (mntoggletext.IsChecked != true) mntoggletext.IsChecked = true;
-			drawoverlay();
-		};
+		btoggletext.Checked += (_, _) => drawoverlay();
 		btoggletext.Unchecked += (_, _) => {
-			if (mntoggletext.IsChecked != false) mntoggletext.IsChecked = false;
 			clearselection();
 			drawoverlay();
 			syncresultfromimg();
@@ -1761,17 +1757,6 @@ public partial class MainWindow : Window {
 		mncopyimg.Click += (_, _) => copyimage();
 		mncopyfile.Click += (_, _) => copyfile();
 		mncopypath.Click += (_, _) => copypath();
-		mntoggletext.Checked += (_, _) => {
-			if (btoggletext.IsChecked != true) btoggletext.IsChecked = true;
-			drawoverlay();
-		};
-		mntoggletext.Unchecked += (_, _) => {
-			if (btoggletext.IsChecked != false) btoggletext.IsChecked = false;
-			clearselection();
-			drawoverlay();
-			syncresultfromimg();
-		};
-		mncancelocr.Click += (_, _) => cancelocr();
 		// 工具菜单
 		mnpdf.Click += (_, _) => openpdfworkbench();
 		mntools.SubmenuOpened += (_, e) => {
@@ -1944,10 +1929,6 @@ public partial class MainWindow : Window {
 			mncopyfile.ToolTip = Loc.T("menu.copyfile.tip");
 			mncopypath.Header = Loc.T("menu.copypath");
 			mncopypath.ToolTip = Loc.T("menu.copypath.tip");
-			mntoggletext.Header = Loc.T("menu.toggletext");
-			mntoggletext.ToolTip = Loc.T("menu.toggletext.tip");
-			mncancelocr.Header = Loc.T("menu.cancelocr");
-			mncancelocr.ToolTip = Loc.T("menu.cancelocr.tip");
 
 			mnwebhome.Header = Loc.T("tray.webhome") + "(_B)";
 			mnwebhome.ToolTip = Loc.T("menu.webhome.tip");
@@ -2385,7 +2366,7 @@ public partial class MainWindow : Window {
 			if (curimg == null || busy) return;
 			var vp = e.GetPosition(pviewport);
 			var stagePt = e.GetPosition(pstage);
-			var hit = mntoggletext.IsChecked == true && last != null
+			var hit = btoggletext.IsChecked == true && last != null
 				? hittestchar(stagePt, allowNearest: false)
 				: (-1, 0);
 
@@ -2469,7 +2450,7 @@ public partial class MainWindow : Window {
 				try { pviewport.ReleaseMouseCapture(); } catch { }
 				var stagePt = e.GetPosition(pstage);
 				if (!selDragged) {
-					var hit = mntoggletext.IsChecked == true && last != null
+					var hit = btoggletext.IsChecked == true && last != null
 						? hittestchar(stagePt, allowNearest: false)
 						: (-1, 0);
 					if (hit.Item1 >= 0)
@@ -2526,7 +2507,7 @@ public partial class MainWindow : Window {
 
 	/// <summary>根据指针是否在叠层文字上切换 IBeam / Hand。</summary>
 	void updatehovercursor(Point stagePt) {
-		if (busy || curimg == null || mntoggletext.IsChecked != true || last == null) {
+		if (busy || curimg == null || btoggletext.IsChecked != true || last == null) {
 			pviewport.Cursor = Cursors.Hand;
 			return;
 		}
@@ -5313,7 +5294,7 @@ public partial class MainWindow : Window {
 		}
 
 		if (last == null) return;
-		if (mntoggletext.IsChecked != true) return;
+		if (btoggletext.IsChecked != true) return;
 
 		var hasSel = hasselection();
 		int sl = 0, sc = 0, el = 0, ec = 0;
@@ -5508,7 +5489,6 @@ public partial class MainWindow : Window {
 		evariant.IsEnabled = !on;
 		edevice.IsEnabled = !on;
 		edetlen.IsEnabled = !on;
-		mncancelocr.IsEnabled = on;
 		bcopy.IsEnabled = !on;
 		// 右侧「正在识别中」面板
 		try {

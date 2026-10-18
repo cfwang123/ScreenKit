@@ -66,12 +66,6 @@
 				<MenuItem x:Name="mncopypath" Header="复制路径(_P)"
 				          ToolTip="复制当前图片的文件路径；截图/粘贴的图先存 screenshots/ 再复制"/>
 				<Separator/>
-				<MenuItem x:Name="mntoggletext" Header="显示文字叠加(_W)" IsCheckable="True" IsChecked="True"
-				          ToolTip="叠加识别文字（Umi 黑底白字）；在文字上拖选"/>
-				<Separator/>
-				<MenuItem x:Name="mncancelocr" Header="取消识别(_N)" IsEnabled="False"
-				          ToolTip="取消当前识别（推理中可能需等本轮结束）"/>
-				<Separator/>
 				<!-- 三选一 radio：Icon 用 RadioButton；StaysOpenOnClick 点后不关菜单 -->
 				<MenuItem x:Name="mnsnapcopyimg" Header="截图完成 · 复制为图片"
 				          StaysOpenOnClick="True"
