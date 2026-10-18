@@ -204,9 +204,9 @@ static class CharArt {
 				}
 				var i = y * cols + x;
 				lums[i] = sum / 9;
-				masks[i] = edgemask(s, cut);
+				masks[i] = cellmask(s, cut, out var dg);
 				if (masks[i] != 0) thicks[i] = thickline(s, masks[i], cut);
-				else diags[i] = diagof(s, cut);
+				else diags[i] = dg;
 			}
 		}
 		// 线正好落在格子交界上时，格子内部没有方向，改看比相邻格子暗的那一侧。
@@ -1042,14 +1042,39 @@ static class CharArt {
 		return cut;
 	}
 
-	/// <summary>四边中点各比两侧角暗多少，够 cut 就在 mask 上记一位：1 上、2 下、4 左、8 右。</summary>
+	/// <summary>四边中点比同边两角都暗多少，够 cut 就在 mask 上记一位：1 上、2 下、4 左、8 右。斜线擦过角落里的一点时，两角里总有一个同样暗，不会当成线从那边出去。</summary>
 	static int edgemask(int[] s, int cut) {
 		var mask = 0;
-		if ((lit(s, 0) + lit(s, 2)) / 2 - lit(s, 1) >= cut) mask |= E_U;
-		if ((lit(s, 6) + lit(s, 8)) / 2 - lit(s, 7) >= cut) mask |= E_D;
-		if ((lit(s, 0) + lit(s, 6)) / 2 - lit(s, 3) >= cut) mask |= E_L;
-		if ((lit(s, 2) + lit(s, 8)) / 2 - lit(s, 5) >= cut) mask |= E_R;
+		if (edgeof(s, 0, 1, 2) >= cut) mask |= E_U;
+		if (edgeof(s, 6, 7, 8) >= cut) mask |= E_D;
+		if (edgeof(s, 0, 3, 6) >= cut) mask |= E_L;
+		if (edgeof(s, 2, 5, 8) >= cut) mask |= E_R;
 		return mask;
+	}
+
+	/// <summary>同边两角平均减去中点亮度：中点是线、两角是背景时为正。</summary>
+	static int edgeof(int[] s, int a, int mid, int c) => (lit(s, a) + lit(s, c)) / 2 - lit(s, mid);
+
+	/// <summary>格子里的连接方向。两条斜线的明暗差比横竖都大时按斜线算，此时返回 0，方向写在 diag：1 是 /，2 是 \。</summary>
+	static int cellmask(int[] s, int cut, out byte diag) {
+		diag = 0;
+		int dark(int a, int b, int c) => 765 - (lit(s, a) + lit(s, b) + lit(s, c));
+		var top = dark(0, 1, 2);
+		var mid = dark(3, 4, 5);
+		var bot = dark(6, 7, 8);
+		var lf = dark(0, 3, 6);
+		var ce = dark(1, 4, 7);
+		var rt = dark(2, 5, 8);
+		var hScore = Math.Max(top, Math.Max(mid, bot)) - Math.Min(top, Math.Min(mid, bot));
+		var vScore = Math.Max(lf, Math.Max(ce, rt)) - Math.Min(lf, Math.Min(ce, rt));
+		var slash = dark(2, 4, 6);
+		var back = dark(0, 4, 8);
+		var d = Math.Abs(slash - back);
+		if (d >= hScore && d >= vScore && d >= cut * 3) {
+			diag = slash > back ? (byte)1 : (byte)2;
+			return 0;
+		}
+		return edgemask(s, cut);
 	}
 
 	/// <summary>横线的上（下）行、竖线的左（右）列也整排暗，说明线更宽，用粗线字符。</summary>
@@ -1066,14 +1091,6 @@ static class CharArt {
 		if ((mask & (E_U | E_D)) != 0 && (dark(0) && dark(3) && dark(6) || dark(2) && dark(5) && dark(8)))
 			return true;
 		return false;
-	}
-
-	/// <summary>斜线：0 无线，1 是 /（右上到左下更暗），2 是 \。</summary>
-	static byte diagof(int[] s, int cut) {
-		var slash = 765 - (lit(s, 2) + lit(s, 4) + lit(s, 6));
-		var back = 765 - (lit(s, 0) + lit(s, 4) + lit(s, 8));
-		if (Math.Abs(slash - back) < cut * 3) return 0;
-		return slash > back ? (byte)1 : (byte)2;
 	}
 
 	/// <summary>按连接方向选字符。基本是 - | / \ +；丰富 ASCII 另有 = ! ( ) [ ] #；制表符用 ─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼，粗线换双线。</summary>

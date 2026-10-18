@@ -1042,6 +1042,25 @@
 					{
 						x:"label",
 						c:[
+						{x:"span","data-k":"web.f.eng",c:"引擎"},
+						{x:"select#tr-engine","data-ktip":"tr.engine.tip","title":"本地 ONNX、Chrome 或所选 LLM。LLM 提示词在「参数设置 → 翻译」。"}
+					]
+					},
+					{
+						x:"label",
+						c:[
+						{x:"span","data-k":"web.f.model",c:"模型"},
+						{x:"select#tr-model","data-ktip":"web.tr.model.tip","title":"只列本地 ONNX 模型；选定后源/目标语言切到该模型的方向"}
+					]
+					}
+				]
+				},
+				{
+					x:"div.row",
+					c:[
+					{
+						x:"label",
+						c:[
 						{x:"span","data-k":"tr.src",c:"源语言"},
 						{x:"select#tr-src","data-ktip":"tr.src.tip","title":"先选源语言；「自动」在母语与学习语言之间互译（参数设置 → 翻译）"}
 					]
@@ -1074,25 +1093,6 @@
 					]
 					},
 					{x:"span#tr-msg.msg"}
-				]
-				},
-				{
-					x:"div.row",
-					c:[
-					{
-						x:"label",
-						c:[
-						{x:"span","data-k":"web.f.eng",c:"引擎"},
-						{x:"select#tr-engine","data-ktip":"tr.engine.tip","title":"本地 ONNX、Chrome 或所选 LLM。LLM 提示词在「参数设置 → 翻译」。"}
-					]
-					},
-					{
-						x:"label",
-						c:[
-						{x:"span","data-k":"web.f.model",c:"模型"},
-						{x:"select#tr-model","data-ktip":"web.tr.model.tip","title":"只列本地 ONNX 模型；选定后源/目标语言切到该模型的方向"}
-					]
-					}
 				]
 				},
 				{
