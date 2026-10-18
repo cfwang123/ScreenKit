@@ -37,6 +37,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
 
+### English
+
+#### Removed
+
+- Remove tray menu item OCR from clipboard
+
+### 中文
+
+#### 移除
+
+- 移除托盘菜单「从剪贴板识别」
+
 ## v1.0.25 (2026-10-17 ~ 18)
 
 ### English

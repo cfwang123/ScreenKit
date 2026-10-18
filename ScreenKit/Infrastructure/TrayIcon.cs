@@ -22,7 +22,6 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miVoice;
 	Forms.ToolStripMenuItem miTranslate;
 	Forms.ToolStripMenuItem miDictSel;
-	Forms.ToolStripMenuItem miClip;
 	Forms.ToolStripMenuItem miClipFile;
 	Forms.ToolStripMenuItem miPdf;
 	Forms.ToolStripMenuItem miSnapshots;
@@ -172,10 +171,6 @@ sealed class TrayIcon : IDisposable {
 			if (dictSelUi) return;
 			try { DictSelBarChanged?.Invoke(miDictSel.Checked); } catch { }
 		};
-		miClip = item("tray.clip", () => {
-			showwindow();
-			ClipboardOcrRequested?.Invoke();
-		});
 		miClipFile = item("tray.clipfile", () => ClipboardAsFileRequested?.Invoke());
 		miPdf = item("tray.pdf", () => {
 			showwindow();
@@ -306,7 +301,6 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miVoice);
 		menu.Items.Add(miTranslate);
 		menu.Items.Add(miDictSel);
-		menu.Items.Add(miClip);
 		menu.Items.Add(miClipFile);
 		menu.Items.Add(miPdf);
 		menu.Items.Add(miSnapshots);
@@ -421,7 +415,6 @@ sealed class TrayIcon : IDisposable {
 	public void SetModules(bool ocr, bool asr, bool translate, bool dict) {
 		try {
 			if (miOcr != null) miOcr.Enabled = ocr;
-			if (miClip != null) miClip.Enabled = ocr;
 			if (miPdf != null) miPdf.Enabled = ocr;
 			if (miVoice != null) miVoice.Enabled = asr;
 			if (miTranslate != null) miTranslate.Enabled = translate;
@@ -464,7 +457,6 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miTranslate, tr);
 		setshortcut(miDictSel, dictsel);
 		// 其余无全局热键，清空以免残留
-		setshortcut(miClip, null);
 		setshortcut(miClipFile, null);
 		setshortcut(miPdf, null);
 		setshortcut(miSnapshots, null);
@@ -532,7 +524,6 @@ sealed class TrayIcon : IDisposable {
 			settext(miVoice, "tray.voice");
 			settext(miTranslate, "tray.translate");
 			settext(miDictSel, "dict.selbar");
-			settext(miClip, "tray.clip");
 			settext(miClipFile, "tray.clipfile");
 			settext(miPdf, "tray.pdf");
 			settext(miSnapshots, "tray.snapshots");
@@ -603,7 +594,6 @@ sealed class TrayIcon : IDisposable {
 		if (mi != null) mi.Text = Loc.T(key);
 	}
 
-	public event Action ClipboardOcrRequested;
 	public event Action ClipboardAsFileRequested;
 	public event Action OcrRequested;
 	public event Action SnapRequested;

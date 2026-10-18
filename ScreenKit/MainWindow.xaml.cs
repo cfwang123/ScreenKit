@@ -647,7 +647,6 @@ public partial class MainWindow : Window {
 				if (selBarMenuUi) return;
 				applyselbar(on, true, true);
 			}));
-			tray.ClipboardOcrRequested += () => _ = hotkeyclipboardasync();
 			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(() => {
 				if (tray != null) tray.showwindow();
 				saveimage();
@@ -1407,29 +1406,6 @@ public partial class MainWindow : Window {
 
 	[System.Runtime.InteropServices.DllImport("user32.dll")]
 	static extern bool UnhookWinEvent(IntPtr hWinEventHook);
-
-	/// <summary>托盘菜单：显示窗口并从剪贴板识别。</summary>
-	async Task hotkeyclipboardasync() {
-		if (!opt.ModOcr) return;
-		try {
-			if (tray != null) tray.showwindow();
-			else {
-				Show();
-				if (WindowState == WindowState.Minimized)
-					WindowState = WindowState.Normal;
-				Activate();
-			}
-			if (busy) {
-				setstatus("正在识别中…");
-				return;
-			}
-			setstatus("托盘 · 从剪贴板识别…");
-			await pasteasync();
-		}
-		catch (Exception ex) {
-			setstatus($"剪贴板识别失败: {ex.Message}");
-		}
-	}
 
 	// ───────── 顶栏：模型 / 语言 / 设备 ─────────
 
