@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
@@ -15,8 +16,9 @@ sealed class SelHit {
 }
 
 /// <summary>
-/// 外部划词。低级鼠标钩子看拖选和双击，松开后把选中文字交给词典查词浮窗。
-/// 本进程里的选区交给词典页自己的浮窗。文字用 UI Automation 的 TextPattern 读。
+/// 划词。低级鼠标钩子看拖选和双击，松开后把选中文字交给查词浮窗。
+/// 本进程和其它程序都读。词典详情由词典页自己弹出，钩子跳过那一块。
+/// 文字用 UI Automation 的 TextPattern 读。
 /// </summary>
 static class SelBar {
 	const int WH_MOUSE_LL = 14;
@@ -45,6 +47,41 @@ static class SelBar {
 	public static event Action<string, Rect> Picked;
 	public static event Action Hiding;
 	public static Func<IntPtr> PopupHwnd;
+	static readonly List<WeakReference<FrameworkElement>> details = new();
+
+	/// <summary>词典详情。点在这里时钩子不读选区，由词典页弹出同一个浮窗。</summary>
+	public static void WatchDetail(FrameworkElement el) {
+		if (el == null) return;
+		dropdetail(el);
+		details.Add(new WeakReference<FrameworkElement>(el));
+	}
+
+	public static void UnwatchDetail(FrameworkElement el) {
+		if (el == null) return;
+		dropdetail(el);
+	}
+
+	static void dropdetail(FrameworkElement el) {
+		for (var i = details.Count - 1; i >= 0; i--) {
+			if (!details[i].TryGetTarget(out var t) || ReferenceEquals(t, el)) details.RemoveAt(i);
+		}
+	}
+
+	internal static bool OverDetail(int x, int y) {
+		foreach (var one in details) {
+			if (!one.TryGetTarget(out var el) || !el.IsVisible) continue;
+			try {
+				var src = PresentationSource.FromVisual(el);
+				if (src?.CompositionTarget == null) continue;
+				var dip = src.CompositionTarget.TransformFromDevice.Transform(new Point(x, y));
+				var local = el.PointFromScreen(dip);
+				if (local.X >= 0 && local.Y >= 0 && local.X < el.ActualWidth && local.Y < el.ActualHeight)
+					return true;
+			}
+			catch { }
+		}
+		return false;
+	}
 
 	public static void SetOn(bool value) {
 		if (value == on) return;
@@ -287,7 +324,7 @@ static class SelBar {
 		}
 		if (!down) return;
 		down = false;
-		if (isours()) return;
+		if (OverDetail(x, y)) return;
 		var dx = x - downX;
 		var dy = y - downY;
 		var drag = dx * (long)dx + dy * (long)dy >= DRAG * (long)DRAG;
@@ -417,13 +454,6 @@ static class SelBar {
 	[DllImport("user32.dll")]
 	static extern IntPtr GetAncestor(IntPtr hwnd, uint ga);
 
-	static bool isours() {
-		var hwnd = GetForegroundWindow();
-		if (hwnd == IntPtr.Zero) return true;
-		GetWindowThreadProcessId(hwnd, out var pid);
-		return pid == 0 || pid == GetCurrentProcessId();
-	}
-
 	sealed class UiaBox {
 		public SelHit Hit;
 		public volatile bool Done;
@@ -461,16 +491,10 @@ static class SelBar {
 	static extern IntPtr GetForegroundWindow();
 
 	[DllImport("user32.dll")]
-	static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-	[DllImport("user32.dll")]
 	static extern bool GetWindowRect(IntPtr hWnd, out RECT rc);
 
 	[DllImport("user32.dll")]
 	static extern uint GetDoubleClickTime();
-
-	[DllImport("kernel32.dll")]
-	static extern uint GetCurrentProcessId();
 
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
 	static extern IntPtr GetModuleHandle(string name);

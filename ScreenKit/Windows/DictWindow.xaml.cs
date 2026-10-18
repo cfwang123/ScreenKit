@@ -51,21 +51,16 @@ public partial class DictWindow : UserControl {
 	bool sqliteasked;
 	int gen;
 	int dgen;
-	int sgen;
 	bool filling;
 	bool speaking;
 	bool suppress;
 	long wantid;
-	string seltext = "";
-	string sellang = "";
 	string curword = "";
 	string curspeak = "";
 	string curlang = "";
 	string filter = "";
 	string selfilter = "";
-	bool selfsync;
 	ToggleButton[] filts;
-	ToggleButton[] selfilts;
 	Point downpt;
 	bool dragsel;
 	Window hostwin;
@@ -75,6 +70,7 @@ public partial class DictWindow : UserControl {
 	string outlang = "";
 	Rect outbox;
 	bool selbarsync;
+	bool outdict;
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
 	public Action<string> OnTranslate;
@@ -90,8 +86,7 @@ public partial class DictWindow : UserControl {
 
 	void initui() {
 		PreviewKeyDown += (_, e) => {
-			if (e.Key != Key.Escape || !psel.IsOpen) return;
-			psel.IsOpen = false;
+			if (e.Key != Key.Escape || !CloseSel()) return;
 			e.Handled = true;
 		};
 		tick = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
@@ -108,25 +103,6 @@ public partial class DictWindow : UserControl {
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
 		bspeak.Click += (_, _) => _ = speak(curspeak, speaklang(curlang));
 		bexport.Click += (_, _) => exporthits();
-		bselspeak.Click += (_, _) => _ = speak(seltext, sellang);
-		bselsearch.Click += (_, _) => {
-			var q = seltext;
-			psel.IsOpen = false;
-			opensearch(q);
-		};
-		bseltr.Click += (_, _) => {
-			var q = seltext;
-			psel.IsOpen = false;
-			if (q.Length == 0) return;
-			if (OnTranslate != null) OnTranslate(q);
-			else lbstatus.Text = Loc.T("dict.sel.notr");
-		};
-		bselcopy.Click += (_, _) => copytext(seltext);
-		bselclose.Click += (_, _) => { psel.IsOpen = false; };
-		bselturnoff.Click += (_, _) => turnoffselbar();
-		lsel.PreviewMouseLeftButtonUp += (_, _) => {
-			if (lsel.SelectedItem is DictSelRow row) openhit(row);
-		};
 		edetail.PreviewMouseLeftButtonDown += (_, e) => {
 			downpt = e.GetPosition(edetail);
 			dragsel = false;
@@ -147,14 +123,15 @@ public partial class DictWindow : UserControl {
 			e.Handled = true;
 			openselpop();
 		};
-		psel.Opened += (_, _) =>
-			Dispatcher.BeginInvoke(new Action(placepop), DispatcherPriority.Loaded);
-		Loaded += (_, _) => hookhost();
-		PreviewMouseDown += (_, e) => {
-			if (!psel.IsOpen) return;
-			if (e.OriginalSource is DependencyObject d && under(psel.Child, d)) return;
-			psel.IsOpen = false;
+		Loaded += (_, _) => {
+			hookhost();
+			SelBar.WatchDetail(edetail);
 		};
+		Unloaded += (_, _) => SelBar.UnwatchDetail(edetail);
+		IsVisibleChanged += (_, _) => {
+			if (!IsVisible) HideOutside();
+		};
+		PreviewMouseDown += (_, _) => HideOutside();
 		cbselbar.Checked += (_, _) => {
 			if (!selbarsync) SelBarChanged?.Invoke(true);
 		};
@@ -168,37 +145,9 @@ public partial class DictWindow : UserControl {
 		wirefilter(bfiltko, "ko");
 		wirefilter(bfilten, "en");
 		bfiltall.IsChecked = true;
-		selfilts = new[] { bselfall, bselfzh, bselfja, bselfko, bselfen };
-		wireself(bselfall, "");
-		wireself(bselfzh, "zh");
-		wireself(bselfja, "ja");
-		wireself(bselfko, "ko");
-		wireself(bselfen, "en");
 		applylang();
 		cleardetail();
 		return;
-
-		void wireself(ToggleButton b, string dict) {
-			b.Checked += (_, _) => {
-				if (selfsync) return;
-				selfsync = true;
-				foreach (var o in selfilts)
-					if (!ReferenceEquals(o, b)) o.IsChecked = false;
-				selfsync = false;
-				if (selfilter == dict) return;
-				selfilter = dict;
-				try { outwin?.SetLang(dict); } catch { }
-				refreshsel();
-			};
-			b.Unchecked += (_, _) => {
-				if (selfsync) return;
-				foreach (var o in selfilts)
-					if (o.IsChecked == true) return;
-				selfsync = true;
-				b.IsChecked = true;
-				selfsync = false;
-			};
-		}
 
 		void wirefilter(ToggleButton b, string dict) {
 			b.Checked += (_, _) => {
@@ -229,6 +178,7 @@ public partial class DictWindow : UserControl {
 		try { player?.Dispose(); } catch { }
 		player = null;
 		HideOutside();
+		SelBar.UnwatchDetail(edetail);
 		try { outwin?.Close(); } catch { }
 		outwin = null;
 	}
@@ -251,12 +201,15 @@ public partial class DictWindow : UserControl {
 		catch { }
 	}
 
-	/// <summary>选区浮层开着时关掉它。没有浮层时返回 false。</summary>
+	/// <summary>划词浮窗开着时关掉它。没有浮窗时返回 false。</summary>
 	public bool CloseSel() {
-		if (psel == null || !psel.IsOpen) return false;
-		psel.IsOpen = false;
+		if (outwin == null || !outwin.IsVisible) return false;
+		HideOutside();
+		try { SelBar.DismissShown(); } catch { }
 		return true;
 	}
+
+	internal bool SelShown => outwin != null && outwin.IsVisible;
 
 	internal int HitCount => lhits.Items.Count;
 
@@ -274,13 +227,6 @@ public partial class DictWindow : UserControl {
 		bspeak.ToolTip = Loc.T("dict.speak.tip");
 		bexport.Content = Loc.T("dict.export");
 		bexport.ToolTip = Loc.T("dict.export.tip");
-		bselspeak.Content = Loc.T("dict.speak");
-		bselsearch.Content = Loc.T("dict.sel.search");
-		bseltr.Content = Loc.T("dict.sel.translate");
-		bselcopy.Content = Loc.T("dict.sel.copy");
-		bselclose.ToolTip = Loc.T("dict.sel.close");
-		bselturnoff.Content = Loc.T("dict.sel.turnoff");
-		lbselwait.Text = Loc.T("dict.sel.searching");
 		cbselbar.Content = Loc.T("dict.selbar");
 		cbselbar.ToolTip = Loc.T("dict.selbar.tip");
 		try { outwin?.ApplyText(); } catch { }
@@ -289,11 +235,6 @@ public partial class DictWindow : UserControl {
 		bfiltja.Content = Loc.T("dict.filter.ja");
 		bfiltko.Content = Loc.T("dict.filter.ko");
 		bfilten.Content = Loc.T("dict.filter.en");
-		bselfall.Content = Loc.T("dict.filter.all");
-		bselfzh.Content = Loc.T("dict.filter.zh");
-		bselfja.Content = Loc.T("dict.filter.ja");
-		bselfko.Content = Loc.T("dict.filter.ko");
-		bselfen.Content = Loc.T("dict.filter.en");
 	}
 
 	int searchlimit() {
@@ -703,7 +644,7 @@ public partial class DictWindow : UserControl {
 	}
 
 	void cleardetail() {
-		psel.IsOpen = false;
+		HideOutside();
 		curword = "";
 		curspeak = "";
 		curlang = "";
@@ -712,7 +653,7 @@ public partial class DictWindow : UserControl {
 
 	void filldetail(DictEntry e) {
 		if (e == null) { cleardetail(); return; }
-		psel.IsOpen = false;
+		HideOutside();
 		curlang = e.Dict ?? "";
 		curword = e.Word.Length > 0 ? e.Word : e.Headword;
 		curspeak = curlang == "ja" ? DictDb.JaSpeak(curword, e.Kanji, e.Pron) : SpeakHead(curword, curlang);
@@ -864,11 +805,8 @@ public partial class DictWindow : UserControl {
 		var text = edetail.Selection == null ? "" : edetail.Selection.Text ?? "";
 		text = oneline(text);
 		if (text.Length == 0) return;
-		seltext = text;
-		sellang = langofselection(text);
-		placepop();
-		psel.IsOpen = true;
-		searchinside();
+		ShowOutside(text, selpx(), langofselection(text));
+		outdict = true;
 	}
 
 	Rect selbox() {
@@ -889,106 +827,52 @@ public partial class DictWindow : UserControl {
 		catch { return Rect.Empty; }
 	}
 
-	Size popsize() {
-		var w = 300.0;
-		var h = 72.0;
-		if (psel.Child is FrameworkElement fe) {
-			fe.Measure(new Size(360, 900));
-			if (fe.DesiredSize.Width > 1) w = fe.DesiredSize.Width;
-			if (fe.DesiredSize.Height > 1) h = fe.DesiredSize.Height;
-		}
-		return new Size(w, h);
-	}
-
-	void placepop() {
-		psel.PlacementTarget = this;
-		psel.Placement = PlacementMode.Relative;
+	/// <summary>选区的屏幕物理像素。空选区用当前指针。</summary>
+	Rect selpx() {
 		var box = selbox();
-		var view = new Rect(0, 0, Math.Max(1, edetail.ActualWidth), Math.Max(1, edetail.ActualHeight));
-		var vis = Rect.Intersect(box, view);
-		if (vis.IsEmpty) vis = box.IsEmpty ? new Rect(12, 12, 1, 16) : box;
-		Point tl, br;
+		if (box.IsEmpty) {
+			Point p;
+			try { p = Mouse.GetPosition(edetail); }
+			catch { p = new Point(8, 8); }
+			box = new Rect(p.X, p.Y, 2, 18);
+		}
 		try {
-			tl = edetail.TranslatePoint(vis.TopLeft, this);
-			br = edetail.TranslatePoint(vis.BottomRight, this);
+			var tl = edetail.PointToScreen(box.TopLeft);
+			var br = edetail.PointToScreen(box.BottomRight);
+			var src = PresentationSource.FromVisual(edetail);
+			if (src?.CompositionTarget != null) {
+				var to = src.CompositionTarget.TransformToDevice;
+				tl = to.Transform(tl);
+				br = to.Transform(br);
+			}
+			return new Rect(Math.Min(tl.X, br.X), Math.Min(tl.Y, br.Y),
+				Math.Max(1, Math.Abs(br.X - tl.X)), Math.Max(1, Math.Abs(br.Y - tl.Y)));
 		}
-		catch { return; }
-		var pop = popsize();
-		const double gap = 6;
-		var yBelow = br.Y + gap;
-		var yAbove = tl.Y - pop.Height - gap;
-		var fitBelow = yBelow + pop.Height <= ActualHeight - 4;
-		var fitAbove = yAbove >= 4;
-		double y;
-		if (fitBelow) y = yBelow;
-		else if (fitAbove) y = yAbove;
-		else {
-			var roomBelow = ActualHeight - yBelow;
-			y = roomBelow >= tl.Y ? yBelow : Math.Max(4, yAbove);
-		}
-		var x = tl.X;
-		if (x + pop.Width > ActualWidth - 8) x = ActualWidth - pop.Width - 8;
-		if (x < 8) x = 8;
-		if (y < 4) y = 4;
-		psel.HorizontalOffset = x;
-		psel.VerticalOffset = y;
+		catch { return new Rect(0, 0, 2, 18); }
 	}
 
-	/// <summary>浮窗在竖直方向是否压住选区。供命令行检查。</summary>
+	/// <summary>浮窗是否压住选区。供命令行检查。</summary>
 	internal bool PopOverlapsSel() {
-		if (psel == null || !psel.IsOpen) return false;
-		var box = selbox();
-		if (box.IsEmpty) return false;
-		var view = new Rect(0, 0, Math.Max(1, edetail.ActualWidth), Math.Max(1, edetail.ActualHeight));
-		var vis = Rect.Intersect(box, view);
-		if (vis.IsEmpty) vis = box;
-		Point tl, br;
-		try {
-			tl = edetail.TranslatePoint(vis.TopLeft, this);
-			br = edetail.TranslatePoint(vis.BottomRight, this);
-		}
-		catch { return false; }
-		var top = psel.VerticalOffset;
-		var bot = top + popsize().Height;
-		return bot > tl.Y + 1 && top < br.Y - 1;
+		if (outwin == null || !outwin.IsVisible) return false;
+		var sel = selpx();
+		var pop = outwin.ScreenPx();
+		if (sel.IsEmpty || pop.IsEmpty) return false;
+		var v = pop.Top < sel.Bottom - 1 && pop.Bottom > sel.Top + 1;
+		var h = pop.Left < sel.Right - 1 && pop.Right > sel.Left + 1;
+		return v && h;
 	}
 
-	void showselhits(List<DictHit> hits, bool searching) {
-		var rows = selrows(hits);
-		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-		lsel.ItemsSource = rows;
-		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
-		if (psel.IsOpen) placepop();
-	}
-
-	void searchinside() {
-		var text = seltext ?? "";
-		var q = text.Length > 80 ? text.Substring(0, 80) : text;
-		var dict = selfilter ?? "";
-		showselhits(null, true);
-		var g = ++sgen;
-		Task.Run(() => searchsel(q, dict)).ContinueWith(t => {
-			Dispatcher.BeginInvoke(new Action(() => {
-				if (g != sgen || !psel.IsOpen) return;
-				List<DictHit> hits = null;
-				try { hits = t.Result; } catch { }
-				showselhits(hits, false);
-			}));
-		});
-	}
-
-	/// <summary>其它程序里的划词。浮窗和词典里的一样：词头、发音、搜索、翻译、复制。</summary>
-	public void ShowOutside(string text, Rect screenPx) {
+	/// <summary>划词查词浮窗。lang 为空时按文字判断发音语言。</summary>
+	public void ShowOutside(string text, Rect screenPx, string lang = null) {
 		text = oneline(text);
 		if (text.Length == 0) {
 			HideOutside();
 			return;
 		}
+		outdict = false;
 		ensureout();
 		outtext = text;
-		outlang = langoutside(text);
+		outlang = string.IsNullOrEmpty(lang) ? langoutside(text) : lang;
 		outbox = screenPx;
 		outwin.ApplyText();
 		outwin.SetLang(selfilter);
@@ -997,6 +881,7 @@ public partial class DictWindow : UserControl {
 
 	public void HideOutside() {
 		ogen++;
+		outdict = false;
 		try {
 			if (outwin != null && outwin.IsVisible) outwin.Hide();
 		}
@@ -1004,7 +889,6 @@ public partial class DictWindow : UserControl {
 	}
 
 	void turnoffselbar() {
-		psel.IsOpen = false;
 		HideOutside();
 		if (selbarsync) return;
 		SelBarChanged?.Invoke(false);
@@ -1057,20 +941,10 @@ public partial class DictWindow : UserControl {
 	}
 
 	void syncself() {
-		selfsync = true;
-		try {
-			bselfall.IsChecked = selfilter.Length == 0;
-			bselfzh.IsChecked = selfilter == "zh";
-			bselfja.IsChecked = selfilter == "ja";
-			bselfko.IsChecked = selfilter == "ko";
-			bselfen.IsChecked = selfilter == "en";
-		}
-		finally { selfsync = false; }
 		try { outwin?.SetLang(selfilter); } catch { }
 	}
 
 	void refreshsel() {
-		if (psel != null && psel.IsOpen) searchinside();
 		if (outwin != null && outwin.IsVisible) searchoutside();
 	}
 
@@ -1132,24 +1006,33 @@ public partial class DictWindow : UserControl {
 	void hookhost() {
 		var w = Window.GetWindow(this);
 		if (w == null || ReferenceEquals(w, hostwin)) return;
-		if (hostwin != null) hostwin.Deactivated -= onhostoff;
+		if (hostwin != null) {
+			hostwin.Deactivated -= onhostoff;
+			hostwin.PreviewMouseDown -= onhostdown;
+		}
 		hostwin = w;
 		hostwin.Deactivated += onhostoff;
+		hostwin.PreviewMouseDown += onhostdown;
+	}
+
+	void onhostdown(object sender, MouseButtonEventArgs e) {
+		if (!outdict) return;
+		HideOutside();
 	}
 
 	void onhostoff(object sender, EventArgs e) {
-		if (psel == null || !psel.IsOpen) return;
+		if (!outdict) return;
 		var w = hostwin;
 		Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => {
-			if (!psel.IsOpen) return;
+			if (!outdict) return;
 			if (w != null && w.IsActive) return;
-			psel.IsOpen = false;
+			HideOutside();
 		}));
 	}
 
 	void openhit(DictSelRow row) {
 		if (row == null || row.Word.Length == 0) return;
-		psel.IsOpen = false;
+		HideOutside();
 		opensearch(row.Word, row.Id);
 	}
 
@@ -1466,16 +1349,5 @@ public partial class DictWindow : UserControl {
 			sb.Append(c);
 		}
 		return sb.ToString();
-	}
-
-	static bool under(DependencyObject root, DependencyObject node) {
-		while (node != null) {
-			if (node == root) return true;
-			DependencyObject next = null;
-			try { next = VisualTreeHelper.GetParent(node); } catch { }
-			if (next == null) next = LogicalTreeHelper.GetParent(node);
-			node = next;
-		}
-		return false;
 	}
 }

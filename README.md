@@ -48,11 +48,11 @@ The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese
 - Language filter: All, Chinese, Japanese, Korean, English.
 - Pure Latin input is romanized for Japanese and Korean search (romaji to hiragana, Korean romanization to Hangul), such as `watashi` and `hanguk`.
 - A hit has pronunciation, part of speech, senses, phrases, and examples, all of which can be spoken; **Export** writes every hit of this search.
-- Double-click, drag, or right-click inside an entry to pop up matching headwords, up to 100.
+- Double-click, drag, or right-click inside an entry to pop up the lookup window, up to 100 hits. Dictionary entries always do this.
 - **Settings → Dictionary** sets how many hits to list, how long to keep the database open, the selection popup, and each language's engine, voice, and rate.
 - The dictionary hotkey is empty by default: it brings the window forward on the dictionary when it is not the main window, and hides the main window when it is.
 - The web dictionary is its own page at `/dict`, with the same search, four languages, speech, and export.
-- **Selection popup** is off by default and can be turned on on the dictionary page, under **Settings → Dictionary**, or on the tray; while it is on, selecting text in another program shows a lookup popup that does not take focus.
+- **Selection popup** is off by default and can be turned on on the dictionary page, under **Settings → Dictionary**, or on the tray. While it is on, dragging or double-clicking text in this program or another shows a lookup popup that does not take focus. Drag the lower-right corner to resize; the size lasts until you quit.
 
 ## Files and screencast
 

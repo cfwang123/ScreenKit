@@ -655,7 +655,7 @@ static class AppConfig {
 		sb.AppendLine($"dict_limit = {Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX)}");
 		sb.AppendLine("# 词典数据库空闲多少分钟后关闭。默认 1。0 = 不自动关闭");
 		sb.AppendLine($"dict_db_hold = {OnnxIdle.ClampMin(o.DictDbHoldMin)}");
-		sb.AppendLine("# 划词浮窗（其它程序里拖选或双击，弹出和词典一样的查词浮窗；默认关）");
+		sb.AppendLine("# 划词浮窗（本程序和其它程序里拖选或双击；词典词条里始终可用；默认关）");
 		sb.AppendLine($"dict_selbar = {(o.DictSelBar ? "true" : "false")}");
 		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
 		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");

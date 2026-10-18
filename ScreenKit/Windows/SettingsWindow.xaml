@@ -435,7 +435,7 @@
 						          AutomationProperties.AutomationId="set.dict.selbar"/>
 						<TextBlock x:Name="lbdictselbarhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
-						           Text="打开后，在其它程序里拖选或双击文字，会在选区旁显示和词典里一样的查词浮窗。默认关闭。"/>
+						           Text="打开后，在本程序或其它程序里拖选或双击文字，会在选区旁弹出查词浮窗。词典词条里始终可以划词。默认关闭。"/>
 						<TextBlock x:Name="lbhkhintDictSel" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="划词浮窗 · 打开或关闭。默认留空不注册"/>

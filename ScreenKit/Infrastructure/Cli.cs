@@ -6457,15 +6457,15 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		typeof(DictWindow).GetMethod("openselpop", BindingFlags.Instance | BindingFlags.NonPublic)
 			.Invoke(win.host, null);
 		for (var i = 0; i < 6; i++) pump();
-		var popOpen = win.host.psel.IsOpen;
+		var popOpen = win.host.SelShown;
 		var overlap = win.host.PopOverlapsSel();
-		Out($"selpop open={popOpen} overlap={overlap} y={win.host.psel.VerticalOffset:0}");
+		Out($"selpop open={popOpen} overlap={overlap}");
 		if (!popOpen || overlap) {
 			try { win.Close(); } catch { }
 			Err("FAIL: 划词浮窗挡住选中文字");
 			return 4;
 		}
-		win.host.psel.IsOpen = false;
+		win.host.CloseSel();
 		var dev = System.Windows.Input.Mouse.PrimaryDevice;
 		if (dev == null) {
 			try { win.Close(); } catch { }
@@ -6477,7 +6477,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		};
 		win.host.edetail.RaiseEvent(dbl);
 		for (var i = 0; i < 6; i++) pump();
-		var dblOpen = win.host.psel.IsOpen;
+		var dblOpen = win.host.SelShown;
 		Out($"dblclick open={dblOpen}");
 		if (!dblOpen) {
 			try { win.Close(); } catch { }
@@ -6493,7 +6493,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		probe.Show();
 		probe.Activate();
 		for (var i = 0; i < 8; i++) pump();
-		var hidden = !win.host.psel.IsOpen;
+		var hidden = !win.host.SelShown;
 		Out($"away active={win.IsActive} hidden={hidden}");
 		try { probe.Close(); } catch { }
 		if (!hidden) {

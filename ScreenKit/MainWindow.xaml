@@ -272,7 +272,7 @@
 				<MenuItem x:Name="mndictselbar" Header="划词浮窗"
 				          IsCheckable="True"
 				          AutomationProperties.AutomationId="menu.dictselbar"
-				          ToolTip="在其它程序里划选文字时显示查词浮窗"/>
+				          ToolTip="在本程序或其它程序里划选文字时显示查词浮窗。词典词条里始终可用"/>
 			</MenuItem>
 			<MenuItem x:Name="mnlang" Header="界面语言(_L)"
 			          AutomationProperties.AutomationId="menu.lang"/>

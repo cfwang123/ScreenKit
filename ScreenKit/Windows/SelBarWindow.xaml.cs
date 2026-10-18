@@ -46,6 +46,10 @@ public partial class SelBarWindow : Window {
 
 	bool langsync;
 	ToggleButton[] langs;
+	const double MINW = 296;
+	const double MINH = 168;
+	static bool sized;
+	static double keepW, keepH;
 
 	public SelBarWindow() {
 		InitializeComponent();
@@ -62,6 +66,7 @@ public partial class SelBarWindow : Window {
 		bselclose.Click += (_, _) => CloseClick?.Invoke();
 		bselturnoff.Click += (_, _) => TurnOffClick?.Invoke();
 		lsel.PreviewMouseWheel += (_, e) => scrolllist(lsel, e);
+		bgrip.DragDelta += (_, e) => gripmove(e.HorizontalChange, e.VerticalChange);
 		lsel.PreviewMouseLeftButtonUp += (_, e) => {
 			var row = rowat(e.OriginalSource as DependencyObject);
 			if (row != null) HitClick?.Invoke(row);
@@ -85,6 +90,7 @@ public partial class SelBarWindow : Window {
 		bselcopy.Content = Loc.T("dict.sel.copy");
 		bselclose.ToolTip = Loc.T("dict.sel.close");
 		bselturnoff.Content = Loc.T("dict.sel.turnoff");
+		bgrip.ToolTip = Loc.T("dict.sel.resize");
 		lbselwait.Text = Loc.T("dict.sel.searching");
 		bselfall.Content = Loc.T("dict.filter.all");
 		bselfzh.Content = Loc.T("dict.filter.zh");
@@ -153,10 +159,40 @@ public partial class SelBarWindow : Window {
 		return null;
 	}
 
+	/// <summary>本次运行里用户拖过的宽高。没拖过则仍按内容撑开。</summary>
+	void applysize() {
+		if (!sized) return;
+		SizeToContent = SizeToContent.Manual;
+		bdpop.MaxWidth = double.PositiveInfinity;
+		lsel.MaxHeight = double.PositiveInfinity;
+		rowhits.Height = new GridLength(1, GridUnitType.Star);
+		Width = keepW;
+		Height = keepH;
+	}
+
+	void gripmove(double dx, double dy) {
+		if (!sized) {
+			SizeToContent = SizeToContent.Manual;
+			bdpop.MaxWidth = double.PositiveInfinity;
+			lsel.MaxHeight = double.PositiveInfinity;
+			rowhits.Height = new GridLength(1, GridUnitType.Star);
+			Width = Math.Max(MINW, ActualWidth);
+			Height = Math.Max(MINH, ActualHeight);
+		}
+		var w = Math.Max(MINW, Width + dx);
+		var h = Math.Max(MINH, Height + dy);
+		Width = w;
+		Height = h;
+		sized = true;
+		keepW = w;
+		keepH = h;
+	}
+
 	/// <summary>浮窗放在选区物理矩形下方。放不下时改到上方。不激活，也不盖住选区。</summary>
 	public void ShowAt(Rect px) {
 		if (px.Width < 1) px.Width = 1;
 		if (px.Height < 1) px.Height = 1;
+		applysize();
 		if (!IsVisible) {
 			Left = -32000;
 			Top = -32000;
