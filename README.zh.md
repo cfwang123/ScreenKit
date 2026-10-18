@@ -2,7 +2,7 @@
 
 Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）：截图识别、标注、录屏、语音、翻译、词典、人脸，以及和安卓配套的传文件、投屏。本机还有 HTTP 接口和浏览器工具页。
 
-**当前版本：1.0.24** · [发布包](https://github.com/cfwang123/ScreenKit/releases/latest) · [更新日志](CHANGELOG.md) · [English](README.md)
+**当前版本：1.0.25** · [发布包](https://github.com/cfwang123/ScreenKit/releases/latest) · [更新日志](CHANGELOG.md) · [English](README.md)
 
 ![主界面](docs/1%20screenshot.png)
 

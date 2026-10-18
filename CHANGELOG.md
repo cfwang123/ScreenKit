@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.25 (2026-10-17 ~ 18)](#v1025-2026-10-17--18)
 - [v1.0.24 (2026-10-17)](#v1024-2026-10-17)
 - [v1.0.23.1 (2026-10-17)](#v10231-2026-10-17)
 - [v1.0.22 (2026-10-15 ~ 16)](#v1022-2026-10-15--16)
@@ -36,32 +37,33 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
 
+## v1.0.25 (2026-10-17 ~ 18)
+
 ### English
 
 #### Added
 
-- Translation auto mode is configurable: **Settings → Translate** adds **Native language** and **Learning language** (`translate_auto_native` / `translate_auto_learn`, default zh/en). Text that is not native is translated into the native language; native text into the learning language. The translate tab, popup, web tool, CLI (`--tr-dir auto` plus `--tr-native` / `--tr-learn`), and `POST /api/translate` (`native` / `learn`) follow the pair.
+- Translation auto mode is configurable: **Settings → Translate** adds **Native language** and **Learning language** (default zh/en). Text that is not native is translated into the native language; native text into the learning language. The translate tab, popup, web tool, CLI, and `POST /api/translate` all follow the pair.
 - Auto translation now shows the detected direction in the translate tab and popup (for example `Auto detect: English → Chinese`) and updates it as you type.
 - On the Translate tab, **Ctrl+Enter** starts translation (same as the translate popup).
 - Wubi, Japanese, and Korean input takes custom lexicons. The lexicon window (IME tray menu, or Ctrl+Shift+F7) imports a text lexicon, exports the user words, and deletes entries; the text under dict/ next to the program is the source of truth, so a reinstalled ime.db restores it. Wubi is code + word, Japanese reading + word (kana or romaji), Korean just the word. --ime-dict-import <wubi|ja|ko> <file> imports from the command line.
 - Wubi candidates can skip rare characters: entries in the lexicon with no word frequency (CJK extension characters, uncommon idioms) are hidden by default. The Rare characters item in the IME tray menu, or the checkbox in IME settings, brings them back. Words you pinned or imported are always shown.
 - Japanese numbers: the row now shows the kanji form with the kana reading in parentheses, e.g. 一京（いっけい）. The speak button still reads only the kana.
-- Translate tab: a Chrome models link on the hint line opens the model page in the local Chrome
+- Translate tab: a Chrome models link on the hint line opens the model page in the local Chrome.
 - Web tools translate card: added engine and model pickers. The engine list is auto / local ONNX / Chrome / every LLM endpoint from Settings; the model list shows local ONNX models only, and picking one moves the source and target languages to that model's direction.
 - HTTP translate: GET /api/translate/langs now also returns the engines and the local ONNX models; POST /api/translate takes engine=auto|onnx|chrome|llm, and with engine=onnx the model field picks a local model by direction key or folder name.
-- Character art lines: pick the character set (basic, rich ASCII, or box drawing); corners, tees, and wide strokes now use matching characters
-- Character art: new Dot shading mode that picks · ░ ▒ ▓ █ by brightness
+- Character art: the line modes offer three character sets (basic, rich ASCII, box drawing); corners, tees, and wide strokes draw with matching characters.
+- Character art: a new dot shading mode picks · ░ ▒ ▓ █ by brightness.
 
 #### Changed
 
 - Rare characters are now judged by the character tables instead of word frequency alone: a candidate is rare when the lexicon gives it no word frequency, when it holds a character GBK cannot encode (CJK extension planes, e.g. 𠛈), or when it is outside the GB2312 7000-character set and rarely used. Frequently used characters missing from that table (啰, 囧, 喆) stay visible, and rare words you picked earlier now follow the switch too — pin one to keep it always shown.
 - Input method: your own lexicon, pins and pick counts now live in ime_user.db next to the program (custom / pin / pick tables); ime.db holds only the lexicon, so the file you upload carries no personal words or usage. --ime-db-clean [src] [out] writes a cleaned copy.
-- Character art lines: the earlier per-cell drawing is back as a Legacy entry in the character list
-- Character art: the Lines checkbox is gone; the mode list now holds Shades ASCII (default) plus the line modes
+- Character art: the Lines checkbox is gone; the mode list now holds Shades ASCII (default) plus the line modes and dot shading, with the earlier per-cell drawing back as Legacy.
 
 #### Fixed
 
-- Wubi/Japanese typing no longer drops keys. The candidate bar used to be built and rendered inside the keyboard hook; when that took longer than the Windows hook timeout (300 ms) the system silently removed the hook and letters or Backspace stopped responding. The bar is now rendered after the hook returns and pre-rendered when the IME is switched on, the lexicon is scanned by a background thread at startup, and the tray icon is only touched when it changes.
+- Wubi/Japanese typing no longer drops keys. Drawing the candidate bar inside the keyboard hook could exceed the Windows hook timeout (300 ms), after which the system silently removed the hook and letters or Backspace stopped responding; the bar is now drawn after the hook returns and pre-rendered when the IME is switched on. The lexicon is warmed up on a background thread, and the tray icon is only touched when it changes.
 - Number notation: the middle-number reading advanced by 10^8, so 1e16 read the same as the large-number reading. It now advances by 10^4, so 1e16 is a jing (一京).
 - Japanese reading: 1e16 read いちけい. Units starting with a voiceless consonant now take the 促音 (六京 ろっけい、百京 ひゃっけい), and a は行 unit turns semi-voiced after it.
 - Korean: the native-numeral row used native digits for the fraction (0.12345 read 영 점 하나둘셋넷다섯). Native numerals do not cover decimals, so that row stays blank and the Sino-Korean row reads 영 점 일이삼사오.
@@ -71,28 +73,27 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 翻译的自动互译可配置：**参数设置 → 翻译** 增加 **母语** 与 **学习语言**（`translate_auto_native` / `translate_auto_learn`，默认 zh/en）。非母语文本译成母语，母语文本译成学习语言。翻译页、翻译小窗、网页工具、命令行（`--tr-dir auto` 及 `--tr-native` / `--tr-learn`）和 `POST /api/translate`（`native` / `learn`）都按这对语言互译。
+- 翻译的自动互译可配置：**参数设置 → 翻译** 增加 **母语** 与 **学习语言**（默认 zh/en）。非母语文本译成母语，母语文本译成学习语言。翻译页、翻译小窗、网页工具、命令行和 `POST /api/translate` 都按这对语言互译。
 - 翻译页和翻译小窗在「自动」时显示判断结果（如「自动检测：英文 → 中文」），随输入实时更新。
 - 翻译页支持 **Ctrl+Enter** 直接开始翻译（与翻译小窗一致）。
 - 五笔、日语、韩语输入支持自定义词库。「词库」窗口（输入法托盘菜单，或 Ctrl+Shift+F7）可导入文本词库、导出用户词、删除词条；程序旁 dict/ 下的文本是词库本体，重装 ime.db 后自动恢复。五笔是「编码 + 词」，日语「读音 + 词」（假名或罗马字），韩语只有「词」。命令行 --ime-dict-import <wubi|ja|ko> <文件> 也能导入。
 - 五笔候选可以不要生僻字：词库里没有词频的字词（CJK 扩展区、罕用成语）默认不显示，输入法托盘菜单的「生僻字」，或输入法设置里的勾选框可以打开。自己置顶和导入的词照常显示。
 - 日语数字：写成「汉字（读法）」，如 一京（いっけい）；发音仍只念括号里的读法。
-- 翻译页提示行右侧新增「Chrome模型安装」链接，用本机 Chrome 打开 Chrome 模型页
+- 翻译页提示行右侧新增「Chrome模型安装」链接，用本机 Chrome 打开 Chrome 模型页。
 - 网页工具翻译卡增加「引擎」和「模型」两个下拉。引擎可选自动、本地 ONNX、Chrome 和参数设置里的每个 LLM 端点；模型只列本地 ONNX 模型，选定后源/目标语言跟着模型方向走。
 - HTTP 翻译：GET /api/translate/langs 同时返回可选引擎和本地 ONNX 模型；POST /api/translate 支持 engine=auto|onnx|chrome|llm，engine=onnx 时用 model 按方向键或目录名指定本地模型。
-- 字符画线条模式：可选字符集（基本、丰富 ASCII、制表符框线），拐角、三岔和宽线用对应字符画出
-- 字符画：新增「点阵阴影」模式，按亮度在 · ░ ▒ ▓ █ 之间取字符
+- 字符画：线条画法有三档字符集（基本、丰富 ASCII、制表符框线），拐角、三岔和宽线都按方向用对应字符画出。
+- 字符画：新增「点阵阴影」模式，按亮度在 · ░ ▒ ▓ █ 之间取字符。
 
 #### 变更
 
 - 生僻字改按字表判定：词库没给词频的行、含 GBK 编不进的字（CJK 扩展区，如 𠛈）、以及 GB2312 七千字表外又很少用的字都算生僻。表外的常用字（啰、囧、喆）照旧显示；以前选用过的生僻词现在也跟着开关走，想一直在就置顶。
 - 输入法：自定义词库、置顶和选用次数改存程序旁的 ime_user.db（custom / pin / pick 三张表），ime.db 只剩词库本体，上传的 ime.db 不再带个人词和使用记录；--ime-db-clean [源] [产物] 可另存一份干净的。
-- 字符画线条：字符列表里恢复「旧版」，回到改版前每个格子只判一个方向的画法
-- 字符画：去掉「线条」勾选框，改成「模式」下拉，含明暗 ASCII（默认）和几种线条画法
+- 字符画：去掉「线条」勾选框，改成「模式」下拉，含明暗 ASCII（默认）、点阵阴影和几种线条画法；改版前每个格子只判一个方向的画法作为「旧版」保留。
 
 #### 修复
 
-- 五笔/日语打字不再丢键。候选条原来是在键盘钩子里现建现画的，一旦超过系统的钩子超时（300 毫秒），系统会悄悄把钩子摘掉，之后字母和退格就没了反应。现在候选条改在钩子返回之后再画，并在开启输入法时先离屏渲染一遍；词库在启动时由后台线程预热；托盘图标只在真变了才碰。
+- 五笔/日语打字不再丢键。候选条原来在键盘钩子里现建现画，一旦超过系统的钩子超时（300 毫秒），系统会悄悄摘掉钩子，之后字母和退格就没了反应。现在候选条改在钩子返回后再画，开启输入法时先离屏渲染一遍；词库在启动时由后台线程预热，托盘图标只在真变了才碰。
 - 数字表记：中数原来按万万（10^8）递进，1e16 与大数同为「兆」；改为按万（10^4）递进，1e16 读作「一京」。
 - 日语读法：1e16 原来读 いちけい。清音开头的单位前改按促音读，如 六京 ろっけい、百京 ひゃっけい；は行促音后变半浊音。
 - 韩文固有：小数原来按固有数词逐位读（0.12345 是 영 점 하나둘셋넷다섯）。固有数词不用于小数，这一行改为留空，小数由韩文汉字行读，如 영 점 일이삼사오。
@@ -259,10 +260,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Edge online speech uses the current Sec-MS-GEC v2 token. The previous token was rejected with HTTP 403.
 - Windows OCR in Chinese or English puts spaces back into English words where the picture has a word gap.
 
-#### Documentation
-
-- The English README is now the short feature overview, matching the Chinese one. The previous full text is kept at docs/archive/README.md.
-
 ### 中文
 
 #### 新增
@@ -291,10 +288,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Edge 在线语音改用现在的 Sec-MS-GEC v2 令牌。旧令牌在合成时会被拒绝并返回 403。
 - Windows OCR 在中文或英文下，按画面词距把粘在一起的英文补回空格。
-
-#### 文档
-
-- 英文 README 改为与中文相同的简版功能说明。原先的完整说明保留在 docs/archive/README.md。
 
 ## v1.0.21 (2026-10-14 ~ 15)
 
@@ -397,10 +390,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The tools page no longer has the duplicate Calculator and Scientific cards. Scientific calculator remains.
 
-#### Documentation
-
-- The Chinese README is now the short feature overview. The previous full text is kept at docs/archive/README.zh.md.
-
 ### 中文
 
 #### 新增
@@ -499,10 +488,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 移除
 
 - 工具页去掉重复的计算器和科学计算，只保留科学计算器。
-
-#### 文档
-
-- 中文 README 改为简版功能说明。原先的完整说明保留在 docs/archive/README.zh.md。
 
 ## v1.0.20 (2026-10-13 ~ 14)
 
@@ -907,7 +892,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Test data picks one kind: Chinese name, Chinese screen name, English screen name, email, phone, address, company, username, ID number, MAC address, or UUID. Each line is one value. The separate MAC address and UUID cards are gone. The card is named **Generate test data**. An old favorite or `#u-mac` / `#u-uuid` opens that tool with the matching kind selected.
 - Text-category tools update the result when the text or an option changes. Japanese yomi and the regex tester stay on their buttons. Unit conversion does the same.
 - Length, area, volume, mass, temperature, time, storage, pressure, power, px/rem, and currency are one tool, Unit conversion. The number box accepts a unit, such as `1 m`, `3 jin`, or `5 kg`, and the kind and the original unit follow that text. The new-unit list gains **All** and starts on it, so one conversion lists every unit of that kind. The first line echoes what you entered. Picking one unit puts that single answer on the next line. Foreign currency uses the Bank of China middle rate of 2026-10-10, and the result says so. Text compare, JSON diff, and find-and-replace are removed. An old favorite of one of those tools opens Unit conversion.
-- The README install-features section lists which slim-package features work immediately and which need a download, with each component’s installer size.
 - Each tools-page tool is its own script under `web/tools`. When ScreenKit starts, those scripts are joined into `tools.js` if one of them is newer than that file. The joined `ScreenKit/Web/tools.js` is not committed. The slim package ships that joined `web/tools.js` only.
 - The tools page puts the open tool in the address hash, such as `#ocr`. Back returns to the previous tool or the home list. Categories stay on the left and that category's tools sit under a heading on the right. Scrolling highlights the matching category. There is no All Tools category. A favorite is listed again once under its own category.
 - The tray **Web tools** menu and the main-window **Tools → Web tools** menu list every tool under its category. The first item is **Web tools home**. The next is **File transfer**, which opens `/files`.
@@ -953,7 +937,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 「生成测试数据」先选一种：中文姓名、中文网名、英文网名、邮箱、手机、地址、公司、用户名、身份证、MAC 地址、UUID。一行一条。单独的「MAC 地址」和「UUID」已去掉。原来收藏了这两项，或打开 `#u-mac`、`#u-uuid`，会打开这个工具并选中对应类型。
 - 文字分类的工具在修改文字或选项时直接出结果。日文注音和正则仍要点按钮。单位换算同样是一改就出结果。
 - 长度、面积、体积、重量、温度、时间、存储、压力、功率、像素和货币合成「单位换算」。数值框可以直接带单位，例如 `1米`、`3斤`、`5kg`，类型和原单位跟着这个单位走。新单位里多了 **全部**，并且默认就是它，一次列出该类型的全部单位。第 1 行回显原值；选具体单位时，下一行就是那一行结果。外币用中国银行 2026-10-10 中间价，结果里会注明。文本比对、JSON 差异和查找替换已去掉。原来收藏了其中一项时，会打开「单位换算」。
-- README 的「安装功能」列出精简包里哪些功能可以直接用，哪些要先安装，并写上各组件在安装器里的大约体积。
 - 工具页的每个工具单独放在 `web/tools` 里。程序启动时，若其中有文件比 `tools.js` 新，就合并成 `tools.js`。合成后的 `ScreenKit/Web/tools.js` 不提交。精简发布包只带这一份 `web/tools.js`。
 - 工具页进入某个工具时，地址带上 `#工具名`，例如 `#ocr`。后退回到上一个工具或首页。左边竖排全部分类，右边按分类列出工具。滚动时左边高亮对应分类。去掉「全部工具」。收藏里的工具在原分类再出现一次。
 - 托盘 **web工具** 和主窗口 **工具 → web工具** 按分类列出全部工具。第一项是 **web工具主页**，下一项是 **文件传输**，打开 `/files`。
@@ -1506,10 +1489,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Speech Synthesis: rate and volume sliders no longer overlap the voice combo (the settings grid was missing a fifth row).
 
-#### Documentation
-
-- Clarified that every CHANGELOG entry and GitHub Release description must include both English and Chinese.
-
 ### 中文
 
 #### 新增
@@ -1524,10 +1503,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 语音合成：语速、音量不再与发音人下拉框重叠（设置区 Grid 漏了第 5 行）。
-
-#### 文档
-
-- 明确要求每条 CHANGELOG 记录和 GitHub Release 说明均同时提供英文与中文。
 
 ## v1.0.6 (2026-09-10)
 
