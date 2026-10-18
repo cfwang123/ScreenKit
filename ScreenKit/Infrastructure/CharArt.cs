@@ -221,7 +221,7 @@ static class CharArt {
 		var chars = new char[ncell];
 		for (var i = 0; i < ncell; i++) {
 			if (masks[i] != 0) chars[i] = lineglyph(masks[i], thicks[i], lineset);
-			else if (diags[i] != 0) chars[i] = diagchar(diags[i]);
+			else if (diags[i] != 0) chars[i] = diagchar(diags[i], lineset);
 			else chars[i] = ' ';
 		}
 		var sb = new StringBuilder(rows * (cols + 1));
@@ -517,6 +517,13 @@ static class CharArt {
 			lineglyph(E_U | E_D, false, LINES_ASCII) != '|' || lineglyph(E_U | E_D, true, LINES_ASCII) != '!' ||
 			lineglyph(E_R | E_D, false, LINES_ASCII) != '(' || lineglyph(E_L | E_U, false, LINES_ASCII) != ']') {
 			bad("charart ascii glyphs");
+			return 1;
+		}
+		if (lineglyph(E_L | E_R | E_D, false, LINES_ASCII) != 'v' || lineglyph(E_U | E_D | E_R, false, LINES_ASCII) != '>' ||
+			lineglyph(E_L | E_R | E_U | E_D, false, LINES_ASCII) != '#' ||
+			diagchar(1, LINES_BOX) != '╱' || diagchar(2, LINES_BOX) != '╲' ||
+			diagchar(1, LINES_ASCII) != '/' || diagchar(2, LINES_ASCII) != '\\') {
+			bad("charart ascii tees");
 			return 1;
 		}
 		if (lineglyph(E_L | E_R, false, LINES_BOX) != '─' || lineglyph(E_U | E_D, true, LINES_BOX) != '║' ||
@@ -1093,7 +1100,7 @@ static class CharArt {
 		return false;
 	}
 
-	/// <summary>按连接方向选字符。基本是 - | / \ +；丰富 ASCII 另有 = ! ( ) [ ] #；制表符用 ─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼，粗线换双线。</summary>
+	/// <summary>按连接方向选字符。基本是 - | / \ +；丰富 ASCII 另有 = ! ( ) [ ] v ^ &lt; &gt; #；制表符用 ─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼，粗线换双线。</summary>
 	static char lineglyph(int mask, bool thick, int lineset) {
 		if (lineset == LINES_BOX) {
 			switch (mask) {
@@ -1124,10 +1131,10 @@ static class CharArt {
 				case E_R | E_U: return '[';
 				case E_L | E_U: return ']';
 				case E_L | E_R | E_U | E_D: return '#';
-				case E_L | E_R | E_D:
-				case E_L | E_R | E_U:
-				case E_U | E_D | E_R:
-				case E_U | E_D | E_L: return '+';
+				case E_L | E_R | E_D: return 'v';
+				case E_L | E_R | E_U: return '^';
+				case E_U | E_D | E_R: return '>';
+				case E_U | E_D | E_L: return '<';
 				case E_L:
 				case E_R: return '-';
 				case E_U:
@@ -1143,7 +1150,10 @@ static class CharArt {
 		return ' ';
 	}
 
-	static char diagchar(byte d) => d == 1 ? '/' : '\\';
+	static char diagchar(byte d, int lineset) {
+		if (lineset == LINES_BOX) return d == 1 ? '╱' : '╲';
+		return d == 1 ? '/' : '\\';
+	}
 
 	/// <summary>格子内部没有对比时，看比相邻格子更暗的一侧。线正好落在交界上也会画出来，而且只占更暗的那一格。</summary>
 	static int edgeseam(int[] lum, int x, int y, int cols, int rows, int cut, out byte diag) {
