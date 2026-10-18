@@ -8,7 +8,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 
 ## Screenshot and recognition
 
-- **Screenshot OCR**: A hotkey or the menu selects a region and recognizes text and barcodes; with no other model chosen it uses Windows OCR, and an installed ONNX model can replace the engine. Recognition can overlay a translation.
+- **Screenshot OCR**: A hotkey or the menu selects a region and recognizes text and barcodes; the recognition engine can be switched, and recognition can overlay a translation.
 - **Screenshot annotate**: Rectangle, ellipse, arrow, pen, and text; on finish it copies as an image, a file, or a path.
 - **Repeat last capture**: A hotkey or the menu grabs the last region you selected again.
 - **Long screenshot**: Click a scrollable window and it scrolls and stitches one long picture.
@@ -28,22 +28,22 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 
 ## Speech, translation, dictionary, and face
 
-- **Speech recognition**: Live captions with an offline or streaming model, or Windows speech when no offline model is installed.
+- **Speech recognition**: Live captions with an offline or streaming model.
 - **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome.
 - **Voice input**: The hotkey starts and finishes it, and the result goes to the current input position.
 - **Chat**: Uses a configured LLM, with bubbles, microphone input, and speaking.
 - **LLM log**: The latest ~1,000 requests with the model, elapsed time, and the request and response.
-- **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model, and **Chrome models** opens the Chrome model page.
-- **Face**: Detection and comparison, with optional landmarks and gender and age; models come from Install features.
+- **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model.
+- **Face**: Detection and comparison, with optional landmarks and gender and age.
 - **Chinese to pinyin**: Full spelling without tone marks, or one capital initial per character.
-- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Install the lexicon under **Help → Install features**, turn it on from **Tools**, and manage custom words in the tray **Lexicon**.
+- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, and manage custom words in the tray **Lexicon**.
 - **Simplified/Traditional**: Simplified on top, traditional below, following Taiwan character forms.
 - **Japanese yomi**: Turns a Japanese sentence into readings, by word or by character.
 - **Calendars**: Gregorian to lunar (sexagenary cycle and leap months), plus Japanese, Taiwan, Hebrew, Hijri, Persian, and others.
 
 ### Dictionary
 
-The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese, and Korean; the dictionary file is downloaded under **Help → Install features**.
+The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese, and Korean.
 
 - Language filter: All, Chinese, Japanese, Korean, English.
 - Pure Latin input is romanized for Japanese and Korean search (romaji to hiragana, Korean romanization to Hangul), such as `watashi` and `hanguk`.
@@ -58,7 +58,7 @@ The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese
 
 ### File sync
 
-On the PC, open **File sync**; the phone and the PC are on the same LAN, and the APK can be checked, downloaded, and installed from a QR code on this page.
+On the PC, open **File sync**; the phone and the PC are on the same LAN.
 
 - The list is `sendfile/` next to the program, one level deep: list or thumbnails, marquee and multi-select, cut/copy/paste, and delete to the Recycle Bin.
 - Dropping files onto the list puts them in the inbox; dropping onto the lower area sends them to the phone while it is connected, and a phone share or upload writes to `sendfile/`.
@@ -75,8 +75,8 @@ This program receives while it is running, and that can be turned off in Setting
 ## Tools
 
 - **Image convert**: Batch convert to JPG, PNG, palette PNG, or BMP, with a shorter-side cap, rotation, and mirror.
-- **Batch video convert**: Batch convert to MP4, MKV, or WebM. It needs FFmpeg.
-- **Video to GIF**: Pick a start and an end and write a silent GIF. It needs FFmpeg.
+- **Batch video convert**: Batch convert to MP4, MKV, or WebM, with a shorter-side cap and the audio kept.
+- **Video to GIF**: Pick a start and an end and write a silent GIF, with a frame rate and a palette.
 - **Character art**: The **Mode** list picks Shades ASCII, Dot shading, or one of the line drawings; full-color character art is drawn in a console window.
 - **Pixel art**: Choose a width and a height, paint on large cells, and preview at real pixel size. Copy or save a PNG.
 - **Character bitmaps**: Draw each character as a dot matrix and export a C array, hex, or dot-matrix text.
