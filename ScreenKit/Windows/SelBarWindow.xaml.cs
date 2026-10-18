@@ -258,3 +258,16 @@ public partial class SelBarWindow : Window {
 		public int Left, Top, Right, Bottom;
 	}
 }
+
+/// <summary>词头列最多占所在行的一半。</summary>
+public sealed class SelHalfWidth : System.Windows.Data.IValueConverter {
+	public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) {
+		var w = value is double d ? d : 0;
+		if (w < 16) return 160.0;
+		return Math.Max(48.0, w * 0.5 - 8);
+	}
+
+	public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) {
+		return System.Windows.Data.Binding.DoNothing;
+	}
+}
