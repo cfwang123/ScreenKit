@@ -98,12 +98,16 @@
 		live: false,
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
+				+ '<span class="msg" id="num-msg"></span>'
 				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
 			var box = F.id("box-in");
 			var list = F.id("num-list");
+			// 每一行都自带复制和发音，底部那行「复制结果」整条不要，消息改到 num-msg。
+			var bar = F.id("box-copy") && F.id("box-copy").parentElement;
+			if (bar) bar.style.display = "none";
 			if (box) box.oninput = rerun;
 			if (list && !F.attr(list, "data-bind")) {
 				F.seta(list, "data-bind", "1");
@@ -119,7 +123,7 @@
 		if (!String(SK.val("box-in")).trim()) {
 			paint([]);
 			if (F.id("box-out")) F.id("box-out").value = "";
-			SK.msg("box-msg", "");
+			SK.msg("num-msg", "");
 			return;
 		}
 		SK.utilrun();
@@ -133,7 +137,7 @@
 		var text = F.attr(btn, "data-v") || "";
 		if (!text) return;
 		if (F.attr(btn, "data-act") === "speak") speak(text, F.attr(btn, "data-lang") || "");
-		else SK.copytext(text, "box-msg");
+		else SK.copytext(text, "num-msg");
 	}
 
 	function speak(text, lang){
@@ -142,8 +146,8 @@
 			text: text,
 			lang: lang || ""
 		}, function(data){
-			SK.playwav(data && data.wav_base64, "box-msg");
-		}, "box-msg");
+			SK.playwav(data && data.wav_base64, "num-msg");
+		}, "num-msg");
 	}
 
 	function numread(text){
@@ -153,8 +157,10 @@
 		}
 		catch (ex) {
 			paint([]);
-			throw ex;
+			SK.msg("num-msg", ex && ex.message ? ex.message : "失败", true);
+			return "";
 		}
+		SK.msg("num-msg", "");
 		if (!parsed) {
 			paint([]);
 			return "";
