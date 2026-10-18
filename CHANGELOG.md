@@ -47,6 +47,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Wubi candidates can skip rare characters: entries in the lexicon with no word frequency (CJK extension characters, uncommon idioms) are hidden by default. The Rare characters item in the IME tray menu, or the checkbox in IME settings, brings them back. Words you pinned or imported are always shown.
 - Japanese numbers: the row now shows the kanji form with the kana reading in parentheses, e.g. 一京（いっけい）. The speak button still reads only the kana.
 - Translate tab: a Chrome models link on the hint line opens the model page in the local Chrome
+- Web tools translate card: added engine and model pickers. The engine list is auto / local ONNX / Chrome / every LLM endpoint from Settings; the model list shows local ONNX models only, and picking one moves the source and target languages to that model's direction.
+- HTTP translate: GET /api/translate/langs now also returns the engines and the local ONNX models; POST /api/translate takes engine=auto|onnx|chrome|llm, and with engine=onnx the model field picks a local model by direction key or folder name.
 
 #### Changed
 
@@ -71,6 +73,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 五笔候选可以不要生僻字：词库里没有词频的字词（CJK 扩展区、罕用成语）默认不显示，输入法托盘菜单的「生僻字」，或输入法设置里的勾选框可以打开。自己置顶和导入的词照常显示。
 - 日语数字：写成「汉字（读法）」，如 一京（いっけい）；发音仍只念括号里的读法。
 - 翻译页提示行右侧新增「Chrome模型安装」链接，用本机 Chrome 打开 Chrome 模型页
+- 网页工具翻译卡增加「引擎」和「模型」两个下拉。引擎可选自动、本地 ONNX、Chrome 和参数设置里的每个 LLM 端点；模型只列本地 ONNX 模型，选定后源/目标语言跟着模型方向走。
+- HTTP 翻译：GET /api/translate/langs 同时返回可选引擎和本地 ONNX 模型；POST /api/translate 支持 engine=auto|onnx|chrome|llm，engine=onnx 时用 model 按方向键或目录名指定本地模型。
 
 #### 变更
 

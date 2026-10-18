@@ -2,6 +2,7 @@ using System.Collections;
 using System.IO;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 
 namespace ScreenKit;
@@ -36,8 +37,18 @@ public partial class CharArtWindow : Window {
 		};
 		ckinv.Checked += (_, _) => showascii();
 		ckinv.Unchecked += (_, _) => showascii();
-		ckline.Checked += (_, _) => showascii();
-		ckline.Unchecked += (_, _) => showascii();
+		ckline.Checked += (_, _) => {
+			updatelineset();
+			showascii();
+		};
+		ckline.Unchecked += (_, _) => {
+			updatelineset();
+			showascii();
+		};
+		elineset.SelectionChanged += (_, _) => {
+			updatelineset();
+			showascii();
+		};
 		eout.AllowDrop = true;
 		AddHandler(DragOverEvent, new DragEventHandler(ondrag), true);
 		AddHandler(DropEvent, new DragEventHandler(ondrop), true);
@@ -55,11 +66,29 @@ public partial class CharArtWindow : Window {
 		ckinv.Content = Loc.T("charart.invert");
 		ckline.Content = Loc.T("charart.line");
 		ckline.ToolTip = Loc.T("charart.line.tip");
+		elineset.ToolTip = Loc.T("charart.lineset.tip");
+		filllineset();
+		updatelineset();
 		lbhint.Text = Loc.T("charart.hint");
 		ToolBtnUi.Set(bpick, ToolBtnUi.Browse, Loc.T("charart.pick"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("charart.copy"));
 		ToolBtnUi.Set(bcolor, ToolBtnUi.Font, Loc.T("charart.color"));
 		if (px == null) lbstat.Text = Loc.T("charart.empty");
+	}
+
+	void filllineset() {
+		var keep = elineset.SelectedIndex;
+		elineset.Items.Clear();
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.simple"), Tag = CharArt.LINES_SIMPLE });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.ascii"), Tag = CharArt.LINES_ASCII });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.box"), Tag = CharArt.LINES_BOX });
+		elineset.SelectedIndex = keep >= 0 && keep < elineset.Items.Count ? keep : 0;
+	}
+
+	void updatelineset() {
+		var on = ckline.IsChecked == true;
+		elineset.IsEnabled = on;
+		elineset.Opacity = on ? 1 : 0.45;
 	}
 
 	void pick() {
@@ -185,9 +214,10 @@ public partial class CharArtWindow : Window {
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
 		var line = ckline.IsChecked == true;
+		var lineset = elineset.SelectedItem is ComboBoxItem it && it.Tag is int k ? k : CharArt.LINES_SIMPLE;
 		eth.ToolTip = Loc.T(line ? "charart.line.th" : "charart.threshold.tip");
 		eout.Text = line
-			? CharArt.Lines(px, w, h, cols, ckinv.IsChecked == true, threshold)
+			? CharArt.Lines(px, w, h, cols, ckinv.IsChecked == true, threshold, lineset)
 			: CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold);
 		var lines = 1;
 		foreach (var ch in eout.Text)

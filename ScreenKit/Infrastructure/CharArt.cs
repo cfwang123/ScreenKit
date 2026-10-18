@@ -21,6 +21,16 @@ static class CharArt {
 	public const int MODE_HALF = 2;
 	public const int MODE_QUARTER = 4;
 	public const int MODE_EIGHTH = 8;
+	public const int LINES_SIMPLE = 0;
+	public const int LINES_ASCII = 1;
+	public const int LINES_BOX = 2;
+	// 线在格子里的四个连接方向：1 上、2 下、4 左、8 右。
+	const int E_U = 1;
+	const int E_D = 2;
+	const int E_L = 4;
+	const int E_R = 8;
+	// 整行（整列）都暗到 cut 的这么多倍，才算粗线。
+	const int THICK_SPAN = 2;
 	const double CELL_ASPECT = 2;
 	// 四象限最远一对的通道平方和小于此值才当成一色。差 3 级就要拆开。
 	const int SPLIT_DIST = 9;
@@ -159,8 +169,8 @@ static class CharArt {
 		return buf;
 	}
 
-	/// <summary>按格子里的明暗走向画线。横线 -，竖线 |，斜线 / 与 \，十字 +。threshold 为 0 时很淡的边和落在格子交界上的线也保留，越高越只留更明显的线。</summary>
-	public static string Lines(byte[] px, int w, int h, int cols, bool invert, int threshold) {
+	/// <summary>按格子里的明暗走向画线。threshold 为 0 时很淡的边和落在格子交界上的线也保留，越高越只留更明显的线。lineset 选字符集：基本 - | / \ +、丰富 ASCII、制表符。</summary>
+	public static string Lines(byte[] px, int w, int h, int cols, bool invert, int threshold, int lineset = LINES_SIMPLE) {
 		if (px == null || w < 1 || h < 1) return "";
 		if (cols < 1) cols = 1;
 		if (cols > 400) cols = 400;
@@ -169,7 +179,9 @@ static class CharArt {
 		var rows = gridrows(w, h, cols);
 		var ncell = rows * cols;
 		var lums = new int[ncell];
-		var chars = new char[ncell];
+		var masks = new int[ncell];
+		var thicks = new bool[ncell];
+		var diags = new byte[ncell];
 		var s = new int[9];
 		var cut = linecut(threshold);
 		for (var y = 0; y < rows; y++) {
@@ -192,14 +204,25 @@ static class CharArt {
 				}
 				var i = y * cols + x;
 				lums[i] = sum / 9;
-				chars[i] = linech(s, cut);
+				masks[i] = edgemask(s, cut);
+				if (masks[i] != 0) thicks[i] = thickline(s, masks[i], cut);
+				else diags[i] = diagof(s, cut);
 			}
 		}
+		// 线正好落在格子交界上时，格子内部没有方向，改看比相邻格子暗的那一侧。
 		for (var y = 0; y < rows; y++) {
 			for (var x = 0; x < cols; x++) {
 				var i = y * cols + x;
-				if (chars[i] == ' ') chars[i] = edgech(lums, x, y, cols, rows, cut);
+				if (masks[i] != 0 || diags[i] != 0) continue;
+				masks[i] = edgeseam(lums, x, y, cols, rows, cut, out var seam);
+				if (masks[i] == 0 && seam != 0) diags[i] = seam;
 			}
+		}
+		var chars = new char[ncell];
+		for (var i = 0; i < ncell; i++) {
+			if (masks[i] != 0) chars[i] = lineglyph(masks[i], thicks[i], lineset);
+			else if (diags[i] != 0) chars[i] = diagchar(diags[i]);
+			else chars[i] = ' ';
 		}
 		var sb = new StringBuilder(rows * (cols + 1));
 		for (var y = 0; y < rows; y++) {
@@ -490,6 +513,49 @@ static class CharArt {
 			bad("charart line faint");
 			return 1;
 		}
+		if (lineglyph(E_L | E_R, false, LINES_ASCII) != '-' || lineglyph(E_L | E_R, true, LINES_ASCII) != '=' ||
+			lineglyph(E_U | E_D, false, LINES_ASCII) != '|' || lineglyph(E_U | E_D, true, LINES_ASCII) != '!' ||
+			lineglyph(E_R | E_D, false, LINES_ASCII) != '(' || lineglyph(E_L | E_U, false, LINES_ASCII) != ']') {
+			bad("charart ascii glyphs");
+			return 1;
+		}
+		if (lineglyph(E_L | E_R, false, LINES_BOX) != '─' || lineglyph(E_U | E_D, true, LINES_BOX) != '║' ||
+			lineglyph(E_R | E_D, false, LINES_BOX) != '┌' || lineglyph(E_L | E_R | E_U | E_D, false, LINES_BOX) != '┼' ||
+			lineglyph(E_L | E_R | E_U | E_D, true, LINES_BOX) != '╬' || lineglyph(E_L, false, LINES_BOX) != '╴') {
+			bad("charart box glyphs");
+			return 1;
+		}
+		if (Lines(solid(9, 18, 255, 255, 255), 9, 18, 3, false, 0, LINES_BOX).Trim().Length != 0) {
+			bad("charart box blank");
+			return 1;
+		}
+		var boxh = Lines(hz, 9, 18, 3, false, 0, LINES_BOX);
+		if (countch(boxh, '─') < 3 || countch(boxh, '┼') != 0) {
+			bad("charart box h " + boxh.Replace("\n", "/"));
+			return 1;
+		}
+		var boxv = Lines(vt, 9, 18, 3, false, 0, LINES_BOX);
+		if (countch(boxv, '│') < 3) {
+			bad("charart box v " + boxv.Replace("\n", "/"));
+			return 1;
+		}
+		var corner = solid(9, 18, 255, 255, 255);
+		for (var cy = 9; cy < 18; cy++) ink(corner, 9, 4, cy);
+		for (var cx = 4; cx < 9; cx++) ink(corner, 9, cx, 9);
+		var cornbox = Lines(corner, 9, 18, 3, false, 0, LINES_BOX);
+		var cornasc = Lines(corner, 9, 18, 3, false, 0, LINES_ASCII);
+		if (countch(cornbox, '┌') < 1 || countch(cornasc, '(') < 1) {
+			bad("charart corner " + cornbox.Replace("\n", "/") + " | " + cornasc.Replace("\n", "/"));
+			return 1;
+		}
+		var wide = solid(9, 18, 255, 255, 255);
+		for (var wy = 8; wy < 12; wy++) paintrow(wide, 9, wy, 0, 0, 0);
+		var widebox = Lines(wide, 9, 18, 3, false, 0, LINES_BOX);
+		var wideasc = Lines(wide, 9, 18, 3, false, 0, LINES_ASCII);
+		if (countch(widebox, '═') < 3 || countch(wideasc, '=') < 3) {
+			bad("charart thick " + widebox.Replace("\n", "/") + " | " + wideasc.Replace("\n", "/"));
+			return 1;
+		}
 		Fit(100, 50, 50, 20, out var fw, out var fh, out var fox, out var foy);
 		if (Math.Abs(fw - 2) > 1e-6 || Math.Abs(fh - 4) > 1e-6 || Math.Abs(fox) > 1e-6 || Math.Abs(foy - (-15)) > 1e-6) {
 			bad($"charart fit {fw} {fh} {fox} {foy}");
@@ -554,6 +620,7 @@ static class CharArt {
 		ok("charart half quarter ascii fit zoom OK");
 		ok("charart soft split keeps half and eighth");
 		ok("charart auto quadrant split");
+		ok("charart line sets basic ascii box");
 		return 0;
 	}
 
@@ -975,33 +1042,95 @@ static class CharArt {
 		return cut;
 	}
 
-	/// <summary>9 格亮度。中间一行更暗是横线，中间一列更暗是竖线，两条斜线谁更暗决定 / 或 \。cut 是亮度差，格子内按三格合计比较。</summary>
-	static char linech(int[] s, int cut) {
-		int at(int i) => s[i] < 0 ? 255 : s[i];
-		int dark(int a, int b, int c) => 765 - (at(a) + at(b) + at(c));
-		var top = dark(0, 1, 2);
-		var mid = dark(3, 4, 5);
-		var bot = dark(6, 7, 8);
-		var left = dark(0, 3, 6);
-		var cen = dark(1, 4, 7);
-		var right = dark(2, 5, 8);
-		var slash = dark(2, 4, 6);
-		var back = dark(0, 4, 8);
-		var hScore = Math.Max(top, Math.Max(mid, bot)) - Math.Min(top, Math.Min(mid, bot));
-		var vScore = Math.Max(left, Math.Max(cen, right)) - Math.Min(left, Math.Min(cen, right));
-		var diag = Math.Abs(slash - back);
-		var floor = cut * 3;
-		if (hScore >= floor && vScore >= floor && hScore * 3 >= diag * 2 && vScore * 3 >= diag * 2)
-			return '+';
-		if (diag >= hScore && diag >= vScore && diag >= floor)
-			return slash > back ? '/' : '\\';
-		if (hScore >= vScore && hScore >= floor) return '-';
-		if (vScore >= floor) return '|';
+	/// <summary>四边中点各比两侧角暗多少，够 cut 就在 mask 上记一位：1 上、2 下、4 左、8 右。</summary>
+	static int edgemask(int[] s, int cut) {
+		var mask = 0;
+		if ((lit(s, 0) + lit(s, 2)) / 2 - lit(s, 1) >= cut) mask |= E_U;
+		if ((lit(s, 6) + lit(s, 8)) / 2 - lit(s, 7) >= cut) mask |= E_D;
+		if ((lit(s, 0) + lit(s, 6)) / 2 - lit(s, 3) >= cut) mask |= E_L;
+		if ((lit(s, 2) + lit(s, 8)) / 2 - lit(s, 5) >= cut) mask |= E_R;
+		return mask;
+	}
+
+	/// <summary>横线的上（下）行、竖线的左（右）列也整排暗，说明线更宽，用粗线字符。</summary>
+	static bool thickline(int[] s, int mask, int cut) {
+		var hi = 0;
+		for (var i = 0; i < 9; i++) {
+			var v = lit(s, i);
+			if (v > hi) hi = v;
+		}
+		var span = cut * THICK_SPAN;
+		bool dark(int i) => hi - lit(s, i) >= span;
+		if ((mask & (E_L | E_R)) != 0 && (dark(0) && dark(1) && dark(2) || dark(6) && dark(7) && dark(8)))
+			return true;
+		if ((mask & (E_U | E_D)) != 0 && (dark(0) && dark(3) && dark(6) || dark(2) && dark(5) && dark(8)))
+			return true;
+		return false;
+	}
+
+	/// <summary>斜线：0 无线，1 是 /（右上到左下更暗），2 是 \。</summary>
+	static byte diagof(int[] s, int cut) {
+		var slash = 765 - (lit(s, 2) + lit(s, 4) + lit(s, 6));
+		var back = 765 - (lit(s, 0) + lit(s, 4) + lit(s, 8));
+		if (Math.Abs(slash - back) < cut * 3) return 0;
+		return slash > back ? (byte)1 : (byte)2;
+	}
+
+	/// <summary>按连接方向选字符。基本是 - | / \ +；丰富 ASCII 另有 = ! ( ) [ ] #；制表符用 ─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼，粗线换双线。</summary>
+	static char lineglyph(int mask, bool thick, int lineset) {
+		if (lineset == LINES_BOX) {
+			switch (mask) {
+				case E_L | E_R: return thick ? '═' : '─';
+				case E_U | E_D: return thick ? '║' : '│';
+				case E_R | E_D: return thick ? '╔' : '┌';
+				case E_L | E_D: return thick ? '╗' : '┐';
+				case E_R | E_U: return thick ? '╚' : '└';
+				case E_L | E_U: return thick ? '╝' : '┘';
+				case E_L | E_R | E_D: return thick ? '╦' : '┬';
+				case E_L | E_R | E_U: return thick ? '╩' : '┴';
+				case E_U | E_D | E_R: return thick ? '╠' : '├';
+				case E_U | E_D | E_L: return thick ? '╣' : '┤';
+				case E_L | E_R | E_U | E_D: return thick ? '╬' : '┼';
+				case E_L: return '╴';
+				case E_R: return '╶';
+				case E_U: return '╵';
+				case E_D: return '╷';
+			}
+			return ' ';
+		}
+		if (lineset == LINES_ASCII) {
+			switch (mask) {
+				case E_L | E_R: return thick ? '=' : '-';
+				case E_U | E_D: return thick ? '!' : '|';
+				case E_R | E_D: return '(';
+				case E_L | E_D: return ')';
+				case E_R | E_U: return '[';
+				case E_L | E_U: return ']';
+				case E_L | E_R | E_U | E_D: return '#';
+				case E_L | E_R | E_D:
+				case E_L | E_R | E_U:
+				case E_U | E_D | E_R:
+				case E_U | E_D | E_L: return '+';
+				case E_L:
+				case E_R: return '-';
+				case E_U:
+				case E_D: return '|';
+			}
+			return ' ';
+		}
+		var h = (mask & (E_L | E_R)) != 0;
+		var v = (mask & (E_U | E_D)) != 0;
+		if (h && v) return '+';
+		if (h) return '-';
+		if (v) return '|';
 		return ' ';
 	}
 
+	static char diagchar(byte d) => d == 1 ? '/' : '\\';
+
 	/// <summary>格子内部没有对比时，看比相邻格子更暗的一侧。线正好落在交界上也会画出来，而且只占更暗的那一格。</summary>
-	static char edgech(int[] lum, int x, int y, int cols, int rows, int cut) {
+	static int edgeseam(int[] lum, int x, int y, int cols, int rows, int cut, out byte diag) {
+		diag = 0;
 		int at(int xx, int yy) {
 			if (xx < 0) xx = 0;
 			if (yy < 0) yy = 0;
@@ -1019,15 +1148,19 @@ static class CharArt {
 		var ay = Math.Max(brighter(x, y - 1), brighter(x, y + 1));
 		var slash = Math.Max(brighter(x + 1, y - 1), brighter(x - 1, y + 1));
 		var back = Math.Max(brighter(x - 1, y - 1), brighter(x + 1, y + 1));
-		var diag = Math.Abs(slash - back);
-		if (ax >= cut && ay >= cut && ax * 3 >= diag * 2 && ay * 3 >= diag * 2)
-			return '+';
-		if (diag >= ax && diag >= ay && diag >= cut)
-			return slash > back ? '/' : '\\';
-		if (ay >= ax && ay >= cut) return '-';
-		if (ax >= cut) return '|';
-		return ' ';
+		var span = Math.Abs(slash - back);
+		if (ax >= cut && ay >= cut && ax * 3 >= span * 2 && ay * 3 >= span * 2)
+			return E_L | E_R | E_U | E_D;
+		if (span >= ax && span >= ay && span >= cut) {
+			diag = slash > back ? (byte)1 : (byte)2;
+			return 0;
+		}
+		if (ay >= ax && ay >= cut) return E_L | E_R;
+		if (ax >= cut) return E_U | E_D;
+		return 0;
 	}
+
+	static int lit(int[] s, int i) => s[i] < 0 ? 255 : s[i];
 
 	static int countch(string s, char ch) {
 		var n = 0;

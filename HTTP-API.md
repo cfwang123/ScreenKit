@@ -126,8 +126,8 @@ Failures also return **HTTP 200**. Success or failure is only the JSON `code` an
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
 | POST | `/api/tts/speak` | Synthesize and play here. `play=queue` waits; `play=now` interrupts |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
-| GET | `/api/translate/langs` | Source languages and the targets for each |
-| POST | `/api/translate` · `/api/translate/batch` | LLM batch translate, or a local model when no LLM is ready |
+| GET | `/api/translate/langs` | Source languages and the targets for each, plus the engines and local ONNX models |
+| POST | `/api/translate` · `/api/translate/batch` | Batch translate; `engine` is auto / onnx / chrome / llm |
 | POST | `/api/chat` | LLM chat (text or audio in; optional TTS `wav_base64`) |
 | GET/POST | `/api/cast/stop` | Close the screencast viewer and drop the current receive session |
 | WebSocket | `/cast` | Screencast media (same HTTP port; SCST frames as binary messages) |
@@ -930,9 +930,9 @@ Inverse text normalization (WeText; rule post-process may still run if WeText is
 
 ## 10. POST `/api/translate` · `/api/translate/batch`
 
-LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Uses `[[llm]]` / `translate_llm` (or request `llm`) when that endpoint is ready. When it is not, the same request uses an installed local Opus-MT model for `src`→`dst`. `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
+LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexes retried one-by-one). **No cap on how many items one request may send.** Uses `[[llm]]` / `translate_llm` (or request `llm`) when that endpoint is ready. When it is not, the same request uses an installed local Opus-MT model for `src`→`dst`. Request `engine` forces a path — `onnx` (local model, picked by `model`), `chrome`, or `llm`; the default `auto` is the rule above. `/api/translate/batch` is the same handler. Large lists take time proportional to the number of groups (about 90 s max per group).
 
-`GET /api/translate/langs` returns `data.llm`, `data.src` (language codes, `auto` first), `data.dst` (each source code maps to its target codes), plus the auto pair `data.auto_native` / `data.auto_learn` and its display name `data.auto_label`. `auto` translates between the native and learning languages: text that is not native goes to the native language, native text goes to the learning language. Defaults to Chinese ↔ English; change it in Settings → Translate.
+`GET /api/translate/langs` returns `data.llm`, `data.src` (language codes, `auto` first), `data.dst` (each source code maps to its target codes), plus the auto pair `data.auto_native` / `data.auto_learn` and its display name `data.auto_label`. `auto` translates between the native and learning languages: text that is not native goes to the native language, native text goes to the learning language. Defaults to Chinese ↔ English; change it in Settings → Translate. The same response also carries `data.engines` for pickers (`auto` / `onnx` / `chrome`, plus every LLM endpoint configured in Settings) and `data.models` (local ONNX models only, each with `key`, `src`, `dst`, `name`, `ready`).
 
 **Request:**
 
@@ -955,6 +955,8 @@ LLM batch translate (grouped by `translate_llm_batch`, default 8; missing indexe
 | `native` / `learn` | Optional overrides for the configured native / learning language (e.g. `native: "zh"`, `learn: "ja"`); used only when `src`/`dst` are missing or `auto` |
 | `dir` | Optional pair such as `zh-en` |
 | `chunk` | Items per LLM call. Omitted uses `translate_llm_batch` (default 8). Range 1–64 |
+| `engine` | Optional: `auto` (default), `onnx`, `chrome`, `llm`. `onnx` uses a local model even when an LLM is ready; `llm` requires a ready translate LLM |
+| `model` | With `engine: "onnx"`, the local model: direction key (`zh-en`) or folder name (`opus-mt-zh-en-onnx`); the model's direction wins over `src`/`dst`. Otherwise an alias of `llm` |
 | `llm` | Optional `[[llm]]` display name or model id; default `translate_llm`, else first list entry |
 
 **Response:** `data.items[]` with `i` / `text` / `out`. `data.miss` is how many non-empty inputs came back empty. `GET /api/status` → `llm_translate` is true when a translate LLM is configured.

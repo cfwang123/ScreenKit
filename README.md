@@ -112,7 +112,7 @@ This program receives while it is running. That can be turned off in Settings. *
   - **Markdown reader**: Preview Markdown
   - **Chinese segmentation**: Split by word, sentence, or grapheme
   - **In-browser model**: Run text tasks on the browser’s local model. Speak can filter voices by language. System voices are synthesized by this app and played in the page on the system default output. A link opens the Chrome model page to view and install translation models and offline voice packs
-  - **Translate**: Translate text into another language
+  - **Translate**: Translate text into another language, with its own engine and model pickers (auto, local ONNX, Chrome, or a configured LLM; the model list is local ONNX)
   - **Password generator**: Generate passwords
   - **Regular expressions**: Find regex matches
   - **Number names**: Write a number in several readings
