@@ -67,6 +67,7 @@ public partial class CharArtWindow : Window {
 		var keep = elineset.SelectedIndex;
 		elineset.Items.Clear();
 		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.shade"), Tag = CharArt.LINES_SHADE });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.dots"), Tag = CharArt.LINES_DOTS });
 		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.simple"), Tag = CharArt.LINES_SIMPLE });
 		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.ascii"), Tag = CharArt.LINES_ASCII });
 		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.box"), Tag = CharArt.LINES_BOX });
@@ -197,10 +198,12 @@ public partial class CharArtWindow : Window {
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
 		var mode = elineset.SelectedItem is ComboBoxItem it && it.Tag is int k ? k : CharArt.LINES_SHADE;
-		eth.ToolTip = Loc.T(mode == CharArt.LINES_SHADE ? "charart.threshold.tip" : "charart.line.th");
-		eout.Text = mode == CharArt.LINES_SHADE
-			? CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold)
-			: CharArt.Lines(px, w, h, cols, ckinv.IsChecked == true, threshold, mode);
+		eth.ToolTip = Loc.T(mode >= CharArt.LINES_SIMPLE ? "charart.line.th" : "charart.threshold.tip");
+		eout.Text = mode switch {
+			CharArt.LINES_DOTS => CharArt.ShadeDots(px, w, h, cols, ckinv.IsChecked == true, threshold),
+			CharArt.LINES_SHADE => CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold),
+			_ => CharArt.Lines(px, w, h, cols, ckinv.IsChecked == true, threshold, mode),
+		};
 		var lines = 1;
 		foreach (var ch in eout.Text)
 			if (ch == '\n') lines++;

@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tools translate card: added engine and model pickers. The engine list is auto / local ONNX / Chrome / every LLM endpoint from Settings; the model list shows local ONNX models only, and picking one moves the source and target languages to that model's direction.
 - HTTP translate: GET /api/translate/langs now also returns the engines and the local ONNX models; POST /api/translate takes engine=auto|onnx|chrome|llm, and with engine=onnx the model field picks a local model by direction key or folder name.
 - Character art lines: pick the character set (basic, rich ASCII, or box drawing); corners, tees, and wide strokes now use matching characters
+- Character art: new Dot shading mode that picks · ░ ▒ ▓ █ by brightness
 
 #### Changed
 
@@ -79,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页工具翻译卡增加「引擎」和「模型」两个下拉。引擎可选自动、本地 ONNX、Chrome 和参数设置里的每个 LLM 端点；模型只列本地 ONNX 模型，选定后源/目标语言跟着模型方向走。
 - HTTP 翻译：GET /api/translate/langs 同时返回可选引擎和本地 ONNX 模型；POST /api/translate 支持 engine=auto|onnx|chrome|llm，engine=onnx 时用 model 按方向键或目录名指定本地模型。
 - 字符画线条模式：可选字符集（基本、丰富 ASCII、制表符框线），拐角、三岔和宽线用对应字符画出
+- 字符画：新增「点阵阴影」模式，按亮度在 · ░ ▒ ▓ █ 之间取字符
 
 #### 变更
 

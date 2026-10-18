@@ -28,6 +28,8 @@ static class CharArt {
 	public const int LINES_BOX = 2;
 	// 改版前的画法：每个格子只判一个方向。
 	public const int LINES_LEGACY = 3;
+	// 点阵阴影：按亮度在 · ░ ▒ ▓ █ 之间取一档，不走线条判定。
+	public const int LINES_DOTS = 4;
 	// 线在格子里的四个连接方向：1 上、2 下、4 左、8 右。
 	const int E_U = 1;
 	const int E_D = 2;
@@ -39,6 +41,8 @@ static class CharArt {
 	// 四象限最远一对的通道平方和小于此值才当成一色。差 3 级就要拆开。
 	const int SPLIT_DIST = 9;
 	const string RAMP = " .:-=+*#%@";
+	// 点阵阴影：中点、浅/中/深阴影、实心。Consolas 都有这些字形。
+	const string DOTRAMP = " \u00b7\u2591\u2592\u2593\u2588";
 	// 四象限位：1 左上、2 右上、4 左下、8 右下。前景是置位的那一侧。
 	const string QUAD =
 		" \u2598\u259d\u2580\u2596\u258c\u259e\u259b\u2597\u259a\u2590\u259c\u2584\u2599\u259f\u2588";
@@ -337,7 +341,15 @@ static class CharArt {
 	}
 
 	/// <summary>纯 ASCII。字符格子大约两倍高，按列数算出行数。不勾选反色时越暗越密，勾选后反过来。threshold 以下留空。</summary>
-	public static string Ascii(byte[] px, int w, int h, int cols, bool invert, int threshold) {
+	public static string Ascii(byte[] px, int w, int h, int cols, bool invert, int threshold) =>
+		ramp(px, w, h, cols, invert, threshold, RAMP);
+
+	/// <summary>点阵阴影：按亮度在点、浅/中/深阴影、实心之间取一档，越暗越密。</summary>
+	public static string ShadeDots(byte[] px, int w, int h, int cols, bool invert, int threshold) =>
+		ramp(px, w, h, cols, invert, threshold, DOTRAMP);
+
+	/// <summary>按亮度在给定的字符序列上取一档。threshold 以下留空。</summary>
+	static string ramp(byte[] px, int w, int h, int cols, bool invert, int threshold, string chars) {
 		if (px == null || w < 1 || h < 1) return "";
 		if (cols < 1) cols = 1;
 		if (cols > 400) cols = 400;
@@ -358,10 +370,10 @@ static class CharArt {
 				if (lum > threshold) {
 					var span = 255 - threshold;
 					if (span < 1) span = 1;
-					i = (lum - threshold) * (RAMP.Length - 1) / span;
-					if (i >= RAMP.Length) i = RAMP.Length - 1;
+					i = (lum - threshold) * (chars.Length - 1) / span;
+					if (i >= chars.Length) i = chars.Length - 1;
 				}
-				sb.Append(RAMP[i]);
+				sb.Append(chars[i]);
 			}
 			if (y + 1 < rows) sb.Append('\n');
 		}
@@ -569,6 +581,13 @@ static class CharArt {
 			bad("charart ascii");
 			return 1;
 		}
+		var sd = ShadeDots(black, 4, 2, 4, false, 0);
+		var sw = ShadeDots(white, 4, 2, 4, false, 0);
+		var sm = ShadeDots(solid(4, 2, 90, 90, 90), 4, 2, 4, false, 0);
+		if (sd.IndexOf('\u2588') < 0 || sw.Trim().Length != 0 || sm.IndexOf('\u2592') < 0) {
+			bad("charart dots " + sd.Replace("\n", "/") + "|" + sm.Replace("\n", "/"));
+			return 1;
+		}
 		var pale = solid(4, 2, 200, 200, 200);
 		var cut = Ascii(pale, 4, 2, 4, false, 128);
 		var hi = Ascii(black, 4, 2, 4, false, 255);
@@ -743,6 +762,7 @@ static class CharArt {
 		ok("charart auto quadrant split");
 		ok("charart line sets basic ascii box");
 		ok("charart legacy line mode");
+		ok("charart shade dots mode");
 		return 0;
 	}
 
