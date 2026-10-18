@@ -652,7 +652,7 @@ public partial class MainWindow : Window {
 				if (tray != null) tray.showwindow();
 				saveimage();
 			}));
-			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench(fromTray: true)));
+			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench()));
 			// 截图历史：打开 screenshots 文件夹，不唤起主窗
 			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(opensnapshotsfolder));
 			// 录屏 / 录屏参数 / 系统参数：不唤起主窗，只打开对应功能窗
@@ -664,40 +664,40 @@ public partial class MainWindow : Window {
 			tray.WebFilesRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpfiles(fromTray: true)));
 			tray.WebDictRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdict(fromTray: true)));
 			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true, tool: id)));
-			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv(fromTray: true)));
-			tray.CharArtRequested += () => Dispatcher.BeginInvoke(new Action(() => opencharart(fromTray: true)));
-			tray.PixelArtRequested += () => Dispatcher.BeginInvoke(new Action(() => openpixel(fromTray: true)));
-			tray.VidConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidconv(fromTray: true)));
-			tray.VidGifRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidgif(fromTray: true)));
-			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake(fromTray: true)));
-			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename(fromTray: true)));
-			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash(fromTray: true)));
-			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool(fromTray: true)));
-			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread(fromTray: true)));
-			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen(fromTray: true)));
-			tray.SciCalcRequested += () => Dispatcher.BeginInvoke(new Action(() => openscicalc(fromTray: true)));
-			tray.NoteRequested += () => Dispatcher.BeginInvoke(new Action(() => opennote(fromTray: true)));
-			tray.RtspSrvRequested += () => Dispatcher.BeginInvoke(new Action(() => openrtspsrv(fromTray: true)));
-			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool(fromTray: true)));
-			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys(fromTray: true)));
-			tray.SysToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opensystool(fromTray: true)));
-			tray.FileProbeRequested += () => Dispatcher.BeginInvoke(new Action(() => openfileprobe(fromTray: true)));
-			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon(fromTray: true)));
-			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg(fromTray: true)));
-			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv(fromTray: true)));
-			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin(fromTray: true)));
+			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv()));
+			tray.CharArtRequested += () => Dispatcher.BeginInvoke(new Action(() => opencharart()));
+			tray.PixelArtRequested += () => Dispatcher.BeginInvoke(new Action(() => openpixel()));
+			tray.VidConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidconv()));
+			tray.VidGifRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidgif()));
+			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake()));
+			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename()));
+			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash()));
+			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool()));
+			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread()));
+			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen()));
+			tray.SciCalcRequested += () => Dispatcher.BeginInvoke(new Action(() => openscicalc()));
+			tray.NoteRequested += () => Dispatcher.BeginInvoke(new Action(() => opennote()));
+			tray.RtspSrvRequested += () => Dispatcher.BeginInvoke(new Action(() => openrtspsrv()));
+			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool()));
+			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys()));
+			tray.SysToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opensystool()));
+			tray.FileProbeRequested += () => Dispatcher.BeginInvoke(new Action(() => openfileprobe()));
+			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon()));
+			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg()));
+			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv()));
+			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin()));
 			tray.HangulRequested += () => Dispatcher.BeginInvoke(new Action(() => hangulset(hangul == null || !hangul.On)));
 
-			tray.WinCalRequested += () => Dispatcher.BeginInvoke(new Action(() => openwincal(fromTray: true)));
-			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi(fromTray: true)));
-			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop(fromTray: true)));
-			tray.AutoKeyRequested += () => Dispatcher.BeginInvoke(new Action(() => openautokey(fromTray: true)));
-			tray.FastCopyRequested += () => Dispatcher.BeginInvoke(new Action(() => openfastcopy(fromTray: true)));
-			tray.GlyphModRequested += () => Dispatcher.BeginInvoke(new Action(() => openglyphmod(fromTray: true)));
-			tray.PortUseRequested += () => Dispatcher.BeginInvoke(new Action(() => openportuse(fromTray: true)));
-			tray.MidiSynthRequested += () => Dispatcher.BeginInvoke(new Action(() => openmidi(fromTray: true)));
-			tray.VoiceRecRequested += () => Dispatcher.BeginInvoke(new Action(() => openvoicerec(fromTray: true)));
-			tray.CamRequested += () => Dispatcher.BeginInvoke(new Action(() => opencam(fromTray: true)));
+			tray.WinCalRequested += () => Dispatcher.BeginInvoke(new Action(() => openwincal()));
+			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi()));
+			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop()));
+			tray.AutoKeyRequested += () => Dispatcher.BeginInvoke(new Action(() => openautokey()));
+			tray.FastCopyRequested += () => Dispatcher.BeginInvoke(new Action(() => openfastcopy()));
+			tray.GlyphModRequested += () => Dispatcher.BeginInvoke(new Action(() => openglyphmod()));
+			tray.PortUseRequested += () => Dispatcher.BeginInvoke(new Action(() => openportuse()));
+			tray.MidiSynthRequested += () => Dispatcher.BeginInvoke(new Action(() => openmidi()));
+			tray.VoiceRecRequested += () => Dispatcher.BeginInvoke(new Action(() => openvoicerec()));
+			tray.CamRequested += () => Dispatcher.BeginInvoke(new Action(() => opencam()));
 			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
@@ -3810,8 +3810,9 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>
-	/// 主窗菜单打开：可见时挂 Owner 并居中于主窗。
+	/// 对话框（参数设置、录屏选项等）：主窗菜单打开且可见时挂 Owner 并居中于主窗。
 	/// 托盘打开（independent）：永不设 Owner，居中屏幕，避免跟着主窗最小化或被菜单误激活拖起主窗。
+	/// 工具窗不走这里，见 opentoolwin：菜单、托盘打开都不挂 Owner。
 	/// </summary>
 	void attachdialogowner(Window dlg, bool independent = false) {
 		if (dlg == null) return;
@@ -4122,7 +4123,7 @@ public partial class MainWindow : Window {
 	}
 
 	/// <summary>打开独立 PDF 识别工作台（可编辑、存草稿、导出）。</summary>
-	void openpdfworkbench(string pdfPath = null, bool fromTray = false) {
+	void openpdfworkbench(string pdfPath = null) {
 		if (!opt.ModOcr) return;
 		try {
 			if (!FeaturePrompt.EnsurePdf(this)) {
@@ -4141,7 +4142,7 @@ public partial class MainWindow : Window {
 			if (!WinOcr.Is(opt) && (string.IsNullOrWhiteSpace(opt.ModelsDir) || !Directory.Exists(opt.ModelsDir)))
 				applydefaultmodel();
 			var win = new PdfOcrWindow(() => snapshotopt(), runner, pdfPath);
-			attachdialogowner(win, fromTray);
+			attachdialogowner(win, independent: true);
 			win.Show();
 			setstatus("已打开 PDF 识别工作台");
 		}
@@ -4749,72 +4750,72 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void openqrmake(bool fromTray = false) =>
-		opentoolwin(ref qrMakeWin, () => new QrMakeWindow(), "menu.qrmake", fromTray);
+	void openqrmake() =>
+		opentoolwin(ref qrMakeWin, () => new QrMakeWindow(), "menu.qrmake");
 
-	void openrename(bool fromTray = false) =>
-		opentoolwin(ref renameWin, () => new BatchRenameWindow(), "menu.rename", fromTray);
+	void openrename() =>
+		opentoolwin(ref renameWin, () => new BatchRenameWindow(), "menu.rename");
 
-	void openhash(bool fromTray = false) =>
-		opentoolwin(ref hashWin, () => new HashWindow(), "menu.hash", fromTray);
+	void openhash() =>
+		opentoolwin(ref hashWin, () => new HashWindow(), "menu.hash");
 
-	void opentexttool(bool fromTray = false) =>
-		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool", fromTray);
+	void opentexttool() =>
+		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool");
 
-	void openpwgen(bool fromTray = false) {
+	void openpwgen() {
 		var again = pwGenWin != null;
-		opentoolwin(ref pwGenWin, () => new PasswordWindow(opt), "menu.pwgen", fromTray);
+		opentoolwin(ref pwGenWin, () => new PasswordWindow(opt), "menu.pwgen");
 		if (again) pwGenWin?.Generate();
 	}
 
-	void opennettool(bool fromTray = false) {
-		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.net", fromTray);
+	void opennettool() {
+		opentoolwin(ref netToolWin, () => new NetToolsWindow(), "menu.net");
 	}
 
-	void openportuse(bool fromTray = false) =>
-		opentoolwin(ref portUseWin, () => new PortUseWindow(), "menu.portuse", fromTray);
+	void openportuse() =>
+		opentoolwin(ref portUseWin, () => new PortUseWindow(), "menu.portuse");
 
-	void openmidi(bool fromTray = false) =>
-		opentoolwin(ref midiWin, () => new MidiSynthWindow(), "menu.midisynth", fromTray);
+	void openmidi() =>
+		opentoolwin(ref midiWin, () => new MidiSynthWindow(), "menu.midisynth");
 
-	void openvoicerec(bool fromTray = false) =>
-		opentoolwin(ref voiceRecWin, () => new VoiceRecWindow(), "menu.voicerec", fromTray);
+	void openvoicerec() =>
+		opentoolwin(ref voiceRecWin, () => new VoiceRecWindow(), "menu.voicerec");
 
-	void opencam(bool fromTray = false) =>
-		opentoolwin(ref camWin, () => new CamWindow(), "menu.cam", fromTray);
+	void opencam() =>
+		opentoolwin(ref camWin, () => new CamWindow(), "menu.cam");
 
-	void opensys(bool fromTray = false) =>
-		opentoolwin(ref sysWin, () => new SysInfoWindow(), "menu.sysinfo", fromTray);
+	void opensys() =>
+		opentoolwin(ref sysWin, () => new SysInfoWindow(), "menu.sysinfo");
 
-	void opensystool(bool fromTray = false) =>
-		opentoolwin(ref sysToolWin, () => new SysToolWindow(), "menu.systool", fromTray);
+	void opensystool() =>
+		opentoolwin(ref sysToolWin, () => new SysToolWindow(), "menu.systool");
 
-	void openfileprobe(bool fromTray = false) =>
-		opentoolwin(ref fileProbeWin, () => new FileProbeWindow(), "menu.fileprobe", fromTray);
+	void openfileprobe() =>
+		opentoolwin(ref fileProbeWin, () => new FileProbeWindow(), "menu.fileprobe");
 
-	void openperfmon(bool fromTray = false) =>
-		opentoolwin(ref perfMonWin, () => new PerfMonWindow(), "menu.perfmon", fromTray);
+	void openperfmon() =>
+		opentoolwin(ref perfMonWin, () => new PerfMonWindow(), "menu.perfmon");
 
-	void openhttpdbg(bool fromTray = false) =>
-		opentoolwin(ref httpDbgWin, () => new HttpDebugWindow(), "menu.httpdbg", fromTray);
+	void openhttpdbg() =>
+		opentoolwin(ref httpDbgWin, () => new HttpDebugWindow(), "menu.httpdbg");
 
-	void openzhconv(bool fromTray = false) =>
-		opentoolwin(ref zhConvWin, () => new ZhConvertWindow(), "menu.zhconv", fromTray);
+	void openzhconv() =>
+		opentoolwin(ref zhConvWin, () => new ZhConvertWindow(), "menu.zhconv");
 
-	void openpinyin(bool fromTray = false) =>
-		opentoolwin(ref pinyinWin, () => new PinyinWindow(), "menu.pinyin", fromTray);
+	void openpinyin() =>
+		opentoolwin(ref pinyinWin, () => new PinyinWindow(), "menu.pinyin");
 
-	void openwincal(bool fromTray = false) =>
-		opentoolwin(ref winCalWin, () => new WinCalWindow(), "menu.wincal", fromTray);
+	void openwincal() =>
+		opentoolwin(ref winCalWin, () => new WinCalWindow(), "menu.wincal");
 
-	void openjpyomi(bool fromTray = false) =>
-		opentoolwin(ref jpYomiWin, () => new JpYomiWindow(), "menu.jpyomi", fromTray);
+	void openjpyomi() =>
+		opentoolwin(ref jpYomiWin, () => new JpYomiWindow(), "menu.jpyomi");
 
-	void openwintop(bool fromTray = false) =>
-		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop", fromTray);
+	void openwintop() =>
+		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop");
 
-	void openautokey(bool fromTray = false) {
-		opentoolwin(ref autoKeyWin, () => new AutoKeyWindow(opt, autokeytoggle, registerhotkey), "menu.autokey", fromTray);
+	void openautokey() {
+		opentoolwin(ref autoKeyWin, () => new AutoKeyWindow(opt, autokeytoggle, registerhotkey), "menu.autokey");
 		var err = bindautokeyhotkey();
 		if (err.Length == 0) return;
 		setstatus(err);
@@ -4839,23 +4840,23 @@ public partial class MainWindow : Window {
 		catch { }
 	}
 
-	void openfastcopy(bool fromTray = false) =>
-		opentoolwin(ref fastCopyWin, () => new FastCopyWindow(opt), "menu.fastcopy", fromTray);
+	void openfastcopy() =>
+		opentoolwin(ref fastCopyWin, () => new FastCopyWindow(opt), "menu.fastcopy");
 
-	void openglyphmod(bool fromTray = false) =>
-		opentoolwin(ref glyphModWin, () => new GlyphModWindow(), "menu.glyphmod", fromTray);
+	void openglyphmod() =>
+		opentoolwin(ref glyphModWin, () => new GlyphModWindow(), "menu.glyphmod");
 
-	void openmdread(bool fromTray = false) =>
-		opentoolwin(ref mdReadWin, () => new MdReadWindow(), "menu.mdread", fromTray);
+	void openmdread() =>
+		opentoolwin(ref mdReadWin, () => new MdReadWindow(), "menu.mdread");
 
-	void openscicalc(bool fromTray = false) =>
-		opentoolwin(ref sciCalcWin, () => new SciCalcWindow(), "menu.scicalc", fromTray);
+	void openscicalc() =>
+		opentoolwin(ref sciCalcWin, () => new SciCalcWindow(), "menu.scicalc");
 
-	void opennote(bool fromTray = false) =>
-		opentoolwin(ref noteWin, () => new DeskNoteWindow(), "menu.note", fromTray);
+	void opennote() =>
+		opentoolwin(ref noteWin, () => new DeskNoteWindow(), "menu.note");
 
-	void openrtspsrv(bool fromTray = false) =>
-		opentoolwin(ref rtspSrvWin, () => new RtspSrvWindow(), "menu.rtspsrv", fromTray);
+	void openrtspsrv() =>
+		opentoolwin(ref rtspSrvWin, () => new RtspSrvWindow(), "menu.rtspsrv");
 
 	void autokeytoggle() {
 		if (autoKeyWin == null) {
@@ -4941,7 +4942,9 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void opentoolwin<T>(ref T win, Func<T> create, string titleKey, bool fromTray = false) where T : Window {
+	/// <summary>打开工具窗（同一时间只留一个实例）。工具窗一律独立：不挂主窗 Owner，
+	/// 免得跟着主窗最小化，或被主窗菜单的激活链拖着一起起落。</summary>
+	void opentoolwin<T>(ref T win, Func<T> create, string titleKey) where T : Window {
 		try {
 			if (win != null) {
 				if (win.WindowState == WindowState.Minimized)
@@ -4951,7 +4954,7 @@ public partial class MainWindow : Window {
 			}
 			win = create();
 			var w = win;
-			attachdialogowner(w, fromTray);
+			attachdialogowner(w, independent: true);
 			w.Closed += (_, _) => {
 				if (ReferenceEquals(qrMakeWin, w)) qrMakeWin = null;
 				else if (ReferenceEquals(renameWin, w)) renameWin = null;
@@ -4988,15 +4991,15 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void opencharart(bool fromTray = false) {
-		opentoolwin(ref charArtWin, () => new CharArtWindow(), "menu.charart", fromTray);
+	void opencharart() {
+		opentoolwin(ref charArtWin, () => new CharArtWindow(), "menu.charart");
 	}
 
-	void openpixel(bool fromTray = false) {
-		opentoolwin(ref pixelArtWin, () => new PixelArtWindow(), "menu.pixel", fromTray);
+	void openpixel() {
+		opentoolwin(ref pixelArtWin, () => new PixelArtWindow(), "menu.pixel");
 	}
 
-	void openimgconv(bool fromTray = false) {
+	void openimgconv() {
 		try {
 			if (imgConvWin != null) {
 				if (imgConvWin.WindowState == WindowState.Minimized)
@@ -5005,7 +5008,7 @@ public partial class MainWindow : Window {
 				return;
 			}
 			imgConvWin = new ImgConvertWindow(opt);
-			attachdialogowner(imgConvWin, fromTray);
+			attachdialogowner(imgConvWin, independent: true);
 			imgConvWin.Closed += (_, _) => {
 				imgConvWin = null;
 				try { AppConfig.Save(opt); } catch { }
@@ -5018,7 +5021,7 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void openvidconv(bool fromTray = false) {
+	void openvidconv() {
 		try {
 			if (vidConvWin != null) {
 				if (vidConvWin.WindowState == WindowState.Minimized)
@@ -5027,7 +5030,7 @@ public partial class MainWindow : Window {
 				return;
 			}
 			vidConvWin = new VidConvertWindow(opt);
-			attachdialogowner(vidConvWin, fromTray);
+			attachdialogowner(vidConvWin, independent: true);
 			vidConvWin.Closed += (_, _) => {
 				vidConvWin = null;
 				try { AppConfig.Save(opt); } catch { }
@@ -5040,7 +5043,7 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void openvidgif(bool fromTray = false) {
+	void openvidgif() {
 		try {
 			if (vidGifWin != null) {
 				if (vidGifWin.WindowState == WindowState.Minimized)
@@ -5049,7 +5052,7 @@ public partial class MainWindow : Window {
 				return;
 			}
 			vidGifWin = new VidGifWindow(opt);
-			attachdialogowner(vidGifWin, fromTray);
+			attachdialogowner(vidGifWin, independent: true);
 			vidGifWin.Closed += (_, _) => {
 				vidGifWin = null;
 				try { AppConfig.Save(opt); } catch { }

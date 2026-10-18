@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Number notation: the middle-number reading advanced by 10^8, so 1e16 read the same as the large-number reading. It now advances by 10^4, so 1e16 is a jing (一京).
 - Japanese reading: 1e16 read いちけい. Units starting with a voiceless consonant now take the 促音 (六京 ろっけい、百京 ひゃっけい), and a は行 unit turns semi-voiced after it.
 - Korean: the native-numeral row used native digits for the fraction (0.12345 read 영 점 하나둘셋넷다섯). Native numerals do not cover decimals, so that row stays blank and the Sino-Korean row reads 영 점 일이삼사오.
+- Tool windows opened from the Tools menu are no longer owned by the main window: they no longer minimize with it or get pulled up by its menu.
 
 ### 中文
 
@@ -95,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数字表记：中数原来按万万（10^8）递进，1e16 与大数同为「兆」；改为按万（10^4）递进，1e16 读作「一京」。
 - 日语读法：1e16 原来读 いちけい。清音开头的单位前改按促音读，如 六京 ろっけい、百京 ひゃっけい；は行促音后变半浊音。
 - 韩文固有：小数原来按固有数词逐位读（0.12345 是 영 점 하나둘셋넷다섯）。固有数词不用于小数，这一行改为留空，小数由韩文汉字行读，如 영 점 일이삼사오。
+- 工具菜单打开的工具窗不再挂主窗为父窗口：不跟着主窗最小化，也不会被主窗菜单带起。
 
 ## v1.0.24 (2026-10-17)
 
