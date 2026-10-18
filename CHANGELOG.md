@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Rare characters are now judged by the character tables instead of word frequency alone: a candidate is rare when the lexicon gives it no word frequency, when it holds a character GBK cannot encode (CJK extension planes, e.g. 𠛈), or when it is outside the GB2312 7000-character set and rarely used. Frequently used characters missing from that table (啰, 囧, 喆) stay visible, and rare words you picked earlier now follow the switch too — pin one to keep it always shown.
 - Input method: your own lexicon, pins and pick counts now live in ime_user.db next to the program (custom / pin / pick tables); ime.db holds only the lexicon, so the file you upload carries no personal words or usage. --ime-db-clean [src] [out] writes a cleaned copy.
+- Character art lines: the earlier per-cell drawing is back as a Legacy entry in the character list
 
 #### Fixed
 
@@ -82,6 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 生僻字改按字表判定：词库没给词频的行、含 GBK 编不进的字（CJK 扩展区，如 𠛈）、以及 GB2312 七千字表外又很少用的字都算生僻。表外的常用字（啰、囧、喆）照旧显示；以前选用过的生僻词现在也跟着开关走，想一直在就置顶。
 - 输入法：自定义词库、置顶和选用次数改存程序旁的 ime_user.db（custom / pin / pick 三张表），ime.db 只剩词库本体，上传的 ime.db 不再带个人词和使用记录；--ime-db-clean [源] [产物] 可另存一份干净的。
+- 字符画线条：字符列表里恢复「旧版」，回到改版前每个格子只判一个方向的画法
 
 #### 修复
 

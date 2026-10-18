@@ -24,6 +24,8 @@ static class CharArt {
 	public const int LINES_SIMPLE = 0;
 	public const int LINES_ASCII = 1;
 	public const int LINES_BOX = 2;
+	// 改版前的画法：每个格子只判一个方向。
+	public const int LINES_LEGACY = 3;
 	// 线在格子里的四个连接方向：1 上、2 下、4 左、8 右。
 	const int E_U = 1;
 	const int E_D = 2;
@@ -169,13 +171,14 @@ static class CharArt {
 		return buf;
 	}
 
-	/// <summary>按格子里的明暗走向画线。threshold 为 0 时很淡的边和落在格子交界上的线也保留，越高越只留更明显的线。lineset 选字符集：基本 - | / \ +、丰富 ASCII、制表符。</summary>
+	/// <summary>按格子里的明暗走向画线。threshold 为 0 时很淡的边和落在格子交界上的线也保留，越高越只留更明显的线。lineset 选画法：基本 - | / \ +、丰富 ASCII、制表符，或改版前每格只判一个方向的旧画法。</summary>
 	public static string Lines(byte[] px, int w, int h, int cols, bool invert, int threshold, int lineset = LINES_SIMPLE) {
 		if (px == null || w < 1 || h < 1) return "";
 		if (cols < 1) cols = 1;
 		if (cols > 400) cols = 400;
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
+		if (lineset == LINES_LEGACY) return legacylines(px, w, h, cols, invert, threshold);
 		var rows = gridrows(w, h, cols);
 		var ncell = rows * cols;
 		var lums = new int[ncell];
@@ -230,6 +233,105 @@ static class CharArt {
 			if (y + 1 < rows) sb.Append('\n');
 		}
 		return sb.ToString();
+	}
+
+	/// <summary>改版前的画法：每个格子只判一个方向，输出 - | / \ 和 +。落在格子交界上的线另用 edgech 补。</summary>
+	static string legacylines(byte[] px, int w, int h, int cols, bool invert, int threshold) {
+		var rows = gridrows(w, h, cols);
+		var ncell = rows * cols;
+		var lums = new int[ncell];
+		var chars = new char[ncell];
+		var s = new int[9];
+		var cut = linecut(threshold);
+		for (var y = 0; y < rows; y++) {
+			var y0 = h * (y / (double)rows);
+			var y1 = h * ((y + 1) / (double)rows);
+			for (var x = 0; x < cols; x++) {
+				var x0 = w * (x / (double)cols);
+				var x1 = w * ((x + 1) / (double)cols);
+				var sum = 0;
+				for (var sy = 0; sy < 3; sy++) {
+					var ya = y0 + (y1 - y0) * sy / 3;
+					var yb = y0 + (y1 - y0) * (sy + 1) / 3;
+					for (var sx = 0; sx < 3; sx++) {
+						var xa = x0 + (x1 - x0) * sx / 3;
+						var xb = x0 + (x1 - x0) * (sx + 1) / 3;
+						var lum = lumof(area(px, w, h, xa, xb, ya, yb), invert);
+						s[sy * 3 + sx] = lum;
+						sum += lum;
+					}
+				}
+				var i = y * cols + x;
+				lums[i] = sum / 9;
+				chars[i] = linech(s, cut);
+			}
+		}
+		for (var y = 0; y < rows; y++) {
+			for (var x = 0; x < cols; x++) {
+				var i = y * cols + x;
+				if (chars[i] == ' ') chars[i] = edgech(lums, x, y, cols, rows, cut);
+			}
+		}
+		var sb = new StringBuilder(rows * (cols + 1));
+		for (var y = 0; y < rows; y++) {
+			sb.Append(chars, y * cols, cols);
+			if (y + 1 < rows) sb.Append('\n');
+		}
+		return sb.ToString();
+	}
+
+	/// <summary>9 格亮度。中间一行更暗是横线，中间一列更暗是竖线，两条斜线谁更暗决定 / 或 \。cut 是亮度差，格子内按三格合计比较。</summary>
+	static char linech(int[] s, int cut) {
+		int at(int i) => s[i] < 0 ? 255 : s[i];
+		int dark(int a, int b, int c) => 765 - (at(a) + at(b) + at(c));
+		var top = dark(0, 1, 2);
+		var mid = dark(3, 4, 5);
+		var bot = dark(6, 7, 8);
+		var left = dark(0, 3, 6);
+		var cen = dark(1, 4, 7);
+		var right = dark(2, 5, 8);
+		var slash = dark(2, 4, 6);
+		var back = dark(0, 4, 8);
+		var hScore = Math.Max(top, Math.Max(mid, bot)) - Math.Min(top, Math.Min(mid, bot));
+		var vScore = Math.Max(left, Math.Max(cen, right)) - Math.Min(left, Math.Min(cen, right));
+		var diag = Math.Abs(slash - back);
+		var floor = cut * 3;
+		if (hScore >= floor && vScore >= floor && hScore * 3 >= diag * 2 && vScore * 3 >= diag * 2)
+			return '+';
+		if (diag >= hScore && diag >= vScore && diag >= floor)
+			return slash > back ? '/' : '\\';
+		if (hScore >= vScore && hScore >= floor) return '-';
+		if (vScore >= floor) return '|';
+		return ' ';
+	}
+
+	/// <summary>格子内部没有对比时，看比相邻格子更暗的一侧。线正好落在交界上也会画出来，而且只占更暗的那一格。</summary>
+	static char edgech(int[] lum, int x, int y, int cols, int rows, int cut) {
+		int at(int xx, int yy) {
+			if (xx < 0) xx = 0;
+			if (yy < 0) yy = 0;
+			if (xx >= cols) xx = cols - 1;
+			if (yy >= rows) yy = rows - 1;
+			return lum[yy * cols + xx];
+		}
+		var here = at(x, y);
+		int brighter(int xx, int yy) {
+			var d = at(xx, yy) - here;
+			if (d < 0) return 0;
+			return d;
+		}
+		var ax = Math.Max(brighter(x - 1, y), brighter(x + 1, y));
+		var ay = Math.Max(brighter(x, y - 1), brighter(x, y + 1));
+		var slash = Math.Max(brighter(x + 1, y - 1), brighter(x - 1, y + 1));
+		var back = Math.Max(brighter(x - 1, y - 1), brighter(x + 1, y + 1));
+		var diag = Math.Abs(slash - back);
+		if (ax >= cut && ay >= cut && ax * 3 >= diag * 2 && ay * 3 >= diag * 2)
+			return '+';
+		if (diag >= ax && diag >= ay && diag >= cut)
+			return slash > back ? '/' : '\\';
+		if (ay >= ax && ay >= cut) return '-';
+		if (ax >= cut) return '|';
+		return ' ';
 	}
 
 	/// <summary>纯 ASCII。字符格子大约两倍高，按列数算出行数。不勾选反色时越暗越密，勾选后反过来。threshold 以下留空。</summary>
@@ -563,6 +665,16 @@ static class CharArt {
 			bad("charart thick " + widebox.Replace("\n", "/") + " | " + wideasc.Replace("\n", "/"));
 			return 1;
 		}
+		var oldh = Lines(hz, 9, 18, 3, false, 0, LINES_LEGACY);
+		var oldv = Lines(vt, 9, 18, 3, false, 0, LINES_LEGACY);
+		var oldd = Lines(dg, 9, 18, 3, false, 0, LINES_LEGACY);
+		var oldc = Lines(corner, 9, 18, 3, false, 0, LINES_LEGACY);
+		if (countch(oldh, '-') < 3 || countch(oldh, '|') != 0 ||
+			countch(oldv, '|') < 3 || countch(oldv, '-') != 0 ||
+			countch(oldd, '/') < 6 || countch(oldc, '+') < 1) {
+			bad("charart legacy " + oldh.Replace("\n", "/") + " | " + oldv.Replace("\n", "/") + " | " + oldd.Replace("\n", "/") + " | " + oldc.Replace("\n", "/"));
+			return 1;
+		}
 		Fit(100, 50, 50, 20, out var fw, out var fh, out var fox, out var foy);
 		if (Math.Abs(fw - 2) > 1e-6 || Math.Abs(fh - 4) > 1e-6 || Math.Abs(fox) > 1e-6 || Math.Abs(foy - (-15)) > 1e-6) {
 			bad($"charart fit {fw} {fh} {fox} {foy}");
@@ -628,6 +740,7 @@ static class CharArt {
 		ok("charart soft split keeps half and eighth");
 		ok("charart auto quadrant split");
 		ok("charart line sets basic ascii box");
+		ok("charart legacy line mode");
 		return 0;
 	}
 

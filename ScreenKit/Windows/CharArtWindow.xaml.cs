@@ -82,6 +82,7 @@ public partial class CharArtWindow : Window {
 		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.simple"), Tag = CharArt.LINES_SIMPLE });
 		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.ascii"), Tag = CharArt.LINES_ASCII });
 		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.box"), Tag = CharArt.LINES_BOX });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.legacy"), Tag = CharArt.LINES_LEGACY });
 		elineset.SelectedIndex = keep >= 0 && keep < elineset.Items.Count ? keep : 0;
 	}
 

@@ -36,7 +36,7 @@
 			          AutomationProperties.AutomationId="charart.invert"/>
 			<CheckBox x:Name="ckline" Content="线条" VerticalAlignment="Center" Margin="12,0,0,6"
 			          AutomationProperties.AutomationId="charart.line"/>
-			<ComboBox x:Name="elineset" Width="132" Height="30" VerticalContentAlignment="Center"
+			<ComboBox x:Name="elineset" Width="150" Height="30" VerticalContentAlignment="Center"
 			          VerticalAlignment="Center" Margin="6,0,0,6"
 			          AutomationProperties.AutomationId="charart.lineset"/>
 			<TextBlock x:Name="lbth" Text="阈值" VerticalAlignment="Center" Margin="12,0,6,6"/>
