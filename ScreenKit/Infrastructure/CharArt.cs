@@ -21,6 +21,8 @@ static class CharArt {
 	public const int MODE_HALF = 2;
 	public const int MODE_QUARTER = 4;
 	public const int MODE_EIGHTH = 8;
+	// 明暗画法（不是线条）：按亮度取 .:-=+*#%@。界面下拉里的默认档，走 Ascii。
+	public const int LINES_SHADE = -1;
 	public const int LINES_SIMPLE = 0;
 	public const int LINES_ASCII = 1;
 	public const int LINES_BOX = 2;

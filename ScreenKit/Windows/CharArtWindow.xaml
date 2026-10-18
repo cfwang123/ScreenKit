@@ -34,11 +34,10 @@
 			         AutomationProperties.AutomationId="charart.cols"/>
 			<CheckBox x:Name="ckinv" Content="反色" VerticalAlignment="Center" Margin="12,0,0,6"
 			          AutomationProperties.AutomationId="charart.invert"/>
-			<CheckBox x:Name="ckline" Content="线条" VerticalAlignment="Center" Margin="12,0,0,6"
-			          AutomationProperties.AutomationId="charart.line"/>
-			<ComboBox x:Name="elineset" Width="150" Height="30" VerticalContentAlignment="Center"
-			          VerticalAlignment="Center" Margin="6,0,0,6"
-			          AutomationProperties.AutomationId="charart.lineset"/>
+			<TextBlock x:Name="lbmode" Text="模式" VerticalAlignment="Center" Margin="12,0,6,6"/>
+			<ComboBox x:Name="elineset" Width="190" Height="30" VerticalContentAlignment="Center"
+			          VerticalAlignment="Center" Margin="0,0,0,6"
+			          AutomationProperties.AutomationId="charart.mode"/>
 			<TextBlock x:Name="lbth" Text="阈值" VerticalAlignment="Center" Margin="12,0,6,6"/>
 			<Slider x:Name="eth" Width="140" Minimum="0" Maximum="255" TickFrequency="1"
 			        IsSnapToTickEnabled="True" Value="0" VerticalAlignment="Center" Margin="0,0,0,6"

@@ -37,18 +37,7 @@ public partial class CharArtWindow : Window {
 		};
 		ckinv.Checked += (_, _) => showascii();
 		ckinv.Unchecked += (_, _) => showascii();
-		ckline.Checked += (_, _) => {
-			updatelineset();
-			showascii();
-		};
-		ckline.Unchecked += (_, _) => {
-			updatelineset();
-			showascii();
-		};
-		elineset.SelectionChanged += (_, _) => {
-			updatelineset();
-			showascii();
-		};
+		elineset.SelectionChanged += (_, _) => showascii();
 		eout.AllowDrop = true;
 		AddHandler(DragOverEvent, new DragEventHandler(ondrag), true);
 		AddHandler(DropEvent, new DragEventHandler(ondrop), true);
@@ -64,11 +53,9 @@ public partial class CharArtWindow : Window {
 		lbsize.Text = Loc.T("charart.size");
 		esize.ToolTip = Loc.T("charart.size.tip");
 		ckinv.Content = Loc.T("charart.invert");
-		ckline.Content = Loc.T("charart.line");
-		ckline.ToolTip = Loc.T("charart.line.tip");
-		elineset.ToolTip = Loc.T("charart.lineset.tip");
-		filllineset();
-		updatelineset();
+		lbmode.Text = Loc.T("charart.mode");
+		elineset.ToolTip = Loc.T("charart.mode.tip");
+		fillmodes();
 		lbhint.Text = Loc.T("charart.hint");
 		ToolBtnUi.Set(bpick, ToolBtnUi.Browse, Loc.T("charart.pick"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("charart.copy"));
@@ -76,20 +63,15 @@ public partial class CharArtWindow : Window {
 		if (px == null) lbstat.Text = Loc.T("charart.empty");
 	}
 
-	void filllineset() {
+	void fillmodes() {
 		var keep = elineset.SelectedIndex;
 		elineset.Items.Clear();
-		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.simple"), Tag = CharArt.LINES_SIMPLE });
-		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.ascii"), Tag = CharArt.LINES_ASCII });
-		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.box"), Tag = CharArt.LINES_BOX });
-		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.lineset.legacy"), Tag = CharArt.LINES_LEGACY });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.shade"), Tag = CharArt.LINES_SHADE });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.simple"), Tag = CharArt.LINES_SIMPLE });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.ascii"), Tag = CharArt.LINES_ASCII });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.box"), Tag = CharArt.LINES_BOX });
+		elineset.Items.Add(new ComboBoxItem { Content = Loc.T("charart.mode.legacy"), Tag = CharArt.LINES_LEGACY });
 		elineset.SelectedIndex = keep >= 0 && keep < elineset.Items.Count ? keep : 0;
-	}
-
-	void updatelineset() {
-		var on = ckline.IsChecked == true;
-		elineset.IsEnabled = on;
-		elineset.Opacity = on ? 1 : 0.45;
 	}
 
 	void pick() {
@@ -214,12 +196,11 @@ public partial class CharArtWindow : Window {
 		var threshold = (int)eth.Value;
 		if (threshold < 0) threshold = 0;
 		if (threshold > 255) threshold = 255;
-		var line = ckline.IsChecked == true;
-		var lineset = elineset.SelectedItem is ComboBoxItem it && it.Tag is int k ? k : CharArt.LINES_SIMPLE;
-		eth.ToolTip = Loc.T(line ? "charart.line.th" : "charart.threshold.tip");
-		eout.Text = line
-			? CharArt.Lines(px, w, h, cols, ckinv.IsChecked == true, threshold, lineset)
-			: CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold);
+		var mode = elineset.SelectedItem is ComboBoxItem it && it.Tag is int k ? k : CharArt.LINES_SHADE;
+		eth.ToolTip = Loc.T(mode == CharArt.LINES_SHADE ? "charart.threshold.tip" : "charart.line.th");
+		eout.Text = mode == CharArt.LINES_SHADE
+			? CharArt.Ascii(px, w, h, cols, ckinv.IsChecked == true, threshold)
+			: CharArt.Lines(px, w, h, cols, ckinv.IsChecked == true, threshold, mode);
 		var lines = 1;
 		foreach (var ch in eout.Text)
 			if (ch == '\n') lines++;
