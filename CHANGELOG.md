@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Wubi/Japanese typing no longer drops keys. The candidate bar used to be built and rendered inside the keyboard hook; when that took longer than the Windows hook timeout (300 ms) the system silently removed the hook and letters or Backspace stopped responding. The bar is now rendered after the hook returns and pre-rendered when the IME is switched on, the lexicon is scanned by a background thread at startup, and the tray icon is only touched when it changes.
 - Number notation: the middle-number reading advanced by 10^8, so 1e16 read the same as the large-number reading. It now advances by 10^4, so 1e16 is a jing (一京).
 - Japanese reading: 1e16 read いちけい. Units starting with a voiceless consonant now take the 促音 (六京 ろっけい、百京 ひゃっけい), and a は行 unit turns semi-voiced after it.
+- Korean: the native-numeral row used native digits for the fraction (0.12345 read 영 점 하나둘셋넷다섯). Native numerals do not cover decimals, so that row stays blank and the Sino-Korean row reads 영 점 일이삼사오.
 
 ### 中文
 
@@ -79,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 五笔/日语打字不再丢键。候选条原来是在键盘钩子里现建现画的，一旦超过系统的钩子超时（300 毫秒），系统会悄悄把钩子摘掉，之后字母和退格就没了反应。现在候选条改在钩子返回之后再画，并在开启输入法时先离屏渲染一遍；词库在启动时由后台线程预热；托盘图标只在真变了才碰。
 - 数字表记：中数原来按万万（10^8）递进，1e16 与大数同为「兆」；改为按万（10^4）递进，1e16 读作「一京」。
 - 日语读法：1e16 原来读 いちけい。清音开头的单位前改按促音读，如 六京 ろっけい、百京 ひゃっけい；は行促音后变半浊音。
+- 韩文固有：小数原来按固有数词逐位读（0.12345 是 영 점 하나둘셋넷다섯）。固有数词不用于小数，这一行改为留空，小数由韩文汉字行读，如 영 점 일이삼사오。
 
 ## v1.0.24 (2026-10-17)
 
