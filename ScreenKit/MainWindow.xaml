@@ -272,13 +272,13 @@
 			</MenuItem>
 			<MenuItem x:Name="mnopts" Header="选项(_O)"
 			          AutomationProperties.AutomationId="menu.options">
+				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
+				          AutomationProperties.AutomationId="menu.settings"
+				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
 				<MenuItem x:Name="mndictselbar" Header="划词浮窗"
 				          IsCheckable="True"
 				          AutomationProperties.AutomationId="menu.dictselbar"
 				          ToolTip="在其它程序里划选文字时显示查词浮窗"/>
-				<MenuItem x:Name="mnsettings" Header="参数设置(_S)…"
-				          AutomationProperties.AutomationId="menu.settings"
-				          ToolTip="检测阈值、热键、HTTP、PDF 等"/>
 			</MenuItem>
 			<MenuItem x:Name="mnlang" Header="界面语言(_L)"
 			          AutomationProperties.AutomationId="menu.lang"/>
