@@ -93,6 +93,9 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		F.id("tr-speak-src").onclick = function(){ if (SK.trspeak) SK.trspeak("src"); };
 		F.id("tr-speak-dst").onclick = function(){ if (SK.trspeak) SK.trspeak("dst"); };
 		F.id("tr-src").onchange = function(){ if (SK.trdst) SK.trdst(true); };
+		F.id("tr-dst").onchange = function(){ if (SK.trsync) SK.trsync(); };
+		F.id("tr-engine").onchange = function(){ if (SK.trfillmodel) SK.trfillmodel(); };
+		F.id("tr-model").onchange = function(){ if (SK.trmodel) SK.trmodel(); };
 		F.id("tr-in").onkeydown = function(ev){
 			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
 				F.pd(ev);

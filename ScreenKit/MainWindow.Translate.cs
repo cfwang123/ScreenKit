@@ -90,6 +90,7 @@ public partial class MainWindow {
 			filltrlangcombos();
 			lbtrstatus.Text = usellm() ? Loc.T("tr.refreshed.llm") : Loc.T("tr.refreshed");
 		};
+		lktrchromepage.Click += (_, _) => opentrchromepage();
 		btrgo.Click += async (_, _) => await runtranslate();
 		tabtr.PreviewKeyDown += (_, e) => {
 			if (e.Key != Key.Enter || (Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
@@ -252,6 +253,27 @@ public partial class MainWindow {
 			etrengine.SelectedItem = pick ?? etrengine.Items[0];
 		}
 		finally { trUiLoading = false; }
+	}
+
+	/// <summary>用本机 Chrome 打开「Chrome 模型」页，手动安装或卸载语言包。</summary>
+	void opentrchromepage() {
+		var exe = ChromeTts.FindExe(opt.ChromeExe);
+		if (string.IsNullOrEmpty(exe)) {
+			lbtrstatus.Text = Loc.T("tr.need.chrome");
+			return;
+		}
+		var port = opt.HttpPort > 0 ? opt.HttpPort : 1224;
+		var url = "http://127.0.0.1:" + port + "/chrome";
+		try {
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+				FileName = exe,
+				Arguments = "\"" + url + "\"",
+				UseShellExecute = false,
+			});
+		}
+		catch (Exception ex) {
+			showwarnmsg(ex.Message, Loc.T("tab.translate"));
+		}
 	}
 
 	bool usechrome() =>
@@ -848,6 +870,8 @@ public partial class MainWindow {
 		lbtrcompute.Text = Loc.T("tr.compute");
 		etrcompute.ToolTip = Loc.T("tr.compute.tip");
 		lbtrhint.Text = Loc.T("tr.hint");
+		rntrchromepage.Text = Loc.T("tr.chrome.install");
+		lktrchromepage.ToolTip = Loc.T("tr.chrome.install.tip");
 		lbtrsrctext.Text = Loc.T("tr.src.text");
 		btrspeaksrc.ToolTip = Loc.T("tr.speak.src");
 		lbtrdsttext.Text = Loc.T("tr.dst.text");

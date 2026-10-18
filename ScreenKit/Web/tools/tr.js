@@ -1,5 +1,8 @@
 (function(){
 	var trLangs = null;
+	var trEngines = [];
+	// 选模型会连带改语言，这段时间内别让语言回调把模型选择重置回「自动」
+	var trLock = false;
 	var BCP = {
 		zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR", cht: "zh-TW", yue: "zh-HK",
 		fr: "fr-FR", de: "de-DE", es: "es-ES", pt: "pt-PT", ru: "ru-RU", it: "it-IT",
@@ -13,12 +16,14 @@
 	function loadtr(){
 		if (trLangs) {
 			filltrlang();
+			fillengine();
 			takedict();
 			return;
 		}
 		SK.get("/api/translate/langs", function(data){
 			trLangs = data && data.src ? data : { src: ["auto"], dst: { auto: ["auto"] } };
 			filltrlang();
+			fillengine();
 			takedict();
 		}, "tr-msg");
 	}
@@ -64,6 +69,96 @@
 			rows.push({ value: codes[i], label: langlabel(codes[i]) });
 		if (!rows.length) rows.push({ value: "", label: SK.t("lang.none.tgt") || "没有目标语言" });
 		SK.fillsel(F.id("tr-dst"), rows, prev);
+		trsync();
+	}
+
+	function enginelabel(e){
+		var id = (e && e.engine) || "";
+		if (id === "onnx") return SK.t("tr.engine.onnx") || "本地 ONNX";
+		if (id === "chrome") return SK.t("tr.engine.chrome") || "Chrome";
+		if (id === "llm") return (e && e.name) || "LLM";
+		return SK.t("web.tr.engine.auto") || "自动";
+	}
+
+	function enginevalue(e){
+		var id = (e && e.engine) || "auto";
+		if (id === "llm") return "llm:" + ((e && e.name) || "");
+		return id;
+	}
+
+	function curengine(){
+		var v = F.id("tr-engine") ? (F.id("tr-engine").value || "auto") : "auto";
+		var i;
+		for (i = 0; i < trEngines.length; i++)
+			if (enginevalue(trEngines[i]) === v) return trEngines[i];
+		return { engine: "auto" };
+	}
+
+	function findmodel(key){
+		var models = (trLangs && trLangs.models) || [];
+		var i;
+		for (i = 0; i < models.length; i++)
+			if ((models[i].key || models[i].name) === key) return models[i];
+		return null;
+	}
+
+	function modellabel(m){
+		return langlabel(m.src) + " → " + langlabel(m.dst) + (m.name ? " · " + m.name : "");
+	}
+
+	function fillengine(){
+		if (!F.id("tr-engine")) return;
+		var prev = F.id("tr-engine").value || "auto";
+		trEngines = (trLangs && trLangs.engines) || [];
+		if (!trEngines.length) trEngines = [{ engine: "auto" }, { engine: "onnx" }, { engine: "chrome" }];
+		var rows = [];
+		var i;
+		for (i = 0; i < trEngines.length; i++)
+			rows.push({ value: enginevalue(trEngines[i]), label: enginelabel(trEngines[i]) });
+		SK.fillsel(F.id("tr-engine"), rows, prev);
+		fillmodel("");
+	}
+
+	// 模型只列本地 ONNX；引擎不是 ONNX 时只留「自动」并禁用。
+	function fillmodel(keep){
+		var sel = F.id("tr-model");
+		if (!sel) return;
+		var onnx = curengine().engine === "onnx";
+		var rows = [{ value: "auto", label: SK.t("web.tr.model.auto") || "自动（按方向）" }];
+		var models = (trLangs && trLangs.models) || [];
+		var i;
+		if (onnx) {
+			for (i = 0; i < models.length; i++) {
+				if (!models[i].ready) continue;
+				rows.push({ value: models[i].key || models[i].name, label: modellabel(models[i]) });
+			}
+		}
+		SK.fillsel(sel, rows, keep || "auto");
+		sel.disabled = !onnx;
+	}
+
+	// 选定某个本地模型：源/目标语言跟着模型方向走。
+	function trmodel(){
+		var m = findmodel(F.id("tr-model") ? (F.id("tr-model").value || "") : "");
+		if (!m) return;
+		trLock = true;
+		try {
+			filltrkeep(m.src);
+			filldst(false);
+			setsel("tr-dst", m.dst);
+		}
+		finally { trLock = false; }
+	}
+
+	// 语言改了以后，选中的模型方向不再匹配就退回「自动」。
+	function trsync(){
+		if (trLock || !F.id("tr-model")) return;
+		var m = findmodel(F.id("tr-model").value || "");
+		if (!m) return;
+		var src = F.id("tr-src").value || "auto";
+		var dst = F.id("tr-dst").value || "auto";
+		if (src === m.src && dst === m.dst) return;
+		fillmodel("auto");
 	}
 
 	function setsel(id, code){
@@ -116,7 +211,19 @@
 			SK.msg("tr-msg", SK.t("tr.popup.need_lang") || "请选择源/目标语言", true);
 			return;
 		}
-		SK.post("/api/translate", { text: text, src: src, dst: dst }, function(data){
+		var eng = curengine();
+		var body = { text: text, src: src, dst: dst };
+		if (eng.engine === "onnx") {
+			body.engine = "onnx";
+			var mk = F.id("tr-model") ? (F.id("tr-model").value || "") : "";
+			if (mk && mk !== "auto") body.model = mk;
+		}
+		else if (eng.engine === "chrome") body.engine = "chrome";
+		else if (eng.engine === "llm") {
+			body.engine = "llm";
+			if (eng.name) body.llm = eng.name;
+		}
+		SK.post("/api/translate", body, function(data){
 			var items = (data && data.items) || [];
 			var out = items.length ? (items[0].out || "") : "";
 			F.id("tr-out").value = out;
@@ -207,4 +314,7 @@
 	SK.trswap = trswap;
 	SK.trpaste = trpaste;
 	SK.trspeak = trspeak;
+	SK.trmodel = trmodel;
+	SK.trsync = trsync;
+	SK.trfillmodel = function(){ fillmodel(""); };
 })();

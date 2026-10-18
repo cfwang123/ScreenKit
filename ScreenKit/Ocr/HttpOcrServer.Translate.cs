@@ -36,9 +36,50 @@ sealed partial class HttpOcrServer {
 				["auto_native"] = autoNative,
 				["auto_learn"] = autoLearn,
 				["auto_label"] = TrLang.AutoLabel(autoNative, autoLearn),
+				["engines"] = translateengines(o),
+				["models"] = translatemodels(models),
 			},
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
 		});
+	}
+
+	/// <summary>可选引擎：自动、本地 ONNX、Chrome，以及参数设置里配的每个 LLM 端点。</summary>
+	static JsonArray translateengines(OcrOptions o) {
+		var arr = new JsonArray {
+			new JsonObject { ["engine"] = "auto" },
+			new JsonObject { ["engine"] = "onnx" },
+			new JsonObject { ["engine"] = "chrome" },
+		};
+		var list = o?.LlmList;
+		if (list != null) {
+			foreach (var ep in list) {
+				var name = ep?.DisplayName ?? "";
+				if (name.Length == 0) continue;
+				arr.Add(new JsonObject {
+					["engine"] = "llm",
+					["name"] = name,
+					["model"] = ep.Model ?? "",
+				});
+			}
+		}
+		return arr;
+	}
+
+	/// <summary>本地模型只列 ONNX；key 是方向键，name 是目录名（不含路径）。</summary>
+	static JsonArray translatemodels(List<TranslateModelInfo> models) {
+		var arr = new JsonArray();
+		foreach (var m in models) {
+			if (m == null || !m.IsOnnx) continue;
+			arr.Add(new JsonObject {
+				["engine"] = "onnx",
+				["key"] = m.DirKey,
+				["src"] = m.SourceLang,
+				["dst"] = m.TargetLang,
+				["name"] = Path.GetFileName(m.ModelDir) ?? "",
+				["ready"] = m.IsReady,
+			});
+		}
+		return arr;
 	}
 
 	void handletranslate(SockCtx ctx) {
@@ -53,8 +94,11 @@ sealed partial class HttpOcrServer {
 			translatechrome(ctx, o, jo);
 			return;
 		}
-		var wantLlm = str(jo, "llm") ?? str(jo, "model");
-		var ep = resolveep(o, wantLlm);
+		// engine：auto（缺省）/ onnx / chrome / llm。onnx 时 model 是本地模型方向键或目录名。
+		var engine = (str(jo, "engine") ?? "").Trim().ToLowerInvariant();
+		var onnx = engine == "onnx";
+		var wantLlm = str(jo, "llm") ?? (onnx ? null : str(jo, "model"));
+		var ep = onnx ? null : resolveep(o, wantLlm);
 
 		var items = readitems(jo);
 		if (items == null || items.Count == 0) {
@@ -63,8 +107,12 @@ sealed partial class HttpOcrServer {
 		}
 
 		resolvereq(o, jo, items, out var src, out var dst);
-		if (!AsrLlmClient.IsEndpointReady(ep)) {
-			translateonnx(ctx, o, items, src, dst);
+		if (ep == null || !AsrLlmClient.IsEndpointReady(ep)) {
+			if (engine == "llm") {
+				writejson(ctx, 200, err(943, "翻译 LLM 未就绪: " + (wantLlm ?? "未选")));
+				return;
+			}
+			translateonnx(ctx, o, items, src, dst, onnx ? str(jo, "model") : null);
 			return;
 		}
 
@@ -107,6 +155,7 @@ sealed partial class HttpOcrServer {
 				["dst"] = dst,
 				["model"] = ep.Model ?? "",
 				["llm"] = ep.DisplayName ?? "",
+				["engine"] = "llm",
 				["chunk"] = chunk,
 				["count"] = items.Count,
 				["miss"] = miss,
@@ -120,7 +169,8 @@ sealed partial class HttpOcrServer {
 	static bool wantchrome(JsonObject jo, OcrOptions o) {
 		var e = str(jo, "engine") ?? str(jo, "llm") ?? str(jo, "model") ?? "";
 		if (e.Equals("chrome", StringComparison.OrdinalIgnoreCase)) return true;
-		return e.Length == 0 && o != null && o.ChromeTranslate();
+		if (e.Length > 0 && !e.Equals("auto", StringComparison.OrdinalIgnoreCase)) return false;
+		return o != null && o.ChromeTranslate();
 	}
 
 	void translatechrome(SockCtx ctx, OcrOptions o, JsonObject jo) {
@@ -227,16 +277,30 @@ sealed partial class HttpOcrServer {
 		if (dst.Length == 0 || dst == TrLang.Auto) dst = adst;
 	}
 
-	void translateonnx(SockCtx ctx, OcrOptions o, List<string> items, string src, string dst) {
+	void translateonnx(SockCtx ctx, OcrOptions o, List<string> items, string src, string dst, string wantModel = null) {
 		List<TranslateModelInfo> models;
 		try { models = TranslateModelScanner.Scan(); }
 		catch { models = new List<TranslateModelInfo>(); }
 		var key = LangDetect.DirKey(src, dst);
-		var model = models.FirstOrDefault(m => m.IsReady
-			&& string.Equals(m.DirKey, key, StringComparison.OrdinalIgnoreCase));
-		if (model == null) {
-			writejson(ctx, 200, err(940, "未配置翻译 LLM，也没有 " + TrLang.Label(src) + "→" + TrLang.Label(dst) + " 的本地模型"));
-			return;
+		TranslateModelInfo model;
+		if (!string.IsNullOrWhiteSpace(wantModel)) {
+			model = models.FirstOrDefault(m => m.IsReady && matchesmodel(m, wantModel));
+			if (model == null) {
+				writejson(ctx, 200, err(940, "没有就绪的本地模型 " + wantModel.Trim()));
+				return;
+			}
+			// 指定了模型就用它的方向，请求里的 src/dst 只作参考
+			key = model.DirKey;
+			src = model.SourceLang;
+			dst = model.TargetLang;
+		}
+		else {
+			model = models.FirstOrDefault(m => m.IsReady
+				&& string.Equals(m.DirKey, key, StringComparison.OrdinalIgnoreCase));
+			if (model == null) {
+				writejson(ctx, 200, err(940, "未配置翻译 LLM，也没有 " + TrLang.Label(src) + "→" + TrLang.Label(dst) + " 的本地模型"));
+				return;
+			}
 		}
 		var eng = svc?.TranslateEngine;
 		if (eng == null) {
@@ -286,6 +350,14 @@ sealed partial class HttpOcrServer {
 			["time"] = ms,
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
 		});
+	}
+
+	/// <summary>本地模型可用方向键（zh-en）或目录名（opus-mt-zh-en-onnx）指定。</summary>
+	static bool matchesmodel(TranslateModelInfo m, string want) {
+		want = (want ?? "").Trim();
+		if (want.Length == 0) return false;
+		if (string.Equals(m.DirKey, want, StringComparison.OrdinalIgnoreCase)) return true;
+		return string.Equals(Path.GetFileName(m.ModelDir) ?? "", want, StringComparison.OrdinalIgnoreCase);
 	}
 
 	static List<string> translatesrcs(List<TranslateModelInfo> models, bool llm) {

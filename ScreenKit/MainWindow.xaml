@@ -1396,10 +1396,20 @@
 								<TextBlock x:Name="lbtrdetect" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="10"
 								           FontSize="11" Foreground="{StaticResource Accent}" TextWrapping="Wrap"
 								           Visibility="Collapsed" Text="自动检测：中文 → 英文"/>
-								<TextBlock x:Name="lbtrhint" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="10"
-								           FontSize="11" Foreground="{StaticResource TextMuted}"
-								           TextWrapping="Wrap"
-								           Text="模型：translatemodels。引擎可选本地 ONNX 或 LLM。"/>
+								<DockPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="10">
+									<TextBlock x:Name="lktrchromeinstall" DockPanel.Dock="Right"
+									           VerticalAlignment="Bottom" Margin="12,0,0,0" FontSize="11"
+									           AutomationProperties.AutomationId="tr.chrome.page">
+										<Hyperlink x:Name="lktrchromepage" Foreground="{StaticResource Accent}"
+										           ToolTip="打开本机的 Chrome 模型页，安装或卸载翻译 / 语音语言包">
+											<Run x:Name="rntrchromepage" Text="Chrome模型安装"/>
+										</Hyperlink>
+									</TextBlock>
+									<TextBlock x:Name="lbtrhint"
+									           FontSize="11" Foreground="{StaticResource TextMuted}"
+									           TextWrapping="Wrap"
+									           Text="模型：translatemodels。引擎可选本地 ONNX 或 LLM。"/>
+								</DockPanel>
 							</Grid>
 						</Border>
 

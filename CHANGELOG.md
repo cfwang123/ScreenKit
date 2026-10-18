@@ -46,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Wubi, Japanese, and Korean input takes custom lexicons. The lexicon window (IME tray menu, or Ctrl+Shift+F7) imports a text lexicon, exports the user words, and deletes entries; the text under dict/ next to the program is the source of truth, so a reinstalled ime.db restores it. Wubi is code + word, Japanese reading + word (kana or romaji), Korean just the word. --ime-dict-import <wubi|ja|ko> <file> imports from the command line.
 - Wubi candidates can skip rare characters: entries in the lexicon with no word frequency (CJK extension characters, uncommon idioms) are hidden by default. The Rare characters item in the IME tray menu, or the checkbox in IME settings, brings them back. Words you pinned or imported are always shown.
 - Japanese numbers: the row now shows the kanji form with the kana reading in parentheses, e.g. 一京（いっけい）. The speak button still reads only the kana.
+- Translate tab: a Chrome models link on the hint line opens the model page in the local Chrome
 
 #### Changed
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 五笔、日语、韩语输入支持自定义词库。「词库」窗口（输入法托盘菜单，或 Ctrl+Shift+F7）可导入文本词库、导出用户词、删除词条；程序旁 dict/ 下的文本是词库本体，重装 ime.db 后自动恢复。五笔是「编码 + 词」，日语「读音 + 词」（假名或罗马字），韩语只有「词」。命令行 --ime-dict-import <wubi|ja|ko> <文件> 也能导入。
 - 五笔候选可以不要生僻字：词库里没有词频的字词（CJK 扩展区、罕用成语）默认不显示，输入法托盘菜单的「生僻字」，或输入法设置里的勾选框可以打开。自己置顶和导入的词照常显示。
 - 日语数字：写成「汉字（读法）」，如 一京（いっけい）；发音仍只念括号里的读法。
+- 翻译页提示行右侧新增「Chrome模型安装」链接，用本机 Chrome 打开 Chrome 模型页
 
 #### 变更
 
