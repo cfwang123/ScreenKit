@@ -837,18 +837,20 @@ public partial class DictWindow : UserControl {
 			box = new Rect(p.X, p.Y, 2, 18);
 		}
 		try {
+			// PointToScreen 已是屏幕物理像素，不要再乘 DPI。
 			var tl = edetail.PointToScreen(box.TopLeft);
 			var br = edetail.PointToScreen(box.BottomRight);
-			var src = PresentationSource.FromVisual(edetail);
-			if (src?.CompositionTarget != null) {
-				var to = src.CompositionTarget.TransformToDevice;
-				tl = to.Transform(tl);
-				br = to.Transform(br);
-			}
 			return new Rect(Math.Min(tl.X, br.X), Math.Min(tl.Y, br.Y),
 				Math.Max(1, Math.Abs(br.X - tl.X)), Math.Max(1, Math.Abs(br.Y - tl.Y)));
 		}
 		catch { return new Rect(0, 0, 2, 18); }
+	}
+
+	internal Rect SelScreenPx() => selpx();
+
+	internal Rect PopupScreenPx() {
+		if (outwin == null || !outwin.IsVisible) return Rect.Empty;
+		return outwin.ScreenPx();
 	}
 
 	/// <summary>浮窗是否压住选区。供命令行检查。</summary>

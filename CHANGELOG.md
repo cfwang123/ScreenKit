@@ -43,6 +43,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The selection popup also works in this program. Dictionary entries always use that same popup, and the dictionary page no longer has its own. Drag the lower-right corner to resize; the size lasts until you quit.
 
+#### Fixed
+
+- Dictionary selection popup sat far from the selected word because the screen position was scaled twice.
+
 #### Removed
 
 - Remove tray menu item OCR from clipboard
@@ -52,6 +56,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 划词浮窗在本程序里也同样弹出。词典词条始终用这同一个浮窗，词典页自己的浮层已去掉。右下角可拖动改大小，本次运行会记住。
+
+#### 修复
+
+- 词典里划词浮窗离选中的字很远，是因为屏幕坐标被缩放了两次。
 
 #### 移除
 

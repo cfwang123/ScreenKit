@@ -71,10 +71,7 @@ static class SelBar {
 		foreach (var one in details) {
 			if (!one.TryGetTarget(out var el) || !el.IsVisible) continue;
 			try {
-				var src = PresentationSource.FromVisual(el);
-				if (src?.CompositionTarget == null) continue;
-				var dip = src.CompositionTarget.TransformFromDevice.Transform(new Point(x, y));
-				var local = el.PointFromScreen(dip);
+				var local = el.PointFromScreen(new Point(x, y));
 				if (local.X >= 0 && local.Y >= 0 && local.X < el.ActualWidth && local.Y < el.ActualHeight)
 					return true;
 			}

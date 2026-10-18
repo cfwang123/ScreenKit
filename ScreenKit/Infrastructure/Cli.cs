@@ -6459,10 +6459,16 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		for (var i = 0; i < 6; i++) pump();
 		var popOpen = win.host.SelShown;
 		var overlap = win.host.PopOverlapsSel();
-		Out($"selpop open={popOpen} overlap={overlap}");
-		if (!popOpen || overlap) {
+		var sel = win.host.SelScreenPx();
+		var pop = win.host.PopupScreenPx();
+		var dx = Math.Abs(pop.Left - sel.Left);
+		var below = pop.Top - sel.Bottom;
+		var above = sel.Top - pop.Bottom;
+		var nearY = (below >= -2 && below <= 80) || (above >= -2 && above <= 80);
+		Out($"selpop open={popOpen} overlap={overlap} sel={sel} pop={pop} dx={dx:0} below={below:0}");
+		if (!popOpen || overlap || dx > 24 || !nearY) {
 			try { win.Close(); } catch { }
-			Err("FAIL: 划词浮窗挡住选中文字");
+			Err("FAIL: 划词浮窗挡住选中文字或离得太远");
 			return 4;
 		}
 		win.host.CloseSel();
