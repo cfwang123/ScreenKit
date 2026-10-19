@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 
 namespace ScreenKit;
@@ -45,6 +46,7 @@ public partial class SelBarWindow : Window {
 	internal event Action<string> LangChanged;
 
 	bool langsync;
+	double keepoff = -1;
 	ToggleButton[] langs;
 	const double MINW = 296;
 	const double MINH = 168;
@@ -116,10 +118,29 @@ public partial class SelBarWindow : Window {
 	internal void ShowRows(List<DictSelRow> rows, bool searching) {
 		if (rows == null) rows = new List<DictSelRow>();
 		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+		var off = searching ? -1 : keepoff;
+		if (!searching) keepoff = -1;
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
+		if (rows.Count == 0) return;
+		if (off <= 0) {
+			lsel.ScrollIntoView(rows[0]);
+			return;
+		}
+		Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
+			try {
+				var sv = scrollof(lsel);
+				if (sv != null) sv.ScrollToVerticalOffset(off);
+			}
+			catch { }
+		}));
+	}
+
+	/// <summary>换词典语言前记下列表滚动位置，重查后还回到这里，不跳回顶部。</summary>
+	internal void KeepListOffset() {
+		var sv = scrollof(lsel);
+		keepoff = sv != null && sv.VerticalOffset > 0 ? sv.VerticalOffset : -1;
 	}
 
 	void wirelang(ToggleButton b, string dict) {

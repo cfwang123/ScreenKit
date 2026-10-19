@@ -71,6 +71,7 @@ public partial class DictWindow : UserControl {
 	Rect outbox;
 	bool selbarsync;
 	bool outdict;
+	bool keepscroll;
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
 	public Action<string> OnTranslate;
@@ -155,6 +156,7 @@ public partial class DictWindow : UserControl {
 					if (!ReferenceEquals(o, b)) o.IsChecked = false;
 				if (filter == dict) return;
 				filter = dict;
+				keepscroll = true;
 				queuesearch();
 			};
 			b.Unchecked += (_, _) => {
@@ -291,6 +293,8 @@ public partial class DictWindow : UserControl {
 	void runsearch() {
 		var q = esearch.Text ?? "";
 		var dict = filter ?? "";
+		var keep = keepscroll;
+		keepscroll = false;
 		if (string.IsNullOrWhiteSpace(q)) {
 			gen++;
 			filling = true;
@@ -325,12 +329,18 @@ public partial class DictWindow : UserControl {
 					lbstatus.Text = hits[0].Preview;
 					return;
 				}
-				showhits(hits, took[0]);
+				showhits(hits, took[0], keep);
 			}));
 		});
 	}
 
-	void showhits(List<DictHit> hits, int ms) {
+	void showhits(List<DictHit> hits, int ms, bool keep) {
+		var keepid = keep && lhits.SelectedItem is DictRow old ? old.Id : 0L;
+		var keepoff = 0.0;
+		if (keep) {
+			var sv = scrollof(lhits);
+			if (sv != null) keepoff = sv.VerticalOffset;
+		}
 		var rows = new List<DictRow>(hits.Count);
 		foreach (var h in hits) {
 			if (h.Id == 0) continue;
@@ -361,6 +371,13 @@ public partial class DictWindow : UserControl {
 			}
 			wantid = 0;
 		}
+		else if (keepid != 0) {
+			for (var i = 0; i < rows.Count; i++) {
+				if (rows[i].Id != keepid) continue;
+				pick = i;
+				break;
+			}
+		}
 		filling = true;
 		lhits.ItemsSource = rows;
 		if (rows.Count > 0) lhits.SelectedIndex = pick;
@@ -369,6 +386,38 @@ public partial class DictWindow : UserControl {
 		lbstatus.Text = Loc.T("dict.count", rows.Count, ms);
 		if (rows.Count > 0) loaddetail(rows[pick]);
 		else cleardetail();
+		keepview(rows, pick, keepid, keepoff);
+	}
+
+	/// <summary>换词典语言后别让单词列表跳回顶部：原来的词条还在就选中它，不在了就回到原来的滚动位置。</summary>
+	void keepview(List<DictRow> rows, int pick, long keepid, double keepoff) {
+		if (keepid != 0 && pick < rows.Count && rows[pick].Id == keepid) {
+			if (pick == 0) return;
+			var row = rows[pick];
+			Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => {
+				try { lhits.ScrollIntoView(row); } catch { }
+			}));
+			return;
+		}
+		if (keepoff <= 0) return;
+		Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
+			try {
+				var sv = scrollof(lhits);
+				if (sv != null) sv.ScrollToVerticalOffset(keepoff);
+			}
+			catch { }
+		}));
+	}
+
+	static ScrollViewer scrollof(DependencyObject d) {
+		if (d == null) return null;
+		for (var i = 0; i < VisualTreeHelper.GetChildrenCount(d); i++) {
+			var c = VisualTreeHelper.GetChild(d, i);
+			if (c is ScrollViewer sv) return sv;
+			var inner = scrollof(c);
+			if (inner != null) return inner;
+		}
+		return null;
 	}
 
 	void onrowspeak(object sender, RoutedEventArgs e) {
@@ -947,7 +996,10 @@ public partial class DictWindow : UserControl {
 	}
 
 	void refreshsel() {
-		if (outwin != null && outwin.IsVisible) searchoutside();
+		if (outwin != null && outwin.IsVisible) {
+			try { outwin.KeepListOffset(); } catch { }
+			searchoutside();
+		}
 	}
 
 	void searchoutside() {
