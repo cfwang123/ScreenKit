@@ -408,7 +408,7 @@ static class DictDb {
 			if (moon) {
 				foreach (var hangul in DictRomanize.RomanToHangulVariants(q)) {
 					if (hangul == q) continue;
-					affixkeysroman(hangul, "ko", hits, cap);
+					affixkeysroman(hangul, "ko", hits, cap, limit);
 				}
 			}
 		}
@@ -419,16 +419,17 @@ static class DictDb {
 	static void affixkeys(string q, string dict, List<DictHit> hits, int cap, int limit) {
 		prefixkeys(q, dict, hits, cap);
 		var prefixN = uniquecount(hits);
-		var wantContains = shouldruncontains(q, prefixN, limit);
+		var wantContains = shouldruncontains(prefixN, limit);
 		var deferContains = wantContains && KoStem.HasHangul(q) && prefixN < 4;
 		if (wantContains && !deferContains) containskeys(q, dict, hits, cap);
 		if (wantstem(q, dict, uniquecount(hits))) stemkeys(q, dict, hits, limit);
 		if (deferContains && uniquecount(hits) < 4) containskeys(q, dict, hits, cap);
 	}
 
-	/// <summary>韩语罗马字转谚文后的补充检索：只做前缀，避免中缀把 사세고 扩成 사세。</summary>
-	static void affixkeysroman(string q, string dict, List<DictHit> hits, int cap) {
+	/// <summary>韩语罗马字转谚文后的补充检索：先查前缀，再还原活用形（gapnida → 갑니다 → 가다）。两字谚文走中缀要全表扫，这里不查中缀，以免整词查询多花几百毫秒。</summary>
+	static void affixkeysroman(string q, string dict, List<DictHit> hits, int cap, int limit) {
 		prefixkeys(q, dict, hits, cap);
+		if (wantstem(q, dict, uniquecount(hits))) stemkeys(q, dict, hits, limit);
 	}
 
 	public static DictEntry Get(long id) {
@@ -1409,10 +1410,9 @@ static class DictDb {
 		return s.Substring(0, n);
 	}
 
-	static bool shouldruncontains(string q, int prefixUnique, int limit) {
-		if (prefixUnique >= limit) return false;
-		if (prefixUnique > 0 && countchars(q) >= 4) return false;
-		return true;
+	/// <summary>中缀按 gram 查，代价很小；只要前缀没占满条数就查，别因为查询偏长漏掉前缀之外的词（如 dict）。</summary>
+	static bool shouldruncontains(int prefixUnique, int limit) {
+		return prefixUnique < limit;
 	}
 
 	static bool wantstem(string q, string dict, int n) {
