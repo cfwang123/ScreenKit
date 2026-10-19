@@ -298,7 +298,7 @@ ScreenKit --zhconv "國發" --simp
 { "text": "中国人民银行" }
 ```
 
-**响应 `data`：** `installed`、`pinyin`（空格分开、不带声调）、`py`（每个字一个大写首字母）。「中国人民银行」的 `pinyin` 是 `zhong guo ren min yin hang`，`py` 是 `ZGRMYH`。「重庆」是 `chong qing` 和 `CQ`。超过 20000 字返回 500。有原文但没装库返回 803。
+**响应 `data`：** `installed`、`pinyin`（空格分开、不带声调）、`py`（每个字一个小写首字母）。「中国人民银行」的 `pinyin` 是 `zhong guo ren min yin hang`，`py` 是 `zgrmyh`。「重庆」是 `chong qing` 和 `cq`。超过 20000 字返回 500。有原文但没装库返回 803。
 
 ```bash
 ScreenKit --pinyin "重庆"
