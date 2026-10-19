@@ -16,6 +16,7 @@
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
@@ -46,7 +47,13 @@
 			<Button x:Name="bstop" Style="{StaticResource ToolBtn}" Margin="0,0,0,6"
 			        AutomationProperties.AutomationId="midi.stop"/>
 		</WrapPanel>
-		<DockPanel Grid.Row="2" Margin="0,0,0,8">
+		<Border x:Name="pwave" Grid.Row="2" Height="72" Margin="0,0,0,8"
+		        CornerRadius="8" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+		        Background="#1C1915" ClipToBounds="True"
+		        AutomationProperties.AutomationId="midi.wave">
+			<Image x:Name="ewave" Stretch="Fill"/>
+		</Border>
+		<DockPanel Grid.Row="3" Margin="0,0,0,8">
 			<StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
 				<TextBlock x:Name="lboct" Text="八度" VerticalAlignment="Center" Margin="0,0,6,0"/>
 				<Button x:Name="boctdn" Style="{StaticResource ToolBtn}" Margin="0,0,4,0"/>
@@ -57,7 +64,7 @@
 				<Canvas x:Name="ppiano" Height="150"/>
 			</ScrollViewer>
 		</DockPanel>
-		<WrapPanel Grid.Row="3" Margin="0,0,0,8">
+		<WrapPanel Grid.Row="4" Margin="0,0,0,8">
 			<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
 			        AutomationProperties.AutomationId="midi.open"/>
 			<Button x:Name="bsave" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
@@ -73,7 +80,7 @@
 			         BorderBrush="{StaticResource BorderSoft}"
 			         AutomationProperties.AutomationId="midi.tempo"/>
 		</WrapPanel>
-		<WrapPanel Grid.Row="4" Margin="0,0,0,8">
+		<WrapPanel Grid.Row="5" Margin="0,0,0,8">
 			<TextBlock x:Name="lbtrack" Text="音轨" VerticalAlignment="Center" Margin="0,0,6,0"/>
 			<ComboBox x:Name="etrack" Width="180" Height="32" Margin="0,0,8,0"
 			          VerticalContentAlignment="Center"
@@ -83,7 +90,7 @@
 			<Button x:Name="baddn" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"/>
 			<Button x:Name="bdeln" Style="{StaticResource ToolBtn}"/>
 		</WrapPanel>
-		<ListView x:Name="lv" Grid.Row="5" BorderBrush="{StaticResource BorderSoft}"
+		<ListView x:Name="lv" Grid.Row="6" BorderBrush="{StaticResource BorderSoft}"
 		          SelectionMode="Single"
 		          AutomationProperties.AutomationId="midi.notes">
 			<ListView.View>
@@ -97,7 +104,7 @@
 				</GridView>
 			</ListView.View>
 		</ListView>
-		<WrapPanel Grid.Row="6" Margin="0,8,0,0">
+		<WrapPanel Grid.Row="7" Margin="0,8,0,0">
 			<TextBlock x:Name="lbedstart" Text="起点" VerticalAlignment="Center" Margin="0,0,6,0"/>
 			<TextBox x:Name="estart" Width="72" Height="32" Padding="6,4" Margin="0,0,8,0"
 			         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"/>
@@ -116,7 +123,7 @@
 			<Button x:Name="bapply" Style="{StaticResource ToolBtn}"
 			        AutomationProperties.AutomationId="midi.apply"/>
 		</WrapPanel>
-		<TextBlock x:Name="lbstat" Grid.Row="7" Margin="0,8,0,0" TextWrapping="Wrap"
+		<TextBlock x:Name="lbstat" Grid.Row="8" Margin="0,8,0,0" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
 	</Grid>
 </Window>

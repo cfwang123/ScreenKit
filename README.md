@@ -94,7 +94,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Performance**: A borderless window with CPU, GPU, memory, network, and disk, with a pin and an update interval.
 - **File info**: Reads the header type and shows version, image, media, and text-encoding details.
 - **HTTP request debugger**: Requests are saved in groups; parameters are one `key=value` per line, and a POST can be JSON, XML, or raw text.
-- **MIDI synthesizer**: Play with the mouse or the keyboard, and open, change, and save MIDI files.
+- **MIDI synthesizer**: Play with the mouse or the keyboard, open, change, and save MIDI files, and see a live waveform.
 - **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV.
 - **Camera**: Preview a camera, take photos and videos, and scan QR codes and barcodes.
 - **Scientific calculator**: A borderless keypad calculator with trigonometry, logarithms, powers, roots, factorial, and memory.

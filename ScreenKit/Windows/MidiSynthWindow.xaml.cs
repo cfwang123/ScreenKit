@@ -11,8 +11,12 @@ public partial class MidiSynthWindow : Window {
 	const int SRC_IN = 4;
 
 	readonly MidiSynth synth = new();
+	readonly MidiWave wave = new();
+	readonly float[] samples = new float[2048];
 	readonly int[] held = new int[128];
 	readonly Dictionary<int, Button> keys = new();
+	WriteableBitmap wavebmp;
+	byte[] wavepix;
 	MidiDoc doc = new();
 	string path = "";
 	bool dirty;
@@ -59,12 +63,14 @@ public partial class MidiSynthWindow : Window {
 		bdeln.Click += (_, _) => delnote();
 		bapply.Click += (_, _) => applynote();
 		lv.SelectionChanged += (_, _) => loadnote();
-		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
 		timer.Tick += (_, _) => ontick();
 		Closing += onclose;
 		WindowEsc.Attach(this);
 		synth.SetVolume(100);
 		openout();
+		wave.Start();
+		timer.Start();
 	}
 
 	sealed class Row {
@@ -493,7 +499,6 @@ public partial class MidiSynthWindow : Window {
 	}
 
 	void stopfile() {
-		timer?.Stop();
 		play = null;
 		try { synth.AllOff(); } catch { }
 		for (int i = 0; i < 128; i++) held[i] = 0;
@@ -507,6 +512,7 @@ public partial class MidiSynthWindow : Window {
 	}
 
 	void ontick() {
+		paintwave();
 		if (play == null || clock == null) return;
 		double now = clock.Elapsed.TotalMilliseconds;
 		while (playAt < play.Count && play[playAt].Ms <= now) {
@@ -521,7 +527,27 @@ public partial class MidiSynthWindow : Window {
 			e.Cancel = true;
 			return;
 		}
+		timer?.Stop();
 		stopfile();
+		try { wave.Dispose(); } catch { }
 		try { synth.Dispose(); } catch { }
+	}
+
+	void paintwave() {
+		double wdip = pwave.ActualWidth;
+		double hdip = pwave.ActualHeight;
+		if (wdip < 4 || hdip < 4) return;
+		int w = (int)wdip;
+		int h = (int)hdip;
+		if (wavebmp == null || wavebmp.PixelWidth != w || wavebmp.PixelHeight != h) {
+			wavebmp = new WriteableBitmap(w, h, 96, 96, PixelFormats.Bgra32, null);
+			ewave.Source = wavebmp;
+			wavepix = new byte[wavebmp.BackBufferStride * h];
+		}
+		wave.Copy(samples);
+		int stride = wavebmp.BackBufferStride;
+		if (wavepix == null || wavepix.Length < stride * h) wavepix = new byte[stride * h];
+		MidiWave.Paint(wavepix, w, h, stride, samples);
+		wavebmp.WritePixels(new Int32Rect(0, 0, w, h), wavepix, stride, 0);
 	}
 }

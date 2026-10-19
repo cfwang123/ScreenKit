@@ -42,6 +42,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - The 8-bit synthesizer shows a live waveform of what is playing.
+- The MIDI synthesizer shows a live waveform of what the computer is playing.
 
 #### Changed
 
@@ -66,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 8bit 合成器显示正在播放声音的实时波形。
+- MIDI 合成器显示本机正在播出声音的实时波形。
 
 #### 变更
 

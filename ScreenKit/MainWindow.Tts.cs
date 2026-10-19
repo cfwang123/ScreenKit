@@ -703,6 +703,9 @@ public partial class MainWindow {
 		try {
 			var eng = currentttsengine();
 			var sherpa = eng == TtsEngineKind.Sherpa;
+			var modelRow = sherpa ? Visibility.Visible : Visibility.Collapsed;
+			lbttsmodel.Visibility = modelRow;
+			ettsmodel.Visibility = modelRow;
 			ettscompute.IsEnabled = sherpa;
 			ettsmodel.IsEnabled = sherpa;
 			// SAPI / WinRT 用音量滑块；Sherpa 走 tts_config volume

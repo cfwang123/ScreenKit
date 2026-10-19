@@ -190,6 +190,7 @@ sealed class MidiSynth : IDisposable {
 				synth.Dispose();
 				synth = null;
 			}
+			if (MidiWave.SelfTest(say) != 0) return 1;
 			if (MidiDoc.SelfTest(say) != 0) return 1;
 			say("=== OK：MIDI 合成器");
 			return 0;
