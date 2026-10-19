@@ -879,7 +879,7 @@ sealed class OcrEngine : IDisposable {
 		opt.ModelPackId = pack.Id;
 		opt.ModelVariant = variant.Title;
 		opt.ModelsDir = pack.Dir;
-		var label = $"{pack.DisplayName} · {variant.Title}";
+		var label = $"{pack.DisplayName} · {variant.DisplayName}";
 		return (pack.Dir, variant, label);
 	}
 

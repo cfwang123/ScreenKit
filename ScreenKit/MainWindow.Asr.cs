@@ -877,7 +877,7 @@ public partial class MainWindow {
 			if (asrModels.Count == 0) {
 				easrmodel.SelectedItem = null;
 				easrmodelstream.SelectedItem = null;
-				lbasrstatus.Text = "无 Sherpa 模型或 Windows 系统识别器";
+				lbasrstatus.Text = Loc.T("asr.status.none");
 				return;
 			}
 
@@ -894,7 +894,7 @@ public partial class MainWindow {
 			easrmodelstream.SelectedItem = pickSt;
 
 			var nWindows = offline.Count(x => x.IsWindows);
-			lbasrstatus.Text = $"就绪 · 离线 {offline.Count - nWindows} · Windows {nWindows} · 流式 {stream.Count}";
+			lbasrstatus.Text = Loc.T("asr.status.models", offline.Count - nWindows, nWindows, stream.Count);
 			updateasrengineui();
 		}
 		finally {

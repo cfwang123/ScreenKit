@@ -26,6 +26,10 @@ public partial class MainWindow : Window {
 	/// <summary>OCR 耗时 meta，不含翻译后缀；applyocrmeta 据此拼 ocrMetaText。</summary>
 	string ocrMetaBase = "推理 — · 端到端 — | 置信度 —";
 	string qrMetaText = "条码 —";
+	/// <summary>结果 meta 的端到端耗时，切换语言时据此重建。</summary>
+	int ocrWallMs, qrWallMs;
+	/// <summary>meta 是否来自识别结果（false 时是识别中/失败等提示，切语言不重建）。</summary>
+	bool ocrMetaResult, qrMetaResult;
 	bool panning;
 	Point panstart;
 	double pan0x, pan0y;
@@ -1613,7 +1617,7 @@ public partial class MainWindow : Window {
 			return;
 		}
 		var dev = opt.Device.ToString();
-		var label = variant != null ? $"{pack?.DisplayName} · {variant.Title}" : (pack?.DisplayName ?? "");
+		var label = variant != null ? $"{pack?.DisplayName} · {variant.DisplayName}" : (pack?.DisplayName ?? "");
 		if (opt.ServiceMode) {
 			// 服务模式：立即热切换并保持常驻，不先清空引擎
 			tryservicewarmup($"已切换 · {label} · {dev} · 边长{opt.DetLimitSideLen}");
@@ -2085,15 +2089,17 @@ public partial class MainWindow : Window {
 			tabresultocr.Header = Loc.T("result.tab.ocr");
 			tabresultqr.Header = Loc.T("result.tab.qr");
 			lbocrrunningbadge.Text = Loc.T("result.running");
-			if (last != null && !string.IsNullOrWhiteSpace(ocrMetaBase)
-				&& (ocrMetaBase.StartsWith("推理") || ocrMetaBase.StartsWith("Infer"))
-				&& ocrMetaBase.IndexOf('s') >= 0)
+			if (last != null && ocrMetaResult) {
+				ocrMetaBase = ocrmetatext(last, ocrWallMs);
 				applyocrmeta();
-			else if (string.IsNullOrWhiteSpace(ocrMetaText) || ocrMetaText.StartsWith("推理") || ocrMetaText.StartsWith("Infer"))
+			}
+			else if (string.IsNullOrWhiteSpace(ocrMetaText)) {
 				ocrMetaText = Loc.T("result.meta");
-			if (string.IsNullOrWhiteSpace(qrMetaText)
-				|| qrMetaText.StartsWith("条码") || qrMetaText.StartsWith("二维码")
-				|| qrMetaText.StartsWith("QR") || qrMetaText.StartsWith("Barcode"))
+				ocrMetaBase = ocrMetaText;
+			}
+			if (lastQr != null && qrMetaResult)
+				qrMetaText = qrmetatext(lastQr, qrWallMs);
+			else if (string.IsNullOrWhiteSpace(qrMetaText))
 				qrMetaText = Loc.T("result.qr.meta");
 			syncresultmetafromtab();
 			if (!busy || busyKind != "qr") {
@@ -3401,6 +3407,7 @@ public partial class MainWindow : Window {
 			selectmaintab(tabocr);
 			try { setimage(bmp, saved); }
 			catch (Exception ex) { CaptureLog.Ex("screensnap setimage", ex); }
+			ocrMetaResult = false;
 			ocrMetaText = $"{label} · {Loc.T("st.screensnap.norec")}";
 			syncresultmetafromtab();
 			drawoverlay();
@@ -3533,10 +3540,14 @@ public partial class MainWindow : Window {
 		if (wantOcr) {
 			selectmaintab(tabocr);
 			var kind = isresultqrtab() ? "条码" : "OCR";
-			if (isresultqrtab())
+			if (isresultqrtab()) {
+				qrMetaResult = false;
 				qrMetaText = $"{label} · {kind}识别中…";
-			else
+			}
+			else {
+				ocrMetaResult = false;
 				ocrMetaText = $"{label} · {kind}识别中…";
+			}
 			syncresultmetafromtab();
 			drawoverlay();
 			setstatus($"{label} {resultImg.PixelWidth}×{resultImg.PixelHeight} · {kind}识别中…");
@@ -3547,6 +3558,7 @@ public partial class MainWindow : Window {
 			bringtofront();
 		}
 		else {
+			ocrMetaResult = false;
 			ocrMetaText = wantOpen ? label + " · 已用系统软件打开" : label + " · 未识别";
 			syncresultmetafromtab();
 			drawoverlay();
@@ -3939,6 +3951,8 @@ public partial class MainWindow : Window {
 			eqrresult.Text = "";
 		}
 		catch { }
+		ocrMetaResult = false;
+		qrMetaResult = false;
 		ocrMetaText = Loc.T("result.meta");
 		ocrMetaBase = ocrMetaText;
 		qrMetaText = Loc.T("result.qr.meta");
@@ -4508,6 +4522,7 @@ public partial class MainWindow : Window {
 		var pack = winocr
 			? "Windows OCR"
 			: (string.IsNullOrWhiteSpace(opt.ModelVariant) ? (opt.ModelPackId ?? "模型") : opt.ModelVariant);
+		ocrMetaResult = false;
 		ocrMetaText = winocr
 			? $"识别中 · Windows OCR · {WinOcr.Summary(opt)}"
 			: $"识别中 · {pack} · {dev} · 边长{opt.DetLimitSideLen}";
@@ -4570,6 +4585,7 @@ public partial class MainWindow : Window {
 
 		if (cancelled || ct.IsCancellationRequested) {
 			setstatus("已取消识别");
+			ocrMetaResult = false;
 			ocrMetaText = "已取消";
 			syncresultmetafromtab();
 			await ensureactivetabasync();
@@ -4577,6 +4593,7 @@ public partial class MainWindow : Window {
 		}
 		if (error != null) {
 			setstatus($"识别失败: {error.Message}");
+			ocrMetaResult = false;
 			ocrMetaText = "识别失败: " + error.Message;
 			syncresultmetafromtab();
 			if (focusResult && IsVisible && WindowState != WindowState.Minimized)
@@ -4620,6 +4637,7 @@ public partial class MainWindow : Window {
 			setimage(bmp);
 		setbusyui(true);
 		setstatus("识别条码中…（可点「取消识别」）");
+		qrMetaResult = false;
 		qrMetaText = "识别中 · 条码";
 		syncresultmetafromtab();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
@@ -4657,6 +4675,7 @@ public partial class MainWindow : Window {
 
 		if (cancelled || ct.IsCancellationRequested) {
 			setstatus("已取消条码识别");
+			qrMetaResult = false;
 			qrMetaText = "已取消";
 			syncresultmetafromtab();
 			await ensureactivetabasync();
@@ -4664,6 +4683,7 @@ public partial class MainWindow : Window {
 		}
 		if (error != null) {
 			setstatus($"条码识别失败: {error.Message}");
+			qrMetaResult = false;
 			qrMetaText = "识别失败: " + error.Message;
 			syncresultmetafromtab();
 			if (focusResult && IsVisible && WindowState != WindowState.Minimized)
@@ -5130,16 +5150,10 @@ public partial class MainWindow : Window {
 			}
 			catch { }
 		}
-		var conf = r.Lines.Count > 0 ? r.Lines.Average(x => x.Score) : 0;
-		var model = string.IsNullOrEmpty(r.ModelLabel) ? "" : $" | {r.ModelLabel}";
-		var res = curimg != null ? $" | {curimg.PixelWidth}×{curimg.PixelHeight}" : "";
 		// 推理 = 模型管线 det/cls/rec；端到端 = 粘贴/打开/截图取图 → 界面出结果
-		var inferS = (Math.Max(0, r.InferMs) / 1000.0).ToString("0.00");
-		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
-		var loadPart = r.LoadMs > 0 ? $" · 加载 {(r.LoadMs / 1000.0):0.00}s" : "";
-		// 详细耗时/置信度等只写右侧识别结果区，顶部状态不重复
-		var sidePart = WinOcr.Is(opt) ? "" : $" | 边长{opt.DetLimitSideLen}";
-		ocrMetaBase = $"推理 {inferS}s · 端到端 {wallS}s{loadPart} | 置信度 {conf:0.00} | {r.DeviceUsed}{model}{res} | {r.Lines.Count} 行{sidePart}";
+		ocrWallMs = wallMs;
+		ocrMetaResult = true;
+		ocrMetaBase = ocrmetatext(r, wallMs);
 		ocrTrMs = 0;
 		applyocrmeta();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
@@ -5148,6 +5162,25 @@ public partial class MainWindow : Window {
 		// 结果面板出来后左侧视口尺寸已稳定，再 fit 一次保证居中
 		schedulefit();
 		_ = maybeocrtranslateasync();
+	}
+
+	/// <summary>右侧结果区 OCR meta：耗时 / 置信度 / 设备 / 模型 / 尺寸 / 行数。</summary>
+	string ocrmetatext(OcrResult r, int wallMs) {
+		var conf = r.Lines.Count > 0 ? r.Lines.Average(x => x.Score) : 0;
+		var model = string.IsNullOrEmpty(r.ModelLabel) ? "" : $" | {r.ModelLabel}";
+		var res = curimg != null ? $" | {curimg.PixelWidth}×{curimg.PixelHeight}" : "";
+		var inferS = (Math.Max(0, r.InferMs) / 1000.0).ToString("0.00");
+		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
+		var loadPart = r.LoadMs > 0 ? Loc.T("result.meta.load", (r.LoadMs / 1000.0).ToString("0.00")) : "";
+		var sidePart = WinOcr.Is(opt) ? "" : Loc.T("result.meta.side", opt.DetLimitSideLen);
+		return Loc.T("result.meta.full", inferS, wallS, loadPart, conf.ToString("0.00"), r.DeviceUsed + model + res, r.Lines.Count, sidePart);
+	}
+
+	string qrmetatext(QrResult r, int wallMs) {
+		var inferS = (Math.Max(0, r.InferMs) / 1000.0).ToString("0.00");
+		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
+		var res = curimg != null ? $" | {curimg.PixelWidth}×{curimg.PixelHeight}" : "";
+		return Loc.T("result.qr.full", inferS, wallS, r.DecodedCount, res);
 	}
 
 	void showqrresult(QrResult r, int wallMs, bool focusResult = true) {
@@ -5170,13 +5203,12 @@ public partial class MainWindow : Window {
 			}
 			catch { }
 		}
-		var inferS = (Math.Max(0, r.InferMs) / 1000.0).ToString("0.00");
-		var wallS = (Math.Max(0, wallMs) / 1000.0).ToString("0.00");
-		var res = curimg != null ? $" | {curimg.PixelWidth}×{curimg.PixelHeight}" : "";
-		qrMetaText = $"推理 {inferS}s · 端到端 {wallS}s | {r.DecodedCount} 个码{res}";
+		qrWallMs = wallMs;
+		qrMetaResult = true;
+		qrMetaText = qrmetatext(r, wallMs);
 		syncresultmetafromtab();
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
-		setstatus(r.DecodedCount > 0 ? $"条码完成 · {r.DecodedCount} 个" : "条码完成 · 未检出");
+		setstatus(r.DecodedCount > 0 ? Loc.T("st.qr.done", r.DecodedCount) : Loc.T("st.qr.none"));
 		drawoverlay();
 		schedulefit();
 	}
@@ -5204,6 +5236,8 @@ public partial class MainWindow : Window {
 			eqrresult.Text = "";
 		}
 		catch { }
+		ocrMetaResult = false;
+		qrMetaResult = false;
 		ocrMetaText = Loc.T("result.meta");
 		ocrMetaBase = ocrMetaText;
 		qrMetaText = Loc.T("result.qr.meta");
