@@ -701,7 +701,16 @@
 
 								<TextBlock x:Name="lbttsfilter" Grid.Row="1" Grid.Column="0" Text="筛选" FontWeight="SemiBold"
 								           VerticalAlignment="Center" Margin="0,0,8,8"/>
-								<DockPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Margin="0,0,0,8">
+								<DockPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4" Margin="0,0,0,8" LastChildFill="False">
+									<TextBlock x:Name="lkttschromeinstall" DockPanel.Dock="Right"
+									           VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"
+									           Visibility="Collapsed"
+									           AutomationProperties.AutomationId="tts.chrome.page">
+										<Hyperlink x:Name="lkttschromepage" Foreground="{StaticResource Accent}"
+										           ToolTip="打开本机的 Chrome 模型页，安装或卸载翻译 / 语音语言包">
+											<Run x:Name="rnttschromepage" Text="Chrome模型安装"/>
+										</Hyperlink>
+									</TextBlock>
 									<ComboBox x:Name="ettslang" MinWidth="140" Height="32" Margin="0,0,8,0"
 									          VerticalContentAlignment="Center"
 									          AutomationProperties.AutomationId="tts.lang"
@@ -709,9 +718,6 @@
 									<ComboBox x:Name="ettsgender" Width="110" Height="32"
 									          VerticalContentAlignment="Center"
 									          ToolTip="按性别筛选发音人"/>
-									<TextBlock x:Name="lbttsfilterhint" Text="WinRT=系统语言包 · Sherpa=tts_config" FontSize="11"
-									           Foreground="{StaticResource TextMuted}"
-									           VerticalAlignment="Center" Margin="12,0,0,0"/>
 								</DockPanel>
 
 								<TextBlock x:Name="lbttsmodel" Grid.Row="2" Grid.Column="0" Text="模型" FontWeight="SemiBold"
@@ -777,15 +783,6 @@
 								          VerticalContentAlignment="Center"
 								          ToolTip="导出 MP3 时的目标码率（kbps）"/>
 							</StackPanel>
-							<TextBlock x:Name="lkttschromeinstall" DockPanel.Dock="Right"
-							           VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"
-							           Visibility="Collapsed"
-							           AutomationProperties.AutomationId="tts.chrome.page">
-								<Hyperlink x:Name="lkttschromepage" Foreground="{StaticResource Accent}"
-								           ToolTip="打开本机的 Chrome 模型页，安装或卸载翻译 / 语音语言包">
-									<Run x:Name="rnttschromepage" Text="Chrome模型安装"/>
-								</Hyperlink>
-							</TextBlock>
 							<TextBlock x:Name="lbttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 							           VerticalAlignment="Center" TextWrapping="Wrap" Margin="16,0,0,0"
 							           Text="Sherpa 模型目录：程序旁 ttsmodels。GPU 需 onnxgpu64 + CUDA。"/>

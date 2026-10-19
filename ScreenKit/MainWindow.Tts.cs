@@ -1837,7 +1837,6 @@ public partial class MainWindow {
 		lbttsfilter.Text = Loc.T("tts.filter");
 		ettslang.ToolTip = Loc.T("tts.filter.lang.tip");
 		ettsgender.ToolTip = Loc.T("tts.filter.gender.tip");
-		lbttsfilterhint.Text = Loc.T("tts.filter.hint");
 		lbttsmodel.Text = Loc.T("tts.model");
 		ettsmodel.ToolTip = Loc.T("tts.model.tip");
 		lbttsvoice.Text = Loc.T("tts.voice");
