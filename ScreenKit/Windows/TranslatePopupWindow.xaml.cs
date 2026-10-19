@@ -266,16 +266,21 @@ public partial class TranslatePopupWindow : Window {
 				Content = TrLang.AutoLabel(o.TranslateAutoNative, o.TranslateAutoLearn),
 				Tag = TrLang.Auto,
 			});
-			var srcs = models.Where(m => m.IsReady)
-				.Select(m => m.SourceLang)
-				.Where(s => !string.IsNullOrEmpty(s))
-				.Distinct(StringComparer.OrdinalIgnoreCase)
-				.ToList();
-			if (usellm() || usechrome()) {
+			var srcs = new List<string>();
+			if (!usechrome()) {
+				srcs = models.Where(m => m.IsReady)
+					.Select(m => m.SourceLang)
+					.Where(s => !string.IsNullOrEmpty(s))
+					.Distinct(StringComparer.OrdinalIgnoreCase)
+					.ToList();
+			}
+			if (usellm()) {
 				foreach (var s in TrLang.LlmCodes)
 					if (!srcs.Any(x => string.Equals(x, s, StringComparison.OrdinalIgnoreCase)))
 						srcs.Add(s);
 			}
+			else if (usechrome())
+				ChromePack.AddInstalledTrLangs(srcs);
 			srcs.Sort(TrLang.CompareLlm);
 			foreach (var s in srcs)
 				esrclng.Items.Add(new ComboBoxItem { Content = TrLang.Label(s), Tag = s });
@@ -298,19 +303,24 @@ public partial class TranslatePopupWindow : Window {
 				edstlng.SelectedIndex = 0;
 				return;
 			}
-			var tgts = models.Where(m => m.IsReady
-					&& string.Equals(m.SourceLang, src, StringComparison.OrdinalIgnoreCase))
-				.Select(m => m.TargetLang)
-				.Where(t => !string.IsNullOrEmpty(t))
-				.Distinct(StringComparer.OrdinalIgnoreCase)
-				.ToList();
-			if (usellm() || usechrome()) {
+			var tgts = new List<string>();
+			if (!usechrome()) {
+				tgts = models.Where(m => m.IsReady
+						&& string.Equals(m.SourceLang, src, StringComparison.OrdinalIgnoreCase))
+					.Select(m => m.TargetLang)
+					.Where(t => !string.IsNullOrEmpty(t))
+					.Distinct(StringComparer.OrdinalIgnoreCase)
+					.ToList();
+			}
+			if (usellm()) {
 				foreach (var t in TrLang.LlmCodes) {
 					if (string.Equals(t, src, StringComparison.OrdinalIgnoreCase)) continue;
 					if (!tgts.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
 						tgts.Add(t);
 				}
 			}
+			else if (usechrome())
+				ChromePack.AddInstalledTrTargets(tgts, src);
 			tgts.Sort(TrLang.CompareLlm);
 			foreach (var t in tgts)
 				edstlng.Items.Add(new ComboBoxItem { Content = TrLang.Label(t), Tag = t });

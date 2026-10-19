@@ -177,6 +177,7 @@ public partial class MainWindow {
 		bttsnext.Click += (_, _) => ttsjump(+1);
 		bttsstop.Click += (_, _) => ttsstop();
 		bttsexport.Click += (_, _) => _ = ttsexportasync();
+		lkttschromepage.Click += (_, _) => openchromepage(msg => lbttsstatus.Text = msg);
 		bttsreload.Click += (_, _) => {
 			scanttssmodels();
 			rebuildttslangcombo(preserve: true);
@@ -334,8 +335,10 @@ public partial class MainWindow {
 	}
 
 	void collectchromelangs(SortedSet<string> set) {
-		foreach (var v in ChromeTts.Voices)
+		foreach (var v in ChromeTts.Voices) {
+			if (ChromePack.VoiceInstalled(v.Culture) != true) continue;
 			addttslang(set, v.Lang);
+		}
 	}
 
 	void collectsherpalangs(SortedSet<string> set) {
@@ -789,6 +792,7 @@ public partial class MainWindow {
 			ettsvoice.DisplayMemberPath = "DisplayName";
 			ttsfilterwant(out var wantLang, out var wantGender);
 			foreach (var v in ChromeTts.Voices) {
+				if (ChromePack.VoiceInstalled(v.Culture) != true) continue;
 				if (!winrtvoicematches(v, wantLang, wantGender)) continue;
 				ettsvoice.Items.Add(v);
 			}
@@ -1811,6 +1815,8 @@ public partial class MainWindow {
 		lbttskbps.Text = Loc.T("tts.kbps");
 		ettskbps.ToolTip = Loc.T("tts.kbps.tip");
 		lbttshint.Text = Loc.T("tts.hint");
+		rnttschromepage.Text = Loc.T("tr.chrome.install");
+		lkttschromepage.ToolTip = Loc.T("tr.chrome.install.tip");
 		bttsspeak.ToolTip = Loc.T("tts.speak.tip");
 		bttspause.ToolTip = Loc.T("tts.pause.tip");
 		bttsprev.Content = Loc.T("tts.prev");

@@ -4782,11 +4782,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Err("FAIL py: " + py);
 			return 1;
 		}
-		if (ini != "ZGRMYH") {
+		if (ini != "zgrmyh") {
 			Err("FAIL init: " + ini);
 			return 1;
 		}
-		if (PinyinConvert.Convert("重庆", false) != "chong qing" || PinyinConvert.Convert("重庆", true) != "CQ") {
+		if (PinyinConvert.Convert("重庆", false) != "chong qing" || PinyinConvert.Convert("重庆", true) != "cq") {
 			Err("FAIL 重庆: " + PinyinConvert.Convert("重庆", false));
 			return 1;
 		}
@@ -4798,11 +4798,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Err("FAIL 长: " + PinyinConvert.Convert("长城", false) + " / " + PinyinConvert.Convert("长大", false));
 			return 1;
 		}
-		if (PinyinConvert.Convert("Hello 重庆 123", false) != "H e l l o   chong qing   1 2 3") {
+		if (PinyinConvert.Convert("Hello 重庆 123", false) != "h e l l o   chong qing   1 2 3") {
 			Err("FAIL mix: [" + PinyinConvert.Convert("Hello 重庆 123", false) + "]");
 			return 1;
 		}
-		if (PinyinConvert.Convert("Hello 重庆 123", true) != "HELLO CQ 123") {
+		if (PinyinConvert.Convert("Hello 重庆 123", true) != "hello cq 123") {
 			Err("FAIL mix init: [" + PinyinConvert.Convert("Hello 重庆 123", true) + "]");
 			return 1;
 		}
@@ -4941,7 +4941,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			if (pyJson == null || pyJson.IndexOf("\"pinyin\"", StringComparison.Ordinal) < 0
 				|| pyJson.IndexOf("chong qing", StringComparison.Ordinal) < 0
 				|| pyJson.IndexOf("\"py\"", StringComparison.Ordinal) < 0
-				|| pyJson.IndexOf("\"CQ\"", StringComparison.Ordinal) < 0) {
+				|| pyJson.IndexOf("\"cq\"", StringComparison.Ordinal) < 0) {
 				Err("FAIL: HTTP 拼音应同时返回 pinyin 和 py");
 				return 1;
 			}
@@ -4949,7 +4949,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var postJson = Task.Run(() => http.PostAsync(baseUrl, body).GetAwaiter().GetResult().Content.ReadAsStringAsync().GetAwaiter().GetResult()).GetAwaiter().GetResult();
 			Out("http post " + postJson);
 			if (postJson == null || postJson.IndexOf("chong qing", StringComparison.Ordinal) < 0
-				|| postJson.IndexOf("\"CQ\"", StringComparison.Ordinal) < 0) {
+				|| postJson.IndexOf("\"cq\"", StringComparison.Ordinal) < 0) {
 				Err("FAIL: HTTP POST 拼音");
 				return 1;
 			}

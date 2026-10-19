@@ -29,13 +29,13 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 ## Speech, translation, dictionary, and face
 
 - **Speech recognition**: Live captions with an offline or streaming model.
-- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome.
+- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome. Chrome lists only installed languages, and the page opens Chrome model installation.
 - **Voice input**: The hotkey starts and finishes it, and the result goes to the current input position.
 - **Chat**: Uses a configured LLM, with bubbles, microphone input, and speaking.
 - **LLM log**: The latest ~1,000 requests with the model, elapsed time, and the request and response.
-- **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model.
+- **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model. Chrome language lists show only installed packs.
 - **Face**: Detection and comparison, with optional landmarks and gender and age.
-- **Chinese to pinyin**: Full spelling without tone marks, or one capital initial per character.
+- **Chinese to pinyin**: Full spelling without tone marks, or one lowercase initial per character.
 - **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, and manage custom words in the tray **Lexicon**.
 - **Simplified/Traditional**: Simplified on top, traditional below, following Taiwan character forms.
 - **Japanese yomi**: Turns a Japanese sentence into readings, by word or by character.

@@ -13,6 +13,7 @@ public partial class MainWindow {
 	bool trBusy;
 	TtsPlayer trSpeakPlayer;
 	int trSpeakGen;
+	bool chromePackQueued;
 
 	void inittranslate() {
 		dicthost.OnTranslate = text => {
@@ -90,7 +91,8 @@ public partial class MainWindow {
 			filltrlangcombos();
 			lbtrstatus.Text = usellm() ? Loc.T("tr.refreshed.llm") : Loc.T("tr.refreshed");
 		};
-		lktrchromepage.Click += (_, _) => opentrchromepage();
+		lktrchromepage.Click += (_, _) => openchromepage(msg => lbtrstatus.Text = msg);
+		ChromePack.Changed += onchromepackschanged;
 		btrgo.Click += async (_, _) => await runtranslate();
 		tabtr.PreviewKeyDown += (_, e) => {
 			if (e.Key != Key.Enter || (Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
@@ -256,10 +258,10 @@ public partial class MainWindow {
 	}
 
 	/// <summary>用本机 Chrome 打开「Chrome 模型」页，手动安装或卸载语言包。</summary>
-	void opentrchromepage() {
+	void openchromepage(Action<string> fail) {
 		var exe = ChromeTts.FindExe(opt.ChromeExe);
 		if (string.IsNullOrEmpty(exe)) {
-			lbtrstatus.Text = Loc.T("tr.need.chrome");
+			fail?.Invoke(Loc.T("tr.need.chrome"));
 			return;
 		}
 		var port = opt.HttpPort > 0 ? opt.HttpPort : 1224;
@@ -274,6 +276,23 @@ public partial class MainWindow {
 		catch (Exception ex) {
 			showwarnmsg(ex.Message, Loc.T("tab.translate"));
 		}
+	}
+
+	void onchromepackschanged() {
+		if (chromePackQueued) return;
+		chromePackQueued = true;
+		Dispatcher.BeginInvoke(new Action(() => {
+			chromePackQueued = false;
+			try {
+				if (usechrome()) filltrlangcombos();
+				if (trPopup != null) trPopup.SyncEngine();
+				if (currentttsengine() == TtsEngineKind.Chrome) {
+					rebuildttslangcombo(true);
+					fillechromevoices();
+				}
+			}
+			catch { }
+		}));
 	}
 
 	bool usechrome() =>
@@ -352,16 +371,21 @@ public partial class MainWindow {
 			Tag = TrLang.Auto,
 			ToolTip = Loc.T("tr.src.tip"),
 		});
-		var srcs = trModels.Where(m => m.IsReady)
-			.Select(m => m.SourceLang)
-			.Where(s => !string.IsNullOrEmpty(s))
-			.Distinct(StringComparer.OrdinalIgnoreCase)
-			.ToList();
-		if (usellm() || usechrome()) {
+		var srcs = new List<string>();
+		if (!usechrome()) {
+			srcs = trModels.Where(m => m.IsReady)
+				.Select(m => m.SourceLang)
+				.Where(s => !string.IsNullOrEmpty(s))
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.ToList();
+		}
+		if (usellm()) {
 			foreach (var s in TrLang.LlmCodes)
 				if (!srcs.Any(x => string.Equals(x, s, StringComparison.OrdinalIgnoreCase)))
 					srcs.Add(s);
 		}
+		else if (usechrome())
+			ChromePack.AddInstalledTrLangs(srcs);
 		srcs.Sort(TrLang.CompareLlm);
 		foreach (var s in srcs) {
 			etrsrclng.Items.Add(new ComboBoxItem {
@@ -388,19 +412,24 @@ public partial class MainWindow {
 			return;
 		}
 
-		var tgts = trModels.Where(m => m.IsReady
-				&& string.Equals(m.SourceLang, src, StringComparison.OrdinalIgnoreCase))
-			.Select(m => m.TargetLang)
-			.Where(t => !string.IsNullOrEmpty(t))
-			.Distinct(StringComparer.OrdinalIgnoreCase)
-			.ToList();
-		if (usellm() || usechrome()) {
+		var tgts = new List<string>();
+		if (!usechrome()) {
+			tgts = trModels.Where(m => m.IsReady
+					&& string.Equals(m.SourceLang, src, StringComparison.OrdinalIgnoreCase))
+				.Select(m => m.TargetLang)
+				.Where(t => !string.IsNullOrEmpty(t))
+				.Distinct(StringComparer.OrdinalIgnoreCase)
+				.ToList();
+		}
+		if (usellm()) {
 			foreach (var t in TrLang.LlmCodes) {
 				if (string.Equals(t, src, StringComparison.OrdinalIgnoreCase)) continue;
 				if (!tgts.Any(x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)))
 					tgts.Add(t);
 			}
 		}
+		else if (usechrome())
+			ChromePack.AddInstalledTrTargets(tgts, src);
 		tgts.Sort(TrLang.CompareLlm);
 
 		foreach (var t in tgts) {

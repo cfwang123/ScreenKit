@@ -285,7 +285,7 @@ Chinese to pinyin with optional `NPinyin.dll` (about 75 KB). Install it from **H
 { "text": "中国人民银行" }
 ```
 
-**Response `data`:** `installed`, `pinyin` (spaced, no tone marks), and `py` (one capital initial per character). `中国人民银行` is `pinyin` `zhong guo ren min yin hang` and `py` `ZGRMYH`. `重庆` is `chong qing` and `CQ`. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
+**Response `data`:** `installed`, `pinyin` (spaced, no tone marks), and `py` (one lowercase initial per character). `中国人民银行` is `pinyin` `zhong guo ren min yin hang` and `py` `zgrmyh`. `重庆` is `chong qing` and `cq`. Text longer than 20000 characters returns 500. Text present while the DLL is missing returns 803.
 
 ```bash
 ScreenKit --pinyin "重庆"

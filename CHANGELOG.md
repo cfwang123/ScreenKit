@@ -43,6 +43,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The selection popup also works in this program. Dictionary entries always use that same popup, and the dictionary page no longer has its own. Drag the lower-right corner to resize; the size lasts until you quit.
 - The IME tray menu shows each language hotkey, and Close shows the cycle hotkey.
+- Chrome translation and speech list only installed languages. Speech has the same Chrome model install link.
 
 #### Fixed
 
@@ -60,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 划词浮窗在本程序里也同样弹出。词典词条始终用这同一个浮窗，词典页自己的浮层已去掉。右下角可拖动改大小，本次运行会记住。
 - 输入法托盘菜单在五笔、日语、韩语旁显示各自热键，关闭旁显示轮流切换热键。
+- Chrome 翻译和语音合成只列出已安装的语言。语音合成页增加与翻译相同的 Chrome 模型安装链接。
 
 #### 修复
 

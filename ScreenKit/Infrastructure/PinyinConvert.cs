@@ -19,7 +19,7 @@ static class PinyinConvert {
 
 	public static bool Installed => NativeRuntime.HasNPinyin();
 
-	/// <summary>initials 为真时每个字一个大写首字母，否则是空格分开、不带声调的拼音。</summary>
+	/// <summary>initials 为真时每个字一个首字母，否则是空格分开、不带声调的拼音。结果一律小写。</summary>
 	public static string Convert(string text, bool initials) {
 		if (!Installed) throw new InvalidOperationException("NPinyin 未安装");
 		text ??= "";
@@ -37,7 +37,8 @@ static class PinyinConvert {
 				syl[i] = onesyl(text[i]);
 				i++;
 			}
-			return initials ? joinini(text, syl) : joinpy(text, syl);
+			var body = initials ? joinini(text, syl) : joinpy(text, syl);
+			return body.ToLowerInvariant();
 		}
 	}
 
@@ -185,7 +186,7 @@ static class PinyinConvert {
 				sb.Append(' ');
 				gap = false;
 			}
-			sb.Append(char.ToUpperInvariant(s[0]));
+			sb.Append(s[0]);
 			any = true;
 		}
 		return sb.ToString();

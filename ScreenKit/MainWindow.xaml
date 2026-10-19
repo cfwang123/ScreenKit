@@ -777,6 +777,14 @@
 								          VerticalContentAlignment="Center"
 								          ToolTip="导出 MP3 时的目标码率（kbps）"/>
 							</StackPanel>
+							<TextBlock x:Name="lkttschromeinstall" DockPanel.Dock="Right"
+							           VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"
+							           AutomationProperties.AutomationId="tts.chrome.page">
+								<Hyperlink x:Name="lkttschromepage" Foreground="{StaticResource Accent}"
+								           ToolTip="打开本机的 Chrome 模型页，安装或卸载翻译 / 语音语言包">
+									<Run x:Name="rnttschromepage" Text="Chrome模型安装"/>
+								</Hyperlink>
+							</TextBlock>
 							<TextBlock x:Name="lbttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 							           VerticalAlignment="Center" TextWrapping="Wrap" Margin="16,0,0,0"
 							           Text="Sherpa 模型目录：程序旁 ttsmodels。GPU 需 onnxgpu64 + CUDA。"/>

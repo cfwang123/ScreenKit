@@ -55,6 +55,9 @@ static class ChromePack {
 	static bool wasmProbed;
 	static bool wasmHave;
 
+	/// <summary>已安装的翻译包或语音包有变化。可能在后台线程上触发。</summary>
+	public static event Action Changed;
+
 	public static readonly string[] TrPairs = {
 		"en - es", "en - ja", "ar - en", "bn - en", "de - en", "en - fr", "en - hi", "en - it",
 		"en - ko", "en - nl", "en - pl", "en - pt", "en - ru", "en - th", "en - tr", "en - vi",
@@ -104,6 +107,11 @@ static class ChromePack {
 		foreach (var v in voices)
 			if (v.Kind == "tts" && v.Lang == "zh-CN") hasZh = true;
 		if (!hasZh) return 2;
+		foreach (var p in InstalledTrPairs()) {
+			if (p == null || p.Length != 2) return 2;
+			if (p[0].Length == 0 || p[1].Length == 0) return 2;
+			if (string.Equals(p[0], p[1], StringComparison.OrdinalIgnoreCase)) return 2;
+		}
 		return 0;
 	}
 
@@ -225,6 +233,45 @@ static class ChromePack {
 		}
 	}
 
+	/// <summary>本机已装的翻译语言对。每项是规范化后的两侧语言代码。</summary>
+	public static List<string[]> InstalledTrPairs() {
+		var list = new List<string[]>();
+		foreach (var it in tritems()) {
+			if (it.State != FeatureInstallState.Installed || it.Langs == null || it.Langs.Count < 2) continue;
+			var a = TrLang.Normalize(it.Langs[0]);
+			var b = TrLang.Normalize(it.Langs[1]);
+			if (a.Length == 0 || b.Length == 0 || a == TrLang.Auto || b == TrLang.Auto) continue;
+			if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) continue;
+			list.Add(new[] { a, b });
+		}
+		return list;
+	}
+
+	public static void AddInstalledTrLangs(List<string> into) {
+		if (into == null) return;
+		foreach (var p in InstalledTrPairs()) {
+			addtrcode(into, p[0]);
+			addtrcode(into, p[1]);
+		}
+	}
+
+	public static void AddInstalledTrTargets(List<string> into, string src) {
+		if (into == null) return;
+		src = TrLang.Normalize(src);
+		foreach (var p in InstalledTrPairs()) {
+			if (string.Equals(p[0], src, StringComparison.OrdinalIgnoreCase)) addtrcode(into, p[1]);
+			else if (string.Equals(p[1], src, StringComparison.OrdinalIgnoreCase)) addtrcode(into, p[0]);
+		}
+	}
+
+	static void addtrcode(List<string> into, string code) {
+		code = TrLang.Normalize(code);
+		if (code.Length == 0 || code == TrLang.Auto) return;
+		foreach (var s in into)
+			if (string.Equals(s, code, StringComparison.OrdinalIgnoreCase)) return;
+		into.Add(code);
+	}
+
 	public static string TrFolder(string pair) => (pair ?? "").Replace(" - ", "_");
 
 	/// <summary>筛选用的语言代码，逗号分隔。翻译包含两侧，语音包取主语言。</summary>
@@ -326,7 +373,10 @@ static class ChromePack {
 				progress?.Invoke(done / (double)total);
 			}
 		}
-		if (tts.Count == 0) return;
+		if (tts.Count == 0) {
+			raisechanged();
+			return;
+		}
 		lock (voiceOp) {
 			ChromeTts.Stop();
 			preparevoice(ChromeTts.ProfileDir());
@@ -346,6 +396,7 @@ static class ChromePack {
 				progress?.Invoke(done / (double)total);
 			}
 		}
+		raisechanged();
 	}
 
 	static List<ChromePackItem> tritems() {
@@ -742,12 +793,19 @@ static class ChromePack {
 
 	static void remember(string lang, bool on) {
 		if (string.IsNullOrWhiteSpace(lang)) return;
+		var fire = false;
 		lock (voiceOp) {
 			loadvoice();
 			if (voiceKnown.TryGetValue(lang, out var cur) && cur == on) return;
 			voiceKnown[lang] = on;
 			savevoice();
+			fire = true;
 		}
+		if (fire) raisechanged();
+	}
+
+	static void raisechanged() {
+		try { Changed?.Invoke(); } catch { }
 	}
 
 	static void loadvoice() {
