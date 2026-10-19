@@ -8,6 +8,14 @@
         ResizeMode="CanResize"
         Background="{StaticResource BgApp}"
         FontFamily="Segoe UI, Microsoft YaHei UI">
+	<Window.Resources>
+		<Style TargetType="TextBox">
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+		</Style>
+		<Style TargetType="ComboBox">
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+		</Style>
+	</Window.Resources>
 	<Grid Margin="16,16,16,12">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="*"/>
@@ -599,7 +607,7 @@
 							<TextBlock x:Name="lbsetasrllmprompt" Text="润色提示词" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 						</DockPanel>
-						<TextBox x:Name="easrllmprompt" MinHeight="88" Padding="6,4"
+						<TextBox x:Name="easrllmprompt" VerticalContentAlignment="Top" MinHeight="88" Padding="6,4"
 						         BorderBrush="{StaticResource BorderSoft}"
 						         TextWrapping="Wrap" AcceptsReturn="True"
 						         VerticalScrollBarVisibility="Auto"
@@ -617,7 +625,7 @@
 							<TextBlock x:Name="lbsetchatllmprompt" Text="对话提示词" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 						</DockPanel>
-						<TextBox x:Name="echatllmprompt" MinHeight="88" Padding="6,4"
+						<TextBox x:Name="echatllmprompt" VerticalContentAlignment="Top" MinHeight="88" Padding="6,4"
 						         BorderBrush="{StaticResource BorderSoft}"
 						         TextWrapping="Wrap" AcceptsReturn="True"
 						         VerticalScrollBarVisibility="Auto"
@@ -771,7 +779,7 @@
 						<TextBlock x:Name="lbsettrllmprompthint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,6"
 						           Text="src / dst 占位符会替换为源/目标语言名。空则用默认。"/>
-						<TextBox x:Name="etrllmprompt" MinHeight="120" Padding="6,4"
+						<TextBox x:Name="etrllmprompt" VerticalContentAlignment="Top" MinHeight="120" Padding="6,4"
 						         BorderBrush="{StaticResource BorderSoft}"
 						         TextWrapping="Wrap" AcceptsReturn="True"
 						         VerticalScrollBarVisibility="Auto"
