@@ -22,10 +22,11 @@ public partial class MainWindow : Window {
 	bool ocrDoneForImg;
 	bool qrDoneForImg;
 	/// <summary>各结果 Tab 缓存的 meta 文案（切换 Tab 时恢复）。</summary>
-	string ocrMetaText = "推理 — · 端到端 — | 置信度 —";
+	/// <summary>初次显示由 applylang 按界面语言填占位文案。</summary>
+	string ocrMetaText;
 	/// <summary>OCR 耗时 meta，不含翻译后缀；applyocrmeta 据此拼 ocrMetaText。</summary>
-	string ocrMetaBase = "推理 — · 端到端 — | 置信度 —";
-	string qrMetaText = "条码 —";
+	string ocrMetaBase;
+	string qrMetaText;
 	/// <summary>结果 meta 的端到端耗时，切换语言时据此重建。</summary>
 	int ocrWallMs, qrWallMs;
 	/// <summary>meta 是否来自识别结果（false 时是识别中/失败等提示，切语言不重建）。</summary>
