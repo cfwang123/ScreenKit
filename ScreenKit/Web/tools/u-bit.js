@@ -1,6 +1,7 @@
 (function(){
 	var ac, master, waves, nbuf;
-	var analyser, wavebuf, waveraf, waveon;
+	var analyser, wavebuf, wavef, viewf, waveraf, waveon;
+	var WAVE_VIEW = 2048;
 	var held = {};
 	var sources = [];
 	var blips = [];
@@ -254,10 +255,13 @@
 			master = ac.createGain();
 			master.gain.value = volnow();
 			analyser = ac.createAnalyser();
-			analyser.fftSize = 2048;
+			analyser.fftSize = 8192;
+			analyser.smoothingTimeConstant = 0;
 			master.connect(analyser);
 			master.connect(ac.destination);
 			wavebuf = new Uint8Array(analyser.fftSize);
+			wavef = new Float32Array(analyser.fftSize);
+			viewf = new Float32Array(WAVE_VIEW);
 			waves = {};
 		}
 		if (ac.state === "suspended") ac.resume();
@@ -304,20 +308,79 @@
 		ctx.moveTo(0, h / 2);
 		ctx.lineTo(w, h / 2);
 		ctx.stroke();
-		if (!analyser || !wavebuf) return;
+		if (!analyser || !wavebuf || !viewf) return;
 		analyser.getByteTimeDomainData(wavebuf);
+		var n = wavebuf.length;
+		var i;
+		for (i = 0; i < n; i++) wavef[i] = (wavebuf[i] - 128) / 128;
+		alignview(wavef, viewf);
 		ctx.strokeStyle = "#f97316";
 		ctx.lineWidth = 1.5;
 		ctx.beginPath();
-		var n = wavebuf.length;
-		var i, x, y;
-		for (i = 0; i < n; i++) {
-			x = i / (n - 1) * w;
-			y = wavebuf[i] / 255 * h;
+		var vn = viewf.length;
+		var x, y;
+		for (i = 0; i < vn; i++) {
+			x = i / (vn - 1) * w;
+			y = (viewf[i] + 1) * 0.5 * h;
 			if (i) ctx.lineTo(x, y);
 			else ctx.moveTo(x, y);
 		}
 		ctx.stroke();
+	}
+
+	// 上升过零对齐到画面靠左。周期信号每一帧落在同一相位，不再左右飘。
+	function alignview(chrono, dst){
+		var n = chrono.length;
+		var view = dst.length;
+		var i;
+		if (n < view + 8 || view < 8) {
+			var start = n - view;
+			if (start < 0) start = 0;
+			for (i = 0; i < view; i++) dst[i] = start + i < n ? chrono[start + i] : 0;
+			return;
+		}
+		var target = (view / 8) | 0;
+		var lo = target;
+		var hi = n - (view - target);
+		var peak = 0;
+		var a;
+		for (i = lo; i < hi; i++) {
+			a = chrono[i];
+			if (a < 0) a = -a;
+			if (a > peak) peak = a;
+		}
+		var best = -1;
+		if (peak >= 0.004) {
+			best = findcross(chrono, lo, hi, peak * 0.15);
+			if (best < 0) best = findcross(chrono, lo, hi, peak * 0.05);
+		}
+		var from = best < 0 ? n - view : best - target;
+		for (i = 0; i < view; i++) dst[i] = chrono[from + i];
+	}
+
+	function findcross(s, lo, hi, hyst){
+		var best = -1;
+		var bestDist = 1e15;
+		var ideal = hi - 1;
+		var trough = 0;
+		var begin = lo - 64;
+		if (begin < 1) begin = 1;
+		var i, d;
+		for (i = begin; i < hi; i++) {
+			if (s[i] < trough) trough = s[i];
+			if (s[i - 1] <= 0 && s[i] > 0) {
+				if (i >= lo && trough <= -hyst) {
+					d = i - ideal;
+					if (d < 0) d = -d;
+					if (d < bestDist) {
+						bestDist = d;
+						best = i;
+					}
+				}
+				trough = 0;
+			}
+		}
+		return best;
 	}
 
 	function applyvol(){

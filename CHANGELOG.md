@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome speech language list includes languages that already have a local voice.
 - The MIDI waveform is scaled up so a quiet system synth still fills the display.
 - The MIDI waveform stays phase-locked, so a periodic tone no longer drifts sideways.
+- The 8-bit waveform stays phase-locked, so a periodic tone no longer drifts sideways.
 
 #### Removed
 
@@ -86,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 语音的语言下拉会列出本机已有语音的语言。
 - MIDI 波形按峰值拉开，系统合成器声音小也能看清起伏。
 - MIDI 波形按上升过零对齐，周期信号不再左右飘。
+- 8bit 合成器的周期波形按上升过零对齐，不再左右飘。
 
 #### 移除
 
