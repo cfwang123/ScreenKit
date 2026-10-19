@@ -84,7 +84,8 @@ sealed class DictEntry {
 
 // ==================== 词典库（只读二进制） ====================
 // dict3.bin 是 RDS1 专用格式，只读，文件固定不动，不写回任何翻译结果。
-// 常驻内存只有三级目录的第一级和词条块偏移；检索词块、倒排、gram、词条都按块读盘。
+// 查词时打开文件，内存里只留三级目录的第一级和词条块偏移；闲置关闭后这些也一起释放。
+// 检索词块、倒排、gram、词条都按块读盘。
 // 前缀段按词序；后缀段按字符反转后的 UTF-8 序；三字以上的中缀走双字 gram 倒排。
 // meta 低 2 位是词典号（0 英 / 1 日 / 2 韩 / 3 汉），bit2 是词头。
 // rank：0 全等 / 1 前缀 / 2 后缀 / 3 中缀。韩语活用形命中很少时再按语尾剥一层。
@@ -173,10 +174,7 @@ static class DictDb {
 
 	/// <summary>关掉文件和内存里的目录。下次查询再打开。</summary>
 	public static void Release() {
-		lock (dblock) {
-			closeunlocked();
-			clearindex();
-		}
+		lock (dblock) closeunlocked();
 	}
 
 	/// <summary>文件还开着，或目录还在内存里。大小是库文件。</summary>
@@ -206,7 +204,6 @@ static class DictDb {
 
 	static bool openunlocked(string path) {
 		closeunlocked();
-		clearindex();
 		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) {
 			dberr = "missing";
 			return false;
@@ -334,7 +331,7 @@ static class DictDb {
 		}
 		catch { return; }
 		if (!closed) return;
-		try { CaptureLog.Info("dict bin idle close"); } catch { }
+		try { CaptureLog.Info("dict bin idle release"); } catch { }
 	}
 
 	static int holdms() {
@@ -346,10 +343,12 @@ static class DictDb {
 		return OnnxIdle.LimitMs(min);
 	}
 
+	/// <summary>关文件和分块目录，下次查询再按上次路径打开。</summary>
 	static void closeunlocked() {
 		try { fs?.Dispose(); } catch { }
 		fs = null;
 		lastuse = 0;
+		clearindex();
 	}
 
 	/// <summary>dict 为空查全部，否则 zh / en / ja / ko。limit 为界面条数上限。</summary>
