@@ -88,6 +88,15 @@ sealed class MidiSynth : IDisposable {
 		_ => -1,
 	};
 
+	/// <summary>琴键上显示的快捷键。低八度白键 Z 一行、黑键夹在中间，高八度是 Q 一行和数字键。</summary>
+	public static string KeyLabel(int offset) => offset switch {
+		0 => "Z", 1 => "S", 2 => "X", 3 => "D", 4 => "C", 5 => "V",
+		6 => "G", 7 => "B", 8 => "H", 9 => "N", 10 => "J", 11 => "M",
+		12 => "Q", 13 => "2", 14 => "W", 15 => "3", 16 => "E", 17 => "R",
+		18 => "5", 19 => "T", 20 => "6", 21 => "Y", 22 => "7", 23 => "U",
+		_ => "",
+	};
+
 	public void OpenOutput(int index) {
 		lock (gate) {
 			closeout();
@@ -182,6 +191,8 @@ sealed class MidiSynth : IDisposable {
 			if (NoteName(60) != "C4" || NoteName(61) != "C#4") return bad(say, "name");
 			if (KeyOffset(Key.Z) != 0 || KeyOffset(Key.S) != 1 || KeyOffset(Key.Q) != 12 || KeyOffset(Key.A) != -1)
 				return bad(say, "key");
+			if (KeyLabel(0) != "Z" || KeyLabel(13) != "2" || KeyLabel(23) != "U" || KeyLabel(24) != "")
+				return bad(say, "label");
 			if (OutputCount > 0) {
 				synth = new MidiSynth();
 				synth.OpenOutput(0);

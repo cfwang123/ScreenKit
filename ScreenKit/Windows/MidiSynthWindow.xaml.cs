@@ -205,11 +205,17 @@ public partial class MidiSynthWindow : Window {
 			b.PreviewMouseLeftButtonDown += (_, e) => { b.CaptureMouse(); down(basenote() + off, SRC_MOUSE, 100); e.Handled = true; };
 			b.PreviewMouseLeftButtonUp += (_, e) => { up(basenote() + off, SRC_MOUSE); b.ReleaseMouseCapture(); e.Handled = true; };
 			b.LostMouseCapture += (_, _) => up(basenote() + off, SRC_MOUSE);
+			var label = new TextBlock {
+				Text = MidiSynth.KeyLabel(i),
+				TextAlignment = TextAlignment.Center,
+				FontSize = black ? 10 : 11,
+			};
+			if (!black && pc == 0) label.Text = "C" + (octave + i / 12) + "\n" + label.Text;
+			b.Content = label;
 			if (!black) {
 				Canvas.SetLeft(b, white * 36);
 				b.Width = 36;
 				b.Height = 150;
-				b.Content = (pc == 0) ? "C" + (octave + i / 12) : "";
 				Panel.SetZIndex(b, 0);
 				white++;
 			}
@@ -296,9 +302,18 @@ public partial class MidiSynthWindow : Window {
 		if (!keys.TryGetValue(off, out var b)) return;
 		int pc = off % 12;
 		bool black = pc is 1 or 3 or 6 or 8 or 10;
-		if (on) b.Background = new SolidColorBrush(Color.FromRgb(214, 196, 150));
-		else if (black) b.Background = Brushes.Black;
-		else b.ClearValue(BackgroundProperty);
+		if (on) {
+			b.Background = new SolidColorBrush(Color.FromRgb(214, 196, 150));
+			b.Foreground = Brushes.Black;
+		}
+		else if (black) {
+			b.Background = Brushes.Black;
+			b.Foreground = Brushes.White;
+		}
+		else {
+			b.ClearValue(BackgroundProperty);
+			b.ClearValue(ForegroundProperty);
+		}
 	}
 
 	void showtracks() {
@@ -506,8 +521,14 @@ public partial class MidiSynthWindow : Window {
 			int off = (int)b.Tag;
 			int pc = off % 12;
 			bool black = pc is 1 or 3 or 6 or 8 or 10;
-			if (black) b.Background = Brushes.Black;
-			else b.ClearValue(BackgroundProperty);
+			if (black) {
+				b.Background = Brushes.Black;
+				b.Foreground = Brushes.White;
+			}
+			else {
+				b.ClearValue(BackgroundProperty);
+				b.ClearValue(ForegroundProperty);
+			}
 		}
 	}
 
