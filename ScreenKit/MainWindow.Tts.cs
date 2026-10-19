@@ -715,6 +715,7 @@ public partial class MainWindow {
 		}
 
 		var eng2 = currentttsengine();
+		lkttschromeinstall.Visibility = eng2 == TtsEngineKind.Chrome ? Visibility.Visible : Visibility.Collapsed;
 		if (eng2 == TtsEngineKind.Sherpa) {
 			applyttsfilter();
 			var cuda = TtsEngine.ProbeCuda(out var cudaReason);

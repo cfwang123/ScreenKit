@@ -779,6 +779,7 @@
 							</StackPanel>
 							<TextBlock x:Name="lkttschromeinstall" DockPanel.Dock="Right"
 							           VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"
+							           Visibility="Collapsed"
 							           AutomationProperties.AutomationId="tts.chrome.page">
 								<Hyperlink x:Name="lkttschromepage" Foreground="{StaticResource Accent}"
 								           ToolTip="打开本机的 Chrome 模型页，安装或卸载翻译 / 语音语言包">
@@ -1401,6 +1402,7 @@
 								<DockPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="10">
 									<TextBlock x:Name="lktrchromeinstall" DockPanel.Dock="Right"
 									           VerticalAlignment="Bottom" Margin="12,0,0,0" FontSize="11"
+									           Visibility="Collapsed"
 									           AutomationProperties.AutomationId="tr.chrome.page">
 										<Hyperlink x:Name="lktrchromepage" Foreground="{StaticResource Accent}"
 										           ToolTip="打开本机的 Chrome 模型页，安装或卸载翻译 / 语音语言包">
