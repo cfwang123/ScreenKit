@@ -39,6 +39,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- The 8-bit synthesizer shows a live waveform of what is playing.
+
 #### Changed
 
 - The selection popup also works in this program. Dictionary entries always use that same popup, and the dictionary page no longer has its own. Drag the lower-right corner to resize; the size lasts until you quit.
@@ -58,6 +62,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Remove tray menu item OCR from clipboard
 
 ### 中文
+
+#### 新增
+
+- 8bit 合成器显示正在播放声音的实时波形。
 
 #### 变更
 

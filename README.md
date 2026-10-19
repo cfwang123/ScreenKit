@@ -128,7 +128,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Speech**
   - **Speech**: Read text aloud
   - **Speech recognition**: Turn speech into text
-  - **8-bit synthesizer**: Square-wave tones and effects
+  - **8-bit synthesizer**: Square-wave tones and effects, with a live waveform
 - **Calendar**
   - **Calendars**: Gregorian alongside lunar and other calendars
   - **Timestamp**: Unix time and local time

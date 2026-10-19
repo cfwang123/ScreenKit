@@ -1,5 +1,6 @@
 (function(){
 	var ac, master, waves, nbuf;
+	var analyser, wavebuf, waveraf, waveon;
 	var held = {};
 	var sources = [];
 	var blips = [];
@@ -82,6 +83,7 @@
 			+ '<button type="button" id="bit-demo">试听</button>'
 			+ '<button type="button" id="bit-stop">停止</button>'
 			+ "</div>"
+			+ '<canvas class="bitwave" id="bit-wave"></canvas>'
 			+ '<div class="bitkeys" id="bit-keys">' + keys() + "</div>"
 			+ '<p class="kicker">编排</p>'
 			+ '<div class="row">'
@@ -148,6 +150,7 @@
 		bind();
 		layoutkeys();
 		F.raf(layoutkeys);
+		armwave();
 	}
 
 	function bind(){
@@ -170,6 +173,7 @@
 
 	function leave(){
 		stopaudio();
+		stopwave();
 		unbind();
 	}
 
@@ -249,12 +253,71 @@
 			F.sink(ac);
 			master = ac.createGain();
 			master.gain.value = volnow();
+			analyser = ac.createAnalyser();
+			analyser.fftSize = 2048;
+			master.connect(analyser);
 			master.connect(ac.destination);
+			wavebuf = new Uint8Array(analyser.fftSize);
 			waves = {};
 		}
 		if (ac.state === "suspended") ac.resume();
 		F.sink(ac);
 		return ac;
+	}
+
+	function armwave(){
+		if (waveon) return;
+		if (!F.id("bit-wave")) return;
+		waveon = true;
+		drawwave();
+	}
+
+	function stopwave(){
+		waveon = false;
+		if (waveraf) cancelAnimationFrame(waveraf);
+		waveraf = 0;
+	}
+
+	function drawwave(){
+		waveraf = 0;
+		if (!waveon) return;
+		waveraf = requestAnimationFrame(drawwave);
+		var cv = F.id("bit-wave");
+		if (!cv) return;
+		var dpr = window.devicePixelRatio || 1;
+		var w = cv.clientWidth;
+		var h = cv.clientHeight;
+		if (w < 2 || h < 2) return;
+		var pw = Math.floor(w * dpr);
+		var ph = Math.floor(h * dpr);
+		if (cv.width !== pw || cv.height !== ph) {
+			cv.width = pw;
+			cv.height = ph;
+		}
+		var ctx = cv.getContext("2d");
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.fillStyle = "#1c1915";
+		ctx.fillRect(0, 0, w, h);
+		ctx.strokeStyle = "rgba(243,239,232,0.28)";
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.moveTo(0, h / 2);
+		ctx.lineTo(w, h / 2);
+		ctx.stroke();
+		if (!analyser || !wavebuf) return;
+		analyser.getByteTimeDomainData(wavebuf);
+		ctx.strokeStyle = "#f97316";
+		ctx.lineWidth = 1.5;
+		ctx.beginPath();
+		var n = wavebuf.length;
+		var i, x, y;
+		for (i = 0; i < n; i++) {
+			x = i / (n - 1) * w;
+			y = wavebuf[i] / 255 * h;
+			if (i) ctx.lineTo(x, y);
+			else ctx.moveTo(x, y);
+		}
+		ctx.stroke();
 	}
 
 	function applyvol(){
