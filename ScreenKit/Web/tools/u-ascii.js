@@ -14,7 +14,7 @@
 		title: "Unicode码表",
 		go: "显示",
 		body: function(){
-			return '<div class="uquery"><input id="u-q" type="text" placeholder="字、U+4E00 或十进制"><select id="u-font" class="ufont" title="字体"></select><span id="u-msg" class="msg"></span></div>'
+			return '<div class="uquery"><input id="u-q" type="text" data-kph="web.uni.ph" placeholder="' + SK.esc(SK.t("web.uni.ph") || "字、U+4E00 或十进制") + '"><select id="u-font" class="ufont" title="字体"></select><span id="u-msg" class="msg"></span></div>'
 				+ '<p class="hint">点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位，以及 GBK 等编码。</p>'
 				+ '<div class="unitab"><div class="ugroups" id="u-groups"></div><div class="ugrid" id="u-grid"></div>'
 				+ '<aside class="uprev"><div class="uprev-ch" id="u-ch"></div><dl class="uprev-meta" id="u-meta"></dl></aside></div>';
@@ -33,7 +33,9 @@
 	});
 	function unibuild(){
 		var slices = unislices();
-		var html = ['<div class="usum">共 ' + unitotal(slices) + ' 个</div>'];
+		var sum = SK.t ? SK.t("web.uni.total") : "";
+		if (!sum) sum = "共 {0} 个字符";
+		var html = ['<div class="usum">' + sum.replace("{0}", String(unitotal(slices))) + '</div>'];
 		var i;
 		for (i = 0; i < slices.length; i++)
 			html.push('<button type="button" data-i="' + i + '" title="' + unihtml(unirange(slices[i])) + '"><b'
@@ -208,10 +210,12 @@
 		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
 	}
 
+	// 大块会拆成「汉字扩展 A 3400」，只在末尾是两位以上码位时才拆。
+	// 「拉丁扩展 A」的 A 是名字的一部分，不能拆。
 	function unisplit(s){
 		s = String(s || "");
 		var i = s.lastIndexOf(" ");
-		if (i > 0 && /^[0-9A-F]+$/.test(s.slice(i + 1))) return [s.slice(0, i), s.slice(i)];
+		if (i > 0 && /^[0-9A-F]{2,}$/.test(s.slice(i + 1))) return [s.slice(0, i), s.slice(i)];
 		return [s, ""];
 	}
 

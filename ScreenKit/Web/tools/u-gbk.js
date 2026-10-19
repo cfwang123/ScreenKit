@@ -8,7 +8,7 @@
 		title: "GBK码表",
 		go: "显示",
 		body: function(){
-			return '<div class="uquery"><input id="gbk-q" type="text" placeholder="字、B0A1 或 U+4E00"><select id="gbk-font" class="ufont" title="字体"></select><span id="gbk-msg" class="msg"></span></div>'
+			return '<div class="uquery"><input id="gbk-q" type="text" data-kph="web.gbk.ph" placeholder="' + SK.esc(SK.t("web.gbk.ph") || "字、B0A1 或 U+4E00") + '"><select id="gbk-font" class="ufont" title="字体"></select><span id="gbk-msg" class="msg"></span></div>'
 				+ '<p class="hint">点一下选中并复制。左边每个首字节写出字数和起止码。每页 16 列。空位没有字符。</p>'
 				+ '<div class="unitab"><div class="ugroups" id="gbk-groups"></div><div class="ugrid g16" id="gbk-grid"></div>'
 				+ '<aside class="uprev"><div class="uprev-ch" id="gbk-ch"></div><dl class="uprev-meta" id="gbk-meta"></dl></aside></div>';
@@ -33,7 +33,9 @@
 			SK.msg("gbk-msg", "这个浏览器不能解码 GBK", true);
 			return;
 		}
-		var html = ['<div class="usum">共 ' + gbktotal(pages) + ' 个</div>'];
+		var sum = SK.t ? SK.t("web.uni.total") : "";
+		if (!sum) sum = "共 {0} 个字符";
+		var html = ['<div class="usum">' + sum.replace("{0}", String(gbktotal(pages))) + '</div>'];
 		var i;
 		for (i = 0; i < pages.length; i++)
 			html.push('<button type="button" data-i="' + i + '" title="' + gbkesc(gbkrange(pages[i])) + '"><b>'
@@ -287,7 +289,7 @@
 	}
 
 	function gbktitle(cell){
-		if (cell.cp < 0) return gbkbytes(cell) + " 空位";
+		if (cell.cp < 0) return gbkbytes(cell) + " " + (SK.tr ? SK.tr("空位") : "空位");
 		return gbkbytes(cell) + " U+" + gbkhex(cell.cp, 4);
 	}
 
