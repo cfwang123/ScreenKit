@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The selection popup also works in this program. Dictionary entries always use that same popup, and the dictionary page no longer has its own. Drag the lower-right corner to resize; the size lasts until you quit.
 - The IME tray menu shows each language hotkey, and Close shows the cycle hotkey.
 - Chrome translation and speech list only installed languages. Speech has the same Chrome model install link.
+- Dictionary lookup reads dict3.bin (RDS1 format) instead of the SQLite dict3.db. Opening it keeps only the block directories, so a cold load adds about 1 MB of commit memory instead of about 130 MB. Install features extracts dict3.bin from dict3.7z and removes an old dict3.db.
 
 #### Fixed
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词浮窗在本程序里也同样弹出。词典词条始终用这同一个浮窗，词典页自己的浮层已去掉。右下角可拖动改大小，本次运行会记住。
 - 输入法托盘菜单在五笔、日语、韩语旁显示各自热键，关闭旁显示轮流切换热键。
 - Chrome 翻译和语音合成只列出已安装的语言。语音合成页增加与翻译相同的 Chrome 模型安装链接。
+- 词典改为读取 dict3.bin（RDS1 格式），不再打开 SQLite 的 dict3.db。打开时只常驻分块目录，冷启动提交内存约增加 1 MB，原来约 130 MB。安装功能从 dict3.7z 解出 dict3.bin，并删掉旧的 dict3.db。
 
 #### 修复
 

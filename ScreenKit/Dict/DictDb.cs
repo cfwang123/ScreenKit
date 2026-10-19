@@ -206,6 +206,7 @@ static class DictDb {
 
 	static bool openunlocked(string path) {
 		closeunlocked();
+		clearindex();
 		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) {
 			dberr = "missing";
 			return false;
@@ -246,7 +247,7 @@ static class DictDb {
 		if (nentries < 1 || nkeys < 1 || entriesperblock < 1 || gramchars < 1) return false;
 		prel1 = readl1(f, u64(h, 68), (int)u32(h, 44));
 		sufl1 = readl1(f, u64(h, 76), (int)u32(h, 48));
-		graml1 = readl1grams(f, u64(h, 84), (int)u32(h, 52));
+		graml1 = readl1(f, u64(h, 84), (int)u32(h, 52));
 		if (prel1 == null || sufl1 == null || graml1 == null) return false;
 		if (!readentryindex(f, u64(h, 92))) return false;
 		flen = f.Length;
@@ -293,37 +294,6 @@ static class DictDb {
 				Len = (int)u32(buf, p + 8),
 			};
 			p += 12;
-		}
-		return list;
-	}
-
-	/// <summary>gram 目录项：键、倒排区、记录块、块内偏移和长度。</summary>
-	static Sec[] readl1grams(FileStream f, long off, int n) {
-		if (n < 0 || n > 8_000_000) return null;
-		var head = readraw(f, off, 4);
-		if (head == null || (int)u32(head, 0) != n) return null;
-		var buf = readraw(f, off + 4, l1size(f, off + 4, n, 24));
-		if (buf == null) return null;
-		var list = new Sec[n];
-		var p = 0;
-		for (var i = 0; i < n; i++) {
-			if (p + 2 > buf.Length) return null;
-			var klen = u16(buf, p);
-			p += 2;
-			if (p + klen + 24 > buf.Length) return null;
-			var key = new byte[klen];
-			Buffer.BlockCopy(buf, p, key, 0, klen);
-			p += klen;
-			list[i] = new Sec {
-				Key = key,
-				IdOff = u64(buf, p),
-				IdLen = (int)u32(buf, p + 8),
-				RecOff = u64(buf, p + 12),
-				RecLen = (int)u32(buf, p + 20),
-				Inner = (int)u32(buf, p + 24),
-				BodyLen = (int)u32(buf, p + 28),
-			};
-			p += 32;
 		}
 		return list;
 	}
@@ -665,13 +635,15 @@ static class DictDb {
 			if (other.Count == 0) return;
 		}
 		var best = order[0];
-		var body = readrecs(loaded[best], out var recb);
-		if (body == null) return;
+		var offs = readrecs(loaded[best], out var recb);
+		if (offs == null) return;
 		var qb = encodepoints(q, 0, -1);
-		foreach (var lex in ids[best]) {
+		var bestids = ids[best];
+		for (var i = 0; i < bestids.Length; i++) {
 			if (hits.Count >= cap) break;
+			var lex = bestids[i];
 			if (other != null && !other.Contains(lex)) continue;
-			if (!recat(body, recb, lex, out var key, out var postAt, out var np)) continue;
+			if (!recat(offs, recb, i, out var key, out var postAt, out var np)) continue;
 			if (indexof(key, qb) < 0) continue;
 			if (startswith(key, qb) || endswith(key, qb)) continue;
 			pushraw(recb, postAt, np, key, 3, code, hits, cap, true);
@@ -787,12 +759,23 @@ static class DictDb {
 			var k = new byte[klen];
 			Buffer.BlockCopy(raw, p, k, 0, klen);
 			p += klen;
+			// 六个 u32：键段是 块偏移 / 块长 / lex / 0 / 0 / 0，gram 段是 倒排区 / 记录块 / 块内偏移。
+			var f0 = u32(raw, p);
+			var f1 = u32(raw, p + 4);
+			var f2 = u32(raw, p + 8);
+			var f3 = u32(raw, p + 12);
+			var f4 = u32(raw, p + 16);
+			var f5 = u32(raw, p + 20);
 			list[i] = new Sec {
 				Key = k,
-				Off = u64(raw, p),
-				Len = (int)u32(raw, p + 8),
-				IdOff = u64(raw, p + 12),
-				IdLen = (int)u32(raw, p + 20),
+				Off = f0,
+				Len = (int)f1,
+				IdOff = f0,
+				IdLen = (int)f1,
+				RecOff = f2,
+				RecLen = (int)f3,
+				Inner = (int)f4,
+				BodyLen = (int)f5,
 			};
 			p += 24;
 		}

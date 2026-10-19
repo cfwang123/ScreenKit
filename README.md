@@ -203,9 +203,9 @@ The items below do not automatically use this repository’s MIT license. Each l
 - **DirectML** and **CUDA / cuDNN** follow Microsoft’s and NVIDIA’s redistribution terms.
 - **ONNX models** such as text recognition are usually Apache-2.0, or the terms of that model pack’s author.
 - **NPinyin** turns Chinese into pinyin. The package ships with no license file.
-- **SQLite** (`e_sqlite3.dll`) opens the dictionary database. It is in the public domain.
+- **SQLite** (`e_sqlite3.dll`) opens the input-method database. It is in the public domain.
 
-`dict3.db` keeps Chinese, Japanese, Korean, and English in one file. ScreenKit does not build this file. Install features downloads it. Opening it keeps a single copy of the index bytes, and contains-search uses a bigram index. Inside it:
+`dict3.bin` keeps Chinese, Japanese, Korean, and English in one file. ScreenKit does not build this file. Install features downloads it. Inside it:
 
 - **Chinese.** Characters, words, and idioms come from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). The license is MIT. The upstream notes say the origin of some material is unclear.
 - **Japanese.** Word senses come from [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG). The license is [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project’s update terms.

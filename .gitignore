@@ -34,6 +34,10 @@ dict2.db
 dict2.db-wal
 dict2.db-shm
 dict2.db-journal
+dict3.db
+dict3.db-wal
+dict3.db-shm
+dict3.bin
 
 # ── Local config / secrets (may contain host prefs) ──────
 **/config.toml

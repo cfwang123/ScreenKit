@@ -207,10 +207,8 @@ sealed partial class HttpOcrServer {
 	}
 
 	static JsonObject dicterr() {
-		var key = DictDb.Error == "missing" ? "missing" : DictDb.Error == "sqlite" ? "sqlite" : "fail";
-		var msg = key == "missing" ? Loc.T("dict.missing")
-			: key == "sqlite" ? Loc.T("dict.nosqlite")
-			: DictDb.Error;
+		var key = DictDb.Error == "missing" ? "missing" : "fail";
+		var msg = key == "missing" ? Loc.T("dict.missing") : DictDb.Error;
 		return new JsonObject { ["code"] = 802, ["error"] = key, ["data"] = msg ?? "" };
 	}
 }

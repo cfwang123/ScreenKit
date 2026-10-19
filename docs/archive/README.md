@@ -51,7 +51,7 @@ Changelog: [CHANGELOG.md](../../CHANGELOG.md) (English and Chinese per version).
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
 | **Translation** | Local Opus-MT ONNX, a configured **LLM**, or Chrome's built-in translator (hidden `chrome.exe`, language packs download on demand). 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). The popup chooses the same engine as the main tab (local ONNX, Chrome, or a configured LLM) and does not pick a model. It has Speak on the source and on the translation, using the dictionary voice for that language. |
-| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict3.db` is not in the release archive. **Help → Install features** downloads `dict3.7z` from the fixed `dict-db` release and removes an old `dict.db` beside the program. |
+| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict3.bin` is not in the release archive. **Help → Install features** downloads `dict3.7z` from the fixed `dict-db` release and removes an old `dict.db` or `dict3.db` beside the program. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -121,7 +121,7 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 
 ### Data sources
 
-`dict3.db` holds four dictionaries in one file. Each word is stored once, and search uses the packed index in that file. ScreenKit does not build the file. **Help → Install features** downloads `dict3.7z` and removes an old `dict.db` next to the program. An existing `dict3.db` beside the program counts as installed, including a symbolic link, which is measured by the target file's size.
+`dict3.bin` holds four dictionaries in one file. Each word is stored once, and search reads the block directories in that file. ScreenKit does not build the file. **Help → Install features** downloads `dict3.7z`, extracts `dict3.bin`, and removes an old `dict.db` or `dict3.db` next to the program. An existing `dict3.bin` beside the program counts as installed, including a symbolic link, which is measured by the target file's size.
 
 - **Chinese.** Characters, words, and idioms from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). License: MIT. The upstream project notes that the origin of some material is unclear.
 - **Japanese.** Vocabulary senses from the [JMdict/EDICT Dictionary Project](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG). License: [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project's update terms.
@@ -271,7 +271,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | Local Chinese↔English translation | `translatemodels.7z` (both Opus-MT directions). Also selects CPU ONNX Runtime | 981 MB download, about 1.08 GB extracted. Runtime is another 16 MB |
 | Offline speech recognition | A model, plus the Sherpa native library. `.tar.bz2` packs also need SharpCompress | SenseVoice 230 MB; streaming Zipformer 75 MB; Whisper tiny 78 MB; Whisper base 148 MB; Silero VAD 2 MB. Sherpa 5 MB. SharpCompress 2.4 MB |
 | Offline speech synthesis | A model under `ttsmodels/`, plus the Sherpa native library | Each voice pack shows its own size on the install page. Sherpa 5 MB |
-| Dictionary | `dict3.7z` extracts `dict3.db` next to the program and removes an old `dict.db`. Opening it needs `e_sqlite3.dll`. Extracting needs `7za.dll` | Dictionary archive 141 MB. SQLite 1.7 MB. 7za 406.5 KB |
+| Dictionary | `dict3.7z` extracts `dict3.bin` next to the program and removes an old `dict.db` or `dict3.db`. Extracting needs `7za.dll` | Dictionary archive 267 MB. 7za 406.5 KB |
 | PDF to images | `pdfium.dll`, `libSkiaSharp.dll` | 6 MB + 11 MB |
 | x264 / x265 / AV1 / video to GIF | `ffmpeg64/` (`ffmpeg.7z`) | 32.5 MB download, about 117 MB unpacked |
 | Archive extract | `SharpCompress.dll`, `7za.dll` | 2.4 MB + 406.5 KB |
@@ -299,7 +299,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | **NPinyin** | `NPinyin.dll`. Chinese pinyin and initials. Install it under Tools | ~75 KB |
 | **SharpCompress** | `SharpCompress.dll`. Extracts `tar.bz2` speech and ASR packs | ~2.5 MB |
 | **7za** | Extract dictionary and translation model `.7z` packages. Already in the slim package, with `License.7za.txt` | ~0.4 MB |
-| **SQLite** | `e_sqlite3.dll`. Opens `dict3.db` | ~1.7 MB |
+| **SQLite** | `e_sqlite3.dll`. Opens `ime.db` | ~1.7 MB |
 | **ffmpeg64** | x264 / x265 / AV1 and video to GIF | ~33 MB 7z / ~117 MB unpacked |
 
 Download prefers CN mirrors when UI or system locale is Chinese.
@@ -417,7 +417,7 @@ dotnet build -c Release
 ### Slim package (`bin\Release\ScreenKit\`)
 
 - Includes: `ScreenKit.exe`, **`x86host.exe`**, managed deps, **`wetext/`** (ITN), Assets, LICENSE, `7za.dll`, `License.7za.txt`, `web/`, `pinyin.toml`, and `pinyin.user.toml`. The tools page is the joined `tools.js` only. The separate scripts under `web/tools` are not in this package. `7za.dll` extracts `.7z` packages such as the dictionary and translation models.
-- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict3.db`, `ZXing.dll`, `SharpCompress.dll`, `e_sqlite3.dll`, `Bogus.dll`, or `NPinyin.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode, `tar.bz2` extract, and the dictionary each ask to install the missing library when you use them.
+- Does **not** include: the Android APK, OCR/ASR/TTS/translation/face models, ORT, OpenCV/Skia/PDFium/Sherpa natives, `ffmpeg64`, `dict3.bin`, `ZXing.dll`, `SharpCompress.dll`, `e_sqlite3.dll`, `Bogus.dll`, or `NPinyin.dll`. Install the dictionary or Chinese↔English ONNX translation models from **Help → Install features**, or place them beside the executable yourself. See [Dictionary](#dictionary) for where its data comes from. Barcode and `tar.bz2` extract ask to install the missing library when you use them.
 - End users install those via **Install features**. Custom Opus-MT ONNX packs can still be placed under `translatemodels/` manually.
 
 For local development with models already present, run **`bin\Release\net48\`**.

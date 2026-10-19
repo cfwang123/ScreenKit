@@ -141,7 +141,7 @@ static class FeaturePick {
 			FeatureKind.OrtCpu, FeatureKind.Native7za, FeatureKind.TranslateOnnx),
 		leaf("face", "feat.pick.face", "feat.pick.face.detail", FeatureKind.FaceInsight),
 		leaf("dict", "feat.pick.dict", "feat.pick.dict.detail",
-			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.DictDb),
+			FeatureKind.Native7za, FeatureKind.DictDb),
 		leaf("ime", "feat.pick.ime", "feat.pick.ime.detail",
 			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.ImeDb),
 		leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
