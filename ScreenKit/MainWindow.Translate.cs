@@ -309,10 +309,13 @@ public partial class MainWindow {
 		var llm = usellm();
 		var chrome = usechrome();
 		var local = !llm && !chrome;
+		var modelRow = local ? Visibility.Visible : Visibility.Collapsed;
+		lbtrmodel.Visibility = modelRow;
+		etrmodel.Visibility = modelRow;
+		lbtrcompute.Visibility = modelRow;
+		etrcompute.Visibility = modelRow;
 		etrcompute.IsEnabled = local;
 		etrmodel.IsEnabled = local;
-		etrcompute.Opacity = local ? 1 : 0.45;
-		etrmodel.Opacity = local ? 1 : 0.45;
 		lktrchromeinstall.Visibility = chrome ? Visibility.Visible : Visibility.Collapsed;
 		if (chrome) {
 			lbtrhint.Text = Loc.T("tr.hint.chrome");
