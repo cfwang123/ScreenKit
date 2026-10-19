@@ -80,7 +80,7 @@
 		return '<div class="bit">'
 			+ '<div class="row">'
 			+ '<label>乐器<select id="bit-inst">' + opts + "</select></label>"
-			+ '<label>音量<input id="bit-vol" type="range" min="0" max="100" value="100"></label>'
+			+ '<label class="bitvol">音量<input id="bit-vol" type="range" min="0" max="100" value="100"></label>'
 			+ '<button type="button" id="bit-demo">试听</button>'
 			+ '<button type="button" id="bit-stop">停止</button>'
 			+ "</div>"

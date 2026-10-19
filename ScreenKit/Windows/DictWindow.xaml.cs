@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,13 +15,25 @@ using System.Windows.Threading;
 
 namespace ScreenKit;
 
-public sealed class DictRow {
+public sealed class DictRow : INotifyPropertyChanged {
+	string title = "", preview = "", word = "", speak = "";
 	public long Id { get; set; }
 	public string Dict { get; set; } = "";
-	public string Word { get; set; } = "";
-	public string Speak { get; set; } = "";
-	public string Title { get; set; } = "";
-	public string Preview { get; set; } = "";
+	public string Via { get; set; } = "";
+	/// <summary>标题和预览已从词条读回，不再重复读盘。</summary>
+	public bool Meta { get; set; }
+	public string Word { get => word; set => notify(ref word, value, nameof(Word)); }
+	public string Speak { get => speak; set => notify(ref speak, value, nameof(Speak)); }
+	public string Title { get => title; set => notify(ref title, value, nameof(Title)); }
+	public string Preview { get => preview; set => notify(ref preview, value, nameof(Preview)); }
+	public event PropertyChangedEventHandler PropertyChanged;
+
+	void notify(ref string field, string value, string name) {
+		if (field == value) return;
+		field = value;
+		PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+	}
+
 	public override string ToString() => Title ?? "";
 }
 
@@ -298,7 +311,7 @@ public partial class DictWindow : UserControl {
 		Task.Run(() => {
 			var t0 = Environment.TickCount;
 			try {
-				var found = DictDb.Search(q, dict, limit);
+				var found = DictDb.SearchBrief(q, dict, limit);
 				took[0] = unchecked(Environment.TickCount - t0);
 				return found;
 			}
@@ -340,6 +353,8 @@ public partial class DictWindow : UserControl {
 				Speak = h.Dict == "ja" ? DictDb.JaSpeak(word, h.Kanji, h.Reading) : SpeakHead(word, h.Dict),
 				Title = title,
 				Preview = preview,
+				Via = h.Via ?? "",
+				Meta = h.Headword.Length > 0,
 			});
 		}
 		var pick = 0;
@@ -367,6 +382,28 @@ public partial class DictWindow : UserControl {
 		if (rows.Count > 0) loaddetail(rows[pick]);
 		else cleardetail();
 		keepview(rows, pick, keepid, keep);
+	}
+
+	void onrowload(object sender, RoutedEventArgs e) {
+		if (sender is FrameworkElement fe && fe.DataContext is DictRow row) fillrow(row);
+	}
+
+	/// <summary>行第一次出现时才读标题和预览，读完直接更新这一行。</summary>
+	void fillrow(DictRow row) {
+		if (row == null || row.Meta) return;
+		row.Meta = true;
+		if (!DictDb.HitMeta(row.Id, out var word, out var kanji, out var pron, out var preview)) return;
+		var shown = listword(row.Dict, word, kanji);
+		var code = listcode(row.Dict);
+		row.Word = word;
+		row.Title = code.Length > 0 ? "[" + code + "] " + shown : shown;
+		var pv = preview;
+		if (row.Via.Length > 0) {
+			var via = Loc.T("dict.via", row.Via);
+			pv = pv.Length > 0 ? pv + "  ·  " + via : via;
+		}
+		row.Preview = pv;
+		row.Speak = row.Dict == "ja" ? DictDb.JaSpeak(word, kanji, pron) : SpeakHead(word, row.Dict);
 	}
 
 	/// <summary>换词典语言后把列表放回原处：原来那条词条还在新结果里就仍选中它、滚到它；不在就回到顶部。</summary>

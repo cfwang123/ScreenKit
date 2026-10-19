@@ -6616,7 +6616,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				return 1;
 			}
 			sv.ScrollToVerticalOffset(pick);
+			win.host.lhits.ScrollIntoView(win.host.lhits.Items[pick]);
 			for (var i = 0; i < 8; i++) pump();
+			var lazy = (win.host.lhits.Items[pick] as DictRow)?.Meta == true;
+			Out("lazy=" + lazy);
+			if (!lazy) bad = 7;
 			var off1 = offsetof(win.host.lhits);
 			var id1 = (win.host.lhits.SelectedItem as DictRow)?.Id ?? 0;
 			Out($"all pick={pick} own={own} off={off1:0} id={id1} ext={sv.ExtentHeight:0} view={sv.ViewportHeight:0} scrollable={sv.ScrollableHeight:0}");

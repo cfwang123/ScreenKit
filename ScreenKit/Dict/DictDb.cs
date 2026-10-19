@@ -353,7 +353,12 @@ static class DictDb {
 	}
 
 	/// <summary>dict 为空查全部，否则 zh / en / ja / ko。limit 为界面条数上限。</summary>
-	public static List<DictHit> Search(string rawq, string dict, int limit) {
+	public static List<DictHit> Search(string rawq, string dict, int limit) => search(rawq, dict, limit, true);
+
+	/// <summary>只要命中，不读词条正文。列表先列出来，标题和预览再按行取。</summary>
+	public static List<DictHit> SearchBrief(string rawq, string dict, int limit) => search(rawq, dict, limit, false);
+
+	static List<DictHit> search(string rawq, string dict, int limit, bool meta) {
 		if (limit < 1) limit = 1;
 		if (limit > SEARCH_MAX) limit = SEARCH_MAX;
 		var hits = match(rawq, dict, limit, FETCHCAP);
@@ -364,6 +369,7 @@ static class DictDb {
 			outlist.Add(h);
 			if (outlist.Count >= limit) break;
 		}
+		if (!meta) return outlist;
 		lock (dblock) {
 			if (readyunlocked()) fillmeta(outlist);
 		}
@@ -442,6 +448,24 @@ static class DictDb {
 		if (e.Pron.Length == 0) e.Pron = e.Reading;
 		if (e.Reading.Length == 0) e.Reading = e.Pron;
 		return e;
+	}
+
+	/// <summary>列表按行取标题和预览。只读一条，和完整词条分开。</summary>
+	public static bool HitMeta(long id, out string word, out string kanji, out string pron, out string preview) {
+		word = "";
+		kanji = "";
+		pron = "";
+		preview = "";
+		lock (dblock) {
+			if (!readyunlocked()) return false;
+			if (!readentry(id, out var head, out var jsontext, out _)) return false;
+			var row = new DictEntry { Id = id, Headword = head };
+			preview = previewmeta(row, jsontext);
+			word = row.Word.Length > 0 ? row.Word : head;
+			kanji = row.Kanji;
+			pron = row.Pron;
+		}
+		return true;
 	}
 
 	/// <summary>读一条词条：词典号、词头、正文 json。调用方已持锁。</summary>
