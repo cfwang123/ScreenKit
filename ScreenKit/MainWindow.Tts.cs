@@ -706,6 +706,9 @@ public partial class MainWindow {
 			var modelRow = sherpa ? Visibility.Visible : Visibility.Collapsed;
 			lbttsmodel.Visibility = modelRow;
 			ettsmodel.Visibility = modelRow;
+			lbttscompute.Visibility = modelRow;
+			ettscompute.Visibility = modelRow;
+			Grid.SetColumnSpan(ettsengine, sherpa ? 1 : 4);
 			ettscompute.IsEnabled = sherpa;
 			ettsmodel.IsEnabled = sherpa;
 			// SAPI / WinRT 用音量滑块；Sherpa 走 tts_config volume

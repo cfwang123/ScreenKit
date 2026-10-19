@@ -904,7 +904,13 @@ public partial class MainWindow {
 
 	void updateasrengineui() {
 		var windows = easrmodel?.SelectedItem is AsrModelInfo m && m.IsWindows;
+		var dev = windows ? Visibility.Collapsed : Visibility.Visible;
+		lbasrcompute.Visibility = dev;
+		easrcompute.Visibility = dev;
 		easrcompute.IsEnabled = !windows;
+		Grid.SetColumn(lbasrlang, windows ? 0 : 3);
+		Grid.SetColumn(easrlang, windows ? 1 : 4);
+		Grid.SetColumnSpan(easrlang, windows ? 4 : 1);
 		easrlang.IsEnabled = !windows;
 		casritn.IsEnabled = !windows;
 		if (windows) {
