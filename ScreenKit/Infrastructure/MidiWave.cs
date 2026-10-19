@@ -4,9 +4,10 @@ namespace ScreenKit;
 
 /// <summary>听本机正在播出的声音，供 MIDI 合成器画波形。系统合成器不给出采样，从回放回路取。</summary>
 sealed class MidiWave : IDisposable {
-	const int N = 2048;
+	const int N = 8192;
 	readonly object gate = new object();
 	readonly float[] ring = new float[N];
+	readonly float[] chrono = new float[N];
 	WasapiLoopbackCapture cap;
 	int write;
 	float shown;
@@ -28,14 +29,65 @@ sealed class MidiWave : IDisposable {
 		if (dst == null || dst.Length == 0) return;
 		lock (gate) {
 			int n = ring.Length;
-			int take = dst.Length < n ? dst.Length : n;
-			int start = write - take;
-			if (start < 0) start += n;
-			int pad = dst.Length - take;
-			for (int i = 0; i < pad; i++) dst[i] = 0;
-			for (int i = 0; i < take; i++) dst[pad + i] = ring[(start + i) % n];
+			int start = write;
+			for (int i = 0; i < n; i++) chrono[i] = ring[(start + i) % n];
 		}
+		AlignView(chrono, dst);
 		boost(dst);
+	}
+
+	// 上升过零对齐到画面靠左的固定位置。周期信号每一帧落在同一相位，不再左右飘。
+	public static bool AlignView(float[] chrono, float[] dst) {
+		int n = chrono == null ? 0 : chrono.Length;
+		int view = dst == null ? 0 : dst.Length;
+		if (n < 2 || view < 2) return false;
+		if (n < view + 8 || view < 8) {
+			int start = n - view;
+			if (start < 0) start = 0;
+			for (int i = 0; i < view; i++) dst[i] = start + i < n ? chrono[start + i] : 0;
+			return false;
+		}
+		int target = view / 8;
+		int lo = target;
+		int hi = n - (view - target);
+		float peak = 0;
+		for (int i = lo; i < hi; i++) {
+			float a = chrono[i];
+			if (a < 0) a = -a;
+			if (a > peak) peak = a;
+		}
+		int best = -1;
+		if (peak >= 0.004f) {
+			best = findcross(chrono, lo, hi, peak * 0.15f);
+			if (best < 0) best = findcross(chrono, lo, hi, peak * 0.05f);
+		}
+		int from = best < 0 ? n - view : best - target;
+		for (int i = 0; i < view; i++) dst[i] = chrono[from + i];
+		return best >= 0;
+	}
+
+	static int findcross(float[] s, int lo, int hi, float hyst) {
+		int best = -1;
+		int bestDist = int.MaxValue;
+		int ideal = hi - 1;
+		float trough = 0;
+		int begin = lo - 64;
+		if (begin < 1) begin = 1;
+		for (int i = begin; i < hi; i++) {
+			if (s[i] < trough) trough = s[i];
+			if (s[i - 1] <= 0f && s[i] > 0f) {
+				if (i >= lo && trough <= -hyst) {
+					int d = i - ideal;
+					if (d < 0) d = -d;
+					if (d < bestDist) {
+						bestDist = d;
+						best = i;
+					}
+				}
+				trough = 0;
+			}
+		}
+		return best;
 	}
 
 	// 系统合成器出来的幅度往往很小，按这一段的峰值拉开到接近满幅。静音不放大。
@@ -187,6 +239,17 @@ sealed class MidiWave : IDisposable {
 		if (g < 16f || g > 20f) {
 			say("FAIL wave gain " + g);
 			return 1;
+		}
+		var chrono = new float[4096];
+		var view = new float[512];
+		int anchor = 512 / 8;
+		for (int phase = 0; phase < 64; phase += 13) {
+			for (int i = 0; i < chrono.Length; i++)
+				chrono[i] = (float)Math.Sin((i + phase) * (Math.PI * 2 / 64));
+			if (!AlignView(chrono, view) || !(view[anchor] > 0f) || !(view[anchor - 1] <= 0f)) {
+				say("FAIL wave lock phase " + phase);
+				return 1;
+			}
 		}
 		say("wave ok");
 		return 0;
