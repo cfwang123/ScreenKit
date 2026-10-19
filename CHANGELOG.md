@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The dictionary releases its block directories after the idle timeout, so the ~1 MB is held only while the dictionary is in use.
 - Dictionary result backfill reads entries block by block instead of one block per hit, and fills only the list fields. A 4000-hit lookup drops from several seconds to about 0.5 s.
 - Dictionary results appear as soon as matching finishes; a row reads its title and preview when it scrolls into view, so long hit lists no longer wait for every entry.
+- The memory window's unload button is now Unload all: it unloads every model, the ONNX runtime, the dictionary, and the Chrome helper, then runs a full GC.
 
 #### Fixed
 
@@ -89,6 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典闲置关闭时一并释放分块目录，那约 1 MB 只在查词期间占用。
 - 词典结果回填改为按块连续读，并且只解析列表要用的字段；四千条命中的查询从数秒降到约 0.5 秒。
 - 词典列表在命中后立即显示，标题和预览等该行滚到可见处才读；命中很多的长列表不再等全部回填。
+- 内存占用窗口的「卸载」改为「全部卸载」：把所有模型、ONNX 运行库、词典和 Chrome 辅助进程一并卸掉，再强制回收。
 
 #### 修复
 

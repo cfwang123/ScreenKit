@@ -69,6 +69,7 @@ static class Cli {
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
 				or "--test-win-tts"
 				or "--test-mem"
+				or "--test-mem-win"
 				or "--test-scroll-stitch"
 				or "--test-mem-load"
 				or "--test-ort-lazy"
@@ -407,6 +408,8 @@ static class Cli {
 					return testwintts();
 				case "--test-mem":
 					return testmem();
+				case "--test-mem-win":
+					return testmemwin();
 				case "--test-scroll-stitch":
 					return testscrollstitch();
 				case "--test-mem-load":
@@ -5630,6 +5633,84 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return dict;
 	}
 
+	static int testmemwin() {
+		Out("=== 内存窗口全部卸载 --test-mem-win ===");
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		var calls = new List<string>();
+		var snap = new MemSnap {
+			WorkingSet = 1,
+			PrivateBytes = 1,
+			PrivateWs = 0,
+			GcBytes = 0,
+			Items = new List<MemHold> {
+				new MemHold { Id = "ocr", Engine = "ocr", Name = "test", Device = "cpu", Bytes = 1024 },
+			},
+		};
+		MemWindow win = null;
+		try {
+			win = new MemWindow(() => snap, id => {
+				lock (calls) calls.Add(id);
+				return "";
+			});
+			win.Show();
+			for (var i = 0; i < 6; i++) pump();
+			var label = win.bunload.Content as string ?? "";
+			if (label != Loc.T("mem.unload")) {
+				Err("FAIL label=" + label);
+				return 1;
+			}
+			if (!win.bunload.IsEnabled) {
+				Err("FAIL: 有已加载项时按钮不可用");
+				return 2;
+			}
+			win.bunload.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+			for (var i = 0; i < 20; i++) {
+				pump();
+				lock (calls) {
+					if (calls.Count > 0) break;
+				}
+				Thread.Sleep(20);
+			}
+			for (var i = 0; i < 6; i++) pump();
+			lock (calls) {
+				if (calls.Count != 1 || calls[0] != "all") {
+					Err("FAIL calls=" + string.Join(",", calls));
+					return 3;
+				}
+			}
+			Out($"label={label} calls=all enabled={win.bunload.IsEnabled}");
+			var empty = new MemSnap {
+				WorkingSet = 1,
+				PrivateBytes = 1,
+				PrivateWs = 0,
+				GcBytes = 0,
+				Items = new List<MemHold>(),
+			};
+			var win2 = new MemWindow(() => empty, _ => "");
+			try {
+				win2.Show();
+				for (var i = 0; i < 4; i++) pump();
+				if (win2.bunload.IsEnabled) {
+					Err("FAIL: 没有已加载项时按钮仍可用");
+					return 5;
+				}
+			}
+			finally {
+				try { win2.Close(); } catch { }
+			}
+			Out("=== OK：按钮一次只发 all，无项时不可用 ===");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex);
+			return 4;
+		}
+		finally {
+			try { win?.Close(); } catch { }
+		}
+	}
+
 	static int testortlazy() {
 		Out("=== ORT 按需加载 --test-ort-lazy ===");
 		var code = CudaBootstrap.TestLazy(out var detail);
@@ -7197,6 +7278,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts
   ScreenKit --test-mem
+  ScreenKit --test-mem-win
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel
@@ -7307,6 +7389,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --fc-copy / --fc-cut / --fc-delete / --fc-symlink / --fc-hardlink / --fc-size / --fc-paths / --fc-settings / --fc-paste / --fc-clear  资源管理器菜单调用
       --test-win-tts  非管理员时 start /wait 再 RunAs 安装、卸载或查看 Windows 语音（不弹 UAC）
       --test-mem  进程内存读取，以及模型文件大小统计
+      --test-mem-win  内存窗口的「全部卸载」：有已加载项时可用，点击只发一次 all
       --test-mem-load  每个功能单独进程冷启动后的提交、专用工作集、工作集。默认 cpu。语音和识别取最小的一份模型。winocr 只走 Windows 自带识别
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
@@ -7423,6 +7506,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --fc-unregister
   ScreenKit --test-win-tts
   ScreenKit --test-mem
+  ScreenKit --test-mem-win
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-sel

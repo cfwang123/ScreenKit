@@ -25,10 +25,10 @@ public partial class MemWindow : Window {
 	void initev() {
 		brefresh.Click += (_, _) => fill(true);
 		bclose.Click += (_, _) => Close();
-		bunload.Click += (_, _) => unloadsel();
+		bunload.Click += (_, _) => unloadall();
 		bforce.Click += (_, _) => forcegc();
 		lv.MouseDoubleClick += (_, _) => {
-			if (lv.SelectedItem != null) unloadsel();
+			if (lv.SelectedItem is MemHold row) unloadrow(row);
 		};
 		lv.SelectionChanged += (_, _) => {
 			if (lv.SelectedItem is MemHold h) selId = h.Id ?? "";
@@ -90,6 +90,7 @@ public partial class MemWindow : Window {
 					? Loc.T("mem.empty")
 					: Loc.T("mem.sum", items.Count, FeatureInstaller.FormatBytes(sum));
 			}
+			bunload.IsEnabled = items.Count > 0;
 			return;
 		}
 		rows.Clear();
@@ -105,6 +106,7 @@ public partial class MemWindow : Window {
 		lbsum.Text = items.Count == 0
 			? Loc.T("mem.empty")
 			: Loc.T("mem.sum", items.Count, FeatureInstaller.FormatBytes(sum));
+		bunload.IsEnabled = items.Count > 0;
 	}
 
 	bool samerows(List<MemHold> items) {
@@ -120,9 +122,9 @@ public partial class MemWindow : Window {
 		return true;
 	}
 
-	void unloadsel() {
-		if (lv.SelectedItem is not MemHold row) return;
-		unloadrow(row);
+	void unloadall() {
+		if (rows.Count == 0) return;
+		unloadid("all", "", true);
 	}
 
 	void markmsg() {
@@ -133,20 +135,23 @@ public partial class MemWindow : Window {
 	bool msgfresh() => msgAt != 0 && Environment.TickCount - msgAt < 12000;
 
 	void unloadrow(MemHold row) {
+		if (row == null || string.IsNullOrEmpty(row.Id)) return;
+		unloadid(row.Id, row.Name ?? "", false);
+	}
+
+	/// <summary>all：卸载每一行（含 ONNX 运行库和 Chrome），最后强制回收。</summary>
+	void unloadid(string id, string name, bool all) {
 		if (unloading) {
 			lbsum.Text = Loc.T("mem.working");
 			markmsg();
 			return;
 		}
-		if (row == null || string.IsNullOrEmpty(row.Id)) return;
 		unloading = true;
 		bunload.IsEnabled = false;
 		bforce.IsEnabled = false;
 		brefresh.IsEnabled = false;
 		lbsum.Text = Loc.T("mem.working");
 		markmsg();
-		var id = row.Id;
-		var name = row.Name ?? "";
 		var beforeWs = 0L;
 		var beforePriv = 0L;
 		try {
@@ -174,14 +179,18 @@ public partial class MemWindow : Window {
 						afterPriv = snap.PrivateBytes;
 					}
 					catch { }
-					msg = Loc.T("mem.reclaim", name,
-						FeatureInstaller.FormatBytes(beforeWs), FeatureInstaller.FormatBytes(afterWs),
-						FeatureInstaller.FormatBytes(beforePriv), FeatureInstaller.FormatBytes(afterPriv));
+					msg = all
+						? Loc.T("mem.reclaim.all",
+							FeatureInstaller.FormatBytes(beforeWs), FeatureInstaller.FormatBytes(afterWs),
+							FeatureInstaller.FormatBytes(beforePriv), FeatureInstaller.FormatBytes(afterPriv))
+						: Loc.T("mem.reclaim", name,
+							FeatureInstaller.FormatBytes(beforeWs), FeatureInstaller.FormatBytes(afterWs),
+							FeatureInstaller.FormatBytes(beforePriv), FeatureInstaller.FormatBytes(afterPriv));
 					if (t.Result == "resident")
 						msg = msg + Loc.T("mem.ort.resident");
 				}
 				fill(true);
-				bunload.IsEnabled = lv.SelectedItem is MemHold;
+				bunload.IsEnabled = rows.Count > 0;
 				lbsum.Text = msg;
 				markmsg();
 			}));
@@ -230,7 +239,7 @@ public partial class MemWindow : Window {
 						FeatureInstaller.FormatBytes(beforePriv), FeatureInstaller.FormatBytes(afterPriv));
 				}
 				fill(true);
-				bunload.IsEnabled = lv.SelectedItem is MemHold;
+				bunload.IsEnabled = rows.Count > 0;
 				lbsum.Text = msg;
 				markmsg();
 			}));

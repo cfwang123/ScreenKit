@@ -265,23 +265,24 @@ public partial class MainWindow {
 		Bytes = bytes,
 	};
 
-	/// <summary>空字符串表示已卸。返回 busy 表示这项正在使用。</summary>
+	/// <summary>空字符串表示已卸。返回 busy 表示这项正在使用。all：每一行都卸，含 ONNX 运行库和 Chrome。</summary>
 	internal string UnloadMem(string id) {
 		CudaBootstrap.HoldNative(8000);
 		string r;
-		if (id == "ort")
-			r = unloadort();
+		if (id == "ort" || id == "all")
+			r = unloadort(id == "all");
 		else
 			r = unloadmem(id, trim: true);
 		kickstbar();
 		return r;
 	}
 
-	string unloadort() {
+	string unloadort(bool all) {
 		var snap = MemSnapNow();
 		var busy = false;
 		foreach (var it in snap.Items) {
-			if (it.Id == "ort" || it.Id == "chrome") continue;
+			if (it.Id == "ort") continue;
+			if (it.Id == "chrome" && !all) continue;
 			if (unloadmem(it.Id, trim: false) == "busy") busy = true;
 		}
 		MemUsage.Trim();
