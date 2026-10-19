@@ -73,7 +73,7 @@ static class Cli {
 				or "--test-mem-load"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
-				or "--test-dict-search" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
+				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
 				or "--test-dict-scroll"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
@@ -425,6 +425,12 @@ static class Cli {
 					if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
 						return testdict(Next());
 					return testdict(null);
+				case "--test-dict-bench": {
+					var bq = Next();
+					var bn = 1000;
+					if (i + 1 < args.Length && int.TryParse(args[i + 1], out var bv)) { Next(); bn = bv; }
+					return testdictbench(bq, bn);
+				}
 				case "--test-dict-sel":
 					return testselcopy();
 				case "--test-dict-word":
@@ -6258,6 +6264,21 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return 0;
 	}
 
+	static int testdictbench(string q, int limit) {
+		if (limit < 1) limit = 1;
+		if (limit > DictDb.SEARCH_MAX) limit = DictDb.SEARCH_MAX;
+		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
+		if (!DictDb.Init(path)) {
+			Out("dict open fail: " + DictDb.Error);
+			return 2;
+		}
+		var t0 = Environment.TickCount;
+		var hits = DictDb.Search(q, "en", limit);
+		var ms = unchecked(Environment.TickCount - t0);
+		Out($"bench q={q} limit={limit} hits={hits.Count} ms={ms}");
+		return 0;
+	}
+
 	static int testdict(string one) {
 		if (!DictRomanize.SelfTest()) {
 			Out("dict romanize selftest fail");
@@ -7286,6 +7307,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
       --test-dict-search  只读查询 exe 旁 dict3.bin（默认 学生 与 hello）；韩语词组行有发音按钮
+      --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数]，默认 1000 条
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关

@@ -101,6 +101,7 @@ static class DictDb {
 	const int KEYCACHE = 64;
 	const int ENTRYCACHE = 8;
 	const int GRAMCACHE = 2 * 1024 * 1024;
+	const int PREVIEW_CAP = 120;
 
 	static readonly string[] DICTNAME = { "en", "ja", "ko", "zh" };
 
@@ -457,6 +458,47 @@ static class DictDb {
 		return parseentryat(blob, inner, out code, out head, out json);
 	}
 
+	/// <summary>按 ids 原顺序批量读词典号、词头和正文。按块排序后读，同一块只解压一次。</summary>
+	static void readbulk(long[] ids, out int[] codes, out string[] heads, out string[] jsons) {
+		var n = ids.Length;
+		codes = new int[n];
+		heads = new string[n];
+		jsons = new string[n];
+		var order = new int[n];
+		var keys = new long[n];
+		var cnt = 0;
+		for (var i = 0; i < n; i++) {
+			codes[i] = -1;
+			heads[i] = "";
+			jsons[i] = "";
+			var id = ids[i];
+			if (id < 1 || id > nentries) continue;
+			var bi = (id - 1) / entriesperblock;
+			var inner = (id - 1) % entriesperblock;
+			order[cnt] = i;
+			keys[cnt] = (bi << 16) | inner;
+			cnt++;
+		}
+		Array.Sort(keys, order, 0, cnt);
+		var last = -1;
+		byte[] blob = null;
+		for (var k = 0; k < cnt; k++) {
+			var i = order[k];
+			var id = ids[i];
+			var bi = (int)((id - 1) / entriesperblock);
+			var inner = (int)((id - 1) % entriesperblock);
+			if (bi != last) {
+				blob = entryblock(bi);
+				last = bi;
+			}
+			if (blob == null) continue;
+			if (!parseentryat(blob, inner, out var code, out var head, out var json)) continue;
+			codes[i] = code;
+			heads[i] = head;
+			jsons[i] = json;
+		}
+	}
+
 	static byte[] entryblock(int bi) {
 		if (entoff == null || bi < 0 || bi >= entoff.Length) return null;
 		if (entcache.TryGetValue(bi, out var hit)) {
@@ -489,19 +531,23 @@ static class DictDb {
 			if (p + 10 > n) return false;
 			var c = blob[p];
 			p += 10;
-			var f = new string[4];
+			string h = null, j = null;
 			for (var k = 0; k < 4; k++) {
 				if (p + 4 > n) return false;
 				var len = (int)u32(blob, p);
 				p += 4;
 				if (len < 0 || p + len > n) return false;
-				f[k] = Encoding.UTF8.GetString(blob, p, len);
+				if (i == inner && k < 2) {
+					var s = Encoding.UTF8.GetString(blob, p, len);
+					if (k == 0) h = s;
+					else j = s;
+				}
 				p += len;
 			}
 			if (i != inner) continue;
 			code = c;
-			head = f[0];
-			json = f[1];
+			head = h ?? "";
+			json = j ?? "";
 			return true;
 		}
 		return false;
@@ -1126,15 +1172,19 @@ static class DictDb {
 
 	static void fillmeta(List<DictHit> hits) {
 		if (hits.Count == 0 || fs == null) return;
-		foreach (var h in hits) {
-			if (!readentry(h.Id, out var head, out var jsontext, out _)) continue;
-			var row = new DictEntry { Id = h.Id, Headword = head };
-			parsejson(row, jsontext);
+		var ids = new long[hits.Count];
+		for (var i = 0; i < hits.Count; i++) ids[i] = hits[i].Id;
+		readbulk(ids, out var codes, out var heads, out var jsons);
+		for (var i = 0; i < hits.Count; i++) {
+			if (codes[i] < 0) continue;
+			var h = hits[i];
+			var row = new DictEntry { Id = h.Id, Headword = heads[i] };
+			var preview = previewmeta(row, jsons[i]);
 			h.Headword = row.Word.Length > 0 ? row.Word : row.Headword;
 			h.Kanji = h.Dict == "ja" ? row.Kanji : "";
 			h.Reading = row.Pron;
 			h.Pos = row.Pos;
-			h.Preview = listpreview(row);
+			h.Preview = preview;
 		}
 	}
 
@@ -1225,28 +1275,109 @@ static class DictDb {
 			|| note.IndexOf("obsolete", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
-	static string listpreview(DictEntry e) {
-		if (e.Senses.Count > 0) {
-			var sb = new StringBuilder();
-			foreach (var s in e.Senses) {
-				var g = sensegloss(s);
-				if (g.Length == 0) continue;
-				if (sb.Length > 0) sb.Append("; ");
-				sb.Append(g);
-			}
-			if (sb.Length > 0) return sb.ToString();
+	/// <summary>列表回填只取词头、读音、词性和一行预览，不建完整词条。</summary>
+	static string previewmeta(DictEntry e, string jsontext) {
+		if (string.IsNullOrWhiteSpace(jsontext)) return "";
+		JsonNode n;
+		try { n = JsonNode.Parse(jsontext); }
+		catch {
+			try { n = JsonNode.Parse(quotekeys(jsontext)); }
+			catch { return ""; }
 		}
-		return trunc(e.Extra, 80);
+		if (n == null) return "";
+		var sb = new StringBuilder();
+		if (iscompact(n)) {
+			e.Word = str(n["w"]);
+			e.Pron = str(n["o"]);
+			e.Kanji = str(n["k"]);
+			e.Pos = str(n["p"]);
+			e.Extra = str(n["x"]);
+			if (e.Extra.Length == 0) e.Extra = str(n["r"]);
+			if (n["n"] is JsonArray na)
+				foreach (var sn in na) previewsense(sn, sb);
+			if (n["g"] is JsonArray ga)
+				foreach (var g in ga) {
+					if (e.Pos.Length == 0 && g is JsonArray a && a.Count > 0) e.Pos = str(a[0]);
+					previewgroup(g, sb);
+				}
+			if (n["i"] is JsonArray ia)
+				foreach (var id in ia) previewidiom(id, sb);
+		}
+		else {
+			e.Word = str(n["word"]);
+			e.Kanji = str(n["kanji"]);
+			e.Pron = str(n["pron"]);
+			e.Pos = str(n["pos"]);
+			e.Extra = str(n["extra"]);
+			if (n["senses"] is JsonArray sa)
+				foreach (var sn in sa) previewsense(sn, sb);
+			if (n["posGroups"] is JsonArray pg)
+				foreach (var g in pg) {
+					if (g is not JsonObject o) continue;
+					if (e.Pos.Length == 0) e.Pos = str(o["pos"]);
+					previewblock(o["blocks"], sb);
+				}
+			if (n["idioms"] is JsonArray ia)
+				foreach (var id in ia) previewidiom(id, sb);
+		}
+		return sb.Length > 0 ? trunc(sb.ToString(), PREVIEW_CAP) : trunc(e.Extra, 80);
 	}
 
-	static string sensegloss(DictSense s) {
-		var zh = join2(s.Zh, s.ZhDef);
-		var en = join2(s.En, s.EnDef);
+	static void previewsense(JsonNode n, StringBuilder sb) {
+		if (n == null || sb.Length >= PREVIEW_CAP) return;
+		var g = glossnode(n);
+		if (g.Length == 0) return;
+		if (sb.Length > 0) sb.Append("; ");
+		sb.Append(g);
+	}
+
+	static string glossnode(JsonNode n) {
+		if (n is JsonValue) return str(n);
+		if (n is JsonObject o) {
+			return pickgloss(eqtext(o["zh"]), eqtext(o["en"]), str(o["ko"]), eqtext(o["ja"]));
+		}
+		if (n is JsonArray a) {
+			return pickgloss(str(a.Count > 0 ? a[0] : null), str(a.Count > 1 ? a[1] : null),
+				str(a.Count > 4 ? a[4] : null), str(a.Count > 5 ? a[5] : null));
+		}
+		return "";
+	}
+
+	static string pickgloss(string zh, string en, string ko, string ja) {
 		if (Loc.IsEn && en.Length > 0) return en;
 		if (zh.Length > 0) return zh;
 		if (en.Length > 0) return en;
-		if (s.Ko.Length > 0) return s.Ko;
-		return join2(s.Ja, s.JaDef);
+		if (ko.Length > 0) return ko;
+		return ja;
+	}
+
+	static void previewgroup(JsonNode n, StringBuilder sb) {
+		if (n is not JsonArray a) return;
+		if (a.Count >= 3 && a[1] is JsonValue && a[2] is JsonArray b2) previewblock(b2, sb);
+		else if (a.Count >= 2 && a[1] is JsonArray b1) previewblock(b1, sb);
+	}
+
+	static void previewblock(JsonNode n, StringBuilder sb) {
+		if (n == null || sb.Length >= PREVIEW_CAP) return;
+		if (issenseshape(n)) {
+			previewsense(n, sb);
+			return;
+		}
+		if (n is JsonArray a) {
+			foreach (var x in a) previewblock(x, sb);
+			return;
+		}
+		if (n is JsonObject o) {
+			previewblock(o["main"], sb);
+			previewblock(o["subs"], sb);
+		}
+	}
+
+	static void previewidiom(JsonNode n, StringBuilder sb) {
+		JsonNode blocks = null;
+		if (n is JsonObject o) blocks = o["blocks"];
+		else if (n is JsonArray a && a.Count > 1) blocks = a[1];
+		previewblock(blocks, sb);
 	}
 
 	static string trunc(string s, int n) {

@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation and speech list only installed languages. Speech has the same Chrome model install link.
 - Dictionary lookup reads dict3.bin (RDS1 format) instead of the SQLite dict3.db. Opening it keeps only the block directories, so a cold load adds about 1 MB of commit memory instead of about 130 MB. Install features extracts dict3.bin from dict3.7z and removes an old dict3.db.
 - The dictionary releases its block directories after the idle timeout, so the ~1 MB is held only while the dictionary is in use.
+- Dictionary result backfill reads entries block by block instead of one block per hit, and fills only the list fields. A 4000-hit lookup drops from several seconds to about 0.5 s.
 
 #### Fixed
 
@@ -82,6 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 翻译和语音合成只列出已安装的语言。语音合成页增加与翻译相同的 Chrome 模型安装链接。
 - 词典改为读取 dict3.bin（RDS1 格式），不再打开 SQLite 的 dict3.db。打开时只常驻分块目录，冷启动提交内存约增加 1 MB，原来约 130 MB。安装功能从 dict3.7z 解出 dict3.bin，并删掉旧的 dict3.db。
 - 词典闲置关闭时一并释放分块目录，那约 1 MB 只在查词期间占用。
+- 词典结果回填改为按块连续读，并且只解析列表要用的字段；四千条命中的查询从数秒降到约 0.5 秒。
 
 #### 修复
 
