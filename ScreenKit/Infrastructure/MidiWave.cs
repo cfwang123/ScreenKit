@@ -9,6 +9,7 @@ sealed class MidiWave : IDisposable {
 	readonly float[] ring = new float[N];
 	WasapiLoopbackCapture cap;
 	int write;
+	float shown;
 
 	public void Start() {
 		if (cap != null) return;
@@ -34,6 +35,34 @@ sealed class MidiWave : IDisposable {
 			for (int i = 0; i < pad; i++) dst[i] = 0;
 			for (int i = 0; i < take; i++) dst[pad + i] = ring[(start + i) % n];
 		}
+		boost(dst);
+	}
+
+	// 系统合成器出来的幅度往往很小，按这一段的峰值拉开到接近满幅。静音不放大。
+	void boost(float[] dst) {
+		float peak = 0;
+		for (int i = 0; i < dst.Length; i++) {
+			float a = dst[i];
+			if (a < 0) a = -a;
+			if (a > peak) peak = a;
+		}
+		if (peak < 0.004f) {
+			shown = 0;
+			return;
+		}
+		if (peak > shown) shown = peak;
+		else shown *= 0.92f;
+		float gain = DisplayGain(shown);
+		if (gain <= 1f) return;
+		for (int i = 0; i < dst.Length; i++) dst[i] *= gain;
+	}
+
+	public static float DisplayGain(float peak) {
+		if (peak < 0.004f) return 1f;
+		float g = 0.92f / peak;
+		if (g < 1f) return 1f;
+		if (g > 36f) return 36f;
+		return g;
 	}
 
 	public void Dispose() {
@@ -148,6 +177,15 @@ sealed class MidiWave : IDisposable {
 		}
 		if (!bot) {
 			say("FAIL wave bottom");
+			return 1;
+		}
+		if (DisplayGain(1f) != 1f || DisplayGain(0.001f) != 1f) {
+			say("FAIL wave gain idle");
+			return 1;
+		}
+		float g = DisplayGain(0.05f);
+		if (g < 16f || g > 20f) {
+			say("FAIL wave gain " + g);
 			return 1;
 		}
 		say("wave ok");
