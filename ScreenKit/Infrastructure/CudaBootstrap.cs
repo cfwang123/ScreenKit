@@ -44,6 +44,7 @@ static class CudaBootstrap {
 	/// <summary>已加载的 ORT 后端。</summary>
 	public enum OrtBackend {
 		None,
+		Cpu,
 		Cuda,
 		Dml,
 	}
@@ -244,10 +245,16 @@ static class CudaBootstrap {
 			return 1;
 		}
 		EnsureOrtForDevice(OcrDevice.Cpu);
-		sb.Append(" flavor1=").Append(LoadedOrtFlavor() ?? "");
-		if (string.IsNullOrEmpty(LoadedOrtFlavor())) {
+		var f1 = LoadedOrtFlavor() ?? "";
+		sb.Append(" flavor1=").Append(f1);
+		if (f1.Length == 0) {
 			detail = sb.ToString();
 			return 2;
+		}
+		// 装了 onnxcpu64 时，CPU 推理必须用它，不能把 onnxgpu64 拉进来
+		if (f1 != "cpu" && File.Exists(Path.Combine(OnnxCpu64Dir, "onnxruntime.dll"))) {
+			detail = sb.ToString();
+			return 3;
 		}
 		using (var so = new SessionOptions()) { _ = so; }
 		sb.Append(" opt1=ok");
@@ -363,8 +370,11 @@ static class CudaBootstrap {
 			log.AppendLine($"--- EnsureOrtForDevice {device} → {want} ---");
 
 			if (device == OcrDevice.Cpu || want == OrtBackend.None) {
-				// 未装 GPU/核显：只加载原生库，会话用 CPU EP
-				if (!tryloadanyort(log, out var got)) {
+				// 选了 CPU 就先载 onnxcpu64；没装 CPU 包再退回 GPU / DML 包跑 CPU EP
+				var got = OrtBackend.None;
+				var ok = want == OrtBackend.Cpu && loadcpuort(log);
+				if (ok) got = OrtBackend.Cpu;
+				if (!ok && !tryloadanyort(log, out got)) {
 					writelog(log);
 					throw new InvalidOperationException(
 						"无法加载 onnxruntime.dll（CPU 推理也需要原生库）。" +
@@ -561,6 +571,11 @@ static class CudaBootstrap {
 			if (cudaDetached) {
 				IsGpuReady = false;
 				GpuStatus = "CUDA 库已从本进程卸下，再次使用 GPU 前请重启";
+				return;
+			}
+			// CPU 版 ORT 已锁定：它没有 CUDA EP，换 GPU 只能重启
+			if (LoadedBackend == OrtBackend.Cpu) {
+				GpuStatus = "已加载 CPU 版 onnxruntime，改用 GPU 需重启程序";
 				return;
 			}
 			// 已成功加载过则跳过；失败后允许再次尝试（例如用户升级驱动后）
@@ -875,13 +890,15 @@ static class CudaBootstrap {
 		return device switch {
 			OcrDevice.IntelGpu => OrtBackend.Dml,
 			OcrDevice.Gpu => OrtBackend.Cuda,
-			// CPU：沿用已加载；否则有啥用啥（无加速包 → None，由 tryloadanyort 找 onnxcpu64）
+			// CPU：沿用已加载；否则先找 onnxcpu64，只有没装 CPU 包时才退回 GPU / DML 包跑 CPU EP
 			_ => LoadedBackend != OrtBackend.None ? LoadedBackend
-				: File.Exists(Path.Combine(OnnxGpu64Dir, "onnxruntime.dll")) || IsGpuReady
-					? OrtBackend.Cuda
-					: File.Exists(Path.Combine(OnnxDml64Dir, "onnxruntime.dll")) || IsDmlReady
-						? OrtBackend.Dml
-						: OrtBackend.None,
+				: File.Exists(Path.Combine(OnnxCpu64Dir, "onnxruntime.dll"))
+					? OrtBackend.Cpu
+					: File.Exists(Path.Combine(OnnxGpu64Dir, "onnxruntime.dll")) || IsGpuReady
+						? OrtBackend.Cuda
+						: File.Exists(Path.Combine(OnnxDml64Dir, "onnxruntime.dll")) || IsDmlReady
+							? OrtBackend.Dml
+							: OrtBackend.None,
 		};
 	}
 
@@ -957,15 +974,17 @@ static class CudaBootstrap {
 
 	/// <summary>
 	/// 加载任意可用 ORT（不要求 GPU/核显安装）。顺序：GPU 包 → CPU 包 → 搜索路径 → DML 包。
+	/// 实际映射到哪个目录就标哪个后端，CPU 包不再冒充 CUDA。
 	/// </summary>
 	static bool tryloadanyort(StringBuilder log, out OrtBackend which) {
 		which = OrtBackend.None;
 		// 1) CUDA 版 ORT（含 onnxcpu64 / onnxgpu64）
 		if (loadcudaort(log)) {
-			// 若实际来自 DML 目录则标 Dml，否则标 Cuda（CPU 包与 GPU 包同源）
 			var byName = modulepath(GetModuleHandle("onnxruntime.dll")) ?? "";
 			if (byName.IndexOf("onnxdml64", StringComparison.OrdinalIgnoreCase) >= 0)
 				which = OrtBackend.Dml;
+			else if (byName.IndexOf("onnxcpu64", StringComparison.OrdinalIgnoreCase) >= 0)
+				which = OrtBackend.Cpu;
 			else
 				which = OrtBackend.Cuda;
 			return true;
@@ -976,6 +995,12 @@ static class CudaBootstrap {
 			return true;
 		}
 		return false;
+	}
+
+	/// <summary>只加载 onnxcpu64 的 ORT，CPU 推理不走 GPU 包。</summary>
+	static bool loadcpuort(StringBuilder log) {
+		if (string.IsNullOrEmpty(OnnxCpu64Dir)) return false;
+		return loadortfrom(new[] { Path.Combine(OnnxCpu64Dir, "onnxruntime.dll") }, log);
 	}
 
 	static bool loadcudaort(StringBuilder log) {

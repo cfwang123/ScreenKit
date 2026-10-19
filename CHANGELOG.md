@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Input method hotkeys are not registered while ime.db is missing; installing it registers them without a restart.
 - Dictionary lookups of four or more characters no longer skip infix matches when prefix results exist; dict returns 70 English hits instead of 14.
 - Korean romanized input restores conjugated forms, so gapnida returns the same hits as 갑니다 (previously none).
+- OCR on CPU loads onnxcpu64's onnxruntime.dll instead of the GPU package; switching to GPU afterwards asks for a restart.
 
 #### Removed
 
@@ -102,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - ime.db 未安装时不注册输入法热键；装好后立即注册，无需重启。
 - 四字以上的查词在前缀已有结果时也继续查中缀，dict 的英文结果从 14 条补到 70 条。
 - 韩语罗马字输入会还原活用形，gapnida 与直接输入 갑니다 结果一致（原来查不到）。
+- OCR 选 CPU 时不再加载 onnxgpu64 的 onnxruntime.dll，优先用 onnxcpu64；之后再切到 GPU 会提示重启。
 
 #### 移除
 
