@@ -1271,40 +1271,6 @@ arabic_dict.txt
 
 	static string dictdbpath() => Path.Combine(BaseDir, "dict3.bin");
 
-	static string olddictdbpath() => Path.Combine(BaseDir, "dict.db");
-
-	/// <summary>上一版 SQLite 词库，装好 dict3.bin 后删掉。</summary>
-	static string staledictdbpath() => Path.Combine(BaseDir, "dict3.db");
-
-	/// <summary>新库已接手。卸掉程序旁的旧 dict.db（符号链接只删链接）。</summary>
-	/// <summary>删掉上一版的 dict3.db；符号链接只删链接。</summary>
-	static void removeoldbin(IProgress<string> log) {
-		var stale = staledictdbpath();
-		unlinkifreparse(stale);
-		if (File.Exists(stale)) deletefile(stale, log);
-	}
-
-	static void removeolddict(IProgress<string> log) {
-		var old = olddictdbpath();
-		unlinkifreparse(old);
-		if (File.Exists(old)) deletefile(old, log);
-		foreach (var ext in new[] { "-wal", "-shm", "-journal" }) {
-			var side = old + ext;
-			unlinkifreparse(side);
-			if (!File.Exists(side)) continue;
-			deletefile(side, log);
-		}
-		var stale = Path.Combine(CacheDir, "dict.7z");
-		if (!File.Exists(stale)) return;
-		try {
-			File.Delete(stale);
-			log?.Report("已删除旧缓存 dict.7z");
-		}
-		catch (Exception ex) {
-			log?.Report("删除旧缓存失败 dict.7z: " + ex.Message);
-		}
-	}
-
 	static FeatureInstallState probedict() {
 		var path = dictdbpath();
 		try {
@@ -1319,7 +1285,6 @@ arabic_dict.txt
 	static async Task installdict(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (probedict() == FeatureInstallState.Installed) {
-			removeolddict(log);
 			log?.Report("dict3.bin 已存在，跳过");
 			reportprog(progress, 1, note: "已存在");
 			return;
@@ -1356,8 +1321,6 @@ arabic_dict.txt
 		unlinkifreparse(dest);
 		if (File.Exists(dest)) File.Delete(dest);
 		File.Move(found, dest);
-		removeolddict(log);
-		removeoldbin(log);
 		reportprog(progress, 1, zlen, zlen, "dict3.bin", "完成");
 		log?.Report("词典 dict3.bin 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}
@@ -1436,8 +1399,6 @@ arabic_dict.txt
 		deletefile(dest, log);
 		deletefile(dest + "-wal", log);
 		deletefile(dest + "-shm", log);
-		removeolddict(log);
-		removeoldbin(log);
 	}
 
 	// ───────── 中英双向 ONNX 翻译模型 ─────────
