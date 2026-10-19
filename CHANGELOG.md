@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The MIDI waveform is scaled up so a quiet system synth still fills the display.
 - The MIDI waveform stays phase-locked, so a periodic tone no longer drifts sideways.
 - The 8-bit waveform stays phase-locked, so a periodic tone no longer drifts sideways.
+- Input method hotkeys are not registered while ime.db is missing; installing it registers them without a restart.
 
 #### Removed
 
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MIDI 波形按峰值拉开，系统合成器声音小也能看清起伏。
 - MIDI 波形按上升过零对齐，周期信号不再左右飘。
 - 8bit 合成器的周期波形按上升过零对齐，不再左右飘。
+- ime.db 未安装时不注册输入法热键；装好后立即注册，无需重启。
 
 #### 移除
 

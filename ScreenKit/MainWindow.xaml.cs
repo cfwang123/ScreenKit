@@ -1085,25 +1085,27 @@ public partial class MainWindow : Window {
 			hotkeyDictSel.Attach();
 			if (!hotkeyDictSel.Register(opt.ModDict ? opt.HotkeyDictSel : "")) errs.Add(hotkeyDictSel.LastError);
 		}
+		// ime.db 未安装：输入法菜单已禁用，热键也不注册，避免占住组合键
+		var imeok = ImeLex.DbInstalled;
 		if (hotkeyImeCycle != null) {
 			hotkeyImeCycle.Attach();
-			if (!hotkeyImeCycle.Register(opt.HotkeyImeCycle)) errs.Add(hotkeyImeCycle.LastError);
+			if (!hotkeyImeCycle.Register(imeok ? opt.HotkeyImeCycle : "")) errs.Add(hotkeyImeCycle.LastError);
 		}
 		if (hotkeyImeWubi != null) {
 			hotkeyImeWubi.Attach();
-			if (!hotkeyImeWubi.Register(opt.HotkeyImeWubi)) errs.Add(hotkeyImeWubi.LastError);
+			if (!hotkeyImeWubi.Register(imeok ? opt.HotkeyImeWubi : "")) errs.Add(hotkeyImeWubi.LastError);
 		}
 		if (hotkeyImeJa != null) {
 			hotkeyImeJa.Attach();
-			if (!hotkeyImeJa.Register(opt.HotkeyImeJa)) errs.Add(hotkeyImeJa.LastError);
+			if (!hotkeyImeJa.Register(imeok ? opt.HotkeyImeJa : "")) errs.Add(hotkeyImeJa.LastError);
 		}
 		if (hotkeyImeKo != null) {
 			hotkeyImeKo.Attach();
-			if (!hotkeyImeKo.Register(opt.HotkeyImeKo)) errs.Add(hotkeyImeKo.LastError);
+			if (!hotkeyImeKo.Register(imeok ? opt.HotkeyImeKo : "")) errs.Add(hotkeyImeKo.LastError);
 		}
 		if (hotkeyImeOff != null) {
 			hotkeyImeOff.Attach();
-			if (!hotkeyImeOff.Register(opt.HotkeyImeOff)) errs.Add(hotkeyImeOff.LastError);
+			if (!hotkeyImeOff.Register(imeok ? opt.HotkeyImeOff : "")) errs.Add(hotkeyImeOff.LastError);
 		}
 		try {
 			hangul?.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
@@ -5090,6 +5092,7 @@ public partial class MainWindow : Window {
 		try { scanfacemodels(); } catch (Exception ex) { CaptureLog.Ex("install refresh face", ex); }
 		try { refreshdeviceui(); } catch { }
 		try { painthangul(); } catch { }
+		try { registerhotkey(); } catch { }
 		if (needRestart)
 			setstatus("功能已安装 · 请重启程序以加载 GPU/核显运行库");
 		else
