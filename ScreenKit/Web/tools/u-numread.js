@@ -3,7 +3,6 @@
 	var ZHB = "零壹贰叁肆伍陆柒捌玖";
 	var ZU = ["千", "百", "十", ""];
 	var ZB = ["仟", "佰", "拾", ""];
-	var ZG = ["", "万", "亿", "万亿"];
 	// 小数逢十，中数逢万，大数自乘。万在三套里都是 10^4。
 	var BIGU = ["万", "亿", "兆", "京", "垓", "秭", "穰", "沟", "涧", "正", "载", "极", "恒河沙", "阿僧祇", "那由他", "不可思议", "无量大数"];
 	var FRACU = ["分", "厘", "毫", "丝", "忽", "微", "纤", "沙", "尘", "埃", "渺", "漠", "模糊", "逡巡", "须臾", "瞬息", "弹指", "刹那", "六德", "虚空", "清净", "阿赖耶", "阿摩罗", "涅槃寂静"];
@@ -333,25 +332,53 @@
 		return (p.neg ? "负" : "") + body;
 	}
 
+	// 八位一节，节名是若干个「亿」，节内才用万。一万亿零一亿写成一万零一亿。
 	function zhint(ip, formal){
 		if (ip === "0") return "零";
-		var chunks = splitend(ip, 4);
+		var chunks = splitend(ip, 8);
 		var body = "";
 		var gap = false;
 		var hi = chunks.length - 1;
 		var gi;
 		for (gi = hi; gi >= 0; gi--) {
-			var sec = parseInt(chunks[gi], 10);
+			var raw = chunks[gi].replace(/^0+/, "");
+			if (!raw) {
+				gap = true;
+				continue;
+			}
+			var piece = readwan(raw, formal, gi === hi);
+			if (body && (gap || raw.length < 8)) body += "零";
+			body += piece + yiname(gi);
+			gap = false;
+		}
+		return body;
+	}
+
+	function readwan(raw, formal, drop){
+		var parts = splitend(raw, 4);
+		var body = "";
+		var gap = false;
+		var hi = parts.length - 1;
+		var gi;
+		for (gi = hi; gi >= 0; gi--) {
+			var sec = parseInt(parts[gi], 10);
 			if (!sec) {
 				gap = true;
 				continue;
 			}
-			var piece = read4(chunks[gi], formal, gi === hi);
+			var piece = read4(parts[gi], formal, drop && gi === hi);
 			if (body && (gap || sec < 1000)) body += "零";
-			body += piece + groupname(gi);
+			body += piece + (gi ? "万" : "");
 			gap = false;
 		}
 		return body;
+	}
+
+	function yiname(i){
+		var s = "";
+		var k;
+		for (k = 0; k < i; k++) s += "亿";
+		return s;
 	}
 
 	// 小写只在最高一节省掉「一十」的「一」：10 是十，110000 是十一万；下一节仍写一十，如 100010 是十万零一十。大写保留壹拾。
@@ -377,16 +404,6 @@
 			started = true;
 		}
 		return out;
-	}
-
-	function groupname(i){
-		if (i < ZG.length) return ZG[i];
-		var n = Math.floor(i / 2);
-		var bits = [];
-		var k;
-		if (i % 2) bits.push("万");
-		for (k = 0; k < n; k++) bits.push("亿");
-		return bits.join("");
 	}
 
 	function expsFor(mode){

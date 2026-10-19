@@ -127,8 +127,8 @@ http_port = 1224
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
 | POST | `/api/tts/speak` | 合成后在本机播放。`play=queue` 排队，`play=now` 立即打断 |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
-| GET | `/api/translate/langs` | 列出源语言和各自的目标语言 |
-| POST | `/api/translate` · `/api/translate/batch` | LLM 批量翻译；没有就绪的 LLM 时用本地模型 |
+| GET | `/api/translate/langs` | 列出源语言和各自的目标语言、可选引擎和本地 ONNX 模型 |
+| POST | `/api/translate` · `/api/translate/batch` | 批量翻译，`engine` 可选 auto / onnx / chrome / llm |
 | POST | `/api/chat` | LLM 对话（文本或语音入；可选 TTS 返回 `wav_base64`） |
 | GET/POST | `/api/cast/stop` | 立即关闭投屏画面窗并断开当前接收 |
 | WebSocket | `/cast` | 投屏媒体（与 HTTP 同端口；二进制帧为 SCST） |
@@ -966,9 +966,9 @@ print(json.loads(urllib.request.urlopen(req).read().decode("utf-8"))["data"]["ah
 
 ## 10. POST `/api/translate` · `/api/translate/batch`
 
-LLM 批量翻译（按 `translate_llm_batch` 分组，默认 8 条一组，缺号再逐条补）。**不限制一次请求的条数**。翻译 LLM 已就绪时用 `[[llm]]` / `translate_llm`（或请求里的 `llm`）。没有就绪的 LLM 时，同一请求改用已安装的本地 Opus-MT 模型，按 `src`→`dst`。别名 `/api/translate/batch` 同一处理。条数很多时耗时按组累加（每组最长约 90 秒）。
+LLM 批量翻译（按 `translate_llm_batch` 分组，默认 8 条一组，缺号再逐条补）。**不限制一次请求的条数**。翻译 LLM 已就绪时用 `[[llm]]` / `translate_llm`（或请求里的 `llm`）。没有就绪的 LLM 时，同一请求改用已安装的本地 Opus-MT 模型，按 `src`→`dst`。请求里的 `engine` 可以指定走哪条路：`onnx`（本地模型，用 `model` 选）、`chrome`、`llm`；缺省 `auto` 就是上面的规则。别名 `/api/translate/batch` 同一处理。条数很多时耗时按组累加（每组最长约 90 秒）。
 
-`GET /api/translate/langs` 返回 `data.llm`、`data.src`（语言代码，`auto` 在前）、`data.dst`（每个源语言对应可选目标），以及自动互译的 `data.auto_native` / `data.auto_learn` 和显示名 `data.auto_label`。`auto` 按母语与学习语言互译：原文不是母语时译成母语，原文是母语时译成学习语言；默认中文 ↔ 英文，可在参数设置 → 翻译里改。
+`GET /api/translate/langs` 返回 `data.llm`、`data.src`（语言代码，`auto` 在前）、`data.dst`（每个源语言对应可选目标），以及自动互译的 `data.auto_native` / `data.auto_learn` 和显示名 `data.auto_label`。`auto` 按母语与学习语言互译：原文不是母语时译成母语，原文是母语时译成学习语言；默认中文 ↔ 英文，可在参数设置 → 翻译里改。同一响应还给出下拉用的 `data.engines`（`auto` / `onnx` / `chrome`，以及参数设置里配的每个 LLM 端点）和 `data.models`（只列本地 ONNX 模型，每项含 `key`、`src`、`dst`、`name`、`ready`）。
 
 **请求：**
 
@@ -991,6 +991,8 @@ LLM 批量翻译（按 `translate_llm_batch` 分组，默认 8 条一组，缺�
 | `native` / `learn` | 可选，覆盖配置里的自动互译母语 / 学习语言（如 `native: "zh"`、`learn: "ja"`）。只在 `src`/`dst` 缺省或为 `auto` 时生效 |
 | `dir` | 可选，如 `zh-en`，与 `src`/`dst` 二选一 |
 | `chunk` | 每批送给模型的条数。不传则用 `translate_llm_batch`（默认 8），范围 1–64 |
+| `engine` | 可选：`auto`（缺省）、`onnx`、`chrome`、`llm`。`onnx` 即使有就绪的 LLM 也走本地模型；`llm` 要求翻译 LLM 就绪 |
+| `model` | `engine` 为 `onnx` 时指定本地模型：方向键（`zh-en`）或目录名（`opus-mt-zh-en-onnx`），以该模型的方向为准；其它引擎下它是 `llm` 的别名 |
 | `llm` | 可选，`[[llm]]` 显示名称或模型 id；默认 `translate_llm`，再否则列表第一项 |
 
 **响应：**
