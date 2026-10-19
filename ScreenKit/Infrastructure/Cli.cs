@@ -6601,7 +6601,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		var bad = 0;
 		try {
 			var n = waithits(win, 8000);
-			Out("hits=" + n);
+			Out("hits=" + n + " status=" + win.host.lbstatus.Text);
 			if (n <= 0) {
 				Err("FAIL: 没有查出结果");
 				return 1;
