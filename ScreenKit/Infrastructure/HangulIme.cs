@@ -55,6 +55,10 @@ sealed class HangulIme : IDisposable {
 	bool sending;
 	bool eat;
 	bool dead;
+	string hkwubi = "";
+	string hkja = "";
+	string hkko = "";
+	string hkcycle = "";
 
 	public event Action Changed;
 	public event Action Settings;
@@ -117,6 +121,11 @@ sealed class HangulIme : IDisposable {
 		eng.ApplyOpts(true, true, true,
 			Hot.FromCombo(zh), Hot.FromCombo(ja), Hot.FromCombo(ko),
 			Hot.FromCombo(paused), Hot.FromCombo(cycle));
+		hkwubi = GlobalHotkey.Display(zh);
+		hkja = GlobalHotkey.Display(ja);
+		hkko = GlobalHotkey.Display(ko);
+		hkcycle = GlobalHotkey.Display(cycle);
+		setshortcuts();
 	}
 
 	public void Enter(string code) {
@@ -364,7 +373,21 @@ sealed class HangulIme : IDisposable {
 			mirare.Text = Loc.T("hangul.menu.rare");
 			mirare.Checked = rare;
 		}
+		setshortcuts();
 		if (ni != null && enabled) showtray();
+	}
+
+	void setshortcuts() {
+		setshortcut(miwubi, hkwubi);
+		setshortcut(mija, hkja);
+		setshortcut(miko, hkko);
+		setshortcut(mioff, hkcycle);
+	}
+
+	static void setshortcut(Forms.ToolStripMenuItem mi, string keys) {
+		if (mi == null) return;
+		mi.ShowShortcutKeys = true;
+		mi.ShortcutKeyDisplayString = string.IsNullOrWhiteSpace(keys) ? "" : keys.Trim();
 	}
 
 	static System.Drawing.Icon badge(string mark, bool gray) {
