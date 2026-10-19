@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.26 (2026-10-20)](#v1026-2026-10-20)
 - [v1.0.25 (2026-10-17 ~ 18)](#v1025-2026-10-17--18)
 - [v1.0.24 (2026-10-17)](#v1024-2026-10-17)
 - [v1.0.23.1 (2026-10-17)](#v10231-2026-10-17)
@@ -37,6 +38,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
 
+## v1.0.26 (2026-10-20)
+
 ### English
 
 #### Added
@@ -49,12 +52,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The selection popup also works in this program. Dictionary entries always use that same popup, and the dictionary page no longer has its own. Drag the lower-right corner to resize; the size lasts until you quit.
 - The IME tray menu shows each language hotkey, and Close shows the cycle hotkey.
 - Chrome translation and speech list only installed languages. Speech has the same Chrome model install link.
-- Dictionary lookup reads dict3.bin (RDS1 format) instead of the SQLite dict3.db. Opening it keeps only the block directories, so a cold load adds about 1 MB of commit memory instead of about 130 MB. Install features extracts dict3.bin from dict3.7z and removes an old dict3.db.
+- Dictionary lookup reads dict3.bin (RDS1 format) instead of the SQLite dict3.db. Opening it keeps only the block directories, so a cold load adds about 1 MB of commit memory instead of about 130 MB. Install features extracts dict3.bin from dict3.7z.
 - The dictionary releases its block directories after the idle timeout, so the ~1 MB is held only while the dictionary is in use.
 - Dictionary result backfill reads entries block by block instead of one block per hit, and fills only the list fields. A 4000-hit lookup drops from several seconds to about 0.5 s.
 - Dictionary results appear as soon as matching finishes; a row reads its title and preview when it scrolls into view, so long hit lists no longer wait for every entry.
 - The memory window's unload button is now Unload all: it unloads every model, the ONNX runtime, the dictionary, and the Chrome helper, then runs a full GC.
-- Dictionary install and uninstall remove old dict.db and dict2.db files beside the program. The old dict3.db cleanup is gone.
+- Dictionary install and uninstall remove old dict.db and dict2.db files beside the program.
 
 #### Fixed
 
@@ -73,7 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Removed
 
-- Remove tray menu item OCR from clipboard
+- The tray menu item OCR from clipboard is removed.
 
 ### 中文
 
@@ -87,12 +90,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词浮窗在本程序里也同样弹出。词典词条始终用这同一个浮窗，词典页自己的浮层已去掉。右下角可拖动改大小，本次运行会记住。
 - 输入法托盘菜单在五笔、日语、韩语旁显示各自热键，关闭旁显示轮流切换热键。
 - Chrome 翻译和语音合成只列出已安装的语言。语音合成页增加与翻译相同的 Chrome 模型安装链接。
-- 词典改为读取 dict3.bin（RDS1 格式），不再打开 SQLite 的 dict3.db。打开时只常驻分块目录，冷启动提交内存约增加 1 MB，原来约 130 MB。安装功能从 dict3.7z 解出 dict3.bin，并删掉旧的 dict3.db。
+- 词典改为读取 dict3.bin（RDS1 格式），不再打开 SQLite 的 dict3.db。打开时只常驻分块目录，冷启动提交内存约增加 1 MB，原来约 130 MB。安装功能从 dict3.7z 解出 dict3.bin。
 - 词典闲置关闭时一并释放分块目录，那约 1 MB 只在查词期间占用。
 - 词典结果回填改为按块连续读，并且只解析列表要用的字段；四千条命中的查询从数秒降到约 0.5 秒。
 - 词典列表在命中后立即显示，标题和预览等该行滚到可见处才读；命中很多的长列表不再等全部回填。
 - 内存占用窗口的「卸载」改为「全部卸载」：把所有模型、ONNX 运行库、词典和 Chrome 辅助进程一并卸掉，再强制回收。
-- 词典安装和卸载会删掉程序旁的旧 dict.db 和 dict2.db。旧的 dict3.db 不再清理。
+- 词典安装和卸载会删掉程序旁的旧 dict.db 和 dict2.db。
 
 #### 修复
 

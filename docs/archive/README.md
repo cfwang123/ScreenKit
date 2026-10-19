@@ -4,7 +4,7 @@
 
 Windows desktop tool (`ScreenKit.exe`): screenshot, annotate, OCR, barcode/QR, long screenshot, screen/GIF recording, PDF workbench, ASR/TTS, LLM chat, translation, face, local HTTP API, LAN file transfer, and LAN/USB screencast with an Android companion.
 
-**Current version: 1.0.25** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
+**Current version: 1.0.26** · [GitHub Releases](https://github.com/cfwang123/ScreenKit/releases/latest)
 
 Changelog: [CHANGELOG.md](../../CHANGELOG.md) (English and Chinese per version).
 
@@ -51,7 +51,7 @@ Changelog: [CHANGELOG.md](../../CHANGELOG.md) (English and Chinese per version).
 | **LLM chat** | WeChat-style bubbles, Clear, mic, Speak / Auto speak, optional web + `tmp/llm/` tools. |
 | **LLM log** | Main-window list of the latest 1,000 LLM calls: model, status, input / output / total tokens, and response time. Select a row to read the request and response. Chinese in that JSON is shown as characters. The address query string is not stored. |
 | **Translation** | Local Opus-MT ONNX, a configured **LLM**, or Chrome's built-in translator (hidden `chrome.exe`, language packs download on demand). 20-trip round-trip stops early on a repeat; **Tools → Translate popup** (`Ctrl+Alt+T`). The popup chooses the same engine as the main tab (local ONNX, Chrome, or a configured LLM) and does not pick a model. It has Speak on the source and on the translation, using the dictionary voice for that language. |
-| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict3.bin` is not in the release archive. **Help → Install features** downloads `dict3.7z` from the fixed `dict-db` release and removes an old `dict.db` or `dict3.db` beside the program. |
+| **Dictionary** | Chinese, English, Japanese, and Korean headwords on a main-window tab. See [Dictionary](#dictionary). Menu **Tools → Dictionary**. `dict3.bin` is not in the release archive. **Help → Install features** downloads `dict3.7z` from the fixed `dict-db` release and removes old `dict.db` and `dict2.db` files beside the program. |
 | **Face** | InsightFace ONNX detect/compare; optional landmarks and gender/age. Models in `facemodels/`. |
 | **SAPI x86 helper** | Sidecar `x86host.exe` for classic voices visible only to 32-bit processes. |
 
@@ -121,7 +121,7 @@ Look up Chinese, English, Japanese, and Korean. The release archive does not inc
 
 ### Data sources
 
-`dict3.bin` holds four dictionaries in one file. Each word is stored once, and search reads the block directories in that file. ScreenKit does not build the file. **Help → Install features** downloads `dict3.7z`, extracts `dict3.bin`, and removes an old `dict.db` or `dict3.db` next to the program. An existing `dict3.bin` beside the program counts as installed, including a symbolic link, which is measured by the target file's size.
+`dict3.bin` holds four dictionaries in one file. Each word is stored once, and search reads the block directories in that file. ScreenKit does not build the file. **Help → Install features** downloads `dict3.7z`, extracts `dict3.bin`, and removes old `dict.db` and `dict2.db` files next to the program. An existing `dict3.bin` beside the program counts as installed, including a symbolic link, which is measured by the target file's size.
 
 - **Chinese.** Characters, words, and idioms from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). License: MIT. The upstream project notes that the origin of some material is unclear.
 - **Japanese.** Vocabulary senses from the [JMdict/EDICT Dictionary Project](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG). License: [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project's update terms.
@@ -271,7 +271,7 @@ No extra download. Windows OCR, Windows speech recognition, Windows speech synth
 | Local Chinese↔English translation | `translatemodels.7z` (both Opus-MT directions). Also selects CPU ONNX Runtime | 981 MB download, about 1.08 GB extracted. Runtime is another 16 MB |
 | Offline speech recognition | A model, plus the Sherpa native library. `.tar.bz2` packs also need SharpCompress | SenseVoice 230 MB; streaming Zipformer 75 MB; Whisper tiny 78 MB; Whisper base 148 MB; Silero VAD 2 MB. Sherpa 5 MB. SharpCompress 2.4 MB |
 | Offline speech synthesis | A model under `ttsmodels/`, plus the Sherpa native library | Each voice pack shows its own size on the install page. Sherpa 5 MB |
-| Dictionary | `dict3.7z` extracts `dict3.bin` next to the program and removes an old `dict.db` or `dict3.db`. Extracting needs `7za.dll` | Dictionary archive 267 MB. 7za 406.5 KB |
+| Dictionary | `dict3.7z` extracts `dict3.bin` next to the program and removes old `dict.db` and `dict2.db` files. Extracting needs `7za.dll` | Dictionary archive 267 MB. 7za 406.5 KB |
 | PDF to images | `pdfium.dll`, `libSkiaSharp.dll` | 6 MB + 11 MB |
 | x264 / x265 / AV1 / video to GIF | `ffmpeg64/` (`ffmpeg.7z`) | 32.5 MB download, about 117 MB unpacked |
 | Archive extract | `SharpCompress.dll`, `7za.dll` | 2.4 MB + 406.5 KB |
