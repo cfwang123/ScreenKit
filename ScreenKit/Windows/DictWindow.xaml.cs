@@ -346,6 +346,9 @@ public partial class DictWindow : UserControl {
 				var via = Loc.T("dict.via", h.Via);
 				preview = preview.Length > 0 ? preview + "  ·  " + via : via;
 			}
+			var meta = h.Headword.Length > 0;
+			// 标题和预览还没读的行先用一个不换行空格占住第二行，免得回填时整行变高、列表跳动。
+			if (!meta && preview.Length == 0) preview = "\u00A0";
 			rows.Add(new DictRow {
 				Id = h.Id,
 				Dict = h.Dict ?? "",
@@ -354,7 +357,7 @@ public partial class DictWindow : UserControl {
 				Title = title,
 				Preview = preview,
 				Via = h.Via ?? "",
-				Meta = h.Headword.Length > 0,
+				Meta = meta,
 			});
 		}
 		var pick = 0;
