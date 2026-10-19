@@ -1857,7 +1857,6 @@ public partial class MainWindow : Window {
 		try {
 			var arch = Environment.Is64BitProcess ? "" : " · x86";
 			Title = $"{Loc.T("app.title")} v{AppUpdater.CurrentVersion()}{arch}";
-			lbbrand.Text = Loc.T("app.brand");
 			refreshstbar();
 
 			// 菜单
@@ -3491,7 +3490,7 @@ public partial class MainWindow : Window {
 			if (!showMainAfter && !mainWasVisible)
 				keepmainhidden();
 			if (confirmed && resultImg != null) {
-				await afterannotateasync(resultImg, wantOcr, "屏幕画板",
+				await afterannotateasync(resultImg, wantOcr, Loc.T("label.board"),
 					showMainAfter: showMainAfter, mainWasVisible: mainWasVisible, wantOpen: wantOpen);
 			}
 			else {
@@ -3528,8 +3527,8 @@ public partial class MainWindow : Window {
 			}
 			catch (Exception ex) {
 				CaptureLog.Ex(label + " open", ex);
-				setstatus("用系统软件打开失败: " + ex.Message);
-				showwarnmsg(ex.Message, "打开失败");
+				setstatus(Loc.T("st.open.fail", ex.Message));
+				showwarnmsg(ex.Message, Loc.T("st.open.fail.title"));
 			}
 		}
 		try {
@@ -3540,18 +3539,19 @@ public partial class MainWindow : Window {
 		lbtime.Text = DateTime.Now.ToString("HH:mm:ss");
 		if (wantOcr) {
 			selectmaintab(tabocr);
-			var kind = isresultqrtab() ? "条码" : "OCR";
+			var kind = isresultqrtab() ? Loc.T("result.tab.qr") : "OCR";
+			var reading = Loc.T("meta.reading", label, kind);
 			if (isresultqrtab()) {
 				qrMetaResult = false;
-				qrMetaText = $"{label} · {kind}识别中…";
+				qrMetaText = reading;
 			}
 			else {
 				ocrMetaResult = false;
-				ocrMetaText = $"{label} · {kind}识别中…";
+				ocrMetaText = reading;
 			}
 			syncresultmetafromtab();
 			drawoverlay();
-			setstatus($"{label} {resultImg.PixelWidth}×{resultImg.PixelHeight} · {kind}识别中…");
+			setstatus(Loc.T("st.annotate.reading", label, resultImg.PixelWidth, resultImg.PixelHeight, kind));
 			bringtofront();
 			var wall0 = Environment.TickCount;
 			await ensureactivetabasync(wall0, focusResult: true);
@@ -3560,15 +3560,15 @@ public partial class MainWindow : Window {
 		}
 		else {
 			ocrMetaResult = false;
-			ocrMetaText = wantOpen ? label + " · 已用系统软件打开" : label + " · 未识别";
+			ocrMetaText = wantOpen ? Loc.T("meta.opened", label) : Loc.T("meta.notrec", label);
 			syncresultmetafromtab();
 			drawoverlay();
 			if (wantOpen && opened)
-				setstatus($"已用系统软件打开 · {Path.GetFileName(saved)}");
+				setstatus(Loc.T("st.opened.file", Path.GetFileName(saved)));
 			else if (wantOpen && string.IsNullOrEmpty(saved))
-				setstatus("截图已完成，但没有可打开的文件");
+				setstatus(Loc.T("st.snap.nofile"));
 			else if (!wantOpen)
-				setstatus($"{label}已显示 · {resultImg.PixelWidth}×{resultImg.PixelHeight}");
+				setstatus(Loc.T("st.annotate.shown", label, resultImg.PixelWidth, resultImg.PixelHeight));
 			if (wantOpen) {
 				// 系统查看器留在前面；主窗本来隐藏则继续隐藏
 				if (!showMainAfter && !mainWasVisible)
@@ -3743,7 +3743,7 @@ public partial class MainWindow : Window {
 			if (!showMainAfter && !mainWasVisible)
 				keepmainhidden();
 			if (confirmed && resultImg != null) {
-				await afterannotateasync(resultImg, wantOcr, "截图标注",
+				await afterannotateasync(resultImg, wantOcr, Loc.T("tb.snap"),
 					showMainAfter: showMainAfter, mainWasVisible: mainWasVisible, wantOpen: wantOpen);
 			}
 			else {

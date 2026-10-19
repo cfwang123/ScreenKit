@@ -317,8 +317,6 @@
 								<Border Background="{StaticResource Accent}" CornerRadius="8" Padding="10,6" Margin="0,0,10,0">
 									<TextBlock Text="OCR" Foreground="White" FontWeight="Bold" FontSize="14"/>
 								</Border>
-								<TextBlock x:Name="lbbrand" Text="截图识别" FontSize="18" FontWeight="SemiBold"
-								           Foreground="{StaticResource TextPrimary}" VerticalAlignment="Center"/>
 							</StackPanel>
 
 							<StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Right" Margin="8,0,0,0">
