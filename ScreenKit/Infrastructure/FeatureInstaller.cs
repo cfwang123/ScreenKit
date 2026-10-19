@@ -1271,6 +1271,22 @@ arabic_dict.txt
 
 	static string dictdbpath() => Path.Combine(BaseDir, "dict3.bin");
 
+	static readonly string[] LegacyDictFiles = { "dict.db", "dict2.db" };
+
+	/// <summary>新库已接手，清掉程序旁的旧 SQLite 词库（符号链接只删链接）。</summary>
+	static void removelegacydicts(IProgress<string> log) {
+		foreach (var name in LegacyDictFiles) {
+			var path = Path.Combine(BaseDir, name);
+			unlinkifreparse(path);
+			if (File.Exists(path)) deletefile(path, log);
+			foreach (var ext in new[] { "-wal", "-shm", "-journal" }) {
+				var side = path + ext;
+				unlinkifreparse(side);
+				if (File.Exists(side)) deletefile(side, log);
+			}
+		}
+	}
+
 	static FeatureInstallState probedict() {
 		var path = dictdbpath();
 		try {
@@ -1285,6 +1301,7 @@ arabic_dict.txt
 	static async Task installdict(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (probedict() == FeatureInstallState.Installed) {
+			removelegacydicts(log);
 			log?.Report("dict3.bin 已存在，跳过");
 			reportprog(progress, 1, note: "已存在");
 			return;
@@ -1321,6 +1338,7 @@ arabic_dict.txt
 		unlinkifreparse(dest);
 		if (File.Exists(dest)) File.Delete(dest);
 		File.Move(found, dest);
+		removelegacydicts(log);
 		reportprog(progress, 1, zlen, zlen, "dict3.bin", "完成");
 		log?.Report("词典 dict3.bin 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}
@@ -1399,6 +1417,7 @@ arabic_dict.txt
 		deletefile(dest, log);
 		deletefile(dest + "-wal", log);
 		deletefile(dest + "-shm", log);
+		removelegacydicts(log);
 	}
 
 	// ───────── 中英双向 ONNX 翻译模型 ─────────

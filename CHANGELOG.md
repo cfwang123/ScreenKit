@@ -54,7 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary result backfill reads entries block by block instead of one block per hit, and fills only the list fields. A 4000-hit lookup drops from several seconds to about 0.5 s.
 - Dictionary results appear as soon as matching finishes; a row reads its title and preview when it scrolls into view, so long hit lists no longer wait for every entry.
 - The memory window's unload button is now Unload all: it unloads every model, the ONNX runtime, the dictionary, and the Chrome helper, then runs a full GC.
-- Dictionary install and uninstall no longer delete old dict.db, dict2.db, or dict3.db files beside the program.
+- Dictionary install and uninstall remove old dict.db and dict2.db files beside the program. The old dict3.db cleanup is gone.
 
 #### Fixed
 
@@ -92,7 +92,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典结果回填改为按块连续读，并且只解析列表要用的字段；四千条命中的查询从数秒降到约 0.5 秒。
 - 词典列表在命中后立即显示，标题和预览等该行滚到可见处才读；命中很多的长列表不再等全部回填。
 - 内存占用窗口的「卸载」改为「全部卸载」：把所有模型、ONNX 运行库、词典和 Chrome 辅助进程一并卸掉，再强制回收。
-- 词典安装和卸载不再删除程序旁的旧 dict.db、dict2.db、dict3.db 文件。
+- 词典安装和卸载会删掉程序旁的旧 dict.db 和 dict2.db。旧的 dict3.db 不再清理。
 
 #### 修复
 

@@ -328,6 +328,7 @@
     <Delete Files="$(OutputPath)WpfOCR.exe;$(OutputPath)WpfOCR.exe.config" TreatErrorsAsWarnings="true" />
     <!-- 词典库只放开发输出旁，不进精简包 -->
     <Delete Files="$(_SlimOut)\dict3.bin" TreatErrorsAsWarnings="true" />
+    <Delete Files="$(_SlimOut)\dict.db;$(_SlimOut)\dict.db-wal;$(_SlimOut)\dict.db-shm;$(_SlimOut)\dict2.db;$(_SlimOut)\dict2.db-wal;$(_SlimOut)\dict2.db-shm" TreatErrorsAsWarnings="true" />
     <Delete Files="$(_SlimOut)\ime.db;$(_SlimOut)\ime.db-wal;$(_SlimOut)\ime.db-shm" TreatErrorsAsWarnings="true" />
     <!-- 运行精简包留下的截图、日志、本机配置和接收文件 -->
     <RemoveDir Directories="$(_SlimOut)\log" ContinueOnError="true" />
