@@ -335,10 +335,44 @@ public partial class MainWindow {
 	}
 
 	void collectchromelangs(SortedSet<string> set) {
+		var local = localvoicekeys();
 		foreach (var v in ChromeTts.Voices) {
-			if (ChromePack.VoiceInstalled(v.Culture) != true) continue;
+			if (!chromevoiceon(v, local)) continue;
 			addttslang(set, v.Lang);
 		}
+	}
+
+	/// <summary>Chrome 这一语言算已装：语音包已记下，或本机 SAPI / Windows 语音里已有这一语言。</summary>
+	bool chromevoiceon(SapiVoiceItem v, HashSet<string> local) {
+		if (v == null) return false;
+		if (ChromePack.VoiceInstalled(v.Culture) == true) return true;
+		var key = ChromePack.SpeakLang(v.Culture);
+		if (key.Length == 0) return false;
+		return local != null && local.Contains(key);
+	}
+
+	HashSet<string> localvoicekeys() {
+		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		try {
+			if (sapiTts != null) {
+				foreach (var v in sapiTts.Voices)
+					addvoicekey(set, v.Culture?.Name);
+			}
+		}
+		catch { }
+		try {
+			if (winRtTts != null) {
+				foreach (var v in winRtTts.Voices)
+					addvoicekey(set, string.IsNullOrEmpty(v.Culture) ? v.Lang : v.Culture);
+			}
+		}
+		catch { }
+		return set;
+	}
+
+	static void addvoicekey(HashSet<string> set, string raw) {
+		var key = ChromePack.SpeakLang(raw);
+		if (key.Length > 0) set.Add(key);
 	}
 
 	void collectsherpalangs(SortedSet<string> set) {
@@ -791,8 +825,9 @@ public partial class MainWindow {
 			ettsvoice.Items.Clear();
 			ettsvoice.DisplayMemberPath = "DisplayName";
 			ttsfilterwant(out var wantLang, out var wantGender);
+			var local = localvoicekeys();
 			foreach (var v in ChromeTts.Voices) {
-				if (ChromePack.VoiceInstalled(v.Culture) != true) continue;
+				if (!chromevoiceon(v, local)) continue;
 				if (!winrtvoicematches(v, wantLang, wantGender)) continue;
 				ettsvoice.Items.Add(v);
 			}

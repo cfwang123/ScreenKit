@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary list keeps the same entry selected when switching the dictionary language; if the entry is not in the new dictionary the list returns to the top.
 - Chinese readings join 万 into the same 亿 group, so 1000100000000 is 一万零一亿.
 - Chinese-to-pinyin results are lowercase, including initials.
+- Chrome speech language list includes languages that already have a local voice.
 
 #### Removed
 
@@ -70,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 切换词典语言后仍选中原来那条词条、列表滚到它；该词条不在新词典里则回到顶部。
 - 中文读法把万并进同一节的亿，1000100000000 读作一万零一亿。
 - 中文转拼音的结果改为小写，首字母也是小写。
+- Chrome 语音的语言下拉会列出本机已有语音的语言。
 
 #### 移除
 
