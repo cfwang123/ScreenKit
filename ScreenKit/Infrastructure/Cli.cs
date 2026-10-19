@@ -6622,14 +6622,16 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var sc3 = svin(win.host.lhits)?.ScrollableHeight ?? 0;
 			Out($"{other} off={off3:0} rows={win.host.lhits.Items.Count} scrollable={sc3:0} idx={indexof(win.host.lhits, id1)}");
 			if (bad == 0 && off3 > 0) bad = 5;
-			// 划词浮窗换了语言也要停在原处（用结果多的词才测得出滚动）
-			win.host.ShowOutside("一", new Rect(300, 300, 40, 16));
+			// 划词浮窗：英语切全部
+			win.host.ShowOutside(word, new Rect(300, 300, 40, 16));
 			var outwin = typeof(DictWindow)
 				.GetField("outwin", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(win.host) as SelBarWindow;
 			if (outwin == null) {
 				Err("FAIL: 划词浮窗没有打开");
 				return 6;
 			}
+			waitfloat(outwin, 8000);
+			outwin.bselfen.IsChecked = true;
 			waitfloat(outwin, 8000);
 			var fsv = svin(outwin.lsel);
 			if (fsv == null) {
@@ -6639,11 +6641,18 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			fsv.ScrollToVerticalOffset(120);
 			for (var i = 0; i < 8; i++) pump();
 			var foff1 = fsv.VerticalOffset;
-			outwin.bselfzh.IsChecked = true;
+			var frow1 = firstsel(outwin.lsel);
+			var fids1 = idsel(outwin.lsel);
+			outwin.bselfall.IsChecked = true;
 			waitfloat(outwin, 8000);
 			var foff2 = svin(outwin.lsel)?.VerticalOffset ?? 0;
-			Out($"selbar rows={outwin.lsel.Items.Count} off={foff1:0}->{foff2:0}");
-			if (bad == 0 && (foff1 <= 0 || foff2 <= 0)) bad = 6;
+			var fids2 = idsel(outwin.lsel);
+			var fdiff = 0;
+			for (var i = 0; i < Math.Max(fids1.Count, fids2.Count); i++) {
+				if (i >= fids1.Count || i >= fids2.Count || fids1[i] != fids2[i]) fdiff++;
+			}
+			Out($"selbar en rows={outwin.lsel.Items.Count} off={foff1:0}->{foff2:0} first={frow1}->{firstsel(outwin.lsel)} diff={fdiff} n1={fids1.Count} n2={fids2.Count}");
+			if (bad == 0 && foff1 > 0 && foff2 != 0) bad = 6;
 		}
 		finally {
 			try { win.Close(); } catch { }
@@ -6703,6 +6712,21 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				}
 				System.Threading.Thread.Sleep(5);
 			}
+		}
+
+		static List<long> idsel(System.Windows.Controls.ListBox box) {
+			var list = new List<long>();
+			foreach (var it in box.Items) {
+				var id = it is DictRow r ? r.Id : (it as DictSelRow)?.Id ?? 0;
+				list.Add(id);
+			}
+			return list;
+		}
+
+		static long firstsel(System.Windows.Controls.ListBox box) {
+			if (box.Items.Count == 0) return 0;
+			if (box.Items[0] is DictRow r) return r.Id;
+			return (box.Items[0] as DictSelRow)?.Id ?? 0;
 		}
 
 		static System.Windows.Controls.Primitives.ToggleButton filt(DictWindow w, string dict) {
@@ -7267,7 +7291,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
-      --test-dict-scroll [词]  换词典语言后原词条仍选中并滚到它；词条不在新词典就回到顶部；划词浮窗停在原处
+      --test-dict-scroll [词]  换词典语言后原词条仍选中并滚到它；词条不在新词典就回到顶部；划词浮窗切语言回顶部
       --test-selbar  读本进程文本框的选中文字，并检查划词查词浮窗的位置和不抢焦点
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge

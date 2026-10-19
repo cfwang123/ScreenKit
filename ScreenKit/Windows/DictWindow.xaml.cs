@@ -988,10 +988,7 @@ public partial class DictWindow : UserControl {
 	}
 
 	void refreshsel() {
-		if (outwin != null && outwin.IsVisible) {
-			try { outwin.KeepListOffset(); } catch { }
-			searchoutside();
-		}
+		if (outwin != null && outwin.IsVisible) searchoutside();
 	}
 
 	void searchoutside() {
