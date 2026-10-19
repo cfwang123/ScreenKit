@@ -6226,7 +6226,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		Out("=== 网页词典 --test-dict-web ===");
 		var hits = DictWeb.Hits(null, "hello", "en", 5);
 		if (hits == null) {
-			Out(DictDb.Error == "missing" ? "dict3.db not found beside exe" : "dict open fail: " + DictDb.Error);
+			Out(DictDb.Error == "missing" ? "dict3.bin not found beside exe" : "dict open fail: " + DictDb.Error);
 			return 2;
 		}
 		if (hits.Count == 0) {
@@ -6270,12 +6270,10 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		var path = Environment.GetEnvironmentVariable("SCREENKIT_DICT_DB");
 		if (string.IsNullOrWhiteSpace(path))
-			path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.db");
+			path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
 		if (!DictDb.Init(path)) {
 			if (DictDb.Error == "missing")
-				Out("dict3.db not found beside exe");
-			else if (DictDb.Error == "sqlite")
-				Out("e_sqlite3.dll is not installed. Install SQLite from Help → Install features.");
+				Out("dict3.bin not found beside exe");
 			else
 				Out("dict open fail: " + DictDb.Error);
 			return 2;
@@ -6386,7 +6384,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
 			len2 = fs.Length;
 		if (len2 != len || File.GetLastWriteTimeUtc(path).Ticks != ticks) {
-			Out("dict3.db changed");
+			Out("dict3.bin changed");
 			return 5;
 		}
 		Out("dict ok readonly bytes=" + len);
@@ -7287,7 +7285,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-mem-load  每个功能单独进程冷启动后的提交、专用工作集、工作集。默认 cpu。语音和识别取最小的一份模型。winocr 只走 Windows 自带识别
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
-      --test-dict-search  只读查询 exe 旁 dict3.db（默认 学生 与 hello）；韩语词组行有发音按钮
+      --test-dict-search  只读查询 exe 旁 dict3.bin（默认 学生 与 hello）；韩语词组行有发音按钮
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关

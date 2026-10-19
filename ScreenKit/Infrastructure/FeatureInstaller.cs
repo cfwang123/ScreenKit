@@ -44,7 +44,7 @@ public enum FeatureKind {
 	MediaFoundation,
 	/// <summary>系统 MJPEG AVI，无需下载。</summary>
 	Mjpeg,
-	/// <summary>词典 dict3.db。从固定 Release dict-db 的 dict3.7z 解出，不进应用更新包。</summary>
+	/// <summary>词典 dict3.bin。从固定 Release dict-db 的 dict3.7z 解出，不进应用更新包。</summary>
 	DictDb,
 	/// <summary>中英双向 Opus-MT ONNX 翻译模型。从固定 Release dict-db 下载。</summary>
 	TranslateOnnx,
@@ -374,7 +374,7 @@ static class FeatureInstaller {
 			case FeatureKind.OrtCpu: return dirsize(OnnxCpuDir);
 			case FeatureKind.Ffmpeg: return dirsize(FfmpegDir);
 			case FeatureKind.FaceInsight: return dirsize(FaceModelsDir);
-			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict3.db"));
+			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict3.bin"));
 			case FeatureKind.ImeDb: return filesize(Path.Combine(BaseDir, "ime.db"));
 			case FeatureKind.TranslateOnnx:
 				return dirsize(Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"))
@@ -1269,11 +1269,21 @@ arabic_dict.txt
 
 	// ───────── 词典 dict3.7z ─────────
 
-	static string dictdbpath() => Path.Combine(BaseDir, "dict3.db");
+	static string dictdbpath() => Path.Combine(BaseDir, "dict3.bin");
 
 	static string olddictdbpath() => Path.Combine(BaseDir, "dict.db");
 
+	/// <summary>上一版 SQLite 词库，装好 dict3.bin 后删掉。</summary>
+	static string staledictdbpath() => Path.Combine(BaseDir, "dict3.db");
+
 	/// <summary>新库已接手。卸掉程序旁的旧 dict.db（符号链接只删链接）。</summary>
+	/// <summary>删掉上一版的 dict3.db；符号链接只删链接。</summary>
+	static void removeoldbin(IProgress<string> log) {
+		var stale = staledictdbpath();
+		unlinkifreparse(stale);
+		if (File.Exists(stale)) deletefile(stale, log);
+	}
+
 	static void removeolddict(IProgress<string> log) {
 		var old = olddictdbpath();
 		unlinkifreparse(old);
@@ -1310,7 +1320,7 @@ arabic_dict.txt
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (probedict() == FeatureInstallState.Installed) {
 			removeolddict(log);
-			log?.Report("dict3.db 已存在，跳过");
+			log?.Report("dict3.bin 已存在，跳过");
 			reportprog(progress, 1, note: "已存在");
 			return;
 		}
@@ -1337,20 +1347,19 @@ arabic_dict.txt
 		extract7z(arc, unpack, log);
 		string found = null;
 		try {
-			found = Directory.GetFiles(unpack, "dict3.db", SearchOption.AllDirectories).FirstOrDefault();
+			found = Directory.GetFiles(unpack, "dict3.bin", SearchOption.AllDirectories).FirstOrDefault();
 		}
 		catch { }
 		if (string.IsNullOrEmpty(found))
-			throw new InvalidOperationException("dict3.7z 里没有 dict3.db");
+			throw new InvalidOperationException("dict3.7z 里没有 dict3.bin");
 		var dest = dictdbpath();
 		unlinkifreparse(dest);
 		if (File.Exists(dest)) File.Delete(dest);
-		try { if (File.Exists(dest + "-wal")) File.Delete(dest + "-wal"); } catch { }
-		try { if (File.Exists(dest + "-shm")) File.Delete(dest + "-shm"); } catch { }
 		File.Move(found, dest);
 		removeolddict(log);
-		reportprog(progress, 1, zlen, zlen, "dict3.db", "完成");
-		log?.Report("词典 dict3.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
+		removeoldbin(log);
+		reportprog(progress, 1, zlen, zlen, "dict3.bin", "完成");
+		log?.Report("词典 dict3.bin 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}
 
 	// ───────── 输入法 ime.7z ─────────

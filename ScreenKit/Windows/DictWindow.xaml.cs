@@ -34,7 +34,7 @@ sealed class DictSelRow {
 
 enum DRole { Body, Title, Pron, Pos, Number, Label, ExLabel, Example }
 
-/// <summary>英日韩词典：只读 exe 旁的 dict3.db。主窗口词典页和独立词典窗口共用这一页。</summary>
+/// <summary>英日韩词典：只读 exe 旁的 dict3.bin。主窗口词典页和独立词典窗口共用这一页。</summary>
 public partial class DictWindow : UserControl {
 	static readonly Brush CPron = freeze(110, 110, 110);
 	static readonly Brush CPos = freeze(136, 48, 168);
@@ -48,7 +48,6 @@ public partial class DictWindow : UserControl {
 	DispatcherTimer tick;
 	int lastedit;
 	bool pending;
-	bool sqliteasked;
 	int gen;
 	int dgen;
 	bool filling;
@@ -268,22 +267,8 @@ public partial class DictWindow : UserControl {
 				lbstatus.Text = Loc.T("dict.ready");
 			return;
 		}
-		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.db");
+		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
 		if (!DictDb.Init(path)) {
-			if (DictDb.Error == "sqlite") {
-				lbstatus.Text = Loc.T("dict.nosqlite");
-				if (!sqliteasked) {
-					sqliteasked = true;
-					if (FeaturePrompt.EnsureSqlite(Window.GetWindow(this))) {
-						sqliteasked = false;
-						if (DictDb.Init(path)) {
-							lbstatus.Text = Loc.T("dict.ready");
-							return;
-						}
-					}
-				}
-				return;
-			}
 			lbstatus.Text = DictDb.Error == "missing" ? Loc.T("dict.missing") : DictDb.Error;
 			return;
 		}

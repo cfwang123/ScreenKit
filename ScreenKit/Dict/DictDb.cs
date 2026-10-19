@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Nodes;
-using Microsoft.Data.Sqlite;
 
 namespace ScreenKit;
 
@@ -83,10 +82,11 @@ sealed class DictEntry {
 }
 #endregion
 
-// ==================== 词典库（只读） ====================
-// dict3.db：entry 仍是词条正文。检索在 idx 里：每个词只存一份，倒排是整数。
-// 前缀按词序；词典过滤走 scope；后缀按反转序；三字以上的中缀走双字 grams。
-// 整数块保持 sqlite 读出的那一份字节，按小端现读，不再复制成 int[]。
+// ==================== 词典库（只读二进制） ====================
+// dict3.bin 是 RDS1 专用格式，只读，文件固定不动，不写回任何翻译结果。
+// 常驻内存只有三级目录的第一级和词条块偏移；检索词块、倒排、gram、词条都按块读盘。
+// 前缀段按词序；后缀段按字符反转后的 UTF-8 序；三字以上的中缀走双字 gram 倒排。
+// meta 低 2 位是词典号（0 英 / 1 日 / 2 韩 / 3 汉），bit2 是词头。
 // rank：0 全等 / 1 前缀 / 2 后缀 / 3 中缀。韩语活用形命中很少时再按语尾剥一层。
 #region
 static class DictDb {
@@ -94,32 +94,72 @@ static class DictDb {
 	/// <summary>界面一次最多列出的条数。</summary>
 	public const int SEARCH_MAX = 4000;
 
+	const int HEADER_SIZE = 256;
+	const int CODEC_ZLIB = 1;
+	const int DIRCACHE = 32;
+	const int KEYCACHE = 64;
+	const int ENTRYCACHE = 8;
+	const int GRAMCACHE = 2 * 1024 * 1024;
+
 	static readonly string[] DICTNAME = { "en", "ja", "ko", "zh" };
 
 	/// <summary>空闲分钟数。未设置时用 1。0 表示不关闭。</summary>
 	public static Func<int> HoldMinutes;
 
-	static SqliteConnection conn;
+	/// <summary>L1 目录项：首键、块偏移、块长。gram 段另有四个字段。</summary>
+	sealed class Sec {
+		public byte[] Key;
+		public long Off;
+		public int Len;
+		public long IdOff;
+		public int IdLen;
+		public long RecOff;
+		public int RecLen;
+		public int Inner;
+		public int BodyLen;
+	}
+
+	sealed class KeyBlock {
+		public byte[] Raw;
+		public int[] KeyAt;
+		public int[] KeyLen;
+		public int[] Lex;
+		public int[] PostAt;
+		public int[] NPost;
+		public int Count;
+		/// <summary>块内所有键拼在一起，KeyAt 是各自起点。</summary>
+		public List<byte> keystore;
+	}
+
+	static FileStream fs;
 	static readonly object dblock = new();
 	static Timer idletimer;
-	static bool batteries;
 	static string dberr = "";
 	static string dbpath = "";
 	static int lastuse;
-	static string loaded;
-	static long loadedlen;
-	static long loadedwrite;
-	static byte[] keybytes;
-	static byte[] keyoff;
-	static byte[] rev;
-	static byte[] postoff;
-	static byte[] postentry;
-	static byte[] postmeta;
-	static byte[][] scope;
-	static byte[] grambytes;
-	static int[] gramentry;
+	static long flen;
 
-	public static bool Ready => conn != null;
+	static int nentries;
+	static int nkeys;
+	static int entriesperblock;
+	static int gramchars;
+	static Sec[] prel1;
+	static Sec[] sufl1;
+	static Sec[] graml1;
+	static long[] entoff;
+	static int[] entlen;
+
+	static readonly Dictionary<long, KeyBlock> keycache = new();
+	static readonly List<long> keyorder = new();
+	static readonly Dictionary<long, Sec[]> dircache = new();
+	static readonly List<long> dirorder = new();
+	static readonly Dictionary<int, byte[]> entcache = new();
+	static readonly List<int> entorder = new();
+	static readonly Dictionary<long, byte[]> gramcache = new();
+	static readonly List<long> gramorder = new();
+	static long grambytes;
+
+	public static bool Ready => fs != null;
 	/// <summary>missing：库文件不在；其它为打开失败说明。</summary>
 	public static string Error => dberr;
 
@@ -131,7 +171,7 @@ static class DictDb {
 		lock (dblock) closeunlocked();
 	}
 
-	/// <summary>关掉连接并丢掉内存里的索引。下次查询再打开。</summary>
+	/// <summary>关掉文件和内存里的目录。下次查询再打开。</summary>
 	public static void Release() {
 		lock (dblock) {
 			closeunlocked();
@@ -139,12 +179,12 @@ static class DictDb {
 		}
 	}
 
-	/// <summary>连接还在，或索引还在内存里。大小是库文件。</summary>
+	/// <summary>文件还开着，或目录还在内存里。大小是库文件。</summary>
 	public static bool TryMem(out string name, out long bytes) {
 		lock (dblock) {
-			name = string.IsNullOrEmpty(dbpath) ? "dict3.db" : Path.GetFileName(dbpath);
-			bytes = loadedlen;
-			return conn != null || keybytes != null;
+			name = string.IsNullOrEmpty(dbpath) ? "dict3.bin" : Path.GetFileName(dbpath);
+			bytes = flen;
+			return fs != null || prel1 != null;
 		}
 	}
 
@@ -156,7 +196,7 @@ static class DictDb {
 
 	/// <summary>已打开则记下使用时间。空闲关掉之后按上次路径再打开。</summary>
 	static bool readyunlocked() {
-		if (conn != null) {
+		if (fs != null) {
 			lastuse = Environment.TickCount;
 			return true;
 		}
@@ -170,45 +210,15 @@ static class DictDb {
 			dberr = "missing";
 			return false;
 		}
-		var fi = new FileInfo(path);
-		if (!NativeRuntime.HasSqlite()) {
-			dberr = "sqlite";
-			return false;
-		}
 		try {
-			ensurebatteries();
-			var csb = new SqliteConnectionStringBuilder {
-				DataSource = path,
-				Mode = SqliteOpenMode.ReadOnly,
-				Cache = SqliteCacheMode.Shared,
-				Pooling = false,
-			};
-			var c = new SqliteConnection(csb.ToString());
-			c.Open();
-			pragma(c, "PRAGMA query_only = ON;");
-			pragma(c, "PRAGMA mmap_size = 268435456;");
-			pragma(c, "PRAGMA case_sensitive_like = ON;");
-			pragma(c, "PRAGMA temp_store = MEMORY;");
-			using (var cmd = c.CreateCommand()) {
-				cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('entry','idx','idx_info')";
-				if (Convert.ToInt64(cmd.ExecuteScalar()) < 3) {
-					c.Dispose();
-					dberr = "dict3.db schema";
-					return false;
-				}
+			var f = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+			if (!loadheader(f)) {
+				f.Dispose();
+				clearindex();
+				dberr = "dict3.bin format";
+				return false;
 			}
-			if (loaded != path || keybytes == null || loadedlen != fi.Length || loadedwrite != fi.LastWriteTimeUtc.Ticks) {
-				if (!loadindex(c)) {
-					c.Dispose();
-					clearindex();
-					dberr = "dict3.db schema";
-					return false;
-				}
-				loaded = path;
-				loadedlen = fi.Length;
-				loadedwrite = fi.LastWriteTimeUtc.Ticks;
-			}
-			conn = c;
+			fs = f;
 			dbpath = path;
 			dberr = "";
 			lastuse = Environment.TickCount;
@@ -217,23 +227,144 @@ static class DictDb {
 			return true;
 		}
 		catch (Exception ex) {
-			dberr = sqlitefail(ex) ? "sqlite" : ex.Message;
+			fs = null;
+			clearindex();
+			dberr = ex.Message;
 			return false;
 		}
+	}
+
+	static bool loadheader(FileStream f) {
+		var h = readraw(f, 0, HEADER_SIZE);
+		if (h == null) return false;
+		if (h[0] != (byte)'R' || h[1] != (byte)'D' || h[2] != (byte)'S' || h[3] != (byte)'1') return false;
+		if (u16(h, 4) != 1 || u16(h, 56) != CODEC_ZLIB) return false;
+		nentries = (int)u32(h, 8);
+		nkeys = (int)u32(h, 12);
+		entriesperblock = u16(h, 24);
+		gramchars = u16(h, 26);
+		if (nentries < 1 || nkeys < 1 || entriesperblock < 1 || gramchars < 1) return false;
+		prel1 = readl1(f, u64(h, 68), (int)u32(h, 44));
+		sufl1 = readl1(f, u64(h, 76), (int)u32(h, 48));
+		graml1 = readl1grams(f, u64(h, 84), (int)u32(h, 52));
+		if (prel1 == null || sufl1 == null || graml1 == null) return false;
+		if (!readentryindex(f, u64(h, 92))) return false;
+		flen = f.Length;
+		return true;
+	}
+
+	static bool readentryindex(FileStream f, long off) {
+		var head = readraw(f, off, 4);
+		if (head == null) return false;
+		var n = (int)u32(head, 0);
+		var cnt = nentries / entriesperblock + (nentries % entriesperblock == 0 ? 0 : 1);
+		if (n < 1 || n != cnt) return false;
+		var all = readraw(f, off + 4, cnt * 12);
+		if (all == null) return false;
+		entoff = new long[cnt];
+		entlen = new int[cnt];
+		for (var i = 0; i < cnt; i++) {
+			entoff[i] = u64(all, i * 12);
+			entlen[i] = (int)u32(all, i * 12 + 8);
+		}
+		return true;
+	}
+
+	/// <summary>目录整块读进内存再解析：每级只有几百到几千条，读一次就够。</summary>
+	static Sec[] readl1(FileStream f, long off, int n) {
+		if (n < 0 || n > 8_000_000) return null;
+		var head = readraw(f, off, 4);
+		if (head == null || (int)u32(head, 0) != n) return null;
+		var buf = readraw(f, off + 4, l1size(f, off + 4, n, 12));
+		if (buf == null) return null;
+		var list = new Sec[n];
+		var p = 0;
+		for (var i = 0; i < n; i++) {
+			if (p + 2 > buf.Length) return null;
+			var klen = u16(buf, p);
+			p += 2;
+			if (p + klen + 12 > buf.Length) return null;
+			var key = new byte[klen];
+			Buffer.BlockCopy(buf, p, key, 0, klen);
+			p += klen;
+			list[i] = new Sec {
+				Key = key,
+				Off = u64(buf, p),
+				Len = (int)u32(buf, p + 8),
+			};
+			p += 12;
+		}
+		return list;
+	}
+
+	/// <summary>gram 目录项：键、倒排区、记录块、块内偏移和长度。</summary>
+	static Sec[] readl1grams(FileStream f, long off, int n) {
+		if (n < 0 || n > 8_000_000) return null;
+		var head = readraw(f, off, 4);
+		if (head == null || (int)u32(head, 0) != n) return null;
+		var buf = readraw(f, off + 4, l1size(f, off + 4, n, 24));
+		if (buf == null) return null;
+		var list = new Sec[n];
+		var p = 0;
+		for (var i = 0; i < n; i++) {
+			if (p + 2 > buf.Length) return null;
+			var klen = u16(buf, p);
+			p += 2;
+			if (p + klen + 24 > buf.Length) return null;
+			var key = new byte[klen];
+			Buffer.BlockCopy(buf, p, key, 0, klen);
+			p += klen;
+			list[i] = new Sec {
+				Key = key,
+				IdOff = u64(buf, p),
+				IdLen = (int)u32(buf, p + 8),
+				RecOff = u64(buf, p + 12),
+				RecLen = (int)u32(buf, p + 20),
+				Inner = (int)u32(buf, p + 24),
+				BodyLen = (int)u32(buf, p + 28),
+			};
+			p += 32;
+		}
+		return list;
+	}
+
+	/// <summary>先按上限估一个长度整块读，键本身最长不超过 64KB。</summary>
+	static int l1size(FileStream f, long off, int n, int extra) {
+		var avail = f.Length - off;
+		if (avail < 0) avail = 0;
+		var guess = (long)n * (2 + 64 + extra) + 64;
+		return (int)Math.Min(Math.Min(guess, avail), 64L * 1024 * 1024);
+	}
+
+	static void clearindex() {
+		prel1 = null;
+		sufl1 = null;
+		graml1 = null;
+		entoff = null;
+		entlen = null;
+		keycache.Clear();
+		keyorder.Clear();
+		dircache.Clear();
+		dirorder.Clear();
+		entcache.Clear();
+		entorder.Clear();
+		gramcache.Clear();
+		gramorder.Clear();
+		grambytes = 0;
 	}
 
 	static void onidle(object _) {
 		var closed = false;
 		try {
 			lock (dblock) {
-				if (conn == null || !OnnxIdle.Due(lastuse, holdms())) return;
+				if (fs == null || !OnnxIdle.Due(lastuse, holdms())) return;
 				closeunlocked();
 				closed = true;
 			}
 		}
 		catch { return; }
 		if (!closed) return;
-		try { CaptureLog.Info("dict db idle close"); } catch { }
+		try { CaptureLog.Info("dict bin idle close"); } catch { }
 	}
 
 	static int holdms() {
@@ -246,24 +377,9 @@ static class DictDb {
 	}
 
 	static void closeunlocked() {
-		try { conn?.Dispose(); } catch { }
-		conn = null;
+		try { fs?.Dispose(); } catch { }
+		fs = null;
 		lastuse = 0;
-	}
-
-	static bool sqlitefail(Exception ex) {
-		for (var e = ex; e != null; e = e.InnerException) {
-			if (e is DllNotFoundException) return true;
-			var msg = e.Message ?? "";
-			if (msg.IndexOf("e_sqlite3", StringComparison.OrdinalIgnoreCase) >= 0) return true;
-		}
-		return false;
-	}
-
-	static void ensurebatteries() {
-		if (batteries) return;
-		SQLitePCL.Batteries_V2.Init();
-		batteries = true;
 	}
 
 	/// <summary>dict 为空查全部，否则 zh / en / ja / ko。limit 为界面条数上限。</summary>
@@ -344,17 +460,12 @@ static class DictDb {
 		string jsontext;
 		lock (dblock) {
 			if (!readyunlocked()) return null;
-			using var cmd = conn.CreateCommand();
-			cmd.CommandText = "SELECT id, dict, headword, json FROM entry WHERE id = @id";
-			cmd.Parameters.AddWithValue("@id", id);
-			using var r = cmd.ExecuteReader();
-			if (!r.Read()) return null;
+			if (!readentry(id, out var head, out jsontext, out var code)) return null;
 			e = new DictEntry {
-				Id = r.GetInt64(0),
-				Dict = r.IsDBNull(1) ? "" : r.GetString(1),
-				Headword = r.IsDBNull(2) ? "" : r.GetString(2),
+				Id = id,
+				Dict = code >= 0 && code < DICTNAME.Length ? DICTNAME[code] : "",
+				Headword = head,
 			};
-			jsontext = r.IsDBNull(3) ? "" : r.GetString(3);
 		}
 		parsejson(e, jsontext);
 		if (e.Word.Length == 0) e.Word = e.Headword;
@@ -363,52 +474,125 @@ static class DictDb {
 		return e;
 	}
 
-	static void prefixkeys(string q, string dict, List<DictHit> hits, int cap) {
-		if (keybytes == null || q.Length == 0) return;
-		var lo = lowerkey(q);
-		var up = prefixhi(q);
-		var hi = up == null ? keycount() : lowerkey(up);
-		var code = dictcode(dict);
-		if (code < 0) {
-			for (var i = lo; i < hi && hits.Count < cap; i++)
-				addposts(i, -1, hits, q, "", -1, cap, false);
-			return;
+	/// <summary>读一条词条：词典号、词头、正文 json。调用方已持锁。</summary>
+	static bool readentry(long id, out string head, out string json, out int code) {
+		head = "";
+		json = "";
+		code = 0;
+		if (id < 1 || id > nentries) return false;
+		var per = entriesperblock;
+		var bi = (int)((id - 1) / per);
+		var inner = (int)((id - 1) % per);
+		var blob = entryblock(bi);
+		if (blob == null) return false;
+		return parseentryat(blob, inner, out code, out head, out json);
+	}
+
+	static byte[] entryblock(int bi) {
+		if (entoff == null || bi < 0 || bi >= entoff.Length) return null;
+		if (entcache.TryGetValue(bi, out var hit)) {
+			entorder.Remove(bi);
+			entorder.Add(bi);
+			return hit;
 		}
-		var sc = scope[code];
-		var a = lowerint(sc, lo);
-		var b = lowerint(sc, hi);
-		for (var i = a; i < b && hits.Count < cap; i++)
-			addposts(u32(sc, i), code, hits, q, "", -1, cap, false);
+		var raw = readraw(fs, entoff[bi], entlen[bi]);
+		if (raw == null) return null;
+		var blob = inflate(raw);
+		if (blob == null) return null;
+		entcache[bi] = blob;
+		entorder.Add(bi);
+		while (entorder.Count > ENTRYCACHE) {
+			var old = entorder[0];
+			entorder.RemoveAt(0);
+			entcache.Remove(old);
+		}
+		return blob;
+	}
+
+	/// <summary>块内数到第 inner 条。每条是词典号、校对标记、源 id 和四段字符串。</summary>
+	static bool parseentryat(byte[] blob, int inner, out int code, out string head, out string json) {
+		code = 0;
+		head = "";
+		json = "";
+		var p = 0;
+		var n = blob.Length;
+		for (var i = 0; i <= inner; i++) {
+			if (p + 10 > n) return false;
+			var c = blob[p];
+			p += 10;
+			var f = new string[4];
+			for (var k = 0; k < 4; k++) {
+				if (p + 4 > n) return false;
+				var len = (int)u32(blob, p);
+				p += 4;
+				if (len < 0 || p + len > n) return false;
+				f[k] = Encoding.UTF8.GetString(blob, p, len);
+				p += len;
+			}
+			if (i != inner) continue;
+			code = c;
+			head = f[0];
+			json = f[1];
+			return true;
+		}
+		return false;
+	}
+
+	// ==================== 检索 ====================
+
+	static void prefixkeys(string q, string dict, List<DictHit> hits, int cap) {
+		if (prel1 == null || q.Length == 0) return;
+		var lo = encodepoints(q, 0, -1);
+		var hi = prefixhi(q);
+		var code = dictcode(dict);
+		walk(prefixl1(), lo, hi, (key, blk, j) => {
+			var rank = samebytes(key, lo) ? 0 : 1;
+			push(blk, j, key, rank, code, hits, cap, false);
+			return hits.Count < cap;
+		}, cap);
 	}
 
 	static void exactkeys(string q, string dict, List<DictHit> hits, string via, int viarank) {
-		if (keybytes == null || q.Length == 0) return;
-		var i = lowerkey(q);
-		if (i >= keycount() || cmpkeyat(i, q) != 0) return;
+		if (prel1 == null || q.Length == 0) return;
+		var qb = encodepoints(q, 0, -1);
 		var tmp = new List<DictHit>();
-		addposts(i, dictcode(dict), tmp, q, via, viarank, int.MaxValue, false);
+		var code = dictcode(dict);
+		walk(prefixl1(), qb, null, (key, blk, j) => {
+			if (!samebytes(key, qb)) return true;
+			push(blk, j, key, 0, code, tmp, int.MaxValue, false);
+			return true;
+		}, int.MaxValue, exactonly: qb);
 		tmp.Sort((a, b) => {
 			var c = b.IsHead.CompareTo(a.IsHead);
 			if (c != 0) return c;
 			return a.Id.CompareTo(b.Id);
 		});
 		var n = tmp.Count < 40 ? tmp.Count : 40;
-		for (var k = 0; k < n; k++) hits.Add(tmp[k]);
+		for (var k = 0; k < n; k++) {
+			var h = tmp[k];
+			h.Via = via ?? "";
+			h.ViaRank = viarank;
+			hits.Add(h);
+		}
 	}
 
 	static void containskeys(string q, string dict, List<DictHit> hits, int cap) {
-		if (keybytes == null || q.Length == 0) return;
+		if (prel1 == null || q.Length == 0) return;
 		var code = dictcode(dict);
-		if (countchars(q) >= 3) {
+		var nchars = codepoints(q).Count;
+		if (nchars >= 3 && nchars >= gramchars) {
 			suffixkeys(q, code, hits, cap);
 			infixkeys(q, code, hits, cap);
 			return;
 		}
-		for (var i = 0; i < keycount() && hits.Count < cap; i++) {
-			if (utf8indexof(i, q) < 0) continue;
-			if (utf8startswith(i, q)) continue;
-			addposts(i, code, hits, q, "", -1, cap, false);
-		}
+		// 单字：只能用前缀段顺序扫一遍，跳过已经当前缀命中的。
+		var qb = encodepoints(q, 0, -1);
+		walk(prefixl1(), null, null, (key, blk, j) => {
+			if (startswith(key, qb)) return true;
+			if (indexof(key, qb) < 0) return true;
+			push(blk, j, key, endswith(key, qb) ? 2 : 3, code, hits, cap, false);
+			return hits.Count < cap;
+		}, cap);
 	}
 
 	static void stemkeys(string q, string dict, List<DictHit> hits, int limit) {
@@ -420,7 +604,7 @@ static class DictDb {
 			if (cand == q) continue;
 			var extra = new List<DictHit>();
 			exactkeys(cand, d, extra, q, vi);
-			if (extra.Count == 0 && countchars(cand) >= 2)
+			if (extra.Count == 0 && codepoints(cand).Count >= 2)
 				prefixkeys(cand, d, extra, FETCHCAP);
 			foreach (var h in extra) {
 				if (!seen.Add(h.Id)) continue;
@@ -434,449 +618,519 @@ static class DictDb {
 		}
 	}
 
-	static void clearindex() {
-		loaded = null;
-		loadedlen = 0;
-		loadedwrite = 0;
-		keybytes = null;
-		keyoff = null;
-		rev = null;
-		postoff = null;
-		postentry = null;
-		postmeta = null;
-		scope = null;
-		grambytes = null;
-		gramentry = null;
+	static void suffixkeys(string q, int code, List<DictHit> hits, int cap) {
+		if (sufl1 == null) return;
+		var rq = revcodepoints(q);
+		var qb = encodepoints(q, 0, -1);
+		var lo = encodepoints(rq, 0, -1);
+		var hi = prefixhi(rq);
+		walk(sufl1, lo, hi, (key, blk, j) => {
+			var orig = revbytes(key);
+			if (startswith(orig, qb)) return true;
+			push(blk, j, orig, 2, code, hits, cap, false);
+			return hits.Count < cap;
+		}, cap);
 	}
 
-	static bool loadindex(SqliteConnection c) {
-		int nkeys, nposts, ngrams;
-		var packver = 1;
-		using (var cmd = c.CreateCommand()) {
-			cmd.CommandText = "SELECT n_keys, n_posts, n_grams FROM idx_info";
-			using var r = cmd.ExecuteReader();
-			if (!r.Read()) return false;
-			nkeys = Convert.ToInt32(r.GetValue(0));
-			nposts = Convert.ToInt32(r.GetValue(1));
-			ngrams = Convert.ToInt32(r.GetValue(2));
+	static void infixkeys(string q, int code, List<DictHit> hits, int cap) {
+		if (graml1 == null || gramchars < 1) return;
+		var cps = codepoints(q);
+		if (cps.Count < 3 || cps.Count < gramchars) return;
+		var grams = new List<byte[]>();
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+		for (var s = 0; s + gramchars <= cps.Count; s++) {
+			var g = encodepoints(cps, s, gramchars);
+			if (!seen.Add(Convert.ToBase64String(g))) continue;
+			grams.Add(g);
 		}
-		try {
-			using var cmd = c.CreateCommand();
-			cmd.CommandText = "SELECT pack_ver FROM idx_info";
-			packver = Convert.ToInt32(cmd.ExecuteScalar());
+		if (grams.Count == 0) return;
+		var loaded = new List<Sec>();
+		var ids = new List<int[]>();
+		foreach (var g in grams) {
+			var rec = findgram(g);
+			if (rec == null) return;
+			var idlist = readids(rec);
+			if (idlist.Length == 0) return;
+			loaded.Add(rec);
+			ids.Add(idlist);
 		}
-		catch { packver = 1; }
-		if (nkeys < 1 || nposts < 1 || ngrams < 1) return false;
-		var blobs = new Dictionary<string, byte[]>();
-		using (var cmd = c.CreateCommand()) {
-			cmd.CommandText = "SELECT name, data FROM idx";
-			using var r = cmd.ExecuteReader();
-			while (r.Read()) {
-				if (r.IsDBNull(0) || r.IsDBNull(1)) return false;
-				var raw = r.GetValue(1) as byte[];
-				if (raw == null) return false;
-				if (packver >= 2) raw = idxdecompress(raw);
-				blobs[r.GetString(0)] = raw;
+		var order = new int[loaded.Count];
+		for (var i = 0; i < order.Length; i++) order[i] = i;
+		Array.Sort(order, (a, b) => ids[a].Length.CompareTo(ids[b].Length));
+		HashSet<int> other = null;
+		for (var k = 1; k < order.Length; k++) {
+			var cur = new HashSet<int>(ids[order[k]]);
+			if (other == null) other = cur;
+			else other.IntersectWith(cur);
+			if (other.Count == 0) return;
+		}
+		var best = order[0];
+		var body = readrecs(loaded[best], out var recb);
+		if (body == null) return;
+		var qb = encodepoints(q, 0, -1);
+		foreach (var lex in ids[best]) {
+			if (hits.Count >= cap) break;
+			if (other != null && !other.Contains(lex)) continue;
+			if (!recat(body, recb, lex, out var key, out var postAt, out var np)) continue;
+			if (indexof(key, qb) < 0) continue;
+			if (startswith(key, qb) || endswith(key, qb)) continue;
+			pushraw(recb, postAt, np, key, 3, code, hits, cap, true);
+		}
+	}
+
+	static Sec findgram(byte[] g) {
+		return findexact(graml1, g);
+	}
+
+	static Sec findexact(Sec[] l1, byte[] key) {
+		var g = lowerrec(l1, key);
+		if (g < 0) return null;
+		var recs = group(l1, g);
+		var lo = 0;
+		var hi = recs.Length;
+		while (lo < hi) {
+			var mid = lo + ((hi - lo) >> 1);
+			if (cmpbytes(recs[mid].Key, key) < 0) lo = mid + 1;
+			else hi = mid;
+		}
+		if (lo >= recs.Length || !samebytes(recs[lo].Key, key)) return null;
+		return recs[lo];
+	}
+
+	static int[] readids(Sec rec) {
+		if (rec.IdLen < 4) return Array.Empty<int>();
+		var raw = readraw(fs, rec.IdOff, rec.IdLen);
+		if (raw == null) return Array.Empty<int>();
+		var n = rec.IdLen >> 2;
+		var ids = new int[n];
+		for (var i = 0; i < n; i++) ids[i] = (int)u32(raw, i * 4);
+		return ids;
+	}
+
+	/// <summary>取 gram 记录块：按块 zlib 解压后裁出本体，再返回偏移表。</summary>
+	static int[] readrecs(Sec rec, out byte[] body) {
+		body = null;
+		if (rec.RecLen <= 0) return null;
+		if (!gramcache.TryGetValue(rec.RecOff, out var raw)) {
+			var comp = readraw(fs, rec.RecOff, rec.RecLen);
+			if (comp == null) return null;
+			raw = inflate(comp);
+			if (raw == null) return null;
+			gramcache[rec.RecOff] = raw;
+			gramorder.Add(rec.RecOff);
+			grambytes += raw.Length;
+			while (grambytes > GRAMCACHE * 2 && gramorder.Count > 1) {
+				var old = gramorder[0];
+				gramorder.RemoveAt(0);
+				if (gramcache.TryGetValue(old, out var gone)) grambytes -= gone.Length;
+				gramcache.Remove(old);
 			}
 		}
-		if (!blobs.TryGetValue("key_off", out var off)) return false;
-		if (!blobs.TryGetValue("keys", out var keysb)) return false;
-		if (!blobs.TryGetValue("rev", out var rv)) return false;
-		if (!blobs.TryGetValue("post_off", out var po)) return false;
-		if (!blobs.TryGetValue("post_entry", out var pe)) return false;
-		if (!blobs.TryGetValue("post_meta", out var pm)) return false;
-		if (!u32ok(off, nkeys + 1) || !u32ok(rv, nkeys) || !u32ok(po, nkeys + 1)) return false;
-		if (u32(po, nkeys) != nposts) return false;
-		if (!u32ok(pe, nposts) || pm.Length != nposts) return false;
-		var sc = new byte[4][];
-		for (var i = 0; i < 4; i++) {
-			if (!blobs.TryGetValue("scope" + i, out sc[i])) return false;
-			if (sc[i] == null || (sc[i].Length & 3) != 0) return false;
+		else {
+			gramorder.Remove(rec.RecOff);
+			gramorder.Add(rec.RecOff);
 		}
-		if (!blobs.TryGetValue("grams", out var gb)) return false;
-		var gent = buildgramentry(gb, ngrams);
-		if (gent == null) return false;
-		keybytes = keysb;
-		keyoff = off;
-		rev = rv;
-		postoff = po;
-		postentry = pe;
-		postmeta = pm;
-		scope = sc;
-		grambytes = gb;
-		gramentry = gent;
+		if (rec.Inner < 0 || rec.Inner + rec.BodyLen > raw.Length) return null;
+		body = raw;
+		var n = (int)u32(raw, rec.Inner);
+		if (n < 1 || rec.Inner + 4 + n * 4 > raw.Length) return null;
+		var baseoff = rec.Inner + 4 + n * 4;
+		var offs = new int[n];
+		for (var i = 0; i < n; i++) offs[i] = baseoff + (int)u32(raw, rec.Inner + 4 + i * 4);
+		return offs;
+	}
+
+	/// <summary>按倒排次序取第 lex 条记录：键长、键、倒排条数。</summary>
+	static bool recat(int[] offs, byte[] body, int lex, out byte[] key, out int postAt, out int np) {
+		key = null;
+		postAt = 0;
+		np = 0;
+		if (lex < 0 || lex >= offs.Length) return false;
+		var p = offs[lex];
+		if (p + 2 > body.Length) return false;
+		var klen = u16(body, p);
+		p += 2;
+		if (p + klen + 2 > body.Length) return false;
+		key = new byte[klen];
+		Buffer.BlockCopy(body, p, key, 0, klen);
+		p += klen;
+		np = u16(body, p);
+		postAt = p + 2;
+		if (postAt + np * 5 > body.Length) return false;
 		return true;
 	}
 
-	static byte[] idxdecompress(byte[] raw) {
-		if (raw == null || raw.Length < 2 || raw[0] != 0x1f || raw[1] != 0x8b) return raw;
-		using var inp = new MemoryStream(raw, false);
-		using var gz = new GZipStream(inp, CompressionMode.Decompress);
-		using var outm = new MemoryStream();
-		gz.CopyTo(outm);
-		return outm.ToArray();
-	}
+	// ==================== 目录与键块 ====================
 
-	static bool u32ok(byte[] b, int n) => b != null && b.Length == n * 4;
+	static Sec[] prefixl1() => prel1;
 
-	static int u32(byte[] b, int i) {
-		var o = i << 2;
-		return b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24);
-	}
-
-	static int[] buildgramentry(byte[] b, int expect) {
-		if (b == null || b.Length < 4) return null;
-		var n = BitConverter.ToInt32(b, 0);
-		if (n != expect) return null;
-		var off = new int[n];
-		var p = 4;
-		for (var i = 0; i < n; i++) {
-			off[i] = p;
-			if (p + 2 > b.Length) return null;
-			var glen = b[p] | (b[p + 1] << 8);
-			p += 2 + glen + 4;
-			var blen = BitConverter.ToInt32(b, p - 4);
-			if (blen < 0 || p + blen > b.Length) return null;
-			p += blen;
+	static Sec[] group(Sec[] l1, int gi) {
+		if (l1 == null || gi < 0 || gi >= l1.Length) return Array.Empty<Sec>();
+		var key = l1[gi].Off;
+		if (dircache.TryGetValue(key, out var hit)) {
+			dirorder.Remove(key);
+			dirorder.Add(key);
+			return hit;
 		}
-		if (p != b.Length) return null;
-		return off;
+		var raw = readraw(fs, l1[gi].Off, l1[gi].Len);
+		if (raw == null) return Array.Empty<Sec>();
+		var p = 0;
+		if (raw.Length < 2) return Array.Empty<Sec>();
+		var n = u16(raw, p);
+		p += 2;
+		var list = new Sec[n];
+		for (var i = 0; i < n; i++) {
+			if (p + 2 > raw.Length) return Array.Empty<Sec>();
+			var klen = u16(raw, p);
+			p += 2;
+			if (p + klen + 24 > raw.Length) return Array.Empty<Sec>();
+			var k = new byte[klen];
+			Buffer.BlockCopy(raw, p, k, 0, klen);
+			p += klen;
+			list[i] = new Sec {
+				Key = k,
+				Off = u64(raw, p),
+				Len = (int)u32(raw, p + 8),
+				IdOff = u64(raw, p + 12),
+				IdLen = (int)u32(raw, p + 20),
+			};
+			p += 24;
+		}
+		dircache[key] = list;
+		dirorder.Add(key);
+		while (dirorder.Count > DIRCACHE) {
+			var old = dirorder[0];
+			dirorder.RemoveAt(0);
+			dircache.Remove(old);
+		}
+		return list;
 	}
 
-	static void addposts(int lex, int code, List<DictHit> hits, string q, string via, int viarank, int limit, bool qualify) {
-		var key = keytext(lex);
-		var a = u32(postoff, lex);
-		var b = u32(postoff, lex + 1);
-		if (a < 0 || b < a || b > (postentry.Length >> 2)) return;
-		var han = qualify && hanonlybytes(u32(keyoff, lex), u32(keyoff, lex + 1) - u32(keyoff, lex));
-		for (var j = a; j < b && hits.Count < limit; j++) {
-			var meta = postmeta[j];
-			var d = meta & 3;
+	/// <summary>组内第一个首键不大于 key 的组；没有则 -1。</summary>
+	static int lowerrec(Sec[] l1, byte[] key) {
+		if (l1 == null || l1.Length == 0) return -1;
+		var lo = 0;
+		var hi = l1.Length;
+		while (lo < hi) {
+			var mid = lo + ((hi - lo) >> 1);
+			if (cmpbytes(l1[mid].Key, key) <= 0) lo = mid + 1;
+			else hi = mid;
+		}
+		return lo == 0 ? -1 : lo - 1;
+	}
+
+	static KeyBlock keyblock(Sec rec) {
+		if (keycache.TryGetValue(rec.Off, out var hit)) {
+			keyorder.Remove(rec.Off);
+			keyorder.Add(rec.Off);
+			return hit;
+		}
+		var raw = readraw(fs, rec.Off, rec.Len);
+		if (raw == null) return null;
+		if (raw.Length < 2) return null;
+		var n = u16(raw, 0);
+		var blk = new KeyBlock {
+			Raw = raw,
+			Count = n,
+			KeyAt = new int[n],
+			KeyLen = new int[n],
+			Lex = new int[n],
+			PostAt = new int[n],
+			NPost = new int[n],
+		};
+		var p = 2;
+		var keybuf = new List<byte>(256);
+		for (var i = 0; i < n; i++) {
+			if (p + 4 > raw.Length) return null;
+			var shared = u16(raw, p);
+			var nrest = u16(raw, p + 2);
+			p += 4;
+			if (p + nrest + 6 > raw.Length) return null;
+			keybuf.RemoveRange(shared, keybuf.Count - shared);
+			for (var k = 0; k < nrest; k++) keybuf.Add(raw[p + k]);
+			p += nrest;
+			blk.Lex[i] = (int)u32(raw, p);
+			var np = u16(raw, p + 4);
+			p += 6;
+			blk.KeyAt[i] = -1;
+			blk.KeyLen[i] = keybuf.Count;
+			blk.PostAt[i] = p;
+			blk.NPost[i] = np;
+			// 键按需从块里重建，这里先存位置：整块键保存在 raw 之外，逐条存一份太占内存
+			blk.KeyAt[i] = storekey(blk, i, keybuf);
+			if (p + np * 5 > raw.Length) return null;
+			p += np * 5;
+		}
+		keycache[rec.Off] = blk;
+		keyorder.Add(rec.Off);
+		while (keyorder.Count > KEYCACHE) {
+			var old = keyorder[0];
+			keyorder.RemoveAt(0);
+			keycache.Remove(old);
+		}
+		return blk;
+	}
+
+	/// <summary>键放在块外的键表里，检索时直接按索引取。</summary>
+	static int storekey(KeyBlock blk, int i, List<byte> keybuf) {
+		var all = blk.keystore ?? (blk.keystore = new List<byte>(4096));
+		var at = all.Count;
+		all.AddRange(keybuf);
+		return at;
+	}
+
+	static byte[] keyof(KeyBlock blk, int i) {
+		var at = blk.KeyAt[i];
+		var len = blk.KeyLen[i];
+		var key = new byte[len];
+		if (blk.keystore == null || at < 0) return key;
+		blk.keystore.CopyTo(at, key, 0, len);
+		return key;
+	}
+
+	/// <summary>
+	/// 按字节序走一段检索词：lo 为空表示从头；hi 为空表示走到末尾。
+	/// callback 返回 false 时停止。exactonly 非空时只走到这个键为止。
+	/// </summary>
+	static void walk(Sec[] l1, byte[] lo, byte[] hi, Func<byte[], KeyBlock, int, bool> fn, int cap,
+		byte[] exactonly = null) {
+		if (l1 == null || l1.Length == 0 || fs == null) return;
+		var start = lo == null ? 0 : Math.Max(0, lowerrec(l1, lo));
+		for (var g = start; g < l1.Length; g++) {
+			var recs = group(l1, g);
+			for (var r = 0; r < recs.Length; r++) {
+				var rec = recs[r];
+				if (hi != null && cmpbytes(rec.Key, hi) >= 0) return;
+				var blk = keyblock(rec);
+				if (blk == null) return;
+				for (var i = 0; i < blk.Count; i++) {
+					var key = keyof(blk, i);
+					if (lo != null && cmpbytes(key, lo) < 0) continue;
+					if (hi != null && cmpbytes(key, hi) >= 0) return;
+					if (exactonly != null && cmpbytes(key, exactonly) > 0) return;
+					if (!fn(key, blk, i)) return;
+				}
+			}
+		}
+	}
+
+	static void push(KeyBlock blk, int i, byte[] key, int rank, int code, List<DictHit> hits, int cap, bool qualify) {
+		pushraw(blk.Raw, blk.PostAt[i], blk.NPost[i], key, rank, code, hits, cap, qualify);
+	}
+
+	static void pushraw(byte[] raw, int postAt, int np, byte[] key, int rank, int code,
+		List<DictHit> hits, int cap, bool qualify) {
+		var han = -1;
+		var p = postAt;
+		for (var j = 0; j < np; j++) {
+			if (hits.Count >= cap) return;
+			var e = (int)u32(raw, p);
+			var m = raw[p + 4];
+			p += 5;
+			var d = m & 3;
 			if (code >= 0 && d != code) continue;
-			var head = (meta & 4) != 0;
-			if (qualify && !head && !(d == 1 && han)) continue;
-			if (d < 0 || d >= DICTNAME.Length) continue;
+			if (qualify) {
+				var head = (m & 4) != 0;
+				if (!head) {
+					if (d != 1) continue;
+					if (han < 0) han = hanonly(key) ? 1 : 0;
+					if (han == 0) continue;
+				}
+			}
+			if (d >= DICTNAME.Length) continue;
 			hits.Add(new DictHit {
-				Id = (long)(uint)u32(postentry, j),
-				Matched = key,
+				Id = (uint)e,
 				Dict = DICTNAME[d],
-				Rank = rankof(q, key),
-				Via = via ?? "",
-				ViaRank = viarank,
-				IsHead = head,
+				Matched = Encoding.UTF8.GetString(key),
+				Rank = rank,
+				IsHead = (m & 4) != 0,
 			});
 		}
 	}
 
-	static int dictcode(string dict) {
-		if (dict == "en") return 0;
-		if (dict == "ja") return 1;
-		if (dict == "ko") return 2;
-		if (dict == "zh") return 3;
+	// ==================== 字节工具 ====================
+
+	static byte[] readraw(FileStream f, long off, int len) {
+		if (f == null || off < 0 || len < 0) return null;
+		if (off + len > f.Length) return null;
+		var buf = new byte[len];
+		f.Seek(off, SeekOrigin.Begin);
+		var got = 0;
+		while (got < len) {
+			var n = f.Read(buf, got, len - got);
+			if (n <= 0) return null;
+			got += n;
+		}
+		return buf;
+	}
+
+	/// <summary>zlib 流：跳过两字节头，正文交给 deflate 解压。</summary>
+	static byte[] inflate(byte[] raw) {
+		if (raw == null || raw.Length < 3) return null;
+		try {
+			using var inp = new MemoryStream(raw, 2, raw.Length - 2, false);
+			using var def = new DeflateStream(inp, CompressionMode.Decompress);
+			using var outm = new MemoryStream();
+			def.CopyTo(outm);
+			return outm.ToArray();
+		}
+		catch { return null; }
+	}
+
+	static int u16(byte[] b, int i) => b[i] | (b[i + 1] << 8);
+
+	static long u32(byte[] b, int i) => (uint)(b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24));
+
+	static long u64(byte[] b, int i) => u32(b, i) | (u32(b, i + 4) << 32);
+
+	static int cmpbytes(byte[] a, byte[] b) {
+		var n = Math.Min(a.Length, b.Length);
+		for (var i = 0; i < n; i++) {
+			if (a[i] != b[i]) return a[i] < b[i] ? -1 : 1;
+		}
+		return a.Length.CompareTo(b.Length);
+	}
+
+	static bool samebytes(byte[] a, byte[] b) => a != null && b != null && a.Length == b.Length && cmpbytes(a, b) == 0;
+
+	static bool startswith(byte[] s, byte[] pre) {
+		if (pre.Length == 0) return true;
+		if (s.Length < pre.Length) return false;
+		for (var i = 0; i < pre.Length; i++)
+			if (s[i] != pre[i]) return false;
+		return true;
+	}
+
+	static bool endswith(byte[] s, byte[] suf) {
+		if (suf.Length == 0) return true;
+		if (s.Length < suf.Length) return false;
+		var off = s.Length - suf.Length;
+		for (var i = 0; i < suf.Length; i++)
+			if (s[off + i] != suf[i]) return false;
+		return true;
+	}
+
+	static int indexof(byte[] s, byte[] q) => indexof(s, 0, s.Length, q);
+
+	static int indexof(byte[] s, int start, int end, byte[] q) {
+		if (q.Length == 0) return start;
+		var last = end - q.Length;
+		for (var i = start; i <= last; i++) {
+			if (s[i] != q[0]) continue;
+			var ok = true;
+			for (var j = 1; j < q.Length; j++) {
+				if (s[i + j] == q[j]) continue;
+				ok = false;
+				break;
+			}
+			if (ok) return i;
+		}
 		return -1;
 	}
 
-	// 与 SQLite 的二进制序一致：按码位，不按 UTF-16 码元。
-	static int cmpkey(string a, string b) {
-		var ia = 0;
-		var ib = 0;
-		while (ia < a.Length && ib < b.Length) {
-			var ca = nextcp(a, ref ia);
-			var cb = nextcp(b, ref ib);
-			if (ca != cb) return ca < cb ? -1 : 1;
-		}
-		if (ia < a.Length) return 1;
-		if (ib < b.Length) return -1;
-		return 0;
+	static int nchars_of(byte[] b) {
+		var n = 0;
+		foreach (var x in b)
+			if ((x & 0xC0) != 0x80) n++;
+		return n;
 	}
 
-	static int nextcp(string s, ref int i) {
-		var c = s[i++];
-		if (c < '\uD800' || c > '\uDBFF' || i >= s.Length) return c;
-		var d = s[i];
-		if (d < '\uDC00' || d > '\uDFFF') return c;
-		i++;
-		return 0x10000 + ((c - 0xD800) << 10) + (d - 0xDC00);
-	}
-
-	static int prevcp(string s, ref int i) {
-		var c = s[--i];
-		if (c < '\uDC00' || c > '\uDFFF' || i <= 0) return c;
-		var d = s[i - 1];
-		if (d < '\uD800' || d > '\uDBFF') return c;
-		i--;
-		return 0x10000 + ((d - 0xD800) << 10) + (c - 0xDC00);
-	}
-
-	static int keycount() => keyoff == null ? 0 : (keyoff.Length >> 2) - 1;
-
-	static int lowerkey(string q) {
-		var lo = 0;
-		var hi = keycount();
-		while (lo < hi) {
-			var mid = lo + ((hi - lo) >> 1);
-			if (cmpkeyat(mid, q) < 0) lo = mid + 1;
-			else hi = mid;
-		}
-		return lo;
-	}
-
-	static int lowerint(byte[] a, int x) {
-		var lo = 0;
-		var hi = a.Length >> 2;
-		while (lo < hi) {
-			var mid = lo + ((hi - lo) >> 1);
-			if (u32(a, mid) < x) lo = mid + 1;
-			else hi = mid;
-		}
-		return lo;
-	}
-
-	static string prefixhi(string q) {
-		var cps = new List<int>();
-		var i = 0;
-		while (i < q.Length) cps.Add(nextcp(q, ref i));
-		while (cps.Count > 0 && cps[cps.Count - 1] == 0x10FFFF) cps.RemoveAt(cps.Count - 1);
-		if (cps.Count == 0) return null;
-		cps[cps.Count - 1]++;
-		var sb = new StringBuilder();
-		foreach (var cp in cps) sb.Append(char.ConvertFromUtf32(cp));
-		return sb.ToString();
-	}
-
-	static string reversecps(string s) {
-		var cps = new List<int>();
-		var i = 0;
-		while (i < s.Length) cps.Add(nextcp(s, ref i));
-		cps.Reverse();
-		var sb = new StringBuilder();
-		foreach (var cp in cps) sb.Append(char.ConvertFromUtf32(cp));
-		return sb.ToString();
-	}
-
-	static int lowerrev(string rq) {
-		var lo = 0;
-		var hi = rev.Length >> 2;
-		while (lo < hi) {
-			var mid = lo + ((hi - lo) >> 1);
-			if (cmprevat(u32(rev, mid), rq) < 0) lo = mid + 1;
-			else hi = mid;
-		}
-		return lo;
-	}
-
-	static void suffixkeys(string q, int code, List<DictHit> hits, int cap) {
-		var rq = reversecps(q);
-		var up = prefixhi(rq);
-		var lo = lowerrev(rq);
-		var hi = up == null ? (rev.Length >> 2) : lowerrev(up);
-		for (var i = lo; i < hi && hits.Count < cap; i++) {
-			var lex = u32(rev, i);
-			if (lex < 0 || lex >= keycount()) continue;
-			if (utf8startswith(lex, q)) continue;
-			addposts(lex, code, hits, q, "", -1, cap, false);
-		}
-	}
-
-	static void infixkeys(string q, int code, List<DictHit> hits, int cap) {
-		if (grambytes == null || gramentry == null || countchars(q) < 3) return;
-		HashSet<int> ids = null;
-		var seen = new HashSet<string>();
-		var cps = new List<int>();
-		var ip = 0;
-		while (ip < q.Length) cps.Add(nextcp(q, ref ip));
-		for (var s = 0; s + 1 < cps.Count; s++) {
-			var g = char.ConvertFromUtf32(cps[s]) + char.ConvertFromUtf32(cps[s + 1]);
-			if (!seen.Add(g)) continue;
-			if (!trygramposts(g, out var bs, out var blen)) return;
-			var cur = decodeposts(grambytes, bs, blen);
-			if (ids == null) ids = cur;
-			else ids.IntersectWith(cur);
-			if (ids.Count == 0) return;
-		}
-		if (ids == null) return;
-		var list = new List<int>(ids);
-		list.Sort();
-		foreach (var lex in list) {
-			if (hits.Count >= cap) break;
-			if (lex < 0 || lex >= keycount()) continue;
-			if (utf8indexof(lex, q) < 0) continue;
-			if (utf8startswith(lex, q)) continue;
-			if (utf8endswith(lex, q)) continue;
-			addposts(lex, code, hits, q, "", -1, cap, true);
-		}
-	}
-
-	static HashSet<int> decodeposts(byte[] b, int start, int len) {
-		var set = new HashSet<int>();
-		var p = 0;
-		var prev = 0;
-		while (p < len) {
-			var v = 0;
-			var shift = 0;
-			while (p < len) {
-				var by = b[start + p++];
-				v |= (by & 0x7F) << shift;
-				if ((by & 0x80) == 0) break;
-				shift += 7;
-				if (shift > 28) return set;
-			}
-			prev += v;
-			set.Add(prev);
-		}
-		return set;
-	}
-
-	static string keytext(int lex) {
-		var a = u32(keyoff, lex);
-		var b = u32(keyoff, lex + 1);
-		return Encoding.UTF8.GetString(keybytes, a, b - a);
-	}
-
-	static int cmpkeyat(int lex, string q) {
-		var a = u32(keyoff, lex);
-		var b = u32(keyoff, lex + 1);
-		return cmpkeyutf8(keybytes, a, b - a, q);
-	}
-
-	static int cmpkeyutf8(byte[] raw, int start, int len, string q) {
-		var ia = 0;
-		var iq = 0;
-		var end = start + len;
-		while (start + ia < end && iq < q.Length) {
-			var ca = nextcpbytes(raw, start, ref ia, end);
-			var cq = nextcp(q, ref iq);
-			if (ca != cq) return ca < cq ? -1 : 1;
-		}
-		if (start + ia < end) return 1;
-		if (iq < q.Length) return -1;
-		return 0;
-	}
-
-	static int nextcpbytes(byte[] raw, int basei, ref int ia, int end) {
-		var i = basei + ia;
-		if (i >= end) return -1;
-		var c = raw[i];
-		ia++;
-		if (c < 0x80) return c;
-		if (c < 0xC0 || i + 1 >= end) return c;
-		var c2 = raw[i + 1];
-		if (c < 0xE0) {
-			ia++;
-			return ((c & 0x1F) << 6) | (c2 & 0x3F);
-		}
-		if (i + 2 >= end) return c;
-		var c3 = raw[i + 2];
-		if (c < 0xF0) {
-			ia += 2;
-			return ((c & 0x0F) << 12) | ((c2 & 0x3F) << 6) | (c3 & 0x3F);
-		}
-		if (i + 3 >= end) return c;
-		var c4 = raw[i + 3];
-		ia += 3;
-		return ((c & 0x07) << 18) | ((c2 & 0x3F) << 12) | ((c3 & 0x3F) << 6) | (c4 & 0x3F);
-	}
-
-	static int cmprev(string key, string rq) {
-		var ik = key.Length;
-		var iq = 0;
-		while (ik > 0 && iq < rq.Length) {
-			var ck = prevcp(key, ref ik);
-			var cq = nextcp(rq, ref iq);
-			if (ck != cq) return ck < cq ? -1 : 1;
-		}
-		var restk = 0;
-		while (ik > 0) { prevcp(key, ref ik); restk++; }
-		var restq = 0;
-		while (iq < rq.Length) { nextcp(rq, ref iq); restq++; }
-		return restk - restq;
-	}
-
-	static int cmprevat(int lex, string rq) => cmprev(keytext(lex), rq);
-
-	static int utf8compare(byte[] raw, int start, int len, string g) {
-		var ig = 0;
-		var ia = 0;
-		var end = start + len;
-		while (ia < len && ig < g.Length) {
-			var ck = nextcpbytes(raw, start, ref ia, end);
-			var cg = nextcp(g, ref ig);
-			if (ck != cg) return ck < cg ? -1 : 1;
-		}
-		if (ia < len) return 1;
-		if (ig < g.Length) return -1;
-		return 0;
-	}
-
-	static int comparegram(int i, string g) {
-		var p = gramentry[i];
-		var glen = grambytes[p] | (grambytes[p + 1] << 8);
-		return utf8compare(grambytes, p + 2, glen, g);
-	}
-
-	static bool trygramposts(string g, out int bodyStart, out int bodyLen) {
-		bodyStart = 0;
-		bodyLen = 0;
-		if (grambytes == null || gramentry == null || g.Length == 0) return false;
-		var n = gramentry.Length;
-		var lo = 0;
-		var hi = n;
-		while (lo < hi) {
-			var mid = lo + ((hi - lo) >> 1);
-			var c = comparegram(mid, g);
-			if (c < 0) lo = mid + 1;
-			else hi = mid;
-		}
-		if (lo >= n || comparegram(lo, g) != 0) return false;
-		var p = gramentry[lo];
-		var glen = grambytes[p] | (grambytes[p + 1] << 8);
-		bodyLen = BitConverter.ToInt32(grambytes, p + 2 + glen);
-		bodyStart = p + 2 + glen + 4;
-		return bodyLen >= 0 && bodyStart + bodyLen <= grambytes.Length;
-	}
-
-	static int utf8indexof(int lex, string q) {
-		var key = keytext(lex);
-		return key.IndexOf(q, StringComparison.Ordinal);
-	}
-
-	static bool utf8startswith(int lex, string q) {
-		var a = u32(keyoff, lex);
-		var end = u32(keyoff, lex + 1);
-		var ia = 0;
-		var iq = 0;
-		while (iq < q.Length && a + ia < end) {
-			var ck = nextcpbytes(keybytes, a, ref ia, end);
-			var cq = nextcp(q, ref iq);
-			if (ck != cq) return false;
-		}
-		return iq >= q.Length;
-	}
-
-	static bool utf8endswith(int lex, string q) {
-		var key = keytext(lex);
-		return key.EndsWith(q, StringComparison.Ordinal);
-	}
-
-	static bool hanonlybytes(int start, int len) {
-		var ia = 0;
-		var end = start + len;
-		while (start + ia < end) {
-			var cp = nextcpbytes(keybytes, start, ref ia, end);
-			if (cp == 0x3007) continue;
-			if (cp >= 0x3400 && cp <= 0x4DBF) continue;
-			if (cp >= 0x4E00 && cp <= 0x9FFF) continue;
-			if (cp >= 0xF900 && cp <= 0xFAFF) continue;
-			return false;
-		}
-		return true;
-	}
-
-	static bool hanonly(string s) {
-		if (string.IsNullOrEmpty(s)) return false;
+	static List<int> codepoints(string s) {
+		var list = new List<int>(s.Length);
 		var i = 0;
 		while (i < s.Length) {
-			var cp = nextcp(s, ref i);
+			var c = s[i++];
+			if (c >= '\uD800' && c <= '\uDBFF' && i < s.Length) {
+				var d = s[i];
+				if (d >= '\uDC00' && d <= '\uDFFF') {
+					i++;
+					list.Add(0x10000 + ((c - 0xD800) << 10) + (d - 0xDC00));
+					continue;
+				}
+			}
+			list.Add(c);
+		}
+		return list;
+	}
+
+	/// <summary>取码位并编码成 UTF-8；n 小于 0 表示到末尾。</summary>
+	static byte[] encodepoints(string s, int start, int n) => encodepoints(codepoints(s), start, n < 0 ? int.MaxValue : n);
+
+	static byte[] encodepoints(List<int> cps, int start, int n) {
+		var sb = new StringBuilder(cps.Count);
+		var end = Math.Min(cps.Count, start + n);
+		for (var i = start; i < end; i++) sb.Append(char.ConvertFromUtf32(cps[i]));
+		return Encoding.UTF8.GetBytes(sb.ToString());
+	}
+
+	static string revcodepoints(string s) {
+		var cps = codepoints(s);
+		cps.Reverse();
+		var sb = new StringBuilder(cps.Count);
+		foreach (var cp in cps) sb.Append(char.ConvertFromUtf32(cp));
+		return sb.ToString();
+	}
+
+	/// <summary>反转后的 UTF-8 键还原成原词。</summary>
+	static byte[] revbytes(byte[] rev) {
+		var cps = new List<int>();
+		var i = 0;
+		while (i < rev.Length) {
+			var c = rev[i];
+			int len;
+			if (c < 0x80) len = 1;
+			else if (c < 0xE0) len = 2;
+			else if (c < 0xF0) len = 3;
+			else len = 4;
+			if (i + len > rev.Length) break;
+			var cp = 0;
+			if (len == 1) cp = c;
+			else if (len == 2) cp = ((c & 0x1F) << 6) | (rev[i + 1] & 0x3F);
+			else if (len == 3) cp = ((c & 0x0F) << 12) | ((rev[i + 1] & 0x3F) << 6) | (rev[i + 2] & 0x3F);
+			else cp = ((c & 0x07) << 18) | ((rev[i + 1] & 0x3F) << 12) | ((rev[i + 2] & 0x3F) << 6) | (rev[i + 3] & 0x3F);
+			cps.Add(cp);
+			i += len;
+		}
+		cps.Reverse();
+		var sb = new StringBuilder(cps.Count);
+		foreach (var cp in cps) {
+			if (cp < 0 || cp > 0x10FFFF) continue;
+			sb.Append(char.ConvertFromUtf32(cp));
+		}
+		return Encoding.UTF8.GetBytes(sb.ToString());
+	}
+
+	/// <summary>前缀段的上界：末位码位加一，跳过代理区。</summary>
+	static byte[] prefixhi(string q) {
+		var cps = codepoints(q);
+		while (cps.Count > 0 && cps[cps.Count - 1] == 0x10FFFF) cps.RemoveAt(cps.Count - 1);
+		if (cps.Count == 0) return null;
+		var n = cps[cps.Count - 1] + 1;
+		cps.RemoveAt(cps.Count - 1);
+		if (n > 0x10FFFF) return null;
+		if (n >= 0xD800 && n < 0xE000) n = 0xE000;
+		cps.Add(n);
+		return encodepoints(cps, 0, cps.Count);
+	}
+
+	static bool hanonly(byte[] key) {
+		var i = 0;
+		while (i < key.Length) {
+			var c = key[i];
+			int cp, len;
+			if (c < 0x80) { cp = c; len = 1; }
+			else if (c < 0xE0 && i + 1 < key.Length) { cp = ((c & 0x1F) << 6) | (key[i + 1] & 0x3F); len = 2; }
+			else if (c < 0xF0 && i + 2 < key.Length) {
+				cp = ((c & 0x0F) << 12) | ((key[i + 1] & 0x3F) << 6) | (key[i + 2] & 0x3F);
+				len = 3;
+			}
+			else if (i + 3 < key.Length) {
+				cp = ((c & 0x07) << 18) | ((key[i + 1] & 0x3F) << 12)
+					| ((key[i + 2] & 0x3F) << 6) | (key[i + 3] & 0x3F);
+				len = 4;
+			}
+			else return false;
+			i += len;
 			if (cp == 0x3007) continue;
 			if (cp >= 0x3400 && cp <= 0x4DBF) continue;
 			if (cp >= 0x4E00 && cp <= 0x9FFF) continue;
@@ -886,39 +1140,19 @@ static class DictDb {
 		return true;
 	}
 
+	// ==================== 结果整理 ====================
+
 	static void fillmeta(List<DictHit> hits) {
-		if (hits.Count == 0 || conn == null) return;
-		var ids = new List<long>();
-		var seen = new HashSet<long>();
-		foreach (var h in hits)
-			if (seen.Add(h.Id)) ids.Add(h.Id);
-		var map = new Dictionary<long, DictEntry>();
-		using var cmd = conn.CreateCommand();
-		var sql = new StringBuilder("SELECT id, headword, json FROM entry WHERE id IN (");
-		for (var i = 0; i < ids.Count; i++) {
-			if (i > 0) sql.Append(',');
-			sql.Append("@i").Append(i);
-			cmd.Parameters.AddWithValue("@i" + i, ids[i]);
-		}
-		sql.Append(')');
-		cmd.CommandText = sql.ToString();
-		using (var r = cmd.ExecuteReader()) {
-			while (r.Read()) {
-				var row = new DictEntry {
-					Id = r.GetInt64(0),
-					Headword = r.IsDBNull(1) ? "" : r.GetString(1),
-				};
-				parsejson(row, r.IsDBNull(2) ? "" : r.GetString(2));
-				map[row.Id] = row;
-			}
-		}
+		if (hits.Count == 0 || fs == null) return;
 		foreach (var h in hits) {
-			if (!map.TryGetValue(h.Id, out var e)) continue;
-			h.Headword = e.Word.Length > 0 ? e.Word : e.Headword;
-			h.Kanji = h.Dict == "ja" ? e.Kanji : "";
-			h.Reading = e.Pron;
-			h.Pos = e.Pos;
-			h.Preview = listpreview(e);
+			if (!readentry(h.Id, out var head, out var jsontext, out _)) continue;
+			var row = new DictEntry { Id = h.Id, Headword = head };
+			parsejson(row, jsontext);
+			h.Headword = row.Word.Length > 0 ? row.Word : row.Headword;
+			h.Kanji = h.Dict == "ja" ? row.Kanji : "";
+			h.Reading = row.Pron;
+			h.Pos = row.Pos;
+			h.Preview = listpreview(row);
 		}
 	}
 
@@ -1066,7 +1300,7 @@ static class DictDb {
 			if (r != 0) return r;
 			r = dictrank(a.Dict).CompareTo(dictrank(b.Dict));
 			if (r != 0) return r;
-			r = a.Matched.Length.CompareTo(b.Matched.Length);
+			r = countchars(a.Matched).CompareTo(countchars(b.Matched));
 			if (r != 0) return r;
 			r = string.CompareOrdinal(a.Matched, b.Matched);
 			if (r != 0) return r;
@@ -1082,17 +1316,36 @@ static class DictDb {
 		return 9;
 	}
 
-	static int rankof(string q, string key) {
-		if (key == q) return 0;
-		if (key.StartsWith(q, StringComparison.Ordinal)) return 1;
-		if (key.EndsWith(q, StringComparison.Ordinal)) return 2;
-		return 3;
+	static int dictcode(string dict) {
+		if (dict == "en") return 0;
+		if (dict == "ja") return 1;
+		if (dict == "ko") return 2;
+		if (dict == "zh") return 3;
+		return -1;
 	}
 
 	static string normdict(string dict) {
 		var d = (dict ?? "").Trim().ToLowerInvariant();
 		if (d == "zh" || d == "en" || d == "ja" || d == "ko") return d;
 		return "";
+	}
+
+	static string normalize(string s) {
+		var t = s.Trim().Trim('\u3000');
+		var sb = new StringBuilder(t.Length);
+		foreach (var c in t) {
+			if (c >= '\uFF10' && c <= '\uFF19') sb.Append((char)(c - 0xFF10 + '0'));
+			else if (c >= '\uFF21' && c <= '\uFF3A') sb.Append((char)(c - 0xFF21 + 'A'));
+			else if (c >= '\uFF41' && c <= '\uFF5A') sb.Append((char)(c - 0xFF41 + 'a'));
+			else sb.Append(c);
+		}
+		return sb.ToString().Replace('？', '?').ToLowerInvariant();
+	}
+
+	static int countchars(string s) {
+		var n = 0;
+		foreach (var _ in s) n++;
+		return n;
 	}
 
 	// ==================== 词条 JSON ====================
@@ -1420,33 +1673,6 @@ static class DictDb {
 			i++;
 		}
 		return sb.ToString();
-	}
-
-	static string normalize(string s) {
-		var t = s.Trim().Trim('\u3000');
-		var sb = new StringBuilder(t.Length);
-		foreach (var c in t) {
-			if (c >= '\uFF10' && c <= '\uFF19') sb.Append((char)(c - 0xFF10 + '0'));
-			else if (c >= '\uFF21' && c <= '\uFF3A') sb.Append((char)(c - 0xFF21 + 'A'));
-			else if (c >= '\uFF41' && c <= '\uFF5A') sb.Append((char)(c - 0xFF41 + 'a'));
-			else sb.Append(c);
-		}
-		return sb.ToString().Replace('？', '?').ToLowerInvariant();
-	}
-
-	static int countchars(string s) {
-		var n = 0;
-		foreach (var _ in s) n++;
-		return n;
-	}
-
-	static void pragma(SqliteConnection c, string sql) {
-		try {
-			using var cmd = c.CreateCommand();
-			cmd.CommandText = sql;
-			cmd.ExecuteNonQuery();
-		}
-		catch { }
 	}
 }
 #endregion

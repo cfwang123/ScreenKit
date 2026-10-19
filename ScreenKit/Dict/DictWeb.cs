@@ -3,9 +3,9 @@ using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
-/// <summary>网页词典。查询、详情和导出与词典窗口用同一套 dict3.db。</summary>
+/// <summary>网页词典。查询、详情和导出与词典窗口用同一套 dict3.bin。</summary>
 static class DictWeb {
-	public static string DbPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.db");
+	public static string DbPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
 
 	public static bool Ensure() {
 		if (DictDb.Ready) return true;

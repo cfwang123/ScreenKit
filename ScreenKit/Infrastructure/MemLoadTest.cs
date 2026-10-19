@@ -274,14 +274,14 @@ static class MemLoadTest {
 		note = "";
 		var path = Environment.GetEnvironmentVariable("SCREENKIT_DICT_DB");
 		if (string.IsNullOrWhiteSpace(path))
-			path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.db");
+			path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
 		if (!File.Exists(path)) {
 			model = "";
-			note = "skip=no-dict3.db";
+			note = "skip=no-dict3.bin";
 			return;
 		}
 		if (!DictDb.Init(path)) {
-			model = "dict3.db";
+			model = "dict3.bin";
 			note = "fail=" + (DictDb.Error ?? "init");
 			return;
 		}
