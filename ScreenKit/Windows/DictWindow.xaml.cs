@@ -336,11 +336,6 @@ public partial class DictWindow : UserControl {
 
 	void showhits(List<DictHit> hits, int ms, bool keep) {
 		var keepid = keep && lhits.SelectedItem is DictRow old ? old.Id : 0L;
-		var keepoff = 0.0;
-		if (keep) {
-			var sv = scrollof(lhits);
-			if (sv != null) keepoff = sv.VerticalOffset;
-		}
 		var rows = new List<DictRow>(hits.Count);
 		foreach (var h in hits) {
 			if (h.Id == 0) continue;
@@ -386,24 +381,21 @@ public partial class DictWindow : UserControl {
 		lbstatus.Text = Loc.T("dict.count", rows.Count, ms);
 		if (rows.Count > 0) loaddetail(rows[pick]);
 		else cleardetail();
-		keepview(rows, pick, keepid, keepoff);
+		keepview(rows, pick, keepid, keep);
 	}
 
-	/// <summary>换词典语言后别让单词列表跳回顶部：原来的词条还在就选中它，不在了就回到原来的滚动位置。</summary>
-	void keepview(List<DictRow> rows, int pick, long keepid, double keepoff) {
-		if (keepid != 0 && pick < rows.Count && rows[pick].Id == keepid) {
-			if (pick == 0) return;
-			var row = rows[pick];
-			Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => {
-				try { lhits.ScrollIntoView(row); } catch { }
-			}));
-			return;
-		}
-		if (keepoff <= 0) return;
-		Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
+	/// <summary>换词典语言后把列表放回原处：原来那条词条还在新结果里就仍选中它、滚到它；不在就回到顶部。</summary>
+	void keepview(List<DictRow> rows, int pick, long keepid, bool keep) {
+		if (!keep) return;
+		var same = keepid != 0 && pick > 0 && pick < rows.Count && rows[pick].Id == keepid;
+		Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => {
 			try {
+				if (same) {
+					lhits.ScrollIntoView(rows[pick]);
+					return;
+				}
 				var sv = scrollof(lhits);
-				if (sv != null) sv.ScrollToVerticalOffset(keepoff);
+				if (sv != null) sv.ScrollToVerticalOffset(0);
 			}
 			catch { }
 		}));

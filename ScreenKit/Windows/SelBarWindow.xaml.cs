@@ -131,7 +131,10 @@ public partial class SelBarWindow : Window {
 		Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
 			try {
 				var sv = scrollof(lsel);
-				if (sv != null) sv.ScrollToVerticalOffset(off);
+				if (sv == null) return;
+				// 新结果比原来短就回顶部，别停在半截位置
+				if (off > sv.ScrollableHeight) lsel.ScrollIntoView(rows[0]);
+				else sv.ScrollToVerticalOffset(off);
 			}
 			catch { }
 		}));

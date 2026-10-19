@@ -46,7 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Dictionary selection popup sat far from the selected word because the screen position was scaled twice.
-- Dictionary word list no longer jumps back to the top when switching the dictionary language.
+- Dictionary list keeps the same entry selected when switching the dictionary language; if the entry is not in the new dictionary the list returns to the top.
 
 #### Removed
 
@@ -61,7 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 词典里划词浮窗离选中的字很远，是因为屏幕坐标被缩放了两次。
-- 切换词典语言后单词列表不再跳回顶部。
+- 切换词典语言后仍选中原来那条词条、列表滚到它；该词条不在新词典里则回到顶部。
 
 #### 移除
 

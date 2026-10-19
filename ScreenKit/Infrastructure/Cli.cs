@@ -432,7 +432,7 @@ static class Cli {
 				case "--test-dict-host":
 					return testdicthost();
 				case "--test-dict-scroll":
-					return testdictscroll();
+					return testdictscroll(Opt());
 				case "--test-selbar":
 					return SelBar.Test(Out);
 				case "--test-dict-tr":
@@ -6565,13 +6565,14 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 	}
 
-	static int testdictscroll() {
-		Out("=== 换词典语言不跳顶 --test-dict-scroll ===");
+	static int testdictscroll(string word) {
+		if (string.IsNullOrWhiteSpace(word)) word = "一";
+		Out($"=== 换词典语言 --test-dict-scroll {word} ===");
 		if (Application.Current != null)
 			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 		DictHostWindow win = null;
 		try {
-			win = new DictHostWindow("一", () => new OcrOptions(), _ => { });
+			win = new DictHostWindow(word, () => new OcrOptions(), _ => { });
 			win.Show();
 		}
 		catch (Exception ex) {
@@ -6586,11 +6587,8 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Err("FAIL: 没有查出结果");
 				return 1;
 			}
-			var pick = pickzh(win.host.lhits, 300);
-			if (pick < 0) {
-				Err("FAIL: 结果里没有汉语词条");
-				return 1;
-			}
+			var pick = Math.Min(300, win.host.lhits.Items.Count - 1);
+			var own = (win.host.lhits.Items[pick] as DictRow)?.Dict ?? "zh";
 			win.host.lhits.SelectedIndex = pick;
 			win.host.lhits.UpdateLayout();
 			var sv = svin(win.host.lhits);
@@ -6602,26 +6600,29 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			for (var i = 0; i < 8; i++) pump();
 			var off1 = offsetof(win.host.lhits);
 			var id1 = (win.host.lhits.SelectedItem as DictRow)?.Id ?? 0;
-			Out($"all pick={pick} off={off1:0} id={id1} ext={sv.ExtentHeight:0} view={sv.ViewportHeight:0} scrollable={sv.ScrollableHeight:0}");
+			Out($"all pick={pick} own={own} off={off1:0} id={id1} ext={sv.ExtentHeight:0} view={sv.ViewportHeight:0} scrollable={sv.ScrollableHeight:0}");
 			if (off1 <= 0) {
 				Err("FAIL: 列表没有滚到选中的词条");
 				return 2;
 			}
-			// 汉语：同一条词条还在，应仍选中它，列表停在原处
-			win.host.bfiltzh.IsChecked = true;
+			// 切到词条自己的词典：同一条词条还在，应仍选中它
+			filt(win.host, own).IsChecked = true;
 			waitsearch(win, 8000);
 			var off2 = offsetof(win.host.lhits);
 			var id2 = (win.host.lhits.SelectedItem as DictRow)?.Id ?? 0;
-			Out($"zh off={off2:0} id={id2} idx={indexof(win.host.lhits, id2)} rows={win.host.lhits.Items.Count}");
+			var sc2 = svin(win.host.lhits)?.ScrollableHeight ?? 0;
+			Out($"{own} off={off2:0} id={id2} idx={indexof(win.host.lhits, id2)} rows={win.host.lhits.Items.Count} scrollable={sc2:0}");
 			if (id2 != id1) bad = 3;
 			else if (off2 <= 0) bad = 4;
-			// 日语：这条汉语词条不在结果里，列表也要停在原处
-			win.host.bfiltja.IsChecked = true;
+			// 切到没有这条词条的词典：列表回到顶部
+			var other = own == "ko" ? "zh" : "ko";
+			filt(win.host, other).IsChecked = true;
 			waitsearch(win, 8000);
 			var off3 = offsetof(win.host.lhits);
-			Out($"ja off={off3:0} rows={win.host.lhits.Items.Count}");
-			if (bad == 0 && off3 <= 0) bad = 5;
-			// 划词浮窗换语言后也要停在原处
+			var sc3 = svin(win.host.lhits)?.ScrollableHeight ?? 0;
+			Out($"{other} off={off3:0} rows={win.host.lhits.Items.Count} scrollable={sc3:0} idx={indexof(win.host.lhits, id1)}");
+			if (bad == 0 && off3 > 0) bad = 5;
+			// 划词浮窗换了语言也要停在原处（用结果多的词才测得出滚动）
 			win.host.ShowOutside("一", new Rect(300, 300, 40, 16));
 			var outwin = typeof(DictWindow)
 				.GetField("outwin", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(win.host) as SelBarWindow;
@@ -6651,7 +6652,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Err($"FAIL: 换词典语言后单词列表跳回顶部（{bad}）");
 			return bad;
 		}
-		Out("=== OK：换词典语言后单词列表停在原处 ===");
+		Out("=== OK：换语言后原词条仍选中；词条不在新词典就回顶部 ===");
 		return 0;
 
 		static void pump() {
@@ -6704,13 +6705,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			}
 		}
 
-		static int pickzh(System.Windows.Controls.ListBox box, int want) {
-			var from = want < box.Items.Count ? want : box.Items.Count - 1;
-			for (var i = from; i < box.Items.Count; i++)
-				if ((box.Items[i] as DictRow)?.Dict == "zh") return i;
-			for (var i = from; i >= 0; i--)
-				if ((box.Items[i] as DictRow)?.Dict == "zh") return i;
-			return -1;
+		static System.Windows.Controls.Primitives.ToggleButton filt(DictWindow w, string dict) {
+			if (dict == "zh") return w.bfiltzh;
+			if (dict == "ja") return w.bfiltja;
+			if (dict == "ko") return w.bfiltko;
+			return w.bfilten;
 		}
 
 		static double offsetof(System.Windows.Controls.ListBox box) {
@@ -7268,7 +7267,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
-      --test-dict-scroll  换词典语言（全部/汉语/日语）后单词列表不跳回顶部
+      --test-dict-scroll [词]  换词典语言后原词条仍选中并滚到它；词条不在新词典就回到顶部；划词浮窗停在原处
       --test-selbar  读本进程文本框的选中文字，并检查划词查词浮窗的位置和不抢焦点
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge
