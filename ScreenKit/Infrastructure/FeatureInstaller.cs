@@ -130,7 +130,7 @@ static class FeatureInstaller {
 	const string FaceBuffaloLHf = "https://huggingface.co/deepinsight/insightface/resolve/main/models/buffalo_l.zip";
 	/// <summary>固定标签 dict-db，不跟随最新 Release，避免被当成应用更新包。</summary>
 	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict3.7z";
-	const long DICT7Z_BYTES = 279821980L;
+	const long DICT7Z_BYTES = 279822816L;
 	const string IME7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ime.7z";
 	const long IME7Z_BYTES = 6242584L;
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";

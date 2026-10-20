@@ -38,6 +38,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
 
+### English
+
+#### Changed
+
+- Help → Install features expects the current dict3.7z on the fixed dict-db release (279,822,816 bytes).
+
+### 中文
+
+#### 变更
+
+- 帮助 → 安装功能按固定 dict-db 上当前 dict3.7z 的大小校验（279,822,816 字节）。
+
 ## v1.0.26 (2026-10-20)
 
 ### English
