@@ -195,7 +195,8 @@ public partial class SettingsWindow : Window {
 			tabsetocr.Header = Loc.T("set.tab.ocr");
 			tabsethk.Header = Loc.T("set.tab.hotkey");
 			tabsetdict.Header = Loc.T("tab.dict");
-			tabsetasr.Header = Loc.T("set.tab.asr");
+			tabsettts.Header = Loc.T("tab.tts");
+			tabsetasr.Header = Loc.T("tab.asr");
 			tabsetllm.Header = Loc.T("set.tab.llm");
 			tabsettr.Header = Loc.T("set.tab.translate");
 			tabsetsnap.Header = Loc.T("set.tab.snap");

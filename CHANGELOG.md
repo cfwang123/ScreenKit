@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - If the HTTP port is busy, ScreenKit listens on a random localhost port instead, and menus and buttons open web pages on that port.
 - Check for updates lists the notes for each version between the current one and the new one, and a version can be opened on its own.
 - The selection popup keeps the same size with no hits, and Translate on the language row detects text and translates it into the native language.
+- Lookup tools add HTTP status code and MIME type tables with search, category filters, and click-to-copy.
 
 #### Changed
 
@@ -66,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Temporary web ports, including Chrome's debugging port, listen on localhost only.
 - Read aloud in the selection popup has a speed control shown as 1x; click it to open a slider.
 - Dictionary speech settings are a table. Chinese, Japanese, Korean, and English always stay, and other languages can be added. Selection-popup Read uses that row when the engine is Auto.
+- Settings splits Speech into Speech synthesis and Speech recognition. The per-language speech table is under Speech synthesis.
 
 #### Fixed
 
@@ -82,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 端口打不开时改听本机随机端口，菜单和按钮打开网页时用这个端口。
 - 检查到新版本时列出当前版本到新版本之间各版说明，可点版本号只看该版。
 - 划词浮窗没查到词时大小不变。语言栏的翻译会自动识别并译成母语，改语言后要点一次翻译。
+- 信息查询增加 HTTP 状态码表和 MIME 类型表，可搜索、按类别筛选，点一行复制。
 
 #### 变更
 
@@ -101,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 临时网页端口（含 Chrome 调试端口）只监听本机，不接受局域网访问。
 - 划词朗读增加语速，显示为 1x，点击后弹出滑块。
 - 词典发音改为按语言的表格。中文、日语、韩语、英语始终保留，其它语言可以添加。划词浮窗朗读选自动时用这一行的引擎、发音人和语速。
+- 参数设置的「语音」拆成「语音合成」和「语音识别」。按语言的发音表放在「语音合成」里。
 
 #### 修复
 

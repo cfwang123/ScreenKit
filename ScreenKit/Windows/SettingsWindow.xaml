@@ -457,6 +457,15 @@
 						<TextBlock x:Name="lbdictselbarhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
 						           Text="打开后，在本程序或其它程序里拖选或双击文字，会在选区旁弹出查词浮窗。词典词条里始终可以划词。默认关闭。"/>
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<!-- 语音合成：按语言的引擎、发音人、语速 -->
+			<TabItem x:Name="tabsettts" Header="语音合成"
+			         AutomationProperties.AutomationId="set.tab.tts">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+					<StackPanel>
 						<TextBlock x:Name="lbdicttts" Text="词典发音" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbdictttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
@@ -486,8 +495,8 @@
 				</ScrollViewer>
 			</TabItem>
 
-			<!-- 语音：听写模式 + OpenAI 兼容润色 -->
-			<TabItem x:Name="tabsetasr" Header="语音"
+			<!-- 语音识别：听写模式 + OpenAI 兼容润色 -->
+			<TabItem x:Name="tabsetasr" Header="语音识别"
 			         AutomationProperties.AutomationId="set.tab.asr">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>

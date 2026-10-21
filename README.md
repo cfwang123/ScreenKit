@@ -29,7 +29,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 ## Speech, translation, dictionary, and face
 
 - **Speech recognition**: Live captions with an offline or streaming model.
-- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome. Chrome lists only installed languages. Chrome model installation opens Chrome with this app's private profile on the model page.
+- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome. Chrome lists only installed languages. Chrome model installation opens Chrome with this app's private profile on the model page. **Settings → Speech synthesis** is a per-language table of engine, voice, and rate. Chinese, Japanese, Korean, and English always stay; other languages can be added or removed. Dictionary entry speech, and Read aloud in the selection popup when the engine is Auto, use that row.
 - **Voice input**: The hotkey starts and finishes it, and the result goes to the current input position.
 - **Chat**: Uses a configured LLM, with bubbles, microphone input, and speaking.
 - **LLM log**: The latest ~1,000 requests with the model, elapsed time, and the request and response.
@@ -49,10 +49,10 @@ The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese
 - Pure Latin input is romanized for Japanese and Korean search (romaji to hiragana, Korean romanization to Hangul), such as `watashi` and `hanguk`.
 - A hit has pronunciation, part of speech, senses, phrases, and examples, all of which can be spoken; **Export** writes every hit of this search.
 - Double-click, drag, or right-click inside an entry to pop up the lookup window, up to 100 hits. Dictionary entries always do this.
-- **Settings → Dictionary** sets how many hits to list, how long to keep the database open, the selection popup, and a per-language speech table (engine, voice, and rate). Chinese, Japanese, Korean, and English always stay in the table; other languages can be added or removed.
+- **Settings → Dictionary** sets how many hits to list, how long to keep the database open, and the selection popup.
 - The dictionary hotkey is empty by default: it brings the window forward on the dictionary when it is not the main window, and hides the main window when it is.
 - The web dictionary is its own page at `/dict`, with the same search, four languages, speech, and export.
-- **Selection popup** is off by default and can be turned on on the dictionary page, under **Settings → Dictionary**, or on the tray. While it is on, dragging or double-clicking text in this program or another shows a lookup popup that does not take focus. With no hits the window stays the same size as when it has hits. A selection with punctuation a word cannot contain, or longer than a word, opens the popup without querying the dictionary. **Translate** on the right defaults both languages to Auto: native text goes to the learning language, anything else goes to the native language. After a manual language change, click Translate once. The source text can be edited, and the resolved source and target languages are shown beside it. Switching dictionary language or translating does not change the popup width. Drag the lower-right corner to resize, or drag an empty area to move it. The size is saved when you quit and restored next time. **Read aloud** speaks the text sentence by sentence and highlights the sentence being spoken, with a choice of engine (including Chrome), speed, language, and voice. Auto uses that language's engine, voice, and rate from Settings. While that tab stays open the popup does not dismiss itself and ignores new selections.
+- **Selection popup** is off by default and can be turned on on the dictionary page, under **Settings → Dictionary**, or on the tray. While it is on, dragging or double-clicking text in this program or another shows a lookup popup that does not take focus. With no hits the window stays the same size as when it has hits. A selection with punctuation a word cannot contain, or longer than a word, opens the popup without querying the dictionary. **Translate** on the right defaults both languages to Auto: native text goes to the learning language, anything else goes to the native language. After a manual language change, click Translate once. The source text can be edited, and the resolved source and target languages are shown beside it. Switching dictionary language or translating does not change the popup width. Drag the lower-right corner to resize, or drag an empty area to move it. The size is saved when you quit and restored next time. **Read aloud** speaks the text sentence by sentence and highlights the sentence being spoken, with a choice of engine (including Chrome), speed, language, and voice. Auto uses that language's engine, voice, and rate from **Settings → Speech synthesis**. While that tab stays open the popup does not dismiss itself and ignores new selections.
 
 ## Files and screencast
 
@@ -152,6 +152,8 @@ This program receives while it is running, and that can be turned off in Setting
   - **Random colors**: A set of random colors
 - **Lookup**
   - **Color chart**: Named colors
+  - **HTTP status codes**: Status codes, descriptions, and specs by 1xx–5xx, plus common non-standard ones
+  - **MIME types**: MIME types, file extensions, and Content-Type examples
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product
   - **Unicode chart**: Unicode characters
