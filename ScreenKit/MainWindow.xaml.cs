@@ -481,23 +481,43 @@ public partial class MainWindow : Window {
 			return;
 		}
 		var retry = quiet;
+		var want = SendFileServer.FileHttpPort(opt);
+		var host = opt.HttpLan ? "+" : "127.0.0.1";
+		Exception fail = null;
+		var fell = false;
 		try {
-			httpServer.Start(opt.HttpLan ? "+" : "127.0.0.1", SendFileServer.FileHttpPort(opt));
+			httpServer.Start(host, want);
+		}
+		catch (Exception ex) {
+			fail = ex;
+			try {
+				httpServer.Start("127.0.0.1", 0);
+				fell = true;
+				fail = null;
+			}
+			catch (Exception ex2) {
+				fail = ex2;
+			}
+		}
+		if (fail == null) {
+			HttpOcrServer.NoteFallback(fell);
 			httpListenErr = "";
 			httpRetry = false;
+			var showPort = httpServer.Port > 0 ? httpServer.Port : want;
+			var showHost = httpServer.LanAll ? opt.HttpShowHost() : "127.0.0.1";
 			if (opt.HttpEnabled || retry)
-				setstatus(Loc.T("st.http_ok", opt.HttpShowHost(), opt.HttpPort));
+				setstatus(Loc.T("st.http_ok", showHost, showPort));
 			if (retry && opt.SendFileEnabled && sendFile != null && !sendFile.IsRunning)
 				startsendfile();
 		}
-		catch (Exception ex) {
-			var msg = ex.Message ?? "";
+		else {
+			var msg = fail.Message ?? "";
 			var changed = !string.Equals(httpListenErr, msg, StringComparison.Ordinal);
 			httpListenErr = msg;
 			httpRetry = true;
 			httpRetryAt = Environment.TickCount;
 			if (!quiet || changed)
-				setstatus(Loc.T("st.http_fail", ex.Message));
+				setstatus(Loc.T("st.http_fail", fail.Message));
 		}
 		synchttpstatus();
 		kickstbar();
@@ -561,9 +581,9 @@ public partial class MainWindow : Window {
 			httpServer?.SetSendFile(sendFile);
 			if (httpServer != null && !httpServer.IsRunning)
 				starthttp();
-			var bindLan = httpServer == null || !httpServer.LanAll;
+			var bindLan = (httpServer == null || !httpServer.LanAll) && !HttpOcrServer.FellBack;
 			sendFile.Start(ownHttp: false, bindLan: bindLan);
-			var port = sendFile.ListenPort > 0 ? sendFile.ListenPort : SendFileServer.FileHttpPort(opt);
+			var port = sendFile.ListenPort > 0 ? sendFile.ListenPort : HttpOcrServer.PagePort(opt);
 			setstatus(Loc.T("st.sendfile_ok", port));
 			syncsfstatus();
 			kickstbar();
@@ -4444,8 +4464,9 @@ public partial class MainWindow : Window {
 		var serviceOn = opt.ServiceMode && !old.ServiceMode;
 		var serviceOff = !opt.ServiceMode && old.ServiceMode;
 
-		var httpInfo = opt.HttpEnabled ? $" · HTTP :{opt.HttpPort}" : "";
-		var sfInfo = opt.SendFileEnabled ? $" · SendFile :{SendFileServer.FileHttpPort(opt)}" : "";
+		var httpInfo = opt.HttpEnabled ? $" · HTTP :{HttpOcrServer.PagePort(opt)}" : "";
+		var sfShown = sendFile != null && sendFile.ListenPort > 0 ? sendFile.ListenPort : HttpOcrServer.PagePort(opt);
+		var sfInfo = opt.SendFileEnabled ? $" · SendFile :{sfShown}" : "";
 		var modeInfo = opt.ServiceMode ? " · 服务模式" : "";
 
 		if (opt.ServiceMode) {
@@ -5119,8 +5140,12 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey dictionary: {opt.HotkeyDict}");
 		sb.AppendLine($"Selection popup: {(opt.DictSelBar ? "on" : "off")} hotkey={opt.HotkeyDictSel}");
 		sb.AppendLine($"Hotkey auto key: {opt.AutoKeyHotkey} mode={opt.AutoKeyMode} key={opt.AutoKeyKey} ms={opt.AutoKeyIntervalMs}");
-		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off")}");
-		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{SendFileServer.FileHttpPort(opt)}/udp:{opt.SendFileUdpPort}" : "off")}");
+		var httpShow = httpServer != null && httpServer.IsRunning
+			? $"{(httpServer.LanAll ? opt.HttpShowHost() : "127.0.0.1")}:{httpServer.Port}"
+			: $"{opt.HttpShowHost()}:{opt.HttpPort}";
+		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? httpShow : "off")}");
+		var sfShow = sendFile != null && sendFile.ListenPort > 0 ? sendFile.ListenPort : HttpOcrServer.PagePort(opt);
+		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{sfShow}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");
 		sb.AppendLine($"FaceDet={opt.FaceDetModel} FaceReg={opt.FaceRegModel} FaceCompute={opt.FaceCompute}");
 		sb.AppendLine($"Runner.HasEngine: {runner.HasEngine}");

@@ -41,10 +41,7 @@ sealed class CastDisc : IDisposable {
 
 	static int udpport() => 17531;
 
-	static int httpport() {
-		var p = CastHost.Opt?.HttpPort ?? 0;
-		return p > 0 ? p : 1224;
-	}
+	static int httpport() => CastHost.TcpPort;
 
 	public void Scan() {
 		if (stop) return;

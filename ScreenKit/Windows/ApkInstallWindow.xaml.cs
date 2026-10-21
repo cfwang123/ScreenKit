@@ -82,14 +82,19 @@ public partial class ApkInstallWindow : Window {
 
 	void fillurls() {
 		if (eurl.Items.Count > 0) return;
-		var ips = ApkHost.LanIPv4s();
-		if (ips == null || ips.Count == 0) {
-			fail(Loc.T("sf.apk.noip"));
-			return;
+		var port = HttpOcrServer.PagePort(opt);
+		if (HttpOcrServer.FellBack)
+			eurl.Items.Add(ApkHost.Url("127.0.0.1", port));
+		else {
+			var ips = ApkHost.LanIPv4s();
+			if (ips == null || ips.Count == 0) {
+				fail(Loc.T("sf.apk.noip"));
+				return;
+			}
+			if (server.ListenPort > 0) port = server.ListenPort;
+			foreach (var ip in ips)
+				eurl.Items.Add(ApkHost.Url(ip, port));
 		}
-		var port = server.ListenPort > 0 ? server.ListenPort : SendFileServer.FileHttpPort(opt);
-		foreach (var ip in ips)
-			eurl.Items.Add(ApkHost.Url(ip, port));
 		eurl.IsEnabled = eurl.Items.Count > 0;
 		if (eurl.SelectedIndex < 0 && eurl.Items.Count > 0)
 			eurl.SelectedIndex = 0;

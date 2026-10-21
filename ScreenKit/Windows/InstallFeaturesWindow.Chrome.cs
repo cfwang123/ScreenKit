@@ -64,8 +64,7 @@ partial class InstallFeaturesWindow {
 				MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
-		var port = o.HttpPort > 0 ? o.HttpPort : 1224;
-		var url = "http://127.0.0.1:" + port + "/chrome";
+		var url = "http://127.0.0.1:" + HttpOcrServer.PagePort(o) + "/chrome";
 		try {
 			Process.Start(new ProcessStartInfo {
 				FileName = exe,

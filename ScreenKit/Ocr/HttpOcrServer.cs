@@ -53,6 +53,11 @@ sealed partial class HttpOcrServer : IDisposable {
 	HttpApiServices svc;
 	SendFileServer sendFile;
 	public bool LanAll;
+	public int Port { get; private set; }
+	/// <summary>当前进程正在听的 HTTP 口。0 表示没在听。</summary>
+	public static int LivePort { get; private set; }
+	/// <summary>设定端口打不开，改听了本机随机口。</summary>
+	public static bool FellBack { get; private set; }
 	public event Action<string> Logged;
 	const int FONTCACHEMS = 10 * 60 * 1000;
 	static string[] fontNames;
@@ -73,17 +78,29 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	public bool IsRunning => running;
 
+	/// <summary>正在听时用实际端口，否则用设定端口。</summary>
+	public static int PagePort(OcrOptions o) {
+		if (LivePort > 0) return LivePort;
+		var p = o?.HttpPort ?? 0;
+		return p > 0 ? p : 1224;
+	}
+
+	public static void NoteFallback(bool on) { FellBack = on; }
+
 	public void Start(string host, int port, bool lan = false) {
 		Compat.ThrowIfDisposed(disposed, this);
 		host = string.IsNullOrWhiteSpace(host) ? "127.0.0.1" : host.Trim();
 		if (host is "0.0.0.0" or "*" or "+") host = "+";
-		port = Compat.Clamp(port, 1, 65535);
-		var all = lan || host == "+";
+		if (port == 0) host = "127.0.0.1";
+		else port = Compat.Clamp(port, 1, 65535);
+		var all = port != 0 && (lan || host == "+");
 		lock (listenLock) {
 			Stop();
 			var s = new SockHttpServer();
 			s.Start(all ? "+" : "127.0.0.1", port, handle);
 			sock = s;
+			Port = s.Port;
+			LivePort = s.Port;
 			LanAll = all;
 			running = true;
 		}
@@ -95,6 +112,9 @@ sealed partial class HttpOcrServer : IDisposable {
 		lock (listenLock) {
 			s = sock;
 			sock = null;
+			Port = 0;
+			if (LivePort != 0) LivePort = 0;
+			FellBack = false;
 		}
 		try { s?.Stop(); } catch { }
 		ChatRoom.CloseAll();

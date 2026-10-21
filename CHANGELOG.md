@@ -44,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Number names list FP64, FP32, FP16, BF16, and FP8 (E4M3, E5M2) as hex and a*2^x when the value is a finite float.
 - File info adds an EXE/DLL page with sections, imports, exports, the signature, and public .NET types.
+- If the HTTP port is busy, ScreenKit listens on a random localhost port instead, and menus and buttons open web pages on that port.
 
 #### Changed
 
@@ -63,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 数字表记在数值能转成有限浮点数时，列出 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制，以及 a*2^x 里 a、b、x 的取值。转不成浮点数时不显示这些行。
 - 文件分析在打开 EXE 或 DLL 时多出一页，列出节、导入导出、签名和 .NET 公开类型。
+- HTTP 端口打不开时改听本机随机端口，菜单和按钮打开网页时用这个端口。
 
 #### 变更
 

@@ -1288,7 +1288,7 @@ return 'started';
 			try {
 				var o = new OcrOptions();
 				AppConfig.LoadInto(o);
-				if (o.HttpPort > 0) portNo = o.HttpPort;
+				portNo = HttpOcrServer.PagePort(o);
 			}
 			catch { }
 			OpenPage("http://127.0.0.1:" + portNo + "/");

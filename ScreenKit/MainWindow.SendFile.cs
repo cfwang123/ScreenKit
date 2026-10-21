@@ -438,7 +438,7 @@ public partial class MainWindow {
 	void syncsfstatus() {
 		if (lbsfstatus == null) return;
 		if (opt.SendFileEnabled && sendFile != null && sendFile.IsRunning) {
-			var tcp = sendFile.ListenPort > 0 ? sendFile.ListenPort : SendFileServer.FileHttpPort(opt);
+			var tcp = sendFile.ListenPort > 0 ? sendFile.ListenPort : HttpOcrServer.PagePort(opt);
 			var udp = opt.SendFileUdpPort <= 0 ? 17531 : opt.SendFileUdpPort;
 			var phone = sendFile.PhoneOnline
 				? Loc.T("sf.tab.phone.on")

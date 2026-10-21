@@ -186,6 +186,7 @@ public sealed partial class SendFileServer : IDisposable {
 		Compat.ThrowIfDisposed(disposed, this);
 		var o = getOpts() ?? new OcrOptions();
 		var shared = FileHttpPort(o);
+		if (!ownHttp && HttpOcrServer.LivePort > 0) shared = HttpOcrServer.LivePort;
 		var wantHttp = ownHttp
 			? Compat.Clamp(o.SendFilePort <= 0 ? shared : o.SendFilePort, 1, 65535)
 			: shared;

@@ -16,12 +16,15 @@ sealed class SockHttpServer {
 	volatile bool running;
 	Action<SockCtx> onrequest;
 
+	public int Port { get; private set; }
+
 	public void Start(string host, int port, Action<SockCtx> onRequest) {
 		if (onRequest == null) throw new ArgumentNullException(nameof(onRequest));
 		lock (gate) {
 			Stop();
 			onrequest = onRequest;
 			tcp = bind(host, port);
+			Port = ((IPEndPoint)tcp.LocalEndpoint).Port;
 			running = true;
 			var l = tcp;
 			_ = Task.Run(() => acceptloop(l));
@@ -32,6 +35,7 @@ sealed class SockHttpServer {
 		TcpListener l;
 		lock (gate) {
 			running = false;
+			Port = 0;
 			l = tcp;
 			tcp = null;
 		}

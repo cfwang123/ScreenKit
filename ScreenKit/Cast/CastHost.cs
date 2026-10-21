@@ -385,6 +385,7 @@ static class CastHost {
 
 	public static int TcpPort {
 		get {
+			if (HttpOcrServer.LivePort > 0) return HttpOcrServer.LivePort;
 			var p = Opt?.HttpPort ?? 0;
 			return p > 0 ? p : 1224;
 		}

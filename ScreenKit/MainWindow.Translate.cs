@@ -264,8 +264,7 @@ public partial class MainWindow {
 			fail?.Invoke(Loc.T("tr.need.chrome"));
 			return;
 		}
-		var port = opt.HttpPort > 0 ? opt.HttpPort : 1224;
-		var url = $"http://127.0.0.1:{port}/chrome";
+		var url = "http://127.0.0.1:" + HttpOcrServer.PagePort(opt) + "/chrome";
 		var profile = ChromeTts.ProfileDir();
 		var args = $"--user-data-dir=\"{profile}\" --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble \"{url}\"";
 		try {

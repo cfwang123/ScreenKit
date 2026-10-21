@@ -50,16 +50,23 @@ public partial class WebFileWindow : Window {
 		catch { pass = opt.SendFileWebPass ?? ""; }
 		epass.Text = pass ?? "";
 		bcopypass.IsEnabled = !string.IsNullOrEmpty(pass);
-		var ips = ApkHost.LanIPv4s();
-		if (ips == null || ips.Count == 0) {
-			fail(Loc.T("sf.web.noip"));
-			return;
-		}
-		var port = server.ListenPort > 0 ? server.ListenPort : SendFileServer.FileHttpPort(opt);
+		var port = HttpOcrServer.PagePort(opt);
 		eurl.Items.Clear();
-		foreach (var ip in ips) {
-			eurl.Items.Add($"http://{ip}:{port}/files");
-			eurl.Items.Add($"http://{ip}:{port}/m");
+		if (HttpOcrServer.FellBack) {
+			eurl.Items.Add($"http://127.0.0.1:{port}/files");
+			eurl.Items.Add($"http://127.0.0.1:{port}/m");
+		}
+		else {
+			var ips = ApkHost.LanIPv4s();
+			if (ips == null || ips.Count == 0) {
+				fail(Loc.T("sf.web.noip"));
+				return;
+			}
+			if (server.ListenPort > 0) port = server.ListenPort;
+			foreach (var ip in ips) {
+				eurl.Items.Add($"http://{ip}:{port}/files");
+				eurl.Items.Add($"http://{ip}:{port}/m");
+			}
 		}
 		eurl.IsEnabled = eurl.Items.Count > 0;
 		eurl.SelectedIndex = eurl.Items.Count > 0 ? 0 : -1;
