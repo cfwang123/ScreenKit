@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Numbers longer than 10,000 digits show only the Chinese large-number reading and scientific notation.
 - The large-number reading can repeat 无量大数, so exponents up to nine digits still show that reading and scientific notation.
 - With the HTTP switch off, a random localhost port still serves the tools pages and the HTTP API.
+- The selection popup skips the dictionary when the text has punctuation a word cannot contain, or is longer than a word, and still opens first.
 
 #### Fixed
 
@@ -76,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 超过一万位的数字只显示中文大数和科学计数，不再整段报太长。
 - 大数可重复「无量大数」，指数最多九位，仍只显示大数和科学计数。
 - 关掉 HTTP 接口时，仍在本机随机端口提供工具页和 HTTP 接口。
+- 划词选区含单词里不会出现的标点，或长过一个单词时，不查词典，浮窗仍先弹出。
 
 #### 修复
 

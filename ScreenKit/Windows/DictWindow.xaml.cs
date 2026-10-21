@@ -1027,6 +1027,12 @@ public partial class DictWindow : UserControl {
 		var text = outtext ?? "";
 		var q = text.Length > 80 ? text.Substring(0, 80) : text;
 		var dict = selfilter ?? "";
+		if (!SelWord(q)) {
+			ogen++;
+			outwin.ShowRows(null, false);
+			outwin.ShowAt(outbox);
+			return;
+		}
 		outwin.ShowRows(null, true);
 		outwin.ShowAt(outbox);
 		var g = ++ogen;
@@ -1266,6 +1272,38 @@ public partial class DictWindow : UserControl {
 		if (lang == "ja") return 2;
 		if (lang == "ko") return 3;
 		return -1;
+	}
+
+	/// <summary>像一个词才查库。含单词里不会出现的标点，或长过单词，直接弹出、不查。</summary>
+	internal static bool SelWord(string text) {
+		if (string.IsNullOrEmpty(text)) return false;
+		var n = 0;
+		var cjk = false;
+		foreach (var c in text) {
+			n++;
+			if (n > 48) return false;
+			if (!selchar(c, ref cjk)) return false;
+		}
+		if (cjk && n > 20) return false;
+		return true;
+	}
+
+	static bool selchar(char c, ref bool cjk) {
+		if (c == ' ' || c == '\u3000') return true;
+		if (ishan(c) || iskana(c) || ishangul(c) || c == '々') {
+			cjk = true;
+			return true;
+		}
+		if (char.IsLetter(c) || char.IsDigit(c)) return true;
+		if (c == '\'' || c == '\u2019' || c == '\uFF07') return true;
+		if (c == '-' || c == '\u2010' || c == '\u2011' || c == '\uFF0D') return true;
+		if (c == '\u00B7' || c == '\u30FB' || c == '\uFF65') return true;
+		return false;
+	}
+
+	static bool ishangul(char c) {
+		if (c >= '\uAC00' && c <= '\uD7A3') return true;
+		return c >= '\u1100' && c <= '\u11FF' || c >= '\u3130' && c <= '\u318F';
 	}
 
 	static bool iskana(char c) {

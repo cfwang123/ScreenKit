@@ -20,6 +20,36 @@
         AutomationProperties.AutomationId="dict.sel.outside">
 	<Window.Resources>
 		<local:SelHalfWidth x:Key="selhalf"/>
+		<Style x:Key="SelLang" TargetType="ToggleButton">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Margin" Value="0,0,10,0"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="#5C6570"/>
+			<Setter Property="Focusable" Value="False"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="ToggleButton">
+						<TextBlock x:Name="tx" Text="{TemplateBinding Content}"
+						           Foreground="{TemplateBinding Foreground}"
+						           FontSize="{TemplateBinding FontSize}"
+						           VerticalAlignment="Center"/>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="tx" Property="Foreground" Value="#1F2329"/>
+							</Trigger>
+							<Trigger Property="IsChecked" Value="True">
+								<Setter TargetName="tx" Property="FontWeight" Value="SemiBold"/>
+								<Setter TargetName="tx" Property="Foreground" Value="{StaticResource Accent}"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
 	</Window.Resources>
 	<Border x:Name="bdpop" Margin="8" Background="#FCFCFC" BorderBrush="#A0A0A0" BorderThickness="1"
 	        CornerRadius="4" Padding="8,6,8,16" MinWidth="280" MaxWidth="360">
@@ -33,26 +63,21 @@
 				<RowDefinition x:Name="rowhits" Height="Auto"/>
 				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
-			<DockPanel Grid.Row="0" Margin="0,0,0,6" LastChildFill="True">
-				<Button x:Name="bselclose" DockPanel.Dock="Right" Content="×" Width="28" Height="26"
+			<DockPanel Grid.Row="0" Margin="0,0,0,4" LastChildFill="True">
+				<Button x:Name="bselclose" DockPanel.Dock="Right" Content="×" Width="22" Height="22"
 				        Margin="4,0,0,0" Padding="0" FontSize="16" Focusable="False"
-				        Style="{StaticResource GhostBtn}" VerticalAlignment="Top"
+				        Style="{StaticResource GhostBtn}" VerticalAlignment="Center"
 				        AutomationProperties.AutomationId="dict.sel.close"/>
-				<WrapPanel>
-				<ToggleButton x:Name="bselfall" Content="全部" Height="26" Padding="8,0" FontSize="12"
-				              Style="{StaticResource ToolToggleSm}" IsChecked="True" Focusable="False"
+				<WrapPanel VerticalAlignment="Center">
+				<ToggleButton x:Name="bselfall" Content="全部" Style="{StaticResource SelLang}" IsChecked="True"
 				              AutomationProperties.AutomationId="dict.sel.filter.all"/>
-				<ToggleButton x:Name="bselfzh" Content="汉语" Height="26" Padding="8,0" FontSize="12"
-				              Style="{StaticResource ToolToggleSm}" Focusable="False"
+				<ToggleButton x:Name="bselfzh" Content="中" Style="{StaticResource SelLang}"
 				              AutomationProperties.AutomationId="dict.sel.filter.zh"/>
-				<ToggleButton x:Name="bselfja" Content="日语" Height="26" Padding="8,0" FontSize="12"
-				              Style="{StaticResource ToolToggleSm}" Focusable="False"
+				<ToggleButton x:Name="bselfja" Content="日" Style="{StaticResource SelLang}"
 				              AutomationProperties.AutomationId="dict.sel.filter.ja"/>
-				<ToggleButton x:Name="bselfko" Content="韩语" Height="26" Padding="8,0" FontSize="12"
-				              Style="{StaticResource ToolToggleSm}" Focusable="False"
+				<ToggleButton x:Name="bselfko" Content="韩" Style="{StaticResource SelLang}"
 				              AutomationProperties.AutomationId="dict.sel.filter.ko"/>
-				<ToggleButton x:Name="bselfen" Content="英语" Height="26" Padding="8,0" FontSize="12"
-				              Style="{StaticResource ToolToggleSm}" Focusable="False"
+				<ToggleButton x:Name="bselfen" Content="英" Style="{StaticResource SelLang}" Margin="0"
 				              AutomationProperties.AutomationId="dict.sel.filter.en"/>
 				</WrapPanel>
 			</DockPanel>

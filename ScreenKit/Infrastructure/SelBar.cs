@@ -137,6 +137,14 @@ static class SelBar {
 
 	public static int Test(Action<string> log) {
 		void say(string s) { try { log?.Invoke(s); } catch { } }
+		if (!DictWindow.SelWord("hello") || !DictWindow.SelWord("well-known") || !DictWindow.SelWord("你好") || !DictWindow.SelWord("マル・クス")) {
+			say("FAIL word");
+			return 1;
+		}
+		if (DictWindow.SelWord("hello, world") || DictWindow.SelWord("结束。") || DictWindow.SelWord(new string('a', 49)) || DictWindow.SelWord(new string('中', 21))) {
+			say("FAIL skip");
+			return 1;
+		}
 		if (!WantBar(true, false, false) || !WantBar(false, true, false) || WantBar(false, false, false) || WantBar(true, false, true) || !WantBar(false, true, true)) {
 			say("FAIL gesture");
 			return 1;

@@ -93,10 +93,10 @@ public partial class SelBarWindow : Window {
 		bgrip.ToolTip = Loc.T("dict.sel.resize");
 		lbselwait.Text = Loc.T("dict.sel.searching");
 		bselfall.Content = Loc.T("dict.filter.all");
-		bselfzh.Content = Loc.T("dict.filter.zh");
-		bselfja.Content = Loc.T("dict.filter.ja");
-		bselfko.Content = Loc.T("dict.filter.ko");
-		bselfen.Content = Loc.T("dict.filter.en");
+		bselfzh.Content = Loc.T("dict.lab.zh");
+		bselfja.Content = Loc.T("dict.lab.ja");
+		bselfko.Content = Loc.T("dict.lab.ko");
+		bselfen.Content = Loc.T("dict.lab.en");
 	}
 
 	internal void SetLang(string dict) {
