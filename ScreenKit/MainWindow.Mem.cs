@@ -129,7 +129,7 @@ public partial class MainWindow {
 			var p = sendFile.ListenPort > 0 ? sendFile.ListenPort : port;
 			return Loc.T("stbar.http.lan", p);
 		}
-		if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled) {
+		if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled || httpRetry) {
 			var err = httpListenErr ?? "";
 			err = err.Replace("\r", " ").Replace('\n', ' ').Trim();
 			if (err.Length > 80) err = err.Substring(0, 80) + "…";

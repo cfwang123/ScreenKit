@@ -188,7 +188,7 @@ Barcode, ONNX text recognition, offline speech, face, local Chinese–English tr
 
 Windows 10/11 (x64). It needs [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48).
 
-The local HTTP port defaults to 1224; after **Allow LAN access** is checked, the same LAN can connect. File transfer, the web tools, and screencast share this port, and `POST /api/ocr` matches Umi-OCR text recognition. If that port cannot be opened, pages are served on a random localhost port, and menus and buttons open that port.
+The local HTTP port defaults to 1224; after **Allow LAN access** is checked, the same LAN can connect. File transfer, the web tools, and screencast share this port, and `POST /api/ocr` matches Umi-OCR text recognition. If that port cannot be opened, or the HTTP switch is off, a random localhost port still serves the tools pages and the HTTP API, and menus and buttons open that port.
 
 ## License
 

@@ -92,10 +92,10 @@ public partial class MainWindow {
 	}
 
 	string httpstatustext() {
-		if (opt.HttpEnabled && httpServer != null && httpServer.IsRunning) {
+		if (httpServer != null && httpServer.IsRunning && httpServer.Port > 0) {
 			var host = httpServer.LanAll ? "0.0.0.0" : "127.0.0.1";
 			var text = $"http://{host}:{httpServer.Port}";
-			if (opt.HttpLan && !httpServer.LanAll)
+			if (opt.HttpEnabled && opt.HttpLan && !httpServer.LanAll)
 				text += Loc.T("http.tab.localonly");
 			return text;
 		}
@@ -193,7 +193,7 @@ public partial class MainWindow {
 	}
 
 	void openhttppage(bool fromTray, string path) {
-		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
+		if (httpServer == null || !httpServer.IsRunning) {
 			httptoolfail(httpstatustext(), fromTray);
 			return;
 		}
@@ -216,7 +216,7 @@ public partial class MainWindow {
 
 	async Task httpSendAsync() {
 		if (httpSending) return;
-		if (!opt.HttpEnabled || httpServer == null || !httpServer.IsRunning) {
+		if (httpServer == null || !httpServer.IsRunning) {
 			ehttpresp.Text = httpstatustext();
 			return;
 		}

@@ -462,8 +462,7 @@ public partial class MainWindow : Window {
 			});
 			if (httpServer != null)
 				httpServer.Logged += onhttplog;
-			if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled)
-				starthttp();
+			starthttp();
 		}
 		catch (Exception ex) {
 			setstatus(Loc.T("st.http_init_fail", ex.Message));
@@ -472,15 +471,28 @@ public partial class MainWindow : Window {
 
 	void starthttp(bool quiet = false) {
 		if (httpServer == null) return;
+		var retry = quiet;
+		// 接口、传文件、投屏都关着时，仍在本机随机口提供工具页和 HTTP 接口。
 		if (!opt.HttpEnabled && !opt.SendFileEnabled && !opt.CastRecvEnabled) {
-			try { httpServer.Stop(); } catch { }
-			httpListenErr = "";
-			httpRetry = false;
+			try {
+				httpServer.Start("127.0.0.1", 0);
+				HttpOcrServer.NoteFallback(true);
+				httpListenErr = "";
+				httpRetry = false;
+			}
+			catch (Exception ex) {
+				var msg = ex.Message ?? "";
+				var changed = !string.Equals(httpListenErr, msg, StringComparison.Ordinal);
+				httpListenErr = msg;
+				httpRetry = true;
+				httpRetryAt = Environment.TickCount;
+				if (!quiet || changed)
+					setstatus(Loc.T("st.http_fail", ex.Message));
+			}
 			synchttpstatus();
 			kickstbar();
 			return;
 		}
-		var retry = quiet;
 		var want = SendFileServer.FileHttpPort(opt);
 		var host = opt.HttpLan ? "+" : "127.0.0.1";
 		Exception fail = null;
@@ -527,8 +539,7 @@ public partial class MainWindow : Window {
 	void mayberetryhttp() {
 		if (!httpRetry) return;
 		if (Environment.TickCount - httpRetryAt < HTTPRETRYMS) return;
-		if (httpServer == null || httpServer.IsRunning
-			|| (!opt.HttpEnabled && !opt.SendFileEnabled && !opt.CastRecvEnabled)) {
+		if (httpServer == null || httpServer.IsRunning) {
 			httpRetry = false;
 			return;
 		}
@@ -537,13 +548,7 @@ public partial class MainWindow : Window {
 
 	void restarthttp() {
 		try { httpServer?.Stop(); } catch { }
-		if (opt.HttpEnabled || opt.SendFileEnabled || opt.CastRecvEnabled) starthttp();
-		else {
-			httpRetry = false;
-			httpListenErr = "";
-			synchttpstatus();
-			kickstbar();
-		}
+		starthttp();
 	}
 
 	void initsendfile() {
@@ -5142,7 +5147,9 @@ public partial class MainWindow : Window {
 		var httpShow = httpServer != null && httpServer.IsRunning
 			? $"{(httpServer.LanAll ? opt.HttpShowHost() : "127.0.0.1")}:{httpServer.Port}"
 			: $"{opt.HttpShowHost()}:{opt.HttpPort}";
-		sb.AppendLine($"HTTP: {(opt.HttpEnabled ? httpShow : "off")}");
+		var httpLine = httpServer != null && httpServer.IsRunning ? httpShow
+			: (opt.HttpEnabled ? $"{opt.HttpShowHost()}:{opt.HttpPort}" : "off");
+		sb.AppendLine("HTTP: " + httpLine);
 		var sfShow = sendFile != null && sendFile.ListenPort > 0 ? sendFile.ListenPort : HttpOcrServer.PagePort(opt);
 		sb.AppendLine($"SendFile: {(opt.SendFileEnabled ? $":{sfShow}/udp:{opt.SendFileUdpPort}" : "off")}");
 		sb.AppendLine($"FaceModels: {FaceModels.ModelsRoot()} exists={Directory.Exists(FaceModels.ModelsRoot())}");
