@@ -114,7 +114,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Translate**: Translate text into another language, with its own engine and local ONNX model pickers
   - **Password generator**: Generate passwords
   - **Regular expressions**: Find regex matches
-  - **Number names**: Write a number in several readings. Past ten thousand digits, if the large-number scale still applies, only that reading and scientific notation are shown
+  - **Number names**: Write a number in several readings. Past ten thousand digits, if the large-number scale still applies, only that reading and scientific notation are shown. Finite values also show FP64, FP32, FP16, BF16, and FP8 as hex and a*2^x
   - **Test data**: Generate fake data by type
 - **Math**
   - **Scientific calculator**: Scientific calculation

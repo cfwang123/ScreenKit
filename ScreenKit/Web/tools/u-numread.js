@@ -86,7 +86,13 @@
 		"罗马数字": "en-US",
 		"二进制": "zh-CN",
 		"八进制": "zh-CN",
-		"十六进制": "zh-CN"
+		"十六进制": "zh-CN",
+		"FP64": "en-US",
+		"FP32": "en-US",
+		"FP16": "en-US",
+		"BF16": "en-US",
+		"FP8 E4M3": "en-US",
+		"FP8 E5M2": "en-US"
 	};
 
 	SK.regutil("u-numread", {
@@ -98,7 +104,7 @@
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
 				+ '<span class="msg" id="num-msg"></span>'
-				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。超过一万位、大数还能读时，只列出大数和科学计数。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。超过一万位、大数还能读时，只列出大数和科学计数。能转成有限浮点数时，另给 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制与 a * 2^x。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -201,7 +207,8 @@
 	function readexp(raw){
 		var t = raw.replace("−", "-");
 		var digits = t.charAt(0) === "+" || t.charAt(0) === "-" ? t.slice(1) : t;
-		if (digits.length > 5) throw new Error("太长");
+		// 五位挡掉 1e193321。六位里超过无量大数的，展开时再报太长。
+		if (digits.length > 6) throw new Error("太长");
 		return parseInt(t, 10);
 	}
 
@@ -276,8 +283,10 @@
 			["八进制", baseof(p, 8)],
 			["十六进制", baseof(p, 16)]
 		];
-		var out = [];
+		var fl = floatrows(p);
 		var i;
+		for (i = 0; i < fl.length; i++) rows.push(fl[i]);
+		var out = [];
 		for (i = 0; i < rows.length; i++) {
 			if (rows[i][1]) out.push(rows[i]);
 		}
@@ -1246,6 +1255,220 @@
 		if (p.fp) return "";
 		if (typeof BigInt !== "function") return "";
 		return sign(p) + BigInt(p.ip).toString(radix).toUpperCase();
+	}
+
+	// 先转成 Number。NaN、无穷不显示。十六进制是位型；a * 2^x 里 a 是有效数字，x 是无偏指数。
+	function floatrows(p){
+		var plain = sign(p) + p.ip + (p.fp ? "." + p.fp : "");
+		var n = Number(plain);
+		if (n !== n || n === Infinity || n === -Infinity) return [];
+		var parts = readF64(n);
+		if (!parts) return [];
+		var specs = [
+			["FP64", 52, 11, 1023, "ieee"],
+			["FP32", 23, 8, 127, "ieee"],
+			["FP16", 10, 5, 15, "ieee"],
+			["BF16", 7, 8, 127, "ieee"],
+			["FP8 E4M3", 3, 4, 7, "e4m3"],
+			["FP8 E5M2", 2, 5, 15, "ieee"]
+		];
+		var out = [];
+		var i;
+		for (i = 0; i < specs.length; i++) {
+			var s = specs[i];
+			out.push([s[0], floatcell(parts, s[1], s[2], s[3], s[4])]);
+		}
+		return out;
+	}
+
+	var F64BUF = null;
+	var F64LE = false;
+
+	function f64msb(n){
+		if (!F64BUF) {
+			F64BUF = new ArrayBuffer(8);
+			new Float64Array(F64BUF)[0] = 1;
+			F64LE = new Uint8Array(F64BUF)[0] === 0;
+		}
+		new Float64Array(F64BUF)[0] = n;
+		var u = new Uint8Array(F64BUF);
+		var b = [];
+		var i;
+		for (i = 0; i < 8; i++) b.push(F64LE ? u[7 - i] : u[i]);
+		return b;
+	}
+
+	function readF64(n){
+		var b = f64msb(n);
+		var sign = b[0] >> 7;
+		var exp = ((b[0] & 127) << 4) | (b[1] >> 4);
+		if (exp === 2047) return null;
+		var frac = (b[1] & 15) * 281474976710656
+			+ b[2] * 1099511627776
+			+ b[3] * 4294967296
+			+ b[4] * 16777216
+			+ b[5] * 65536
+			+ b[6] * 256
+			+ b[7];
+		var hex = "0x";
+		var i;
+		for (i = 0; i < 8; i++) hex += byteHex(b[i]);
+		var sig = frac;
+		var binExp = -1074;
+		if (exp !== 0) {
+			sig = frac + 4503599627370496;
+			binExp = exp - 1075;
+		}
+		return { sign: sign, exp: exp, frac: frac, sig: sig, binExp: binExp, hex: hex };
+	}
+
+	function floatcell(parts, mant, expBits, bias, mode){
+		var st;
+		var hex;
+		if (mant === 52 && expBits === 11) {
+			st = { sign: parts.sign, exp: parts.exp, frac: parts.frac };
+			hex = parts.hex;
+		}
+		else {
+			st = encodeFloat(parts, mant, expBits, bias, mode);
+			var nibbles = (1 + expBits + mant) / 4;
+			hex = "0x" + pad0(packBits(st, mant, expBits).toString(16).toUpperCase(), nibbles);
+		}
+		return hex + "  " + axText(st, mant, expBits, bias, mode);
+	}
+
+	function packBits(st, mant, expBits){
+		var bits = st.frac + st.exp * Math.pow(2, mant);
+		if (st.sign) bits += Math.pow(2, expBits + mant);
+		return bits;
+	}
+
+	// 用未舍入的指数判断次正规。E4M3 没有无穷，超过 448 饱和到最大有限值。
+	function encodeFloat(parts, mant, expBits, bias, mode){
+		var sign = parts.sign;
+		var sig = parts.sig;
+		var allExp = Math.pow(2, expBits) - 1;
+		var emax = mode === "e4m3" ? 8 : allExp - 1 - bias;
+		var emin = 1 - bias;
+		if (sig === 0) return { sign: sign, exp: 0, frac: 0 };
+		var trueExp = parts.binExp + floorLog2(sig);
+		if (trueExp < emin) return encodeSub(sign, sig, parts.binExp, mant, emin);
+		var top = floorLog2(sig);
+		var keep = mant + 1;
+		var extra = top + 1 - keep;
+		var main = sig;
+		if (extra > 0) {
+			var div = Math.pow(2, extra);
+			main = Math.floor(sig / div);
+			var rest = sig - main * div;
+			var half = div / 2;
+			if (rest > half || (rest === half && main % 2 === 1)) main++;
+		}
+		else if (extra < 0) main = sig * Math.pow(2, -extra);
+		if (main >= Math.pow(2, keep)) {
+			main = Math.pow(2, mant);
+			trueExp++;
+		}
+		var frac = main - Math.pow(2, mant);
+		if (mode === "e4m3") {
+			if (trueExp > emax || (trueExp === emax && frac > 6)) return { sign: sign, exp: 15, frac: 6 };
+		}
+		else if (trueExp > emax) return { sign: sign, exp: allExp, frac: 0, inf: true };
+		return { sign: sign, exp: trueExp + bias, frac: frac };
+	}
+
+	function encodeSub(sign, sig, binExp, mant, emin){
+		var sh = binExp - emin + mant;
+		var q = 0;
+		var rest = 0;
+		var half = 0;
+		var extra = 0;
+		if (sh >= 0) q = sig * Math.pow(2, sh);
+		else {
+			extra = -sh;
+			if (extra < 54) {
+				var div = Math.pow(2, extra);
+				q = Math.floor(sig / div);
+				rest = sig - q * div;
+				half = div / 2;
+			}
+		}
+		if (extra > 0 && extra < 54 && (rest > half || (rest === half && q % 2 === 1))) q++;
+		if (q >= Math.pow(2, mant)) return { sign: sign, exp: 1, frac: 0 };
+		return { sign: sign, exp: 0, frac: q };
+	}
+
+	function axText(st, mant, expBits, bias, mode){
+		var all = Math.pow(2, expBits) - 1;
+		if (st.inf || (mode !== "e4m3" && st.exp === all)) {
+			if (st.frac) return "NaN";
+			return st.sign ? "-Inf" : "Inf";
+		}
+		if (mode === "e4m3" && st.exp === 15 && st.frac === 7) return "NaN";
+		var a;
+		var x;
+		if (st.exp === 0 && st.frac === 0) {
+			a = st.sign ? "-0" : "0";
+			x = 0;
+		}
+		else if (st.exp === 0) {
+			a = signedA(st.sign, dyadic(st.frac, mant));
+			x = 1 - bias;
+		}
+		else {
+			a = signedA(st.sign, dyadic(Math.pow(2, mant) + st.frac, mant));
+			x = st.exp - bias;
+		}
+		var b = 2;
+		return a + " * " + b + "^" + x + "  a=" + a + " b=" + b + " x=" + x;
+	}
+
+	function signedA(signBit, a){
+		if (!signBit) return a;
+		return "-" + a;
+	}
+
+	function dyadic(num, denPow){
+		if (!denPow) return String(num);
+		if (typeof BigInt !== "function") return String(num / Math.pow(2, denPow));
+		var v = BigInt(num) * fivePow(denPow);
+		var digits = pad0(v.toString(), denPow + 1);
+		var ip = digits.slice(0, digits.length - denPow);
+		var fp = digits.slice(digits.length - denPow).replace(/0+$/, "");
+		if (!fp) return ip;
+		return ip + "." + fp;
+	}
+
+	var FIVE = null;
+	function fivePow(n){
+		if (!FIVE) FIVE = [BigInt(1)];
+		var i;
+		for (i = FIVE.length; i <= n; i++) FIVE[i] = FIVE[i - 1] * BigInt(5);
+		return FIVE[n];
+	}
+
+	function floorLog2(n){
+		var e = 0;
+		var step = [32, 16, 8, 4, 2, 1];
+		var val = [4294967296, 65536, 256, 16, 4, 2];
+		var i;
+		for (i = 0; i < step.length; i++) {
+			if (n >= val[i]) {
+				n = Math.floor(n / val[i]);
+				e += step[i];
+			}
+		}
+		return e;
+	}
+
+	function byteHex(b){
+		var s = b.toString(16).toUpperCase();
+		return s.length < 2 ? "0" + s : s;
+	}
+
+	function pad0(s, n){
+		while (s.length < n) s = "0" + s;
+		return s;
 	}
 
 	function splitend(s, n){

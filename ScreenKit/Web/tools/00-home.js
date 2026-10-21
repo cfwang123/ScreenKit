@@ -606,8 +606,8 @@
 						"type":"button",
 						"data-tool":"u-numread",
 						"data-cat":"text",
-						"data-name":"数字表记 转换 中文读法 英文读法 韩语 韩文 固有 汉字 日语 德语 法语 西班牙语 葡萄牙语 俄语 小数 中数 大数 分厘毫 SI kilo mega 大写 罗马 英语多边形 pentagon chiliagon myriagon 千分位 科学计数 人民币 元 角 分",
-						"title":"输入数字，列出中文、韩文、日语、德法西葡俄读法、英语多边形名、人民币大写，以及小数中数大数和常用表记",
+						"data-name":"数字表记 转换 中文读法 英文读法 韩语 韩文 固有 汉字 日语 德语 法语 西班牙语 葡萄牙语 俄语 小数 中数 大数 分厘毫 SI kilo mega 大写 罗马 英语多边形 pentagon chiliagon myriagon 千分位 科学计数 人民币 元 角 分 fp8 fp16 fp32 fp64 bf16 bfloat E4M3 E5M2 浮点 hex",
+						"title":"输入数字，列出中文、韩文、日语、德法西葡俄读法、英语多边形名、人民币大写，以及小数中数大数和常用表记。能转成浮点数时给出 FP8/16/32/64 的十六进制和 a*2^x",
 						c:[
 						{x:"i.fa-solid.fa-font"},
 						{x:"span","data-k":"web.tool.numread",c:"数字表记转换"},
