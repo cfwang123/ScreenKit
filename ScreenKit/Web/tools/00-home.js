@@ -591,6 +591,71 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-ports",
+						"data-cat":"info",
+						"data-name":"常见端口 端口号 port 3306 80 443 22 3389 8080 数据库 代理 服务",
+						"title":"常见 TCP/UDP 端口、服务和用途，点一下复制端口号",
+						c:[
+						{x:"i.fa-solid.fa-network-wired"},
+						{x:"span","data-k":"web.tool.ports",c:"常见端口号"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-ports","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-magic",
+						"data-cat":"info",
+						"data-name":"文件头 魔数 magic 文件签名 signature hex ascii jpg png pdf zip exe",
+						"title":"按十六进制文件头识别真实格式，含 ASCII 和偏移",
+						c:[
+						{x:"i.fa-solid.fa-file-binary"},
+						{x:"span","data-k":"web.tool.magic",c:"文件头魔数"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-magic","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-tz",
+						"data-cat":"info",
+						"data-name":"时区 时间 zone timezone UTC GMT CST 北京 纽约 伦敦 夏令时",
+						"title":"常见 IANA 时区、缩写、标准/夏令时偏移和主要城市",
+						c:[
+						{x:"i.fa-solid.fa-earth-asia"},
+						{x:"span","data-k":"web.tool.tz",c:"时区表"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-tz","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-codes",
+						"data-cat":"info",
+						"data-name":"国家 地区 语言 货币 代码 ISO 3166 639 4217 中国 CNY USD 人民币",
+						"title":"查 ISO 国家/地区、语言和货币代码，点一下复制主代码",
+						c:[
+						{x:"i.fa-solid.fa-globe"},
+						{x:"span","data-k":"web.tool.codes",c:"国家/语言/货币代码"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-codes","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-keycode",
+						"data-cat":"info",
+						"data-name":"键盘 keycode 键码 event.code event.key VK 快捷键 虚拟键",
+						"title":"按键对应的 event.code、event.key、keyCode 和 Windows VK",
+						c:[
+						{x:"i.fa-solid.fa-keyboard"},
+						{x:"span","data-k":"web.tool.keycode",c:"键盘码"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-keycode","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-b64img",
 						"data-cat":"image",
 						"data-name":"图片 base64",

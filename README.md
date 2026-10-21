@@ -154,6 +154,11 @@ This program receives while it is running, and that can be turned off in Setting
   - **Color chart**: Named colors
   - **HTTP status codes**: Status codes, descriptions, and specs by 1xx–5xx, plus common non-standard ones
   - **MIME types**: MIME types, file extensions, and Content-Type examples
+  - **Common ports**: TCP/UDP ports, services, and what they are used for
+  - **File signatures**: Identify the real format from a file's hex header
+  - **Time zones**: IANA zones, abbreviations, and standard/DST offsets
+  - **Country, language & currency codes**: ISO codes for countries, languages, and currencies
+  - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product
   - **Unicode chart**: Unicode characters

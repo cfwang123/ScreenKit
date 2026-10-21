@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Check for updates lists the notes for each version between the current one and the new one, and a version can be opened on its own.
 - The selection popup keeps the same size with no hits, and Translate on the language row detects text and translates it into the native language.
 - Lookup tools add HTTP status code and MIME type tables with search, category filters, and click-to-copy.
+- Lookup tools add common ports, file signatures, time zones, country/language/currency codes, and key codes.
 
 #### Changed
 
@@ -86,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 检查到新版本时列出当前版本到新版本之间各版说明，可点版本号只看该版。
 - 划词浮窗没查到词时大小不变。语言栏的翻译会自动识别并译成母语，改语言后要点一次翻译。
 - 信息查询增加 HTTP 状态码表和 MIME 类型表，可搜索、按类别筛选，点一行复制。
+- 信息查询增加常见端口号、文件头魔数、时区表、国家/语言/货币代码和键盘码。
 
 #### 变更
 
