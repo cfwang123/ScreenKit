@@ -565,6 +565,32 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-httptab",
+						"data-cat":"info",
+						"data-name":"http 状态码 状态代码 响应码 返回码 status code 200 301 302 400 404 500 502 503 504 重定向 网关 错误",
+						"title":"按 1xx–5xx 分组列出 HTTP 状态码，点一下复制，含非标准扩展码",
+						c:[
+						{x:"i.fa-solid.fa-server"},
+						{x:"span","data-k":"web.tool.httptab",c:"HTTP状态码表"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-httptab","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-mimetab",
+						"data-cat":"info",
+						"data-name":"mime 类型 媒体类型 content-type 扩展名 文件类型 后缀 jpg png json pdf zip mp4 mp3 woff2",
+						"title":"按类别列出常见 MIME 类型和扩展名，点一下复制 Content-Type",
+						c:[
+						{x:"i.fa-solid.fa-file-code"},
+						{x:"span","data-k":"web.tool.mimetab",c:"MIME类型表"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-mimetab","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-b64img",
 						"data-cat":"image",
 						"data-name":"图片 base64",

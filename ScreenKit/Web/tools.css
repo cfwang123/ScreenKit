@@ -736,6 +736,94 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 12px/1.4 Consolas, "Microsoft YaHei UI", monospace;
 }
 .cnone { margin: 8px; color: var(--muted); }
+/* HTTP 状态码表 / MIME 类型表：上面搜索和分类，左边列表，右边详情。 */
+#box.panel.on:has(.reftab) { min-width: 0; max-width: 100%; overflow: hidden; }
+#box.panel.on:has(.reftab) #box-body {
+	flex: 1 1 auto; min-height: 0; min-width: 0;
+	display: flex; flex-direction: column;
+}
+.reftab { display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-height: 0; min-width: 0; }
+.reftab .uquery { flex: none; margin: 0; }
+.refchips { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
+.refchips button {
+	height: 28px; padding: 0 10px; cursor: pointer;
+	border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);
+	font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.refchips button:hover { background: #f4f4f5; }
+.refchips button small { margin-left: 5px; color: var(--muted); font-size: 11px; }
+.refchips button.on { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.refchips button.on small { color: inherit; opacity: .8; }
+.refbody {
+	display: grid; grid-template-columns: minmax(0, 1fr) 320px;
+	gap: 10px; flex: 1 1 auto; min-height: 0; min-width: 0;
+}
+.refscroll {
+	min-height: 0; overflow: auto;
+	border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+}
+.reflist { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.reflist th, .reflist td {
+	padding: 6px 10px; text-align: left; vertical-align: top;
+	border-bottom: 1px solid var(--line); font-size: 13px; overflow-wrap: break-word;
+}
+.reflist.hcodes th:nth-child(1), .reflist.hcodes td:nth-child(1) { width: 62px; }
+.reflist.hcodes th:nth-child(2), .reflist.hcodes td:nth-child(2) { width: 36%; }
+.reflist.hcodes th:nth-child(3), .reflist.hcodes td:nth-child(3) { width: 20%; }
+.reflist.mtypes th:nth-child(1), .reflist.mtypes td:nth-child(1) { width: 42%; }
+.reflist.mtypes th:nth-child(2), .reflist.mtypes td:nth-child(2) { width: 22%; }
+.reflist th {
+	position: sticky; top: 0; z-index: 1;
+	background: var(--card); color: var(--muted); font-weight: 600;
+}
+.reflist tbody tr[data-code], .reflist tbody tr[data-mime] { cursor: pointer; }
+.reflist tbody tr[data-code]:hover, .reflist tbody tr[data-mime]:hover { background: #f4f4f5; }
+.reflist tbody tr.on, .reflist tbody tr.on:hover { background: #fff1e8; }
+.reflist .refgh td {
+	background: #f7f5f1; color: var(--ink);
+	font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.reflist .refgh .n { margin-left: 6px; color: var(--muted); font-weight: 400; }
+.reflist .refnone { color: var(--muted); text-align: center; padding: 18px 10px; }
+.reflist td.hcode { font: 600 13px/1.4 Consolas, "Microsoft YaHei UI", monospace; white-space: nowrap; }
+.reflist td.hspec { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.reflist td.mtype { font: 12.5px/1.4 Consolas, "Microsoft YaHei UI", monospace; word-break: break-all; }
+.reflist td.mext {
+	color: var(--muted);
+	font: 12px/1.4 Consolas, "Microsoft YaHei UI", monospace;
+	word-break: break-word;
+}
+.hcode.c1, .refbig.c1 { color: #0369a1; }
+.hcode.c2, .refbig.c2 { color: #15803d; }
+.hcode.c3, .refbig.c3 { color: #b45309; }
+.hcode.c4, .refbig.c4 { color: #b91c1c; }
+.hcode.c5, .refbig.c5 { color: #7e22ce; }
+.hcode.cx, .refbig.cx { color: #6b7280; }
+.refdetail {
+	/* 全局 aside 设了 196px 贴边栏，这里要还原成普通面板 */
+	width: auto; position: static; align-self: stretch;
+	display: block; margin: 0; padding: 14px;
+	color: var(--ink); background: var(--card);
+	border: 1px solid var(--line); border-radius: 10px; box-shadow: none;
+	min-height: 0; overflow: auto;
+}
+.refbig { font: 650 34px/1.1 Consolas, "Microsoft YaHei UI", monospace; color: var(--accent); }
+.refbig.mime { font-size: 18px; line-height: 1.35; word-break: break-all; }
+.refsub { margin: 6px 0 0; color: var(--ink); font-size: 15px; font-weight: 600; }
+.refcn { margin: 2px 0 12px; color: var(--muted); font-size: 13px; }
+.refmeta { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 7px 8px; margin: 0; }
+.refmeta dt { margin: 0; color: var(--muted); font-size: 12px; }
+.refmeta dd { margin: 0; font-size: 13px; line-height: 1.5; word-break: break-word; }
+.refsample {
+	margin: 12px 0 0; padding: 8px 10px; border-radius: 8px;
+	background: var(--paper); color: var(--ink);
+	font: 12px/1.5 Consolas, "Microsoft YaHei UI", monospace;
+	overflow-wrap: anywhere;
+}
+@media (max-width: 1000px) {
+	.refbody { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+	.refdetail { max-height: 220px; }
+}
 #chat-gate .row { align-items: flex-end; }
 #chat-gate #chat-join {
 	height: 40px; margin: 6px 0 0; padding: 0 16px;
