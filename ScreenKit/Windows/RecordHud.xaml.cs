@@ -222,10 +222,10 @@ public partial class RecordHud : Window {
 		lbaudio.Visibility = Visibility.Collapsed;
 		var be = started ? backend() : null;
 		var full = string.IsNullOrEmpty(be) ? sum : sum + "\n" + be;
-		lbsummary.ToolTip = full;
 		var tip = $"选区 {rw}×{rh}\n{full}\n拖动红线外侧可移动 · 拖边缘/角点缩放";
-		ToolTip = tip;
-		bbar.ToolTip = tip + "\n拖动控制条可移动位置";
+		lbsummary.ToolTip = null;
+		ToolTip = null;
+		bbar.ToolTip = tip;
 	}
 
 	static string hudbrief(RecordOptions o) {
