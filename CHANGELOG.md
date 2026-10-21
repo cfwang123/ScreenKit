@@ -73,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Settings splits Speech into Speech synthesis and Speech recognition. The per-language speech table is under Speech synthesis.
 - Polish, chat, and translation prompts, plus the translation batch size, are set under Settings, LLM. Speech recognition keeps the polish switches. Translate keeps the native and learning languages.
 - The Linux software table is a single cross-distribution list of open-source software.
+- Pasted chat images stay as drafts and send with the text; text and images appear as separate messages.
 
 #### Fixed
 
@@ -115,6 +116,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 参数设置的「语音」拆成「语音合成」和「语音识别」。按语言的发音表放在「语音合成」里。
 - 润色、对话和翻译的提示词，以及翻译的一批条数，改到参数设置的「LLM接口」。语音识别仍保留是否润色；翻译页仍保留母语和学习语言。
 - Linux 常用软件表改为跨发行版的开源软件列表。
+- 聊天室粘贴图片先显示为草稿，随文本一起发送；文本和图片分开发送和显示。
 
 #### 修复
 

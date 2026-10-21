@@ -6,9 +6,11 @@
 	var beat = 0;
 	var beatsince = 0;
 	var offers = [];
+	var drafts = [];
 	var picview = null;
 	var NICK = "sk-chat-nick";
 	var GENDER = "sk-chat-gender";
+	var FILESENDMS = 300;
 
 	function open(){
 		var nick = "";
@@ -52,8 +54,10 @@
 			return;
 		}
 		var i;
-		for (i = 0; i < files.length; i++)
-			upload(withname(files[i]), imagefile(files[i]) ? "image" : "file");
+		for (i = 0; i < files.length; i++) {
+			if (imagefile(files[i])) adddraft(files[i]);
+			else upload(withname(files[i]), "file");
+		}
 	}
 
 	function clipfiles(cd){
@@ -108,6 +112,76 @@
 		catch (e) { return file; }
 	}
 
+	function adddrafts(files){
+		var i;
+		for (i = 0; i < files.length; i++) adddraft(files[i]);
+	}
+
+	function adddraft(file){
+		if (!file || !file.size) {
+			setmsg(label("web.chat.err.empty", "文件是空的"), true);
+			return;
+		}
+		if (file.size > 8 * 1024 * 1024) {
+			setmsg(label("web.chat.err.big", "太大了（最多 8 MB）"), true);
+			return;
+		}
+		var f = withname(file);
+		var url = (window.URL || window.webkitURL).createObjectURL(f);
+		drafts.push({ file: f, url: url });
+		paintdrafts();
+	}
+
+	function removedraft(n){
+		var d = drafts[n];
+		if (!d) return;
+		try { (window.URL || window.webkitURL).revokeObjectURL(d.url); }
+		catch (e) {}
+		drafts.splice(n, 1);
+		paintdrafts();
+	}
+
+	function cleardrafts(){
+		var i;
+		for (i = 0; i < drafts.length; i++) {
+			try { (window.URL || window.webkitURL).revokeObjectURL(drafts[i].url); }
+			catch (e) {}
+		}
+		drafts = [];
+		paintdrafts();
+	}
+
+	function paintdrafts(){
+		var box = F.id("chat-drafts");
+		if (!box) return;
+		while (box.firstChild) box.removeChild(box.firstChild);
+		if (!drafts.length) { box.hidden = true; return; }
+		box.hidden = false;
+		var lab = F.el("span");
+		lab.className = "chatdraftlab";
+		lab.textContent = label("web.chat.draft", "草稿");
+		F.append(box, lab);
+		var i;
+		for (i = 0; i < drafts.length; i++) {
+			var cell = F.el("span");
+			cell.className = "chatdraft";
+			var img = F.el("img");
+			img.src = drafts[i].url;
+			img.alt = drafts[i].file.name || "";
+			var x = F.el("button");
+			x.type = "button";
+			x.className = "chatdraftx";
+			x.textContent = "×";
+			x.title = label("web.chat.remove", "移除");
+			x.onclick = (function(n){
+				return function(){ removedraft(n); };
+			})(i);
+			F.append(cell, img);
+			F.append(cell, x);
+			F.append(box, cell);
+		}
+	}
+
 	function join(){
 		if (ws || opening) return;
 		var nick = (F.id("chat-nick").value || "").replace(/^\s+|\s+$/g, "");
@@ -158,6 +232,7 @@
 		opening = 0;
 		stopbeat();
 		offers = [];
+		cleardrafts();
 		if (ws) {
 			try { ws.close(); } catch (e) {}
 			ws = null;
@@ -217,16 +292,34 @@
 	function send(){
 		if (!ws || ws.readyState !== 1) return;
 		var text = (F.id("chat-text").value || "").replace(/^\s+|\s+$/g, "");
-		if (!text) return;
 		if (text.length > 500) {
 			setmsg(label("web.chat.err.text", "最多 500 个字"), true);
 			return;
 		}
-		var body = { op: "say", text: text };
-		if (!stamp(body, false)) return;
-		ws.send(F.json(body));
+		if (!text && !drafts.length) return;
+		var aim = targetof(false);
+		if (!aim) return;
+		if (text) {
+			var body = { op: "say", text: text };
+			if (aim.to) body.to = aim.to;
+			if (aim.priv) body.priv = true;
+			ws.send(F.json(body));
+		}
 		F.id("chat-text").value = "";
 		setmsg("");
+		var list = drafts.slice();
+		cleardrafts();
+		sendfiles(list, aim, 0);
+	}
+
+	// 服务端两条消息至少间隔 200ms，图片排在文本后面逐张发送。
+	function sendfiles(list, aim, n){
+		if (n >= list.length) return;
+		setTimeout(function(){
+			upload(list[n].file, "image", aim, function(){
+				sendfiles(list, aim, n + 1);
+			});
+		}, FILESENDMS);
 	}
 
 	function pick(kind){
@@ -236,52 +329,72 @@
 		if (!input) return;
 		input.value = "";
 		input.onchange = function(){
+			if (kind === "image") {
+				adddrafts(input.files || []);
+				return;
+			}
 			var f = input.files && input.files[0];
 			if (f) upload(f, kind);
 		};
 		input.click();
 	}
 
-	function upload(file, kind){
-		if (!ws || ws.readyState !== 1) return;
+	function upload(file, kind, aim, done){
+		var fin = function(){
+			if (!done) return;
+			var f = done;
+			done = null;
+			f();
+		};
+		if (!ws || ws.readyState !== 1) { fin(); return; }
 		if (!file || !file.size) {
 			setmsg(label("web.chat.err.empty", "文件是空的"), true);
+			fin();
 			return;
 		}
 		if (file.size > 8 * 1024 * 1024) {
 			setmsg(label("web.chat.err.big", "太大了（最多 8 MB）"), true);
+			fin();
 			return;
 		}
 		var fd = new FormData();
 		fd.append("file", file, file.name || "file");
-		var aim = kind === "direct" ? targetof(true) : null;
-		if (kind === "direct" && !aim) return;
+		if (kind === "direct" && !aim) aim = targetof(true);
+		if (kind === "direct" && !aim) { fin(); return; }
 		fd.append("kind", kind === "image" ? "image" : "file");
 		var xhr = new XMLHttpRequest();
 		xhr.open("POST", "/chat/file");
 		xhr.onload = function(){
 			var m;
 			try { m = F.parse(xhr.responseText); }
-			catch (e) { setmsg(label("web.chat.err.bad", "消息无法识别"), true); return; }
+			catch (e) { setmsg(label("web.chat.err.bad", "消息无法识别"), true); fin(); return; }
 			if (!m || m.code !== 100 || !m.id) {
 				setmsg(errmsg(m && m.err), true);
+				fin();
 				return;
 			}
-			if (!ws || ws.readyState !== 1) return;
+			if (!ws || ws.readyState !== 1) { fin(); return; }
 			if (kind === "direct") {
 				ws.send(F.json({ op: "offer", file: m.id, to: aim.to }));
 			}
 			else {
 				var body = { op: "file", file: m.id };
-				if (!stamp(body, false)) return;
+				if (aim) {
+					if (aim.to) body.to = aim.to;
+					if (aim.priv) body.priv = true;
+				}
+				else if (!stamp(body, false)) { fin(); return; }
 				ws.send(F.json(body));
 			}
 			setmsg("");
+			fin();
 		};
 		xhr.onerror = function(){
 			setmsg(label("web.chat.err.closed", "连接已断开"), true);
+			fin();
 		};
-		xhr.send(fd);
+		try { xhr.send(fd); }
+		catch (e) { setmsg(label("web.chat.err.closed", "连接已断开"), true); fin(); }
 	}
 
 	function onmsg(raw){
@@ -291,6 +404,7 @@
 		if (!m || !m.op) return;
 		if (m.op === "hello") {
 			me = m.id || 0;
+			cleardrafts();
 			clearlog();
 			showroom();
 			setmsg("");

@@ -1114,6 +1114,7 @@
 							}
 						]
 						},
+						{x:"div#chat-drafts", hidden:true},
 						{
 							x:"div#chat-sendrow.row",
 							c:[
