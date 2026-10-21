@@ -632,7 +632,7 @@ public partial class MainWindow : Window {
 				fmttrayhk(opt.HotkeyTranslate),
 				opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "",
 				fmttrayhk(opt.HotkeySnapCopy),
-				"");
+				fmttrayhk(opt.HotkeyImeCycle));
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
 			tray.MenuOpening += () => {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;
@@ -2254,7 +2254,7 @@ public partial class MainWindow : Window {
 			mndict.InputGestureText = dict;
 			if (mndictselbar != null)
 				mndictselbar.InputGestureText = opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "";
-			if (mnhangul != null) mnhangul.InputGestureText = "";
+			if (mnhangul != null) mnhangul.InputGestureText = fmttrayhk(opt.HotkeyImeCycle);
 			painthangul();
 			// 只在工具窗口打开时监听，菜单上不标快捷键
 			if (mnautokey != null) mnautokey.InputGestureText = "";
