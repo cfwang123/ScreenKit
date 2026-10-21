@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Expired screenshots are cleaned in the background at startup and again every 24 hours while the program keeps running.
 - Read aloud in the selection popup can use the Chrome engine and its voices.
 - Temporary web ports, including Chrome's debugging port, listen on localhost only.
+- Read aloud in the selection popup has a speed control shown as 1x; click it to open a slider.
 
 #### Fixed
 
@@ -96,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 过期截图在启动时后台清理，程序一直开着时每 24 小时再清一次。
 - 划词浮窗朗读可以选用 Chrome 引擎和对应发音人。
 - 临时网页端口（含 Chrome 调试端口）只监听本机，不接受局域网访问。
+- 划词朗读增加语速，显示为 1x，点击后弹出滑块。
 
 #### 修复
 

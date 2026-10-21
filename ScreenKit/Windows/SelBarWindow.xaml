@@ -308,6 +308,20 @@
 					          AutomationProperties.AutomationId="dict.sel.read.voice"/>
 				</DockPanel>
 				<DockPanel Grid.Row="2" Margin="0,4,0,0" LastChildFill="False">
+					<Button x:Name="breadrate" Content="1x" Style="{StaticResource SelBtn}"
+					        AutomationProperties.AutomationId="dict.sel.read.rate"/>
+					<Popup x:Name="poprate" PlacementTarget="{Binding ElementName=breadrate}"
+					       Placement="Top" StaysOpen="False" AllowsTransparency="True"
+					       VerticalOffset="-4">
+						<Border Background="#FCFCFC" BorderBrush="#A0A0A0" BorderThickness="1"
+						        CornerRadius="4" Padding="10,8">
+							<Slider x:Name="ereadrate" Width="148" Minimum="0.5" Maximum="2"
+							        TickFrequency="0.1" IsSnapToTickEnabled="True"
+							        IsMoveToPointEnabled="True" Value="1"
+							        VerticalAlignment="Center"
+							        AutomationProperties.AutomationId="dict.sel.read.rate.slider"/>
+						</Border>
+					</Popup>
 					<Button x:Name="breadgo" Content="朗读" Style="{StaticResource SelBtn}"
 					        AutomationProperties.AutomationId="dict.sel.read.go"/>
 					<Button x:Name="breadstop" Content="停止" Style="{StaticResource SelBtn}" Margin="0"

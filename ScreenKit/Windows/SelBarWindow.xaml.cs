@@ -94,6 +94,17 @@ public partial class SelBarWindow : Window {
 		ereadlang.SelectionChanged += (_, _) => { if (!readsync && readinit) FillReadVoices(); };
 		breadgo.Click += (_, _) => ReadGo?.Invoke();
 		breadstop.Click += (_, _) => ReadStop?.Invoke();
+		ereadrate.ValueChanged += (_, _) => breadrate.Content = ratelabel(ereadrate.Value);
+		breadrate.PreviewMouseLeftButtonDown += (_, e) => {
+			if (!poprate.IsOpen) return;
+			poprate.IsOpen = false;
+			e.Handled = true;
+		};
+		breadrate.Click += (_, _) => {
+			if (!poprate.IsOpen) poprate.IsOpen = true;
+		};
+		poprate.Opened += (_, _) => clearnoactivate();
+		poprate.Closed += (_, _) => restorenonactivate();
 		bselclose.Click += (_, _) => CloseClick?.Invoke();
 		cbselon.Checked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(true); };
 		cbselon.Unchecked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(false); };
@@ -126,6 +137,7 @@ public partial class SelBarWindow : Window {
 		bselread.Content = Loc.T("tts.speak");
 		breadgo.Content = Loc.T("tts.speak");
 		breadstop.Content = Loc.T("tts.stop");
+		breadrate.ToolTip = Loc.T("tts.rate");
 		btrgo.Content = Loc.T("tr.go");
 		btrspeaksrc.ToolTip = Loc.T("tr.popup.speak.tip");
 		btrspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
@@ -184,6 +196,7 @@ public partial class SelBarWindow : Window {
 		gdict.Visibility = Visibility.Visible;
 		gtr.Visibility = Visibility.Collapsed;
 		gread.Visibility = Visibility.Collapsed;
+		poprate.IsOpen = false;
 	}
 
 	internal void ShowTr(string text, bool setText) {
@@ -192,6 +205,7 @@ public partial class SelBarWindow : Window {
 		gdict.Visibility = Visibility.Collapsed;
 		gtr.Visibility = Visibility.Visible;
 		gread.Visibility = Visibility.Collapsed;
+		poprate.IsOpen = false;
 		if (!setText) return;
 		trsync = true;
 		try { etrsrctext.Text = text ?? ""; }
@@ -221,17 +235,29 @@ public partial class SelBarWindow : Window {
 	internal void HighlightRead(int start, int end) {
 		if (end <= start) return;
 		try {
-			var hwnd = new WindowInteropHelper(this).Handle;
-			if (hwnd != IntPtr.Zero) {
-				var ex = GetWindowLong(hwnd, GWL_EXSTYLE);
-				SetWindowLong(hwnd, GWL_EXSTYLE, ex & ~WS_EX_NOACTIVATE);
-			}
+			clearnoactivate();
 			Activate();
 			ereadtext.Focus();
 			ereadtext.Select(start, end - start);
 			scrollread(start, end);
 		}
 		catch { }
+	}
+
+	internal double ReadRate => DictTts.NormRate(ereadrate.Value);
+
+	static string ratelabel(double v) {
+		v = DictTts.NormRate(v);
+		var n = (int)Math.Round(v * 10);
+		if (n % 10 == 0) return $"{n / 10}x";
+		return $"{n / 10}.{n % 10}x";
+	}
+
+	void clearnoactivate() {
+		var hwnd = new WindowInteropHelper(this).Handle;
+		if (hwnd == IntPtr.Zero) return;
+		var ex = GetWindowLong(hwnd, GWL_EXSTYLE);
+		SetWindowLong(hwnd, GWL_EXSTYLE, ex & ~WS_EX_NOACTIVATE);
 	}
 
 	internal void ClearReadMark() {
