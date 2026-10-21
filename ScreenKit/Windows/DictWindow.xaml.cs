@@ -249,6 +249,12 @@ public partial class DictWindow : UserControl {
 		bfiltja.Content = Loc.T("dict.filter.ja");
 		bfiltko.Content = Loc.T("dict.filter.ko");
 		bfilten.Content = Loc.T("dict.filter.en");
+		retitles();
+	}
+
+	void retitles() {
+		if (lhits.ItemsSource is not IEnumerable<DictRow> rows) return;
+		foreach (var row in rows) row.Title = listtitle(row.Dict, stripcode(row.Title));
 	}
 
 	int searchlimit() {
@@ -1279,8 +1285,26 @@ public partial class DictWindow : UserControl {
 	}
 
 	static string listcode(string dict) {
-		if (dict == "zh" || dict == "ja" || dict == "ko" || dict == "en") return dict;
-		return "";
+		if (dict != "zh" && dict != "ja" && dict != "ko" && dict != "en") return "";
+		if (!Loc.IsZh) return dict;
+		if (dict == "zh") return Loc.T("dict.lab.zh");
+		if (dict == "en") return Loc.T("dict.lab.en");
+		if (dict == "ja") return Loc.T("dict.lab.ja");
+		return Loc.T("dict.lab.ko");
+	}
+
+	static string listtitle(string dict, string shown) {
+		var code = listcode(dict);
+		if (code.Length == 0) return shown ?? "";
+		return "[" + code + "] " + (shown ?? "");
+	}
+
+	static string stripcode(string title) {
+		if (title != null && title.Length > 3 && title[0] == '[') {
+			var end = title.IndexOf("] ", StringComparison.Ordinal);
+			if (end > 0 && end < 8) return title.Substring(end + 2);
+		}
+		return title ?? "";
 	}
 
 	static string langlabel(string dict) {

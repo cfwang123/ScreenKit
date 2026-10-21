@@ -223,6 +223,23 @@
 		return text;
 	}
 
+	function dictlab(code){
+		if (code === "zh") return t("dict.lab.zh") || "中";
+		if (code === "en") return t("dict.lab.en") || "英";
+		if (code === "ja") return t("dict.lab.ja") || "日";
+		if (code === "ko") return t("dict.lab.ko") || "韩";
+		return "";
+	}
+	function hittitle(h){
+		var title = (h && (h.title || h.word)) || "";
+		if ((langs()[langAt] || "zh") !== "zh") return title;
+		if (title.charAt(0) !== "[") return title;
+		var end = title.indexOf("] ");
+		if (end < 2 || end > 6) return title;
+		var lab = dictlab(title.substring(1, end));
+		if (!lab) return title;
+		return "[" + lab + "] " + title.substring(end + 2);
+	}
 	function painthits(){
 		var box = $("hits");
 		box.innerHTML = "";
@@ -233,7 +250,7 @@
 			txt = document.createElement("div");
 			txt.className = "hit-txt";
 			b = document.createElement("b");
-			b.textContent = hits[i].title || hits[i].word || "";
+			b.textContent = hittitle(hits[i]);
 			span = document.createElement("span");
 			span.textContent = preview(hits[i]);
 			txt.appendChild(b);
@@ -498,7 +515,7 @@
 				li.setAttribute("data-word", rows[i].word || "");
 				li.setAttribute("data-id", String(rows[i].id || ""));
 				b = document.createElement("b");
-				b.textContent = rows[i].title || rows[i].word || "";
+				b.textContent = hittitle(rows[i]);
 				span = document.createElement("span");
 				span.textContent = rows[i].preview || "";
 				li.appendChild(b);
