@@ -1262,6 +1262,7 @@ public partial class DictWindow : UserControl {
 		readgen++;
 		try { readcts?.Cancel(); } catch { }
 		try { player?.Stop(); } catch { }
+		try { outwin?.ClearReadMark(); } catch { }
 	}
 
 	async Task readloop() {
@@ -1276,13 +1277,15 @@ public partial class DictWindow : UserControl {
 		if (lang != "zh" && lang != "en" && lang != "ja" && lang != "ko") lang = "zh";
 		var eng = DictTts.NormEngine(outwin.ReadEngine);
 		var voice = outwin.ReadVoice ?? "";
-		var lines = readsents(text);
+		var lines = TtsTextSplitter.Split(text);
 		if (lines.Count == 0) return;
 		if (player == null) player = new TtsPlayer();
 		var o = Options != null ? Options() : null;
 		var use = eng == DictTts.AUTO ? DictTts.ResolveEngine(eng, lang) : eng;
 		foreach (var line in lines) {
-			if (gen != readgen || ct.IsCancellationRequested) return;
+			if (gen != readgen || ct.IsCancellationRequested || outwin == null) return;
+			var (a, b) = TtsTextSplitter.MapToUiOffsets(text, line.Start, line.End);
+			outwin.HighlightRead(a, b);
 			var pref = DictTts.For(o, lang);
 			pref.Engine = use;
 			if (use == DictTts.ONNX) pref.Onnx = voice;
@@ -1290,37 +1293,14 @@ public partial class DictWindow : UserControl {
 			else if (use == DictTts.WINRT) pref.WinRt = voice;
 			else pref.Edge = voice;
 			string path;
-			try { path = await DictTts.EnsureWav(pref, lang, line, 2000).ConfigureAwait(true); }
+			try { path = await DictTts.EnsureWav(pref, lang, line.Text, 2000).ConfigureAwait(true); }
 			catch (OperationCanceledException) { return; }
 			catch { continue; }
 			if (gen != readgen || ct.IsCancellationRequested) return;
 			try { await player.PlayFileAsync(path, ct).ConfigureAwait(true); }
 			catch (OperationCanceledException) { return; }
 		}
-	}
-
-	static List<string> readsents(string text) {
-		var list = new List<string>();
-		if (string.IsNullOrWhiteSpace(text)) return list;
-		var sb = new StringBuilder();
-		var n = text.Length;
-		for (var i = 0; i < n; i++) {
-			var c = text[i];
-			if (c == '\r') continue;
-			sb.Append(c);
-			var brk = c == '。' || c == '！' || c == '？' || c == '!' || c == '?' || c == '；' || c == ';' || c == '\n';
-			if (!brk && c == '.') {
-				var next = i + 1 < n ? text[i + 1] : ' ';
-				brk = next == ' ' || next == '\n' || next == '\t';
-			}
-			if (!brk) continue;
-			var s = sb.ToString().Trim();
-			sb.Clear();
-			if (s.Length > 0) list.Add(s);
-		}
-		var tail = sb.ToString().Trim();
-		if (tail.Length > 0) list.Add(tail);
-		return list;
+		if (gen == readgen) outwin?.ClearReadMark();
 	}
 
 	void onhostoff(object sender, EventArgs e) {

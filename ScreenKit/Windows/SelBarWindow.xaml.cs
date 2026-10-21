@@ -63,6 +63,11 @@ public partial class SelBarWindow : Window {
 	const double MINH = 168;
 	static bool sized;
 	static double keepW, keepH, seenW, seenH;
+	bool userpos;
+	bool dragging;
+	Rect anchor;
+	Point dragPx;
+	double dragLeft, dragTop;
 
 	public SelBarWindow() {
 		InitializeComponent();
@@ -94,6 +99,9 @@ public partial class SelBarWindow : Window {
 		cbselon.Unchecked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(false); };
 		lsel.PreviewMouseWheel += (_, e) => scrolllist(lsel, e);
 		bgrip.DragDelta += (_, e) => gripmove(e.HorizontalChange, e.VerticalChange);
+		PreviewMouseLeftButtonDown += dragdown;
+		PreviewMouseMove += dragmove;
+		PreviewMouseLeftButtonUp += dragup;
 		lsel.PreviewMouseLeftButtonUp += (_, e) => {
 			var row = rowat(e.OriginalSource as DependencyObject);
 			if (row != null) HitClick?.Invoke(row);
@@ -206,6 +214,51 @@ public partial class SelBarWindow : Window {
 		readsync = true;
 		try { ereadtext.Text = text ?? ""; }
 		finally { readsync = false; }
+	}
+
+	internal void HighlightRead(int start, int end) {
+		if (end <= start) return;
+		try {
+			var hwnd = new WindowInteropHelper(this).Handle;
+			if (hwnd != IntPtr.Zero) {
+				var ex = GetWindowLong(hwnd, GWL_EXSTYLE);
+				SetWindowLong(hwnd, GWL_EXSTYLE, ex & ~WS_EX_NOACTIVATE);
+			}
+			Activate();
+			ereadtext.Focus();
+			ereadtext.Select(start, end - start);
+			scrollread(start, end);
+		}
+		catch { }
+	}
+
+	internal void ClearReadMark() {
+		try {
+			var c = ereadtext.CaretIndex;
+			ereadtext.Select(c, 0);
+		}
+		catch { }
+		restorenonactivate();
+	}
+
+	void scrollread(int start, int end) {
+		try {
+			ereadtext.UpdateLayout();
+			var r0 = ereadtext.GetRectFromCharacterIndex(start);
+			if (r0 == Rect.Empty) return;
+			var last = Math.Max(start, end - 1);
+			var r1 = ereadtext.GetRectFromCharacterIndex(last, true);
+			var top = r0.Top;
+			var bottom = r1 == Rect.Empty ? r0.Bottom : Math.Max(r0.Bottom, r1.Bottom);
+			var viewH = ereadtext.ViewportHeight;
+			if (viewH <= 1) viewH = ereadtext.ActualHeight;
+			const double pad = 2;
+			if (top >= -pad && bottom <= viewH + pad) return;
+			var next = ereadtext.VerticalOffset + top;
+			if (next < 0) next = 0;
+			ereadtext.ScrollToVerticalOffset(next);
+		}
+		catch { }
 	}
 
 	internal string ReadText => ereadtext.Text ?? "";
@@ -421,17 +474,70 @@ public partial class SelBarWindow : Window {
 		keepH = h;
 	}
 
-	/// <summary>浮窗放在选区物理矩形下方。放不下时改到上方。不激活，也不盖住选区。</summary>
+	void dragdown(object sender, MouseButtonEventArgs e) {
+		if (e.ChangedButton != MouseButton.Left) return;
+		if (dragblocked(e.OriginalSource as DependencyObject)) return;
+		dragging = true;
+		var p = Forms.Cursor.Position;
+		dragPx = new Point(p.X, p.Y);
+		dragLeft = Left;
+		dragTop = Top;
+		CaptureMouse();
+		e.Handled = true;
+	}
+
+	void dragmove(object sender, MouseEventArgs e) {
+		if (!dragging || e.LeftButton != MouseButtonState.Pressed) return;
+		var p = Forms.Cursor.Position;
+		var src = PresentationSource.FromVisual(this);
+		var m = src?.CompositionTarget == null ? Matrix.Identity : src.CompositionTarget.TransformFromDevice;
+		var mx = m.M11 == 0 ? 1 : m.M11;
+		var my = m.M22 == 0 ? 1 : m.M22;
+		Left = dragLeft + (p.X - dragPx.X) * mx;
+		Top = dragTop + (p.Y - dragPx.Y) * my;
+		userpos = true;
+	}
+
+	void dragup(object sender, MouseButtonEventArgs e) {
+		if (!dragging) return;
+		dragging = false;
+		try { ReleaseMouseCapture(); } catch { }
+	}
+
+	static bool dragblocked(DependencyObject d) {
+		while (d != null) {
+			if (d is Button or ToggleButton or CheckBox or Thumb or TextBox or ComboBox
+				or ListBoxItem or ScrollBar or RepeatButton)
+				return true;
+			d = VisualTreeHelper.GetParent(d);
+		}
+		return false;
+	}
+
+	static bool samebox(Rect a, Rect b) {
+		return Math.Abs(a.Left - b.Left) < 4 && Math.Abs(a.Top - b.Top) < 4
+			&& Math.Abs(a.Width - b.Width) < 4 && Math.Abs(a.Height - b.Height) < 4;
+	}
+
+	/// <summary>浮窗放在选区物理矩形下方。放不下时改到上方。不激活，也不盖住选区。拖动过则保持位置，直到选区换了。</summary>
 	public void ShowAt(Rect px) {
 		if (px.Width < 1) px.Width = 1;
 		if (px.Height < 1) px.Height = 1;
+		var was = IsVisible;
 		applysize();
-		if (!IsVisible) {
+		if (!was) {
+			userpos = false;
 			Left = -32000;
 			Top = -32000;
 			Show();
 		}
 		UpdateLayout();
+		if (was && userpos && samebox(anchor, px)) {
+			anchor = px;
+			return;
+		}
+		userpos = false;
+		anchor = px;
 		if (!sized && ActualWidth >= MINW && ActualHeight >= MINH) {
 			seenW = ActualWidth;
 			seenH = ActualHeight;

@@ -119,7 +119,7 @@
 		</Style>
 	</Window.Resources>
 	<Border x:Name="bdpop" Margin="8" Background="#FCFCFC" BorderBrush="#A0A0A0" BorderThickness="1"
-	        CornerRadius="4" Padding="8,6,8,16" MinWidth="280" MaxWidth="360">
+	        CornerRadius="4" Padding="8,6,8,16" MinWidth="280" MaxWidth="360" Cursor="SizeAll">
 		<Border.Effect>
 			<DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.22" Direction="270"/>
 		</Border.Effect>
@@ -159,7 +159,7 @@
 			<Grid x:Name="gdict">
 			<TextBlock x:Name="lbselwait" Text="搜索中…" FontSize="13" Foreground="#6E6E6E"
 			           Margin="2,0,0,4" VerticalAlignment="Top"/>
-			<ListBox x:Name="lsel" FontSize="13" BorderThickness="0"
+			<ListBox x:Name="lsel" FontSize="13" BorderThickness="0" Cursor="Arrow"
 			         Background="Transparent" Focusable="False"
 			         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 			         ScrollViewer.VerticalScrollBarVisibility="Auto"
