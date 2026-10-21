@@ -226,6 +226,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (name === "tts") SK.loadtts();
 		if (name === "tr" && SK.loadtr) SK.loadtr();
 		if (name === "asr") SK.loadasr();
+		if (name === "reader" && SK.readeropen) SK.readeropen();
+		if (prev === "reader" && SK.curtool !== "reader" && SK.readerclose) SK.readerclose();
 		if (prev === "chat" && SK.curtool !== "chat" && SK.chatclose) SK.chatclose();
 		if (prev === "u-aim" && SK.curtool !== "u-aim" && SK.aimclose) SK.aimclose();
 		if (SK.curtool === "chat" && SK.chatopen) SK.chatopen();
@@ -309,6 +311,9 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	function skipped(el){
 		while (el && el.nodeType === 1) {
 			if (el.id === "chat-log" || el.id === "chat-peers" || el.id === "chat-offers") return true;
+			// 阅读器里的书名、正文和词典结果是用户内容，别按界面文案翻译。
+			if (el.id === "rd-books" || el.id === "rd-body" || el.id === "rd-pop" || el.id === "rd-dict") return true;
+			if (el.id === "rd-title") return true;
 			// 语言菜单用各语言自己的名字。「中文」和网页文案相同，扫到就会被译走。
 			if (el.id === "lang") return true;
 			if (el.classList && (el.classList.contains("num-v") || el.classList.contains("uprev-ch"))) return true;
@@ -461,6 +466,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		markhtml(document.body);
 		if (SK.fillttslang && F.id("tts-lang")) SK.fillttslang();
 		if (SK.filltrlang) SK.filltrlang();
+		if (SK.readerlang) SK.readerlang();
 		paintstars();
 		if (!SK.curtool || SK.curtool === "home") paintcats();
 	}

@@ -278,8 +278,9 @@
       <_SlimWet Include="$(OutputPath)wetext\**\*.*" Condition="Exists('$(OutputPath)wetext')" />
       <_SlimAssets Include="$(OutputPath)Assets\**\*.*" Condition="Exists('$(OutputPath)Assets')" />
       <_SlimWeb Include="$(OutputPath)web\**\*.*" Condition="Exists('$(OutputPath)web')" />
-      <!-- 发布包只要合成后的 web\tools.js，不要 web\tools 里的各工具脚本 -->
+      <!-- 发布包只要合成后的 web\tools.js，不要 web\tools 里的各工具脚本和阅读器上传的书 -->
       <_SlimWeb Remove="$(OutputPath)web\tools\**\*.*" />
+      <_SlimWeb Remove="$(OutputPath)web\up\**\*.*" />
       <_SlimLang Include="$(OutputPath)lang\*.toml" Condition="Exists('$(OutputPath)lang')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />

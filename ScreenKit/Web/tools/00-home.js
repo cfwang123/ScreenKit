@@ -422,6 +422,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"reader",
+						"data-cat":"text",
+						"data-name":"小说阅读器 阅读 txt md 朗读 chrome 离线 词典 划词 高亮",
+						"title":"上传 txt 或 md，划词查词典，按句朗读并高亮当前句",
+						c:[
+						{x:"i.fa-solid.fa-book-open-reader"},
+						{x:"span","data-k":"web.tool.reader",c:"小说阅读器"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"reader","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-seg",
 						"data-cat":"text",
 						"data-name":"中文分词 分词 断句 字素 segmenter",
@@ -1148,6 +1161,12 @@
 				]
 				}
 			]
+			},
+			{
+				x:"section#reader.panel",
+				c:[
+				{x:"div#rd-root.rd-root"}
+				]
 			},
 			{
 				x:"section#tr.panel",

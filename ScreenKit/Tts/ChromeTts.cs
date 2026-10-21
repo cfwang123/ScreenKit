@@ -202,6 +202,9 @@ static class ChromeTts {
 
 	public static void Stop() => ChromeHost.Stop();
 
+	/// <summary>停掉正在读的那几句，翻译和浏览器进程不动。</summary>
+	public static void StopSpeak() => ChromeHost.StopSpeak();
+
 	public static int Test() {
 		if (ClampIdle(-1) != 60 || ClampIdle(0) != 0 || ClampIdle(99999) != 3600) return 2;
 		if (ChromeHost.Test() != 0) return 2;

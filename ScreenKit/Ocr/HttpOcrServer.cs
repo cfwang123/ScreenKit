@@ -18,6 +18,7 @@ namespace ScreenKit;
 /// <item>GET/POST /api/toast 底部 Toast</item>
 /// <item>GET / 本机工具页；/dict 词典页；/chrome Chrome 模型页；/sk/tools.css · /sk/tools.js · /sk/chrome.css · /sk/chrome.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
 /// <item>GET /api/dict · /api/dict/entry · /api/dict/speak · /api/dict/export</item>
+/// <item>GET  /api/reader/list · /api/reader/file · POST /api/reader/upload · rename · delete · stop</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
 /// <item>GET/POST /api/pinyin 中文转拼音（NPinyin 已安装时）</item>
 /// <item>GET/POST /api/calendar 历法</item>
@@ -350,6 +351,11 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 			if (path is "/api/dict/export") {
 				handledictexport(ctx);
+				return;
+			}
+
+			if (path.StartsWith("/api/reader/", StringComparison.Ordinal)) {
+				handlereader(ctx, path);
 				return;
 			}
 
@@ -2534,6 +2540,11 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /api/dict/entry  ?id=",
 			"GET  /api/dict/speak  ?text=&lang=  WAV",
 			"GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md",
+			"GET  /api/reader/list  小说阅读器：web/up/reader 下的 txt、md",
+			"GET  /api/reader/file  ?name=&enc=  读一篇的正文",
+			"POST /api/reader/upload  ?name=&overwrite=1  正文就是文件字节",
+			"POST /api/reader/rename  JSON{from,to} · /api/reader/delete JSON{name}",
+			"POST /api/reader/stop  停止 Chrome 朗读",
 			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js",
 			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
 			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成",

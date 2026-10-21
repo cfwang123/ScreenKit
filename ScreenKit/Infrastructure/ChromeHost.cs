@@ -97,6 +97,17 @@ static class ChromeHost {
 		lock (gate) stopunlocked();
 	}
 
+	/// <summary>只打断朗读，翻译任务留着。</summary>
+	public static void StopSpeak() {
+		var ids = new List<int>();
+		lock (slots) {
+			foreach (var s in slots.Values) {
+				if (s.Page == "speak.html") ids.Add(s.Id);
+			}
+		}
+		foreach (var id in ids) cancel(id);
+	}
+
 	public static bool TryRun(out int children) {
 		children = 0;
 		Process p;

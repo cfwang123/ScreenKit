@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Lookup tools add HTTP status code and MIME type tables with search, category filters, and click-to-copy.
 - Lookup tools add common ports, file signatures, time zones, country/language/currency codes, and key codes.
 - Lookup tools add an Ubuntu command table and a Linux software table with package names and install commands.
+- Tools page has a novel reader. Put txt/md files under web/up/reader, select text for the dictionary popup, and read aloud with Chrome offline or another voice. Reading starts at the top of the screen or at the selected word, and the current sentence is highlighted.
 
 #### Changed
 
@@ -91,6 +92,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 信息查询增加 HTTP 状态码表和 MIME 类型表，可搜索、按类别筛选，点一行复制。
 - 信息查询增加常见端口号、文件头魔数、时区表、国家/语言/货币代码和键盘码。
 - 信息查询增加 Ubuntu 常用命令表和 Linux 常用软件表，可查命令示例、包名和安装命令。
+- 工具页新增「小说阅读器」：txt/md 放在 web/up/reader 下管理，划词查词典；可用 Chrome 离线等发音人朗读，从屏幕最上面或选中的词开始，逐句高亮当前句。
 
 #### 变更
 
