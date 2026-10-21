@@ -997,7 +997,7 @@
 				done(L("web.reader.novoice", "没有音频"));
 				return;
 			}
-			playwav(b64, "", function(){ done(""); });
+			playwav(b64, function(){ done(""); });
 		}).catch(function(e){
 			done(e && e.message ? e.message : "网络错误");
 		});
