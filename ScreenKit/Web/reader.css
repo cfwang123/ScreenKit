@@ -229,3 +229,30 @@ button, input, select { font: inherit; }
 .rd-blabel { color: var(--muted); font-size: 11px; }
 .rd-bit { white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
 .rd-extra { margin-top: 10px; white-space: pre-wrap; color: #4d4338; font-size: 13px; }
+
+/* 拖入文件时整页提示，松开即上传 */
+.rd-drop {
+	position: fixed;
+	inset: 0;
+	z-index: 90;
+	display: grid;
+	place-items: center;
+	background: rgba(246, 243, 238, 0.9);
+	border: 3px dashed #f97316;
+	pointer-events: none;
+}
+.rd-drop[hidden] { display: none !important; }
+.rd-drop-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 24px 34px;
+	border-radius: 16px;
+	background: #fff;
+	box-shadow: 0 12px 36px rgba(60, 40, 20, 0.18);
+	color: var(--ink);
+}
+.rd-drop-card i { font-size: 34px; color: #f97316; }
+.rd-drop-card strong { font-size: 17px; }
+.rd-drop-card span { color: var(--muted); font-size: 13px; }

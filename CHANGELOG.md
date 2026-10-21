@@ -51,6 +51,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Lookup tools add common ports, file signatures, time zones, country/language/currency codes, and key codes.
 - Lookup tools add an Ubuntu command table and a Linux software table with package names and install commands.
 - Tools page has a novel reader. Put txt/md files under web/up/reader, select text for the dictionary popup, and read aloud with Chrome offline or another voice. Reading starts at the top of the screen or at the selected word, and the current sentence is highlighted.
+- The novel reader page uploads txt/md files dropped onto it and opens the first one.
+- Chat draft thumbnails open a zoomable preview.
 
 #### Changed
 
@@ -81,6 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation download stops after about 20 seconds without new bytes, and closes that Chrome.
 - Scientific notation with a six-digit exponent, such as 1e193321, still shows the large-number reading and scientific notation when it fits.
 - Selection popup Chrome speech installs a missing voice pack and retries, and the hidden Chrome window is no longer muted.
+- Pasting the same chat image no longer creates duplicate drafts.
 
 ### 中文
 
@@ -95,6 +98,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 信息查询增加常见端口号、文件头魔数、时区表、国家/语言/货币代码和键盘码。
 - 信息查询增加 Ubuntu 常用命令表和 Linux 常用软件表，可查命令示例、包名和安装命令。
 - 工具页新增「小说阅读器」：txt/md 放在 web/up/reader 下管理，划词查词典；可用 Chrome 离线等发音人朗读，从屏幕最上面或选中的词开始，逐句高亮当前句。
+- 小说阅读器页支持把 txt/md 文件直接拖进来上传，拖完打开第一篇。
+- 聊天室草稿缩略图可点击放大预览。
 
 #### 变更
 
@@ -125,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 翻译模型下载若约 20 秒没有新数据就停止，并关掉这只 Chrome。
 - 1e193321 这种六位指数不再直接报太长，大数能读时仍显示大数和科学计数。
 - 划词浮窗的 Chrome 朗读在没声音时会安装语音包再读一次，隐藏的 Chrome 窗口不再被静音。
+- 聊天室同一张图片粘贴时不再重复生成草稿。
 
 ## v1.0.26 (2026-10-20)
 

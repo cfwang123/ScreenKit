@@ -8,6 +8,7 @@
 	var offers = [];
 	var drafts = [];
 	var picview = null;
+	var draftview = null;
 	var NICK = "sk-chat-nick";
 	var GENDER = "sk-chat-gender";
 	var FILESENDMS = 300;
@@ -72,7 +73,8 @@
 				pushfile(out, f);
 			}
 		}
-		if (cd.files) {
+		// items 和 files 常指向同一张图，只有 items 没拿到时才退回 files。
+		if (!out.length && cd.files) {
 			for (i = 0; i < cd.files.length; i++) pushfile(out, cd.files[i]);
 		}
 		return out;
@@ -87,7 +89,7 @@
 	}
 
 	function filekey(f){
-		return (f.name || "") + "\n" + f.size + "\n" + (f.type || "") + "\n" + (f.lastModified || 0);
+		return (f.name || "") + "\n" + f.size + "\n" + (f.type || "");
 	}
 
 	function imagefile(f){
@@ -127,6 +129,9 @@
 			return;
 		}
 		var f = withname(file);
+		var key = filekey(f);
+		var i;
+		for (i = 0; i < drafts.length; i++) if (filekey(drafts[i].file) === key) return;
 		var url = (window.URL || window.webkitURL).createObjectURL(f);
 		drafts.push({ file: f, url: url });
 		paintdrafts();
@@ -155,7 +160,12 @@
 		var box = F.id("chat-drafts");
 		if (!box) return;
 		while (box.firstChild) box.removeChild(box.firstChild);
-		if (!drafts.length) { box.hidden = true; return; }
+		if (!drafts.length) {
+			box.hidden = true;
+			if (draftview && draftview.destroy) draftview.destroy();
+			draftview = null;
+			return;
+		}
 		box.hidden = false;
 		var lab = F.el("span");
 		lab.className = "chatdraftlab";
@@ -166,6 +176,7 @@
 			var cell = F.el("span");
 			cell.className = "chatdraft";
 			var img = F.el("img");
+			img.className = "chatdraftimg";
 			img.src = drafts[i].url;
 			img.alt = drafts[i].file.name || "";
 			var x = F.el("button");
@@ -180,6 +191,7 @@
 			F.append(cell, x);
 			F.append(box, cell);
 		}
+		refreshdraftpics();
 	}
 
 	function join(){
@@ -500,6 +512,36 @@
 		var log = F.id("chat-log");
 		F.append(log, row);
 		log.scrollTop = log.scrollHeight;
+	}
+
+	function refreshdraftpics(){
+		if (!window.Viewer) return;
+		var box = F.id("chat-drafts");
+		if (!box || box.hidden || !box.querySelector("img")) return;
+		if (!draftview) {
+			draftview = new Viewer(box, {
+				transition: false,
+				url: "src",
+				filter: function(image){
+					return image.className.indexOf("chatdraftimg") >= 0;
+				},
+				toolbar: {
+					zoomIn: 1,
+					zoomOut: 1,
+					oneToOne: 1,
+					reset: 1,
+					prev: 1,
+					play: 0,
+					next: 1,
+					rotateLeft: 1,
+					rotateRight: 1,
+					flipHorizontal: 0,
+					flipVertical: 0
+				}
+			});
+			return;
+		}
+		draftview.update();
 	}
 
 	function refreshpics(){

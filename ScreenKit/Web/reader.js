@@ -157,6 +157,7 @@
 		applylang();
 		loadbooks(restorelast);
 		loadvoices();
+		wiredrop();
 		on(window, "pagehide", function(){
 			stopread(true);
 			try { navigator.sendBeacon("/api/reader/stop", new Blob()); } catch (e) {}
@@ -507,13 +508,61 @@
 		} catch (e) {}
 	}
 
+	/** 页面里拖入文件时就上传，不用先点上传。 */
+	function wiredrop(){
+		var depth = 0;
+		on(document, "dragenter", function(ev){
+			if (!hasfiles(ev)) return;
+			ev.preventDefault();
+			depth++;
+			showdrop(true);
+		});
+		on(document, "dragover", function(ev){
+			if (!hasfiles(ev)) return;
+			ev.preventDefault();
+			if (ev.dataTransfer) ev.dataTransfer.dropEffect = "copy";
+			showdrop(true);
+		});
+		on(document, "dragleave", function(ev){
+			if (!hasfiles(ev)) return;
+			depth--;
+			if (depth > 0) return;
+			depth = 0;
+			showdrop(false);
+		});
+		on(document, "drop", function(ev){
+			if (!hasfiles(ev)) return;
+			ev.preventDefault();
+			depth = 0;
+			showdrop(false);
+			var files = ev.dataTransfer && ev.dataTransfer.files;
+			if (files && files.length) upload(files);
+		});
+	}
+
+	function hasfiles(ev){
+		var dt = ev.dataTransfer;
+		if (!dt || !dt.types) return false;
+		for (var i = 0; i < dt.types.length; i++) {
+			if (dt.types[i] === "Files") return true;
+		}
+		return false;
+	}
+
+	function showdrop(on_){
+		var box = $("rd-drop");
+		if (box) box.hidden = !on_;
+	}
+
 	function upload(files){
 		if (!files || !files.length) return;
 		var i = 0;
+		var first = "";
 		step();
 		function step(){
 			if (i >= files.length) {
 				loadbooks();
+				if (first) openbook(first, true);
 				return;
 			}
 			var f = files[i++];
@@ -543,9 +592,8 @@
 					return;
 				}
 				var saved = (j.data && j.data.name) || f.name;
+				if (!first) first = saved;
 				setmsg(L("web.reader.uploaded", "已上传") + " " + saved);
-				loadbooks();
-				openbook(saved, true);
 				step();
 			}).catch(function(e){
 				setmsg(e && e.message ? e.message : "网络错误", true);
