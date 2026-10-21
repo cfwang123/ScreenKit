@@ -671,8 +671,8 @@
 						"type":"button",
 						"data-tool":"u-soft",
 						"data-cat":"info",
-						"data-name":"linux ubuntu debian loongnix 龙芯 常用软件 软件 安装 apt snap docker vscode 播放器 数据库 编辑器",
-						"title":"Linux 常用软件的包名和安装命令，点一下复制安装命令",
+						"data-name":"linux 开源 常用软件 软件 安装 apt docker 播放器 数据库 编辑器",
+						"title":"Linux 开源常用软件的包名和安装命令，点一下复制安装命令",
 						c:[
 						{x:"i.fa-solid.fa-box-open"},
 						{x:"span","data-k":"web.tool.soft",c:"Linux常用软件"},

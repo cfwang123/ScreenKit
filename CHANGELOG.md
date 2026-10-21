@@ -49,8 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The selection popup keeps the same size with no hits, and Translate on the language row detects text and translates it into the native language.
 - Lookup tools add HTTP status code and MIME type tables with search, category filters, and click-to-copy.
 - Lookup tools add common ports, file signatures, time zones, country/language/currency codes, and key codes.
-- Lookup tools add an Ubuntu command table and a common software table with package names and install commands.
-- Linux software adds a Loongnix 20 set with 286 packages grouped by use.
+- Lookup tools add an Ubuntu command table and a Linux software table with package names and install commands.
 
 #### Changed
 
@@ -72,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary speech settings are a table. Chinese, Japanese, Korean, and English always stay, and other languages can be added. Selection-popup Read uses that row when the engine is Auto.
 - Settings splits Speech into Speech synthesis and Speech recognition. The per-language speech table is under Speech synthesis.
 - Polish, chat, and translation prompts, plus the translation batch size, are set under Settings, LLM. Speech recognition keeps the polish switches. Translate keeps the native and learning languages.
+- The Linux software table is a single cross-distribution list of open-source software.
 
 #### Fixed
 
@@ -90,8 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词浮窗没查到词时大小不变。语言栏的翻译会自动识别并译成母语，改语言后要点一次翻译。
 - 信息查询增加 HTTP 状态码表和 MIME 类型表，可搜索、按类别筛选，点一行复制。
 - 信息查询增加常见端口号、文件头魔数、时区表、国家/语言/货币代码和键盘码。
-- 信息查询增加 Ubuntu 常用命令表和常用软件表，可查命令示例、包名和安装命令。
-- Linux 常用软件表增加 Loongnix 20 软件集，共 286 条，按用途分组。
+- 信息查询增加 Ubuntu 常用命令表和 Linux 常用软件表，可查命令示例、包名和安装命令。
 
 #### 变更
 
@@ -113,6 +112,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典发音改为按语言的表格。中文、日语、韩语、英语始终保留，其它语言可以添加。划词浮窗朗读选自动时用这一行的引擎、发音人和语速。
 - 参数设置的「语音」拆成「语音合成」和「语音识别」。按语言的发音表放在「语音合成」里。
 - 润色、对话和翻译的提示词，以及翻译的一批条数，改到参数设置的「LLM接口」。语音识别仍保留是否润色；翻译页仍保留母语和学习语言。
+- Linux 常用软件表改为跨发行版的开源软件列表。
 
 #### 修复
 
