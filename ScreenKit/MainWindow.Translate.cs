@@ -20,6 +20,8 @@ public partial class MainWindow {
 			ensuretranslatepopup();
 			trPopup.ShowText(text);
 		};
+		DictWindow.TrPack = seltrpack;
+		DictWindow.TrRun = seltrun;
 		dicthost.Options = () => opt;
 		try { trEngine = new TranslateEngine(); }
 		catch (Exception ex) {
@@ -529,6 +531,108 @@ public partial class MainWindow {
 		var a = m.SourceLang;
 		var b = m.TargetLang;
 		return (a == nat && b == lrn) || (a == lrn && b == nat);
+	}
+
+	SelTrPack seltrpack(string src) {
+		var pack = new SelTrPack();
+		opt.AutoTranslatePair(out var nat, out _);
+		pack.Native = nat;
+		src = TrLang.Normalize(src);
+		var all = src.Length == 0 || src == TrLang.Auto;
+		var srcs = new List<string>();
+		var dsts = new List<string>();
+		if (!usechrome()) {
+			foreach (var m in trModels) {
+				if (m == null || !m.IsReady) continue;
+				addcode(srcs, m.SourceLang);
+				if (all || string.Equals(TrLang.Normalize(m.SourceLang), src, StringComparison.OrdinalIgnoreCase))
+					addcode(dsts, m.TargetLang);
+			}
+		}
+		if (usellm()) {
+			foreach (var s in TrLang.LlmCodes) addcode(srcs, s);
+			foreach (var t in TrLang.LlmCodes) {
+				if (!all && string.Equals(t, src, StringComparison.OrdinalIgnoreCase)) continue;
+				addcode(dsts, t);
+			}
+		}
+		else if (usechrome()) {
+			ChromePack.AddInstalledTrLangs(srcs);
+			if (all) ChromePack.AddInstalledTrLangs(dsts);
+			else ChromePack.AddInstalledTrTargets(dsts, src);
+		}
+		srcs.Sort(TrLang.CompareLlm);
+		dsts.Sort(TrLang.CompareLlm);
+		pack.Sources = srcs;
+		pack.Targets = dsts;
+		return pack;
+
+		static void addcode(List<string> list, string code) {
+			code = TrLang.Normalize(code);
+			if (code.Length == 0 || code == TrLang.Auto) return;
+			foreach (var x in list)
+				if (string.Equals(x, code, StringComparison.OrdinalIgnoreCase)) return;
+			list.Add(code);
+		}
+	}
+
+	async Task<string> seltrun(string text, string src, string dst, CancellationToken ct) {
+		text = text ?? "";
+		if (string.IsNullOrWhiteSpace(text)) return "";
+		if (text.Length > 8000) throw new InvalidOperationException(Loc.T("tr.popup.too_long"));
+		src = TrLang.Normalize(src);
+		dst = TrLang.Normalize(dst);
+		if (src == TrLang.Auto || src.Length == 0) src = LangDetect.DetectCode(text);
+		if (dst.Length == 0) opt.AutoTranslatePair(out dst, out _);
+		if (string.Equals(src, dst, StringComparison.OrdinalIgnoreCase)) return text;
+		var chrome = usechrome();
+		var llm = usellm();
+		var key = LangDetect.DirKey(src, dst);
+		if (chrome && ChromeTts.FindExe(opt.ChromeExe) == null)
+			throw new InvalidOperationException(Loc.T("tr.need.chrome"));
+		TranslateModelInfo model = null;
+		if (!llm && !chrome) {
+			if (trModels.Count == 0) {
+				try { scantrmodels(); } catch { }
+			}
+			model = null;
+			foreach (var m in trModels) {
+				if (m != null && m.IsReady && string.Equals(m.DirKey, key, StringComparison.OrdinalIgnoreCase)) {
+					model = m;
+					break;
+				}
+			}
+			if (model == null || !model.IsReady)
+				throw new InvalidOperationException(Loc.T("tr.popup.need_model", TrLang.Label(src), TrLang.Label(dst)));
+			if (trEngine == null)
+				throw new InvalidOperationException(Loc.T("tr.popup.need_engine"));
+		}
+		if (chrome) {
+			var body = text;
+			var s = src;
+			var d = dst;
+			var exe = opt.ChromeExe;
+			var idle = opt.ChromeIdleSec;
+			return await Task.Run(() => ChromeTr.Translate(body, s, d, exe, idle, ct, null), ct).ConfigureAwait(true);
+		}
+		if (llm) {
+			var o = opt;
+			var body = text;
+			var s = src;
+			var d = dst;
+			return await Task.Run(() => AsrLlmClient.Translate(o, body, s, d, ct), ct).ConfigureAwait(true);
+		}
+		var engine = trEngine;
+		var dir = model.ModelDir;
+		var dirKey = key;
+		var prefer = TranslateEngine.PreferFromMode(trcurcompute());
+		var body2 = text;
+		return await Task.Run(() => {
+			if (!engine.EnsureLoaded(dirKey, dir, prefer))
+				throw new InvalidOperationException(engine.LastError ?? Loc.T("tr.load.fail"));
+			ct.ThrowIfCancellationRequested();
+			return engine.Translate(dirKey, body2, ct);
+		}, ct).ConfigureAwait(true);
 	}
 
 	/// <summary>解析当前 UI 源/目标；自动时按母语/学习语言检测。</summary>

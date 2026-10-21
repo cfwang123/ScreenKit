@@ -123,8 +123,7 @@
 		<Grid>
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="Auto"/>
-				<RowDefinition x:Name="rowhits" Height="Auto"/>
+				<RowDefinition x:Name="rowhits" Height="280"/>
 				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 			<DockPanel Grid.Row="0" Margin="0,0,0,4" LastChildFill="True">
@@ -132,6 +131,8 @@
 				        Margin="4,0,0,0" Padding="0" FontSize="16" Focusable="False"
 				        Style="{StaticResource GhostBtn}" VerticalAlignment="Center"
 				        AutomationProperties.AutomationId="dict.sel.close"/>
+				<ToggleButton x:Name="bselftr" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelLang}"
+				              Margin="10,0,6,0" AutomationProperties.AutomationId="dict.sel.filter.tr"/>
 				<WrapPanel VerticalAlignment="Center">
 				<ToggleButton x:Name="bselfall" Content="全部" Style="{StaticResource SelLang}" IsChecked="True"
 				              AutomationProperties.AutomationId="dict.sel.filter.all"/>
@@ -145,9 +146,11 @@
 				              AutomationProperties.AutomationId="dict.sel.filter.en"/>
 				</WrapPanel>
 			</DockPanel>
-			<TextBlock x:Name="lbselwait" Grid.Row="1" Text="搜索中…" FontSize="13" Foreground="#6E6E6E"
-			           Margin="2,0,0,4"/>
-			<ListBox x:Name="lsel" Grid.Row="2" MaxHeight="280" FontSize="13" BorderThickness="0"
+			<Grid Grid.Row="1">
+			<Grid x:Name="gdict">
+			<TextBlock x:Name="lbselwait" Text="搜索中…" FontSize="13" Foreground="#6E6E6E"
+			           Margin="2,0,0,4" VerticalAlignment="Top"/>
+			<ListBox x:Name="lsel" FontSize="13" BorderThickness="0"
 			         Background="Transparent" Focusable="False"
 			         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 			         ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -192,7 +195,39 @@
 					</DataTemplate>
 				</ListBox.ItemTemplate>
 			</ListBox>
-			<DockPanel Grid.Row="3" Margin="0,6,14,0" LastChildFill="True">
+			</Grid>
+			<Grid x:Name="gtr" Visibility="Collapsed">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+				<DockPanel Grid.Row="0" Margin="0,0,0,2" LastChildFill="True">
+					<Button x:Name="btrspeaksrc" DockPanel.Dock="Right" Content="发音" Style="{StaticResource SelAct}"
+					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.src"/>
+					<ComboBox x:Name="etrsrc" Height="22" FontSize="12" VerticalContentAlignment="Center"
+					          MaxDropDownHeight="280" AutomationProperties.AutomationId="dict.sel.tr.src"/>
+				</DockPanel>
+				<TextBox x:Name="etrsrctext" Grid.Row="1" IsReadOnly="True" IsReadOnlyCaretVisible="True"
+				         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+				         BorderThickness="0" Background="#F4F5F7" Padding="4,2" FontSize="13"
+				         AutomationProperties.AutomationId="dict.sel.tr.text"/>
+				<DockPanel Grid.Row="2" Margin="0,4,0,2" LastChildFill="True">
+					<Button x:Name="btrgo" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelAct}"
+					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.go"/>
+					<Button x:Name="btrspeakdst" DockPanel.Dock="Right" Content="发音" Style="{StaticResource SelAct}"
+					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.dst"/>
+					<ComboBox x:Name="etrdst" Height="22" FontSize="12" VerticalContentAlignment="Center"
+					          MaxDropDownHeight="280" AutomationProperties.AutomationId="dict.sel.tr.dst"/>
+				</DockPanel>
+				<TextBox x:Name="etrdsttext" Grid.Row="3" IsReadOnly="True" IsReadOnlyCaretVisible="True"
+				         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+				         BorderThickness="0" Background="#F4F5F7" Padding="4,2" FontSize="13"
+				         AutomationProperties.AutomationId="dict.sel.tr.out"/>
+			</Grid>
+			</Grid>
+			<DockPanel Grid.Row="2" Margin="0,6,14,0" LastChildFill="True">
 				<CheckBox x:Name="cbselon" DockPanel.Dock="Right" Content="划词浮窗" Style="{StaticResource SelCheck}"
 				          AutomationProperties.AutomationId="dict.sel.turnoff"/>
 				<WrapPanel VerticalAlignment="Center">
@@ -200,13 +235,11 @@
 					        AutomationProperties.AutomationId="dict.sel.speak"/>
 					<Button x:Name="bselsearch" Content="搜索" Style="{StaticResource SelAct}"
 					        AutomationProperties.AutomationId="dict.sel.search"/>
-					<Button x:Name="bseltr" Content="翻译" Style="{StaticResource SelAct}"
-					        AutomationProperties.AutomationId="dict.sel.translate"/>
 					<Button x:Name="bselcopy" Content="复制" Style="{StaticResource SelAct}" Margin="0"
 					        AutomationProperties.AutomationId="dict.sel.copy"/>
 				</WrapPanel>
 			</DockPanel>
-			<Thumb x:Name="bgrip" Grid.RowSpan="4" Width="16" Height="16"
+			<Thumb x:Name="bgrip" Grid.RowSpan="3" Width="16" Height="16"
 			       HorizontalAlignment="Right" VerticalAlignment="Bottom"
 			       Margin="0,0,-2,-10" Cursor="SizeNWSE" Focusable="False"
 			       ToolTip="拖动调整大小" AutomationProperties.AutomationId="dict.sel.resize">

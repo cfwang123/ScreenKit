@@ -46,6 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - File info adds an EXE/DLL page with sections, imports, exports, the signature, and public .NET types.
 - If the HTTP port is busy, ScreenKit listens on a random localhost port instead, and menus and buttons open web pages on that port.
 - Check for updates lists the notes for each version between the current one and the new one, and a version can be opened on its own.
+- The selection popup keeps the same size with no hits, and Translate on the language row detects text and translates it into the native language.
 
 #### Changed
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文件分析在打开 EXE 或 DLL 时多出一页，列出节、导入导出、签名和 .NET 公开类型。
 - HTTP 端口打不开时改听本机随机端口，菜单和按钮打开网页时用这个端口。
 - 检查到新版本时列出当前版本到新版本之间各版说明，可点版本号只看该版。
+- 划词浮窗没查到词时大小不变。语言栏的翻译会自动识别并译成母语，改语言后要点一次翻译。
 
 #### 变更
 

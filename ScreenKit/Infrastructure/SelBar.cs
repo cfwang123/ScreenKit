@@ -213,7 +213,7 @@ static class SelBar {
 			var hwnd = new WindowInteropHelper(win).Handle;
 			var px = win.ScreenPx();
 			say($"bar {px.Width:0}x{px.Height:0} at {px.Left:0},{px.Top:0} noact={SelBarWindow.HasNoActivate(hwnd)} label={win.SearchLabel}");
-			if (px.Width < 240 || px.Height < 28 || px.Height > 420 || win.SearchLabel.Length == 0) {
+			if (px.Width < 240 || px.Height < 200 || px.Height > 900 || win.SearchLabel.Length == 0) {
 				say("FAIL: 浮窗尺寸不对");
 				return 3;
 			}

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -78,6 +79,9 @@ public partial class DictWindow : UserControl {
 	Window hostwin;
 	SelBarWindow outwin;
 	int ogen;
+	int trgen;
+	bool trinit;
+	CancellationTokenSource trcts;
 	string outtext = "";
 	string outlang = "";
 	Rect outbox;
@@ -87,6 +91,10 @@ public partial class DictWindow : UserControl {
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
 	public Action<string> OnTranslate;
+	/// <summary>划词浮窗翻译页的语言列表。参数是当前源语言，auto 表示还没指定。</summary>
+	internal static Func<string, SelTrPack> TrPack;
+	/// <summary>划词浮窗翻译。src 为 auto 时按文字识别，dst 为母语或用户选的语言。</summary>
+	internal static Func<string, string, string, CancellationToken, Task<string>> TrRun;
 	/// <summary>词典页上的划词浮窗开关。</summary>
 	public Action<bool> SelBarChanged;
 	/// <summary>当前选项。发音读这里的词典引擎和发音人。</summary>
@@ -992,13 +1000,9 @@ public partial class DictWindow : UserControl {
 			HideOutside();
 			opensearch(q);
 		};
-		outwin.TrClick += () => {
-			var q = outtext;
-			HideOutside();
-			if (q.Length == 0) return;
-			if (OnTranslate != null) OnTranslate(q);
-			else lbstatus.Text = Loc.T("dict.sel.notr");
-		};
+		outwin.TrGo += () => _ = runseltr();
+		outwin.TrSrcChanged += () => filltrdst();
+		outwin.TrSpeak += src => speaktr(src);
 		outwin.CopyClick += () => copytext(outtext);
 		outwin.CloseClick += () => {
 			try { SelBar.DismissShown(); } catch { }
@@ -1030,6 +1034,15 @@ public partial class DictWindow : UserControl {
 	void searchoutside() {
 		if (outwin == null) return;
 		var text = outtext ?? "";
+		if ((selfilter ?? "") == "tr") {
+			ogen++;
+			showtr(text);
+			outwin.ShowAt(outbox);
+			return;
+		}
+		trgen++;
+		try { trcts?.Cancel(); } catch { }
+		outwin.ShowDict();
 		var q = text.Length > 80 ? text.Substring(0, 80) : text;
 		var dict = selfilter ?? "";
 		if (!SelWord(q)) {
@@ -1050,6 +1063,65 @@ public partial class DictWindow : UserControl {
 				outwin.ShowAt(outbox);
 			}));
 		});
+	}
+
+	void showtr(string text) {
+		var keep = trinit;
+		trinit = true;
+		var src = keep ? outwin.TrSrcCode : TrLang.Auto;
+		var pack = TrPack != null ? TrPack(src) : new SelTrPack();
+		outwin.SetTrLangs(pack.Sources, pack.Targets, pack.Native, keep);
+		outwin.ShowTr(text);
+		_ = runseltr();
+	}
+
+	void filltrdst() {
+		if (outwin == null || TrPack == null) return;
+		var pack = TrPack(outwin.TrSrcCode);
+		var prefer = outwin.TrDstCode;
+		if (prefer.Length == 0) prefer = pack.Native;
+		outwin.SetTrTargets(pack.Targets, prefer);
+	}
+
+	async Task runseltr() {
+		if (outwin == null) return;
+		var gen = ++trgen;
+		try { trcts?.Cancel(); } catch { }
+		trcts = new CancellationTokenSource();
+		var ct = trcts.Token;
+		var text = outwin.TrSrcText ?? "";
+		var src = outwin.TrSrcCode;
+		var dst = outwin.TrDstCode;
+		if (TrRun == null) {
+			outwin.SetTrOut(Loc.T("dict.sel.notr"));
+			return;
+		}
+		if (dst.Length == 0) {
+			outwin.SetTrOut(Loc.T("tr.popup.need_lang"));
+			return;
+		}
+		var shown = src == TrLang.Auto || src.Length == 0 ? LangDetect.DetectCode(text) : src;
+		outwin.SetTrOut(Loc.T("tr.popup.run", TrLang.Label(shown), TrLang.Label(dst)));
+		try {
+			var result = await TrRun(text, src, dst, ct);
+			if (gen != trgen || outwin == null) return;
+			outwin.SetTrOut(result ?? "");
+		}
+		catch (OperationCanceledException) { }
+		catch (Exception ex) {
+			if (gen != trgen || outwin == null) return;
+			outwin.SetTrOut(ex.Message ?? "");
+		}
+	}
+
+	void speaktr(bool src) {
+		if (outwin == null) return;
+		var text = src ? outwin.TrSrcText : outwin.TrDstText;
+		var code = src ? outwin.TrSrcCode : outwin.TrDstCode;
+		if (code == TrLang.Auto || code.Length == 0) code = LangDetect.DetectCode(text);
+		code = TrLang.Normalize(code);
+		if (code == "cht" || code == "yue") code = "zh";
+		_ = speak(text, code);
 	}
 
 	/// <summary>划词查询。库还没打开时先按词典页的路径打开，再按浮窗语言查最多 100 条。</summary>

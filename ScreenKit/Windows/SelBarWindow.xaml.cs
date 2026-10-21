@@ -38,13 +38,17 @@ public partial class SelBarWindow : Window {
 	internal event Action<DictSelRow> HitClick;
 	internal event Action SpeakClick;
 	internal event Action SearchClick;
-	internal event Action TrClick;
 	internal event Action CopyClick;
 	internal event Action CloseClick;
 	internal event Action<bool> SelOnChanged;
 	internal event Action<string> LangChanged;
+	internal event Action TrGo;
+	internal event Action TrSrcChanged;
+	internal event Action<bool> TrSpeak;
 
 	bool selonsync;
+	bool trsync;
+	bool trmode;
 
 	bool langsync;
 	ToggleButton[] langs;
@@ -55,16 +59,20 @@ public partial class SelBarWindow : Window {
 
 	public SelBarWindow() {
 		InitializeComponent();
-		langs = new[] { bselfall, bselfzh, bselfja, bselfko, bselfen };
+		langs = new[] { bselfall, bselfzh, bselfja, bselfko, bselfen, bselftr };
 		wirelang(bselfall, "");
 		wirelang(bselfzh, "zh");
 		wirelang(bselfja, "ja");
 		wirelang(bselfko, "ko");
 		wirelang(bselfen, "en");
+		wirelang(bselftr, "tr");
 		bselspeak.Click += (_, _) => SpeakClick?.Invoke();
 		bselsearch.Click += (_, _) => SearchClick?.Invoke();
-		bseltr.Click += (_, _) => TrClick?.Invoke();
 		bselcopy.Click += (_, _) => CopyClick?.Invoke();
+		btrgo.Click += (_, _) => TrGo?.Invoke();
+		btrspeaksrc.Click += (_, _) => TrSpeak?.Invoke(true);
+		btrspeakdst.Click += (_, _) => TrSpeak?.Invoke(false);
+		etrsrc.SelectionChanged += (_, _) => { if (!trsync) TrSrcChanged?.Invoke(); };
 		bselclose.Click += (_, _) => CloseClick?.Invoke();
 		cbselon.Checked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(true); };
 		cbselon.Unchecked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(false); };
@@ -89,8 +97,15 @@ public partial class SelBarWindow : Window {
 	public void ApplyText() {
 		bselspeak.Content = Loc.T("dict.speak");
 		bselsearch.Content = Loc.T("dict.sel.search");
-		bseltr.Content = Loc.T("dict.sel.translate");
 		bselcopy.Content = Loc.T("dict.sel.copy");
+		bselftr.Content = Loc.T("dict.sel.translate");
+		btrgo.Content = Loc.T("tr.go");
+		btrspeaksrc.Content = Loc.T("dict.speak");
+		btrspeakdst.Content = Loc.T("dict.speak");
+		btrspeaksrc.ToolTip = Loc.T("tr.popup.speak.tip");
+		btrspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
+		etrsrc.ToolTip = Loc.T("tr.src.tip");
+		etrdst.ToolTip = Loc.T("tr.dst.tip");
 		bselclose.ToolTip = Loc.T("dict.sel.close");
 		cbselon.Content = Loc.T("dict.selbar");
 		cbselon.ToolTip = Loc.T("dict.selbar.tip");
@@ -111,6 +126,7 @@ public partial class SelBarWindow : Window {
 			bselfja.IsChecked = dict == "ja";
 			bselfko.IsChecked = dict == "ko";
 			bselfen.IsChecked = dict == "en";
+			bselftr.IsChecked = dict == "tr";
 		}
 		finally { langsync = false; }
 	}
@@ -124,11 +140,93 @@ public partial class SelBarWindow : Window {
 	}
 
 	internal void ShowRows(List<DictSelRow> rows, bool searching) {
+		if (trmode) return;
 		if (rows == null) rows = new List<DictSelRow>();
 		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
+	}
+
+	internal void ShowDict() {
+		trmode = false;
+		gdict.Visibility = Visibility.Visible;
+		gtr.Visibility = Visibility.Collapsed;
+	}
+
+	internal void ShowTr(string text) {
+		trmode = true;
+		gdict.Visibility = Visibility.Collapsed;
+		gtr.Visibility = Visibility.Visible;
+		etrsrctext.Text = text ?? "";
+	}
+
+	internal string TrSrcCode => combo(etrsrc);
+	internal string TrDstCode => combo(etrdst);
+	internal string TrSrcText => etrsrctext.Text ?? "";
+	internal string TrDstText => etrdsttext.Text ?? "";
+
+	internal void SetTrOut(string text) {
+		etrdsttext.Text = text ?? "";
+	}
+
+	internal void SetTrLangs(List<string> srcs, List<string> dsts, string native, bool keep) {
+		var srcKeep = keep ? combo(etrsrc) : TrLang.Auto;
+		var dstKeep = keep ? combo(etrdst) : "";
+		if (dstKeep.Length == 0) dstKeep = native ?? "";
+		trsync = true;
+		try {
+			etrsrc.Items.Clear();
+			etrsrc.Items.Add(new ComboBoxItem { Content = Loc.T("lang.auto"), Tag = TrLang.Auto });
+			if (srcs != null) {
+				foreach (var s in srcs) {
+					if (string.IsNullOrEmpty(s) || s == TrLang.Auto) continue;
+					etrsrc.Items.Add(new ComboBoxItem { Content = TrLang.Label(s), Tag = s });
+				}
+			}
+			if (!pick(etrsrc, srcKeep) && etrsrc.Items.Count > 0) etrsrc.SelectedIndex = 0;
+			filldst(dsts, dstKeep);
+		}
+		finally { trsync = false; }
+	}
+
+	internal void SetTrTargets(List<string> dsts, string prefer) {
+		trsync = true;
+		try { filldst(dsts, prefer ?? ""); }
+		finally { trsync = false; }
+	}
+
+	void filldst(List<string> dsts, string prefer) {
+		etrdst.Items.Clear();
+		if (dsts != null) {
+			foreach (var s in dsts) {
+				if (string.IsNullOrEmpty(s) || s == TrLang.Auto) continue;
+				etrdst.Items.Add(new ComboBoxItem { Content = TrLang.Label(s), Tag = s });
+			}
+		}
+		if (etrdst.Items.Count == 0) {
+			etrdst.Items.Add(new ComboBoxItem { Content = Loc.T("lang.none.tgt"), Tag = "", IsEnabled = false });
+			etrdst.SelectedIndex = 0;
+			return;
+		}
+		if (!pick(etrdst, prefer)) etrdst.SelectedIndex = 0;
+	}
+
+	static string combo(ComboBox box) {
+		if (box?.SelectedItem is ComboBoxItem it && it.Tag is string s) return TrLang.Normalize(s);
+		return "";
+	}
+
+	static bool pick(ComboBox box, string code) {
+		if (box == null || string.IsNullOrEmpty(code)) return false;
+		code = TrLang.Normalize(code);
+		foreach (ComboBoxItem it in box.Items) {
+			if (it.Tag is string t && string.Equals(TrLang.Normalize(t), code, StringComparison.OrdinalIgnoreCase)) {
+				box.SelectedItem = it;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	void wirelang(ToggleButton b, string dict) {
@@ -279,4 +377,11 @@ public sealed class SelHalfWidth : System.Windows.Data.IValueConverter {
 	public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) {
 		return System.Windows.Data.Binding.DoNothing;
 	}
+}
+
+/// <summary>划词翻译页的可选语言。Native 是母语。</summary>
+sealed class SelTrPack {
+	public List<string> Sources = new();
+	public List<string> Targets = new();
+	public string Native = "zh";
 }
