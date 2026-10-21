@@ -62,6 +62,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The selection popup restores its last size, and a Read tab speaks the text sentence by sentence without closing or watching new selections.
 - The selection popup can be dragged, and Read aloud highlights the sentence currently being spoken.
 - Expired screenshots are cleaned in the background at startup and again every 24 hours while the program keeps running.
+- Read aloud in the selection popup can use the Chrome engine and its voices.
+- Temporary web ports, including Chrome's debugging port, listen on localhost only.
 
 #### Fixed
 
@@ -92,6 +94,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词浮窗会记住上次大小。朗读页按句朗读，打开时浮窗不自动关闭，也不接收新的划词。
 - 划词浮窗可以拖动。朗读时会高亮当前正在读的句子。
 - 过期截图在启动时后台清理，程序一直开着时每 24 小时再清一次。
+- 划词浮窗朗读可以选用 Chrome 引擎和对应发音人。
+- 临时网页端口（含 Chrome 调试端口）只监听本机，不接受局域网访问。
 
 #### 修复
 

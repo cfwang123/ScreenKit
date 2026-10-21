@@ -1185,6 +1185,7 @@ return 'started';
 			listener.Stop();
 			var args = new StringBuilder();
 			args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
+			args.Append("--remote-debugging-address=127.0.0.1 ");
 			args.Append("--remote-debugging-port=").Append(sess.port).Append(' ');
 			args.Append("--no-first-run --no-default-browser-check --disable-sync ");
 			args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");

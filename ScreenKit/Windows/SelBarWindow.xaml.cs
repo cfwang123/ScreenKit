@@ -294,6 +294,7 @@ public partial class SelBarWindow : Window {
 			addtag(ereadeng, Loc.T("dict.tts.sapi"), DictTts.SAPI);
 			addtag(ereadeng, Loc.T("dict.tts.winrt"), DictTts.WINRT);
 			addtag(ereadeng, Loc.T("dict.tts.edge"), DictTts.EDGE);
+			addtag(ereadeng, Loc.T("dict.tts.chrome"), DictTts.CHROME);
 			pickraw(ereadeng, DictTts.AUTO);
 			ereadlang.Items.Clear();
 			addtag(ereadlang, Loc.T("dict.filter.zh"), "zh");

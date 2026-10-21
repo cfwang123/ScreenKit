@@ -1286,6 +1286,15 @@ public partial class DictWindow : UserControl {
 			if (gen != readgen || ct.IsCancellationRequested || outwin == null) return;
 			var (a, b) = TtsTextSplitter.MapToUiOffsets(text, line.Start, line.End);
 			outwin.HighlightRead(a, b);
+			if (use == DictTts.CHROME) {
+				try { await Task.Run(() => chromeread(o, lang, voice, line.Text, ct)).ConfigureAwait(true); }
+				catch (OperationCanceledException) { return; }
+				catch {
+					if (gen == readgen) outwin?.ClearReadMark();
+					return;
+				}
+				continue;
+			}
 			var pref = DictTts.For(o, lang);
 			pref.Engine = use;
 			if (use == DictTts.ONNX) pref.Onnx = voice;
@@ -1301,6 +1310,32 @@ public partial class DictWindow : UserControl {
 			catch (OperationCanceledException) { return; }
 		}
 		if (gen == readgen) outwin?.ClearReadMark();
+	}
+
+	static void chromeread(OcrOptions o, string lang, string voice, string text, CancellationToken ct) {
+		var exe = ChromeTts.FindExe(o?.ChromeExe);
+		if (string.IsNullOrEmpty(exe))
+			throw new InvalidOperationException(Loc.T("tts.chrome.missing"));
+		var name = (voice ?? "").Trim();
+		var culture = ChromePack.SpeakLang(lang);
+		SapiVoiceItem pick = null;
+		foreach (var v in ChromeTts.Voices) {
+			if (name.Length > 0) {
+				if (!string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase)) continue;
+				pick = v;
+				break;
+			}
+			if (!string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase)) continue;
+			pick = v;
+			break;
+		}
+		if (pick != null) {
+			name = pick.Name;
+			if (!string.IsNullOrEmpty(pick.Culture)) culture = pick.Culture;
+		}
+		var rate = DictTts.For(o, lang).Rate;
+		var idle = ChromeTts.ClampIdle(o == null ? 60 : o.ChromeIdleSec);
+		ChromeTts.Speak(text, name, culture, rate, 1, exe, idle, ct);
 	}
 
 	void onhostoff(object sender, EventArgs e) {

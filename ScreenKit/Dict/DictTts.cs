@@ -11,6 +11,7 @@ static class DictTts {
 	public const string SAPI = "sapi";
 	public const string WINRT = "winrt";
 	public const string EDGE = "edge";
+	public const string CHROME = "chrome";
 
 	public static readonly double[] RateSteps = { 0.5, 0.8, 1.0, 1.2, 1.5, 2.0 };
 
@@ -25,7 +26,7 @@ static class DictTts {
 
 	public static string NormEngine(string raw) {
 		var s = (raw ?? "").Trim().ToLowerInvariant();
-		if (s == ONNX || s == SAPI || s == WINRT || s == EDGE || s == AUTO) return s;
+		if (s == ONNX || s == SAPI || s == WINRT || s == EDGE || s == CHROME || s == AUTO) return s;
 		return AUTO;
 	}
 
@@ -119,6 +120,14 @@ static class DictTts {
 		}
 		if (engine == EDGE) {
 			foreach (var v in EdgeVoices(lang)) list.Add((Loc.T(v.LocKey), v.Id));
+			return list;
+		}
+		if (engine == CHROME) {
+			list.Add((Loc.T("dict.tts.pickauto"), ""));
+			foreach (var v in ChromeTts.Voices) {
+				if (!string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase)) continue;
+				list.Add((v.DisplayName, v.Name));
+			}
 			return list;
 		}
 		return list;
@@ -256,6 +265,7 @@ static class DictTts {
 		if (engine == SAPI)
 			return await Task.Run(() => synthsapi(text, lang, voice, rate)).ConfigureAwait(true);
 		if (engine == WINRT) return await synthwinrt(lang, voice, text, rate).ConfigureAwait(true);
+		if (engine == CHROME) throw new InvalidOperationException("novoice");
 		var edge = new EdgeOnlineTts();
 		try {
 			edge.SetVoiceName(string.IsNullOrEmpty(voice) ? DefaultEdge(lang) : voice);

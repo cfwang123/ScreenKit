@@ -360,6 +360,7 @@ static class ChromeHost {
 		var url = "http://127.0.0.1:" + port + "/boot.html";
 		var args = new StringBuilder();
 		args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
+		args.Append("--remote-debugging-address=127.0.0.1 ");
 		args.Append("--remote-debugging-port=0 ");
 		args.Append("--no-first-run --no-default-browser-check --disable-sync ");
 		args.Append("--autoplay-policy=no-user-gesture-required ");

@@ -45,7 +45,8 @@ sealed class SockHttpServer {
 	}
 
 	static TcpListener bind(string host, int port) {
-		var lan = host == "+" || host == "*" || host == "0.0.0.0";
+		if (port == 0) host = "127.0.0.1";
+		var lan = port != 0 && (host == "+" || host == "*" || host == "0.0.0.0");
 		if (!lan) {
 			var local = new TcpListener(IPAddress.Loopback, port);
 			local.Server.ExclusiveAddressUse = true;

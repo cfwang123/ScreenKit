@@ -268,7 +268,7 @@ public partial class MainWindow {
 		}
 		var url = "http://127.0.0.1:" + HttpOcrServer.PagePort(opt) + "/chrome";
 		var profile = ChromeTts.ProfileDir();
-		var args = $"--user-data-dir=\"{profile}\" --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble \"{url}\"";
+		var args = $"--user-data-dir=\"{profile}\" --remote-debugging-address=127.0.0.1 --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble \"{url}\"";
 		try {
 			ChromeHost.Stop();
 			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
