@@ -65,6 +65,9 @@
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />
     <None Include="Web\dict.js" CopyToOutputDirectory="PreserveNewest" Link="web\dict.js" />
+    <None Include="Web\reader.html" CopyToOutputDirectory="PreserveNewest" Link="web\reader.html" />
+    <None Include="Web\reader.css" CopyToOutputDirectory="PreserveNewest" Link="web\reader.css" />
+    <None Include="Web\reader.js" CopyToOutputDirectory="PreserveNewest" Link="web\reader.js" />
     <None Include="Web\chrome.html" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.html" />
     <None Include="Web\chrome.css" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.css" />
     <None Include="Web\chrome.js" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.js" />
@@ -78,6 +81,9 @@
     <EmbeddedResource Include="Web\dict.html" LogicalName="web.dict.html" />
     <EmbeddedResource Include="Web\dict.css" LogicalName="web.dict.css" />
     <EmbeddedResource Include="Web\dict.js" LogicalName="web.dict.js" />
+    <EmbeddedResource Include="Web\reader.html" LogicalName="web.reader.html" />
+    <EmbeddedResource Include="Web\reader.css" LogicalName="web.reader.css" />
+    <EmbeddedResource Include="Web\reader.js" LogicalName="web.reader.js" />
     <EmbeddedResource Include="Web\chrome.html" LogicalName="web.chrome.html" />
     <EmbeddedResource Include="Web\chrome.css" LogicalName="web.chrome.css" />
     <EmbeddedResource Include="Web\chrome.js" LogicalName="web.chrome.js" />

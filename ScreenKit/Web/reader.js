@@ -1,5 +1,8 @@
 // 小说阅读器：web/up/reader 下的 txt、md，划词查词典，按句朗读并高亮当前句。
 (function(){
+	var langAt = 0;
+	var wavclip = null;
+	var wavurl = "";
 	var st = {
 		built: false,
 		books: [],
@@ -24,19 +27,140 @@
 		tablang: "all",
 		pendingid: 0
 	};
-	var F = window.F;
 	var scrollever = 0;
 
-	SK.readeropen = open;
-	SK.readerclose = close;
-	SK.readerlang = relabel;
 
-	// ==================== 打开与关闭 ====================
-	function open(){
-		if (!st.built) build();
-		if (!st.voices.length) loadvoices();
-		if (!st.books.length) loadbooks(restorelast);
-		else restorelast();
+	// ==================== 页面与语言 ====================
+	function $(id){ return document.getElementById(id); }
+	function qa(sel, root){ return (root || document).querySelectorAll(sel); }
+	function el(tag){ return document.createElement(tag); }
+	function on(target, type, fn, opt){
+		if (arguments.length < 4) target.addEventListener(type, fn);
+		else target.addEventListener(type, fn, opt);
+	}
+	function attr(node, name){ return node.getAttribute(name); }
+	function rect(node){ return node.getBoundingClientRect(); }
+	function urlof(blob){ return URL.createObjectURL(blob); }
+	function unurl(url){ URL.revokeObjectURL(url); }
+	function sink(node){
+		if (!node || typeof node.setSinkId !== "function") return;
+		var p;
+		try { p = node.setSinkId("default"); }
+		catch (e) { return; }
+		if (p && p.then) p.then(function(){}, function(){
+			try { node.setSinkId(""); } catch (e2) {}
+		});
+	}
+
+	function langs(){
+		if (window.L && window.L._lang && window.L._lang.length) return window.L._lang;
+		return ["zh", "en", "ja", "ko", "es", "fr", "pt", "ru", "de"];
+	}
+
+	function t(key){
+		var row = window.L && window.L[key];
+		if (!row || !row.length) return "";
+		var s = row[langAt];
+		if (s) return s;
+		return row[0] || "";
+	}
+
+	function filllang(){
+		var sel = $("lang");
+		if (!sel) return;
+		var codes = langs();
+		var names = (window.L && window.L._name) || [];
+		sel.innerHTML = "";
+		var i;
+		for (i = 0; i < codes.length; i++) {
+			var op = el("option");
+			op.value = codes[i];
+			op.textContent = names[i] || codes[i];
+			sel.appendChild(op);
+		}
+		var use = String(window.SKL || "").toLowerCase();
+		langAt = 0;
+		for (i = 0; i < codes.length; i++) if (use === codes[i]) langAt = i;
+		sel.value = codes[langAt] || codes[0] || "";
+		sel.onchange = function(){
+			langAt = 0;
+			for (i = 0; i < codes.length; i++) if (codes[i] === sel.value) langAt = i;
+			applylang();
+			relabel();
+		};
+	}
+
+	function applylang(){
+		var nodes = qa("[data-k]");
+		var i;
+		var s;
+		for (i = 0; i < nodes.length; i++) {
+			s = t(attr(nodes[i], "data-k"));
+			if (s) nodes[i].textContent = s;
+		}
+		nodes = qa("[data-kph]");
+		for (i = 0; i < nodes.length; i++) {
+			s = t(attr(nodes[i], "data-kph"));
+			if (s) nodes[i].placeholder = s;
+		}
+		nodes = qa("[data-ktip]");
+		for (i = 0; i < nodes.length; i++) {
+			s = t(attr(nodes[i], "data-ktip"));
+			if (s) nodes[i].title = s;
+		}
+		var code = langs()[langAt] || "zh";
+		document.documentElement.lang = code === "zh" ? "zh-CN" : code;
+		document.title = t("web.tool.reader") || "小说阅读器";
+	}
+
+	// ==================== 网页播放 ====================
+	function stopwav(){
+		if (wavclip) {
+			wavclip.pause();
+			wavclip.src = "";
+			wavclip = null;
+		}
+		if (wavurl) {
+			unurl(wavurl);
+			wavurl = "";
+		}
+	}
+
+	function playwav(b64, onend){
+		if (!b64) return;
+		var bin = atob(b64);
+		var bytes = new Uint8Array(bin.length);
+		var i;
+		for (i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 255;
+		var blob = new Blob([bytes], { type: "audio/wav" });
+		var url = urlof(blob);
+		stopwav();
+		wavurl = url;
+		var audio = new Audio(url);
+		sink(audio);
+		wavclip = audio;
+		audio.onended = function(){
+			if (wavclip === audio) stopwav();
+			if (onend) onend();
+		};
+		var played = audio.play();
+		if (played && played.then) played.then(function(){}, function(){
+			if (wavclip === audio) stopwav();
+			setmsg(t("web.reader.novoice") || "无法播放", true);
+		});
+	}
+
+	// ==================== 启动 ====================
+	function boot(){
+		filllang();
+		build();
+		applylang();
+		loadbooks(restorelast);
+		loadvoices();
+		on(window, "pagehide", function(){
+			stopread(true);
+			try { navigator.sendBeacon("/api/reader/stop", new Blob()); } catch (e) {}
+		});
 	}
 
 	function restorelast(){
@@ -44,13 +168,6 @@
 		var last = "";
 		try { last = localStorage.getItem("sk-reader-file") || ""; } catch (e) {}
 		if (last && hasbook(last)) openbook(last, false);
-	}
-
-	function close(){
-		if (!st.built) return;
-		stopread(true);
-		hidepop();
-		if (F.id("rd-dict")) F.id("rd-dict").hidden = true;
 	}
 
 	/** 界面语言换了：引擎名、章节和空列表按新语言重画。 */
@@ -62,13 +179,13 @@
 		settitle(st.cur);
 		drawrate();
 		paintbooks();
-		if (F.id("rd-dict")) painttabs();
+		if ($("rd-dict")) painttabs();
 	}
 
 	// ==================== 界面 ====================
 	function build(){
 		st.built = true;
-		var root = F.id("rd-root");
+		var root = $("rd-root");
 		if (!root) return;
 		try { st.font = parseInt(localStorage.getItem("sk-reader-font") || "19", 10); } catch (e) { st.font = 19; }
 		if (!st.font || st.font < 14) st.font = 14;
@@ -78,7 +195,7 @@
 		if (st.rate > 2) st.rate = 2;
 		root.innerHTML = [
 			'<aside class="rd-side">',
-			'<div class="rd-side-top"><strong data-k="web.tool.reader">' + L("web.tool.reader", "小说阅读器") + "</strong>",
+			'<div class="rd-side-top">',
 			'<button id="rd-upload" type="button"><i class="fa-solid fa-upload"></i><span data-k="web.reader.upload">' + L("web.reader.upload", "上传") + "</span></button>",
 			'<input id="rd-file" type="file" accept=".txt,.md,.markdown,.mdown,.mkd,text/plain,text/markdown" multiple hidden>',
 			"</div>",
@@ -101,19 +218,18 @@
 			"</div>",
 			'<div class="rd-bar2">',
 			'<label class="rd-f"><span data-k="web.reader.enc">' + L("web.reader.enc", "编码") + "</span>",
-			'<select id="rd-enc"><option value="">' + L("web.reader.auto", "自动") + "</option>",
+			'<select id="rd-enc"><option value="" data-k="web.reader.auto">' + L("web.reader.auto", "自动") + "</option>",
 			'<option value="utf-8">UTF-8</option><option value="gb18030">GB18030</option><option value="gbk">GBK</option>',
 			'<option value="big5">Big5</option><option value="utf-16le">UTF-16 LE</option><option value="utf-16be">UTF-16 BE</option></select></label>',
 			'<label class="rd-f"><span data-k="web.reader.dlang">' + L("web.reader.dlang", "词典") + "</span>",
-			'<select id="rd-dlang"><option value="">' + L("web.reader.dictall", "全部词典") + "</option>",
-			'<option value="zh">' + L("dict.filter.zh", "汉语") + '</option><option value="en">' + L("dict.filter.en", "英语") + "</option>",
-			'<option value="ja">' + L("dict.filter.ja", "日语") + '</option><option value="ko">' + L("dict.filter.ko", "韩语") + "</option></select></label>",
+			'<select id="rd-dlang"><option value="" data-k="web.reader.dictall">' + L("web.reader.dictall", "全部词典") + "</option>",
+			'<option value="zh" data-k="dict.filter.zh">' + L("dict.filter.zh", "汉语") + '</option><option value="en" data-k="dict.filter.en">' + L("dict.filter.en", "英语") + "</option>",
+			'<option value="ja" data-k="dict.filter.ja">' + L("dict.filter.ja", "日语") + '</option><option value="ko" data-k="dict.filter.ko">' + L("dict.filter.ko", "韩语") + "</option></select></label>",
 			'<label class="rd-f"><span data-k="web.reader.chap">' + L("web.reader.chap", "章节") + '</span><select id="rd-chap"><option value="">' + L("web.reader.nochap", "没有章节") + "</option></select></label>",
 			'<label class="rd-f"><span data-k="web.reader.engine">' + L("web.reader.engine", "引擎") + '</span><select id="rd-engine"></select></label>',
 			'<label class="rd-f"><span data-k="web.reader.vlang">' + L("web.reader.vlang", "发音语言") + '</span><select id="rd-vlang"></select></label>',
 			'<label class="rd-f"><span data-k="web.reader.voice">' + L("web.reader.voice", "发音人") + '</span><select id="rd-voice"></select></label>',
-			'<label class="rd-f rd-frate"><span data-k="web.reader.rate">' + L("web.reader.rate", "语速") + '</span><input id="rd-rate" type="range" min="0.5" max="2" step="0.1"></label>',
-			'<span id="rd-ratev" class="rd-ratev"></span>',
+			'<label class="rd-f rd-frate"><span data-k="web.reader.rate">' + L("web.reader.rate", "语速") + '</span><input id="rd-rate" type="range" min="0.5" max="2" step="0.1"><span id="rd-ratev" class="rd-ratev"></span></label>',
 			"</div>",
 			"</div>",
 			'<div id="rd-scroll" class="rd-scroll"><article id="rd-body" class="rd-body"></article></div>',
@@ -150,55 +266,55 @@
 	}
 
 	function wire(){
-		F.id("rd-upload").onclick = function(){ F.id("rd-file").click(); };
-		F.id("rd-file").onchange = function(){
-			upload(F.id("rd-file").files);
-			F.id("rd-file").value = "";
+		$("rd-upload").onclick = function(){ $("rd-file").click(); };
+		$("rd-file").onchange = function(){
+			upload($("rd-file").files);
+			$("rd-file").value = "";
 		};
-		F.id("rd-filter").oninput = paintbooks;
-		F.id("rd-fontm").onclick = function(){ setfont(st.font - 1); };
-		F.id("rd-fontp").onclick = function(){ setfont(st.font + 1); };
-		F.id("rd-enc").onchange = function(){
-			st.enc = F.id("rd-enc").value || "";
+		$("rd-filter").oninput = paintbooks;
+		$("rd-fontm").onclick = function(){ setfont(st.font - 1); };
+		$("rd-fontp").onclick = function(){ setfont(st.font + 1); };
+		$("rd-enc").onchange = function(){
+			st.enc = $("rd-enc").value || "";
 			savemeta("enc", st.enc);
 			if (st.cur) openbook(st.cur, false);
 		};
-		F.id("rd-dlang").onchange = function(){
-			st.dlang = F.id("rd-dlang").value || "";
+		$("rd-dlang").onchange = function(){
+			st.dlang = $("rd-dlang").value || "";
 			savemeta("lang", st.dlang);
 			painttabs();
-			var q = F.id("rd-dict-q").value.trim();
+			var q = $("rd-dict-q").value.trim();
 			if (q) dictsearch(q);
 		};
-		F.id("rd-chap").onchange = function(){
-			var id = F.id("rd-chap").value;
-			var node = id ? F.id(id) : null;
+		$("rd-chap").onchange = function(){
+			var id = $("rd-chap").value;
+			var node = id ? $(id) : null;
 			if (node) node.scrollIntoView({ block: "start" });
 		};
-		F.id("rd-read").onclick = function(){ readstart(); };
-		F.id("rd-stop").onclick = function(){ stopread(false); };
-		F.id("rd-dictbtn").onclick = function(){ dicttoggle(); };
-		F.id("rd-engine").onchange = function(){
-			st.engine = F.id("rd-engine").value;
+		$("rd-read").onclick = function(){ readstart(); };
+		$("rd-stop").onclick = function(){ stopread(false); };
+		$("rd-dictbtn").onclick = function(){ dicttoggle(); };
+		$("rd-engine").onchange = function(){
+			st.engine = $("rd-engine").value;
 			savetts();
 			fillvlang();
 		};
-		F.id("rd-vlang").onchange = function(){
-			st.vlang = F.id("rd-vlang").value;
+		$("rd-vlang").onchange = function(){
+			st.vlang = $("rd-vlang").value;
 			savetts();
 			fillvoice();
 		};
-		F.id("rd-voice").onchange = function(){
-			st.voice = F.id("rd-voice").value;
+		$("rd-voice").onchange = function(){
+			st.voice = $("rd-voice").value;
 			savetts();
 		};
-		F.id("rd-rate").oninput = function(){
-			st.rate = parseFloat(F.id("rd-rate").value) || 1;
+		$("rd-rate").oninput = function(){
+			st.rate = parseFloat($("rd-rate").value) || 1;
 			drawrate();
 			savetts();
 		};
-		var sc = F.id("rd-scroll");
-		F.on(sc, "scroll", function(){
+		var sc = $("rd-scroll");
+		on(sc, "scroll", function(){
 			if (!st.cur) return;
 			st.selpick = null;
 			paintprog();
@@ -218,9 +334,9 @@
 	}
 
 	function settitle(name){
-		var el = F.id("rd-title");
+		var el = $("rd-title");
 		if (el) el.textContent = name || L("web.reader.pick", "从左边选一篇开始读");
-		if (F.id("rd-prog")) F.id("rd-prog").hidden = !name;
+		if ($("rd-prog")) $("rd-prog").hidden = !name;
 	}
 
 	function setfont(n){
@@ -231,19 +347,19 @@
 	}
 
 	function applyfont(){
-		var body = F.id("rd-body");
+		var body = $("rd-body");
 		if (body) body.style.fontSize = st.font + "px";
 	}
 
 	function drawrate(){
-		var inp = F.id("rd-rate");
+		var inp = $("rd-rate");
 		if (inp) inp.value = String(st.rate);
-		var lab = F.id("rd-ratev");
+		var lab = $("rd-ratev");
 		if (lab) lab.textContent = st.rate.toFixed(1) + "×";
 	}
 
 	function setmsg(text, bad){
-		var el = F.id("rd-msg");
+		var el = $("rd-msg");
 		if (!el) return;
 		el.textContent = text || "";
 		el.title = text || "";
@@ -264,9 +380,9 @@
 	}
 
 	function paintbooks(){
-		var box = F.id("rd-books");
+		var box = $("rd-books");
 		if (!box) return;
-		var q = (F.id("rd-filter").value || "").trim().toLowerCase();
+		var q = ($("rd-filter").value || "").trim().toLowerCase();
 		box.innerHTML = "";
 		var n = 0;
 		for (var i = 0; i < st.books.length; i++) {
@@ -276,7 +392,7 @@
 			box.appendChild(bookrow(b));
 		}
 		if (!n) {
-			var p = F.el("p");
+			var p = el("p");
 			p.className = "rd-empty";
 			p.textContent = st.books.length
 				? L("web.reader.nomatch", "没有对上的文件")
@@ -286,9 +402,9 @@
 	}
 
 	function bookrow(b){
-		var row = F.el("div");
+		var row = el("div");
 		row.className = "rd-book" + (b.name === st.cur ? " on" : "");
-		var name = F.el("button");
+		var name = el("button");
 		name.type = "button";
 		name.className = "rd-book-name";
 		name.textContent = b.name;
@@ -298,7 +414,7 @@
 		var pct = "";
 		try { pct = localStorage.getItem("sk-reader-pct." + b.name) || ""; } catch (e) {}
 		if (pct) {
-			var p = F.el("span");
+			var p = el("span");
 			p.className = "rd-book-pct";
 			p.textContent = pct + "%";
 			row.appendChild(p);
@@ -317,7 +433,7 @@
 	}
 
 	function opbtn(icon, tip, fn){
-		var b = F.el("button");
+		var b = el("button");
 		b.type = "button";
 		b.className = "rd-book-op";
 		b.title = tip || "";
@@ -343,10 +459,10 @@
 		try { localStorage.setItem("sk-reader-file", name); } catch (e) {}
 		var enc = readmeta("enc");
 		st.enc = enc;
-		F.id("rd-enc").value = enc;
+		$("rd-enc").value = enc;
 		st.dlang = readmeta("lang");
-		F.id("rd-dlang").value = st.dlang;
-		var body = F.id("rd-body");
+		$("rd-dlang").value = st.dlang;
+		var body = $("rd-body");
 		body.className = "rd-body";
 		body.innerHTML = '<p class="rd-empty">' + esc(L("web.reader.loading", "正在打开…")) + "</p>";
 		var url = "/api/reader/file?name=" + encodeURIComponent(name) + (enc ? "&enc=" + encodeURIComponent(enc) : "");
@@ -361,14 +477,14 @@
 			st.ext = (j.data && j.data.ext) || extname(name);
 			if (j.data && j.data.enc && j.data.enc !== st.enc) {
 				st.enc = j.data.enc;
-				F.id("rd-enc").value = st.enc;
+				$("rd-enc").value = st.enc;
 			}
 			render(st.text, st.ext);
 			var y = 0;
 			if (!jump) {
 				try { y = parseInt(localStorage.getItem("sk-reader-scroll." + name) || "0", 10) || 0; } catch (e) { y = 0; }
 			}
-			var sc = F.id("rd-scroll");
+			var sc = $("rd-scroll");
 			sc.scrollTop = y;
 			paintprog();
 			setmsg("");
@@ -468,10 +584,10 @@
 				st.sent = [];
 				st.chap = [];
 				stopread(true);
-				F.id("rd-body").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.pick", "从左边选一篇开始读")) + "</p>";
-				F.id("rd-scroll").scrollTop = 0;
+				$("rd-body").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.pick", "从左边选一篇开始读")) + "</p>";
+				$("rd-scroll").scrollTop = 0;
 				settitle("");
-				F.id("rd-chap").innerHTML = '<option value="">' + esc(L("web.reader.nochap", "没有章节")) + "</option>";
+				$("rd-chap").innerHTML = '<option value="">' + esc(L("web.reader.nochap", "没有章节")) + "</option>";
 				try { localStorage.removeItem("sk-reader-file"); } catch (e) {}
 			}
 			rmlocal(name);
@@ -500,13 +616,13 @@
 
 	// ==================== 正文 ====================
 	function render(text, ext){
-		var body = F.id("rd-body");
+		var body = $("rd-body");
 		st.chap = [];
 		st.hl = null;
 		var md = ext === ".md" || ext === ".markdown" || ext === ".mdown" || ext === ".mkd";
 		body.className = "rd-body" + (md ? " md" : " txt");
 		body.innerHTML = md ? mdhtml(text) : txthtml(text);
-		var list = F.qa("span.rs", body);
+		var list = qa("span.rs", body);
 		st.sent = [];
 		for (var i = 0; i < list.length; i++) {
 			list[i].setAttribute("data-i", String(i));
@@ -703,22 +819,22 @@
 	}
 
 	function fillchap(){
-		var sel = F.id("rd-chap");
+		var sel = $("rd-chap");
 		if (!sel) return;
 		sel.innerHTML = "";
 		if (!st.chap.length) {
-			var one = F.el("option");
+			var one = el("option");
 			one.value = "";
 			one.textContent = L("web.reader.nochap", "没有章节");
 			sel.appendChild(one);
 			return;
 		}
-		var head = F.el("option");
+		var head = el("option");
 		head.value = "";
 		head.textContent = L("web.reader.chap", "章节") + " · " + st.chap.length;
 		sel.appendChild(head);
 		for (var i = 0; i < st.chap.length; i++) {
-			var op = F.el("option");
+			var op = el("option");
 			op.value = st.chap[i].id;
 			op.textContent = st.chap[i].text;
 			sel.appendChild(op);
@@ -726,7 +842,7 @@
 	}
 
 	function progpct(){
-		var sc = F.id("rd-scroll");
+		var sc = $("rd-scroll");
 		if (!sc) return 0;
 		var max = sc.scrollHeight - sc.clientHeight;
 		if (max <= 1) return 100;
@@ -737,7 +853,7 @@
 	}
 
 	function paintprog(){
-		var el = F.id("rd-prog");
+		var el = $("rd-prog");
 		if (!el) return;
 		if (!st.cur) {
 			el.hidden = true;
@@ -768,8 +884,8 @@
 		stopread(true);
 		var token = ++st.token;
 		st.reading = true;
-		F.id("rd-read").disabled = true;
-		F.id("rd-stop").disabled = false;
+		$("rd-read").disabled = true;
+		$("rd-stop").disabled = false;
 		var queue = [];
 		for (var i = start; i < st.sent.length; i++) {
 			var text = st.sent[i].textContent || "";
@@ -787,8 +903,8 @@
 			if (token !== st.token || !st.reading) return;
 			if (!queue.length) {
 				st.reading = false;
-				F.id("rd-read").disabled = false;
-				F.id("rd-stop").disabled = true;
+				$("rd-read").disabled = false;
+				$("rd-stop").disabled = true;
 				clearhl();
 				setmsg(L("web.reader.done", "读完了"));
 				return;
@@ -799,8 +915,8 @@
 				if (token !== st.token || !st.reading) return;
 				if (err) {
 					st.reading = false;
-					F.id("rd-read").disabled = false;
-					F.id("rd-stop").disabled = true;
+					$("rd-read").disabled = false;
+					$("rd-stop").disabled = true;
 					clearhl();
 					setmsg(err, true);
 					return;
@@ -830,7 +946,7 @@
 				done(L("web.reader.novoice", "没有音频"));
 				return;
 			}
-			SK.playwav(b64, "", function(){ done(""); });
+			playwav(b64, "", function(){ done(""); });
 		}).catch(function(e){
 			done(e && e.message ? e.message : "网络错误");
 		});
@@ -854,11 +970,11 @@
 	function stopread(quiet){
 		st.token++;
 		st.reading = false;
-		SK.stopwav();
+		stopwav();
 		clearhl();
 		if (st.built) {
-			if (F.id("rd-read")) F.id("rd-read").disabled = false;
-			if (F.id("rd-stop")) F.id("rd-stop").disabled = true;
+			if ($("rd-read")) $("rd-read").disabled = false;
+			if ($("rd-stop")) $("rd-stop").disabled = true;
 		}
 		fetch("/api/reader/stop", { method: "POST" }).catch(function(){});
 		if (!quiet) setmsg(L("web.reader.stopped", "已停止"));
@@ -870,9 +986,9 @@
 		if (!el) return;
 		el.className = "rs on";
 		st.hl = el;
-		var sc = F.id("rd-scroll");
-		var box = F.rect(sc);
-		var r = F.rect(el);
+		var sc = $("rd-scroll");
+		var box = rect(sc);
+		var r = rect(el);
 		if (r.top < box.top + 8 || r.bottom > box.bottom - 8) el.scrollIntoView({ block: "center" });
 	}
 
@@ -883,11 +999,11 @@
 	}
 
 	function firstonscreen(){
-		var sc = F.id("rd-scroll");
-		var box = F.rect(sc);
+		var sc = $("rd-scroll");
+		var box = rect(sc);
 		var list = st.sent;
 		for (var i = 0; i < list.length; i++) {
-			var r = F.rect(list[i]);
+			var r = rect(list[i]);
 			if (!r.width && !r.height) continue;
 			if (r.bottom > box.top + 2) return i;
 		}
@@ -898,7 +1014,7 @@
 	function livepick(){
 		var sel = window.getSelection();
 		if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
-		var body = F.id("rd-body");
+		var body = $("rd-body");
 		if (!body) return null;
 		var range = sel.getRangeAt(0);
 		if (!body.contains(range.startContainer)) return null;
@@ -977,12 +1093,12 @@
 	}
 
 	function fillengines(){
-		var sel = F.id("rd-engine");
+		var sel = $("rd-engine");
 		if (!sel) return;
 		var list = engines();
 		sel.innerHTML = "";
 		for (var i = 0; i < list.length; i++) {
-			var op = F.el("option");
+			var op = el("option");
 			op.value = list[i];
 			op.textContent = englabel(list[i]);
 			sel.appendChild(op);
@@ -1011,7 +1127,7 @@
 	}
 
 	function fillvlang(){
-		var sel = F.id("rd-vlang");
+		var sel = $("rd-vlang");
 		if (!sel) return;
 		var list = [];
 		var seen = {};
@@ -1025,12 +1141,12 @@
 		}
 		list.sort();
 		sel.innerHTML = "";
-		var all = F.el("option");
+		var all = el("option");
 		all.value = "";
 		all.textContent = L("web.reader.vall", "全部语言");
 		sel.appendChild(all);
 		for (i = 0; i < list.length; i++) {
-			var op = F.el("option");
+			var op = el("option");
 			op.value = list[i];
 			op.textContent = langlabel(list[i]);
 			sel.appendChild(op);
@@ -1048,7 +1164,7 @@
 	}
 
 	function fillvoice(){
-		var sel = F.id("rd-voice");
+		var sel = $("rd-voice");
 		if (!sel) return;
 		var list = [];
 		for (var i = 0; i < st.voices.length; i++) {
@@ -1059,7 +1175,7 @@
 		}
 		sel.innerHTML = "";
 		for (i = 0; i < list.length; i++) {
-			var op = F.el("option");
+			var op = el("option");
 			op.value = voiceid(list[i]);
 			op.textContent = voiceLabel(list[i]);
 			sel.appendChild(op);
@@ -1094,7 +1210,7 @@
 	}
 
 	function fillrate(){
-		var inp = F.id("rd-rate");
+		var inp = $("rd-rate");
 		if (inp) inp.value = String(st.rate);
 	}
 
@@ -1109,11 +1225,11 @@
 
 	// ==================== 划词浮窗 ====================
 	function wirepop(){
-		F.id("rd-pop-hide").onclick = hidepop;
-		F.id("rd-pop-copy").onclick = function(){
-			copytext(F.id("rd-pop-word").textContent);
+		$("rd-pop-hide").onclick = hidepop;
+		$("rd-pop-copy").onclick = function(){
+			copytext($("rd-pop-word").textContent);
 		};
-		F.id("rd-pop-read").onclick = function(){
+		$("rd-pop-read").onclick = function(){
 			if (!st.selpick) {
 				readstart();
 				return;
@@ -1126,34 +1242,33 @@
 			} catch (e) {}
 			readfrom(pick.i, pick.off || 0);
 		};
-		F.id("rd-pop-speak").onclick = function(){
-			var text = F.id("rd-pop-word").textContent;
+		$("rd-pop-speak").onclick = function(){
+			var text = $("rd-pop-word").textContent;
 			if (!text) return;
 			var lang = st.hit && st.hit.dict ? st.hit.dict : (st.dlang || "");
 			speakdict(text, lang);
 		};
-		F.on(document, "mousedown", function(ev){
-			var body = F.id("rd-body");
+		on(document, "mousedown", function(ev){
+			var body = $("rd-body");
 			if (body && body.contains(ev.target)) st.selpick = null;
-			var pop = F.id("rd-pop");
+			var pop = $("rd-pop");
 			if (!pop || pop.hidden) return;
 			if (pop.contains(ev.target)) return;
-			var win = F.id("rd-dict");
+			var win = $("rd-dict");
 			if (win && win.contains(ev.target)) return;
 			hidepop();
 		});
-		F.on(document, "mouseup", function(){
+		on(document, "mouseup", function(){
 			setTimeout(function(){ onselect(false); }, 10);
 		});
-		F.on(document, "selectionchange", function(){
+		on(document, "selectionchange", function(){
 			if (!window.matchMedia("(hover: none) and (pointer: coarse)").matches && window.innerWidth > 800) return;
 			setTimeout(function(){ onselect(false); }, 30);
 		});
-		F.on(document, "keydown", function(ev){
-			if (SK.curtool !== "reader") return;
+		on(document, "keydown", function(ev){
 			if (ev.key === "Escape") {
 				hidepop();
-				if (F.id("rd-dict") && !F.id("rd-dict").hidden) F.id("rd-dict").hidden = true;
+				if ($("rd-dict") && !$("rd-dict").hidden) $("rd-dict").hidden = true;
 			}
 			if (ev.key === "F1") {
 				ev.preventDefault();
@@ -1163,9 +1278,9 @@
 	}
 
 	function onselect(force){
-		var pop = F.id("rd-pop");
-		if (!pop || SK.curtool !== "reader") return;
-		if (F.id("rd-dict") && !F.id("rd-dict").hidden && !force) return;
+		var pop = $("rd-pop");
+		if (!pop) return;
+		if ($("rd-dict") && !$("rd-dict").hidden && !force) return;
 		var sel = window.getSelection();
 		if (!sel) {
 			if (force) hidepop();
@@ -1190,13 +1305,13 @@
 			return;
 		}
 		st.selpick = livepick();
-		F.id("rd-pop-word").textContent = text;
-		F.id("rd-pop-items").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.searching", "查询中…")) + "</p>";
+		$("rd-pop-word").textContent = text;
+		$("rd-pop-items").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.searching", "查询中…")) + "</p>";
 		pop.hidden = false;
 		placepop(sel);
 		dictsearch(text, 8, function(items, err){
-			if (pop.hidden || F.id("rd-pop-word").textContent !== text) return;
-			var box = F.id("rd-pop-items");
+			if (pop.hidden || $("rd-pop-word").textContent !== text) return;
+			var box = $("rd-pop-items");
 			box.innerHTML = "";
 			if (err) {
 				box.innerHTML = '<p class="rd-empty">' + esc(err) + "</p>";
@@ -1215,15 +1330,15 @@
 	}
 
 	function pophit(h){
-		var b = F.el("button");
+		var b = el("button");
 		b.type = "button";
 		b.className = "rd-hit";
-		var w = F.el("span");
+		var w = el("span");
 		w.className = "rd-hit-w";
 		w.textContent = h.title || h.word || "";
 		b.appendChild(w);
 		if (h.preview) {
-			var g = F.el("span");
+			var g = el("span");
 			g.className = "rd-hit-g";
 			g.textContent = h.preview;
 			b.appendChild(g);
@@ -1237,7 +1352,7 @@
 	}
 
 	function placepop(sel){
-		var pop = F.id("rd-pop");
+		var pop = $("rd-pop");
 		if (!pop) return;
 		var edge = 8;
 		var gap = 8;
@@ -1286,28 +1401,28 @@
 	}
 
 	function hidepop(){
-		var pop = F.id("rd-pop");
+		var pop = $("rd-pop");
 		if (pop) pop.hidden = true;
 	}
 
 	// ==================== 词典窗口 ====================
 	function wiredict(){
-		F.id("rd-dict-close").onclick = function(){ F.id("rd-dict").hidden = true; };
-		F.id("rd-dict-go").onclick = function(){ dictsearch(F.id("rd-dict-q").value); };
-		F.id("rd-dict-q").onkeydown = function(ev){
+		$("rd-dict-close").onclick = function(){ $("rd-dict").hidden = true; };
+		$("rd-dict-go").onclick = function(){ dictsearch($("rd-dict-q").value); };
+		$("rd-dict-q").onkeydown = function(ev){
 			if (ev.key === "Enter") {
 				ev.preventDefault();
-				dictsearch(F.id("rd-dict-q").value);
+				dictsearch($("rd-dict-q").value);
 			}
-			else if (ev.key === "Escape") F.id("rd-dict").hidden = true;
+			else if (ev.key === "Escape") $("rd-dict").hidden = true;
 		};
-		var tabs = F.qa("#rd-dict-tabs button");
+		var tabs = qa("#rd-dict-tabs button");
 		for (var i = 0; i < tabs.length; i++) {
 			tabs[i].onclick = function(){
 				if (st.dlang) return;
-				st.tablang = F.attr(this, "data-lang") || "all";
+				st.tablang = attr(this, "data-lang") || "all";
 				painttabs();
-				var q = F.id("rd-dict-q").value.trim();
+				var q = $("rd-dict-q").value.trim();
 				if (q) dictsearch(q);
 			};
 		}
@@ -1317,40 +1432,40 @@
 
 	function painttabs(){
 		var v = st.dlang || st.tablang || "all";
-		var tabs = F.qa("#rd-dict-tabs button");
+		var tabs = qa("#rd-dict-tabs button");
 		for (var i = 0; i < tabs.length; i++) {
-			var id = F.attr(tabs[i], "data-lang");
+			var id = attr(tabs[i], "data-lang");
 			tabs[i].className = id === v ? "on" : "";
 			tabs[i].disabled = !!st.dlang && id !== st.dlang;
 		}
 	}
 
 	function dicttoggle(){
-		var win = F.id("rd-dict");
+		var win = $("rd-dict");
 		if (!win) return;
 		if (win.hidden) dictopen("", 0);
 		else win.hidden = true;
 	}
 
 	function dictopen(q, id){
-		F.id("rd-dict").hidden = false;
+		$("rd-dict").hidden = false;
 		painttabs();
 		if (q) {
-			F.id("rd-dict-q").value = q;
+			$("rd-dict-q").value = q;
 			st.pendingid = id || 0;
 			dictsearch(q);
 		}
 		else {
-			F.id("rd-dict-q").focus();
-			if (F.id("rd-dict-list").innerHTML === "") {
-				F.id("rd-dict-detail").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.dictempty", "输入词语查词典，也可以在正文里划选文字。")) + "</p>";
+			$("rd-dict-q").focus();
+			if ($("rd-dict-list").innerHTML === "") {
+				$("rd-dict-detail").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.dictempty", "输入词语查词典，也可以在正文里划选文字。")) + "</p>";
 			}
 		}
 		plaacedict();
 	}
 
 	function plaacedict(){
-		var win = F.id("rd-dict");
+		var win = $("rd-dict");
 		if (!win || win.dataset.moved) return;
 		var w = win.offsetWidth || 860;
 		var h = win.offsetHeight || 560;
@@ -1359,28 +1474,28 @@
 	}
 
 	function inidrag(){
-		var bar = F.id("rd-dict-bar");
-		var win = F.id("rd-dict");
+		var bar = $("rd-dict-bar");
+		var win = $("rd-dict");
 		var dx = 0;
 		var dy = 0;
-		var on = false;
-		F.on(bar, "mousedown", function(ev){
+		var dragging = false;
+		on(bar, "mousedown", function(ev){
 			if (ev.target.closest && ev.target.closest("button")) return;
-			on = true;
+			dragging = true;
 			var r = win.getBoundingClientRect();
 			dx = ev.clientX - r.left;
 			dy = ev.clientY - r.top;
 			ev.preventDefault();
 		});
-		F.on(document, "mousemove", function(ev){
-			if (!on) return;
+		on(document, "mousemove", function(ev){
+			if (!dragging) return;
 			win.dataset.moved = "1";
 			var x = Math.max(60 - win.offsetWidth, Math.min(ev.clientX - dx, window.innerWidth - 60));
 			var y = Math.max(0, Math.min(ev.clientY - dy, window.innerHeight - 40));
 			win.style.left = Math.round(x) + "px";
 			win.style.top = Math.round(y) + "px";
 		});
-		F.on(document, "mouseup", function(){ on = false; });
+		on(document, "mouseup", function(){ dragging = false; });
 	}
 
 	function usedictlang(){
@@ -1398,23 +1513,23 @@
 				return;
 			}
 			if (!j || j.code !== 100) {
-				F.id("rd-dict-list").innerHTML = '<p class="rd-empty">' + esc(errtext(j)) + "</p>";
-				F.id("rd-dict-detail").innerHTML = "";
+				$("rd-dict-list").innerHTML = '<p class="rd-empty">' + esc(errtext(j)) + "</p>";
+				$("rd-dict-detail").innerHTML = "";
 				return;
 			}
 			renderdict(j.data);
 		}).catch(function(e){
 			var msg = e && e.message ? e.message : "网络错误";
 			if (cb) { cb(null, msg); return; }
-			F.id("rd-dict-list").innerHTML = '<p class="rd-empty">' + esc(msg) + "</p>";
+			$("rd-dict-list").innerHTML = '<p class="rd-empty">' + esc(msg) + "</p>";
 		});
 	}
 
 	function renderdict(data){
 		var hits = (data && data.hits) || [];
-		var list = F.id("rd-dict-list");
-		var detail = F.id("rd-dict-detail");
-		F.id("rd-dict-status").textContent = hits.length
+		var list = $("rd-dict-list");
+		var detail = $("rd-dict-detail");
+		$("rd-dict-status").textContent = hits.length
 			? L("web.reader.hits", "{0} 条").replace("{0}", String(hits.length)) + (data.ms != null ? " · " + data.ms + " ms" : "")
 			: "";
 		list.innerHTML = "";
@@ -1431,24 +1546,24 @@
 	}
 
 	function dicthit(h){
-		var row = F.el("div");
+		var row = el("div");
 		row.className = "rd-dhit";
 		row.setAttribute("data-id", String(h.id));
-		var top = F.el("div");
+		var top = el("div");
 		top.className = "rd-dhit-top";
-		var w = F.el("span");
+		var w = el("span");
 		w.className = "rd-dhit-w";
 		w.textContent = h.title || h.word || "";
 		top.appendChild(w);
 		if (h.via) {
-			var v = F.el("span");
+			var v = el("span");
 			v.className = "rd-tag";
 			v.textContent = L("web.reader.via", "活用形");
 			top.appendChild(v);
 		}
 		row.appendChild(top);
 		if (h.preview) {
-			var g = F.el("div");
+			var g = el("div");
 			g.className = "rd-dhit-g";
 			g.textContent = h.preview;
 			row.appendChild(g);
@@ -1458,9 +1573,9 @@
 	}
 
 	function selecthit(id){
-		var rows = F.qa("#rd-dict-list .rd-dhit");
+		var rows = qa("#rd-dict-list .rd-dhit");
 		for (var i = 0; i < rows.length; i++) {
-			if (F.attr(rows[i], "data-id") === String(id)) {
+			if (attr(rows[i], "data-id") === String(id)) {
 				rows[i].click();
 				return;
 			}
@@ -1468,11 +1583,11 @@
 	}
 
 	function opendictentry(h, row){
-		var rows = F.qa("#rd-dict-list .rd-dhit");
+		var rows = qa("#rd-dict-list .rd-dhit");
 		for (var i = 0; i < rows.length; i++) rows[i].className = "rd-dhit";
 		if (row) row.className = "rd-dhit on";
 		st.hit = h;
-		var detail = F.id("rd-dict-detail");
+		var detail = $("rd-dict-detail");
 		detail.innerHTML = '<p class="rd-empty">' + esc(L("web.reader.loading", "正在打开…")) + "</p>";
 		detail.scrollTop = 0;
 		fetchjson("/api/dict/entry?id=" + encodeURIComponent(h.id)).then(function(j){
@@ -1488,14 +1603,14 @@
 	}
 
 	function dictdetail(e, h){
-		var box = F.el("div");
+		var box = el("div");
 		box.className = "rd-detail";
-		var head = F.el("div");
+		var head = el("div");
 		head.className = "rd-ddhead";
-		var word = F.el("strong");
+		var word = el("strong");
 		word.textContent = e.word || e.headword || (h && h.word) || "";
 		head.appendChild(word);
-		var speak = F.el("button");
+		var speak = el("button");
 		speak.type = "button";
 		speak.className = "rd-mini";
 		speak.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
@@ -1508,7 +1623,7 @@
 		if (e.pos) addtag(head, e.pos);
 		box.appendChild(head);
 		if (e.conjugations && e.conjugations.length) {
-			var conj = F.el("p");
+			var conj = el("p");
 			conj.className = "rd-conj";
 			conj.textContent = e.conjugations.join(" · ");
 			box.appendChild(conj);
@@ -1516,19 +1631,19 @@
 		var senses = e.senses || [];
 		for (var i = 0; i < senses.length; i++) box.appendChild(dictsense(senses[i]));
 		if (e.extra) {
-			var extra = F.el("p");
+			var extra = el("p");
 			extra.className = "rd-extra";
 			extra.textContent = e.extra;
 			box.appendChild(extra);
 		}
 		if (e.etymology) {
-			var et = F.el("p");
+			var et = el("p");
 			et.className = "rd-extra";
 			et.textContent = e.etymology;
 			box.appendChild(et);
 		}
 		if (!senses.length && !e.extra) {
-			var empty = F.el("p");
+			var empty = el("p");
 			empty.className = "rd-empty";
 			empty.textContent = L("web.reader.noentry", "这条没有释义");
 			box.appendChild(empty);
@@ -1538,16 +1653,16 @@
 
 	function addsense(box, label, arr){
 		if (!arr || !arr.length) return;
-		var wrap = F.el("div");
+		var wrap = el("div");
 		wrap.className = "rd-bits";
-		var lab = F.el("span");
+		var lab = el("span");
 		lab.className = "rd-blabel";
 		lab.textContent = label;
 		wrap.appendChild(lab);
 		for (var i = 0; i < arr.length; i++) {
 			var one = arr[i];
 			if (!one || !one.text) continue;
-			var line = F.el("div");
+			var line = el("div");
 			line.className = "rd-bit";
 			line.textContent = one.text + (one.zh ? "　" + one.zh : "");
 			wrap.appendChild(line);
@@ -1556,9 +1671,9 @@
 	}
 
 	function dictsense(s){
-		var box = F.el("div");
+		var box = el("div");
 		box.className = "rd-sense";
-		var head = F.el("div");
+		var head = el("div");
 		head.className = "rd-sense-head";
 		if (s.pos) addtag(head, s.pos);
 		if (s.idiom) addtag(head, s.idiom);
@@ -1571,7 +1686,7 @@
 		];
 		for (var i = 0; i < lines.length; i++) {
 			if (!lines[i]) continue;
-			var p = F.el("div");
+			var p = el("div");
 			p.className = "rd-def";
 			p.textContent = lines[i];
 			box.appendChild(p);
@@ -1587,7 +1702,7 @@
 
 	function addtag(box, text){
 		if (!text) return;
-		var s = F.el("span");
+		var s = el("span");
 		s.className = "rd-tag";
 		s.textContent = text;
 		box.appendChild(s);
@@ -1605,12 +1720,12 @@
 				});
 			}
 			return r.blob().then(function(blob){
-				var url2 = F.url(blob);
+				var url2 = urlof(blob);
 				var audio = new Audio(url2);
-				F.sink(audio);
-				audio.onended = function(){ F.unurl(url2); };
+				sink(audio);
+				audio.onended = function(){ unurl(url2); };
 				var p = audio.play();
-				if (p && p.then) p.then(function(){}, function(){ F.unurl(url2); });
+				if (p && p.then) p.then(function(){}, function(){ unurl(url2); });
 			});
 		}).catch(function(e){
 			setmsg(e && e.message ? e.message : "网络错误", true);
@@ -1625,7 +1740,7 @@
 			navigator.clipboard.writeText(text).then(function(){ setmsg(L("web.reader.copied", "已复制")); }, function(){});
 			return;
 		}
-		var ta = F.el("textarea");
+		var ta = el("textarea");
 		ta.value = text;
 		document.body.appendChild(ta);
 		ta.select();
@@ -1655,7 +1770,7 @@
 	}
 
 	function L(key, text){
-		var s = SK.t ? SK.t(key) : "";
+		var s = t(key);
 		return s || text || "";
 	}
 
@@ -1664,4 +1779,5 @@
 			return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
 		});
 	}
+	boot();
 })();

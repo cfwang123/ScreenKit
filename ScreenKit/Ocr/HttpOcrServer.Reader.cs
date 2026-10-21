@@ -4,10 +4,58 @@ using System.Text.Json.Nodes;
 
 namespace ScreenKit;
 
-/// <summary>工具页小说阅读器：web\up\reader 下的 txt、md 文件。</summary>
+/// <summary>小说阅读器页（/reader）和 web\up\reader 下的 txt、md 文件。</summary>
 sealed partial class HttpOcrServer {
 	const long READERMAX = 20L * 1024 * 1024;
 	static readonly object readerlock = new();
+
+	/// <summary>独立的阅读器页，和 /dict 一样只认 GET。</summary>
+	void handlereaderpage(SockCtx ctx, string path) {
+		string name;
+		string mime;
+		if (path == "/sk/reader.css") {
+			name = "reader.css";
+			mime = "text/css; charset=utf-8";
+		}
+		else if (path == "/sk/reader.js") {
+			name = "reader.js";
+			mime = "application/javascript; charset=utf-8";
+		}
+		else {
+			name = "reader.html";
+			mime = "text/html; charset=utf-8";
+		}
+		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
+			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
+			return;
+		}
+		var html = name == "reader.html";
+		if (html) {
+			var text = Encoding.UTF8.GetString(bytes);
+			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
+			text = text.Replace("__SK_UI_LANG__", uilang());
+			bytes = Encoding.UTF8.GetBytes(text);
+		}
+		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
+		var res = ctx.Response;
+		res.StatusCode = 200;
+		res.ContentType = mime;
+		res.ContentLength64 = bytes.Length;
+		if (html) {
+			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
+			res.Headers["Pragma"] = "no-cache";
+		}
+		else
+			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
+		res.Headers["Access-Control-Allow-Origin"] = "*";
+		try {
+			if (!head) res.OutputStream.Write(bytes, 0, bytes.Length);
+		}
+		finally {
+			try { res.OutputStream.Close(); } catch { }
+			try { res.Close(); } catch { }
+		}
+	}
 
 	static string readerdir() {
 		var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", "up", "reader");

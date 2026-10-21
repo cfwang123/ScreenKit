@@ -24,6 +24,17 @@ button, input, select { font: inherit; }
 	border-bottom: 1px solid var(--line);
 }
 .top strong { font-size: 16px; }
+.top .logo { display: inline-flex; align-items: center; margin-right: 8px; text-decoration: none; }
+.top .mark {
+	width: 30px; height: 30px;
+	border-radius: 8px;
+	background: #f97316;
+	color: #fff;
+	display: grid;
+	place-items: center;
+	font-weight: 700;
+	font-size: 14px;
+}
 .lang { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
 .lang select { height: 32px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .bar {

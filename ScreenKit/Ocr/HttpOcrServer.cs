@@ -16,7 +16,7 @@ namespace ScreenKit;
 /// <item>WebSocket /chat 工具页聊天室（昵称、性别，文字）</item>
 /// <item>WebSocket /rtsp?rtsp= 把一路 RTSP 转成 H.264 给网页播放</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
-/// <item>GET / 本机工具页；/dict 词典页；/chrome Chrome 模型页；/sk/tools.css · /sk/tools.js · /sk/chrome.css · /sk/chrome.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
+/// <item>GET / 本机工具页；/dict 词典页；/reader 小说阅读器页；/chrome Chrome 模型页；/sk/tools.css · /sk/tools.js · /sk/dict.css · /sk/dict.js · /sk/reader.css · /sk/reader.js · /sk/chrome.css · /sk/chrome.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
 /// <item>GET /api/dict · /api/dict/entry · /api/dict/speak · /api/dict/export</item>
 /// <item>GET  /api/reader/list · /api/reader/file · POST /api/reader/upload · rename · delete · stop</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
@@ -174,6 +174,14 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handledictpage(ctx, path);
+				return;
+			}
+			if (path is "/reader" or "/sk/reader.css" or "/sk/reader.js") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "小说阅读器页仅支持 GET"));
+					return;
+				}
+				handlereaderpage(ctx, path);
 				return;
 			}
 			if (path is "/" or "/sk/tools.css" or "/sk/tools.js" or "/sk/fa.css" or "/sk/fa-solid-900.woff2"
@@ -2535,6 +2543,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		var a = new JsonArray {
 			"GET  /  本机工具页",
 			"GET  /dict  词典页（新窗口）",
+			"GET  /reader  小说阅读器页（新窗口）",
 			"GET  /chrome  Chrome 模型页",
 			"GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语",
 			"GET  /api/dict/entry  ?id=",
