@@ -771,7 +771,7 @@ static class AppConfig {
 		sb.AppendLine($"tab_dict_visible = {(o.TabDictVisible ? "true" : "false")}");
 		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
-		sb.AppendLine($"# 自建更新地址。空=仍查 GitHub。填写后请求该地址下的 latest.json / releases.json");
+		sb.AppendLine($"# 自建更新地址。空=仍查 GitHub。填写后请求该地址下的 latest.json，以及 changelog.json 或 releases.json");
 		sb.AppendLine($"update_url = \"{esc((o.UpdateUrl ?? "").Trim())}\"");
 		sb.AppendLine($"# 上次成功查询更新的 UTC unix 秒（0=从未）");
 		sb.AppendLine($"update_last_check = {(o.LastUpdateCheckUnix < 0 ? 0 : o.LastUpdateCheckUnix)}");

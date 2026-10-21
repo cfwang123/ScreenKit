@@ -182,7 +182,7 @@ The slim package does not include models or the large runtimes; `7za.dll` is bun
 
 Barcode, ONNX text recognition, offline speech, face, local Chinese–English translation, the dictionary, the input method, PDF, FFmpeg, CUDA, and DirectML are installed or removed under **Help → Install features**, and using a component that is not installed yet shows a prompt.
 
-**Settings → General** can turn a group of features off. The UI language is switched on the menu bar or on that same page: Chinese, English, Japanese, Korean, German, Spanish, French, Portuguese, and Russian. **Help** holds Check for updates, Diagnostics, and Memory.
+**Settings → General** can turn a group of features off. The UI language is switched on the menu bar or on that same page: Chinese, English, Japanese, Korean, German, Spanish, French, Portuguese, and Russian. **Help** holds Check for updates, Diagnostics, and Memory. A newer version lists the notes for each release since the one you have; pick a version to read that one, or read them all.
 
 ## Run
 

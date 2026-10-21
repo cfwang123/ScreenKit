@@ -36,6 +36,8 @@ public partial class UpdateNotesWindow : Window {
 		bzh.Content = Loc.T("update.notes.lang.zh");
 		ben.Content = Loc.T("update.notes.lang.en");
 
+		if (notes.Count > 1)
+			notes.Insert(0, new ReleaseNote { Version = Loc.T("update.notes.all"), All = true });
 		elist.ItemsSource = notes;
 		elist.SelectionChanged += (_, _) => render();
 		bzh.Click += (_, _) => picklang(true);
@@ -47,7 +49,7 @@ public partial class UpdateNotesWindow : Window {
 			try { DialogResult = false; } catch { Close(); }
 		});
 
-		if (notes.Count > 0) elist.SelectedIndex = notes.Count - 1;
+		if (notes.Count > 0) elist.SelectedIndex = notes[0].All ? 0 : notes.Count - 1;
 		picklang(Loc.IsZh);
 	}
 
@@ -64,7 +66,8 @@ public partial class UpdateNotesWindow : Window {
 	void render() {
 		var n = elist?.SelectedItem as ReleaseNote;
 		var md = "";
-		if (n != null) md = (zh ? n.Chinese : n.English) ?? "";
+		if (n != null && n.All) md = alltext();
+		else if (n != null) md = (zh ? n.Chinese : n.English) ?? "";
 		var doc = new FlowDocument();
 		if (n != null && string.IsNullOrWhiteSpace(md)) {
 			MdView.Fill(doc, "");
@@ -78,6 +81,19 @@ public partial class UpdateNotesWindow : Window {
 			MdView.Fill(doc, md);
 		}
 		docview.Document = doc;
+	}
+
+	string alltext() {
+		var parts = new List<string>();
+		foreach (var item in notes) {
+			if (item == null || item.All) continue;
+			var part = ((zh ? item.Chinese : item.English) ?? "").Trim();
+			if (part.Length == 0) continue;
+			var head = "## " + item.Version;
+			if (!string.IsNullOrWhiteSpace(item.Published)) head += " (" + item.Published + ")";
+			parts.Add(head + "\n\n" + part);
+		}
+		return string.Join("\n\n", parts);
 	}
 
 	static void onnav(object sender, RequestNavigateEventArgs e) {

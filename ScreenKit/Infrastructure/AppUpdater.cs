@@ -30,6 +30,8 @@ public sealed class ReleaseNote {
 	public string Body { get; set; }
 	public string English { get; set; }
 	public string Chinese { get; set; }
+	/// <summary>窗口里的「全部」，正文由各版本拼出来。</summary>
+	public bool All { get; set; }
 }
 
 /// <summary>GitHub Releases 上最新 Android APK。</summary>
@@ -296,6 +298,20 @@ static class AppUpdater {
 		return list;
 	}
 
+	/// <summary>只留比 current 新、且不比 latest 更新的版本。latest 空则不设上限。从旧到新。</summary>
+	public static List<ReleaseNote> BetweenVersions(IList<ReleaseNote> src, string current, string latest) {
+		var list = new List<ReleaseNote>();
+		if (src != null) {
+			foreach (var n in src) {
+				if (n == null || n.All || string.IsNullOrWhiteSpace(n.Version)) continue;
+				if (!isnewer(n.Version, current)) continue;
+				if (!string.IsNullOrWhiteSpace(latest) && isnewer(n.Version, latest)) continue;
+				list.Add(n);
+			}
+		}
+		return sortnotes(list);
+	}
+
 	/// <summary>当前版本之后、到最新版的每条 Release 说明。按版本从旧到新。</summary>
 	public static Task<List<ReleaseNote>> ListNewerNotesAsync(string currentVersion, CancellationToken ct = default) =>
 		listnotes(currentVersion, null, ct);
@@ -309,9 +325,9 @@ static class AppUpdater {
 		var cur = NormalizeVersion(currentVersion) ?? (currentVersion ?? "").Trim();
 		var custom = resolvebase(baseUrl);
 		if (custom.Length > 0) {
-			var json = await fetchjson(custom + "/releases.json", ct, true).ConfigureAwait(false);
+			var json = await fetchverlog(custom, ct).ConfigureAwait(false);
 			var log = ParseVersionLog(json);
-			if (log != null) return sortnotes(log);
+			if (log != null) return BetweenVersions(log, cur, null);
 			return sortnotes(parsenotes(json, cur, out _, out _));
 		}
 		var all = new List<ReleaseNote>();
@@ -323,6 +339,21 @@ static class AppUpdater {
 			if (count == 0 || count < 100 || hitOlder) break;
 		}
 		return sortnotes(all);
+	}
+
+	static async Task<string> fetchverlog(string custom, CancellationToken ct) {
+		Exception last = null;
+		foreach (var name in new[] { "changelog.json", "releases.json" }) {
+			try {
+				return await fetchjson(custom + "/" + name, ct, true).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) { throw; }
+			catch (Exception ex) {
+				if (ct.IsCancellationRequested) throw;
+				last = ex;
+			}
+		}
+		throw last ?? new InvalidOperationException("无法获取更新说明");
 	}
 
 	/// <summary>null 读配置。空字符串表示仍用 GitHub。</summary>

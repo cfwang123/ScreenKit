@@ -4216,8 +4216,7 @@ public partial class MainWindow : Window {
 		if (!string.IsNullOrWhiteSpace(ver)
 			&& !notes.Any(n => string.Equals(n.Version, ver, StringComparison.OrdinalIgnoreCase)))
 			notes.Add(AppUpdater.FromUpdate(info));
-		notes.Sort((a, b) => AppUpdater.CompareVersion(a?.Version, b?.Version));
-		return notes;
+		return AppUpdater.BetweenVersions(notes, info?.CurrentVersion, ver);
 	}
 
 	async void openupdate() {

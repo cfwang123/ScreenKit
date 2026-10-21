@@ -7767,6 +7767,16 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				Err("update-notes: 数组不应当作版本日志");
 				return 1;
 			}
+			var span = AppUpdater.BetweenVersions(vlog, "1.0.0", "9.9.9");
+			if (span.Count != 1 || span[0].Version != "9.9.9") {
+				Err("update-notes: 区间应只要 9.9.9");
+				return 1;
+			}
+			var both = AppUpdater.BetweenVersions(vlog, "0.1.0", "9.9.9");
+			if (both.Count != 2 || both[0].Version != "1.0.0" || both[1].Version != "9.9.9") {
+				Err("update-notes: 区间应含两版");
+				return 1;
+			}
 			Loc.Lang = "zh";
 			var info = new UpdateInfo {
 				Version = "1.0.5",
@@ -7778,7 +7788,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 			var w = new UpdateNotesWindow(info, list);
 			w.Show();
 			try {
-				if (w.elist.Items.Count != 3 || w.elist.SelectedIndex != 2) {
+				if (w.elist.Items.Count != 4 || w.elist.SelectedIndex != 0) {
 					Err("update-notes: 窗口列表选中不符");
 					return 1;
 				}
@@ -7792,11 +7802,14 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 					return 1;
 				}
 				var text = notestext(w);
-				if (text.IndexOf("仅中文", StringComparison.Ordinal) < 0) {
-					Err("update-notes: 最新中文 " + text);
+				if (text.IndexOf("仅中文", StringComparison.Ordinal) < 0
+					|| text.IndexOf("修复托盘", StringComparison.Ordinal) < 0
+					|| text.IndexOf("旧版中文", StringComparison.Ordinal) < 0
+					|| text.IndexOf("1.0.2", StringComparison.Ordinal) < 0) {
+					Err("update-notes: 全部中文 " + text);
 					return 1;
 				}
-				w.elist.SelectedIndex = 1;
+				w.elist.SelectedIndex = 2;
 				text = notestext(w);
 				if (text.IndexOf("修复托盘", StringComparison.Ordinal) < 0 || text.IndexOf("Fixed", StringComparison.Ordinal) >= 0) {
 					Err("update-notes: 选中中文 " + text);
@@ -7815,7 +7828,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 					Err("update-notes: 链接或加粗未渲染");
 					return 1;
 				}
-				w.elist.SelectedIndex = 0;
+				w.elist.SelectedIndex = 1;
 				text = notestext(w);
 				if (text.IndexOf("older en", StringComparison.Ordinal) < 0) {
 					Err("update-notes: 旧版英文 " + text);
@@ -7827,7 +7840,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 					Err("update-notes: 切回中文 " + text);
 					return 1;
 				}
-				w.elist.SelectedIndex = 2;
+				w.elist.SelectedIndex = 3;
 				w.ben.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
 				text = notestext(w);
 				if (text.IndexOf("这个版本没有这段说明", StringComparison.Ordinal) < 0) {
