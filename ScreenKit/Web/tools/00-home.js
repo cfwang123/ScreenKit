@@ -234,26 +234,6 @@
 				c:[
 				{
 					x:"a.files",
-					"href":"/dict",
-					"target":"_blank",
-					"rel":"noopener",
-					c:[
-					{x:"i.fa-solid.fa-book"},
-					{x:"span","data-k":"web.dict",c:"词典"}
-				]
-				},
-				{
-					x:"a.files",
-					"href":"/reader",
-					"target":"_blank",
-					"rel":"noopener",
-					c:[
-					{x:"i.fa-solid.fa-book-open-reader"},
-					{x:"span","data-k":"web.tool.reader",c:"小说阅读器"}
-				]
-				},
-				{
-					x:"a.files",
 					"href":"/files",
 					"target":"_blank",
 					"rel":"noopener",
@@ -388,6 +368,32 @@
 						{x:"i.fa-solid.fa-video"},
 						{x:"span","data-k":"web.tool.rtsp",c:"RTSP播放"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-rtsp","title":"收藏"}
+					]
+					},
+					{
+						x:"a",
+						"href":"/dict",
+						"data-page":"dict",
+						"data-cat":"text",
+						"data-name":"词典 查词 翻译 例句 发音 汉语 英语 日语 韩语 dictionary",
+						"title":"查词、看例句和发音，点击打开，Ctrl+点击新窗口",
+						c:[
+						{x:"i.fa-solid.fa-book"},
+						{x:"span","data-k":"web.dict",c:"词典"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"dict","title":"收藏"}
+					]
+					},
+					{
+						x:"a",
+						"href":"/reader",
+						"data-page":"reader",
+						"data-cat":"text",
+						"data-name":"小说阅读器 阅读 小说 朗读 听书 txt md reader",
+						"title":"上传或拖入 txt、md 阅读，点击打开，Ctrl+点击新窗口",
+						c:[
+						{x:"i.fa-solid.fa-book-open-reader"},
+						{x:"span","data-k":"web.tool.reader",c:"小说阅读器"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"reader","title":"收藏"}
 					]
 					},
 					{

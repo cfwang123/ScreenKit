@@ -77,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Linux software table is a single cross-distribution list of open-source software.
 - Pasted chat images stay as drafts and send with the text; text and images appear as separate messages.
 - The novel reader is a separate /reader page like the dictionary, opened from the tools sidebar. The dictionary and novel reader pages have a logo that returns to the tools home.
+- Dictionary and novel reader are now link cards under Text on the tools page: click opens in this tab, Ctrl+click opens a new window.
 
 #### Fixed
 
@@ -124,6 +125,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Linux 常用软件表改为跨发行版的开源软件列表。
 - 聊天室粘贴图片先显示为草稿，随文本一起发送；文本和图片分开发送和显示。
 - 小说阅读器改为和词典一样的单独页面（/reader），从工具页左侧栏打开；词典页和阅读器页都加了 Logo，点它回到工具页首页。
+- 词典和小说阅读器改为工具页「文字」分类下的链接卡片，点击在当前页打开，Ctrl+点击开新窗口。
 
 #### 修复
 

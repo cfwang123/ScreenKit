@@ -141,6 +141,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			if (el.id === "tx-ops") return;
 			var fav = el.getAttribute && F.attr(el, "data-fav");
 			if (fav) {
+				F.pd(ev);
 				togglefav(fav);
 				return;
 			}
@@ -197,6 +198,11 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function show(name, fromHist){
+		var href = extpage(name);
+		if (href) {
+			location.href = href;
+			return;
+		}
 		stoptick();
 		var prev = SK.curtool;
 		SK.curtool = name;
@@ -484,7 +490,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	function buildgroups(){
 		var host = F.id("cards");
-		var btns = F.qa("button", host);
+		var btns = F.qa("button, a", host);
 		var nav = F.qa("#cats button");
 		var pending = [];
 		var map = {};
@@ -564,7 +570,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	function paintcats(){
 		var q = (F.id("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
-		var cards = F.qa(".catsec .cards button");
+		var cards = F.qa(".catsec .cards button, .catsec .cards a");
 		var n = 0;
 		var i;
 		for (i = 0; i < cards.length; i++) {
@@ -584,7 +590,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 				continue;
 			}
 			var grid = F.q(".cards", secs[i]);
-			var buttons = grid ? F.qa("button", grid) : [];
+			var buttons = grid ? F.qa("button, a", grid) : [];
 			var visn = 0;
 			var j;
 			for (j = 0; j < buttons.length; j++) if (!buttons[j].hidden) visn++;
@@ -632,13 +638,18 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function cardof(id){
-		var cards = F.qa(".cards button");
+		var cards = F.qa(".cards button, .cards a");
 		var i;
 		for (i = 0; i < cards.length; i++) {
 			if (F.attr(cards[i], "data-clone")) continue;
-			if (F.attr(cards[i], "data-tool") === id) return cards[i];
+			if ((F.attr(cards[i], "data-tool") || F.attr(cards[i], "data-page")) === id) return cards[i];
 		}
 		return null;
+	}
+
+	function extpage(id){
+		var card = cardof(id);
+		return card ? (F.attr(card, "href") || "") : "";
 	}
 
 	function favindex(id){

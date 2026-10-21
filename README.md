@@ -51,7 +51,7 @@ The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese
 - Double-click, drag, or right-click inside an entry to pop up the lookup window, up to 100 hits. Dictionary entries always do this.
 - **Settings → Dictionary** sets how many hits to list, how long to keep the database open, and the selection popup.
 - The dictionary hotkey is empty by default: it brings the window forward on the dictionary when it is not the main window, and hides the main window when it is.
-- The web dictionary is its own page at `/dict`, with the same search, four languages, speech, and export.
+- The web dictionary is its own page at `/dict`, opened from a card under Text on the tools page; Ctrl+click opens it in a new window. It has the same search, four languages, speech, and export.
 - **Selection popup** is off by default and can be turned on on the dictionary page, under **Settings → Dictionary**, or on the tray. While it is on, dragging or double-clicking text in this program or another shows a lookup popup that does not take focus. With no hits the window stays the same size as when it has hits. A selection with punctuation a word cannot contain, or longer than a word, opens the popup without querying the dictionary. **Translate** on the right defaults both languages to Auto: native text goes to the learning language, anything else goes to the native language. After a manual language change, click Translate once. The source text can be edited, and the resolved source and target languages are shown beside it. Switching dictionary language or translating does not change the popup width. Drag the lower-right corner to resize, or drag an empty area to move it. The size is saved when you quit and restored next time. **Read aloud** speaks the text sentence by sentence and highlights the sentence being spoken, with a choice of engine (including Chrome), speed, language, and voice. Auto uses that language's engine, voice, and rate from **Settings → Speech synthesis**. While that tab stays open the popup does not dismiss itself and ignores new selections.
 
 ## Files and screencast
@@ -109,7 +109,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Text convert**: Encoding, escaping, and common text transforms
   - **Chinese to pinyin**: Characters to pinyin or initials
   - **Markdown reader**: Preview Markdown
-  - **Novel reader**: A separate page (`/reader`) like the dictionary, opened from the sidebar. Upload or drop txt/md files into `web/up/reader` beside the program, select text for the dictionary popup, and read aloud with Chrome offline or other voices. Reading starts at the top of the screen or at the selected word and highlights the current sentence
+  - **Novel reader**: A separate page (`/reader`) like the dictionary, opened from a card under Text on the tools page; Ctrl+click opens it in a new window. Upload or drop txt/md files into `web/up/reader` beside the program, select text for the dictionary popup, and read aloud with Chrome offline or other voices. Reading starts at the top of the screen or at the selected word and highlights the current sentence
   - **Chinese segmentation**: Split by word, sentence, or grapheme
   - **In-browser model**: Run text tasks on the browser’s local model; Speak can filter voices by language, and the page link opens the Chrome model page
   - **Translate**: Translate text into another language, with its own engine and local ONNX model pickers
