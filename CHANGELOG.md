@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Lookup tools add HTTP status code and MIME type tables with search, category filters, and click-to-copy.
 - Lookup tools add common ports, file signatures, time zones, country/language/currency codes, and key codes.
 - Lookup tools add an Ubuntu command table and a common software table with package names and install commands.
+- Linux software adds a Loongnix 20 set with 286 packages grouped by use.
 
 #### Changed
 
@@ -90,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 信息查询增加 HTTP 状态码表和 MIME 类型表，可搜索、按类别筛选，点一行复制。
 - 信息查询增加常见端口号、文件头魔数、时区表、国家/语言/货币代码和键盘码。
 - 信息查询增加 Ubuntu 常用命令表和常用软件表，可查命令示例、包名和安装命令。
+- Linux 常用软件表增加 Loongnix 20 软件集，共 286 条，按用途分组。
 
 #### 变更
 

@@ -160,7 +160,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
   - **国家/语言/货币代码**：查 ISO 国家/地区、语言和货币代码
   - **键盘码**：查按键的 event.code、event.key、keyCode 和 Windows VK
   - **Ubuntu 常用命令**：按文件、软件包、进程、网络等查 Linux 命令和示例
-  - **Linux 常用软件**：查 Linux 常用软件的包名和安装命令
+  - **Linux 常用软件**：查 Ubuntu/Debian 和 Loongnix 常用软件的包名和安装命令
   - **本机信息**：查看浏览器能读到的本机信息
   - **常见 USB ID**：查 USB 厂家和产品
   - **Unicode码表**：查 Unicode 字符
