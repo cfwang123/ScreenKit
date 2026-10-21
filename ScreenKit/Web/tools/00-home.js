@@ -675,7 +675,7 @@
 						"title":"Ubuntu 常用软件的包名和安装命令，点一下复制安装命令",
 						c:[
 						{x:"i.fa-solid.fa-box-open"},
-						{x:"span","data-k":"web.tool.soft",c:"常用软件"},
+						{x:"span","data-k":"web.tool.soft",c:"Linux常用软件"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-soft","title":"收藏"}
 					]
 					},

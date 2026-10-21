@@ -133,7 +133,7 @@
 	].map(R);
 
 	SK.regref("u-soft", {
-		title: "Ubuntu 常用软件",
+		title: "Linux 常用软件",
 		cols: [
 			{ name: "软件" },
 			{ name: "包名", mono: true },
@@ -151,7 +151,7 @@
 			{ id: "sec", name: "安全工具" }
 		],
 		rows: ROWS,
-		placeholder: "搜索：Ubuntu 软件、编辑器、播放器、数据库",
+		placeholder: "搜索：Linux 软件、编辑器、播放器、数据库",
 		big: 0,
 		sub: 1,
 		copy: 2,
