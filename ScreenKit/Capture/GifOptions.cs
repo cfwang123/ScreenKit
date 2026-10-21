@@ -63,7 +63,13 @@ public sealed class GifOptions {
 		return 256;
 	}
 
-	/// <summary>浮动条/状态用的参数摘要。</summary>
+	/// <summary>操作条上的短标签。帧率、尺寸、鼠标在悬停摘要里。</summary>
+	public string HudText() {
+		Clamp();
+		return $"GIF 无声 {Colors}色";
+	}
+
+	/// <summary>浮动条悬停和状态栏用的完整参数。</summary>
 	public string SummaryText(int captureW = 0, int captureH = 0) {
 		Clamp();
 		FitSize(captureW > 0 ? captureW : 1280, captureH > 0 ? captureH : 720, out var ow, out var oh);

@@ -203,37 +203,37 @@ public partial class RecordHud : Window {
 	}
 
 	void fillsummary() {
-		int rw, rh, ow, oh;
+		int rw, rh;
 		string sum;
-		bool maxEn;
+		string brief;
 		if (gifMode) {
 			rw = region.Width;
 			rh = region.Height;
-			gifOpt.FitSize(rw, rh, out ow, out oh);
 			sum = gifOpt.SummaryText(rw, rh);
-			maxEn = gifOpt.MaxSizeEnabled;
+			brief = gifOpt.HudText();
 		}
 		else {
 			rw = region.Width % 2 == 0 ? region.Width : region.Width - 1;
 			rh = region.Height % 2 == 0 ? region.Height : region.Height - 1;
-			recOpt.FitSize(rw, rh, out ow, out oh);
 			sum = recOpt.SummaryText(rw, rh);
-			maxEn = recOpt.MaxSizeEnabled;
+			brief = hudbrief(recOpt);
 		}
 		lbregion.Text = $"{rw}×{rh}";
-		if (maxEn && (ow != rw || oh != rh))
-			lbsummary.Text = $"{sum} · out {ow}×{oh}";
-		else
-			lbsummary.Text = sum;
-		if (gifMode) lbaudio.Visibility = Visibility.Collapsed;
-		else {
-			lbaudio.Visibility = Visibility.Visible;
-			lbaudio.Text = audtext(recOpt.AudioEnabled, recOpt.AudioSource);
-			lbaudio.ToolTip = recOpt.AudioEnabled ? audtip(recOpt.AudioSource) : audtext(false, null);
-		}
-		var tip = $"选区 {rw}×{rh}\n{sum}\n拖动红线外侧可移动 · 拖边缘/角点缩放";
+		lbsummary.Text = brief;
+		lbaudio.Visibility = Visibility.Collapsed;
+		var be = started ? backend() : null;
+		var full = string.IsNullOrEmpty(be) ? sum : sum + "\n" + be;
+		lbsummary.ToolTip = full;
+		var tip = $"选区 {rw}×{rh}\n{full}\n拖动红线外侧可移动 · 拖边缘/角点缩放";
 		ToolTip = tip;
 		bbar.ToolTip = tip + "\n拖动控制条可移动位置";
+	}
+
+	static string hudbrief(RecordOptions o) {
+		o.Clamp();
+		var src = audtext(o.AudioEnabled, o.AudioSource);
+		if (!o.AudioEnabled) return $"{o.Codec} {src}";
+		return $"{o.Codec} {src} {o.AudioKbps}k/{o.AudioHz}hz";
 	}
 
 	void layoutchrome(bool light = false) {
@@ -844,12 +844,6 @@ public partial class RecordHud : Window {
 		return Loc.T("cast.hud.aud.spk");
 	}
 
-	static string audtip(string src) {
-		if (string.Equals(src, "Mic", StringComparison.OrdinalIgnoreCase)) return Loc.T("cast.tab.src.mic");
-		if (string.Equals(src, "MicAndSpeakers", StringComparison.OrdinalIgnoreCase)) return Loc.T("cast.tab.src.both");
-		return Loc.T("cast.tab.src.spk");
-	}
-
 	void onaudio() {
 		var dlg = new CastOptWindow(recOpt.AudioEnabled, recOpt.AudioSource);
 		dlg.Title = "录屏声音";
@@ -947,11 +941,8 @@ public partial class RecordHud : Window {
 			bstop.IsEnabled = true;
 			syncctrlenabled();
 			setrecordingui(paused: false);
+			fillsummary();
 			var be = backend();
-			if (!string.IsNullOrEmpty(be)) {
-				lbsummary.Text = be;
-				bbar.ToolTip = be;
-			}
 			RecordLog.Step("hud_start",
 				$"gif={gifMode} backend={be ?? ""} log={RecordLog.LogPath ?? ""}");
 		}
