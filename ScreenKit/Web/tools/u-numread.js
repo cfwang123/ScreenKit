@@ -98,7 +98,7 @@
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
 				+ '<span class="msg" id="num-msg"></span>'
-				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。超过一万位、大数还能读时，只列出大数和科学计数。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -151,8 +151,15 @@
 
 	function numread(text){
 		var parsed;
+		var rows;
 		try {
 			parsed = parsenum(text);
+			if (!parsed) {
+				paint([]);
+				SK.msg("num-msg", "");
+				return "";
+			}
+			rows = makerows(parsed);
 		}
 		catch (ex) {
 			paint([]);
@@ -160,11 +167,6 @@
 			return "";
 		}
 		SK.msg("num-msg", "");
-		if (!parsed) {
-			paint([]);
-			return "";
-		}
-		var rows = makerows(parsed);
 		paint(rows);
 		return joinrows(rows);
 	}
@@ -210,8 +212,9 @@
 		var point = (dot < 0 ? digits.length : dot) + exp;
 		var i;
 		if (point >= digits.length) {
-			if (point > 10000) throw new Error("太长");
-			for (i = digits.length; i < point; i++) digits += "0";
+			// 无量大数是 10^262144。超过一万位仍展开，结果里只留大数和科学计数。
+			if (point > 262144) throw new Error("太长");
+			if (point > digits.length) digits += zeros(point - digits.length);
 			return { ip: digits, fp: "" };
 		}
 		if (point <= 0) {
@@ -225,7 +228,26 @@
 		return { ip: digits.slice(0, point), fp: digits.slice(point) };
 	}
 
+	function zeros(n){
+		var block = "0000000000";
+		var parts = [];
+		while (n >= 10) {
+			parts.push(block);
+			n -= 10;
+		}
+		if (n > 0) parts.push(block.slice(0, n));
+		return parts.join("");
+	}
+
 	function makerows(p){
+		if (p.ip.length > 10000) {
+			var big = scaleread(p, "big");
+			if (!big) throw new Error("太长");
+			return [
+				["大数", big],
+				["科学计数", sciform(p)]
+			];
+		}
 		var plain = sign(p) + p.ip + (p.fp ? "." + p.fp : "");
 		var rows = [
 			["数字", plain],

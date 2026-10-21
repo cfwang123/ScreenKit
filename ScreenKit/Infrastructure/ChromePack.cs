@@ -664,7 +664,13 @@ static class ChromePack {
 		var port = ChromeHost.DebugPort();
 		if (port > 0) {
 			using var live = Sess.Attach(port);
-			if (live.Download(src, dst, ct, progress, true)) return;
+			try {
+				if (live.Download(src, dst, ct, progress, true)) return;
+			}
+			catch {
+				ChromeHost.Stop();
+				throw;
+			}
 		}
 		ChromeTr.Stop();
 		using var sess = Sess.Open(ChromeTr.ProfileDir(), HttpProxy.Mode, HttpProxy.Addr, null, ct, exe);
@@ -683,11 +689,15 @@ static class ChromePack {
 		if (started != "started") return false;
 		string net = "";
 		var start = Environment.TickCount;
+		var moved = start;
+		var lastBytes = -1.0;
 		while (unchecked(Environment.TickCount - start) < 180000) {
 			ct.ThrowIfCancellationRequested();
 			sess.PumpAll(300, ct);
-			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out var loaded, out var total))
+			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out var loaded, out var total)) {
+				stallor(moved);
 				continue;
+			}
 			if (err == "noapi") return false;
 			var line = bytelinetext(loaded, total);
 			if (done) {
@@ -698,6 +708,8 @@ static class ChromePack {
 				report(1, title, line);
 				return true;
 			}
+			bumpdl(seen, loaded, ref lastBytes, ref moved);
+			stallor(moved);
 			var part = seen ? p : -1.0;
 			if (part < 0) liveline(sess, 0, 0, -1, out part, out net);
 			if (line.Length == 0) line = net ?? "";
@@ -945,6 +957,21 @@ static class ChromePack {
 		return "";
 	}
 
+	const int DLSTALL = 20000;
+
+	/// <summary>有新的下载字节才算往前走。一直是 0 不算。</summary>
+	static void bumpdl(bool seen, double loaded, ref double last, ref int tick) {
+		if (!seen || loaded <= 0) return;
+		if (last >= 0 && loaded <= last) return;
+		last = loaded;
+		tick = Environment.TickCount;
+	}
+
+	static void stallor(int tick) {
+		if (unchecked(Environment.TickCount - tick) >= DLSTALL)
+			throw new InvalidOperationException(Loc.T("inst.chrome.stall"));
+	}
+
 	static bool readtr(string raw, out double p, out bool seen, out bool done, out string err, out double loaded, out double total) {
 		p = 0;
 		seen = false;
@@ -1091,6 +1118,22 @@ return 'started';
 			return sess;
 		}
 
+		/// <summary>专用配置的 Chrome 已经开着调试口时，接上它，不另开一只、退出时也不关掉。</summary>
+		static Sess tryattach(string profile) {
+			try {
+				if (string.IsNullOrWhiteSpace(profile)) return null;
+				var path = Path.Combine(profile, "DevToolsActivePort");
+				if (!File.Exists(path)) return null;
+				var line = File.ReadAllLines(path);
+				if (line.Length == 0 || !int.TryParse(line[0].Trim(), out var port) || port <= 0) return null;
+				var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/version");
+				req.Timeout = 400;
+				using (req.GetResponse()) { }
+				return new Sess { own = false, port = port };
+			}
+			catch { return null; }
+		}
+
 		/// <summary>在已打开的页面里创建翻译器。boot 为真时只用朗读页，不另开窗口。</summary>
 		public bool Download(string src, string dst, CancellationToken ct, Action<double> progress, bool boot) {
 			if (boot) {
@@ -1101,12 +1144,18 @@ return 'started';
 			var started = EvalWeb(trstart(src, dst), false, 15000, ct);
 			if (started != "started") return false;
 			var start = Environment.TickCount;
+			var moved = start;
+			var lastBytes = -1.0;
 			while (unchecked(Environment.TickCount - start) < 180000) {
 				ct.ThrowIfCancellationRequested();
 				PumpAll(300, ct);
-				if (!readtr(EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out _, out _))
+				if (!readtr(EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out var loaded, out _)) {
+					stallor(moved);
 					continue;
+				}
 				if (!done) {
+					bumpdl(seen, loaded, ref lastBytes, ref moved);
+					stallor(moved);
 					progress?.Invoke(seen ? p : -1);
 					continue;
 				}
@@ -1121,6 +1170,11 @@ return 'started';
 		Sess() { }
 
 		public static Sess Open(string profile, string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct, string chromeExe = null) {
+			var live = tryattach(profile);
+			if (live != null) {
+				log?.Invoke(Loc.T("inst.chrome.open"));
+				return live;
+			}
 			var exe = ChromeTts.FindExe(chromeExe);
 			if (exe == null) throw new InvalidOperationException(Loc.T("inst.chrome.need"));
 			log?.Invoke(Loc.T("inst.chrome.open"));

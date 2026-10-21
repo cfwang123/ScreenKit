@@ -42,13 +42,25 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
+- Speech and translation open Chrome model installation in Chrome with this app's private profile.
 - Help → Install features expects the current dict3.7z on the fixed dict-db release (279,822,816 bytes).
+- Numbers longer than 10,000 digits show only the Chinese large-number reading and scientific notation.
+
+#### Fixed
+
+- Chrome translation download stops after about 20 seconds without new bytes, and closes that Chrome.
 
 ### 中文
 
 #### 变更
 
+- 语音合成和翻译页的「Chrome模型安装」用本程序的专用配置打开 Chrome，进入模型页。
 - 帮助 → 安装功能按固定 dict-db 上当前 dict3.7z 的大小校验（279,822,816 字节）。
+- 超过一万位的数字只显示中文大数和科学计数，不再整段报太长。
+
+#### 修复
+
+- Chrome 翻译模型下载若约 20 秒没有新数据就停止，并关掉这只 Chrome。
 
 ## v1.0.26 (2026-10-20)
 

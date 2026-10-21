@@ -29,11 +29,11 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 ## Speech, translation, dictionary, and face
 
 - **Speech recognition**: Live captions with an offline or streaming model.
-- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome. Chrome lists only installed languages, and the page opens Chrome model installation.
+- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome. Chrome lists only installed languages. Chrome model installation opens Chrome with this app's private profile on the model page.
 - **Voice input**: The hotkey starts and finishes it, and the result goes to the current input position.
 - **Chat**: Uses a configured LLM, with bubbles, microphone input, and speaking.
 - **LLM log**: The latest ~1,000 requests with the model, elapsed time, and the request and response.
-- **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model. Chrome language lists show only installed packs.
+- **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model. Chrome language lists show only installed packs, and Chrome model installation opens the same private profile on the model page.
 - **Face**: Detection and comparison, with optional landmarks and gender and age.
 - **Chinese to pinyin**: Full spelling without tone marks, or one lowercase initial per character.
 - **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, and manage custom words in the tray **Lexicon**.
@@ -114,7 +114,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Translate**: Translate text into another language, with its own engine and local ONNX model pickers
   - **Password generator**: Generate passwords
   - **Regular expressions**: Find regex matches
-  - **Number names**: Write a number in several readings
+  - **Number names**: Write a number in several readings. Past ten thousand digits, if the large-number scale still applies, only that reading and scientific notation are shown
   - **Test data**: Generate fake data by type
 - **Math**
   - **Scientific calculator**: Scientific calculation

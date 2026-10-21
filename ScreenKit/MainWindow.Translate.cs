@@ -257,7 +257,7 @@ public partial class MainWindow {
 		finally { trUiLoading = false; }
 	}
 
-	/// <summary>用本机 Chrome 打开「Chrome 模型」页，手动安装或卸载语言包。</summary>
+	/// <summary>用专用配置打开本机 Chrome，进入 Chrome 模型页。</summary>
 	void openchromepage(Action<string> fail) {
 		var exe = ChromeTts.FindExe(opt.ChromeExe);
 		if (string.IsNullOrEmpty(exe)) {
@@ -265,11 +265,14 @@ public partial class MainWindow {
 			return;
 		}
 		var port = opt.HttpPort > 0 ? opt.HttpPort : 1224;
-		var url = "http://127.0.0.1:" + port + "/chrome";
+		var url = $"http://127.0.0.1:{port}/chrome";
+		var profile = ChromeTts.ProfileDir();
+		var args = $"--user-data-dir=\"{profile}\" --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble \"{url}\"";
 		try {
+			ChromeHost.Stop();
 			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
 				FileName = exe,
-				Arguments = "\"" + url + "\"",
+				Arguments = args,
 				UseShellExecute = false,
 			});
 		}
