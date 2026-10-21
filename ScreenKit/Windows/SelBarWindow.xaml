@@ -20,6 +20,70 @@
         AutomationProperties.AutomationId="dict.sel.outside">
 	<Window.Resources>
 		<local:SelHalfWidth x:Key="selhalf"/>
+		<Style x:Key="SelAct" TargetType="Button">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Margin" Value="0,0,12,0"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="#5C6570"/>
+			<Setter Property="Focusable" Value="False"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<TextBlock x:Name="tx" Text="{TemplateBinding Content}"
+						           Foreground="{TemplateBinding Foreground}"
+						           FontSize="{TemplateBinding FontSize}"
+						           VerticalAlignment="Center"/>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="tx" Property="Foreground" Value="#1F2329"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="tx" Property="Foreground" Value="{StaticResource Accent}"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+		<Style x:Key="SelCheck" TargetType="CheckBox">
+			<Setter Property="Foreground" Value="#5C6570"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Focusable" Value="False"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="CheckBox">
+						<StackPanel Orientation="Horizontal">
+							<Border x:Name="box" Width="12" Height="12" Margin="0,0,4,0"
+							        BorderBrush="#B0B0B0" BorderThickness="1" CornerRadius="2"
+							        Background="Transparent" VerticalAlignment="Center">
+								<TextBlock x:Name="mark" Text="✓" FontSize="10" FontWeight="Bold"
+								           Foreground="{StaticResource Accent}" HorizontalAlignment="Center"
+								           VerticalAlignment="Center" Margin="0,-2,0,0" Visibility="Collapsed"/>
+							</Border>
+							<TextBlock x:Name="tx" Text="{TemplateBinding Content}"
+							           Foreground="{TemplateBinding Foreground}"
+							           FontSize="{TemplateBinding FontSize}" VerticalAlignment="Center"/>
+						</StackPanel>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsChecked" Value="True">
+								<Setter TargetName="mark" Property="Visibility" Value="Visible"/>
+								<Setter TargetName="box" Property="BorderBrush" Value="{StaticResource Accent}"/>
+								<Setter TargetName="tx" Property="Foreground" Value="#1F2329"/>
+							</Trigger>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="tx" Property="Foreground" Value="#1F2329"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
 		<Style x:Key="SelLang" TargetType="ToggleButton">
 			<Setter Property="Background" Value="Transparent"/>
 			<Setter Property="BorderThickness" Value="0"/>
@@ -128,26 +192,20 @@
 					</DataTemplate>
 				</ListBox.ItemTemplate>
 			</ListBox>
-			<StackPanel Grid.Row="3">
-			<Separator x:Name="spsel" Margin="0,4,0,6"/>
-			<WrapPanel>
-				<Button x:Name="bselspeak" Content="发音" Height="26" MinWidth="52" Margin="0,0,6,0"
-				        Padding="8,0" FontSize="12" Focusable="False" Style="{StaticResource GhostBtn}"
-				        AutomationProperties.AutomationId="dict.sel.speak"/>
-				<Button x:Name="bselsearch" Content="搜索" Height="26" MinWidth="52" Margin="0,0,6,0"
-				        Padding="8,0" FontSize="12" Focusable="False" Style="{StaticResource GhostBtn}"
-				        AutomationProperties.AutomationId="dict.sel.search"/>
-				<Button x:Name="bseltr" Content="翻译" Height="26" MinWidth="52" Margin="0,0,6,0"
-				        Padding="8,0" FontSize="12" Focusable="False" Style="{StaticResource GhostBtn}"
-				        AutomationProperties.AutomationId="dict.sel.translate"/>
-				<Button x:Name="bselcopy" Content="复制" Height="26" MinWidth="52" Margin="0,0,6,0"
-				        Padding="8,0" FontSize="12" Focusable="False" Style="{StaticResource GhostBtn}"
-				        AutomationProperties.AutomationId="dict.sel.copy"/>
-				<Button x:Name="bselturnoff" Content="关闭划词浮窗" Height="26" MinWidth="52"
-				        Padding="8,0" FontSize="12" Focusable="False" Style="{StaticResource GhostBtn}"
-				        AutomationProperties.AutomationId="dict.sel.turnoff"/>
-			</WrapPanel>
-			</StackPanel>
+			<DockPanel Grid.Row="3" Margin="0,6,14,0" LastChildFill="True">
+				<CheckBox x:Name="cbselon" DockPanel.Dock="Right" Content="划词浮窗" Style="{StaticResource SelCheck}"
+				          AutomationProperties.AutomationId="dict.sel.turnoff"/>
+				<WrapPanel VerticalAlignment="Center">
+					<Button x:Name="bselspeak" Content="发音" Style="{StaticResource SelAct}"
+					        AutomationProperties.AutomationId="dict.sel.speak"/>
+					<Button x:Name="bselsearch" Content="搜索" Style="{StaticResource SelAct}"
+					        AutomationProperties.AutomationId="dict.sel.search"/>
+					<Button x:Name="bseltr" Content="翻译" Style="{StaticResource SelAct}"
+					        AutomationProperties.AutomationId="dict.sel.translate"/>
+					<Button x:Name="bselcopy" Content="复制" Style="{StaticResource SelAct}" Margin="0"
+					        AutomationProperties.AutomationId="dict.sel.copy"/>
+				</WrapPanel>
+			</DockPanel>
 			<Thumb x:Name="bgrip" Grid.RowSpan="4" Width="16" Height="16"
 			       HorizontalAlignment="Right" VerticalAlignment="Bottom"
 			       Margin="0,0,-2,-10" Cursor="SizeNWSE" Focusable="False"

@@ -41,8 +41,10 @@ public partial class SelBarWindow : Window {
 	internal event Action TrClick;
 	internal event Action CopyClick;
 	internal event Action CloseClick;
-	internal event Action TurnOffClick;
+	internal event Action<bool> SelOnChanged;
 	internal event Action<string> LangChanged;
+
+	bool selonsync;
 
 	bool langsync;
 	ToggleButton[] langs;
@@ -64,7 +66,8 @@ public partial class SelBarWindow : Window {
 		bseltr.Click += (_, _) => TrClick?.Invoke();
 		bselcopy.Click += (_, _) => CopyClick?.Invoke();
 		bselclose.Click += (_, _) => CloseClick?.Invoke();
-		bselturnoff.Click += (_, _) => TurnOffClick?.Invoke();
+		cbselon.Checked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(true); };
+		cbselon.Unchecked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(false); };
 		lsel.PreviewMouseWheel += (_, e) => scrolllist(lsel, e);
 		bgrip.DragDelta += (_, e) => gripmove(e.HorizontalChange, e.VerticalChange);
 		lsel.PreviewMouseLeftButtonUp += (_, e) => {
@@ -89,7 +92,8 @@ public partial class SelBarWindow : Window {
 		bseltr.Content = Loc.T("dict.sel.translate");
 		bselcopy.Content = Loc.T("dict.sel.copy");
 		bselclose.ToolTip = Loc.T("dict.sel.close");
-		bselturnoff.Content = Loc.T("dict.sel.turnoff");
+		cbselon.Content = Loc.T("dict.selbar");
+		cbselon.ToolTip = Loc.T("dict.selbar.tip");
 		bgrip.ToolTip = Loc.T("dict.sel.resize");
 		lbselwait.Text = Loc.T("dict.sel.searching");
 		bselfall.Content = Loc.T("dict.filter.all");
@@ -113,12 +117,17 @@ public partial class SelBarWindow : Window {
 
 	internal string SearchLabel => bselsearch.Content as string ?? "";
 
+	internal void SetSelOn(bool on) {
+		selonsync = true;
+		try { cbselon.IsChecked = on; }
+		finally { selonsync = false; }
+	}
+
 	internal void ShowRows(List<DictSelRow> rows, bool searching) {
 		if (rows == null) rows = new List<DictSelRow>();
 		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-		spsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
 	}
 

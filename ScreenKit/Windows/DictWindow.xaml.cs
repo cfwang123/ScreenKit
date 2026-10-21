@@ -201,6 +201,7 @@ public partial class DictWindow : UserControl {
 		selbarsync = true;
 		try { cbselbar.IsChecked = on; }
 		finally { selbarsync = false; }
+		try { outwin?.SetSelOn(on); } catch { }
 	}
 
 	internal void HideSelSwitch() {
@@ -1002,7 +1003,11 @@ public partial class DictWindow : UserControl {
 		outwin.CloseClick += () => {
 			try { SelBar.DismissShown(); } catch { }
 		};
-		outwin.TurnOffClick += () => turnoffselbar();
+		outwin.SelOnChanged += on => {
+			if (on) SelBarChanged?.Invoke(true);
+			else turnoffselbar();
+		};
+		outwin.SetSelOn(cbselbar.IsChecked == true);
 		outwin.LangChanged += dict => {
 			dict = dict ?? "";
 			if (selfilter == dict) return;
