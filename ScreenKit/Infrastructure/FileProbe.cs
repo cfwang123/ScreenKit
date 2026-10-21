@@ -5,8 +5,8 @@ using System.Windows.Media.Imaging;
 
 namespace ScreenKit;
 
-/// <summary>只读看一个文件：魔数、版本、图片、媒体、文本编码。</summary>
-static class FileProbe {
+/// <summary>只读看一个文件：魔数、版本、图片、媒体、文本编码。EXE/DLL 另有节、导入导出和托管类型。</summary>
+static partial class FileProbe {
 	public sealed class Row {
 		public string Key = "";
 		public string Value = "";
@@ -18,6 +18,7 @@ static class FileProbe {
 		public bool Match;
 		public bool Compared;
 		public readonly List<Row> Rows = new();
+		public PeDump Pe;
 	}
 
 	public static Report Look(string path, out string err) {
@@ -55,6 +56,7 @@ static class FileProbe {
 			version(rep, path, rep.Kind);
 			peinfo(rep, path);
 		}
+		if (pe(kind)) rep.Pe = pedump(path);
 		if (image(kind) || image(ext)) picture(rep, path);
 		if (media(kind) || media(ext)) movie(rep, path);
 		if (textlike(kind, ext, head)) encoding(rep, path, head);
@@ -100,6 +102,43 @@ static class FileProbe {
 				err("本程序缺少 .NET 目标框架信息");
 				return 1;
 			}
+			if (self.Pe == null) {
+				err("exe 没有分析页数据");
+				return 1;
+			}
+			log($"pe sec={self.Pe.Sections.Count} imp={self.Pe.Imports.Count} exp={self.Pe.Exports.Count} net={self.Pe.Net.Count} fx={self.Pe.Framework} plat={self.Pe.Platform} sign={self.Pe.Sign} fail={self.Pe.NetFail} err={self.Pe.Error}");
+			if (self.Pe.Net.Count > 0) log($"net0 {self.Pe.Net[0].Kind} {self.Pe.Net[0].A}");
+			if (self.Pe.Error.Length > 0 || self.Pe.NetFail.Length > 0 || self.Pe.Sections.Count == 0) {
+				err("exe 的 PE 分析不完整");
+				return 1;
+			}
+			if (!sechas(self.Pe, ".text")) {
+				err("exe 应有 .text");
+				return 1;
+			}
+			if (self.Pe.Framework.IndexOf("4.8", StringComparison.Ordinal) < 0 || self.Pe.Platform.Length == 0) {
+				err("exe 的目标框架或平台没解析出来");
+				return 1;
+			}
+			if (!nethas(self.Pe, "asm", "ScreenKit") || !nethas(self.Pe, "type", "MainWindow")) {
+				err("exe 的程序集或公开类型没解析出来");
+				return 1;
+			}
+			var kpath = Path.Combine(Environment.SystemDirectory, "kernel32.dll");
+			var kd = Look(kpath, out var e7);
+			log($"k32 {kd.Kind} arch={val(kd, "probe.pe.arch")} exp={kd.Pe?.Exports.Count} imp={kd.Pe?.Imports.Count} sign={kd.Pe?.Sign} {e7}");
+			if (e7 != null || kd.Kind != "dll" || kd.Pe == null || val(kd, "probe.pe.arch") != "x64") {
+				err("kernel32 应为 x64 dll");
+				return 1;
+			}
+			if (!exphas(kd.Pe, "GetProcAddress") || !impdll(kd.Pe, "ntdll.dll")) {
+				err("kernel32 的导入或导出没解析出来");
+				return 1;
+			}
+			if (kd.Pe.Sign.Length == 0 || kd.Pe.Sign == "unsigned" || kd.Pe.Sign.IndexOf("Microsoft", StringComparison.OrdinalIgnoreCase) < 0) {
+				err("kernel32 的签名没读到");
+				return 1;
+			}
 			var wav = Path.Combine(dir, "t.wav");
 			writetestwav(wav, 8000, 1, 16, 16000);
 			var w = Look(wav, out var e5);
@@ -142,6 +181,37 @@ static class FileProbe {
 		w.Write(Encoding.ASCII.GetBytes("data"));
 		w.Write(dataBytes);
 		w.Write(new byte[dataBytes]);
+	}
+
+	static bool sechas(PeDump d, string name) {
+		if (d == null) return false;
+		foreach (var s in d.Sections)
+			if (string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase)) return true;
+		return false;
+	}
+
+	static bool impdll(PeDump d, string dll) {
+		if (d == null) return false;
+		foreach (var i in d.Imports)
+			if (string.Equals(i.Dll, dll, StringComparison.OrdinalIgnoreCase)) return true;
+		return false;
+	}
+
+	static bool exphas(PeDump d, string name) {
+		if (d == null) return false;
+		foreach (var e in d.Exports)
+			if (string.Equals(e.Name, name, StringComparison.OrdinalIgnoreCase)) return true;
+		return false;
+	}
+
+	static bool nethas(PeDump d, string kind, string part) {
+		if (d == null) return false;
+		foreach (var n in d.Net) {
+			if (n.Kind != kind) continue;
+			if ((n.A ?? "").IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+			if ((n.B ?? "").IndexOf(part, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		}
+		return false;
 	}
 
 	static string val(Report rep, string key) {

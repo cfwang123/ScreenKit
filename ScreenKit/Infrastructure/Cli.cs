@@ -7366,7 +7366,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
       --test-sysinfo  只读检查系统信息及各类设备扫描
       --test-systool  只读检查进程、环境变量、已安装程序、服务、商店应用和 txt 关联，并查一个被本进程占用的临时文件
-      --test-fileprobe  用临时文件检查魔数、UTF-8、GBK 和本程序的版本信息
+      --test-fileprobe  用临时文件检查魔数、UTF-8、GBK，以及 exe/dll 的节、导入导出和签名
       --test-perfmon  采样 CPU、内存、网络和磁盘速率，并检查小窗开关能保存
       --test-httpdbg  参数拼进地址、表单编码、JSON 检查、XML 与自定义 MIME、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown

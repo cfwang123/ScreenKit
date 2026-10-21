@@ -25,14 +25,42 @@
 			<TextBox x:Name="epath" Height="32" Padding="8,4" Margin="0,0,8,0"
 			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 		</DockPanel>
-		<ListView x:Name="lv" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-			<ListView.View>
-				<GridView>
-					<GridViewColumn x:Name="colname" Width="160" DisplayMemberBinding="{Binding Name}"/>
-					<GridViewColumn x:Name="colvalue" Width="560" DisplayMemberBinding="{Binding Value}"/>
-				</GridView>
-			</ListView.View>
-		</ListView>
+		<TabControl x:Name="tabs" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="probe.tabs">
+			<TabItem x:Name="tabinfo" Header="概要" AutomationProperties.AutomationId="probe.tab.info">
+				<ListView x:Name="lv" BorderThickness="0">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn x:Name="colname" Width="160" DisplayMemberBinding="{Binding Name}"/>
+							<GridViewColumn x:Name="colvalue" Width="560" DisplayMemberBinding="{Binding Value}"/>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</TabItem>
+			<TabItem x:Name="tabpe" Header="EXE/DLL" Visibility="Collapsed"
+			         AutomationProperties.AutomationId="probe.tab.pe">
+				<DockPanel>
+					<DockPanel DockPanel.Dock="Top" Margin="0,8,0,8" LastChildFill="True">
+						<ComboBox x:Name="epekind" Width="160" Height="32" DockPanel.Dock="Left"
+						          AutomationProperties.AutomationId="probe.pe.view"/>
+						<TextBlock x:Name="lbpeq" VerticalAlignment="Center" Margin="12,0,6,0" DockPanel.Dock="Left"/>
+						<TextBox x:Name="epeq" Height="32" Padding="8,4" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<TextBox x:Name="epetext" Visibility="Collapsed" IsReadOnly="True" AcceptsReturn="True"
+					         TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+					         FontFamily="Consolas, Microsoft YaHei UI" BorderThickness="0"/>
+					<ListView x:Name="lvpe" BorderThickness="0">
+						<ListView.View>
+							<GridView>
+								<GridViewColumn x:Name="colpea" Width="220" DisplayMemberBinding="{Binding A}"/>
+								<GridViewColumn x:Name="colpeb" Width="280" DisplayMemberBinding="{Binding B}"/>
+								<GridViewColumn x:Name="colpec" Width="280" DisplayMemberBinding="{Binding C}"/>
+							</GridView>
+						</ListView.View>
+					</ListView>
+				</DockPanel>
+			</TabItem>
+		</TabControl>
 		<TextBlock x:Name="lbstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 	</Grid>
 </Window>

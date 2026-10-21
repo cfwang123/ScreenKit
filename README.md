@@ -92,7 +92,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **System info**: System, USB, serial ports, printers, sound, fonts, displays, cameras, Bluetooth, disks, and other devices.
 - **System tools**: Read-only lists of processes, environment variables, startup items, installed programs, services, hotfixes, and Store apps, plus file locks and file associations.
 - **Performance**: A borderless window with CPU, GPU, memory, network, and disk, with a pin and an update interval.
-- **File info**: Reads the header type and shows version, image, media, and text-encoding details.
+- **File info**: Reads the header type and shows version, image, media, and text-encoding details. EXE and DLL files get another page for sections, imports, exports, the signature, and public .NET types.
 - **HTTP request debugger**: Requests are saved in groups; parameters are one `key=value` per line, and a POST can be JSON, XML, or raw text.
 - **MIDI synthesizer**: Play with the mouse or the keyboard, open, change, and save MIDI files, and see a live waveform.
 - **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV.
