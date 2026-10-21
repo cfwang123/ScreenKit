@@ -656,6 +656,32 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-ubuntucmd",
+						"data-cat":"info",
+						"data-name":"ubuntu linux 命令 shell 终端 apt chmod grep systemctl ssh docker 常用命令",
+						"title":"Ubuntu 常用命令、示例和分类，点一下复制命令",
+						c:[
+						{x:"i.fa-solid.fa-terminal"},
+						{x:"span","data-k":"web.tool.ubuntucmd",c:"Ubuntu 常用命令"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-ubuntucmd","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-soft",
+						"data-cat":"info",
+						"data-name":"ubuntu linux 常用软件 软件 安装 apt snap docker vscode 播放器 数据库 编辑器",
+						"title":"Ubuntu 常用软件的包名和安装命令，点一下复制安装命令",
+						c:[
+						{x:"i.fa-solid.fa-box-open"},
+						{x:"span","data-k":"web.tool.soft",c:"常用软件"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-soft","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-b64img",
 						"data-cat":"image",
 						"data-name":"图片 base64",

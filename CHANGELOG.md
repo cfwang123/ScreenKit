@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The selection popup keeps the same size with no hits, and Translate on the language row detects text and translates it into the native language.
 - Lookup tools add HTTP status code and MIME type tables with search, category filters, and click-to-copy.
 - Lookup tools add common ports, file signatures, time zones, country/language/currency codes, and key codes.
+- Lookup tools add an Ubuntu command table and a common software table with package names and install commands.
 
 #### Changed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词浮窗没查到词时大小不变。语言栏的翻译会自动识别并译成母语，改语言后要点一次翻译。
 - 信息查询增加 HTTP 状态码表和 MIME 类型表，可搜索、按类别筛选，点一行复制。
 - 信息查询增加常见端口号、文件头魔数、时区表、国家/语言/货币代码和键盘码。
+- 信息查询增加 Ubuntu 常用命令表和常用软件表，可查命令示例、包名和安装命令。
 
 #### 变更
 

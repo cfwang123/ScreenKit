@@ -159,6 +159,8 @@ This program receives while it is running, and that can be turned off in Setting
   - **Time zones**: IANA zones, abbreviations, and standard/DST offsets
   - **Country, language & currency codes**: ISO codes for countries, languages, and currencies
   - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
+  - **Ubuntu commands**: Linux commands and examples by file, package, process, network, and more
+  - **Common software**: Ubuntu packages and install commands for common apps
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product
   - **Unicode chart**: Unicode characters
