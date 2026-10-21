@@ -104,7 +104,7 @@
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
 				+ '<span class="msg" id="num-msg"></span>'
-				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。超过一万位、大数还能读时，只列出大数和科学计数。能转成有限浮点数时，另给 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制与 a * 2^x。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。超过一万位、大数还能读时，只列出大数和科学计数。大数可重复「无量大数」，指数最多九位。能转成有限浮点数时，另给 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制与 a * 2^x。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -200,28 +200,32 @@
 		var shifted = shiftdigits(s, exp);
 		var ip = shifted.ip.replace(/^0+/, "") || "0";
 		var fp = shifted.fp.replace(/0+$/, "");
-		if (ip === "0" && !fp) neg = false;
-		return { neg: neg, ip: ip, fp: fp };
+		var z = shifted.z || 0;
+		if (ip === "0" && !fp) {
+			neg = false;
+			z = 0;
+		}
+		return { neg: neg, ip: ip, fp: fp, z: z };
 	}
 
 	function readexp(raw){
 		var t = raw.replace("−", "-");
 		var digits = t.charAt(0) === "+" || t.charAt(0) === "-" ? t.slice(1) : t;
-		// 五位挡掉 1e193321。六位里超过无量大数的，展开时再报太长。
-		if (digits.length > 6) throw new Error("太长");
+		// 九位以内靠重复「无量大数」还能读。再长读出来会有上百万个字。
+		if (digits.length > 9) throw new Error("太长");
 		return parseInt(t, 10);
 	}
 
-	// 按指数挪小数点。位数用字符串保存，不经过浮点。
+	// 按指数挪小数点。位数用字符串保存，不经过浮点。超过一万位不补零，记在 z 上。
 	function shiftdigits(s, exp){
 		var dot = s.indexOf(".");
 		var digits = dot < 0 ? s : s.slice(0, dot) + s.slice(dot + 1);
 		var point = (dot < 0 ? digits.length : dot) + exp;
 		var i;
 		if (point >= digits.length) {
-			// 无量大数是 10^262144。超过一万位仍展开，结果里只留大数和科学计数。
-			if (point > 262144) throw new Error("太长");
-			if (point > digits.length) digits += zeros(point - digits.length);
+			var pad = point - digits.length;
+			if (point > 10000) return wideint(digits, pad);
+			if (pad) digits += zeros(pad);
 			return { ip: digits, fp: "" };
 		}
 		if (point <= 0) {
@@ -233,6 +237,18 @@
 			return { ip: "0", fp: bits.join("") };
 		}
 		return { ip: digits.slice(0, point), fp: digits.slice(point) };
+	}
+
+	function wideint(digits, pad){
+		var z = pad;
+		var end = digits.length;
+		while (end > 0 && digits.charAt(end - 1) === "0") {
+			end--;
+			z++;
+		}
+		var ip = digits.slice(0, end).replace(/^0+/, "") || "0";
+		if (ip === "0") return { ip: "0", fp: "", z: 0 };
+		return { ip: ip, fp: "", z: z };
 	}
 
 	function zeros(n){
@@ -247,7 +263,7 @@
 	}
 
 	function makerows(p){
-		if (p.ip.length > 10000) {
+		if (p.z || p.ip.length > 10000) {
 			var big = scaleread(p, "big");
 			if (!big) throw new Error("太长");
 			return [
@@ -453,7 +469,10 @@
 	function scaleread(p, mode){
 		if (p.fp.length > FRACU.length) return "";
 		var body = "";
-		if (p.ip !== "0") body = readscale(p.ip, expsFor(mode));
+		if (p.ip !== "0") {
+			if (p.z) body = readCompact(p.ip, p.z, expsFor("big"), true);
+			else body = readscale(p.ip, expsFor(mode));
+		}
 		if (p.fp) {
 			if (body) body += "又";
 			body += readfrac(p.fp);
@@ -485,6 +504,46 @@
 		if (!r) return left;
 		if (r.length < exp) left += "零";
 		return left + readat(r, exps, false);
+	}
+
+	// head 后面有 zeros 个 0，不把零展开成字符串。最大单位反复出现时先剥掉，避免深层递归。
+	function readCompact(head, zeros, exps, drop){
+		var tail = [];
+		while (head !== "0") {
+			var len = head.length + zeros;
+			var idx = -1;
+			var i;
+			for (i = exps.length - 1; i >= 0; i--) {
+				if (exps[i] < len) {
+					idx = i;
+					break;
+				}
+			}
+			if (idx < 0) {
+				var small = head;
+				var k;
+				for (k = 0; k < zeros; k++) small += "0";
+				return read4(small, false, drop) + tail.join("");
+			}
+			var exp = exps[idx];
+			var name = BIGU[idx];
+			if (zeros >= exp) {
+				zeros -= exp;
+				tail.unshift(name);
+				continue;
+			}
+			var cut = exp - zeros;
+			var q = head.slice(0, head.length - cut);
+			var rRaw = head.slice(head.length - cut);
+			var lead = 0;
+			while (lead < rRaw.length && rRaw.charAt(lead) === "0") lead++;
+			var left = readCompact(q, 0, exps, drop) + name;
+			if (lead === rRaw.length) return left + tail.join("");
+			var rSig = rRaw.slice(lead);
+			if (rSig.length + zeros < exp) left += "零";
+			return left + readCompact(rSig, zeros, exps, false) + tail.join("");
+		}
+		return "零";
 	}
 
 	function readfrac(fp){
@@ -1047,6 +1106,11 @@
 	}
 
 	function sciform(p){
+		if (p.z) {
+			var ez = p.z + p.ip.length - 1;
+			var rz = p.ip.slice(1);
+			return sign(p) + p.ip.charAt(0) + (rz ? "." + rz : "") + " × 10" + sup(ez);
+		}
 		if (p.ip === "0" && !p.fp) return "0";
 		var exp;
 		var mant;
