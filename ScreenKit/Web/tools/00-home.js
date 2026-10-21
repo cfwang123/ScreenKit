@@ -609,7 +609,7 @@
 						"data-name":"文件头 魔数 magic 文件签名 signature hex ascii jpg png pdf zip exe",
 						"title":"按十六进制文件头识别真实格式，含 ASCII 和偏移",
 						c:[
-						{x:"i.fa-solid.fa-file-binary"},
+						{x:"i.fa-solid.fa-fingerprint"},
 						{x:"span","data-k":"web.tool.magic",c:"文件头魔数"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-magic","title":"收藏"}
 					]
