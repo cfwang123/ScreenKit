@@ -218,7 +218,6 @@ public partial class RecordHud : Window {
 			sum = recOpt.SummaryText(rw, rh);
 			brief = hudbrief(recOpt);
 		}
-		lbregion.Text = $"{rw}×{rh}";
 		lbsummary.Text = brief;
 		lbaudio.Visibility = Visibility.Collapsed;
 		var be = started ? backend() : null;
@@ -392,7 +391,6 @@ public partial class RecordHud : Window {
 		if (gifMode) gifRec?.SetRegion(r);
 		else rec?.SetRegion(r);
 		if (light) {
-			lbregion.Text = $"{region.Width}×{region.Height}";
 			layoutchrome(light: true);
 		}
 		else {
