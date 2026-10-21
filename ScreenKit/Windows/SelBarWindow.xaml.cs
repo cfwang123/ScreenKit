@@ -138,6 +138,7 @@ public partial class SelBarWindow : Window {
 		cbselon.ToolTip = Loc.T("dict.selbar.tip");
 		bgrip.ToolTip = Loc.T("dict.sel.resize");
 		lbselwait.Text = Loc.T("dict.sel.searching");
+		lbselempty.Text = Loc.T("dict.sel.empty");
 		bselfall.Content = Loc.T("dict.filter.all");
 		bselfzh.Content = Loc.T("dict.lab.zh");
 		bselfja.Content = Loc.T("dict.lab.ja");
@@ -171,6 +172,7 @@ public partial class SelBarWindow : Window {
 		if (trmode || readmode) return;
 		if (rows == null) rows = new List<DictSelRow>();
 		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+		lbselempty.Visibility = !searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
