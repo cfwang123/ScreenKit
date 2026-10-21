@@ -929,7 +929,7 @@
 	}
 
 	function readfrom(start, off){
-		stopread(true);
+		var paused = stopread(true);
 		var token = ++st.token;
 		st.reading = true;
 		$("rd-read").disabled = true;
@@ -946,7 +946,10 @@
 			return;
 		}
 		setmsg(L("web.reader.reading", "朗读中…"));
-		next();
+		paused.then(function(){
+			if (token !== st.token || !st.reading) return;
+			next();
+		});
 		function next(){
 			if (token !== st.token || !st.reading) return;
 			if (!queue.length) {
@@ -1024,8 +1027,9 @@
 			if ($("rd-read")) $("rd-read").disabled = false;
 			if ($("rd-stop")) $("rd-stop").disabled = true;
 		}
-		fetch("/api/reader/stop", { method: "POST" }).catch(function(){});
+		var done = fetch("/api/reader/stop", { method: "POST" }).catch(function(){});
 		if (!quiet) setmsg(L("web.reader.stopped", "已停止"));
+		return done;
 	}
 
 	function highlight(i){

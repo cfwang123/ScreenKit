@@ -97,12 +97,13 @@ static class ChromeHost {
 		lock (gate) stopunlocked();
 	}
 
-	/// <summary>只打断朗读，翻译任务留着。</summary>
+	/// <summary>只打断朗读，翻译任务留着。晚到的停止请求不碰之后新建的朗读。</summary>
 	public static void StopSpeak() {
+		var cutoff = Volatile.Read(ref seq);
 		var ids = new List<int>();
 		lock (slots) {
 			foreach (var s in slots.Values) {
-				if (s.Page == "speak.html") ids.Add(s.Id);
+				if (s.Page == "speak.html" && s.Id <= cutoff) ids.Add(s.Id);
 			}
 		}
 		foreach (var id in ids) cancel(id);
