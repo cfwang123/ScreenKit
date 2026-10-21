@@ -580,10 +580,8 @@ public partial class MainWindow {
 		text = text ?? "";
 		if (string.IsNullOrWhiteSpace(text)) return "";
 		if (text.Length > 8000) throw new InvalidOperationException(Loc.T("tr.popup.too_long"));
-		src = TrLang.Normalize(src);
-		dst = TrLang.Normalize(dst);
-		if (src == TrLang.Auto || src.Length == 0) src = LangDetect.DetectCode(text);
-		if (dst.Length == 0) opt.AutoTranslatePair(out dst, out _);
+		opt.AutoTranslatePair(out var nat, out var lrn);
+		LangDetect.ResolveSel(text, src, dst, nat, lrn, out src, out dst);
 		if (string.Equals(src, dst, StringComparison.OrdinalIgnoreCase)) return text;
 		var chrome = usechrome();
 		var llm = usellm();

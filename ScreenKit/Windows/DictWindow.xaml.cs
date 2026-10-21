@@ -1070,7 +1070,7 @@ public partial class DictWindow : UserControl {
 		trinit = true;
 		var src = keep ? outwin.TrSrcCode : TrLang.Auto;
 		var pack = TrPack != null ? TrPack(src) : new SelTrPack();
-		outwin.SetTrLangs(pack.Sources, pack.Targets, pack.Native, keep);
+		outwin.SetTrLangs(pack.Sources, pack.Targets, keep);
 		outwin.ShowTr(text);
 		_ = runseltr();
 	}
@@ -1079,7 +1079,7 @@ public partial class DictWindow : UserControl {
 		if (outwin == null || TrPack == null) return;
 		var pack = TrPack(outwin.TrSrcCode);
 		var prefer = outwin.TrDstCode;
-		if (prefer.Length == 0) prefer = pack.Native;
+		if (prefer.Length == 0) prefer = TrLang.Auto;
 		outwin.SetTrTargets(pack.Targets, prefer);
 	}
 
@@ -1096,12 +1096,12 @@ public partial class DictWindow : UserControl {
 			outwin.SetTrOut(Loc.T("dict.sel.notr"));
 			return;
 		}
-		if (dst.Length == 0) {
-			outwin.SetTrOut(Loc.T("tr.popup.need_lang"));
-			return;
-		}
-		var shown = src == TrLang.Auto || src.Length == 0 ? LangDetect.DetectCode(text) : src;
-		outwin.SetTrOut(Loc.T("tr.popup.run", TrLang.Label(shown), TrLang.Label(dst)));
+		var o = Options != null ? Options() : null;
+		var nat = TrLang.Zh;
+		var lrn = TrLang.En;
+		if (o != null) o.AutoTranslatePair(out nat, out lrn);
+		LangDetect.ResolveSel(text, src, dst, nat, lrn, out var shownSrc, out var shownDst);
+		outwin.SetTrOut(Loc.T("tr.popup.run", TrLang.Label(shownSrc), TrLang.Label(shownDst)));
 		try {
 			var result = await TrRun(text, src, dst, ct);
 			if (gen != trgen || outwin == null) return;

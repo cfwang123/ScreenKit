@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The large-number reading can repeat 无量大数, so exponents up to nine digits still show that reading and scientific notation.
 - With the HTTP switch off, a random localhost port still serves the tools pages and the HTTP API.
 - The selection popup skips the dictionary when the text has punctuation a word cannot contain, or is longer than a word, and still opens first.
+- Selection popup translation has Auto on both languages. With both on Auto, native text goes to the learning language and other text goes to the native language. Switching language or translating keeps the popup width.
 
 #### Fixed
 
@@ -80,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 大数可重复「无量大数」，指数最多九位，仍只显示大数和科学计数。
 - 关掉 HTTP 接口时，仍在本机随机端口提供工具页和 HTTP 接口。
 - 划词选区含单词里不会出现的标点，或长过一个单词时，不查词典，浮窗仍先弹出。
+- 划词翻译的源语言和译文语言都可以选自动。两个都是自动时，母语译成学习语言，其它译成母语。切换词典语言或翻译时浮窗宽度不变。
 
 #### 修复
 

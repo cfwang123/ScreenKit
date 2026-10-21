@@ -170,10 +170,10 @@ public partial class SelBarWindow : Window {
 		etrdsttext.Text = text ?? "";
 	}
 
-	internal void SetTrLangs(List<string> srcs, List<string> dsts, string native, bool keep) {
+	internal void SetTrLangs(List<string> srcs, List<string> dsts, bool keep) {
 		var srcKeep = keep ? combo(etrsrc) : TrLang.Auto;
-		var dstKeep = keep ? combo(etrdst) : "";
-		if (dstKeep.Length == 0) dstKeep = native ?? "";
+		var dstKeep = keep ? combo(etrdst) : TrLang.Auto;
+		if (dstKeep.Length == 0) dstKeep = TrLang.Auto;
 		trsync = true;
 		try {
 			etrsrc.Items.Clear();
@@ -198,16 +198,12 @@ public partial class SelBarWindow : Window {
 
 	void filldst(List<string> dsts, string prefer) {
 		etrdst.Items.Clear();
+		etrdst.Items.Add(new ComboBoxItem { Content = Loc.T("lang.auto"), Tag = TrLang.Auto });
 		if (dsts != null) {
 			foreach (var s in dsts) {
 				if (string.IsNullOrEmpty(s) || s == TrLang.Auto) continue;
 				etrdst.Items.Add(new ComboBoxItem { Content = TrLang.Label(s), Tag = s });
 			}
-		}
-		if (etrdst.Items.Count == 0) {
-			etrdst.Items.Add(new ComboBoxItem { Content = Loc.T("lang.none.tgt"), Tag = "", IsEnabled = false });
-			etrdst.SelectedIndex = 0;
-			return;
 		}
 		if (!pick(etrdst, prefer)) etrdst.SelectedIndex = 0;
 	}

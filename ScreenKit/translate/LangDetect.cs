@@ -34,6 +34,23 @@ static class LangDetect {
 		dst = nat;
 	}
 
+	/// <summary>划词翻译。两边都是自动时：原文是母语就译成学习语言，否则译成母语。只自动一边时，另一边用选定语言。</summary>
+	public static void ResolveSel(string text, string src, string dst, string native, string learn, out string outSrc, out string outDst) {
+		TrLang.NormalizeAuto(native, learn, out var nat, out var lrn);
+		src = TrLang.Normalize(src);
+		dst = TrLang.Normalize(dst);
+		var srcAuto = src.Length == 0 || src == TrLang.Auto;
+		var dstAuto = dst.Length == 0 || dst == TrLang.Auto;
+		if (srcAuto && dstAuto) {
+			DetectPair(text, nat, lrn, out outSrc, out outDst);
+			return;
+		}
+		if (srcAuto) src = DetectCode(text);
+		if (dstAuto) dst = string.Equals(src, nat, StringComparison.OrdinalIgnoreCase) ? lrn : nat;
+		outSrc = src;
+		outDst = dst;
+	}
+
 	/// <summary>兼容旧调用：固定中英自动。</summary>
 	public static void DetectZhEnPair(string text, out string src, out string dst) =>
 		DetectPair(text, TrLang.Zh, TrLang.En, out src, out dst);
