@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Read aloud in the selection popup has a speed control shown as 1x; click it to open a slider.
 - Dictionary speech settings are a table. Chinese, Japanese, Korean, and English always stay, and other languages can be added. Selection-popup Read uses that row when the engine is Auto.
 - Settings splits Speech into Speech synthesis and Speech recognition. The per-language speech table is under Speech synthesis.
+- Polish, chat, and translation prompts, plus the translation batch size, are set under Settings, LLM. Speech recognition keeps the polish switches. Translate keeps the native and learning languages.
 
 #### Fixed
 
@@ -105,6 +106,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词朗读增加语速，显示为 1x，点击后弹出滑块。
 - 词典发音改为按语言的表格。中文、日语、韩语、英语始终保留，其它语言可以添加。划词浮窗朗读选自动时用这一行的引擎、发音人和语速。
 - 参数设置的「语音」拆成「语音合成」和「语音识别」。按语言的发音表放在「语音合成」里。
+- 润色、对话和翻译的提示词，以及翻译的一批条数，改到参数设置的「LLM接口」。语音识别仍保留是否润色；翻译页仍保留母语和学习语言。
 
 #### 修复
 

@@ -339,6 +339,7 @@ public partial class SettingsWindow : Window {
 			itllmthinkmedium.Content = Loc.T("set.llm.think.medium");
 			itllmthinkhigh.Content = Loc.T("set.llm.think.high");
 			itllmthinkmax.Content = Loc.T("set.llm.think.max");
+			lbsettrllm.Text = Loc.T("set.tab.translate");
 			lbsettrhint.Text = Loc.T("set.tr.hint");
 			lbsettrauto.Text = Loc.T("set.tr.auto");
 			lbsettrnative.Text = Loc.T("set.tr.auto.native");
@@ -870,7 +871,7 @@ public partial class SettingsWindow : Window {
 		Result.TranslateLlmPrompt = string.IsNullOrEmpty(trPrompt)
 			? OcrOptions.DefaultTranslatePrompt() : trPrompt;
 		if (!tryint(etrllmbatch, Loc.T("set.tr.llm.batch"), 1, OcrOptions.TranslateLlmBatchMax,
-			out var trBatch, tabsettr)) return false;
+			out var trBatch, tabsetllm)) return false;
 		Result.TranslateLlmBatch = trBatch;
 		TrLang.NormalizeAuto((esettrnative.SelectedItem as ComboBoxItem)?.Tag as string,
 			(esettrlearn.SelectedItem as ComboBoxItem)?.Tag as string, out var trAutoNative, out var trAutoLearn);

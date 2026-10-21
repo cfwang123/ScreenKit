@@ -548,50 +548,9 @@
 						          Margin="0,0,0,4"
 						          AutomationProperties.AutomationId="set.asr.live.polish"/>
 						<CheckBox x:Name="easrlivesplit" Content="润色自动分句"
-						          Margin="0,0,0,16" IsChecked="True"
+						          Margin="0,0,0,0" IsChecked="True"
 						          ToolTip="成句或润色后句末无标点时补「，」"
 						          AutomationProperties.AutomationId="set.asr.live.split"/>
-
-						<TextBlock x:Name="lbsetasrllm" Text="润色（OpenAI 兼容）"
-						           FontWeight="SemiBold" Margin="0,0,0,6"/>
-						<TextBlock x:Name="lbsetasrllmhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           Margin="0,0,0,8" TextWrapping="Wrap"
-						           Text="在「LLM接口」Tab 配置接口后，在此选择润色用哪一套。上方勾选润色且所选接口填了 URL、模型 id 才请求。"/>
-						<TextBlock x:Name="lbsetasrllmpick" Text="润色用 LLM" FontSize="11"
-						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-						<ComboBox x:Name="easrllm" Height="32" Margin="0,0,0,10"
-						          AutomationProperties.AutomationId="set.asr.llm.pick"/>
-						<DockPanel Margin="0,0,0,4">
-							<Button x:Name="basrllmpromptreset" DockPanel.Dock="Right"
-							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
-							        Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.asr.llm.prompt.default"/>
-							<TextBlock x:Name="lbsetasrllmprompt" Text="润色提示词" FontSize="11"
-							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-						</DockPanel>
-						<TextBox x:Name="easrllmprompt" VerticalContentAlignment="Top" MinHeight="88" Padding="6,4"
-						         BorderBrush="{StaticResource BorderSoft}"
-						         TextWrapping="Wrap" AcceptsReturn="True"
-						         VerticalScrollBarVisibility="Auto"
-						         AutomationProperties.AutomationId="set.asr.llm.prompt"/>
-
-						<TextBlock x:Name="lbsetchat" Text="LLM 对话" FontWeight="SemiBold" Margin="0,16,0,6"/>
-						<TextBlock x:Name="lbsetchathint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           Margin="0,0,0,8" TextWrapping="Wrap"
-						           Text="主窗口「LLM对话」Tab 的系统提示词。选用的接口在该 Tab 下拉框选择（空则用上面的润色 LLM）。"/>
-						<DockPanel Margin="0,0,0,4">
-							<Button x:Name="bchatllmpromptreset" DockPanel.Dock="Right"
-							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
-							        Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.chat.llm.prompt.default"/>
-							<TextBlock x:Name="lbsetchatllmprompt" Text="对话提示词" FontSize="11"
-							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
-						</DockPanel>
-						<TextBox x:Name="echatllmprompt" VerticalContentAlignment="Top" MinHeight="88" Padding="6,4"
-						         BorderBrush="{StaticResource BorderSoft}"
-						         TextWrapping="Wrap" AcceptsReturn="True"
-						         VerticalScrollBarVisibility="Auto"
-						         AutomationProperties.AutomationId="set.chat.llm.prompt"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>
@@ -599,12 +558,9 @@
 			<!-- LLM：多套 OpenAI 兼容接口 -->
 			<TabItem x:Name="tabsetllm" Header="LLM接口"
 			         AutomationProperties.AutomationId="set.tab.llm">
-				<Grid Margin="12,10,8,10">
-					<Grid.RowDefinitions>
-						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="*"/>
-					</Grid.RowDefinitions>
-					<StackPanel Grid.Row="0" Margin="0,0,0,10">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
+				<StackPanel>
+					<StackPanel Margin="0,0,0,10">
 						<TextBlock x:Name="lbsetllmhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap"
 						           Text="可配置多个 OpenAI 兼容接口。润色与翻译推荐小模型（如 Qwen3.5-4B），思考选「关闭」。"/>
@@ -615,7 +571,7 @@
 						           Margin="0,4,0,0" TextWrapping="Wrap"
 						           Text="记录请求/响应与耗时，不含 API key。排查润色问题时打开，日常请关闭。"/>
 					</StackPanel>
-					<Grid Grid.Row="1">
+					<Grid Height="280" Margin="0,0,0,16">
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="200"/>
 							<ColumnDefinition Width="12"/>
@@ -685,17 +641,86 @@
 							</StackPanel>
 						</ScrollViewer>
 					</Grid>
-				</Grid>
+						<TextBlock x:Name="lbsetasrllm" Text="润色（OpenAI 兼容）"
+						           FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<TextBlock x:Name="lbsetasrllmhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="在「语音识别」勾选润色后，在此选择用哪一套接口并编辑提示词。所选接口填了 URL、模型 id 才请求。"/>
+						<TextBlock x:Name="lbsetasrllmpick" Text="润色用 LLM" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<ComboBox x:Name="easrllm" Height="32" Margin="0,0,0,10"
+						          AutomationProperties.AutomationId="set.asr.llm.pick"/>
+						<DockPanel Margin="0,0,0,4">
+							<Button x:Name="basrllmpromptreset" DockPanel.Dock="Right"
+							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.asr.llm.prompt.default"/>
+							<TextBlock x:Name="lbsetasrllmprompt" Text="润色提示词" FontSize="11"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+						</DockPanel>
+						<TextBox x:Name="easrllmprompt" VerticalContentAlignment="Top" MinHeight="88" Padding="6,4"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         TextWrapping="Wrap" AcceptsReturn="True"
+						         VerticalScrollBarVisibility="Auto"
+						         AutomationProperties.AutomationId="set.asr.llm.prompt"/>
+
+						<TextBlock x:Name="lbsetchat" Text="LLM 对话" FontWeight="SemiBold" Margin="0,16,0,6"/>
+						<TextBlock x:Name="lbsetchathint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,8" TextWrapping="Wrap"
+						           Text="主窗口「LLM对话」Tab 的系统提示词。选用的接口在该 Tab 下拉框选择（空则用上面的润色 LLM）。"/>
+						<DockPanel Margin="0,0,0,4">
+							<Button x:Name="bchatllmpromptreset" DockPanel.Dock="Right"
+							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.chat.llm.prompt.default"/>
+							<TextBlock x:Name="lbsetchatllmprompt" Text="对话提示词" FontSize="11"
+							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+						</DockPanel>
+						<TextBox x:Name="echatllmprompt" VerticalContentAlignment="Top" MinHeight="88" Padding="6,4"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         TextWrapping="Wrap" AcceptsReturn="True"
+						         VerticalScrollBarVisibility="Auto"
+						         AutomationProperties.AutomationId="set.chat.llm.prompt"/>
+
+						<TextBlock x:Name="lbsettrllm" Text="翻译" FontWeight="SemiBold" Margin="0,16,0,6"/>
+						<TextBlock x:Name="lbsettrllmbatch" Text="一批翻译数量" FontSize="11"
+						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
+						<TextBox x:Name="etrllmbatch" Width="88" Height="30" Padding="6,4" Margin="0,0,0,4"
+						         HorizontalAlignment="Left" Text="8"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+						         AutomationProperties.AutomationId="set.tr.llm.batch"/>
+						<TextBlock x:Name="lbsettrllmbatchhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,12"
+						           Text="每次请求发给 LLM 的条数（1–64，默认 8）。"/>
+						<DockPanel Margin="0,0,0,6">
+							<Button x:Name="btrllmpromptreset" DockPanel.Dock="Right"
+							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.tr.llm.prompt.default"/>
+							<TextBlock x:Name="lbsettrllmprompt" Text="LLM提示词" FontWeight="SemiBold"
+							           VerticalAlignment="Center"/>
+						</DockPanel>
+						<TextBlock x:Name="lbsettrllmprompthint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,6"
+						           Text="src / dst 会替换为源/目标语言名。空则用默认。"/>
+						<TextBox x:Name="etrllmprompt" VerticalContentAlignment="Top" MinHeight="120" Padding="6,4"
+						         BorderBrush="{StaticResource BorderSoft}"
+						         TextWrapping="Wrap" AcceptsReturn="True"
+						         VerticalScrollBarVisibility="Auto"
+						         ToolTip="LLM 翻译系统提示词"
+						         AutomationProperties.AutomationId="set.tr.llm.prompt"/>
+				</StackPanel>
+				</ScrollViewer>
 			</TabItem>
 
-			<!-- 翻译：LLM 提示词 -->
+			<!-- 翻译：自动互译语言 -->
 			<TabItem x:Name="tabsettr" Header="翻译"
 			         AutomationProperties.AutomationId="set.tab.translate">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">
 					<StackPanel>
 						<TextBlock x:Name="lbsettrhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,12"
-						           Text="引擎在主窗口翻译 Tab 选择（本地 ONNX 或 LLM）。此处配自动互译语言、LLM 一批条数和提示词。"/>
+						           Text="引擎在主窗口翻译页选择（本地 ONNX、Chrome 或 LLM）。此处配自动互译的母语和学习语言。"/>
 						<TextBlock x:Name="lbsettrauto" Text="自动互译" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<Grid Margin="0,0,0,6">
 							<Grid.ColumnDefinitions>
@@ -721,32 +746,6 @@
 						<TextBlock x:Name="lbsettrnativehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,12"
 						           Text="原文不是母语时译成母语；原文是母语时译成学习语言。默认中文 ↔ 英文。"/>
-						<TextBlock x:Name="lbsettrllmbatch" Text="一批翻译数量" FontSize="11"
-						           Foreground="{StaticResource TextMuted}" Margin="0,0,0,4"/>
-						<TextBox x:Name="etrllmbatch" Width="88" Height="30" Padding="6,4" Margin="0,0,0,4"
-						         HorizontalAlignment="Left" Text="8"
-						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-						         AutomationProperties.AutomationId="set.tr.llm.batch"/>
-						<TextBlock x:Name="lbsettrllmbatchhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,0,0,12"
-						           Text="每次请求发给 LLM 的条数（1–64，默认 8）。"/>
-						<DockPanel Margin="0,0,0,6">
-							<Button x:Name="btrllmpromptreset" DockPanel.Dock="Right"
-							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
-							        Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.tr.llm.prompt.default"/>
-							<TextBlock x:Name="lbsettrllmprompt" Text="LLM提示词" FontWeight="SemiBold"
-							           VerticalAlignment="Center"/>
-						</DockPanel>
-						<TextBlock x:Name="lbsettrllmprompthint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,0,0,6"
-						           Text="src / dst 占位符会替换为源/目标语言名。空则用默认。"/>
-						<TextBox x:Name="etrllmprompt" VerticalContentAlignment="Top" MinHeight="120" Padding="6,4"
-						         BorderBrush="{StaticResource BorderSoft}"
-						         TextWrapping="Wrap" AcceptsReturn="True"
-						         VerticalScrollBarVisibility="Auto"
-						         ToolTip="LLM 翻译系统提示词"
-						         AutomationProperties.AutomationId="set.tr.llm.prompt"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>
