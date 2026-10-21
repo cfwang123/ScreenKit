@@ -26,6 +26,7 @@
 			<Setter Property="BorderThickness" Value="0"/>
 			<Setter Property="Padding" Value="0"/>
 			<Setter Property="Margin" Value="0,0,12,0"/>
+			<Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI"/>
 			<Setter Property="FontSize" Value="12"/>
 			<Setter Property="Foreground" Value="#5C6570"/>
 			<Setter Property="Focusable" Value="False"/>
@@ -35,6 +36,7 @@
 				<Setter.Value>
 					<ControlTemplate TargetType="Button">
 						<TextBlock x:Name="tx" Text="{TemplateBinding Content}"
+						           FontFamily="{TemplateBinding FontFamily}"
 						           Foreground="{TemplateBinding Foreground}"
 						           FontSize="{TemplateBinding FontSize}"
 						           VerticalAlignment="Center"/>
@@ -132,6 +134,10 @@
 				        Margin="4,0,0,0" Padding="0" FontSize="16" Focusable="False"
 				        Style="{StaticResource GhostBtn}" VerticalAlignment="Center"
 				        AutomationProperties.AutomationId="dict.sel.close"/>
+				<Button x:Name="bselspeak" DockPanel.Dock="Right" Content="&#xE767;"
+				        FontFamily="Segoe MDL2 Assets" FontSize="14" Style="{StaticResource SelAct}"
+				        Margin="0,0,2,0" ToolTip="发音"
+				        AutomationProperties.AutomationId="dict.sel.speak"/>
 				<ToggleButton x:Name="bselftr" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelLang}"
 				              Margin="10,0,6,0" AutomationProperties.AutomationId="dict.sel.filter.tr"/>
 				<WrapPanel VerticalAlignment="Center">
@@ -205,7 +211,8 @@
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
 				<DockPanel Grid.Row="0" Margin="0,0,0,2" LastChildFill="True">
-					<Button x:Name="btrspeaksrc" DockPanel.Dock="Right" Content="发音" Style="{StaticResource SelAct}"
+					<Button x:Name="btrspeaksrc" DockPanel.Dock="Right" Content="&#xE767;"
+					        FontFamily="Segoe MDL2 Assets" FontSize="14" Style="{StaticResource SelAct}"
 					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.src"/>
 					<ComboBox x:Name="etrsrc" Height="22" FontSize="12" VerticalContentAlignment="Center"
 					          MaxDropDownHeight="280" AutomationProperties.AutomationId="dict.sel.tr.src"/>
@@ -217,7 +224,8 @@
 				<DockPanel Grid.Row="2" Margin="0,4,0,2" LastChildFill="True">
 					<Button x:Name="btrgo" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelAct}"
 					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.go"/>
-					<Button x:Name="btrspeakdst" DockPanel.Dock="Right" Content="发音" Style="{StaticResource SelAct}"
+					<Button x:Name="btrspeakdst" DockPanel.Dock="Right" Content="&#xE767;"
+					        FontFamily="Segoe MDL2 Assets" FontSize="14" Style="{StaticResource SelAct}"
 					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.dst"/>
 					<ComboBox x:Name="etrdst" Height="22" FontSize="12" VerticalContentAlignment="Center"
 					          MaxDropDownHeight="280" AutomationProperties.AutomationId="dict.sel.tr.dst"/>
@@ -232,8 +240,6 @@
 				<CheckBox x:Name="cbselon" DockPanel.Dock="Right" Content="划词浮窗" Style="{StaticResource SelCheck}"
 				          AutomationProperties.AutomationId="dict.sel.turnoff"/>
 				<WrapPanel VerticalAlignment="Center">
-					<Button x:Name="bselspeak" Content="发音" Style="{StaticResource SelAct}"
-					        AutomationProperties.AutomationId="dict.sel.speak"/>
 					<Button x:Name="bselsearch" Content="搜索" Style="{StaticResource SelAct}"
 					        AutomationProperties.AutomationId="dict.sel.search"/>
 					<Button x:Name="bselcopy" Content="复制" Style="{StaticResource SelAct}" Margin="0"

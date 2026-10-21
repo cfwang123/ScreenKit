@@ -95,13 +95,11 @@ public partial class SelBarWindow : Window {
 	}
 
 	public void ApplyText() {
-		bselspeak.Content = Loc.T("dict.speak");
+		bselspeak.ToolTip = Loc.T("dict.speak");
 		bselsearch.Content = Loc.T("dict.sel.search");
 		bselcopy.Content = Loc.T("dict.sel.copy");
 		bselftr.Content = Loc.T("dict.sel.translate");
 		btrgo.Content = Loc.T("tr.go");
-		btrspeaksrc.Content = Loc.T("dict.speak");
-		btrspeakdst.Content = Loc.T("dict.speak");
 		btrspeaksrc.ToolTip = Loc.T("tr.popup.speak.tip");
 		btrspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
 		etrsrc.ToolTip = Loc.T("tr.src.tip");

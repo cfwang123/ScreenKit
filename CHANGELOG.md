@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - With the HTTP switch off, a random localhost port still serves the tools pages and the HTTP API.
 - The selection popup skips the dictionary when the text has punctuation a word cannot contain, or is longer than a word, and still opens first.
 - Selection popup translation has Auto on both languages. With both on Auto, native text goes to the learning language and other text goes to the native language. Switching language or translating keeps the popup width.
+- Selection popup speak controls are icon buttons, with the selection one in the top bar. Switching back to Translate keeps the existing translation.
 
 #### Fixed
 
@@ -82,6 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 关掉 HTTP 接口时，仍在本机随机端口提供工具页和 HTTP 接口。
 - 划词选区含单词里不会出现的标点，或长过一个单词时，不查词典，浮窗仍先弹出。
 - 划词翻译的源语言和译文语言都可以选自动。两个都是自动时，母语译成学习语言，其它译成母语。切换词典语言或翻译时浮窗宽度不变。
+- 划词浮窗的三个发音改为图标，选区发音放到顶部栏。已经翻译过再切回翻译时保持原文和译文，不再重译。
 
 #### 修复
 

@@ -81,6 +81,7 @@ public partial class DictWindow : UserControl {
 	int ogen;
 	int trgen;
 	bool trinit;
+	string trkeep;
 	CancellationTokenSource trcts;
 	string outtext = "";
 	string outlang = "";
@@ -1066,6 +1067,11 @@ public partial class DictWindow : UserControl {
 	}
 
 	void showtr(string text) {
+		text = text ?? "";
+		if (trkeep != null && string.Equals(text, trkeep, StringComparison.Ordinal)) {
+			outwin.ShowTr(text);
+			return;
+		}
 		var keep = trinit;
 		trinit = true;
 		var src = keep ? outwin.TrSrcCode : TrLang.Auto;
@@ -1106,6 +1112,7 @@ public partial class DictWindow : UserControl {
 			var result = await TrRun(text, src, dst, ct);
 			if (gen != trgen || outwin == null) return;
 			outwin.SetTrOut(result ?? "");
+			trkeep = text;
 		}
 		catch (OperationCanceledException) { }
 		catch (Exception ex) {
