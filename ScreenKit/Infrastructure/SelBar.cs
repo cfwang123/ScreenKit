@@ -44,6 +44,8 @@ static class SelBar {
 	static IntPtr selroot;
 
 	public static bool On => on;
+	/// <summary>朗读页开着：不因鼠标离开、点外面或 Esc 关掉，也不接收新划词。</summary>
+	public static bool Hold;
 	public static event Action<string, Rect> Picked;
 	public static event Action Hiding;
 	public static Func<IntPtr> PopupHwnd;
@@ -101,15 +103,16 @@ static class SelBar {
 
 	public static void Shutdown() {
 		on = false;
+		Hold = false;
 		gen++;
-		hide();
+		forcehide();
 		unhook();
 	}
 
 	/// <summary>关掉当前外部划词浮窗，不关划词开关。</summary>
 	public static void DismissShown() {
 		gen++;
-		hide();
+		forcehide();
 	}
 
 	/// <summary>拖选或双击才弹出。贴着窗口右缘的竖拖当成滚动条，不弹。</summary>
@@ -270,6 +273,11 @@ static class SelBar {
 	}
 
 	static void hide() {
+		if (Hold) return;
+		forcehide();
+	}
+
+	static void forcehide() {
 		var was = shown || selroot != IntPtr.Zero;
 		shown = false;
 		selroot = IntPtr.Zero;
@@ -288,7 +296,7 @@ static class SelBar {
 		if (code >= 0 && on && shown) {
 			try {
 				var msg = wParam.ToInt32();
-				if ((msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) && Marshal.ReadInt32(lParam) == VK_ESCAPE) {
+				if (!Hold && (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) && Marshal.ReadInt32(lParam) == VK_ESCAPE) {
 					gen++;
 					disp?.BeginInvoke(new Action(hide));
 				}
@@ -302,7 +310,7 @@ static class SelBar {
 		var x = Marshal.ReadInt32(lParam);
 		var y = Marshal.ReadInt32(lParam, 4);
 		if (msg == WM_MOUSEMOVE) {
-			if (!shown) return;
+			if (Hold || !shown) return;
 			if (Environment.TickCount - lastMoveTick < 200) return;
 			lastMoveTick = Environment.TickCount;
 			if (onpopup(x, y)) return;
@@ -314,7 +322,7 @@ static class SelBar {
 			return;
 		}
 		if (msg == WM_LBUTTONDOWN) {
-			if (onpopup(x, y)) return;
+			if (Hold || onpopup(x, y)) return;
 			gen++;
 			down = true;
 			downX = x;
@@ -323,6 +331,10 @@ static class SelBar {
 			return;
 		}
 		if (msg != WM_LBUTTONUP) return;
+		if (Hold) {
+			down = false;
+			return;
+		}
 		if (onpopup(x, y)) {
 			down = false;
 			return;

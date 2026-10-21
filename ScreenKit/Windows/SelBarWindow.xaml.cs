@@ -47,27 +47,33 @@ public partial class SelBarWindow : Window {
 	internal event Action TrDstChanged;
 	internal event Action TrTextChanged;
 	internal event Action<bool> TrSpeak;
+	internal event Action ReadGo;
+	internal event Action ReadStop;
 
 	bool selonsync;
 	bool trsync;
 	bool trmode;
+	bool readmode;
+	bool readsync;
+	bool readinit;
 
 	bool langsync;
 	ToggleButton[] langs;
 	const double MINW = 296;
 	const double MINH = 168;
 	static bool sized;
-	static double keepW, keepH;
+	static double keepW, keepH, seenW, seenH;
 
 	public SelBarWindow() {
 		InitializeComponent();
-		langs = new[] { bselfall, bselfzh, bselfja, bselfko, bselfen, bselftr };
+		langs = new[] { bselfall, bselfzh, bselfja, bselfko, bselfen, bselftr, bselread };
 		wirelang(bselfall, "");
 		wirelang(bselfzh, "zh");
 		wirelang(bselfja, "ja");
 		wirelang(bselfko, "ko");
 		wirelang(bselfen, "en");
 		wirelang(bselftr, "tr");
+		wirelang(bselread, "read");
 		bselspeak.Click += (_, _) => SpeakClick?.Invoke();
 		bselsearch.Click += (_, _) => SearchClick?.Invoke();
 		bselcopy.Click += (_, _) => CopyClick?.Invoke();
@@ -78,6 +84,11 @@ public partial class SelBarWindow : Window {
 		etrdst.SelectionChanged += (_, _) => { if (!trsync) TrDstChanged?.Invoke(); };
 		etrsrctext.TextChanged += (_, _) => { if (!trsync) TrTextChanged?.Invoke(); };
 		etrsrctext.LostKeyboardFocus += (_, _) => restorenonactivate();
+		ereadtext.LostKeyboardFocus += (_, _) => restorenonactivate();
+		ereadeng.SelectionChanged += (_, _) => { if (!readsync && readinit) FillReadVoices(); };
+		ereadlang.SelectionChanged += (_, _) => { if (!readsync && readinit) FillReadVoices(); };
+		breadgo.Click += (_, _) => ReadGo?.Invoke();
+		breadstop.Click += (_, _) => ReadStop?.Invoke();
 		bselclose.Click += (_, _) => CloseClick?.Invoke();
 		cbselon.Checked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(true); };
 		cbselon.Unchecked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(false); };
@@ -104,6 +115,9 @@ public partial class SelBarWindow : Window {
 		bselsearch.Content = Loc.T("dict.sel.search");
 		bselcopy.Content = Loc.T("dict.sel.copy");
 		bselftr.Content = Loc.T("dict.sel.translate");
+		bselread.Content = Loc.T("tts.speak");
+		breadgo.Content = Loc.T("tts.speak");
+		breadstop.Content = Loc.T("tts.stop");
 		btrgo.Content = Loc.T("tr.go");
 		btrspeaksrc.ToolTip = Loc.T("tr.popup.speak.tip");
 		btrspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
@@ -132,6 +146,7 @@ public partial class SelBarWindow : Window {
 			bselfko.IsChecked = dict == "ko";
 			bselfen.IsChecked = dict == "en";
 			bselftr.IsChecked = dict == "tr";
+			bselread.IsChecked = dict == "read";
 		}
 		finally { langsync = false; }
 	}
@@ -145,7 +160,7 @@ public partial class SelBarWindow : Window {
 	}
 
 	internal void ShowRows(List<DictSelRow> rows, bool searching) {
-		if (trmode) return;
+		if (trmode || readmode) return;
 		if (rows == null) rows = new List<DictSelRow>();
 		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 		lsel.ItemsSource = rows;
@@ -155,14 +170,18 @@ public partial class SelBarWindow : Window {
 
 	internal void ShowDict() {
 		trmode = false;
+		readmode = false;
 		gdict.Visibility = Visibility.Visible;
 		gtr.Visibility = Visibility.Collapsed;
+		gread.Visibility = Visibility.Collapsed;
 	}
 
 	internal void ShowTr(string text, bool setText) {
 		trmode = true;
+		readmode = false;
 		gdict.Visibility = Visibility.Collapsed;
 		gtr.Visibility = Visibility.Visible;
+		gread.Visibility = Visibility.Collapsed;
 		if (!setText) return;
 		trsync = true;
 		try { etrsrctext.Text = text ?? ""; }
@@ -176,6 +195,86 @@ public partial class SelBarWindow : Window {
 
 	internal string TrSrcCode => combo(etrsrc);
 	internal string TrDstCode => combo(etrdst);
+	internal void ShowRead(string text, bool setText, string langHint) {
+		trmode = false;
+		readmode = true;
+		gdict.Visibility = Visibility.Collapsed;
+		gtr.Visibility = Visibility.Collapsed;
+		gread.Visibility = Visibility.Visible;
+		if (!readinit) fillread(langHint);
+		if (!setText) return;
+		readsync = true;
+		try { ereadtext.Text = text ?? ""; }
+		finally { readsync = false; }
+	}
+
+	internal string ReadText => ereadtext.Text ?? "";
+	internal string ReadEngine => tagof(ereadeng);
+	internal string ReadLang => tagof(ereadlang);
+	internal string ReadVoice => tagof(ereadvoice);
+
+	internal void FillReadVoices() {
+		var lang = ReadLang;
+		if (lang != "zh" && lang != "en" && lang != "ja" && lang != "ko") lang = "zh";
+		var eng = DictTts.NormEngine(ReadEngine);
+		var use = eng == DictTts.AUTO ? DictTts.ResolveEngine(eng, lang) : eng;
+		var keep = ReadVoice;
+		var items = DictTts.Voices(use, lang);
+		readsync = true;
+		try {
+			ereadvoice.Items.Clear();
+			foreach (var it in items)
+				ereadvoice.Items.Add(new ComboBoxItem { Content = it.Label, Tag = it.Id ?? "" });
+			if (!pickraw(ereadvoice, keep) && ereadvoice.Items.Count > 0) ereadvoice.SelectedIndex = 0;
+		}
+		finally { readsync = false; }
+	}
+
+	void fillread(string langHint) {
+		readsync = true;
+		try {
+			ereadeng.Items.Clear();
+			addtag(ereadeng, Loc.T("dict.tts.auto"), DictTts.AUTO);
+			addtag(ereadeng, Loc.T("dict.tts.onnx"), DictTts.ONNX);
+			addtag(ereadeng, Loc.T("dict.tts.sapi"), DictTts.SAPI);
+			addtag(ereadeng, Loc.T("dict.tts.winrt"), DictTts.WINRT);
+			addtag(ereadeng, Loc.T("dict.tts.edge"), DictTts.EDGE);
+			pickraw(ereadeng, DictTts.AUTO);
+			ereadlang.Items.Clear();
+			addtag(ereadlang, Loc.T("dict.filter.zh"), "zh");
+			addtag(ereadlang, Loc.T("dict.filter.en"), "en");
+			addtag(ereadlang, Loc.T("dict.filter.ja"), "ja");
+			addtag(ereadlang, Loc.T("dict.filter.ko"), "ko");
+			var lang = langHint ?? "";
+			if (lang != "zh" && lang != "en" && lang != "ja" && lang != "ko") lang = "zh";
+			pickraw(ereadlang, lang);
+		}
+		finally { readsync = false; }
+		readinit = true;
+		FillReadVoices();
+	}
+
+	static void addtag(ComboBox box, string label, string tag) {
+		box.Items.Add(new ComboBoxItem { Content = label, Tag = tag ?? "" });
+	}
+
+	static string tagof(ComboBox box) {
+		if (box?.SelectedItem is ComboBoxItem it && it.Tag is string s) return s;
+		return "";
+	}
+
+	static bool pickraw(ComboBox box, string tag) {
+		if (box == null) return false;
+		tag = tag ?? "";
+		foreach (ComboBoxItem it in box.Items) {
+			if (it.Tag is string t && string.Equals(t, tag, StringComparison.OrdinalIgnoreCase)) {
+				box.SelectedItem = it;
+				return true;
+			}
+		}
+		return false;
+	}
+
 	internal string TrSrcText => etrsrctext.Text ?? "";
 	internal string TrDstText => etrdsttext.Text ?? "";
 
@@ -275,6 +374,24 @@ public partial class SelBarWindow : Window {
 		return null;
 	}
 
+	internal void UseSize(int w, int h) {
+		if (sized) return;
+		if (w < MINW || h < MINH || w > 2400 || h > 1800) return;
+		sized = true;
+		keepW = w;
+		keepH = h;
+	}
+
+	internal void CopySize(out double w, out double h) {
+		if (sized) {
+			w = keepW;
+			h = keepH;
+			return;
+		}
+		w = seenW;
+		h = seenH;
+	}
+
 	/// <summary>本次运行里用户拖过的宽高。没拖过则仍按内容撑开。</summary>
 	void applysize() {
 		if (!sized) return;
@@ -315,6 +432,10 @@ public partial class SelBarWindow : Window {
 			Show();
 		}
 		UpdateLayout();
+		if (!sized && ActualWidth >= MINW && ActualHeight >= MINH) {
+			seenW = ActualWidth;
+			seenH = ActualHeight;
+		}
 		int apx = (int)Math.Round(px.Left);
 		int apy = (int)Math.Round(px.Bottom);
 		var dip = todip(apx, apy);
@@ -363,7 +484,7 @@ public partial class SelBarWindow : Window {
 
 	IntPtr onmsg(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) {
 		if (msg == WM_MOUSEACTIVATE) {
-			if (trmode && overbox(etrsrctext)) {
+			if ((trmode && overbox(etrsrctext)) || (readmode && overbox(ereadtext))) {
 				var ex = GetWindowLong(hwnd, GWL_EXSTYLE);
 				SetWindowLong(hwnd, GWL_EXSTYLE, ex & ~WS_EX_NOACTIVATE);
 				return IntPtr.Zero;

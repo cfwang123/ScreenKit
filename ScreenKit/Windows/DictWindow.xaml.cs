@@ -84,6 +84,10 @@ public partial class DictWindow : UserControl {
 	string trkeep;
 	string trsel;
 	CancellationTokenSource trcts;
+	int readgen;
+	string readsel;
+	bool readon;
+	CancellationTokenSource readcts;
 	string outtext = "";
 	string outlang = "";
 	Rect outbox;
@@ -152,9 +156,12 @@ public partial class DictWindow : UserControl {
 		};
 		Unloaded += (_, _) => SelBar.UnwatchDetail(edetail);
 		IsVisibleChanged += (_, _) => {
-			if (!IsVisible) HideOutside();
+			if (!IsVisible && !reading()) HideOutside();
 		};
-		PreviewMouseDown += (_, _) => HideOutside();
+		PreviewMouseDown += (_, _) => {
+			if (reading()) return;
+			HideOutside();
+		};
 		cbselbar.Checked += (_, _) => {
 			if (!selbarsync) SelBarChanged?.Invoke(true);
 		};
@@ -885,6 +892,7 @@ public partial class DictWindow : UserControl {
 	}
 
 	void openselpop() {
+		if (reading()) return;
 		var text = edetail.Selection == null ? "" : edetail.Selection.Text ?? "";
 		text = oneline(text);
 		if (text.Length == 0) return;
@@ -950,6 +958,7 @@ public partial class DictWindow : UserControl {
 	/// <summary>划词查词浮窗。lang 为空时按文字判断发音语言。</summary>
 	public void ShowOutside(string text, Rect screenPx, string lang = null) {
 		text = oneline(text);
+		if (reading()) return;
 		if (text.Length == 0) {
 			HideOutside();
 			return;
@@ -967,10 +976,28 @@ public partial class DictWindow : UserControl {
 	public void HideOutside() {
 		ogen++;
 		outdict = false;
+		if (SelBar.Hold || (selfilter ?? "") == "read") {
+			stopread();
+			SelBar.Hold = false;
+		}
 		try {
 			if (outwin != null && outwin.IsVisible) outwin.Hide();
 		}
 		catch { }
+	}
+
+	public void SaveSelSize(OcrOptions o) {
+		if (o == null || outwin == null) return;
+		outwin.CopySize(out var w, out var h);
+		if (w < 296 || h < 168) return;
+		if (w > 2400) w = 2400;
+		if (h > 1800) h = 1800;
+		o.SelBarW = (int)Math.Round(w);
+		o.SelBarH = (int)Math.Round(h);
+	}
+
+	bool reading() {
+		return (selfilter ?? "") == "read" && outwin != null && outwin.IsVisible;
 	}
 
 	void turnoffselbar() {
@@ -1010,6 +1037,8 @@ public partial class DictWindow : UserControl {
 		outwin.TrDstChanged += () => refreshtrlabels();
 		outwin.TrTextChanged += () => refreshtrlabels();
 		outwin.TrSpeak += src => speaktr(src);
+		outwin.ReadGo += () => _ = readloop();
+		outwin.ReadStop += () => stopread();
 		outwin.CopyClick += () => copytext(outtext);
 		outwin.CloseClick += () => {
 			try { SelBar.DismissShown(); } catch { }
@@ -1019,6 +1048,8 @@ public partial class DictWindow : UserControl {
 			else turnoffselbar();
 		};
 		outwin.SetSelOn(cbselbar.IsChecked == true);
+		var saved = Options != null ? Options() : null;
+		if (saved != null) outwin.UseSize(saved.SelBarW, saved.SelBarH);
 		outwin.LangChanged += dict => {
 			dict = dict ?? "";
 			if (selfilter == dict) return;
@@ -1041,6 +1072,19 @@ public partial class DictWindow : UserControl {
 	void searchoutside() {
 		if (outwin == null) return;
 		var text = outtext ?? "";
+		if ((selfilter ?? "") == "read") {
+			ogen++;
+			trgen++;
+			try { trcts?.Cancel(); } catch { }
+			SelBar.Hold = true;
+			showread(text);
+			outwin.ShowAt(outbox);
+			return;
+		}
+		if (SelBar.Hold) {
+			SelBar.Hold = false;
+			stopread();
+		}
 		if ((selfilter ?? "") == "tr") {
 			ogen++;
 			showtr(text);
@@ -1203,8 +1247,84 @@ public partial class DictWindow : UserControl {
 		HideOutside();
 	}
 
+	void showread(string text) {
+		text = text ?? "";
+		if (readon && string.Equals(text, readsel, StringComparison.Ordinal)) {
+			outwin.ShowRead(text, false, outlang);
+			return;
+		}
+		readsel = text;
+		readon = true;
+		outwin.ShowRead(text, true, outlang);
+	}
+
+	void stopread() {
+		readgen++;
+		try { readcts?.Cancel(); } catch { }
+		try { player?.Stop(); } catch { }
+	}
+
+	async Task readloop() {
+		if (outwin == null) return;
+		var gen = ++readgen;
+		try { readcts?.Cancel(); } catch { }
+		try { player?.Stop(); } catch { }
+		readcts = new CancellationTokenSource();
+		var ct = readcts.Token;
+		var text = outwin.ReadText ?? "";
+		var lang = outwin.ReadLang;
+		if (lang != "zh" && lang != "en" && lang != "ja" && lang != "ko") lang = "zh";
+		var eng = DictTts.NormEngine(outwin.ReadEngine);
+		var voice = outwin.ReadVoice ?? "";
+		var lines = readsents(text);
+		if (lines.Count == 0) return;
+		if (player == null) player = new TtsPlayer();
+		var o = Options != null ? Options() : null;
+		var use = eng == DictTts.AUTO ? DictTts.ResolveEngine(eng, lang) : eng;
+		foreach (var line in lines) {
+			if (gen != readgen || ct.IsCancellationRequested) return;
+			var pref = DictTts.For(o, lang);
+			pref.Engine = use;
+			if (use == DictTts.ONNX) pref.Onnx = voice;
+			else if (use == DictTts.SAPI) pref.Sapi = voice;
+			else if (use == DictTts.WINRT) pref.WinRt = voice;
+			else pref.Edge = voice;
+			string path;
+			try { path = await DictTts.EnsureWav(pref, lang, line, 2000).ConfigureAwait(true); }
+			catch (OperationCanceledException) { return; }
+			catch { continue; }
+			if (gen != readgen || ct.IsCancellationRequested) return;
+			try { await player.PlayFileAsync(path, ct).ConfigureAwait(true); }
+			catch (OperationCanceledException) { return; }
+		}
+	}
+
+	static List<string> readsents(string text) {
+		var list = new List<string>();
+		if (string.IsNullOrWhiteSpace(text)) return list;
+		var sb = new StringBuilder();
+		var n = text.Length;
+		for (var i = 0; i < n; i++) {
+			var c = text[i];
+			if (c == '\r') continue;
+			sb.Append(c);
+			var brk = c == '。' || c == '！' || c == '？' || c == '!' || c == '?' || c == '；' || c == ';' || c == '\n';
+			if (!brk && c == '.') {
+				var next = i + 1 < n ? text[i + 1] : ' ';
+				brk = next == ' ' || next == '\n' || next == '\t';
+			}
+			if (!brk) continue;
+			var s = sb.ToString().Trim();
+			sb.Clear();
+			if (s.Length > 0) list.Add(s);
+		}
+		var tail = sb.ToString().Trim();
+		if (tail.Length > 0) list.Add(tail);
+		return list;
+	}
+
 	void onhostoff(object sender, EventArgs e) {
-		if (!outdict) return;
+		if (!outdict || reading()) return;
 		var w = hostwin;
 		Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => {
 			if (!outdict) return;

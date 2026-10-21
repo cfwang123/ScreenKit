@@ -118,6 +118,9 @@ public sealed class OcrOptions {
 	public string HotkeyDict = "";
 	/// <summary>划词浮窗：其它程序里拖选或双击时弹出查词浮窗。默认关。</summary>
 	public bool DictSelBar;
+	/// <summary>划词浮窗上次宽高（DIP）。0 = 按内容。</summary>
+	public int SelBarW;
+	public int SelBarH;
 	/// <summary>切换划词浮窗。默认空 = 不注册。</summary>
 	public string HotkeyDictSel = "";
 	/// <summary>输入法切换语言，轮到末尾后关闭。默认 Ctrl+`。</summary>
@@ -572,6 +575,8 @@ public sealed class OcrOptions {
 		HotkeySnapCopy = HotkeySnapCopy,
 		HotkeyDict = HotkeyDict,
 		DictSelBar = DictSelBar,
+		SelBarW = SelBarW,
+		SelBarH = SelBarH,
 		HotkeyDictSel = HotkeyDictSel ?? "",
 		HotkeyImeCycle = HotkeyImeCycle ?? "",
 		HotkeyImeWubi = HotkeyImeWubi ?? "",

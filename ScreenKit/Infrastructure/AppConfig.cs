@@ -102,6 +102,10 @@ static class AppConfig {
 				o.DictDbHoldMin = OnnxIdle.ClampMin(dholdN);
 			if (map.TryGetValue("dict_selbar", out var dsel))
 				o.DictSelBar = parsebool(dsel, false);
+			if (map.TryGetValue("selbar_w", out var sbw) && int.TryParse(sbw, out var sbwN))
+				o.SelBarW = sbwN >= 296 && sbwN <= 2400 ? sbwN : 0;
+			if (map.TryGetValue("selbar_h", out var sbh) && int.TryParse(sbh, out var sbhN))
+				o.SelBarH = sbhN >= 168 && sbhN <= 1800 ? sbhN : 0;
 			readdicttts(map, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 			readdicttts(map, "en", o.DictTtsEn, "en-US-AriaNeural");
 			readdicttts(map, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
@@ -657,6 +661,8 @@ static class AppConfig {
 		sb.AppendLine($"dict_db_hold = {OnnxIdle.ClampMin(o.DictDbHoldMin)}");
 		sb.AppendLine("# 划词浮窗（本程序和其它程序里拖选或双击；词典词条里始终可用；默认关）");
 		sb.AppendLine($"dict_selbar = {(o.DictSelBar ? "true" : "false")}");
+		sb.AppendLine($"selbar_w = {(o.SelBarW >= 296 && o.SelBarW <= 2400 ? o.SelBarW : 0)}");
+		sb.AppendLine($"selbar_h = {(o.SelBarH >= 168 && o.SelBarH <= 1800 ? o.SelBarH : 0)}");
 		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
 		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
 		writedicttts(sb, "en", o.DictTtsEn, "en-US-AriaNeural");

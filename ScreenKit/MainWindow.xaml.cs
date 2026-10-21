@@ -1257,6 +1257,7 @@ public partial class MainWindow : Window {
 		try {
 			opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(ImageUtil.CurrentSnapAnnTool);
 			savewindowbounds();
+			try { dicthost?.SaveSelSize(opt); } catch { }
 			savettsprefs();
 			saveasrprefs();
 			savetrprefs();

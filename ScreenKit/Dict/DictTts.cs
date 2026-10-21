@@ -19,6 +19,10 @@ static class DictTts {
 	static readonly object OnnxGate = new();
 	static TtsEngine onnxEng;
 
+	public static string ResolveEngine(string engine, string lang) {
+		return resolve(new DictTtsLang { Engine = NormEngine(engine) }, lang);
+	}
+
 	public static string NormEngine(string raw) {
 		var s = (raw ?? "").Trim().ToLowerInvariant();
 		if (s == ONNX || s == SAPI || s == WINRT || s == EDGE || s == AUTO) return s;

@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Selection popup translation has Auto on both languages. With both on Auto, native text goes to the learning language and other text goes to the native language. Switching language or translating keeps the popup width.
 - Selection popup speak controls are icon buttons, with the selection one in the top bar. Switching back to Translate keeps the existing translation.
 - Selection popup translation shows the resolved source and target languages, keeps the language menus compact, and lets the source text be edited.
+- The selection popup restores its last size, and a Read tab speaks the text sentence by sentence without closing or watching new selections.
 
 #### Fixed
 
@@ -86,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词翻译的源语言和译文语言都可以选自动。两个都是自动时，母语译成学习语言，其它译成母语。切换词典语言或翻译时浮窗宽度不变。
 - 划词浮窗的三个发音改为图标，选区发音放到顶部栏。已经翻译过再切回翻译时保持原文和译文，不再重译。
 - 划词翻译标出实际的源语言和目标语言，语言下拉不再拉满一行，原文可以修改。
+- 划词浮窗会记住上次大小。朗读页按句朗读，打开时浮窗不自动关闭，也不接收新的划词。
 
 #### 修复
 

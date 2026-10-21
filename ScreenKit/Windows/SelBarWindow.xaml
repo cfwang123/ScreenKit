@@ -138,6 +138,8 @@
 				        FontFamily="Segoe MDL2 Assets" FontSize="14" Style="{StaticResource SelAct}"
 				        Margin="0,0,2,0" ToolTip="发音"
 				        AutomationProperties.AutomationId="dict.sel.speak"/>
+				<ToggleButton x:Name="bselread" DockPanel.Dock="Right" Content="朗读" Style="{StaticResource SelLang}"
+				              Margin="10,0,6,0" AutomationProperties.AutomationId="dict.sel.filter.read"/>
 				<ToggleButton x:Name="bselftr" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelLang}"
 				              Margin="10,0,6,0" AutomationProperties.AutomationId="dict.sel.filter.tr"/>
 				<WrapPanel VerticalAlignment="Center">
@@ -241,6 +243,33 @@
 				         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
 				         BorderThickness="0" Background="#F4F5F7" Padding="4,2" FontSize="13"
 				         AutomationProperties.AutomationId="dict.sel.tr.out"/>
+			</Grid>
+			<Grid x:Name="gread" Visibility="Collapsed">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="*"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+				<TextBox x:Name="ereadtext" TextWrapping="Wrap" AcceptsReturn="True"
+				         VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="#F4F5F7"
+				         Padding="4,2" FontSize="13" AutomationProperties.AutomationId="dict.sel.read.text"/>
+				<DockPanel Grid.Row="1" Margin="0,4,0,0" LastChildFill="False">
+					<ComboBox x:Name="ereadeng" Width="108" Height="22" FontSize="12" Margin="0,0,6,0"
+					          VerticalContentAlignment="Center" MaxDropDownHeight="240"
+					          AutomationProperties.AutomationId="dict.sel.read.eng"/>
+					<ComboBox x:Name="ereadlang" Width="72" Height="22" FontSize="12" Margin="0,0,6,0"
+					          VerticalContentAlignment="Center" MaxDropDownHeight="200"
+					          AutomationProperties.AutomationId="dict.sel.read.lang"/>
+					<ComboBox x:Name="ereadvoice" Width="128" Height="22" FontSize="12"
+					          VerticalContentAlignment="Center" MaxDropDownHeight="280"
+					          AutomationProperties.AutomationId="dict.sel.read.voice"/>
+				</DockPanel>
+				<DockPanel Grid.Row="2" Margin="0,4,0,0" LastChildFill="False">
+					<Button x:Name="breadgo" Content="朗读" Style="{StaticResource SelAct}"
+					        AutomationProperties.AutomationId="dict.sel.read.go"/>
+					<Button x:Name="breadstop" Content="停止" Style="{StaticResource SelAct}" Margin="0"
+					        AutomationProperties.AutomationId="dict.sel.read.stop"/>
+				</DockPanel>
 			</Grid>
 			</Grid>
 			<DockPanel Grid.Row="2" Margin="0,6,14,0" LastChildFill="True">

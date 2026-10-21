@@ -54,6 +54,34 @@ sealed class TtsPlayer : IDisposable {
 		player.Play();
 	}
 
+	/// <summary>播放已有文件并等到结束或取消。不删除该文件。</summary>
+	public async Task PlayFileAsync(string path, CancellationToken ct = default) {
+		Stop();
+		if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+		if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+		reader = new WaveFileReader(path);
+		player = opendefault();
+		var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+		playTcs = tcs;
+		player.PlaybackStopped += (_, e) => {
+			if (e.Exception != null) tcs.TrySetException(e.Exception);
+			else tcs.TrySetResult(true);
+		};
+		player.Init(reader);
+		if (ct.CanBeCanceled) {
+			playReg = ct.Register(() => {
+				try { Stop(); } catch { }
+				tcs.TrySetCanceled(ct);
+			});
+		}
+		player.Play();
+		try { await tcs.Task.ConfigureAwait(false); }
+		finally {
+			playReg.Dispose();
+			playReg = default;
+		}
+	}
+
 	/// <summary>播放并等待自然结束或 Stop；Pause 期间继续等待。</summary>
 	public async Task PlayAsync(float[] samples, int sampleRate, CancellationToken ct = default) {
 		Stop();
