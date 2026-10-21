@@ -288,11 +288,11 @@ public partial class SettingsWindow : Window {
 			lbhkhintDictSel.Text = Loc.T("set.hotkey.dictsel");
 			lbdicttts.Text = Loc.T("set.dict.tts");
 			lbdictttshint.Text = Loc.T("set.dict.tts.hint");
-			lbdictzh.Text = Loc.T("dict.filter.zh");
-			lbdicten.Text = Loc.T("dict.filter.en");
-			lbdictja.Text = Loc.T("dict.filter.ja");
-			lbdictko.Text = Loc.T("dict.filter.ko");
-			setdictrowlabels();
+			lbdictlang.Text = Loc.T("set.dict.lang");
+			lbdicteng.Text = Loc.T("set.dict.engine");
+			lbdictvoice.Text = Loc.T("set.dict.voice");
+			lbdictrate.Text = Loc.T("set.dict.rate");
+			bdictttsadd.Content = Loc.T("set.dict.tts.add");
 			lbsetasrmode.Text = Loc.T("set.asr.mode");
 			lbsetasrmodehint.Text = Loc.T("set.asr.mode.hint");
 			easrvoicestream.Content = Loc.T("set.asr.mode.stream");
@@ -1205,93 +1205,130 @@ public partial class SettingsWindow : Window {
 		eproxyaddr.Opacity = on ? 1 : 0.55;
 	}
 
-	bool dictvoicehook;
 	bool dictloading;
-	DictTtsLang holdzh;
-	DictTtsLang holden;
-	DictTtsLang holdja;
-	DictTtsLang holdko;
+	readonly List<DictRow> dictrows = new();
 	readonly Dictionary<ComboBox, string> dictlasteng = new();
 
-	void hookdictvoice() {
-		if (dictvoicehook) return;
-		dictvoicehook = true;
-		hookone(edictzheng, edictzhvoice, edictzhrate, pdictzhvoice, () => holdzh);
-		hookone(edicteneng, edictenvoice, edictenrate, pdictenvoice, () => holden);
-		hookone(edictjaeng, edictjavoice, edictjarate, pdictjavoice, () => holdja);
-		hookone(edictkoeng, edictkovoice, edictkorate, pdictkovoice, () => holdko);
-		return;
-		void hookone(ComboBox eng, ComboBox voice, ComboBox rate, DockPanel voiceRow, Func<DictTtsLang> hold) {
-			eng.SelectionChanged += (_, _) => ondicteng(eng, voice, rate, voiceRow, hold());
-			voice.SelectionChanged += (_, _) => {
-				if (dictloading) return;
-				writevoice(hold(), engtag(eng), tagof(voice));
-			};
-			rate.SelectionChanged += (_, _) => {
-				if (dictloading) return;
-				hold().Rate = rateof(rate);
-			};
-		}
-	}
-
-	void ondicteng(ComboBox eng, ComboBox voice, ComboBox rate, DockPanel voiceRow, DictTtsLang hold) {
-		if (dictloading || hold == null) return;
-		var next = engtag(eng);
-		if (dictlasteng.TryGetValue(eng, out var prev) && prev != next)
-			writevoice(hold, prev, tagof(voice));
-		dictlasteng[eng] = next;
-		hold.Engine = next;
-		filldictvoice(voice, voiceRow, next, langofeng(eng), hold);
-	}
-
-	static string langofeng(ComboBox eng) {
-		if (ReferenceEquals(eng, null)) return "en";
-		var name = eng.Name ?? "";
-		if (name.Contains("zh")) return "zh";
-		if (name.Contains("ja")) return "ja";
-		if (name.Contains("ko")) return "ko";
-		return "en";
-	}
-
-	void setdictrowlabels() {
-		var eng = Loc.T("set.dict.engine");
-		var voice = Loc.T("set.dict.voice");
-		var rate = Loc.T("set.dict.rate");
-		lbdictzheng.Text = eng;
-		lbdicteneng.Text = eng;
-		lbdictjaeng.Text = eng;
-		lbdictkoeng.Text = eng;
-		lbdictzhvoice.Text = voice;
-		lbdictenvoice.Text = voice;
-		lbdictjavoice.Text = voice;
-		lbdictkovoice.Text = voice;
-		lbdictzhrate.Text = rate;
-		lbdictenrate.Text = rate;
-		lbdictjarate.Text = rate;
-		lbdictkorate.Text = rate;
+	sealed class DictRow {
+		public string Lang;
+		public DictTtsLang Pref;
+		public ComboBox Eng;
+		public ComboBox Voice;
+		public ComboBox Rate;
 	}
 
 	void loaddicttts(OcrOptions o) {
-		hookdictvoice();
-		holdzh = DictTts.For(o, "zh");
-		holden = DictTts.For(o, "en");
-		holdja = DictTts.For(o, "ja");
-		holdko = DictTts.For(o, "ko");
-		filldictlang(edictzheng, edictzhvoice, edictzhrate, pdictzhvoice, "zh", holdzh);
-		filldictlang(edicteneng, edictenvoice, edictenrate, pdictenvoice, "en", holden);
-		filldictlang(edictjaeng, edictjavoice, edictjarate, pdictjavoice, "ja", holdja);
-		filldictlang(edictkoeng, edictkovoice, edictkorate, pdictkovoice, "ko", holdko);
+		dictrows.Clear();
+		pdicttts.Children.Clear();
+		var map = DictTts.CopyMap(o?.DictTtsMap);
+		foreach (var lang in DictTts.LangsOf(map)) {
+			if (!map.TryGetValue(lang, out var pref) || pref == null)
+				pref = DictTtsLang.Make(DictTts.DefaultEdge(lang));
+			adddictrow(lang, pref);
+		}
+		filldictadd();
+	}
+
+	void adddictrow(string lang, DictTtsLang pref) {
+		var row = new DictRow { Lang = lang, Pref = pref };
+		var grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100) });
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(118) });
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(76) });
+		grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
+		var lab = new TextBlock {
+			Text = TtsLang.DisplayName(lang),
+			VerticalAlignment = VerticalAlignment.Center,
+			TextTrimming = TextTrimming.CharacterEllipsis,
+		};
+		Grid.SetColumn(lab, 0);
+		var eng = new ComboBox { Height = 28, Margin = new Thickness(0, 0, 6, 0) };
+		Grid.SetColumn(eng, 1);
+		var voice = new ComboBox { Height = 28, Margin = new Thickness(0, 0, 6, 0) };
+		Grid.SetColumn(voice, 2);
+		var rate = new ComboBox { Height = 28, Margin = new Thickness(0, 0, 4, 0) };
+		Grid.SetColumn(rate, 3);
+		row.Eng = eng;
+		row.Voice = voice;
+		row.Rate = rate;
+		grid.Children.Add(lab);
+		grid.Children.Add(eng);
+		grid.Children.Add(voice);
+		grid.Children.Add(rate);
+		if (!DictTts.IsCoreLang(lang)) {
+			var del = new Button {
+				Content = "×",
+				Width = 28,
+				Height = 28,
+				ToolTip = Loc.T("set.dict.tts.del"),
+			};
+			Grid.SetColumn(del, 4);
+			del.Click += (_, _) => removedictrow(row, grid);
+			grid.Children.Add(del);
+		}
+		eng.SelectionChanged += (_, _) => ondicteng(row);
+		voice.SelectionChanged += (_, _) => {
+			if (dictloading) return;
+			writevoice(row.Pref, engtag(eng), tagof(voice));
+		};
+		rate.SelectionChanged += (_, _) => {
+			if (dictloading) return;
+			row.Pref.Rate = rateof(rate);
+		};
+		pdicttts.Children.Add(grid);
+		dictrows.Add(row);
+		filldictlang(row);
+	}
+
+	void removedictrow(DictRow row, Grid grid) {
+		dictrows.Remove(row);
+		pdicttts.Children.Remove(grid);
+		dictlasteng.Remove(row.Eng);
+		filldictadd();
+	}
+
+	void ondictttsadd(object sender, RoutedEventArgs e) {
+		var typed = (edictttsadd.Text ?? "").Trim();
+		var lang = "";
+		if (edictttsadd.SelectedItem is ComboBoxItem it && it.Tag is string tag) {
+			var label = it.Content as string ?? "";
+			if (typed.Length == 0
+				|| string.Equals(typed, label, StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(typed, tag, StringComparison.OrdinalIgnoreCase))
+				lang = DictTts.NormLang(tag);
+		}
+		if (lang.Length == 0)
+			lang = DictTts.NormLang(typed);
+		if (lang.Length == 0) return;
+		foreach (var row in dictrows) {
+			if (string.Equals(row.Lang, lang, StringComparison.OrdinalIgnoreCase)) return;
+		}
+		adddictrow(lang, DictTtsLang.Make(DictTts.DefaultEdge(lang)));
+		filldictadd();
+		edictttsadd.Text = "";
+	}
+
+	void filldictadd() {
+		string[] extra = { "vi", "yue", "fr", "de", "es", "pt", "ru", "it" };
+		var have = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var row in dictrows) have.Add(row.Lang);
+		edictttsadd.Items.Clear();
+		foreach (var code in extra) {
+			if (have.Contains(code)) continue;
+			edictttsadd.Items.Add(new ComboBoxItem { Content = TtsLang.DisplayName(code), Tag = code });
+		}
+		if (edictttsadd.Items.Count > 0) edictttsadd.SelectedIndex = 0;
 	}
 
 	void savedicttts() {
-		flushdict(edictzheng, edictzhvoice, edictzhrate, holdzh);
-		flushdict(edicteneng, edictenvoice, edictenrate, holden);
-		flushdict(edictjaeng, edictjavoice, edictjarate, holdja);
-		flushdict(edictkoeng, edictkovoice, edictkorate, holdko);
-		Result.DictTtsZh = holdzh.Clone();
-		Result.DictTtsEn = holden.Clone();
-		Result.DictTtsJa = holdja.Clone();
-		Result.DictTtsKo = holdko.Clone();
+		var map = new Dictionary<string, DictTtsLang>(StringComparer.OrdinalIgnoreCase);
+		foreach (var row in dictrows) {
+			flushdict(row.Eng, row.Voice, row.Rate, row.Pref);
+			map[row.Lang] = row.Pref.Clone();
+		}
+		DictTts.EnsureMap(map);
+		Result.DictTtsMap = map;
 	}
 
 	void flushdict(ComboBox eng, ComboBox voice, ComboBox rate, DictTtsLang hold) {
@@ -1302,16 +1339,28 @@ public partial class SettingsWindow : Window {
 		writevoice(hold, kind, tagof(voice));
 	}
 
-	void filldictlang(ComboBox eng, ComboBox voice, ComboBox rate, DockPanel voiceRow, string lang, DictTtsLang pref) {
-		if (pref == null) pref = DictTtsLang.Make(DictTts.DefaultEdge(lang));
+	void ondicteng(DictRow row) {
+		if (dictloading || row?.Pref == null) return;
+		var next = engtag(row.Eng);
+		if (dictlasteng.TryGetValue(row.Eng, out var prev) && prev != next)
+			writevoice(row.Pref, prev, tagof(row.Voice));
+		dictlasteng[row.Eng] = next;
+		row.Pref.Engine = next;
+		filldictvoice(row);
+	}
+
+	void filldictlang(DictRow row) {
+		var pref = row.Pref ?? DictTtsLang.Make(DictTts.DefaultEdge(row.Lang));
+		row.Pref = pref;
 		dictloading = true;
 		try {
-			filltag(eng, new[] {
+			filltag(row.Eng, new[] {
 				(Loc.T("dict.tts.auto"), DictTts.AUTO),
 				(Loc.T("dict.tts.onnx"), DictTts.ONNX),
 				(Loc.T("dict.tts.sapi"), DictTts.SAPI),
 				(Loc.T("dict.tts.winrt"), DictTts.WINRT),
 				(Loc.T("dict.tts.edge"), DictTts.EDGE),
+				(Loc.T("dict.tts.chrome"), DictTts.CHROME),
 			}, DictTts.NormEngine(pref.Engine));
 			var rates = new List<(string, string)>();
 			foreach (var step in DictTts.RateSteps) {
@@ -1324,19 +1373,23 @@ public partial class SettingsWindow : Window {
 				if (string.Equals(it.Item2, wantRate, StringComparison.Ordinal)) haveRate = true;
 			}
 			if (!haveRate) rates.Add((wantRate + "×", wantRate));
-			filltag(rate, rates, wantRate);
-			dictlasteng[eng] = engtag(eng);
-			filldictvoice(voice, voiceRow, engtag(eng), lang, pref);
+			filltag(row.Rate, rates, wantRate);
+			dictlasteng[row.Eng] = engtag(row.Eng);
+			filldictvoice(row);
 		}
 		finally { dictloading = false; }
 	}
 
-	void filldictvoice(ComboBox voice, DockPanel voiceRow, string engine, string lang, DictTtsLang pref) {
-		var kind = DictTts.NormEngine(engine);
-		voiceRow.Visibility = kind == DictTts.AUTO ? Visibility.Collapsed : Visibility.Visible;
-		if (kind == DictTts.AUTO) return;
-		var items = DictTts.Voices(kind, lang);
-		var want = voiceid(pref, kind, lang);
+	void filldictvoice(DictRow row) {
+		var kind = engtag(row.Eng);
+		var auto = kind == DictTts.AUTO;
+		row.Voice.IsEnabled = !auto;
+		if (auto) {
+			row.Voice.Items.Clear();
+			return;
+		}
+		var items = DictTts.Voices(kind, row.Lang);
+		var want = voiceid(row.Pref, kind, row.Lang);
 		var have = false;
 		foreach (var it in items) {
 			if (string.Equals(it.Id, want, StringComparison.OrdinalIgnoreCase)) have = true;
@@ -1344,7 +1397,7 @@ public partial class SettingsWindow : Window {
 		if (want.Length > 0 && !have) items.Add((want, want));
 		var was = dictloading;
 		dictloading = true;
-		try { filltag(voice, items, want); }
+		try { filltag(row.Voice, items, want); }
 		finally { dictloading = was; }
 	}
 
@@ -1354,6 +1407,7 @@ public partial class SettingsWindow : Window {
 		if (engine == DictTts.SAPI) return pref.Sapi ?? "";
 		if (engine == DictTts.WINRT) return pref.WinRt ?? "";
 		if (engine == DictTts.EDGE) return DictTts.EdgeName(lang, pref.Edge);
+		if (engine == DictTts.CHROME) return pref.Chrome ?? "";
 		return "";
 	}
 
@@ -1363,6 +1417,7 @@ public partial class SettingsWindow : Window {
 		if (engine == DictTts.ONNX) hold.Onnx = id;
 		else if (engine == DictTts.SAPI) hold.Sapi = id;
 		else if (engine == DictTts.WINRT) hold.WinRt = id;
+		else if (engine == DictTts.CHROME) hold.Chrome = id;
 		else if (engine == DictTts.EDGE && id.Length > 0) hold.Edge = id;
 	}
 

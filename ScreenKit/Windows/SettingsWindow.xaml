@@ -460,74 +460,27 @@
 						<TextBlock x:Name="lbdicttts" Text="词典发音" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbdictttshint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
-						           Text="每种语言选 ONNX、SAPI、Windows 语音或 Edge，以及语速。自动先用 Windows 语音，没有再用 SAPI，再没有用 Edge。"/>
-
-						<TextBlock x:Name="lbdictzh" Text="汉语" FontWeight="SemiBold" Margin="0,4,0,4"/>
-						<DockPanel Margin="0,0,0,4">
-							<TextBlock x:Name="lbdictzheng" Text="引擎" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictzheng" Height="30"
-							          AutomationProperties.AutomationId="set.dict.zh.engine"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictzhvoice" Margin="0,0,0,4">
-							<TextBlock x:Name="lbdictzhvoice" Text="发音人" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictzhvoice" Height="30"
-							          AutomationProperties.AutomationId="set.dict.zh.voice"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictzhrate" Margin="0,0,0,8">
-							<TextBlock x:Name="lbdictzhrate" Text="语速" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictzhrate" Height="30"
-							          AutomationProperties.AutomationId="set.dict.zh.rate"/>
-						</DockPanel>
-
-						<TextBlock x:Name="lbdicten" Text="英语" FontWeight="SemiBold" Margin="0,4,0,4"/>
-						<DockPanel Margin="0,0,0,4">
-							<TextBlock x:Name="lbdicteneng" Text="引擎" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edicteneng" Height="30"
-							          AutomationProperties.AutomationId="set.dict.en.engine"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictenvoice" Margin="0,0,0,4">
-							<TextBlock x:Name="lbdictenvoice" Text="发音人" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictenvoice" Height="30"
-							          AutomationProperties.AutomationId="set.dict.en.voice"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictenrate" Margin="0,0,0,8">
-							<TextBlock x:Name="lbdictenrate" Text="语速" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictenrate" Height="30"
-							          AutomationProperties.AutomationId="set.dict.en.rate"/>
-						</DockPanel>
-
-						<TextBlock x:Name="lbdictja" Text="日语" FontWeight="SemiBold" Margin="0,4,0,4"/>
-						<DockPanel Margin="0,0,0,4">
-							<TextBlock x:Name="lbdictjaeng" Text="引擎" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictjaeng" Height="30"
-							          AutomationProperties.AutomationId="set.dict.ja.engine"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictjavoice" Margin="0,0,0,4">
-							<TextBlock x:Name="lbdictjavoice" Text="发音人" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictjavoice" Height="30"
-							          AutomationProperties.AutomationId="set.dict.ja.voice"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictjarate" Margin="0,0,0,8">
-							<TextBlock x:Name="lbdictjarate" Text="语速" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictjarate" Height="30"
-							          AutomationProperties.AutomationId="set.dict.ja.rate"/>
-						</DockPanel>
-
-						<TextBlock x:Name="lbdictko" Text="韩语" FontWeight="SemiBold" Margin="0,4,0,4"/>
-						<DockPanel Margin="0,0,0,4">
-							<TextBlock x:Name="lbdictkoeng" Text="引擎" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictkoeng" Height="30"
-							          AutomationProperties.AutomationId="set.dict.ko.engine"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictkovoice" Margin="0,0,0,4">
-							<TextBlock x:Name="lbdictkovoice" Text="发音人" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictkovoice" Height="30"
-							          AutomationProperties.AutomationId="set.dict.ko.voice"/>
-						</DockPanel>
-						<DockPanel x:Name="pdictkorate" Margin="0,0,0,8">
-							<TextBlock x:Name="lbdictkorate" Text="语速" Width="108" VerticalAlignment="Center"/>
-							<ComboBox x:Name="edictkorate" Height="30"
-							          AutomationProperties.AutomationId="set.dict.ko.rate"/>
+						           Text="每种语言一行：引擎、发音人、语速。中文、日语、韩语、英语始终在表里。"/>
+						<Grid Margin="0,0,0,4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="100"/>
+								<ColumnDefinition Width="118"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="76"/>
+								<ColumnDefinition Width="36"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock x:Name="lbdictlang" Grid.Column="0" Text="语言" FontWeight="SemiBold" VerticalAlignment="Center"/>
+							<TextBlock x:Name="lbdicteng" Grid.Column="1" Text="引擎" FontWeight="SemiBold" VerticalAlignment="Center"/>
+							<TextBlock x:Name="lbdictvoice" Grid.Column="2" Text="发音人" FontWeight="SemiBold" VerticalAlignment="Center"/>
+							<TextBlock x:Name="lbdictrate" Grid.Column="3" Text="语速" FontWeight="SemiBold" VerticalAlignment="Center"/>
+						</Grid>
+						<StackPanel x:Name="pdicttts"/>
+						<DockPanel Margin="0,8,0,0" LastChildFill="True">
+							<Button x:Name="bdictttsadd" DockPanel.Dock="Right" Content="添加" Width="64" Height="28"
+							        Margin="8,0,0,0" Click="ondictttsadd"
+							        AutomationProperties.AutomationId="set.dict.tts.add"/>
+							<ComboBox x:Name="edictttsadd" Height="28" IsEditable="True"
+							          AutomationProperties.AutomationId="set.dict.tts.lang"/>
 						</DockPanel>
 					</StackPanel>
 				</ScrollViewer>

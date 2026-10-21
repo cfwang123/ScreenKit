@@ -1276,18 +1276,20 @@ public partial class DictWindow : UserControl {
 		var lang = outwin.ReadLang;
 		if (lang != "zh" && lang != "en" && lang != "ja" && lang != "ko") lang = "zh";
 		var eng = DictTts.NormEngine(outwin.ReadEngine);
-		var voice = outwin.ReadVoice ?? "";
 		var lines = TtsTextSplitter.Split(text);
 		if (lines.Count == 0) return;
 		if (player == null) player = new TtsPlayer();
 		var o = Options != null ? Options() : null;
-		var use = eng == DictTts.AUTO ? DictTts.ResolveEngine(eng, lang) : eng;
+		var saved = eng == DictTts.AUTO ? DictTts.For(o, lang) : null;
+		var use = saved != null ? DictTts.ResolveEngine(saved.Engine, lang) : eng;
+		var voice = saved != null ? DictTts.VoiceOf(saved, lang, use) : (outwin.ReadVoice ?? "");
+		var rate = saved != null ? saved.Rate : outwin.ReadRate;
 		foreach (var line in lines) {
 			if (gen != readgen || ct.IsCancellationRequested || outwin == null) return;
 			var (a, b) = TtsTextSplitter.MapToUiOffsets(text, line.Start, line.End);
 			outwin.HighlightRead(a, b);
 			if (use == DictTts.CHROME) {
-				try { await speakchromeline(o, lang, voice, line.Text, outwin.ReadRate, ct).ConfigureAwait(true); }
+				try { await speakchromeline(o, lang, voice, line.Text, rate, ct).ConfigureAwait(true); }
 				catch (OperationCanceledException) { return; }
 				catch (Exception ex) {
 					if (gen == readgen) {
@@ -1298,13 +1300,17 @@ public partial class DictWindow : UserControl {
 				}
 				continue;
 			}
-			var pref = DictTts.For(o, lang);
-			pref.Rate = outwin.ReadRate;
-			pref.Engine = use;
-			if (use == DictTts.ONNX) pref.Onnx = voice;
-			else if (use == DictTts.SAPI) pref.Sapi = voice;
-			else if (use == DictTts.WINRT) pref.WinRt = voice;
-			else pref.Edge = voice;
+			DictTtsLang pref;
+			if (saved != null) pref = saved.Clone();
+			else {
+				pref = DictTts.For(o, lang);
+				pref.Rate = rate;
+				pref.Engine = use;
+				if (use == DictTts.ONNX) pref.Onnx = voice;
+				else if (use == DictTts.SAPI) pref.Sapi = voice;
+				else if (use == DictTts.WINRT) pref.WinRt = voice;
+				else pref.Edge = voice;
+			}
 			string path;
 			try { path = await DictTts.EnsureWav(pref, lang, line.Text, 2000).ConfigureAwait(true); }
 			catch (OperationCanceledException) { return; }
@@ -1459,7 +1465,14 @@ public partial class DictWindow : UserControl {
 		speaking = true;
 		try {
 			if (player == null) player = new TtsPlayer();
-			var pref = DictTts.For(Options != null ? Options() : null, lang);
+			var o = Options != null ? Options() : null;
+			var pref = DictTts.For(o, lang);
+			var use = DictTts.ResolveEngine(pref.Engine, lang);
+			if (use == DictTts.CHROME) {
+				await Task.Run(() => chromeread(o, lang, DictTts.VoiceOf(pref, lang, use), text, pref.Rate, CancellationToken.None)).ConfigureAwait(true);
+				lbstatus.Text = Loc.T("dict.speaking", langlabel(lang));
+				return;
+			}
 			var path = await DictTts.EnsureWav(pref, lang, text).ConfigureAwait(true);
 			player.PlayFile(path);
 			lbstatus.Text = Loc.T("dict.speaking", langlabel(lang));

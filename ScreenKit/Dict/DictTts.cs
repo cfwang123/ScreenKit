@@ -14,6 +14,8 @@ static class DictTts {
 	public const string CHROME = "chrome";
 
 	public static readonly double[] RateSteps = { 0.5, 0.8, 1.0, 1.2, 1.5, 2.0 };
+	/// <summary>表格里始终保留的语言：中、日、韩、英。</summary>
+	public static readonly string[] CoreLangs = { "zh", "ja", "ko", "en" };
 
 	const int CACHE_DAYS = 1;
 	static int cachePurged;
@@ -59,13 +61,76 @@ static class DictTts {
 		return DefaultEdge(lang);
 	}
 
+	public static Dictionary<string, DictTtsLang> NewMap() {
+		var map = new Dictionary<string, DictTtsLang>(StringComparer.OrdinalIgnoreCase);
+		EnsureMap(map);
+		return map;
+	}
+
+	public static void EnsureMap(Dictionary<string, DictTtsLang> map) {
+		if (map == null) return;
+		foreach (var lang in CoreLangs) {
+			if (map.ContainsKey(lang)) continue;
+			map[lang] = DictTtsLang.Make(DefaultEdge(lang));
+		}
+	}
+
+	public static Dictionary<string, DictTtsLang> CopyMap(Dictionary<string, DictTtsLang> src) {
+		var map = new Dictionary<string, DictTtsLang>(StringComparer.OrdinalIgnoreCase);
+		if (src != null) {
+			foreach (var kv in src) {
+				var lang = NormLang(kv.Key);
+				if (lang.Length == 0 || kv.Value == null) continue;
+				map[lang] = kv.Value.Clone();
+			}
+		}
+		EnsureMap(map);
+		return map;
+	}
+
+	/// <summary>两位或稍长的语言码。中日韩英以及表格里新增的语言。</summary>
+	public static string NormLang(string lang) {
+		var s = TtsLang.Normalize(lang);
+		if (s.Length < 2 || s.Length > 8) return "";
+		foreach (var ch in s) {
+			if (ch < 'a' || ch > 'z') return "";
+		}
+		return s;
+	}
+
+	public static bool IsCoreLang(string lang) {
+		lang = NormLang(lang);
+		foreach (var c in CoreLangs)
+			if (c == lang) return true;
+		return false;
+	}
+
+	/// <summary>中日韩英在前，其余按字母。</summary>
+	public static List<string> LangsOf(Dictionary<string, DictTtsLang> map) {
+		EnsureMap(map);
+		var list = new List<string>();
+		foreach (var c in CoreLangs) list.Add(c);
+		var rest = new List<string>();
+		if (map != null) {
+			foreach (var k in map.Keys) {
+				var n = NormLang(k);
+				if (n.Length == 0 || IsCoreLang(n)) continue;
+				rest.Add(n);
+			}
+		}
+		rest.Sort(StringComparer.Ordinal);
+		list.AddRange(rest);
+		return list;
+	}
+
 	public static DictTtsLang For(OcrOptions o, string lang) {
+		lang = NormLang(lang);
+		if (lang.Length == 0) lang = "en";
 		DictTtsLang src = null;
-		if (o != null) {
-			if (lang == "zh") src = o.DictTtsZh;
-			else if (lang == "ja") src = o.DictTtsJa;
-			else if (lang == "ko") src = o.DictTtsKo;
-			else src = o.DictTtsEn;
+		var map = o?.DictTtsMap;
+		if (map != null) {
+			if (!map.TryGetValue(lang, out src) && lang != "en")
+				map.TryGetValue("en", out src);
 		}
 		var pref = src != null ? src.Clone() : DictTtsLang.Make(DefaultEdge(lang));
 		pref.Engine = NormEngine(pref.Engine);
@@ -73,9 +138,13 @@ static class DictTts {
 		pref.Sapi = pref.Sapi ?? "";
 		pref.Onnx = pref.Onnx ?? "";
 		pref.WinRt = pref.WinRt ?? "";
+		pref.Chrome = pref.Chrome ?? "";
 		pref.Rate = NormRate(pref.Rate);
 		return pref;
 	}
+
+	public static string VoiceOf(DictTtsLang pref, string lang, string engine) =>
+		voiceof(pref, lang, engine);
 
 	public static (string Id, string LocKey)[] EdgeVoices(string lang) {
 		if (lang == "ja") return new[] {
@@ -254,6 +323,15 @@ static class DictTts {
 			if (id.Length > 0) return id;
 			var list = winrtvoices(lang);
 			return list.Count > 0 ? list[0].Id : "";
+		}
+		if (engine == CHROME) {
+			var name = (pref.Chrome ?? "").Trim();
+			if (name.Length > 0) return name;
+			foreach (var v in ChromeTts.Voices) {
+				if (!string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase)) continue;
+				return v.Name ?? "";
+			}
+			return "";
 		}
 		return EdgeName(lang, pref.Edge);
 	}

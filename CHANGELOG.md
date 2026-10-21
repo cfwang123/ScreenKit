@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Read aloud in the selection popup can use the Chrome engine and its voices.
 - Temporary web ports, including Chrome's debugging port, listen on localhost only.
 - Read aloud in the selection popup has a speed control shown as 1x; click it to open a slider.
+- Dictionary speech settings are a table. Chinese, Japanese, Korean, and English always stay, and other languages can be added. Selection-popup Read uses that row when the engine is Auto.
 
 #### Fixed
 
@@ -99,6 +100,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词浮窗朗读可以选用 Chrome 引擎和对应发音人。
 - 临时网页端口（含 Chrome 调试端口）只监听本机，不接受局域网访问。
 - 划词朗读增加语速，显示为 1x，点击后弹出滑块。
+- 词典发音改为按语言的表格。中文、日语、韩语、英语始终保留，其它语言可以添加。划词浮窗朗读选自动时用这一行的引擎、发音人和语速。
 
 #### 修复
 

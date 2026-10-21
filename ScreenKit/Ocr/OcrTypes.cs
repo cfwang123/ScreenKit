@@ -41,6 +41,8 @@ public sealed class DictTtsLang {
 	public string Onnx = "";
 	/// <summary>Windows 语音 id。</summary>
 	public string WinRt = "";
+	/// <summary>Chrome 发音人名。留空=按语言自动。</summary>
+	public string Chrome = "";
 	/// <summary>语速倍率，1 为常速。</summary>
 	public double Rate = 1;
 
@@ -50,6 +52,7 @@ public sealed class DictTtsLang {
 		Edge = Edge ?? "",
 		Onnx = Onnx ?? "",
 		WinRt = WinRt ?? "",
+		Chrome = Chrome ?? "",
 		Rate = Rate,
 	};
 
@@ -153,11 +156,8 @@ public sealed class OcrOptions {
 	public int DictLimit = 1000;
 	/// <summary>词典数据库空闲多少分钟后关闭。默认 1。0 表示不自动关闭。</summary>
 	public int DictDbHoldMin = 1;
-	/// <summary>词典发音，按语言。与语音合成页的引擎、发音人无关。</summary>
-	public DictTtsLang DictTtsZh = DictTtsLang.Make("zh-CN-XiaoxiaoNeural");
-	public DictTtsLang DictTtsEn = DictTtsLang.Make("en-US-AriaNeural");
-	public DictTtsLang DictTtsJa = DictTtsLang.Make("ja-JP-NanamiNeural");
-	public DictTtsLang DictTtsKo = DictTtsLang.Make("ko-KR-SunHiNeural");
+	/// <summary>词典发音，按语言。中日韩英始终在表里。与语音合成页无关。</summary>
+	public Dictionary<string, DictTtsLang> DictTtsMap = DictTts.NewMap();
 	/// <summary>最小化时隐藏到通知栏。</summary>
 	public bool MinimizeToTray = true;
 	/// <summary>是否启用 HTTP 识图 API（Umi 风格）。</summary>
@@ -593,10 +593,7 @@ public sealed class OcrOptions {
 		AutoKeyIntervalMs = AutoKeyIntervalMs,
 		DictLimit = DictLimit,
 		DictDbHoldMin = DictDbHoldMin,
-		DictTtsZh = (DictTtsZh ?? DictTtsLang.Make("zh-CN-XiaoxiaoNeural")).Clone(),
-		DictTtsEn = (DictTtsEn ?? DictTtsLang.Make("en-US-AriaNeural")).Clone(),
-		DictTtsJa = (DictTtsJa ?? DictTtsLang.Make("ja-JP-NanamiNeural")).Clone(),
-		DictTtsKo = (DictTtsKo ?? DictTtsLang.Make("ko-KR-SunHiNeural")).Clone(),
+		DictTtsMap = DictTts.CopyMap(DictTtsMap),
 		MinimizeToTray = MinimizeToTray,
 		HttpEnabled = HttpEnabled,
 		HttpLan = HttpLan,

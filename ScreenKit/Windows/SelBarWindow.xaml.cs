@@ -90,7 +90,7 @@ public partial class SelBarWindow : Window {
 		etrsrctext.TextChanged += (_, _) => { if (!trsync) TrTextChanged?.Invoke(); };
 		etrsrctext.LostKeyboardFocus += (_, _) => restorenonactivate();
 		ereadtext.LostKeyboardFocus += (_, _) => restorenonactivate();
-		ereadeng.SelectionChanged += (_, _) => { if (!readsync && readinit) FillReadVoices(); };
+		ereadeng.SelectionChanged += (_, _) => { if (!readsync && readinit) onreadeng(); };
 		ereadlang.SelectionChanged += (_, _) => { if (!readsync && readinit) FillReadVoices(); };
 		breadgo.Click += (_, _) => ReadGo?.Invoke();
 		breadstop.Click += (_, _) => ReadStop?.Invoke();
@@ -294,11 +294,29 @@ public partial class SelBarWindow : Window {
 	internal string ReadLang => tagof(ereadlang);
 	internal string ReadVoice => tagof(ereadvoice);
 
+	void onreadeng() {
+		var auto = DictTts.NormEngine(ReadEngine) == DictTts.AUTO;
+		ereadvoice.IsEnabled = !auto;
+		breadrate.IsEnabled = !auto;
+		ereadvoice.ToolTip = auto ? Loc.T("dict.sel.read.auto.tip") : null;
+		breadrate.ToolTip = auto ? Loc.T("dict.sel.read.auto.tip") : Loc.T("tts.rate");
+		if (auto) {
+			if (poprate.IsOpen) poprate.IsOpen = false;
+			ereadvoice.Items.Clear();
+			return;
+		}
+		FillReadVoices();
+	}
+
 	internal void FillReadVoices() {
+		if (DictTts.NormEngine(ReadEngine) == DictTts.AUTO) {
+			onreadeng();
+			return;
+		}
 		var lang = ReadLang;
 		if (lang != "zh" && lang != "en" && lang != "ja" && lang != "ko") lang = "zh";
 		var eng = DictTts.NormEngine(ReadEngine);
-		var use = eng == DictTts.AUTO ? DictTts.ResolveEngine(eng, lang) : eng;
+		var use = eng;
 		var keep = ReadVoice;
 		var items = DictTts.Voices(use, lang);
 		readsync = true;
@@ -333,7 +351,7 @@ public partial class SelBarWindow : Window {
 		}
 		finally { readsync = false; }
 		readinit = true;
-		FillReadVoices();
+		onreadeng();
 	}
 
 	static void addtag(ComboBox box, string label, string tag) {

@@ -106,10 +106,7 @@ static class AppConfig {
 				o.SelBarW = sbwN >= 296 && sbwN <= 2400 ? sbwN : 0;
 			if (map.TryGetValue("selbar_h", out var sbh) && int.TryParse(sbh, out var sbhN))
 				o.SelBarH = sbhN >= 168 && sbhN <= 1800 ? sbhN : 0;
-			readdicttts(map, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
-			readdicttts(map, "en", o.DictTtsEn, "en-US-AriaNeural");
-			readdicttts(map, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
-			readdicttts(map, "ko", o.DictTtsKo, "ko-KR-SunHiNeural");
+			readdictttsmap(map, o);
 			if (map.TryGetValue("minimize_to_tray", out var mtt))
 				o.MinimizeToTray = parsebool(mtt, true);
 			if (map.TryGetValue("capture_log", out var cl))
@@ -663,11 +660,9 @@ static class AppConfig {
 		sb.AppendLine($"dict_selbar = {(o.DictSelBar ? "true" : "false")}");
 		sb.AppendLine($"selbar_w = {(o.SelBarW >= 296 && o.SelBarW <= 2400 ? o.SelBarW : 0)}");
 		sb.AppendLine($"selbar_h = {(o.SelBarH >= 168 && o.SelBarH <= 1800 ? o.SelBarH : 0)}");
-		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge；语速 0.5～2；发音人留空=自动");
-		writedicttts(sb, "zh", o.DictTtsZh, "zh-CN-XiaoxiaoNeural");
-		writedicttts(sb, "en", o.DictTtsEn, "en-US-AriaNeural");
-		writedicttts(sb, "ja", o.DictTtsJa, "ja-JP-NanamiNeural");
-		writedicttts(sb, "ko", o.DictTtsKo, "ko-KR-SunHiNeural");
+		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge|chrome；语速 0.5～2；发音人留空=自动");
+		sb.AppendLine("# 中日韩英始终写出。其它语言有 dict_tts_<语言>_engine 才保留");
+		writedictttsmap(sb, o);
 		sb.AppendLine($"minimize_to_tray = {(o.MinimizeToTray ? "true" : "false")}");
 		sb.AppendLine($"# 系统诊断日志（默认 false）：log/capture.log + 录屏 log/record_*.log");
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");
@@ -1133,6 +1128,35 @@ static class AppConfig {
 	}
 
 	/// <summary>极简 TOML：忽略节名，收集 key = value（支持引号字符串与裸值）。</summary>
+	static void readdictttsmap(Dictionary<string, string> map, OcrOptions o) {
+		if (o.DictTtsMap == null) o.DictTtsMap = DictTts.NewMap();
+		DictTts.EnsureMap(o.DictTtsMap);
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var key in map.Keys) {
+			const string head = "dict_tts_";
+			const string tail = "_engine";
+			if (key.Length <= head.Length + tail.Length) continue;
+			if (!key.StartsWith(head, StringComparison.OrdinalIgnoreCase)) continue;
+			if (!key.EndsWith(tail, StringComparison.OrdinalIgnoreCase)) continue;
+			var lang = DictTts.NormLang(key.Substring(head.Length, key.Length - head.Length - tail.Length));
+			if (lang.Length == 0 || !seen.Add(lang)) continue;
+			if (!o.DictTtsMap.TryGetValue(lang, out var pref) || pref == null) {
+				pref = DictTtsLang.Make(DictTts.DefaultEdge(lang));
+				o.DictTtsMap[lang] = pref;
+			}
+			readdicttts(map, lang, pref, DictTts.DefaultEdge(lang));
+		}
+		DictTts.EnsureMap(o.DictTtsMap);
+	}
+
+	static void writedictttsmap(StringBuilder sb, OcrOptions o) {
+		var map = o.DictTtsMap ?? DictTts.NewMap();
+		foreach (var lang in DictTts.LangsOf(map)) {
+			if (!map.TryGetValue(lang, out var pref)) pref = null;
+			writedicttts(sb, lang, pref, DictTts.DefaultEdge(lang));
+		}
+	}
+
 	static void readdicttts(Dictionary<string, string> map, string lang, DictTtsLang pref, string defEdge) {
 		if (pref == null) return;
 		if (map.TryGetValue("dict_tts_" + lang + "_engine", out var eng))
@@ -1147,6 +1171,8 @@ static class AppConfig {
 			pref.Onnx = (onnx ?? "").Trim();
 		if (map.TryGetValue("dict_tts_" + lang + "_winrt", out var winrt))
 			pref.WinRt = (winrt ?? "").Trim();
+		if (map.TryGetValue("dict_tts_" + lang + "_chrome", out var chrome))
+			pref.Chrome = (chrome ?? "").Trim();
 		if (map.TryGetValue("dict_tts_" + lang + "_rate", out var rate)
 			&& double.TryParse(rate, NumberStyles.Float, CultureInfo.InvariantCulture, out var rv))
 			pref.Rate = DictTts.NormRate(rv);
@@ -1163,6 +1189,7 @@ static class AppConfig {
 		sb.AppendLine($"dict_tts_{lang}_winrt = \"{esc((pref.WinRt ?? "").Trim())}\"");
 		sb.AppendLine($"dict_tts_{lang}_onnx = \"{esc((pref.Onnx ?? "").Trim())}\"");
 		sb.AppendLine($"dict_tts_{lang}_edge = \"{esc(edge)}\"");
+		sb.AppendLine($"dict_tts_{lang}_chrome = \"{esc((pref.Chrome ?? "").Trim())}\"");
 		sb.AppendLine($"dict_tts_{lang}_rate = {rate}");
 	}
 
