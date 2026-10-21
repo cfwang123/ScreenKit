@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.27 (2026-10-21 ~ 22)](#v1027-2026-10-21--22)
 - [v1.0.26 (2026-10-20)](#v1026-2026-10-20)
 - [v1.0.25 (2026-10-17 ~ 18)](#v1025-2026-10-17--18)
 - [v1.0.24 (2026-10-17)](#v1024-2026-10-17)
@@ -37,6 +38,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
+
+## v1.0.27 (2026-10-21 ~ 22)
 
 ### English
 
@@ -76,8 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Polish, chat, and translation prompts, plus the translation batch size, are set under Settings, LLM. Speech recognition keeps the polish switches. Translate keeps the native and learning languages.
 - The Linux software table is a single cross-distribution list of open-source software.
 - Pasted chat images stay as drafts and send with the text; text and images appear as separate messages.
-- The novel reader is a separate /reader page like the dictionary, opened from the tools sidebar. The dictionary and novel reader pages have a logo that returns to the tools home.
-- Dictionary and novel reader are now link cards under Text on the tools page: click opens in this tab, Ctrl+click opens a new window.
+- The novel reader and the dictionary are separate pages at /reader and /dict, opened from link cards under Text on the tools page: a click opens the page in this tab and Ctrl+click opens a new window. Both pages have a logo that returns to the tools home.
 
 #### Fixed
 
@@ -126,8 +128,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 润色、对话和翻译的提示词，以及翻译的一批条数，改到参数设置的「LLM接口」。语音识别仍保留是否润色；翻译页仍保留母语和学习语言。
 - Linux 常用软件表改为跨发行版的开源软件列表。
 - 聊天室粘贴图片先显示为草稿，随文本一起发送；文本和图片分开发送和显示。
-- 小说阅读器改为和词典一样的单独页面（/reader），从工具页左侧栏打开；词典页和阅读器页都加了 Logo，点它回到工具页首页。
-- 词典和小说阅读器改为工具页「文字」分类下的链接卡片，点击在当前页打开，Ctrl+点击开新窗口。
+- 小说阅读器和词典都是单独页面（/reader、/dict），在工具页「文字」分类下的链接卡片打开：点击在当前页打开，Ctrl+点击开新窗口。两页都有回到工具页首页的 Logo。
 
 #### 修复
 
