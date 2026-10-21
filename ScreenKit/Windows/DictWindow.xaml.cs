@@ -1287,10 +1287,13 @@ public partial class DictWindow : UserControl {
 			var (a, b) = TtsTextSplitter.MapToUiOffsets(text, line.Start, line.End);
 			outwin.HighlightRead(a, b);
 			if (use == DictTts.CHROME) {
-				try { await Task.Run(() => chromeread(o, lang, voice, line.Text, outwin.ReadRate, ct)).ConfigureAwait(true); }
+				try { await speakchromeline(o, lang, voice, line.Text, outwin.ReadRate, ct).ConfigureAwait(true); }
 				catch (OperationCanceledException) { return; }
-				catch {
-					if (gen == readgen) outwin?.ClearReadMark();
+				catch (Exception ex) {
+					if (gen == readgen) {
+						outwin?.ClearReadMark();
+						try { UiToast.Show(outwin, ex.Message); } catch { }
+					}
 					return;
 				}
 				continue;
@@ -1311,6 +1314,70 @@ public partial class DictWindow : UserControl {
 			catch (OperationCanceledException) { return; }
 		}
 		if (gen == readgen) outwin?.ClearReadMark();
+	}
+
+	async Task speakchromeline(OcrOptions o, string lang, string voice, string text, double rate, CancellationToken ct) {
+		try {
+			await Task.Run(() => chromeread(o, lang, voice, text, rate, ct)).ConfigureAwait(true);
+		}
+		catch (InvalidOperationException ex) when (chromemiss(ex)) {
+			await ensurechromeread(o, lang, voice, ct).ConfigureAwait(true);
+			await Task.Run(() => chromeread(o, lang, voice, text, rate, ct)).ConfigureAwait(true);
+		}
+	}
+
+	static bool chromemiss(Exception ex) {
+		var m = ex?.Message ?? "";
+		return m.IndexOf("没有发出声音", StringComparison.Ordinal) >= 0
+			|| m.IndexOf("not-allowed", StringComparison.OrdinalIgnoreCase) >= 0
+			|| m.IndexOf("language-unavailable", StringComparison.OrdinalIgnoreCase) >= 0
+			|| m.IndexOf("synthesis-failed", StringComparison.OrdinalIgnoreCase) >= 0;
+	}
+
+	/// <summary>这一语言的离线包还没装时，弹出进度并安装。已安装则马上返回。</summary>
+	async Task ensurechromeread(OcrOptions o, string lang, string voice, CancellationToken ct) {
+		var pack = chromepack(lang, voice);
+		var exe = ChromeTts.FindExe(o?.ChromeExe);
+		if (pack.Length == 0 || string.IsNullOrEmpty(exe)) return;
+		if (ChromePack.VoiceInstalled(pack) == true) return;
+		ct.ThrowIfCancellationRequested();
+		var prog = new ChromeVoiceProgressWindow { Topmost = true };
+		var owner = Window.GetWindow(this);
+		if (owner != null) prog.Owner = owner;
+		using var reg = ct.Register(() => prog.RequestCancel());
+		Exception fail = null;
+		var mode = HttpProxy.Mode;
+		var addr = HttpProxy.Addr;
+		prog.Show();
+		var task = Task.Run(() => {
+			try {
+				ChromePack.EnsureVoice(pack, exe, mode, addr, (note, frac, done, total) => {
+					try { prog.Report(note, frac, done, total); } catch { }
+				}, prog.Token);
+			}
+			catch (Exception ex) { fail = ex; }
+		});
+		try { await task.ConfigureAwait(true); }
+		finally { prog.ForceClose(); }
+		if (prog.WasCancelled || ct.IsCancellationRequested)
+			throw new OperationCanceledException(ct);
+		if (fail != null) throw fail;
+	}
+
+	static string chromepack(string lang, string voice) {
+		var culture = ChromePack.SpeakLang(lang);
+		var name = (voice ?? "").Trim();
+		foreach (var v in ChromeTts.Voices) {
+			if (name.Length > 0) {
+				if (!string.Equals(v.Name, name, StringComparison.OrdinalIgnoreCase)) continue;
+				if (!string.IsNullOrEmpty(v.Culture)) culture = v.Culture;
+				break;
+			}
+			if (!string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase)) continue;
+			if (!string.IsNullOrEmpty(v.Culture)) culture = v.Culture;
+			break;
+		}
+		return ChromePack.SpeakLang(culture);
 	}
 
 	static void chromeread(OcrOptions o, string lang, string voice, string text, double rate, CancellationToken ct) {

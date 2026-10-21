@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Chrome translation download stops after about 20 seconds without new bytes, and closes that Chrome.
 - Scientific notation with a six-digit exponent, such as 1e193321, still shows the large-number reading and scientific notation when it fits.
+- Selection popup Chrome speech installs a missing voice pack and retries, and the hidden Chrome window is no longer muted.
 
 ### 中文
 
@@ -103,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Chrome 翻译模型下载若约 20 秒没有新数据就停止，并关掉这只 Chrome。
 - 1e193321 这种六位指数不再直接报太长，大数能读时仍显示大数和科学计数。
+- 划词浮窗的 Chrome 朗读在没声音时会安装语音包再读一次，隐藏的 Chrome 窗口不再被静音。
 
 ## v1.0.26 (2026-10-20)
 
