@@ -52,6 +52,46 @@
 				</Setter.Value>
 			</Setter>
 		</Style>
+		<Style x:Key="SelBtn" TargetType="Button">
+			<Setter Property="Background" Value="#FFFFFF"/>
+			<Setter Property="BorderBrush" Value="#C5CAD1"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Padding" Value="10,2"/>
+			<Setter Property="Margin" Value="0,0,8,0"/>
+			<Setter Property="MinHeight" Value="22"/>
+			<Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Foreground" Value="#1F2329"/>
+			<Setter Property="Focusable" Value="False"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="bd" Background="{TemplateBinding Background}"
+						        BorderBrush="{TemplateBinding BorderBrush}"
+						        BorderThickness="{TemplateBinding BorderThickness}"
+						        CornerRadius="3" Padding="{TemplateBinding Padding}">
+							<TextBlock x:Name="tx" Text="{TemplateBinding Content}"
+							           FontFamily="{TemplateBinding FontFamily}"
+							           Foreground="{TemplateBinding Foreground}"
+							           FontSize="{TemplateBinding FontSize}"
+							           VerticalAlignment="Center" HorizontalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#F3F6FA"/>
+								<Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E7EEF8"/>
+								<Setter TargetName="tx" Property="Foreground" Value="{StaticResource Accent}"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
 		<Style x:Key="SelCheck" TargetType="CheckBox">
 			<Setter Property="Foreground" Value="#5C6570"/>
 			<Setter Property="FontSize" Value="12"/>
@@ -227,7 +267,7 @@
 				         VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="#F4F5F7"
 				         Padding="4,2" FontSize="13" AutomationProperties.AutomationId="dict.sel.tr.text"/>
 				<DockPanel Grid.Row="2" Margin="0,4,0,2" LastChildFill="False">
-					<Button x:Name="btrgo" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelAct}"
+					<Button x:Name="btrgo" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelBtn}"
 					        Margin="6,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.go"/>
 					<Button x:Name="btrspeakdst" DockPanel.Dock="Right" Content="&#xE767;"
 					        FontFamily="Segoe MDL2 Assets" FontSize="14" Style="{StaticResource SelAct}"
@@ -265,9 +305,9 @@
 					          AutomationProperties.AutomationId="dict.sel.read.voice"/>
 				</DockPanel>
 				<DockPanel Grid.Row="2" Margin="0,4,0,0" LastChildFill="False">
-					<Button x:Name="breadgo" Content="朗读" Style="{StaticResource SelAct}"
+					<Button x:Name="breadgo" Content="朗读" Style="{StaticResource SelBtn}"
 					        AutomationProperties.AutomationId="dict.sel.read.go"/>
-					<Button x:Name="breadstop" Content="停止" Style="{StaticResource SelAct}" Margin="0"
+					<Button x:Name="breadstop" Content="停止" Style="{StaticResource SelBtn}" Margin="0"
 					        AutomationProperties.AutomationId="dict.sel.read.stop"/>
 				</DockPanel>
 			</Grid>
@@ -276,9 +316,9 @@
 				<CheckBox x:Name="cbselon" DockPanel.Dock="Right" Content="划词浮窗" Style="{StaticResource SelCheck}"
 				          AutomationProperties.AutomationId="dict.sel.turnoff"/>
 				<WrapPanel VerticalAlignment="Center">
-					<Button x:Name="bselsearch" Content="搜索" Style="{StaticResource SelAct}"
+					<Button x:Name="bselsearch" Content="搜索" Style="{StaticResource SelBtn}"
 					        AutomationProperties.AutomationId="dict.sel.search"/>
-					<Button x:Name="bselcopy" Content="复制" Style="{StaticResource SelAct}" Margin="0"
+					<Button x:Name="bselcopy" Content="复制" Style="{StaticResource SelBtn}" Margin="0"
 					        AutomationProperties.AutomationId="dict.sel.copy"/>
 				</WrapPanel>
 			</DockPanel>
