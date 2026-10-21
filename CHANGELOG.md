@@ -40,6 +40,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Number names list FP64, FP32, FP16, BF16, and FP8 (E4M3, E5M2) as hex and a*2^x when the value is a finite float.
+
 #### Changed
 
 - Speech and translation open Chrome model installation in Chrome with this app's private profile.
@@ -52,6 +56,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Scientific notation with a six-digit exponent, such as 1e193321, still shows the large-number reading and scientific notation when it fits.
 
 ### 中文
+
+#### 新增
+
+- 数字表记在数值能转成有限浮点数时，列出 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制，以及 a*2^x 里 a、b、x 的取值。转不成浮点数时不显示这些行。
 
 #### 变更
 
