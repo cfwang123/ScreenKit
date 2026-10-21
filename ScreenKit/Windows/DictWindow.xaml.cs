@@ -82,6 +82,7 @@ public partial class DictWindow : UserControl {
 	int trgen;
 	bool trinit;
 	string trkeep;
+	string trsel;
 	CancellationTokenSource trcts;
 	string outtext = "";
 	string outlang = "";
@@ -1002,7 +1003,12 @@ public partial class DictWindow : UserControl {
 			opensearch(q);
 		};
 		outwin.TrGo += () => _ = runseltr();
-		outwin.TrSrcChanged += () => filltrdst();
+		outwin.TrSrcChanged += () => {
+			filltrdst();
+			refreshtrlabels();
+		};
+		outwin.TrDstChanged += () => refreshtrlabels();
+		outwin.TrTextChanged += () => refreshtrlabels();
 		outwin.TrSpeak += src => speaktr(src);
 		outwin.CopyClick += () => copytext(outtext);
 		outwin.CloseClick += () => {
@@ -1068,17 +1074,30 @@ public partial class DictWindow : UserControl {
 
 	void showtr(string text) {
 		text = text ?? "";
-		if (trkeep != null && string.Equals(text, trkeep, StringComparison.Ordinal)) {
-			outwin.ShowTr(text);
+		if (trkeep != null && string.Equals(text, trsel, StringComparison.Ordinal)) {
+			outwin.ShowTr(text, false);
+			refreshtrlabels();
 			return;
 		}
+		trsel = text;
 		var keep = trinit;
 		trinit = true;
 		var src = keep ? outwin.TrSrcCode : TrLang.Auto;
 		var pack = TrPack != null ? TrPack(src) : new SelTrPack();
 		outwin.SetTrLangs(pack.Sources, pack.Targets, keep);
-		outwin.ShowTr(text);
+		outwin.ShowTr(text, true);
+		refreshtrlabels();
 		_ = runseltr();
+	}
+
+	void refreshtrlabels() {
+		if (outwin == null) return;
+		var o = Options != null ? Options() : null;
+		var nat = TrLang.Zh;
+		var lrn = TrLang.En;
+		if (o != null) o.AutoTranslatePair(out nat, out lrn);
+		LangDetect.ResolveSel(outwin.TrSrcText, outwin.TrSrcCode, outwin.TrDstCode, nat, lrn, out var src, out var dst);
+		outwin.SetTrLabels(TrLang.Label(src), TrLang.Label(dst));
 	}
 
 	void filltrdst() {
@@ -1190,6 +1209,7 @@ public partial class DictWindow : UserControl {
 		Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => {
 			if (!outdict) return;
 			if (w != null && w.IsActive) return;
+			if (outwin != null && outwin.IsActive) return;
 			HideOutside();
 		}));
 	}

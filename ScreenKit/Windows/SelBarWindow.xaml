@@ -12,7 +12,7 @@
         SizeToContent="Height"
         Width="376"
         MinWidth="296"
-        Focusable="False"
+        Focusable="True"
         FontFamily="Segoe UI, Microsoft YaHei UI, Microsoft YaHei"
         FontSize="13"
         Foreground="#1F2329"
@@ -210,25 +210,32 @@
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 				</Grid.RowDefinitions>
-				<DockPanel Grid.Row="0" Margin="0,0,0,2" LastChildFill="True">
+				<DockPanel Grid.Row="0" Margin="0,0,0,2" LastChildFill="False">
 					<Button x:Name="btrspeaksrc" DockPanel.Dock="Right" Content="&#xE767;"
 					        FontFamily="Segoe MDL2 Assets" FontSize="14" Style="{StaticResource SelAct}"
-					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.src"/>
-					<ComboBox x:Name="etrsrc" Height="22" FontSize="12" VerticalContentAlignment="Center"
+					        Margin="6,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.src"/>
+					<ComboBox x:Name="etrsrc" DockPanel.Dock="Right" Width="108" Height="22" FontSize="12"
+					          HorizontalAlignment="Left" VerticalContentAlignment="Center"
 					          MaxDropDownHeight="280" AutomationProperties.AutomationId="dict.sel.tr.src"/>
+					<TextBlock x:Name="lbsrc" Text="原文" FontSize="12" Foreground="#5C6570" VerticalAlignment="Center"/>
+					<TextBlock x:Name="lbsrclang" FontSize="12" Foreground="{StaticResource Accent}"
+					           VerticalAlignment="Center" Margin="8,0,0,0"/>
 				</DockPanel>
-				<TextBox x:Name="etrsrctext" Grid.Row="1" IsReadOnly="True" IsReadOnlyCaretVisible="True"
-				         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
-				         BorderThickness="0" Background="#F4F5F7" Padding="4,2" FontSize="13"
-				         AutomationProperties.AutomationId="dict.sel.tr.text"/>
-				<DockPanel Grid.Row="2" Margin="0,4,0,2" LastChildFill="True">
+				<TextBox x:Name="etrsrctext" Grid.Row="1" TextWrapping="Wrap" AcceptsReturn="True"
+				         VerticalScrollBarVisibility="Auto" BorderThickness="0" Background="#F4F5F7"
+				         Padding="4,2" FontSize="13" AutomationProperties.AutomationId="dict.sel.tr.text"/>
+				<DockPanel Grid.Row="2" Margin="0,4,0,2" LastChildFill="False">
 					<Button x:Name="btrgo" DockPanel.Dock="Right" Content="翻译" Style="{StaticResource SelAct}"
-					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.go"/>
+					        Margin="6,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.go"/>
 					<Button x:Name="btrspeakdst" DockPanel.Dock="Right" Content="&#xE767;"
 					        FontFamily="Segoe MDL2 Assets" FontSize="14" Style="{StaticResource SelAct}"
-					        Margin="8,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.dst"/>
-					<ComboBox x:Name="etrdst" Height="22" FontSize="12" VerticalContentAlignment="Center"
+					        Margin="6,0,0,0" AutomationProperties.AutomationId="dict.sel.tr.speak.dst"/>
+					<ComboBox x:Name="etrdst" DockPanel.Dock="Right" Width="108" Height="22" FontSize="12"
+					          HorizontalAlignment="Left" VerticalContentAlignment="Center"
 					          MaxDropDownHeight="280" AutomationProperties.AutomationId="dict.sel.tr.dst"/>
+					<TextBlock x:Name="lbdst" Text="译文" FontSize="12" Foreground="#5C6570" VerticalAlignment="Center"/>
+					<TextBlock x:Name="lbdstlang" FontSize="12" Foreground="{StaticResource Accent}"
+					           VerticalAlignment="Center" Margin="8,0,0,0"/>
 				</DockPanel>
 				<TextBox x:Name="etrdsttext" Grid.Row="3" IsReadOnly="True" IsReadOnlyCaretVisible="True"
 				         TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"

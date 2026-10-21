@@ -44,6 +44,8 @@ public partial class SelBarWindow : Window {
 	internal event Action<string> LangChanged;
 	internal event Action TrGo;
 	internal event Action TrSrcChanged;
+	internal event Action TrDstChanged;
+	internal event Action TrTextChanged;
 	internal event Action<bool> TrSpeak;
 
 	bool selonsync;
@@ -73,6 +75,9 @@ public partial class SelBarWindow : Window {
 		btrspeaksrc.Click += (_, _) => TrSpeak?.Invoke(true);
 		btrspeakdst.Click += (_, _) => TrSpeak?.Invoke(false);
 		etrsrc.SelectionChanged += (_, _) => { if (!trsync) TrSrcChanged?.Invoke(); };
+		etrdst.SelectionChanged += (_, _) => { if (!trsync) TrDstChanged?.Invoke(); };
+		etrsrctext.TextChanged += (_, _) => { if (!trsync) TrTextChanged?.Invoke(); };
+		etrsrctext.LostKeyboardFocus += (_, _) => restorenonactivate();
 		bselclose.Click += (_, _) => CloseClick?.Invoke();
 		cbselon.Checked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(true); };
 		cbselon.Unchecked += (_, _) => { if (!selonsync) SelOnChanged?.Invoke(false); };
@@ -102,6 +107,8 @@ public partial class SelBarWindow : Window {
 		btrgo.Content = Loc.T("tr.go");
 		btrspeaksrc.ToolTip = Loc.T("tr.popup.speak.tip");
 		btrspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
+		lbsrc.Text = Loc.T("tr.src.text");
+		lbdst.Text = Loc.T("tr.dst.text");
 		etrsrc.ToolTip = Loc.T("tr.src.tip");
 		etrdst.ToolTip = Loc.T("tr.dst.tip");
 		bselclose.ToolTip = Loc.T("dict.sel.close");
@@ -152,11 +159,19 @@ public partial class SelBarWindow : Window {
 		gtr.Visibility = Visibility.Collapsed;
 	}
 
-	internal void ShowTr(string text) {
+	internal void ShowTr(string text, bool setText) {
 		trmode = true;
 		gdict.Visibility = Visibility.Collapsed;
 		gtr.Visibility = Visibility.Visible;
-		etrsrctext.Text = text ?? "";
+		if (!setText) return;
+		trsync = true;
+		try { etrsrctext.Text = text ?? ""; }
+		finally { trsync = false; }
+	}
+
+	internal void SetTrLabels(string src, string dst) {
+		lbsrclang.Text = src ?? "";
+		lbdstlang.Text = dst ?? "";
 	}
 
 	internal string TrSrcCode => combo(etrsrc);
@@ -348,10 +363,31 @@ public partial class SelBarWindow : Window {
 
 	IntPtr onmsg(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled) {
 		if (msg == WM_MOUSEACTIVATE) {
+			if (trmode && overbox(etrsrctext)) {
+				var ex = GetWindowLong(hwnd, GWL_EXSTYLE);
+				SetWindowLong(hwnd, GWL_EXSTYLE, ex & ~WS_EX_NOACTIVATE);
+				return IntPtr.Zero;
+			}
 			handled = true;
 			return (IntPtr)MA_NOACTIVATE;
 		}
 		return IntPtr.Zero;
+	}
+
+	void restorenonactivate() {
+		var hwnd = new WindowInteropHelper(this).Handle;
+		if (hwnd == IntPtr.Zero) return;
+		var ex = GetWindowLong(hwnd, GWL_EXSTYLE);
+		SetWindowLong(hwnd, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE);
+	}
+
+	bool overbox(FrameworkElement el) {
+		if (el == null || !el.IsVisible) return false;
+		try {
+			var p = el.PointFromScreen(new Point(Forms.Cursor.Position.X, Forms.Cursor.Position.Y));
+			return p.X >= 0 && p.Y >= 0 && p.X <= el.ActualWidth && p.Y <= el.ActualHeight;
+		}
+		catch { return false; }
 	}
 
 	[StructLayout(LayoutKind.Sequential)]
