@@ -176,8 +176,8 @@ public partial class MainWindow : Window {
 			opt.SnapLastHeight = h;
 		};
 		restorewindowbounds();
-		// 启动时后台清理过期截图历史，不阻塞 UI
-		ImageUtil.CleanupScreenshotsBackground(opt.ScreenshotKeepDays);
+		// 启动时后台清理过期截图，之后每 24 小时再清一次
+		ImageUtil.StartScreenshotSweep(() => opt.ScreenshotKeepDays);
 		applydefaultmodel();
 		initmodelbar();
 		inittoolbar();

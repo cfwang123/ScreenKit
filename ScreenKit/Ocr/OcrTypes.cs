@@ -231,7 +231,7 @@ public sealed class OcrOptions {
 	public bool LlmLog = false;
 	/// <summary>
 	/// 截图历史（screenshots/）保留天数。默认 3；0 = 不限（不自动删除）。
-	/// 仅启动时后台清理，截图保存与改设置时不删。
+	/// 启动时以及之后每 24 小时后台清理，截图保存与改设置时不删。
 	/// </summary>
 	public int ScreenshotKeepDays = 3;
 	/// <summary>截图保存格式：png / jpg（默认 jpg）。</summary>

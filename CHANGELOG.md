@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Selection popup translation shows the resolved source and target languages, keeps the language menus compact, and lets the source text be edited.
 - The selection popup restores its last size, and a Read tab speaks the text sentence by sentence without closing or watching new selections.
 - The selection popup can be dragged, and Read aloud highlights the sentence currently being spoken.
+- Expired screenshots are cleaned in the background at startup and again every 24 hours while the program keeps running.
 
 #### Fixed
 
@@ -90,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词翻译标出实际的源语言和目标语言，语言下拉不再拉满一行，原文可以修改。
 - 划词浮窗会记住上次大小。朗读页按句朗读，打开时浮窗不自动关闭，也不接收新的划词。
 - 划词浮窗可以拖动。朗读时会高亮当前正在读的句子。
+- 过期截图在启动时后台清理，程序一直开着时每 24 小时再清一次。
 
 #### 修复
 

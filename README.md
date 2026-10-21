@@ -12,7 +12,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 - **Screenshot annotate**: Rectangle, ellipse, arrow, pen, and text; on finish it copies as an image, a file, or a path.
 - **Repeat last capture**: A hotkey or the menu grabs the last region you selected again.
 - **Long screenshot**: Click a scrollable window and it scrolls and stitches one long picture.
-- **Screenshot history**: Browse saved pictures as thumbnails and pan, zoom, annotate, or copy them.
+- **Screenshot history**: Browse saved pictures as thumbnails and pan, zoom, annotate, or copy them. Pictures older than the retention period are deleted in the background at startup and every 24 hours after that.
 - **Overlay text**: Draws the recognized text over the picture to select from.
 - **Clipboard**: Paste a picture and recognize, annotate, or save it.
 - **PDF workbench**: Open a PDF, recognize it page by page, edit the text, and export a searchable PDF.

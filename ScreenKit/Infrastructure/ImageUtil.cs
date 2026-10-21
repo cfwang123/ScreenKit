@@ -643,7 +643,7 @@ static class ImageUtil {
 	/// 保存到 screenshots/（文件名含时间戳便于排序），并按当前配置写入剪贴板
 	///（图片 / 文件 / 路径文本，三选一）。
 	/// 按配置限制较短边（超过则等比缩小，不放大）与保存格式/JPG 质量。
-	/// 不清理过期历史（仅启动时后台清理，见 CleanupScreenshotsBackground）。
+	/// 不清理过期历史（启动时以及之后每 24 小时后台清理，见 StartScreenshotSweep）。
 	/// </summary>
 	/// <returns>保存的完整路径。</returns>
 	public static string SaveScreenshotAndCopy(BitmapSource src, string prefix = "shot",
@@ -905,6 +905,23 @@ static class ImageUtil {
 		if (keepDays <= 0) return;
 		_ = Task.Run(() => {
 			try { CleanupScreenshots(keepDays); } catch { }
+		});
+	}
+
+	const int SHOT_SWEEP_HOURS = 24;
+	static int ShotSweepStarted;
+
+	/// <summary>启动时清一次，之后每 24 小时再清。每次读取当前保留天数，≤0 则跳过这一轮。</summary>
+	public static void StartScreenshotSweep(Func<int> keepDays) {
+		if (keepDays == null) return;
+		if (Interlocked.Exchange(ref ShotSweepStarted, 1) != 0) return;
+		CleanupScreenshotsBackground(keepDays());
+		_ = Task.Run(async () => {
+			while (true) {
+				try { await Task.Delay(TimeSpan.FromHours(SHOT_SWEEP_HOURS)).ConfigureAwait(false); }
+				catch { return; }
+				try { CleanupScreenshots(keepDays()); } catch { }
+			}
 		});
 	}
 

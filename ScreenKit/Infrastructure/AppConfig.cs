@@ -682,7 +682,7 @@ static class AppConfig {
 		var shotName = ImageUtil.ScreenshotNameDefault;
 		try { shotName = ImageUtil.NormScreenshotName(o.ScreenshotName); } catch { }
 		sb.AppendLine($"screenshot_name = \"{esc(shotName)}\"");
-		sb.AppendLine($"# 截图历史保留天数（默认 3；0=不限；仅启动时后台清理当前保存目录）");
+		sb.AppendLine($"# 截图历史保留天数（默认 3；0=不限；启动时以及每 24 小时后台清理当前保存目录）");
 		sb.AppendLine($"screenshot_keep_days = {Compat.Clamp(o.ScreenshotKeepDays < 0 ? 0 : o.ScreenshotKeepDays, 0, 3650)}");
 		sb.AppendLine($"# 截图完成时剪贴板：复制为图片 / 复制为文件 / 复制为路径（三选一）");
 		var snapPath = o.SnapCopyAsPath && !o.SnapCopyAsImage && !o.SnapCopyAsFile;
