@@ -49,6 +49,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The novel reader's dictionary popup uses the dictionary page's layout and colors for its hit list and entry detail.
 
+#### Fixed
+
+- Status bar shows the blocked HTTP port and the temporary port when the port is in use
+
 ### 中文
 
 #### 新增
@@ -58,6 +62,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 小说阅读器的词典浮窗，列表和词条详情改用与词典页相同的排版与配色。
+
+#### 修复
+
+- HTTP 端口打不开时，状态栏显示原端口和临时端口
 
 ## v1.0.27 (2026-10-21 ~ 22)
 

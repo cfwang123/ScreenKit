@@ -122,6 +122,8 @@ public partial class MainWindow {
 	string statusbarhttp() {
 		var port = httpServer != null && httpServer.Port > 0 ? httpServer.Port : SendFileServer.FileHttpPort(opt);
 		if (httpServer != null && httpServer.IsRunning) {
+			if (HttpOcrServer.FellBack && HttpOcrServer.FailedPort > 0)
+				return Loc.T("stbar.http.fallback", HttpOcrServer.FailedPort, port);
 			var host = httpServer.LanAll ? "0.0.0.0" : "127.0.0.1";
 			return Loc.T("stbar.http", host, port);
 		}

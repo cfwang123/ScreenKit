@@ -59,6 +59,8 @@ sealed partial class HttpOcrServer : IDisposable {
 	public static int LivePort { get; private set; }
 	/// <summary>设定端口打不开，改听了本机随机口。</summary>
 	public static bool FellBack { get; private set; }
+	/// <summary>打不开的设定端口。0 表示没有端口冲突。</summary>
+	public static int FailedPort { get; private set; }
 	public event Action<string> Logged;
 	const int FONTCACHEMS = 10 * 60 * 1000;
 	static string[] fontNames;
@@ -86,7 +88,10 @@ sealed partial class HttpOcrServer : IDisposable {
 		return p > 0 ? p : 1224;
 	}
 
-	public static void NoteFallback(bool on) { FellBack = on; }
+	public static void NoteFallback(bool on, int failedPort = 0) {
+		FellBack = on;
+		FailedPort = on ? failedPort : 0;
+	}
 
 	public void Start(string host, int port, bool lan = false) {
 		Compat.ThrowIfDisposed(disposed, this);
@@ -116,6 +121,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			Port = 0;
 			if (LivePort != 0) LivePort = 0;
 			FellBack = false;
+			FailedPort = 0;
 		}
 		try { s?.Stop(); } catch { }
 		ChatRoom.CloseAll();

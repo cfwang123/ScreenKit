@@ -512,7 +512,7 @@ public partial class MainWindow : Window {
 			}
 		}
 		if (fail == null) {
-			HttpOcrServer.NoteFallback(fell);
+			HttpOcrServer.NoteFallback(fell, want);
 			httpListenErr = "";
 			httpRetry = false;
 			var showPort = httpServer.Port > 0 ? httpServer.Port : want;
