@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows commands adds a pwsh (PowerShell 7) tab beside Windows PowerShell and CMD, with pwsh-only commands such as ForEach-Object -Parallel, Get-Error, Get-Uptime and Test-Json
 - HTTP TTS: Chrome voice packs are no longer installed automatically; a missing voice returns 927
 - HTTP TTS: an unknown Chrome voice or language now fails with 927 instead of falling back to another voice
+- Linux, Windows and SQL tools highlight syntax: SQL keywords/functions/strings/comments, and command names, parameters, variables, pipes, redirection and comments in PowerShell, CMD and shell rows
 
 #### Fixed
 
@@ -94,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows 常用命令增加 pwsh（PowerShell 7）页签，与 Windows PowerShell、CMD 并列，补充 ForEach-Object -Parallel、Get-Error、Get-Uptime、Test-Json 等 7 专有写法
 - HTTP 语音合成：Chrome 语音包不再自动安装，缺失时直接返回 927
 - HTTP 语音合成：Chrome 发音人或语言不存在时直接返回 927，不再换用其它发音人
+- Linux、Windows、SQL 三个工具的表格和示例增加语法高亮：SQL 的关键字、函数、字符串、注释，命令行的命令名、参数、变量、管道、重定向和注释
 
 #### 修复
 
