@@ -192,6 +192,8 @@ static class MdRead {
 			var enc = ToHtml("![x](docs/1%20screenshot.en.png)", @"D:\repo", "t");
 			if (enc.IndexOf("src=\"file:///D:/repo/docs/1%20screenshot.en.png\"", StringComparison.Ordinal) < 0)
 				return bad(say, "img escaped");
+			if (html.IndexOf("mdzoom-tip", StringComparison.Ordinal) < 0 || html.IndexOf("window.mdzoom", StringComparison.Ordinal) < 0)
+				return bad(say, "zoom script");
 			if (html.IndexOf("javascript:", StringComparison.OrdinalIgnoreCase) >= 0)
 				return bad(say, "script link");
 			if (html.IndexOf("IE=11", StringComparison.Ordinal) < 0)
@@ -347,7 +349,11 @@ static class MdRead {
 		sb.Append("table{border-collapse:collapse;margin:0;}");
 		sb.Append("th,td{border:1px solid ").Append(th.Border).Append(";padding:0.4em 0.63em;}");
 		sb.Append("th{background:").Append(th.ThBg).Append(";}");
-		sb.Append("img{max-width:100%;height:auto;}");
+		sb.Append("img{max-width:100%;height:auto;cursor:zoom-in;}");
+		sb.Append(".mdzoom{position:fixed;left:0;top:0;width:100%;height:100%;z-index:9999;overflow:auto;");
+		sb.Append("background:rgba(0,0,0,.88);cursor:zoom-out;text-align:center;}");
+		sb.Append(".mdzoom img{display:block;max-width:96%;max-height:92%;margin:2% auto 0;background:#fff;cursor:zoom-out;}");
+		sb.Append(".mdzoom-tip{position:fixed;left:0;right:0;bottom:10px;color:#d5d5d5;font-size:13px;text-align:center;}");
 		sb.Append("hr{border:0;border-top:1px solid ").Append(th.Border).Append(";margin:1em 0;}");
 		sb.Append(".hint{color:").Append(th.Muted).Append(";font-size:1.07em;padding:3em 0.5em;}");
 		sb.Append("</style></head><body>");
@@ -355,7 +361,44 @@ static class MdRead {
 
 	static void shellend(StringBuilder sb) {
 		sb.Append("<script>function mdmode(){try{return document.documentMode+'|'+navigator.userAgent;}catch(e){return '';}}</script>");
+		sb.Append(zoomjs());
 		sb.Append("</body></html>");
+	}
+
+	/// <summary>
+	/// 点图片放大到满窗，再点或按 Esc 关闭，不做动画。
+	/// Web 版的 viewer.js 是 ES6 语法，IE11 解析不了，这里用同样效果的 ES5 实现。
+	/// </summary>
+	static string zoomjs() {
+		return "<script>(function(){"
+			+ "var box=null;"
+			+ "function shut(){if(box&&box.parentNode)box.parentNode.removeChild(box);box=null;}"
+			+ "function open(img){shut();"
+			+ "box=document.createElement('div');box.className='mdzoom';"
+			+ "var big=document.createElement('img');big.src=img.src;big.alt=img.alt||'';"
+			+ "box.appendChild(big);"
+			+ "var tip=document.createElement('div');tip.className='mdzoom-tip';tip.innerHTML=" + jsstr(Loc.T("mdread.zoom.hint")) + ";"
+			+ "box.appendChild(tip);"
+			+ "box.onclick=shut;document.body.appendChild(box);"
+			+ "}"
+			+ "document.onclick=function(e){if(box)return;"
+			+ "var t=e?e.target:(window.event?window.event.srcElement:null);"
+			+ "if(!t||t.tagName!='IMG')return;"
+			+ "if(e&&e.preventDefault)e.preventDefault();else if(window.event)window.event.returnValue=false;"
+			+ "open(t);};"
+			+ "document.onkeydown=function(e){var k=(e||window.event||{}).keyCode;if(k==27)shut();};"
+			+ "window.mdzoom=open;"
+			+ "})();</script>";
+	}
+
+	static string jsstr(string s) {
+		var sb = new StringBuilder("\"");
+		foreach (var c in s ?? "") {
+			if (c == '"' || c == '\\') sb.Append('\\').Append(c);
+			else if (c < ' ') sb.Append("\\u").Append(((int)c).ToString("x4"));
+			else sb.Append(c);
+		}
+		return sb.Append('"').ToString();
 	}
 
 	static string esc(string s) {

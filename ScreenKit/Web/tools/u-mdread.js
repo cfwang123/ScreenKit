@@ -25,7 +25,7 @@
 			+ '<span id="md-name" data-k="web.mdread.hint">' + SK.esc(hint) + "</span>"
 			+ "</div>"
 			+ '<div class="mdread-stage">'
-			+ '<iframe id="md-view" title="preview" sandbox="allow-popups"></iframe>'
+			+ '<iframe id="md-view" title="preview" sandbox="allow-popups allow-scripts"></iframe>'
 			+ '<div id="md-mask" class="mdread-mask"></div>'
 			+ "</div></div>";
 	}

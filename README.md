@@ -85,7 +85,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Fast copy**: Copy, cut, delete to the Recycle Bin, or make a symbolic or hard link, and register an Explorer cascade menu.
 - **Hash**: MD5, SHA-1, and SHA-256. Paste an expected value to compare.
 - **Text tools**: Base64, URL, hex, escapes, case, whitespace, counts, JSON pretty-print, and more.
-- **Markdown reader**: Open or drop a Markdown file (or a shortcut to one) and read it with the IE11 engine built into Windows; switch between light, dark, sepia, eye care, and midnight themes, and export it to Word (needs Word installed) or PDF (printed by Edge/Chrome).
+- **Markdown reader**: Open or drop a Markdown file (or a shortcut to one) and read it with the IE11 engine built into Windows; switch between light, dark, sepia, eye care, and midnight themes, click an image to view it full size, and export it to Word (needs Word installed) or PDF (printed by Edge/Chrome).
 - **Word/PDF to MD**: Convert a .docx or a text PDF to Markdown, then preview, copy, or save it. Images are extracted into the chosen folder (default `images/001.png`; `{name}` becomes the document name), and PDF text comes from the installed PDFium; scanned pages need PDF recognition first.
 - **Password generator**: Generate passwords from a length and character classes, or hand a sentence to a configured LLM and spell the translation out.
 - **Network**: Diagnostics, IP scan, and port scan, covering Ping, DNS, Wake-on-LAN, trace route, and more.
@@ -109,7 +109,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Text**
   - **Text convert**: Encoding, escaping, and common text transforms
   - **Chinese to pinyin**: Characters to pinyin or initials
-  - **Markdown reader**: Preview Markdown, with theme switching
+  - **Markdown reader**: Preview Markdown, with theme switching and click-to-zoom images
   - **Novel reader**: A separate page (`/reader`) like the dictionary, opened from a card under Text on the tools page; Ctrl+click opens it in a new window. Upload or drop txt/md files into `web/up/reader` beside the program, select text for the dictionary popup (drag its edges or corners to resize, or maximize it), and read aloud with Chrome offline or other voices. Reading starts at the top of the screen or at the selected word and highlights the current sentence
   - **Chinese segmentation**: Split by word, sentence, or grapheme
   - **In-browser model**: Run text tasks on the browser’s local model; Speak can filter voices by language, and the page link opens the Chrome model page
