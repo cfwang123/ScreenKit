@@ -633,6 +633,8 @@ public partial class MainWindow : Window {
 				opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "",
 				fmttrayhk(opt.HotkeySnapCopy),
 				fmttrayhk(opt.HotkeyImeCycle));
+			// 构造托盘时还没有热键来源，设置后立刻补一次，菜单一打开就带快捷键
+			try { tray.ApplyHotkeys(); } catch { }
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
 			tray.MenuOpening += () => {
 				trayMenuMainVisible = IsVisible && WindowState != WindowState.Minimized;

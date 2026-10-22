@@ -5,7 +5,6 @@ namespace ScreenKit;
 /// <summary>工具 → 文件 → 文件分析。概要，以及 EXE/DLL 的节、导入导出和托管类型。只读。</summary>
 public partial class FileProbeWindow : Window {
 	int gen;
-	bool filling;
 	FileProbe.Report report;
 
 	sealed class Item {
@@ -21,7 +20,7 @@ public partial class FileProbeWindow : Window {
 
 	public FileProbeWindow() {
 		InitializeComponent();
-		epekind.SelectionChanged += (_, _) => { if (!filling) showpe(); };
+		petabs.SelectionChanged += (_, e) => { if (e.Source == petabs) showpe(); };
 		epeq.TextChanged += (_, _) => showpe();
 		tabs.SelectionChanged += (_, e) => { if (e.Source == tabs) restat(); };
 		applylang();
@@ -50,29 +49,26 @@ public partial class FileProbeWindow : Window {
 		colvalue.Header = Loc.T("probe.col.value");
 		tabinfo.Header = Loc.T("probe.tab.info");
 		tabpe.Header = Loc.T("probe.tab.pe");
+		tabpehead.Header = Loc.T("probe.pe.view.head");
+		tabpesec.Header = Loc.T("probe.pe.view.sec");
+		tabpeimp.Header = Loc.T("probe.pe.view.imp");
+		tabpeexp.Header = Loc.T("probe.pe.view.exp");
+		tabpenet.Header = Loc.T("probe.pe.view.net");
+		tabpeman.Header = Loc.T("probe.pe.view.man");
 		lbpeq.Text = Loc.T("probe.pe.filter");
 		ToolBtnUi.Set(bfile, ToolBtnUi.Browse, Loc.T("probe.file"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("probe.copy"));
-		fillviews();
 		if (report != null) paint(null);
 	}
 
-	void fillviews() {
-		filling = true;
-		var sel = epekind.SelectedIndex;
-		epekind.Items.Clear();
-		addview("probe.pe.view.head");
-		addview("probe.pe.view.sec");
-		addview("probe.pe.view.imp");
-		addview("probe.pe.view.exp");
-		addview("probe.pe.view.net");
-		addview("probe.pe.view.man");
-		epekind.SelectedIndex = sel >= 0 && sel < epekind.Items.Count ? sel : 0;
-		filling = false;
-	}
-
-	void addview(string key) {
-		epekind.Items.Add(new ComboBoxItem { Content = Loc.T(key), Tag = key });
+	ListView peview(int view) {
+		switch (view) {
+			case 0: return lvhead;
+			case 1: return lvsec;
+			case 2: return lvimp;
+			case 3: return lvexp;
+			default: return lvnet;
+		}
 	}
 
 	void pick() {
@@ -129,50 +125,46 @@ public partial class FileProbeWindow : Window {
 	}
 
 	void showpe() {
-		var rows = new List<PeRow>();
-		epetext.Visibility = Visibility.Collapsed;
-		lvpe.Visibility = Visibility.Visible;
-		var dump = report == null ? null : report.Pe;
-		var view = epekind.SelectedIndex;
+		var view = petabs.SelectedIndex;
 		if (view < 0) view = 0;
+		var dump = report == null ? null : report.Pe;
+		if (view == 5) {
+			epetext.Visibility = Visibility.Visible;
+			showman(dump);
+			return;
+		}
+		var lvpe = peview(view);
+		lvpe.Visibility = Visibility.Visible;
+		epetext.Visibility = Visibility.Collapsed;
+		var rows = new List<PeRow>();
 		if (dump == null) {
 			lvpe.ItemsSource = rows;
 			return;
 		}
 		if (dump.Sections.Count == 0 && dump.Error.Length > 0) {
-			setcols(Loc.T("probe.col.name"), Loc.T("probe.col.value"), "", 160, 560, 0);
+			setcols(lvpe, Loc.T("probe.col.name"), Loc.T("probe.col.value"), "", 160, 560, 0);
 			rows.Add(new PeRow { A = Loc.T("probe.pe.bad"), B = dump.Error == "bad" ? "" : dump.Error });
 			lvpe.ItemsSource = filt(rows);
 			return;
 		}
-		var q = (epeq.Text ?? "").Trim();
-		if (view == 5) {
-			lvpe.Visibility = Visibility.Collapsed;
-			epetext.Visibility = Visibility.Visible;
-			var text = dump.Manifest ?? "";
-			if (text.Length == 0) text = Loc.T("probe.pe.noman");
-			if (q.Length > 0 && text.IndexOf(q, StringComparison.OrdinalIgnoreCase) < 0) text = "";
-			epetext.Text = text;
-			return;
-		}
 		if (view == 0) {
-			setcols(Loc.T("probe.col.name"), Loc.T("probe.col.value"), "", 160, 560, 0);
+			setcols(lvpe, Loc.T("probe.col.name"), Loc.T("probe.col.value"), "", 160, 560, 0);
 			foreach (var h in dump.Head)
 				rows.Add(new PeRow { A = headname(h.Key), B = headval(h.Key, h.Value) });
 		}
 		else if (view == 1) {
-			setcols(Loc.T("probe.pe.sec"), Loc.T("probe.pe.col.range"), Loc.T("probe.pe.col.flags"), 120, 420, 220);
+			setcols(lvpe, Loc.T("probe.pe.sec"), Loc.T("probe.pe.col.range"), Loc.T("probe.pe.col.flags"), 120, 420, 220);
 			foreach (var s in dump.Sections)
 				rows.Add(new PeRow { A = s.Name, B = s.Range, C = s.Flags });
 		}
 		else if (view == 2) {
-			setcols(Loc.T("probe.pe.imp.dll"), Loc.T("probe.pe.imp.fn"), Loc.T("probe.pe.col.note"), 180, 320, 200);
+			setcols(lvpe, Loc.T("probe.pe.imp.dll"), Loc.T("probe.pe.imp.fn"), Loc.T("probe.pe.col.note"), 180, 320, 200);
 			foreach (var i in dump.Imports)
 				rows.Add(new PeRow { A = i.Dll, B = i.Name, C = note(i.Note) });
 			if (dump.ImportCut) rows.Add(new PeRow { A = Loc.T("probe.pe.more") });
 		}
 		else if (view == 3) {
-			setcols(Loc.T("probe.pe.exp.name"), Loc.T("probe.pe.col.ord"), Loc.T("probe.pe.col.note"), 280, 80, 360);
+			setcols(lvpe, Loc.T("probe.pe.exp.name"), Loc.T("probe.pe.col.ord"), Loc.T("probe.pe.col.note"), 280, 80, 360);
 			foreach (var e in dump.Exports) {
 				var name = e.Name.Length == 0 ? $"#{e.Ord}" : e.Name;
 				rows.Add(new PeRow { A = name, B = e.Ord, C = e.Note });
@@ -180,7 +172,7 @@ public partial class FileProbeWindow : Window {
 			if (dump.ExportCut) rows.Add(new PeRow { A = Loc.T("probe.pe.more") });
 		}
 		else {
-			setcols(Loc.T("probe.pe.col.kind"), Loc.T("probe.pe.col.a"), Loc.T("probe.pe.col.b"), 100, 280, 380);
+			setcols(lvpe, Loc.T("probe.pe.col.kind"), Loc.T("probe.pe.col.a"), Loc.T("probe.pe.col.b"), 100, 280, 380);
 			if (!dump.Managed) rows.Add(new PeRow { A = Loc.T("probe.pe.native") });
 			else {
 				if (dump.Runtime.Length > 0) rows.Add(new PeRow { A = kindlab("clr"), B = dump.Runtime });
@@ -197,6 +189,15 @@ public partial class FileProbeWindow : Window {
 		lvpe.ItemsSource = filt(rows);
 	}
 
+	void showman(FileProbe.PeDump dump) {
+		var text = dump == null ? "" : dump.Manifest ?? "";
+		if (dump != null && dump.Sections.Count == 0 && dump.Error.Length > 0) text = Loc.T("probe.pe.bad");
+		else if (text.Length == 0) text = Loc.T("probe.pe.noman");
+		var q = (epeq.Text ?? "").Trim();
+		if (q.Length > 0 && text.IndexOf(q, StringComparison.OrdinalIgnoreCase) < 0) text = "";
+		epetext.Text = text;
+	}
+
 	List<PeRow> filt(List<PeRow> rows) {
 		var q = (epeq.Text ?? "").Trim();
 		if (q.Length == 0) return rows;
@@ -211,13 +212,14 @@ public partial class FileProbeWindow : Window {
 		return s != null && s.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
-	void setcols(string a, string b, string c, double wa, double wb, double wc) {
-		colpea.Header = a;
-		colpeb.Header = b;
-		colpec.Header = c;
-		colpea.Width = wa;
-		colpeb.Width = wb;
-		colpec.Width = wc;
+	static void setcols(ListView lv, string a, string b, string c, double wa, double wb, double wc) {
+		if (lv?.View is not GridView gv || gv.Columns.Count < 3) return;
+		gv.Columns[0].Header = a;
+		gv.Columns[1].Header = b;
+		gv.Columns[2].Header = c;
+		gv.Columns[0].Width = wa;
+		gv.Columns[1].Width = wb;
+		gv.Columns[2].Width = wc;
 	}
 
 	static string headname(string key) {
@@ -250,8 +252,10 @@ public partial class FileProbeWindow : Window {
 	void restat() {
 		int n;
 		if (tabs.SelectedItem == tabpe && tabpe.Visibility == Visibility.Visible) {
-			if (epetext.Visibility == Visibility.Visible) n = string.IsNullOrEmpty(epetext.Text) ? 0 : 1;
-			else n = lvpe.Items.Count;
+			var view = petabs.SelectedIndex;
+			if (view < 0) view = 0;
+			if (view == 5) n = string.IsNullOrEmpty(epetext.Text) ? 0 : 1;
+			else n = peview(view)?.Items.Count ?? 0;
 		}
 		else n = lv.Items.Count;
 		lbstat.Text = Loc.T("systool.stat", n, n);
@@ -260,8 +264,10 @@ public partial class FileProbeWindow : Window {
 	void copy() {
 		var sb = new StringBuilder();
 		if (tabs.SelectedItem == tabpe && tabpe.Visibility == Visibility.Visible) {
-			if (epetext.Visibility == Visibility.Visible) sb.Append(epetext.Text);
-			else if (lvpe.ItemsSource is System.Collections.IEnumerable items) {
+			var view = petabs.SelectedIndex;
+			if (view < 0) view = 0;
+			if (view == 5) sb.Append(epetext.Text);
+			else if (peview(view)?.ItemsSource is System.Collections.IEnumerable items) {
 				foreach (var it in items) {
 					if (it is not PeRow row) continue;
 					if (sb.Length > 0) sb.Append('\n');

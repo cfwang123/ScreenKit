@@ -41,23 +41,78 @@
 			         AutomationProperties.AutomationId="probe.tab.pe">
 				<DockPanel>
 					<DockPanel DockPanel.Dock="Top" Margin="0,8,0,8" LastChildFill="True">
-						<ComboBox x:Name="epekind" Width="160" Height="32" DockPanel.Dock="Left"
-						          AutomationProperties.AutomationId="probe.pe.view"/>
-						<TextBlock x:Name="lbpeq" VerticalAlignment="Center" Margin="12,0,6,0" DockPanel.Dock="Left"/>
+						<TextBlock x:Name="lbpeq" VerticalAlignment="Center" Margin="0,0,6,0" DockPanel.Dock="Left"/>
 						<TextBox x:Name="epeq" Height="32" Padding="8,4" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<TextBox x:Name="epetext" Visibility="Collapsed" IsReadOnly="True" AcceptsReturn="True"
-					         TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-					         FontFamily="Consolas, Microsoft YaHei UI" BorderThickness="0"/>
-					<ListView x:Name="lvpe" BorderThickness="0">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colpea" Width="220" DisplayMemberBinding="{Binding A}"/>
-								<GridViewColumn x:Name="colpeb" Width="280" DisplayMemberBinding="{Binding B}"/>
-								<GridViewColumn x:Name="colpec" Width="280" DisplayMemberBinding="{Binding C}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
+					<TabControl x:Name="petabs" Padding="0" BorderThickness="0" Background="Transparent"
+					            AutomationProperties.AutomationId="probe.pe.tabs">
+						<TabItem x:Name="tabpehead" Header="头信息"
+						         AutomationProperties.AutomationId="probe.pe.tab.head">
+							<ListView x:Name="lvhead" BorderThickness="0">
+								<ListView.View>
+									<GridView>
+										<GridViewColumn Width="160" DisplayMemberBinding="{Binding A}"/>
+										<GridViewColumn Width="560" DisplayMemberBinding="{Binding B}"/>
+										<GridViewColumn Width="0" DisplayMemberBinding="{Binding C}"/>
+									</GridView>
+								</ListView.View>
+							</ListView>
+						</TabItem>
+						<TabItem x:Name="tabpesec" Header="节"
+						         AutomationProperties.AutomationId="probe.pe.tab.sec">
+							<ListView x:Name="lvsec" BorderThickness="0">
+								<ListView.View>
+									<GridView>
+										<GridViewColumn Width="120" DisplayMemberBinding="{Binding A}"/>
+										<GridViewColumn Width="420" DisplayMemberBinding="{Binding B}"/>
+										<GridViewColumn Width="220" DisplayMemberBinding="{Binding C}"/>
+									</GridView>
+								</ListView.View>
+							</ListView>
+						</TabItem>
+						<TabItem x:Name="tabpeimp" Header="导入"
+						         AutomationProperties.AutomationId="probe.pe.tab.imp">
+							<ListView x:Name="lvimp" BorderThickness="0">
+								<ListView.View>
+									<GridView>
+										<GridViewColumn Width="180" DisplayMemberBinding="{Binding A}"/>
+										<GridViewColumn Width="320" DisplayMemberBinding="{Binding B}"/>
+										<GridViewColumn Width="200" DisplayMemberBinding="{Binding C}"/>
+									</GridView>
+								</ListView.View>
+							</ListView>
+						</TabItem>
+						<TabItem x:Name="tabpeexp" Header="导出"
+						         AutomationProperties.AutomationId="probe.pe.tab.exp">
+							<ListView x:Name="lvexp" BorderThickness="0">
+								<ListView.View>
+									<GridView>
+										<GridViewColumn Width="280" DisplayMemberBinding="{Binding A}"/>
+										<GridViewColumn Width="80" DisplayMemberBinding="{Binding B}"/>
+										<GridViewColumn Width="360" DisplayMemberBinding="{Binding C}"/>
+									</GridView>
+								</ListView.View>
+							</ListView>
+						</TabItem>
+						<TabItem x:Name="tabpenet" Header="托管"
+						         AutomationProperties.AutomationId="probe.pe.tab.net">
+							<ListView x:Name="lvnet" BorderThickness="0">
+								<ListView.View>
+									<GridView>
+										<GridViewColumn Width="100" DisplayMemberBinding="{Binding A}"/>
+										<GridViewColumn Width="280" DisplayMemberBinding="{Binding B}"/>
+										<GridViewColumn Width="380" DisplayMemberBinding="{Binding C}"/>
+									</GridView>
+								</ListView.View>
+							</ListView>
+						</TabItem>
+						<TabItem x:Name="tabpeman" Header="清单"
+						         AutomationProperties.AutomationId="probe.pe.tab.man">
+							<TextBox x:Name="epetext" Visibility="Collapsed" IsReadOnly="True" AcceptsReturn="True"
+							         TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							         FontFamily="Consolas, Microsoft YaHei UI" BorderThickness="0"/>
+						</TabItem>
+					</TabControl>
 				</DockPanel>
 			</TabItem>
 		</TabControl>
