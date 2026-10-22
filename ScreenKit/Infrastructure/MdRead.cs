@@ -189,6 +189,9 @@ static class MdRead {
 				return bad(say, "img cjk");
 			if (cjk.IndexOf("<base href=\"file:///D:/我的文档/\">", StringComparison.Ordinal) < 0)
 				return bad(say, "base cjk");
+			var enc = ToHtml("![x](docs/1%20screenshot.en.png)", @"D:\repo", "t");
+			if (enc.IndexOf("src=\"file:///D:/repo/docs/1%20screenshot.en.png\"", StringComparison.Ordinal) < 0)
+				return bad(say, "img escaped");
 			if (html.IndexOf("javascript:", StringComparison.OrdinalIgnoreCase) >= 0)
 				return bad(say, "script link");
 			if (html.IndexOf("IE=11", StringComparison.Ordinal) < 0)
@@ -851,6 +854,13 @@ static class MdRead {
 		return string.CompareOrdinal(text, i, s, 0, s.Length) == 0;
 	}
 
+	/// <summary>Markdown 里的相对路径常按 URL 编码写（%20、%E5），先还原成文件路径，再由 fileurl 重新拼地址。</summary>
+	static string decodeurl(string s) {
+		if (string.IsNullOrEmpty(s) || s.IndexOf('%') < 0) return s;
+		try { return Uri.UnescapeDataString(s); }
+		catch { return s; }
+	}
+
 	/// <summary>
 	/// 本地路径转 file:// 地址。IE 把 %E5 这类 UTF-8 转义当 Latin-1 解码（变成 å¾），
 	/// 中文、空格等只能原样写进 URL，只转义会弄坏地址的 ASCII 符号。
@@ -883,9 +893,9 @@ static class MdRead {
 			return url;
 		try {
 			if (url.Length >= 3 && char.IsLetter(url[0]) && url[1] == ':')
-				return fileurl(url);
+				return fileurl(decodeurl(url));
 			if (string.IsNullOrEmpty(baseDir)) return "";
-			var full = Path.GetFullPath(Path.Combine(baseDir, url.Replace('/', Path.DirectorySeparatorChar)));
+			var full = Path.GetFullPath(Path.Combine(baseDir, decodeurl(url).Replace('/', Path.DirectorySeparatorChar)));
 			return fileurl(full);
 		}
 		catch { return ""; }
