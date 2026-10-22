@@ -44,7 +44,7 @@ sealed partial class HttpOcrServer {
 			List<TranslateModelInfo> models;
 			try { models = TranslateModelScanner.Scan(); }
 			catch { models = new List<TranslateModelInfo>(); }
-			foreach (var one in translatemodels(models)) arr.Add(one);
+			foreach (var one in translatemodels(models)) arr.Add(JsonNode.Parse(one.ToJsonString()));
 		}
 		if (engine.Length == 0 || engine == "llm") {
 			var list = o.LlmList;

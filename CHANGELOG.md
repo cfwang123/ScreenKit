@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows commands gains a 语法帮助 group in every shell tab: 32 entries on CMD, Windows PowerShell, and pwsh quoting, variables, comparison operators, pipelines, redirection, and PowerShell 7 operators
 - Markdown reader: export the current document to Word or PDF
 - New SQL function lookup: MySQL, SQL Server, Oracle, SQLite and PostgreSQL tabs, 10 categories (strings, numbers, dates, casts, aggregation, window functions, conditions, JSON, metadata, misc), and the last database is remembered
+- HTTP API: list engines and query models per engine for OCR, speech recognition, and translation
 
 #### Changed
 
@@ -80,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows 常用命令在每个命令行页签里新增「语法帮助」组，共 32 条，覆盖 CMD、Windows PowerShell、pwsh 的引号、变量、比较运算符、管道、重定向和 7 专有运算符
 - MD 阅读器：可把当前文档导出为 Word 或 PDF
 - 新增 SQL 函数查询：MySQL、SQL Server、Oracle、SQLite、PostgreSQL 五个页签，按字符串、数值、日期、类型转换、聚合、窗口函数、条件、JSON、元数据、其他分类，并记住上次选的数据库
+- HTTP 接口：OCR、语音识别、翻译增加查引擎、按引擎查模型
 
 #### 变更
 
