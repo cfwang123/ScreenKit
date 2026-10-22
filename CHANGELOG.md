@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP TTS: an unknown Chrome voice or language now fails with 927 instead of falling back to another voice
 - Linux, Windows and SQL tools highlight syntax: SQL keywords/functions/strings/comments, and command names, parameters, variables, pipes, redirection and comments in PowerShell, CMD and shell rows
 - Command tool examples now show right in the list, compacted without blank lines
+- Number notation converter: rows whose result exceeds 400 characters are hidden
 
 #### Fixed
 
@@ -110,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 语音合成：Chrome 发音人或语言不存在时直接返回 927，不再换用其它发音人
 - Linux、Windows、SQL 三个工具的表格和示例增加语法高亮：SQL 的关键字、函数、字符串、注释，命令行的命令名、参数、变量、管道、重定向和注释
 - 命令工具的示例改为直接在列表里显示，去掉空行更紧凑
+- 数字表记转换：结果超过 400 字符的行不再显示
 
 #### 修复
 

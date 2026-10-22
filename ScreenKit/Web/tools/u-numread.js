@@ -19,6 +19,8 @@
 		["exa", "E"], ["zetta", "Z"], ["yotta", "Y"], ["ronna", "R"], ["quetta", "Q"]
 	];
 	var ROM = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+	// 一行的结果超过这么多字符就不显示，免得几万字的一行把页面撑坏。
+	var MAXROW = 400;
 	var KO_N10 = ["", "열", "스물", "서른", "마흔", "쉰", "예순", "일흔", "여든", "아흔"];
 	var KO_N1 = ["", "하나", "둘", "셋", "넷", "다섯", "여섯", "일곱", "여덟", "아홉"];
 	var KO_D = ["영", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"];
@@ -104,7 +106,7 @@
 		body: function(){
 			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
 				+ '<span class="msg" id="num-msg"></span>'
-				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示。超过一万位、大数还能读时，只列出大数和科学计数。大数可重复「无量大数」，指数最多九位。能转成有限浮点数时，另给 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制与 a * 2^x。</p>'
+				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示，结果超过 400 字符的行也不显示。超过一万位、大数还能读时，只列出大数和科学计数。大数可重复「无量大数」，指数最多九位。能转成有限浮点数时，另给 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制与 a * 2^x。</p>'
 				+ '<div class="num-list" id="num-list"></div>';
 		},
 		open: function(){
@@ -304,7 +306,7 @@
 		for (i = 0; i < fl.length; i++) rows.push(fl[i]);
 		var out = [];
 		for (i = 0; i < rows.length; i++) {
-			if (rows[i][1]) out.push(rows[i]);
+			if (rows[i][1] && rows[i][1].length <= MAXROW) out.push(rows[i]);
 		}
 		return out;
 	}
