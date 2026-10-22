@@ -26,8 +26,6 @@
 		var setat = 0;
 		var cur = "all";
 		var picked = null;
-		// 每个分类各自记住滚动位置，切回来时还原。
-		var tops = {};
 
 		SK.regutil(name, {
 			title: spec.title,
@@ -51,15 +49,11 @@
 				setat = readsaved();
 				cur = "all";
 				picked = null;
-				tops = {};
 				if (sets.length > 1) {
 					paintsets();
 					F.id(name + "-sets").onclick = onset;
 				}
-				F.id(name + "-q").oninput = function(){
-					tops = {};
-					paint();
-				};
+				F.id(name + "-q").oninput = paint;
 				F.id(name + "-chips").onclick = onchip;
 				F.id(name + "-tab").onclick = onrow;
 				paint();
@@ -111,11 +105,10 @@
 			return blob.toLowerCase().indexOf(q) >= 0;
 		}
 
-		function paint(keep){
+		function paint(){
 			var set = setnow();
 			var q = query();
 			var box = scrollbox();
-			var top = typeof keep === "number" ? keep : (keep ? box.scrollTop : 0);
 			var cols = set.cols;
 			var html = [];
 			var i, j, g, rows, n;
@@ -151,8 +144,8 @@
 			if (!total)
 				html = ['<tbody><tr><td class="refnone" colspan="' + cols.length + '">没有匹配的条目</td></tr></tbody>'];
 			F.id(name + "-tab").innerHTML = html.join("");
-			// 内容重排后浏览器可能把滚动位置归零，这里显式还原。
-			box.scrollTop = top;
+			// 换分类或搜索都从头看；有的内核重排后还会保留旧位置，这里显式回顶部。
+			box.scrollTop = 0;
 			SK.msg(name + "-msg", total ? (q ? total + " 条" : "共 " + total + " 条") : "");
 			paintchips(set);
 			if (total) selectrow(set, q);
@@ -192,6 +185,7 @@
 			if (!visible(set, sel, q)) sel = firstvisible(set, q);
 			if (sel) {
 				picked = String(sel.c[set.copy]);
+				markrow();
 				showdetail(set, sel);
 			}
 			else {
@@ -241,6 +235,8 @@
 					+ '<div class="refsample">' + samplehtml(set, txt) + "</div>";
 			}
 			F.id(name + "-detail").innerHTML = html;
+			// 换条目后详情从头显示，别接着上一条的滚动位置。
+			F.id(name + "-detail").scrollTop = 0;
 		}
 
 		function paintchips(set){
@@ -280,14 +276,10 @@
 			var el = ev.target;
 			while (el && el !== this) {
 				if (el.getAttribute && F.attr(el, "data-g")) {
-					var gid = F.attr(el, "data-g");
-					if (gid !== cur) {
-						// 先记下当前分类的位置；没去过的分类保持当前滚动位置，去过的还原上次的。
-						var top = scrollbox().scrollTop;
-						tops[cur] = top;
-						cur = gid;
-						paint(typeof tops[cur] === "number" ? tops[cur] : top);
-					}
+					cur = F.attr(el, "data-g");
+					// 换分类从头看：列表回顶部，选中项也回到该分类第一条。
+					picked = null;
+					paint();
 					return;
 				}
 				el = el.parentNode;
@@ -302,7 +294,6 @@
 					writesaved();
 					cur = "all";
 					picked = null;
-					tops = {};
 					F.id(name + "-q").value = "";
 					paintsets();
 					paint();

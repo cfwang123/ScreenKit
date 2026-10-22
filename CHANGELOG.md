@@ -77,7 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD reader: text now follows the Windows display scale instead of rendering at physical-pixel size
 - MD reader: images whose path contains Chinese characters or spaces now load (IE cannot decode percent-encoded UTF-8 in file:// URLs)
 - MD reader: URL-encoded relative image paths such as docs/1%20screenshot.en.png now resolve instead of doubling the escape
-- Command tools keep the list position when switching categories, remember each category's place, and no longer jump on row click
+- Command tools scroll the list back to the top when switching categories and reset the detail pane, while clicking a row no longer moves the list
 
 ### 中文
 
@@ -117,7 +117,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD 阅读器：正文按系统显示缩放排版，不再因高 DPI 显得过小
 - MD 阅读器：修复图片路径含中文或空格时不显示（IE 无法解码 file:// 地址里的 UTF-8 转义）
 - MD 阅读器：相对图片路径按 URL 编码写（如 docs/1%20screenshot.en.png）时不再重复转义，能正常显示
-- 命令工具切换分类时保持列表位置，每个分类记住上次的位置，点行复制也不再让列表跳动
+- 命令工具切换分类时回到列表顶部并重置详情面板，点行复制不再让列表跳动
 
 ## v1.0.27 (2026-10-21 ~ 22)
 
