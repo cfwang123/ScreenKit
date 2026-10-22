@@ -52,14 +52,15 @@ static class DocToMd {
 
 	public static Result Convert(string path, string imagedir) {
 		var ext = Path.GetExtension(path).ToLowerInvariant();
+		var dir = ResolveDir(imagedir, path);
 		if (ext == ".docx") {
-			var md = fromdocx(path, imagedir, out var images);
-			return new Result { Markdown = md, Kind = "docx", ImageDir = imagedir, Images = images };
+			var md = fromdocx(path, dir, out var images);
+			return new Result { Markdown = md, Kind = "docx", ImageDir = dir, Images = images };
 		}
 		if (ext == ".pdf") {
-			var ctx = new Ctx { Dir = imagedir };
+			var ctx = new Ctx { Dir = dir };
 			var md = frompdf(path, ctx, out var pages);
-			return new Result { Markdown = md, Kind = "pdf", Pages = pages, ImageDir = imagedir, Images = ctx.Images };
+			return new Result { Markdown = md, Kind = "pdf", Pages = pages, ImageDir = dir, Images = ctx.Images };
 		}
 		throw new NotSupportedException("doc2md.errtype");
 	}

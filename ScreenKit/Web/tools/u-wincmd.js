@@ -87,10 +87,10 @@
 		["text", "Out-Host -Paging", "分页显示长输出", "Get-ChildItem C:\\Windows -Recurse | Out-Host -Paging"],
 
 		["perm", "whoami /priv", "查看当前用户的权限列表", "whoami /priv"],
-		["perm", "Get-LocalUser", "列出本地用户", "Get-LocalUser"],
-		["perm", "New-LocalUser", "新建本地用户", "New-LocalUser -Name alice -Password (Read-Host -AsSecureString)"],
-		["perm", "Add-LocalGroupMember", "把用户加入组", "Add-LocalGroupMember -Group Administrators -Member alice"],
-		["perm", "Get-LocalGroupMember", "查看组成员", "Get-LocalGroupMember Administrators"],
+		["perm", "Get-LocalUser", "列出本地用户", "Get-LocalUser", "仅 Windows PowerShell 5.1；pwsh 里改用 Get-CimInstance Win32_UserAccount。"],
+		["perm", "New-LocalUser", "新建本地用户", "New-LocalUser -Name alice -Password (Read-Host -AsSecureString)", "仅 Windows PowerShell 5.1。"],
+		["perm", "Add-LocalGroupMember", "把用户加入组", "Add-LocalGroupMember -Group Administrators -Member alice", "仅 Windows PowerShell 5.1。"],
+		["perm", "Get-LocalGroupMember", "查看组成员", "Get-LocalGroupMember Administrators", "仅 Windows PowerShell 5.1。"],
 		["perm", "icacls", "查看/修改文件权限", "icacls app /grant alice:(OI)(CI)M"],
 		["perm", "takeown", "取得文件所有权", "takeown /f C:\\locked /r /d y"],
 		["perm", "Start-Process -Verb RunAs", "以管理员身份启动程序", "Start-Process powershell -Verb RunAs"],
@@ -112,6 +112,7 @@
 		["proc", "Stop-Process", "按 PID 结束进程", "Stop-Process -Id 1234 -Force"],
 		["proc", "Start-Process", "启动程序；-Wait 等结束", "Start-Process notepad -Wait"],
 		["proc", "Get-CimInstance", "查 WMI 类，获取命令行等", "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Select-Object ProcessId,CommandLine"],
+		["proc", "Get-WmiObject", "查 WMI（5.1）；pwsh 已移除", "Get-WmiObject Win32_LogicalDisk", "已弃用，新代码用 Get-CimInstance。"],
 		["proc", "Get-ComputerInfo", "查看系统和硬件概况", "Get-ComputerInfo | Select-Object OsName,OsVersion,CsTotalPhysicalMemory"],
 		["proc", "Get-Counter", "读性能计数器", "Get-Counter '\\Processor(_Total)\\% Processor Time' -MaxSamples 3"],
 		["proc", "$env:PATH", "查看环境变量（当前会话）", "$env:PATH"],
@@ -369,6 +370,38 @@
 		["other", "exit", "退出当前命令行", "exit"]
 	];
 
+	// Windows PowerShell 5.1 里有、pwsh（PowerShell 7）里没有的命令。
+	var PW_SH_SKIP = ["Get-WmiObject", "Get-LocalUser", "New-LocalUser", "Add-LocalGroupMember", "Get-LocalGroupMember"];
+
+	// 只有 pwsh 才有的常用写法。
+	var PW_SH_ONLY = [
+		["proc", "$PSVersionTable", "查看 pwsh 版本和运行时", "$PSVersionTable"],
+		["proc", "pwsh -NoProfile", "启动 PowerShell 7，不加载配置", "pwsh -NoProfile"],
+		["proc", "Get-Uptime", "查看开机时长", "Get-Uptime"],
+		["proc", "Get-Error", "查看最近一次错误的完整信息", "Get-Error"],
+		["proc", "Get-Date -AsUTC", "按 UTC 显示时间", "Get-Date -AsUTC"],
+		["proc", "Get-InstalledModule", "查看已安装模块和版本", "Get-InstalledModule"],
+		["text", "ForEach-Object -Parallel", "并行处理管道对象", "1..10 | ForEach-Object -Parallel { $_ * 2 } -ThrottleLimit 5"],
+		["text", "ConvertFrom-Json -AsHashtable", "把 JSON 转成哈希表", "Get-Content app.json -Raw | ConvertFrom-Json -AsHashtable"],
+		["text", "Test-Json", "校验 JSON 或对照架构", "Test-Json -Json (Get-Content app.json -Raw) -SchemaFile schema.json"],
+		["text", "ConvertFrom-Markdown", "把 Markdown 转成 HTML", "ConvertFrom-Markdown -Path README.md | Select-Object Html"],
+		["text", "ConvertFrom-SecureString -AsPlainText", "把安全字符串还原成明文", "ConvertFrom-SecureString -SecureString $s -AsPlainText"],
+		["perm", "Get-CimInstance Win32_UserAccount", "pwsh 里查看本地账户", "Get-CimInstance Win32_UserAccount | Select-Object Name,Disabled"],
+		["net", "Test-Connection", "7 自带的连通性测试", "Test-Connection 1.1.1.1 -Count 4"],
+		["other", "Set-PSReadLineOption -PredictionSource History", "开启命令历史预测", "Set-PSReadLineOption -PredictionSource History"],
+		["other", "Get-PSReadLineKeyHandler", "查看可用的按键绑定", "Get-PSReadLineKeyHandler"],
+		["other", "Install-PSResource", "用 PSResourceGet 安装模块", "Install-PSResource PSReadLine"],
+		["other", "Get-Help -Online", "在浏览器里打开帮助", "Get-Help Get-ChildItem -Online"]
+	];
+
+	function pwshrows(){
+		var out = [];
+		var i;
+		for (i = 0; i < PS.length; i++) if (PW_SH_SKIP.indexOf(PS[i][1]) < 0) out.push(PS[i]);
+		for (i = 0; i < PW_SH_ONLY.length; i++) out.push(PW_SH_ONLY[i]);
+		return out;
+	}
+
 	function makeset(id, name, rows, placeholder, defaultPick){
 		var out = [];
 		var i;
@@ -393,7 +426,8 @@
 		setsLabel: "命令行",
 		store: "sk-wincmd-shell",
 		sets: [
-			makeset("powershell", "PowerShell", PS, "搜索：Get-Process、winget、端口、防火墙、注册表", "Get-ChildItem"),
+			makeset("powershell", "Windows PowerShell", PS, "搜索：Get-Process、winget、端口、防火墙、注册表", "Get-ChildItem"),
+			makeset("pwsh", "pwsh", pwshrows(), "搜索：-Parallel、Get-Error、Test-Json、winget、端口", "Get-ChildItem"),
 			makeset("cmd", "CMD", CMD, "搜索：taskkill、ipconfig、netstat、sc、schtasks", "dir")
 		]
 	});

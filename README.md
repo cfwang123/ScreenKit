@@ -86,7 +86,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Hash**: MD5, SHA-1, and SHA-256. Paste an expected value to compare.
 - **Text tools**: Base64, URL, hex, escapes, case, whitespace, counts, JSON pretty-print, and more.
 - **Markdown reader**: Open or drop a Markdown file and read it with the IE11 engine built into Windows.
-- **Word/PDF to MD**: Convert a .docx or a text PDF to Markdown, then preview, copy, or save it. PDF text comes from the installed PDFium; scanned pages need PDF recognition first.
+- **Word/PDF to MD**: Convert a .docx or a text PDF to Markdown, then preview, copy, or save it. Images are extracted into the chosen folder (default `images/001.png`; `{name}` becomes the document name), and PDF text comes from the installed PDFium; scanned pages need PDF recognition first.
 - **Password generator**: Generate passwords from a length and character classes, or hand a sentence to a configured LLM and spell the translation out.
 - **Network**: Diagnostics, IP scan, and port scan, covering Ping, DNS, Wake-on-LAN, trace route, and more.
 - **Ports in use**: Lists the TCP and UDP ports in use and the process behind each, and can open that folder.
@@ -162,7 +162,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Country, language & currency codes**: ISO codes for countries, languages, and currencies
   - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
   - **Linux commands**: Commands and examples by file, package, process, network, and more; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
-  - **Windows commands**: PowerShell and CMD commands by category, with examples, and the last shell is remembered
+  - **Windows commands**: Windows PowerShell, pwsh, and CMD commands by category, with examples, and the last shell is remembered
   - **Linux software**: Open-source Linux packages and install commands for common apps
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product

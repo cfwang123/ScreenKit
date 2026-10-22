@@ -86,7 +86,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
 - **校验哈希**：算 MD5、SHA-1、SHA-256，可粘贴期望值比对。
 - **文本小工具**：Base64、URL、十六进制、转义、大小写、空白、字数和 JSON 美化等。
 - **MD 阅读器**：打开或拖入 Markdown，用系统自带的 IE11 内核显示。
-- **Word/PDF 转 MD**：把 .docx 或文本型 PDF 转成 Markdown，可预览、复制或保存；PDF 文字用已安装的 PDFium 提取，扫描版请先用 PDF 识别。
+- **Word/PDF 转 MD**：把 .docx 或文本型 PDF 转成 Markdown，可预览、复制或保存；文档里的图片抽到所选目录（默认 `images/001.png`，可用 `{name}` 换成文档名），PDF 文字用已安装的 PDFium 提取，扫描版请先用 PDF 识别。
 - **密码生成器**：按长度和字符种类生成密码，也可把一句密码交给 LLM 译成其它语言再拼出来。
 - **网络工具**：诊断、IP 扫描和端口扫描，含 Ping、域名解析、网络唤醒、路由跟踪等。
 - **网络端口占用**：列出正在使用的 TCP、UDP 端口和对应进程，可打开所在位置。
@@ -162,7 +162,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
   - **国家/语言/货币代码**：查 ISO 国家/地区、语言和货币代码
   - **键盘码**：查按键的 event.code、event.key、keyCode 和 Windows VK
   - **Linux 常用命令**：按文件、软件包、进程、网络等查命令和示例；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
-  - **Windows 常用命令**：PowerShell 和 CMD 两套命令，按类别查用法和示例，下次打开沿用上次选的命令行
+  - **Windows 常用命令**：Windows PowerShell、pwsh、CMD 三套命令，按类别查用法和示例，下次打开沿用上次选的命令行
   - **Linux 常用软件**：查 Linux 常用开源软件的包名和安装命令
   - **本机信息**：查看浏览器能读到的本机信息
   - **常见 USB ID**：查 USB 厂家和产品

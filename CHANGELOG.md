@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Audio and video tabs show the container, stream count, codec profile and level, pixel format, color space, field order, frame count, display aspect, channel layout and bit depth.
 - Tools → Text adds Word/PDF to MD, which converts .docx or a text PDF to Markdown with a preview, copy, and save. PDF text is read through the installed PDFium.
 - New Windows commands tool: PowerShell and CMD tables with categories, search and click-to-copy; the chosen shell is remembered
+- Word/PDF to MD extracts document images into a chosen folder and writes Markdown image links. The default folder is images with 001.png, 002.png…, and {name} uses the document name.
 
 #### Changed
 
@@ -56,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - File analysis shows the EXE/DLL sections as separate tabs instead of a drop-down list.
 - File analysis reads media parameters from the ffmpeg64 shared libraries installed by the features page; ffmpeg lookup uses only that folder.
 - Merge Linux command lookup into one tool with a distribution switch (Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, Alpine); the last distribution is remembered
+- Windows commands adds a pwsh (PowerShell 7) tab beside Windows PowerShell and CMD, with pwsh-only commands such as ForEach-Object -Parallel, Get-Error, Get-Uptime and Test-Json
 
 #### Fixed
 
@@ -71,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 音频、视频页显示容器、流数、编码配置和级别、像素格式、色彩空间、扫描方式、帧数、显示比例、声道布局和位深。
 - 工具 → 文字增加「Word/PDF 转 MD」，把 .docx 或文本型 PDF 转成 Markdown，可预览、复制、保存；PDF 文字用已安装的 PDFium 提取。
 - 新增 Windows 常用命令工具：PowerShell 和 CMD 两套命令，按类别分组、可搜索、点一下复制，并记住上次选用的命令行
+- Word/PDF 转 MD 会把文档里的图片抽到指定目录并写成 Markdown 图片链接。默认 images 目录、001.png/002.png…，可用 {name} 换成文档名。
 
 #### 变更
 
@@ -78,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文件分析工具的 EXE/DLL 各分节改为独立选项卡，不再用下拉框切换。
 - 文件分析改用安装功能提供的 ffmpeg64 共享库读取媒体参数，ffmpeg 查找只认这个目录。
 - Linux 命令查询合并为一个工具，可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，并记住上次选的发行版
+- Windows 常用命令增加 pwsh（PowerShell 7）页签，与 Windows PowerShell、CMD 并列，补充 ForEach-Object -Parallel、Get-Error、Get-Uptime、Test-Json 等 7 专有写法
 
 #### 修复
 
