@@ -162,7 +162,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
   - **国家/语言/货币代码**：查 ISO 国家/地区、语言和货币代码
   - **键盘码**：查按键的 event.code、event.key、keyCode 和 Windows VK
   - **Linux 常用命令**：按文件、软件包、进程、网络等查命令和示例；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
-  - **Windows 常用命令**：Windows PowerShell、pwsh、CMD 三套命令，按类别查用法和示例，下次打开沿用上次选的命令行
+  - **Windows 常用命令**：Windows PowerShell、pwsh、CMD 三套命令，按类别查用法和示例，另有一组三种命令行的语法帮助；下次打开沿用上次选的命令行
   - **Linux 常用软件**：查 Linux 常用开源软件的包名和安装命令
   - **本机信息**：查看浏览器能读到的本机信息
   - **常见 USB ID**：查 USB 厂家和产品

@@ -1,5 +1,6 @@
 (function(){
 	var CATS = {
+		syntax: "语法帮助",
 		file: "文件与目录",
 		text: "文本处理",
 		perm: "权限与用户",
@@ -23,6 +24,7 @@
 	var WIDTHS = ["250px", "240px", ""];
 
 	var GROUPS = [
+		{ id: "syntax", name: "语法帮助" },
 		{ id: "file", name: "文件与目录" },
 		{ id: "text", name: "文本处理" },
 		{ id: "perm", name: "权限与用户" },
@@ -370,6 +372,59 @@
 		["other", "exit", "退出当前命令行", "exit"]
 	];
 
+	// 三种命令行的语法要点，放在「语法帮助」组里；当前页签自己的那段排在最前。
+	var SYNTAX = {
+		cmd: [
+			["syntax", "%VAR%", "CMD：变量用 % 取值；set 赋值时等号两边不能有空格", "set LOG=app.log && type %LOG%"],
+			["syntax", "%1、%~dp0", "CMD：脚本参数；~dp0 是脚本所在目录，%* 是全部参数", "echo %~dp0"],
+			["syntax", "^", "CMD：转义 & | < > ( ) 等符号", "echo a ^& b"],
+			["syntax", "\"\"", "CMD：路径含空格时整体加双引号", "cd \"C:\\Program Files\""],
+			["syntax", "& 与 && 与 ||", "CMD：依次执行、成功才继续、失败才执行", "copy a b && echo ok || echo fail"],
+			["syntax", "> 与 >> 与 2>&1", "CMD：覆盖、追加、把错误并进标准输出", "app.exe > out.txt 2>&1"],
+			["syntax", "if exist 与 for", "CMD：条件与循环；批处理里写 %%f，命令行里写 %f", "for %f in (*.log) do echo %f"],
+			["syntax", "!var!", "CMD：循环里取最新值，先 setlocal enabledelayedexpansion", "setlocal enabledelayedexpansion & for /l %i in (1,1,3) do echo !i!"],
+			["syntax", "rem 与 ::", "CMD：注释；行尾 ^ 可以续行", "rem 说明"],
+			["syntax", "@echo off", "CMD：批处理开头关闭命令回显", "@echo off"]
+		],
+		powershell: [
+			["syntax", "$var", "PowerShell：变量以 $ 开头，未赋值就是 $null", "$name = 'alice'"],
+			["syntax", "'...' 与 \"...\"", "PowerShell：单引号不展开变量，双引号展开", "$n = 'x'; \"hi $n\""],
+			["syntax", "` 反引号", "PowerShell：转义符，行尾反引号续行；`t 制表、`n 换行", "Write-Host \"a`tb\""],
+			["syntax", "| Where-Object", "PowerShell：管道里传的是对象", "Get-Service | Where-Object Status -eq 'Running'"],
+			["syntax", "-eq -like -match", "PowerShell：比较运算符；加 c 前缀区分大小写，取反用 -not", "'Abc' -like 'a*'"],
+			["syntax", "@{} 与 @()", "PowerShell：哈希表和数组字面量", "$h = @{ name = 'a' }; @(1,2,3)"],
+			["syntax", "& \"路径\"", "PowerShell：调用带空格的程序路径要用 &", "& 'C:\\Program Files\\App\\app.exe'"],
+			["syntax", "try/catch/finally", "PowerShell：错误处理，配合 -ErrorAction Stop", "try { Get-Item nope -ErrorAction Stop } catch { $_.Exception.Message }"],
+			["syntax", "# 与 <# #>", "PowerShell：单行注释与块注释", "# 注释"],
+			["syntax", ".\\script.ps1", "PowerShell：运行当前目录的脚本要带 .\\", ".\\build.ps1"],
+			["syntax", "-Name 值", "PowerShell：参数写成 -名 值，支持 Tab 补全和唯一前缀缩写", "Get-ChildItem -Path C:\\ -Recurse"]
+		],
+		pwsh: [
+			["syntax", "? :", "pwsh：三元运算符（7.0+）", "$s = $n -gt 0 ? '正' : '负'"],
+			["syntax", "?? 与 ??=", "pwsh：空合并和空赋值（7.0+）", "$v = $null ?? '默认'"],
+			["syntax", "&& 与 ||", "pwsh：命令串联，语义与 cmd 相同（7.0+）", "Get-Process pwsh && 'ok'"],
+			["syntax", "$using:var", "pwsh：并行块里引用外部变量（7.0+）", "1..3 | ForEach-Object -Parallel { \"$using:n\" } -ThrottleLimit 3"],
+			["syntax", "-AsHashtable", "pwsh：ConvertFrom-Json 直接转哈希表（6.0+）", "Get-Content a.json -Raw | ConvertFrom-Json -AsHashtable"],
+			["syntax", "--%", "pwsh：后面的参数原样交给原生程序，不再解析", "az --% group list --query \"[].name\""],
+			["syntax", "$IsWindows", "pwsh：跨平台判断的自动变量", "if ($IsWindows) { 'win' } else { 'unix' }"],
+			["syntax", "#requires -Version 7.0", "pwsh：脚本里声明最低版本", "#requires -Version 7.0"],
+			["syntax", "Find-PSResource", "pwsh：PSResourceGet 查找模块（7.2 起自带）", "Find-PSResource PSReadLine"],
+			["syntax", "$ErrorView", "pwsh：错误显示样式，7 默认 ConciseView", "$ErrorView = 'ConciseView'"],
+			["syntax", "$PSNativeCommandArgumentPassing", "pwsh：原生命令参数传递方式，7.3 起默认 Standard", "$PSNativeCommandArgumentPassing = 'Standard'"]
+		]
+	};
+
+	var SELF_ORDER = ["cmd", "powershell", "pwsh"];
+
+	function syntaxrows(self){
+		var order = [self];
+		var i;
+		for (i = 0; i < SELF_ORDER.length; i++) if (SELF_ORDER[i] !== self) order.push(SELF_ORDER[i]);
+		var out = [];
+		for (i = 0; i < order.length; i++) out = out.concat(SYNTAX[order[i]]);
+		return out;
+	}
+
 	// Windows PowerShell 5.1 里有、pwsh（PowerShell 7）里没有的命令。
 	var PW_SH_SKIP = ["Get-WmiObject", "Get-LocalUser", "New-LocalUser", "Add-LocalGroupMember", "Get-LocalGroupMember"];
 
@@ -403,9 +458,10 @@
 	}
 
 	function makeset(id, name, rows, placeholder, defaultPick){
+		var all = rows.concat(syntaxrows(id));
 		var out = [];
 		var i;
-		for (i = 0; i < rows.length; i++) out.push(R(rows[i]));
+		for (i = 0; i < all.length; i++) out.push(R(all[i]));
 		return {
 			id: id,
 			name: name,
@@ -426,9 +482,9 @@
 		setsLabel: "命令行",
 		store: "sk-wincmd-shell",
 		sets: [
-			makeset("powershell", "Windows PowerShell", PS, "搜索：Get-Process、winget、端口、防火墙、注册表", "Get-ChildItem"),
-			makeset("pwsh", "pwsh", pwshrows(), "搜索：-Parallel、Get-Error、Test-Json、winget、端口", "Get-ChildItem"),
-			makeset("cmd", "CMD", CMD, "搜索：taskkill、ipconfig、netstat、sc、schtasks", "dir")
+			makeset("powershell", "Windows PowerShell", PS, "搜索：Get-Process、语法、winget、端口、注册表", "Get-ChildItem"),
+			makeset("pwsh", "pwsh", pwshrows(), "搜索：-Parallel、语法、Get-Error、Test-Json、winget", "Get-ChildItem"),
+			makeset("cmd", "CMD", CMD, "搜索：taskkill、语法、ipconfig、netstat、sc", "dir")
 		]
 	});
 })();

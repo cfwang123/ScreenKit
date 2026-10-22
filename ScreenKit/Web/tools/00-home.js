@@ -687,7 +687,7 @@
 						"type":"button",
 						"data-tool":"u-wincmd",
 						"data-cat":"info",
-						"data-name":"windows 命令 powershell pwsh cmd 终端 bat taskkill ipconfig netstat sc schtasks winget 注册表 防火墙 常用命令",
+						"data-name":"windows 命令 语法 powershell pwsh cmd 终端 bat taskkill ipconfig netstat sc schtasks winget 注册表 防火墙 常用命令",
 						"title":"Windows 常用命令、示例和分类，可选 Windows PowerShell、pwsh 或 CMD，点一下复制命令",
 						c:[
 						{x:"i.fa-solid.fa-window-maximize"},
