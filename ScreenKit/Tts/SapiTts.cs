@@ -181,28 +181,7 @@ sealed class SapiTts : IDisposable {
 	}
 
 	static string findffmpeg() {
-		var cands = new[] {
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg64", "ffmpeg.exe"),
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
-			@"C:\bin\ffmpeg.exe",
-		};
-		foreach (var c in cands) {
-			try {
-				if (File.Exists(c) && new FileInfo(c).Length > 5_000_000)
-					return c;
-			}
-			catch { }
-		}
-		try {
-			var path = Environment.GetEnvironmentVariable("PATH") ?? "";
-			foreach (var dir in path.Split(Path.PathSeparator)) {
-				var f = Path.Combine(dir.Trim(), "ffmpeg.exe");
-				if (File.Exists(f) && new FileInfo(f).Length > 5_000_000)
-					return f;
-			}
-		}
-		catch { }
-		return null;
+		return VidConvert.FindExe();
 	}
 
 	public void Dispose() {

@@ -697,30 +697,6 @@ static unsafe class RecordAvSyncTest {
 	}
 
 	static string findffmpeg() {
-		// 与 FfmpegRemux 一致，但阈值放宽：部分构建略小于 2MB 仍可用
-		const long MinBytes = 500_000;
-		var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-		var cands = new List<string> {
-			Path.Combine(baseDir, "ffmpeg64", "ffmpeg.exe"),
-			Path.Combine(baseDir, "ffmpeg", "ffmpeg.exe"),
-			Path.Combine(baseDir, "ffmpeg.exe"),
-			@"C:\bin\ffmpeg.exe",
-		};
-		try {
-			var path = Environment.GetEnvironmentVariable("PATH") ?? "";
-			foreach (var dir in path.Split(Path.PathSeparator)) {
-				if (string.IsNullOrWhiteSpace(dir)) continue;
-				cands.Add(Path.Combine(dir.Trim(), "ffmpeg.exe"));
-			}
-		}
-		catch { }
-		foreach (var c in cands) {
-			try {
-				if (File.Exists(c) && new FileInfo(c).Length >= MinBytes)
-					return c;
-			}
-			catch { }
-		}
-		return null;
+		return VidConvert.FindExe();
 	}
 }

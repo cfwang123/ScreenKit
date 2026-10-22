@@ -36,9 +36,13 @@ static class FfmpegLoader {
 	}
 
 	static string findroot() {
-		// 仅程序目录固定文件夹 ffmpeg64
+		// 程序目录的固定文件夹 ffmpeg64；也看程序集所在目录，便于从别的宿主加载时定位。
+		var asmDir = "";
+		try { asmDir = Path.GetDirectoryName(typeof(FfmpegLoader).Assembly.Location) ?? ""; }
+		catch { }
 		var cands = new[] {
 			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg64"),
+			string.IsNullOrEmpty(asmDir) ? "" : Path.Combine(asmDir, "ffmpeg64"),
 		};
 		foreach (var d in cands) {
 			if (string.IsNullOrEmpty(d) || !Directory.Exists(d)) continue;

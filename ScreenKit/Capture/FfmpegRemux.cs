@@ -451,29 +451,7 @@ static unsafe class FfmpegRemux {
 	}
 
 	static string findffmpeg() {
-		// 完整 static/shared 构建通常 >2MB；过小的多为 stub/旧 launcher
-		const long MinBytes = 2_000_000;
-		var cands = new List<string> {
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg64", "ffmpeg.exe"),
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
-			@"C:\bin\ffmpeg.exe",
-		};
-		try {
-			var path = Environment.GetEnvironmentVariable("PATH") ?? "";
-			foreach (var dir in path.Split(Path.PathSeparator)) {
-				if (string.IsNullOrWhiteSpace(dir)) continue;
-				cands.Add(Path.Combine(dir.Trim(), "ffmpeg.exe"));
-			}
-		}
-		catch { }
-		foreach (var c in cands) {
-			try {
-				if (File.Exists(c) && new FileInfo(c).Length >= MinBytes)
-					return c;
-			}
-			catch { }
-		}
-		return null;
+		return VidConvert.FindExe();
 	}
 
 	static void diaglog(string msg) {

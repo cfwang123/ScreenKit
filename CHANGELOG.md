@@ -52,11 +52,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The novel reader's dictionary popup uses the dictionary page's layout and colors for its hit list and entry detail.
 - File analysis shows the EXE/DLL sections as separate tabs instead of a drop-down list.
+- File analysis reads media parameters from the ffmpeg64 shared libraries installed by the features page; ffmpeg lookup uses only that folder.
 
 #### Fixed
 
 - Status bar shows the blocked HTTP port and the temporary port when the port is in use
-- ffmpeg and ffprobe behind a symbolic link were skipped because the link file has no size.
 
 ### 中文
 
@@ -71,11 +71,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 小说阅读器的词典浮窗，列表和词条详情改用与词典页相同的排版与配色。
 - 文件分析工具的 EXE/DLL 各分节改为独立选项卡，不再用下拉框切换。
+- 文件分析改用安装功能提供的 ffmpeg64 共享库读取媒体参数，ffmpeg 查找只认这个目录。
 
 #### 修复
 
 - HTTP 端口打不开时，状态栏显示原端口和临时端口
-- 通过符号链接放置的 ffmpeg 和 ffprobe 会因为链接文件本身是 0 字节而被跳过。
 
 ## v1.0.27 (2026-10-21 ~ 22)
 

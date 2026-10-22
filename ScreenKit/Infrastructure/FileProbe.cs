@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Media.Imaging;
 
 namespace ScreenKit;
@@ -545,6 +546,7 @@ static partial class FileProbe {
 	}
 
 	static void movie(Report rep, string path) {
+		if (probeav(rep, path)) return;
 		var exe = probeexe();
 		if (exe == null) {
 			wavhead(rep, path);
@@ -666,31 +668,78 @@ static partial class FileProbe {
 				var comma = rest.IndexOf(',');
 				m.Container = comma > 0 ? rest.Substring(0, comma).Trim() : rest;
 			}
-			if (line.IndexOf("Video:", StringComparison.Ordinal) >= 0 && vline.Length == 0) vline = stream(line, "Video:");
-			if (line.IndexOf("Audio:", StringComparison.Ordinal) >= 0 && aline.Length == 0) aline = stream(line, "Audio:");
+			if (line.IndexOf("Video:", StringComparison.Ordinal) >= 0 && vline.Length == 0) vline = line;
+			if (line.IndexOf("Audio:", StringComparison.Ordinal) >= 0 && aline.Length == 0) aline = line;
 		}
-		if (vline.Length > 0) {
-			var wh = vline.IndexOf("x", StringComparison.Ordinal);
-			if (wh > 0) {
-				var sp = vline.LastIndexOf(' ', wh);
-				if (sp >= 0 && wh - sp > 1) {
-					m.VCodec = vline.Substring(0, sp).Trim();
-					var size = vline.Substring(sp + 1);
-					var x = size.IndexOf('x');
-					if (x > 0) {
-						m.Vw = size.Substring(0, x);
-						var tail = size.Substring(x + 1);
-						var sp2 = tail.IndexOf(' ');
-						m.Vh = sp2 > 0 ? tail.Substring(0, sp2) : tail;
-						var fp = tail.IndexOf("fps", StringComparison.Ordinal);
-						if (fp > 0) m.Fps = tail.Substring(0, fp).Trim();
-					}
-				}
-			}
-			if (m.VCodec.Length == 0) m.VCodec = vline.Split(' ')[0];
-		}
-		if (aline.Length > 0) m.ACodec = aline.Split(',')[0].Trim();
+		if (vline.Length > 0) ffvideo(m, vline);
+		if (aline.Length > 0) ffaudio(m, aline);
 		mediarows(rep, m);
+	}
+
+	static void ffvideo(MediaFacts m, string line) {
+		var i = line.IndexOf("Video:", StringComparison.Ordinal);
+		if (i < 0) return;
+		var rest = line.Substring(i + 6).Trim();
+		var head = rest.Split(',')[0].Trim();
+		var sp = head.IndexOf(' ');
+		m.VCodec = sp > 0 ? head.Substring(0, sp) : head;
+		var pp = head.IndexOf('(');
+		if (pp >= 0) {
+			var pe = head.IndexOf(')', pp);
+			if (pe > pp) m.VProfile = head.Substring(pp + 1, pe - pp - 1).Trim();
+		}
+		var mm = Regex.Match(rest, @"(\d{2,5})x(\d{2,5})");
+		if (mm.Success) {
+			m.Vw = mm.Groups[1].Value;
+			m.Vh = mm.Groups[2].Value;
+		}
+		var pf = Regex.Match(rest, @", ([a-z0-9_]+)\(([^)]*)\)");
+		if (pf.Success) {
+			m.PixFmt = pf.Groups[1].Value;
+			foreach (var raw in pf.Groups[2].Value.Split(',')) {
+				var s = raw.Trim();
+				if (s == "progressive" || s == "interlaced" || s == "tt" || s == "bb") m.Field = s;
+				else if (s.Length > 0 && s != "tv" && s != "pc" && s != "unknown") m.Color = s;
+			}
+		}
+		var fps = Regex.Match(rest, @"([\d.]+) fps");
+		if (fps.Success) m.Fps = fps.Groups[1].Value;
+		var br = Regex.Match(rest, @"(\d+) kb/s");
+		if (br.Success) m.VRate = kbps(br.Groups[1].Value);
+		var dar = Regex.Match(rest, @"DAR (\d+:\d+)");
+		if (dar.Success) m.Dar = dar.Groups[1].Value;
+	}
+
+	static void ffaudio(MediaFacts m, string line) {
+		var i = line.IndexOf("Audio:", StringComparison.Ordinal);
+		if (i < 0) return;
+		var rest = line.Substring(i + 6).Trim();
+		m.ACodec = rest.Split(',')[0].Trim();
+		var pp = m.ACodec.IndexOf('(');
+		if (pp > 0) {
+			var pe = m.ACodec.IndexOf(')', pp);
+			if (pe > pp) m.AProfile = m.ACodec.Substring(pp + 1, pe - pp - 1).Trim();
+			m.ACodec = m.ACodec.Substring(0, pp).Trim();
+		}
+		var hz = Regex.Match(rest, @"(\d+) Hz");
+		if (hz.Success) m.Sample = hz.Groups[1].Value;
+		foreach (var raw in rest.Split(',')) {
+			var s = raw.Trim();
+			if (s == "mono" || s == "stereo" || s.StartsWith("5.1", StringComparison.Ordinal)
+				|| s.StartsWith("7.1", StringComparison.Ordinal)) {
+				m.Layout = s;
+				break;
+			}
+		}
+		if (m.Layout == "mono") m.Channels = "1";
+		else if (m.Layout == "stereo") m.Channels = "2";
+		var br = Regex.Match(rest, @"(\d+) kb/s");
+		if (br.Success) m.ARate = kbps(br.Groups[1].Value);
+	}
+
+	static string kbps(string kb) {
+		if (!long.TryParse(kb, out var n) || n <= 0) return "";
+		return formatbps((n * 1000).ToString(CultureInfo.InvariantCulture));
 	}
 
 	static void mediarows(Report rep, MediaFacts m) {
@@ -730,14 +779,6 @@ static partial class FileProbe {
 
 	static string audiosample(string hz) {
 		return hz.Length > 0 ? $"{hz} Hz" : "";
-	}
-
-	static string stream(string line, string tag) {
-		var i = line.IndexOf(tag, StringComparison.Ordinal);
-		if (i < 0) return "";
-		var rest = line.Substring(i + tag.Length).Trim();
-		if (rest.Length > 160) rest = rest.Substring(0, 160);
-		return rest;
 	}
 
 	static string durms(string v) {

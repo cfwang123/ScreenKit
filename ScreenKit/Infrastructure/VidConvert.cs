@@ -11,7 +11,6 @@ namespace ScreenKit;
 /// <summary>批量视频转换：ffmpeg 转封装/编码，可限制较短边。</summary>
 static class VidConvert {
 	const int MAXFILES = 500;
-	const long MINEXE = 2_000_000;
 	public const string OUTBESIDE = "beside";
 	public const string OUTOTHER = "other";
 	public const string OUTREPLACE = "replace";
@@ -152,26 +151,15 @@ static class VidConvert {
 	}
 
 	public static string FindExe() {
-		var cands = new List<string> {
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg64", "ffmpeg.exe"),
-			Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
-			@"C:\bin\ffmpeg.exe",
+		var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+		var cands = new[] {
+			Path.Combine(baseDir, "ffmpeg64", "ffmpeg.exe"),
+			Path.Combine(baseDir, "ffmpeg64", "bin", "ffmpeg.exe"),
 		};
-		try {
-			var path = Environment.GetEnvironmentVariable("PATH") ?? "";
-			foreach (var dir in path.Split(Path.PathSeparator)) {
-				if (string.IsNullOrWhiteSpace(dir)) continue;
-				cands.Add(Path.Combine(dir.Trim(), "ffmpeg.exe"));
-			}
-		}
-		catch { }
 		foreach (var c in cands) {
 			try {
-				if (!File.Exists(c)) continue;
-				var fi = new FileInfo(c);
-				if (fi.Length >= MINEXE) return c;
-				// 符号链接/快捷方式本身长度是 0，指向的真文件可用就够了。
-				if ((fi.Attributes & FileAttributes.ReparsePoint) != 0) return c;
+				// ffmpeg64 里是 shared 版 launcher，只有一百多 KB，靠同目录 DLL 运行。
+				if (File.Exists(c)) return c;
 			}
 			catch { }
 		}
