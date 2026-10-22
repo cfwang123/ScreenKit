@@ -74,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Status bar shows the blocked HTTP port and the temporary port when the port is in use
 - MD reader: text now follows the Windows display scale instead of rendering at physical-pixel size
+- MD reader: images whose path contains Chinese characters or spaces now load (IE cannot decode percent-encoded UTF-8 in file:// URLs)
 
 ### 中文
 
@@ -110,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - HTTP 端口打不开时，状态栏显示原端口和临时端口
 - MD 阅读器：正文按系统显示缩放排版，不再因高 DPI 显得过小
+- MD 阅读器：修复图片路径含中文或空格时不显示（IE 无法解码 file:// 地址里的 UTF-8 转义）
 
 ## v1.0.27 (2026-10-21 ~ 22)
 

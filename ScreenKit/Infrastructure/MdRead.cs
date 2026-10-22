@@ -184,6 +184,11 @@ static class MdRead {
 				return bad(say, "table");
 			if (html.IndexOf("file:///D:/docs/img.png", StringComparison.Ordinal) < 0)
 				return bad(say, "img");
+			var cjk = ToHtml("![图](图 1.png)", @"D:\我的文档", "t");
+			if (cjk.IndexOf("src=\"file:///D:/我的文档/图%201.png\"", StringComparison.Ordinal) < 0)
+				return bad(say, "img cjk");
+			if (cjk.IndexOf("<base href=\"file:///D:/我的文档/\">", StringComparison.Ordinal) < 0)
+				return bad(say, "base cjk");
 			if (html.IndexOf("javascript:", StringComparison.OrdinalIgnoreCase) >= 0)
 				return bad(say, "script link");
 			if (html.IndexOf("IE=11", StringComparison.Ordinal) < 0)
@@ -312,7 +317,7 @@ static class MdRead {
 			var dir = baseDir;
 			if (!dir.EndsWith("\\") && !dir.EndsWith("/")) dir += "\\";
 			try {
-				sb.Append("<base href=\"").Append(esc(new Uri(dir).AbsoluteUri)).Append("\">");
+				sb.Append("<base href=\"").Append(esc(fileurl(dir))).Append("\">");
 			}
 			catch { }
 		}
@@ -846,6 +851,24 @@ static class MdRead {
 		return string.CompareOrdinal(text, i, s, 0, s.Length) == 0;
 	}
 
+	/// <summary>
+	/// 本地路径转 file:// 地址。IE 把 %E5 这类 UTF-8 转义当 Latin-1 解码（变成 å¾），
+	/// 中文、空格等只能原样写进 URL，只转义会弄坏地址的 ASCII 符号。
+	/// </summary>
+	static string fileurl(string full) {
+		if (string.IsNullOrEmpty(full)) return "";
+		var p = full.Replace('\\', '/');
+		var sb = new StringBuilder(p.Length + 16);
+		sb.Append(p.StartsWith("//", StringComparison.Ordinal) ? "file:" : "file:///");
+		foreach (var c in p) {
+			if (c == '%' || c == '#' || c == '?' || c == '&' || c == '"' || c == '<' || c == '>' || c == '{' || c == '}')
+				sb.Append('%').Append(((int)c).ToString("X2"));
+			else if (c == ' ') sb.Append("%20");
+			else sb.Append(c);
+		}
+		return sb.ToString();
+	}
+
 	static string safehref(string url, string baseDir) {
 		url = (url ?? "").Trim();
 		if (url.Length == 0) return "";
@@ -860,10 +883,10 @@ static class MdRead {
 			return url;
 		try {
 			if (url.Length >= 3 && char.IsLetter(url[0]) && url[1] == ':')
-				return new Uri(url).AbsoluteUri;
+				return fileurl(url);
 			if (string.IsNullOrEmpty(baseDir)) return "";
 			var full = Path.GetFullPath(Path.Combine(baseDir, url.Replace('/', Path.DirectorySeparatorChar)));
-			return new Uri(full).AbsoluteUri;
+			return fileurl(full);
 		}
 		catch { return ""; }
 	}
