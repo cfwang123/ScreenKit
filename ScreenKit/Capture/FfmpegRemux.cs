@@ -8,7 +8,7 @@ namespace ScreenKit;
 /// <summary>
 /// 无声 MP4 + WAV → 带音轨 MP4。
 /// 音轨：MPEG Audio Layer 3（MP3 / 0x55），采样率与 WAV 一致（即录屏参数 AudioHz）。
-/// 优先 FFmpeg.AutoGen（DLL）；其次本机可用的 ffmpeg.exe。
+/// 优先 FFmpeg.AutoGen（ffmpeg64 DLL）；其次 ffmpeg64 里的 ffmpeg.exe。
 /// </summary>
 static unsafe class FfmpegRemux {
 	/// <param name="audioKbps">MP3 码率 kbps，8~128。</param>
@@ -31,7 +31,7 @@ static unsafe class FfmpegRemux {
 			return outPath;
 		}
 
-		// 优先 ffmpeg.exe：长文件多线程更快；DLL 作回退
+		// 优先 ffmpeg64\ffmpeg.exe：长文件多线程更快；DLL 作回退
 		var exe = findffmpeg();
 		if (exe != null) {
 			try {

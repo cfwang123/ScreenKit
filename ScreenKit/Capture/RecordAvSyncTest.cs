@@ -603,7 +603,7 @@ static unsafe class RecordAvSyncTest {
 		note = null;
 		var exe = findffmpeg();
 		if (exe == null) {
-			note = "no ffmpeg.exe";
+			note = "no ffmpeg64";
 			return false;
 		}
 		try {
@@ -664,7 +664,7 @@ static unsafe class RecordAvSyncTest {
 		note = null;
 		var exe = findffmpeg();
 		if (exe == null) {
-			note = "no ffmpeg.exe";
+			note = "no ffmpeg64";
 			return false;
 		}
 		try {

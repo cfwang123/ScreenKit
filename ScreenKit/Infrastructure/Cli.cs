@@ -3262,7 +3262,7 @@ static class Cli {
 			else Out("静音参数");
 			var exe = VidConvert.FindExe();
 			if (string.IsNullOrEmpty(exe))
-				Out("SKIP 编码：没有 ffmpeg.exe");
+				Out("SKIP 编码：没有 ffmpeg64");
 			else {
 				var raw = Path.Combine(dir, "src.mp4");
 				var psi = new System.Diagnostics.ProcessStartInfo {
@@ -7345,7 +7345,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-lang      读取 lang/*.toml，语言列表按中、英、日、韩、西、法、葡、俄、德、其它排序
       --test-apk-qr  生成本机 APK 下载二维码并回读；HTTP GET /apk
       --test-img-convert  写测试 png，转 jpg（旋转90 + 框 100×100、较短边 40）、替换源文件、回收站
-      --test-vid-convert  视频较短边取偶数、输出路径和编码参数；有 ffmpeg.exe 时转一段 320×240
+      --test-vid-convert  视频较短边取偶数、输出路径和编码参数；有 ffmpeg64 时转一段 320×240
       --test-vid-gif      视频转 GIF 的调色板档、起止时间和较短边
       --test-screenshot-dir  截图目录：空为 D:/s/（无 D 盘则 screenshots/），文件名 dd_##，显示用 /
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
