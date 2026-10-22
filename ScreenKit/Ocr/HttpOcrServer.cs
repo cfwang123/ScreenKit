@@ -1256,15 +1256,20 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 		var title = field(ctx, jo, "title") ?? "";
+		var th = MdRead.ThemeOf(field(ctx, jo, "theme"));
 		string html;
-		try { html = MdRead.ToHtml(text, "", title); }
+		try { html = MdRead.ToHtml(text, "", title, 1, th.Id); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(500, ex.Message));
 			return;
 		}
 		writejson(ctx, 200, new JsonObject {
 			["code"] = 100,
-			["data"] = new JsonObject { ["html"] = html },
+			["data"] = new JsonObject {
+				["html"] = html,
+				["theme"] = th.Id,
+				["bg"] = th.Bg,
+			},
 		});
 	}
 
@@ -2679,7 +2684,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
 			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
 			"GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；有 text 时同时返回 pinyin 和 py",
-			"GET/POST /api/md  Markdown 转网页。POST JSON{text|base64,title?}，返回 data.html",
+			"GET/POST /api/md  Markdown 转网页。POST JSON{text|base64,title?,theme?}，返回 data.html 和 data.bg",
 			"GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}",
 			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
 			"GET/POST /api/cast/stop  立即关闭投屏画面",

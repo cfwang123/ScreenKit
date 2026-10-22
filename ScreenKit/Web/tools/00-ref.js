@@ -18,7 +18,8 @@
 			bigCls: spec.bigCls || "",
 			hl: spec.hl || "",
 			defaultPick: spec.defaultPick || "",
-			sample: spec.sample
+			sample: spec.sample,
+			sampleTitle: spec.sampleTitle
 		}];
 		var store = spec.store || "";
 		var setsLabel = spec.setsLabel || "";
@@ -219,8 +220,11 @@
 			for (i = 0; i < (row.d || []).length; i++)
 				html += "<dt>" + esc(row.d[i][0]) + "</dt><dd>" + metaval(set, row.d[i][0], row.d[i][1]) + "</dd>";
 			html += "</dl>";
-			if (set.sample)
-				html += '<div class="refsample">' + samplehtml(set.sample(row)) + "</div>";
+			var txt = set.sample ? set.sample(row) : "";
+			if (txt) {
+				html += '<div class="refsample-t">' + esc(set.sampleTitle || "示例") + "</div>"
+					+ '<div class="refsample">' + samplehtml(set, txt) + "</div>";
+			}
 			F.id(name + "-detail").innerHTML = html;
 		}
 
@@ -300,12 +304,12 @@
 		}
 	};
 
-	function samplehtml(text){
-		// 代码示例保留换行；不插入 <wbr>，避免把示例字符串切出多余断点。
+	function samplehtml(set, text){
+		// 代码示例保留换行；逐行高亮，注释行自然变灰，命令、参数、变量各有颜色。
 		var parts = String(text == null ? "" : text).split("\n");
 		var i;
 		for (i = 0; i < parts.length; i++)
-			parts[i] = esc(parts[i]);
+			parts[i] = (set.hl && SK.hl) ? SK.hl(set.hl, parts[i]) : esc(parts[i]);
 		return parts.join("<br>");
 	}
 

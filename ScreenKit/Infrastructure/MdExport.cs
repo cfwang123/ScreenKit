@@ -19,11 +19,16 @@ static class MdExport {
 		const string css = "<style>"
 			+ "@page{size:A4;margin:18mm 16mm;}"
 			+ "html,body{height:auto;overflow:visible;}"
-			+ "body{padding:0;font-size:11.5pt;line-height:1.6;}"
+			+ "html{background:#fff;}"
+			+ "body{padding:0;font-size:11.5pt;line-height:1.6;background:#fff;color:#1f2937;}"
 			+ "pre{white-space:pre-wrap;word-wrap:break-word;page-break-inside:auto;}"
 			+ ".tbl{overflow:visible;}"
 			+ "tr,img{page-break-inside:avoid;}"
 			+ "h1,h2,h3,h4{page-break-after:avoid;}"
+			+ "h1,h2,hr,th,td{border-color:#e5e7eb;}"
+			+ "th{background:#f9fafb;}"
+			+ "code,pre{background:#f3f4f6;}"
+			+ "blockquote{color:#4b5563;border-left-color:#d1d5db;}"
 			+ "a{color:#1f2937;}"
 			+ "</style>";
 		var i = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);

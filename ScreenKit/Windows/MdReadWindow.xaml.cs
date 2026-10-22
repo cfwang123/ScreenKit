@@ -8,20 +8,26 @@ public partial class MdReadWindow : Window {
 	System.Windows.Forms.WebBrowser browser;
 	MdDrop drop;
 	IntPtr drophwnd;
+	OcrOptions opt;
+	MdRead.MdTheme theme;
 	string curpath = "";
 	string curmode = "";
 	string curmd;
 	string page;
 	bool hasmd;
+	bool ready;
 	double dpi = 1;
 	readonly List<string> oldpages = new();
 
-	public MdReadWindow() {
+	public MdReadWindow(OcrOptions o) {
+		opt = o ?? new OcrOptions();
+		theme = MdRead.ThemeOf(opt.MdReadTheme);
 		MdRead.EnsureIe11();
 		InitializeComponent();
 		dpi = uiscale();
 		initbrowser();
 		applylang();
+		initetheme();
 		initev();
 		WindowEsc.Attach(this);
 	}
@@ -77,14 +83,22 @@ public partial class MdReadWindow : Window {
 		};
 		Loaded += (_, _) => {
 			dpi = uiscale();
-			showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint"), dpi));
+			applytheme();
 		};
 		DpiChanged += (_, _) => {
 			var s = uiscale();
 			if (Math.Abs(s - dpi) < 0.01) return;
 			dpi = s;
-			if (hasmd) showhtml(MdRead.ToHtml(curmd ?? "", Path.GetDirectoryName(curpath) ?? "", Path.GetFileName(curpath), dpi));
-			else showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint"), dpi));
+			render();
+		};
+		etheme.SelectionChanged += (_, _) => {
+			if (!ready) return;
+			var id = (etheme.SelectedItem as ComboBoxItem)?.Tag as string;
+			if (string.Equals(id, theme.Id, StringComparison.Ordinal)) return;
+			theme = MdRead.ThemeOf(id);
+			opt.MdReadTheme = theme.Id;
+			try { AppConfig.Save(opt); } catch { }
+			applytheme();
 		};
 		Closed += (_, _) => {
 			if (drophwnd != IntPtr.Zero) {
@@ -107,6 +121,31 @@ public partial class MdReadWindow : Window {
 		bword.IsEnabled = hasmd;
 		bpdf.IsEnabled = hasmd;
 		showstat();
+	}
+
+	/// <summary>主题下拉框按 MdRead.Themes 的顺序填。</summary>
+	void initetheme() {
+		etheme.Items.Clear();
+		foreach (var t in MdRead.Themes) {
+			var it = new ComboBoxItem { Content = Loc.T("mdread.theme." + t.Id), Tag = t.Id };
+			etheme.Items.Add(it);
+			if (t.Id == theme.Id) etheme.SelectedItem = it;
+		}
+		etheme.ToolTip = Loc.T("mdread.theme");
+		ready = true;
+	}
+
+	void applytheme() {
+		try { phostbox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme.Bg)); }
+		catch { }
+		render();
+	}
+
+	void render() {
+		if (hasmd)
+			showhtml(MdRead.ToHtml(curmd ?? "", Path.GetDirectoryName(curpath) ?? "", Path.GetFileName(curpath), dpi, theme.Id));
+		else
+			showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint"), dpi, theme.Id));
 	}
 
 	void pick() {
@@ -146,7 +185,7 @@ public partial class MdReadWindow : Window {
 		bpdf.IsEnabled = true;
 		Title = Path.GetFileName(path) + " - " + Loc.T("mdread.title");
 		var dir = Path.GetDirectoryName(path) ?? "";
-		showhtml(MdRead.ToHtml(md, dir, Path.GetFileName(path), dpi));
+		showhtml(MdRead.ToHtml(md, dir, Path.GetFileName(path), dpi, theme.Id));
 		showstat();
 	}
 

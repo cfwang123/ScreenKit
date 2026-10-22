@@ -4859,7 +4859,7 @@ public partial class MainWindow : Window {
 		opentoolwin(ref glyphModWin, () => new GlyphModWindow(), "menu.glyphmod");
 
 	void openmdread() =>
-		opentoolwin(ref mdReadWin, () => new MdReadWindow(), "menu.mdread");
+		opentoolwin(ref mdReadWin, () => new MdReadWindow(opt), "menu.mdread");
 
 	void opendoc2md() =>
 		opentoolwin(ref doc2mdWin, () => new DocToMdWindow(), "menu.doc2md");

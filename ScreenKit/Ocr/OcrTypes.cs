@@ -287,6 +287,8 @@ public sealed class OcrOptions {
 	public bool VidConvAudio = true;
 	/// <summary>音频码率 kbps，8–512，默认 64。</summary>
 	public int VidConvAudioKbps = 64;
+	/// <summary>MD 阅读器主题：light / dark / sepia / green / night（见 MdRead.Themes）。</summary>
+	public string MdReadTheme = "light";
 	/// <summary>音频采样率 Hz，默认 22050。</summary>
 	public int VidConvAudioHz = 22050;
 	/// <summary>压成单声道。未勾选时保留源声道数。默认单声道。</summary>
@@ -765,6 +767,7 @@ public sealed class OcrOptions {
 		FaceLmkModel = FaceLmkModel,
 		FaceAttrModel = FaceAttrModel,
 		FaceThreshold = FaceThreshold,
+		MdReadTheme = MdReadTheme ?? "light",
 	};
 
 	/// <summary>按显示名称或模型 id 查找；找不到返回 null。</summary>

@@ -64,18 +64,51 @@ static class MdRead {
 	/// <summary>页面基准字号（DIP）。正文 15 在 100% 缩放下偏小，按 16 排版。</summary>
 	public const double BaseFont = 16;
 
+	/// <summary>阅读器配色。IE11 没有 CSS 变量，颜色直接写进样式。</summary>
+	public sealed class MdTheme {
+		public string Id;
+		public string Bg;
+		public string Fg;
+		public string Muted;
+		public string Border;
+		public string Soft;
+		public string CodeBg;
+		public string Link;
+		public string Quote;
+		public string Bar;
+		public string ThBg;
+	}
+
+	/// <summary>可选主题，数组顺序就是下拉框顺序。Id 存进 config.toml 的 mdread_theme。</summary>
+	public static readonly MdTheme[] Themes = {
+		new MdTheme { Id = "light", Bg = "#ffffff", Fg = "#1f2937", Muted = "#6b7280", Border = "#e5e7eb", Soft = "#f3f4f6", CodeBg = "#f3f4f6", Link = "#c2410c", Quote = "#4b5563", Bar = "#d1d5db", ThBg = "#f9fafb" },
+		new MdTheme { Id = "dark", Bg = "#1e1f22", Fg = "#d8dbe0", Muted = "#8b919c", Border = "#3a3d43", Soft = "#2b2d31", CodeBg = "#2b2d31", Link = "#ffab70", Quote = "#a9b0ba", Bar = "#4a4e56", ThBg = "#26282c" },
+		new MdTheme { Id = "sepia", Bg = "#f6efdf", Fg = "#3b3226", Muted = "#8a7a60", Border = "#ded0b6", Soft = "#ece2cd", CodeBg = "#ece2cd", Link = "#96551c", Quote = "#5b4d3b", Bar = "#d3c2a2", ThBg = "#efe5d0" },
+		new MdTheme { Id = "green", Bg = "#cde8d1", Fg = "#1f2f22", Muted = "#55705a", Border = "#a9c9ae", Soft = "#bfe0c4", CodeBg = "#bfe0c4", Link = "#0e6b3a", Quote = "#33513a", Bar = "#8fb497", ThBg = "#bfe0c4" },
+		new MdTheme { Id = "night", Bg = "#1b2430", Fg = "#ccd6e2", Muted = "#7f92a8", Border = "#2e3d50", Soft = "#223040", CodeBg = "#223040", Link = "#7cb3ff", Quote = "#a2b3c6", Bar = "#3a5270", ThBg = "#223040" },
+	};
+
+	/// <summary>按 id 取主题；未知或留空回落到明亮。</summary>
+	public static MdTheme ThemeOf(string id) {
+		foreach (var t in Themes) {
+			if (string.Equals(t.Id, id, StringComparison.OrdinalIgnoreCase)) return t;
+		}
+		return Themes[0];
+	}
+
 	/// <param name="scale">窗口 DPI 缩放。IE 控件按物理像素排版，不跟随系统缩放，这里补上比例。</param>
-	public static string EmptyHtml(string hint, double scale = 1) {
+	/// <param name="theme">主题 Id，见 <see cref="Themes"/>。</param>
+	public static string EmptyHtml(string hint, double scale = 1, string theme = null) {
 		var sb = new StringBuilder();
-		shell(sb, "", "", scale);
+		shell(sb, "", "", scale, ThemeOf(theme));
 		sb.Append("<div class=\"hint\">").Append(esc(hint ?? "")).Append("</div>");
 		shellend(sb);
 		return sb.ToString();
 	}
 
-	public static string ToHtml(string md, string baseDir, string title, double scale = 1) {
+	public static string ToHtml(string md, string baseDir, string title, double scale = 1, string theme = null) {
 		var sb = new StringBuilder();
-		shell(sb, baseDir, title, scale);
+		shell(sb, baseDir, title, scale, ThemeOf(theme));
 		sb.Append(body(md ?? "", baseDir));
 		shellend(sb);
 		return sb.ToString();
@@ -164,6 +197,13 @@ static class MdRead {
 				return bad(say, "ext");
 			if (ToHtml("# 缩放\n", "", "t", 1.5).IndexOf("font:24px/1.65", StringComparison.Ordinal) < 0)
 				return bad(say, "scale");
+			var dark = ToHtml("# 暗\n", "", "t", 1, "dark");
+			if (dark.IndexOf("background:#1e1f22", StringComparison.Ordinal) < 0 || dark.IndexOf("#ffffff", StringComparison.Ordinal) >= 0)
+				return bad(say, "theme dark");
+			if (ThemeOf("nope").Id != "light" || Themes.Length < 4)
+				return bad(say, "theme fallback");
+			if (MdExport.PrintHtml(dark).IndexOf("background:#fff", StringComparison.Ordinal) < 0)
+				return bad(say, "print theme");
 			var lnk = Path.Combine(dir, "mdread-test.lnk");
 			try {
 				var w = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
@@ -258,9 +298,10 @@ static class MdRead {
 
 	// ==================== HTML ====================
 	#region
-	static void shell(StringBuilder sb, string baseDir, string title, double scale) {
+	static void shell(StringBuilder sb, string baseDir, string title, double scale, MdTheme th) {
 		if (scale < 1) scale = 1;
 		if (scale > 4) scale = 4;
+		th = th ?? Themes[0];
 		var fs = (BaseFont * scale).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 		sb.Append("<!DOCTYPE html><html><head>");
 		sb.Append("<meta http-equiv=\"X-UA-Compatible\" content=\"IE=11\">");
@@ -277,28 +318,30 @@ static class MdRead {
 		}
 		// 字号留一处 px（随 DPI 缩放），其余用 em，导出时改 body 字号即可整体缩回 A4 排版
 		sb.Append("<style>");
-		sb.Append("html{height:100%;}");
+		sb.Append("html{height:100%;background:").Append(th.Bg).Append(";}");
 		sb.Append("body{box-sizing:border-box;height:100%;margin:0;max-width:100%;overflow:auto;padding:1.75em 2em 4em;");
-		sb.Append("font:").Append(fs).Append("px/1.65 'Segoe UI','Microsoft YaHei UI',sans-serif;color:#1f2937;background:#fff;}");
-		sb.Append("h1{font-size:1.75em;line-height:1.3;border-bottom:1px solid #e5e7eb;padding-bottom:0.5em;}");
-		sb.Append("h2{font-size:1.375em;line-height:1.35;border-bottom:1px solid #f3f4f6;padding-bottom:0.25em;}");
+		sb.Append("font:").Append(fs).Append("px/1.65 'Segoe UI','Microsoft YaHei UI',sans-serif;");
+		sb.Append("color:").Append(th.Fg).Append(";background:").Append(th.Bg).Append(";}");
+		sb.Append("h1{font-size:1.75em;line-height:1.3;border-bottom:1px solid ").Append(th.Border).Append(";padding-bottom:0.5em;}");
+		sb.Append("h2{font-size:1.375em;line-height:1.35;border-bottom:1px solid ").Append(th.Soft).Append(";padding-bottom:0.25em;}");
 		sb.Append("h3{font-size:1.125em;}");
 		sb.Append("p{margin:0 0 0.75em;}");
 		sb.Append("ul,ol{margin:0;padding:0 0 0 2em;}");
 		sb.Append("body>ul,body>ol{padding-left:0;}");
 		sb.Append("li{margin:0;}");
-		sb.Append("a{color:#c2410c;}");
-		sb.Append("code{font-family:Consolas,'Cascadia Mono',monospace;background:#f3f4f6;padding:0.07em 0.27em;}");
-		sb.Append("pre{background:#f3f4f6;padding:0.75em 0.9em;overflow:auto;max-width:100%;}");
+		sb.Append("a{color:").Append(th.Link).Append(";}");
+		sb.Append("code{font-family:Consolas,'Cascadia Mono',monospace;background:").Append(th.CodeBg).Append(";padding:0.07em 0.27em;}");
+		sb.Append("pre{background:").Append(th.CodeBg).Append(";padding:0.75em 0.9em;overflow:auto;max-width:100%;}");
 		sb.Append("pre code{background:transparent;padding:0;}");
-		sb.Append("blockquote{margin:0 0 0.75em;padding:0.12em 0.9em;border-left:4px solid #d1d5db;color:#4b5563;}");
+		sb.Append("blockquote{margin:0 0 0.75em;padding:0.12em 0.9em;border-left:4px solid ").Append(th.Bar);
+		sb.Append(";color:").Append(th.Quote).Append(";}");
 		sb.Append(".tbl{max-width:100%;overflow:auto;margin:0 0 0.9em;}");
 		sb.Append("table{border-collapse:collapse;margin:0;}");
-		sb.Append("th,td{border:1px solid #e5e7eb;padding:0.4em 0.63em;}");
-		sb.Append("th{background:#f9fafb;}");
+		sb.Append("th,td{border:1px solid ").Append(th.Border).Append(";padding:0.4em 0.63em;}");
+		sb.Append("th{background:").Append(th.ThBg).Append(";}");
 		sb.Append("img{max-width:100%;height:auto;}");
-		sb.Append("hr{border:0;border-top:1px solid #e5e7eb;margin:1em 0;}");
-		sb.Append(".hint{color:#6b7280;font-size:1.07em;padding:3em 0.5em;}");
+		sb.Append("hr{border:0;border-top:1px solid ").Append(th.Border).Append(";margin:1em 0;}");
+		sb.Append(".hint{color:").Append(th.Muted).Append(";font-size:1.07em;padding:3em 0.5em;}");
 		sb.Append("</style></head><body>");
 	}
 

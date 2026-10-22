@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - New SQL function lookup: MySQL, SQL Server, Oracle, SQLite and PostgreSQL tabs, 10 categories (strings, numbers, dates, casts, aggregation, window functions, conditions, JSON, metadata, misc), and the last database is remembered
 - HTTP API: list engines and query models per engine for OCR, speech recognition, and translation
 - MD reader: dropping a .lnk shortcut to a Markdown file opens its target
+- MD reader: five themes (light, dark, sepia, eye care, midnight) with a theme picker in the WPF window and the web tool; the choice is remembered
 
 #### Changed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增 SQL 函数查询：MySQL、SQL Server、Oracle、SQLite、PostgreSQL 五个页签，按字符串、数值、日期、类型转换、聚合、窗口函数、条件、JSON、元数据、其他分类，并记住上次选的数据库
 - HTTP 接口：OCR、语音识别、翻译增加查引擎、按引擎查模型
 - MD 阅读器：可拖入指向 Markdown 的 .lnk 快捷方式
+- MD 阅读器：新增明亮、暗色、米黄、护眼、午夜蓝五种主题，WPF 窗口和网页工具都能切换并记住选择
 
 #### 变更
 

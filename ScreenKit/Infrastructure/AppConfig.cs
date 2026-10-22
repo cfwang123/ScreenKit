@@ -186,6 +186,8 @@ static class AppConfig {
 				o.ImgConvThumbView = parsebool(ictv, true);
 			if (map.TryGetValue("sf_browse_thumb_view", out var sftv))
 				o.SfBrowseThumbView = parsebool(sftv, false);
+			if (map.TryGetValue("mdread_theme", out var mdth) && !string.IsNullOrWhiteSpace(mdth))
+				o.MdReadTheme = MdRead.ThemeOf(mdth.Trim().Trim('"')).Id;
 			if (map.TryGetValue("imgconv_keep_orig", out var icko))
 				o.ImgConvKeepOrigEnabled = parsebool(icko, true);
 			if (map.TryGetValue("imgconv_keep_orig_pct", out var ickp) && int.TryParse(ickp, out var ickPct))
@@ -714,6 +716,8 @@ static class AppConfig {
 		sb.AppendLine($"# 压缩后体积仍 ≥ 原图该比例则复制原文件（旋转/缩放除外）");
 		sb.AppendLine($"imgconv_keep_orig = {(o.ImgConvKeepOrigEnabled ? "true" : "false")}");
 		sb.AppendLine($"imgconv_keep_orig_pct = {Compat.Clamp(o.ImgConvKeepOrigPct <= 0 ? 80 : o.ImgConvKeepOrigPct, 1, 100)}");
+		sb.AppendLine($"# MD 阅读器主题：light | dark | sepia | green | night");
+		sb.AppendLine($"mdread_theme = \"{MdRead.ThemeOf(o.MdReadTheme).Id}\"");
 		var vcFmt = VidConvert.NormFmt(o.VidConvFormat);
 		sb.AppendLine($"# 视频批量转换：mp4 | mkv | webm；输出 beside | other | replace | recycle");
 		sb.AppendLine($"vidconv_format = \"{vcFmt}\"");

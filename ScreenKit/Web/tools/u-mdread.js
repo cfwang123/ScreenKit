@@ -1,5 +1,9 @@
 (function(){
 	var hooked = false;
+	var lastb64 = "";
+	var lasttitle = "";
+	var THEMES = ["light", "dark", "sepia", "green", "night"];
+
 	SK.regutil("u-mdread", {
 		title: "MD阅读器",
 		own: true,
@@ -17,6 +21,7 @@
 			+ '<div class="mdread-bar">'
 			+ '<button type="button" id="md-open">' + SK.esc(openLabel) + "</button>"
 			+ '<input id="md-file" type="file" accept=".md,.markdown,.mdown,.mkd,text/markdown" hidden>'
+			+ '<select id="md-theme" class="mdtheme" title="' + SK.esc(SK.t("mdread.theme") || "") + '"></select>'
 			+ '<span id="md-name" data-k="web.mdread.hint">' + SK.esc(hint) + "</span>"
 			+ "</div>"
 			+ '<div class="mdread-stage">'
@@ -33,12 +38,44 @@
 			take(file.files && file.files[0]);
 			file.value = "";
 		};
+		filltheme();
+		var sel = F.id("md-theme");
+		if (sel) sel.onchange = function(){
+			savetheme(sel.value);
+			render();
+		};
 		if (hooked) return;
 		hooked = true;
 		F.on(document, "dragenter", arm);
 		F.on(document, "dragover", arm);
 		F.on(document, "drop", ondrop);
 		F.on(document, "dragend", disarm);
+	}
+
+	function filltheme(){
+		var sel = F.id("md-theme");
+		if (!sel) return;
+		while (sel.firstChild) sel.removeChild(sel.firstChild);
+		var i;
+		for (i = 0; i < THEMES.length; i++) {
+			var op = F.el("option");
+			op.value = THEMES[i];
+			op.textContent = SK.t("mdread.theme." + THEMES[i]) || THEMES[i];
+			sel.appendChild(op);
+		}
+		sel.value = loadtheme();
+	}
+
+	function loadtheme(){
+		var v = "";
+		try { v = F.lget("sk-mdtheme") || ""; } catch (e) { v = ""; }
+		var i;
+		for (i = 0; i < THEMES.length; i++) if (THEMES[i] === v) return v;
+		return THEMES[0];
+	}
+
+	function savetheme(v){
+		try { F.lset("sk-mdtheme", v || THEMES[0]); } catch (e) { }
 	}
 
 	function arm(ev){
@@ -76,18 +113,29 @@
 		var reader = new FileReader();
 		reader.onload = function(){
 			var bytes = new Uint8Array(reader.result);
-			SK.post("/api/md", { base64: tob64(bytes), title: file.name || "" }, function(data){
-				var view = F.id("md-view");
-				if (view) view.srcdoc = (data && data.html) || "";
-				var name = F.id("md-name");
-				if (name) {
-					F.unset(name, "data-k");
-					name.textContent = file.name || "";
-				}
-				SK.msg("box-msg", "");
-			}, "box-msg");
+			lastb64 = tob64(bytes);
+			lasttitle = file.name || "";
+			var name = F.id("md-name");
+			if (name) {
+				F.unset(name, "data-k");
+				name.textContent = file.name || "";
+			}
+			render();
 		};
 		reader.readAsArrayBuffer(file);
+	}
+
+	function render(){
+		if (!lastb64) return;
+		var sel = F.id("md-theme");
+		SK.post("/api/md", { base64: lastb64, title: lasttitle, theme: sel ? sel.value : "" }, function(data){
+			var view = F.id("md-view");
+			if (view) {
+				view.srcdoc = (data && data.html) || "";
+				if (data && data.bg) view.style.background = data.bg;
+			}
+			SK.msg("box-msg", "");
+		}, "box-msg");
 	}
 
 	function tob64(bytes){
