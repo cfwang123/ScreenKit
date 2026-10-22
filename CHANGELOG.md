@@ -44,6 +44,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - The novel reader's dictionary popup can be resized from its edges and corners, and toggled to full screen from the title bar button or a title-bar double-click.
+- File analysis adds image, audio, and video tabs; each shows only its own fields, and the overview keeps the rest.
 
 #### Changed
 
@@ -59,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 小说阅读器的词典浮窗可以从四边、四角拖动改大小，点标题栏按钮或双击标题栏在窗口和全屏之间切换。
+- 文件分析增加图像、音频、视频选项卡，各自只显示对应的信息，概要保留其余内容。
 
 #### 变更
 

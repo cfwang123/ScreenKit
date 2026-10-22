@@ -115,6 +115,39 @@
 					</TabControl>
 				</DockPanel>
 			</TabItem>
+			<TabItem x:Name="tabimg" Header="图像" Visibility="Collapsed"
+			         AutomationProperties.AutomationId="probe.tab.img">
+				<ListView x:Name="lvimg" BorderThickness="0">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn Width="160" DisplayMemberBinding="{Binding Name}"/>
+							<GridViewColumn Width="560" DisplayMemberBinding="{Binding Value}"/>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</TabItem>
+			<TabItem x:Name="tabaudio" Header="音频" Visibility="Collapsed"
+			         AutomationProperties.AutomationId="probe.tab.audio">
+				<ListView x:Name="lvaudio" BorderThickness="0">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn Width="160" DisplayMemberBinding="{Binding Name}"/>
+							<GridViewColumn Width="560" DisplayMemberBinding="{Binding Value}"/>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</TabItem>
+			<TabItem x:Name="tabvideo" Header="视频" Visibility="Collapsed"
+			         AutomationProperties.AutomationId="probe.tab.video">
+				<ListView x:Name="lvvideo" BorderThickness="0">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn Width="160" DisplayMemberBinding="{Binding Name}"/>
+							<GridViewColumn Width="560" DisplayMemberBinding="{Binding Value}"/>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</TabItem>
 		</TabControl>
 		<TextBlock x:Name="lbstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 	</Grid>

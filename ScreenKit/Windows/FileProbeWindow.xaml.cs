@@ -49,6 +49,12 @@ public partial class FileProbeWindow : Window {
 		colvalue.Header = Loc.T("probe.col.value");
 		tabinfo.Header = Loc.T("probe.tab.info");
 		tabpe.Header = Loc.T("probe.tab.pe");
+		tabimg.Header = Loc.T("probe.tab.img");
+		tabaudio.Header = Loc.T("probe.tab.audio");
+		tabvideo.Header = Loc.T("probe.tab.video");
+		set2cols(lvimg);
+		set2cols(lvaudio);
+		set2cols(lvvideo);
 		tabpehead.Header = Loc.T("probe.pe.view.head");
 		tabpesec.Header = Loc.T("probe.pe.view.sec");
 		tabpeimp.Header = Loc.T("probe.pe.view.imp");
@@ -69,6 +75,14 @@ public partial class FileProbeWindow : Window {
 			case 3: return lvexp;
 			default: return lvnet;
 		}
+	}
+
+	void set2cols(ListView list) {
+		if (list?.View is not GridView gv || gv.Columns.Count < 2) return;
+		gv.Columns[0].Header = Loc.T("probe.col.name");
+		gv.Columns[1].Header = Loc.T("probe.col.value");
+		gv.Columns[0].Width = 160;
+		gv.Columns[1].Width = 560;
 	}
 
 	void pick() {
@@ -99,29 +113,52 @@ public partial class FileProbeWindow : Window {
 
 	void paint(string err) {
 		var view = new List<Item>();
+		var img = new List<Item>();
+		var media = new List<Item>();
+		var video = false;
 		if (report != null) {
 			foreach (var r in report.Rows) {
-				var value = r.Value;
-				if (r.Key == "probe.magic") value = kind(value);
-				else if (r.Key == "probe.match") value = value == "yes" ? Loc.T("probe.yes") : Loc.T("probe.no");
-				else if (r.Key == "probe.ver.type") value = filetype(value);
-				else if (r.Key == "probe.pe.arch") value = arch(value);
-				else if (r.Key == "probe.pe.subsys") value = subsys(value);
-				else if (r.Key == "probe.pe.managed") value = value == "yes" ? Loc.T("probe.yes") : Loc.T("probe.no");
-				else if (r.Key == "probe.enc.bom" && value == "none") value = Loc.T("probe.enc.none");
-				else if (r.Key == "probe.enc.guess") value = guess(value);
-				view.Add(new Item { Name = Loc.T(r.Key), Value = value });
+				var it = new Item { Name = Loc.T(r.Key), Value = rowvalue(r) };
+				if (r.Key.StartsWith("probe.img.", StringComparison.Ordinal)) img.Add(it);
+				else if (r.Key.StartsWith("probe.media.", StringComparison.Ordinal)) {
+					if (isvideokey(r.Key)) video = true;
+					media.Add(it);
+				}
+				else view.Add(it);
 			}
 		}
 		lv.ItemsSource = view;
+		lvimg.ItemsSource = img;
+		lvaudio.ItemsSource = video ? null : media;
+		lvvideo.ItemsSource = video ? media : null;
+		tabimg.Visibility = img.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+		tabaudio.Visibility = !video && media.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+		tabvideo.Visibility = video ? Visibility.Visible : Visibility.Collapsed;
 		var pe = report != null && (report.Kind == "exe" || report.Kind == "dll");
 		tabpe.Visibility = pe ? Visibility.Visible : Visibility.Collapsed;
-		if (!pe && tabs.SelectedItem == tabpe) tabs.SelectedIndex = 0;
+		if (tabs.SelectedItem is TabItem cur && cur.Visibility != Visibility.Visible) tabs.SelectedIndex = 0;
 		showpe();
 		if (err == "empty") lbstat.Text = Loc.T("probe.empty");
 		else if (err == "missing") lbstat.Text = Loc.T("probe.missing");
 		else if (err != null) lbstat.Text = err;
 		else restat();
+	}
+
+	static bool isvideokey(string key) =>
+		key == "probe.media.res" || key == "probe.media.vcodec" ||
+		key == "probe.media.fps" || key == "probe.media.vrate";
+
+	static string rowvalue(FileProbe.Row r) {
+		var value = r.Value;
+		if (r.Key == "probe.magic") value = kind(value);
+		else if (r.Key == "probe.match") value = value == "yes" ? Loc.T("probe.yes") : Loc.T("probe.no");
+		else if (r.Key == "probe.ver.type") value = filetype(value);
+		else if (r.Key == "probe.pe.arch") value = arch(value);
+		else if (r.Key == "probe.pe.subsys") value = subsys(value);
+		else if (r.Key == "probe.pe.managed") value = value == "yes" ? Loc.T("probe.yes") : Loc.T("probe.no");
+		else if (r.Key == "probe.enc.bom" && value == "none") value = Loc.T("probe.enc.none");
+		else if (r.Key == "probe.enc.guess") value = guess(value);
+		return value;
 	}
 
 	void showpe() {
@@ -251,12 +288,16 @@ public partial class FileProbeWindow : Window {
 
 	void restat() {
 		int n;
-		if (tabs.SelectedItem == tabpe && tabpe.Visibility == Visibility.Visible) {
+		var sel = tabs.SelectedItem;
+		if (sel == tabpe && tabpe.Visibility == Visibility.Visible) {
 			var view = petabs.SelectedIndex;
 			if (view < 0) view = 0;
 			if (view == 5) n = string.IsNullOrEmpty(epetext.Text) ? 0 : 1;
 			else n = peview(view)?.Items.Count ?? 0;
 		}
+		else if (sel == tabimg) n = lvimg.Items.Count;
+		else if (sel == tabaudio) n = lvaudio.Items.Count;
+		else if (sel == tabvideo) n = lvvideo.Items.Count;
 		else n = lv.Items.Count;
 		lbstat.Text = Loc.T("systool.stat", n, n);
 	}
@@ -281,16 +322,22 @@ public partial class FileProbeWindow : Window {
 				}
 			}
 		}
-		else if (lv.ItemsSource is IEnumerable<Item> list) {
-			foreach (var it in list) {
-				if (sb.Length > 0) sb.Append('\n');
-				sb.Append(it.Name);
-				sb.Append('\t');
-				sb.Append(it.Value);
-			}
-		}
+		else if (tabs.SelectedItem == tabimg) appenditems(sb, lvimg.ItemsSource as IEnumerable<Item>);
+		else if (tabs.SelectedItem == tabaudio) appenditems(sb, lvaudio.ItemsSource as IEnumerable<Item>);
+		else if (tabs.SelectedItem == tabvideo) appenditems(sb, lvvideo.ItemsSource as IEnumerable<Item>);
+		else appenditems(sb, lv.ItemsSource as IEnumerable<Item>);
 		if (sb.Length == 0) return;
 		try { Clipboard.SetText(sb.ToString()); } catch { }
+	}
+
+	static void appenditems(StringBuilder sb, IEnumerable<Item> list) {
+		if (list == null) return;
+		foreach (var it in list) {
+			if (sb.Length > 0) sb.Append('\n');
+			sb.Append(it.Name);
+			sb.Append('\t');
+			sb.Append(it.Value);
+		}
 	}
 
 	static string kind(string id) {
