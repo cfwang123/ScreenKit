@@ -158,6 +158,10 @@ public partial class FileProbeWindow : Window {
 		else if (r.Key == "probe.pe.managed") value = value == "yes" ? Loc.T("probe.yes") : Loc.T("probe.no");
 		else if (r.Key == "probe.enc.bom" && value == "none") value = Loc.T("probe.enc.none");
 		else if (r.Key == "probe.enc.guess") value = guess(value);
+		else if (r.Key == "probe.img.color") value = imgcolor(value);
+		else if (r.Key == "probe.img.jpg.mode") value = value == "prog" ? Loc.T("probe.img.jpg.prog") : Loc.T("probe.img.jpg.base");
+		else if (r.Key == "probe.img.webp.mode") value = value == "lossless" ? Loc.T("probe.img.webp.lossless") : Loc.T("probe.img.webp.lossy");
+		else if (r.Key == "probe.img.interlace") value = value == "yes" ? Loc.T("probe.pe.yes") : Loc.T("probe.pe.no");
 		return value;
 	}
 
@@ -348,6 +352,12 @@ public partial class FileProbeWindow : Window {
 
 	static string guess(string id) {
 		var key = $"probe.enc.{id}";
+		var t = Loc.T(key);
+		return t == key ? id : t;
+	}
+
+	static string imgcolor(string id) {
+		var key = $"probe.img.color.{id}";
 		var t = Loc.T(key);
 		return t == key ? id : t;
 	}

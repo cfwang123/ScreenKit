@@ -45,6 +45,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - The novel reader's dictionary popup can be resized from its edges and corners, and toggled to full screen from the title bar button or a title-bar double-click.
 - File analysis adds image, audio, and video tabs; each shows only its own fields, and the overview keeps the rest.
+- Image analysis shows JPEG quality, encoding, chroma subsampling, components and DPI, plus bit depth, color type, palette colors and transparency entries for PNG, GIF, BMP and TIFF.
 
 #### Changed
 
@@ -61,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 小说阅读器的词典浮窗可以从四边、四角拖动改大小，点标题栏按钮或双击标题栏在窗口和全屏之间切换。
 - 文件分析增加图像、音频、视频选项卡，各自只显示对应的信息，概要保留其余内容。
+- 图像分析显示 JPEG 质量、编码方式、色度采样、颜色分量和 DPI，以及 PNG、GIF、BMP、TIFF 的位深、颜色类型、调色板颜色和透明色项。
 
 #### 变更
 

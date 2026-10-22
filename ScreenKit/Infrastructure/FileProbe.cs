@@ -57,7 +57,7 @@ static partial class FileProbe {
 			peinfo(rep, path);
 		}
 		if (pe(kind)) rep.Pe = pedump(path);
-		if (image(kind) || image(ext)) picture(rep, path);
+		if (image(kind) || image(ext)) picture(rep, path, image(kind) ? kind : ext);
 		if (media(kind) || media(ext)) movie(rep, path);
 		if (textlike(kind, ext, head)) encoding(rep, path, head);
 		return rep;
@@ -486,12 +486,18 @@ static partial class FileProbe {
 		return -1;
 	}
 
-	static void picture(Report rep, string path) {
+	static void picture(Report rep, string path, string kind) {
+		BitmapFrame frame = null;
 		try {
 			using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-			var frame = BitmapDecoder.Create(fs, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad).Frames[0];
+			frame = BitmapDecoder.Create(fs, BitmapCreateOptions.IgnoreColorProfile, BitmapCacheOption.OnLoad).Frames[0];
 			add(rep, "probe.img.w", frame.PixelWidth.ToString());
 			add(rep, "probe.img.h", frame.PixelHeight.ToString());
+		}
+		catch { }
+		imageparams(rep, path, kind);
+		if (frame == null) return;
+		try {
 			if (frame.Metadata is BitmapMetadata meta) {
 				try { add(rep, "probe.img.time", meta.DateTaken); } catch { }
 				add(rep, "probe.img.make", qstr(meta, "/app1/ifd/{ushort=271}"));
@@ -500,6 +506,8 @@ static partial class FileProbe {
 			}
 		}
 		catch { }
+		if (valof(rep, "probe.img.dpi").Length == 0 && frame.DpiX > 0)
+			add(rep, "probe.img.dpi", $"{Math.Round(frame.DpiX)} × {Math.Round(frame.DpiY)}");
 	}
 
 	static string qstr(BitmapMetadata meta, string query) {
