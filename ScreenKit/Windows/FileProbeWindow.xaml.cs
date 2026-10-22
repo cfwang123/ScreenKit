@@ -146,7 +146,8 @@ public partial class FileProbeWindow : Window {
 
 	static bool isvideokey(string key) =>
 		key == "probe.media.res" || key == "probe.media.vcodec" ||
-		key == "probe.media.fps" || key == "probe.media.vrate";
+		key == "probe.media.fps" || key == "probe.media.vrate" ||
+		key.StartsWith("probe.media.v.", StringComparison.Ordinal);
 
 	static string rowvalue(FileProbe.Row r) {
 		var value = r.Value;

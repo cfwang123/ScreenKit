@@ -167,8 +167,11 @@ static class VidConvert {
 		catch { }
 		foreach (var c in cands) {
 			try {
-				if (File.Exists(c) && new FileInfo(c).Length >= MINEXE)
-					return c;
+				if (!File.Exists(c)) continue;
+				var fi = new FileInfo(c);
+				if (fi.Length >= MINEXE) return c;
+				// 符号链接/快捷方式本身长度是 0，指向的真文件可用就够了。
+				if ((fi.Attributes & FileAttributes.ReparsePoint) != 0) return c;
 			}
 			catch { }
 		}

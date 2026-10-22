@@ -555,7 +555,7 @@ static partial class FileProbe {
 			: exe;
 		if (!File.Exists(ffprobe)) ffprobe = exe;
 		var args = ffprobe.EndsWith("ffprobe.exe", StringComparison.OrdinalIgnoreCase)
-			? $"-v error -show_entries format=duration,bit_rate -show_entries stream=codec_type,codec_name,width,height,bit_rate,sample_rate,channels,r_frame_rate -of default=noprint_wrappers=1 \"{path}\""
+			? $"-v error -show_entries format=duration,bit_rate,format_name,nb_streams -show_entries stream=codec_type,codec_name,profile,level,width,height,pix_fmt,color_space,field_order,r_frame_rate,avg_frame_rate,bit_rate,nb_frames,sample_rate,channels,channel_layout,bits_per_sample,display_aspect_ratio -of default=noprint_wrappers=1 \"{path}\""
 			: $"-hide_banner -i \"{path}\"";
 		string stdout, stderr;
 		if (!run(ffprobe, args, out stdout, out stderr)) {
@@ -574,17 +574,34 @@ static partial class FileProbe {
 		return "";
 	}
 
+	sealed class MediaFacts {
+		public string Dur = "";
+		public string Rate = "";
+		public string Container = "";
+		public int Streams;
+		public string VCodec = "";
+		public string Vw = "";
+		public string Vh = "";
+		public string VRate = "";
+		public string Fps = "";
+		public string VProfile = "";
+		public string VLevel = "";
+		public string PixFmt = "";
+		public string Color = "";
+		public string Field = "";
+		public string Frames = "";
+		public string Dar = "";
+		public string ACodec = "";
+		public string ARate = "";
+		public string Sample = "";
+		public string Channels = "";
+		public string Layout = "";
+		public string Bits = "";
+		public string AProfile = "";
+	}
+
 	static void parseprobe(Report rep, string blob) {
-		string dur = "", fmtRate = "";
-		var vcodec = "";
-		var acodec = "";
-		var vw = "";
-		var vh = "";
-		var vrate = "";
-		var arate = "";
-		var asample = "";
-		var ach = "";
-		var fps = "";
+		var m = new MediaFacts();
 		var cur = "";
 		foreach (var raw in blob.Split('\n')) {
 			var line = raw.Trim();
@@ -594,29 +611,43 @@ static partial class FileProbe {
 			var v = line.Substring(i + 1).Trim();
 			if (v.Length == 0 || v == "N/A") continue;
 			if (k == "codec_type") cur = v;
+			else if (k == "format_name" && m.Container.Length == 0) m.Container = v;
+			else if (k == "nb_streams") int.TryParse(v, out m.Streams);
 			else if (k == "codec_name") {
-				if (cur == "video" && vcodec.Length == 0) vcodec = v;
-				if (cur == "audio" && acodec.Length == 0) acodec = v;
+				if (cur == "video" && m.VCodec.Length == 0) m.VCodec = v;
+				if (cur == "audio" && m.ACodec.Length == 0) m.ACodec = v;
 			}
-			else if (k == "width" && cur == "video" && vw.Length == 0) vw = v;
-			else if (k == "height" && cur == "video" && vh.Length == 0) vh = v;
+			else if (k == "profile" && cur == "video" && m.VProfile.Length == 0) m.VProfile = v;
+			else if (k == "profile" && cur == "audio" && m.AProfile.Length == 0) m.AProfile = v;
+			else if (k == "level" && cur == "video" && m.VLevel.Length == 0) m.VLevel = levelfmt(v);
+			else if (k == "width" && cur == "video" && m.Vw.Length == 0) m.Vw = v;
+			else if (k == "height" && cur == "video" && m.Vh.Length == 0) m.Vh = v;
+			else if (k == "pix_fmt" && cur == "video" && m.PixFmt.Length == 0) m.PixFmt = v;
+			else if (k == "color_space" && cur == "video" && m.Color.Length == 0) m.Color = v;
+			else if (k == "field_order" && cur == "video" && m.Field.Length == 0) m.Field = v;
+			else if (k == "nb_frames" && cur == "video" && m.Frames.Length == 0) m.Frames = v;
+			else if (k == "display_aspect_ratio" && cur == "video" && m.Dar.Length == 0) m.Dar = v;
 			else if (k == "bit_rate") {
 				var br = formatbps(v);
-				if (cur == "video" && vrate.Length == 0) vrate = br;
-				else if (cur == "audio" && arate.Length == 0) arate = br;
-				else if (fmtRate.Length == 0) fmtRate = br;
+				if (cur == "video" && m.VRate.Length == 0) m.VRate = br;
+				else if (cur == "audio" && m.ARate.Length == 0) m.ARate = br;
+				else if (m.Rate.Length == 0) m.Rate = br;
 			}
-			else if (k == "sample_rate" && cur == "audio" && asample.Length == 0) asample = v;
-			else if (k == "channels" && cur == "audio" && ach.Length == 0) ach = v;
-			else if (k == "r_frame_rate" && cur == "video" && fps.Length == 0) fps = framerate(v);
-			else if (k == "duration" && dur.Length == 0) dur = durms(v);
+			else if (k == "sample_rate" && cur == "audio" && m.Sample.Length == 0) m.Sample = v;
+			else if (k == "channels" && cur == "audio" && m.Channels.Length == 0) m.Channels = v;
+			else if (k == "channel_layout" && cur == "audio" && m.Layout.Length == 0) m.Layout = v;
+			else if (k == "bits_per_sample" && cur == "audio" && m.Bits.Length == 0) {
+				if (int.TryParse(v, out var bb) && bb > 0) m.Bits = v;
+			}
+			else if (k == "r_frame_rate" && cur == "video" && m.Fps.Length == 0) m.Fps = fpsfmt(v);
+			else if (k == "avg_frame_rate" && cur == "video" && m.Fps.Length == 0) m.Fps = fpsfmt(v);
+			else if (k == "duration" && m.Dur.Length == 0) m.Dur = durms(v);
 		}
-		mediarows(rep, dur, fmtRate, vcodec, acodec, vw, vh, vrate, arate, asample, ach, fps);
+		mediarows(rep, m);
 	}
 
 	static void parseffmpeg(Report rep, string blob) {
-		var dur = "";
-		var rate = "";
+		var m = new MediaFacts();
 		var vline = "";
 		var aline = "";
 		foreach (var raw in blob.Split('\n')) {
@@ -625,59 +656,80 @@ static partial class FileProbe {
 			if (d >= 0) {
 				var rest = line.Substring(d + "Duration:".Length).Trim();
 				var comma = rest.IndexOf(',');
-				if (comma > 0) dur = durfromffmpeg(rest.Substring(0, comma).Trim());
+				if (comma > 0) m.Dur = durfromffmpeg(rest.Substring(0, comma).Trim());
 				var b = rest.IndexOf("bitrate:", StringComparison.Ordinal);
-				if (b >= 0) rate = rest.Substring(b + "bitrate:".Length).Trim();
+				if (b >= 0) m.Rate = rest.Substring(b + "bitrate:".Length).Trim();
+			}
+			var inp = line.IndexOf("Input #0,", StringComparison.Ordinal);
+			if (inp >= 0 && m.Container.Length == 0) {
+				var rest = line.Substring(inp + "Input #0,".Length).Trim();
+				var comma = rest.IndexOf(',');
+				m.Container = comma > 0 ? rest.Substring(0, comma).Trim() : rest;
 			}
 			if (line.IndexOf("Video:", StringComparison.Ordinal) >= 0 && vline.Length == 0) vline = stream(line, "Video:");
 			if (line.IndexOf("Audio:", StringComparison.Ordinal) >= 0 && aline.Length == 0) aline = stream(line, "Audio:");
 		}
-		var vcodec = "";
-		var vw = "";
-		var vh = "";
-		var fps = "";
 		if (vline.Length > 0) {
 			var wh = vline.IndexOf("x", StringComparison.Ordinal);
 			if (wh > 0) {
 				var sp = vline.LastIndexOf(' ', wh);
 				if (sp >= 0 && wh - sp > 1) {
-					vcodec = vline.Substring(0, sp).Trim();
+					m.VCodec = vline.Substring(0, sp).Trim();
 					var size = vline.Substring(sp + 1);
 					var x = size.IndexOf('x');
 					if (x > 0) {
-						vw = size.Substring(0, x);
+						m.Vw = size.Substring(0, x);
 						var tail = size.Substring(x + 1);
 						var sp2 = tail.IndexOf(' ');
-						vh = sp2 > 0 ? tail.Substring(0, sp2) : tail;
+						m.Vh = sp2 > 0 ? tail.Substring(0, sp2) : tail;
 						var fp = tail.IndexOf("fps", StringComparison.Ordinal);
-						if (fp > 0) fps = tail.Substring(0, fp).Trim();
+						if (fp > 0) m.Fps = tail.Substring(0, fp).Trim();
 					}
 				}
 			}
-			if (vcodec.Length == 0) vcodec = vline.Split(' ')[0];
+			if (m.VCodec.Length == 0) m.VCodec = vline.Split(' ')[0];
 		}
-		var acodec = aline.Length == 0 ? "" : aline.Split(',')[0].Trim();
-		mediarows(rep, dur, rate, vcodec, acodec, vw, vh, "", "", "", "", fps);
+		if (aline.Length > 0) m.ACodec = aline.Split(',')[0].Trim();
+		mediarows(rep, m);
 	}
 
-	static void mediarows(Report rep, string dur, string fmtRate, string vcodec, string acodec, string vw, string vh, string vrate, string arate, string asample, string ach, string fps) {
-		add(rep, "probe.media.dur", dur);
-		if (vw.Length > 0 && vh.Length > 0) add(rep, "probe.media.res", $"{vw}x{vh}");
-		add(rep, "probe.media.vcodec", vcodec);
-		add(rep, "probe.media.acodec", acodec);
-		var sample = audiosample(asample, ach);
-		add(rep, "probe.media.sample", sample);
-		add(rep, "probe.media.rate", fmtRate);
-		add(rep, "probe.media.vrate", vrate);
-		add(rep, "probe.media.arate", arate);
-		add(rep, "probe.media.fps", fps);
+	static void mediarows(Report rep, MediaFacts m) {
+		add(rep, "probe.media.container", m.Container);
+		if (m.Streams > 0) add(rep, "probe.media.streams", m.Streams.ToString(CultureInfo.InvariantCulture));
+		add(rep, "probe.media.dur", m.Dur);
+		if (m.Vw.Length > 0 && m.Vh.Length > 0) add(rep, "probe.media.res", $"{m.Vw}x{m.Vh}");
+		add(rep, "probe.media.vcodec", m.VCodec);
+		add(rep, "probe.media.v.profile", m.VProfile);
+		add(rep, "probe.media.v.level", m.VLevel);
+		add(rep, "probe.media.v.pixfmt", m.PixFmt);
+		add(rep, "probe.media.v.color", m.Color);
+		add(rep, "probe.media.v.field", m.Field);
+		add(rep, "probe.media.fps", m.Fps);
+		add(rep, "probe.media.v.frames", m.Frames);
+		add(rep, "probe.media.v.dar", m.Dar);
+		add(rep, "probe.media.vrate", m.VRate);
+		add(rep, "probe.media.acodec", m.ACodec);
+		add(rep, "probe.media.a.profile", m.AProfile);
+		add(rep, "probe.media.sample", audiosample(m.Sample));
+		add(rep, "probe.media.a.channels", m.Channels);
+		add(rep, "probe.media.a.layout", m.Layout);
+		add(rep, "probe.media.a.bits", m.Bits);
+		add(rep, "probe.media.arate", m.ARate);
+		add(rep, "probe.media.rate", m.Rate);
 	}
 
-	static string audiosample(string hz, string ch) {
-		if (hz.Length == 0 && ch.Length == 0) return "";
-		if (hz.Length > 0 && ch.Length > 0) return $"{hz} Hz, {ch} ch";
-		if (hz.Length > 0) return $"{hz} Hz";
-		return $"{ch} ch";
+	static string levelfmt(string v) {
+		if (v.Length == 2 && char.IsDigit(v[0]) && char.IsDigit(v[1])) return $"{v[0]}.{v[1]}";
+		return v;
+	}
+
+	static string fpsfmt(string v) {
+		if (v == "0/0" || v == "0") return "";
+		return framerate(v);
+	}
+
+	static string audiosample(string hz) {
+		return hz.Length > 0 ? $"{hz} Hz" : "";
 	}
 
 	static string stream(string line, string tag) {
@@ -731,12 +783,17 @@ static partial class FileProbe {
 	static void wavhead(Report rep, string path) {
 		try {
 			if (!wavinfo(path, out var rate, out var ch, out var bits, out var dataBytes)) return;
+			if (valof(rep, "probe.media.container").Length == 0) add(rep, "probe.media.container", "WAV");
 			if (valof(rep, "probe.media.dur").Length == 0) {
 				var bps = rate * ch * (bits / 8);
 				if (bps > 0 && dataBytes > 0) add(rep, "probe.media.dur", durms(((double)dataBytes / bps).ToString(CultureInfo.InvariantCulture)));
 			}
 			if (valof(rep, "probe.media.acodec").Length == 0) add(rep, "probe.media.acodec", $"pcm_s{bits}le");
-			if (valof(rep, "probe.media.sample").Length == 0) add(rep, "probe.media.sample", audiosample(rate.ToString(), ch.ToString()));
+			if (valof(rep, "probe.media.a.channels").Length == 0 && ch > 0)
+				add(rep, "probe.media.a.channels", ch.ToString(CultureInfo.InvariantCulture));
+			if (valof(rep, "probe.media.a.bits").Length == 0 && bits > 0)
+				add(rep, "probe.media.a.bits", bits.ToString(CultureInfo.InvariantCulture));
+			if (valof(rep, "probe.media.sample").Length == 0) add(rep, "probe.media.sample", audiosample(rate.ToString()));
 			if (valof(rep, "probe.media.rate").Length == 0) {
 				var bps = rate * ch * bits;
 				if (bps > 0) add(rep, "probe.media.rate", formatbps(bps.ToString()));
