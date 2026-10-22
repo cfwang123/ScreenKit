@@ -13,8 +13,8 @@ android {
         applicationId = "com.whj.screenkit"
         minSdk = 24
         targetSdk = 34
-        versionCode = 28
-        versionName = "1.0.27"
+        versionCode = 29
+        versionName = "1.0.28"
     }
 
     val sharedStore = file("debug.keystore")

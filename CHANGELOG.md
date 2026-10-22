@@ -9,6 +9,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 ## Versions / 版本索引
 
 - [unreleased](#unreleased)
+- [v1.0.28 (2026-10-23)](#v1028-2026-10-23)
 - [v1.0.27 (2026-10-21 ~ 22)](#v1027-2026-10-21--22)
 - [v1.0.26 (2026-10-20)](#v1026-2026-10-20)
 - [v1.0.25 (2026-10-17 ~ 18)](#v1025-2026-10-17--18)
@@ -37,7 +38,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.2 (2026-08-26)](#v102-2026-08-26)
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
+
 ## unreleased
+
+## v1.0.28 (2026-10-23)
 
 ### English
 
