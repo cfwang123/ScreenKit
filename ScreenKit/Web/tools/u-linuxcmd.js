@@ -47,7 +47,7 @@
 		["syntax", "| 管道", "把上一条命令的输出交给下一条", "ps aux | grep nginx"],
 		["syntax", "> 与 >> 与 2>&1", "覆盖、追加、把错误并进标准输出", "app > out.log 2>&1"],
 		["syntax", "&& 与 || 与 ;", "成功才继续、失败才执行、依次执行", "make && ./app || echo fail"],
-		["syntax", "\\ 续行", "行尾反斜杠把一条命令接到下一行", "tar -czf app.tgz \\ --exclude='*.log' app/"],
+		["syntax", "\\ 续行", "行尾反斜杠把一条命令接到下一行", "tar -czf app.tgz \\"],
 		["syntax", "* ? [] 通配符", "按模式匹配文件名，由 shell 展开", "ls *.log ?.txt [abc]*"],
 		["syntax", "<<EOF", "here-doc：把多行文本喂给命令", "cat > app.conf <<EOF"],
 		["syntax", "[ ] 与 [[ ]]", "条件判断；[[ ]] 支持正则和 && ||", "if [ -f app.log ]; then echo ok; fi"],
