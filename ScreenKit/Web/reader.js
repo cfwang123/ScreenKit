@@ -29,6 +29,7 @@
 	};
 	var dcur = null;
 	var dgen = 0;
+	var maxbox = null;
 	var scrollever = 0;
 
 
@@ -182,7 +183,10 @@
 		settitle(st.cur);
 		drawrate();
 		paintbooks();
-		if ($("rd-dict")) painttabs();
+		if ($("rd-dict")) {
+			painttabs();
+			paintmax($("rd-dict").classList.contains("max"));
+		}
 	}
 
 	// ==================== 界面 ====================
@@ -250,6 +254,7 @@
 			'<div id="rd-dict-bar" class="rd-dict-bar"><strong data-k="dict.title">' + L("dict.title", "词典") + "</strong>",
 			'<span id="rd-dict-status" class="rd-dict-status"></span>',
 			'<button id="rd-dict-speak" class="rd-mini" type="button" title="' + esc(L("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>',
+			'<button id="rd-dict-max" class="rd-mini" type="button" title="' + esc(L("web.reader.max", "最大化")) + '"><i class="fa-solid fa-expand"></i></button>',
 			'<button id="rd-dict-close" class="rd-x" type="button" title="' + esc(L("web.reader.close", "关闭")) + '">×</button></div>',
 			'<div class="rd-dict-search"><input id="rd-dict-q" type="search" autocomplete="off" placeholder="' + esc(L("web.reader.dictq", "词、字、拼音或英文")) + '" data-kph="web.reader.dictq">',
 			'<button id="rd-dict-go" type="button" data-k="web.reader.search">' + L("web.reader.search", "查") + "</button></div>",
@@ -1467,6 +1472,7 @@
 			if (!dcur) return;
 			speakdict(dcur.speak || dcur.word || "", dcur.dict || "");
 		};
+		$("rd-dict-max").onclick = function(){ dictmax(); };
 		$("rd-dict-go").onclick = function(){ dictsearch($("rd-dict-q").value); };
 		on($("rd-dict-detail"), "click", function(ev){
 			var say = ev.target.closest(".spk");
@@ -1500,6 +1506,7 @@
 		}
 		painttabs();
 		inidrag();
+		iniresize();
 	}
 
 	function painttabs(){
@@ -1538,7 +1545,7 @@
 
 	function plaacedict(){
 		var win = $("rd-dict");
-		if (!win || win.dataset.moved) return;
+		if (!win || win.dataset.moved || win.classList.contains("max")) return;
 		var w = win.offsetWidth || 860;
 		var h = win.offsetHeight || 560;
 		win.style.left = Math.max(8, Math.round((window.innerWidth - w) / 2)) + "px";
@@ -1553,11 +1560,16 @@
 		var dragging = false;
 		on(bar, "mousedown", function(ev){
 			if (ev.target.closest && ev.target.closest("button")) return;
+			if (win.classList.contains("max")) return;
 			dragging = true;
 			var r = win.getBoundingClientRect();
 			dx = ev.clientX - r.left;
 			dy = ev.clientY - r.top;
 			ev.preventDefault();
+		});
+		on(bar, "dblclick", function(ev){
+			if (ev.target.closest && ev.target.closest("button")) return;
+			dictmax();
 		});
 		on(document, "mousemove", function(ev){
 			if (!dragging) return;
@@ -1568,6 +1580,94 @@
 			win.style.top = Math.round(y) + "px";
 		});
 		on(document, "mouseup", function(){ dragging = false; });
+	}
+
+	/** 四边、四角都能拖动改大小；不能小于 480×280，也不超出窗口。 */
+	function iniresize(){
+		var win = $("rd-dict");
+		var dirs = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
+		for (var i = 0; i < dirs.length; i++) {
+			var h = el("div");
+			h.className = "rd-rs";
+			h.setAttribute("data-dir", dirs[i]);
+			win.appendChild(h);
+			on(h, "mousedown", resizefn(h));
+		}
+	}
+
+	function resizefn(handle){
+		return function(ev){
+			var win = $("rd-dict");
+			if (win.classList.contains("max")) return;
+			ev.preventDefault();
+			ev.stopPropagation();
+			var dir = attr(handle, "data-dir") || "";
+			var r = win.getBoundingClientRect();
+			var start = { x: ev.clientX, y: ev.clientY, left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+			var vw = window.innerWidth;
+			var vh = window.innerHeight;
+			var minw = Math.min(600, vw - 8);
+			var minh = Math.min(320, vh - 8);
+			function move(e){
+				var dx = e.clientX - start.x;
+				var dy = e.clientY - start.y;
+				var left = start.left;
+				var top = start.top;
+				var right = start.right;
+				var bottom = start.bottom;
+				if (dir.indexOf("e") >= 0) right = Math.min(vw, Math.max(left + minw, start.right + dx));
+				if (dir.indexOf("w") >= 0) left = Math.max(0, Math.min(start.left + dx, right - minw));
+				if (dir.indexOf("s") >= 0) bottom = Math.min(vh, Math.max(top + minh, start.bottom + dy));
+				if (dir.indexOf("n") >= 0) top = Math.max(0, Math.min(start.top + dy, bottom - minh));
+				win.dataset.moved = "1";
+				win.style.left = Math.round(left) + "px";
+				win.style.top = Math.round(top) + "px";
+				win.style.width = Math.round(right - left) + "px";
+				win.style.height = Math.round(bottom - top) + "px";
+			}
+			function up(){
+				document.removeEventListener("mousemove", move);
+				document.removeEventListener("mouseup", up);
+			}
+			document.addEventListener("mousemove", move);
+			document.addEventListener("mouseup", up);
+		};
+	}
+
+	function dictmax(onoff){
+		var win = $("rd-dict");
+		if (!win) return;
+		var on = arguments.length ? !!onoff : !win.classList.contains("max");
+		if (on === win.classList.contains("max")) return;
+		if (on) {
+			maxbox = {
+				left: win.style.left,
+				top: win.style.top,
+				width: win.style.width,
+				height: win.style.height,
+				moved: win.dataset.moved || ""
+			};
+			win.classList.add("max");
+		}
+		else {
+			win.classList.remove("max");
+			if (maxbox) {
+				win.style.left = maxbox.left || "";
+				win.style.top = maxbox.top || "";
+				win.style.width = maxbox.width || "";
+				win.style.height = maxbox.height || "";
+				if (maxbox.moved) win.dataset.moved = maxbox.moved;
+				else win.removeAttribute("data-moved");
+			}
+		}
+		paintmax(win.classList.contains("max"));
+	}
+
+	function paintmax(on){
+		var b = $("rd-dict-max");
+		if (!b) return;
+		b.innerHTML = '<i class="fa-solid ' + (on ? "fa-compress" : "fa-expand") + '"></i>';
+		b.title = on ? (L("web.reader.restore", "还原")) : (L("web.reader.max", "最大化"));
 	}
 
 	function usedictlang(){

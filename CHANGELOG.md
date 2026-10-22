@@ -41,11 +41,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- The novel reader's dictionary popup can be resized from its edges and corners, and toggled to full screen from the title bar button or a title-bar double-click.
+
 #### Changed
 
 - The novel reader's dictionary popup uses the dictionary page's layout and colors for its hit list and entry detail.
 
 ### 中文
+
+#### 新增
+
+- 小说阅读器的词典浮窗可以从四边、四角拖动改大小，点标题栏按钮或双击标题栏在窗口和全屏之间切换。
 
 #### 变更
 

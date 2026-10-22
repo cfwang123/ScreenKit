@@ -178,16 +178,45 @@ button, input, select { font: inherit; }
 .rd-dict {
 	position: fixed; z-index: 60; left: 8vw; top: 8vh;
 	width: min(880px, 90vw); height: min(600px, 78vh);
+	min-width: 600px; min-height: 320px;
 	display: flex; flex-direction: column; overflow: hidden;
 	background: #fff; border: 1px solid var(--line); border-radius: 14px;
 	box-shadow: 0 18px 48px rgba(40, 30, 20, 0.22);
 }
 .rd-dict[hidden] { display: none !important; }
+.rd-dict.max {
+	left: 0 !important; top: 0 !important;
+	width: 100% !important; height: 100% !important;
+	border-radius: 0;
+}
+.rd-dict.max .rd-dict-bar { cursor: default; }
+/* 四边和四角拖动改大小；最大化时隐藏 */
+.rd-rs { position: absolute; z-index: 4; }
+.rd-rs[data-dir="n"], .rd-rs[data-dir="s"] { left: 10px; right: 10px; height: 5px; cursor: ns-resize; }
+.rd-rs[data-dir="n"] { top: 0; }
+.rd-rs[data-dir="s"] { bottom: 0; }
+.rd-rs[data-dir="e"], .rd-rs[data-dir="w"] { top: 10px; bottom: 10px; width: 5px; cursor: ew-resize; }
+.rd-rs[data-dir="e"] { right: 0; }
+.rd-rs[data-dir="w"] { left: 0; }
+.rd-rs[data-dir="ne"], .rd-rs[data-dir="nw"], .rd-rs[data-dir="se"], .rd-rs[data-dir="sw"] {
+	width: 12px; height: 12px;
+}
+.rd-rs[data-dir="ne"] { top: 0; right: 0; cursor: nesw-resize; }
+.rd-rs[data-dir="nw"] { top: 0; left: 0; cursor: nwse-resize; }
+.rd-rs[data-dir="se"] { bottom: 0; right: 0; cursor: nwse-resize; }
+.rd-rs[data-dir="sw"] { bottom: 0; left: 0; cursor: nesw-resize; }
+.rd-rs[data-dir="se"]::after {
+	content: ""; position: absolute; right: 4px; bottom: 4px; width: 7px; height: 7px;
+	border-right: 2px solid #b9b1a7; border-bottom: 2px solid #b9b1a7; border-radius: 0 0 2px 0;
+	pointer-events: none;
+}
+.rd-dict.max .rd-rs { display: none; }
 .rd-dict-bar {
 	display: flex; align-items: center; gap: 8px; padding: 8px 10px;
 	background: #faf8f5; border-bottom: 1px solid var(--line); cursor: grab; user-select: none;
 }
 .rd-dict-bar strong { flex: none; }
+.rd-dict-bar button { position: relative; z-index: 5; }
 .rd-dict-status { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-dict-search { display: flex; gap: 8px; padding: 10px 12px 0; }
 .rd-dict-search input {
@@ -207,7 +236,7 @@ button, input, select { font: inherit; }
 .rd-dict-tabs button:disabled { opacity: 0.4; }
 .rd-dict-main { flex: 1; min-height: 0; display: flex; gap: 8px; padding: 8px 12px 10px; }
 .rd-dict-list {
-	width: 340px; min-width: 200px; overflow: auto;
+	width: min(340px, 42%); min-width: 180px; overflow: auto;
 	border: 1px solid var(--line); border-radius: 8px;
 }
 .rd-dict-list .rd-dhit {
