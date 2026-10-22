@@ -8,6 +8,67 @@ namespace ScreenKit;
 sealed partial class HttpOcrServer {
 	TranslateEngine httpTr;
 
+	/// <summary>翻译引擎：自动、本地 ONNX、Chrome、LLM。</summary>
+	void handletranslateengines(SockCtx ctx) {
+		var o = getOpts?.Invoke() ?? new OcrOptions();
+		List<TranslateModelInfo> models;
+		try { models = TranslateModelScanner.Scan(); }
+		catch { models = new List<TranslateModelInfo>(); }
+		var onnx = models.Count(m => m != null && m.IsOnnx);
+		var ready = models.Count(m => m != null && m.IsOnnx && m.IsReady);
+		var llms = o.LlmList?.Where(x => x != null).ToList() ?? new List<LlmEndpoint>();
+		var llmReady = llms.Count(x => AsrLlmClient.IsEndpointReady(x));
+		var arr = new JsonArray {
+			new JsonObject { ["engine"] = "auto", ["name"] = "Auto" },
+			new JsonObject { ["engine"] = "onnx", ["name"] = "ONNX", ["count"] = onnx, ["ready"] = ready },
+			new JsonObject { ["engine"] = "chrome", ["name"] = "Chrome", ["ready"] = o.ChromeTranslate() },
+			new JsonObject { ["engine"] = "llm", ["name"] = "LLM", ["count"] = llms.Count, ["ready"] = llmReady },
+		};
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = arr,
+			["count"] = arr.Count,
+		});
+	}
+
+	/// <summary>按引擎列翻译模型：onnx 是本地方向模型，llm 是已配置端点。</summary>
+	void handletranslatemodels(SockCtx ctx) {
+		var engine = (query(ctx.Request, "engine") ?? "").Trim().ToLowerInvariant();
+		if (engine.Length > 0 && engine is not ("auto" or "onnx" or "chrome" or "llm")) {
+			writejson(ctx, 200, err(802, "未知 engine（auto / onnx / chrome / llm）"));
+			return;
+		}
+		var o = getOpts?.Invoke() ?? new OcrOptions();
+		var arr = new JsonArray();
+		if (engine.Length == 0 || engine == "onnx") {
+			List<TranslateModelInfo> models;
+			try { models = TranslateModelScanner.Scan(); }
+			catch { models = new List<TranslateModelInfo>(); }
+			foreach (var one in translatemodels(models)) arr.Add(one);
+		}
+		if (engine.Length == 0 || engine == "llm") {
+			var list = o.LlmList;
+			if (list != null) {
+				foreach (var ep in list) {
+					if (ep == null) continue;
+					var name = ep.DisplayName ?? "";
+					arr.Add(new JsonObject {
+						["engine"] = "llm",
+						["id"] = name,
+						["name"] = name,
+						["model"] = ep.Model ?? "",
+						["ready"] = AsrLlmClient.IsEndpointReady(ep),
+					});
+				}
+			}
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = arr,
+			["count"] = arr.Count,
+		});
+	}
+
 	void handletranslatelangs(SockCtx ctx) {
 		var o = getOpts?.Invoke() ?? new OcrOptions();
 		var chrome = o.ChromeTranslate();

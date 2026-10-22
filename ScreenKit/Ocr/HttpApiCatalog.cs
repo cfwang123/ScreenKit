@@ -91,11 +91,15 @@ static class HttpApiCatalog {
 		add(list, "POST /api/qrscan", "POST", "/api/qrscan", "{\n  \"base64\": \"\"\n}", "http.doc.qrscan");
 		add(list, "POST /api/cast/stop", "POST", "/api/cast/stop", "", "http.doc.caststop", accept: "GET/POST");
 		add(list, "GET /api", "GET", "/api", "", "http.doc.api");
+		add(list, "GET /api/ocr/engines", "GET", "/api/ocr/engines", "", "http.doc.ocringines", "ocr");
 		add(list, "GET /api/ocr/models", "GET", "/api/ocr/models", "", "http.doc.ocrmodels", "ocr");
+		add(list, "GET /api/ocr/models?engine", "GET", "/api/ocr/models?engine=winocr", "", "http.doc.ocrmodels", "ocr");
 		add(list, "GET /api/ocr/get_options", "GET", "/api/ocr/get_options", "", "http.doc.ocropt", "ocr");
 		add(list, "POST /api/ocr", "POST", "/api/ocr", "{\n  \"base64\": \"\",\n  \"options\": {}\n}", "http.doc.ocr", "ocr");
 		add(list, "POST /api/qr", "POST", "/api/qr", "{\n  \"base64\": \"\",\n  \"format\": \"dict\"\n}", "http.doc.qr", "ocr", aliases: "/api/qrcode,/api/barcode,/api/barcodes");
+		add(list, "GET /api/asr/engines", "GET", "/api/asr/engines", "", "http.doc.asrengines", "asr");
 		add(list, "GET /api/asr/models", "GET", "/api/asr/models", "", "http.doc.asrmodels", "asr");
+		add(list, "GET /api/asr/models?engine", "GET", "/api/asr/models?engine=winrt", "", "http.doc.asrmodels", "asr");
 		add(list, "POST /api/asr", "POST", "/api/asr", "{\n  \"path\": \"\",\n  \"lang\": \"auto\"\n}", "http.doc.asr", "asr");
 		add(list, "GET /api/tts/engines", "GET", "/api/tts/engines", "", "http.doc.ttsengines", "tts");
 		add(list, "GET /api/tts/models", "GET", "/api/tts/models", "", "http.doc.ttsmodels", "tts");
@@ -110,6 +114,9 @@ static class HttpApiCatalog {
 		add(list, "POST /api/itn", "POST", "/api/itn", "{\n  \"text\": \"二零二四年一月一日\"\n}", "http.doc.itn", "asr");
 		add(list, "GET /api/chrome/packs", "GET", "/api/chrome/packs", "", "http.doc.chromepacks", accept: "GET/POST");
 		add(list, "POST /api/chrome/packs", "POST", "/api/chrome/packs", "{\n  \"op\": \"install\",\n  \"ids\": [\"tr:en - zh\"]\n}", "http.doc.chromepacks");
+		add(list, "GET /api/translate/engines", "GET", "/api/translate/engines", "", "http.doc.translateengines", "translate");
+		add(list, "GET /api/translate/models", "GET", "/api/translate/models", "", "http.doc.translatemodels", "translate");
+		add(list, "GET /api/translate/models?engine", "GET", "/api/translate/models?engine=onnx", "", "http.doc.translatemodels", "translate");
 		add(list, "GET /api/translate/langs", "GET", "/api/translate/langs", "", "http.doc.translate.langs", "translate");
 		add(list, "POST /api/translate", "POST", "/api/translate", "{\n  \"items\": [\"你好\"],\n  \"src\": \"zh\",\n  \"dst\": \"en\"\n}", "http.doc.translate", "translate", aliases: "/api/translate/batch");
 		add(list, "POST /api/chat", "POST", "/api/chat", "{\n  \"text\": \"你好\",\n  \"tts\": false,\n  \"agent\": false\n}", "http.doc.chat", "chat");

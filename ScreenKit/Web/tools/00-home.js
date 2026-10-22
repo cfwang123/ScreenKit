@@ -698,6 +698,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-sqlfunc",
+						"data-cat":"info",
+						"data-name":"sql 数据库 函数 mysql sqlserver oracle sqlite postgresql 字符串 日期 聚合 窗口 json 查询",
+						"title":"SQL 函数查询，可选 MySQL、SQL Server、Oracle、SQLite、PostgreSQL，点一下复制",
+						c:[
+						{x:"i.fa-solid.fa-database"},
+						{x:"span","data-k":"web.tool.sqlfunc",c:"SQL 函数查询"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-sqlfunc","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-soft",
 						"data-cat":"info",
 						"data-name":"linux 开源 常用软件 软件 安装 apt docker 播放器 数据库 编辑器",

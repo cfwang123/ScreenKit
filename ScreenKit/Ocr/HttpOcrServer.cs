@@ -203,6 +203,16 @@ sealed partial class HttpOcrServer : IDisposable {
 				&& sendFile.TryHandle(ctx))
 				return;
 
+			if (path is "/api/ocr/engines" or "/api/ocr/engines/") {
+				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "ocr/engines 仅支持 GET"));
+					return;
+				}
+				handleocringines(ctx);
+				return;
+			}
+
 			if (path is "/api/ocr/models" or "/api/ocr/models/") {
 				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
 				if (!isget(req)) {
@@ -436,6 +446,16 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/asr/engines") {
+				if (!apiok(ctx, optNow.HttpAsr && optNow.ModAsr)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "asr/engines 仅支持 GET"));
+					return;
+				}
+				handleasrengines(ctx);
+				return;
+			}
+
 			if (path is "/api/asr/models") {
 				if (!apiok(ctx, optNow.HttpAsr && optNow.ModAsr)) return;
 				if (!isget(req)) {
@@ -513,6 +533,26 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handleitn(ctx);
+				return;
+			}
+
+			if (path is "/api/translate/engines") {
+				if (!apiok(ctx, optNow.HttpTranslate && optNow.ModTranslate)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "translate/engines 仅支持 GET"));
+					return;
+				}
+				handletranslateengines(ctx);
+				return;
+			}
+
+			if (path is "/api/translate/models") {
+				if (!apiok(ctx, optNow.HttpTranslate && optNow.ModTranslate)) return;
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "translate/models 仅支持 GET"));
+					return;
+				}
+				handletranslatemodels(ctx);
 				return;
 			}
 
@@ -1406,6 +1446,12 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handleasrmodels(SockCtx ctx) {
+		var engine = (query(ctx.Request, "engine") ?? "").Trim().ToLowerInvariant();
+		if (engine == "windows") engine = "winrt";
+		if (engine.Length > 0 && engine is not ("sherpa" or "winrt")) {
+			writejson(ctx, 200, err(802, "未知 engine（sherpa / winrt）"));
+			return;
+		}
 		List<AsrModelInfo> list = null;
 		try { list = svc?.ScanAsr?.Invoke(); } catch (Exception ex) {
 			writejson(ctx, 200, err(910, "扫描 ASR 失败: " + ex.Message));
@@ -1414,7 +1460,12 @@ sealed partial class HttpOcrServer : IDisposable {
 		list ??= new List<AsrModelInfo>();
 		var arr = new JsonArray();
 		foreach (var m in list) {
+			if (m == null) continue;
+			var eng = m.IsWindows ? "winrt" : "sherpa";
+			if (engine.Length > 0 && engine != eng) continue;
 			arr.Add(new JsonObject {
+				["engine"] = eng,
+				["id"] = m.DisplayName ?? "",
 				["name"] = m.DisplayName ?? "",
 				["type"] = m.IsWindows ? "Windows" : m.Type.ToString(),
 				["streaming"] = m.IsStreaming,
@@ -1422,6 +1473,28 @@ sealed partial class HttpOcrServer : IDisposable {
 				["culture"] = m.Culture ?? "",
 			});
 		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = arr,
+			["count"] = arr.Count,
+		});
+	}
+
+	/// <summary>ASR 引擎：本地 Sherpa-ONNX 与 Windows 系统识别器。</summary>
+	void handleasrengines(SockCtx ctx) {
+		List<AsrModelInfo> list;
+		try { list = svc?.ScanAsr?.Invoke() ?? new List<AsrModelInfo>(); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(910, "扫描 ASR 失败: " + ex.Message));
+			return;
+		}
+		var sherpa = list.Count(m => m != null && !m.IsWindows);
+		var stream = list.Count(m => m != null && !m.IsWindows && m.IsStreaming);
+		var win = list.Count(m => m != null && m.IsWindows);
+		var arr = new JsonArray {
+			new JsonObject { ["engine"] = "sherpa", ["name"] = "Sherpa-ONNX", ["count"] = sherpa, ["streaming"] = stream },
+			new JsonObject { ["engine"] = "winrt", ["name"] = "Windows 语音识别", ["count"] = win },
+		};
 		writejson(ctx, 200, new JsonObject {
 			["code"] = 100,
 			["data"] = arr,
@@ -1988,44 +2061,55 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handleocrmodels(SockCtx ctx) {
-		List<WinOcrLang> langs;
-		try { langs = runsta(() => WinOcr.Languages()); }
-		catch { langs = new List<WinOcrLang>(); }
-		var packs = new JsonArray();
-		var winModels = new JsonArray();
-		foreach (var lang in langs) {
-			winModels.Add(new JsonObject {
-				["id"] = lang.Tag ?? "",
-				["name"] = string.IsNullOrWhiteSpace(lang.Name) ? (lang.Tag ?? "") : lang.Name,
-			});
+		var engine = (query(ctx.Request, "engine") ?? "").Trim().ToLowerInvariant();
+		if (engine.Length > 0 && engine is not ("winocr" or "onnx")) {
+			writejson(ctx, 200, err(802, "未知 engine（winocr / onnx）"));
+			return;
 		}
-		packs.Add(new JsonObject {
-			["id"] = WinOcr.PackId,
-			["engine"] = "winocr",
-			["name"] = "Windows 系统 OCR",
-			["models"] = winModels,
-		});
-		List<ModelPack> onnx;
-		try { onnx = ModelCatalog.Scan(); }
-		catch { onnx = new List<ModelPack>(); }
-		foreach (var p in onnx) {
-			var models = new JsonArray();
-			if (p.Variants != null) {
-				foreach (var v in p.Variants) {
-					var name = v.DisplayName;
-					if (string.IsNullOrWhiteSpace(name)) name = v.Title ?? "";
-					models.Add(new JsonObject {
-						["id"] = v.Title ?? "",
-						["name"] = name,
-					});
-				}
+		var packs = new JsonArray();
+		if (engine.Length == 0 || engine == "winocr") {
+			List<WinOcrLang> langs;
+			try { langs = runsta(() => WinOcr.Languages()); }
+			catch { langs = new List<WinOcrLang>(); }
+			var winModels = new JsonArray();
+			foreach (var lang in langs) {
+				winModels.Add(new JsonObject {
+					["engine"] = "winocr",
+					["id"] = lang.Tag ?? "",
+					["name"] = string.IsNullOrWhiteSpace(lang.Name) ? (lang.Tag ?? "") : lang.Name,
+				});
 			}
 			packs.Add(new JsonObject {
-				["id"] = p.Id ?? "",
-				["engine"] = "onnx",
-				["name"] = p.DisplayName,
-				["models"] = models,
+				["id"] = WinOcr.PackId,
+				["engine"] = "winocr",
+				["name"] = "Windows 系统 OCR",
+				["models"] = winModels,
 			});
+		}
+		if (engine.Length == 0 || engine == "onnx") {
+			List<ModelPack> onnx;
+			try { onnx = ModelCatalog.Scan(); }
+			catch { onnx = new List<ModelPack>(); }
+			foreach (var p in onnx) {
+				var models = new JsonArray();
+				if (p.Variants != null) {
+					foreach (var v in p.Variants) {
+						var name = v.DisplayName;
+						if (string.IsNullOrWhiteSpace(name)) name = v.Title ?? "";
+						models.Add(new JsonObject {
+							["engine"] = "onnx",
+							["id"] = v.Title ?? "",
+							["name"] = name,
+						});
+					}
+				}
+				packs.Add(new JsonObject {
+					["id"] = p.Id ?? "",
+					["engine"] = "onnx",
+					["name"] = p.DisplayName,
+					["models"] = models,
+				});
+			}
 		}
 		var cur = getOpts?.Invoke() ?? new OcrOptions();
 		var dev = cur.Device == OcrDevice.Gpu ? "gpu"
@@ -2041,6 +2125,26 @@ sealed partial class HttpOcrServer : IDisposable {
 					["device"] = dev,
 				},
 			},
+			["count"] = packs.Count,
+		});
+	}
+
+	/// <summary>OCR 引擎：Windows 系统 OCR 与本地 ONNX 模型包。</summary>
+	void handleocringines(SockCtx ctx) {
+		var win = 0;
+		try { win = runsta(() => WinOcr.Languages()).Count; }
+		catch { }
+		var onnx = 0;
+		try { onnx = ModelCatalog.Scan().Count; }
+		catch { }
+		var arr = new JsonArray {
+			new JsonObject { ["engine"] = "winocr", ["name"] = "Windows 系统 OCR", ["count"] = win },
+			new JsonObject { ["engine"] = "onnx", ["name"] = "ONNX 模型包", ["count"] = onnx },
+		};
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = arr,
+			["count"] = arr.Count,
 		});
 	}
 
@@ -2584,13 +2688,15 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /chat/file/{id}  下载聊天室里的图片或文件",
 		};
 		if (o.HttpOcr && o.ModOcr) {
-			a.Add("GET  /api/ocr/models");
+			a.Add("GET  /api/ocr/engines  只列识别引擎和各自的模型数量");
+			a.Add("GET  /api/ocr/models  ?engine=winocr|onnx 按引擎列模型包");
 			a.Add("GET  /api/ocr/get_options");
 			a.Add("POST /api/ocr   JSON{base64,options} 或 multipart");
 			a.Add("POST /api/qr · /api/qrcode  JSON{base64|path} 或 multipart 条码/二维码");
 		}
 		if (o.HttpAsr && o.ModAsr) {
-			a.Add("GET  /api/asr/models");
+			a.Add("GET  /api/asr/engines  只列识别引擎和各自的模型数量");
+			a.Add("GET  /api/asr/models  ?engine=sherpa|winrt 按引擎列模型");
 			a.Add("POST /api/asr   JSON{base64|path, model?, lang?, itn?, postprocess?}");
 			a.Add("POST /api/itn   JSON{text}  WeText+规则后处理");
 		}
@@ -2602,6 +2708,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			a.Add("POST /api/tts/speak  JSON{text, devices?, play=queue|now, engine?, voice?}");
 		}
 		if (o.HttpTranslate && o.ModTranslate) {
+			a.Add("GET  /api/translate/engines  只列翻译引擎和模型数量");
+			a.Add("GET  /api/translate/models  ?engine=auto|onnx|chrome|llm 按引擎列模型");
 			a.Add("GET  /api/translate/langs");
 			a.Add("POST /api/translate  JSON{items[],src?,dst?}  LLM；未配置时用本地模型");
 		}
