@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Threading;
 using Microsoft.Win32;
@@ -60,20 +61,50 @@ static class MdRead {
 		}
 	}
 
-	public static string EmptyHtml(string hint) {
+	/// <summary>页面基准字号（DIP）。正文 15 在 100% 缩放下偏小，按 16 排版。</summary>
+	public const double BaseFont = 16;
+
+	/// <param name="scale">窗口 DPI 缩放。IE 控件按物理像素排版，不跟随系统缩放，这里补上比例。</param>
+	public static string EmptyHtml(string hint, double scale = 1) {
 		var sb = new StringBuilder();
-		shell(sb, "", "");
+		shell(sb, "", "", scale);
 		sb.Append("<div class=\"hint\">").Append(esc(hint ?? "")).Append("</div>");
 		shellend(sb);
 		return sb.ToString();
 	}
 
-	public static string ToHtml(string md, string baseDir, string title) {
+	public static string ToHtml(string md, string baseDir, string title, double scale = 1) {
 		var sb = new StringBuilder();
-		shell(sb, baseDir, title);
+		shell(sb, baseDir, title, scale);
 		sb.Append(body(md ?? "", baseDir));
 		shellend(sb);
 		return sb.ToString();
+	}
+
+	/// <summary>.lnk 快捷方式取目标文件；不是快捷方式或解析不出来时原样返回。</summary>
+	public static string Resolve(string path) {
+		if (string.IsNullOrEmpty(path) || !path.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)) return path;
+		object shell = null;
+		try {
+			var type = Type.GetTypeFromProgID("WScript.Shell");
+			if (type == null) return path;
+			shell = Activator.CreateInstance(type);
+			dynamic sc = ((dynamic)shell).CreateShortcut(path);
+			var target = Convert.ToString(sc.TargetPath);
+			if (string.IsNullOrEmpty(target)) return path;
+			if (!Path.IsPathRooted(target)) {
+				var dir = Path.GetDirectoryName(path);
+				if (string.IsNullOrEmpty(dir)) return path;
+				target = Path.GetFullPath(Path.Combine(dir, target));
+			}
+			return File.Exists(target) ? target : path;
+		}
+		catch { return path; }
+		finally {
+			if (shell != null && Marshal.IsComObject(shell)) {
+				try { Marshal.ReleaseComObject(shell); } catch { }
+			}
+		}
 	}
 
 	public static int SelfTest(Action<string> log) {
@@ -131,6 +162,23 @@ static class MdRead {
 				return bad(say, "gbk");
 			if (!IsMd(src) || IsMd("a.txt"))
 				return bad(say, "ext");
+			if (ToHtml("# 缩放\n", "", "t", 1.5).IndexOf("font:24px/1.65", StringComparison.Ordinal) < 0)
+				return bad(say, "scale");
+			var lnk = Path.Combine(dir, "mdread-test.lnk");
+			try {
+				var w = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
+				dynamic sc = ((dynamic)w).CreateShortcut(lnk);
+				sc.TargetPath = src;
+				sc.Save();
+				var got = Resolve(lnk);
+				if (!string.Equals(got, src, StringComparison.OrdinalIgnoreCase))
+					return bad(say, "lnk " + got);
+				sc = null;
+			}
+			catch (Exception ex) { return bad(say, "lnk " + ex.Message); }
+			finally { try { File.Delete(lnk); } catch { } }
+			if (!string.Equals(Resolve(src), src, StringComparison.Ordinal))
+				return bad(say, "lnk passthrough");
 			if (EnsureIe11() != EMUL_IE11 || EmulValue() != EMUL_IE11)
 				return bad(say, "emul " + EmulValue());
 			File.WriteAllText(page, html, new UTF8Encoding(true));
@@ -210,7 +258,10 @@ static class MdRead {
 
 	// ==================== HTML ====================
 	#region
-	static void shell(StringBuilder sb, string baseDir, string title) {
+	static void shell(StringBuilder sb, string baseDir, string title, double scale) {
+		if (scale < 1) scale = 1;
+		if (scale > 4) scale = 4;
+		var fs = (BaseFont * scale).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 		sb.Append("<!DOCTYPE html><html><head>");
 		sb.Append("<meta http-equiv=\"X-UA-Compatible\" content=\"IE=11\">");
 		sb.Append("<meta charset=\"utf-8\">");
@@ -224,29 +275,30 @@ static class MdRead {
 			}
 			catch { }
 		}
+		// 字号留一处 px（随 DPI 缩放），其余用 em，导出时改 body 字号即可整体缩回 A4 排版
 		sb.Append("<style>");
 		sb.Append("html{height:100%;}");
-		sb.Append("body{box-sizing:border-box;height:100%;margin:0;max-width:100%;overflow:auto;padding:28px 32px 64px;");
-		sb.Append("font:15px/1.65 'Segoe UI','Microsoft YaHei UI',sans-serif;color:#1f2937;background:#fff;}");
-		sb.Append("h1{font-size:28px;line-height:1.3;border-bottom:1px solid #e5e7eb;padding-bottom:8px;}");
-		sb.Append("h2{font-size:22px;line-height:1.35;border-bottom:1px solid #f3f4f6;padding-bottom:4px;}");
-		sb.Append("h3{font-size:18px;}");
-		sb.Append("p{margin:0 0 12px;}");
+		sb.Append("body{box-sizing:border-box;height:100%;margin:0;max-width:100%;overflow:auto;padding:1.75em 2em 4em;");
+		sb.Append("font:").Append(fs).Append("px/1.65 'Segoe UI','Microsoft YaHei UI',sans-serif;color:#1f2937;background:#fff;}");
+		sb.Append("h1{font-size:1.75em;line-height:1.3;border-bottom:1px solid #e5e7eb;padding-bottom:0.5em;}");
+		sb.Append("h2{font-size:1.375em;line-height:1.35;border-bottom:1px solid #f3f4f6;padding-bottom:0.25em;}");
+		sb.Append("h3{font-size:1.125em;}");
+		sb.Append("p{margin:0 0 0.75em;}");
 		sb.Append("ul,ol{margin:0;padding:0 0 0 2em;}");
 		sb.Append("body>ul,body>ol{padding-left:0;}");
 		sb.Append("li{margin:0;}");
 		sb.Append("a{color:#c2410c;}");
-		sb.Append("code{font-family:Consolas,'Cascadia Mono',monospace;background:#f3f4f6;padding:1px 4px;}");
-		sb.Append("pre{background:#f3f4f6;padding:12px 14px;overflow:auto;max-width:100%;}");
+		sb.Append("code{font-family:Consolas,'Cascadia Mono',monospace;background:#f3f4f6;padding:0.07em 0.27em;}");
+		sb.Append("pre{background:#f3f4f6;padding:0.75em 0.9em;overflow:auto;max-width:100%;}");
 		sb.Append("pre code{background:transparent;padding:0;}");
-		sb.Append("blockquote{margin:0 0 12px;padding:2px 14px;border-left:4px solid #d1d5db;color:#4b5563;}");
-		sb.Append(".tbl{max-width:100%;overflow:auto;margin:0 0 14px;}");
+		sb.Append("blockquote{margin:0 0 0.75em;padding:0.12em 0.9em;border-left:4px solid #d1d5db;color:#4b5563;}");
+		sb.Append(".tbl{max-width:100%;overflow:auto;margin:0 0 0.9em;}");
 		sb.Append("table{border-collapse:collapse;margin:0;}");
-		sb.Append("th,td{border:1px solid #e5e7eb;padding:6px 10px;}");
+		sb.Append("th,td{border:1px solid #e5e7eb;padding:0.4em 0.63em;}");
 		sb.Append("th{background:#f9fafb;}");
 		sb.Append("img{max-width:100%;height:auto;}");
-		sb.Append("hr{border:0;border-top:1px solid #e5e7eb;margin:16px 0;}");
-		sb.Append(".hint{color:#6b7280;font-size:16px;padding:48px 8px;}");
+		sb.Append("hr{border:0;border-top:1px solid #e5e7eb;margin:1em 0;}");
+		sb.Append(".hint{color:#6b7280;font-size:1.07em;padding:3em 0.5em;}");
 		sb.Append("</style></head><body>");
 	}
 

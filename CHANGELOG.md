@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Markdown reader: export the current document to Word or PDF
 - New SQL function lookup: MySQL, SQL Server, Oracle, SQLite and PostgreSQL tabs, 10 categories (strings, numbers, dates, casts, aggregation, window functions, conditions, JSON, metadata, misc), and the last database is remembered
 - HTTP API: list engines and query models per engine for OCR, speech recognition, and translation
+- MD reader: dropping a .lnk shortcut to a Markdown file opens its target
 
 #### Changed
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Status bar shows the blocked HTTP port and the temporary port when the port is in use
+- MD reader: text now follows the Windows display scale instead of rendering at physical-pixel size
 
 ### 中文
 
@@ -85,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD 阅读器：可把当前文档导出为 Word 或 PDF
 - 新增 SQL 函数查询：MySQL、SQL Server、Oracle、SQLite、PostgreSQL 五个页签，按字符串、数值、日期、类型转换、聚合、窗口函数、条件、JSON、元数据、其他分类，并记住上次选的数据库
 - HTTP 接口：OCR、语音识别、翻译增加查引擎、按引擎查模型
+- MD 阅读器：可拖入指向 Markdown 的 .lnk 快捷方式
 
 #### 变更
 
@@ -100,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - HTTP 端口打不开时，状态栏显示原端口和临时端口
+- MD 阅读器：正文按系统显示缩放排版，不再因高 DPI 显得过小
 
 ## v1.0.27 (2026-10-21 ~ 22)
 

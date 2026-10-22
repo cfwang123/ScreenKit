@@ -10,17 +10,30 @@ public partial class MdReadWindow : Window {
 	IntPtr drophwnd;
 	string curpath = "";
 	string curmode = "";
+	string curmd;
 	string page;
 	bool hasmd;
+	double dpi = 1;
 	readonly List<string> oldpages = new();
 
 	public MdReadWindow() {
 		MdRead.EnsureIe11();
 		InitializeComponent();
+		dpi = uiscale();
 		initbrowser();
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
+	}
+
+	/// <summary>IE 控件按物理像素排版，窗口 DPI 是 125% 时正文只有四分之三大小，这里取比例补上。</summary>
+	double uiscale() {
+		try {
+			var s = VisualTreeHelper.GetDpi(this).DpiScaleX;
+			if (s >= 1 && s <= 4) return s;
+		}
+		catch { }
+		return 1;
 	}
 
 	void initbrowser() {
@@ -62,7 +75,17 @@ public partial class MdReadWindow : Window {
 		Drop += (_, e) => {
 			if (e.Data.GetData(DataFormats.FileDrop) is string[] files) opendrop(files);
 		};
-		Loaded += (_, _) => showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint")));
+		Loaded += (_, _) => {
+			dpi = uiscale();
+			showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint"), dpi));
+		};
+		DpiChanged += (_, _) => {
+			var s = uiscale();
+			if (Math.Abs(s - dpi) < 0.01) return;
+			dpi = s;
+			if (hasmd) showhtml(MdRead.ToHtml(curmd ?? "", Path.GetDirectoryName(curpath) ?? "", Path.GetFileName(curpath), dpi));
+			else showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint"), dpi));
+		};
 		Closed += (_, _) => {
 			if (drophwnd != IntPtr.Zero) {
 				try { RevokeDragDrop(drophwnd); } catch { }
@@ -98,8 +121,9 @@ public partial class MdReadWindow : Window {
 	void opendrop(string[] files) {
 		if (files == null) return;
 		foreach (var f in files) {
-			if (MdRead.IsMd(f) && File.Exists(f)) {
-				openpath(f);
+			var p = MdRead.Resolve(f);
+			if (MdRead.IsMd(p) && File.Exists(p)) {
+				openpath(p);
 				return;
 			}
 		}
@@ -108,6 +132,7 @@ public partial class MdReadWindow : Window {
 	}
 
 	void openpath(string path) {
+		path = MdRead.Resolve(path);
 		string md;
 		try { md = MdRead.ReadText(path); }
 		catch (Exception ex) {
@@ -115,12 +140,13 @@ public partial class MdReadWindow : Window {
 			return;
 		}
 		curpath = path;
+		curmd = md;
 		hasmd = true;
 		bword.IsEnabled = true;
 		bpdf.IsEnabled = true;
 		Title = Path.GetFileName(path) + " - " + Loc.T("mdread.title");
 		var dir = Path.GetDirectoryName(path) ?? "";
-		showhtml(MdRead.ToHtml(md, dir, Path.GetFileName(path)));
+		showhtml(MdRead.ToHtml(md, dir, Path.GetFileName(path), dpi));
 		showstat();
 	}
 
