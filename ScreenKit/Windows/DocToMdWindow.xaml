@@ -14,6 +14,7 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="True">
@@ -30,10 +31,23 @@
 			<TextBox x:Name="epath" Height="32" Padding="8,4" VerticalContentAlignment="Center"
 			         AutomationProperties.AutomationId="doc2md.path"/>
 		</DockPanel>
-		<TextBlock x:Name="lbstat" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
+		<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+			<TextBlock x:Name="lbimg" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,8,0"/>
+			<ComboBox x:Name="eimgdir" DockPanel.Dock="Left" Width="240" Height="28" IsEditable="True"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="doc2md.imgdir">
+				<ComboBoxItem Content="images"/>
+				<ComboBoxItem Content="{}{name}"/>
+				<ComboBoxItem Content="{}{name}_images"/>
+			</ComboBox>
+			<TextBlock x:Name="lbimgtip" VerticalAlignment="Center" Margin="10,0,0,0"
+			           Foreground="{StaticResource TextMuted}" FontSize="12"
+			           TextTrimming="CharacterEllipsis"/>
+		</DockPanel>
+		<TextBlock x:Name="lbstat" Grid.Row="2" Margin="0,0,0,8" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}"
 		           AutomationProperties.AutomationId="doc2md.stat"/>
-		<Border Grid.Row="2" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Background="White">
+		<Border Grid.Row="3" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Background="White">
 			<TextBox x:Name="eout" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
 			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
 			         FontFamily="Consolas, Microsoft YaHei UI" BorderThickness="0" Padding="10"

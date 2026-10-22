@@ -9,6 +9,8 @@ public partial class DocToMdWindow : Window {
 	bool busy;
 	string md = "";
 	string src = "";
+	string imgdir = "images";
+	List<DocToMd.Image> images = new();
 
 	public DocToMdWindow() {
 		InitializeComponent();
@@ -36,6 +38,9 @@ public partial class DocToMdWindow : Window {
 		ToolBtnUi.Set(bsave, ToolBtnUi.Save, Loc.T("doc2md.save"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("doc2md.copy"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("doc2md.close"));
+		lbimg.Text = Loc.T("doc2md.imgdir");
+		lbimgtip.Text = Loc.T("doc2md.imgdir.tip");
+		if (string.IsNullOrWhiteSpace(eimgdir.Text)) eimgdir.Text = "images";
 		if (!busy) setstat(Loc.T("doc2md.ready"));
 	}
 
@@ -83,6 +88,10 @@ public partial class DocToMdWindow : Window {
 				return;
 			}
 		}
+		if (!DocToMd.ValidDir(eimgdir.Text, path, out var dir)) {
+			setstat(Loc.T("doc2md.badimgdir"));
+			return;
+		}
 		var n = ++gen;
 		busy = true;
 		bfile.IsEnabled = false;
@@ -93,7 +102,7 @@ public partial class DocToMdWindow : Window {
 		Task.Run(() => {
 			DocToMd.Result got = null;
 			string err = null;
-			try { got = DocToMd.Convert(path); }
+			try { got = DocToMd.Convert(path, dir); }
 			catch (DllNotFoundException) { err = "doc2md.nopdfium"; }
 			catch (Exception ex) { err = ex.Message; }
 			Dispatcher.Invoke(() => {
@@ -109,14 +118,18 @@ public partial class DocToMdWindow : Window {
 				}
 				src = path;
 				md = got.Markdown ?? "";
+				images = got.Images;
+				imgdir = got.ImageDir;
 				eout.Text = md;
 				if (md.Trim().Length == 0) {
 					setstat(Loc.T("doc2md.empty"));
 					return;
 				}
-				setstat(got.Kind == "pdf"
+				var stat = got.Kind == "pdf"
 					? string.Format(Loc.T("doc2md.done.pdf"), got.Pages, md.Length)
-					: string.Format(Loc.T("doc2md.done"), md.Length));
+					: string.Format(Loc.T("doc2md.done"), md.Length);
+				if (images.Count > 0) stat += string.Format(Loc.T("doc2md.imgpart"), images.Count);
+				setstat(stat);
 			});
 		});
 	}
@@ -135,8 +148,17 @@ public partial class DocToMdWindow : Window {
 		}
 		if (dlg.ShowDialog(this) != true) return;
 		try {
+			if (images.Count > 0) {
+				var folder = Path.Combine(Path.GetDirectoryName(dlg.FileName) ?? "",
+					imgdir.Replace('/', Path.DirectorySeparatorChar));
+				Directory.CreateDirectory(folder);
+				foreach (var img in images)
+					File.WriteAllBytes(Path.Combine(folder, img.Name), img.Data);
+			}
 			File.WriteAllText(dlg.FileName, md, new UTF8Encoding(false));
-			setstat(string.Format(Loc.T("doc2md.saved"), dlg.FileName));
+			setstat(images.Count > 0
+				? string.Format(Loc.T("doc2md.saved.images"), dlg.FileName, images.Count)
+				: string.Format(Loc.T("doc2md.saved"), dlg.FileName));
 		}
 		catch (Exception ex) {
 			setstat(ex.Message);

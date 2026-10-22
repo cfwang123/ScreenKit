@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Image analysis shows JPEG quality, encoding, chroma subsampling, components and DPI, plus bit depth, color type, palette colors and transparency entries for PNG, GIF, BMP and TIFF.
 - Audio and video tabs show the container, stream count, codec profile and level, pixel format, color space, field order, frame count, display aspect, channel layout and bit depth.
 - Tools → Text adds Word/PDF to MD, which converts .docx or a text PDF to Markdown with a preview, copy, and save. PDF text is read through the installed PDFium.
+- New Windows commands tool: PowerShell and CMD tables with categories, search and click-to-copy; the chosen shell is remembered
 
 #### Changed
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 图像分析显示 JPEG 质量、编码方式、色度采样、颜色分量和 DPI，以及 PNG、GIF、BMP、TIFF 的位深、颜色类型、调色板颜色和透明色项。
 - 音频、视频页显示容器、流数、编码配置和级别、像素格式、色彩空间、扫描方式、帧数、显示比例、声道布局和位深。
 - 工具 → 文字增加「Word/PDF 转 MD」，把 .docx 或文本型 PDF 转成 Markdown，可预览、复制、保存；PDF 文字用已安装的 PDFium 提取。
+- 新增 Windows 常用命令工具：PowerShell 和 CMD 两套命令，按类别分组、可搜索、点一下复制，并记住上次选用的命令行
 
 #### 变更
 

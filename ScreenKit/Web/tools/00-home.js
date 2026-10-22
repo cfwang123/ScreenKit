@@ -685,6 +685,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-wincmd",
+						"data-cat":"info",
+						"data-name":"windows 命令 powershell cmd 终端 bat taskkill ipconfig netstat sc schtasks winget 注册表 防火墙 常用命令",
+						"title":"Windows 常用命令、示例和分类，可选 PowerShell 或 CMD，点一下复制命令",
+						c:[
+						{x:"i.fa-solid.fa-window-maximize"},
+						{x:"span","data-k":"web.tool.wincmd",c:"Windows 常用命令"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-wincmd","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-soft",
 						"data-cat":"info",
 						"data-name":"linux 开源 常用软件 软件 安装 apt docker 播放器 数据库 编辑器",
