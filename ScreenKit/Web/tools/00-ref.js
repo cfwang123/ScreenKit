@@ -26,6 +26,8 @@
 		var setat = 0;
 		var cur = "all";
 		var picked = null;
+		// 每个分类各自记住滚动位置，切回来时还原。
+		var tops = {};
 
 		SK.regutil(name, {
 			title: spec.title,
@@ -49,11 +51,15 @@
 				setat = readsaved();
 				cur = "all";
 				picked = null;
+				tops = {};
 				if (sets.length > 1) {
 					paintsets();
 					F.id(name + "-sets").onclick = onset;
 				}
-				F.id(name + "-q").oninput = paint;
+				F.id(name + "-q").oninput = function(){
+					tops = {};
+					paint();
+				};
 				F.id(name + "-chips").onclick = onchip;
 				F.id(name + "-tab").onclick = onrow;
 				paint();
@@ -86,6 +92,10 @@
 			return String(SK.val(name + "-q") || "").trim().toLowerCase();
 		}
 
+		function scrollbox(){
+			return F.id(name + "-tab").parentNode;
+		}
+
 		function groupname(set, id){
 			var i;
 			for (i = 0; i < set.groups.length; i++) if (set.groups[i].id === id) return set.groups[i].name;
@@ -101,9 +111,11 @@
 			return blob.toLowerCase().indexOf(q) >= 0;
 		}
 
-		function paint(){
+		function paint(keep){
 			var set = setnow();
 			var q = query();
+			var box = scrollbox();
+			var top = typeof keep === "number" ? keep : (keep ? box.scrollTop : 0);
 			var cols = set.cols;
 			var html = [];
 			var i, j, g, rows, n;
@@ -139,6 +151,8 @@
 			if (!total)
 				html = ['<tbody><tr><td class="refnone" colspan="' + cols.length + '">没有匹配的条目</td></tr></tbody>'];
 			F.id(name + "-tab").innerHTML = html.join("");
+			// 内容重排后浏览器可能把滚动位置归零，这里显式还原。
+			box.scrollTop = top;
 			SK.msg(name + "-msg", total ? (q ? total + " 条" : "共 " + total + " 条") : "");
 			paintchips(set);
 			if (total) selectrow(set, q);
@@ -266,8 +280,14 @@
 			var el = ev.target;
 			while (el && el !== this) {
 				if (el.getAttribute && F.attr(el, "data-g")) {
-					cur = F.attr(el, "data-g");
-					paint();
+					var gid = F.attr(el, "data-g");
+					if (gid !== cur) {
+						// 先记下当前分类的位置；没去过的分类保持当前滚动位置，去过的还原上次的。
+						var top = scrollbox().scrollTop;
+						tops[cur] = top;
+						cur = gid;
+						paint(typeof tops[cur] === "number" ? tops[cur] : top);
+					}
 					return;
 				}
 				el = el.parentNode;
@@ -282,6 +302,7 @@
 					writesaved();
 					cur = "all";
 					picked = null;
+					tops = {};
 					F.id(name + "-q").value = "";
 					paintsets();
 					paint();
@@ -289,6 +310,14 @@
 				}
 				el = el.parentNode;
 			}
+		}
+
+		// 点行只换高亮和右侧详情，不重建表格，免得列表跟着跳。
+		function markrow(){
+			var trs = F.qa("tr[data-k]", F.id(name + "-tab"));
+			var i;
+			for (i = 0; i < trs.length; i++)
+				trs[i].className = F.attr(trs[i], "data-k") === picked ? "on" : "";
 		}
 
 		function onrow(ev){
@@ -299,7 +328,7 @@
 			var row = rowby(set, F.attr(el, "data-k"));
 			if (!row) return;
 			picked = String(row.c[set.copy]);
-			paint();
+			markrow();
 			showdetail(set, row);
 			SK.copytext(picked, name + "-msg");
 		}
