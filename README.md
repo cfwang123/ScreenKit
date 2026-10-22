@@ -86,6 +86,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Hash**: MD5, SHA-1, and SHA-256. Paste an expected value to compare.
 - **Text tools**: Base64, URL, hex, escapes, case, whitespace, counts, JSON pretty-print, and more.
 - **Markdown reader**: Open or drop a Markdown file and read it with the IE11 engine built into Windows.
+- **Word/PDF to MD**: Convert a .docx or a text PDF to Markdown, then preview, copy, or save it. PDF text comes from the installed PDFium; scanned pages need PDF recognition first.
 - **Password generator**: Generate passwords from a length and character classes, or hand a sentence to a configured LLM and spell the translation out.
 - **Network**: Diagnostics, IP scan, and port scan, covering Ping, DNS, Wake-on-LAN, trace route, and more.
 - **Ports in use**: Lists the TCP and UDP ports in use and the process behind each, and can open that folder.

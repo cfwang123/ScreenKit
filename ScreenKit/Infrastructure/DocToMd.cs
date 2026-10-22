@@ -280,10 +280,18 @@ static class DocToMd {
 	static void loadpdfium() {
 		if (pdfready) return;
 		var dir = AppDomain.CurrentDomain.BaseDirectory;
-		var direct = Path.Combine(dir, "pdfium.dll");
-		var sub = Path.Combine(dir, "x64", "pdfium.dll");
-		var target = File.Exists(direct) ? direct : File.Exists(sub) ? sub : null;
-		if (target == null) return;
+		var asmDir = "";
+		try { asmDir = Path.GetDirectoryName(typeof(DocToMd).Assembly.Location) ?? ""; }
+		catch { }
+		var target = "";
+		foreach (var d in new[] { dir, asmDir }) {
+			if (string.IsNullOrEmpty(d)) continue;
+			var direct = Path.Combine(d, "pdfium.dll");
+			var sub = Path.Combine(d, "x64", "pdfium.dll");
+			if (File.Exists(direct)) { target = direct; break; }
+			if (File.Exists(sub)) { target = sub; break; }
+		}
+		if (target.Length == 0) return;
 		try {
 			if (LoadLibrary(target) == IntPtr.Zero) return;
 			FPDF_InitLibrary();
