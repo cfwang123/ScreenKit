@@ -63,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Merge Linux command lookup into one tool with a distribution switch (Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, Alpine); the last distribution is remembered
 - Windows commands adds a pwsh (PowerShell 7) tab beside Windows PowerShell and CMD, with pwsh-only commands such as ForEach-Object -Parallel, Get-Error, Get-Uptime and Test-Json
 - HTTP TTS: Chrome voice packs are no longer installed automatically; a missing voice returns 927
+- HTTP TTS: an unknown Chrome voice or language now fails with 927 instead of falling back to another voice
 
 #### Fixed
 
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Linux 命令查询合并为一个工具，可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，并记住上次选的发行版
 - Windows 常用命令增加 pwsh（PowerShell 7）页签，与 Windows PowerShell、CMD 并列，补充 ForEach-Object -Parallel、Get-Error、Get-Uptime、Test-Json 等 7 专有写法
 - HTTP 语音合成：Chrome 语音包不再自动安装，缺失时直接返回 927
+- HTTP 语音合成：Chrome 发音人或语言不存在时直接返回 927，不再换用其它发音人
 
 #### 修复
 

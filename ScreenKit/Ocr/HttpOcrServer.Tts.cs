@@ -300,6 +300,9 @@ sealed partial class HttpOcrServer {
 			try { AppConfig.LoadInto(saved); } catch { }
 			var exe = jo["chrome_exe"]?.GetValue<string>() ?? "";
 			if (string.IsNullOrWhiteSpace(exe)) exe = saved.ChromeExe;
+			var found = ChromeTts.FindExe(exe);
+			if (string.IsNullOrEmpty(found)) throw new InvalidOperationException(Loc.T("tts.chrome.missing"));
+			exe = found;
 			var idle = saved.ChromeIdleSec;
 			if (jo["chrome_idle"] != null) idle = asint(jo["chrome_idle"], idle);
 			var voice = jo["voice"]?.GetValue<string>() ?? jo["speaker"]?.GetValue<string>() ?? "";
@@ -322,6 +325,8 @@ sealed partial class HttpOcrServer {
 					}
 				}
 			}
+			if (pick == null && (name.Length > 0 || lang.Length > 0))
+				throw new ChromeVoiceMissingException(lang.Length > 0 ? lang : name);
 			pick ??= ChromeTts.Voices.Count > 0 ? ChromeTts.Voices[0] : null;
 			var speed = 1.0;
 			if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
