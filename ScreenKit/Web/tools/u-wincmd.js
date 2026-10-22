@@ -18,7 +18,7 @@
 	var COLS = [
 		{ name: "命令", mono: true },
 		{ name: "说明" },
-		{ name: "常用示例", mono: true }
+		{ name: "示例与注释", mono: true }
 	];
 
 	var WIDTHS = ["250px", "240px", ""];
@@ -47,7 +47,8 @@
 		var note = a[4] || "—";
 		var kind = tab === "cmd" ? "cmd" : "ps";
 		if (g === "syntax" && SYNTAX_SHELL[cmd]) kind = SYNTAX_SHELL[cmd];
-		var body = (SAMP[kind + "|" + cmd] || demoSample(cmd, a[2], a[3], kind)).join("\n");
+		var lines = (SAMP[kind + "|" + cmd] || demoSample(cmd, a[2], a[3], kind)).filter(notblank);
+		var body = lines.join("\n");
 		return {
 			g: g,
 			c: [cmd, a[2], a[3]],
@@ -55,6 +56,11 @@
 			d: [["类别", CATS[g] || ""], ["备注", note]],
 			s: body
 		};
+	}
+
+	// 示例里留的空行只是源码里分段用，表格和详情都紧凑显示，所以直接丢掉。
+	function notblank(x){
+		return String(x).trim() !== "";
 	}
 
 	// 没写专门示例时的兜底：说明、常用示例、看完整参数，保证每条都有注释和多行片段。
@@ -2385,6 +2391,7 @@
 			copy: 0,
 			hl: id === "cmd" ? "cmd" : "ps",
 			defaultPick: defaultPick,
+			mline: 2,
 			sample: function(r){ return r.s; },
 			sampleTitle: "多行示例"
 		};

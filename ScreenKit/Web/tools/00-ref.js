@@ -164,8 +164,9 @@
 				var cls = [];
 				if (set.cols[i].nowrap) cls.push("rnw");
 				if (set.cols[i].mono) cls.push("rmono");
+				if (set.mline === i) cls.push("rmulti");
 				html += "<td" + (cls.length ? ' class="' + cls.join(" ") + '"' : "") + ">"
-					+ cellhtml(set, i, row.c[i]) + "</td>";
+					+ cellhtml(set, i, row) + "</td>";
 			}
 			return html + "</tr>";
 		}
@@ -322,7 +323,10 @@
 	}
 
 	// 只有标了 mono 的列才着色，说明列保持纯文本；复制仍用原始字符串。
-	function cellhtml(set, i, val){
+	// mline 指向的列直接渲染多行示例，换行、注释和高亮都跟详情里一致。
+	function cellhtml(set, i, row){
+		if (set.mline === i && row.s) return samplehtml(set, row.s);
+		var val = row.c[i];
 		if (set.hl && SK.hl && set.cols[i] && set.cols[i].mono === true) return SK.hl(set.hl, val);
 		return esc(val);
 	}

@@ -796,6 +796,8 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .reflist .refnone { color: var(--muted); text-align: center; padding: 18px 10px; }
 .reflist td.rnw, .reflist th.rnw { white-space: nowrap; }
 .reflist td.rmono { font: 12.5px/1.4 Consolas, "Microsoft YaHei UI", monospace; }
+.reflist td.rmulti { font: 12px/1.55 Consolas, "Microsoft YaHei UI", monospace; white-space: normal; }
+.reflist td.rmulti .hl-cm { font-style: normal; }
 /* 速查表的简单语法高亮：关键字、函数、字符串、数字、注释、变量、符号、命令名、参数 */
 .hl-k { color: #7c3aed; }
 .hl-f { color: #0369a1; }

@@ -18,7 +18,7 @@
 	var COLS = [
 		{ name: "命令", mono: true },
 		{ name: "说明" },
-		{ name: "常用示例", mono: true }
+		{ name: "示例与注释", mono: true }
 	];
 
 	var WIDTHS = ["230px", "240px", ""];
@@ -1444,7 +1444,9 @@
 		if (base === "sudo" || base === "doas") base = cmd.split(" ")[1] || base;
 		var body = (SAMP["sh|" + cmd] || (g === "syntax"
 			? ["# " + a[2], a[3]]
-			: ["# " + a[2], a[3], "", "# 看完整参数", "man " + base])).join("\n");
+			: ["# " + a[2], a[3], "", "# 看完整参数", "man " + base]))
+			.filter(function(x){ return String(x).trim() !== ""; })
+			.join("\n");
 		return {
 			g: g,
 			c: [cmd, a[2], a[3]],
@@ -1485,6 +1487,7 @@
 			copy: 0,
 			hl: "sh",
 			defaultPick: "ls",
+			mline: 2,
 			sample: function(r){ return r.s; },
 			sampleTitle: "多行示例"
 		};
