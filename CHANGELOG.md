@@ -39,6 +39,18 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 ## unreleased
 
+### English
+
+#### Changed
+
+- The novel reader's dictionary popup uses the dictionary page's layout and colors for its hit list and entry detail.
+
+### 中文
+
+#### 变更
+
+- 小说阅读器的词典浮窗，列表和词条详情改用与词典页相同的排版与配色。
+
 ## v1.0.27 (2026-10-21 ~ 22)
 
 ### English

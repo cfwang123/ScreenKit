@@ -27,6 +27,8 @@
 		tablang: "all",
 		pendingid: 0
 	};
+	var dcur = null;
+	var dgen = 0;
 	var scrollever = 0;
 
 
@@ -247,6 +249,7 @@
 			'<div id="rd-dict" class="rd-dict" hidden>',
 			'<div id="rd-dict-bar" class="rd-dict-bar"><strong data-k="dict.title">' + L("dict.title", "词典") + "</strong>",
 			'<span id="rd-dict-status" class="rd-dict-status"></span>',
+			'<button id="rd-dict-speak" class="rd-mini" type="button" title="' + esc(L("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>',
 			'<button id="rd-dict-close" class="rd-x" type="button" title="' + esc(L("web.reader.close", "关闭")) + '">×</button></div>',
 			'<div class="rd-dict-search"><input id="rd-dict-q" type="search" autocomplete="off" placeholder="' + esc(L("web.reader.dictq", "词、字、拼音或英文")) + '" data-kph="web.reader.dictq">',
 			'<button id="rd-dict-go" type="button" data-k="web.reader.search">' + L("web.reader.search", "查") + "</button></div>",
@@ -1460,7 +1463,24 @@
 	// ==================== 词典窗口 ====================
 	function wiredict(){
 		$("rd-dict-close").onclick = function(){ $("rd-dict").hidden = true; };
+		$("rd-dict-speak").onclick = function(){
+			if (!dcur) return;
+			speakdict(dcur.speak || dcur.word || "", dcur.dict || "");
+		};
 		$("rd-dict-go").onclick = function(){ dictsearch($("rd-dict-q").value); };
+		on($("rd-dict-detail"), "click", function(ev){
+			var say = ev.target.closest(".spk");
+			if (say) {
+				speakdict(attr(say, "data-say"), attr(say, "data-lang"));
+				return;
+			}
+			var b = ev.target.closest(".link");
+			if (!b) return;
+			var q = attr(b, "data-q") || "";
+			if (!q) return;
+			$("rd-dict-q").value = q;
+			dictsearch(q);
+		});
 		$("rd-dict-q").onkeydown = function(ev){
 			if (ev.key === "Enter") {
 				ev.preventDefault();
@@ -1581,45 +1601,78 @@
 		var hits = (data && data.hits) || [];
 		var list = $("rd-dict-list");
 		var detail = $("rd-dict-detail");
-		$("rd-dict-status").textContent = hits.length
-			? L("web.reader.hits", "{0} 条").replace("{0}", String(hits.length)) + (data.ms != null ? " · " + data.ms + " ms" : "")
-			: "";
+		$("rd-dict-status").textContent = hits.length ? dictcount(hits.length, data.ms) : "";
 		list.innerHTML = "";
 		if (!hits.length) {
 			list.innerHTML = '<p class="rd-empty">' + esc(L("web.reader.nohit", "没有命中")) + "</p>";
 			detail.innerHTML = "";
+			dcur = null;
+			dgen++;
 			return;
 		}
 		for (var i = 0; i < hits.length; i++) list.appendChild(dicthit(hits[i]));
 		var want = st.pendingid || 0;
 		st.pendingid = 0;
 		if (want) selecthit(want);
-		else opendictentry(hits[0], null);
+		else opendictentry(hits[0], list.children[0]);
+	}
+
+	function dictcount(n, ms){
+		var s = t("dict.count") || "{0} 条 · {1} ms";
+		return s.replace("{0}", String(n)).replace("{1}", String(ms || 0));
+	}
+
+	function dictshort(code){
+		if (code === "zh") return t("dict.lab.zh") || "中";
+		if (code === "en") return t("dict.lab.en") || "英";
+		if (code === "ja") return t("dict.lab.ja") || "日";
+		if (code === "ko") return t("dict.lab.ko") || "韩";
+		return "";
+	}
+
+	function dicttitle(h){
+		var title = (h && (h.title || h.word)) || "";
+		if ((langs()[langAt] || "zh") !== "zh") return title;
+		if (title.charAt(0) !== "[") return title;
+		var end = title.indexOf("] ");
+		if (end < 2 || end > 6) return title;
+		var lab = dictshort(title.substring(1, end));
+		if (!lab) return title;
+		return "[" + lab + "] " + title.substring(end + 2);
+	}
+
+	function dictpreview(h){
+		var text = h.preview || "";
+		if (h.via) {
+			var via = (t("dict.via") || "由 {0} 还原").replace("{0}", h.via);
+			text = text ? text + "  ·  " + via : via;
+		}
+		return text;
 	}
 
 	function dicthit(h){
 		var row = el("div");
 		row.className = "rd-dhit";
 		row.setAttribute("data-id", String(h.id));
-		var top = el("div");
-		top.className = "rd-dhit-top";
-		var w = el("span");
-		w.className = "rd-dhit-w";
-		w.textContent = h.title || h.word || "";
-		top.appendChild(w);
-		if (h.via) {
-			var v = el("span");
-			v.className = "rd-tag";
-			v.textContent = L("web.reader.via", "活用形");
-			top.appendChild(v);
-		}
-		row.appendChild(top);
-		if (h.preview) {
-			var g = el("div");
-			g.className = "rd-dhit-g";
-			g.textContent = h.preview;
-			row.appendChild(g);
-		}
+		var txt = el("div");
+		txt.className = "hit-txt";
+		var w = el("b");
+		w.textContent = dicttitle(h);
+		var g = el("span");
+		g.textContent = dictpreview(h);
+		txt.appendChild(w);
+		txt.appendChild(g);
+		row.appendChild(txt);
+		var spk = el("button");
+		spk.type = "button";
+		spk.className = "spk";
+		spk.title = t("dict.speak") || "发音";
+		spk.textContent = "🔊";
+		spk.onclick = function(ev){
+			ev.stopPropagation();
+			speakdict(h.speak || h.word, h.dict);
+		};
+		row.appendChild(spk);
 		row.onclick = function(){ opendictentry(h, row); };
 		return row;
 	}
@@ -1640,124 +1693,254 @@
 		if (row) row.className = "rd-dhit on";
 		st.hit = h;
 		var detail = $("rd-dict-detail");
+		var g = ++dgen;
 		detail.innerHTML = '<p class="rd-empty">' + esc(L("web.reader.loading", "正在打开…")) + "</p>";
 		detail.scrollTop = 0;
 		fetchjson("/api/dict/entry?id=" + encodeURIComponent(h.id)).then(function(j){
+			if (g !== dgen) return;
 			if (!j || j.code !== 100) {
 				detail.innerHTML = '<p class="rd-empty">' + esc(errtext(j)) + "</p>";
 				return;
 			}
+			dcur = j.data;
 			detail.innerHTML = "";
-			detail.appendChild(dictdetail(j.data, h));
+			detail.appendChild(dictdetail(j.data));
 		}).catch(function(e){
+			if (g !== dgen) return;
 			detail.innerHTML = '<p class="rd-empty">' + esc(e && e.message ? e.message : "网络错误") + "</p>";
 		});
 	}
 
-	function dictdetail(e, h){
+	// 详情按 /dict 的排法画：词头、读音、词性、义项编号、标签、例句、词组。
+	function dictdetail(e){
 		var box = el("div");
-		box.className = "rd-detail";
-		var head = el("div");
-		head.className = "rd-ddhead";
-		var word = el("strong");
-		word.textContent = e.word || e.headword || (h && h.word) || "";
-		head.appendChild(word);
-		var speak = el("button");
-		speak.type = "button";
-		speak.className = "rd-mini";
-		speak.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-		speak.title = L("dict.speak", "发音");
-		speak.onclick = function(){ speakdict(e.speak || e.word || "", e.dict || ""); };
-		head.appendChild(speak);
-		addtag(head, dictlabel(e.dict));
-		if (e.pron) addtag(head, e.pron);
-		if (e.reading && e.reading !== e.pron) addtag(head, e.reading);
-		if (e.pos) addtag(head, e.pos);
+		var word = e.word || "";
+		var lang = e.dict || "en";
+		var head = dp("title");
+		dadd(head, word, "", lang);
+		if (e.kanji && e.kanji !== word) dadd(head, "  " + e.kanji, "", lang);
 		box.appendChild(head);
-		if (e.conjugations && e.conjugations.length) {
-			var conj = el("p");
-			conj.className = "rd-conj";
-			conj.textContent = e.conjugations.join(" · ");
-			box.appendChild(conj);
+		var reading = e.pron || e.reading || "";
+		if (reading) box.appendChild(done(dbracket(reading), "pron", lang));
+		var article = lang === "zh" && e.extra;
+		if (e.pos) box.appendChild(done(e.pos, "pos", dguess(e.pos, lang)));
+		if (!article) {
+			if (e.usage && e.usage.length) {
+				var tags = dp("");
+				dadd(tags, t("dict.lab.tags") || "标签：", "lab", "");
+				dadd(tags, e.usage.join(" · "), "", dguess(e.usage.join(" · "), lang));
+				box.appendChild(tags);
+			}
+			if (e.etymology) {
+				box.appendChild(done(t("dict.lab.etym") || "语源", "lab", ""));
+				deachline(e.etymology, function(line){ box.appendChild(done(line, "", dguess(line, lang))); });
+			}
+			for (var ci = 0; e.conjugations && ci < e.conjugations.length; ci++) {
+				var cp = dp("");
+				dadd(cp, t("dict.lab.conj") || "活用：", "lab", "");
+				dadd(cp, e.conjugations[ci], "", lang);
+				box.appendChild(cp);
+			}
+			if (e.see && e.see.length) {
+				var sp = dp("");
+				dadd(sp, (t("dict.lab.see") || "参见") + " ", "lab", "");
+				var first = true;
+				for (var si = 0; si < e.see.length; si++) {
+					if (!e.see[si]) continue;
+					if (!first) dadd(sp, " · ", "", "");
+					first = false;
+					dlink(sp, e.see[si], e.see[si], lang);
+				}
+				box.appendChild(sp);
+			}
+			var n = 1;
+			var lastpos = "";
+			var any = false;
+			var linkphrase = lang !== "ko";
+			var senses = e.senses || [];
+			for (var k = 0; k < senses.length; k++) {
+				var s = senses[k];
+				if (s.idiom) {
+					if (any) box.appendChild(dp("gap"));
+					var ip = dp("");
+					dadd(ip, (t("dict.lab.phrase") || "词组") + " ", "lab", "");
+					if (linkphrase) dlink(ip, s.idiom, dfirsttoken(s.idiom), lang);
+					else dadd(ip, s.idiom, "", lang);
+					box.appendChild(ip);
+				}
+				else if (any && !s.sub) box.appendChild(dp("gap"));
+				any = true;
+				if (s.pos && s.pos !== e.pos && s.pos !== lastpos) {
+					box.appendChild(done("▶ " + s.pos, "pos", dguess(s.pos, lang)));
+					lastpos = s.pos;
+					n = 1;
+				}
+				var numbered = false;
+				function gloss(tag, lemma, def, glang){
+					if (!lemma && !def) return;
+					var gp = dp("");
+					if (!numbered && !s.sub) {
+						dadd(gp, n + ". ", "num", "");
+						numbered = true;
+						n++;
+					}
+					if (tag) dadd(gp, tag + " ", "lab", glang);
+					dadd(gp, djoin2(lemma, def), "", glang);
+					box.appendChild(gp);
+				}
+				if (s.ko) gloss("", s.ko, "", "ko");
+				gloss(t("dict.lab.zh") || "中", s.zh, s.zhDef, "zh");
+				gloss(t("dict.lab.en") || "英", s.en, s.enDef, "en");
+				gloss(t("dict.lab.ja") || "日", s.ja, s.jaDef, "ja");
+				for (var pi = 0; s.phrases && pi < s.phrases.length; pi++) {
+					var ph = s.phrases[pi];
+					var pp = dp("");
+					dadd(pp, (t("dict.lab.phrase") || "词组") + " ", "lab", "");
+					if (linkphrase && ph.text) dlink(pp, ph.text, dfirsttoken(ph.text), lang);
+					else dadd(pp, ph.text || "", "", lang);
+					if (!linkphrase) {
+						var psay = dexamplesrc(ph.text);
+						if (psay) dspk(pp, psay, lang);
+					}
+					box.appendChild(pp);
+					if (ph.zh) {
+						var zp = dp("");
+						dadd(zp, (t("dict.lab.zh") || "中") + " ", "lab", "zh");
+						dadd(zp, ph.zh, "", "zh");
+						box.appendChild(zp);
+					}
+				}
+				if (s.sentences && s.sentences.length)
+					box.appendChild(done(t("dict.lab.example") || "例句", "exlab", ""));
+				for (var ei = 0; s.sentences && ei < s.sentences.length; ei++) {
+					var ex = s.sentences[ei];
+					var ep = dp("ex");
+					dadd(ep, "· " + (ex.text || ""), "ex", lang);
+					var esay = dexamplesrc(ex.text);
+					if (esay) dspk(ep, esay, lang);
+					box.appendChild(ep);
+					if (ex.zh) {
+						var ez = dp("");
+						dadd(ez, (t("dict.lab.zh") || "中") + " ", "lab", "zh");
+						dadd(ez, ex.zh, "", "zh");
+						box.appendChild(ez);
+					}
+				}
+				if (!s.sub && !numbered && (!s.phrases || !s.phrases.length) && (!s.sentences || !s.sentences.length)) {
+					var empty = dp("");
+					dadd(empty, n + ". ", "num", "");
+					n++;
+					dadd(empty, t("dict.empty.sense") || "（无释义）", "pron", "");
+					box.appendChild(empty);
+				}
+				else if (!s.sub && !numbered) {
+					box.appendChild(done(n + ".", "num", ""));
+					n++;
+				}
+			}
 		}
-		var senses = e.senses || [];
-		for (var i = 0; i < senses.length; i++) box.appendChild(dictsense(senses[i]));
-		if (e.extra) {
-			var extra = el("p");
-			extra.className = "rd-extra";
-			extra.textContent = e.extra;
-			box.appendChild(extra);
+		if (e.extra && (article || lang !== "zh")) {
+			if (box.childNodes.length) box.appendChild(dp("gap"));
+			deachline(e.extra, function(line){
+				box.appendChild(done(line, "", article ? "zh" : dguess(line, lang)));
+			});
 		}
-		if (e.etymology) {
-			var et = el("p");
-			et.className = "rd-extra";
-			et.textContent = e.etymology;
-			box.appendChild(et);
-		}
-		if (!senses.length && !e.extra) {
-			var empty = el("p");
-			empty.className = "rd-empty";
-			empty.textContent = L("web.reader.noentry", "这条没有释义");
-			box.appendChild(empty);
-		}
+		box.scrollTop = 0;
 		return box;
 	}
 
-	function addsense(box, label, arr){
-		if (!arr || !arr.length) return;
-		var wrap = el("div");
-		wrap.className = "rd-bits";
-		var lab = el("span");
-		lab.className = "rd-blabel";
-		lab.textContent = label;
-		wrap.appendChild(lab);
-		for (var i = 0; i < arr.length; i++) {
-			var one = arr[i];
-			if (!one || !one.text) continue;
-			var line = el("div");
-			line.className = "rd-bit";
-			line.textContent = one.text + (one.zh ? "　" + one.zh : "");
-			wrap.appendChild(line);
-		}
-		box.appendChild(wrap);
+	function dp(cls){
+		var node = el("p");
+		if (cls) node.className = cls;
+		return node;
 	}
-
-	function dictsense(s){
-		var box = el("div");
-		box.className = "rd-sense";
-		var head = el("div");
-		head.className = "rd-sense-head";
-		if (s.pos) addtag(head, s.pos);
-		if (s.idiom) addtag(head, s.idiom);
-		if (head.childNodes.length) box.appendChild(head);
-		var lines = [
-			s.zh ? s.zh + (s.zhDef ? "　" + s.zhDef : "") : "",
-			s.en ? s.en + (s.enDef ? "　" + s.enDef : "") : "",
-			s.ja ? s.ja + (s.jaDef ? "　" + s.jaDef : "") : "",
-			s.ko || ""
-		];
-		for (var i = 0; i < lines.length; i++) {
-			if (!lines[i]) continue;
-			var p = el("div");
-			p.className = "rd-def";
-			p.textContent = lines[i];
-			box.appendChild(p);
-		}
-		addsense(box, L("dict.lab.phrase", "词组"), s.phrases);
-		addsense(box, L("dict.lab.example", "例句"), s.sentences);
-		return box;
+	function done(text, cls, lang){
+		var node = dp(cls);
+		dadd(node, text, cls, lang);
+		return node;
 	}
-
-	function dictlabel(code){
-		return code === "zh" ? "汉" : code === "en" ? "英" : code === "ja" ? "日" : code === "ko" ? "韩" : (code || "");
-	}
-
-	function addtag(box, text){
+	function dadd(parent, text, cls, lang){
 		if (!text) return;
 		var s = el("span");
-		s.className = "rd-tag";
+		if (cls) s.className = cls;
+		if (lang) s.setAttribute("data-lang", lang);
 		s.textContent = text;
-		box.appendChild(s);
+		parent.appendChild(s);
+	}
+	function dlink(parent, label, q, lang){
+		var b = el("button");
+		b.type = "button";
+		b.className = "link";
+		b.setAttribute("data-q", q || label);
+		if (lang) b.setAttribute("data-lang", lang);
+		b.textContent = label;
+		parent.appendChild(b);
+	}
+	function dspk(parent, text, lang){
+		parent.appendChild(document.createTextNode(" "));
+		var b = el("button");
+		b.type = "button";
+		b.className = "spk";
+		b.setAttribute("data-say", text);
+		b.setAttribute("data-lang", lang || "");
+		b.textContent = "🔊";
+		parent.appendChild(b);
+	}
+
+	/** 按文字里出现的中日韩汉字、假名、谚文、拉丁字母猜语言。 */
+	function dguess(text, fallback){
+		var s = String(text || "");
+		var score = [0, 0, 0, 0];
+		var allowJa = fallback === "ja";
+		var han = 0;
+		var kana = 0;
+		var hang = 0;
+		var lat = 0;
+		for (var i = 0; i < s.length; i++) {
+			var c = s.charCodeAt(i);
+			if ((c >= 0x3040 && c <= 0x30FF) || (c >= 0xFF66 && c <= 0xFF9D)) kana++;
+			else if (c >= 0xAC00 && c <= 0xD7A3) hang++;
+			else if ((c >= 0x4E00 && c <= 0x9FFF) || (c >= 0x3400 && c <= 0x4DBF)) han++;
+			else if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122)) lat++;
+		}
+		if (kana > 0 && allowJa) score[2] += kana + han;
+		else score[0] += han;
+		score[3] += hang;
+		score[1] += lat;
+		var names = ["zh", "en", "ja", "ko"];
+		var best = -1;
+		var top = 0;
+		for (i = 0; i < 4; i++) if (score[i] > top) { top = score[i]; best = i; }
+		if (best < 0) return fallback || "en";
+		return names[best];
+	}
+	function dbracket(s){
+		if (!s) return s;
+		if (s.charAt(0) === "[" || s.charAt(0) === "［") return s;
+		return "[" + s + "]";
+	}
+	function djoin2(a, b){
+		if (!a) return b || "";
+		if (!b) return a;
+		return a + "  " + b;
+	}
+	function dexamplesrc(text){
+		var s = String(text || "").replace(/^\s+|\s+$/g, "").replace(/^·/, "").replace(/^\s+/, "");
+		var i = s.indexOf("  ");
+		if (i > 0) s = s.substring(0, i).replace(/\s+$/g, "");
+		return s;
+	}
+	function dfirsttoken(phrase){
+		var s = String(phrase || "").replace(/^\s+|\s+$/g, "");
+		var i = s.indexOf(" ");
+		var j = s.indexOf("　");
+		if (i < 0 || (j >= 0 && j < i)) i = j;
+		if (i <= 0) return s;
+		return s.substring(0, i);
+	}
+	function deachline(text, fn){
+		var parts = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+		for (var i = 0; i < parts.length; i++) fn(parts[i]);
 	}
 
 	function speakdict(text, lang){

@@ -189,46 +189,56 @@ button, input, select { font: inherit; }
 }
 .rd-dict-bar strong { flex: none; }
 .rd-dict-status { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rd-dict-search { display: flex; gap: 8px; padding: 8px 10px 0; }
+.rd-dict-search { display: flex; gap: 8px; padding: 10px 12px 0; }
 .rd-dict-search input {
-	flex: 1; min-width: 0; height: 34px; margin: 0; padding: 0 10px; border: 1px solid var(--line);
-	border-radius: 8px; background: #fff; font: 13px/34px "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	flex: 1; min-width: 120px; height: 32px; margin: 0; padding: 0 8px; border: 1px solid var(--line);
+	border-radius: 8px; background: #fff;
 }
 .rd-dict-search button {
-	flex: none; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff;
-	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	flex: none; height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px;
+	background: #fff; cursor: pointer;
 }
-.rd-dict-tabs { display: flex; gap: 6px; padding: 8px 10px; flex-wrap: wrap; }
+.rd-dict-tabs { display: flex; gap: 6px; padding: 8px 12px; flex-wrap: wrap; }
 .rd-dict-tabs button {
 	height: 28px; min-width: 44px; padding: 0 10px; border: 1px solid var(--line);
 	border-radius: 999px; background: #fff; font: 12px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .rd-dict-tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .rd-dict-tabs button:disabled { opacity: 0.4; }
-.rd-dict-main { flex: 1; min-height: 0; display: flex; border-top: 1px solid var(--line); }
-.rd-dict-list { width: 40%; min-width: 0; overflow: auto; border-right: 1px solid var(--line); }
-.rd-dict-detail { flex: 1; min-width: 0; overflow: auto; padding: 12px 14px 22px; }
-.rd-dhit { padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
-.rd-dhit.on { background: #f7ece6; }
-.rd-dhit-top { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
-.rd-dhit-w { font-weight: 650; }
-.rd-dhit-g { margin-top: 2px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.rd-tag {
-	display: inline-block; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px;
-	background: #faf8f5; color: var(--muted); font-size: 11px; line-height: 18px;
+.rd-dict-main { flex: 1; min-height: 0; display: flex; gap: 8px; padding: 8px 12px 10px; }
+.rd-dict-list {
+	width: 340px; min-width: 200px; overflow: auto;
+	border: 1px solid var(--line); border-radius: 8px;
 }
-.rd-ddhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-.rd-ddhead strong { font-size: 22px; }
+.rd-dict-list .rd-dhit {
+	display: flex; align-items: center; gap: 6px; padding: 6px 8px; cursor: pointer;
+	border-bottom: 1px solid #f0ebe4;
+}
+.rd-dict-list .rd-dhit.on { background: #f3e6d4; }
+.rd-dict-list .hit-txt { flex: 1; min-width: 0; }
+.rd-dict-list .hit-txt b, .rd-dict-list .hit-txt span {
+	display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rd-dict-list .hit-txt span { color: #666; font-weight: 400; }
+.spk { flex: none; width: 28px; height: 28px; border: 0; background: transparent; color: #2878be; cursor: pointer; }
+.rd-dict-detail {
+	flex: 1; min-width: 0; overflow: auto; padding: 10px 12px;
+	border: 1px solid var(--line); border-radius: 8px;
+}
+.rd-dict-detail p { margin: 0 0 2px; }
+.rd-dict-detail .title { font-weight: 650; margin-bottom: 4px; }
+.rd-dict-detail .pron { color: #6e6e6e; }
+.rd-dict-detail .pos { color: #8830a8; }
+.rd-dict-detail .num { color: #d25514; }
+.rd-dict-detail .lab { color: #285aaa; }
+.rd-dict-detail .exlab { color: #148246; }
+.rd-dict-detail .ex { color: #2d784b; }
+.rd-dict-detail .gap { height: 8px; }
+.rd-dict-detail button.link {
+	border: 0; padding: 0; background: transparent; color: #285aaa; cursor: pointer; font: inherit;
+}
 .rd-mini { width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); }
 .rd-mini:hover { background: #f3f4f6; color: var(--ink); }
-.rd-conj { margin: 4px 0; color: var(--muted); font-size: 12px; }
-.rd-sense { padding: 8px 0; border-top: 1px solid var(--line); }
-.rd-sense-head { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
-.rd-def { line-height: 1.65; }
-.rd-bits { margin-top: 6px; }
-.rd-blabel { color: var(--muted); font-size: 11px; }
-.rd-bit { white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
-.rd-extra { margin-top: 10px; white-space: pre-wrap; color: #4d4338; font-size: 13px; }
 
 /* 拖入文件时整页提示，松开即上传 */
 .rd-drop {
