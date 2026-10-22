@@ -792,6 +792,16 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .reflist .refnone { color: var(--muted); text-align: center; padding: 18px 10px; }
 .reflist td.rnw, .reflist th.rnw { white-space: nowrap; }
 .reflist td.rmono { font: 12.5px/1.4 Consolas, "Microsoft YaHei UI", monospace; }
+/* 速查表的简单语法高亮：关键字、函数、字符串、数字、注释、变量、符号、命令名、参数 */
+.hl-k { color: #7c3aed; }
+.hl-f { color: #0369a1; }
+.hl-s { color: #b45309; }
+.hl-n { color: #0f766e; }
+.hl-cm { color: #6b7280; font-style: italic; }
+.hl-v { color: #be123c; }
+.hl-o { color: #64748b; }
+.hl-cmd { color: #9a3412; font-weight: 600; }
+.hl-fl { color: #0e7490; }
 .reflist td.hcode { font: 600 13px/1.4 Consolas, "Microsoft YaHei UI", monospace; white-space: nowrap; }
 .reflist td.hspec { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .reflist td.mtype { font: 12.5px/1.4 Consolas, "Microsoft YaHei UI", monospace; word-break: break-all; }

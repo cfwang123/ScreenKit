@@ -473,6 +473,7 @@
 			big: 0,
 			sub: 1,
 			copy: 0,
+			hl: id === "cmd" ? "cmd" : "ps",
 			defaultPick: defaultPick
 		};
 	}

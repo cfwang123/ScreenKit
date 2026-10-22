@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - File analysis reads media parameters from the ffmpeg64 shared libraries installed by the features page; ffmpeg lookup uses only that folder.
 - Merge Linux command lookup into one tool with a distribution switch (Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, Alpine); the last distribution is remembered
 - Windows commands adds a pwsh (PowerShell 7) tab beside Windows PowerShell and CMD, with pwsh-only commands such as ForEach-Object -Parallel, Get-Error, Get-Uptime and Test-Json
+- HTTP TTS: Chrome voice packs are no longer installed automatically; a missing voice returns 927
 
 #### Fixed
 
@@ -90,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文件分析改用安装功能提供的 ffmpeg64 共享库读取媒体参数，ffmpeg 查找只认这个目录。
 - Linux 命令查询合并为一个工具，可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，并记住上次选的发行版
 - Windows 常用命令增加 pwsh（PowerShell 7）页签，与 Windows PowerShell、CMD 并列，补充 ForEach-Object -Parallel、Get-Error、Get-Uptime、Test-Json 等 7 专有写法
+- HTTP 语音合成：Chrome 语音包不再自动安装，缺失时直接返回 927
 
 #### 修复
 

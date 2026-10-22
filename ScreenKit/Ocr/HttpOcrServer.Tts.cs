@@ -327,16 +327,11 @@ sealed partial class HttpOcrServer {
 			if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
 			var volume = 100;
 			if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
-			var pack = ChromePack.SpeakLang(pick?.Culture ?? lang);
 			var spoken = pick?.Name ?? name;
 			var culture = pick?.Culture ?? lang;
-			try {
-				ChromeTts.Speak(text, spoken, culture, speed, volume / 100.0, exe, idle, CancellationToken.None);
-			}
-			catch (InvalidOperationException ex) when ((ex.Message ?? "").IndexOf("没有发出声音", StringComparison.Ordinal) >= 0) {
-				ChromePack.EnsureVoice(pack, exe, HttpProxy.Mode, HttpProxy.Addr, null, CancellationToken.None);
-				ChromeTts.Speak(text, spoken, culture, speed, volume / 100.0, exe, idle, CancellationToken.None);
-			}
+			// 接口不装语音包：缺失直接报 927，安装留给桌面朗读或安装功能页
+			ChromePack.RequireVoice(culture, exe, HttpProxy.Mode, HttpProxy.Addr, CancellationToken.None);
+			ChromeTts.Speak(text, spoken, culture, speed, volume / 100.0, exe, idle, CancellationToken.None);
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
 				["data"] = new JsonObject {

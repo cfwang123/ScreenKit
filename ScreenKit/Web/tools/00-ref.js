@@ -16,6 +16,7 @@
 			copy: spec.copy,
 			numeric: spec.numeric,
 			bigCls: spec.bigCls || "",
+			hl: spec.hl || "",
 			defaultPick: spec.defaultPick || "",
 			sample: spec.sample
 		}];
@@ -163,7 +164,7 @@
 				if (set.cols[i].nowrap) cls.push("rnw");
 				if (set.cols[i].mono) cls.push("rmono");
 				html += "<td" + (cls.length ? ' class="' + cls.join(" ") + '"' : "") + ">"
-					+ esc(row.c[i]) + "</td>";
+					+ cellhtml(set, i, row.c[i]) + "</td>";
 			}
 			return html + "</tr>";
 		}
@@ -216,7 +217,7 @@
 			html += '<dl class="refmeta">';
 			var i;
 			for (i = 0; i < (row.d || []).length; i++)
-				html += "<dt>" + esc(row.d[i][0]) + "</dt><dd>" + esc(row.d[i][1]) + "</dd>";
+				html += "<dt>" + esc(row.d[i][0]) + "</dt><dd>" + metaval(set, row.d[i][0], row.d[i][1]) + "</dd>";
 			html += "</dl>";
 			if (set.sample)
 				html += '<div class="refsample">' + samplehtml(set.sample(row)) + "</div>";
@@ -314,5 +315,16 @@
 			.replace(/</g, "&lt;")
 			.replace(/>/g, "&gt;")
 			.replace(/"/g, "&quot;");
+	}
+
+	// 只有标了 mono 的列才着色，说明列保持纯文本；复制仍用原始字符串。
+	function cellhtml(set, i, val){
+		if (set.hl && SK.hl && set.cols[i] && set.cols[i].mono === true) return SK.hl(set.hl, val);
+		return esc(val);
+	}
+
+	function metaval(set, label, val){
+		if (set.hl && SK.hl && (label === "示例" || label === "常用示例")) return SK.hl(set.hl, val);
+		return esc(val);
 	}
 })();

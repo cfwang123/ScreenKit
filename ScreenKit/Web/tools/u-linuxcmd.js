@@ -521,6 +521,7 @@
 			big: 0,
 			sub: 1,
 			copy: 0,
+			hl: "sh",
 			defaultPick: "ls"
 		};
 	}
