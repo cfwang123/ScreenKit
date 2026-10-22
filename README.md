@@ -161,8 +161,8 @@ This program receives while it is running, and that can be turned off in Setting
   - **Time zones**: IANA zones, abbreviations, and standard/DST offsets
   - **Country, language & currency codes**: ISO codes for countries, languages, and currencies
   - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
-  - **Linux commands**: Commands and examples by file, package, process, network, and more; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
-  - **Windows commands**: Windows PowerShell, pwsh, and CMD commands by category, with examples, plus a syntax-help group for all three shells; the last shell is remembered
+  - **Linux commands**: Commands by file, package, process, network, and more, each with a commented multi-line example, plus Bash syntax help; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
+  - **Windows commands**: Windows PowerShell, pwsh, and CMD commands by category, each with a commented multi-line example, plus a syntax-help group for all three shells; the last shell is remembered
   - **SQL functions**: Look up functions and syntax for MySQL, SQL Server, Oracle, SQLite, and PostgreSQL, grouped by strings, numbers, dates, casts, aggregation, window functions, JSON, and metadata; the last database is remembered
   - **Linux software**: Open-source Linux packages and install commands for common apps
   - **This browser**: What the browser can read about this device

@@ -161,8 +161,8 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
   - **时区表**：查 IANA 时区、缩写和标准/夏令时偏移
   - **国家/语言/货币代码**：查 ISO 国家/地区、语言和货币代码
   - **键盘码**：查按键的 event.code、event.key、keyCode 和 Windows VK
-  - **Linux 常用命令**：按文件、软件包、进程、网络等查命令和示例；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
-  - **Windows 常用命令**：Windows PowerShell、pwsh、CMD 三套命令，按类别查用法和示例，另有一组三种命令行的语法帮助；下次打开沿用上次选的命令行
+  - **Linux 常用命令**：按文件、软件包、进程、网络等查命令，每条都配一段带注释的多行示例，另有 Bash 语法速查；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
+  - **Windows 常用命令**：Windows PowerShell、pwsh、CMD 三套命令，按类别查用法，每条都配一段带注释的多行示例，另有一组三种命令行的语法帮助；下次打开沿用上次选的命令行
   - **SQL 函数查询**：按字符串、数值、日期、类型转换、聚合、窗口函数、JSON、元数据等查 MySQL、SQL Server、Oracle、SQLite、PostgreSQL 的函数写法；下次打开沿用上次选的数据库
   - **Linux 常用软件**：查 Linux 常用开源软件的包名和安装命令
   - **本机信息**：查看浏览器能读到的本机信息

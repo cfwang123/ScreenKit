@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP API: list engines and query models per engine for OCR, speech recognition, and translation
 - MD reader: dropping a .lnk shortcut to a Markdown file opens its target
 - MD reader: five themes (light, dark, sepia, eye care, midnight) with a theme picker in the WPF window and the web tool; the choice is remembered
+- Command tools show a commented multi-line example for every command; the Linux tool also gains a Bash syntax group
 
 #### Changed
 
@@ -90,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 接口：OCR、语音识别、翻译增加查引擎、按引擎查模型
 - MD 阅读器：可拖入指向 Markdown 的 .lnk 快捷方式
 - MD 阅读器：新增明亮、暗色、米黄、护眼、午夜蓝五种主题，WPF 窗口和网页工具都能切换并记住选择
+- 命令工具每条命令都配带注释的多行示例；Linux 工具新增 Bash 语法速查组
 
 #### 变更
 
