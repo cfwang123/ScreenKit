@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - New Windows commands tool: PowerShell and CMD tables with categories, search and click-to-copy; the chosen shell is remembered
 - Word/PDF to MD extracts document images into a chosen folder and writes Markdown image links. The default folder is images with 001.png, 002.png…, and {name} uses the document name.
 - Windows commands gains a 语法帮助 group in every shell tab: 32 entries on CMD, Windows PowerShell, and pwsh quoting, variables, comparison operators, pipelines, redirection, and PowerShell 7 operators
+- Markdown reader: export the current document to Word or PDF
 
 #### Changed
 
@@ -76,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增 Windows 常用命令工具：PowerShell 和 CMD 两套命令，按类别分组、可搜索、点一下复制，并记住上次选用的命令行
 - Word/PDF 转 MD 会把文档里的图片抽到指定目录并写成 Markdown 图片链接。默认 images 目录、001.png/002.png…，可用 {name} 换成文档名。
 - Windows 常用命令在每个命令行页签里新增「语法帮助」组，共 32 条，覆盖 CMD、Windows PowerShell、pwsh 的引号、变量、比较运算符、管道、重定向和 7 专有运算符
+- MD 阅读器：可把当前文档导出为 Word 或 PDF
 
 #### 变更
 

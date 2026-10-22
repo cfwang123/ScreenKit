@@ -85,7 +85,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Fast copy**: Copy, cut, delete to the Recycle Bin, or make a symbolic or hard link, and register an Explorer cascade menu.
 - **Hash**: MD5, SHA-1, and SHA-256. Paste an expected value to compare.
 - **Text tools**: Base64, URL, hex, escapes, case, whitespace, counts, JSON pretty-print, and more.
-- **Markdown reader**: Open or drop a Markdown file and read it with the IE11 engine built into Windows.
+- **Markdown reader**: Open or drop a Markdown file and read it with the IE11 engine built into Windows; export it to Word (needs Word installed) or PDF (printed by Edge/Chrome).
 - **Word/PDF to MD**: Convert a .docx or a text PDF to Markdown, then preview, copy, or save it. Images are extracted into the chosen folder (default `images/001.png`; `{name}` becomes the document name), and PDF text comes from the installed PDFium; scanned pages need PDF recognition first.
 - **Password generator**: Generate passwords from a length and character classes, or hand a sentence to a configured LLM and spell the translation out.
 - **Network**: Diagnostics, IP scan, and port scan, covering Ping, DNS, Wake-on-LAN, trace route, and more.

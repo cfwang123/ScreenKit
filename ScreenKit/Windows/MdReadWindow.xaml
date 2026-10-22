@@ -21,6 +21,10 @@
 			        AutomationProperties.AutomationId="mdread.open"/>
 			<Button x:Name="bclose" Content="关闭" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
 			        AutomationProperties.AutomationId="mdread.close"/>
+			<Button x:Name="bpdf" Content="导出 PDF" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
+			        Margin="0,0,8,0" AutomationProperties.AutomationId="mdread.pdf"/>
+			<Button x:Name="bword" Content="导出 Word" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
+			        Margin="0,0,8,0" AutomationProperties.AutomationId="mdread.word"/>
 			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="12,0,12,0"
 			           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
 			           AutomationProperties.AutomationId="mdread.stat"/>

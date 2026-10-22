@@ -11,6 +11,7 @@ public partial class MdReadWindow : Window {
 	string curpath = "";
 	string curmode = "";
 	string page;
+	bool hasmd;
 	readonly List<string> oldpages = new();
 
 	public MdReadWindow() {
@@ -52,6 +53,8 @@ public partial class MdReadWindow : Window {
 	void initev() {
 		bopen.Click += (_, _) => pick();
 		bclose.Click += (_, _) => Close();
+		bword.Click += (_, _) => exportword();
+		bpdf.Click += (_, _) => exportpdf();
 		PreviewDragOver += (_, e) => {
 			e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
 			e.Handled = true;
@@ -76,6 +79,10 @@ public partial class MdReadWindow : Window {
 		Title = Loc.T("mdread.title");
 		ToolBtnUi.Set(bopen, ToolBtnUi.Folder, Loc.T("mdread.open"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
+		ToolBtnUi.Set(bword, ToolBtnUi.Save, Loc.T("mdread.word"));
+		ToolBtnUi.Set(bpdf, ToolBtnUi.Save, Loc.T("mdread.pdf"));
+		bword.IsEnabled = hasmd;
+		bpdf.IsEnabled = hasmd;
 		showstat();
 	}
 
@@ -108,10 +115,54 @@ public partial class MdReadWindow : Window {
 			return;
 		}
 		curpath = path;
+		hasmd = true;
+		bword.IsEnabled = true;
+		bpdf.IsEnabled = true;
 		Title = Path.GetFileName(path) + " - " + Loc.T("mdread.title");
 		var dir = Path.GetDirectoryName(path) ?? "";
 		showhtml(MdRead.ToHtml(md, dir, Path.GetFileName(path)));
 		showstat();
+	}
+
+	void exportword() => export(true);
+
+	void exportpdf() => export(false);
+
+	void export(bool word) {
+		if (!hasmd || string.IsNullOrEmpty(page) || !File.Exists(page)) return;
+		var ofd = new Microsoft.Win32.SaveFileDialog {
+			Title = Loc.T(word ? "mdread.word" : "mdread.pdf"),
+			Filter = word ? "Word|*.docx" : "PDF|*.pdf",
+			FileName = Path.GetFileNameWithoutExtension(curpath) + (word ? ".docx" : ".pdf"),
+			DefaultExt = word ? ".docx" : ".pdf",
+			AddExtension = true,
+			OverwritePrompt = true,
+		};
+		try {
+			var dir = Path.GetDirectoryName(curpath);
+			if (!string.IsNullOrEmpty(dir)) ofd.InitialDirectory = dir;
+		}
+		catch { }
+		if (ofd.ShowDialog(this) != true) return;
+		var dest = ofd.FileName;
+		lbstat.Text = Loc.T("mdread.exporting");
+		lbstat.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+		Mouse.OverrideCursor = Cursors.Wait;
+		try {
+			var html = MdExport.PrintHtml(File.ReadAllText(page));
+			if (word) MdExport.ToWord(html, dest);
+			else MdExport.ToPdf(html, dest);
+			lbstat.Text = string.Format(Loc.T("mdread.exported"), dest);
+		}
+		catch (MdExportError ex) {
+			lbstat.Text = Loc.T("mdread." + ex.Key);
+		}
+		catch (Exception ex) {
+			lbstat.Text = string.Format(Loc.T("mdread.exportfail"), ex.Message);
+		}
+		finally {
+			Mouse.OverrideCursor = null;
+		}
 	}
 
 	void showhtml(string html) {
