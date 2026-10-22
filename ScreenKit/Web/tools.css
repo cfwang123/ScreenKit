@@ -748,6 +748,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .refchips { display: flex; flex-wrap: wrap; gap: 6px; flex: none; }
 .refchips[hidden] { display: none; }
 .refchips.refsets { padding-bottom: 6px; border-bottom: 1px dashed var(--line); }
+.refchips .reflabel { align-self: center; margin-right: 2px; color: var(--muted); font-size: 12px; }
 .refchips button {
 	height: 28px; padding: 0 10px; cursor: pointer;
 	border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink);

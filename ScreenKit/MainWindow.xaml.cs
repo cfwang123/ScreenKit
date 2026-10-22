@@ -101,6 +101,7 @@ public partial class MainWindow : Window {
 	ShotHistoryWindow histwin;
 	TextToolWindow textToolWin;
 	MdReadWindow mdReadWin;
+	DocToMdWindow doc2mdWin;
 	PasswordWindow pwGenWin;
 	SciCalcWindow sciCalcWin;
 	DeskNoteWindow noteWin;
@@ -1799,6 +1800,7 @@ public partial class MainWindow : Window {
 		mnhash.Click += (_, _) => openhash();
 		mntexttool.Click += (_, _) => opentexttool();
 		mnmdread.Click += (_, _) => openmdread();
+		mndoc2md.Click += (_, _) => opendoc2md();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnscicalc.Click += (_, _) => openscicalc();
 		mnnote.Click += (_, _) => opennote();
@@ -1977,6 +1979,8 @@ public partial class MainWindow : Window {
 			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
 			mnmdread.Header = Loc.T("menu.mdread");
 			mnmdread.ToolTip = Loc.T("menu.mdread.tip");
+			mndoc2md.Header = Loc.T("menu.doc2md");
+			mndoc2md.ToolTip = Loc.T("menu.doc2md.tip");
 			mnpwgen.Header = Loc.T("menu.pwgen");
 			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
 			mnscicalc.Header = Loc.T("menu.scicalc");
@@ -4857,6 +4861,9 @@ public partial class MainWindow : Window {
 	void openmdread() =>
 		opentoolwin(ref mdReadWin, () => new MdReadWindow(), "menu.mdread");
 
+	void opendoc2md() =>
+		opentoolwin(ref doc2mdWin, () => new DocToMdWindow(), "menu.doc2md");
+
 	void openscicalc() =>
 		opentoolwin(ref sciCalcWin, () => new SciCalcWindow(), "menu.scicalc");
 
@@ -4969,6 +4976,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(hashWin, w)) hashWin = null;
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
 				else if (ReferenceEquals(mdReadWin, w)) mdReadWin = null;
+				else if (ReferenceEquals(doc2mdWin, w)) doc2mdWin = null;
 				else if (ReferenceEquals(pwGenWin, w)) pwGenWin = null;
 				else if (ReferenceEquals(sciCalcWin, w)) sciCalcWin = null;
 				else if (ReferenceEquals(noteWin, w)) noteWin = null;

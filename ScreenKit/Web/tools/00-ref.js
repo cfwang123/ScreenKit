@@ -19,6 +19,8 @@
 			defaultPick: spec.defaultPick || "",
 			sample: spec.sample
 		}];
+		var store = spec.store || "";
+		var setsLabel = spec.setsLabel || "";
 		var setat = 0;
 		var cur = "all";
 		var picked = null;
@@ -42,7 +44,7 @@
 				throw new Error("没有这个工具");
 			},
 			open: function(){
-				setat = 0;
+				setat = readsaved();
 				cur = "all";
 				picked = null;
 				if (sets.length > 1) {
@@ -61,6 +63,21 @@
 
 		function setnow(){
 			return sets[setat];
+		}
+
+		// 记住上次选的分组（如发行版）；存的 id 不在列表里就回到第一组。
+		function readsaved(){
+			var id = "";
+			if (!store) return 0;
+			try { id = F.lget(store) || ""; } catch (e) { id = ""; }
+			var i;
+			for (i = 0; i < sets.length; i++) if (sets[i].id === id) return i;
+			return 0;
+		}
+
+		function writesaved(){
+			if (!store) return;
+			try { F.lset(store, sets[setat].id); } catch (e) {}
 		}
 
 		function query(){
@@ -230,6 +247,7 @@
 		function paintsets(){
 			var html = [];
 			var i;
+			if (setsLabel) html.push('<span class="reflabel">' + esc(setsLabel) + "</span>");
 			for (i = 0; i < sets.length; i++) {
 				html.push('<button type="button" data-s="' + i + '"'
 					+ (i === setat ? ' class="on"' : "") + ">" + esc(sets[i].name)
@@ -255,6 +273,7 @@
 			while (el && el !== this) {
 				if (el.getAttribute && F.attr(el, "data-s")) {
 					setat = parseInt(F.attr(el, "data-s"), 10);
+					writesaved();
 					cur = "all";
 					picked = null;
 					F.id(name + "-q").value = "";

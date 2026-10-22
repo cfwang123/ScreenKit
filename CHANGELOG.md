@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The novel reader's dictionary popup uses the dictionary page's layout and colors for its hit list and entry detail.
 - File analysis shows the EXE/DLL sections as separate tabs instead of a drop-down list.
 - File analysis reads media parameters from the ffmpeg64 shared libraries installed by the features page; ffmpeg lookup uses only that folder.
+- Merge Linux command lookup into one tool with a distribution switch (Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, Alpine); the last distribution is remembered
 
 #### Fixed
 
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器的词典浮窗，列表和词条详情改用与词典页相同的排版与配色。
 - 文件分析工具的 EXE/DLL 各分节改为独立选项卡，不再用下拉框切换。
 - 文件分析改用安装功能提供的 ffmpeg64 共享库读取媒体参数，ffmpeg 查找只认这个目录。
+- Linux 命令查询合并为一个工具，可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，并记住上次选的发行版
 
 #### 修复
 

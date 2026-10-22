@@ -672,14 +672,14 @@
 					{
 						x:"button",
 						"type":"button",
-						"data-tool":"u-ubuntucmd",
+						"data-tool":"u-linuxcmd",
 						"data-cat":"info",
-						"data-name":"ubuntu linux 命令 shell 终端 apt chmod grep systemctl ssh docker 常用命令",
-						"title":"Ubuntu 常用命令、示例和分类，点一下复制命令",
+						"data-name":"linux 命令 shell 终端 发行版 ubuntu debian rhel centos fedora openeuler arch opensuse alpine apt dnf pacman zypper apk systemctl 常用命令",
+						"title":"Linux 常用命令、示例和分类，可选发行版，点一下复制命令",
 						c:[
 						{x:"i.fa-solid.fa-terminal"},
-						{x:"span","data-k":"web.tool.ubuntucmd",c:"Ubuntu 常用命令"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-ubuntucmd","title":"收藏"}
+						{x:"span","data-k":"web.tool.linuxcmd",c:"Linux 常用命令"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-linuxcmd","title":"收藏"}
 					]
 					},
 					{

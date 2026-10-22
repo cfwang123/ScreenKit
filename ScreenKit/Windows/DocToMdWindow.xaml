@@ -1,0 +1,43 @@
+<Window x:Class="ScreenKit.DocToMdWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="文档转 Markdown"
+        Width="980" Height="720"
+        MinWidth="640" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="doc2md.window">
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+		</Grid.RowDefinitions>
+		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="True">
+			<Button x:Name="bfile" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left" Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="doc2md.file"/>
+			<Button x:Name="bclose" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="doc2md.close"/>
+			<Button x:Name="bcopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="doc2md.copy"/>
+			<Button x:Name="bsave" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="doc2md.save"/>
+			<Button x:Name="bgo" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right" Margin="8,0,0,0"
+			        AutomationProperties.AutomationId="doc2md.convert"/>
+			<TextBox x:Name="epath" Height="32" Padding="8,4" VerticalContentAlignment="Center"
+			         AutomationProperties.AutomationId="doc2md.path"/>
+		</DockPanel>
+		<TextBlock x:Name="lbstat" Grid.Row="1" Margin="0,0,0,8" TextWrapping="Wrap"
+		           Foreground="{StaticResource TextMuted}"
+		           AutomationProperties.AutomationId="doc2md.stat"/>
+		<Border Grid.Row="2" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Background="White">
+			<TextBox x:Name="eout" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+			         FontFamily="Consolas, Microsoft YaHei UI" BorderThickness="0" Padding="10"
+			         AutomationProperties.AutomationId="doc2md.out"/>
+		</Border>
+	</Grid>
+</Window>

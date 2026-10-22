@@ -138,6 +138,9 @@
 					<MenuItem x:Name="mnmdread" Header="MD阅读器…"
 					          AutomationProperties.AutomationId="menu.mdread"
 					          ToolTip="拖入 Markdown，用 Windows 10 的 IE11 内核显示"/>
+					<MenuItem x:Name="mndoc2md" Header="Word/PDF 转 MD(_M)…"
+					          AutomationProperties.AutomationId="menu.doc2md"
+					          ToolTip="把 .docx 或文本型 PDF 转成 Markdown"/>
 					<MenuItem x:Name="mnpwgen" Header="密码生成器(_P)…"
 					          AutomationProperties.AutomationId="menu.pwgen"
 					          ToolTip="随机密码，可选字符集"/>

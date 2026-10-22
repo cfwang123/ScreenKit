@@ -160,7 +160,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Time zones**: IANA zones, abbreviations, and standard/DST offsets
   - **Country, language & currency codes**: ISO codes for countries, languages, and currencies
   - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
-  - **Ubuntu commands**: Linux commands and examples by file, package, process, network, and more
+  - **Linux commands**: Commands and examples by file, package, process, network, and more; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
   - **Linux software**: Open-source Linux packages and install commands for common apps
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product
