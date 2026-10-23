@@ -439,6 +439,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/chrome/voice") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "chrome/voice 仅支持 GET 或 POST"));
+					return;
+				}
+				handlevoice(ctx);
+				return;
+			}
+
 			if (path is "/api/cast/stop") {
 				if (!isget(req) && !ispost(req)) {
 					writejson(ctx, 405, err(805, "cast/stop 仅支持 GET 或 POST"));

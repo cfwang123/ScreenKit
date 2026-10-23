@@ -551,6 +551,7 @@ sealed partial class HttpOcrServer {
 				["lang"] = v.Lang ?? "",
 				["gender"] = v.Gender ?? "",
 				["key"] = v.Key ?? "",
+				["culture"] = v.Culture ?? "",
 			});
 		}
 		arr.Add(new JsonObject {

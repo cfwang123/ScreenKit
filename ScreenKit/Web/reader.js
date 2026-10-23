@@ -23,6 +23,8 @@
 		voices: [],
 		bvoices: [],
 		bmark: "",
+		packs: {},
+		packId: 0,
 		outname: "",
 		selpick: null,
 		hit: null,
@@ -213,6 +215,7 @@
 		applylang();
 		loadbooks(restorelast);
 		loadvoices();
+		loadpacks();
 		loadout();
 		hookbvoices();
 		wiredrop();
@@ -297,6 +300,13 @@
 			"</div>",
 			'<div id="rd-scroll" class="rd-scroll"><article id="rd-body" class="rd-body"></article></div>',
 			"</div>",
+			'<div id="rd-pack" class="rd-modal" hidden>',
+			'<div class="rd-modal-card" role="dialog" aria-modal="true">',
+			'<p id="rd-pack-title" class="rd-modal-title" data-k="web.reader.pack.title">' + L("web.reader.pack.title", "正在安装离线语音") + "</p>",
+			'<p id="rd-pack-note" class="rd-modal-note"></p>',
+			'<div id="rd-pack-track" class="rd-pack-track busy"><i id="rd-pack-bar"></i></div>',
+			'<div class="rd-modal-ops"><button id="rd-pack-cancel" class="rd-btn" type="button" data-k="cancel">' + L("cancel", "取消") + "</button></div>",
+			"</div></div>",
 			'<div id="rd-pop" class="rd-pop" hidden>',
 			'<div class="rd-pop-head"><span id="rd-pop-word" class="rd-pop-word"></span><button id="rd-pop-hide" class="rd-x" type="button" title="' + esc(L("web.reader.close", "关闭")) + '">×</button></div>',
 			'<div id="rd-pop-items" class="rd-pop-items"></div>',
@@ -358,6 +368,7 @@
 		};
 		$("rd-read").onclick = function(){ readstart(); };
 		$("rd-stop").onclick = function(){ stopread(false); };
+		$("rd-pack-cancel").onclick = function(){ cancelpack(st.packId); };
 		$("rd-dictbtn").onclick = function(){ dicttoggle(); };
 		$("rd-engine").onchange = function(){
 			st.engine = $("rd-engine").value;
@@ -1012,12 +1023,24 @@
 		setmsg(L("web.reader.reading", "朗读中…"));
 		paused.then(function(){
 			if (token !== st.token || !st.reading) return;
-			var go = function(){
-				if (st.engine === "browser") setTimeout(next, 40);
-				else next();
-			};
-			if (st.engine === "browser") holdsink(true).then(go);
-			else go();
+			ensurepack(token).then(function(){
+				if (token !== st.token || !st.reading) return;
+				var go = function(){
+					if (usesynth()) setTimeout(next, 40);
+					else next();
+				};
+				if (usesynth()) holdsink(true).then(go);
+				else go();
+			}, function(err){
+				if (token !== st.token) return;
+				st.reading = false;
+				holdsink(false);
+				hidepack();
+				if ($("rd-read")) $("rd-read").disabled = false;
+				if ($("rd-stop")) $("rd-stop").disabled = true;
+				clearhl();
+				if (err) setmsg(err, true);
+			});
 		});
 		function next(){
 			if (token !== st.token || !st.reading) return;
@@ -1049,11 +1072,28 @@
 	}
 
 	function speak(text, done){
-		if ((st.engine || "browser") === "browser") {
+		if (usesynth()) {
 			speakbrowser(text, done);
 			return;
 		}
-		var body = ttsbody(text);
+		if ((st.engine || "browser") === "browser") {
+			speakoff(text, done);
+			return;
+		}
+		posttts(ttsbody(text), done);
+	}
+
+	function speakoff(text, done){
+		var b = bvoice();
+		var body = { text: text, speed: st.rate, volume: 100, engine: "chrome" };
+		if (b) {
+			body.voice = b.label || b.key || "";
+			if (b.lang) body.lang = b.lang;
+		}
+		posttts(body, done);
+	}
+
+	function posttts(body, done){
 		fetch("/api/tts", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -1076,6 +1116,199 @@
 		}).catch(function(e){
 			done(e && e.message ? e.message : "网络错误");
 		});
+	}
+
+	function usesynth(){
+		if ((st.engine || "browser") !== "browser") return false;
+		var b = bvoice();
+		if (!b || !isgoogle(b)) return true;
+		return !!b.local;
+	}
+
+	function isgoogle(v){
+		var name = String(v && v.label || "");
+		var key = String(v && v.key || "");
+		return name.indexOf("Google") === 0 || key.indexOf("Google") === 0;
+	}
+
+	function bvoice(){
+		var i;
+		for (i = 0; i < st.bvoices.length; i++) {
+			if (voiceid(st.bvoices[i]) === st.voice) return st.bvoices[i];
+		}
+		return null;
+	}
+
+	function speaklang(code){
+		var s = String(code || "").replace(/_/g, "-");
+		var l = s.toLowerCase();
+		if (l === "zh-hk" || l === "yue" || l === "yue-hk") return "yue-HK";
+		if (l === "zh" || l === "zh-cn" || l === "zh-hans") return "zh-CN";
+		if (l === "zh-tw" || l === "zh-hant") return "zh-TW";
+		if (l === "ja" || l === "ja-jp") return "ja-JP";
+		if (l === "ko" || l === "ko-kr") return "ko-KR";
+		if (l === "en" || l === "en-us") return "en-US";
+		if (l === "en-gb") return "en-GB";
+		if (l === "de" || l === "de-de") return "de-DE";
+		if (l === "fr" || l === "fr-fr") return "fr-FR";
+		if (l === "es" || l === "es-es") return "es-ES";
+		if (l === "pt" || l === "pt-br") return "pt-BR";
+		if (l === "it" || l === "it-it") return "it-IT";
+		if (l === "ru" || l === "ru-ru") return "ru-RU";
+		var m = /^([a-z]{2})-([a-zA-Z]{2})$/.exec(s);
+		if (m) return m[1].toLowerCase() + "-" + m[2].toUpperCase();
+		return s;
+	}
+
+	function packon(v){
+		if (!v) return false;
+		return st.packs[speaklang(v.culture || v.lang)] === "installed";
+	}
+
+	function wantpack(){
+		if (st.engine === "chrome") {
+			var v = curvoice();
+			if (!v || packon(v)) return "";
+			return speaklang(v.culture || v.lang);
+		}
+		if ((st.engine || "browser") !== "browser") return "";
+		var b = bvoice();
+		if (!b || !isgoogle(b) || b.local || packon(b)) return "";
+		return speaklang(b.lang);
+	}
+
+	function ensurepack(token){
+		var lang = wantpack();
+		if (!lang) return Promise.resolve();
+		showpack(L("web.reader.pack.title", "正在安装离线语音"));
+		return fetchjson("/api/chrome/voice", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ lang: lang })
+		}).then(function(j){
+			if (token !== st.token || !st.reading) {
+				if (j && j.data && j.data.id) cancelpack(j.data.id);
+				return Promise.reject("");
+			}
+			if (!j || j.code !== 100) return Promise.reject(errtext(j));
+			return pollpack(token, j.data);
+		});
+	}
+
+	function pollpack(token, data){
+		return new Promise(function(resolve, reject){
+			function step(d){
+				if (token !== st.token || !st.reading) {
+					if (d && d.id) cancelpack(d.id);
+					hidepack();
+					reject("");
+					return;
+				}
+				if (d && d.id) st.packId = d.id;
+				paintpack(d);
+				var s = d && d.state;
+				if (s === "installed") {
+					if (d.lang) st.packs[d.lang] = "installed";
+					st.packId = 0;
+					hidepack();
+					if (st.built) fillvoice();
+					resolve();
+					return;
+				}
+				if (s === "cancel") {
+					st.packId = 0;
+					hidepack();
+					reject(L("inst.chrome.cancel", "已取消"));
+					return;
+				}
+				if (s === "error") {
+					st.packId = 0;
+					hidepack();
+					reject(d.error || L("web.reader.novoice", "没有音频"));
+					return;
+				}
+				setTimeout(function(){
+					if (token !== st.token || !st.reading) {
+						if (d && d.id) cancelpack(d.id);
+						hidepack();
+						reject("");
+						return;
+					}
+					fetchjson("/api/chrome/voice").then(function(j){
+						if (!j || j.code !== 100) {
+							hidepack();
+							reject(errtext(j));
+							return;
+						}
+						step(j.data || {});
+					}).catch(function(){
+						setTimeout(function(){ step(d); }, 800);
+					});
+				}, 400);
+			}
+			step(data || {});
+		});
+	}
+
+	function cancelpack(id){
+		if (!id) return Promise.resolve();
+		return fetchjson("/api/chrome/voice", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ op: "cancel", id: id })
+		}).catch(function(){});
+	}
+
+	function showpack(note){
+		var box = $("rd-pack");
+		if (!box) return;
+		box.hidden = false;
+		var n = $("rd-pack-note");
+		if (n) n.textContent = note || "";
+		var track = $("rd-pack-track");
+		if (track) track.className = "rd-pack-track busy";
+		var bar = $("rd-pack-bar");
+		if (bar) bar.style.width = "";
+	}
+
+	function paintpack(d){
+		var note = $("rd-pack-note");
+		var track = $("rd-pack-track");
+		var bar = $("rd-pack-bar");
+		if (note) note.textContent = (d && d.note) || L("web.reader.pack.title", "正在安装离线语音");
+		var frac = d && typeof d.frac === "number" ? d.frac : -1;
+		if (!track || !bar) return;
+		if (!(frac >= 0)) {
+			track.className = "rd-pack-track busy";
+			bar.style.width = "";
+			return;
+		}
+		var pct = Math.round(frac * 100);
+		if (pct < 0) pct = 0;
+		if (pct > 100) pct = 100;
+		track.className = "rd-pack-track";
+		bar.style.width = pct + "%";
+	}
+
+	function hidepack(){
+		var box = $("rd-pack");
+		if (box) box.hidden = true;
+	}
+
+	function loadpacks(){
+		fetchjson("/api/chrome/packs").then(function(j){
+			if (!j || j.code !== 100 || !j.data || !j.data.items) return;
+			var items = j.data.items;
+			var map = {};
+			var i;
+			for (i = 0; i < items.length; i++) {
+				var it = items[i];
+				if (!it || it.kind !== "tts" || !it.id) continue;
+				map[String(it.id).replace(/^tts:/i, "")] = it.state || "";
+			}
+			st.packs = map;
+			if (st.built) fillvoice();
+		}).catch(function(){});
 	}
 
 	function ttsbody(text){
@@ -1163,8 +1396,12 @@
 			if ($("rd-read")) $("rd-read").disabled = false;
 			if ($("rd-stop")) $("rd-stop").disabled = true;
 		}
-		var done = fetch("/api/reader/stop", { method: "POST" }).catch(function(){})
-			.then(function(){ return holdsink(false); });
+		var pack = st.packId;
+		st.packId = 0;
+		hidepack();
+		var done = (pack ? cancelpack(pack) : Promise.resolve()).then(function(){
+			return fetch("/api/reader/stop", { method: "POST" }).catch(function(){});
+		}).then(function(){ return holdsink(false); });
 		if (!quiet) setmsg(L("web.reader.stopped", "已停止"));
 		return done;
 	}
@@ -1244,7 +1481,8 @@
 						id: s.id,
 						key: s.key || "",
 						label: s.label || s.name || "",
-						lang: s.lang || ""
+						lang: s.lang || "",
+						culture: s.culture || ""
 					});
 				}
 			}
@@ -1413,7 +1651,20 @@
 	function voiceLabel(v){
 		var tail = "";
 		if (v.lang && !st.vlang) tail = " · " + langlabel(v.lang);
+		var tag = packtag(v);
+		if (tag) tail += " · " + tag;
 		return v.label + tail;
+	}
+
+	function packtag(v){
+		if (st.engine === "browser") {
+			if (!isgoogle(v)) return "";
+			if (v.local || packon(v)) return L("web.reader.pack.on", "已装离线包");
+			return L("web.reader.pack.off", "未装离线包");
+		}
+		if (st.engine === "chrome")
+			return packon(v) ? L("web.reader.pack.on", "已装离线包") : L("web.reader.pack.off", "未装离线包");
+		return "";
 	}
 
 	function curvoice(){
@@ -1452,9 +1703,10 @@
 				engine: "browser",
 				key: key,
 				label: v.name || key,
-				lang: lang
+				lang: lang,
+				local: !!v.localService
 			});
-			sig.push(key + "\t" + lang + "\t" + (v.name || ""));
+			sig.push(key + "\t" + lang + "\t" + (v.name || "") + "\t" + (v.localService ? "1" : "0"));
 		}
 		var mark = sig.join("\n");
 		if (mark === st.bmark) return;

@@ -106,4 +106,147 @@ sealed partial class HttpOcrServer {
 		if (it.State == FeatureInstallState.Partial) return "partial";
 		return "missing";
 	}
+
+	static readonly object voiceGate = new();
+	static int voiceJobId;
+	static string voiceState = "idle";
+	static string voiceLang = "";
+	static string voiceNote = "";
+	static double voiceFrac = -1;
+	static long voiceDone;
+	static long voiceTotal;
+	static string voiceError = "";
+	static CancellationTokenSource voiceCts;
+
+	void handlevoice(SockCtx ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		if (!ispost(ctx.Request)) {
+			writejson(ctx, 200, okvoice());
+			return;
+		}
+		var op = (field(ctx, jo, "op") ?? "start").Trim().ToLowerInvariant();
+		if (op is "cancel" or "stop") {
+			cancelvoice(asint(jo?["id"], 0));
+			writejson(ctx, 200, okvoice());
+			return;
+		}
+		var lang = ChromePack.SpeakLang(field(ctx, jo, "lang") ?? "");
+		if (lang.Length == 0) {
+			writejson(ctx, 200, err(802, "没有语言"));
+			return;
+		}
+		string busy;
+		lock (voiceGate) {
+			if (voiceState == "run") {
+				busy = "run";
+			}
+			else if (ChromePack.VoiceInstalled(lang) == true) {
+				voiceState = "installed";
+				voiceLang = lang;
+				voiceNote = "";
+				voiceError = "";
+				voiceFrac = 1;
+				busy = "installed";
+			}
+			else if (Interlocked.CompareExchange(ref chromePackBusy, 1, 0) != 0) {
+				busy = "pack";
+			}
+			else {
+				voiceJobId++;
+				voiceState = "run";
+				voiceLang = lang;
+				voiceNote = Loc.T("tts.chrome.voice.check");
+				voiceError = "";
+				voiceFrac = -1;
+				voiceDone = 0;
+				voiceTotal = 0;
+				voiceCts?.Dispose();
+				voiceCts = new CancellationTokenSource();
+				var id = voiceJobId;
+				var token = voiceCts.Token;
+				var mode = HttpProxy.Mode;
+				var addr = HttpProxy.Addr;
+				ThreadPool.QueueUserWorkItem(_ => runvoice(id, lang, mode, addr, token));
+				busy = "run";
+			}
+		}
+		if (busy == "pack") {
+			writejson(ctx, 200, err(809, "正在处理 Chrome 模型"));
+			return;
+		}
+		writejson(ctx, 200, okvoice());
+	}
+
+	static void cancelvoice(int id) {
+		lock (voiceGate) {
+			if (voiceState != "run") return;
+			if (id != 0 && id != voiceJobId) return;
+			voiceNote = Loc.T("update.cancelling");
+			try { voiceCts?.Cancel(); } catch { }
+		}
+	}
+
+	static void runvoice(int id, string lang, string mode, string addr, CancellationToken token) {
+		try {
+			var saved = new OcrOptions();
+			try { AppConfig.LoadInto(saved); } catch { }
+			var exe = ChromeTts.FindExe(saved.ChromeExe);
+			if (string.IsNullOrEmpty(exe))
+				throw new InvalidOperationException(Loc.T("tts.chrome.missing"));
+			ChromePack.EnsureVoice(lang, exe, mode, addr, (note, frac, done, total) => {
+				lock (voiceGate) {
+					if (id != voiceJobId) return;
+					if (!string.IsNullOrWhiteSpace(note)) voiceNote = note;
+					voiceFrac = frac;
+					voiceDone = done;
+					voiceTotal = total;
+				}
+			}, token);
+			lock (voiceGate) {
+				if (id != voiceJobId) return;
+				if (token.IsCancellationRequested) voiceState = "cancel";
+				else if (ChromePack.VoiceInstalled(lang) == true) {
+					voiceState = "installed";
+					voiceFrac = 1;
+				}
+				else {
+					voiceState = "error";
+					voiceError = Loc.T("tts.chrome.voice.need", lang);
+				}
+			}
+		}
+		catch (OperationCanceledException) {
+			lock (voiceGate) {
+				if (id == voiceJobId) voiceState = "cancel";
+			}
+		}
+		catch (Exception ex) {
+			lock (voiceGate) {
+				if (id != voiceJobId) return;
+				voiceState = "error";
+				voiceError = ex.Message;
+			}
+		}
+		finally {
+			Interlocked.Exchange(ref chromePackBusy, 0);
+		}
+	}
+
+	static JsonObject okvoice() {
+		lock (voiceGate) {
+			return new JsonObject {
+				["code"] = 100,
+				["data"] = new JsonObject {
+					["id"] = voiceJobId,
+					["state"] = voiceState,
+					["lang"] = voiceLang,
+					["note"] = voiceNote ?? "",
+					["frac"] = voiceFrac,
+					["done"] = voiceDone,
+					["total"] = voiceTotal,
+					["error"] = voiceError ?? "",
+				},
+			};
+		}
+	}
 }

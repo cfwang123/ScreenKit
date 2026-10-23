@@ -114,7 +114,24 @@ button, input, select { font: inherit; }
 .rd-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .rd-btn.primary:hover { background: #9c4523; }
 .rd-f { display: flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--muted); font-size: 12px; }
+#rd-voice { max-width: 320px; }
 .rd-models { color: var(--accent); font-size: 11px; line-height: 28px; text-decoration: none; }
+.rd-modal {
+	position: fixed; inset: 0; z-index: 40;
+	display: flex; align-items: center; justify-content: center;
+	background: rgba(28, 25, 21, 0.35);
+}
+.rd-modal-card {
+	width: 360px; max-width: calc(100% - 32px); padding: 18px 18px 14px;
+	background: #fff; border-radius: 12px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+.rd-modal-title { margin: 0 0 8px; font-size: 15px; font-weight: 650; }
+.rd-modal-note { margin: 0 0 12px; min-height: 20px; color: var(--muted); font-size: 13px; }
+.rd-pack-track { height: 8px; background: #efeae4; border-radius: 99px; overflow: hidden; }
+.rd-pack-track > i { display: block; height: 100%; width: 0; background: var(--accent); }
+.rd-pack-track.busy > i { width: 35%; animation: rdpack 1s ease-in-out infinite; }
+@keyframes rdpack { from { margin-left: 0; } to { margin-left: 65%; } }
+.rd-modal-ops { display: flex; justify-content: flex-end; margin-top: 14px; }
 .rd-models:hover { text-decoration: underline; }
 .rd-f select {
 	display: block; width: auto; min-width: 74px; max-width: 190px; height: 28px; margin: 0;

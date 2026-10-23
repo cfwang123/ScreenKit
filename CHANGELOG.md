@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Novel reader uses the current browser's voices as the default reading engine.
+- Novel reader Google voices use the offline pack. A missing pack is installed when reading starts, with a cancellable progress dialog.
 
 #### Fixed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 小说阅读器默认用当前浏览器自己的语音朗读。
+- 小说阅读器的 Google 发音人改为走离线包。没装时在朗读前安装，并显示可取消的进度。
 
 #### 修复
 
