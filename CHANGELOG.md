@@ -48,11 +48,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Novel reader can speak with the current browser's own voices, without asking the app to synthesize audio. That engine shows an Install models link.
 
+#### Changed
+
+- Novel reader uses the current browser's voices as the default reading engine.
+
 ### 中文
 
 #### 新增
 
 - 小说阅读器可以用当前浏览器自己的语音朗读，不经过程序合成。选中这个引擎时显示「安装模型」链接。
+
+#### 变更
+
+- 小说阅读器默认用当前浏览器自己的语音朗读。
 
 ## v1.0.29 (2026-10-23)
 

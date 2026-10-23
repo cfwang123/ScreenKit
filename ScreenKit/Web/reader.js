@@ -994,7 +994,7 @@
 	}
 
 	function speak(text, done){
-		if (st.engine === "browser") {
+		if ((st.engine || "browser") === "browser") {
 			speakbrowser(text, done);
 			return;
 		}
@@ -1244,9 +1244,7 @@
 		if (keep) {
 			for (i = 0; i < list.length; i++) if (list[i] === keep) st.engine = keep;
 		}
-		if (!st.engine) {
-			st.engine = list.indexOf("chrome") >= 0 ? "chrome" : (list[0] || "chrome");
-		}
+		if (!st.engine) st.engine = list.indexOf("browser") >= 0 ? "browser" : (list[0] || "browser");
 		sel.value = st.engine;
 		fillvlang();
 	}
