@@ -477,6 +477,9 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		applylang();
 		// 表格是渲染时查表翻的，换语言要重画一遍；只重画当前打开的工具。
 		if (util && SK.curtool === util && SK.utils[util] && SK.utils[util].relang) SK.utils[util].relang();
+		// 重建 body 的工具会把标题写回 data 里的原文，这里按卡片再刷一次。
+		if (SK.curtool && SK.curtool !== "home")
+			marktool(SK.curtool, SK.curtool.indexOf("u-") === 0 ? "box" : SK.curtool);
 	}
 
 	// 自绘表格的工具换语言时整个重建 body（占位、表头、提示都在 body 里），并尽量保留搜索词。
