@@ -7965,8 +7965,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 				return 1;
 			}
 			Loc.Lang = "ja";
-			if (Loc.T("only.ja") != "こんにちは" || Loc.T("app.title") != "中") {
-				Err("lang: 日文缺键未回退中文");
+			if (Loc.T("only.ja") != "こんにちは" || Loc.T("app.title") != "En") {
+				Err("lang: 日文缺键未回退英文");
 				return 1;
 			}
 			if (Loc.Normalize("english") != "en" || Loc.Normalize("korean") != "ko") {

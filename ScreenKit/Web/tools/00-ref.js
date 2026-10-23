@@ -60,7 +60,12 @@
 			},
 			hideGo: true,
 			live: false,
-			hideOut: true
+			hideOut: true,
+			// 换界面语言时重画：分组按钮、表头、行和详情都是渲染时查词典的。
+			relang: function(){
+				if (sets.length > 1) paintsets();
+				paint();
+			}
 		});
 
 		function setnow(){

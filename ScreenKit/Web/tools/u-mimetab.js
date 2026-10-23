@@ -192,7 +192,8 @@
 		},
 		hideGo: true,
 		live: false,
-		hideOut: true
+		hideOut: true,
+		relang: function(){ SK.reopenutil(); }
 	});
 
 	function catname(id){

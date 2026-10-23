@@ -16,7 +16,7 @@ public sealed class UiLang {
 }
 
 /// <summary>
-/// 界面文案。启动时读取程序目录 lang/*.toml。缺键回退中文，再回退键名。
+/// 界面文案。启动时读取程序目录 lang/*.toml。缺键回退英文，再回退中文，最后回退键名。
 /// 列表顺序：中文、英文、日文、韩文，其余按代码排序。
 /// </summary>
 static class Loc {
@@ -86,12 +86,14 @@ static class Loc {
 		return TFor(lang, key);
 	}
 
-	/// <summary>按指定语言取文案，不改当前界面语言。空代码用当前语言。缺键回退中文。</summary>
+	/// <summary>按指定语言取文案，不改当前界面语言。空代码用当前语言。缺键回退英文，再回退中文。</summary>
 	public static string TFor(string code, string key) {
 		if (string.IsNullOrEmpty(key)) return "";
 		ensure();
 		var c = string.IsNullOrWhiteSpace(code) ? lang : norm(code);
 		if (tryget(c, key, out var hit)) return hit;
+		// 只有中英两份是齐的：其它语言没补的键显示英文，不要突然冒中文。
+		if (!isprefix(c, En) && tryget(En, key, out hit)) return hit;
 		if (!string.Equals(c, Zh, StringComparison.OrdinalIgnoreCase) && tryget(Zh, key, out hit))
 			return hit;
 		return key;

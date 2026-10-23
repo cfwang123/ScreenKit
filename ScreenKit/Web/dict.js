@@ -25,6 +25,9 @@
 		if (!row || !row.length) return "";
 		var s = row[langAt];
 		if (s) return s;
+		// 缺译文时回退英文，再回退中文
+		var i = langs().indexOf("en");
+		if (i >= 0 && row[i]) return row[i];
 		return row[0] || "";
 	}
 	function fmt(pat){

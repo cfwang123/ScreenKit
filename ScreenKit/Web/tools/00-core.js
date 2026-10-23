@@ -260,6 +260,9 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (!row || !row.length) return "";
 		var s = row[langAt];
 		if (s) return s;
+		// 缺译文时回退英文，再回退中文：小语种没补的键不该突然变中文。
+		var i = langs().indexOf("en");
+		if (i >= 0 && row[i]) return row[i];
 		return row[0] || "";
 	}
 
@@ -309,7 +312,11 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	};
 
 	function trdict(){
-		return TRD[langs()[langAt] || "zh"] || null;
+		var code = langs()[langAt] || "zh";
+		if (TRD[code]) return TRD[code];
+		// 只做了英文词典：其它语言没补就显示英文，中文界面仍用原文。
+		if (code !== "zh") return TRD.en || null;
+		return null;
 	}
 
 	SK.td = function(s){
@@ -468,7 +475,22 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		langAt = 0;
 		for (i = 0; i < codes.length; i++) if (codes[i] === code) langAt = i;
 		applylang();
+		// 表格是渲染时查表翻的，换语言要重画一遍；只重画当前打开的工具。
+		if (util && SK.curtool === util && SK.utils[util] && SK.utils[util].relang) SK.utils[util].relang();
 	}
+
+	// 自绘表格的工具换语言时整个重建 body（占位、表头、提示都在 body 里），并尽量保留搜索词。
+	SK.reopenutil = function(){
+		if (!util || SK.curtool !== util) return;
+		var old = F.q(".uquery input", F.id("box-body"));
+		var val = old ? old.value : "";
+		openutil(util);
+		var box = F.q(".uquery input", F.id("box-body"));
+		if (box && val) {
+			box.value = val;
+			box.dispatchEvent(new Event("input"));
+		}
+	};
 
 	function applylang(){
 		var nodes = F.qa("[data-k]");
