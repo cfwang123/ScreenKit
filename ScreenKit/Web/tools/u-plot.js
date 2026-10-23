@@ -874,7 +874,9 @@
 							y: h / 2 - z2 * scale,
 							d: y2,
 							t: (zz - z0) / (z1 - z0),
-							z: zz
+							z: zz,
+							wx: x,
+							wy: y
 						});
 					}
 					f0 = f1;
@@ -965,25 +967,19 @@
 
 	function impgrid(ctx, cols, n, cw, gap){
 		var segs = [];
-		var lim = gap * 5;
-		var i, j, r, a, b, p;
+		var i, j, r, a, cnt;
 		function add(p, q){
 			segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: (p.t + q.t) / 2 });
+		}
+		function link(p, q){
+			cnt = Math.min(p.length, q.length);
+			for (r = 0; r < cnt; r++) add(p[r], q[r]);
 		}
 		for (j = 0; j <= n; j++) {
 			for (i = 0; i <= n; i++) {
 				a = cols[j * cw + i];
-				for (r = 0; r < a.length; r++) {
-					p = a[r];
-					if (i < n) {
-						b = impnearpick(cols[j * cw + i + 1], p, lim);
-						if (b) add(p, b);
-					}
-					if (j < n) {
-						b = impnearpick(cols[(j + 1) * cw + i], p, lim);
-						if (b) add(p, b);
-					}
-				}
+				if (i < n) link(a, cols[j * cw + i + 1]);
+				if (j < n) link(a, cols[(j + 1) * cw + i]);
 			}
 		}
 		segs.sort(function(u, v){ return v.d - u.d; });
