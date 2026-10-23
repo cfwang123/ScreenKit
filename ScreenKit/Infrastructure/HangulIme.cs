@@ -52,6 +52,9 @@ sealed class HangulIme : IDisposable {
 	bool trad;
 	bool rare;
 	bool enabled;
+	bool wubiOn = true;
+	bool jaOn = true;
+	bool koOn = true;
 	bool sending;
 	bool eat;
 	bool dead;
@@ -118,7 +121,7 @@ sealed class HangulIme : IDisposable {
 	}
 
 	public void ApplyHotkeys(string zh, string ja, string ko, string paused, string cycle) {
-		eng.ApplyOpts(true, true, true,
+		eng.ApplyOpts(wubiOn, jaOn, koOn,
 			Hot.FromCombo(zh), Hot.FromCombo(ja), Hot.FromCombo(ko),
 			Hot.FromCombo(paused), Hot.FromCombo(cycle));
 		hkwubi = GlobalHotkey.Display(zh);
@@ -128,9 +131,23 @@ sealed class HangulIme : IDisposable {
 		setshortcuts();
 	}
 
+	/// <summary>启用的输入法。关掉的语言既不进切换循环，快捷键也不切过去。</summary>
+	public void ApplyLangs(bool wubi, bool ja, bool ko) {
+		if (!wubi && !ja && !ko) wubi = true;
+		wubiOn = wubi;
+		jaOn = ja;
+		koOn = ko;
+		var wasOff = eng.Off;
+		eng.ApplyOpts(wubiOn, jaOn, koOn, null, null, null, null, null);
+		// 正在用的语言被关掉：换到还启用的第一个，别把输入法直接停了
+		if (!wasOff && eng.Off) eng.SetOff(false);
+		applytraylang();
+	}
+
 	public void Enter(string code) {
 		if (!ImeLex.DbInstalled) return;
 		var pick = code == "ja" ? Lang.Ja : code == "ko" ? Lang.Ko : Lang.Wubi;
+		if (!langon(pick)) return;
 		if (!enabled && !Set(true)) return;
 		eng.Enter(pick);
 		showtray();
@@ -163,6 +180,9 @@ sealed class HangulIme : IDisposable {
 			return true;
 		}
 		if (!ImeLex.DbInstalled) return false;
+		var pick = langon(lang) ? lang : firstlang();
+		if (pick == null) return false;
+		lang = pick.Value;
 		if (!install()) return false;
 		ImeDict.SyncAll();
 		ImeLex.Warmup();
@@ -378,16 +398,26 @@ sealed class HangulIme : IDisposable {
 	}
 
 	void setshortcuts() {
-		setshortcut(miwubi, hkwubi);
-		setshortcut(mija, hkja);
-		setshortcut(miko, hkko);
-		setshortcut(mioff, hkcycle);
+		setshortcut(miwubi, wubiOn, hkwubi);
+		setshortcut(mija, jaOn, hkja);
+		setshortcut(miko, koOn, hkko);
+		setshortcut(mioff, true, hkcycle);
 	}
 
-	static void setshortcut(Forms.ToolStripMenuItem mi, string keys) {
+	static void setshortcut(Forms.ToolStripMenuItem mi, bool on, string keys) {
 		if (mi == null) return;
-		mi.ShowShortcutKeys = true;
+		mi.Enabled = on;
+		mi.ShowShortcutKeys = on;
 		mi.ShortcutKeyDisplayString = string.IsNullOrWhiteSpace(keys) ? "" : keys.Trim();
+	}
+
+	bool langon(Lang l) => l == Lang.Ja ? jaOn : l == Lang.Ko ? koOn : wubiOn;
+
+	Lang? firstlang() {
+		if (wubiOn) return Lang.Wubi;
+		if (jaOn) return Lang.Ja;
+		if (koOn) return Lang.Ko;
+		return null;
 	}
 
 	static System.Drawing.Icon badge(string mark, bool gray) {

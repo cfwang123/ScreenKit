@@ -36,7 +36,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 - **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model. Chrome language lists show only installed packs, and Chrome model installation opens the same private profile on the model page.
 - **Face**: Detection and comparison, with optional landmarks and gender and age.
 - **Chinese to pinyin**: Full spelling without tone marks, or one lowercase initial per character.
-- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, and manage custom words in the tray **Lexicon**.
+- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, switch languages from the tray, and open the IME settings there; languages you turn off are skipped by the cycle hotkey and their shortcuts do nothing. Manage custom words in the tray **Lexicon**.
 - **Simplified/Traditional**: Simplified on top, traditional below, following Taiwan character forms.
 - **Japanese yomi**: Turns a Japanese sentence into readings, by word or by character.
 - **Calendars**: Gregorian to lunar (sexagenary cycle and leap months), plus Japanese, Taiwan, Hebrew, Hijri, Persian, and others.

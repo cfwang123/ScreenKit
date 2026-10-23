@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="输入法设置"
-        Height="470" Width="580"
-        MinHeight="380" MinWidth="480"
+        Height="560" Width="580"
+        MinHeight="420" MinWidth="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResize"
         Background="{StaticResource BgApp}"
@@ -18,6 +18,18 @@
 			<StackPanel>
 				<TextBlock x:Name="lbneeddb" FontSize="11" Foreground="{StaticResource Danger}"
 				           TextWrapping="Wrap" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+				<TextBlock x:Name="lbimelangs" FontSize="11" Foreground="{StaticResource TextMuted}"
+				           Margin="0,0,0,6" TextWrapping="Wrap"
+				           Text="启用的输入法。取消勾选的语言不进切换循环，快捷键也不切过去"/>
+				<StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+					<CheckBox x:Name="cbimewubi" Margin="0,0,18,0" Content="五笔"
+					          AutomationProperties.AutomationId="set.ime.lang.wubi"/>
+					<CheckBox x:Name="cbimeja" Margin="0,0,18,0" Content="日语"
+					          AutomationProperties.AutomationId="set.ime.lang.ja"/>
+					<CheckBox x:Name="cbimeko" Content="韩语"
+					          AutomationProperties.AutomationId="set.ime.lang.ko"/>
+				</StackPanel>
 
 				<TextBlock x:Name="lbhkhintImeCycle" FontSize="11" Foreground="{StaticResource TextMuted}"
 				           Margin="0,0,0,4" TextWrapping="Wrap"

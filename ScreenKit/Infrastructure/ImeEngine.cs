@@ -262,15 +262,15 @@ class ImeEngine {
 	bool modehot(int vk, bool shift, bool ctrl, bool alt, bool win) {
 		if (hotzh.Hit(vk, shift, ctrl, alt, win)) {
 			if (usezh) enter(Lang.Wubi);
-			return true;
+			return usezh;
 		}
 		if (hotja.Hit(vk, shift, ctrl, alt, win)) {
 			if (useja) enter(Lang.Ja);
-			return true;
+			return useja;
 		}
 		if (hotko.Hit(vk, shift, ctrl, alt, win)) {
 			if (useko) enter(Lang.Ko);
-			return true;
+			return useko;
 		}
 		if (hotoff.Hit(vk, shift, ctrl, alt, win)) {
 			SetOff(true);

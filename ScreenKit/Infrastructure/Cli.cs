@@ -4211,6 +4211,29 @@ static class Cli {
 		tap(Vk.A);
 		var kn = e.Key(Vk.Space, true, false, false, false, false);
 		if (kn.Texts.Count < 1 || kn.Texts[0] != "あ") return "kana " + string.Join(",", kn.Texts.ToArray());
+		// 禁用的语言：快捷键不切过去，循环也跳过
+		e.ApplyOpts(true, false, false,
+			Hot.FromCombo("Ctrl+Alt+1"), Hot.FromCombo("Ctrl+Alt+2"),
+			Hot.FromCombo("Ctrl+Alt+3"), Hot.FromCombo("Ctrl+Alt+4"),
+			Hot.FromCombo("Ctrl+`"));
+		e.SetOff(true);
+		e.Key(Vk.D0 + 2, true, false, true, true, false);
+		if (!e.Off) return "disabled ja hot opened";
+		e.Key(Vk.D0 + 3, true, false, true, true, false);
+		if (!e.Off) return "disabled ko hot opened";
+		e.Key(Vk.Oem3, true, false, true, false, false);
+		if (e.Off || e.LangCode != "wubi") return "disabled cycle wubi";
+		e.Key(Vk.Oem3, true, false, true, false, false);
+		if (!e.Off) return "disabled cycle off";
+		e.ApplyOpts(false, true, false,
+			Hot.FromCombo("Ctrl+Alt+1"), Hot.FromCombo("Ctrl+Alt+2"),
+			Hot.FromCombo("Ctrl+Alt+3"), Hot.FromCombo("Ctrl+Alt+4"),
+			Hot.FromCombo("Ctrl+`"));
+		e.SetOff(true);
+		e.Key(Vk.D0 + 1, true, false, true, true, false);
+		if (!e.Off) return "disabled wubi hot opened";
+		e.Key(Vk.Oem3, true, false, true, false, false);
+		if (e.Off || e.LangCode != "ja") return "disabled cycle ja " + e.LangCode;
 		return null;
 	}
 

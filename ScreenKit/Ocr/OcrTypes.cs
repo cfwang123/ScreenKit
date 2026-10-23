@@ -138,6 +138,12 @@ public sealed class OcrOptions {
 	public string HotkeyImeOff = "Ctrl+Alt+4";
 	/// <summary>上次使用的输入法：wubi / ja / ko。</summary>
 	public string ImeLang = "ko";
+	/// <summary>启用五笔。禁用后切换循环跳过，Ctrl+Alt+1 也不切过去。</summary>
+	public bool ImeWubiOn = true;
+	/// <summary>启用日语。禁用后切换循环跳过，Ctrl+Alt+2 也不切过去。</summary>
+	public bool ImeJaOn = true;
+	/// <summary>启用韩语。禁用后切换循环跳过，Ctrl+Alt+3 也不切过去。</summary>
+	public bool ImeKoOn = true;
 	/// <summary>五笔候选用繁体。</summary>
 	public bool ImeTrad;
 	/// <summary>五笔候选里带生僻字（词库里没有词频的字词）。</summary>

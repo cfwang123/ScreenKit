@@ -82,6 +82,15 @@ static class AppConfig {
 				o.HotkeyImeOff = (hkio ?? "").Trim();
 			if (map.TryGetValue("ime_lang", out var imelang))
 				o.ImeLang = (imelang ?? "").Trim();
+			if (map.TryGetValue("ime_wubi_on", out var imewon))
+				o.ImeWubiOn = parsebool(imewon, true);
+			if (map.TryGetValue("ime_ja_on", out var imejon))
+				o.ImeJaOn = parsebool(imejon, true);
+			if (map.TryGetValue("ime_ko_on", out var imekon))
+				o.ImeKoOn = parsebool(imekon, true);
+			// 三种全关则输入法无从启用，按默认全开处理（也防手改配置把自己锁死）
+			if (!o.ImeWubiOn && !o.ImeJaOn && !o.ImeKoOn)
+				o.ImeWubiOn = o.ImeJaOn = o.ImeKoOn = true;
 			if (map.TryGetValue("ime_trad", out var imetrad))
 				o.ImeTrad = parsebool(imetrad, false);
 			if (map.TryGetValue("ime_rare", out var imerare))
@@ -644,6 +653,10 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_ime_off = \"{esc((o.HotkeyImeOff ?? "").Trim())}\"");
 		sb.AppendLine("# 上次的输入法：wubi / ja / ko");
 		sb.AppendLine($"ime_lang = \"{esc((o.ImeLang ?? "ko").Trim())}\"");
+		sb.AppendLine("# 启用的输入法：五笔 / 日语 / 韩语。关掉的不进切换循环，快捷键也不切过去");
+		sb.AppendLine($"ime_wubi_on = {(o.ImeWubiOn ? "true" : "false")}");
+		sb.AppendLine($"ime_ja_on = {(o.ImeJaOn ? "true" : "false")}");
+		sb.AppendLine($"ime_ko_on = {(o.ImeKoOn ? "true" : "false")}");
 		sb.AppendLine($"ime_trad = {(o.ImeTrad ? "true" : "false")}");
 		sb.AppendLine("# 五笔候选里带生僻字（词库里没有词频的字词）");
 		sb.AppendLine($"ime_rare = {(o.ImeRare ? "true" : "false")}");

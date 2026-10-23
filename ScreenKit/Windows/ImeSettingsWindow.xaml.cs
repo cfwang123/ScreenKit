@@ -139,6 +139,10 @@ public partial class ImeSettingsWindow : Window {
 	void applylanglabels() {
 		Title = Loc.T("set.ime.title");
 		bdict.Content = Loc.T("ime.dict.openwin");
+		lbimelangs.Text = Loc.T("set.ime.langs.hint");
+		cbimewubi.Content = Loc.T("set.ime.lang.wubi");
+		cbimeja.Content = Loc.T("set.ime.lang.ja");
+		cbimeko.Content = Loc.T("set.ime.lang.ko");
 		lbhkhintImeCycle.Text = Loc.T("set.hotkey.ime.cycle");
 		lbhkhintImeWubi.Text = Loc.T("set.hotkey.ime.wubi");
 		lbhkhintImeJa.Text = Loc.T("set.hotkey.ime.ja");
@@ -166,6 +170,9 @@ public partial class ImeSettingsWindow : Window {
 	}
 
 	void loadui(OcrOptions o) {
+		cbimewubi.IsChecked = o.ImeWubiOn;
+		cbimeja.IsChecked = o.ImeJaOn;
+		cbimeko.IsChecked = o.ImeKoOn;
 		ehotkeyimecycle.Text = GlobalHotkey.Display(o.HotkeyImeCycle);
 		ehotkeyimewubi.Text = GlobalHotkey.Display(o.HotkeyImeWubi);
 		ehotkeyimeja.Text = GlobalHotkey.Display(o.HotkeyImeJa);
@@ -176,6 +183,17 @@ public partial class ImeSettingsWindow : Window {
 	}
 
 	bool saveui() {
+		var wubi = cbimewubi.IsChecked == true;
+		var ja = cbimeja.IsChecked == true;
+		var ko = cbimeko.IsChecked == true;
+		if (!wubi && !ja && !ko) {
+			MessageBox.Show(this, Loc.T("set.ime.langs.keep"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			return false;
+		}
+		Result.ImeWubiOn = wubi;
+		Result.ImeJaOn = ja;
+		Result.ImeKoOn = ko;
 		if (!tryreadhotkey(ehotkeyimecycle, Loc.T("set.hotkey.ime.cycle"), out Result.HotkeyImeCycle)) return false;
 		if (!tryreadhotkey(ehotkeyimewubi, Loc.T("set.hotkey.ime.wubi"), out Result.HotkeyImeWubi)) return false;
 		if (!tryreadhotkey(ehotkeyimeja, Loc.T("set.hotkey.ime.ja"), out Result.HotkeyImeJa)) return false;

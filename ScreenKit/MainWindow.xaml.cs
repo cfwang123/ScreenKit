@@ -1012,6 +1012,7 @@ public partial class MainWindow : Window {
 			}));
 			hangul = new HangulIme();
 			hangul.Remember(opt.ImeLang, opt.ImeTrad, opt.ImeRare);
+			hangul.ApplyLangs(opt.ImeWubiOn, opt.ImeJaOn, opt.ImeKoOn);
 			hangul.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
 			hangul.ApplyGvimMode(opt.ImeGvimMode);
 			hangul.Changed += () => {
@@ -1132,21 +1133,22 @@ public partial class MainWindow : Window {
 		}
 		if (hotkeyImeWubi != null) {
 			hotkeyImeWubi.Attach();
-			if (!hotkeyImeWubi.Register(imeok ? opt.HotkeyImeWubi : "")) errs.Add(hotkeyImeWubi.LastError);
+			if (!hotkeyImeWubi.Register(imeok && opt.ImeWubiOn ? opt.HotkeyImeWubi : "")) errs.Add(hotkeyImeWubi.LastError);
 		}
 		if (hotkeyImeJa != null) {
 			hotkeyImeJa.Attach();
-			if (!hotkeyImeJa.Register(imeok ? opt.HotkeyImeJa : "")) errs.Add(hotkeyImeJa.LastError);
+			if (!hotkeyImeJa.Register(imeok && opt.ImeJaOn ? opt.HotkeyImeJa : "")) errs.Add(hotkeyImeJa.LastError);
 		}
 		if (hotkeyImeKo != null) {
 			hotkeyImeKo.Attach();
-			if (!hotkeyImeKo.Register(imeok ? opt.HotkeyImeKo : "")) errs.Add(hotkeyImeKo.LastError);
+			if (!hotkeyImeKo.Register(imeok && opt.ImeKoOn ? opt.HotkeyImeKo : "")) errs.Add(hotkeyImeKo.LastError);
 		}
 		if (hotkeyImeOff != null) {
 			hotkeyImeOff.Attach();
 			if (!hotkeyImeOff.Register(imeok ? opt.HotkeyImeOff : "")) errs.Add(hotkeyImeOff.LastError);
 		}
 		try {
+			hangul?.ApplyLangs(opt.ImeWubiOn, opt.ImeJaOn, opt.ImeKoOn);
 			hangul?.ApplyHotkeys(opt.HotkeyImeWubi, opt.HotkeyImeJa, opt.HotkeyImeKo, opt.HotkeyImeOff, opt.HotkeyImeCycle);
 			hangul?.ApplyGvimMode(opt.ImeGvimMode);
 			hangul?.ApplyRare(opt.ImeRare);
@@ -4388,16 +4390,21 @@ public partial class MainWindow : Window {
 			|| !string.Equals(opt.HotkeyImeJa, r.HotkeyImeJa, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(opt.HotkeyImeKo, r.HotkeyImeKo, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(opt.HotkeyImeOff, r.HotkeyImeOff, StringComparison.OrdinalIgnoreCase);
+		var langsChanged = opt.ImeWubiOn != r.ImeWubiOn || opt.ImeJaOn != r.ImeJaOn || opt.ImeKoOn != r.ImeKoOn;
 		opt.HotkeyImeCycle = r.HotkeyImeCycle;
 		opt.HotkeyImeWubi = r.HotkeyImeWubi;
 		opt.HotkeyImeJa = r.HotkeyImeJa;
 		opt.HotkeyImeKo = r.HotkeyImeKo;
 		opt.HotkeyImeOff = r.HotkeyImeOff;
+		opt.ImeWubiOn = r.ImeWubiOn;
+		opt.ImeJaOn = r.ImeJaOn;
+		opt.ImeKoOn = r.ImeKoOn;
 		opt.ImeGvimMode = r.ImeGvimMode;
 		opt.ImeRare = r.ImeRare;
+		hangul?.ApplyLangs(opt.ImeWubiOn, opt.ImeJaOn, opt.ImeKoOn);
 		hangul?.ApplyGvimMode(opt.ImeGvimMode);
 		hangul?.ApplyRare(opt.ImeRare);
-		if (hotkeyChanged) registerhotkey();
+		if (hotkeyChanged || langsChanged) registerhotkey();
 		try { AppConfig.Save(opt); } catch { }
 	}
 
