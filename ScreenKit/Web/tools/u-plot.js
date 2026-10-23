@@ -900,7 +900,10 @@
 		ctx.beginPath();
 		ctx.rect(0, 0, w, h);
 		ctx.clip();
-		if (style === "grid") impgrid(ctx, cols, n, cw, gap);
+		if (style === "grid") {
+			impgrid(ctx, cols, n, cw, gap);
+			implevelzero(ctx, w, h, fit, scale, cyaw, syaw, cp, sp);
+		}
 		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
 		else if (style === "level") implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp);
 		else impfill(ctx, cols, n, cw, gap);
@@ -994,6 +997,68 @@
 			ctx.lineTo(segs[i].q.x, segs[i].q.y);
 			ctx.stroke();
 		}
+	}
+
+	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
+	function implevelzero(ctx, w, h, fit, scale, cyaw, syaw, cp, sp){
+		var gn = drag ? 30 : 52;
+		var gw = gn + 1;
+		var vals = new Float64Array(gw * gw);
+		var i, j, x, y, v00, v10, v11, v01, ps, k;
+		function proj0(x, y){
+			var X = (x - cam.cx) / cam.xspan * fit;
+			var Y = (y - cam.cy) / cam.yspan * fit;
+			var a = X * cyaw - Y * syaw;
+			var b = X * syaw + Y * cyaw;
+			return { x: w / 2 + a * scale, y: h / 2 - (b * sp) * scale };
+		}
+		for (j = 0; j <= gn; j++) {
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
+			for (i = 0; i <= gn; i++) {
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+				vals[j * gw + i] = ev(fn, x, y, 0);
+			}
+		}
+		ctx.strokeStyle = zcolor(0.5);
+		ctx.lineWidth = 1.4;
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		ctx.beginPath();
+		for (j = 0; j < gn; j++) {
+			var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
+			var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gn;
+			for (i = 0; i < gn; i++) {
+				var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+				var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gn;
+				v00 = vals[j * gw + i];
+				v10 = vals[j * gw + i + 1];
+				v11 = vals[(j + 1) * gw + i + 1];
+				v01 = vals[(j + 1) * gw + i];
+				if (!isFinite(v00) || !isFinite(v10) || !isFinite(v11) || !isFinite(v01)) continue;
+				ps = [];
+				if ((v00 > 0) !== (v10 > 0)) ps.push({ x: x0 + (x1 - x0) * (v00 / (v00 - v10)), y: y0 });
+				if ((v10 > 0) !== (v11 > 0)) ps.push({ x: x1, y: y0 + (y1 - y0) * (v10 / (v10 - v11)) });
+				if ((v11 > 0) !== (v01 > 0)) ps.push({ x: x1 + (x0 - x1) * (v11 / (v11 - v01)), y: y1 });
+				if ((v01 > 0) !== (v00 > 0)) ps.push({ x: x0, y: y1 + (y0 - y1) * (v01 / (v01 - v00)) });
+				if (ps.length === 2) {
+					var a0 = proj0(ps[0].x, ps[0].y), b0 = proj0(ps[1].x, ps[1].y);
+					ctx.moveTo(a0.x, a0.y);
+					ctx.lineTo(b0.x, b0.y);
+				}
+				else if (ps.length === 4) {
+					var vc = ev(fn, (x0 + x1) / 2, (y0 + y1) / 2, 0);
+					if (!isFinite(vc)) continue;
+					var pairs = (vc > 0) === (v00 > 0) ? [[0, 1], [2, 3]] : [[0, 3], [1, 2]];
+					for (k = 0; k < 2; k++) {
+						var a1 = proj0(ps[pairs[k][0]].x, ps[pairs[k][0]].y);
+						var b1 = proj0(ps[pairs[k][1]].x, ps[pairs[k][1]].y);
+						ctx.moveTo(a1.x, a1.y);
+						ctx.lineTo(b1.x, b1.y);
+					}
+				}
+			}
+		}
+		ctx.stroke();
 	}
 
 	function impdots(ctx, cols, n, cw, gap){
