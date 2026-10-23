@@ -105,7 +105,7 @@
     <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
 
-  <!-- WinRT 投影：枚举/合成现代 Windows 语音（含越南语等 OneCore 神经语音） -->
+  <!-- WinRT 投影：枚举/合成现代 Windows 语音（OneCore 神经语音） -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.22000.196" />
   </ItemGroup>

@@ -30,7 +30,7 @@ sealed class SapiVoiceItem {
 	}
 }
 
-/// <summary>WinRT 现代语音合成：枚举 OneCore 神经语音（含越南语等），合成到 float[]。</summary>
+/// <summary>WinRT 现代语音合成：枚举 OneCore 神经语音，合成到 float[]。</summary>
 sealed class WinRtTts : IDisposable {
 	readonly List<SapiVoiceItem> voices = new();
 	string selectedVoiceId;

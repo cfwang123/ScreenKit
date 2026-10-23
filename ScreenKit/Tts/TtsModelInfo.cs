@@ -260,7 +260,7 @@ enum TtsComputeMode {
 enum TtsEngineKind {
 	/// <summary>经典 System.Speech（SAPI5）。</summary>
 	Sapi = 0,
-	/// <summary>Windows Runtime / OneCore 神经语音（含越南语等）。</summary>
+	/// <summary>Windows Runtime / OneCore 神经语音。</summary>
 	WinRt = 2,
 	/// <summary>Sherpa-ONNX 离线模型。</summary>
 	Sherpa = 1,
