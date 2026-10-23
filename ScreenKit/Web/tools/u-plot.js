@@ -59,10 +59,6 @@
 	function body(){
 		return '<div class="plot">'
 			+ '<div class="plot-bar">'
-			+ '<span class="plot-seg">'
-			+ '<button type="button" data-mode="2" class="on" data-k="web.plot.y">' + SK.esc(tt("web.plot.y", "y = f(x)")) + "</button>"
-			+ '<button type="button" data-mode="3" data-k="web.plot.z">' + SK.esc(tt("web.plot.z", "z = f(x, y)")) + "</button>"
-			+ "</span>"
 			+ '<button type="button" class="on" data-act="cross" data-ktip="web.plot.crossTip" title="' + SK.esc(tt("web.plot.crossTip", "竖线与曲线的交点。再点一次关闭。")) + '"><i class="fa-solid fa-crosshairs"></i><span data-k="web.plot.cross">' + SK.esc(tt("web.plot.cross", "Cross")) + "</span></button>"
 			+ '<span class="plot-style plot-seg" hidden>'
 			+ styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面")
@@ -72,12 +68,12 @@
 			+ "</span>"
 			+ '<input id="plot-fn" type="text" value="sin(x)" spellcheck="false" autocomplete="off"'
 			+ ' data-kph="web.plot.ph" placeholder="' + SK.esc(tt("web.plot.ph", "sin(x)")) + '"'
-			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。二维可以写等式，例如 x^2+y^2=1；三维可以写 z=f(x, y)，也可以写方程，例如 x^2+y^2+z^2=9 画球面。")) + '">'
+			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。自动识别函数和方程：y=f(x)、z=f(x,y)、x^2+y^2=1 这类等式，以及 x^2+y^2+z^2=9 这类含 z 的方程。")) + '">'
 			+ '<div class="plot-ex"><button type="button" data-act="ex"><i class="fa-solid fa-caret-down"></i><span data-k="web.plot.ex">' + SK.esc(tt("web.plot.ex", "示例")) + "</span></button>"
 			+ '<div class="plot-menu" id="plot-menu" hidden>' + samples() + "</div></div>"
 			+ '<button type="button" data-act="reset" data-k="web.plot.reset">' + SK.esc(tt("web.plot.reset", "复位")) + "</button>"
 			+ "</div>"
-			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。等式如 x^2+y^2=1 会画出曲线；三维方程如 x^2+y^2+z^2=9 会画出曲面。点「示例」可选择。")) + "</p>"
+			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。输入会自动识别二维或三维：函数、方程、含 z 的曲面都能画。点「示例」可选择。")) + "</p>"
 			+ '<div class="plot-stage"><canvas id="plot-cv"></canvas><div class="plot-read" id="plot-read" hidden></div></div>'
 			+ '<p class="hint" id="plot-msg"></p>'
 			+ "</div>";
@@ -128,7 +124,7 @@
 		}
 		var sample = F.attr(el, "data-ex");
 		if (sample != null) {
-			pick(sample, F.attr(el, "data-mode"));
+			pick(sample);
 			return;
 		}
 		if (F.attr(el, "data-act") === "cross") {
@@ -152,14 +148,6 @@
 			paint();
 			return;
 		}
-		var next = F.attr(el, "data-mode");
-		if (!next || next === mode) return;
-		hidemenu();
-		mode = next;
-		markmode();
-		resetview();
-		reparse();
-		paint();
 	}
 
 	function samples(){
@@ -197,24 +185,16 @@
 		menu.hidden = true;
 	}
 
-	function pick(src, next){
+	function pick(src){
 		var input = F.id("plot-fn");
 		if (input) input.value = src;
 		hidemenu();
-		if (next && next !== mode) {
-			mode = next;
-			markmode();
-		}
 		resetview();
 		reparse();
 		paint();
 	}
 
 	function markmode(){
-		var nodes = F.qa(".plot-seg > button[data-mode]");
-		var i;
-		for (i = 0; i < nodes.length; i++)
-			nodes[i].className = F.attr(nodes[i], "data-mode") === mode ? "on" : "";
 		var box = F.q(".plot-style");
 		if (box) box.hidden = mode !== "3";
 		var cross = F.q('.plot-bar > [data-act="cross"]');
@@ -262,13 +242,31 @@
 		implicit = false;
 		try {
 			var norm = normalize(src);
+			var zpre = /^\s*z\s*=/i.test(src);
 			var eq = norm.indexOf("=") >= 0;
-			fn = compile(src, mode === "3" && eq ? 3 : (mode === "3" || eq ? 2 : 1));
+			var next;
+			if (zpre) {
+				fn = compile(src, 2);
+				next = "3";
+			}
+			else if (eq) {
+				fn = compile(src, 3);
+				next = usesZ(fn) ? "3" : "2";
+			}
+			else {
+				fn = compile(src, 3);
+				if (usesZ(fn)) {
+					fn = null;
+					say(tt("web.plot.noz", "三维曲面只能使用 x、y；要写含 z 的方程，请用 F(x,y,z)=0 的等式。"), true);
+					return;
+				}
+				next = usesY(fn) ? "3" : "2";
+			}
 			implicit = fn.t === "eq";
-			if (mode !== "3" && !implicit && usesY(fn)) {
-				fn = null;
-				say(tt("web.plot.xonly", "二维函数只能使用 x。要画圆、椭圆这类图，请写成等式，例如 x^2+y^2=1。"), true);
-				return;
+			if (next !== mode) {
+				mode = next;
+				markmode();
+				resetview();
 			}
 			say("");
 		}
@@ -1515,6 +1513,18 @@
 		if (node.t === "f") {
 			var i;
 			for (i = 0; i < node.args.length; i++) if (usesY(node.args[i])) return true;
+		}
+		return false;
+	}
+
+	function usesZ(node){
+		if (!node) return false;
+		if (node.t === "v") return node.i === 2;
+		if (node.t === "u" || node.t === "eq") return usesZ(node.a) || usesZ(node.b);
+		if (node.t === "b") return usesZ(node.a) || usesZ(node.b);
+		if (node.t === "f") {
+			var i;
+			for (i = 0; i < node.args.length; i++) if (usesZ(node.args[i])) return true;
 		}
 		return false;
 	}
