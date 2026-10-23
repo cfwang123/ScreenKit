@@ -496,6 +496,16 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/tts/sink") {
+				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
+				if (!ispost(req)) {
+					writejson(ctx, 405, err(805, "tts/sink 仅支持 POST"));
+					return;
+				}
+				handlettssink(ctx);
+				return;
+			}
+
 			if (path is "/api/tts/devices") {
 				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
 				if (!isget(req)) {

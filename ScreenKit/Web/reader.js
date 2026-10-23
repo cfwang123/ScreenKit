@@ -23,6 +23,7 @@
 		voices: [],
 		bvoices: [],
 		bmark: "",
+		outname: "",
 		selpick: null,
 		hit: null,
 		hl: null,
@@ -49,12 +50,59 @@
 	function unurl(url){ URL.revokeObjectURL(url); }
 	function sink(node){
 		if (!node || typeof node.setSinkId !== "function") return;
-		var p;
-		try { p = node.setSinkId("default"); }
-		catch (e) { return; }
-		if (p && p.then) p.then(function(){}, function(){
-			try { node.setSinkId(""); } catch (e2) {}
-		});
+		function use(id){
+			var p;
+			try { p = node.setSinkId(id || "default"); }
+			catch (e) { return; }
+			if (p && p.then) p.then(function(){}, function(){
+				try { node.setSinkId("default"); } catch (e2) {}
+			});
+		}
+		if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+			use("default");
+			return;
+		}
+		navigator.mediaDevices.enumerateDevices().then(function(list){
+			use(matchout(list, st.outname) || "default");
+		}, function(){ use("default"); });
+	}
+
+	function matchout(list, name){
+		name = String(name || "").toLowerCase();
+		var i, d, label;
+		if (name) {
+			for (i = 0; i < list.length; i++) {
+				d = list[i];
+				if (!d || d.kind !== "audiooutput") continue;
+				if (d.deviceId === "communications") continue;
+				label = String(d.label || "").toLowerCase();
+				if (label.indexOf(name) >= 0) return d.deviceId || "default";
+			}
+		}
+		for (i = 0; i < list.length; i++) {
+			d = list[i];
+			if (d && d.kind === "audiooutput" && d.deviceId === "default") return "default";
+		}
+		return "default";
+	}
+
+	function loadout(){
+		fetchjson("/api/tts/devices").then(function(j){
+			var list = j && j.data || [];
+			var i;
+			st.outname = "";
+			for (i = 0; i < list.length; i++) {
+				if (list[i] && list[i]["default"]) st.outname = list[i].name || "";
+			}
+		}).catch(function(){});
+	}
+
+	function holdsink(on){
+		return fetch("/api/tts/sink", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ hold: on ? 1 : 0 })
+		}).catch(function(){});
 	}
 
 	function langs(){
@@ -165,6 +213,7 @@
 		applylang();
 		loadbooks(restorelast);
 		loadvoices();
+		loadout();
 		hookbvoices();
 		wiredrop();
 		on(window, "pagehide", function(){
@@ -963,13 +1012,18 @@
 		setmsg(L("web.reader.reading", "朗读中…"));
 		paused.then(function(){
 			if (token !== st.token || !st.reading) return;
-			if (st.engine === "browser") setTimeout(next, 40);
-			else next();
+			var go = function(){
+				if (st.engine === "browser") setTimeout(next, 40);
+				else next();
+			};
+			if (st.engine === "browser") holdsink(true).then(go);
+			else go();
 		});
 		function next(){
 			if (token !== st.token || !st.reading) return;
 			if (!queue.length) {
 				st.reading = false;
+				holdsink(false);
 				$("rd-read").disabled = false;
 				$("rd-stop").disabled = true;
 				clearhl();
@@ -982,6 +1036,7 @@
 				if (token !== st.token || !st.reading) return;
 				if (err) {
 					st.reading = false;
+					holdsink(false);
 					$("rd-read").disabled = false;
 					$("rd-stop").disabled = true;
 					clearhl();
@@ -1108,7 +1163,8 @@
 			if ($("rd-read")) $("rd-read").disabled = false;
 			if ($("rd-stop")) $("rd-stop").disabled = true;
 		}
-		var done = fetch("/api/reader/stop", { method: "POST" }).catch(function(){});
+		var done = fetch("/api/reader/stop", { method: "POST" }).catch(function(){})
+			.then(function(){ return holdsink(false); });
 		if (!quiet) setmsg(L("web.reader.stopped", "已停止"));
 		return done;
 	}

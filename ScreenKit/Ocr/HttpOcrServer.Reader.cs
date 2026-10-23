@@ -145,6 +145,7 @@ sealed partial class HttpOcrServer {
 					return;
 				}
 				ChromeTts.StopSpeak();
+				TtsRoute.Release();
 				writejson(ctx, 200, new JsonObject { ["code"] = 100, ["data"] = new JsonObject() });
 				return;
 			}

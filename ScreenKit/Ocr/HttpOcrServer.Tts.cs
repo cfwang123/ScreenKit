@@ -113,6 +113,29 @@ sealed partial class HttpOcrServer {
 		_ => "sherpa",
 	};
 
+	void handlettssink(SockCtx ctx) {
+		var hold = false;
+		try {
+			var jo = readjsonbody(ctx.Request);
+			var n = jo["hold"];
+			if (n is JsonValue v) {
+				if (v.TryGetValue<bool>(out var b)) hold = b;
+				else if (v.TryGetValue<int>(out var i)) hold = i != 0;
+			}
+		}
+		catch { }
+		var name = "";
+		if (hold) name = TtsRoute.Hold();
+		else TtsRoute.Release();
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["hold"] = hold,
+				["name"] = name ?? "",
+			},
+		});
+	}
+
 	void handlettsdevices(SockCtx ctx) {
 		try {
 			var list = TtsSpeak.Devices();

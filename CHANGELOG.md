@@ -52,6 +52,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Novel reader uses the current browser's voices as the default reading engine.
 
+#### Fixed
+
+- Novel reader browser speech uses the system default playback device, so a Bluetooth headset plays in stereo instead of its hands-free output.
+
 ### 中文
 
 #### 新增
@@ -61,6 +65,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 小说阅读器默认用当前浏览器自己的语音朗读。
+
+#### 修复
+
+- 小说阅读器的浏览器朗读改走系统默认播放设备，蓝牙耳机走立体声，不再走免提。
 
 ## v1.0.29 (2026-10-23)
 
