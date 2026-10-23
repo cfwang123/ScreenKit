@@ -110,7 +110,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Text convert**: Encoding, escaping, and common text transforms
   - **Chinese to pinyin**: Characters to pinyin or initials
   - **Markdown reader**: Preview Markdown, with theme switching and click-to-zoom images
-  - **Novel reader**: A separate page (`/reader`) like the dictionary, opened from a card under Text on the tools page; Ctrl+click opens it in a new window. Upload or drop txt/md files into `web/up/reader` beside the program, select text for the dictionary popup (drag its edges or corners to resize, or maximize it), and read aloud with Chrome offline or other voices. Reading starts at the top of the screen or at the selected word and highlights the current sentence
+  - **Novel reader**: A separate page (`/reader`) like the dictionary, opened from a card under Text on the tools page; Ctrl+click opens it in a new window. Upload or drop txt/md files into `web/up/reader` beside the program, select text for the dictionary popup (drag its edges or corners to resize, or maximize it), and read aloud with Chrome offline, the current browser’s own voices, or other voices. Reading starts at the top of the screen or at the selected word and highlights the current sentence. Browser voices speak in the page; choosing that engine shows an Install models link
   - **Chinese segmentation**: Split by word, sentence, or grapheme
   - **In-browser model**: Run text tasks on the browser’s local model; Speak can filter voices by language, and the page link opens the Chrome model page
   - **Translate**: Translate text into another language, with its own engine and local ONNX model pickers

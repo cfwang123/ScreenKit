@@ -114,6 +114,8 @@ button, input, select { font: inherit; }
 .rd-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .rd-btn.primary:hover { background: #9c4523; }
 .rd-f { display: flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--muted); font-size: 12px; }
+.rd-models { color: var(--accent); font-size: 11px; line-height: 28px; text-decoration: none; }
+.rd-models:hover { text-decoration: underline; }
 .rd-f select {
 	display: block; width: auto; min-width: 74px; max-width: 190px; height: 28px; margin: 0;
 	padding: 0 4px; border: 1px solid var(--line); border-radius: 8px; background: #fff;

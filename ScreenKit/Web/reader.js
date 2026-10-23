@@ -21,6 +21,8 @@
 		voice: "",
 		rate: 1,
 		voices: [],
+		bvoices: [],
+		bmark: "",
 		selpick: null,
 		hit: null,
 		hl: null,
@@ -163,6 +165,7 @@
 		applylang();
 		loadbooks(restorelast);
 		loadvoices();
+		hookbvoices();
 		wiredrop();
 		on(window, "pagehide", function(){
 			stopread(true);
@@ -237,6 +240,7 @@
 			'<option value="ja" data-k="dict.filter.ja">' + L("dict.filter.ja", "日语") + '</option><option value="ko" data-k="dict.filter.ko">' + L("dict.filter.ko", "韩语") + "</option></select></label>",
 			'<label class="rd-f"><span data-k="web.reader.chap">' + L("web.reader.chap", "章节") + '</span><select id="rd-chap"><option value="">' + L("web.reader.nochap", "没有章节") + "</option></select></label>",
 			'<label class="rd-f"><span data-k="web.reader.engine">' + L("web.reader.engine", "引擎") + '</span><select id="rd-engine"></select></label>',
+			'<a id="rd-models" class="rd-models" href="/chrome" target="_blank" rel="noopener" hidden data-k="web.reader.models">' + L("web.reader.models", "安装模型") + "</a>",
 			'<label class="rd-f"><span data-k="web.reader.vlang">' + L("web.reader.vlang", "发音语言") + '</span><select id="rd-vlang"></select></label>',
 			'<label class="rd-f"><span data-k="web.reader.voice">' + L("web.reader.voice", "发音人") + '</span><select id="rd-voice"></select></label>',
 			'<label class="rd-f rd-frate"><span data-k="web.reader.rate">' + L("web.reader.rate", "语速") + '</span><input id="rd-rate" type="range" min="0.5" max="2" step="0.1"><span id="rd-ratev" class="rd-ratev"></span></label>',
@@ -959,7 +963,8 @@
 		setmsg(L("web.reader.reading", "朗读中…"));
 		paused.then(function(){
 			if (token !== st.token || !st.reading) return;
-			next();
+			if (st.engine === "browser") setTimeout(next, 40);
+			else next();
 		});
 		function next(){
 			if (token !== st.token || !st.reading) return;
@@ -989,6 +994,10 @@
 	}
 
 	function speak(text, done){
+		if (st.engine === "browser") {
+			speakbrowser(text, done);
+			return;
+		}
 		var body = ttsbody(text);
 		fetch("/api/tts", {
 			method: "POST",
@@ -1029,10 +1038,71 @@
 		return b;
 	}
 
+	function speakbrowser(text, done){
+		var syn = window.speechSynthesis;
+		if (!syn || typeof SpeechSynthesisUtterance !== "function") {
+			done(L("web.aim.novoice", "这个浏览器不能朗读"));
+			return;
+		}
+		var u = new SpeechSynthesisUtterance(text);
+		var v = browservoice(st.voice);
+		if (v) {
+			u.voice = v;
+			if (v.lang) u.lang = v.lang;
+		}
+		else if (st.vlang) u.lang = st.vlang;
+		var rate = st.rate || 1;
+		if (rate < 0.5) rate = 0.5;
+		if (rate > 2) rate = 2;
+		u.rate = rate;
+		u.volume = 1;
+		var settled = false;
+		function finish(err){
+			if (settled) return;
+			settled = true;
+			done(err || "");
+		}
+		u.onend = function(){ finish(""); };
+		u.onerror = function(ev){
+			var code = ev && ev.error;
+			if (code === "interrupted" || code === "canceled" || code === "cancelled") {
+				finish("");
+				return;
+			}
+			finish(L("web.aim.novoice", "这个浏览器不能朗读"));
+		};
+		try {
+			syn.resume();
+			syn.speak(u);
+		}
+		catch (e) {
+			finish(e && e.message ? e.message : L("web.aim.novoice", "这个浏览器不能朗读"));
+		}
+	}
+
+	function browservoice(key){
+		var syn = window.speechSynthesis;
+		if (!syn || !key || !syn.getVoices) return null;
+		var list = syn.getVoices() || [];
+		var i;
+		for (i = 0; i < list.length; i++) {
+			var v = list[i];
+			if (v && (v.voiceURI || v.name) === key) return v;
+		}
+		return null;
+	}
+
+	function stopsynth(){
+		var syn = window.speechSynthesis;
+		if (!syn) return;
+		try { syn.cancel(); } catch (e) {}
+	}
+
 	function stopread(quiet){
 		st.token++;
 		st.reading = false;
 		stopwav();
+		stopsynth();
 		clearhl();
 		if (st.built) {
 			if ($("rd-read")) $("rd-read").disabled = false;
@@ -1137,16 +1207,18 @@
 			seen[id] = 1;
 			out.push(id);
 		}
-		var rank = { chrome: 0, winrt: 1, sapi: 2, edge: 3 };
+		if (!seen.browser) out.push("browser");
+		var rank = { browser: 0, chrome: 1, winrt: 2, sapi: 3, edge: 4 };
 		out.sort(function(a, b){
-			var ra = rank[a] == null ? (a.indexOf("sherpa|") === 0 ? 4 : 5) : rank[a];
-			var rb = rank[b] == null ? (b.indexOf("sherpa|") === 0 ? 4 : 5) : rank[b];
+			var ra = rank[a] == null ? (a.indexOf("sherpa|") === 0 ? 5 : 6) : rank[a];
+			var rb = rank[b] == null ? (b.indexOf("sherpa|") === 0 ? 5 : 6) : rank[b];
 			return ra - rb;
 		});
 		return out;
 	}
 
 	function englabel(id){
+		if (id === "browser") return L("web.reader.eng.browser", "浏览器语音");
 		if (id === "chrome") return L("web.reader.eng.chrome", "Chrome 离线语音");
 		if (id === "winrt") return "Windows";
 		if (id === "sapi") return "SAPI";
@@ -1182,27 +1254,45 @@
 	function langlabel(code){
 		var names = {
 			zh: "中文", en: "English", ja: "日本語", ko: "한국어", yue: "粤語", "zh-hk": "粤語",
-			"zh-tw": "國語", de: "Deutsch", es: "Español", fr: "Français", pt: "Português",
+			"zh-tw": "國語", "zh-cn": "中文", "en-us": "English", "en-gb": "English",
+			"ja-jp": "日本語", "ko-kr": "한국어", "yue-hk": "粤語",
+			de: "Deutsch", es: "Español", fr: "Français", pt: "Português",
 			ru: "Русский", it: "Italiano", hi: "हिन्दी", id: "Bahasa Indonesia", vi: "Tiếng Việt",
 			nl: "Nederlands", pl: "Polski", th: "ไทย", ar: "العربية", tr: "Türkçe"
 		};
 		return names[String(code || "").toLowerCase()] || code;
 	}
 
+	function langrank(code){
+		var c = String(code || "").toLowerCase();
+		var prefer = ["zh-cn", "zh", "zh-tw", "zh-hk", "yue-hk", "yue", "en-us", "en", "en-gb", "ja-jp", "ja", "ko-kr", "ko"];
+		var i;
+		for (i = 0; i < prefer.length; i++) if (prefer[i] === c) return i;
+		return 100;
+	}
+
 	function fillvlang(){
 		var sel = $("rd-vlang");
 		if (!sel) return;
+		var src = st.engine === "browser" ? st.bvoices : st.voices;
 		var list = [];
 		var seen = {};
-		for (var i = 0; i < st.voices.length; i++) {
-			var v = st.voices[i];
+		for (var i = 0; i < src.length; i++) {
+			var v = src[i];
 			if (engof(v) !== st.engine) continue;
 			var code = v.lang || "";
 			if (!code || seen[code]) continue;
 			seen[code] = 1;
 			list.push(code);
 		}
-		list.sort();
+		if (st.engine === "browser") {
+			list.sort(function(a, b){
+				var d = langrank(a) - langrank(b);
+				if (d) return d;
+				return a < b ? -1 : a > b ? 1 : 0;
+			});
+		}
+		else list.sort();
 		sel.innerHTML = "";
 		var all = el("option");
 		all.value = "";
@@ -1220,6 +1310,13 @@
 		else st.vlang = list.indexOf("zh") >= 0 ? "zh" : (list.length ? list[0] : "");
 		sel.value = st.vlang;
 		fillvoice();
+		paintmodels();
+	}
+
+	function paintmodels(){
+		var a = $("rd-models");
+		if (!a) return;
+		a.hidden = st.engine !== "browser";
 	}
 
 	function engof(v){
@@ -1229,9 +1326,10 @@
 	function fillvoice(){
 		var sel = $("rd-voice");
 		if (!sel) return;
+		var src = st.engine === "browser" ? st.bvoices : st.voices;
 		var list = [];
-		for (var i = 0; i < st.voices.length; i++) {
-			var v = st.voices[i];
+		for (var i = 0; i < src.length; i++) {
+			var v = src[i];
 			if (engof(v) !== st.engine) continue;
 			if (st.vlang && v.lang !== st.vlang) continue;
 			list.push(v);
@@ -1275,6 +1373,40 @@
 	function fillrate(){
 		var inp = $("rd-rate");
 		if (inp) inp.value = String(st.rate);
+	}
+
+	function hookbvoices(){
+		var syn = window.speechSynthesis;
+		if (!syn) return;
+		loadbvoices();
+		syn.addEventListener("voiceschanged", loadbvoices);
+	}
+
+	function loadbvoices(){
+		var syn = window.speechSynthesis;
+		var list = syn && syn.getVoices ? (syn.getVoices() || []) : [];
+		var next = [];
+		var sig = [];
+		var i;
+		for (i = 0; i < list.length; i++) {
+			var v = list[i];
+			if (!v) continue;
+			var key = v.voiceURI || v.name || "";
+			if (!key) continue;
+			var lang = String(v.lang || "").replace(/_/g, "-");
+			next.push({
+				engine: "browser",
+				key: key,
+				label: v.name || key,
+				lang: lang
+			});
+			sig.push(key + "\t" + lang + "\t" + (v.name || ""));
+		}
+		var mark = sig.join("\n");
+		if (mark === st.bmark) return;
+		st.bmark = mark;
+		st.bvoices = next;
+		if (st.built && st.engine === "browser") fillvlang();
 	}
 
 	function savetts(){
