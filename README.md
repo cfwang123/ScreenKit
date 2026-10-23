@@ -99,7 +99,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV.
 - **Camera**: Preview a camera, take photos and videos, and scan QR codes and barcodes.
 - **Scientific calculator**: A borderless keypad calculator with trigonometry, logarithms, powers, roots, factorial, and memory.
-- **Desktop note**: A borderless translucent note for text or a to-do list; content and position are remembered.
+- **Desktop note**: A borderless translucent note for text or a to-do list; content and position are remembered. The pin in the title bar keeps it above other windows, and that too is remembered.
 - **RTSP test server**: Encodes a bouncing picture to H.264 and serves an RTSP address on the chosen port.
 - **Auto key**: Sends keys or clicks in a row to the foreground window; the default F6 starts and stops it while the window is open.
 - **Window manager**: Lists visible top-level windows and pins one in front or unpins it.

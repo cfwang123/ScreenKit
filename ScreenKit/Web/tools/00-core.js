@@ -296,6 +296,51 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		return t(key) || text;
 	}
 
+	// 速查表里的数据（命令说明、备注、示例注释）是写死的中文，按整串查表翻成当前界面语言。
+	// 词典放在 tools/zz-l10n-<语言>.js 里，用 SK.regtr 注册；查不到就显示原文。
+	// 注意别占用 SK.tr：那是按 web.* 键反查界面文案的老函数，别的工具在用。
+	var TRD = {};
+	SK.regtr = function(code, map){
+		if (!code || !map) return;
+		var d = TRD[code] || (TRD[code] = {});
+		for (var k in map) {
+			if (Object.prototype.hasOwnProperty.call(map, k)) d[k] = map[k];
+		}
+	};
+
+	function trdict(){
+		return TRD[langs()[langAt] || "zh"] || null;
+	}
+
+	SK.td = function(s){
+		var text = String(s == null ? "" : s);
+		var d = trdict();
+		if (!text || !d) return text;
+		var val = d[text];
+		return val == null || val === "" ? text : val;
+	};
+
+	// 示例是多行文本，注释行（# / rem）要按去掉前缀后的注释内容查表。
+	// 词典里的键按不缩进的形式存的，所以先去掉首尾空白再查，查到再把缩进补回去。
+	SK.tdline = function(line){
+		var text = String(line == null ? "" : line);
+		var d = trdict();
+		if (!text || !d) return text;
+		var pad = text.match(/^\s*/)[0];
+		var tail = text.match(/\s*$/)[0];
+		var body = text.substring(pad.length, text.length - tail.length);
+		if (d[body] != null) return pad + d[body] + tail;
+		var heads = ["# ", "rem ", "REM ", "#", "// "];
+		var i, head, rest;
+		for (i = 0; i < heads.length; i++) {
+			head = heads[i];
+			if (body.indexOf(head) !== 0) continue;
+			rest = body.substring(head.length);
+			if (d[rest] != null) return pad + head + d[rest] + tail;
+		}
+		return text;
+	};
+
 	function hookhtml(){
 		if (hookhtml.done) return;
 		hookhtml.done = true;

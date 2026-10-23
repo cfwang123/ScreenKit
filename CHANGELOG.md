@@ -41,6 +41,26 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## unreleased
 
+### English
+
+#### Added
+
+- Desktop note: added a pin button to keep the note above other windows; the pin state is saved with the note.
+
+#### Changed
+
+- Web tools: the 12 lookup tables under Info (Windows/Linux commands, Linux software, HTTP status codes, MIME types, ports, file signatures, time zones, codes, key codes, USB IDs, SQL functions) now have English text, and search matches English too
+
+### 中文
+
+#### 新增
+
+- 桌面便笺：标题栏增加置顶图钉，可让便笺始终显示在最前面，置顶状态随内容一起保存。
+
+#### 变更
+
+- 网页工具：信息查询里的 12 个速查表（Windows/Linux 常用命令、Linux 软件、HTTP 状态码、MIME 类型、端口、文件头魔数、时区、国家/语言/货币、键盘码、USB ID、SQL 函数）补上英文，搜索也能用英文命中
+
 ## v1.0.28 (2026-10-23)
 
 ### English

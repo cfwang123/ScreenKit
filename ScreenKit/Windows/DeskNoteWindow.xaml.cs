@@ -1,3 +1,4 @@
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
 namespace ScreenKit;
@@ -24,8 +25,13 @@ public partial class DeskNoteWindow : Window {
 		badd.Click += (_, _) => additem(null);
 		bcolor.Click += (_, _) => pickcolor();
 		bcolor.ToolTip = Loc.T("note.color");
+		bpin.ToolTip = Loc.T("note.pin");
+		bpin.Checked += (_, _) => setpin(true);
+		bpin.Unchecked += (_, _) => setpin(false);
+		Topmost = note.Topmost;
+		bpin.IsChecked = note.Topmost;
 		bar.MouseLeftButtonDown += (_, e) => {
-			if (e.OriginalSource is Button) return;
+			if (e.OriginalSource is DependencyObject src && inbutton(src)) return;
 			try { DragMove(); } catch { }
 		};
 		bsz.DragDelta += (_, e) => {
@@ -75,6 +81,7 @@ public partial class DeskNoteWindow : Window {
 		etext.Foreground = ink;
 		etext.CaretBrush = ink;
 		lbtitle.Foreground = ink;
+		bpin.Foreground = ink;
 		bclose.Foreground = ink;
 		btodo.Foreground = ink;
 		badd.Foreground = ink;
@@ -82,6 +89,23 @@ public partial class DeskNoteWindow : Window {
 		bsz.ApplyTemplate();
 		if (bsz.Template.FindName("grip", bsz) is TextBlock mark)
 			mark.Foreground = new SolidColorBrush(Color.FromArgb(0x88, fg.R, fg.G, fg.B));
+	}
+
+	void setpin(bool on) {
+		Topmost = on;
+		note.Topmost = on;
+		bpin.ToolTip = Loc.T(on ? "note.unpin" : "note.pin");
+		queue();
+	}
+
+	static bool inbutton(DependencyObject cur) {
+		while (cur != null) {
+			if (cur is ButtonBase) return true;
+			cur = cur is Visual || cur is System.Windows.Media.Media3D.Visual3D
+				? VisualTreeHelper.GetParent(cur)
+				: LogicalTreeHelper.GetParent(cur);
+		}
+		return false;
 	}
 
 	static Color paintcolor(string hex) {

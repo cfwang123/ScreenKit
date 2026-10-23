@@ -176,7 +176,7 @@
 		title: "HTTP状态码表",
 		body: function(){
 			return '<div class="reftab">'
-				+ '<div class="uquery"><input id="h-q" type="text" placeholder="搜索：404、重定向、Not Found、RFC 6585">'
+				+ '<div class="uquery"><input id="h-q" type="text" placeholder="' + esc(SK.td("搜索：404、重定向、Not Found、RFC 6585")) + '">'
 				+ '<span id="h-msg" class="msg"></span></div>'
 				+ '<div class="refchips" id="h-chips"></div>'
 				+ '<div class="refbody">'
@@ -225,14 +225,14 @@
 	}
 
 	function paintchips(){
-		var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">全部<small>"
+		var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">" + esc(SK.td("全部")) + "<small>"
 			+ ROWS.length + "</small></button>"];
 		var i, j, n;
 		for (i = 0; i < GROUPS.length; i++) {
 			n = 0;
 			for (j = 0; j < ROWS.length; j++) if (groupof(ROWS[j]) === GROUPS[i].id) n++;
 			html.push('<button type="button" data-g="' + GROUPS[i].id + '"'
-				+ (cur === GROUPS[i].id ? ' class="on"' : "") + ">" + GROUPS[i].name
+				+ (cur === GROUPS[i].id ? ' class="on"' : "") + ">" + esc(SK.td(GROUPS[i].name))
 				+ "<small>" + n + "</small></button>");
 		}
 		F.id("h-chips").innerHTML = html.join("");
@@ -240,7 +240,8 @@
 
 	function paint(){
 		var q = query();
-		var html = ["<thead><tr><th>代码</th><th>原因短语</th><th>中文</th><th>规范 / 来源</th></tr></thead><tbody>"];
+		var html = ["<thead><tr><th>" + esc(SK.td("代码")) + "</th><th>" + esc(SK.td("原因短语")) + "</th><th>"
+			+ esc(SK.td("中文")) + "</th><th>" + esc(SK.td("规范 / 来源")) + "</th></tr></thead><tbody>"];
 		var total = 0;
 		var i, j, rows, n;
 		for (i = 0; i < GROUPS.length; i++) {
@@ -251,16 +252,16 @@
 			}
 			if (!rows.length) continue;
 			total += rows.length;
-			html.push('<tr class="refgh"><td colspan="4">' + GROUPS[i].name
+			html.push('<tr class="refgh"><td colspan="4">' + esc(SK.td(GROUPS[i].name))
 				+ '<span class="n">' + rows.length + "</span></td></tr>");
 			for (n = 0; n < rows.length; n++) html.push(rowhtml(rows[n]));
 		}
 		html.push("</tbody>");
 		if (!total) {
-			html = ['<tbody><tr><td class="refnone">没有匹配的状态码</td></tr></tbody>'];
+			html = ['<tbody><tr><td class="refnone">' + esc(SK.td("没有匹配的状态码")) + "</td></tr></tbody>"];
 		}
 		F.id("h-tab").innerHTML = html.join("");
-		SK.msg("h-msg", total ? (q ? total + " 条" : "共 " + total + " 条") : "");
+		SK.msg("h-msg", total ? SK.td(q ? "%n 条" : "共 %n 条").replace("%n", total) : "");
 		if (total) {
 			var sel = rowby(picked);
 			if (!visible(sel, q)) sel = firstvisible(q);
@@ -294,32 +295,32 @@
 
 	function rowhtml(row){
 		var g = groupof(row);
-		return '<tr data-code="' + row[0] + '" title="点击复制 ' + esc(row[0] + " " + row[1]) + '"'
+		return '<tr data-code="' + row[0] + '" title="' + esc(SK.td("点击复制 %s").replace("%s", row[0] + " " + row[1])) + '"'
 			+ (row[0] === picked ? ' class="on"' : "") + ">"
 			+ '<td class="hcode c' + g + '">' + row[0] + "</td>"
 			+ "<td>" + esc(row[1]) + "</td>"
-			+ "<td>" + esc(row[2]) + "</td>"
-			+ '<td class="hspec">' + esc(row[3]) + "</td></tr>";
+			+ "<td>" + esc(SK.td(row[2])) + "</td>"
+			+ '<td class="hspec">' + esc(SK.td(row[3])) + "</td></tr>";
 	}
 
 	function showdetail(row){
 		if (!row) return;
 		var g = groupof(row);
 		var meta = [
-			["类别", groupname(g) + (row[4] ? "" : "（非标准）")],
-			["规范", row[3]],
-			["默认缓存", row[5]],
-			["标准", row[4] ? "是，IANA 注册" : "否，实现扩展"],
-			["说明", row[6]]
+			["类别", SK.td(groupname(g)) + (row[4] ? "" : SK.td("（非标准）"))],
+			["规范", SK.td(row[3])],
+			["默认缓存", SK.td(row[5])],
+			["标准", SK.td(row[4] ? "是，IANA 注册" : "否，实现扩展")],
+			["说明", SK.td(row[6])]
 		];
-		if (row[7]) meta.push(["备注", row[7]]);
+		if (row[7]) meta.push(["备注", SK.td(row[7])]);
 		var html = '<div class="refbig c' + g + '">' + row[0] + "</div>"
 			+ '<div class="refsub">' + esc(row[1]) + "</div>"
-			+ '<div class="refcn">' + esc(row[2]) + "</div>"
+			+ '<div class="refcn">' + esc(SK.td(row[2])) + "</div>"
 			+ '<dl class="refmeta">';
 		var i;
 		for (i = 0; i < meta.length; i++)
-			html += "<dt>" + meta[i][0] + "</dt><dd>" + esc(meta[i][1]) + "</dd>";
+			html += "<dt>" + esc(SK.td(meta[i][0])) + "</dt><dd>" + esc(meta[i][1]) + "</dd>";
 		html += "</dl>";
 		F.id("h-detail").innerHTML = html;
 	}

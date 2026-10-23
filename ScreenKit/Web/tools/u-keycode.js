@@ -145,7 +145,7 @@
 		copy: 1,
 		defaultPick: "KeyA",
 		sample: function(r){
-			return 'if (e.code === "' + r.c[1] + '") { /* ' + r.c[0] + " */ }";
+			return 'if (e.code === "' + r.c[1] + '") { /* ' + SK.td(r.c[0]) + " */ }";
 		}
 	});
 

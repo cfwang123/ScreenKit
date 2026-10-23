@@ -2983,10 +2983,11 @@ static class Cli {
 				Width = 300,
 				Height = 220,
 				HasPos = true,
+				Topmost = true,
 			};
 			note.Save(path);
 			var loaded = DeskNote.Load(path);
-			if (!loaded.Todo || !loaded.HasPos || loaded.Left != 12 || loaded.Top != 34 || loaded.Width != 300
+			if (!loaded.Todo || !loaded.HasPos || !loaded.Topmost || loaded.Left != 12 || loaded.Top != 34 || loaded.Width != 300
 				|| loaded.Items.Count != 3 || !loaded.Items[1].Done || loaded.Items[1].Text != "写完") {
 				Err("FAIL save");
 				bad++;

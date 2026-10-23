@@ -13,6 +13,7 @@ public sealed class DeskNote {
 	public double Width { get; set; }
 	public double Height { get; set; }
 	public bool HasPos { get; set; }
+	public bool Topmost { get; set; }
 	public string Color { get; set; } = "";
 
 	public const string DefaultColor = "#E6F6E7A0";

@@ -56,9 +56,10 @@
 	SK.regutil("u-usbid", {
 		title: "常见 USB ID",
 		body: function(){
-			return '<div class="uquery"><input id="usb-q" type="text" placeholder="厂家、产品、046d 或 046d:c52b">'
+			return '<div class="uquery"><input id="usb-q" type="text" placeholder="'
+				+ esc(SK.td("厂家、产品、046d 或 046d:c52b")) + '">'
 				+ '<span id="usb-msg" class="msg"></span></div>'
-				+ '<p class="hint">常见设备的厂家、产品和型号。点一行复制 VID:PID，并按 usb.ids 补上接口。</p>'
+				+ '<p class="hint">' + esc(SK.td("常见设备的厂家、产品和型号。点一行复制 VID:PID，并按 usb.ids 补上接口。")) + "</p>"
 				+ '<div class="usbscroll"><table class="usblist" id="usb-tab"></table></div>'
 				+ '<pre id="usb-detail" class="usbdetail"></pre>';
 		},
@@ -78,7 +79,8 @@
 
 	function paint(q){
 		var rows = match(q);
-		var html = ["<thead><tr><th>VID</th><th>PID</th><th>厂家</th><th>产品 / 型号</th></tr></thead><tbody>"];
+		var html = ["<thead><tr><th>VID</th><th>PID</th><th>" + esc(SK.td("厂家")) + "</th><th>"
+			+ esc(SK.td("产品 / 型号")) + "</th></tr></thead><tbody>"];
 		var i;
 		for (i = 0; i < rows.length; i++) {
 			var r = rows[i];
@@ -88,9 +90,9 @@
 		}
 		html.push("</tbody>");
 		F.id("usb-tab").innerHTML = html.join("");
-		var msg = rows.length + " 条";
+		var msg = SK.td("%n 条").replace("%n", rows.length);
 		var idq = looks(q);
-		if (idq && rows.length === 0) msg = "不在常见列表里，正在查询…";
+		if (idq && rows.length === 0) msg = SK.td("不在常见列表里，正在查询…");
 		F.id("usb-msg").textContent = msg;
 		if (idq && rows.length === 0) ask(idq.vid, idq.pid, null);
 	}
@@ -134,9 +136,9 @@
 
 	function showlocal(r){
 		F.id("usb-detail").textContent = "USB: " + r[0] + ":" + r[1]
-			+ "\n厂家: " + r[2]
-			+ "\n产品: " + r[3]
-			+ "\n型号: " + r[3];
+			+ "\n" + SK.td("厂家") + ": " + r[2]
+			+ "\n" + SK.td("产品") + ": " + r[3]
+			+ "\n" + SK.td("型号") + ": " + r[3];
 	}
 
 	function ask(vid, pid, local){
@@ -146,7 +148,7 @@
 		SK.get(url, function(data){
 			if (n !== gen) return;
 			F.id("usb-detail").textContent = data && data.text ? data.text : "";
-			F.id("usb-msg").textContent = local ? "已复制 " + local[0] + ":" + local[1] : "已查到";
+			F.id("usb-msg").textContent = local ? SK.td("已复制 %s").replace("%s", local[0] + ":" + local[1]) : SK.td("已查到");
 		}, "usb-msg", function(){
 			if (n !== gen) return;
 			if (local) showlocal(local);

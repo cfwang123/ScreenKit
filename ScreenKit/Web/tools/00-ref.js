@@ -99,9 +99,11 @@
 		function hit(row, q, set){
 			if (!q) return true;
 			if (set.numeric && /^[0-9]+$/.test(q)) return String(row.c[0]).indexOf(q) === 0;
-			var blob = row.c.join(" ") + " " + (row.x || "") + " " + groupname(set, row.g);
+			var blob = "";
 			var i;
-			for (i = 0; i < (row.d || []).length; i++) blob += " " + row.d[i][1];
+			for (i = 0; i < row.c.length; i++) blob += row.c[i] + " " + SK.td(row.c[i]) + " ";
+			blob += (row.x || "") + " " + groupname(set, row.g) + " " + SK.td(groupname(set, row.g));
+			for (i = 0; i < (row.d || []).length; i++) blob += " " + row.d[i][0] + " " + row.d[i][1] + " " + SK.td(row.d[i][1]);
 			return blob.toLowerCase().indexOf(q) >= 0;
 		}
 
@@ -113,7 +115,7 @@
 			var html = [];
 			var i, j, g, rows, n;
 			var total = 0;
-			F.id(name + "-q").placeholder = set.placeholder || "";
+			F.id(name + "-q").placeholder = SK.td(set.placeholder || "");
 			if (set.widths && set.widths.length) {
 				html.push("<colgroup>");
 				for (i = 0; i < cols.length; i++)
@@ -122,7 +124,7 @@
 			}
 			html.push("<thead><tr>");
 			for (i = 0; i < cols.length; i++)
-				html.push("<th" + (cols[i].nowrap ? ' class="rnw"' : "") + ">" + esc(cols[i].name) + "</th>");
+				html.push("<th" + (cols[i].nowrap ? ' class="rnw"' : "") + ">" + esc(SK.td(cols[i].name)) + "</th>");
 			html.push("</tr></thead><tbody>");
 			if (set.groups && set.groups.length) {
 				for (g = 0; g < set.groups.length; g++) {
@@ -130,7 +132,7 @@
 					rows = pick(set, set.groups[g].id, q);
 					if (!rows.length) continue;
 					total += rows.length;
-					html.push('<tr class="refgh"><td colspan="' + cols.length + '">' + esc(set.groups[g].name)
+					html.push('<tr class="refgh"><td colspan="' + cols.length + '">' + esc(SK.td(set.groups[g].name))
 						+ '<span class="n">' + rows.length + "</span></td></tr>");
 					for (n = 0; n < rows.length; n++) html.push(rowhtml(set, rows[n]));
 				}
@@ -142,11 +144,11 @@
 			}
 			html.push("</tbody>");
 			if (!total)
-				html = ['<tbody><tr><td class="refnone" colspan="' + cols.length + '">没有匹配的条目</td></tr></tbody>'];
+				html = ['<tbody><tr><td class="refnone" colspan="' + cols.length + '">' + esc(SK.td("没有匹配的条目")) + "</td></tr></tbody>"];
 			F.id(name + "-tab").innerHTML = html.join("");
 			// 换分类或搜索都从头看；有的内核重排后还会保留旧位置，这里显式回顶部。
 			box.scrollTop = 0;
-			SK.msg(name + "-msg", total ? (q ? total + " 条" : "共 " + total + " 条") : "");
+			SK.msg(name + "-msg", total ? SK.td(q ? "%n 条" : "共 %n 条").replace("%n", total) : "");
 			paintchips(set);
 			if (total) selectrow(set, q);
 			else F.id(name + "-detail").innerHTML = "";
@@ -164,7 +166,7 @@
 
 		function rowhtml(set, row){
 			var key = String(row.c[set.copy]);
-			var html = '<tr data-k="' + esc(key) + '" title="点击复制 ' + esc(key) + '"'
+			var html = '<tr data-k="' + esc(key) + '" title="' + esc(SK.td("点击复制 %s").replace("%s", key)) + '"'
 				+ (key === picked ? ' class="on"' : "") + ">";
 			var i;
 			for (i = 0; i < set.cols.length; i++) {
@@ -222,16 +224,16 @@
 
 		function showdetail(set, row){
 			var html = '<div class="refbig' + (set.bigCls ? " " + set.bigCls : "") + '">'
-				+ esc(row.c[set.big != null ? set.big : 0]) + "</div>";
-			if (set.sub != null) html += '<div class="refsub">' + esc(row.c[set.sub]) + "</div>";
+				+ esc(SK.td(row.c[set.big != null ? set.big : 0])) + "</div>";
+			if (set.sub != null) html += '<div class="refsub">' + esc(SK.td(row.c[set.sub])) + "</div>";
 			html += '<dl class="refmeta">';
 			var i;
 			for (i = 0; i < (row.d || []).length; i++)
-				html += "<dt>" + esc(row.d[i][0]) + "</dt><dd>" + metaval(set, row.d[i][0], row.d[i][1]) + "</dd>";
+				html += "<dt>" + esc(SK.td(row.d[i][0])) + "</dt><dd>" + metaval(set, row.d[i][0], row.d[i][1]) + "</dd>";
 			html += "</dl>";
 			var txt = set.sample ? set.sample(row) : "";
 			if (txt) {
-				html += '<div class="refsample-t">' + esc(set.sampleTitle || "示例") + "</div>"
+				html += '<div class="refsample-t">' + esc(SK.td(set.sampleTitle || "示例")) + "</div>"
 					+ '<div class="refsample">' + samplehtml(set, txt) + "</div>";
 			}
 			F.id(name + "-detail").innerHTML = html;
@@ -247,14 +249,14 @@
 				return;
 			}
 			box.hidden = false;
-			var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">全部<small>"
+			var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">" + esc(SK.td("全部")) + "<small>"
 				+ set.rows.length + "</small></button>"];
 			var i, j, n;
 			for (i = 0; i < set.groups.length; i++) {
 				n = 0;
 				for (j = 0; j < set.rows.length; j++) if (set.rows[j].g === set.groups[i].id) n++;
 				html.push('<button type="button" data-g="' + set.groups[i].id + '"'
-					+ (cur === set.groups[i].id ? ' class="on"' : "") + ">" + esc(set.groups[i].name)
+					+ (cur === set.groups[i].id ? ' class="on"' : "") + ">" + esc(SK.td(set.groups[i].name))
 					+ "<small>" + n + "</small></button>");
 			}
 			box.innerHTML = html.join("");
@@ -263,10 +265,10 @@
 		function paintsets(){
 			var html = [];
 			var i;
-			if (setsLabel) html.push('<span class="reflabel">' + esc(setsLabel) + "</span>");
+			if (setsLabel) html.push('<span class="reflabel">' + esc(SK.td(setsLabel)) + "</span>");
 			for (i = 0; i < sets.length; i++) {
 				html.push('<button type="button" data-s="' + i + '"'
-					+ (i === setat ? ' class="on"' : "") + ">" + esc(sets[i].name)
+					+ (i === setat ? ' class="on"' : "") + ">" + esc(SK.td(sets[i].name))
 					+ "<small>" + sets[i].rows.length + "</small></button>");
 			}
 			F.id(name + "-sets").innerHTML = html.join("");
@@ -329,8 +331,10 @@
 		// 代码示例保留换行；逐行高亮，注释行自然变灰，命令、参数、变量各有颜色。
 		var parts = String(text == null ? "" : text).split("\n");
 		var i;
-		for (i = 0; i < parts.length; i++)
-			parts[i] = (set.hl && SK.hl) ? SK.hl(set.hl, parts[i]) : esc(parts[i]);
+		for (i = 0; i < parts.length; i++) {
+			var line = SK.tdline(parts[i]);
+			parts[i] = (set.hl && SK.hl) ? SK.hl(set.hl, line) : esc(line);
+		}
 		return parts.join("<br>");
 	}
 
@@ -346,13 +350,13 @@
 	// mline 指向的列直接渲染多行示例，换行、注释和高亮都跟详情里一致。
 	function cellhtml(set, i, row){
 		if (set.mline === i && row.s) return samplehtml(set, row.s);
-		var val = row.c[i];
+		var val = SK.td(row.c[i]);
 		if (set.hl && SK.hl && set.cols[i] && set.cols[i].mono === true) return SK.hl(set.hl, val);
 		return esc(val);
 	}
 
 	function metaval(set, label, val){
-		if (set.hl && SK.hl && (label === "示例" || label === "常用示例")) return SK.hl(set.hl, val);
-		return esc(val);
+		if (set.hl && SK.hl && (label === "示例" || label === "常用示例")) return SK.hl(set.hl, SK.td(val));
+		return esc(SK.td(val));
 	}
 })();

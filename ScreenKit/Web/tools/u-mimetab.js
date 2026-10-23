@@ -170,7 +170,7 @@
 		title: "MIME类型表",
 		body: function(){
 			return '<div class="reftab">'
-				+ '<div class="uquery"><input id="m-q" type="text" placeholder="搜索：.jpg、image/、json、视频">'
+				+ '<div class="uquery"><input id="m-q" type="text" placeholder="' + esc(SK.td("搜索：.jpg、image/、json、视频")) + '">'
 				+ '<span id="m-msg" class="msg"></span></div>'
 				+ '<div class="refchips" id="m-chips"></div>'
 				+ '<div class="refbody">'
@@ -216,14 +216,14 @@
 	}
 
 	function paintchips(){
-		var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">全部<small>"
+		var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">" + esc(SK.td("全部")) + "<small>"
 			+ ROWS.length + "</small></button>"];
 		var i, j, n;
 		for (i = 0; i < CATS.length; i++) {
 			n = 0;
 			for (j = 0; j < ROWS.length; j++) if (ROWS[j][2] === CATS[i].id) n++;
 			html.push('<button type="button" data-g="' + CATS[i].id + '"'
-				+ (cur === CATS[i].id ? ' class="on"' : "") + ">" + CATS[i].name
+				+ (cur === CATS[i].id ? ' class="on"' : "") + ">" + esc(SK.td(CATS[i].name))
 				+ "<small>" + n + "</small></button>");
 		}
 		F.id("m-chips").innerHTML = html.join("");
@@ -231,7 +231,8 @@
 
 	function paint(){
 		var q = query();
-		var html = ["<thead><tr><th>MIME 类型</th><th>扩展名</th><th>说明</th></tr></thead><tbody>"];
+		var html = ["<thead><tr><th>" + esc(SK.td("MIME 类型")) + "</th><th>" + esc(SK.td("扩展名"))
+			+ "</th><th>" + esc(SK.td("说明")) + "</th></tr></thead><tbody>"];
 		var total = 0;
 		var i, j, rows, n;
 		for (i = 0; i < CATS.length; i++) {
@@ -242,14 +243,14 @@
 			}
 			if (!rows.length) continue;
 			total += rows.length;
-			html.push('<tr class="refgh"><td colspan="3">' + CATS[i].name
+			html.push('<tr class="refgh"><td colspan="3">' + esc(SK.td(CATS[i].name))
 				+ '<span class="n">' + rows.length + "</span></td></tr>");
 			for (n = 0; n < rows.length; n++) html.push(rowhtml(rows[n]));
 		}
 		html.push("</tbody>");
-		if (!total) html = ['<tbody><tr><td class="refnone">没有匹配的类型</td></tr></tbody>'];
+		if (!total) html = ['<tbody><tr><td class="refnone">' + esc(SK.td("没有匹配的类型")) + "</td></tr></tbody>"];
 		F.id("m-tab").innerHTML = html.join("");
-		SK.msg("m-msg", total ? (q ? total + " 条" : "共 " + total + " 条") : "");
+		SK.msg("m-msg", total ? SK.td(q ? "%n 条" : "共 %n 条").replace("%n", total) : "");
 		if (total) {
 			var sel = rowby(picked);
 			if (!visible(sel, q)) sel = firstvisible(q);
@@ -282,11 +283,11 @@
 	}
 
 	function rowhtml(row){
-		return '<tr data-mime="' + esc(row[0]) + '" title="点击复制 ' + esc(row[0]) + '"'
+		return '<tr data-mime="' + esc(row[0]) + '" title="' + esc(SK.td("点击复制 %s").replace("%s", row[0])) + '"'
 			+ (row[0] === picked ? ' class="on"' : "") + ">"
 			+ '<td class="mtype">' + esc(row[0]) + "</td>"
 			+ '<td class="mext">' + (row[1] ? esc(row[1]) : "—") + "</td>"
-			+ "<td>" + esc(row[3]) + "</td></tr>";
+			+ "<td>" + esc(SK.td(row[3])) + "</td></tr>";
 	}
 
 	function sample(row){
@@ -310,17 +311,17 @@
 	function showdetail(row){
 		if (!row) return;
 		var meta = [
-			["类别", catname(row[2])],
+			["类别", SK.td(catname(row[2]))],
 			["扩展名", row[1] || "—"],
-			["说明", row[3]]
+			["说明", SK.td(row[3])]
 		];
-		if (row[4]) meta.push(["备注", row[4]]);
+		if (row[4]) meta.push(["备注", SK.td(row[4])]);
 		var html = '<div class="refbig mime">' + esc(row[0]) + "</div>"
-			+ '<div class="refsub">' + catname(row[2]) + "</div>"
+			+ '<div class="refsub">' + esc(SK.td(catname(row[2]))) + "</div>"
 			+ '<dl class="refmeta">';
 		var i;
 		for (i = 0; i < meta.length; i++)
-			html += "<dt>" + meta[i][0] + "</dt><dd>" + esc(meta[i][1]) + "</dd>";
+			html += "<dt>" + esc(SK.td(meta[i][0])) + "</dt><dd>" + esc(meta[i][1]) + "</dd>";
 		html += "</dl>"
 			+ '<div class="refsample">' + samplehtml(row) + "</div>";
 		F.id("m-detail").innerHTML = html;
