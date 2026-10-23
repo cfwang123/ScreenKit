@@ -817,21 +817,24 @@
 		ctx.restore();
 	}
 
-	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，把得到的曲面点投影成点云。
+	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
+	// 再按样式画成填充面、网格线、点阵或水平等高线。
 	function draw3implicit(ctx, w, h){
 		var fit = Math.max(cam.xspan, cam.yspan);
 		var scale = Math.min(w, h) * 0.42 / fit;
-		var n = drag ? 46 : 88;
-		var m = drag ? 46 : 84;
+		var n = drag ? 46 : (style === "dots" ? 88 : 72);
+		var m = drag ? 46 : 80;
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		var pts = [];
+		var cw = n + 1;
+		var cols = new Array(cw * cw);
 		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
-		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz;
+		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, X, Y, x1, y1, y2, z2;
 		for (j = 0; j <= n; j++) {
 			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
 			for (i = 0; i <= n; i++) {
 				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
+				var list = [];
 				f0 = ev(fn, x, y, z0);
 				for (k = 1; k <= m; k++) {
 					z = z0 + dz * k;
@@ -861,21 +864,23 @@
 							}
 						}
 						zz = (lo + hi) / 2;
-						var X = (x - cam.cx) / cam.xspan * fit;
-						var Y = (y - cam.cy) / cam.yspan * fit;
-						var x1 = X * cyaw - Y * syaw;
-						var y1 = X * syaw + Y * cyaw;
-						var y2 = y1 * cp - zz * sp;
-						var z2 = y1 * sp + zz * cp;
-						pts.push({
+						X = (x - cam.cx) / cam.xspan * fit;
+						Y = (y - cam.cy) / cam.yspan * fit;
+						x1 = X * cyaw - Y * syaw;
+						y1 = X * syaw + Y * cyaw;
+						y2 = y1 * cp - zz * sp;
+						z2 = y1 * sp + zz * cp;
+						list.push({
 							x: w / 2 + x1 * scale,
 							y: h / 2 - z2 * scale,
 							d: y2,
-							t: (zz - z0) / (z1 - z0)
+							t: (zz - z0) / (z1 - z0),
+							z: zz
 						});
 					}
 					f0 = f1;
 				}
+				cols[j * cw + i] = list;
 			}
 		}
 		ctx.save();
@@ -883,18 +888,210 @@
 		ctx.rect(0, 0, w, h);
 		ctx.clip();
 		var gap = 2 * fit * scale / n;
-		var r = Math.max(1.5, Math.min(4.2, gap * 0.8));
+		if (style === "grid") impgrid(ctx, cols, n, cw, gap);
+		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
+		else if (style === "level") implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp);
+		else impfill(ctx, cols, n, cw, gap);
+		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
+		ctx.restore();
+	}
+
+	// 相邻两列同序号的解离得太远就当作曲面断开了，不连。
+	function impnear(a, b, lim){
+		var dx = a.x - b.x, dy = a.y - b.y;
+		return dx * dx + dy * dy <= lim * lim;
+	}
+
+	function impnearpick(list, p, lim){
+		var best = null, bd = lim * lim, i, dx, dy, d2;
+		for (i = 0; i < list.length; i++) {
+			dx = list[i].x - p.x;
+			dy = list[i].y - p.y;
+			d2 = dx * dx + dy * dy;
+			if (d2 < bd) {
+				bd = d2;
+				best = list[i];
+			}
+		}
+		return best;
+	}
+
+	// 每列的解从上到下连成一条竖直渐变条，相邻列叠在一起就成了曲面。
+	function impfill(ctx, cols, n, cw, gap){
+		var i, j, r, list, p0, p1, k, x0, y0, x1, y1, t;
+		var wd = Math.max(3, gap * 1.3), steps = 10;
+		ctx.lineCap = "round";
+		ctx.lineWidth = wd;
+		for (j = 0; j <= n; j++) {
+			for (i = 0; i <= n; i++) {
+				list = cols[j * cw + i];
+				if (!list.length) continue;
+				if (list.length === 1) {
+					ctx.fillStyle = zcolor(list[0].t);
+					ctx.beginPath();
+					ctx.arc(list[0].x, list[0].y, wd / 2, 0, 6.2832);
+					ctx.fill();
+					continue;
+				}
+				for (r = 0; r + 1 < list.length; r++) {
+					p0 = list[r];
+					p1 = list[r + 1];
+					for (k = 0; k < steps; k++) {
+						t = k / steps;
+						x0 = p0.x + (p1.x - p0.x) * t;
+						y0 = p0.y + (p1.y - p0.y) * t;
+						t = (k + 1) / steps;
+						x1 = p0.x + (p1.x - p0.x) * t;
+						y1 = p0.y + (p1.y - p0.y) * t;
+						ctx.strokeStyle = zcolor(p0.t + (p1.t - p0.t) * (k + 0.5) / steps);
+						ctx.beginPath();
+						ctx.moveTo(x0, y0);
+						ctx.lineTo(x1, y1);
+						ctx.stroke();
+					}
+				}
+			}
+		}
+	}
+
+	function imptri(tris, pts, a, b, c, lim){
+		var p0 = pts[a], p1 = pts[b], p2 = pts[c];
+		if (!p0 || !p1 || !p2) return;
+		if (!impnear(p0, p1, lim) || !impnear(p1, p2, lim) || !impnear(p2, p0, lim)) return;
+		tris.push({ p0: p0, p1: p1, p2: p2, d: (p0.d + p1.d + p2.d) / 3 });
+	}
+
+	function impgrid(ctx, cols, n, cw, gap){
+		var segs = [];
+		var lim = gap * 2.4;
+		var i, j, r, a, b, p;
+		function add(p, q){
+			segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: (p.t + q.t) / 2 });
+		}
+		for (j = 0; j <= n; j++) {
+			for (i = 0; i <= n; i++) {
+				a = cols[j * cw + i];
+				for (r = 0; r < a.length; r++) {
+					p = a[r];
+					if (i < n) {
+						b = impnearpick(cols[j * cw + i + 1], p, lim);
+						if (b) add(p, b);
+					}
+					if (j < n) {
+						b = impnearpick(cols[(j + 1) * cw + i], p, lim);
+						if (b) add(p, b);
+					}
+				}
+			}
+		}
+		segs.sort(function(u, v){ return v.d - u.d; });
+		ctx.lineWidth = 1.4;
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		for (i = 0; i < segs.length; i++) {
+			ctx.strokeStyle = zcolor(segs[i].t);
+			ctx.beginPath();
+			ctx.moveTo(segs[i].p.x, segs[i].p.y);
+			ctx.lineTo(segs[i].q.x, segs[i].q.y);
+			ctx.stroke();
+		}
+	}
+
+	function impdots(ctx, cols, n, cw, gap){
+		var pts = [];
+		var i, j, r;
+		for (j = 0; j <= n; j++) {
+			for (i = 0; i <= n; i++) {
+				var list = cols[j * cw + i];
+				for (r = 0; r < list.length; r++) pts.push(list[r]);
+			}
+		}
+		var rad = Math.max(1.5, Math.min(4.2, gap * 0.8));
 		pts.sort(function(a, b){ return b.d - a.d; });
 		ctx.globalAlpha = 0.92;
 		for (i = 0; i < pts.length; i++) {
 			ctx.fillStyle = zcolor(pts[i].t);
 			ctx.beginPath();
-			ctx.arc(pts[i].x, pts[i].y, r, 0, 6.2832);
+			ctx.arc(pts[i].x, pts[i].y, rad, 0, 6.2832);
 			ctx.fill();
 		}
 		ctx.globalAlpha = 1;
-		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
-		ctx.restore();
+	}
+
+	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
+	function implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp){
+		var levels = drag ? 6 : 12;
+		var gn = drag ? 30 : 52;
+		var segs = [];
+		function proj(x, y, z){
+			var X = (x - cam.cx) / cam.xspan * fit;
+			var Y = (y - cam.cy) / cam.yspan * fit;
+			var x1 = X * cyaw - Y * syaw;
+			var y1 = X * syaw + Y * cyaw;
+			var y2 = y1 * cp - z * sp;
+			var z2 = y1 * sp + z * cp;
+			return { x: w / 2 + x1 * scale, y: h / 2 - z2 * scale, d: y2 };
+		}
+		function add(xa, ya, xb, yb, z, t){
+			var p = proj(xa, ya, z);
+			var q = proj(xb, yb, z);
+			segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: t });
+		}
+		var L, i, j, zc, t, gw = gn + 1, vals, v00, v10, v11, v01, ps, vc;
+		for (L = 1; L < levels; L++) {
+			zc = z0 + (z1 - z0) * L / levels;
+			t = (zc - z0) / (z1 - z0);
+			vals = new Float64Array(gw * gw);
+			for (j = 0; j <= gn; j++) {
+				var yv = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
+				for (i = 0; i <= gn; i++) {
+					var xv = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+					vals[j * gw + i] = ev(fn, xv, yv, zc);
+				}
+			}
+			for (j = 0; j < gn; j++) {
+				var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
+				var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gn;
+				for (i = 0; i < gn; i++) {
+					var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+					var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gn;
+					v00 = vals[j * gw + i];
+					v10 = vals[j * gw + i + 1];
+					v11 = vals[(j + 1) * gw + i + 1];
+					v01 = vals[(j + 1) * gw + i];
+					if (!isFinite(v00) || !isFinite(v10) || !isFinite(v11) || !isFinite(v01)) continue;
+					ps = [];
+					if ((v00 > 0) !== (v10 > 0)) ps.push({ x: x0 + (x1 - x0) * (v00 / (v00 - v10)), y: y0 });
+					if ((v10 > 0) !== (v11 > 0)) ps.push({ x: x1, y: y0 + (y1 - y0) * (v10 / (v10 - v11)) });
+					if ((v11 > 0) !== (v01 > 0)) ps.push({ x: x1 + (x0 - x1) * (v11 / (v11 - v01)), y: y1 });
+					if ((v01 > 0) !== (v00 > 0)) ps.push({ x: x0, y: y1 + (y0 - y1) * (v01 / (v01 - v00)) });
+					if (ps.length === 2) add(ps[0].x, ps[0].y, ps[1].x, ps[1].y, zc, t);
+					else if (ps.length === 4) {
+						vc = ev(fn, (x0 + x1) / 2, (y0 + y1) / 2, zc);
+						if (!isFinite(vc)) continue;
+						if ((vc > 0) === (v00 > 0)) {
+							add(ps[0].x, ps[0].y, ps[1].x, ps[1].y, zc, t);
+							add(ps[2].x, ps[2].y, ps[3].x, ps[3].y, zc, t);
+						}
+						else {
+							add(ps[0].x, ps[0].y, ps[3].x, ps[3].y, zc, t);
+							add(ps[1].x, ps[1].y, ps[2].x, ps[2].y, zc, t);
+						}
+					}
+				}
+			}
+		}
+		segs.sort(function(u, v){ return v.d - u.d; });
+		ctx.lineWidth = 1.5;
+		ctx.lineJoin = "round";
+		ctx.lineCap = "round";
+		for (i = 0; i < segs.length; i++) {
+			ctx.strokeStyle = zcolor(segs[i].t);
+			ctx.beginPath();
+			ctx.moveTo(segs[i].p.x, segs[i].p.y);
+			ctx.lineTo(segs[i].q.x, segs[i].q.y);
+			ctx.stroke();
+		}
 	}
 
 	function drawFill(ctx, pts, n, grid){
