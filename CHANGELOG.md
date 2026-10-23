@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Novel reader browser speech uses the system default playback device, so a Bluetooth headset plays in stereo instead of its hands-free output.
+- Browser Microsoft voices such as Huihui follow the system default playback device.
 
 ### 中文
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 小说阅读器的浏览器朗读改走系统默认播放设备，蓝牙耳机走立体声，不再走免提。
+- 浏览器里的微软语音（如 Huihui）改走系统默认播放设备。
 
 ## v1.0.29 (2026-10-23)
 

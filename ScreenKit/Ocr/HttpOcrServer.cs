@@ -72,6 +72,8 @@ sealed partial class HttpOcrServer : IDisposable {
 	public HttpOcrServer(Func<OcrOptions> optionsFactory, OcrRunner sharedRunner) {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
 		runner = sharedRunner ?? throw new ArgumentNullException(nameof(sharedRunner));
+		try { System.Threading.ThreadPool.QueueUserWorkItem(_ => TtsRoute.Align()); }
+		catch { }
 	}
 
 	/// <summary>注入 ASR/TTS 等扩展能力（可在服务启动后设置）。</summary>
