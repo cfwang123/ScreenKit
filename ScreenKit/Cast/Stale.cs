@@ -130,4 +130,32 @@ static class CastStale {
 		}
 		return false;
 	}
+
+	/// <summary>
+	/// 端口挂在已退出的 pid 上（幽灵套接字，监听句柄被子进程继承了）时，收掉 adb server 再试。
+	/// 常见来源：本进程起过 adb server，它继承了 HTTP 监听句柄，本进程退出后端口仍被它占着。
+	/// </summary>
+	public static bool TryReleaseGhost(int port, Action<string> log) {
+		if (port <= 0) return false;
+		var pids = listenpids(port);
+		if (pids.Count == 0) return false;
+		var ghost = false;
+		foreach (var pid in pids) {
+			try {
+				using var p = Process.GetProcessById(pid);
+				if (!p.HasExited) return false;
+			}
+			catch { ghost = true; }
+		}
+		if (!ghost) return false;
+		log?.Invoke($"TCP {port} 挂在已退出进程上（监听句柄被子进程继承），收掉 adb server 再试");
+		CastAdbFwd.KillServer(log);
+		Thread.Sleep(400);
+		var left = listenpids(port);
+		if (left.Count == 0) {
+			log?.Invoke($"TCP {port} 已释放");
+			return true;
+		}
+		return false;
+	}
 }

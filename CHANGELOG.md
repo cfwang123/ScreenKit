@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Web tools: switching the interface language while a lookup table is open now redraws the table right away, keeping the search text
+- HTTP port stays occupied after exit when a child process (adb server) inherited the listening socket; sockets are no longer inheritable and a ghost holder is cleaned up before falling back
 
 ### 中文
 
@@ -70,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 网页工具：速查表打开时切换界面语言会立即重画，并保留搜索词
+- 子进程（adb server）继承了监听套接字，退出后 HTTP 端口仍被占着；监听套接字不再被子进程继承，绑定失败时也会先清掉幽灵占用再重试设定端口
 
 ## v1.0.28 (2026-10-23)
 

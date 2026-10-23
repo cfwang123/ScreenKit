@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -50,6 +51,7 @@ sealed class SockHttpServer {
 		if (!lan) {
 			var local = new TcpListener(IPAddress.Loopback, port);
 			local.Server.ExclusiveAddressUse = true;
+			noinherit(local.Server);
 			local.Start();
 			return local;
 		}
@@ -58,6 +60,7 @@ sealed class SockHttpServer {
 			v6 = new TcpListener(IPAddress.IPv6Any, port);
 			v6.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
 			v6.Server.ExclusiveAddressUse = true;
+			noinherit(v6.Server);
 			v6.Start();
 			return v6;
 		}
@@ -67,8 +70,26 @@ sealed class SockHttpServer {
 		}
 		var v4 = new TcpListener(IPAddress.Any, port);
 		v4.Server.ExclusiveAddressUse = true;
+		noinherit(v4.Server);
 		v4.Start();
 		return v4;
+	}
+
+	const int HANDLE_FLAG_INHERIT = 1;
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern bool SetHandleInformation(IntPtr hObject, int dwMask, int dwFlags);
+
+	/// <summary>
+	/// 监听套接字标记为不可继承。.NET Framework 起子进程（adb server、x86host、Chrome）时会连带继承可继承句柄，
+	/// 本进程退出后子进程仍握着监听套接字，端口一直占着，下次启动只能改听临时端口。
+	/// </summary>
+	static void noinherit(Socket s) {
+		try {
+			if (s == null) return;
+			SetHandleInformation(s.Handle, HANDLE_FLAG_INHERIT, 0);
+		}
+		catch { }
 	}
 
 	void acceptloop(TcpListener l) {
@@ -90,6 +111,7 @@ sealed class SockHttpServer {
 
 	void serve(TcpClient c) {
 		try {
+			noinherit(c.Client);
 			c.NoDelay = true;
 			try { c.ReceiveTimeout = 15000; } catch { }
 			try { c.SendTimeout = 120000; } catch { }

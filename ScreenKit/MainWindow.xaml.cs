@@ -503,13 +503,24 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			fail = ex;
+			onhttplog($"HTTP {want} 打不开：{ex.Message}");
+			// 端口可能刚被上一个进程放开，或被继承了监听句柄的子进程（adb server）攥着：收拾一下再试一次。
+			var ghost = CastStale.TryReleaseGhost(want, onhttplog);
+			if (!ghost) Thread.Sleep(400);
 			try {
-				httpServer.Start("127.0.0.1", 0);
-				fell = true;
+				httpServer.Start(host, want);
 				fail = null;
 			}
 			catch (Exception ex2) {
 				fail = ex2;
+				try {
+					httpServer.Start("127.0.0.1", 0);
+					fell = true;
+					fail = null;
+				}
+				catch (Exception ex3) {
+					fail = ex3;
+				}
 			}
 		}
 		if (fail == null) {
