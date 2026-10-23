@@ -881,6 +881,7 @@
 					f0 = f1;
 				}
 				cols[j * cw + i] = list;
+				cols[j * cw + i] = list;
 			}
 		}
 		ctx.save();
@@ -916,40 +917,27 @@
 		return best;
 	}
 
-	// 每列的解从上到下连成一条竖直渐变条，相邻列叠在一起就成了曲面。
+	// 所有解点按深度排序后画成实心圆盘，叠起来就是曲面，不会把锥面连成柱面。
 	function impfill(ctx, cols, n, cw, gap){
-		var i, j, r, list, p0, p1, k, x0, y0, x1, y1, t;
-		var wd = Math.max(3, gap * 1.3), steps = 10;
-		ctx.lineCap = "round";
-		ctx.lineWidth = wd;
+		var pts = [];
+		var i, j, r, rad = Math.max(2.4, gap * 1.6);
 		for (j = 0; j <= n; j++) {
 			for (i = 0; i <= n; i++) {
-				list = cols[j * cw + i];
-				if (!list.length) continue;
-				if (list.length === 1) {
-					ctx.fillStyle = zcolor(list[0].t);
-					ctx.beginPath();
-					ctx.arc(list[0].x, list[0].y, wd / 2, 0, 6.2832);
-					ctx.fill();
-					continue;
-				}
-				for (r = 0; r + 1 < list.length; r++) {
-					p0 = list[r];
-					p1 = list[r + 1];
-					for (k = 0; k < steps; k++) {
-						t = k / steps;
-						x0 = p0.x + (p1.x - p0.x) * t;
-						y0 = p0.y + (p1.y - p0.y) * t;
-						t = (k + 1) / steps;
-						x1 = p0.x + (p1.x - p0.x) * t;
-						y1 = p0.y + (p1.y - p0.y) * t;
-						ctx.strokeStyle = zcolor(p0.t + (p1.t - p0.t) * (k + 0.5) / steps);
-						ctx.beginPath();
-						ctx.moveTo(x0, y0);
-						ctx.lineTo(x1, y1);
-						ctx.stroke();
-					}
-				}
+				var list = cols[j * cw + i];
+				for (r = 0; r < list.length; r++) pts.push(list[r]);
+			}
+		}
+		var lower = [], upper = [], k, arr;
+		for (i = 0; i < pts.length; i++) (pts[i].z < 0 ? lower : upper).push(pts[i]);
+		lower.sort(function(a, b){ return b.d - a.d; });
+		upper.sort(function(a, b){ return b.d - a.d; });
+		for (k = 0; k < 2; k++) {
+			arr = k ? upper : lower;
+			for (i = 0; i < arr.length; i++) {
+				ctx.fillStyle = zcolor(arr[i].t);
+				ctx.beginPath();
+				ctx.arc(arr[i].x, arr[i].y, rad, 0, 6.2832);
+				ctx.fill();
 			}
 		}
 	}

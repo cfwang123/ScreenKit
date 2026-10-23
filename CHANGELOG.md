@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP port stays occupied after exit when a child process (adb server) inherited the listening socket; sockets are no longer inheritable and a ghost holder is cleaned up before falling back
 - IME: after pausing, the Tools item is no longer left checked and the tray menu no longer shows a language and Off checked together; clicking the Tools item while paused resumes the IME.
 - Plot: 3D equations now follow the Curved/Grid/Dots/Contour style buttons instead of always drawing a dot cloud.
+- Plot: the Curved style turned a double cone into a cylinder; 3D equations now draw every solution point so cones keep their hourglass shape.
 
 ### 中文
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 子进程（adb server）继承了监听套接字，退出后 HTTP 端口仍被占着；监听套接字不再被子进程继承，绑定失败时也会先清掉幽灵占用再重试设定端口
 - 输入法：暂停（关闭）后「工具」菜单不再保持勾选，托盘菜单也不再同时勾选语言和「关闭」；暂停时点「工具」里的输入法项可恢复。
 - 函数图像：三维方程也会跟随「曲面 / 网格 / 点阵 / 等高线」样式，不再一律画成点阵。
+- 函数图像：曲面样式把双锥面画成了柱面；改为逐点绘制后恢复沙漏形状。
 
 ## v1.0.28 (2026-10-23)
 
