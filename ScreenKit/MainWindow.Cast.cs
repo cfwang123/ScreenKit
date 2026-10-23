@@ -60,8 +60,12 @@ public partial class MainWindow {
 		castfill = false;
 		loadlastcast();
 		refreshcastlist();
+		ccastadb.IsChecked = CastHost.AdbWant;
 		ccastaudio.Checked += (_, _) => { savecastopt(); syncastbtns(); };
 		ccastaudio.Unchecked += (_, _) => { savecastopt(); syncastbtns(); };
+		ccastadb.Checked += (_, _) => CastHost.SetAdbWant(true);
+		ccastadb.Unchecked += (_, _) => CastHost.SetAdbWant(false);
+		CastHost.AdbWantChanged += on => Dispatcher.BeginInvoke(new Action(() => ccastadb.IsChecked = on));
 		ecastsrc.SelectionChanged += (_, _) => savecastopt();
 		ecastmaxw.LostFocus += (_, _) => oncastlimit();
 		ecastmaxh.LostFocus += (_, _) => oncastlimit();
@@ -88,6 +92,8 @@ public partial class MainWindow {
 		lbcastmaxh.Text = Loc.T("cast.tab.maxh");
 		lbcasthint.Text = Loc.T("cast.tab.hint");
 		ccastaudio.Content = Loc.T("cast.tab.audio");
+		ccastadb.Content = Loc.T("cast.tab.adb");
+		ccastadb.ToolTip = Loc.T("cast.tab.adb.hint");
 		lbcastsrc.Text = Loc.T("cast.tab.src");
 		fillcastsrc();
 		bcastscan.Content = Loc.T("cast.tab.scan");

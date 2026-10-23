@@ -806,36 +806,6 @@ sealed class CastUsbHost : IDisposable {
 		return list;
 	}
 
-	/// <summary>
-	/// USB 上有没有 ADB 接口（手机开了 USB 调试）。adb server 只在有调试设备时才需要，
-	/// 没插设备时程序不碰 adb，也就不会有常驻的 adb 进程。
-	/// </summary>
-	public static bool AdbUsbPresent() {
-		var h = SetupDiGetClassDevsEnum(IntPtr.Zero, "USB", IntPtr.Zero, DIGCF_PRESENT | DIGCF_ALLCLASSES);
-		// 枚举不出来时按“有设备”处理，宁可多起 adb，也别耽误 USB(adb) 投屏。
-		if (h == IntPtr.Zero || h == new IntPtr(-1)) return true;
-		try {
-			var data = new SpDevinfoData { CbSize = Marshal.SizeOf(typeof(SpDevinfoData)) };
-			for (var i = 0; SetupDiEnumDeviceInfo(h, i, ref data); i++) {
-				if (hasadbclass(h, ref data)) return true;
-				data = new SpDevinfoData { CbSize = Marshal.SizeOf(typeof(SpDevinfoData)) };
-			}
-			return false;
-		}
-		catch { return true; }
-		finally { SetupDiDestroyDeviceInfoList(h); }
-	}
-
-	static bool hasadbclass(IntPtr h, ref SpDevinfoData data) {
-		var buf = new byte[2048];
-		if (!SetupDiGetDeviceRegistryProperty(h, ref data, SPDRP_COMPATIBLEIDS, out _, buf, (uint)buf.Length, out var need))
-			return false;
-		if (need <= 2) return false;
-		var n = (int)Math.Min(need, (uint)buf.Length);
-		var s = Encoding.Unicode.GetString(buf, 0, n & ~1);
-		return s.IndexOf("Class_FF&SubClass_42&Prot_01", StringComparison.OrdinalIgnoreCase) >= 0;
-	}
-
 	static List<string> ifaces(Guid guid) {
 		var list = new List<string>();
 		var h = SetupDiGetClassDevs(ref guid, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
@@ -929,12 +899,6 @@ sealed class CastUsbHost : IDisposable {
 
 	[DllImport("setupapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	static extern bool SetupDiGetDeviceInstanceId(IntPtr h, ref SpDevinfoData data, StringBuilder id, int size, IntPtr need);
-
-	const int SPDRP_COMPATIBLEIDS = 0x02;
-
-	[DllImport("setupapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-	static extern bool SetupDiGetDeviceRegistryProperty(IntPtr h, ref SpDevinfoData data, int prop,
-		out int regtype, byte[] buf, uint size, out uint need);
 
 	[DllImport("setupapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
 	static extern bool SetupDiGetDeviceInstallParams(IntPtr h, ref SpDevinfoData data, ref SpDevInstallParams par);

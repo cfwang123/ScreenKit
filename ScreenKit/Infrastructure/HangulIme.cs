@@ -159,6 +159,12 @@ sealed class HangulIme : IDisposable {
 		showtray();
 	}
 
+	public void Resume() {
+		if (!enabled) return;
+		eng.SetOff(false);
+		showtray();
+	}
+
 	public void Next() {
 		if (!ImeLex.DbInstalled) return;
 		if (!enabled) { Set(true); return; }
@@ -290,9 +296,9 @@ sealed class HangulIme : IDisposable {
 
 	void showtray() {
 		ensuretray();
+		syncchecks();
 		if (eng.Off) {
 			hideicon();
-			if (mioff != null) mioff.Checked = true;
 			return;
 		}
 		var mark = eng.Badge;
@@ -306,12 +312,6 @@ sealed class HangulIme : IDisposable {
 			ni.Icon = ic;
 			ni.Visible = true;
 			trayvisible = true;
-			if (miwubi != null) {
-				miwubi.Checked = eng.Cjk == Lang.Wubi;
-				mija.Checked = eng.Cjk == Lang.Ja;
-				miko.Checked = eng.Cjk == Lang.Ko;
-				mioff.Checked = false;
-			}
 		}
 		var bkey = eng.Off ? "hangul.badge.off"
 			: eng.Now == View.Ja ? "hangul.badge.ja"
@@ -333,6 +333,16 @@ sealed class HangulIme : IDisposable {
 	void hideicon() {
 		if (ni != null && trayvisible) ni.Visible = false;
 		trayvisible = false;
+	}
+
+	/// <summary>托盘菜单的勾选：关闭时只有「关闭」，开着时只有当前语言。</summary>
+	void syncchecks() {
+		if (miwubi == null) return;
+		var on = !eng.Off;
+		miwubi.Checked = on && eng.Cjk == Lang.Wubi;
+		mija.Checked = on && eng.Cjk == Lang.Ja;
+		miko.Checked = on && eng.Cjk == Lang.Ko;
+		mioff.Checked = !on;
 	}
 
 	void ensuretray() {
@@ -368,6 +378,7 @@ sealed class HangulIme : IDisposable {
 
 	void showmenu() {
 		if (menu == null) return;
+		syncchecks();
 		var p = Forms.Cursor.Position;
 		var wa = Forms.Screen.FromPoint(p).WorkingArea;
 		var sz = menu.GetPreferredSize(System.Drawing.Size.Empty);

@@ -2284,6 +2284,9 @@
 									<CheckBox x:Name="ccastaudio" Content="同时发送声音" Margin="0,14,0,0"
 									          IsChecked="True"
 									          AutomationProperties.AutomationId="cast.tab.audio"/>
+									<CheckBox x:Name="ccastadb" Content="连接 adb" Margin="0,10,0,0"
+									          ToolTip="手机开 USB 调试后勾选，用于 USB 投屏；10 分钟没连上会自动关闭"
+									          AutomationProperties.AutomationId="cast.tab.adb"/>
 									<TextBlock x:Name="lbcastsrc" Text="声音来源" Margin="0,10,0,4" FontSize="12"
 									           Foreground="{StaticResource TextMuted}"/>
 									<ComboBox x:Name="ecastsrc" Height="30" VerticalContentAlignment="Center"

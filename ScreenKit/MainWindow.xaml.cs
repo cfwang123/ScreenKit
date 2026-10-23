@@ -2294,7 +2294,10 @@ public partial class MainWindow : Window {
 			setstatus(Loc.T("hangul.needdb"));
 			return;
 		}
-		if (hangul.On == on) return;
+		if (hangul.On == on) {
+			if (on && hangul.Paused) hangul.Resume();
+			return;
+		}
 		if (!hangul.Set(on)) {
 			if (mnhangul != null) mnhangul.IsChecked = false;
 			try { tray?.SetHangul(false); } catch { }
@@ -2314,11 +2317,11 @@ public partial class MainWindow : Window {
 		var ok = ImeLex.DbInstalled;
 		if (mnhangul != null) {
 			mnhangul.IsEnabled = ok;
-			mnhangul.IsChecked = ok && hangul != null && hangul.On;
+			mnhangul.IsChecked = ok && hangul != null && hangul.On && !hangul.Paused;
 		}
 		try {
 			tray?.SetHangulAvailable(ok);
-			tray?.SetHangul(ok && hangul != null && hangul.On);
+			tray?.SetHangul(ok && hangul != null && hangul.On && !hangul.Paused);
 		} catch { }
 		if (!ok && hangul != null && hangul.On) hangul.Set(false);
 	}

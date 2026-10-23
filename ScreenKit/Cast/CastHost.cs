@@ -28,8 +28,15 @@ static class CastHost {
 	static bool frameposted;
 	static int lastadb;
 	static int lastaoa;
-	static bool adbwanted;
+	static bool adbwant;
+	static int adbidleat;
+	/// <summary>用户是否在投屏页勾了“连接 adb”。重启后默认关闭。</summary>
+	public static bool AdbWant => adbwant;
+	/// <summary>自动取消（10 分钟无连接）时通知界面把勾去掉。</summary>
+	public static event Action<bool> AdbWantChanged;
 	const int USB_IDLE_MS = 120000;
+	/// <summary>“连接 adb”勾上后，10 分钟没有连上设备就自动取消。</summary>
+	const int ADB_IDLE_MS = 600000;
 	static bool usbWant;
 	static int usbIdleAt;
 	public static volatile bool UsbNotifyPhone;
@@ -138,16 +145,14 @@ static class CastHost {
 				Recv?.Tick();
 				UsbScan?.Tick();
 				var now = Environment.TickCount;
-				if (now - lastadb > 8000 || lastadb == 0) {
+				if (adbwant && (now - lastadb > 8000 || lastadb == 0)) {
 					lastadb = now;
-					// 只在 USB 上真有调试设备时才碰 adb；没设备就把 adb server 收掉，不让它常驻。
-					if (CastUsbHost.AdbUsbPresent()) {
-						adbwanted = true;
-						reverseadb();
-					}
-					else if (adbwanted) {
-						adbwanted = false;
+					if (reverseadb()) adbidleat = now;
+					else if (unchecked(now - adbidleat) >= ADB_IDLE_MS) {
+						adbwant = false;
+						log("adb 10 分钟没有连上设备，已自动取消");
 						CastAdbFwd.KillServer(log);
+						try { AdbWantChanged?.Invoke(false); } catch { }
 					}
 				}
 				if (usbWant) {
@@ -179,10 +184,6 @@ static class CastHost {
 			logexe();
 			if (Opt != null && Opt.CastUsbAccessory)
 				EnableUsbHost();
-			if (CastUsbHost.AdbUsbPresent()) {
-				adbwanted = true;
-				ThreadPool.QueueUserWorkItem(_ => reverseadb());
-			}
 		}
 	}
 
@@ -191,6 +192,10 @@ static class CastHost {
 		Exiting = true;
 		timer?.Stop();
 		usbWant = false;
+		if (adbwant) {
+			adbwant = false;
+			try { CastAdbFwd.KillServer(log); } catch { }
+		}
 		CastUsbHost.StopAoaHelper(log);
 		try { Usb?.Dispose(); } catch { }
 		try { Recv?.Dispose(); } catch { }
@@ -405,9 +410,24 @@ static class CastHost {
 
 	static int tcpport() => TcpPort;
 
-	static void reverseadb() {
-		if (CastUsbHost.AoaBridgeActive()) return;
-		CastAdbFwd.Reverse(tcpport(), log);
+	/// <summary>投屏页「连接 adb」：勾上才起 adb server 并为 USB 投屏做转发，取消就收掉。</summary>
+	public static void SetAdbWant(bool on) {
+		if (adbwant == on) return;
+		adbwant = on;
+		if (on) {
+			adbidleat = Environment.TickCount;
+			lastadb = 0;
+			log("连接 adb：开始为 USB 投屏做转发");
+			ThreadPool.QueueUserWorkItem(_ => reverseadb());
+			return;
+		}
+		log("连接 adb：已关闭");
+		ThreadPool.QueueUserWorkItem(_ => CastAdbFwd.KillServer(log));
+	}
+
+	static bool reverseadb() {
+		if (CastUsbHost.AoaBridgeActive()) return true;
+		return CastAdbFwd.Reverse(tcpport(), log);
 	}
 
 	static void logexe() {
