@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - IME settings: enable or disable Wubi, Japanese, and Korean individually; disabled languages are skipped by the cycle hotkey and their shortcuts do nothing.
 - Web tools: the lookup tables are now translated into Japanese, Korean, Spanish, French, Portuguese, Russian and German as well as English
 - 8-bit synth: octave -/+ buttons with a C1-C7 readout, same range as the MIDI synth
+- Plot: 3D equations such as x^2+y^2+z^2=9 draw implicit surfaces; added a 3D equations example group (sphere, ellipsoid, hyperboloid, cone, plane, heart).
 
 #### Changed
 
@@ -71,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 输入法设置：可分别启用五笔、日语、韩语；关掉的语言不进切换循环，对应快捷键也不会切过去。
 - 网页工具：信息查询的速查表除英文外，又补上日、韩、西、法、葡、俄、德七种语言的译文
 - 8bit 合成器：加了八度 − / + 按钮和 C1–C7 显示，范围和 MIDI 合成器一致
+- 函数图像：支持 x、y、z 的方程，例如 x^2+y^2+z^2=9 会画出球面；示例新增「三维方程」一组（球面、椭球、双曲面、锥面、平面、心形）。
 
 #### 变更
 

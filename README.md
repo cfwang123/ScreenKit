@@ -123,7 +123,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Radix conversion**: Convert among base 2, 8, 10, and 16
   - **Unit conversion**: Length, weight, currency, and more
   - **Random number**: A number inside a chosen range
-  - **Function graph**: Plot a formula
+  - **Function graph**: Plot 2D curves, 3D surfaces, and implicit equations such as x^2+y^2+z^2=9 for a sphere
   - **BMI**: Body mass index from height and weight
   - **Mortgage**: Equal payment or equal principal
   - **Compound interest**: Interest compounded yearly
