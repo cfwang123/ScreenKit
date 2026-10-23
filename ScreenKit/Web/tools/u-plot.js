@@ -825,6 +825,7 @@
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var cw = n + 1;
+		var gap = 2 * fit * scale / n;
 		var cols = new Array(cw * cw);
 		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
 		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, X, Y, x1, y1, y2, z2;
@@ -880,7 +881,7 @@
 				}
 				// 两层解在相切处几乎重合，合并成一个点，网格线就能连上。
 				for (k = 0; k + 1 < list.length; k++) {
-					if (list[k + 1].z - list[k].z < 0.25) {
+					if (Math.abs(list[k + 1].x - list[k].x) + Math.abs(list[k + 1].y - list[k].y) < gap) {
 						var mm = {
 							x: (list[k].x + list[k + 1].x) / 2,
 							y: (list[k].y + list[k + 1].y) / 2,
@@ -899,7 +900,6 @@
 		ctx.beginPath();
 		ctx.rect(0, 0, w, h);
 		ctx.clip();
-		var gap = 2 * fit * scale / n;
 		if (style === "grid") impgrid(ctx, cols, n, cw, gap);
 		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
 		else if (style === "level") implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp);
