@@ -82,7 +82,7 @@
 			var hit = false;
 			for (j = 0; j < voices.length; j++) {
 				var v = voices[j];
-				if (!v || !v.localService) continue;
+				if (!googlelocal(v)) continue;
 				if (samelang(v.lang, lang)) {
 					hit = true;
 					break;
@@ -90,6 +90,14 @@
 			}
 			r.state = hit ? "installed" : "missing";
 		}
+	}
+
+	function googlelocal(v){
+		if (!v || !v.localService) return false;
+		var name = String(v.name || "");
+		var uri = String(v.voiceURI || "");
+		if (name.indexOf("Google") === 0) return true;
+		return uri.indexOf("Google") >= 0;
 	}
 
 	function samelang(a, b){
