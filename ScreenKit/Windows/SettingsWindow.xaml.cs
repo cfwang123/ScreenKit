@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,6 +11,9 @@ namespace ScreenKit;
 public partial class SettingsWindow : Window {
 	public OcrOptions Result { get; private set; }
 	public bool Applied { get; private set; }
+
+	/// <summary>点「词库…」时抛出，由主窗打开词库窗口。</summary>
+	public event Action Dict;
 
 	readonly List<ModelPack> packs;
 	readonly ObservableCollection<LlmEndpoint> llms = new();
@@ -33,6 +37,7 @@ public partial class SettingsWindow : Window {
 		evariant.SelectionChanged += (_, _) => updatehint();
 
 		inithotkeyui();
+		bimedict.Click += (_, _) => { try { Dict?.Invoke(); } catch { } };
 
 		ellmlist.ItemsSource = llms;
 		easrllm.ItemsSource = llms;
@@ -84,6 +89,12 @@ public partial class SettingsWindow : Window {
 
 		applylanglabels();
 		loadui(Result);
+	}
+
+	/// <summary>打开后切到指定页：目前支持 "ime"。</summary>
+	public void SelectTab(string name) {
+		if (string.Equals(name, "ime", StringComparison.OrdinalIgnoreCase))
+			tabset.SelectedItem = tabsetime;
 	}
 
 	void inithotkeyui() {
@@ -201,6 +212,7 @@ public partial class SettingsWindow : Window {
 			tabsettr.Header = Loc.T("set.tab.translate");
 			tabsetsnap.Header = Loc.T("set.tab.snap");
 			tabsethttp.Header = Loc.T("set.tab.http");
+		tabsetime.Header = Loc.T("set.tab.ime");
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
 			lbsetchrome.Text = Loc.T("tts.chrome.path");
@@ -280,6 +292,15 @@ public partial class SettingsWindow : Window {
 			if (lbimegvimhint != null) lbimegvimhint.Text = Loc.T("set.ime.gvim.hint");
 			if (cbimerare != null) cbimerare.Content = Loc.T("set.ime.rare");
 			if (lbimerarehint != null) lbimerarehint.Text = Loc.T("set.ime.rare.hint");
+			lbimelangs.Text = Loc.T("set.ime.langs.hint");
+			cbimewubi.Content = Loc.T("set.ime.lang.wubi");
+			cbimeja.Content = Loc.T("set.ime.lang.ja");
+			cbimeko.Content = Loc.T("set.ime.lang.ko");
+			bimedict.Content = Loc.T("ime.dict.openwin");
+			var needdb = ImeLex.DbInstalled ? "" : Loc.T("hangul.needdb");
+			lbneeddb.Text = needdb;
+			lbneeddb.Visibility = string.IsNullOrWhiteSpace(needdb)
+				? Visibility.Collapsed : Visibility.Visible;
 			lbdictlimit.Text = Loc.T("set.dict.limit");
 			lbdictlimithint.Text = Loc.T("set.dict.limit.hint");
 			lbdicthold.Text = Loc.T("set.dict.dbhold");
@@ -567,6 +588,9 @@ public partial class SettingsWindow : Window {
 		ehotkeytr.Text = GlobalHotkey.Display(o.HotkeyTranslate);
 		ehotkeysnapcopy.Text = GlobalHotkey.Display(o.HotkeySnapCopy);
 		ehotkeydict.Text = GlobalHotkey.Display(o.HotkeyDict);
+		cbimewubi.IsChecked = o.ImeWubiOn;
+		cbimeja.IsChecked = o.ImeJaOn;
+		cbimeko.IsChecked = o.ImeKoOn;
 		ehotkeyimecycle.Text = GlobalHotkey.Display(o.HotkeyImeCycle);
 		ehotkeyimewubi.Text = GlobalHotkey.Display(o.HotkeyImeWubi);
 		ehotkeyimeja.Text = GlobalHotkey.Display(o.HotkeyImeJa);
@@ -833,6 +857,18 @@ public partial class SettingsWindow : Window {
 		if (!tryreadhotkey(ehotkeytr, Loc.T("set.hotkey.translate"), out Result.HotkeyTranslate, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeysnapcopy, Loc.T("set.hotkey.snapcopy"), out Result.HotkeySnapCopy, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeydict, Loc.T("set.hotkey.dict"), out Result.HotkeyDict, tabsethk)) return false;
+		var wubi = cbimewubi.IsChecked == true;
+		var ja = cbimeja.IsChecked == true;
+		var ko = cbimeko.IsChecked == true;
+		if (!wubi && !ja && !ko) {
+			MessageBox.Show(this, Loc.T("set.ime.langs.keep"), Loc.T("settings"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+			tabset.SelectedItem = tabsetime;
+			return false;
+		}
+		Result.ImeWubiOn = wubi;
+		Result.ImeJaOn = ja;
+		Result.ImeKoOn = ko;
 		if (!tryreadhotkey(ehotkeyimecycle, Loc.T("set.hotkey.ime.cycle"), out Result.HotkeyImeCycle, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyimewubi, Loc.T("set.hotkey.ime.wubi"), out Result.HotkeyImeWubi, tabsethk)) return false;
 		if (!tryreadhotkey(ehotkeyimeja, Loc.T("set.hotkey.ime.ja"), out Result.HotkeyImeJa, tabsethk)) return false;

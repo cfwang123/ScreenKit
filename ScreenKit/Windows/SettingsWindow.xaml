@@ -353,6 +353,30 @@
 							         AutomationProperties.AutomationId="set.hotkey.dictsel"/>
 						</DockPanel>
 
+					</StackPanel>
+				</ScrollViewer>
+			</TabItem>
+
+			<!-- 词典发音：引擎与各语言发音人 -->
+			<!-- 输入法：语言开关、切换热键与词库 -->
+			<TabItem x:Name="tabsetime" Header="输入法"
+			         AutomationProperties.AutomationId="set.tab.ime">
+				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,10,12,10">
+					<StackPanel>
+						<TextBlock x:Name="lbimelangs" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,0,6" TextWrapping="Wrap"
+						           Text="启用的输入法。取消勾选的语言不进切换循环，快捷键也不切过去"/>
+						<StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+							<CheckBox x:Name="cbimewubi" Margin="0,0,18,0" Content="五笔"
+							          AutomationProperties.AutomationId="set.ime.lang.wubi"/>
+							<CheckBox x:Name="cbimeja" Margin="0,0,18,0" Content="日语"
+							          AutomationProperties.AutomationId="set.ime.lang.ja"/>
+							<CheckBox x:Name="cbimeko" Content="韩语"
+							          AutomationProperties.AutomationId="set.ime.lang.ko"/>
+						</StackPanel>
+						<TextBlock x:Name="lbneeddb" FontSize="11" Foreground="{StaticResource Danger}"
+						           TextWrapping="Wrap" Margin="0,0,0,10" Visibility="Collapsed"/>
+
 						<TextBlock x:Name="lbhkhintImeCycle" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="切换语言 · 五笔、日语、韩语，然后再到关闭。默认 Ctrl+`"/>
@@ -427,11 +451,14 @@
 						          AutomationProperties.AutomationId="set.ime.rare"/>
 						<TextBlock x:Name="lbimerarehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+						<Button x:Name="bimedict" Style="{StaticResource ToolBtn}" Padding="12,6"
+						        Content="词库…" HorizontalAlignment="Left" Margin="0,4,0,0"
+						        AutomationProperties.AutomationId="set.ime.dict"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>
 
-			<!-- 词典发音：引擎与各语言发音人 -->
 			<TabItem x:Name="tabsetdict" Header="词典"
 			         AutomationProperties.AutomationId="set.tab.dict">
 				<ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,10,8,10">

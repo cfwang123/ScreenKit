@@ -1030,7 +1030,7 @@ public partial class MainWindow : Window {
 					: "hangul.badge.ko";
 				setstatus(Loc.T(st));
 			};
-			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => openimesettings()));
+			hangul.Settings += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true, tab: "ime")));
 			hangul.Dict += () => Dispatcher.BeginInvoke(new Action(() => openimedic()));
 			hangul.RareChanged += () => {
 				opt.ImeRare = hangul.Rare;
@@ -4378,39 +4378,6 @@ public partial class MainWindow : Window {
 		try { AppConfig.Save(opt); } catch { }
 	}
 
-	/// <summary>输入法专用设置窗（输入法托盘菜单「参数设置」）：切换热键与 gVim 模式。
-	/// 主窗可能在托盘里，独立弹出。</summary>
-	void openimesettings() {
-		var dlg = new ImeSettingsWindow(opt);
-		dlg.Dict += openimedic;
-		attachdialogowner(dlg, independent: true);
-		dlg.ShowDialog();
-		if (!dlg.Applied) return;
-		var r = dlg.Result;
-		var hotkeyChanged =
-			!string.Equals(opt.HotkeyImeCycle, r.HotkeyImeCycle, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(opt.HotkeyImeWubi, r.HotkeyImeWubi, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(opt.HotkeyImeJa, r.HotkeyImeJa, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(opt.HotkeyImeKo, r.HotkeyImeKo, StringComparison.OrdinalIgnoreCase)
-			|| !string.Equals(opt.HotkeyImeOff, r.HotkeyImeOff, StringComparison.OrdinalIgnoreCase);
-		var langsChanged = opt.ImeWubiOn != r.ImeWubiOn || opt.ImeJaOn != r.ImeJaOn || opt.ImeKoOn != r.ImeKoOn;
-		opt.HotkeyImeCycle = r.HotkeyImeCycle;
-		opt.HotkeyImeWubi = r.HotkeyImeWubi;
-		opt.HotkeyImeJa = r.HotkeyImeJa;
-		opt.HotkeyImeKo = r.HotkeyImeKo;
-		opt.HotkeyImeOff = r.HotkeyImeOff;
-		opt.ImeWubiOn = r.ImeWubiOn;
-		opt.ImeJaOn = r.ImeJaOn;
-		opt.ImeKoOn = r.ImeKoOn;
-		opt.ImeGvimMode = r.ImeGvimMode;
-		opt.ImeRare = r.ImeRare;
-		hangul?.ApplyLangs(opt.ImeWubiOn, opt.ImeJaOn, opt.ImeKoOn);
-		hangul?.ApplyGvimMode(opt.ImeGvimMode);
-		hangul?.ApplyRare(opt.ImeRare);
-		if (hotkeyChanged || langsChanged) registerhotkey();
-		try { AppConfig.Save(opt); } catch { }
-	}
-
 	/// <summary>输入法词库窗口（托盘「词库」、Ctrl+Shift+F7、输入法设置窗）：导入导出五笔 / 日语 / 韩语用户词。
 	/// 主窗可能在托盘里，独立弹出。</summary>
 	void openimedic() {
@@ -4419,9 +4386,11 @@ public partial class MainWindow : Window {
 		dlg.ShowDialog();
 	}
 
-	void opensettings(bool fromTray = false) {		// 打开前把顶栏当前选择写回 opt
+	void opensettings(bool fromTray = false, string tab = null) {		// 打开前把顶栏当前选择写回 opt
 		applymodelchoice(reload: false);
 		var dlg = new SettingsWindow(opt);
+		if (!string.IsNullOrEmpty(tab)) dlg.SelectTab(tab);
+		dlg.Dict += openimedic;
 		attachdialogowner(dlg, fromTray);
 		dlg.ShowDialog();
 		if (!dlg.Applied) return;
@@ -4467,6 +4436,15 @@ public partial class MainWindow : Window {
 			registerhotkey();
 		if (old.DictSelBar != opt.DictSelBar || old.ModDict != opt.ModDict)
 			applyselbar(opt.DictSelBar, false, false);
+		// 输入法语言开关 / gVim / 生僻字
+		if (old.ImeWubiOn != opt.ImeWubiOn || old.ImeJaOn != opt.ImeJaOn || old.ImeKoOn != opt.ImeKoOn) {
+			hangul?.ApplyLangs(opt.ImeWubiOn, opt.ImeJaOn, opt.ImeKoOn);
+			registerhotkey();
+		}
+		if (old.ImeGvimMode != opt.ImeGvimMode)
+			hangul?.ApplyGvimMode(opt.ImeGvimMode);
+		if (old.ImeRare != opt.ImeRare)
+			hangul?.ApplyRare(opt.ImeRare);
 		// HTTP 端口/开关变更则重启
 		if (old.HttpEnabled != opt.HttpEnabled || old.HttpPort != opt.HttpPort
 			|| old.SendFileEnabled != opt.SendFileEnabled

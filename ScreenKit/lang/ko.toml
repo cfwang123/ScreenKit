@@ -4631,3 +4631,5 @@ set.ime.langs.keep = "입력 방식을 하나 이상 사용하도록 설정하�
 cast.tab.adb = "ADB 연결"
 cast.tab.adb.hint = "휴대폰에서 USB 디버깅을 켠 뒤 선택하세요. USB 캐스트용이며 10분 동안 연결이 없으면 자동으로 꺼집니다."
 web.plot.exeq3 = "3D 방정식"
+set.tab.ime = "입력 방식"
+ime.dict.openwin = "사전…"

@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The adb server no longer runs alongside the app: it is only started while a USB debugging device is attached and is stopped again once the device is gone
 - Cast tab: new Connect ADB checkbox; adb is only started while it is checked (USB casting), switches itself off after 10 minutes without a connection, and starts unchecked after a restart
 - Plot: removed the 2D/3D mode buttons; the input type (function, 2D equation, 3D surface, equation with z) is detected automatically.
+- Settings: added an Input method tab (language toggles, switch hotkeys, gVim/rare options, lexicon); the IME tray settings now opens this tab.
 
 #### Fixed
 
@@ -87,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - adb server 不再随程序常驻：只有 USB 上插着开了调试的设备时才拉起，设备拔掉后就收掉
 - 投屏页新增「连接 adb」勾选框：勾上才启动 adb 给 USB 投屏做转发，10 分钟没有连接会自动取消，重启程序后默认关闭
 - 函数图像：去掉二维/三维模式按钮，输入后自动识别函数、二维方程、三维曲面和含 z 的方程。
+- 参数设置新增「输入法」页（语言开关、切换热键、gVim/生僻字、词库），输入法托盘菜单的设置改为打开该页。
 
 #### 修复
 
