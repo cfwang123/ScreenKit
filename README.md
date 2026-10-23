@@ -36,7 +36,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 - **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model. Chrome language lists show only installed packs, and Chrome model installation opens the same private profile on the model page.
 - **Face**: Detection and comparison, with optional landmarks and gender and age.
 - **Chinese to pinyin**: Full spelling without tone marks, or one lowercase initial per character.
-- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, switch languages from the tray, and open the IME settings there; languages you turn off are skipped by the cycle hotkey and their shortcuts do nothing. Manage custom words in the tray **Lexicon**.
+- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, switch languages from the tray; set hotkeys, enable languages and manage the lexicon in **Settings → Input method** (disabled languages are skipped by the cycle hotkey).
 - **Simplified/Traditional**: Simplified on top, traditional below, following Taiwan character forms.
 - **Japanese yomi**: Turns a Japanese sentence into readings, by word or by character.
 - **Calendars**: Gregorian to lunar (sexagenary cycle and leap months), plus Japanese, Taiwan, Hebrew, Hijri, Persian, and others.
@@ -123,14 +123,14 @@ This program receives while it is running, and that can be turned off in Setting
   - **Radix conversion**: Convert among base 2, 8, 10, and 16
   - **Unit conversion**: Length, weight, currency, and more
   - **Random number**: A number inside a chosen range
-  - **Function graph**: Plot 2D curves, 3D surfaces, and implicit equations such as x^2+y^2+z^2=9 for a sphere
+  - **Function graph**: Plot 2D curves, 3D surfaces, and implicit equations such as x^2+y^2+z^2=9 for a sphere, with built-in examples
   - **BMI**: Body mass index from height and weight
   - **Mortgage**: Equal payment or equal principal
   - **Compound interest**: Interest compounded yearly
 - **Speech**
   - **Speech**: Read text aloud
   - **Speech recognition**: Turn speech into text
-  - **8-bit synthesizer**: Square-wave tones and effects, with a live waveform
+  - **8-bit synthesizer**: Square-wave tones and effects, octave -/+ buttons (C1-C7), and a live waveform
 - **Calendar**
   - **Calendars**: Gregorian alongside lunar and other calendars
   - **Timestamp**: Unix time and local time
