@@ -878,7 +878,20 @@
 					}
 					f0 = f1;
 				}
-				cols[j * cw + i] = list;
+				// 两层解在相切处几乎重合，合并成一个点，网格线就能连上。
+				for (k = 0; k + 1 < list.length; k++) {
+					if (list[k + 1].z - list[k].z < 0.25) {
+						var mm = {
+							x: (list[k].x + list[k + 1].x) / 2,
+							y: (list[k].y + list[k + 1].y) / 2,
+							d: (list[k].d + list[k + 1].d) / 2,
+							t: 0.5,
+							z: (list[k].z + list[k + 1].z) / 2
+						};
+						list[k] = mm;
+						list[k + 1] = mm;
+					}
+				}
 				cols[j * cw + i] = list;
 			}
 		}
@@ -949,7 +962,7 @@
 
 	function impgrid(ctx, cols, n, cw, gap){
 		var segs = [];
-		var lim = gap * 2.4;
+		var lim = gap * 5;
 		var i, j, r, a, b, p;
 		function add(p, q){
 			segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: (p.t + q.t) / 2 });
