@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tools: the lookup tables are now translated into Japanese, Korean, Spanish, French, Portuguese, Russian and German as well as English
 - 8-bit synth: octave -/+ buttons with a C1-C7 readout, same range as the MIDI synth
 - Plot: 3D equations such as x^2+y^2+z^2=9 draw implicit surfaces; added a 3D equations example group (sphere, ellipsoid, hyperboloid, cone, plane, heart).
+- Plot: added more examples - folium of Descartes, lemniscate, four-leaf rose, astroid, heart curve, torus, hyperboloid, monkey saddle and ripple surface.
 
 #### Changed
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页工具：信息查询的速查表除英文外，又补上日、韩、西、法、葡、俄、德七种语言的译文
 - 8bit 合成器：加了八度 − / + 按钮和 C1–C7 显示，范围和 MIDI 合成器一致
 - 函数图像：支持 x、y、z 的方程，例如 x^2+y^2+z^2=9 会画出球面；示例新增「三维方程」一组（球面、椭球、双曲面、锥面、平面、心形）。
+- 函数图像：新增叶形线、双纽线、四叶玫瑰线、星形线、心形线、环面、双叶双曲面、猴鞍面和波纹曲面等示例。
 
 #### 变更
 
