@@ -28,6 +28,7 @@ static class CastHost {
 	static bool frameposted;
 	static int lastadb;
 	static int lastaoa;
+	static bool adbwanted;
 	const int USB_IDLE_MS = 120000;
 	static bool usbWant;
 	static int usbIdleAt;
@@ -139,7 +140,15 @@ static class CastHost {
 				var now = Environment.TickCount;
 				if (now - lastadb > 8000 || lastadb == 0) {
 					lastadb = now;
-					reverseadb();
+					// 只在 USB 上真有调试设备时才碰 adb；没设备就把 adb server 收掉，不让它常驻。
+					if (CastUsbHost.AdbUsbPresent()) {
+						adbwanted = true;
+						reverseadb();
+					}
+					else if (adbwanted) {
+						adbwanted = false;
+						CastAdbFwd.KillServer(log);
+					}
 				}
 				if (usbWant) {
 					if (UsbLinked())
@@ -170,7 +179,10 @@ static class CastHost {
 			logexe();
 			if (Opt != null && Opt.CastUsbAccessory)
 				EnableUsbHost();
-			ThreadPool.QueueUserWorkItem(_ => reverseadb());
+			if (CastUsbHost.AdbUsbPresent()) {
+				adbwanted = true;
+				ThreadPool.QueueUserWorkItem(_ => reverseadb());
+			}
 		}
 	}
 

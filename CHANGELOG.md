@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Web tools: the 12 lookup tables under Info (Windows/Linux commands, Linux software, HTTP status codes, MIME types, ports, file signatures, time zones, codes, key codes, USB IDs, SQL functions) now have English text, and search matches English too
 - Missing translations now fall back to English first (web tools and the WPF interface), then to Chinese
+- The adb server no longer runs alongside the app: it is only started while a USB debugging device is attached and is stopped again once the device is gone
 
 #### Fixed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 网页工具：信息查询里的 12 个速查表（Windows/Linux 常用命令、Linux 软件、HTTP 状态码、MIME 类型、端口、文件头魔数、时区、国家/语言/货币、键盘码、USB ID、SQL 函数）补上英文，搜索也能用英文命中
 - 缺译文时先回退英文、再回退中文，网页工具和 WPF 界面一致
+- adb server 不再随程序常驻：只有 USB 上插着开了调试的设备时才拉起，设备拔掉后就收掉
 
 #### 修复
 
