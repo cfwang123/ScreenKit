@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Desktop note: added a pin button to keep the note above other windows; the pin state is saved with the note.
 - IME settings: enable or disable Wubi, Japanese, and Korean individually; disabled languages are skipped by the cycle hotkey and their shortcuts do nothing.
+- Web tools: the lookup tables are now translated into Japanese, Korean, Spanish, French, Portuguese, Russian and German as well as English
 
 #### Changed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 桌面便笺：标题栏增加置顶图钉，可让便笺始终显示在最前面，置顶状态随内容一起保存。
 - 输入法设置：可分别启用五笔、日语、韩语；关掉的语言不进切换循环，对应快捷键也不会切过去。
+- 网页工具：信息查询的速查表除英文外，又补上日、韩、西、法、葡、俄、德七种语言的译文
 
 #### 变更
 
