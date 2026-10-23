@@ -1323,7 +1323,7 @@
 		return sign(p) + BigInt(p.ip).toString(radix).toUpperCase();
 	}
 
-	// 先转成 Number。NaN、无穷不显示。十六进制是位型；a * 2^x 里 a 是有效数字，x 是无偏指数。
+	// 先转成 Number。NaN、无穷不显示。十六进制是位型；a×2^x 里 a 是有效数字，x 是无偏指数。
 	function floatrows(p){
 		var plain = sign(p) + p.ip + (p.fp ? "." + p.fp : "");
 		var n = Number(plain);
@@ -1486,7 +1486,7 @@
 			x = st.exp - bias;
 		}
 		var b = 2;
-		return a + " * " + b + "^" + x + "  a=" + a + " b=" + b + " x=" + x;
+		return a + "×" + b + sup(x);
 	}
 
 	function signedA(signBit, a){
