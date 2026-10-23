@@ -8,7 +8,9 @@
 	var loop = null;
 	var demot = [];
 	var bound = false;
-	var shift = 0;		// 按住 Shift / Alt 时的八度偏移（+12 / -12）
+	var shift = 0;		// 当前八度偏移（oct + mod）
+	var oct = 0;		// 「八度」按钮设定的基准偏移，12 的倍数
+	var mod = 0;		// 按住 Shift / Alt 的临时偏移
 	var pressed = {};	// 键码 -> 正在响的音，松开时按这个停
 	var INST = [
 		{ id: "sq", name: "方波", wave: "square", a: 0.008, d: 0.09, s: 0.55, r: 0.08 },
@@ -83,6 +85,9 @@
 			+ '<label class="bitvol">音量<input id="bit-vol" type="range" min="0" max="100" value="100"></label>'
 			+ '<button type="button" id="bit-demo">试听</button>'
 			+ '<button type="button" id="bit-stop">停止</button>'
+			+ '<span class="bitoct">八度<button type="button" id="bit-octdn" title="降一个八度">−</button>'
+			+ '<b id="bit-octv">C3</b>'
+			+ '<button type="button" id="bit-octup" title="升一个八度">+</button></span>'
 			+ "</div>"
 			+ '<canvas class="bitwave" id="bit-wave"></canvas>'
 			+ '<div class="bitkeys" id="bit-keys">' + keys() + "</div>"
@@ -99,7 +104,7 @@
 			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。</p>'
 			+ '<p class="kicker">音效</p>'
 			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
-			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组）。点一个音效会停掉其它正在响的。警报、火警、蜂鸣、电话再点一次就停。</p>'
+			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组），也可以点「八度」旁边的 − / + 换一组。点一个音效会停掉其它正在响的。警报、火警、蜂鸣、电话再点一次就停。</p>'
 			+ "</div>";
 	}
 
@@ -138,6 +143,9 @@
 		sfx.onclick = onsfx;
 		F.id("bit-demo").onclick = demo;
 		F.id("bit-stop").onclick = stopaudio;
+		F.id("bit-octdn").onclick = function(){ stepoct(-1); };
+		F.id("bit-octup").onclick = function(){ stepoct(1); };
+		paintoct();
 		F.id("bit-play").onclick = songplay;
 		F.id("bit-songstop").onclick = function(){ songstop(); };
 		F.id("bit-ex").onchange = onex;
@@ -218,8 +226,27 @@
 		for (k in held) paintkey(Number(k), true);
 	}
 
+	// 和 MIDI 合成器一样：基准八度在 C1–C7 之间，按钮换一组，Shift / Alt 再临时加减一组
+	function baseoct(){
+		return Math.floor((48 + oct) / 12) - 1;
+	}
+
+	function paintoct(){
+		var el = F.id("bit-octv");
+		if (el) el.textContent = "C" + baseoct();
+	}
+
+	function stepoct(dir){
+		var next = baseoct() + dir;
+		if (next < 1 || next > 7) return;
+		oct = (next - 3) * 12;
+		toshift(oct + mod);
+		paintoct();
+	}
+
 	function syncmods(ev){
-		toshift((ev.shiftKey ? 12 : 0) - (ev.altKey ? 12 : 0));
+		mod = (ev.shiftKey ? 12 : 0) - (ev.altKey ? 12 : 0);
+		toshift(oct + mod);
 	}
 
 	function inst(){

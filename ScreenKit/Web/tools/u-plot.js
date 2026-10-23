@@ -24,7 +24,13 @@
 		{ g: "z", mode: "3", fn: "sin(x)*cos(y)" },
 		{ g: "z", mode: "3", fn: "x^2-y^2" },
 		{ g: "z", mode: "3", fn: "sin(sqrt(x^2+y^2))" },
-		{ g: "z", mode: "3", fn: "exp(-(x^2+y^2))" }
+		{ g: "z", mode: "3", fn: "exp(-(x^2+y^2))" },
+		{ g: "eq3", mode: "3", fn: "x^2+y^2+z^2=9" },
+		{ g: "eq3", mode: "3", fn: "x^2/4+y^2/9+z^2=1" },
+		{ g: "eq3", mode: "3", fn: "x^2+y^2-z^2=1" },
+		{ g: "eq3", mode: "3", fn: "x^2+y^2=z^2" },
+		{ g: "eq3", mode: "3", fn: "x+y+z=3" },
+		{ g: "eq3", mode: "3", fn: "(x^2+9/4*y^2+z^2-1)^3-x^2*z^3-9/80*y^2*z^3=0" }
 	];
 	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
 	var canvas = null;
@@ -66,12 +72,12 @@
 			+ "</span>"
 			+ '<input id="plot-fn" type="text" value="sin(x)" spellcheck="false" autocomplete="off"'
 			+ ' data-kph="web.plot.ph" placeholder="' + SK.esc(tt("web.plot.ph", "sin(x)")) + '"'
-			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。二维还可以写等式，例如 x^2+y^2=1。")) + '">'
+			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。二维可以写等式，例如 x^2+y^2=1；三维可以写 z=f(x, y)，也可以写方程，例如 x^2+y^2+z^2=9 画球面。")) + '">'
 			+ '<div class="plot-ex"><button type="button" data-act="ex"><i class="fa-solid fa-caret-down"></i><span data-k="web.plot.ex">' + SK.esc(tt("web.plot.ex", "示例")) + "</span></button>"
 			+ '<div class="plot-menu" id="plot-menu" hidden>' + samples() + "</div></div>"
 			+ '<button type="button" data-act="reset" data-k="web.plot.reset">' + SK.esc(tt("web.plot.reset", "复位")) + "</button>"
 			+ "</div>"
-			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。等式如 x^2+y^2=1 会画出曲线。点「示例」可选择。")) + "</p>"
+			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。等式如 x^2+y^2=1 会画出曲线；三维方程如 x^2+y^2+z^2=9 会画出曲面。点「示例」可选择。")) + "</p>"
 			+ '<div class="plot-stage"><canvas id="plot-cv"></canvas><div class="plot-read" id="plot-read" hidden></div></div>'
 			+ '<p class="hint" id="plot-msg"></p>'
 			+ "</div>";
@@ -164,8 +170,8 @@
 			row = SAMPLES[i];
 			if (row.g !== g) {
 				g = row.g;
-				key = g === "eq" ? "web.plot.exeq" : g === "z" ? "web.plot.z" : "web.plot.y";
-				fb = g === "eq" ? "方程" : g === "z" ? "z = f(x, y)" : "y = f(x)";
+				key = g === "eq" ? "web.plot.exeq" : g === "eq3" ? "web.plot.exeq3" : g === "z" ? "web.plot.z" : "web.plot.y";
+				fb = g === "eq" ? "方程" : g === "eq3" ? "三维方程" : g === "z" ? "z = f(x, y)" : "y = f(x)";
 				html += '<p data-k="' + key + '">' + SK.esc(tt(key, fb)) + "</p>";
 			}
 			html += '<button type="button" data-ex="' + SK.esc(row.fn) + '" data-mode="' + row.mode + '">' + SK.esc(row.fn) + "</button>";
@@ -256,12 +262,8 @@
 		implicit = false;
 		try {
 			var norm = normalize(src);
-			if (mode === "3" && norm.indexOf("=") >= 0) {
-				fn = null;
-				say(tt("web.plot.eq3", "三维画的是 z=f(x, y)。x^2+y^2=1 这类等式请改用 y=f(x)。"), true);
-				return;
-			}
-			fn = compile(src, mode === "3" || norm.indexOf("=") >= 0 ? 2 : 1);
+			var eq = norm.indexOf("=") >= 0;
+			fn = compile(src, mode === "3" && eq ? 3 : (mode === "3" || eq ? 2 : 1));
 			implicit = fn.t === "eq";
 			if (mode !== "3" && !implicit && usesY(fn)) {
 				fn = null;
@@ -744,6 +746,10 @@
 	}
 
 	function draw3(ctx, w, h){
+		if (implicit) {
+			draw3implicit(ctx, w, h);
+			return;
+		}
 		var n = 46;
 		var grid = n + 1;
 		var fit = Math.max(cam.xspan, cam.yspan);
@@ -808,6 +814,86 @@
 		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
 		else drawFill(ctx, pts, n, grid);
 		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
+		ctx.restore();
+	}
+
+	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，把得到的曲面点投影成点云。
+	function draw3implicit(ctx, w, h){
+		var fit = Math.max(cam.xspan, cam.yspan);
+		var scale = Math.min(w, h) * 0.42 / fit;
+		var n = drag ? 46 : 88;
+		var m = drag ? 46 : 84;
+		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
+		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+		var pts = [];
+		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
+		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz;
+		for (j = 0; j <= n; j++) {
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
+			for (i = 0; i <= n; i++) {
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
+				f0 = ev(fn, x, y, z0);
+				for (k = 1; k <= m; k++) {
+					z = z0 + dz * k;
+					f1 = ev(fn, x, y, z);
+					if (isFinite(f0) && isFinite(f1) && (f0 === 0 || (f1 !== 0 && (f0 > 0) !== (f1 > 0)))) {
+						lo = z - dz;
+						hi = z;
+						flo = f0;
+						fhi = f1;
+						if (f1 === 0) {
+							lo = z;
+							hi = z;
+						}
+						else if (f0 !== 0) {
+							for (zm = 0; zm < 10; zm++) {
+								var zmid = (lo + hi) / 2;
+								fm = ev(fn, x, y, zmid);
+								if (!isFinite(fm)) break;
+								if ((flo > 0) === (fm > 0)) {
+									lo = zmid;
+									flo = fm;
+								}
+								else {
+									hi = zmid;
+									fhi = fm;
+								}
+							}
+						}
+						zz = (lo + hi) / 2;
+						var X = (x - cam.cx) / cam.xspan * fit;
+						var Y = (y - cam.cy) / cam.yspan * fit;
+						var x1 = X * cyaw - Y * syaw;
+						var y1 = X * syaw + Y * cyaw;
+						var y2 = y1 * cp - zz * sp;
+						var z2 = y1 * sp + zz * cp;
+						pts.push({
+							x: w / 2 + x1 * scale,
+							y: h / 2 - z2 * scale,
+							d: y2,
+							t: (zz - z0) / (z1 - z0)
+						});
+					}
+					f0 = f1;
+				}
+			}
+		}
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect(0, 0, w, h);
+		ctx.clip();
+		var gap = 2 * fit * scale / n;
+		var r = Math.max(1.5, Math.min(4.2, gap * 0.8));
+		pts.sort(function(a, b){ return b.d - a.d; });
+		ctx.globalAlpha = 0.92;
+		for (i = 0; i < pts.length; i++) {
+			ctx.fillStyle = zcolor(pts[i].t);
+			ctx.beginPath();
+			ctx.arc(pts[i].x, pts[i].y, r, 0, 6.2832);
+			ctx.fill();
+		}
+		ctx.globalAlpha = 1;
+		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
 		ctx.restore();
 	}
 
@@ -1121,14 +1207,17 @@
 				if (dim < 2) throw new Error(tt("web.plot.xonly", "二维函数只能使用 x。要画圆、椭圆这类图，请写成等式，例如 x^2+y^2=1。"));
 				return { t: "v", i: 1 };
 			}
-			if (name === "z") throw new Error(tt("web.plot.noz", "公式里不要写 z。三维请写成 z=f(x, y)"));
+			if (name === "z") {
+				if (dim < 3) throw new Error(tt("web.plot.noz", "三维曲面只能使用 x、y；要写含 z 的方程，请用 F(x,y,z)=0 的等式。"));
+				return { t: "v", i: 2 };
+			}
 			throw new Error("没有这个名字");
 		}
 		function splitknown(word){
 			var n;
 			for (n = word.length; n > 0; n--) {
 				var p = word.slice(0, n);
-				if (ARITY[p] != null || p === "pi" || p === "e" || p === "x" || p === "y") return n;
+				if (ARITY[p] != null || p === "pi" || p === "e" || p === "x" || p === "y" || (dim >= 3 && p === "z")) return n;
 			}
 			return word.length;
 		}
@@ -1183,15 +1272,15 @@
 		return s;
 	}
 
-	function ev(node, x, y){
+	function ev(node, x, y, z){
 		if (!node) return NaN;
 		if (node.t === "n") return node.v;
-		if (node.t === "v") return node.i ? y : x;
-		if (node.t === "u") return -ev(node.a, x, y);
-		if (node.t === "eq") return ev(node.a, x, y) - ev(node.b, x, y);
+		if (node.t === "v") return node.i === 2 ? z : node.i ? y : x;
+		if (node.t === "u") return -ev(node.a, x, y, z);
+		if (node.t === "eq") return ev(node.a, x, y, z) - ev(node.b, x, y, z);
 		if (node.t === "b") {
-			var a = ev(node.a, x, y);
-			var b = ev(node.b, x, y);
+			var a = ev(node.a, x, y, z);
+			var b = ev(node.b, x, y, z);
 			if (node.op === "+") return a + b;
 			if (node.op === "-") return a - b;
 			if (node.op === "*") return a * b;
@@ -1201,7 +1290,7 @@
 		}
 		var args = [];
 		var i;
-		for (i = 0; i < node.args.length; i++) args.push(ev(node.args[i], x, y));
+		for (i = 0; i < node.args.length; i++) args.push(ev(node.args[i], x, y, z));
 		return applyfn(node.name, args);
 	}
 
