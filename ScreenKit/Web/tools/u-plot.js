@@ -1066,7 +1066,7 @@
 				for (r = 0; r < list.length; r++) pts.push(list[r]);
 			}
 		}
-		var rad = Math.max(1.5, Math.min(4.2, gap * 0.8));
+		var rad = Math.max(1.2, Math.min(2.6, gap * 0.45));
 		pts.sort(function(a, b){ return b.d - a.d; });
 		ctx.globalAlpha = 0.92;
 		for (i = 0; i < pts.length; i++) {
