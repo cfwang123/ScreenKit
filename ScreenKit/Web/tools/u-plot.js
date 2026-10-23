@@ -978,6 +978,7 @@
 		for (j = 0; j <= n; j++) {
 			for (i = 0; i <= n; i++) {
 				a = cols[j * cw + i];
+				for (r = 0; r + 1 < a.length; r++) add(a[r], a[r + 1]);
 				if (i < n) link(a, cols[j * cw + i + 1]);
 				if (j < n) link(a, cols[(j + 1) * cw + i]);
 			}
