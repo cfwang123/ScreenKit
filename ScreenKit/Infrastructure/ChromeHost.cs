@@ -377,7 +377,7 @@ static class ChromeHost {
 		args.Append("--no-first-run --no-default-browser-check --disable-sync ");
 		args.Append("--autoplay-policy=no-user-gesture-required ");
 		args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
-		args.Append("--disable-features=CalculateNativeWinOcclusion ");
+		args.Append("--disable-features=CalculateNativeWinOcclusion,UseSystemProxyResolver ");
 		args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
 		args.Append("--window-position=-32000,-32000 --window-size=160,80 ");
 		args.Append(px ?? "");
@@ -615,8 +615,10 @@ static class ChromeHost {
 		}
 		cleanup(id);
 		if (slot.Done == null) return;
-		if (!ok)
+		if (!ok) {
+			if (err == "chrome-google") err = Loc.T("tr.chrome.google");
 			slot.Done.TrySetException(new InvalidOperationException(err.Length > 0 ? err : slot.Fail));
+		}
 		else
 			slot.Done.TrySetResult(items);
 	}
@@ -745,7 +747,8 @@ static class ChromeHost {
 		+ "function go(job,v){try{var u=new SpeechSynthesisUtterance(job.text||'');if(v){u.voice=v;u.lang=v.lang||job.lang||'';}else u.lang=job.lang||'';u.rate=job.rate>0?+job.rate:1;u.volume=job.volume==null?1:+job.volume;var heard=false,done=false;u.onstart=function(){heard=true;};u.onend=function(){if(stopping||done)return;done=true;post(job,true,'',[]);};u.onerror=function(e){if(stopping||done)return;done=true;var m=(e&&e.error)||'';if(!m||m.indexOf('Receiving end')>=0)m='Chrome 没有发出声音';post(job,false,m,[]);};setTimeout(function(){try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(e){if(!done){done=true;post(job,false,e&&e.message?e.message:'speak',[]);}return;}setTimeout(function(){if(stopping||done||heard)return;done=true;try{speechSynthesis.cancel();}catch(e){}post(job,false,'Chrome 没有发出声音',[]);},8000);},200);}catch(e){post(job,false,e&&e.message?e.message:'speak',[]);}}\n"
 		+ "function speak(job){if(!window.speechSynthesis){post(job,false,'Chrome 没有发出声音',[]);return;}var started=false;function kick(){if(started||stopping)return true;var v=pick(job);if(!v)return false;started=true;go(job,v);return true;}if(kick())return;var t0=Date.now();var timer=setInterval(function(){if(kick()){clearInterval(timer);return;}if(Date.now()-t0>12000){clearInterval(timer);if(!started)post(job,false,'Chrome 没有发出声音',[]);}},200);speechSynthesis.onvoiceschanged=function(){if(kick())clearInterval(timer);};}\n"
 		+ "function ctor(){if(typeof Translator==='function')return Translator;if(self.ai&&typeof self.ai.translator==='function')return self.ai.translator;return null;}\n"
-		+ "async function runtr(job){var C=ctor();if(!C){post(job,false,'这个 Chrome 没有翻译接口',[]);return;}try{var opt={sourceLanguage:job.src,targetLanguage:job.dst};var avail='available';if(typeof C.availability==='function')avail=await C.availability(opt);if(avail==='unavailable'||avail==='no'){post(job,false,'Chrome 不能翻译这对语言',[]);return;}var t=await C.create(opt),outs=[],i,s;for(i=0;i<job.items.length;i++){s=job.items[i]||'';outs.push(s.trim()?await t.translate(s):'');}post(job,true,'',outs);}catch(e){post(job,false,e&&e.message?e.message:'Chrome 翻译失败',[]);}}\n"
+		+ "function googup(){var c=new AbortController();var t=setTimeout(function(){try{c.abort();}catch(e){}},8000);return fetch('https://www.google.com/generate_204',{mode:'no-cors',cache:'no-store',signal:c.signal}).then(function(){clearTimeout(t);return true;},function(){clearTimeout(t);return false;});}\n"
+		+ "async function runtr(job){var C=ctor();if(!C){post(job,false,'这个 Chrome 没有翻译接口',[]);return;}try{var opt={sourceLanguage:job.src,targetLanguage:job.dst};var avail='available';if(typeof C.availability==='function'){var av=C.availability(opt);avail=await Promise.race([av,new Promise(function(_,rej){setTimeout(function(){rej(new Error('chrome-google'));},8000);})]);}if(avail==='unavailable'||avail==='no'){post(job,false,'Chrome 不能翻译这对语言',[]);return;}var need=avail==='downloadable'||avail==='downloading';var seen=false;if(need){if(!await googup()){post(job,false,'chrome-google',[]);return;}opt.monitor=function(m){if(m&&m.addEventListener)m.addEventListener('downloadprogress',function(){seen=true;});};}var creating=C.create(opt);var t,settled=null;creating.then(function(x){settled={ok:x};},function(e){settled={err:e};});if(need){var t0=Date.now();while(!settled){await new Promise(function(r){setTimeout(r,400);});if(!seen&&Date.now()-t0>20000){post(job,false,'chrome-google',[]);return;}}if(settled.err)throw settled.err;t=settled.ok;}else{t=await creating;}var outs=[],i,s;for(i=0;i<job.items.length;i++){s=job.items[i]||'';outs.push(s.trim()?await t.translate(s):'');}post(job,true,'',outs);}catch(e){var m=e&&e.message?e.message:'Chrome 翻译失败';if(m==='chrome-google'){post(job,false,m,[]);return;}post(job,false,m,[]);}}\n"
 		+ "try{if(window.speechSynthesis)speechSynthesis.getVoices();}catch(e){}\n"
 		+ "poll();\n"
 		+ "</script>";

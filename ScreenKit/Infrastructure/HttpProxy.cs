@@ -57,7 +57,7 @@ sealed class HttpProxy : IWebProxy {
 	public static HttpClientHandler CreateHandler() =>
 		new() { UseProxy = true, Proxy = Instance };
 
-	/// <summary>当前代理写成 Chrome 启动参数。关掉或系统代理未开时是 --no-proxy-server。</summary>
+	/// <summary>当前代理写成 Chrome 启动参数。手动代理不看系统开关。关掉或系统代理未开时是 --no-proxy-server。</summary>
 	public static string ChromeArgs() {
 		var sb = new StringBuilder();
 		AppendChrome(sb, Mode, Addr);
@@ -74,6 +74,7 @@ sealed class HttpProxy : IWebProxy {
 		}
 		args.Append("--proxy-server=\"").Append(server).Append("\" ");
 		args.Append("--proxy-bypass-list=\"").Append(CHROMEBYPASS).Append("\" ");
+		args.Append("--disable-quic ");
 	}
 
 	static string chromeserver(string mode, string addr) {

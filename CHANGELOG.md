@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Browser Microsoft voices such as Huihui follow the system default playback device.
 - The Chrome model page no longer counts Windows voices such as Huihui as an installed Google offline voice.
 - Chrome voice packs list immediately and can be cancelled, and reading mode is opened so offline voices can install.
+- Chrome translation uses the manual proxy when the system proxy is off, and reports an error if Google cannot be reached.
 
 ### 中文
 
@@ -79,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 浏览器里的微软语音（如 Huihui）改走系统默认播放设备。
 - Chrome 模型页不再把 Huihui 这类 Windows 语音当成已安装的 Google 离线语音。
 - Chrome 语音包列表会马上显示并且可以取消；打开朗读模式后才能安装离线语音。
+- 未开系统代理时 Chrome 翻译改走手动代理；连不上 Google 会直接报错。
 
 ## v1.0.29 (2026-10-23)
 

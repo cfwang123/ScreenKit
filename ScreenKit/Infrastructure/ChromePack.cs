@@ -687,6 +687,7 @@ static class ChromePack {
 		sess.ArmNet(ct);
 		sess.ClearBytes();
 		report(-1, title, "");
+		sess.RequireGoogle(ct);
 		var started = sess.EvalWeb(trstart(apilang(bits[0]), apilang(bits[1])), false, 15000, ct);
 		if (started != "started") return false;
 		string net = "";
@@ -1067,6 +1068,10 @@ return 'started';
 
 	const string VOICEPOLL = "(function(){var s=self.__skp||{};return JSON.stringify({done:!!s.done,err:s.err||'',raw:s.raw||''});})()";
 
+	const string GOOGLEUP = "(async function(){var c=new AbortController();var t=setTimeout(function(){try{c.abort();}catch(e){}},8000);"
+		+ "try{await fetch('https://www.google.com/generate_204',{mode:'no-cors',cache:'no-store',signal:c.signal});clearTimeout(t);return 'up';}"
+		+ "catch(e){clearTimeout(t);return 'down';}})()";
+
 	const string TRSTART = @"
 window.__skp={p:0,seen:false,done:false,err:'',loaded:0,total:0};
 var T=window.Translator;
@@ -1151,6 +1156,7 @@ return 'started';
 				if (web == null) return false;
 			}
 			else if (!TryTranslator(ct)) return false;
+			RequireGoogle(ct);
 			var started = EvalWeb(trstart(src, dst), false, 15000, ct);
 			if (started != "started") return false;
 			var start = Environment.TickCount;
@@ -1201,6 +1207,7 @@ return 'started';
 			args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
 			args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
 			args.Append("--window-position=-32000,-32000 --window-size=480,320 ");
+			args.Append("--disable-features=UseSystemProxyResolver ");
 			appendproxy(args, proxyMode, proxyAddr);
 			args.Append("about:blank");
 			sess.proc = Process.Start(new ProcessStartInfo {
@@ -1321,6 +1328,15 @@ return 'started';
 			ext ??= connectext();
 			if (ext == null) throw new InvalidOperationException(Loc.T("inst.chrome.noext"));
 			return ext.Eval(expr, wait, ms, ct);
+		}
+
+		public void RequireGoogle(CancellationToken ct) {
+			string up;
+			try { up = EvalWeb(GOOGLEUP, true, 12000, ct); }
+			catch (OperationCanceledException) { throw; }
+			catch { up = ""; }
+			if (up != "up")
+				throw new InvalidOperationException(Loc.T("tr.chrome.google"));
 		}
 
 		public string EvalWeb(string expr, bool wait, int ms, CancellationToken ct) {
