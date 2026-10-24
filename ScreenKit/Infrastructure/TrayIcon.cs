@@ -7,6 +7,21 @@ using Forms = System.Windows.Forms;
 
 namespace ScreenKit;
 
+/// <summary>菜单右侧快捷键用灰色，与主窗 InputGestureText 一致。高亮时仍用系统高亮色。</summary>
+class MenuShortcutRenderer : Forms.ToolStripProfessionalRenderer {
+	protected override void OnRenderItemText(Forms.ToolStripItemTextRenderEventArgs e) {
+		// Professional 会把非高亮文字改回 MenuItemText，快捷键要自己画成灰色
+		if (e?.Item is Forms.ToolStripMenuItem mi && mi.Enabled && !mi.Selected
+			&& !string.IsNullOrEmpty(mi.ShortcutKeyDisplayString)
+			&& string.Equals(e.Text, mi.ShortcutKeyDisplayString, StringComparison.Ordinal)) {
+			Forms.TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont, e.TextRectangle,
+				System.Drawing.SystemColors.GrayText, e.TextFormat);
+			return;
+		}
+		base.OnRenderItemText(e);
+	}
+}
+
 /// <summary>
 /// 通知栏图标：左键与主窗热键相同（前台则隐藏，否则显示并置顶），右键菜单。
 /// </summary>
@@ -91,8 +106,8 @@ sealed class TrayIcon : IDisposable {
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
 	System.Drawing.Point menuScreenLoc;
 
-	/// <summary>返回 (呼出, 截图识别, 截图标注, 重复上次截图, 屏幕画板, 语音输入, 翻译小窗, 划词浮窗, 切换复制方式, 输入法) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string dictsel, string copy, string hangul)> HotkeyProvider { get; set; }
+	/// <summary>返回 (呼出, 截图识别, 截图标注, 重复上次截图, 屏幕画板, 语音输入, 翻译小窗, 划词浮窗, 切换复制方式, 输入法, web工具主页) 快捷键文案；空串表示无。</summary>
+	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string dictsel, string copy, string hangul, string web)> HotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -340,8 +355,8 @@ sealed class TrayIcon : IDisposable {
 		return mi;
 	}
 
-	/// <summary>勾选项 Tag=radio 时画单选圆点，否则默认对勾。</summary>
-	sealed class RadioMenuRenderer : Forms.ToolStripProfessionalRenderer {
+	/// <summary>勾选项 Tag=radio 时画单选圆点，否则默认对勾。快捷键文字为灰色。</summary>
+	sealed class RadioMenuRenderer : MenuShortcutRenderer {
 		protected override void OnRenderItemCheck(Forms.ToolStripItemImageRenderEventArgs e) {
 			if (e?.Item is Forms.ToolStripMenuItem mi
 				&& mi.Checked
@@ -442,10 +457,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", dictsel = "", copy = "", hangul = "";
+		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", dictsel = "", copy = "", hangul = "", web = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, screensnap, board, voice, tr, dictsel, copy, hangul) = HotkeyProvider();
+				(show, ocr, snap, screensnap, board, voice, tr, dictsel, copy, hangul, web) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
@@ -468,7 +483,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miGifRecord, null);
 		setshortcut(miGifRecordOpt, null);
 		setshortcut(miTools, null);
-		setshortcut(miWebHome, null);
+		setshortcut(miWebHome, web);
 		setshortcut(miImgConv, null);
 		setshortcut(miCharArt, null);
 		setshortcut(miPixel, null);

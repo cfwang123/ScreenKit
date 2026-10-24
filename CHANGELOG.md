@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Novel reader can speak with the current browser's own voices, without asking the app to synthesize audio. That engine shows an Install models link.
+- Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 
 #### Changed
 
@@ -64,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 小说阅读器可以用当前浏览器自己的语音朗读，不经过程序合成。选中这个引擎时显示「安装模型」链接。
+- 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 
 #### 变更
 

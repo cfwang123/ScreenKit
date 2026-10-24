@@ -79,6 +79,7 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeySnapCopy; // 切换截图复制方式
 	GlobalHotkey hotkeyDict;  // 词典
 	GlobalHotkey hotkeyDictSel; // 划词浮窗开关
+	GlobalHotkey hotkeyWeb; // web 工具主页
 	GlobalHotkey hotkeyImeCycle;
 	GlobalHotkey hotkeyImeWubi;
 	GlobalHotkey hotkeyImeJa;
@@ -644,7 +645,8 @@ public partial class MainWindow : Window {
 				fmttrayhk(opt.HotkeyTranslate),
 				opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "",
 				fmttrayhk(opt.HotkeySnapCopy),
-				fmttrayhk(opt.HotkeyImeCycle));
+				fmttrayhk(opt.HotkeyImeCycle),
+				fmttrayhk(opt.HotkeyWebHome));
 			// 构造托盘时还没有热键来源，设置后立刻补一次，菜单一打开就带快捷键
 			try { tray.ApplyHotkeys(); } catch { }
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
@@ -983,6 +985,13 @@ public partial class MainWindow : Window {
 					try { setstatus(ex.Message); } catch { }
 				}
 			}));
+			hotkeyWeb = new GlobalHotkey(this, 0x700D);
+			hotkeyWeb.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { openhttptools(fromTray: true); }
+				catch (Exception ex) {
+					try { setstatus(ex.Message); } catch { }
+				}
+			}));
 			hotkeyImeCycle = new GlobalHotkey(this, 0x7010);
 			hotkeyImeCycle.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
@@ -1063,6 +1072,7 @@ public partial class MainWindow : Window {
 					|| (hotkeySnapCopy != null && !string.IsNullOrWhiteSpace(opt.HotkeySnapCopy) && !hotkeySnapCopy.IsRegistered)
 					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered)
 					|| (hotkeyDictSel != null && !string.IsNullOrWhiteSpace(opt.HotkeyDictSel) && !hotkeyDictSel.IsRegistered)
+					|| (hotkeyWeb != null && !string.IsNullOrWhiteSpace(opt.HotkeyWebHome) && !hotkeyWeb.IsRegistered)
 					|| (hotkeyImeCycle != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeCycle) && !hotkeyImeCycle.IsRegistered)
 					|| (hotkeyImeWubi != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeWubi) && !hotkeyImeWubi.IsRegistered)
 					|| (hotkeyImeJa != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeJa) && !hotkeyImeJa.IsRegistered)
@@ -1124,6 +1134,10 @@ public partial class MainWindow : Window {
 		if (hotkeyDictSel != null) {
 			hotkeyDictSel.Attach();
 			if (!hotkeyDictSel.Register(opt.ModDict ? opt.HotkeyDictSel : "")) errs.Add(hotkeyDictSel.LastError);
+		}
+		if (hotkeyWeb != null) {
+			hotkeyWeb.Attach();
+			if (!hotkeyWeb.Register(opt.HotkeyWebHome)) errs.Add(hotkeyWeb.LastError);
 		}
 		// ime.db 未安装：输入法菜单已禁用，热键也不注册，避免占住组合键
 		var imeok = ImeLex.DbInstalled;
@@ -2275,6 +2289,7 @@ public partial class MainWindow : Window {
 			if (mndictselbar != null)
 				mndictselbar.InputGestureText = opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "";
 			if (mnhangul != null) mnhangul.InputGestureText = fmttrayhk(opt.HotkeyImeCycle);
+			if (mnwebhome != null) mnwebhome.InputGestureText = fmttrayhk(opt.HotkeyWebHome);
 			painthangul();
 			// 只在工具窗口打开时监听，菜单上不标快捷键
 			if (mnautokey != null) mnautokey.InputGestureText = "";
@@ -4423,6 +4438,7 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeySnapCopy, opt.HotkeySnapCopy, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyDictSel, opt.HotkeyDictSel, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyWebHome, opt.HotkeyWebHome, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeCycle, opt.HotkeyImeCycle, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeWubi, opt.HotkeyImeWubi, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeJa, opt.HotkeyImeJa, StringComparison.OrdinalIgnoreCase)
@@ -5153,6 +5169,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey snap copy: {opt.HotkeySnapCopy}");
 		sb.AppendLine($"Hotkey dictionary: {opt.HotkeyDict}");
 		sb.AppendLine($"Selection popup: {(opt.DictSelBar ? "on" : "off")} hotkey={opt.HotkeyDictSel}");
+		sb.AppendLine($"Hotkey web home: {opt.HotkeyWebHome}");
 		sb.AppendLine($"Hotkey auto key: {opt.AutoKeyHotkey} mode={opt.AutoKeyMode} key={opt.AutoKeyKey} ms={opt.AutoKeyIntervalMs}");
 		var httpShow = httpServer != null && httpServer.IsRunning
 			? $"{(httpServer.LanAll ? opt.HttpShowHost() : "127.0.0.1")}:{httpServer.Port}"

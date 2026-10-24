@@ -348,7 +348,7 @@ sealed class HangulIme : IDisposable {
 	void ensuretray() {
 		if (ni != null) return;
 		ni = new Forms.NotifyIcon { Visible = false };
-		menu = new Forms.ContextMenuStrip();
+		menu = new Forms.ContextMenuStrip { Renderer = new MenuShortcutRenderer() };
 		miwubi = new Forms.ToolStripMenuItem("", null, (_, _) => Enter("wubi"));
 		mija = new Forms.ToolStripMenuItem("", null, (_, _) => Enter("ja"));
 		miko = new Forms.ToolStripMenuItem("", null, (_, _) => Enter("ko"));

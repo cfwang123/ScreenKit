@@ -70,6 +70,8 @@ static class AppConfig {
 				o.HotkeyDict = (hkdict ?? "").Trim();
 			if (map.TryGetValue("hotkey_dict_sel", out var hkdsel))
 				o.HotkeyDictSel = (hkdsel ?? "").Trim();
+			if (map.TryGetValue("hotkey_web_home", out var hkweb))
+				o.HotkeyWebHome = (hkweb ?? "").Trim();
 			if (map.TryGetValue("hotkey_ime_cycle", out var hkic))
 				o.HotkeyImeCycle = (hkic ?? "").Trim();
 			if (map.TryGetValue("hotkey_ime_wubi", out var hkiw))
@@ -644,6 +646,8 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_dict = \"{esc((o.HotkeyDict ?? "").Trim())}\"");
 		sb.AppendLine("# 划词浮窗开关（留空=不注册）");
 		sb.AppendLine($"hotkey_dict_sel = \"{esc((o.HotkeyDictSel ?? "").Trim())}\"");
+		sb.AppendLine("# web 工具主页（浏览器打开本机工具页；默认 Ctrl+Alt+H；留空=禁用）");
+		sb.AppendLine($"hotkey_web_home = \"{esc((o.HotkeyWebHome ?? "").Trim())}\"");
 		sb.AppendLine("# 切换语言，最后一项之后关闭。默认 Ctrl+`");
 		sb.AppendLine($"hotkey_ime_cycle = \"{esc((o.HotkeyImeCycle ?? "").Trim())}\"");
 		sb.AppendLine("# 切到五笔 / 日语 / 韩语 / 关闭");

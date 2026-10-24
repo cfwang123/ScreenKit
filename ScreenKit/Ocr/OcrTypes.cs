@@ -126,6 +126,8 @@ public sealed class OcrOptions {
 	public int SelBarH;
 	/// <summary>切换划词浮窗。默认空 = 不注册。</summary>
 	public string HotkeyDictSel = "";
+	/// <summary>在浏览器打开 web 工具主页。默认 Ctrl+Alt+H。空 = 禁用。</summary>
+	public string HotkeyWebHome = "Ctrl+Alt+H";
 	/// <summary>输入法切换语言，轮到末尾后关闭。默认 Ctrl+`。</summary>
 	public string HotkeyImeCycle = "Ctrl+`";
 	/// <summary>输入法切到五笔。默认 Ctrl+Alt+1。</summary>
@@ -586,6 +588,7 @@ public sealed class OcrOptions {
 		SelBarW = SelBarW,
 		SelBarH = SelBarH,
 		HotkeyDictSel = HotkeyDictSel ?? "",
+		HotkeyWebHome = HotkeyWebHome ?? "",
 		HotkeyImeCycle = HotkeyImeCycle ?? "",
 		HotkeyImeWubi = HotkeyImeWubi ?? "",
 		HotkeyImeJa = HotkeyImeJa ?? "",

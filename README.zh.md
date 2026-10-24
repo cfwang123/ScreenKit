@@ -188,6 +188,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
 | `Ctrl+Alt+B` | 实时字幕 |
 | `Ctrl+Alt+T` | 呼出或隐藏翻译小窗 |
 | `Ctrl+Alt+P` | 切换截图复制方式：图片、文件、路径 |
+| `Ctrl+Alt+H` | 在浏览器打开 web 工具主页 |
 
 ## 安装、语言与更新
 

@@ -188,6 +188,7 @@ They can be changed in Settings. An empty hotkey string turns that hotkey off.
 | `Ctrl+Alt+B` | Live captions |
 | `Ctrl+Alt+T` | Show or hide the translate popup |
 | `Ctrl+Alt+P` | Cycle the screenshot copy mode: image, file, path |
+| `Ctrl+Alt+H` | Open the web tools home in the browser |
 
 ## Install, language, and updates
 
