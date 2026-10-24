@@ -4634,3 +4634,4 @@ cast.tab.adb.hint = "휴대폰에서 USB 디버깅을 켠 뒤 선택하세요. U
 web.plot.exeq3 = "3D 방정식"
 set.tab.ime = "입력 방식"
 ime.dict.openwin = "사전…"
+inst.chrome.voicefail = "The voice pack download failed. If this network cannot reach Google, set the proxy on this page to manual."

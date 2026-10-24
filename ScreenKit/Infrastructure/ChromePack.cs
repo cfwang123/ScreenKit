@@ -50,6 +50,8 @@ static class ChromePack {
 	const string TTS_EXT = "gjjabgpgjpampikjhjpfhneeoapjbjaf";
 	const string TTS_EXT_OLD = "nkeimhogjdpnpccoofpliimaahmaaome";
 	const int SW_HIDE = 0;
+	const int SW_RESTORE = 9;
+	const uint SWP_SHOW = 0x0044;
 	static readonly object voiceOp = new();
 	static Dictionary<string, bool> voiceKnown;
 	static bool wasmProbed;
@@ -166,7 +168,7 @@ static class ChromePack {
 			ChromeTts.Stop();
 			preparevoice(ChromeTts.ProfileDir());
 			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, null, ct, exe);
-			if (!sess.TryWaitExt(8000, ct)) {
+			if (!sess.TryWaitExt(15000, ct)) {
 				wasmProbed = true;
 				wasmHave = false;
 				return;
@@ -746,6 +748,8 @@ static class ChromePack {
 					live?.Invoke(1, 0, 0);
 					return;
 				}
+				if (voicefailed(raw))
+					throw new InvalidOperationException(Loc.T("inst.chrome.voicefail"));
 				throw new InvalidOperationException(lang + " " + raw);
 			}
 			var disk = dirsize(root) - baseBytes;
@@ -850,6 +854,12 @@ static class ChromePack {
 	}
 
 	static string voicefile() => Path.Combine(ChromeTts.ProfileDir(), "voice-state.txt");
+
+	static bool voicefailed(string raw) {
+		var s = raw ?? "";
+		return s.IndexOf("\"status\":\"failed\"", StringComparison.OrdinalIgnoreCase) >= 0
+			|| s.IndexOf("\"status\": \"failed\"", StringComparison.OrdinalIgnoreCase) >= 0;
+	}
 
 	static FeatureInstallState statusof(string raw) {
 		if (string.IsNullOrWhiteSpace(raw)) return FeatureInstallState.Missing;
@@ -1251,14 +1261,54 @@ return 'started';
 
 		public bool TryWaitExt(int ms, CancellationToken ct) {
 			var start = Environment.TickCount;
+			var wokeAt = 0;
+			var woke = false;
 			while (unchecked(Environment.TickCount - start) < ms) {
 				ct.ThrowIfCancellationRequested();
-				hide(proc);
 				ext ??= connectext();
-				if (ext != null) return true;
+				if (ext != null) {
+					hide(proc);
+					return true;
+				}
+				if (!woke) {
+					wakeread();
+					woke = true;
+					wokeAt = Environment.TickCount;
+				}
+				else if (unchecked(Environment.TickCount - wokeAt) > 4000)
+					hide(proc);
 				Thread.Sleep(200);
 			}
+			hide(proc);
 			return false;
+		}
+
+		void wakeread() {
+			var hwnd = chromehwnd();
+			if (hwnd == IntPtr.Zero) return;
+			ShowWindow(hwnd, SW_RESTORE);
+			SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 1000, 720, SWP_SHOW);
+			SetForegroundWindow(hwnd);
+			Thread.Sleep(300);
+			keybd_event(0x12, 0, 0, UIntPtr.Zero);
+			keybd_event(0x10, 0, 0, UIntPtr.Zero);
+			keybd_event(0x52, 0, 0, UIntPtr.Zero);
+			Thread.Sleep(40);
+			keybd_event(0x52, 0, 2, UIntPtr.Zero);
+			keybd_event(0x10, 0, 2, UIntPtr.Zero);
+			keybd_event(0x12, 0, 2, UIntPtr.Zero);
+		}
+
+		IntPtr chromehwnd() {
+			IntPtr found = IntPtr.Zero;
+			if (proc == null) return found;
+			var pid = (uint)proc.Id;
+			EnumWindows((h, _) => {
+				GetWindowThreadProcessId(h, out var wpid);
+				if (wpid == pid && IsWindowVisible(h)) found = h;
+				return true;
+			}, IntPtr.Zero);
+			return found;
 		}
 
 		public string EvalPage(string expr, bool wait, int ms, CancellationToken ct) {
@@ -1559,6 +1609,14 @@ return JSON.stringify(out);
 		static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 		[DllImport("user32.dll")]
 		static extern bool ShowWindow(IntPtr h, int cmd);
+		[DllImport("user32.dll")]
+		static extern bool IsWindowVisible(IntPtr h);
+		[DllImport("user32.dll")]
+		static extern bool SetForegroundWindow(IntPtr h);
+		[DllImport("user32.dll")]
+		static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+		[DllImport("user32.dll")]
+		static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
 	}
 
 	sealed class Sock : IDisposable {

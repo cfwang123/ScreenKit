@@ -79,10 +79,17 @@ partial class InstallFeaturesWindow {
 
 	async Task loadchrome() {
 		if (busy) return;
+		try { cts?.Cancel(); } catch { }
+		try { cts?.Dispose(); } catch { }
+		cts = new CancellationTokenSource();
 		setbusy(true);
 		try {
+			showchromecatalog();
 			await fetchchrome();
 			chromeLoaded = true;
+		}
+		catch (OperationCanceledException) {
+			appendlog(Loc.T("inst.chrome.cancel"));
 		}
 		catch (Exception ex) {
 			appendlog(ex.Message);
@@ -90,7 +97,17 @@ partial class InstallFeaturesWindow {
 		}
 		finally {
 			setbusy(false);
+			try { cts?.Dispose(); } catch { }
+			cts = null;
 		}
+	}
+
+	void showchromecatalog() {
+		var mode = proxymode();
+		var addr = (eproxyaddr.Text ?? "").Trim();
+		chromeAll = ChromePack.Catalog(false, mode, addr, null, CancellationToken.None);
+		fillchromelang();
+		applychromefilter();
 	}
 
 	async Task fetchchrome() {

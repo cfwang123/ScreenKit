@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader browser speech uses the system default playback device, so a Bluetooth headset plays in stereo instead of its hands-free output.
 - Browser Microsoft voices such as Huihui follow the system default playback device.
 - The Chrome model page no longer counts Windows voices such as Huihui as an installed Google offline voice.
+- Chrome voice packs list immediately and can be cancelled, and reading mode is opened so offline voices can install.
 
 ### 中文
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器的浏览器朗读改走系统默认播放设备，蓝牙耳机走立体声，不再走免提。
 - 浏览器里的微软语音（如 Huihui）改走系统默认播放设备。
 - Chrome 模型页不再把 Huihui 这类 Windows 语音当成已安装的 Google 离线语音。
+- Chrome 语音包列表会马上显示并且可以取消；打开朗读模式后才能安装离线语音。
 
 ## v1.0.29 (2026-10-23)
 

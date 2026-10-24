@@ -4634,3 +4634,4 @@ cast.tab.adb.hint = "À cocher après avoir activé le débogage USB sur le tél
 web.plot.exeq3 = "Équations 3D"
 set.tab.ime = "Méthode de saisie"
 ime.dict.openwin = "Dictionnaire…"
+inst.chrome.voicefail = "The voice pack download failed. If this network cannot reach Google, set the proxy on this page to manual."

@@ -4634,3 +4634,4 @@ cast.tab.adb.hint = "Отметьте после включения отладк
 web.plot.exeq3 = "Уравнения 3D"
 set.tab.ime = "Метод ввода"
 ime.dict.openwin = "Словарь…"
+inst.chrome.voicefail = "The voice pack download failed. If this network cannot reach Google, set the proxy on this page to manual."
