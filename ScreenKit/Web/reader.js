@@ -52,22 +52,20 @@
 	function urlof(blob){ return URL.createObjectURL(blob); }
 	function unurl(url){ URL.revokeObjectURL(url); }
 	function sink(node){
-		if (!node || typeof node.setSinkId !== "function") return;
+		if (!node || typeof node.setSinkId !== "function") return Promise.resolve();
 		function use(id){
 			var p;
 			try { p = node.setSinkId(id || "default"); }
-			catch (e) { return; }
-			if (p && p.then) p.then(function(){}, function(){
-				try { node.setSinkId("default"); } catch (e2) {}
+			catch (e) { return Promise.resolve(); }
+			if (p && p.then) return p.then(function(){}, function(){
+				try { return node.setSinkId("default"); } catch (e2) {}
 			});
+			return Promise.resolve();
 		}
-		if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-			use("default");
-			return;
-		}
-		navigator.mediaDevices.enumerateDevices().then(function(list){
-			use(matchout(list, st.outname) || "default");
-		}, function(){ use("default"); });
+		if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return use("default");
+		return navigator.mediaDevices.enumerateDevices().then(function(list){
+			return use(matchout(list, st.outname) || "default");
+		}, function(){ return use("default"); });
 	}
 
 	function matchout(list, name){
@@ -1167,6 +1165,7 @@
 	}
 
 	// ==================== 朗读 ====================
+	// 当前句出声时就合成下一句，读完马上接上，不再等一整段合成。
 	function readstart(){
 		if (!st.sent.length) {
 			setmsg(L("web.reader.notext", "先打开一篇"), true);
@@ -1206,10 +1205,12 @@
 			ensurepack(token).then(function(){
 				if (token !== st.token || !st.reading) return;
 				var go = function(){
-					if (usesynth()) setTimeout(next, 40);
-					else next();
+					if (token !== st.token || !st.reading) return;
+					if (usesynth()) runsynth(queue, token);
+					else if (blockspeak()) runblock(queue, token);
+					else runwav(queue, token);
 				};
-				if (usesynth()) holdsink(true).then(go);
+				if (usesynth()) holdsink(true).then(function(){ setTimeout(go, 40); });
 				else go();
 			}, function(err){
 				if (token !== st.token) return;
@@ -1222,33 +1223,186 @@
 				if (err) setmsg(err, true);
 			});
 		});
+	}
+
+	function readlive(token){
+		return token === st.token && st.reading;
+	}
+
+	function readdone(token){
+		if (token !== st.token) return;
+		st.reading = false;
+		holdsink(false);
+		if ($("rd-read")) $("rd-read").disabled = false;
+		if ($("rd-stop")) $("rd-stop").disabled = true;
+		clearhl();
+		setmsg(L("web.reader.done", "读完了"));
+	}
+
+	function readfail(token, err){
+		if (!readlive(token)) return;
+		stopread(true);
+		setmsg(err || L("web.reader.novoice", "没有音频"), true);
+	}
+
+	// 浏览器语音：这一句开始出声时就把下一句放进队列，引擎提前合成。
+	function runsynth(queue, token){
+		var alive = 0;
+		var n = 0;
+		var primed = false;
+		var ended = false;
+		function pump(){
+			if (ended || !readlive(token)) return;
+			var cap = primed ? 2 : 1;
+			while (alive < cap && n < queue.length) {
+				var job = queue[n++];
+				var lead = alive === 0;
+				alive++;
+				(function(job, lead){
+					var shown = false;
+					function show(){
+						if (shown || !readlive(token)) return;
+						shown = true;
+						highlight(job.i);
+					}
+					if (lead) show();
+					speakbrowser(job.text, function(err){
+						alive--;
+						if (!readlive(token) || ended) return;
+						if (err) {
+							ended = true;
+							stopsynth();
+							readfail(token, err);
+							return;
+						}
+						if (alive === 0 && n >= queue.length) {
+							ended = true;
+							readdone(token);
+							return;
+						}
+						pump();
+					}, function(){
+						show();
+						if (primed) return;
+						primed = true;
+						pump();
+					});
+				})(job, lead);
+			}
+		}
+		pump();
+	}
+
+	// Chrome 离线语音在服务端出声。下一句的请求提前发出，隐藏页会把它排进正在读的队列。
+	function runblock(queue, token){
+		var nextJob = null;
+		var nextP = null;
+		function start(job){
+			return new Promise(function(resolve){
+				speak(job.text, function(err){ resolve(err || ""); });
+			});
+		}
+		function armnext(){
+			if (nextP || !queue.length || !readlive(token)) return;
+			nextJob = queue.shift();
+			nextP = start(nextJob);
+		}
+		function step(job, p){
+			if (!readlive(token)) return;
+			highlight(job.i);
+			p.then(function(err){
+				if (!readlive(token)) return;
+				if (err) {
+					readfail(token, err);
+					return;
+				}
+				if (!nextJob) {
+					readdone(token);
+					return;
+				}
+				var j = nextJob;
+				var np = nextP;
+				nextJob = null;
+				nextP = null;
+				armnext();
+				step(j, np);
+			});
+		}
+		var first = queue.shift();
+		step(first, start(first));
+		setTimeout(function(){ armnext(); }, 80);
+	}
+
+	// 本地或在线合成返回 WAV。播放这一句时就把下一句的音频要回来。
+	function runwav(queue, token){
+		var ahead = null;
+		function fillahead(){
+			if (ahead || !queue.length || !readlive(token)) return;
+			var job = queue[0];
+			var slot = { job: job, drop: true, p: prepwav(job.text) };
+			ahead = slot;
+			slot.p.then(function(res){
+				if (slot.drop && !readlive(token)) {
+					slot.drop = false;
+					if (res && res.clip) dropclip(res.clip);
+				}
+			});
+		}
+		function take(job){
+			if (ahead && ahead.job === job) {
+				var slot = ahead;
+				ahead = null;
+				slot.drop = false;
+				return slot.p;
+			}
+			if (ahead) {
+				var junk = ahead;
+				ahead = null;
+				junk.drop = false;
+				junk.p.then(function(res){
+					if (res && res.clip) dropclip(res.clip);
+				});
+			}
+			return prepwav(job.text);
+		}
 		function next(){
-			if (token !== st.token || !st.reading) return;
+			if (!readlive(token)) return;
 			if (!queue.length) {
-				st.reading = false;
-				holdsink(false);
-				$("rd-read").disabled = false;
-				$("rd-stop").disabled = true;
-				clearhl();
-				setmsg(L("web.reader.done", "读完了"));
+				readdone(token);
 				return;
 			}
 			var job = queue.shift();
 			highlight(job.i);
-			speak(job.text, function(err){
-				if (token !== st.token || !st.reading) return;
-				if (err) {
-					st.reading = false;
-					holdsink(false);
-					$("rd-read").disabled = false;
-					$("rd-stop").disabled = true;
-					clearhl();
-					setmsg(err, true);
+			var p = take(job);
+			fillahead();
+			p.then(function(res){
+				if (!readlive(token)) {
+					if (res && res.clip) dropclip(res.clip);
 					return;
 				}
-				next();
+				if (!res || res.err || !res.clip) {
+					readfail(token, res && res.err);
+					return;
+				}
+				var play = function(){
+					if (!readlive(token)) {
+						dropclip(res.clip);
+						return;
+					}
+					playclip(res.clip, function(err){
+						if (!readlive(token)) return;
+						if (err) {
+							readfail(token, err);
+							return;
+						}
+						next();
+					});
+				};
+				if (res.clip.ready && res.clip.ready.then) res.clip.ready.then(play, play);
+				else play();
 			});
 		}
+		next();
 	}
 
 	function speak(text, done){
@@ -1273,28 +1427,108 @@
 		posttts(body, done);
 	}
 
-	function posttts(body, done){
-		fetch("/api/tts", {
+	function blockspeak(){
+		if (usesynth()) return false;
+		var eng = st.engine || "browser";
+		return eng === "browser" || eng === "chrome";
+	}
+
+	function requesttts(body){
+		return fetch("/api/tts", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(body)
 		}).then(function(r){ return r.json(); }).then(function(j){
-			if (!j || j.code !== 100) {
-				done(errtext(j));
+			if (!j || j.code !== 100) return { err: errtext(j) };
+			if (body.engine === "chrome") return { played: true };
+			var b64 = j.data && j.data.wav_base64;
+			if (!b64) return { err: L("web.reader.novoice", "没有音频") };
+			return { b64: b64 };
+		}).catch(function(e){
+			return { err: e && e.message ? e.message : "网络错误" };
+		});
+	}
+
+	function prepwav(text){
+		return requesttts(ttsbody(text)).then(function(res){
+			if (!res || res.err || !res.b64) return res || { err: L("web.reader.novoice", "没有音频") };
+			try { res.clip = makeclip(res.b64); }
+			catch (e) { return { err: e && e.message ? e.message : L("web.reader.novoice", "没有音频") }; }
+			return res;
+		});
+	}
+
+	function makeclip(b64){
+		var bin = atob(b64);
+		var bytes = new Uint8Array(bin.length);
+		var i;
+		for (i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 255;
+		var url = urlof(new Blob([bytes], { type: "audio/wav" }));
+		var audio = new Audio();
+		audio.preload = "auto";
+		var ready = new Promise(function(resolve){
+			var left = 2;
+			var settled = false;
+			function one(){
+				if (settled) return;
+				left--;
+				if (left > 0) return;
+				settled = true;
+				resolve();
+			}
+			audio.oncanplaythrough = one;
+			audio.onerror = one;
+			setTimeout(function(){
+				if (settled) return;
+				settled = true;
+				resolve();
+			}, 2000);
+			var sk = sink(audio);
+			if (sk && sk.then) sk.then(one, one);
+			else one();
+		});
+		audio.src = url;
+		return { audio: audio, url: url, ready: ready };
+	}
+
+	function dropclip(clip){
+		if (!clip) return;
+		var playing = wavclip === clip.audio;
+		try {
+			clip.audio.onended = null;
+			clip.audio.pause();
+			if (!playing) clip.audio.src = "";
+		} catch (e) {}
+		if (playing) stopwav();
+		else if (clip.url) unurl(clip.url);
+	}
+
+	function playclip(clip, onend){
+		stopwav();
+		wavclip = clip.audio;
+		wavurl = clip.url;
+		clip.audio.onended = function(){
+			if (wavclip === clip.audio) stopwav();
+			if (onend) onend();
+		};
+		var played = clip.audio.play();
+		if (played && played.then) played.then(function(){}, function(){
+			if (wavclip === clip.audio) stopwav();
+			if (onend) onend(t("web.reader.novoice") || "无法播放");
+		});
+	}
+
+	function posttts(body, done){
+		requesttts(body).then(function(res){
+			if (res.err) {
+				done(res.err);
 				return;
 			}
-			if (body.engine === "chrome") {
+			if (res.played || !res.b64) {
 				done("");
 				return;
 			}
-			var b64 = j.data && j.data.wav_base64;
-			if (!b64) {
-				done(L("web.reader.novoice", "没有音频"));
-				return;
-			}
-			playwav(b64, function(){ done(""); });
-		}).catch(function(e){
-			done(e && e.message ? e.message : "网络错误");
+			playwav(res.b64, function(){ done(""); });
 		});
 	}
 
@@ -1506,7 +1740,7 @@
 		return b;
 	}
 
-	function speakbrowser(text, done){
+	function speakbrowser(text, done, onstart){
 		var syn = window.speechSynthesis;
 		if (!syn || typeof SpeechSynthesisUtterance !== "function") {
 			done(L("web.aim.novoice", "这个浏览器不能朗读"));
@@ -1530,6 +1764,7 @@
 			settled = true;
 			done(err || "");
 		}
+		u.onstart = function(){ if (onstart) onstart(); };
 		u.onend = function(){ finish(""); };
 		u.onerror = function(ev){
 			var code = ev && ev.error;
