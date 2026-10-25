@@ -1214,6 +1214,18 @@ return 'started';
 		return n;
 	}
 
+	public static string NudgeSpeak(int debugPort, int jobId, int pagePort, CancellationToken ct) {
+		if (debugPort <= 0 || jobId <= 0) return "";
+		using var sess = Sess.Attach(debugPort);
+		return sess.PumpSpeak(jobId, false, pagePort, ct);
+	}
+
+	public static void FailSpeak(int debugPort, int jobId, int pagePort, CancellationToken ct) {
+		if (debugPort <= 0 || jobId <= 0) return;
+		using var sess = Sess.Attach(debugPort);
+		sess.PumpSpeak(jobId, true, pagePort, ct);
+	}
+
 	sealed class Sess : IDisposable {
 		Process proc;
 		int port;
@@ -1236,6 +1248,40 @@ return 'started';
 		public static Sess Attach(int debugPort) {
 			var sess = new Sess { own = false, port = debugPort };
 			return sess;
+		}
+
+		public string PumpSpeak(int jobId, bool fail, int pagePort, CancellationToken ct) {
+			var call = fail ? "__skfail" : "__skpump";
+			var expr = "(function(){return window." + call + "?window." + call + "(" + jobId + "):'nopage';})()";
+			var best = "idle";
+			var mark = pagePort > 0 ? ":" + pagePort + "/boot.html" : "boot.html";
+			var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/list");
+			req.Timeout = 4000;
+			string text;
+			using (var resp = req.GetResponse())
+			using (var rd = new StreamReader(resp.GetResponseStream()))
+				text = rd.ReadToEnd();
+			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(text) ? "[]" : text);
+			if (doc.RootElement.ValueKind != JsonValueKind.Array) return best;
+			foreach (var el in doc.RootElement.EnumerateArray()) {
+				var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
+				if ((url ?? "").IndexOf(mark, StringComparison.OrdinalIgnoreCase) < 0) continue;
+				var ws = el.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
+				if (string.IsNullOrEmpty(ws)) continue;
+				Sock sock = null;
+				try {
+					sock = Sock.Connect(ws);
+					var r = sock.Eval(expr, false, 4000, ct);
+					if (r == "armed" || r == "busy" || r == "fail") return r;
+					if (r == "novoice") best = "novoice";
+					else if (r == "nopage" && best == "idle") best = "nopage";
+				}
+				catch { }
+				finally {
+					try { sock?.Dispose(); } catch { }
+				}
+			}
+			return best;
 		}
 
 		/// <summary>专用配置的 Chrome 已经开着调试口时，接上它，不另开一只、退出时也不关掉。</summary>

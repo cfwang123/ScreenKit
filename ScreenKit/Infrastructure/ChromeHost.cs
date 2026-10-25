@@ -163,9 +163,19 @@ static class ChromeHost {
 
 	/// <summary>正在跑的这只 Chrome 的调试端口。没有开调试时为 0。</summary>
 	public static int DebugPort() {
-		if (!TryRun(out _)) return 0;
 		if (debugPort <= 0) debugPort = readdebug();
-		return debugPort;
+		if (debugPort <= 0) return 0;
+		if (TryRun(out _)) return debugPort;
+		try {
+			var req = WebRequest.Create("http://127.0.0.1:" + debugPort + "/json/version");
+			req.Timeout = 400;
+			using (req.GetResponse()) { }
+			return debugPort;
+		}
+		catch {
+			debugPort = 0;
+			return readdebug();
+		}
 	}
 
 	static int readdebug() {
@@ -275,6 +285,36 @@ static class ChromeHost {
 			dropslot(id);
 			throw;
 		}
+		if (page == "speak.html")
+			ThreadPool.QueueUserWorkItem(_ => pumpspeak(id, ct));
+	}
+
+	static void pumpspeak(int id, CancellationToken ct) {
+		var start = Environment.TickCount;
+		var pagePort = port;
+		while (unchecked(Environment.TickCount - start) < 90000) {
+			if (ct.IsCancellationRequested) return;
+			lock (slots) {
+				if (!slots.ContainsKey(id)) return;
+			}
+			var p = DebugPort();
+			if (p <= 0) {
+				Thread.Sleep(200);
+				continue;
+			}
+			string r;
+			try { r = ChromePack.NudgeSpeak(p, id, pagePort, ct); }
+			catch { r = ""; }
+			if (r == "armed" || r == "busy" || r == "fail") return;
+			Thread.Sleep(200);
+		}
+		lock (slots) {
+			if (!slots.ContainsKey(id)) return;
+		}
+		var debug = DebugPort();
+		if (debug <= 0) return;
+		try { ChromePack.FailSpeak(debug, id, pagePort, ct); }
+		catch { }
 	}
 
 	static List<string> waitdone(int id, TaskCompletionSource<List<string>> done, CancellationToken ct, string timeout) {
@@ -961,9 +1001,11 @@ static class ChromeHost {
 		+ "function post(job,ok,err,items){cur=0;var body=JSON.stringify({id:job.id,ok:!!ok,err:err||'',items:items||[]});var done=function(){setTimeout(poll,50);};try{fetch('/r',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:body}).then(done,done);}catch(e){done();}}\n"
 		+ "function watch(){if(!cur)return;var id=cur,x=new XMLHttpRequest();x.open('GET','jobs/'+id+'.stop',true);x.onload=function(){if(cur!=id)return;if((x.responseText||'').charAt(0)=='1'){stopping=true;cur=0;try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}setTimeout(poll,50);}};try{x.send();}catch(e){}}\n"
 		+ "setInterval(watch,200);\n"
-		+ "function pick(job){var list=speechSynthesis.getVoices(),name=(job.name||'').toLowerCase(),lang=(job.lang||'').toLowerCase(),i,n,vl,google=[];function mine(v){n=v.name||'';return n.indexOf('Google')===0||n.indexOf('Chrome OS')===0;}function canon(s){s=(s||'').toLowerCase().replace(/_/g,'-');if(s==='cmn-cn'||s==='zh-hans')return 'zh-cn';if(s==='cmn-tw'||s==='zh-hant')return 'zh-tw';if(s==='yue'||s==='yue-hk')return 'zh-hk';return s;}for(i=0;i<list.length;i++)if(mine(list[i]))google.push(list[i]);if(name){for(i=0;i<google.length;i++)if((google[i].name||'').toLowerCase()===name)return google[i];}function same(v){vl=canon(v.lang);var want=canon(lang);if(!want||!vl)return false;if(vl===want)return true;if(vl.indexOf(want)===0)return true;return want.indexOf(vl)===0&&vl.length>=2;}if(lang){var localGoogle=null,localOs=null,remote=null;for(i=0;i<google.length;i++){if(!same(google[i]))continue;n=google[i].name||'';if(google[i].localService&&n.indexOf('Google')===0){if(!localGoogle)localGoogle=google[i];}else if(google[i].localService){if(!localOs)localOs=google[i];}else if(!remote)remote=google[i];}return localGoogle||localOs||remote;}for(i=0;i<google.length;i++)if(google[i].localService)return google[i];if(google.length)return google[0];return null;}\n"
-		+ "function go(job,v){try{var u=new SpeechSynthesisUtterance(job.text||'');if(v){u.voice=v;u.lang=v.lang||job.lang||'';}else u.lang=job.lang||'';u.rate=job.rate>0?+job.rate:1;u.volume=job.volume==null?1:+job.volume;var heard=false,done=false;u.onstart=function(){heard=true;};u.onend=function(){if(stopping||done)return;done=true;post(job,true,'',[]);};u.onerror=function(e){if(stopping||done)return;done=true;var m=(e&&e.error)||'';if(!m||m.indexOf('Receiving end')>=0)m='Chrome 没有发出声音';post(job,false,m,[]);};setTimeout(function(){try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(e){if(!done){done=true;post(job,false,e&&e.message?e.message:'speak',[]);}return;}setTimeout(function(){if(stopping||done||heard)return;done=true;try{speechSynthesis.cancel();}catch(e){}post(job,false,'Chrome 没有发出声音',[]);},8000);},200);}catch(e){post(job,false,e&&e.message?e.message:'speak',[]);}}\n"
-		+ "function speak(job){if(!window.speechSynthesis){post(job,false,'Chrome 没有发出声音',[]);return;}var started=false;function kick(){if(started||stopping)return true;var v=pick(job);if(!v)return false;started=true;go(job,v);return true;}if(kick())return;var t0=Date.now();var timer=setInterval(function(){if(kick()){clearInterval(timer);return;}if(Date.now()-t0>12000){clearInterval(timer);if(!started)post(job,false,'Chrome 没有发出声音',[]);}},200);speechSynthesis.onvoiceschanged=function(){if(kick())clearInterval(timer);};}\n"
+		+ "function pick(job){var list=speechSynthesis.getVoices(),name=(job.name||'').toLowerCase(),lang=(job.lang||'').toLowerCase(),i,n,vl,google=[];function mine(v){n=v.name||'';return n.indexOf('Google')===0||n.indexOf('Chrome OS')===0;}function canon(s){s=(s||'').toLowerCase().replace(/_/g,'-');if(s==='cmn-cn'||s==='zh-hans')return 'zh-cn';if(s==='cmn-tw'||s==='zh-hant')return 'zh-tw';if(s==='yue'||s==='yue-hk')return 'zh-hk';return s;}for(i=0;i<list.length;i++)if(mine(list[i]))google.push(list[i]);if(name){for(i=0;i<google.length;i++)if((google[i].name||'').toLowerCase()===name&&google[i].localService)return google[i];}function same(v){vl=canon(v.lang);var want=canon(lang);if(!want||!vl)return false;if(vl===want)return true;if(vl.indexOf(want)===0)return true;return want.indexOf(vl)===0&&vl.length>=2;}function zhfam(s){s=canon(s);return s.indexOf('zh')===0||s==='yue'||s.indexOf('yue-')===0;}if(lang){var localGoogle=null,localOs=null,famGoogle=null,famOs=null,remoteNamed=null,remote=null,wantZh=zhfam(lang);for(i=0;i<google.length;i++){n=google[i].name||'';var exact=same(google[i]);var fam=wantZh&&google[i].localService&&zhfam(google[i].lang);if(!exact&&!fam)continue;if(exact&&google[i].localService&&n.indexOf('Google')===0){if(!localGoogle)localGoogle=google[i];}else if(exact&&google[i].localService){if(!localOs)localOs=google[i];}else if(fam&&n.indexOf('Google')===0){if(!famGoogle)famGoogle=google[i];}else if(fam){if(!famOs)famOs=google[i];}else if(exact&&(n||'').toLowerCase()===name){if(!remoteNamed)remoteNamed=google[i];}else if(exact&&!remote)remote=google[i];}return localGoogle||localOs||famGoogle||famOs||remoteNamed||remote;}for(i=0;i<google.length;i++)if(google[i].localService)return google[i];if(google.length)return google[0];return null;}\n"
+		+ "function go(job,v){try{var u=new SpeechSynthesisUtterance(job.text||'');if(v){u.voice=v;u.lang=v.lang||job.lang||'';}else u.lang=job.lang||'';u.rate=job.rate>0?+job.rate:1;u.volume=job.volume==null?1:+job.volume;var heard=false,done=false;u.onstart=function(){heard=true;};u.onend=function(){if(stopping||done)return;done=true;post(job,true,'',[]);};u.onerror=function(e){if(stopping||done)return;done=true;var m=(e&&e.error)||'';if(!m||m.indexOf('Receiving end')>=0)m='Chrome 没有发出声音';post(job,false,m,[]);};try{speechSynthesis.resume();speechSynthesis.speak(u);}catch(e){if(!done){done=true;post(job,false,e&&e.message?e.message:'speak',[]);}return;}setTimeout(function(){if(stopping||done||heard)return;done=true;try{speechSynthesis.cancel();}catch(e){}post(job,false,'Chrome 没有发出声音',[]);},8000);}catch(e){post(job,false,e&&e.message?e.message:'speak',[]);}}\n"
+		+ "function speak(job){window.__skq=window.__skq||[];window.__skq.push(job);}\n"
+		+ "window.__skpump=function(id){var q=window.__skq||[],i,job=null;for(i=0;i<q.length;i++)if(q[i]&&q[i].id===id){job=q[i];break;}if(!job)return 'idle';if(window.__skbusy===id)return 'busy';if(!window.speechSynthesis){q.splice(i,1);post(job,false,'Chrome 没有发出声音',[]);return 'fail';}try{speechSynthesis.getVoices();}catch(e){}var v=pick(job);if(!v)return 'novoice';q.splice(i,1);window.__skbusy=id;go(job,v);return 'armed';};\n"
+		+ "window.__skfail=function(id){var q=window.__skq||[],i;for(i=0;i<q.length;i++)if(q[i]&&q[i].id===id){var job=q[i];q.splice(i,1);post(job,false,'Chrome 没有发出声音',[]);return 'fail';}return 'idle';};\n"
 		+ "function ctor(){if(typeof Translator==='function')return Translator;if(self.ai&&typeof self.ai.translator==='function')return self.ai.translator;return null;}\n"
 		+ "function googup(){var c=new AbortController();var t=setTimeout(function(){try{c.abort();}catch(e){}},8000);return fetch('https://www.google.com/generate_204',{mode:'no-cors',cache:'no-store',signal:c.signal}).then(function(){clearTimeout(t);return true;},function(){clearTimeout(t);return false;});}\n"
 		+ "async function runtr(job){var C=ctor();if(!C){post(job,false,'这个 Chrome 没有翻译接口',[]);return;}try{var opt={sourceLanguage:job.src,targetLanguage:job.dst};var avail='available';if(typeof C.availability==='function'){var av=C.availability(opt);avail=await Promise.race([av,new Promise(function(_,rej){setTimeout(function(){rej(new Error('chrome-google'));},8000);})]);}if(avail==='unavailable'||avail==='no'){post(job,false,'Chrome 不能翻译这对语言',[]);return;}var need=avail==='downloadable'||avail==='downloading';var seen=false;if(need){if(!await googup()){post(job,false,'chrome-google',[]);return;}opt.monitor=function(m){if(m&&m.addEventListener)m.addEventListener('downloadprogress',function(){seen=true;});};}var creating=C.create(opt);var t,settled=null;creating.then(function(x){settled={ok:x};},function(e){settled={err:e};});if(need){var t0=Date.now();while(!settled){await new Promise(function(r){setTimeout(r,400);});if(!seen&&Date.now()-t0>20000){post(job,false,'chrome-google',[]);return;}}if(settled.err)throw settled.err;t=settled.ok;}else{t=await creating;}var outs=[],i,s;for(i=0;i<job.items.length;i++){s=job.items[i]||'';outs.push(s.trim()?await t.translate(s):'');}post(job,true,'',outs);}catch(e){var m=e&&e.message?e.message:'Chrome 翻译失败';if(m==='chrome-google'){post(job,false,m,[]);return;}post(job,false,m,[]);}}\n"
