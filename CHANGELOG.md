@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Chrome model page can play a short test line for an installed voice.
 - The tools page conjugates Japanese verbs from the dictionary class, or from the ending when no dictionary is installed. いく uses って / った. The list is a compact table, and each form has a speak button.
 - The tools page conjugates a Korean verb or adjective from the dictionary form, with a speaker button on each form.
+- Add English irregular verb lookup on the tools page, with every form searchable.
 
 #### Changed
 
@@ -63,6 +64,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Each Korean conjugation is labeled with its speech level, such as formal, polite, or casual.
 - The Korean verb box has a list of common verbs and irregular verbs.
 - Refreshing the tools page rebuilds the tool scripts, so web tool edits show up without restarting.
+- Install features marks an old ime.db as a new version. Install replaces it with the current lexicon, including Japanese spellings and conjugations; uninstall removes the old file.
+- The Korean verb field is one box: type a word, or open the example list on that box.
 
 #### Fixed
 
@@ -93,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 模型页可以为已安装的语音试听一句。
 - 工具页新增日语动词变形：按词典的 1/2/3 类列出变形；没装词典时提示并按词尾判断，いく 的て形、た形单独处理。结果是紧凑的表格，每一项可以发音。
 - 工具页可以输入韩语词典形，列出动词或形容词的变化，每条都能听发音。
+- 工具页新增英文不规则动词查询，任意一种形式都能搜到。
 
 #### 变更
 
@@ -105,6 +109,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语每个变化标明语体，例如敬语、半敬语、非敬语。
 - 韩语动词输入可以下拉选择常见动词和特殊变化的动词。
 - 刷新工具页会重新拼接网页工具脚本，改完不用重启程序。
+- 安装功能里，旧的 ime.db 会标成有新版本。安装会换成当前词库（含日语写法和活用），卸载会删掉旧文件。
+- 韩语动词改成一个输入框，可以直接输入，也可以在这个框里打开列表示例。
 
 #### 修复
 

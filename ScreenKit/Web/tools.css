@@ -412,9 +412,33 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #jv-out, #kv-out { overflow-x: auto; }
 #kv-row { align-items: flex-end; }
 #kv-row > label { width: auto; }
-#kv-row > #kv-word { flex: 1 1 160px; min-width: 140px; }
-#kv-row > #kv-pick { flex: 1 1 210px; min-width: 180px; max-width: 280px; }
+#kv-row > #kv-word { flex: 1 1 220px; min-width: 180px; }
 #kv-row > #kv-type { flex: 0 0 112px; }
+.combo { position: relative; margin-top: 6px; }
+.combo input { margin-top: 0; padding-right: 36px; }
+.combo .combo-btn {
+	position: absolute; top: 1px; right: 1px; width: 34px; height: calc(100% - 2px);
+	margin: 0; padding: 0; border: 0; border-radius: 0 11px 11px 0;
+	background: transparent; color: var(--muted); cursor: pointer;
+}
+.combo .combo-btn:hover { color: var(--ink); background: #fff1e8; }
+.combo-pop {
+	position: fixed; z-index: 80; overflow: auto;
+	margin: 0; padding: 4px 0;
+	background: var(--card); color: var(--ink);
+	border: 1px solid var(--line); border-radius: 12px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+}
+.combo-pop[hidden] { display: none; }
+.combo-g {
+	padding: 6px 12px 2px; color: var(--muted);
+	font: 600 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.combo-item {
+	padding: 6px 12px; cursor: pointer;
+	font: 14px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.combo-item.on, .combo-item:hover { background: #fff1e8; }
 #kv-out .jv-tab .jv-k { width: 9.2em; }
 .jv-tab .kv-g { color: var(--ink); font-weight: 600; font-size: 12px; padding-top: 8px; }
 .jv-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 4px; }
@@ -803,12 +827,15 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .reflist.hcodes th:nth-child(3), .reflist.hcodes td:nth-child(3) { width: 20%; }
 .reflist.mtypes th:nth-child(1), .reflist.mtypes td:nth-child(1) { width: 42%; }
 .reflist.mtypes th:nth-child(2), .reflist.mtypes td:nth-child(2) { width: 22%; }
+.reflist.iverbs th:nth-child(1), .reflist.iverbs td:nth-child(1) { width: 26%; }
+.reflist.iverbs th:nth-child(2), .reflist.iverbs td:nth-child(2) { width: 27%; }
+.reflist.iverbs th:nth-child(3), .reflist.iverbs td:nth-child(3) { width: 27%; }
 .reflist th {
 	position: sticky; top: 0; z-index: 1;
 	background: var(--card); color: var(--muted); font-weight: 600;
 }
-.reflist tbody tr[data-code], .reflist tbody tr[data-mime] { cursor: pointer; }
-.reflist tbody tr[data-code]:hover, .reflist tbody tr[data-mime]:hover { background: #f4f4f5; }
+.reflist tbody tr[data-code], .reflist tbody tr[data-mime], .reflist tbody tr[data-iv] { cursor: pointer; }
+.reflist tbody tr[data-code]:hover, .reflist tbody tr[data-mime]:hover, .reflist tbody tr[data-iv]:hover { background: #f4f4f5; }
 .reflist tbody tr.on, .reflist tbody tr.on:hover { background: #fff1e8; }
 .reflist .refgh td {
 	background: #f7f5f1; color: var(--ink);
@@ -838,6 +865,10 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 12px/1.4 Consolas, "Microsoft YaHei UI", monospace;
 	word-break: break-word;
 }
+.reflist td.ivbase, .reflist.iverbs td:nth-child(2), .reflist.iverbs td:nth-child(3) {
+	font: 12.5px/1.4 Consolas, "Microsoft YaHei UI", monospace;
+}
+.reflist td.ivbase { font-weight: 600; }
 .hcode.c1, .refbig.c1 { color: #0369a1; }
 .hcode.c2, .refbig.c2 { color: #15803d; }
 .hcode.c3, .refbig.c3 { color: #b45309; }

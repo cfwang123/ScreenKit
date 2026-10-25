@@ -1047,6 +1047,248 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		return '<input id="' + id + '" type="text" value="' + value + '" placeholder="' + shown + '"' + attr + ">";
 	}
 
+	// 可输入的下拉。combo 生成框，combofill 填分组。groups: [{ g, items: [{ v, t }] }]。
+	var COMBOS = {};
+
+	function combo(id, value, ph){
+		var key = webkey(ph || "");
+		var shown = key ? t(key) : (ph || "");
+		var attr = key ? ' data-kph="' + key + '"' : "";
+		return '<div class="combo">'
+			+ '<input id="' + htmlenc(id) + '" type="text" autocomplete="off" value="' + htmlenc(value || "") + '" placeholder="' + htmlenc(shown) + '"' + attr + ">"
+			+ '<button type="button" class="combo-btn" tabindex="-1"><i class="fa-solid fa-chevron-down"></i></button>'
+			+ '<div class="combo-pop" hidden></div></div>';
+	}
+
+	function combofill(id, groups){
+		var st = COMBOS[id] || (COMBOS[id] = { groups: [], hi: -1, all: true, visible: [] });
+		st.groups = groups || [];
+		st.hi = -1;
+		if (comboopenq(id)) paintcombo(id);
+	}
+
+	function combowatch(){
+		F.on(document, "mousedown", oncombodown);
+		F.on(document, "click", oncomboclick);
+		F.on(document, "keydown", oncombokey);
+		F.on(document, "input", oncomboinput);
+		F.on(document, "scroll", oncomboscroll, true);
+		F.on(window, "resize", function(){ closecombos(); });
+	}
+
+	function comboroot(id){
+		var box = F.id(id);
+		var el = box ? box.parentNode : null;
+		if (!el || !el.className || String(el.className).indexOf("combo") < 0) return null;
+		return el;
+	}
+
+	function combopop(root){
+		return root ? F.q(".combo-pop", root) : null;
+	}
+
+	function comboopenq(id){
+		var pop = combopop(comboroot(id));
+		return !!(pop && !pop.hidden);
+	}
+
+	function comboid(el){
+		while (el && el !== document.body) {
+			if (el.className && String(el.className).indexOf("combo") >= 0 && String(el.className).indexOf("combo-") < 0) {
+				var box = F.q("input", el);
+				return box ? box.id : "";
+			}
+			el = el.parentNode;
+		}
+		return "";
+	}
+
+	function combohit(el, cls){
+		while (el && el !== document.body) {
+			if (el.className && (" " + el.className + " ").indexOf(" " + cls + " ") >= 0) return el;
+			el = el.parentNode;
+		}
+		return null;
+	}
+
+	function closecombos(){
+		var id;
+		for (id in COMBOS) if (Object.prototype.hasOwnProperty.call(COMBOS, id)) comboclose(id);
+	}
+
+	function comboclose(id){
+		var pop = combopop(comboroot(id));
+		if (pop) pop.hidden = true;
+		if (COMBOS[id]) COMBOS[id].hi = -1;
+	}
+
+	function comboopen(id, filter){
+		var st = COMBOS[id] || (COMBOS[id] = { groups: [], hi: -1, all: true, visible: [] });
+		var id2;
+		for (id2 in COMBOS) if (id2 !== id && Object.prototype.hasOwnProperty.call(COMBOS, id2)) comboclose(id2);
+		st.all = !filter;
+		st.hi = -1;
+		paintcombo(id);
+		var pop = combopop(comboroot(id));
+		if (!pop) return;
+		pop.hidden = false;
+		placecombo(id);
+	}
+
+	function paintcombo(id){
+		var st = COMBOS[id];
+		var pop = combopop(comboroot(id));
+		if (!st || !pop) return;
+		var box = F.id(id);
+		var q = st.all || !box ? "" : String(box.value || "").toLowerCase();
+		var html = "";
+		var vis = [];
+		var gi, ii, grp, it, head, chunk;
+		for (gi = 0; gi < st.groups.length; gi++) {
+			grp = st.groups[gi];
+			head = "";
+			chunk = "";
+			for (ii = 0; ii < grp.items.length; ii++) {
+				it = grp.items[ii];
+				if (q && String(it.v).toLowerCase().indexOf(q) < 0 && String(it.t).toLowerCase().indexOf(q) < 0) continue;
+				chunk += '<div class="combo-item" data-v="' + htmlenc(it.v) + '">' + htmlenc(it.t) + "</div>";
+				vis.push(it.v);
+			}
+			if (!chunk) continue;
+			if (grp.g) head = '<div class="combo-g">' + htmlenc(grp.g) + "</div>";
+			html += head + chunk;
+		}
+		st.visible = vis;
+		if (st.hi >= vis.length) st.hi = vis.length - 1;
+		pop.innerHTML = html;
+		markcombo(id);
+	}
+
+	function markcombo(id){
+		var st = COMBOS[id];
+		var pop = combopop(comboroot(id));
+		if (!st || !pop) return;
+		var items = F.qa(".combo-item", pop);
+		var i, el;
+		for (i = 0; i < items.length; i++) {
+			el = items[i];
+			if (i === st.hi) el.className = "combo-item on";
+			else el.className = "combo-item";
+		}
+		el = st.hi >= 0 ? items[st.hi] : null;
+		if (!el) return;
+		var top = el.offsetTop;
+		var bot = top + el.offsetHeight;
+		if (top < pop.scrollTop) pop.scrollTop = top;
+		else if (bot > pop.scrollTop + pop.clientHeight) pop.scrollTop = bot - pop.clientHeight;
+	}
+
+	function placecombo(id){
+		var box = F.id(id);
+		var pop = combopop(comboroot(id));
+		if (!box || !pop || pop.hidden) return;
+		var r = box.getBoundingClientRect();
+		var below = window.innerHeight - r.bottom - 8;
+		pop.style.left = Math.max(8, r.left) + "px";
+		pop.style.width = r.width + "px";
+		if (below < 180 && r.top > below) {
+			pop.style.top = "auto";
+			pop.style.bottom = (window.innerHeight - r.top + 4) + "px";
+			pop.style.maxHeight = Math.max(120, r.top - 12) + "px";
+		}
+		else {
+			pop.style.bottom = "auto";
+			pop.style.top = (r.bottom + 4) + "px";
+			pop.style.maxHeight = Math.max(120, below - 4) + "px";
+		}
+	}
+
+	function combopick(id, value){
+		var box = F.id(id);
+		if (!box) return;
+		box.value = value;
+		comboclose(id);
+		box.focus();
+		var ev;
+		try { ev = new Event("input", { bubbles: true }); }
+		catch (e) {
+			ev = document.createEvent("Event");
+			ev.initEvent("input", true, true);
+		}
+		box.dispatchEvent(ev);
+	}
+
+	function movecombo(id, dir){
+		var st = COMBOS[id];
+		if (!st || !st.visible || !st.visible.length) return;
+		var n = st.visible.length;
+		if (st.hi < 0) st.hi = dir > 0 ? 0 : n - 1;
+		else st.hi = (st.hi + dir + n) % n;
+		markcombo(id);
+	}
+
+	function oncombodown(ev){
+		if (combohit(ev.target, "combo-btn") || combohit(ev.target, "combo-pop")) F.pd(ev);
+	}
+
+	function oncomboclick(ev){
+		var btn = combohit(ev.target, "combo-btn");
+		if (btn) {
+			var id = comboid(btn);
+			if (!id) return;
+			if (comboopenq(id)) comboclose(id);
+			else comboopen(id, false);
+			return;
+		}
+		var item = combohit(ev.target, "combo-item");
+		if (item) {
+			combopick(comboid(item), F.attr(item, "data-v") || "");
+			return;
+		}
+		if (!combohit(ev.target, "combo")) closecombos();
+	}
+
+	function oncombokey(ev){
+		var box = ev.target;
+		if (!box || !box.id || !COMBOS[box.id]) return;
+		var id = box.id;
+		if (ev.key === "Escape") { comboclose(id); return; }
+		if (ev.key === "ArrowDown") {
+			if (!comboopenq(id)) comboopen(id, false);
+			movecombo(id, 1);
+			F.pd(ev);
+			return;
+		}
+		if (ev.key === "ArrowUp") {
+			if (!comboopenq(id)) return;
+			movecombo(id, -1);
+			F.pd(ev);
+			return;
+		}
+		if (ev.key === "Enter" && comboopenq(id)) {
+			var st = COMBOS[id];
+			if (st && st.hi >= 0 && st.visible && st.visible[st.hi] != null) {
+				combopick(id, st.visible[st.hi]);
+				F.pd(ev);
+			}
+		}
+	}
+
+	function oncomboinput(ev){
+		var box = ev.target;
+		if (!box || !box.id || !COMBOS[box.id] || !comboopenq(box.id)) return;
+		COMBOS[box.id].all = false;
+		COMBOS[box.id].hi = -1;
+		paintcombo(box.id);
+		placecombo(box.id);
+	}
+
+	function oncomboscroll(ev){
+		var t = ev.target;
+		if (t && t.className && String(t.className).indexOf("combo-pop") >= 0) return;
+		closecombos();
+	}
+
 	function numin(id, value){
 		return '<input id="' + id + '" type="number" value="' + value + '">';
 	}
@@ -1444,6 +1686,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.row2 = row2;
 	SK.ta = ta;
 	SK.textin = textin;
+	SK.combo = combo;
+	SK.combofill = combofill;
 	SK.numin = numin;
 	SK.check = check;
 	SK.radio = radio;
@@ -1478,4 +1722,5 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.openutil = openutil;
 	SK.utilrun = utilrun;
 	SK.t = t;
+	combowatch();
 })();

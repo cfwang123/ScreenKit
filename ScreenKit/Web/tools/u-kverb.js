@@ -258,8 +258,7 @@
 	function body(){
 		return '<p class="hint" id="kv-hint"></p>'
 			+ '<div class="row" id="kv-row">'
-			+ '<label id="kv-word"><input id="kv-in" type="text" value="먹다"></label>'
-			+ '<label id="kv-pick"><select id="kv-ex"></select></label>'
+			+ '<label id="kv-word">' + SK.combo("kv-in", "먹다", "词典形，如 먹다、하다、예쁘다") + "</label>"
 			+ '<label id="kv-type"><select id="kv-sel">'
 			+ '<option value="auto"></option>'
 			+ '<option value="v"></option>'
@@ -278,14 +277,8 @@
 		var title = F.id("box-title");
 		if (title) title.textContent = tx("web.tool.kverb", "韩语动词变化");
 		setlab("kv-word", "web.kverb.word", "动词");
-		setlab("kv-pick", "web.kverb.pick", "示例");
 		setlab("kv-type", "web.kverb.type", "类型");
-		var ex = F.id("kv-ex");
-		if (ex && !F.attr(ex, "data-bind")) {
-			F.seta(ex, "data-bind", "1");
-			ex.onchange = onpick;
-		}
-		fillpicks();
+		SK.combofill("kv-in", pickgroups());
 		setopt("auto", "web.kverb.auto", "自动");
 		setopt("v", "web.kverb.verb", "动词");
 		setopt("a", "web.kverb.adj", "形容词");
@@ -302,33 +295,22 @@
 		run();
 	}
 
-	function fillpicks(){
-		var sel = F.id("kv-ex");
-		if (!sel) return;
+	function pickgroups(){
 		var lang = langcode();
-		var html = '<option value="">' + esc(tx("web.kverb.pick", "示例")) + "</option>";
-		var g = "";
-		var i, row, gloss;
+		var groups = [];
+		var cur = null;
+		var i, row, gloss, name;
 		for (i = 0; i < PICKS.length; i++) {
 			row = PICKS[i];
-			if (row[0] !== g) {
-				if (g) html += "</optgroup>";
-				g = row[0];
-				html += '<optgroup label="' + esc(lp(lang, PICKG[g])) + '">';
+			name = lp(lang, PICKG[row[0]]);
+			if (!cur || cur.g !== name) {
+				cur = { g: name, items: [] };
+				groups.push(cur);
 			}
 			gloss = lang === "zh" ? row[2] : lang === "ko" ? row[3] : row[4];
-			html += '<option value="' + esc(row[1]) + '">' + esc(gloss ? row[1] + "  " + gloss : row[1]) + "</option>";
+			cur.items.push({ v: row[1], t: gloss ? row[1] + "  " + gloss : row[1] });
 		}
-		if (g) html += "</optgroup>";
-		sel.innerHTML = html;
-	}
-
-	function onpick(){
-		var sel = F.id("kv-ex");
-		var box = F.id("kv-in");
-		if (!sel || !box || !sel.value) return;
-		box.value = sel.value;
-		sel.value = "";
+		return groups;
 	}
 
 	function onout(ev){
