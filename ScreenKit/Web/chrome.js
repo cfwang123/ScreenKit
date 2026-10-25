@@ -78,6 +78,7 @@
 		for (i = 0; i < rows.length; i++) {
 			var r = rows[i];
 			if (!r || r.kind !== "tts") continue;
+			if (r.state === "installed" || r.state === "partial") continue;
 			var lang = String(r.id || "").replace(/^tts:/i, "");
 			var hit = false;
 			for (j = 0; j < voices.length; j++) {

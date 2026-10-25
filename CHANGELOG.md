@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Installing Chinese reported success when the Chrome voice list had no Mandarin pack, so a refresh showed it missing.
 - Chrome offline speech failed immediately with not-allowed because the hidden page spoke without a user gesture.
 - The status bar hid Chrome child processes while speaking, because the launcher process had already exited.
+- Refreshing the Chrome model page no longer marks an installed voice pack as missing.
 
 ### 中文
 
@@ -93,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 当前 Chrome 语音目录没有普通话包，安装会立刻报成功，刷新后又变成未安装。
 - 隐藏页里的朗读没有用户手势，Chrome 立刻拒绝并报 not-allowed。
 - 朗读时状态栏不显示 Chrome 子进程，是因为启动进程已经退出，实际在跑的是配置目录里的 Chrome。
+- 刷新 Chrome 模型页不再把已经安装的语音包显示成未安装。
 
 ## v1.0.29 (2026-10-23)
 
