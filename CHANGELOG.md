@@ -49,6 +49,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader can speak with the current browser's own voices, without asking the app to synthesize audio. That engine shows an Install models link.
 - Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 - The Chrome model page can play a short test line for an installed voice.
+- The tools page conjugates Japanese verbs from the dictionary class, or from the ending when no dictionary is installed. いく uses って / った. The list is a compact table, and each form has a speak button.
+- The tools page conjugates a Korean verb or adjective from the dictionary form, with a speaker button on each form.
 
 #### Changed
 
@@ -74,6 +76,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Refreshing the Chrome model page no longer marks an installed voice pack as missing.
 - Google voices in the in-browser model tool speak with the installed offline pack, so a proxy is not required.
 - The Speech tab Chrome engine reads Traditional Chinese with Google 國語, the same voice as the in-browser model, instead of the slower on-device Natural voice.
+- The window stopped responding for about a second every few seconds while the Chrome child process was open, because hiding that window waited on Chrome.
+- Force-closing Chrome from the memory window also ends the browser that kept running after the launcher exited, so the app is no longer taken down a minute or two later.
+- The Chrome model list in Install features reads the voice-pack record on disk, so it opens immediately instead of starting Chrome and waiting about half a minute.
+- The Tools menu on the main window and in the tray now includes the novel reader and the dictionary under Text, matching the web tools page.
 
 ### 中文
 
@@ -82,6 +88,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器可以用当前浏览器自己的语音朗读，不经过程序合成。选中这个引擎时显示「安装模型」链接。
 - 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 - Chrome 模型页可以为已安装的语音试听一句。
+- 工具页新增日语动词变形：按词典的 1/2/3 类列出变形；没装词典时提示并按词尾判断，いく 的て形、た形单独处理。结果是紧凑的表格，每一项可以发音。
+- 工具页可以输入韩语词典形，列出动词或形容词的变化，每条都能听发音。
 
 #### 变更
 
@@ -107,6 +115,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 刷新 Chrome 模型页不再把已经安装的语音包显示成未安装。
 - 浏览器小模型里的 Google 语音改用已安装的离线包朗读，不必开代理。
 - 语音合成的 Chrome 引擎读台湾中文时，改用和浏览器小模型一样的 Google 國語，不再改用更慢的离线 Natural 音。
+- Chrome 子进程开着时，主线程每隔几秒会卡约一秒：藏窗口时在等 Chrome 自己处理消息。
+- 在内存占用里强制关闭 Chrome 时，会把启动进程退出后仍在跑的浏览器一起结束，程序不再过一两分钟跟着退出。
+- 安装功能里的 Chrome 模型列表改为直接读本机语音包记录，打开时不再启动 Chrome，也不再等大约半分钟。
+- 主界面和托盘的「工具 → 文字」补上小说阅读器，词典也按网页分类放进这一组。
 
 ## v1.0.29 (2026-10-23)
 
