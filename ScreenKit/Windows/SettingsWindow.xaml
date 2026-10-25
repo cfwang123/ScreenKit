@@ -38,12 +38,10 @@
 
 						<TextBlock x:Name="lbsetchrome" Text="chrome.exe" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<DockPanel Margin="0,0,0,4" LastChildFill="True">
-							<Button x:Name="bsetchromebrowse" Content="浏览…" DockPanel.Dock="Right"
-							        Style="{StaticResource ToolBtn}" Width="72" Height="32" Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.chrome.browse"/>
-							<Button x:Name="bsetchromedetect" Content="检测路径" DockPanel.Dock="Right"
-							        Style="{StaticResource ToolBtn}" MinWidth="80" Height="32" Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.chrome.detect"/>
+							<Button x:Name="bsetchromebrowse" Content="浏览…" DockPanel.Dock="Right" Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.chrome.browse" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bsetchromedetect" Content="检测路径" DockPanel.Dock="Right" Margin="8,0,0,0"
+							        AutomationProperties.AutomationId="set.chrome.detect" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="esetchromeidle" DockPanel.Dock="Right" Width="64" Height="32"
 							         Padding="8,4" Margin="8,0,0,0"
 							         BorderBrush="{StaticResource BorderSoft}"
@@ -218,10 +216,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="主窗呼出/隐藏 · 默认 Ctrl+Alt+O；留空禁用。再按一次隐藏"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkey" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 						</DockPanel>
@@ -230,10 +226,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="截图标注 · 框选并标注，默认 Ctrl+Alt+Q；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhksnapclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhksnapcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhksnapclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhksnapcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeysnap" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 						</DockPanel>
@@ -242,10 +236,8 @@
 						           Margin="0,0,0,4"
 						           Text="截图识别 · 框选后立即 OCR，默认 Ctrl+Alt+W；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkocrclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkocrcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkocrclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkocrcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeysnapocr" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 						</DockPanel>
@@ -254,10 +246,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="屏幕画板 · 全屏冻结后标注；默认空=禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkboardclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkboardcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkboardclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkboardcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyboard" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.board"/>
@@ -267,10 +257,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="整屏截屏 · 截取「截图」页所选显示器全屏；默认 Ctrl+Alt+G；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkscreensnapclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkscreensnapcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkscreensnapclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkscreensnapcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyscreensnap" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.screensnap"/>
@@ -280,10 +268,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="语音输入 · 麦克风持续识别并输入到焦点窗口，默认 Ctrl+Alt+V；再按一次结束；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkvoiceclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkvoicecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkvoiceclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkvoicecap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyvoice" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 						</DockPanel>
@@ -292,10 +278,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="系统实时字幕 · 流式识别到桌面字幕窗，默认 Ctrl+Alt+B；再按一次结束；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkliveclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhklivecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkliveclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhklivecap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeylive" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.live"/>
@@ -305,10 +289,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="翻译小窗 · 呼出/隐藏，默认 Ctrl+Alt+T；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhktrclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhktrcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhktrclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhktrcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeytr" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.translate"/>
@@ -318,10 +300,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="切换截图复制方式 · 图片 / 文件 / 路径循环，默认 Ctrl+Alt+P；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhksnapcopyclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhksnapcopycap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhksnapcopyclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhksnapcopycap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeysnapcopy" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.snapcopy"/>
@@ -331,10 +311,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="词典页 · 打开并切换；已在该页时隐藏。默认留空不注册"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkdictclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkdictcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkdictclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkdictcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeydict" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.dict"/>
@@ -344,10 +322,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="划词浮窗 · 打开或关闭。默认留空不注册"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkdictselclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkdictselcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkdictselclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkdictselcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeydictsel" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.dictsel"/>
@@ -357,10 +333,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="web工具主页 · 在浏览器打开本机工具页，默认 Ctrl+Alt+H；留空禁用"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkwebclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkwebcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkwebclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkwebcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyweb" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.webhome"/>
@@ -394,10 +368,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="切换语言 · 五笔、日语、韩语，然后再到关闭。默认 Ctrl+`"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkimecycleclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkimecyclecap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkimecycleclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkimecyclecap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyimecycle" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.ime.cycle"/>
@@ -407,10 +379,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="切到五笔。默认 Ctrl+Alt+1"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkimewubiclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkimewubicap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkimewubiclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkimewubicap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyimewubi" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.ime.wubi"/>
@@ -420,10 +390,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="切到日语。默认 Ctrl+Alt+2"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkimejaclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkimejacap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkimejaclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkimejacap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyimeja" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.ime.ja"/>
@@ -433,10 +401,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="切到韩语。默认 Ctrl+Alt+3"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkimekoclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkimekocap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkimekoclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkimekocap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyimeko" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.ime.ko"/>
@@ -446,10 +412,8 @@
 						           Margin="0,0,0,4" TextWrapping="Wrap"
 						           Text="关闭输入，按键交给当前窗口。默认 Ctrl+Alt+4"/>
 						<DockPanel Margin="0,0,0,10" LastChildFill="True">
-							<Button x:Name="bhkimeoffclear" DockPanel.Dock="Right" Content="清空" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" Margin="4,0,0,0" ToolTip="清空（禁用）"/>
-							<Button x:Name="bhkimeoffcap" DockPanel.Dock="Right" Content="捕获" Width="48" Height="30"
-							        Style="{StaticResource ToolBtn}" Padding="4,0" ToolTip="点击后按下快捷键"/>
+							<Button x:Name="bhkimeoffclear" DockPanel.Dock="Right" Content="清空" Margin="4,0,0,0" ToolTip="清空（禁用）" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+							<Button x:Name="bhkimeoffcap" DockPanel.Dock="Right" Content="捕获" ToolTip="点击后按下快捷键" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBox x:Name="ehotkeyimeoff" Height="30" Padding="6,4"
 							         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							         AutomationProperties.AutomationId="set.hotkey.ime.off"/>
@@ -465,9 +429,9 @@
 						<TextBlock x:Name="lbimerarehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"/>
 
-						<Button x:Name="bimedict" Style="{StaticResource ToolBtn}" Padding="12,6"
+						<Button x:Name="bimedict"
 						        Content="词库…" HorizontalAlignment="Left" Margin="0,4,0,0"
-						        AutomationProperties.AutomationId="set.ime.dict"/>
+						        AutomationProperties.AutomationId="set.ime.dict" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>
@@ -525,9 +489,9 @@
 						</Grid>
 						<StackPanel x:Name="pdicttts"/>
 						<DockPanel Margin="0,8,0,0" LastChildFill="True">
-							<Button x:Name="bdictttsadd" DockPanel.Dock="Right" Content="添加" Width="64" Height="28"
+							<Button x:Name="bdictttsadd" DockPanel.Dock="Right" Content="添加"
 							        Margin="8,0,0,0" Click="ondictttsadd"
-							        AutomationProperties.AutomationId="set.dict.tts.add"/>
+							        AutomationProperties.AutomationId="set.dict.tts.add" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<ComboBox x:Name="edictttsadd" Height="28" IsEditable="True"
 							          AutomationProperties.AutomationId="set.dict.tts.lang"/>
 						</DockPanel>
@@ -619,15 +583,12 @@
 						</Grid.ColumnDefinitions>
 						<DockPanel Grid.Column="0">
 							<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-								<Button x:Name="bllmadd" Content="添加" Style="{StaticResource ToolBtn}"
-								        Width="52" Height="30" Margin="0,0,6,0" Click="onllmadd"
-								        AutomationProperties.AutomationId="set.llm.add"/>
-								<Button x:Name="bllmcopy" Content="复制" Style="{StaticResource ToolBtn}"
-								        Width="52" Height="30" Margin="0,0,6,0" Click="onllmcopy"
-								        AutomationProperties.AutomationId="set.llm.copy"/>
-								<Button x:Name="bllmdel" Content="删除" Style="{StaticResource ToolBtn}"
-								        Width="52" Height="30" Click="onllmdel"
-								        AutomationProperties.AutomationId="set.llm.del"/>
+								<Button x:Name="bllmadd" Content="添加" Margin="0,0,6,0" Click="onllmadd"
+								        AutomationProperties.AutomationId="set.llm.add" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+								<Button x:Name="bllmcopy" Content="复制" Margin="0,0,6,0" Click="onllmcopy"
+								        AutomationProperties.AutomationId="set.llm.copy" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+								<Button x:Name="bllmdel" Content="删除" Click="onllmdel"
+								        AutomationProperties.AutomationId="set.llm.del" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							</StackPanel>
 							<ListBox x:Name="ellmlist" SelectionChanged="onllmselect"
 							         AutomationProperties.AutomationId="set.llm.list"/>
@@ -692,9 +653,9 @@
 						          AutomationProperties.AutomationId="set.asr.llm.pick"/>
 						<DockPanel Margin="0,0,0,4">
 							<Button x:Name="basrllmpromptreset" DockPanel.Dock="Right"
-							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Content="默认"
 							        Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.asr.llm.prompt.default"/>
+							        AutomationProperties.AutomationId="set.asr.llm.prompt.default" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBlock x:Name="lbsetasrllmprompt" Text="润色提示词" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 						</DockPanel>
@@ -710,9 +671,9 @@
 						           Text="主窗口「LLM对话」Tab 的系统提示词。选用的接口在该 Tab 下拉框选择（空则用上面的润色 LLM）。"/>
 						<DockPanel Margin="0,0,0,4">
 							<Button x:Name="bchatllmpromptreset" DockPanel.Dock="Right"
-							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Content="默认"
 							        Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.chat.llm.prompt.default"/>
+							        AutomationProperties.AutomationId="set.chat.llm.prompt.default" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBlock x:Name="lbsetchatllmprompt" Text="对话提示词" FontSize="11"
 							           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 						</DockPanel>
@@ -734,9 +695,9 @@
 						           Text="每次请求发给 LLM 的条数（1–64，默认 8）。"/>
 						<DockPanel Margin="0,0,0,6">
 							<Button x:Name="btrllmpromptreset" DockPanel.Dock="Right"
-							        Content="默认" Style="{StaticResource ToolBtn}" Height="26" Padding="10,2"
+							        Content="默认"
 							        Margin="8,0,0,0"
-							        AutomationProperties.AutomationId="set.tr.llm.prompt.default"/>
+							        AutomationProperties.AutomationId="set.tr.llm.prompt.default" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 							<TextBlock x:Name="lbsettrllmprompt" Text="LLM提示词" FontWeight="SemiBold"
 							           VerticalAlignment="Center"/>
 						</DockPanel>
@@ -810,8 +771,7 @@
 							          VerticalContentAlignment="Center" Text="screenshots/"
 							          AutomationProperties.AutomationId="set.screenshot.dir"/>
 							<Button x:Name="bsnapdir" Grid.Column="3" Content="浏览"
-							        Style="{StaticResource ToolBtn}" Height="30" Padding="10,2"
-							        AutomationProperties.AutomationId="set.screenshot.dir.browse"/>
+							        AutomationProperties.AutomationId="set.screenshot.dir.browse" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 						</Grid>
 						<TextBlock x:Name="lbsetsnapdirhint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           Margin="0,0,0,10" TextWrapping="Wrap"
@@ -1030,19 +990,19 @@
 						<ListBox x:Name="esfdev" Height="90" Margin="0,0,0,8"
 						         BorderBrush="{StaticResource BorderSoft}"
 						         AutomationProperties.AutomationId="set.sendfile.devices"/>
-						<Button x:Name="bsfunpair" Content="解除配对" Style="{StaticResource ToolBtn}"
-						        HorizontalAlignment="Left" Padding="12,6"
-						        AutomationProperties.AutomationId="set.sendfile.unpair"/>
+						<Button x:Name="bsfunpair" Content="解除配对"
+						        HorizontalAlignment="Left"
+						        AutomationProperties.AutomationId="set.sendfile.unpair" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>
 		</TabControl>
 
 		<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-			<Button x:Name="bcancel" Content="取消" Style="{StaticResource ToolBtn}" Width="88" Margin="0,0,8,0"
-			        IsCancel="True"/>
-			<Button x:Name="bok" Content="确定" Style="{StaticResource PrimaryBtn}" Width="88" Margin="0"
-			        IsDefault="True"/>
+			<Button x:Name="bcancel" Content="取消" Margin="0,0,8,0"
+			        IsCancel="True" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
+			<Button x:Name="bok" Content="确定" Margin="0"
+			        IsDefault="True" MinWidth="0" VerticalAlignment="Center" Padding="8,0"/>
 		</StackPanel>
 	</Grid>
 </Window>
