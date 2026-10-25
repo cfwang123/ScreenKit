@@ -424,16 +424,23 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .combo .combo-btn:hover { color: var(--ink); background: #fff1e8; }
 .combo-pop {
 	position: fixed; z-index: 80; overflow: auto;
-	margin: 0; padding: 4px 0;
+	margin: 0; padding: 0;
 	background: var(--card); color: var(--ink);
 	border: 1px solid var(--line); border-radius: 12px;
 	box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
 }
 .combo-pop[hidden] { display: none; }
 .combo-g {
-	padding: 6px 12px 2px; color: var(--muted);
-	font: 600 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	position: sticky; top: 0; z-index: 1;
+	margin: 0; padding: 6px 12px;
+	background: #efe6dc; color: var(--accent);
+	border-bottom: 1px solid var(--line);
+	font: 700 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	letter-spacing: .06em;
+	cursor: default;
 }
+.combo-pop > .combo-g + .combo-g,
+.combo-item + .combo-g { border-top: 1px solid var(--line); }
 .combo-item {
 	padding: 6px 12px; cursor: pointer;
 	font: 14px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
