@@ -995,7 +995,12 @@ public partial class MainWindow : Window {
 			hotkeyImeCycle = new GlobalHotkey(this, 0x7010);
 			hotkeyImeCycle.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
-					if (hangul != null && !hangul.On) hangulset(true);
+					if (hangul == null || hangul.On) return;
+					if (!ImeLex.DbInstalled) {
+						setstatus(Loc.T("hangul.needdb"));
+						return;
+					}
+					if (!hangul.Next()) setstatus(Loc.T("hangul.hookfail"));
 				}
 				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
 			}));

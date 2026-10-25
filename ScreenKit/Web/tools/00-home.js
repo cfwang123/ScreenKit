@@ -123,130 +123,6 @@
 		x:"div.shell",
 		c:[
 		{
-			x:"aside",
-			c:[
-			{
-				x:"nav#cats",
-				c:[
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"fav",
-					"data-title":"收藏",
-					"data-kt":"web.cat.fav",
-					c:[
-					{x:"i.fa-solid.fa-star"},
-					{x:"span","data-k":"web.cat.fav",c:"收藏"}
-				]
-				},
-				{
-					x:"button.on",
-					"type":"button",
-					"data-cat":"all",
-					"data-title":"全部",
-					"data-kt":"web.cat.all",
-					c:[
-					{x:"i.fa-solid.fa-border-all"},
-					{x:"span","data-k":"web.cat.all",c:"全部"}
-				]
-				},
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"text",
-					"data-title":"文字",
-					"data-kt":"web.cat.text",
-					c:[
-					{x:"i.fa-solid.fa-font"},
-					{x:"span","data-k":"web.cat.text",c:"文字"}
-				]
-				},
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"calc",
-					"data-title":"计算",
-					"data-kt":"web.cat.calc",
-					c:[
-					{x:"i.fa-solid.fa-calculator"},
-					{x:"span","data-k":"web.cat.calc",c:"计算"}
-				]
-				},
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"speech",
-					"data-title":"语音",
-					"data-kt":"web.cat.speech",
-					c:[
-					{x:"i.fa-solid.fa-volume-high"},
-					{x:"span","data-k":"web.cat.speech",c:"语音"}
-				]
-				},
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"time",
-					"data-title":"历法",
-					"data-kt":"web.cat.time",
-					c:[
-					{x:"i.fa-solid.fa-calendar-days"},
-					{x:"span","data-k":"web.cat.time",c:"历法"}
-				]
-				},
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"image",
-					"data-title":"图像",
-					"data-kt":"web.cat.image",
-					c:[
-					{x:"i.fa-solid.fa-image"},
-					{x:"span","data-k":"web.cat.image",c:"图像"}
-				]
-				},
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"info",
-					"data-title":"信息查询",
-					"data-kt":"web.cat.info",
-					c:[
-					{x:"i.fa-solid.fa-circle-info"},
-					{x:"span","data-k":"web.cat.info",c:"信息查询"}
-				]
-				},
-				{
-					x:"button",
-					"type":"button",
-					"data-cat":"talk",
-					"data-title":"交流",
-					"data-kt":"web.cat.talk",
-					c:[
-					{x:"i.fa-solid.fa-comments"},
-					{x:"span","data-k":"web.cat.talk",c:"交流"}
-				]
-				}
-			]
-			},
-			{
-				x:"div.side-links",
-				c:[
-				{
-					x:"a.files",
-					"href":"/files",
-					"target":"_blank",
-					"rel":"noopener",
-					c:[
-					{x:"i.fa-solid.fa-folder"},
-					{x:"span","data-k":"web.files",c:"文件传输"}
-				]
-				}
-			]
-			}
-		]
-		},
-		{
 			x:"main",
 			c:[
 			{
@@ -427,8 +303,8 @@
 						"type":"button",
 						"data-tool":"u-jverb",
 						"data-cat":"text",
-						"data-name":"日语动词变形 活用 五段 一段 する くる いく verb",
-						"title":"按词典里的 1/2/3 类列出动词变形，每项可以发音",
+						"data-name":"日语动词变形 活用 五段 一段 する くる いく 敬语 尊敬 谦让 verb",
+						"title":"按词典里的 1/2/3 类列出动词变形，含敬语。输入框可下拉常见词和特殊变化，每项可以发音",
 						c:[
 						{x:"i.fa-solid.fa-language"},
 						{x:"span","data-k":"web.tool.jverb",c:"日语动词变形"},
@@ -1097,10 +973,141 @@
 						{x:"span","data-k":"web.tool.fake",c:"生成测试数据"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-fake","title":"收藏"}
 					]
+					},
+					{
+						// 文件传输是独立页面。用 data-link 标记：桌面菜单只抓 data-tool/data-page 的卡片，
+						// 这里若用 data-page，托盘的「工具」里会多出一个和桌面「文件」重名的子菜单。
+						x:"a",
+						"href":"/files",
+						"data-link":"files",
+						"data-cat":"files",
+						"data-name":"文件传输 手机 电脑 上传 下载 互传 传文件 transfer files",
+						"title":"手机与电脑互传文件，点击打开，Ctrl+点击新窗口",
+						c:[
+						{x:"i.fa-solid.fa-folder"},
+						{x:"span","data-k":"web.files",c:"文件传输"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"files","title":"收藏"}
+					]
 					}
 				]
 				},
-				{x:"p#tool-none.none","hidden":true,"data-k":"web.find.none",c:"没有匹配的工具"}
+				{x:"p#tool-none.none","hidden":true,"data-k":"web.find.none",c:"没有匹配的工具"},
+				{
+					x:"nav#cats",
+					"hidden":true,
+					c:[
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"fav",
+						"data-title":"收藏",
+						"data-kt":"web.cat.fav",
+						c:[
+						{x:"i.fa-solid.fa-star"},
+						{x:"span","data-k":"web.cat.fav",c:"收藏"}
+					]
+					},
+					{
+						x:"button.on",
+						"type":"button",
+						"data-cat":"all",
+						"data-title":"全部",
+						"data-kt":"web.cat.all",
+						c:[
+						{x:"i.fa-solid.fa-border-all"},
+						{x:"span","data-k":"web.cat.all",c:"全部"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"text",
+						"data-title":"文字",
+						"data-kt":"web.cat.text",
+						c:[
+						{x:"i.fa-solid.fa-font"},
+						{x:"span","data-k":"web.cat.text",c:"文字"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"calc",
+						"data-title":"计算",
+						"data-kt":"web.cat.calc",
+						c:[
+						{x:"i.fa-solid.fa-calculator"},
+						{x:"span","data-k":"web.cat.calc",c:"计算"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"speech",
+						"data-title":"语音",
+						"data-kt":"web.cat.speech",
+						c:[
+						{x:"i.fa-solid.fa-volume-high"},
+						{x:"span","data-k":"web.cat.speech",c:"语音"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"time",
+						"data-title":"历法",
+						"data-kt":"web.cat.time",
+						c:[
+						{x:"i.fa-solid.fa-calendar-days"},
+						{x:"span","data-k":"web.cat.time",c:"历法"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"image",
+						"data-title":"图像",
+						"data-kt":"web.cat.image",
+						c:[
+						{x:"i.fa-solid.fa-image"},
+						{x:"span","data-k":"web.cat.image",c:"图像"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"info",
+						"data-title":"信息查询",
+						"data-kt":"web.cat.info",
+						c:[
+						{x:"i.fa-solid.fa-circle-info"},
+						{x:"span","data-k":"web.cat.info",c:"信息查询"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"talk",
+						"data-title":"交流",
+						"data-kt":"web.cat.talk",
+						c:[
+						{x:"i.fa-solid.fa-comments"},
+						{x:"span","data-k":"web.cat.talk",c:"交流"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-cat":"files",
+						"data-title":"文件",
+						"data-kt":"web.cat.files",
+						c:[
+						{x:"i.fa-solid.fa-folder"},
+						{x:"span","data-k":"web.cat.files",c:"文件"}
+					]
+					}
+				]
+				}
 			]
 			},
 			{

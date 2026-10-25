@@ -165,11 +165,17 @@ sealed class HangulIme : IDisposable {
 		showtray();
 	}
 
-	public void Next() {
-		if (!ImeLex.DbInstalled) return;
-		if (!enabled) { Set(true); return; }
+	public bool Next() {
+		if (!ImeLex.DbInstalled) return false;
+		if (!enabled) {
+			var pick = firstlang();
+			if (pick == null) return false;
+			lang = pick.Value;
+			return Set(true);
+		}
 		eng.Next();
 		showtray();
+		return true;
 	}
 
 	public bool Set(bool on) {

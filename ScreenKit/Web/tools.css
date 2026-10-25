@@ -50,8 +50,8 @@ html.in-tool .panel.on { min-width: 0; max-width: 100%; }
 	box-shadow: none;
 }
 .shell { display: flex; flex: 1; min-height: 0; margin: 0; gap: 0; align-items: stretch; }
-/* 只藏分类栏。码表预览和聊天室成员列表也是 aside，不能一起藏。 */
-html.in-tool .shell > aside, html.in-tool .brand { display: none; }
+/* 打开工具后只藏顶部品牌；码表预览和聊天室成员列表是面板里的 aside，不能一起藏。 */
+html.in-tool .brand { display: none; }
 aside {
 	width: 196px;
 	flex: none;
@@ -92,14 +92,6 @@ nav button i {
 nav button:hover { background: #f3f4f6; }
 nav button.on { background: #f97316; color: #fff; }
 nav button.on i { color: #fff; }
-.side-links { margin-top: auto; display: flex; flex-direction: column; gap: 2px; }
-.files {
-	color: #666; text-decoration: none;
-	display: flex; align-items: center; gap: 8px;
-	padding: 9px 10px; border-radius: 8px;
-}
-.files i { width: 18px; flex: none; text-align: center; color: #888; }
-.files:hover { background: #f3f4f6; color: #222; }
 .topbar .lang {
 	display: flex; align-items: center; gap: 8px;
 	width: auto; margin: 0 0 0 auto;

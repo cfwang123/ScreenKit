@@ -712,7 +712,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var i;
 		for (i = 0; i < cards.length; i++) {
 			if (F.attr(cards[i], "data-clone")) continue;
-			if ((F.attr(cards[i], "data-tool") || F.attr(cards[i], "data-page")) === id) return cards[i];
+			if ((F.attr(cards[i], "data-tool") || F.attr(cards[i], "data-page") || F.attr(cards[i], "data-link")) === id) return cards[i];
 		}
 		return null;
 	}

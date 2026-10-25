@@ -4238,6 +4238,16 @@ static class Cli {
 		if (!e.Off) return "disabled wubi hot opened";
 		e.Key(Vk.Oem3, true, false, true, false, false);
 		if (e.Off || e.LangCode != "ja") return "disabled cycle ja " + e.LangCode;
+		e.ApplyOpts(false, true, true,
+			Hot.FromCombo("Ctrl+Alt+1"), Hot.FromCombo("Ctrl+Alt+2"),
+			Hot.FromCombo("Ctrl+Alt+3"), Hot.FromCombo("Ctrl+Alt+4"),
+			Hot.FromCombo("Ctrl+`"));
+		e.LoadMeta(false, Lang.Ko, false, true);
+		e.Next();
+		if (e.Off || e.LangCode != "ja") return "paused ja+ko " + e.LangCode;
+		var opt = new OcrOptions { ImeWubiOn = false, ImeJaOn = true, ImeKoOn = true };
+		var copy = opt.Clone();
+		if (copy.ImeWubiOn || !copy.ImeJaOn || !copy.ImeKoOn) return "clone ime langs";
 		return null;
 	}
 

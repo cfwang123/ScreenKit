@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 - The Chrome model page can play a short test line for an installed voice.
 - The tools page conjugates Japanese verbs from the dictionary class, or from the ending when no dictionary is installed. いく uses って / った. The list is a compact table, and each form has a speak button.
+- Japanese verb input has a dropdown of common verbs and irregulars (いく, ある, 問う, なさる, くれる, and godan verbs ending in る). The table also lists honorific, humble, and deferential forms.
 - The tools page conjugates a Korean verb or adjective from the dictionary form, with a speaker button on each form.
 - Add English irregular verb lookup on the tools page, with every form searchable.
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - A partial Japanese reading lists every lexicon word that can still be completed.
 - The English irregular verb list on the tools page grows to 258 entries, adding rare base verbs and common derivatives.
 - The Chrome model page shows whether the open profile belongs to the program or to the user.
+- The web tools home drops the left category column, and file transfer is now a card in the tool list under Files.
 
 #### Fixed
 
@@ -91,6 +93,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Tools menu on the main window and in the tray now includes the novel reader and the dictionary under Text, matching the web tools page.
 - Japanese input queries each reading with the matching parameter, so the added spellings show up as candidates.
 - Web pronunciation works when a language uses Chrome's Google voice. Korean was refused because that engine does not return an audio file.
+- With the IME off, the next-language hotkey opens the first enabled method in Wubi, Japanese, Korean order.
+- Disabling Wubi stays off when settings are opened again.
 
 ### 中文
 
@@ -100,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 - Chrome 模型页可以为已安装的语音试听一句。
 - 工具页新增日语动词变形：按词典的 1/2/3 类列出变形；没装词典时提示并按词尾判断，いく 的て形、た形单独处理。结果是紧凑的表格，每一项可以发音。
+- 日语动词输入框可下拉常见动词和特殊变化（いく、ある、問う、なさる、くれる，以及词尾る的五段）。变形表增加尊敬、谦让、丁重。
 - 工具页可以输入韩语词典形，列出动词或形容词的变化，每条都能听发音。
 - 工具页新增英文不规则动词查询，任意一种形式都能搜到。
 
@@ -119,6 +124,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语读音只打到一半时，候选列出还能接着输入的词。
 - 工具页的英文不规则动词表补到 258 条，加入少见基础动词和常见派生。
 - Chrome 模型页显示当前打开的配置是程序的还是用户的。
+- web 工具主页去掉左侧分类栏，文件传输改成「文件」分类里的工具卡片。
 
 #### 修复
 
@@ -141,6 +147,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 主界面和托盘的「工具 → 文字」补上小说阅读器，词典也按网页分类放进这一组。
 - 日语输入按读音查词时参数对上了，补进词库的写法会进候选。
 - 语言选用 Chrome 的 Google 语音时，网页上的发音可以出声。韩语原先因为这种语音不返回音频而被拒绝。
+- 输入法处于关闭时，切换下一个会按五笔、日语、韩语的顺序打开第一个启用的输入法。
+- 关掉五笔后再打开设置，勾选保持关闭。
 
 ## v1.0.29 (2026-10-23)
 
