@@ -116,6 +116,10 @@ static class ChromePack {
 			if (p[0].Length == 0 || p[1].Length == 0) return 2;
 			if (string.Equals(p[0], p[1], StringComparison.OrdinalIgnoreCase)) return 2;
 		}
+		var marks = markinstalled("installedTimestamps{\"en-us\":1,\"cmn-CN\":2}installedTimestamps{\"ja-JP\":3,\"yue-HK\":4}");
+		if (marks == null || marks.Count != 2 || !marks.Contains("ja-JP") || !marks.Contains("yue-HK")) return 2;
+		if (marks.Contains("en-US") || marks.Contains("zh-CN")) return 2;
+		if (markinstalled("none") != null) return 2;
 		return 0;
 	}
 
@@ -329,7 +333,7 @@ static class ChromePack {
 		return list;
 	}
 
-	/// <summary>probe 为 false 时翻译模型看本机目录，语音包只列目录、不打开 Chrome。</summary>
+	/// <summary>翻译模型看本机目录，语音包看扩展记下的安装时间，都不打开 Chrome。</summary>
 	public static List<ChromePackItem> Catalog(bool probe, string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct) {
 		if (probe) return Query(proxyMode, proxyAddr, log, ct);
 		var list = tritems();
@@ -464,40 +468,91 @@ static class ChromePack {
 	}
 
 	static List<ChromePackItem> ttsitems(string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct) {
-		var packs = readvoices();
-		var list = new List<ChromePackItem>();
-		foreach (var g in packs)
-			list.Add(g);
+		var list = readvoices();
 		if (list.Count == 0) {
 			log?.Invoke(Loc.T("inst.chrome.novoice"));
 			return list;
 		}
-		Dictionary<string, string> st = null;
-		try {
-			lock (voiceOp) {
-				ChromeTts.Stop();
-				preparevoice(ChromeTts.ProfileDir());
-				using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
-				sess.WaitExt(15000, ct);
-				reloadvoice(sess, ct);
-				var langs = new List<string>();
-				foreach (var it in list) langs.Add(enginelang(it.Lang));
-				st = sess.VoiceStatus(langs, ct);
-			}
-		}
-		catch (OperationCanceledException) { throw; }
-		catch (Exception ex) {
-			log?.Invoke(ex.Message);
-		}
-		if (st == null) return list;
+		ct.ThrowIfCancellationRequested();
+		var on = installedset(out var known);
 		foreach (var it in list) {
-			var key = enginelang(it.Lang);
-			if (!st.TryGetValue(key, out var s)) st.TryGetValue(it.Lang, out s);
-			it.State = PackState(s);
-			if (it.State == FeatureInstallState.Installed) remember(it.Lang, true);
-			else if (it.State == FeatureInstallState.Missing) remember(it.Lang, false);
+			if (!known) {
+				var cached = installedof(it.Lang);
+				if (cached == true) it.State = FeatureInstallState.Installed;
+				continue;
+			}
+			var hit = on.Contains(it.Lang);
+			it.State = hit ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+			remember(it.Lang, hit);
 		}
 		return list;
+	}
+
+	/// <summary>扩展记在 installedTimestamps 里的语言。不启动 Chrome。known 为 false 表示还没有这份记录。</summary>
+	static HashSet<string> installedset(out bool known) {
+		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		known = false;
+		var when = DateTime.MinValue;
+		foreach (var id in new[] { TTS_EXT, TTS_EXT_OLD }) {
+			var dir = Path.Combine(ChromeTts.ProfileDir(), "Default", "Local Extension Settings", id);
+			if (!Directory.Exists(dir)) continue;
+			string[] files;
+			try { files = Directory.GetFiles(dir); }
+			catch { continue; }
+			foreach (var file in files) {
+				var name = Path.GetFileName(file);
+				if (name.Equals("LOCK", StringComparison.OrdinalIgnoreCase)) continue;
+				if (name.Equals("CURRENT", StringComparison.OrdinalIgnoreCase)) continue;
+				if (name.StartsWith("MANIFEST", StringComparison.OrdinalIgnoreCase)) continue;
+				if (name.Equals("LOG", StringComparison.OrdinalIgnoreCase) || name.Equals("LOG.old", StringComparison.OrdinalIgnoreCase)) continue;
+				byte[] buf;
+				try {
+					using var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+					if (fs.Length <= 0 || fs.Length > 8 * 1024 * 1024) continue;
+					buf = new byte[fs.Length];
+					var n = 0;
+					while (n < buf.Length) {
+						var got = fs.Read(buf, n, buf.Length - n);
+						if (got <= 0) break;
+						n += got;
+					}
+				}
+				catch { continue; }
+				var text = Encoding.ASCII.GetString(buf);
+				var parsed = markinstalled(text);
+				if (parsed == null) continue;
+				var t = File.GetLastWriteTimeUtc(file);
+				if (known && t < when) continue;
+				when = t;
+				set = parsed;
+				known = true;
+			}
+		}
+		return set;
+	}
+
+	/// <summary>文本里最后一条 installedTimestamps。没有这条记录时返回 null。</summary>
+	static HashSet<string> markinstalled(string text) {
+		if (string.IsNullOrEmpty(text)) return null;
+		var idx = text.LastIndexOf("installedTimestamps", StringComparison.Ordinal);
+		if (idx < 0) return null;
+		var brace = text.IndexOf('{', idx);
+		if (brace < 0 || brace - idx > 64) return null;
+		var end = text.IndexOf('}', brace);
+		if (end < 0) return null;
+		var json = text.Substring(brace, end - brace + 1);
+		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		try {
+			using var doc = JsonDocument.Parse(json);
+			if (doc.RootElement.ValueKind != JsonValueKind.Object) return set;
+			foreach (var prop in doc.RootElement.EnumerateObject()) {
+				var lang = VoiceLang(prop.Name);
+				if (lang.Length == 0) lang = SpeakLang(prop.Name);
+				if (lang.Length > 0) set.Add(lang);
+			}
+		}
+		catch { return null; }
+		return set;
 	}
 
 	static readonly string[] VOICE_LANGS = {
@@ -1355,18 +1410,15 @@ return 'started';
 			args.Append("--remote-debugging-address=127.0.0.1 ");
 			args.Append("--remote-debugging-port=").Append(sess.port).Append(' ');
 			args.Append("--no-first-run --no-default-browser-check --disable-sync ");
+			args.Append("--disable-breakpad --disable-crash-reporter ");
 			args.Append("--disable-session-crashed-bubble --hide-crash-restore-bubble ");
 			args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
 			args.Append("--window-position=-32000,-32000 --window-size=480,320 ");
 			args.Append("--disable-features=UseSystemProxyResolver ");
 			appendproxy(args, proxyMode, proxyAddr);
 			args.Append("about:blank");
-			sess.proc = Process.Start(new ProcessStartInfo {
-				FileName = exe,
-				Arguments = args.ToString(),
-				UseShellExecute = false,
-				CreateNoWindow = true,
-			});
+			sess.proc = ChromeTts.StartProc(exe, args.ToString());
+			if (sess.proc == null) throw new InvalidOperationException(Loc.T("inst.chrome.exit"));
 			var start = Environment.TickCount;
 			while (unchecked(Environment.TickCount - start) < 15000) {
 				ct.ThrowIfCancellationRequested();
@@ -1839,20 +1891,14 @@ return JSON.stringify(out);
 			var p = proc;
 			proc = null;
 			if (!own || p == null) return;
-			try {
-				if (!p.HasExited) {
-					var kill = Process.Start(new ProcessStartInfo {
-						FileName = "taskkill",
-						Arguments = "/T /F /PID " + p.Id,
-						UseShellExecute = false,
-						CreateNoWindow = true,
-					});
-					kill?.WaitForExit(3000);
-				}
-			}
-			catch { }
+			var pid = 0;
+			try { if (!p.HasExited) pid = p.Id; } catch { }
+			var listen = port > 0 ? PortUse.ListenerPid(port) : 0;
+			if (pid > 0) ChromeTts.KillPid(pid);
+			if (listen > 0 && listen != pid) ChromeTts.KillPid(listen);
 			try { if (!p.HasExited) p.Kill(); } catch { }
 			try { if (!p.HasExited) p.WaitForExit(4000); } catch { }
+			try { p.Dispose(); } catch { }
 		}
 
 		static void appendproxy(StringBuilder args, string mode, string addr) {

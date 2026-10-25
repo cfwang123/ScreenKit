@@ -121,7 +121,7 @@ partial class InstallFeaturesWindow : Window {
 		};
 		bchromerefresh.Click += async (_, _) => await loadchrome();
 		bchromemodel.Click += (_, _) => openchromemodel();
-		bchromepage.Click += (_, _) => openchromepage();
+		lkchromepage.Click += (_, _) => openchromepage();
 		echromekind.SelectionChanged += (_, _) => {
 			if (!chromeUiLoading) applychromefilter();
 		};
@@ -220,8 +220,8 @@ partial class InstallFeaturesWindow : Window {
 		bchromerefresh.Content = Loc.T("inst.chrome.refresh");
 		bchromemodel.Content = Loc.T("inst.chrome.model");
 		bchromemodel.ToolTip = Loc.T("inst.chrome.model.tip");
-		bchromepage.Content = Loc.T("inst.chrome.page");
-		bchromepage.ToolTip = Loc.T("inst.chrome.page.tip");
+		rnchromepage.Text = Loc.T("inst.chrome.page");
+		lkchromepage.ToolTip = Loc.T("inst.chrome.page.tip");
 		cchromeheader.ToolTip = Loc.T("inst.tts.selectall");
 		fillchromekind();
 		bmissing.Content = Loc.T("inst.sel.missing");
@@ -612,12 +612,14 @@ partial class InstallFeaturesWindow : Window {
 	static Brush statefg(FeatureInstallState st) => st switch {
 		FeatureInstallState.Installed => OkFg,
 		FeatureInstallState.Partial => PartFg,
+		FeatureInstallState.Update => PartFg,
 		_ => MissFg,
 	};
 
 	static Brush statebg(FeatureInstallState st) => st switch {
 		FeatureInstallState.Installed => OkBg,
 		FeatureInstallState.Partial => PartBg,
+		FeatureInstallState.Update => PartBg,
 		_ => MissBg,
 	};
 
@@ -766,7 +768,7 @@ partial class InstallFeaturesWindow : Window {
 		var ok = 0;
 		foreach (var r in featRows) {
 			if (r.Item.State == FeatureInstallState.Installed) ok++;
-			else if (r.Item.State == FeatureInstallState.Partial) part++;
+			else if (r.Item.State == FeatureInstallState.Partial || r.Item.State == FeatureInstallState.Update) part++;
 			else miss++;
 		}
 		lbfeatsum.Text = miss == 0 && part == 0
@@ -1217,6 +1219,7 @@ partial class InstallFeaturesWindow : Window {
 
 		public void Notify() {
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Selected)));
+			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Detail)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SizeText)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateText)));
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StateBg)));

@@ -36,7 +36,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 - **Translation**: Local ONNX, a configured LLM, or the local Chrome. Auto mode translates between the native and learning languages and shows the detected direction; the tab and popup pick the engine and model. Chrome language lists show only installed packs, and Chrome model installation opens the same private profile on the model page.
 - **Face**: Detection and comparison, with optional landmarks and gender and age.
 - **Chinese to pinyin**: Full spelling without tone marks, or one lowercase initial per character.
-- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Turn it on from **Tools**, switch languages from the tray; set hotkeys, enable languages and manage the lexicon in **Settings → Input method** (disabled languages are skipped by the cycle hotkey).
+- **Wubi, Japanese, and Korean IME**: Type with a candidate bar in this app and in other programs. Japanese candidates include the dictionary kanji spellings, plus verb and i-adjective conjugations. An old lexicon file is marked as a new version under **Help → Install features**, where it can be reinstalled or removed. Turn it on from **Tools**, switch languages from the tray; set hotkeys, enable languages and manage the lexicon in **Settings → Input method** (disabled languages are skipped by the cycle hotkey).
 - **Simplified/Traditional**: Simplified on top, traditional below, following Taiwan character forms.
 - **Japanese yomi**: Turns a Japanese sentence into readings, by word or by character.
 - **Calendars**: Gregorian to lunar (sexagenary cycle and leap months), plus Japanese, Taiwan, Hebrew, Hijri, Persian, and others.
@@ -162,6 +162,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **File signatures**: Identify the real format from a file's hex header
   - **Time zones**: IANA zones, abbreviations, and standard/DST offsets
   - **Country, language & currency codes**: ISO codes for countries, languages, and currencies
+  - **English irregular verbs**: Base, past, and past participle; search by any form or meaning, and filter by AAA, ABB, and other patterns
   - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
   - **Linux commands**: Commands by file, package, process, network, and more, each shown right in the list with a commented multi-line example, plus Bash syntax help; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
   - **Windows commands**: Windows PowerShell, pwsh, and CMD commands by category, each shown right in the list with a commented multi-line example, plus a syntax-help group for all three shells; the last shell is remembered

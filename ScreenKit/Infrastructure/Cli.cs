@@ -60,7 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
@@ -338,6 +338,10 @@ static class Cli {
 					return imedictimport(Next(), Next());
 				case "--ime-db-clean":
 					return imedbclean(Opt(), Opt());
+				case "--ime-ja-expand":
+					return imejaexpand();
+				case "--test-ime-ja":
+					return testimeja();
 				case "--test-vim-caret":
 					return testvimcaret();
 				case "--test-7za":
@@ -4685,6 +4689,41 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		finally {
 			try { ime.TestEnd(); } catch { }
 			try { ime.Dispose(); } catch { }
+		}
+	}
+
+	static int testimeja() {
+		Out("=== 日语活用 --test-ime-ja ===");
+		var err = ImeJaExpand.Check();
+		if (err != null) {
+			Err("FAIL " + err);
+			return 1;
+		}
+		Out("OK");
+		return 0;
+	}
+
+	static int imejaexpand() {
+		Out("=== 日语活用写入词库 --ime-ja-expand ===");
+		var ime = ImeLex.PathOf;
+		var dict = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
+		if (!File.Exists(ime)) {
+			Err("FAIL: 没有 ime.db");
+			return 1;
+		}
+		if (!File.Exists(dict)) {
+			Err("FAIL: 没有 dict3.bin");
+			return 1;
+		}
+		try {
+			var n = ImeJaExpand.Fill(ime, dict, Out);
+			Out("写入 " + n);
+			Out("OK");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			return 1;
 		}
 	}
 

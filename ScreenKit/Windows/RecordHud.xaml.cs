@@ -231,8 +231,7 @@ public partial class RecordHud : Window {
 	static string hudbrief(RecordOptions o) {
 		o.Clamp();
 		var src = audtext(o.AudioEnabled, o.AudioSource);
-		if (!o.AudioEnabled) return $"{o.Codec} {src}";
-		return $"{o.Codec} {src} {o.AudioKbps}k/{o.AudioHz}hz";
+		return $"{o.Codec} {src}";
 	}
 
 	void layoutchrome(bool light = false) {

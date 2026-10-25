@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using Microsoft.Win32;
 
 namespace ScreenKit;
@@ -124,21 +125,73 @@ static class ChromeTts {
 	/// <summary>本进程和子进程的工作集。没在跑时为 0。</summary>
 	public static long WorkingSet() => ChromeHost.WorkingSet();
 
+	/// <summary>脱离父进程的作业和终端再启动。父进程在作业里且不允许脱离时，退回普通启动。</summary>
+	public static Process StartProc(string path, string args) {
+		const uint CREATE_BREAKAWAY_FROM_JOB = 0x01000000;
+		const uint CREATE_NEW_PROCESS_GROUP = 0x00000200;
+		const uint DETACHED_PROCESS = 0x00000008;
+		var flags = CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS | CREATE_BREAKAWAY_FROM_JOB;
+		if (!spawn(path, args, flags, out var pi)) {
+			var err = Marshal.GetLastWin32Error();
+			if (err != 5 && err != 87)
+				throw new System.ComponentModel.Win32Exception(err);
+			flags = CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS;
+			if (!spawn(path, args, flags, out pi))
+				throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+		}
+		Process child = null;
+		try { child = Process.GetProcessById(pi.dwProcessId); }
+		catch (ArgumentException) { }
+		if (pi.hThread != IntPtr.Zero) CloseHandle(pi.hThread);
+		if (pi.hProcess != IntPtr.Zero) CloseHandle(pi.hProcess);
+		return child;
+	}
+
+	/// <summary>结束该进程及其子进程。pid 是本进程时不动。</summary>
+	public static void KillPid(int pid) {
+		if (pid <= 0) return;
+		try { if (pid == Process.GetCurrentProcess().Id) return; }
+		catch { return; }
+		try {
+			using (var kill = Process.Start(new ProcessStartInfo {
+				FileName = "taskkill",
+				Arguments = "/T /F /PID " + pid,
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			})) {
+				kill?.WaitForExit(3000);
+			}
+		}
+		catch { }
+	}
+
 	/// <summary>pid 下面的子进程个数。快照失败返回 -1。</summary>
 	public static int ChildCount(int pid) {
-		if (pid <= 0) return 0;
+		var ids = treeids(pid);
+		if (ids == null) return -1;
+		return ids.Count > 0 ? ids.Count - 1 : 0;
+	}
+
+	/// <summary>pid 自己和它下面的进程的工作集。快照失败返回 0。</summary>
+	public static long TreeWorkingSet(int pid) {
+		var ids = treeids(pid);
+		if (ids == null) return 0;
+		long sum = 0;
+		foreach (var id in ids) sum += workingset(id);
+		return sum;
+	}
+
+	static List<int> treeids(int pid) {
+		if (pid <= 0) return new List<int>();
 		var snap = CreateToolhelp32Snapshot(2, 0);
-		if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return -1;
+		if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return null;
 		try {
 			var rows = new List<int[]>();
 			var pe = new PROCESSENTRY32();
 			pe.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
-			if (!Process32First(snap, ref pe)) return -1;
-			do {
-				rows.Add(new[] { (int)pe.th32ProcessID, (int)pe.th32ParentProcessID });
-			}
+			if (!Process32First(snap, ref pe)) return null;
+			do rows.Add(new[] { (int)pe.th32ProcessID, (int)pe.th32ParentProcessID });
 			while (Process32Next(snap, ref pe));
-			var n = 0;
 			var seen = new HashSet<int>();
 			var q = new Queue<int>();
 			q.Enqueue(pid);
@@ -146,58 +199,36 @@ static class ChromeTts {
 			while (q.Count > 0) {
 				var id = q.Dequeue();
 				foreach (var row in rows) {
-					if (row[1] != id || seen.Contains(row[0])) continue;
-					seen.Add(row[0]);
-					n++;
+					if (row[1] != id || !seen.Add(row[0])) continue;
 					q.Enqueue(row[0]);
 				}
 			}
-			return n;
+			return new List<int>(seen);
 		}
 		finally {
 			CloseHandle(snap);
 		}
 	}
 
-	/// <summary>pid 自己和它下面的进程的工作集。快照失败返回 0。</summary>
-	public static long TreeWorkingSet(int pid) {
-		if (pid <= 0) return 0;
-		var snap = CreateToolhelp32Snapshot(2, 0);
-		if (snap == IntPtr.Zero || snap == new IntPtr(-1)) return 0;
+	static long workingset(int pid) {
+		var h = OpenProcess(0x1000, false, pid);
+		if (h == IntPtr.Zero) return 0;
 		try {
-			var rows = new List<int[]>();
-			var pe = new PROCESSENTRY32();
-			pe.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
-			if (!Process32First(snap, ref pe)) return 0;
-			do {
-				rows.Add(new[] { (int)pe.th32ProcessID, (int)pe.th32ParentProcessID });
-			}
-			while (Process32Next(snap, ref pe));
-			var seen = new HashSet<int>();
-			var q = new Queue<int>();
-			q.Enqueue(pid);
-			seen.Add(pid);
-			while (q.Count > 0) {
-				var id = q.Dequeue();
-				foreach (var row in rows) {
-					if (row[1] != id || seen.Contains(row[0])) continue;
-					seen.Add(row[0]);
-					q.Enqueue(row[0]);
-				}
-			}
-			long sum = 0;
-			foreach (var id in seen) {
-				try {
-					using var p = Process.GetProcessById(id);
-					sum += p.WorkingSet64;
-				}
-				catch { }
-			}
-			return sum;
+			var c = new PROCESS_MEMORY_COUNTERS();
+			c.cb = (uint)Marshal.SizeOf(typeof(PROCESS_MEMORY_COUNTERS));
+			if (!GetProcessMemoryInfo(h, ref c, c.cb)) return 0;
+			return (long)c.WorkingSetSize;
 		}
-		finally {
-			CloseHandle(snap);
-		}
+		finally { CloseHandle(h); }
+	}
+
+	static bool spawn(string path, string args, uint flags, out PROCESS_INFORMATION pi) {
+		var cmd = new StringBuilder(32768);
+		cmd.Append('"').Append(path).Append('"');
+		if (!string.IsNullOrEmpty(args)) cmd.Append(' ').Append(args);
+		var si = new STARTUPINFO();
+		si.cb = Marshal.SizeOf(typeof(STARTUPINFO));
+		return CreateProcessW(path, cmd, IntPtr.Zero, IntPtr.Zero, false, flags, IntPtr.Zero, null, ref si, out pi);
 	}
 
 	public static void Stop() => ChromeHost.Stop();
@@ -240,6 +271,15 @@ static class ChromeTts {
 
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern bool CloseHandle(IntPtr handle);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern IntPtr OpenProcess(int access, bool inherit, int pid);
+
+	[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "CreateProcessW")]
+	static extern bool CreateProcessW(string app, StringBuilder cmd, IntPtr pa, IntPtr ta, bool inherit, uint flags, IntPtr env, string dir, ref STARTUPINFO si, out PROCESS_INFORMATION pi);
+
+	[DllImport("kernel32.dll", SetLastError = true, EntryPoint = "K32GetProcessMemoryInfo")]
+	static extern bool GetProcessMemoryInfo(IntPtr process, ref PROCESS_MEMORY_COUNTERS counters, uint size);
 
 	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
 	struct PROCESSENTRY32 {
@@ -307,6 +347,41 @@ static class ChromeTts {
 			});
 		}
 		return list;
+	}
+
+	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+	struct STARTUPINFO {
+		public int cb;
+		public string reserved;
+		public string desktop;
+		public string title;
+		public int x, y, xsize, ysize, xchars, ychars, fill, flags;
+		public short show;
+		public short reserved2;
+		public IntPtr reserved2p;
+		public IntPtr stdin, stdout, stderr;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct PROCESS_INFORMATION {
+		public IntPtr hProcess;
+		public IntPtr hThread;
+		public int dwProcessId;
+		public int dwThreadId;
+	}
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct PROCESS_MEMORY_COUNTERS {
+		public uint cb;
+		public uint pageFaults;
+		public UIntPtr peakWorkingSet;
+		public UIntPtr WorkingSetSize;
+		public UIntPtr quotaPeakPaged;
+		public UIntPtr quotaPaged;
+		public UIntPtr quotaPeakNonPaged;
+		public UIntPtr quotaNonPaged;
+		public UIntPtr pagefile;
+		public UIntPtr peakPagefile;
 	}
 
 }

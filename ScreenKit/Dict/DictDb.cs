@@ -578,6 +578,94 @@ static class DictDb {
 		return false;
 	}
 
+	/// <summary>词头、别表记和词性。紧凑 JSON 的键没有引号，先补上再读。</summary>
+	internal static void HeadFields(string head, string json, out string word, out string kanji, out string pos) {
+		word = head ?? "";
+		kanji = "";
+		pos = "";
+		if (string.IsNullOrWhiteSpace(json)) return;
+		JsonNode n;
+		try { n = JsonNode.Parse(json); }
+		catch {
+			try { n = JsonNode.Parse(quotekeys(json)); }
+			catch { return; }
+		}
+		if (n == null) return;
+		if (iscompact(n)) {
+			var w = str(n["w"]);
+			if (w.Length > 0) word = w;
+			kanji = str(n["k"]);
+			pos = str(n["p"]);
+			if (n["g"] is JsonArray ga) {
+				var sb = new StringBuilder();
+				if (pos.Length > 0) sb.Append(pos);
+				foreach (var g in ga) {
+					if (g is not JsonArray a || a.Count == 0) continue;
+					var p = str(a[0]);
+					if (p.Length == 0) continue;
+					if (sb.Length > 0) sb.Append(' ');
+					sb.Append(p);
+				}
+				if (sb.Length > 0) pos = sb.ToString();
+			}
+			return;
+		}
+		var lw = str(n["word"]);
+		if (lw.Length > 0) word = lw;
+		kanji = str(n["kanji"]);
+		pos = str(n["pos"]);
+	}
+
+	/// <summary>按词条顺序扫某一种词典。code：0 英 / 1 日 / 2 韩 / 3 汉。每块回调一次，不一直占着锁。</summary>
+	internal static bool Scan(int code, Action<string, string> take, Action<int, int> progress) {
+		if (take == null) return false;
+		int blocks;
+		lock (dblock) {
+			if (!readyunlocked()) return false;
+			blocks = entoff == null ? 0 : entoff.Length;
+		}
+		var batch = new List<(string head, string json)>(64);
+		for (var bi = 0; bi < blocks; bi++) {
+			batch.Clear();
+			lock (dblock) {
+				if (!readyunlocked()) return false;
+				var blob = entryblock(bi);
+				if (blob == null) continue;
+				var lim = entriesperblock;
+				var last = nentries - bi * entriesperblock;
+				if (last < lim) lim = last;
+				if (lim < 1) break;
+				collect(blob, code, lim, batch);
+			}
+			foreach (var it in batch) take(it.head, it.json);
+			if (progress != null && (bi % 400) == 0) progress(bi, blocks);
+		}
+		if (progress != null) progress(blocks, blocks);
+		return true;
+	}
+
+	static void collect(byte[] blob, int want, int limit, List<(string head, string json)> into) {
+		var p = 0;
+		var n = blob.Length;
+		var got = 0;
+		while (got < limit && p + 10 <= n) {
+			var c = blob[p];
+			p += 10;
+			string head = null, json = null;
+			for (var k = 0; k < 4; k++) {
+				if (p + 4 > n) return;
+				var len = (int)u32(blob, p);
+				p += 4;
+				if (len < 0 || p + len > n) return;
+				if (c == want && k == 0) head = Encoding.UTF8.GetString(blob, p, len);
+				else if (c == want && k == 1) json = Encoding.UTF8.GetString(blob, p, len);
+				p += len;
+			}
+			got++;
+			if (c == want && head != null && json != null) into.Add((head, json));
+		}
+	}
+
 	// ==================== 检索 ====================
 
 	static void prefixkeys(string q, string dict, List<DictHit> hits, int cap) {

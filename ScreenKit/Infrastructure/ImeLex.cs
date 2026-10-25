@@ -33,9 +33,13 @@ static class ImeLex {
 
 	public static string PathOf => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ime.db");
 
-	/// <summary>帮助 → 安装功能 里的 ime.db 已完整安装。</summary>
-	public static bool DbInstalled =>
-		FeatureInstaller.Probe(FeatureKind.ImeDb) == FeatureInstallState.Installed;
+	/// <summary>帮助 → 安装功能 里的 ime.db 能用。旧版也算装了，只是安装页会提示换新。</summary>
+	public static bool DbInstalled {
+		get {
+			var st = FeatureInstaller.Probe(FeatureKind.ImeDb);
+			return st == FeatureInstallState.Installed || st == FeatureInstallState.Update;
+		}
+	}
 
 	public static bool Ready {
 		get {
@@ -273,9 +277,13 @@ static class ImeLex {
 				args[i] = (names[i], reading.Substring(0, i + 1));
 			}
 			var inn = string.Join(",", names);
-			each(conn, "SELECT reading,text,rank FROM ja_word WHERE reading IN (" + inn + ")", r => {
-				rows.Add(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) });
-			}, args);
+			// 整词多留一些，短前缀少留。活用补进词库以后，一条读音可能有很多条。
+			for (int i = 0; i < n; i++) {
+				int lim = i + 1 == n ? 48 : 12;
+				each(conn, "SELECT reading,text,rank FROM ja_word WHERE reading=$p ORDER BY rank, text LIMIT " + lim, r => {
+					rows.Add(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) });
+				}, (names[i], args[i].v));
+			}
 			userwords("ja", true, "key IN (" + inn + ")", args, true, c => rows.Add(c));
 		}
 		return JaCand.Build(reading, rows);

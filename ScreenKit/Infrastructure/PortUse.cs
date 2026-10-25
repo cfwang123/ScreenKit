@@ -45,6 +45,31 @@ static class PortUse {
 		return rows;
 	}
 
+	/// <summary>谁在监听这个 TCP 端口。没有则 0。只查表，不枚举进程。</summary>
+	public static int ListenerPid(int port) {
+		if (port <= 0 || port > 65535) return 0;
+		var buf = table(AF_INET, TCP_OWNER_PID_ALL, true);
+		if (buf == IntPtr.Zero) return 0;
+		try {
+			int n = Marshal.ReadInt32(buf);
+			if (n < 0 || n > 100000) return 0;
+			int any = 0;
+			for (int i = 0; i < n; i++) {
+				var p = IntPtr.Add(buf, 4 + i * 24);
+				if (Marshal.ReadInt32(p, 0) != 2) continue;
+				if (ntohs(Marshal.ReadInt32(p, 8)) != port) continue;
+				int pid = Marshal.ReadInt32(p, 20);
+				if (pid <= 0) continue;
+				any = pid;
+				if (Marshal.ReadInt32(p, 4) == 0x0100007F) return pid;
+			}
+			return any;
+		}
+		finally {
+			Marshal.FreeHGlobal(buf);
+		}
+	}
+
 	public static int SelfTest(Action<string> log) {
 		void say(string s) { try { log?.Invoke(s); } catch { } }
 		TcpListener listener = null;

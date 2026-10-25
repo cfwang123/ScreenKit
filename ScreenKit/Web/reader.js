@@ -265,7 +265,7 @@
 			"</div>",
 			'<input id="rd-filter" class="rd-filter" type="search" autocomplete="off" placeholder="' + esc(L("web.reader.filter", "筛文件名")) + '" data-kph="web.reader.filter">',
 			'<div id="rd-books" class="rd-books"></div>',
-			'<div class="rd-side-foot" data-k="web.reader.hint">' + L("web.reader.hint", "划选正文查词典；选中后点朗读从这个词开始。") + "</div>",
+			'<div class="rd-side-foot" data-k="web.reader.hint">' + L("web.reader.hint", "文件存在这个浏览器里，换浏览器或清除网站数据后会消失。") + "</div>",
 			"</aside>",
 			'<div class="rd-main">',
 			'<div class="rd-bar">',

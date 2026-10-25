@@ -163,32 +163,8 @@ static class ChromeHost {
 	}
 
 	static int listenpid(int dbg) {
-		try {
-			var p = Process.Start(new ProcessStartInfo {
-				FileName = "cmd.exe",
-				Arguments = $"/c netstat -ano -p tcp | findstr \"127.0.0.1:{dbg}\"",
-				UseShellExecute = false,
-				RedirectStandardOutput = true,
-				CreateNoWindow = true,
-			});
-			if (p == null) return 0;
-			var text = p.StandardOutput.ReadToEnd();
-			if (!p.WaitForExit(2000)) {
-				try { p.Kill(); } catch { }
-				return 0;
-			}
-			var needle = $"127.0.0.1:{dbg}";
-			foreach (var raw in text.Split('\n')) {
-				var line = raw.Trim();
-				if (line.IndexOf(needle, StringComparison.Ordinal) < 0) continue;
-				if (line.IndexOf("LISTENING", StringComparison.OrdinalIgnoreCase) < 0) continue;
-				var bits = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-				if (bits.Length == 0) continue;
-				if (int.TryParse(bits[bits.Length - 1], out var n) && n > 0) return n;
-			}
-		}
-		catch { }
-		return 0;
+		try { return PortUse.ListenerPid(dbg); }
+		catch { return 0; }
 	}
 
 	/// <summary>下载模型时别把窗口藏起来，也别按空闲关掉。</summary>
@@ -473,6 +449,7 @@ static class ChromeHost {
 		args.Append("--remote-debugging-address=127.0.0.1 ");
 		args.Append("--remote-debugging-port=0 ");
 		args.Append("--no-first-run --no-default-browser-check --disable-sync ");
+		args.Append("--disable-breakpad --disable-crash-reporter ");
 		args.Append("--autoplay-policy=no-user-gesture-required ");
 		args.Append("--disable-backgrounding-occluded-windows --disable-renderer-backgrounding ");
 		args.Append("--disable-features=CalculateNativeWinOcclusion,UseSystemProxyResolver ");
@@ -480,12 +457,7 @@ static class ChromeHost {
 		args.Append("--window-position=-32000,-32000 --window-size=160,80 ");
 		args.Append(px ?? "");
 		args.Append('"').Append(url).Append('"');
-		proc = Process.Start(new ProcessStartInfo {
-			FileName = path,
-			Arguments = args.ToString(),
-			UseShellExecute = false,
-			CreateNoWindow = true,
-		});
+		proc = ChromeTts.StartProc(path, args.ToString());
 		launched = path;
 		launchedpx = px ?? "";
 	}
@@ -509,11 +481,14 @@ static class ChromeHost {
 	static void idleloop() {
 		while (true) {
 			Thread.Sleep(200);
-			try { cloak(); } catch { }
-			lock (gate) {
-				if (!due()) continue;
-				stopunlocked();
+			try {
+				cloak();
+				lock (gate) {
+					if (!due()) continue;
+					stopunlocked();
+				}
 			}
+			catch (Exception ex) { CaptureLog.Ex("chrome-hide", ex); }
 		}
 	}
 
@@ -535,12 +510,14 @@ static class ChromeHost {
 
 	static void stopunlocked() {
 		var p = proc;
+		var dbg = debugPort;
 		proc = null;
 		launched = null;
 		launchedpx = null;
 		debugPort = 0;
 		hostpid = 0;
 		lasthost = 0;
+		parked.Clear();
 		List<Slot> left;
 		lock (slots) {
 			ready = false;
@@ -551,7 +528,14 @@ static class ChromeHost {
 		}
 		foreach (var s in left)
 			s.Done?.TrySetException(new InvalidOperationException("Chrome 已退出"));
+		var pid = 0;
+		try { if (up(p)) pid = p.Id; } catch { }
 		killtree(p);
+		if (dbg <= 0) dbg = readdebug();
+		var listen = listenpid(dbg);
+		if (listen > 0 && listen != pid) ChromeTts.KillPid(listen);
+		killstale();
+		try { p?.Dispose(); } catch { }
 	}
 
 	static void killstale() {
@@ -559,14 +543,13 @@ static class ChromeHost {
 			using var search = new System.Management.ManagementObjectSearcher(
 				"SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name='chrome.exe'");
 			foreach (System.Management.ManagementObject mo in search.Get()) {
-				var cmd = mo["CommandLine"] as string ?? "";
-				if (cmd.IndexOf("sk-chrome-tts", StringComparison.OrdinalIgnoreCase) < 0) continue;
-				var pid = Convert.ToInt32(mo["ProcessId"]);
 				try {
-					using var p = Process.GetProcessById(pid);
-					killtree(p);
+					var cmd = mo["CommandLine"] as string ?? "";
+					if (cmd.IndexOf("sk-chrome-tts", StringComparison.OrdinalIgnoreCase) < 0) continue;
+					var pid = Convert.ToInt32(mo["ProcessId"]);
+					ChromeTts.KillPid(pid);
 				}
-				catch { }
+				finally { try { mo.Dispose(); } catch { } }
 			}
 		}
 		catch { }
@@ -574,18 +557,10 @@ static class ChromeHost {
 
 	static void killtree(Process p) {
 		if (p == null) return;
-		try {
-			if (!p.HasExited) {
-				var kill = Process.Start(new ProcessStartInfo {
-					FileName = "taskkill",
-					Arguments = $"/T /F /PID {p.Id}",
-					UseShellExecute = false,
-					CreateNoWindow = true,
-				});
-				kill?.WaitForExit(3000);
-			}
-		}
-		catch { }
+		var pid = 0;
+		try { if (!p.HasExited) pid = p.Id; }
+		catch { return; }
+		if (pid > 0) ChromeTts.KillPid(pid);
 		try { if (!p.HasExited) p.Kill(); } catch { }
 		try { if (!p.HasExited) p.WaitForExit(3000); } catch { }
 	}
@@ -817,27 +792,36 @@ static class ChromeHost {
 	const int SM_CYVIRTUALSCREEN = 79;
 
 	static bool cloakedBusy;
+	static readonly HashSet<IntPtr> parked = new();
+	static int nexthide;
+	const uint SWP_ASYNCWINDOWPOS = 0x4000;
 
 	static void cloak() {
 		var busy = false;
 		lock (slots) busy = slots.Count > 0 || Volatile.Read(ref pin) > 0;
 		var flip = busy != cloakedBusy;
 		cloakedBusy = busy;
+		var now = Environment.TickCount;
+		var retry = nexthide == 0 || unchecked(now - nexthide) >= 0;
 		EnumWindows((h, _) => {
 			var sb = new StringBuilder(256);
-			if (GetWindowText(h, sb, sb.Capacity) <= 0) return true;
+			if (InternalGetWindowText(h, sb, sb.Capacity) <= 0) return true;
 			if (!sb.ToString().StartsWith("skc", StringComparison.Ordinal)) return true;
 			var ex = GetWindowLongPtr(h, GWL_EXSTYLE).ToInt64();
 			var next = (ex | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW;
-			var changed = next != ex;
-			if (changed) SetWindowLongPtr(h, GWL_EXSTYLE, new IntPtr(next));
+			if (next != ex) SetWindowLongPtr(h, GWL_EXSTYLE, new IntPtr(next));
 			if (busy) {
-				if (changed || flip) {
-					ShowWindow(h, SW_SHOWNA);
-					SetWindowPos(h, IntPtr.Zero, -32000, -32000, 160, 80, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+				if (flip || !parked.Contains(h)) {
+					ShowWindowAsync(h, SW_SHOWNA);
+					SetWindowPos(h, IntPtr.Zero, -32000, -32000, 160, 80, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
+					parked.Add(h);
 				}
 			}
-			else if (changed || flip || IsWindowVisible(h)) ShowWindow(h, SW_HIDE);
+			else if (flip || !parked.Contains(h) || (retry && IsWindowVisible(h))) {
+				ShowWindowAsync(h, SW_HIDE);
+				parked.Add(h);
+				nexthide = unchecked(now + 4000);
+			}
 			return true;
 		}, IntPtr.Zero);
 	}
@@ -984,11 +968,13 @@ static class ChromeHost {
 
 	static bool alive(int pid) {
 		if (pid <= 0) return false;
+		var h = OpenProcess(0x1000, false, pid);
+		if (h == IntPtr.Zero) return false;
 		try {
-			using var p = Process.GetProcessById(pid);
-			return !p.HasExited;
+			if (!GetExitCodeProcess(h, out var code)) return false;
+			return code == 259;
 		}
-		catch { return false; }
+		finally { CloseHandle(h); }
 	}
 
 	static HashSet<int> treepids(int pid) {
@@ -1043,7 +1029,7 @@ static class ChromeHost {
 		var ok = false;
 		EnumWindows((h, _) => {
 			var sb = new StringBuilder(256);
-			if (GetWindowText(h, sb, sb.Capacity) <= 0) return true;
+			if (InternalGetWindowText(h, sb, sb.Capacity) <= 0) return true;
 			if (sb.ToString().IndexOf(part, StringComparison.Ordinal) >= 0) ok = true;
 			return true;
 		}, IntPtr.Zero);
@@ -1073,10 +1059,11 @@ static class ChromeHost {
 
 	delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
 	[DllImport("user32.dll")] static extern bool EnumWindows(EnumProc lpEnumFunc, IntPtr lParam);
-	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "InternalGetWindowText")] static extern int InternalGetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 	[DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
 	[DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")] static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 	[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+	[DllImport("user32.dll")] static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 	[DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
 	[DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
 	[DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
@@ -1090,6 +1077,8 @@ static class ChromeHost {
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32FirstW", SetLastError = true)] static extern bool Process32First(IntPtr snap, ref PROCESSENTRY32 pe);
 	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32NextW", SetLastError = true)] static extern bool Process32Next(IntPtr snap, ref PROCESSENTRY32 pe);
 	[DllImport("kernel32.dll", SetLastError = true)] static extern bool CloseHandle(IntPtr handle);
+	[DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(int access, bool inherit, int pid);
+	[DllImport("kernel32.dll", SetLastError = true)] static extern bool GetExitCodeProcess(IntPtr process, out uint code);
 
 	[StructLayout(LayoutKind.Sequential)]
 	struct RECT {

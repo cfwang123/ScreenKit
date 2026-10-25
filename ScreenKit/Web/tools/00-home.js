@@ -685,6 +685,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-iverb",
+						"data-cat":"info",
+						"data-name":"英文 英语 不规则动词 过去式 过去分词 动词表 irregular verb past participle 三态 变化",
+						"title":"查英文不规则动词的原形、过去式和过去分词，输入任一形式或中文释义都能找到",
+						c:[
+						{x:"i.fa-solid.fa-spell-check"},
+						{x:"span","data-k":"web.tool.iverb",c:"英文不规则动词"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-iverb","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-keycode",
 						"data-cat":"info",
 						"data-name":"键盘 keycode 键码 event.code event.key VK 快捷键 虚拟键",

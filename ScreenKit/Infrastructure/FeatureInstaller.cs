@@ -69,6 +69,8 @@ enum FeatureInstallState {
 	Missing,
 	Partial,
 	Installed,
+	/// <summary>文件还在，但是旧版。可以重装新版，或卸载。</summary>
+	Update,
 }
 
 /// <summary>安装进度（含下载字节）。</summary>
@@ -316,8 +318,12 @@ static class FeatureInstaller {
 		it.StateText = it.State switch {
 			FeatureInstallState.Installed => Loc.T("inst.installed"),
 			FeatureInstallState.Partial => Loc.T("inst.partial"),
+			FeatureInstallState.Update => Loc.T("inst.update"),
 			_ => Loc.T("inst.missing"),
 		};
+		if (it.Kind == FeatureKind.ImeDb)
+			it.Detail = it.State == FeatureInstallState.Update
+				? Loc.T("feat.ImeDb.old") : Loc.T("feat.ImeDb.detail");
 		// 体积：已装显示本机占用，否则显示预期下载约数
 		var onDisk = measuresize(it.Kind);
 		if (it.Kind is FeatureKind.MediaFoundation or FeatureKind.Mjpeg) {
@@ -1352,8 +1358,10 @@ arabic_dict.txt
 		try {
 			if (!File.Exists(path)) return FeatureInstallState.Missing;
 			var n = filesize(path);
-			if (n >= 8L * 1024 * 1024) return FeatureInstallState.Installed;
-			return n > 0 ? FeatureInstallState.Partial : FeatureInstallState.Missing;
+			if (n < 8L * 1024 * 1024)
+				return n > 0 ? FeatureInstallState.Partial : FeatureInstallState.Missing;
+			if (!ImeJaExpand.IsCurrent(path)) return FeatureInstallState.Update;
+			return FeatureInstallState.Installed;
 		}
 		catch { return FeatureInstallState.Missing; }
 	}
@@ -1361,10 +1369,12 @@ arabic_dict.txt
 	static async Task installime(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		if (probeime() == FeatureInstallState.Installed) {
-			log?.Report("ime.db 已存在，跳过");
+			log?.Report("ime.db 已是当前版本，跳过");
 			reportprog(progress, 1, note: "已存在");
 			return;
 		}
+		if (File.Exists(imedbpath()))
+			log?.Report("换上新版 ime.db …");
 		Directory.CreateDirectory(CacheDir);
 		var arc = Path.Combine(CacheDir, "ime.7z");
 		if (File.Exists(arc)) {
@@ -1399,6 +1409,15 @@ arabic_dict.txt
 		try { if (File.Exists(dest + "-wal")) File.Delete(dest + "-wal"); } catch { }
 		try { if (File.Exists(dest + "-shm")) File.Delete(dest + "-shm"); } catch { }
 		File.Move(found, dest);
+		try {
+			var dict = dictdbpath();
+			if (File.Exists(dict)) {
+				log?.Report("写入日语写法和活用…");
+				var n = ImeJaExpand.Fill(dest, dict, s => log?.Report(s));
+				if (n > 0) log?.Report("日语活用写入 " + n + " 条");
+			}
+		}
+		catch (Exception ex) { log?.Report("日语活用未写入: " + ex.Message); }
 		reportprog(progress, 1, zlen, zlen, "ime.db", "完成");
 		log?.Report("输入法 ime.db 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}

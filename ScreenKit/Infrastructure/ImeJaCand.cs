@@ -54,7 +54,7 @@ static class JaCand {
 		}
 		foreach (var g in groups.Values) {
 			g.Sort(cmp);
-			if (g.Count > 12) g.RemoveRange(12, g.Count - 12);
+			if (g.Count > 48) g.RemoveRange(48, g.Count - 48);
 		}
 		var stem = pick(reading, groups);
 		var rest = stem.Length < reading.Length ? reading.Substring(stem.Length) : "";
@@ -70,7 +70,7 @@ static class JaCand {
 			}
 		}
 		primary.Sort(cmp);
-		if (primary.Count > 36) primary.RemoveRange(36, primary.Count - 36);
+		if (primary.Count > 48) primary.RemoveRange(48, primary.Count - 48);
 		var seen = new HashSet<string>();
 		foreach (var c in primary) seen.Add(c.Text);
 		bool lead = !pinned(primary) && (reading.Length <= 1 || kanafirst.Contains(reading));

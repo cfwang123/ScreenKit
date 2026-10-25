@@ -131,9 +131,18 @@ public partial class MainWindow {
 	}
 
 	void openhttptools(bool fromTray = false, string tool = null) {
+		var id = (tool ?? "").Trim();
+		if (id == "reader") {
+			openhttppage(fromTray, "/reader");
+			return;
+		}
+		if (id == "dict") {
+			openhttpdict(fromTray);
+			return;
+		}
 		var path = "/";
-		if (!string.IsNullOrWhiteSpace(tool) && tool != "home")
-			path += "#" + Uri.EscapeDataString(tool.Trim());
+		if (id.Length > 0 && id != "home")
+			path += "#" + Uri.EscapeDataString(id);
 		openhttppage(fromTray, path);
 	}
 

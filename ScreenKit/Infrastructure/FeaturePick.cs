@@ -242,7 +242,8 @@ static class FeaturePick {
 			var st = FeatureInstaller.Probe(k);
 			var on = sel.Contains(k);
 			if (builtin(k)) continue;
-			if (on && st != FeatureInstallState.Installed) add.Add(k);
+			var have = st == FeatureInstallState.Installed || st == FeatureInstallState.Update;
+			if (on && !have) add.Add(k);
 			else if (!keepInstalled && !on && st != FeatureInstallState.Missing) del.Add(k);
 		}
 	}
