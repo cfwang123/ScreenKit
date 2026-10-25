@@ -280,9 +280,9 @@ static class ImeLex {
 			// 整词多留一些，短前缀少留。活用补进词库以后，一条读音可能有很多条。
 			for (int i = 0; i < n; i++) {
 				int lim = i + 1 == n ? 48 : 12;
-				each(conn, "SELECT reading,text,rank FROM ja_word WHERE reading=$p ORDER BY rank, text LIMIT " + lim, r => {
+				each(conn, "SELECT reading,text,rank FROM ja_word WHERE reading=" + names[i] + " ORDER BY rank, text LIMIT " + lim, r => {
 					rows.Add(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) });
-				}, (names[i], args[i].v));
+				}, args[i]);
 			}
 			userwords("ja", true, "key IN (" + inn + ")", args, true, c => rows.Add(c));
 		}

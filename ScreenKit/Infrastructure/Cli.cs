@@ -4699,6 +4699,17 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Err("FAIL " + err);
 			return 1;
 		}
+		if (File.Exists(ImeLex.PathOf) && ImeJaExpand.IsCurrent(ImeLex.PathOf)) {
+			var rows = ImeLex.QueryJa("よみがえる");
+			var hit = false;
+			foreach (var r in rows)
+				if (r.Text == "蘇る" || r.Raw == "蘇る") hit = true;
+			if (!hit) {
+				Err("FAIL query " + string.Join(",", rows.ConvertAll(x => x.Text).ToArray()));
+				return 1;
+			}
+			Out("よみがえる " + string.Join(" ", rows.ConvertAll(x => x.Text).ToArray()));
+		}
 		Out("OK");
 		return 0;
 	}

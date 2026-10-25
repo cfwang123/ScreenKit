@@ -13,6 +13,80 @@
 		"む": ["ま", "み", "む", "め", "も", "んで", "んだ"],
 		"る": ["ら", "り", "る", "れ", "ろ", "って", "った"]
 	};
+	var PICKG = {
+		sp: ["特殊变化", "Irregular"],
+		cm: ["常见动词", "Common"]
+	};
+	// g, 辞书形, 读音, 类, flag, sub, 中文, English
+	var PICKS = [
+		["sp", "する", "する", "3", "", "suru", "做", "do"],
+		["sp", "来る", "くる", "3", "", "kuru", "来", "come"],
+		["sp", "行く", "いく", "1", "iku", "", "去 · て＝って", "go · te=tte"],
+		["sp", "ある", "ある", "1", "arunai", "", "有 · 否定＝ない", "exist · nai=nai"],
+		["sp", "いる", "いる", "2", "", "", "在 · 一段", "be · ichidan"],
+		["sp", "要る", "いる", "1", "", "", "需要 · 五段", "need · godan"],
+		["sp", "くれる", "くれる", "2", "kure", "", "给 · 命令＝くれ", "give · cmd=kure"],
+		["sp", "問う", "とう", "1", "ute", "", "问 · て＝うて", "ask · te=ute"],
+		["sp", "請う", "こう", "1", "ute", "", "请求 · て＝うて", "request · te=ute"],
+		["sp", "なさる", "なさる", "1", "aru", "", "做 · ます＝います", "do · masu=imasu"],
+		["sp", "くださる", "くださる", "1", "aru", "", "给 · ます＝います", "give · masu=imasu"],
+		["sp", "いらっしゃる", "いらっしゃる", "1", "aru", "", "在/来/去 · ます＝います", "be/come/go · masu=imasu"],
+		["sp", "おっしゃる", "おっしゃる", "1", "aru", "", "说 · ます＝います", "say · masu=imasu"],
+		["sp", "ござる", "ござる", "1", "aru", "", "有 · ます＝います", "exist · masu=imasu"],
+		["sp", "切る", "きる", "1", "", "", "切 · 五段", "cut · godan"],
+		["sp", "着る", "きる", "2", "", "", "穿 · 一段", "wear · ichidan"],
+		["sp", "帰る", "かえる", "1", "", "", "回 · 五段", "return · godan"],
+		["sp", "変える", "かえる", "2", "", "", "改变 · 一段", "change · ichidan"],
+		["sp", "入る", "はいる", "1", "", "", "进 · 五段", "enter · godan"],
+		["sp", "出る", "でる", "2", "", "", "出 · 一段", "exit · ichidan"],
+		["sp", "走る", "はしる", "1", "", "", "跑 · 五段", "run · godan"],
+		["sp", "知る", "しる", "1", "", "", "知道 · 五段", "know · godan"],
+		["sp", "作る", "つくる", "1", "", "", "做 · 五段", "make · godan"],
+		["sp", "取る", "とる", "1", "", "", "取 · 五段", "take · godan"],
+		["sp", "乗る", "のる", "1", "", "", "乘 · 五段", "ride · godan"],
+		["sp", "座る", "すわる", "1", "", "", "坐 · 五段", "sit · godan"],
+		["sp", "終わる", "おわる", "1", "", "", "结束 · 五段", "end · godan"],
+		["sp", "始まる", "はじまる", "1", "", "", "开始 · 五段", "begin · godan"],
+		["sp", "始める", "はじめる", "2", "", "", "开始 · 一段", "begin · ichidan"],
+		["sp", "売る", "うる", "1", "", "", "卖 · 五段", "sell · godan"],
+		["sp", "送る", "おくる", "1", "", "", "送 · 五段", "send · godan"],
+		["sp", "分かる", "わかる", "1", "", "", "懂 · 五段", "understand · godan"],
+		["sp", "入れる", "いれる", "2", "", "", "放入 · 一段", "put in · ichidan"],
+		["cm", "食べる", "たべる", "2", "", "", "吃", "eat"],
+		["cm", "飲む", "のむ", "1", "", "", "喝", "drink"],
+		["cm", "見る", "みる", "2", "", "", "看", "see"],
+		["cm", "聞く", "きく", "1", "", "", "听", "hear"],
+		["cm", "読む", "よむ", "1", "", "", "读", "read"],
+		["cm", "書く", "かく", "1", "", "", "写", "write"],
+		["cm", "話す", "はなす", "1", "", "", "说", "speak"],
+		["cm", "言う", "いう", "1", "", "", "说", "say"],
+		["cm", "買う", "かう", "1", "", "", "买", "buy"],
+		["cm", "待つ", "まつ", "1", "", "", "等", "wait"],
+		["cm", "会う", "あう", "1", "", "", "见", "meet"],
+		["cm", "思う", "おもう", "1", "", "", "想", "think"],
+		["cm", "できる", "できる", "2", "", "", "能", "can"],
+		["cm", "勉強する", "べんきょうする", "3", "", "suru", "学习", "study"],
+		["cm", "起きる", "おきる", "2", "", "", "起床", "get up"],
+		["cm", "寝る", "ねる", "2", "", "", "睡觉", "sleep"],
+		["cm", "教える", "おしえる", "2", "", "", "教", "teach"],
+		["cm", "習う", "ならう", "1", "", "", "学", "learn"],
+		["cm", "立つ", "たつ", "1", "", "", "站", "stand"],
+		["cm", "出す", "だす", "1", "", "", "拿出", "take out"],
+		["cm", "死ぬ", "しぬ", "1", "", "", "死", "die"],
+		["cm", "泳ぐ", "およぐ", "1", "", "", "游", "swim"],
+		["cm", "遊ぶ", "あそぶ", "1", "", "", "玩", "play"],
+		["cm", "急ぐ", "いそぐ", "1", "", "", "急", "hurry"],
+		["cm", "貸す", "かす", "1", "", "", "借出", "lend"],
+		["cm", "借りる", "かりる", "2", "", "", "借入", "borrow"],
+		["cm", "開ける", "あける", "2", "", "", "打开", "open"],
+		["cm", "閉める", "しめる", "2", "", "", "关上", "close"],
+		["cm", "働く", "はたらく", "1", "", "", "工作", "work"],
+		["cm", "休む", "やすむ", "1", "", "", "休息", "rest"],
+		["cm", "住む", "すむ", "1", "", "", "住", "live"],
+		["cm", "呼ぶ", "よぶ", "1", "", "", "叫", "call"],
+		["cm", "使う", "つかう", "1", "", "", "用", "use"],
+		["cm", "見せる", "みせる", "2", "", "", "给看", "show"]
+	];
 	var timer = 0;
 	var clip = null;
 	var gen = 0;
@@ -21,6 +95,7 @@
 		exp.guess = guess;
 		exp.build = build;
 		exp.poskind = poskind;
+		exp.findpre = findpre;
 		return;
 	}
 	if (typeof SK === "undefined" || !SK.regutil) return;
@@ -46,8 +121,8 @@
 
 	function body(){
 		return '<p class="hint" id="jv-hint"></p>'
-			+ '<div class="row">'
-			+ '<label id="jv-word"><input id="jv-in" type="text" value="食べる"></label>'
+			+ '<div class="row" id="jv-row">'
+			+ '<label id="jv-word">' + SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") + "</label>"
 			+ '<label id="jv-type"><select id="jv-sel">'
 			+ '<option value="auto"></option>'
 			+ '<option value="1"></option>'
@@ -67,9 +142,10 @@
 		var hint = F.id("jv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.jverb.hint");
-			hint.textContent = tx("web.jverb.hint", "输入辞书形。类型默认自动：先查日语词典；没装词典时会提示，并按词尾判断（る是 2 类，する、くる是 3 类，其余是 1 类）。いく的て形、た形是って、った。");
+			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见动词和特殊变化。类型默认自动：先查词典；没有则用示例里的类型；再按词尾（る是 2 类，する、くる是 3 类）。いく的て形、た形是って、った。表的后部是尊敬、谦让、丁重。");
 		}
 		setlab("jv-word", "web.jverb.word", "动词");
+		SK.combofill("jv-in", pickgroups());
 		setlab("jv-type", "web.jverb.type", "类型");
 		setopt("auto", "web.jverb.auto", "自动");
 		setopt("1", "web.jverb.t1", "1类（五段）");
@@ -120,15 +196,53 @@
 		if (!rows || !rows.length) { out.innerHTML = ""; return; }
 		var tip = esc(tx("dict.speak", "发音"));
 		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(name) + "</span></div><table class=\"jv-tab\">";
-		var i;
-		for (i = 0; i < rows.length; i += 2) {
-			html += "<tr>" + cellhtml(rows[i], tip);
-			if (i + 1 < rows.length) html += cellhtml(rows[i + 1], tip);
-			else html += '<td class="jv-k"></td><td class="jv-v"></td>';
+		var g = null;
+		var buf = [];
+		var i, rg;
+		for (i = 0; i < rows.length; i++) {
+			rg = rows[i][2] || "";
+			if (g === null || rg !== g) {
+				html += flushrows(buf, tip);
+				buf = [];
+				g = rg;
+				if (g) html += '<tr><td class="kv-g" colspan="4">' + esc(g) + "</td></tr>";
+			}
+			buf.push(rows[i]);
+		}
+		html += flushrows(buf, tip) + "</table>";
+		out.innerHTML = html;
+	}
+
+	function flushrows(buf, tip){
+		var html = "";
+		var j;
+		for (j = 0; j < buf.length; j += 2) {
+			html += "<tr>" + cellhtml(buf[j], tip);
+			html += j + 1 < buf.length ? cellhtml(buf[j + 1], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
 			html += "</tr>";
 		}
-		html += "</table>";
-		out.innerHTML = html;
+		return html;
+	}
+
+	function pickgroups(){
+		var lang = langcode();
+		var groups = [];
+		var cur = null;
+		var i, p, name, gloss, show;
+		for (i = 0; i < PICKS.length; i++) {
+			p = PICKS[i];
+			name = lang === "zh" ? PICKG[p[0]][0] : PICKG[p[0]][1];
+			if (!cur || cur.g !== name) {
+				cur = { g: name, items: [] };
+				groups.push(cur);
+			}
+			gloss = lang === "zh" ? p[6] : p[7];
+			show = p[1];
+			if (p[2] && p[2] !== p[1]) show += "  " + p[2];
+			if (gloss) show += "  " + gloss;
+			cur.items.push({ v: p[1], t: show });
+		}
+		return groups;
 	}
 
 	function cellhtml(item, tip){

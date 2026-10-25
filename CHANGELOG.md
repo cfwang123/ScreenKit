@@ -86,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Force-closing Chrome from the memory window also ends the browser that kept running after the launcher exited, so the app is no longer taken down a minute or two later.
 - The Chrome model list in Install features reads the voice-pack record on disk, so it opens immediately instead of starting Chrome and waiting about half a minute.
 - The Tools menu on the main window and in the tray now includes the novel reader and the dictionary under Text, matching the web tools page.
+- Japanese input queries each reading with the matching parameter, so the added spellings show up as candidates.
 
 ### 中文
 
@@ -131,6 +132,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 在内存占用里强制关闭 Chrome 时，会把启动进程退出后仍在跑的浏览器一起结束，程序不再过一两分钟跟着退出。
 - 安装功能里的 Chrome 模型列表改为直接读本机语音包记录，打开时不再启动 Chrome，也不再等大约半分钟。
 - 主界面和托盘的「工具 → 文字」补上小说阅读器，词典也按网页分类放进这一组。
+- 日语输入按读音查词时参数对上了，补进词库的写法会进候选。
 
 ## v1.0.29 (2026-10-23)
 

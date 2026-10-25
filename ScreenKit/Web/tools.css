@@ -410,10 +410,11 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .num-list .num-ops button:hover { background: #fff1e8; }
 .num-list > :nth-last-child(-n+3) { border-bottom: 0; }
 #jv-out, #kv-out { overflow-x: auto; }
-#kv-row { align-items: flex-end; }
-#kv-row > label { width: auto; }
-#kv-row > #kv-word { flex: 1 1 220px; min-width: 180px; }
+#kv-row, #jv-row { align-items: flex-end; }
+#kv-row > label, #jv-row > label { width: auto; }
+#kv-row > #kv-word, #jv-row > #jv-word { flex: 1 1 240px; min-width: 180px; }
 #kv-row > #kv-type { flex: 0 0 112px; }
+#jv-row > #jv-type { flex: 0 0 200px; }
 .combo { position: relative; margin-top: 6px; }
 .combo input { margin-top: 0; padding-right: 36px; }
 .combo .combo-btn {
@@ -834,9 +835,9 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .reflist.hcodes th:nth-child(3), .reflist.hcodes td:nth-child(3) { width: 20%; }
 .reflist.mtypes th:nth-child(1), .reflist.mtypes td:nth-child(1) { width: 42%; }
 .reflist.mtypes th:nth-child(2), .reflist.mtypes td:nth-child(2) { width: 22%; }
-.reflist.iverbs th:nth-child(1), .reflist.iverbs td:nth-child(1) { width: 26%; }
-.reflist.iverbs th:nth-child(2), .reflist.iverbs td:nth-child(2) { width: 27%; }
-.reflist.iverbs th:nth-child(3), .reflist.iverbs td:nth-child(3) { width: 27%; }
+.reflist.iverbs th:nth-child(1), .reflist.iverbs td:nth-child(1) { width: 100px; }
+.reflist.iverbs th:nth-child(2), .reflist.iverbs td:nth-child(2) { width: 148px; }
+.reflist.iverbs th:nth-child(3), .reflist.iverbs td:nth-child(3) { width: 148px; }
 .reflist th {
 	position: sticky; top: 0; z-index: 1;
 	background: var(--card); color: var(--muted); font-weight: 600;
