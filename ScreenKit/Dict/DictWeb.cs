@@ -123,6 +123,10 @@ static class DictWeb {
 	public static string SpeakFile(OcrOptions o, string lang, string text) {
 		lang = NormLang(lang);
 		var pref = DictTts.For(o, lang);
+		if (DictTts.ResolveEngine(pref.Engine, lang) == DictTts.CHROME) {
+			DictTts.PlayChrome(o, pref, lang, text);
+			return DictTts.AckWav();
+		}
 		return DictTts.EnsureWav(pref, lang, text).GetAwaiter().GetResult();
 	}
 

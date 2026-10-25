@@ -87,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Chrome model list in Install features reads the voice-pack record on disk, so it opens immediately instead of starting Chrome and waiting about half a minute.
 - The Tools menu on the main window and in the tray now includes the novel reader and the dictionary under Text, matching the web tools page.
 - Japanese input queries each reading with the matching parameter, so the added spellings show up as candidates.
+- Web pronunciation works when a language uses Chrome's Google voice. Korean was refused because that engine does not return an audio file.
 
 ### 中文
 
@@ -133,6 +134,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安装功能里的 Chrome 模型列表改为直接读本机语音包记录，打开时不再启动 Chrome，也不再等大约半分钟。
 - 主界面和托盘的「工具 → 文字」补上小说阅读器，词典也按网页分类放进这一组。
 - 日语输入按读音查词时参数对上了，补进词库的写法会进候选。
+- 语言选用 Chrome 的 Google 语音时，网页上的发音可以出声。韩语原先因为这种语音不返回音频而被拒绝。
 
 ## v1.0.29 (2026-10-23)
 

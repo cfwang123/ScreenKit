@@ -146,6 +146,38 @@ static class DictTts {
 	public static string VoiceOf(DictTtsLang pref, string lang, string engine) =>
 		voiceof(pref, lang, engine);
 
+	/// <summary>Chrome 只出声，不产 wav。网页发音走这条，读完再交一段很短的静音。</summary>
+	public static void PlayChrome(OcrOptions o, DictTtsLang pref, string lang, string text) {
+		text = (text ?? "").Trim();
+		if (text.Length > 400) text = text.Substring(0, 400);
+		if (text.Length == 0) throw new InvalidOperationException("novoice");
+		var exe = ChromeTts.FindExe(o?.ChromeExe);
+		if (string.IsNullOrEmpty(exe))
+			throw new InvalidOperationException(Loc.T("tts.chrome.missing"));
+		pref = pref ?? DictTtsLang.Make(DefaultEdge(lang));
+		var voice = (VoiceOf(pref, lang, CHROME) ?? "").Trim();
+		var culture = ChromePack.SpeakLang(lang);
+		foreach (var v in ChromeTts.Voices) {
+			if (voice.Length > 0) {
+				if (!string.Equals(v.Name, voice, StringComparison.OrdinalIgnoreCase)) continue;
+			}
+			else if (!string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase)) continue;
+			voice = v.Name ?? "";
+			if (!string.IsNullOrEmpty(v.Culture)) culture = v.Culture;
+			break;
+		}
+		var idle = ChromeTts.ClampIdle(o == null ? 60 : o.ChromeIdleSec);
+		ChromeTts.Speak(text, voice, culture, NormRate(pref.Rate), 1, exe, idle, CancellationToken.None);
+	}
+
+	public static string AckWav() {
+		var path = Path.Combine(cachedir(), "chrome-ack.wav");
+		if (File.Exists(path)) return path;
+		Directory.CreateDirectory(cachedir());
+		File.WriteAllBytes(path, ackwav());
+		return path;
+	}
+
 	public static (string Id, string LocKey)[] EdgeVoices(string lang) {
 		if (lang == "ja") return new[] {
 			("ja-JP-NanamiNeural", "dict.edge.nanami"),
@@ -489,6 +521,43 @@ static class DictTts {
 	}
 
 	static string cachedir() => Path.Combine(TmpStore.Root, "voice");
+
+	static byte[] ackwav() {
+		const int rate = 8000;
+		const int samples = 800;
+		var data = samples * 2;
+		var buf = new byte[44 + data];
+		puttxt(buf, 0, "RIFF");
+		put32(buf, 4, 36 + data);
+		puttxt(buf, 8, "WAVE");
+		puttxt(buf, 12, "fmt ");
+		put32(buf, 16, 16);
+		put16(buf, 20, 1);
+		put16(buf, 22, 1);
+		put32(buf, 24, rate);
+		put32(buf, 28, rate * 2);
+		put16(buf, 32, 2);
+		put16(buf, 34, 16);
+		puttxt(buf, 36, "data");
+		put32(buf, 40, data);
+		return buf;
+	}
+
+	static void puttxt(byte[] buf, int at, string text) {
+		for (var i = 0; i < text.Length; i++) buf[at + i] = (byte)text[i];
+	}
+
+	static void put16(byte[] buf, int at, int value) {
+		buf[at] = (byte)value;
+		buf[at + 1] = (byte)(value >> 8);
+	}
+
+	static void put32(byte[] buf, int at, int value) {
+		buf[at] = (byte)value;
+		buf[at + 1] = (byte)(value >> 8);
+		buf[at + 2] = (byte)(value >> 16);
+		buf[at + 3] = (byte)(value >> 24);
+	}
 
 	static string cachepath(string engine, string voice, double rate, string lang, string text) {
 		var raw = engine + "\n" + lang + "\n" + (voice ?? "") + "\n"
