@@ -1312,8 +1312,6 @@ return 'started';
 		bool offNet;
 		bool browserNet;
 		bool dlNet;
-		bool popped;
-		bool cdpSent;
 
 		public bool HasPage => page != null;
 
@@ -1488,55 +1486,90 @@ return 'started';
 
 		public bool TryWaitExt(int ms, CancellationToken ct) {
 			var start = Environment.TickCount;
-			var sent = false;
-			var nexttry = 0;
+			var prev = GetForegroundWindow();
+			var taps = 0;
+			var nextTap = 0;
+			var warmed = false;
 			while (unchecked(Environment.TickCount - start) < ms) {
 				ct.ThrowIfCancellationRequested();
 				ext ??= connectext();
 				if (ext != null) {
-					hide(proc);
-					hidepop();
+					giveback(prev);
+					hideown();
 					return true;
 				}
-				var now = Environment.TickCount;
-				if (!sent && (nexttry == 0 || unchecked(now - nexttry) >= 0)) {
-					if (wakeread()) sent = true;
-					else nexttry = unchecked(now + 500);
+				var hwnd = chromehwnd();
+				if (hwnd != IntPtr.Zero) {
+					var off = false;
+					if (GetWindowRect(hwnd, out var rc))
+						off = rc.left < -2000 || rc.top < -2000;
+					if (off || !IsWindowVisible(hwnd)) {
+						ShowWindow(hwnd, SW_RESTORE);
+						SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 720, 480, SWP_SHOW);
+					}
+					if (GetForegroundWindow() != hwnd) focus(hwnd);
+					if (!warmed && GetForegroundWindow() == hwnd) {
+						warmpage(ct);
+						warmed = true;
+						nextTap = unchecked(Environment.TickCount + 700);
+					}
+					var now = Environment.TickCount;
+					if (GetForegroundWindow() == hwnd && taps < 2 && nextTap != 0 && unchecked(now - nextTap) >= 0) {
+						if (taps == 0 || !readingopen()) {
+							tapread();
+							taps++;
+							nextTap = unchecked(now + 2500);
+						}
+					}
 				}
 				Thread.Sleep(200);
 			}
-			hide(proc);
-			hidepop();
+			giveback(prev);
+			hideown();
 			return false;
 		}
 
-		bool wakeread() {
+		void giveback(IntPtr prev) {
 			var hwnd = chromehwnd();
-			var prev = GetForegroundWindow();
-			if (hwnd != IntPtr.Zero) {
-				var off = false;
-				if (GetWindowRect(hwnd, out var rc))
-					off = rc.left < -2000 || rc.top < -2000;
-				if (off || !IsWindowVisible(hwnd)) {
-					ShowWindow(hwnd, SW_RESTORE);
-					SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 1000, 720, SWP_SHOW);
-					popped = true;
-				}
-				if (hwnd == prev || focus(hwnd)) {
-					Thread.Sleep(200);
-					if (GetForegroundWindow() == hwnd) {
-						tapread();
-						Thread.Sleep(300);
-						if (prev != IntPtr.Zero && prev != hwnd && IsWindow(prev)) focus(prev);
-						return true;
-					}
-				}
+			if (prev == IntPtr.Zero || prev == hwnd || !IsWindow(prev)) return;
+			focus(prev);
+		}
+
+		void warmpage(CancellationToken ct) {
+			Sock page = null;
+			try {
+				page = connect("page", "about:blank") ?? connect("page", "sk-voice") ?? connect("page", "");
+				if (page == null) return;
+				page.Call("Page.navigate", "{\"url\":\"data:text/html,<title>sk-voice</title><p>voice</p>\"}", ct);
 			}
-			if (!cdpSent) {
-				cdpSent = true;
-				cdpkey();
+			catch { }
+			finally { try { page?.Dispose(); } catch { } }
+		}
+
+		bool readingopen() {
+			try {
+				var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/list");
+				req.Timeout = 2000;
+				using var resp = req.GetResponse();
+				using var rd = new StreamReader(resp.GetResponseStream());
+				var text = rd.ReadToEnd();
+				return text.IndexOf("read-anything", StringComparison.OrdinalIgnoreCase) >= 0
+					|| text.IndexOf(TTS_EXT, StringComparison.OrdinalIgnoreCase) >= 0;
 			}
-			return false;
+			catch { return false; }
+		}
+
+		void hideown() {
+			var pid = ownpid();
+			if (pid == 0) {
+				hide(proc);
+				return;
+			}
+			EnumWindows((h, _) => {
+				GetWindowThreadProcessId(h, out var wpid);
+				if (wpid == pid) ShowWindow(h, SW_HIDE);
+				return true;
+			}, IntPtr.Zero);
 		}
 
 		static void tapread() {
@@ -1574,26 +1607,6 @@ return 'started';
 			if (a2) AttachThreadInput(target, cur, false);
 			if (a1) AttachThreadInput(fgThread, cur, false);
 			return ok;
-		}
-
-		bool cdpkey() {
-			Sock page = null;
-			try {
-				page = connect("page", "about:blank") ?? connect("page", "127.0.0.1") ?? connect("page", "");
-				if (page == null) return false;
-				page.Call("Input.dispatchKeyEvent", "{\"type\":\"keyDown\",\"modifiers\":9,\"windowsVirtualKeyCode\":82,\"key\":\"R\",\"code\":\"KeyR\"}", CancellationToken.None);
-				page.Call("Input.dispatchKeyEvent", "{\"type\":\"keyUp\",\"modifiers\":9,\"windowsVirtualKeyCode\":82,\"key\":\"R\",\"code\":\"KeyR\"}", CancellationToken.None);
-				return true;
-			}
-			catch { return false; }
-			finally { try { page?.Dispose(); } catch { } }
-		}
-
-		void hidepop() {
-			if (!popped) return;
-			var hwnd = chromehwnd();
-			if (hwnd != IntPtr.Zero) ShowWindow(hwnd, SW_HIDE);
-			popped = false;
 		}
 
 		IntPtr chromehwnd() {
@@ -1646,7 +1659,9 @@ return 'started';
 
 		IntPtr pickhwnd(uint pid, bool visibleOnly) {
 			IntPtr best = IntPtr.Zero;
+			IntPtr widget = IntPtr.Zero;
 			var bestArea = -1;
+			var widgetArea = -1;
 			EnumWindows((h, _) => {
 				GetWindowThreadProcessId(h, out var wpid);
 				if (wpid != pid) return true;
@@ -1658,9 +1673,20 @@ return 'started';
 					bestArea = area;
 					best = h;
 				}
+				var cls = classname(h);
+				if (cls.IndexOf("Chrome_WidgetWin", StringComparison.Ordinal) >= 0 && area >= widgetArea) {
+					widgetArea = area;
+					widget = h;
+				}
 				return true;
 			}, IntPtr.Zero);
-			return best;
+			return widget != IntPtr.Zero ? widget : best;
+		}
+
+		static string classname(IntPtr hwnd) {
+			var sb = new StringBuilder(64);
+			if (GetClassName(hwnd, sb, sb.Capacity) <= 0) return "";
+			return sb.ToString();
 		}
 
 		public string EvalPage(string expr, bool wait, int ms, CancellationToken ct) {
@@ -2017,6 +2043,8 @@ return JSON.stringify(out);
 		static extern bool AttachThreadInput(uint from, uint to, bool attach);
 		[DllImport("user32.dll")]
 		static extern bool BringWindowToTop(IntPtr h);
+		[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+		static extern int GetClassName(IntPtr hwnd, StringBuilder name, int count);
 		[DllImport("kernel32.dll")]
 		static extern uint GetCurrentThreadId();
 		[DllImport("user32.dll")]

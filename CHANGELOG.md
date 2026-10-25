@@ -98,6 +98,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Chrome window used for speech and translation no longer keeps a taskbar button.
 - Installing a Chrome voice pack from the user's own Chrome still starts the speech component.
 - Voice install can focus its own Chrome while the user's Chrome stays in front, so the speech component starts.
+- Voice install waits until its Chrome window is in front and the page is ready before sending the reading shortcut.
 
 ### 中文
 
@@ -155,6 +156,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 朗读和翻译用的 Chrome 不再留在任务栏上。
 - 在用户自己的 Chrome 里安装语音包时，也会唤起语音组件。
 - 用户的 Chrome 在前台时，安装语音仍能让程序自己的 Chrome 获得焦点并启动语音组件。
+- 安装语音时等程序的 Chrome 窗口到前台并打开页面后，再发朗读快捷键。
 
 ## v1.0.29 (2026-10-23)
 
