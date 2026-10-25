@@ -96,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - With the IME off, the next-language hotkey opens the first enabled method in Wubi, Japanese, Korean order.
 - Disabling Wubi stays off when settings are opened again.
 - The Chrome window used for speech and translation no longer keeps a taskbar button.
+- Installing a Chrome voice pack from the user's own Chrome still starts the speech component.
 
 ### 中文
 
@@ -151,6 +152,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 输入法处于关闭时，切换下一个会按五笔、日语、韩语的顺序打开第一个启用的输入法。
 - 关掉五笔后再打开设置，勾选保持关闭。
 - 朗读和翻译用的 Chrome 不再留在任务栏上。
+- 在用户自己的 Chrome 里安装语音包时，也会唤起语音组件。
 
 ## v1.0.29 (2026-10-23)
 

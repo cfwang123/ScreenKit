@@ -1297,6 +1297,7 @@ return 'started';
 		bool browserNet;
 		bool dlNet;
 		bool popped;
+		bool cdpSent;
 
 		public bool HasPage => page != null;
 
@@ -1471,8 +1472,8 @@ return 'started';
 
 		public bool TryWaitExt(int ms, CancellationToken ct) {
 			var start = Environment.TickCount;
-			var wokeAt = 0;
-			var woke = false;
+			var sent = false;
+			var nexttry = 0;
 			while (unchecked(Environment.TickCount - start) < ms) {
 				ct.ThrowIfCancellationRequested();
 				ext ??= connectext();
@@ -1481,14 +1482,10 @@ return 'started';
 					hidepop();
 					return true;
 				}
-				if (!woke) {
-					wakeread();
-					woke = true;
-					wokeAt = Environment.TickCount;
-				}
-				else if (unchecked(Environment.TickCount - wokeAt) > 4000) {
-					hide(proc);
-					hidepop();
+				var now = Environment.TickCount;
+				if (!sent && (nexttry == 0 || unchecked(now - nexttry) >= 0)) {
+					if (wakeread()) sent = true;
+					else nexttry = unchecked(now + 500);
 				}
 				Thread.Sleep(200);
 			}
@@ -1497,21 +1494,36 @@ return 'started';
 			return false;
 		}
 
-		void wakeread() {
+		bool wakeread() {
 			var hwnd = chromehwnd();
-			if (hwnd == IntPtr.Zero) return;
-			var off = false;
-			if (GetWindowRect(hwnd, out var rc))
-				off = rc.left < -2000 || rc.top < -2000;
-			if (!off && IsWindowVisible(hwnd)) return;
-			ShowWindow(hwnd, SW_RESTORE);
-			if (off) {
-				SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 1000, 720, SWP_SHOW);
-				popped = true;
+			var prev = GetForegroundWindow();
+			if (hwnd != IntPtr.Zero) {
+				var off = false;
+				if (GetWindowRect(hwnd, out var rc))
+					off = rc.left < -2000 || rc.top < -2000;
+				if (off || !IsWindowVisible(hwnd)) {
+					ShowWindow(hwnd, SW_RESTORE);
+					SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 1000, 720, SWP_SHOW);
+					popped = true;
+				}
+				if (hwnd == prev || focus(hwnd)) {
+					Thread.Sleep(200);
+					if (GetForegroundWindow() == hwnd) {
+						tapread();
+						Thread.Sleep(80);
+						if (prev != IntPtr.Zero && prev != hwnd && IsWindow(prev)) focus(prev);
+						return true;
+					}
+				}
 			}
-			SetForegroundWindow(hwnd);
-			Thread.Sleep(300);
-			if (GetForegroundWindow() != hwnd) return;
+			if (!cdpSent) {
+				cdpSent = true;
+				cdpkey();
+			}
+			return false;
+		}
+
+		static void tapread() {
 			keybd_event(0x12, 0, 0, UIntPtr.Zero);
 			keybd_event(0x10, 0, 0, UIntPtr.Zero);
 			keybd_event(0x52, 0, 0, UIntPtr.Zero);
@@ -1519,6 +1531,33 @@ return 'started';
 			keybd_event(0x52, 0, 2, UIntPtr.Zero);
 			keybd_event(0x10, 0, 2, UIntPtr.Zero);
 			keybd_event(0x12, 0, 2, UIntPtr.Zero);
+		}
+
+		static bool focus(IntPtr hwnd) {
+			var fg = GetForegroundWindow();
+			uint fgThread = 0;
+			if (fg != IntPtr.Zero) fgThread = GetWindowThreadProcessId(fg, out _);
+			var target = GetWindowThreadProcessId(hwnd, out _);
+			var attached = false;
+			if (fgThread != 0 && target != 0 && fgThread != target)
+				attached = AttachThreadInput(fgThread, target, true);
+			SetForegroundWindow(hwnd);
+			var ok = GetForegroundWindow() == hwnd;
+			if (attached) AttachThreadInput(fgThread, target, false);
+			return ok;
+		}
+
+		bool cdpkey() {
+			Sock page = null;
+			try {
+				page = connect("page", "about:blank") ?? connect("page", "127.0.0.1") ?? connect("page", "");
+				if (page == null) return false;
+				page.Call("Input.dispatchKeyEvent", "{\"type\":\"keyDown\",\"modifiers\":9,\"windowsVirtualKeyCode\":82,\"key\":\"R\",\"code\":\"KeyR\"}", CancellationToken.None);
+				page.Call("Input.dispatchKeyEvent", "{\"type\":\"keyUp\",\"modifiers\":9,\"windowsVirtualKeyCode\":82,\"key\":\"R\",\"code\":\"KeyR\"}", CancellationToken.None);
+				return true;
+			}
+			catch { return false; }
+			finally { try { page?.Dispose(); } catch { } }
 		}
 
 		void hidepop() {
@@ -1537,11 +1576,17 @@ return 'started';
 		}
 
 		uint ownpid() {
-			if (proc != null) {
-				try { return (uint)proc.Id; }
-				catch { return 0; }
+			if (port > 0) {
+				var listen = PortUse.ListenerPid(port);
+				if (listen > 0) return (uint)listen;
+				var via = listenerpid();
+				if (via > 0) return via;
 			}
-			return listenerpid();
+			if (proc != null) {
+				try { if (!proc.HasExited) return (uint)proc.Id; }
+				catch { }
+			}
+			return 0;
 		}
 
 		uint listenerpid() {
@@ -1937,6 +1982,10 @@ return JSON.stringify(out);
 		static extern bool SetForegroundWindow(IntPtr h);
 		[DllImport("user32.dll")]
 		static extern IntPtr GetForegroundWindow();
+		[DllImport("user32.dll")]
+		static extern bool IsWindow(IntPtr h);
+		[DllImport("user32.dll")]
+		static extern bool AttachThreadInput(uint from, uint to, bool attach);
 		[DllImport("user32.dll")]
 		static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
 		[DllImport("user32.dll")]
