@@ -52,6 +52,9 @@ static class ChromePack {
 	const int SW_HIDE = 0;
 	const int SW_RESTORE = 9;
 	const uint SWP_SHOW = 0x0044;
+	const int GWL_EXSTYLE = -20;
+	const long WS_EX_TOOLWINDOW = 0x80;
+	const long WS_EX_APPWINDOW = 0x40000;
 	static readonly object voiceOp = new();
 	static Dictionary<string, bool> voiceKnown;
 	static bool wasmProbed;
@@ -1489,29 +1492,29 @@ return 'started';
 			var prev = GetForegroundWindow();
 			var taps = 0;
 			var nextTap = 0;
-			var warmed = false;
+			var armed = false;
+			var tried = false;
 			while (unchecked(Environment.TickCount - start) < ms) {
 				ct.ThrowIfCancellationRequested();
 				ext ??= connectext();
 				if (ext != null) {
-					giveback(prev);
-					hideown();
+					finishwait(prev, ct);
 					return true;
+				}
+				if (!tried) {
+					retitle(ct);
+					tried = true;
 				}
 				var hwnd = chromehwnd();
 				if (hwnd != IntPtr.Zero) {
-					var off = false;
-					if (GetWindowRect(hwnd, out var rc))
-						off = rc.left < -2000 || rc.top < -2000;
-					if (off || !IsWindowVisible(hwnd)) {
-						ShowWindow(hwnd, SW_RESTORE);
-						SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 720, 480, SWP_SHOW);
-					}
+					lift(hwnd);
+					ShowWindow(hwnd, SW_RESTORE);
+					SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 720, 480, SWP_SHOW);
 					if (GetForegroundWindow() != hwnd) focus(hwnd);
-					if (!warmed && GetForegroundWindow() == hwnd) {
-						warmpage(ct);
-						warmed = true;
-						nextTap = unchecked(Environment.TickCount + 700);
+					if (!armed && GetForegroundWindow() == hwnd) {
+						warmblank(ct);
+						armed = true;
+						nextTap = unchecked(Environment.TickCount + 400);
 					}
 					var now = Environment.TickCount;
 					if (GetForegroundWindow() == hwnd && taps < 2 && nextTap != 0 && unchecked(now - nextTap) >= 0) {
@@ -1524,26 +1527,73 @@ return 'started';
 				}
 				Thread.Sleep(200);
 			}
+			finishwait(prev, ct);
+			return false;
+		}
+
+		void finishwait(IntPtr prev, CancellationToken ct) {
+			restoretitle(ct);
+			var hwnd = chromehwnd();
+			if (hwnd != IntPtr.Zero) sink(hwnd);
 			giveback(prev);
 			hideown();
-			return false;
+		}
+
+		string oldtitle;
+
+		void retitle(CancellationToken ct) {
+			Sock page = null;
+			try {
+				page = connect("page", "boot.html");
+				if (page == null) return;
+				var title = page.Eval("(function(){var t=document.title||'';if(t.indexOf('skc')!==0)return '';document.title='voice';return t;})()", false, 2000, ct);
+				if (!string.IsNullOrEmpty(title)) oldtitle = title;
+			}
+			catch { }
+			finally { try { page?.Dispose(); } catch { } }
+		}
+
+		void restoretitle(CancellationToken ct) {
+			if (string.IsNullOrEmpty(oldtitle)) return;
+			var title = oldtitle;
+			oldtitle = null;
+			Sock page = null;
+			try {
+				page = connect("page", "boot.html") ?? connect("page", "voice");
+				if (page == null) return;
+				page.Eval("document.title=" + JsonSerializer.Serialize(title), false, 2000, ct);
+			}
+			catch { }
+			finally { try { page?.Dispose(); } catch { } }
+		}
+
+		void warmblank(CancellationToken ct) {
+			Sock page = null;
+			try {
+				page = connect("page", "about:blank");
+				if (page == null) return;
+				page.Call("Page.navigate", "{\"url\":\"data:text/html,<title>voice</title><body style='background:#fff;color:#000'>voice</body>\"}", ct);
+			}
+			catch { }
+			finally { try { page?.Dispose(); } catch { } }
+		}
+
+		static void lift(IntPtr hwnd) {
+			var ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
+			var next = (ex & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;
+			if (next != ex) SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(next));
+		}
+
+		static void sink(IntPtr hwnd) {
+			var ex = GetWindowLongPtr(hwnd, GWL_EXSTYLE).ToInt64();
+			var next = (ex | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW;
+			if (next != ex) SetWindowLongPtr(hwnd, GWL_EXSTYLE, new IntPtr(next));
 		}
 
 		void giveback(IntPtr prev) {
 			var hwnd = chromehwnd();
 			if (prev == IntPtr.Zero || prev == hwnd || !IsWindow(prev)) return;
 			focus(prev);
-		}
-
-		void warmpage(CancellationToken ct) {
-			Sock page = null;
-			try {
-				page = connect("page", "about:blank") ?? connect("page", "sk-voice") ?? connect("page", "");
-				if (page == null) return;
-				page.Call("Page.navigate", "{\"url\":\"data:text/html,<title>sk-voice</title><p>voice</p>\"}", ct);
-			}
-			catch { }
-			finally { try { page?.Dispose(); } catch { } }
 		}
 
 		bool readingopen() {
@@ -1659,9 +1709,9 @@ return 'started';
 
 		IntPtr pickhwnd(uint pid, bool visibleOnly) {
 			IntPtr best = IntPtr.Zero;
-			IntPtr widget = IntPtr.Zero;
+			IntPtr browser = IntPtr.Zero;
 			var bestArea = -1;
-			var widgetArea = -1;
+			var browserArea = -1;
 			EnumWindows((h, _) => {
 				GetWindowThreadProcessId(h, out var wpid);
 				if (wpid != pid) return true;
@@ -1673,14 +1723,19 @@ return 'started';
 					bestArea = area;
 					best = h;
 				}
-				var cls = classname(h);
-				if (cls.IndexOf("Chrome_WidgetWin", StringComparison.Ordinal) >= 0 && area >= widgetArea) {
-					widgetArea = area;
-					widget = h;
+				if (classname(h) == "Chrome_WidgetWin_1" && windowtext(h).Length > 0 && area >= browserArea) {
+					browserArea = area;
+					browser = h;
 				}
 				return true;
 			}, IntPtr.Zero);
-			return widget != IntPtr.Zero ? widget : best;
+			return browser != IntPtr.Zero ? browser : best;
+		}
+
+		static string windowtext(IntPtr hwnd) {
+			var sb = new StringBuilder(256);
+			if (InternalGetWindowText(hwnd, sb, sb.Capacity) <= 0) return "";
+			return sb.ToString();
 		}
 
 		static string classname(IntPtr hwnd) {
@@ -2045,6 +2100,12 @@ return JSON.stringify(out);
 		static extern bool BringWindowToTop(IntPtr h);
 		[DllImport("user32.dll", CharSet = CharSet.Unicode)]
 		static extern int GetClassName(IntPtr hwnd, StringBuilder name, int count);
+		[DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "InternalGetWindowText")]
+		static extern int InternalGetWindowText(IntPtr hwnd, StringBuilder name, int count);
+		[DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+		static extern IntPtr GetWindowLongPtr(IntPtr hwnd, int index);
+		[DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+		static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value);
 		[DllImport("kernel32.dll")]
 		static extern uint GetCurrentThreadId();
 		[DllImport("user32.dll")]
