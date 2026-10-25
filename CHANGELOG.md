@@ -95,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web pronunciation works when a language uses Chrome's Google voice. Korean was refused because that engine does not return an audio file.
 - With the IME off, the next-language hotkey opens the first enabled method in Wubi, Japanese, Korean order.
 - Disabling Wubi stays off when settings are opened again.
+- The Chrome window used for speech and translation no longer keeps a taskbar button.
 
 ### 中文
 
@@ -149,6 +150,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 语言选用 Chrome 的 Google 语音时，网页上的发音可以出声。韩语原先因为这种语音不返回音频而被拒绝。
 - 输入法处于关闭时，切换下一个会按五笔、日语、韩语的顺序打开第一个启用的输入法。
 - 关掉五笔后再打开设置，勾选保持关闭。
+- 朗读和翻译用的 Chrome 不再留在任务栏上。
 
 ## v1.0.29 (2026-10-23)
 

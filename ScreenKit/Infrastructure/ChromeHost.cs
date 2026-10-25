@@ -792,6 +792,19 @@ static class ChromeHost {
 	const int SM_CYVIRTUALSCREEN = 79;
 
 	static bool cloakedBusy;
+	static ITaskbarList tabs;
+
+	static void droptab(IntPtr hwnd) {
+		if (hwnd == IntPtr.Zero) return;
+		try {
+			if (tabs == null) {
+				tabs = (ITaskbarList)new TaskbarList();
+				tabs.HrInit();
+			}
+			tabs.DeleteTab(hwnd);
+		}
+		catch { tabs = null; }
+	}
 	static readonly HashSet<IntPtr> parked = new();
 	static int nexthide;
 	const uint SWP_ASYNCWINDOWPOS = 0x4000;
@@ -809,15 +822,18 @@ static class ChromeHost {
 			if (!sb.ToString().StartsWith("skc", StringComparison.Ordinal)) return true;
 			var ex = GetWindowLongPtr(h, GWL_EXSTYLE).ToInt64();
 			var next = (ex | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW;
-			if (next != ex) SetWindowLongPtr(h, GWL_EXSTYLE, new IntPtr(next));
+			var restyle = next != ex;
+			if (restyle) SetWindowLongPtr(h, GWL_EXSTYLE, new IntPtr(next));
+			droptab(h);
 			if (busy) {
-				if (flip || !parked.Contains(h)) {
+				if (flip || restyle || !parked.Contains(h)) {
+					ShowWindowAsync(h, SW_HIDE);
 					ShowWindowAsync(h, SW_SHOWNA);
 					SetWindowPos(h, IntPtr.Zero, -32000, -32000, 160, 80, SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
 					parked.Add(h);
 				}
 			}
-			else if (flip || !parked.Contains(h) || (retry && IsWindowVisible(h))) {
+			else if (flip || restyle || !parked.Contains(h) || (retry && IsWindowVisible(h))) {
 				ShowWindowAsync(h, SW_HIDE);
 				parked.Add(h);
 				nexthide = unchecked(now + 4000);
@@ -1056,6 +1072,18 @@ static class ChromeHost {
 		+ "try{if(window.speechSynthesis)speechSynthesis.getVoices();}catch(e){}\n"
 		+ "poll();\n"
 		+ "</script>";
+
+	[ComImport, Guid("56FDF344-FD6D-11d0-958A-006097C9A090")]
+	class TaskbarList { }
+
+	[ComImport, Guid("56FDF342-FD6D-11d0-958A-006097C9A090"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+	interface ITaskbarList {
+		void HrInit();
+		void AddTab(IntPtr hwnd);
+		void DeleteTab(IntPtr hwnd);
+		void ActivateTab(IntPtr hwnd);
+		void SetActiveAlt(IntPtr hwnd);
+	}
 
 	delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
 	[DllImport("user32.dll")] static extern bool EnumWindows(EnumProc lpEnumFunc, IntPtr lParam);
