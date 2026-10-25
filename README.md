@@ -29,7 +29,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 ## Speech, translation, dictionary, and face
 
 - **Speech recognition**: Live captions with an offline or streaming model.
-- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome. Chrome lists only installed languages. Chrome model installation opens Chrome with this app's private profile on the model page. **Settings → Speech synthesis** is a per-language table of engine, voice, and rate. Chinese, Japanese, Korean, and English always stay; other languages can be added or removed. Dictionary entry speech, and Read aloud in the selection popup when the engine is Auto, use that row.
+- **Speech synthesis**: Windows speech, SAPI, offline speech, Edge natural voices online, and voices in the local Chrome. Chrome lists only installed languages. Chrome model installation opens Chrome with this app's private profile on the model page. An installed voice can play a short test line. **Settings → Speech synthesis** is a per-language table of engine, voice, and rate. Chinese, Japanese, Korean, and English always stay; other languages can be added or removed. Dictionary entry speech, and Read aloud in the selection popup when the engine is Auto, use that row.
 - **Voice input**: The hotkey starts and finishes it, and the result goes to the current input position.
 - **Chat**: Uses a configured LLM, with bubbles, microphone input, and speaking.
 - **LLM log**: The latest ~1,000 requests with the model, elapsed time, and the request and response.

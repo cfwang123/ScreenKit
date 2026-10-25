@@ -2,6 +2,7 @@
 	var rows = [];
 	var gen = 0;
 	var busy = false;
+	var testing = false;
 	var kind = document.getElementById("kind");
 	var lang = document.getElementById("lang");
 	var msg = document.getElementById("msg");
@@ -23,6 +24,13 @@
 	document.getElementById("refresh").onclick = function(){ load(); };
 	document.getElementById("install").onclick = function(){ apply("install"); };
 	document.getElementById("remove").onclick = function(){ apply("remove"); };
+	tab.onclick = function(ev){
+		var b = ev.target;
+		if (!b || !b.getAttribute) return;
+		var lang = b.getAttribute("data-test");
+		if (!lang) return;
+		testvoice(lang);
+	};
 	load();
 
 	function load(){
@@ -199,6 +207,68 @@
 		return ids;
 	}
 
+	function testbtn(r){
+		if (!r || r.kind !== "tts") return "";
+		var lang = String(r.id || "").replace(/^tts:/i, "");
+		if (!lang) return "";
+		var off = busy || testing || r.state !== "installed";
+		return " <button type=\"button\" class=\"test\" data-test=\"" + esc(lang) + "\"" + (off ? " disabled" : "") + ">测试</button>";
+	}
+
+	function testvoice(lang){
+		if (busy || testing) return;
+		testing = true;
+		paint();
+		say("正在试听…", false);
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "/api/tts/speak", true);
+		xhr.setRequestHeader("Content-Type", "application/json;charset=utf-8");
+		xhr.onload = function(){
+			testing = false;
+			var jo;
+			try { jo = JSON.parse(xhr.responseText); }
+			catch (e) {
+				say("响应不是 JSON", true);
+				paint();
+				return;
+			}
+			if (!jo || jo.code !== 100) {
+				var err = jo && jo.data;
+				say(typeof err === "string" && err ? err : "试听失败", true);
+				paint();
+				return;
+			}
+			say("已试听", false);
+			paint();
+		};
+		xhr.onerror = function(){
+			testing = false;
+			say("网络错误", true);
+			paint();
+		};
+		xhr.send(JSON.stringify({
+			engine: "chrome",
+			lang: lang,
+			text: testline(lang)
+		}));
+	}
+
+	function testline(lang){
+		var k = String(lang || "").toLowerCase();
+		if (k === "zh-cn" || k === "zh") return "这是语音测试。";
+		if (k === "zh-tw") return "這是語音測試。";
+		if (k === "yue-hk" || k === "zh-hk" || k === "yue") return "呢個係語音測試。";
+		if (k === "ja-jp" || k === "ja") return "これは音声のテストです。";
+		if (k === "ko-kr" || k === "ko") return "음성 테스트입니다.";
+		if (k === "de-de" || k === "de") return "Das ist ein Stimmtest.";
+		if (k === "fr-fr" || k === "fr") return "Ceci est un test vocal.";
+		if (k === "es-es" || k === "es-us" || k === "es") return "Esta es una prueba de voz.";
+		if (k === "pt-br" || k === "pt") return "Este é um teste de voz.";
+		if (k === "it-it" || k === "it") return "Questa è una prova vocale.";
+		if (k === "ru-ru" || k === "ru") return "Это проверка голоса.";
+		return "This is a voice test.";
+	}
+
 	function paint(){
 		var filter = kind.value || "all";
 		var want = lang.value || "";
@@ -214,7 +284,8 @@
 				+ "<td>" + esc(r.title) + "</td>"
 				+ "<td>" + esc(r.detail) + "</td>"
 				+ "<td>" + esc(r.sizeText || "") + "</td>"
-				+ "<td><span class=\"st " + statecls(r.state) + "\">" + esc(statetext(r.state)) + "</span></td></tr>");
+				+ "<td><span class=\"st " + statecls(r.state) + "\">" + esc(statetext(r.state)) + "</span>"
+				+ testbtn(r) + "</td></tr>");
 		}
 		if (!shown) html.push("<tr><td></td><td colspan=\"5\">没有匹配的项</td></tr>");
 		html.push("</tbody>");
