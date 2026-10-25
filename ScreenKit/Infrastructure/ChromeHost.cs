@@ -126,12 +126,8 @@ static class ChromeHost {
 
 	public static bool TryRun(out int children) {
 		children = 0;
-		Process p;
-		lock (gate) p = proc;
-		if (!up(p)) return false;
-		int pid;
-		try { pid = p.Id; }
-		catch { return false; }
+		var pid = ownpid();
+		if (pid <= 0) return false;
 		var n = ChromeTts.ChildCount(pid);
 		children = n < 0 ? 0 : n;
 		return true;
@@ -139,13 +135,60 @@ static class ChromeHost {
 
 	/// <summary>本进程和子进程的工作集。没在跑时为 0。</summary>
 	public static long WorkingSet() {
+		var pid = ownpid();
+		if (pid <= 0) return 0;
+		return ChromeTts.TreeWorkingSet(pid);
+	}
+
+	static int hostpid;
+	static int lasthost;
+
+	static int ownpid() {
 		Process p;
 		lock (gate) p = proc;
-		if (!up(p)) return 0;
-		int pid;
-		try { pid = p.Id; }
-		catch { return 0; }
-		return ChromeTts.TreeWorkingSet(pid);
+		if (up(p)) {
+			try { return p.Id; }
+			catch { }
+		}
+		if (string.IsNullOrEmpty(launched)) return 0;
+		if (alive(hostpid)) return hostpid;
+		hostpid = 0;
+		var now = Environment.TickCount;
+		if (lasthost != 0 && unchecked(now - lasthost) < 1500) return 0;
+		lasthost = now;
+		var dbg = debugPort > 0 ? debugPort : readdebug();
+		if (dbg <= 0) return 0;
+		hostpid = listenpid(dbg);
+		return alive(hostpid) ? hostpid : 0;
+	}
+
+	static int listenpid(int dbg) {
+		try {
+			var p = Process.Start(new ProcessStartInfo {
+				FileName = "cmd.exe",
+				Arguments = $"/c netstat -ano -p tcp | findstr \"127.0.0.1:{dbg}\"",
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				CreateNoWindow = true,
+			});
+			if (p == null) return 0;
+			var text = p.StandardOutput.ReadToEnd();
+			if (!p.WaitForExit(2000)) {
+				try { p.Kill(); } catch { }
+				return 0;
+			}
+			var needle = $"127.0.0.1:{dbg}";
+			foreach (var raw in text.Split('\n')) {
+				var line = raw.Trim();
+				if (line.IndexOf(needle, StringComparison.Ordinal) < 0) continue;
+				if (line.IndexOf("LISTENING", StringComparison.OrdinalIgnoreCase) < 0) continue;
+				var bits = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+				if (bits.Length == 0) continue;
+				if (int.TryParse(bits[bits.Length - 1], out var n) && n > 0) return n;
+			}
+		}
+		catch { }
+		return 0;
 	}
 
 	/// <summary>下载模型时别把窗口藏起来，也别按空闲关掉。</summary>
@@ -496,6 +539,8 @@ static class ChromeHost {
 		launched = null;
 		launchedpx = null;
 		debugPort = 0;
+		hostpid = 0;
+		lasthost = 0;
 		List<Slot> left;
 		lock (slots) {
 			ready = false;
