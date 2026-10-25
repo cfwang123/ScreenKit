@@ -402,37 +402,40 @@ static class SendFileWebPages {
 	public const string NO_CACHE = "no-store, no-cache, must-revalidate";
 	static long bootStamp;
 	static bool bootReady;
+	static readonly object mergeLock = new object();
 
-	/// <summary>把 web/tools 里的工具脚本按文件名拼成 web/tools.js。没有更新的文件就跳过。</summary>
+	/// <summary>把 web/tools 里的工具脚本按文件名拼成 web/tools.js。源文件没更新就跳过。</summary>
 	static void mergejs() {
 		try {
-			var root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web");
-			var dir = Path.Combine(root, "tools");
-			if (!Directory.Exists(dir)) return;
-			var files = Directory.GetFiles(dir, "*.js");
-			if (files.Length == 0) return;
-			Array.Sort(files, (a, b) => string.Compare(
-				Path.GetFileName(a), Path.GetFileName(b), StringComparison.OrdinalIgnoreCase));
-			var newest = DateTime.MinValue;
-			foreach (var f in files) {
-				var t = File.GetLastWriteTimeUtc(f);
-				if (t > newest) newest = t;
+			lock (mergeLock) {
+				var root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web");
+				var dir = Path.Combine(root, "tools");
+				if (!Directory.Exists(dir)) return;
+				var files = Directory.GetFiles(dir, "*.js");
+				if (files.Length == 0) return;
+				Array.Sort(files, (a, b) => string.Compare(
+					Path.GetFileName(a), Path.GetFileName(b), StringComparison.OrdinalIgnoreCase));
+				var newest = DateTime.MinValue;
+				foreach (var f in files) {
+					var t = File.GetLastWriteTimeUtc(f);
+					if (t > newest) newest = t;
+				}
+				var output = Path.Combine(root, "tools.js");
+				var old = File.Exists(output) ? File.GetLastWriteTimeUtc(output) : DateTime.MinValue;
+				if (newest <= old) return;
+				var sb = new StringBuilder();
+				foreach (var f in files) {
+					var text = File.ReadAllText(f);
+					sb.Append(text);
+					if (text.Length == 0 || text[text.Length - 1] != '\n') sb.Append('\n');
+				}
+				File.WriteAllText(output, sb.ToString(), new UTF8Encoding(false));
 			}
-			var output = Path.Combine(root, "tools.js");
-			var old = File.Exists(output) ? File.GetLastWriteTimeUtc(output) : DateTime.MinValue;
-			if (newest <= old) return;
-			var sb = new StringBuilder();
-			foreach (var f in files) {
-				var text = File.ReadAllText(f);
-				sb.Append(text);
-				if (text.Length == 0 || text[text.Length - 1] != '\n') sb.Append('\n');
-			}
-			File.WriteAllText(output, sb.ToString(), new UTF8Encoding(false));
 		}
 		catch { }
 	}
 
-	/// <summary>本进程内首次创建 SendFileServer 时写入。HTML 里的脚本地址还要带上 web/ 文件修改时间，避免 ?0 被浏览器永久缓存。</summary>
+	/// <summary>本进程内首次创建 SendFileServer 时记下启动时间。页面地址再带上 web/ 文件修改时间，避免 ?0 被浏览器永久缓存。</summary>
 	public static void EnsureBootStamp() {
 		if (bootReady) return;
 		mergejs();
@@ -443,6 +446,7 @@ static class SendFileWebPages {
 	public static string BootStamp {
 		get {
 			EnsureBootStamp();
+			mergejs();
 			try { Loc.WebFile(); } catch { }
 			var stamp = bootStamp;
 			try {
@@ -463,6 +467,7 @@ static class SendFileWebPages {
 		bytes = null;
 		if (string.IsNullOrWhiteSpace(name) || name.IndexOfAny(new[] { '/', '\\' }) >= 0)
 			return false;
+		if (string.Equals(name, "tools.js", StringComparison.OrdinalIgnoreCase)) mergejs();
 		try {
 			var disk = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", name);
 			if (File.Exists(disk)) {

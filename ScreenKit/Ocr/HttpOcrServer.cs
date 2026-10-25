@@ -966,7 +966,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		res.StatusCode = 200;
 		res.ContentType = mime;
 		res.ContentLength64 = bytes.Length;
-		// HTML 不缓存，里面的样式和脚本地址带本次启动版本。重启后版本变了，旧缓存失效。
+		// HTML 不缓存。样式和脚本地址带 web 文件的修改时间，刷新页面就会拿到新文件。
 		if (html) {
 			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
 			res.Headers["Pragma"] = "no-cache";
