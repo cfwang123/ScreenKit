@@ -40,9 +40,15 @@ static class JaCand {
 		var list = new List<Cand>();
 		if (string.IsNullOrEmpty(reading)) return list;
 		var groups = new Dictionary<string, List<Cand>>();
+		var moremap = new Dictionary<string, Cand>();
 		if (rows != null) {
 			foreach (var r in rows) {
 				if (r == null || string.IsNullOrEmpty(r.Code) || string.IsNullOrEmpty(r.Raw)) continue;
+				if (r.Code.Length > reading.Length && r.Code.StartsWith(reading)) {
+					Cand old;
+					if (!moremap.TryGetValue(r.Raw, out old) || cmpmore(r, old) < 0) moremap[r.Raw] = r;
+					continue;
+				}
 				if (!reading.StartsWith(r.Code)) continue;
 				List<Cand> g;
 				if (!groups.TryGetValue(r.Code, out g)) {
@@ -71,8 +77,17 @@ static class JaCand {
 		}
 		primary.Sort(cmp);
 		if (primary.Count > 48) primary.RemoveRange(48, primary.Count - 48);
+		var more = new List<Cand>(moremap.Values);
+		more.Sort(cmpmore);
 		var seen = new HashSet<string>();
 		foreach (var c in primary) seen.Add(c.Text);
+		foreach (var r in more) {
+			if (!seen.Add(r.Raw)) continue;
+			primary.Add(new Cand {
+				Text = r.Raw, Raw = r.Raw, Code = r.Code,
+				Pinned = r.Pinned, Picks = r.Picks, Rank = r.Rank
+			});
+		}
 		bool lead = !pinned(primary) && (reading.Length <= 1 || kanafirst.Contains(reading));
 		var hira = reading;
 		var kata = Kata(hira);
@@ -152,6 +167,12 @@ static class JaCand {
 		foreach (var c in list)
 			if (c.Pinned) return true;
 		return false;
+	}
+
+	static int cmpmore(Cand a, Cand b) {
+		int c = a.Code.Length.CompareTo(b.Code.Length);
+		if (c != 0) return c;
+		return cmp(a, b);
 	}
 
 	static int cmp(Cand a, Cand b) {

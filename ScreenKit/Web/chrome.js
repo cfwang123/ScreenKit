@@ -33,6 +33,19 @@
 	};
 	load();
 
+	function showprofile(data){
+		var el = document.getElementById("profile");
+		if (!el) return;
+		var path = data && data.profile ? String(data.profile) : "";
+		var kind = data && data.profileKind ? String(data.profileKind) : "";
+		if (!path) {
+			el.textContent = "未能识别当前 Chrome 的配置目录";
+			return;
+		}
+		var who = kind === "app" ? "程序的" : "用户的";
+		el.textContent = "当前配置：" + who + "  " + path;
+	}
+
 	function load(){
 		var n = ++gen;
 		busy = true;
@@ -41,6 +54,7 @@
 		get("/api/chrome/packs", function(data){
 			if (n !== gen) return;
 			rows = data && data.items ? data.items : [];
+			showprofile(data);
 			say("正在查询这个 Chrome 的语音…", false);
 			queryvoices(function(){
 				if (n !== gen) return;

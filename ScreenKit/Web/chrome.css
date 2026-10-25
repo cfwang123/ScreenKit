@@ -45,9 +45,16 @@ button:disabled { opacity: 0.55; cursor: default; }
 #msg.bad { color: #9f2d2d; }
 .hint {
 	flex: none;
-	margin: 8px 20px;
+	margin: 8px 20px 0;
 	color: var(--muted);
 	font-size: 13px;
+}
+.profile {
+	flex: none;
+	margin: 4px 20px 8px;
+	color: var(--ink);
+	font-size: 13px;
+	word-break: break-all;
 }
 .scroll {
 	flex: 1 1 auto;

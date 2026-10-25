@@ -301,13 +301,14 @@
 			var use = pick === "auto" ? null : { kind: pick, flag: "", sub: "" };
 			var note = "";
 			var bad = false;
+			var pre = findpre(word);
 			if (!res || res.state === "down") {
-				note = tx("web.jverb.down", "查不到词典，已按词尾判断。");
+				note = tx("web.jverb.down", pre && pick === "auto" ? "查不到词典，已按示例。" : "查不到词典，已按词尾判断。");
 				bad = true;
 			}
 			else if (res.state === "missing") {
 				note = (res.msg || tx("web.jverb.nodict", "未找到词典库 dict3.bin。请在帮助 → 安装功能里安装词典。"))
-					+ (pick === "auto" ? tx("web.jverb.fallback", "已按词尾判断。") : "");
+					+ (pick === "auto" ? tx("web.jverb.fallback", pre ? "已按示例。" : "已按词尾判断。") : "");
 				bad = true;
 			}
 			if (pick === "auto") {
@@ -317,11 +318,20 @@
 					use = from;
 					if (isIku(word)) use.flag = "iku";
 					if (isAru(word)) use.flag = "arunai";
+					if (isUte(word)) use.flag = "ute";
+					if (isSonkeAru(word)) use.flag = "aru";
+					if (isKureru(word)) use.flag = "kure";
 					note = note || tx("web.jverb.fromdict", "词典");
 				}
 				else {
 					use = guess(word);
-					if (res && res.state === "ok") {
+					if (pre) {
+						if (res && res.state === "ok") {
+							note = hit ? tx("web.jverb.notverb", "词典里这个词不是动词，已按示例。")
+								: tx("web.jverb.miss", "词典里没有这个词，已按示例。");
+						}
+					}
+					else if (res && res.state === "ok") {
 						note = hit ? tx("web.jverb.notverb", "词典里这个词不是动词，已按词尾判断。")
 							: tx("web.jverb.miss", "词典里没有这个词，已按词尾判断。");
 					}
@@ -331,7 +341,11 @@
 				use = { kind: pick, flag: "", sub: "" };
 				if (pick === "1" && isIku(word)) use.flag = "iku";
 				if (pick === "1" && isAru(word)) use.flag = "arunai";
-				if (pick === "3") use.sub = isKuru(word) ? "kuru" : "";
+				if (pick === "1" && isUte(word)) use.flag = "ute";
+				if (pick === "1" && isSonkeAru(word)) use.flag = "aru";
+				if (pick === "2" && isKureru(word)) use.flag = "kure";
+				if (pick === "3") use.sub = isKuru(word) ? "kuru" : (pre && pre[5] ? pre[5] : "");
+				if (pre && pre[3] === pick && pre[4] && !use.flag) use.flag = pre[4];
 				if (!note) note = tx("web.jverb.forced", "按所选类型");
 			}
 			if (!use) {
@@ -458,6 +472,10 @@
 			pas: "受身形", cau: "使役形", cap: "使役受身", tai: "たい", takunai: "たくない",
 			c1: "1类（五段）", c2: "2类（一段）", c3s: "3类（する）", c3k: "3类（くる）",
 			iku: "いく",
+			gson: "尊敬语", gken: "谦让语", gtei: "丁重语",
+			son: "になる", sonm: "になります", sonr: "れる", sonrm: "れます", kud: "ください",
+			ken: "する", kenm: "します", itas: "いたす", itasm: "いたします",
+			tei: "辞書", teim: "ます",
 			bad2: "2类要以る结尾", bad3: "3类是する或くる", bad1: "1类词尾要是う段假名"
 		};
 		return {
@@ -468,6 +486,10 @@
 			pas: "passive", cau: "causative", cap: "causative-passive", tai: "tai", takunai: "takunai",
 			c1: "group 1 (godan)", c2: "group 2 (ichidan)", c3s: "group 3 (suru)", c3k: "group 3 (kuru)",
 			iku: "iku",
+			gson: "Honorific", gken: "Humble", gtei: "Deferential",
+			son: "ni naru", sonm: "masu", sonr: "reru", sonrm: "remasu", kud: "kudasai",
+			ken: "suru", kenm: "shimasu", itas: "itasu", itasm: "itashimasu",
+			tei: "plain", teim: "masu",
 			bad2: "Group 2 must end with る", bad3: "Group 3 is する or くる", bad1: "Group 1 must end with an u-row kana"
 		};
 	}
@@ -490,37 +512,31 @@
 
 	function pack(L, plain, masu, nai, te, ta, ba, cmd, vol, pot, pas, cau, cap){
 		var tai = masu.slice(0, -2) + "たい";
-		return {
-			ok: true,
-			plain: plain,
-			masu: masu,
-			ta: ta,
-			nai: nai,
-			rows: [
-				row(L.dict, plain),
-				row(L.masu, masu),
-				row(L.masen, masu.slice(0, -2) + "ません"),
-				row(L.mashita, masu.slice(0, -2) + "ました"),
-				row(L.masend, masu.slice(0, -2) + "ませんでした"),
-				row(L.nai, nai),
-				row(L.nakatta, nai.slice(0, -2) + "なかった"),
-				row(L.nakute, nai.slice(0, -2) + "なくて"),
-				row(L.naide, nai.slice(0, -2) + "ないで"),
-				row(L.te, te),
-				row(L.ta, ta),
-				row(L.tara, ta + "ら"),
-				row(L.ba, ba),
-				row(L.cmd, cmd),
-				row(L.stop, plain + "な"),
-				row(L.vol, vol),
-				row(L.pot, pot),
-				row(L.pas, pas),
-				row(L.cau, cau),
-				row(L.cap, cap),
-				row(L.tai, tai),
-				row(L.takunai, tai.slice(0, -2) + "たくない")
-			]
-		};
+		var rows = [
+			row(L.dict, plain),
+			row(L.masu, masu),
+			row(L.masen, masu.slice(0, -2) + "ません"),
+			row(L.mashita, masu.slice(0, -2) + "ました"),
+			row(L.masend, masu.slice(0, -2) + "ませんでした"),
+			row(L.nai, nai),
+			row(L.nakatta, nai.slice(0, -2) + "なかった"),
+			row(L.nakute, nai.slice(0, -2) + "なくて"),
+			row(L.naide, nai.slice(0, -2) + "ないで"),
+			row(L.te, te),
+			row(L.ta, ta),
+			row(L.tara, ta + "ら"),
+			row(L.ba, ba),
+			row(L.cmd, cmd),
+			row(L.stop, plain + "な"),
+			row(L.vol, vol),
+			row(L.pot, pot),
+			row(L.pas, pas),
+			row(L.cau, cau),
+			row(L.cap, cap),
+			row(L.tai, tai),
+			row(L.takunai, tai.slice(0, -2) + "たくない")
+		];
+		return { ok: true, plain: plain, masu: masu, ta: ta, nai: nai, rows: rows.concat(keigo(plain, masu, pas, L)) };
 	}
 
 	function godan(word, flag, L){
@@ -536,8 +552,8 @@
 		var ta = stem + col[6];
 		var cmd = e;
 		if (flag === "iku" || isIku(word)) { te = stem + "って"; ta = stem + "った"; }
-		if (flag === "ute") { te = stem + "うて"; ta = stem + "うた"; }
-		if (flag === "aru") { i = stem + "い"; cmd = stem + "い"; }
+		if (flag === "ute" || isUte(word)) { te = stem + "うて"; ta = stem + "うた"; }
+		if (flag === "aru" || isSonkeAru(word)) { i = stem + "い"; cmd = stem + "い"; }
 		var nai = isAru(word) ? arunai(word) : a + "ない";
 		return pack(L, word, i + "ます", nai, te, ta, e + "ば", cmd, o + "う", e + "る", a + "れる", a + "せる", a + "せられる");
 	}
@@ -545,8 +561,9 @@
 	function ichidan(word, L){
 		if (last(word) !== "る") return { ok: false, err: L.bad2 };
 		var stem = word.slice(0, -1);
+		var cmd = isKureru(word) ? stem : stem + "ろ、" + stem + "よ";
 		return pack(L, word, stem + "ます", stem + "ない", stem + "て", stem + "た", stem + "れば",
-			stem + "ろ、" + stem + "よ", stem + "よう", stem + "られる", stem + "られる", stem + "させる", stem + "させられる");
+			cmd, stem + "よう", stem + "られる", stem + "られる", stem + "させる", stem + "させられる");
 	}
 
 	function surukuru(word, sub, L){
@@ -582,13 +599,31 @@
 	function guess(word){
 		word = norm(word);
 		if (!word) return null;
+		var pre = findpre(word);
+		if (pre) return { kind: pre[3], flag: pre[4] || "", sub: pre[5] || "" };
 		if (isKuru(word)) return { kind: "3", sub: "kuru", flag: "" };
 		if (isSuru(word)) return { kind: "3", sub: "suru", flag: "" };
 		if (isAru(word)) return { kind: "1", flag: "arunai", sub: "" };
+		if (isSonkeAru(word)) return { kind: "1", flag: "aru", sub: "" };
+		if (isKureru(word)) return { kind: "2", flag: "kure", sub: "" };
+		if (isUte(word)) return { kind: "1", flag: "ute", sub: "" };
 		var end = last(word);
 		if (end === "る") return { kind: "2", flag: "", sub: "" };
 		if (COL[end]) return { kind: "1", flag: isIku(word) ? "iku" : "", sub: "" };
 		return null;
+	}
+
+	function findpre(word){
+		word = norm(word);
+		if (!word) return null;
+		var h = hira(word);
+		var i, p, n = 0, one = null;
+		for (i = 0; i < PICKS.length; i++) {
+			p = PICKS[i];
+			if (p[1] === word) return p;
+			if (p[2] === word || p[2] === h) { n++; one = p; }
+		}
+		return n === 1 ? one : null;
 	}
 
 	function poskind(pos){
@@ -643,6 +678,219 @@
 			else out += s.charAt(i);
 		}
 		return out;
+	}
+
+	function isKureru(word){
+		word = norm(word);
+		return word === "くれる" || word === "呉れる" || hira(word) === "くれる";
+	}
+
+	function isUte(word){
+		word = norm(word);
+		var h = hira(word);
+		if (word === "問う" || word === "請う" || word === "乞う" || word === "恋う" || word === "厭う" || word === "訪う") return true;
+		return h === "とう" || h === "こう";
+	}
+
+	function isSonkeAru(word){
+		word = norm(word);
+		var h = hira(word);
+		if (h === "なさる" || h === "くださる" || h === "いらっしゃる" || h === "おっしゃる" || h === "ござる") return true;
+		return word === "為さる" || word === "下さる";
+	}
+
+	function keigo(word, masu, pas, L){
+		if (isSonkeAru(word)) return [];
+		var ren = masu.slice(0, -2);
+		var spec = lexOf(word);
+		var prod = prodOf(word, ren);
+		var blockS = spec && (spec.only || spec.onlySon);
+		var blockK = spec && (spec.only || spec.onlyKen);
+		var son = spec && spec.son ? spec.son : "";
+		var ken = spec && spec.ken ? spec.ken : "";
+		if (!blockS) son = joinuniq(son, prod.son);
+		if (!blockK) ken = joinuniq(ken, prod.ken);
+		var itas = blockK ? "" : (prod.itas || "");
+		if (itas && ken.indexOf(itas) >= 0) itas = "";
+		var tei = spec && spec.tei ? spec.tei : "";
+		if (tei && tei === ken) tei = "";
+		var kud = (spec && spec.kud) || (!blockS ? prod.kud : "") || "";
+		var rows = [];
+		pushk(rows, L.son, son, L.gson);
+		pushm(rows, L.sonm, son, L.gson);
+		if (pas) {
+			pushk(rows, L.sonr, pas, L.gson);
+			pushm(rows, L.sonrm, pas, L.gson);
+		}
+		pushk(rows, L.kud, kud, L.gson);
+		pushk(rows, L.ken, ken, L.gken);
+		pushm(rows, L.kenm, ken, L.gken);
+		pushk(rows, L.itas, itas, L.gken);
+		pushm(rows, L.itasm, itas, L.gken);
+		pushk(rows, L.tei, tei, L.gtei);
+		pushm(rows, L.teim, tei, L.gtei);
+		return rows;
+	}
+
+	function pushk(rows, lab, val, g){
+		if (!val) return;
+		rows.push([lab, val, g]);
+	}
+
+	function pushm(rows, lab, val, g){
+		var m = mapmasu(val);
+		if (!m || m === val) return;
+		rows.push([lab, m, g]);
+	}
+
+	function prodOf(word, ren){
+		var empty = { son: "", ken: "", itas: "", kud: "" };
+		var h = hira(word);
+		if (isSonkeAru(word) || isKureru(word)) return empty;
+		if (h === "する" || word === "為る" || isKuru(word)) return empty;
+		if (h === "いく" || word === "行く" || word === "逝く" || word === "往く") return empty;
+		if (h === "いう" || word === "言う" || word === "云う") return empty;
+		if (h === "いる" || word === "居る") return empty;
+		if (h === "みる" || word === "見る" || word === "観る") return empty;
+		if (isIku(word)) return empty;
+		if (isSuru(word)) {
+			var pre = word.slice(0, -2);
+			if (!pre) return empty;
+			if (kanjiOnly(pre)) return {
+				son: "ご" + pre + "になる",
+				ken: "ご" + pre + "する",
+				itas: pre + "いたす",
+				kud: pre + "なさってください"
+			};
+			return {
+				son: "お" + pre + "になる",
+				ken: "お" + pre + "する",
+				itas: pre + "いたす",
+				kud: "お" + pre + "ください"
+			};
+		}
+		if (!ren || ren.length < 2) return empty;
+		return {
+			son: "お" + ren + "になる",
+			ken: "お" + ren + "する",
+			itas: "お" + ren + "いたす",
+			kud: "お" + ren + "ください"
+		};
+	}
+
+	function lexOf(word){
+		var k = keyOf(word);
+		if (!k) return null;
+		var t = {
+			"する": { son: "なさる", ken: "いたす", tei: "いたす", kud: "なさってください", only: true },
+			"くる": { son: "いらっしゃる、おいでになる", ken: "参る、伺う", tei: "参る", kud: "いらしてください、お越しください", only: true },
+			"いく": { son: "いらっしゃる、おいでになる", ken: "参る、伺う", tei: "参る", kud: "いらしてください", only: true },
+			"いる": { son: "いらっしゃる、おいでになる", ken: "おる", tei: "おる", kud: "いらしてください", only: true },
+			"みる": { son: "ご覧になる", ken: "拝見する", kud: "ご覧ください", only: true },
+			"いう": { son: "おっしゃる", ken: "申す、申し上げる", tei: "申す", kud: "おっしゃってください", only: true },
+			"たべる": { son: "召し上がる", ken: "いただく", tei: "いただく", kud: "召し上がってください", onlyKen: true },
+			"のむ": { son: "召し上がる", ken: "いただく", tei: "いただく", kud: "召し上がってください", onlyKen: true },
+			"くれる": { son: "くださる", kud: "ください", only: true },
+			"あげる": { ken: "差し上げる", onlyKen: true },
+			"もらう": { ken: "いただく、頂戴する", tei: "いただく", onlyKen: true },
+			"しる": { son: "ご存じです", ken: "存じる、存じ上げる", tei: "存じる", kud: "ご存じください" },
+			"おもう": { ken: "存じる", tei: "存じる", onlyKen: true },
+			"きく": { ken: "伺う" },
+			"あう": { ken: "お目にかかる", onlyKen: true },
+			"kiru": { son: "お召しになる", kud: "お召しください", onlySon: true },
+			"ねる": { son: "お休みになる", kud: "お休みください", onlySon: true },
+			"かりる": { ken: "拝借する", onlyKen: true },
+			"よむ": { ken: "拝読する", onlyKen: true },
+			"ある": { tei: "ござる", only: true },
+			"みせる": { ken: "お目にかける", onlyKen: true },
+			"できる": { son: "おできになる", kud: "おできください", only: true }
+		};
+		return t[k] || null;
+	}
+
+	function keyOf(word){
+		word = norm(word);
+		var h = hira(word);
+		var alias = {
+			"為る": "する", "来る": "くる", "來る": "くる", "行く": "いく", "逝く": "いく", "往く": "いく",
+			"居る": "いる", "見る": "みる", "観る": "みる", "言う": "いう", "云う": "いう",
+			"食べる": "たべる", "飲む": "のむ", "呉れる": "くれる", "貰う": "もらう",
+			"知る": "しる", "思う": "おもう", "聞く": "きく", "訊く": "きく", "会う": "あう",
+			"着る": "kiru", "寝る": "ねる", "借りる": "かりる", "読む": "よむ",
+			"有る": "ある", "在る": "ある", "見せる": "みせる", "出来る": "できる"
+		};
+		if (alias[word]) return alias[word];
+		var kana = {
+			"する": "する", "くる": "くる", "いく": "いく", "いる": "いる", "みる": "みる", "いう": "いう",
+			"たべる": "たべる", "のむ": "のむ", "くれる": "くれる", "あげる": "あげる", "もらう": "もらう",
+			"しる": "しる", "おもう": "おもう", "きく": "きく", "あう": "あう", "ねる": "ねる",
+			"かりる": "かりる", "よむ": "よむ", "ある": "ある", "みせる": "みせる", "できる": "できる"
+		};
+		return kana[h] || "";
+	}
+
+	function joinuniq(a, b){
+		var parts = [];
+		function add(s){
+			if (!s) return;
+			var i, p = String(s).split("、");
+			for (i = 0; i < p.length; i++) {
+				if (p[i] && parts.indexOf(p[i]) < 0) parts.push(p[i]);
+			}
+		}
+		add(a);
+		add(b);
+		return parts.join("、");
+	}
+
+	function mapmasu(s){
+		if (!s) return "";
+		var parts = String(s).split("、");
+		var out = [];
+		var i, m;
+		for (i = 0; i < parts.length; i++) {
+			m = masuOne(parts[i]);
+			if (m && out.indexOf(m) < 0) out.push(m);
+		}
+		return out.join("、");
+	}
+
+	function masuOne(s){
+		var h = hira(s);
+		if (ends(s, "です") || ends(h, "です")) return s;
+		if (ends(h, "いらっしゃる") || ends(s, "いらっしゃる")) return s.slice(0, -1) + "います";
+		if (ends(h, "おっしゃる") || ends(s, "おっしゃる")) return s.slice(0, -1) + "います";
+		if (ends(h, "くださる") || ends(s, "くださる") || ends(s, "下さる")) return s.slice(0, -1) + "います";
+		if (ends(h, "ござる") || ends(s, "ござる")) return s.slice(0, -1) + "います";
+		if (ends(h, "なさる") || ends(s, "なさる") || ends(s, "為さる")) return s.slice(0, -1) + "います";
+		if (ends(s, "になる") || ends(h, "になる")) return s.slice(0, -3) + "になります";
+		if (ends(s, "する") || ends(h, "する")) return s.slice(0, -2) + "します";
+		if (ends(s, "いたす") || ends(h, "いたす")) return s.slice(0, -3) + "いたします";
+		if (ends(s, "られる") || ends(s, "れる") || ends(h, "られる") || ends(h, "れる")) return s.slice(0, -1) + "ます";
+		if (ends(s, "上げる") || ends(s, "存じる") || ends(s, "かける")) return s.slice(0, -1) + "ます";
+		if (ends(h, "あげる") || ends(h, "ぞんじる") || ends(h, "かける")) return s.slice(0, -1) + "ます";
+		return godanMasu(s);
+	}
+
+	function godanMasu(s){
+		var end = last(s);
+		var m = { "う": "い", "く": "き", "ぐ": "ぎ", "す": "し", "つ": "ち", "ぬ": "に", "ぶ": "び", "む": "み", "る": "り" };
+		if (!m[end]) return "";
+		return s.slice(0, -1) + m[end] + "ます";
+	}
+
+	function kanjiOnly(s){
+		var i, c;
+		if (!s) return false;
+		for (i = 0; i < s.length; i++) {
+			c = s.charCodeAt(i);
+			if (c < 0x4E00 || c > 0x9FFF) return false;
+		}
+		return true;
+	}
+
+	function ends(s, suf){
+		return s.length >= suf.length && s.slice(-suf.length) === suf;
 	}
 
 	function last(s){ return s.charAt(s.length - 1); }

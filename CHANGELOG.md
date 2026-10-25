@@ -66,6 +66,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Refreshing the tools page rebuilds the tool scripts, so web tool edits show up without restarting.
 - Install features marks an old ime.db as a new version. Install replaces it with the current lexicon, including Japanese spellings and conjugations; uninstall removes the old file.
 - The Korean verb field is one box: type a word, or open the example list on that box.
+- A partial Japanese reading lists every lexicon word that can still be completed.
+- The English irregular verb list on the tools page grows to 258 entries, adding rare base verbs and common derivatives.
+- The Chrome model page shows whether the open profile belongs to the program or to the user.
 
 #### Fixed
 
@@ -113,6 +116,9 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 刷新工具页会重新拼接网页工具脚本，改完不用重启程序。
 - 安装功能里，旧的 ime.db 会标成有新版本。安装会换成当前词库（含日语写法和活用），卸载会删掉旧文件。
 - 韩语动词改成一个输入框，可以直接输入，也可以在这个框里打开列表示例。
+- 日语读音只打到一半时，候选列出还能接着输入的词。
+- 工具页的英文不规则动词表补到 258 条，加入少见基础动词和常见派生。
+- Chrome 模型页显示当前打开的配置是程序的还是用户的。
 
 #### 修复
 

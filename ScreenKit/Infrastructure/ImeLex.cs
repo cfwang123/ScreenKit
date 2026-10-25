@@ -285,8 +285,18 @@ static class ImeLex {
 				}, args[i]);
 			}
 			userwords("ja", true, "key IN (" + inn + ")", args, true, c => rows.Add(c));
+			var hi = prefixhi(reading);
+			each(conn, "SELECT reading,text,rank FROM ja_word WHERE reading>$p AND reading<$hi", r => {
+				rows.Add(new Cand { Code = r.GetString(0), Raw = r.GetString(1), Rank = r.GetInt32(2) });
+			}, ("$p", reading), ("$hi", hi));
+			userwords("ja", true, "key>$p AND key<$hi", new[] { ("$p", (object)reading), ("$hi", (object)hi) }, true, c => rows.Add(c));
 		}
 		return JaCand.Build(reading, rows);
+	}
+
+	static string prefixhi(string s) {
+		var last = s[s.Length - 1];
+		return s.Substring(0, s.Length - 1) + (char)(last + 1);
 	}
 
 	public static void TouchJa(string reading, string text) {

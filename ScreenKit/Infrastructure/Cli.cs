@@ -4708,7 +4708,16 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Err("FAIL query " + string.Join(",", rows.ConvertAll(x => x.Text).ToArray()));
 				return 1;
 			}
+			var part = ImeLex.QueryJa("よみが");
+			hit = false;
+			foreach (var r in part)
+				if (r.Text == "蘇る" || r.Raw == "蘇る") hit = true;
+			if (!hit) {
+				Err("FAIL prefix " + string.Join(",", part.ConvertAll(x => x.Text).ToArray()));
+				return 1;
+			}
 			Out("よみがえる " + string.Join(" ", rows.ConvertAll(x => x.Text).ToArray()));
+			Out("よみが " + part.Count);
 		}
 		Out("OK");
 		return 0;

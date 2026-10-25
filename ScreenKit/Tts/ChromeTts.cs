@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32;
@@ -272,6 +273,9 @@ static class ChromeTts {
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern bool CloseHandle(IntPtr handle);
 
+	[DllImport("iphlpapi.dll", SetLastError = true)]
+	static extern uint GetExtendedTcpTable(IntPtr table, ref int size, bool order, uint family, int cls, uint reserved);
+
 	[DllImport("kernel32.dll", SetLastError = true)]
 	static extern IntPtr OpenProcess(int access, bool inherit, int pid);
 
@@ -300,6 +304,127 @@ static class ChromeTts {
 		var profile = Path.Combine(workdir(), "profile");
 		Directory.CreateDirectory(profile);
 		return profile;
+	}
+
+	/// <summary>看这次请求来自哪个 Chrome。kind 为 app（程序的）或 user（用户的），认不出则为空。</summary>
+	public static void ClientProfile(int clientPort, out string path, out string kind) {
+		path = "";
+		kind = "";
+		var pid = ownerpid(clientPort);
+		if (pid <= 0) return;
+		var seen = new HashSet<int>();
+		var mine = normdir(ProfileDir());
+		for (var n = 0; n < 8 && pid > 0 && seen.Add(pid); n++) {
+			if (!procinfo(pid, out var cmd, out var parent)) break;
+			path = userdatadir(cmd);
+			if (path.Length == 0 && browserchrome(cmd)) path = userchrome();
+			if (path.Length > 0) break;
+			pid = parent;
+		}
+		if (path.Length == 0) return;
+		kind = string.Equals(normdir(path), mine, StringComparison.OrdinalIgnoreCase) ? "app" : "user";
+	}
+
+	static int ownerpid(int port) {
+		if (port <= 0 || port > 65535) return 0;
+		var self = 0;
+		try { self = Process.GetCurrentProcess().Id; } catch { }
+		var pid = ownerpid(port, self, 2, false);
+		if (pid > 0) return pid;
+		return ownerpid(port, self, 23, true);
+	}
+
+	static int ownerpid(int port, int self, uint family, bool v6) {
+		var buf = tcptable(family);
+		if (buf == IntPtr.Zero) return 0;
+		try {
+			int n = Marshal.ReadInt32(buf);
+			if (n < 0 || n > 100000) return 0;
+			int stride = v6 ? 56 : 24;
+			int portAt = v6 ? 20 : 8;
+			int pidAt = v6 ? 52 : 20;
+			int stateAt = v6 ? 48 : 0;
+			var pid = 0;
+			for (int i = 0; i < n; i++) {
+				var p = IntPtr.Add(buf, 4 + i * stride);
+				if (ntohs(Marshal.ReadInt32(p, portAt)) != port) continue;
+				if (Marshal.ReadInt32(p, stateAt) != 5) continue;
+				var row = Marshal.ReadInt32(p, pidAt);
+				if (row <= 0 || row == self) continue;
+				pid = row;
+				break;
+			}
+			return pid;
+		}
+		finally {
+			Marshal.FreeHGlobal(buf);
+		}
+	}
+
+	static IntPtr tcptable(uint family) {
+		int size = 0;
+		GetExtendedTcpTable(IntPtr.Zero, ref size, true, family, 5, 0);
+		if (size <= 0) return IntPtr.Zero;
+		var buf = Marshal.AllocHGlobal(size);
+		if (GetExtendedTcpTable(buf, ref size, true, family, 5, 0) == 0) return buf;
+		Marshal.FreeHGlobal(buf);
+		return IntPtr.Zero;
+	}
+
+	static int ntohs(int v) {
+		int p = v & 0xFFFF;
+		return ((p & 0xFF) << 8) | (p >> 8);
+	}
+
+	static bool procinfo(int pid, out string cmd, out int parent) {
+		cmd = "";
+		parent = 0;
+		try {
+			using var search = new ManagementObjectSearcher(
+				"SELECT CommandLine, ParentProcessId FROM Win32_Process WHERE ProcessId=" + pid);
+			using var rows = search.Get();
+			foreach (ManagementObject mo in rows) {
+				cmd = mo["CommandLine"] as string ?? "";
+				try { parent = Convert.ToInt32(mo["ParentProcessId"]); } catch { parent = 0; }
+				return true;
+			}
+		}
+		catch { }
+		return false;
+	}
+
+	static string userdatadir(string cmd) {
+		if (string.IsNullOrEmpty(cmd)) return "";
+		var key = "--user-data-dir=";
+		var i = cmd.IndexOf(key, StringComparison.OrdinalIgnoreCase);
+		if (i < 0) return "";
+		i += key.Length;
+		if (i >= cmd.Length) return "";
+		if (cmd[i] == '"') {
+			var j = cmd.IndexOf('"', i + 1);
+			return j < 0 ? cmd.Substring(i + 1) : cmd.Substring(i + 1, j - i - 1);
+		}
+		var end = i;
+		while (end < cmd.Length && cmd[end] != ' ') end++;
+		return cmd.Substring(i, end - i);
+	}
+
+	static bool browserchrome(string cmd) {
+		if (string.IsNullOrEmpty(cmd)) return false;
+		if (cmd.IndexOf("chrome", StringComparison.OrdinalIgnoreCase) < 0) return false;
+		return cmd.IndexOf("--type=", StringComparison.OrdinalIgnoreCase) < 0;
+	}
+
+	static string userchrome() {
+		var root = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+		return Path.Combine(root, "Google", "Chrome", "User Data");
+	}
+
+	static string normdir(string path) {
+		path = (path ?? "").Trim().TrimEnd('\\', '/');
+		if (path.Length == 0) return "";
+		try { return Path.GetFullPath(path).TrimEnd('\\', '/'); }
+		catch { return path; }
 	}
 
 	static string workdir() {

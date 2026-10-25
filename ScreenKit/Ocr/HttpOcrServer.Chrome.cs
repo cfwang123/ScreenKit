@@ -34,11 +34,14 @@ sealed partial class HttpOcrServer {
 			var list = ChromePack.Catalog(probe, HttpProxy.Mode, HttpProxy.Addr,
 				line => { if (!string.IsNullOrWhiteSpace(line)) log.AppendLine(line); },
 				CancellationToken.None);
+			ChromeTts.ClientProfile(ctx.Request?.RemoteEndPoint?.Port ?? 0, out var profile, out var profileKind);
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
 				["data"] = new JsonObject {
 					["probe"] = probe,
 					["log"] = log.ToString().Trim(),
+					["profile"] = profile,
+					["profileKind"] = profileKind,
 					["items"] = packjson(list, probe),
 				},
 			});
