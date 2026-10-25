@@ -1125,6 +1125,7 @@ return 'started';
 		bool offNet;
 		bool browserNet;
 		bool dlNet;
+		bool popped;
 
 		public bool HasPage => page != null;
 
@@ -1275,6 +1276,7 @@ return 'started';
 				ext ??= connectext();
 				if (ext != null) {
 					hide(proc);
+					hidepop();
 					return true;
 				}
 				if (!woke) {
@@ -1282,19 +1284,28 @@ return 'started';
 					woke = true;
 					wokeAt = Environment.TickCount;
 				}
-				else if (unchecked(Environment.TickCount - wokeAt) > 4000)
+				else if (unchecked(Environment.TickCount - wokeAt) > 4000) {
 					hide(proc);
+					hidepop();
+				}
 				Thread.Sleep(200);
 			}
 			hide(proc);
+			hidepop();
 			return false;
 		}
 
 		void wakeread() {
 			var hwnd = chromehwnd();
 			if (hwnd == IntPtr.Zero) return;
+			var off = false;
+			if (GetWindowRect(hwnd, out var rc))
+				off = rc.left < -2000 || rc.top < -2000;
 			ShowWindow(hwnd, SW_RESTORE);
-			SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 1000, 720, SWP_SHOW);
+			if (off) {
+				SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 1000, 720, SWP_SHOW);
+				popped = true;
+			}
 			SetForegroundWindow(hwnd);
 			Thread.Sleep(300);
 			keybd_event(0x12, 0, 0, UIntPtr.Zero);
@@ -1306,16 +1317,72 @@ return 'started';
 			keybd_event(0x12, 0, 2, UIntPtr.Zero);
 		}
 
+		void hidepop() {
+			if (!popped) return;
+			var hwnd = chromehwnd();
+			if (hwnd != IntPtr.Zero) ShowWindow(hwnd, SW_HIDE);
+			popped = false;
+		}
+
 		IntPtr chromehwnd() {
-			IntPtr found = IntPtr.Zero;
-			if (proc == null) return found;
-			var pid = (uint)proc.Id;
+			var pid = ownpid();
+			if (pid == 0) return IntPtr.Zero;
+			var hwnd = pickhwnd(pid, true);
+			if (hwnd == IntPtr.Zero) hwnd = pickhwnd(pid, false);
+			return hwnd;
+		}
+
+		uint ownpid() {
+			if (proc != null) {
+				try { return (uint)proc.Id; }
+				catch { return 0; }
+			}
+			return listenerpid();
+		}
+
+		uint listenerpid() {
+			try {
+				var p = Process.Start(new ProcessStartInfo {
+					FileName = "netstat",
+					Arguments = "-ano -p tcp",
+					UseShellExecute = false,
+					RedirectStandardOutput = true,
+					CreateNoWindow = true,
+				});
+				if (p == null) return 0;
+				var text = p.StandardOutput.ReadToEnd();
+				p.WaitForExit(3000);
+				var needle = "127.0.0.1:" + port;
+				foreach (var raw in text.Split('\n')) {
+					var line = raw.Trim();
+					if (line.IndexOf(needle, StringComparison.Ordinal) < 0) continue;
+					if (line.IndexOf("0.0.0.0:0", StringComparison.Ordinal) < 0) continue;
+					var bits = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+					if (bits.Length == 0) continue;
+					if (uint.TryParse(bits[bits.Length - 1], out var n) && n > 0) return n;
+				}
+			}
+			catch { }
+			return 0;
+		}
+
+		IntPtr pickhwnd(uint pid, bool visibleOnly) {
+			IntPtr best = IntPtr.Zero;
+			var bestArea = -1;
 			EnumWindows((h, _) => {
 				GetWindowThreadProcessId(h, out var wpid);
-				if (wpid == pid && IsWindowVisible(h)) found = h;
+				if (wpid != pid) return true;
+				if (visibleOnly && !IsWindowVisible(h)) return true;
+				var area = 0;
+				if (GetWindowRect(h, out var rc))
+					area = Math.Max(0, rc.right - rc.left) * Math.Max(0, rc.bottom - rc.top);
+				if (area >= bestArea) {
+					bestArea = area;
+					best = h;
+				}
 				return true;
 			}, IntPtr.Zero);
-			return found;
+			return best;
 		}
 
 		public string EvalPage(string expr, bool wait, int ms, CancellationToken ct) {
@@ -1627,6 +1694,15 @@ return JSON.stringify(out);
 		static extern bool ShowWindow(IntPtr h, int cmd);
 		[DllImport("user32.dll")]
 		static extern bool IsWindowVisible(IntPtr h);
+		[DllImport("user32.dll")]
+		static extern bool GetWindowRect(IntPtr h, out RECT rc);
+		[StructLayout(LayoutKind.Sequential)]
+		struct RECT {
+			public int left;
+			public int top;
+			public int right;
+			public int bottom;
+		}
 		[DllImport("user32.dll")]
 		static extern bool SetForegroundWindow(IntPtr h);
 		[DllImport("user32.dll")]
