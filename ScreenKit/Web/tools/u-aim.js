@@ -28,7 +28,6 @@
 
 	function body(){
 		return '<p class="hint" id="aim-hint"></p>'
-			+ '<p class="hint" id="aim-pages"><a id="aim-models" href="/chrome" target="_blank" rel="noopener"></a></p>'
 			+ '<label id="aim-tasklab"><select id="aim-task">'
 			+ '<option value="detect"></option>'
 			+ '<option value="translate"></option>'
@@ -90,8 +89,6 @@
 	function labels(){
 		var hint = F.id("aim-hint");
 		if (hint) hint.textContent = tx("web.aim.hint", "本地小模型做检测、翻译、摘要、改写、校对和提问。朗读和语音识别用浏览器自己的语音，不下载模型。");
-		var models = F.id("aim-models");
-		if (models) models.textContent = tx("web.aim.models", "查看和安装模型");
 		setlab("aim-tasklab", "web.aim.task", "任务");
 		setlab("aim-srclab", "web.aim.src", "原文语言");
 		setlab("aim-dstlab", "web.aim.dst", "目标语言");

@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Novel reader uses the current browser's voices as the default reading engine.
 - Novel reader Google voices use the offline pack. A missing pack is installed when reading starts, with a cancellable progress dialog.
+- The browser small-model tool no longer opens the Chrome model page, and a voice install no longer switches the front browser into reading mode.
 
 #### Fixed
 
@@ -78,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 小说阅读器默认用当前浏览器自己的语音朗读。
 - 小说阅读器的 Google 发音人改为走离线包。没装时在朗读前安装，并显示可取消的进度。
+- 浏览器小模型安装模型时不再打开 Chrome 模型页，语音安装也不会把当前浏览器切进阅读模式。
 
 #### 修复
 

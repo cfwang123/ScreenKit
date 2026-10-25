@@ -1451,6 +1451,7 @@ return 'started';
 			var off = false;
 			if (GetWindowRect(hwnd, out var rc))
 				off = rc.left < -2000 || rc.top < -2000;
+			if (!off && IsWindowVisible(hwnd)) return;
 			ShowWindow(hwnd, SW_RESTORE);
 			if (off) {
 				SetWindowPos(hwnd, IntPtr.Zero, 80, 80, 1000, 720, SWP_SHOW);
@@ -1458,6 +1459,7 @@ return 'started';
 			}
 			SetForegroundWindow(hwnd);
 			Thread.Sleep(300);
+			if (GetForegroundWindow() != hwnd) return;
 			keybd_event(0x12, 0, 0, UIntPtr.Zero);
 			keybd_event(0x10, 0, 0, UIntPtr.Zero);
 			keybd_event(0x52, 0, 0, UIntPtr.Zero);
@@ -1887,6 +1889,8 @@ return JSON.stringify(out);
 		}
 		[DllImport("user32.dll")]
 		static extern bool SetForegroundWindow(IntPtr h);
+		[DllImport("user32.dll")]
+		static extern IntPtr GetForegroundWindow();
 		[DllImport("user32.dll")]
 		static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
 		[DllImport("user32.dll")]
