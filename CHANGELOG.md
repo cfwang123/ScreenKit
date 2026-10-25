@@ -60,6 +60,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader keeps txt and md files in the browser instead of uploading them.
 - The in-browser model voice list shows whether each Chrome voice pack is installed.
 - Novel reader prepares the next sentence while the current one is still playing, so the pause between sentences is shorter.
+- Each Korean conjugation is labeled with its speech level, such as formal, polite, or casual.
+- The Korean verb box has a list of common verbs and irregular verbs.
 
 #### Fixed
 
@@ -99,6 +101,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器的 txt、md 改存在浏览器里，不再上传到程序。
 - 浏览器小模型选择 Chrome 发音时，会标出该模型是否已安装。
 - 小说阅读器在读当前句时提前合成下一句，缩短两句之间的停顿。
+- 韩语每个变化标明语体，例如敬语、半敬语、非敬语。
+- 韩语动词输入可以下拉选择常见动词和特殊变化的动词。
 
 #### 修复
 

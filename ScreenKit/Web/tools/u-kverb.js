@@ -87,10 +87,151 @@
 		bad: ["请输入以 다 结尾的词典形，如 먹다、하다", "다로 끝나는 사전형. 예: 먹다, 하다", "Enter a dictionary form ending in 다, such as 먹다"],
 		dict: ["词典", "사전", "dictionary"]
 	};
+	var LBL = {
+		dict: ["词典", "사전", "dictionary"],
+		hap: ["敬语", "높임", "formal"],
+		hey: ["半敬语", "해요체", "polite"],
+		ban: ["非敬语", "반말", "casual"],
+		plain: ["书面", "해라체", "plain"],
+		qhap: ["敬语疑问", "높임 질문", "formal question"],
+		qplain: ["非敬语疑问", "반말 질문", "casual question"],
+		phap: ["敬语", "높임", "formal"],
+		phey: ["半敬语", "해요체", "polite"],
+		pban: ["非敬语", "반말", "casual"],
+		pplain: ["书面", "해라체", "plain"],
+		pqhap: ["敬语疑问", "높임 질문", "formal question"],
+		pqplain: ["非敬语疑问", "반말 질문", "casual question"],
+		fhap: ["敬语", "높임", "formal"],
+		fhey: ["半敬语", "해요체", "polite"],
+		fban: ["非敬语", "반말", "casual"],
+		fplain: ["书面", "해라체", "plain"],
+		ghap: ["敬语推测", "높임 추측", "formal guess"],
+		ghey: ["半敬语推测", "해요 추측", "polite guess"],
+		gban: ["非敬语推测", "반말 추측", "casual guess"],
+		gplain: ["书面推测", "해라 추측", "plain guess"],
+		lge: ["半敬语承诺", "해요 약속", "polite promise"],
+		lkk: ["半敬语商量", "해요 의향", "polite suggestion"],
+		prh: ["敬语", "높임", "formal"],
+		pry: ["半敬语", "해요체", "polite"],
+		prb: ["非敬语", "반말", "casual"],
+		prp: ["书面", "해라체", "plain"],
+		prpy: ["半敬语过去", "해요 과거", "polite past"],
+		prph: ["敬语过去", "높임 과거", "formal past"],
+		prpp: ["书面过去", "해라 과거", "plain past"],
+		sip: ["敬语", "높임", "formal"],
+		seyo: ["半敬语", "해요체", "polite"],
+		era: ["书面", "해라체", "plain"],
+		cban: ["非敬语", "반말", "casual"],
+		jima: ["半敬语禁止", "해요 금지", "polite don't"],
+		jimah: ["敬语禁止", "높임 금지", "formal don't"],
+		bsida: ["敬语", "높임", "formal"],
+		ja: ["非敬语", "반말", "casual"],
+		any: ["半敬语否定", "해요 부정", "polite negative"],
+		anp: ["半敬语否定过去", "해요 부정 과거", "polite negative past"],
+		anhy: ["半敬语长否定", "해요 긴 부정", "polite long negative"],
+		anhh: ["敬语长否定", "높임 긴 부정", "formal long negative"],
+		anhpy: ["半敬语长否过去", "해요 긴 부정 과거", "polite long negative past"],
+		anhpp: ["书面长否定", "해라 긴 부정", "plain long negative"],
+		moty: ["半敬语不能", "해요 못", "polite can't"],
+		jimot: ["半敬语长不能", "해요 긴 못", "polite long can't"],
+		honh: ["敬语", "높임", "formal"],
+		hony: ["半敬语", "해요체", "polite"],
+		honpy: ["半敬语过去", "해요 과거", "polite past"],
+		honph: ["敬语过去", "높임 과거", "formal past"],
+		honpp: ["书面过去", "해라 과거", "plain past"],
+		honpl: ["书面", "해라체", "plain"],
+		honf: ["半敬语将来", "해요 미래", "polite future"],
+		go: ["并列", "나열", "and"],
+		ase: ["然后", "순서", "and then"],
+		myeon: ["条件", "조건", "if"],
+		jiman: ["转折", "대조", "but"],
+		nikka: ["原因", "이유", "because"],
+		ryeo: ["打算", "의도", "intend"],
+		wanty: ["半敬语想", "해요 싶다", "polite want"],
+		wanth: ["敬语想", "높임 싶다", "formal want"],
+		wantb: ["非敬语想", "반말 싶다", "casual want"],
+		ayay: ["半敬语必须", "해요 해야", "polite must"],
+		aya: ["书面必须", "해라 해야", "plain must"],
+		suy: ["半敬语可以", "해요 가능", "polite can"],
+		su: ["书面可以", "해라 가능", "plain can"],
+		sun: ["半敬语不行", "해요 불가", "polite cannot"],
+		ado: ["让步", "양보", "even if"],
+		modn: ["现在", "현재", "present"],
+		modp: ["过去", "과거", "past"],
+		modf: ["将来", "미래", "future"],
+		deon: ["回想", "회상", "retrospective"],
+		atd: ["经历", "경험", "experienced"],
+		neyo: ["半敬语感叹", "해요 감탄", "polite reaction"],
+		atne: ["过去感叹", "과거 감탄", "past reaction"],
+		jan: ["半敬语提醒", "해요 상기", "polite reminder"],
+		jyo: ["半敬语确认", "해요 확인", "polite confirm"],
+		jiyo: ["半敬语详述", "해요 지요", "polite full confirm"],
+		hyeo: ["书面连接", "문어 연결", "written link"],
+		hyeot: ["书面过去", "문어 과거", "written past"],
+		hyeos: ["书面然后", "문어 순서", "written then"],
+		ji: ["中顿", "중지", "pause"]
+	};
+	var PICKG = {
+		common: ["常见", "자주", "Common"],
+		irr: ["特殊变化", "불규칙", "Irregular"]
+	};
+	var PICKS = [
+		["common", "먹다", "吃", "", "eat"],
+		["common", "가다", "去", "", "go"],
+		["common", "오다", "来", "", "come"],
+		["common", "하다", "做", "", "do"],
+		["common", "되다", "成为", "", "become"],
+		["common", "보다", "看", "", "see"],
+		["common", "주다", "给", "", "give"],
+		["common", "사다", "买", "", "buy"],
+		["common", "만나다", "见面", "", "meet"],
+		["common", "읽다", "读", "", "read"],
+		["common", "알다", "知道", "", "know"],
+		["common", "살다", "住", "", "live"],
+		["common", "만들다", "制作", "", "make"],
+		["common", "마시다", "喝", "", "drink"],
+		["common", "배우다", "学习", "", "learn"],
+		["common", "기다리다", "等待", "", "wait"],
+		["common", "공부하다", "学习", "", "study"],
+		["common", "좋아하다", "喜欢", "", "like"],
+		["common", "일하다", "工作", "", "work"],
+		["common", "닫다", "关", "", "close"],
+		["common", "믿다", "相信", "", "believe"],
+		["common", "잡다", "抓", "", "catch"],
+		["common", "웃다", "笑", "", "laugh"],
+		["irr", "듣다", "听 · ㄷ", "ㄷ", "listen · ㄷ"],
+		["irr", "걷다", "走 · ㄷ", "ㄷ", "walk · ㄷ"],
+		["irr", "묻다", "问 · ㄷ", "ㄷ", "ask · ㄷ"],
+		["irr", "돕다", "帮 · ㅂ", "ㅂ", "help · ㅂ"],
+		["irr", "춥다", "冷 · ㅂ", "ㅂ", "cold · ㅂ"],
+		["irr", "짓다", "建 · ㅅ", "ㅅ", "build · ㅅ"],
+		["irr", "낫다", "愈 · ㅅ", "ㅅ", "recover · ㅅ"],
+		["irr", "그렇다", "那样 · ㅎ", "ㅎ", "so · ㅎ"],
+		["irr", "파랗다", "蓝 · ㅎ", "ㅎ", "blue · ㅎ"],
+		["irr", "어떻다", "怎样 · ㅎ", "ㅎ", "how · ㅎ"],
+		["irr", "모르다", "不知 · 르", "르", "not know · 르"],
+		["irr", "부르다", "叫 · 르", "르", "call · 르"],
+		["irr", "빠르다", "快 · 르", "르", "fast · 르"],
+		["irr", "따르다", "跟随 · ㅡ", "ㅡ", "follow · ㅡ"],
+		["irr", "쓰다", "写 · ㅡ", "ㅡ", "write · ㅡ"],
+		["irr", "예쁘다", "漂亮 · ㅡ", "ㅡ", "pretty · ㅡ"],
+		["irr", "아프다", "疼 · ㅡ", "ㅡ", "hurt · ㅡ"],
+		["irr", "모으다", "收集 · ㅡ", "ㅡ", "gather · ㅡ"],
+		["irr", "푸르다", "青绿 · 러", "러", "green · 러"],
+		["irr", "놓다", "放", "", "put"],
+		["irr", "가시다", "去 · 敬语", "높임", "go · honorific"],
+		["irr", "계시다", "在 · 敬语", "높임", "stay · honorific"],
+		["irr", "있다", "有", "", "exist"],
+		["irr", "없다", "没有", "", "not exist"],
+		["irr", "행복하다", "幸福 · 하다", "하다", "happy · 하다"],
+		["irr", "학생이다", "是学生", "", "be a student"],
+		["irr", "아니다", "不是", "", "not be"]
+	];
 	var clip = null;
 
 	if (exp) {
 		exp.build = build;
+		exp.picks = PICKS;
 		return;
 	}
 	if (typeof SK === "undefined" || !SK.regutil) return;
@@ -116,8 +257,9 @@
 
 	function body(){
 		return '<p class="hint" id="kv-hint"></p>'
-			+ '<div class="row">'
+			+ '<div class="row" id="kv-row">'
 			+ '<label id="kv-word"><input id="kv-in" type="text" value="먹다"></label>'
+			+ '<label id="kv-pick"><select id="kv-ex"></select></label>'
 			+ '<label id="kv-type"><select id="kv-sel">'
 			+ '<option value="auto"></option>'
 			+ '<option value="v"></option>'
@@ -136,7 +278,14 @@
 		var title = F.id("box-title");
 		if (title) title.textContent = tx("web.tool.kverb", "韩语动词变化");
 		setlab("kv-word", "web.kverb.word", "动词");
+		setlab("kv-pick", "web.kverb.pick", "示例");
 		setlab("kv-type", "web.kverb.type", "类型");
+		var ex = F.id("kv-ex");
+		if (ex && !F.attr(ex, "data-bind")) {
+			F.seta(ex, "data-bind", "1");
+			ex.onchange = onpick;
+		}
+		fillpicks();
 		setopt("auto", "web.kverb.auto", "自动");
 		setopt("v", "web.kverb.verb", "动词");
 		setopt("a", "web.kverb.adj", "形容词");
@@ -151,6 +300,35 @@
 			out.onclick = onout;
 		}
 		run();
+	}
+
+	function fillpicks(){
+		var sel = F.id("kv-ex");
+		if (!sel) return;
+		var lang = langcode();
+		var html = '<option value="">' + esc(tx("web.kverb.pick", "示例")) + "</option>";
+		var g = "";
+		var i, row, gloss;
+		for (i = 0; i < PICKS.length; i++) {
+			row = PICKS[i];
+			if (row[0] !== g) {
+				if (g) html += "</optgroup>";
+				g = row[0];
+				html += '<optgroup label="' + esc(lp(lang, PICKG[g])) + '">';
+			}
+			gloss = lang === "zh" ? row[2] : lang === "ko" ? row[3] : row[4];
+			html += '<option value="' + esc(row[1]) + '">' + esc(gloss ? row[1] + "  " + gloss : row[1]) + "</option>";
+		}
+		if (g) html += "</optgroup>";
+		sel.innerHTML = html;
+	}
+
+	function onpick(){
+		var sel = F.id("kv-ex");
+		var box = F.id("kv-in");
+		if (!sel || !box || !sel.value) return;
+		box.value = sel.value;
+		sel.value = "";
 	}
 
 	function onout(ev){
@@ -696,6 +874,11 @@
 		return row[i];
 	}
 
+	function rowName(id, name, lang){
+		var lab = LBL[id];
+		return lab ? lp(lang, lab) : name;
+	}
+
 	function noteOf(kind, irr, stem, lang){
 		var k = lp(lang, NOTE[kind] || NOTE.v);
 		var tag = "";
@@ -742,7 +925,7 @@
 		var cur = "";
 		function add(id, name, text){
 			if (!text) return;
-			rows.push({ id: id, g: cur, name: name, text: text });
+			rows.push({ id: id, g: cur, name: rowName(id, name, lang), text: text });
 		}
 		var yo = spokenAe(syls, irr, true);
 		var ba = spokenAe(syls, irr, false);
@@ -881,7 +1064,7 @@
 		var rows = [];
 		var cur = "";
 		function add(id, name, text){
-			rows.push({ id: id, g: cur, name: name, text: text });
+			rows.push({ id: id, g: cur, name: rowName(id, name, lang), text: text });
 		}
 		cur = g("base");
 		add("dict", lp(lang, NOTE.dict), word);
@@ -923,7 +1106,7 @@
 		var rows = [];
 		var cur = g("base");
 		function add(id, name, text){
-			rows.push({ id: id, g: cur, name: name, text: text });
+			rows.push({ id: id, g: cur, name: rowName(id, name, lang), text: text });
 		}
 		add("dict", lp(lang, NOTE.dict), word);
 		cur = g("now");
