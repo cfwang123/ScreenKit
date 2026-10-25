@@ -97,6 +97,21 @@ static class ChromeHost {
 		lock (gate) stopunlocked();
 	}
 
+	/// <summary>可见模型页用同一份配置。隐藏窗口停在屏幕外，这个位置会被记下来，下次就只露出一条。打开前改回当前屏幕，并清掉崩溃恢复。</summary>
+	public static (int left, int top, int width, int height) PrepareVisible() {
+		var (left, top, width, height, wl, wt, wr, wb) = visibleframe();
+		writeplacement(left, top, width, height, wl, wt, wr, wb);
+		clearsessions();
+		return (left, top, width, height);
+	}
+
+	/// <summary>命令行和配置都可能被忽略。窗口出来后若仍大半在屏幕外，再把它移回给定位置。</summary>
+	public static void NudgeVisible(int pid, int left, int top, int width, int height) {
+		if (width < 200 || height < 200) return;
+		var t = new Thread(() => nudgevisible(pid, left, top, width, height)) { IsBackground = true, Name = "chrome-show" };
+		t.Start();
+	}
+
 	/// <summary>只打断朗读，翻译任务留着。晚到的停止请求不碰之后新建的朗读。</summary>
 	public static void StopSpeak() {
 		var cutoff = Volatile.Read(ref seq);
@@ -696,9 +711,15 @@ static class ChromeHost {
 	const int WS_EX_APPWINDOW = 0x40000;
 	const int SW_HIDE = 0;
 	const int SW_SHOWNA = 8;
+	const int SW_RESTORE = 9;
+	const uint GW_OWNER = 4;
 	const uint SWP_NOZORDER = 0x0004;
 	const uint SWP_NOACTIVATE = 0x0010;
 	const uint SWP_SHOWWINDOW = 0x0040;
+	const int SM_XVIRTUALSCREEN = 76;
+	const int SM_YVIRTUALSCREEN = 77;
+	const int SM_CXVIRTUALSCREEN = 78;
+	const int SM_CYVIRTUALSCREEN = 79;
 
 	static bool cloakedBusy;
 
@@ -724,6 +745,203 @@ static class ChromeHost {
 			else if (changed || flip || IsWindowVisible(h)) ShowWindow(h, SW_HIDE);
 			return true;
 		}, IntPtr.Zero);
+	}
+
+	static (int left, int top, int width, int height, int wl, int wt, int wr, int wb) visibleframe() {
+		var hwnd = IntPtr.Zero;
+		try {
+			var win = System.Windows.Application.Current?.MainWindow;
+			if (win != null) hwnd = new System.Windows.Interop.WindowInteropHelper(win).Handle;
+		}
+		catch { }
+		var mon = MonitorFromWindow(hwnd, hwnd == IntPtr.Zero ? 1u : 2u);
+		var info = new MONITORINFO();
+		info.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+		if (mon == IntPtr.Zero || !GetMonitorInfo(mon, ref info)) {
+			info.rcWork.Left = 0;
+			info.rcWork.Top = 0;
+			info.rcWork.Right = GetSystemMetrics(0);
+			info.rcWork.Bottom = GetSystemMetrics(1);
+		}
+		var wl = info.rcWork.Left;
+		var wt = info.rcWork.Top;
+		var wr = info.rcWork.Right;
+		var wb = info.rcWork.Bottom;
+		var ww = Math.Max(1, wr - wl);
+		var wh = Math.Max(1, wb - wt);
+		var width = Math.Min(1200, ww - 80);
+		var height = Math.Min(820, wh - 80);
+		if (width < 480) width = Math.Max(320, ww - 16);
+		if (height < 360) height = Math.Max(240, wh - 16);
+		if (width > ww) width = ww;
+		if (height > wh) height = wh;
+		var left = wl + Math.Max(0, (ww - width) / 2);
+		var top = wt + Math.Max(0, (wh - height) / 2);
+		return (left, top, width, height, wl, wt, wr, wb);
+	}
+
+	static void writeplacement(int left, int top, int width, int height, int wl, int wt, int wr, int wb) {
+		var path = Path.Combine(ChromeTts.ProfileDir(), "Default", "Preferences");
+		if (!File.Exists(path)) return;
+		var text = File.ReadAllText(path);
+		var root = JsonNode.Parse(text) as JsonObject;
+		if (root == null) return;
+		var browser = root["browser"] as JsonObject;
+		if (browser == null) {
+			browser = new JsonObject();
+			root["browser"] = browser;
+		}
+		browser["window_placement"] = new JsonObject {
+			["bottom"] = top + height,
+			["left"] = left,
+			["maximized"] = false,
+			["right"] = left + width,
+			["top"] = top,
+			["work_area_bottom"] = wb,
+			["work_area_left"] = wl,
+			["work_area_right"] = wr,
+			["work_area_top"] = wt,
+		};
+		var prof = root["profile"] as JsonObject;
+		if (prof == null) {
+			prof = new JsonObject();
+			root["profile"] = prof;
+		}
+		prof["exit_type"] = "Normal";
+		prof["exited_cleanly"] = true;
+		var next = root.ToJsonString();
+		if (next.Length * 2 < text.Length) return;
+		File.WriteAllText(path, next, new UTF8Encoding(false));
+	}
+
+	static void clearsessions() {
+		var def = Path.Combine(ChromeTts.ProfileDir(), "Default");
+		foreach (var name in new[] { "Current Session", "Current Tabs", "Last Session", "Last Tabs" }) {
+			try { File.Delete(Path.Combine(def, name)); } catch { }
+		}
+		var sessions = Path.Combine(def, "Sessions");
+		try {
+			if (!Directory.Exists(sessions)) return;
+			foreach (var f in Directory.GetFiles(sessions))
+				try { File.Delete(f); } catch { }
+		}
+		catch { }
+	}
+
+	static void nudgevisible(int pid, int left, int top, int width, int height) {
+		var start = Environment.TickCount;
+		var stable = 0;
+		HashSet<int> extra = null;
+		var nextExtra = 0;
+		while (unchecked(Environment.TickCount - start) < 5000) {
+			HashSet<int> pids;
+			if (alive(pid)) pids = treepids(pid);
+			else {
+				if (extra == null || unchecked(Environment.TickCount - nextExtra) >= 0) {
+					extra = profilepids();
+					nextExtra = unchecked(Environment.TickCount + 1000);
+				}
+				pids = extra;
+			}
+			var any = false;
+			var bad = false;
+			EnumWindows((h, _) => {
+				GetWindowThreadProcessId(h, out var wpid);
+				if (pids == null || !pids.Contains((int)wpid)) return true;
+				if (GetWindow(h, GW_OWNER) != IntPtr.Zero) return true;
+				if (!ischromewin(h) || !IsWindowVisible(h)) return true;
+				any = true;
+				GetWindowRect(h, out var r);
+				if (!needsplace(r)) return true;
+				bad = true;
+				ShowWindow(h, SW_RESTORE);
+				SetWindowPos(h, IntPtr.Zero, left, top, width, height, SWP_NOZORDER | SWP_SHOWWINDOW);
+				return true;
+			}, IntPtr.Zero);
+			if (any && !bad) {
+				stable++;
+				if (stable >= 3) return;
+			} else stable = 0;
+			Thread.Sleep(200);
+		}
+	}
+
+	static bool needsplace(RECT r) {
+		var w = r.Right - r.Left;
+		var h = r.Bottom - r.Top;
+		if (w < 420 || h < 280) return true;
+		var vl = GetSystemMetrics(SM_XVIRTUALSCREEN);
+		var vt = GetSystemMetrics(SM_YVIRTUALSCREEN);
+		var vr = vl + GetSystemMetrics(SM_CXVIRTUALSCREEN);
+		var vb = vt + GetSystemMetrics(SM_CYVIRTUALSCREEN);
+		var il = Math.Max(r.Left, vl);
+		var it = Math.Max(r.Top, vt);
+		var ir = Math.Min(r.Right, vr);
+		var ib = Math.Min(r.Bottom, vb);
+		if (ir <= il || ib <= it) return true;
+		return (long)(ir - il) * (ib - it) * 2 < (long)w * h;
+	}
+
+	static bool ischromewin(IntPtr h) {
+		var sb = new StringBuilder(64);
+		return GetClassName(h, sb, sb.Capacity) > 0 && sb.ToString() == "Chrome_WidgetWin_1";
+	}
+
+	static bool alive(int pid) {
+		if (pid <= 0) return false;
+		try {
+			using var p = Process.GetProcessById(pid);
+			return !p.HasExited;
+		}
+		catch { return false; }
+	}
+
+	static HashSet<int> treepids(int pid) {
+		var set = new HashSet<int>();
+		if (pid <= 0) return set;
+		var snap = CreateToolhelp32Snapshot(2, 0);
+		if (snap == IntPtr.Zero || snap == new IntPtr(-1)) {
+			set.Add(pid);
+			return set;
+		}
+		try {
+			var rows = new List<int[]>();
+			var pe = new PROCESSENTRY32();
+			pe.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
+			if (!Process32First(snap, ref pe)) {
+				set.Add(pid);
+				return set;
+			}
+			do rows.Add(new[] { (int)pe.th32ProcessID, (int)pe.th32ParentProcessID });
+			while (Process32Next(snap, ref pe));
+			var q = new Queue<int>();
+			q.Enqueue(pid);
+			set.Add(pid);
+			while (q.Count > 0) {
+				var id = q.Dequeue();
+				foreach (var row in rows) {
+					if (row[1] != id || !set.Add(row[0])) continue;
+					q.Enqueue(row[0]);
+				}
+			}
+			return set;
+		}
+		finally { CloseHandle(snap); }
+	}
+
+	static HashSet<int> profilepids() {
+		var set = new HashSet<int>();
+		try {
+			using var search = new System.Management.ManagementObjectSearcher(
+				"SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name='chrome.exe'");
+			foreach (System.Management.ManagementObject mo in search.Get()) {
+				var cmd = mo["CommandLine"] as string ?? "";
+				if (cmd.IndexOf("sk-chrome-tts", StringComparison.OrdinalIgnoreCase) < 0) continue;
+				set.Add(Convert.ToInt32(mo["ProcessId"]));
+			}
+		}
+		catch { }
+		return set;
 	}
 
 	static bool hastitle(string part) {
@@ -761,4 +979,43 @@ static class ChromeHost {
 	[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 	[DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hWnd);
 	[DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+	[DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+	[DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+	[DllImport("user32.dll")] static extern int GetSystemMetrics(int nIndex);
+	[DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+	[DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint pid);
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32FirstW", SetLastError = true)] static extern bool Process32First(IntPtr snap, ref PROCESSENTRY32 pe);
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode, EntryPoint = "Process32NextW", SetLastError = true)] static extern bool Process32Next(IntPtr snap, ref PROCESSENTRY32 pe);
+	[DllImport("kernel32.dll", SetLastError = true)] static extern bool CloseHandle(IntPtr handle);
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct RECT {
+		public int Left, Top, Right, Bottom;
+	}
+
+	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+	struct MONITORINFO {
+		public int cbSize;
+		public RECT rcMonitor;
+		public RECT rcWork;
+		public uint dwFlags;
+	}
+
+	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+	struct PROCESSENTRY32 {
+		public uint dwSize;
+		public uint cntUsage;
+		public uint th32ProcessID;
+		public IntPtr th32DefaultHeapID;
+		public uint th32ModuleID;
+		public uint cntThreads;
+		public uint th32ParentProcessID;
+		public int pcPriClassBase;
+		public uint dwFlags;
+		[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+		public string szExeFile;
+	}
 }

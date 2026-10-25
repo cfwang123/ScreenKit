@@ -269,14 +269,23 @@ public partial class MainWindow {
 		var url = "http://127.0.0.1:" + HttpOcrServer.PagePort(opt) + "/chrome";
 		var profile = ChromeTts.ProfileDir();
 		var px = HttpProxy.ChromeArgs();
-		var args = $"--user-data-dir=\"{profile}\" --remote-debugging-address=127.0.0.1 --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-features=UseSystemProxyResolver {px}\"{url}\"";
 		try {
 			ChromeHost.Stop();
-			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
+			var left = 80;
+			var top = 60;
+			var width = 1100;
+			var height = 760;
+			try { (left, top, width, height) = ChromeHost.PrepareVisible(); }
+			catch { }
+			var args = $"--user-data-dir=\"{profile}\" --remote-debugging-address=127.0.0.1 --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-features=UseSystemProxyResolver --window-position={left},{top} --window-size={width},{height} {px}\"{url}\"";
+			var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
 				FileName = exe,
 				Arguments = args,
 				UseShellExecute = false,
 			});
+			var pid = 0;
+			try { if (proc != null) pid = proc.Id; } catch { }
+			ChromeHost.NudgeVisible(pid, left, top, width, height);
 		}
 		catch (Exception ex) {
 			showwarnmsg(ex.Message, Loc.T("tab.translate"));
