@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader Google voices use the offline pack. A missing pack is installed when reading starts, with a cancellable progress dialog.
 - A voice install no longer switches the browser in front into reading mode.
 - Novel reader keeps txt and md files in the browser instead of uploading them.
+- The in-browser model voice list shows whether each Chrome voice pack is installed.
 
 #### Fixed
 
@@ -86,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器的 Google 发音人改为走离线包。没装时在朗读前安装，并显示可取消的进度。
 - 语音安装时不再把当前浏览器切进阅读模式。
 - 小说阅读器的 txt、md 改存在浏览器里，不再上传到程序。
+- 浏览器小模型选择 Chrome 发音时，会标出该模型是否已安装。
 
 #### 修复
 

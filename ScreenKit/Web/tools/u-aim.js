@@ -5,6 +5,8 @@
 	var hearing = false;
 	var voicesHooked = false;
 	var speakGen = 0;
+	var packs = {};
+	var packsReady = false;
 	var LANGS = ["zh", "en", "ja", "ko", "es", "fr", "de", "pt", "ru", "it"];
 	var SPEECH = {
 		zh: "zh-CN", en: "en-US", ja: "ja-JP", ko: "ko-KR", es: "es-ES",
@@ -72,6 +74,7 @@
 		}
 		fillangs();
 		fillvoices();
+		loadpacks();
 		labels();
 		var task = F.id("aim-task");
 		if (task) task.onchange = showtask;
@@ -403,11 +406,78 @@
 			if (want && !samelang(v.lang, want)) continue;
 			o = F.el("option");
 			o.value = v.voiceURI || v.name;
-			o.textContent = v.name + (v.lang ? " (" + v.lang + ")" : "");
+			o.textContent = voicelabel(v);
 			sel.appendChild(o);
 		}
 		sel.value = prev;
 		if (sel.value !== prev) sel.selectedIndex = 0;
+	}
+
+	function voicelabel(v){
+		var text = v.name + (v.lang ? " (" + v.lang + ")" : "");
+		if (!chromevoice(v)) return text;
+		if (!packsReady && !v.localService) return text;
+		var on = !!v.localService || packon(v);
+		var tag = on ? tx("inst.installed", "已安装") : tx("inst.missing", "未安装");
+		return text + " · " + tag;
+	}
+
+	function chromevoice(v){
+		if (!v) return false;
+		var name = String(v.name || "");
+		var uri = String(v.voiceURI || "");
+		if (name.indexOf("Google") === 0 || name.indexOf("Chrome OS") === 0) return true;
+		return uri.indexOf("Google") >= 0 || uri.indexOf("Chrome OS") >= 0;
+	}
+
+	function packon(v){
+		var lang = speaklang(v && v.lang);
+		if (!lang) return false;
+		var s = packs[lang];
+		return s === "installed" || s === "partial";
+	}
+
+	function speaklang(code){
+		var s = String(code || "").replace(/_/g, "-");
+		var l = s.toLowerCase();
+		if (l === "zh-hk" || l === "yue" || l === "yue-hk") return "yue-HK";
+		if (l === "zh" || l === "zh-cn" || l === "zh-hans") return "zh-CN";
+		if (l === "zh-tw" || l === "zh-hant") return "zh-TW";
+		if (l === "ja" || l === "ja-jp") return "ja-JP";
+		if (l === "ko" || l === "ko-kr") return "ko-KR";
+		if (l === "en" || l === "en-us") return "en-US";
+		if (l === "en-gb") return "en-GB";
+		if (l === "de" || l === "de-de") return "de-DE";
+		if (l === "fr" || l === "fr-fr") return "fr-FR";
+		if (l === "es" || l === "es-es") return "es-ES";
+		if (l === "pt" || l === "pt-br") return "pt-BR";
+		if (l === "it" || l === "it-it") return "it-IT";
+		if (l === "ru" || l === "ru-ru") return "ru-RU";
+		var m = /^([a-z]{2})-([a-zA-Z]{2})$/.exec(s);
+		if (m) return m[1].toLowerCase() + "-" + m[2].toUpperCase();
+		return s;
+	}
+
+	function loadpacks(){
+		if (!SK.get) return;
+		SK.get("/api/chrome/packs", function(data){
+			var items = data && data.items ? data.items : [];
+			var map = {};
+			var i, it, lang;
+			for (i = 0; i < items.length; i++) {
+				it = items[i];
+				if (!it || it.kind !== "tts" || !it.id) continue;
+				lang = speaklang(String(it.id).replace(/^tts:/i, ""));
+				if (!lang) continue;
+				map[lang] = it.state || "";
+			}
+			packs = map;
+			packsReady = true;
+			if (SK.curtool === "u-aim") fillvoices();
+		}, "", function(){
+			packsReady = true;
+			if (SK.curtool === "u-aim") fillvoices();
+		});
 	}
 
 	function vlang(){
